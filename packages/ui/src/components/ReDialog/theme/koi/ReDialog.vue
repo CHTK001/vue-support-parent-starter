@@ -379,7 +379,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 /* 紧凑 body 内边距 */
 .koi-dialog-shell .el-dialog__body {
-  padding: 8px 20px !important;
+  padding: 8px !important;
 }
 
 /* 全屏时内容区放开最大高度，允许铺满整个屏幕 */

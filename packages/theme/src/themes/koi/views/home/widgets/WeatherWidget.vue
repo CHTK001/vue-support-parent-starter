@@ -1,5 +1,13 @@
 <template>
-  <div class="weather-panel" v-loading="loading">
+  <div class="ww">
+    <div v-if="!widget.hideTitle" class="ww__header">
+      <div class="ww__title">
+        <el-icon class="ww__title-icon"><Sunny /></el-icon>
+        <span>{{ widget.title }}</span>
+      </div>
+    </div>
+
+    <div class="weather-panel" v-loading="loading">
     <template v-if="hasWeather">
       <div class="source-publish-time">
         <span :title="`气象数据源发布时间`">发布时间：{{ sourcePublishTime }}</span>
@@ -102,15 +110,17 @@
       <ReIcon name="fluent:weather-sunny-24-regular" size="48" class="weather-empty-icon"/>
       <p>天气数据加载中...</p>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { Sunny } from "@element-plus/icons-vue";
 import { useWeather } from "@repo/theme/composables/useWeather";
 import type { WidgetItem } from "../types";
 
-defineProps<{ widget: WidgetItem }>();
+const props = defineProps<{ widget: WidgetItem }>();
 
 const {
   weatherCode, temp, feelsLike, humidity, windSpeed, windDir,
@@ -151,16 +161,59 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.weather-panel {
-  width: 100%;
+/* 标准壳层：与其余 widget 一致（边框 / 圆角 / overflow），
+   天气自身的渐变作为 body 铺在壳层内部，保留它原有的视觉身份。 */
+.ww {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  padding: 20px;
+  width: 100%;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
+}
+
+.ww__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 16px 8px;
+}
+
+.ww__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ww__title-icon {
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+}
+
+.weather-panel {
+  /* flex:1 + min-height:0：面板吃掉壳层剩余高度；
+     原来只有 height:100% 时，壳层一旦有 header 就会溢出 */
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 16px;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
+  /* 圆角交给壳层的 overflow:hidden 裁切 —— 自身设 radius 会在有 header 时
+     把面板顶部两角也切圆，露出壳层底色 */
+  border-radius: 0;
   background: linear-gradient(145deg, #4a90d9 0%, #87b8e8 40%, #b5d8f5 100%);
   color: #1a2332;
-  border-radius: inherit;
 }
 
 html.dark .weather-panel {
@@ -214,7 +267,7 @@ html.dark .weather-main-card {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
+  padding: 4px 8px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.35);
@@ -305,7 +358,7 @@ html.dark .update-time {
   flex-direction: column;
   gap: 4px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: background 0.2s ease;
+  transition: background var(--el-transition-duration, 0.2s) ease;
 }
 
 .meta-item:hover {
@@ -344,6 +397,8 @@ html.dark .meta-item:hover {
 .week-forecast-wrap::-webkit-scrollbar {
   height: 4px;
 }
+/* 细滚动条（4px 高）用 2px 圆角：仓库约定的 6px 是给默认 6px 宽滚动条的，
+   这里厚度只有一半，6px 会退化成半圆、与轨道不匹配。 */
 .week-forecast-wrap::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
@@ -356,7 +411,12 @@ html.dark .meta-item:hover {
   backdrop-filter: blur(4px);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  /* 显式列出参与过渡的属性，不用 all —— all 会把 backdrop-filter、
+     box-shadow 也纳入，玻璃拟态卡片上代价明显 */
+  transition: background var(--el-transition-duration, 0.2s) ease,
+    transform var(--el-transition-duration, 0.2s) ease,
+    border-color var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
   border: 1px solid transparent;
 }
 
@@ -407,7 +467,7 @@ html.dark .week-col.active {
 }
 
 .forecast-block__label {
-  font-size: 10px;
+  font-size: 12px;
   opacity: 0.6;
   font-weight: 600;
   letter-spacing: 1px;
@@ -415,8 +475,8 @@ html.dark .week-col.active {
 }
 
 .weather-text { font-size: 13px; font-weight: 500; }
-.wind-text { font-size: 11px; opacity: 0.7; }
-.precip-text { font-size: 10px; opacity: 0.7; }
+.wind-text { font-size: 12px; opacity: 0.7; }
+.precip-text { font-size: 12px; opacity: 0.7; }
 
 .temp-bar {
   width: 100%;
@@ -484,8 +544,8 @@ html.dark .hour-forecast-wrap {
   align-items: center;
   gap: 4px;
   padding: 6px 4px;
-  border-radius: 8px;
-  transition: background 0.2s;
+  border-radius: var(--el-radius-md, 8px);
+  transition: background var(--el-transition-duration, 0.2s);
 }
 
 .hour-item:hover {
@@ -515,7 +575,25 @@ html.dark .hour-item--now {
 
 .hour-time { font-size: 12px; font-weight: 600; opacity: 0.8; }
 .hour-temp { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.hour-wind { font-size: 10px; opacity: 0.6; }
+.hour-wind { font-size: 12px; opacity: 0.6; }
+
+/* 尊重「减少动态效果」系统偏好：
+   sun-glow 是 3s 无限循环的呼吸光晕，前庭功能敏感者不应被持续闪烁干扰。
+   清单第 11 条要求，仓库内 ReCard default 也有同类范例。 */
+@media (prefers-reduced-motion: reduce) {
+  .sun-icon {
+    animation: none;
+    filter: drop-shadow(0 0 8px rgba(255, 200, 50, 0.6));
+  }
+  .week-col:hover {
+    transform: none;
+  }
+  .meta-item,
+  .week-col,
+  .hour-item {
+    transition: none;
+  }
+}
 
 .weather-empty {
   height: 100%;

@@ -43,7 +43,7 @@
           <span v-if="publicIp" class="ciw__ip-text">{{ publicIp }}</span>
           <span v-else-if="ipError" class="ciw__ip-offline">获取失败</span>
           <span v-else class="ciw__ip-offline">获取中…</span>
-          <button type="button" class="ciw__ip-refresh" :disabled="ipLoading" @click="fetchPublicIp">
+          <button type="button" class="ciw__ip-refresh" :disabled="ipLoading" title="刷新公网 IP" aria-label="刷新公网 IP" @click="fetchPublicIp">
             <el-icon><Refresh /></el-icon>
           </button>
         </div>
@@ -147,39 +147,54 @@ onBeforeUnmount(() => { stopAll(); });
 </script>
 
 <style lang="scss" scoped>
+/* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
 .ciw {
   display: flex; flex-direction: column; height: 100%; width: 100%; min-height: 0;
-  background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
 }
-.ciw__header {
-  display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
-}
-.ciw__title {
-  font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); display: inline-flex; align-items: center; gap: 8px;
-}
-.ciw__title-icon { color: var(--el-color-primary); }
-.ciw__status {
-  font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 500;
-}
-.ciw__status--on { background: color-mix(in srgb, var(--el-color-success) 12%, transparent); color: var(--el-color-success); }
-.ciw__status--off { background: var(--el-fill-color-light); color: var(--el-text-color-disabled); }
-.ciw__body { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.ciw__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px 8px; }
+.ciw__title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.ciw__title-icon { flex-shrink: 0; color: var(--el-color-primary); }
+.ciw__status { flex-shrink: 0; padding: 4px 8px; font-size: 12px; font-weight: 500; border-radius: var(--el-radius-full, 9999px); }
+.ciw__status--on { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 12%, transparent); }
+.ciw__status--off { color: var(--el-text-color-disabled); background: var(--el-fill-color-light); }
+
+.ciw__body { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow: auto; padding: 0 16px 16px; }
+
+/* 指标块：四宫格，数值用 tabular-nums 让刷新时不跳动 */
 .ciw__metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.ciw__metric { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; background: var(--el-fill-color-light); border-radius: 10px; }
+.ciw__metric {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-md, 8px);
+}
 .ciw__metric-icon { font-size: 16px; color: var(--el-text-color-secondary); }
-.ciw__metric-label { font-size: 10px; color: var(--el-text-color-secondary); font-weight: 500; }
-.ciw__metric-value { font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
-.ciw__charge { font-size: 10px; color: var(--el-color-success); }
-.ciw__ip { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--el-fill-color-light); border-radius: 10px; }
-.ciw__ip-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--el-text-color-secondary); }
-.ciw__ip-value { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
-.ciw__ip-text { font-size: 16px; font-weight: 700; color: var(--el-text-color-primary); font-variant-numeric: tabular-nums; }
+.ciw__metric-label { font-size: 12px; font-weight: 500; color: var(--el-text-color-secondary); }
+.ciw__metric-value { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ciw__charge { font-size: 12px; font-weight: 400; }
+
+.ciw__ip { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(--el-fill-color-light); border-radius: var(--el-radius-md, 8px); }
+.ciw__ip-label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--el-text-color-secondary); }
+.ciw__ip-value { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+.ciw__ip-text { font-size: 15px; font-weight: 700; color: var(--el-text-color-primary); font-variant-numeric: tabular-nums; }
 .ciw__ip-offline { font-size: 12px; color: var(--el-text-color-disabled); }
-.ciw__ip-refresh { display: flex; padding: 4px; border: none; border-radius: 6px; background: transparent; color: var(--el-color-primary); cursor: pointer; }
-.ciw__rows { display: flex; flex-direction: column; gap: 1px; background: var(--el-fill-color-light); border-radius: 10px; overflow: hidden; }
-.ciw__row { display: flex; align-items: baseline; gap: 8px; padding: 8px 14px; font-size: 12px; background: var(--el-bg-color); }
-.ciw__row:first-child { border-radius: 10px 10px 0 0; }
-.ciw__row:last-child { border-radius: 0 0 10px 10px; }
+.ciw__ip-refresh {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 28px; height: 28px; border: none; cursor: pointer;
+  color: var(--el-color-primary); background: transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s);
+}
+.ciw__ip-refresh:hover { background: var(--el-color-primary-light-9); }
+.ciw__ip-refresh:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
+
+/* 明细行：用容器背景 + 行背景做出分隔线，不给每行加 border（省一次重绘） */
+.ciw__rows { display: flex; flex-direction: column; gap: 1px; overflow: hidden; background: var(--el-fill-color-light); border-radius: var(--el-radius-md, 8px); }
+.ciw__row { display: flex; align-items: baseline; gap: 8px; padding: 8px 16px; font-size: 12px; background: var(--el-bg-color); transition: background var(--el-transition-duration, 0.2s); }
+.ciw__row:hover { background: var(--el-color-primary-light-9); }
 .ciw__row-k { width: 64px; flex-shrink: 0; color: var(--el-text-color-secondary); }
-.ciw__row-v { color: var(--el-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ciw__row-v { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-primary); }
 </style>

@@ -403,27 +403,6 @@ export default {
       watermarkConfig: "水印配置",
       weatherConfig: "天气配置",
       capabilityConfig: "业务开关",
-      loginVerify: "登录验证",
-    },
-    loginVerify: {
-      captcha: {
-        title: "图形验证码",
-        sub: "验证码",
-        tip: "登录时要求输入图形验证码（login.captcha）",
-        description: "登录时要求输入图形验证码；支持 app.yaml / 后台 default 接口下发",
-      },
-      slider: {
-        title: "滑块验证",
-        sub: "滑块",
-        tip: "登录时需向右滑动完成验证（login.slider）",
-        description: "登录时需向右滑动完成验证；支持 app.yaml / 后台 default 接口下发",
-      },
-      otp: {
-        title: "动态口令",
-        sub: "OTP / TOTP",
-        tip: "登录需输入验证器 6 位动态口令（login.otp）",
-        description: "登录需输入验证器 App 生成的 6 位动态口令；支持 app.yaml / 后台 default 接口下发",
-      },
     },
     security: {
       watermark: {
@@ -645,6 +624,13 @@ export default {
         sub: "后台能力",
         tip: "后台提供 /v2/ip/lookup 时由服务端把 IP 解析为物理地址（other.capabilities.ipLookup）",
         description: "开启后 IP 缺少归属地时请求后台解析；后台没有该接口时建议在 app.yaml 关闭，避免无谓的 404 请求",
+      },
+      holiday: {
+        title: "节假日接口",
+        sub: "后台能力",
+        tip: "后台提供 /v2/holiday/get 时以管理员维护的放假安排为准（other.capabilities.holiday）",
+        description:
+          "开启后主页日历优先采用后台下发的放假与补班安排，未下发的日期仍用日历内置数据与《全国年节及纪念日放假办法》推算；后台没有该接口时建议在 app.yaml 关闭，避免每次启动都出现探测 404",
       },
     },
     toolbar: {

@@ -5,6 +5,7 @@
       background: themeStyle.bg,
       borderColor: themeStyle.border,
       '--note-header-bg': themeStyle.header,
+      '--note-ink': themeStyle.ink ?? '',
     }"
   >
     <div v-if="!widget.hideTitle" class="note-widget__header">
@@ -32,7 +33,7 @@
             type="button"
             class="note-widget__item-remove"
             title="删除便签"
-            aria-label="删除"
+            aria-label="删除便签"
             @click.stop="remove(note.id)"
           >
             <el-icon><Delete /></el-icon>
@@ -123,14 +124,20 @@ interface Note {
 /** 可选便签色（低饱和度） */
 const NOTE_COLORS = ["#FDE68A", "#BFDBFE", "#BBF7D0", "#FBCFE8", "#E9D5FF", "#FED7AA"];
 
-/** 便签外观主题 → 背景 / 边框 / 头部色（低饱和度） */
-const THEME_STYLES: Record<NoteTheme, { bg: string; border: string; header: string }> = {
+/**
+ * 便签外观主题 → 背景 / 边框 / 头部色 / 墨色（低饱和度）。
+ *
+ * `ink` 仅彩色主题需要：纸底是固定浅色，不随暗色模式变暗，
+ * 标题文字若跟随 `--el-text-color-primary`（暗色下为浅色）会降到 1.01:1 完全不可见。
+ * default 主题纸底本身是 token，暗色下会一起变暗，故不给 ink，回落到 primary。
+ */
+const THEME_STYLES: Record<NoteTheme, { bg: string; border: string; header: string; ink?: string }> = {
   default: { bg: "var(--el-fill-color-blank)", border: "var(--el-border-color-lighter)", header: "var(--el-bg-color)" },
-  yellow: { bg: "#FEFCE8", border: "#FDE68A", header: "#FEF3C7" },
-  blue: { bg: "#EFF6FF", border: "#BFDBFE", header: "#DBEAFE" },
-  green: { bg: "#ECFDF5", border: "#A7F3D0", header: "#D1FAE5" },
-  purple: { bg: "#F5F3FF", border: "#DDD6FE", header: "#EDE9FE" },
-  peach: { bg: "#FFF1F2", border: "#FECDD3", header: "#FFE4E6" },
+  yellow: { bg: "#FEFCE8", border: "#FDE68A", header: "#FEF3C7", ink: "#3F3A2E" },
+  blue: { bg: "#EFF6FF", border: "#BFDBFE", header: "#DBEAFE", ink: "#1E3A5F" },
+  green: { bg: "#ECFDF5", border: "#A7F3D0", header: "#D1FAE5", ink: "#1F4D3D" },
+  purple: { bg: "#F5F3FF", border: "#DDD6FE", header: "#EDE9FE", ink: "#3F3560" },
+  peach: { bg: "#FFF1F2", border: "#FECDD3", header: "#FFE4E6", ink: "#5C2B33" },
 };
 
 const props = defineProps<{ widget: WidgetItem }>();
@@ -243,6 +250,7 @@ watch(userId, () => load());
 </script>
 
 <style lang="scss" scoped>
+/* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
 .note-widget {
   display: flex;
   flex-direction: column;
@@ -251,89 +259,104 @@ watch(userId, () => load());
   min-height: 0;
   background: var(--el-fill-color-blank);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
   overflow: hidden;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
 }
 
 .note-widget__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 12px 16px 8px;
   background: var(--note-header-bg, var(--el-bg-color));
 }
 
+/* 标题是唯一「直接坐在彩色纸底上」的文字。纸底在暗色下仍是浅色，
+   若跟随 --el-text-color-primary（暗色下为浅色），实测降到 1.01:1，等于不可见。
+   彩色主题给 ink 墨色；default 主题纸底本身是 token，不给 ink 即回落到 primary。
+   注意：便签正文、计数、便笺条目各自有 token 底色，不要跟着改成 ink。 */
 .note-widget__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--note-ink, var(--el-text-color-primary));
 }
 
 .note-widget__count {
-  font-size: 10px;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .note-widget__body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px 12px 12px;
+  padding: 0 16px 16px;
 }
 
 .note-widget__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .note-widget__item {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  background: var(--el-bg-color);
+  gap: 8px;
+  padding: 12px 16px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color var(--el-transition-duration, 0.2s),
+    background var(--el-transition-duration, 0.2s);
 }
 
 .note-widget__item:hover {
-  border-color: var(--el-border-color);
   background: var(--el-fill-color-blank);
+  border-color: var(--el-border-color);
 }
 
+/* 移除按钮默认隐藏，hover / 键盘聚焦时出现 —— 静止时列表更干净，
+   但仍保留 tab 可达（:focus-visible 强制显形） */
 .note-widget__item-remove {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   border: none;
-  border-radius: 6px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-secondary);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: opacity var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s),
+    background var(--el-transition-duration, 0.2s);
 }
 
-.note-widget__item:hover .note-widget__item-remove {
+.note-widget__item:hover .note-widget__item-remove,
+.note-widget__item-remove:focus-visible {
   opacity: 1;
 }
 
@@ -342,7 +365,14 @@ watch(userId, () => load());
   background: color-mix(in srgb, var(--el-color-danger) 12%, var(--el-fill-color-light));
 }
 
+.note-widget__item-remove:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 正文右侧留出删除按钮的位置，hover 显形时才不会被压住 */
 .note-widget__item-text {
+  padding-right: 28px;
   font-size: 13px;
   line-height: 1.6;
   color: var(--el-text-color-primary);
@@ -354,18 +384,19 @@ watch(userId, () => load());
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .note-widget__item-time {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
 .note-widget__item-color {
+  flex-shrink: 0;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .note-widget__colors {
@@ -375,21 +406,27 @@ watch(userId, () => load());
 }
 
 .note-widget__color {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-white, #fff);
-  transition: transform 0.15s, border-color 0.15s;
+  width: 28px;
+  height: 28px;
   padding: 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-color-white, #fff);
+  transition: transform var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
 }
 
 .note-widget__color:hover {
   transform: scale(1.08);
+}
+
+.note-widget__color:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .note-widget__color.is-active {

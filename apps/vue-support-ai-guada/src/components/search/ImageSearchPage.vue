@@ -120,7 +120,6 @@
       <aside class="is-side">
         <div class="is-tabs">
           <button class="is-tab active">相似图片</button>
-          <el-icon class="is-tabs-arrow"><ArrowDown /></el-icon>
         </div>
 
         <!-- 未启用提示 -->

@@ -152,12 +152,6 @@ async function removeGroup(node: GroupNode) {
 
 <template>
   <div class="group-tree sc-page">
-    <ReSectionHead class="page-head" title="分组管理" description="维护主机分组的层级结构">
-      <template #actions>
-        <ReButton show-text icon="Plus" type="primary" @click="openCreate()">新建根分组</ReButton>
-        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
-      </template>
-    </ReSectionHead>
 
     <div class="group-layout">
       <!-- 左侧树 -->
@@ -350,7 +344,7 @@ async function removeGroup(node: GroupNode) {
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 16px;
-  height: calc(100vh - 220px);
+  height: calc(100vh - 115px);
 }
 
 /* ---- 左侧树 ---- */

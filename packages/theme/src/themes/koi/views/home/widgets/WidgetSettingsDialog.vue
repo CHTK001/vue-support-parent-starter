@@ -102,6 +102,30 @@
         </div>
       </div>
 
+      <!-- 日历特有配置 -->
+      <div v-if="widget.type === 'calendar'" class="ws__section">
+        <div class="ws__section-title">格内显示</div>
+        <div class="ws__field ws__field--column">
+          <label class="ws__label ws__label--top">显示密度</label>
+          <el-radio-group v-model="calendarCellMode" class="ws__mode-group">
+            <el-radio v-for="opt in CALENDAR_CELL_MODE_OPTIONS" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </el-radio>
+          </el-radio-group>
+          <div class="ws__hint-text">{{ cellModeHint }}</div>
+        </div>
+        <div class="ws__field">
+          <label class="ws__label">节日农历</label>
+          <el-switch v-model="calendarShowFestival" />
+          <span class="ws__unit">关闭后节日与农历行让给日程</span>
+        </div>
+        <div class="ws__field">
+          <label class="ws__label">休/班标记</label>
+          <el-switch v-model="calendarShowBadge" />
+          <span class="ws__unit">格子右上角的「休」「班」角标</span>
+        </div>
+      </div>
+
       <!-- client-info 只读提示 -->
       <div v-if="widget.type === 'client-info'" class="ws__hint">
         <el-icon><InfoFilled /></el-icon>
@@ -121,7 +145,16 @@
 <script setup lang="ts" name="WidgetSettingsDialog">
 import { computed, reactive, ref, watch } from "vue";
 import { InfoFilled } from "@element-plus/icons-vue";
-import { WIDGET_SHADOW_MAP, WIDGET_SHADOW_OPTIONS, WIDGET_SCROLL_OPTIONS, type WidgetItem, type WidgetShadowLevel, type WidgetScrollDir } from "../widgets";
+import {
+  CALENDAR_CELL_MODE_OPTIONS,
+  WIDGET_SCROLL_OPTIONS,
+  WIDGET_SHADOW_MAP,
+  WIDGET_SHADOW_OPTIONS,
+  type CalendarCellMode,
+  type WidgetItem,
+  type WidgetScrollDir,
+  type WidgetShadowLevel,
+} from "../widgets";
 
 const props = defineProps<{
   visible: boolean;
@@ -155,6 +188,16 @@ const customUrl = ref("");
 const customHeightMode = ref<"fill" | "fixed">("fill");
 const customFixedHeight = ref(360);
 const customScrolling = ref<"auto" | "yes" | "no">("auto");
+
+// —— 日历 ——
+const calendarCellMode = ref<CalendarCellMode>("all");
+const calendarShowFestival = ref(true);
+const calendarShowBadge = ref(true);
+
+/** 当前模式的说明文案（取选项表里的 hint，避免文案与行为漂移） */
+const cellModeHint = computed(
+  () => CALENDAR_CELL_MODE_OPTIONS.find((o) => o.value === calendarCellMode.value)?.hint ?? "",
+);
 
 const shadowCss = computed(() => WIDGET_SHADOW_MAP[form.shadow] ?? WIDGET_SHADOW_MAP.none);
 
@@ -194,6 +237,11 @@ watch(
       customFixedHeight.value = 360;
       customScrolling.value = "auto";
     }
+
+    // 日历：缺省即「全部显示」，与 CalendarWidget 的解析口径一致
+    calendarCellMode.value = props.widget.calendarConfig?.cellMode ?? "all";
+    calendarShowFestival.value = props.widget.calendarConfig?.showFestival ?? true;
+    calendarShowBadge.value = props.widget.calendarConfig?.showBadge ?? true;
   },
 );
 
@@ -219,6 +267,14 @@ function handleSave(): void {
       heightMode: customHeightMode.value,
       fixedHeight: customHeightMode.value === "fixed" ? customFixedHeight.value : undefined,
       scrolling: customScrolling.value,
+    };
+  }
+
+  if (props.widget.type === "calendar") {
+    patch.calendarConfig = {
+      cellMode: calendarCellMode.value,
+      showFestival: calendarShowFestival.value,
+      showBadge: calendarShowBadge.value,
     };
   }
 
@@ -254,7 +310,7 @@ function handleSave(): void {
   border-radius: 8px;
   overflow: hidden;
   background: var(--el-fill-color-blank);
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--el-transition-duration, 0.2s);
 }
 
 .ws__preview-card-header {
@@ -334,6 +390,32 @@ function handleSave(): void {
   flex-shrink: 0;
 }
 
+/* 纵向排列的字段（单选项组 + 说明） */
+.ws__field--column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ws__label--top {
+  width: auto;
+  text-align: left;
+}
+
+.ws__mode-group {
+  flex-wrap: wrap;
+}
+
+/* 选项说明：与选项表里的 hint 同源，不另写一份文案 */
+.ws__hint-text {
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter);
+}
+
 /* 阴影选择器 */
 .ws__shadow-options {
   display: flex;
@@ -347,14 +429,14 @@ function handleSave(): void {
   align-items: center;
   gap: 6px;
   flex: 1;
-  padding: 10px 8px;
+  padding: 12px 8px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   background: var(--el-fill-color-blank);
   cursor: pointer;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
 }
 
 .ws__shadow-btn:hover {
@@ -375,7 +457,7 @@ function handleSave(): void {
   height: 20px;
   border-radius: 4px;
   background: var(--el-fill-color-light);
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--el-transition-duration, 0.2s);
 }
 
 /* 滚动方向选择器 */
@@ -391,14 +473,14 @@ function handleSave(): void {
   align-items: center;
   gap: 4px;
   flex: 1;
-  padding: 8px 6px;
+  padding: 8px 8px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-blank);
   cursor: pointer;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
 }
 
 .ws__scroll-btn:hover {

@@ -79,8 +79,8 @@ watch(
 <template>
   <ReDialog
     :model-value="modelValue"
-    width="1120px"
-    top="6vh"
+    width="1200px"
+    top="10px"
     :title="`采集器配置 · ${TABS.find(item => item.name === tab)?.label || ''}`"
     footer-hidden
     @update:model-value="emit('update:modelValue', $event)"

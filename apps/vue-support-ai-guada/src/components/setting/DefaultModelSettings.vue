@@ -13,7 +13,7 @@
         <!-- STRING：模型选择器 -->
         <el-input
           v-if="item.valueType === 'STRING' && isModelField(group.group, item.field)"
-          :model-value="getFieldValue(group.group, item.field) || '请选择模型'"
+          :model-value="modelFieldDisplay(group.group, item.field)"
           readonly
           class="cursor-pointer"
           @click="openModelDialog(group.group, item.field)"
@@ -187,6 +187,13 @@ const settingGroups = ref([])
 
 // 各分组的实际值
 const groupValues = reactive({})
+
+// 每个字段的归属信息（overridden 是否本人覆盖、defaultValue 继承值），来自 /settings/{group}/merged
+const fieldMeta = reactive({})
+
+// 本次改动过的字段（按分组记录）：保存时只提交这些字段，
+// 免得把没动过的项也写成个人覆盖，从此屏蔽掉全局默认的后续变更
+const dirtyFields = reactive({})
 
 // 模型数据
 const models = ref([])
@@ -590,6 +597,20 @@ const getFieldValue = (group, field) => {
     return groupValues[group]?.[field] || ''
 }
 
+// 模型字段的展示文本。
+//
+// 合并视图里的 value 已经是「生效值」，所以还要看 overridden：
+// overridden=false 说明该值来自全局默认（本人没设过），必须显式标出来，
+// 否则用户会以为这是自己设的默认模型。
+const modelFieldDisplay = (group, field) => {
+    const value = getFieldValue(group, field)
+    if (!value) {
+        return '请选择模型'
+    }
+    const meta = fieldMeta[group]?.[field]
+    return meta && meta.overridden === false ? `继承全局：${value}` : value
+}
+
 // 取字段当前所选模型的提供商 logo（字段值形如 providerId:modelName）
 const getFieldModelLogo = (group, field) => {
     const v = getFieldValue(group, field)
@@ -611,6 +632,11 @@ const updateFieldValue = (group, field, value) => {
         value = String(value)
     }
     groupValues[group][field] = value
+    // 记下改过的字段：保存时只提交这些，避免把未改动的项也写成个人覆盖
+    if (!dirtyFields[group]) {
+        dirtyFields[group] = new Set()
+    }
+    dirtyFields[group].add(field)
     // 自动保存
     saveGroupSettings(group)
 }
@@ -780,21 +806,51 @@ const pickGroups = (response) => {
     return []
 }
 
-// 加载某个分组的实际值
+// 加载某个分组对当前用户生效的值（全局默认 + 本人覆盖）
 const loadGroupValues = async (group) => {
     try {
-        const response = await apiService.fetchGroupSettings(group)
-        groupValues[group] = response?.data || response || {}
+        const response = await apiService.fetchMergedGroupSettings(group)
+        const items = response?.data ?? response ?? []
+        const values = {}
+        const meta = {}
+        if (Array.isArray(items)) {
+            // 后端返回 [{ field, value, defaultValue, overridden }]
+            items.forEach((item) => {
+                values[item.field] = item.value ?? ''
+                meta[item.field] = {
+                    overridden: item.overridden === true,
+                    defaultValue: item.defaultValue ?? '',
+                }
+            })
+        } else {
+            Object.assign(values, items)
+        }
+        groupValues[group] = values
+        fieldMeta[group] = meta
+        dirtyFields[group] = new Set()
     } catch (error) {
         console.error(`获取 ${group} 分组设置失败:`, error)
     }
 }
 
-// 保存某个分组的设置
+// 保存某个分组的设置：只写「本人改过的字段」，写到用户覆盖层（不动全局默认）
 const saveGroupSettings = async (group) => {
+    const dirty = dirtyFields[group]
+    if (!dirty || dirty.size === 0) {
+        return
+    }
+    const payload = {}
+    for (const field of dirty) {
+        const value = groupValues[group]?.[field]
+        // 空值 = 重置：值传 null，由后端撤销本人覆盖（回落到继承值），
+        // 而不是把空串写进全局层 —— 那正是以前「重置不成空」的原因
+        payload[field] = value === '' || value === null || value === undefined ? null : value
+    }
     try {
-        await apiService.updateGroupSettings(group, groupValues[group])
+        await apiService.updateUserGroupOverrides(group, payload)
         notify.success('设置已保存')
+        // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
+        await loadGroupValues(group)
     } catch (error) {
         console.error(`保存 ${group} 分组设置失败:`, error)
         notify.error('保存设置失败', error)

@@ -201,7 +201,7 @@ async function remove(input: Record<string, unknown>): Promise<void> {
     <ReDialog
       v-model="visible"
       :title="form.collectVariableId ? '编辑变量' : '新建变量'"
-      :width="480"
+      :width="560"
       :close-on-click-modal="false"
     >
       <div class="collect-form">

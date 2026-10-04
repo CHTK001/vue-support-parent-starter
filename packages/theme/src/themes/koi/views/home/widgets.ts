@@ -79,6 +79,8 @@ export interface WidgetItem {
   config?: CustomWidgetConfig;
   /** 便签组件配置（仅 type === 'note' 时使用） */
   noteConfig?: NoteWidgetConfig;
+  /** 日历组件配置（仅 type === 'calendar' 时使用） */
+  calendarConfig?: CalendarWidgetConfig;
   /** 外观配置（所有组件通用） */
   appearance?: WidgetAppearance;
 }
@@ -98,6 +100,72 @@ export interface WidgetAppearance {
 export interface NoteWidgetConfig {
   /** 外观主题 */
   theme?: NoteTheme;
+}
+
+/**
+ * 日历格子的显示密度。
+ *
+ * <p>格子里的内容有四类：日期数字（含休/班角标）、节日名、农历、以及用户日程。
+ * 格子宽度由 Element Plus 表格自动分配、宽度不可控，而行数是可控的，
+ * 因此把「显示多少」表达成<b>行数上限</b>，而不是让用户去调像素。</p>
+ */
+export type CalendarCellMode =
+  /** 全部显示：节日与农历各占一行，日程尽量多列，格子高度随内容增长 */
+  | "all"
+  /** 最多 4 行：日期 + 节日 + 2 条日程 */
+  | "max4"
+  /** 最多 3 行：日期 + 节日 + 1 条日程（最常用的一屏视图） */
+  | "max3";
+
+/** 日历组件配置（仅 type === 'calendar' 时使用） */
+export interface CalendarWidgetConfig {
+  /** 格内显示密度；缺省为 {@link CalendarCellMode} 的 {@code "all"} */
+  cellMode?: CalendarCellMode;
+  /** 是否显示节日与农历；缺省 true。关掉后行数让给日程 */
+  showFestival?: boolean;
+  /** 是否显示休/班角标；缺省 true */
+  showBadge?: boolean;
+}
+
+/** 日历显示密度选项（设置弹窗展示，顺序即视觉顺序） */
+export const CALENDAR_CELL_MODE_OPTIONS: { value: CalendarCellMode; label: string; hint: string }[] = [
+  { value: "all", label: "全部显示", hint: "节日、农历各一行，日程尽量多列，格子按内容变高" },
+  { value: "max4", label: "最多 4 行", hint: "日期 + 节日 + 2 条日程，格子高度固定" },
+  { value: "max3", label: "最多 3 行", hint: "日期 + 节日 + 1 条日程，格子高度固定" },
+];
+
+/**
+ * 各模式下格子里能用的「除日期行外」的行数。
+ *
+ * <p>日期数字那一行恒占 1 行（它还承载休/班角标，不能省），
+ * 所以这里的值是「总行数 − 1」。</p>
+ */
+export const CALENDAR_MODE_CONTENT_ROWS: Record<CalendarCellMode, number> = {
+  all: 8,
+  max4: 3,
+  max3: 2,
+};
+
+/** 是否为「格子高度固定」的模式（all 模式随内容增长，不固定） */
+export function isFixedCellHeight(mode: CalendarCellMode): boolean {
+  return mode !== "all";
+}
+
+/**
+ * 算出格子里还能放几条日程。
+ *
+ * <p>行数预算是「总行数 − 日期行（恒占 1，承载休/班角标）− 节日行 − 农历行」，
+ * 剩下的全给日程。关掉节日时那份额度自动让给日程，而不是白白浪费。</p>
+ *
+ * @param mode 显示密度
+ * @param showFestival 是否显示节日与农历
+ * @returns 可显示的日程条数（不小于 0）
+ */
+export function calendarEventRows(mode: CalendarCellMode, showFestival: boolean): number {
+  const used = showFestival ? 1 : 0;
+  // 农历只在「全部显示」且节日行开着时单占一行
+  const lunar = mode === "all" && showFestival ? 1 : 0;
+  return Math.max(0, CALENDAR_MODE_CONTENT_ROWS[mode] - used - lunar);
 }
 
 /** 便签外观主题 */
@@ -226,9 +294,9 @@ const BUILTIN_WIDGETS: WidgetRegistration[] = [
   {
     type: "calendar",
     title: "日历",
-    description: "添加日程，管理每日安排",
+    description: "添加日程，显示农历、节气、节日与法定放假调休",
     icon: "Calendar",
-    defaultSize: { w: 6, h: 4 },
+    defaultSize: { w: 7, h: 5 },
     category: "personal",
     environment: "prod",
     requiredPermission: "user",

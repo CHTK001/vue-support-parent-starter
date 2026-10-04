@@ -10,7 +10,13 @@
 
     <div class="scw__body">
       <div v-for="(group, gi) in groups" :key="gi" class="scw__group">
-        <button type="button" class="scw__gh" @click="toggle(gi)">
+        <button
+          type="button"
+          class="scw__gh"
+          :aria-expanded="group.open"
+          :aria-label="`${group.label} 配置分组`"
+          @click="toggle(gi)"
+        >
           <span class="scw__gt">{{ group.label }}</span>
           <el-icon class="scw__ga" :class="{ 'scw__ga--open': group.open }"><ArrowRight /></el-icon>
         </button>
@@ -62,25 +68,74 @@ function pick(keys: string[]): Record<string, unknown> {
 </script>
 
 <style lang="scss" scoped>
+/* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
 .scw {
   display: flex; flex-direction: column; height: 100%; width: 100%; min-height: 0;
-  background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
 }
-.scw__header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
-.scw__title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); display: inline-flex; align-items: center; gap: 8px; }
-.scw__title-icon { color: var(--el-color-primary); }
-.scw__badge { font-size: 10px; color: var(--el-color-warning); background: color-mix(in srgb, var(--el-color-warning) 12%, transparent); padding: 2px 10px; border-radius: 999px; font-weight: 500; }
-.scw__body { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 6px; }
-.scw__group { border: 1px solid var(--el-border-color-lighter); border-radius: 10px; overflow: hidden; }
-.scw__gh { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 14px; border: none; background: var(--el-fill-color-light); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--el-text-color-primary); text-align: left; }
-.scw__gt { color: var(--el-text-color-primary); }
-.scw__ga { font-size: 12px; color: var(--el-text-color-disabled); transition: transform 0.15s; }
-.scw__ga--open { transform: rotate(90deg); }
+.scw__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px 8px; }
+.scw__title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.scw__title-icon { flex-shrink: 0; color: var(--el-color-primary); }
+.scw__badge {
+  flex-shrink: 0; padding: 4px 8px; font-size: 12px; font-weight: 500;
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.scw__body { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow: auto; padding: 0 16px 16px; }
+
+/* 分组是「可折叠区块」而非卡片，用极轻的边框加深提示 hover */
+.scw__group {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration, 0.2s);
+}
+.scw__group:hover { border-color: var(--el-border-color); }
+
+.scw__gh {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  padding: 8px 16px; border: none; text-align: left; cursor: pointer;
+  font-size: 13px; font-weight: 600;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+  transition: background var(--el-transition-duration, 0.2s);
+}
+.scw__gh:hover { background: var(--el-color-primary-light-9); }
+.scw__gh:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--el-color-primary); }
+
+.scw__gt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scw__ga {
+  flex-shrink: 0; font-size: 12px; color: var(--el-text-color-disabled);
+  transition: transform var(--el-transition-duration, 0.2s);
+}
+.scw__ga--open { color: var(--el-color-primary); transform: rotate(90deg); }
+
 .scw__gb { display: flex; flex-direction: column; padding: 4px 0; }
-.scw__r { display: flex; align-items: baseline; gap: 8px; padding: 5px 14px; font-size: 11px; }
-.scw__rk { width: 72px; flex-shrink: 0; color: var(--el-text-color-secondary); font-family: "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 10px; overflow: hidden; text-overflow: ellipsis; }
-.scw__rv { flex: 1; color: var(--el-text-color-primary); font-family: "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
-.scw__tag { font-size: 10px; padding: 1px 8px; border-radius: 999px; }
-.scw__tag--on { background: color-mix(in srgb, var(--el-color-success) 12%, transparent); color: var(--el-color-success); }
-.scw__tag--off { background: var(--el-fill-color-light); color: var(--el-text-color-disabled); }
+.scw__r {
+  display: flex; align-items: baseline; gap: 8px; padding: 8px 16px;
+  font-size: 12px;
+  transition: background var(--el-transition-duration, 0.2s);
+}
+.scw__r:hover { background: var(--el-fill-color-lighter); }
+
+/* 键值都用等宽字体：这是调试视图，对齐才能一眼比对 */
+.scw__rk {
+  width: 72px; flex-shrink: 0;
+  font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 12px; color: var(--el-text-color-secondary);
+  overflow: hidden; text-overflow: ellipsis;
+}
+.scw__rv {
+  flex: 1; min-width: 0;
+  font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 12px; color: var(--el-text-color-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: pre;
+}
+.scw__tag { padding: 0 8px; font-size: 12px; border-radius: var(--el-radius-full, 9999px); }
+.scw__tag--on { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 12%, transparent); }
+.scw__tag--off { color: var(--el-text-color-disabled); background: var(--el-fill-color-light); }
 </style>

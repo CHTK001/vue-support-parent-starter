@@ -35,6 +35,21 @@
  *   - toolbarConfig.batchDelete → 批量删除(带确认)
  *   - toolbarConfig.batchEdit → 批量修改(编辑→保存切换 + inline edit)
  *
+ * 表格增强（两套引擎语义一致，序号 / 表尾 / 展开列均不属于 columns，不参与列设置与持久化）：
+ *   - showIndex：最左侧序号列，indexLabel / indexWidth / indexAlign / indexFixed 可配；
+ *     indexContinuous（默认 true）控制是否跨页连续编号
+ *   - showSummary + summaryMethod：表尾合计行；summaryMethod 缺省时按数值列求和
+ *   - spanMethod：单元格行 / 列合并，回调拿到 ReTableColumn 与 visibleColumns 下标
+ *   - expandable + #expand 插槽：展开行（vxe 走 #content，element 走 type=expand 默认插槽）
+ *   - editable + v-model:edit-cache：单元格编辑（列 editable:true 即渲染输入控件）。
+ *     保存可选：传 editSaveHandler 走回调，否则 saveEdits() 只 emit edit-save 把改动行交给页面
+ *     —— 批量保存函数不是必填项
+ *   - columnDraggable：表头拖拽调整列顺序（与列设置面板共用同一份持久化 order）
+ *
+ * 引擎专属能力（element 无等价物，element 下忽略并在 dev 提示）：
+ *   - virtualScroll：vxe 纵向虚拟滚动，需配合 layout-table 的 height / maxHeight
+ *   - areaSelect / areaClip：vxe 单元格区域选择与复制 / 粘贴 / 剪切
+ *
  * 事件：
  *   - row-click / cell-click / selection-change
  *   - context-menu-select（右键菜单）
@@ -304,6 +319,125 @@ const props = withDefaults(
     resizable?: boolean;
     /** 默认展开所有树节点 */
     defaultExpandAll?: boolean;
+    /**
+     * 表格布局是否显示序号列（默认 false）。
+     *
+     * <p>只在表格布局生效；视图 / 卡片布局各自的序号由对应布局的属性控制。
+     * 序号列不属于 {@code columns}，不参与列设置的显隐 / 排序 / 持久化。</p>
+     */
+    showIndex?: boolean;
+    /** 序号列表头文案（默认 "#"） */
+    indexLabel?: string;
+    /** 序号列宽度（默认 60） */
+    indexWidth?: string | number;
+    /** 序号列对齐（默认 center） */
+    indexAlign?: "left" | "center" | "right";
+    /** 序号列固定（true 等价 left；默认 false） */
+    indexFixed?: boolean | "left" | "right";
+    /**
+     * 序号是否跨页连续（默认 true）。
+     *
+     * <p>true 时第 N 页从 {@code (N-1) * pageSize + 1} 起编号，两套引擎一致；
+     * false 时每页都从 1 开始。</p>
+     */
+    indexContinuous?: boolean;
+    /**
+     * 是否显示表尾合计行（默认 false）。
+     *
+     * <p>两套引擎共用同一套语义：单元格取值由 {@link summaryMethod} 给出；
+     * 未传时按数值列求和（无法解析为数字的列留空）。刻意不走 element-plus 的
+     * 默认实现，避免两引擎表现分叉。</p>
+     */
+    showSummary?: boolean;
+    /**
+     * 表尾合计取值方法。返回数组按 {@code visibleColumns} 顺序逐列给值。
+     *
+     * @param params.columns 当前可见列（已应用显隐 / 顺序）
+     * @param params.data 当前页数据
+     * @returns 每个可见列一格的值；缺省项按空串处理
+     */
+    summaryMethod?: (params: {
+      columns: ReTableColumn[];
+      data: Array<Record<string, unknown>>;
+    }) => Array<string | number>;
+    /**
+     * 单元格合并规则（行 / 列合并，两套引擎共用）。
+     *
+     * @param params.row 当前行数据
+     * @param params.rowIndex 当前行在当前页数据中的下标（从 0 起）
+     * @param params.column 匹配到的列定义（前置的选择 / 序号 / 展开列不回调）
+     * @param params.columnIndex 该列在 {@code visibleColumns} 中的下标（从 0 起）
+     * @param params.cellValue 单元格原始值
+     * @returns {@code [rowspan, colspan]} 或 {@code {rowspan, colspan}}；返回空表示不合并
+     */
+    spanMethod?: (params: {
+      row: Record<string, unknown>;
+      rowIndex: number;
+      column: ReTableColumn;
+      columnIndex: number;
+      cellValue: unknown;
+    }) => [number, number] | { rowspan: number; colspan: number } | undefined | void;
+    /**
+     * 是否启用展开行（默认 false），配合 {@code #expand} 插槽渲染展开内容。
+     *
+     * <p>两套引擎都在最左侧渲染一个展开图标列：element 用 {@code type="expand"} 列，
+     * vxe 用 {@code type="expand"} + {@code #content} 插槽。展开列不属于
+     * {@code columns}，不参与列设置与持久化。</p>
+     */
+    expandable?: boolean;
+    /** 展开列宽度（默认 48） */
+    expandWidth?: string | number;
+    /**
+     * 是否开启纵向虚拟滚动（**仅 vxe 引擎生效**）。
+     *
+     * <p>虚拟滚动必须有确定高度：配合 {@code layout-table} 的 {@code height} / {@code maxHeight}
+     * 使用。适合 {@code :pagination="false"} 的大数据静态列表（此时组件渲染全量行），
+     * 或较大的 {@code pageSize}。开启后行高由 vxe 统一固定，不再支持动态行高。</p>
+     *
+     * <p>element 引擎没有等价能力：开启后忽略，并在 dev 下提示。</p>
+     */
+    virtualScroll?: boolean;
+    /** 虚拟滚动阈值：数据量超过该值才启用（默认 0 = 总是启用） */
+    virtualScrollGt?: number;
+    /**
+     * 是否开启单元格区域选择（**仅 vxe 引擎生效**）：鼠标拖拽框选区域，按住 Ctrl 多选。
+     * element 引擎没有等价能力：开启后忽略，并在 dev 下提示。
+     */
+    areaSelect?: boolean;
+    /** 区域选择时是否允许复制 / 粘贴 / 剪切（仅 vxe，默认 true） */
+    areaClip?: boolean;
+    /**
+     * 是否允许拖拽表头调整列顺序（两套引擎）。
+     *
+     * <p>顺序变更会写入本组件既有的列持久化状态（与列设置面板共用同一份 order），
+     * 因此隐藏列 / 列显隐配置不会被破坏。</p>
+     */
+    columnDraggable?: boolean;
+    /**
+     * 是否可编辑单元格（默认 false）。
+     *
+     * <p>开启后，列定义里 {@code editable: true} 的列直接渲染输入控件（文本 / 数字 / 下拉 / 日期），
+     * 无需再通过工具栏的「批量修改」按钮进入编辑态。编辑值默认缓存在组件内部，
+     * 可用 {@code v-model:edit-cache} 取出，或监听 {@code edit-change} / {@code edit-save}。</p>
+     */
+    editable?: boolean;
+    /**
+     * 编辑值缓存（{@code v-model:edit-cache}）。
+     *
+     * <p>结构为 {@code { [rowKey]: { [prop]: value } }}。不传时组件内部维护；
+     * 传入时由父组件持有，组件只发 {@code update:edit-cache} 不改父值。</p>
+     */
+    editCache?: Record<string, Record<string, unknown>>;
+    /**
+     * 编辑保存处理器（可选）。
+     *
+     * <p>不传也能用：点击内置的保存入口 / 调用暴露的 {@code saveEdits()} 时，
+     * 组件只 emit {@code edit-save} 把改动行交给页面，由页面自行提交。
+     * 也就是说**批量保存函数不是必填项**。</p>
+     *
+     * @param rows 有编辑改动的行（已合并缓存值，按当前可见列过滤）
+     */
+    editSaveHandler?: (rows: Array<Record<string, unknown>>) => Promise<void> | void;
     /** 是否显示搜索开关按钮（切换内置搜索区显示） */
     showSearch?: boolean;
     /** 搜索区是否显示（v-model 支持） */
@@ -360,6 +494,21 @@ const props = withDefaults(
     batchDeleteHandler: undefined,
     resizable: true,
     defaultExpandAll: false,
+    showIndex: false,
+    indexLabel: "#",
+    indexWidth: 60,
+    indexAlign: "center",
+    indexFixed: false,
+    indexContinuous: true,
+    showSummary: false,
+    expandable: false,
+    expandWidth: 48,
+    virtualScroll: false,
+    virtualScrollGt: 0,
+    areaSelect: false,
+    areaClip: true,
+    columnDraggable: false,
+    editable: false,
     showSearch: false,
     searchVisible: undefined,
     showSearchToggle: true,
@@ -394,6 +543,10 @@ const emit = defineEmits<{
   (e: "search"): void;
   (e: "search-reset"): void;
   (e: "refresh"): void;
+  (e: "update:editCache", value: Record<string, Record<string, unknown>>): void;
+  (e: "edit-change", payload: { row: Record<string, unknown>; prop: string; value: unknown }): void;
+  (e: "edit-save", rows: Array<Record<string, unknown>>): void;
+  (e: "column-order-change", order: string[]): void;
 }>();
 
 /**
@@ -745,9 +898,25 @@ const searchVisible = computed({
 });
 
 /** ========== 内置 ReSearch 搜索区 ========== */
-const searchEnabled = computed(() => props.search === true || (typeof props.search === "object" && props.search !== null));
 const searchConfig = computed<ReTableSearchConfig>(() => (props.search && typeof props.search === "object" ? props.search : {}));
-/** 搜索区是否渲染：开启内置 ReSearch 或（showSearch 且有 #search 插槽） */
+/**
+ * 内置搜索是否真正可用。
+ *
+ * <p>判据不能只看 {@code search} 是否为真值：{@code :search="{}"}、{@code :search="true"}
+ * 或 {@code filters} 为空的配置都会让 ReSearch 渲染出一个「只有标题、没有过滤项」的空壳 ——
+ * 页面上凭空多出一条无意义的「搜索」卡片，工具栏还挂着一个点了什么也收不起来的搜索开关。
+ * 因此这里以「有没有过滤项」为准：没有过滤项就等于没有搜索，与 ReSearch 自身
+ * 「无过滤内容时不显示面板」的口径保持一致。</p>
+ *
+ * <p>{@code #search} 插槽形态不受本判断约束，由 {@link searchAreaVisible} 单独放行。</p>
+ */
+const searchEnabled = computed(() => {
+  if (props.search !== true && (typeof props.search !== "object" || props.search === null)) {
+    return false;
+  }
+  return (searchConfig.value.filters?.length ?? 0) > 0;
+});
+/** 搜索区是否渲染：内置搜索可用 或（showSearch 且有 #search 插槽） */
 const searchAreaVisible = computed(() => searchEnabled.value || (props.showSearch && !!parentSlots.search));
 /** searchGap > 0 时搜索区渲染为独立卡片样式（与表格之间露出间距） */
 const searchSeparated = computed(() => (props.searchGap ?? 0) > 0);
@@ -1297,10 +1466,32 @@ function cancelDragSort() {
 /** resizable 设置 → 列宽拖拽 */
 const borderResizable = computed(() => (localSettings.value.resizable ?? true));
 
-/** ========== 缺陷8: inline edit 编辑值缓存 ========== */
-const editCache = ref<Record<string, Record<string, unknown>>>({});
+/** ========== inline edit 编辑值缓存 ========== */
+/** 内部编辑缓存（父组件未传 v-model:edit-cache 时生效） */
+const localEditCache = ref<Record<string, Record<string, unknown>>>({});
+/**
+ * 编辑缓存：优先父组件受控值（v-model:edit-cache），否则内部维护。
+ *
+ * <p>写入走 setter emit {@code update:editCache}；受控时**不直接改父值**，
+ * 由父组件决定是否接住，避免单向数据流被就地修改。</p>
+ */
+const editCache = computed<Record<string, Record<string, unknown>>>({
+  get: () => props.editCache ?? localEditCache.value,
+  set: (value) => {
+    localEditCache.value = value;
+    emit("update:editCache", value);
+  },
+});
 
-/** 获取编辑值 */
+/**
+ * 是否处于编辑态。
+ *
+ * <p>两个入口：显式 {@code editable} 属性，或工具栏「批量修改」按钮进入的
+ * {@code batchEditing}。两者共用同一套单元格输入控件。</p>
+ */
+const editing = computed<boolean>(() => props.editable || batchEditing.value);
+
+/** 获取编辑值（缓存优先，其次行原值） */
 function getEditValue(row: Record<string, unknown>, col: ReTableColumn): unknown {
   const key = String(row[props.rowKey] ?? "");
   if (editCache.value[key]?.[col.prop] !== undefined) {
@@ -1320,16 +1511,93 @@ function getSelectValue(row: Record<string, unknown>, col: ReTableColumn): EditO
     : (v as EditOptionValue);
 }
 
-/** 设置编辑值 */
+/**
+ * 设置编辑值。
+ *
+ * @param row 行数据
+ * @param col 列定义
+ * @param value 新值
+ */
 function setEditValue(row: Record<string, unknown>, col: ReTableColumn, value: unknown): void {
   const key = String(row[props.rowKey] ?? "");
-  if (!editCache.value[key]) editCache.value[key] = {};
-  editCache.value[key][col.prop] = value;
+  if (props.editCache) {
+    // 受控：不可变更新后 emit，交由父组件持有
+    emit("update:editCache", {
+      ...props.editCache,
+      [key]: { ...(props.editCache[key] ?? {}), [col.prop]: value },
+    });
+  } else {
+    if (!localEditCache.value[key]) {
+      localEditCache.value[key] = {};
+    }
+    localEditCache.value[key][col.prop] = value;
+    emit("update:editCache", localEditCache.value);
+  }
+  emit("edit-change", { row, prop: col.prop, value });
 }
 
-/** 判断列是否可编辑 */
+/** 判断列是否可编辑（编辑态 + 列自身 editable） */
 function isColEditable(col: ReTableColumn): boolean {
-  return batchEditing.value && (col.editable ?? false);
+  return editing.value && (col.editable ?? false);
+}
+
+/** 清空编辑缓存 */
+function clearEditCache(): void {
+  localEditCache.value = {};
+  emit("update:editCache", {});
+}
+
+/**
+ * 有编辑改动的行：以行原值为底，套上缓存里**当前可见列**的改动。
+ *
+ * <p>列被隐藏后其缓存值不再进入结果，避免把已隐藏列的中间态提交给后端。</p>
+ */
+const editedRows = computed<Array<Record<string, unknown>>>(() => {
+  const cache = editCache.value ?? {};
+  const cols = visibleColumns.value;
+  const result: Array<Record<string, unknown>> = [];
+  for (const key of Object.keys(cache)) {
+    const changes = cache[key];
+    if (!changes || Object.keys(changes).length === 0) {
+      continue;
+    }
+    const base = (dataList.value ?? []).find((r) => String(r[props.rowKey] ?? "") === key);
+    const merged: Record<string, unknown> = { ...(base ?? {}) };
+    for (const col of cols) {
+      if (Object.prototype.hasOwnProperty.call(changes, col.prop)) {
+        merged[col.prop] = changes[col.prop];
+      }
+    }
+    result.push(merged);
+  }
+  return result;
+});
+
+/** 是否有编辑改动 */
+const hasEdits = computed<boolean>(() => editedRows.value.length > 0);
+
+/**
+ * 保存编辑：优先 {@code editSaveHandler}，否则只 emit {@code edit-save}。
+ *
+ * <p>未配置 handler 时**不是失败**——把改动行交给页面自行提交即可，
+ * 因此批量保存函数不是必填项。</p>
+ */
+async function saveEdits(): Promise<void> {
+  const rows = editedRows.value;
+  if (!rows.length) {
+    return;
+  }
+  batchProcessing.value = true;
+  try {
+    if (typeof props.editSaveHandler === "function") {
+      await props.editSaveHandler(rows);
+      clearEditCache();
+    } else {
+      emit("edit-save", rows);
+    }
+  } finally {
+    batchProcessing.value = false;
+  }
 }
 
 /** ========== 缺陷9: 远程排序 ========== */
@@ -2610,6 +2878,371 @@ const rootStyle = computed<Record<string, string>>(() => {
   return style;
 });
 
+/** ========== 序号列 / 表尾合计 / 单元格合并 / 展开行（两引擎共用） ========== */
+
+/** 序号列宽度（缺省 60） */
+const indexWidthResolved = computed<string | number>(() => props.indexWidth ?? 60);
+/** 展开列宽度（缺省 48） */
+const expandWidthResolved = computed<string | number>(() => props.expandWidth ?? 48);
+/** 序号列固定方式（element 认 boolean | 'left' | 'right'） */
+const indexFixedResolved = computed<boolean | "left" | "right">(() => props.indexFixed ?? false);
+/** 序号列固定方式（vxe 只认 'left' | 'right' | ''，不认 boolean） */
+const vxeIndexFixed = computed<"left" | "right" | "">(() => {
+  if (props.indexFixed === true) {
+    return "left";
+  }
+  if (props.indexFixed === "left" || props.indexFixed === "right") {
+    return props.indexFixed;
+  }
+  return "";
+});
+
+/**
+ * 序号起始值：跨页连续时按 {@code (page-1) * pageSize} 偏移。
+ *
+ * <p>element 引擎走 {@code type="index"} 列的 {@code :index} 函数；
+ * vxe 引擎走 {@code seqConfig.startIndex}（源码渲染为
+ * {@code (startIndex || 0) + seq}，seq 从 1 起）。两边同源，
+ * 保证连续编号在切换引擎时一致。</p>
+ */
+const indexStart = computed<number>(() => {
+  if (!props.indexContinuous) {
+    return 0;
+  }
+  const page = internalPage.value || props.page || 1;
+  return Math.max(0, (page - 1) * currentPageSize.value);
+});
+
+/**
+ * element 序号列取号：全局序号 = 起始值 + 行下标 + 1。
+ *
+ * @param rowIndex element 传入的行下标（从 0 起）
+ * @returns 展示用序号
+ */
+function elementIndexMethod(rowIndex: number): number {
+  return indexStart.value + rowIndex + 1;
+}
+
+/** vxe 序号配置：startIndex 即全局序号起点 */
+const vxeSeqConfig = computed(() => ({ startIndex: indexStart.value }));
+
+/**
+ * 默认表尾取值：对可见列里的数值列求和，其余留空。
+ *
+ * @param data 当前页数据
+ * @returns 每个可见列一格的值
+ */
+function defaultSummaryValues(data: Array<Record<string, unknown>>): Array<string | number> {
+  return visibleColumns.value.map((col) => {
+    let sum = 0;
+    let has = false;
+    for (const row of data) {
+      const raw = row[col.prop];
+      if (raw === null || raw === undefined || raw === "") {
+        continue;
+      }
+      const n = typeof raw === "number" ? raw : Number(raw);
+      if (Number.isFinite(n)) {
+        sum += n;
+        has = true;
+      }
+    }
+    return has ? sum : "";
+  });
+}
+
+/**
+ * 计算表尾一行：优先用户 summaryMethod，否则用默认数值求和。
+ *
+ * @param data 当前页数据
+ * @returns 每个可见列一格的值
+ */
+function summaryValues(data: Array<Record<string, unknown>>): Array<string | number> {
+  if (typeof props.summaryMethod === "function") {
+    return props.summaryMethod({ columns: visibleColumns.value, data });
+  }
+  return defaultSummaryValues(data);
+}
+
+/**
+ * element 的 summary-method：入参 columns 含选择 / 序号 / 展开等前置列，
+ * 需把它们映射成空串，数据列按 visibleColumns 顺序取合计值。
+ *
+ * @param params element 传入的 { columns, data }
+ * @returns 与 element 列一一对应的表尾单元格值
+ */
+function elementSummaryMethod(params: {
+  columns: Array<{ property?: string }>;
+  data: Array<Record<string, unknown>>;
+}): Array<string> {
+  const values = summaryValues(params.data);
+  return params.columns.map((col) => {
+    const prop = col.property;
+    if (!prop) {
+      return "";
+    }
+    const idx = visibleColumns.value.findIndex((c) => c.prop === prop);
+    if (idx < 0) {
+      return "";
+    }
+    const v = values[idx];
+    // element 的 summary-method 只接受 string | VNode，数值需转成字符串
+    return v === undefined || v === null ? "" : String(v);
+  });
+}
+
+/**
+ * vxe 的 footer-method：返回二维数组（一行表尾），同样跳过非数据列。
+ *
+ * @param params vxe 传入的 { columns, data }
+ * @returns 仅含一行的表尾二维数组
+ */
+function vxeFooterMethod(params: {
+  columns: Array<{ field?: string }>;
+  data: Array<Record<string, unknown>>;
+}): Array<Array<string | number>> {
+  const values = summaryValues(params.data);
+  const row = params.columns.map((col) => {
+    const field = col.field;
+    if (!field) {
+      return "";
+    }
+    const idx = visibleColumns.value.findIndex((c) => c.prop === field);
+    return idx >= 0 ? values[idx] ?? "" : "";
+  });
+  return [row];
+}
+
+/**
+ * 把用户的合并结果收口成 {@code { rowspan, colspan }}（两引擎都接受对象形态）。
+ *
+ * @param result 用户返回值（数组 / 对象 / 空）
+ * @returns 规范化后的合并信息，空表示不合并
+ */
+function normalizeSpan(
+  result: [number, number] | { rowspan: number; colspan: number } | undefined | void,
+): { rowspan: number; colspan: number } | undefined {
+  if (!result) {
+    return undefined;
+  }
+  if (Array.isArray(result)) {
+    return { rowspan: result[0], colspan: result[1] };
+  }
+  return { rowspan: result.rowspan, colspan: result.colspan };
+}
+
+/**
+ * 按列 prop 定位 ReTableColumn 并回调用户合并规则。
+ *
+ * @param row 当前行
+ * @param rowIndex 当前行下标
+ * @param prop 引擎传入的列字段名
+ * @param cellValue 单元格原始值
+ * @returns 规范化后的合并信息
+ */
+function resolveSpan(
+  row: Record<string, unknown>,
+  rowIndex: number,
+  prop: string | undefined,
+  cellValue: unknown,
+): { rowspan: number; colspan: number } | undefined {
+  if (!props.spanMethod || !prop) {
+    return undefined;
+  }
+  const colIndex = visibleColumns.value.findIndex((c) => c.prop === prop);
+  if (colIndex < 0) {
+    return undefined;
+  }
+  const column = visibleColumns.value[colIndex];
+  return normalizeSpan(
+    props.spanMethod({ row, rowIndex, column, columnIndex: colIndex, cellValue }),
+  );
+}
+
+/**
+ * element 的 span-method 适配。
+ *
+ * @param params element 传入的 { row, rowIndex, column }
+ * @returns 合并信息
+ */
+function elementSpanMethod(params: {
+  row: Record<string, unknown>;
+  rowIndex: number;
+  column?: { property?: string };
+}): { rowspan: number; colspan: number } | undefined {
+  const prop = params.column?.property;
+  return resolveSpan(params.row, params.rowIndex, prop, prop ? params.row[prop] : undefined);
+}
+
+/**
+ * vxe 的 span-method 适配。
+ *
+ * @param params vxe 传入的 { row, rowIndex, column }
+ * @returns 合并信息
+ */
+function vxeSpanMethod(params: {
+  row: Record<string, unknown>;
+  rowIndex: number;
+  column?: { field?: string };
+}): { rowspan: number; colspan: number } | undefined {
+  const field = params.column?.field;
+  return resolveSpan(params.row, params.rowIndex, field, field ? params.row[field] : undefined);
+}
+
+/** ========== vxe 虚拟滚动 / 区域选择 · 列拖拽排序（两引擎） ========== */
+
+/** vxe 列配置：resizable + 可选列拖拽 */
+const vxeColumnConfig = computed(() => ({
+  resizable: borderResizable.value,
+  drag: props.columnDraggable,
+}));
+
+/** vxe 纵向虚拟滚动配置（virtualScroll 开启时总是启用，阈值走 virtualScrollGt） */
+const vxeVirtualYConfig = computed(() =>
+  props.virtualScroll ? { enabled: true, gt: Math.max(0, props.virtualScrollGt) } : undefined,
+);
+
+/** vxe 区域选择 · 鼠标配置（area 打开框选） */
+const vxeMouseConfig = { area: true };
+/** vxe 区域选择 · 区域配置（多区域 + 点击表格外自动清除） */
+const vxeAreaConfig = { multiple: true, showActionMsg: true, autoClear: true };
+/** vxe 区域选择 · 键盘配置（复制 / 粘贴 / 剪切依赖 isClip） */
+const vxeKeyboardConfig = { isClip: true };
+/** vxe 列拖拽配置（同级列拖拽 + 辅助状态） */
+const vxeColumnDragConfig = { isPeerDrag: true, showGuidesStatus: true, animation: false };
+
+/** element 引擎不支持虚拟滚动 / 区域选择：开启只提示，不假装生效 */
+watch(
+  [() => props.virtualScroll, () => props.areaSelect, useVxe],
+  ([virtual, area, vxe]) => {
+    if (!vxe && (virtual || area) && import.meta.env.DEV) {
+      console.warn("[ReTable] virtualScroll / areaSelect 仅 vxe 引擎支持，当前为 element 引擎，已忽略。");
+    }
+  },
+  { immediate: true },
+);
+
+/**
+ * 应用新的可见列顺序：可见列按新顺序排列，隐藏 / 未出现的列保持原相对顺序追加在后。
+ *
+ * @param newVisibleOrder 新的可见列 prop 顺序
+ */
+function applyColumnOrder(newVisibleOrder: string[]): void {
+  if (!newVisibleOrder.length) {
+    return;
+  }
+  const rest = columnState.value.order.filter((p) => !newVisibleOrder.includes(p));
+  const next = [...newVisibleOrder, ...rest];
+  if (next.join("|") === columnState.value.order.join("|")) {
+    return;
+  }
+  columnState.value = { ...columnState.value, order: next };
+  saveColumnState();
+  emit("column-order-change", next);
+}
+
+/**
+ * vxe 列拖拽结束：vxe 已先行重排内部列，这里从实例读回权威顺序再落状态。
+ */
+function onVxeColumnDragEnd(): void {
+  const inst = vxeTableRef.value as unknown as
+    | { getColumns?: () => Array<{ field?: string }> }
+    | null;
+  const cols = inst?.getColumns?.();
+  if (!cols || !cols.length) {
+    return;
+  }
+  const newVisible = cols
+    .map((c) => c.field)
+    .filter((f): f is string => typeof f === "string" && f.length > 0);
+  applyColumnOrder(newVisible);
+}
+
+/** element 表头排序实例 */
+const headerSortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
+
+/** 销毁 element 表头拖拽 */
+function destroyHeaderSortable(): void {
+  headerSortableInstance.value?.destroy();
+  headerSortableInstance.value = null;
+}
+
+/**
+ * element 引擎：在表头行上启用列拖拽排序。
+ *
+ * <p>只允许拖数据列：前置的选择 / 序号 / 展开列保持原顺序固定在左侧，
+ * 用「表头单元格总数 − 可见数据列数」算出前置偏移量，索引小于偏移量的一律不可拖、
+ * 也不接受落点。最终顺序写入组件自己的 columnState（与列设置面板同源）。</p>
+ */
+async function initHeaderSortable(): Promise<void> {
+  destroyHeaderSortable();
+  if (!props.columnDraggable || useVxe.value || activeLayout.value !== "table") {
+    return;
+  }
+  await nextTick();
+  const tableEl = currentTableEl();
+  const tr = tableEl?.querySelector<HTMLElement>(".el-table__header-wrapper thead tr") ?? null;
+  if (!tr) {
+    return;
+  }
+  // 表头单元格由 element-plus 异步注册列后渲染，初挂载时 tr 可能是空的。
+  // Sortable 对子节点是事件委托，先绑上即可；前置偏移量在回调里**实时**计算，
+  // 因此列稍后才出现也不影响判断（若在绑定时算死偏移量，空表头会得到 0，
+  // 之后所有列都会被误判成「数据列」，前置列也能被拖动）。
+  const ths = (): HTMLElement[] => Array.from(tr.children) as HTMLElement[];
+  const leadOffset = (): number => Math.max(0, ths().length - visibleColumns.value.length);
+  const isLead = (el: HTMLElement | null): boolean => {
+    const index = el ? ths().indexOf(el) : -1;
+    return index >= 0 && index < leadOffset();
+  };
+  headerSortableInstance.value = Sortable.create(tr, {
+    animation: 150,
+    draggable: "th",
+    filter: (_evt, target) => isLead(target as HTMLElement),
+    onMove: (evt) => !isLead(evt.related as HTMLElement),
+    onEnd: ({ oldIndex, newIndex }) => {
+      if (oldIndex === undefined || newIndex === undefined) {
+        return;
+      }
+      const offset = leadOffset();
+      const from = oldIndex - offset;
+      const to = newIndex - offset;
+      const visibleOrder = visibleColumns.value.map((c) => c.prop);
+      if (from < 0 || to < 0 || from >= visibleOrder.length || to >= visibleOrder.length || from === to) {
+        return;
+      }
+      const [moved] = visibleOrder.splice(from, 1);
+      visibleOrder.splice(to, 0, moved);
+      applyColumnOrder(visibleOrder);
+    },
+  });
+}
+
+/** 列拖拽条件 / 引擎 / 布局 / 可见列变化时重挂表头排序 */
+watch(
+  () =>
+    [
+      props.columnDraggable,
+      useVxe.value,
+      activeLayout.value,
+      visibleColumns.value.map((c) => c.prop).join("|"),
+    ] as const,
+  () => {
+    if (useVxe.value) {
+      destroyHeaderSortable();
+    } else {
+      void initHeaderSortable();
+    }
+  },
+  { flush: "post" },
+);
+onMounted(() => {
+  if (!useVxe.value) {
+    void initHeaderSortable();
+  }
+});
+onBeforeUnmount(destroyHeaderSortable);
+
 defineExpose({
   reload,
   goto,
@@ -2618,7 +3251,9 @@ defineExpose({
   toggleBatchSelect,
   getSelectedRows: () => allSelectedRows.value,
   getEditCache: () => editCache.value,
-  clearEditCache: () => { editCache.value = {}; },
+  getEditedRows: () => editedRows.value,
+  saveEdits,
+  clearEditCache,
   get loading(): boolean {
     return dataLoading.value;
   },
@@ -2740,14 +3375,14 @@ const iconSelect = Select;
     <div ref="mainRef" class="re-table__main">
     <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
     <div
-      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || debug"
+      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || editable || autoRefresh || showLayoutSwitch || debug"
       class="re-table__toolbar-row"
     >
       <div v-if="$slots.toolbar" class="re-table__toolbar-left">
         <slot name="toolbar" />
       </div>
       <div
-        v-if="searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || debug"
+        v-if="searchEnabled || showDragToggle || batchDelete || editable || autoRefresh || showLayoutSwitch || debug"
         class="re-table__toolbar-right"
       >
         <!-- 批量删除模式：右侧工具栏最左侧出现 取消 / 确认删除（与拖拽的取消/确认同位置，二者互斥） -->
@@ -2778,6 +3413,15 @@ const iconSelect = Select;
           
           @click="confirmDragSort"
         >确认排序</el-button>
+        <!-- 可编辑模式：有改动时出现保存入口（值走 v-model:edit-cache / edit-save 交给页面） -->
+        <el-button
+          v-if="editable && hasEdits"
+          type="primary"
+          :loading="batchProcessing"
+          @click="saveEdits"
+        >
+          保存编辑<span v-if="editedRows.length" class="re-table__sel-badge">{{ editedRows.length }}</span>
+        </el-button>
         <ReButton
           v-if="batchDelete"
           layout="square"
@@ -2869,7 +3513,7 @@ const iconSelect = Select;
         mode="batch"
         :config="toolbarConfig"
         :selected-count="selectedCount"
-        :editing="batchEditing"
+        :editing="editing"
         :processing="batchProcessing"
         :loading="dataLoading || loading"
         :size="tableSize"
@@ -2907,6 +3551,9 @@ const iconSelect = Select;
       :style="heightMinStyle"
       :tree-props="effectiveTreeProps"
       :default-expand-all="defaultExpandAll"
+      :show-summary="showSummary"
+      :summary-method="showSummary ? elementSummaryMethod : undefined"
+      :span-method="spanMethod ? elementSpanMethod : undefined"
       :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @cell-click="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellClick(row, column, cell, event)"
@@ -2921,6 +3568,22 @@ const iconSelect = Select;
         type="selection"
         width="50"
         fixed="left"
+      />
+      <!-- 展开行：展开内容由 #expand 插槽提供（不传插槽时行不可展开，仅显示图标列） -->
+      <ElTableColumn v-if="expandable" type="expand" :width="expandWidthResolved">
+        <template #default="{ row: expandRow }">
+          <slot name="expand" :row="expandRow" />
+        </template>
+      </ElTableColumn>
+      <!-- 序号列：type=index + 自定义取号，实现跨页连续编号 -->
+      <ElTableColumn
+        v-if="showIndex"
+        type="index"
+        :label="indexLabel"
+        :width="indexWidthResolved"
+        :align="indexAlign"
+        :fixed="indexFixedResolved"
+        :index="elementIndexMethod"
       />
       <!-- 拖拽手柄列：仅拖拽排序模式 -->
       <ElTableColumn
@@ -2960,7 +3623,7 @@ const iconSelect = Select;
               :name="resolveColSlotName(col)"
               :row="scope.row"
               :value="scope.row[col.prop]"
-              :editing="batchEditing"
+              :editing="editing"
             />
           </template>
         </ElTableColumn>
@@ -3050,9 +3713,18 @@ const iconSelect = Select;
       :empty-text="emptyText"
       :style="heightMinStyle"
       :row-config="vxeRowConfig"
-      :column-config="{ resizable: borderResizable }"
+      :column-config="vxeColumnConfig"
       :checkbox-config="vxeCheckboxConfig"
       :tree-config="vxeTreeConfig"
+      :seq-config="vxeSeqConfig"
+      :virtual-y-config="vxeVirtualYConfig"
+      :mouse-config="areaSelect ? vxeMouseConfig : undefined"
+      :area-config="areaSelect ? vxeAreaConfig : undefined"
+      :keyboard-config="areaSelect && areaClip ? vxeKeyboardConfig : undefined"
+      :column-drag-config="columnDraggable ? vxeColumnDragConfig : undefined"
+      :show-footer="showSummary"
+      :footer-method="showSummary ? vxeFooterMethod : undefined"
+      :span-method="spanMethod ? vxeSpanMethod : undefined"
       :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @cell-click="onVxeCellClick"
       @cell-menu="onVxeCellMenu"
@@ -3060,6 +3732,7 @@ const iconSelect = Select;
       @checkbox-all="onVxeCheckboxAll"
       @sort-change="onVxeSortChange"
       @row-dragend="onVxeRowDragEnd"
+      @column-dragend="onVxeColumnDragEnd"
     >
       <!-- 勾选列：常驻选择 / 批量选择 / 批量删除三种场景共用一列 -->
       <VxeColumn
@@ -3067,6 +3740,21 @@ const iconSelect = Select;
         type="checkbox"
         width="50"
         fixed="left"
+      />
+      <!-- 展开行：vxe 用 type=expand 列，展开内容走 #content 插槽 -->
+      <VxeColumn v-if="expandable" type="expand" :width="expandWidthResolved">
+        <template #content="{ row: expandRow }">
+          <slot name="expand" :row="expandRow" />
+        </template>
+      </VxeColumn>
+      <!-- 序号列：type=seq + seqConfig.startIndex，实现跨页连续编号 -->
+      <VxeColumn
+        v-if="showIndex"
+        type="seq"
+        :title="indexLabel"
+        :width="indexWidthResolved"
+        :align="indexAlign"
+        :fixed="vxeIndexFixed"
       />
       <!-- vxe 引擎不再使用专门的 drag-sort 列。原因：那列一旦随 dragMode 增删，
            vxe 就会重建列集合并重算**全部**列宽 + 一次全量布局 —— 实测点一次开关冻结
@@ -3098,7 +3786,7 @@ const iconSelect = Select;
             :name="resolveColSlotName(col)"
             :row="row"
             :value="row[col.prop]"
-            :editing="batchEditing"
+            :editing="editing"
           />
         </template>
         <template v-else #default="{ row }">
@@ -3237,7 +3925,7 @@ const iconSelect = Select;
           :mode="toolbarConfigPosition === 'top' ? 'tools' : 'full'"
           :config="toolbarConfig"
           :selected-count="selectedCount"
-          :editing="batchEditing"
+          :editing="editing"
           :processing="batchProcessing"
           :loading="dataLoading || loading"
           :size="tableSize"

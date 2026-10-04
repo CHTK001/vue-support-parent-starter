@@ -17,9 +17,11 @@
  * <p><b>为什么不改存档</b>：布局存的是 {@code x/y/w/h} 的<b>网格单位</b>，与 {@code rowHeight} 无关，
  * 换行高不会让任何已保存的位置失效。</p>
  *
- * <p><b>为什么不加在编辑态</b>（{@code HomePreview}）：grid-layout-plus 的拖拽/缩放用
- * {@code rowHeight} 做像素↔网格换算，行高在交互中变化会让组件「跳」。预览区高度本就由
- * 抽屉给定、允许滚动，浏览态吃满即可解决可见问题。</p>
+ * <p><b>编辑态（{@code HomePreview}）也用</b>：此前预览写死 {@code :row-height="80"}，
+ * 于是「浏览态吃满、点进自定义布局又没吃满」——同一个页面两种高度。
+ * 当时不做的理由是「行高在拖拽中变化会让组件跳」，这个顾虑是对的，但不该用
+ * 「整个编辑态都不做」来解决：改为通过 {@link FillRowHeightOptions.freeze} 在
+ * 拖拽 / 缩放期间冻结行高、松手后补算，静止时依然吃满，交互时也不会跳。</p>
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch, type ComputedRef, type Ref } from "vue";
 
@@ -42,24 +44,42 @@ export const MAX_TOTAL_HEIGHT = 1000;
 /** 首帧与容器尚未测量时的兜底值（等于改造前写死的 80，避免首帧跳动） */
 export const DEFAULT_ROW_HEIGHT = 80;
 
+/** {@link useFillRowHeight} 的可选参数 */
+export interface FillRowHeightOptions {
+  /**
+   * 为 true 时**暂停重算**，用于拖拽 / 缩放过程。
+   *
+   * <p>行高是 grid-layout-plus 做「像素↔网格」换算的基准，交互过程中改动会让
+   * 正在拖的组件突然改变高度，表现为「跳」。所以交互期间冻结，结束后再补算一次。</p>
+   */
+  freeze?: Ref<boolean>;
+}
+
 /**
  * 按容器可用高度反解行高。
  *
  * @param bottom 布局占用的总行数（通常取 {@code max(y + h)}）
+ * @param options 可选项，见 {@link FillRowHeightOptions}
  * @returns 需要绑到 ResizeObserver 宿主上的 ref，以及算出的 {@code rowHeight}
  */
-export function useFillRowHeight(bottom: ComputedRef<number> | Ref<number>) {
+export function useFillRowHeight(
+  bottom: ComputedRef<number> | Ref<number>,
+  options: FillRowHeightOptions = {},
+) {
   /** 宿主元素：取「外层 flex 容器」而不是 GridLayout —— 后者高度由 rowHeight 决定，会自激 */
   const hostRef = ref<HTMLElement | null>(null);
   /** 宿主可用高度（px），0 表示尚未测量 */
   const available = ref(0);
   const rowHeight = ref(DEFAULT_ROW_HEIGHT);
+  const freeze = options.freeze;
 
   /** 是否已成功测量过：未测量前保持 DEFAULT，避免首帧先矮后高地跳一下 */
   const measured = ref(false);
 
   function recompute(): void {
     if (!measured.value) return;
+    // 拖拽/缩放中冻结：此时改行高会让组件跳
+    if (freeze?.value) return;
     const rows = Math.max(1, Math.floor(bottom.value));
     const h = available.value;
     if (h <= 0) return;
@@ -84,7 +104,17 @@ export function useFillRowHeight(bottom: ComputedRef<number> | Ref<number>) {
   const onResize = (): void => {
     const el = hostRef.value;
     if (!el) return;
-    const h = el.clientHeight;
+    /**
+     * {@code clientHeight} 含自身 padding，而网格实际可用的是内容盒。
+     * 编辑态预览（{@code HomePreview}）的滚动容器带 12px padding，
+     * 不扣掉就会算出比实际多 24px 的可用高度 → 网格被撑高 24px → 平白多一条滚动条。
+     * 浏览态宿主无 padding，这里是 0，行为不变。
+     */
+    const cs = getComputedStyle(el);
+    const padTop = parseFloat(cs.paddingTop);
+    const padBottom = parseFloat(cs.paddingBottom);
+    const inset = (Number.isFinite(padTop) ? padTop : 0) + (Number.isFinite(padBottom) ? padBottom : 0);
+    const h = el.clientHeight - inset;
     if (h === available.value) return;
     available.value = h;
     measured.value = h > 0;
@@ -110,6 +140,9 @@ export function useFillRowHeight(bottom: ComputedRef<number> | Ref<number>) {
 
   // 增删 widget 改了总行数，行高要跟着重算
   watch(bottom, recompute);
+
+  // 冻结期间发生的 bottom 变化被 recompute 跳过了，解除冻结时必须补算一次
+  if (freeze) watch(freeze, (frozen) => { if (!frozen) recompute(); });
 
   return { hostRef, rowHeight, measured };
 }

@@ -402,27 +402,6 @@ export default {
       watermarkConfig: "Watermark Config",
       weatherConfig: "Weather Config",
       capabilityConfig: "Capability Switches",
-      loginVerify: "Login Verification",
-    },
-    loginVerify: {
-      captcha: {
-        title: "Image Captcha",
-        sub: "Captcha",
-        tip: "Require an image captcha at login (login.captcha)",
-        description: "Require an image captcha at login; also configurable via app.yaml / backend default API",
-      },
-      slider: {
-        title: "Slider Verify",
-        sub: "Slider",
-        tip: "Require sliding to the right at login (login.slider)",
-        description: "Require sliding to the right at login; also configurable via app.yaml / backend default API",
-      },
-      otp: {
-        title: "Dynamic Password",
-        sub: "OTP / TOTP",
-        tip: "Require a 6-digit authenticator code at login (login.otp)",
-        description: "Require a 6-digit TOTP code at login; also configurable via app.yaml / backend default API",
-      },
     },
     security: {
       watermark: {
@@ -644,6 +623,13 @@ export default {
         sub: "Backend Capability",
         tip: "Let the backend resolve an IP into a physical address via /v2/ip/lookup (other.capabilities.ipLookup)",
         description: "Request the backend to resolve missing IP addresses; set false in app.yaml when the backend has no such API to avoid pointless 404 requests",
+      },
+      holiday: {
+        title: "Holiday API",
+        sub: "Backend Capability",
+        tip: "Trust the admin-maintained schedule from /v2/holiday/get when the backend provides it (other.capabilities.holiday)",
+        description:
+          "When enabled the home calendar prefers the holiday and makeup-workday dates delivered by the backend; dates the backend does not cover still fall back to the built-in table and the statutory-holiday act. Set false in app.yaml when the backend has no such API, otherwise every startup logs a probe 404",
       },
     },
     toolbar: {

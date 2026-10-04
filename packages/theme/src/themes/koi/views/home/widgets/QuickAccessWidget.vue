@@ -5,7 +5,7 @@
         <el-icon class="qw__title-icon"><Grid /></el-icon>
         <span>{{ widget.title }}</span>
       </div>
-      <button type="button" class="qw__add-btn" title="添加快捷" @click="openAdd">
+      <button type="button" class="qw__add-btn" title="添加快捷" aria-label="添加快捷" @click="openAdd">
         <el-icon><Plus /></el-icon>
       </button>
     </div>
@@ -29,7 +29,14 @@
             <el-icon v-else :size="20"><component :is="iconMap[item.icon ?? ''] || 'Menu'" /></el-icon>
           </div>
           <span class="qw__item-title">{{ item.title }}</span>
-          <button v-if="!item.isSystem" type="button" class="qw__item-del" title="删除" @click.stop="remove(item.id!)">
+          <button
+            v-if="!item.isSystem"
+            type="button"
+            class="qw__item-del"
+            :title="`删除 ${item.title}`"
+            :aria-label="`删除 ${item.title}`"
+            @click.stop="remove(item.id!)"
+          >
             <el-icon><Close /></el-icon>
           </button>
         </div>
@@ -248,25 +255,82 @@ onMounted(() => load());
 </script>
 
 <style lang="scss" scoped>
+/* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
 .qw {
   display: flex; flex-direction: column; height: 100%; width: 100%; min-height: 0;
-  background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
 }
-.qw__header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
-.qw__title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); display: inline-flex; align-items: center; gap: 8px; }
-.qw__title-icon { color: var(--el-color-primary); }
-.qw__add-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: 8px; background: color-mix(in srgb, var(--el-color-primary) 10%, transparent); color: var(--el-color-primary); cursor: pointer; transition: background 0.15s; }
-.qw__add-btn:hover { background: color-mix(in srgb, var(--el-color-primary) 18%, transparent); }
-.qw__body { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 14px; }
-.qw__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; color: var(--el-text-color-disabled); font-size: 13px; }
-.qw__empty-btn { margin-top: 4px; padding: 6px 16px; border: 1px solid var(--el-border-color); border-radius: 8px; background: transparent; color: var(--el-color-primary); cursor: pointer; font-size: 12px; }
-.qw__empty-btn:hover { background: color-mix(in srgb, var(--el-color-primary) 8%, transparent); }
+.qw__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px 8px; }
+.qw__title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.qw__title-icon { flex-shrink: 0; color: var(--el-color-primary); }
+.qw__add-btn {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 32px; height: 32px; border: none; cursor: pointer;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s);
+}
+.qw__add-btn:hover { background: color-mix(in srgb, var(--el-color-primary) 20%, transparent); }
+.qw__add-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
+
+.qw__body { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 16px; }
+
+.qw__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; font-size: 13px; color: var(--el-text-color-disabled); }
+.qw__empty-btn {
+  margin-top: 4px; padding: 8px 16px; cursor: pointer;
+  font-size: 12px; color: var(--el-color-primary);
+  background: transparent;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
+}
+.qw__empty-btn:hover { background: var(--el-color-primary-light-9); border-color: var(--el-color-primary); }
+.qw__empty-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
+
 .qw__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
-.qw__item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 4px 10px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+
+/* 边框默认透明，hover 才描边 —— 静止时页面更安静，hover 时仍有明确边界 */
+.qw__item {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 4px 12px; cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-md, 8px);
+  transition: background var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
+}
 .qw__item:hover { background: var(--el-fill-color-light); border-color: var(--el-border-color-lighter); }
 .qw__item:hover .qw__item-del { opacity: 1; }
-.qw__item-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: color-mix(in srgb, var(--el-color-primary) 8%, transparent); color: var(--el-color-primary); }
-.qw__item-img { width: 26px; height: 26px; object-fit: contain; }
-.qw__item-title { font-size: 10px; color: var(--el-text-color-secondary); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.qw__item-del { position: absolute; top: 4px; right: 4px; opacity: 0; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: none; border-radius: 6px; background: var(--el-color-danger); color: #fff; cursor: pointer; transition: opacity 0.15s; font-size: 11px; }
+
+.qw__item-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border-radius: var(--el-radius-lg, 12px);
+  transition: background var(--el-transition-duration, 0.2s);
+}
+.qw__item:hover .qw__item-icon { background: color-mix(in srgb, var(--el-color-primary) 14%, transparent); }
+.qw__item-img { width: 24px; height: 24px; object-fit: contain; }
+
+.qw__item-title {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; color: var(--el-text-color-secondary); text-align: center;
+}
+
+.qw__item-del {
+  position: absolute; top: 4px; right: 4px;
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border: none; cursor: pointer;
+  font-size: 12px; color: #fff;
+  background: var(--el-color-danger);
+  border-radius: var(--el-radius-full, 9999px);
+  opacity: 0;
+  transition: opacity var(--el-transition-duration, 0.2s);
+}
+.qw__item-del:focus-visible { opacity: 1; outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 20%, transparent); }
 </style>

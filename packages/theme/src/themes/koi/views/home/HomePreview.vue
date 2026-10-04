@@ -6,14 +6,19 @@
         拖拽组件调整位置，编辑后「保存」即可生效
       </div>
     </div>
-    <div class="home-editor__preview-body">
+    <div
+      ref="hostRef"
+      class="home-editor__preview-body"
+      @pointerdown="freezeRowHeight = true"
+      @pointercancel="freezeRowHeight = false"
+    >
       <GridLayout
         v-model:layout="layout"
         :is-draggable="true"
         :is-resizable="true"
         :cols="GRID_COLS"
-        :row-height="80"
-        :margin="[12, 12]"
+        :row-height="rowHeight"
+        :margin="[GRID_MARGIN, GRID_MARGIN]"
         :use-css-transforms="true"
         :vertical-compact="true"
         :prevent-collision="false"
@@ -74,10 +79,11 @@
  * 渲染当前正在编辑的 widget 网格（可拖拽 / 可缩放）。
  * 位置即"实际位置"——保存后 home 视图就按此 layout 渲染。
  */
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { GridLayout, GridItem } from "grid-layout-plus";
 import { DeleteFilled, Setting } from "@element-plus/icons-vue";
 import { GRID_COLS } from "./gridCompat";
+import { GRID_MARGIN, useBottomRows, useFillRowHeight } from "./useFillRowHeight";
 import type { GridPosition, WidgetItem } from "./types";
 
 const props = defineProps<{
@@ -115,12 +121,46 @@ const hasWidgets = computed(() => props.widgets.length > 0);
 const visibleLayout = computed<GridPosition[]>(() =>
   props.grid.filter((g) => widgetById.value.has(g.i)),
 );
+
+/**
+ * 行高按可用高度反解，让预览与浏览态一样吃满。
+ *
+ * <p>此前写死 {@code :row-height="80"}，导致「浏览态满、编辑态不满」。
+ * 拖拽 / 缩放期间用 {@code freezeRowHeight} 冻结，避免行高在交互中突变导致组件跳动。</p>
+ */
+const totalRows = useBottomRows(() => visibleLayout.value);
+const freezeRowHeight = ref(false);
+const { hostRef, rowHeight } = useFillRowHeight(totalRows, { freeze: freezeRowHeight });
+
+/**
+ * 拖拽 / 缩放结束时（window 上）解除冻结并重算。
+ *
+ * <p>必须挂在 window 上：拖拽过程中指针事件可能被移到 document
+ * （grid-layout-plus 的 iframe 穿透处理），只绑预览容器会漏掉 pointerup，
+ * 冻结再也解不开 —— 表现是「拖一下之后再也填不满」。</p>
+ */
+function releaseFreeze(): void {
+  freezeRowHeight.value = false;
+}
+
+onMounted(() => {
+  window.addEventListener("pointerup", releaseFreeze);
+  window.addEventListener("pointercancel", releaseFreeze);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("pointerup", releaseFreeze);
+  window.removeEventListener("pointercancel", releaseFreeze);
+});
 </script>
 
 <style lang="scss" scoped>
 .home-editor__preview {
   display: flex;
   flex-direction: column;
+  /* 与浏览态 .home-grid 对齐：必须能增长，否则内部 flex:1 与行高反解都拿不到确定高度 */
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 10px;
   background: var(--el-fill-color-blank);

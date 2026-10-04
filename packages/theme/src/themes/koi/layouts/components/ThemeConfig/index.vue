@@ -357,37 +357,11 @@
               </div>
             </div>
 
-            <!-- 登录验证：验证码 / 滑块 / 动态口令（同时支持 app.yaml 与后台 default 接口下发） -->
-            <div class="config-section">
-              <div class="section-header">
-                <el-icon :size="18" class="section-icon"><Lock /></el-icon>
-                <span class="section-title">{{ t("themeConfig.sections.loginVerify") }}</span>
-              </div>
-
-              <div class="section-card">
-                <ReSwitch layout="card"
-                  v-model="loginConfig.captcha"
-                  :title="t('themeConfig.loginVerify.captcha.title')"
-                  :sub="t('themeConfig.loginVerify.captcha.sub')"
-                  :tip="t('themeConfig.loginVerify.captcha.tip')"
-                  :description="t('themeConfig.loginVerify.captcha.description')"
-                />
-                <ReSwitch layout="card"
-                  v-model="loginConfig.slider"
-                  :title="t('themeConfig.loginVerify.slider.title')"
-                  :sub="t('themeConfig.loginVerify.slider.sub')"
-                  :tip="t('themeConfig.loginVerify.slider.tip')"
-                  :description="t('themeConfig.loginVerify.slider.description')"
-                />
-                <ReSwitch layout="card"
-                  v-model="loginConfig.otp"
-                  :title="t('themeConfig.loginVerify.otp.title')"
-                  :sub="t('themeConfig.loginVerify.otp.sub')"
-                  :tip="t('themeConfig.loginVerify.otp.tip')"
-                  :description="t('themeConfig.loginVerify.otp.description')"
-                />
-              </div>
-            </div>
+            <!-- 登录验证（图形验证码 / 滑块 / 动态口令）已移除：
+                 这三项由后端 /v2/setting/default 经 core 的 SETTING_TO_LOGIN_MAP 下发
+                 （CheckCodeOpen / SlidingBlockOpen / CheckTotpOpen），以及 app.yaml 的
+                 loginConfig 段决定，属部署侧配置。放在用户主题配置里会让用户以为
+                 自己能改，实际改不动也不该由前端决定，故不在此提供开关。 -->
           </template>
 
           <!-- ============ 界面：界面配置 ============ -->
@@ -975,9 +949,6 @@ const toolbarSwitchList = computed(() => [
 /** 响应式配置单例（直接修改即可实时联动组件开关） */
 const appConfig = getConfig();
 
-/** 登录页可调项（验证码 / 滑块 / OTP），直接改响应式配置并随用户配置持久化 */
-const loginConfig = computed(() => appConfig.login);
-
 /** 安全防护（水印 / 反调试 / 动态字体 / OCR 混淆） */
 const securityConfig = computed(() => appConfig.security);
 
@@ -1164,7 +1135,10 @@ const exportUserConfig = () => {
     config: {
       other: JSON.parse(JSON.stringify(cfg.other)),
       message: JSON.parse(JSON.stringify(cfg.message)),
-      // 与 user-config.v2 持久化切片保持一致：菜单展示 / 登录验证 / 安全防护 一起导出
+      // 与 user-config.v2 持久化切片保持一致：菜单展示 / 安全防护 / login 一起导出。
+      // login 整片都是后端下发的（品牌文案 + 验证码/滑块/OTP，见 core/setting.ts
+      // 的 SETTING_TO_LOGIN_MAP），抽屉里已不再提供任何开关，这里保留切片只为
+      // 导入导出格式不变；它不该被当作「用户可调项」理解。
       menu: JSON.parse(JSON.stringify(cfg.menu)),
       login: JSON.parse(JSON.stringify(cfg.login)),
       security: JSON.parse(JSON.stringify(cfg.security)),
@@ -1239,7 +1213,8 @@ const applyImportedConfig = (data: {
 }) => {
   const c = data.config ?? {};
 
-  // 1. 响应式配置（setConfig 深合并）：工具栏/计时器/状态色/消息位置 + 菜单展示 / 登录验证 / 安全防护
+  // 1. 响应式配置（setConfig 深合并）：工具栏/计时器/状态色/消息位置 + 菜单展示 / 安全防护
+  //    + login（后端下发、抽屉里已无开关，仅为导入导出格式兼容而透传）
   setConfig({
     other: c.other as AppConfig["other"],
     message: c.message as AppConfig["message"],

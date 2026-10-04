@@ -260,10 +260,18 @@ const sidebarItems = computed(() => [
         path: 'default-models',
         icon: Grid16Regular,
         roles: ['primary'],
-        // 该页保存的是模型与供应商配置（runtime / asr / bot / generate 等分组），属系统级配置。
-        // 接口侧已把普通账号对这些分组的写入拒掉，这里同步标为管理员专属，
-        // 免得普通账号看到一个「保存必失败」的页面。
-        adminOnly: true,
+        // 默认模型改为**按用户隔离**：每个用户管自己的默认模型，不再只让管理员改。
+        //
+        // 三道配套（缺一就会出现「页面能改、功能不认」的两处真相）：
+        //   ① 本 tab 去掉 adminOnly，所有登录用户可见；
+        //   ② 后端 SettingsController 按**字段名含 model** 放行用户覆盖
+        //      （不整组放开 —— 同组的 *_api_key / *_base_url / provider_app_secret 仍是管理员专属，
+        //        非管理员读到时服务端已掩码为 ***）；
+        //   ③ 消费方按用户读：EffectiveChatModelResolver 已按 userId 取
+        //      sys_ai_user_setting 里的 runtime.default_model。
+        //
+        // 仍保留管理员专属的字段（凭据、工作间基路径、user_tool_access 等）由
+        // 服务端逐字段拦截，前端不重复维护一份清单。
     },
 
     {
