@@ -8,7 +8,7 @@
  *   - 扁平 footer 按钮
  *   - 柔和遮罩层
  */
-import { computed, defineAsyncComponent, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from "vue";
 import "../../shared/modern-vars.css";
 
 const ReDialogCloseFab = defineAsyncComponent(() => import("../CloseFab.vue"));
@@ -145,13 +145,33 @@ function onMaskClick(): void {
   if (props.closeOnClickModal) { visible.value = false; emit("update:modelValue", false); }
 }
 
-// ESC close
-if (typeof window !== "undefined") {
-  window.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === "Escape" && visible.value && props.closeOnPressEscape) {
-      visible.value = false;
-      emit("update:modelValue", false);
-    }
+/**
+ * Esc 关闭。
+ *
+ * <p><b>原实现的问题（HANDOVER §5.3 D2「已定位未修」）</b>：在 setup 顶层用了
+ * <i>匿名</i>处理函数 `window.addEventListener("keydown", ...)` 且**从不注销** ——
+ * 匿名函数也没法注销。于是每次挂载都往 `window` 上留一个监听器，
+ * 组件卸载后依然存在，反复开关弹窗会持续累积。</p>
+ *
+ * <p><b>为什么改成这个最小版本</b>：本文件是<b>共用组件</b>，且当前环境无法完成
+ * 运行时回归（system 应用的 modern 弹窗进不去 —— 它的 login 接口需要该应用自己的
+ * 代理配置）。所以这里**刻意不改动挂载时机与判定条件**（仍然在 setup 时挂、
+ * 仍然只在 `visible && closeOnPressEscape` 时响应），
+ * 只补上原来缺的那一步：**卸载时注销**。
+ * 这样 Esc 的既有行为逐字不变，而被修的正是真正会累积的那部分 —— 卸载后的残留。
+ * 若将来能完成运行时回归，再考虑进一步「仅在 visible 期间挂载」。</p>
+ */
+function onKeydown(e: KeyboardEvent): void {
+  if (e.key === "Escape" && visible.value && props.closeOnPressEscape) {
+    visible.value = false;
+    emit("update:modelValue", false);
+  }
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("keydown", onKeydown);
+  onBeforeUnmount(() => {
+    document.removeEventListener("keydown", onKeydown);
   });
 }
 </script>
