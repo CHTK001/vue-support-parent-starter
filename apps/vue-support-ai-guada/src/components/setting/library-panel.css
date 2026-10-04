@@ -1,0 +1,659 @@
+/*
+  令牌口径（koi 三层变量，逐级兜底）：
+    --rm-*    Modern 语义层（bg/border/text/radius/transition）
+    --el-*    Element Plus 运行时（color-primary / text-color-* / radius）
+  不写死具体色值，亮暗主题与品牌色切换都跟着走。
+*/
+.lib-page {
+  --lib-gap: 16px;
+  --lib-surface: var(--rm-bg, var(--el-bg-color-overlay, #fff));
+  --lib-surface-subtle: var(--rm-bg-subtle, var(--el-fill-color-light, #f5f7fa));
+  --lib-border: var(--rm-border, var(--el-border-color-lighter, #ebeef5));
+  --lib-text: var(--rm-text, var(--el-text-color-primary, #303133));
+  --lib-text-regular: var(--rm-text-regular, var(--el-text-color-regular, #606266));
+  --lib-text-secondary: var(--rm-text-secondary, var(--el-text-color-secondary, #909399));
+  --lib-radius: var(--rm-radius-lg, var(--el-radius-lg, 12px));
+  --lib-radius-sm: var(--rm-radius, var(--el-radius-md, 8px));
+  --lib-transition: var(--rm-transition, var(--el-transition-duration-fast, 0.2s) ease);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--lib-gap);
+  padding-bottom: 8px;
+}
+
+/* ── 页头 ─────────────────────────────────────────────── */
+.lib-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lib-head-text {
+  min-width: 0;
+}
+
+.lib-head-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--lib-text);
+}
+
+.lib-head-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--lib-text-secondary);
+}
+
+.lib-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── 未就绪引导 ───────────────────────────────────────── */
+.lib-blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 44px 24px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius);
+  background: var(--lib-surface);
+  text-align: center;
+}
+
+.lib-blocked-icon {
+  font-size: 34px;
+  color: var(--el-color-warning);
+}
+
+.lib-blocked-title {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lib-text);
+}
+
+.lib-blocked-desc {
+  max-width: 560px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--lib-text-secondary);
+}
+
+.lib-blocked-current {
+  margin: 2px 0 6px;
+  padding: 6px 12px;
+  border-radius: var(--lib-radius-sm);
+  background: var(--lib-surface-subtle);
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+}
+
+.lib-blocked-current strong {
+  color: var(--lib-text);
+  font-weight: 600;
+}
+
+/* ── 统计卡 ───────────────────────────────────────────── */
+.lib-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--lib-gap);
+}
+
+.lib-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius);
+  background: var(--lib-surface);
+}
+
+/* 图标彩底：用主色/语义色混透明，避免写死色值 */
+.lib-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--lib-radius-sm);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.lib-stat-icon.is-primary {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.lib-stat-icon.is-success {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+
+.lib-stat-icon.is-warning {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+}
+
+.lib-stat-icon.is-info {
+  color: var(--el-color-info);
+  background: color-mix(in srgb, var(--el-color-info) 12%, transparent);
+}
+
+.lib-stat-label {
+  font-size: 13px;
+  color: var(--lib-text-regular);
+}
+
+.lib-stat-value {
+  margin-left: auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lib-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 上传区 ───────────────────────────────────────────── */
+.lib-alert {
+  margin: 0;
+}
+
+.lib-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--lib-gap);
+  align-items: stretch;
+  padding: 16px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius);
+  background: var(--lib-surface);
+}
+
+.lib-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 22px 16px;
+  border: 1px dashed color-mix(in srgb, var(--el-color-primary) 40%, var(--lib-border));
+  border-radius: var(--lib-radius);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--lib-transition), background var(--lib-transition);
+}
+
+.lib-drop:hover,
+.lib-drop.is-drag {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 9%, transparent);
+}
+
+.lib-drop-icon {
+  font-size: 26px;
+  color: var(--el-color-primary);
+}
+
+.lib-drop-main {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lib-text);
+}
+
+.lib-drop-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+}
+
+.lib-tips {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0 4px 0 16px;
+  border-left: 1px solid var(--lib-border);
+  list-style: none;
+}
+
+.lib-tips li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+  white-space: nowrap;
+}
+
+.lib-tips li .el-icon {
+  color: var(--el-color-success);
+}
+
+.lib-hidden {
+  display: none;
+}
+
+.lib-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-progress-text {
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+}
+
+/* ── 列表区 ───────────────────────────────────────────── */
+.lib-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius);
+  background: var(--lib-surface);
+}
+
+.lib-panel-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--lib-text);
+}
+
+.lib-panel-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--lib-text-secondary);
+}
+
+.lib-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 标题占满剩余空间，把检索/筛选/视图切换一并顶到右侧 */
+.lib-toolbar .lib-panel-title {
+  margin-right: auto;
+}
+
+.lib-search {
+  width: 200px;
+}
+
+.lib-filter {
+  width: 132px;
+}
+
+.lib-view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--lib-radius-sm);
+  background: var(--lib-surface-subtle);
+}
+
+.lib-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--el-radius-xs, 4px);
+  background: transparent;
+  color: var(--lib-text-secondary);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background var(--lib-transition), color var(--lib-transition);
+}
+
+.lib-view-btn:hover {
+  color: var(--el-color-primary);
+}
+
+.lib-view-btn.is-active {
+  background: var(--lib-surface);
+  color: var(--el-color-primary);
+}
+
+/* ── 网格 ─────────────────────────────────────────────── */
+.lib-grid {
+  display: grid;
+  /* 160px 起步：常见宽度下铺到 4 列，与设计图密度一致；窄屏自动降列 */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  min-height: 140px;
+}
+
+.lib-cell {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius-sm);
+  overflow: hidden;
+  background: var(--lib-surface);
+  transition: border-color var(--lib-transition), box-shadow var(--lib-transition);
+}
+
+.lib-cell:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, var(--lib-border));
+}
+
+.lib-cell.is-selected {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
+.lib-thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--lib-surface-subtle);
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.lib-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 勾选标记：未选中时是半透明空框，hover 或选中才实心，避免网格被圆点塞满 */
+.lib-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 70%, transparent);
+  border-radius: var(--el-radius-xs, 4px);
+  /* 图片明暗不可控，勾选框必须有固定深底才在任何图上都看得见 */
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--el-color-white);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--lib-transition), border-color var(--lib-transition);
+}
+
+.lib-check:hover {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 70%, transparent);
+}
+
+.lib-cell.is-selected .lib-check,
+.lib-row.is-selected .lib-check {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+}
+
+.lib-check.is-inline {
+  position: static;
+  border-color: var(--el-border-color);
+  background: var(--lib-surface);
+  color: var(--el-color-primary);
+}
+
+.lib-check.is-inline:hover {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+
+.lib-row.is-selected .lib-check.is-inline {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+.lib-badges {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.lib-badges.is-inline {
+  position: static;
+  margin-left: auto;
+}
+
+.lib-badge {
+  padding: 1px 7px;
+  border-radius: var(--el-radius-xs, 4px);
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--el-color-white);
+  white-space: nowrap;
+}
+
+.lib-badge.is-ok {
+  background: var(--el-color-success);
+}
+
+.lib-badge.is-warn {
+  background: var(--el-color-warning);
+}
+
+.lib-badge.is-dup {
+  background: var(--el-color-primary);
+}
+
+/* hover 操作条 */
+.lib-actions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  display: inline-flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--lib-transition);
+}
+
+.lib-cell:hover .lib-actions,
+.lib-cell.is-selected .lib-actions {
+  opacity: 1;
+}
+
+.lib-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--el-radius-xs, 4px);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--el-color-white);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--lib-transition), color var(--lib-transition);
+}
+
+.lib-act:hover:not(:disabled) {
+  background: var(--el-color-primary);
+}
+
+.lib-act.is-danger:hover:not(:disabled) {
+  background: var(--el-color-danger);
+}
+
+.lib-act:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 列表视图的删除按钮在浅底上，不能沿用深色遮罩底 */
+.lib-act.is-onlight {
+  background: transparent;
+  color: var(--lib-text-secondary);
+}
+
+.lib-act.is-onlight:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  color: var(--el-color-danger);
+}
+
+.lib-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+}
+
+.lib-name {
+  font-size: 13px;
+  color: var(--lib-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-dim {
+  font-size: 11px;
+  color: var(--lib-text-secondary);
+}
+
+.lib-empty {
+  grid-column: 1 / -1;
+}
+
+/* ── 列表视图 ─────────────────────────────────────────── */
+.lib-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 140px;
+}
+
+.lib-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius-sm);
+  transition: border-color var(--lib-transition), background var(--lib-transition);
+}
+
+.lib-row:hover {
+  background: var(--lib-surface-subtle);
+}
+
+.lib-row.is-selected {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+}
+
+.lib-row-thumb {
+  width: 44px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: var(--el-radius-xs, 4px);
+  cursor: zoom-in;
+  flex-shrink: 0;
+}
+
+.lib-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lib-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.lib-pager-text {
+  font-size: 13px;
+  color: var(--lib-text-secondary);
+}
+
+/* ── 批量操作条 ───────────────────────────────────────── */
+.lib-batch {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius);
+  background: var(--lib-surface);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--lib-transition), transform var(--lib-transition), visibility var(--lib-transition);
+}
+
+.lib-batch.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  border-color: color-mix(in srgb, var(--el-color-primary) 35%, var(--lib-border));
+}
+
+.lib-batch-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-color-primary);
+}
+
+.lib-batch-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lib-foot {
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+  padding: 0 2px;
+}
+
+@media (max-width: 900px) {
+  .lib-upload {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lib-tips {
+    padding: 12px 0 0;
+    border-left: none;
+    border-top: 1px solid var(--lib-border);
+  }
+}
