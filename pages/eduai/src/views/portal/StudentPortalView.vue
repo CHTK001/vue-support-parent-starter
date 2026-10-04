@@ -368,6 +368,12 @@ function openModule(moduleCode: string) {
     activeModule.value = { code: moduleCode, title: configured?.title ?? "", component: view };
     return;
   }
+  // 学生端首页卡片来自「模块管理」（edu_fun_config）：后台配了 module_path 的模块，
+  // 必须按路径跳转；否则会出现「菜单来自模块管理，但点开只弹『建设中』」的死链。
+  if (configured?.route) {
+    void router.push(configured.route);
+    return;
+  }
   ElMessage.info("该模块正在建设中，敬请期待");
 }
 
