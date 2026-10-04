@@ -1,5 +1,7 @@
 <template>
   <div class="w-full flex flex-col items-center">
+    <!-- 目标条：输入框上方的会话目标（Issue），激活后随会话推进 -->
+    <GoalBar :session-id="sessionId" />
     <!-- 输入框区域 -->
     <div
       class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
@@ -203,6 +205,7 @@ import AttachmentPopover from './chat-input/AttachmentPopover.vue';
 import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
+import GoalBar from './GoalBar.vue';
 import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
