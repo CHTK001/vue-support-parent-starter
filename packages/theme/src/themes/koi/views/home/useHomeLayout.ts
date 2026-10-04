@@ -18,7 +18,7 @@
 import { reactive } from "vue";
 import { getConfig } from "@repo/config";
 import { getLayout, saveLayout, toLayoutCacheShape } from "@repo/core";
-import { getLayoutCache, setLayoutCache } from "@repo/utils";
+import { getLayoutCache, writeLayoutCache } from "@repo/utils";
 import type { UserLayoutData } from "@repo/core";
 import type { HomeLayoutState, GridPosition, WidgetItem } from "./types";
 import { isWidgetRegistered } from "./registry";
@@ -139,6 +139,55 @@ function isRemote(): boolean {
 }
 
 /**
+ * 把布局写进本地缓存，并**回读校验**。
+ *
+ * <p>{@code setLayoutCache} 内部是 {@code catch { /* ignore *\/ }} —— 写失败
+ * （localStorage 配额满 / 被浏览器禁用 / 隐私模式）既不抛也不回报。于是本页外面
+ * 又套了一层 {@code try catch}，结果是<b>双重静默</b>：布局根本没落盘，界面照样
+ * 弹「布局已保存」，用户下次进来布局全无，且没有任何线索可查。</p>
+ *
+ * <p>这里在写完立刻回读比对，把「写失败」变成一条可诊断的告警。比对只取
+ * widget / grid 的条目数与 id 序列 —— 足以证明这次写入落没落盘，又不必深比较
+ * 整个对象（配置字段多且会变，深比较的失败原因不可读）。</p>
+ *
+ * @param snapshot 要落盘的布局
+ * @param reason 调用来源，仅用于日志定位
+ * @returns 是否确认落盘成功
+ */
+function persistLocal(snapshot: HomeLayoutState, reason: string): boolean {
+  // 这里必须直接用底层 storage 的 set()，不能用 setLayoutCache()：
+  // setLayoutCache 的签名是 void，内部 `catch { /* ignore */ }` 把 set() 的
+  // boolean 丢掉了，调用方无从得知写没写成。StorageWrapper.set() 本身已经
+  // try/catch 并在失败时返回 false，正是这里需要的信号。
+  const written = writeLayoutCache(snapshot);
+  if (!written) {
+    log.warn(
+      `[home-layout] ${reason}：布局**未落盘**（localStorage 写入失败）。` +
+        `常见原因：配额已满、浏览器禁用了本地存储、隐私模式。` +
+        `当前布局仍在内存中可用，但刷新后会丢失。` +
+        `若为 remote 模式，远端上报不受影响。`,
+    );
+    return false;
+  }
+
+  const back = getLayoutCache() as HomeLayoutState | null;
+  const wantIds = snapshot.grid.map((g) => g.i).join(",");
+  const gotIds = (back?.grid ?? []).map((g) => g.i).join(",");
+  const sameWidgets = (back?.widgets?.length ?? -1) === snapshot.widgets.length;
+  if (!back || gotIds !== wantIds || !sameWidgets) {
+    log.warn(
+      `[home-layout] ${reason}：布局**未成功落盘**（写完回读不一致）。` +
+        `期望 ${snapshot.widgets.length} 个 widget / [${wantIds}]，` +
+        `实际 ${back?.widgets?.length ?? "无"} 个 / [${gotIds || "空"}]。` +
+        `常见原因：localStorage 配额已满、浏览器禁用了本地存储、隐私模式。` +
+        `若为 remote 模式，远端上报仍会生效，重新进入页面后可恢复。`,
+    );
+    return false;
+  }
+  return true;
+}
+
+/**
  * 主页布局 hook
  */
 export function useHomeLayout() {
@@ -173,7 +222,13 @@ export function useHomeLayout() {
         state.widgets = parsed.widgets;
         state.grid = parsed.grid;
         return state;
-      } catch {
+      } catch (err) {
+        // 拉取失败此前是完全静默的：用户看到空仪表板，却不知道是「本来就没有」
+        // 还是「拉取炸了」。留痕才能回答这个问题。
+        log.warn(
+          "[home-layout] 远端布局拉取失败，已降级为空布局（本地也没有缓存可回退）",
+          err,
+        );
         state.widgets = [];
         state.grid = [];
         return state;
@@ -197,12 +252,9 @@ export function useHomeLayout() {
       grid: state.grid.map((g) => ({ ...g })),
     };
 
-    // 1. 本地 storage 立即写入（最快可用）
-    try {
-      setLayoutCache(snapshot as never);
-    } catch {
-      /* ignore */
-    }
+    // 1. 本地 storage 立即写入（最快可用）。写失败会被回读校验捕获并告警，
+    //    不再像原先那样内外两层 catch 一起把错误吃掉。
+    persistLocal(snapshot, "保存布局");
 
     // 2. 远程异步上报（不阻塞 UI，失败仅 warn）
     if (isRemote()) {
@@ -224,11 +276,7 @@ export function useHomeLayout() {
     state.widgets = [];
     state.grid = [];
     if (!isEnabled()) return;
-    try {
-      setLayoutCache({ widgets: [], grid: [] } as never);
-    } catch {
-      /* ignore */
-    }
+    persistLocal({ widgets: [], grid: [] }, "清空布局");
   }
 
   return { state, load, save, reset };

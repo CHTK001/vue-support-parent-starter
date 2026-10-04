@@ -209,6 +209,29 @@ export function setUserInfo(userInfo: StorageValue): void {
 
 // ==================== 用户级缓存（cache-aside：先读缓存，没有再请求并写回） ====================
 
+/**
+ * 写布局缓存，**返回是否真的写成功**。
+ *
+ * <p>{@link setLayoutCache} 的签名是 void，内部 {@code catch { /* ignore *\/ }}
+ * 把 {@code StorageWrapper.set()} 的 boolean 丢掉了，调用方无法区分
+ * 「写成功」与「配额满 / 隐私模式 / 存储被禁用」。home 的布局保存原先就吃了
+ * 这个亏：写失败时界面照样提示「布局已保存」，用户刷新后布局全无，且无任何线索。
+ *
+ * <p>与 {@link setLayoutCache} 的区别仅在于把成功与否透出给调用方，
+ * 两者写入的键与编码规则完全一致（同一个 tokenStorage）。</p>
+ *
+ * @param layout 要缓存的布局
+ * @returns 写入是否成功
+ */
+export function writeLayoutCache(layout: StorageValue): boolean {
+  try {
+    if (typeof window === "undefined") return false;
+    return getTokenStorage().set(LAYOUT_CACHE_KEY, layout);
+  } catch {
+    return false;
+  }
+}
+
 /** 读取用户远程菜单缓存（按 userId 隔离，由 createStorage 内部 buildKey 自动注入） */
 export function getMenuCache<T extends StorageValue = unknown[]>() {
   try {
