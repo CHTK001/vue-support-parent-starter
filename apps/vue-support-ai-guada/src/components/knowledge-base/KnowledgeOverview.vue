@@ -350,4 +350,22 @@ function submit() {
   })
   modalVisible.value = false
 }
+
+/**
+ * 供父页面（模板页「使用此模板创建」）打开本弹框并预填名称。
+ *
+ * <p>父页面 {@code KnowledgeBasePage.handleTemplateCreate} 调
+ * {@code overviewRef.openCreate(name)}；此前本组件没有 expose 它，
+ * 父页面每次都走 fallback 打开旧的 {@code .kb-dialog}，表现为「模板页弹出的仍是旧弹框」。</p>
+ *
+ * @param name 预填的知识库名称（可省略）
+ */
+function openCreate(name?: string) {
+  openModal()
+  if (name) {
+    form.name = name
+  }
+}
+
+defineExpose({ openCreate })
 </script>

@@ -85,19 +85,19 @@ const emit = defineEmits<{
   (e: 'back'): void
 }>()
 
-/** 视图项：切换 activeTab */
+/** 视图项：切换 activeTab（概览 / 文档 / 搜索 / 知识图谱 / 智能问答 / 实体管理 / 关系管理） */
 const viewItems: ReadonlyArray<MenuItem> = [
   { key: 'overview', label: '概览', icon: DataLine },
   { key: 'files', label: '文档', icon: Document },
   { key: 'search', label: '搜索', icon: Search },
   { key: 'graph', label: '知识图谱', icon: Share },
   { key: 'ask', label: '智能问答', icon: ChatDotRound },
+  { key: 'entities', label: '实体管理', icon: Grid },
+  { key: 'relations', label: '关系管理', icon: Connection },
 ]
 
-/** 动作项：触发既有能力，不切视图 */
+/** 动作项：触发既有能力，不切视图（设置=知识库档案编辑弹框） */
 const actionItems: ReadonlyArray<MenuItem> = [
-  { key: 'entity', label: '实体管理', icon: Grid },
-  { key: 'relation', label: '关系管理', icon: Connection },
   { key: 'settings', label: '设置', icon: Setting },
 ]
 </script>

@@ -422,18 +422,80 @@
             </section>
           </div>
 
+          <!-- 实体管理（内联视图，与其它 Tab 风格一致，不再是弹框） -->
+          <div v-show="activeTab === 'entities'" class="flex flex-col flex-1 min-h-0 w-full gap-3 p-4">
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+              <span class="text-sm text-[var(--rm-text-secondary)]">共 {{ graphView.entityCount }} 个实体</span>
+              <el-input v-model="graphEntityKeyword" placeholder="按名称过滤" clearable style="width: 220px" />
+              <ReButton :loading="graphLoading" @click="loadGraph">刷新</ReButton>
+              <ReButton type="primary" @click="openEntityForm()">新增实体</ReButton>
+              <ReButton type="danger" :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities">
+                批量删除{{ selectedEntityUids.length ? `(${selectedEntityUids.length})` : '' }}
+              </ReButton>
+            </div>
+            <div class="re-surface re-surface--dense flex-1 min-h-0 overflow-hidden !p-0">
+              <el-table :data="filteredGraphEntities" height="100%" @selection-change="onEntitySelection">
+                <el-table-column type="selection" width="42" />
+                <el-table-column prop="text" label="名称" min-width="160" />
+                <el-table-column label="类型" width="120">
+                  <template #default="{ row }">
+                    <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="degree" label="关系数" width="90" align="right" />
+                <el-table-column label="操作" width="140" align="right">
+                  <template #default="{ row }">
+                    <ReButton link type="primary" size="small" @click="openEntityForm(row)">编辑</ReButton>
+                    <ReButton link type="danger" size="small" @click="handleDeleteEntity(row)">删除</ReButton>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 关系管理（内联视图，与其它 Tab 风格一致，不再是弹框） -->
+          <div v-show="activeTab === 'relations'" class="flex flex-col flex-1 min-h-0 w-full gap-3 p-4">
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+              <span class="text-sm text-[var(--rm-text-secondary)]">共 {{ graphView.relationCount }} 条关系</span>
+              <el-input v-model="graphRelationKeyword" placeholder="按实体名/关系类型过滤" clearable style="width: 240px" />
+              <ReButton :loading="graphLoading" @click="loadGraph">刷新</ReButton>
+              <ReButton type="primary" @click="openRelationForm()">新增关系</ReButton>
+              <ReButton type="danger" :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations">
+                批量删除{{ selectedRelationUids.length ? `(${selectedRelationUids.length})` : '' }}
+              </ReButton>
+            </div>
+            <div class="re-surface re-surface--dense flex-1 min-h-0 overflow-hidden !p-0">
+              <el-table :data="filteredGraphRelations" height="100%" @selection-change="onRelationSelection">
+                <el-table-column type="selection" width="42" />
+                <el-table-column label="源" min-width="150">
+                  <template #default="{ row }">{{ nodeNameById(row.from) }}</template>
+                </el-table-column>
+                <el-table-column prop="text" label="关系" width="140" />
+                <el-table-column label="目标" min-width="150">
+                  <template #default="{ row }">{{ nodeNameById(row.to) }}</template>
+                </el-table-column>
+                <el-table-column label="操作" width="100" align="right">
+                  <template #default="{ row }">
+                    <ReButton link type="danger" size="small" @click="handleDeleteRelation(row)">删除</ReButton>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
           <div v-show="activeTab === 'graph'" class="flex flex-col flex-1 min-h-0 w-full">
-            <div class="flex items-center gap-3 px-4 py-2 shrink-0">
+            <div class="flex items-center gap-3 px-4 py-2 shrink-0 flex-wrap">
               <span class="text-sm kb-graph__count">
                 实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
               </span>
-              <el-input v-model="graphKeyword"  placeholder="按实体名过滤" clearable style="width: 200px" />
-              <el-button  :loading="graphLoading" @click="loadGraph">刷新</el-button>
+              <el-input v-model="graphKeyword" placeholder="按实体名过滤" clearable style="width: 200px" />
+              <ReButton :loading="graphLoading" @click="loadGraph">刷新</ReButton>
               <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
-              <el-button v-if="ragReady"  type="primary" plain :loading="graphGenerating"
-                @click="handleGenerateGraph">
+              <ReButton v-if="ragReady" type="primary" :loading="graphGenerating" @click="handleGenerateGraph">
                 {{ graphView.placeholder ? '生成图谱' : '重新生成' }}
-              </el-button>
+              </ReButton>
+              <ReButton v-if="graphView.nodes.length > 0" @click="goManage('entity')">管理实体</ReButton>
+              <ReButton v-if="graphView.nodes.length > 0" @click="goManage('relation')">管理关系</ReButton>
               <span v-if="graphError" class="text-sm text-red-500">{{ graphError }}</span>
               <span v-else-if="!graphLoading && graphView.nodes.length === 0" class="text-sm kb-graph__hint">
                 <template v-if="graphView.placeholder">
@@ -447,12 +509,8 @@
             <div v-if="graphView.nodes.length > 0" class="px-4 pb-1 shrink-0 text-xs kb-graph__hint">
               节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关系 +{{ NODE_SIZE_STEP }}px），点击节点可看关系数
             </div>
-            <div v-if="graphView.nodes.length > 0" class="flex items-center gap-2 px-4 pb-2 shrink-0">
-              <el-button size="small" @click="openGraphManager('entity')">管理实体</el-button>
-              <el-button size="small" @click="openGraphManager('relation')">管理关系</el-button>
-              <span class="text-xs kb-graph__hint">
-                手工补录的内容独立于知识点，删除知识点不会连带删掉
-              </span>
+            <div v-if="graphView.nodes.length > 0" class="px-4 pb-2 shrink-0 text-xs kb-graph__hint">
+              手工补录的内容独立于知识点，删除知识点不会连带删掉
             </div>
             <div class="flex-1 min-h-0 flex gap-2 m-2">
               <div v-loading="graphLoading" class="flex-1 min-h-0 rounded-lg kb-graph__canvas kb-graph__stage">
@@ -499,82 +557,11 @@
                 </ul>
 
                 <div class="kb-gedetail__actions">
-                  <el-button size="small" type="primary" plain @click="openGraphManager('entity')">
-                    编辑实体
-                  </el-button>
-                  <el-button size="small" @click="openGraphManager('relation')">
-                    查看来源文档
-                  </el-button>
+                  <ReButton size="small" type="primary" @click="goManage('entity')">编辑实体</ReButton>
+                  <ReButton size="small" @click="goManage('relation')">查看来源文档</ReButton>
                 </div>
               </aside>
             </div>
-
-            <!-- 实体/关系管理：列表 + 多选 + 增删改 -->
-            <LDialog v-model="showGraphManager" :title="graphManagerTab === 'entity' ? '管理实体' : '管理关系'"
-              width="760px" append-to-body class="kb-dialog">
-              <div class="flex flex-col gap-3">
-                <el-tabs v-model="graphManagerTab">
-                  <el-tab-pane label="实体" name="entity" />
-                  <el-tab-pane label="关系" name="relation" />
-                </el-tabs>
-
-                <!-- 实体列表 -->
-                <template v-if="graphManagerTab === 'entity'">
-                  <div class="flex items-center gap-2">
-                    <el-input v-model="graphEntityKeyword" placeholder="按名称过滤" clearable class="kb-grow" />
-                    <el-button type="primary" plain @click="openEntityForm()">新增实体</el-button>
-                    <el-button type="danger" plain :disabled="selectedEntityUids.length === 0"
-                      @click="handleBatchDeleteEntities">
-                      批量删除{{ selectedEntityUids.length ? `(${selectedEntityUids.length})` : '' }}
-                    </el-button>
-                  </div>
-                  <el-table :data="filteredGraphEntities" size="small" height="360" @selection-change="onEntitySelection">
-                    <el-table-column type="selection" width="42" />
-                    <el-table-column prop="text" label="名称" min-width="140" />
-                    <el-table-column label="类型" width="110">
-                      <template #default="{ row }">
-                        <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="degree" label="关系数" width="80" align="right" />
-                    <el-table-column label="操作" width="130" align="right">
-                      <template #default="{ row }">
-                        <el-button link type="primary" size="small" @click="openEntityForm(row)">编辑</el-button>
-                        <el-button link type="danger" size="small" @click="handleDeleteEntity(row)">删除</el-button>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </template>
-
-                <!-- 关系列表 -->
-                <template v-else>
-                  <div class="flex items-center gap-2">
-                    <el-input v-model="graphRelationKeyword" placeholder="按实体名/关系类型过滤" clearable class="kb-grow" />
-                    <el-button type="primary" plain @click="openRelationForm()">新增关系</el-button>
-                    <el-button type="danger" plain :disabled="selectedRelationUids.length === 0"
-                      @click="handleBatchDeleteRelations">
-                      批量删除{{ selectedRelationUids.length ? `(${selectedRelationUids.length})` : '' }}
-                    </el-button>
-                  </div>
-                  <el-table :data="filteredGraphRelations" size="small" height="360"
-                    @selection-change="onRelationSelection">
-                    <el-table-column type="selection" width="42" />
-                    <el-table-column label="源" min-width="120">
-                      <template #default="{ row }">{{ nodeNameById(row.from) }}</template>
-                    </el-table-column>
-                    <el-table-column prop="text" label="关系" width="120" />
-                    <el-table-column label="目标" min-width="120">
-                      <template #default="{ row }">{{ nodeNameById(row.to) }}</template>
-                    </el-table-column>
-                    <el-table-column label="操作" width="80" align="right">
-                      <template #default="{ row }">
-                        <el-button link type="danger" size="small" @click="handleDeleteRelation(row)">删除</el-button>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </template>
-              </div>
-            </LDialog>
 
             <!-- 新增/编辑实体表单 -->
             <LDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" width="460px"
@@ -638,85 +625,94 @@
     </div>
   </div>
 
-  <!-- 创建/编辑知识库对话框 -->
-  <LDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" width="620px" :close-on-click-modal="false" append-to-body class="kb-dialog">
-    <div class="kb-form">
-      <!-- 基本信息 -->
-      <section class="kb-sec">
-        <div class="kb-field">
-          <label class="kb-label">{{ t('knowledge.page.kbName') }}<i class="kb-req">*</i></label>
-          <el-input v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
-        </div>
-        <div class="kb-field">
-          <label class="kb-label">{{ t('common.description') }}</label>
-          <el-input v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
-            maxlength="2000" show-word-limit resize="none" />
-        </div>
-      </section>
+  <!-- 创建/编辑知识库对话框：与「新建知识库」同一套 koi ReDialog 与视觉语言 -->
+  <ReDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" :width="560" :close-on-click-modal="false">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">
+          {{ t('knowledge.page.kbName') }}<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i>
+        </label>
+        <el-input v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('common.description') }}</label>
+        <el-input v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
+          maxlength="2000" show-word-limit resize="none" />
+      </div>
 
       <!-- 网址采集：填了网址即从该站点抓取正文入库（与手动上传文件等价，可被语义检索） -->
-      <section class="kb-sec">
-        <div class="kb-sec__title">网址采集</div>
-        <div class="kb-field">
-          <label class="kb-label">网址</label>
-          <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">网址采集</label>
+        <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-xs text-[var(--rm-text-secondary)]">同域采集页数</span>
+          <el-input-number v-model="dialogForm.sourceMaxPages" :min="1" :max="50" :step="1" controls-position="right" size="small" />
         </div>
-        <div class="kb-field">
-          <label class="kb-label">同域采集页数</label>
-          <el-input-number v-model="dialogForm.sourceMaxPages" :min="1" :max="50" :step="1" controls-position="right"
-            class="kb-num" />
+        <div v-if="dialogForm.sourceUrl" class="text-xs text-[var(--rm-text-disabled)] mt-1.5">
+          创建时会立即抓取该网址：1 表示只抓入口页，大于 1 会沿同域链接继续展开；只允许 http/https 的公网地址，内网与云元数据地址会被拒绝。
         </div>
-        <div v-if="dialogForm.sourceUrl" class="kb-hint">
-          创建时会立即抓取该网址：1 表示只抓入口页，大于 1 会沿同域链接继续展开；
-          只允许 http/https 的公网地址，内网与云元数据地址会被拒绝。
-        </div>
-      </section>
+      </div>
 
       <!-- 嵌入模型：已改为「设置中心 → 默认模型」的全局配置，后端 sys_ai_knowledge_base 无该列，
            故此处不再放「向量模型」选择器（放了也不生效、还会标成必填误导用户）。 -->
 
       <!-- 分块配置 -->
-      <section class="kb-sec">
-        <div class="kb-sec__title">{{ t('knowledge.page.chunkSection') }}</div>
-        <div class="kb-grid">
-          <div class="kb-field">
-            <label class="kb-label">{{ t('knowledge.page.chunkMaxSize') }}</label>
-            <el-input-number v-model="dialogForm.chunkMaxSize" :min="100" :max="5000" :step="100" controls-position="right" class="kb-num" />
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('knowledge.page.chunkSection') }}</label>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <span class="block text-[11px] text-[var(--rm-text-secondary)] mb-1">{{ t('knowledge.page.chunkMaxSize') }}</span>
+            <el-input-number v-model="dialogForm.chunkMaxSize" :min="100" :max="5000" :step="100" controls-position="right" class="!w-full" />
           </div>
-          <div class="kb-field">
-            <label class="kb-label">{{ t('knowledge.page.chunkOverlapSize') }}</label>
-            <el-input-number v-model="dialogForm.chunkOverlapSize" :min="0" :max="500" :step="10" controls-position="right" class="kb-num" />
+          <div>
+            <span class="block text-[11px] text-[var(--rm-text-secondary)] mb-1">{{ t('knowledge.page.chunkOverlapSize') }}</span>
+            <el-input-number v-model="dialogForm.chunkOverlapSize" :min="0" :max="500" :step="10" controls-position="right" class="!w-full" />
           </div>
-          <div class="kb-field">
-            <label class="kb-label">{{ t('knowledge.page.chunkMinSize') }}</label>
-            <el-input-number v-model="dialogForm.chunkMinSize" :min="10" :max="500" :step="10" controls-position="right" class="kb-num" />
+          <div>
+            <span class="block text-[11px] text-[var(--rm-text-secondary)] mb-1">{{ t('knowledge.page.chunkMinSize') }}</span>
+            <el-input-number v-model="dialogForm.chunkMinSize" :min="10" :max="500" :step="10" controls-position="right" class="!w-full" />
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- 可见性 -->
-      <section class="kb-visibility" :class="{ 'is-public': dialogForm.isPublic }" @click="dialogForm.isPublic = !dialogForm.isPublic">
-        <span class="kb-visibility__icon">
-          <Globe24Regular v-if="dialogForm.isPublic" />
-          <LockClosed24Regular v-else />
-        </span>
-        <span class="kb-visibility__text">
-          <span class="kb-visibility__title">{{ t('knowledge.page.visibility') }}</span>
-          <span class="kb-visibility__hint">{{ t('knowledge.page.visibilityHint') }}</span>
-        </span>
-        <el-switch v-model="dialogForm.isPublic" @click.stop />
-      </section>
+      <!-- 可见范围：与新建弹框一致，二选一（后端只有 is_public 一列，无「团队」语义） -->
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('knowledge.page.visibility') }}</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-[var(--rm-radius,10px)] text-xs leading-relaxed cursor-pointer transition border"
+            :class="!dialogForm.isPublic
+              ? 'border-[var(--rm-primary)] text-[var(--rm-primary)] bg-[var(--rm-primary-light-9)]'
+              : 'border-[var(--rm-border)] text-[var(--rm-text-secondary)] bg-transparent'"
+            @click="dialogForm.isPublic = false"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            私有<br>仅自己可见
+          </button>
+          <button
+            type="button"
+            class="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-[var(--rm-radius,10px)] text-xs leading-relaxed cursor-pointer transition border"
+            :class="dialogForm.isPublic
+              ? 'border-[var(--rm-primary)] text-[var(--rm-primary)] bg-[var(--rm-primary-light-9)]'
+              : 'border-[var(--rm-border)] text-[var(--rm-text-secondary)] bg-transparent'"
+            @click="dialogForm.isPublic = true"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 0 0-18"/></svg>
+            公开<br>所有人可见
+          </button>
+        </div>
+      </div>
     </div>
 
     <template #footer>
-      <div class="kb-footer">
-        <el-button @click="showKbDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleKbSave" :loading="store.loading">
-          {{ dialogMode === 'create' ? t('common.create') : t('common.save') }}
-        </el-button>
-      </div>
+      <ReButton @click="showKbDialog = false">{{ t('common.cancel') }}</ReButton>
+      <ReButton type="primary" :loading="store.loading" @click="handleKbSave">
+        {{ dialogMode === 'create' ? t('common.create') : t('common.save') }}
+      </ReButton>
     </template>
-  </LDialog>
+  </ReDialog>
 
   <!-- 文件分块查看弹窗 -->
   <FileChunksViewer v-model="showFileChunksModal" :selected-file="selectedFile" />
@@ -765,6 +761,8 @@ import { apiService } from '@/services/ApiService'
 import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
+import ReButton from '@/components/re/ReButton.vue'
 
 // 初始化组合式函数
 const { confirm, toast } = usePopup()
@@ -782,7 +780,7 @@ const showUploadModal = ref(false)
 const showFileChunksModal = ref(false)  // 文件分块查看弹窗
 const showUploadTaskModal = ref(false)  // 上传任务弹窗
 const selectedFile = ref<KBFile | null>(null)  // 选中的文件
-const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask'>('files')  // 当前激活的 Tab: 'files' / 'search' / 'graph'
+const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'>('files')  // 当前激活的 Tab
 const viewMode = ref<'list' | 'detail' | 'list-legacy'>('list')  // 视图模式：列表或详情（list-legacy 为保留的旧列表分支）
 const searchKeyword = ref('')  // 知识库搜索关键词
 
@@ -1070,36 +1068,32 @@ function handleTemplateCreate(name: string) {
 /**
  * 二级菜单的视图项切换。
  *
- * @param key 目标视图 key（overview / files / search / graph / ask）
+ * @param key 目标视图 key（overview / files / search / graph / ask / entities / relations）
  */
 function handleMenuSelect(key: string) {
-  activeTab.value = key as 'overview' | 'files' | 'search' | 'graph' | 'ask'
+  activeTab.value = key as 'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'
 }
 
 /**
- * 二级菜单的动作项：不切视图，直接调用既有能力。
+ * 二级菜单的动作项：设置沿用知识库编辑弹框（实体/关系管理已改为内联视图项，不再走这里）。
  *
- * <p>实体管理 / 关系管理 复用图谱页已有的管理弹窗，避免再写一套；设置沿用知识库编辑弹窗。
- * 三者都是既成能力，这里只做入口归拢，不新增业务。</p>
- *
- * @param key 动作 key（entity / relation / settings）
+ * @param key 动作 key（settings）
  */
 function handleMenuAction(key: string) {
-  if (key === 'entity' || key === 'relation') {
-    activeTab.value = 'graph'
-    openGraphManager(key as 'entity' | 'relation')
-    return
-  }
   if (key === 'settings' && currentKB.value) {
     handleEdit(currentKB.value)
   }
 }
 
-function openGraphManager(tab: 'entity' | 'relation') {
-  graphManagerTab.value = tab;
-  selectedEntityUids.value = [];
-  selectedRelationUids.value = [];
-  showGraphManager.value = true;
+/**
+ * 切到实体 / 关系管理视图（内联 Tab，不再弹框，与其它视图风格统一）。
+ *
+ * @param tab entity 或 relation
+ */
+function goManage(tab: 'entity' | 'relation') {
+  selectedEntityUids.value = []
+  selectedRelationUids.value = []
+  activeTab.value = tab === 'entity' ? 'entities' : 'relations'
 }
 
 /** 实体表多选变化 */
