@@ -221,6 +221,7 @@
               tip="导出数据"
               @click="openExportDialog(activeTabObj.tableName, activeTabObj.database)"
             />
+            <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
             <ReButton layout="square" icon="Refresh" tip="刷新数据" @click="refreshTableData" />
             <ReButton
               layout="square"
@@ -723,6 +724,50 @@
         </template>
       </div>
     </Teleport>
+
+    <!-- 列显示设置（Navicat 的字段显示 / 固定列） -->
+    <ReDialog v-model="columnViewDialogVisible" title="列显示设置" width="440px">
+      <div class="dbm-colset">
+        <div class="dbm-colset-head">
+          <span class="dbm-colset-hint">
+            勾选 = 显示，📌 = 固定在左侧。偏好按「库.表」保存，只影响这张表。
+          </span>
+          <span class="dbm-spacer" />
+          <ReButton size="small" @click="setAllColumnsVisible">全部显示</ReButton>
+        </div>
+        <div class="dbm-colset-list">
+          <label
+            v-for="c in columnViewDraft"
+            :key="c.name"
+            class="dbm-colset-row"
+            :class="{ hidden: !c.visible }"
+          >
+            <input
+              v-model="c.visible"
+              type="checkbox"
+              class="dbm-colset-check"
+              :aria-label="`显示列 ${c.name}`"
+            >
+            <span class="dbm-colset-name">{{ headerLabel(c.name) }}</span>
+            <span class="dbm-spacer" />
+            <button
+              type="button"
+              class="dbm-colset-pin"
+              :class="{ on: c.pinned && c.visible }"
+              :disabled="!c.visible"
+              :aria-label="`${c.pinned && c.visible ? '取消固定' : '固定'}列 ${c.name}`"
+              :title="c.pinned && c.visible ? '取消固定' : '固定在左侧'"
+              @click.prevent="c.pinned = !c.pinned"
+            >📌</button>
+          </label>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton type="danger" plain @click="resetColumnViewSettings">恢复默认</ReButton>
+        <ReButton @click="columnViewDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="applyColumnViewSettings">应用</ReButton>
+      </template>
+    </ReDialog>
 
     <!-- BLOB / 二进制 / 长文本查看器（Navicat 的 Blob Viewer） -->
     <ReDialog v-model="blobVisible" :title="blobTitle" width="760px">
@@ -2922,17 +2967,153 @@ const tableLoading = ref(false);
 const tableDataReqSeq = ref(0);
 /** 本地表格列定义（ReTable 的列结构） */
 type Column = { prop: string; label: string; width?: number; minWidth?: number; showOverflowTooltip?: boolean; slot?: string; fixed?: string; sortable?: boolean | "custom"; formatter?: (row: any) => string };
-const tableColumns = computed<Column[]>(() =>
-  // 表头按显示模式取「字段 / 注释 / 字段+注释」；行操作统一走右键菜单，不设操作列
-  // sortable= custom：排序在服务端执行（大数据表整表排序），由 sort-change 触发重载
-  tableData.columns.map(col => ({
-    prop: col,
-    label: headerLabel(col),
-    minWidth: 130,
-    showOverflowTooltip: true,
-    sortable: "custom" as const,
-  })),
-);
+
+// ---------- E2 列显示 / 固定列 / 排序标志 ----------
+/**
+ * 每张表的列偏好（隐藏哪些、固定哪些）。
+ *
+ * <p>按 `库.表` 存，**不是**全局一份 —— 宽表和大宽表的可见列集完全不同，
+ * 用全局一份会导致在 A 表隐藏的列到 B 表也消失，用户完全无法预期。</p>
+ */
+const COLUMN_PREF_KEY = "dbm-column-pref";
+interface ColumnPref {
+  hidden?: string[];
+  pinned?: string[];
+}
+const columnPrefs = ref<Record<string, ColumnPref>>({});
+
+/** 读列偏好；存储被写坏时降级为空对象而不是抛错（偏好丢了不该打不开表） */
+function loadColumnPrefs(): Record<string, ColumnPref> {
+  try {
+    const raw = localStorage.getItem(COLUMN_PREF_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+columnPrefs.value = loadColumnPrefs();
+
+/** 当前表的偏好键 */
+function columnPrefKey(): string {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return "";
+  return `${tab.database || activeDatabase.value}.${tab.tableName}`;
+}
+
+/** 当前表的隐藏列集合 */
+const hiddenColumns = computed(() => {
+  const key = columnPrefKey();
+  return new Set(key ? columnPrefs.value[key]?.hidden || [] : []);
+});
+/** 当前表的固定列集合 */
+const pinnedColumns = computed(() => {
+  const key = columnPrefKey();
+  return new Set(key ? columnPrefs.value[key]?.pinned || [] : []);
+});
+
+/** 落盘列偏好 */
+function saveColumnPref(key: string, pref: ColumnPref): void {
+  if (!key) return;
+  columnPrefs.value = { ...columnPrefs.value, [key]: pref };
+  try {
+    localStorage.setItem(COLUMN_PREF_KEY, JSON.stringify(columnPrefs.value));
+  } catch {
+    ElMessage.warning("列偏好无法持久化（浏览器存储不可用），本次会话内仍有效");
+  }
+}
+
+// 列显示设置弹窗。
+// 命名刻意与「列编辑（DDL）弹窗」的 columnDialogVisible / openColumnDialog 区分开：
+// 那是改表结构的，这是改网格显示的，两个都叫「列设置」会让读代码的人以为是一个东西。
+const columnViewDialogVisible = ref(false);
+/** 弹窗草稿：勾选可见性与固定 */
+const columnViewDraft = ref<{ name: string; visible: boolean; pinned: boolean }[]>([]);
+
+/** 打开列显示设置 */
+function openColumnViewDialog(): void {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) {
+    ElMessage.info("先打开一张表");
+    return;
+  }
+  const hidden = hiddenColumns.value;
+  const pinned = pinnedColumns.value;
+  columnViewDraft.value = tableData.columns.map(c => ({
+    name: c,
+    visible: !hidden.has(c),
+    // 主键列默认固定是 Navicat 的行为：定位行全靠它
+    pinned: pinned.has(c) || pkColumns.value.has(c),
+  }));
+  columnViewDialogVisible.value = true;
+}
+
+/**
+ * 应用列显示设置。
+ *
+ * <p>隐藏全部列会让网格变成空白且没有出口，所以**至少留一列**：
+ * 用户「全不勾」时给提示，而不是让他面对一个空表还找不到恢复入口。</p>
+ */
+function applyColumnViewSettings(): void {
+  const key = columnPrefKey();
+  if (!key) return;
+  const visible = columnViewDraft.value.filter(c => c.visible);
+  if (visible.length === 0) {
+    ElMessage.warning("至少保留一列，否则表格会变成空白且无法恢复");
+    return;
+  }
+  saveColumnPref(key, {
+    hidden: columnViewDraft.value.filter(c => !c.visible).map(c => c.name),
+    pinned: columnViewDraft.value.filter(c => c.pinned && c.visible).map(c => c.name),
+  });
+  columnViewDialogVisible.value = false;
+}
+
+/** 全部显示 */
+function setAllColumnsVisible(): void {
+  columnViewDraft.value = columnViewDraft.value.map(c => ({ ...c, visible: true }));
+}
+/** 恢复默认（取消隐藏与固定） */
+function resetColumnViewSettings(): void {
+  const key = columnPrefKey();
+  if (key) {
+    saveColumnPref(key, {});
+  }
+  columnViewDialogVisible.value = false;
+}
+
+const tableColumns = computed<Column[]>(() => {
+  const hidden = hiddenColumns.value;
+  const pinned = pinnedColumns.value;
+  // 固定列必须排在前面，否则 element-plus 的 fixed 定位会错
+  const cols = tableData.columns.filter(c => !hidden.has(c));
+  return cols
+    .map(col => ({
+      prop: col,
+      // 排序标志自己画：`sortable: "custom"` 是**远程**排序，
+      // ReTable 手里没有排序态（数据是重载回来的），所以它不会显示箭头。
+      // 不画的后果是「点完表头看不出当前排的是哪一列、朝哪边」——
+      // 页码都变了却不知道按什么排的，等于没有排序反馈。
+      label: headerLabel(col) + sortMark(col),
+      minWidth: 130,
+      showOverflowTooltip: true,
+      sortable: "custom" as const,
+      ...(pinned.has(col) ? { fixed: "left" as const } : {}),
+    }))
+    .sort((a, b) => Number(pinned.has(b.prop)) - Number(pinned.has(a.prop)));
+});
+
+/**
+ * 当前排序列的表头标志（升 ▲ / 降 ▼）。
+ *
+ * @param col 列名
+ * @returns 标志文本，不排序时是空串
+ */
+function sortMark(col: string): string {
+  if (sortState.prop !== col) return "";
+  return sortState.order === "ASC" ? " ▲" : " ▼";
+}
 
 // ==================== 表设计（可编辑网格，Navicat 风格） ====================
 /**
@@ -5822,6 +6003,57 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* 列设置弹窗 */
+.dbm-colset { display: flex; flex-direction: column; gap: 8px; }
+.dbm-colset-head { display: flex; align-items: center; gap: 8px; }
+.dbm-colset-hint { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-colset-list {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+}
+.dbm-colset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.dbm-colset-row:hover { background: var(--el-fill-color-light); }
+/* 隐藏列留灰：勾的是「显示」，不显示的项要能一眼认出来 */
+.dbm-colset-row.hidden .dbm-colset-name {
+  color: var(--el-text-color-placeholder);
+  text-decoration: line-through;
+}
+.dbm-colset-check { cursor: pointer; }
+.dbm-colset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.dbm-colset-pin {
+  padding: 2px 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  /* 未选中时压暗，避免满屏图钉抢注意力 */
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+.dbm-colset-pin:hover:not(:disabled) { opacity: 0.7; }
+.dbm-colset-pin.on {
+  opacity: 1;
+  filter: none;
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  border-color: var(--el-color-primary);
+}
+.dbm-colset-pin:disabled { cursor: not-allowed; opacity: 0.15; }
 
 /* 二进制 / 长文本格子：一行摘要，点开进内容查看器 */
 .dbm-cell-blob {
