@@ -1,148 +1,196 @@
 <template>
   <!--
     学生登录页（/edu/student-login）
-    独立全屏页面，脱离管理后台外壳：position:fixed 铺满视口。
-    设计稿为「左品牌右表单」的双栏卡片，本页用纯 CSS 做装饰（云/星/气泡），
-    不引图片资源，避免大体积二进制进仓库。
+    版式对齐「趣味学习-登录页」设计稿：全屏蓝色渐变 + 白卡 + 左内嵌圆角品牌块 + 右表单。
+    吉祥物用设计稿导出的 PNG（src/assets/mascot-book.png），不做二次绘制。
+    按需求**不提供第三方登录**（无微信/QQ/支付宝入口）。
   -->
   <div class="sl">
     <!-- 背景装饰层：纯 CSS，不参与交互 -->
-    <div class="sl-deco" aria-hidden="true">
-      <span class="sl-cloud sl-cloud--1"></span>
-      <span class="sl-cloud sl-cloud--2"></span>
-      <span class="sl-star sl-star--1">★</span>
-      <span class="sl-star sl-star--2">★</span>
-      <span class="sl-bubble sl-bubble--1"></span>
-      <span class="sl-bubble sl-bubble--2"></span>
+    <div class="sl-bg" aria-hidden="true">
+      <span class="sl-cloud sl-cloud--c1"></span>
+      <span class="sl-cloud sl-cloud--c2"></span>
+      <span class="sl-cloud sl-cloud--c3"></span>
+      <svg class="sl-star sl-star--s1" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12 1c.8 6 4.2 9.4 11 11-6.8 1.6-10.2 5-11 11-.8-6-4.2-9.4-11-11C7.8 10.4 11.2 6.8 12 1z" />
+      </svg>
+      <svg class="sl-star sl-star--s2" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12 1c.8 6 4.2 9.4 11 11-6.8 1.6-10.2 5-11 11-.8-6-4.2-9.4-11-11C7.8 10.4 11.2 6.8 12 1z" />
+      </svg>
+      <svg class="sl-star sl-star--s3" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12 1c.8 6 4.2 9.4 11 11-6.8 1.6-10.2 5-11 11-.8-6-4.2-9.4-11-11C7.8 10.4 11.2 6.8 12 1z" />
+      </svg>
+      <span class="sl-bubble sl-bubble--b1"></span>
+      <span class="sl-bubble sl-bubble--b2"></span>
+      <span class="sl-bubble sl-bubble--b3"></span>
+      <span class="sl-bubble sl-bubble--b4"></span>
     </div>
 
-    <div class="sl-card">
-      <!-- 左：品牌展示 -->
+    <main class="sl-card">
+      <!-- 左：品牌面板 -->
       <section class="sl-brand">
         <div class="sl-brand__logo">
-          <ReIcon name="Reading" :size="46" aria-hidden="true" />
+          <svg width="42" height="42" viewBox="0 0 48 48">
+            <path
+              d="M24 13l-11 5v11c0 4 4.5 6.5 11 8 6.5-1.5 11-4 11-8V18l-11-5z"
+              fill="none"
+              stroke="#20A5EB"
+              stroke-width="2.8"
+              stroke-linejoin="round"
+            />
+            <path d="M17 30h14M24 24v12" stroke="#20A5EB" stroke-width="2.6" stroke-linecap="round" />
+          </svg>
         </div>
         <h1 class="sl-brand__title">趣味学习</h1>
         <p class="sl-brand__slogan">让学习像游戏一样有趣</p>
-        <!-- 吉祥物占位：设计稿是插画，这里用一枚大图标 + 装饰圈代替，
-             换成真图只需替换这一处节点 -->
-        <div class="sl-brand__mascot">
-          <div class="sl-brand__mascot-ring"></div>
-          <ReIcon name="Notebook" :size="86" aria-hidden="true" />
-        </div>
-        <div class="sl-brand__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <img class="sl-brand__mascot" :src="mascotBook" alt="戴学士帽的书本吉祥物" />
+        <div class="sl-brand__dots"><i></i><i></i><i></i></div>
       </section>
 
       <!-- 右：登录表单 -->
       <section class="sl-form">
         <h2 class="sl-form__title">欢迎回来</h2>
-        <p class="sl-form__sub">登录后继续你的学习之旅</p>
+        <p class="sl-form__tip">登录后继续你的学习之旅</p>
 
-        <el-form :model="form" label-position="top" @submit.prevent>
-          <el-form-item>
-            <el-input
+        <form novalidate @submit.prevent="submit">
+          <div class="sl-field" :class="{ 'is-error': accountError }">
+            <span class="sl-field__ic">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4.5 20c1.2-3.6 4.2-5 7.5-5s6.3 1.4 7.5 5" />
+              </svg>
+            </span>
+            <input
               v-model="form.account"
-              size="large"
-              placeholder="请输入学号 / 家长手机号"
-              :prefix-icon="User"
-              clearable
+              type="text"
+              placeholder="请输入账号 / 手机号"
+              autocomplete="username"
+              @input="accountError = ''"
             />
-          </el-form-item>
-          <el-form-item>
-            <el-input
+            <p class="sl-field__err">{{ accountError }}</p>
+          </div>
+
+          <div class="sl-field" :class="{ 'is-error': passwordError }">
+            <span class="sl-field__ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="11" width="14" height="9" rx="2.5" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+            </span>
+            <input
               v-model="form.password"
-              size="large"
-              type="password"
+              :type="showPwd ? 'text' : 'password'"
               placeholder="请输入密码"
-              :prefix-icon="Lock"
-              show-password
-              @keyup.enter="submit"
+              autocomplete="current-password"
+              @input="passwordError = ''"
             />
-          </el-form-item>
-        </el-form>
+            <button
+              type="button"
+              class="sl-eye"
+              :aria-label="showPwd ? '隐藏密码' : '显示密码'"
+              @click="showPwd = !showPwd"
+            >
+              <svg v-if="!showPwd" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                <circle cx="12" cy="12" r="2.8" />
+              </svg>
+              <svg v-else width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M4 4l16 16" />
+                <path d="M9.5 9.6a3 3 0 0 0 4.2 4.2M6.4 6.6C3.9 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.5 0 2.8-.4 4-1" />
+                <path d="M14.8 6.7c-.9-.3-1.8-.4-2.8-.4C6 6.3 2.5 12 2.5 12" />
+                <path d="M9.5 5.2C10.3 5 11.1 5 12 5c6 0 9.5 6.5 9.5 6.5-.5 1-1.2 2-2 2.9" />
+              </svg>
+            </button>
+            <p class="sl-field__err">{{ passwordError }}</p>
+          </div>
 
-        <div class="sl-form__row">
-          <el-checkbox v-model="form.remember">记住我</el-checkbox>
-          <button type="button" class="sl-link" @click="onForget">忘记密码?</button>
-        </div>
+          <div class="sl-row">
+            <label class="sl-remember">
+              <input v-model="form.remember" type="checkbox" />
+              <span class="sl-remember__box">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4.5 12.5l5 5L19.5 7" />
+                </svg>
+              </span>
+              记住我
+            </label>
+            <button type="button" class="sl-forgot" @click="onForget">忘记密码？</button>
+          </div>
 
-        <button type="button" class="sl-submit" :disabled="loading" @click="submit">
-          {{ loading ? "登录中…" : "登 录" }}
-        </button>
-        <p v-if="error" class="sl-form__err">{{ error }}</p>
+          <button type="submit" class="sl-submit" :disabled="loading">
+            <span v-if="loading" class="sl-spinner"></span>
+            <span class="sl-submit__label">{{ loading ? "登录中" : "登 录" }}</span>
+          </button>
+        </form>
 
-        <p class="sl-form__foot">
-          还没有账号?
-          <button type="button" class="sl-link" @click="onRegister">立即注册</button>
+        <p class="sl-foot">
+          还没有账号？
+          <button type="button" class="sl-foot__link" @click="onRegister">立即注册</button>
         </p>
       </section>
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * StudentLoginView —— 学生登录页
+ * StudentLoginView —— 学生登录页。
  *
- * 账号支持两种：**学号** 或 **家长手机号**（两者都存在 edu_student 上）。
- * 登录成功后由 StudentPortalView 拉档案并按学段分流到小学/初中/高中首页。
+ * <p>账号支持 **学号** 或 **家长手机号**：登录走系统既有的 {@code eduaiApi.studentLogin}，
+ * 由后端把两种标识解析成登录名，前端不猜账号、不自行建账号。</p>
  *
- * <p><b>登录落到哪套账号体系</b>：当前走系统既有的 {@code /v2/user/login}，
- * 由后端把「学号 / 手机号」解析成登录名。注意现网鉴权还是
- * {@code plugin.oauth.protocol=static} 的过渡态（账号写死在 application.yml，
- * 只有 admin/alice/bob），**学生账号要等真正的 oauth 系统接入后才存在** ——
- * 本页不自行建账号、也不往静态凭据里塞学生，避免与将来的账号体系打架。
- * 接入后本页与 {@code eduaiApi.studentLogin} 无需改动：换的是后端解析规则，
- * 不是前端契约。</p>
+ * <p>按需求本页**不提供第三方登录**（微信 / QQ / 支付宝均不实现），
+ * 因此设计稿里的「其他登录方式」整块被移除。</p>
  */
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { Lock, User } from "@element-plus/icons-vue";
-// ReIcon 由 installKoi → installReIcon.install(app) 全局注册，
-// 与 PrimaryHome / JuniorHome / SeniorHome / StudentPortalView 同一口径，此处不单独 import。
+import mascotBook from "../../assets/mascot-book.png";
 
 const router = useRouter();
 
 const form = reactive({ account: "", password: "", remember: true });
 const loading = ref(false);
-const error = ref("");
+const showPwd = ref(false);
+/** 账号字段校验提示；非空即视为该字段报错 */
+const accountError = ref("");
+/** 密码字段校验提示；非空即视为该字段报错 */
+const passwordError = ref("");
 
 /**
- * 提交登录
- *
- * 先按「学号/手机号」当账号试，失败再提示；这里不做多账号探测 ——
- * 账号唯一由后端判定，前端不猜。
+ * 提交登录：先做前端必填校验，再交由后端判定账号是否有效。
  */
 async function submit() {
-  error.value = "";
+  accountError.value = "";
+  passwordError.value = "";
   const account = form.account.trim();
   if (!account) {
-    error.value = "请输入账号或手机号";
+    accountError.value = "请输入账号或手机号";
     return;
   }
   if (!form.password) {
-    error.value = "请输入密码";
+    passwordError.value = "请输入密码";
     return;
   }
   loading.value = true;
   try {
-    // 与系统登录同源：账号可为学号或手机号，由后端解析
     const { eduaiApi } = await import("../../api/eduaiApi");
     await eduaiApi.studentLogin({ username: account, password: form.password });
     ElMessage.success("登录成功");
     await router.push("/edu/student");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
+    passwordError.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
   }
 }
 
+/** 忘记密码：学生端不自助找回，统一由校方重置 */
 function onForget() {
   ElMessage.info("请联系班主任或校方管理员重置密码");
 }
 
+/** 注册：学生账号由学校统一开通 */
 function onRegister() {
   ElMessage.info("学生账号由学校统一开通，无需自行注册");
 }
@@ -150,12 +198,11 @@ function onRegister() {
 
 <style scoped>
 /*
- * koi 令牌口径（与 PrimaryHome / JuniorHome / SeniorHome / StudentPortalView 一致）：
- *   品牌色带 = --el-color-primary → --el-color-primary-light-3
- *   页面底 = --el-bg-color-page，卡片面 = --el-bg-color
- *   文字四级 = --el-text-color-primary / -regular / -secondary / -placeholder
- *   圆角只走 --el-radius-* 六档，动画只走 --el-transition-duration
- * 卡片类容器不加投影；投影只用于「悬浮浮起」与「键盘焦点环」。
+ * 版式与配色对齐设计稿（趣味学习-登录页.html）：
+ *   背景 = 155deg 蓝渐变 #43b9f7 → #20a5eb → #1b8ce2
+ *   主色 = #20a5eb，深色 #1583dd，浅色 #57c0f8，墨色 #17243c，灰 #7e8ca1
+ *   卡片 32px 圆角 + 投影；左品牌块内嵌 22px、24px 圆角；表单域 16px 圆角
+ * 第三方登录块按需求整块不实现。
  */
 .sl {
   position: fixed;
@@ -164,248 +211,587 @@ function onRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 32px 20px;
   overflow: auto;
-  background: linear-gradient(
-    160deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 60%,
-    var(--el-bg-color-page) 100%
-  );
+  color: #17243c;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: linear-gradient(155deg, #43b9f7 0%, #20a5eb 46%, #1b8ce2 100%);
 }
 
-/* ---------- 背景装饰（纯 CSS） ---------- */
-.sl-deco {
+/* ---------- 背景装饰 ---------- */
+.sl-bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 0;
 }
 .sl-cloud {
   position: absolute;
-  border-radius: var(--el-radius-full, 9999px);
-  background: color-mix(in srgb, var(--el-color-white) 22%, transparent);
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0.92;
+  animation: sl-drift 26s ease-in-out infinite;
 }
-.sl-cloud--1 {
-  width: 180px;
-  height: 60px;
-  left: 6%;
-  top: 16%;
+.sl-cloud::before,
+.sl-cloud::after {
+  content: "";
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
 }
-.sl-cloud--2 {
-  width: 240px;
-  height: 74px;
+.sl-cloud::before {
+  width: 55%;
+  height: 150%;
+  left: 8%;
+  top: -70%;
+}
+.sl-cloud::after {
+  width: 45%;
+  height: 130%;
+  right: 10%;
+  top: -55%;
+}
+.sl-cloud--c1 {
+  width: 150px;
+  height: 46px;
+  top: 9%;
+  left: 5%;
+}
+.sl-cloud--c2 {
+  width: 190px;
+  height: 56px;
+  bottom: 8%;
   right: 4%;
-  bottom: 14%;
+  animation-duration: 32s;
+}
+.sl-cloud--c3 {
+  width: 90px;
+  height: 28px;
+  top: 14%;
+  right: 16%;
+  opacity: 0.7;
+  animation-duration: 22s;
 }
 .sl-star {
   position: absolute;
-  color: color-mix(in srgb, var(--el-color-warning) 70%, transparent);
-  font-size: 28px;
+  color: #ffd95a;
+  animation: sl-twinkle 3.2s ease-in-out infinite;
 }
-.sl-star--1 {
-  left: 14%;
-  top: 46%;
+.sl-star--s1 {
+  width: 26px;
+  height: 26px;
+  top: 26%;
+  left: 10%;
+  animation-delay: 0.6s;
 }
-.sl-star--2 {
-  right: 12%;
-  top: 30%;
-  font-size: 20px;
+.sl-star--s2 {
+  width: 20px;
+  height: 20px;
+  top: 20%;
+  right: 9%;
+  animation-delay: 1.4s;
+}
+.sl-star--s3 {
+  width: 16px;
+  height: 16px;
+  bottom: 24%;
+  left: 20%;
+  animation-delay: 2.1s;
 }
 .sl-bubble {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--el-color-white) 35%, transparent);
+  background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.12));
+  animation: sl-rise 18s linear infinite;
 }
-.sl-bubble--1 {
-  width: 40px;
-  height: 40px;
-  left: 22%;
-  bottom: 24%;
+.sl-bubble--b1 {
+  width: 16px;
+  height: 16px;
+  left: 14%;
+  bottom: -30px;
+  animation-duration: 16s;
 }
-.sl-bubble--2 {
+.sl-bubble--b2 {
+  width: 9px;
+  height: 9px;
+  left: 78%;
+  bottom: -20px;
+  animation-duration: 12s;
+  animation-delay: 3s;
+}
+.sl-bubble--b3 {
   width: 22px;
   height: 22px;
-  right: 20%;
-  top: 56%;
+  left: 88%;
+  bottom: -34px;
+  animation-duration: 20s;
+  animation-delay: 6s;
+}
+.sl-bubble--b4 {
+  width: 10px;
+  height: 10px;
+  left: 32%;
+  bottom: -20px;
+  animation-duration: 14s;
+  animation-delay: 8s;
 }
 
-/* ---------- 主体卡片 ---------- */
+/* ---------- 卡片 ---------- */
 .sl-card {
   position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  width: min(980px, 100%);
+  grid-template-columns: 45% 55%;
+  width: 100%;
+  max-width: 1020px;
   overflow: hidden;
-  border-radius: var(--el-radius-xl, 16px);
-  /* koi 卡片不加投影：用一条边框承载边界 */
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  border-radius: 32px;
+  background: #fff;
+  box-shadow: 0 34px 70px -22px rgba(16, 74, 132, 0.45), 0 8px 24px -10px rgba(16, 74, 132, 0.25);
+  animation: sl-card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* 左：品牌 */
+/* ---------- 左：品牌 ---------- */
 .sl-brand {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 36px 28px;
-  color: var(--el-color-white);
-  background: linear-gradient(150deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  margin: 22px 0 22px 22px;
+  padding: 38px 32px 26px;
+  overflow: hidden;
+  border-radius: 24px;
+  text-align: center;
+  background: linear-gradient(160deg, #44b9f7 0%, #209cec 55%, #1a86e0 100%);
+}
+.sl-brand::before {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
+  top: -70px;
+  right: -70px;
 }
 .sl-brand__logo {
-  width: 76px;
-  height: 76px;
-  display: inline-flex;
+  position: relative;
+  z-index: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
-  color: var(--el-color-white);
-  background: color-mix(in srgb, var(--el-color-white) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-white) 40%, transparent);
+  background: #fff;
+  box-shadow: 0 10px 22px -8px rgba(10, 70, 130, 0.5);
 }
 .sl-brand__title {
-  margin: 6px 0 0;
+  position: relative;
+  z-index: 1;
+  margin: 20px 0 0;
   font-size: 34px;
   font-weight: 900;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
+  color: #fff;
 }
 .sl-brand__slogan {
-  margin: 0;
-  font-size: 15px;
-  opacity: 0.92;
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 0;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.88);
 }
 .sl-brand__mascot {
   position: relative;
-  margin-top: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.sl-brand__mascot-ring {
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--el-color-white) 14%, transparent);
+  z-index: 1;
+  width: 82%;
+  max-width: 280px;
+  margin: 6px auto 0;
+  filter: drop-shadow(0 14px 18px rgba(12, 70, 130, 0.28));
+  animation: sl-floaty 4.5s ease-in-out infinite;
 }
 .sl-brand__dots {
+  position: relative;
+  z-index: 1;
   display: flex;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 9px;
+  margin-top: 10px;
 }
 .sl-brand__dots i {
-  width: 8px;
-  height: 8px;
+  display: block;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--el-color-white) 75%, transparent);
+  background: rgba(255, 255, 255, 0.95);
+}
+.sl-brand__dots i:last-child {
+  background: rgba(255, 255, 255, 0.4);
 }
 
-/* 右：表单 */
+/* ---------- 右：表单 ---------- */
 .sl-form {
-  padding: 30px 34px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 46px 52px 40px;
 }
 .sl-form__title {
   margin: 0;
-  font-size: 27px;
+  font-size: 29px;
   font-weight: 900;
-  color: var(--el-text-color-primary);
+  letter-spacing: 1px;
+  color: #17243c;
 }
-.sl-form__sub {
-  margin: 6px 0 18px;
+.sl-form__tip {
+  margin: 9px 0 0;
   font-size: 14px;
-  color: var(--el-text-color-secondary);
+  color: #7e8ca1;
 }
-.sl-form :deep(.el-form-item) {
-  margin-bottom: 14px;
+.sl-field {
+  position: relative;
+  margin-top: 20px;
 }
-.sl-form__row {
+.sl-field__ic {
+  position: absolute;
+  left: 17px;
+  top: 50%;
+  display: flex;
+  transform: translateY(-50%);
+  color: #9db2c9;
+  pointer-events: none;
+}
+.sl-field input {
+  width: 100%;
+  height: 54px;
+  padding: 0 48px 0 50px;
+  border: 1.5px solid #e3ebf4;
+  border-radius: 16px;
+  background: #f6f9fd;
+  color: #17243c;
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.sl-field input::placeholder {
+  color: #9fabbd;
+}
+.sl-field input:focus {
+  outline: none;
+  border-color: #20a5eb;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(32, 165, 235, 0.13);
+}
+.sl-field.is-error input {
+  border-color: #f0463a;
+  background: #fff7f6;
+}
+.sl-field.is-error {
+  animation: sl-shake 0.4s ease;
+}
+.sl-field__err {
+  display: none;
+  margin: 7px 2px 0;
+  font-size: 12.5px;
+  color: #f0463a;
+}
+.sl-field.is-error .sl-field__err {
+  display: block;
+}
+.sl-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #9db2c9;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+.sl-eye:hover {
+  color: #20a5eb;
+  background: rgba(32, 165, 235, 0.08);
+}
+
+.sl-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 2px 0 18px;
+  margin-top: 18px;
 }
-.sl-link {
-  border: 0;
+.sl-remember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  color: #46536a;
+  cursor: pointer;
+  user-select: none;
+}
+.sl-remember input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+.sl-remember__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.8px solid #c3d0df;
+  border-radius: 7px;
+  background: #fff;
+  transition: 0.18s;
+}
+.sl-remember__box svg {
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: 0.18s;
+}
+.sl-remember input:checked + .sl-remember__box {
+  border-color: #20a5eb;
+  background: #20a5eb;
+}
+.sl-remember input:checked + .sl-remember__box svg {
+  opacity: 1;
+  transform: scale(1);
+}
+.sl-forgot {
   padding: 0;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--el-color-primary);
+  border: none;
   background: transparent;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
-  outline: none;
-  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
-}
-.sl-link:hover {
-  opacity: 0.82;
-}
-.sl-link:focus-visible {
-  border-radius: var(--el-radius-sm, 6px);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.sl-submit {
-  width: 100%;
-  height: 50px;
-  border: 0;
-  border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  font-size: 17px;
-  font-weight: 900;
-  letter-spacing: 4px;
-  color: var(--el-color-white);
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  /* 静止态不加装饰性投影，浮起反馈挪到 hover */
-  transition: box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-  outline: none;
-}
-.sl-submit:hover:not(:disabled) {
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--el-color-primary) 24%, transparent);
-}
-.sl-submit:focus-visible {
-  /* 按钮本身是主色渐变，补一圈白描边保证任何主题下焦点环都看得见 */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent),
-    0 0 0 5px var(--el-color-white);
-}
-.sl-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.sl-form__err {
-  margin: 10px 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--el-color-danger);
-}
-.sl-form__foot {
-  margin: 18px 0 0;
-  text-align: center;
+  color: #20a5eb;
   font-size: 14px;
-  color: var(--el-text-color-regular);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sl-forgot:hover {
+  text-decoration: underline;
 }
 
-@media (max-width: 860px) {
+.sl-submit {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  margin-top: 24px;
+  overflow: hidden;
+  border: none;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 6px;
+  cursor: pointer;
+  background: linear-gradient(90deg, #57c0f8, #20a5eb 45%, #1583dd);
+  box-shadow: 0 14px 26px -10px rgba(24, 130, 220, 0.6);
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+}
+.sl-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 30px -10px rgba(24, 130, 220, 0.7);
+}
+.sl-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+.sl-submit:disabled {
+  cursor: wait;
+  filter: brightness(0.92);
+}
+.sl-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  vertical-align: -4px;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sl-spin 0.7s linear infinite;
+}
+
+.sl-foot {
+  margin: 22px 0 0;
+  font-size: 14px;
+  color: #7e8ca1;
+  text-align: center;
+}
+.sl-foot__link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #20a5eb;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sl-foot__link:hover {
+  text-decoration: underline;
+}
+
+@keyframes sl-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sl-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(26px);
+  }
+}
+@keyframes sl-rise {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-105vh);
+    opacity: 0.2;
+  }
+}
+@keyframes sl-twinkle {
+  0%,
+  100% {
+    transform: scale(0.82);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+@keyframes sl-floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes sl-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-7px);
+  }
+  75% {
+    transform: translateX(7px);
+  }
+}
+@keyframes sl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
   .sl-card {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
+    max-width: 470px;
   }
   .sl-brand {
-    padding: 26px 20px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 18px;
+    margin: 18px;
+    padding: 22px 24px;
+  }
+  .sl-brand__logo {
+    width: 58px;
+    height: 58px;
+  }
+  .sl-brand__title {
+    margin-top: 0;
+    font-size: 26px;
+    letter-spacing: 1px;
+  }
+  .sl-brand__slogan {
+    margin-top: 6px;
   }
   .sl-brand__mascot {
+    order: 5;
+    width: 92px;
+    margin: 2px 0 0;
+  }
+  .sl-brand__dots {
     display: none;
   }
   .sl-form {
-    padding: 24px 20px 22px;
+    padding: 8px 30px 30px;
+  }
+}
+@media (max-width: 460px) {
+  .sl {
+    padding: 16px 12px;
+  }
+  .sl-card {
+    border-radius: 24px;
+  }
+  .sl-brand {
+    margin: 14px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+  .sl-form {
+    padding: 6px 20px 24px;
+  }
+  .sl-form__title {
+    font-size: 24px;
+  }
+  .sl-field input {
+    height: 50px;
+    font-size: 16px;
+  }
+  .sl-eye {
+    right: 9px;
+    width: 40px;
+    height: 40px;
+  }
+  .sl-submit {
+    height: 50px;
   }
 }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .sl-link,
+  .sl-bg *,
+  .sl-brand__mascot,
   .sl-submit {
-    transition: none;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .sl-card,
+  .sl-field.is-error {
+    animation: none !important;
   }
 }
 </style>
