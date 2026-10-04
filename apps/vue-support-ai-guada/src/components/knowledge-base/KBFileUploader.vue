@@ -34,7 +34,7 @@
         </div>
 
         <!-- 新建文件夹对话框 -->
-        <LDialog v-model="showCreateFolderDialog" :title="t('knowledge.upload.newFolderTitle')" width="400px" :close-on-click-modal="false" append-to-body>
+        <ReDialog v-model="showCreateFolderDialog" :title="t('knowledge.upload.newFolderTitle')" :width="400" :close-on-click-modal="false">
             <el-input
                 v-model="newFolderName"
                 :placeholder="t('knowledge.upload.folderNamePlaceholder')"
@@ -44,10 +44,10 @@
                 <ReButton @click="showCreateFolderDialog = false">{{ t('common.cancel') }}</ReButton>
                 <ReButton type="primary" @click="confirmCreateFolder" :loading="createFolderLoading">{{ t('common.ok') }}</ReButton>
             </template>
-        </LDialog>
+        </ReDialog>
 
         <!-- 冲突处理对话框 -->
-        <LDialog v-model="showConflictDialog" :title="t('knowledge.upload.conflictTitle')" width="600px" :close-on-click-modal="false">
+        <ReDialog v-model="showConflictDialog" :title="t('knowledge.upload.conflictTitle')" :width="600" :close-on-click-modal="false">
             <div class="space-y-4">
                 <p class="text-sm text-[var(--rm-text-secondary)]">
                     {{ t('knowledge.upload.conflictDesc') }}
@@ -98,7 +98,7 @@
                     <ReButton type="primary" @click="handleConflictConfirm">{{ t('common.ok') }}</ReButton>
                 </div>
             </template>
-        </LDialog>
+        </ReDialog>
     </div>
 </template>
 
@@ -112,7 +112,7 @@ import { useFileUploadStore } from '@/stores/fileUpload'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import type { KBFile } from '@/stores/knowledgeBase'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 

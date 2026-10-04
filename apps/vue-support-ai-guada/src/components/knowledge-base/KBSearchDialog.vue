@@ -1,11 +1,10 @@
 <!-- KnowledgeBasePage/KBSearchDialog.vue -->
 <template>
-  <LDialog
+  <ReDialog
     v-model="dialogVisible"
     :title="t('knowledge.search.title')"
-    width="700px"
+    :width="700"
     :close-on-click-modal="false"
-    append-to-body
   >
     <!-- 搜索区 -->
     <div class="flex flex-col gap-4">
@@ -108,14 +107,14 @@
         <ReButton @click="dialogVisible = false">{{ t('common.close') }}</ReButton>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 /**
  * 知识库检索弹框。
  *
- * <p>风格与系统一致：弹框外壳用应用标准 {@code LDialog}；结果卡用组件库基线
+ * <p>风格与系统一致：弹框外壳用仓库标准 {@code ReDialog}（koi，标题栏可拖拽）；结果卡用组件库基线
  * {@code re-surface}（含 hover 态），标签与按钮用 {@code ReTag} / {@code ReButton}，
  * 空态用 {@code ReEmpty}；颜色只用 koi 令牌 {@code --rm-*} —— 原先的
  * {@code text-gray-*} / {@code dark:border-gray-700} / {@code dark:hover:border-blue-500}
@@ -131,7 +130,7 @@ import { Search, Loading } from '@element-plus/icons-vue'
 import type { KnowledgeBase } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'

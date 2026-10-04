@@ -1,11 +1,9 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="showModal"
     :title="t('knowledge.chunks.title', { name: selectedFile?.displayName })"
-    width="800px"
+    :width="800"
     :close-on-click-modal="true"
-    append-to-body
-    @close="handleClose"
   >
     <div v-if="loading" class="min-h-[200px] flex flex-col items-center justify-center text-[var(--rm-text-secondary)]">
       <el-icon class="text-2xl"><Loading /></el-icon>
@@ -53,14 +51,14 @@
         />
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 /**
  * 文件分块内容查看。
  *
- * <p>风格与系统一致：弹框外壳用应用标准 {@code LDialog}，内部（加载态 / 空态 / 分块卡 /
+ * <p>风格与系统一致：弹框外壳用仓库标准 {@code ReDialog}（koi，标题栏可拖拽），内部（加载态 / 空态 / 分块卡 /
  * 分页条）全部走 Tailwind 工具类 + 组件库基线 {@code re-surface} + {@code ReEmpty}；
  * 颜色只用 koi 令牌 {@code --rm-*}，不再出现硬编码暗色值
  * （原先散落的 {@code dark:text-[#6b6d75]} 一类已全部移除）。</p>
@@ -72,7 +70,7 @@ import type { KBFile } from '@/stores/knowledgeBase'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReEmpty from '@/components/re/ReEmpty.vue'
 
 /** 组件属性 */

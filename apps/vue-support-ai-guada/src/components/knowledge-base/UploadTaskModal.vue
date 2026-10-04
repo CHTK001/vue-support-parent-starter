@@ -1,6 +1,6 @@
 <!-- components/KnowledgeBasePage/UploadTaskModal.vue -->
 <template>
-  <LDialog v-model="visible" :title="t('knowledge.uploadTask.title')" width="600px" :close-on-click-modal="false" @close="handleClose">
+  <ReDialog v-model="visible" :title="t('knowledge.uploadTask.title')" :width="600" :close-on-click-modal="false">
     <!-- 上传任务列表 -->
     <div v-if="uploadTasks.length > 0" class="space-y-3 max-h-[400px] overflow-y-auto">
       <div
@@ -51,14 +51,14 @@
         <ReButton @click="handleClose">{{ t('common.close') }}</ReButton>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 /**
  * 上传任务弹框。
  *
- * <p>风格与系统一致：外壳用应用标准 {@code LDialog}；每条任务用组件库基线
+ * <p>风格与系统一致：外壳用仓库标准 {@code ReDialog}（koi，标题栏可拖拽）；每条任务用组件库基线
  * {@code re-surface}（含 hover 态），状态标签与按钮用 {@code ReTag} / {@code ReButton}，
  * 空态用 {@code ReEmpty}；颜色只用 koi 令牌 {@code --rm-*} —— 原先的
  * {@code border-gray-200} / {@code dark:border-[#2e3035]} / {@code hover:bg-gray-50} /
@@ -69,7 +69,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Document } from '@element-plus/icons-vue'
 import type { KBFile } from '@/stores/knowledgeBase'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReTag from '@/components/re/ReTag.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
