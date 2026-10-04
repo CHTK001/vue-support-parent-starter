@@ -8,7 +8,7 @@
  *   3. 打开编辑抽屉做过滤器编排（左 SPI → 右已选，可重复添加）
  *   4. 打开详情抽屉查看运行态与过滤器链，并支持单过滤器热启停 / 热改参
  */
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { message } from '@repo/core';
 import { useRouter } from 'vue-router';
 import {
@@ -25,6 +25,17 @@ import {
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
 import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
 import { resolveFilterDetail } from '../utils/filterDetail';
+import { confirmThen } from '../utils/confirmThen';
+import { createAutoRefresh, DEFAULT_AUTO_REFRESH } from '../utils/autoRefresh';
+import { describeMetaLoad, type MetaLoadNotice } from '../utils/metaLoad';
+import {
+  buildProtocolOptions,
+  deriveStatusMeta,
+  filterNodes,
+  formatListenText,
+  isProxyProtocol,
+  summarizeNodes,
+} from '../utils/nodeList';
 
 const router = useRouter();
 
@@ -51,78 +62,121 @@ const detailNodeId = ref<number | null>(null);
 const keyword = ref('');
 /** 协议过滤 */
 const filterProtocol = ref<string>('');
+/** 首屏/刷新的加载提示（协议或插件元数据失败时必须出声，不能静默变空） */
+const loadNotice = ref<MetaLoadNotice>({ show: false, tone: 'warning', text: '' });
 
 /** 统计 */
-const stats = computed(() => {
-  let running = 0;
-  let stopped = 0;
-  let error = 0;
-  let plugins = 0;
-  nodes.value.forEach(n => {
-    if (n.status === 'RUNNING') running += 1;
-    else if (n.status === 'ERROR') error += 1;
-    else stopped += 1;
-    plugins += n.filters?.length ?? 0;
-  });
-  return { running, stopped, error, plugins, total: nodes.value.length };
-});
+const stats = computed(() => summarizeNodes(nodes.value));
 
 /** 过滤后的列表 */
-const visibleNodes = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  return nodes.value.filter(n => {
-    if (filterProtocol.value && n.protocol !== filterProtocol.value) return false;
-    if (!kw) return true;
-    return `${n.name} ${n.protocol} ${n.protocolDesc ?? ''} ${n.host ?? ''} ${n.port ?? ''}`
-      .toLowerCase()
-      .includes(kw);
-  });
-});
-
-/** 协议下拉选项（内置 + SPI 动态，SPI 项加后缀标识） */
-const protocolOptions = computed(() =>
-  protocols.value.map(p => ({
-    label: `${p.alias}${p.spi ? '（SPI）' : ''} - ${p.desc}`,
-    value: p.alias,
-  })),
+const visibleNodes = computed(() =>
+  filterNodes(nodes.value, { keyword: keyword.value, protocol: filterProtocol.value }),
 );
 
-onMounted(refresh);
+/** 协议下拉选项（内置 + SPI 动态，SPI 项加后缀标识） */
+const protocolOptions = computed(() => buildProtocolOptions(protocols.value));
 
-async function refresh() {
+/**
+ * 把任意异常压成一句可展示的短文本。
+ *
+ * 后端失败时抛出的是 `{code,msg}` 形态的对象而不是 Error，直接
+ * `(e as Error).message` 会渲染出 `[object Object]`。
+ */
+function reasonText(e: unknown): string {
+  if (e instanceof Error && e.message) {
+    return e.message;
+  }
+  if (e && typeof e === 'object' && 'msg' in e) {
+    const msg = (e as { msg?: unknown }).msg;
+    if (typeof msg === 'string' && msg) {
+      return msg;
+    }
+  }
+  return typeof e === 'string' && e ? e : '未知错误';
+}
+
+onMounted(() => {
+  void refresh();
+  // 自动刷新：节点可能因为端口被占/进程被杀而变成 ERROR，
+  // 只在 mounted 拉一次的话页面会一直显示过期的好消息
+  autoRefresh.start();
+  // 切回标签页立刻补一次，否则用户看到的是几分钟前的状态
+  document.addEventListener('visibilitychange', onVisibilityChange);
+});
+
+onUnmounted(() => {
+  autoRefresh.stop();
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+});
+
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    void refresh(true);
+  }
+}
+
+/**
+ * 拉取列表与元数据。
+ *
+ * @param silent 静默模式：自动刷新用。不弹 toast —— 每 10 秒一次的话
+ *   后端故障期间会把界面糊满错误提示，反而看不见真正的问题。
+ *   失败信息由 `loadNotice` 承载。
+ */
+async function refresh(silent = false) {
   loading.value = true;
   try {
-    const [nodeList, protocolList, filterList] = await Promise.all([
+    // 三个请求独立成败：任一失败都不能让另外两个的结果被一起丢掉，
+    // 因此逐个 settle 而不是整体 await。
+    const [nodesResult, protocolsResult, filtersResult] = await Promise.allSettled([
       listServerNodes(),
-      listProtocols().catch(() => []),
-      listFilterTypes().catch(() => []),
+      listProtocols(),
+      listFilterTypes(),
     ]);
-    nodes.value = nodeList ?? [];
-    protocols.value = protocolList ?? [];
-    filterTypes.value = filterList ?? [];
+
+    if (nodesResult.status === 'fulfilled') {
+      nodes.value = nodesResult.value ?? [];
+    }
+    if (protocolsResult.status === 'fulfilled') {
+      protocols.value = protocolsResult.value ?? [];
+    }
+    if (filtersResult.status === 'fulfilled') {
+      filterTypes.value = filtersResult.value ?? [];
+    }
+
+    loadNotice.value = describeMetaLoad({
+      nodesOk: nodesResult.status === 'fulfilled',
+      protocolsOk: protocolsResult.status === 'fulfilled',
+      filtersOk: filtersResult.status === 'fulfilled',
+      nodesError: nodesResult.status === 'rejected' ? reasonText(nodesResult.reason) : undefined,
+      protocolsError:
+        protocolsResult.status === 'rejected' ? reasonText(protocolsResult.reason) : undefined,
+      filtersError:
+        filtersResult.status === 'rejected' ? reasonText(filtersResult.reason) : undefined,
+    });
+
+    // 自动刷新时把错误交给 autoRefresh 记一次失败以触发退避，
+    // 但不弹提示；手动刷新才提示
+    if (!silent && nodesResult.status === 'rejected') {
+      message.error(reasonText(nodesResult.reason));
+    }
+    if (nodesResult.status === 'rejected') {
+      throw nodesResult.reason;
+    }
   } catch (e) {
-    message.error((e as Error).message);
+    if (!silent) {
+      message.error(reasonText(e));
+    }
   } finally {
     loading.value = false;
   }
 }
 
-/** 状态展示映射 */
-const statusText: Record<string, string> = { RUNNING: '运行中', STOPPED: '已停止', ERROR: '异常' };
-const statusType: Record<string, 'success' | 'info' | 'danger'> = {
-  RUNNING: 'success',
-  STOPPED: 'info',
-  ERROR: 'danger',
-};
+/** 自动刷新句柄 */
+const autoRefresh = createAutoRefresh(() => refresh(true), DEFAULT_AUTO_REFRESH);
 
 /** 协议展示：SPI 协议取描述，内置取中文描述 */
 function protocolLabel(row: ServerNodeView) {
   return row.protocolDesc || row.protocol;
-}
-
-/** 监听地址展示 */
-function listenText(row: ServerNodeView) {
-  return `${row.host || '0.0.0.0'}:${row.port ?? '-'}`;
 }
 
 function openCreate() {
@@ -147,7 +201,7 @@ async function onStart(row: ServerNodeView) {
     message.success(`服务「${row.name}」已启动`);
     await refresh();
   } catch (e) {
-    message.error((e as Error).message);
+    message.error(reasonText(e));
   } finally {
     actingId.value = null;
   }
@@ -160,21 +214,38 @@ async function onStop(row: ServerNodeView) {
     message.success(`服务「${row.name}」已停止`);
     await refresh();
   } catch (e) {
-    message.error((e as Error).message);
+    message.error(reasonText(e));
   } finally {
     actingId.value = null;
   }
 }
 
+/**
+ * 删除节点。
+ *
+ * 用 `confirmThen` 而不是直接 `await message.confirm`：后者在「取消」时是
+ * **reject(false)**，直接 await 会让取消动作变成一个未捕获的 Promise
+ * rejection —— 每取消一次刷一条红字，若全局挂了 unhandledrejection 上报，
+ * 用户刚点「取消」还会收到一个「系统繁忙」提示。
+ *
+ * 这里的 if 是必要的：布尔语义下不判断返回值就等于把「取消」当「确认」。
+ */
 async function onDelete(row: ServerNodeView) {
-  await message.confirm(`确认删除服务「${row.name}」？运行中的实例会先被停止。`, '删除服务');
+  const confirmed = await confirmThen(
+    message.confirm,
+    `确认删除服务「${row.name}」？运行中的实例会先被停止。`,
+    '删除服务',
+  );
+  if (!confirmed) {
+    return;
+  }
   actingId.value = row.id;
   try {
     await deleteServerNode(row.id);
     message.success('已删除');
     await refresh();
   } catch (e) {
-    message.error((e as Error).message);
+    message.error(reasonText(e));
   } finally {
     actingId.value = null;
   }
@@ -221,6 +292,17 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </template>
     </ReSectionHead>
 
+    <!-- 首屏/刷新降级提示：协议或插件元数据失败时必须出声，
+         否则用户只会看到「协议下拉是空的」，无从判断是故障还是无权限 -->
+    <el-alert
+      v-if="loadNotice.show"
+      :type="loadNotice.tone"
+      :title="loadNotice.text"
+      show-icon
+      :closable="false"
+      class="load-notice"
+    />
+
     <!-- 运行概览 -->
     <div class="stats-grid">
       <ReStatCard size="compact" title="服务总数" :value="stats.total" icon-color="var(--metric-cpu)">
@@ -263,21 +345,31 @@ function openDetailPage(row: ServerNodeView, index: number) {
       empty-text="暂无服务，点击右上角「新增服务」创建"
       @row-click="openDetail"
     >
-      <ReTableColumn label="状态" width="96">
+      <!-- 状态列：失败原因直接展示。
+         后端 ServerNodeView.error 一直在返回，但列表从不渲染它 ——
+         运维只看到一排红点，得逐个点开详情才知道为什么坏，排障入口白白浪费。 -->
+      <ReTableColumn label="状态" min-width="220">
         <template #default="{ row }">
-          <span class="status-cell">
-            <ReStatusIndicator
-              :type="row.status === 'RUNNING' ? 'success' : row.status === 'ERROR' ? 'danger' : 'info'"
-              :pulse="row.status === 'RUNNING'"
-            />
-            {{ statusText[row.status] || row.status }}
-          </span>
+          <div class="status-cell">
+            <span class="status-line">
+              <ReStatusIndicator
+                :type="deriveStatusMeta(row).tone"
+                :pulse="deriveStatusMeta(row).pulse"
+              />
+              {{ deriveStatusMeta(row).text }}
+            </span>
+            <span
+              v-if="deriveStatusMeta(row).reason"
+              class="status-reason"
+              :title="deriveStatusMeta(row).reason"
+            >{{ deriveStatusMeta(row).reason }}</span>
+          </div>
         </template>
       </ReTableColumn>
       <ReTableColumn prop="name" label="服务名称" min-width="140" show-overflow-tooltip />
       <ReTableColumn label="协议" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
-          <ReTag :type="row.protocol && String(row.protocol).indexOf('proxy') >= 0 ? 'warning' : 'primary'">
+          <ReTag :type="isProxyProtocol(row.protocol) ? 'warning' : 'primary'">
             {{ protocolLabel(row) }}
           </ReTag>
         </template>
@@ -288,7 +380,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
         </template>
       </ReTableColumn>
       <ReTableColumn label="监听地址" min-width="150">
-        <template #default="{ row }"><span class="mono">{{ listenText(row) }}</span></template>
+        <template #default="{ row }"><span class="mono">{{ formatListenText(row) }}</span></template>
       </ReTableColumn>
       <ReTableColumn label="插件" width="90">
         <template #default="{ row }">
@@ -360,5 +452,35 @@ function openDetailPage(row: ServerNodeView, index: number) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* 状态列改成上下两行：状态灯一行，失败原因一行。
+   原因单行截断 + title 悬浮全文，避免长堆栈把整张表撑变形。 */
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-reason {
+  color: var(--status-error);
+  font-size: 12px;
+  line-height: 1.4;
+  /* 单行截断：原因常有上百字（端口重试耗时、堆栈片段），
+     不截断会把整行撑到十几行高，表格没法看 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.load-notice {
+  margin: 0;
 }
 </style>
