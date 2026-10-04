@@ -1315,8 +1315,15 @@ function continueResponse(message: any) {
 }
 
 function switchContent(message: any, versionId: string) {
-  // 新模型：找到用户消息，更新 currentVersionId
-  const userMessage = activeMessages.value.find((m) => m.role === "user" && m.currentVersionId === message.id);
+  // 定位该轮的用户消息：**优先按「助手消息的父消息」找**。
+  //
+  // 不能只按 currentVersionId 找：实时流式产出的助手消息 id 是前端 UUID，
+  // 而用户消息上存的 currentVersionId 可能是别的值（刷新后是数据库主键），
+  // 两者对不上时 userMessage 就是 undefined，下一句便在 undefined 上赋值 ——
+  // 表现为「点上一个/下一个版本毫无反应」。
+  const userMessage =
+    activeMessages.value.find((m) => m.role === "user" && m.id === message.parentId) ??
+    activeMessages.value.find((m) => m.role === "user" && m.currentVersionId === message.id);
   if (userMessage && currentSessionId.value) {
     userMessage.currentVersionId = versionId;
     apiService.updateMessage(userMessage.id, { currentVersionId: versionId });
