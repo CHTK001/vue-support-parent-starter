@@ -14,8 +14,12 @@
                 <template #actions>
                   <!-- 工作目录切换 -->
                   <LTooltip v-if="mainSession?.id" :content="layoutStore.workspaceVisible ? t('chat.header.closeWorkspace') : t('chat.header.openWorkspace')" placement="bottom">
-                  <div class="header-icon-btn" :class="{ active: layoutStore.workspaceVisible }"
-                    @click="layoutStore.toggleWorkspace()">
+                  <div class="header-icon-btn" :class="{ active: layoutStore.workspaceVisible }" role="button" tabindex="0"
+                    :aria-label="layoutStore.workspaceVisible ? t('chat.header.closeWorkspace') : t('chat.header.openWorkspace')"
+                    :aria-pressed="layoutStore.workspaceVisible"
+                    @click="layoutStore.toggleWorkspace()"
+                    @keydown.enter.prevent="layoutStore.toggleWorkspace()"
+                    @keydown.space.prevent="layoutStore.toggleWorkspace()">
                     <PanelRightExpand20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
@@ -30,7 +34,9 @@
                   </LTooltip>
                   <!-- 更多操作下拉菜单 -->
                   <DropdownMenu @command="handleMoreSelect">
-                    <div class="header-icon-btn">
+                    <div class="header-icon-btn" role="button" tabindex="0"
+                      :aria-label="t('chat.header.moreActions')"
+                      @keydown.enter.prevent>
                       <MoreVertOutlined class="w-5 h-5" />
                     </div>
                     <template #dropdown>
@@ -428,18 +434,13 @@ const fetchSession = async (sessionId: string) => {
     mainSession.value = session;
     restoreStatusPanel(session);
 
-    // 恢复子会话 Tab：优先取后端会话层级（一个会话多个智能体 / 主从子会话），
-    // 兼容旧的 session.subSessions 字段（后端从未返回过）。
-    let subs: any[] = [];
-    try {
-      const res: any = await sessionAgentApi.listSubSessions(sessionId);
-      subs = res?.data || res || [];
-    } catch (e) {
-      subs = [];
-    }
-    if (!Array.isArray(subs) || subs.length === 0) {
-      subs = (session as any).subSessions || [];
-    }
+    // 恢复子会话 Tab：只认旧的 session.subSessions 字段。
+    // 原先还会先打一次 /api/sessions/{id}/sub-sessions，但后端从未实现该端点
+    // （实测直连 404），每次打开会话都稳定产生一个 404，且拿不到任何数据 ——
+    // 属于「注定失败还要发」的请求，直接去掉。
+    // 后端补齐后接回 sessionAgentApi.listSubSessions，契约见 services/javaApi.ts。
+    let subs: any[] = (session as any).subSessions || [];
+    if (!Array.isArray(subs)) subs = [];
     subSessions.value = subs as Session[];
     if (subSessions.value.length > 0) {
       // 保留 main Tab，重建子 Agent Tabs（状态以 isStreaming 为准）

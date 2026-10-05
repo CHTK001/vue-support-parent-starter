@@ -127,6 +127,23 @@ export const agentApi = {
 };
 
 // ==================== 会话 ↔ 智能体（一个会话多个智能体 / 主从动态子会话） ====================
+/**
+ * ⚠️ **后端尚未实现这组接口**，直连后端实测全部 404（「资源不存在」）：
+ *   GET    /api/sessions/{id}/agents
+ *   POST   /api/sessions/{id}/agents
+ *   DELETE /api/sessions/{id}/agents/{agentId}
+ *   GET    /api/sessions/{id}/sub-sessions
+ *   POST   /api/sessions/{id}/sub-sessions/spawn
+ *   POST   /api/sessions/{id}/sub-sessions/{subId}/close
+ *   POST   /api/sessions/{id}/sub-sessions/{subId}/status
+ * 后端没有任何 `@RequestMapping("/api/sessions")`，库里也没有会话↔智能体的绑定表，
+ * `sys_ai_session` 里更没有 agent 相关列，所以这不是代理配错、也不是路径写错。
+ *
+ * 因此这里**只保留契约、不再被调用**：原先 GlobalSidebar 展开会话、
+ * ChatPage 打开会话都会打这些请求，每次稳定 404，而 Promise.allSettled
+ * 的兜底又让功能「看起来正常」，实际永远拿不到数据。
+ * 后端补齐后再接回调用方（GlobalSidebar.loadSessionDetail / ChatPage.fetchSession）。
+ */
 export const sessionAgentApi = {
   /** 会话已绑定的智能体（主 + 子） */
   list: (sessionId: string | number) =>

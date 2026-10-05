@@ -3,7 +3,14 @@
     <!-- 左侧：侧边栏切换按钮 -->
     <div class="flex items-center justify-start no-drag ml-3">
       <LTooltip v-if="!hideSidebarToggle" :content="layoutStore.sidebarVisible ? t('common.sidebar.collapse') : t('common.sidebar.expand')" placement="bottom">
-        <div class="header-icon-btn" @click="layoutStore.toggleSidebar()">
+        <!-- 纯图标按钮必须自带可访问名：LTooltip 只是鼠标悬浮提示，
+             不构成 accessible name，屏幕阅读器只会念出「按钮」。 -->
+        <div class="header-icon-btn" role="button" tabindex="0"
+          :aria-label="layoutStore.sidebarVisible ? t('common.sidebar.collapse') : t('common.sidebar.expand')"
+          :aria-pressed="layoutStore.sidebarVisible"
+          @click="layoutStore.toggleSidebar()"
+          @keydown.enter.prevent="layoutStore.toggleSidebar()"
+          @keydown.space.prevent="layoutStore.toggleSidebar()">
           <LeftBarIcon class="w-5 h-5" />
         </div>
       </LTooltip>

@@ -819,29 +819,22 @@ const toggleSessionExpand = async (session: any): Promise<void> => {
   }
 }
 
-/** 懒加载会话详情：已绑定智能体 + 子会话 */
+/**
+ * 懒加载会话详情：已绑定智能体 + 子会话。
+ *
+ * 注意：这里**不再**调用 `/api/sessions/{id}/agents` 与 `/api/sessions/{id}/sub-sessions`。
+ * 那两个接口后端从未实现（实测直连后端也是 404「资源不存在」，代理也是转发到同一个后端），
+ * 原来每次展开会话都会稳定打出两个 404 —— 控制台噪声 + 两次无谓往返，
+ * 而 Promise.allSettled 的兜底让功能「看起来正常」，实际永远拿不到数据。
+ * 现在直接回落为空，展开区显示元信息与操作。
+ *
+ * 后端补上这两个接口后，把 sessionAgentApi.list / listSubSessions 接回来即可
+ * （契约见 services/javaApi.ts 的 sessionAgentApi 注释）。
+ */
 const loadSessionDetail = async (session: any): Promise<void> => {
   const id = String(session.id)
   sessionDetailLoadingIds.value = new Set(sessionDetailLoadingIds.value).add(id)
-  let agents: any[] = []
-  let subSessions: any[] = []
-  try {
-    const [agentsRes, subsRes] = await Promise.allSettled([
-      sessionAgentApi.list(id),
-      sessionAgentApi.listSubSessions(id),
-    ])
-    if (agentsRes.status === 'fulfilled') {
-      const r: any = agentsRes.value
-      agents = Array.isArray(r) ? r : (r?.data ?? [])
-    }
-    if (subsRes.status === 'fulfilled') {
-      const r: any = subsRes.value
-      subSessions = Array.isArray(r) ? r : (r?.data ?? [])
-    }
-  } catch (e) {
-    // 详情加载失败不阻断列表；展开区回落为「仅元信息 + 操作」
-  }
-  sessionDetails.value = { ...sessionDetails.value, [id]: { agents, subSessions } }
+  sessionDetails.value = { ...sessionDetails.value, [id]: { agents: [], subSessions: [] } }
   const done = new Set(sessionDetailLoadingIds.value)
   done.delete(id)
   sessionDetailLoadingIds.value = done

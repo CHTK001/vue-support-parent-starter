@@ -188,6 +188,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { EditOutlined, DeleteOutlined, MessageOutlined } from '@vicons/antd'
 import { api } from '@/framework/context'
@@ -354,8 +355,11 @@ const unbindConnector = async (connector: any) => {
 }
 
 // 进入连接器聊天
+// 必须走 router.push：原来用 window.location.href 会整页刷新，
+// 整个 SPA 冷启动（这个应用冷启要几十秒）并丢掉全部状态，
+// 还会绕开 router.beforeEach 的鉴权与进度条流程。
 const openBoundConnector = (connector: any) => {
-  window.location.href = `/connectors/chat/${connector.id}`
+  router.push(`/connectors/chat/${connector.id}`)
 }
 
 // 图标底色（品牌色浅底：真实 logo 为彩色实心图，需低饱和底才看得清）
@@ -381,6 +385,8 @@ const getConnectorTypeName = (type: string) => {
   }
   return names[type] || '未知连接器'
 }
+
+const router = useRouter()
 
 onMounted(fetchConnectors)
 </script>
