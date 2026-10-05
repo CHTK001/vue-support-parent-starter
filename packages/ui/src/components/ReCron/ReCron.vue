@@ -229,6 +229,16 @@ const SPEC: Record<string, { min: number; max: number; modes: FieldMode[] }> = {
 };
 
 /**
+ * 字段顺序，与表达式 6 段的先后一致。
+ *
+ * <p>必须声明在 {@link syncFromModel} 之前：包着它的 `watch(model, …, { immediate: true })`
+ * 会在 setup 期就执行，声明晚了会撞上 const 的暂时性死区
+ * （实测直接 `ReferenceError: Cannot access 'FIELD_KEYS' before initialization`，
+ * 整页白屏、tsc 却查不出来）。</p>
+ */
+const FIELD_KEYS = ["sec", "min", "hour", "day", "month", "week"] as const;
+
+/**
  * 六个字段（秒/分/时/日/月/周），顺序即表达式字段顺序。
  * 面板用「字段盒子 + 当前字段的匹配方式」呈现，不再用 ReTab 页签。
  */
@@ -405,7 +415,7 @@ function syncFromModel(value: string): void {
     rawExpression.value = value.trim();
     return;
   }
-  const keys = ["sec", "min", "hour", "day", "month", "week"];
+    const keys = [...FIELD_KEYS];
   for (const k of keys) {
     delete rawTokens[k];
     delete panelParsed[k];
@@ -466,6 +476,67 @@ watch(expression, (v) => {
 
 const trimmed = computed(() => (model.value || "").trim());
 
+/**
+ * 把引擎抛出的报错翻译成人话。
+ *
+ * <p>引擎（`@repo/utils` 的 CronExpression）只有两条错误文案，此前是原样透给用户：
+ * 触发器状态行、弹层底栏、弹层摘要 note 三处都直接显示
+ * `Cron expression must have 6 fields (...)` 与 Java 风格的
+ * `For input string: "1#2"` —— 后者对中文用户等于天书。</p>
+ *
+ * <p>两条都能给出更准的说法：字段数那条直接报当前段数；`For input string` 那条
+ * 带着出错的原文，而组件自己知道它落在第几段，可以点名到字段。</p>
+ *
+ * @param raw 引擎原始报错
+ * @param tokens 表达式切分出的各段
+ * @returns 中文报错；无法识别的原文原样返回（不隐藏信息）
+ */
+function humanizeEngineError(raw: string, tokens: string[]): string {
+  const six = /must have (\d+) fields/.exec(raw);
+  if (six) {
+    return `需要 6 段（秒 分 时 日 月 周），当前 ${tokens.length} 段`;
+  }
+  const bad = /^For input string: "(.*)"$/.exec(raw);
+  if (bad) {
+    const text = bad[1];
+    const at = tokens.findIndex((t) => t.includes(text));
+    const where = at >= 0 && FIELD_KEYS[at] ? `第 ${at + 1} 段（${LABEL_OF[FIELD_KEYS[at]]}）` : "其中一段";
+    return `${where}「${text}」不是数字，该段只接受数字`;
+  }
+  return raw;
+}
+
+/**
+ * 指出"数值合法但越界"的字段。
+ *
+ * <p>引擎对越界值是**照常置位、永不匹配**（见 CronExpression.parseField 的注释），
+ * 于是它不报错、只表现为"算不出触发时间"。此前用户看到的只有
+ * 「无法算出下一次触发时间」，完全不知道是哪个字段写错了。</p>
+ *
+ * <p>取值范围用 {@link SPEC} 而不是另写一份；周字段额外放行 7 ——
+ * 引擎的 `parseDaysOfWeek` 会把 7 视作周日（`.replace(/7/g, "0")`），
+ * 按面板的 0~6 去判会把合法的 `7` 误报成越界。</p>
+ *
+ * @param tokens 表达式切分出的各段
+ * @returns 越界说明；没有越界时返回空串
+ */
+function outOfRangeHint(tokens: string[]): string {
+  const bad: string[] = [];
+  FIELD_KEYS.forEach((key, i) => {
+    const token = tokens[i];
+    if (token === undefined) return;
+    const max = key === "week" ? 7 : SPEC[key].max;
+    for (const part of token.match(/\d+/g) || []) {
+      const n = Number(part);
+      if (n < SPEC[key].min || n > max) {
+        bad.push(`${LABEL_OF[key]}=${n}（应为 ${SPEC[key].min}~${max}）`);
+        break;
+      }
+    }
+  });
+  return bad.length ? `${bad.join("、")} 超出可取范围` : "";
+}
+
 /** 校验 + 预览：用与服务端同源的解析引擎，避免"看着合法、后端拒" */
 const analysis = computed(() => {
   const expr = trimmed.value;
@@ -489,7 +560,14 @@ const errorText = computed(() => {
   if (analysis.value.empty) {
     return props.defaultCron ? `留空则按后端默认 ${props.defaultCron} 登记` : "留空表示不设置调度";
   }
-  if (!analysis.value.valid) return analysis.value.error || "表达式非法";
+  if (!analysis.value.valid) {
+    const tokens = trimmed.value.split(/\s+/);
+    const base = humanizeEngineError(analysis.value.error || "表达式非法", tokens);
+    /* "算不出触发时间"时补一句是哪个字段越界 —— 引擎对越界值不报错，
+       此前用户只看到这一句，无从下手。 */
+    const range = outOfRangeHint(tokens);
+    return range ? `${base}：${range}` : base;
+  }
   return "";
 });
 
@@ -568,6 +646,9 @@ const footerHint = computed(() => {
  */
 const syncWarning = computed(() => {
   if (analysis.value.empty) return "";
+  /* 非法时不在这里重复报错：报错已作为摘要条正文（人话 + 越界定位）显示，
+     再抄一遍到 note 上，同一句话会在同一个弹层里出现两次。 */
+  if (!analysis.value.valid) return "";
   if (
     notUnderstood.value.length ||
     nameNormalized.value ||
@@ -876,16 +957,42 @@ function clearAll(): void {
   syncFromModel("");
 }
 
+/**
+ * 把"面板读不懂"的字段重置成"不限制"（`*`），让面板能接管。
+ *
+ * <p>此前这个按钮是**死的**：点了没有任何可观测变化（实测 `0 0 9 1#2 * *`
+ * 点击前后表达式、状态行、摘要、stale 字段、字段 aria 全部逐字节一致，连点两次无变化）。
+ * 原因是它只做了 `rawMode = false; syncFromModel(rawExpression)` —— 而
+ * {@link syncFromModel} 结尾会把 `rawMode` 重算回 `true`
+ * （`claimed.some((c) => !c)`），于是面板立刻又回到只读。</p>
+ *
+ * <p>现在的语义是"把读不懂的那几段换成 `*`"，这是唯一能让面板接手的做法：
+ * 面板本来就表达不出 `1#2` 这种写法，继续读原文只会一直卡在只读态。
+ * 改动会写回 model，但弹层的「取消」能把整段还原回打开前的表达式。</p>
+ */
 function useExpressionText(): void {
-  rawMode.value = false;
-  syncFromModel(rawExpression.value);
+  const tokens = (rawExpression.value || "").trim().split(/\s+/);
+  if (tokens.length !== FIELD_KEYS.length) {
+    /* 段数就不对时没有"字段"可言，整段按原文重读一次即可 */
+    rawMode.value = false;
+    syncFromModel(rawExpression.value);
+    return;
+  }
+  FIELD_KEYS.forEach((key, i) => {
+    if (!panelParsed[key]) tokens[i] = "*";
+  });
+  const next = tokens.join(" ");
+  model.value = next;
+  syncFromModel(next);
 }
 
 /**
  * 打开面板时记下表达式快照。
  *
  * <p>面板是实时把改动写回 model 的（state → expression → model），
- * 而弹层上给了「取消/保存」，所以取消必须能把整段还原回打开前的状态。</p>
+ * 而弹层上给了「取消/保存」，所以取消必须能把整段还原回打开前的状态。
+ * 同一个快照也兜住右上角 × 与 ESC（见 {@link onBeforeClose}）——
+ * 凡是没有明确按「保存」的关闭，都得还原。</p>
  */
 const snapshot = ref("");
 
@@ -894,13 +1001,48 @@ function openPanel(): void {
   open.value = true;
 }
 
-/** 取消：还原到打开时的表达式与面板状态，本次改动不保留 */
-function cancelPanel(): void {
+/**
+ * 清空表达式（触发区那颗 ×）。
+ *
+ * <p>只改 model，不碰面板内部状态 —— 触发区上的操作不该顺手改弹层里
+ * 尚未保存的选择。弹层下次打开时 {@link syncFromModel} 会按空值重置面板。</p>
+ */
+function clearExpression(): void {
+  model.value = "";
+}
+
+/**
+ * 还原到打开弹层时的表达式与面板状态，本次改动不保留。
+ *
+ * <p>不负责关弹层 —— 关闭动作由 {@link cancelPanel} 与 {@link onBeforeClose}
+ * 各自补上。</p>
+ */
+function revertPanel(): void {
   const back = snapshot.value;
   rawMode.value = false;
   syncFromModel(back);
   model.value = back;
+}
+
+/** 取消：还原到打开时的表达式与面板状态，本次改动不保留 */
+function cancelPanel(): void {
+  revertPanel();
   open.value = false;
+}
+
+/**
+ * 弹层的另一个关闭出口：右上角 ×、ESC（以及将来若放开"点遮罩关闭"）。
+ *
+ * <p>这三个入口以前直接改 `open`，**改动就留在了表达式里** —— 面板上明明写着
+ * 「取消 / 保存」，用户点 × 却等于偷偷按了保存，弹层里的选择和输入框里的
+ * 表达式对不上，还没法回头撤销。所以这里统一走还原：× 与 ESC 都等价于取消。</p>
+ *
+ * <p>用 `before-close` 而不是 `close`：前者只拦 ×/ESC/遮罩这类"用户没点保存"
+ * 的关闭，「取消」按钮自己改 `open` 不会二次触发。</p>
+ */
+function onBeforeClose(done: () => void): void {
+  revertPanel();
+  done();
 }
 
 /** 保存：改动已实时写入 model，关闭即可 */
@@ -922,7 +1064,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
         class="re-cron__input"
         :placeholder="placeholder"
         :disabled="disabled"
-        clearable
+        aria-label="调度周期 Cron 表达式"
         spellcheck="false"
         name="cron-expression"
         autocomplete="new-password"
@@ -930,6 +1072,33 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
         data-lpignore="true"
         data-1p-ignore
       >
+        <template #suffix>
+          <!-- 自己画清除按钮，而不是用 Element Plus 的 `clearable`：
+               它的清除 × 是个裸 `<i class="el-input__clear">`，没有 role、没有
+               aria-label、也不可聚焦 —— 纯图标却读不出名字，读屏只会当它不存在
+               （实测就是普查里唯一一条无名可点元素）。
+               这里换成真正的 `<button>`，名字写死成"清空表达式"，
+               顺带让"清除"这件事能进 Tab 序列。图标内联 SVG，不依赖图标库离线可用。 -->
+          <button
+            v-if="trimmed && !disabled"
+            type="button"
+            class="re-cron__clear"
+            aria-label="清空表达式"
+            @click="clearExpression"
+          >
+            <svg
+              class="re-cron__clear-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6 18 18M18 6 6 18" />
+            </svg>
+          </button>
+        </template>
         <template #append>
           <ReButton
             class="re-cron__gear"
@@ -951,11 +1120,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       top="6vh"
       append-to-body
       :close-on-click-modal="false"
+      :before-close="onBeforeClose"
     >
       <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
       <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }">
         <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
-          {{ humanSummary || (trimmed ? summary : "未设置调度周期") }}
+          {{ humanSummary || (trimmed ? (summary || errorText) : "未设置调度周期") }}
         </div>
         <code class="re-cron__summary-expr">{{ trimmed || "（未设置）" }}</code>
         <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
@@ -1085,10 +1255,17 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           </template>
 
           <!-- 只有在"面板真的读不懂"时才有重建的意义；`?`、英文名称这类只是写法不同，
-               给"重建面板"按钮等于给了个按了没变化的按钮。 -->
+               给"重建面板"按钮等于给了个按了没变化的按钮。
+
+               这里刻意不复述"面板读不懂 X"：摘要条（syncWarning）已经说过一次，
+               三处各说一遍同义的话只会更难读。这里只讲"下一步怎么做"。 -->
           <div v-if="notUnderstood.length" class="re-cron__raw">
-            <span class="re-cron__hint">面板读不懂 {{ notUnderstood.join("、") }}</span>
-            <ReButton type="primary" plain @click="useExpressionText">按表达式重建面板</ReButton>
+            <span class="re-cron__hint">
+              <template v-for="(label, i) in notUnderstood" :key="label">
+                <template v-if="i > 0">、</template>{{ label }}字段的写法面板表达不了
+              </template>
+            </span>
+            <ReButton type="primary" plain @click="useExpressionText">把读不懂的字段按 * 重建</ReButton>
           </div>
         </section>
 
@@ -1159,11 +1336,61 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   align-items: center;
   gap: 6px;
+  /*
+   * 容器查询：触发器这一行的宽度由外层表单决定，与视口无关
+   * （侧边栏、抽屉、窄列都可能很窄），所以只能问容器、问不了媒体查询。
+   * `inline-size` 只包含行内轴：这一行里只有输入框和齿轮两个静态子元素，
+   * `container-type` 附带的 layout 包含不会改变任何绝对定位的包含块。
+   */
+  container-type: inline-size;
+  container-name: recron-line;
 }
 
+/*
+ * 层级事实（量过才知道，写在这里免得下次再摸错）：
+ * `re-cron__input` 这个类同时挂在两个元素上 ——
+ *   ① ReInput 自己的根 `div.re-input.re-cron__input`，它是 `display: contents`（0×0，没有盒子）
+ *   ② 内层真正的 `div.el-input.re-cron__input`，display:flex，才是排版真正发生的地方
+ * 真正的 flex 容器是 ②：里面装 `el-input__wrapper` 与 `el-input-group__append`（齿轮）。
+ * append 实占 78px（38 按钮 + 两侧各 20 padding），wrapper 里还有 22 内边距 + 32 后缀，
+ * 容器 132px 时 wrapper 只剩 54px、输入框宽度归零 —— 用户刚输入的表达式一个字也看不见。
+ *
+ * flex-wrap 挂在 ① 上是无效的（contents 盒子不参与排版），必须命中 ② 才有用，
+ * 下面容器查询里的选择器因此写成 `.el-input.re-cron__input`。
+ */
 .re-cron__input {
   flex: 1;
   min-width: 0;
+}
+
+/*
+ * 窄容器（< 240px）下让输入框独占一行，齿轮换到第二行。
+ *
+ * 用 `flex: 1 1 100%` 而不是抬 min-width：Chromium 的换行判定只看 flex base size、
+ * 不看 min-width（实测把 wrapper 的 min-width 抬到 140px 也不换行，
+ * 只是把 append 顶出容器右边界 86px）。100% 是确定基准，换行判定吃这套。
+ *
+ * 240px 是这么定的：单行布局下容器需要 132px 才刚够，输入框宽度 = 容器 - 132。
+ * 容器 240 时输入框 108px（约 9 个字符），再窄就不如换行。
+ * 宽容器下这一整块不生效，布局与从前逐像素一致。
+ */
+@container recron-line (max-width: 240px) {
+  /* 双类选择器是为了稳压 Element Plus 的 `.el-input-group`：它同为 0,2,0，
+     靠源序取胜不可靠（实测 `flex-wrap` 被它按源序压回 nowrap）。 */
+  .re-cron__line :deep(.el-input.re-cron__input) {
+    flex-wrap: wrap;
+    /* 换行后两行贴在一起会显得像一块散落的灰底，行距沿用触发器行自己的 6px */
+    row-gap: 6px;
+  }
+
+  .re-cron__line :deep(.el-input__wrapper) {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .re-cron__line :deep(.el-input-group__append) {
+    flex: 0 0 auto;
+  }
 }
 
 /*
@@ -1215,6 +1442,32 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__gear {
   margin: 0 !important;
   padding: 0 8px;
+}
+
+/* 清除按钮：跟着输入框的内边距走，尺寸对齐 EP 的 14px 图标。 */
+.re-cron__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 24×24 而不是贴着 14px 图标：WCAG 2.2 的最小命中区是 24px。
+     视觉上只多出 4px 透明边距，图标尺寸不变。 */
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  cursor: pointer;
+}
+
+.re-cron__clear:hover,
+.re-cron__clear:focus-visible {
+  color: var(--el-text-color-regular, #606266);
+}
+
+.re-cron__clear-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .re-cron__status {
@@ -1276,8 +1529,11 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-color-primary, #409eff);
 }
 
+/* 非法时摘要条必须显出"这是错误"，不能和 is-note（只是说明）同色 ——
+   底栏的 footerHint 已经是红的，同一条错误在两处一个红一个灰，
+   大号标题反而不带信号，扫一眼分不清说明与错误。 */
 .re-cron__summary.is-invalid .re-cron__summary-text {
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--el-color-danger, #f56c6c);
 }
 
 /* 面板读不懂 / 用了英文名称时的说明：贴表达式下方，不喧宾夺主 */

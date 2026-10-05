@@ -10,6 +10,7 @@
       type="button"
       role="switch"
       :aria-checked="isActive"
+      :aria-label="accessibleName"
       @click="toggle"
     >
       <span class="re-switch-square__label">
@@ -48,6 +49,7 @@
     type="button"
     role="switch"
     :aria-checked="isActive"
+    :aria-label="accessibleName"
     @click="toggle"
   >
     <span class="re-switch-square__label">
@@ -88,6 +90,13 @@
  * {@code :aria-checked="isActive"}，否则读屏只会报「某按钮」，
  * 用户无从判断开关状态（WCAG 4.1.2 名称/角色/值）。两个分支
  * （有/无 tooltip）都要带，缺一个就有一半场景失效。</p>
+ *
+ * <p>同一个 WCAG 条款还要「名称」。这个按钮常常只画一个图标
+ * （{@code icon} 或内置图形），图标对读屏是空的，tooltip 又只在
+ * {@code title} 非空时才出现 —— 于是 {@code title} 为空时按钮**一个名字都没有**，
+ * 读屏只会念「开关」。实测演示站的参数面板就是这种状态：
+ * 一颗 40×40 的纯图标开关，{@code aria-label} 与 {@code title} 全为 {@code null}。
+ * 故 {@link accessibleName} 兜一层：{@code ariaLabel} → {@code title}。</p>
  */
 import { computed, useSlots } from "vue";
 import { ElTooltip } from "element-plus";
@@ -119,6 +128,13 @@ const props = withDefaults(
   defineProps<{
     /** 主标题（tooltip） */
     title?: string;
+    /**
+     * 无障碍名称。
+     *
+     * <p>图标本身读不出来，`title` 又只喂给 tooltip，所以纯图标用法必须靠它
+     * （或 `title`）给按钮一个名字，否则读屏只会报「开关」。</p>
+     */
+    ariaLabel?: string;
     /** 是否禁用 */
     disabled?: boolean;
     /** 尺寸 */
@@ -136,6 +152,7 @@ const props = withDefaults(
   }>(),
   {
     title: "",
+    ariaLabel: "",
     disabled: false,
     size: "default",
     activeValue: true,
@@ -149,6 +166,14 @@ const props = withDefaults(
 const modelValue = defineModel<boolean | string | number>({ default: false });
 
 const isActive = computed(() => modelValue.value === props.activeValue);
+
+/**
+ * 无障碍名称：`ariaLabel` 优先，其次 `title`（tooltip 文案也能当名字用）。
+ *
+ * <p>两者都没有时返回 {@code undefined} 而不是空串 —— 空串会被当成"有个空名字"，
+ * 读屏念出来是空白，比不设更糟。</p>
+ */
+const accessibleName = computed(() => props.ariaLabel || props.title || undefined);
 
 /** 中心图标尺寸（随按钮尺寸） */
 const iconSize = computed(() =>
