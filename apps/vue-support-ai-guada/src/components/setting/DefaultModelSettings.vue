@@ -42,7 +42,7 @@
         <el-input-number v-else-if="item.valueType === 'NUMBER'"
           :model-value="Number(getFieldValue(group.group, item.field))"
           @change="(val) => updateFieldValue(group.group, item.field, val)"
-          :step="0.1" :precision="2" class="w-full" />
+          :step="0.1" :precision="numberPrecision(group.group, item.field)" class="w-full" />
         <!-- BOOLEAN -->
         <el-switch v-else-if="item.valueType === 'BOOLEAN'"
           :model-value="getFieldValue(group.group, item.field) === 'true'"
@@ -92,7 +92,7 @@
             <el-input-number v-else-if="item.valueType === 'NUMBER'"
               :model-value="Number(getFieldValue(group.group, item.field))"
               @change="(val) => updateFieldValue(group.group, item.field, val)"
-              :step="0.1" :precision="2" class="w-full" />
+              :step="0.1" :precision="numberPrecision(group.group, item.field)" class="w-full" />
             <!-- BOOLEAN -->
             <el-switch v-else-if="item.valueType === 'BOOLEAN'"
               :model-value="getFieldValue(group.group, item.field) === 'true'"
@@ -610,6 +610,26 @@ const isEnumField = (item) => {
 // 获取字段值
 const getFieldValue = (group, field) => {
     return groupValues[group]?.[field] || ''
+}
+
+/**
+ * 数值字段显示几位小数。
+ *
+ * <p>此前模板写死 :precision="2"，于是分块大小显示成「1000.00」、向量维度
+ * 「1024.00」、TopK「5.00」——都是整数项，看着像被改成了带小数的值。
+ * 这里按原始字符串里实际的小数位决定：整数项显示整数，0.7 这类显示一位。</p>
+ *
+ * @param group 配置分组名
+ * @param field 字段名
+ * @return 小数位数（0 表示按整数显示）
+ */
+const numberPrecision = (group, field) => {
+    const raw = String(getFieldValue(group, field) ?? '').trim()
+    const dot = raw.indexOf('.')
+    if (dot < 0) {
+        return 0
+    }
+    return Math.min(6, raw.length - dot - 1)
 }
 
 // 模型字段的展示文本。
