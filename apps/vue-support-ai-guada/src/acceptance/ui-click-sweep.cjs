@@ -472,10 +472,16 @@ async function closeOverlays(p) {
         if (failedReq.length) rec.err = (rec.err ? rec.err + ' | ' : '') + '请求失败:' + failedReq.join(',').slice(0, 160);
 
         if (!clicked) {
-          // 点不动：被遮挡是真缺陷；disabled 已在上游过滤。
-          // 「重导航回本路由后仍不存在」不算缺陷 —— 说明按钮只在某个瞬态视图里出现，
-          // 归 WARN 供人工确认，不该把整轮验收染红。
-          rec.state = target ? 'not-clickable' : 'vanished';
+          /**
+           * 区分两种「点不动」：
+           * - 元素还在，只是不可见（Element is not visible）：说明**状态变了**。
+           *   例如知识库问答面板的快捷提问按钮带 v-if="!hasTurns"，一提问就消失；
+           *   采集时可见、点击时不可见属于正常的状态相关 UI，不是坏按钮。
+           *   真正坏掉的按钮会「一直」不可见，采集阶段就已经被 hidden 过滤掉了。
+           * - 元素确实点不到（被遮挡等）：仍算 FAIL。
+           */
+          const invisible = /not visible/i.test(clickErr);
+          rec.state = target ? (invisible ? 'state-dependent' : 'not-clickable') : 'vanished';
           rec.err = rec.err || clickErr;
         } else if (rec.err) {
           rec.state = 'click-error';
@@ -486,7 +492,8 @@ async function closeOverlays(p) {
         }
 
         if (rec.state === 'click-error' || rec.state === 'not-clickable') fail++;
-        else if (rec.state === 'no-effect' || rec.state === 'needs-force' || rec.state === 'vanished') warn++;
+        else if (rec.state === 'no-effect' || rec.state === 'needs-force'
+          || rec.state === 'vanished' || rec.state === 'state-dependent') warn++;
         else pass++;
 
         // 收尾：关掉弹窗/抽屉，否则会一直挡着后面的元素
@@ -534,6 +541,7 @@ async function closeOverlays(p) {
     noEffect: all.filter((e) => e.state === 'no-effect'),
     needsForce: all.filter((e) => e.state === 'needs-force'),
     vanished: all.filter((e) => e.state === 'vanished'),
+    stateDependent: all.filter((e) => e.state === 'state-dependent'),
     noAccessibleName: all.filter((e) => e.state === 'no-accessible-name'),
     routeLoadErrors: report.routes.filter((r) => r.pageErrors.length || r.consoleErrors.length || r.net5xx.length),
   };
@@ -559,6 +567,8 @@ async function closeOverlays(p) {
   for (const e of report.summary.needsForce) console.log('  [' + e.route + '] ' + e.name + '  ' + e.cls.slice(0, 60));
   console.log('\n----- WARN：重导航后仍不存在（按钮只在别的视图/弹窗里出现）-----');
   for (const e of report.summary.vanished) console.log('  [' + e.route + '] ' + e.name + '  ' + e.cls.slice(0, 60));
+  console.log('\n----- WARN：状态相关（点击前自行隐藏/禁用，属正常 UI 行为）-----');
+  for (const e of report.summary.stateDependent) console.log('  [' + e.route + '] ' + e.name + '  ' + e.cls.slice(0, 60));
   console.log('\n----- 无可访问名的可点元素 -----');
   for (const e of report.summary.noAccessibleName) console.log('  [' + e.route + '] ' + e.cls.slice(0, 70));
 
