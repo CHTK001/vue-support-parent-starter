@@ -3,33 +3,33 @@
  * 通道管理 —— 单台设备下的视频/告警通道维护。
  *
  * 数据来自 device-starter 的 `/api/device/channel/*`：list 需必填 deviceId，
- * 另有新增、修改、删除与启用/禁用（PUT /{id}/status）。
+ * 另有新增、修改、删除与启用/禁用（PUT /{id}/status），经 monitor 应用承载。
  *
- * 与「设备资产」的边界：设备资产是只读台账，本页是通道的增删改。
+ * 视觉与布局对齐「代理管理」（ProxyView）：无顶部 hero、4 张紧凑 ReStatCard、
+ * 筛选与操作合并成一行（新增通道并入图标操作组）、表格卡吃满剩余高度、
+ * 统一 --el-* 变量；弹窗用 ReDialog + ReFormItem。
  *
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { CircleCheck, Connection, Grid, Tickets } from "@element-plus/icons-vue";
+import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
 import type { DeviceChannel, DeviceInfo } from "@pages/device/src/types/device";
 
 /** 通道状态取值（后端 deviceChannelStatus 为字符串） */
-const STATUS = [
-  { value: "enabled", label: "启用", tag: "success" },
-  { value: "disabled", label: "禁用", tag: "info" },
-] as const;
-
-/** 显式标注键为 string：STATUS 是 as const，不标注会把键收窄成字面量联合，
- *  导致 statusMeta(deviceChannelStatus: string) 传不进来 */
-const STATUS_MAP = new Map<string, (typeof STATUS)[number]>(STATUS.map((s) => [s.value, s]));
+const STATUS_OPTIONS = [
+  { label: "启用", value: "enabled" },
+  { label: "禁用", value: "disabled" },
+];
 
 const devices = ref<DeviceInfo[]>([]);
 const devicesLoading = ref(false);
 
-/** 选中的设备；通道接口必填 deviceId */
-const deviceId = ref("");
+/** 选中设备：通道接口必填 deviceId */
+const filters = reactive({ deviceId: "" });
 
 const channels = ref<DeviceChannel[]>([]);
 const loading = ref(false);
@@ -39,7 +39,7 @@ const loadError = ref("");
 const dialogVisible = ref(false);
 const dialogSaving = ref(false);
 const editingId = ref<string | null>(null);
-const form = ref<Partial<DeviceChannel>>({
+const form = reactive({
   deviceChannelNo: 1,
   deviceChannelName: "",
   deviceChannelType: "main",
@@ -55,85 +55,125 @@ const deviceOptions = computed(() =>
 );
 
 const currentDeviceName = computed(
-  () => devices.value.find((d) => d.deviceInfoId === deviceId.value)?.deviceInfoName || ""
+  () => devices.value.find((d) => d.deviceInfoId === filters.deviceId)?.deviceInfoName || "未选择设备"
 );
 
 /** 已被其他通道占用的通道号（编辑时排除自身） */
 const usedNos = computed(
   () =>
     new Set(
-      channels.value
-        .filter((c) => c.deviceChannelId !== editingId.value)
-        .map((c) => c.deviceChannelNo)
+      channels.value.filter((c) => c.deviceChannelId !== editingId.value).map((c) => c.deviceChannelNo)
     )
 );
 
+const enabledCount = computed(() => channels.value.filter((c) => c.deviceChannelStatus === "enabled").length);
+const disabledCount = computed(() => channels.value.length - enabledCount.value);
+
+const kpis = computed(() => [
+  {
+    key: "total",
+    title: "通道总数",
+    value: channels.value.length,
+    desc: currentDeviceName.value,
+    icon: Tickets,
+    iconColor: "var(--el-color-primary)",
+  },
+  {
+    key: "enabled",
+    title: "已启用",
+    value: enabledCount.value,
+    desc: "可出流 / 可上报",
+    icon: CircleCheck,
+    iconColor: "var(--el-color-success)",
+  },
+  {
+    key: "disabled",
+    title: "已禁用",
+    value: disabledCount.value,
+    desc: "不占用采集资源",
+    icon: Grid,
+    iconColor: "var(--el-color-info)",
+  },
+  {
+    key: "devices",
+    title: "可选设备",
+    value: devices.value.length,
+    desc: "来自设备台账",
+    icon: Connection,
+    iconColor: "var(--metric-disk, var(--el-color-warning))",
+  },
+]);
+
 /** 表单校验：通道号必填且不可重复 */
-const noInvalid = computed(
-  () => !form.value.deviceChannelNo || usedNos.value.has(form.value.deviceChannelNo)
-);
+const noInvalid = computed(() => !form.deviceChannelNo || usedNos.value.has(form.deviceChannelNo));
 
 function statusMeta(value?: string) {
-  return STATUS_MAP.get(value || "") || { label: value || "-", tag: "info" };
+  return value === "enabled" ? { label: "启用", tag: "success" } : { label: "禁用", tag: "info" };
 }
 
-async function fetchDevices() {
+async function fetchDevices(): Promise<void> {
   devicesLoading.value = true;
   try {
     devices.value = (await deviceApi.list()) || [];
-  } catch (e) {
+  } catch (e: unknown) {
     devices.value = [];
-    ElMessage.error(`设备清单加载失败：${e instanceof Error ? e.message : e}`);
+    ElMessage.error(`设备清单加载失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     devicesLoading.value = false;
   }
 }
 
-/** 拉取选中设备的通道；未选设备时清空并给出提示 */
-async function fetchChannels() {
-  if (!deviceId.value) {
+/** 拉取选中设备的通道；未选设备时清空 */
+async function fetchChannels(): Promise<void> {
+  if (!filters.deviceId) {
     channels.value = [];
     return;
   }
   loading.value = true;
   loadError.value = "";
   try {
-    channels.value = (await deviceApi.listChannels(deviceId.value)) || [];
-  } catch (e) {
+    channels.value = (await deviceApi.listChannels(filters.deviceId)) || [];
+  } catch (e: unknown) {
     channels.value = [];
-    loadError.value = e instanceof Error ? e.message : String(e);
+    loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
     ElMessage.error(`通道加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
 }
 
-function openCreate() {
+function openCreate(): void {
   editingId.value = null;
-  form.value = {
+  Object.assign(form, {
     deviceChannelNo: 1,
     deviceChannelName: "",
     deviceChannelType: "main",
     deviceChannelStatus: "enabled",
     deviceChannelSort: 1,
-  };
+  });
   dialogVisible.value = true;
 }
 
-function openEdit(row: DeviceChannel) {
+function openEdit(row: DeviceChannel): void {
   editingId.value = row.deviceChannelId;
-  form.value = { ...row };
+  Object.assign(form, {
+    deviceChannelNo: row.deviceChannelNo,
+    deviceChannelName: row.deviceChannelName,
+    deviceChannelType: row.deviceChannelType,
+    deviceChannelStatus: row.deviceChannelStatus,
+    deviceChannelSort: row.deviceChannelSort,
+  });
   dialogVisible.value = true;
 }
 
-async function onSubmit() {
+async function onSubmit(): Promise<void> {
   if (noInvalid.value) {
     ElMessage.warning("请填写未占用的通道号");
     return;
   }
   dialogSaving.value = true;
   try {
-    const payload = { ...form.value, deviceChannelDeviceId: deviceId.value } as DeviceChannel;
+    const payload = { ...form, deviceChannelDeviceId: filters.deviceId } as DeviceChannel;
     if (editingId.value) {
       await deviceApi.updateChannel(editingId.value, payload);
       ElMessage.success("通道已更新");
@@ -143,40 +183,40 @@ async function onSubmit() {
     }
     dialogVisible.value = false;
     await fetchChannels();
-  } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : e}`);
+  } catch (e: unknown) {
+    ElMessage.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     dialogSaving.value = false;
   }
 }
 
-async function onToggle(row: DeviceChannel) {
+async function onToggle(row: DeviceChannel): Promise<void> {
   const next = row.deviceChannelStatus === "enabled" ? "disabled" : "enabled";
   try {
     await deviceApi.toggleChannelStatus(row.deviceChannelId, next);
     ElMessage.success(next === "enabled" ? "已启用" : "已禁用");
     await fetchChannels();
-  } catch (e) {
-    ElMessage.error(`操作失败：${e instanceof Error ? e.message : e}`);
+  } catch (e: unknown) {
+    ElMessage.error(`操作失败：${(e as { msg?: string })?.msg || e}`);
   }
 }
 
-async function onDelete(row: DeviceChannel) {
+async function onDelete(row: DeviceChannel): Promise<void> {
   try {
     await ElMessageBox.confirm(
       `确认删除通道「${row.deviceChannelName || row.deviceChannelNo}」？`,
-      "删除通道",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
+      "删除确认",
+      { type: "warning" }
     );
   } catch {
-    return; // 用户取消
+    return;
   }
   try {
     await deviceApi.deleteChannel(row.deviceChannelId);
     ElMessage.success("通道已删除");
     await fetchChannels();
-  } catch (e) {
-    ElMessage.error(`删除失败：${e instanceof Error ? e.message : e}`);
+  } catch (e: unknown) {
+    ElMessage.error(`删除失败：${(e as { msg?: string })?.msg || e}`);
   }
 }
 
@@ -185,122 +225,127 @@ onMounted(fetchDevices);
 
 <template>
   <div class="dch">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">通道管理</h1>
-        <p class="page-desc">
-          设备通道维护 ·
-          {{ deviceId ? `${currentDeviceName} · ${channels.length} 路` : "请先选择设备" }}
-        </p>
-      </div>
-      <div class="page-actions">
-        <el-button type="primary" :disabled="!deviceId" @click="openCreate">新增通道</el-button>
-      </div>
-    </div>
+    <!-- KPI 卡：通道总数 / 已启用 / 已禁用 / 可选设备 -->
+    <section class="dch-kpis">
+      <ReStatCard
+        v-for="k in kpis"
+        :key="k.key"
+        size="compact"
+        :title="k.title"
+        :value="k.value"
+        :desc="k.desc"
+        :icon="k.icon"
+        :icon-color="k.iconColor"
+      />
+    </section>
 
-    <div class="as-panel as-filter">
-      <div class="filter">
-        <div class="fld fld-grow">
-          <label>设备</label>
-          <el-select
-            v-model="deviceId"
-            filterable
-            placeholder="选择设备（必选）"
-            :loading="devicesLoading"
-            style="width: 100%"
-            @change="fetchChannels"
-          >
-            <el-option
-              v-for="o in deviceOptions"
-              :key="o.value"
-              :label="o.label"
-              :value="o.value"
-            />
-          </el-select>
-        </div>
-        <div class="fld fld-btns">
-          <el-button :loading="loading" :disabled="!deviceId" @click="fetchChannels">刷新</el-button>
-        </div>
+    <!-- 筛选与操作合并成一行：设备选择 + 查询 + 图标操作组（新增/刷新） -->
+    <section class="dch-panel dch-filter">
+      <div class="dch-field dch-field--device">
+        <ReSelect
+          v-model="filters.deviceId"
+          placeholder="选择设备（必选）"
+          filterable
+          :options="deviceOptions"
+          @change="fetchChannels"
+        />
       </div>
-    </div>
-
-    <div v-if="loadError" class="as-error">
-      <span>加载失败：{{ loadError }}</span>
-      <el-button size="small" @click="fetchChannels">重试</el-button>
-    </div>
-
-    <div class="as-panel">
-      <el-table
-        :data="channels"
-        v-loading="loading"
-        border
-        stripe
-        empty-text="暂无通道"
+      <span class="dch-filter__meta">{{ channels.length }} 路通道</span>
+      <ReButton
+        icon="Search"
+        :show-text="true"
+        type="primary"
+        :disabled="!filters.deviceId"
+        :loading="loading"
+        @click="fetchChannels"
       >
-        <el-table-column label="通道号" width="90" align="center">
-          <template #default="{ row }">{{ row.deviceChannelNo }}</template>
-        </el-table-column>
-        <el-table-column label="通道名称" min-width="160">
-          <template #default="{ row }">{{ row.deviceChannelName || "-" }}</template>
-        </el-table-column>
-        <el-table-column label="类型" width="110">
-          <template #default="{ row }">{{ row.deviceChannelType || "-" }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusMeta(row.deviceChannelStatus).tag as never">
-              {{ statusMeta(row.deviceChannelStatus).label }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="排序" width="80" align="center">
-          <template #default="{ row }">{{ row.deviceChannelSort ?? "-" }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="190" align="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="primary" @click="onToggle(row)">
-              {{ row.deviceChannelStatus === "enabled" ? "禁用" : "启用" }}
-            </el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        查询
+      </ReButton>
+      <div class="dch-toolbar-ops">
+        <ReButton icon="Plus" layout="square" type="primary" tip="新增通道" :disabled="!filters.deviceId" @click="openCreate" />
+        <ReButton icon="RefreshRight" layout="square" tip="重新加载" :disabled="!filters.deviceId" :loading="loading" @click="fetchChannels" />
+      </div>
+    </section>
+
+    <div v-if="loadError" class="dch-error">
+      <span>{{ loadError }}</span>
+      <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchChannels" />
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑通道' : '新增通道'" width="480px">
-      <el-form label-width="90px">
-        <el-form-item label="通道号" required>
-          <el-input-number v-model="form.deviceChannelNo" :min="1" :max="999" />
-          <span v-if="noInvalid" class="hint">通道号必填且不可与其他通道重复</span>
-        </el-form-item>
-        <el-form-item label="通道名称">
-          <el-input v-model="form.deviceChannelName" placeholder="如：主码流" />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-input v-model="form.deviceChannelType" placeholder="如：main / sub" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="form.deviceChannelStatus" style="width: 100%">
-            <el-option
-              v-for="s in STATUS"
-              :key="s.value"
-              :label="s.label"
-              :value="s.value"
+    <!-- 表格卡：flex:1 + min-height:0 吃满剩余高度 -->
+    <section class="dch-panel dch-table-card">
+      <div v-if="!loading && !channels.length" class="dch-empty">
+        <ReEmpty description="暂无通道，请选择设备后点击「查询」，或新增通道" :image-size="80" />
+      </div>
+      <ReTable
+        v-else
+        :data="channels"
+        :loading="loading"
+        :columns="[
+          { prop: 'deviceChannelNo', label: '通道号', width: 90, align: 'center' },
+          { prop: 'deviceChannelName', label: '通道名称', minWidth: 160 },
+          { prop: 'deviceChannelType', label: '类型', width: 110 },
+          { prop: 'deviceChannelStatus', label: '状态', width: 100, slot: 'status' },
+          { prop: 'deviceChannelSort', label: '排序', width: 80, align: 'center' },
+          { prop: 'actions', label: '操作', width: 170, slot: 'actions' },
+        ]"
+        size="default"
+        :border="false"
+        :stripe="false"
+        table-id="device-channel-list"
+        class="device-channel-table"
+      >
+        <template #col-status="{ row }">
+          <ReTag :type="statusMeta(row.deviceChannelStatus).tag as never" size="small">
+            {{ statusMeta(row.deviceChannelStatus).label }}
+          </ReTag>
+        </template>
+        <template #col-actions="{ row }">
+          <div class="dch-ops">
+            <ReButton icon="EditPen" layout="square" title="编辑" @click="openEdit(row)" />
+            <ReButton
+              :icon="row.deviceChannelStatus === 'enabled' ? 'VideoPause' : 'VideoPlay'"
+              layout="square"
+              :title="row.deviceChannelStatus === 'enabled' ? '禁用' : '启用'"
+              @click="onToggle(row)"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.deviceChannelSort" :min="1" :max="999" />
-        </el-form-item>
-      </el-form>
+            <ReButton icon="Delete" layout="square" title="删除" @click="onDelete(row)" />
+          </div>
+        </template>
+      </ReTable>
+    </section>
+
+    <ReDialog
+      v-model="dialogVisible"
+      :title="editingId ? '编辑通道' : '新增通道'"
+      width="480px"
+      :close-on-click-modal="false"
+    >
+      <div class="dch-form">
+        <ReFormItem label="通道号" required>
+          <ReInputNumber v-model="form.deviceChannelNo" :min="1" :max="999" style="width: 100%" />
+          <span v-if="noInvalid" class="dch-hint">通道号必填且不可与其他通道重复</span>
+        </ReFormItem>
+        <ReFormItem label="通道名称">
+          <ReInput v-model="form.deviceChannelName" placeholder="如：主码流" />
+        </ReFormItem>
+        <ReFormItem label="类型">
+          <ReInput v-model="form.deviceChannelType" placeholder="如：main / sub" />
+        </ReFormItem>
+        <ReFormItem label="状态">
+          <ReSelect v-model="form.deviceChannelStatus" :options="STATUS_OPTIONS" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="排序">
+          <ReInputNumber v-model="form.deviceChannelSort" :min="1" :max="999" style="width: 100%" />
+        </ReFormItem>
+      </div>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="dialogSaving" :disabled="noInvalid" @click="onSubmit">
+        <ReButton @click="dialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="dialogSaving" :disabled="noInvalid" @click="onSubmit">
           保存
-        </el-button>
+        </ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -309,62 +354,120 @@ onMounted(fetchDevices);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 10px 12px 12px;
+  height: 100%;
+  min-height: 0;
+  color: var(--el-text-color-primary);
 }
 
-.page-title {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 600;
+.dch-kpis {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
-.page-desc {
-  margin: 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+.dch-panel {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-.as-error {
+.dch-filter {
+  flex: none;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 12px 16px;
+}
+.dch-toolbar-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.dch-field--device {
+  width: 260px;
+}
+.dch-field--device :deep(.el-select) {
+  width: 100%;
+}
+.dch-filter__meta {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+@media (max-width: 900px) {
+  .dch-field--device {
+    width: 100%;
+  }
+  .dch-filter__meta {
+    margin-left: 0;
+  }
+  .dch-toolbar-ops {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+.dch-error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: var(--el-radius-base, 8px);
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
   font-size: 13px;
 }
 
-.filter {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.fld {
+.dch-table-card {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-
-  label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
+  padding: 6px 8px 8px;
+}
+.dch-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
 }
 
-.fld-grow {
-  flex: 1 1 300px;
-  min-width: 240px;
+/* 表格外观对齐 UI 稿 */
+.dch-table-card :deep(.re-table) {
+  padding: 0;
+  background: transparent;
+}
+.dch-table-card :deep(.el-table) {
+  --el-table-header-bg-color: var(--el-bg-color) !important;
+}
+.dch-table-card :deep(.el-table th.el-table__cell) {
+  padding: 14px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--el-text-color-secondary);
+  background: transparent !important;
+}
+.dch-table-card :deep(.el-table td.el-table__cell) {
+  padding: 15px 12px !important;
+  font-size: 14px !important;
 }
 
-.fld-btns {
-  flex-direction: row;
+.dch-ops {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding-bottom: 1px;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
-.hint {
+.dch-hint {
   margin-left: 10px;
   font-size: 12px;
   color: var(--el-color-danger);

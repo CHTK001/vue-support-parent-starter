@@ -3,51 +3,57 @@
  * 设备日志 —— 设备侧的时间序事件记录。
  *
  * 数据来自 device-starter 的 `GET /api/device/events`，返回 `DeviceEventRecord` 列表
- * （deviceId / channelNo / eventType / detail / occurredAt）。
+ * （deviceId / channelNo / eventType / detail / occurredAt），经 monitor 应用承载。
  *
  * ⚠ 后端该端点的 `deviceId` 是**必填**参数，没有「列出全部设备日志」的形态，
  * 因此本页先加载设备清单、再按选中设备查询，不做跨设备聚合。
  *
- * 与「设备资产」的区别：设备资产是台账快照（当前有多少台、在线几何），
- * 本页是单台设备的历史事件流水。
+ * 视觉与布局对齐「代理管理」（ProxyView）：无顶部 hero、4 张紧凑 ReStatCard、
+ * 筛选与操作合并成一行、表格卡吃满剩余高度、统一 --el-* 变量。
  *
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { Bell, Connection, OfficeBuilding, Tickets } from "@element-plus/icons-vue";
+import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
 import type { DeviceEvent, DeviceInfo } from "@pages/device/src/types/device";
 
-/** 事件类型枚举（对应后端 spi.model.EventType），仅用于筛选项与中文展示 */
-const EVENT_TYPES: { value: string; label: string; tag: string }[] = [
-  { value: "MOTION", label: "移动侦测", tag: "primary" },
-  { value: "IO_ALARM", label: "IO 报警", tag: "danger" },
-  { value: "ACCESS", label: "门禁事件", tag: "warning" },
-  { value: "TEMP", label: "温度报警", tag: "danger" },
-  { value: "NETWORK", label: "网络异常", tag: "warning" },
-  { value: "OTHER", label: "其他", tag: "info" },
+/** 事件类型（对应后端 spi.model.EventType），用于筛选项与展示 */
+const EVENT_TYPES = [
+  { label: "移动侦测", value: "MOTION" },
+  { label: "IO 报警", value: "IO_ALARM" },
+  { label: "门禁事件", value: "ACCESS" },
+  { label: "温度报警", value: "TEMP" },
+  { label: "网络异常", value: "NETWORK" },
+  { label: "其他", value: "OTHER" },
 ];
 
-const EVENT_TYPE_MAP = new Map(EVENT_TYPES.map((t) => [t.value, t]));
+const EVENT_TYPE_MAP = new Map<string, { label: string; tag: string }>(EVENT_TYPES.map((t) => [
+  t.value,
+  { label: t.label, tag: "info" },
+]));
+EVENT_TYPE_MAP.set("MOTION", { label: "移动侦测", tag: "primary" });
+EVENT_TYPE_MAP.set("IO_ALARM", { label: "IO 报警", tag: "danger" });
+EVENT_TYPE_MAP.set("ACCESS", { label: "门禁事件", tag: "warning" });
+EVENT_TYPE_MAP.set("TEMP", { label: "温度报警", tag: "danger" });
+EVENT_TYPE_MAP.set("NETWORK", { label: "网络异常", tag: "warning" });
 
-/** 设备清单（用于选择查询对象） */
+/** 计入「告警事件」的类型（其余为普通/其他） */
+const ALARM_TYPES = new Set(["IO_ALARM", "TEMP", "NETWORK"]);
+
 const devices = ref<DeviceInfo[]>([]);
 const devicesLoading = ref(false);
 
-/** 选中的设备 id；后端必填，故初始为空并禁用查询 */
-const deviceId = ref("");
+/** 选中设备：后端必填，故初始为空并禁用查询 */
+const filters = reactive({ deviceId: "", type: "", range: null as [string, string] | null });
 
-/** 过滤条件 */
-const typeFilter = ref("");
-const range = ref<[string, string] | null>(null);
-
-/** 事件列表 */
 const events = ref<DeviceEvent[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 
-/** 设备下拉选项 */
 const deviceOptions = computed(() =>
   devices.value.map((d) => ({
     value: d.deviceInfoId,
@@ -55,44 +61,96 @@ const deviceOptions = computed(() =>
   }))
 );
 
-/** 当前选中设备名，用于结果区标题 */
 const currentDeviceName = computed(
-  () => devices.value.find((d) => d.deviceInfoId === deviceId.value)?.deviceInfoName || ""
+  () => devices.value.find((d) => d.deviceInfoId === filters.deviceId)?.deviceInfoName || "未选择设备"
 );
 
-/** 未选设备时禁止查询 */
-const canQuery = computed(() => !!deviceId.value);
+/** 告警类事件数 */
+const alarmCount = computed(
+  () => events.value.filter((e) => ALARM_TYPES.has(e.deviceEventRecordEventType || "")).length
+);
 
-/** 把 ISO 时刻格式化为「MM-DD HH:mm:ss」，跨天也能一眼定位 */
-function formatTime(value?: string): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
+/** 涉及通道数（去重） */
+const channelCount = computed(
+  () =>
+    new Set(
+      events.value
+        .map((e) => e.deviceEventRecordChannelNo)
+        .filter((n): n is number => typeof n === "number")
+    ).size
+);
 
-/** 事件类型 → 展示名与标签色 */
+/** 最新事件时刻 */
+const latestAt = computed(() => {
+  const times = events.value
+    .map((e) => e.deviceEventRecordOccurredAt)
+    .filter((v): v is string => !!v)
+    .map((v) => new Date(v).getTime())
+    .filter((t) => !Number.isNaN(t));
+  return times.length ? new Date(Math.max(...times)) : null;
+});
+
+const kpis = computed(() => [
+  {
+    key: "total",
+    title: "事件记录",
+    value: events.value.length,
+    desc: currentDeviceName.value,
+    icon: Tickets,
+    iconColor: "var(--el-color-primary)",
+  },
+  {
+    key: "alarm",
+    title: "告警事件",
+    value: alarmCount.value,
+    desc: "IO / 温度 / 网络",
+    icon: Bell,
+    iconColor: "var(--el-color-danger)",
+  },
+  {
+    key: "channel",
+    title: "涉及通道",
+    value: channelCount.value,
+    desc: "去重后的通道数",
+    icon: Connection,
+    iconColor: "var(--metric-disk, var(--el-color-warning))",
+  },
+  {
+    key: "latest",
+    title: "最新事件",
+    value: latestAt.value ? latestAt.value.toLocaleDateString("zh-CN") : "—",
+    desc: latestAt.value ? latestAt.value.toLocaleTimeString("zh-CN", { hour12: false }) : "暂无记录",
+    icon: OfficeBuilding,
+    iconColor: "var(--el-color-info)",
+  },
+]);
+
 function typeMeta(value?: string) {
-  return EVENT_TYPE_MAP.get(value || "") || { label: value || "-", tag: "info" };
+  return EVENT_TYPE_MAP.get(value || "") || { label: value || "—", tag: "info" };
 }
 
-/** 加载设备清单 */
-async function fetchDevices() {
+function fmtTime(v?: string): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleString("zh-CN", { hour12: false });
+}
+
+/** 加载设备清单（查询对象） */
+async function fetchDevices(): Promise<void> {
   devicesLoading.value = true;
   try {
     devices.value = (await deviceApi.list()) || [];
-  } catch (e) {
+  } catch (e: unknown) {
     devices.value = [];
-    ElMessage.error(`设备清单加载失败：${e instanceof Error ? e.message : e}`);
+    ElMessage.error(`设备清单加载失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     devicesLoading.value = false;
   }
 }
 
 /** 按选中设备查询事件 */
-async function fetchEvents() {
-  if (!deviceId.value) {
+async function fetchEvents(): Promise<void> {
+  if (!filters.deviceId) {
     ElMessage.warning("请先选择设备");
     return;
   }
@@ -100,25 +158,24 @@ async function fetchEvents() {
   loadError.value = "";
   try {
     const params: { deviceId: string; type?: string; start?: string; end?: string } = {
-      deviceId: deviceId.value,
+      deviceId: filters.deviceId,
     };
-    if (typeFilter.value) params.type = typeFilter.value;
-    if (range.value?.[0]) params.start = range.value[0];
-    if (range.value?.[1]) params.end = range.value[1];
+    if (filters.type) params.type = filters.type;
+    if (filters.range?.[0]) params.start = filters.range[0];
+    if (filters.range?.[1]) params.end = filters.range[1];
     events.value = (await deviceApi.queryEvents(params)) || [];
-  } catch (e) {
+  } catch (e: unknown) {
     events.value = [];
-    loadError.value = e instanceof Error ? e.message : String(e);
+    loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
     ElMessage.error(`事件加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
 }
 
-/** 重置过滤条件（保留设备选择） */
-function onReset() {
-  typeFilter.value = "";
-  range.value = null;
+function onReset(): void {
+  filters.type = "";
+  filters.range = null;
   fetchEvents();
 }
 
@@ -127,103 +184,104 @@ onMounted(fetchDevices);
 
 <template>
   <div class="del">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">设备日志</h1>
-        <p class="page-desc">
-          设备侧事件流水 · 按设备查询{{ currentDeviceName ? ` · 当前：${currentDeviceName}` : "" }}
-        </p>
+    <!-- KPI 卡：事件记录 / 告警事件 / 涉及通道 / 最新事件 -->
+    <section class="del-kpis">
+      <ReStatCard
+        v-for="k in kpis"
+        :key="k.key"
+        size="compact"
+        :title="k.title"
+        :value="k.value"
+        :desc="k.desc"
+        :icon="k.icon"
+        :icon-color="k.iconColor"
+      />
+    </section>
+
+    <!-- 筛选与操作合并成一行：设备 / 事件类型 / 时间范围 + 查询 + 图标操作组。
+         设备为后端必填项，故未选时查询按钮禁用。 -->
+    <section class="del-panel del-filter">
+      <div class="del-field del-field--device">
+        <ReSelect
+          v-model="filters.deviceId"
+          placeholder="选择设备（必选）"
+          filterable
+          :options="deviceOptions"
+          @change="fetchEvents"
+        />
       </div>
-    </div>
-
-    <div class="as-panel as-filter">
-      <div class="filter">
-        <div class="fld fld-grow">
-          <label>设备</label>
-          <el-select
-            v-model="deviceId"
-            filterable
-            placeholder="选择设备（必选）"
-            :loading="devicesLoading"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="o in deviceOptions"
-              :key="o.value"
-              :label="o.label"
-              :value="o.value"
-            />
-          </el-select>
-        </div>
-        <div class="fld">
-          <label>事件类型</label>
-          <el-select v-model="typeFilter" placeholder="全部" clearable style="width: 140px">
-            <el-option
-              v-for="t in EVENT_TYPES"
-              :key="t.value"
-              :label="t.label"
-              :value="t.value"
-            />
-          </el-select>
-        </div>
-        <div class="fld fld-wide">
-          <label>发生时间</label>
-          <el-date-picker
-            v-model="range"
-            type="datetimerange"
-            range-separator="→"
-            start-placeholder="开始"
-            end-placeholder="结束"
-            value-format="YYYY-MM-DDTHH:mm:ss"
-            style="width: 100%"
-          />
-        </div>
-        <div class="fld fld-btns">
-          <el-button type="primary" :disabled="!canQuery" :loading="loading" @click="fetchEvents">
-            查询
-          </el-button>
-          <el-button :disabled="!canQuery" @click="onReset">重置</el-button>
-        </div>
+      <div class="del-field">
+        <ReSelect v-model="filters.type" placeholder="全部类型" clearable :options="EVENT_TYPES" />
       </div>
-    </div>
-
-    <div v-if="loadError" class="as-error">
-      <span>加载失败：{{ loadError }}</span>
-      <el-button size="small" @click="fetchEvents">重试</el-button>
-    </div>
-
-    <div class="as-panel">
-      <el-table
-        :data="events"
-        v-loading="loading"
-        border
-        stripe
-        max-height="560"
-        empty-text="暂无事件记录"
+      <div class="del-field del-field--range">
+        <el-date-picker
+          v-model="filters.range"
+          type="datetimerange"
+          range-separator="→"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          value-format="YYYY-MM-DDTHH:mm:ss"
+          style="width: 100%"
+        />
+      </div>
+      <span class="del-filter__meta">{{ events.length }} 条事件</span>
+      <ReButton
+        icon="Search"
+        :show-text="true"
+        type="primary"
+        :disabled="!filters.deviceId"
+        :loading="loading"
+        @click="fetchEvents"
       >
-        <el-table-column label="发生时间" width="150">
-          <template #default="{ row }">{{ formatTime(row.deviceEventRecordOccurredAt) }}</template>
-        </el-table-column>
-        <el-table-column label="通道" width="80" align="center">
-          <template #default="{ row }">
-            {{ row.deviceEventRecordChannelNo ?? "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="事件类型" width="120">
-          <template #default="{ row }">
-            <el-tag :type="typeMeta(row.deviceEventRecordEventType).tag as never">
-              {{ typeMeta(row.deviceEventRecordEventType).label }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="详情" min-width="260" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.deviceEventRecordDetail || "-" }}</template>
-        </el-table-column>
-        <el-table-column label="设备 ID" width="220" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.deviceEventRecordDeviceId || "-" }}</template>
-        </el-table-column>
-      </el-table>
+        查询
+      </ReButton>
+      <div class="del-toolbar-ops">
+        <ReButton icon="RefreshRight" layout="square" tip="重新查询" :loading="loading" @click="fetchEvents" />
+        <ReButton icon="Delete" layout="square" tip="重置筛选条件" @click="onReset" />
+      </div>
+    </section>
+
+    <div v-if="loadError" class="del-error">
+      <span>{{ loadError }}</span>
+      <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchEvents" />
     </div>
+
+    <!-- 表格卡：flex:1 + min-height:0 吃满剩余高度 -->
+    <section class="del-panel del-table-card">
+      <div v-if="!loading && !events.length" class="del-empty">
+        <ReEmpty description="暂无事件记录，请选择设备后点击「查询」" :image-size="80" />
+      </div>
+      <ReTable
+        v-else
+        :data="events"
+        :loading="loading"
+        :columns="[
+          { prop: 'deviceEventRecordOccurredAt', label: '发生时间', width: 180, slot: 'time' },
+          { prop: 'deviceEventRecordChannelNo', label: '通道', width: 80, align: 'center' },
+          { prop: 'deviceEventRecordEventType', label: '事件类型', width: 120, slot: 'type' },
+          { prop: 'deviceEventRecordDetail', label: '详情', minWidth: 260, slot: 'detail' },
+          { prop: 'deviceEventRecordDeviceId', label: '设备 ID', minWidth: 200, slot: 'deviceId' },
+        ]"
+        size="default"
+        :border="false"
+        :stripe="false"
+        table-id="device-event-list"
+        class="device-event-table"
+      >
+        <template #col-time="{ row }">{{ fmtTime(row.deviceEventRecordOccurredAt) }}</template>
+        <template #col-type="{ row }">
+          <ReTag :type="typeMeta(row.deviceEventRecordEventType).tag as never" size="small">
+            {{ typeMeta(row.deviceEventRecordEventType).label }}
+          </ReTag>
+        </template>
+        <template #col-detail="{ row }">
+          <span class="del-detail">{{ row.deviceEventRecordDetail || "—" }}</span>
+        </template>
+        <template #col-deviceId="{ row }">
+          <span class="mono">{{ row.deviceEventRecordDeviceId || "—" }}</span>
+        </template>
+      </ReTable>
+    </section>
   </div>
 </template>
 
@@ -232,63 +290,126 @@ onMounted(fetchDevices);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 10px 12px 12px;
+  height: 100%;
+  min-height: 0;
+  color: var(--el-text-color-primary);
 }
 
-.page-title {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 600;
+.del-kpis {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
-.page-desc {
-  margin: 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+.del-panel {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-.as-error {
+.del-filter {
+  flex: none;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 12px 16px;
+}
+.del-toolbar-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.del-field {
+  width: 160px;
+}
+.del-field--device {
+  width: 240px;
+}
+.del-field--range {
+  width: 320px;
+}
+.del-field :deep(.el-select) {
+  width: 100%;
+}
+.del-filter__meta {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+@media (max-width: 900px) {
+  .del-field,
+  .del-field--device,
+  .del-field--range {
+    width: 100%;
+  }
+  .del-filter__meta {
+    margin-left: 0;
+  }
+  .del-toolbar-ops {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+.del-error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: var(--el-radius-base, 8px);
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
   font-size: 13px;
 }
 
-.filter {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.fld {
+.del-table-card {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-
-  label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
+  padding: 6px 8px 8px;
+}
+.del-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
 }
 
-.fld-grow {
-  flex: 1 1 260px;
-  min-width: 220px;
+/* 表格外观对齐 UI 稿 */
+.del-table-card :deep(.re-table) {
+  padding: 0;
+  background: transparent;
+}
+.del-table-card :deep(.el-table) {
+  --el-table-header-bg-color: var(--el-bg-color) !important;
+}
+.del-table-card :deep(.el-table th.el-table__cell) {
+  padding: 14px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--el-text-color-secondary);
+  background: transparent !important;
+}
+.del-table-card :deep(.el-table td.el-table__cell) {
+  padding: 15px 12px !important;
+  font-size: 14px !important;
 }
 
-.fld-wide {
-  flex: 1 1 340px;
-  min-width: 300px;
+.mono {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
 }
-
-.fld-btns {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 1px;
+.del-detail {
+  font-size: 13.5px;
+  color: var(--el-text-color-primary);
 }
 </style>
