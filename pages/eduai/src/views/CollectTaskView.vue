@@ -143,7 +143,7 @@
           <span v-else class="text-gray-400 text-xs">未执行</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="220" fixed="right" align="right">
+      <ReTableColumn label="操作" width="220" fixed="right" align="center">
         <template #default="{ row }">
           <ReButton
             icon="VideoPlay"
@@ -214,15 +214,42 @@
                 </template>
               </el-alert>
             </template>
-            <!-- 第三方 SPI 扩展来源：直接编辑 JSON 配置 -->
+            <!-- 第三方 SPI 扩展来源 / 自落库来源：直接编辑 JSON 配置 -->
             <template v-else>
+              <div v-if="isSelfPersisted(form.collectTaskSourceType)" class="mb-2">
+                <el-alert type="info" :closable="false" show-icon>
+                  <template #title>
+                    该来源由服务端自带采集器直接写入汉字库（edu_hanzi），不需要前置/入库处理器。
+                    重复执行按 hanzi_char 去重，offset 留空即从已入库数量自动续采。
+                  </template>
+                </el-alert>
+                <el-button
+                  v-if="form.collectTaskSourceType === 'HANZI'"
+                  size="small"
+                  class="mt-2"
+                  @click="applyHanziPreset"
+                >
+                  填入汉字采集默认配置
+                </el-button>
+              </div>
               <el-input v-model="rawConfig" type="textarea" :rows="6" placeholder='{"key":"value"}' />
               <div class="text-xs text-gray-400 mt-1">
-                该来源类型由第三方扩展注册，请按键值 JSON 填写其配置
+                该来源类型由服务端采集器直接落库，请按键值 JSON 填写其配置
               </div>
             </template>
           </div>
         </el-form-item>
+
+        <!-- 自落库来源不需要前置/入库处理器：整段隐藏，避免误导出「必填」的假象 -->
+        <template v-if="isSelfPersisted(form.collectTaskSourceType)">
+          <el-form-item label=" ">
+            <span class="text-xs text-gray-400">
+              字段口径与随包初始化数据一致（tools/gen-hanzi-seed.py）：拼音、笔画数、部首、中文释义来自公开单字字典；
+              间架结构只按可靠映射推导，笔顺无公开数据源，均留空由老师补。
+            </span>
+          </el-form-item>
+        </template>
+        <template v-else>
 
         <!-- 前置处理器（必填）：把来源数据转成「一行一个」，支持 JSONPath / Groovy -->
         <el-form-item label="前置处理器" required>
@@ -251,6 +278,7 @@
             <el-button  @click.stop="impDialogVisible = true">配置</el-button>
           </div>
         </el-form-item>
+        </template>
 
         <el-row :gutter="16">
           <el-col :span="8">
@@ -1023,6 +1051,12 @@ function buildSourceConfig(): string {
     }
   }
 
+  // 自落库来源：配置就是 Provider 自己的键值，绝不能再挂 importProcessor，
+  // 否则服务端会改走通用管线（见 SELF_PERSISTED_TYPES 注释）。
+  if (isSelfPersisted(form.collectTaskSourceType)) {
+    return JSON.stringify(base);
+  }
+
   // 前置处理器（必填）：字段映射 key=JSONPath、value=输出给入库的名称
   base.preProcessor = {
     mapping: preMappingJson(),
@@ -1063,13 +1097,16 @@ function buildSourceConfig(): string {
 async function submitForm() {
   if (!form.collectTaskName) return ElMessage.warning("请输入任务名称");
   if (!form.collectTaskSourceType) return ElMessage.warning("请选择来源类型");
-  if (!preConfigured.value) {
-    preDialogVisible.value = true;
-    return ElMessage.warning("请先配置前置处理器（JSONPath / Groovy）");
-  }
-  if (!impConfigured.value) {
-    impDialogVisible.value = true;
-    return ElMessage.warning("请先配置入库处理器（目标表 / 字段映射）");
+  // 自落库来源由 Provider 自己落库，不需要前置/入库处理器
+  if (!isSelfPersisted(form.collectTaskSourceType)) {
+    if (!preConfigured.value) {
+      preDialogVisible.value = true;
+      return ElMessage.warning("请先配置前置处理器（JSONPath / Groovy）");
+    }
+    if (!impConfigured.value) {
+      impDialogVisible.value = true;
+      return ElMessage.warning("请先配置入库处理器（目标表 / 字段映射）");
+    }
   }
 
   // 校验来源配置必填
@@ -1204,6 +1241,35 @@ const fallbackSourceTypes = ["TEXT", "URL", "API", "FILE"];
  */
 const hiddenSourceTypes = new Set(["GROOVY"]);
 
+/**
+ * 自落库来源：服务端 Provider 自己写业务表（不走「前置处理器 → 入库处理器」管线）。
+ *
+ * 为什么必须单独识别：后端 doCollect 的判断顺序是「配置里有 importProcessor 就走
+ * 通用管线，selfPersisted() 才走 Provider 自己的 persist()」。而本表单保存时
+ * 默认会给所有类型都塞上 preProcessor/importProcessor —— 若不给自落库类型开口子，
+ * 从页面创建的汉字采集任务会被通用管线接管，Provider 形同不存在。
+ */
+const SELF_PERSISTED_TYPES = new Set(["HANZI"]);
+
+function isSelfPersisted(type?: string) {
+  return SELF_PERSISTED_TYPES.has((type || "").toUpperCase());
+}
+
+/** 汉字采集默认配置：一键填入公开单字字典/字表/IDS 源 */
+const HANZI_PRESET = {
+  url: "https://raw.githubusercontent.com/pwxcoo/chinese-xinhua/master/data/word.json",
+  charListUrl: "https://raw.githubusercontent.com/elephantnose/characters/master/3500%E5%B8%B8%E7%94%A8%E6%B1%89%E5%AD%97.txt",
+  idsUrl: "https://raw.githubusercontent.com/skishore/makemeahanzi/master/dictionary.txt",
+  limit: 500,
+  gradeLevel: "小学",
+  meaningMaxChars: 90,
+};
+
+function applyHanziPreset() {
+  rawConfig.value = JSON.stringify(HANZI_PRESET, null, 2);
+  ElMessage.success("已填入汉字采集默认配置（单次 500 字，可改）");
+}
+
 function visibleSourceTypes(list: string[]) {
   return list.filter((type) => !hiddenSourceTypes.has(type));
 }
@@ -1216,6 +1282,7 @@ const sourceLabelMap: Record<string, string> = {
   API: "第三方API",
   FILE: "本地文件",
   GROOVY: "Groovy脚本",
+  HANZI: "汉字库",
 };
 
 const gradeLevelLabels: Record<string, string> = {
@@ -1250,7 +1317,7 @@ function gradeLevelLabel(value?: string) {
 }
 
 function sourceTagType(type?: string) {
-  return { TEXT: "info", URL: "primary", API: "warning", FILE: "success", GROOVY: "danger" }[type ?? ""] || "info";
+  return { TEXT: "info", URL: "primary", API: "warning", FILE: "success", GROOVY: "danger", HANZI: "primary" }[type ?? ""] || "info";
 }
 
 function logStatusType(status?: number) {
