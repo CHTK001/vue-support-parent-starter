@@ -145,7 +145,7 @@
           <slot name="right-actions-before" />
           <!-- 生图只有「提交」，没有会话的停止/入队 -->
           <LTooltip content="生成" placement="top">
-            <button class="send-btn" :disabled="props.readonly || !inputContent.trim() || busy" @click="submit">
+            <button class="send-btn" aria-label="生成" :disabled="props.readonly || !inputContent.trim() || busy" @click="submit">
               <el-icon size="18">
                 <Send24Filled />
               </el-icon>

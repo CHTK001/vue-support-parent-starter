@@ -76,7 +76,7 @@
           <!-- 左侧工具按钮组 -->
           <template v-if="!props.readonly">
             <!-- 附件/图片/知识库按钮（放到最左侧） -->
-            <button ref="attachButtonRef" class="tool-btn" @click.stop="toggleAttachPopover">
+            <button ref="attachButtonRef" class="tool-btn" aria-label="添加附件/图片/知识库" @click.stop="toggleAttachPopover">
               <el-icon size="16">
                 <Add24Regular />
               </el-icon>
@@ -89,7 +89,7 @@
 
             <!-- 运行模式按钮（仅管理员：Build/Plan，图标+tip） -->
             <LTooltip v-if="admin" :content="runModeLabel" placement="top">
-              <button ref="runModeButtonRef" class="tool-btn" @click.stop="toggleRunModePopover">
+              <button ref="runModeButtonRef" class="tool-btn" :aria-label="runModeLabel" @click.stop="toggleRunModePopover">
                 <el-icon size="16">
                   <component :is="runModeIcon" class="text-gray-600" />
                 </el-icon>
@@ -101,7 +101,7 @@
 
             <!-- 技能按钮（图标+tip） -->
             <LTooltip content="技能" placement="top">
-              <button class="tool-btn skill-btn" @click.stop="openCommandPicker('', 'slash')">
+              <button class="tool-btn skill-btn" aria-label="技能" @click.stop="openCommandPicker('', 'slash')">
                 <el-icon size="16">
                   <Wrench24Regular />
                 </el-icon>
@@ -110,8 +110,9 @@
 
             <!-- MCP 选择按钮（仅管理员；图标+tip） -->
             <LTooltip v-if="admin" content="MCP 工具" placement="top">
-              <button ref="mcpButtonRef" class="tool-btn"
-                :class="{ 'tool-btn-active': mcpSelectedIds.length }" @click.stop="toggleMcpPopover">
+              <button ref="mcpButtonRef" class="tool-btn" aria-label="MCP 工具"
+                :class="{ 'tool-btn-active': mcpSelectedIds.length }"
+                :aria-pressed="!!mcpSelectedIds.length" @click.stop="toggleMcpPopover">
                 <el-icon size="16"><PlugConnected20Regular /></el-icon>
               </button>
             </LTooltip>
@@ -120,21 +121,22 @@
           </template>
             <!-- 深度思考开关（图标+tip） -->
             <LTooltip content="深度思考" placement="top">
-              <button class="tool-btn" :class="{ 'tool-btn-active': thinkingEnabled }"
-                @click.stop="thinkingEnabled = !thinkingEnabled">
+              <button class="tool-btn" aria-label="深度思考" :class="{ 'tool-btn-active': thinkingEnabled }"
+                :aria-pressed="thinkingEnabled" @click.stop="thinkingEnabled = !thinkingEnabled">
                 <el-icon size="16"><BrainCircuit20Regular /></el-icon>
               </button>
             </LTooltip>
             <!-- 网页搜索开关（图标+tip） -->
             <LTooltip content="在线检索" placement="top">
-              <button class="tool-btn" :class="{ 'tool-btn-active': webSearchEnabled }"
-                @click.stop="webSearchEnabled = !webSearchEnabled">
+              <button class="tool-btn" aria-label="在线检索" :class="{ 'tool-btn-active': webSearchEnabled }"
+                :aria-pressed="webSearchEnabled" @click.stop="webSearchEnabled = !webSearchEnabled">
                 <el-icon size="16"><GlobeShield20Regular /></el-icon>
               </button>
             </LTooltip>
             <!-- 输入优化按钮（图标+tip） -->
             <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
-              <button class="tool-btn" :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
+              <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
+                :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
                 <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
                 <el-icon size="16" v-else class="is-loading"><Loading /></el-icon>
               </button>
@@ -158,14 +160,15 @@
           </LTooltip>
           <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
           <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
-            <button class="send-btn stop-btn" @click="abortResponse">
+            <button class="send-btn stop-btn" :aria-label="t('chat.input.stopGenerating')" @click="abortResponse">
               <el-icon size="18">
                 <Stop24Filled />
               </el-icon>
             </button>
           </LTooltip>
           <LTooltip v-else :content="streaming ? t('chat.input.enqueue') : t('chat.input.send')" placement="top">
-            <button class="send-btn" :class="{ 'queue-btn': streaming }" @click="sendMessage"
+            <button class="send-btn" :class="{ 'queue-btn': streaming }"
+              :aria-label="streaming ? t('chat.input.enqueue') : t('chat.input.send')" @click="sendMessage"
               :disabled="props.readonly || !inputContent.trim() || !props.config?.modelId">
               <el-icon size="18">
                 <Send24Filled />
