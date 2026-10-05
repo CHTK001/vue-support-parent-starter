@@ -26,6 +26,20 @@ import { createVite } from "../../turbo/vite/createVite.ts";
     const apiTarget = process.env.COLLECT_API_TARGET ?? "http://192.168.50.198:18190";
 const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://127.0.0.1:18191";
 
+// dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。
+// 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 192.168.50.198:18190；
+// 而后端自 393306437（2026-10-02「收紧 CORS 任意 Origin 反射」）起只放行显式
+// allowed-origins，本模块配置里没有该白名单，于是登录 POST 被判「Invalid CORS request」。
+// 症状很有迷惑性：GET 不带 Origin 头，所以列表/详情都正常，只有登录进不去。
+// 为什么只改 dev 不动服务端：CORS 白名单是安全配置，不该为本地开发放开。
+// 生产是同源部署，前端与 API 同 host:port，不存在这个问题。
+const stripOriginHeaders = (proxyServer: any) => {
+  proxyServer.on("proxyReq", (proxyReq: any) => {
+    proxyReq.removeHeader("origin");
+    proxyReq.removeHeader("referer");
+  });
+};
+
 export default createVite({
   appName: "vue-support-collect-scheduler-starter",
   title: "采集调度一体化平台",
@@ -46,10 +60,12 @@ export default createVite({
       "/collect/api/v2/scheduler": {
         target: schedulerTarget,
         changeOrigin: true,
+        configure: stripOriginHeaders,
       },
       "/collect/api": {
         target: apiTarget,
         changeOrigin: true,
+        configure: stripOriginHeaders,
       },
     },
   },
