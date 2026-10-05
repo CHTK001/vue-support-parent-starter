@@ -208,6 +208,7 @@
       connections: 'Remote Workspace',
       sessionGroups: 'Group Management',
       sessionArchived: 'Archive Management',
+      sessionConfig: 'Session Config',
       imageLibrary: 'Image Library',
       faceLibrary: 'Face Library',
       profile: 'Account Overview',

@@ -2,6 +2,11 @@
   <div class="w-full flex flex-col items-center">
     <!-- 目标条：输入框上方的会话目标（Issue），激活后随会话推进 -->
     <GoalBar :session-id="sessionId == null ? null : String(sessionId)" />
+    <!--
+      AI 联想的下一步任务：位置在「目标条下方、输入框上方」。
+      开关关闭时组件整块不渲染（v-if 在组件内部），不占任何高度。
+    -->
+    <AiNextTaskPanel :session-id="sessionId == null ? null : String(sessionId)" />
     <!-- 输入框区域 -->
     <div
       class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
@@ -206,6 +211,7 @@ import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import GoalBar from './GoalBar.vue';
+import AiNextTaskPanel from './AiNextTaskPanel.vue';
 import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
