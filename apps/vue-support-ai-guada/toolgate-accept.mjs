@@ -31,7 +31,10 @@ const unwrap = (j) => j?.data?.data ?? j?.data ?? j
 const H = (t) => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${t}` })
 
 console.log('=== 1. ops 登录并确认是非管理员 ===')
-const ops = await login('ops', 'ops123')
+// 口令用 static 账号的真实值 Ops@Guada2026；此前这里写的是过期的 'ops123'，
+// 登录返回 HTTP 200 但拿不到令牌，于是第一断言就红，且随后的 process.exit(2)
+// 在浏览器句柄未关时触发 node 的 UV_HANDLE_CLOSING 断言崩溃 —— 那是症状不是原因。
+const ops = await login('ops', 'Ops@Guada2026')
 console.log(`  ops 登录 HTTP ${ops.http}  token=${ops.token ? 'ok' : '无'}`)
 chk('ops 能登录', !!ops.token)
 const opsRole = ops.raw?.data?.user?.role ?? ops.raw?.user?.role

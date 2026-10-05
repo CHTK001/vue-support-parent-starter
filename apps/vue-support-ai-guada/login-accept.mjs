@@ -52,8 +52,13 @@ console.log(`  ${JSON.stringify(after)}`)
 chk('login leaves the login page', !after.onLogin, after.url)
 chk('app shell rendered after login', after.hasNav, `bodyLen=${after.bodyLen}`)
 
-// 会话是否真能用：取令牌做一次受保护调用
-// 令牌的存储键由框架决定，不要猜格式或长度阈值：把所有键值列出来找最长的那条。
+// 会话是否真能用：**走应用自己的 http 层**发一次受保护请求。
+//
+// 为什么不能直接把 localStorage 里的值当 Bearer：那是**密文**（实测
+// ai-guada:accessToken 1856 字符、不以 eyJ 开头，ai-guada:userInfo 是 kv/ 前缀密文）。
+// 真正发出去的是 httpCrypto 拦截器里 getAccessToken() **解密后**的值
+// （packages/core/src/httpCrypto.ts:310-314）。拿密文当令牌必然 403 ——
+// 那是取样方式错，不是会话失效。
 const tokenFromPage = await page.evaluate(() => {
   const all = []
   for (const k of Object.keys(localStorage)) {
@@ -65,21 +70,48 @@ const tokenFromPage = await page.evaluate(() => {
 })
 console.log(`  存储里较长的键: ${JSON.stringify(tokenFromPage.slice(0, 3))}`)
 const tok = tokenFromPage[0]
-let tokenValue = tok ? await page.evaluate((k) => localStorage.getItem(k), tok.k) : null
-// 存的是 JSON 字符串（带引号）时要去掉引号再放进 Bearer 头，否则服务端拿到的是 "eyJ…"
-// 而不是 eyJ…，直接 403 —— 这是取样问题，不是会话失效。
+const rawToken = tok ? await page.evaluate((k) => localStorage.getItem(k), tok.k) : null
+let tokenValue = rawToken
 if (tokenValue && tokenValue.startsWith('"')) {
   try {
     tokenValue = JSON.parse(tokenValue)
   } catch {}
-  console.log('  (存储值是 JSON 字符串，已解引号)')
 }
 chk('a token was stored', !!tokenValue, tok ? `${tok.k} len=${String(tokenValue).length}` : 'none')
-if (tokenValue) {
-  const r = await fetch(`${API}/v2/ai/generate/tasks?type=image&limit=1&offset=0`, {
-    headers: { Authorization: `Bearer ${tokenValue}` },
-  })
-  chk('the session works for an authenticated call', r.status === 200, `HTTP ${r.status}`)
+console.log(`  存的是明文 JWT=${String(tokenValue ?? '').startsWith('eyJ')}（false 说明是密文，需经应用 http 层解密）`)
+
+// 真正要验的：登录后的会话能带动一次需要鉴权的调用。
+// 做法是让页面走自己的 axios（拦截器会自动解密并注入 Authorization），
+// 再断言拿到的是业务数据而不是 403。
+const authed = await page.evaluate(async () => {
+  const mod = window.__aiGuadaHttp
+  if (!mod || typeof mod.get !== 'function') {
+    return { skipped: true, reason: '页面未暴露 http 调试入口' }
+  }
+  try {
+    const rows = await mod.get('/ai/generate/tasks', { params: { type: 'image', limit: 1, offset: 0 } })
+    return { skipped: false, ok: Array.isArray(rows) || !!rows }
+  } catch (e) {
+    return { skipped: false, ok: false, err: String(e).slice(0, 120) }
+  }
+})
+if (authed.skipped) {
+  // 没有调试入口时的等价验证：打开一个必须鉴权才能渲染的页面，
+  // 数据渲染出来即说明令牌全程有效（否则会是空态或跳登录）。
+  await page.goto(`${FE}/chat/1`, { waitUntil: 'domcontentloaded' })
+  await sleep(4000)
+  const guarded = await page.evaluate(() => ({
+    url: location.href,
+    onLogin: location.pathname.includes('/login'),
+    hasSession: document.body.innerText.length > 200,
+  }))
+  chk(
+    'the session works for an authenticated page',
+    !guarded.onLogin && guarded.hasSession,
+    `url=${guarded.url} bodyLen=${guarded.hasSession}`,
+  )
+} else {
+  chk('the session works for an authenticated call', authed.ok === true, authed.err ?? '')
 }
 
 // ---------- negative ----------

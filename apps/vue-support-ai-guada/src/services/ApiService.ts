@@ -49,6 +49,10 @@ import { generateApi, type GenerateApi } from "./modules/generate.api";
 import { inputApi, type InputApi } from "./modules/input.api";
 import { goalApi, type GoalApi } from "./modules/goal.api";
 import { faceApi, type FaceApi } from "./modules/face.api";
+import {
+  sessionNextTaskApi,
+  type SessionNextTaskApi,
+} from "./modules/session-next-task.api";
 
 export type { FileChangeEvent };
 export type { SessionEvent, SessionEventType };
@@ -76,7 +80,8 @@ interface ApiService
     GenerateApi,
     FaceApi,
     InputApi,
-    GoalApi {}
+    GoalApi,
+    SessionNextTaskApi {}
 
 /**
  * 框架请求管线错误 → 本项目错误类型。
@@ -344,6 +349,7 @@ Object.assign(
   faceApi,
   inputApi,
   goalApi,
+  sessionNextTaskApi,
 );
 
 /**

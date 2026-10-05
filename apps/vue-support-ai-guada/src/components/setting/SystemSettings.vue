@@ -102,6 +102,15 @@
                         <template v-else-if="currentTabValue === 'session-archived'">
                             <ArchivedSessions />
                         </template>
+                        <!--
+                          会话配置：单独给会话的**行为开关**（是否让 AI 联想下一个任务、
+                          最多联想几条）。与「默认模型」同口径按用户隔离 —— 每个用户管
+                          自己的默认值；服务端已把 session 分组列入整组可用户自管的白名单
+                          （组内只有布尔/整数开关，无凭据/地址/路径）。
+                        -->
+                        <template v-else-if="currentTabValue === 'session-config'">
+                            <SessionConfigSettings />
+                        </template>
                         <template v-else-if="currentTabValue === 'security'">
                             <UserSecurity />
                         </template>
@@ -206,6 +215,7 @@ import {
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
 
+import SessionConfigSettings from './SessionConfigSettings.vue'
 import { useAuthStore } from '../../stores/auth'
 import PageHeader from '@/components/PageHeader.vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -230,6 +240,8 @@ const groupMap = computed<Record<string, string>>(() => ({
     community: t('settings.system.groups.system'),
     'session-groups': t('settings.system.groups.dataManagement'),
     'session-archived': t('settings.system.groups.dataManagement'),
+    // 会话配置按用户隔离（个人行为偏好），与「默认模型」同组
+    'session-config': t('settings.system.groups.general'),
     'model-metrics': t('settings.system.groups.dataManagement'),
     'skills-source': t('settings.system.groups.dataManagement'),
     usage: t('settings.system.groups.dataManagement'),
@@ -311,6 +323,20 @@ const sidebarItems = computed(() => [
         label: t('settings.system.tabs.sessionArchived'),
         path: 'session-archived',
         icon: Archive20Regular,
+        roles: ['primary'],
+    },
+    {
+        // 会话配置：单独对会话的配置（是否启用 AI 联想下一个任务等）。
+        //
+        // 去掉 adminOnly，与「默认模型」同口径：**每个用户管自己的会话行为默认值**。
+        // 服务端 `SettingsController.USER_WRITABLE_GROUPS` 已包含 session 分组，
+        // 该组内只有布尔/整数开关，不含凭据/地址/路径。
+        //
+        // 「会话保留原始信息」：这里的值是**默认值**，真正生效的开关钉在每个会话
+        // 自身的 settings.aiNextTask 上，之后改默认值不回溯改写已有会话。
+        label: t('settings.system.tabs.sessionConfig'),
+        path: 'session-config',
+        icon: Chat24Regular,
         roles: ['primary'],
     },
     {

@@ -210,6 +210,7 @@ export default {
       connections: '远程工作区',
       sessionGroups: '分组管理',
       sessionArchived: '归档管理',
+      sessionConfig: '会话配置',
       imageLibrary: '图像底库',
       faceLibrary: '人脸底库',
       profile: '账户概览',
