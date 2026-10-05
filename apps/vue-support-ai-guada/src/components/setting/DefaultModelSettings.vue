@@ -410,8 +410,7 @@ const isPromptField = (field) => {
 const ENGINE_FIELDS = ['rag_embedding_model']
 
 // 获取字段中文标签
-
-// 判断字段中文标签
+const getFieldLabel = (item) => {
     // 从描述中提取中文名称
     if (item.description) {
         // 取描述的前几个字作为标签
