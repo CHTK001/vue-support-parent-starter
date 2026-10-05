@@ -44,10 +44,9 @@ otherConfig:
     enable: true
   # 文件服务器（独立文件存储网关，默认值与后端 plugin.filesystem.storage-server 对齐）
   filestorage:
-    # 连接地址（文件存储网关，与本应用 vite proxy 的后端同机：192.168.50.198）
-    # 注意：前端本地跑时本机并没有文件服务，写 127.0.0.1:18080 会直接打不通，
-    # 列表恒为空且不报错。部署侧（198 自带的 app.yaml）保持本机地址不变。
-    server: http://192.168.50.198:18080
+    # 连接地址（文件存储网关）：本机后端已启动内置存储服务
+    # （plugin.filesystem.storage-server，端口 18080），本地联调直接指向它
+    server: http://127.0.0.1:18080
     # 默认存储桶（后端 provider 名）
     bucket: local
     # 存储配额（GB）：用于"存储用量"进度展示，页面 localStorage filestorage.quotaGb 可覆盖
