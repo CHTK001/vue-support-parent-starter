@@ -20,8 +20,26 @@ const BASE = process.env.BASE || 'http://localhost:15689';
 const OUT = process.env.SHOT_DIR || require('path').join(process.cwd(), '.kb-ui-accept');
 let KID = process.env.KB_ID || '';
 
+/**
+ * 登录，并顺带取回服务端**下发**的原始令牌。
+ *
+ * 注意：不能从 localStorage 读令牌 —— 框架 storage 是加密落盘的，
+ * 里面的 `ai-guada:accessToken` 是 1856 字符密文（原始令牌 1376），
+ * 拿密文当令牌发请求会被鉴权服务器判成「用户信息不存在」403。
+ * @see src/acceptance/acc-token.mjs 顶部实测记录
+ */
+let RAW_TOKEN = '';
 async function login(p) {
   for (let i = 0; i < 4; i++) {
+    const onResp = async (r) => {
+      if (RAW_TOKEN) return;
+      if (!/\/v2\/user\/login/.test(r.url()) || r.request().method() !== 'POST') return;
+      try {
+        const t = JSON.parse(await r.text())?.data?.accessToken;
+        if (t) RAW_TOKEN = t;
+      } catch { /* 响应体不可读则忽略 */ }
+    };
+    p.on('response', onResp);
     await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 120000 });
     await p.waitForSelector('input[type="password"]', { timeout: 40000 });
     await p.waitForTimeout(1800);
@@ -30,26 +48,20 @@ async function login(p) {
     await p.locator('button:has-text("登")').first().click();
     try { await p.waitForURL((x) => !/\/login/.test(x.pathname), { timeout: 25000 }); } catch (e) {}
     await p.waitForTimeout(1500);
-    if (await p.evaluate(() => Object.keys(localStorage).some((k) => /accessToken/i.test(k)))) return true;
+    p.off('response', onResp);
+    if (RAW_TOKEN) return true;
   }
   return false;
 }
 
 /** 用登录态自动发现一个知识库 ID（避免依赖固定环境数据） */
 async function discoverKbId(p) {
-  return p.evaluate(async () => {
-    let token = '';
-    for (const k of Object.keys(localStorage)) {
-      if (/accessToken/i.test(k)) {
-        try { token = JSON.parse(localStorage[k]); } catch { token = localStorage[k]; }
-        if (typeof token === 'object') token = token.value || token.accessToken || '';
-      }
-    }
+  return p.evaluate(async (token) => {
     const r = await fetch('/api/knowledge/bases', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
     const j = await r.json();
     const rows = j && j.data ? j.data : [];
     return rows && rows.length ? rows[0].knowledge_base_id : '';
-  });
+  }, RAW_TOKEN);
 }
 
 const clickNav = (p, name) => p.evaluate((n) => {
