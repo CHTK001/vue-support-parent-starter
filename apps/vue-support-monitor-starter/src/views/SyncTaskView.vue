@@ -15,19 +15,82 @@
       </div>
     </div>
 
+    <!-- ================= 四张 KPI 卡（全部由现有列表字段算出，不新增后端接口） =================
+         ReStatCard 只有 #icon 插槽、没有 #extra，所以 sparkline 不用插槽传入，
+         而是与卡片叠放（父级 relative + svg absolute），避免「插槽不存在被静默丢弃」。 -->
+    <section class="st-kpi-row">
+      <div v-for="k in kpiCards" :key="k.key" class="st-kpi-cell">
+        <ReStatCard
+          size="compact" :title="k.title" :value="k.value" :desc="k.desc"
+          :icon="k.icon" :icon-color="k.color"
+        />
+        <svg
+          v-if="k.spark.length > 1" class="st-spark"
+          viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"
+        >
+          <polyline
+            class="st-spark-line" :style="{ stroke: k.color }"
+            :points="sparkPoints(k.spark)"
+          />
+        </svg>
+      </div>
+    </section>
+
+    <!-- ================= 状态分段筛选 + 写入模式 / 时间范围下拉 ================= -->
+    <div class="st-filter-bar">
+      <div class="st-segments">
+        <button
+          v-for="seg in STATUS_SEGMENTS" :key="seg.key"
+          class="st-seg" :class="{ on: statusFilter === seg.key }"
+          @click="statusFilter = seg.key"
+        >
+          <span class="st-seg-label">{{ seg.label }}</span>
+          <span class="st-seg-count">{{ segCount(seg.key) }}</span>
+        </button>
+      </div>
+      <div class="st-filter-right">
+        <ReSelect
+          v-model="writeModeFilter" class="st-filter-sel"
+          :options="[{ label: '写入模式：全部', value: '' }, ...writeModeOptions]"
+        />
+        <ReSelect
+          v-model="rangeFilter" class="st-filter-sel"
+          :options="RANGE_OPTIONS"
+        />
+        <span class="st-refreshed">{{ refreshedText }}</span>
+      </div>
+    </div>
+
     <div class="st-body">
-      <el-table v-loading="loading" :data="tasks" border stripe empty-text="还没有同步任务，点右上角「新建任务」">
-        <el-table-column label="任务" min-width="190">
+      <el-table
+        v-loading="loading" :data="filteredTasks" border stripe
+        empty-text="没有符合条件的同步任务"
+      >
+        <el-table-column label="任务" min-width="210">
           <template #default="{ row }">
             <div class="st-name">{{ row.syncTaskName }}</div>
-            <div class="st-sub">{{ sourceLabel(row) }} → {{ dsName(row.syncTaskTargetDatasourceId) }}.{{ row.syncTaskTargetTable }}</div>
+            <div class="st-sub">{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="源" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }"><span class="mono st-sql">{{ sourceLabel(row) }}</span></template>
+        <el-table-column label="数据流向" min-width="250">
+          <template #default="{ row }">
+            <div class="st-flow">
+              <span class="st-flow-chip" :title="sourceFull(row)">
+                <ReIcon name="Coin" :size="12" />{{ sourceTableName(row) }}
+              </span>
+              <ReIcon name="Right" :size="12" class="st-flow-arrow" />
+              <span class="st-flow-chip" :title="dsName(row.syncTaskTargetDatasourceId) + '.' + row.syncTaskTargetTable">
+                <ReIcon name="Grid" :size="12" />{{ row.syncTaskTargetTable || "-" }}
+              </span>
+            </div>
+          </template>
         </el-table-column>
-        <el-table-column label="写入模式" width="112" align="center">
-          <template #default="{ row }">{{ modeLabel(row.syncTaskWriteMode) }}</template>
+        <el-table-column label="写入模式" width="118" align="center">
+          <template #default="{ row }">
+            <el-tag :type="writeModeTagType(row.syncTaskWriteMode)" effect="plain" size="small">
+              {{ modeLabel(row.syncTaskWriteMode) }}
+            </el-tag>
+          </template>
         </el-table-column>
         <el-table-column label="定时" width="150">
           <template #default="{ row }">
@@ -40,35 +103,48 @@
             <el-switch :model-value="row.syncTaskEnabled === 1" @change="(value: string | number | boolean) => toggle(row, !!value)" />
           </template>
         </el-table-column>
-        <el-table-column label="最近执行" min-width="230">
+        <el-table-column label="最近执行" min-width="260">
           <template #default="{ row }">
             <template v-if="row.syncTaskLastStatus">
               <div class="st-last">
-                <el-tag :type="row.syncTaskLastStatus === 'SUCCESS' ? 'success' : 'danger'">
+                <el-tag
+                  :type="row.syncTaskLastStatus === 'SUCCESS' ? 'success' : 'danger'"
+                  size="small" effect="plain"
+                >
                   {{ row.syncTaskLastStatus === 'SUCCESS' ? '成功' : '失败' }}
                 </el-tag>
                 <span class="st-sub">{{ row.syncTaskLastRunTime }}</span>
               </div>
-              <div class="st-sub">读 {{ row.syncTaskLastReadCount ?? 0 }} / 写 {{ row.syncTaskLastWriteCount ?? 0 }} · {{ row.syncTaskLastCostMs ?? 0 }}ms</div>
-              <div v-if="row.syncTaskLastMessage" class="st-msg" :title="row.syncTaskLastMessage">{{ row.syncTaskLastMessage }}</div>
+              <div class="st-sub">
+                读 {{ row.syncTaskLastReadCount ?? 0 }} / 写 {{ row.syncTaskLastWriteCount ?? 0 }} 行
+                · {{ formatCost(row.syncTaskLastCostMs) }}
+              </div>
+              <div v-if="row.syncTaskLastMessage" class="st-msg" :title="row.syncTaskLastMessage">
+                {{ row.syncTaskLastMessage }}
+              </div>
             </template>
+            <span v-else-if="row.syncTaskEnabled !== 1" class="st-sub">已停用调度</span>
             <span v-else class="st-sub">尚未执行</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right" align="right">
+        <el-table-column label="操作" width="172" fixed="right" align="center">
           <template #default="{ row }">
-            <ReButton :loading="runningId === row.id" @click="run(row)">
-              <template #icon><ReIcon name="VideoPlay" /></template>立即执行
+            <ReButton
+              :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1" title="立即执行"
+              @click="run(row)" circle
+            >
+              <template #icon><ReIcon name="VideoPlay" /></template>
             </ReButton>
-            <ReButton @click="openEdit(row)">
-              <template #icon><ReIcon name="EditPen" /></template>编辑
+            <ReButton title="编辑" circle @click="openEdit(row)">
+              <template #icon><ReIcon name="EditPen" /></template>
             </ReButton>
-            <ReButton type="danger" @click="remove(row)">
-              <template #icon><ReIcon name="Delete" /></template>删除
+            <ReButton title="删除" circle type="danger" @click="remove(row)">
+              <template #icon><ReIcon name="Delete" /></template>
             </ReButton>
           </template>
         </el-table-column>
       </el-table>
+      <div class="st-foot">显示 {{ filteredTasks.length }} 条，共 {{ tasks.length }} 个同步任务</div>
     </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="920px" :close-on-click-modal="false">
@@ -231,6 +307,21 @@
               <div class="st-form-hint">常用于 <code>Authorization</code>、<code>Accept</code> 等。</div>
             </div>
 
+            <div class="st-form-item">
+              <label>Cookie</label>
+              <el-input
+                v-model="form.sourceCookie"
+                type="textarea"
+                :rows="2"
+                class="mono"
+                placeholder="SID=abc123; uid=7"
+              />
+              <div class="st-form-hint">
+                整串粘贴浏览器 DevTools 里复制的 Cookie 值即可。
+                若上面「请求头」里也写了 <code>Cookie</code>，以这里为准（不会发两个 Cookie 头）。
+              </div>
+            </div>
+
             <div v-if="form.sourceMethod !== 'GET'" class="st-form-item">
               <label>请求体</label>
               <el-input v-model="form.sourceBody" type="textarea" :rows="3" class="mono" placeholder='{"pageNo":1,"pageSize":500}' />
@@ -385,8 +476,9 @@
  * @author CH
  * @since 4.0.0.43
  */
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, type Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { CircleCheck, Files, Loading, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
@@ -496,6 +588,8 @@ const form = reactive({
   sourceCellSelector: "td,th",
   /** HTML 首行是否表头 */
   sourceHeaderRow: true,
+  /** HTTP Cookie（整串，如 "SID=abc; uid=7"） */
+  sourceCookie: "",
   /** HTTP 超时（秒） */
   sourceTimeout: 30,
   targetDatasourceId: null as number | null,
@@ -607,6 +701,8 @@ const buildSourceOptions = (): string | null => {
       cellSelector: form.sourceType === "HTTP_HTML" ? form.sourceCellSelector || undefined : undefined,
       headerRow: form.sourceType === "HTTP_HTML" ? form.sourceHeaderRow : undefined,
       timeoutSeconds: form.sourceTimeout,
+      // 空串就不带这个键，后端归一化时按「不带 Cookie」处理
+      cookie: form.sourceCookie?.trim() ? form.sourceCookie.trim() : undefined,
     });
   }
   return JSON.stringify({
@@ -682,6 +778,7 @@ const applySourceOptions = (options: Record<string, unknown>) => {
   if (typeof options.headerRow === "boolean") {
     form.sourceHeaderRow = options.headerRow;
   }
+  form.sourceCookie = str("cookie") ?? "";
   form.sourceTimeout = num("timeoutSeconds") ?? form.sourceTimeout;
 };
 
@@ -753,6 +850,285 @@ const modeLabel = (code?: string | null): string => {
   return hit ? hit.label : code || "-";
 };
 
+// ==================== KPI / 分段筛选（数据全部来自现有列表字段，不新增后端接口） ====================
+
+/** 状态分段：key 对应下面的 statusOf 分类 */
+type StatusKey = "all" | "running" | "success" | "failed" | "disabled";
+const STATUS_SEGMENTS: Array<{ key: StatusKey; label: string }> = [
+  { key: "all", label: "全部" },
+  { key: "running", label: "运行中" },
+  { key: "success", label: "成功" },
+  { key: "failed", label: "失败" },
+  { key: "disabled", label: "已停用" },
+];
+/** 当前状态分段 */
+const statusFilter = ref<StatusKey>("all");
+/** 写入模式筛选，空=全部 */
+const writeModeFilter = ref("");
+/** 时间范围筛选，默认「全部时间」：默认就按 24 小时裁会让「全部 10」只显示 7 行，计数与表格对不上 */
+const rangeFilter = ref("all");
+const RANGE_OPTIONS = [
+  { label: "全部时间", value: "all" },
+  { label: "近 1 小时", value: "1h" },
+  { label: "近 24 小时", value: "24h" },
+  { label: "近 7 天", value: "7d" },
+];
+/** 列表最近刷新时刻文本（对应图上的「N 分钟前更新」） */
+const refreshedAt = ref<number>(0);
+/** 每 20s 走一次的时钟：让「N 秒前更新」真的会走，而不是停在那儿不动 */
+const clock = ref(Date.now());
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+const refreshedText = computed(() => {
+  if (!refreshedAt.value) return "";
+  const sec = Math.max(0, Math.round((clock.value - refreshedAt.value) / 1000));
+  if (sec < 10) return "刚刚更新";
+  if (sec < 60) return `${sec} 秒前更新`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min} 分钟前更新`;
+  return `${Math.round(min / 60)} 小时前更新`;
+});
+/** 写入模式下拉项（来自字典，附「全部」项已在模板里单独给） */
+const writeModeOptions = computed(() => writeModes.value.map(m => ({ label: m.label, value: m.code })));
+
+/** 运行中的任务：本地点击「立即执行」期间标记，后端无 RUNNING 状态字段 */
+const runningIds = ref<Set<number>>(new Set());
+/** 任务状态归类 */
+function statusOf(row: SyncTask): Exclude<StatusKey, "all"> {
+  if (row.syncTaskEnabled !== 1) return "disabled";
+  if (runningIds.value.has(row.id)) return "running";
+  if (row.syncTaskLastStatus === "SUCCESS") return "success";
+  if (row.syncTaskLastStatus) return "failed";
+  // 启用但从未执行：算「成功」会让成功率虚高，算「失败」会误报，统一归入成功之外的独立态
+  return "success";
+}
+/**
+ * 各分段计数。
+ *
+ * <p>计数基数是 {@link baseTasks}（已受写入模式 + 时间范围约束），而不是全量 {@link tasks}：
+ * 否则会出现「全部 10」却只列出 7 行 —— 徽标说的和表格给的不是一个数。KPI 卡另走全量口径，
+ * 因为它描述的是整体盘子，不该随筛选跳动。</p>
+ *
+ * @param key 分段
+ * @returns 该分段当前可见的任务数
+ */
+function segCount(key: StatusKey): number {
+  if (key === "all") return baseTasks.value.length;
+  return baseTasks.value.filter(t => statusOf(t) === key).length;
+}
+/** 解析后端的时间字符串（yyyy-MM-dd HH:mm:ss 或 ISO），无法解析返回 null */
+function parseRunTime(v?: string | null): number | null {
+  if (!v) return null;
+  const t = Date.parse(v.includes("T") ? v : v.replace(" ", "T"));
+  return Number.isNaN(t) ? null : t;
+}
+/** 时间范围对应的毫秒数；null 表示不限时间 */
+function rangeMs(): number | null {
+  if (rangeFilter.value === "all") return null;
+  const h = rangeFilter.value === "1h" ? 1 : rangeFilter.value === "7d" ? 24 * 7 : 24;
+  return h * 3600_000;
+}
+/** 是否落在所选时间范围内（无执行时间的不参与时间过滤，只受状态/模式影响） */
+function inRange(row: SyncTask): boolean {
+  const t = parseRunTime(row.syncTaskLastRunTime);
+  const ms = rangeMs();
+  if (t == null || ms == null) return true;
+  return Date.now() - t <= ms;
+}
+/** 基础集：写入模式 + 时间范围两道与状态无关的过滤 */
+const baseTasks = computed(() => tasks.value.filter(row =>
+  (!writeModeFilter.value || row.syncTaskWriteMode === writeModeFilter.value) && inRange(row),
+));
+/** 表格实际数据源：基础集再按状态分段收一道 */
+const filteredTasks = computed(() => baseTasks.value.filter(row =>
+  statusFilter.value === "all" || statusOf(row) === statusFilter.value,
+));
+
+/** 今日成功率：今日有执行记录的任务里成功占比；无今日执行则为 null（显示「—」，不伪造 100%） */
+const todayRate = computed<number | null>(() => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const t0 = start.getTime();
+  let ok = 0, all = 0;
+  for (const t of tasks.value) {
+    const ts = parseRunTime(t.syncTaskLastRunTime);
+    if (ts == null || ts < t0) continue;
+    all++;
+    if (t.syncTaskLastStatus === "SUCCESS") ok++;
+  }
+  return all ? (ok / all) * 100 : null;
+});
+/** 全量口径计数：KPI 卡描述整体盘子，不随筛选跳动（分段徽标才跟随筛选） */
+function globalCount(key: StatusKey): number {
+  if (key === "all") return tasks.value.length;
+  return tasks.value.filter(t => statusOf(t) === key).length;
+}
+/** 失败任务数（全量口径） */
+const failedCount = computed(() => globalCount("failed"));
+/** 已停用任务数 */
+function disabledCountOf(): number {
+  return tasks.value.filter(t => t.syncTaskEnabled !== 1).length;
+}
+
+/** 有执行时间的任务，按执行时间升序（sparkline 的公共输入） */
+function orderedRuns(): Array<{ at: number; ok: boolean }> {
+  const rows: Array<{ at: number | null; ok: boolean }> = tasks.value.map(t => ({
+    at: parseRunTime(t.syncTaskLastRunTime),
+    ok: t.syncTaskLastStatus === "SUCCESS",
+  }));
+  return rows
+    .filter((x): x is { at: number; ok: boolean } => x.at != null)
+    .sort((a, b) => a.at - b.at);
+}
+
+/**
+ * KPI 卡的 sparkline 序列。
+ *
+ * <p><b>口径说明（避免把「无数据」画成「平的 0 值」）</b>：后端只给每个任务的<b>最近一次</b>执行，
+ * 没有历史执行表。所以曲线一律取「按最近执行时间升序、累计到当前」这条真实可得的数据，
+ * 而不是编一条随机曲线；<b>序列不足 2 点时前端不渲染 svg</b>。结果是：</p>
+ * <ul>
+ *   <li>今日成功率、失败 / 告警 —— 有多任务执行时间，能画出真实累计曲线；</li>
+ *   <li>同步任务数、运行中 —— 后端没有对应的时间序列接口（要历史执行表），
+ *       单点画不出趋势，<b>刻意留空</b>而不是补一条假线。要补需后端出统计接口。</li>
+ * </ul>
+ *
+ * @param key 指标键
+ * @returns 数值序列（按时间升序）
+ */
+function sparkSeries(key: "tasks" | "running" | "rate" | "failed"): number[] {
+  const rows = orderedRuns();
+  if (key === "rate") {
+    // 累计成功率（%）
+    if (!rows.length) return [];
+    const out: number[] = [];
+    let ok = 0;
+    rows.forEach((r, i) => {
+      if (r.ok) ok++;
+      out.push(Math.round((ok / (i + 1)) * 1000) / 10);
+    });
+    return out;
+  }
+  if (key === "failed") {
+    // 累计失败任务数
+    if (!rows.length) return [];
+    const out: number[] = [];
+    let n = 0;
+    rows.forEach(r => {
+      if (!r.ok) n++;
+      out.push(n);
+    });
+    return out;
+  }
+  // tasks / running：后端无历史序列，单点无趋势可言
+  return [];
+}
+/** 生成 sparkline 的 polyline points（宽 120 高 32，自带 y 轴上下留白） */
+function sparkPoints(data: number[]): string {
+  if (data.length < 2) return "";
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  return data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 120;
+    const y = 30 - ((v - min) / range) * 26;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+}
+interface KpiCard {
+  key: string; title: string; value: string; desc: string;
+  icon: Component; color: string; spark: number[];
+}
+/** 四张 KPI 卡 */
+const kpiCards = computed<KpiCard[]>(() => {
+  const enabled = tasks.value.filter(t => t.syncTaskEnabled === 1).length;
+  const disabled = disabledCountOf();
+  const rate = todayRate.value;
+  return [
+    {
+      key: "tasks", title: "同步任务数", value: String(tasks.value.length),
+      desc: `启用 ${enabled} · 停用 ${disabled}`,
+      icon: Files, color: "var(--el-color-primary)",
+      spark: sparkSeries("tasks"),
+    },
+    {
+      key: "running", title: "运行中", value: String(globalCount("running")),
+      desc: `成功 ${globalCount("success")} · 失败 ${failedCount.value}`,
+      icon: Loading, color: "var(--el-color-success)",
+      spark: sparkSeries("running"),
+    },
+    {
+      key: "rate", title: "今日成功率",
+      value: rate == null ? "—" : rate.toFixed(1),
+      desc: rate == null ? "今日暂无执行记录" : "按今日已执行任务统计",
+      icon: CircleCheck, color: "var(--el-color-warning)",
+      spark: sparkSeries("rate"),
+    },
+    {
+      key: "failed", title: "失败 / 告警", value: String(failedCount.value),
+      desc: failedCount.value ? "需人工介入" : "暂无失败任务",
+      icon: Warning, color: "var(--el-color-danger)",
+      spark: sparkSeries("failed"),
+    },
+  ];
+});
+
+/** 写入模式标签色：追加=success / 覆盖=warning / Upsert=primary / 其它=info */
+function writeModeTagType(code?: string | null): "success" | "warning" | "primary" | "info" {
+  const c = (code || "").toUpperCase();
+  if (c === "INSERT") return "success";
+  if (c === "OVERWRITE" || c === "REPLACE") return "warning";
+  if (c === "UPSERT") return "primary";
+  return "info";
+}
+/** 耗时文本：ms → 人类可读（图中口径：秒级 + 两位小数） */
+function formatCost(ms?: number | null): string {
+  if (ms == null) return "—";
+  const v = Number(ms);
+  if (!Number.isFinite(v)) return "—";
+  if (v < 1000) return `${Math.round(v)}ms`;
+  if (v < 60_000) return `${(v / 1000).toFixed(2)}s`;
+  return `${Math.floor(v / 60_000)}m${Math.round((v % 60_000) / 1000)}s`;
+}
+/** 源类型中文标签（用于卡片化后的「任务」列副标题） */
+function sourceTypeLabel(row: SyncTask): string {
+  const t = (row.syncTaskSourceType || "JDBC").toUpperCase();
+  switch (t) {
+    case "JDBC": return "数据源";
+    case "FILE": return "文件";
+    case "DIR": return "文件夹";
+    case "HTTP_JSON": return "HTTP-JSON";
+    case "HTTP_HTML": return "HTTP-HTML";
+    default: return t;
+  }
+}
+/** 源侧摘要（表格「任务」列副标题用的短文案） */
+function sourceBrief(row: SyncTask): string {
+  const t = (row.syncTaskSourceType || "JDBC").toUpperCase();
+  if (t === "JDBC") return row.syncTaskSourceSql ? truncate(row.syncTaskSourceSql, 48) : "自定义 SQL";
+  if (t === "DIR") return row.syncTaskSourcePath ? truncate(row.syncTaskSourcePath, 40) : "目录";
+  if (t === "FILE" || t.startsWith("HTTP")) return row.syncTaskSourcePath ? truncate(row.syncTaskSourcePath, 40) : "—";
+  return "—";
+}
+/** 源侧完整描述（数据流向 chip 的 title） */
+function sourceFull(row: SyncTask): string {
+  return sourceLabel(row);
+}
+/** 源侧名称（数据流向 chip 的正文） */
+function sourceTableName(row: SyncTask): string {
+  const t = (row.syncTaskSourceType || "JDBC").toUpperCase();
+  if (t === "JDBC") {
+    // 从 SELECT ... FROM x 里取表名，取不到就退回数据源名
+    const m = /from\s+[`"]?([\w.]+)[`"]?/i.exec(row.syncTaskSourceSql || "");
+    return m ? m[1] : dsName(row.syncTaskSourceDatasourceId);
+  }
+  const p = row.syncTaskSourcePath || "";
+  const seg = p.split(/[\\/]/).filter(Boolean);
+  return seg.length ? seg[seg.length - 1] : sourceTypeLabel(row);
+}
+/** 超长文本截断 */
+function truncate(v: string, n: number): string {
+  return v.length > n ? v.slice(0, n - 1) + "…" : v;
+}
+
 /** 拉数据源台账 */
 const loadDatasources = async () => {
   try {
@@ -767,6 +1143,9 @@ const refresh = async () => {
   loading.value = true;
   try {
     tasks.value = await fetchSyncTasks();
+    // 「N 分钟前更新」的时间戳；顺手清掉已结束的执行中标记
+    refreshedAt.value = Date.now();
+    runningIds.value = new Set();
   } catch (e) {
     ElMessage.error("加载同步任务失败：" + (e as Error)?.message);
   } finally {
@@ -925,6 +1304,7 @@ const openCreate = () => {
   form.sourceMethod = "GET";
   form.sourceEncoding = "UTF-8";
   form.sourceHeaders = "";
+  form.sourceCookie = "";
   form.sourceBody = "";
   form.sourceJsonPath = "";
   form.sourceRowSelector = "table tr";
@@ -974,6 +1354,7 @@ const openEdit = (row: SyncTask) => {
   form.sourceMethod = "GET";
   form.sourceEncoding = "UTF-8";
   form.sourceHeaders = "";
+  form.sourceCookie = "";
   form.sourceBody = "";
   form.sourceJsonPath = "";
   form.sourceRowSelector = "table tr";
@@ -1140,6 +1521,8 @@ const submit = async () => {
  */
 const run = async (row: SyncTask) => {
   runningId.value = row.id;
+  // 本地标记为「运行中」：后端任务表没有 RUNNING 状态列，执行期间的进度只能由前端标
+  runningIds.value = new Set([...runningIds.value, row.id]);
   try {
     const result: SyncTaskRunResult = await runSyncTask(row.id);
     if (result.status === "SUCCESS") {
@@ -1200,6 +1583,10 @@ const remove = async (row: SyncTask) => {
 };
 
 onMounted(async () => {
+  // 「N 分钟前更新」要自己走秒，否则会一直停在首次刷新那一刻
+  clockTimer = setInterval(() => {
+    clock.value = Date.now();
+  }, 20_000);
   await loadDatasources();
   try {
     writeModes.value = await fetchSyncWriteModes();
@@ -1213,10 +1600,132 @@ onMounted(async () => {
   }
   await refresh();
 });
+/** 离开页面时停掉时钟定时器，避免组件卸载后仍每 20s 醒一次 */
+onUnmounted(() => {
+  if (clockTimer) {
+    clearInterval(clockTimer);
+    clockTimer = null;
+  }
+});
 </script>
 
 <style scoped>
 .st-body { padding: 0 16px 16px; }
+
+/* ==================== KPI 卡 ==================== */
+/* 卡面规格交给 ReStatCard，这里只负责四卡等宽排布与卡内 sparkline 的落位 */
+.st-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 16px 12px;
+}
+.st-spark {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 120px;
+  height: 32px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.st-kpi-cell { position: relative; min-width: 0; }
+.st-spark-line {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+/* 四卡在窄屏折成两行；再窄折成一行，避免卡片被压到读不出数字 */
+@media (max-width: 1100px) {
+  .st-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .st-kpi-row { grid-template-columns: 1fr; }
+}
+
+/* ==================== 状态分段筛选 ==================== */
+.st-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 16px 12px;
+}
+.st-segments {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+}
+.st-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.st-seg:hover { color: var(--text-primary); }
+.st-seg.on {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+.st-seg-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+.st-filter-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.st-filter-sel { width: 168px; }
+.st-refreshed {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==================== 数据流向 chip ==================== */
+.st-flow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.st-flow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 130px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-flow-arrow { color: var(--text-tertiary); flex-shrink: 0; }
+
+.st-foot {
+  padding: 10px 2px 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
 /* 三步向导头部：与表单区留出呼吸感 */
 .st-steps { margin-bottom: 20px; }
 .st-steps :deep(.el-step__title) { font-size: 13px; }
