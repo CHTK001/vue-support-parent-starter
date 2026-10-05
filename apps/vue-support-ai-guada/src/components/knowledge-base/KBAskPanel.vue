@@ -282,6 +282,7 @@ watch(() => props.kbId, () => clearTurns())
         :icon="Promotion"
         :loading="asking"
         :disabled="!question.trim()"
+        aria-label="提问"
         class="!absolute !right-[30px] !bottom-[26px]"
         @click="submit()"
       />
