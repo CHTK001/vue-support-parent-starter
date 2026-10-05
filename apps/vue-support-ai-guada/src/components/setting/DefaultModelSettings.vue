@@ -238,7 +238,8 @@ const modelFields = (group) =>
  * 那会走「模型选择器」那一支（只读输入框 + 弹模型对话框），语义完全不同。</p>
  */
 const isPlainVisibleField = (group, field) =>
-    group === 'generate' && String(field || '').startsWith('media_')
+    group === 'generate'
+    && (String(field || '').startsWith('media_') || String(field || '') === 'task_timeout_minutes')
 
 /** 始终显示且不是选模型的字段 */
 const plainVisibleFields = (group) =>
@@ -433,6 +434,7 @@ const getFieldLabel = (item) => {
             'video_model': '文生视频模型',
             'media_base_path': '生成文件根目录',
             'media_upload_dir': '上传目录名',
+            'task_timeout_minutes': '生成任务超时时间',
             'classify_threshold': '分类阈值',
             'detect_threshold': '检测阈值',
             'temperature': '温度',
@@ -617,10 +619,16 @@ const getFieldValue = (group, field) => {
 // 否则用户会以为这是自己设的默认模型。
 const modelFieldDisplay = (group, field) => {
     const value = getFieldValue(group, field)
+    const meta = fieldMeta[group]?.[field]
     if (!value) {
         return '请选择模型'
     }
-    const meta = fieldMeta[group]?.[field]
+    // 系统内置默认值必须显式说明，否则用户会以为这是自己或管理员配的。
+    // 实测 2026-09-30 那批一次性种子（onnx / bge-large-zh-embedding / 1024 等）
+    // 从来没人配置过，界面上却显示「继承全局：onnx」，看着像已配置。
+    if (meta && meta.origin === 'SYSTEM_DEFAULT') {
+        return `系统默认：${value}（未配置）`
+    }
     return meta && meta.overridden === false ? `继承全局：${value}` : value
 }
 
@@ -833,6 +841,9 @@ const loadGroupValues = async (group) => {
                 meta[item.field] = {
                     overridden: item.overridden === true,
                     defaultValue: item.defaultValue ?? '',
+                    // 值来源：USER=我的覆盖 / GLOBAL=管理员配过的全局值 /
+                    // SYSTEM_DEFAULT=系统内置默认值（从未有人配置过）。
+                    origin: item.origin || (item.overridden === true ? 'USER' : 'GLOBAL'),
                 }
             })
         } else {
