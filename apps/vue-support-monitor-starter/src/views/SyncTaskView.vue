@@ -401,7 +401,7 @@
               <el-select v-model="item.target" placeholder="目标列" filterable class="st-map-col">
                 <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
               </el-select>
-              <ReButton type="danger" @click="form.mapping.splice(index, 1)">
+              <ReButton type="danger" circle title="删除" @click="form.mapping.splice(index, 1)">
                 <template #icon><ReIcon name="Delete" /></template>
               </ReButton>
             </div>
