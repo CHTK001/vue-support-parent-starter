@@ -14,6 +14,8 @@
       stripe
       style="width: 100%"
       @refresh="loadConfigs"
+      @search="commitSearch"
+      @search-reset="resetSearch"
     >
       <template #toolbar>
         <ReButton type="primary" icon="Plus" @click="showAddDialog">添加模块</ReButton>
@@ -124,7 +126,40 @@ const configs = ref<FunConfig[]>([]);
 const loading = ref(false);
 
 /** 模块清单是一次性拉回的全量数据，检索只在本地做，不产生请求 */
-const searchModel = ref<Record<string, unknown>>({ moduleName: "", moduleCode: "", funConfigGradeLevel: null, enabled: null });
+const searchModel = ref<Record<string, unknown>>(blankSearchModel());
+
+/**
+ * 空检索条件。
+ *
+ * <p>抽成函数是因为「重置」要用它：ReTable 的检索按钮发 {@code search} / {@code search-reset}
+ * 两个事件，由页面自己决定行为。此前本页两个事件都没绑，{@code search} 按钮碰巧看起来有效
+ * （因为过滤是 computed，输入即生效），但「重置」点了**毫无反应** —— 可见可点的按钮
+ * 没有任何交代，属于真实缺陷（由全站点击遍历发现）。</p>
+ *
+ * @returns 全空的检索条件
+ */
+function blankSearchModel(): Record<string, unknown> {
+  return { moduleName: "", moduleCode: "", funConfigGradeLevel: null, enabled: null };
+}
+
+/**
+ * 检索按钮（本地过滤，输入即生效，这里显式承接事件）。
+ *
+ * <p>本页数据是一次性拉全量再本地过滤，所以按约定不需要发请求；
+ * 写成显式函数而不是留空，是为了让「这个按钮为什么没有请求」在代码里有交代。</p>
+ */
+function commitSearch(): void {
+  // no-op on purpose: filtering is live via the `filtered` computed
+}
+
+/**
+ * 重置检索：清空条件，列表随之恢复全量。
+ *
+ * <p>之前没有这个处理，ReTable 发出的 {@code search-reset} 无人接收。</p>
+ */
+function resetSearch(): void {
+  searchModel.value = blankSearchModel();
+}
 
 const searchConfig: ReTableSearchConfig = {
   title: "模块检索",
