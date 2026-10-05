@@ -190,10 +190,58 @@ onMounted(() => {
   font-size: 14px;
   color: var(--el-color-success);
 }
+/*
+ * 操作区按钮。这三个原来是 el-button link，element-plus 的 link 型默认
+ * 高 20px —— 低于 WCAG 2.2 的 2.5.8 Target Size (Minimum, AA) 24x24 硬底线，
+ * 全站扫描判 FAIL。
+ *
+ * 判据边界（不要照抄到别处）：
+ *   - 同页的 el-tag 也是 20px，但 tag 不是可点目标，2.5.8 不适用，不动。
+ *   - 这里不用 link 型了：错题本是学生端纯卡片页，手机上按的频次最高，
+ *     给成实心小药丸（和「我的答题」的 .mr-card__go 同一套 token）。
+ * 移动指针粗设备给 44x44（AAA），鼠标设备 40px 视觉更平衡 —— AA 的 24px
+ * 底线两种情况都过。
+ */
 .wb-card__act {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 14px;
+}
+.wb-card__act :deep(.el-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--el-radius-full, 9999px);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.wb-card__act :deep(.el-button:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgb(0 0 0 / 8%);
+}
+.wb-card__act :deep(.el-button:focus-visible) {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+/* 触摸设备补到 AAA 的 44px */
+@media (pointer: coarse) {
+  .wb-card__act :deep(.el-button) {
+    min-height: 44px;
+    padding: 0 18px;
+  }
+}
+/* 窄屏按钮铺开，别三个挤在 390px 里 */
+@media (max-width: 480px) {
+  .wb-card {
+    padding: 14px 13px;
+  }
+  .wb-card__act :deep(.el-button) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }
 </style>

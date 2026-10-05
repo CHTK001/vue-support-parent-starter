@@ -229,4 +229,65 @@ onMounted(() => {
   color: var(--el-text-color-regular);
   white-space: pre-wrap;
 }
+
+/*
+ * 窄屏。这页原来一条 @media 都没有，卡片是 flex row：
+ * 卷名/信息在左、按钮在右，390px 下左边被挤到只剩按钮那么宽，
+ * 卷名和 chip 全被压成竖排一两个字 —— 就是用户投诉的「风格与响应式不统一」。
+ *
+ * 收口方式：720px 以下整张卡改竖排（按钮独占一行通栏），480px 以下
+ * 收紧内边距，题目分值不再用 margin-left:auto 顶到最右（竖排下会贴错边）。
+ */
+@media (max-width: 720px) {
+  .sp {
+    padding: 4px 0 12px;
+  }
+  .sp-title {
+    font-size: 18px;
+  }
+  .sp-card {
+    /* 竖排后 align-items:center 会让主区被压扁，改顶端对齐 */
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 13px 14px;
+  }
+  .sp-card__ops {
+    /* 通栏按钮，44px 触摸高度 */
+    display: flex;
+  }
+  .sp-card__ops :deep(.el-button) {
+    flex: 1 1 auto;
+    min-height: 44px;
+    margin-left: 0;
+  }
+  .sp-q__options {
+    margin-left: 0;
+  }
+}
+@media (max-width: 480px) {
+  .sp-card {
+    padding: 12px 12px;
+  }
+  .sp-chip {
+    font-size: 11px;
+  }
+  .sp-q__stem {
+    /* 题号 + 题干 + 分值 三个盒子在 390px 下必然打架，分值换行独占 */
+    flex-wrap: wrap;
+  }
+  .sp-q__score {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+/* 矮屏（1280x620 笔记本、平板横屏）：列表别把一屏撑破 */
+@media (max-height: 700px) {
+  .sp {
+    padding-bottom: 8px;
+  }
+  .sp-head {
+    margin-bottom: 10px;
+  }
+}
 </style>
