@@ -1,29 +1,97 @@
+import type { PluginOption } from "vite";
+
 import { createVite } from "../../turbo/vite/createVite.ts";
 
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
 // 与 vue-support-ai-guada / vue-support-system-starter 同一口径
 // （见 a2b20b189「前端代理默认指向远端后端」）。
 //
-// 为什么这件事值得单独说明：缺省目标指向一个**没人监听的本机端口**时，dev 代理返回的是
-//   {"code":"00000","data":[],"success":true}
-// 也就是**合法 JSON 但数据为空**。它不像连不上那样报错，表现是「服务管理列表 0 个服务」，
-// 排查方向会整个跑偏到「数据丢了 / 查询写错了 / 后台没起节点」，而真实原因只是代理指错机器。
-// 这类静默错误比直接报错更贵，本轮已实测踩过一次。
+// 为什么这件事值得单独说明（**两种静默错法，第二种更贵**）：
 //
-// 端口：8112 是 monitor 后台实际监听的端口；29612 是它的 socket.io 推送端口
-// （与 project-start.sh 的 --plugin.socket.room[0].port=29612 一致）。
+// 1) 缺省目标指向一个**没人监听的本机端口**时，dev 代理返回的是
+//      {"code":"00000","data":[],"success":true}
+//    也就是**合法 JSON 但数据为空**。它不像连不上那样报错，表现是
+//    「服务管理列表 0 个服务」，排查方向会整个跑偏到「数据丢了 / 查询写错了 /
+//    后台没起节点」，而真实原因只是代理指错机器。
+//
+// 2) 更坑的一种：目标端口**有另一个实例在监听，而且它也一切正常**。
+//    实测 2026-10-05，198 上 8081 与 8112 同时在跑**同一个 jar**
+//    （spring-support-monitor-starter-4.0.0.42-exec.jar，两个会话各部署一份）：
+//      8081  pid=556813  --server.port=8081
+//      8112  pid=406188  --server.port=8112
+//    两者都返回 200 + 合法 JSON + 真实数据。此时**页面能开、数据能看、
+//    点什么都"正常"**，但你验收的是另一个实例的代码 —— 而且不会报任何错。
+//
+//    端口本身没有「正确答案」，只有「你验的是哪一个」。所以下面的缺省值
+//    只是**本仓库交付那一份**的地址（8081），不是「正确端口」。
+//    验别的实例时**务必显式覆盖**，别依赖缺省：
+//      MS_API_TARGET=http://192.168.50.198:8112 pnpm dev
+//
+// 端口：29612 是 socket.io 推送端口（与 --plugin.socket.room[0].port=29612 一致）。
 // 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
-// 需要指向其他实例时用环境变量覆盖：
-//   MS_API_TARGET=http://127.0.0.1:8082 pnpm dev
-const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8112";
+const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8081";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:29612";
 
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
 const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
 
+/**
+ * 启动自检：把「代理指错后端」从静默变成可见。
+ *
+ * <p>为什么必须要有这个：dev 代理指错机器时**不一定报错**。目标端口没监听时
+ * 返回「合法 JSON 但数据为空」；目标端口有**另一个实例**在跑时（198 上 8081 与
+ * 8112 同时跑同款 jar 就是这样）返回的是**完全正常的 200 + 真实数据** ——
+ * 页面能开、点什么都"正常"，但你测的是别人的代码。没有一条报错能提醒你。</p>
+ *
+ * <p>所以启动时主动打一行目标、再探一次真实接口，把「连不上」「通了但不是它」
+ * 分开报出来。探不通只警告不阻断：共享环境里后端可能稍后才起，
+ * 不该因为一次探测失败就让人起不来前端。</p>
+ */
+const apiTargetSelfCheck = (): PluginOption => ({
+  name: "ms-api-target-self-check",
+  apply: "serve",
+  async configureServer() {
+    // 显式设了 MS_API_TARGET 的人本来就知道自己指向哪，不该被啰嗦；
+    // 需要提醒的恰恰是「没设、默默用了默认值」这种情况。
+    const explicit = Boolean(process.env.MS_API_TARGET);
+    const url = `${apiTarget}/ms/datasource/list`;
+    const tag = explicit ? "[api-target]" : "[api-target][默认]";
+    // eslint-disable-next-line no-console
+    console.log(`\n${tag} dev 代理指向 ${apiTarget}${explicit ? "（来自 MS_API_TARGET）" : "（默认值，未设 MS_API_TARGET）"}`);
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) {
+        console.warn(`${tag} !! 探测 ${url} 返回 HTTP ${res.status} —— 代理可能指错实例`);
+        return;
+      }
+      const body = await res.json() as { data?: unknown };
+      const n = Array.isArray(body?.data) ? body.data.length : -1;
+      if (explicit) {
+        // eslint-disable-next-line no-console
+        console.log(`${tag} 探测通了，返回 ${n} 条数据源`);
+        return;
+      }
+      console.warn(
+        `${tag} !! 探测通了，返回 ${n} 条数据源 —— 请确认这是**你要验收的那个实例**。`
+        + "共享环境 198 上有**两个会话各自部署的同一个应用**（同款 jar）："
+        + "8081 与 8112 都在监听、都返回 200 + 正常数据，"
+        + "所以代理指错了**不会报任何错**，页面能开、点什么都「正常」，"
+        + "但你测的是另一个实例的代码。验别的实例请显式指定："
+        + "MS_API_TARGET=http://host:port pnpm dev",
+      );
+    } catch (e) {
+      console.warn(`${tag} !! 探测 ${url} 失败：${String((e as Error)?.message ?? e)} —— 后端未起或端口不通`);
+    }
+  },
+});
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
+  plugins: [apiTargetSelfCheck()],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。
   // 注意：业务代码以 "@pages/server/src/api" 形式引用，alias 目标应指向页面根（pages/server），
