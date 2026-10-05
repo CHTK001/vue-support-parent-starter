@@ -399,8 +399,19 @@ const isPromptField = (field) => {
     return field === 'system_prompt' || field.toLowerCase().endsWith('system_prompt')
 }
 
+/**
+ * 引擎/服务商类字段：不属于「选模型」，界面上不再让用户挑。
+ *
+ * <p>引擎是实现细节，由所选模型决定：命中本地模型库 → onnx，否则按供应商 platform
+ * 判定是否注册了 EmbeddingClient SPI。让用户选引擎既没意义也容易配错——实测种子把
+ * {@code rag_embedding_model} 写成 {@code onnx}，界面显示成「已配置」，但从没有人配置过。
+ * 后端已不再读取该字段，这里同步隐藏，避免旧库残留行继续以设置项形态出现。</p>
+ */
+const ENGINE_FIELDS = ['rag_embedding_model']
+
 // 获取字段中文标签
-const getFieldLabel = (item) => {
+
+// 判断字段中文标签
     // 从描述中提取中文名称
     if (item.description) {
         // 取描述的前几个字作为标签
@@ -571,6 +582,10 @@ const shouldShowField = (group, field) => {
         const hiddenFields = ['provider', 'provider_api_key', 'provider_app_key',
                               'provider_app_secret', 'provider_base_url']
         return !hiddenFields.includes(field)
+    }
+    // 引擎类字段一律不显示（由所选模型推导）
+    if (ENGINE_FIELDS.includes(field)) {
+        return false
     }
     return true
 }
