@@ -49,6 +49,13 @@ import {
   type DataSourceInfo,
   type DataSourceTestResult,
 } from "../api";
+import {
+  deleteJdbcDriverJar,
+  fetchJdbcDriverJars,
+  uploadJdbcDriverJar,
+} from "../api";
+import type { JdbcDriverJar } from "../api";
+
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { ReTabItem } from "@repo/ui/re-tab";
 // 状态口径与左栏筛选抽成纯函数模块：原先内联在本文件里，「异常」档没有判定分支
@@ -103,6 +110,68 @@ const dialogVisible = ref(false);
 const editing = ref<DataSourceInfo | null>(null);
 const form = ref<Partial<DataSourceInfo>>({});
 const saving = ref(false);
+
+/** JDBC 驱动 jar 库（后端管理的目录，本页只上传与选用） */
+const driverJars = ref<JdbcDriverJar[]>([]);
+/** 隐藏的文件选择 input 的 ref */
+const driverJarInput = ref<HTMLInputElement | null>(null);
+/** 正在上传的 jar 文件名，用于按钮上的等待态 */
+const driverJarUploading = ref(false);
+
+/** 驱动 jar 下拉项：显示「文件名 + 驱动类」，两者都要能看到 */
+const driverJarOptions = computed(() =>
+  driverJars.value.map((jar) => ({
+    label: `${jar.jarName} · ${jar.driverClassName}`,
+    value: jar.id,
+  })),
+);
+
+/**
+ * 拉取驱动 jar 列表。
+ *
+ * <p>失败只提示不打断表单：驱动 jar 是可选增强，拉不到列表不该让人连普通
+ * MySQL 数据源都保存不了。</p>
+ */
+const loadDriverJars = async () => {
+  try {
+    driverJars.value = await fetchJdbcDriverJars();
+  } catch (error) {
+    ElMessage.warning(`读取驱动 jar 列表失败: ${String((error as Error)?.message ?? error)}`);
+  }
+};
+
+/**
+ * 选了 jar 文件就上传，并自动选中它、把它登记的驱动类名填进表单。
+ *
+ * <p>自动填驱动类名是因为上传时后端已经校验过这个类能加载，
+ * 让用户再手输一遍同一个字符串只会引入不一致。</p>
+ *
+ * @param event 文件选择事件
+ */
+const onPickDriverJar = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  // 允许重复上传同一个文件
+  input.value = "";
+  if (!file) return;
+  const driverClass = (form.value.driverClassName ?? "").trim();
+  if (!driverClass) {
+    ElMessage.warning("先填驱动类名，再上传 jar（后端要当场验证这个类能不能加载）");
+    return;
+  }
+  driverJarUploading.value = true;
+  try {
+    const saved = await uploadJdbcDriverJar(file, driverClass, file.name);
+    await loadDriverJars();
+    form.value.driverJarId = saved.id;
+    form.value.driverClassName = saved.driverClassName;
+    ElMessage.success(`已上传并选中驱动 ${saved.jarName}`);
+  } catch (error) {
+    ElMessage.error(`上传驱动 jar 失败: ${String((error as Error)?.message ?? error)}`);
+  } finally {
+    driverJarUploading.value = false;
+  }
+};
 
 // 测试连接
 const testing = ref<number | null>(null);
@@ -169,6 +238,9 @@ const openCreate = () => {
 const openEdit = (item: DataSourceInfo) => {
   editing.value = item;
   form.value = { ...item };
+  // 编辑既有数据源时也要能选 jar：老数据源没有这个字段，
+  // 但用户可能正想给它换一个上传的驱动
+  void loadDriverJars();
   dialogVisible.value = true;
 };
 
@@ -819,6 +891,31 @@ onMounted(load);
               :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号'"
             />
           </ReFormItem>
+          <!-- JDBC 驱动：本机不可能备齐所有数据库的驱动包（ojdbc / mssql-jdbc /
+               各类国产库驱动体积都在数 MB、许可各异），所以允许按数据源上传 jar。
+               上传时后端会**当场加载一次驱动类**，失败就连文件带台账一起回滚，
+               不会留下「传上去了、一连就报 ClassNotFound」的半成品。 -->
+          <template v-if="form.type === 'jdbc'">
+            <ReFormItem label="驱动类名" class="is-full">
+              <ReInput v-model="form.driverClassName" placeholder="org.h2.Driver（留空则用所选 jar 上登记的类名）" />
+            </ReFormItem>
+            <ReFormItem label="驱动 jar" class="is-full">
+              <div class="ds-driver-jar">
+                <ReSelect
+                  v-model="form.driverJarId"
+                  :options="driverJarOptions"
+                  placeholder="用内置驱动（应用 classpath 上的）"
+                  clearable
+                  class="ds-driver-jar-select"
+                />
+                <input ref="driverJarInput" class="ds-driver-jar-file" type="file" accept=".jar" @change="onPickDriverJar" />
+                <ReButton size="small" @click="driverJarInput?.click()">上传 jar</ReButton>
+              </div>
+              <div class="ds-form-hint">
+                文件库（H2 / SQLite）也要在这里选驱动：它们不在应用 classpath 上。
+              </div>
+            </ReFormItem>
+          </template>
           <!-- 进程控制方式：只对 nginx 有意义。
                留空 = 自动探测（后端认得出托管单元且当前用户有免密 systemctl 权限才走 systemd），
                这是本字段引入前的行为，老数据源保持留空即可保持不变。 -->
@@ -1472,5 +1569,23 @@ onMounted(load);
 
 .ds-status__item:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+/* ---------------- JDBC 驱动 jar 上传 ---------------- */
+.ds-driver-jar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.ds-driver-jar-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 文件 input 只作为「点击上传」的触发点，不直接暴露给用户：
+   各浏览器的 file input 很难一致地藏起来，而它又是唯一可靠的取文件方式 */
+.ds-driver-jar-file {
+  display: none;
 }
 </style>

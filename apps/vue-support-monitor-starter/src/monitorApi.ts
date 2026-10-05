@@ -974,6 +974,46 @@ export const fetchErDiagram = (tables?: string, datasourceId?: number, database?
     .query({ datasourceId, database, tables })
     .then(r => unwrap<DbErDiagram>(r));
 
+/** 结构对比的一条差异 */
+export interface DbStructureDiffItem {
+  /** MISSING_TABLE / MISSING_COLUMN / COLUMN_MISMATCH / MISSING_INDEX /
+   *  INDEX_MISMATCH / MISSING_FOREIGN_KEY / EXTRA_TABLE / EXTRA_COLUMN */
+  kind: string;
+  table: string;
+  object: string;
+  detail: string;
+  action: string;
+  /** 生成给用户看的 DDL；只提示类的（EXTRA_*）为空 */
+  ddl: string;
+}
+
+/** 结构对比请求 */
+export interface DbStructureDiffPayload {
+  sourceDatasourceId?: number;
+  sourceDatabase?: string;
+  targetDatasourceId?: number;
+  targetDatabase?: string;
+  /** 表名过滤（LIKE，可为空表示全部） */
+  tables?: string;
+}
+
+/**
+ * 比较两个库的结构，返回差异清单（源 → 目标，单向）。
+ *
+ * <p>只生成脚本、不代执行：清单里含 `DROP INDEX` / `MODIFY COLUMN`
+ * 这类不可逆语句，是否执行由用户看过脚本后决定。</p>
+ *
+ * @param payload 源/目标数据源与库
+ * @returns 差异清单
+ */
+export const compareDbStructure = (payload: DbStructureDiffPayload) =>
+  http()
+    .post("/ms/monitor/db/structure-diff")
+    .noToast(true)
+    // .data() 的入参是 RequestBody（索引签名约束），具体类型由调用点保证
+    .data({ ...payload })
+    .then(r => unwrap<DbStructureDiffItem[]>(r));
+
 /**
  * 删除表
  * @param tableName 表名

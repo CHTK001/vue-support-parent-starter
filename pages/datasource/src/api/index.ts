@@ -104,6 +104,13 @@ export interface DataSourceInfo {
   /** JDBC 驱动类名 */
   driverClassName?: string | null;
   /**
+   * 引用的驱动 jar（`ms_jdbc_driver_jar.id`）；空表示用应用 classpath 上的内置驱动。
+   *
+   * <p>本机不可能备齐所有数据库的驱动 jar（ojdbc、mssql-jdbc 与各类国产库驱动
+   * 体积都在数 MB、许可各异），所以允许按数据源上传驱动。</p>
+   */
+  driverJarId?: number | null;
+  /**
    * 扩展配置（JSON）。
    *
    * <p>InfluxDB / Neo4j / Nacos / ZooKeeper 这类中间件数据源，其 organization、
@@ -521,4 +528,74 @@ export function resolveFieldMapping(
     table,
     fields,
   });
+}
+
+/* ==================== JDBC 驱动 jar（需求：本机不可能备齐全部驱动包） ==================== */
+
+/**
+ * JDBC 驱动 jar 视图。
+ *
+ * <p>驱动 jar 落在后端管理的目录里，前端只拿元信息；{@code storedName} 是
+ * 后端落盘后的文件名（含内容指纹），{@code jarSha256} 用来在出问题时确认
+ * 「线上跑的到底是哪一个 jar」。</p>
+ */
+export interface JdbcDriverJar {
+  /** 驱动 jar ID */
+  id: number;
+  /** 上传时的原始文件名 */
+  jarName: string;
+  /** 落盘文件名 */
+  storedName: string;
+  /** 驱动类全名，如 org.h2.Driver */
+  driverClassName: string;
+  /** 字节数 */
+  jarSize?: number | null;
+  /** 内容 sha256 */
+  jarSha256?: string | null;
+  /** 备注 */
+  remark?: string | null;
+  /** 上传时间 */
+  createTime?: string | null;
+}
+
+/**
+ * 列出已上传的 JDBC 驱动 jar。
+ *
+ * @returns 驱动 jar 列表
+ */
+export function fetchJdbcDriverJars(): Promise<JdbcDriverJar[]> {
+  return get<JdbcDriverJar[]>(`${hubBase}/jdbc-driver`);
+}
+
+/**
+ * 上传 JDBC 驱动 jar。
+ *
+ * <p>后端在上传的当下就会尝试加载一次驱动类，失败会连文件带台账一起回滚，
+ * 所以这里拿到成功响应就等于「这个 jar 确实能用」。</p>
+ *
+ * @param file            jar 文件
+ * @param driverClassName 驱动类全名
+ * @param remark          备注
+ * @returns 落库后的驱动 jar
+ */
+export function uploadJdbcDriverJar(
+  file: File,
+  driverClassName: string,
+  remark?: string,
+): Promise<JdbcDriverJar> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("driverClassName", driverClassName);
+  if (remark) form.append("remark", remark);
+  return post<JdbcDriverJar>(`${hubBase}/jdbc-driver`, form);
+}
+
+/**
+ * 删除 JDBC 驱动 jar（仍被数据源引用时后端会拒绝）。
+ *
+ * @param id 驱动 jar ID
+ * @returns 是否删除成功
+ */
+export function deleteJdbcDriverJar(id: number): Promise<boolean> {
+  return del<boolean>(`${hubBase}/jdbc-driver/${id}`);
 }

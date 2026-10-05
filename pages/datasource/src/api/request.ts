@@ -174,8 +174,16 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
     (init.headers as Record<string, string>).Authorization = `Bearer ${token}`;
   }
   if (body !== undefined) {
-    (init.headers as Record<string, string>)["Content-Type"] = "application/json;charset=UTF-8";
-    init.body = JSON.stringify(body);
+    // FormData 必须**原样交给 fetch**：由浏览器自己生成 multipart/form-data
+    // 与 boundary。手动设 Content-Type 会把 boundary 抹掉，后端解不出文件；
+    // 再叠一层 JSON.stringify 则整个请求体变成一段字符串，症状是「上传接口
+    // 报参数缺失」而不是「文件格式不对」，极难往这个方向猜。
+    if (typeof FormData !== "undefined" && body instanceof FormData) {
+      init.body = body;
+    } else {
+      (init.headers as Record<string, string>)["Content-Type"] = "application/json;charset=UTF-8";
+      init.body = JSON.stringify(body);
+    }
   }
 
   const controller = new AbortController();
