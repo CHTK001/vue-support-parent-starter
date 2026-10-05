@@ -457,8 +457,25 @@ const awaitingFit = () => {
     return;
   }
   window.setTimeout(() => {
-    graph.fitView?.(undefined as any, false as any)?.catch?.(() => {});
-    pinFixedNodes();
+    // 这个闭包捕获的是 400ms **之前**的 graph 实例。
+    // 若期间发生了 rebuild()（小地图这类「只能重建生效」的变更）或组件卸载，
+    // 该实例已被 destroy()；此时再调 fitView，G6 会去摸已拆掉的内部控制器，
+    // 抛 "Cannot read properties of undefined (reading 'getData')"。
+    // 那是**未捕获**的异步异常，会直接冒泡成页面级 PAGEERROR，
+    // 在低负载下不出现、批量跑时才偶发（切换时机正好落进这 400ms 窗口）。
+    // 只有「捕获的实例仍是当前实例」时才动手。
+    // 顺带说明：同一个闭包里 pinFixedNodes() 读的是实时 graphRef，
+    // 两者不一致正是这个 bug 的破绽。
+    if (graphRef.value !== graph) {
+      log("awaitingFit 跳过：graph 实例已被替换或已卸载");
+      return;
+    }
+    try {
+      graph.fitView?.(undefined as any, false as any)?.catch?.(() => {});
+      pinFixedNodes();
+    } catch (e) {
+      log("awaitingFit 失败", e);
+    }
   }, 400);
 };
 
@@ -766,6 +783,14 @@ const toggleMinimap = async (on: boolean) => {
   if (!graph) {
     return;
   }
+  // setPlugins 会让 G6 走 setExtensions → arrayDiff → destroyExtensions(exit)，
+  // 也就是**内部**把旧插件实例 destroy() 掉（插件基类会把 context 清成 {}）。
+  // 那条路径不经过我们的 safeDestroy，所以这里必须自己先把挂起的
+  // debounce 尾随调用取消掉，否则小地图那一帧会在 context 已被清空后执行 ->
+  // "Cannot read properties of undefined (reading 'getData')"（未捕获异常）。
+  for (const plugin of collectPluginInstances(graph)) {
+    cancelPluginPending(plugin);
+  }
   graph.setPlugins(buildPluginsFor(on));
 };
 
@@ -779,6 +804,128 @@ const buildPluginsFor = (withMinimap: boolean) => {
 };
 
 /**
+ * 安全销毁 G6 实例。
+ *
+ * <p><b>为什么不能直接 {@code graph.destroy()}</b>：{@code @antv/g6@5.1.1} 的
+ * {@code Minimap} 用 debounce 把自己挂在 {@code AFTER_RENDER}/{@code AFTER_ANIMATE} 上：</p>
+ *
+ * <pre>{@code
+ * this.onRender = debounce(() => { this.renderMinimap(); this.renderMask(); }, delay);
+ * graph.on(GraphEvent.AFTER_ANIMATE, this.onRender);
+ * }</pre>
+ *
+ * <p>而它的 {@code destroy()} 只做了 {@code unbindEvents()}（拦住**后续**事件），
+ * <b>从不取消已经排好的 debounce 尾随调用</b>。力导布局 + {@code animation:true}
+ * 是异步的，所以完全可能：动画结束排下尾随调用 → 组件卸载把 graph 销毁
+ * （{@code super.destroy()} 已把 {@code context.model} 置空）→ 定时器才到点执行
+ * {@code renderMinimap()} → {@code getElements()} 里 {@code model.getData()}
+ * 抛 {@code "Cannot read properties of undefined (reading 'getData')"}。</p>
+ *
+ * <p>那是**未捕获**的异步异常，会直接冒泡成页面级 PAGEERROR。
+ * 低负载下偶发、负载高时更容易撞上（ER 图批量验收里 6 次里能碰 1~2 次）。</p>
+ *
+ * <p>所以销毁前先把插件身上挂起的 debounce/throttle 定时器取消掉：
+ * lodash 的 debounce/throttle 都带 {@code .cancel()}。
+ * 这里是「拆除」，没必要把尾随那一帧补渲染出来（画在一个正在消失的 DOM 上也没意义）。</p>
+ *
+ * @param graph 待销毁的实例，可为空
+ */
+/**
+ * 取出图上**插件实例**列表。
+ *
+ * <p><b>坑：{@code graph.getPlugins()} 返回的是配置数组，不是实例。</b>
+ * G6 源码里就是 {@code return this.options.plugins || []} ——
+ * 拿到的�� {@code [{ type: 'minimap', size: [200, 128], ... }]} 这种纯配置对象，
+ * 上面当然没有 debounce 函数的 {@code .cancel}。
+ * 本组件第一版 {@code safeDestroy} 就栽在这里：遍历了一堆配置对象、
+ * 一个 cancel 都没找到、**静默什么都没做**，于是「已修复」的假象一直持续到
+ * 压测仍然偶发才暴露出来。</p>
+ *
+ * <p>真正的实例在 {@code graph.context.plugin.extensionMap} 里，
+ * 官方也提供了 {@code graph.getPluginInstance(key)}。两条路都留着，
+ * 前者优先（一次拿全），后者兜底。</p>
+ *
+ * @param graph G6 实例
+ * @return 插件实例数组（取不到时为空数组）
+ */
+const collectPluginInstances = (graph: any): any[] => {
+  const out: any[] = [];
+  const map = graph?.context?.plugin?.extensionMap;
+  if (map && typeof map === "object") {
+    for (const k of Object.keys(map)) {
+      if (map[k]) {
+        out.push(map[k]);
+      }
+    }
+    return out;
+  }
+  for (const cfg of graph?.getPlugins?.() ?? []) {
+    const inst = graph?.getPluginInstance?.(cfg?.key ?? cfg?.type);
+    if (inst) {
+      out.push(inst);
+    }
+  }
+  return out;
+};
+
+/** 取消插件身上所有挂起的 debounce/throttle 定时器 */
+const cancelPluginPending = (plugin: any) => {
+  for (const key of Object.keys(plugin ?? {})) {
+    const fn = plugin?.[key];
+    // lodash debounce/throttle 才有 cancel；普通方法没有，正好天然跳过
+    if (typeof fn?.cancel === "function") {
+      fn.cancel();
+    }
+  }
+};
+
+/**
+ * 安全销毁 G6 实例。
+ *
+ * <p><b>为什么不能直接 {@code graph.destroy()}</b>：{@code @antv/g6@5.1.1} 的
+ * {@code Minimap} 用 debounce 把自己挂在 {@code AFTER_RENDER}/{@code AFTER_ANIMATE} 上：</p>
+ *
+ * <pre>{@code
+ * this.onRender = debounce(() => { this.renderMinimap(); this.renderMask(); }, delay);
+ * graph.on(GraphEvent.AFTER_ANIMATE, this.onRender);
+ * }</pre>
+ *
+ * <p>而它的 {@code destroy()} 只做了 {@code unbindEvents()}（拦住**后续**事件），
+ * <b>从不取消已经排好的 debounce 尾随调用</b>。力导布局 + {@code animation:true}
+ * 是异步的，所以完全可能：动画结束排下尾随调用 → 图被销毁
+ * （插件基类 {@code destroy()} 里 {@code this.context = {}}，{@code model} 变 undefined）
+ * → 定时器才到点执行 {@code renderMinimap()} → {@code getElements()} 里
+ * {@code model.getData()} 抛
+ * {@code "Cannot read properties of undefined (reading 'getData')"}。</p>
+ *
+ * <p>那是**未捕获**的异步异常，会直接冒泡成页面级 PAGEERROR。
+ * 低负载下偶发、负载高时更容易撞上（实测 8 次里能碰 1 次）。</p>
+ *
+ * <p>所以销毁前先取消插件挂起的定时器：lodash 的 debounce/throttle 都带
+ * {@code .cancel()}。这里是「拆除」，没必要把尾随那一帧补渲染出来
+ * （画在一个正在消失的 DOM 上也没意义）。</p>
+ *
+ * @param graph 待销毁的实例，可为空
+ */
+const safeDestroy = (graph: any) => {
+  if (!graph) {
+    return;
+  }
+  try {
+    for (const plugin of collectPluginInstances(graph)) {
+      cancelPluginPending(plugin);
+    }
+  } catch (e) {
+    log("取消插件挂起任务失败", e);
+  }
+  try {
+    graph.destroy?.();
+  } catch (e) {
+    log("destroy 失败", e);
+  }
+};
+
+/**
  * 重建图实例（小地图这类「只能在创建时生效」的配置变更走这里）。
  */
 const rebuild = async () => {
@@ -786,11 +933,7 @@ const rebuild = async () => {
   graphRef.value = null;
   ready.value = false;
   appliedKey = "";
-  try {
-    old?.destroy?.();
-  } catch (e) {
-    log("destroy 失败", e);
-  }
+  safeDestroy(old);
   await nextTick();
   await initGraph();
 };
@@ -836,11 +979,9 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  try {
-    graphRef.value?.destroy?.();
-  } catch (e) {
-    log("destroy error", e);
-  }
+  // 走 safeDestroy：直接 destroy() 会漏掉插件挂起的 debounce 尾随调用，
+  // 那会在 context 已被拆掉之后炸出未捕获异常（详见 safeDestroy 的注释）。
+  safeDestroy(graphRef.value);
   graphRef.value = null;
 });
 </script>

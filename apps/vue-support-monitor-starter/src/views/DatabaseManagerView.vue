@@ -805,6 +805,9 @@
           <div class="dbm-context-item" @click="openErDiagram(contextMenu.database)">
             <ReIcon name="Share" :size="14" />ER 图（表关系）
           </div>
+          <div class="dbm-context-item" @click="openStructureSync(contextMenu.database)">
+            <ReIcon name="Sort" :size="14" />结构同步（与目标库比较）
+          </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
           </div>
@@ -839,6 +842,78 @@
         </template>
       </div>
     </Teleport>
+
+    <!-- 结构同步（比较两个库并生成同步脚本） -->
+    <ReDialog v-model="syncVisible" title="结构同步" width="900px">
+      <div class="dbm-sync">
+        <div class="dbm-sync-bar">
+          <span class="dbm-sync-side">
+            源库
+            <ReSelect v-model="syncSourceDb" placeholder="源库" class="dbm-sync-select">
+              <ReOption v-for="db in databases" :key="'s' + db" :label="db" :value="db" />
+            </ReSelect>
+          </span>
+          <ReIcon name="Right" :size="16" />
+          <span class="dbm-sync-side">
+            目标库
+            <ReSelect v-model="syncTargetDb" placeholder="目标库" class="dbm-sync-select">
+              <ReOption v-for="db in databases" :key="'t' + db" :label="db" :value="db" />
+            </ReSelect>
+          </span>
+          <ReInput
+            v-model="syncTableFilter"
+            class="dbm-mono dbm-sync-filter"
+            placeholder="只比较匹配的表（支持 % 与 _，留空为全部）"
+            clearable
+          />
+          <ReButton layout="square" type="primary" icon="Search" tip="比较" :loading="syncLoading" @click="runStructureDiff" />
+        </div>
+        <ReEmpty
+          v-if="!syncLoading && !syncDiffError && !syncRan"
+          description="选好源库与目标库后点「比较」"
+        />
+        <ReEmpty
+          v-else-if="syncDiffError"
+          :description="syncDiffError"
+        />
+        <ReEmpty
+          v-else-if="syncItems.length === 0"
+          description="两个库的结构已经一致，没有需要同步的差异"
+        />
+        <div v-else class="dbm-sync-body">
+          <div class="dbm-sync-summary">
+            {{ syncItems.length }} 处差异 ·
+            {{ syncActionableCount }} 处可直接同步 ·
+            {{ syncExtraCount }} 处是目标多出来的（不会自动删除）
+          </div>
+          <div class="dbm-sync-list">
+            <div v-for="(d, i) in syncItems" :key="i" class="dbm-sync-row" :class="d.kind">
+              <span class="dbm-sync-kind">{{ SYNC_KIND_LABELS[d.kind] || d.kind }}</span>
+              <span class="dbm-sync-obj">{{ d.table }}.{{ d.object }}</span>
+              <span class="dbm-sync-detail">{{ d.detail }}</span>
+            </div>
+          </div>
+          <div v-if="syncScript" class="dbm-sync-script-wrap">
+            <div class="dbm-sync-script-head">
+              <span>生成的同步脚本（未执行）</span>
+              <span class="dbm-spacer" />
+              <ReButton layout="square" icon="DocumentCopy" tip="复制脚本" @click="copyText(syncScript)" />
+              <ReButton
+                layout="square"
+                type="primary"
+                icon="VideoPlay"
+                tip="在目标库执行这段脚本"
+                @click="runStructureScript"
+              />
+            </div>
+            <pre class="dbm-sync-script">{{ syncScript }}</pre>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="syncVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
 
     <!-- 列显示设置（Navicat 的字段显示 / 固定列） -->
     <ReDialog v-model="columnViewDialogVisible" title="列显示设置" width="440px">
@@ -1668,6 +1743,8 @@ import {
   fetchErDiagram,
   type DbErTable,
   type DbErRelation,
+  compareDbStructure,
+  type DbStructureDiffItem,
 } from "../monitorApi";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
 import {
@@ -5295,6 +5372,139 @@ function openErDiagram(database = activeDatabase.value) {
   void loadErDiagram();
 }
 
+// ---------- F3 结构同步（比较两个库并生成同步脚本） ----------
+
+/** 差异类别 → 中文 */
+const SYNC_KIND_LABELS: Record<string, string> = {
+  MISSING_TABLE: "缺表",
+  MISSING_COLUMN: "缺列",
+  COLUMN_MISMATCH: "列不一致",
+  MISSING_INDEX: "缺索引",
+  INDEX_MISMATCH: "索引不一致",
+  MISSING_FOREIGN_KEY: "缺外键",
+  EXTRA_TABLE: "目标多表",
+  EXTRA_COLUMN: "目标多列",
+};
+/** 只提示、不生成脚本的类别 */
+const SYNC_EXTRA_KINDS = new Set(["EXTRA_TABLE", "EXTRA_COLUMN"]);
+
+const syncVisible = ref(false);
+const syncLoading = ref(false);
+const syncRan = ref(false);
+const syncDiffError = ref("");
+const syncSourceDb = ref("");
+const syncTargetDb = ref("");
+const syncTableFilter = ref("");
+const syncItems = ref<DbStructureDiffItem[]>([]);
+
+/** 需要同步的差异数（排除只提示的那些） */
+const syncActionableCount = computed(
+  () => syncItems.value.filter(d => !SYNC_EXTRA_KINDS.has(d.kind)).length,
+);
+/** 目标多出来的差异数 */
+const syncExtraCount = computed(
+  () => syncItems.value.filter(d => SYNC_EXTRA_KINDS.has(d.kind)).length,
+);
+/** 生成的脚本：只拼可执行的那些 */
+const syncScript = computed(
+  () => syncItems.value.filter(d => d.ddl).map(d => d.ddl).join("\n"),
+);
+
+/**
+ * 打开结构同步弹窗。
+ *
+ * <p>默认把「当前库当源、第一个不是它的库当目标」——
+ * 用户从某个库的右键点进来时，这个方向最可能是他要的。
+ * 方向永远是用户显式选的：结构同步是单向操作，
+ * 「以谁为准」不该由实现替用户定。</p>
+ *
+ * @param database 当前库，作为源
+ */
+function openStructureSync(database = activeDatabase.value) {
+  if (!database) {
+    ElMessage.warning("请先在左侧选择一个库");
+    return;
+  }
+  syncSourceDb.value = database;
+  syncTargetDb.value = databases.value.find(db => db && db !== database) || "";
+  syncTableFilter.value = "";
+  syncItems.value = [];
+  syncDiffError.value = "";
+  syncRan.value = false;
+  syncVisible.value = true;
+}
+
+/** 比较两个库 */
+async function runStructureDiff(): Promise<void> {
+  if (!syncSourceDb.value || !syncTargetDb.value) {
+    ElMessage.warning("请同时选择源库与目标库");
+    return;
+  }
+  if (syncSourceDb.value === syncTargetDb.value) {
+    ElMessage.warning("源库与目标库相同，没有可比较的差异");
+    return;
+  }
+  syncLoading.value = true;
+  syncDiffError.value = "";
+  try {
+    syncItems.value = await compareDbStructure({
+      sourceDatasourceId: currentDatasourceId.value,
+      sourceDatabase: syncSourceDb.value,
+      targetDatasourceId: currentDatasourceId.value,
+      targetDatabase: syncTargetDb.value,
+      tables: syncTableFilter.value.trim() || undefined,
+    });
+    syncRan.value = true;
+  } catch (e) {
+    syncDiffError.value = `比较失败：${String((e as Error)?.message ?? e)}`;
+    syncItems.value = [];
+    syncRan.value = true;
+  } finally {
+    syncLoading.value = false;
+  }
+}
+
+/**
+ * 在目标库执行生成的脚本，然后重新比较一次。
+ *
+ * <p>执行前必须二次确认：脚本里含 {@code DROP INDEX} 与
+ * {@code MODIFY COLUMN}，是不可逆的。用户看过脚本再点一次是有意义的，
+ * 但不能靠「他应该看过了」。</p>
+ */
+async function runStructureScript(): Promise<void> {
+  const script = syncScript.value;
+  if (!script) return;
+  const lines = script.split("\n").filter(Boolean).length;
+  try {
+    await ElMessageBox.confirm(
+      `将向目标库「${syncTargetDb.value}」执行 ${lines} 条语句，其中含不可逆的 DROP INDEX / MODIFY COLUMN。确定执行？`,
+      "执行同步脚本",
+      { type: "warning", confirmButtonText: "执行", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  syncLoading.value = true;
+  try {
+    const result = await executeDbSqlBatch(script, currentDatasourceId.value, syncTargetDb.value);
+    // 批量结果里没有 success 字段：失败是「有 message 且没有结果集/影响行数」，
+    // 逐条判断要按 DbStatementResult 的实际形状来，不能套一个想当然的 success
+    const bad = (result.results || []).filter(
+      r => !!r.message && r.columns === undefined && r.affectedRows === undefined,
+    );
+    if (bad.length > 0) {
+      ElMessage.error(`${bad.length}/${lines} 条语句失败：` + String(bad[0].message || "").slice(0, 120));
+    } else {
+      ElMessage.success(`已执行 ${lines} 条语句，正在重新比较`);
+    }
+  } catch (e) {
+    ElMessage.error(`执行失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    syncLoading.value = false;
+  }
+  await runStructureDiff();
+}
+
 /**
  * 读取并绘制 ER 图。
  *
@@ -6753,6 +6963,91 @@ onBeforeUnmount(() => {
 }
 
 /* 列设置弹窗 */
+/* 结构同步弹窗 */
+.dbm-sync { display: flex; flex-direction: column; gap: 10px; }
+.dbm-sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dbm-sync-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-sync-select { width: 170px; }
+.dbm-sync-filter { width: 220px; }
+.dbm-sync-body { display: flex; flex-direction: column; gap: 8px; }
+.dbm-sync-summary {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-sync-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+}
+.dbm-sync-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dbm-sync-row:last-child { border-bottom: none; }
+.dbm-sync-kind {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 17px;
+  border-radius: 3px;
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
+}
+/* 「目标多出来的」用中性色：它不是待办事项，是提示 */
+.dbm-sync-row.EXTRA_TABLE .dbm-sync-kind,
+.dbm-sync-row.EXTRA_COLUMN .dbm-sync-kind {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+.dbm-sync-obj {
+  flex-shrink: 0;
+  font-family: var(--el-font-family-mono, monospace);
+}
+.dbm-sync-detail {
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-sync-script-wrap { display: flex; flex-direction: column; gap: 6px; }
+.dbm-sync-script-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-sync-script {
+  max-height: 220px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* ER 图视图 */
 .dbm-er-view {
   display: flex;
