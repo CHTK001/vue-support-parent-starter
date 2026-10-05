@@ -767,6 +767,54 @@ const filteredProviders = computed(() => {
     })).filter(provider => provider.models.length > 0)
 })
 
+/**
+ * 把「本地推理模型」并入可选列表。
+ *
+ * <p>为什么必须并入：模型选择器的候选只来自 /api/providers，而该接口里
+ * {@code provider_id=onnx} 的 models 恒为 0（实测），因为本地模型并不登记在
+ * {@code sys_ai_provider_model} —— 它在 deeplearning 的 ModelRegistry 里。
+ * 结果是 embedding 字段点开弹框只有一句「没有匹配『嵌入』类型的模型」，
+ * 27 个可用模型（/v2/rag/options.embeddingModels）一个都选不到。</p>
+ *
+ * <p>挂在 onnx 提供商下、值形如 {@code onnx:bge-large-zh-embedding}，与后端
+ * {@code resolveEmbeddingEngineByModel} 能识别的「本地模型 → onnx 引擎」一致
+ * （后端会剥掉 {@code provider:} 前缀后再匹配）。</p>
+ */
+const loadLocalModels = async () => {
+    try {
+        const body = await apiService._request('/rag/options')
+        const data = body?.data ?? body ?? {}
+        const local = []
+        const collect = (items, task) => {
+            ;(items || []).forEach((it) => {
+                const id = typeof it === 'string' ? it : (it?.id || it?.model)
+                if (!id) return
+                const meta = resolveModelMeta(id, [{ task }])
+                local.push({
+                    id: `onnx:${id}`,
+                    modelName: `本地/${id}`,
+                    model: id,
+                    providerId: 'onnx',
+                    providerName: 'ONNX 本地推理',
+                    ...meta
+                })
+            })
+        }
+        collect(data.embeddingModels, 'embedding')
+        collect(data.ocrModels, 'ocr')
+        if (local.length > 0) {
+            const existing = new Set(models.value.map((m) => m.id))
+            const fresh = local.filter((m) => !existing.has(m.id))
+            models.value.push(...fresh)
+            providers.value.push({ id: 'onnx', name: 'ONNX 本地推理', models: fresh })
+            console.info(`[设置] 并入本地推理模型 ${fresh.length} 个`)
+        }
+    } catch (error) {
+        // 并入失败不应让整个模型列表不可用，模型管理里的条目照常可选
+        console.warn('加载本地推理模型失败（不影响模型管理中的模型）:', error)
+    }
+}
+
 // 加载 Usage Parser SPI 列表
 const loadUsageParsers = async () => {
     try {
@@ -821,6 +869,9 @@ const loadModels = () => {
             console.error('获取模型列表失败:', error)
             notify.error('加载模型列表失败', error)
         } finally {
+            // 本地推理模型独立并入：/api/providers 的 onnx 分支恒为空，
+            // 不并入的话 embedding / ocr 字段在弹框里无任何可选项。
+            await loadLocalModels()
             modelsLoadPromise = null
         }
     })()
