@@ -1,21 +1,29 @@
 <script setup lang="ts">
 /**
- * 设备资产 —— 监控视角的设备台账。
+ * 设备资产 —— 设备台账总览（只读）。
  *
- * 与「主机资产」并列的独立页面：主机资产管的是可远控服务器台账（增删改查），
- * 本页是只读的设备资产总览，数据来自监控后端资产聚合接口
- * `GET /ms/monitor/asset/search?assetType=DEVICE` 与
- * `GET /ms/monitor/asset/device/{deviceId}`，叠加该设备的监控项与告警。
+ * 数据来自 device-starter 的 `GET /api/device/list`（DeviceInfo 列表），
+ * 经 monitor 应用承载（monitor-starter 依赖 device-starter，vite 代理放行 /api/device）。
  *
- * 设备的运维操作（通道配置 / 云台 / 地图）在本页之外，由设备管理工作台承担。
+ * ⚠ 不用 monitor 的 `/ms/monitor/asset/search?assetType=DEVICE`：该端点忽略 assetType，
+ * 只检索主机台账（ms_server_host），会把主机当设备返回。
+ *
+ * 视觉与布局对齐「代理管理」（ProxyView）：
+ *   - 不设顶部大标题 hero，页面标题由外壳面包屑承担；
+ *   - 4 张 ReStatCard 紧凑档横排概览；
+ *   - 筛选与全部操作合并成一行：ReInput + ReSelect ×2 + 查询 + 图标操作组（square + tip）；
+ *   - 表格卡 flex:1 + min-height:0 吃满剩余高度，表体内部滚动、表头固定；
+ *   - 统一用 --el-* / --el-radius-* / --metric-* 变量，不写死品牌色。
  *
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
-import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { searchAssets, getDeviceAssetDetail, type DeviceAssetDetail } from "@pages/monitor/src/api";
+import { CircleCheck, Connection, Tickets, VideoCamera } from "@element-plus/icons-vue";
+import ReStatCard from "@repo/ui/re-stat-card";
+import deviceApi from "@pages/device/src/api/deviceApi";
+import type { DeviceInfo } from "@pages/device/src/types/device";
 
 /** 设备大类 → 中文名与图标（后端 categoryLabel 缺失时的兜底） */
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
@@ -31,150 +39,147 @@ const VENDOR_LABELS: Record<string, string> = {
   dahua: "大华",
 };
 
-const devices = ref<DeviceAssetDetail[]>([]);
+/** 大类筛选项 */
+const CATEGORY_OPTIONS = [
+  { label: "网络摄像机", value: "camera" },
+  { label: "门禁设备", value: "accessControl" },
+  { label: "报警设备", value: "alarm" },
+  { label: "对讲设备", value: "intercom" },
+];
+
+/** 在线状态筛选项 */
+const STATUS_OPTIONS = [
+  { label: "在线", value: "1" },
+  { label: "离线", value: "0" },
+];
+
+const devices = ref<DeviceInfo[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 
-/** ReFilter 过滤状态 */
-const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", category: "" });
-
-/** 视图模式：card（默认）/ table */
+/** 筛选 + 视图模式（合并在一条操作行上，故用 reactive 而非 ReFilter） */
+const filters = reactive({ keyword: "", status: "", category: "" });
 const viewMode = ref<"card" | "table">("card");
 
-/** 详情弹窗 */
+/** 详情抽屉 */
 const detailVisible = ref(false);
 const detailLoading = ref(false);
-const detail = ref<DeviceAssetDetail | null>(null);
+const detail = ref<DeviceInfo | null>(null);
 
-/**
- * 过滤项配置
- */
-const filterItems = computed<ReFilterItem[]>(() => [
-  { prop: "keyword", label: "关键字", type: "input", placeholder: "名称 / 地址 / 序列号" },
-  {
-    prop: "status",
-    label: "在线状态",
-    type: "select",
-    options: [
-      { label: "在线", value: "1" },
-      { label: "离线", value: "0" },
-    ],
-  },
-  {
-    prop: "category",
-    label: "设备大类",
-    type: "select",
-    options: Object.entries(CATEGORY_META).map(([value, meta]) => ({ label: meta.label, value })),
-  },
-]);
-
-/**
- * ReFilter 过滤项变更
- * @param prop 过滤属性名
- * @param value 过滤值
- */
-function onFilterChange(prop: string, value: unknown): void {
-  filterState.value[prop] = value;
-}
-
-/**
- * ReFilter 重置
- */
-function onFilterReset(): void {
-  filterState.value = { keyword: "", status: "", category: "" };
-}
-
-/** 客户端过滤：后端已按关键字模糊，这里补状态与大类的即时筛选 */
-const filtered = computed<DeviceAssetDetail[]>(() => {
-  const kw = String(filterState.value.keyword || "").trim().toLowerCase();
-  const status = String(filterState.value.status || "");
-  const category = String(filterState.value.category || "");
+/** 客户端过滤：后端 list 不带关键字条件，这里做即时筛选 */
+const filtered = computed<DeviceInfo[]>(() => {
+  const kw = filters.keyword.trim().toLowerCase();
   return devices.value.filter((d) => {
-    if (status === "1" && !d.online) return false;
-    if (status === "0" && d.online) return false;
-    if (category && d.category !== category) return false;
+    if (filters.status === "1" && !d.deviceInfoOnline) return false;
+    if (filters.status === "0" && d.deviceInfoOnline) return false;
+    if (filters.category && d.deviceInfoCategory !== filters.category) return false;
     if (!kw) return true;
-    return (
-      (d.name || "").toLowerCase().includes(kw) ||
-      (d.address || "").toLowerCase().includes(kw) ||
-      (d.serial || "").toLowerCase().includes(kw)
-    );
+    return [d.deviceInfoName, d.deviceInfoIp, d.deviceInfoSerial, d.deviceInfoAddress]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(kw));
   });
 });
 
-/**
- * 大类展示名：后端中文名优先，缺失时用本地映射兜底
- * @param d 设备
- * @returns 大类名
- */
-function categoryLabel(d: DeviceAssetDetail): string {
-  return d.categoryLabel || CATEGORY_META[d.category || ""]?.label || d.category || "—";
+/** KPI：在线 / 离线 / 通道总数（设备总数取列表长度） */
+const onlineCount = computed(() => devices.value.filter((d) => d.deviceInfoOnline).length);
+const offlineCount = computed(() => devices.value.length - onlineCount.value);
+const channelCount = computed(() =>
+  devices.value.reduce((sum, d) => sum + (d.deviceInfoChannelCount || 0), 0)
+);
+
+const kpis = computed(() => [
+  {
+    key: "total",
+    title: "已注册设备",
+    value: devices.value.length,
+    desc: `当前筛选 ${filtered.value.length} 台`,
+    icon: VideoCamera,
+    iconColor: "var(--el-color-primary)",
+  },
+  {
+    key: "online",
+    title: "当前在线",
+    value: onlineCount.value,
+    desc: `在线率 ${devices.value.length ? Math.round((onlineCount.value / devices.value.length) * 100) : 0}%`,
+    icon: CircleCheck,
+    iconColor: "var(--el-color-success)",
+  },
+  {
+    key: "offline",
+    title: "离线待处理",
+    value: offlineCount.value,
+    desc: "含阈值内未上报的设备",
+    icon: Tickets,
+    iconColor: "var(--metric-disk, var(--el-color-warning))",
+  },
+  {
+    key: "channel",
+    title: "通道总数",
+    value: channelCount.value,
+    desc: "各设备已登记通道之和",
+    icon: Connection,
+    iconColor: "var(--el-color-info)",
+  },
+]);
+
+/** 大类展示名：本地映射兜底 */
+function categoryLabel(d: DeviceInfo): string {
+  return CATEGORY_META[d.deviceInfoCategory || ""]?.label || d.deviceInfoCategory || "—";
 }
 
-/**
- * 大类图标名
- * @param d 设备
- * @returns 图标名
- */
-function categoryIcon(d: DeviceAssetDetail): string {
-  return CATEGORY_META[d.category || ""]?.icon || "VideoCamera";
-}
-
-/**
- * 厂商展示名
- * @param vendor 厂商原值
- * @returns 厂商中文名
- */
 function vendorLabel(vendor?: string): string {
-  if (!vendor) return "—";
-  return VENDOR_LABELS[vendor] || vendor;
+  return vendor ? VENDOR_LABELS[vendor] || vendor : "—";
 }
 
-/**
- * 拉取设备列表
- */
+/** 状态胶囊类名（koi 语义色） */
+function statusClass(d: DeviceInfo): string {
+  return d.deviceInfoOnline ? "is-ok" : "is-error";
+}
+
+function statusText(d: DeviceInfo): string {
+  return d.deviceInfoOnline ? "在线" : "离线";
+}
+
+/** 拉取设备列表 */
 async function fetchList(): Promise<void> {
   loading.value = true;
   loadError.value = "";
   try {
-    const kw = String(filterState.value.keyword || "").trim();
-    // 列表接口返回简表字段，通道/位置等详情字段需逐条补齐；
-    // 这里只取简表渲染列表，点开详情时再拉完整视图。
-    const briefs = await searchAssets(kw || undefined, "DEVICE");
-    devices.value = (briefs || []).map((b) => ({
-      assetType: "DEVICE",
-      assetId: b.assetId,
-      name: b.name,
-      address: b.address,
-      port: b.port,
-      category: b.category,
-      categoryLabel: b.categoryLabel,
-      vendor: b.vendor,
-      online: b.online,
-    }));
+    devices.value = (await deviceApi.list()) || [];
   } catch (e: unknown) {
-    loadError.value = e instanceof Error ? e.message : String(e);
+    devices.value = [];
+    loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
     ElMessage.error(`设备资产加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
 }
 
-/**
- * 打开设备详情
- * @param row 设备简表行
- */
-async function openDetail(row: DeviceAssetDetail): Promise<void> {
+function onReset(): void {
+  filters.keyword = "";
+  filters.status = "";
+  filters.category = "";
+}
+
+/** 打开详情抽屉 */
+async function openDetail(row: DeviceInfo): Promise<void> {
   detail.value = null;
   detailVisible.value = true;
   detailLoading.value = true;
   try {
-    detail.value = await getDeviceAssetDetail(row.assetId);
+    detail.value = await deviceApi.get(row.deviceInfoId);
   } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : "设备资产详情加载失败");
+    ElMessage.error((e as { msg?: string })?.msg || "设备详情加载失败");
   } finally {
     detailLoading.value = false;
   }
+}
+
+/** 最近上报时间 */
+function fmtTime(v?: string): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleString("zh-CN", { hour12: false });
 }
 
 onMounted(fetchList);
@@ -182,161 +187,161 @@ onMounted(fetchList);
 
 <template>
   <div class="da">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">设备资产</h1>
-        <p class="page-desc">监控视角的设备台账 · 共 {{ devices.length }} 台 · 只读总览</p>
-      </div>
-    </div>
+    <!-- KPI 卡：已注册 / 在线 / 离线 / 通道总数。用 ReStatCard 紧凑档，
+         四张并排只占一行，把纵向空间让给下面的表格。 -->
+    <section class="da-kpis">
+      <ReStatCard
+        v-for="k in kpis"
+        :key="k.key"
+        size="compact"
+        :title="k.title"
+        :value="k.value"
+        :desc="k.desc"
+        :icon="k.icon"
+        :icon-color="k.iconColor"
+      />
+    </section>
 
-    <div v-if="loadError" class="as-error">
-      <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchList">重试</ReButton>
-    </div>
-
-    <!-- 筛选条 -->
-    <div class="as-panel as-filter">
-      <div class="filter">
-        <ReFilter
-          :items="filterItems"
-          :columns="3"
-          :collapsible="false"
-          :show-actions="false"
-          @change="onFilterChange"
-          @reset="onFilterReset"
-          style="flex:1;min-width:0"
+    <!-- 筛选与全部操作合并成一行：关键字 / 在线状态 / 设备大类 + 查询 + 图标操作组。
+         不设顶部 hero，标题由外壳面包屑承担；刷新与视图切换以图标 + tip 呈现。 -->
+    <section class="da-panel da-filter">
+      <div class="da-field da-field--search">
+        <ReInput
+          v-model="filters.keyword"
+          placeholder="搜索名称 / IP / 序列号..."
+          clearable
+          prefix-icon="Search"
+          @keyup.enter="fetchList"
         />
-        <span v-if="filtered.length !== devices.length" class="muted">{{ filtered.length }} / {{ devices.length }}</span>
-        <div class="view-toggle">
-          <button class="vt-btn" :class="{ active: viewMode === 'card' }" @click="viewMode = 'card'">
-            <ReIcon name="Grid" :size="14" />卡片
-          </button>
-          <button class="vt-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'">
-            <ReIcon name="Menu" :size="14" />列表
-          </button>
-        </div>
       </div>
+      <div class="da-field">
+        <ReSelect v-model="filters.status" placeholder="全部状态" clearable :options="STATUS_OPTIONS" />
+      </div>
+      <div class="da-field">
+        <ReSelect v-model="filters.category" placeholder="全部大类" clearable :options="CATEGORY_OPTIONS" />
+      </div>
+      <span class="da-filter__meta">{{ filtered.length }} / {{ devices.length }} 台</span>
+      <ReButton icon="Search" :show-text="true" type="primary" :loading="loading" @click="fetchList">
+        查询
+      </ReButton>
+      <div class="da-toolbar-ops">
+        <ReButton icon="RefreshRight" layout="square" tip="刷新设备列表" :loading="loading" @click="fetchList" />
+        <ReButton
+          :icon="viewMode === 'card' ? 'Menu' : 'Grid'"
+          layout="square"
+          :tip="viewMode === 'card' ? '切换为列表视图' : '切换为卡片视图'"
+          @click="viewMode = viewMode === 'card' ? 'table' : 'card'"
+        />
+        <ReButton icon="Delete" layout="square" tip="重置筛选条件" @click="onReset" />
+      </div>
+    </section>
+
+    <div v-if="loadError" class="da-error">
+      <span>{{ loadError }}</span>
+      <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchList" />
     </div>
 
-    <!-- 卡片视图 -->
-    <div v-if="viewMode === 'card'" class="da-card-grid">
-      <ReCard v-for="d in filtered" :key="d.assetId" :body-style="{ paddingTop: '10px', paddingBottom: '10px' }">
-        <template #header>
-          <div class="dc-head">
-            <span class="dc-cat">
-              <ReIcon :name="categoryIcon(d)" :size="18" />
+    <!-- 表格卡：flex:1 + min-height:0 吃满剩余高度，表体内部滚动、表头固定 -->
+    <section class="da-panel da-table-card">
+      <div v-if="viewMode === 'card' && !loading && !filtered.length" class="da-empty">
+        <ReEmpty description="暂无设备资产，点击「查询」或「刷新」重新加载" :image-size="80" />
+      </div>
+
+      <div v-else-if="viewMode === 'card'" class="da-cards">
+        <article
+          v-for="d in filtered"
+          :key="d.deviceInfoId"
+          class="da-card"
+          role="button"
+          tabindex="0"
+          @click="openDetail(d)"
+          @keyup.enter="openDetail(d)"
+        >
+          <header class="da-card__head">
+            <span class="da-card__name">{{ d.deviceInfoName || d.deviceInfoId }}</span>
+            <span class="da-status">
+              <span class="da-status__dot" :class="statusClass(d)"></span>
+              <span class="da-status__text">{{ statusText(d) }}</span>
             </span>
-            <div class="dc-name-wrap">
-              <div class="dc-title-row">
-                <b class="dc-name">{{ d.name || d.assetId }}</b>
-                <span class="dc-cat-tag">{{ categoryLabel(d) }}</span>
-                <span class="dc-online" :class="d.online ? 'is-on' : 'is-off'">
-                  <i class="dc-dot" />{{ d.online ? "在线" : "离线" }}
-                </span>
-              </div>
-              <div class="dc-addr mono">{{ d.address || "—" }}<template v-if="d.port">:{{ d.port }}</template></div>
-            </div>
-          </div>
-        </template>
-        <div class="dc-meta">
-          <span><i class="k">厂商</i>{{ vendorLabel(d.vendor) }}</span>
-        </div>
-        <template #footer>
-          <el-button text type="primary" @click="openDetail(d)">详情</el-button>
-        </template>
-      </ReCard>
-      <el-empty v-if="!filtered.length && !loading" description="暂无设备资产" />
-    </div>
+          </header>
+          <dl class="da-card__meta">
+            <div><dt>IP</dt><dd class="mono">{{ d.deviceInfoIp || "—" }}</dd></div>
+            <div><dt>大类</dt><dd>{{ categoryLabel(d) }}</dd></div>
+            <div><dt>厂商</dt><dd>{{ vendorLabel(d.deviceInfoVendor) }}</dd></div>
+            <div><dt>通道</dt><dd>{{ d.deviceInfoChannelCount ?? 0 }} 路</dd></div>
+          </dl>
+        </article>
+      </div>
 
-    <!-- 表格视图 -->
-    <div v-else class="as-panel">
-      <el-table :data="filtered" v-loading="loading" border stripe empty-text="暂无设备资产">
-        <el-table-column prop="name" label="设备名称" min-width="170" />
-        <el-table-column prop="address" label="设备地址" min-width="140" />
-        <el-table-column prop="port" label="端口" width="80" align="center" />
-        <el-table-column label="设备大类" width="110" align="center">
-          <template #default="{ row }">{{ categoryLabel(row) }}</template>
-        </el-table-column>
-        <el-table-column label="厂商" width="100" align="center">
-          <template #default="{ row }">{{ vendorLabel(row.vendor) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
-          <template #default="{ row }">
-            <span class="dc-online" :class="row.online ? 'is-on' : 'is-off'">
-              <i class="dc-dot" />{{ row.online ? "在线" : "离线" }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="90" align="right" fixed="right">
-          <template #default="{ row }">
-            <el-button text type="primary" @click="openDetail(row)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
+      <ReTable
+        v-else
+        :data="filtered"
+        :loading="loading"
+        :columns="[
+          { prop: 'deviceInfoName', label: '设备名称', minWidth: 180, slot: 'name' },
+          { prop: 'deviceInfoIp', label: 'IP / 地址', minWidth: 180, slot: 'addr' },
+          { prop: 'deviceInfoCategory', label: '大类', width: 120, slot: 'category' },
+          { prop: 'deviceInfoVendor', label: '厂商', width: 120 },
+          { prop: 'deviceInfoOnline', label: '状态', width: 110, slot: 'status' },
+          { prop: 'deviceInfoChannelCount', label: '通道', width: 90, align: 'center' },
+          { prop: 'deviceInfoCreatedAt', label: '接入时间', width: 180, slot: 'createdAt' },
+          { prop: 'actions', label: '操作', width: 90, slot: 'actions' },
+        ]"
+        size="default"
+        :border="false"
+        :stripe="false"
+        table-id="device-asset-list"
+        class="device-table"
+      >
+        <template #col-name="{ row }">
+          <span class="da-name">{{ row.deviceInfoName || row.deviceInfoId }}</span>
+        </template>
+        <template #col-addr="{ row }">
+          <span class="mono">{{ row.deviceInfoIp || "—" }}</span>
+          <span v-if="row.deviceInfoAddress" class="da-sub">{{ row.deviceInfoAddress }}</span>
+        </template>
+        <template #col-category="{ row }">{{ categoryLabel(row) }}</template>
+        <template #col-status="{ row }">
+          <span class="da-status">
+            <span class="da-status__dot" :class="statusClass(row)"></span>
+            <span class="da-status__text">{{ statusText(row) }}</span>
+          </span>
+        </template>
+        <template #col-createdAt="{ row }">{{ fmtTime(row.deviceInfoCreatedAt) }}</template>
+        <template #col-actions="{ row }">
+          <ReButton icon="View" layout="square" title="详情" @click="openDetail(row)" />
+        </template>
+      </ReTable>
+    </section>
 
-    <!-- 详情抽屉 -->
-    <ReDrawer v-model="detailVisible" :title="`设备资产 · ${detail?.name || ''}`" size="640px">
+    <ReDrawer v-model="detailVisible" :title="`设备资产 · ${detail?.deviceInfoName || ''}`" size="560px">
       <div v-loading="detailLoading" class="dd-body">
-        <template v-if="detail">
-          <section class="dd-section">
-            <h4 class="dd-title">基础信息</h4>
-            <div class="dd-grid">
-              <div class="dd-kv"><span class="k">名称</span><span class="v">{{ detail.name || "—" }}</span></div>
-              <div class="dd-kv"><span class="k">地址</span><span class="v">{{ detail.address || "—" }}</span></div>
-              <div class="dd-kv"><span class="k">端口</span><span class="v">{{ detail.port ?? "—" }}</span></div>
-              <div class="dd-kv"><span class="k">设备大类</span><span class="v">{{ categoryLabel(detail) }}</span></div>
-              <div class="dd-kv"><span class="k">厂商</span><span class="v">{{ vendorLabel(detail.vendor) }}</span></div>
-              <div class="dd-kv"><span class="k">型号</span><span class="v">{{ detail.model || "—" }}</span></div>
-              <div class="dd-kv"><span class="k">序列号</span><span class="v">{{ detail.serial || "—" }}</span></div>
-              <div class="dd-kv"><span class="k">固件</span><span class="v">{{ detail.firmware || "—" }}</span></div>
-            </div>
-          </section>
+        <dl v-if="detail" class="dd-grid">
+          <div><dt>设备 ID</dt><dd class="mono">{{ detail.deviceInfoId }}</dd></div>
+          <div><dt>名称</dt><dd>{{ detail.deviceInfoName || "—" }}</dd></div>
+          <div><dt>大类</dt><dd>{{ categoryLabel(detail) }}</dd></div>
+          <div><dt>厂商</dt><dd>{{ vendorLabel(detail.deviceInfoVendor) }}</dd></div>
+          <div><dt>型号</dt><dd>{{ detail.deviceInfoModel || "—" }}</dd></div>
+          <div><dt>IP:端口</dt><dd class="mono">{{ detail.deviceInfoIp || "—" }}:{{ detail.deviceInfoPort ?? "—" }}</dd></div>
+          <div><dt>序列号</dt><dd class="mono">{{ detail.deviceInfoSerial || "—" }}</dd></div>
+          <div><dt>固件</dt><dd>{{ detail.deviceInfoFirmware || "—" }}</dd></div>
+          <div><dt>经纬度</dt><dd class="mono">
+            {{ detail.deviceInfoLatitude ?? "—" }}, {{ detail.deviceInfoLongitude ?? "—" }}
+          </dd></div>
+          <div><dt>离线阈值</dt><dd>{{ detail.deviceInfoOfflineThreshold ?? "—" }} 秒</dd></div>
+        </dl>
 
-          <section class="dd-section">
-            <h4 class="dd-title">运行状态</h4>
-            <div class="dd-flags">
-              <span class="dd-flag" :class="detail.online ? 'on' : 'off'">探测 {{ detail.online ? "在线" : "离线" }}</span>
-              <span class="dd-flag" :class="detail.sessionOnline ? 'on' : 'off'">
-                会话 {{ detail.sessionOnline ? "在线" : "离线" }}
-              </span>
-              <span class="dd-flag plain">离线阈值 {{ detail.offlineThreshold ?? "—" }} 秒</span>
-            </div>
-          </section>
-
-          <section v-if="detail.geo?.located" class="dd-section">
-            <h4 class="dd-title">位置</h4>
-            <div class="dd-kv"><span class="k">坐标</span><span class="v">{{ detail.geo.latitude }}, {{ detail.geo.longitude }}</span></div>
-            <div v-if="detail.geo.address" class="dd-kv"><span class="k">地址</span><span class="v">{{ detail.geo.address }}</span></div>
-          </section>
-
-          <section class="dd-section">
-            <h4 class="dd-title">
-              通道
-              <span class="dd-extra">已启用 {{ detail.enabledChannelCount ?? 0 }} / {{ detail.channelCount ?? 0 }}</span>
-            </h4>
-            <el-table :data="detail.channels || []" border empty-text="无通道">
-              <el-table-column prop="channelNo" label="通道号" width="80" align="center" />
-              <el-table-column prop="channelName" label="通道名称" min-width="140" />
-              <el-table-column prop="channelType" label="类型" width="100" align="center" />
-              <el-table-column prop="channelStatus" label="状态" width="90" align="center" />
-            </el-table>
-          </section>
-
-          <section class="dd-section">
-            <h4 class="dd-title">
-              监控项
-              <span class="dd-extra">共 {{ detail.monitors?.length || 0 }} 项 · 活跃告警 {{ detail.activeAlarmCount || 0 }} 条</span>
-            </h4>
-            <el-table :data="detail.monitors || []" border empty-text="该设备暂无关联监控项">
-              <el-table-column prop="name" label="监控项" min-width="140" />
-              <el-table-column prop="host" label="地址" min-width="130" />
-              <el-table-column prop="serviceType" label="服务类型" width="100" align="center" />
-              <el-table-column label="告警" width="100" align="center">
-                <template #default="{ row }">{{ row.activeAlarmCount || 0 }} 条</template>
-              </el-table-column>
-            </el-table>
-          </section>
+        <template v-if="detail?.channels?.length">
+          <h4 class="dd-h">通道（{{ detail.channels.length }}）</h4>
+          <ul class="dd-channels">
+            <li v-for="c in detail.channels" :key="c.deviceChannelId">
+              <span class="mono">#{{ c.deviceChannelNo }}</span>
+              <span>{{ c.deviceChannelName || "未命名" }}</span>
+              <ReTag :type="c.deviceChannelStatus === 'enabled' ? 'success' : 'info'" size="small">
+                {{ c.deviceChannelStatus === 'enabled' ? "启用" : "禁用" }}
+              </ReTag>
+            </li>
+          </ul>
         </template>
       </div>
     </ReDrawer>
@@ -344,222 +349,273 @@ onMounted(fetchList);
 </template>
 
 <style scoped lang="scss">
+/* 根容器：撑满外壳主区，表格卡的 flex:1 才有高度基准 */
 .da {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 10px 12px 12px;
+  height: 100%;
+  min-height: 0;
+  color: var(--el-text-color-primary);
 }
 
-.page-title {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 600;
+/* ---------- KPI 卡（ReStatCard 紧凑档横排，外壳规格由组件基线提供） ---------- */
+.da-kpis {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
-.page-desc {
-  margin: 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+/* ---------- 通用面板 ---------- */
+.da-panel {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-.as-error {
+/* 筛选条与操作区合并成一行 */
+.da-filter {
+  flex: none;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 12px 16px;
+}
+/* 操作图标组：与「查询」之间用竖线区分「筛选」与「操作」 */
+.da-toolbar-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.da-field {
+  width: 160px;
+}
+.da-field--search {
+  width: 280px;
+}
+.da-field :deep(.el-input),
+.da-field :deep(.el-select) {
+  width: 100%;
+}
+.da-filter__meta {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+@media (max-width: 900px) {
+  .da-field,
+  .da-field--search {
+    width: 100%;
+  }
+  .da-filter__meta {
+    margin-left: 0;
+  }
+  .da-toolbar-ops {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+/* 错误条 */
+.da-error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: var(--el-radius-base, 8px);
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
   font-size: 13px;
 }
 
-.as-panel {
-  padding: 14px 16px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
+/* 表格卡：flex:1 + min-height:0 才能吃满剩余高度，表体内部滚动 */
+.da-table-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px 8px;
 }
 
-.filter {
+.da-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* 卡片视图 */
+.da-cards {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 8px;
+  align-content: start;
+}
+.da-card {
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-blank);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: var(--el-box-shadow-light);
+    outline: none;
+  }
+}
+.da-card__head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.da-card__name {
+  font-size: 14.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.da-card__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin: 0;
+
+  > div {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+  }
+  dt {
+    flex: none;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+  dd {
+    margin: 0;
+    font-size: 12.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
-.muted {
+/* 表格外观对齐 UI 稿：表头无底色、去大写、行距更松 */
+.da-table-card :deep(.re-table) {
+  padding: 0;
+  background: transparent;
+}
+.da-table-card :deep(.el-table) {
+  --el-table-header-bg-color: var(--el-bg-color) !important;
+}
+.da-table-card :deep(.el-table th.el-table__cell) {
+  padding: 14px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--el-text-color-secondary);
+  background: transparent !important;
+}
+.da-table-card :deep(.el-table td.el-table__cell) {
+  padding: 15px 12px !important;
+  font-size: 14px !important;
+}
+
+/* 列内容 */
+.mono {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.da-name {
+  font-size: 13.5px;
+  color: var(--el-text-color-primary);
+}
+.da-sub {
+  display: block;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
-.view-toggle {
+/* 状态点（koi 语义色） */
+.da-status {
   display: inline-flex;
-  border: 1px solid var(--el-border-color);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.vt-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: none;
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.vt-btn.active {
-  background: var(--el-color-primary);
-  color: #fff;
-}
-
-.da-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
-}
-
-.dc-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.dc-cat {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  color: var(--el-color-primary);
-  flex-shrink: 0;
-}
-
-.dc-name-wrap { min-width: 0; }
-
-.dc-title-row {
-  display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
-
-.dc-name {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.dc-cat-tag {
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-}
-
-.dc-online {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.dc-online.is-on { color: var(--el-color-success); }
-.dc-online.is-off { color: var(--el-text-color-secondary); }
-
-.dc-dot {
-  width: 6px;
-  height: 6px;
+.da-status__dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--el-color-info);
+
+  &.is-ok {
+    background: var(--el-color-success);
+  }
+  &.is-error {
+    background: var(--el-color-danger);
+  }
+}
+.da-status__text {
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
 }
 
-.dc-addr {
-  margin-top: 3px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+/* 详情抽屉 */
+.dd-body {
+  min-height: 120px;
 }
-
-.dc-meta {
-  display: flex;
-  gap: 14px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.dc-meta .k {
-  margin-right: 4px;
-  color: var(--el-text-color-placeholder);
-}
-
-.mono { font-family: "SF Mono", "Cascadia Code", monospace; }
-
-.dd-body { min-height: 200px; }
-.dd-section { margin-bottom: 20px; }
-
-.dd-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  padding-left: 8px;
-  border-left: 3px solid var(--el-color-primary);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.dd-extra {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--el-text-color-secondary);
-}
-
 .dd-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 16px;
-}
+  gap: 10px 16px;
+  margin: 0 0 16px;
 
-.dd-kv {
-  display: flex;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 12.5px;
+  > div {
+    min-width: 0;
+  }
+  dt {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+  dd {
+    margin: 2px 0 0;
+    font-size: 13.5px;
+    word-break: break-all;
+  }
 }
-
-.dd-kv .k {
-  width: 62px;
-  flex-shrink: 0;
+.dd-h {
+  margin: 0 0 8px;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
 }
+.dd-channels {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 
-.dd-kv .v {
-  color: var(--el-text-color-primary);
-  word-break: break-all;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    font-size: 13px;
+  }
 }
-
-.dd-flags { display: flex; gap: 10px; flex-wrap: wrap; }
-
-.dd-flag {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-}
-
-.dd-flag.on {
-  color: var(--el-color-success);
-  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
-}
-
-.dd-flag.off { color: var(--el-text-color-secondary); }
-.dd-flag.plain { color: var(--el-text-color-regular); }
 </style>
