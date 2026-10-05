@@ -509,6 +509,14 @@ function tick() {
   const root = rootRef.value;
   if (root && model) {
     const rect = root.getBoundingClientRect();
+    // 先把全部点投影出来，再统一做一次防重叠，最后才写 transform。
+    //
+    // 为什么必须防重叠：两个 anchor 投影到几乎相同的位置时，后写的那个点会整个盖住
+    // 前一个，前一个就再也点不到（实测「复眼」与「触角」水平只差 10px，而点直径 26px，
+    // 重叠 16x26px —— 浏览器直接判定中心点被另一个热点覆盖，真实点击落在错的热点上）。
+    // 遍历顺序固定、推开的角度由两点连线决定，所以每帧结果一致，不会来回抖动。
+    const MIN_GAP = 34; // 略大于点直径 26，留出可点间隙
+    const pts: { el: HTMLElement; x: number; y: number }[] = [];
     for (const h of props.hotspots) {
       const el = markerEls.get(h.id);
       if (!el) continue;
@@ -523,10 +531,33 @@ function tick() {
         el.style.opacity = "0";
         continue;
       }
-      const x = (tmpV.x * 0.5 + 0.5) * rect.width;
-      const y = (-tmpV.y * 0.5 + 0.5) * rect.height;
-      el.style.opacity = "1";
-      el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      pts.push({ el, x: (tmpV.x * 0.5 + 0.5) * rect.width, y: (-tmpV.y * 0.5 + 0.5) * rect.height });
+    }
+    for (let pass = 0; pass < 3; pass += 1) {
+      let moved = false;
+      for (let a = 0; a < pts.length; a += 1) {
+        for (let b = a + 1; b < pts.length; b += 1) {
+          const dx = pts[b]!.x - pts[a]!.x;
+          const dy = pts[b]!.y - pts[a]!.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist >= MIN_GAP) continue;
+          // 完全重合时给一个确定方向，避免除零与随机抖动
+          const angle = dist < 0.001 ? Math.PI / 2 : Math.atan2(dy, dx);
+          const push = (MIN_GAP - dist) / 2 + 0.5;
+          const ox = Math.cos(angle) * push;
+          const oy = Math.sin(angle) * push;
+          pts[a]!.x -= ox;
+          pts[a]!.y -= oy;
+          pts[b]!.x += ox;
+          pts[b]!.y += oy;
+          moved = true;
+        }
+      }
+      if (!moved) break;
+    }
+    for (const p of pts) {
+      p.el.style.opacity = "1";
+      p.el.style.transform = `translate(-50%, -50%) translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
     }
 
     // 说明卡贴在当前标注点旁边，空间不够就换边。每帧直接写 style，不走响应式。
