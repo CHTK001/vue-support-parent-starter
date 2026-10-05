@@ -142,6 +142,11 @@ export const reCronMeta: TemplateMeta = {
     { key: "placeholder", label: "占位符", type: "string", default: "请选择 cron 表达式" },
     { key: "disabled", label: "禁用", type: "boolean", default: false },
     { key: "width", label: "宽度（px）", type: "number", default: 0, min: 0, max: 1200, step: 10, description: "0 = 自适应" },
+    /* defaultCron 与 previewCount 一开始没进参数表，于是「用默认」那颗按钮在任何
+       演示页里都渲染不出来 —— 一颗没法点、没法验的按钮等于没交付。
+       组件确实支持这两个 prop，工作台就该把它们露出来。 */
+    { key: "defaultCron", label: "后端默认（留空时登记用）", type: "string", default: "0 0/30 * * * ?", description: "非空时弹层出现「用默认」按钮；留空则该按钮不渲染" },
+    { key: "previewCount", label: "预览条数", type: "number", default: 5, min: 1, max: 20, description: "弹层里预览的未来触发次数" },
   ],
   generate(state) {
     const props: string[] = [];
@@ -150,6 +155,9 @@ export const reCronMeta: TemplateMeta = {
       props.push(`placeholder="${values.placeholder}"`);
     if (values.disabled) props.push(`disabled`);
     if (values.width && Number(values.width) > 0) props.push(`:width="${values.width}"`);
+    if (values.defaultCron) props.push(`default-cron="${values.defaultCron}"`);
+    if (values.previewCount && Number(values.previewCount) !== 5)
+      props.push(`:preview-count="${values.previewCount}"`);
     const vmodel = ` v-model="cron"`;
     const propStr = props.length ? "\n  " + props.join("\n  ") + vmodel : ` v-model`;
     return `<ReCron${propStr}
