@@ -835,7 +835,7 @@ const loadGroupValues = async (group) => {
         const values = {}
         const meta = {}
         if (Array.isArray(items)) {
-            // 后端返回 [{ field, value, defaultValue, overridden }]
+            // 后端返回 [{ field, value, defaultValue, overridden, origin }]
             items.forEach((item) => {
                 values[item.field] = item.value ?? ''
                 meta[item.field] = {
@@ -847,7 +847,20 @@ const loadGroupValues = async (group) => {
                 }
             })
         } else {
-            Object.assign(values, items)
+            // 扁平形状：field -> value，值来源另放在 __meta 里。
+            // 读之前先摘掉 __meta，否则它会被当成一个名为 __meta 的设置项。
+            const raw = { ...items }
+            const metaBag = raw.__meta || {}
+            delete raw.__meta
+            Object.assign(values, raw)
+            Object.keys(raw).forEach((field) => {
+                const m = metaBag[field] || {}
+                meta[field] = {
+                    overridden: m.overridden === true,
+                    defaultValue: raw[field],
+                    origin: m.origin || (m.overridden === true ? 'USER' : 'GLOBAL'),
+                }
+            })
         }
         groupValues[group] = values
         fieldMeta[group] = meta
