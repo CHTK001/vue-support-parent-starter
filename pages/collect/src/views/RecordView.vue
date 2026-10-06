@@ -13,7 +13,7 @@ import { getRouter, msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
-import { clearRecords, countRecords, deleteRecord, deleteRecords, fetchFields, listFlows, pageRecords } from "../api/collectApi";
+import { clearRecords, countRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFlows, pageRecords } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
@@ -29,6 +29,9 @@ interface RecordQuery {
 const flows = ref<CollectFlow[]>([]);
 const fields = ref<CollectFieldDef[]>([]);
 const countAll = ref(0);
+
+/** 空表时的解释文案（loadRecords 每次取数后刷新，见 explainEmpty） */
+const emptyHint = ref("暂无采集结果");
 const selected = ref<CollectRecord[]>([]);
 const detailVisible = ref(false);
 const detail = ref<CollectRecord | null>(null);
@@ -132,7 +135,7 @@ const columns = computed<ReTableColumn[]>(() => {
     formatter: (row: Record<string, unknown>) => cellOf(row, column.name),
   }));
   return [...base, ...dynamic, { prop: "createTime", label: "采集时间", width: 176 },
-    { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right", align: "right" }];
+    { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right" }];
 });
 
 /** 字段定义驱动列：未选流程时没有稳定 schema，只展示固定列 */
@@ -164,7 +167,34 @@ async function loadRecords({ page, pageSize, params }: ReTableLoadParams): Promi
   ]);
   fields.value = defs ?? [];
   countAll.value = Number(count ?? 0);
+  emptyHint.value = await explainEmpty(flowId, page1.total);
   return { total: page1.total, data: page1.rows as unknown as Record<string, unknown>[] };
+}
+
+/**
+ * 空表时的解释文案。
+ *
+ * <p>「采集结果」为空 ≠ 采集失败：流程若用「数据库」节点把整批数据直写业务表，
+ * 该节点按引擎设计**不产采集记录**（CollectDatabaseExecutor 的 javadoc 与节点元信息
+ * 明文「不产采集记录」），数据落在目标表里，节点摘要才是它的产出凭证
+ * （实测示例-GitHub 项目采集：n4 摘要「覆盖写入 10 行」，record 表 0 条）。
+ * 2026-10-05 用户反馈「采集结果没数据啊」正是踩到这个口径，所以空态要区分两种情形：
+ * 用数据库节点 → 指路到目标表与节点摘要；否则 → 维持原提示。</p>
+ */
+async function explainEmpty(flowId: number, total: number): Promise<string> {
+  if (total > 0 || !flowId) {
+    return "暂无采集结果";
+  }
+  try {
+    const flow = await getFlow(flowId);
+    const nodes = flow.dsl?.nodes ?? [];
+    if (nodes.some((n) => n.shape === "database")) {
+      return "该流程用「数据库」节点直写业务表，不产采集结果（数据在目标表，写入行数看运行记录的节点摘要）";
+    }
+  } catch {
+    // 查不到流程详情就退回通用提示，不让解释文案反过来把页面搞挂
+  }
+  return "暂无采集结果";
 }
 
 /** 点「查询」：ReTable 自己会带新条件重载，本页只负责不在第一页时跳回去 */
@@ -256,7 +286,7 @@ function showDetail(input: Record<string, unknown>): void {
       v-model:search-model="searchModel"
       :search="SEARCH"
       :page-sizes="[10, 20, 50, 100]"
-      empty-text="暂无采集结果"
+      :empty-text="emptyHint"
       stripe
       @selection-change="pickSelection"
       @search="backToFirstPage"
