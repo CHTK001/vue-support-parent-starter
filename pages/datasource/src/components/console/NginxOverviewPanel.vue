@@ -346,6 +346,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, toRef, watch } from "vue";
+import ReButton from "@repo/ui/re-button";
+import ReIcon from "@repo/ui/re-icon";
+import ReTag from "@repo/ui/re-tag";
+import { ReAlert } from "@repo/ui/re-kit";
 import {
   fetchNginxAccessTop,
   fetchNginxOverview,
@@ -357,7 +361,7 @@ import {
   type NginxTrend,
   type NginxTrendPoint,
   type NginxUrlTrend,
-} from "../../nginx/api";
+} from "../../api/nginx/api";
 import { mergePoints, useNginxStream } from "../../nginx/useNginxStream";
 import type { TrendSeriesInput, UrlTrendSeriesInput } from "./charts/useEchart";
 import NginxTrendChart from "./charts/NginxTrendChart.vue";

@@ -105,8 +105,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReEmptyState from "@repo/ui/re-empty-state";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
-import { fetchNginxSites, type NginxSite } from "../../nginx/api";
+import ReSwitch from "@repo/ui/re-switch";
+import ReTag from "@repo/ui/re-tag";
+import { ReAlert, ReOption } from "@repo/ui/re-kit";
+import { fetchNginxSites, type NginxSite } from "../../api/nginx/api";
 
 const props = defineProps<{
   /** 数据源 ID */

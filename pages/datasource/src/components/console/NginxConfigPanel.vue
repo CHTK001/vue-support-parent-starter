@@ -232,7 +232,17 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReEmptyState from "@repo/ui/re-empty-state";
+import ReForm from "@repo/ui/re-form";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
+import ReSwitch from "@repo/ui/re-switch";
+import ReTag from "@repo/ui/re-tag";
+import { ReAlert, ReFormItem, ReOption, ReRadioButton, ReRadioGroup } from "@repo/ui/re-kit";
 import NginxModelForm from "./NginxModelForm.vue";
 import {
   applyNginxConfig,
@@ -246,7 +256,7 @@ import {
   type NginxConfigParse,
   type NginxDirectiveMeta,
   type NginxPatch,
-} from "../../nginx/api";
+} from "../../api/nginx/api";
 
 const props = defineProps<{
   /** 数据源 ID */

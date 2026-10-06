@@ -25,6 +25,49 @@ export const hostRoutes: RouteConfigsTable[] = [
     component: () => import("./views/DashboardView.vue"),
     meta: { title: "平台总览", icon: "Odometer", showLink: true, keepAlive: true, rank: 0, isVisible: "1" },
   },
+  // 数据源控制台（隐藏路由，由数据源列表点击进入；视图与 API 来自 @pages/datasource 共享包）
+  {
+    path: "/db-manager",
+    name: "CollectDbManager",
+    component: () => import("@pages/datasource/src/views/console/DatabaseManagerView.vue"),
+    meta: { title: "数据库管理", icon: "Coin", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/influxdb",
+    name: "CollectInfluxDB",
+    component: () => import("@pages/datasource/src/views/console/InfluxDBManageView.vue"),
+    meta: { title: "InfluxDB 管理", icon: "DataAnalysis", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/neo4j",
+    name: "CollectNeo4j",
+    component: () => import("@pages/datasource/src/views/console/Neo4jManageView.vue"),
+    meta: { title: "Neo4j 管理", icon: "Share", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/nacos",
+    name: "CollectNacos",
+    component: () => import("@pages/datasource/src/views/console/NacosManageView.vue"),
+    meta: { title: "Nacos 管理", icon: "Setting", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/zookeeper",
+    name: "CollectZookeeper",
+    component: () => import("@pages/datasource/src/views/console/ZookeeperManageView.vue"),
+    meta: { title: "ZooKeeper 管理", icon: "Share", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/nginx",
+    name: "CollectNginx",
+    component: () => import("@pages/datasource/src/views/console/NginxManageView.vue"),
+    meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/etc",
+    name: "CollectEtcd",
+    component: () => import("@pages/datasource/src/views/console/EtcdManageView.vue"),
+    meta: { title: "etcd 管理", icon: "Coin", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
 ];
 
 export default hostRoutes;

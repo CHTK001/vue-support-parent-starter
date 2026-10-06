@@ -17,7 +17,7 @@ import {
   type CollectColumn,
   type DataSourceInfo,
 } from "@pages/datasource";
-import { fetchDbDatabases, fetchDbTables, fetchTableColumns } from "./monitorApi";
+import { fetchDbDatabases, fetchDbTables, fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
 
 /**
  * 每个数据源在浏览时会话内选定的库。

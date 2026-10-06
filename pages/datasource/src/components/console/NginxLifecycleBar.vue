@@ -92,6 +92,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReIcon from "@repo/ui/re-icon";
+import { ReAlert } from "@repo/ui/re-kit";
 import {
   reloadNginx,
   restartNginx,
@@ -99,7 +103,7 @@ import {
   stopNginx,
   testNginx,
   type NginxCommandResult,
-} from "../../nginx/api";
+} from "../../api/nginx/api";
 
 const props = defineProps<{
   /** 数据源 ID */

@@ -85,8 +85,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
-import { fetchNginxLogChunk, fetchNginxLogFiles, type NginxLogFile } from "../../nginx/api";
+import ReSwitch from "@repo/ui/re-switch";
+import { ReAlert, ReOption } from "@repo/ui/re-kit";
+import { fetchNginxLogChunk, fetchNginxLogFiles, type NginxLogFile } from "../../api/nginx/api";
 
 const props = defineProps<{
   /** 数据源 ID */

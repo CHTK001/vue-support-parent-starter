@@ -125,6 +125,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReForm from "@repo/ui/re-form";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
+import ReSwitch from "@repo/ui/re-switch";
+import ReTag from "@repo/ui/re-tag";
+import { ReAlert, ReFormItem, ReOption } from "@repo/ui/re-kit";
 import {
   applyNginxConfig,
   fetchNginxConfigFiles,
@@ -132,7 +140,7 @@ import {
   type NginxApplyResult,
   type NginxConfigFile,
   type NginxTemplate,
-} from "../../nginx/api";
+} from "../../api/nginx/api";
 
 const props = defineProps<{
   /** 数据源 ID */
