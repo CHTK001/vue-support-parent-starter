@@ -59,6 +59,7 @@ const ROUTES = [
   { path: '/usage/sync-logs', name: 'UsageSyncLogs', settle: 9000 },
   { path: '/skills', name: 'Skills', settle: 9000 },
   { path: '/connectors', name: 'Connectors', settle: 9000 },
+  { path: '/connectors/chat/__CONN__', name: 'ConnectorChat', settle: 12000 },
   { path: '/capabilities/ocr', name: 'CapabilityOCR', settle: 12000 },
 ];
 
@@ -87,38 +88,77 @@ const CLICKABLE_SEL = [
 /** 收集可点元素并打上稳定标记，供后续逐个点击时重新定位 */
 const COLLECT = `(() => {
   const sel = ${JSON.stringify(CLICKABLE_SEL)};
-  const out = [];
-  const seenFp = new Map();
-  let i = 0;
+  // SVG 元素的 className 是 SVGAnimatedString，String() 出来全是同一个
+  // "[object SVGAnimatedString]"，指纹会全部撞在一起 —— 统一取 class 属性。
+  const clsOf = (el) => {
+    const a = el.getAttribute && el.getAttribute('class');
+    if (a != null) return String(a);
+    const b = el.className;
+    return typeof b === 'string' ? b : (b && b.baseVal) || '';
+  };
+  const nameOf = (el) => (el.getAttribute('aria-label') || el.getAttribute('title')
+    || (el.textContent || '').trim() || '').replace(/\\s+/g, ' ').slice(0, 48);
+  const disOf = (el) => el.disabled === true
+    || el.getAttribute('aria-disabled') === 'true'
+    || /is-disabled|is-disabled\\b/.test(String(el.className))
+    || /disabled/.test(String(el.className));
+
   // 清理必须放在循环**外面**：写在循环体里的话，采集到第 N 个元素时
   // 会把前 N-1 个刚打好的标记全擦掉，最后只剩最后一个元素带 data-sweep-id，
   // 于是每个 locator.click 都停在「waiting for locator」上等到超时 ——
   // 症状看着像「页面按钮全都点不动」，其实是自己把标记擦了。
   for (const old of document.querySelectorAll('[data-sweep-id]')) old.removeAttribute('data-sweep-id');
-  for (const el of document.querySelectorAll(sel)) {
+
+  const baseSet = new Set(document.querySelectorAll(sel));
+  const plan = [];
+  for (const el of baseSet) plan.push({ el, kind: 'base' });
+
+  /**
+   * 第二遍：不是 <button>/<a> 但计算样式 cursor:pointer 的容器 —— 本仓大量
+   * 可点元素是 <div @click>（侧栏导航 nav-item、技能卡片 mg-cell、分组标题、
+   * 会话行……），它们既没有 role 也没有 href，任何基于标签的选择器都抓不到。
+   * cursor 是**继承**属性，父容器 pointer 时所有子孙都会算成 pointer，
+   * 所以只取「父级不是 pointer」的最外层，避免把整棵子树重复收进来。
+   * 超过近半屏的容器视为布局容器而非控件，跳过。
+   */
+  const ptrSel = 'div,span,li,td,th,label,img,svg';
+  for (const el of document.querySelectorAll(ptrSel)) {
+    if (baseSet.has(el)) continue;
+    const cs = getComputedStyle(el);
+    if (cs.cursor !== 'pointer') continue;
+    const p = el.parentElement;
+    if (p && getComputedStyle(p).cursor === 'pointer') continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) continue;
+    if (r.width * r.height > innerWidth * innerHeight * 0.45) continue;
+    plan.push({ el, kind: 'ptr' });
+  }
+
+  const out = [];
+  const seenFp = new Map();
+  let i = 0;
+  for (const p of plan) {
+    const el = p.el;
     const r = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
     const visible = r.width >= 2 && r.height >= 2
       && cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0;
-    const disabled = el.disabled === true
-      || el.getAttribute('aria-disabled') === 'true'
-      || /is-disabled|is-disabled\b/.test(String(el.className))
-      || /disabled/.test(String(el.className));
-    const name = (el.getAttribute('aria-label') || el.getAttribute('title')
-      || (el.textContent || '').trim() || '').replace(/\\s+/g, ' ').slice(0, 48);
+    const disabled = disOf(el);
+    const name = nameOf(el);
     const id = 'sw' + (i++);
     el.setAttribute('data-sweep-id', id);
     // 同指纹（tag+class+名字）元素里的序号：同名同类按钮可能有好几个
     // （页面上两处「添加模型」），重新定位时要能挑回同一个
-    const fp = el.tagName.toLowerCase() + '|' + String(el.className || '').slice(0, 80) + '|' + name;
+    const cls = clsOf(el).slice(0, 80);
+    const fp = el.tagName.toLowerCase() + '|' + cls + '|' + name;
     const ord = seenFp.get(fp) || 0;
     seenFp.set(fp, ord + 1);
     // 命中测试：元素中心点最上面的元素是不是它自己 —— 被遮挡时 click 会报
     // "intercepts pointer events"，那种「点不动」必须当成结果记下来而不是重试到超时。
     const top = r.width && r.height ? document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) : null;
     out.push({
-      id, name, visible, disabled, ord,
-      cls: String(el.className || '').slice(0, 80),
+      id, name, visible, disabled, ord, cls,
       tag: el.tagName.toLowerCase(),
       w: Math.round(r.width), h: Math.round(r.height),
       // 侧栏 / 标题栏这类常驻框架元素在每个路由下都是同一批，
@@ -126,6 +166,7 @@ const COLLECT = `(() => {
       // 用 inChrome 标出来，由外层保证只扫一次。
       inChrome: !!el.closest('nav, aside, header, [class*="sidebar"], [class*="titlebar"]'),
       occluded: !!(top && top !== el && !el.contains(top) && !top.contains(el)),
+      extra: p.kind === 'ptr',
     });
   }
   return out;
@@ -174,6 +215,23 @@ const READ_MUT = `(() => {
 
 let RAW_TOKEN = '';
 
+/**
+ * 复位被持久化的侧栏状态。
+ *
+ * 本应用把两处布局状态写进 localStorage，点一次就**跨页面加载保留**，于是
+ * 「重新导航」恢复不到默认视图：侧栏收起（sidebarVisible=false）后整个左侧栏
+ * 被平移出视口，分组折叠（sessionGroupExpanded）后组内会话项根本不渲染——
+ * 两者都会让后面的元素被误判成「点不到 / 已消失」，看着像一片坏按钮。
+ */
+async function resetPersistedUiState(p) {
+  try {
+    await p.evaluate(() => {
+      localStorage.setItem('sidebarVisible', 'true');
+      localStorage.removeItem('sessionGroupExpanded');
+    });
+  } catch { /* 页面还没起来就忽略，随后的导航会重试 */ }
+}
+
 async function login(p) {
   for (let i = 0; i < 4; i++) {
     const onResp = async (r) => {
@@ -201,17 +259,32 @@ async function login(p) {
 
 /** 详情页要真实 id，用登录态从接口发现，不写死环境数据 */
 async function discover(p) {
-  return p.evaluate(async (token) => {
-    const H = token ? { Authorization: 'Bearer ' + token } : {};
-    const get = async (u) => { try { return await (await fetch(u, { headers: H })).json(); } catch { return null; } };
-    const kb = await get('/api/knowledge/bases');
-    const rows = kb?.data || [];
-    const kbId = rows.length ? (rows[0].knowledge_base_id || rows[0].id || '') : '';
-    const conn = await get('/api/connectors');
-    const cr = conn?.data?.list || conn?.data?.records || conn?.data || [];
-    const connId = Array.isArray(cr) && cr.length ? (cr[0].connector_id || cr[0].id || '') : '';
-    return { kbId: String(kbId), connId: String(connId) };
-  }, RAW_TOKEN);
+  // 登录后页面可能还在跳转（waitForURL 之后仍有一次 replace），evaluate 会撞上
+  // "Execution context was destroyed" —— 重试几次，每次先等 URL 稳定。
+  let lastUrl = '';
+  for (let i = 0; i < 5; i++) {
+    try {
+      await p.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
+      await sleep(1500);
+      lastUrl = p.url();
+      return await p.evaluate(async (token) => {
+        const H = token ? { Authorization: 'Bearer ' + token } : {};
+        const get = async (u) => { try { return await (await fetch(u, { headers: H })).json(); } catch { return null; } };
+        const kb = await get('/api/knowledge/bases');
+        const rows = kb?.data || [];
+        const kbId = rows.length ? (rows[0].knowledge_base_id || rows[0].id || '') : '';
+        const conn = await get('/v2/connectors/bound');
+        const cr = conn?.data?.list || conn?.data?.records || conn?.data || [];
+        const connId = Array.isArray(cr) && cr.length ? (cr[0].connector_id || cr[0].id || '') : '';
+        return { kbId: String(kbId), connId: String(connId) };
+      }, RAW_TOKEN);
+    } catch (e) {
+      console.log(`  discover retry ${i + 1}: ${String(e.message).split('\n')[0].slice(0, 120)}  url=${lastUrl.replace(BASE, '')}`);
+      await sleep(2000);
+    }
+  }
+  console.log('  discover failed after retries, continuing with empty ids');
+  return { kbId: '', connId: '' };
 }
 
 /**
@@ -267,6 +340,13 @@ async function closeOverlays(p) {
   });
   page.on('requestfailed', (r) => {
     const u = r.url().replace(BASE, '').replace(/^https?:\/\/[^/]+/, '');
+    /**
+     * 主动取消不算失败：切会话/换路由会掐断在飞请求与 SSE 流，Playwright 把它
+     * 也记成 requestfailed（net::ERR_ABORTED）。照单全收会得出「点了就报错」的
+     * 假 FAIL——真正的服务端错误仍由 4xx/5xx 响应那条线（netLog/err4xx）兜住。
+     */
+    const reason = (r.failure() && r.failure().errorText) || '';
+    if (/ERR_ABORTED/i.test(reason)) return;
     if (!NOISE.test(u)) bucket.failed.push(r.method() + ' ' + u.slice(0, 120));
   });
   page.on('dialog', (d) => d.dismiss().catch(() => {}));
@@ -293,7 +373,7 @@ async function closeOverlays(p) {
   const targets = ROUTES.filter((r) => !ONLY.length || ONLY.some((o) => r.path.includes(o) || r.name.includes(o)));
 
   for (const route of targets) {
-    const url = route.path.replace('__ID__', d.kbId);
+    const url = route.path.replace('__ID__', d.kbId).replace('__CONN__', d.connId || 'missing');
     const R = {
       route: route.path, name: route.name, url,
       total: 0, elements: [], pageErrors: [], consoleErrors: [], failed: [],
@@ -305,7 +385,33 @@ async function closeOverlays(p) {
     let gotoOk = true;
     try {
       await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
-      await sleep(route.settle);
+      // 定向后 URL 可能又被 replace（如 /bots -> /bots/management）：跟随它，
+      // 否则 settle 睡在半路上、COLLECT 撞上导航直接抛错。
+      await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
+      await sleep(1500);
+      // 再给异步内容一次机会：等 body 里出现可点元素或 settle 耗尽。
+      // 注意用「可见尺寸」的计数：/agents、/skills 这类页首屏只有框架按钮
+      // （17 个里 0 可见），主体要滚到底才挂载 —— 裸 button 计数 >0 会提前通过。
+      const deadline = Date.now() + route.settle;
+      for (;;) {
+        let n = 0;
+        try {
+          n = await page.evaluate(() => [...document.querySelectorAll('button,[role="button"]')]
+            .filter((el) => { const r = el.getBoundingClientRect(); return r.width >= 2 && r.height >= 2; }).length);
+        } catch { break; }
+        if (n > 0 || Date.now() > deadline) break;
+        await sleep(1000);
+      }
+      // 滚一遍触发懒加载：有些页面的主体内容只在滚动到视口时才挂载，
+      // 不滚的话 COLLECT 只能采到框架按钮，漏掉整页主体。
+      try {
+        for (let i = 0; i < 6; i++) {
+          await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+          await sleep(600);
+        }
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await sleep(800);
+      } catch { /* 滚动失败不影响采集 */ }
     } catch (e) {
       gotoOk = false;
       R.notes.push('打开页面失败: ' + String(e.message).slice(0, 120));
@@ -322,7 +428,8 @@ async function closeOverlays(p) {
         (t) => !NOISE.test(t) && !/Failed to load resource/i.test(t),
       );
       const loadFailed = [...bucket.failed];
-      const load5xx = netLog.filter((n) => n.status >= 500);
+      // 天气组件 503 属外网不可达的静默降级（NOISE），不能算路由的加载期错误
+      const load5xx = netLog.filter((n) => n.status >= 500 && !NOISE.test(n.url));
 
       let items = [];
       try {
@@ -335,9 +442,22 @@ async function closeOverlays(p) {
       const nameless = items.filter((i) => i.visible && !i.name);
       const collapsed = items.filter((i) => i.visible && (i.w < 8 || i.h < 8));
 
+      // COLLECT_ONLY=1：只量采集规模（新选择器在各路由收多少、多少可见），不点
+      if (process.env.COLLECT_ONLY) {
+        const vis = items.filter((i) => i.visible);
+        const ex = items.filter((i) => i.extra);
+        console.log(`  [${R.name}] total=${items.length} visible=${vis.length}`
+          + ` extra=${ex.length} extraVisible=${ex.filter((i) => i.visible).length}`
+          + ` noName=${vis.filter((i) => !i.name).length}`
+          + ` notes=${JSON.stringify(R.notes)}`);
+        report.routes.push(R);
+        fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+        continue;
+      }
+
       for (const it of items) {
         const label = it.name || '(无名)' + ' [' + it.cls.slice(0, 30) + ']';
-        const rec = { name: label, cls: it.cls, tag: it.tag, state: 'ok', effect: '', err: '' };
+        const rec = { name: label, cls: it.cls, tag: it.tag, extra: !!it.extra, state: 'ok', effect: '', err: '' };
 
         if (!it.visible) { rec.state = 'hidden'; R.elements.push(rec); continue; }
         if (!it.name) { rec.state = 'no-accessible-name'; R.elements.push(rec); warn++; continue; }
@@ -391,6 +511,7 @@ async function closeOverlays(p) {
         let renavigated = false;
         if (!target) {
           try {
+            await resetPersistedUiState(page);
             await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
             await sleep(Math.min(route.settle, 6000));
             target = await findByFingerprint();
@@ -407,9 +528,37 @@ async function closeOverlays(p) {
           clickErr = '重新导航回本路由后仍未出现（该元素只存在于某个瞬态视图里）';
         } else {
           const sel = '[data-sweep-id="' + target.id + '"]';
+          let recovered = false;
           try {
             await page.locator(sel).first().click({ timeout: 5000, noWaitAfter: true });
           } catch (e1) {
+            /**
+             * 「Element is outside of the viewport」= 布局被**本路由先前的点击**改掉了。
+             *
+             * 典型病例：Chat 路由先点到「收起侧边栏」（正常功能，必须测），
+             * 左侧栏被平移出视口后，DOM 里后续几十个 .nav-item / .session-item
+             * 仍带非零尺寸（采集阶段因此判为可见），但普通点击与 force 都够不着，
+             * 会被整批记成 FAIL —— 看着像侧栏按钮全坏，其实一个都没点到。
+             *
+             * 收起状态持久在 localStorage（useStorage('sidebarVisible')），所以光
+             * 重新导航没用：先把该键复位成展开，再回本路由重新找目标点一次。
+             */
+            if (/outside of the viewport/i.test(String(e1.message))) {
+              try {
+                await resetPersistedUiState(page);
+                await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
+                await sleep(Math.min(route.settle, 6000));
+                const again = await findByFingerprint();
+                if (!again) throw new Error('重新展开侧栏后目标仍不在本路由');
+                target = again;
+                rec.renavigated = renavigated = true;
+                await page.locator('[data-sweep-id="' + again.id + '"]').first().click({ timeout: 5000, noWaitAfter: true });
+                recovered = true;
+              } catch (e1r) {
+                e1 = e1r;
+              }
+            }
+            if (!recovered) {
             /**
              * 正常点不动时再用 force 兜一次，**必须分两级**。
              *
@@ -442,6 +591,7 @@ async function closeOverlays(p) {
                 );
               }
             }
+            }
           }
         }
         await sleep(1100);
@@ -458,7 +608,7 @@ async function closeOverlays(p) {
           // 留在 err 里会让每个按钮都挂一条一模一样的假错，把真错淹掉
           ...bucket.consoleErrors.filter((t) => !NOISE.test(t) && !/Failed to load resource/i.test(t)),
         ];
-        const err5xx = netLog.filter((n) => n.status >= 500);
+        const err5xx = netLog.filter((n) => n.status >= 500 && !NOISE.test(n.url));
         const err4xx = netLog.filter((n) => n.status >= 400 && n.status < 500 && !NOISE.test(n.url));
         const failedReq = [...bucket.failed];
 

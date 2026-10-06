@@ -212,6 +212,7 @@ import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
+import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
 
 /**
@@ -325,13 +326,19 @@ const scoreBuckets = computed(() => {
 /**
  * 缩略图 / 原图地址。
  *
- * <p>统一走 {@link resolveImageUrl}：原先这里直接 `return item.url`，漏了
- * baseURL（/v2）与令牌，浏览器把 `/image-search/9/image` 解析到前端自身
- * 且 vite 不代理该路径，搜出来的图整片 404。与底库面板共用一份实现，
+ * <p>统一走 {@link resolveImageUrl} + {@link authImages}：原先这里直接
+ * `return item.url`，漏了 baseURL（/v2）与令牌，浏览器把 `/image-search/9/image`
+ * 解析到前端自身且 vite 不代理该路径，搜出来的图整片 404。与底库面板共用一份实现，
  * 避免再次各写一份而漂移。</p>
+ *
+ * <p><b>令牌不再进 URL</b>：原先拼成 `?x-oauth-token=…`，会进浏览器历史、
+ * 访问日志和 Referer（点个外链就等于把 accessToken 送给外站）。
+ * 现在由 {@link authImages} 用 fetch 带请求头取图并转成 blob 地址。</p>
  */
+const authImages = createAuthImageLoader()
+
 function resolveThumb(item: ImageItem): string {
-  return resolveImageUrl(item)
+  return resolveImageUrl(item, authImages)
 }
 
 /**

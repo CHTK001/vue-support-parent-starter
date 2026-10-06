@@ -6,8 +6,12 @@
 
     为什么整块面板可折叠而不是只留一个图标：联想结果最多 10 条，
     常驻展开会把消息列表顶掉一大截；折叠态只占一行 24px。
+
+    为什么没有建议时整块不渲染（visible）：面板挂着一排按钮却没有内容，
+    对用户就是一块噪音 —— 没联想出结果就当它不存在，等 load/重新联想
+    拿到结果自然出现。
   -->
-  <section v-if="state" class="next-task" :class="{ 'next-task--collapsed': collapsed }">
+  <section v-if="visible && state" class="next-task" :class="{ 'next-task--collapsed': collapsed }">
     <header class="next-task__head">
       <button
         type="button"
@@ -51,9 +55,6 @@
     </header>
 
     <ul v-if="!collapsed" class="next-task__list">
-      <li v-if="!state.tasks.length && !state.message" class="next-task__empty">
-        还没有联想结果，点「重新联想」生成。
-      </li>
       <li v-for="task in state.tasks" :key="`${task.order}-${task.title}`" class="next-task__item">
         <button
           type="button"
@@ -90,6 +91,15 @@ const collapsed = ref(false)
 const refreshing = ref(false)
 /** 后端不可用（端点未上线 / 404）时不再反复请求 */
 const unsupported = ref(false)
+
+/**
+ * 是否渲染整块面板：**没有建议就什么都不显示**。
+ *
+ * 空状态占位（「还没有联想结果…」）随之去掉 —— 挂着一排按钮却没内容，
+ * 对用户只是噪音。load() 在首次开启时会自动联想一次，只要联想出结果，
+ * 面板就自己出现，不需要用户多点一步。
+ */
+const visible = computed(() => !!state.value && (state.value.tasks?.length ?? 0) > 0)
 
 const pinnedTitle = '该会话已保留开启时的取值，之后设置中心改默认值不会影响它'
 const inheritedTitle = '该会话还没有自己的取值，暂时跟随设置中心的默认值'
@@ -314,7 +324,6 @@ watch(
   line-height: 18px;
 }
 
-.next-task__empty,
 .next-task__message {
   margin: 0;
   padding: 0 10px 8px;

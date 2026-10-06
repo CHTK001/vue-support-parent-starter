@@ -47,6 +47,16 @@ export interface KnowledgeBaseApi {
   fetchKBFilesByParent(kbId: string, parentFolderId: string | null, skip?: number, limit?: number): Promise<PaginatedResponse<KBFile>>;
   fetchKBFilesByPath(kbId: string, relativePath: string | null, skip?: number, limit?: number): Promise<PaginatedResponse<KBFile>>;
   uploadKBFile(kbId: string, file: File, targetPath?: string | null): Promise<KBFile>;
+  /**
+   * 抓取网页正文并落成 Markdown 入库。
+   *
+   * <p>实现见下方对象字面量（此前只在实现里写了、漏在接口里声明，
+   * 导致 {@code vue-tsc} 报 TS2339/TS2353，阻断整包类型检查）。</p>
+   */
+  addKnowledgeWebPage(
+    kbId: string,
+    payload: { url: string; path?: string | null; maxPages?: number; title?: string | null },
+  ): Promise<any>;
   getKBFile(kbId: string, fileId: string): Promise<KBFile>;
   deleteKBFile(kbId: string, fileId: string): Promise<{ success: boolean }>;
   renameKBFile(kbId: string, fileId: string, newName: string): Promise<{ success: boolean; message: string; data: any }>;

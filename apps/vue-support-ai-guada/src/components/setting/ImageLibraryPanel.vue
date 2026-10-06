@@ -239,6 +239,7 @@ import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
+import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
 
 /**
@@ -399,11 +400,18 @@ const visibleItems = computed(() => {
 /**
  * 取可直接给 img.src 用的地址。
  *
- * <p>实现收敛在 {@link resolveImageUrl} 一处：检索页此前各写了一份并漏掉
- * baseURL 与令牌，搜出来的图整片裂开，而本面板是好的。两处共用即不会再漂移。</p>
+ * <p>实现收敛在 {@link resolveImageUrl} + {@link authImages}：检索页此前各写了一份
+ * 并漏掉 baseURL 与令牌，搜出来的图整片裂开，而本面板是好的。两处共用即不会再漂移。</p>
+ *
+ * <p><b>令牌不再进 URL</b>（原实现拼 `?x-oauth-token=…`）：
+ * 查询参数会进浏览器历史、Nginx / 网关 / WAF 日志，以及最致命的 Referer ——
+ * 本页面能跳到外链，点一下就把整个 accessToken 送出去了。
+ * 现在由 {@link authImages} 用 fetch 带请求头取图并转 blob 地址。</p>
  */
+const authImages = createAuthImageLoader()
+
 function resolveUrl(item: ImageItem): string {
-  return resolveImageUrl(item)
+  return resolveImageUrl(item, authImages)
 }
 
 /**

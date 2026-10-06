@@ -358,7 +358,7 @@
               <template v-if="row.task.referenceImage">
                 <figure class="wg-ref-box">
                   <img
-                    :src="row.task.referenceImage"
+                    :src="mediaSrc(row.task.referenceImage)"
                     alt="参考图"
                     loading="lazy"
                     :style="{ aspectRatio: refRatioOf(row.task) }"
@@ -381,7 +381,7 @@
                 >
                   <video
                     v-if="row.task.type === 'video'"
-                    :src="entry.url"
+                    :src="mediaVideoSrc(entry.url)"
                     class="wg-media"
                     controls
                     preload="metadata"
@@ -395,7 +395,7 @@
                   -->
                   <img
                     v-else
-                    :src="entry.url"
+                    :src="mediaSrc(entry.url)"
                     class="wg-media"
                     :alt="row.task.prompt"
                     loading="lazy"
@@ -748,7 +748,7 @@
                     <span class="wg-style-thumb">
                       <img
                         v-if="stylePreview(item.key)"
-                        :src="stylePreview(item.key)"
+                        :src="mediaSrc(stylePreview(item.key))"
                         :alt="item.name"
                         loading="lazy"
                       />
@@ -778,7 +778,29 @@
 import { computed, h, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { apiService } from '../../services/ApiService'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
-import { resolveReferenceImage } from '../../services/modules/generate.api'
+import { isInlineMedia, resolveReferenceImage } from '../../services/modules/generate.api'
+import { createAuthImageLoader, downloadAuthenticatedFile } from '../../utils/authImage'
+/*
+ * 内联媒体（后端存下来的字节）没有请求头可带，只能 fetch + blob 加载。
+ * withBaseUrl: false —— 出图媒体地址后端下发时就已含 /v2 前缀，再拼一次就是 /v2/v2/...。
+ */
+const mediaImages = createAuthImageLoader({ withBaseUrl: false })
+/**
+ * 媒体地址 → 可直接放进 img.src / video.src 的地址。
+ *
+ * 后端原样透传的供应商 http/https 地址不需要鉴权，直接给；
+ * 内联地址（/v2/ai/generate/tasks/...）走 blob 加载器，令牌不进 URL。
+ */
+const mediaSrc = (url: string | null | undefined): string =>
+  isInlineMedia(url) ? mediaImages.resolve(url) : (url ?? '')
+/**
+ * <video> 专用版本。
+ *
+ * 加载器未就绪时返回的 1×1 GIF 对 <video> 是**非法媒体源**（会抛媒体错误、
+ * 触发一次 error），所以这里给空串让 <video> 保持无源，等 blob 就绪后再挂上。
+ */
+const mediaVideoSrc = (url: string | null | undefined): string =>
+  isInlineMedia(url) && !mediaImages.isReady(url) ? '' : mediaSrc(url)
 /*
  * 注意：v-viewer 的 default 导出是「插件对象」（只有 install），
  * 真正可用作指令的是具名导出 directive，而它是个工厂函数，
@@ -1718,14 +1740,18 @@ const onFilePicked = async (event: Event) => {
   }
 }
 
+/**
+ * 下载出图结果。
+ *
+ * `<a href download>` 带不了请求头，内联媒体只能走 fetch + blob
+ * （令牌不进 URL，浏览器下载历史里不会留下一条带 accessToken 的地址）。
+ * 供应商直链不需要鉴权，走原生下载即可。
+ */
 const download = (url: string, type: 'image' | 'video') => {
-  const a = document.createElement('a')
-  a.href = url
-  a.download = type === 'video' ? 'generate.mp4' : 'generate.png'
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  void downloadAuthenticatedFile(
+    url,
+    type === 'video' ? 'generate.mp4' : 'generate.png',
+  )
 }
 
 const remake = (task: GenerateTask) => {

@@ -137,6 +137,12 @@ const requiredModels = ref<any[]>([]);
 const optionalModels = ref<any[]>([]);
 const configForm = reactive<Record<string, any>>({});
 const configFields = ref<any[]>([]);
+/**
+ * 配置分组：取管线自述的 {@code configGroup}（例如文生图管线落在 {@code generate} 组），
+ * 拿不到才退回路由里的 pipeline code。此前直接拿 code 当分组名去请求一个根本不存在的
+ * {@code /global-settings/{group}}，读与写双双 404，配置区一直是空的。
+ */
+const configGroup = ref('');
 
 async function loadData() {
   loading.value = true;
@@ -147,6 +153,7 @@ async function loadData() {
       const detail = detailRes?.data || detailRes || {};
       requiredCapabilities.value = detail.requiredCapabilities || [];
       optionalCapabilities.value = detail.optionalCapabilities || [];
+      configGroup.value = detail.configGroup || pipelineCode.value;
     } catch (e) {
       console.warn('管线详情加载失败', e);
     }
@@ -173,16 +180,17 @@ async function loadData() {
 async function loadConfig() {
   configLoading.value = true;
   try {
-    const res: any = await pipelineApi.config(pipelineCode.value);
-    const config = res?.data || res || {};
-    Object.keys(config).forEach((key) => {
-      configForm[key] = config[key];
+    const res: any = await pipelineApi.config(configGroup.value || pipelineCode.value);
+    // __meta 是每项的 origin/overridden 归属信息（对象），不是可编辑配置，别渲染成表单项
+    const keys = Object.keys(res || {}).filter((key) => key !== '__meta');
+    keys.forEach((key) => {
+      configForm[key] = res[key];
     });
     // 生成配置字段
-    configFields.value = Object.keys(config).map((key) => ({
+    configFields.value = keys.map((key) => ({
       key,
       label: key.replace(/_/g, ' '),
-      type: typeof config[key] === 'boolean' ? 'switch' : 'input',
+      type: typeof res[key] === 'boolean' ? 'switch' : 'input',
       secret: key.includes('key') || key.includes('secret') || key.includes('password'),
     }));
   } catch (e) {
@@ -195,7 +203,7 @@ async function loadConfig() {
 async function saveConfig() {
   savingConfig.value = true;
   try {
-    await pipelineApi.updateConfig(pipelineCode.value, configForm);
+    await pipelineApi.updateConfig(configGroup.value || pipelineCode.value, configForm);
     ElMessage.success('配置保存成功');
   } catch (e: any) {
     ElMessage.error(`保存失败: ${e.message}`);
