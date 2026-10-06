@@ -83,6 +83,10 @@
   --status-offline: var(--pulse-offline);
   --status-unknown: var(--pulse-unknown);
   --status-alarm: var(--pulse-alarm);
+  /* 纯红错误色（区别于 --status-error-text 那套「错误提示框」的深红文字）。
+     视图层大量使用 var(--status-error) 而本文件此前未定义，导致颜色声明
+     computed-value-time invalid → 退化成继承色（状态点/图标直接不可见）。 */
+  --status-error: #ff4c4c;
 
   /* 阴影 */
   --bg-hover: #f1f2f8;
@@ -248,6 +252,8 @@ html.dark {
   --status-error-bg: rgba(239, 68, 68, 0.15);
   --status-error-border: rgba(239, 68, 68, 0.3);
   --status-error-text: #fca5a5;
+  /* 暗色下纯红 #ff4c4c 对比度不足，提到 red-400 档保证状态原因仍清晰可读 */
+  --status-error: #ff6b6b;
 
   --empty-bg-gradient: rgba(109, 93, 252, 0.08);
   --focus-ring: 0 0 0 3px rgba(109, 93, 252, 0.25);
