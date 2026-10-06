@@ -46,7 +46,9 @@
         <ReTableColumn prop="paperName" label="试卷名" min-width="120" />
         <ReTableColumn prop="paperSubject" label="学科" width="100" />
         <ReTableColumn prop="paperGradeLevel" label="学段" width="100" />
-        <ReTableColumn prop="paperGrade" label="年级" width="100" />
+        <ReTableColumn label="年级" width="100">
+          <template #default="{ row }">{{ gradeDisplayName(row.paperGrade) }}</template>
+        </ReTableColumn>
         <ReTableColumn prop="paperTotalScore" label="总分" width="80" />
         <ReTableColumn prop="paperQuestionCount" label="题数" width="80" />
         <ReTableColumn prop="paperDuration" label="时长(分)" width="100" />
@@ -118,7 +120,7 @@
         <el-form-item label="年级" required>
           <el-select
             v-model="createForm.grade"
-            placeholder="请先选择学段"
+            :placeholder="createForm.gradeLevel ? '请选择年级' : '请先选择学段'"
             :disabled="!createForm.gradeLevel"
             clearable
             style="width: 100%"
@@ -200,7 +202,7 @@
         <el-form-item label="年级" required>
           <el-select
             v-model="editForm.grade"
-            placeholder="请先选择学段"
+            :placeholder="editForm.gradeLevel ? '请选择年级' : '请先选择学段'"
             :disabled="!editForm.gradeLevel"
             clearable
             style="width: 100%"
