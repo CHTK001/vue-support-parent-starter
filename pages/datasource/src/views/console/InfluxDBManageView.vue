@@ -304,9 +304,20 @@
  */
 import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import MiddlewareGap from "../components/MiddlewareGap.vue";
-import { useMiddlewareSource } from "../utils/middlewareSource";
-import { extraText } from "../utils/externalDatasource";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
+import ReForm from "@repo/ui/re-form";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReInputNumber from "@repo/ui/re-input-number";
+import ReSelect from "@repo/ui/re-select";
+import ReTable from "@repo/ui/re-table";
+import ReTag from "@repo/ui/re-tag";
+import { ReFormItem, ReOption } from "@repo/ui/re-kit";
+import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { useMiddlewareSource } from "../../utils/middlewareSource";
+import { extraText } from "../../utils/externalDatasource";
 import {
   executeInfluxdbQuery,
   fetchInfluxdbBuckets,
@@ -314,7 +325,7 @@ import {
   testInfluxdbConnection,
   type InfluxdbBucket,
   type InfluxdbMeasurement,
-} from "../monitorApi";
+} from "../../api/manageConsoles";
 import {
   createInfluxdbBucket,
   deleteInfluxdbBucket,
@@ -322,7 +333,7 @@ import {
   updateInfluxdbBucketRetention,
   writeInfluxdbPoints,
   type InfluxdbOrg,
-} from "../influxdbNginxApi";
+} from "../../api/influxdbNginxApi";
 
 /** ReTable 列定义 */
 type Column = { prop: string; label: string; width?: number; minWidth?: number; slot?: string; fixed?: string; align?: string };
@@ -370,7 +381,7 @@ const bucketColumns: Column[] = [
   { prop: "name", label: "存储桶名称", minWidth: 180 },
   { prop: "retentionHours", label: "保留时长(h)", width: 120 },
   { prop: "createdAt", label: "创建时间", minWidth: 170 },
-  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right", align: "center" },
 ];
 const measurementColumns: Column[] = [
   { prop: "name", label: "度量名称", minWidth: 160 },
@@ -1172,7 +1183,7 @@ watch(source, applyConnectionInfo);
 .dsm-row-ops {
   display: flex;
   gap: 4px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .dsm-form-hint {

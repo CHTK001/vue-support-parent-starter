@@ -1716,7 +1716,20 @@
  */
 import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
 import { EditPen, CopyDocument, Delete, RefreshRight } from "@element-plus/icons-vue";
-import DbSqlEditor from "../components/DbSqlEditor.vue";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
+import ReForm from "@repo/ui/re-form";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReInputNumber from "@repo/ui/re-input-number";
+import RePagination from "@repo/ui/re-pagination";
+import ReSelect from "@repo/ui/re-select";
+import ReSwitch from "@repo/ui/re-switch";
+import ReTable from "@repo/ui/re-table";
+import ReRelationGraph from "@repo/ui/re-relation-graph";
+import { ReFormItem, ReOption } from "@repo/ui/re-kit";
+import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -1745,7 +1758,7 @@ import {
   type DbErRelation,
   compareDbStructure,
   type DbStructureDiffItem,
-} from "../monitorApi";
+} from "../../api/manageConsoles";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
 import {
   updateDbCell,
@@ -1777,7 +1790,7 @@ import {
   updateDbTableOptions,
   fetchDbTableOptionValues,
   setDbTablePrimaryKey,
-} from "../dbManageApi";
+} from "../../api/dbManageApi";
 import {
   loadViewPref,
   saveViewPref,
@@ -1786,7 +1799,7 @@ import {
   clearTablePref,
   pruneTablePrefs,
   resetAllPrefs,
-} from "../dbViewPref";
+} from "../../api/dbViewPref";
 import {
   executeDbSqlBatch,
   scanSqlParams,
@@ -1796,7 +1809,7 @@ import {
   fetchDbTxStatus,
   type DbBatchResult,
   type DbStatementResult,
-} from "../dbQueryApi";
+} from "../../api/dbQueryApi";
 
 const route = useRoute();
 

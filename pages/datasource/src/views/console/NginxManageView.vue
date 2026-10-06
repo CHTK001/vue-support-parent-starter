@@ -135,16 +135,20 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import MiddlewareGap from "../components/MiddlewareGap.vue";
-import NginxLifecycleBar from "../components/nginx/NginxLifecycleBar.vue";
-import NginxOverviewPanel from "../components/nginx/NginxOverviewPanel.vue";
-import NginxSitePanel from "../components/nginx/NginxSitePanel.vue";
-import NginxConfigPanel from "../components/nginx/NginxConfigPanel.vue";
-import NginxLogPanel from "../components/nginx/NginxLogPanel.vue";
-import NginxBackupPanel from "../components/nginx/NginxBackupPanel.vue";
-import NginxTemplatePanel from "../components/nginx/NginxTemplatePanel.vue";
-import { useMiddlewareSource } from "../utils/middlewareSource";
-import { fetchNginxOverview, fetchNginxSources, type NginxOverview, type NginxSite } from "../nginx/api";
+import ReButton from "@repo/ui/re-button";
+import ReIcon from "@repo/ui/re-icon";
+import ReSelect from "@repo/ui/re-select";
+import { ReAlert, ReOption, ReRadioButton, ReRadioGroup } from "@repo/ui/re-kit";
+import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import NginxLifecycleBar from "../../components/console/NginxLifecycleBar.vue";
+import NginxOverviewPanel from "../../components/console/NginxOverviewPanel.vue";
+import NginxSitePanel from "../../components/console/NginxSitePanel.vue";
+import NginxConfigPanel from "../../components/console/NginxConfigPanel.vue";
+import NginxLogPanel from "../../components/console/NginxLogPanel.vue";
+import NginxBackupPanel from "../../components/console/NginxBackupPanel.vue";
+import NginxTemplatePanel from "../../components/console/NginxTemplatePanel.vue";
+import { useMiddlewareSource } from "../../utils/middlewareSource";
+import { fetchNginxOverview, fetchNginxSources, type NginxOverview, type NginxSite } from "../../api/nginx/api";
 
 type Instance = InstanceType<typeof NginxConfigPanel>;
 

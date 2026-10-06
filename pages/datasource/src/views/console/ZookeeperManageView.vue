@@ -290,8 +290,17 @@
  */
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import MiddlewareGap from "../components/MiddlewareGap.vue";
-import { useMiddlewareSource } from "../utils/middlewareSource";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReSwitch from "@repo/ui/re-switch";
+import ReTable from "@repo/ui/re-table";
+import ReTag from "@repo/ui/re-tag";
+import ReRelationGraph from "@repo/ui/re-relation-graph";
+import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   createZkNode,
   deleteZkNode,
@@ -302,7 +311,7 @@ import {
   updateZkNode,
   type ZkChildNode,
   type ZkNodeDetail,
-} from "../monitorApi";
+} from "../../api/manageConsoles";
 import {
   deleteZkNodeRecursive,
   fetchZkCluster,
@@ -310,7 +319,7 @@ import {
   type ZkClusterNode,
   type ZkNodeAcl,
   type ZkNodeDetailFull,
-} from "../zkNacosApi";
+} from "../../api/zkNacosApi";
 
 /** 侧栏扁平树节点 */
 interface FlatNode {

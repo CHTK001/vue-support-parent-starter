@@ -281,8 +281,17 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import MiddlewareGap from "../components/MiddlewareGap.vue";
-import { useMiddlewareSource } from "../utils/middlewareSource";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
+import ReForm from "@repo/ui/re-form";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReTable from "@repo/ui/re-table";
+import ReTag from "@repo/ui/re-tag";
+import { ReFormItem } from "@repo/ui/re-kit";
+import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   executeNeo4jQuery,
   fetchNeo4jLabels,
@@ -290,7 +299,7 @@ import {
   testNeo4jConnection,
   type Neo4jLabel,
   type Neo4jRelationship,
-} from "../monitorApi";
+} from "../../api/manageConsoles";
 
 /** ReTable 列定义 */
 type Column = { prop: string; label: string; width?: number | string; minWidth?: number; slot?: string };

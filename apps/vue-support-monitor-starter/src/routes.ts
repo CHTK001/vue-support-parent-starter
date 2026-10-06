@@ -255,7 +255,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
   {
     path: "/influxdb",
     name: "InfluxDB",
-    component: () => import("./views/InfluxDBManageView.vue"),
+    component: () => import("@pages/datasource/src/views/console/InfluxDBManageView.vue"),
     meta: { title: "InfluxDB 管理", icon: "DataAnalysis", showLink: false, activeMenu: "/datasource" },
   },
   {
@@ -268,31 +268,31 @@ export const monitorRoutes: RouteConfigsTable[] = [
   {
     path: "/etcd",
     name: "Etcd",
-    component: () => import("./views/EtcdManageView.vue"),
+    component: () => import("@pages/datasource/src/views/console/EtcdManageView.vue"),
     meta: { title: "etcd 管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
   },
   {
     path: "/neo4j",
     name: "Neo4j",
-    component: () => import("./views/Neo4jManageView.vue"),
+    component: () => import("@pages/datasource/src/views/console/Neo4jManageView.vue"),
     meta: { title: "Neo4j 管理", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
   {
     path: "/nacos",
     name: "Nacos",
-    component: () => import("./views/NacosManageView.vue"),
+    component: () => import("@pages/datasource/src/views/console/NacosManageView.vue"),
     meta: { title: "Nacos 管理", icon: "Setting", showLink: false, activeMenu: "/datasource" },
   },
   {
     path: "/zookeeper",
     name: "Zookeeper",
-    component: () => import("./views/ZookeeperManageView.vue"),
+    component: () => import("@pages/datasource/src/views/console/ZookeeperManageView.vue"),
     meta: { title: "ZooKeeper 管理", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
   {
     path: "/nginx",
     name: "Nginx",
-    component: () => import("./views/NginxManageView.vue"),
+    component: () => import("@pages/datasource/src/views/console/NginxManageView.vue"),
     meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/datasource" },
   },
   {
@@ -301,7 +301,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
     // 挂在分组 children 下时该过滤不递归、菜单组件也不校验子项 showLink，会被渲染出来。
     path: "/db-manager",
     name: "DbManager",
-    component: () => import("./views/DatabaseManagerView.vue"),
+    component: () => import("@pages/datasource/src/views/console/DatabaseManagerView.vue"),
     meta: { title: "数据库管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
   },
   {

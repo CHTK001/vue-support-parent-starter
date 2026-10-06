@@ -180,7 +180,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReEmptyState from "@repo/ui/re-empty-state";
+import ReForm from "@repo/ui/re-form";
+import ReIcon from "@repo/ui/re-icon";
+import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
+import ReTab from "@repo/ui/re-tab";
+import { ReAlert, ReFormItem, ReOption } from "@repo/ui/re-kit";
 import {
   backupNginxConfig,
   fetchNginxBackupContent,
@@ -191,7 +199,7 @@ import {
   type NginxBackup,
   type NginxBackupDiff,
   type NginxConfigFile,
-} from "../../nginx/api";
+} from "../../api/nginx/api";
 
 const props = defineProps<{
   /** 数据源 ID */

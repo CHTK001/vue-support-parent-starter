@@ -12,6 +12,8 @@
  * @author CH
  * @since 4.0.0
  */
+import ReButton from "@repo/ui/re-button";
+import ReIcon from "@repo/ui/re-icon";
 defineProps<{ text: string }>();
 defineEmits<{ (e: "retry"): void }>();
 </script>
