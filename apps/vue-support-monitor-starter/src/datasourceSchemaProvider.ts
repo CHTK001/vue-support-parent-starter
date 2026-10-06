@@ -56,6 +56,11 @@ function pickDatabaseCandidates(meta: DataSourceInfo | null, databases: string[]
   push(configured);
   push(databases.find(name => !SYSTEM_DATABASES.has(name.toLowerCase())));
   databases.forEach(name => push(name));
+  // 文件库（SQLite）没有「库」概念，服务端返回 []：兜一个空串候选，
+  // 走「默认库」链路（fetchDbTables(id, ""))拉表，弹窗才不至于空手而归
+  if (!ordered.length) {
+    ordered.push("");
+  }
   return ordered.slice(0, 3);
 }
 

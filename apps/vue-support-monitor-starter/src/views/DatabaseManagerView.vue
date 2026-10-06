@@ -47,7 +47,7 @@
               >
                 <ReIcon :name="expandedNodes.has('db:' + db) ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-arrow" />
                 <ReIcon name="Coin" :size="15" class="dbm-tree-icon dbm-db-icon" />
-                <span class="dbm-tree-label">{{ db }}</span>
+                <span class="dbm-tree-label">{{ dbLabel(db) }}</span>
               </div>
 
               <!-- 表 / 视图（挂在本库之下，Navicat 式分组） -->
@@ -504,7 +504,7 @@
               <ReButton layout="square" icon="Upload" tip="打开 SQL 文件" @click="openSqlFile" />
               <ReButton layout="square" icon="Clock" tip="查询历史" @click="toggleHistory" />
               <ReSelect v-model="activeTabObj.database" placeholder="目标库" style="width: 200px">
-                <ReOption v-for="db in databases" :key="db" :label="db" :value="db" />
+                <ReOption v-for="db in databases" :key="db" :label="dbLabel(db)" :value="db" />
               </ReSelect>
               <!-- 打开 .sql：隐藏的原生 file input。不能用按钮直接触发，
                    因为要拿到 file 对象必须走 input[type=file] 的 change 事件 -->
@@ -850,14 +850,14 @@
           <span class="dbm-sync-side">
             源库
             <ReSelect v-model="syncSourceDb" placeholder="源库" class="dbm-sync-select">
-              <ReOption v-for="db in databases" :key="'s' + db" :label="db" :value="db" />
+              <ReOption v-for="db in databases" :key="'s' + db" :label="dbLabel(db)" :value="db" />
             </ReSelect>
           </span>
           <ReIcon name="Right" :size="16" />
           <span class="dbm-sync-side">
             目标库
             <ReSelect v-model="syncTargetDb" placeholder="目标库" class="dbm-sync-select">
-              <ReOption v-for="db in databases" :key="'t' + db" :label="db" :value="db" />
+              <ReOption v-for="db in databases" :key="'t' + db" :label="dbLabel(db)" :value="db" />
             </ReSelect>
           </span>
           <ReInput
@@ -5094,9 +5094,19 @@ async function onDatasourceChange() {
   await loadTree();
 }
 
+/** 树/下拉的展示名：文件库兜底出的空串库位显示「默认库」（值仍传 ""，链路不变） */
+function dbLabel(db: string) {
+  return db || "默认库";
+}
+
 async function loadTree() {
   try {
     databases.value = await fetchDbDatabases(currentDatasourceId.value);
+    // 文件库（SQLite）没有「库」概念，接口返回 []：兜一个空串占位库，
+    // 让树有根、首节点展开后走 fetchDbTables(id, "") 直连默认库拉表
+    if (!databases.value.length) {
+      databases.value = [""];
+    }
     if (databases.value.length > 0) {
       expandedNodes.value.add("db:" + databases.value[0]);
       await loadTables(databases.value[0]);
