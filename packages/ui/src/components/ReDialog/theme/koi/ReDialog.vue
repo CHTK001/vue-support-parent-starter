@@ -45,6 +45,14 @@ const props = withDefaults(
     /** 打开时是否全屏（可用右上角按钮切换） */
     fullscreen?: boolean;
     loading?: boolean;
+    /**
+     * 底部区域（自带「确定/取消」按钮）控制，三态：
+     *   - undefined（未传，新默认）：底部只在业务提供 #footer 插槽时渲染插槽内容，
+     *     自带按钮默认不渲染；业务要自带按钮需显式传 footer-hidden="false"，
+     *     或自己写 footer 插槽。
+     *   - false：渲染自带「确定/取消」按钮（提供 #footer 插槽时插槽内容优先）—— 显式开启。
+     *   - true：整个底部区域不渲染（即使有 #footer 插槽，与历史语义一致）。
+     */
     footerHidden?: boolean;
     /** 是否显示右上角窗口壳操作区（收起 / 全屏 / 关闭） */
     showWindowShell?: boolean;
@@ -84,7 +92,10 @@ const props = withDefaults(
     destroyOnClose: false,
     fullscreen: false,
     loading: false,
-    footerHidden: false,
+    // footerHidden 必须显式给 default: undefined —— Boolean prop「未传且无默认值」
+    // 会被 Vue 强转成 false（runtime-core resolvePropValue: isAbsent && !hasDefault → false），
+    // 三态里的「未传」将永远不可达；default: undefined 使 hasOwn(default) 成立、跳过强转。
+    footerHidden: undefined,
     showWindowShell: true,
     showMinimize: false,
     showFullscreen: false,
@@ -250,9 +261,13 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         <slot></slot>
       </slot>
     </div>
-     <template v-if="!footerHidden" #footer>
+    <!-- 底部区域三态：未传=仅业务 #footer 插槽时渲染；false=渲染自带按钮；true=整个不渲染 -->
+    <template
+      v-if="footerHidden === false || (footerHidden !== true && !!$slots.footer)"
+      #footer
+    >
       <slot name="footer" v-bind="{ confirm: koiConfirm, cancel: koiCancel, loading: confirmLoading }">
-        <span class="dialog-footer">
+        <span v-if="footerHidden === false" class="dialog-footer">
           <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
             {{ confirmText || "确定" }}
           </el-button>

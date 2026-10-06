@@ -9,7 +9,8 @@
  *   - fullscreenable：右上角显示全屏切换
  *   - confirmLoading：确认按钮 loading 态（常用于提交场景）
  *   - cancelText / okText：确认/取消按钮文案
- *   - 默认带 footer 插槽 + 取消/确认按钮，无需每次写
+ *   - footer 三态：未传时只渲染业务自定义 #footer 插槽、不渲染自带按钮；
+ *     show-footer / footer-hidden 显式开启才出自带「取消/确认」按钮
  *   - headless：隐藏 header，右上角圆形关闭按钮替代（圆心定位）
  *   - responsive：基于 @vueuse/core 自动响应式（移动端默认全屏）
  *
@@ -63,8 +64,16 @@ const props = withDefaults(
     showOk?: boolean;
     /** 是否显示取消按钮（默认 true） */
     showCancel?: boolean;
-    /** 是否显示默认 footer（确认/取消按钮） */
+    /**
+     * 底部区域（自带确认/取消按钮）三态：
+     *   - undefined（未传，新默认）：只在业务提供 #footer 插槽时渲染插槽内容，
+     *     自带按钮默认不渲染；要自带按钮需显式传 show-footer（或 footer-hidden=false）。
+     *   - true：渲染自带按钮（提供 #footer 插槽时插槽内容优先）。
+     *   - false：整个底部区域不渲染（即使有 #footer 插槽，与历史显式传 false 语义一致）。
+     */
     showFooter?: boolean;
+    /** showFooter 的反义别名（koi 主题惯用写法），两者同时传时以 showFooter 为准 */
+    footerHidden?: boolean;
     /** 无头模式：隐藏 header，右上角圆形关闭 FAB 替代（圆心在右上角） */
     headless?: boolean;
     /** 启用响应式（移动端自动全屏）；默认 true */
@@ -97,7 +106,11 @@ const props = withDefaults(
     cancelText: "取消",
     showOk: true,
     showCancel: true,
-    showFooter: true,
+    // showFooter / footerHidden 必须显式 default: undefined：Boolean prop「未传且无默认值」
+    // 会被 Vue 强转成 false（resolvePropValue: isAbsent && !hasDefault → false），
+    // footerMode 的「未传」分支将永远不可达，业务自定义 #footer 插槽也会被误吞。
+    showFooter: undefined,
+    footerHidden: undefined,
     headless: false,
     responsive: true,
     mobileBreakpoint: 768,
@@ -112,6 +125,16 @@ const emit = defineEmits<{
   (e: "cancel"): void;
   (e: "fullscreen-change", v: boolean): void;
 }>();
+
+/**
+ * footer 三态归一：true=渲染自带按钮 / false=整个底部不渲染 / undefined=未传
+ * （只渲染业务 #footer 插槽，不渲染自带按钮）。
+ */
+const footerMode = computed<boolean | undefined>(() => {
+  if (props.showFooter !== undefined) return props.showFooter;
+  if (props.footerHidden !== undefined) return !props.footerHidden;
+  return undefined;
+});
 
 /* ===== 全屏状态 ===== */
 const isFullscreen = ref<boolean>(props.fullscreen);
@@ -253,7 +276,7 @@ const showCloseFab = computed(() => props.headless);
     :cancel-text="cancelText"
     :show-ok="showOk"
     :show-cancel="showCancel"
-    :show-footer="showFooter"
+    :show-footer="footerMode"
     :headless="headless"
     :mobile-breakpoint="mobileBreakpoint"
     :compact="compact"
@@ -320,11 +343,13 @@ const showCloseFab = computed(() => props.headless);
 
     <slot />
 
-    <!-- 默认 footer -->
-    <template v-if="showFooter" #footer>
+    <!-- footer 三态：显式 false=不渲染；true=渲染自带按钮；未传=只渲染业务 #footer 插槽 -->
+    <template v-if="footerMode !== false && (footerMode === true || !!$slots.footer)" #footer>
       <slot name="footer" :ok="onOk" :cancel="onCancel">
-        <ElButton v-if="showCancel" @click="onCancel">{{ cancelText }}</ElButton>
-        <ElButton v-if="showOk" type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
+        <template v-if="footerMode === true">
+          <ElButton v-if="showCancel" @click="onCancel">{{ cancelText }}</ElButton>
+          <ElButton v-if="showOk" type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
+        </template>
       </slot>
     </template>
 

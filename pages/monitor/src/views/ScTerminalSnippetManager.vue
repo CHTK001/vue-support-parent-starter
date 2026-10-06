@@ -23,7 +23,7 @@
       </ReEmpty>
     </ReCard>
 
-    <ReDialog v-model="showDialog" :title="editId ? '编辑片段' : '新增片段'" width="500" :height="360" confirm-text="保存" cancel-text="取消" @confirm="handleSubmit" @cancel="showDialog = false">
+    <ReDialog v-model="showDialog" :title="editId ? '编辑片段' : '新增片段'" width="500" :height="360" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="handleSubmit" @cancel="showDialog = false">
       <ReForm :model="form" label-position="top">
         <ReFormItem label="名称">
           <ReInput v-model="form.name" placeholder="例如：重启服务" />

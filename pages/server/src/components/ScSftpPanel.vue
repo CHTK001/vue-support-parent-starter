@@ -361,7 +361,7 @@ async function removeBookmark(id: number): Promise<void> {
     </div>
 
     <!-- 文本编辑器 -->
-    <ReDialog v-model="editorVisible" :title="editorPath" width="760" :height="560" confirm-text="保存" cancel-text="取消" @confirm="saveEditor" @cancel="editorVisible = false">
+    <ReDialog v-model="editorVisible" :title="editorPath" width="760" :height="560" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="saveEditor" @cancel="editorVisible = false">
       <ReAlert
         v-if="editorTruncated"
         title="文件过大，仅加载前 1MB 内容；保存将覆盖完整文件，请谨慎操作"

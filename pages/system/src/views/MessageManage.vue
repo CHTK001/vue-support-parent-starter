@@ -1047,7 +1047,7 @@ onMounted(() => {
       layout="modern"
       compact
       :confirm-loading="sendSaving"
-      @ok="handleSend"
+      :footer-hidden="false" @ok="handleSend"
     >
       <el-form label-width="90px" :model="sendForm">
         <el-form-item label="模板选择">
@@ -1132,7 +1132,7 @@ onMounted(() => {
       destroy-on-close
       layout="modern"
       :confirm-loading="tplSaving"
-      @ok="handleTplSubmit"
+      :footer-hidden="false" @ok="handleTplSubmit"
     >
       <el-form :model="tplForm" label-position="top">
         <el-alert
@@ -1346,7 +1346,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       :confirm-loading="tplSendLoading"
-      @ok="doTplSend"
+      :footer-hidden="false" @ok="doTplSend"
     >
       <el-form :model="tplSendForm" label-position="top">
         <el-form-item label="接收角色（多选）">
@@ -1442,7 +1442,7 @@ onMounted(() => {
       width="480px"
       :close-on-click-modal="false"
       :confirm-loading="logCleanLoading"
-      @ok="doLogClean"
+      :footer-hidden="false" @ok="doLogClean"
     >
       <el-form label-position="top">
         <el-form-item label="清理截止日期之前的日志" required>

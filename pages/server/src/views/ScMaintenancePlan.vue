@@ -179,7 +179,7 @@ function hostNames(ids?: string): string {
       </ReTableColumn>
     </ReTable>
 
-    <ReDialog v-model="formVisible" :title="editingId ? '编辑计划' : '新建计划'" width="560" :height="520" confirm-text="保存" cancel-text="取消" @confirm="submitForm" @cancel="formVisible = false">
+    <ReDialog v-model="formVisible" :title="editingId ? '编辑计划' : '新建计划'" width="560" :height="520" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="submitForm" @cancel="formVisible = false">
       <ReForm label-width="100px" label-position="right">
         <ReFormItem label="计划名称" required>
           <ReInput v-model="form.planName" placeholder="如 核心服务升级" />

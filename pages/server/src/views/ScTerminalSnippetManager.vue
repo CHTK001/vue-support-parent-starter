@@ -21,7 +21,7 @@
     </ReTable>
 
     <!-- 新增/编辑弹窗 -->
-    <ReDialog v-model="dialogVisible" :title="editing ? '编辑片段' : '新增片段'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="save" @cancel="dialogVisible = false">
+    <ReDialog v-model="dialogVisible" :title="editing ? '编辑片段' : '新增片段'" width="520" :height="380" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="save" @cancel="dialogVisible = false">
       <ReForm :model="formData" label-width="100px" label-position="right">
         <ReFormItem label="片段名称" required>
           <ReInput v-model="formData.msTerminalSnippetName" />

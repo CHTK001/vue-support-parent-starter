@@ -652,7 +652,7 @@ onUnmounted(() => {
       layout="modern"
       compact
       :confirm-loading="dictSaving"
-      @ok="handleDictSubmit"
+      :footer-hidden="false" @ok="handleDictSubmit"
     >
       <el-form label-width="90px" :model="dictForm">
         <el-form-item label="字典名称" required>
@@ -696,7 +696,7 @@ onUnmounted(() => {
       layout="modern"
       compact
       :confirm-loading="itemSaving"
-      @ok="handleItemSubmit"
+      :footer-hidden="false" @ok="handleItemSubmit"
     >
       <el-form label-width="90px" :model="itemForm">
         <el-form-item label="名称" required>

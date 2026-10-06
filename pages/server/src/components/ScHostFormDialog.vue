@@ -270,7 +270,7 @@ function onSubmit(): void {
     width="680"
     confirm-text="保存"
     cancel-text="取消"
-    @confirm="onSubmit"
+    :footer-hidden="false" @confirm="onSubmit"
     @cancel="visible = false"
   >
     <ReForm label-position="top" class="host-form" @submit.prevent="onSubmit">

@@ -360,7 +360,7 @@ onMounted(() => {
       </template>
     </ReTable>
 
-    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '新增公告'" width="700px" @confirm="handleSave" :confirm-loading="saving">
+    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '新增公告'" width="700px" :footer-hidden="false" @confirm="handleSave" :confirm-loading="saving">
       <el-form :model="form" label-position="top" class="ann-form">
         <!-- 编辑时：只读展示当前状态（状态由 发布/下架 动作控制） -->
         <div v-if="isEdit" class="ann-form__status">

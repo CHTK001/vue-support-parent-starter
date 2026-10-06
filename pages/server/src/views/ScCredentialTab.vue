@@ -479,7 +479,7 @@ async function viewMessage(email: any): Promise<void> {
     </ReRow>
 
     <!-- 密钥表单 -->
-    <ReDialog v-model="keyFormVisible" :title="editingKeyId ? '编辑密钥' : '新增密钥'" width="560" :height="420" confirm-text="保存" cancel-text="取消" @confirm="submitKey" @cancel="keyFormVisible = false">
+    <ReDialog v-model="keyFormVisible" :title="editingKeyId ? '编辑密钥' : '新增密钥'" width="560" :height="420" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="submitKey" @cancel="keyFormVisible = false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
           <ReInput v-model="keyForm.msServerKeyName" placeholder="如 ubuntu-prod-key" />
@@ -505,7 +505,7 @@ async function viewMessage(email: any): Promise<void> {
     </ReDialog>
 
     <!-- 身份表单 -->
-    <ReDialog v-model="identityFormVisible" :title="editingIdentityId ? '编辑身份' : '新增身份'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="submitIdentity" @cancel="identityFormVisible = false">
+    <ReDialog v-model="identityFormVisible" :title="editingIdentityId ? '编辑身份' : '新增身份'" width="520" :height="380" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="submitIdentity" @cancel="identityFormVisible = false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
           <ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />

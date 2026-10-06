@@ -269,7 +269,7 @@ defineExpose({ reload: load });
       layout="modern"
       compact
       :confirm-loading="saving"
-      @ok="handleSubmit"
+      :footer-hidden="false" @ok="handleSubmit"
     >
       <el-form label-width="100px" :model="form">
         <!-- 每个控件都补 aria-label：el-form-item 的 label 只是「视觉标签」，

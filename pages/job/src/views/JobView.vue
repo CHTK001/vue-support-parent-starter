@@ -1566,6 +1566,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
       :title="formMode === 'create' ? '新建调度任务' : formMode === 'flow' ? '编辑流程调度' : `编辑任务 · ${form.jobKey}`"
       width="820px"
       top="6vh"
+      :footer-hidden="false"
       @ok="submit"
     >
       <ReForm

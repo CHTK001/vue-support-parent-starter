@@ -767,7 +767,7 @@ onBeforeUnmount(destroySortables);
       width="440"
       layout="modern"
       compact
-      @ok="submitSensitive"
+      :footer-hidden="false" @ok="submitSensitive"
     >
       <ReInput
         layout="modern"
@@ -783,7 +783,7 @@ onBeforeUnmount(destroySortables);
       :title="textRow ? settingLabel(textRow) : '编辑'"
       width="680"
       layout="modern"
-      @ok="submitText"
+      :footer-hidden="false" @ok="submitText"
     >
       <el-input
         v-model="textValue"

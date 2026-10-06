@@ -73,7 +73,7 @@ function onConnect(): void {
     :height="340"
     confirm-text="连接"
     cancel-text="取消"
-    @confirm="onConnect"
+    :footer-hidden="false" @confirm="onConnect"
     @cancel="visible = false"
   >
     <ReDescriptions v-if="host" :column="1" border style="margin-bottom: 16px">
