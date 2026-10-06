@@ -88,10 +88,37 @@ const apiTargetSelfCheck = (): PluginOption => ({
   },
 });
 
+/**
+ * dev 代理统一剥掉 `Origin` 头。
+ *
+ * <p>后端 `plugin.oauth.cors.allowed-origins` 是白名单（只列 8848 系地址），
+ * 浏览器同源 POST 会带 `Origin: http://<本机端口>`，端口不在白名单时
+ * Spring 直接回 403 `Invalid CORS request`（GET 不带 Origin 不受影响，
+ * 这就是「读全绿、写全 403」的分裂）。dev 下页面与代理**同源**，
+ * 浏览器根本不校验 ACAO 响应头，所以在进 proxy 前把 Origin 摘掉即可：
+ * 任何端口都能开发，也不用动共享后端的白名单。</p>
+ */
+function dropProxyOrigin(): PluginOption {
+  return {
+    name: "ms-api-drop-proxy-origin",
+    configureServer(server) {
+      // configureServer 普通钩子注册的中间件**早于** vite proxy
+      // （createVite 里的导航中间件同此机制），proxy 看到的已是无 Origin 的请求
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url ?? "";
+        if (url.startsWith("/ms/") || url.startsWith("/v2/") || url.startsWith("/api/device")) {
+          delete req.headers.origin;
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
-  plugins: [apiTargetSelfCheck()],
+  plugins: [apiTargetSelfCheck(), dropProxyOrigin()],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。
   // 注意：业务代码以 "@pages/server/src/api" 形式引用，alias 目标应指向页面根（pages/server），
