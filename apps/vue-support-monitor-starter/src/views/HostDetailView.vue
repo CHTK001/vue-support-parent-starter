@@ -17,6 +17,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useSocketService } from "@repo/core";
 import * as echarts from "echarts";
 import { Loading } from "@element-plus/icons-vue";
@@ -27,7 +28,7 @@ import {
   type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
 import { getHost } from "@pages/server/src/api";
-import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, type HostProfile } from "../monitorApi";
+import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../monitorApi";
 
 const route = useRoute();
 const router = useRouter();
@@ -568,11 +569,14 @@ watch(() => route.params.id, id => {
   hostRecord.value = null;
   if (histChart) { histChart.dispose(); histChart = null; }
   resetMetrics();
+  resetProfilePager();
+  profileRows.value = [];
   void (async () => {
     await loadHostRecord();      // 即时种子
     await loadHostBaseHistory(); // 近1h历史基础
     await resolveAsset();       // 解析监控项（监控项24h覆盖）
     await refreshNow(true);     // 强制新鲜采集（含网络）
+    void loadProfileSection();  // 画像分区随主机切换重拉
   })();
 });
 onMounted(() => {
@@ -584,6 +588,7 @@ onMounted(() => {
     await resolveAsset();
     await refreshNow(true);
     void loadAiStatus();
+    void loadProfileSection();
   })();
 });
 onBeforeUnmount(() => {
@@ -978,6 +983,182 @@ watch(swDetailVisible, (v) => {
 onBeforeUnmount(() => {
   if (swDetailChart) { swDetailChart.dispose(); swDetailChart = null; }
 });
+
+// ---------------- 画像分区（与 HostProfileView 同口径：ports/processes/services/disks/network/env/firewall） ----------------
+/** 分区定义：单主机详情无需左侧列表，直接沿用画像分区的列与动作 */
+type ProfileSection = "ports" | "processes" | "services" | "disks" | "network" | "env" | "firewall";
+const PROFILE_SECTIONS: Array<{ name: ProfileSection; label: string }> = [
+  { name: "ports", label: "监听端口" },
+  { name: "processes", label: "进程" },
+  { name: "services", label: "服务" },
+  { name: "disks", label: "磁盘" },
+  { name: "network", label: "网络" },
+  { name: "env", label: "环境变量" },
+  { name: "firewall", label: "防火墙" },
+];
+/** 各分区的列定义（与 HostProfileView.COLUMNS 同口径，防火墙按后端 FirewallRuleRowVO 补列） */
+const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string }>> = {
+  ports: [
+    { key: "protocol", label: "协议" },
+    { key: "local", label: "监听地址" },
+    { key: "port", label: "端口" },
+    { key: "state", label: "状态" },
+    { key: "pid", label: "PID" },
+    { key: "process", label: "进程" },
+  ],
+  processes: [
+    { key: "pid", label: "PID" },
+    { key: "name", label: "进程名" },
+    { key: "cpu", label: "CPU%" },
+    { key: "memory", label: "内存(MB)" },
+    { key: "threads", label: "线程" },
+    { key: "command", label: "命令行" },
+  ],
+  services: [
+    { key: "name", label: "服务名" },
+    { key: "displayName", label: "显示名" },
+    { key: "state", label: "状态" },
+    { key: "startType", label: "启动类型" },
+    { key: "pid", label: "PID" },
+  ],
+  disks: [
+    { key: "mount", label: "挂载点" },
+    { key: "name", label: "名称" },
+    { key: "fsType", label: "类型" },
+    { key: "totalGb", label: "容量(GB)" },
+    { key: "usedGb", label: "已用(GB)" },
+    { key: "availGb", label: "可用(GB)" },
+    { key: "usage", label: "使用率%" },
+  ],
+  network: [
+    { key: "name", label: "网卡" },
+    { key: "status", label: "状态" },
+    { key: "mac", label: "MAC" },
+    { key: "ipv4", label: "IPv4" },
+    { key: "ipv6", label: "IPv6" },
+    { key: "mtu", label: "MTU" },
+    { key: "speed", label: "速率" },
+  ],
+  env: [
+    { key: "name", label: "变量" },
+    { key: "value", label: "值" },
+  ],
+  firewall: [
+    { key: "name", label: "规则名" },
+    { key: "direction", label: "方向" },
+    { key: "action", label: "动作" },
+    { key: "protocol", label: "协议" },
+    { key: "localPort", label: "端口" },
+    { key: "program", label: "程序" },
+  ],
+};
+/** 当前分区 */
+const profileTab = ref<ProfileSection>("disks");
+/** 分页（仅 ports/processes/services/firewall 走后端分页） */
+const profilePage = ref(1);
+const profilePageSize = ref(10);
+/** 检索关键字：分页分区走后端跨页匹配，非分页分区走前端过滤 */
+const profileKeyword = ref("");
+const profileRows = ref<Record<string, any>[]>([]);
+const profileLoading = ref(false);
+const profileError = ref("");
+let profileReq = 0;
+/** 进程/服务/监听端口/防火墙由后端分页（后台只回当前页） */
+const profilePaged = computed(() =>
+  profileTab.value === "processes" || profileTab.value === "services"
+  || profileTab.value === "ports" || profileTab.value === "firewall");
+/** 后端不分页的分区在前端过滤：任一字段命中关键字即保留 */
+const profileVisibleRows = computed(() => {
+  const kw = profileKeyword.value.trim().toLowerCase();
+  if (!kw || profilePaged.value) return profileRows.value;
+  return profileRows.value.filter(r => Object.values(r).some(v =>
+    v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
+});
+/** 切分区先归零页码与关键字，避免上一分区的检索污染下一分区 */
+function resetProfilePager(): void {
+  profilePage.value = 1;
+  profileKeyword.value = "";
+}
+/** 拉取当前分区 */
+async function loadProfileSection(): Promise<void> {
+  const req = ++profileReq;
+  const hid = hostId.value;
+  if (!hid) return;
+  profileLoading.value = true;
+  profileError.value = "";
+  try {
+    const sec = profileTab.value;
+    const next = await fetchHostProfileSection(hid, sec,
+      profilePaged.value ? profilePage.value : undefined,
+      profilePaged.value ? profilePageSize.value : undefined,
+      profilePaged.value ? profileKeyword.value.trim() || undefined : undefined);
+    if (req !== profileReq || hid !== hostId.value) return;
+    profileRows.value = next ?? [];
+  } catch (e) {
+    if (req !== profileReq) return;
+    profileError.value = String((e as Error)?.message ?? e);
+  } finally {
+    if (req === profileReq) profileLoading.value = false;
+  }
+}
+function pickProfileTab(name: ProfileSection): void {
+  profileTab.value = name;
+  resetProfilePager();
+  profileRows.value = [];
+  void loadProfileSection();
+}
+function applyProfileKeyword(): void {
+  profilePage.value = 1;
+  void loadProfileSection();
+}
+function changeProfilePage(delta: number): void {
+  const next = profilePage.value + delta;
+  if (next < 1) return;
+  profilePage.value = next;
+  void loadProfileSection();
+}
+
+/** 正在执行动作的行键（同一时刻只允许一个远端写操作） */
+const profileBusyRow = ref("");
+/** 环境变量新增弹窗 */
+const profileEnvDialog = ref(false);
+const profileEnvForm = ref<{ name: string; value: string }>({ name: "", value: "" });
+/** 执行一次远端写操作：成功回显后端文案并重拉分区；失败由传输层统一提示 */
+async function runProfileAction(key: string, task: Promise<string>): Promise<boolean> {
+  profileBusyRow.value = key;
+  try {
+    const msg = await task;
+    ElMessage.success(String(msg || "操作已完成"));
+    await loadProfileSection();
+    return true;
+  } catch {
+    return false;
+  } finally {
+    profileBusyRow.value = "";
+  }
+}
+/** 破坏性动作前确认，取消返回 false */
+async function confirmProfileAction(message: string): Promise<boolean> {
+  try {
+    await ElMessageBox.confirm(message, "操作确认", {
+      type: "warning", confirmButtonText: "确定", cancelButtonText: "取消",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+/** 提交新增环境变量 */
+async function submitProfileEnv(): Promise<void> {
+  const name = profileEnvForm.value.name.trim();
+  if (!name) { ElMessage.warning("请填写变量名"); return; }
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    ElMessage.warning("变量名只能包含字母、数字、下划线，且不能以数字开头"); return;
+  }
+  const ok = await runProfileAction(`env-set-${name}`,
+    setHostEnvVar(hostId.value, name, profileEnvForm.value.value));
+  if (ok) { profileEnvDialog.value = false; profileEnvForm.value = { name: "", value: "" }; }
+}
 </script>
 
 <template>
@@ -1308,6 +1489,67 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
+      <!-- 画像分区（与 HostProfileView 同口径：走 /ms/server/host/profile/{hostId}/{section}） -->
+      <section class="profile-panel">
+        <div class="pp-head">
+          <span class="pp-title">画像分区</span>
+          <div class="pp-tabs">
+            <button
+              v-for="s in PROFILE_SECTIONS" :key="s.name"
+              class="pp-tab" :class="{ on: profileTab === s.name }"
+              @click="pickProfileTab(s.name)"
+            >{{ s.label }}</button>
+          </div>
+        </div>
+        <div class="pp-bar">
+          <span class="dim">{{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}</span>
+          <div class="pp-pager">
+            <ReInput v-model="profileKeyword" class="pp-search" placeholder="关键字过滤" clearable @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword" />
+            <template v-if="profilePaged">
+              <ReButton @click="applyProfileKeyword">搜索</ReButton>
+              <ReButton :disabled="profilePage <= 1 || profileLoading" @click="changeProfilePage(-1)">上一页</ReButton>
+              <span class="mono page-no">{{ profilePage }}</span>
+              <ReButton :disabled="profileLoading || profileRows.length < profilePageSize" @click="changeProfilePage(1)">下一页</ReButton>
+            </template>
+            <ReButton v-if="profileTab === 'env'" type="primary" icon="Plus" @click="profileEnvDialog = true">新增变量</ReButton>
+            <ReButton type="primary" icon="Refresh" :loading="profileLoading" @click="loadProfileSection">刷新</ReButton>
+          </div>
+        </div>
+        <div v-if="profileError" class="pp-error">{{ profileError }}</div>
+        <div v-else-if="profileLoading && !profileRows.length" class="dim pp-loading">正在拉取…</div>
+        <div v-else-if="!profileVisibleRows.length" class="dim pp-loading">{{ profileKeyword.trim() ? "关键字未命中任何一行" : "该分区无数据" }}</div>
+        <div v-else class="pp-scroll">
+          <table class="pp-table">
+            <thead>
+              <tr>
+                <th v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key">{{ col.label }}</th>
+                <th v-if="profileTab === 'ports' || profileTab === 'processes' || profileTab === 'services' || profileTab === 'env'">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in profileVisibleRows" :key="idx">
+                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" class="mono">{{ r[col.key] ?? "—" }}</td>
+                <td v-if="profileTab === 'processes'">
+                  <ReButton icon="RefreshRight" :loading="profileBusyRow === `restart-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定重启进程 ${r.name ?? ''}（PID ${r.pid}）？`).then(ok => ok && runProfileAction(`restart-${r.pid}`, restartHostProcess(Number(r.pid), hostId)))">重启</ReButton>
+                  <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `kill-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束进程 ${r.name ?? ''}（PID ${r.pid}）？该操作不可恢复。`).then(ok => ok && runProfileAction(`kill-${r.pid}`, killProcess(Number(r.pid), hostId)))">结束</ReButton>
+                </td>
+                <td v-else-if="profileTab === 'services'">
+                  <ReButton icon="VideoPlay" type="primary" :loading="profileBusyRow === `service-start-${r.name}`" @click="runProfileAction(`service-start-${r.name}`, startService(String(r.name), hostId))">启动</ReButton>
+                  <ReButton icon="VideoPause" type="danger" :loading="profileBusyRow === `service-stop-${r.name}`" @click="confirmProfileAction(`确定停止服务 ${r.displayName || r.name}？`).then(ok => ok && runProfileAction(`service-stop-${r.name}`, stopService(String(r.name), hostId)))">停止</ReButton>
+                  <ReButton icon="RefreshRight" :loading="profileBusyRow === `service-restart-${r.name}`" @click="confirmProfileAction(`确定重启服务 ${r.displayName || r.name}？`).then(ok => ok && runProfileAction(`service-restart-${r.name}`, restartService(String(r.name), hostId)))">重启</ReButton>
+                </td>
+                <td v-else-if="profileTab === 'ports'">
+                  <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `netproc-${r.pid}-${r.port}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束 PID ${r.pid}？它正占用 ${r.protocol ?? ''} ${r.port}。`).then(ok => ok && runProfileAction(`netproc-${r.pid}-${r.port}`, closeNetProcess(Number(r.pid), Number(r.port) || undefined, hostId)))">结束</ReButton>
+                </td>
+                <td v-else-if="profileTab === 'env'">
+                  <ReButton icon="Delete" type="danger" :loading="profileBusyRow === `env-del-${r.name}`" @click="confirmProfileAction(`确定删除系统级环境变量 ${r.name}？`).then(ok => ok && runProfileAction(`env-del-${r.name}`, deleteHostEnvVar(hostId, String(r.name))))">删除</ReButton>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- 磁盘（Windows「此电脑」风格驱动器磁片，响应式自适应） -->
       <section class="disk-panel">
         <div class="dp-head"><span class="dp-title">磁盘驱动器</span><span class="dp-count mono">{{ disk.length }} DEVICE</span></div>
@@ -1432,6 +1674,20 @@ onBeforeUnmount(() => {
       </div>
       <template #footer>
         <ReButton type="primary" @click="swDetailVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 画像分区：新增系统级环境变量 -->
+    <ReDialog v-model="profileEnvDialog" title="新增系统级环境变量" width="520px">
+      <div class="swdet">
+        <label class="sub-label">变量名</label>
+        <el-input v-model="profileEnvForm.name" placeholder="如 JAVA_HOME，字母/数字/下划线" spellcheck="false" />
+        <label class="sub-label">变量值</label>
+        <el-input v-model="profileEnvForm.value" type="textarea" :rows="4" placeholder="系统级持久化：Windows 写入 Machine，Linux 写入 /etc/environment" spellcheck="false" />
+      </div>
+      <template #footer>
+        <ReButton @click="profileEnvDialog = false">取消</ReButton>
+        <ReButton type="primary" :loading="profileBusyRow.startsWith('env-set')" @click="submitProfileEnv">保存</ReButton>
       </template>
     </ReDialog>
   </div>
@@ -1852,6 +2108,42 @@ onBeforeUnmount(() => {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   color: var(--el-text-color-secondary);
 }
+
+/* ---------- 画像分区 ---------- */
+.profile-panel {
+  position: relative; z-index: 1;
+  margin-top: 12px;
+  background: var(--p-card);
+  border: 1px solid var(--p-line-2); border-radius: 12px;
+  overflow: hidden;
+  animation: cardIn 0.4s var(--ease-out, ease) 0.16s both;
+}
+.pp-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--p-line-2);
+}
+.pp-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
+.pp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.pp-tab {
+  padding: 4px 12px; font-size: 12px; color: var(--p-text-2);
+  background: transparent; border: 1px solid var(--p-line-2); border-radius: 999px; cursor: pointer;
+}
+.pp-tab.on { color: var(--el-color-primary); border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.pp-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px;
+}
+.pp-pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pp-search { width: 200px; }
+.page-no { font-size: 12px; color: var(--p-text-2); }
+.pp-error { margin: 0 14px 12px; padding: 9px 12px; font-size: 12.5px; color: var(--status-error-text); background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px; }
+.pp-loading { padding: 22px 0; text-align: center; }
+.pp-scroll { max-height: 420px; overflow: auto; border-top: 1px solid var(--p-line-2); }
+.pp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pp-table th, .pp-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--p-line-2); white-space: nowrap; }
+.pp-table th { font-size: 11px; font-weight: 600; color: var(--p-text-2); background: var(--p-bg); position: sticky; top: 0; }
+.sub-label { font-size: 12px; color: var(--el-text-color-secondary); margin: 8px 0 4px; }
 
 /* ---------- 磁盘 ---------- */
 .disk-panel {
