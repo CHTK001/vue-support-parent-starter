@@ -30,12 +30,20 @@ AI_ACCEPT_BASE=http://localhost:15689 AI_ACCEPT_USER=admin AI_ACCEPT_PASS=admin1
 AI_ACCEPT_PASS=admin123 node acc-image-lib-ui.mjs
 ```
 
-> ⚠️ `.run/deploy/run-browser-both.ps1` **已断**：它依赖的
-> `.run/deploy/run-browser-accept.ps1` 与 `.run/deploy/serve-dist.mjs`
-> **均已不存在**（`.run/deploy` 只剩 `vite-guard.log`）。别再用它。
+> **生产构建产物（dist）形态的运行器已补齐**：`scripts/serve-dist.mjs`（零依赖静态服务 +
+> API 反代 + WS upgrade，端口 **15690**，后端默认 `http://192.168.50.198:8787`）。
+> 它替代了已消失的 `.run/deploy/serve-dist.mjs`；`.run/deploy/run-browser-both.ps1`
+> 依赖的 `.run/deploy/run-browser-accept.ps1` **仍不存在**，别再用它。
 >
-> 本目录只覆盖 **dev 形态**。「生产构建产物」形态（`vite build` 的 dist + 静态 shim）
-> 目前**没有可用运行器**，未跑即不宣称 —— 需要时先把上面两个脚本补回来。
+> ```bash
+> # dist 形态十一套：先 build，再起运行器（独立进程），最后跑清单
+> pnpm build
+> node scripts/serve-dist.mjs            # 另开一个进程，别跑在前台占住终端
+> AI_ACCEPT_BASE=http://localhost:15690 node run-all-against-dist.mjs
+> ```
+>
+> dev 形态（`pnpm dev`，15689）与 dist 形态（`serve-dist.mjs`，15690）**两套都要跑**：
+> 打包期缺拷贝、路由只在静态形态落到 SPA 兜底这类缺陷，dev 下看不见（见验收报告 §7.1）。
 >
 > vite 冷启动现编译几百个模块，首屏可达 30s+；**固定等待会把「编译慢」误判成「功能坏」**，
 > 所以所有「等页面就绪」都必须用**有界轮询**，不能用一次性 `sleep`。
