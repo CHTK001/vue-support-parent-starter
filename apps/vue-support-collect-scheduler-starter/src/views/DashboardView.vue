@@ -172,7 +172,7 @@ const kpis = computed<Kpi[]>(() => {
       desc: `启用 ${datasources.value.filter(item => item.status === null || item.status === 1).length} 个`,
       icon: "Coin",
       color: "var(--el-color-primary)",
-      path: "/collect/datasource",
+      path: "/collect/datasource/list",
     },
     {
       key: "function",
@@ -443,7 +443,7 @@ function shortTime(value: unknown): string {
         <span class="spacer"/>
         <ReButton  text icon="Share" @click="go('/collect/design')">新建流程</ReButton>
         <ReButton  text icon="SetUp" @click="go('/collect/variable')">变量</ReButton>
-        <ReButton  text icon="Coin" @click="go('/collect/datasource')">数据源</ReButton>
+        <ReButton  text icon="Coin" @click="go('/collect/datasource/list')">数据源</ReButton>
         <ReButton  text icon="Operation" @click="go('/collect/function')">函数库</ReButton>
         <ReButton  text icon="Bell" @click="go('/collect/notice')">通知</ReButton>
         <ReButton  text icon="Tickets" @click="go('/collect/job-log')">作业日志</ReButton>
