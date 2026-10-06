@@ -1020,7 +1020,9 @@ async function confirmMarking() {
     const adjustments = markResult.value.results.map((r) => ({
       resultId: r.resultId,
       score: r.teacherScore ?? r.score,
-      comment: r.teacherComment ?? r.comment,
+      // 教师没写评语就不传该字段（后端视为「不改评语」，见 MarkingView.confirmAdjust 同款注释），
+      // 否则会把 AI 评语写进「教师评语」列覆盖已有评语
+      comment: r.teacherComment ?? undefined,
     }));
     await eduaiApi.confirmMarking({ taskId: markResult.value.taskId, adjustments });
     ElMessage.success("已确认评分");
