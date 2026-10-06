@@ -5,7 +5,12 @@
 # 系统信息
 appConfig:
   title: 监控管理平台
-  openAuth: false
+  # 鉴权开关。**必须保持 true**：置 false 时 router/guard.ts 与 router/access.ts
+  # 都会直接放行 —— 前端不再做任何登录态与权限判断（后端 AuthFilter 仍在，
+  # 所以不是越权漏洞，但用户会看到空菜单、刷新即掉登录态）。
+  # 历史上曾为了绕开「白名单路由没被消费」的守卫 bug 而置 false，
+  # 该 bug 已修（guard.ts 现已实际消费 route.whiteList），无需再关。
+  openAuth: true
 
 # 路由：菜单完全来自本地路由树（src/routes.ts 的 monitorRoutes），
 # 由 createVueApp 的 registerStaticMenu(buildMenuFromRoutes(...)) 注册。
