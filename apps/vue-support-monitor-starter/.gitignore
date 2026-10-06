@@ -1,0 +1,2 @@
+# global-setup.ts 表单登录落盘的共享 storageState（含令牌，禁止入库）
+tests/e2e/.auth/
