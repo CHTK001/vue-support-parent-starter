@@ -150,7 +150,7 @@ const emit = defineEmits<{
 
 /* ==================== 常量（与 PaperComposeView 题库市场一致） ==================== */
 
-/** 学段词表（与 edu_question 落库值一致） */
+/** 学段词表（与后端 gradeLevels 的 value 码值一致，下拉 value 绑 code） */
 const GRADE_LEVELS = [
   { code: "PRIMARY", label: "小学" },
   { code: "JUNIOR", label: "初中" },
@@ -158,6 +158,11 @@ const GRADE_LEVELS = [
   { code: "UNIVERSITY", label: "大学" },
   { code: "OTHER", label: "其他" },
 ];
+
+/** 年级行里的 gradeLevel 存的是中文标签（小学/初中/…），转成码值再与下拉的 code 比较 */
+const GRADE_LEVEL_LABEL_TO_CODE: Record<string, string> = Object.fromEntries(
+  GRADE_LEVELS.map((g) => [g.label, g.code]),
+);
 
 const QUESTION_TYPES = [
   { value: "SINGLE_CHOICE", label: "单选题" },
@@ -201,11 +206,22 @@ const listRef = ref<HTMLElement | null>(null);
 /** 当前页各题复选框容器：questionId → 元素（仅用于飞入动画取起点） */
 const rowRefs = new Map<number, HTMLElement>();
 
-/** 年级候选项跟随学段联动 */
+/** 年级候选项跟随学段联动：年级行的 gradeLevel 是中文标签，下拉选的是码值，两边转码值比较 */
 const gradeOptions = computed(() => {
   const level = filters.gradeLevel;
   return gradeMeta.value
-    .filter((g) => g.gradeName && (!level || !g.gradeLevel || g.gradeLevel === level))
+    .filter((g) => {
+      if (!g.gradeName) {
+        return false;
+      }
+      if (!level) {
+        return true;
+      }
+      if (!g.gradeLevel) {
+        return true;
+      }
+      return (GRADE_LEVEL_LABEL_TO_CODE[g.gradeLevel] ?? g.gradeLevel) === level;
+    })
     .map((g) => g.gradeName as string);
 });
 
@@ -524,7 +540,9 @@ watch(
 }
 .qmd-list {
   min-height: 240px;
-  max-height: 52vh;
+  /* 列表区内部滚动，footer 常驻可见：52vh 只是列表高度上限，弹框整体不再随行数增长。
+     组合弹框宽度 880px 在 1440px 视口下居中，footer 实测落在 900px 视口内。 */
+  max-height: 46vh;
   overflow-y: auto;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);

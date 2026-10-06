@@ -169,6 +169,14 @@ interface PreviewItem {
 
 const optionLetter = (i: number): string => String.fromCharCode(65 + i);
 
+/**
+ * 去掉选项文本自带的序号前缀（`A.` / `B、` / `C)` / `D．` 等），
+ * 避免与模板里统一渲染的 `optionLetter(oi) + '.'` 重复（`A.A. xxx`）。
+ */
+function stripOptionPrefix(text: string): string {
+  return text.replace(/^[A-Ha-h][.、．)）:：]\s*/, "");
+}
+
 /** 选项列可能是 JSON 数组 / JSON 对象，也可能是换行或分号分隔的文本 */
 function parseOptions(raw?: string): string[] {
   if (!raw) {
@@ -177,16 +185,16 @@ function parseOptions(raw?: string): string[] {
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.map((v) => String(v));
+      return parsed.map((v) => stripOptionPrefix(String(v)));
     }
     if (parsed && typeof parsed === "object") {
-      return Object.entries(parsed).map(([k, v]) => `${k}. ${v}`);
+      return Object.entries(parsed).map(([k, v]) => `${k}. ${stripOptionPrefix(String(v))}`);
     }
-    return [String(parsed)];
+    return [stripOptionPrefix(String(parsed))];
   } catch {
     return String(raw)
       .split(/[\n;；]/)
-      .map((s) => s.trim())
+      .map((s) => stripOptionPrefix(s.trim()))
       .filter(Boolean);
   }
 }
