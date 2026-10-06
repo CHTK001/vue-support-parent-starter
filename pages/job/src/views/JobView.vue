@@ -276,7 +276,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "author", label: "负责人", width: 74, slot: "author" },
   /* 操作列：3 个常用方形按钮 + 1 个「更多」下拉触发器 = 4×38 的间距。
      低频/危险动作收进下拉后，不再需要为平铺 6 个按钮留 268px。 */
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
 ]);
 
 /**
@@ -1328,7 +1328,10 @@ onActivated(() => {
   reloadJobs();
 });
 
-/** 从「远程作业」节点卡片跳入：?create=1[&task=处理器] 预填并打开新建弹层（处理后立即清参，防重复弹） */
+/** 从「远程节点」处理器标签跳入：?create=1[&task=处理器] 预填并打开新建弹层。
+ * 注意：这里不能开完就 router.replace 清参——外壳按 route.fullPath 作 key
+ * （koi Main/index.vue），清参会销毁重建本组件，弹层活不过约 290ms（实测）。
+ * 清参改由下方 watch(formVisible) 在弹层关闭后执行，保留「防重复弹」。 */
 function applyCreateQuery(): void {
   const create = String(route.query.create ?? "");
   if (create !== "1") {
@@ -1341,11 +1344,17 @@ function applyCreateQuery(): void {
     form.jobName = task;
     form.scheduleType = "NONE";
   }
-  void router.replace({ path: route.path });
 }
 
-// 同路由仅 query 变化（远程作业卡片跳转）不会触发 mounted/activated，必须监听 query
+// 同路由仅 query 变化（远程节点标签跳转）不会触发 mounted/activated，必须监听 query
 watch(() => route.query, () => applyCreateQuery(), { immediate: true });
+
+// 弹层关闭后再清 create/task：既防重复弹，又不让清参把开着的弹层重建掉
+watch(formVisible, (visible) => {
+  if (!visible && String(route.query.create ?? "") === "1") {
+    void router.replace({ path: route.path });
+  }
+});
 </script>
 
 <template>
