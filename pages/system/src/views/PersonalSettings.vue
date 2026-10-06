@@ -370,7 +370,7 @@ onMounted(() => {
         compact
         :confirm-loading="totpBinding"
         ok-text="确认绑定"
-        @ok="confirmTotpBind"
+        :footer-hidden="false" @ok="confirmTotpBind"
       >
         <div class="totp-bind">
           <img v-if="totpQrcodeUrl" :src="totpQrcodeUrl" alt="TOTP 二维码" class="totp-bind__qrcode" />

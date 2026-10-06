@@ -37,6 +37,10 @@ const props = withDefaults(
     cancelButtonText?: string;
     showOk?: boolean;
     showCancel?: boolean;
+    /**
+     * 底部区域三态（由基类 ReDialog 透传 footerMode）：
+     * true=渲染自带按钮；false=整个底部不渲染；undefined=只渲染业务 #footer 插槽。
+     */
     showFooter?: boolean;
     /** 无头模式：隐藏 header，右上角圆形关闭 FAB */
     headless?: boolean;
@@ -67,7 +71,9 @@ const props = withDefaults(
     cancelButtonText: undefined,
     showOk: true,
     showCancel: true,
-    showFooter: true,
+    // showFooter 显式 default: undefined：Boolean prop「未传且无默认值」会被 Vue 强转成 false，
+    // 破坏「未传 = 只渲染业务 #footer 插槽」的三态语义
+    showFooter: undefined,
     headless: false,
     responsive: false,
     mobileBreakpoint: 768,
@@ -208,22 +214,24 @@ if (typeof document !== "undefined") {
             <slot />
           </div>
 
-          <!-- Footer -->
-          <div v-if="showFooter" class="rm-dialog__footer">
+          <!-- Footer：显式 false=不渲染；true=渲染自带按钮；未传=只渲染业务插槽 -->
+          <div v-if="showFooter === true || (showFooter !== false && !!$slots.footer)" class="rm-dialog__footer">
             <slot name="footer" :ok="onOk" :cancel="onCancel">
-              <button v-if="showCancel" class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ resolvedCancelText }}</button>
-              <button
-                v-if="showOk"
-                :class="['rm-dialog__btn', 'rm-dialog__btn--ok', { 'is-loading': confirmLoading }]"
-                type="button"
-                :disabled="confirmLoading"
-                @click="onOk"
-              >
-                <span v-if="confirmLoading" class="rm-dialog__spinner">
-                  <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round"/></svg>
-                </span>
-                {{ resolvedOkText }}
-              </button>
+              <template v-if="showFooter === true">
+                <button v-if="showCancel" class="rm-dialog__btn rm-dialog__btn--cancel" type="button" @click="onCancel">{{ resolvedCancelText }}</button>
+                <button
+                  v-if="showOk"
+                  :class="['rm-dialog__btn', 'rm-dialog__btn--ok', { 'is-loading': confirmLoading }]"
+                  type="button"
+                  :disabled="confirmLoading"
+                  @click="onOk"
+                >
+                  <span v-if="confirmLoading" class="rm-dialog__spinner">
+                    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round"/></svg>
+                  </span>
+                  {{ resolvedOkText }}
+                </button>
+              </template>
             </slot>
           </div>
 

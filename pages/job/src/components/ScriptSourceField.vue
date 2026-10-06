@@ -253,7 +253,7 @@ watch(
     </div>
     <div v-if="description" class="script-source__desc">{{ description }}</div>
 
-    <ReDialog v-model="visible" :title="dialogTitle" width="880px" top="6vh" @ok="confirm">
+    <ReDialog v-model="visible" :title="dialogTitle" width="880px" top="6vh" :footer-hidden="false" @ok="confirm">
       <textarea
         v-model="draft"
         class="script-source__editor"

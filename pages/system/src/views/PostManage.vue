@@ -226,7 +226,7 @@ onMounted(() => {
       layout="modern"
       compact
       :confirm-loading="saving"
-      @ok="handleSubmit"
+      :footer-hidden="false" @ok="handleSubmit"
     >
       <el-form label-width="90px" :model="form">
         <el-form-item label="岗位名称" required>

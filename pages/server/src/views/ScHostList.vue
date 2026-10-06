@@ -664,7 +664,7 @@ async function onImportFile(file: File | undefined) {
       ok-text="保存"
       cancel-text="取消"
       :confirm-loading="cfgSaving"
-      @confirm="onSaveConfig"
+      :footer-hidden="false" @confirm="onSaveConfig"
       @cancel="configVisible = false"
     >
       <ReForm label-position="left" label-width="130px" class="cfg-form">

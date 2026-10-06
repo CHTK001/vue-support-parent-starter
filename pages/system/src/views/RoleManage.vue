@@ -545,7 +545,7 @@ onMounted(() => {
       layout="modern"
       compact
       :confirm-loading="saving"
-      @ok="handleSubmit"
+      :footer-hidden="false" @ok="handleSubmit"
     >
       <el-form label-width="100px" :model="form">
         <el-form-item label="角色名称" required>
@@ -583,7 +583,7 @@ onMounted(() => {
       layout="modern"
       compact
       :confirm-loading="permSaving"
-      @ok="handleSavePerm"
+      :footer-hidden="false" @ok="handleSavePerm"
     >
       <el-tabs v-model="activePermTab" class="perm-tabs">
         <!-- 菜单权限 Tab -->

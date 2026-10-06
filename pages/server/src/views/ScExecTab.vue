@@ -487,7 +487,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
       :height="500"
       confirm-text="保存"
       cancel-text="取消"
-      @confirm="submitJob"
+      :footer-hidden="false" @confirm="submitJob"
       @cancel="jobFormVisible = false"
     >
       <ReForm label-width="100px" label-position="right">
@@ -522,7 +522,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
       width="560"
       confirm-text="执行"
       cancel-text="取消"
-      @confirm="confirmRun"
+      :footer-hidden="false" @confirm="confirmRun"
       @cancel="runDialogVisible = false"
     >
       <div class="ex-runhint">

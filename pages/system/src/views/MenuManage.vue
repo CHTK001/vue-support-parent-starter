@@ -1255,7 +1255,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       :confirm-loading="saving"
-      @confirm="handleSubmit"
+      :footer-hidden="false" @confirm="handleSubmit"
       @cancel="dialogVisible = false"
     >
       <div class="menu-form-shell">
@@ -1589,7 +1589,7 @@ onMounted(() => {
       destroy-on-close
       compact
       :confirm-loading="batchSaving"
-      @confirm="handleBatchSubmit"
+      :footer-hidden="false" @confirm="handleBatchSubmit"
       @cancel="batchDialogVisible = false"
     >
       <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">

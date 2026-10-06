@@ -561,7 +561,7 @@ defineExpose({ reload });
       layout="modern"
       compact
       :confirm-loading="ipSaving"
-      @ok="handleIpSubmit"
+      :footer-hidden="false" @ok="handleIpSubmit"
     >
       <el-form label-width="100px" :model="ipForm">
         <el-form-item label="IP / CIDR" required>
@@ -601,7 +601,7 @@ defineExpose({ reload });
       layout="modern"
       compact
       :confirm-loading="accSaving"
-      @ok="handleAccSubmit"
+      :footer-hidden="false" @ok="handleAccSubmit"
     >
       <el-form label-width="100px" :model="accForm">
         <el-form-item :label="t('policy.common.account')" required>

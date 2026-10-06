@@ -55,6 +55,7 @@
       confirm-text="保存"
       cancel-text="取消"
       destroy-on-close
+      :footer-hidden="false"
       @confirm="save"
       @cancel="dialogVisible = false"
     >
