@@ -5,7 +5,14 @@
  * auth store 菜单源（远程菜单 + 用户信息）作为数据源注入。
  */
 import type { Router } from "vue-router";
-import { msgWarning, getRouter, registerDynamicRoutes, initDynamicRoutes, type DynamicRouterContext } from "@repo/core";
+import {
+  msgWarning,
+  getRouter,
+  registerDynamicRoutes,
+  initDynamicRoutes,
+  isGuardOwnedMenuMode,
+  type DynamicRouterContext,
+} from "@repo/core";
 import { getConfig } from "@repo/config";
 import { clearAllAuthData } from "@repo/utils";
 import useUserStore from "./modules/user";
@@ -38,7 +45,7 @@ export const initAuthRouter = async (router: Router) => {
   // 侧边栏走 recursiveMenuList 照常渲染，故空菜单是预期状态，不该提示「未分配菜单」。
   // 仅 remote/all 模式才有「角色未分配菜单」语义，此时才提示。
   const mode = getConfig().route.mode;
-  const useRemoteMenu = mode === "remote" || mode === "all";
+  const useRemoteMenu = isGuardOwnedMenuMode(mode);
   const context: DynamicRouterContext = {
     getMenuList: () => authStore.menuList,
     // 只有 remote / all 模式才需要拉远程菜单。
@@ -70,6 +77,17 @@ export const initAuthRouter = async (router: Router) => {
   // 原来它只在 loadMenus 里被顺带调用；static 模式下 loadMenus 为空，
   // 不在这里补一次的话，登录后右上角用户信息与角色权限会一直是空的。
   if (!useRemoteMenu) {
+    // 静态模式菜单补灌（修「登录后左侧菜单为空，必须手动点顶栏刷新才出现」）。
+    //
+    // 上面的 loadMenus 只在 remote/all 模式注入，static/module 模式下 doInitDynamicRoutes
+    // 只会走「菜单为空」分支就返回，而侧边栏数据源 recursiveMenuList 只有
+    // listRouters() 会写 —— 于是 SPA 内登录这条路径永远没人灌菜单，
+    // 应用只能靠顶栏「刷新」按钮兜底（用户看到的即「菜单有时加载不出来」）。
+    // 与启动期灌入共用同一判定（core/router/menuSeed.ts 的 isGuardOwnedMenuMode）。
+    //
+    // static 模式 listRouters 不发请求（远程菜单只在 remote/all 拉），
+    // 故这里 await 也不会给登录流程增加网络往返。
+    await authStore.listRouters();
     void authStore.getLoginUserInfo().catch(() => {
       // 拉不到不阻断：布局用兜底信息渲染，会话失效由 http 拦截器处理
     });

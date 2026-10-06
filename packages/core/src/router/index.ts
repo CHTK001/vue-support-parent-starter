@@ -187,4 +187,5 @@ export * from "./access";
 export * from "./dynamic";
 export * from "./themeBridge";
 export * from "./menu";
+export * from "./menuSeed";
 export * from "./inject";
