@@ -81,9 +81,21 @@
                     </div>
                 </div>
                 <template v-else-if="previewType === 'text'">
-                    <!-- HTML 预览模式（通过 src 直接加载，后端 Set-Cookie 鉴权） -->
-                    <iframe v-if="isHtmlFile && renderMode === 'rendered'" :src="htmlPreviewSrc" class="w-full border-0"
-                        style="height: 100%;" sandbox="allow-same-origin allow-scripts" />
+                    <!--
+                      HTML 预览模式。
+
+                      网页（HTTP）走 srcdoc：预览正文已由 getWorkspaceFile 用鉴权请求头
+                      取回，令牌不进入任何 URL。仅 Electron 的 file:// 场景仍用 src，
+                      因为那是本地文件、根本不存在服务端鉴权。
+
+                      referrerpolicy="no-referrer" 依然保留 —— 它现在保护的是
+                      <base href> 指向的资源请求，而不是令牌。
+                    -->
+                    <iframe v-if="isHtmlFile && renderMode === 'rendered'"
+                        :src="isLocalHtmlPreview ? htmlPreviewSrc : undefined"
+                        :srcdoc="isLocalHtmlPreview ? undefined : htmlPreviewSrcDoc"
+                        class="w-full border-0" referrerpolicy="no-referrer" style="height: 100%;"
+                        sandbox="allow-same-origin allow-scripts" />
 
                     <!-- Markdown 渲染模式（iframe srcdoc + <base> 让浏览器原生解析相对路径） -->
                     <iframe v-else-if="isMarkdownFile && renderMode === 'rendered'" :srcdoc="markdownSrcDoc"
@@ -112,11 +124,13 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { apiService } from '@/services/ApiService'
+import { loadAuthenticatedImage } from '@/utils/authImage'
 import { LoadingOutlined } from '@vicons/antd'
 import { Eye20Filled, Eye20Regular, Code20Filled, Code20Regular, ArrowClockwise20Regular } from '@vicons/fluent'
 import { DocumentCopy, Plus } from '@element-plus/icons-vue'
 import { useStorage } from '@vueuse/core'
 import { usePreviewMarkdown, buildMarkdownSrcDoc } from '@/composables/useMarkdown'
+import { buildHtmlPreviewSrcDoc } from '@/utils/htmlPreviewSrcDoc'
 import { useTheme } from '@/composables/useTheme'
 import { useHighlight } from '@/composables/useHighlight'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu.vue'
@@ -167,6 +181,24 @@ const fileNotFound = ref(false)
 const previewType = ref<'text' | 'image' | 'unsupported' | null>(null)
 const imagePreviewUrl = ref('')
 const htmlPreviewUrl = ref('')
+/** 释放上一张 blob 图片的句柄：object URL 不 revoke 会一直占内存（切文件/卸载都必须 revoke） */
+let imagePreviewRevoke: (() => void) | null = null
+
+/**
+ * 释放当前 blob 图片并清空预览地址。
+ *
+ * <p>切换文件、加载出错、组件卸载都必须走这里，否则 object URL 会泄漏 ——
+ * 一次会话里翻几十个文件就是几十个 blob 常驻。</p>
+ */
+function releaseImagePreview(): void {
+    if (imagePreviewRevoke) {
+        imagePreviewRevoke()
+        imagePreviewRevoke = null
+    }
+    imagePreviewUrl.value = ''
+}
+
+onBeforeUnmount(releaseImagePreview)
 const htmlPreviewVersion = ref(0)
 const fileContentHash = ref('')
 
@@ -220,10 +252,34 @@ const isMarkdownFile = computed(() => {
 
 const canTogglePreview = computed(() => isMarkdownFile.value || isHtmlFile.value)
 
+/** Electron file:// 预览：本地文件，无服务端鉴权，仍用 src 加载 */
+const isLocalHtmlPreview = computed(
+  () => isElectron && window.location.protocol === 'file:',
+)
+
+/** 仅 Electron 场景使用；HTTP 场景走 {@link htmlPreviewSrcDoc} */
 const htmlPreviewSrc = computed(() => {
     if (!htmlPreviewUrl.value) return ''
     const separator = htmlPreviewUrl.value.includes('?') ? '&' : '?'
     return `${htmlPreviewUrl.value}${separator}_v=${htmlPreviewVersion.value}`
+})
+
+/**
+ * HTTP 场景的 HTML 预览文档（令牌不进任何 URL）。
+ *
+ * <p>预览正文早已由 {@code loadFileContent} → {@code getWorkspaceFile}
+ * 用鉴权请求头取回并放进 {@code fileContent}，这里只需补一个
+ * {@code <base href>} 让相对资源仍解析到 {@code html-preview} 下的正确路径。</p>
+ */
+const htmlPreviewSrcDoc = computed(() => {
+    if (isLocalHtmlPreview.value) return ''
+    const content = fileContent.value
+    if (!content || !props.sessionId) return ''
+    const baseUrl = apiService.getWorkspaceHtmlPreviewBaseUrl(
+        props.sessionId,
+        selectedFile.value?.path || '',
+    )
+    return buildHtmlPreviewSrcDoc(content, baseUrl)
 })
 
 const markdownHtml = computed(() => {
@@ -289,7 +345,7 @@ async function loadFilePreview(): Promise<void> {
     previewError.value = ''
     previewLoading.value = false
     fileContentHash.value = ''
-    imagePreviewUrl.value = ''
+    releaseImagePreview()
 
     const ext = tab.extension!
     if (isTextFile(ext)) {
@@ -297,9 +353,9 @@ async function loadFilePreview(): Promise<void> {
         if (isHtmlFile.value) {
             if (isElectron && window.location.protocol === 'file:') {
                 await loadHtmlPreviewLocal()
-            } else {
-                htmlPreviewUrl.value = apiService.getWorkspaceHtmlPreviewUrl(props.sessionId!, tab.path!)
             }
+            // HTTP 场景不再设置任何带令牌的 src：正文走 loadFileContent 取回，
+            // 由 htmlPreviewSrcDoc 以 srcdoc 渲染。
             await loadFileContent(tab.path!)
         } else if (isMarkdownFile.value) {
             if (isElectron && window.location.protocol === 'file:' && !cachedWorkspacePath.value) {
@@ -320,7 +376,18 @@ async function loadFilePreview(): Promise<void> {
             if (tab.size && tab.size > 20 * 1024 * 1024) {
                 previewError.value = t('chat.workspace.fileTooLarge')
             } else {
-                imagePreviewUrl.value = apiService.getWorkspaceRawFileUrl(props.sessionId, tab.path!)
+                // <img> 带不了请求头，但**不能**因此把令牌拼进 URL（会进历史 / 日志 / Referer）。
+                // 改为带请求头取回 blob，object URL 与令牌无关。
+                const rawUrl = apiService.getWorkspaceRawFileUrl(props.sessionId, tab.path!)
+                releaseImagePreview()
+                const loaded = await loadAuthenticatedImage(rawUrl)
+                if (!loaded) {
+                    previewError.value = t('chat.workspace.loadImageFailed')
+                    previewType.value = null
+                    return
+                }
+                imagePreviewRevoke = loaded.revoke
+                imagePreviewUrl.value = loaded.objectUrl
             }
         }
     } else {

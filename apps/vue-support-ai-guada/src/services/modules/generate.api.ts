@@ -7,58 +7,23 @@ const rawApi = createClient(rootHttp, { unwrap: false });
 /**
  * 后端内联媒体地址的路径前缀。
  *
- * 部分供应商（OpenAI 兼容系的 b64_json、本地同步出图）返回整张图的 base64 而不是地址，
+ * <p>部分供应商（OpenAI 兼容系的 b64_json、本地同步出图）返回整张图的 base64 而不是地址，
  * 这类结果入库后曾被原样塞进历史列表响应：实测 30 条任务里只要有 1 条带 28 张图
- * 加 1 张 2.38MB 参考图，单次列表响应就是 77.5MB / 5.2 秒。
+ * 加 1 张 2.38MB 参考图，单次列表响应就是 77.5MB / 5.2 秒。</p>
  *
- * 后端现在把内联项换成 `/v2/ai/generate/tasks/{taskId}/media/{i}`、
- * 参考图换成 `/v2/ai/generate/tasks/{taskId}/reference`，
+ * <p>后端现在把内联项换成 {@code /v2/ai/generate/tasks/{taskId}/media/{i}}、
+ * 参考图换成 {@code /v2/ai/generate/tasks/{taskId}/reference}，
  * 供应商本来就给的 http/https 地址则原样透传。
- * **两类对页面都是同一个字符串，直接塞进 img.src 即可，页面不需要判断。**
+ * <b>两类对页面都是同一个字符串，页面用 {@link isInlineMedia} 区分是否需要鉴权即可。</b></p>
+ *
+ * <p><b>本前缀已含 {@code /v2}</b>，页面侧取图时<b>不能</b>再拼 baseURL
+ * （拼了就是 {@code /v2/v2/...}）。</p>
  */
 const INLINE_MEDIA_PREFIX = '/v2/ai/generate/tasks/';
-
-/**
- * 无法携带请求头的资源地址（img / iframe）用查询参数传令牌，
- * 参数名与后端 oauth 客户端的 tokenName 一致（与 workspace.api.ts 同款）。
- *
- * 实测后端确实认这个参数：同一个接口带 `x-oauth-token` 返回 200，
- * 不带或换名字都是 403。
- */
-function mediaTokenQuery(): string {
-  const token = currentToken();
-  return token ? `x-oauth-token=${encodeURIComponent(token)}` : '';
-}
 
 /** 判断一个媒体值是不是后端下发的内联媒体路径（而非供应商给的真实地址） */
 export function isInlineMedia(value: string | null | undefined): boolean {
   return !!value && value.startsWith(INLINE_MEDIA_PREFIX);
-}
-
-/** 给后端下发的内联媒体路径补上令牌，使其能被 <img> 直接加载；其余值原样返回 */
-function withMediaToken(value: string): string {
-  if (!isInlineMedia(value)) {
-    return value;
-  }
-  const query = mediaTokenQuery();
-  return query ? `${value}?${query}` : value;
-}
-
-/**
- * 给任务视图里的媒体字段补上令牌。
- *
- * 在 api 层统一做而不是在页面里散着做：三个出口（创建 / 单查 / 列表）都会带回媒体字段，
- * 页面只要拿到的就能直接渲染。返回新对象，不改原对象。
- *
- * @param task 后端返回的任务视图
- * @return 媒体地址可直接放进 img.src 的任务视图
- */
-function withMediaTokenUrls(task: GenerateTask): GenerateTask {
-  return {
-    ...task,
-    referenceImage: task.referenceImage ? withMediaToken(task.referenceImage) : task.referenceImage,
-    urls: (task.urls ?? []).map((u) => withMediaToken(u)),
-  };
 }
 
 /**
@@ -78,10 +43,8 @@ export async function resolveReferenceImage(value: string | null | undefined): P
   if (!isInlineMedia(value)) {
     return value;
   }
-  // 走 fetch 就能带 Authorization 头，所以把地址里的令牌查询参数摘掉：
-  // 令牌留在 URL 里除了多一份暴露面没有任何好处，这里只需要路径。
-  const [path] = value.split('?');
-  const res = await fetch(path, { headers: { Authorization: `Bearer ${currentToken()}` } });
+  // 内联媒体地址本身**不含令牌**（见上方说明），直接带 Authorization 头取字节即可。
+  const res = await fetch(value, { headers: { Authorization: `Bearer ${currentToken()}` } });
   if (!res.ok) {
     throw new Error('参考图取回失败');
   }
@@ -244,15 +207,16 @@ export const generateApi: GenerateApi = {
     const body = await rawApi.post("/v2/ai/generate/tasks", data);
     const task = takeData<GenerateTask>(body);
     if (!task) throw new Error("创建生成任务失败");
-    return withMediaTokenUrls(task);
+    // 媒体字段原样返回（**不带令牌**）：<img> / <video> 无法携带请求头，
+    // 页面侧走 blob 加载器 + 请求头取图，见 utils/authImage.ts。
+    return task;
   },
 
   async fetchGenerateTask(this: ApiContext, taskId) {
     const body = await rawApi.get(
       `/v2/ai/generate/tasks/${encodeURIComponent(taskId)}`,
     );
-    const task = takeData<GenerateTask>(body);
-    return task ? withMediaTokenUrls(task) : task;
+    return takeData<GenerateTask>(body);
   },
 
   async cancelGenerateTask(this: ApiContext, taskId) {
@@ -292,6 +256,6 @@ export const generateApi: GenerateApi = {
     query.set("limit", String(limit));
     query.set("offset", String(Math.max(0, offset)));
     const body = await rawApi.get(`/v2/ai/generate/tasks?${query.toString()}`);
-    return (takeData<GenerateTask[]>(body) ?? []).map(withMediaTokenUrls);
+    return takeData<GenerateTask[]>(body) ?? [];
   },
 };

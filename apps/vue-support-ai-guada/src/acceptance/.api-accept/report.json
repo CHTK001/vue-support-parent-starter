@@ -1,0 +1,258 @@
+{
+  "generatedAt": "2026-10-06T06:18:58.372Z",
+  "base": "http://192.168.50.198:8787",
+  "fingerprint": {
+    "jarMd5": "2695b0eb051b5406c36f7782fd5038b9",
+    "activeState": "active",
+    "mainPID": "1224246",
+    "nRestarts": "0",
+    "execMainStartTimestamp": "Tue 2026-10-06 02:16:17 EDT",
+    "instanceCount": "1",
+    "compactObjectHeaders": "1"
+  },
+  "total": 40,
+  "passed": 40,
+  "failed": 0,
+  "results": [
+    {
+      "section": "fingerprint",
+      "name": "single instance (server.port=8787)",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "section": "fingerprint",
+      "name": "service active + NRestarts=0",
+      "pass": true,
+      "detail": "active NRestarts=0"
+    },
+    {
+      "section": "fingerprint",
+      "name": "-XX:+UseCompactObjectHeaders",
+      "pass": true,
+      "detail": "flags=1"
+    },
+    {
+      "section": "fingerprint",
+      "name": "jar md5 reported",
+      "pass": true,
+      "detail": "2695b0eb051b5406c36f7782fd5038b9"
+    },
+    {
+      "section": "auth",
+      "name": "admin login",
+      "pass": true,
+      "detail": "status=200 操作成功"
+    },
+    {
+      "section": "auth",
+      "name": "ops login",
+      "pass": true,
+      "detail": "status=200 操作成功"
+    },
+    {
+      "section": "agents",
+      "name": "GET /packages 200",
+      "pass": true,
+      "detail": "status=200"
+    },
+    {
+      "section": "agents",
+      "name": "builtin packages visible (plan/build/coordinator)",
+      "pass": true,
+      "detail": "names=fixture-zip,build,coordinator,plan"
+    },
+    {
+      "section": "agents",
+      "name": "GET /packages/paths -> /opt/ai-starter/runtime/agents",
+      "pass": true,
+      "detail": "/opt/ai-starter/runtime/agents"
+    },
+    {
+      "section": "agents",
+      "name": "POST /packages/install (dir import)",
+      "pass": true,
+      "detail": "status=200 code=undefined msg="
+    },
+    {
+      "section": "agents",
+      "name": "POST /packages/import (multipart zip)",
+      "pass": true,
+      "detail": "status=200 code=undefined msg="
+    },
+    {
+      "section": "agents",
+      "name": "POST /packages/import (JSON {path})",
+      "pass": true,
+      "detail": "status=200 data={\"name\":\"fixture-json\",\"agent_id\":\"01a10fdd-3bed-7699-8007-f14fda847cdd\",\"installed_path\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"sub_agents\":[],\"updated\":true}"
+    },
+    {
+      "section": "agents",
+      "name": "POST /packages/toggle enabled=false",
+      "pass": true,
+      "detail": "status=200 item={\"name\":\"fixture-json\",\"description\":\"acceptance fixture imported through the JSON {path} endpoint\",\"model\":null,\"role\":\"fixture\",\"source\":\"user\",\"location\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"installed\":true,\"enabled\":false,\"agent_id\":\"01a10fdd-3bed-7699-8007-f14fda847cdd\",\"sub_agents\":0}"
+    },
+    {
+      "section": "agents",
+      "name": "POST /packages/toggle enabled=true (restored)",
+      "pass": true,
+      "detail": "status=200 item={\"name\":\"fixture-json\",\"description\":\"acceptance fixture imported through the JSON {path} endpoint\",\"model\":null,\"role\":\"fixture\",\"source\":\"user\",\"location\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"installed\":true,\"enabled\":true,\"agent_id\":\"01a10fdd-3bed-7699-8007-f14fda847cdd\",\"sub_agents\":0}"
+    },
+    {
+      "section": "agents",
+      "name": "GET /packages/market/sources (SPI enum)",
+      "pass": true,
+      "detail": "status=200 sources=BUILTIN"
+    },
+    {
+      "section": "agents",
+      "name": "GET /packages/market/search",
+      "pass": true,
+      "detail": "status=200 items=1 errors=[]"
+    },
+    {
+      "section": "agents",
+      "name": "DELETE /packages/fixture-json (uninstall)",
+      "pass": true,
+      "detail": "status=200 data={\"name\":\"fixture-json\",\"removed_agent\":true,\"removed_dir\":true} remaining=fixture-zip,build,coordinator,plan"
+    },
+    {
+      "section": "agents",
+      "name": "fixture-zip retained as test data",
+      "pass": true,
+      "detail": "names=fixture-zip,build,coordinator,plan"
+    },
+    {
+      "section": "agents",
+      "name": "ops read allowed",
+      "pass": true,
+      "detail": "status=200"
+    },
+    {
+      "section": "agents",
+      "name": "ops POST /packages/install -> 403",
+      "pass": true,
+      "detail": "status=403 msg=权限不足，需要：admin"
+    },
+    {
+      "section": "agents",
+      "name": "ops POST /packages/import JSON -> 403",
+      "pass": true,
+      "detail": "status=403 msg=权限不足，需要：admin"
+    },
+    {
+      "section": "agents",
+      "name": "ops POST /packages/toggle -> 403",
+      "pass": true,
+      "detail": "status=403 msg=权限不足，需要：admin"
+    },
+    {
+      "section": "agents",
+      "name": "ops DELETE /packages/{name} -> 403",
+      "pass": true,
+      "detail": "status=403 msg=权限不足，需要：admin"
+    },
+    {
+      "section": "agents",
+      "name": "ops POST /packages/import zip -> 403",
+      "pass": true,
+      "detail": "status=403"
+    },
+    {
+      "section": "agents",
+      "name": "test data preserved (fixture-zip still installed)",
+      "pass": true,
+      "detail": "names=fixture-zip,build,coordinator,plan"
+    },
+    {
+      "section": "bots",
+      "name": "GET /bot-binding/1 readable",
+      "pass": true,
+      "detail": "status=200"
+    },
+    {
+      "section": "bots",
+      "name": "POST /{id}/stop",
+      "pass": true,
+      "detail": "status=200 code=00000 msg=操作成功"
+    },
+    {
+      "section": "bots",
+      "name": "POST /{id}/start",
+      "pass": true,
+      "detail": "status=200 code=00000 msg=操作成功"
+    },
+    {
+      "section": "bots",
+      "name": "POST /{id}/restart",
+      "pass": true,
+      "detail": "status=200 code=00000 msg=操作成功"
+    },
+    {
+      "section": "bots",
+      "name": "POST /{id}/logout",
+      "pass": true,
+      "detail": "status=200 code=00000 msg=操作成功"
+    },
+    {
+      "section": "bots",
+      "name": "POST /{id}/start restores online",
+      "pass": true,
+      "detail": "status=200 msg=操作成功"
+    },
+    {
+      "section": "bots",
+      "name": "binding id=1 final state online",
+      "pass": true,
+      "detail": "{\"code\":\"00000\",\"data\":{\"id\":1,\"userName\":\"微信助理\",\"botId\":\"3aa71a57d028@im.bot\",\"platform\":\"wechat\",\"nickname\":\"微信助理\",\"status\":\"online\",\"bindSource\":\"qrcode_scan\",\"model\":\"agnes-2.5-flash\",\"thinking\":false,\"systemPrompt\":\"\",\"recordUsage\":true,\"mentionOnly\":true,\"randomReplyEnabled\":false,\"randomConte"
+    },
+    {
+      "section": "sse",
+      "name": "anonymous request rejected (not a stream)",
+      "pass": true,
+      "detail": "status=403 ct=application/json"
+    },
+    {
+      "section": "sse",
+      "name": "unknown session -> 404 (frontend stops reconnecting)",
+      "pass": true,
+      "detail": "status=404 msg=会话不存在"
+    },
+    {
+      "section": "sse",
+      "name": "workspace-path resolves",
+      "pass": true,
+      "detail": "status=200 path=/opt/ai-starter/workspace/admin/agent"
+    },
+    {
+      "section": "sse",
+      "name": "GET /sessions/1/workspace/events -> 200 event-stream",
+      "pass": true,
+      "detail": "status=200 ct=text/event-stream err=AbortError: This operation was aborted"
+    },
+    {
+      "section": "sse",
+      "name": "real add event for the touched file",
+      "pass": true,
+      "detail": "events=2 types=add,heartbeat path=sse-probe-1791267520796.txt"
+    },
+    {
+      "section": "sse",
+      "name": "sessionId echoed verbatim as \"1\"",
+      "pass": true,
+      "detail": "sessionId=1"
+    },
+    {
+      "section": "sse",
+      "name": "path is workspace-relative with forward slashes",
+      "pass": true,
+      "detail": "path=sse-probe-1791267520796.txt"
+    },
+    {
+      "section": "sse",
+      "name": "heartbeat inside 15s",
+      "pass": true,
+      "detail": "heartbeat={\"type\":\"heartbeat\",\"sessionId\":\"1\",\"timestamp\":1791267540371}"
+    }
+  ]
+}

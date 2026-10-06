@@ -13,6 +13,18 @@ const http = createClient(v2Http, { unwrap: false });
 // 根路径客户端（管理类：model-metrics / mcp / agents / services / skills，控制器不在 /v2 下）
 const apiHttp = createClient(rootHttp, { unwrap: false });
 
+/**
+ * 分组设置响应摊平。
+ *
+ * <p>后端按分组的真实出口是 {@code /v2/settings/{group}}（{@code /v2/global-settings} 只有
+ * 无参的单条接口，带分组的路径一律 404）。该出口的响应是<b>双层信封</b>：
+ * {@code {code, data: {success, data: {field -> value}}}}，而本文件的客户端是
+ * {@code unwrap: false}，直接取 {@code res.data} 会拿到内层信封本身。这里就地摊平成
+ * {@code field -> value}，让调用方拿到的形状与 {@code settings.api.ts}
+ * 的 {@code fetchGroupSettings} 一致。</p>
+ */
+const flattenGroupSettings = (res: any) => res?.data?.data ?? res?.data ?? res ?? {};
+
 // ==================== 模型管理 ====================
 export const modelApi = {
   list: (params?: any) => http.get('/models', { params }),
@@ -264,10 +276,11 @@ export const pluginsApi = {
 
 // ==================== 系统设置 ====================
 export const settingsApi = {
-  // 全局设置
-  globalBeans: (group: string) => http.get(`/global-settings/${group}`),
-  updateGlobalBeans: (group: string, data: any) =>
-    http.put(`/global-settings/${group}`, data),
+  // 全局设置（按分组）：走 /v2/settings/{group}，见 flattenGroupSettings 注释
+  globalBeans: async (group: string) =>
+    flattenGroupSettings(await http.get(`/settings/${group}`)),
+  updateGlobalBeans: async (group: string, data: any) =>
+    flattenGroupSettings(await http.put(`/settings/${group}`, data)),
   globalSettingsList: () => http.get('/global-settings'),
 
   // 用量配置
@@ -392,9 +405,11 @@ export const pipelineApi = {
   list: () => http.get('/models/pipelines'),
   detail: (code: string) => http.get(`/pipelines/${code}`),
   models: (code: string) => http.get(`/pipelines/${code}/models`),
-  config: (group: string) => http.get(`/global-settings/${group}`),
-  updateConfig: (group: string, data: any) =>
-    http.put(`/global-settings/${group}`, data),
+  // 分组配置读写：/global-settings/{group} 在后端不存在（404），真实出口是 /settings/{group}
+  config: async (group: string) =>
+    flattenGroupSettings(await http.get(`/settings/${group}`)),
+  updateConfig: async (group: string, data: any) =>
+    flattenGroupSettings(await http.put(`/settings/${group}`, data)),
   // 各管线配置
   ocr: {
     get: () => http.get('/ocr/config'),

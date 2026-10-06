@@ -280,27 +280,22 @@ export const botApi: BotApi = {
     return await readInstance(current.id ?? id);
   },
 
-  // 无对应出口：AiBotBindingController 未提供 POST /v2/ai/bot-binding/{id}/start
+  // POST /v2/ai/bot-binding/{id}/start（绑定置 online + 拉起消息轮询；未扫码绑定会被后端 400 拒绝）
   async startBotInstance(this: ApiContext, id: string) {
-    throw new Error(
-      `启动机器人不可用：后端缺少出口 POST /v2/ai/bot-binding/{id}/start（id=${id}），` +
-        `微信 bot 仅在后端把绑定 status 置为 online 时由聊天引擎自动拉起`,
-    );
+    await http.post(`${BASE}/${encodeURIComponent(id)}/start`);
+    return { success: true };
   },
 
-  // 无对应出口：AiBotBindingController 未提供 POST /v2/ai/bot-binding/{id}/stop
+  // POST /v2/ai/bot-binding/{id}/stop（绑定置 offline + 停止轮询，凭证保留可再次启动）
   async stopBotInstance(this: ApiContext, id: string) {
-    throw new Error(
-      `停止机器人不可用：后端缺少出口 POST /v2/ai/bot-binding/{id}/stop（id=${id}），` +
-        `AiBotBindingService.updateStatus 只由内部同步任务调用，未对前端开放`,
-    );
+    await http.post(`${BASE}/${encodeURIComponent(id)}/stop`);
+    return { success: true };
   },
 
-  // 无对应出口：AiBotBindingController 未提供 POST /v2/ai/bot-binding/{id}/restart
+  // POST /v2/ai/bot-binding/{id}/restart（后端 stop→start 一次往返完成）
   async restartBotInstance(this: ApiContext, id: string) {
-    throw new Error(
-      `重启机器人不可用：后端缺少出口 POST /v2/ai/bot-binding/{id}/restart（id=${id}）`,
-    );
+    await http.post(`${BASE}/${encodeURIComponent(id)}/restart`);
+    return { success: true };
   },
 
   // POST /v2/ai/bot-binding/qrcode?platform=&botId= 建会话 + GET /qrcode/status?key= 轮询
@@ -334,12 +329,14 @@ export const botApi: BotApi = {
       : { status: "pending", message: "二维码生成中，请稍候" };
   },
 
-  // 无对应出口：AiBotBindingController 未提供 logout，登出只能删除绑定 DELETE /v2/ai/bot-binding/{id}
+  // POST /v2/ai/bot-binding/{id}/logout（停轮询 + 置 offline；iLink 无平台侧吊销，重扫码按 botId 覆盖凭证）
   async logoutBot(this: ApiContext, id: string) {
-    throw new Error(
-      `退出登录不可用：后端缺少出口 POST /v2/ai/bot-binding/{id}/logout（id=${id}），` +
-        `如需解绑请改用删除绑定`,
-    );
+    const body = await http.post(`${BASE}/${encodeURIComponent(id)}/logout`);
+    const data = unwrapData(body);
+    return {
+      success: true,
+      message: (data && typeof data === "object" && data.message) || "已退出登录，重新扫码即可绑定新账号",
+    };
   },
 
   // DELETE /v2/ai/bot-binding/{id}（后端 data 为 null，成功与否由信封 code 决定）
