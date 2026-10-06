@@ -435,7 +435,9 @@ watch(activeCode, (code) => {
 }
 .iw__title {
   margin: 0;
-  font-size: 30px;
+  /* 与基准 .ig-title 同为 40px。此前这里是 30px（且没跟着窄屏收），
+     六个内嵌模块里只有它不是 40px，一眼就能看出不是同一套标题层级。 */
+  font-size: 40px;
   font-weight: 900;
   letter-spacing: 3px;
   color: var(--el-color-white);
@@ -713,6 +715,49 @@ watch(activeCode, (code) => {
   }
   .iw__stage {
     height: min(52vh, 460px);
+  }
+}
+
+/*
+ * 宽屏三栏：给名录面板封顶，让内容在可视区内收尾。
+ *
+ * 背景：这轮把标题从 30px 提到基准的 40px 后，1440x900 冒出 12px「幽灵滚」
+ * （.portal-embed__body 能滚但只多 12px，用户滚了半天什么都没发生）。
+ * 逐层量下来根因是 .ilp__list 的 max-height: 52vh —— 52vh 是拍脑袋的定值，
+ * 它没扣掉名录面板自身的 chrome（头 24px + 筛选 130px + 搜索 32px + 间距/内边距），
+ * 也没扣掉 .iw 顶栏（标题升档后 46px→56px）。实测：把列表上限压到 ≤456px，
+ * body 溢出正好归零（900px 视口下 52vh=468px，多出的就是那 12px）。
+ *
+ * 修法不是把 52vh 换成另一个魔法数，而是给「面板」封顶而不是给「列表」封顶：
+ * 面板内部 .ilp__list 本来就是 flex:1 1 auto + overflow-y:auto，面板一封顶，
+ * 列表会自动缩到剩余空间（`.ilp` 也有 min-height:0 配合），不用知道 chrome 有多少。
+ * 数值沿用右栏 .idp 早就有的 78vh —— 同一屏里左右两块用同一个上限才是一套规格。
+ *
+ * 只在宽屏三栏时封：窄屏 / 矮屏下三栏已折成两栏、面板本来就该整块滚，
+ * 硬封顶会把内容挤到面板内部装不下（实测 390x844 与 844x390 下面板裁切 18~99px）。
+ */
+@media (min-width: 981px) and (min-height: 760px) {
+  .iw__col-left {
+    max-height: 78vh;
+  }
+}
+
+/*
+ * 窄屏（≤640px）：标题收到 28px。
+ * 顶栏 .iw__bar 右侧还有「N 种 · M 目」+ 5 个操作按钮，40px 标题 + 操作区
+ * 在 390px 宽下会把操作区挤到换行，所以必须给标题一档收窄值，
+ * 和成语接龙/汉字识字用同一个断点与同一个 28px 档位。
+ */
+@media (max-width: 640px) {
+  .iw {
+    padding: 14px 14px 20px;
+  }
+  .iw__title {
+    font-size: 28px;
+    letter-spacing: 2px;
+  }
+  .iw__bar {
+    gap: 10px;
   }
 }
 

@@ -92,6 +92,11 @@ const displayName = computed(() => props.overview?.student?.studentName || "同�
  * 学习数据里没有「待办条目数」这个概念，只有进度百分比；
  * 这里用 100-进度 折算成一个直观的待完成数（满分 100 时角标消失）。
  *
+ * <p>**查不到该模块的学习记录时返回 0（不显示角标）**，这是刻意改的：
+ * 原实现在无记录时直接 `return 48`，等于凭空造一个数字印在卡片上 ——
+ * 学生看到「48」会以为真有 48 个待办，而库里根本没有这个数。
+ * 宁可什么都不显示，也不显示假数据。</p>
+ *
  * @param m 模块
  * @returns 角标数字，0 表示不显示
  */
@@ -100,8 +105,9 @@ function badgeOf(m: PortalModule): number {
     return 0;
   }
   const p = (props.overview?.modules ?? []).find((r) => r.moduleCode === m.moduleCode);
+  // 没有该模块的学习记录 → 真实的待完成数未知 → 不显示，而不是编一个
   if (!p) {
-    return 48;
+    return 0;
   }
   return Math.max(0, 100 - (p.progress ?? 0));
 }
@@ -128,23 +134,27 @@ function badgeOf(m: PortalModule): number {
     var(--el-color-primary-light-3) 54%,
     var(--el-color-primary-light-7) 100%
   );
+  /* 手机端刘海/手势条会压住内容，底部留出安全区 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .pp-head {
-  padding: 28px 44px 0;
+  /* 边距随视口收放：写死 28/44 在手机上把内容挤到只剩一列 */
+  padding: clamp(16px, 2.4vw, 28px) clamp(16px, 3.2vw, 44px) 0;
 }
 .pp-head__row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
+  gap: clamp(12px, 2vw, 24px);
   flex-wrap: wrap;
 }
 /* 品牌区标题压在主色带上，靠描边阴影保证可读性（见 .pp-title） */
 .pp-title {
   margin: 0;
-  font-size: 46px;
+  /* 46px 在 390px 宽的屏上会折行，改成随视口收放的 clamp */
+  font-size: clamp(26px, 4.4vw, 46px);
   font-weight: 900;
-  letter-spacing: 3px;
+  letter-spacing: clamp(1px, 0.3vw, 3px);
   color: var(--el-color-white);
   /* 卡通描边：更厚的落下阴影，像贴纸字 */
   text-shadow: 0 4px 0 color-mix(in srgb, var(--el-color-black) 14%, transparent);
@@ -163,7 +173,7 @@ function badgeOf(m: PortalModule): number {
 }
 .pp-pills {
   display: flex;
-  gap: 14px;
+  gap: clamp(8px, 1.2vw, 14px);
   flex-wrap: wrap;
   padding-top: 6px;
 }
@@ -171,8 +181,10 @@ function badgeOf(m: PortalModule): number {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 52px;
-  padding: 0 20px;
+  /* 原写死 52px：短屏上三枚胶囊叠起来就多占一整行。改成有下限的 min-height，
+     内容（数字变大）撑多高都放得下 */
+  min-height: clamp(40px, 5vw, 52px);
+  padding: 6px clamp(12px, 1.4vw, 20px);
   /* 原 14px，最近档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
@@ -180,14 +192,14 @@ function badgeOf(m: PortalModule): number {
   border: 1px solid var(--el-border-color-lighter);
 }
 .pp-pill__ic {
-  width: 30px;
-  height: 30px;
+  width: clamp(24px, 3vw, 30px);
+  height: clamp(24px, 3vw, 30px);
   /* 原 9px，最近档 8px（md） */
   border-radius: var(--el-radius-md, 8px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: clamp(13px, 1.6vw, 16px);
 }
 .pp-pill__ic.is-blue { background: color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
 .pp-pill__ic.is-gold { background: color-mix(in srgb, var(--el-color-warning) 14%, transparent); }
@@ -198,7 +210,7 @@ function badgeOf(m: PortalModule): number {
 }
 .pp-pill__lbl.is-inline { margin-right: 2px; }
 .pp-pill__val {
-  font-size: 19px;
+  font-size: clamp(16px, 2vw, 19px);
   font-weight: 900;
   color: var(--el-text-color-primary);
 }
@@ -211,28 +223,32 @@ function badgeOf(m: PortalModule): number {
 }
 
 .pp-body {
-  margin: 26px 26px 30px;
-  padding: 30px 30px 24px;
+  margin: clamp(14px, 2vw, 26px) clamp(12px, 1.8vw, 26px) clamp(16px, 2.2vw, 30px);
+  padding: clamp(16px, 2.2vw, 30px) clamp(14px, 2.2vw, 30px) clamp(14px, 1.8vw, 24px);
   /* 对齐设计稿：整块白色圆角容器（四周同圆角） */
-  border-radius: 28px;
+  border-radius: clamp(18px, 2.4vw, 28px);
   background: var(--el-bg-color);
-  min-height: 60vh;
+  /* 原 min-height:60vh —— 写死 vh 在矮屏上凭空多出一段空白，把内容整体推下首屏；
+     改成随视口高度收放并封顶，短内容页不再被撑出空壳 */
+  min-height: min(60dvh, 560px);
   box-shadow: 0 18px 40px color-mix(in srgb, #0b3f7a 16%, transparent);
 }
 .pp-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  /* auto-fit + minmax：列数按可用宽度自己算，不再为每个断点写死 repeat(n, …)，
+     与成语消消乐同一套写法 */
+  grid-template-columns: repeat(auto-fit, minmax(clamp(150px, 26vw, 260px), 1fr));
+  gap: clamp(12px, 1.6vw, 20px);
 }
 .pp-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: clamp(10px, 1.4vw, 16px);
+  padding: clamp(12px, 1.6vw, 20px);
   /* 对齐设计稿：白卡 + 柔和投影、20px 圆角，不描重边 */
   border: 0;
-  border-radius: 20px;
+  border-radius: clamp(14px, 1.6vw, 20px);
   background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
@@ -257,14 +273,14 @@ function badgeOf(m: PortalModule): number {
 }
 .pp-card__ic {
   flex-shrink: 0;
-  width: 68px;
-  height: 68px;
+  width: clamp(44px, 5vw, 68px);
+  height: clamp(44px, 5vw, 68px);
   /* 设计稿是「圆角方块」图标，不是圆形 */
-  border-radius: 22px;
+  border-radius: clamp(14px, 1.8vw, 22px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: clamp(20px, 2.4vw, 30px);
   color: var(--el-color-white);
   /* 图标自身带一层同色柔和投影（底色由 modules.ts 内联渐变下发） */
   box-shadow: 0 10px 20px -6px color-mix(in srgb, var(--el-color-black) 22%, transparent);
@@ -272,19 +288,23 @@ function badgeOf(m: PortalModule): number {
 .pp-card__text {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  /* 允许文字占满剩余宽度并在过长处断行，否则窄屏下标题会顶破卡片 */
   min-width: 0;
+  flex: 1 1 auto;
 }
 .pp-card__title {
-  font-size: 21px;
+  font-size: clamp(15px, 1.9vw, 21px);
   font-weight: 900;
   color: var(--el-text-color-primary);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  overflow-wrap: anywhere;
 }
 .pp-card__sub {
-  font-size: 14px;
+  font-size: clamp(12px, 1.5vw, 14px);
   color: var(--el-text-color-placeholder);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 .pp-badge {
   position: absolute;
@@ -306,11 +326,17 @@ function badgeOf(m: PortalModule): number {
 }
 .pp-more {
   margin: 26px 0 10px;
+  padding: 10px 0;
   text-align: center;
   font-size: 15px;
   font-weight: 800;
   color: var(--el-color-primary);
   cursor: pointer;
+  /* 触摸目标：手机上 10px 上下留白 + 15px 字号不足 44px */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
   outline: none;
 }
@@ -318,14 +344,37 @@ function badgeOf(m: PortalModule): number {
   border-radius: var(--el-radius-sm, 6px);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
-@media (max-width: 1100px) {
-  .pp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pp-title { font-size: 34px; }
-}
+/*
+ * 响应式：列数已由 .pp-grid 的 auto-fit + minmax(clamp(…)) 接管，
+ * 这里**不再**写 repeat(2)/repeat(1) 的死断点 —— 之前 1100px/700px 两个断点
+ * 与 auto-fit 逻辑重复且互相覆盖，窄屏反而被固定成一列（实测 390px 宽下
+ * 6 张卡叠成 1817px 长条，要滚 973px）。这里只保留间距与字号的收口。
+ */
 @media (max-width: 700px) {
-  .pp-grid { grid-template-columns: minmax(0, 1fr); }
-  .pp-head { padding: 20px 20px 0; }
-  .pp-body { margin: 18px 12px 0; padding: 20px 16px; }
+  .pp-head { padding: 16px 16px 0; }
+  .pp-sub { margin-top: 6px; font-size: 13px; }
+  .pp-pills { width: 100%; padding-top: 10px; }
+  /* 手机上三枚胶囊各占一行太占屏，压成两列网格 */
+  .pp-pills {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  .pp-body { margin: 14px 10px 0; padding: 16px 12px; border-radius: 18px; min-height: 0; }
+  .pp-more { margin: 18px 0 6px; font-size: 14px; }
+  /* 触摸目标不小于 44px（iOS HIG / Material 都说 44~48） */
+  .pp-card { min-height: 64px; }
+}
+/*
+ * 矮屏收口：`.pp-body` 的下外边距 + 下内边距叠起来会在内容刚好填满视口时
+ * 顶出一圈「幽灵滚动」——1280x620 实测 scrollHeight 661 / clientHeight 620，
+ * 页面能滚但滚过去什么都没有，触控板用户会当成卡住。
+ * 只按**高度**收口尾巴，不动列数（列数归 .pp-grid 的 auto-fit 管）。
+ */
+@media (max-height: 700px) {
+  .pp-body {
+    margin-bottom: 0;
+    padding-bottom: clamp(10px, 1.4vh, 18px);
+  }
 }
 /* 尊重系统「减少动态效果」偏好：关掉本页全部过渡 */
 @media (prefers-reduced-motion: reduce) {

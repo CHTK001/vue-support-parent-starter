@@ -409,7 +409,7 @@ const poemColumns: ReTableColumn[] = [
     align: "center",
     formatter: (_row, _col, value) => difficultyLabel(value),
   },
-  { prop: "actions", label: "操作", width: 110, align: "right", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 110, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 /**

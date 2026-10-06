@@ -91,7 +91,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="idiomTags" label="标签" width="130" show-overflow-tooltip />
-          <el-table-column label="操作" width="150" align="right" fixed="right">
+          <el-table-column label="操作" width="150" align="center" fixed="right">
             <template #default="{ row }">
               <!-- 必须 .stop：本表格绑了 @row-click="openEdit"，
                    不阻止冒泡会让「点预览/删除」也触发一次「打开编辑弹窗」 -->

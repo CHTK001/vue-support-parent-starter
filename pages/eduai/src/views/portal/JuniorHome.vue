@@ -149,22 +149,23 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
     var(--el-bg-color-page) 46.1%,
     var(--el-fill-color-lighter) 100%
   );
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .jp-head {
-  padding: 30px 44px 0;
+  padding: clamp(16px, 2.4vw, 30px) clamp(16px, 3.2vw, 44px) 0;
 }
 .jp-head__row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 26px;
+  gap: clamp(12px, 2vw, 26px);
   flex-wrap: wrap;
 }
 .jp-title {
   margin: 0;
-  font-size: 44px;
+  font-size: clamp(26px, 4.2vw, 44px);
   font-weight: 900;
-  letter-spacing: 4px;
+  letter-spacing: clamp(1px, 0.3vw, 4px);
   color: var(--el-color-white);
   /* 白字压在主色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
   text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
@@ -183,15 +184,18 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 }
 .jp-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  min-width: min(680px, 100%);
+  /* auto-fit：四枚统计卡按可用宽度自动换列。原先写死 repeat(4)，
+     在 390px 手机上每枚不到 90px，「完成练习」这类标签直接被挤断 */
+  grid-template-columns: repeat(auto-fit, minmax(clamp(132px, 30vw, 180px), 1fr));
+  gap: clamp(8px, 1.2vw, 12px);
+  min-width: 0;
+  width: 100%;
 }
 .jp-stat {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: clamp(8px, 1.1vw, 12px) clamp(10px, 1.4vw, 16px);
   /* 原 14px，最近档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
@@ -199,14 +203,14 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   border: 1px solid var(--el-border-color-lighter);
 }
 .jp-stat__ic {
-  width: 30px;
-  height: 30px;
+  width: clamp(24px, 3vw, 30px);
+  height: clamp(24px, 3vw, 30px);
   flex-shrink: 0;
   border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: clamp(12px, 1.5vw, 15px);
   font-weight: 900;
   color: var(--el-color-white);
 }
@@ -245,27 +249,30 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 .jp-stat:nth-child(4) { background: color-mix(in srgb, #7c3aed 10%, var(--el-bg-color)); }
 
 .jp-body {
-  margin: 26px 26px 0;
-  padding: 30px 30px 22px;
+  margin: clamp(14px, 2vw, 26px) clamp(12px, 1.8vw, 26px) 0;
+  padding: clamp(16px, 2.2vw, 30px) clamp(14px, 2.2vw, 30px) clamp(14px, 1.8vw, 22px);
   /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
   border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
   background: var(--el-bg-color);
-  min-height: 55vh;
+  /* 原 min-height:55vh —— 写死 vh 在矮屏上凭空多出一段空白，
+     改成随视口高度收放并封顶 */
+  min-height: min(55dvh, 520px);
 }
 .jp-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  /* auto-fit：八张卡按可用宽度自己算列数，不再靠 1200/800 两个死断点 */
+  grid-template-columns: repeat(auto-fit, minmax(clamp(150px, 24vw, 230px), 1fr));
+  gap: clamp(12px, 1.5vw, 18px);
 }
 .jp-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 18px;
+  gap: clamp(10px, 1.3vw, 14px);
+  padding: clamp(12px, 1.5vw, 20px) clamp(12px, 1.4vw, 18px);
   /* 对齐设计稿：白卡 + 柔和投影、20px 圆角 */
   border: 0;
-  border-radius: 20px;
+  border-radius: clamp(14px, 1.6vw, 20px);
   background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
@@ -307,14 +314,14 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 }
 .jp-card__ic {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: clamp(38px, 4.2vw, 56px);
+  height: clamp(38px, 4.2vw, 56px);
   /* 对齐设计稿：圆角方块图标 + 柔和投影 */
-  border-radius: 18px;
+  border-radius: clamp(12px, 1.5vw, 18px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: clamp(18px, 2.1vw, 26px);
   /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景 */
   color: var(--el-color-white);
   box-shadow: 0 8px 18px -6px color-mix(in srgb, var(--el-color-black) 22%, transparent);
@@ -323,13 +330,14 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   min-width: 0;
 }
 .jp-card__title {
-  font-size: 18px;
+  font-size: clamp(14px, 1.7vw, 18px);
   font-weight: 900;
   color: var(--el-text-color-primary);
+  overflow-wrap: anywhere;
 }
 .jp-card__sub {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: clamp(11px, 1.3vw, 12px);
   color: var(--el-text-color-placeholder);
   font-weight: 600;
   white-space: nowrap;
@@ -356,15 +364,18 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   font-weight: 700;
   color: var(--el-text-color-regular);
 }
-@media (max-width: 1200px) {
-  .jp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .jp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+/*
+ * 响应式：列数已由 .jp-grid / .jp-stats 的 auto-fit + minmax(clamp(…)) 接管，
+ * 这里**不再**写 repeat(3)/repeat(2) 的死断点 —— 与 auto-fit 逻辑重复且互相覆盖，
+ * 窄屏反而被固定列数压成又窄又高的长条。只保留间距收口。
+ */
 @media (max-width: 800px) {
-  .jp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .jp-head { padding: 20px 20px 0; }
-  .jp-title { font-size: 32px; }
-  .jp-body { margin: 18px 12px 0; padding: 20px 16px; }
+  .jp-head { padding: 16px 16px 0; }
+  .jp-sub { margin-top: 6px; font-size: 13px; }
+  .jp-body { margin: 14px 10px 0; padding: 16px 12px; min-height: 0; }
+  .jp-rec { margin: 16px 0 8px; font-size: 13px; }
+  /* 触摸目标不小于 44px */
+  .jp-card { min-height: 64px; }
 }
 /* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
 @media (prefers-reduced-motion: reduce) {

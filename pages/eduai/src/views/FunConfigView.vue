@@ -52,7 +52,7 @@
         </template>
       </ReTableColumn>
       <ReTableColumn prop="sortOrder" label="排序" width="80" align="center" />
-      <ReTableColumn label="操作" width="150" fixed="right" align="right">
+      <ReTableColumn label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <ReButton icon="Edit" :show-text="false" type="primary" @click="editConfig(row)">编辑</ReButton>
           <ReButton icon="Delete" :show-text="false" type="danger" @click="deleteConfig(row)">删除</ReButton>

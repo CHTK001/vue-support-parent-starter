@@ -60,7 +60,7 @@
             <el-tag  :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="360" fixed="right" align="right">
+        <ReTableColumn label="操作" width="360" fixed="right" align="center">
           <template #default="{ row }">
             <!-- 详情：任何状态都可看 -->
             <ReButton icon="View" :show-text="false" type="primary" @click="openDetail(row)">详情</ReButton>

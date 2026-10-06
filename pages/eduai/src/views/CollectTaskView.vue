@@ -324,6 +324,10 @@
             active-text="启" inactive-text="停" />
           <span class="text-xs text-gray-400 ml-2">停用后不再自动派发，也不能点「立即采集」，需先启用再手动跑</span>
         </el-form-item>
+        <el-form-item label="入库自动审核">
+          <ReSwitch v-model="autoAudit" inline-prompt active-text="开" inactive-text="关" />
+          <span class="text-xs text-gray-400 ml-2">开：本次任务入库的题目直接视为审核通过，不再进待审；关：入库后待管理员审核</span>
+        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.collectTaskRemark" type="textarea" :rows="4" placeholder="任务备注" maxlength="500" show-word-limit />
         </el-form-item>
@@ -676,6 +680,11 @@ const groovyScript = ref("");
 const groovyScriptPath = ref("");
 const groovyTimeout = ref(60);
 const rawConfig = ref("");
+/**
+ * 入库自动审核开关：开=true 时任务入库的题目直接视为审核通过（后端 auditOnSave 通道）。
+ * 存量任务无该键时读回 false（默认关），见 openEdit 解析段。
+ */
+const autoAudit = ref(false);
 /** 前置处理器（必填）：字段映射 key=JSONPath、value=输出给入库的名称 */
 const preDialogVisible = ref(false);
 const preUrl = ref(IDIOM_CORPUS_DEFAULT);
@@ -920,6 +929,7 @@ function resetSourceConfig() {
   groovyScriptPath.value = "";
   groovyTimeout.value = 60;
   rawConfig.value = "";
+  autoAudit.value = false;
   preUrl.value = currentSourceUrl() || IDIOM_CORPUS_DEFAULT;
   prePreviewRows.value = [];
   preMapping.value = IDIOM_PRE_MAPPING.map((m) => ({ ...m }));
@@ -960,6 +970,7 @@ function openEdit(row: CollectTask) {
   // 解析 sourceConfig 到对应字段
   try {
     const config = JSON.parse(row.collectTaskSourceConfig || "{}");
+    autoAudit.value = config.autoAudit === true;
     textConfig.value = config.text || "";
     urlConfig.value = config.url || "";
     apiConfig.value = config.apiUrl || "";
@@ -1054,6 +1065,7 @@ function buildSourceConfig(): string {
   // 自落库来源：配置就是 Provider 自己的键值，绝不能再挂 importProcessor，
   // 否则服务端会改走通用管线（见 SELF_PERSISTED_TYPES 注释）。
   if (isSelfPersisted(form.collectTaskSourceType)) {
+    (base as Record<string, unknown>).autoAudit = autoAudit.value === true;
     return JSON.stringify(base);
   }
 
@@ -1090,6 +1102,8 @@ function buildSourceConfig(): string {
   base.importProcessor = importProcessor;
   // 起始偏移（顶层）：前置处理器展开后的行下标
   base.offset = Math.max(0, Number(preOffset.value) || 0);
+  // 入库自动审核：仅为显式配置项；默认关（false 也落库，保证前后端口径一致）。
+  (base as Record<string, unknown>).autoAudit = autoAudit.value === true;
 
   return JSON.stringify(base);
 }
