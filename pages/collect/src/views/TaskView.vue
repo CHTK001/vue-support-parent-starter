@@ -18,6 +18,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import ReTime from "@repo/ui/re-time";
+import LogFullTextDialog from "../components/LogFullTextDialog.vue";
 import RunReplayDialog from "../components/RunReplayDialog.vue";
 import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
@@ -131,12 +132,25 @@ const logColumns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskLogCost", label: "耗时", width: 86, slot: "cost", align: "right" },
   { prop: "collectTaskLogMessage", label: "消息", minWidth: 160, showOverflowTooltip: true },
   { prop: "collectTaskLogOutput", label: "出参预览", minWidth: 220, showOverflowTooltip: true },
+  { prop: "logFull", label: "全文", width: 84, slot: "logFull", align: "center", fixed: "right" },
 ]);
 
 const logsVisible = ref(false);
 const logs = ref<CollectTaskLog[]>([]);
 const logsLoading = ref(false);
 const logsTask = ref<CollectTask | null>(null);
+
+/**
+ * 日志全文弹层：表格里「消息」「出参预览」都受列宽与后端 COLUMN_LIMIT 截断，
+ * 排查时看不到完整值，所以每行给一个「全文」入口（见 LogFullTextDialog）。
+ */
+const logFullVisible = ref(false);
+const logFullTarget = ref<CollectTaskLog | null>(null);
+
+function showLogFull(input: Record<string, unknown>): void {
+  logFullTarget.value = input as unknown as CollectTaskLog;
+  logFullVisible.value = true;
+}
 
 async function loadTasks({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   activeFlowId.value = params.collectTaskFlowId ? String(params.collectTaskFlowId) : "";
@@ -353,8 +367,13 @@ onUnmounted(() => {
         <template #iteration="{ row }">
           {{ row.collectTaskLogIteration == null ? "—" : Number(row.collectTaskLogIteration) + 1 }}
         </template>
+        <template #logFull="{ row }">
+          <ReButton layout="square" icon="Document" tip="看这条节点日志的完整消息与出参" @click="showLogFull(row)"/>
+        </template>
       </ReTable>
     </ReDialog>
+
+    <LogFullTextDialog v-model="logFullVisible" :log="logFullTarget"/>
 
     <RunReplayDialog v-model="replayVisible" :task="replayTask" />
   </div>
