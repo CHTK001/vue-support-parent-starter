@@ -3283,6 +3283,24 @@ const hasToolbarConfig = computed(() => {
 
 const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConfig?.position ?? "top");
 
+/**
+ * 合并后的 toolbar 配置（传给 ReTableToolbar）。
+ * 列设置面板只在传入 `:columns` prop 时才渲染（ReTable 的 #column-settings 槽内
+ * ElPopover 有 `v-if="props.columns.length > 0"`）。若列由 `<ReTableColumn>` 子节点
+ * 声明（props.columns 为空），该槽为空内容，ReTableToolbar 会回退渲染一个没有
+ * @click 的裸 ReButton —— 点击只出 tooltip、面板永不打开，即死按钮。
+ * 因此在没有 columns prop 时显式关闭列设置入口，让按钮整体不渲染，
+ * 而不是渲染一个不可用的按钮。
+ */
+const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
+  const cfg = props.toolbarConfig;
+  const canConfigureColumns = props.columns.length > 0;
+  return {
+    ...cfg,
+    columnSettings: canConfigureColumns ? cfg.columnSettings !== false : false,
+  };
+});
+
 const batchSelectTip = computed(() => {
   const cfg = props.toolbarConfig?.batchSelect;
   if (!cfg || cfg === true) return "批量选择";
@@ -3923,7 +3941,7 @@ const iconSelect = Select;
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
         <ReTableToolbar
           :mode="toolbarConfigPosition === 'top' ? 'tools' : 'full'"
-          :config="toolbarConfig"
+          :config="effectiveToolbarConfig"
           :selected-count="selectedCount"
           :editing="editing"
           :processing="batchProcessing"
