@@ -113,6 +113,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { eduaiApi } from '../../api/eduaiApi';
+import { failToast } from '../../api/errorText';
 
 const props = defineProps<{ taskId: string }>();
 
@@ -228,7 +229,7 @@ const load = async (taskId: string) => {
     }));
     await loadImage(taskId, 1);
   } catch (e) {
-    ElMessage.error('获取结构化解析失败: ' + (e instanceof Error ? e.message : String(e)));
+    failToast('获取结构化解析失败', e);
   }
 };
 
@@ -249,10 +250,11 @@ const save = async () => {
   if (!props.taskId) return;
   const adjustments = questions.value
     .filter((q) => q.edit && Number(q.resultId) > 0)
+    // 本面板只改对错、不改评语，故不传 comment：否则后端会把 AI 评语写进「教师评语」列，
+    // 冲掉教师此前手工写过的评语
     .map((q) => ({
       resultId: Number(q.resultId),
       score: Number(q.editScore ?? 0),
-      comment: q.comment ?? '',
     }));
   if (!adjustments.length) {
     ElMessage.warning('没有需要保存的对错修正');
@@ -265,7 +267,7 @@ const save = async () => {
     dirty.value = false;
     await load(props.taskId);
   } catch (e) {
-    ElMessage.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
+    failToast('保存失败', e);
   } finally {
     saving.value = false;
   }

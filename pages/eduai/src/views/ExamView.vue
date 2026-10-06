@@ -192,7 +192,12 @@ const remove = async (row: Exam) => {
     return;
   }
   try {
-    await eduaiApi.deleteExam(row.examId);
+    const ok = await eduaiApi.deleteExam(row.examId);
+    if (!ok) {
+      // 后端返回 false（未实际删掉任何行）时不能报成功，否则列表与提示会自相矛盾
+      ElMessage.error(`删除失败: 考试 ${row.examName} 未被删除，请刷新后重试`);
+      return;
+    }
     ElMessage.success('已删除');
     reload();
   } catch (e) {

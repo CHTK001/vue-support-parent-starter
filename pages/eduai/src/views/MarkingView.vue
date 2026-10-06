@@ -69,7 +69,7 @@
           <el-input v-model="submitForm.studentId" />
         </el-form-item>
         <el-form-item label="答题内容">
-          <el-input v-model="submitForm.content" type="textarea" :rows="2" placeholder="可选 JSON" />
+          <el-input v-model="submitForm.content" type="textarea" :rows="2" placeholder="可选，须为合法 JSON，如 {&quot;1&quot;:&quot;北京&quot;}" />
         </el-form-item>
         <el-form-item label="作答列表">
           <el-button @click="addAnswer">新增一条</el-button>
@@ -135,6 +135,7 @@ import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Reading } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
+import { failToast } from '../api/errorText';
 import type { MarkingResultVO } from '../api/types';
 import SheetStructureView from '../components/marking/SheetStructureView.vue';
 
@@ -154,6 +155,17 @@ const submitForm = reactive<{ examId: number; studentId: string; content: string
 
 const confirming = ref(false);
 let pollHandle: any = null;
+/** 当前轮询对应的 taskId：切换任务时必须先停掉上一个任务的轮询 */
+let pollTaskId = '';
+
+/** 停掉轮询（切任务、离开页面、任务已完成时都要走这里） */
+const stopPolling = () => {
+  if (pollHandle) {
+    clearInterval(pollHandle);
+    pollHandle = null;
+  }
+  pollTaskId = '';
+};
 
 /** 扫描阅卷：模式选择（SELF 自有卷 / ANY 任意卷）、可选试卷、图片文件（可多张，按页序） */
 const scanDialogVisible = ref(false);
@@ -231,7 +243,7 @@ const doScan = async () => {
     // 判分在服务端逐题调模型（每题数秒），必须轮询等待，不能只读一次
     await fetchResult();
   } catch (e) {
-    ElMessage.error('扫描阅卷失败: ' + (e instanceof Error ? e.message : String(e)));
+    failToast('扫描阅卷失败', e);
   } finally {
     scanning.value = false;
   }
@@ -248,16 +260,28 @@ const openSubmit = () => {
 };
 
 const doSubmit = async () => {
-  if (!submitForm.studentId || submitForm.answers.length === 0) {
+  const studentId = submitForm.studentId.trim();
+  if (!studentId || submitForm.answers.length === 0) {
     ElMessage.warning('请填写学生 ID 与至少一条作答');
     return;
+  }
+  // 答题内容是可选 JSON：留空时**不能**下发空串——数据库 answer_sheet_content
+  // 上有 JSON 合法性约束，'' 会让后端 500「数据校验失败」。填了但不是合法 JSON 同理。
+  const content = submitForm.content.trim();
+  if (content) {
+    try {
+      JSON.parse(content);
+    } catch {
+      ElMessage.warning('答题内容必须是合法 JSON（例如 {"1":"北京"}），请检查后重试');
+      return;
+    }
   }
   submitting.value = true;
   try {
     const newTaskId = await eduaiApi.submitMarking({
       examId: submitForm.examId,
-      studentId: submitForm.studentId,
-      content: submitForm.content,
+      studentId,
+      content: content || undefined,
       answers: submitForm.answers,
     });
     ElMessage.success(`提交成功，taskId: ${newTaskId}`);
@@ -265,36 +289,51 @@ const doSubmit = async () => {
     submitDialogVisible.value = false;
     fetchResult();
   } catch (e) {
-    ElMessage.error('提交失败: ' + (e instanceof Error ? e.message : String(e)));
+    failToast('提交失败', e);
   } finally {
     submitting.value = false;
   }
 };
 
 const fetchResult = async () => {
-  if (!taskId.value) {
+  const id = taskId.value.trim();
+  if (!id) {
     ElMessage.warning('请先提交或输入 taskId');
     return;
   }
+  // 切到别的 taskId 时，先停掉上一个任务的轮询：否则旧任务的轮询会在 2 秒后
+  // 拿旧数据覆盖 result，页面显示成另一个任务的结果（教师会据此判错分）。
+  if (id !== pollTaskId) stopPolling();
   loading.value = true;
   try {
-    result.value = await eduaiApi.getMarkingResult(taskId.value);
-    if (!result.value?.finished && !pollHandle) {
+    const r = await eduaiApi.getMarkingResult(id);
+    if (id !== taskId.value.trim()) return; // 响应回来时用户已切走，丢弃
+    result.value = r;
+    if (!r?.finished && !pollHandle) {
+      pollTaskId = id;
       pollHandle = setInterval(async () => {
+        if (id !== taskId.value.trim()) {
+          stopPolling();
+          return;
+        }
         try {
-          const r = await eduaiApi.getMarkingResult(taskId.value);
-          result.value = r;
-          if (r?.finished) {
-            clearInterval(pollHandle);
-            pollHandle = null;
-          }
+          const rr = await eduaiApi.getMarkingResult(id);
+          if (id !== taskId.value.trim()) return;
+          result.value = rr;
+          if (rr?.finished) stopPolling();
         } catch {
           // 静默
         }
       }, 2000);
     }
   } catch (e) {
-    ElMessage.error('查询失败: ' + (e instanceof Error ? e.message : String(e)));
+    // 查询失败时必须清掉旧结果：taskId 已是新值而表格还留着上一个任务的分，
+    // 教师会把上一份成绩当成这次的结果
+    if (id === taskId.value.trim()) {
+      stopPolling();
+      result.value = null;
+    }
+    failToast('查询失败', e);
   } finally {
     loading.value = false;
   }
@@ -305,7 +344,8 @@ const confirmAdjust = async () => {
   const adjustments = (result.value.results || []).map((r) => ({
     resultId: r.resultId,
     score: r.teacherScore ?? r.score,
-    comment: r.teacherComment ?? r.comment,
+    // 教师没写评语就不传该字段（后端视为「不改评语」），否则会把 AI 评语写进「教师评语」列
+    comment: r.teacherComment ?? undefined,
   })).filter((a) => a.resultId > 0);
   if (adjustments.length === 0) {
     ElMessage.warning('暂无可确认的结果');
@@ -317,7 +357,7 @@ const confirmAdjust = async () => {
     ElMessage.success('教师确认已提交');
     await fetchResult();
   } catch (e) {
-    ElMessage.error('确认失败: ' + (e instanceof Error ? e.message : String(e)));
+    failToast('确认失败', e);
   } finally {
     confirming.value = false;
   }
@@ -325,7 +365,7 @@ const confirmAdjust = async () => {
 
 onMounted(() => {});
 onUnmounted(() => {
-  if (pollHandle) clearInterval(pollHandle);
+  stopPolling();
 });
 </script>
 
