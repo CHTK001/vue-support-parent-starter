@@ -231,6 +231,9 @@ const openCreate = () => {
     controlMode: "",
     controlTarget: ""
   };
+  // 新建弹窗也要能选**已登记**的 jar：不加载的话下拉是空的，
+  // 同一个驱动每次建数据源都得重传一遍（编辑弹窗 openEdit 已加载）
+  void loadDriverJars();
   dialogVisible.value = true;
 };
 
@@ -440,14 +443,26 @@ const TYPE_ROUTE_MAP: Record<string, string> = {
   etcd: "/etcd",
 };
 
-/** 打开对应类型的管理页面 */
+/**
+ * 打开对应类型的管理页面。
+ *
+ * <p>TYPE_ROUTE_MAP 是「宿主应用按自身路由覆盖」的映射：管理页（/db-manager 等）属于
+ * 另一个应用，宿主不一定注册。宿主没注册时**不能硬跳** —— 2026-10-05 实测采集应用里
+ * 点「打开管理」直接落 /404?datasourceId=1（路由只在监控应用注册）。这里先查当前路由表，
+ * 没有就给提示，不产生 404。</p>
+ */
 const openManager = (item: DataSourceInfo) => {
   const route = TYPE_ROUTE_MAP[item.type];
-  if (route) {
-    router.push({ path: route, query: { datasourceId: item.id } });
-  } else {
+  if (!route) {
     ElMessage.warning(`类型 ${item.type} 的管理页面开发中`);
+    return;
   }
+  const registered = router.getRoutes().some((r) => r.path === route);
+  if (!registered) {
+    ElMessage.warning(`当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`);
+    return;
+  }
+  void router.push({ path: route, query: { datasourceId: item.id } });
 };
 
 /**
