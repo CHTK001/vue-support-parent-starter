@@ -331,7 +331,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
         :value="stats.error"
         :desc="stats.unknown ? `另有 ${stats.unknown} 个状态未知` : '需查看失败原因'"
         :icon="CircleCloseFilled"
-        icon-color="var(--status-error)"
+        icon-color="var(--status-error, var(--el-color-danger, #ff4c4c))"
       >
         <template #value><ReCountup :value="stats.error" :duration="600" /></template>
       </ReStatCard>
@@ -537,7 +537,8 @@ function openDetailPage(row: ServerNodeView, index: number) {
 }
 
 .status-reason {
-  color: var(--status-error);
+  /* 主 token 缺失时退到 Element Plus 危险色，再退到硬编码，保证错误原因永远标红可见 */
+  color: var(--status-error, var(--el-color-danger, #ff4c4c));
   font-size: 12px;
   line-height: 1.4;
   /* 单行截断：原因常有上百字（端口重试耗时、堆栈片段），
