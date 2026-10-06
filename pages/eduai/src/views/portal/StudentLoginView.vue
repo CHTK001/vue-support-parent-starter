@@ -182,18 +182,24 @@ function looksLikeStudent(account: string): boolean {
  * 被渲染成 `[object Object]`（红字），而 `String({msg: "..."})` 恰好就是那串字符，
  * 真正的后端提示（如「密码错误，还剩 N 次尝试机会」）被整段吞掉。</p>
  *
- * <p>兜底顺序：Error.message → 字符串 → {msg|message|error} → JSON → 统一文案，
- * 保证任何形状都能给出**人话**，绝不把对象本身打印给用户。</p>
+ * <p>兜底顺序：字符串化的后端提示 → Error.message → {msg|message|error} → 统一文案。
+ * 每一步都只接受**我们自己服务端给的业务提示**；</p>
+ *
+ * <p><b>这里刻意没有 JSON.stringify 兜底</b>：之前有，结果是把整个 AxiosError
+ * 序列化后印在密码框正下方 —— 里面有 {@code config.headers}（Authorization 令牌）、
+ * {@code config.data}（<b>明文口令</b>）、{@code stack}。502（网关/重启窗口）这种
+ * 场景 {@code error.message} 又恰好被 httpCrypto 置空，于是每次都走到这条分支。
+ * 任何网络层异常都不该把请求内容回显到页面上，所以宁可只给统一文案。</p>
  *
  * @param e 捕获到的任意异常
  * @returns 可直接渲染的中文文案
  */
 function errorText(e: unknown): string {
-  if (e instanceof Error && e.message) {
-    return e.message;
-  }
   if (typeof e === "string" && e.trim()) {
     return e;
+  }
+  if (e instanceof Error && typeof e.message === "string" && e.message.trim()) {
+    return e.message;
   }
   const box = e as { msg?: unknown; message?: unknown; error?: unknown } | null | undefined;
   for (const candidate of [box?.msg, box?.message, box?.error]) {
@@ -201,15 +207,9 @@ function errorText(e: unknown): string {
       return candidate;
     }
   }
-  try {
-    const json = JSON.stringify(e);
-    if (json && json !== "{}" && json !== "null") {
-      return json;
-    }
-  } catch {
-    // 循环引用等无法序列化的情况：落到统一兜底文案
-  }
-  return "登录失败，请稍后重试";
+  // 到这里说明抛出物里没有一句能给人看的话（502、空响应、被剥掉 message 的网络异常）。
+  // 不再回显对象，统一给一句能指导下一步的文案。
+  return "登录失败，请检查网络后重试；若持续失败请联系老师或管理员";
 }
 
 /**
@@ -617,13 +617,15 @@ onMounted(() => {
 }
 .sl-eye {
   position: absolute;
-  right: 12px;
+  right: 6px;
   top: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  /* 触摸目标 44px（iOS HIG / Material）。原来 34x34 —— 输入框有 50px 高，
+     34px 的热区在手机上很难点准；这里把热区撑到 44px，视觉仍是那个小方块。 */
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 10px;
   background: transparent;
@@ -691,6 +693,11 @@ onMounted(() => {
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
+  /* 「忘记密码？」原来只有 20px 高（纯文字按钮）。文字按钮的热区按字号算，
+     手机上等于难点 —— 补上 44px 热区，不改视觉字号。 */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 .sl-forgot:hover {
   text-decoration: underline;
@@ -751,6 +758,10 @@ onMounted(() => {
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  /* 同 .sl-forgot：19px 高的文字按钮补到 44px 热区 */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 .sl-foot__link:hover {
   text-decoration: underline;
@@ -887,9 +898,9 @@ onMounted(() => {
     font-size: 16px;
   }
   .sl-eye {
-    right: 9px;
-    width: 40px;
-    height: 40px;
+    right: 3px;
+    width: 44px;
+    height: 44px;
   }
   .sl-submit {
     height: 50px;

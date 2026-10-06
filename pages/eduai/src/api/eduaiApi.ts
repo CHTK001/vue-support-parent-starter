@@ -86,7 +86,7 @@ function unwrap<T>(r: unknown): T {
  */
 export const eduaiApi = {
   // 题库
-  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
+  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; auditStatus?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
     http()
       .get("/v2/edu/question/page")
       .query(params)
@@ -114,6 +114,19 @@ export const eduaiApi = {
     http()
       .delete(`/v2/edu/question/${id}`)
       .then<boolean>(unwrap),
+  /** 审核单条题目（通过/驳回，仅管理员） */
+  auditQuestion: (id: number, passed: boolean, remark?: string) =>
+    http()
+      .post(`/v2/edu/question/audit/${id}`)
+      .query({ passed, ...(remark ? { remark } : {}) })
+      .then<boolean>(unwrap),
+  /** 批量审核题目（通过/驳回，仅管理员），返回成功条数 */
+  auditQuestions: (ids: number[], passed: boolean, remark?: string) =>
+    http()
+      .post("/v2/edu/question/audit-batch")
+      .query({ passed, ...(remark ? { remark } : {}) })
+      .data(ids as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
 
   // 组卷
   pagePapers: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; status?: number }) =>

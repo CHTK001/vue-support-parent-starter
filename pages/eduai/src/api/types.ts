@@ -32,6 +32,15 @@ export interface Question {
   questionSource?: string;
   questionSourceType?: string;
   questionAuditStatus?: number;
+  /** 驳回理由（驳回必填，通过时清空） */
+  questionAuditRemark?: string;
+  /** 累计审核次数（每次通过/驳回 +1） */
+  questionAuditCount?: number;
+  /**
+   * 保存并审核（仅新建、仅管理员）：走服务端 auditOnSave 通道，新建即通过。
+   * 只用于 save 入参，不落库、不回显。
+   */
+  auditOnSave?: boolean;
   questionUseCount?: number;
   /** 被新加入试卷的次数（改分、重复提交不重复计）；由组卷保存时 +1 */
   questionAddCount?: number;

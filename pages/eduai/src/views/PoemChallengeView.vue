@@ -3,7 +3,7 @@
     <!-- ==================== ① 选关 ==================== -->
     <section v-if="stage === 'home'" class="pc-home">
       <header class="pc-home__head">
-        <h1 class="pc-home__title">古诗文闯关</h1>
+        <h1 class="pc-home__title">古诗文闯关<span class="pc-home__title__dot" /></h1>
         <p class="pc-home__sub">七种玩法，从不同角度读懂一首诗</p>
       </header>
 
@@ -401,24 +401,51 @@ function next() {
 .pc-page {
   /* 不设内边距：外层 .main-content 已提供 8px，避免双重边距 */
   min-height: 100%;
-  border-radius: var(--el-radius-xl, 16px);
-  background: linear-gradient(160deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
+  /*
+   * 地面与成语消消乐（.ig-page）统一。原先用 primary-light-8 → light-9 的极浅渐变，
+   * 与成语消消乐/昆虫识图/古诗补全不是一个色系。
+   *
+   * 地面转饱和带来一个必须一起解决的问题：三个阶段（.pc-home / .pc-play /
+   * .pc-result）原本都是**透明**压在地上的，深色文字（.pc-bar 的 secondary 灰、
+   * 题干、释义）直接读极浅底。换成饱和底后这些深色字会糊，所以：
+   *   - 首页：标题/副标题转白（下面的白卡不动）
+   *   - 作答/结算：整阶段给白卡（见 .pc-play / .pc-result）
+   * 只改地面不改这两处，就是拿可读性换一致性。
+   */
+  background: linear-gradient(160deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+  /* 满幅地面不圆角：留 16px 圆角的话，内嵌层四周会露出宿主灰底的四个角 */
 }
 .pc-home__head {
   text-align: center;
   margin-bottom: 18px;
 }
+/* 标题：与基准 .ig-title 同一套（白字压在主色带上，靠描边阴影保证可读性） */
 .pc-home__title {
   margin: 0;
-  font-size: 30px;
+  font-size: 40px;
   font-weight: 900;
-  letter-spacing: 2px;
-  color: var(--el-color-primary-dark-2);
+  letter-spacing: 3px;
+  color: var(--el-color-white);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
+.pc-home__title__dot {
+  width: 14px;
+  height: 14px;
+  /* 纯圆点用圆形令牌，不占 --el-radius-* 六档（那六档是圆角矩形语义） */
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-color-white);
+  /* 装饰性光环（0 偏移 0 模糊），不是卡片投影：只描一圈主色，压在主色底上略深 */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+}
+/* 副标题压在主色带上：白字降一档透明度，深色模式下主色更深、白字仍可读 */
 .pc-home__sub {
   margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-color-white);
+  opacity: 0.86;
 }
 .pc-home__filter {
   display: flex;
@@ -432,12 +459,17 @@ function next() {
   gap: 12px;
   margin-bottom: 18px;
 }
+/* 玩法卡：白卡 + 边框，圆角用基准的 --el-radius-xl（此前是 lg/12px，
+   六个模块里只有诗词大会的玩法卡不是 16px 圆角）。 */
 .pc-mode {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--el-radius-lg, 12px);
+  /* 内边距对齐基准卡片档 20px 22px：玩法卡也是「带边框的白底容器」，
+     此前是 14px 16px，六个模块里只有它不是这一档 */
+  padding: 20px 22px;
+  /* 原 12px，最近档 16px（xl），与基准 .ig-card / .pc-card 同一档 */
+  border-radius: var(--el-radius-xl, 16px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   text-align: left;
@@ -493,19 +525,28 @@ function next() {
   max-width: 320px;
   margin: 0 auto;
   height: 48px;
+  /*
+   * 反色：地面已是主色渐变，主色按钮压上去会糊成一片，所以改成
+   * 「白底 + 主色字」。基准的 .ig-start 是主色按钮，但它坐在**白卡**里，
+   * 本页的开始按钮是直接压地面的，两者不能照抄同一色。
+   */
   border: 0;
   /* 原 14px，最近档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
   /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
   outline: none;
 }
+/*
+ * 焦点环换成白色半透：常规的 3px 主色 12% 环落在主色地面上等于没有环，
+ * 白按钮压在主色底上只有白色描边才看得见（与 .portal-embed__back 同思路）。
+ */
 .pc-start:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-white) 85%, transparent);
 }
 .pc-start:disabled {
   opacity: 0.6;
@@ -523,13 +564,23 @@ function next() {
   max-width: 860px;
   margin: 0 auto;
 }
+/*
+ * 顶部进度行升格成白卡：地面翻成主色渐变后，这一行原本是裸压地面的深色文字
+ * （secondary 灰 + 主色分数），会被底色吃掉。做题卡（.pc-card）本来就有白底，
+ * 所以只补进度行这一层，不必把整个阶段再套一张卡（避免卡片套卡片）。
+ */
 .pc-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+  padding: 12px 18px;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-xl, 16px);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pc-bar__mode {
   padding: 3px 12px;
@@ -669,15 +720,37 @@ function next() {
   gap: 12px;
   margin-top: 16px;
 }
+/*
+ * 判定反馈托白卡。
+ *
+ * 地面翻成主色渐变后，这一行是 .pc-play 里唯一还裸压地面的文字：
+ * .pc-bar（进度行）和 .pc-card（做题卡）都补了白底，只有它没有。
+ * 实测压在饱和地面两个端点上只有 1.95（红）/ 2.52（绿），两头都不合格。
+ *
+ * 文字色同样不能直接用 --el-color-danger(#f56c6c) / --el-color-success(#67c23a)：
+ * Element 把这两个当填充色（配白字）设计的，直接当文字色在白底上也只有 2.90 / 2.24。
+ * 而 -dark-2 档（#c45656 / #529b2e）在白底上是 4.36 / 3.45，差一点点也不够。
+ * 所以统一再压一档黑到 80%（≈#9d4545 / #427c25），白底上 6.23 / 5.07，过 AA 正文 4.5:1
+ * 并留了余量；表达式仍然从 Element token 推导，换主题时会跟着变。
+ */
 .pc-feedback {
+  padding: 10px 14px;
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
   font-size: 14px;
   line-height: 1.6;
 }
+.pc-feedback:empty {
+  /* 未判定时是空节点，别留一条空白卡 */
+  padding: 0;
+  border: 0;
+}
 .pc-feedback.is-ok {
-  color: var(--el-color-success);
+  color: color-mix(in srgb, var(--el-color-success-dark-2, #529b2e) 80%, #000);
 }
 .pc-feedback.is-no {
-  color: var(--el-color-danger);
+  color: color-mix(in srgb, var(--el-color-danger-dark-2, #d14343) 80%, #000);
 }
 .pc-next {
   height: 44px;
@@ -704,7 +777,9 @@ function next() {
 .pc-result__card {
   max-width: 620px;
   margin: 0 auto;
-  padding: 24px;
+  /* 内边距对齐基准卡片档 20px 22px：结算卡此前是四边 24px，
+     是本视图最后一个没跟基准对齐的白底容器 */
+  padding: 20px 22px;
   border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
   /* koi 卡片不加投影：改用一条边框承载边界 */

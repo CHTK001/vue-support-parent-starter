@@ -63,6 +63,11 @@
             <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </div>
+        <div class="filter-field">
+          <el-select v-model="searchDraft.auditStatus" clearable placeholder="全部审核" style="width: 100%">
+            <el-option v-for="s in AUDIT_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
+          </el-select>
+        </div>
         <div class="filter-actions">
           <el-button type="primary" :icon="Search" :loading="loading" @click="commitSearch">搜索</el-button>
           <el-button :icon="RefreshLeft" @click="handleReset">重置</el-button>
@@ -76,6 +81,24 @@
         <div class="table-toolbar__left">
           <el-button type="primary" :icon="Plus" @click="openCreate" text>新增题目</el-button>
           <el-button :icon="Upload" @click="openImport" text>批量导入</el-button>
+          <template v-if="isAdmin()">
+            <el-button
+              type="success"
+              text
+              :disabled="!selectedIds.length"
+              @click="() => batchAudit(true)"
+            >
+              批量通过{{ selectedIds.length ? `(${selectedIds.length})` : "" }}
+            </el-button>
+            <el-button
+              type="danger"
+              text
+              :disabled="!selectedIds.length"
+              @click="() => batchAudit(false)"
+            >
+              批量驳回{{ selectedIds.length ? `(${selectedIds.length})` : "" }}
+            </el-button>
+          </template>
         </div>
         <ReTab
           v-model="applied.orderBy"
@@ -124,11 +147,13 @@
             :layout-switch="false"
             :pagination="false"
             :toolbar="false"
+            :show-selection="isAdmin()"
             border
             stripe
             class="question-table"
             empty-text="暂无题目，点击「新增题目」创建"
             @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as Question)"
+            @selection-change="onSelectionChange"
           >
             <template #col-questionType="{ row }">
               <span class="tag-pill" :class="typeClass(row.questionType)">
@@ -157,8 +182,17 @@
               </span>
             </template>
             <template #col-questionAuditStatus="{ row }">
-              <span class="tag-pill" :class="auditClass(row.questionAuditStatus)">
-                {{ auditLabel(row.questionAuditStatus) }}
+              <el-tooltip
+                :content="auditTip(row as unknown as Question)"
+                placement="top"
+                :disabled="!auditTip(row as unknown as Question)"
+              >
+                <span class="tag-pill" :class="auditClass(row.questionAuditStatus)">
+                  {{ auditLabel(row.questionAuditStatus) }}
+                </span>
+              </el-tooltip>
+              <span v-if="(row.questionAuditCount ?? 0) > 0" class="audit-count" title="累计审核次数">
+                ×{{ row.questionAuditCount }}
               </span>
             </template>
             <template #col-questionStatus="{ row }">
@@ -175,6 +209,26 @@
               >
                 <el-icon><EditPen /></el-icon>
               </button>
+              <template v-if="isAdmin()">
+                <el-button
+                  link
+                  type="success"
+                  size="small"
+                  title="审核通过"
+                  @click.stop="auditOne(row as unknown as Question, true)"
+                >
+                  通过
+                </el-button>
+                <el-button
+                  link
+                  type="danger"
+                  size="small"
+                  title="驳回（需填理由）"
+                  @click.stop="auditOne(row as unknown as Question, false)"
+                >
+                  驳回
+                </el-button>
+              </template>
             </template>
           </ReTable>
         </template>
@@ -208,8 +262,17 @@
                 </span>
               </div>
               <div class="q-card__footer">
-                <span class="tag-pill tag-pill--sm" :class="auditClass(row.questionAuditStatus)">
-                  {{ auditLabel(row.questionAuditStatus) }}
+                <el-tooltip
+                  :content="auditTip(row)"
+                  placement="top"
+                  :disabled="!auditTip(row)"
+                >
+                  <span class="tag-pill tag-pill--sm" :class="auditClass(row.questionAuditStatus)">
+                    {{ auditLabel(row.questionAuditStatus) }}
+                  </span>
+                </el-tooltip>
+                <span v-if="(row.questionAuditCount ?? 0) > 0" class="audit-count" title="累计审核次数">
+                  ×{{ row.questionAuditCount }}
                 </span>
                 <span class="status-dot" :class="row.questionStatus === 0 ? 'is-off' : 'is-on'" />
                 <span class="status-text">{{ row.questionStatus === 0 ? "草稿" : "已发布" }}</span>
@@ -568,7 +631,15 @@
       <template #footer>
         <div class="dialog-foot">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button class="dialog-foot__save" type="primary" :loading="saving" @click="save">
+          <el-button
+            v-if="isAdmin() && !form.questionId"
+            type="success"
+            :loading="saving"
+            @click="() => save(true)"
+          >
+            保存并审核
+          </el-button>
+          <el-button class="dialog-foot__save" type="primary" :loading="saving" @click="() => save(false)">
             保存题目
           </el-button>
         </div>
@@ -616,6 +687,7 @@ import ReRichText from "@repo/ui/re-rich-text";
 import ReTab from "@repo/ui/re-tab";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/components/ReTable/types";
+import { isAdmin } from "@repo/core";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 
@@ -645,6 +717,13 @@ const DIFFICULTIES = [1, 2, 3, 4, 5].map((n) => ({
 const STATUS_OPTIONS = [
   { label: "启用", value: 1 },
   { label: "停用", value: 0 },
+];
+
+/** 审核状态筛选项（题库管理筛选区用，传后端 auditStatus） */
+const AUDIT_OPTIONS = [
+  { label: "待审核", value: 0 },
+  { label: "已通过", value: 1 },
+  { label: "驳回", value: 2 },
 ];
 
 const levelLabel = (code?: string | null) =>
@@ -684,6 +763,12 @@ const auditLabel = (n?: number) =>
 const auditClass = (n?: number) =>
   ({ 1: "is-green", 2: "is-red", 0: "is-orange" } as Record<number, string>)[n ?? 0] || "is-gray";
 
+/** 审核提示：驳回显示理由，无理由/非驳回不弹 tooltip */
+const auditTip = (row: Question) =>
+  (row.questionAuditStatus === 2 && row.questionAuditRemark?.trim()
+    ? `驳回理由：${row.questionAuditRemark.trim()}`
+    : "");
+
 /** 题干摘要：去标签、截断，公式（$...$ / 行内公式节点）渲染为公式 */
 const plainText = (html?: string) => htmlToMathText(html);
 
@@ -701,7 +786,7 @@ const pageSize = ref(20);
 const allQuestions = ref<Question[]>([]);
 const dimensions = ref<QuestionGradeDimension[]>([]);
 
-const blankSearch = () => ({ keyword: "", subject: "", type: "", difficulty: null as number | null, status: null as number | null, orderBy: "createTime" });
+const blankSearch = () => ({ keyword: "", subject: "", type: "", difficulty: null as number | null, status: null as number | null, auditStatus: null as number | null, orderBy: "createTime" });
 const searchDraft = reactive(blankSearch());
 const applied = reactive(blankSearch());
 
@@ -743,9 +828,9 @@ const questionColumns: ReTableColumn[] = [
   { prop: "stem", label: "题干摘要", minWidth: 280, slot: "col-stem" },
   { prop: "questionUseCount", label: "使用次数", width: 100, align: "right", slot: "col-questionUseCount" },
   { prop: "questionAddCount", label: "添加次数", width: 100, align: "right", slot: "col-questionAddCount" },
-  { prop: "questionAuditStatus", label: "审核状态", width: 100, slot: "col-questionAuditStatus" },
+  { prop: "questionAuditStatus", label: "审核状态", width: 130, slot: "col-questionAuditStatus" },
   { prop: "questionStatus", label: "状态", width: 100, slot: "col-questionStatus" },
-  { prop: "actions", label: "操作", width: 70, align: "right", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 150, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 const subjectOptions = computed(() => {
@@ -760,6 +845,7 @@ const filtered = computed(() => {
     if (applied.type && q.questionType !== applied.type) return false;
     if (applied.difficulty != null && q.questionDifficulty !== applied.difficulty) return false;
     if (applied.status != null && (q.questionStatus ?? 1) !== applied.status) return false;
+    if (applied.auditStatus != null && (q.questionAuditStatus ?? 0) !== applied.auditStatus) return false;
     if (kw) {
       const hay = `${q.questionStem || ""} ${q.questionSubject || ""}`.toLowerCase();
       if (!hay.includes(kw)) return false;
@@ -880,7 +966,9 @@ const loadDimensions = async () => {
   }
 };
 
-/** 统计用：拉一页大结果（同时刷新学科候选） */
+/** 统计用：拉一页大结果（同时刷新学科候选）。
+ * 全量拉取不传 auditStatus（传 null 后端默认=1 会把待审藏掉），
+ * 待审筛选走前端 filtered（见 applied.auditStatus）。 */
 const reloadStats = async () => {
   loading.value = true;
   try {
@@ -889,6 +977,7 @@ const reloadStats = async () => {
       pageSize: 10000,
       orderBy: applied.orderBy,
       orderDir: "desc",
+      auditStatus: -1,
     });
     allQuestions.value = res?.data ?? [];
     total.value = res?.total ?? allQuestions.value.length;
@@ -1167,7 +1256,7 @@ const openEdit = (row: Question) => {
   dialogVisible.value = true;
 };
 
-const save = async () => {
+const save = async (auditOnSave = false) => {
   const stemPlain = plainText(form.questionStem);
   if (!form.questionType || !form.questionSubject || !stemPlain) {
     ElMessage.warning("请填写题型/学科/题干");
@@ -1207,14 +1296,94 @@ const save = async () => {
   }
   saving.value = true;
   try {
-    await eduaiApi.saveQuestion(form);
-    ElMessage.success("保存成功");
+    // 审核态由服务端裁定：前端不经 save 直写 auditStatus；保存并审核走 auditOnSave 通道。
+    const { questionAuditStatus: _omitAudit, questionAuditRemark: _omitRemark, ...payload } = form;
+    await eduaiApi.saveQuestion({ ...payload, auditOnSave } as Parameters<typeof eduaiApi.saveQuestion>[0]);
+    ElMessage.success(auditOnSave ? "已保存并审核通过" : "保存成功");
     dialogVisible.value = false;
     await reloadStats();
   } catch (e) {
     ElMessage.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     saving.value = false;
+  }
+};
+
+// ========== 审核（仅管理员；行内单审 + 工具条批量） ==========
+
+/** 当前页勾选项 ID（ReTable selection-change 回写） */
+const selectedIds = ref<number[]>([]);
+
+const onSelectionChange = (rows: Question[]) => {
+  selectedIds.value = (rows ?? []).map((r) => r.questionId).filter((n) => n > 0);
+};
+
+/** 单条审核：通过直接调，驳回弹理由输入框 */
+const auditOne = async (row: Question, passed: boolean) => {
+  let remark = "";
+  if (!passed) {
+    try {
+      const { value } = await ElMessageBox.prompt("请填写驳回理由（将展示给题目作者）", "驳回题目", {
+        confirmButtonText: "确认驳回",
+        cancelButtonText: "取消",
+        inputPlaceholder: "如：答案与解析不一致",
+        inputValidator: (v) => !!v?.trim() || "驳回理由不能为空",
+      });
+      remark = (value || "").trim();
+    } catch {
+      return;
+    }
+  }
+  try {
+    await eduaiApi.auditQuestion(row.questionId, passed, remark || undefined);
+    ElMessage.success(passed ? "已通过" : "已驳回");
+    await reloadStats();
+  } catch (e) {
+    ElMessage.error("审核失败: " + (e instanceof Error ? e.message : String(e)));
+  }
+};
+
+/** 批量审核：通过直接调，驳回弹理由输入框；空选时按钮已禁用，这里再兜一层 */
+const batchAudit = async (passed: boolean) => {
+  if (!selectedIds.value.length) {
+    ElMessage.warning("请先勾选题目");
+    return;
+  }
+  let remark = "";
+  if (!passed) {
+    try {
+      const { value } = await ElMessageBox.prompt(
+        `批量驳回 ${selectedIds.value.length} 题，请填写理由（将展示给题目作者）`,
+        "批量驳回",
+        {
+          confirmButtonText: "确认驳回",
+          cancelButtonText: "取消",
+          inputPlaceholder: "如：题干表述不清",
+          inputValidator: (v) => !!v?.trim() || "驳回理由不能为空",
+        },
+      );
+      remark = (value || "").trim();
+    } catch {
+      return;
+    }
+  } else {
+    try {
+      await ElMessageBox.confirm(`确认批量通过 ${selectedIds.value.length} 题吗？`, "批量通过", {
+        type: "success",
+        confirmButtonText: "通过",
+        cancelButtonText: "取消",
+      });
+    } catch {
+      return;
+    }
+  }
+  try {
+    const count = await eduaiApi.auditQuestions(selectedIds.value, passed, remark || undefined);
+    ElMessage.success(`审核完成，成功 ${count} 条`);
+    selectedIds.value = [];
+    await reloadStats();
+  } catch (e) {
+    ElMessage.error("批量审核失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -1416,7 +1585,7 @@ onMounted(() => {
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 1.6fr) repeat(3, minmax(130px, 1fr)) minmax(120px, 0.9fr) auto;
+  grid-template-columns: minmax(200px, 1.6fr) repeat(3, minmax(130px, 1fr)) minmax(120px, 0.9fr) minmax(120px, 0.9fr) auto;
   gap: 14px;
   align-items: center;
 }
@@ -1618,6 +1787,13 @@ onMounted(() => {
 .tag-pill--sm {
   font-size: 11px;
   padding: 2px 8px;
+}
+/* 审核次数：跟在审核状态 pill 后面的小字（×N），只在审过时渲染 */
+.audit-count {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  margin-left: 4px;
+  white-space: nowrap;
 }
 .q-card__footer {
   display: flex;

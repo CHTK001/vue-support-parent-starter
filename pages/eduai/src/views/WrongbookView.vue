@@ -31,7 +31,7 @@
         </ReTableColumn>
         <ReTableColumn prop="wrongQuestionLastWrongTime" label="最近错误" width="180" />
         <ReTableColumn prop="wrongQuestionReviewCount" label="复习次数" width="100" />
-        <ReTableColumn label="操作" width="120" fixed="right" align="right">
+        <ReTableColumn label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <ReButton icon="Refresh" :show-text="false" type="primary" @click="updateMastery(row)">更新掌握度</ReButton>
           </template>

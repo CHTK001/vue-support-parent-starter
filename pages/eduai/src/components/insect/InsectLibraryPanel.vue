@@ -328,4 +328,23 @@ const listed = computed(() => {
     transition: none;
   }
 }
+
+/*
+ * 触摸设备：可点控件抬到 44px。
+ * 名录 chip 桌面档只有 26~28px（筛选条要塞几十个标签，紧凑是有意的），
+ * 但触屏上 26px 很难点准 —— WCAG 2.2 的 2.5.8（AA）底线 24px 虽已过，
+ * 这里再补 2.5.5（AAA）的 44px 档。只在 pointer: coarse 生效，
+ * 桌面端和管理后台的紧凑筛选条外观不变。
+ */
+@media (pointer: coarse) {
+  .ilp__chip,
+  .ilp__chip--slim {
+    height: 44px;
+    font-size: 13px;
+    padding: 0 14px;
+  }
+  .ilp__input {
+    height: 44px;
+  }
+}
 </style>

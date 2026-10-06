@@ -1,78 +1,83 @@
 <template>
   <div class="hg">
-    <header class="hg-head">
-      <h2 class="hg-title">汉字识字</h2>
-      <p class="hg-sub">看<b>字画</b>、读<b>读音</b>、数<b>笔画</b> —— 每题答完都会展示<b>笔顺</b>与释义。</p>
-    </header>
+    <div class="hg-inner">
+      <header class="hg-head">
+        <h1 class="hg-title">
+          汉字识字
+          <span class="hg-title__dot" />
+        </h1>
+        <p class="hg-sub">看<b>字画</b>、读<b>读音</b>、数<b>笔画</b> —— 每题答完都会展示<b>笔顺</b>与释义。</p>
+      </header>
 
-    <template v-if="!finished">
-      <div class="hg-bar">
-        <span class="hg-bar__step">第 <b>{{ questions.length ? index + 1 : 0 }}</b> / {{ questions.length }} 题</span>
-        <span class="hg-bar__score">答对 <b>{{ score }}</b></span>
-        <el-button size="small" @click="load">换一批</el-button>
-      </div>
-
-      <div v-if="!current" class="hg-empty">
-        <el-empty description="正在出题…" />
-      </div>
-
-      <template v-else>
-        <!-- 字画：有图片用图片，否则把字本身当字形图展示 -->
-        <div class="hg-card">
-          <div class="hg-card__art">
-            <img v-if="current.image" :src="current.image" :alt="current.char" class="hg-card__img" />
-            <span v-else class="hg-card__char">{{ current.char }}</span>
-          </div>
-          <div class="hg-card__ask">{{ askText }}</div>
+      <template v-if="!finished">
+        <div class="hg-bar">
+          <span class="hg-bar__step">第 <b>{{ questions.length ? index + 1 : 0 }}</b> / {{ questions.length }} 题</span>
+          <span class="hg-bar__score">答对 <b>{{ score }}</b></span>
+          <el-button size="small" @click="load">换一批</el-button>
         </div>
 
-        <div class="hg-options" :class="{ 'hg-options--strokes': isOrder }">
-          <button
-            v-for="(opt, i) in current.options"
-            :key="i"
-            type="button"
-            class="hg-opt"
-            :class="optionClass(opt)"
-            :disabled="answered"
-            @click="isOrder ? tapStroke(opt) : choose(opt)"
-          >
-            {{ optionText(opt) }}
-          </button>
+        <div v-if="!current" class="hg-empty">
+          <el-empty description="正在出题…" />
         </div>
 
-        <!-- 笔顺题：把已点的笔画显示出来，点满即判分 -->
-        <div v-if="isOrder" class="hg-tapped">
-          已点：<b>{{ tapped.length ? tapped.join(" ") : "—" }}</b>
-          <span class="hg-tapped__hint">（按第 1 笔、第 2 笔…的顺序点）</span>
-        </div>
-
-        <p v-if="answered" class="hg-feedback" :class="{ 'is-ok': picked === current.answer }">
-          {{ picked === current.answer ? "答对了！" : "正确答案：" + current.answer }}
-        </p>
-
-        <!-- 答完即学习卡：把维护字段（笔顺/部首/结构/释义）讲清楚 -->
-        <div v-if="answered" class="hg-learn">
-          <div class="hg-learn__title">学习卡</div>
-          <dl class="hg-learn__grid">
-            <div><dt>读音</dt><dd>{{ current.pinyin || "—" }}</dd></div>
-            <div><dt>笔画</dt><dd>{{ current.strokes != null ? current.strokes + " 笔" : "—" }}</dd></div>
-            <div><dt>部首</dt><dd>{{ current.radical || "—" }}</dd></div>
-            <div><dt>结构</dt><dd>{{ current.structure || "—" }}</dd></div>
-            <div class="hg-learn__full">
-              <dt>笔顺</dt>
-              <dd class="hg-learn__strokes">{{ current.strokeOrder || "—" }}</dd>
+        <template v-else>
+          <!-- 字画：有图片用图片，否则把字本身当字形图展示 -->
+          <div class="hg-card">
+            <div class="hg-card__art">
+              <img v-if="current.image" :src="current.image" :alt="current.char" class="hg-card__img" />
+              <span v-else class="hg-card__char">{{ current.char }}</span>
             </div>
-            <div class="hg-learn__full"><dt>释义 / 组词</dt><dd>{{ current.meaning || "—" }}</dd></div>
-          </dl>
-          <el-button type="primary" @click="next">{{ isLast ? "看成绩" : "下一题" }}</el-button>
-        </div>
-      </template>
-    </template>
+            <div class="hg-card__ask">{{ askText }}</div>
+          </div>
 
-    <div v-else class="hg-done">
-      <div class="hg-done__score">{{ score }} / {{ questions.length }}</div>
-      <p class="hg-done__tip">{{ doneTip }}</p>
-      <el-button type="primary" size="large" @click="load">再练一批</el-button>
+          <div class="hg-options" :class="{ 'hg-options--strokes': isOrder }">
+            <button
+              v-for="(opt, i) in current.options"
+              :key="i"
+              type="button"
+              class="hg-opt"
+              :class="optionClass(opt)"
+              :disabled="answered"
+              @click="isOrder ? tapStroke(opt) : choose(opt)"
+            >
+              {{ optionText(opt) }}
+            </button>
+          </div>
+
+          <!-- 笔顺题：把已点的笔画显示出来，点满即判分 -->
+          <div v-if="isOrder" class="hg-tapped">
+            已点：<b>{{ tapped.length ? tapped.join(" ") : "—" }}</b>
+            <span class="hg-tapped__hint">（按第 1 笔、第 2 笔…的顺序点）</span>
+          </div>
+
+          <p v-if="answered" class="hg-feedback" :class="{ 'is-ok': picked === current.answer }">
+            {{ picked === current.answer ? "答对了！" : "正确答案：" + current.answer }}
+          </p>
+
+          <!-- 答完即学习卡：把维护字段（笔顺/部首/结构/释义）讲清楚 -->
+          <div v-if="answered" class="hg-learn">
+            <div class="hg-learn__title">学习卡</div>
+            <dl class="hg-learn__grid">
+              <div><dt>读音</dt><dd>{{ current.pinyin || "—" }}</dd></div>
+              <div><dt>笔画</dt><dd>{{ current.strokes != null ? current.strokes + " 笔" : "—" }}</dd></div>
+              <div><dt>部首</dt><dd>{{ current.radical || "—" }}</dd></div>
+              <div><dt>结构</dt><dd>{{ current.structure || "—" }}</dd></div>
+              <div class="hg-learn__full">
+                <dt>笔顺</dt>
+                <dd class="hg-learn__strokes">{{ current.strokeOrder || "—" }}</dd>
+              </div>
+              <div class="hg-learn__full"><dt>释义 / 组词</dt><dd>{{ current.meaning || "—" }}</dd></div>
+            </dl>
+            <el-button type="primary" @click="next">{{ isLast ? "看成绩" : "下一题" }}</el-button>
+          </div>
+        </template>
+      </template>
+
+      <div v-else class="hg-done">
+        <div class="hg-done__score">{{ score }} / {{ questions.length }}</div>
+        <p class="hg-done__tip">{{ doneTip }}</p>
+        <el-button type="primary" size="large" @click="load">再练一批</el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -225,27 +230,82 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/*
+ * 视觉基准：成语消消乐（IdiomGameView.vue 的 .ig-page / .ig-title / .ig-card）。
+ *
+ * 本视图原先是「720px 窄栏 + 落宿主灰底 + 22px 黑标题」，实测计算样式
+ * （bg-image=none、标题 22px、卡片是灰块无边框），与其余内嵌模块差了一个色系
+ * —— 学生看到的是「后台表单」而不是「游戏」。这里整体对齐：
+ *   地面  linear-gradient(160deg, primary, primary-dark-2)，满幅不收窄
+ *   标题  白字 / 40px / 900 / letter-spacing 3px + 白圆点
+ *   卡片  --el-bg-color 底 + 1px --el-border-color-lighter 边 + 不加投影
+ *
+ * 地面要满幅、内容要限宽，所以多一层 .hg-inner：渐变归 .hg，宽度约束归 .hg-inner。
+ */
 .hg {
-  padding: 18px 20px 28px;
-  max-width: 720px;
+  min-height: 100%;
+  padding: 4px 0 28px;
+  background: linear-gradient(160deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+}
+.hg-inner {
+  max-width: 760px;
   margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 标题：与基准 .ig-title 同一套（白字压在主色带上，靠描边阴影保证可读性） */
+.hg-head {
+  margin-bottom: 4px;
 }
 .hg-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 40px;
   font-weight: 900;
-  color: var(--el-text-color-primary);
+  letter-spacing: 3px;
+  color: var(--el-color-white);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
+.hg-title__dot {
+  width: 14px;
+  height: 14px;
+  /* 纯圆点用圆形令牌，不占 --el-radius-* 六档（那六档是圆角矩形语义） */
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-color-white);
+  /* 装饰性光环（0 偏移 0 模糊），不是卡片投影：只描一圈主色，压在主色底上略深 */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+}
+/* 副标题压在主色带上：白字降一档透明度，深色模式下主色更深、白字仍可读 */
 .hg-sub {
   margin: 6px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-color-white);
+  opacity: 0.86;
 }
+.hg-sub b {
+  opacity: 1;
+}
+
+/* 进度行：升格成白卡（原为透明，压在渐变上按钮会糊） */
 .hg-bar {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 16px 0 12px;
+  margin: 14px 0 12px;
+  padding: 12px 18px;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-xl, 16px);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
+}
+/* 基准的胶囊控件高 36px；el-button--small 默认 24px（刚好卡 AA 底线），这里抬到同一手感 */
+.hg-bar :deep(.el-button) {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-weight: 600;
 }
 .hg-bar__step b,
 .hg-bar__score b {
@@ -262,11 +322,21 @@ onMounted(() => {
   margin-right: auto;
 }
 
-/* 字画 */
-.hg-card {
-  padding: 20px;
+/* 空态：el-empty 自带浅灰插图与灰字，直接压主色底会看不清，整块给白卡 */
+.hg-empty {
+  padding: 30px 20px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-fill-color-lighter);
+}
+
+/* 字画：白卡 + 边框（原为 --el-fill-color-lighter 灰块）；
+   内边距用基准的 20px 22px，与 .ig-card / .pc-card / .pg-card 同一档 */
+.hg-card {
+  padding: 20px 22px;
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
   text-align: center;
 }
 .hg-card__art {
@@ -340,10 +410,16 @@ onMounted(() => {
   font-size: 26px;
   padding: 10px 0;
 }
+/* 笔顺回显：白卡 + 左侧主色条（原本是裸文字，压在主色底上会看不清） */
 .hg-tapped {
   margin-top: 12px;
+  padding: 12px 16px;
   font-size: 14px;
   color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 4px solid var(--el-color-primary);
+  border-radius: var(--el-radius-lg, 12px);
 }
 .hg-tapped b {
   font-size: 20px;
@@ -355,11 +431,17 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
+/* 判分回显：白卡 + 左侧色条，色条取文字自身颜色（对错两态自动跟随） */
 .hg-feedback {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
+  padding: 10px 14px;
   font-size: 14px;
   font-weight: 600;
   color: var(--el-color-danger);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 4px solid currentColor;
+  border-radius: var(--el-radius-lg, 12px);
 }
 .hg-feedback.is-ok {
   color: var(--el-color-success);
@@ -368,8 +450,8 @@ onMounted(() => {
 /* 学习卡 */
 .hg-learn {
   margin-top: 18px;
-  padding: 16px 18px;
-  border-radius: var(--el-radius-lg, 12px);
+  padding: 20px 22px;
+  border-radius: var(--el-radius-xl, 16px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
 }
@@ -415,10 +497,16 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* 成绩页 */
+/* 成绩页：整块一张白卡。
+   分数原本是 --el-color-primary（主色蓝）直接压在页面上，地面翻成主色渐变后
+   会与底色糊成一片，所以这里必须先有白底托住。 */
 .hg-done {
   text-align: center;
-  padding: 40px 0;
+  margin-top: 14px;
+  padding: 40px 24px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
 }
 .hg-done__score {
   font-size: 52px;
@@ -432,10 +520,55 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
+/*
+ * 窄屏（≤640px）：标题收到 28px（40px 在 390px 宽下会顶到边），
+ * 选项与学习卡两列改一列（沿用原有断点，只补标题与内边距）。
+ */
 @media (max-width: 640px) {
+  .hg-title {
+    font-size: 28px;
+    letter-spacing: 2px;
+  }
+  .hg-inner {
+    padding: 0 14px;
+  }
+  .hg-bar {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .hg-bar__score {
+    margin-right: auto;
+  }
+  .hg-card__char {
+    font-size: 76px;
+  }
+  .hg-learn {
+    padding: 18px 16px;
+  }
+  .hg-done {
+    padding: 32px 16px;
+  }
   .hg-options,
   .hg-learn__grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .hg-tapped__hint {
+    display: block;
+    margin: 6px 0 0;
+  }
+}
+
+/*
+ * 触摸设备：可点控件抬到 44px。
+ * WCAG 2.2 的 2.5.8（AA）底线是 24×24，上面已满足；这里做 2.5.5（AAA）的加分档，
+ * 与基准 .ig-chip 的 36px 桌面档区分开。
+ */
+@media (pointer: coarse) {
+  .hg-bar :deep(.el-button),
+  .hg-opt,
+  .hg-learn :deep(.el-button),
+  .hg-done :deep(.el-button) {
+    min-height: 44px;
   }
 }
 

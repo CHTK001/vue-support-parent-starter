@@ -148,7 +148,9 @@ function stageAvailable(stage: LifeStage): boolean {
   background: var(--el-bg-color);
   /* 原 22px，最近档 16px（xl） */
   border-radius: var(--el-radius-xl, 16px);
-  padding: 16px 16px 18px;
+  /* 内边距对齐基准卡片档 20px 22px（此前是 16px 16px 18px，
+     六个内嵌模块的主面板里只有详情面板不是这一档） */
+  padding: 20px 22px;
   /* koi 卡片不加投影：改用一条边框承载边界 */
   border: 1px solid var(--el-border-color-lighter);
   overflow-y: auto;

@@ -9,9 +9,12 @@
       <button type="button" class="portal-imp__exit" @click="exitImpersonation">退出代入</button>
     </div>
 
-    <!-- 学生自助改密码：只在本人登录时出现，代入态一律不给改，
-         否则管理员代入会被迫（或误操作）改掉学生的真实口令。 -->
-    <div v-else class="portal-pwd">
+    <!-- 学生自助改密码：只在本人登录**且首页数据已就绪**时出现。
+         代入态一律不给改（否则管理员代入会被迫或误操作改掉学生的真实口令）。
+         loading 期间也不给：此时登录态还没确认，学生端数据尚未回来，
+         早于那一帧渲染就是一个没有任何样式的原生按钮（实测确实裸露在加载态里）。
+         extra 判据：必须已绑定，否则未绑定用户看到的也是同一个按钮。 -->
+    <div v-else-if="!loading && !needBind" class="portal-pwd">
       <!-- 显式无参调用：直接把 openChangePassword 交给 @click 会把 MouseEvent 当 firstTime 传进去 -->
       <button type="button" class="portal-pwd__btn" @click="openChangePassword()">
         <ReIcon name="Key" :size="14" aria-hidden="true" />
@@ -78,6 +81,44 @@
     </template>
 
     <div v-else class="portal-loading">加载中…</div>
+
+    <!--
+      「查看更多功能」：就地列出本学段全部模块。
+      原实现是 router.push("/edu/fun")，那是管理后台外壳 —— 学生点进去
+      看到后台导航且没有任何返回出口（用户实测反馈）。这里改成同层覆盖面板。
+    -->
+    <div v-if="showAllModules" class="portal-allmods">
+      <div class="portal-allmods__head">
+        <h2 class="portal-allmods__title">全部功能</h2>
+        <button
+          type="button"
+          class="portal-allmods__close"
+          aria-label="关闭全部功能面板"
+          @click="showAllModules = false"
+        >
+          <ReIcon name="Close" :size="16" aria-hidden="true" />
+        </button>
+      </div>
+      <div class="portal-allmods__grid">
+        <button
+          v-for="m in allModules"
+          :key="m.moduleCode"
+          type="button"
+          class="portal-allmods__item"
+          :class="{ 'is-ready': !!EMBEDDED[m.moduleCode] }"
+          @click="openModule(m.moduleCode)"
+        >
+          <span
+            class="portal-allmods__ic"
+            :style="{ background: `linear-gradient(135deg, ${m.color}, ${m.colorTo})` }"
+            aria-hidden="true"
+            >{{ m.icon }}</span
+          >
+          <span class="portal-allmods__name">{{ m.title }}</span>
+          <span class="portal-allmods__desc">{{ m.subtitle }}</span>
+        </button>
+      </div>
+    </div>
 
     <!--
       模块内嵌层：学生点开模块时**不跳去管理后台**，直接在本层全屏渲染。
@@ -161,6 +202,7 @@ import { setImpersonateToken, getImpersonateToken, clearImpersonateToken } from 
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentOverview } from "../../api/types";
 import { modulesOf, normalizeStage, type PortalModule, type Stage } from "./modules";
+import { providePortalModuleHost } from "./portalHost";
 import PrimaryHome from "./PrimaryHome.vue";
 import JuniorHome from "./JuniorHome.vue";
 import SeniorHome from "./SeniorHome.vue";
@@ -185,6 +227,15 @@ const EMBEDDED: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   // 我的答题/阅卷记录与错题本：都用后端 /v2/edu/student/* 的「本人视角」接口
   "my-records": defineAsyncComponent(() => import("./StudentRecordsView.vue")),
   wrongbook: defineAsyncComponent(() => import("./StudentWrongbookView.vue")),
+  // 下面三个原先漏登记，导致学生点卡片时走 configured.route 跳到 /edu/fun/*，
+  // 而那些路由注册在管理后台 layout 之下 —— 学生直接看到后台侧边栏与标签栏，
+  // 且页面上没有任何返回学生端的出口（实测：诗词大会落点 poem-challenge，后台菜单文字全在）。
+  // 诗词大会：七种玩法合一（诗句排序 / 飞花令 / 看句猜题 / 诗归其主 / 朝代溯源 / 题材归类 / 炼字填空）
+  poetry: defineAsyncComponent(() => import("../PoemChallengeView.vue")),
+  // 古诗补全：给一句诗选下一句
+  poem: defineAsyncComponent(() => import("../PoemGameView.vue")),
+  // 昆虫识图：看图认虫 + 配对玩法
+  insect: defineAsyncComponent(() => import("../InsectView.vue")),
 };
 
 /** 当前内嵌打开的模块；null 表示停留在学生端首页 */
@@ -193,6 +244,42 @@ const activeModule = ref<{
   title: string;
   component: ReturnType<typeof defineAsyncComponent>;
 } | null>(null);
+
+/** 「查看更多功能」面板是否展开（就地覆盖在首页之上，不跳路由） */
+const showAllModules = ref(false);
+
+/**
+ * 把当前内嵌模块同步到地址栏 `?m=<moduleCode>`。
+ *
+ * <p>原实现把打开的模块只放在 ref 里，地址栏永远是 /edu/student。两个后果：</p>
+ * <ul>
+ *   <li>浏览器**后退键会直接退出学生端**（回到登录页/上一个站点），而不是退回模块列表
+ *       —— 内嵌层看着像「打开了一个页面」，但历史里根本没有这一层；</li>
+ *   <li>模块链接没法分享、刷新就丢。</li>
+ * </ul>
+ * <p>提到 query 后后退键正常、链接可分享，回归脚本也能直接深链到某个模块。</p>
+ */
+watch(activeModule, (m) => {
+  const code = m?.code;
+  void router.replace({
+    path: "/edu/student",
+    query: code ? { ...route.query, m: code } : { ...route.query, m: undefined },
+  });
+});
+
+/**
+ * 向内嵌模块提供宿主能力。
+ *
+ * <p>模块自己不知道它被内嵌着：成语消消乐结算页的「返回首页」原本
+ * `router.push("/edu/fun")`，那是管理后台路由 —— 学生点一下就被甩进后台。
+ * 提供 close 后，模块优先就地收起，只有脱离宿主时才走自己的退路。</p>
+ */
+providePortalModuleHost({
+  close: () => {
+    activeModule.value = null;
+    showAllModules.value = false;
+  },
+});
 
 const GRADES: Record<string, string[]> = {
   PRIMARY: ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级"],
@@ -243,6 +330,26 @@ const stage = computed<Stage>(() => normalizeStage(overview.value?.stage ?? form
 const remoteModules = ref<PortalModule[] | null>(null);
 
 /**
+ * 「查看更多功能」要展示的模块全集。
+ *
+ * <p>后台「模块管理」按学段配了哪些卡，首页就只显示哪些；但学生点
+ * 「查看更多功能」是期待看到**这个学段能玩的所有东西**，而不是被甩到管理后台
+ * （原实现 `router.push("/edu/fun")`，那里是后台外壳且无返回出口）。
+ * 这里就地列出内置目录的全集，与后台配置取并集，后台没配的也可见。</p>
+ */
+const allModules = computed<PortalModule[]>(() => {
+  const builtin = modulesOf(stage.value);
+  const seen = new Set(builtin.map((m) => m.moduleCode));
+  for (const m of modules.value) {
+    if (!seen.has(m.moduleCode)) {
+      builtin.push(m);
+      seen.add(m.moduleCode);
+    }
+  }
+  return builtin;
+});
+
+/**
  * 学生端固定能力：无论后台「模块配置」怎么配，这两个入口都必须存在。
  *
  * <p>它们依赖的是学生本人的数据（我的答题/阅卷记录、我的错题本），
@@ -260,6 +367,37 @@ const modules = computed<PortalModule[]>(() => {
   const have = new Set(base.map((m) => m.moduleCode));
   return [...base, ...STUDENT_FIXED_MODULES.filter((m) => !have.has(m.moduleCode))];
 });
+
+/**
+ * 地址栏上的 `?m=` 变了（后退键 / 手改地址栏 / 深链）就切到对应模块。
+ *
+ * <p>这个 watcher 必须声明在 {@link modules} 之后。它带 `immediate: true`，会在
+ * setup 期间同步执行并读 `modules.value`；写在 `modules` 前面就是 TDZ
+ * （`Cannot access 'modules' before initialization`）。Vue 侧的
+ * `callWithAsyncErrorHandling` 会把 setup 期的异常吞成一条 console 日志继续往下走，
+ * 于是页面照常渲染、只是深链永远开不出模块 —— 故障表现为「功能不灵」而不是「白屏」，
+ * 极难定位。首页因为 `?m` 为空提前 return，碰不到 `modules`，所以只有深链才复现。</p>
+ */
+watch(
+  () => route.query.m,
+  (code) => {
+    const want = typeof code === "string" ? code : "";
+    if (!EMBEDDED[want]) {
+      if (want) {
+        // 深链到没有页面的模块：回首页而不是留一个空层
+        activeModule.value = null;
+      }
+      return;
+    }
+    if (activeModule.value?.code === want) return;
+    activeModule.value = {
+      code: want,
+      title: modules.value.find((m) => m.moduleCode === want)?.title ?? "",
+      component: EMBEDDED[want],
+    };
+  },
+  { immediate: true },
+);
 
 /**
  * 拉取该学段的模块清单（后台「模块配置」维护）
@@ -382,21 +520,24 @@ function embedProps(code: string): Record<string, unknown> {
  */
 function openModule(moduleCode: string) {
   if (moduleCode === "") {
-    void router.push("/edu/fun");
+    // 「查看更多功能」就地展开本学段全部模块，绝不跳 /edu/fun（那是管理后台外壳，
+    // 且页面上没有返回学生端的出口，学生进去就是死路 —— 用户实测反馈）
+    showAllModules.value = !showAllModules.value;
     return;
   }
   const configured = modules.value.find((m) => m.moduleCode === moduleCode);
   const view = EMBEDDED[moduleCode];
   if (view) {
+    showAllModules.value = false;
     activeModule.value = { code: moduleCode, title: configured?.title ?? "", component: view };
     return;
   }
-  // 学生端首页卡片来自「模块管理」（edu_fun_config）：后台配了 module_path 的模块，
-  // 必须按路径跳转；否则会出现「菜单来自模块管理，但点开只弹『建设中』」的死链。
-  if (configured?.route) {
-    void router.push(configured.route);
-    return;
-  }
+  // 学生端首页卡片来自「模块管理」（edu_fun_config）。后台配了 module_path 的模块
+  // 若不在 EMBEDDED 里就跳该路径 —— 但**这里不再跳**：
+  // 学生端所有页面都已就地登记（EMBEDDED 9 项），未登记的模块点开只会落到
+  // /edu/fun/* 之类的**管理后台路由**，学生会看到侧边栏/标签栏/面包屑
+  // 且无返回出口（用户实测：诗词大会落点 poem-challenge，后台菜单文字全在）。
+  // 管理员代入看到的也是同一套学生端外壳 —— 本来就该看学生看到的东西。
   ElMessage.info("该模块正在建设中，敬请期待");
 }
 
@@ -574,12 +715,57 @@ onMounted(() => {
   outline-offset: 1px;
 }
 .portal-loading {
-  height: 100%;
+  /* dvh 而非 100%：手机上浏览器地址栏收放会改变 vh，100% 在嵌入态下拿不到确定高度，
+     原先写 height:100% 在 .portal--imp 之外就是塌的 */
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 15px;
   color: var(--el-text-color-secondary);
+}
+
+/*
+ * 右上角「修改密码」入口。
+ *
+ * <p>原先这个按钮**一条样式都没有**（.portal-pwd / .portal-pwd__btn 都不在样式表里），
+ * 于是浏览器按原生 button 渲染 —— 用户看到的正是「一个突兀的原生按钮」。
+ * 这里补成与学生端一致的主色描边胶囊。</p>
+ */
+.portal-pwd {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  padding: 12px 16px;
+}
+.portal-pwd__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* 触摸目标不小于 44px（iOS HIG / Material）。原来 padding 7px + 13px 字号
+     只做出 32px 高，实测 101x32 —— 视觉上确实是小胶囊，但热区不够。 */
+  min-height: 44px;
+  padding: 7px clamp(12px, 1.2vw, 16px);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-color-primary-light-5);
+  border-radius: var(--el-radius-full, 9999px);
+  transition:
+    background-color var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
+}
+.portal-pwd__btn:hover {
+  background: var(--el-color-primary-light-9);
+}
+.portal-pwd__btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
 }
 
 .portal-bind {
@@ -709,9 +895,147 @@ onMounted(() => {
   min-height: 0;
   overflow: auto;
 }
+
+/*
+ * 「全部功能」面板：同层覆盖，不跳路由。
+ * auto-fit + minmax 让卡片按可用宽度自动换列，无需为每个断点写死列数 ——
+ * 这也是成语消消乐用过的写法，保持同一套手感。
+ */
+.portal-allmods {
+  position: fixed;
+  inset: 0;
+  z-index: 2050;
+  display: flex;
+  flex-direction: column;
+  /* 滚动交给面板本身，__grid 不再同时是「被 flex 限高的盒子」和「滚动容器」。
+     两者集在一身时，390px 手机上容器比内容少 5px，滚出来只有下内边距 ——
+     末项其实完整可见（实测末项底边距容器底 10px），滚 5px 什么新东西都看不到。 */
+  overflow-y: auto;
+  background: var(--el-bg-color-page);
+}
+.portal-allmods__head {
+  flex: none;
+  /* 面板可滚了，表头必须 sticky，否则一滚就丢标题 */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px clamp(16px, 4vw, 28px);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+}
+.portal-allmods__title {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--el-color-white);
+}
+.portal-allmods__close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 触摸目标 44px。32px 的圆钮是「收起面板」唯一的出口，小屏上难点。 */
+  width: 44px;
+  height: 44px;
+  color: var(--el-color-white);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--el-color-white) 18%, transparent);
+  border: 0;
+  border-radius: var(--el-radius-full, 9999px);
+}
+.portal-allmods__close:hover {
+  background: color-mix(in srgb, var(--el-color-white) 30%, transparent);
+}
+.portal-allmods__close:focus-visible {
+  outline: 2px solid var(--el-color-white);
+  outline-offset: 1px;
+}
+.portal-allmods__grid {
+  /* 自然高度，不再 flex:1 限高 + overflow:auto 自滚 */
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(140px, 40vw, 190px), 1fr));
+  gap: clamp(10px, 2.5vw, 16px);
+  padding: clamp(14px, 4vw, 24px);
+  align-content: start;
+}
+.portal-allmods__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  /* 高度交给内容（min-height 而非 height），副标题长一行也不会裁字 */
+  min-height: 116px;
+  padding: 14px 12px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  transition: box-shadow var(--el-transition-duration, 0.2s) ease;
+}
+.portal-allmods__item:hover {
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+}
+.portal-allmods__item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+/* 没有内嵌页面的模块明确示弱，避免学生以为点了没反应是自己按错了 */
+.portal-allmods__item.is-ready {
+  cursor: pointer;
+}
+.portal-allmods__item:not(.is-ready) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.portal-allmods__ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 21px;
+  line-height: 1;
+  border-radius: var(--el-radius-lg, 12px);
+}
+.portal-allmods__name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--el-text-color-primary);
+}
+.portal-allmods__desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+/* 窄屏：返回栏文案容易挤，改成更小的内边距并允许换行 */
+@media (max-width: 640px) {
+  .portal-pwd {
+    padding: 10px 12px;
+  }
+  .portal-embed__back {
+    height: auto;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .portal-bind__card {
+    padding: 22px 18px 20px;
+  }
+}
+
 /* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
 @media (prefers-reduced-motion: reduce) {
-  .portal-bind__btn {
+  .portal-bind__btn,
+  .portal-pwd__btn,
+  .portal-allmods__item {
     transition: none;
   }
 }

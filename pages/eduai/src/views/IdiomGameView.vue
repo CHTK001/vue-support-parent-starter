@@ -267,6 +267,7 @@ import { RefreshLeft, RefreshRight } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom, IdiomGameData } from "../api/types";
 import IdiomLearnCards, { type LearnCard } from "../components/IdiomLearnCards.vue";
+import { usePortalModuleHost } from "./portal/portalHost";
 
 const router = useRouter();
 
@@ -742,9 +743,25 @@ function exitGame() {
   gameCompleted.value = false;
 }
 
+/**
+ * 「返回首页」的落点。
+ *
+ * <p>原先固定 `router.push("/edu/fun")`，而 `/edu/fun/*` 注册在**管理后台
+ * layout 之下** —— 学生在内嵌层玩完点「返回首页」，会被甩进后台，侧边栏、
+ * 标签栏、面包屑全部露出（用户实测反馈「返回首页也会进后台」）。
+ * `/edu/fun` 自己也没有任何返回学生端的出口，学生进去就是死路。</p>
+ *
+ * <p>改为：被内嵌在学生端时走宿主 close 就地收起；被当作独立路由打开时
+ * 回学生端首页。两条路径都不再经过管理后台。</p>
+ */
 function goHome() {
   stopTimer();
-  void router.push("/edu/fun");
+  const host = usePortalModuleHost();
+  if (host) {
+    host.close();
+    return;
+  }
+  void router.push("/edu/student");
 }
 
 const resetGame = () => exitGame();

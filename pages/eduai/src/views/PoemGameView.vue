@@ -3,7 +3,7 @@
     <!-- ==================== ① 设置页 ==================== -->
     <section v-if="stage === 'setup'" class="pg-setup">
       <header class="pg-header">
-        <h1 class="pg-title">古诗补全</h1>
+        <h1 class="pg-title">古诗补全<span class="pg-title__dot" /></h1>
         <div class="pg-today">
           <div class="pg-today__label">今日挑战</div>
           <div class="pg-today__value">{{ todayCount }}/{{ dailyGoal }}</div>
@@ -330,9 +330,14 @@ onBeforeUnmount(stopTimer);
 .pg-page {
   /* 不设内边距：外层 .main-content 已提供 8px，避免双重边距 */
   min-height: 100%;
-  background: linear-gradient(160deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
-  /* 原 18px，最近档 16px（xl） */
-  border-radius: var(--el-radius-xl, 16px);
+  /*
+   * 地面与成语消消乐（.ig-page）统一。原先用 primary-light-8 → light-9 的极浅渐变，
+   * 实测渲染出来是「淡蓝底 + 深蓝标题」，与成语消消乐/昆虫识图的
+   * 「饱和底 + 白标题」不是一个色系，一眼能看出不是同一个产品。
+   * 地面转饱和后，标题必须同时转白（见 .pg-title），否则深蓝压深蓝会糊掉。
+   */
+  background: linear-gradient(160deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+  /* 满幅地面不圆角：留 16px 圆角的话，内嵌层四周会露出宿主灰底的四个角 */
 }
 .pg-header {
   display: flex;
@@ -340,11 +345,26 @@ onBeforeUnmount(stopTimer);
   justify-content: space-between;
   margin-bottom: 18px;
 }
+/* 标题：与基准 .ig-title 同一套（白字压在主色带上，靠描边阴影保证可读性） */
 .pg-title {
   margin: 0;
-  font-size: 34px;
+  font-size: 40px;
   font-weight: 900;
-  color: var(--el-color-primary-dark-2);
+  letter-spacing: 3px;
+  color: var(--el-color-white);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
+}
+.pg-title__dot {
+  width: 14px;
+  height: 14px;
+  /* 纯圆点用圆形令牌，不占 --el-radius-* 六档（那六档是圆角矩形语义） */
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-color-white);
+  /* 装饰性光环（0 偏移 0 模糊），不是卡片投影：只描一圈主色，压在主色底上略深 */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
 }
 .pg-today {
   background: var(--el-bg-color);

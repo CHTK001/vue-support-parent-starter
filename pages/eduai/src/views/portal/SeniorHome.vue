@@ -137,22 +137,23 @@ const daysToExam = computed(() => {
     var(--el-bg-color-page) 52.1%,
     var(--el-fill-color-lighter) 100%
   );
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .sp-head {
-  padding: 30px 44px 0;
+  padding: clamp(16px, 2.4vw, 30px) clamp(16px, 3.2vw, 44px) 0;
 }
 .sp-head__row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 26px;
+  gap: clamp(12px, 2vw, 26px);
   flex-wrap: wrap;
 }
 .sp-title {
   margin: 0;
-  font-size: 44px;
+  font-size: clamp(26px, 4.2vw, 44px);
   font-weight: 900;
-  letter-spacing: 4px;
+  letter-spacing: clamp(1px, 0.3vw, 4px);
   color: var(--el-color-white);
   /* 白字压在深色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
   text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 15%, transparent);
@@ -171,13 +172,17 @@ const daysToExam = computed(() => {
 }
 .sp-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 26px;
-  min-width: min(640px, 100%);
+  /* auto-fit：四个大数字按可用宽度自动换列。原先写死 repeat(4) 且
+     min-width: min(640px,100%)，在 390px 手机上每个数字只剩 ~90px，
+     「今日学习分钟」这类标签必被挤断 */
+  grid-template-columns: repeat(auto-fit, minmax(clamp(120px, 26vw, 170px), 1fr));
+  gap: clamp(12px, 2vw, 26px);
+  min-width: 0;
+  width: 100%;
   padding-top: 4px;
 }
 .sp-stat__val {
-  font-size: 46px;
+  font-size: clamp(26px, 3.4vw, 46px);
   font-weight: 900;
   color: var(--el-color-white);
   line-height: 1.05;
@@ -188,39 +193,41 @@ const daysToExam = computed(() => {
 .sp-stat__val.is-accent { color: var(--el-color-success-light-3); }
 .sp-stat__val i {
   font-style: normal;
-  font-size: 26px;
+  font-size: clamp(15px, 1.9vw, 26px);
   margin-right: 2px;
 }
 .sp-stat__lbl {
   margin-top: 4px;
-  font-size: 13px;
+  font-size: clamp(11px, 1.3vw, 13px);
   font-weight: 700;
   color: color-mix(in srgb, var(--el-color-white) 78%, transparent);
 }
 
 .sp-body {
-  margin: 26px 26px 0;
-  padding: 30px 30px 22px;
+  margin: clamp(14px, 2vw, 26px) clamp(12px, 1.8vw, 26px) 0;
+  padding: clamp(16px, 2.2vw, 30px) clamp(14px, 2.2vw, 30px) clamp(14px, 1.8vw, 22px);
   /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
   border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
   background: var(--el-bg-color);
-  min-height: 52vh;
+  /* 原 min-height:52vh —— 写死 vh 在矮屏上凭空多出一段空白，改成收放+封顶 */
+  min-height: min(52dvh, 500px);
 }
 .sp-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  /* auto-fit：八张卡按可用宽度自己算列数，不再靠 1200/800 两个死断点 */
+  grid-template-columns: repeat(auto-fit, minmax(clamp(130px, 21vw, 210px), 1fr));
+  gap: clamp(12px, 1.5vw, 18px);
 }
 .sp-card {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 28px 16px 22px;
+  gap: clamp(8px, 1.2vw, 12px);
+  padding: clamp(16px, 2.2vw, 28px) clamp(10px, 1.2vw, 16px) clamp(12px, 1.7vw, 22px);
   /* 对齐设计稿：白卡 + 柔和投影、20px 圆角 */
   border: 0;
-  border-radius: 20px;
+  border-radius: clamp(14px, 1.6vw, 20px);
   background: var(--el-bg-color);
   cursor: pointer;
   box-shadow: 0 10px 24px color-mix(in srgb, #0f172a 12%, transparent);
@@ -254,37 +261,45 @@ const daysToExam = computed(() => {
   justify-content: center;
 }
 .sp-card__ic {
-  width: 72px;
-  height: 72px;
+  width: clamp(46px, 5.2vw, 72px);
+  height: clamp(46px, 5.2vw, 72px);
   /* 对齐设计稿：更大的圆角方块图标 + 柔和投影 */
-  border-radius: 22px;
+  border-radius: clamp(14px, 1.8vw, 22px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: clamp(22px, 2.6vw, 32px);
   /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景 */
   color: var(--el-color-white);
   box-shadow: 0 10px 20px -6px color-mix(in srgb, var(--el-color-black) 24%, transparent);
 }
 .sp-card__title {
-  font-size: 19px;
+  font-size: clamp(13px, 1.6vw, 19px);
   font-weight: 900;
   color: var(--el-text-color-primary);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .sp-card__sub {
-  font-size: 13px;
+  font-size: clamp(11px, 1.3vw, 13px);
   font-weight: 600;
   color: var(--el-text-color-placeholder);
   font-variant-numeric: tabular-nums;
 }
 .sp-more {
   margin: 26px 0 10px;
+  padding: 10px 0;
   text-align: right;
   font-size: 15px;
   font-weight: 800;
   color: var(--el-color-primary);
   cursor: pointer;
+  /* 触摸目标：手机上 10px 上下留白 + 15px 字号不足 44px */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
   outline: none;
 }
@@ -292,16 +307,18 @@ const daysToExam = computed(() => {
   border-radius: var(--el-radius-sm, 6px);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
-@media (max-width: 1200px) {
-  .sp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .sp-stat__val { font-size: 34px; }
-}
+/*
+ * 响应式：列数已由 .sp-grid / .sp-stats 的 auto-fit + minmax(clamp(…)) 接管，
+ * 这里**不再**写 repeat(3)/repeat(2) 的死断点 —— 与 auto-fit 逻辑重复且互相覆盖，
+ * 窄屏反而被固定列数压成又窄又高的长条。只保留间距收口。
+ */
 @media (max-width: 800px) {
-  .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sp-head { padding: 20px 20px 0; }
-  .sp-title { font-size: 32px; }
-  .sp-body { margin: 18px 12px 0; padding: 20px 16px; }
+  .sp-head { padding: 16px 16px 0; }
+  .sp-sub { margin-top: 6px; font-size: 13px; }
+  .sp-body { margin: 14px 10px 0; padding: 16px 12px; min-height: 0; }
+  .sp-more { margin: 14px 0 6px; font-size: 14px; }
+  /* 触摸目标不小于 44px */
+  .sp-card { min-height: 96px; }
 }
 /* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
 @media (prefers-reduced-motion: reduce) {
