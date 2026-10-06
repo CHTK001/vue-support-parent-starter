@@ -1714,7 +1714,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { ref, computed, onMounted, onBeforeUnmount, reactive, watch } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
 import { EditPen, CopyDocument, Delete, RefreshRight } from "@element-plus/icons-vue";
 import DbSqlEditor from "../components/DbSqlEditor.vue";
 import { useRoute } from "vue-router";
@@ -6210,6 +6210,7 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string) 
   contextMenu.tableName = tableName;
   contextMenu.database = database;
   activeDatabase.value = database;
+  void clampContextMenuPosition();
 }
 
 /**
@@ -6225,6 +6226,7 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
   contextMenu.tableName = "";
   contextMenu.database = database;
   activeDatabase.value = database;
+  void clampContextMenuPosition();
 }
 
 function onSidebarContextMenu(e: MouseEvent) {
@@ -6233,6 +6235,7 @@ function onSidebarContextMenu(e: MouseEvent) {
   contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = "";
+  void clampContextMenuPosition();
 }
 
 function closeContextMenu() {
@@ -6241,9 +6244,28 @@ function closeContextMenu() {
 
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
 function menuEstimatedHeight(): number {
-  const count = contextMenu.tableName ? 11 : contextMenu.database ? 5 : 4;
-  const dividers = contextMenu.tableName ? 4 : contextMenu.database ? 2 : 1;
+  // 项数必须与模板三套菜单实际条目同步：表 13 项/3 分割线、库 8 项/2 分割线、空白 5 项/1 分割线。
+  // 曾硬编码库 5 项（实际 8 项）→ 低估 96px → 靠近窗口底部时菜单溢出视口，
+  // 末项「删除数据库」落在屏幕外永远点不到（普通点击超时、force 点到屏外无响应）
+  const count = contextMenu.tableName ? 13 : contextMenu.database ? 8 : 5;
+  const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : 1;
   return count * 32 + dividers * 11 + 10;
+}
+
+/**
+ * 菜单打开后用真实渲染尺寸二次夹取视口。
+ * menuEstimatedHeight 的项数靠手维护，后续新增菜单项漏改就会低估 → 底部溢出。
+ * 估算只影响首帧，这里在 nextTick 后按 getBoundingClientRect 校正 x/y，一劳永逸
+ */
+async function clampContextMenuPosition() {
+  await nextTick();
+  const el = document.querySelector<HTMLElement>(".dbm-context-menu");
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const x = Math.min(Math.max(8, contextMenu.x), Math.max(8, window.innerWidth - rect.width - 8));
+  const y = Math.min(Math.max(8, contextMenu.y), Math.max(8, window.innerHeight - rect.height - 8));
+  if (x !== contextMenu.x) contextMenu.x = x;
+  if (y !== contextMenu.y) contextMenu.y = y;
 }
 
 /**
