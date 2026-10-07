@@ -48,9 +48,7 @@
       </div>
       <div class="ngx-hero-title">
         <div class="ngx-hero-name">{{ runningText }}</div>
-        <div class="ngx-hero-sub">
-          实例状态<template v-if="liveOverview?.version?.version"> · {{ liveOverview.version.version }}</template>
-        </div>
+        <div class="ngx-hero-sub">{{ healthText }}</div>
         <!-- 丢弃连接并进 Hero：它平时恒为 0，单独占一张卡不值；
              但一旦 >0 就说明 accept 队列溢出，必须在第一屏显眼处报出来。 -->
         <div v-if="droppedConnections !== null && droppedConnections > 0" class="ngx-hero-alert">
@@ -91,44 +89,68 @@
          丢弃连接并进 Hero 的告警区：它平时是 0，单独占一张卡不值，
          但一旦 >0 必须在第一屏显眼处报出来。 -->
     <div class="ngx-kpis">
-      <div class="ngx-kpi" :title="KPI_HINTS.active">
-        <div class="ngx-kpi-label">活跃连接</div>
+      <div class="ngx-kpi" :style="{ '--k': 'var(--metric-cpu, var(--el-color-primary))' }" :title="KPI_HINTS.active">
+        <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />活跃连接</div>
         <div class="ngx-kpi-value">{{ liveOverview?.status?.activeConnections ?? "—" }}</div>
-        <div class="ngx-kpi-unit">读取 / 写入 / 等待见下方环形图</div>
+        <div class="ngx-kpi-foot">
+          <span class="ngx-kpi-sub">
+            读取 {{ liveOverview?.status?.reading ?? "—" }} ·
+            写入 {{ liveOverview?.status?.writing ?? "—" }} ·
+            等待 {{ liveOverview?.status?.waiting ?? "—" }}
+          </span>
+          <Sparkline class="ngx-kpi-spark" :values="sparkActive" token="--metric-cpu" />
+        </div>
       </div>
 
-      <div class="ngx-kpi" :title="KPI_HINTS.requests">
-        <div class="ngx-kpi-label">每秒请求</div>
-        <div class="ngx-kpi-value">{{ trendRequestRate ?? "—" }}</div>
-        <div class="ngx-kpi-unit">累计 {{ formatNumber(liveOverview?.status?.requests) }}</div>
+      <div class="ngx-kpi" :style="{ '--k': 'var(--metric-disk, var(--el-color-warning))' }" :title="KPI_HINTS.requests">
+        <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />每秒请求</div>
+        <div class="ngx-kpi-value">
+          {{ trendRequestRate ?? "—" }}<span class="ngx-kpi-unit">req/s</span>
+        </div>
+        <div class="ngx-kpi-foot">
+          <span class="ngx-kpi-sub">
+            区间峰值 {{ requestsPeak === null ? "—" : `${requestsPeak} req/s` }} ·
+            累计 {{ formatNumber(liveOverview?.status?.requests) }}
+          </span>
+          <Sparkline class="ngx-kpi-spark" :values="sparkRequests" token="--metric-disk" />
+        </div>
       </div>
 
       <div
         class="ngx-kpi"
         :class="{ 'is-warn': top?.clientErrors, 'is-bad': top?.serverErrors }"
+        :style="{ '--k': 'var(--status-success, var(--el-color-success))' }"
         :title="KPI_HINTS.errorRate"
       >
-        <div class="ngx-kpi-label">错误率</div>
+        <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />错误率</div>
         <div class="ngx-kpi-value">
           <template v-if="errorRatePct === null">—</template>
-          <template v-else>{{ errorRatePct }}%</template>
+          <template v-else>{{ errorRatePct }}<span class="ngx-kpi-unit">%</span></template>
         </div>
-        <div class="ngx-kpi-unit">
-          4xx {{ topLoaded ? (top?.clientErrors ?? 0) : "—" }} ·
-          5xx {{ topLoaded ? (top?.serverErrors ?? 0) : "—" }}
+        <div class="ngx-kpi-foot">
+          <span class="ngx-kpi-sub">
+            4xx {{ topLoaded ? (top?.clientErrors ?? 0) : "—" }} ·
+            5xx {{ topLoaded ? (top?.serverErrors ?? 0) : "—" }}
+          </span>
         </div>
       </div>
 
-      <div class="ngx-kpi" :title="KPI_HINTS.bytes">
-        <div class="ngx-kpi-label">出站流量</div>
+      <div
+        class="ngx-kpi"
+        :style="{ '--k': 'var(--metric-mem, var(--el-color-primary))' }"
+        :title="KPI_HINTS.bytes"
+      >
+        <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />出站流量</div>
         <div class="ngx-kpi-value">
           <template v-if="top?.bytesSent != null">{{ formatSize(top.bytesSent) }}</template>
           <template v-else-if="topLoaded">无法统计</template>
           <template v-else>—</template>
         </div>
-        <div class="ngx-kpi-unit">
-          <template v-if="topLoaded">独立访客 IP {{ uniqueIpCount }}</template>
-          <template v-else>按本次扫描口径</template>
+        <div class="ngx-kpi-foot">
+          <span class="ngx-kpi-sub">
+            <template v-if="topLoaded">独立访客 IP {{ uniqueIpCount }}</template>
+            <template v-else>按本次扫描口径</template>
+          </span>
         </div>
       </div>
     </div>
@@ -138,6 +160,7 @@
     <div class="ngx-card ngx-trend-card">
       <div class="ngx-card-head">
         <span class="ngx-card-title">24 小时趋势</span>
+        <span class="ngx-card-sub">数据来自 stub_status · 每 {{ trend?.interval ?? 30 }} 分钟采集</span>
         <div class="ngx-trend-legend">
           <button
             v-for="s in TREND_SERIES"
@@ -220,25 +243,39 @@
         {{ top.message || "access log 里没有可统计的记录" }}
       </div>
       <div v-else class="ngx-top-body">
-        <!-- 状态码分布：横条，比例一眼可见 -->
+        <!-- 状态码分布（2xx/3xx/4xx/5xx）：参考稿里没有这一块，但它是唯一能看到
+             「成功/重定向各占多少」的地方，KPI 卡只给了 4xx/5xx 两个数。
+             删掉它等于为了贴图而丢信息，故保留，排在两列 Top 之上。 -->
         <NginxStatusBarChart :items="top.statuses" :height="Math.max(88, top.statuses.length * 26)" />
         <div class="ngx-top-cols">
           <div class="ngx-top-col">
-            <div class="ngx-top-col-title">路径 Top {{ top.paths.length }}</div>
+            <div class="ngx-top-col-title">访问路径</div>
             <ul class="ngx-top-list">
               <li v-for="p in top.paths.slice(0, 6)" :key="p.key" class="ngx-top-item">
                 <span class="ngx-top-key mono" :title="p.key">{{ p.key }}</span>
-                <span class="ngx-top-hits">{{ p.hits }}</span>
+                <span class="ngx-top-hits">
+                  {{ p.hits.toLocaleString("en-US") }}
+                  <i class="ngx-top-pct">{{ pctOfTop(p.hits) }}%</i>
+                </span>
+                <span class="ngx-top-track">
+                  <span class="ngx-top-fill" :style="{ width: `${pctOfTop(p.hits)}%` }" />
+                </span>
               </li>
               <li v-if="!top.paths.length" class="ngx-top-none">无</li>
             </ul>
           </div>
           <div class="ngx-top-col">
-            <div class="ngx-top-col-title">客户端 IP Top {{ top.ips.length }}</div>
+            <div class="ngx-top-col-title">来源 IP</div>
             <ul class="ngx-top-list">
               <li v-for="p in top.ips.slice(0, 6)" :key="p.key" class="ngx-top-item">
                 <span class="ngx-top-key mono" :title="p.key">{{ p.key }}</span>
-                <span class="ngx-top-hits">{{ p.hits }}</span>
+                <span class="ngx-top-hits">
+                  {{ p.hits.toLocaleString("en-US") }}
+                  <i class="ngx-top-pct">{{ pctOfTop(p.hits) }}%</i>
+                </span>
+                <span class="ngx-top-track">
+                  <span class="ngx-top-fill is-ip" :style="{ width: `${pctOfTop(p.hits)}%` }" />
+                </span>
               </li>
               <li v-if="!top.ips.length" class="ngx-top-none">无</li>
             </ul>
@@ -290,9 +327,18 @@
         </div>
         <div v-else class="ngx-dim">未从配置里解析到 listen 指令</div>
         <div class="ngx-label">主配置</div>
-        <div class="ngx-mono ngx-break">{{ liveOverview?.configPath || "—" }}</div>
+        <div class="ngx-path-row">
+          <ReIcon name="Document" :size="13" />
+          <span class="ngx-mono ngx-break">{{ liveOverview?.configPath || "—" }}</span>
+          <!-- 「已校验」只在真的跑过 nginx -t 且无 issue 时打勾；
+               没取到数据时不显示，免得看起来像校验通过了 -->
+          <ReTag v-if="liveOverview && !liveOverview.issues?.length" type="success" effect="plain">已校验</ReTag>
+        </div>
         <div class="ngx-label">配置根目录</div>
-        <div class="ngx-mono ngx-break">{{ liveOverview?.configRoot || "—" }}</div>
+        <div class="ngx-path-row">
+          <ReIcon name="Folder" :size="13" />
+          <span class="ngx-mono ngx-break">{{ liveOverview?.configRoot || "—" }}</span>
+        </div>
       </div>
 
       <div class="ngx-card">
@@ -367,6 +413,7 @@ import type { TrendSeriesInput, UrlTrendSeriesInput } from "./charts/useEchart";
 import NginxTrendChart from "./charts/NginxTrendChart.vue";
 import NginxStatusBarChart from "./charts/NginxStatusBarChart.vue";
 import NginxConnDonut from "./charts/NginxConnDonut.vue";
+import Sparkline from "./charts/Sparkline.vue";
 import ReSkeleton from "@repo/ui/re-skeleton";
 
 const props = defineProps<{
@@ -579,6 +626,47 @@ const trendRequestRate = computed<number | null>(() => {
 function toggleSeries(name: string): void {
   trendOn.value = { ...trendOn.value, [name]: !trendOn.value[name] };
 }
+
+// ==================== KPI 迷你趋势 ====================
+
+/**
+ * KPI 卡上的迷你趋势序列。
+ *
+ * <p>直接取 {@link trendSeries} 的点（值已归一成「活跃连接数」与「每秒请求数」），
+ * 不另存一份：另存一份就得处理两份数据不同步的问题，而这两张卡的 sparkline
+ * 与下方趋势图本来就该是同一条线。</p>
+ */
+const sparkActive = computed<Array<number | null>>(() => (trendSeries.value["active"] ?? []).map(p => p.value));
+const sparkRequests = computed<Array<number | null>>(() => (trendSeries.value["requests"] ?? []).map(p => p.value));
+
+/**
+ * 区间内每秒请求峰值。
+ *
+ * <p>只统计非 null 点：worker 重启处是断点，把 null 当 0 参与 max 不会改变结果，
+ * 但把它当「缺数据」更能避免读者以为那段时间真的是 0 req/s。</p>
+ */
+const requestsPeak = computed<number | null>(() => {
+  const nums = sparkRequests.value.filter((v): v is number => v != null);
+  return nums.length ? Math.round(Math.max(...nums) * 10) / 10 : null;
+});
+
+/**
+ * Hero 副标题：实例健康 + 配置校验结论。
+ *
+ * <p>「配置已校验通过」只在真的跑过 {@code nginx -t} 且没有 issue 时才敢说——
+ * overview 的 issues 为空即代表后端校验通过；接口失败时走「未能读取实例状态」，
+ * 绝不在没取到数据时报「一切正常」。</p>
+ */
+const healthText = computed(() => {
+  const o = props.overview;
+  if (!o) {
+    return props.loadError ? "未能读取实例状态" : "正在读取实例状态…";
+  }
+  const runtime =
+    o.running === "RUNNING" ? "实例状态健康" : o.running === "STOPPED" ? "实例已停止" : "实例状态未知";
+  const config = o.issues?.length ? `配置有 ${o.issues.length} 项待处理` : "配置已校验通过";
+  return `${runtime} · ${config}`;
+});
 
 // ==================== URL 访问趋势（扫 access log 尾部） ====================
 
@@ -877,6 +965,20 @@ const runningText = computed(() => {
   return "状态未知";
 });
 
+/**
+ * Top 条目占已解析行数的百分比（整数）。
+ *
+ * <p>分母用 {@code total}（成功解析的行数）而不是榜单最大值：最大值作分母时
+ * 第一名永远是 100%，后面几条挤成一条线，看不出差距。</p>
+ *
+ * @param hits 该条目的命中数
+ * @returns 百分比整数
+ */
+function pctOfTop(hits: number): number {
+  const total = top.value?.total ?? 0;
+  return total > 0 ? Math.round((hits / total) * 100) : 0;
+}
+
 const heroClass = computed(() => {
   const r = props.overview?.running;
   if (r === "RUNNING") {
@@ -1119,7 +1221,8 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   margin-top: 2px;
 }
 
-/* 四项事实：小屏折行 */
+/* 四项事实：小屏折行。竖分隔线只画在相邻项之间，首项不画，
+   否则卡片左侧会出现一条贴着内容的多余竖线 */
 .ngx-hero-facts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1141,6 +1244,15 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   min-width: 0;
 }
 
+/* 相邻事实之间的竖分隔线。断行成两列时这条线会跑到错误的行首，
+   所以只在宽屏（单行四列）下画 */
+@media (min-width: 1101px) {
+  .ngx-fact + .ngx-fact {
+    border-inline-start: 1px solid var(--el-border-color-lighter);
+    padding-inline-start: 20px;
+  }
+}
+
 .ngx-fact-label {
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -1157,15 +1269,6 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-}
-
-/* 需要提示的 KPI：值本身不变色，只加左边框，避免整块底色把数字盖住 */
-.ngx-kpi.is-warn {
-  box-shadow: inset 2px 0 0 var(--el-color-warning);
-}
-
-.ngx-kpi.is-bad {
-  box-shadow: inset 2px 0 0 var(--el-color-danger);
 }
 
 /* Hero 里的丢弃连接告警：只在真的有丢弃时出现，平时不占位 */
@@ -1205,21 +1308,34 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 }
 
 .ngx-kpi {
+  position: relative;
   padding: 13px 16px;
   border-radius: var(--el-border-radius-lg, 12px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
 }
 
+/* 标题行：语义色圆点 + 文案。颜色由 --k 注入，卡片自带色系不必再各写一份 */
 .ngx-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 12.5px;
   color: var(--el-text-color-secondary);
 }
 
+.ngx-kpi-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--k);
+  flex: 0 0 auto;
+}
+
 .ngx-kpi-value {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  gap: 6px;
   flex-wrap: wrap;
   font-size: 26px;
   font-weight: 700;
@@ -1235,10 +1351,38 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   color: var(--el-text-color-secondary);
 }
 
-.ngx-kpi-chips {
-  display: inline-flex;
-  gap: 4px;
-  flex-wrap: wrap;
+/* 底部一行：左侧副信息，右侧迷你趋势。副信息过长时省略号收尾，不把 sparkline 挤走 */
+.ngx-kpi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  min-height: 30px;
+}
+
+.ngx-kpi-sub {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ngx-kpi-spark {
+  flex: 0 0 76px;
+  width: 76px;
+  height: 30px;
+}
+
+/* 需要提示的 KPI：值本身不变色，只加左边框，避免整块底色把数字盖住 */
+.ngx-kpi.is-warn {
+  box-shadow: inset 2px 0 0 var(--el-color-warning);
+}
+
+.ngx-kpi.is-bad {
+  box-shadow: inset 2px 0 0 var(--el-color-danger);
 }
 
 /* ============ 三栏卡片 ============ */
@@ -1288,17 +1432,15 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 }
 
 .ngx-top-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 3px 0;
+  gap: 4px 8px;
+  padding: 5px 0;
   font-size: 12.5px;
-  /* 两条列表按行等高，视觉上更整齐 */
-  min-height: 24px;
 }
 
 .ngx-top-key {
-  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1307,13 +1449,43 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 }
 
 .ngx-top-hits {
-  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   padding: 1px 7px;
   border-radius: var(--el-border-radius-base);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 百分比弱一档：它是补充信息，不该和命中数抢注意力 */
+.ngx-top-pct {
+  font-style: normal;
+  color: var(--el-text-color-secondary);
+}
+
+/* 进度条占满一整行（grid 第二列合并），长度 = 占已解析行数的比例 */
+.ngx-top-track {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.ngx-top-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--metric-cpu, var(--el-color-primary));
+}
+
+/* 来源 IP 换一种色，与左列一眼可分（两列同色会被当成同一组数据） */
+.ngx-top-fill.is-ip {
+  background: var(--metric-mem, var(--el-color-primary));
 }
 
 .ngx-top-none {
