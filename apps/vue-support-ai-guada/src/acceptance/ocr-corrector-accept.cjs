@@ -19,7 +19,7 @@
  *
  * 浏览器层 /setting/default-models
  *  10. 「文本矫正模型」行渲染为模型选择器；对话框搜索 macbert 命中 macbert4csc
- *  11. 选中不保存 → 重载后不产生脏写（全局值仍为空）
+ *  11. 对话框选中 → 自动持久化（回读含 macbert4csc），收尾恢复空串关闭态
  *  12. 全程零 pageerror、零 5xx、零 /v2/ 控制台错误
  *
  * 用法（需本机 dev + 指向含 corrector_model 的后端）：
@@ -168,18 +168,18 @@ async function main() {
     await page.goto(BASE + '/capabilities/ocr', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     // ---- 6. 标签与占位提示 ----
-    const label = page.locator('.el-form-item__label, label').filter({ hasText: '文本矫正模型' }).first();
-    await label.waitFor({ timeout: 30000 }).catch(() => {});
-    ok('「文本矫正模型」中文标签渲染（FIELD_LABELS 生效）', await label.isVisible());
-
+    // 先等数据驱动的 corrector 输入框出现（配置加载完成的硬信号），再断言标签/描述，
+    // 避免首屏加载期（v-loading）过早判定失败。
     const corrInput = page.locator('input[placeholder*="macbert4csc"]').first();
-    await corrInput.waitFor({ timeout: 30000 }).catch(() => {});
+    await corrInput.waitFor({ timeout: 45000 }).catch(() => {});
     ok('corrector 输入框渲染且占位含 macbert4csc 提示', await corrInput.isVisible());
+
+    const label = page.locator('.el-form-item__label, label').filter({ hasText: '文本矫正模型' }).first();
+    ok('「文本矫正模型」中文标签渲染（FIELD_LABELS 生效）', await label.isVisible());
     const ph = (await corrInput.count()) ? await corrInput.getAttribute('placeholder') : '';
     ok('占位文案为中文提示（非英文兜底）', /[一-龥]/.test(String(ph)), `placeholder=[${ph}]`);
 
     // 管线描述（标题下副文案）
-    const descText = await page.locator('h1 + p, .text-sm').first().textContent().catch(() => '');
     const pageDesc = await page.evaluate(() => document.body.innerText);
     ok('页面声明「文本矫正…非必填」', pageDesc.includes('文本矫正') && pageDesc.includes('非必填'));
 
@@ -317,11 +317,19 @@ async function main() {
     }
     } // if (pickerVisible)
 
-    // 不保存直接重载：不产生脏写
+    // 本页选择即持久化（updateFieldValue 后由页面自动提交，无需手点保存）：
+    // 重载后全局 corrector 应带所选值——这是「选择→落库」回路的验收。
     await page.reload({ waitUntil: 'domcontentloaded' });
     await sleep(1500);
+    const ocrAfterSelect = await api('GET', '/v2/settings/ocr', token);
+    const persistedVal = String(ocrAfterSelect.json?.data?.data?.corrector_model ?? '');
+    ok('选择即持久化（自动保存语义，回读含 macbert4csc）',
+      persistedVal.includes('macbert4csc'), `value=[${persistedVal}]`);
+
+    // 收尾：恢复关闭态（留空=关闭）并回读验证，不留脏数据
+    await api('PUT', '/v2/settings/ocr', token, { corrector_model: '' });
     const ocrFinal = await api('GET', '/v2/settings/ocr', token);
-    ok('未保存选择不产生脏写（全局 corrector 仍为空）',
+    ok('收尾恢复关闭态（corrector 置空并回读）',
       ocrFinal.json?.data?.data?.corrector_model === '',
       `value=[${ocrFinal.json?.data?.data?.corrector_model}]`);
 
