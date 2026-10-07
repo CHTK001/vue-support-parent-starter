@@ -18,8 +18,8 @@ const props = withDefaults(
     datasource?: string;
     /** 当前表名 */
     table?: string;
-    /** 选中字段名 */
-    modelValue?: string;
+    /** 选中字段名；多选时是数组 */
+    modelValue?: string | string[];
     /** 控件尺寸 */
     type?: "small" | "default" | "large";
     /** 禁用 */
@@ -114,7 +114,7 @@ function onChange(value: unknown): void {
     :collapse-tags="multiple"
     :placeholder="hint"
     :options="options"
-    popover-width="320px"
+    :popover-width="320"
     filterable
     @update:model-value="onChange"
   >

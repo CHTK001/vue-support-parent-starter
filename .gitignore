@@ -185,3 +185,8 @@ eduai-web*.tar.gz
 *.accept.report.json
 parser-trim.png
 **/zz-tmp-*.spec.ts
+
+# 临时构建校验脚手架（vite 临时入口 + 其产物，验证完即删，不属于源码）
+**/tmp-*.html
+**/tmp-*.ts
+**/tmp-dist/

@@ -28,6 +28,10 @@
  */
 import { del, get, post, put } from "./request";
 
+// 下拉选项映射是纯函数，单独成文件以便 node --test 直接引入（见 schemaOptions.ts 头注）
+export { toTableOptions, toColumnOptions } from "./schemaOptions";
+export type { SchemaTable, SchemaColumn, SelectOption } from "./schemaOptions";
+
 /**
  * 数据源中心接口根路径。
  *
@@ -440,51 +444,6 @@ export async function fetchDatasourceTableInfos(
   }
   const names = (await schemaProvider.fetchTables(datasource)) ?? [];
   return names.map(name => ({ name, comment: null, type: null }));
-}
-
-/**
- * 表下拉选项映射：label=中文备注（无备注时回退表名），description=表名·类型。
- *
- * <p>ReSelect 的 card 布局读 {@code description} 做副标题，table 布局按
- * {@code tableColumns} 取额外字段；这里把表名、备注、类型都带上，两种布局都能渲染。</p>
- *
- * @param tables 表元数据
- * @return ReSelect 选项
- */
-export function toTableOptions(tables: CollectTable[]): CollectOption[] {
-  return (tables ?? []).map(item => ({
-    value: item.name,
-    label: item.comment?.trim() ? item.comment.trim() : item.name,
-    description: item.type ? `${item.name} · ${item.type}` : item.name,
-    /** 原始表名：中文 label 只是备注，下游取值仍要真实表名 */
-    table: item.name,
-    comment: item.comment,
-    type: item.type,
-  }));
-}
-
-/**
- * 字段下拉选项映射：label=中文备注（无备注时回退字段名），description=字段名·类型。
- *
- * @param columns 列元数据
- * @return ReSelect 选项
- */
-export function toColumnOptions(columns: CollectColumn[]): CollectOption[] {
-  return (columns ?? []).map(item => {
-    const name = item.name ?? "";
-    const remark = (item.label ?? "").trim();
-    const type = (item.typeName ?? "").trim();
-    return {
-      value: name,
-      label: remark ? remark : name,
-      description: type ? `${name} · ${type}` : name,
-      /** 原始字段名：中文 label 只是备注，下游取值仍要真实字段名 */
-      field: name,
-      comment: remark || null,
-      type: item.typeName,
-      primaryKey: item.primaryKey,
-    };
-  });
 }
 
 /**

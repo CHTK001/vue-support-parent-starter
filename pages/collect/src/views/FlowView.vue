@@ -21,8 +21,6 @@ import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import CategoryDialog from "../components/CategoryDialog.vue";
 import FlowDesigner from "../components/FlowDesigner.vue";
-// 建表 / 补列走数据源中心的 DDL 接口（只有它是权威实现，采集侧运行期也用同一套）
-import { executeTableDdl, previewTableDdl } from "@pages/datasource";
 import {
   copyFlow,
   deleteFlow,
@@ -254,70 +252,6 @@ async function loadPlaceholders(): Promise<void> {
 }
 
 /** 读表清单：设计器按需调用并自行缓存，这里只做透传 */
-/**
- * 建表 / 补列的请求与结果适配。
- *
- * <p>表单只给「目标列名 + 主键列名」，列类型在这里补齐成 TEXT —— 与运行期
- * {@code CollectJdbcSupport.ensureTable} 用同一套规则，避免设计期建出来的表和运行期自动建的表不一致。
- * 数据源引用留空即应用主库。</p>
- *
- * @param request 表单给的列名与主键列名
- * @returns 数据源中心的建表请求
- */
-function toDdlRequest(request: { datasource: string; table: string; columns: string[]; primaryKey: string[] }) {
-  const keys = new Set(request.primaryKey);
-  return {
-    datasource: request.datasource || APP_DATASOURCE,
-    table: request.table,
-    // 主键列必须是「可索引」类型：TEXT 做主键会被 MySQL/MariaDB 直接拒
-    // （实测报错：BLOB/TEXT column 'x' used in key specification without a key length），
-    // 所以主键列给 VARCHAR(191)，其余仍用 TEXT —— 与运行期 CollectJdbcSupport.ensureTable 同一套口径。
-    columns: request.columns.map(name => ({
-      name,
-      type: keys.has(name) ? "VARCHAR(191)" : "TEXT",
-    })),
-    primaryKey: request.primaryKey.length ? request.primaryKey : null,
-  };
-}
-
-/**
- * 把数据源中心的返回摊平成表单能直接显示的形态。
- *
- * @param result 数据源中心返回的建表结果
- * @returns 含 SQL 文本与「是否存在 / 是否新建 / 补了哪些列」的结果
- */
-function toDdlPayload(result: {
-  exists?: boolean;
-  created?: boolean;
-  appendedColumns?: string[] | null;
-  statements?: string[] | null;
-  sql?: string | null;
-  sqls?: string[] | null;
-}): { sql: string; exists: boolean; created: boolean; appended: string[] } {
-  // SQL 在 hub 的 TableDdlVO 里叫 statements（record 序列化字段）；早先读不存在的
-  // sql/sqls，预览永远落成「数据源中心未返回 SQL」。以 statements 为准，sql/sqls 兜底。
-  const sql = (Array.isArray(result?.statements) ? result.statements.join("\n") : "")
-    || result?.sql
-    || (Array.isArray(result?.sqls) ? result.sqls.join("\n") : "")
-    || "";
-  return {
-    sql,
-    exists: Boolean(result?.exists),
-    created: Boolean(result?.created),
-    appended: result?.appendedColumns ?? [],
-  };
-}
-
-/** 预览建表 / 补列 DDL（不执行） */
-async function previewDdl(request: { datasource: string; table: string; columns: string[]; primaryKey: string[] }) {
-  return toDdlPayload(await previewTableDdl(toDdlRequest(request)));
-}
-
-/** 执行建表 / 补列 */
-async function executeDdl(request: { datasource: string; table: string; columns: string[]; primaryKey: string[] }) {
-  return toDdlPayload(await executeTableDdl(toDdlRequest(request)));
-}
-
 async function loadTables(datasource: string): Promise<string[]> {
   return (await fetchDatasourceTables(datasource)) ?? [];
 }
@@ -777,8 +711,6 @@ async function refreshStates(): Promise<void> {
         :datasource-options="datasourceOptions"
         :load-tables="loadTables"
         :load-columns="loadColumns"
-        :preview-ddl="previewDdl"
-        :execute-ddl="executeDdl"
         :placeholder-groups="placeholderGroups"
         @change="dirty = true"
       />

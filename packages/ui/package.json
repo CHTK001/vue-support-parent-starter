@@ -47,10 +47,6 @@
       "types": "./src/components/ReDialog/index.ts",
       "default": "./src/components/ReDialog/index.ts"
     },
-    "./create-table-dialog": {
-      "types": "./src/components/CreateTableDialog/index.ts",
-      "default": "./src/components/CreateTableDialog/index.ts"
-    },
     "./re-table": {
       "types": "./src/components/ReTable/index.ts",
       "default": "./src/components/ReTable/index.ts"
