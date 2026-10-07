@@ -20,20 +20,35 @@ export interface SchemaTable {
   type: string | null;
 }
 
-/** 列元数据（与后端 SchemaColumnVO 对齐） */
+/**
+ * 列元数据（与后端 SchemaColumnVO 对齐）。
+ *
+ * <p>{@code position} / {@code size} / {@code nullable} 可选：只有外部模式按 value
+ * 补「最小行」时拿不到（宿主只喂了 value/label）；自取数与 raw 往返时都是完整的。
+ * 设成必填会让裸选项那种情况编译不过。</p>
+ */
 export interface SchemaColumn {
   name: string;
   label: string | null;
   typeName: string | null;
   primaryKey?: boolean | null;
+  position?: number | null;
+  size?: number | null;
+  nullable?: boolean | null;
 }
 
-/** ReSelect 选项：只声明用得到的字段，index 签名留给 card/table 布局的额外字段 */
+/**
+ * ReSelect 选项。
+ *
+ * <p>{@code description} 是可选的：采集侧大量选项（分类、流程、分组等）只给
+ * value/label，若在这里设成必填，全站每处选项构造都得补一个空串。
+ * 只有表 / 字段选项会填它 —— 那是「中文名 + 真实名」这条对应关系需要副标题。</p>
+ */
 export interface SelectOption {
   value: string;
   label: string;
   /** 副标题：真实名 + 类型 */
-  description: string;
+  description?: string;
   [key: string]: unknown;
 }
 
@@ -64,6 +79,8 @@ export function toTableOptions(tables: SchemaTable[]): SelectOption[] {
     table: item.name,
     comment: item.comment,
     type: item.type,
+    /** 原始元数据：外部喂选项模式下要把完整行还原给宿主（如表格列定义） */
+    raw: item,
   }));
 }
 
@@ -73,6 +90,50 @@ export function toTableOptions(tables: SchemaTable[]): SelectOption[] {
  * @param columns 列元数据
  * @returns 下拉选项
  */
+/**
+ * 把宿主给的表选项还原成表元数据（外部喂选项模式）。
+ *
+ * <p>选择器在宿主喂选项时不再自己取数，但仍要发出 {@code loaded} 事件
+ * —— 采集节点表单靠它把「表不存在」这个判断喂给字段映射控件。</p>
+ *
+ * @param options 宿主给的选项；带 {@code raw} 的直接取原始行
+ * @returns 表元数据；裸选项按 value 补一份无注释的最小行
+ */
+export function toTableRows(options: SelectOption[]): SchemaTable[] {
+  return (options ?? []).map(option => {
+    const raw = option.raw as SchemaTable | undefined;
+    if (raw?.name) {
+      return raw;
+    }
+    return {
+      name: String(option.table ?? option.value ?? ""),
+      comment: (option.comment as string | null | undefined) ?? null,
+      type: (option.type as string | null | undefined) ?? null,
+    };
+  });
+}
+
+/**
+ * 把宿主给的字段选项还原成列元数据（外部喂选项模式）。
+ *
+ * @param options 宿主给的选项；带 {@code raw} 的直接取原始行
+ * @returns 列元数据；裸选项按 value 补一份无注释的最小行
+ */
+export function toColumnRows(options: SelectOption[]): SchemaColumn[] {
+  return (options ?? []).map(option => {
+    const raw = option.raw as SchemaColumn | undefined;
+    if (raw?.name) {
+      return raw;
+    }
+    return {
+      name: String(option.field ?? option.value ?? ""),
+      label: (option.comment as string | null | undefined) ?? null,
+      typeName: (option.type as string | null | undefined) ?? null,
+      primaryKey: Boolean(option.primaryKey),
+    };
+  });
+}
+
 export function toColumnOptions(columns: SchemaColumn[]): SelectOption[] {
   return (columns ?? []).map(item => ({
     value: item.name,
@@ -83,5 +144,7 @@ export function toColumnOptions(columns: SchemaColumn[]): SelectOption[] {
     comment: (item.label ?? "").trim() || null,
     type: item.typeName,
     primaryKey: item.primaryKey ?? null,
+    /** 原始元数据：外部喂选项模式下要把完整行还原给宿主 */
+    raw: item,
   }));
 }

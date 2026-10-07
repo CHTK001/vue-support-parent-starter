@@ -95,11 +95,15 @@ const buffer = shallowRef<ArrayBuffer | null>(null);
 const convertedRenderer = ref<OfficeRenderer | "">("");
 
 /**
- * 传统二进制格式 → 可客户端渲染的 OOXML 目标（对应后端 {@code ?format=} 转换）
+ * 传统二进制格式 → 可客户端渲染的 OOXML 目标
  *
- * <p>只收录「浏览器组件解析不了、但服务端有转换器」的格式。转换失败时后端会
+ * <p>只收录「浏览器组件解析不了、但能转成 OOXML」的格式。转换失败时后端会
  * 带 {@code X-FileStorage-Convert: unavailable} 返回原字节，前端据此继续走
  * PDF / 服务端渲染兜底。</p>
+ *
+ * <p><b>两条转换路径</b>（见 {@link tryClientWasmConvert} / {@link tryConvertFallback}）：
+ * {@code .xls} 优先在浏览器内用 WASM 转换（快、不依赖服务端），失败再退回服务端
+ * {@code ?format=xlsx}；其余格式只有服务端一条路。</p>
  */
 const CONVERT_TARGET: Readonly<Record<string, { format: "docx" | "xlsx"; mime: string; renderer: OfficeRenderer }>> = {
   doc: {
@@ -128,14 +132,52 @@ const CONVERT_TARGET: Readonly<Record<string, { format: "docx" | "xlsx"; mime: s
 };
 
 /**
+ * 尝试在**浏览器内**用 WASM 把 xls 转成 xlsx（不经服务端）
+ *
+ * <p>这是 `.xls` 的首选路径：转换在本机完成，不用等服务端起Aspose，
+ * 也不占用服务端资源。转换成功后 {@link buffer} 与 {@link convertedRenderer}
+ * 的填法与服务端转换完全一致，所以渲染器那边感知不到差别 ——
+ * <b>xls 与 xlsx 因此共用同一套 UI 与交互</b>。</p>
+ *
+ * <p>只有 `.xls` 走这条：它是本文件唯一能被纯前端读懂的 OLE2 表格格式
+ * （`.doc` / `.ppt` 没有纯 JS 方案）。</p>
+ *
+ * @param xlsBytes 原始 xls 字节
+ * @returns 转换成功并已填充状态返回 true
+ */
+async function tryClientWasmConvert(xlsBytes: Uint8Array): Promise<boolean> {
+  // 动态引入：WASM 胶水 + 1.1MB 的 .wasm 只在真的打开 .xls 时才下载
+  const { convertXlsToXlsx } = await import("../utils/xls2xlsx");
+  const ab = await convertXlsToXlsx(xlsBytes);
+  // 二次嗅探：转换器可能产出空文档或非 OOXML，交给组件会抛
+  // JSZip 的原始英文异常，直接拒掉并退回服务端通道更可控
+  if (!officeRendererOfSniffed("converted.xlsx", new Uint8Array(ab))) {
+    throw new Error("转换结果不是有效的 XLSX 容器");
+  }
+  buffer.value = ab;
+  convertedRenderer.value = "excel";
+  return true;
+}
+
+/**
  * 尝试让服务端把传统二进制文档转成 OOXML 后本地渲染。
  *
  * @returns 转换成功并已填充 {@link buffer} / {@link convertedRenderer} 返回 true
  */
-async function tryConvertFallback(): Promise<boolean> {
+async function tryConvertFallback(rawBytes?: Uint8Array): Promise<boolean> {
   const target = CONVERT_TARGET[extensionOf(props.fileName)];
   if (!target) {
     return false;
+  }
+  // `.xls` 先试浏览器内 WASM：少一次网络往返，也不依赖服务端转换器。
+  // 失败（体积超限 / 罕见 BIFF 变体 / wasm 加载失败）则继续走服务端那条路。
+  if (target.format === "xlsx" && rawBytes?.byteLength) {
+    try {
+      await tryClientWasmConvert(rawBytes);
+      return true;
+    } catch (e) {
+      console.warn("[PreviewOfficePanel] 浏览器内 XLS 转换失败，改走服务端", e);
+    }
   }
   // rawSrc（不带 preview/render 参数）更干净；缺失时退回 src 也可命中后端 format 分支
   const base = props.rawSrc || props.src;
@@ -223,6 +265,31 @@ async function sniffRawBytes(): Promise<Uint8Array | undefined> {
   }
 }
 
+/**
+ * 取完整原始字节（供 .xls 的浏览器内 WASM 转换用）
+ *
+ * <p>{@link sniffRawBytes} 只取前 64 字节做密文嗅探，而 WASM 转换需要完整文件。
+ * 两条通道的取舍：服务端已判为需服务端渲染时，{@link buffer} 里装的是它渲染的
+ * HTML、没有原始字节，所以必须再拉一次；拉不到就让转换退回服务端
+ * {@code ?format=xlsx}（{@link tryConvertFallback} 对 rawBytes 为空会跳过 wasm）。</p>
+ *
+ * @returns 原始字节；未配置 rawSrc 或失败返回 undefined
+ */
+async function fetchFullRawBytes(): Promise<Uint8Array | undefined> {
+  if (!props.rawSrc) {
+    return undefined;
+  }
+  try {
+    const r = await fetch(props.rawSrc);
+    if (!r.ok) {
+      return undefined;
+    }
+    return new Uint8Array(await r.arrayBuffer());
+  } catch {
+    return undefined;
+  }
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   failReason.value = "";
@@ -251,9 +318,11 @@ async function load(): Promise<void> {
         return;
       }
       // 传统二进制（.doc / .xls）被服务端判为需服务端渲染（channel=spi/native）时，
-      // 先尝试让后端转成 OOXML（doc→docx / xls→xlsx）：转成了就仍回到客户端组件渲染，
+      // 先尝试转成 OOXML（doc→docx / xls→xlsx）：转成了就仍回到客户端组件渲染，
       // 保真度与交互都优于服务端拼的 HTML 或转 PDF。
-      if (await tryConvertFallback()) {
+      // 这里 buffer 里没有字节（服务端回的是 HTML），xls 的浏览器内转换需要原始
+      // 字节，故单独再取一次完整内容。
+      if (await tryConvertFallback(await fetchFullRawBytes())) {
         return;
       }
       failReason.value = "该文件需由服务端渲染";
@@ -285,10 +354,11 @@ async function load(): Promise<void> {
       // 会原样吐回二进制、不带任何 channel 头——直接丢给 iframe 只会得到一屏乱码
       // 或一个意料之外的下载。
       //
-      // 优先让服务端把传统二进制转成 OOXML（doc→docx / xls→xlsx）：转换成功后
+      // 优先把传统二进制转成 OOXML（doc→docx / xls→xlsx）：转换成功后
       // 仍由客户端组件渲染，保真度与交互都优于退回 PDF / 服务端 HTML。
+      // .xls 会先在浏览器内用 WASM 转（见 tryClientWasmConvert），失败才问服务端。
       // 服务端没有对应转换器时会带 X-FileStorage-Convert: unavailable，此处返回 false。
-      if (await tryConvertFallback()) {
+      if (await tryConvertFallback(bytes)) {
         return;
       }
       // 退路有两条，按优先级：

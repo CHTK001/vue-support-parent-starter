@@ -13,7 +13,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { toTableOptions, toColumnOptions } from "../src/api/schemaOptions.ts";
+import { toTableOptions, toColumnOptions, toTableRows, toColumnRows } from "../src/api/schemaOptions.ts";
 
 /** 造一条表元数据，只写测试关心的字段 */
 const table = (over = {}) => ({ name: "t", comment: null, type: null, ...over });
@@ -100,4 +100,34 @@ test("选项自带真实名字段：中文只是展示，字段映射不能拿�
   assert.equal(opt.table, "ms_user");
   const [col] = toColumnOptions([column({ name: "user_name", label: "用户名" })]);
   assert.equal(col.field, "user_name");
+});
+
+test("往返：选项 → 行，中文与类型都不丢", () => {
+  const source = [table({ name: "ms_user", comment: "用户表", type: "BASE TABLE" })];
+  const rows = toTableRows(toTableOptions(source));
+  assert.deepEqual(rows, source, "选项里挂了 raw，往返必须原样还原");
+});
+
+test("往返：字段选项 → 行，主键标记不丢", () => {
+  const source = [column({ name: "id", label: "编号", typeName: "BIGINT", primaryKey: true })];
+  assert.deepEqual(toColumnRows(toColumnOptions(source)), source);
+});
+
+test("裸选项（宿主自己拼的、没有 raw）也能还原成行，不静默丢弃", () => {
+  // 采集侧 middlewareForm 就是这么喂的：只给 value/label
+  const rows = toTableRows([{ value: "3", label: "订单库（10.0.0.1:3306）" }]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].name, "3");
+  assert.equal(rows[0].comment, null);
+});
+
+test("裸选项优先读 table/field 字段（比 value 更贴近真实名）", () => {
+  const rows = toTableRows([{ value: "x", table: "ms_real", label: "用户表" }]);
+  assert.equal(rows[0].name, "ms_real", "有 table 就该用它，而不是拿 value 顶");
+});
+
+test("还原空选项返回空数组", () => {
+  assert.deepEqual(toTableRows([]), []);
+  assert.deepEqual(toColumnRows([]), []);
+  assert.deepEqual(toTableRows(null), []);
 });
