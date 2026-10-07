@@ -255,9 +255,39 @@ const editConfig = (config: FunConfig) => {
   dialogVisible.value = true;
 };
 
+/**
+ * 保存（新增/编辑共用）。
+ *
+ * <p>此前**零校验直接提交**：空表单点「保存」后端照单全收，列表里多出一条
+ * 无编码、无名称、无路径的空模块（全站点击遍历发现的 FAIL）。
+ * 编码是本地唯一键（`toggleEnabled`/`deleteConfig` 都按 `moduleCode` 定位），
+ * 名称是删除确认与卡片主标题的数据源，缺失会让后续操作全部对不上号，
+ * 因此前置拦截必填项；配置 JSON 同样前置校验，避免落一条解析不了的脏配置。</p>
+ */
 const saveConfig = async () => {
+  const f = formData.value;
+  if (!f.moduleCode?.trim()) {
+    ElMessage.warning("请填写模块编码");
+    return;
+  }
+  if (!f.moduleName?.trim()) {
+    ElMessage.warning("请填写模块名称");
+    return;
+  }
+  if (!f.modulePath?.trim()) {
+    ElMessage.warning("请填写路径");
+    return;
+  }
+  if (f.configJson?.trim()) {
+    try {
+      JSON.parse(f.configJson);
+    } catch {
+      ElMessage.warning("配置 JSON 格式不正确");
+      return;
+    }
+  }
   try {
-    await eduaiApi.saveFunConfig(formData.value);
+    await eduaiApi.saveFunConfig(f);
     ElMessage.success("保存成功");
     dialogVisible.value = false;
     loadConfigs();
