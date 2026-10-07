@@ -10,11 +10,50 @@
  */
 import { chromium } from 'playwright'
 import fs from 'node:fs'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { fileURLToPath } from 'node:url'
+const run = promisify(execFile)
 
 const SHOT = 'D:/ch/project/.tmp/sg/shots'
 fs.mkdirSync(SHOT, { recursive: true })
 const FE = 'http://localhost:15689'
 const API = 'http://192.168.50.198:8787'
+const REPORT = fileURLToPath(new URL('prod-accept.report.json', import.meta.url))
+
+/**
+ * Fingerprint the run is bound to, collected from the host exactly like
+ * api-accept does it (SSH), so a redeploy makes this artifact self-evidently
+ * stale. Kept in one place: the report is only trustworthy while md5/PID/start
+ * time match SIGNOFF section 1.
+ */
+const PLINK = 'C:/Program Files/PuTTY/plink.exe'
+const HOSTKEY = 'ssh-ed25519 255 SHA256:cwfyC8w0qteYq8lXud9P9U2aSS8O/bxQOK6Y60BOmsI'
+const HOST = 'kali@192.168.50.198'
+async function fingerprint() {
+  // Single quotes only: plink drops inner double quotes on the way to the shell.
+  const remote =
+    "md5sum /opt/ai-starter/app.jar; systemctl show ai-starter -p MainPID -p NRestarts -p ExecMainStartTimestamp -p ActiveState; " +
+    "pgrep -c -f 'server.port=8787' || true; " +
+    'grep -ac UseCompactObjectHeaders /proc/$(systemctl show --value -p MainPID ai-starter)/cmdline || true'
+  const { stdout } = await run(PLINK, ['-batch', '-pw', 'kali', '-hostkey', HOSTKEY, HOST, remote], {
+    timeout: 60000,
+    windowsHide: true,
+  })
+  const out = String(stdout)
+  const pid = Number((out.match(/MainPID=(\d+)/) || [])[1] || 0)
+  const pgrep = Number((out.match(/^\s*(\d+)\s*$/m) || [])[1] || 0)
+  return {
+    jarMd5: (out.match(/^([0-9a-f]{32})\s/m) || [])[1],
+    activeState: (out.match(/ActiveState=(\S+)/) || [])[1],
+    mainPID: String(pid || ''),
+    nRestarts: (out.match(/NRestarts=(\d+)/) || [])[1],
+    execMainStartTimestamp: (out.match(/ExecMainStartTimestamp=(.+)/) || [])[1]?.trim(),
+    // pgrep -c counts its own wrapper, so 2 means one real instance (same caveat as api-accept)
+    instanceCount: String(pgrep),
+    compactObjectHeaders: /UseCompactObjectHeaders/.test(out) ? '1' : '0',
+  }
+}
 
 const pass = []
 const fail = []
@@ -321,5 +360,23 @@ chk('no unexpected JS errors', real.length === 0, real.slice(0, 2).join(' | '))
 
 console.log(`\n=== SUMMARY: PASS ${pass.length} / FAIL ${fail.length} ===`)
 fail.forEach((f) => console.log('  FAIL ' + f))
+
+// Bind the artifact to the deployment it was actually run against: same
+// fingerprint fields as api-accept/SIGNOFF section 1, so a redeploy after this
+// point invalidates the report instead of silently blessing the new jar.
+const fp = await fingerprint().catch((e) => ({ error: String(e?.message || e).slice(0, 200) }))
+const report = {
+  generatedAt: new Date().toISOString(),
+  fe: FE,
+  api: API,
+  fingerprint: fp,
+  passCount: pass.length,
+  failCount: fail.length,
+  pass,
+  fail,
+}
+fs.writeFileSync(REPORT, JSON.stringify(report, null, 2))
+console.log('report -> ' + REPORT + '  md5=' + (fp.jarMd5 || fp.error || '?'))
+
 await browser.close()
 process.exit(fail.length ? 1 : 0)

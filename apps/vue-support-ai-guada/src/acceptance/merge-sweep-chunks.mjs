@@ -116,6 +116,18 @@ for (const k of Object.keys(buckets)) {
 
 if (process.argv.includes('--write')) {
   fs.mkdirSync(path.dirname(OUT), { recursive: true })
+  // 护栏：分块目录可能被共享工作区的清理删过，只剩个别块时合并结果会比现有
+  // 报告更小；直接覆盖等于拿局部数据冒充全量。要么补齐分块，要么显式 --force。
+  if (fs.existsSync(OUT) && !process.argv.includes('--force')) {
+    let prevRoutes = 0
+    try { prevRoutes = (JSON.parse(fs.readFileSync(OUT, 'utf8')).routes || []).length } catch { /* 坏文件按 0 处理 */ }
+    if (prevRoutes > routes.length) {
+      console.error('  REFUSED: ' + OUT + ' has ' + prevRoutes + ' routes, merge has only ' + routes.length)
+      console.error('  run again with --force to overwrite on purpose')
+      process.exit(3)
+    }
+    if (prevRoutes) fs.copyFileSync(OUT, OUT + '.prev.json')
+  }
   fs.writeFileSync(OUT, JSON.stringify(merged, null, 2))
   console.log('  written: ' + OUT)
 }
