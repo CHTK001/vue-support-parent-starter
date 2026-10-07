@@ -379,6 +379,9 @@
     deleteModel: 'Delete Model',
     deleteModelConfirm: 'Are you sure you want to delete this model? This cannot be undone.',
     modelDeleted: 'Model deleted',
+    // Built-in Agent provider models (and any non-library model): the backend has
+    // no row for them, so the toggle endpoint always 404s. Explains the disabled switch.
+    modelToggleUnavailable: 'This model is not in the model library; enable/disable is unavailable',
     modelEnabled: 'Model enabled',
     modelDisabled: 'Model disabled',
     toggleModelError: 'An error occurred while toggling model status',

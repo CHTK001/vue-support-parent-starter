@@ -439,10 +439,26 @@ export function deriveModelTraits(m: any, modelType?: string): ModelTraits {
 export function mapModel(m: any, providerId: string): any {
   const modelType = inferModelType(m)
   const traits = deriveModelTraits(m, modelType)
+  // 后端模型行**自带 id**（如 "agnes:agnes-2.0-flash"）⇒ 该行来自 sys_ai_provider_model，
+  // 启停/删除/收藏这几个 {compositeId} 端点都能解析到它。
+  // 不带 id（实测内置 Agent 供应商的 agent-fixture-zip，行里只有 model+provider_id）
+  // ⇒ 不在那张表里，就算按契约拼出 providerId:modelName 也会回
+  //   404「模型不存在: agent-fixture-zip」—— 开关就成了**点了必失败**的按钮。
+  // 这里把该事实透出给模板：没有原生 id 就禁用开关，别让用户去点一个注定失败的控件。
+  // （与 ModelsProviderDetail 的 canDelete 同属一类问题，见那里的注释。）
+  const hasNativeId = !!(m.id || m.model_id)
   return {
     ...m,
     providerId,
-    id: m.id || m.model_id || m.model,
+    hasNativeId,
+    // ★ 复合 id 必须恒为 providerId:modelName（AiModelController.toggleActive 契约，
+    //   其 @PathVariable("compositeId") 校验 separator>0 && separator<len-1）。
+    //   此前兜底写的是 `m.model`（裸模型名，无冒号）：后端 /api/providers 返回的模型行
+    //   偶尔不带 id/model_id，于是 PUT /v2/models/agent-fixture-zip/toggle-active
+    //   直接 400 INVALID_PARAM，delete/update/favorite 四个端点同样全废。
+    //   改用 provider_id:model 兜底后与后端合成 id（27/28 行均为该形态）以及
+    //   DefaultModelSettings/TavernPage 的自建 id 完全一致；provider_id 缺时回退 providerId。
+    id: m.id || m.model_id || (m.model ? `${m.provider_id || providerId}:${m.model}` : undefined),
     name: m.name || m.model,
     model: m.model,
     modelName: m.model,

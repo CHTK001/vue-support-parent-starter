@@ -103,7 +103,22 @@
             <!-- 底部：与其它供应商一致（启用开关 + 编辑 + 删除） -->
             <div class="mc-foot">
               <span v-if="model.external" class="mc-src is-ext">外部目录</span>
-              <el-switch v-model="model.isActive" @change="handleToggle(model)" />
+              <!--
+                启用开关必须能真的生效，否则就是「可见可点、点了必失败」的假按钮。
+                内置 Agent 供应商的模型行不带后端 id（不在 sys_ai_provider_model 里），
+                PUT /v2/models/{providerId}:{model}/toggle-active 恒回 404
+                「模型不存在」—— 实测（2026-10-07 逐按钮 sweep + 定点探针）：
+                裸 id 回 400 格式非法，补全成 providerId:modelName 后回 404 查无此模型。
+                所以没有原生 id 时直接禁用开关并给出原因，而不是让用户点了报错。
+                判据用 `=== false`：只有 mapModel 明确判定「无原生 id」才禁用，
+                外部来源的模型（无该字段）保持原行为不受影响。
+              -->
+              <el-switch
+                v-model="model.isActive"
+                :disabled="model.hasNativeId === false"
+                :title="model.hasNativeId === false ? t('settings.providerDetail.modelToggleUnavailable') : ''"
+                @change="handleToggle(model)"
+              />
               <div class="mc-foot-btns">
                 <button class="mc-btn" :title="t('common.edit')" @click="handleEdit(model)">
                   <el-icon :size="16"><SettingsOutlined /></el-icon>
