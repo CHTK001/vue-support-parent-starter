@@ -10,7 +10,7 @@
  *   周字段用 0-6（0=周日，7 亦按周日解析），`?` 解析等价于 `*`；
  *   预览时间由 @repo/utils 的同源镜像 CronExpression 计算，与服务端逐字对齐。
  */
-import { computed, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import { ElDialog } from "element-plus";
 import { CronExpression } from "@repo/utils";
 import ReButton from "../ReButton";
@@ -454,14 +454,38 @@ function syncFromModel(value: string): void {
   rawExpression.value = value.trim();
 }
 
+/**
+ * 「本次 expression 变化是由输入推导出来的，不要回写成model」的闸门。
+ *
+ * <p>症状：输入框里每敲一个字符就闪一下。成因是两条写路径在同一次按键里互相打：</p>
+ * <ol>
+ *   <li>用户敲 `0` → {@code model = "0"}；</li>
+ *   <li>{@code watch(model)} → {@link syncFromModel} 拿 "0" 去解析，缺失字段按默认补齐，
+ *       于是六字段 {@link expression} 变成 `"0 * * * * ?"`；</li>
+ *   <li>紧接着 {@code watch(expression)} 触发，此时 {@code rawMode} 还是 false
+ *       （"0" 面板表达得了），判定为「面板改动」，把 `"0 * * * * ?"` 写回 {@code model}。</li>
+ * </ol>
+ * <p>输入框的文本在光标下被改写 → 看着就是闪动/跳字。面板改动与用户输入因此必须可区分：
+ * 本闸门在 {@code syncFromModel} 期间置位，只压住由输入派生的那次回写，
+ * 用户点面板改字段产生的 {@code expression} 变化照常回写。</p>
+ *
+ * <p>清零放在 nextTick：{@code watch(expression)} 若本轮没被触发（敲入的字符没改变任何
+ * token），靠 nextTick 兜底复位，闸门不会粘住 true 而吃掉下一次面板编辑。</p>
+ */
+let syncingFromModel = false;
+
 watch(
   model,
   (v) => {
+    syncingFromModel = true;
     if (!rawMode.value && v === expression.value) {
       rawExpression.value = v;
-      return;
+    } else {
+      syncFromModel(v || "");
     }
-    syncFromModel(v || "");
+    nextTick(() => {
+      syncingFromModel = false;
+    });
   },
   { immediate: true },
 );
@@ -471,6 +495,8 @@ watch(expression, (v) => {
   /* nameNormalized 时也不回写：面板把 MON-FRI 理解成 1-5 只是为了能操作，
      写回去会把用户的名称形式改成数字形式 —— 属静默改写。 */
   if (rawMode.value || nameNormalized.value || props.disabled) return;
+  /* 输入派生的 expression 不回写，否则输入框每敲一键就被改写（见 syncingFromModel）。 */
+  if (syncingFromModel) return;
   if (v !== model.value) model.value = v;
 });
 
@@ -1132,7 +1158,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       </div>
 
       <div class="re-cron__presets">
-        <span class="re-cron__section-title">常用预设</span>
+        <span class="re-cron__section-title re-cron__section-title--inline">常用预设</span>
         <div class="re-cron__pill-row">
           <button
             v-for="preset in PRESETS"
@@ -1430,6 +1456,17 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   caret-color: var(--el-text-color-primary);
 }
 
+/*
+ * autofill 没命中时（扩展常走自己的属性而非 :-webkit-autofill），残余底色会铺满
+ * 输入框、在空表达式时正好盖住 placeholder，表现为「没数据时输入框里一圈怪底色
+ * + 左侧色条」。background-clip:text 把底色收进字形内，色条不再溢出到留白处。
+ * 只对 .el-input__inner 生效，不碰 wrapper，聚焦内描边照旧。
+ */
+.re-cron :deep(.el-input__inner) {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 .re-cron :deep(.el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
 }
@@ -1507,6 +1544,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   align-items: center;
   gap: 10px;
   padding: 22px 16px;
+  /* 描边用主色掺白/掺黑再混边框色，跟随主题切换，不写死色值 */
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter, #ebeef5));
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary-light-9, #ecf5ff);
   text-align: center;
@@ -1520,6 +1559,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
    说明"这句是机械罗列，不是识别出来的语义"。 */
 .re-cron__summary.is-note {
   background: var(--el-fill-color-light, #f5f7fa);
+}
+
+/* 底色转中性时描边一并转中性：主色描边 + 灰底会读成「有效但降级」，与错误态混淆 */
+.re-cron__summary.is-invalid,
+.re-cron__summary.is-note {
+  border-color: var(--el-border-color-lighter, #ebeef5);
 }
 
 .re-cron__summary-text {
@@ -1563,8 +1608,26 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-text-color-regular, #606266);
 }
 
+/* 常用预设：标题与胶囊同排起排 —— 标题定宽不折行，胶囊区自己换行。
+   另两处 section-title（自定义字段 / 未来触发）仍是块级独占一行，不受影响。 */
 .re-cron__presets {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin-top: 16px;
+}
+
+/* 与 34px 高的胶囊视觉居中对齐 */
+.re-cron__section-title--inline {
+  flex: none;
+  margin-bottom: 0;
+  padding-top: 8px;
+  white-space: nowrap;
+}
+
+.re-cron__presets .re-cron__pill-row {
+  flex: 1;
+  min-width: 0;
 }
 
 .re-cron__section-title {
@@ -1673,7 +1736,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 .re-cron__field-value {
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 15px;
+  /* 17px：六个盒子并排时，15px 的 MON-FRI 这类多字符值会顶到盒子边缘 */
+  font-size: 17px;
   font-weight: 600;
   color: var(--el-text-color-primary, #303133);
   max-width: 100%;
@@ -1728,10 +1792,15 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 }
 
 /* 未来触发：圆点 + 等宽时间，行间虚线分隔 */
+/* 未来触发：整块收进一张描边卡片，行间虚线分隔。
+   卡片底色走 --el-bg-color 而不是 transparent：弹层背景是白，卡片要靠底色差
+   与右侧编辑区拉开层次，暗色主题下 --el-bg-color 自动落到深色。 */
 .re-cron__times {
   margin: 0;
-  padding: 0;
+  padding: 2px 14px;
   list-style: none;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: var(--el-bg-color, #ffffff);
 }
 
 .re-cron__times li {
@@ -1761,7 +1830,9 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-text-color-regular, #606266);
 }
 
+/* 空态只有一行文案，卡片内边距给足，别贴着描边 */
 .re-cron__times--empty {
+  padding: 16px 14px;
   font-family: inherit;
   color: var(--el-color-danger, #f56c6c);
 }
@@ -1780,14 +1851,23 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-text-color-secondary, #909399);
 }
 
-/* 真异常（表达式非法）才用危险色；"留空表示不设置调度"是正常状态，
-   此前与非法共用同一条红色，把"没设置"渲染得像报错。 */
+/*
+ * 真异常（表达式非法）才用危险色。
+ * 「留空表示不设置调度」是正常状态（用户就是不想定周期），用中性色 —— 与非法共用
+ * 红色会把"没设置"渲染得像报错，空表单打开时尤其刺眼。
+ * 取舍记录：UI 稿画的是红字，这里改回中性色；需要提醒时用下方 is-attention。
+ */
 .re-cron__footer-hint.is-error {
   color: var(--el-color-danger, #f56c6c);
 }
 
 .re-cron__footer-hint.is-info {
   color: var(--el-text-color-secondary, #909399);
+}
+
+/* 「本该有周期却是空的」这类需要用户决策、但还没到报错的提醒（未启用却已配周期时用） */
+.re-cron__footer-hint.is-attention {
+  color: var(--el-color-warning, #e6a23c);
 }
 
 .re-cron__footer-actions {
