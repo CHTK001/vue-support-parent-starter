@@ -18,6 +18,7 @@
                   :response-url-path="'data.url'"
                   :trigger-text="'更换头像'"
                   :dialog-title="'裁剪头像'"
+                  :disabled="!mineUpdateSupported"
                   @success="handleAvatarSuccess"
                   @error="handleAvatarError"
                 />
