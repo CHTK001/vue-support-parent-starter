@@ -60,6 +60,9 @@ const stripOriginHeaders = (proxyServer: any) => {
  * 实时浏览器 sidecar 自动拉起：dev server 启动时把 scripts/live-browser.mjs 挂到后台，
  * 关闭时杀掉。拾取器的「实时模式」依赖 http://127.0.0.1:19097，
  * 手动起容易忘，这里做成全自动；已有人占端口时直接复用（幂等）。
+ *
+ * 另外每 15s 探活一次：实测 sidecar 会被外部静默干掉（退出码 1、无报错），
+ * 探活失败就重新拉起，保证长时间开发时实时模式不悄悄退化成静态兜底。
  */
 const liveBrowserPlugin = () => ({
   name: "live-browser-sidecar",
@@ -79,32 +82,65 @@ const liveBrowserPlugin = () => ({
       }
     };
     let child: any = null;
+    let spawning = false;
+    const spawnSidecar = async () => {
+      if (spawning) {
+        return;
+      }
+      spawning = true;
+      try {
+        const { spawn } = await import("node:child_process");
+        const script = new URL("../../../scripts/live-browser.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+        child = spawn(process.execPath, [script], {
+          detached: false,
+          stdio: ["ignore", "pipe", "pipe"],
+          env: { ...process.env, LIVE_BROWSER_PORT: port },
+        });
+        child.stdout?.on("data", (b: Buffer) => process.stdout.write(`[live-browser] ${b}`));
+        child.stderr?.on("data", (b: Buffer) => process.stderr.write(`[live-browser] ${b}`));
+        child.on("exit", (code: number | null) => {
+          server.config.logger.warn(`[live-browser] 进程退出（code=${code}），15s 内自动重拉`);
+          child = null;
+        });
+        // 等它报 listening（最多 15s；首次拉起要启动 Chromium 是在建会话时，启动很快）
+        for (let i = 0; i < 30; i += 1) {
+          await new Promise((r) => setTimeout(r, 500));
+          if (await probe()) {
+            server.config.logger.info(`[live-browser] ready at http://127.0.0.1:${port}`);
+            return;
+          }
+        }
+        server.config.logger.warn(`[live-browser] 15s 内未就绪，实时模式将不可用（静态模式不受影响）`);
+      } finally {
+        spawning = false;
+      }
+    };
     const boot = async () => {
       if (await probe()) {
         server.config.logger.info(`[live-browser] reuse http://127.0.0.1:${port}`);
         return;
       }
-      const { spawn } = await import("node:child_process");
-      const script = new URL("../../../scripts/live-browser.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-      child = spawn(process.execPath, [script], {
-        detached: false,
-        stdio: ["ignore", "pipe", "pipe"],
-        env: { ...process.env, LIVE_BROWSER_PORT: port },
-      });
-      child.stdout?.on("data", (b: Buffer) => process.stdout.write(`[live-browser] ${b}`));
-      child.stderr?.on("data", (b: Buffer) => process.stderr.write(`[live-browser] ${b}`));
-      // 等它报 listening（最多 15s；首次拉起要启动 Chromium 是在建会话时，启动很快）
-      for (let i = 0; i < 30; i += 1) {
-        await new Promise((r) => setTimeout(r, 500));
-        if (await probe()) {
-          server.config.logger.info(`[live-browser] ready at http://127.0.0.1:${port}`);
-          return;
-        }
-      }
-      server.config.logger.warn(`[live-browser] 15s 内未就绪，实时模式将不可用（静态模式不受影响）`);
+      await spawnSidecar();
     };
     void boot();
+    // 探活守护：进程没了就重拉（只在自己没持有活进程时动手，避免误伤别处起的实例）
+    const guardian = setInterval(() => {
+      if (child && child.exitCode !== null) {
+        child = null;
+      }
+      if (child) {
+        return;
+      }
+      void probe().then((ok) => {
+        if (!ok && !spawning) {
+          server.config.logger.info(`[live-browser] 探活失败，重新拉起 sidecar`);
+          void spawnSidecar();
+        }
+      });
+    }, 15000);
+    guardian.unref?.();
     server.httpServer?.on("close", () => {
+      clearInterval(guardian);
       child?.kill();
     });
   },

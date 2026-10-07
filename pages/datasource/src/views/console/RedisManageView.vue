@@ -68,6 +68,11 @@
               <ReIcon name="Document" size="13" class="dsm-tree-icon" />
               <span class="dsm-tree-label" :title="row.key">{{ row.key }}</span>
               <ReTag :type="typeTagType(row.type)">{{ row.type }}</ReTag>
+              <!-- 悬停工具条：复制键名 / 删除（点击不触发行选中） -->
+              <div class="dsm-row-actions" data-testid="dsm-row-actions" @click.stop>
+                <ReButton layout="square" size="small" icon="CopyDocument" tip="复制键名" data-testid="dsm-row-copy" @click="copyKeyName(row.key)" />
+                <ReButton layout="square" size="small" icon="Delete" tip="删除" data-testid="dsm-row-delete" @click="confirmDeleteKey(row.key)" />
+              </div>
             </div>
           </template>
           <template v-else>
@@ -85,9 +90,34 @@
                 size="12"
                 class="dsm-tree-icon dsm-tree-caret"
               />
+              <!-- 目录图标：展开 FolderOpened / 收起 Folder -->
+              <ReIcon
+                v-if="row.kind === 'dir'"
+                :name="row.expanded ? 'FolderOpened' : 'Folder'"
+                size="13"
+                class="dsm-tree-icon dsm-tree-folder"
+              />
               <ReIcon v-else name="Document" size="13" class="dsm-tree-icon" />
               <span class="dsm-tree-label" :title="row.path">{{ row.name }}</span>
               <ReTag v-if="row.kind === 'leaf' && row.item" :type="typeTagType(row.item.type)">{{ row.item.type }}</ReTag>
+              <!-- 悬停工具条：目录=整目录删除（级联删全部子键），叶子=复制/删除 -->
+              <div class="dsm-row-actions" data-testid="dsm-row-actions" @click.stop>
+                <template v-if="row.kind === 'dir'">
+                  <ReButton
+                    layout="square"
+                    size="small"
+                    type="danger"
+                    icon="Delete"
+                    tip="删除目录下全部键"
+                    data-testid="dsm-row-delete-dir"
+                    @click="confirmDeleteDir(row.path)"
+                  />
+                </template>
+                <template v-else>
+                  <ReButton layout="square" size="small" icon="CopyDocument" tip="复制键名" data-testid="dsm-row-copy" @click="copyKeyName(row.path)" />
+                  <ReButton layout="square" size="small" icon="Delete" tip="删除" data-testid="dsm-row-delete" @click="confirmDeleteKey(row.path)" />
+                </template>
+              </div>
             </div>
           </template>
           <div v-if="keys.length === 0" class="dsm-tree-node">
@@ -157,7 +187,7 @@
               </div>
               <textarea v-if="stringView === 'text'" v-model="stringValue" class="dsm-node-data" rows="8" placeholder="UTF-8 文本"></textarea>
               <pre v-else-if="stringView === 'hex'" class="dsm-data-content dsm-value-view" data-testid="dsm-value-hex">{{ hexViewText }}</pre>
-              <pre v-else class="dsm-data-content dsm-value-view" data-testid="dsm-value-json">{{ jsonViewText }}</pre>
+              <pre v-else class="dsm-data-content dsm-value-view" data-testid="dsm-value-json" v-html="jsonHtml" />
             </div>
 
             <!-- HASH -->
@@ -330,7 +360,7 @@
  * @author CH
  * @since 4.0.0.43
  */
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -401,8 +431,8 @@ const keys = ref<RedisKeyItem[]>([]);
 /** SCAN 游标，"0" 表示扫完 */
 const nextCursor = ref("0");
 /** 键列表视图：平铺 / 树形（沿用旧 /redis 页的 localStorage 键） */
-const viewMode = ref<"flat" | "tree">((localStorage.getItem("redis-view-mode") as "flat" | "tree") || "flat");
-watch(viewMode, v => localStorage.setItem("redis-view-mode", v));
+/** 视图模式：每次进入控制台默认平铺（不恢复上次树形，2026-10-07 需求） */
+const viewMode = ref<"flat" | "tree">("flat");
 
 /** 侧栏宽度持久化键（沿用旧 /redis 页） */
 const LEFT_WIDTH_KEY = "redis-left-width";
@@ -674,6 +704,31 @@ const jsonViewText = computed(() => {
   } catch {
     return raw;
   }
+});
+
+/**
+ * JSON 视图高亮 HTML：先整体转义（&lt;&gt;&amp;）防注入，再对 token 包 span。
+ * 非法 JSON（jsonViewText 原样输出、parse 失败）只转义不高亮，保持原样展示。
+ * token 顺序：键（字符串+冒号）→ 字符串 → 数字 → true/false/null → 结构符号。
+ */
+const jsonHtml = computed(() => {
+  const text = jsonViewText.value;
+  const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  try {
+    JSON.parse(text);
+  } catch {
+    return esc;
+  }
+  return esc.replace(
+    /("(?:[^"\\]|\\.)*")(\s*:)|("(?:[^"\\]|\\.)*")|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b|([{}[\],:])/g,
+    (_m, keyStr: string, colon: string, str: string, num: string, lit: string, punct: string) => {
+      if (keyStr !== undefined) return `<span class="dsm-json-key">${keyStr}</span>${colon}`;
+      if (str !== undefined) return `<span class="dsm-json-str">${str}</span>`;
+      if (num !== undefined) return `<span class="dsm-json-num">${num}</span>`;
+      if (lit !== undefined) return `<span class="dsm-json-lit">${lit}</span>`;
+      return `<span class="dsm-json-punct">${punct}</span>`;
+    }
+  );
 });
 
 /** HEX 视图文本：UTF-8 字节 16 字节/行，`偏移 hex |ascii|` */
@@ -1012,6 +1067,73 @@ async function confirmDeleteKey(key: string) {
   }
 }
 
+/**
+ * 复制键名到剪贴板（键列表悬停工具条）。
+ *
+ * @param key 键名
+ */
+async function copyKeyName(key: string) {
+  try {
+    await navigator.clipboard.writeText(key);
+    ElMessage.success("键名已复制");
+  } catch {
+    ElMessage.warning("复制失败，浏览器拒绝了剪贴板访问");
+  }
+}
+
+/**
+ * 删除目录：扫描该前缀下全部键（含未加载批次）后一次确认、批量删除。
+ * 目录 = 前缀 `dir:` 下的所有键；与树形「目录」行的语义一致（2026-10-07 需求）。
+ *
+ * @param dir 目录路径（如 `user:profile`）
+ */
+async function confirmDeleteDir(dir: string) {
+  const prefix = `${dir}:`;
+  // 全量收集前缀下所有键（游标扫完，不局限于已加载批次）
+  const found: string[] = [];
+  let cursor = "0";
+  let guard = 0;
+  try {
+    do {
+      const res = await scanRedisKeys({
+        datasourceId: datasourceId.value,
+        db: activeDb.value,
+        pattern: `${prefix}*`,
+        cursor,
+        count: 500,
+      });
+      found.push(...(res?.keys || []).map(k => k.key));
+      cursor = String(res?.nextCursor ?? "0");
+      guard += 1;
+    } while (cursor !== "0" && guard < 200);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/keys");
+    return;
+  }
+  if (found.length === 0) {
+    ElMessage.info("目录下没有键");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确定删除目录 ${dir} 下全部 ${found.length} 个键吗？该操作不可恢复。`, "删除确认", { type: "warning", confirmButtonText: "删除" });
+  } catch {
+    return;
+  }
+  try {
+    await deleteRedisKeys(datasourceId.value, activeDb.value, found);
+    ElMessage.success(`已删除目录下 ${found.length} 个键`);
+    if (activeKey.value.startsWith(prefix)) {
+      activeKey.value = "";
+      detail.value = null;
+    }
+    ready();
+    await loadSideData();
+    await scanKeys(true);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key");
+  }
+}
+
 /** HASH 添加字段 */
 async function addHashField() {
   const field = newHashField.value.trim();
@@ -1262,12 +1384,18 @@ onMounted(refresh);
 .dsm-view-count { font-size: 12px; color: var(--text-tertiary); }
 .dsm-view-spacer { flex: 1; }
 .dsm-key-list { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto; }
-.dsm-tree-node { display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
+.dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; background: var(--bg-container); }
 .dsm-tree-node:hover { background: var(--bg-hover); }
 .dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
 .dsm-tree-node.is-dir { font-weight: 600; color: var(--text-secondary); }
 .dsm-tree-caret { color: var(--text-tertiary); }
 .dsm-tree-icon { flex-shrink: 0; }
+.dsm-tree-folder { color: var(--brand-500, var(--brand-600, #409eff)); }
+/* 行悬停工具条：默认隐藏，鼠标经过行才显示；绝对定位覆盖右侧，避免出现时挤压布局。
+   背景 inherit 跟随行的三态（默认/hover/active），按钮图标覆盖其后的类型 ReTag。 */
+.dsm-row-actions { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: none; align-items: center; gap: 2px; padding-left: 18px; background: inherit; }
+.dsm-tree-node:hover .dsm-row-actions { display: flex; }
+.dsm-row-actions :deep(.rs-btn) { margin: 0; }
 .dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsm-load-more { padding: 6px 8px; text-align: center; }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
@@ -1301,6 +1429,12 @@ onMounted(refresh);
 .dsm-seg button:hover { background: var(--bg-hover); color: var(--text-primary); }
 .dsm-seg button.is-active { background: var(--brand-50); color: var(--brand-600); font-weight: 600; }
 .dsm-value-view { min-height: 80px; }
+/* JSON 高亮（v-html 注入的 span 不带 scope 属性 → 必须 :deep） */
+.dsm-value-view:deep(.dsm-json-key) { color: var(--brand-600, #409eff); font-weight: 600; }
+.dsm-value-view:deep(.dsm-json-str) { color: var(--success, #67c23a); }
+.dsm-value-view:deep(.dsm-json-num) { color: var(--warning, #e6a23c); }
+.dsm-value-view:deep(.dsm-json-lit) { color: var(--danger, #f56c6c); font-style: italic; }
+.dsm-value-view:deep(.dsm-json-punct) { color: var(--text-tertiary); }
 .dsm-node-data { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
 .dsm-node-data:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
 </style>

@@ -195,7 +195,7 @@
 
             <div v-if="sourceMode === 'table'" class="st-form-item">
               <label>数据表</label>
-              <el-select v-model="pickedSourceTable" placeholder="选择源库数据表" filterable clearable class="st-full" @change="applySourceTable">
+              <el-select v-model="pickedSourceTable" placeholder="选择源库数据表" filterable clearable class="st-full" @change="applySourceTable" @clear="onSourceTableClear">
                 <el-option v-for="t in sourceTables" :key="t" :label="t" :value="t" />
               </el-select>
               <div class="st-form-hint">选中后自动生成 SELECT（见下方 SQL，只读）；需要微调请切到「自定义 SQL」。</div>
@@ -1209,6 +1209,15 @@ const applySourceTable = () => {
   if (pickedSourceTable.value) {
     form.sourceSql = `SELECT * FROM \`${pickedSourceTable.value}\``;
   }
+};
+
+/**
+ * 清除所选表：随选表自动生成的 SQL 一并清掉。
+ * 不清的话，只读框里会留着旧表的 SELECT，与「未选表」的状态自相矛盾
+ * （run8 实测：数据表已清空、SQL 仍是 `SELECT * FROM flyway_schema_history`）。
+ */
+const onSourceTableClear = () => {
+  form.sourceSql = "";
 };
 
 /** 切换取数方式：回到「选择数据表」时按所选表重建 SQL */

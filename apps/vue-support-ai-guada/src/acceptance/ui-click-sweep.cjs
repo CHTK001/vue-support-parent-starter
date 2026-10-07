@@ -356,6 +356,7 @@ async function closeOverlays(p) {
   const events = [];
   let browser = null;
   let page = null;
+  let pageCrashed = false; // 渲染进程崩了但 page 对象可能还"在"：isDead() 必须一并认
   let crashes = 0;
   let d = { kbId: '', connId: '' };
 
@@ -382,7 +383,7 @@ async function closeOverlays(p) {
       if (!NOISE.test(u)) bucket.failed.push(r.method() + ' ' + u.slice(0, 120));
     });
     p.on('dialog', (x) => x.dismiss().catch(() => {}));
-    p.on('crash', () => events.push({ ev: 'page-crash', at: new Date().toISOString() }));
+    p.on('crash', () => { pageCrashed = true; events.push({ ev: 'page-crash', at: new Date().toISOString() }); });
     p.on('close', () => events.push({ ev: 'page-close', at: new Date().toISOString() }));
   };
 
@@ -390,13 +391,38 @@ async function closeOverlays(p) {
     browser = await chromium.launch({ headless: true });
     browser.on('disconnected', () => events.push({ ev: 'browser-disconnected', at: new Date().toISOString() }));
     page = await (await browser.newContext({ viewport: { width: 1512, height: 950 } })).newPage();
+    pageCrashed = false;
     attach(page);
   };
 
-  const isDead = () => !page || page.isClosed() || !browser || !browser.isConnected();
+  // 崩了的 page 也要算死：Target crashed 之后 page 对象没 close，
+  // 但每次操作都会抛，不重建的话后面全是假 FAIL。
+  const isDead = () => pageCrashed || !page || page.isClosed() || !browser || !browser.isConnected();
 
   /** 报告：崩了 / 会话重建失败 —— 都要能在汇总里看见，不许静默 */
   const summary = { crashes: 0, aborted: false };
+
+  /**
+   * 进程级兜底：接住「从 Playwright 协议回调里同步抛出」的浏览器崩溃。
+   *
+   * 实测（2026-10-07 dist 形态）：渲染进程在 Bots 路由崩溃，`Target crashed`
+   * 在 `_CRSession._onMessage` 里 throw —— 不属于任何 await 表达式，
+   * recover()/try-catch 一个都接不到，整个 node 进程当场退出：
+   * 日志停在半路、报告停在上一条路由，看着像「跑得慢」，其实是无声死亡。
+   * 这里把它接住并留证，让随后的 isDead()/recover() 去重建会话续跑。
+   */
+  const onSurvivableCrash = (kind) => (e) => {
+    const msg = String((e && e.message) || e).slice(0, 200);
+    events.push({ ev: kind, err: msg, at: new Date().toISOString() });
+    if (/Target crashed|Target page, context or browser has been closed|browser has been closed|crash/i.test(msg)) {
+      console.log(`  [${kind}] 浏览器崩溃穿透到进程层，交给自愈续跑: ` + msg.slice(0, 120));
+      return; // 不退出：下一次 isDead() 检查会重建会话
+    }
+    // 未知错误也绝不无声死掉 —— 记入 events，汇总里能看到
+    console.log(`  [${kind}] 未知异常（记入 events，继续跑）: ` + msg.slice(0, 160));
+  };
+  process.on('uncaughtException', onSurvivableCrash('uncaughtException'));
+  process.on('unhandledRejection', onSurvivableCrash('unhandledRejection'));
 
 
   const report = { base: BASE, startedAt: new Date().toISOString(), routes: [] };
