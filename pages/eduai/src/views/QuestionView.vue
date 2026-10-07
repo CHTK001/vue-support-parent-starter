@@ -660,7 +660,8 @@
 
     <!-- 批量导入对话框 -->
     <el-dialog v-model="importDialogVisible" title="批量导入题目（JSON 数组）" width="720">
-      <el-input v-model="importJson" type="textarea" :rows="12" placeholder='[{"questionType":"JUDGE","questionSubject":"数学",...}]' />
+      <el-input v-model="importJson" type="textarea" :rows="12" placeholder='[{"questionType":"JUDGE","questionSubject":"数学","questionGradeLevel":"小学","questionGrade":"三年级","questionStem":"...","questionAnswer":"T"}]' />
+      <p class="import-hint">必填：题型 questionType、学科 questionSubject、学段 questionGradeLevel、年级 questionGrade、题干 questionStem、答案 questionAnswer；选择题选项需为 JSON 字符串。</p>
       <template #footer>
         <el-button @click="importDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
@@ -1438,10 +1439,23 @@ const doImport = async () => {
     const parsed = JSON.parse(importJson.value);
     if (!Array.isArray(parsed)) throw new Error("必须是 JSON 数组");
     importing.value = true;
-    const count = await eduaiApi.importQuestions(parsed);
-    ElMessage.success(`导入成功 ${count} 条`);
-    importDialogVisible.value = false;
-    await reloadStats();
+    const result = await eduaiApi.importQuestions(parsed);
+    if (result.successCount === 0 && result.failedCount === 0) {
+      ElMessage.warning("数组为空，没有可导入的数据");
+      return;
+    }
+    // 失败原因必须透出：后端逐条容错，只回成功条数时用户无从得知缺了什么
+    if (result.failedCount > 0) {
+      const detail = result.errors.slice(0, 3).join("；");
+      const more = result.failedCount > 3 ? `（等 ${result.failedCount} 条失败）` : "";
+      ElMessage.warning(`导入成功 ${result.successCount} 条，失败 ${result.failedCount} 条：${detail}${more}`);
+    } else {
+      ElMessage.success(`导入成功 ${result.successCount} 条`);
+    }
+    if (result.successCount > 0) {
+      importDialogVisible.value = false;
+      await reloadStats();
+    }
   } catch (e) {
     ElMessage.error("导入失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
@@ -1484,6 +1498,14 @@ onMounted(() => {
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);
+}
+
+/* 批量导入对话框的必填字段提示 */
+.import-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 
 /* ---------- 上区：页头 + 右侧悬浮正方形统计卡 ---------- */
