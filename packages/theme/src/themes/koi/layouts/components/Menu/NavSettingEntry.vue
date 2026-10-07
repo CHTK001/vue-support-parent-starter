@@ -2,8 +2,12 @@
   <!-- 底部系统配置入口。
        compact=true：纯图标（配合图标栏底部按钮坞，Columns/Double/Optimum 用）。
        compact=false 且 menuConfig.groupNav=true（默认）：图标 + 文字整行条目（Vertical/Group/Classic 用）。
-       compact=false 且 groupNav=false：回退纯图标 + tooltip，与增强开关关闭前行为一致。 -->
-  <div class="nav-setting-entry" :class="{ 'is-compact': compact }">
+       compact=false 且 groupNav=false：回退纯图标 + tooltip，与增强开关关闭前行为一致。
+
+       目标路由未注册时不渲染：应用的路由树是按需装配的（如 eduai 只挂 eduaiRoutes，
+       不含 pages/system 的 /system/config），此时这个入口点下去只会落到 404，
+       对用户就是一个坏按钮 —— 直接隐藏，比留一个死链正确。 -->
+  <div v-if="targetAvailable" class="nav-setting-entry" :class="{ 'is-compact': compact }">
     <el-tooltip v-if="iconOnly" :content="label" placement="right" :show-after="200">
       <button
         v-admin
@@ -43,7 +47,7 @@
  * - true 且非 compact：图标 + 文字整行条目，视觉上与菜单项同高同规格
  * - false 或 compact：回退纯图标 + tooltip
  */
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Setting } from "@element-plus/icons-vue";
 import { resolveGroupNav } from "@repo/config";
@@ -72,12 +76,26 @@ const globalStore = useGlobalStore();
 /** 分组导航增强开关（menuConfig.groupNav，缺省 true） */
 const groupNav = computed(() => resolveGroupNav());
 
+/**
+ * 目标路由是否已注册。
+ *
+ * <p>各应用按需装配路由树（eduai 只挂 eduaiRoutes，不注册 pages/system 的
+ * /system/config），未注册时入口必须整体隐藏，否则点击会稳定落到 404。</p>
+ */
+const targetAvailable = ref(false);
+
+onMounted(() => {
+  targetAvailable.value = router.hasRoute(props.path);
+});
+
 /** 是否只显示图标：图标坞模式、折叠态、或关闭增强开关 */
 const iconOnly = computed(() => props.compact || !groupNav.value || globalStore.isCollapse);
 
 const isActive = computed(() => route.path === props.path);
 
 function goSystemConfig() {
+  // 兜底：即便入口被外部条件渲染出来，目标路由不存在也绝不 push（push 会落 404）
+  if (!router.hasRoute(props.path)) return;
   if (route.path !== props.path) router.push(props.path);
 }
 </script>
