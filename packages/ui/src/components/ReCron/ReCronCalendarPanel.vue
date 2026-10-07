@@ -25,15 +25,10 @@ export interface ReCronCalendarPanelEmits {
   (e: "apply", expression: CalendarExpression): void;
 }
 
-const props = withDefaults(
-  defineProps<{
-    /** 当前表达式，用于反向初始化选中日期 */
-    expression?: string;
-    /** 预览条数（1-20），与服务端同源 */
-    previewCount?: number;
-  }>(),
-  { expression: "", previewCount: 5 },
-);
+const props = defineProps<{
+  /** 当前表达式，用于反向初始化选中日期 */
+  expression?: string;
+}>();
 
 const emit = defineEmits<ReCronCalendarPanelEmits>();
 
@@ -151,8 +146,7 @@ const expression = computed<string>(() => {
 });
 
 const timeLabel = computed(
-  () =>
-    `${String(hour.value).padStart(2, "0")}:${String(minute.value).padStart(2, "0")}`,
+  () => `${String(hour.value).padStart(2, "0")}:${String(minute.value).padStart(2, "0")}`,
 );
 
 /** 档位下的一句人话，替代字段模式那串 token */
@@ -192,7 +186,7 @@ function initFromExpression(text: string): void {
 }
 
 watch(
-  () => props.expression,
+  () => props.expression ?? "",
   (v) => initFromExpression(v),
   { immediate: true },
 );
@@ -293,9 +287,7 @@ defineExpose({ expression });
           <ReInputNumber v-model="minute" :min="0" :max="59" :controls="false" aria-label="分钟" />
         </div>
 
-        <p class="re-cron-cal__hint">
-          按{{ cadenceLabel }}执行
-        </p>
+        <p class="re-cron-cal__hint">按 {{ cadenceLabel }} 执行</p>
 
         <ReButton type="primary" class="re-cron-cal__apply" :disabled="!expression" @click="emitApply">
           应用此时间
