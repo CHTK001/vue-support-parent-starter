@@ -290,10 +290,14 @@ function toDdlPayload(result: {
   exists?: boolean;
   created?: boolean;
   appendedColumns?: string[] | null;
+  statements?: string[] | null;
   sql?: string | null;
   sqls?: string[] | null;
 }): { sql: string; exists: boolean; created: boolean; appended: string[] } {
-  const sql = result?.sql
+  // SQL 在 hub 的 TableDdlVO 里叫 statements（record 序列化字段）；早先读不存在的
+  // sql/sqls，预览永远落成「数据源中心未返回 SQL」。以 statements 为准，sql/sqls 兜底。
+  const sql = (Array.isArray(result?.statements) ? result.statements.join("\n") : "")
+    || result?.sql
     || (Array.isArray(result?.sqls) ? result.sqls.join("\n") : "")
     || "";
   return {
