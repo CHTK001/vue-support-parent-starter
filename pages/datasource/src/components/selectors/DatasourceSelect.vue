@@ -8,7 +8,7 @@
   并标注它不是台账里的行（解析的是容器主 DataSource）。</p>
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import ReSelect from "@repo/ui/re-select";
 import { APP_DATASOURCE, fetchDataSources } from "../../api";
 import type { CollectOption, DataSourceInfo } from "../../api";
@@ -23,12 +23,20 @@ const props = withDefaults(
     disabled?: boolean;
     /** 占位文案 */
     placeholder?: string;
+    /**
+     * 外部喂选项：传了就不再拉台账。
+     *
+     * <p>采集节点表单要按节点类型过滤数据源（中间件节点只列 influxdb/neo4j 等），
+     * 过滤发生在宿主侧；组件自拉台账会把那层过滤绕过去。</p>
+     */
+    options?: CollectOption[];
   }>(),
   {
     modelValue: "",
     type: "default",
     disabled: false,
     placeholder: "选择数据源",
+    options: undefined,
   },
 );
 
@@ -43,6 +51,9 @@ const rows = ref<DataSourceInfo[]>([]);
 const loading = ref(false);
 const failed = ref("");
 
+/** 是否由宿主喂选项（此时组件不拉台账） */
+const external = computed(() => Array.isArray(props.options));
+
 /**
  * 下拉选项。
  *
@@ -50,6 +61,11 @@ const failed = ref("");
  * 而用户看不出「为什么这张表列不出来」。</p>
  */
 const options = computed<CollectOption[]>(() => {
+  if (external.value) {
+    // 宿主的过滤结果就是最终口径：不再补「应用主库」，也不剔除停用项 ——
+    // 那些都是宿主的决定，组件替它做主会把过滤结果改样
+    return props.options ?? [];
+  }
   const list: CollectOption[] = [
     { value: APP_DATASOURCE, label: "应用主库", description: "本系统当前连接的应用库" },
   ];
@@ -69,6 +85,10 @@ const options = computed<CollectOption[]>(() => {
 });
 
 async function load(): Promise<void> {
+  if (external.value) {
+    emit("loaded", options.value);
+    return;
+  }
   loading.value = true;
   failed.value = "";
   try {
@@ -84,6 +104,11 @@ async function load(): Promise<void> {
 }
 
 onMounted(() => {
+  void load();
+});
+
+// 外部模式的选项会随宿主过滤条件变化（如切节点类型），要跟着重新发 loaded
+watch(external, () => {
   void load();
 });
 

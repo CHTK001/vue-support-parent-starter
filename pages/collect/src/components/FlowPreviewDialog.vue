@@ -14,9 +14,10 @@ import { msgError } from "@repo/core";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTag from "@repo/ui/re-tag";
 import FlowDesigner from "./FlowDesigner.vue";
-import { fetchDatasourceColumns, fetchDatasourceOptions, fetchDatasourceTables, fetchMetas, getFlow } from "../api/collectApi";
+import { fetchDatasourceColumns, fetchDatasourceOptions, fetchDatasourceTableInfos, fetchMetas, getFlow } from "../api/collectApi";
 import { errText } from "../composables/useCollectView";
 import type { CollectColumn, CollectFlow, CollectOption, CollectParam, CollectShapeMeta } from "../types/collect";
+import type { CollectTable } from "@pages/datasource";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -72,9 +73,9 @@ function summarize(params: CollectParam[] | undefined): string {
   return parts.join(" · ");
 }
 
-/** 画布上的入库节点要能选表/列，透传数据源候选 */
-async function loadTables(datasource: string): Promise<string[]> {
-  return (await fetchDatasourceTables(datasource)) ?? [];
+/** 画布上的入库节点要能选表/列，透传数据源候选；表要带注释才有中文 */
+async function loadTables(datasource: string): Promise<CollectTable[]> {
+  return (await fetchDatasourceTableInfos(datasource)) ?? [];
 }
 
 async function loadColumns(datasource: string, table: string): Promise<CollectColumn[]> {

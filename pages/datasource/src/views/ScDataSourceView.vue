@@ -44,12 +44,14 @@ import {
   deleteDataSource,
   testDataSource,
   fetchDataSourceTypes,
-  fetchDatasourceTables,
-  fetchDatasourceColumns,
   type CollectColumn,
+  type CollectTable,
   type DataSourceInfo,
   type DataSourceTestResult,
 } from "../api";
+// 表 / 字段选择与取数走共享件：这里不再自己拉表拉列，
+// 顺带把「表有注释显示中文、副标题给表名」这条口径也一起接过来
+import { TableSelect, ColumnSelect } from "../components/selectors";
 import {
   deleteJdbcDriverJar,
   fetchJdbcDriverJars,
@@ -322,17 +324,22 @@ const runCardCommand = (cmd: string, item: DataSourceInfo) => {
 };
 
 // ------------------------------ 表结构浏览 ------------------------------
-// 采集侧元数据接口（hub 只管"连得上"，表的清单/列结构由采集平台提供）：
 // 入库节点要按真实列配字段映射，这里给同一个能力一个可见入口。
+// 表清单与列元数据都交给共享的 TableSelect / ColumnSelect 取，
+// 本页只保留「当前看哪张表、这些列怎么展示」两件事。
 
 const schemaVisible = ref(false);
-const schemaLoading = ref(false);
 const schemaError = ref<string | null>(null);
 const schemaSourceId = ref<number | null>(null);
 const schemaSourceName = ref("");
-const schemaTables = ref<string[]>([]);
-const schemaTable = ref<string | null>(null);
+const schemaTable = ref("");
+/** 当前聚焦的字段：只用于在列结构里定位到某一个字段，不参与建表 */
+const schemaColumn = ref("");
+const schemaTables = ref<CollectTable[]>([]);
 const schemaColumns = ref<CollectColumn[]>([]);
+
+/** 表下拉实例：刷新按钮靠它重拉表清单 */
+const schemaTablePicker = ref<InstanceType<typeof TableSelect> | null>(null);
 
 /** 打开某数据源的表结构浏览 */
 const openSchema = async (item: DataSourceInfo) => {
@@ -342,52 +349,41 @@ const openSchema = async (item: DataSourceInfo) => {
   }
   schemaSourceId.value = item.id;
   schemaSourceName.value = item.name;
-  schemaTable.value = null;
+  schemaTable.value = "";
+  schemaTables.value = [];
   schemaColumns.value = [];
+  schemaError.value = null;
   schemaVisible.value = true;
-  await refreshSchemaTables();
 };
 
-/** 拉当前表的列元数据 */
-const refreshSchemaColumns = async () => {
-  if (schemaSourceId.value == null || !schemaTable.value) {
-    schemaColumns.value = [];
-    return;
-  }
-  schemaLoading.value = true;
-  schemaError.value = null;
-  try {
-    schemaColumns.value = (await fetchDatasourceColumns(schemaSourceId.value, schemaTable.value)) ?? [];
-  } catch (error) {
-    schemaColumns.value = [];
-    schemaError.value = error instanceof Error ? error.message : String(error);
-  } finally {
-    schemaLoading.value = false;
+/**
+ * 表清单到达：默认选第一张表，省掉用户先点一次下拉才能看到列。
+ *
+ * <p>只在「还没选过」时自动选；用户主动清空后再回调不应该又替他选回来。</p>
+ */
+const onSchemaTables = (rows: CollectTable[]) => {
+  schemaTables.value = rows;
+  if (!schemaTable.value && rows.length) {
+    schemaTable.value = rows[0].name;
   }
 };
 
-/** 拉表清单；首次自动选中第一张表并带出列 */
-const refreshSchemaTables = async () => {
-  if (schemaSourceId.value == null) {
-    return;
-  }
-  schemaLoading.value = true;
+/** 列元数据到达 */
+const onSchemaColumns = (rows: CollectColumn[]) => {
+  schemaColumns.value = rows;
+};
+
+/** 取数失败：说清楚原因，别让空表格被当成「这张表没有列」 */
+const onSchemaError = (message: string) => {
+  schemaError.value = message;
+  schemaTables.value = [];
+  schemaColumns.value = [];
+};
+
+/** 手动刷新表清单 */
+const refreshSchemaTables = () => {
   schemaError.value = null;
-  try {
-    const tables = (await fetchDatasourceTables(schemaSourceId.value)) ?? [];
-    schemaTables.value = tables;
-    if (!schemaTable.value && tables.length) {
-      schemaTable.value = tables[0];
-      await refreshSchemaColumns();
-    } else if (!tables.length) {
-      schemaColumns.value = [];
-    }
-  } catch (error) {
-    schemaTables.value = [];
-    schemaError.value = error instanceof Error ? error.message : String(error);
-  } finally {
-    schemaLoading.value = false;
-  }
+  schemaTablePicker.value?.reload();
 };
 
 /** 列元数据表格列定义 */
@@ -1285,26 +1281,36 @@ onMounted(load);
       <div class="ds-schema">
         <div class="ds-schema__bar">
           <span class="ds-schema__label">表</span>
-          <ReSelect
-            v-model="schemaTable"
-            filterable
-            
+          <!-- 共享表选择器：自取表清单，有表注释时显示中文、副标题给真实表名 -->
+          <TableSelect
+            ref="schemaTablePicker"
             class="ds-schema__select"
-            placeholder="选择表"
-            :options="schemaTables.map(name => ({ label: name, value: name }))"
-            @update:model-value="() => refreshSchemaColumns()"
+            :datasource="schemaSourceId ? String(schemaSourceId) : ''"
+            v-model="schemaTable"
+            @loaded="onSchemaTables"
+            @error="onSchemaError"
           />
-          <ReButton  class="ds-pill" icon="RefreshRight" :show-text="true" :loading="schemaLoading" @click="refreshSchemaTables">刷新</ReButton>
+          <ReButton  class="ds-pill" icon="RefreshRight" :show-text="true" @click="refreshSchemaTables">刷新</ReButton>
           <span class="ds-schema__count">共 {{ schemaTables.length }} 张表</span>
         </div>
 
         <p v-if="schemaError" class="ds-schema__error">{{ schemaError }}</p>
 
-        <ReTable
+        <!-- 共享字段选择器：与表下拉联动，换表自动重取列并清空已选字段 -->
+        <ColumnSelect
           v-else
+          class="ds-schema__select ds-schema__column"
+          :datasource="schemaSourceId ? String(schemaSourceId) : ''"
+          v-model="schemaColumn"
+          :table="schemaTable"
+          @loaded="onSchemaColumns"
+          @error="onSchemaError"
+        />
+
+        <ReTable
+          v-if="!schemaError"
           :columns="schemaColumnDefs"
           :data="schemaColumns"
-          :loading="schemaLoading"
           row-key="name"
           empty-text="选择一张表查看列结构"
         >
@@ -1852,6 +1858,8 @@ onMounted(load);
 .ds-schema__bar { display: flex; align-items: center; gap: 8px; }
 .ds-schema__label { font-size: 13px; color: var(--el-text-color-regular); flex: 0 0 auto; }
 .ds-schema__select { flex: 0 0 300px; }
+/* 字段栏单独一行：表名与字段名都较长，并排会把两张下拉都压窄 */
+.ds-schema__column { flex: 1 1 auto; margin-bottom: 8px; }
 .ds-schema__count { margin-left: auto; font-size: 12px; color: var(--el-text-color-secondary); }
 .ds-schema__error {
   margin: 0;

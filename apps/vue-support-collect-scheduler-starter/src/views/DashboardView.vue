@@ -68,17 +68,40 @@ const updatedAt = ref("");
 const autoRefresh = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
+/**
+ * 取数失败的分区（供页面底部提示「哪些没取到」）。
+ *
+ * 为什么改成 allSettled：这一页的 9 个取数分属不同后端，其中 fetchDataSources 走
+ * 数据源中心 /ms/datasource/**，该 hub 不在采集调度一体化部署范围内时会 404。
+ * 用 Promise.all 时一个 404 就把整批 reject，runtime/summary/jobs 全部停在初始空值，
+ * 页面表现为「未取到调度概览 + 台账里还没有任务」，而实际后端完全正常——
+ * 排查方向会被整个带偏（真实故障是 datasource 一张卡的事）。
+ * 与 CollectOverviewWidget 同一口径：单项失败只降级该项，不连坐整页。
+ */
+const loadFailed = ref<string[]>([]);
+
+/** 单项取数：成功返回值，失败记入 loadFailed 并回落到兜底值 */
+async function tolerate<T>(label: string, run: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await run();
+  } catch {
+    loadFailed.value.push(label);
+    return fallback;
+  }
+}
+
 const { loading, reload } = useCollectView(async () => {
+  loadFailed.value = [];
   const [rt, sum, taskPage, flowPage, jobPage, vars, ds, fns, nts] = await Promise.all([
-    fetchRuntime(),
-    getSummary(),
-    pageTasks({ page: 1, pageSize: 8 }),
-    pageFlows({ page: 1, pageSize: 8 }),
-    pageJobs({ pageNum: 1, pageSize: 6 }),
-    listVariables(),
-    fetchDataSources(),
-    listFunctions(),
-    listNotices(),
+    tolerate("运行时参数", fetchRuntime, null as CollectRuntime | null),
+    tolerate("调度概览", getSummary, null as JobSummary | null),
+    tolerate("最近执行", () => pageTasks({ page: 1, pageSize: 8 }), { rows: [], total: 0, pageNo: 1, pageSize: 8 }),
+    tolerate("流程健康", () => pageFlows({ page: 1, pageSize: 8 }), { rows: [], total: 0, pageNo: 1, pageSize: 8 }),
+    tolerate("调度任务", () => pageJobs({ pageNum: 1, pageSize: 6 }), { data: [], total: 0, pageNo: 1, pageSize: 6, totalPages: 0 }),
+    tolerate("全局变量", listVariables, [] as CollectVariable[]),
+    tolerate("数据源", fetchDataSources, [] as DataSourceInfo[]),
+    tolerate("自定义函数", listFunctions, [] as CollectFunction[]),
+    tolerate("通知", listNotices, [] as CollectNotice[]),
   ]);
   runtime.value = rt;
   summary.value = sum;
@@ -454,7 +477,15 @@ function shortTime(value: unknown): string {
           <dd>{{ item.value }}</dd>
         </div>
       </dl>
-      <p v-if="!schedulerRows.length" class="collect-hint collect-hint--muted">
+      <!--
+        分区级失败提示：只说「哪几块没取到」，不再用一句「接口都不可用」把整页
+        的问题盖住——datasource 中心缺席时，这里只有「数据源」一项，
+        其余七块照常出数。
+      -->
+      <p v-if="loadFailed.length" class="collect-hint collect-hint--muted">
+        以下分区未取到数据：{{ loadFailed.join("、") }}
+      </p>
+      <p v-else-if="!schedulerRows.length" class="collect-hint collect-hint--muted">
         未取到运行时参数，说明采集与调度接口在当前后端都不可用。
       </p>
     </div>

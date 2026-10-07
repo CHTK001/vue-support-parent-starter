@@ -73,6 +73,9 @@ import type {
   CollectShapeMeta,
   CollectTaskLog,
 } from "../types/collect";
+// 表元数据与下拉选项映射归数据源中心管：中文口径只有一份实现
+import { toTableOptions } from "@pages/datasource";
+import type { CollectTable } from "@pages/datasource";
 
 const props = defineProps<{
   metas: CollectShapeMeta[];
@@ -113,7 +116,12 @@ const props = defineProps<{
   /** 数据源下拉候选，首项固定是应用主库 */
   datasourceOptions?: CollectOption[];
   /** 读某个数据源的表清单；未传时 table 参数退回手填表名 */
-  loadTables?: (datasource: string) => Promise<string[]>;
+  /**
+   * 传表元数据而不是 string[]：表下拉要显示表注释（中文）与表类型，
+   * 只有表名的话中文无从谈起。宿主老实现若仍返回 string[]，
+   * 这里按「每项一个表名」兜底，不至于整个下拉空掉。
+   */
+  loadTables?: (datasource: string) => Promise<CollectTable[] | string[]>;
   /** 读某张表的列元数据，供字段映射控件用 */
   loadColumns?: (datasource: string, table: string) => Promise<CollectColumn[]>;
 }>();
@@ -536,7 +544,7 @@ const activeDatasource = computed<string>(() => {
 });
 
 /** 表清单：跟着数据源走，key 换成数据源+节点，避免切节点时串数据 */
-const tablesByKey = ref<Record<string, string[]>>({});
+const tablesByKey = ref<Record<string, CollectTable[]>>({});
 const tablesLoading = ref(false);
 const tablesError = ref<string | null>(null);
 
@@ -544,7 +552,13 @@ const activeTableKey = computed(
   () => `${nodeForm.value?.id ?? "-"}|${activeDatasource.value || "app"}`,
 );
 
-const tableOptions = computed(() => (tablesByKey.value[activeTableKey.value] ?? []).map(name => ({ value: name, label: name })));
+/**
+ * 表下拉候选：交给共享映射函数生成「label=中文备注、subtitle=表名·类型」。
+ *
+ * <p>不用就地 map：中文回退、空白剪裁、无类型时不拼多余分隔符这套口径
+ * 集中在 datasource 包的 schemaOptions 里，改一处就够。</p>
+ */
+const tableOptions = computed(() => toTableOptions(tablesByKey.value[activeTableKey.value] ?? []));
 
 /**
  * 当前目标表是否已存在，三态而不是布尔：
@@ -560,7 +574,8 @@ const tableExists = computed<boolean | null>(() => {
   if (!table) return null;
   const tables = tablesByKey.value[activeTableKey.value];
   if (!tables) return null;
-  return tables.includes(table);
+  // 表清单存的是元数据，判断存在性要按表名比，不能用 includes（那是字符串用法）
+  return tables.some(row => row.name === table);
 });
 
 /**
@@ -573,6 +588,18 @@ const tablePlaceholder = computed(() => {
   return "选择目标表，或直接输入新表名";
 });
 
+/**
+ * 把宿主的表清单归一化成表元数据。
+ *
+ * <p>宿主的 loadTables 允许返回 {@code string[]}（老实现）：那类项没有注释与类型，
+ * 按「无注释」处理即可 —— 表下拉会退回显示真实表名，与改造前一致。</p>
+ */
+function toTableRows(rows: CollectTable[] | string[] | null | undefined): CollectTable[] {
+  return (rows ?? []).map(row =>
+    typeof row === "string" ? { name: row, comment: null, type: null } : row,
+  );
+}
+
 async function loadTablesForActive(): Promise<void> {
   const key = activeTableKey.value;
   if (!tableParamName.value) return;
@@ -581,7 +608,8 @@ async function loadTablesForActive(): Promise<void> {
   tablesLoading.value = true;
   tablesError.value = null;
   try {
-    tablesByKey.value = { ...tablesByKey.value, [key]: await props.loadTables(activeDatasource.value || "app") };
+    const rows = await props.loadTables(activeDatasource.value || "app");
+    tablesByKey.value = { ...tablesByKey.value, [key]: toTableRows(rows) };
   } catch (error) {
     tablesError.value = error instanceof Error ? error.message : String(error);
   } finally {

@@ -53,6 +53,8 @@ packages/core/rust/**/pkg/
 packages/core/rust/**/wasm-pack/
 *.wasm
 !packages/core/rust/**/*.wasm
+# 前端 wasm 资产需入库：代码用 ?url 导入，缺失会导致构建失败
+!pages/filesystem/src/wasm/**/*.wasm
 Cargo.lock
 **/Cargo.lock
 
@@ -189,4 +191,17 @@ parser-trim.png
 # 临时构建校验脚手架（vite 临时入口 + 其产物，验证完即删，不属于源码）
 **/tmp-*.html
 **/tmp-*.ts
+**/tmp-*.mjs
+**/tmp-*.js
+**/tmp-*.py
 **/tmp-dist/
+**/tmp-fixtures/
+
+# Rust 编译产物（wasm 本身不忽略：crates/*/src/wasm 下的产物要随包提交）
+**/target/
+**/crates/*/target/
+
+# xls2xlsx 的 Cargo.lock 必须入库：wasm-bindgen 的版本要与 wasm-bindgen-cli
+# 完全一致（schema version 不匹配会直接构建失败），锁不住就无法复现构建。
+# 放在 `**/Cargo.lock` 之后才生效 —— 同一文件里后面的规则优先。
+!pages/filesystem/crates/**/Cargo.lock

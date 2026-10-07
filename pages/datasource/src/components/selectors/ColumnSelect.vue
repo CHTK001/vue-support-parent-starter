@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ReSelect from "@repo/ui/re-select";
-import { APP_DATASOURCE, fetchDatasourceColumns, toColumnOptions } from "../../api";
+import { APP_DATASOURCE, fetchDatasourceColumns, toColumnOptions, toColumnRows } from "../../api";
 import type { CollectColumn, CollectOption } from "../../api";
 
 const props = withDefaults(
@@ -28,6 +28,13 @@ const props = withDefaults(
     placeholder?: string;
     /** 多选（字段映射场景一次选多列） */
     multiple?: boolean;
+    /**
+     * 外部喂选项：传了就不再自己取数。
+     *
+     * <p>与 {@link TableSelect} 同理由：取数权有时必须在宿主手里（节点表单要按
+     * 已映射内容过滤候选列），自取数会绕开那层过滤。</p>
+     */
+    options?: CollectOption[];
   }>(),
   {
     datasource: "",
@@ -37,6 +44,7 @@ const props = withDefaults(
     disabled: false,
     placeholder: "选择字段",
     multiple: false,
+    options: undefined,
   },
 );
 
@@ -50,13 +58,44 @@ const emit = defineEmits<{
 const columns = ref<CollectColumn[]>([]);
 const loading = ref(false);
 
-const options = computed<CollectOption[]>(() => toColumnOptions(columns.value));
+/** 是否由宿主喂选项（此时组件不自己取数） */
+const external = computed(() => Array.isArray(props.options));
 
-/** 是否给出「请先选表」这类占位提示 */
-const hint = computed(() => (props.table ? props.placeholder : "先选表"));
+/**
+ * 外部模式下的列元数据：宿主给的选项还原成行，供 loaded 事件用。
+ *
+ * <p>补齐 position/size/nullable：toColumnRows 在裸选项时拿不到这几个字段，
+ * 而 CollectColumn 把它们定义成必填的 null，不补就是编译错误。</p>
+ */
+const externalColumns = computed<CollectColumn[]>(() =>
+  toColumnRows(props.options ?? []).map(row => ({
+    name: row.name,
+    label: row.label,
+    typeName: row.typeName,
+    primaryKey: row.primaryKey ?? null,
+    // 显式逐字段列出而非 `...row`：spread 会把可选的 position/size/nullable
+    // 重新变回「可能缺失」，与 CollectColumn 要求的必填 null 冲突
+    position: row.position ?? null,
+    size: row.size ?? null,
+    nullable: row.nullable ?? null,
+  })),
+);
 
-/** 读列元数据；表还没选时不发请求，避免把空表名递给后端 */
+/** 最终渲染的选项：外部模式用宿主给的，自取数模式用本地列元数据换算 */
+const options = computed<CollectOption[]>(() =>
+  external.value ? (props.options ?? []) : toColumnOptions(columns.value),
+);
+
+/** 是否给出「请先选表」这类占位提示；外部模式下表由宿主管，不拦 */
+const hint = computed(() => (props.table || external.value ? props.placeholder : "先选表"));
+
+/** 读列元数据；外部模式只回填不请求，表还没选时不发请求 */
 async function load(): Promise<void> {
+  if (external.value) {
+    columns.value = externalColumns.value;
+    emit("loaded", columns.value);
+    return;
+  }
   if (!props.table) {
     columns.value = [];
     return;
@@ -76,14 +115,15 @@ async function load(): Promise<void> {
 
 let seq = 0;
 watch(
-  () => [props.datasource, props.table] as const,
+  () => [props.datasource, props.table, external.value] as const,
   () => {
-    if (props.modelValue) {
+    // 换表等于换了整套字段名，已选字段必须清掉；外部模式下字段名由宿主决定
+    if (!external.value && props.modelValue) {
       emit("update:modelValue", props.multiple ? [] : "");
     }
     const stamp = ++seq;
     void load().then(() => {
-      if (stamp !== seq) {
+      if (stamp !== seq && !external.value) {
         columns.value = [];
       }
     });
@@ -108,7 +148,7 @@ function onChange(value: unknown): void {
     layout="card"
     :model-value="modelValue"
     :type="type"
-    :disabled="disabled || !table"
+    :disabled="disabled || (!external && !table)"
     :loading="loading"
     :multiple="multiple"
     :collapse-tags="multiple"
