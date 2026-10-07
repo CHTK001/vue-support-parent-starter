@@ -66,7 +66,18 @@
       </el-table-column>
       <el-table-column label="启用" width="80" align="center">
         <template #default="{ row }">
-          <el-switch :model-value="row.enabled" @change="(v: any) => handleTogglePackage(row, v)" />
+          <!--
+            内置（builtin）智能体包不可停用：后端 toggle 只认用户安装包，
+            对 build/coordinator/plan 恒回 404「智能体不存在」（2026-10-07 逐按钮
+            sweep 实测：3 个内置包开关全 404 + 报错 toast）。给一个点了必失败的
+            开关不如直接禁用并说明原因；用户包（source=user）保持原行为。
+          -->
+          <el-switch
+            :model-value="row.enabled"
+            :disabled="row.source === 'builtin'"
+            :title="row.source === 'builtin' ? '内置智能体不支持启停' : ''"
+            @change="(v: any) => handleTogglePackage(row, v)"
+          />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="100" fixed="right">
