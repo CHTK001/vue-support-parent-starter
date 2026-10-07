@@ -26,7 +26,7 @@
             <template #icon><EditOutlined /></template>
             编辑供应商
           </el-button>
-          <el-button v-if="!isOnnx" class="d-del-btn" @click="emit('delete-provider')">
+          <el-button v-if="canDelete" class="d-del-btn" @click="emit('delete-provider')">
             <template #icon><DeleteOutlined /></template>
             删除
           </el-button>
@@ -126,7 +126,18 @@
       @saved="emit('changed')"
       @request-fetch="handleRequestFetch"
     />
-    <ModelFetchDialog ref="fetchRef" @select="handleFetchSelect" />
+    <!--
+      「添加模型」默认直接打开手工表单；
+      表单上的「获取」按钮再拉取该供应商的全部模型，
+      想一次全要就点「全部录入」（后端批量落库），只想挑一个再点行内「选择」，
+      供应商没配地址/Key 或想手工建则直接在表单里操作。
+    -->
+    <ModelFetchDialog
+      ref="fetchRef"
+      @select="handleFetchSelect"
+      @imported="emit('changed')"
+      @manual="handleManualAdd"
+    />
     <!-- ONNX 模型级推理参数 -->
     <OnnxModelParamDialog v-model="paramDialogVisible" :model-id="paramModelId" @saved="emit('changed')" />
   </div>
@@ -182,6 +193,24 @@ const fetchRef = ref<any>(null)
 const isOnnx = computed(
   () => props.provider?.id === 'onnx' || props.provider?.provider_id === 'onnx',
 )
+
+/**
+ * 「删除供应商」按钮是否可删。
+ *
+ * 必须与 ModelsPage.handleDeleteProvider 的早退守卫
+ * `if (!p || p.id === 'agent' || p.id === 'onnx') return` **完全一致**，
+ * 否则按钮可见可点、点了却静默什么都不做（真死按钮）。
+ *
+ * 实测（2026-10-07 逐按钮 sweep，dist 生产形态）：/models 选中内置
+ * `Agent` 供应商后，头部「删除」按钮 visible=true、disabled=false，
+ * 点击后 muts=0、无弹窗、无 toast、无接口请求 —— 纯静默无操作。
+ * 侧栏的删除图标（ModelsPage `v-if="p.id !== 'agent' && p.id !== 'onnx'"`）
+ * 早就做了双供应商判断，只有这里漏了 `agent`，现已补齐。
+ */
+const canDelete = computed(() => {
+  const id = props.provider?.id ?? props.provider?.provider_id
+  return !isOnnx.value && id !== 'agent'
+})
 
 // ONNX 模型级推理参数弹窗
 const paramDialogVisible = ref(false)
@@ -319,7 +348,14 @@ const KIND_ICONS: Record<string, any> = {
 }
 
 const handleAdd = () => {
+  // 默认直接打开手工表单；表单里的「获取」按钮再拉取上游模型列表
   formRef.value.openAdd()
+}
+const handleManualAdd = () => {
+  // 来自 fetchDialog 的「手动添加」：fetchDialog 已自行关闭，
+  // 表单-dialog 此时已打开（从 handleAdd / handleRequestFetch 而来），
+  // 用 show() 而不是 openAdd()，避免重置用户已填的内容
+  formRef.value?.show?.()
 }
 const handleEdit = (model: any) => formRef.value.openEdit(model)
 
@@ -351,7 +387,10 @@ const handleToggle = async (model: any) => {
   }
 }
 
-const handleRequestFetch = () => fetchRef.value.open(props.provider, props.models)
+const handleRequestFetch = () =>
+  // false：这条是从模型表单里点「获取」来的，失败时不要回退 openAdd()，
+  // 否则会把表单里已经填好的模型名/参数清空
+  fetchRef.value.open(props.provider, props.models, false)
 const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 </script>
 
