@@ -31,6 +31,8 @@ import { del, get, post, put } from "./request";
 // 下拉选项映射是纯函数，单独成文件以便 node --test 直接引入（见 schemaOptions.ts 头注）
 export { toTableOptions, toColumnOptions, toTableRows, toColumnRows } from "./schemaOptions";
 export type { SchemaTable, SchemaColumn, SelectOption } from "./schemaOptions";
+// 本文件内部也要用到 SelectOption（CollectOption 是它的别名）
+import type { SelectOption } from "./schemaOptions";
 
 /**
  * 数据源中心接口根路径。
@@ -192,14 +194,11 @@ export interface DataSourceTunnel {
 /**
  * 通用下拉选项。
  *
- * <p>带索引签名：table/column 选项会挂上表名、字段名、类型等额外字段供 ReSelect
- * 的 table 布局与自定义插槽渲染（见 {@link toTableOptions} / {@link toColumnOptions}）。</p>
+ * <p>直接转出 {@link SelectOption} 而不再单独声明：选项形状只有一份定义
+ * （在 schemaOptions 里，带索引签名以挂表名/字段名/类型等额外字段），
+ * 两处各写一份迟早会漂移成互不兼容的两个类型。</p>
  */
-export interface CollectOption {
-  value: string;
-  label: string;
-  [key: string]: unknown;
-}
+export type CollectOption = SelectOption;
 
 /** 数据表列元数据，入库节点字段映射的候选列 */
 export interface CollectColumn {

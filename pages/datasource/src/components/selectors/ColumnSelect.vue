@@ -61,8 +61,20 @@ const loading = ref(false);
 /** 是否由宿主喂选项（此时组件不自己取数） */
 const external = computed(() => Array.isArray(props.options));
 
-/** 外部模式下的列元数据：宿主给的选项还原成行，供 loaded 事件用 */
-const externalColumns = computed<CollectColumn[]>(() => toColumnRows(props.options ?? []));
+/**
+ * 外部模式下的列元数据：宿主给的选项还原成行，供 loaded 事件用。
+ *
+ * <p>补齐 position/size/nullable：toColumnRows 在裸选项时拿不到这几个字段，
+ * 而 CollectColumn 把它们定义成必填的 null，不补就是编译错误。</p>
+ */
+const externalColumns = computed<CollectColumn[]>(() =>
+  toColumnRows(props.options ?? []).map(row => ({
+    position: row.position ?? null,
+    size: row.size ?? null,
+    nullable: row.nullable ?? null,
+    ...row,
+  })),
+);
 
 /** 最终渲染的选项：外部模式用宿主给的，自取数模式用本地列元数据换算 */
 const options = computed<CollectOption[]>(() =>

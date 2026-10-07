@@ -11,12 +11,13 @@
  *   预览时间由 @repo/utils 的同源镜像 CronExpression 计算，与服务端逐字对齐。
  */
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ElDialog } from "element-plus";
+import { ElPopover } from "element-plus";
 import { CronExpression } from "@repo/utils";
 import ReButton from "../ReButton";
 import ReInput from "../ReInput";
 import ReInputNumber from "../ReInputNumber";
 import ReSelect from "../ReSelect";
+import ReCronCalendarPanel from "./ReCronCalendarPanel.vue";
 import type { ReOption } from "../ReSelect/types";
 
 defineOptions({ name: "ReCron", inheritAttrs: true });
@@ -73,8 +74,8 @@ const DAY = { key: "day", label: "日", min: 1, max: 31 } as const;
 const MONTH = { key: "month", label: "月", min: 1, max: 12 } as const;
 const WEEK = { key: "week", label: "周", min: 0, max: 6 } as const;
 
-/** 周字段数值语义与服务端一致：0=周日 … 6=周六 */
-const WEEK_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+/** 周字段数值语义与服务端一致（0=周日…6=周六）；与日历面板共用同一份 */
+import { WEEK_NAMES } from "./weekNames";
 
 /**
  * 引擎接受的英文名称（与 @repo/utils 的 CronExpression 同名表逐项一致）。
