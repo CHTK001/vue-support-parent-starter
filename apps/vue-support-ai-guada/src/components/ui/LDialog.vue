@@ -1,3 +1,51 @@
+<script lang="ts">
+/**
+ * 模块级 Esc 栈 —— LDialog 的「按 Esc 关闭」原先只在 overlay 上绑了 @keydown.esc，
+ * 而 overlay 虽有 tabindex="-1" 却从不主动获焦，所以只有焦点恰好落在弹窗内部时
+ * 才关得掉；用户点开弹窗后 activeElement 仍是 body，Esc 完全无反应。
+ *
+ * 这里补一条 **document 级** 监听：只在有弹窗打开期间存在、且只关最上层那个。
+ * 之所以用栈而不是每个实例各监听一条 document，是因为本组件被全站 41 处弹窗
+ * 复用，且存在「弹窗里再开弹窗」—— 每个实例都监听的话一次 Esc 会把整叠全关掉。
+ *
+ * 注意：完全不碰 focus。若改为「打开时聚焦 overlay」，会抢走弹窗内
+ * 输入框/按钮由业务代码自行调用的 focus()，属行为回归。
+ */
+const lDialogEscStack: Array<{
+  el: () => HTMLElement | null
+  dismiss: () => void
+  allowEsc: () => boolean
+}> = []
+
+let lDialogDocKey: ((e: KeyboardEvent) => void) | null = null
+
+function ensureLDialogEscListener() {
+  if (lDialogDocKey) return
+  lDialogDocKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return
+    const top = lDialogEscStack[lDialogEscStack.length - 1]
+    if (!top || !top.allowEsc()) return
+    const el = top.el()
+    const active = document.activeElement
+    /**
+     * 焦点在最上层弹窗内部时必须让开：此时 overlay 自己的 @keydown.esc 已经
+     * 会处理这次按键，document 监听随后也会收到（事件冒泡），两边都执行就
+     * close 两遍 —— 重复 emit update:modelValue / close / closed，定时器也会叠两个。
+     */
+    if (el && active && el.contains(active)) return
+    top.dismiss()
+  }
+  document.addEventListener('keydown', lDialogDocKey)
+}
+
+function releaseLDialogEscListener() {
+  if (lDialogEscStack.length === 0 && lDialogDocKey) {
+    document.removeEventListener('keydown', lDialogDocKey)
+    lDialogDocKey = null
+  }
+}
+</script>
+
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, useSlots, onBeforeUnmount, useAttrs } from 'vue'
 
@@ -45,6 +93,27 @@ const FADE_MS = 180
 /** overlay 根元素引用，用于在进入过渡前强制 reflow，锁定 opacity:0 起始态 */
 const overlayEl = ref<HTMLElement | null>(null)
 
+/** 本实例在模块级 Esc 栈中的登记项（见文件顶部 <script lang="ts">） */
+const escEntry = {
+  el: () => overlayEl.value,
+  dismiss() {
+    // mounted/shown 双守卫：淡出期间再按一次 Esc 不重复 close
+    if (mounted.value && shown.value) close()
+  },
+  allowEsc: () => props.closeOnPressEscape,
+}
+
+function pushEscEntry() {
+  if (!lDialogEscStack.includes(escEntry)) lDialogEscStack.push(escEntry)
+  ensureLDialogEscListener()
+}
+
+function popEscEntry() {
+  const i = lDialogEscStack.indexOf(escEntry)
+  if (i >= 0) lDialogEscStack.splice(i, 1)
+  releaseLDialogEscListener()
+}
+
 watch(() => props.modelValue, (val) => {
   if (val) open()
   else close()
@@ -54,6 +123,7 @@ function open() {
   clearTimeout(closeTimer)
   mounted.value = true
   rendered.value = true
+  pushEscEntry()
   emit('update:modelValue', true)
   emit('open')
   // 等 overlay 真正插入 DOM（opacity:0），强制一次 reflow 锁定起始态，
@@ -68,6 +138,7 @@ function open() {
 }
 
 function close() {
+  popEscEntry()
   shown.value = false
   emit('update:modelValue', false)
   emit('close')
@@ -108,6 +179,9 @@ const dialogStyle = computed(() => {
 
 onBeforeUnmount(() => {
   clearTimeout(closeTimer)
+  // 组件被父级 v-if 直接卸载时不会走 close()，必须在这里摘掉登记项，
+  // 否则栈里留一条指向已销毁实例的记录，Esc 会去关一个不存在的弹窗。
+  popEscEntry()
   if (mounted.value) {
     emit('update:modelValue', false)
     emit('close')

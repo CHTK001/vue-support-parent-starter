@@ -183,6 +183,25 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
       return ready
     }
     if (!settled.has(url)) {
+      /**
+       * **必须在派发前同步占位**，否则「结算后才标记」会让 pending 窗口内的每次
+       * 重渲染都再发一次同一个地址。
+       *
+       * `resolve()` 是模板里直接调用的（如 ImageGeneratePage 的 `mediaSrc(url)`），
+       * 每渲染一行就调一次；而原来 `settled.add(raw)` 写在 `load()` 的 `finally`
+       * 里，要等 fetch 落地才执行。地址未就绪期间页面只要重新渲染，就会再 `void load()`
+       * 一次 —— 请求还没回来，`settled` 就还是空的，于是无限自我复制。
+       *
+       * 实测（2026-10-07，dist 生产形态 /image-generate 静置 15s）：
+       *   总请求 3182 次，但**只有 20 个不同地址**，平均重复 159×，
+       *   单个地址最多被请求 372 次，直接打出 294 个 `net::ERR_INSUFFICIENT_RESOURCES`。
+       * 同一批地址在全量 sweep 里把 ImageGenerate 的 9 个按钮判成 click-error FAIL，
+       * 并在 Chat 路由上把一个已经跳转成功的侧栏项也拖下水。
+       *
+       * 这里先占位再派发：一次地址只会发起一次请求（与原有语义一致 ——
+       * 成功写 blobUrls、失败停在 settled，两条路径都不重试），只是把「重复派发」堵死。
+       */
+      settled.add(url)
       requested++
       void load(url)
     }

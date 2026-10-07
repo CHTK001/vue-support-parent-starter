@@ -380,7 +380,12 @@ async function closeOverlays(p) {
        */
       const reason = (r.failure() && r.failure().errorText) || '';
       if (/ERR_ABORTED/i.test(reason)) return;
-      if (!NOISE.test(u)) bucket.failed.push(r.method() + ' ' + u.slice(0, 120));
+      /**
+       * 带上 errorText：只记 `GET /url` 时，请求失败到底是连接被拒、DNS 失败还是
+       * 别的，从报文里完全看不出来 —— 而这条记录会直接把当前被点的按钮判成
+       * click-error FAIL，不写清原因就无法判断「按钮引起的」还是「后台背景请求」。
+       */
+      if (!NOISE.test(u)) bucket.failed.push(r.method() + ' ' + u.slice(0, 120) + ' [' + reason + ']');
     });
     p.on('dialog', (x) => x.dismiss().catch(() => {}));
     p.on('crash', () => { pageCrashed = true; events.push({ ev: 'page-crash', at: new Date().toISOString() }); });
@@ -826,6 +831,26 @@ async function closeOverlays(p) {
 
         rec.effect = '接口' + netLog.length + '次 toast' + toasts.length + ' 弹窗' + overlays
           + ' DOM变更' + muts + '条';
+        /**
+         * 诊断字段（只增不改判据）：
+         * `before` = 点击**前**的遮罩数，`forced` = 是否靠 force 才点到。
+         *
+         * 光看 `effect` 里的「弹窗N」分不清两种情形：
+         *   (a) 点击确实弹出了窗（N 比 before 大）——按钮是好的；
+         *   (b) 上一个按钮的窗没关干净，本次点击被挡住（N == before 且 muts==0）——
+         *       这是 harness 的残留遮罩，不是按钮坏。
+         * 不记 before 就只能看到「弹窗3 DOM变更0」，会把 (b) 误判成真死按钮。
+         */
+        rec.before = beforeOverlays;
+        rec.forced = !!forced;
+        /**
+         * `clickErr` 单独落一份：原逻辑 `rec.err = rec.err || clickErr` 在
+         * rec.err 已被 bucket.failed（导航掐断的在飞请求）占掉时，会把**真正的
+         * 点击异常**整个吞掉 —— 报文里只剩一串与点击原因无关的 media 请求失败，
+         * 无从判断到底是「点不动」还是「点到了但导航把 Playwright 的 promise 掐了」。
+         * 这是纯诊断字段，不参与 PASS/FAIL/WARN 分类。
+         */
+        if (clickErr) rec.clickErr = clickErr;
         rec.urlChanged = page.url() !== urlBefore;
         if (rec.urlChanged) rec.afterUrl = page.url().replace(BASE, '');
         if (errs.length) rec.err = errs.join(' | ').slice(0, 200);
