@@ -413,6 +413,7 @@
     "vue-advanced-chat": "^2.1.0",
     "vue-draggable-plus": "^0.6.1",
     "vue-element-plus-x": "workspace:*",
+    "vue-force-graph-3d": "^1.2.0",
     "vue3-compare-image": "catalog:",
     "vxe-pc-ui": "4.18.19",
     "vxe-table": "4.22.2",

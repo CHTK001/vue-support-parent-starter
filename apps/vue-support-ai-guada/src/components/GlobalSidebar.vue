@@ -286,7 +286,9 @@
 
       <!-- 设置 -->
       <LTooltip :content="t('ui.sidebar.settings')" placement="bottom">
-        <div @click="handleNavClick('setting')"
+        <!-- 纯图标按钮必须自带可访问名：tooltip 只在悬停时出现，屏幕阅读器与
+             自动化验收都读不到它（实测 sweep 每个路由都记一条 no-accessible-name）。 -->
+        <div role="button" :aria-label="t('ui.sidebar.settings')" @click="handleNavClick('setting')"
           class="flex items-center justify-center px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-200 shrink-0"
           :class="currentActiveTab === 'setting'
             ? 'bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
