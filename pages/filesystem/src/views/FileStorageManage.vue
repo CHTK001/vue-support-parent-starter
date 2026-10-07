@@ -88,16 +88,22 @@ import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import CadPreviewPanel from "../components/CadPreviewPanel.vue";
 /**
- * IFC 预览面板按需加载。
+ * 前端直渲面板按需加载。
  *
- * <p>{@link PreviewIfcPanel} 会引入 {@code three} + {@code web-ifc}（含 WASM），
- * 体积明显大于其它面板；文件页本身可能被频繁打开，不该为「几乎不预览的 IFC」
- * 让所有人先背上这份依赖，故用异步组件，仅在真正展示 IFC 时再加载。</p>
+ * <p>这四个面板各自拖一份不轻的解码器（{@code sql.js} 带 WASM、
+ * {@code hyparquet}、{@code UTIF.js}、{@code libheif} 的自包含 WASM、
+ * {@code ag-psd}），加起来远大于页面自身的体积。文件页被频繁打开，
+ * 不该让所有人先背上它们，故一律异步组件：真正要预览这类文件时才加载。
+ * 加载失败会退到服务端通道（见 {@link onClientPanelFallback}），不会白屏。</p>
  */
 const PreviewIfcPanel = defineAsyncComponent(() => import("../components/PreviewIfcPanel.vue"));
-import { CONVERTIBLE_TEXT_EXTS, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
+const DataPreviewPanel = defineAsyncComponent(() => import("../components/DataPreviewPanel.vue"));
+const TiffPreviewPanel = defineAsyncComponent(() => import("../components/TiffPreviewPanel.vue"));
+const HeicPreviewPanel = defineAsyncComponent(() => import("../components/HeicPreviewPanel.vue"));
+const PsdPreviewPanel = defineAsyncComponent(() => import("../components/PsdPreviewPanel.vue"));
+import { CONVERTIBLE_TEXT_EXTS, extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { parseExpiryToSeconds } from "../utils/expiry";
-import { fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
+import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
 type SortKey = "name" | "size" | "lastModified";
@@ -2831,13 +2837,59 @@ const showIfcPanel = computed(() => previewIsIfc.value || innerIsIfc.value);
 /** IFC 面板解析的条目路径：顶层为空串，包内为包内路径 */
 const ifcInnerPath = computed(() => (innerIsIfc.value ? previewInnerPath.value : ""));
 
-/** 预览包内条目：CAD 类走数据面板，其余切到 iframe 通道 */
+/**
+ * 该文件是否由「前端直渲面板」接管（自己发请求、自己管加载态）。
+ *
+ * <p>这些面板都在主应用文档内渲染（iframe 是独立文档，读不到 koi 主题变量），
+ * 所以点包内条目时不该再置 iframe 加载态，否则骨架屏会一直挂在面板上。</p>
+ *
+ * @param name 文件名
+ * @returns true 表示由前端面板渲染
+ */
+function isClientPanelFile(name: string): boolean {
+  const kind = kindOf(name);
+  if (kind === "tiff" || kind === "heic" || kind === "design") {
+    return true;
+  }
+  const ext = extensionOf(name);
+  return CLIENT_DATA_EXTS.has(ext) || CLIENT_PSD_EXTS.has(ext);
+}
+
+/** 当前文件 / 包内条目分别命中的直渲面板 */
+const previewIsDataPanel = computed(() => CLIENT_DATA_EXTS.has(extensionOf(previewName.value)));
+const previewIsTiff = computed(() => kindOf(previewName.value) === "tiff");
+const previewIsHeic = computed(() => kindOf(previewName.value) === "heic");
+const previewIsPsd = computed(() => CLIENT_PSD_EXTS.has(extensionOf(previewName.value)));
+
+const innerIsDataPanel = computed(() => previewInnerPath.value !== "" && CLIENT_DATA_EXTS.has(extensionOf(innerEntryName.value)));
+const innerIsTiff = computed(() => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "tiff");
+const innerIsHeic = computed(() => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "heic");
+const innerIsPsd = computed(() => previewInnerPath.value !== "" && CLIENT_PSD_EXTS.has(extensionOf(innerEntryName.value)));
+
+/**
+ * 各直渲面板的显隐与条目路径
+ *
+ * <p>均带 {@code !previewForceServer}：面板解码失败会 {@code fallback} 一次，
+ * 父组件把 {@code previewForceServer} 置位后这些分支必须全部让开，
+ * 否则会「退回服务端」却仍卡在同一个失败面板上（死循环）。</p>
+ */
+const showDataPanel = computed(() => (previewIsDataPanel.value || innerIsDataPanel.value) && !previewForceServer.value);
+const showTiffPanel = computed(() => (previewIsTiff.value || innerIsTiff.value) && !previewForceServer.value);
+const showHeicPanel = computed(() => (previewIsHeic.value || innerIsHeic.value) && !previewForceServer.value);
+const showPsdPanel = computed(() => (previewIsPsd.value || innerIsPsd.value) && !previewForceServer.value);
+
+const dataPanelInnerPath = computed(() => (innerIsDataPanel.value ? previewInnerPath.value : ""));
+const tiffPanelInnerPath = computed(() => (innerIsTiff.value ? previewInnerPath.value : ""));
+const heicPanelInnerPath = computed(() => (innerIsHeic.value ? previewInnerPath.value : ""));
+const psdPanelInnerPath = computed(() => (innerIsPsd.value ? previewInnerPath.value : ""));
+
+/** 预览包内条目：前端直渲面板自己发请求，其余切到 iframe 通道 */
 function openArchiveEntry(path: string): void {
   previewInnerPath.value = path;
   const slash = path.lastIndexOf("/");
   const name = slash >= 0 ? path.slice(slash + 1) : path;
-  if (kindOf(name) === "model") {
-    // CAD 面板自己发请求，不需要 iframe 加载态
+  if (kindOf(name) === "model" || isClientPanelFile(name)) {
+    // 面板自己发请求并维护加载态，iframe 加载态会让骨架屏挂在它上面
     return;
   }
   iframeLoading.value = true;
@@ -2873,6 +2925,25 @@ const officeLoading = ref(false);
 
 /** 客户端渲染面板引用 */
 const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
+
+/**
+ * 前端直渲面板解码失败：切到服务端渲染通道
+ *
+ * <p>TIFF / HEIC / PSD / SQLite / Parquet 这几个面板自己拉字节解码，
+ * 碰到解不开的文件（罕见压缩、16 位通道、声明超大画布的坏文件）就发
+ * {@code fallback}，由这里统一退回 iframe 的服务端通道（{@code render=server}）。
+ * 面板分支都带 {@code !previewForceServer}，所以只会退一次，不会来回空转。</p>
+ */
+function onClientPanelFallback(): void {
+  if (previewForceServer.value || previewUsePdf.value) {
+    // 已经退过一次还在失败：交给通用错误态，别再反复切通道
+    previewError.value = true;
+    return;
+  }
+  previewForceServer.value = true;
+  iframeLoading.value = true;
+  iframeKey.value++;
+}
 
 /**
  * pdf.js viewer 入口的路径（服务端 {@code classpath:/static/preview-vendor/pdf/viewer/viewer.html}）
@@ -4414,6 +4485,43 @@ onUnmounted(() => {
             :object-key="previewKey"
             :file-name="previewName"
             :inner="ifcInnerPath"
+          />
+          <!--
+            前端直渲的几类：数据表 / TIFF / HEIC / PSD。
+            分支放在原生图片面板之前是因为 TIFF、HEIC 在浏览器里就是解不开的
+            （落到 PreviewImagePanel 只会得到「图片加载失败」）。
+          -->
+          <DataPreviewPanel
+            v-else-if="showDataPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="dataPanelInnerPath"
+            @fallback="onClientPanelFallback"
+          />
+          <TiffPreviewPanel
+            v-else-if="showTiffPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="tiffPanelInnerPath"
+            @fallback="onClientPanelFallback"
+          />
+          <HeicPreviewPanel
+            v-else-if="showHeicPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="heicPanelInnerPath"
+            @fallback="onClientPanelFallback"
+          />
+          <PsdPreviewPanel
+            v-else-if="showPsdPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="psdPanelInnerPath"
+            @fallback="onClientPanelFallback"
           />
           <PreviewImagePanel
             v-else-if="!previewError && showImagePanel"

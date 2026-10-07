@@ -67,10 +67,11 @@ import {
 } from "../types/job";
 import type { CollectFlow } from "@pages/collect";
 import ScriptSourceField from "../components/ScriptSourceField.vue";
+import JobDetailDialog from "../components/JobDetailDialog.vue";
+import JobFireTimesDialog from "../components/JobFireTimesDialog.vue";
 import { confirmAction, errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
 import { resolveHostPath } from "../utils/hostPath";
-import { CronExpression } from "@repo/utils";
 import ReIcon from "@repo/ui/re-icon";
 import {
   ALARM_TYPE_OPTIONS,
@@ -88,11 +89,8 @@ import {
   STATUS_OPTIONS,
 } from "../constants/jobOptions";
 import {
-  alarmTypeText,
   canPreviewFireTimes,
-  detailSourceLabel,
   engineOfGlueType,
-  fmtFireTime,
   flowIdOf,
   glueEngineLabel,
   glueKindLabel,
@@ -148,6 +146,10 @@ const tableRef = ref<{
 } | null>(null);
 
 const busyKey = ref("");
+
+/** 两个自取数的弹层组件：详情自己拉 /detail，预览自己算 cron 后续时间 */
+const detailRef = ref<InstanceType<typeof JobDetailDialog> | null>(null);
+const fireTimesRef = ref<InstanceType<typeof JobFireTimesDialog> | null>(null);
 
 /** 当前勾选行（跨页，由 ReTable 常驻勾选列回传），批量启停与批量删除的输入 */
 const selectedRows = ref<JobRuntime[]>([]);
@@ -460,43 +462,6 @@ async function batchRemove(): Promise<void> {
   }
 }
 
-/** 详情：先用列表行即时回显，再取一次 /detail 拿完整字段（含脚本正文与重试/超时策略） */
-const detailVisible = ref(false);
-const detailLoading = ref(false);
-const detail = ref<JobRuntime | null>(null);
-
-async function openDetail(job: JobRuntime): Promise<void> {
-  detail.value = job;
-  detailVisible.value = true;
-  detailLoading.value = true;
-  try {
-    detail.value = (await getJob(job.jobKey)) ?? job;
-  } catch (error) {
-    msgError(errText(error));
-  } finally {
-    detailLoading.value = false;
-  }
-}
-
-/** 详情里的「立即触发」：关掉弹层后走列表同一条派发链，保证台账与作业日志一致 */
-function triggerFromDetail(): void {
-  const job = detail.value;
-  if (!job) {
-    return;
-  }
-  detailVisible.value = false;
-  void runNow(job);
-}
-
-/** 详情里的「编辑」：关掉弹层后复用列表的编辑分流（流程行 → 流程调度，外部行 → 任务表单） */
-function editFromDetail(): void {
-  const job = detail.value;
-  if (!job) {
-    return;
-  }
-  detailVisible.value = false;
-  openEdit(job);
-}
 
 /**
  * 跳到作业日志页并按该任务预筛。
@@ -513,57 +478,6 @@ function openLogs(job: JobRuntime): void {
   // 本宿主口径可能是 /collect/job-log（采集）或 /job/log（系统管理），按路由表择一
   void router.push({ path: resolveHostPath(router, "/collect/job-log"), query: { jobKey: job.jobKey } });
 }
-
-/** 详情里的「查看日志」：关掉弹层再跳，补齐「任务 → 它的执行历史」这条动线 */
-function logsFromDetail(): void {
-  const job = detail.value;
-  if (!job) {
-    return;
-  }
-  detailVisible.value = false;
-  openLogs(job);
-}
-
-/** 后续执行时间点预览弹层：显隐与内容 */
-const fireTimesVisible = ref(false);
-const fireTimesTitle = ref("");
-const fireTimes = ref<Date[]>([]);
-const fireTimesError = ref("");
-
-/**
- * 打开「后续执行时间点」弹层。
- *
- * <p>只对 cron 任务有意义：固定延迟 / 固定频率的下一拍取决于上一拍实际完成时刻，
- * 事先算不出来，所以那两类任务不给这个按钮。</p>
- *
- * <p>时间直接用 @repo/utils 的 {@link CronExpression} 算——它是服务端
- * {@code com.chua.common.support.task.scheduler.CronExpression} 的逐行镜像，
- * 与保存后调度器实际触发的口径一致，不必为此加后端接口。</p>
- *
- * @param job 台账行
- */
-function openFireTimes(job: JobRuntime): void {
-  const expression = String(job.scheduleTime ?? "").trim();
-  fireTimesTitle.value = job.jobName || job.jobKey || "";
-  fireTimes.value = [];
-  fireTimesError.value = "";
-  if (!expression) {
-    fireTimesError.value = "该任务没有填写调度配置";
-    fireTimesVisible.value = true;
-    return;
-  }
-  try {
-    fireTimes.value = new CronExpression(expression).getFireTimes(5, new Date());
-    if (!fireTimes.value.length) {
-      // 能解析但永不匹配（如 0 0 9 30 2 *）——与 ReCron 预览、后端校验同一口径
-      fireTimesError.value = "该表达式算不出后续触发时间";
-    }
-  } catch (error) {
-    fireTimesError.value = `表达式无法解析：${String((error as Error)?.message ?? error)}`;
-  }
-  fireTimesVisible.value = true;
-}
-
 
 /** 复制：流程行走采集的流程复制（副本默认停用），外部任务预填新建表单（含脚本正文与策略） */
 async function copy(job: JobRuntime): Promise<void> {
@@ -1330,7 +1244,7 @@ watch(formVisible, (visible) => {
           layout="square"
           icon="View"
           tip="查看任务详情"
-          @click="openDetail(row as unknown as JobRuntime)"
+          @click="detailRef?.open(row as unknown as JobRuntime)"
         />
         <ReButton
           layout="square"
@@ -1380,7 +1294,7 @@ watch(formVisible, (visible) => {
               <el-dropdown-item
                 v-if="canPreviewFireTimes(row as unknown as JobRuntime)"
                 :disabled="Boolean(busyKey)"
-                @click="openFireTimes(row as unknown as JobRuntime)"
+                @click="fireTimesRef?.open(row as unknown as JobRuntime)"
               >
                 后续 5 次执行时间
               </el-dropdown-item>
@@ -1633,120 +1547,14 @@ watch(formVisible, (visible) => {
       </div>
     </ReDialog>
 
-    <ReDialog v-model="detailVisible" title="任务详情" width="980px" top="5vh" footer-hidden>
-      <div v-loading="detailLoading" class="job-detail">
-        <div v-if="detail" class="job-detail__alert" :class="isFlowRow(detail) ? 'is-warn' : ''">
-          <el-icon><InfoFilled /></el-icon>
-          <span v-if="isFlowRow(detail)">
-            这是一条采集流程的调度镜像行：画布结构与 cron 以采集流程为准，改名/改期请走「编辑流程调度」或流程设计页。
-          </span>
-          <span v-else>
-            这是调度中心自行登记的外部任务：配置以本行为准，执行器需与任务键同名才会被领取。
-          </span>
-          <el-icon class="job-detail__alert-arrow"><ArrowDown /></el-icon>
-        </div>
+    <JobDetailDialog
+      ref="detailRef"
+      @edit="openEdit"
+      @trigger="runNow"
+      @logs="openLogs"
+    />
 
-        <div v-if="detail" class="job-detail__grid">
-          <section class="job-detail__card">
-            <h3>基本信息</h3>
-            <dl class="job-detail__list">
-              <div><dt>任务键</dt><dd class="job-detail__mono job-detail__link">{{ detail.jobKey }}</dd></div>
-              <div><dt>任务名称</dt><dd>{{ detail.jobName || "—" }}</dd></div>
-              <div><dt>业务编号</dt><dd class="job-detail__mono job-detail__link">{{ detail.jobNo || "—" }}</dd></div>
-              <div><dt>分组</dt><dd>{{ detail.group || "—" }}</dd></div>
-              <div><dt>调度</dt><dd class="job-detail__mono">{{ scheduleText(detail) }}</dd></div>
-              <div>
-                <dt>状态</dt>
-                <dd>
-                  <ReTag :type="detail.enabled ? 'success' : 'info'" effect="solid" dot>
-                    {{ detail.enabled ? "启用" : "停用" }}
-                  </ReTag>
-                </dd>
-              </div>
-              <div>
-                <dt>分发</dt>
-                <dd>{{ detail.dispatchMode === "REMOTE" ? "远程" : "本地" }}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section class="job-detail__card">
-            <h3>执行配置</h3>
-            <dl class="job-detail__list">
-              <div class="job-detail__row-wide">
-                <dt>处理器</dt>
-                <dd class="job-detail__handler">
-                  <span class="job-detail__mono job-detail__link">{{ detail.jobKey }}</span>
-                  <span class="job-detail__plus">+</span>
-                  <ReTag :type="isScriptJob(detail) ? 'primary' : detail.handlerRegistered ? 'success' : 'danger'" effect="solid" dot>
-                    {{ isScriptJob(detail) ? "代码片段任务" : detail.handlerRegistered ? "已注册" : "未注册" }}
-                  </ReTag>
-                  <span class="job-detail__mono">{{ detail.glueType || GLUE_BEAN }}</span>
-                </dd>
-              </div>
-              <div v-if="isScriptJob(detail)" class="job-detail__row-wide">
-                <dt>{{ detailSourceLabel(detail) }}</dt>
-                <dd><pre class="job-detail__code">{{ detail.glueSource || "—" }}</pre></dd>
-              </div>
-              <div class="job-detail__row-wide">
-                <dt>执行参数</dt>
-                <dd><pre class="job-detail__code job-detail__code--param">{{ detail.executeParam || "—" }}</pre></dd>
-              </div>
-            </dl>
-          </section>
-
-          <section class="job-detail__card">
-            <h3>策略与告警</h3>
-            <dl class="job-detail__list">
-              <div><dt>失败重试</dt><dd>{{ detail.failRetry ?? 0 }} 次<span v-if="Number(detail.failRetry ?? 0) > 0"> · 间隔 {{ detail.retryInterval ? `${detail.retryInterval}s` : "立即" }}</span></dd></div>
-              <div><dt>执行超时</dt><dd>{{ detail.executeTimeout ? `${detail.executeTimeout}s` : "不限" }}</dd></div>
-              <div><dt>错过策略</dt><dd>{{ detail.misfireStrategy === "FIRE_ONCE_NOW" ? "补跑一次" : "不补跑" }}</dd></div>
-              <div><dt>失败告警</dt><dd>{{ alarmTypeText(detail.alarmType, detail.alarmEmail) }}<span v-if="detail.alarmEmail" class="job-detail__mono"> · {{ detail.alarmEmail }}</span></dd></div>
-              <div><dt>最近触发</dt><dd class="job-detail__num">{{ fmtMs(detail.lastFireTime) }}</dd></div>
-              <div><dt>下次触发</dt><dd class="job-detail__num">{{ detail.enabled ? fmtMs(detail.nextFireTime) : "—" }}</dd></div>
-            </dl>
-          </section>
-        </div>
-
-        <div v-if="detail" class="job-detail__footer">
-          <ReButton size="default" plain icon="Tickets" @click="logsFromDetail">查看日志</ReButton>
-          <ReButton size="default" plain icon="Edit" @click="editFromDetail">
-            {{ isFlowRow(detail) ? "编辑流程调度" : "编辑任务" }}
-          </ReButton>
-          <ReButton
-            size="default"
-            type="primary"
-            icon="VideoPlay"
-            :disabled="detail.enabled !== true"
-            :title="detail.enabled === true ? '立即触发一次' : '任务已停用，请先启用调度'"
-            @click="triggerFromDetail"
-          >
-            {{ isFlowRow(detail) ? "立即运行" : "立即触发" }}
-          </ReButton>
-        </div>
-      </div>
-    </ReDialog>
-
-    <!-- 后续执行时间点预览：只对 cron 任务开放，时间由与服务端同源的 CronExpression 算出 -->
-    <ReDialog
-      v-model="fireTimesVisible"
-      :title="`后续 5 次执行时间${fireTimesTitle ? ' · ' + fireTimesTitle : ''}`"
-      width="480px"
-      footer-hidden
-    >
-      <div class="job-fire-times">
-        <ol v-if="fireTimes.length" class="job-fire-times__list">
-          <li v-for="(time, index) in fireTimes" :key="index">
-            <span class="job-fire-times__seq">{{ index + 1 }}</span>
-            <span class="job-fire-times__time">{{ fmtFireTime(time) }}</span>
-          </li>
-        </ol>
-        <p v-else class="job-fire-times__empty">{{ fireTimesError || "暂无数据" }}</p>
-        <p class="job-fire-times__note">
-          由与服务端同一套解析引擎算出，保存后的实际触发时间与此一致；台账行的「下次触发」只显示最近一次。
-        </p>
-      </div>
-    </ReDialog>
+    <JobFireTimesDialog ref="fireTimesRef" />
   </div>
 </template>
 
@@ -1969,58 +1777,6 @@ watch(formVisible, (visible) => {
   line-height: 1.5;
 }
 
-/* 语言下拉：类型卡下方的独立一行，宽度跟类型卡列宽一致，不铺满弹层 */
-.task-form__engine {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-width: 260px;
-}
-
-.task-form__engine > span {
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-}
-
-.task-form__section {
-  padding-top: 2px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.task-form__section h3 {
-  margin: 12px 0 10px;
-  color: var(--el-text-color-primary);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.task-form__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 18px;
-}
-
-.task-form__grid--schedule {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.task-form__field,
-.task-form__switch-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.task-form__field > span,
-.task-form__switch-field > span {
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-}
-
-/* 字段下方的一行灰字说明，不撑高栅格 */
-.task-form__help {
-  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-style: normal;
   line-height: 1.5;
@@ -2193,94 +1949,3 @@ watch(formVisible, (visible) => {
   color: var(--el-text-color-regular);
 }
 
-.job-detail__code {
-  max-height: 240px;
-  margin: 0;
-  padding: 12px;
-  overflow: auto;
-  border-radius: var(--el-radius-md);
-  background: var(--el-text-color-primary);
-  color: var(--el-bg-color);
-  font-family: var(--cc-font-num);
-  font-size: 12px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.job-detail__code--param {
-  min-height: 44px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-}
-
-.job-detail__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 4px;
-}
-
-@media (max-width: 760px) {
-  .job-detail__grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ============ 可操作空态 ============
-   .page-empty 系列的定义在 pages/system/src/styles/system-page.css，那是 system 包的
-   全局 css（随宿主一次性加载）；job 包只有 scheduler.css，未收录这一组类名，
-   且本页样式是 scoped 的，拿不到别的包的全局类，所以此处自带一份最小必要样式，
-   取值与 system 包逐条对齐，换包不会走样。 */
-.page-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 28px 16px;
-  text-align: center;
-}
-.page-empty__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--el-radius-lg, 12px);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  color: var(--el-color-primary);
-}
-.page-empty__title {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--el-text-color-primary);
-}
-.page-empty__desc {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
-}
-.page-empty__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-/*
-  ReTable 的卡片外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由插件提供，
-  页面不再自行补边：见 packages/ui ReTable/shared/table-vars.css 与
-  ReTable.vue 的 `.re-table` / `.re-table--separated` 规则。
-*/
-
-/* 尊重系统「减少动态效果」偏好：把本页自己的过渡关掉
-   （ReTable 的过渡由插件自带的同名媒体查询处理） */
-@media (prefers-reduced-motion: reduce) {
-  .job-action__more,
-  .task-form__type-card {
-    transition: none;
-  }
-}
-</style>

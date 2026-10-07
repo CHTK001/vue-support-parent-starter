@@ -15,7 +15,7 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
@@ -30,6 +30,7 @@ import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
 import ReStatCard from "@repo/ui/re-stat-card";
+import ReSwitch from "@repo/ui/re-switch";
 import ReTab from "@repo/ui/re-tab";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
@@ -54,7 +55,12 @@ import {
   fetchJdbcDriverJars,
   uploadJdbcDriverJar,
 } from "../api";
-import type { JdbcDriverJar } from "../api";
+import {
+  deleteDatasourceTunnel,
+  fetchDatasourceTunnel,
+  saveDatasourceTunnel,
+} from "../api";
+import type { DataSourceTunnel, JdbcDriverJar } from "../api";
 
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { ReTabItem } from "@repo/ui/re-tab";
@@ -544,6 +550,7 @@ const statusFilters = computed<StatusFilterItem[]>(() => {
 const tabItems = computed<ReTabItem[]>(() => [
   { name: "overview", label: "概览" },
   { name: "connection", label: "连接配置" },
+  { name: "tunnel", label: "SSH 隧道" },
   { name: "metrics", label: "监控指标" },
   { name: "logs", label: "操作日志" },
   ...props.extraTabs,
@@ -674,6 +681,192 @@ const runHeadCommand = (cmd: string) => {
   }
   runCardCommand(cmd, current.value);
 };
+
+/* ==================== SSH 隧道（高级配置） ==================== */
+
+/** 隧道表单：字段与后端 DataSourceTunnelDTO 一一对应 */
+interface TunnelForm {
+  /** 已存在的隧道 ID；null 表示还没配过隧道 */
+  id: number | null;
+  name: string;
+  /** LOCAL 本地转发(-L) / REMOTE 反向转发(-R) / DYNAMIC 动态 SOCKS5 */
+  type: string;
+  sshHost: string;
+  sshPort: number | null;
+  sshUsername: string;
+  /** PASSWORD 口令 / KEY 私钥 */
+  sshAuthType: string;
+  /** 口令：查询接口不回显，留空表示沿用库里已存的值 */
+  sshPassword: string;
+  /** 私钥：PEM 文本或私钥文件路径（查询接口会回显） */
+  sshPrivateKey: string;
+  /** 私钥口令：同样不回显，留空即不改 */
+  sshPassphrase: string;
+  /** 本地端口；null = 由后端自动分配 */
+  localPort: number | null;
+  remoteHost: string;
+  remotePort: number | null;
+  bindAddress: string;
+  /** 1 启用 / 0 停用 */
+  status: number;
+}
+
+/** 空表单：默认值与后端一致（LOCAL + 口令认证 + 停用） */
+const emptyTunnel = (): TunnelForm => ({
+  id: null,
+  name: "",
+  type: "LOCAL",
+  sshHost: "",
+  sshPort: 22,
+  sshUsername: "",
+  sshAuthType: "PASSWORD",
+  sshPassword: "",
+  sshPrivateKey: "",
+  sshPassphrase: "",
+  localPort: null,
+  remoteHost: "",
+  remotePort: null,
+  bindAddress: "",
+  status: 0,
+});
+
+const tunnel = ref<TunnelForm>(emptyTunnel());
+const tunnelLoading = ref(false);
+const tunnelSaving = ref(false);
+
+const TUNNEL_TYPES = [
+  { label: "本地转发 (-L)", value: "LOCAL" },
+  { label: "反向转发 (-R)", value: "REMOTE" },
+  { label: "动态 SOCKS5 (-D)", value: "DYNAMIC" }
+];
+const TUNNEL_AUTHS = [
+  { label: "口令", value: "PASSWORD" },
+  { label: "私钥", value: "KEY" }
+];
+/** DYNAMIC 走 SOCKS5 代理，不指定远端目标 */
+const tunnelIsDynamic = computed(() => tunnel.value.type === "DYNAMIC");
+const tunnelIsKeyAuth = computed(() => tunnel.value.sshAuthType === "KEY");
+
+/**
+ * 读当前数据源的隧道配置。
+ *
+ * <p>后端未配置时 data 为 null，表单落到空表单而不是报错：一个数据源
+ * 允许没有隧道，未配置是正常状态而非异常。</p>
+ *
+ * @param id 数据源 ID
+ */
+const loadTunnel = async (id: number) => {
+  tunnelLoading.value = true;
+  try {
+    const data = await fetchDatasourceTunnel(id);
+    if (!data) {
+      tunnel.value = emptyTunnel();
+      return;
+    }
+    tunnel.value = {
+      id: data.id ?? null,
+      name: data.name ?? "",
+      type: data.type || "LOCAL",
+      sshHost: data.sshHost ?? "",
+      sshPort: data.sshPort ?? 22,
+      sshUsername: data.sshUsername ?? "",
+      sshAuthType: data.sshAuthType || "PASSWORD",
+      // 口令类字段查询接口不回显，这里留空，保存时后端按「空=不改」处理
+      sshPassword: "",
+      sshPrivateKey: data.sshPrivateKey ?? "",
+      sshPassphrase: "",
+      localPort: data.localPort ?? null,
+      remoteHost: data.remoteHost ?? "",
+      remotePort: data.remotePort ?? null,
+      bindAddress: data.bindAddress ?? "",
+      status: data.status ?? 0
+    };
+  } catch (e) {
+    ElMessage.error(`读取隧道配置失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    tunnelLoading.value = false;
+  }
+};
+
+/** 保存隧道；校验口径与后端 validate 保持一致（后端拒绝的这里先拦下） */
+const saveTunnel = async () => {
+  const id = current.value?.id;
+  if (id == null) {
+    return;
+  }
+  const f = tunnel.value;
+  if (!f.sshHost.trim()) {
+    ElMessage.warning("请填写 SSH 服务器地址");
+    return;
+  }
+  if (!f.sshUsername.trim()) {
+    ElMessage.warning("请填写 SSH 用户名");
+    return;
+  }
+  if (!tunnelIsDynamic.value) {
+    if (!f.remoteHost.trim()) {
+      ElMessage.warning("请填写远端目标主机（数据库地址）");
+      return;
+    }
+    if (!f.remotePort || f.remotePort <= 0) {
+      ElMessage.warning("请填写远端目标端口");
+      return;
+    }
+  }
+  if (tunnelIsKeyAuth.value && !f.sshPrivateKey.trim()) {
+    ElMessage.warning("私钥认证请填写私钥（PEM 文本或私钥文件路径）");
+    return;
+  }
+  tunnelSaving.value = true;
+  try {
+    await saveDatasourceTunnel(id, { ...f } as Partial<DataSourceTunnel>);
+    ElMessage.success("隧道配置已保存");
+    await loadTunnel(id);
+  } catch (e) {
+    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    tunnelSaving.value = false;
+  }
+};
+
+/** 删除隧道：删除后该数据源的连接测试改为直连 */
+const removeTunnel = async () => {
+  const id = current.value?.id;
+  if (id == null) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm("删除后该数据源的连接测试将直连目标库（内网不可达时会失败），确定删除？", "删除隧道", {
+      type: "warning"
+    });
+  } catch {
+    return;
+  }
+  tunnelSaving.value = true;
+  try {
+    await deleteDatasourceTunnel(id);
+    ElMessage.success("隧道已删除");
+    await loadTunnel(id);
+  } catch (e) {
+    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    tunnelSaving.value = false;
+  }
+};
+
+// 只有选中数据源变化才读隧道：右栏整体在 <template v-if="current"> 内，
+// 没选中时页签不渲染，此时不该发请求
+watch(
+  () => current.value?.id ?? null,
+  (id) => {
+    if (id == null) {
+      tunnel.value = emptyTunnel();
+      return;
+    }
+    void loadTunnel(id);
+  },
+  { immediate: true }
+);
 
 onMounted(load);
 </script>
@@ -837,6 +1030,119 @@ onMounted(load);
                     <dd class="ds-kv__value" :class="{ mono: row.mono }">{{ row.value }}</dd>
                   </div>
                 </dl>
+              </section>
+            </template>
+
+            <!-- SSH 隧道：目标库内网不可直连时的中转配置（一条数据源至多一条） -->
+            <template #tunnel>
+              <section class="ds-panel">
+                <h3 class="ds-panel__title">SSH 隧道</h3>
+                <p class="ds-panel__hint">
+                  目标库只能从内网访问时，配置隧道后连接测试会先打开隧道、再经隧道本地端口去连目标库。
+                  SSH 口令与私钥口令保存后不再回显，留空即保持原值。
+                </p>
+                <div v-if="tunnelLoading" class="ds-placeholder-text">正在读取隧道配置…</div>
+                <ReForm v-else label-position="top" class="ds-form ds-tunnel-form">
+                  <div class="ds-tunnel-row">
+                    <ReFormItem label="启用" class="is-full">
+                      <ReSwitch
+                        v-model="tunnel.status"
+                        :active-value="1"
+                        :inactive-value="0"
+                        active-text="启用"
+                        inactive-text="停用"
+                      />
+                    </ReFormItem>
+                    <ReFormItem label="隧道名称" class="is-full">
+                      <ReInput v-model="tunnel.name" placeholder="如 生产 MySQL 跳板" />
+                    </ReFormItem>
+                    <ReFormItem label="隧道类型" required>
+                      <ReSelect v-model="tunnel.type" :options="TUNNEL_TYPES" />
+                    </ReFormItem>
+                    <ReFormItem label="认证方式">
+                      <ReSelect v-model="tunnel.sshAuthType" :options="TUNNEL_AUTHS" />
+                    </ReFormItem>
+                  </div>
+
+                  <h4 class="ds-sub-title">SSH 服务器</h4>
+                  <div class="ds-tunnel-row">
+                    <ReFormItem label="地址" required>
+                      <ReInput v-model="tunnel.sshHost" placeholder="跳板机地址，如 10.0.0.9" />
+                    </ReFormItem>
+                    <ReFormItem label="端口">
+                      <ReInputNumber
+                        :model-value="tunnel.sshPort ?? undefined"
+                        :min="1"
+                        :max="65535"
+                        style="width: 100%"
+                        @update:model-value="tunnel.sshPort = $event ?? null"
+                      />
+                    </ReFormItem>
+                    <ReFormItem label="用户名" required>
+                      <ReInput v-model="tunnel.sshUsername" placeholder="如 tunnel" />
+                    </ReFormItem>
+                  </div>
+
+                  <template v-if="tunnelIsKeyAuth">
+                    <ReFormItem label="私钥" required class="is-full">
+                      <ReInput
+                        v-model="tunnel.sshPrivateKey"
+                        type="textarea"
+                        :rows="4"
+                        placeholder="-----BEGIN OPENSSH PRIVATE KEY----- 全文，或本机私钥文件路径"
+                      />
+                    </ReFormItem>
+                    <ReFormItem label="私钥口令" class="is-full">
+                      <ReInput v-model="tunnel.sshPassphrase" type="password" show-password placeholder="留空表示不修改" />
+                    </ReFormItem>
+                  </template>
+                  <ReFormItem v-else label="SSH 口令" class="is-full">
+                    <ReInput v-model="tunnel.sshPassword" type="password" show-password placeholder="留空表示不修改" />
+                  </ReFormItem>
+
+                  <h4 class="ds-sub-title">转发</h4>
+                  <div class="ds-tunnel-row">
+                    <ReFormItem label="本地端口">
+                      <ReInputNumber
+                        :model-value="tunnel.localPort ?? undefined"
+                        :min="1"
+                        :max="65535"
+                        placeholder="留空自动分配"
+                        style="width: 100%"
+                        @update:model-value="tunnel.localPort = $event ?? null"
+                      />
+                    </ReFormItem>
+                    <ReFormItem label="绑定地址">
+                      <ReInput v-model="tunnel.bindAddress" placeholder="留空用 127.0.0.1" />
+                    </ReFormItem>
+                    <template v-if="!tunnelIsDynamic">
+                      <ReFormItem label="远端目标主机" required>
+                        <ReInput v-model="tunnel.remoteHost" placeholder="数据库地址，如 10.0.0.20" />
+                      </ReFormItem>
+                      <ReFormItem label="远端目标端口" required>
+                        <ReInputNumber
+                          :model-value="tunnel.remotePort ?? undefined"
+                          :min="1"
+                          :max="65535"
+                          style="width: 100%"
+                          @update:model-value="tunnel.remotePort = $event ?? null"
+                        />
+                      </ReFormItem>
+                    </template>
+                  </div>
+
+                  <div class="ds-tunnel-actions">
+                    <ReButton type="primary" icon="Check" :loading="tunnelSaving" @click="saveTunnel">保存隧道</ReButton>
+                    <ReButton
+                      v-if="tunnel.id"
+                      type="danger"
+                      icon="Delete"
+                      :loading="tunnelSaving"
+                      @click="removeTunnel"
+                    >删除隧道</ReButton>
+                    <span v-if="tunnel.id" class="ds-tunnel-id mono">已配置隧道 #{{ tunnel.id }}</span>
+                  </div>
+                </ReForm>
               </section>
             </template>
 
@@ -1459,6 +1765,48 @@ onMounted(load);
 }
 .ds-main__empty {
   padding: 48px 0;
+}
+
+/* ---------------- SSH 隧道表单 ---------------- */
+/* .ds-form 本身是两列栅格：分组容器、子标题、操作条都必须跨满整行，
+   否则只会占掉第一格，把下面的字段挤到第二列去 */
+.ds-tunnel-form > .ds-tunnel-row,
+.ds-tunnel-form > .ds-sub-title,
+.ds-tunnel-form > .ds-tunnel-actions {
+  grid-column: 1 / -1;
+}
+.ds-tunnel-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 18px;
+}
+.ds-sub-title {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-secondary);
+}
+.ds-panel__hint {
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.ds-placeholder-text {
+  padding: 18px 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.ds-tunnel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+.ds-tunnel-id {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 /* ---------------- 弹窗表单 ---------------- */

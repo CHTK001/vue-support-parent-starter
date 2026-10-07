@@ -104,7 +104,7 @@ function onChange(value: unknown): void {
     class="table-select"
     layout="card"
     :model-value="modelValue"
-    :type="props.type"
+    :type="type"
     :disabled="disabled || !datasource"
     :loading="loading"
     :placeholder="placeholder"
