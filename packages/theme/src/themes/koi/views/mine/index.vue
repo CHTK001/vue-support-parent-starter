@@ -137,8 +137,19 @@
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }" class="mt-6px">
                     <el-form-item>
-                      <el-button type="primary" plain :loading="mineSaving" @click="handleMineSave">保存</el-button>
+                      <el-button
+                        type="primary"
+                        plain
+                        :loading="mineSaving"
+                        :disabled="!mineUpdateSupported"
+                        @click="handleMineSave"
+                      >
+                        保存
+                      </el-button>
                       <el-button type="danger" plain @click="resetMineForm">重置</el-button>
+                      <span v-if="!mineUpdateSupported" class="text-12px text-#909399 ml-8px">
+                        当前部署未开放资料编辑
+                      </span>
                     </el-form-item>
                   </el-col>
                 </el-row>
@@ -213,7 +224,7 @@
             </el-tab-pane>
 
             <!-- 账号安全：两步验证 -->
-            <el-tab-pane name="secure">
+            <el-tab-pane v-if="totpSupported" name="secure">
               <template #label>
                 <span class="flex items-center gap-4px">
                   <el-icon :size="15"><Iphone /></el-icon>
@@ -320,7 +331,7 @@
               <ThirdBindPanel />
             </el-tab-pane>
 
-            <el-tab-pane name="logs">
+            <el-tab-pane v-if="loginLogSupported" name="logs">
               <template #label>
                 <span class="flex items-center gap-4px">
                   <el-icon :size="15"><Document /></el-icon>
@@ -517,7 +528,12 @@ async function handleAvatarSuccess(_response: unknown, url: string): Promise<voi
       msgError(res?.msg || "头像保存失败");
     }
   } catch (e) {
-    msgError("头像保存失败：" + ((e as Error)?.message || "网络异常"));
+    if (isEndpointMissing(e)) {
+      mineUpdateSupported.value = false;
+      msgError("当前部署未开放头像保存，图片未应用");
+    } else {
+      msgError("头像保存失败：" + ((e as Error)?.message || "网络异常"));
+    }
   }
 }
 
@@ -577,8 +593,8 @@ const refreshMine = async () => {
     
     mine.value = {
       avatar: data.avatar || getConfig()?.login?.avatarUrl || "",
-      loginName: data.sysUserUsername || "",
-      nickname: data.sysUserNickname || "",
+      loginName: data.sysUserUsername || data.username || "",
+      nickname: data.sysUserNickname || data.nickname || "",
       phone: data.sysUserPhone || "",
       email: data.sysUserEmail || "",
       emailVerified: data.sysUserEmailVerified ?? 0,
@@ -589,7 +605,7 @@ const refreshMine = async () => {
       birthday: data.sysUserBirthday || "",
     };
     mineForm.value = {
-      sysUserId: data.sysUserId ?? "",
+      sysUserId: data.sysUserId ?? data.userId ?? "",
       sysUserUsername: mine.value.loginName,
       sysUserNickname: mine.value.nickname,
       sysUserPhone: mine.value.phone,
@@ -653,6 +669,31 @@ const mineRules = reactive({
   ],
 });
 
+/** 部署能力：资料编辑端点（PUT /v2/user/update）是否由当前后端提供（未部署时置灰保存/头像持久化） */
+const mineUpdateSupported = ref(true);
+
+/** 判断异常是否为「端点未部署（404）」 */
+function isEndpointMissing(e: unknown): boolean {
+  const err = e as { response?: { status?: number }; status?: number } | null;
+  return err?.response?.status === 404 || err?.status === 404;
+}
+
+/**
+ * 探测资料编辑端点是否部署：GET 命中 PUT 映射返回 405（已部署）、未映射返回 404（未部署）。
+ * 探测本身不改数据；网络/鉴权类异常保持可用，等真实保存时再按 404 收敛。
+ */
+async function probeMineUpdate(): Promise<void> {
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    await getApiHttp().get("/v2/user/update").then((r) => r.status);
+    mineUpdateSupported.value = true;
+  } catch (e) {
+    const status = (e as { response?: { status?: number } })?.response?.status;
+    if (status === 404) mineUpdateSupported.value = false;
+    else if (status === 405) mineUpdateSupported.value = true;
+  }
+}
+
 /** 保存基本资料（PUT /v2/user/update，不传 sysUserId 时后端更新当前账号） */
 const handleMineSave = () => {
   if (!mineFormRef.value) return;
@@ -679,7 +720,12 @@ const handleMineSave = () => {
         msgError(res?.msg || "保存失败");
       }
     } catch (e) {
-      msgError("保存失败：" + ((e as Error)?.message || "网络异常"));
+      if (isEndpointMissing(e)) {
+        mineUpdateSupported.value = false;
+        msgError("当前部署未开放个人资料编辑");
+      } else {
+        msgError("保存失败：" + ((e as Error)?.message || "网络异常"));
+      }
     } finally {
       mineSaving.value = false;
     }
@@ -889,6 +935,8 @@ const handlePwdSave = () => {
 /** 修改密码 End */
 
 /** 账号安全（TOTP 两步验证）Begin */
+/** 部署能力：两步验证端点（/v2/user/totp/*）是否由当前后端提供；未部署时隐藏「账号安全」页签 */
+const totpSupported = ref(true);
 const totpEnabled = ref(false);
 const totpLoading = ref(false);
 const totpUnbinding = ref(false);
@@ -933,6 +981,12 @@ const loadTotpStatus = async () => {
       .then((r: any) => r.data);
     totpEnabled.value = res?.data === true;
   } catch (e) {
+    if (isEndpointMissing(e)) {
+      // 当前部署未提供两步验证能力：隐藏「账号安全」页签，不留死按钮
+      totpSupported.value = false;
+      totpEnabled.value = false;
+      return;
+    }
     console.error("[mine] 获取 2FA 状态失败", e);
     totpEnabled.value = false;
   }
@@ -1055,6 +1109,8 @@ const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((
 
 const loginLogLoading = ref(false);
 const loginLogLoaded = ref(false);
+/** 部署能力：登录日志端点（/v2/user/log/mine-logs）是否由当前后端提供；未部署时隐藏「登录日志」页签 */
+const loginLogSupported = ref(true);
 const loginLogRows = ref<Record<string, any>[]>([]);
 const loginLogTotal = ref(0);
 const loginLogPage = ref(1);
@@ -1073,6 +1129,11 @@ async function loadLoginLogs(): Promise<void> {
     loginLogTotal.value = res?.data?.total ?? 0;
     loginLogLoaded.value = true;
   } catch (e) {
+    if (isEndpointMissing(e)) {
+      // 当前部署未提供登录日志能力：隐藏「登录日志」页签，不留空表误导
+      loginLogSupported.value = false;
+      return;
+    }
     console.error("登录日志加载失败", e);
     msgError("登录日志加载失败");
   } finally {
@@ -1173,6 +1234,10 @@ onMounted(async () => {
   refreshMine();
   initLockState();
   loadTotpStatus();
+  // 部署能力探测：资料编辑端点是否存在（决定保存/头像持久化是否可用）
+  void probeMineUpdate();
+  // 登录日志预载：端点未部署时在用户点开前就把「登录日志」页签隐藏
+  void loadLoginLogs();
   // 监听 Storage 事件（跨标签页同步）
   window.addEventListener("storage", (e) => {
     if (e.key === LOCK_KEY) {
