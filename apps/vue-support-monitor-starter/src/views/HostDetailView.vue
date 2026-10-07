@@ -29,6 +29,7 @@ import {
 } from "@pages/monitor/src/api";
 import { getHost } from "@pages/server/src/api";
 import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../monitorApi";
+import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -1502,9 +1503,10 @@ async function submitProfileEnv(): Promise<void> {
           </div>
         </div>
         <div class="pp-bar">
-          <span class="dim">{{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}</span>
+          <span v-if="profileTab !== 'network'" class="dim">{{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}</span>
+          <span v-else class="dim">Windows 网络连接视图</span>
           <div class="pp-pager">
-            <ReInput v-model="profileKeyword" class="pp-search" placeholder="关键字过滤" clearable @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword" />
+            <ReInput v-if="profileTab !== 'network'" v-model="profileKeyword" class="pp-search" placeholder="关键字过滤" clearable @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword" />
             <template v-if="profilePaged">
               <ReButton @click="applyProfileKeyword">搜索</ReButton>
               <ReButton :disabled="profilePage <= 1 || profileLoading" @click="changeProfilePage(-1)">上一页</ReButton>
@@ -1516,6 +1518,14 @@ async function submitProfileEnv(): Promise<void> {
           </div>
         </div>
         <div v-if="profileError" class="pp-error">{{ profileError }}</div>
+        <div v-else-if="profileTab === 'network'" class="pp-net">
+          <HostNetworkAdapters
+            :host-id="hostId"
+            :rows="profileRows"
+            :platform="hostRecord?.serverHostOsType"
+            @applied="loadProfileSection"
+          />
+        </div>
         <div v-else-if="profileLoading && !profileRows.length" class="dim pp-loading">正在拉取…</div>
         <div v-else-if="!profileVisibleRows.length" class="dim pp-loading">{{ profileKeyword.trim() ? "关键字未命中任何一行" : "该分区无数据" }}</div>
         <div v-else class="pp-scroll">
@@ -1543,6 +1553,9 @@ async function submitProfileEnv(): Promise<void> {
                 </td>
                 <td v-else-if="profileTab === 'env'">
                   <ReButton icon="Delete" type="danger" :loading="profileBusyRow === `env-del-${r.name}`" @click="confirmProfileAction(`确定删除系统级环境变量 ${r.name}？`).then(ok => ok && runProfileAction(`env-del-${r.name}`, deleteHostEnvVar(hostId, String(r.name))))">删除</ReButton>
+                </td>
+                <td v-else-if="profileTab === 'network'">
+                  <ReButton icon="Setting" type="primary" :show-text="true" :disabled="!r.name" @click="openNetConfig(String(r.name))">IP 配置</ReButton>
                 </td>
               </tr>
             </tbody>
@@ -1690,6 +1703,16 @@ async function submitProfileEnv(): Promise<void> {
         <ReButton type="primary" :loading="profileBusyRow.startsWith('env-set')" @click="submitProfileEnv">保存</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 网卡管理：列表 ⇄ IPv4 配置（仅 Windows；下发后回调刷新网络分区） -->
+    <HostNetworkDialog
+      v-model="netDialogVisible"
+      :host-id="hostId"
+      :host-name="hostName"
+      :os-type="hostRecord?.serverHostOsType"
+      :initial-adapter="netDialogAdapter"
+      @applied="loadProfileSection"
+    />
   </div>
 </template>
 
