@@ -386,5 +386,12 @@
     configApiError: 'Please configure API URL and API KEY first',
     fetchSuccess: 'Fetched {n} models',
     fetchFailed: 'An error occurred while fetching the model list',
+    importAll: 'Import all ({n})',
+    importing: 'Importing…',
+    importDone: 'Imported {imported} models, skipped {skipped} already present',
+    importFailed: 'Batch import failed',
+    importPartial: 'Partial import ({got}/{expected})',
+    importPartialDesc: 'Imported {imported}, skipped {skipped}; upstream returned only {got} of {expected} this time. Click "Import all" again to continue.',
+    manualAdd: 'Add manually',
   },
 }

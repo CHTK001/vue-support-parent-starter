@@ -26,12 +26,14 @@ import { costMs } from "@repo/utils";
 import PairsEditor from "./PairsEditor.vue";
 import commentForm from "./nodes/commentForm.vue";
 import conditionForm from "./nodes/conditionForm.vue";
+import dataEntryForm from "./nodes/dataEntryForm.vue";
 import databaseForm from "./nodes/databaseForm.vue";
 import dedupForm from "./nodes/dedupForm.vue";
 import endForm from "./nodes/endForm.vue";
 import extractForm from "./nodes/extractForm.vue";
 import genericForm from "./nodes/genericForm.vue";
 import linkForm from "./nodes/linkForm.vue";
+import middlewareForm from "./nodes/middlewareForm.vue";
 import outputForm from "./nodes/outputForm.vue";
 import processForm from "./nodes/processForm.vue";
 import requestForm from "./nodes/requestForm.vue";
@@ -683,6 +685,13 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   comment: commentForm,
   condition: conditionForm,
   end: endForm,
+  // 数据录入：手工录行产出行数据流，建表走共享 CreateTableDialog
+  entry: dataEntryForm,
+  // 中间件读写四型共用一份表单，差异（数据源类型过滤）由 shape 前缀决定
+  "influxdb-read": middlewareForm,
+  "influxdb-write": middlewareForm,
+  "neo4j-read": middlewareForm,
+  "neo4j-write": middlewareForm,
 };
 
 /** 当前节点该渲染的表单组件 */

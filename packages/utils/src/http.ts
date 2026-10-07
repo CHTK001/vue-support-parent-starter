@@ -23,7 +23,11 @@ import type { OpenAiChunk, OpenAiSseOptions, SpringAiChunk, SpringAiSseOptions }
 
 const defaultOptions: HttpOptions = {
   useAppConfig: true,
-  timeout: 10000,
+  // 刻意不写死 timeout：buildDefaults() 只在 timeout === undefined 时才回落到
+  // cfg.http?.timeout（app.yaml 的 http.timeout，缺省 10000）。写死会让
+  // yaml 配置永远不可达 —— 用户改了配置不生效，长查询/大上传只能吃默认 10s
+  // （表现为 axios「timeout of 10000ms exceeded」）。
+  timeout: undefined,
 };
 
 /**

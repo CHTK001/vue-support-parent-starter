@@ -47,6 +47,10 @@
       "types": "./src/components/ReDialog/index.ts",
       "default": "./src/components/ReDialog/index.ts"
     },
+    "./create-table-dialog": {
+      "types": "./src/components/CreateTableDialog/index.ts",
+      "default": "./src/components/CreateTableDialog/index.ts"
+    },
     "./re-table": {
       "types": "./src/components/ReTable/index.ts",
       "default": "./src/components/ReTable/index.ts"
@@ -372,6 +376,7 @@
     "@microsoft/fetch-event-source": "catalog:",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
+    "@repo/languages": "workspace:^",
     "@repo/pinia": "workspace:*",
     "@repo/utils": "workspace:*",
     "@tiptap/core": "^3.26.0",

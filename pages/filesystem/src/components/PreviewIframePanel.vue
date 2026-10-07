@@ -51,7 +51,7 @@ defineExpose({ wrapRef, iframeRef });
       <iframe
         ref="iframeRef"
         :key="frameKey"
-        :src="src"
+        :src="src || 'about:blank'"
         referrerpolicy="no-referrer"
         class="preview-iframe-panel__frame"
         @load="emit('load')"

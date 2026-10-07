@@ -9,13 +9,16 @@
  *  - 弹窗预览（图片/文本/Office/PDF/音视频）
  *  - 一次性链接（自定义过期时间）
  */
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   ArrowDown,
   ArrowLeft,
+  Box,
   CircleCheck,
+  Clock,
   Close,
+  Connection,
   CopyDocument,
   Delete,
   DeleteFilled,
@@ -29,16 +32,25 @@ import {
   FolderAdd,
   FolderOpened,
   Grid,
+  InfoFilled,
+  Key,
+  Link,
   List,
   Lock,
   Menu,
   Operation,
+  Picture,
   Refresh,
+  RefreshRight,
   Scissor,
+  Search,
   Setting,
+  Sort,
+  Stamp,
   Tickets,
   Upload,
   UploadFilled,
+  View,
   VideoPause,
   VideoPlay,
 } from "@element-plus/icons-vue";
@@ -73,10 +85,17 @@ import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
-import PreviewPdfPanel from "../components/PreviewPdfPanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import CadPreviewPanel from "../components/CadPreviewPanel.vue";
-import { isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
+/**
+ * IFC 预览面板按需加载。
+ *
+ * <p>{@link PreviewIfcPanel} 会引入 {@code three} + {@code web-ifc}（含 WASM），
+ * 体积明显大于其它面板；文件页本身可能被频繁打开，不该为「几乎不预览的 IFC」
+ * 让所有人先背上这份依赖，故用异步组件，仅在真正展示 IFC 时再加载。</p>
+ */
+const PreviewIfcPanel = defineAsyncComponent(() => import("../components/PreviewIfcPanel.vue"));
+import { CONVERTIBLE_TEXT_EXTS, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 
@@ -1299,6 +1318,8 @@ const adminForm = reactive({
   openWebjars: true,
   /** 允许远程文件 */
   openRemoteFile: false,
+  /** 允许三方 URL 预览（?url=base64 编码地址） */
+  openThirdPreview: false,
   /** 目录列表页开关 */
   layout: true,
   /** 布局类型 SIMPLE/SYSTEM */
@@ -1402,6 +1423,7 @@ function applyConfigToForm(cfg: BucketConfig | null): void {
   adminForm.openWatermark = cfg.openWatermark;
   adminForm.openWebjars = cfg.openWebjars;
   adminForm.openRemoteFile = cfg.openRemoteFile;
+  adminForm.openThirdPreview = cfg.openThirdPreview ?? false;
   adminForm.layout = cfg.layout;
   adminForm.layoutType = cfg.layoutType || "SIMPLE";
   adminForm.watermark = cfg.watermark ?? "";
@@ -1423,9 +1445,255 @@ function applyConfigToForm(cfg: BucketConfig | null): void {
  */
 function openAdminConfig(): void {
   adminVisible.value = true;
+  adminSearch.value = "";
+  adminGroup.value = "fs-adm-file";
   applyConfigToForm(bucketConfig.value);
   if (!bucketConfig.value) {
     void loadBucketConfig().then(() => applyConfigToForm(bucketConfig.value));
+  }
+}
+
+/* ===== 系统配置弹窗：分组导航 / 设置项搜索 / 私有桶标签 ===== */
+
+/** 搜索关键字（空串 = 不过滤，全部设置项可见） */
+const adminSearch = ref("");
+
+/** 右侧内容滚动容器（分组跳转 + 滚动高亮的基准） */
+const adminMainRef = ref<HTMLElement | null>(null);
+
+/** 左侧当前高亮的分组 id */
+const adminGroup = ref("fs-adm-file");
+
+/** 左侧分组清单（id 与右侧 <section> 的 id 一一对应） */
+const adminGroups = [
+  { id: "fs-adm-file", label: "文件功能", icon: Files },
+  { id: "fs-adm-layout", label: "布局显示", icon: Grid },
+  { id: "fs-adm-security", label: "水印与安全", icon: Lock },
+  { id: "fs-adm-token", label: "管理员令牌", icon: Key },
+] as const;
+
+/**
+ * 文件功能开关清单
+ *
+ * <p>terms 是各项的搜索词，**必须包含分组名「文件功能」**：分组显隐由
+ * {@link adminSectionsShown} 按各项 terms 求或得出，只有每项都带上分组名，
+ * 才能保证「命中某项 ⇒ 所在分组一定可见」，不会出现分组被过滤掉而项还留着的错位。</p>
+ */
+const adminFileToggles: ReadonlyArray<{
+  key:
+    | "openPreview"
+    | "openDownload"
+    | "openRange"
+    | "openWatermark"
+    | "openWebjars"
+    | "openRemoteFile"
+    | "openThirdPreview"
+    | "layout";
+  label: string;
+  desc: string;
+  icon: Component;
+  terms: string[];
+}> = [
+  { key: "openPreview", label: "内联预览", desc: "浏览器内直接预览文件", icon: View, terms: ["文件功能", "内联预览", "预览", "preview"] },
+  { key: "openDownload", label: "附件下载", desc: "允许下载文件附件", icon: Download, terms: ["文件功能", "附件下载", "下载", "download"] },
+  { key: "openRange", label: "分段下载", desc: "支持 Range 断点续传", icon: Sort, terms: ["文件功能", "分段下载", "断点续传", "range"] },
+  { key: "openWatermark", label: "水印响应头", desc: "响应中携带水印标识", icon: Stamp, terms: ["文件功能", "水印响应头", "水印", "watermark"] },
+  { key: "openWebjars", label: "Webjars 资源", desc: "暴露 Webjars 静态资源", icon: Box, terms: ["文件功能", "webjars", "静态资源"] },
+  { key: "openRemoteFile", label: "远程文件透传", desc: "代理远程文件请求", icon: Connection, terms: ["文件功能", "远程文件透传", "远程", "透传", "proxy"] },
+  { key: "openThirdPreview", label: "三方 URL 预览", desc: "允许 base64 编码的外部地址预览", icon: Link, terms: ["文件功能", "三方 url 预览", "三方", "url", "外部地址"] },
+  { key: "layout", label: "目录列表页", desc: "无索引文件时列出目录内容", icon: Menu, terms: ["文件功能", "目录列表页", "目录", "列表页", "layout"] },
+];
+
+/** 详情视图列显隐清单（同样带上分组名，理由见 {@link adminFileToggles}） */
+const adminColumnToggles: ReadonlyArray<{
+  key: "showFormat" | "showSize" | "showTime";
+  label: string;
+  terms: string[];
+}> = [
+  { key: "showFormat", label: "显示\"类型\"列", terms: ["布局显示", "类型", "type"] },
+  { key: "showSize", label: "显示\"大小\"列", terms: ["布局显示", "大小", "size"] },
+  { key: "showTime", label: "显示\"修改时间\"列", terms: ["布局显示", "修改时间", "时间", "time"] },
+];
+
+/** 「布局显示」分组各项的搜索词；分组显隐 = 任一项命中（与模板里的 v-if 一一对应） */
+const ADMIN_LAYOUT_ITEM_TERMS: Record<string, string[]> = {
+  layoutType: ["布局显示", "布局类型", "资源管理器", "简单列表", "system", "simple"],
+  imageFilter: ["布局显示", "图片滤镜", "滤镜", "图片", "filter"],
+  access: ["布局显示", "访问权限", "公共", "私有", "权限"],
+  buckets: ["布局显示", "全部私有桶", "私有桶", "桶", "bucket"],
+  ttl: ["布局显示", "链接默认有效期", "有效期", "分钟", "链接", "ttl"],
+};
+
+/** 「水印与安全」分组搜索词 */
+const ADMIN_SECURITY_TERMS = ["水印与安全", "水印", "文字", "watermark"];
+
+/** 「管理员令牌」分组搜索词 */
+const ADMIN_TOKEN_TERMS = ["管理员令牌", "令牌", "token", "api", "鉴权"];
+
+/**
+ * 判断一组搜索词是否命中（空关键字恒命中）
+ *
+ * @param terms 关键词组，任一命中即为 true
+ * @returns 命中则 true
+ */
+function admHitAny(terms: readonly string[]): boolean {
+  const q = adminSearch.value.trim().toLowerCase();
+  if (q === "") return true;
+  return terms.some((t) => t.toLowerCase().includes(q));
+}
+
+/** 四个分组是否可见（搜索过滤后） */
+const adminSectionsShown = computed(() => ({
+  file: adminFileToggles.some((t) => admHitAny(t.terms)),
+  layout: Object.values(ADMIN_LAYOUT_ITEM_TERMS).some((terms) => admHitAny(terms)),
+  security: admHitAny(ADMIN_SECURITY_TERMS),
+  token: admHitAny(ADMIN_TOKEN_TERMS),
+}));
+
+/** 命中搜索的文件功能开关（用于 v-for 渲染） */
+const visibleFileToggles = computed(() => adminFileToggles.filter((t) => admHitAny(t.terms)));
+
+/** 命中搜索的列显隐开关（用于 v-for 渲染） */
+const visibleColumnToggles = computed(() => adminColumnToggles.filter((t) => admHitAny(t.terms)));
+
+/** 是否还有任一分组可见（全被过滤掉时给空态提示） */
+const adminAnySectionShown = computed(() => Object.values(adminSectionsShown.value).some(Boolean));
+
+/**
+ * 左侧分组点击：滚动右侧内容到对应分区
+ *
+ * @param id 分区 id
+ */
+function scrollToAdminSection(id: string): void {
+  adminGroup.value = id;
+  const main = adminMainRef.value;
+  const el = main?.querySelector<HTMLElement>(`#${id}`);
+  // 分区的 offsetTop 以 .fs-admin__main（position:relative）为基准，直接滚动容器即可
+  if (main && el) main.scrollTo({ top: el.offsetTop, behavior: "smooth" });
+}
+
+/** 右侧滚动 → 反向高亮左侧分组 */
+function syncAdminGroup(): void {
+  const main = adminMainRef.value;
+  if (!main) return;
+  let current = "";
+  for (const g of adminGroups) {
+    const el = main.querySelector<HTMLElement>(`#${g.id}`);
+    if (el && el.offsetTop - main.scrollTop <= 80) current = g.id;
+  }
+  if (current) adminGroup.value = current;
+}
+
+/** 全部私有桶标签的输入草稿 */
+const bucketDraft = ref("");
+
+/** 私有桶标签输入框（点击标签容器时聚焦） */
+const bucketInputRef = ref<HTMLInputElement | null>(null);
+
+/** 聚焦私有桶标签输入框 */
+function focusBucketInput(): void {
+  bucketInputRef.value?.focus();
+}
+
+/**
+ * 私有桶标签输入按键：回车或逗号提交
+ *
+ * @param e 键盘事件
+ */
+function onBucketKeydown(e: KeyboardEvent): void {
+  if (e.key === "Enter" || e.key === "," || e.key === "，") {
+    e.preventDefault();
+    addBucketTag();
+  }
+}
+
+/** 全部私有桶标签（源数据仍是 adminForm.privateBuckets 逗号串，保存链路不变） */
+const bucketTags = computed(() =>
+  adminForm.privateBuckets.split(",").map((s) => s.trim()).filter(Boolean),
+);
+
+/** 提交私有桶标签（回车或失焦；支持一次粘贴多个逗号分隔值） */
+function addBucketTag(): void {
+  const parts = bucketDraft.value.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return;
+  const set = new Set(bucketTags.value);
+  for (const p of parts) set.add(p);
+  adminForm.privateBuckets = [...set].join(",");
+  bucketDraft.value = "";
+}
+
+/**
+ * 删除指定私有桶标签
+ *
+ * @param tag 要删除的桶名
+ */
+function removeBucketTag(tag: string): void {
+  adminForm.privateBuckets = bucketTags.value.filter((t) => t !== tag).join(",");
+}
+
+/**
+ * 恢复默认设置（只回填表单，仍需点「保存并生效」才写服务端）
+ */
+function resetAdminForm(): void {
+  Object.assign(adminForm, {
+    openPreview: true,
+    openDownload: true,
+    openRange: true,
+    openWatermark: false,
+    openWebjars: true,
+    openRemoteFile: false,
+    openThirdPreview: false,
+    layout: true,
+    layoutType: "SIMPLE",
+    watermark: "",
+    showFormat: true,
+    showSize: true,
+    showTime: true,
+    imageFilter: "NONE",
+    privateBucket: false,
+    privateBuckets: "",
+    oneTimeTtlMinutes: "10",
+  });
+  bucketDraft.value = "";
+  ElMessage.success("已恢复默认设置，点「保存并生效」后写入服务端");
+}
+
+/**
+ * 复制管理员令牌（非安全上下文下的 clipboard API 会抛错，回退 execCommand）
+ */
+function copyAdminToken(): void {
+  const text = adminToken.value;
+  if (!text) {
+    ElMessage.warning("当前没有令牌可复制");
+    return;
+  }
+  const done = () => ElMessage.success("令牌已复制");
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopyToken(text, done));
+  } else {
+    fallbackCopyToken(text, done);
+  }
+}
+
+/**
+ * 剪贴板兜底：临时 textarea + execCommand
+ *
+ * @param text 待复制文本
+ * @param done 成功回调
+ */
+function fallbackCopyToken(text: string, done: () => void): void {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    done();
+  } catch {
+    ElMessage.error("复制失败，请手动选择文本复制");
   }
 }
 
@@ -1814,6 +2082,9 @@ function ctxAction(action: string) {
       break;
     case "preview":
       if (row) void openPreview(row);
+      break;
+    case "previewNew":
+      if (row && !row.directory) void openPreviewInNewTab(row);
       break;
     case "download":
       if (row) void smartDownload([fullKey(row.name)]);
@@ -2401,13 +2672,26 @@ const previewIsArchive = computed(() => kindOf(previewName.value) === "archive")
 const showImagePanel = computed(() => kindOf(previewName.value) === "image");
 
 /**
- * 当前文件是否走 PDF 面板（{@link PreviewPdfPanel}）
+ * 当前文件是否是原生 PDF（老口径，现仅作 {@link previewPdfViewer} 的一个分支条件）
  *
- * <p>PDF 不走 VueOfficePdf：后者把全部页按原始尺寸纵向堆叠且不限高，
- * 实测 679KB 的 PDF 被渲染成 209,362 px、弹框被撑到 20 万像素。
- * 本面板用内置 pdf.js 自己渲染，左分页缩略图 + 右当前页，滚动限制在舞台内。</p>
+ * <p>需求口径变了：PDF 不再由面板内自渲染，而是与「服务端转成 PDF 的文档」一起
+ * 交给 pdf.js 的 {@code viewer.html}（见 {@link previewPdfViewer}）。</p>
  */
 const showPdfPanel = computed(() => kindOf(previewName.value) === "pdf");
+
+/**
+ * 当前预览是否交给 pdf.js viewer（{@code viewer.html}）统一呈现。
+ *
+ * <p>需求口径：PDF 格式与「服务端转成 PDF 的格式」都用 pdf.js 的 viewer.html
+ * 预览——覆盖原生 PDF、{@code ?format=pdf} 转换通道（ODF/RTF/WPS 与
+ * Office 面板 channel:pdf 兜底），以及压缩包内下钻出的 PDF 条目。</p>
+ */
+const previewPdfViewer = computed(() => {
+  if (showPdfPanel.value || previewUsePdf.value) {
+    return true;
+  }
+  return previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "pdf";
+});
 
 /** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
 function onImageSaved(): void {
@@ -2521,6 +2805,32 @@ const showCadPanel = computed(() => previewIsCad.value || innerIsCad.value);
 /** CAD 面板解析的条目路径：顶层为空串，包内为包内路径 */
 const cadInnerPath = computed(() => (innerIsCad.value ? previewInnerPath.value : ""));
 
+/**
+ * 当前文件是否走 IFC 面板（{@link PreviewIfcPanel}）。
+ *
+ * IFC 是 BIM 三维模型，three.js 无原生 IFC 加载器，纯前端由 web-ifc 解析、
+ * three 渲染。与 CAD 面板一样不进 iframe：那条通道读不到主应用主题变量，
+ * 且后端没有 IFC provider（会把请求落到「不支持预览」提示页）。
+ *
+ * 顶层 .ifc 与压缩包内 .ifc 都归这个面板（包内字节走 ?preview&inner 的
+ * inner-raw 通道取回）。
+ */
+function isIfcFile(name: string): boolean {
+  if (kindOf(name) !== "model") {
+    return false;
+  }
+  return name.slice(name.lastIndexOf(".") + 1).toLowerCase() === "ifc";
+}
+
+const previewIsIfc = computed(() => isIfcFile(previewName.value));
+const innerIsIfc = computed(() => previewInnerPath.value !== "" && isIfcFile(innerEntryName.value));
+
+/** 是否展示 IFC 面板（顶层 .ifc 或压缩包内 .ifc） */
+const showIfcPanel = computed(() => previewIsIfc.value || innerIsIfc.value);
+
+/** IFC 面板解析的条目路径：顶层为空串，包内为包内路径 */
+const ifcInnerPath = computed(() => (innerIsIfc.value ? previewInnerPath.value : ""));
+
 /** 预览包内条目：CAD 类走数据面板，其余切到 iframe 通道 */
 function openArchiveEntry(path: string): void {
   previewInnerPath.value = path;
@@ -2565,6 +2875,50 @@ const officeLoading = ref(false);
 const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
 
 /**
+ * pdf.js viewer 入口的路径（服务端 {@code classpath:/static/preview-vendor/pdf/viewer/viewer.html}）
+ *
+ * <p>需求口径：PDF 格式与「服务端转成 PDF 的格式」都统一用 pdf.js 的 viewer.html 预览。
+ * 它是 pdf.js 官方的全功能阅读器（缩略图栏 / 大纲 / 页内搜索 / 打印 / 旋转 / 多档缩放），
+ * 比面板内自渲染那版功能更全，并且让**原生 PDF 与转换出来的 PDF 共用一个入口**，
+ * 不再出现「原生 PDF 一套界面、转换结果另一套界面」。</p>
+ *
+ * <p><b>为什么 viewer 资产必须落在文件服务器上</b>：viewer.html 用 {@code ?file=}
+ * 指定待渲染地址，而 pdf.js 只接受**同源** file 地址（跨源会被它自己的检查拒掉）。
+ * 所以 viewer 必须与票据同一个源 —— 即文件存储服务，而不是前端 dev server。
+ * 资产因此放在 {@code spring-support-filesystem-starter} 的 {@code static/preview-vendor} 下，
+ * 由 {@code FileStorageServerFilter#servePreviewVendor} 直接吐字节。</p>
+ */
+const PDF_VIEWER_PATH = "/preview-vendor/pdf/viewer/viewer.html";
+
+/**
+ * 由票据地址推出**同源**的 viewer.html 地址
+ *
+ * @param ticketUrl 对象票据直链（可能自带查询串）
+ * @returns viewer.html 绝对地址；票据为空或解析失败时返回空串
+ */
+function pdfViewerUrlOf(ticketUrl: string): string {
+  if (!ticketUrl) {
+    return "";
+  }
+  try {
+    return `${new URL(ticketUrl, window.location.href).origin}${PDF_VIEWER_PATH}`;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 把一条「待渲染地址」包成 pdf.js viewer 的整页地址
+ *
+ * @param target 后端渲染地址（{@code ?preview=true} / {@code &format=pdf} / 带 {@code inner}）
+ * @returns {@code viewer.html?file=<encodeURIComponent(target)>}；viewer 不同源时原样返回
+ */
+function withPdfViewer(target: string): string {
+  const viewer = pdfViewerUrlOf(target);
+  return viewer ? `${viewer}?file=${encodeURIComponent(target)}` : target;
+}
+
+/**
  * 预览 iframe 地址：统一走后端预览通道 {@code ?preview=true}。
  *
  * <p>所有类型（图片/文本/PDF/Office/音视频/压缩包等）一致，由后端按类型内联渲染或直出字节；
@@ -2573,9 +2927,18 @@ const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
  *
  * <p>预览压缩包内条目时追加 {@code inner=包内路径}，后端据此提取条目并按
  * 条目自身类型渲染（见 {@link openArchiveEntry}）。</p>
+ *
+ * <p><b>需求 1</b>：{@link previewPdfViewer} 命中时，真正的 {@code ?preview=true}
+ * 地址被**编码进** {@code ?file=} 交给 pdf.js 的 viewer.html —— viewer 负责取字节、
+ * 渲染、翻页与搜索，本组件只负责把 viewer 塞进 iframe。</p>
  */
 const previewFrameSrc = computed(() => {
   const base = previewSrc.value;
+  if (!base) {
+    // 票据是异步换来的：解析完成前不构造任何地址，避免 iframe 拿相对地址
+    // 把当前应用页自己再加载一遍（src="" 会解析成 document.URL）。
+    return "";
+  }
   const sep = base.includes("?") ? "&" : "?";
   // 兜底通道互斥：能转 PDF 就**不**再要求服务端渲染，否则地址里会同时出现
   // render=server 与 format=pdf（两个参数语义冲突，虽然 PDF 分支先命中没错，
@@ -2583,8 +2946,79 @@ const previewFrameSrc = computed(() => {
   const pdf = previewUsePdf.value ? "&format=pdf" : "";
   const server = previewForceServer.value && !previewUsePdf.value ? `&render=${RENDER_SERVER}` : "";
   const inner = previewInnerPath.value ? `&inner=${encodeURIComponent(previewInnerPath.value)}` : "";
-  return `${base}${sep}preview=true${server}${pdf}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
+  const target = `${base}${sep}preview=true${server}${pdf}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
+  return previewPdfViewer.value ? withPdfViewer(target) : target;
 });
+
+/**
+ * 构造「新标签全窗口预览」的地址（需求 3）
+ *
+ * <p>新标签是一份**独立文档**，没有主应用的 Vue 组件，所以只能命中服务端链路，
+ * 按类型分三档：</p>
+ *
+ * <ul>
+ *   <li><b>图片</b> → 票据直链。浏览器原生就是最好的看图器，全窗展示即可，
+ *       不必再经 {@code ?preview=true} 绕一圈服务端 HTML。</li>
+ *   <li><b>原生 PDF</b> → {@code ?preview=true} 交给 pdf.js viewer</li>
+ *   <li><b>可转 PDF 的文档</b>（OOXML / 传统二进制 Office、ODF / RTF / WPS）→
+ *       {@code ?preview=true&format=pdf} 再交给 viewer。新窗口里没有客户端组件，
+ *       服务端转 PDF 是唯一能出整页内容的路；转不动时后端会带
+ *       {@code conv=unavailable} 继续走原通道，最差退回提示卡，不会白屏。</li>
+ *   <li><b>其余</b> → {@code ?preview=true}，服务端按类型渲染整页 HTML
+ *       （文本高亮 / CSV 表格 / 音视频播放页 / 压缩包目录 …）。</li>
+ * </ul>
+ *
+ * <p>csv / tsv 走最后一档而不是转 PDF：服务端 {@code CsvPreviewProvider} 只是
+ * 字符串切表格，比让 Aspose 起一次转换便宜得多。</p>
+ *
+ * @param base 对象票据直链
+ * @param name 文件名
+ * @returns 可直接打开的绝对地址
+ */
+function newWindowPreviewUrl(base: string, name: string): string {
+  const sep = base.includes("?") ? "&" : "?";
+  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  const kind = kindOf(name);
+  if (kind === "image") {
+    return base;
+  }
+  if (kind === "pdf") {
+    return withPdfViewer(`${base}${sep}preview=true`);
+  }
+  if (!CONVERTIBLE_TEXT_EXTS.has(ext) && (isClientRenderable(name) || needsPdfConvert(name))) {
+    return withPdfViewer(`${base}${sep}preview=true&format=pdf`);
+  }
+  return `${base}${sep}preview=true`;
+}
+
+/**
+ * 「预览（新窗口）」：在新标签页里全窗口看这个文件（需求 3）
+ *
+ * <p><b>为什么先占一个空白标签再填地址</b>：票据要异步换，{@code await} 之后再
+ * {@code window.open} 已经脱离用户手势，会被浏览器当弹窗拦掉。先同步开出
+ * {@code about:blank}，拿到地址再跳转 —— 标签页自始至终由这次点击产生，
+ * 既不被拦，也不会出现「点了没反应」。</p>
+ *
+ * @param row 目标对象
+ */
+async function openPreviewInNewTab(row: StorageObject): Promise<void> {
+  if (row.directory || !guardPreview()) {
+    return;
+  }
+  const pending = window.open("about:blank", "_blank");
+  const base = await resolveObjectUrl(bucket.value, fullKey(row.name)).catch(() => "");
+  if (!base) {
+    pending?.close();
+    return;
+  }
+  const url = newWindowPreviewUrl(base, row.name);
+  if (pending) {
+    pending.location.replace(url);
+  } else {
+    // 极端情况（用户改了浏览器设置）也别静默失败，退回去再试一次普通打开
+    window.open(url, "_blank");
+  }
+}
 
 
 const iframePanelRef = ref<InstanceType<typeof PreviewIframePanel>>();
@@ -3338,6 +3772,20 @@ onUnmounted(() => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             {{ ctxMenu.row!.directory ? '打开' : '预览' }}
           </button>
+          <!--
+            需求 3：新标签全窗口预览。**必须紧跟在「预览」之后** —— e2e 用
+            hasText:"预览" + .first() 取主预览项，排在前面会让它先命中本项。
+          -->
+          <button
+            v-if="!ctxMenu.row!.directory && allowPreview"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('previewNew')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            预览（新窗口）
+          </button>
           <button
             v-if="!ctxMenu.row!.directory && allowDownload"
             type="button"
@@ -3458,125 +3906,238 @@ onUnmounted(() => {
       </div>
     </Teleport>
 
-    <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性） ===== -->
-    <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性） ===== -->
+    <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性）
+         左分组 + 右内容的双栏结构，右侧分区可搜索过滤；色值全部走 koi 的 --el-* 令牌。 ===== -->
     <el-dialog
       v-model="adminVisible"
       class="fs-admin-dialog"
-      width="680px"
+      width="1040px"
       :append-to-body="true"
       :close-on-click-modal="false"
       destroy-on-close
     >
       <template #header>
         <div class="fs-admin__head">
-          <h3 class="fs-admin__title">系统配置</h3>
-          <p class="fs-admin__subtitle">管理员设置 · 保存后立即生效</p>
+          <span class="fs-admin__logo" aria-hidden="true">
+            <el-icon :size="20"><Setting /></el-icon>
+          </span>
+          <div class="fs-admin__titles">
+            <h3 class="fs-admin__title">系统配置</h3>
+            <p class="fs-admin__subtitle">管理员设置 · 保存后立即生效</p>
+          </div>
+          <el-input
+            v-model="adminSearch"
+            class="fs-admin__search"
+            placeholder="搜索设置项..."
+            :prefix-icon="Search"
+            clearable
+          />
         </div>
       </template>
+
       <div class="fs-admin">
-        <section class="fs-admin__card">
-          <div class="fs-admin__group">文件功能</div>
-          <div class="fs-admin__grid">
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">内联预览 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.openPreview" />
-            </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">附件下载 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.openDownload" />
-            </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">分段下载 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.openRange" />
-            </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">水印响应头 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.openWatermark" />
-            </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">Webjars 资源 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.openWebjars" />
-            </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">远程文件透传 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.openRemoteFile" />
-            </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">目录列表页 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.layout" />
-            </div>
-          </div>
+        <aside class="fs-admin__side">
+          <div class="fs-admin__side-cap">配置分组</div>
+          <button
+            v-for="g in adminGroups"
+            :key="g.id"
+            type="button"
+            class="fs-admin__nav"
+            :class="{ 'is-active': adminGroup === g.id }"
+            @click="scrollToAdminSection(g.id)"
+          >
+            <el-icon :size="15"><component :is="g.icon" /></el-icon>
+            <span>{{ g.label }}</span>
+          </button>
+          <button type="button" class="fs-admin__reset" @click="resetAdminForm">
+            <el-icon :size="14"><RefreshRight /></el-icon>
+            <span>恢复默认设置</span>
+          </button>
+        </aside>
 
-          <div class="fs-admin__divider" aria-hidden="true" />
-          <div class="fs-admin__group">布局显示</div>
-          <div class="fs-admin__grid">
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">布局类型 <i class="fs-admin__arrow">→</i></span>
-              <el-radio-group v-model="adminForm.layoutType" class="fs-admin__pills">
-                <el-radio-button value="SYSTEM">资源管理器</el-radio-button>
-                <el-radio-button value="SIMPLE">简单列表</el-radio-button>
-              </el-radio-group>
+        <div ref="adminMainRef" class="fs-admin__main" @scroll="syncAdminGroup">
+          <p v-if="!adminAnySectionShown" class="fs-admin__empty">
+            没有匹配「{{ adminSearch.trim() }}」的设置项
+          </p>
+
+          <!-- 文件功能 -->
+          <section v-if="adminSectionsShown.file" id="fs-adm-file" class="fs-admin__section">
+            <div class="fs-admin__group">文件功能</div>
+            <div class="fs-admin__grid">
+              <div v-for="t in visibleFileToggles" :key="t.key" class="fs-admin__tile">
+                <span class="fs-admin__tileicon" aria-hidden="true">
+                  <el-icon :size="17"><component :is="t.icon" /></el-icon>
+                </span>
+                <span class="fs-admin__tiletext">
+                  <span class="fs-admin__label">{{ t.label }}</span>
+                  <span class="fs-admin__desc">{{ t.desc }}</span>
+                </span>
+                <el-switch v-model="adminForm[t.key]" />
+              </div>
             </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">显示"类型"列 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.showFormat" />
+          </section>
+
+          <!-- 布局显示 -->
+          <section v-if="adminSectionsShown.layout" id="fs-adm-layout" class="fs-admin__section">
+            <div class="fs-admin__group">布局显示</div>
+
+            <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.layoutType)" class="fs-admin__field">
+              <span class="fs-admin__label fs-admin__label--field">布局类型</span>
+              <div class="fs-admin__layouts">
+                <button
+                  type="button"
+                  class="fs-admin__layout"
+                  :class="{ 'is-active': adminForm.layoutType === 'SYSTEM' }"
+                  :aria-pressed="adminForm.layoutType === 'SYSTEM'"
+                  @click="adminForm.layoutType = 'SYSTEM'"
+                >
+                  <span class="fs-admin__layoutart fs-admin__layoutart--system" aria-hidden="true">
+                    <i /><i /><i />
+                  </span>
+                  <span class="fs-admin__layoutname">资源管理器</span>
+                  <span class="fs-admin__check" aria-hidden="true">
+                    <el-icon :size="13"><CircleCheck /></el-icon>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="fs-admin__layout"
+                  :class="{ 'is-active': adminForm.layoutType === 'SIMPLE' }"
+                  :aria-pressed="adminForm.layoutType === 'SIMPLE'"
+                  @click="adminForm.layoutType = 'SIMPLE'"
+                >
+                  <span class="fs-admin__layoutart fs-admin__layoutart--simple" aria-hidden="true">
+                    <i /><i /><i />
+                  </span>
+                  <span class="fs-admin__layoutname">简单列表</span>
+                  <span class="fs-admin__check" aria-hidden="true">
+                    <el-icon :size="13"><CircleCheck /></el-icon>
+                  </span>
+                </button>
+              </div>
             </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">显示"大小"列 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.showSize" />
+
+            <div class="fs-admin__pills">
+              <button
+                v-for="c in visibleColumnToggles"
+                :key="c.key"
+                type="button"
+                class="fs-admin__pill"
+                :class="{ 'is-on': adminForm[c.key] }"
+                :aria-pressed="adminForm[c.key]"
+                @click="adminForm[c.key] = !adminForm[c.key]"
+              >
+                <el-icon :size="14"><CircleCheck /></el-icon>
+                <span class="fs-admin__label fs-admin__label--pill">{{ c.label }}</span>
+              </button>
             </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">显示"修改时间"列 <i class="fs-admin__arrow">→</i></span>
-              <el-switch v-model="adminForm.showTime" />
+
+            <div class="fs-admin__fields">
+              <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.imageFilter)" class="fs-admin__field">
+                <span class="fs-admin__label fs-admin__label--field">图片滤镜</span>
+                <el-select v-model="adminForm.imageFilter" class="fs-admin__select">
+                  <template #prefix><el-icon><Picture /></el-icon></template>
+                  <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
+                </el-select>
+              </div>
+
+              <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.access)" class="fs-admin__field">
+                <span class="fs-admin__label fs-admin__label--field">访问权限</span>
+                <el-radio-group v-model="adminForm.privateBucket" class="fs-admin__seg">
+                  <el-radio-button :value="false">公共</el-radio-button>
+                  <el-radio-button :value="true">私有</el-radio-button>
+                </el-radio-group>
+              </div>
+
+              <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.buckets)" class="fs-admin__field fs-admin__field--wide">
+                <span class="fs-admin__label fs-admin__label--field">全部私有桶</span>
+                <div class="fs-admin__tags" @click="focusBucketInput">
+                  <span v-for="tag in bucketTags" :key="tag" class="fs-admin__tag">
+                    {{ tag }}
+                    <el-icon
+                      class="fs-admin__tagx"
+                      :size="13"
+                      title="移除"
+                      @click.stop="removeBucketTag(tag)"
+                    ><Close /></el-icon>
+                  </span>
+                  <input
+                    ref="bucketInputRef"
+                    v-model="bucketDraft"
+                    class="fs-admin__taginput"
+                    placeholder="输入桶名后回车"
+                    @keydown="onBucketKeydown"
+                    @blur="addBucketTag"
+                  />
+                </div>
+                <p class="fs-admin__hint">留空表示全部公共；回车或逗号分隔多个桶名。</p>
+              </div>
+
+              <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.ttl)" class="fs-admin__field">
+                <span class="fs-admin__label fs-admin__label--field">链接默认有效期</span>
+                <el-input
+                  v-model="adminForm.oneTimeTtlMinutes"
+                  placeholder="分钟，留空表示不修改"
+                  clearable
+                >
+                  <template #prefix><el-icon><InfoFilled /></el-icon></template>
+                  <template #suffix>
+                    <span v-if="adminForm.oneTimeTtlMinutes.trim()" class="fs-admin__unit">分钟 · 留空表示不修改</span>
+                  </template>
+                </el-input>
+              </div>
             </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">图片滤镜 <i class="fs-admin__arrow">→</i></span>
-              <el-select v-model="adminForm.imageFilter"  class="fs-admin__select">
-                <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
-              </el-select>
+          </section>
+
+          <!-- 水印与安全 -->
+          <section v-if="adminSectionsShown.security" id="fs-adm-security" class="fs-admin__section">
+            <div class="fs-admin__group">水印与安全</div>
+            <div class="fs-admin__field">
+              <span class="fs-admin__label fs-admin__label--field">水印文字</span>
+              <el-input v-model="adminForm.watermark" placeholder="如：内部资料" clearable>
+                <template #prefix><el-icon><Stamp /></el-icon></template>
+              </el-input>
+              <p class="fs-admin__hint">叠加到图片/文档预览上；留空表示不加水印。</p>
             </div>
-            <div class="fs-admin__row">
-              <span class="fs-admin__label">访问权限 <i class="fs-admin__arrow">→</i></span>
-              <el-radio-group v-model="adminForm.privateBucket" class="fs-admin__pills">
-                <el-radio-button :value="false">公共</el-radio-button>
-                <el-radio-button :value="true">私有</el-radio-button>
-              </el-radio-group>
-            </div>
-            <div class="fs-admin__row fs-admin__row--stack">
-              <span class="fs-admin__label">全部私有桶 <i class="fs-admin__arrow">→</i></span>
+          </section>
+
+          <!-- 管理员令牌 -->
+          <section v-if="adminSectionsShown.token" id="fs-adm-token" class="fs-admin__section">
+            <div class="fs-admin__group">管理员令牌</div>
+            <div class="fs-admin__field">
+              <span class="fs-admin__label fs-admin__label--field">访问令牌</span>
               <el-input
-                v-model="adminForm.privateBuckets"
-                placeholder="逗号分隔，如 local,private-bucket；留空表示全部公共"
-                clearable
-              />
+                v-model="adminToken"
+                type="password"
+                show-password
+                placeholder="后端启动日志 getToken() 或 /config 页获取"
+              >
+                <template #prefix><el-icon><Key /></el-icon></template>
+                <template #suffix>
+                  <el-icon
+                    class="fs-admin__iconbtn"
+                    title="复制令牌"
+                    @click="copyAdminToken"
+                  ><CopyDocument /></el-icon>
+                </template>
+              </el-input>
+              <p class="fs-admin__hint">用于 API 鉴权，请妥善保管；服务重启后会重新生成，旧令牌立即失效。</p>
             </div>
-            <div class="fs-admin__row fs-admin__row--stack">
-              <span class="fs-admin__label">链接默认有效期 <i class="fs-admin__arrow">→</i></span>
-              <el-input
-                v-model="adminForm.oneTimeTtlMinutes"
-                placeholder="分钟，如 10；留空表示不修改"
-                clearable
-              />
-            </div>
-          </div>
-        </section>
-
-        <div class="fs-admin__section-title">水印与安全</div>
-        <el-input v-model="adminForm.watermark" placeholder="如：内部资料" clearable />
-
-        <div class="fs-admin__section-title">管理员令牌</div>
-        <el-input
-          v-model="adminToken"
-          type="password"
-          show-password
-          placeholder="后端启动日志 getToken() 或 /config 页获取"
-        />
-        <p class="fs-admin__tip">保存后立即对后续请求生效，无需重启服务</p>
+          </section>
+        </div>
       </div>
+
       <template #footer>
-        <el-button @click="adminVisible = false">取消</el-button>
-        <el-button type="primary" :loading="adminSaving" @click="saveAdminConfig">保存并生效</el-button>
+        <div class="fs-admin__foot">
+          <span class="fs-admin__status">
+            <i class="fs-admin__dot" aria-hidden="true" />
+            保存后立即对后续请求生效，无需重启服务
+          </span>
+          <span class="fs-admin__acts">
+            <el-button @click="adminVisible = false">取消</el-button>
+            <el-button type="primary" :loading="adminSaving" @click="saveAdminConfig">保存并生效</el-button>
+          </span>
+        </div>
       </template>
     </el-dialog>
 
@@ -3847,6 +4408,13 @@ onUnmounted(() => {
             :file-name="previewName"
             :inner="cadInnerPath"
           />
+          <PreviewIfcPanel
+            v-else-if="!previewError && showIfcPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="ifcInnerPath"
+          />
           <PreviewImagePanel
             v-else-if="!previewError && showImagePanel"
             :bucket="bucket"
@@ -3854,11 +4422,19 @@ onUnmounted(() => {
             :file-name="previewName"
             @saved="onImageSaved"
           />
-          <PreviewPdfPanel
-            v-else-if="!previewError && showPdfPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
+          <!--
+            需求 1：PDF 与「服务端转成 PDF 的文档」统一交给 pdf.js 的 viewer.html。
+            分支位置必须在客户端 Office 面板之前 —— .pdf 本身也是客户端可渲染格式，
+            落到下面那个分支就会被 @vue-office/pdf 接走，viewer 永远轮不到。
+          -->
+          <PreviewIframePanel
+            v-else-if="!previewError && previewPdfViewer"
+            ref="iframePanelRef"
+            :src="previewFrameSrc"
+            :loading="iframeLoading"
+            :frame-key="iframeKey"
+            @load="onFrameLoad"
+            @error="onFrameError"
           />
           <PreviewOfficePanel
             v-else-if="!previewError && previewUsesClient && !previewForceServer"
@@ -5135,117 +5711,546 @@ button.fs-stat:hover {
   border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
 }
 
-/* ===== 管理员系统配置弹窗 ===== */
+/* ===== 管理员系统配置弹窗（左分组 + 右内容；色值走 koi 的 --el-* 令牌） ===== */
 .fs-admin__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   min-width: 0;
+  padding-right: 40px; /* 给 el-dialog 自带关闭按钮让位 */
+}
+
+.fs-admin__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.fs-admin__titles {
+  min-width: 0;
+  flex: 1;
 }
 
 .fs-admin__title {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.3;
   color: var(--el-text-color-primary);
 }
 
 .fs-admin__subtitle {
-  margin: 5px 0 0;
-  font-size: 13px;
+  margin: 3px 0 0;
+  font-size: 12.5px;
   color: var(--el-text-color-secondary);
+}
+
+.fs-admin__search {
+  width: 230px;
+  flex-shrink: 0;
 }
 
 .fs-admin {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+  min-height: 380px;
+  max-height: min(64vh, 660px);
 }
 
-.fs-admin__card {
-  padding: 18px 20px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color, #fff);
+/* 左侧分组 */
+.fs-admin__side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 176px;
+  flex-shrink: 0;
+  align-self: stretch;
+  padding-right: 18px;
+  border-right: 1px solid var(--el-border-color-lighter);
+}
+
+.fs-admin__side-cap {
+  padding: 4px 10px 8px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__nav {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 11px;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-admin__nav:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+
+.fs-admin__nav.is-active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-admin__reset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 9px 11px;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-admin__reset:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-danger);
+}
+
+/* 右侧内容 */
+.fs-admin__main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.fs-admin__empty {
+  margin: 48px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__section + .fs-admin__section {
+  margin-top: 26px;
 }
 
 .fs-admin__group {
-  margin-bottom: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.fs-admin__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 32px;
-}
-
-.fs-admin__row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  min-height: 46px;
-  min-width: 0;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.02em;
 }
 
-/* 纵向表单项：标签在上、输入框占满下一行。用于私有桶集合、链接有效期这类
-   需要整行宽度的输入，横向排布会把 label 挤到换行。 */
-.fs-admin__row--stack {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  padding: 6px 0;
-}
-
-.fs-admin__row--stack .fs-admin__label {
-  white-space: normal;
-}
-
-.fs-admin__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
-}
-
-.fs-admin__arrow {
-  font-style: normal;
-  color: var(--el-text-color-placeholder);
-}
-
-.fs-admin__divider {
+.fs-admin__group::after {
+  content: "";
+  flex: 1;
   height: 1px;
-  margin: 14px 0 16px;
   background: var(--el-border-color-lighter);
 }
 
-.fs-admin__section-title {
-  margin: 18px 0 8px;
-  font-size: 15px;
+/* 文件功能开关卡片 */
+.fs-admin__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fs-admin__tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-admin__tile:hover {
+  border-color: var(--el-color-primary-light-5);
+}
+
+.fs-admin__tileicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.fs-admin__tiletext {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-admin__desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+/* 通用设置项标签 */
+.fs-admin__label {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+
+.fs-admin__label--field {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__label--pill {
+  font-weight: 500;
+  font-size: 13px;
+  color: inherit;
+}
+
+/* 布局类型卡片 */
+.fs-admin__field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-admin__layouts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fs-admin__layout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 13px;
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-admin__layout:hover {
+  border-color: var(--el-color-primary-light-5);
+}
+
+.fs-admin__layout.is-active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.fs-admin__layoutart {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 58px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
+  overflow: hidden;
+}
+
+.fs-admin__layoutart i {
+  position: absolute;
+  display: block;
+  border-radius: 3px;
+  background: var(--el-fill-color);
+}
+
+.fs-admin__layoutart--system i:nth-child(1) {
+  left: 8px;
+  top: 8px;
+  width: 26%;
+  height: calc(100% - 16px);
+}
+
+.fs-admin__layoutart--system i:nth-child(2) {
+  left: calc(26% + 18px);
+  right: 24px;
+  top: 13px;
+  height: 8px;
+}
+
+.fs-admin__layoutart--system i:nth-child(3) {
+  left: calc(26% + 18px);
+  right: 40px;
+  top: 27px;
+  height: 8px;
+}
+
+.fs-admin__layoutart--simple i:nth-child(1) {
+  left: 16px;
+  right: 16px;
+  top: 11px;
+  height: 8px;
+  background: var(--el-color-primary-light-5);
+}
+
+.fs-admin__layoutart--simple i:nth-child(2) {
+  left: 16px;
+  right: 32px;
+  top: 27px;
+  height: 8px;
+}
+
+.fs-admin__layoutart--simple i:nth-child(3) {
+  left: 16px;
+  right: 22px;
+  top: 43px;
+  height: 8px;
+}
+
+.fs-admin__layoutname {
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
+.fs-admin__check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+.fs-admin__layout.is-active .fs-admin__check {
+  display: inline-flex;
+}
+
+/* 列显示开关（胶囊按钮） */
+.fs-admin__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.fs-admin__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-admin__pill.is-on {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+/* 两列设置项 */
+.fs-admin__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
+  margin-top: 18px;
+}
+
+.fs-admin__field--wide {
+  grid-column: 1 / -1;
+}
+
+.fs-admin__select {
+  width: 100%;
+}
+
+.fs-admin__hint {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__unit {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+/* 私有桶标签输入 */
+.fs-admin__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 9px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  cursor: text;
+}
+
+.fs-admin__tags:hover {
+  border-color: var(--el-border-color-hover, var(--el-color-primary-light-5));
+}
+
+.fs-admin__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 12.5px;
+}
+
+.fs-admin__tagx {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.fs-admin__tagx:hover {
+  opacity: 1;
+}
+
+.fs-admin__taginput {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  line-height: 26px;
+}
+
+.fs-admin__taginput::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+/* 令牌复制图标 */
+.fs-admin__iconbtn {
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__iconbtn:hover {
+  color: var(--el-color-primary);
+}
+
+/* 底部状态与操作 */
+.fs-admin__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.fs-admin__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 20%, transparent);
+}
+
+.fs-admin__acts {
+  display: inline-flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* 其它弹窗仍在使用（限时链接的说明文案） */
 .fs-admin__tip {
   margin: 10px 0 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
-.fs-admin__select {
-  width: 148px;
-  flex-shrink: 0;
-}
+@media (max-width: 900px) {
+  .fs-admin {
+    flex-direction: column;
+    gap: 14px;
+  }
 
-.fs-admin__pills {
-  flex-shrink: 0;
-}
+  .fs-admin__side {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-self: auto;
+    padding: 0 0 10px;
+    border-right: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
 
-@media (max-width: 640px) {
-  .fs-admin__grid {
+  .fs-admin__side-cap {
+    width: 100%;
+  }
+
+  .fs-admin__reset {
+    margin-top: 0;
+    margin-left: auto;
+  }
+
+  .fs-admin__grid,
+  .fs-admin__layouts,
+  .fs-admin__fields {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fs-admin__search {
+    width: 160px;
   }
 }
 
@@ -5931,11 +6936,14 @@ button.fs-stat:hover {
 /* ── 系统配置弹窗外壳（append-to-body 需非 scoped）：标题/分栏单选/按钮对齐 koi ── */
 .fs-admin-dialog.el-dialog {
   border-radius: var(--el-radius-xl, 16px);
+  max-width: 94vw;
+  overflow: hidden;
 }
 
 .fs-admin-dialog .el-dialog__header {
-  padding: 22px 26px 4px;
+  padding: 20px 26px 16px;
   margin-right: 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .fs-admin-dialog .el-dialog__headerbtn {
@@ -5951,11 +6959,12 @@ button.fs-stat:hover {
 }
 
 .fs-admin-dialog .el-dialog__body {
-  padding: 8px 26px 0;
+  padding: 18px 26px 4px;
 }
 
 .fs-admin-dialog .el-dialog__footer {
-  padding: 10px 26px 22px;
+  padding: 14px 26px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
 .fs-admin-dialog .el-dialog__footer .el-button {
@@ -5976,24 +6985,36 @@ button.fs-stat:hover {
   background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
 }
 
+/* 访问权限分段控件：两段等宽，选中段用主色描边 */
+.fs-admin-dialog .fs-admin__seg {
+  display: flex;
+  width: 100%;
+}
+
+.fs-admin-dialog .fs-admin__seg .el-radio-button {
+  flex: 1;
+}
+
 .fs-admin-dialog .el-radio-button__inner {
+  width: 100%;
+  text-align: center;
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-md, 8px) !important;
   box-shadow: none !important;
-  padding: 7px 16px;
+  padding: 8px 12px;
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-regular);
   font-size: 13px;
 }
 
-.fs-admin-dialog .el-radio-button:first-child .el-radio-button__inner {
+.fs-admin-dialog .fs-admin__seg .el-radio-button:first-child .el-radio-button__inner {
   margin-right: 8px;
 }
 
 .fs-admin-dialog .el-radio-button.is-active .el-radio-button__inner,
 .fs-admin-dialog .el-radio-button__original-radio:checked + .el-radio-button__inner {
   background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary-light-5);
+  border-color: var(--el-color-primary);
   color: var(--el-color-primary);
   font-weight: 600;
 }

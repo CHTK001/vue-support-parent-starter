@@ -84,12 +84,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
       },
       {
-        path: "/files",
-        name: "FileAssets",
-        component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
-        meta: { title: "文件资产", icon: "Document", showLink: true, rank: 11 },
-      },
-      {
         path: "/terminal",
         name: "Terminal",
         component: () => import("./views/TerminalView.vue"),
@@ -112,6 +106,28 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "TerminalSnippets",
         component: () => import("@pages/server/src/views/ScTerminalSnippetManager.vue"),
         meta: { title: "片段管理", icon: "DocumentCopy", showLink: true, rank: 16 },
+      },
+    ],
+  },
+
+  // ==================== 文件管理 ====================
+  // 与「资产管理」平级的独立分组：文件服务器(FileStorageServerFilter)暴露
+  // 独立 HTTP 服务（默认 127.0.0.1:18082），不走网关 /ms 前缀。
+  // 后端 CorsFilter 默认开启 CORS（allowedOrigins=*, allowCredentials=true），
+  // 前端直接跨域请求，无需 Vite 代理。见 vite.config.ts（已移除文件存储代理）。
+  // 生产环境则走应用配置 otherConfig.filestorage.server 或用户手动选定。
+  //
+  // 此前「文件资产」菜单嵌在资产管理分组下，现在提升为顶层分组。
+  {
+    path: "/grp-file",
+    name: "GroupFile",
+    meta: { title: "文件管理", icon: "Folder", showLink: true, rank: 12 },
+    children: [
+      {
+        path: "/files",
+        name: "FileAssets",
+        component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
+        meta: { title: "文件资产", icon: "Document", showLink: true, rank: 1 },
       },
     ],
   },

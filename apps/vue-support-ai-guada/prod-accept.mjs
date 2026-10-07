@@ -113,8 +113,15 @@ console.log(`  second HTTP ${s2.http} ${s2.msg || ''}`)
 chk('first submit accepted', !!s1.data?.taskId, s1.msg || '')
 chk('second submit blocked', !s2.data?.taskId && /已有/.test(s2.msg || ''), s2.msg || '')
 
-// wait for terminal so later steps are not blocked
-for (let i = 0; i < 20; i++) {
+// Wait for terminal so later steps are not blocked.
+// The deadline is a *latency budget*, not the invariant: the invariant is "the
+// record persists and settles". Real upstream generation has been observed
+// taking >50s (the video provider sometimes actually renders instead of
+// fast-failing with "provider busy"), and a 50s budget then cascades into
+// section 5 -- the composer keeps `busy = submitting || hasRunningTask`, so the
+// send button is still disabled when we type and every later check fails. Two
+// acceptance runs were lost to exactly that race.
+for (let i = 0; i < 72; i++) {
   await new Promise((r) => setTimeout(r, 2500))
   const list = await api.list('video')
   const t = list.find((x) => x.taskId === s1.data?.taskId)
@@ -123,8 +130,8 @@ for (let i = 0; i < 20; i++) {
     chk('record persisted with terminal status', true, t.status)
     break
   }
-  if (i === 19) {
-    chk('record persisted with terminal status', false, 'still running after 50s')
+  if (i === 71) {
+    chk('record persisted with terminal status', false, 'still running after 180s')
   }
 }
 
@@ -209,6 +216,25 @@ await page.evaluate(() => {
   window.__toastTimer = setInterval(grab, 120)
 })
 
+// The composer gates the send button on `busy = submitting || hasRunningTask`
+// (ImageGeneratePage), so "send enabled when idle" is only meaningful once
+// nothing is in flight. Wait for that precondition explicitly instead of
+// inheriting section 2's deadline by accident -- when section 2 timed out, this
+// check used to be the first thing to fail and it said nothing about why.
+let idle = false
+let runningLeft = -1
+for (let i = 0; i < 48; i++) {
+  const inflight =
+    (await api.list('video')).filter(running).length + (await api.list('image')).filter(running).length
+  if (inflight === 0) {
+    idle = true
+    break
+  }
+  runningLeft = inflight
+  await new Promise((r) => setTimeout(r, 2500))
+}
+chk('composer idle before typing', idle, idle ? 'no task in flight' : `${runningLeft} still in flight after 120s`)
+
 const beforeCards = await page.evaluate(() => document.querySelectorAll('.wg-card:not(.is-skeleton)').length)
 const input = page.locator('.wg-input, [contenteditable="true"], textarea').last()
 await input.click()
@@ -221,7 +247,7 @@ await page.keyboard.press('Enter')
 // a fixed 14s can end before the async submit has even reached the provider,
 // in which case there is nothing to toast about yet.
 let terminal = null
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 180; i++) {
   await page.waitForTimeout(1000)
   const seen = await page.evaluate(() => {
     const c = [...document.querySelectorAll('.wg-card:not(.is-skeleton)')].find((x) =>
@@ -238,7 +264,7 @@ for (let i = 0; i < 40; i++) {
 }
 const afterCards = await page.evaluate(() => document.querySelectorAll('.wg-card:not(.is-skeleton)').length)
 chk('card added after submit', afterCards > beforeCards, `${beforeCards} -> ${afterCards}`)
-chk('the submitted card reaches a terminal state', !!terminal, terminal ? terminal.badge : 'still running after 40s')
+chk('the submitted card reaches a terminal state', !!terminal, terminal ? terminal.badge : 'still running after 180s')
 const notice = await page.evaluate(() => {
   clearInterval(window.__toastTimer)
   return window.__toasts ?? []

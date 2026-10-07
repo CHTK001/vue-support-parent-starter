@@ -35,7 +35,7 @@ import {
   Search,
   TakeawayBox,
 } from "@element-plus/icons-vue";
-import { getArchiveEntries, resolveObjectUrl, unzipObject } from "../api/filestorageApi";
+import { getArchiveEntriesWithWasm, resolveObjectUrl, unzipObject } from "../api/filestorageApi";
 import type { ArchiveEntry, ArchiveScanResponse } from "../api/filestorageApi";
 import { fileSvg, fileTypeText } from "../utils/fileKind";
 
@@ -341,7 +341,8 @@ async function load(): Promise<void> {
   loading.value = true;
   errorMessage.value = "";
   try {
-    const res = await getArchiveEntries(props.bucket, props.objectKey);
+    // Use WASM-based scanning (with backend fallback)
+    const res = await getArchiveEntriesWithWasm(props.bucket, props.objectKey, props.fileName);
     if (!isScanResponse(res)) {
       scan.value = null;
       errorMessage.value =
@@ -350,7 +351,6 @@ async function load(): Promise<void> {
       return;
     }
     scan.value = res;
-    // 换包后重置浏览位置，否则会带着上一个包的目录路径进来
     currentPath.value = "";
     expandedDirs.value = new Set([""]);
   } catch (e) {

@@ -10,10 +10,21 @@
  *   <li>布局：18 种内置布局可切换，节点可拖拽、可固定，小地图、缩放、
  *       悬停同组高亮（其余淡出）、悬停临近高亮（其余淡出）；</li>
  *   <li>运行时通过实例方法动态增删节点与边；</li>
- *   <li>内置工具栏：布局切换 / 缩放 / 适配视口 / 小地图开关。</li>
+ *   <li>内置工具栏：布局切换 / 节点搜索定位 / 缩放 / 适配视口 / 撤销重做 /
+ *       图片导出 / 拖边连线 / 小地图开关 / 2D-3D 切换；</li>
+ *   <li>编辑能力：{@code editable} 下右键增删、拖边连线（连线模式开关）、
+ *       撤销 / 重做（仅记录数据变更，拖拽位移与布局不占栈）；</li>
+ *   <li>节点内容插槽 {@code #node-content="{ node, selected }"}（仅 2D，
+ *       类型为 {@code html} 的节点走 DOM 渲染）；</li>
+ *   <li>无障碍：工具栏 {@code role=toolbar} + 左右方向键巡航、画布可聚焦、
+ *       Ctrl+Z / Ctrl+Y / Ctrl+F / Esc 快捷键；文案随应用语言（i18n）切换；</li>
+ *   <li>2D/3D 双视图：{@code mode="2d"|"3d"} 或工具栏按钮切换，3D 基于
+ *       vue-force-graph-3d（力导向、拖拽、悬停高亮、右键菜单、选中），
+ *       G6 实例全程保活，两视图共享同一数据源与选中状态。</li>
  * </ul>
  *
- * <p>用法：{@code <ReRelationGraph :nodes="nodes" :edges="edges" layout="force" />}。</p>
+ * <p>用法：{@code <ReRelationGraph :nodes="nodes" :edges="edges" layout="force" />}；
+ * 3D 视图：{@code <ReRelationGraph :nodes="nodes" :edges="edges" mode="3d" />}。</p>
  *
  * @author CH
  * @since 4.0.0.42

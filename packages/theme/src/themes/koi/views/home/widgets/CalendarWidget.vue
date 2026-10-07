@@ -98,6 +98,7 @@
     <div
       class="calendar-widget__body"
       :class="{ 'is-fixed-height': fixedCellHeight }"
+      :style="cellHeightStyle"
       v-loading="loading"
     >
       <el-calendar v-model="calendarDate">
@@ -130,7 +131,7 @@
             </div>
             <ul class="calendar-widget__cell-events" v-if="grouped[data.day]?.length && eventRows > 0">
               <li
-                v-for="ev in grouped[data.day].slice(0, eventRows)"
+                v-for="(ev, idx) in grouped[data.day].slice(0, eventRows)"
                 :key="ev.id"
                 class="calendar-widget__cell-event"
                 :title="ev.title"
@@ -138,8 +139,19 @@
               >
                 <span class="calendar-widget__cell-bullet" :style="{ background: categoryColor(ev.category) }" />
                 <span class="calendar-widget__cell-text">{{ ev.title }}</span>
+                <!-- 固定密度模式的格高写死（CALENDAR_FIXED_CELL_HEIGHT），装不下单独的
+                     「+N 更多」一行 —— 那一行会把文字从中间切掉。改挂到末条日程行尾：
+                     既保住「这天还有更多」的提示，又不多占一行。 -->
+                <span
+                  v-if="fixedCellHeight && idx === eventRows - 1 && grouped[data.day].length > eventRows"
+                  class="calendar-widget__cell-more-inline"
+                >+{{ grouped[data.day].length - eventRows }}</span>
               </li>
-              <li v-if="grouped[data.day].length > eventRows" class="calendar-widget__cell-more">
+              <!-- 「全部显示」格高随内容增长，单独一行更易读，也顺带替下一行日程占位 -->
+              <li
+                v-if="!fixedCellHeight && grouped[data.day].length > eventRows"
+                class="calendar-widget__cell-more"
+              >
                 +{{ grouped[data.day].length - eventRows }} 更多
               </li>
             </ul>
@@ -246,6 +258,7 @@ import {
 import { fetchHolidays } from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import {
+  CALENDAR_FIXED_CELL_HEIGHT,
   calendarEventRows,
   isFixedCellHeight,
   type CalendarCellMode,
@@ -292,6 +305,19 @@ const showBadge = computed(() => props.widget.calendarConfig?.showBadge ?? true)
 
 /** 格子是否固定高度；「全部显示」模式随内容增长，其余固定 */
 const fixedCellHeight = computed(() => isFixedCellHeight(cellMode.value));
+
+/**
+ * 固定密度模式写死的格子高度（px）。
+ *
+ * <p>挂在 .calendar-widget__body 上做 CSS 自定义属性，而不是直接写死 60px：
+ * 高度与模式是一对一的（见 {@link CALENDAR_FIXED_CELL_HEIGHT} 的推导），
+ * 由模板算出来比在 CSS 里按类名分叉更不容易漏。</p>
+ */
+const cellHeightStyle = computed(() =>
+  fixedCellHeight.value
+    ? ({ "--koi-cal-cell-h": `${CALENDAR_FIXED_CELL_HEIGHT[cellMode.value]}px` } as Record<string, string>)
+    : undefined,
+);
 
 /** 「全部显示」模式下才给农历单开一行 */
 const showLunarLine = computed(() => cellMode.value === "all" && showFestival.value);
@@ -679,12 +705,15 @@ watch(userId, () => load());
 }
 
 /* ---------------- 头部 ---------------- */
+/* 16px → 12px：340px 宽的组件两侧各占 16px 就是 9.4%，日历格子被挤到
+   只剩 1~2 个汉字。12px 仍在 4/8 间距基准上，头部 / 摘要 / 图例 / 主体
+   四处**同值**，否则日历左边缘会与摘要框对不齐。*/
 .calendar-widget__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 16px 8px;
+  padding: 8px 12px 4px;
 }
 
 .calendar-widget__title {
@@ -704,7 +733,7 @@ watch(userId, () => load());
 
 .calendar-widget__count {
   flex-shrink: 0;
-  padding: 2px 8px;
+  padding: 4px 8px;
   font-size: 12px;
   font-weight: 500;
   color: var(--el-text-color-secondary);
@@ -767,8 +796,9 @@ watch(userId, () => load());
 
 /* ---------------- 今日摘要 ---------------- */
 .calendar-widget__today {
-  margin: 0 16px 8px;
-  padding: 12px 16px;
+  /* 上下 8 / 左右 12：与 header、legend、body 同一套横向内缩，且都在 4/8 基准上 */
+  margin: 0 12px 8px;
+  padding: 8px 12px;
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
@@ -784,7 +814,7 @@ watch(userId, () => load());
 }
 
 .calendar-widget__today-row + .calendar-widget__today-row {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .calendar-widget__today-date {
@@ -832,7 +862,7 @@ watch(userId, () => load());
 .calendar-widget__today-pips {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -875,8 +905,8 @@ watch(userId, () => load());
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 4px;
+  padding-top: 4px;
   border-top: 1px dashed var(--el-border-color-lighter);
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -890,7 +920,7 @@ watch(userId, () => load());
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 16px;
-  margin: 0 16px 8px;
+  margin: 0 12px 8px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
@@ -939,14 +969,17 @@ watch(userId, () => load());
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0 16px 16px;
+  padding: 0 12px 12px;
 }
 
 /* ---------------- 格子 ---------------- */
 .calendar-widget__cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  /* 2px → 4px：既回到文件头声明的「间距走 4/8 基准」，也直接对应「格子里几行字
+     挤在一起」——日期 / 节日 / 农历 / 日程之间原本只有 2px。多出来的高度由
+     去掉 .el-calendar__body 双层留白腾出的空间承担（实测滚动量反而减少）。 */
+  gap: 4px;
   height: 100%;
   padding: 4px;
   border-radius: var(--el-radius-sm, 6px);
@@ -978,8 +1011,11 @@ watch(userId, () => load());
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2px;
+  gap: 4px;
   min-height: 18px;
+  /* 锁死而非跟随继承：固定密度模式的格高是按行高推算的（CALENDAR_FIXED_CELL_HEIGHT），
+     日期行一旦随主题行高漂移，算出来的 72/96px 就装不下，文字会被切掉。 */
+  line-height: 18px;
 }
 
 .calendar-widget__cell-date {
@@ -1023,15 +1059,18 @@ watch(userId, () => load());
 
 .calendar-widget__cell-festival {
   /* 左侧色条按级别着色：扫整月时先看到色条再看字，比只靠字色快得多。
-     padding-left 5px 要大于 border-left 3px，否则首字会贴着色条。*/
-  padding-left: 5px;
+     色条 2px + padding 4px = 6px 缩进：这是「节日名能显示几个字」与
+     「色条够不够显眼」的直接换算 —— 420px 宽的组件，7 列下每格可用宽度
+     只有约 36px，12px 字号刚好 3 个汉字（「国庆节」），缩进每多 1px
+     就少一个字。padding-left 必须大于 border-left，否则首字会贴着色条。*/
+  padding-left: 4px;
   font-size: 12px;
   line-height: 1.4;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-left: 3px solid var(--el-text-color-placeholder);
+  border-left: 2px solid var(--el-text-color-placeholder);
 }
 
 /* 农历（无节日时的回退文本）最弱 */
@@ -1068,7 +1107,7 @@ watch(userId, () => load());
 .calendar-widget__cell-events {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1080,6 +1119,8 @@ watch(userId, () => load());
   gap: 4px;
   min-width: 0;
   font-size: 12px;
+  /* 同 .cell-head：固定模式格高由行高推算，日程行必须可预测 */
+  line-height: 18px;
   color: var(--el-text-color-regular);
   cursor: pointer;
   overflow: hidden;
@@ -1091,8 +1132,10 @@ watch(userId, () => load());
 
 .calendar-widget__cell-bullet {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
+  /* 8px 而非 6px：圆点宽度 + gap(4) 必须落在 4/8 基准上，末尾「+N 更多」
+     才能用 padding-left 精确对齐日程文字（8 + 4 = 12）。 */
+  width: 8px;
+  height: 8px;
   border-radius: var(--el-radius-full, 9999px);
 }
 
@@ -1104,7 +1147,17 @@ watch(userId, () => load());
 }
 
 .calendar-widget__cell-more {
-  padding-left: 10px;
+  /* 12 = 圆点 8 + gap 4，与日程文字左缘对齐 */
+  padding-left: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 固定密度模式内嵌在末条日程行尾的「+N」：写死的格高装不下单独一行，
+   单开一行会把文字从中间切掉。flex-shrink:0 让它不被标题挤没
+   （.cell-text 用 min-width:0 + 省略号自行让位），间距由 .cell-event 的 gap 提供。 */
+.calendar-widget__cell-more-inline {
+  flex-shrink: 0;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
@@ -1113,7 +1166,7 @@ watch(userId, () => load());
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 6px;
+  margin-right: 8px;
   border-radius: var(--el-radius-full, 9999px);
 }
 
@@ -1136,8 +1189,24 @@ watch(userId, () => load());
   overflow: hidden;
 }
 
+/* Element Plus 默认 .el-calendar__body{padding:12px 20px 35px}，本组件此前**没有覆盖它**，
+   于是它叠在 .calendar-widget__body 自己的 padding:0 16px 16px 上，形成双层留白：
+
+     横向 16 + 20 = 36px/侧 —— 420px 宽的组件，7 列每格只剩 41px，
+     再减去 .cell 的 4px 内边距与节日色条 8px，节日名只剩 31.7px，
+     12px 字号下约 2.6 个汉字 —— 「国庆节」显示成「国…」。
+     纵向 0 + 12 上、16 + 35 下 —— 滚动区底部白扔 51px。
+
+   外层留白已由 .calendar-widget__body 统一负责，这里必须归零。 */
+:deep(.el-calendar__body) {
+  padding: 0;
+}
+
+/* 4px 8px：这一条是 el-calendar 自带的第二层「月份标题 + 上一月/今天/下一月」，
+   与本组件头部上下相邻，两层各占 40px 会显得头部堆了两截。
+   左右 8px 让它与格子左边缘对齐（格子由 .calendar-widget__body 的 12px 定位）。*/
 :deep(.el-calendar__header) {
-  padding: 8px 12px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
@@ -1147,7 +1216,7 @@ watch(userId, () => load());
 }
 
 :deep(.el-calendar-table thead th) {
-  padding: 8px 0;
+  padding: 4px 0;
   font-size: 12px;
   font-weight: 500;
   color: var(--el-text-color-secondary);
@@ -1165,7 +1234,9 @@ watch(userId, () => load());
 
 /* 固定行数模式（最多 3 / 4 行）才写死高度，否则同一天日程多寡会让整行忽高忽低 */
 .calendar-widget__body.is-fixed-height :deep(.el-calendar-table .el-calendar-day) {
-  height: 60px;
+  /* 高度由密度模式决定，经 --koi-cal-cell-h 传入（见 CALENDAR_FIXED_CELL_HEIGHT）。
+     不能写死 60px：「最多 4 行」的自然高度实测 92.8px，60px 会把文字从中间切掉。 */
+  height: var(--koi-cal-cell-h, 60px);
   overflow: hidden;
 }
 
@@ -1175,6 +1246,11 @@ watch(userId, () => load());
 
 :deep(.el-calendar-table td) {
   border-color: var(--el-border-color-lighter);
+  /* td 的 padding 此前一直走浏览器 UA 默认值（HTML 规范给 td 的 1px），
+     本组件只把 .el-calendar-day 的 padding 归零了，这一层没人管 ——
+     每格左右各白扔 1px，7 列合计 14px，正好够节日名多显示一个汉字。
+     .calendar-widget__cell 自带 4px 内边距，清零后视觉内缩不变。*/
+  padding: 0;
 }
 
 /* 表头分隔线用虚线，与格子实线区分，避免误以为也是假期 */

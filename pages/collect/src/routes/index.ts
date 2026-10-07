@@ -79,6 +79,17 @@ export const collectRoutes: RouteConfigsTable[] = [
     meta: { title: "数据源", icon: "Coin", showLink: true, keepAlive: true, rank: 2, isVisible: "1" },
   },
 
+  /* -------------------------------- 数据管理（顶级） -------------------------------- */
+  {
+    // 业务数据的正式入口：选数据源 → 库 → 表 → 看实际行数据，附「清空表 + SQL 执行」。
+    // 与数据源中心的隐藏控制台 /db-manager 互补 —— 这里只做「看得见 + 写得进 + 清得掉」。
+    // API 全部复用 @pages/datasource（/ms/monitor/db/**），本页无独立后端。
+    path: "/collect/data",
+    name: "CollectDataManage",
+    component: () => import("../views/DataManageView.vue"),
+    meta: { title: "数据管理", icon: "Collection", showLink: true, keepAlive: true, rank: 3, isVisible: "1" },
+  },
+
   /* -------------------------------- 旧路径别名 -------------------------------- */
   // 必须挂在顶级、不能放进上面的菜单分组：
   //   侧边栏过滤（@repo/utils 的 getShowStaticAndDynamicMenuList）只对顶级数组做 filter，

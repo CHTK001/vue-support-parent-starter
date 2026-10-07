@@ -115,7 +115,9 @@ watch(
       error.value = "";
       resetPicked();
       // 打开弹窗先探测 sidecar：可用 → 默认实时（真浏览器）；不可用 → 静态兜底。
-      // 探测有 600ms 超时上限，失败路径不抛异常（probeLive 内部吞掉）。
+      // 失败路径不抛异常（probeLive 内部吞掉并自带重试）。
+      // immediate 必须有：宿主（FieldTable）用 v-if + :visible="true" 挂载本组件，
+      // visible 从不「变化」，非 immediate 的 watcher 永远不会触发 → 探测静默丢失。
       probing.value = true;
       void probeLive()
         .then((ok) => {
@@ -148,6 +150,7 @@ watch(
       resetPicked();
     }
   },
+  { immediate: true },
 );
 
 /**

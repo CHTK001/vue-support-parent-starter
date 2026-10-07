@@ -31,8 +31,14 @@ const BUCKET_KEY = "filestorage.bucket";
 /** localStorage 中存储配额（GB）的键名 */
 const QUOTA_KEY = "filestorage.quotaGb";
 
-/** 默认服务器地址（app.yaml otherConfig.filestorage.server 未配置时兜底） */
-export const DEFAULT_SERVER = "http://127.0.0.1:18080";
+/**
+ * 默认服务器地址（app.yaml otherConfig.filestorage.server 未配置时兜底）。
+ *
+ * <p>文件存储服务器 FileStorageServerFilter 独立 HTTP 服务，默认监听 18082。
+ * 后端 CorsFilter 默认开启 CORS（allowedOrigins=*, allowCredentials=true），
+ * 前端直接发起跨域请求，无需 Vite 代理。</p>
+ */
+export const DEFAULT_SERVER = "http://127.0.0.1:18082";
 
 /** 默认存储桶名称（app.yaml otherConfig.filestorage.bucket 未配置时兜底） */
 export const DEFAULT_BUCKET = "local";
@@ -98,6 +104,8 @@ export interface BucketConfig {
   openWebjars: boolean;
   /** 开关 */
   openRemoteFile: boolean;
+  /** 开关（三方 URL 预览，?url=base64 编码地址） */
+  openThirdPreview: boolean;
   /** 水印文字（可能为空） */
   watermark: string | null;
   /** 布局开关 */
@@ -503,6 +511,189 @@ export interface ArchiveScanResponse {
   compressRate: number;
   /** 扁平条目清单（已去重并补全隐式目录） */
   entries: ArchiveEntry[];
+}
+
+/**
+ * 查询压缩包条目清单（WASM + 后台降级）
+ *
+ * 优先使用浏览器 WASM (archive-wasm/libarchive) 扫描压缩包结构，
+ * 避免一次服务器往返；扫描失败时自动降级到 {@link getArchiveEntries}。
+ *
+ * @param bucket   存储桶名
+ * @param key      压缩包对象 Key
+ * @param fileName 文件名（用于扩展名判断）
+ * @return 压缩包结构
+ */
+export async function getArchiveEntriesWithWasm(
+  bucket: string,
+  key: string,
+  fileName: string,
+): Promise<ArchiveScanResponse> {
+  // 获取文件名后缀用于判断是否支持WASM扫描
+  const ext = getFileNameExtension(fileName);
+  const archiveExts = [
+    "zip", "rar", "tar", "gz", "tgz", "tar.gz",
+    "bz2", "tbz2", "tar.bz2", "xz", "txz", "tar.xz",
+    "7z", "zst", "tzst", "tar.zst", "lz4", "tar.lz4",
+    "lzma", "tar.lzma", "jar", "war", "ear", "apk", "ipa",
+  ];
+
+  // If not a supported archive type, skip WASM and go straight to backend
+  if (!archiveExts.includes(ext.toLowerCase())) {
+    return getArchiveEntries(bucket, key);
+  }
+
+  try {
+    // Fetch archive data as ArrayBuffer
+    const res = await storageHttp()
+      .get(objectPath(bucket, key))
+      .query({ format: "archive" })
+      .responseType("arraybuffer")
+      .then<{ data: ArrayBuffer; headers: Record<string, string> }>(
+        (r) => ({ data: r.data as ArrayBuffer, headers: r.headers as Record<string, string> }),
+      );
+
+    // Check if backend returned JSON (already scanned by backend)
+    const contentType = res.headers["content-type"] || "";
+    if (contentType.includes("application/json")) {
+      // Backend returned JSON structure - parse and return
+      const decoder = new TextDecoder("utf-8");
+      const jsonStr = decoder.decode(new Uint8Array(res.data));
+      const data = JSON.parse(jsonStr) as (ArchiveScanResponse | { error?: string });
+
+      // Check for backend error
+      const errText = (data as { error?: string })?.error;
+      if (typeof errText === "string") {
+        throw new Error(errText);
+      }
+
+      if (!data || typeof data !== "object" || !Array.isArray((data as ArchiveScanResponse).entries)) {
+        throw new Error("服务端未返回压缩包条目结构（?format=archive 未生效），请更新文件服务器后重试");
+      }
+
+      return data as ArchiveScanResponse;
+    }
+
+    // Backend returned raw archive bytes - try WASM scanning
+    // Lazy-load archive-wasm
+    const archiveWasm = await import("archive-wasm");
+
+    const entries = archiveWasm.extractAll(new Uint8Array(res.data), {
+      recursive: false,
+      normalize: true,
+      ignoreDotDir: true,
+      sizeLimit: 128n * 1024n * 1024n, // 128MB limit, matches backend
+    });
+
+    if (!entries || entries.length === 0) {
+      return {
+        name: fileName,
+        extension: ext.toLowerCase(),
+        archiveSize: res.data.byteLength,
+        fileCount: 0,
+        dirCount: 0,
+        totalSize: 0,
+        compressRate: 0,
+        entries: [],
+      };
+    }
+
+    // Convert entries to our format
+    const archiveEntries: ArchiveEntry[] = [];
+    for (const entry of entries) {
+      const path = entry.path ?? "";
+      if (!path || path === ".") continue;
+
+      const isDir = entry.type === "DIR";
+      const name = path.split("/").pop() || path;
+      const size = entry.size ? Number(entry.size) : 0;
+
+      let modified = 0;
+      if (entry.mtime && typeof entry.mtime === "bigint" && entry.mtime > 0n) {
+        modified = Number(entry.mtime / 1000000n);
+      }
+
+      archiveEntries.push({
+        path,
+        name,
+        directory: isDir,
+        size: isDir ? 0 : size,
+        compressedSize: -1,
+        modified,
+      });
+    }
+
+    // Fill implicit directories
+    const allEntries = fillImplicitDirs(archiveEntries);
+
+    const fileEntries = allEntries.filter((e) => !e.directory);
+    const dirEntries = allEntries.filter((e) => e.directory);
+    const totalSize = fileEntries.reduce((sum, e) => sum + e.size, 0);
+
+    const compressRate = totalSize > 0 ? Math.round((res.data.byteLength * 100) / totalSize) : 0;
+
+    return {
+      name: fileName,
+      extension: ext.toLowerCase(),
+      archiveSize: res.data.byteLength,
+      fileCount: fileEntries.length,
+      dirCount: dirEntries.length,
+      totalSize,
+      compressRate,
+      entries: allEntries.sort((a, b) => {
+        if (a.directory !== b.directory) {
+          return a.directory ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name, "zh-Hans-CN");
+      }),
+    };
+  } catch (e) {
+    // WASM failed - fall back to backend ?format=archive JSON endpoint
+    console.warn("[archive] WASM scanning failed, falling back to backend:", (e as Error)?.message ?? e);
+    return getArchiveEntries(bucket, key);
+  }
+}
+
+/**
+ * Get file extension from filename.
+ */
+function getFileNameExtension(fileName: string): string {
+  const parts = fileName.toLowerCase().split(".");
+  return parts.length > 1 ? parts[parts.length - 1] : "";
+}
+
+/**
+ * Fill implicit directories (directories not explicitly listed in the archive).
+ */
+function fillImplicitDirs(entries: ArchiveEntry[]): ArchiveEntry[] {
+  const byPath = new Map<string, ArchiveEntry>();
+
+  for (const entry of entries) {
+    byPath.set(entry.path, entry);
+  }
+
+  // Add implicit directories from file paths
+  for (const entry of Array.from(byPath.values())) {
+    if (entry.directory) continue;
+
+    const parts = entry.path.split("/");
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dirPath = parts.slice(0, i + 1).join("/");
+      if (!byPath.has(dirPath)) {
+        const dirName = parts[i];
+        byPath.set(dirPath, {
+          path: dirPath,
+          name: dirName,
+          directory: true,
+          size: 0,
+          compressedSize: -1,
+          modified: 0,
+        });
+      }
+    }
+  }
+
+  return Array.from(byPath.values());
 }
 
 /**

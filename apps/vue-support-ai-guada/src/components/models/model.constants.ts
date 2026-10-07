@@ -186,6 +186,9 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   // 注意：ONNX 不提供 HTTP 模板。后端始终注入 id='onnx' 的虚拟提供者（模型来自
   // ModelRegistry），通过「绑定外部目录」选择服务器本地模型目录加载，不使用 API 地址/API Key。
 
+  // ===== NewAPI =====
+  { id: 'newapi', name: 'NewAPI', description: '国产 API 聚合平台，支持 GPT、Claude、DeepSeek 等数十个模型', protocol: 'openai', defaultApiUrl: 'https://newapi.io', keywords: ['newapi', 'newapi.io', 'apihub'] },
+
   // ===== 自定义 =====
   // ===== 小红书 / Dots Studio =====
   // Dots Studio 只认 api-key 请求头，不认标准的 Authorization: Bearer

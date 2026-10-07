@@ -35,6 +35,16 @@ const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:2961
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
 const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
 
+// 文件存储服务器（FileStorageServerFilter，随监控后端一起启动，非独立系统）。
+//
+// 它是监控后端进程内的一个 HTTP 服务，监听在**后端那台机器**上（198:18082），
+// 不是本机。前端本地跑时浏览器直接打 127.0.0.1:18082 必然 ERR_CONNECTION_REFUSED
+// —— 本机根本没有这个进程。因此 dev 下统一走 Vite 代理转发到后端所在机器：
+//   浏览器 → http://<本机>:8848/localFileStorage?*  →  proxy  →  198:18082
+// 这样前端只管同源请求，不用依赖后端 CORS 白名单，也不受本机无进程影响。
+//   显式覆盖：FS_API_TARGET=http://<host>:<port> pnpm dev
+const fileStorageTarget = process.env.FS_API_TARGET ?? "http://192.168.50.198:18082";
+
 /**
  * 启动自检：把「代理指错后端」从静默变成可见。
  *
@@ -106,7 +116,12 @@ function dropProxyOrigin(): PluginOption {
       // （createVite 里的导航中间件同此机制），proxy 看到的已是无 Origin 的请求
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? "";
-        if (url.startsWith("/ms/") || url.startsWith("/v2/") || url.startsWith("/api/device")) {
+        if (
+          url.startsWith("/ms/") ||
+          url.startsWith("/v2/") ||
+          url.startsWith("/api/device") ||
+          /^\/(localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
+        ) {
           delete req.headers.origin;
         }
         next();
@@ -232,10 +247,20 @@ export default createVite({
         target: "http://124.221.230.112:8080",
         changeOrigin: true,
       },
+
       "/api": {
         target: "http://127.0.0.1:8080",
         changeOrigin: true,
       },
+      // 文件存储服务器（FileStorageServerFilter，随监控后端同进程启动）。
+      // 后端在 198，本机没有这个进程，所以必须走代理；请求前缀是桶名
+      // （localFileStorage / local / ot / config 等），逐个列前缀最稳妥
+      // （Vite proxy 的 key 用字符串前缀匹配最可靠，RegExp 形式在 v8 下有兼容坑）。
+      "/localFileStorage": { target: fileStorageTarget, changeOrigin: true },
+      "/local": { target: fileStorageTarget, changeOrigin: true },
+      "/ot": { target: fileStorageTarget, changeOrigin: true },
+      "/config": { target: fileStorageTarget, changeOrigin: true },
+      "/recycle": { target: fileStorageTarget, changeOrigin: true },
     },
   },
   optimizeDeps: {
