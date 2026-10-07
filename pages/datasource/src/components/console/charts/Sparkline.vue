@@ -48,11 +48,8 @@ const props = withDefaults(
     values: Array<number | null>;
     /** 线条颜色的 CSS 变量名（带 `--`），默认主色 */
     token?: string;
-    /** 画布宽高（viewBox 单位，与实际显示尺寸解耦） */
-    width?: number;
-    height?: number;
   }>(),
-  { token: "--metric-cpu", width: 96, height: 30 },
+  { token: "--metric-cpu" },
 );
 
 /** viewBox 宽高固定，CSS 负责把它拉到卡片实际宽度 */
