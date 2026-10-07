@@ -131,6 +131,27 @@ const pipelineDesc = computed(() => PIPELINE_INFO[pipelineCode.value]?.desc || '
 const loading = ref(false);
 const configLoading = ref(false);
 const savingConfig = ref(false);
+
+/**
+ * 配置字段中文标签：能力页配置区原先直接拿 key 下划线转空格当 label，
+ * 渲染成「corrector model」这类半英文。已知字段给出中文标签，未知字段回退原行为。
+ */
+const FIELD_LABELS: Record<string, string> = {
+  detector_model: '文字检测模型',
+  recognizer_model: '文字识别模型',
+  detector_threshold: '检测置信度阈值',
+  sort_reading_order: '按阅读顺序排序',
+  direction_model: '方向矫正模型',
+  restorer_model: '文字超分修复模型',
+  corrector_model: '文本矫正模型',
+  device: '推理设备',
+};
+
+/** 已知字段的输入提示（仅文本矫正给出示例，其余走「请输入xx」默认提示）。 */
+const FIELD_PLACEHOLDERS: Record<string, string> = {
+  corrector_model: '留空关闭（非必填），例如 macbert4csc',
+};
+
 const requiredCapabilities = ref<string[]>([]);
 const optionalCapabilities = ref<string[]>([]);
 const requiredModels = ref<any[]>([]);
@@ -189,7 +210,8 @@ async function loadConfig() {
     // 生成配置字段
     configFields.value = keys.map((key) => ({
       key,
-      label: key.replace(/_/g, ' '),
+      label: FIELD_LABELS[key] || key.replace(/_/g, ' '),
+      placeholder: FIELD_PLACEHOLDERS[key],
       type: typeof res[key] === 'boolean' ? 'switch' : 'input',
       secret: key.includes('key') || key.includes('secret') || key.includes('password'),
     }));
