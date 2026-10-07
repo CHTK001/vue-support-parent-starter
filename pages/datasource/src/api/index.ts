@@ -171,8 +171,12 @@ export interface DataSourceTunnel {
   sshUsername?: string | null;
   /** PASSWORD 口令 / KEY 私钥 */
   sshAuthType?: string | null;
+  /** SSH 口令（sshAuthType=PASSWORD 时用） */
+  sshPassword?: string | null;
   /** 私钥：PEM 文本或私钥文件路径 */
   sshPrivateKey?: string | null;
+  /** 私钥口令（sshAuthType=KEY 时用） */
+  sshPassphrase?: string | null;
   localPort?: number | null;
   remoteHost?: string | null;
   remotePort?: number | null;
@@ -452,10 +456,11 @@ export function toTableOptions(tables: CollectTable[]): CollectOption[] {
     value: item.name,
     label: item.comment?.trim() ? item.comment.trim() : item.name,
     description: item.type ? `${item.name} · ${item.type}` : item.name,
-    comment: item.comment,
+    /** 原始表名：中文 label 只是备注，下游取值仍要真实表名 */
     table: item.name,
+    comment: item.comment,
     type: item.type,
-  }) as CollectOption);
+  }));
 }
 
 /**
@@ -473,10 +478,12 @@ export function toColumnOptions(columns: CollectColumn[]): CollectOption[] {
       value: name,
       label: remark ? remark : name,
       description: type ? `${name} · ${type}` : name,
+      /** 原始字段名：中文 label 只是备注，下游取值仍要真实字段名 */
       field: name,
-      fieldType: item.typeName,
+      comment: remark || null,
+      type: item.typeName,
       primaryKey: item.primaryKey,
-    } as CollectOption;
+    };
   });
 }
 

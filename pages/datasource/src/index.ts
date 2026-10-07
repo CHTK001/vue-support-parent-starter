@@ -36,7 +36,10 @@ export {
   fetchDataSourceTypes,
   fetchDatasourceOptions,
   fetchDatasourceTables,
+  fetchDatasourceTableInfos,
   fetchDatasourceColumns,
+  toTableOptions,
+  toColumnOptions,
   setDatasourceSchemaProvider,
   fetchTableExists,
   previewTableDdl,
@@ -46,6 +49,7 @@ export {
 export type {
   CollectColumn,
   CollectOption,
+  CollectTable,
   DataSourceInfo,
   DataSourceOption,
   DataSourceTestResult,
@@ -57,3 +61,12 @@ export type {
   FieldMapping,
 } from "./api";
 export { ApiError, setUnauthorizedHandler } from "./api/request";
+
+// 共享组件：他模块直接 import 这几个就能拿到「选数据源 / 选表 / 选字段 / 建表」
+export {
+  DatasourceSelect,
+  TableSelect,
+  ColumnSelect,
+  DatasourceTableSelect,
+  CreateTableDialog,
+} from "./components/selectors";

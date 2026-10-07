@@ -107,6 +107,15 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/server/src/views/ScTerminalSnippetManager.vue"),
         meta: { title: "片段管理", icon: "DocumentCopy", showLink: true, rank: 16 },
       },
+      // 维护计划：按时间窗对主机做维护/升级/停机计划。
+      // @pages/server 里已实现并在它自己的路由表挂过，监控台此前只漏了入口，
+      // 导致「主机运维」这一块在监控台里没有落点。
+      {
+        path: "/maintenance",
+        name: "MaintenancePlan",
+        component: () => import("@pages/server/src/views/ScMaintenancePlan.vue"),
+        meta: { title: "维护计划", icon: "Clock", showLink: true, rank: 17 },
+      },
     ],
   },
 

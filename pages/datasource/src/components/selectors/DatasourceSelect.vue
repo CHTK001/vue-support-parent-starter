@@ -99,7 +99,7 @@ function onChange(value: unknown): void {
   <ReSelect
     class="ds-select"
     :model-value="modelValue"
-    :type="props.type"
+    :type="type"
     :disabled="disabled"
     :loading="loading"
     :placeholder="placeholder"
