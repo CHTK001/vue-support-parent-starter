@@ -1119,74 +1119,56 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           <ReInput
             v-model="model"
             class="re-cron__input"
-        :placeholder="placeholder"
-        :disabled="disabled"
-        aria-label="调度周期 Cron 表达式"
-        spellcheck="false"
-        name="cron-expression"
-        autocomplete="new-password"
-        data-form-type="other"
-        data-lpignore="true"
-        data-1p-ignore
-      >
-        <template #suffix>
-          <!-- 自己画清除按钮，而不是用 Element Plus 的 `clearable`：
-               它的清除 × 是个裸 `<i class="el-input__clear">`，没有 role、没有
-               aria-label、也不可聚焦 —— 纯图标却读不出名字，读屏只会当它不存在
-               （实测就是普查里唯一一条无名可点元素）。
-               这里换成真正的 `<button>`，名字写死成"清空表达式"，
-               顺带让"清除"这件事能进 Tab 序列。图标内联 SVG，不依赖图标库离线可用。 -->
-          <button
-            v-if="trimmed && !disabled"
-            type="button"
-            class="re-cron__clear"
-            aria-label="清空表达式"
-            @click="clearExpression"
-          >
-            <svg
-              class="re-cron__clear-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              aria-hidden="true"
-            >
-              <path d="M6 6 18 18M18 6 6 18" />
-            </svg>
-          </button>
-        </template>
-        <!--
-          齿轮改为 Popover 的 #reference：原来它是 ReInput 的 append 按钮，
-          弹层挂在它外面靠 open 驱动。现在 reference 必须就是这一个按钮，
-          否则会出现两个入口（append 里一个、reference 里一个）。
-          仍显式 @click="openPanel" 记快照：Popover 自己管开关，
-          我们需要在它打开的瞬间拿到"取消"要还原到的表达式。
-        -->
-        <template #append>
-          <ReButton
-            class="re-cron__gear"
-            icon="Setting"
-            title="可视化生成"
-            aria-label="打开调度周期可视化设置"
+            :placeholder="placeholder"
             :disabled="disabled"
-            @click="openPanel"
-          />
-        </template>
-      </ReInput>
-    </div>
-
-    <ElPopover
-      v-model:visible="open"
-      class="re-cron__popover"
-      placement="bottom-start"
-      trigger="click"
-      :width="760"
-      popper-class="re-cron__popper"
-      :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
-    >
-      <template #reference>
-        <span class="re-cron__reference" aria-hidden="true"></span>
+            aria-label="调度周期 Cron 表达式"
+            spellcheck="false"
+            name="cron-expression"
+            autocomplete="new-password"
+            data-form-type="other"
+            data-lpignore="true"
+            data-1p-ignore
+          >
+            <template #suffix>
+              <!-- 自己画清除按钮，而不是用 Element Plus 的 `clearable`：
+                   它的清除 × 是个裸 `<i class="el-input__clear">`，没有 role、没有
+                   aria-label、也不可聚焦 —— 纯图标却读不出名字，读屏只会当它不存在
+                   （实测就是普查里唯一一条无名可点元素）。
+                   这里换成真正的 `<button>`，名字写死成"清空表达式"，
+                   顺带让"清除"这件事能进 Tab 序列。图标内联 SVG，不依赖图标库离线可用。 -->
+              <button
+                v-if="trimmed && !disabled"
+                type="button"
+                class="re-cron__clear"
+                aria-label="清空表达式"
+                @click.stop="clearExpression"
+              >
+                <svg
+                  class="re-cron__clear-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 6 18 18M18 6 6 18" />
+                </svg>
+              </button>
+            </template>
+            <!-- 齿轮只是视觉入口：真正的 trigger 是整条 .re-cron__line -->
+            <template #append>
+              <ReButton
+                class="re-cron__gear"
+                icon="Setting"
+                title="可视化生成"
+                aria-label="打开调度周期可视化设置"
+                :disabled="disabled"
+                tabindex="-1"
+              />
+            </template>
+          </ReInput>
+        </div>
       </template>
 
       <div class="re-cron__panel">
@@ -1197,15 +1179,47 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           </button>
         </header>
 
+        <!-- 模式切换：字段 / 日历。两者共用同一条写入路径，见 applyCalendar 注释 -->
+        <div class="re-cron__modes" role="tablist" aria-label="调度周期设置方式">
+          <button
+            type="button"
+            role="tab"
+            class="re-cron__mode"
+            :class="{ 'is-active': panelMode === 'field' }"
+            :aria-selected="panelMode === 'field'"
+            @click="panelMode = 'field'"
+          >
+            字段
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="re-cron__mode"
+            :class="{ 'is-active': panelMode === 'calendar' }"
+            :aria-selected="panelMode === 'calendar'"
+            @click="panelMode = 'calendar'"
+          >
+            日历
+          </button>
+        </div>
+
         <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
         <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }">
-        <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
-          {{ humanSummary || (trimmed ? (summary || errorText) : "未设置调度周期") }}
+          <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
+            {{ humanSummary || (trimmed ? (summary || errorText) : "未设置调度周期") }}
+          </div>
+          <code class="re-cron__summary-expr">{{ trimmed || "（未设置）" }}</code>
+          <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
         </div>
-        <code class="re-cron__summary-expr">{{ trimmed || "（未设置）" }}</code>
-        <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
-      </div>
 
+        <ReCronCalendarPanel
+          v-if="panelMode === 'calendar'"
+          :expression="model"
+          :preview-count="previewCount"
+          @apply="applyCalendar"
+        />
+
+        <template v-else>
       <div class="re-cron__presets">
         <span class="re-cron__section-title re-cron__section-title--inline">常用预设</span>
         <div class="re-cron__pill-row">
@@ -1356,8 +1370,23 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || "无匹配时间" }}</div>
         </aside>
       </div>
+        </template>
 
-      <template #footer>
+        <!--
+          未来触发时间提到面板底部共用：日历模式下右侧没有预览列，
+          放这里两种模式都能看到"保存后什么时候跑"。
+        -->
+        <section v-if="panelMode === 'calendar'" class="re-cron__col re-cron__cal-preview">
+          <div class="re-cron__section-title">未来 {{ analysis.times.length }} 次触发</div>
+          <ul v-if="analysis.times.length" class="re-cron__times">
+            <li v-for="(t, i) in analysis.times" :key="i">
+              <span class="re-cron__times-dot" aria-hidden="true"></span>
+              <span class="re-cron__times-text">{{ fmt(t) }}</span>
+            </li>
+          </ul>
+          <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || "无匹配时间" }}</div>
+        </section>
+
         <div class="re-cron__footer">
           <span
             class="re-cron__footer-hint"
@@ -1366,12 +1395,13 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             {{ footerHint }}
           </span>
           <div class="re-cron__footer-actions">
+            <ReButton @click="clearAll">清空</ReButton>
             <ReButton @click="cancelPanel">取消</ReButton>
             <ReButton type="primary" @click="savePanel">保存</ReButton>
           </div>
         </div>
-      </template>
-    </ElDialog>
+      </div>
+    </ElPopover>
 
     <div
       :class="['re-cron__status', analysis.valid ? 'is-ok' : 'is-warn']"
@@ -1405,6 +1435,91 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 .re-cron.is-disabled {
   opacity: 0.7;
+}
+
+/* ---------------- Popover 面板外壳 ---------------- */
+
+/* 齿轮不再是独立触发器，整行才是 reference；这里把齿轮画成"输入框尾部图标" */
+.re-cron__gear {
+  margin: 0 !important;
+  padding: 0 8px;
+  pointer-events: none;
+}
+
+/* 面板内容根：Popover 自带 padding，这里只管内部纵向节奏 */
+.re-cron__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.re-cron__panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.re-cron__panel-title {
+  color: var(--el-text-color-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.re-cron__panel-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--el-radius-full);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+}
+
+.re-cron__panel-close:hover {
+  background: var(--el-fill-color-dark);
+  color: var(--el-text-color-primary);
+}
+
+/* 模式切换（字段 / 日历） */
+.re-cron__modes {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--el-radius-md);
+  background: var(--el-fill-color-light);
+  align-self: flex-start;
+}
+
+.re-cron__mode {
+  height: 28px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--el-radius-sm);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 28px;
+  cursor: pointer;
+}
+
+.re-cron__mode.is-active {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+/* 日历模式下的预览区：与月历同宽，贴面板底部 */
+.re-cron__cal-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .re-cron__line {
@@ -1844,7 +1959,6 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   line-height: 1.5;
 }
 
-/* 未来触发：圆点 + 等宽时间，行间虚线分隔 */
 /* 未来触发：整块收进一张描边卡片，行间虚线分隔。
    卡片底色走 --el-bg-color 而不是 transparent：弹层背景是白，卡片要靠底色差
    与右侧编辑区拉开层次，暗色主题下 --el-bg-color 自动落到深色。 */
@@ -1932,44 +2046,27 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 <style lang="scss">
 /*
- * 可视化设置弹层（append-to-body 后由 Element Plus 渲染外壳，scoped 管不到外壳）：
- *  - 去动效：根及其内部元素（含伪元素）一律不做动画/过渡，弹出收起瞬时完成；
- *  - 内边距与圆角走 koi 的 --el-dialog-* / 圆角令牌，不写死像素；
- *  - 只有弹层外壳需要全局，内容区样式留在 scoped 里。
+ * 调度周期 Popover 外壳（teleport 到 body 后由 Element Plus 渲染，scoped 管不到）：
+ *  - 去动效：整棵子树不做动画/过渡。原先针对 ElDialog 写，Popover 的弹出缩放
+ *    同样会被这棵子树覆盖到，所以选择器换掉即可，策略不变；
+ *  - 内边距/圆角/投影继续用 koi 与 EP 的 --el-popover-* 令牌，不写死像素；
+ *  - 内容区样式全在 scoped 里，这里只管外壳。
  */
-.re-cron__dialog,
-.re-cron__dialog *,
-.re-cron__dialog *::before,
-.re-cron__dialog *::after {
+.re-cron__popper,
+.re-cron__popper *,
+.re-cron__popper *::before,
+.re-cron__popper *::after {
   animation: none !important;
   transition: none !important;
 }
 
-.re-cron__dialog {
-  border-radius: var(--el-dialog-border-radius, var(--el-radius-xl, 16px));
-  /* 组件把宽度写死成 900px，视口小于它时右侧会被直接裁掉 —— 实测 760px 视口下
-     预设行末端与"保存"按钮都被切出屏幕。压一个 94vw 上限让弹层随视口收缩。 */
+.re-cron__popper.el-popover {
   max-width: 94vw;
-}
-
-/* 视口偏矮时内容比屏幕高，底栏（取消/保存）会被顶出可视区：给正文加上限并允许滚动，
-   保证任何窗口尺寸下都能点到操作按钮。 */
-.re-cron__dialog .el-dialog__body {
-  max-height: 68vh;
+  padding: 14px 16px;
+  border-radius: var(--el-popover-border-radius, var(--el-radius-lg, 12px));
+  /* Popover 内容可能比触发器高很多（字段模式那三列 + 预设行）：
+     给正文加上限并允许滚动，保证任何窗口尺寸下"保存/取消"都点得到。 */
+  max-height: 84vh;
   overflow-y: auto;
-}
-
-.re-cron__dialog .el-dialog__body {
-  padding: 16px 20px 4px;
-}
-
-.re-cron__dialog .el-dialog__header {
-  padding-top: var(--el-dialog-header-padding-top, 16px);
-  padding-bottom: var(--el-dialog-header-padding-bottom, 8px);
-}
-
-.re-cron__dialog .el-dialog__footer {
-  padding: 12px 20px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 </style>
