@@ -90,7 +90,7 @@ const liveBrowserPlugin = () => ({
       spawning = true;
       try {
         const { spawn } = await import("node:child_process");
-        const script = new URL("../../../scripts/live-browser.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+        const script = new URL("../../scripts/live-browser.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
         child = spawn(process.execPath, [script], {
           detached: false,
           stdio: ["ignore", "pipe", "pipe"],
