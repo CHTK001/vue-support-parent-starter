@@ -13,6 +13,7 @@
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { ElPopover } from "element-plus";
 import { CronExpression } from "@repo/utils";
+import { msgError } from "@repo/core";
 import ReButton from "../ReButton";
 import ReInput from "../ReInput";
 import ReInputNumber from "../ReInputNumber";
@@ -990,7 +991,23 @@ const panelMode = ref<"field" | "calendar">("field");
  */
 function applyCalendar(expr: string): void {
   if (!expr) return;
+  if (!isSixField(expr)) {
+    msgError("日历模式生成的表达式不是 6 段，已忽略");
+    return;
+  }
   applyPreset(expr);
+}
+
+/**
+ * 表达式段数是否正好 6。
+ *
+ * <p>写入前必须拦一道：6 段方言由 {@link CronExpression} 强制，7 段会被服务端
+ * 直接拒绝。而 {@link applyPreset} 不做校验 —— 它对预设值是可信的，对外部传入
+ * 就必须先验。日历面板算的是纯字符串（秒/分/时拼好 + 日周占位），一旦它哪一步
+ * 少拼或多拼一段，错误会直接落进 model，父组件要到提交时才报，且用户看不出是哪来的。</p>
+ */
+function isSixField(expr: string): boolean {
+  return String(expr).trim().split(/\s+/).filter(Boolean).length === 6;
 }
 
 function clearAll(): void {
