@@ -132,17 +132,20 @@ function toggleDay(cell: Cell): void {
  *  - 自定义选日期：日位写逗号分隔的日期、周位写 `?`。
  */
 const expression = computed<string>(() => {
-  const base = `${second.value} ${minute.value} ${hour.value}`;
-  if (cadence.value === "daily") return `${base} * * * *`;
+  // 「秒 分 时」三段 + 「日 月 周」三段 = 固定 6 段。
+  // 之前写成 `${base} * * * *` 之类时手数错了段数（base 已含 3 段，
+  // 后面只该再补 3 段），会产出 7 段并被引擎判非法。
+  const head = `${second.value} ${minute.value} ${hour.value}`;
+  if (cadence.value === "daily") return `${head} * * *`;
   if (cadence.value === "custom") {
     if (!pickedDays.value.length) return "";
-    return `${base} ? * ${pickedDays.value.join(",")}`;
+    return `${head} ? * ${pickedDays.value.join(",")}`;
   }
   const days = CADENCES.find((c) => c.key === cadence.value)?.days ?? [];
   if (!days.length) return "";
   // 连续区间写成 1-5 更好读，也与服务端解析一致
   const list = days.length === 2 && days[1] - days[0] === 1 ? `${days[0]}-${days[1]}` : days.join(",");
-  return `${base} ? * ${list}`;
+  return `${head} ? * ${list}`;
 });
 
 const timeLabel = computed(
