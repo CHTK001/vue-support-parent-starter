@@ -1554,9 +1554,6 @@ async function submitProfileEnv(): Promise<void> {
                 <td v-else-if="profileTab === 'env'">
                   <ReButton icon="Delete" type="danger" :loading="profileBusyRow === `env-del-${r.name}`" @click="confirmProfileAction(`确定删除系统级环境变量 ${r.name}？`).then(ok => ok && runProfileAction(`env-del-${r.name}`, deleteHostEnvVar(hostId, String(r.name))))">删除</ReButton>
                 </td>
-                <td v-else-if="profileTab === 'network'">
-                  <ReButton icon="Setting" type="primary" :show-text="true" :disabled="!r.name" @click="openNetConfig(String(r.name))">IP 配置</ReButton>
-                </td>
               </tr>
             </tbody>
           </table>
@@ -1703,16 +1700,6 @@ async function submitProfileEnv(): Promise<void> {
         <ReButton type="primary" :loading="profileBusyRow.startsWith('env-set')" @click="submitProfileEnv">保存</ReButton>
       </template>
     </ReDialog>
-
-    <!-- 网卡管理：列表 ⇄ IPv4 配置（仅 Windows；下发后回调刷新网络分区） -->
-    <HostNetworkDialog
-      v-model="netDialogVisible"
-      :host-id="hostId"
-      :host-name="hostName"
-      :os-type="hostRecord?.serverHostOsType"
-      :initial-adapter="netDialogAdapter"
-      @applied="loadProfileSection"
-    />
   </div>
 </template>
 
