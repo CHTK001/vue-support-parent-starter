@@ -75,6 +75,50 @@ export function toTableOptions(tables: SchemaTable[]): SelectOption[] {
  * @param columns 列元数据
  * @returns 下拉选项
  */
+/**
+ * 把宿主给的表选项还原成表元数据（外部喂选项模式）。
+ *
+ * <p>选择器在宿主喂选项时不再自己取数，但仍要发出 {@code loaded} 事件
+ * —— 采集节点表单靠它把「表不存在」这个判断喂给字段映射控件。</p>
+ *
+ * @param options 宿主给的选项；带 {@code raw} 的直接取原始行
+ * @returns 表元数据；裸选项按 value 补一份无注释的最小行
+ */
+export function toTableRows(options: SelectOption[]): SchemaTable[] {
+  return (options ?? []).map(option => {
+    const raw = option.raw as SchemaTable | undefined;
+    if (raw?.name) {
+      return raw;
+    }
+    return {
+      name: String(option.table ?? option.value ?? ""),
+      comment: (option.comment as string | null | undefined) ?? null,
+      type: (option.type as string | null | undefined) ?? null,
+    };
+  });
+}
+
+/**
+ * 把宿主给的字段选项还原成列元数据（外部喂选项模式）。
+ *
+ * @param options 宿主给的选项；带 {@code raw} 的直接取原始行
+ * @returns 列元数据；裸选项按 value 补一份无注释的最小行
+ */
+export function toColumnRows(options: SelectOption[]): SchemaColumn[] {
+  return (options ?? []).map(option => {
+    const raw = option.raw as SchemaColumn | undefined;
+    if (raw?.name) {
+      return raw;
+    }
+    return {
+      name: String(option.field ?? option.value ?? ""),
+      label: (option.comment as string | null | undefined) ?? null,
+      typeName: (option.type as string | null | undefined) ?? null,
+      primaryKey: Boolean(option.primaryKey),
+    };
+  });
+}
+
 export function toColumnOptions(columns: SchemaColumn[]): SelectOption[] {
   return (columns ?? []).map(item => ({
     value: item.name,

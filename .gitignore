@@ -193,7 +193,9 @@ parser-trim.png
 **/tmp-*.ts
 **/tmp-*.mjs
 **/tmp-*.js
+**/tmp-*.py
 **/tmp-dist/
+**/tmp-fixtures/
 
 # Rust 编译产物（wasm 本身不忽略：crates/*/src/wasm 下的产物要随包提交）
 **/target/

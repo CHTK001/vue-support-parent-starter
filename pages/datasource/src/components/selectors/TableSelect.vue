@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ReSelect from "@repo/ui/re-select";
-import { APP_DATASOURCE, fetchDatasourceTableInfos, toTableOptions } from "../../api";
+import { APP_DATASOURCE, fetchDatasourceTableInfos, toTableOptions, toTableRows } from "../../api";
 import type { CollectColumn, CollectOption, CollectTable } from "../../api";
 
 const props = withDefaults(
@@ -43,6 +43,10 @@ const props = withDefaults(
      * 组件自取数会把那层过滤绕过去。传了就以宿主给的为准。</p>
      */
     options?: CollectOption[];
+    /**
+     * 加载态由宿主控制（外部选项模式下组件不知道宿主何时取完数）。
+     */
+    loading?: boolean;
   }>(),
   {
     datasource: "",
@@ -52,6 +56,7 @@ const props = withDefaults(
     placeholder: "选择表",
     allowCreate: false,
     options: undefined,
+    loading: false,
   },
 );
 
@@ -68,32 +73,16 @@ const loading = ref(false);
 /** 是否由宿主喂选项（此时组件不自己取数） */
 const external = computed(() => Array.isArray(props.options));
 
-/**
- * 外部模式下的表元数据。
- *
- * <p>优先用 {@link toTableOptions} 挂上的原始行；宿主若传的是裸选项
- * （只有 value/label），就按 value 补一份最小行 —— {@code loaded} 事件至少有值可发，
- * 不会被静默跳过。</p>
- */
-const externalTables = computed<CollectTable[]>(() =>
-  (props.options ?? []).map(option => {
-    const raw = option.raw as CollectTable | undefined;
-    if (raw?.name) {
-      return raw;
-    }
-    const name = String(option.table ?? option.value ?? "");
-    return {
-      name,
-      comment: (option.comment as string | null) ?? null,
-      type: (option.type as string | null) ?? null,
-    };
-  }),
-);
+/** 外部模式下的表元数据：宿主给的选项还原成行，供 loaded 事件用 */
+const externalTables = computed<CollectTable[]>(() => toTableRows(props.options ?? []));
 
 /** 最终渲染的选项：外部模式用宿主给的，自取数模式用本地表元数据换算 */
 const renderedOptions = computed<CollectOption[]>(() =>
   external.value ? (props.options ?? []) : toTableOptions(tables.value),
 );
+
+/** 生效的加载态：外部模式用宿主的，自取数模式用本地的 */
+const busy = computed(() => (external.value ? props.loading : loading.value));
 
 /** 拉表清单；外部模式只回填不请求 */
 async function load(): Promise<void> {
@@ -149,7 +138,7 @@ function onChange(value: unknown): void {
     :model-value="modelValue"
     :type="type"
     :disabled="disabled || (!external && !datasource)"
-    :loading="loading"
+    :loading="busy"
     :placeholder="placeholder"
     :options="renderedOptions"
     :allow-create="allowCreate"

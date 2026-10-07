@@ -30,6 +30,7 @@ import {
     APP_DATASOURCE,
     fetchDatasourceOptions,
     fetchDatasourceTables,
+    fetchDatasourceTableInfos,
     fetchMetas,
   fetchNodeStates,
   fetchRuntime,
@@ -46,6 +47,8 @@ import {
   validateDsl,
 } from "../api/collectApi";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
+  // CollectTable 只在数据源中心定义（表元数据：表名 + 注释 + 类型）
+  import type { CollectTable } from "@pages/datasource";
   import type {
     CollectColumn,
     CollectDsl,
@@ -251,9 +254,9 @@ async function loadPlaceholders(): Promise<void> {
   placeholderGroups.value = groups;
 }
 
-/** 读表清单：设计器按需调用并自行缓存，这里只做透传 */
-async function loadTables(datasource: string): Promise<string[]> {
-  return (await fetchDatasourceTables(datasource)) ?? [];
+/** 读表清单：给带注释的表元数据，表下拉才能显示中文名 */
+async function loadTables(datasource: string): Promise<CollectTable[]> {
+  return (await fetchDatasourceTableInfos(datasource)) ?? [];
 }
 
 /** 读列元数据：字段映射控件的左列候选 */

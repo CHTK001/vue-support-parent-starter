@@ -10,6 +10,9 @@ import { ElDialog } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
+// 数据源 / 表下拉走共享件：中文名与副标题的口径全站只有一份，
+// 且取数仍由宿主给（middlewareForm 要按节点类型过滤数据源）
+import { DatasourceSelect, TableSelect } from "@pages/datasource";
 import RePlaceholderPicker from "@repo/ui/re-placeholder-picker";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
@@ -197,14 +200,13 @@ const mappingSummary = computed(() => {
       :options="ctx.flowOptions"
       @update:model-value="(v: string | number | (string | number)[] | null) => emit('update', v)"
     />
-    <ReSelect
+    <DatasourceSelect
       v-else-if="param.type === 'datasource'"
-      filterable
       class="pane-fill"
       placeholder="选择数据源"
       :model-value="value || param.defaultValue || ''"
       :options="ctx.datasourceOptions"
-      @update:model-value="(v: string | number | (string | number)[] | null) => emit('update', v)"
+      @update:model-value="(v: string) => emit('update', v)"
     />
     <!--
       allow-create + default-first-option 必须成对用，缺一个就配不出新表：
@@ -215,18 +217,15 @@ const mappingSummary = computed(() => {
       ReSelect 的 filter-method 只收集远程搜索词、不过滤静态候选，
       所以这里还得靠 default-first-option 兜住「回车选第一个」。
     -->
-    <ReSelect
+    <TableSelect
       v-else-if="param.type === 'table'"
-      filterable
-      allow-create
-      default-first-option
-      clearable
       class="pane-fill"
-      :loading="ctx.tablesLoading"
-      :placeholder="ctx.tablePlaceholder"
       :model-value="value"
       :options="ctx.tableOptions"
-      @update:model-value="(v: string | number | (string | number)[] | null) => emit('update', v)"
+      :placeholder="ctx.tablePlaceholder"
+      :loading="ctx.tablesLoading"
+      allow-create
+      @update:model-value="(v: string) => emit('update', v)"
     />
     <template v-else-if="param.type === 'mapping'">
       <!-- 映射收进弹框：与「抽取字段」同形（摘要 + 配置），需要改时才点开 -->
