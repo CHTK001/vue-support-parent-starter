@@ -1115,7 +1115,14 @@ const vxeDragData = ref<Array<Record<string, unknown>>>([]);
 const elTableRef = ref<TableInstanceHandle | null>(null);
 
 /** 当前是否走 vxe 引擎 */
-const useVxe = computed<boolean>(() => props.engine === "vxe");
+/**
+ * 是否走 vxe 引擎。
+ *
+ * <p>vxe 的列只能来自 columns 属性（单元格走命名插槽）；仅用 &lt;ReTableColumn&gt; 插槽声明列的页面在
+ * vxe 下拿不到任何列（表体渲染出行、行内没有单元格），因此 columns 为空时自动回退 element 引擎兜底，
+ * 保证插槽式用法（采集/阅卷/数据配置等存量页面）不因默认引擎切换而白屏。</p>
+ */
+const useVxe = computed<boolean>(() => props.engine === "vxe" && !!props.columns?.length);
 
 /**
  * 让表格按当前容器宽度重新计算列宽。
