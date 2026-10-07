@@ -608,7 +608,27 @@ async function closeOverlays(p) {
         const rec = { name: label, cls: it.cls, tag: it.tag, extra: !!it.extra, state: 'ok', effect: '', err: '' };
 
         if (!it.visible) { rec.state = 'hidden'; R.elements.push(rec); continue; }
-        if (!it.name) { rec.state = 'no-accessible-name'; R.elements.push(rec); warn++; continue; }
+        /**
+         * **无 accessible name 的元素照样点**（2026-10-07 加强判据，只加强不放松）。
+         *
+         * 原来这里是一句 `continue` —— 直接不测。问题是这类元素在不少页面是该控件
+         * **唯一**的采集代表：`label.el-switch` 不匹配 `CLICKABLE_SEL`（它既不是
+         * `button` 也不是 `[role="button"]`）、`<input>` 也不在选择器里，于是
+         * SystemSettings 的 9 个开关、DefaultModels 的 36 个下拉只能以
+         * `el-switch__core` / `el-input` 外层被收进来；又因为 `extra`（cursor:pointer
+         * 启发式）元素没有 aria-label/title、且相邻文字不在其 textContent 内，
+         * 标不上名字就整条跳过。
+         *
+         * 实测 `sweep-final4`：`no-accessible-name=50`（14 个 el-switch__core +
+         * 36 个 el-input），**全部 `extra:true`、全部未被点击** ——
+         * 「每个可点按钮/图标都要测」在这 50 个真控件上是空的。
+         * （对照：Bots 路由的 `el-switch__core` 因为旁边有文字拿到 name，state=ok，
+         *  说明这类元素点得动、也测得出来。）
+         *
+         * 现在照常点击，仅打 `noName` 标记留档：无障碍观察由
+         * `summary.noAccessibleName` 继续统计，**不会因为点它而把 a11y 问题抹掉**。
+         */
+        if (!it.name) rec.noName = true;
         if (SKIP_NAME.test(it.name)) { rec.state = 'skipped'; R.elements.push(rec); continue; }
         if (it.disabled) { rec.state = 'disabled'; R.elements.push(rec); continue; }
         if (it.inChrome) {
@@ -950,7 +970,8 @@ async function closeOverlays(p) {
     needsForce: all.filter((e) => e.state === 'needs-force'),
     vanished: all.filter((e) => e.state === 'vanished'),
     stateDependent: all.filter((e) => e.state === 'state-dependent'),
-    noAccessibleName: all.filter((e) => e.state === 'no-accessible-name'),
+    // noName：无 accessible name 但**已照常点击**的元素（a11y 观察，不影响 FAIL）
+    noAccessibleName: all.filter((e) => e.noName || e.state === 'no-accessible-name'),
     routeLoadErrors: report.routes.filter((r) => r.pageErrors.length || r.consoleErrors.length || r.net5xx.length),
   };
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
@@ -958,6 +979,8 @@ async function closeOverlays(p) {
   console.log('\n===== 遍历汇总 =====');
   console.log('  可点元素总数=' + all.length + '  ' + JSON.stringify(byState));
   console.log('  PASS=' + report.summary.pass + ' FAIL=' + report.summary.fail + ' WARN=' + warn);
+  console.log('  可点但无 accessible name（已照常点击，仅无障碍观察，不计 FAIL）='
+    + report.summary.noAccessibleName.length);
   console.log('  崩溃自愈=' + crashes + '  中止=' + summary.aborted + '  空采集路由=' + emptyRoutes.length
     + '  未跑到路由=' + skippedRoutes.length);
   if (emptyRoutes.length) {
