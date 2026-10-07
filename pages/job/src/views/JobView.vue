@@ -1948,4 +1948,5 @@ watch(formVisible, (visible) => {
 .job-detail__plus {
   color: var(--el-text-color-regular);
 }
+</style>
 
