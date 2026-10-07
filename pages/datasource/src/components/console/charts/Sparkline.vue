@@ -90,8 +90,8 @@ const segments = computed(() => {
   if (!nums.length) {
     return [] as string[];
   }
-  let min = Math.min(...nums);
-  let max = Math.max(...nums);
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
   // 恒定序列（max === min）会让除零得到 NaN，此时画在中线
   const span = max - min || 1;
   const pad = 3;

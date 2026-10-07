@@ -138,45 +138,34 @@ const ARCHIVE_EXTS = [
 ];
 
 /**
- * Windows 风格彩色类型图标（SVG 标记，viewBox 48x48）。
+ * Windows 风格彩色类型图标（真实 SVG 文件，viewBox 48x48）。
+ *
+ * <p>图标统一存放在 {@code assets/file-icons/*.svg}，此处经
+ * {@code import.meta.glob(..., ?raw, eager)} 一次性以文本载入，
+ * {@link fileSvg} 按类型取对应文件的 SVG 标记（配合 v-html 渲染）。
+ * 新增类型只需加一个 svg 文件 + 在 {@link fileSvg} 里映射，无需改模板。</p>
  *
  * <p>目录为经典黄色双层文件夹；txt/json/代码/office/pdf/压缩包等常见类型
  * 均按 Windows 资源管理器风格绘制（白纸折角 + 类型色块/字符）。</p>
  */
-const FS_TYPE_SVG: Record<string, string> = {
-  /** 目录：黄色双层文件夹 */
-  folder: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M5 13a4 4 0 0 1 4-4h10.2l4.6 4.6a2 2 0 0 0 1.4.6H39a4 4 0 0 1 4 4v3H5z" fill="#f0b429"/><path d="M5 18h38v16.5a4.5 4.5 0 0 1-4.5 4.5h-29A4.5 4.5 0 0 1 5 34.5z" fill="#ffd166"/><path d="M5 18h38v2.4H5z" fill="#ffe4a1"/></svg>`,
-  /** 兜底：空白文档 */
-  file: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/></svg>`,
-  /** 文本：白纸 + 蓝色行 */
-  txt: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><path d="M16 23h16M16 29h16M16 35h10" stroke="#4a90d9" stroke-width="2.4" stroke-linecap="round"/></svg>`,
-  /** JSON：白纸 + 橙色花括号 */
-  json: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="24" y="31" text-anchor="middle" font-family="Consolas,Menlo,monospace" font-size="13" font-weight="700" fill="#e8833a">{ }</text></svg>`,
-  /** 代码：白纸 + 蓝色尖括号 */
-  code: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><path d="M19.5 20l-5.5 5.5 5.5 5.5M28.5 20l5.5 5.5-5.5 5.5" fill="none" stroke="#2f74c0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  /** Markdown：白纸 + 靛蓝 M↓ */
-  md: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="21" y="32" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#5b6bd6">M</text><path d="M32 22v8m0 0l-3-3m3 3l3-3" fill="none" stroke="#5b6bd6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  /** 图片：相纸 + 山与太阳 */
-  image: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="8" width="36" height="30" rx="4" fill="#eaf4ff" stroke="#bcd7f0" stroke-width="1.6"/><circle cx="17" cy="18" r="3.6" fill="#ffd23f"/><path d="M9 38l10-12 7 8 5.5-5.5L38 34v2a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2z" fill="#57b368"/></svg>`,
-  /** 视频：蓝色胶片 + 播放键 */
-  video: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10" width="38" height="28" rx="5" fill="#3d6fd6"/><path d="M20.5 18.5l11 5.5-11 5.5z" fill="#fff"/><rect x="5" y="10" width="38" height="28" rx="5" fill="none" stroke="#2c55a8" stroke-width="1.6"/></svg>`,
-  /** 音频：紫色唱片 + 音符 */
-  audio: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="7" width="34" height="34" rx="7" fill="#8e5bd6"/><path d="M20 31V19.5l11-2.8V27" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.6" cy="31.2" r="3.2" fill="#fff"/><circle cx="28.6" cy="27.2" r="3.2" fill="#fff"/></svg>`,
-  /** PDF：白纸 + 红色徽标 */
-  pdf: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="10" y="25" width="24" height="9.5" rx="2.2" fill="#e5493a"/><text x="22" y="32.4" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" font-weight="700" fill="#fff">PDF</text></svg>`,
-  /** 压缩包：纸箱 + 拉链 */
-  zip: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M13 16l3-7h16l3 7z" fill="#d98f2b"/><rect x="9" y="16" width="30" height="24" rx="4" fill="#f2a63c"/><path d="M23.2 16h1.6v3h-1.6zM23.2 21h1.6v3h-1.6zM23.2 26h1.6v3h-1.6z" fill="#fff" opacity="0.85"/><rect x="20.5" y="30" width="7" height="6" rx="1.5" fill="#fff"/></svg>`,
-  /** Excel：白纸 + 绿色表格 */
-  excel: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2" fill="#2f9e5f"/><path d="M13 24.4h22M13 29.7h22M20.4 19v16M27.6 19v16" stroke="#fff" stroke-width="1.4"/></svg>`,
-  /** Word：白纸 + 蓝色 W */
-  word: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2.4" fill="#2b6fd4"/><text x="24" y="31.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#fff">W</text></svg>`,
-  /** PPT：白纸 + 橙色 P */
-  ppt: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2.4" fill="#e8833a"/><text x="24" y="31.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#fff">P</text></svg>`,
-  /** 字体：白纸 + 紫色 Aa */
-  font: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="24" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#8e5bd6">Aa</text></svg>`,
-  /** 3D / BIM 模型：等轴测立方体（IFC、STEP 等归此类） */
-  model: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><path d="M24 21l9 4.5-9 4.5-9-4.5z" fill="#8fb4f5"/><path d="M24 30l9-4.5v9L24 39z" fill="#3f6fd6"/><path d="M24 30l-9-4.5v9L24 39z" fill="#5b8def"/></svg>`,
-};
+const iconModules = import.meta.glob<string>("./assets/file-icons/*.svg", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+/** 文件名（无扩展名） -> SVG 标记文本 */
+const FS_TYPE_SVG: Record<string, string> = Object.fromEntries(
+  Object.entries(iconModules).map(([path, svg]) => [
+    path.slice(path.lastIndexOf("/") + 1, path.lastIndexOf(".")),
+    svg,
+  ]),
+);
+
+/** 取图标：缺文件时退回通用文档图标，保证老版本缓存/漏文件也不白屏 */
+function icon(name: string): string {
+  return FS_TYPE_SVG[name] ?? FS_TYPE_SVG.file;
+}
 
 /**
  * 按扩展名判定文件预览类型
@@ -222,70 +211,89 @@ export function kindOf(name: string): PreviewKind {
  */
 export function fileSvg(name: string, isDir: boolean): string {
   if (isDir) {
-    return FS_TYPE_SVG.folder;
+    return icon("folder");
   }
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  // 扩展名专属图标优先（真实应用图标质感）：命中则直接返回
+  const extIcon = icon(ext);
+  if (FS_TYPE_SVG[ext]) {
+    return extIcon;
+  }
   switch (kindOf(name)) {
     case "image":
     case "tiff":
     case "heic":
-      return FS_TYPE_SVG.image;
+      return icon("image");
     case "video":
-      return FS_TYPE_SVG.video;
+      return icon("video");
     case "audio":
-      return FS_TYPE_SVG.audio;
+      return icon("audio");
     case "pdf":
-      return FS_TYPE_SVG.pdf;
+      return icon("pdf");
     case "archive":
-      return FS_TYPE_SVG.zip;
+      return icon("zip");
     case "font":
-      return FS_TYPE_SVG.font;
+      return icon("font");
     case "office":
-      // Excel 表格类 / PPT 演示类 / 其余按 Word 文档
-      if (["xlsx", "xls", "ods"].includes(ext)) {
-        return FS_TYPE_SVG.excel;
+      // Excel 表格类 / PPT 演示类 / 电子书 / 其余按 Word 文档
+      if (["xlsx", "xls", "ods", "numbers"].includes(ext)) {
+        return icon("excel");
       }
-      if (["pptx", "ppt", "odp", "pps"].includes(ext)) {
-        return FS_TYPE_SVG.ppt;
+      if (["pptx", "ppt", "odp", "pps", "key"].includes(ext)) {
+        return icon("ppt");
       }
-      return FS_TYPE_SVG.word;
-    // 源代码统一蓝色尖括号图标
+      if (["epub", "mobi", "azw", "azw3", "xps", "oxps", "djvu", "djv", "pages"].includes(ext)) {
+        return icon("epub");
+      }
+      return icon("word");
+    // 源代码统一蓝色尖括号图标；字幕文件用专属字幕图标
     case "code":
-      return FS_TYPE_SVG.code;
+      if (["srt", "vtt", "ass", "ssa"].includes(ext)) {
+        return icon("subtitle");
+      }
+      return icon("code");
     // Markdown 专属 M↓ 图标
     case "markdown":
-      return FS_TYPE_SVG.md;
+      return icon("md");
     // CSV 按表格类文件显示 Excel 图标
     case "csv":
-      return FS_TYPE_SVG.excel;
-    // 邮件 / 日历 / 名片 / Jupyter 暂无专属绘制，使用通用文档图标
+      return icon("excel");
+    // 邮件 / 日历 / 名片 / Jupyter 各有专属图标
     case "email":
+      return icon("email");
     case "calendar":
+      return icon("calendar");
     case "contact":
+      return icon("contact");
     case "notebook":
-      return FS_TYPE_SVG.file;
-    // 3D / BIM 模型使用立方体图标
+      return icon("notebook");
+    // CAD / 3D 模型：dwg/dxf/dgn/shp 走 CAD 图纸图标，其余 3D 用立方体图标
     case "model":
-      return FS_TYPE_SVG.model;
-    // HTML 网页沿用代码图标；数据库/大数据文件使用花括号图标
+      if (["dwg", "dxf", "dgn", "shp"].includes(ext)) {
+        return icon("cad");
+      }
+      return icon("model");
+    // HTML 网页 / 数据库 / 设计稿各有专属图标
     case "webpage":
-      return FS_TYPE_SVG.code;
+      return icon("webpage");
     case "data":
-      return FS_TYPE_SVG.json;
-    // PSD 设计稿按图片图标
+      return icon("data");
     case "design":
-      return FS_TYPE_SVG.image;
+      return icon("design");
     case "text":
-      // json 专属花括号图标，标记类文本使用代码图标，其余普通文本
+      // json 专属花括号图标，标记类文本使用代码图标，播放列表用专属图标，其余普通文本
       if (ext === "json") {
-        return FS_TYPE_SVG.json;
+        return icon("json");
+      }
+      if (["m3u", "m3u8", "pls", "cue"].includes(ext)) {
+        return icon("playlist");
       }
       if (["xml", "yaml", "yml"].includes(ext)) {
-        return FS_TYPE_SVG.code;
+        return icon("code");
       }
-      return FS_TYPE_SVG.txt;
+      return icon("txt");
     default:
-      return FS_TYPE_SVG.file;
+      return icon("file");
   }
 }
 

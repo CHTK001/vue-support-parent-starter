@@ -60,11 +60,13 @@ const props = withDefaults(
 const el = ref<HTMLElement | null>(null);
 const elRef = computed(() => el.value);
 
-/** 三段明细，null 归 0：stub_status 缺字段时报「0」比报「—」更贴近真实（确实没有该状态连接） */
+/** 三段明细，null 归 0：stub_status 缺字段时报「0」比报「—」更贴近真实（确实没有该状态连接）。
+ *  配色只用 Element 核心令牌（不取 --metric-* 这类应用级令牌）：本组件被采集台与监控台共用，
+ *  应用级令牌在采集台不存在，落不到回退色就会变成灰点。 */
 const parts = computed(() => [
-  { key: "reading", label: "读取", value: Math.max(props.reading ?? 0, 0), token: "--metric-cpu" },
-  { key: "writing", label: "处理", value: Math.max(props.writing ?? 0, 0), token: "--status-success" },
-  { key: "waiting", label: "等待", value: Math.max(props.waiting ?? 0, 0), token: "--el-color-warning" },
+  { key: "reading", label: "读取", value: Math.max(props.reading ?? 0, 0), token: "--el-color-warning" },
+  { key: "writing", label: "写入", value: Math.max(props.writing ?? 0, 0), token: "--el-color-success" },
+  { key: "waiting", label: "等待", value: Math.max(props.waiting ?? 0, 0), token: "--el-color-info" },
 ]);
 
 /** 活跃连接总数 = 圆心数字 */

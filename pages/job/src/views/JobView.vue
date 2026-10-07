@@ -1663,58 +1663,6 @@ watch(formVisible, (visible) => {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-/* 后续执行时间点预览：序号 + 等宽时间，5 行高度稳定不跳动 */
-.job-fire-times__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.job-fire-times__list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  /* 原写死 8px，对应 koi 的 --el-radius-md */
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--rm-bg-subtle, var(--el-fill-color-light));
-}
-
-.job-fire-times__seq {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  /* 原写死 9999px，对应 koi 的 --el-radius-full */
-  border-radius: var(--el-radius-full, 9999px);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  color: var(--el-color-primary);
-  font-size: 11px;
-  line-height: 20px;
-  text-align: center;
-}
-
-.job-fire-times__time {
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-}
-
-.job-fire-times__empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--el-color-danger);
-}
-
-.job-fire-times__note {
-  margin: 12px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
-
 .task-form {
   display: flex;
   flex-direction: column;
@@ -1777,6 +1725,72 @@ watch(formVisible, (visible) => {
   line-height: 1.5;
 }
 
+/*
+  单个字段的纵向骨架（标题在上、控件在中、说明在下）。
+  .task-form__switch-field 与 .task-form__engine 同构，一并在这里给基础排版，
+  各自只再补对齐/间距——所以下面 .task-form__switch-field 只写了两条差异属性。
+*/
+.task-form__field,
+.task-form__switch-field,
+.task-form__engine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 语言选择行：与普通字段同构，占满整行（对象类型下整个 label 不渲染） */
+.task-form__engine > span {
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+/* 四个分区（基本信息 / 代码正文 / 调度配置 / 策略与告警）：一个浅底卡片一块 */
+.task-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg);
+  background: var(--el-bg-color-overlay);
+}
+
+.task-form__section h3 {
+  margin: 0;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/*
+  字段网格：两列等宽，minmax(0,1fr) 允许内部控件收缩而不撑破列。
+  窄屏塌成一列由文件末尾的 @media (max-width: 640px) 负责。
+*/
+.task-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+/* 调度配置区的控件更宽（cron 输入框、参数文本域），给三列 */
+.task-form__grid--schedule {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* 字段下方的补充说明：灰字小字，<em> 默认斜体要显式压掉 */
+.task-form__help {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+/* 字段标题（每个 task-form__field 的首个 span）：font-style: normal 是为了压掉
+   嵌套 <em> 在部分主题下的斜体，与下方 .task-form__error 同一套口径。 */
+.task-form__field > span {
   font-size: 12px;
   font-style: normal;
   line-height: 1.5;
@@ -1834,119 +1848,6 @@ watch(formVisible, (visible) => {
   .task-form__switch-field {
     align-items: flex-start;
   }
-}
-
-.job-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.job-detail__alert {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter));
-  border-radius: var(--el-radius-md);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color-overlay));
-  color: var(--el-text-color-primary);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.job-detail__alert > .el-icon:first-child {
-  flex: 0 0 auto;
-  color: var(--el-color-primary);
-  font-size: 20px;
-}
-
-.job-detail__alert.is-warn {
-  border-color: color-mix(in srgb, var(--el-color-warning) 28%, var(--el-border-color-lighter));
-  background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color-overlay));
-}
-
-.job-detail__alert-arrow {
-  margin-left: auto;
-  color: var(--el-text-color-primary);
-}
-
-.job-detail__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.job-detail__card {
-  overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-left: 3px solid var(--el-color-primary);
-  border-radius: var(--el-radius-lg);
-  background: var(--el-bg-color-overlay);
-}
-
-.job-detail__card h3 {
-  margin: 0;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  color: var(--el-text-color-primary);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.job-detail__list {
-  margin: 0;
-  padding: 0 16px 8px;
-}
-
-.job-detail__list > div {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.job-detail__list > div:last-child {
-  border-bottom: 0;
-}
-
-.job-detail__list dt {
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.job-detail__list dd {
-  min-width: 0;
-  margin: 0;
-  color: var(--el-text-color-primary);
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-
-.job-detail__mono,
-.job-detail__num {
-  font-family: var(--cc-font-num);
-  font-variant-numeric: tabular-nums;
-}
-
-.job-detail__link {
-  color: var(--el-color-primary);
-}
-
-.job-detail__handler {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.job-detail__plus {
-  color: var(--el-text-color-regular);
 }
 </style>
 
