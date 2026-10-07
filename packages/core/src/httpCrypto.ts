@@ -20,6 +20,14 @@ import { getRouter, hasRouter } from "./router/inject";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
 import { msgError, setSuppressNextMsg } from "./msg";
+import {
+  SESSION_EPOCH_FIELD,
+  isSessionAborted,
+  isStaleEpoch,
+  markSessionAborted,
+  sessionEpoch,
+  sessionSignal,
+} from "./session-scope";
 import i18n from "@repo/languages";
 import { ElMessageBox } from "element-plus";
 
@@ -295,6 +303,17 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     const encrypt = hc?.encrypt ?? options.encrypt;
     const showLoading = hc?.showLoading ?? options.showLoading;
 
+    // 会话作用域：挂上当前 signal（登出时一次性中断所有在途请求），
+    // 并记下发起时的世代号，响应回来时可判断「这属于上一个会话」。
+    // 调用方若已自带 signal / signal 支持 abort，则保留调用方的意图。
+    const internal = config as InternalAxiosRequestConfig & Record<string, unknown>;
+    if (!internal.signal) {
+      internal.signal = sessionSignal();
+    }
+    if (internal[SESSION_EPOCH_FIELD] === undefined) {
+      internal[SESSION_EPOCH_FIELD] = sessionEpoch();
+    }
+
     if (showLoading) {
       startLoading();
     }
@@ -386,6 +405,18 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     (error) => {
       if (shouldLoading(error.config)) {
         doneLoading();
+      }
+
+      // ── 会话已作废（登出 / 换人登录）导致的取消：静默处理 ──
+      // 这批请求带着旧令牌发出，401 / 取消都属于「预期之内」。若走下面的通用分支，
+      // 会连着弹出 N 个「登录已失效」确认框，并调 clearAllAuthData() 把用户
+      // 刚刚登录好的新会话一起清掉（表现为登录后立刻又被踢回登录页）。
+      const errorConfig = (error?.config ?? undefined) as (Record<string, unknown> | undefined);
+      if (
+        isSessionAborted(error) ||
+        isStaleEpoch(errorConfig?.[SESSION_EPOCH_FIELD] as number | undefined)
+      ) {
+        return Promise.reject(markSessionAborted(error));
       }
 
       // ── 失败重试：5xx / 网络错误时指数退避重试 ──

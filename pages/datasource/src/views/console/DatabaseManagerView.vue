@@ -411,7 +411,7 @@
                 <span class="dbm-dgrid-idx">{{ i + 1 }}</span>
                 <ReInput v-model="row.name" class="dbm-mono" @dblclick="openColumnDialog('edit', row)" />
                 <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
-                <ReInputNumber v-model="row.size" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+                <ReInputNumber :model-value="row.size ?? undefined" @update:model-value="row.size = $event ?? null" :min="1" :max="65535" controls-position="right" style="width: 100%" />
                 <ReSwitch v-model="row.nullable" />
                 <span class="dbm-dgrid-pk"><ReIcon v-if="row.isPrimaryKey" name="Key" :size="13" /></span>
                 <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
@@ -620,7 +620,7 @@
             </ReSelect>
             <ReButton
               layout="square"
-              :type="erShowLabels ? 'primary' : 'default'"
+              :type="erShowLabels ? 'primary' : ''"
               icon="Label"
               tip="显示 / 隐藏关系名"
               @click="erShowLabels = !erShowLabels"
@@ -2895,7 +2895,7 @@ const importPreviewRows = computed(() => {
 
 /** 预览表的列定义 */
 const importPreviewColumns = computed(() => [
-  { prop: "__src", label: "源列 → 目标列", minWidth: 230, slot: "mapping", fixed: "left" },
+  { prop: "__src", label: "源列 → 目标列", minWidth: 230, slot: "mapping", fixed: "left" as const },
   { prop: "__sample", label: "示例值", minWidth: 180, showOverflowTooltip: true },
 ]);
 
@@ -3214,7 +3214,7 @@ const tableLoading = ref(false);
  */
 const tableDataReqSeq = ref(0);
 /** 本地表格列定义（ReTable 的列结构） */
-type Column = { prop: string; label: string; width?: number; minWidth?: number; showOverflowTooltip?: boolean; slot?: string; fixed?: string; sortable?: boolean | "custom"; formatter?: (row: any) => string };
+type Column = { prop: string; label: string; width?: number; minWidth?: number; showOverflowTooltip?: boolean; slot?: string; fixed?: boolean | "left" | "right"; sortable?: boolean | "custom"; formatter?: (row: any) => string };
 
 // ---------- E2 列显示 / 固定列 / 排序标志 ----------
 /**
@@ -3541,7 +3541,7 @@ const indexColumnDefs = [
   { prop: "nonUnique", label: "非唯一", width: 90, formatter: (r: any) => (r.nonUnique ? "是" : "否") },
   { prop: "indexType", label: "类型", width: 80 },
   { prop: "seqInIndex", label: "序号", width: 80 },
-  { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right" },
+  { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right" as const },
 ];
 
 // 外键页签（可增删）
@@ -3557,7 +3557,7 @@ const foreignKeyColumnDefs = [
   { prop: "refColumn", label: "引用列", minWidth: 130 },
   { prop: "updateRule", label: "更新规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.updateRule] ?? r.updateRule ?? "" },
   { prop: "deleteRule", label: "删除规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.deleteRule] ?? r.deleteRule ?? "" },
-  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right" },
+  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right" as const },
 ];
 
 /** 引用动作的可选项（与后端白名单一致） */
@@ -3926,9 +3926,9 @@ const editingCell = ref<{ row: Record<string, any>; column: string; value: strin
  *
  * @param v 输入框回传的新值
  */
-function setEditingCellValue(v: string): void {
+function setEditingCellValue(v: string | number | null | undefined): void {
   if (editingCell.value) {
-    editingCell.value.value = v;
+    editingCell.value.value = v == null ? "" : String(v);
   }
 }
 // 主键列集合 + 列类型映射，用于判断可编辑/自增/数字/日期/长文本
@@ -4438,8 +4438,8 @@ const charsetOptions = computed<Array<{ label: string; value: string }>>(() => {
  *
  * @param charset 新选的字符集
  */
-function onColumnCharsetChange(charset: string | undefined) {
-  if (!charset) {
+function onColumnCharsetChange(charset: string | number | (string | number)[] | null) {
+  if (typeof charset !== "string" || !charset) {
     columnForm.collation = "";
     return;
   }
@@ -4457,8 +4457,8 @@ function onColumnCharsetChange(charset: string | undefined) {
  *
  * @param charset 新选的字符集
  */
-function onOptionsCharsetChange(charset: string | undefined) {
-  if (!charset) return;
+function onOptionsCharsetChange(charset: string | number | (string | number)[] | null) {
+  if (typeof charset !== "string" || !charset) return;
   void loadTableOptionValues(charset);
   if (tableOptionValues.value.collations.length > 0) {
     const stillValid = tableOptionValues.value.collations.some(

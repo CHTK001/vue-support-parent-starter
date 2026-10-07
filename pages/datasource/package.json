@@ -21,6 +21,7 @@
     "@codemirror/view": "^6.43.11",
     "vue": "catalog:",
     "element-plus": "catalog:",
+    "echarts": "catalog:",
     "@element-plus/icons-vue": "catalog:",
     "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",

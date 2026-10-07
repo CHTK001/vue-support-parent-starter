@@ -715,10 +715,18 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         }
 
         if (response.type === "user_message") {
-          // 后端广播的用户消息，添加到消息列表
+          // 后端广播的用户消息：按 id 去重后写入，避免重连/重演时整轮重复。
+          // 重新回答（multi_version）时后端会先回放既有用户消息再发 create；
+          // 若直接 push，界面会出现「点一次重新生成就多出一对消息」，
+          // 且补推的副本与真正的用户轮次 id 不同，导致版本切换与删除失效。
           const userMsg = response.userMessage;
-          if (userMsg) {
-            sessionStore.addMessage(streamingSessionId, userMsg);
+          if (userMsg?.id) {
+            const exists = sessionStore
+              .getMessages(streamingSessionId)
+              .some((msg: Message) => msg.id === userMsg.id);
+            if (!exists) {
+              sessionStore.addMessage(streamingSessionId, userMsg);
+            }
           }
           continue;
         }

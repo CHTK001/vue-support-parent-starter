@@ -113,7 +113,7 @@
  *       iconfontDict: { 'home': '&#xe600;' }
  *     }
  */
-import { computed, ref, onMounted, watch, h, markRaw, type Component } from "vue";
+import { computed, ref, onMounted, watch, h, markRaw, toRaw, type Component } from "vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { ElIcon } from "element-plus";
 
@@ -229,7 +229,10 @@ function resolveElement(name: string) {
 /** Iconify 自定义渲染器（未注册时用占位组件） */
 const iconifyRenderer = computed<Component>(() => {
   const custom = iconReg.value.iconify;
-  if (custom) return markRaw(custom);
+  // iconReg 是 deep ref：首次读 .iconify 会把组件包成 reactive proxy，markRaw(proxy)
+  // 只给 target 打标记、返回的仍是 proxy —— 直接渲染会告警「Component that was
+  // made a reactive object」。先 toRaw 解回原始组件再 markRaw，让后续读取不再产生代理。
+  if (custom) return markRaw(toRaw(custom));
   // 占位子组件：渲染为 <span data-icon />
   return {
     name: "ReIconifyPlaceholder",

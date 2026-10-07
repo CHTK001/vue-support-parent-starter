@@ -221,10 +221,11 @@ function onClick(e: MouseEvent): void {
     :disabled="disabled"
     :icon="icon"
     :native-type="nativeType"
-    :aria-label="labelText"
     v-bind="$attrs"
     @click="onClick"
   />
+  <!-- 无提示语的 square（labelText 为空）：labelText 用作 aria-label 是唯一的无障碍名来源，
+       $attrs 里即使有 title 也只是悬浮提示，不能替代可访问名，故这里保留。 -->
 
   <ModernLayout
     v-else-if="layout === 'modern' && visible"

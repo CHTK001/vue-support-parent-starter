@@ -40,10 +40,19 @@ defineExpose({ wrapRef, iframeRef });
   <div class="preview-iframe-panel">
     <div ref="wrapRef" class="preview-iframe-panel__wrap">
       <PreviewIframeOverlay :loading="loading" />
+      <!--
+        referrerpolicy="no-referrer" 是**必需**的：src 上带着 x-oauth-token 查询参数
+        （iframe 带不了请求头，只能走查询参数），iframe 里的外部 CSS/字体/图片/埋点
+        会把整条地址作为 Referer 发给第三方 —— 攻击者在自己页面里引一个本预览里的
+        资源，就能在日志里收到完整令牌。no-referrer 断掉这条链。
+        残余暴露只剩服务端 access log 与浏览器历史，彻底消除需要文件存储网关提供
+        一次性短时效的下载票据接口。
+      -->
       <iframe
         ref="iframeRef"
         :key="frameKey"
         :src="src"
+        referrerpolicy="no-referrer"
         class="preview-iframe-panel__frame"
         @load="emit('load')"
         @error="emit('error')"

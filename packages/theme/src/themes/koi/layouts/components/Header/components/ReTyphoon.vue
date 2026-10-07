@@ -8,7 +8,11 @@
     :show-arrow="false"
   >
     <template #reference>
-      <div v-if="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
+      <!-- 引用节点必须恒为真实元素：这里用 v-if 会在「无活跃台风」时只渲染注释节点，
+           触发 Element Plus [ElOnlyChild] no valid child node found 生产期告警（实测：
+           侧栏→面包屑→ReSearchMenu→Refresh→ReUser→ReWeather→本组件的 beforeMount 链在
+           本 div 处以注释结束，紧随其后即告警）。改用 v-show 隐藏即可，行为不变。 -->
+      <div v-show="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
         <ReIcon name="mingcute:typhoon-line" :size="20" class="typhoon-icon" />
         <el-badge v-if="activeList.length" :value="activeList.length" :max="99" class="typhoon-badge" />
       </div>

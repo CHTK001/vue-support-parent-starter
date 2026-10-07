@@ -42,7 +42,7 @@
         </div>
       </div>
       <template v-else>
-        <ReEmptyState v-if="!backups.length" description="还没有备份。保存配置时会自动创建。" />
+        <ReEmpty v-if="!backups.length" description="还没有备份。保存配置时会自动创建。" />
         <div v-for="b in backups" :key="b.name" class="ngb-item">
           <ReIcon name="DocumentCopy" :size="14" />
           <div class="ngb-info">
@@ -78,11 +78,11 @@
             </ReButton>
           </div>
           <pre v-if="previewLoading" class="ngb-preview-body ngx-mono">{{ previewText || "读取中…" }}</pre>
-          <ReEmptyState
+          <ReEmpty
             v-else-if="!previewText"
             description="备份内容为空，或文件已被清理"
             :image-size="70"
-          />
+          ></ReEmpty>
           <pre v-else class="ngb-preview-body ngx-mono">{{ previewText }}</pre>
         </template>
 
@@ -111,11 +111,11 @@
             title="先选一个当前的配置文件，才能看出这份备份改了哪些地方"
           />
           <pre v-else-if="diffLoading" class="ngb-preview-body ngx-mono">对比中…</pre>
-          <ReEmptyState
+          <ReEmpty
             v-else-if="!diffResult"
             :description="diffHint"
             :image-size="70"
-          />
+          ></ReEmpty>
           <ReAlert
             v-else-if="diffResult.added === 0 && diffResult.removed === 0"
             type="success"
@@ -182,7 +182,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReEmptyState from "@repo/ui/re-empty-state";
+import ReEmpty from "@repo/ui/re-empty";
 import ReForm from "@repo/ui/re-form";
 import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";

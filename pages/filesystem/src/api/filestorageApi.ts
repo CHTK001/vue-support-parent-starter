@@ -19,6 +19,8 @@
 import { AxiosError, createHttp, getAccessToken } from "@repo/utils";
 import type { Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { createObjectTicketResolver } from "./objectTicket";
+import type { ResolveOptions } from "./objectTicket";
 
 /** localStorage 中服务器地址的键名 */
 const SERVER_KEY = "filestorage.server";
@@ -210,9 +212,9 @@ const TOKEN_HEADER = "x-oauth-token";
  *
  * <p>服务端仍然**同时支持**两者（未做改动），换回 {@code Authorization} 只需改这一处。</p>
  *
- * <p>查询参数形式保留给**无法自定义请求头**的场景（{@code img src} / iframe /
- * 下载直链），见 {@link objectUrl}；能带头的程序化请求一律走头，不再往 URL 里塞令牌
- * （令牌进 URL 会留在访问日志与浏览器历史里）。</p>
+ * <p>无法自定义请求头的场景（{@code img src} / iframe / 下载直链）改走
+ * {@link resolveObjectUrl} 的短时一次性票据；查询参数形式**不再**用于携带访问令牌
+ * （令牌进 URL 会留在访问日志、浏览器历史里，还会经 Referer 外泄给第三方）。</p>
  *
  * @returns 请求头；未登录返回 undefined
  */
@@ -222,6 +224,18 @@ function tokenHeaders(): Record<string, string> | undefined {
     return undefined;
   }
   return { [TOKEN_HEADER]: token };
+}
+
+/**
+ * 供组件内程序化 {@code fetch} 使用的鉴权头。
+ *
+ * <p>能自定义请求头的场景（fetch / XHR）一律走这里，令牌只出现在请求头里。
+ * 令牌进 URL 会留在浏览器历史、网关访问日志并经 Referer 外泄。</p>
+ *
+ * @returns 请求头；未登录返回空对象（便于无条件下发）
+ */
+export function authHeaders(): Record<string, string> {
+  return tokenHeaders() ?? {};
 }
 
 /**
@@ -259,26 +273,67 @@ function objectPath(bucket: string, key = ""): string {
 /**
  * 构建对象完整访问 URL（用于 window.open / img / iframe 直链）
  *
- * <p>私有桶直链无法携带请求头，登录态下把令牌拼到查询参数（OAuthServerFilter 支持 query 取令牌），
- * 公共桶或未登录场景不带参数，行为不变。</p>
+ * <p><b>不再拼接访问令牌。</b>此前登录态下把令牌塞进 {@code ?x-oauth-token=}，
+ * 而令牌进 URL 会被复制到浏览器历史、网关访问日志、被 Referer 带给第三方，
+ * 以及用户的截图里。需要直链的场景请改用 {@link resolveObjectUrl}：
+ * 它先向网关换一张短时一次性票据，再返回不含令牌的票据 URL。</p>
+ *
+ * <p>保留本函数是为了让「不持有令牌」的调用方（公共桶、登出态）仍能同步拼出直链，
+ * 行为与修复前对公共桶完全一致。</p>
  *
  * @param bucket   存储桶名
  * @param key      对象 Key
  * @param download 是否强制附件下载
- * @return 完整 URL
+ * @return 完整 URL（不含任何凭据）
  */
 export function objectUrl(bucket: string, key: string, download = false): string {
   const params = new URLSearchParams();
   if (download) {
     params.set("download", "true");
   }
-  const token = getAccessToken();
-  if (token) {
-    params.set("x-oauth-token", token);
-  }
   const suffix = params.toString();
   return `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}${suffix ? `?${suffix}` : ""}`;
 }
+
+/**
+ * 解析可直接放进 {@code <img src>} / iframe / {@code window.open} 的对象地址。
+ *
+ * <p>登录态下先签发一张短时一次性票据，返回的 URL 里<b>不含访问令牌</b>；
+ * 未登录或签发失败时退化为 {@link objectUrl} 的无凭据直链。
+ * 详见 {@link objectTicket.ts}。</p>
+ *
+ * @param bucket   存储桶名
+ * @param key      对象 Key
+ * @param options  附加参数 / 票据有效期
+ * @return 可直连的 URL
+ */
+export function resolveObjectUrl(
+  bucket: string,
+  key: string,
+  options?: ResolveOptions,
+): Promise<string> {
+  return objectTicketResolver(bucket, key, options);
+}
+
+/**
+ * 票据解析器单例。
+ *
+ * <p>签发一律用 {@code type=expiry}（限时可多次访问）而不是 {@code once}（阅后即焚）：
+ * {@code once} 票据被浏览器读一次就销毁，而 {@code <img>} 在缩放、切换标签、
+ * 重新布局时都会重发请求，{@code once} 会渲染成一片破碎图。
+ * 相比之下「一次性链接」比这里的语义更接近「短时票据」。</p>
+ */
+const objectTicketResolver = createObjectTicketResolver({
+  hasToken: () => Boolean(getAccessToken()),
+  mint: async (bucket, key, ttlSeconds) => {
+    const { url } = await createOneTimeLink(bucket, key, ttlSeconds, "expiry");
+    return { token: "", url: `${getServerBase().replace(/\/+$/, "")}${url}` };
+  },
+  directUrl: (bucket, key) => objectUrl(bucket, key),
+  onWarn: (message, error) => {
+    console.warn(`[filestorage] ${message}`, error);
+  },
+});
 
 /**
  * 将异常转换为可读错误消息
@@ -671,7 +726,7 @@ export async function putObject(
   const token = getAccessToken();
   // 上传走 XHR，**能自定义请求头**，故令牌只放请求头、不再同时塞进 URL 查询串：
   // 同一份令牌发两遍没有收益，而进 URL 会留在访问日志与浏览器历史里。
-  // （无法带头的场景才用查询参数，见 objectUrl。）
+  // （无法带头的场景改用一次性票据，见 resolveObjectUrl。）
   const url = `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}`;
 
   await new Promise<void>((resolve, reject) => {

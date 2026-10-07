@@ -41,10 +41,10 @@
         </div>
       </div>
       <template v-else>
-      <ReEmptyState
+      <ReEmpty
         v-if="!filtered.length"
         :description="sites.length ? '没有符合筛选条件的站点' : '没有找到任何 server 块。配置可能还没写，或放在了本工具没扫描到的路径下。'"
-      />
+      ></ReEmpty>
       <div v-for="s in filtered" :key="`${s.file}#${s.nodePath}`" class="ngs-card" :class="{ 'has-warn': s.warnings.length }">
         <div class="ngx-card-head">
           <div class="ngx-card-title" :title="s.displayName">
@@ -106,7 +106,7 @@
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import ReButton from "@repo/ui/re-button";
-import ReEmptyState from "@repo/ui/re-empty-state";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";

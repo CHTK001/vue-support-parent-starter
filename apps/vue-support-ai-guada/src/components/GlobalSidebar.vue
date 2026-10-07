@@ -81,10 +81,11 @@
                   :model-value="isSelected(session)" tabindex="-1">
                   <span></span>
                 </el-checkbox>
-                <!-- 状态指示器 -->
+                <!-- 状态指示器：运行中时左侧显示旋转动画 -->
                 <div v-else class="status-indicator w-3 h-3 shrink-0 flex items-center justify-center">
-                  <div v-if="getSessionWorking(session.id)"
-                    class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  <el-icon v-if="getSessionWorking(session.id)" class="working-spin" size="12">
+                    <Loading />
+                  </el-icon>
                   <div v-else-if="getSessionUnread(session.id) && (session.id !== currentSessionId || windowHidden)"
                     class="w-1 h-1 rounded-full bg-red-500" />
                   <div v-else class="w-1 h-1 rounded-full bg-gray-400 opacity-50" />
@@ -105,8 +106,13 @@
                   </div>
                 </div>
                 <div v-if="!multiSelectMode" class="session-actions shrink-0 relative min-w-5 h-full flex items-center">
-                  <!-- 最后活跃时间（非当前会话时显示，hover 时隐藏，右对齐悬浮） -->
-                  <span v-if="session.id !== currentSessionId"
+                  <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
+                  <span v-if="getSessionWorking(session.id)"
+                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-500 whitespace-nowrap">
+                    {{ formatWorkingElapsed(session.id) }}
+                  </span>
+                  <!-- 最后活跃时间（非当前会话、非运行时显示，hover 时隐藏，右对齐悬浮） -->
+                  <span v-else-if="session.id !== currentSessionId"
                     class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
                     {{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
                   </span>
@@ -840,29 +846,34 @@ const loadSessionDetail = async (session: any): Promise<void> => {
   sessionDetailLoadingIds.value = done
 }
 
-// 分组是否还有更多会话
+// 分组是否还有更多会话：
+// 1) 后端明确说还有（hasMore）；2) 已加载数达到过一页的数量（指定数量）。
+// 只有两个条件同时满足才显示「加载更多」——没数据、有多少全在眼前时都不显示。
 const groupHasMoreSessions = (groupId: string): boolean => {
-  return sessionStore.groupHasMore(groupId)
+  if (!sessionStore.groupHasMore(groupId)) {
+    return false
+  }
+  return getGroupSessionCount(groupId) >= SIDEBAR_PAGE_SIZE
 }
 
 // 初始化加载所有分组的前N个会话（单次请求获取分组+各分组会话）
 const loadSessions = async () => {
   isInitializing.value = true
   try {
-    const pageSize = window.innerHeight > 1080 ? 15 : 10
+    const pageSize = SIDEBAR_PAGE_SIZE
     const data = await apiService.fetchSidebarSessions(pageSize)
 
     // 设置分组列表
     sessionGroupStore.setGroups(data.groups || [])
 
-    // 处理各分组的会话
+    // 后端 groupId 为 null/缺省即未分组（Jackson 会直接丢掉 null 字段，只能用 == null 判）
     for (const gs of data.groupSessions || []) {
-      const storeGroupId = gs.groupId === null ? UNGROUPED_ID : gs.groupId
+      const storeGroupId = gs.groupId == null ? UNGROUPED_ID : gs.groupId
       for (const session of gs.items || []) {
         sessionStore.setSession(session)
       }
       sessionStore.setLoadedCount(storeGroupId, gs.items?.length || 0)
-      sessionStore.setHasMore(storeGroupId, gs.hasMore)
+      sessionStore.setHasMore(storeGroupId, gs.hasMore ?? ((gs.items?.length || 0) >= pageSize))
 
       // 同步流式状态
       for (const session of gs.items || []) {
@@ -887,15 +898,20 @@ const loadMoreForGroup = async (groupId: string) => {
 
   sessionGroupStore.setLoadingMore(groupId)
   try {
-    const data = await apiService.fetchSessions(currentSessions.length, 15, groupIdParam)
+    // 用已加载数做 skip：后端按 skip/limit/分组过滤返回下一页，逐页追加。
+    const data = await apiService.fetchSessions(currentSessions.length, SIDEBAR_PAGE_SIZE, groupIdParam)
 
     if (data.items && data.items.length > 0) {
       // 写入统一数据源
       for (const session of data.items) {
         sessionStore.setSession(session)
       }
-      sessionStore.setLoadedCount(groupId, currentSessions.length + data.items.length)
-      sessionStore.setHasMore(groupId, data.hasMore ?? (currentSessions.length + data.items.length) < (data.total || 0))
+      const loaded = currentSessions.length + data.items.length
+      sessionStore.setLoadedCount(groupId, loaded)
+      // 点击后必须真有数据才保留按钮：后端明确说没有（hasMore=false）
+      // 或本页没拿满一页，都说明到底了，直接收起按钮。
+      const serverHasMore = data.hasMore ?? (loaded < (data.total || 0))
+      sessionStore.setHasMore(groupId, serverHasMore && data.items.length >= SIDEBAR_PAGE_SIZE)
 
       // 同步流式状态
       for (const session of data.items) {
@@ -915,6 +931,25 @@ const loadMoreForGroup = async (groupId: string) => {
 const updateTick = ref(0)
 let tickTimer: ReturnType<typeof setInterval> | null = null
 
+/**
+ * 运行中会话的实时耗时（前端计算：现在 - 运行开始时间，每秒刷新）。
+ *
+ * 起点是 session store 里记录的运行开始时间（working 置 true 的那一刻），
+ * 刷新页面后同步到后端流式态时会按同步时刻重建起点（近似值）。
+ */
+const formatWorkingElapsed = (sessionId: string): string => {
+  // 读取 tick 让 Vue 将其视为响应式依赖，实现每秒刷新
+  void updateTick.value
+  const start = sessionStore.getWorkingStartAt(sessionId)
+  const seconds = start == null ? 0 : Math.max(0, Math.floor((Date.now() - start) / 1000))
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  const mm = h > 0 ? String(m).padStart(2, '0') : String(m)
+  const ss = String(s).padStart(2, '0')
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
+}
+
 const formatLastActive = (dateStr: string | null | undefined): string => {
   if (!dateStr) return ''
   // 读取 tick 让 Vue 将其视为响应式依赖，实现定时刷新
@@ -932,6 +967,10 @@ const formatLastActive = (dateStr: string | null | undefined): string => {
   if (months < 12) return `${months}m`
   return t('ui.sidebar.earlier')
 }
+
+// 侧边栏每页条数（指定数量）：加载更多只在「超过该数量」时才显示。
+const getSidebarPageSize = (): number => (window.innerHeight > 1080 ? 15 : 10)
+const SIDEBAR_PAGE_SIZE = getSidebarPageSize()
 
 // 侧边栏状态辅助方法
 const getSessionUnread = (sessionId: string): boolean => {
@@ -1254,10 +1293,10 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 }, { immediate: true })
 
 onMounted(() => {
-  // 每分钟更新一次最后活跃时间显示（无需SSE事件驱动，自动刷新相对时间）
+  // 最后活跃时间每分钟刷新；运行中耗时每秒刷新（两者共用 updateTick）
   tickTimer = setInterval(() => {
     updateTick.value++
-  }, 60_000)
+  }, 1_000)
 })
 
 
@@ -1309,6 +1348,22 @@ onUnmounted(() => {
 
 .session-actions {
   margin-left: auto;
+}
+
+/* 运行中会话：左侧旋转动画（与加载更多共用 Loading 图标） */
+.working-spin {
+  color: var(--el-color-primary);
+  animation: working-rotate 1s linear infinite;
+}
+
+@keyframes working-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .session-action-trigger {

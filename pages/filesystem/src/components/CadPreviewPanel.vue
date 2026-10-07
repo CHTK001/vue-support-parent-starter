@@ -28,7 +28,7 @@ import {
   Histogram,
   Refresh,
 } from "@element-plus/icons-vue";
-import { getCadInfo, objectUrl } from "../api/filestorageApi";
+import { getCadInfo, resolveObjectUrl } from "../api/filestorageApi";
 import type { CadInfoResponse } from "../api/filestorageApi";
 
 const props = defineProps<{
@@ -201,8 +201,13 @@ function onPointerUp(e: PointerEvent): void {
 }
 
 /** 下载图纸本体 */
-function downloadSelf(): void {
-  window.open(objectUrl(props.bucket, props.objectKey, true), "_blank");
+async function downloadSelf(): Promise<void> {
+  // window.open 无法带请求头，只能靠 URL 直达 —— 用短时一次性票据而不是访问令牌，
+  // 免得令牌落进浏览器历史与网关访问日志。
+  const url = await resolveObjectUrl(props.bucket, props.objectKey, {
+    params: { download: "true" },
+  });
+  window.open(url, "_blank");
 }
 
 /**

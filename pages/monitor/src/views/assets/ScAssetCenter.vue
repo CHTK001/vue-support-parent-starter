@@ -100,7 +100,7 @@
           <span :class="['status-pill', row.online ? 'on' : 'off']">{{ row.online ? '在线' : '离线' }}</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="100" fixed="right" align="right">
+      <ReTableColumn label="操作" width="100" fixed="right">
         <template #default="{ row }">
           <ReButton link @click="openDetail(row)">详情</ReButton>
         </template>

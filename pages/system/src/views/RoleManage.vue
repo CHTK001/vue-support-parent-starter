@@ -458,7 +458,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysRoleInSystem", label: "系统", width: 80, slot: "system", align: "center" },
   { prop: "sysRoleRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
   { prop: "createTime", label: "创建时间", width: 170 },
-  { prop: "action", label: "操作", width: 340, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 340, slot: "action", fixed: "right" },
 ];
 
 onMounted(() => {
@@ -525,7 +525,7 @@ onMounted(() => {
           <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
         </template>
         <template #action="{ row }">
-          <div class="flex items-center gap-2 justify-end">
+          <div class="flex items-center gap-2">
             <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(row)" />
             <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
             <ReButton layout="square" type="success" icon="DocumentCopy" tip="复制" @click="handleCopy(row)" />

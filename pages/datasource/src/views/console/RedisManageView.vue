@@ -1,0 +1,1306 @@
+<template>
+  <div class="dsm tel-page" :class="{ resizing }">
+    <div class="dsm-toolbar">
+      <div class="dsm-toolbar-left">
+        <ReIcon name="Coin" :size="18" class="dsm-title-icon dsm-redis-icon" />
+        <span class="dsm-title">Redis 缓存管理</span>
+      </div>
+      <div class="dsm-toolbar-right">
+        <div class="dsm-db-select" data-testid="dsm-db-select">
+          <ReSelect
+            v-model="activeDb"
+            :options="dbOptions"
+            :disabled="databases.length === 0"
+            :placeholder="databases.length ? '选择逻辑库' : (gap ? '未读取到库' : '—')"
+            filterable
+            @change="onDbChange"
+          />
+        </div>
+        <ReButton layout="square" icon="Connection" tip="测试连接" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
+        <ReButton layout="square" icon="InfoFilled" tip="服务器信息" data-testid="dsm-btn-info" :disabled="!source" @click="openInfo" />
+        <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <ReButton layout="square" type="primary" icon="Plus" tip="新建键" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
+      </div>
+    </div>
+
+    <MiddlewareGap :text="gap" @retry="refresh" />
+
+    <div class="dsm-body">
+      <div class="dsm-sidebar" :style="{ width: leftWidth + 'px' }">
+        <!-- 键搜索 -->
+        <div class="dsm-search-section">
+          <ReInput v-model="pattern" placeholder="匹配模式，如 user:*" @keyup.enter="reloadKeys" />
+          <ReButton type="primary" :loading="loading" @click="reloadKeys"><template #icon><ReIcon name="Search" size="12" /></template>查询</ReButton>
+        </div>
+
+        <!-- 视图切换：平铺 / 树形 -->
+        <div class="dsm-view-bar">
+          <span class="dsm-view-count">{{ keys.length }} 键</span>
+          <span class="dsm-view-spacer" />
+          <ReButton
+            layout="square"
+            icon="Grid"
+            tip="平铺"
+            data-testid="dsm-view-flat"
+            :type="viewMode === 'flat' ? 'primary' : ''"
+            @click="viewMode = 'flat'"
+          />
+          <ReButton
+            layout="square"
+            icon="Share"
+            tip="树形"
+            data-testid="dsm-view-tree"
+            :type="viewMode === 'tree' ? 'primary' : ''"
+            @click="viewMode = 'tree'"
+          />
+        </div>
+
+        <!-- 键列表（平铺 / 树形） -->
+        <div class="dsm-key-list">
+          <template v-if="viewMode === 'flat'">
+            <div
+              v-for="row in keys"
+              :key="'k:' + row.key"
+              class="dsm-tree-node"
+              :class="{ active: activeKey === row.key }"
+              @click="selectKey(row.key)"
+            >
+              <ReIcon name="Document" size="13" class="dsm-tree-icon" />
+              <span class="dsm-tree-label" :title="row.key">{{ row.key }}</span>
+              <ReTag :type="typeTagType(row.type)">{{ row.type }}</ReTag>
+            </div>
+          </template>
+          <template v-else>
+            <div
+              v-for="row in treeRows"
+              :key="'tr:' + row.path"
+              class="dsm-tree-node"
+              :class="{ 'is-dir': row.kind === 'dir', active: row.kind === 'leaf' && activeKey === row.path }"
+              :style="{ paddingLeft: `${12 + row.depth * 14}px` }"
+              @click="onTreeRowClick(row)"
+            >
+              <ReIcon
+                v-if="row.kind === 'dir'"
+                :name="row.expanded ? 'ArrowDown' : 'ArrowRight'"
+                size="12"
+                class="dsm-tree-icon dsm-tree-caret"
+              />
+              <ReIcon v-else name="Document" size="13" class="dsm-tree-icon" />
+              <span class="dsm-tree-label" :title="row.path">{{ row.name }}</span>
+              <ReTag v-if="row.kind === 'leaf' && row.item" :type="typeTagType(row.item.type)">{{ row.item.type }}</ReTag>
+            </div>
+          </template>
+          <div v-if="keys.length === 0" class="dsm-tree-node">
+            <span class="dsm-tree-label">{{ gap ? "未读取到键" : "该模式下暂无键" }}</span>
+          </div>
+          <div v-if="nextCursor !== '0'" class="dsm-load-more">
+            <ReButton text :loading="loading" @click="loadMore"><template #icon><ReIcon name="ArrowDown" size="12" /></template>加载更多（已加载 {{ keys.length }}）</ReButton>
+          </div>
+        </div>
+      </div>
+
+      <!-- 拖拽调节左右宽度 -->
+      <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
+
+      <div class="dsm-content">
+        <div class="dsm-info-card">
+          <div class="dsm-info-row"><span class="dsm-info-label">数据源</span><span class="dsm-info-value">{{ source ? source.name : "未选择" }}</span></div>
+          <div class="dsm-info-row"><span class="dsm-info-label">连接地址</span><span class="dsm-info-value mono">{{ source ? `${source.host || "127.0.0.1"}:${source.port || 6379}` : "—" }}</span></div>
+          <div class="dsm-info-row"><span class="dsm-info-label">当前库</span><span class="dsm-info-value mono">db{{ activeDb }}</span></div>
+          <div class="dsm-info-row"><span class="dsm-info-label">本批键数</span><span class="dsm-info-value mono">{{ keys.length }}{{ nextCursor !== "0" ? "（还有更多）" : "" }}</span></div>
+          <div class="dsm-info-row">
+            <span class="dsm-info-label">状态</span>
+            <ReTag :type="gap ? 'danger' : 'success'">{{ gap ? "读取失败" : "正常" }}</ReTag>
+          </div>
+          <div class="dsm-info-row"><span class="dsm-info-label">服务端版本</span><span class="dsm-info-value mono">{{ info.redis_version || "未探测" }}</span></div>
+        </div>
+
+        <!-- 键详情 -->
+        <div v-if="activeKey" class="dsm-section">
+          <div class="dsm-section-title">
+            键详情 - {{ activeKey }}
+            <div class="dsm-section-actions">
+              <ReButton text @click="openExpire"><template #icon><ReIcon name="Timer" size="12" /></template>设置 TTL</ReButton>
+              <ReButton text type="primary" @click="openRename"><template #icon><ReIcon name="Edit" size="12" /></template>重命名</ReButton>
+              <ReButton text type="danger" @click="confirmDeleteKey(activeKey)"><template #icon><ReIcon name="Delete" size="12" /></template>删除键</ReButton>
+            </div>
+          </div>
+          <template v-if="detail">
+            <div class="dsm-node-detail">
+              <div class="dsm-detail-row"><span class="dsm-detail-label">键名</span><span class="dsm-detail-value mono">{{ detail.key }}</span></div>
+              <div class="dsm-detail-row">
+                <span class="dsm-detail-label">类型</span>
+                <ReTag :type="typeTagType(detail.type)">{{ detail.type }}</ReTag>
+              </div>
+              <div class="dsm-detail-row"><span class="dsm-detail-label">TTL</span><span class="dsm-detail-value mono">{{ formatTtl(detail.ttl) }}</span></div>
+              <div class="dsm-detail-row"><span class="dsm-detail-label">{{ detail.type === "STRING" ? "字符数" : "元素数" }}</span><span class="dsm-detail-value mono">{{ detail.size }}</span></div>
+            </div>
+
+            <!-- STRING -->
+            <div v-if="detail.type === 'STRING'" class="dsm-data-section">
+              <div class="dsm-data-title">
+                值
+                <div class="dsm-section-actions">
+                  <div class="dsm-seg" data-testid="dsm-string-views">
+                    <button type="button" :class="{ 'is-active': stringView === 'text' }" data-testid="dsm-view-text" @click="stringView = 'text'">
+                      <ReIcon name="Document" size="12" />字符串
+                    </button>
+                    <button type="button" :class="{ 'is-active': stringView === 'hex' }" data-testid="dsm-view-hex" @click="stringView = 'hex'">
+                      <ReIcon name="Coin" size="12" />HEX
+                    </button>
+                    <button type="button" :class="{ 'is-active': stringView === 'json' }" data-testid="dsm-view-json" @click="stringView = 'json'">
+                      <ReIcon name="Files" size="12" />JSON
+                    </button>
+                  </div>
+                  <ReButton v-if="stringView === 'text'" type="primary" :loading="saving" @click="saveStringValue"><template #icon><ReIcon name="Check" size="12" /></template>保存值</ReButton>
+                </div>
+              </div>
+              <textarea v-if="stringView === 'text'" v-model="stringValue" class="dsm-node-data" rows="8" placeholder="UTF-8 文本"></textarea>
+              <pre v-else-if="stringView === 'hex'" class="dsm-data-content dsm-value-view" data-testid="dsm-value-hex">{{ hexViewText }}</pre>
+              <pre v-else class="dsm-data-content dsm-value-view" data-testid="dsm-value-json">{{ jsonViewText }}</pre>
+            </div>
+
+            <!-- HASH -->
+            <div v-else-if="detail.type === 'HASH'" class="dsm-data-section">
+              <div class="dsm-data-title">字段（{{ hashFields.length }}）</div>
+              <div class="dsm-add-row">
+                <ReInput v-model="newHashField" placeholder="字段名" />
+                <ReInput v-model="newHashValue" placeholder="值" />
+                <ReButton type="primary" :loading="saving" @click="addHashField"><template #icon><ReIcon name="Plus" size="12" /></template>添加字段</ReButton>
+              </div>
+              <ReTable :data="hashFields" :columns="hashColumns" :pagination="false" stripe border height="240px">
+                <template #col-actions="{ row }">
+                  <ReButton text type="danger" @click="removeHashField((row as RedisHashField).field)"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
+                </template>
+              </ReTable>
+            </div>
+
+            <!-- LIST -->
+            <div v-else-if="detail.type === 'LIST'" class="dsm-data-section">
+              <div class="dsm-data-title">元素（{{ listRows.length }}）</div>
+              <div class="dsm-add-row">
+                <ReInput v-model="newListValue" placeholder="新元素" class="dsm-add-grow" />
+                <ReButton type="primary" :loading="saving" @click="pushListElement"><template #icon><ReIcon name="Plus" size="12" /></template>追加元素</ReButton>
+              </div>
+              <ReTable :data="listRows" :columns="listColumns" :pagination="false" stripe border height="240px">
+                <template #col-actions="{ row }">
+                  <ReButton text type="primary" @click="editListElement((row as ListRow).index, (row as ListRow).value)"><template #icon><ReIcon name="Edit" size="12" /></template>编辑</ReButton>
+                  <ReButton text type="danger" @click="removeListElement((row as ListRow).index)"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
+                </template>
+              </ReTable>
+            </div>
+
+            <!-- SET -->
+            <div v-else-if="detail.type === 'SET'" class="dsm-data-section">
+              <div class="dsm-data-title">成员（{{ setRows.length }}）</div>
+              <div class="dsm-add-row">
+                <ReInput v-model="newSetMember" placeholder="新成员" class="dsm-add-grow" />
+                <ReButton type="primary" :loading="saving" @click="addSetMember"><template #icon><ReIcon name="Plus" size="12" /></template>添加成员</ReButton>
+              </div>
+              <ReTable :data="setRows" :columns="memberColumns" :pagination="false" stripe border height="240px">
+                <template #col-member="{ row }"><span class="mono">{{ (row as MemberRow).member }}</span></template>
+                <template #col-actions="{ row }">
+                  <ReButton text type="danger" @click="removeSetMember((row as MemberRow).member)"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
+                </template>
+              </ReTable>
+            </div>
+
+            <!-- ZSET -->
+            <div v-else-if="detail.type === 'ZSET'" class="dsm-data-section">
+              <div class="dsm-data-title">成员（{{ zsetRows.length }}）</div>
+              <div class="dsm-add-row">
+                <ReInput v-model="newZsetMember" placeholder="成员" />
+                <ReInput v-model="newZsetScore" placeholder="分值，如 1" class="dsm-add-narrow" />
+                <ReButton type="primary" :loading="saving" @click="addZsetMember"><template #icon><ReIcon name="Plus" size="12" /></template>添加成员</ReButton>
+              </div>
+              <ReTable :data="zsetRows" :columns="zsetColumns" :pagination="false" stripe border height="240px">
+                <template #col-score="{ row }"><span class="mono">{{ (row as MemberRow).score }}</span></template>
+                <template #col-actions="{ row }">
+                  <ReButton text type="danger" @click="removeZsetMember((row as MemberRow).member)"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
+                </template>
+              </ReTable>
+            </div>
+
+            <!-- STREAM -->
+            <div v-else-if="detail.type === 'STREAM'" class="dsm-data-section">
+              <div class="dsm-data-title">消息（{{ streamEntries.length }}）</div>
+              <div class="dsm-add-row">
+                <ReInput v-model="newStreamField" placeholder="字段名" />
+                <ReInput v-model="newStreamValue" placeholder="值" />
+                <ReButton type="primary" :loading="saving" @click="appendStreamEntry"><template #icon><ReIcon name="Plus" size="12" /></template>追加消息</ReButton>
+              </div>
+              <ReTable :data="streamEntries" :columns="streamColumns" :pagination="false" stripe border height="260px">
+                <template #col-id="{ row }"><span class="mono">{{ (row as RedisStreamEntry).id }}</span></template>
+                <template #col-fields="{ row }">
+                  <span v-for="(f, fi) in (row as RedisStreamEntry).fields" :key="fi" class="dsm-stream-field">
+                    <ReTag type="info">{{ f.field }}</ReTag>
+                    <span class="mono">{{ f.value }}</span>
+                  </span>
+                </template>
+              </ReTable>
+            </div>
+
+            <!-- 其他类型 -->
+            <div v-else class="dsm-data-section">
+              <div class="dsm-data-title">值</div>
+              <pre class="dsm-data-content">{{ formatPlainValue(detail.value) }}</pre>
+            </div>
+          </template>
+          <div v-else class="dsm-empty-inline">正在读取…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建键弹窗 -->
+    <ReDialog v-model="createVisible" title="新建键" width="620px">
+      <div class="dsm-node-form">
+        <div class="dsm-form-item">
+          <label>键名</label>
+          <ReInput v-model="createForm.key" placeholder="如 user:1001" />
+        </div>
+        <div class="dsm-form-item">
+          <label>类型</label>
+          <ReSelect v-model="createForm.type" :options="KEY_TYPE_OPTIONS" data-testid="dsm-create-type" style="width: 100%" />
+        </div>
+        <div class="dsm-form-item">
+          <label>TTL（秒，0 或留空表示永久）</label>
+          <ReInput v-model="createForm.ttl" placeholder="0 = 永久" />
+        </div>
+        <div class="dsm-form-item">
+          <label>{{ createValueLabel }}</label>
+          <textarea v-model="createForm.value" class="dsm-node-data" rows="8" :placeholder="createValuePlaceholder"></textarea>
+          <span class="dsm-form-hint">{{ createValueHint }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="createVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="submitCreate"><template #icon><ReIcon name="Check" /></template>创建</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 服务器信息弹窗 -->
+    <ReDialog v-model="infoVisible" title="Redis 服务器信息" width="720px">
+      <ReTable :data="infoRows" :columns="infoColumns" :pagination="false" stripe border height="420px" />
+      <template #footer>
+        <ReButton @click="infoVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>关闭</ReButton>
+        <ReButton type="primary" :loading="infoLoading" @click="reloadInfo"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 设置 TTL 弹窗 -->
+    <ReDialog v-model="ttlVisible" title="设置 TTL" width="440px">
+      <div class="dsm-node-form">
+        <div class="dsm-form-item">
+          <label>过期秒数（-1 永久）</label>
+          <ReInput v-model="ttlValue" placeholder="如 300；-1 表示永久" />
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="ttlVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="submitExpire"><template #icon><ReIcon name="Check" /></template>设置</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 重命名弹窗 -->
+    <ReDialog v-model="renameVisible" title="重命名键" width="440px">
+      <div class="dsm-node-form">
+        <div class="dsm-form-item">
+          <label>新键名</label>
+          <ReInput v-model="renameValue" :placeholder="activeKey" />
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="renameVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="submitRename"><template #icon><ReIcon name="Check" /></template>重命名</ReButton>
+      </template>
+    </ReDialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+/**
+ * Redis 数据源管理页（datasourceId 版控制台）。
+ *
+ * <p>只读取与操作「数据源管理」里登记的 Redis 数据源（type=redis），
+ * 后端走 {@code /ms/monitor/redis-manage}，每次请求临时建连。与应用自身
+ * Redis（{@code /ms/monitor/system/redis}）无关，也不依赖任何演示数据。</p>
+ *
+ * <p>旧的 {@code /redis} 监控页已退役，本页路由为 {@code /redis-manage}。</p>
+ *
+ * @author CH
+ * @since 4.0.0.43
+ */
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import ReButton from "@repo/ui/re-button";
+import ReDialog from "@repo/ui/re-dialog";
+import ReIcon from "@repo/ui/re-icon";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
+import ReTable from "@repo/ui/re-table";
+import ReTag from "@repo/ui/re-tag";
+import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { useMiddlewareSource } from "../../utils/middlewareSource";
+import { testDataSource } from "../../api";
+import {
+  createRedisKey,
+  deleteRedisKeys,
+  expireRedisKey,
+  fetchRedisDatabases,
+  fetchRedisInfo,
+  fetchRedisKey,
+  hdelRedisField,
+  hsetRedisField,
+  lremRedisIndex,
+  lsetRedisElement,
+  renameRedisKey,
+  rpushRedisElement,
+  saddRedisMember,
+  scanRedisKeys,
+  setRedisString,
+  sremRedisMember,
+  xaddRedisStream,
+  zaddRedisMember,
+  zremRedisMember,
+  type RedisHashField,
+  type RedisKeyDetail,
+  type RedisKeyItem,
+  type RedisMemberScore,
+  type RedisStreamEntry,
+} from "../../api/redisManageApi";
+
+defineOptions({ name: "RedisManageView" });
+
+const { datasourceId, source, gap, bind, fail, ready } = useMiddlewareSource();
+
+/** 可新建的键类型（STREAM 需先有键，不提供空建） */
+const KEY_TYPES = ["STRING", "HASH", "LIST", "SET", "ZSET"];
+/** 新建键类型下拉选项（ReSelect 统一控件） */
+const KEY_TYPE_OPTIONS = KEY_TYPES.map(t => ({ label: t, value: t }));
+
+/** LIST 表行 */
+interface ListRow {
+  [key: string]: unknown;
+  index: number;
+  value: string;
+}
+/** SET/ZSET 表行 */
+interface MemberRow {
+  [key: string]: unknown;
+  member: string;
+  score?: number;
+}
+
+const loading = ref(false);
+const testing = ref(false);
+const saving = ref(false);
+const activeDb = ref(0);
+const activeKey = ref("");
+const pattern = ref("*");
+const keys = ref<RedisKeyItem[]>([]);
+/** SCAN 游标，"0" 表示扫完 */
+const nextCursor = ref("0");
+/** 键列表视图：平铺 / 树形（沿用旧 /redis 页的 localStorage 键） */
+const viewMode = ref<"flat" | "tree">((localStorage.getItem("redis-view-mode") as "flat" | "tree") || "flat");
+watch(viewMode, v => localStorage.setItem("redis-view-mode", v));
+
+/** 侧栏宽度持久化键（沿用旧 /redis 页） */
+const LEFT_WIDTH_KEY = "redis-left-width";
+/** 侧栏宽度（拖拽调节，记录到 localStorage） */
+const leftWidth = ref<number>(Number(localStorage.getItem(LEFT_WIDTH_KEY)) || 340);
+/** 是否正在拖拽（拖拽中禁用文本选择） */
+const resizing = ref(false);
+
+/**
+ * 开始拖拽调节左侧宽度。
+ *
+ * @param e 鼠标按下事件
+ */
+function startResize(e: MouseEvent): void {
+  resizing.value = true;
+  const startX = e.clientX;
+  const startWidth = leftWidth.value;
+  const onMove = (ev: MouseEvent): void => {
+    leftWidth.value = Math.min(560, Math.max(260, startWidth + ev.clientX - startX));
+  };
+  const onUp = (): void => {
+    resizing.value = false;
+    localStorage.setItem(LEFT_WIDTH_KEY, String(leftWidth.value));
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
+const databases = ref<{ db: number; keys: number; expires: number }[]>([]);
+/** 逻辑库下拉选项（label 带键数；ReSelect 统一控件） */
+const dbOptions = computed(() => databases.value.map(d => ({ label: `db${d.db}（${d.keys} 键）`, value: d.db })));
+const info = ref<Record<string, string>>({});
+const infoVisible = ref(false);
+const infoLoading = ref(false);
+const detail = ref<RedisKeyDetail | null>(null);
+
+/** STRING 编辑缓冲 */
+const stringValue = ref("");
+/** STRING 值视图：字符串（可编辑）/ HEX（字节只读）/ JSON（格式化只读） */
+const stringView = ref<"text" | "hex" | "json">("text");
+/** HASH 添加行 */
+const newHashField = ref("");
+const newHashValue = ref("");
+/** LIST 追加行 */
+const newListValue = ref("");
+/** SET 添加行 */
+const newSetMember = ref("");
+/** ZSET 添加行 */
+const newZsetMember = ref("");
+const newZsetScore = ref("");
+/** STREAM 追加行 */
+const newStreamField = ref("");
+const newStreamValue = ref("");
+
+const createVisible = ref(false);
+const ttlVisible = ref(false);
+const renameVisible = ref(false);
+const ttlValue = ref("");
+const renameValue = ref("");
+const createForm = reactive({ key: "", type: "STRING", ttl: "", value: "" });
+
+const hashColumns = [
+  { prop: "field", label: "字段", minWidth: 200 },
+  { prop: "value", label: "值", minWidth: 300 },
+  { prop: "actions", label: "操作", width: 90, fixed: "right" as const, slot: "col-actions" },
+];
+const listColumns = [
+  { prop: "index", label: "下标", width: 80 },
+  { prop: "value", label: "值", minWidth: 360 },
+  { prop: "actions", label: "操作", width: 140, fixed: "right" as const, slot: "col-actions" },
+];
+const memberColumns = [
+  { prop: "member", label: "成员", minWidth: 320, slot: "col-member" },
+  { prop: "actions", label: "操作", width: 90, fixed: "right" as const, slot: "col-actions" },
+];
+const zsetColumns = [
+  { prop: "member", label: "成员", minWidth: 260 },
+  { prop: "score", label: "分值", width: 120, slot: "col-score" },
+  { prop: "actions", label: "操作", width: 90, fixed: "right" as const, slot: "col-actions" },
+];
+const streamColumns = [
+  { prop: "id", label: "消息 ID", width: 200, slot: "col-id" },
+  { prop: "fields", label: "字段", minWidth: 360, slot: "col-fields" },
+];
+const infoColumns = [
+  { prop: "field", label: "字段", width: 240 },
+  { prop: "value", label: "值", minWidth: 360 },
+];
+
+/** 详情 value → HASH 字段数组（detail.value 是信封 {key,type,ttl,value,size}，字段在嵌套 value 里） */
+const hashFields = computed<RedisHashField[]>(() => {
+  const v = detail.value;
+  if (!v || v.type !== "HASH") return [];
+  const payload = v.value;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+  return Object.entries(payload as Record<string, unknown>).map(([field, value]) => ({ field, value: String(value ?? "") }));
+});
+
+/** 详情 value → LIST 元素行（带下标） */
+const listRows = computed<ListRow[]>(() => {
+  const v = detail.value;
+  if (!v || v.type !== "LIST" || !Array.isArray(v.value)) return [];
+  return (v.value as unknown[]).map((x, index) => ({ index, value: String(x ?? "") }));
+});
+
+/** 详情 value → SET 成员行 */
+const setRows = computed<MemberRow[]>(() => {
+  const v = detail.value;
+  if (!v || v.type !== "SET" || !Array.isArray(v.value)) return [];
+  return (v.value as unknown[]).map(x => ({ member: String(x ?? "") }));
+});
+
+/** 详情 value → ZSET 成员行 */
+const zsetRows = computed<MemberRow[]>(() => {
+  const v = detail.value;
+  if (!v || v.type !== "ZSET" || !Array.isArray(v.value)) return [];
+  return (v.value as RedisMemberScore[]).map(m => ({ member: String(m?.member ?? ""), score: Number(m?.score ?? 0) }));
+});
+
+/** 详情 value → STREAM 消息 */
+const streamEntries = computed<RedisStreamEntry[]>(() => {
+  const v = detail.value;
+  if (!v || v.type !== "STREAM" || !Array.isArray(v.value)) return [];
+  return v.value as RedisStreamEntry[];
+});
+
+/** INFO 弹窗行数据 */
+const infoRows = computed(() => Object.entries(info.value).map(([field, value]) => ({ field, value })));
+
+/** 树形视图行 */
+interface TreeRow {
+  kind: "dir" | "leaf";
+  path: string;
+  name: string;
+  depth: number;
+  expanded: boolean;
+  item?: RedisKeyItem;
+}
+
+/** 已折叠的目录路径集合 */
+const collapsedDirs = ref<string[]>([]);
+
+/** 折叠 / 展开目录 */
+function toggleTreeDir(path: string): void {
+  const idx = collapsedDirs.value.indexOf(path);
+  if (idx >= 0) collapsedDirs.value.splice(idx, 1);
+  else collapsedDirs.value.push(path);
+}
+
+/** 树形行点击：目录=折叠/展开，叶子=选中键 */
+function onTreeRowClick(row: TreeRow): void {
+  if (row.kind === "dir") toggleTreeDir(row.path);
+  else void selectKey(row.path);
+}
+
+/** 树形视图行：目录在前、叶子在后，各自字母序；按 `:` 分层 */
+const treeRows = computed<TreeRow[]>(() => {
+  const dirSet = new Set<string>();
+  for (const item of keys.value) {
+    const segs = item.key.split(":");
+    for (let i = 1; i < segs.length; i++) dirSet.add(segs.slice(0, i).join(":"));
+  }
+  const isHidden = (path: string): boolean => {
+    const segs = path.split(":");
+    for (let i = 1; i < segs.length; i++) {
+      if (collapsedDirs.value.includes(segs.slice(0, i).join(":"))) return true;
+    }
+    return false;
+  };
+  const rows: TreeRow[] = [];
+  for (const path of [...dirSet].sort((a, b) => a.localeCompare(b))) {
+    if (isHidden(path)) continue;
+    const segs = path.split(":");
+    rows.push({
+      kind: "dir",
+      path,
+      name: segs[segs.length - 1],
+      depth: segs.length - 1,
+      expanded: !collapsedDirs.value.includes(path),
+    });
+  }
+  for (const item of [...keys.value].sort((a, b) => a.key.localeCompare(b.key))) {
+    if (isHidden(item.key)) continue;
+    const segs = item.key.split(":");
+    rows.push({ kind: "leaf", path: item.key, name: segs[segs.length - 1], depth: segs.length - 1, expanded: true, item });
+  }
+  return rows;
+});
+
+/** 新建弹窗：按类型给不同标签/占位/提示 */
+const createValueLabel = computed(() => {
+  switch (createForm.type) {
+    case "HASH": return "初始字段（每行 field=value）";
+    case "LIST": return "初始元素（每行一个）";
+    case "SET": return "初始成员（每行一个）";
+    case "ZSET": return "初始成员（每行 member=score）";
+    default: return "值";
+  }
+});
+const createValuePlaceholder = computed(() => {
+  switch (createForm.type) {
+    case "HASH": return "name=张三\nrole=admin";
+    case "LIST": return "第一行\n第二行";
+    case "SET": return "member-a\nmember-b";
+    case "ZSET": return "alice=100\nbob=95.5";
+    default: return "UTF-8 文本";
+  }
+});
+const createValueHint = computed(() => {
+  switch (createForm.type) {
+    case "HASH": case "LIST": case "SET": case "ZSET":
+      return "非 STRING 类型至少要有一行初始数据（Redis 无法创建空的集合键）";
+    default:
+      return "留空则创建空字符串键";
+  }
+});
+/**
+ * 类型 → 标签颜色。
+ *
+ * @param type 键类型
+ * @returns ReTag 类型
+ */
+function typeTagType(type: string): "success" | "warning" | "info" | "primary" | "danger" {
+  switch ((type || "").toUpperCase()) {
+    case "STRING": return "success";
+    case "HASH": return "warning";
+    case "LIST": return "primary";
+    case "SET": return "info";
+    case "ZSET": return "danger";
+    default: return "info";
+  }
+}
+
+/**
+ * TTL 展示。
+ *
+ * @param ttl 后端返回的 TTL（-1 永久 / -2 键不存在）
+ * @returns 展示文本
+ */
+function formatTtl(ttl: number): string {
+  if (ttl === -1) return "永久";
+  if (ttl === -2) return "键不存在";
+  return `${ttl} 秒`;
+}
+
+/**
+ * 非结构化值的兜底展示。
+ *
+ * @param value 任意值
+ * @returns 文本
+ */
+function formatPlainValue(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+/** JSON 视图文本：合法 JSON 美化展示，否则原样输出 */
+const jsonViewText = computed(() => {
+  const raw = stringValue.value;
+  if (!raw) return "";
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+});
+
+/** HEX 视图文本：UTF-8 字节 16 字节/行，`偏移 hex |ascii|` */
+const hexViewText = computed(() => {
+  const raw = stringValue.value;
+  if (!raw) return "";
+  const bytes = Array.from(new TextEncoder().encode(raw));
+  const lines: string[] = [];
+  for (let i = 0; i < bytes.length; i += 16) {
+    const chunk = bytes.slice(i, i + 16);
+    const hex = chunk
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join(" ")
+      .padEnd(47, " ");
+    const ascii = chunk.map(b => (b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : ".")).join("");
+    lines.push(`${i.toString(16).padStart(8, "0")}  ${hex}  |${ascii}|`);
+  }
+  return lines.join("\n");
+});
+
+/**
+ * 扫描当前库的键（reset=true 从游标 0 开始）。
+ *
+ * @param reset 是否重置游标与已加载列表
+ */
+async function scanKeys(reset: boolean) {
+  if (!datasourceId.value) return;
+  if (reset) {
+    nextCursor.value = "0";
+    keys.value = [];
+  }
+  loading.value = true;
+  try {
+    const res = await scanRedisKeys({
+      datasourceId: datasourceId.value,
+      db: activeDb.value,
+      pattern: pattern.value.trim() || "*",
+      cursor: nextCursor.value,
+      count: 200,
+    });
+    const list = res?.keys || [];
+    const seen = new Set(keys.value.map(k => k.key));
+    keys.value = keys.value.concat(list.filter(k => !seen.has(k.key)));
+    nextCursor.value = String(res?.nextCursor ?? "0");
+    ready();
+  } catch (e) {
+    if (reset) keys.value = [];
+    fail(e, "/ms/monitor/redis-manage/keys");
+  } finally {
+    loading.value = false;
+  }
+}
+
+/** 搜索框回车/点查询：重置并扫描 */
+async function reloadKeys() {
+  await scanKeys(true);
+}
+
+/** 加载更多（游标续扫） */
+async function loadMore() {
+  await scanKeys(false);
+}
+
+/**
+ * 读取键详情。
+ *
+ * @param key 键名
+ */
+async function selectKey(key: string) {
+  activeKey.value = key;
+  detail.value = null;
+  try {
+    detail.value = await fetchRedisKey(datasourceId.value, activeDb.value, key);
+    stringValue.value = detail.value?.type === "STRING" ? String(detail.value.value ?? "") : "";
+    stringView.value = "text";
+    ready();
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key");
+  }
+}
+
+/** 逻辑库 ReSelect change → 切库（v-model 已落 activeDb，这里只做切库副作用） */
+function onDbChange(value: string | number | null | undefined): void {
+  if (value === "" || value == null) return;
+  void switchDb(Number(value));
+}
+
+/** 切换逻辑库（v-model 已更新 activeDb，此处重置选中与详情并重扫） */
+async function switchDb(db: number) {
+  activeDb.value = db;
+  activeKey.value = "";
+  detail.value = null;
+  await scanKeys(true);
+}
+
+/** 加载库列表与 INFO（不整页 loading，避免遮挡） */
+async function loadSideData() {
+  if (!datasourceId.value) return;
+  try {
+    databases.value = (await fetchRedisDatabases(datasourceId.value)) || [];
+  } catch (e) {
+    databases.value = [];
+    fail(e, "/ms/monitor/redis-manage/databases");
+  }
+  try {
+    info.value = (await fetchRedisInfo(datasourceId.value)) || {};
+  } catch (e) {
+    info.value = {};
+    fail(e, "/ms/monitor/redis-manage/info");
+  }
+}
+
+/** 测试连接（走数据源中心统一探测） */
+async function testConnection() {
+  if (!datasourceId.value) return;
+  testing.value = true;
+  try {
+    const result = await testDataSource(datasourceId.value);
+    if (result?.success) {
+      ElMessage.success(`连接成功${result.version ? `（redis ${result.version}）` : ""}`);
+      ready();
+    } else {
+      ElMessage.error(result?.message || "连接失败");
+    }
+  } catch (e) {
+    fail(e, "/ms/datasource/{id}/test");
+  } finally {
+    testing.value = false;
+  }
+}
+
+/** 全量刷新 */
+async function refresh() {
+  await bind("redis");
+  if (!source.value) return;
+  await loadSideData();
+  await scanKeys(true);
+}
+
+/** 打开服务器信息弹窗 */
+async function openInfo() {
+  infoVisible.value = true;
+  await reloadInfo();
+}
+
+/** 弹窗内刷新 INFO */
+async function reloadInfo() {
+  if (!datasourceId.value) return;
+  infoLoading.value = true;
+  try {
+    info.value = (await fetchRedisInfo(datasourceId.value)) || {};
+    ready();
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/info");
+  } finally {
+    infoLoading.value = false;
+  }
+}
+/** 打开新建键弹窗 */
+function openCreate() {
+  Object.assign(createForm, { key: "", type: "STRING", ttl: "", value: "" });
+  createVisible.value = true;
+}
+
+/** 提交新建键 */
+async function submitCreate() {
+  const key = createForm.key.trim();
+  if (!key) {
+    ElMessage.warning("键名不能为空");
+    return;
+  }
+  const type = createForm.type;
+  const raw = createForm.value;
+  const payload: Record<string, unknown> = {};
+  if (type === "STRING") {
+    payload.value = raw;
+  } else {
+    const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      ElMessage.warning(`${type} 类型至少需要一行初始数据`);
+      return;
+    }
+    if (type === "HASH") {
+      const fields = lines.map(l => {
+        const idx = l.indexOf("=");
+        return { field: idx >= 0 ? l.slice(0, idx) : l, value: idx >= 0 ? l.slice(idx + 1) : "" };
+      }).filter(f => f.field.trim() !== "");
+      if (fields.length === 0) {
+        ElMessage.warning("至少一行 field=value");
+        return;
+      }
+      payload.hashFields = fields;
+    } else if (type === "LIST") {
+      // 保留行内空格，只去掉行尾 \r 与末尾空行
+      const items = raw.split("\n").map(l => l.replace(/\r$/, ""));
+      while (items.length > 0 && items[items.length - 1].trim() === "") items.pop();
+      payload.listItems = items;
+    } else if (type === "SET") {
+      payload.setItems = lines;
+    } else if (type === "ZSET") {
+      const members = lines.map(l => {
+        const idx = l.lastIndexOf("=");
+        const member = idx >= 0 ? l.slice(0, idx) : l;
+        const score = idx >= 0 ? Number(l.slice(idx + 1)) : Number.NaN;
+        return { member, score: Number.isFinite(score) ? score : 0 };
+      }).filter(m => m.member.trim() !== "");
+      if (members.length === 0) {
+        ElMessage.warning("至少一行 member=score");
+        return;
+      }
+      payload.zsetMembers = members;
+    }
+  }
+  const ttl = Number(String(createForm.ttl).trim() || "0");
+  saving.value = true;
+  try {
+    await createRedisKey(
+      {
+        datasourceId: datasourceId.value,
+        key,
+        type,
+        ttl: Number.isFinite(ttl) && ttl > 0 ? ttl : -1,
+        ...payload,
+      },
+      activeDb.value,
+    );
+    ElMessage.success("键已创建");
+    createVisible.value = false;
+    await loadSideData();
+    await scanKeys(true);
+    await selectKey(key);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** 保存 STRING 值 */
+async function saveStringValue() {
+  if (!activeKey.value) return;
+  saving.value = true;
+  try {
+    await setRedisString(datasourceId.value, activeDb.value, activeKey.value, stringValue.value);
+    ElMessage.success("值已保存");
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** 打开设置 TTL 弹窗 */
+function openExpire() {
+  ttlValue.value = detail.value ? String(detail.value.ttl) : "";
+  ttlVisible.value = true;
+}
+
+/** 提交 TTL 设置 */
+async function submitExpire() {
+  const ttl = Number(ttlValue.value.trim());
+  if (!Number.isFinite(ttl)) {
+    ElMessage.warning("TTL 必须是数字");
+    return;
+  }
+  saving.value = true;
+  try {
+    await expireRedisKey(datasourceId.value, activeDb.value, activeKey.value, ttl);
+    ElMessage.success(ttl === -1 ? "已设置为永久" : `TTL 已设置为 ${ttl} 秒`);
+    ttlVisible.value = false;
+    ready();
+    await scanKeys(false);
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/expire");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** 打开重命名弹窗 */
+function openRename() {
+  renameValue.value = activeKey.value;
+  renameVisible.value = true;
+}
+
+/** 提交重命名 */
+async function submitRename() {
+  const newKey = renameValue.value.trim();
+  if (!newKey) {
+    ElMessage.warning("新键名不能为空");
+    return;
+  }
+  if (newKey === activeKey.value) {
+    ElMessage.warning("新键名与原键名相同");
+    return;
+  }
+  saving.value = true;
+  try {
+    await renameRedisKey(datasourceId.value, activeDb.value, activeKey.value, newKey);
+    ElMessage.success("键已重命名");
+    renameVisible.value = false;
+    ready();
+    await scanKeys(true);
+    await selectKey(newKey);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/rename");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * 删除键（单个，带确认）。
+ *
+ * @param key 键名
+ */
+async function confirmDeleteKey(key: string) {
+  try {
+    await ElMessageBox.confirm(`确定删除键 ${key} 吗？该操作不可恢复。`, "删除确认", { type: "warning", confirmButtonText: "删除" });
+  } catch {
+    return;
+  }
+  try {
+    await deleteRedisKeys(datasourceId.value, activeDb.value, [key]);
+    ElMessage.success("键已删除");
+    activeKey.value = "";
+    detail.value = null;
+    ready();
+    await loadSideData();
+    await scanKeys(true);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key");
+  }
+}
+
+/** HASH 添加字段 */
+async function addHashField() {
+  const field = newHashField.value.trim();
+  if (!field) {
+    ElMessage.warning("字段名不能为空");
+    return;
+  }
+  saving.value = true;
+  try {
+    await hsetRedisField(datasourceId.value, activeDb.value, activeKey.value, { field, value: newHashValue.value });
+    newHashField.value = "";
+    newHashValue.value = "";
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/hash");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * HASH 删除字段。
+ *
+ * @param field 字段名
+ */
+async function removeHashField(field: string) {
+  try {
+    await ElMessageBox.confirm(`确定删除字段 ${field} 吗？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await hdelRedisField(datasourceId.value, activeDb.value, activeKey.value, field);
+    ElMessage.success("字段已删除");
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/hash");
+  }
+}
+
+/** LIST 追加元素 */
+async function pushListElement() {
+  if (!newListValue.value) {
+    ElMessage.warning("元素值不能为空");
+    return;
+  }
+  saving.value = true;
+  try {
+    await rpushRedisElement(datasourceId.value, activeDb.value, activeKey.value, newListValue.value);
+    newListValue.value = "";
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/list");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * LIST 编辑元素（弹输入框）。
+ *
+ * @param index 下标
+ * @param value 当前值
+ */
+async function editListElement(index: number, value: string) {
+  let next: string;
+  try {
+    const res = await ElMessageBox.prompt(`修改下标 ${index} 的元素`, "编辑元素", {
+      inputValue: value,
+      inputPattern: /^[\s\S]*$/,
+      inputErrorMessage: "值不能为空",
+    });
+    next = res.value;
+  } catch {
+    return;
+  }
+  saving.value = true;
+  try {
+    await lsetRedisElement(datasourceId.value, activeDb.value, activeKey.value, index, next);
+    ElMessage.success("元素已更新");
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/list");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * LIST 删除元素。
+ *
+ * @param index 下标
+ */
+async function removeListElement(index: number) {
+  try {
+    await ElMessageBox.confirm(`确定删除下标 ${index} 的元素吗？删除后后续元素前移。`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await lremRedisIndex(datasourceId.value, activeDb.value, activeKey.value, index);
+    ElMessage.success("元素已删除");
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/list");
+  }
+}
+
+/** SET 添加成员 */
+async function addSetMember() {
+  const member = newSetMember.value.trim();
+  if (!member) {
+    ElMessage.warning("成员不能为空");
+    return;
+  }
+  saving.value = true;
+  try {
+    const added = await saddRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
+    newSetMember.value = "";
+    ready();
+    ElMessage.success(added ? "成员已添加" : "成员已存在，未重复添加");
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/set");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * SET 删除成员。
+ *
+ * @param member 成员
+ */
+async function removeSetMember(member: string) {
+  try {
+    await ElMessageBox.confirm(`确定删除成员 ${member} 吗？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await sremRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
+    ElMessage.success("成员已删除");
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/set");
+  }
+}
+
+/** ZSET 添加成员 */
+async function addZsetMember() {
+  const member = newZsetMember.value.trim();
+  if (!member) {
+    ElMessage.warning("成员不能为空");
+    return;
+  }
+  const score = Number(newZsetScore.value.trim());
+  if (!Number.isFinite(score)) {
+    ElMessage.warning("分值必须是数字");
+    return;
+  }
+  saving.value = true;
+  try {
+    await zaddRedisMember(datasourceId.value, activeDb.value, activeKey.value, member, score);
+    newZsetMember.value = "";
+    newZsetScore.value = "";
+    ready();
+    ElMessage.success("成员已写入");
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/zset");
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * ZSET 删除成员。
+ *
+ * @param member 成员
+ */
+async function removeZsetMember(member: string) {
+  try {
+    await ElMessageBox.confirm(`确定删除成员 ${member} 吗？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await zremRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
+    ElMessage.success("成员已删除");
+    ready();
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/zset");
+  }
+}
+
+/** STREAM 追加消息 */
+async function appendStreamEntry() {
+  const field = newStreamField.value.trim();
+  if (!field) {
+    ElMessage.warning("字段名不能为空");
+    return;
+  }
+  saving.value = true;
+  try {
+    await xaddRedisStream(datasourceId.value, activeDb.value, activeKey.value, [{ field, value: newStreamValue.value }]);
+    newStreamField.value = "";
+    newStreamValue.value = "";
+    ready();
+    ElMessage.success("消息已追加");
+    await selectKey(activeKey.value);
+  } catch (e) {
+    fail(e, "/ms/monitor/redis-manage/key/stream");
+  } finally {
+    saving.value = false;
+  }
+}
+
+onMounted(refresh);
+</script>
+
+<style scoped>
+.dsm { display: flex; flex-direction: column; height: 100%; min-height: 100%; }
+.dsm-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+.dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
+.dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.dsm-redis-icon { color: #dc382d; }
+.dsm-toolbar-right { display: flex; align-items: center; gap: 8px; }
+.dsm-toolbar-right :deep(.rs-btn) { margin: 0; }
+.dsm-db-select { width: 220px; flex-shrink: 0; }
+.dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
+.dsm.resizing { user-select: none; }
+.dsm-split { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize; }
+.dsm-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s; }
+.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-400); }
+.dsm-sidebar { width: 300px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column; }
+.dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-search-section > *:first-child { flex: 1; }
+.dsm-view-bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-view-bar :deep(.rs-btn) { margin: 0; }
+.dsm-view-count { font-size: 12px; color: var(--text-tertiary); }
+.dsm-view-spacer { flex: 1; }
+.dsm-key-list { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto; }
+.dsm-tree-node { display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
+.dsm-tree-node:hover { background: var(--bg-hover); }
+.dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
+.dsm-tree-node.is-dir { font-weight: 600; color: var(--text-secondary); }
+.dsm-tree-caret { color: var(--text-tertiary); }
+.dsm-tree-icon { flex-shrink: 0; }
+.dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsm-load-more { padding: 6px 8px; text-align: center; }
+.dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px 16px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); }
+.dsm-info-row { display: flex; flex-direction: column; gap: 4px; }
+.dsm-info-label { font-size: 12px; color: var(--text-tertiary); }
+.dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+.dsm-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; }
+.dsm-section-title { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
+.dsm-section-actions { display: flex; align-items: center; gap: 6px; }
+.dsm-node-detail { padding: 14px 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-detail-row { display: flex; flex-direction: column; gap: 4px; }
+.dsm-detail-label { font-size: 12px; color: var(--text-tertiary); }
+.dsm-detail-value { font-size: 13px; color: var(--text-primary); word-break: break-all; }
+.dsm-data-section { padding: 14px 16px; }
+.dsm-data-title { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+.dsm-data-content { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow-y: auto; }
+.dsm-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.dsm-add-grow { flex: 1; }
+.dsm-add-narrow { width: 140px; }
+.dsm-stream-field { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
+.dsm-empty-inline { padding: 16px; color: var(--text-tertiary); font-size: 13px; }
+.mono { font-family: "JetBrains Mono", "Consolas", monospace; }
+.dsm-node-form { display: flex; flex-direction: column; gap: 14px; }
+.dsm-form-item { display: flex; flex-direction: column; gap: 6px; }
+.dsm-form-item label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.dsm-form-hint { font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
+.dsm-seg { display: inline-flex; border: 1px solid var(--border-default); border-radius: 6px; overflow: hidden; background: var(--bg-elevated); }
+.dsm-seg button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; color: var(--text-secondary); background: transparent; border: none; border-right: 1px solid var(--border-default); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.dsm-seg button:last-child { border-right: none; }
+.dsm-seg button:hover { background: var(--bg-hover); color: var(--text-primary); }
+.dsm-seg button.is-active { background: var(--brand-50); color: var(--brand-600); font-weight: 600; }
+.dsm-value-view { min-height: 80px; }
+.dsm-node-data { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
+.dsm-node-data:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
+</style>

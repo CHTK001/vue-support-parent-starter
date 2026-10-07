@@ -67,6 +67,12 @@
           <div class="jp-bar"><span class="jp-bar__fill" :style="{ width: progressOf(m) + '%' }" /></div>
         </button>
       </div>
+      <!--
+        「查看更多功能」与小学/高中端同一个出口：就地展开本学段全部模块。
+        原来只有小学(.pp-more)/高中(.sp-more)有这个入口，初中端缺了 —— 模块被
+        后台裁剪后学生就没有「全集」可看。div + tabindex 与另两端保持一致（可 Tab 到）。
+      -->
+      <div class="jp-more" tabindex="0" @click="emit('open', '')">查看更多功能 ›</div>
       <div v-if="recommendTitle" class="jp-rec">
         今日推荐：{{ recommendTitle }}
         <span v-if="recommendSub"> | {{ recommendSub }}</span>
@@ -364,6 +370,25 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   font-weight: 700;
   color: var(--el-text-color-regular);
 }
+/* 「查看更多功能」：与小学 .pp-more / 高中 .sp-more 同一口径（字号、触摸目标、焦点环） */
+.jp-more {
+  margin: 26px 0 10px;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+.jp-more:focus-visible {
+  border-radius: var(--el-radius-sm, 6px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 /*
  * 响应式：列数已由 .jp-grid / .jp-stats 的 auto-fit + minmax(clamp(…)) 接管，
  * 这里**不再**写 repeat(3)/repeat(2) 的死断点 —— 与 auto-fit 逻辑重复且互相覆盖，
@@ -374,6 +399,8 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   .jp-sub { margin-top: 6px; font-size: 13px; }
   .jp-body { margin: 14px 10px 0; padding: 16px 12px; min-height: 0; }
   .jp-rec { margin: 16px 0 8px; font-size: 13px; }
+  /* 触摸目标仍保持 44px，只收间距与字号 */
+  .jp-more { margin: 16px 0 8px; font-size: 14px; }
   /* 触摸目标不小于 44px */
   .jp-card { min-height: 64px; }
 }

@@ -763,7 +763,7 @@ const msgColumns: ReTableColumn[] = [
   { prop: "sysMessageReceiverName", label: "接收者", width: 110, slot: "receiver" },
   { prop: "sysMessageSendTime", label: "发送时间", width: 170, slot: "sendTime" },
   { prop: "sysMessageStatus", label: "状态", width: 90, slot: "mstatus", align: "center" },
-  { prop: "action", label: "操作", width: 220, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 220, slot: "action", fixed: "right" },
 ];
 
 const tplColumns: ReTableColumn[] = [
@@ -786,7 +786,7 @@ const tplColumns: ReTableColumn[] = [
   },
   { prop: "sysMessageExternalCode", label: "外部模板码", width: 140, showOverflowTooltip: true },
   { prop: "status", label: "状态", slot: "tstatus", width: 80, align: "center" },
-  { prop: "action", label: "操作", slot: "taction", fixed: "right", width: 240, align: "right" },
+  { prop: "action", label: "操作", slot: "taction", fixed: "right", width: 240, align: "center" },
 ];
 
 const logColumns: ReTableColumn[] = [
@@ -804,7 +804,7 @@ const logColumns: ReTableColumn[] = [
   { prop: "sysMessageCost", label: "耗时(ms)", width: 100, slot: "cost", align: "center" },
   { prop: "sysMessageLogMessageId", label: "消息ID", width: 160, showOverflowTooltip: true },
   { prop: "createTime", label: "发送时间", width: 170, slot: "logTime" },
-  { prop: "action", label: "操作", slot: "logaction", fixed: "right", width: 90, align: "right" },
+  { prop: "action", label: "操作", slot: "logaction", fixed: "right", width: 90, align: "center" },
 ];
 
 onMounted(() => {

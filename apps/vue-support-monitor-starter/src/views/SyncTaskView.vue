@@ -100,7 +100,13 @@
         </el-table-column>
         <el-table-column label="启用" width="78" align="center">
           <template #default="{ row }">
-            <el-switch :model-value="row.syncTaskEnabled === 1" @change="(value: string | number | boolean) => toggle(row, !!value)" />
+            <!-- EP 2.14 的 el-switch 只认 ariaLabel prop（switch.vue:136 直接 __props.ariaLabel），
+                 写原生 aria-label 会被丢弃 → 开关读不出名字，普查判「没有可访问名」。 -->
+            <el-switch
+              :model-value="row.syncTaskEnabled === 1"
+              :aria-label="`启用 ${row.syncTaskName}`"
+              @change="(value: string | number | boolean) => toggle(row, !!value)"
+            />
           </template>
         </el-table-column>
         <el-table-column label="最近执行" min-width="260">
@@ -255,7 +261,7 @@
               </div>
               <div class="st-form-item">
                 <label>包含子目录</label>
-                <el-switch v-model="form.sourceRecursive" />
+                <el-switch v-model="form.sourceRecursive" aria-label="包含子目录" />
               </div>
             </div>
             <div class="st-form-item">
@@ -347,7 +353,7 @@
                 </div>
                 <div class="st-form-item">
                   <label>首行是表头</label>
-                  <el-switch v-model="form.sourceHeaderRow" />
+                  <el-switch v-model="form.sourceHeaderRow" aria-label="首行是表头" />
                 </div>
               </div>
               <div class="st-form-hint">用 CSS 选择器抓网页表格：行选择器对整篇文档匹配，单元格选择器对每一行匹配。首行默认为表头，其单元格文本即源列名。</div>
@@ -436,7 +442,7 @@
             </div>
             <div class="st-form-item st-switch-item">
               <label>启用定时</label>
-              <el-switch v-model="form.enabled" :disabled="!form.cron.trim()" />
+              <el-switch v-model="form.enabled" aria-label="启用定时" :disabled="!form.cron.trim()" />
               <span class="st-form-hint">未填定时表达式时不能启用</span>
             </div>
           </div>
@@ -452,12 +458,14 @@
     </el-dialog>
 
     <!-- 本机文件/目录选择器：数据同步的文件与文件夹源都指向后端所在机器，
-         由 monitor 的 /ms/monitor/local-files/list 列举；FILE 模式同时列出数据文件 -->
+         由 monitor 的 /ms/monitor/local-files/list 列举；FILE 模式同时列出数据文件。
+         initial-path 用文件系统根：先前写死 Windows 的 C 盘路径，而部署机是 Linux，
+         结果打开就是目录不存在，一个条目都列不出来（实测根能列出 21 个目录）。 -->
     <ReFilePicker
       v-model="filePickerVisible"
       :title="filePickerMode === 'FILE' ? '选择文件' : '选择文件夹'"
       :directory-mode="filePickerMode === 'DIR'"
-      :initial-path="filePickerMode === 'FILE' ? 'C:\\' : 'C:\\'"
+      initial-path="/"
       :loader="localFileLoader"
       @select="onPathPicked" />
   </div>

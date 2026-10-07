@@ -70,6 +70,7 @@ export default {
     fileNotReady: '文件尚未处理完成，无法查看分块内容',
     deleteFileTitle: '警告',
     deleteFileConfirm: '确定要删除文件“{name}”吗？此操作不可恢复。',
+    deleteDirConfirm: '确定要删除文件夹“{name}”吗？其中的内容将一并删除，此操作不可恢复。',
     deleteKbTitle: '警告',
     deleteKbConfirm: '确定要删除知识库“{name}”吗？此操作不可恢复。',
     deleteKbNote: '删除后将解除该知识库与所有会话、角色的绑定；托管目录中的原始文件默认保留在服务器，如需彻底清理请先在「文件」中删除。',

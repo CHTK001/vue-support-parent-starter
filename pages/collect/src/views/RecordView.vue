@@ -13,7 +13,7 @@ import { getRouter, msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
-import { clearRecords, countRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFlows, pageRecords } from "../api/collectApi";
+import { clearRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFlows, pageRecords } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
@@ -152,7 +152,8 @@ const cellColumns = computed<{ name: string; label: string }[]>(() =>
 async function loadRecords({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const flowId = params.collectRecordFlowId ? Number(params.collectRecordFlowId) : 0;
   activeFlowId.value = flowId ? String(flowId) : "";
-  const [page1, defs, count] = await Promise.all([
+  /** 数量不再单发 /record/count：page 接口本身就带 total，重复查一次纯浪费网络 */
+  const [page1, defs] = await Promise.all([
     pageRecords({
       page,
       pageSize,
@@ -163,10 +164,9 @@ async function loadRecords({ page, pageSize, params }: ReTableLoadParams): Promi
       collectRecordUrl: params.collectRecordUrl as string | undefined,
     }),
     flowId ? fetchFields(flowId) : Promise.resolve([]),
-    countRecords(flowId || undefined),
   ]);
   fields.value = defs ?? [];
-  countAll.value = Number(count ?? 0);
+  countAll.value = Number(page1.total ?? 0);
   emptyHint.value = await explainEmpty(flowId, page1.total);
   return { total: page1.total, data: page1.rows as unknown as Record<string, unknown>[] };
 }
@@ -294,7 +294,7 @@ function showDetail(input: Record<string, unknown>): void {
     >
       <template #toolbar>
         <span class="collect-hint">
-          {{ activeFlowId ? `该流程共 ${countAll} 条结果` : "按流程筛选后展开字段列" }}
+          {{ activeFlowId ? `共 ${countAll} 条结果` : "按流程筛选后展开字段列" }}
         </span>
         <ReButton
           icon="Delete"

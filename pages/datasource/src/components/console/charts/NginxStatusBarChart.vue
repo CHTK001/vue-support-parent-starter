@@ -19,7 +19,7 @@
  */
 import { computed, ref, watch } from "vue";
 import type { EChartsOption } from "echarts";
-import type { NginxTopStatus } from "../../../nginx/api";
+import type { NginxTopStatus } from "../../../api/nginx/api";
 import { token, useEchart } from "./useEchart";
 
 const props = withDefaults(

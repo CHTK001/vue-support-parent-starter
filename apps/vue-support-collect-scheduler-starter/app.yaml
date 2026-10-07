@@ -8,7 +8,11 @@
 # 鉴权：完全复用框架 oauth 体系——后端是 oauth-client 的 AuthFilter + static 协议，
 #       登录接口是 common-system 内嵌的 /v2/user/login（校验 sys_user 并自签 SM4 令牌），
 #       前端登录页、令牌守卫、过期跳转都走框架自带能力，本应用不自带登录界面。
-# dev 走 vite 代理：/collect/api -> http://127.0.0.1:18190（见 vite.config.ts）
+# dev 走 vite 代理（见 vite.config.ts 三路路由）：
+#   /collect/api/v2/scheduler -> COLLECT_SCHEDULER_TARGET，缺省 http://192.168.50.198:18191（调度）
+#   /collect/api/ms           -> COLLECT_HUB_TARGET，缺省 http://192.168.50.198:8081（datasource-hub，
+#                                rewrite 剥 /collect/api 前缀；18190 内嵌 hub 是旧构建，无 Manage 端点）
+#   /collect/api              -> COLLECT_API_TARGET，缺省 http://192.168.50.198:18190（采集业务 + 登录）
 # ===========================================
 
 # 远程配置中心（/v2/setting/default 属 system 服务，采集后端未实现）关闭拉取

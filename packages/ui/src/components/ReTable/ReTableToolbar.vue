@@ -202,16 +202,16 @@ const iconSettings = Setting;
     <div v-if="mode !== 'batch'" class="re-table-toolbar__right">
       <!-- 列设置 -->
       <slot name="column-settings" v-if="showColumnSettings">
-        <ReButton :size="size" layout="square" :icon="iconColumns" :title="columnsTriggerText" />
+        <ReButton :size="size" layout="square" :icon="iconColumns" :tip="columnsTriggerText" />
       </slot>
 
       <!-- 表格设置 -->
       <slot name="table-settings" v-if="showTableSettings">
-        <ReButton :size="size" layout="square" :icon="iconSettings" :title="settingsTriggerText" />
+        <ReButton :size="size" layout="square" :icon="iconSettings" :tip="settingsTriggerText" />
       </slot>
 
       <!-- 刷新 -->
-      <ReButton v-if="showRefresh" :size="size" layout="square" :icon="iconRefresh" :loading="loading" title="刷新" @click="emit('refresh')" />
+      <ReButton v-if="showRefresh" :size="size" layout="square" :icon="iconRefresh" :loading="loading" tip="刷新" @click="emit('refresh')" />
     </div>
   </div>
 </template>

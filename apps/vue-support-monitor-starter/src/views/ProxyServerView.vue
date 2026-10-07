@@ -48,7 +48,7 @@ const columns = [
   { prop: "backend", label: "后端地址", width: 160, slot: "backend" },
   { prop: "status", label: "运行状态", width: 120, slot: "status" },
   { prop: "url", label: "访问地址", minWidth: 170, slot: "url", showOverflowTooltip: true },
-  { prop: "actions", label: "操作", width: 170, fixed: "right", align: "right", slot: "actions" },
+  { prop: "actions", label: "操作", width: 170, fixed: "right", slot: "actions" },
 ];
 
 /**
@@ -425,7 +425,7 @@ onMounted(async () => {
 .px { display: flex; flex-direction: column; gap: 14px; }
 .mono { font-family: monospace; font-size: 12px; }
 .muted { color: var(--text-secondary); font-size: 12px; }
-.op-cell { display: flex; gap: 4px; justify-content: flex-end; }
+.op-cell { display: flex; gap: 4px; }
 .link { color: var(--el-color-primary); text-decoration: none; }
 .text-secondary { color: var(--text-secondary); }
 .node-form { display: flex; flex-direction: column; gap: 10px; }

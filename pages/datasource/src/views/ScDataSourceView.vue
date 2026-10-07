@@ -434,7 +434,7 @@ function describeLatency(result: DataSourceTestResult): string {
 /** 类型跳转映射（宿主应用按自身路由覆盖者优先） */
 const TYPE_ROUTE_MAP: Record<string, string> = {
   jdbc: "/db-manager",
-  redis: "/redis",
+  redis: "/redis-manage",
   influxdb: "/influxdb",
   neo4j: "/neo4j",
   nacos: "/nacos",

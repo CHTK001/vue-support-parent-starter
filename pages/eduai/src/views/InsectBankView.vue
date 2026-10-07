@@ -36,31 +36,33 @@
             placeholder="中文名 / 学名 / 雅称 / slug"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
+            @change="commitSearch"
+            @clear="commitSearch"
           />
         </div>
         <div class="filter-field">
           <label class="filter-field__label">目</label>
-          <el-select v-model="searchDraft.order" clearable placeholder="全部目" style="width: 100%">
+          <el-select v-model="searchDraft.order" clearable placeholder="全部目" style="width: 100%" @change="commitSearch">
             <el-option v-for="o in orderOptions" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
         </div>
         <div class="filter-field">
           <label class="filter-field__label">变态类型</label>
-          <el-select v-model="searchDraft.metamorphosis" clearable placeholder="全部" style="width: 100%">
+          <el-select v-model="searchDraft.metamorphosis" clearable placeholder="全部" style="width: 100%" @change="commitSearch">
             <el-option label="完全变态" value="complete" />
             <el-option label="不完全变态" value="incomplete" />
           </el-select>
         </div>
         <div class="filter-field">
           <label class="filter-field__label">建模状态</label>
-          <el-select v-model="searchDraft.modelState" clearable placeholder="全部" style="width: 100%">
+          <el-select v-model="searchDraft.modelState" clearable placeholder="全部" style="width: 100%" @change="commitSearch">
             <el-option label="已建模" value="built" />
             <el-option label="未建模" value="missing" />
           </el-select>
         </div>
         <div class="filter-field">
           <label class="filter-field__label">讲解状态</label>
-          <el-select v-model="searchDraft.guideState" clearable placeholder="全部" style="width: 100%">
+          <el-select v-model="searchDraft.guideState" clearable placeholder="全部" style="width: 100%" @change="commitSearch">
             <el-option label="已配讲解" value="guided" />
             <el-option label="未配讲解" value="missing" />
           </el-select>
@@ -87,62 +89,68 @@
       </div>
 
       <div v-loading="loading" class="table-wrap">
-        <el-table :data="pagedRows" stripe class="insect-table" row-key="insectId" @row-click="openEdit">
+        <ReTable
+          :data="insectRows"
+          :columns="insectColumns"
+          :row-key="'insectId'"
+          layout="table"
+          :layout-switch="false"
+          :pagination="false"
+          :toolbar="false"
+          stripe
+          :settings="{ border: false }"
+          class="insect-table"
+          @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as InsectLibraryItem)"
+        >
           <template #empty>
             <el-empty :image-size="88" description="暂无昆虫，点击「新增昆虫」创建" />
           </template>
-          <el-table-column prop="insectId" label="ID" width="70" />
-          <el-table-column label="中文名" min-width="170">
-            <template #default="{ row }">
-              <span class="cell-name">
-                <span class="cell-name__dot" :style="{ background: row.insectAccent || 'var(--el-color-primary)' }" />
-                {{ row.insectName }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="insectLatin" label="学名" min-width="200" show-overflow-tooltip />
-          <el-table-column label="目" width="100">
-            <template #default="{ row }">{{ orderLabel(row.insectOrder) }}</template>
-          </el-table-column>
-          <el-table-column label="变态" width="110">
-            <template #default="{ row }">
-              <span class="tag-pill" :class="row.insectMetamorphosis === 'complete' ? 'is-blue' : 'is-green'">
-                {{ metaLabel(row.insectMetamorphosis) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="难度" width="90">
-            <template #default="{ row }">
-              <span class="tag-pill" :class="diffClass(row.insectDifficulty)">
-                {{ diffLabel(row.insectDifficulty) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="建模" width="110" align="center">
-            <template #default="{ row }">
-              <span class="tag-pill" :class="modelOf(row) ? 'is-green' : 'is-grey'">
-                {{ modelOf(row) ? "已建模" : "未建模" }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="讲解" width="90" align="center">
-            <template #default="{ row }">
-              <span class="tag-pill" :class="row.hasGuide ? 'is-green' : 'is-grey'">
-                {{ row.hasGuide ? "已配" : "未配" }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
-            <template #default="{ row }">
-              <button type="button" class="row-edit-btn" title="编辑" @click.stop="openEdit(row)">
-                <el-icon><EditPen /></el-icon>
-              </button>
-              <button type="button" class="row-del-btn" title="删除" @click.stop="remove(row)">
-                <el-icon><Delete /></el-icon>
-              </button>
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #col-insectName="{ row }">
+            <span class="cell-name">
+              <span class="cell-name__dot" :style="{ background: row.insectAccent || 'var(--el-color-primary)' }" />
+              {{ row.insectName }}
+            </span>
+          </template>
+          <template #col-insectOrder="{ row }">{{ orderLabel(row.insectOrder) }}</template>
+          <template #col-insectMetamorphosis="{ row }">
+            <span class="tag-pill" :class="row.insectMetamorphosis === 'complete' ? 'is-blue' : 'is-green'">
+              {{ metaLabel(row.insectMetamorphosis) }}
+            </span>
+          </template>
+          <template #col-insectDifficulty="{ row }">
+            <span class="tag-pill" :class="diffClass(row.insectDifficulty)">
+              {{ diffLabel(row.insectDifficulty) }}
+            </span>
+          </template>
+          <template #col-modelState="{ row }">
+            <span class="tag-pill" :class="modelOf(row as unknown as InsectLibraryItem) ? 'is-green' : 'is-grey'">
+              {{ modelOf(row as unknown as InsectLibraryItem) ? "已建模" : "未建模" }}
+            </span>
+          </template>
+          <template #col-hasGuide="{ row }">
+            <span class="tag-pill" :class="row.hasGuide ? 'is-green' : 'is-grey'">
+              {{ row.hasGuide ? "已配" : "未配" }}
+            </span>
+          </template>
+          <template #col-actions="{ row }">
+            <button
+              type="button"
+              class="row-edit-btn"
+              title="编辑"
+              @click.stop="openEdit(row as unknown as InsectLibraryItem)"
+            >
+              <el-icon><EditPen /></el-icon>
+            </button>
+            <button
+              type="button"
+              class="row-del-btn"
+              title="删除"
+              @click.stop="remove(row as unknown as InsectLibraryItem)"
+            >
+              <el-icon><Delete /></el-icon>
+            </button>
+          </template>
+        </ReTable>
       </div>
 
       <div class="table-footer">
@@ -478,6 +486,8 @@ import type {
 import { ORDER_LABELS, metamorphosisLabel } from "../components/insect/orderLabels";
 import { modelSlugOf } from "../components/insect/modelSlug";
 import { knownSpecies } from "../insect/three/registry";
+import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const FACT_ICONS = ["size", "weight", "time", "place", "food", "ability"];
 const HOTSPOT_TONES = ["coral", "sage", "amber", "lavender"];
@@ -547,6 +557,28 @@ const pagedRows = computed(() => {
   const start = (pageNo.value - 1) * pageSize.value;
   return filtered.value.slice(start, start + pageSize.value);
 });
+
+/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
+const insectRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
+
+/**
+ * 昆虫列表的列定义（ReTable 表格模式用）。
+ *
+ * <p>自定义单元格一律走 {@code #col-<prop>} 插槽；「中文名 / 目 / 变态 /
+ * 难度 / 建模 / 讲解 / 操作」需要包一层渲染，同样挂插槽（其中「建模」
+ * 无真实字段，{@code modelState} 仅为插槽载体）。</p>
+ */
+const insectColumns: ReTableColumn[] = [
+  { prop: "insectId", label: "ID", width: 70 },
+  { prop: "insectName", label: "中文名", minWidth: 170, slot: "col-insectName" },
+  { prop: "insectLatin", label: "学名", minWidth: 200, showOverflowTooltip: true },
+  { prop: "insectOrder", label: "目", width: 100, slot: "col-insectOrder" },
+  { prop: "insectMetamorphosis", label: "变态", width: 110, slot: "col-insectMetamorphosis" },
+  { prop: "insectDifficulty", label: "难度", width: 90, slot: "col-insectDifficulty" },
+  { prop: "modelState", label: "建模", width: 110, align: "center", slot: "col-modelState" },
+  { prop: "hasGuide", label: "讲解", width: 90, align: "center", slot: "col-hasGuide" },
+  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions" },
+];
 
 const statCards = computed(() => {
   const all = rows.value.length;

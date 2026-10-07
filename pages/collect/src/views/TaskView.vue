@@ -10,21 +10,20 @@
   节点日志（原始表格，排查时看细节）。
 -->
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onUnmounted, ref } from "vue";
+import { computed, onActivated, ref } from "vue";
 import { getRouter, msgError, msgInfo, msgSuccess } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
-import ReTime from "@repo/ui/re-time";
+import ReCostText from "@repo/ui/re-cost-text";
 import LogFullTextDialog from "../components/LogFullTextDialog.vue";
 import RunReplayDialog from "../components/RunReplayDialog.vue";
 import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { costMs, statusTagType, statusText, triggerText } from "../constants/taskStatus";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
-import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
+import type { RePageResult, ReTableAutoRefresh, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFlow, CollectTask, CollectTaskLog } from "../types/collect";
 
 defineOptions({ name: "CollectRun" });
@@ -57,10 +56,20 @@ const searchModel = ref<Record<string, unknown>>({
   collectTaskNo: "",
 });
 
+/**
+ * 自动刷新交给 ReTable 的内置能力（工具栏计时器入口 + 浮层选档）。
+ *
+ * 档位只给"不刷新 / 5 秒 / 10 秒"三档：运行记录是人盯着看的列表，3s 太密
+ * （接口是分页查询，打穿了没意义）、30s/60s 又长到看不出变化，5s/10s 刚好。
+ * 挂载默认关闭（defaultOn 省略），用户选一次即可。
+ */
+const AUTO_REFRESH: ReTableAutoRefresh = {
+  interval: 5000,
+  intervals: [0, 5000, 10000],
+};
+
 const flows = ref<CollectFlow[]>([]);
-const autoRefresh = ref(false);
 const tableRef = ref<{ reload: () => void; goto: (page?: number) => void } | null>(null);
-let timer: ReturnType<typeof setInterval> | null = null;
 
 /** 回放弹窗选中的运行 */
 const replayTask = ref<CollectTask | null>(null);
@@ -120,7 +129,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskNodeCount", label: "节点/请求/结果", width: 126, slot: "counts", align: "center" },
   { prop: "collectTaskExecutorId", label: "执行器", width: 200, showOverflowTooltip: true },
   { prop: "collectTaskError", label: "错误", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 176, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 176, slot: "action", fixed: "right" },
 ]);
 
 const logColumns = computed<ReTableColumn[]>(() => [
@@ -248,16 +257,6 @@ async function cleanHistory(): Promise<void> {
   }
 }
 
-function toggleAuto(value: boolean): void {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-  if (value) {
-    timer = setInterval(() => tableRef.value?.reload(), 3000);
-  }
-}
-
 /** keep-alive 命中后挂载只跑一次，重进页面靠激活钩子取新数据 */
 let firstActivation = true;
 onActivated(() => {
@@ -268,21 +267,8 @@ onActivated(() => {
   }
   void reloadFlows();
   tableRef.value?.reload();
-  if (autoRefresh.value) {
-    toggleAuto(true);
-  }
 });
 
-onDeactivated(() => {
-  toggleAuto(false);
-});
-
-onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-});
 </script>
 
 <template>
@@ -300,14 +286,13 @@ onUnmounted(() => {
       v-model:search-model="searchModel"
       :search="SEARCH"
       :page-sizes="[10, 20, 50, 100]"
+      :auto-refresh="AUTO_REFRESH"
       empty-text="暂无运行记录，去「采集器管理」运行一个采集器"
       stripe
       @search="backToFirstPage"
       @search-reset="reloadFromFirstPage"
     >
       <template #toolbar>
-        <span class="collect-hint">自动刷新</span>
-        <ReSwitch v-model="autoRefresh"  @change="toggleAuto(autoRefresh === true)"/>
         <ReButton
           icon="Delete"
           type="danger"
@@ -325,7 +310,7 @@ onUnmounted(() => {
       </template>
       <template #trigger="{ row }">{{ triggerText(row.collectTaskTriggerType) }}</template>
       <template #cost="{ row }">
-        <ReTime :value="costMs(row.collectTaskCost)" format="duration" placeholder="—" />
+        <ReCostText :cost="costMs(row.collectTaskCost)" />
       </template>
       <template #counts="{ row }">
         {{ row.collectTaskNodeCount ?? 0 }} / {{ row.collectTaskRequestCount ?? 0 }} /
@@ -362,7 +347,7 @@ onUnmounted(() => {
           </ReTag>
         </template>
         <template #cost="{ row }">
-          <ReTime :value="costMs(row.collectTaskLogCost)" format="duration" placeholder="—" />
+          <ReCostText :cost="costMs(row.collectTaskLogCost)" />
         </template>
         <template #iteration="{ row }">
           {{ row.collectTaskLogIteration == null ? "—" : Number(row.collectTaskLogIteration) + 1 }}

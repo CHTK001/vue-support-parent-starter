@@ -134,22 +134,24 @@ const updatePosition = () => {
 const handleGlobalClick = (e: MouseEvent) => {
     if (!props.show) return
 
-    const target = e.target as HTMLElement
+    const target = e.target as EventTarget | null
+    // SVG/文本节点等非 Element 目标统一做 Node 守卫，避免 contains 抛参
+    const node: Node | null = target instanceof Node ? target : null
 
     // 如果点击在弹窗内部，不关闭
-    if (popoverRef.value && popoverRef.value.contains(target)) {
+    if (node && popoverRef.value && popoverRef.value.contains(node)) {
         return
     }
 
     // 如果点击在锚点元素上，不关闭（避免触发 toggle 后立即关闭）
-    if (props.anchorEl && props.anchorEl.contains(target)) {
+    if (node && props.anchorEl && props.anchorEl.contains(node)) {
         return
     }
 
     // 如果有 position（级联模式），检查是否在触发元素上
     if (props.position) {
         // 级联模式下点击外部直接关闭
-        if (popoverRef.value && popoverRef.value.contains(target)) return
+        if (node && popoverRef.value && popoverRef.value.contains(node)) return
     }
 
     // 否则关闭弹窗
@@ -177,10 +179,16 @@ const popoverStyle = computed(() => {
 // 处理窗口 resize 和 scroll 事件，更新位置
 const handleWindowEvent = (e: Event) => {
     if (!props.show) return
+    // resize 事件的 target 是 window（非 Node），直接重定位，不做 contains 判断
+    if (e.type === 'resize') {
+        updatePosition()
+        return
+    }
     // 如果 scroll 事件来自弹窗内部，忽略
-    // scroll 事件不冒泡，但捕获阶段可以拦截
-    const target = e.target as HTMLElement
-    if (popoverRef.value && popoverRef.value.contains(target)) return
+    // scroll 事件不冒泡，但捕获阶段可以拦截（document 的 target 可能是 document 自身）
+    const target = e.target
+    const node: Node | null = target instanceof Node ? target : null
+    if (node && popoverRef.value && popoverRef.value.contains(node)) return
     updatePosition()
 }
 

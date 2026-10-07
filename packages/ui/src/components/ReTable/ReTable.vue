@@ -21,10 +21,12 @@
  * 工具栏（分页上方右侧）：
  *   - 刷新：触发 reload()
  *   - 自动刷新（传 autoRefresh 才出现）：ReSwitch(popover) 布局，工具栏一枚纯 ReButton(square) 入口，
- *     点开是无边框浮层，用 ReSelect 竖向档位菜单选间隔（含「不自动刷新」一档 = 关闭），
- *     档位即状态（选中即生效并收起浮层），定时器随组件卸载 / keep-alive 失活停止
+ *     点开是按参考图排版的浮层：标题「自动刷新频率」+ 状态徽标，ReSelect 竖向档位菜单
+ *     （主标题 + 副说明两行，含「不自动刷新」一档 = 关闭），底部分隔线 + 下次刷新倒计时
+ *     （showCountdown 属性可关，默认开）；档位即状态（选中即生效并收起浮层），
+ *     定时器随组件卸载 / keep-alive 失活停止
  *   - 列设置：popover 中可搜索 / 排序 / 隐藏 / 显示
- *   - 表格设置：popover 中切换斑马纹 / 边框 / 紧凑 / 高亮当前行 / 可调整列宽
+ *   - 表格设置：popover 中切换斑马纹 / 边框 / 紧凑 / 高亮当前行 / 十字高亮 / 可调整列宽
  *
  * 列配置持久化：
  *   - 传 tableId 后，会按 "re-table:<tableId>" 持久化到 storage（默认 localStorage）
@@ -1878,6 +1880,98 @@ function onSettingChange<K extends keyof ReTableSettings>(key: K, value: ReTable
   saveColumnState();
 }
 
+/* ==================== 十字高亮（表格设置开关） ==================== */
+
+/** 十字高亮是否生效：悬停表体单元格时，所在行 / 所在列（含表头）一起着色 */
+const crosshairOn = computed<boolean>(() => localSettings.value.crosshairHighlight ?? false);
+
+/** 当前命中的格子：用于跳过同格重算，关掉开关时一并复位 */
+let crosshairCell: HTMLElement | null = null;
+
+/** 已打上十字类的元素（行格 + 列格 + 表头列格 + 命中格），清理时统一摘掉 */
+let crosshairEls: HTMLElement[] = [];
+
+/** 摘掉全部十字类；集合为空时是空操作，可在 mouseover 高频路径上无条件调用 */
+function clearCrosshair(): void {
+  for (const el of crosshairEls) {
+    el.classList.remove("is-crosshair-row", "is-crosshair-col", "is-crosshair-cell");
+  }
+  crosshairEls = [];
+  crosshairCell = null;
+}
+
+/** 关闭开关时立刻收掉屏幕上残留的十字（否则要等下次 hover 才会消失） */
+watch(crosshairOn, (on) => {
+  if (!on) clearCrosshair();
+});
+
+/**
+ * 十字高亮主入口：根节点上的 mouseover 事件委托。
+ *
+ * <p>刻意不绑 el-table / vxe-table 的事件：两套引擎都渲染成
+ * {@code table > tbody > tr > td}，按 DOM 归属算行列即可同时覆盖
+ * （列位置用 {@code cellIndex}，与同一 table 的表头天然对齐）。
+ * 指针落在非表格区（工具栏 / 空态 / 滚动条）时顺手清理。</p>
+ */
+function onCrosshairOver(e: MouseEvent): void {
+  if (!crosshairOn.value) return;
+  const target = e.target as Element | null;
+  // 只认表体 td：表头 th 悬停不当作十字起点（列头单独着色由下面的表头补色负责）
+  const cell = (target?.closest?.("td") ?? null) as HTMLTableCellElement | null;
+  if (!cell) {
+    if (crosshairCell) clearCrosshair();
+    return;
+  }
+  if (cell === crosshairCell) return; // 还在同一格里，别重算
+  applyCrosshair(cell);
+}
+
+/** 给命中格打行 / 列十字类：行取整行 td，列按 cellIndex 取同 table 各行与表头 */
+function applyCrosshair(cell: HTMLTableCellElement): void {
+  clearCrosshair();
+  const row = cell.parentElement; // 命中格所在的 tr
+  const tbody = row?.parentElement as HTMLTableSectionElement | null;
+  // 不在 tbody 里（结构异常 / 模板行）直接放弃，不当作十字
+  if (!row || !tbody || tbody.tagName !== "TBODY") return;
+  crosshairCell = cell;
+  const idx = cell.cellIndex;
+  const els: HTMLElement[] = [];
+
+  // 行：命中格所在 tr 的所有 td（tr class 会被 el-table 的行样式盖掉，所以直接落 td）
+  for (const td of Array.from(row.children) as HTMLElement[]) {
+    if (td.tagName !== "TD") continue;
+    td.classList.add("is-crosshair-row");
+    els.push(td);
+  }
+
+  // 列：同 tbody 各行的第 idx 格。colSpan>1 的格（展开行 / 合并格）跳过，
+  // 否则 idx=0 时会把整行展开区整条染色
+  for (const tr of Array.from(tbody.rows) as HTMLTableRowElement[]) {
+    const c = tr.cells[idx];
+    if (!c || c.colSpan > 1) continue;
+    c.classList.add("is-crosshair-col");
+    els.push(c);
+  }
+
+  // 列：表头。el-table 的表头是独立 table，所以向最近的引擎容器要 thead；
+  // 分组表头有多行时按「每行第 idx 格」近似对齐（单行表头——绝大多数场景——是精确的）
+  const container = cell.closest(".el-table, .vxe-table");
+  if (container) {
+    const theads = Array.from(container.querySelectorAll<HTMLTableSectionElement>("thead"));
+    for (const thead of theads) {
+      const hc = (thead.rows[0] as HTMLTableRowElement | undefined)?.cells[idx];
+      if (!hc || hc.colSpan > 1) continue;
+      hc.classList.add("is-crosshair-col");
+      els.push(hc);
+    }
+  }
+
+  // 命中格最深一档：三条规则权重相同，放最后靠源码顺序胜出（交叉点）
+  cell.classList.add("is-crosshair-cell");
+  els.push(cell);
+  crosshairEls = els;
+}
+
 /** 实际生效的 storage：props 注入 → provide 注入 → localStorage 默认 */
 const injectedStorage = inject<ReTableColumnStorage | undefined>(RE_TABLE_STORAGE_KEY, undefined);
 const effectiveStorage = computed<ReTableColumnStorage>(() => props.storage ?? injectedStorage ?? localColumnStorage);
@@ -2234,20 +2328,48 @@ function normalizeInterval(ms?: number): number {
 }
 /** 轮询间隔（ms），0 = 关闭；初始档位按 defaultOn 决定 */
 const autoRefreshMs = ref<number>(autoRefreshCfg.value?.defaultOn ? normalizeInterval(autoRefreshCfg.value?.interval) : 0);
-/** 浮层里的候选档位；页面没传 intervals 时的默认档：关 / 5s / 10s / 30s */
+/** 浮层里的候选档位；页面没传 intervals 时的默认档：关 / 5s / 10s / 30s / 1min */
 const autoRefreshSteps = computed<number[]>(() => {
   const list = autoRefreshCfg.value?.intervals;
-  return Array.isArray(list) && list.length ? list.map((ms) => (ms > 0 ? normalizeInterval(ms) : 0)) : [0, 5000, 10000, 30000];
+  return Array.isArray(list) && list.length ? list.map((ms) => (ms > 0 ? normalizeInterval(ms) : 0)) : [0, 5000, 10000, 30000, 60000];
 });
 /** 轮询定时器句柄；换档 / keep-alive 激活态变化时统一经 startAutoRefresh 起停 */
 let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+/** 倒计时拍子：开启态每秒减 1，供浮层底部「下次刷新 N 秒后」展示；轮询本身仍走 autoRefreshTimer */
+let autoRefreshTickTimer: ReturnType<typeof setInterval> | null = null;
+/** 距下次刷新的秒数（开启态才有意义，关闭态无展示） */
+const autoRefreshCountdown = ref<number>(0);
+/** 浮层底部是否显示倒计时：默认 true（关闭态无下一次，不显示；设 false 则只留静态说明） */
+const autoRefreshShowCountdown = computed<boolean>(() => autoRefreshCfg.value?.showCountdown ?? true);
 
-/** 浮层是无边框档位菜单：一行一档，0 档写成「不自动刷新」 */
+/**
+ * 档位文案：主标题 + 副说明（参考图：每档一行主标题、一行灰色副说明）。
+ *
+ * 0 档是「不自动刷新 / 仅在点击刷新时更新」；>0 档按秒数取内置副说明，
+ * 页面自定义的非常规档位回落到「每 N 秒自动重取当前页」。
+ */
+function autoRefreshStepText(ms: number): { title: string; desc: string } {
+  if (ms <= 0) return { title: "不自动刷新", desc: "仅在点击刷新时更新" };
+  const s = Math.round(ms / 1000);
+  if (s === 5) return { title: "每 5 秒", desc: "高实时，适合监控运行中任务" };
+  if (s === 10) return { title: "每 10 秒", desc: "平衡实时性与查询负载" };
+  if (s === 30) return { title: "每 30 秒", desc: "常规巡检，推荐默认" };
+  if (s === 60) return { title: "每 1 分钟", desc: "降低数据源压力" };
+  return { title: `每 ${s} 秒`, desc: `每 ${s} 秒自动重取当前页` };
+}
+
+/** 浮层是无边框档位菜单：一行一档（主标题 + 副说明），0 档写成「不自动刷新」 */
 const autoRefreshOptions = computed<ReOption[]>(() =>
-  autoRefreshSteps.value.map((ms) => ({
-    value: ms,
-    label: ms > 0 ? `每 ${ms / 1000} 秒` : "不自动刷新",
-  })),
+  autoRefreshSteps.value.map((ms) => {
+    const text = autoRefreshStepText(ms);
+    return {
+      value: ms,
+      label: text.title,
+      description: text.desc,
+      // 参考图每档左侧的圆形图标：关闭=暂停、开启=计时
+      icon: ms > 0 ? "Timer" : "VideoPause",
+    };
+  }),
 );
 
 /**
@@ -2276,15 +2398,26 @@ function stopAutoRefresh(): void {
     clearInterval(autoRefreshTimer);
     autoRefreshTimer = null;
   }
+  if (autoRefreshTickTimer) {
+    clearInterval(autoRefreshTickTimer);
+    autoRefreshTickTimer = null;
+  }
 }
 
 function startAutoRefresh(): void {
   stopAutoRefresh();
   if (autoRefreshMs.value <= 0) return;
+  autoRefreshCountdown.value = Math.max(1, Math.round(autoRefreshMs.value / 1000));
   autoRefreshTimer = setInterval(() => {
-    // 上一拍还在飞就跳过这一拍，慢接口下不堆请求
-    if (!dataLoading.value) void dsReload();
+    // 上一拍还在飞就跳过这一拍，慢接口下不堆请求；跳过不重置倒计时，下一拍继续
+    if (!dataLoading.value) {
+      autoRefreshCountdown.value = Math.max(1, Math.round(autoRefreshMs.value / 1000));
+      void dsReload();
+    }
   }, autoRefreshMs.value);
+  autoRefreshTickTimer = setInterval(() => {
+    if (autoRefreshCountdown.value > 1) autoRefreshCountdown.value -= 1;
+  }, 1000);
 }
 
 /* 换档即换表：ReSwitch 布局与档位菜单都写同一个 ref，这里统一起停，避免两条入口各起一次定时器 */
@@ -3333,6 +3466,8 @@ const iconSelect = Select;
   <div
     ref="rootRef"
     class="re-table"
+    @mouseover="onCrosshairOver"
+    @mouseleave="clearCrosshair"
     :class="{
       're-table--empty': isEmpty,
       're-table--compact': tableSize === 'small',
@@ -3341,6 +3476,7 @@ const iconSelect = Select;
       're-table--fill': fillActive,
       're-table--engine-element': !useVxe,
       're-table--engine-vxe': useVxe,
+      're-table--crosshair': crosshairOn,
       [`re-table--layout-${activeLayout}`]: true,
     }"
     :style="rootStyle"
@@ -3444,7 +3580,7 @@ const iconSelect = Select;
           v-if="batchDelete"
           layout="square"
           icon="Delete"
-          :title="batchDeleteMode ? '退出批量删除' : '批量删除'"
+          :tip="batchDeleteMode ? '退出批量删除' : '批量删除'"
           :type="batchDeleteMode ? 'primary' : ''"
           @click="toggleBatchDeleteMode"
         />
@@ -3452,7 +3588,7 @@ const iconSelect = Select;
           v-if="showDragToggle"
           layout="square"
           icon="Rank"
-          :title="dragMode ? '退出拖拽' : '拖拽排序'"
+          :tip="dragMode ? '退出拖拽' : '拖拽排序'"
           :type="dragMode ? 'primary' : ''"
           @click="toggleDragMode"
         />
@@ -3460,29 +3596,42 @@ const iconSelect = Select;
           v-if="searchEnabled && (searchConfig.showToggle ?? true)"
           layout="square"
           :icon="searchVisible ? 'Hide' : 'View'"
-          :title="searchVisible ? '隐藏搜索' : '显示搜索'"
+          :tip="searchVisible ? '隐藏搜索' : '显示搜索'"
           @click="searchVisible = !searchVisible"
         />
         <ReButton
           layout="square"
           icon="Refresh"
-          title="刷新"
+          tip="刷新"
           :loading="dataLoading || loading"
           @click="onBuiltinSearchRefresh"
         />
-        <!-- 自动刷新：ReSwitch(popover) —— 纯 ReButton(square) 作入口，点开是无边框的档位菜单。
-             档位即状态：选中哪档就是哪个间隔，浮层内不另设开关；点亮态走方块按钮主色 + 右上角打勾，
-             title 承担状态文案（「自动刷新：已关闭」/「自动刷新中：每 N 秒」）。 -->
+        <!-- 自动刷新：ReSwitch(popover) —— 纯 ReButton(square) 作入口，点开是按参考图排版的档位浮层。
+             标题行「自动刷新频率 + 状态徽标」→ 档位菜单（主标题 + 副说明两行）→ 底部倒计时说明。
+             档位即状态：选中哪档就是哪个间隔；title 承担无障碍名（「自动刷新：已关闭」/「自动刷新中：每 N 秒」）。 -->
         <ReSwitch
           v-if="autoRefresh"
           v-model="autoRefreshMs"
           layout="popover"
           icon="Timer"
           :title="autoRefreshStateText"
+          :popover-width="268"
+          :popover-padding="8"
         >
-          <span class="re-table__auto-refresh-title">自动刷新</span>
+          <div class="re-table__auto-refresh-head">
+            <span class="re-table__auto-refresh-title">自动刷新频率</span>
+            <span
+              class="re-table__auto-refresh-badge"
+              :class="autoRefreshMs > 0 ? 'is-on' : 'is-off'"
+            >{{ autoRefreshMs > 0 ? "已开启" : "已关闭" }}</span>
+          </div>
           <ReSelect v-model="autoRefreshValue" layout="square" vertical :data="autoRefreshOptions" />
-          <span class="re-table__auto-refresh-hint">选中即生效，表格按该间隔自动重取当前页</span>
+          <div class="re-table__auto-refresh-hint">
+            <template v-if="autoRefreshShowCountdown && autoRefreshMs > 0">
+              选中即生效，表格将按间隔自动重取当前页；<strong class="re-table__auto-refresh-next">下次刷新 {{ autoRefreshCountdown }} 秒后</strong>。切到其他标签页时自动暂停。
+            </template>
+            <template v-else>选中即生效，表格按该间隔自动重取当前页</template>
+          </div>
         </ReSwitch>
         <!-- 布局切换（系统级分段控件，位于自动刷新右侧）：表格 / 视图 / 卡片
              候选 <2 或无数据时不渲染（没有可切换的 DOM 就不出现） -->
@@ -3633,6 +3782,7 @@ const iconSelect = Select;
           :sortable="col.sortable"
           :resizable="col.resizable ?? borderResizable"
           :show-overflow-tooltip="col.showOverflowTooltip"
+          :class-name="col.className"
         >
           <template #default="scope">
             <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件，避免脏值回写 -->
@@ -3657,6 +3807,7 @@ const iconSelect = Select;
           :sortable="col.sortable"
           :resizable="col.resizable ?? borderResizable"
           :show-overflow-tooltip="col.showOverflowTooltip"
+          :class-name="col.className"
         >
           <template #default="{ row, $index }">
             <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件 -->
@@ -3703,10 +3854,11 @@ const iconSelect = Select;
           </template>
         </ElTableColumn>
       </template>
-      <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为） -->
+      <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为）
+           加载窗口内不渲染：loading 期间数据还没到，先画空态会在遮罩下闪「暂无数据」 -->
       <template #empty>
         <slot name="empty" :description="emptyText">
-          <el-empty :description="emptyText" :image-size="96" />
+          <el-empty v-if="!loading && !dataLoading" :description="emptyText" :image-size="96" />
         </slot>
       </template>
       <slot />
@@ -3866,10 +4018,10 @@ const iconSelect = Select;
           <span class="re-table__loading-spinner" aria-hidden="true"></span>
         </div>
       </template>
-      <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为） -->
+      <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为）；加载窗口内不渲染 -->
       <template #empty>
         <slot name="empty" :description="emptyText">
-          <el-empty :description="emptyText" :image-size="96" />
+          <el-empty v-if="!loading && !dataLoading" :description="emptyText" :image-size="96" />
         </slot>
       </template>
       <slot />
@@ -3976,7 +4128,7 @@ const iconSelect = Select;
                      正好两条该告警，对应列设置 + 表格设置）。外面这层 span 只是给
                      ElOnlyChild 一个可挂载的单根节点，点击从内层按钮冒泡上来即可。 -->
                 <span class="re-table__settings-trigger">
-                  <ReButton layout="square" :size="tableSize" :icon="iconColumns" :title="columnsTriggerText" />
+                  <ReButton layout="square" :size="tableSize" :icon="iconColumns" :tip="columnsTriggerText" />
                 </span>
               </template>
               <div class="re-table__columns-panel">
@@ -4043,7 +4195,7 @@ const iconSelect = Select;
               <template #reference>
                 <!-- ⚠ 同上：必须外包单根元素，否则 ElOnlyChild 挂不上触发器、面板点不开。 -->
                 <span class="re-table__settings-trigger">
-                  <ReButton layout="square" :size="tableSize" :icon="iconSettings" :title="settingsTriggerText" />
+                  <ReButton layout="square" :size="tableSize" :icon="iconSettings" :tip="settingsTriggerText" />
                 </span>
               </template>
               <div class="re-table__settings-panel">
@@ -4089,6 +4241,16 @@ const iconSelect = Select;
                     <ElSwitch
                       :model-value="localSettings.highlightCurrentRow ?? false"
                       @update:model-value="(v: any) => onSettingChange('highlightCurrentRow', Boolean(v))"
+                    />
+                  </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">十字高亮</span>
+                      <span class="settings-item__desc">悬停单元格高亮所在行列</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.crosshairHighlight ?? false"
+                      @update:model-value="(v: any) => onSettingChange('crosshairHighlight', Boolean(v))"
                     />
                   </div>
                   <div class="settings-item">
@@ -4522,17 +4684,58 @@ const iconSelect = Select;
   background: var(--el-bg-color-overlay);
   box-shadow: var(--el-box-shadow-light);
 }
-/* 自动刷新浮层内容：纯无边框（标题 / 档位菜单 / 说明都不画分隔线）。
-   状态不靠额外的「状态行」表达 —— 档位菜单里选中哪档就是哪个间隔，选中态是底色 + 右侧对勾。 */
+/* 自动刷新浮层（参考图排版）：标题行 + 状态徽标 → 档位菜单 → 分隔线 + 倒计时说明。
+   浮层外壳宽度/内距由 ReSwitch 的 popoverWidth(268)/popoverPadding(8) 锚定；
+   颜色一律走 koi/Element 的 --el-* 令牌，不手写色值。 */
+.re-table__auto-refresh-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 8px;
+}
 .re-table__auto-refresh-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary, #303133);
+  white-space: nowrap;
 }
+/* 状态徽标：开启=主色浅底 + 主色字 + 左侧小圆点；关闭=填充浅底 + 次要文字 */
+.re-table__auto-refresh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: var(--el-radius-round, 9999px);
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-secondary, #909399);
+  white-space: nowrap;
+}
+.re-table__auto-refresh-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+.re-table__auto-refresh-badge.is-on {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+/* 底部说明：上方一条分隔线（令牌色，暗色自动适配），倒计时数字用主色强调 */
 .re-table__auto-refresh-hint {
+  margin-top: 6px;
+  padding: 8px 4px 2px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
   font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-secondary, #909399);
+}
+.re-table__auto-refresh-next {
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
 }
 .re-table__search-bar {
   display: flex;
@@ -4663,6 +4866,23 @@ const iconSelect = Select;
 }
 .re-table .re-table__pagination .rm-pager__btn--active {
   font-weight: 600;
+}
+/* 分页行右侧工具按钮（列设置 / 表格设置 / 刷新）是 ReButton square：默认 30，
+   而分页的页码按钮与「每页条数」触发器是 32/30 的 Modern 族。截图对照（运行记录页）：
+   右侧三颗方块按钮比页码矮 2px 同一行看着错位。这里把分页行里的 square 统一抬到 32，
+   与页码按钮同高。图标仍 14 不变。
+   权重 (0,4,0)+类名双保：ReButton Square 是 scoped（.rs-btn--size-default[data-v] 为 (0,2,0)），
+   按注入顺序后插入者胜并不可靠，故用 .re-table 祖选择器 + 双类提到 (0,4,0)。
+   紧凑模式（small）下分页 28、方块 28，天然对齐不动。 */
+.re-table .re-table__pagination .re-table-toolbar .rs-btn.rs-btn--size-default {
+  width: 32px;
+  height: 32px;
+}
+/* 表格右上工具条（隐藏搜索 / 刷新 / 自动刷新入口）同理：同样是 square 30，
+   与下方分页行的 32 同处一屏时看着小一号。只抬默认档（主视觉），small 档 28 不动。 */
+.re-table .re-table__toolbar .rs-btn.rs-btn--size-default {
+  width: 32px;
+  height: 32px;
 }
 .re-table--compact .re-table__pagination .rm-pager__btn {
   min-width: 28px;
@@ -4930,6 +5150,24 @@ const iconSelect = Select;
 .settings-item__desc {
   font-size: 11px;
   color: var(--el-text-color-secondary);
+}
+
+/* ==================== 十字高亮（表格设置开关） ====================
+   类由根节点的 mouseover 委托（onCrosshairOver / applyCrosshair）打在 td/th 上，
+   根上的 re-table--crosshair 只做状态门闩，开关关闭时类已被清空。
+   !important 是必须的：el-table 的斑马纹 / 行 hover 背景选择器权重更高
+   （形如 .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell），
+   不加压不过去，交叉点会闪回斑马底色。
+   三条规则权重一致，靠源码顺序决胜：行 < 列 < 命中格（交叉点最深）。 */
+.re-table--crosshair tbody td.is-crosshair-row {
+  background-color: var(--el-fill-color-light) !important;
+}
+.re-table--crosshair tbody td.is-crosshair-col,
+.re-table--crosshair thead th.is-crosshair-col {
+  background-color: var(--el-color-primary-light-9) !important;
+}
+.re-table--crosshair tbody td.is-crosshair-cell {
+  background-color: var(--el-color-primary-light-8) !important;
 }
 .re-table__toolbar-top {
   display: flex;

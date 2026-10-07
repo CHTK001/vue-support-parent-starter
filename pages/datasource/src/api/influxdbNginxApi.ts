@@ -16,6 +16,7 @@ const unwrap = <T>(res: any): T => unwrapResult<T>(res);
  * InfluxDB 组织信息
  */
 export interface InfluxdbOrg {
+  [key: string]: unknown;
   orgId: string;
   orgName: string;
 }

@@ -232,6 +232,20 @@ async function resetPersistedUiState(p) {
   } catch { /* 页面还没起来就忽略，随后的导航会重试 */ }
 }
 
+/**
+ * 判断当前页面是否被路由守卫换成了登录页。
+ *
+ * @param {import('playwright').Page} p 页面
+ * @returns {boolean} 落在登录页返回 true
+ */
+async function onLoginPage(p) {
+  try {
+    return /\/login/.test(new URL(p.url()).pathname);
+  } catch {
+    return false;
+  }
+}
+
 async function login(p) {
   for (let i = 0; i < 4; i++) {
     const onResp = async (r) => {
@@ -327,29 +341,63 @@ async function closeOverlays(p) {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await chromium.launch({ headless: true });
-  const page = await (await browser.newContext({ viewport: { width: 1512, height: 950 } })).newPage();
 
   /** 每个路由独立收集，点某个元素时产生的错误只算到那个元素头上 */
   let bucket = { pageErrors: [], consoleErrors: [], failed: [] };
   const netLog = [];
-  page.on('pageerror', (e) => bucket.pageErrors.push(String(e.message).slice(0, 200)));
-  page.on('console', (m) => { if (m.type() === 'error') bucket.consoleErrors.push(m.text().slice(0, 200)); });
-  page.on('response', (r) => {
-    if (r.status() >= 400) netLog.push({ status: r.status(), url: r.url().replace(/^https?:\/\/[^/]+/, '').slice(0, 120) });
-  });
-  page.on('requestfailed', (r) => {
-    const u = r.url().replace(BASE, '').replace(/^https?:\/\/[^/]+/, '');
-    /**
-     * 主动取消不算失败：切会话/换路由会掐断在飞请求与 SSE 流，Playwright 把它
-     * 也记成 requestfailed（net::ERR_ABORTED）。照单全收会得出「点了就报错」的
-     * 假 FAIL——真正的服务端错误仍由 4xx/5xx 响应那条线（netLog/err4xx）兜住。
-     */
-    const reason = (r.failure() && r.failure().errorText) || '';
-    if (/ERR_ABORTED/i.test(reason)) return;
-    if (!NOISE.test(u)) bucket.failed.push(r.method() + ' ' + u.slice(0, 120));
-  });
-  page.on('dialog', (d) => d.dismiss().catch(() => {}));
+  /**
+   * 页面崩溃/关闭的证据流。
+   *
+   * 实测（2026-10-07 dist 形态）：跑到 Characters 后 page 直接 closed，
+   * 后面 23 个路由全部 goto 失败却照常落盘 —— 产出一份「23 路由 0 可点」
+   * 的假报告。崩溃必须留痕（何时、哪种），并重建会话续跑，
+   * 不许把空跑当结果。
+   */
+  const events = [];
+  let browser = null;
+  let page = null;
+  let crashes = 0;
+  let d = { kbId: '', connId: '' };
+
+  /**
+   * 页面事件挂成函数：崩溃后要重建 page，事件必须重挂一遍 ——
+   * 只挂在最初那个 page 上的话，重建后的页面不会往 bucket/netLog 记任何东西，
+   * 等于带聋带瞎继续跑。
+   */
+  const attach = (p) => {
+    p.on('pageerror', (e) => bucket.pageErrors.push(String(e.message).slice(0, 200)));
+    p.on('console', (m) => { if (m.type() === 'error') bucket.consoleErrors.push(m.text().slice(0, 200)); });
+    p.on('response', (r) => {
+      if (r.status() >= 400) netLog.push({ status: r.status(), url: r.url().replace(/^https?:\/\/[^/]+/, '').slice(0, 120) });
+    });
+    p.on('requestfailed', (r) => {
+      const u = r.url().replace(BASE, '').replace(/^https?:\/\/[^/]+/, '');
+      /**
+       * 主动取消不算失败：切会话/换路由会掐断在飞请求与 SSE 流，Playwright 把它
+       * 也记成 requestfailed（net::ERR_ABORTED）。照单全收会得出「点了就报错」的
+       * 假 FAIL——真正的服务端错误仍由 4xx/5xx 响应那条线（netLog/err4xx）兜住。
+       */
+      const reason = (r.failure() && r.failure().errorText) || '';
+      if (/ERR_ABORTED/i.test(reason)) return;
+      if (!NOISE.test(u)) bucket.failed.push(r.method() + ' ' + u.slice(0, 120));
+    });
+    p.on('dialog', (x) => x.dismiss().catch(() => {}));
+    p.on('crash', () => events.push({ ev: 'page-crash', at: new Date().toISOString() }));
+    p.on('close', () => events.push({ ev: 'page-close', at: new Date().toISOString() }));
+  };
+
+  const boot = async () => {
+    browser = await chromium.launch({ headless: true });
+    browser.on('disconnected', () => events.push({ ev: 'browser-disconnected', at: new Date().toISOString() }));
+    page = await (await browser.newContext({ viewport: { width: 1512, height: 950 } })).newPage();
+    attach(page);
+  };
+
+  const isDead = () => !page || page.isClosed() || !browser || !browser.isConnected();
+
+  /** 报告：崩了 / 会话重建失败 —— 都要能在汇总里看见，不许静默 */
+  const summary = { crashes: 0, aborted: false };
+
 
   const report = { base: BASE, startedAt: new Date().toISOString(), routes: [] };
   let pass = 0, fail = 0, warn = 0;
@@ -361,18 +409,56 @@ async function closeOverlays(p) {
   const chromeSeen = new Set();
   let chromeDone = false;
 
+  /** 初次启动：浏览器 + 页面 + 事件 */
+  await boot();
   if (!(await login(page))) {
     console.log('LOGIN FAIL');
-    await browser.close();
+    await browser.close().catch(() => {});
     process.exit(3);
   }
-  const d = await discover(page);
+  d = await discover(page);
   console.log(`LOGIN OK  kbId=${d.kbId || '(无)'}  connId=${d.connId || '(无)'}`);
   report.discovered = d;
+
+  /**
+   * 崩溃自愈：page/browser 死掉后重建整套会话（新 context → 重登 → 重发现 id）。
+   *
+   * 为什么必须自愈而不是记一笔继续跑：浏览器一死，后面每条路由的 goto 都抛
+   * "Target page ... closed"，total=0 照常落盘 —— 实测一次跑出「23 条路由
+   * 0 可点」的假报告，看着像全站坏掉，其实一条都没采到。
+   * 自愈失败才算真失败：置 aborted 并让调用方**终止**，绝不产出空跑结果。
+   */
+  const recover = async (why) => {
+    crashes++;
+    summary.crashes = crashes;
+    events.push({ ev: 'recover', why, at: new Date().toISOString() });
+    console.log(`  [recover] 浏览器/页面已失效（${why}），重建会话（第 ${crashes} 次）`);
+    try { await browser.close(); } catch { /* 已死就不管了 */ }
+    try {
+      await boot();
+      RAW_TOKEN = ''; // 令牌随旧 context 作废，逼 login() 重新取一枚
+      if (!(await login(page))) return false;
+      d = await discover(page);
+      report.discovered = d;
+      return true;
+    } catch (e) {
+      events.push({ ev: 'recover-failed', err: String(e.message).slice(0, 160), at: new Date().toISOString() });
+      return false;
+    }
+  };
 
   const targets = ROUTES.filter((r) => !ONLY.length || ONLY.some((o) => r.path.includes(o) || r.name.includes(o)));
 
   for (const route of targets) {
+    // 每条路由开跑前先验活：上一条路由里浏览器崩了就地重建，重建不出来就终止，
+    // 不许把「goto 必抛错 → total=0」当成该路由的结果。
+    if (isDead()) {
+      if (!(await recover('路由 ' + route.path + ' 开跑前发现 page/browser 已关闭'))) {
+        summary.aborted = true;
+        console.log('ABORT: 会话重建失败，终止遍历（已跑路由的结果有效，未跑的不产出）');
+        break;
+      }
+    }
     const url = route.path.replace('__ID__', d.kbId).replace('__CONN__', d.connId || 'missing');
     const R = {
       route: route.path, name: route.name, url,
@@ -389,6 +475,24 @@ async function closeOverlays(p) {
       // 否则 settle 睡在半路上、COLLECT 撞上导航直接抛错。
       await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
       await sleep(1500);
+      // 令牌在跑批途中失效时路由守卫会把页面换成登录页 —— 不处理的话，
+      // 这一路由之后所有元素都只剩 2 个可点，整批结果作废（实测踩过）。
+      // 这里就地重登并重进该路由，保证每条路由都在真实登录态下被遍历。
+      for (let attempt = 0; attempt < 2 && (await onLoginPage(page)); attempt++) {
+        console.log(`  [relogin] ${route.path} 被守卫弹到登录页，重登后重进（第 ${attempt + 1} 次）`);
+        if (!(await login(page))) {
+          R.notes.push('掉登录后重登失败');
+          gotoOk = false;
+          break;
+        }
+        await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
+        await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
+        await sleep(1500);
+      }
+      if (gotoOk && (await onLoginPage(page))) {
+        R.notes.push('重登后仍停留在登录页，该路由未采集');
+        gotoOk = false;
+      }
       // 再给异步内容一次机会：等 body 里出现可点元素或 settle 耗尽。
       // 注意用「可见尺寸」的计数：/agents、/skills 这类页首屏只有框架按钮
       // （17 个里 0 可见），主体要滚到底才挂载 —— 裸 button 计数 >0 会提前通过。
@@ -415,6 +519,19 @@ async function closeOverlays(p) {
     } catch (e) {
       gotoOk = false;
       R.notes.push('打开页面失败: ' + String(e.message).slice(0, 120));
+      // goto 抛错且会话已死 = 崩溃导致的打不开（而非路由本身有问题）：重建后重试一次
+      if (isDead() && (await recover('goto 失败且 page/browser 已关闭: ' + route.path))) {
+        try {
+          await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
+          await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
+          await sleep(1500);
+          gotoOk = !(await onLoginPage(page));
+          if (!gotoOk) R.notes.push('崩溃重建后重登仍落在登录页');
+          else R.notes.push('浏览器崩溃已自愈并重跑本路由（第 ' + crashes + ' 次）');
+        } catch (e2) {
+          R.notes.push('崩溃重建后仍打不开: ' + String(e2.message).slice(0, 120));
+        }
+      }
     }
 
     if (gotoOk) {
@@ -473,6 +590,35 @@ async function closeOverlays(p) {
         // 点之前把桶清空：这个元素产生的错只算它自己的
         bucket = { pageErrors: [], consoleErrors: [], failed: [] };
         netLog.length = 0;
+
+        /**
+         * 逐元素级别的崩溃自愈。
+         *
+         * 实测崩溃点就在这里（Characters 路由点到「角色设置」时 page 被关闭），
+         * 若不处理，本路由剩余几十个元素会全部记成 not-clickable/vanished ——
+         * 一片假 FAIL。会话重建后目标靠**指纹重定位 + 重导航**本就能找回来，
+         * 所以只需把会话修活，后续 findByFingerprint 自会重新寻路。
+         */
+        if (isDead()) {
+          if (!(await recover('点击期间 page/browser 已关闭: ' + label))) {
+            rec.state = 'not-clickable';
+            rec.err = '会话崩溃且重建失败，本路由终止';
+            fail++;
+            R.elements.push(rec);
+            summary.aborted = true;
+            break;
+          }
+          // 重建后回本路由，让指纹重定位有地方找
+          try {
+            await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
+            await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
+            await sleep(Math.min(route.settle, 6000));
+          } catch { /* 找不到就按 vanished 记，下面的流程照常 */ }
+          // 自愈信息挂路由 notes，不能写 rec.err —— rec.err 非空会被判成 click-error，
+          // 把「已修好继续跑」错记成 FAIL。
+          R.notes.push('崩溃自愈第 ' + crashes + ' 次（点「' + label + '」时），已重建会话续跑');
+        }
+
         const beforeOverlays = await page.evaluate(COUNT_OVERLAYS).catch(() => 0);
         await page.evaluate(START_MUT).catch(() => {});
 
@@ -572,6 +718,32 @@ async function closeOverlays(p) {
               await page.locator(sel).first().click({ timeout: 5000, force: true, noWaitAfter: true });
               forced = true;
             } catch (e2) {
+              /**
+               * 崩溃型失败（page/browser 已关闭）优先自愈，不许直接记 FAIL：
+               * 实测 Characters 路由点「角色设置」时整个浏览器进程退出，
+               * 不区分的话这里会记一条 not-clickable，其后元素还会连环误报。
+               */
+              if (isDead() && (await recover('click 时 page/browser 已关闭: ' + label))) {
+                try {
+                  await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 180000 });
+                  await page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {});
+                  await sleep(Math.min(route.settle, 6000));
+                  const back = await findByFingerprint();
+                  if (back) {
+                    target = back;
+                    rec.renavigated = renavigated = true;
+                    R.notes.push('崩溃自愈第 ' + crashes + ' 次（点「' + label + '」时），已重建会话并重试该元素');
+                    await page.locator('[data-sweep-id="' + back.id + '"]').first().click({ timeout: 8000, noWaitAfter: true });
+                    clicked = true;
+                  } else {
+                    clicked = false;
+                    clickErr = '崩溃重建后目标未找回';
+                  }
+                } catch (e3) {
+                  clicked = false;
+                  clickErr = '崩溃重建后仍点不动: ' + String(e3.message).split('\n')[0].slice(0, 160);
+                }
+              } else {
               clicked = false;
               /**
                * Playwright 把真正的原因埋在 call log 里（"element is not stable" /
@@ -589,6 +761,7 @@ async function closeOverlays(p) {
                   + '\\n--- 第一次(普通) ---\\n' + String(e1.message)
                   + '\\n--- 第二次(force) ---\\n' + String(e2.message) + '\\n',
                 );
+              }
               }
             }
             }
@@ -683,9 +856,20 @@ async function closeOverlays(p) {
   const all = report.routes.flatMap((r) => r.elements.map((e) => ({ ...e, route: r.name })));
   const byState = {};
   for (const e of all) byState[e.state] = (byState[e.state] || 0) + 1;
+  /**
+   * 空跑防线：一条**登录后**的业务路由收 0 个可点元素是不成立的 ——
+   * 本仓每个页面至少有侧栏 + 顶栏。total=0 只可能是没打开/没登录/浏览器已死，
+   * 把它当「该页没有按钮」放行，就会得出全绿假报告（2026-10-07 实测踩过）。
+   * 故空路由一律列入 emptyRoutes 并按 FAIL 计。
+   */
+  const emptyRoutes = report.routes.filter((r) => r.total === 0);
+  const skippedRoutes = targets.filter((t) => !report.routes.some((r) => r.route === t.path));
   report.summary = {
     total: all.length, byState,
-    pass, fail, warn,
+    pass, fail: fail + emptyRoutes.length, warn,
+    crashes, aborted: summary.aborted, events,
+    emptyRoutes: emptyRoutes.map((r) => ({ name: r.name, notes: r.notes })),
+    skippedRoutes: skippedRoutes.map((r) => r.name),
     clickError: all.filter((e) => e.state === 'click-error'),
     notClickable: all.filter((e) => e.state === 'not-clickable'),
     noEffect: all.filter((e) => e.state === 'no-effect'),
@@ -699,7 +883,15 @@ async function closeOverlays(p) {
 
   console.log('\n===== 遍历汇总 =====');
   console.log('  可点元素总数=' + all.length + '  ' + JSON.stringify(byState));
-  console.log('  PASS=' + pass + ' FAIL=' + fail + ' WARN=' + warn);
+  console.log('  PASS=' + report.summary.pass + ' FAIL=' + report.summary.fail + ' WARN=' + warn);
+  console.log('  崩溃自愈=' + crashes + '  中止=' + summary.aborted + '  空采集路由=' + emptyRoutes.length
+    + '  未跑到路由=' + skippedRoutes.length);
+  if (emptyRoutes.length) {
+    console.log('----- 空采集路由（0 可点 = 该路由未被有效验收，按 FAIL 计）-----');
+    for (const r of emptyRoutes) console.log('  [' + r.name + '] notes=' + JSON.stringify(r.notes).slice(0, 200));
+  }
+  if (skippedRoutes.length) console.log('----- 未跑到的路由: ' + skippedRoutes.map((r) => r.name).join(', '));
+  if (events.length) console.log('----- 会话事件: ' + JSON.stringify(events).slice(0, 400));
   console.log('\n----- FAIL 明细 -----');
   for (const e of [...report.summary.clickError, ...report.summary.notClickable]) {
     console.log('  [' + e.route + '] ' + e.name + '  ' + e.state + '  ' + (e.err || '').slice(0, 180));
@@ -723,7 +915,11 @@ async function closeOverlays(p) {
   for (const e of report.summary.noAccessibleName) console.log('  [' + e.route + '] ' + e.cls.slice(0, 70));
 
   await browser.close();
-  process.exit(fail === 0 ? 0 : 3);
+  // 通过的定义收严：0 FAIL **且** 没崩中止 **且** 25 条路由全采到 **且** 无空采集。
+  // 少任何一条都说明「没测全」，不能算交付通过。
+  const complete = !summary.aborted && emptyRoutes.length === 0 && skippedRoutes.length === 0;
+  if (!complete) console.log('INCOMPLETE: 崩溃中止=' + summary.aborted + ' 空路由=' + emptyRoutes.length + ' 漏跑=' + skippedRoutes.length);
+  process.exit(report.summary.fail === 0 && complete ? 0 : 3);
 })().catch((e) => {
   console.error('FATAL: ' + e.message + '\n' + (e.stack || '').slice(0, 400));
   process.exit(3);

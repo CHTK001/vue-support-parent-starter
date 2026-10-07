@@ -34,11 +34,13 @@
             placeholder="名称关键字"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
+            @change="commitSearch"
+            @clear="commitSearch"
           />
         </div>
         <div class="filter-field">
           <label class="filter-field__label">来源类型</label>
-          <el-select v-model="searchModel.sourceType" clearable placeholder="全部来源" style="width: 100%">
+          <el-select v-model="searchModel.sourceType" clearable placeholder="全部来源" style="width: 100%" @change="commitSearch">
             <el-option v-for="opt in sourceOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </div>
@@ -52,13 +54,14 @@
             default-first-option
             placeholder="全部学科"
             style="width: 100%"
+            @change="commitSearch"
           >
             <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </div>
         <div class="filter-field">
           <label class="filter-field__label">状态</label>
-          <el-select v-model="searchModel.status" clearable placeholder="全部状态" style="width: 100%">
+          <el-select v-model="searchModel.status" clearable placeholder="全部状态" style="width: 100%" @change="commitSearch">
             <el-option label="已启用" :value="1" />
             <el-option label="已禁用" :value="0" />
           </el-select>

@@ -12,7 +12,7 @@
         <el-table-column prop="name" label="名称" width="150" />
         <el-table-column prop="content" label="命令内容" />
         <el-table-column prop="category" label="分类" width="100" />
-        <el-table-column label="操作" width="150" align="right">
+        <el-table-column label="操作" width="150">
           <template #default="{ row }">
             <el-button text type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button text type="danger" @click="handleDelete(row.id)">删除</el-button>

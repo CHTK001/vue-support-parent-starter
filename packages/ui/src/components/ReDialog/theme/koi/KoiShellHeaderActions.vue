@@ -1,18 +1,23 @@
 <template>
   <div class="koi-shell-header-actions">
     <el-tooltip v-if="showMinimize" content="最小化" placement="bottom">
-      <button type="button" class="koi-toolbar-btn" @click="$emit('minimize')">
+      <button type="button" class="koi-toolbar-btn" aria-label="最小化" @click="$emit('minimize')">
         <el-icon size="14"><Minus /></el-icon>
       </button>
     </el-tooltip>
     <el-tooltip v-if="showFullscreen" :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
-      <button type="button" class="koi-toolbar-btn" @click="$emit('toggleFullscreen')">
+      <button
+        type="button"
+        class="koi-toolbar-btn"
+        :aria-label="isFullscreen ? '退出全屏' : '全屏'"
+        @click="$emit('toggleFullscreen')"
+      >
         <el-icon size="14" v-if="!isFullscreen"><FullScreen /></el-icon>
         <el-icon size="14" v-else><Aim /></el-icon>
       </button>
     </el-tooltip>
     <el-tooltip content="关闭" placement="bottom">
-      <button type="button" class="koi-toolbar-btn koi-toolbar-btn--close" @click="$emit('close')">
+      <button type="button" class="koi-toolbar-btn koi-toolbar-btn--close" aria-label="关闭" @click="$emit('close')">
         <el-icon size="14"><Close /></el-icon>
       </button>
     </el-tooltip>

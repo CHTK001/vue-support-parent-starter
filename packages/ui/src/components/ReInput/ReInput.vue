@@ -18,6 +18,12 @@ const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "ReInput", inheritAttrs: true });
 
+const emit = defineEmits<{
+  (e: "clear"): void;
+  (e: "input", value: string | number | null | undefined): void;
+  (e: "change", value: string | number | null | undefined): void;
+}>();
+
 const model = defineModel<string | number | null | undefined>({ default: "" });
 
 const props = withDefaults(
@@ -75,6 +81,11 @@ function onInput(value: string | number | null | undefined): void {
   } else {
     model.value = value as never;
   }
+}
+
+/** 点 × 清空：ElInput 会 emit update:model-value("")，这里回写 model 后再把 clear 向外透传。 */
+function onClear(): void {
+  emit("clear");
 }
 </script>
 
@@ -139,6 +150,7 @@ function onInput(value: string | number | null | undefined): void {
       :suffix-icon="suffixIcon || undefined"
       :status="status"
       @update:model-value="onInput"
+      @clear="onClear"
     >
       <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />

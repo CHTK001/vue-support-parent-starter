@@ -80,7 +80,7 @@
           <span v-else class="dim">—</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="140" fixed="right" align="right">
+      <ReTableColumn label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <ReButton link @click="editRow(row)">编辑</ReButton>
           <ReButton link type="danger" @click="handleDelete(row.id)">删除</ReButton>

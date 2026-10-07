@@ -63,7 +63,17 @@
     <el-dialog v-model="submitDialogVisible" title="提交答题卡" width="640">
       <el-form :model="submitForm" label-width="100">
         <el-form-item label="考试 ID" required>
-          <el-input-number v-model="submitForm.examId" :min="1" />
+          <el-select
+            v-model="submitForm.examId"
+            filterable
+            clearable
+            placeholder="选择考试（决定可用题号与判分口径）"
+            style="width: 100%"
+            @change="onSubmitExamChange"
+          >
+            <el-option v-for="e in examOptions" :key="e.examId" :label="examLabel(e)" :value="e.examId" />
+          </el-select>
+          <div v-if="examOptions.length === 0" class="tip-text">未查到考试，请先在「考试管理」创建考试</div>
         </el-form-item>
         <el-form-item label="学生 ID" required>
           <el-input v-model="submitForm.studentId" />
@@ -74,8 +84,16 @@
         <el-form-item label="作答列表">
           <el-button @click="addAnswer">新增一条</el-button>
           <div v-for="(a, idx) in submitForm.answers" :key="idx" class="answer-row mt-2">
-            <el-input-number v-model="a.questionId" :min="1" placeholder="题号" controls-position="right" style="width: 140px" />
-            <el-input v-model="a.answer" placeholder="学生答案" class="ml-2" style="width: 320px" />
+            <el-select
+              v-model="a.questionId"
+              filterable
+              placeholder="题号"
+              style="width: 160px"
+              :disabled="questionOptions.length === 0"
+            >
+              <el-option v-for="q in questionOptions" :key="q.id" :label="questionLabel(q)" :value="q.id" />
+            </el-select>
+            <el-input v-model="a.answer" placeholder="学生答案" class="ml-2" style="width: 300px" />
             <el-button type="danger" link class="ml-2" @click="submitForm.answers.splice(idx, 1)">删除</el-button>
           </div>
         </el-form-item>
@@ -146,12 +164,63 @@ const resultTab = ref('table');
 
 const submitDialogVisible = ref(false);
 const submitting = ref(false);
-const submitForm = reactive<{ examId: number; studentId: string; content: string; answers: Array<{ questionId: number; answer: string }> }>({
-  examId: 1,
+const submitForm = reactive<{ examId: number | null; studentId: string; content: string; answers: Array<{ questionId: number | null; answer: string }> }>({
+  examId: null,
   studentId: '',
   content: '',
   answers: [],
 });
+/** 可选考试：此前 examId 写死 1，库里没有 1 号考试（或它没关联试卷）时提交必 400 */
+const examOptions = ref<Array<{ examId: number; examName: string; examPaperId?: number }>>([]);
+/** 当前所选考试试卷上的题号集合：作答题号只能从这里选，否则后端「不在试卷上」直接拒绝 */
+const questionOptions = ref<Array<{ id: number; questionNo?: string; stem: string }>>([]);
+
+const examLabel = (e: { examId: number; examName: string }) => `${e.examName}（#${e.examId}）`;
+const questionLabel = (q: { id: number; questionNo?: string; stem: string }) =>
+  `${q.questionNo || q.id}　${(q.stem || '').replace(/\s+/g, '').slice(0, 14)}`;
+
+/** 拉取考试列表：打开提交弹窗时调用，保证下拉里都是真实存在的考试 */
+const loadExams = async () => {
+  try {
+    const page = await eduaiApi.pageExams({ page: 1, pageSize: 200 });
+    const rows = page?.data ?? page?.records ?? [];
+    examOptions.value = rows.map((e) => ({ examId: e.examId, examName: e.examName, examPaperId: e.examPaperId }));
+  } catch {
+    examOptions.value = [];
+  }
+};
+
+/**
+ * 切换考试后重载该卷题号并把作答里的题号收敛到新卷上。
+ *
+ * <p>不重载的话，上一场考试的题号留在作答列表里，后端 validateExamPaper
+ * 会以「题目 X 不在试卷上」400 拒绝——用户看到的就是莫名其妙的失败。</p>
+ */
+const onSubmitExamChange = async (examId: number | null) => {
+  questionOptions.value = [];
+  if (!examId) {
+    return;
+  }
+  try {
+    const exam = examOptions.value.find((e) => e.examId === examId);
+    if (!exam?.examPaperId) {
+      ElMessage.warning('该考试未关联试卷，无法提交答题卡');
+      submitForm.answers = [];
+      return;
+    }
+    const paper = await eduaiApi.getPaper(exam.examPaperId);
+    questionOptions.value = (paper?.questions ?? []).map((q) => ({ id: q.id, questionNo: q.questionNo, stem: q.stem }));
+  } catch (e) {
+    failToast('加载试卷题号失败', e);
+    return;
+  }
+  const validIds = new Set(questionOptions.value.map((q) => q.id));
+  submitForm.answers = submitForm.answers.filter((a) => a.questionId != null && validIds.has(a.questionId));
+  if (submitForm.answers.length === 0) {
+    const first = questionOptions.value[0];
+    submitForm.answers = [{ questionId: first ? first.id : null, answer: '' }];
+  }
+};
 
 const confirming = ref(false);
 let pollHandle: any = null;
@@ -249,14 +318,18 @@ const doScan = async () => {
   }
 };
 
-const addAnswer = () => submitForm.answers.push({ questionId: 1, answer: '' });
+/** 题号下拉有值时优先取第一题，避免写死 1 号题（卷上没有 1 号题时后端会 400） */
+const addAnswer = () =>
+  submitForm.answers.push({ questionId: questionOptions.value[0]?.id ?? null, answer: '' });
 
-const openSubmit = () => {
-  submitForm.examId = 1;
+const openSubmit = async () => {
+  submitForm.examId = null;
   submitForm.studentId = '';
   submitForm.content = '';
-  submitForm.answers = [{ questionId: 1, answer: '' }];
+  submitForm.answers = [];
+  questionOptions.value = [];
   submitDialogVisible.value = true;
+  await loadExams();
 };
 
 const doSubmit = async () => {
@@ -265,6 +338,20 @@ const doSubmit = async () => {
     ElMessage.warning('请填写学生 ID 与至少一条作答');
     return;
   }
+  // 题号必须来自所选考试的试卷：后端 validateExamPaper 会拒绝卷外题号，
+  // 这里提前拦下并给出可读提示，而不是甩一个 400。
+  const examId = submitForm.examId;
+  if (!examId) {
+    ElMessage.warning('请选择考试');
+    return;
+  }
+  const validIds = new Set(questionOptions.value.map((q) => q.id));
+  const picked = submitForm.answers.filter((a) => a.questionId != null && validIds.has(a.questionId));
+  if (questionOptions.value.length === 0 || picked.length !== submitForm.answers.length) {
+    ElMessage.warning('作答里有不在该考试试卷上的题号，请重新选择');
+    return;
+  }
+  const answers = picked.map((a) => ({ questionId: a.questionId as number, answer: a.answer }));
   // 答题内容是可选 JSON：留空时**不能**下发空串——数据库 answer_sheet_content
   // 上有 JSON 合法性约束，'' 会让后端 500「数据校验失败」。填了但不是合法 JSON 同理。
   const content = submitForm.content.trim();
@@ -279,10 +366,10 @@ const doSubmit = async () => {
   submitting.value = true;
   try {
     const newTaskId = await eduaiApi.submitMarking({
-      examId: submitForm.examId,
+      examId,
       studentId,
       content: content || undefined,
-      answers: submitForm.answers,
+      answers,
     });
     ElMessage.success(`提交成功，taskId: ${newTaskId}`);
     taskId.value = newTaskId;
@@ -373,4 +460,5 @@ onUnmounted(() => {
 .page-container { height: 100%; display: flex; flex-direction: column; }
 .toolbar :deep(.el-card__body) { padding: 12px 16px; }
 .answer-row { display: flex; align-items: center; }
+.tip-text { font-size: 12px; color: var(--el-color-warning); line-height: 1.6; }
 </style>

@@ -67,3 +67,16 @@
 .el-dialog.el-dialog {
   --el-dialog-border-radius: var(--el-radius-xl, 16px);
 }
+
+/*
+ * Element 同样在 .el-popover 上本地定义 --el-popover-border-radius（4px），
+ * 会屏蔽 :root 层的令牌，导致上方 md=8px 不生效 —— 弹层 1px 边框停在 4px 圆角，
+ * 与内部面板的 8px 不齐。与 .el-dialog 同一解法：
+ * 双类加权直接写在组件类上（不依赖"主题 css 后加载"的序关系）；
+ * 需要定制时按实例/局部设置 --el-popover-border-radius 变量即可覆盖。
+ * 说明：普通 popper（.el-popper，无 .el-popover 类）不带本地定义，
+ * 仍走 :root 的 --el-popover-border-radius / --el-popper-border-radius = md，不受影响。
+ */
+.el-popover.el-popover {
+  --el-popover-border-radius: var(--el-radius-md, 8px);
+}

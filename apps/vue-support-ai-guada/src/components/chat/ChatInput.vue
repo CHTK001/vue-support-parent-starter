@@ -6,7 +6,8 @@
       AI 联想的下一步任务：位置在「目标条下方、输入框上方」。
       开关关闭时组件整块不渲染（v-if 在组件内部），不占任何高度。
     -->
-    <AiNextTaskPanel :session-id="sessionId == null ? null : String(sessionId)" />
+    <AiNextTaskPanel :session-id="sessionId == null ? null : String(sessionId)"
+      @send-suggestion="onSendSuggestion" />
     <!-- 输入框区域 -->
     <div
       class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
@@ -444,6 +445,19 @@ const parseCommandTags = (text: string): string => {
     }
   );
 };
+
+/**
+ * AI 建议被点中：用户已明确要求「直接作为用户消息发送」，
+ * 因此把建议文本填入编辑器后走与发送按钮同一条 sendMessage 路径。
+ */
+const onSendSuggestion = (text: string) => {
+  if (!editor.value || !text.trim()) {
+    return
+  }
+  editor.value.commands.setContent(text.replace(/\n/g, '<br>'), { emitUpdate: false })
+  // sendMessage 在下方声明（const 箭头函数）：延迟一拍调用，避免初始化顺序问题
+  requestAnimationFrame(() => { void sendMessage() })
+}
 
 watch(() => props.value, (val) => {
   if (editor.value && editor.value.getText() !== val) {

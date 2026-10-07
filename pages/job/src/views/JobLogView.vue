@@ -142,7 +142,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "message", label: "消息", minWidth: 220, slot: "msg", showOverflowTooltip: true },
   { prop: "nodeId", label: "节点", width: 120, slot: "node", showOverflowTooltip: true },
   { prop: "address", label: "运行客户端", width: 132, slot: "client", showOverflowTooltip: true },
-  { prop: "action", label: "操作", maxWidth: 120, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", maxWidth: 120, slot: "action", fixed: "right" },
 ]);
 
 const kpis = computed(() => {
@@ -622,11 +622,7 @@ onActivated(() => {
 
         <h4 class="log-detail__title">执行消息</h4>
         <pre class="log-detail__message">{{ detail.message || "（无执行消息）" }}</pre>
-        <div class="log-detail__footer">
-          <ReButton icon="Document" @click="showLogContent(detail as unknown as Record<string, unknown>)">
-            查看完整日志
-          </ReButton>
-        </div>
+>
       </div>
 
     </ReDialog>

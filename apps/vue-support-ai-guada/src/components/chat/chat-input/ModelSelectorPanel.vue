@@ -139,7 +139,12 @@ const { t } = useI18n()
 
 const currentModel = computed(() => {
   if (!props.currentModelId) return null
-  return props.models.find(m => m.id === props.currentModelId) || null
+  // id 可能是「供应商id:模型名」或裸模型名：先精确匹配，再按后缀兜底，
+  // 否则顶部的当前选中行直接不渲染，悬停卡自然也出不来。
+  return props.models.find(m => m.id === props.currentModelId)
+    || props.models.find(m => props.currentModelId!.endsWith(`:${m.modelName}`))
+    || props.models.find(m => m.modelName === props.currentModelId)
+    || null
 })
 
 const currentModelProviderName = computed(() => {

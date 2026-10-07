@@ -16,7 +16,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --ext .ts,.tsx",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "verify:security": "node ../../scripts/verify-safe-path.mts"
   },
   "dependencies": {
     "vue": "catalog:",

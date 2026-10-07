@@ -48,6 +48,12 @@ const CODE_EXTS = [
   "c", "h", "cpp", "hpp", "cs", "php", "swift", "dart", "lua", "pl",
   "sql", "sh", "bash", "zsh", "bat", "cmd", "ps1",
   "properties", "cfg", "conf", "ini", "env", "toml", "gradle",
+  // 文本小格式（与后端 CodePreviewProvider#CODE_EXTS 严格一致）：
+  // 字幕 srt/vtt/ass/ssa、补丁 diff/patch、IDL proto/avsc/graphql、har 等
+  "srt", "vtt", "ass", "ssa",
+  "diff", "patch",
+  "proto", "avsc", "graphql", "gql",
+  "ttc", "har", "editorconfig", "gitignore", "dockerignore", "npmrc",
 ];
 
 /**
@@ -65,13 +71,22 @@ const OFFICE_EXTS = [
   "wps",
   "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
   "rtf", "epub", "xmind",
+  // MOBI 电子书（后端 MobiPreviewProvider：PDB/PalmDOC/HUFF-CDIC 自研解析）
+  "mobi", "azw", "azw3", "prc",
+  // XPS 固定版式（后端 XpsPreviewProvider：OPC + Glyphs 抽文本）
+  "xps", "oxps",
+  // Apple iWork（后端 IworkPreviewProvider：'09 APXL 抽文本 + IWA 解 Snappy 抽字）
+  // .key 同时也是 PGP/许可证私钥的常用扩展名，非 ZIP 包时后端按纯文本兜底展示
+  "pages", "numbers", "key",
+  // DjVu（后端 DjvuPreviewProvider：元数据 + NAVM 书签 + TXTz 文字层；不渲染图像）
+  "djvu", "djv",
 ];
 
 /** 网页文件扩展名（后端沙箱渲染） */
 const WEBPAGE_EXTS = ["html", "htm"];
 
 /** 数据文件扩展名（数据库 / 大数据格式，服务端解析） */
-const DATA_EXTS = ["sqlite", "sqlite3", "db", "parquet", "pq"];
+const DATA_EXTS = ["sqlite", "sqlite3", "db", "parquet", "pq", "avro", "avsc", "avdl"];
 
 /** 设计稿扩展名（服务端转图预览） */
 const DESIGN_EXTS = ["psd", "psb"];

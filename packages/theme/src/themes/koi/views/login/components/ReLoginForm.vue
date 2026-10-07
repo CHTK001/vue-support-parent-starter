@@ -136,6 +136,9 @@
           </span>
         </el-button>
       </div>
+
+      <!-- 第三方登录（与个人中心绑定面板共用 /v2/setting/sso/providers 配置源） -->
+      <ReThirdLogin />
     </el-form>
   </div>
 </template>
@@ -144,7 +147,7 @@
 import { User, Lock, Postcard, WarningFilled } from "@element-plus/icons-vue";
 import { ref, reactive, toRef, computed, onMounted, nextTick } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
-import { msgWarning, msgError, getCaptcha } from "@repo/core";
+import { msgWarning, msgError, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting } from "@repo/core";
 import { useRouter } from "vue-router";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -158,6 +161,7 @@ import { translateConfigText } from "@repo/languages";
 import { useI18n } from "vue-i18n";
 import ReOtpDialog from "./ReOtpDialog.vue";
 import ReSliderVerify from "./ReSliderVerify.vue";
+import ReThirdLogin from "./ReThirdLogin.vue";
 
 withDefaults(
   defineProps<{
@@ -276,10 +280,80 @@ const retryLoadSetting = async () => {
   }
 };
 
+/** 剥离 URL 上的三方回跳参数（停留登录页时防刷新重放凭证 / 重复错误提示） */
+const stripThirdCallbackQuery = async () => {
+  const current = router.currentRoute.value;
+  const rest = { ...current.query };
+  delete rest.redirectParam;
+  delete rest.thirdMsg;
+  if (Object.keys(rest).length === Object.keys(current.query).length) return;
+  await router.replace({ path: current.path, query: rest, hash: current.hash });
+};
+
+/**
+ * 三方登录回跳换票：兑换一次性凭证 → 写入登录态 → 初始化路由 → 跳目标页
+ *
+ * <p>状态写入与账号密码登录（userStore.loginByUsername）保持同一套语义：
+ * setToken → roles/perms → refreshDefaultSetting → initAuthRouter → 目标页。</p>
+ *
+ * @param redirectParam 回调签发的一次性加密凭证
+ * @param redirect      登录成功后的跳转目标（可空）
+ */
+const consumeThirdLogin = async (redirectParam: string, redirect: string) => {
+  try {
+    loading.value = true;
+    const res = await thirdLoginExchange({ redirectParam });
+    const result = res?.data;
+    if (!result?.accessToken) {
+      // 凭证为一次性（服务端先核销后解密），失败无法重试：提示后剥参留在登录页
+      msgError(res?.msg || "三方登录失败，请重试");
+      await stripThirdCallbackQuery();
+      return;
+    }
+    authStore.$reset();
+    resetRouter();
+    userStore.setToken(result);
+    if (result.roles?.length) setUserRoles(result.roles);
+    if (result.perms?.length) setUserPerms(result.perms);
+    // 令牌就绪后补拉后端配置（能力开关等），失败静默降级为本地配置
+    void refreshDefaultSetting();
+    const username =
+      (typeof result.username === "string" && result.username) ||
+      ((result.userInfo as Record<string, unknown> | undefined)?.sysUserUsername as string) ||
+      "";
+    if (username) {
+      tabsStore.$reset();
+      userStore.setLoginName(username);
+    }
+    keepAliveStore.$reset();
+    await nextTick();
+    await initAuthRouter(router);
+    await router.replace(redirect || HOME_URL);
+  } catch (error) {
+    msgError((error as Error)?.message || "三方登录失败，请重试");
+    await stripThirdCallbackQuery();
+  } finally {
+    loading.value = false;
+  }
+};
+
 // 进入页面加载管理员信息
 onMounted(async () => {
   await loadSettingAndInit();
-  
+
+  // 三方登录回跳：redirectParam=一次性换票凭证（成功路径），thirdMsg=回调错误提示。
+  // 参数由 core 在启动期快照（history 模式守卫 replace 到登录页时不带 query，
+  // 挂载时 route.query 已被清空），必须在「已登录自动跳转」之前消费。
+  const third = takeThirdCallbackParams();
+  if (third.redirectParam) {
+    await consumeThirdLogin(third.redirectParam, third.redirect);
+    return;
+  }
+  if (third.thirdMsg) {
+    msgError(third.thirdMsg);
+    await stripThirdCallbackQuery();
+  }
+
   // 如果用户已经登录，自动跳转到 redirect 地址或首页
   if (userStore?.token) {
     const redirect = router.currentRoute.value.query.redirect as string;

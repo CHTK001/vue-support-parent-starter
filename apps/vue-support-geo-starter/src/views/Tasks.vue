@@ -184,7 +184,7 @@ onBeforeUnmount(() => {
       <el-table-column label="大小" width="100" align="right">
         <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right" align="right">
+      <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
           <el-button
             link

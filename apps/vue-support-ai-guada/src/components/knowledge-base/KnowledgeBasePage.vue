@@ -258,55 +258,37 @@
 
     <!-- 视图模式：知识库详情 -->
     <div v-else class="flex-1 flex flex-col overflow-hidden">
-      <!-- 顶部导航栏 -->
-      <div class="sticky top-0 z-10 flex flex-col w-full">
-        <div class="px-2 py-3 flex items-center gap-3 w-full">
-          <el-button link @click="backToList"
-            class="flex items-center gap-1 kb-back font-medium">
-            <el-icon :size="22">
-              <ArrowLeft24Filled />
-            </el-icon>
-            <span class="text-base">{{ t('knowledge.page.backToList') }}</span>
-          </el-button>
-          <el-divider direction="vertical" />
-          <span class="font-semibold kb-detail__name text-base">{{ currentKB?.name }}</span>
-        </div>
-        <!-- Tab 切换区域 -->
-        <div class="px-4 pt-1 pb-2">
-          <el-tabs v-model="activeTab" class="kb-tabs">
-            <el-tab-pane label="文件列表" name="files">
-              <template #label>
-                <div class="flex items-center gap-2">
-                  <el-icon :size="17">
-                    <BookOpen24Regular />
-                  </el-icon>
-                  <span class="text-[15px]">{{ t('knowledge.page.tabFiles') }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="搜索" name="search">
-              <template #label>
-                <div class="flex items-center gap-2">
-                  <el-icon :size="17">
-                    <Search24Regular />
-                  </el-icon>
-                  <span class="text-[15px]">{{ t('knowledge.page.tabSearch') }}</span>
-                </div>
-              </template>
-            </el-tab-pane>
-            <el-tab-pane label="关系图谱" name="graph">
-              <template #label>
-                <div class="flex items-center gap-2">
-                  <el-icon :size="17">
-                    <Share24Regular />
-                  </el-icon>
-                  <span class="text-[15px]">关系图谱</span>
-                  <el-badge v-if="graphCount > 0" :value="graphCount" :max="99" type="primary" class="kb-graph-badge" />
-                </div>
-              </template>
-            </el-tab-pane>
-          </el-tabs>
-
+      <!-- 详情页头：与管理页（Services/AppKeys）同构 —— 左 返回+标题/副标题，右 动作。
+           水平 Tab 已收敛为左侧二级菜单（KBMenu），不再保留隐藏的第二套导航 -->
+      <div class="shrink-0 kb-detail__header">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <el-button link @click="backToList"
+              class="flex items-center gap-1 kb-back font-medium">
+              <el-icon :size="22">
+                <ArrowLeft24Filled />
+              </el-icon>
+              <span class="text-base">{{ t('knowledge.page.backToList') }}</span>
+            </el-button>
+            <el-divider direction="vertical" />
+            <div class="min-w-0 kb-detail__titlebox">
+              <h1 class="kb-detail__title">{{ currentKB?.name }}</h1>
+              <p class="kb-detail__subtitle">
+                文档 {{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }} 篇 ·
+                实体 {{ fmtCount(countOf(currentKB?.id || '', 'entity_count')) }} ·
+                关系 {{ fmtCount(countOf(currentKB?.id || '', 'relation_count')) }}
+              </p>
+            </div>
+          </div>
+          <div class="kb-detail__actions">
+            <el-button :icon="Refresh" :loading="detailRefreshing" @click="refreshDetail">
+              刷新
+            </el-button>
+            <el-button type="primary" :icon="Setting" :disabled="!canEditCurrent"
+              @click="handleMenuAction('settings')">
+              设置
+            </el-button>
+          </div>
         </div>
       </div>
       <div class="flex-1 overflow-auto min-h-0" @scroll="handleScroll">
@@ -422,19 +404,21 @@
             </section>
           </div>
 
-          <!-- 实体管理（内联视图，与其它 Tab 风格一致，不再是弹框） -->
+          <!-- 实体管理：管理页同构 —— 工具条（搜索+动作）+ 卡片表格 + 客户端分页 -->
           <div v-show="activeTab === 'entities'" class="flex flex-col flex-1 min-h-0 w-full gap-3 p-4">
-            <div class="flex items-center gap-2 flex-wrap shrink-0">
-              <span class="text-sm text-[var(--rm-text-secondary)]">共 {{ graphView.entityCount }} 个实体</span>
-              <el-input v-model="graphEntityKeyword" placeholder="按名称过滤" clearable style="width: 220px" />
-              <ReButton :loading="graphLoading" @click="loadGraph">刷新</ReButton>
-              <ReButton type="primary" @click="openEntityForm()">新增实体</ReButton>
-              <ReButton type="danger" :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities">
+            <div class="kb-view__toolbar">
+              <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
+                style="width: 220px" />
+              <div class="flex-1" />
+              <el-button :icon="Refresh" :loading="graphLoading" @click="loadGraph">刷新</el-button>
+              <el-button type="primary" :icon="Plus" @click="openEntityForm()">新增实体</el-button>
+              <el-button type="danger" :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities">
                 批量删除{{ selectedEntityUids.length ? `(${selectedEntityUids.length})` : '' }}
-              </ReButton>
+              </el-button>
             </div>
-            <div class="re-surface re-surface--dense flex-1 min-h-0 overflow-hidden !p-0">
-              <el-table :data="filteredGraphEntities" height="100%" @selection-change="onEntitySelection">
+            <div class="panel-card">
+              <el-table ref="entityTableRef" v-loading="graphLoading" :data="pagedGraphEntities" stripe
+                class="flat-table" @selection-change="onEntitySelection">
                 <el-table-column type="selection" width="42" />
                 <el-table-column prop="text" label="名称" min-width="160" />
                 <el-table-column label="类型" width="120">
@@ -450,22 +434,33 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="pagination-wrapper">
+                <el-pagination
+                  v-model:current-page="entityPage"
+                  v-model:page-size="entityPageSize"
+                  :page-sizes="[10, 20, 50]"
+                  :total="filteredGraphEntities.length"
+                  layout="total, sizes, prev, pager, next"
+                />
+              </div>
             </div>
           </div>
 
-          <!-- 关系管理（内联视图，与其它 Tab 风格一致，不再是弹框） -->
+          <!-- 关系管理：管理页同构 —— 工具条（搜索+动作）+ 卡片表格 + 客户端分页 -->
           <div v-show="activeTab === 'relations'" class="flex flex-col flex-1 min-h-0 w-full gap-3 p-4">
-            <div class="flex items-center gap-2 flex-wrap shrink-0">
-              <span class="text-sm text-[var(--rm-text-secondary)]">共 {{ graphView.relationCount }} 条关系</span>
-              <el-input v-model="graphRelationKeyword" placeholder="按实体名/关系类型过滤" clearable style="width: 240px" />
-              <ReButton :loading="graphLoading" @click="loadGraph">刷新</ReButton>
-              <ReButton type="primary" @click="openRelationForm()">新增关系</ReButton>
-              <ReButton type="danger" :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations">
+            <div class="kb-view__toolbar">
+              <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
+                style="width: 240px" />
+              <div class="flex-1" />
+              <el-button :icon="Refresh" :loading="graphLoading" @click="loadGraph">刷新</el-button>
+              <el-button type="primary" :icon="Plus" @click="openRelationForm()">新增关系</el-button>
+              <el-button type="danger" :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations">
                 批量删除{{ selectedRelationUids.length ? `(${selectedRelationUids.length})` : '' }}
-              </ReButton>
+              </el-button>
             </div>
-            <div class="re-surface re-surface--dense flex-1 min-h-0 overflow-hidden !p-0">
-              <el-table :data="filteredGraphRelations" height="100%" @selection-change="onRelationSelection">
+            <div class="panel-card">
+              <el-table ref="relationTableRef" v-loading="graphLoading" :data="pagedGraphRelations" stripe
+                class="flat-table" @selection-change="onRelationSelection">
                 <el-table-column type="selection" width="42" />
                 <el-table-column label="源" min-width="150">
                   <template #default="{ row }">{{ nodeNameById(row.from) }}</template>
@@ -480,22 +475,32 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="pagination-wrapper">
+                <el-pagination
+                  v-model:current-page="relationPage"
+                  v-model:page-size="relationPageSize"
+                  :page-sizes="[10, 20, 50]"
+                  :total="filteredGraphRelations.length"
+                  layout="total, sizes, prev, pager, next"
+                />
+              </div>
             </div>
           </div>
 
           <div v-show="activeTab === 'graph'" class="flex flex-col flex-1 min-h-0 w-full">
-            <div class="flex items-center gap-3 px-4 py-2 shrink-0 flex-wrap">
+            <div class="kb-view__toolbar px-4 py-2">
               <span class="text-sm kb-graph__count">
                 实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
               </span>
-              <el-input v-model="graphKeyword" placeholder="按实体名过滤" clearable style="width: 200px" />
-              <ReButton :loading="graphLoading" @click="loadGraph">刷新</ReButton>
+              <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
+                style="width: 200px" />
+              <el-button :icon="Refresh" :loading="graphLoading" @click="loadGraph">刷新</el-button>
               <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
-              <ReButton v-if="ragReady" type="primary" :loading="graphGenerating" @click="handleGenerateGraph">
+              <el-button v-if="ragReady" type="primary" :loading="graphGenerating" @click="handleGenerateGraph">
                 {{ graphView.placeholder ? '生成图谱' : '重新生成' }}
-              </ReButton>
-              <ReButton v-if="graphView.nodes.length > 0" @click="goManage('entity')">管理实体</ReButton>
-              <ReButton v-if="graphView.nodes.length > 0" @click="goManage('relation')">管理关系</ReButton>
+              </el-button>
+              <el-button v-if="graphView.nodes.length > 0" @click="goManage('entity')">管理实体</el-button>
+              <el-button v-if="graphView.nodes.length > 0" @click="goManage('relation')">管理关系</el-button>
               <span v-if="graphError" class="text-sm text-[var(--rm-danger)]">{{ graphError }}</span>
               <span v-else-if="!graphLoading && graphView.nodes.length === 0" class="text-sm kb-graph__hint">
                 <template v-if="graphView.placeholder">
@@ -560,67 +565,67 @@
                 </div>
               </aside>
             </div>
-
-            <!-- 新增/编辑实体表单 -->
-            <ReDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" :width="460" :close-on-click-modal="false">
-              <div class="flex flex-col gap-4">
-                <div>
-                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">名称<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-                  <el-input v-model="entityForm.name" maxlength="128" />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">类型</label>
-                  <el-select v-model="entityForm.type" class="!w-full">
-                    <el-option v-for="t in ENTITY_TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
-                  </el-select>
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">说明</label>
-                  <el-input v-model="entityForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
-                </div>
-              </div>
-              <template #footer>
-                <ReButton type="default" @click="showEntityForm = false">取消</ReButton>
-                <ReButton type="primary" :loading="entityFormSaving" @click="handleSaveEntity">保存</ReButton>
-              </template>
-            </ReDialog>
-
-            <!-- 新增关系表单 -->
-            <ReDialog v-model="showRelationForm" title="新增关系" :width="460" :close-on-click-modal="false">
-              <div class="flex flex-col gap-4">
-                <div>
-                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-                  <el-select v-model="relationForm.source" filterable allow-create default-first-option
-                    placeholder="输入或选择已有实体名" class="!w-full">
-                    <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
-                  </el-select>
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">关系类型<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-                  <el-input v-model="relationForm.type" placeholder="如 镇守 / 结义 / 放走" maxlength="32" />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">目标实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-                  <el-select v-model="relationForm.target" filterable allow-create default-first-option
-                    placeholder="输入或选择已有实体名" class="!w-full">
-                    <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
-                  </el-select>
-                </div>
-                <p class="text-xs text-[var(--rm-text-disabled)] leading-relaxed">
-                  源/目标填了库里没有的名字时，会自动建一个「其它」类型的占位实体；源与目标相同会被拒绝。
-                </p>
-              </div>
-              <template #footer>
-                <ReButton type="default" @click="showRelationForm = false">取消</ReButton>
-                <ReButton type="primary" :loading="relationFormSaving" @click="handleSaveRelation">保存</ReButton>
-              </template>
-            </ReDialog>
           </div>
         </div>
       </div>
 
     </div>
   </div>
+
+  <!-- 新增/编辑实体表单（表单弹窗挂在模板根部，不依赖任何视图的显示状态） -->
+  <ReDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" :width="460" :close-on-click-modal="false">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">名称<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
+        <el-input v-model="entityForm.name" maxlength="128" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">类型</label>
+        <el-select v-model="entityForm.type" class="!w-full">
+          <el-option v-for="t in ENTITY_TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">说明</label>
+        <el-input v-model="entityForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
+      </div>
+    </div>
+    <template #footer>
+      <ReButton type="default" @click="showEntityForm = false">取消</ReButton>
+      <ReButton type="primary" :loading="entityFormSaving" @click="handleSaveEntity">保存</ReButton>
+    </template>
+  </ReDialog>
+
+  <!-- 新增关系表单（同上，挂根部） -->
+  <ReDialog v-model="showRelationForm" title="新增关系" :width="460" :close-on-click-modal="false">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
+        <el-select v-model="relationForm.source" filterable allow-create default-first-option
+          placeholder="输入或选择已有实体名" class="!w-full">
+          <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
+        </el-select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">关系类型<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
+        <el-input v-model="relationForm.type" placeholder="如 镇守 / 结义 / 放走" maxlength="32" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">目标实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
+        <el-select v-model="relationForm.target" filterable allow-create default-first-option
+          placeholder="输入或选择已有实体名" class="!w-full">
+          <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
+        </el-select>
+      </div>
+      <p class="text-xs text-[var(--rm-text-disabled)] leading-relaxed">
+        源/目标填了库里没有的名字时，会自动建一个「其它」类型的占位实体；源与目标相同会被拒绝。
+      </p>
+    </div>
+    <template #footer>
+      <ReButton type="default" @click="showRelationForm = false">取消</ReButton>
+      <ReButton type="primary" :loading="relationFormSaving" @click="handleSaveRelation">保存</ReButton>
+    </template>
+  </ReDialog>
 
   <!-- 创建/编辑知识库对话框：与「新建知识库」同一套 koi ReDialog 与视觉语言 -->
   <ReDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" :width="560" :close-on-click-modal="false">
@@ -704,7 +709,7 @@
     </div>
 
     <template #footer>
-      <ReButton type="default" @click="showKbDialog = false">{{ t('common.cancel') }}</ReButton>
+      <ReButton type="default" @click="handleKbCancel">{{ t('common.cancel') }}</ReButton>
       <ReButton type="primary" :loading="store.loading" @click="handleKbSave">
         {{ dialogMode === 'create' ? t('common.create') : t('common.save') }}
       </ReButton>
@@ -727,7 +732,7 @@ import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick, defin
 import { useI18n } from 'vue-i18n'
 import {
   Plus, Search, FolderOpened, Document, Share, Connection,
-  Grid, Clock, Files, Close, UploadFilled, Calendar,
+  Grid, Clock, Files, Close, UploadFilled, Calendar, Refresh, Setting,
 } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
@@ -752,7 +757,7 @@ const ReRelationGraph = defineAsyncComponent(() =>
 )
 import { useStorage, useDebounceFn } from '@vueuse/core'
 import { usePopup } from '@/composables/usePopup'
-import { BookOpen24Regular, Search24Regular, Share24Regular, ArrowLeft24Filled, Globe24Regular, LockClosed24Regular } from '@vicons/fluent'
+import { ArrowLeft24Filled, Globe24Regular, LockClosed24Regular } from '@vicons/fluent'
 import { MenuBookOutlined } from '@vicons/material'
 import PageHeader from '@/components/PageHeader.vue'
 import { apiService } from '@/services/ApiService'
@@ -780,12 +785,13 @@ const selectedFile = ref<KBFile | null>(null)  // 选中的文件
 const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'>('files')  // 当前激活的 Tab
 const viewMode = ref<'list' | 'detail' | 'list-legacy'>('list')  // 视图模式：列表或详情（list-legacy 为保留的旧列表分支）
 const searchKeyword = ref('')  // 知识库搜索关键词
+const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
 
 // ---- 关系图谱（Tab=graph）状态 ----
 const graphLoading = ref(false)        // 图谱加载中
 const graphError = ref('')             // 图谱加载错误
 const graphKeyword = ref('')           // 实体名过滤关键词
-const graphCount = ref(0)              // 图谱元素总数（页签徽标）
+const graphCount = ref(0)              // 图谱元素总数（上传后判断要不要整图刷新）
 const graphView = reactive({           // 后端返回的原始图谱
   nodes: [] as any[],
   edges: [] as any[],
@@ -831,8 +837,6 @@ const ENTITY_ICONS: Record<string, string> = {
 }
 
 // ---- 实体 / 关系手工维护 ----
-const showGraphManager = ref(false)
-const graphManagerTab = ref<'entity' | 'relation'>('entity')
 const graphEntityKeyword = ref('')
 const graphRelationKeyword = ref('')
 const selectedEntityUids = ref<string[]>([])
@@ -900,6 +904,60 @@ const filteredGraphRelations = computed(() => {
     return src.includes(kw) || dst.includes(kw) || txt.includes(kw);
   });
 });
+
+// ---- 管理页式分页：实体 / 关系都在本地数据上切页，不打后端 ----
+const entityPage = ref(1)
+const entityPageSize = ref(20)
+const relationPage = ref(1)
+const relationPageSize = ref(20)
+
+/** 当前页实体（对过滤结果切页，「搜索 + 表格 + 分页」的表格数据源） */
+const pagedGraphEntities = computed(() => {
+  const start = (entityPage.value - 1) * entityPageSize.value
+  return filteredGraphEntities.value.slice(start, start + entityPageSize.value)
+})
+
+/** 当前页关系（同上） */
+const pagedGraphRelations = computed(() => {
+  const start = (relationPage.value - 1) * relationPageSize.value
+  return filteredGraphRelations.value.slice(start, start + relationPageSize.value)
+})
+
+/** 两个表格的引用：翻页 / 换词 / 换库时清掉表格内部勾选，避免与批量删除计数不一致 */
+const entityTableRef = ref<any>(null)
+const relationTableRef = ref<any>(null)
+
+// 换过滤词回第一页；数据变少（删除 / 换库）后把越界页码钳回最后一页
+watch(graphEntityKeyword, () => { entityPage.value = 1 })
+watch(graphRelationKeyword, () => { relationPage.value = 1 })
+watch(() => filteredGraphEntities.value.length, (len) => {
+  const maxPage = Math.max(1, Math.ceil(len / entityPageSize.value))
+  if (entityPage.value > maxPage) entityPage.value = maxPage
+})
+watch(() => filteredGraphRelations.value.length, (len) => {
+  const maxPage = Math.max(1, Math.ceil(len / relationPageSize.value))
+  if (relationPage.value > maxPage) relationPage.value = maxPage
+})
+
+// 翻页 / 换词 / 改页大小时清空勾选：批量删除只应作用于当前看得见的行
+watch([entityPage, entityPageSize, graphEntityKeyword], () => {
+  entityTableRef.value?.clearSelection?.()
+  selectedEntityUids.value = []
+})
+watch([relationPage, relationPageSize, graphRelationKeyword], () => {
+  relationTableRef.value?.clearSelection?.()
+  selectedRelationUids.value = []
+})
+
+// 图谱数据整体更换（重新拉取 / 换库）后清空勾选，避免残留指向旧行的 id
+watch(() => graphView.nodes, () => {
+  entityTableRef.value?.clearSelection?.()
+  selectedEntityUids.value = []
+})
+watch(() => graphView.edges, () => {
+  relationTableRef.value?.clearSelection?.()
+  selectedRelationUids.value = []
+})
 
 /**
  * 节点 id → 显示名（关系列表要把 uid 还原成实体名）。
@@ -1118,6 +1176,24 @@ function handleMenuSelect(key: string) {
 function handleMenuAction(key: string) {
   if (key === 'settings' && currentKB.value) {
     handleEdit(currentKB.value)
+  }
+}
+
+/**
+ * 详情页头「刷新」：按当前视图重拉数据；页头副标题统计始终跟着刷。
+ */
+async function refreshDetail() {
+  detailRefreshing.value = true
+  try {
+    const tab = activeTab.value
+    if (tab === 'graph' || tab === 'entities' || tab === 'relations') {
+      await loadGraph()
+    } else if (tab === 'files') {
+      await refreshFileList()
+    }
+    await loadOverview()
+  } finally {
+    detailRefreshing.value = false
   }
 }
 
@@ -1728,9 +1804,21 @@ async function handleKbSave() {
 }
 
 /**
+ * 编辑弹窗「取消」：显式关闭，不触发表单回填。
+ */
+function handleKbCancel() {
+  showKbDialog.value = false
+}
+
+/**
  * 编辑知识库
  */
 function handleEdit(kb: KnowledgeBase) {
+  // 公开库对非 owner 只读：入口保留，点击明确拒绝，不弹出看似可保存的表单
+  if (!isOwnerKb(kb)) {
+    toast.info('该知识库由他人创建，仅可浏览')
+    return
+  }
   Object.assign(dialogForm, {
     id: kb.id,
     name: kb.name,
@@ -1838,9 +1926,10 @@ async function handleUploadComplete(task: UploadTask) {
 
   // 注意:不再调用 refreshFileList,避免全局刷新
 
-  // 关系抽取是上传后的异步任务，稍等一会儿再刷新图谱徽标；
+  // 关系抽取是上传后的异步任务，稍等一会儿再刷新图谱；
   // 抽取失败不影响这里（接口只返回已有数据，不会报错）。
-  if (graphCount.value > 0 || activeTab.value === 'graph') {
+  // 图谱 / 实体 / 关系视图正在展示时直接拉整张图，其余时刻只做计数级的轻量刷新。
+  if (graphCount.value > 0 || ['graph', 'entities', 'relations'].includes(activeTab.value)) {
     window.setTimeout(() => {
       void loadGraph()
     }, 3000)
@@ -1852,7 +1941,7 @@ async function handleUploadComplete(task: UploadTask) {
 }
 
 /**
- * 只刷新图谱计数（页签徽标），不拉整张图，用于上传完成后的轻量更新。
+ * 只刷新图谱计数，不拉整张图，用于上传完成后的轻量更新。
  */
 async function refreshGraphCount() {
   const kbId = store.activeKnowledgeBaseId
@@ -1961,8 +2050,10 @@ function handleViewFile(file: KBFile) {
 async function handleDeleteFile(file: KBFile) {
   try {
     const confirmed = await confirm(
-      t('knowledge.page.deleteKbTitle'),
-      t('knowledge.page.deleteKbConfirm', { name: currentKB.value?.name || '' }),
+      t('knowledge.page.deleteFileTitle'),
+      file.isDirectory
+        ? t('knowledge.page.deleteDirConfirm', { name: file.displayName || file.fileName })
+        : t('knowledge.page.deleteFileConfirm', { name: file.displayName || file.fileName }),
       { type: 'warning' }
     )
 
@@ -2295,17 +2386,28 @@ function getCurrentFiles(): KBFile[] {
 
 
 // ========== Lifecycle ==========
-// 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）
+// 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
+// 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
 watch(activeTab, (tab) => {
   if (tab === 'graph') {
+    void loadGraph()
+    return
+  }
+  if ((tab === 'entities' || tab === 'relations') && !graphLoading.value && graphView.nodes.length === 0) {
     void loadGraph()
   }
 })
 
-// 切换知识库时图谱要跟着换；只更新徽标计数，图本身等切页签再拉
+// 切换知识库时图谱要跟着换；计数走轻量接口，图本身等切页签再拉
 watch(() => store.activeKnowledgeBaseId, () => {
   graphKeyword.value = ''
-  if (activeTab.value === 'graph') {
+  graphEntityKeyword.value = ''
+  graphRelationKeyword.value = ''
+  entityPage.value = 1
+  relationPage.value = 1
+  selectedEntityUids.value = []
+  selectedRelationUids.value = []
+  if (activeTab.value === 'graph' || activeTab.value === 'entities' || activeTab.value === 'relations') {
     void loadGraph()
   } else {
     void refreshGraphCount()
@@ -2586,22 +2688,6 @@ watch(
   font-size: 13px;
   line-height: 1.6;
   color: var(--color-text-gray);
-}
-
-/* Tab 样式优化 */
-.kb-tabs :deep(.el-tabs__header) {
-  margin-bottom: 0;
-}
-
-.kb-tabs :deep(.el-tabs__nav-wrap::after) {
-  height: 1px;
-}
-
-.kb-tabs :deep(.el-tabs__item) {
-  padding: 0 18px;
-  height: 44px;
-  line-height: 44px;
-  font-size: 14px;
 }
 
 /* ── 创建/编辑知识库弹窗 ── */
@@ -2977,9 +3063,75 @@ watch(
   gap: 12px;
 }
 
-/* 旧的水平 Tab 已由二级菜单取代，样式上停用，避免两套导航同时出现 */
-.kb-tabs {
-  display: none;
+/* 详情页头：返回 + 标题/副标题 + 动作，与管理页页头同构 */
+.kb-detail__header {
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.kb-detail__titlebox {
+  min-width: 0;
+}
+
+.kb-detail__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-detail__subtitle {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-detail__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* 视图工具条：搜索 + 动作一行，与管理页工具条同节奏 */
+.kb-view__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* 表格面板：与管理页 panel-card / flat-table / 分页同一套视觉 */
+.panel-card {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  padding: 16px 18px 14px;
+  /* 表格容器是页面区块，不加投影 */
+}
+
+.flat-table {
+  --el-table-border-color: var(--el-border-color-lighter);
+}
+
+.flat-table :deep(th.el-table__cell) {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-weight: 600;
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .kb-overview__stats {
@@ -3038,8 +3190,8 @@ watch(
   flex: 0 0 auto;
 }
 
-/* 详情页顶部：返回按钮 / 知识库名 / 图谱计数
-   原先这三处写死了 text-gray-900 / dark:text-[#e8e9ed] / dark:text-[#9aa0a6]，
+/* 详情页顶部：返回按钮
+   原先这里写死了 text-gray-900 / dark:text-[#e8e9ed] / dark:text-[#9aa0a6]，
    暗色下靠手写色值硬撑；改为 koi/Element 变量，交给主题自动切换。 */
 .kb-back {
   color: var(--el-text-color-primary);
@@ -3047,10 +3199,6 @@ watch(
 
 .kb-back:hover {
   color: var(--el-color-primary);
-}
-
-.kb-detail__name {
-  color: var(--el-text-color-primary);
 }
 
 .kb-graph__count {

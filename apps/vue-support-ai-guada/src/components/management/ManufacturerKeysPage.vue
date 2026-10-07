@@ -49,7 +49,7 @@
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
       <el-table-column prop="createTime" label="创建时间" min-width="160" />
-      <el-table-column label="操作" width="210" fixed="right" align="right">
+      <el-table-column label="操作" width="210" fixed="right" align="center">
         <template #default="{ row }">
           <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
           <el-button

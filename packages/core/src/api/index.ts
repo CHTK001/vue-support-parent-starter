@@ -160,6 +160,54 @@ export function emailLogin(data: Record<string,unknown>) {
     .then<ApiResult<LoginResult>>((r) => r.data);
 }
 
+/** 已开启的三方登录来源（登录页与绑定面板共用同一配置源，未登录可调） */
+export function getThirdPartyProviders() {
+  return getApiHttp()
+    .get("/v2/setting/sso/providers")
+    .timeout(3000)
+    .retry(false)
+    .then<ApiResult<string[]>>((r) => r.data);
+}
+
+/** 三方登录取授权 URL（body: { loginType, thirdType, loginCode, callback }） */
+export function thirdLoginCode(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post("/v2/user/third/login/code")
+    .data(data)
+    .then<ApiResult<string>>((r) => r.data);
+}
+
+/** 三方绑定取授权 URL（body 同上，需登录） */
+export function thirdBindCode(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post("/v2/user/third/bind/code")
+    .data(data)
+    .then<ApiResult<string>>((r) => r.data);
+}
+
+/** 当前用户三方绑定情况（需登录，返回小写 loginType 列表） */
+export function thirdBindInfo() {
+  return getApiHttp()
+    .post("/v2/user/third/bind/info")
+    .then<ApiResult<string[]>>((r) => r.data);
+}
+
+/** 三方解绑（body: { loginType }，需登录） */
+export function thirdUnbind(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post("/v2/user/third/unbind")
+    .data(data)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 三方登录换票（body: { redirectParam }）：用回调回跳携带的一次性加密凭证换取登录态，免 @TokenForIgnore */
+export function thirdLoginExchange(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post("/v2/user/third/login/exchange")
+    .data(data)
+    .then<ApiResult<LoginResult>>((r) => r.data);
+}
+
 /**
  * 获取远程菜单（并发去重 + 网络优先 + 缓存兜底）
  *

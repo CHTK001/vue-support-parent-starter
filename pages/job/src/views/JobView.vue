@@ -267,12 +267,12 @@ async function loadGlueEngines(): Promise<void> {
 }
 
 const columns = computed<ReTableColumn[]>(() => [
-  { prop: "jobName", label: "任务名", minWidth: 160, slot: "name", showOverflowTooltip: true },
+  { prop: "jobName", label: "任务名", minWidth: 80, slot: "name", showOverflowTooltip: true },
   { prop: "scheduleType", label: "调度表达式", width: 186, slot: "schedule" },
-  { prop: "jobKey", label: "执行器", minWidth: 80, slot: "executor", showOverflowTooltip: true },
+  { prop: "jobKey", label: "执行器", minWidth: 60, slot: "executor", showOverflowTooltip: true },
   { prop: "enabled", label: "状态开关", width: 84, slot: "status", align: "center" },
-  { prop: "nextFireTime", label: "下次触发", width: 132, slot: "next" },
-  { prop: "lastFireTime", label: "最近触发", width: 132, slot: "last" },
+  { prop: "nextFireTime", label: "下次触发", width: 180, slot: "next" },
+  { prop: "lastFireTime", label: "最近触发", width: 180, slot: "last" },
   { prop: "author", label: "负责人", width: 74, slot: "author" },
   /* 操作列：3 个常用方形按钮 + 1 个「更多」下拉触发器 = 4×38 的间距。
      低频/危险动作收进下拉后，不再需要为平铺 6 个按钮留 268px。 */
@@ -1421,27 +1421,29 @@ watch(formVisible, (visible) => {
         </template>
 
         <template #name="{ row }">
-        <span>{{ row.jobName || row.jobKey }}</span>
-        <ReTag v-if="isFlowRow(row as unknown as JobRuntime)" class="collect-tag-inline"  type="primary" effect="plain">
-          采集流程
-        </ReTag>
-        <ReTag
-          v-else-if="kindOfGlueType((row as unknown as JobRuntime).glueType) === 'fragment'"
-          class="collect-tag-inline"
-          type="warning"
-          effect="plain"
-        >
-          {{ glueKindLabel(row as unknown as JobRuntime) }}
-        </ReTag>
-        <ReTag
-          v-else-if="isScriptJob(row as unknown as JobRuntime)"
-          class="collect-tag-inline"
-          type="success"
-          effect="plain"
-        >
-          {{ glueKindLabel(row as unknown as JobRuntime) }}
-        </ReTag>
-        <ReTag v-else-if="row.group"  type="info" effect="plain">{{ row.group }}</ReTag>
+        <div class="flex justify">
+          <span>{{ row.jobName || row.jobKey }}</span>
+          <ReTag v-if="isFlowRow(row as unknown as JobRuntime)" class="collect-tag-inline"  type="primary" effect="plain">
+            采集流程
+          </ReTag>
+          <ReTag
+            v-else-if="kindOfGlueType((row as unknown as JobRuntime).glueType) === 'fragment'"
+            class="collect-tag-inline"
+            type="warning"
+            effect="plain"
+          >
+            {{ glueKindLabel(row as unknown as JobRuntime) }}
+          </ReTag>
+          <ReTag
+            v-else-if="isScriptJob(row as unknown as JobRuntime)"
+            class="collect-tag-inline"
+            type="success"
+            effect="plain"
+          >
+            {{ glueKindLabel(row as unknown as JobRuntime) }}
+          </ReTag>
+          <ReTag v-else-if="row.group"  type="info" effect="plain">{{ row.group }}</ReTag>
+        </div>
       </template>
       <template #schedule="{ row }">
         <span class="collect-cell-mono collect-cell-ellipsis">{{ scheduleText(row as unknown as JobRuntime) }}</span>

@@ -23,17 +23,17 @@ import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./routes";
 import { registerMonitorDatasourceSchema } from "./datasourceSchemaProvider";
 
-/** 本页可能用到的 Re* 组件（ReIcon / ReScrollNav / ReDrawer 已由 installKoi 注册） */
+/** 本页可能用到的 Re* 组件。
+ *  注意：ReIcon / ReScrollNav / ReDrawer 已由 installKoi 内部 installUiComponents 注册（await 先于本清单），
+ *  不要再列入 —— 重复 app.component 会触发 Vue「has already been registered」生产期控制台告警。 */
 const MONITOR_RE_COMPONENTS = [
   "ReButton",
-  "ReIcon",
   "ReTag",
   "ReBadge",
   "ReInput",
   "ReInputNumber",
   "ReSelect",
   "ReDialog",
-  "ReDrawer",
   "ReTable",
   "RePagination",
   "ReForm",

@@ -256,6 +256,7 @@ const { datasourceId, source, gap, bind, fail, ready } = useMiddlewareSource();
 
 /** 键列表行（附推导出的显示名） */
 interface EtcdKeyRow extends EtcdKey {
+  [key: string]: unknown;
   name: string;
 }
 
@@ -283,13 +284,13 @@ const keyColumns = [
   { prop: "version", label: "版本", width: 80 },
   { prop: "modRevision", label: "修订号", width: 100 },
   { prop: "lease", label: "租约", width: 120, slot: "col-lease" },
-  { prop: "actions", label: "操作", width: 190, fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 190, fixed: "right" as const, slot: "col-actions" },
 ];
 const leaseColumns = [
   { prop: "id", label: "租约 ID", minWidth: 220, slot: "col-leaseId" },
   { prop: "ttl", label: "剩余 / 授予 TTL", width: 190, slot: "col-ttl" },
   { prop: "keyCount", label: "绑定键数", width: 110 },
-  { prop: "actions", label: "操作", width: 190, fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 190, fixed: "right" as const, slot: "col-actions" },
 ];
 const memberColumns = [
   { prop: "id", label: "成员 ID", minWidth: 180, slot: "col-memberId" },

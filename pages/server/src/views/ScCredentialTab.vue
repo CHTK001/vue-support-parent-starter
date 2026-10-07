@@ -437,7 +437,7 @@ async function viewMessage(email: any): Promise<void> {
                 <ReTag type="info">{{ row.msServerKeyType || '-' }}</ReTag>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="130" align="right" fixed="right">
+            <ReTableColumn label="操作" width="130">
               <template #default="{ row }">
                 <ReButton link @click="openKeyForm(row)">编辑</ReButton>
                 <ReButton link type="danger" @click="deleteKey(row)">删除</ReButton>
@@ -466,7 +466,7 @@ async function viewMessage(email: any): Promise<void> {
                 <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="190" align="right" fixed="right">
+            <ReTableColumn label="操作" width="190">
               <template #default="{ row }">
                 <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">打开邮件箱</ReButton>
                 <ReButton link @click="openIdentityForm(row)">编辑</ReButton>

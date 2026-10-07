@@ -27,6 +27,25 @@ import {
   type DeepPartial,
 } from "./config";
 import { deepMerge } from "./shared";
+import {
+  REMOTE_INJECTABLE_TOP_KEYS,
+  safeAssignTopLevel,
+  safeSetDotted,
+} from "./safe-path";
+
+/**
+ * 远程配置被拒时的告警。
+ *
+ * <p>刻意用 console 而非 @repo/utils 的 log：本包不得静态依赖 @repo/utils
+ * （config.ts 顶部有明确说明，避免模块加载期循环依赖 / TDZ 崩溃）。
+ * 与 config.ts 里的 subscriber 错误处理保持同一风格。</p>
+ *
+ * @param path   被拒的配置路径
+ * @param reason 原因
+ */
+function warnRejectedRemoteKey(path: string, reason: string): void {
+  console.warn(`[config] 已拒绝远程配置项 "${path}"：${reason}`);
+}
 
 /** 环境变量（默认取 import.meta.env，便于测试注入） */
 export type EnvLike = Record<string, string | undefined>;
@@ -437,16 +456,16 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
     if (lower === "true") value = true;
     else if (lower === "false") value = false;
     else if (!Number.isNaN(Number(rawValue)) && String(rawValue).trim() !== "") value = Number(rawValue);
-    const keys = pathKey.split(".");
-    // 顶层键做与 YAML 一致的归一化（appConfig → app，去掉 Config 后缀）
-    keys[0] = normalizeTopKey(keys[0]);
-    let cur = partial;
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
-      if (typeof cur[key] !== "object" || cur[key] === null) cur[key] = {};
-      cur = cur[key] as Record<string, unknown>;
-    }
-    cur[keys[keys.length - 1]] = value;
+    // <b>修复原型链污染</b>：原实现按点号逐层下钻，下钻读的是继承链属性，
+    // 于是 sysSettingCode="__proto__.xxx" 会把 cur 指向 Object.prototype，
+    // 最后一行直接写到全局原型上（详见 safe-path.ts 顶部注释）。
+    // 同时用顶层白名单挡住 http.baseURL / token.*Key / crypto.* 这类
+    // 「改了就不只是改观感」的键 —— 远程设置接口只该管品牌与展示。
+    safeSetDotted(partial, pathKey, value, {
+      topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+      normalizeTopKey: normalizeTopKey,
+      onReject: warnRejectedRemoteKey,
+    });
   }
   return partial as Partial<AppConfig>;
 }
@@ -454,9 +473,13 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
 /** 对 JSON 对象/数组返回的顶层键做归一化（appConfig → app） */
 function normalizeTopLevelKeys(data: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  for (const key of Object.keys(data)) {
-    result[normalizeTopKey(key)] = data[key];
-  }
+  // <b>修复</b>：原实现 result[key] = data[key]，key 为 __proto__ 时会改写
+  // result 自身的原型（配置对象被塞成一个诡异实例）。改走安全写入 + 顶层白名单。
+  safeAssignTopLevel(result, data, {
+    topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+    normalizeTopKey: normalizeTopKey,
+    onReject: warnRejectedRemoteKey,
+  });
   return result;
 }
 

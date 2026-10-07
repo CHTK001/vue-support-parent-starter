@@ -65,6 +65,7 @@
     fileNotReady: 'File has not been processed yet, cannot view chunks',
     deleteFileTitle: 'Warning',
     deleteFileConfirm: 'Are you sure you want to delete file "{name}"? This action cannot be undone.',
+    deleteDirConfirm: 'Are you sure you want to delete folder "{name}"? Its contents will be removed as well. This action cannot be undone.',
     deleteKbTitle: 'Warning',
     deleteKbConfirm: 'Are you sure you want to delete knowledge base "{name}"? This action cannot be undone.',
     deleteKbNote: 'This unbinds the knowledge base from all sessions and characters. Files in managed directories are kept on the server by default; remove them in the Files view first to purge them.',

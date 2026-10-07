@@ -67,6 +67,15 @@ const EXTENSION_TO_RENDERER: Readonly<Record<string, OfficeRenderer>> = Object.f
  */
 const LEGACY_BINARY_EXTS: ReadonlySet<string> = new Set(["doc", "xls", "ppt"]);
 
+/**
+ * 可服务端转 OOXML 的纯文本源扩展名（与后端 TEXT_CONVERT_SOURCES 严格一致）。
+ *
+ * <p>这些扩展名本身不是客户端可渲染格式，但后端 {@code ?format=xlsx} 能经
+ * Aspose 转成 xlsx，仍由客户端 excel 组件渲染。{@link isClientRenderable}
+ * 放行它们进 Office 面板，转换失败由面板内兜底走服务端渲染。</p>
+ */
+export const CONVERTIBLE_TEXT_EXTS: ReadonlySet<string> = new Set(["csv", "tsv"]);
+
 /** OLE2 / CFB 复合文档文件头（传统 .doc / .xls / .ppt） */
 const OLE2_MAGIC: readonly number[] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
 
@@ -262,17 +271,19 @@ export function extensionOf(fileName: string): string {
 /**
  * 判断文件是否可能走客户端直渲染
  *
- * 包含两类：
+ * 包含三类：
  *   1. 扩展名即可确定的客户端格式（docx / xlsx / pdf 等）
  *   2. 传统二进制扩展名（doc / xls / ppt）——它们有可能实际是 OOXML，
  *      需要取到字节后嗅探真实类型，交由 {@link officeRendererOfSniffed} 判定
+ *   3. 可服务端转 OOXML 的文本源（csv / tsv）——后端 ?format=xlsx 经 Aspose
+ *      转换后仍由客户端 excel 组件渲染（见 PreviewOfficePanel#CONVERT_TARGET）
  *
  * @param fileName 文件名或对象键
  * @returns true 表示可能走客户端直渲染
  */
 export function isClientRenderable(fileName: string): boolean {
   const ext = extensionOf(fileName);
-  return Boolean(EXTENSION_TO_RENDERER[ext]) || LEGACY_BINARY_EXTS.has(ext);
+  return Boolean(EXTENSION_TO_RENDERER[ext]) || LEGACY_BINARY_EXTS.has(ext) || CONVERTIBLE_TEXT_EXTS.has(ext);
 }
 
 /**

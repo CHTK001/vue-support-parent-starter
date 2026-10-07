@@ -302,7 +302,7 @@ import {
 } from "../../api/manageConsoles";
 
 /** ReTable 列定义 */
-type Column = { prop: string; label: string; width?: number | string; minWidth?: number; slot?: string };
+type Column = { prop: string; label: string; width?: number | string; minWidth?: number; slot?: string; fixed?: boolean | "left" | "right"; formatter?: (row: any) => string };
 
 /** 图上节点 */
 interface GraphNode {

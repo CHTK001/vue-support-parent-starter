@@ -10,7 +10,7 @@
  *  - 其余：element-plus 图标组件（支持 PascalCase / kebab-case 兼容）
  * 样式走主题令牌（--theme-* 变量）。
  */
-import { computed, markRaw, type Component } from "vue";
+import { computed, markRaw, toRaw, type Component } from "vue";
 import { ElIcon } from "element-plus";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 
@@ -70,7 +70,10 @@ const iconifyRenderer = computed<Component | null>(() => {
   if (!isIconify.value) return null;
   const w = typeof window !== "undefined" ? window : undefined;
   const reg = (w as unknown as { __reIcon?: { iconify?: Component } })?.__reIcon;
-  return reg?.iconify ? markRaw(reg.iconify) : null;
+  // window.__reIcon 可能被 default 主题的 deep ref getter 接管（返回 reactive 代理）：
+  // 需 toRaw 解回原始组件再 markRaw，否则渲染的是代理，Vue 会告警
+  // 「Component that was made a reactive object」（顶栏天气图标实测触发过）。
+  return reg?.iconify ? markRaw(toRaw(reg.iconify)) : null;
 });
 
 /** 全局兜底图标：任何图标加载失败/不存在时，显示Menu图标，永远不空白 */

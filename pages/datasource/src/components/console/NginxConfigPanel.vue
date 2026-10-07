@@ -23,7 +23,7 @@
             <span class="ngc-filename">{{ shortName(f.path) }}</span>
             <span class="ngc-filedir">{{ shortDir(f.path) }}</span>
           </div>
-          <ReEmptyState v-if="!files.length && !filesLoading" description="未发现 .conf 文件" />
+          <ReEmpty v-if="!files.length && !filesLoading" description="未发现 .conf 文件" />
         </div>
       </aside>
 
@@ -94,7 +94,7 @@
             @add-directive="openAdd('directive', $event)"
             @add-block="openAdd('block', $event)"
           />
-          <ReEmptyState v-else description="请先选择配置文件" />
+          <ReEmpty v-else description="请先选择配置文件" />
           </template>
         </div>
 
@@ -234,7 +234,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReEmptyState from "@repo/ui/re-empty-state";
+import ReEmpty from "@repo/ui/re-empty";
 import ReForm from "@repo/ui/re-form";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";

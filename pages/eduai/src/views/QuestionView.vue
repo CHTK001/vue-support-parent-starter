@@ -33,6 +33,8 @@
             placeholder="搜索题干、知识点…"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
+            @change="commitSearch"
+            @clear="commitSearch"
           />
         </div>
         <div class="filter-field">
@@ -42,29 +44,30 @@
             filterable
             placeholder="全部学科"
             style="width: 100%"
+            @change="commitSearch"
           >
             <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </div>
         <div class="filter-field filter-field--inline">
           <label class="filter-field__label">题型</label>
-          <el-select v-model="searchDraft.type" clearable placeholder="全部题型" style="width: 100%">
+          <el-select v-model="searchDraft.type" clearable placeholder="全部题型" style="width: 100%" @change="commitSearch">
             <el-option v-for="t in QUESTION_TYPES" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </div>
         <div class="filter-field filter-field--inline">
           <label class="filter-field__label">难度</label>
-          <el-select v-model="searchDraft.difficulty" clearable placeholder="全部难度" style="width: 100%">
+          <el-select v-model="searchDraft.difficulty" clearable placeholder="全部难度" style="width: 100%" @change="commitSearch">
             <el-option v-for="d in DIFFICULTIES" :key="d.value" :label="d.label" :value="d.value" />
           </el-select>
         </div>
         <div class="filter-field">
-          <el-select v-model="searchDraft.status" clearable placeholder="全部状态" style="width: 100%">
+          <el-select v-model="searchDraft.status" clearable placeholder="全部状态" style="width: 100%" @change="commitSearch">
             <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </div>
         <div class="filter-field">
-          <el-select v-model="searchDraft.auditStatus" clearable placeholder="全部审核" style="width: 100%">
+          <el-select v-model="searchDraft.auditStatus" clearable placeholder="全部审核" style="width: 100%" @change="commitSearch">
             <el-option v-for="s in AUDIT_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </div>
@@ -229,6 +232,15 @@
                   驳回
                 </el-button>
               </template>
+            </template>
+            <!-- 空态门控：本页 loading 是自己 div 上的 v-loading，没传给 ReTable，
+                 所以这里显式跟随 —— 加载窗口内不画空态，杜绝「暂无数据」闪现 -->
+            <template #empty>
+              <el-empty
+                v-if="!loading"
+                description="暂无题目，点击「新增题目」创建"
+                :image-size="96"
+              />
             </template>
           </ReTable>
         </template>
@@ -984,8 +996,8 @@ const reloadStats = async () => {
     loadPage();
   } catch (e) {
     ElMessage.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));
-    rows.value = [];
-    total.value = 0;
+    // 失败时保留已有行：清空会让表格先闪「暂无数据」，接口一恢复又闪回数据，
+    // 网络抖动/后端重启期间就是这么来的反复闪烁。首次加载失败 rows 本就为空，无影响。
   } finally {
     loading.value = false;
   }

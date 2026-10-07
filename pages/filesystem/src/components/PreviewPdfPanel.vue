@@ -13,7 +13,7 @@
  */
 
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { getServerBase, objectUrl } from "../api/filestorageApi";
+import { authHeaders, getServerBase, objectUrl } from "../api/filestorageApi";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -279,8 +279,8 @@ async function load(): Promise<void> {
     if (disposed) {
       return;
     }
-    // 走 objectUrl（自带令牌），拿原始字节交给 pdf.js
-    const res = await fetch(objectUrl(props.bucket, props.objectKey));
+    // 程序化 fetch **能自定义请求头**，故令牌走 x-oauth-token 而非 URL
+    const res = await fetch(objectUrl(props.bucket, props.objectKey), { headers: authHeaders() });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
