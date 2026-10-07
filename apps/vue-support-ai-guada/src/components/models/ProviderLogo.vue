@@ -14,9 +14,28 @@ const sizeMap: Record<string, string> = { sm: '32px', md: '40px', lg: '48px' }
 const currentSrc = ref<string | null>(null)
 const triedSvg = ref(false)
 
+/**
+ * 只有 .svg、没有 .png 的品牌 id（对应 public/images/providers 下的实际文件）。
+ *
+ * 实测：这类 id 先试 .png 必然 404（如 openai/anthropic/deepseek/google/onnx 共 22 个），
+ * 等于每次渲染供应商卡都往控制台丢一个 404。逐按钮 sweep 会把它记成该路由的
+ * 4xx 证据，干扰「生产级无未知 4xx」的判据。这里直连 .svg 消掉这条假 404；
+ * 清单缺项时仍走下面的 png→svg 兜底，最坏只是退回原来的探测行为。
+ */
+const SVG_ONLY_IDS = new Set([
+  '360', 'agnes', 'ai302', 'aliyun-bailian', 'anthropic', 'deepseek', 'google', 'groq',
+  'huiqing', 'longcat', 'minimax', 'minimax-color', 'mock', 'nvidia', 'onnx', 'openai',
+  'openai-response', 'openrouter', 'siliconflow', 'stepfun', 'volcengine', 'xai',
+])
+
 watch(() => props.pid, (pid) => {
   const id = String(pid || '').toLowerCase()
   if (!id || id === 'custom') { currentSrc.value = null; triedSvg.value = false; return }
+  if (SVG_ONLY_IDS.has(id)) {
+    currentSrc.value = `/images/providers/${id}.svg`
+    triedSvg.value = true // 已是 svg，onError 不再重试
+    return
+  }
   currentSrc.value = `/images/providers/${id}.png`
   triedSvg.value = false
 }, { immediate: true })

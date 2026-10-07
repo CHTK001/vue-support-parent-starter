@@ -172,6 +172,18 @@ export default defineConfig({
     ],
   },
   resolve: {
+    /**
+     * element-plus 去重（2026-10-07 dist 实测修复）。
+     *
+     * pnpm 把它装成了两个 peer 变体物理拷贝：app → typescript@6.0.3、
+     * packages/ui → typescript@5.9.3。两者各有一份 `Symbol("ElSelect")` token，
+     * 打包后主包（ElSelect 的 provide 端）与 select chunk（ElOption 的 inject 端）
+     * 拿到的是**不同 symbol**，`inject(selectKey)` 恒 undefined → 打开「编辑供应商」
+     * 即抛 `[ElOption] usage: <el-select><el-option /></el-select>`。
+     * dev 不炸只因 optimizeDeps 预打包把两份合并了，属构建态独有缺陷。
+     * dedupe 强制全仓解析到同一份，token 恢复单例。
+     */
+    dedupe: ['element-plus'],
     // 用数组而非对象：echarts 必须用锚定正则 /^echarts$/（与 createVite 一致）。
     // 若写成字符串别名，Vite 的前缀匹配会把兼容层内部的 `echarts/index.js`
     // 也一起改写成兼容层自身，形成 self-alias，导致它的具名导出（init 等）全部丢失，
