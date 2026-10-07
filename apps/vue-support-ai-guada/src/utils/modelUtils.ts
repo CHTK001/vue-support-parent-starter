@@ -7,77 +7,111 @@ import { computed } from "vue";
 import { fixFrontendAssetUrl } from "./url";
 import { t } from "@/locales";
 
-// 已知提供商的标识符映射（用于匹配头像文件）
+/**
+ * 提供商标识 → Logo 文件名（含扩展名）。
+ *
+ * <p>值直接作为文件名拼接到 `/images/models/` 路径下，
+ * 因此必须带上正确的 `.svg`/`.png` 扩展名，不能再像过去那样
+ * 用 `isPng` 开关在函数里补后缀——那导致 MuseSpark.png/olmama.png
+ * 被误判为 .svg 而找不到文件。</p>
+ *
+ * <p>「muse-spark」（带连字符）作为别名加入，
+ * 这样模型名 `muse-spark-1.3-contributor` 能直接命中 startsWith 匹配，
+ * 不再依赖 providerName 回退。</p>
+ */
 const PROVIDER_LOGOS: Record<string, string> = {
   // OpenAI
-  openai: "OpenAI",
-  gpt: "OpenAI",
+  openai: "OpenAI.svg",
+  gpt: "OpenAI.svg",
+  newapi: "newapi.png",
 
   // Anthropic
-  anthropic: "Anthropic",
-  claude: "Anthropic",
+  anthropic: "Anthropic.svg",
+  claude: "Anthropic.svg",
 
   // Google
-  google: "Google",
-  gemini: "Google",
+  google: "Google.svg",
+  gemini: "Google.svg",
 
   // 百度文心一言
-  baidu: "baidu",
-  ernie: "baidu",
-  wenxin: "baidu",
+  baidu: "baidu.svg",
+  ernie: "baidu.svg",
+  wenxin: "baidu.svg",
 
   // 阿里通义千问
-  tongyi: "Tongyi",
-  qwen: "Tongyi",
-  aliyun: "Tongyi",
+  tongyi: "Tongyi.svg",
+  qwen: "Tongyi.svg",
+  aliyun: "Tongyi.svg",
 
   // 腾讯混元
-  hunyuan: "hunyuan",
-  tencent: "hunyuan",
+  hunyuan: "hunyuan.svg",
+  tencent: "hunyuan.svg",
 
   // 智谱 AI
-  zhipu: "zhipu",
-  glm: "zhipu",
+  zhipu: "zhipu.svg",
+  glm: "zhipu.svg",
 
   // 月之暗面 Kimi
-  kimi: "kimi",
-  moonshot: "kimi",
+  kimi: "kimi.png",
+  moonshot: "kimi.png",
 
   // DeepSeek
-  deepseek: "DeepSeek",
-
-  // 零一万物
-  yi: "Yi",
-  "01ai": "Yi",
-
-  // MiniMax
-  minimax: "minimax",
-
-  // StepFun
-  stepfun: "Stepfun",
-  step: "Stepfun",
+  deepseek: "DeepSeek.svg",
 
   // 百川智能
-  baichuan: "Baichuan",
+  baichuan: "Baichuan.svg",
+
+  // 零一万物
+  yi: "Yi.svg",
+  "01ai": "Yi.svg",
+
+  // MiniMax
+  minimax: "minimax.svg",
+
+  // StepFun
+  stepfun: "Stepfun.svg",
+  step: "Stepfun.svg",
 
   // BAAI（北京智源）
-  baai: "BAAI",
-  zhiyuan: "BAAI",
+  baai: "BAAI.svg",
+  zhiyuan: "BAAI.svg",
 
   // 字节跳动
-  bytedance: "ByteDance",
-  doubao: "ByteDance",
+  bytedance: "ByteDance.svg",
+  doubao: "ByteDance.svg",
 
   // 书生·浦语
-  internlm: "internlm",
-  shusheng: "internlm",
+  internlm: "internlm.svg",
+  shusheng: "internlm.svg",
 
   // Agnes
-  agnes: "Agnes",
-  ollama: "ollama",
+  agnes: "Agnes.svg",
+  north: "north.svg",
+  mimo: "mimo.svg",
+  solar: "solar.svg",
+  ollama: "ollama.png",
 
   // 灵犀
-  ling: "ling",
+  ling: "ling.png",
+  nemotron: "nemotron.svg",
+  laguna:"laguna.svg",
+  inkling: "inkling.png",
+  dots: "dots.png",
+  apodex:"apodex.png",
+
+  // MuseSpark — 同时注册带连字符别名，匹配模型名前缀 `muse-spark-*`
+  "muse-spark": "MuseSpark.svg",
+
+  // 其他已有 Logo 文件但暂未在 PROVIDER_LOGOS 注册的提供商
+  meta: "meta.svg",
+  microsoft: "microsoft.svg",
+  nvidia: "nvidia.svg",
+  salesforce: "salesforce.svg",
+  modelscope: "modelscope.png",
+  hermes: "hermes.png",
+  opencode: "opencode.png",
+  openclaw: "openclaw.svg",
+  onnx: "onnx.svg",
 };
 
 /**
@@ -98,11 +132,16 @@ export function getModelDisplayName(modelName: string): string {
 
 /**
  * 启发式判断模型所属的提供商
- * 通过小写化、去前缀后与已知提供商进行开头匹配
+ * 通过小写化、去前缀后与已知提供商进行开头匹配，返回 PROVIDER_LOGOS 的 key。
+ *
+ * <p>注意：过去这个函数返回 `value.toLowerCase()`（即 logo 文件名），
+ * 但 value 并不一定是 key，这导致 `PROVIDER_LOGOS["tongyi"]` 这样的反查
+ * 依赖 value 恰好等于 key 的巧合—— fragile。改为返回 key 后，反查语义
+ * 正确且 value 可以自由加上扩展名。</p>
  *
  * @param modelName 模型名称
  * @param providerName 提供商名称（可选，作为后备）
- * @returns 提供商标识符
+ * @returns PROVIDER_LOGOS 的 key，或 "default"
  */
 export function detectModelProvider(
   modelName: string,
@@ -114,9 +153,9 @@ export function detectModelProvider(
   const displayName = getModelDisplayName(modelName).toLowerCase();
 
   // 尝试匹配已知提供商
-  for (const [key, value] of Object.entries(PROVIDER_LOGOS)) {
+  for (const [key] of Object.entries(PROVIDER_LOGOS)) {
     if (displayName.startsWith(key)) {
-      return value.toLowerCase();
+      return key;
     }
   }
 
@@ -138,14 +177,10 @@ export function getModelAvatarPath(
 ): string | null {
   const providerId = detectModelProvider(modelName, providerName);
 
-  // 检查是否有对应的 Logo 文件
+  // PROVIDER_LOGOS 的 value 已直接包含扩展名，无需额外判断
   const logoFile = PROVIDER_LOGOS[providerId];
   if (logoFile) {
-    // 根据实际文件存在情况返回路径
-    // 注意：这里假设所有 Logo 都是 .svg 格式（除了 kimi.png 和 ling.png）
-    const isPng = logoFile === "kimi" || logoFile === "ling";
-    const ext = isPng ? "png" : "svg";
-    return fixFrontendAssetUrl(`/images/models/${logoFile}.${ext}`);
+    return fixFrontendAssetUrl(`/images/models/${logoFile}`);
   }
 
   return null;

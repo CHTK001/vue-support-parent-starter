@@ -5,11 +5,12 @@
 -->
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { ElDialog } from "element-plus";
+import CreateTableDialog from "@repo/ui/create-table-dialog";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
 import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
-import type { DdlPreviewPayload, NodeForm, NodeFormContext } from "./paramContext";
+import type { NodeForm, NodeFormContext } from "./paramContext";
+import type { TableDdlRequest, TableDdlResult } from "@repo/ui/create-table-dialog";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
 
@@ -58,11 +59,9 @@ const visibleFields = computed(() => {
 
 /* ---------------------------- 建表 / 补列（B9-3） ---------------------------- */
 
-/** 弹窗与执行态 */
+/** 弹窗可见性与请求快照：预览 / 执行逻辑收在 CreateTableDialog 里，这里只负责「按什么建」 */
 const ddlOpen = ref(false);
-const ddlBusy = ref(false);
-const ddlPayload = ref<DdlPreviewPayload | null>(null);
-const ddlError = ref("");
+const ddlReq = ref<TableDdlRequest | null>(null);
 
 /** 已映射的目标列（字段映射左侧的列名，去掉空行） */
 const ddlColumns = computed(() =>
@@ -86,54 +85,43 @@ const canDdl = computed(() =>
   && ddlColumns.value.length > 0,
 );
 
-/** 建表 / 补列的请求（表单只给列名与主键列名，列类型由宿主按运行期同一套规则补齐） */
-function ddlRequest(): { datasource: string; table: string; columns: string[]; primaryKey: string[] } {
-  return {
+/**
+ * 打开建表 / 补列：快照当前请求后交给共享对话框，预览与执行都由它完成。
+ */
+function openDdl(): void {
+  ddlReq.value = {
     datasource: valueOf("datasource").trim(),
     table: valueOf("table").trim(),
     columns: ddlColumns.value,
     primaryKey: ddlKeys.value,
   };
+  ddlOpen.value = true;
 }
 
 /**
- * 预览建表 / 补列：先把要执行的 SQL 摊给用户看，确认后才执行。
+ * 预览回调：入口在 canDdl 已经挡过，这里再兜一次底，缺能力时报可读错误而不是静默。
  *
- * <p>不直接执行是刻意的 —— 建表 / 补列是 DDL，错了要人工收拾；预览一次的成本远低于误建一张表。</p>
+ * @param request 建表请求
+ * @return 预览结果
  */
-async function openDdl(): Promise<void> {
+async function mustPreview(request: TableDdlRequest): Promise<TableDdlResult> {
   if (!props.ctx.previewDdl) {
-    return;
+    throw new Error("宿主未提供 DDL 预览能力");
   }
-  ddlBusy.value = true;
-  ddlError.value = "";
-  ddlPayload.value = null;
-  try {
-    ddlPayload.value = await props.ctx.previewDdl(ddlRequest());
-    ddlOpen.value = true;
-  } catch (error) {
-    ddlError.value = error instanceof Error ? error.message : String(error);
-    ddlOpen.value = true;
-  } finally {
-    ddlBusy.value = false;
-  }
+  return props.ctx.previewDdl(request);
 }
 
-/** 执行建表 / 补列，成功后刷新左侧列候选（新列/新表立刻可选） */
-async function runDdl(): Promise<void> {
+/**
+ * 执行回调。
+ *
+ * @param request 建表请求
+ * @return 执行结果
+ */
+async function mustExecute(request: TableDdlRequest): Promise<TableDdlResult> {
   if (!props.ctx.executeDdl) {
-    return;
+    throw new Error("宿主未提供 DDL 执行能力");
   }
-  ddlBusy.value = true;
-  ddlError.value = "";
-  try {
-    ddlPayload.value = await props.ctx.executeDdl(ddlRequest());
-    props.ctx.refreshColumns();
-  } catch (error) {
-    ddlError.value = error instanceof Error ? error.message : String(error);
-  } finally {
-    ddlBusy.value = false;
-  }
+  return props.ctx.executeDdl(request);
 }
 
 /**
@@ -242,7 +230,7 @@ function extraTip(name: string): string {
       <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
       <!-- 建表 / 补列：放在「字段映射」下面，顺序就是「先选数据源与表 → 需要时先建表 → 再映射」 -->
       <div v-if="param.name === 'column:目标列' && canDdl" class="ddl-actions">
-        <ReButton text type="primary" :loading="ddlBusy" @click="openDdl">建表 / 补列…</ReButton>
+        <ReButton text type="primary" @click="openDdl">建表 / 补列…</ReButton>
         <span class="ddl-hint">
           按上方映射的目标列建表或补列（列类型 TEXT，与运行期自动建表同一套规则）；建完自动刷新左侧列候选。
         </span>
@@ -250,23 +238,14 @@ function extraTip(name: string): string {
     </div>
   </template>
 
-  <ElDialog v-model="ddlOpen" title="建表 / 补列" width="760px" append-to-body>
-    <div v-if="ddlError" class="ddl-error">{{ ddlError }}</div>
-    <template v-else-if="ddlPayload">
-      <div class="ddl-summary">
-        目标表 {{ valueOf("table") }}：
-        {{ ddlPayload.created ? "已新建" : (ddlPayload.exists ? "已存在" : "不存在") }}
-        <span v-if="ddlPayload.appended.length">，补列 {{ ddlPayload.appended.join(" / ") }}</span>
-        <span v-if="!ddlPayload.created && !ddlPayload.appended.length">，无需变更</span>
-      </div>
-      <pre class="ddl-sql">{{ ddlPayload.sql || "（数据源中心未返回 SQL）" }}</pre>
-    </template>
-    <div v-else class="ddl-summary">正在生成 DDL…</div>
-    <template #footer>
-      <ReButton @click="ddlOpen = false">关闭</ReButton>
-      <ReButton type="primary" :loading="ddlBusy" @click="runDdl">执行</ReButton>
-    </template>
-  </ElDialog>
+  <!-- 共享建表对话框：预览 / 执行一份实现，建完刷新左侧列候选 -->
+  <CreateTableDialog
+    v-model="ddlOpen"
+    :request="ddlReq"
+    :preview="(request: TableDdlRequest) => mustPreview(request)"
+    :execute="(request: TableDdlRequest) => mustExecute(request)"
+    @executed="ctx.refreshColumns()"
+  />
 </template>
 
 <style scoped>
@@ -322,36 +301,5 @@ function extraTip(name: string): string {
   font-size: 11px;
   line-height: 1.45;
   color: var(--el-text-color-secondary);
-}
-
-.ddl-summary {
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-}
-
-.ddl-error {
-  padding: 8px 10px;
-  font-size: 13px;
-  color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-  border: 1px solid var(--el-color-danger-light-5);
-  border-radius: var(--el-radius-md, 8px);
-}
-
-/* 等宽显示 DDL：长语句要能横向滚动，不折行 */
-.ddl-sql {
-  max-height: 40vh;
-  margin: 8px 0 0;
-  padding: 10px;
-  overflow: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-regular);
-  white-space: pre;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
 }
 </style>

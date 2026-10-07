@@ -2,7 +2,7 @@
   <div v-if="text" class="mw-gap">
     <ReIcon name="WarningFilled" :size="14" class="mw-gap-icon" />
     <span class="mw-gap-text">{{ text }}</span>
-    <ReButton link :show-text="true" @click="$emit('retry')"><template #icon><ReIcon name="RefreshRight" :size="13" /></template>重试</ReButton>
+    <ReButton :show-text="true" @click="$emit('retry')"><template #icon><ReIcon name="RefreshRight" :size="13" /></template>重试</ReButton>
   </div>
 </template>
 

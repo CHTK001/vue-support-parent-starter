@@ -9,11 +9,31 @@
   >
     <div class="dialog-content">
       <div class="fetch-search">
-        <el-input v-model="searchName" :placeholder="t('settings.providerDetail.searchModelName')" clearable>
+        <el-input
+          v-model="searchName"
+          class="fetch-input"
+          :placeholder="t('settings.providerDetail.searchModelName')"
+          clearable
+        >
           <template #prefix>
             <el-icon><SearchOutlined /></el-icon>
           </template>
         </el-input>
+        <!--
+          一键批量录入：整批走后端 POST /providers/{id}/models/import-all，
+          后端负责调上游取目录 + 落库（已存在的跳过），用户不必逐条点「选择」。
+        -->
+        <el-button
+          type="primary"
+          :loading="importing"
+          :disabled="fetched.length === 0 || fetching"
+          @click="handleImportAll"
+        >
+          <template #icon><Download /></template>
+          {{ importing
+            ? t('settings.providerDetail.importing')
+            : t('settings.providerDetail.importAll', { n: fetched.length }) }}
+        </el-button>
       </div>
 
       <div v-if="fetching" class="fetch-loading">
@@ -60,6 +80,13 @@
           {{ t('settings.providerDetail.noMatchFound') }}
         </div>
       </div>
+
+      <!-- 逐条挑完就走；只想手工建一个（或供应商还没配好地址/Key）时走这里 -->
+      <div class="fetch-foot">
+        <el-button link type="primary" @click="handleManual">
+          {{ t('settings.providerDetail.manualAdd') }}
+        </el-button>
+      </div>
     </div>
   </LDialog>
 </template>
@@ -72,21 +99,39 @@ import LDialog from '@/components/ui/LDialog.vue'
 import LTooltip from '../ui/LTooltip.vue'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import { WrenchScrewdriver24Regular, LightbulbFilament24Regular } from '@vicons/fluent'
-import { Loading, CircleCloseFilled } from '@element-plus/icons-vue'
+import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
 
-const emit = defineEmits<{ select: [model: any] }>()
+const emit = defineEmits<{
+  /** 逐条挑一个模型 → 预填表单 */
+  select: [model: any]
+  /** 已经批量录入完成，父组件据此刷新供应商的模型列表 */
+  imported: []
+  /** 打开手动新建模型表单（列表看不看得到都行，这里是逃生口） */
+  manual: []
+}>()
 
 const { t } = useI18n()
 const { notify } = usePopup()
 
 const visible = ref(false)
 const fetching = ref(false)
+const importing = ref(false)
 const searchName = ref('')
 const fetched = ref<any[]>([])
 const loadError = ref('')
+/** 当前供应商标识：批量录入要按它落库，open 时记下，避免再从 props 里猜 */
+const providerId = ref('')
 let existingModels: any[] = []
+/**
+ * 已知在库里的模型名（打开时来自既有模型，每次录入成功后并入返回的新行）。
+ * 用来判断「上游这次没返回的，是不是本来就录过了」——否则上游短返回时会误报
+ * 「部分录入」，让用户对着已经录全的列表反复点。
+ */
+const knownPresent = new Set<string>()
+/** 拉取列表行的模型名（上游条目字段名不统一，modelName/name/id 三处都可能有） */
+const fetchRowName = (m: any) => String(m?.modelName ?? m?.name ?? m?.id ?? '')
 
 const filtered = computed(() => {
   if (!searchName.value) return fetched.value
@@ -107,7 +152,16 @@ const getLableName = (type: string) => {
   }
 }
 
-const open = async (provider: any, models: any[]) => {
+/**
+ * 打开拉取列表。
+ *
+ * @param provider 供应商对象（含 id/apiUrl/apiKey）
+ * @param models 该供应商已有的模型（用于「已有」标记）
+ * @param fallbackToManual 拉不动时是否回退手工表单。**只有「添加模型」这个主入口
+ *   才该回退**；从模型表单里点「获取」触发时不能回退——那会把用户已经填好的字段
+ *   重置掉（openAdd 会清空表单）。
+ */
+const open = async (provider: any, models: any[], fallbackToManual = true) => {
   // 本地推理（ONNX）无需 base_url 与 Key：模型目录由后端本地模型门面提供，
   // 不能沿用云端提供商的「必须配好地址和 Key 才允许拉取」的前置校验，否则加模型流程会被堵死
   const isLocalProvider =
@@ -126,11 +180,23 @@ const open = async (provider: any, models: any[]) => {
         t('settings.providerDetail.configApiError'),
         { duration: 2000 },
       )
+      // 没配地址/Key 就拉不到目录，此时如果既不开列表也不开表单，
+      // 用户会被卡死在「添加模型」按钮上 —— 主入口直接退回手工新建表单；
+      // 表单内点「获取」的分支不回退（见 open 的 fallbackToManual）。
+      if (fallbackToManual) {
+        emit('manual')
+      }
       return
     }
   }
 
+  providerId.value = provider?.id || provider?.provider_id || ''
   existingModels = models || []
+  knownPresent.clear()
+  for (const m of existingModels) {
+    const n = String(m?.model ?? m?.modelName ?? '')
+    if (n) knownPresent.add(n)
+  }
   searchName.value = ''
   fetched.value = []
   loadError.value = ''
@@ -175,16 +241,102 @@ const open = async (provider: any, models: any[]) => {
   }
 }
 
-defineExpose({ open })
+const close = () => { visible.value = false }
+/** 点击「手动添加」：先关掉 fetchDialog，让表单-dialog 露出来。
+ * 表单-dialog 在「添加模型」时就已打开，这里不能调 openAdd 重置用户内容。 */
+const handleManual = () => {
+  visible.value = false
+  emit('manual')
+}
+defineExpose({ open, close })
 
 const handleSelect = (model: any) => {
   visible.value = false
   emit('select', model)
 }
+
+/**
+ * 一键批量录入：整个动作在后端一次完成（调上游取目录 + 写库），
+ * 前端只负责把统计结果说清楚。
+ *
+ * <p>去重语义由后端保证（模型名已存在则跳过、不覆盖用户改过的参数），
+ * 所以这里**不做本地预判**，重复点击只是把新出现的模型补录进来。</p>
+ */
+const handleImportAll = async () => {
+  if (importing.value || !providerId.value || fetched.value.length === 0) return
+  importing.value = true
+  try {
+    const res = await apiService.importAllModels(providerId.value)
+    const imported = Number(res?.imported ?? 0)
+    const skipped = Number(res?.skipped ?? 0)
+    const total = Number(res?.total ?? imported + skipped)
+    if (total === 0) {
+      // 上游一个模型都没返回：不是故障，但必须说清楚，否则用户以为卡住
+      notify.warning(
+        t('settings.providerDetail.fetchModelsTitle'),
+        t('settings.providerDetail.fetchSuccess', { n: 0 }),
+        { duration: 3000 },
+      )
+      return
+    }
+    const processed = imported + skipped
+    const expected = fetched.value.length // 弹窗列表来自 remote_models，是「该录全」的口径
+    for (const row of res?.models || []) {
+      const n = String(row?.model ?? row?.modelName ?? '')
+      if (n) knownPresent.add(n)
+    }
+    // 上游网关在快速重复调用时会返回不完整目录（实测同一密钥连打会回短列表/401）。
+    // 但只有「这次没返回的条目里确实还有库里没有的」才算缺口 —— 全录过之后再短返回
+    // 不该报警，否则用户会对已录全的列表反复点。有缺口就明确告知并保留弹窗续点补录。
+    const missingLocally = fetched.value.filter((m) => !knownPresent.has(fetchRowName(m))).length
+    if (processed < expected && missingLocally > 0) {
+      // 上游网关在快速重复调用时会返回不完整目录（实测同一密钥连打会回短列表/401）。
+      // 这时若照常关弹窗，用户会以为录全了 —— 明确告知缺口、保留弹窗让他续点补录。
+      notify.warning(
+        t('settings.providerDetail.importPartial', { got: processed, expected }),
+        t('settings.providerDetail.importPartialDesc', { got: processed, expected, imported, skipped }),
+        { duration: 6000 },
+      )
+      emit('imported') // 已录进去的部分照样要让父组件刷新
+      return
+    }
+    notify.success(
+      t('common.operationSuccess'),
+      t('settings.providerDetail.importDone', { imported, skipped }),
+      { duration: 3000 },
+    )
+    emit('imported')
+    visible.value = false
+  } catch (error: any) {
+    console.error('批量录入失败:', error)
+    notify.error(
+      t('settings.providerDetail.importFailed'),
+      error?.data?.error || error?.message || String(error),
+      { duration: 5000 },
+    )
+  } finally {
+    importing.value = false
+  }
+}
 </script>
 
 <style scoped>
-.fetch-search { position: sticky; top: 0; z-index: 10; margin-bottom: 12px; }
+.fetch-search {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin-bottom: 12px;
+  /* 搜索框 + 「全部录入」并排：录入是主操作，不能藏在列表里 */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fetch-input { flex: 1; min-width: 0; }
+.fetch-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
 .fetch-loading { display: flex; justify-content: center; align-items: center; padding: 48px 0; }
 .fetch-list {
   border: 1px solid var(--el-border-color-lighter);

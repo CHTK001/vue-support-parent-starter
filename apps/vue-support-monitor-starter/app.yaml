@@ -25,6 +25,11 @@ routeConfig:
 # API 基础路径
 httpConfig:
   baseUrl: /
+  # HTTP 请求超时（毫秒）。影响 http() 客户端的全部请求：超长 SQL 查询、
+  # 驱动 jar 上传、导出下载等。改这里即可全局调整（缺省 10000）。
+  # 长查询场景（如 select ... limit 大表）建议 ≥ 30000，否则会看到
+  # axios「timeout of 10000ms exceeded」。
+  timeout: 30000
   # 各业务模块后端前缀（createModuleHttp 读取，未配置则回退 baseUrl）。
   # device 用 device-starter 的原生前缀 /api/device——该模块未纳入 /ms/* 体系，
   # 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
@@ -50,11 +55,17 @@ otherConfig:
   toolbar:
     # 平台公告接口属 system 服务，监控后端未实现（同 collect 应用）
     announcement: false
-  # 文件资产（pages/filesystem / FileStorageManage）指向的独立文件服务器：
-  # 由「服务管理」的文件服务器节点（file-storage 插件，端口 18082）提供，
+  # 文件资产（pages/filesystem / FileStorageManage）指向的文件服务器。
+  #
+  # 它是**监控后端进程内的一个 HTTP 服务**（FileStorageServerFilter，不是独立系统），
+  # 随后端一起启动、监听在后端所在机器（198:18082）。前端本地跑时本机没有这个进程，
+  # 所以**不在这里写死远端地址**：留空让页面回退到 window.location.origin（本机 8848），
+  # 由 vite.config.ts 的 fileStorageTarget 代理把 /localFileStorage 等前缀转发到 198:18082。
+  # 这样全程同源，不依赖后端 CORS 白名单，也不受本机无进程影响。
+  #   需要直连别的文件服务器时：页面「服务器设置」写入 localStorage.filestorage.server，
+  #   或部署侧（198 自带的 app.yaml）再显式填远端地址。
   # 桶名 = FileStorage Bean 名（localFileStorage），与监控文件资产网关同源
   filestorage:
-    server: http://127.0.0.1:18082
     bucket: localFileStorage
     quotaGb: 5
 

@@ -28,23 +28,37 @@ export interface LiveEvent {
 /**
  * 探测 sidecar 是否活着。
  *
- * @param timeoutMs 探测超时（毫秒）
+ * 一次探测可能撞上系统瞬时负载（dep 优化、别的进程抢 CPU）而误判，
+ * 失败时退避重试两次：宁可多等 ~1.5s 也别把可用的实时模式误降级成静态。
+ *
+ * @param timeoutMs 单次探测超时（毫秒）
  * @returns 活着返回 true；前端据此决定拾取器默认用实时还是静态模式
  */
-export async function probeLive(timeoutMs = 600): Promise<boolean> {
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    const resp = await fetch(`${BASE}/api/health`, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (!resp.ok) {
+export async function probeLive(timeoutMs = 1000): Promise<boolean> {
+  const attempt = async (): Promise<boolean> => {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      const resp = await fetch(`${BASE}/api/health`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!resp.ok) {
+        return false;
+      }
+      const body = await resp.json();
+      return body.ok === true;
+    } catch {
       return false;
     }
-    const body = await resp.json();
-    return body.ok === true;
-  } catch {
-    return false;
+  };
+  for (let i = 0; i < 3; i += 1) {
+    if (await attempt()) {
+      return true;
+    }
+    if (i < 2) {
+      await new Promise((r) => setTimeout(r, 700));
+    }
   }
+  return false;
 }
 
 /**

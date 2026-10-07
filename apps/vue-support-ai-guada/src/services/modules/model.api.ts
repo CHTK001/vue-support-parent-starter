@@ -25,10 +25,29 @@ export interface RemoteModelsResponse {
   data?: Model[] | { items?: Model[] };
 }
 
+/**
+ * 一键批量录入的响应（{@code POST /api/providers/{id}/models/import-all}）。
+ *
+ * <p>{@code skipped} 既包含「库里已存在」也包含「上游条目缺模型名」——
+ * 两者都是刻意跳过而非错误，重复点击同一按钮只会补录新模型。</p>
+ */
+export interface ImportAllModelsResponse {
+  /** 上游返回的模型总数 */
+  total: number;
+  /** 本次真正写库的条数 */
+  imported: number;
+  /** 跳过的条数（已存在 / 无模型名 / 上游重复） */
+  skipped: number;
+  /** 新写入的模型行 */
+  models?: Model[];
+}
+
 export interface ModelApi {
   fetchModels(): Promise<PaginatedResponse<ModelProvider>>;
   fetchAllModels(): Promise<PaginatedResponse<ModelProvider>>;
   fetchRemoteModels(providerId: string): Promise<RemoteModelsResponse>;
+  /** 拉取该提供商的全部远端模型并一次性批量录入（幂等） */
+  importAllModels(providerId: string, opts?: { tryFix?: boolean }): Promise<ImportAllModelsResponse>;
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
   deleteModel(modelId: string): Promise<boolean>;
@@ -129,6 +148,22 @@ export const modelApi: ModelApi = {
   async fetchRemoteModels(this: ApiContext, providerId: string) {
     // 后端接口在 /api/providers/...，不是 /v2/providers/...
     return await rawApi.get(`/api/providers/${encodeURIComponent(providerId)}/remote_models`);
+  },
+
+  async importAllModels(this: ApiContext, providerId: string, opts?: { tryFix?: boolean }) {
+    // 与 remote_models 同属 /api 命名空间：后端一次完成「调上游拉目录 + 批量落库」，
+    // 前端不再逐条点「选择」。try_fix 与单次拉取同语义（404 时补全 /v1 重试）。
+    const body: any = await rawApi.post(
+      `/api/providers/${encodeURIComponent(providerId)}/models/import-all`,
+      { try_fix: !!opts?.tryFix },
+    );
+    // rawApi 不解包（unwrap:false）：正常是 { code, data, msg }，data 即统计；
+    // 个别出口直接回统计对象，这里统一成统计对象，信封 code!=0 视为业务失败。
+    if (body && typeof body.code === 'number' && body.code !== 0) {
+      throw new Error(body.msg || `import-all failed with code ${body.code}`);
+    }
+    const data = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (data ?? {}) as ImportAllModelsResponse;
   },
 
   async createModel(this: ApiContext, data: any) {

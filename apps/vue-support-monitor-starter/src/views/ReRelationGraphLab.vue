@@ -13,9 +13,11 @@
  */
 import { computed, onMounted, ref } from "vue";
 
+import i18n from "@repo/languages";
+
 defineOptions({ name: "ReRelationGraphLab" });
 
-type Scenario = "prototype" | "image" | "edge" | "layout" | "group" | "dynamic";
+type Scenario = "prototype" | "image" | "edge" | "layout" | "group" | "dynamic" | "html";
 
 /** 1x1 透明 PNG，避免验收依赖外网图片 */
 const DATA_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
@@ -119,6 +121,20 @@ const graph = computed(() => {
         ],
       };
     }
+    case "html": {
+      // 节点内容插槽场景：#node-content 为 type=html 的节点渲染自定义卡片
+      return {
+        nodes: [
+          { id: "h-1", label: "服务A", type: "html", size: [150, 56], group: "svc", data: { kind: "service", ip: "10.0.0.1" } },
+          { id: "h-2", label: "服务B", type: "html", size: [150, 56], group: "svc", data: { kind: "service", ip: "10.0.0.2" } },
+          { id: "h-3", label: "服务C", type: "html", size: [150, 56], group: "svc", data: { kind: "service", ip: "10.0.0.3" } },
+        ],
+        edges: [
+          { id: "he-1", source: "h-1", target: "h-2", label: "调用", directed: true, data: {} },
+          { id: "he-2", source: "h-2", target: "h-3", label: "调用", directed: true, data: {} },
+        ],
+      };
+    }
     default: {
       return {
         nodes: [
@@ -142,6 +158,7 @@ const scenarios: Array<{ key: Scenario; label: string }> = [
   { key: "layout", label: "大图(布局)" },
   { key: "group", label: "分组(高亮)" },
   { key: "dynamic", label: "动态增删" },
+  { key: "html", label: "节点插槽(html)" },
 ];
 
 // ---------- 事件 ----------
@@ -215,6 +232,36 @@ const toggleHighlight = () => {
 };
 const ctrlMulti = ref(true);
 
+// ---------- 2026-10-07 补齐能力：搜索 / 导出 / 连线 / 撤销重做 ----------
+const searchMatches = ref(0);
+const canUndo = ref(false);
+const canRedo = ref(false);
+const connectMode = ref(false);
+
+const doSearch = (kw: string) => {
+  const ids = graphRef.value?.search?.(kw) ?? [];
+  searchMatches.value = ids.length;
+  say(`search "${kw}" -> [${ids.join(",")}]`);
+};
+const locateFirst = async () => {
+  const id = graph.value.nodes[0]?.id;
+  if (id) { await graphRef.value?.locate?.(id); say(`locate ${id}`); }
+};
+const exportImg = async () => {
+  const url = await graphRef.value?.exportImage?.("png", 1);
+  (window as unknown as Record<string, unknown>).__rrgLastExport = url;
+  say(`exportImage len=${url ? String(url).length : 0}`);
+};
+const doUndo = async () => { await graphRef.value?.undo?.(); say("undo"); };
+const doRedo = async () => { await graphRef.value?.redo?.(); say("redo"); };
+const toggleConnect = () => {
+  connectMode.value = !connectMode.value;
+  graphRef.value?.setConnectMode?.(connectMode.value);
+  say(`connectMode ${connectMode.value}`);
+};
+const onEdgeCreated = (e: any) => say(`edge-created ${e?.id ?? ""}`);
+const onHistoryChange = (s: any) => { canUndo.value = s.canUndo; canRedo.value = s.canRedo; say(`history undo=${s.canUndo} redo=${s.canRedo}`); };
+
 // 验收脚本用的只读探针：直接问 G6 实例（DOM 层看不出的东西：元素数量/类型/状态/缩放）
 onMounted(() => {
   (window as unknown as Record<string, unknown>).__rrgLab = {
@@ -234,6 +281,21 @@ onMounted(() => {
     states: (id: string) => graphRef.value?.getInstance?.()?.getElementState?.(id) ?? [],
     /** 原始 G6 实例（仅验收用） */
     instance: () => graphRef.value?.getInstance?.() ?? null,
+    /** 搜索命中数（走 API） */
+    searchCount: (kw: string) => (graphRef.value?.search?.(kw) ?? []).length,
+    /** 导出图片 dataURL 前缀（验证返回的是图片） */
+    exportImageHead: async () => String((await graphRef.value?.exportImage?.("png", 1)) ?? "").slice(0, 22),
+    /** 撤销 / 重做可用性 */
+    canUndo: () => graphRef.value?.canUndo?.() ?? false,
+    canRedo: () => graphRef.value?.canRedo?.() ?? false,
+    /** 连线模式开关 */
+    setConnectMode: (on: boolean) => graphRef.value?.setConnectMode?.(on),
+    getConnectMode: () => graphRef.value?.getConnectMode?.() ?? false,
+    /** 节点内容插槽容器数量（DOM 里的 .rrg__node-content） */
+    nodeSlotCount: () => document.querySelectorAll(".rrg__node-content").length,
+    /** 切换应用语言（验证组件文案随共享 i18n 切换） */
+    setLang: (l: string) => { (i18n.global.locale as any).value = l; },
+    getLang: () => (i18n.global.locale as any).value,
     /** 画布像素非透明占比（证明真画出来了） */
     painted: () => {
       const list = [...document.querySelectorAll(".rrglab__stage canvas")] as HTMLCanvasElement[];
@@ -312,6 +374,21 @@ onMounted(() => {
           <div>悬停：<b data-testid="stat-hover">{{ lastHover }}</b></div>
           <div>事件数：<b data-testid="stat-events">{{ eventCount }}</b></div>
           <div>已固定：<b data-testid="stat-fixed">{{ fixedCount }}</b></div>
+          <div>命中：<b data-testid="stat-matches">{{ searchMatches }}</b></div>
+          <div>可撤销：<b data-testid="stat-undo">{{ canUndo ? "1" : "0" }}</b></div>
+          <div>可重做：<b data-testid="stat-redo">{{ canRedo ? "1" : "0" }}</b></div>
+        </div>
+      </div>
+
+      <div class="rrglab__group">
+        <span class="rrglab__label">补齐能力</span>
+        <div class="rrglab__btns">
+          <button class="rrglab__btn" data-testid="act-search" @click="doSearch('服务')">搜索"服务"</button>
+          <button class="rrglab__btn" data-testid="act-locate" @click="locateFirst">定位首个</button>
+          <button class="rrglab__btn" data-testid="act-export" @click="exportImg">导出图片</button>
+          <button class="rrglab__btn" :class="{ 'is-active': connectMode }" data-testid="act-connect" @click="toggleConnect">连线:{{ connectMode ? '开' : '关' }}</button>
+          <button class="rrglab__btn" data-testid="act-undo" @click="doUndo">撤销</button>
+          <button class="rrglab__btn" data-testid="act-redo" @click="doRedo">重做</button>
         </div>
       </div>
 
@@ -349,7 +426,20 @@ onMounted(() => {
         @selection-change="onSelectionChange"
         @layout-change="onLayoutChange"
         @data-change="onDataChange"
-      />
+        @edge-created="onEdgeCreated"
+        @history-change="onHistoryChange"
+      >
+        <template #node-content="{ node, selected }">
+          <div
+            class="rrglab__nodecard"
+            :class="{ 'is-selected': selected }"
+            :data-node-id="node.id"
+          >
+            <div class="rrglab__nodecard-title">{{ node.label ?? node.id }}</div>
+            <div class="rrglab__nodecard-sub">{{ node.data?.ip ?? node.id }}</div>
+          </div>
+        </template>
+      </ReRelationGraph>
     </div>
   </div>
 </template>
@@ -368,4 +458,8 @@ onMounted(() => {
 .rrglab__btn.is-active { border-color: var(--brand-500, #409eff); color: var(--brand-500, #409eff); background: var(--brand-50, #ecf5ff); }
 .rrglab__stat { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 12px; color: var(--text-secondary); }
 .rrglab__log { flex: 1 1 auto; overflow: auto; font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--text-secondary); border: 1px solid var(--border-subtle, #ebeef5); border-radius: 6px; padding: 6px 8px; background: var(--bg-elevated, #fff); }
+.rrglab__nodecard { width: 150px; min-height: 52px; padding: 6px 10px; box-sizing: border-box; border: 1px solid var(--border-default, #dcdfe6); border-radius: 8px; background: var(--bg-elevated, #fff); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.rrglab__nodecard.is-selected { border-color: var(--brand-500, #409eff); box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.25); }
+.rrglab__nodecard-title { font-size: 12px; font-weight: 600; color: var(--text-primary, #303133); }
+.rrglab__nodecard-sub { font-size: 11px; color: var(--text-secondary, #606266); }
 </style>

@@ -151,7 +151,7 @@
             <i class="ngx-trend-dot" />{{ s.label }}
           </button>
         </div>
-        <ReButton  text :loading="trendLoading" @click="loadTrend">
+        <ReButton text tip="刷新趋势" :loading="trendLoading" @click="loadTrend">
           <template #icon><ReIcon name="Refresh" :size="12" /></template>
         </ReButton>
       </div>
@@ -202,7 +202,7 @@
         <span class="ngx-card-sub">
           {{ topLabel }}
         </span>
-        <ReButton  text :loading="topLoading" @click="loadTop">
+        <ReButton text tip="刷新访问 Top" :loading="topLoading" @click="loadTop">
           <template #icon><ReIcon name="Refresh" :size="12" /></template>
         </ReButton>
       </div>

@@ -180,3 +180,8 @@ zz-probe-*.png
 eduai-web-*.tar.gz
 **/*-probe.*.mjs
 apps/vue-support-collect-scheduler-starter/scripts/
+
+eduai-web*.tar.gz
+*.accept.report.json
+parser-trim.png
+**/zz-tmp-*.spec.ts

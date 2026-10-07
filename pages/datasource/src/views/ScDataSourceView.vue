@@ -728,7 +728,7 @@ onMounted(load);
                 </span>
                 <span class="ds-item__body">
                   <span class="ds-item__row">
-                    <b class="ds-item__name">{{ item.name }}</b>
+                    <b class="ds-item__name" :title="item.name">{{ item.name }}</b>
                     <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ item.type.toUpperCase() }}</span>
                   </span>
                   <span class="ds-item__addr mono">{{ item.host }}:{{ item.port }}</span>
@@ -757,7 +757,7 @@ onMounted(load);
             </span>
             <template v-if="current">
               <span class="ds-head__sep" aria-hidden="true" />
-              <h2 class="ds-detail__name">{{ current.name }}</h2>
+              <h2 class="ds-detail__name" :title="current.name">{{ current.name }}</h2>
               <span class="ds-detail__chip" :style="{ '--tile': typeMeta(current.type).color }">
                 {{ current.type.toUpperCase() }}
               </span>
@@ -1326,6 +1326,10 @@ onMounted(load);
 }
 .ds-detail__name {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.2;

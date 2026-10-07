@@ -388,5 +388,12 @@ export default {
     configApiError: '请先配置API地址和API KEY',
     fetchSuccess: '已获取到 {n} 个模型',
     fetchFailed: '获取模型列表时发生错误',
+    importAll: '全部录入（{n}）',
+    importing: '正在录入…',
+    importDone: '已录入 {imported} 个模型，跳过 {skipped} 个已存在',
+    importFailed: '批量录入失败',
+    importPartial: '部分录入（{got}/{expected}）',
+    importPartialDesc: '已录入 {imported} 个、跳过 {skipped} 个；上游这次只返回 {expected} 个里的 {got} 个，再点一次「全部录入」继续补录',
+    manualAdd: '手动添加',
   },
 }

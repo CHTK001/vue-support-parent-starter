@@ -1,7 +1,8 @@
 <template>
     <div>
-        <img v-if="src" :src="avatarSrc" alt="Avatar" class="avatar-image w-full h-full"
-            :class="{ 'rounded-full': props.round, 'rounded-lg': !props.round }"></img>
+        <img v-if="src && !showPlaceholder" :src="avatarSrc" alt="Avatar" class="avatar-image w-full h-full"
+            :class="{ 'rounded-full': props.round, 'rounded-lg': !props.round }"
+            @error="onImgError"></img>
         <div v-else class="avatar-placeholder" :class="{
             'rounded-full': props.round,
             'rounded-lg': !props.round, 'avatar-user': props.type === 'user'
@@ -16,7 +17,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 // @ts-ignore - icons 类型缺失
 import {
     UserOutlined,
@@ -32,6 +33,10 @@ const props = defineProps<{
     full?: boolean;
     name?: string;  // 用于生成首字头像的名称
 }>();
+
+// Logo 加载失败时回退到占位图（首字母），避免显示崩坏图像图标
+const showPlaceholder = ref(false);
+const onImgError = () => { showPlaceholder.value = true };
 
 // 添加时间戳避免缓存 - 类型化
 const avatarSrc = computed((): string => {

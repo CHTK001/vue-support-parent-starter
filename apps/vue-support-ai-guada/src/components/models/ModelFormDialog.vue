@@ -481,7 +481,13 @@ const prefillFromFetch = (model: any) => {
   visible.value = true
 }
 
-defineExpose({ openAdd, openEdit, prefillFromFetch })
+/**
+ * 仅显示但不重置表单数据：当从 fetchDialog 的「手动添加」退回时，
+ * 表单可能已经打开且用户已填了部分内容，不能再调 openAdd 清空。
+ */
+const show = () => { visible.value = true }
+const close = () => { visible.value = false }
+defineExpose({ openAdd, openEdit, prefillFromFetch, show, close })
 
 const handleSave = async () => {
   try {

@@ -173,6 +173,14 @@ export const RELATION_LAYOUTS: Array<{ value: RelationLayoutName; label: string;
   { value: "fishbone", label: "鱼骨图", needTree: true },
 ];
 
+/** 视图模式
+ *
+ * <p>{@code 2d} 是 G6 画布（全部能力）；{@code 3d} 是 vue-force-graph-3d 力导向视图，
+ * 只覆盖子集：布局固定为 3D 力导向、无小地图、无双击事件、无 combo 容器
+ * （详见 internals/ForceGraph3D.vue 顶部说明）。</p>
+ */
+export type RelationViewMode = "2d" | "3d";
+
 /** 图实例最小接口（对外暴露的能力） */
 export interface RelationGraphApi {
   addNode: (node: RelationNode) => Promise<void>;
@@ -195,5 +203,46 @@ export interface RelationGraphApi {
   clearSelection: () => void;
   highlight: (ids: string[]) => void;
   clearHighlight: () => void;
+  /** 切换 2D/3D 视图（3D 为 vue-force-graph-3d 力导向） */
+  setMode: (mode: RelationViewMode) => Promise<void> | void;
+  /** 当前视图模式 */
+  getMode: () => RelationViewMode;
   getInstance: () => unknown;
+
+  // ===== 2026-10-07 补齐：搜索 / 定位 / 导出 / 编辑 / 历史 =====
+
+  /**
+   * 按关键字（label / id，不区分大小写）检索节点，并高亮命中节点。
+   * @returns 命中节点 id 列表
+   */
+  search: (keyword: string) => string[];
+  /**
+   * 聚焦并选中某个节点（2D 用 G6 focusElement，3D 用 centerOn）。
+   */
+  locate: (id: string) => Promise<void>;
+
+  /**
+   * 导出图片为 dataURL。
+   * <p>2D 用 G6 toDataURL；3D 用 three.js WebGLRenderer 画布。
+   * 节点内容插槽（DOM）不包含在内。</p>
+   * @param type  'png' | 'jpeg'，默认 png
+   * @param quality jpeg 品质 (0-1)
+   */
+  exportImage: (type?: "png" | "jpeg", quality?: number) => Promise<string>;
+
+  /** 切换「拖边连线」模式（仅 2D 且 editable 时生效） */
+  setConnectMode: (on: boolean) => void;
+  /** 当前是否处于「拖边连线」模式 */
+  getConnectMode: () => boolean;
+
+  /** 撤销上一步编辑（2D 画布数据变更；3D 视图同步） */
+  undo: () => Promise<void>;
+  /** 重做上一步被撤销的编辑 */
+  redo: () => Promise<void>;
+  /** 是否可撤销 */
+  canUndo: () => boolean;
+  /** 是否可重做 */
+  canRedo: () => boolean;
+  /** 清空撤销 / 重做历史 */
+  clearHistory: () => void;
 }

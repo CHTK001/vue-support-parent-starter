@@ -152,6 +152,41 @@ export function isFixedCellHeight(mode: CalendarCellMode): boolean {
 }
 
 /**
+ * 固定密度模式下写死的格子高度（px）。
+ *
+ * <p>它必须装下该模式**自己承诺的行数**，否则 `overflow:hidden` 会把文字从中间切掉 ——
+ * 原来写死 60px，而「最多 4 行」的自然高度实测 92.6px，整月有 5/42 格被裁一半。</p>
+ *
+ * <p>行高均取自 CalendarWidget.vue 的对应规则，推导：</p>
+ * <pre>
+ *   格子 = border-top 2 + padding 8 + 各行(18 / 16.8 / 18) + gap 4 × (行数-1)
+ * </pre>
+ *
+ * <p><b>约束项来自「关掉节日」那一档</b>，不是开节日：关掉后 {@code .cell-sub} 整行不渲染，
+ * 但省下的额度变成多一条日程 —— 行数没少、行高还全变成整数，反而顶得更高：</p>
+ * <pre>
+ *   max3 关节日 = 2 + 8 + 18+4 + 18+4 + 18   = 72    &lt;- 约束项（开节日只有 70.8）
+ *   max4 关节日 = 2 + 8 + 18+4 + 18+4 + 18+4 + 18 = 94 &lt;- 约束项（开节日只有 92.8）
+ * </pre>
+ *
+ * <p>取 <b>76 / 96</b>：在约束项之上留 4 / 2px，容掉字体度量与亚像素舍入。
+ * 实测关节日那档是 71.8 / 93.8 —— 若按约束项写成 72，只剩 0.2px，换台机器的
+ * 字体或 DPR 就会重新裁字（裁切只出现在固定密度模式，很难被发现）。</p>
+ *
+ * <p>日期行与日程行靠 {@code .cell-head / .cell-event} 的显式 {@code line-height: 18px} 锁死，
+ * 否则会跟随继承的行高漂移、这里算出来的高度随之失准 ——
+ * 改这两处或改 {@code .cell-festival} 的 line-height，都必须同步本表，
+ * 由 mode-verify.cjs 从 CSS 反解行高做漂移哨兵，另由 calendar-density 门禁在浏览器里复验零裁切。</p>
+ *
+ * <p>{@code all} 不固定高度，此项仅为了类型完整，不会被使用。</p>
+ */
+export const CALENDAR_FIXED_CELL_HEIGHT: Record<CalendarCellMode, number> = {
+  all: 60,
+  max4: 96,
+  max3: 76,
+};
+
+/**
  * 算出格子里还能放几条日程。
  *
  * <p>行数预算是「总行数 − 日期行（恒占 1，承载休/班角标）− 节日行 − 农历行」，

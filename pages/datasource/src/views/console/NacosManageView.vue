@@ -29,9 +29,9 @@
               <span class="dsm-tree-label">命名空间</span>
               <span class="dsm-tree-count">{{ namespaces.length }}</span>
               <span class="dsm-tree-actions" @click.stop>
-                <ReButton text @click="openNamespaceDialog('create')"><ReIcon name="Plus" size="13" /></ReButton>
-                <ReButton text :disabled="!canEditNamespace" @click="openNamespaceDialog('edit')"><ReIcon name="Edit" size="13" /></ReButton>
-                <ReButton text type="danger" :disabled="!canEditNamespace" @click="removeNamespace"><ReIcon name="Delete" size="13" /></ReButton>
+                <ReButton text tip="新建命名空间" @click="openNamespaceDialog('create')"><ReIcon name="Plus" size="13" /></ReButton>
+                <ReButton text tip="编辑命名空间" :disabled="!canEditNamespace" @click="openNamespaceDialog('edit')"><ReIcon name="Edit" size="13" /></ReButton>
+                <ReButton text type="danger" tip="删除命名空间" :disabled="!canEditNamespace" @click="removeNamespace"><ReIcon name="Delete" size="13" /></ReButton>
               </span>
             </div>
             <div v-if="expandedNodes.has('ns')" class="dsm-tree-children">

@@ -94,12 +94,15 @@ const DESIGN_EXTS = ["psd", "psb"];
 /**
  * 3D / CAD / GIS 模型扩展名
  *
- * DXF 走 CAD 面板出真实图形；其余（glb/obj/stl/step/…）后端目前只有
- * 信息卡或外部转换，同样归 CAD 面板，由它按 renderable 决定展示形态。
+ * DXF 走 CAD 面板出真实图形；IFC 走 {@link PreviewIfcPanel} 前端 3D 面板
+ * （web-ifc 解析 + three 渲染，不经后端）；其余（glb/obj/stl/step/…）
+ * 后端只有信息卡或外部转换，归 CAD 面板由它按 renderable 决定展示形态。
  */
 const MODEL_EXTS = [
   "glb", "gltf", "obj", "stl", "dxf", "dwg", "blend", "fbx",
   "step", "stp", "iges", "igs", "brep", "shp", "dgn",
+  // IFC（Industry Foundation Classes，BIM 模型，STEP/ISO 10303-21 文本）
+  "ifc",
 ];
 
 /** 邮件扩展名 */
@@ -163,6 +166,8 @@ const FS_TYPE_SVG: Record<string, string> = {
   ppt: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2.4" fill="#e8833a"/><text x="24" y="31.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#fff">P</text></svg>`,
   /** 字体：白纸 + 紫色 Aa */
   font: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="24" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#8e5bd6">Aa</text></svg>`,
+  /** 3D / BIM 模型：等轴测立方体（IFC、STEP 等归此类） */
+  model: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><path d="M24 21l9 4.5-9 4.5-9-4.5z" fill="#8fb4f5"/><path d="M24 30l9-4.5v9L24 39z" fill="#3f6fd6"/><path d="M24 30l-9-4.5v9L24 39z" fill="#5b8def"/></svg>`,
 };
 
 /**
@@ -246,8 +251,10 @@ export function fileSvg(name: string, isDir: boolean): string {
     case "calendar":
     case "contact":
     case "notebook":
-    case "model":
       return FS_TYPE_SVG.file;
+    // 3D / BIM 模型使用立方体图标
+    case "model":
+      return FS_TYPE_SVG.model;
     // HTML 网页沿用代码图标；数据库/大数据文件使用花括号图标
     case "webpage":
       return FS_TYPE_SVG.code;
