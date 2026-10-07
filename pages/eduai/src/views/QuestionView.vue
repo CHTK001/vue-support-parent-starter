@@ -952,7 +952,13 @@ const onSizeChange = () => {
 
 const commitSearch = () => {
   // 排序页签直接写 applied，不经过 searchDraft（它没有对应的搜索输入框）
-  Object.assign(applied, JSON.parse(JSON.stringify(searchDraft)), { orderBy: applied.orderBy });
+  // 注意：不能用 JSON.parse(JSON.stringify(searchDraft)) 深拷 —— el-select 清空（×）会把字段置为
+  // undefined，JSON 序列化会直接丢掉该键，Object.assign 无法覆盖 applied 里的旧值，
+  // 导致「清空筛选后表格仍是旧过滤结果」。改用结构化拷贝保留 undefined。
+  for (const k of Object.keys(searchDraft) as (keyof typeof searchDraft)[]) {
+    if (k === "orderBy") continue;
+    (applied as Record<string, unknown>)[k] = searchDraft[k];
+  }
   pageNo.value = 1;
   loadPage();
   void loadDimensions();
