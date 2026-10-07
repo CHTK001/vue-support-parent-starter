@@ -11,6 +11,7 @@ import type {
   EduAiCapability,
   QuestionAiSelectPayload,
   QuestionGradeDimension,
+  QuestionImportResult,
   Paper,
   PaperComposePayload,
   PaperQuestionAddItem,
@@ -109,7 +110,7 @@ export const eduaiApi = {
     http()
       .post("/v2/edu/question/import")
       .data(list as unknown as Record<string, unknown>)
-      .then<number>(unwrap),
+      .then<QuestionImportResult>(unwrap),
   deleteQuestion: (id: number) =>
     http()
       .delete(`/v2/edu/question/${id}`)

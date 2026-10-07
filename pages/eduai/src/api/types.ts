@@ -82,6 +82,13 @@ export interface QuestionGradeDimension {
   questionCount: number;
 }
 
+/** 批量导入结果，对应后端 QuestionImportResultVO（失败原因必须透出给用户） */
+export interface QuestionImportResult {
+  successCount: number;
+  failedCount: number;
+  errors: string[];
+}
+
 /** 试卷详情内的题目（后端 QuestionVO 短字段名） */
 export interface PaperQuestionItem {
   id: number;
