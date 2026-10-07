@@ -11,11 +11,12 @@
  * 完全不相交，所以两套样式同时挂载也不会互相干扰——同一时刻只有一个引擎渲染出 DOM。
  */
 
-/* ============ element 引擎（默认）的表格视觉 ============
+/* ============ element 引擎（兼容回退，默认是 vxe）的表格视觉 ============
    与 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、
    44/36 行高、更淡的斑马纹、hover 混主色、首列主色条。
-   ⚠ 页面里 :deep(.el-table …) 这类内部覆盖只在 element 引擎下成立，
-     这也是 engine 默认为 "element" 的原因。 */
+   ⚠ 页面里 :deep(.el-table …) 这类内部覆盖只在 engine="element" 下成立；
+     默认引擎是 vxe（2026-10-07 起），这些覆盖默认不生效，需要视觉跟页
+     时得显式传 engine="element"，或改写成引擎无关/ vxe 版选择器。 */
 .re-table .el-table {
   --el-table-border-color: var(--el-border-color-lighter);
   --el-table-header-bg-color: var(--el-fill-color-lighter);
