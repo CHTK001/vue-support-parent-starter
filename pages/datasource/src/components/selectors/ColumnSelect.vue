@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ReSelect from "@repo/ui/re-select";
-import { APP_DATASOURCE, fetchDatasourceColumns, toColumnOptions } from "../../api";
+import { APP_DATASOURCE, fetchDatasourceColumns, toColumnOptions, toColumnRows } from "../../api";
 import type { CollectColumn, CollectOption } from "../../api";
 
 const props = withDefaults(
@@ -61,24 +61,8 @@ const loading = ref(false);
 /** 是否由宿主喂选项（此时组件不自己取数） */
 const external = computed(() => Array.isArray(props.options));
 
-/** 外部模式下的列元数据：优先用原始行，裸选项按 value 补最小行 */
-const externalColumns = computed<CollectColumn[]>(() =>
-  (props.options ?? []).map(option => {
-    const raw = option.raw as CollectColumn | undefined;
-    if (raw?.name) {
-      return raw;
-    }
-    return {
-      name: String(option.field ?? option.value ?? ""),
-      label: (option.comment as string | null) ?? null,
-      position: null,
-      typeName: (option.type as string | null) ?? null,
-      size: null,
-      nullable: null,
-      primaryKey: Boolean(option.primaryKey),
-    };
-  }),
-);
+/** 外部模式下的列元数据：宿主给的选项还原成行，供 loaded 事件用 */
+const externalColumns = computed<CollectColumn[]>(() => toColumnRows(props.options ?? []));
 
 /** 最终渲染的选项：外部模式用宿主给的，自取数模式用本地列元数据换算 */
 const options = computed<CollectOption[]>(() =>

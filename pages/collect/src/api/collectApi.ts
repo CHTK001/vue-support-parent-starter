@@ -223,9 +223,10 @@ export {
   APP_DATASOURCE,
   fetchDatasourceOptions,
   fetchDatasourceTables,
+  fetchDatasourceTableInfos,
   fetchDatasourceColumns,
 } from "@pages/datasource";
-export type { CollectColumn } from "@pages/datasource";
+export type { CollectColumn, CollectTable } from "@pages/datasource";
 
 /* --------------------------------- 执行通知 -------------------------------- */
 

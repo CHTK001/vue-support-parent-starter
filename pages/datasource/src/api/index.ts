@@ -29,7 +29,7 @@
 import { del, get, post, put } from "./request";
 
 // 下拉选项映射是纯函数，单独成文件以便 node --test 直接引入（见 schemaOptions.ts 头注）
-export { toTableOptions, toColumnOptions } from "./schemaOptions";
+export { toTableOptions, toColumnOptions, toTableRows, toColumnRows } from "./schemaOptions";
 export type { SchemaTable, SchemaColumn, SelectOption } from "./schemaOptions";
 
 /**
