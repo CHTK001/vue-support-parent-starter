@@ -433,6 +433,7 @@ const getFieldLabel = (item) => {
             'recognizer_model': '识别模型',
             'direction_model': '方向矫正模型',
             'restorer_model': '修复模型',
+            'corrector_model': '文本矫正模型',
             'layout_model': '布局模型',
             'pose_model': '姿态估计模型',
             'optimizer_model': '优化模型',
