@@ -20,20 +20,35 @@ export interface SchemaTable {
   type: string | null;
 }
 
-/** 列元数据（与后端 SchemaColumnVO 对齐） */
+/**
+ * 列元数据（与后端 SchemaColumnVO 对齐）。
+ *
+ * <p>{@code position} / {@code size} / {@code nullable} 可选：只有外部模式按 value
+ * 补「最小行」时拿不到（宿主只喂了 value/label）；自取数与 raw 往返时都是完整的。
+ * 设成必填会让裸选项那种情况编译不过。</p>
+ */
 export interface SchemaColumn {
   name: string;
   label: string | null;
   typeName: string | null;
   primaryKey?: boolean | null;
+  position?: number | null;
+  size?: number | null;
+  nullable?: boolean | null;
 }
 
-/** ReSelect 选项：只声明用得到的字段，index 签名留给 card/table 布局的额外字段 */
+/**
+ * ReSelect 选项。
+ *
+ * <p>{@code description} 是可选的：采集侧大量选项（分类、流程、分组等）只给
+ * value/label，若在这里设成必填，全站每处选项构造都得补一个空串。
+ * 只有表 / 字段选项会填它 —— 那是「中文名 + 真实名」这条对应关系需要副标题。</p>
+ */
 export interface SelectOption {
   value: string;
   label: string;
   /** 副标题：真实名 + 类型 */
-  description: string;
+  description?: string;
   [key: string]: unknown;
 }
 
