@@ -9,6 +9,37 @@
       </div>
     </el-card>
 
+    <!-- 实时进度（SSE）：上传后立即显示识别/解析/判分推进，终态自动收起 -->
+    <el-card v-if="progress" shadow="never" class="mt-3 progress-card">
+      <div class="flex items-center gap-3 flex-wrap">
+        <el-tag :type="progressTagType" effect="dark">{{ progressTagText }}</el-tag>
+        <span class="font-semibold">{{ progress.stage || '处理中' }}</span>
+        <el-tag v-if="progress.total" type="info" size="small">
+          {{ progress.doneCount ?? 0 }} / {{ progress.total }} 题
+        </el-tag>
+        <el-tag :type="streamTagType" size="small" effect="plain">{{ streamTagText }}</el-tag>
+        <span class="progress-task-id">taskId: {{ progress.taskId }}</span>
+      </div>
+      <el-progress
+        class="mt-2"
+        :percentage="progress.percent ?? 0"
+        :indeterminate="progress.percent == null && !progress.finished"
+        :status="progress.taskStatus === 3 ? 'exception' : progress.finished ? 'success' : ''"
+        :stroke-width="10"
+      />
+      <el-alert
+        v-if="progress.error"
+        class="mt-2"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="progress.error"
+      />
+      <div v-if="progress.finished" class="flex justify-end mt-2">
+        <ReButton size="small" @click="progress = null">收起</ReButton>
+      </div>
+    </el-card>
+
     <el-card shadow="never" class="mt-3 flex-1">
       <template #header>
         <div class="flex items-center gap-3">
@@ -152,12 +183,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref } from 'vue';
+import { onMounted, onUnmounted, reactive, ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Reading } from '@element-plus/icons-vue';
+import { http } from '@repo/utils';
 import { eduaiApi } from '../api/eduaiApi';
 import { failToast } from '../api/errorText';
-import type { MarkingResultVO } from '../api/types';
+import type { MarkingProgressVO, MarkingResultVO } from '../api/types';
 import SheetStructureView from '../components/marking/SheetStructureView.vue';
 
 const taskId = ref('');
@@ -229,6 +261,112 @@ const confirming = ref(false);
 let pollHandle: any = null;
 /** 当前轮询对应的 taskId：切换任务时必须先停掉上一个任务的轮询 */
 let pollTaskId = '';
+
+/** 实时进度（SSE）：上传后立即可见，不必等整单判完 */
+const progress = ref<MarkingProgressVO | null>(null);
+/** SSE 连接状态，界面显示「实时中 / 重连中」 */
+const streamState = ref<'idle' | 'connecting' | 'open' | 'error'>('idle');
+/** 进度流句柄（切任务 / 离开页面必须关，否则旧流会把新任务的进度写回来） */
+let progressClient: { close: () => void } | null = null;
+let progressTaskId = '';
+
+/** 进度状态标签：处理中 / 已完成 / 失败 */
+const progressTagType = computed<'primary' | 'success' | 'danger'>(() => {
+  const s = progress.value?.taskStatus;
+  if (s === 3) return 'danger';
+  if (s === 2) return 'success';
+  return 'primary';
+});
+const progressTagText = computed(() => {
+  const s = progress.value?.taskStatus;
+  if (s === 3) return '失败';
+  if (s === 2) return '已完成';
+  if (s === 1) return '处理中';
+  return '排队中';
+});
+/** 流状态标签：实时中 / 连接中 / 重连中（SSE 不可用时提示已降级轮询） */
+const streamTagType = computed<'success' | 'info' | 'warning'>(() => {
+  if (streamState.value === 'open') return 'success';
+  if (streamState.value === 'error') return 'warning';
+  return 'info';
+});
+const streamTagText = computed(() => {
+  if (streamState.value === 'open') return '实时推送中';
+  if (streamState.value === 'connecting') return '连接中';
+  if (streamState.value === 'error') return '实时不可用，已降级轮询';
+  return '已断开';
+});
+
+/** 停掉进度流（切任务、离开页面、任务终态时都要走这里） */
+const stopProgressStream = () => {
+  progressClient?.close();
+  progressClient = null;
+  progressTaskId = '';
+  streamState.value = 'idle';
+};
+
+/** 轮询兜底：SSE 连不上时才启用（原路径保留，代理掐流后页面不会停在半途） */
+const startPolling = (id: string) => {
+  if (pollHandle || !id) return;
+  pollTaskId = id;
+  pollHandle = setInterval(async () => {
+    if (id !== taskId.value.trim()) {
+      stopPolling();
+      return;
+    }
+    try {
+      const rr = await eduaiApi.getMarkingResult(id);
+      if (id !== taskId.value.trim()) return;
+      result.value = rr;
+      if (rr?.finished) stopPolling();
+    } catch {
+      // 静默
+    }
+  }, 2000);
+};
+
+/** 收到一帧进度：刷新进度条；终态则收流并拉取最终结果 */
+const applyProgress = async (p: MarkingProgressVO) => {
+  if (p.taskId && p.taskId !== taskId.value.trim()) return; // 旧任务的尾帧，丢弃
+  progress.value = p;
+  if (p.finished) {
+    stopProgressStream();
+    await fetchResult();
+  }
+};
+
+/** 建立进度流：上传拿到 taskId 后立刻连，逐帧刷新 */
+const startProgressStream = (id: string) => {
+  stopProgressStream();
+  progressTaskId = id;
+  streamState.value = 'connecting';
+  progressClient = http()
+    .get(eduaiApi.markingProgressStreamUrl(id))
+    .sse<MarkingProgressVO>({
+      onOpen: () => {
+        streamState.value = 'open';
+      },
+      onMessage: (ev) => {
+        streamState.value = 'open';
+        const p = ev.data as MarkingProgressVO | null;
+        if (p && typeof p === 'object') {
+          void applyProgress(p);
+        }
+      },
+      onError: () => {
+        // SSE 不可用（网络 / 代理掐流）：退回 2s 轮询，教师仍能看到结果
+        streamState.value = 'error';
+        progressClient = null;
+        progressTaskId = '';
+        startPolling(id);
+      },
+      onClose: () => {
+        if (streamState.value !== 'error') streamState.value = 'idle';
+      },
+      maxReconnectAttempts: 3,
+      reconnectInterval: 2000,
+    });
+};
 
 /** 停掉轮询（切任务、离开页面、任务已完成时都要走这里） */
 const stopPolling = () => {
@@ -312,7 +450,11 @@ const doScan = async () => {
     ElMessage.success('已提交，正在识别与判分…');
     taskId.value = newTaskId;
     scanDialogVisible.value = false;
-    // 判分在服务端逐题调模型（每题数秒），必须轮询等待，不能只读一次
+    // SSE 实时进度：建连后逐帧刷新阶段与百分比，终态自动收流并拉最终结果；
+    // 连不上时 startProgressStream 的 onError 会降级到 2s 轮询
+    progress.value = null;
+    stopPolling();
+    startProgressStream(newTaskId);
     await fetchResult();
   } catch (e) {
     failToast('扫描阅卷失败', e);
@@ -394,27 +536,17 @@ const fetchResult = async () => {
   // 切到别的 taskId 时，先停掉上一个任务的轮询：否则旧任务的轮询会在 2 秒后
   // 拿旧数据覆盖 result，页面显示成另一个任务的结果（教师会据此判错分）。
   if (id !== pollTaskId) stopPolling();
+  if (id !== progressTaskId) stopProgressStream();
   loading.value = true;
   try {
     const r = await eduaiApi.getMarkingResult(id);
     if (id !== taskId.value.trim()) return; // 响应回来时用户已切走，丢弃
     result.value = r;
-    if (!r?.finished && !pollHandle) {
-      pollTaskId = id;
-      pollHandle = setInterval(async () => {
-        if (id !== taskId.value.trim()) {
-          stopPolling();
-          return;
-        }
-        try {
-          const rr = await eduaiApi.getMarkingResult(id);
-          if (id !== taskId.value.trim()) return;
-          result.value = rr;
-          if (rr?.finished) stopPolling();
-        } catch {
-          // 静默
-        }
-      }, 2000);
+    if (!r?.finished) {
+      // 未判完：优先走 SSE 实时进度；只有流已降级不可用时才退回轮询
+      if (!progressClient && progressTaskId !== id) {
+        startProgressStream(id);
+      }
     }
   } catch (e) {
     // 查询失败时必须清掉旧结果：taskId 已是新值而表格还留着上一个任务的分，
@@ -456,6 +588,7 @@ const confirmAdjust = async () => {
 onMounted(() => {});
 onUnmounted(() => {
   stopPolling();
+  stopProgressStream();
 });
 </script>
 

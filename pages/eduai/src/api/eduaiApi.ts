@@ -340,6 +340,18 @@ export const eduaiApi = {
       .data(form)
       .then<string>(unwrap),
 
+  /**
+   * 阅卷进度 SSE 流地址。
+   *
+   * <p>拿到 scanMarking 返回的 taskId 后立刻 {@code http().get(url).sse({...})}：
+   * 识别 / 解析 / 判分每推进一步都会收到一帧 {@code progress}，终态收到 {@code done}。
+   * 不再靠 2s 轮询问结果接口。</p>
+   *
+   * @param taskId 任务标识
+   * @returns SSE 流地址
+   */
+  markingProgressStreamUrl: (taskId: string) => `/v2/edu/marking/stream/${taskId}`,
+
   // 知识点
   treeKnowledge: (params: { subject?: string; gradeLevel?: string; grade?: string } = {}) =>
     http()

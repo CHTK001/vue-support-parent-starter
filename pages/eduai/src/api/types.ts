@@ -285,6 +285,32 @@ export interface MarkingAdjust {
   comment?: string;
 }
 
+/**
+ * 阅卷任务实时进度（SSE 推送载荷 / 建连快照）。
+ *
+ * <p>与 {@link MarkingResultVO} 的分工：结果 VO 是「判完的逐题明细」，
+ * 进度是「正在跑的过程」——上传后不必等整单判完就能看到识别、解析、判分推进。</p>
+ */
+export interface MarkingProgressVO {
+  taskId: string;
+  /** 0-待处理 1-处理中 2-已完成 3-失败 */
+  taskStatus: number;
+  /** 当前阶段描述（识别中 / 解析题目 / 判分中 3/15 / 已完成 / 失败） */
+  stage?: string;
+  /** 识别出的题目总数（识别完成前为空） */
+  total?: number | null;
+  /** 已判分题目数 */
+  doneCount?: number | null;
+  /** 0-100；题目数未知时为空，前端用不确定态进度条 */
+  percent?: number | null;
+  error?: string;
+  /** 是否终态（已完成或失败） */
+  finished: boolean;
+  mode?: string;
+  studentId?: string;
+  updateTime?: string;
+}
+
 /** 知识点 */
 export interface KnowledgePoint {
   knowledgePointId: number;
