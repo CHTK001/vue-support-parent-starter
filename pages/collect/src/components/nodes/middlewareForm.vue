@@ -38,25 +38,33 @@ const loopNames = new Set(LOOP_PARAM_NAMES);
 /** 本节点要求的数据源类型：shape 前缀决定（influxdb-* / neo4j-*） */
 const dsType = computed(() => (props.node.shape.startsWith("influxdb") ? "influxdb" : "neo4j"));
 
-/** 类型过滤后的数据源候选（只列启用项；值是台账 ID 字符串，与全局下拉同口径） */
-const typeOptions = ref<{ value: string; label: string }[]>([]);
+/** 类型过滤后的数据源候选（只列启用项；值是台账 ID 字符串，与全局下拉同口径）
+ *
+ * <p>候选必须是 computed 而不能在 onMounted 里定格：宿主 `<component :is>` 没有 key，
+ * influxdb-* 与 neo4j-* 共用本组件实例 —— 挂载时按当时的 dsType 过滤一次，从
+ * Influx 节点切到 Neo4j 节点（或反之）会把异类型的清单一直挂在下拉里。
+ * 清单挂载拉一次（原始行），过滤随 dsType 反应式重算。</p> */
+const allRows = ref<Awaited<ReturnType<typeof fetchDataSources>>>([]);
 const typeLoading = ref(false);
 const typeError = ref("");
+
+const typeOptions = computed(() =>
+  (allRows.value ?? [])
+    .filter(
+      row =>
+        (row.type || "").toLowerCase() === dsType.value
+        && (row.status === null || row.status !== 0),
+    )
+    .map(row => ({
+      value: String(row.id),
+      label: `${row.name}（${row.host ?? ""}${row.port ? `:${row.port}` : ""}）`,
+    })),
+);
 
 onMounted(async () => {
   typeLoading.value = true;
   try {
-    const rows = (await fetchDataSources()) ?? [];
-    typeOptions.value = rows
-      .filter(
-        row =>
-          (row.type || "").toLowerCase() === dsType.value
-          && (row.status === null || row.status !== 0),
-      )
-      .map(row => ({
-        value: String(row.id),
-        label: `${row.name}（${row.host ?? ""}${row.port ? `:${row.port}` : ""}）`,
-      }));
+    allRows.value = (await fetchDataSources()) ?? [];
   } catch (error) {
     typeError.value = error instanceof Error ? error.message : String(error);
   } finally {
