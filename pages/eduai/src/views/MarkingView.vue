@@ -33,7 +33,10 @@
             stripe
             @refresh="fetchResult"
           >
-            <ReTableColumn prop="questionId" label="题号" width="120" />
+            <ReTableColumn label="题号" width="120">
+              <template #default="{ row }">{{ row.no || row.questionId }}</template>
+            </ReTableColumn>
+            <ReTableColumn prop="studentAnswer" label="学生作答" min-width="220" show-overflow-tooltip />
             <ReTableColumn label="AI 得分" width="130">
               <template #default="{ row }">{{ row.score }} / {{ row.maxScore ?? '-' }}</template>
             </ReTableColumn>
