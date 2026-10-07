@@ -26,6 +26,7 @@ const FALLBACK: Record<string, string> = {
   "--el-text-color-secondary": "#909399",
   "--el-text-color-regular": "#606266",
   "--el-bg-color": "#ffffff",
+  "--el-color-white": "#ffffff",
   "--text-primary": "#303133",
   "--text-tertiary": "#909399",
 };

@@ -1,13 +1,26 @@
 <template>
-  <div class="ngx-donut">
-    <div ref="el" class="ngx-echart" :style="{ height: `${height}px` }" />
-    <!-- 圆心用真实 DOM 叠上去而不是 ECharts graphic：
-         文本是浏览器渲染的，暗色下抗锯齿正常；且直接吃 CSS 令牌，
-         不必为了取色去 getComputedStyle 读一遍再回填到 canvas。 -->
-    <div class="ngx-donut-center">
-      <b class="ngx-donut-value" :class="{ 'is-zero': total === 0 }">{{ total }}</b>
-      <span class="ngx-donut-label">{{ total > 0 ? "活跃连接" : "无活跃连接" }}</span>
+  <div class="ngx-donut-wrap">
+    <div class="ngx-donut">
+      <div ref="el" class="ngx-echart" :style="{ height: `${height}px` }" />
+      <!-- 圆心用真实 DOM 叠上去而不是 ECharts graphic：
+           文本是浏览器渲染的，暗色下抗锯齿正常；且直接吃 CSS 令牌，
+           不必为了取色去 getComputedStyle 读一遍再回填到 canvas。 -->
+      <div class="ngx-donut-center">
+        <b class="ngx-donut-value" :class="{ 'is-zero': total === 0 }">{{ total }}</b>
+        <span class="ngx-donut-label">{{ total > 0 ? "活跃连接" : "无活跃连接" }}</span>
+      </div>
     </div>
+    <!-- 明细用 DOM 画在环右侧而不是 ECharts legend：
+         legend 要跟随 series 顺序与交互态重排，且字号跟着主题缩放；
+         这三行是固定的三态，写死 DOM 更省事，也更容易在窄卡片里换行。 -->
+    <ul class="ngx-donut-legend">
+      <li v-for="p in parts" :key="p.key" class="ngx-donut-legend-row">
+        <i class="ngx-donut-dot" :style="{ background: `var(${p.token})` }" />
+        <span class="ngx-donut-name">{{ p.label }}</span>
+        <span class="ngx-donut-num mono">{{ p.value.toLocaleString("en-US") }}</span>
+        <span class="ngx-donut-pct">{{ pctOf(p.value) }}%</span>
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -57,6 +70,22 @@ const parts = computed(() => [
 /** 活跃连接总数 = 圆心数字 */
 const total = computed(() => parts.value.reduce((sum, p) => sum + p.value, 0));
 
+/**
+ * 某个状态占总量的百分比（一位小数）。
+ *
+ * <p>总量为 0 时返回 0：此时不是「占比未知的 0%」，而是「确实一条连接都没有」，
+ * 与圆心的「无活跃连接」文案同源。</p>
+ *
+ * @param value 该状态的连接数
+ * @returns 百分比文本
+ */
+function pctOf(value: number): string {
+  if (total.value <= 0) {
+    return "0.0";
+  }
+  return ((value / total.value) * 100).toFixed(1);
+}
+
 const build = (): EChartsOption => {
   const subColor = token("--el-text-color-secondary");
   const emptyColor = token("--el-border-color-lighter");
@@ -94,7 +123,10 @@ const build = (): EChartsOption => {
         label: {
           show: total.value > 0,
           position: "inside",
-          color: "#fff",
+          // 环内文字压在彩色扇形上，必须用固定的高对比色；
+          // 这里同样从令牌取（--el-color-white），不写死 #fff：
+          // 项目禁止硬编码色值，且令牌缺失时 FALLBACK 会给出兜底
+          color: token("--el-color-white"),
           fontSize: 11,
           formatter: (p: unknown) => `${(p as { name: string }).name}\n${(p as { value: number }).value}`,
         },
@@ -122,6 +154,63 @@ watch(() => [props.reading, props.writing, props.waiting, props.height], render)
 <style scoped lang="scss">
 .ngx-donut {
   position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 环 + 明细并排；窄卡片（<240px）时明细换到环下方 */
+.ngx-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ngx-donut-legend {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ngx-donut-legend-row {
+  display: grid;
+  grid-template-columns: 8px minmax(38px, auto) auto 42px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.ngx-donut-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.ngx-donut-name {
+  color: var(--el-text-color-regular);
+}
+
+.ngx-donut-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+
+.ngx-donut-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+
+@media (max-width: 1180px) {
+  .ngx-donut-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .ngx-echart {
