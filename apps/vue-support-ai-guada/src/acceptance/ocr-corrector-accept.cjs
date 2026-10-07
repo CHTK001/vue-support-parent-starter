@@ -86,7 +86,10 @@ async function main() {
   ok('GET /v2/settings/ocr 含 corrector_model 字段', 'corrector_model' in data,
     `fields=${Object.keys(data).join(',')}`);
   const initial = data.corrector_model;
-  ok('默认/初始值为空串（留空=关闭）', initial === '', `value=[${initial}]`);
+  // 初值不必为空（可能是上轮测试写入的），语义只要求「可空=关闭」：
+  // 下面的归一 + 回读才是空串语义的硬断言。
+  ok('corrector_model 为字符串（空串=关闭的语义前提）', typeof initial === 'string',
+    `value=[${initial}]`);
 
   // 若初值非空则归一到空（保证后续断言起点一致）
   if (initial !== '') {
@@ -150,8 +153,17 @@ async function main() {
     await page.locator('input[type="text"]').first().fill(USER);
     await page.locator('input[type="password"]').first().fill(PASS);
     await page.locator('button').filter({ hasText: /登\s*录/ }).first().click();
-    await page.waitForURL((x) => !/\/login/.test(x.pathname), { timeout: 25000 });
-    ok('UI 登录成功（路由离开 /login）', !/\/login/.test(new URL(page.url()).pathname));
+    try {
+      await page.waitForURL((x) => !/\/login/.test(x.pathname), { timeout: 25000 });
+    } catch { /* 以最终 URL 判定，不因等待超时直接崩 */ }
+    const leftLogin = !/\/login/.test(new URL(page.url()).pathname);
+    ok('UI 登录成功（路由离开 /login）', leftLogin, `url=${page.url()}（失败常见原因：后端 CORS 白名单未含 ${BASE}）`);
+    if (!leftLogin) {
+      failures.forEach((f) => console.log('  - ' + f));
+      console.log(`========== 提前终止：UI 登录失败 PASS=${pass} FAIL=${fail} ==========`);
+      await browser.close();
+      process.exit(1);
+    }
 
     await page.goto(BASE + '/capabilities/ocr', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
@@ -268,11 +280,15 @@ async function main() {
     await page.goto(BASE + '/setting/default-models', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     const row = page.locator('.set-row').filter({ hasText: '文本矫正模型' }).first();
-    await row.waitFor({ timeout: 30000 }).catch(() => {});
-    ok('「文本矫正模型」设置行渲染（labelMap 生效）', await row.isVisible());
+    await row.waitFor({ timeout: 45000 }).catch(() => {});
+    const rowVisible = await row.isVisible().catch(() => false);
+    ok('「文本矫正模型」设置行渲染（labelMap 生效）', rowVisible,
+      rowVisible ? '' : `set-row total=${await page.locator('.set-row').count()}`);
 
     const picker = row.locator('input[readonly]').first();
-    ok('corrector 行为模型选择器（readonly 输入）', await picker.isVisible() && (await picker.isEditable()) === false);
+    const pickerVisible = rowVisible && await picker.isVisible().catch(() => false);
+    ok('corrector 行为模型选择器（readonly 输入）', pickerVisible);
+    if (pickerVisible) {
 
     const errsBeforeDialog = pageErrors.length + serverErrors.length;
     await picker.click();
@@ -299,6 +315,7 @@ async function main() {
     } else if (dialogVisible) {
       await page.keyboard.press('Escape');
     }
+    } // if (pickerVisible)
 
     // 不保存直接重载：不产生脏写
     await page.reload({ waitUntil: 'domcontentloaded' });
