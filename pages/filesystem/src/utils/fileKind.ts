@@ -15,6 +15,8 @@
 /** 预览类型 */
 export type PreviewKind =
   | "image"
+  | "tiff"
+  | "heic"
   | "text"
   | "code"
   | "markdown"
@@ -37,6 +39,12 @@ export type PreviewKind =
 
 /** 图片扩展名（浏览器原生可解码） */
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "avif", "apng", "jfif"];
+
+/** TIFF 扩展名（浏览器原生不支持，UTIF.js 前端解码） */
+const TIFF_EXTS = ["tif", "tiff"];
+
+/** HEIC 扩展名（浏览器原生不支持，libheif-js 前端解码；avif 原生可播仍归 image） */
+const HEIC_EXTS = ["heic", "heif"];
 
 /** 纯文本扩展名（前端直接拉取原文展示） */
 const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml"];
@@ -179,6 +187,8 @@ const FS_TYPE_SVG: Record<string, string> = {
 export function kindOf(name: string): PreviewKind {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
   if (IMAGE_EXTS.includes(ext)) return "image";
+  if (TIFF_EXTS.includes(ext)) return "tiff";
+  if (HEIC_EXTS.includes(ext)) return "heic";
   if (CODE_EXTS.includes(ext)) return "code";
   if (ext === "md" || ext === "markdown") return "markdown";
   if (ext === "csv") return "csv";
@@ -217,6 +227,8 @@ export function fileSvg(name: string, isDir: boolean): string {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
   switch (kindOf(name)) {
     case "image":
+    case "tiff":
+    case "heic":
       return FS_TYPE_SVG.image;
     case "video":
       return FS_TYPE_SVG.video;
@@ -280,6 +292,15 @@ export function fileSvg(name: string, isDir: boolean): string {
 /** 压缩包扩展名集合（供调用方判断某文件是否走压缩包预览面板） */
 export const ARCHIVE_EXTENSION_SET: ReadonlySet<string> = new Set(ARCHIVE_EXTS);
 
+/** TIFF / HEIC 扩展名集合（走前端解码图片面板，不进原生 image 面板） */
+export const TIFF_HEIC_EXTS: ReadonlySet<string> = new Set([...TIFF_EXTS, ...HEIC_EXTS]);
+
+/** 前端直渲的数据文件扩展名（SQLite / Parquet，走 DataPreviewPanel） */
+export const CLIENT_DATA_EXTS: ReadonlySet<string> = new Set(["sqlite", "sqlite3", "db", "parquet", "pq"]);
+
+/** 前端直渲的设计稿扩展名（PSD / PSB，走 PsdPreviewPanel） */
+export const CLIENT_PSD_EXTS: ReadonlySet<string> = new Set(["psd", "psb"]);
+
 /**
  * 文件类型描述（列表「类型」列 / 排序提示）
  *
@@ -291,6 +312,8 @@ export function fileTypeText(name: string): string {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
   switch (kindOf(name)) {
     case "image": return "图片";
+    case "tiff": return "TIFF 图像";
+    case "heic": return "HEIC 图像";
     case "text": return "文本";
     case "code": return "代码文件";
     case "markdown": return "Markdown 文档";
