@@ -139,7 +139,9 @@
     </el-dialog>
 
     <!-- 扫描阅卷对话框：上传试卷/答题卡图片，支持自有卷与任意卷两种模式 -->
-    <el-dialog v-model="scanDialogVisible" title="扫描阅卷" width="680">
+    <!-- destroy-on-close：关闭即销毁内容，否则 el-upload 内部列表跨开合残留，
+         openScan 虽重置 scanForm.files，但下次 on-change 会把旧图同步回来造成串页 -->
+    <el-dialog v-model="scanDialogVisible" title="扫描阅卷" width="680" destroy-on-close>
       <el-form :model="scanForm" label-width="110">
         <el-form-item label="试卷类型" required>
           <el-radio-group v-model="scanForm.mode">
@@ -536,12 +538,21 @@ const fetchResult = async () => {
   // 切到别的 taskId 时，先停掉上一个任务的轮询：否则旧任务的轮询会在 2 秒后
   // 拿旧数据覆盖 result，页面显示成另一个任务的结果（教师会据此判错分）。
   if (id !== pollTaskId) stopPolling();
-  if (id !== progressTaskId) stopProgressStream();
+  if (id !== progressTaskId) {
+    stopProgressStream();
+    // 切任务必须同时清进度卡：只停流会把上一个任务的「处理中/识别中 0%」留在卡片上，
+    // 教师会以为新查的任务还在跑
+    progress.value = null;
+  }
   loading.value = true;
   try {
     const r = await eduaiApi.getMarkingResult(id);
     if (id !== taskId.value.trim()) return; // 响应回来时用户已切走，丢弃
     result.value = r;
+    if (r?.finished) {
+      // 终态：结果表已展示，进度卡清掉（否则 OOM/断流后残留的旧阶段一直挂着）
+      progress.value = null;
+    }
     if (!r?.finished) {
       // 未判完：优先走 SSE 实时进度；只有流已降级不可用时才退回轮询
       if (!progressClient && progressTaskId !== id) {
