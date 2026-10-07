@@ -69,10 +69,15 @@ const external = computed(() => Array.isArray(props.options));
  */
 const externalColumns = computed<CollectColumn[]>(() =>
   toColumnRows(props.options ?? []).map(row => ({
+    name: row.name,
+    label: row.label,
+    typeName: row.typeName,
+    primaryKey: row.primaryKey ?? null,
+    // 显式逐字段列出而非 `...row`：spread 会把可选的 position/size/nullable
+    // 重新变回「可能缺失」，与 CollectColumn 要求的必填 null 冲突
     position: row.position ?? null,
     size: row.size ?? null,
     nullable: row.nullable ?? null,
-    ...row,
   })),
 );
 

@@ -978,6 +978,21 @@ function applyDefaultCron(): void {
   if (props.defaultCron) applyPreset(props.defaultCron);
 }
 
+/** 弹层模式：字段（原有六段编辑）/ 日历（参考 UI 的月历调度器） */
+const panelMode = ref<"field" | "calendar">("field");
+
+/**
+ * 日历模式点「应用此时间」：复用 applyPreset 那条写入路径。
+ *
+ * 日历面板自己只负责「攒出一个 6 段字符串」，解析/校验/预览仍由本组件的
+ * syncFromModel + analysis 统一负责 —— 两种入口共用一条管线，不会出现
+ * 「日历能接受、字段模式读不懂」的不一致。
+ */
+function applyCalendar(expr: string): void {
+  if (!expr) return;
+  applyPreset(expr);
+}
+
 function clearAll(): void {
   rawMode.value = false;
   model.value = "";
@@ -1085,10 +1100,25 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 <template>
   <div :class="['re-cron', { 'is-disabled': disabled }]" :style="width ? { width: typeof width === 'number' ? `${width}px` : width } : undefined">
-    <div class="re-cron__line">
-      <ReInput
-        v-model="model"
-        class="re-cron__input"
+    <ElPopover
+      v-model:visible="open"
+      placement="bottom-start"
+      trigger="click"
+      :width="760"
+      popper-class="re-cron__popper"
+      :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
+    >
+      <!--
+        reference 是「整条触发行」而不是那颗齿轮按钮：Popover 只能挂一个 reference，
+        而触发入口有两个（齿轮 + 点击输入框）。把整行挂上后，点输入框空白处也能打开，
+        与原来「点输入框 → 弹层」的手感一致。
+        ElOnlyChild 要求单根，所以必须外套一个元素，不能直接给 ReInput。
+      -->
+      <template #reference>
+        <div class="re-cron__line" @click="openPanel">
+          <ReInput
+            v-model="model"
+            class="re-cron__input"
         :placeholder="placeholder"
         :disabled="disabled"
         aria-label="调度周期 Cron 表达式"
@@ -1126,6 +1156,13 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             </svg>
           </button>
         </template>
+        <!--
+          齿轮改为 Popover 的 #reference：原来它是 ReInput 的 append 按钮，
+          弹层挂在它外面靠 open 驱动。现在 reference 必须就是这一个按钮，
+          否则会出现两个入口（append 里一个、reference 里一个）。
+          仍显式 @click="openPanel" 记快照：Popover 自己管开关，
+          我们需要在它打开的瞬间拿到"取消"要还原到的表达式。
+        -->
         <template #append>
           <ReButton
             class="re-cron__gear"
@@ -1139,18 +1176,29 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       </ReInput>
     </div>
 
-    <ElDialog
-      v-model="open"
-      class="re-cron__dialog"
-      title="设置调度周期"
-      width="900px"
-      top="6vh"
-      append-to-body
-      :close-on-click-modal="false"
-      :before-close="onBeforeClose"
+    <ElPopover
+      v-model:visible="open"
+      class="re-cron__popover"
+      placement="bottom-start"
+      trigger="click"
+      :width="760"
+      popper-class="re-cron__popper"
+      :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
     >
-      <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
-      <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }">
+      <template #reference>
+        <span class="re-cron__reference" aria-hidden="true"></span>
+      </template>
+
+      <div class="re-cron__panel">
+        <header class="re-cron__panel-head">
+          <span class="re-cron__panel-title">设置调度周期</span>
+          <button type="button" class="re-cron__panel-close" aria-label="关闭" @click="cancelPanel">
+            <el-icon><Close /></el-icon>
+          </button>
+        </header>
+
+        <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
+        <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }">
         <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
           {{ humanSummary || (trimmed ? (summary || errorText) : "未设置调度周期") }}
         </div>
