@@ -103,6 +103,8 @@ const resumable = computed(() => goal.value?.state === 'PAUSED')
 
 /**
  * 是否已进入终态（终态不再提供取消按钮）。
+ * 注意：取消目标会直接销毁整个目标条（内存 + localStorage 都删除），
+ * 因此本地不会出现 CANCELED，这里仅做防御性保留。
  */
 const isTerminal = computed(() => {
   const state = goal.value?.state

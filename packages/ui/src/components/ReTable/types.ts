@@ -40,6 +40,8 @@ export interface ReTableColumn {
   slot?: string;
   /** 单元格内容超出时是否显示 tooltip */
   showOverflowTooltip?: boolean;
+  /** 列单元格的 class-name（透传给 el-table-column，如操作列 .op-col 的按钮组样式） */
+  className?: string;
   /** 是否可编辑（批量编辑模式下显示输入框） */
   editable?: boolean;
   /** 编辑类型：text / number / select / date */
@@ -125,6 +127,8 @@ export interface ReTableSettings {
   compact?: boolean;
   /** 显示斑马纹列（hover 高亮） */
   highlightCurrentRow?: boolean;
+  /** 十字高亮：悬停表体单元格时，同时高亮所在行与所在列（含表头列） */
+  crosshairHighlight?: boolean;
   /** 可调整列宽（需 border 模式，默认 true） */
   resizable?: boolean;
 }
@@ -418,10 +422,10 @@ export type ReTableSearch = boolean | ReTableSearchConfig;
 
 /**
  * ReTable 内置自动刷新：工具栏出现一枚纯方块计时入口（ReSwitch 的 popover 布局），
- * 点开在无边框浮层里选间隔，选中即生效并点亮按钮；表格自身持有定时器轮询 reload。
+ * 点开在浮层里选间隔，选中即生效并点亮按钮；表格自身持有定时器轮询 reload。
  *
  * <p>页面不要再自己 setInterval —— 定时器跟着组件与 keep-alive 的激活态一起起停。
- * 只需开关时传 {@code true}，要调间隔 / 默认开启时传对象。</p>
+ * 只需开关时传 {@code true}，要调间隔 / 默认开启 / 倒计时显隐时传对象。</p>
  */
 export type ReTableAutoRefresh = boolean | {
   /** 默认轮询间隔（ms），下限 1000 */
@@ -431,8 +435,15 @@ export type ReTableAutoRefresh = boolean | {
   /**
    * 浮层里的可选档位（ms）；传 0 表示「关闭」这一档。
    *
-   * 缺省（不传 / 传空数组）时用内置档：{@code [0, 5000, 10000, 30000]}（关 / 5s / 10s / 30s）。
+   * 缺省（不传 / 传空数组）时用内置档：
+   * {@code [0, 5000, 10000, 30000, 60000]}（关 / 5s / 10s / 30s / 1min）。
    */
   intervals?: number[];
+  /**
+   * 浮层底部是否显示「下次刷新 N 秒后」倒计时（默认 true）。
+   *
+   * 关闭态不显示（没有下一次）；设 false 则只保留静态说明。
+   */
+  showCountdown?: boolean;
 };
 

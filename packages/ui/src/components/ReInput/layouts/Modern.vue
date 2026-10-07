@@ -13,6 +13,10 @@ import "../../shared/modern-vars.css";
 
 defineOptions({ name: "ReInputModern", inheritAttrs: true });
 
+const emit = defineEmits<{
+  (e: "clear"): void;
+}>();
+
 const model = defineModel<string | number | null | undefined>({ default: "" });
 
 /**
@@ -103,6 +107,7 @@ function onInput(e: Event): void {
 
 function onClear(): void {
   model.value = "" as never;
+  emit("clear");
 }
 
 function togglePassword(): void {

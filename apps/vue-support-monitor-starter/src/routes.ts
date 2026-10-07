@@ -296,6 +296,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/datasource" },
   },
   {
+    path: "/redis-manage",
+    name: "RedisManage",
+    component: () => import("@pages/datasource/src/views/console/RedisManageView.vue"),
+    meta: { title: "Redis 管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
+  },
+  {
     // 数据库管理：由「数据源中心」页面内进入，仅注册路由不进侧边栏。
     // 放在顶层隐藏区，才能被 getShowStaticAndDynamicMenuList 的顶层 isVisible=0 过滤掉；
     // 挂在分组 children 下时该过滤不递归、菜单组件也不校验子项 showLink，会被渲染出来。

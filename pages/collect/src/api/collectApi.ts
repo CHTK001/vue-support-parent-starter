@@ -190,9 +190,6 @@ export const deleteRecords = (recordIds: number[]) => post<number>(`${API}/recor
 export const clearRecords = (flowId?: number, taskId?: number) =>
   del<number>(`${API}/record/clear`, { flowId, taskId });
 
-/** 结果总数，flowId 为空表示全库 */
-export const countRecords = (flowId?: number) => get<number>(`${API}/record/count`, { flowId });
-
 /* -------------------------------- 结果字段定义 ------------------------------ */
 
 /** 字段定义列表，nodeId 为空表示流程级 */

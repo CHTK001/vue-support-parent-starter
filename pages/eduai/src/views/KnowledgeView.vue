@@ -34,6 +34,8 @@
             placeholder="搜索知识点名称/编码"
             :prefix-icon="Search"
             @keyup.enter="reload"
+            @change="reload"
+            @clear="reload"
           />
         </div>
         <div class="filter-field">
@@ -44,6 +46,7 @@
             filterable
             placeholder="全部学科"
             style="width: 100%"
+            @change="reload"
           >
             <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
@@ -68,6 +71,7 @@
             filterable
             placeholder="全部年级"
             style="width: 100%"
+            @change="reload"
           >
             <el-option v-for="g in gradeOptions" :key="g.value" :label="g.label" :value="g.value" />
           </el-select>
@@ -163,45 +167,44 @@
       </div>
 
       <!-- 列表视图 -->
-      <el-table v-else :data="sortedCards" border stripe @row-click="openDetail">
-        <el-table-column prop="knowledgePointId" label="ID" width="70" />
-        <el-table-column prop="knowledgePointName" label="名称" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="knowledgePointDescription" label="描述" min-width="180" show-overflow-tooltip />
-        <el-table-column label="学科" width="90">
-          <template #default="{ row }">
-            <span v-if="row.knowledgePointSubject" class="pill subject" :class="subjectClass(row.knowledgePointSubject)">
-              {{ row.knowledgePointSubject }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="学段" width="80">
-          <template #default="{ row }">
-            <span v-if="row.knowledgePointGradeLevel" class="pill level" :class="levelClass(row.knowledgePointGradeLevel)">
-              {{ gradeLevelLabel(row.knowledgePointGradeLevel) }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="knowledgePointGrade" label="年级" width="70" />
-        <el-table-column label="正文" width="70">
-          <template #default="{ row }">{{ row.hasContent ? "有" : "无" }}</template>
-        </el-table-column>
-        <el-table-column label="附件" width="70">
-          <template #default="{ row }">{{ row.fileCount ?? 0 }}</template>
-        </el-table-column>
-        <el-table-column label="时间" width="130">
-          <template #default="{ row }">{{ relativeTime(row) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click.stop="openEdit(row)">编辑</el-button>
-            <el-popconfirm :title="`确认删除 ${row.knowledgePointName}?`" @confirm="removeCard(row)">
-              <template #reference>
-                <el-button link type="danger" >删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
+      <ReTable
+        v-else
+        :data="knowledgeRows"
+        :columns="knowledgeColumns"
+        :row-key="'knowledgePointId'"
+        layout="table"
+        :layout-switch="false"
+        :pagination="false"
+        :toolbar="false"
+        border
+        stripe
+        @row-click="(row: Record<string, unknown>) => openDetail(row as unknown as KnowledgeCard)"
+      >
+        <template #col-knowledgePointSubject="{ row }">
+          <span v-if="row.knowledgePointSubject" class="pill subject" :class="subjectClass(row.knowledgePointSubject)">
+            {{ row.knowledgePointSubject }}
+          </span>
+        </template>
+        <template #col-knowledgePointGradeLevel="{ row }">
+          <span v-if="row.knowledgePointGradeLevel" class="pill level" :class="levelClass(row.knowledgePointGradeLevel)">
+            {{ gradeLevelLabel(row.knowledgePointGradeLevel) }}
+          </span>
+        </template>
+        <template #col-hasContent="{ row }">{{ row.hasContent ? "有" : "无" }}</template>
+        <template #col-fileCount="{ row }">{{ row.fileCount ?? 0 }}</template>
+        <template #col-createTime="{ row }">{{ relativeTime(row as unknown as KnowledgeCard) }}</template>
+        <template #col-actions="{ row }">
+          <el-button link type="primary" @click.stop="openEdit(row as unknown as KnowledgeCard)">编辑</el-button>
+          <el-popconfirm
+            :title="`确认删除 ${row.knowledgePointName}?`"
+            @confirm="removeCard(row as unknown as KnowledgeCard)"
+          >
+            <template #reference>
+              <el-button link type="danger" >删除</el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+      </ReTable>
 
       <el-empty
         v-if="!loading && !sortedCards.length"
@@ -517,6 +520,8 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { Component } from "vue";
 import type { EduGrade, EduSubject, KnowledgeCard, KnowledgeFileItem, KnowledgePoint } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
+import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import KnowledgeFilePreview from "../components/KnowledgeFilePreview.vue";
 
 const GRADE_LEVELS = [
@@ -597,6 +602,8 @@ const onFilterGradeLevelChange = () => {
     const ok = gradeMeta.value.some((x) => x.gradeLevel === level && x.gradeName === g);
     if (!ok) searchDraft.grade = "";
   }
+  // 选/清学段也要立刻重查：只清草稿不重查，列表还停在旧学段上（看着像点了没反应）
+  void reload();
 };
 
 /** 编辑对话框里的年级候选（按表单学段过滤，可手输） */
@@ -647,6 +654,28 @@ const sortedCards = computed(() => {
   if (sortMode.value === "created") return list.sort((a, b) => t(a) - t(b));
   return list.sort((a, b) => t(b) - t(a));
 });
+
+/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
+const knowledgeRows = computed(() => sortedCards.value as unknown as Record<string, unknown>[]);
+
+/**
+ * 知识卡片列表的列定义（ReTable 表格模式用）。
+ *
+ * <p>自定义单元格一律走 {@code #col-<prop>} 插槽；「正文 / 附件 / 时间 /
+ * 操作」需要包一层渲染，其中「正文 / 附件」读的是行上的派生字段。</p>
+ */
+const knowledgeColumns: ReTableColumn[] = [
+  { prop: "knowledgePointId", label: "ID", width: 70 },
+  { prop: "knowledgePointName", label: "名称", minWidth: 160, showOverflowTooltip: true },
+  { prop: "knowledgePointDescription", label: "描述", minWidth: 180, showOverflowTooltip: true },
+  { prop: "knowledgePointSubject", label: "学科", width: 90, slot: "col-knowledgePointSubject" },
+  { prop: "knowledgePointGradeLevel", label: "学段", width: 80, slot: "col-knowledgePointGradeLevel" },
+  { prop: "knowledgePointGrade", label: "年级", width: 70 },
+  { prop: "hasContent", label: "正文", width: 70, slot: "col-hasContent" },
+  { prop: "fileCount", label: "附件", width: 70, slot: "col-fileCount" },
+  { prop: "createTime", label: "时间", width: 130, slot: "col-createTime" },
+  { prop: "actions", label: "操作", width: 120, fixed: "right", slot: "col-actions" },
+];
 
 /** 相对时间：刚刚 / X分钟前 / X小时前 / 昨天 / N天前 / N周前 */
 const relativeTime = (card: KnowledgeCard) => {

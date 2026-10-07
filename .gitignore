@@ -152,3 +152,31 @@ Temp/
 **/_probe-*.mjs
 /__probe_*.mjs
 **/__probe_*.mjs
+
+# 验收截图与快照目录（单页验收时随手落盘，不属于源码）
+*-state.png
+**/shots/
+**/logs-snap/
+**/dummy-non-existing-folder/
+edge-labels.png
+hmr-state.png
+
+# UI 点击验收的工作区（.ui-click-sweep / 备份目录）
+**/.ui-click-sweep/
+**/.ui-click-sweep-backup/
+
+# 本地验收脚本区（探针、诊断、快照库；测试资产 tests/e2e 除外）
+.collect-ops-backup/
+collect-ops/acceptance/
+collect-ops/probes/
+.local-run/
+backups/
+
+# 临时探针/部署产物（按名精确忽略，不误伤源码）
+.tmp-probe/
+**/.ui-click-sweep-chunks/
+zz-*.mjs
+zz-probe-*.png
+eduai-web-*.tar.gz
+**/*-probe.*.mjs
+apps/vue-support-collect-scheduler-starter/scripts/

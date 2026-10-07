@@ -898,7 +898,12 @@ async function deleteMessage(message: any) {
           : t('chat.panel.deleteAssistantMessageDesc')
       )
     ) {
-      await apiService.deleteMessage(message.id);
+      // 流式刚产出的消息 id 是前端 UUID（尚未落库、无数据库主键），
+      // 后端 DELETE 只接受数字主键（Long.parseLong）：此时跳过后端调用、仅删本地，
+      // 否则每次删刚生成的消息都会 500/400 导致界面「删不掉」。
+      if (/^\d+$/.test(String(message.id))) {
+        await apiService.deleteMessage(message.id);
+      }
       if (message.role === "user") {
         const assistantMessage = activeMessages.value.find((msg) => msg.parentId === message.id);
         if (assistantMessage && currentSessionId.value) {

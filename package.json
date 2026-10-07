@@ -15,6 +15,7 @@
     "version:minor": "node scripts/sync-version.mjs --bump minor",
     "version:major": "node scripts/sync-version.mjs --bump major",
     "config:check": "node scripts/validate-app-config.mjs",
+    "verify:security": "node scripts/verify-safe-path.mts && node scripts/verify-single-flight.mts && node scripts/verify-session-scope.mts && node scripts/verify-token-origin.mts && node scripts/verify-object-ticket.mts && node scripts/verify-html-preview.mts",
     "surface:check": "node scripts/check-ui-surface.mjs",
     "surface:baseline": "node scripts/check-ui-surface.mjs --update"
   },

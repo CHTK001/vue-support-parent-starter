@@ -52,7 +52,7 @@ const ReOption = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElOption, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, slots.default?.());
+      h(ElOption, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, slots.default);
   },
 });
 
@@ -105,7 +105,7 @@ const ReRow = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElRow, { ...attrs, gutter: props.gutter, justify: props.justify, align: props.align, wrap: props.wrap, tag: props.tag } as any, slots.default?.());
+      h(ElRow, { ...attrs, gutter: props.gutter, justify: props.justify, align: props.align, wrap: props.wrap, tag: props.tag } as any, slots.default);
   },
 });
 
@@ -141,7 +141,7 @@ const ReCol = defineComponent({
           xl: props.xl,
           tag: props.tag,
         } as any,
-        slots.default?.(),
+        slots.default,
       );
   },
 });
@@ -269,7 +269,7 @@ const ReTreeSelect = defineComponent({
           // 同 ReRadioGroup：带冒号的事件必须写成 "onXxx:yyy"
           "onUpdate:modelValue": (v: unknown) => emit("update:modelValue", v),
         } as any,
-        slots.default?.(),
+        slots.default,
       );
   },
 });
@@ -344,8 +344,8 @@ const ReDropdown = defineComponent({
           popperClass: "re-dropdown",
         } as any,
         {
-          default: slots.default?.(),
-          dropdown: slots.dropdown?.(),
+          default: slots.default,
+          dropdown: slots.dropdown,
         },
       );
   },
@@ -355,7 +355,7 @@ const ReDropdownMenu = defineComponent({
   name: "ReDropdownMenu",
   inheritAttrs: true,
   setup(_, { attrs, slots }) {
-    return () => h(ElDropdownMenu, { ...attrs } as any, slots.default?.());
+    return () => h(ElDropdownMenu, { ...attrs } as any, slots.default);
   },
 });
 
@@ -369,7 +369,7 @@ const ReDropdownItem = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElDropdownItem, { ...attrs, disabled: props.disabled, divided: props.divided, command: props.command, class: "re-dropdown-item" } as any, slots.default?.());
+      h(ElDropdownItem, { ...attrs, disabled: props.disabled, divided: props.divided, command: props.command, class: "re-dropdown-item" } as any, slots.default);
   },
 });
 
@@ -407,7 +407,7 @@ const ReDescriptions = defineComponent({
           contentStyle: props.contentStyle,
           class: "re-descriptions",
         } as any,
-        slots.default?.(),
+        slots.default,
       );
   },
 });
@@ -465,7 +465,7 @@ const ReDivider = defineComponent({
       h(
         ElDivider,
         { ...attrs, direction: props.direction, contentPosition: props.contentPosition, borderStyle: props.borderStyle, plain: props.plain, class: "re-divider" } as any,
-        slots.default?.(),
+        slots.default,
       );
   },
 });
@@ -483,7 +483,7 @@ const ReLink = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElLink, { ...attrs, type: props.type, underline: props.underline, disabled: props.disabled, href: props.href, target: props.target, class: "re-link" } as any, slots.default?.());
+      h(ElLink, { ...attrs, type: props.type, underline: props.underline, disabled: props.disabled, href: props.href, target: props.target, class: "re-link" } as any, slots.default);
   },
 });
 
@@ -500,7 +500,7 @@ const ReAvatar = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElAvatar, { ...attrs, size: props.size, shape: props.shape, src: props.src, fit: props.fit, alt: props.alt, class: "re-avatar" } as any, slots.default?.());
+      h(ElAvatar, { ...attrs, size: props.size, shape: props.shape, src: props.src, fit: props.fit, alt: props.alt, class: "re-avatar" } as any, slots.default);
   },
 });
 

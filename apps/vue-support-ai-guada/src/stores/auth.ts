@@ -114,6 +114,9 @@ export const useAuthStore = defineStore('auth', () => {
             const status = error?.response?.status ?? error?.status;
             const transportDown =
                 (error?.isAxiosError === true && error?.response === undefined) ||
+                (typeof error?.message === 'string'
+                    && /timeout|ECONNABORTED|Network Error|Failed to fetch|Load failed/i.test(error.message)) ||
+                status === 500 ||
                 status === 502 ||
                 status === 503 ||
                 status === 504;

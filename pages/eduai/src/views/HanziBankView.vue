@@ -34,11 +34,13 @@
             placeholder="字 / 拼音 / 释义"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
+            @change="commitSearch"
+            @clear="commitSearch"
           />
         </div>
         <div class="filter-field">
           <label class="filter-field__label">学段</label>
-          <el-select v-model="searchDraft.gradeLevel" clearable placeholder="全部学段" style="width: 100%">
+          <el-select v-model="searchDraft.gradeLevel" clearable placeholder="全部学段" style="width: 100%" @change="commitSearch">
             <el-option v-for="lv in GRADE_LEVELS" :key="lv" :label="lv" :value="lv" />
           </el-select>
         </div>
@@ -58,50 +60,58 @@
       </div>
 
       <div v-loading="loading" class="table-wrap">
-        <el-table :data="rows" stripe class="hanzi-table" row-key="hanziId">
+        <ReTable
+          :data="hanziRows"
+          :columns="hanziColumns"
+          :row-key="'hanziId'"
+          layout="table"
+          :layout-switch="false"
+          :pagination="false"
+          :toolbar="false"
+          stripe
+          :settings="{ border: false }"
+          class="hanzi-table"
+        >
           <template #empty>
             <el-empty :image-size="88" description="暂无汉字，点击「新增汉字」创建" />
           </template>
-          <el-table-column label="字" width="80" align="center">
-            <template #default="{ row }">
-              <span class="hanzi-char">{{ row.hanziChar }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="hanziPinyin" label="读音" width="120" show-overflow-tooltip />
-          <el-table-column prop="hanziStrokes" label="笔画" width="70" align="center" />
-          <el-table-column prop="hanziRadical" label="部首" width="70" align="center" />
-          <el-table-column prop="hanziStructure" label="结构" width="90" align="center" />
-          <el-table-column prop="hanziStrokeOrder" label="笔顺" width="150" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span class="stroke-order">{{ row.hanziStrokeOrder || "—" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="hanziMeaning" label="释义 / 组词" min-width="200" show-overflow-tooltip />
-          <el-table-column label="字画" width="80" align="center">
-            <template #default="{ row }">
-              <el-image
-                v-if="row.hanziImage"
-                :src="row.hanziImage"
-                :preview-src-list="[row.hanziImage]"
-                preview-teleported
-                fit="contain"
-                class="hanzi-thumb"
-              />
-              <span v-else class="muted">—</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="学段" width="80" align="center">
-            <template #default="{ row }">
-              <span class="tag-pill">{{ row.hanziGradeLevel || "不限" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
-            <template #default="{ row }">
-              <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openEdit(row)" />
-              <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="remove(row)" />
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #col-hanziChar="{ row }">
+            <span class="hanzi-char">{{ row.hanziChar }}</span>
+          </template>
+          <template #col-hanziStrokeOrder="{ row }">
+            <span class="stroke-order">{{ row.hanziStrokeOrder || "—" }}</span>
+          </template>
+          <template #col-hanziImage="{ row }">
+            <el-image
+              v-if="row.hanziImage"
+              :src="row.hanziImage"
+              :preview-src-list="[row.hanziImage]"
+              preview-teleported
+              fit="contain"
+              class="hanzi-thumb"
+            />
+            <span v-else class="muted">—</span>
+          </template>
+          <template #col-hanziGradeLevel="{ row }">
+            <span class="tag-pill">{{ row.hanziGradeLevel || "不限" }}</span>
+          </template>
+          <template #col-actions="{ row }">
+            <ReButton
+              layout="square"
+              type="primary"
+              :icon="EditPen"
+              tip="编辑"
+              @click.stop="openEdit(row as unknown as EduHanzi)"
+            />
+            <ReButton
+              layout="square"
+              type="danger"
+              :icon="Delete"
+              tip="删除"
+              @click.stop="remove(row as unknown as EduHanzi)"
+            />
+          </template>
+        </ReTable>
       </div>
 
       <div class="table-footer">
@@ -143,7 +153,8 @@
           </div>
           <div class="form-grid form-grid--4">
             <el-form-item label="汉字" required>
-              <el-input v-model="form.hanziChar" maxlength="1" placeholder="如：人" class="char-input" />
+              <el-input v-model="form.hanziChar" placeholder="只能一个字，如：人" class="char-input" />
+            <div v-if="charCount > 1" class="char-input__err">一个字一条，当前 {{ charCount }} 个字，请删到只剩一个</div>
             </el-form-item>
             <el-form-item label="读音">
               <el-input v-model="form.hanziPinyin" placeholder="如：rén" />
@@ -215,13 +226,42 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduHanzi } from "../api/types";
+import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const GRADE_LEVELS = ["小学", "初中", "高中"] as const;
 const STRUCTURES = ["独体", "上下", "左右", "左中右", "上中下", "半包围", "全包围"] as const;
 
+/**
+ * 汉字列表的列定义（ReTable 表格模式用）。
+ *
+ * <p>自定义单元格一律走 {@code #col-<prop>} 插槽；「字 / 字画 / 学段 / 操作」
+ * 四列没有可直出的纯文本字段（或字段需包一层），同样挂插槽渲染。</p>
+ */
+const hanziColumns: ReTableColumn[] = [
+  { prop: "hanziChar", label: "字", width: 80, align: "center", slot: "col-hanziChar" },
+  { prop: "hanziPinyin", label: "读音", width: 120, showOverflowTooltip: true },
+  { prop: "hanziStrokes", label: "笔画", width: 70, align: "center" },
+  { prop: "hanziRadical", label: "部首", width: 70, align: "center" },
+  { prop: "hanziStructure", label: "结构", width: 90, align: "center" },
+  {
+    prop: "hanziStrokeOrder",
+    label: "笔顺",
+    width: 150,
+    showOverflowTooltip: true,
+    slot: "col-hanziStrokeOrder",
+  },
+  { prop: "hanziMeaning", label: "释义 / 组词", minWidth: 200, showOverflowTooltip: true },
+  { prop: "hanziImage", label: "字画", width: 80, align: "center", slot: "col-hanziImage" },
+  { prop: "hanziGradeLevel", label: "学段", width: 80, align: "center", slot: "col-hanziGradeLevel" },
+  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions" },
+];
+
 // ==================== 列表 ====================
 const loading = ref(false);
 const rows = ref<EduHanzi[]>([]);
+/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
+const hanziRows = computed(() => rows.value as unknown as Record<string, unknown>[]);
 const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -313,16 +353,26 @@ function openEdit(row: EduHanzi) {
   dialogVisible.value = true;
 }
 
+/** 汉字输入的字数（按 Unicode 码点算，避免生僻字/带变音符的字被算成两个） */
+const charCount = computed(() => [...(form.hanziChar ?? "").trim()].length);
+
 async function save() {
-  if (!form.hanziChar || !form.hanziChar.trim()) {
+  const char = (form.hanziChar ?? "").trim();
+  if (!char) {
     ElMessage.warning("请填写汉字");
+    return;
+  }
+  // maxlength="1" 会**静默吞掉**用户敲的第 2 个字（输入框看着像坏了，且没有任何提示），
+  // 这里放开输入、改为提交前显式校验，把「为什么没保存」说清楚。
+  if ([...char].length > 1) {
+    ElMessage.warning(`「${char}」是 ${[...char].length} 个字，本页一个字一条，请只填一个字`);
     return;
   }
   saving.value = true;
   try {
     await eduaiApi.saveHanzi({
       ...form,
-      hanziChar: form.hanziChar.trim(),
+      hanziChar: char,
       hanziStatus: formStatus.value ? STATUS_ON : STATUS_OFF,
     });
     ElMessage.success("保存成功");
@@ -659,6 +709,13 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   text-align: center;
+}
+.char-input__err {
+  width: 100%;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
 }
 .field-tip {
   width: 100%;

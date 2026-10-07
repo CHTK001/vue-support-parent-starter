@@ -34,23 +34,25 @@
             placeholder="成语 / 拼音 / 释义"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
+            @change="commitSearch"
+            @clear="commitSearch"
           />
         </div>
         <div class="filter-field">
           <label class="filter-field__label">学段</label>
-          <el-select v-model="searchDraft.gradeLevel" clearable placeholder="全部学段" style="width: 100%">
+          <el-select v-model="searchDraft.gradeLevel" clearable placeholder="全部学段" style="width: 100%" @change="commitSearch">
             <el-option v-for="lv in GRADE_LEVELS" :key="lv" :label="lv" :value="lv" />
           </el-select>
         </div>
         <div class="filter-field">
           <label class="filter-field__label">年级</label>
-          <el-select v-model="searchDraft.grade" clearable placeholder="全部年级" style="width: 100%">
+          <el-select v-model="searchDraft.grade" clearable placeholder="全部年级" style="width: 100%" @change="commitSearch">
             <el-option v-for="g in searchGradeOptions" :key="g" :label="g" :value="g" />
           </el-select>
         </div>
         <div class="filter-field">
           <label class="filter-field__label">难度</label>
-          <el-select v-model="searchDraft.difficulty" clearable placeholder="全部难度" style="width: 100%">
+          <el-select v-model="searchDraft.difficulty" clearable placeholder="全部难度" style="width: 100%" @change="commitSearch">
             <el-option v-for="d in DIFFICULTIES" :key="d.value" :label="d.label" :value="d.value" />
           </el-select>
         </div>
@@ -70,37 +72,50 @@
       </div>
 
       <div v-loading="loading" class="table-wrap">
-        <el-table :data="pagedRows" stripe class="idiom-table" row-key="idiomId" @row-click="openEdit">
+        <ReTable
+          :data="idiomRows"
+          :columns="idiomColumns"
+          :row-key="'idiomId'"
+          layout="table"
+          :layout-switch="false"
+          :pagination="false"
+          :toolbar="false"
+          stripe
+          :settings="{ border: false }"
+          class="idiom-table"
+          @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as Idiom)"
+        >
           <template #empty>
             <el-empty :image-size="88" description="暂无成语，点击「新增成语」创建" />
           </template>
-          <el-table-column prop="idiomId" label="ID" width="70" />
-          <el-table-column prop="idiomContent" label="成语" width="120">
-            <template #default="{ row }">
-              <span class="idiom-text">{{ row.idiomContent }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="idiomPinyin" label="拼音" width="180" show-overflow-tooltip />
-          <el-table-column prop="idiomMeaning" label="释义" min-width="220" show-overflow-tooltip />
-          <el-table-column prop="idiomSource" label="出处" width="150" show-overflow-tooltip />
-          <el-table-column label="难度" width="90">
-            <template #default="{ row }">
-              <span class="tag-pill" :class="diffClass(row.idiomDifficulty)">
-                {{ diffLabel(row.idiomDifficulty) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="idiomTags" label="标签" width="130" show-overflow-tooltip />
-          <el-table-column label="操作" width="150" align="center" fixed="right">
-            <template #default="{ row }">
-              <!-- 必须 .stop：本表格绑了 @row-click="openEdit"，
-                   不阻止冒泡会让「点预览/删除」也触发一次「打开编辑弹窗」 -->
-              <ReButton layout="square" :icon="View" tip="预览" @click.stop="openPreview(row)" />
-              <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openEdit(row)" />
-              <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="remove(row)" />
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #col-idiomContent="{ row }">
+            <span class="idiom-text">{{ row.idiomContent }}</span>
+          </template>
+          <template #col-idiomDifficulty="{ row }">
+            <span class="tag-pill" :class="diffClass(row.idiomDifficulty)">
+              {{ diffLabel(row.idiomDifficulty) }}
+            </span>
+          </template>
+          <template #col-actions="{ row }">
+            <!-- 必须 .stop：本表格绑了 @row-click="openEdit"，
+                 不阻止冒泡会让「点预览/删除」也触发一次「打开编辑弹窗」 -->
+            <ReButton layout="square" :icon="View" tip="预览" @click.stop="openPreview(row as unknown as Idiom)" />
+            <ReButton
+              layout="square"
+              type="primary"
+              :icon="EditPen"
+              tip="编辑"
+              @click.stop="openEdit(row as unknown as Idiom)"
+            />
+            <ReButton
+              layout="square"
+              type="danger"
+              :icon="Delete"
+              tip="删除"
+              @click.stop="remove(row as unknown as Idiom)"
+            />
+          </template>
+        </ReTable>
       </div>
 
       <div class="table-footer">
@@ -289,6 +304,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom } from "../api/types";
+import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const GRADE_LEVELS = ["小学", "初中", "高中", "大学"] as const;
 const GRADES_BY_LEVEL: Record<string, string[]> = {
@@ -351,6 +368,26 @@ const pagedRows = computed(() => {
   const start = (pageNo.value - 1) * pageSize.value;
   return filtered.value.slice(start, start + pageSize.value);
 });
+
+/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
+const idiomRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
+
+/**
+ * 成语列表的列定义（ReTable 表格模式用）。
+ *
+ * <p>自定义单元格一律走 {@code #col-<prop>} 插槽；「难度 / 操作」两列
+ * 需要包一层渲染，同样挂插槽。</p>
+ */
+const idiomColumns: ReTableColumn[] = [
+  { prop: "idiomId", label: "ID", width: 70 },
+  { prop: "idiomContent", label: "成语", width: 120, slot: "col-idiomContent" },
+  { prop: "idiomPinyin", label: "拼音", width: 180, showOverflowTooltip: true },
+  { prop: "idiomMeaning", label: "释义", minWidth: 220, showOverflowTooltip: true },
+  { prop: "idiomSource", label: "出处", width: 150, showOverflowTooltip: true },
+  { prop: "idiomDifficulty", label: "难度", width: 90, slot: "col-idiomDifficulty" },
+  { prop: "idiomTags", label: "标签", width: 130, showOverflowTooltip: true },
+  { prop: "actions", label: "操作", width: 150, align: "center", fixed: "right", slot: "col-actions" },
+];
 
 const statCards = computed(() => {
   const list = rows.value;

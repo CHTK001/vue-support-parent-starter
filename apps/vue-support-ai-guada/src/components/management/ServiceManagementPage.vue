@@ -36,7 +36,7 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" min-width="220" align="right">
+                <el-table-column label="操作" min-width="220">
                   <template #default="{ row }">
                     <el-button @click="toggleInstance(row)">
                       {{ row.running ? '停止' : '启动' }}

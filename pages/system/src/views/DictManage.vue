@@ -275,7 +275,7 @@ const itemColumns: ReTableColumn[] = [
   { prop: "sysDictItemCode", label: "值", minWidth: 120 },
   { prop: "sysDictItemSort", label: "排序", width: 80, align: "center" },
   { prop: "sysDictItemStatus", label: "状态", width: 90, align: "center" },
-  { prop: "action", label: "操作", width: 110, align: "right", fixed: "right" },
+  { prop: "action", label: "操作", width: 110, align: "center", fixed: "right" },
 ];
 
 async function loadDictItems(params: Record<string, unknown>) {

@@ -336,7 +336,7 @@ import {
 } from "../../api/influxdbNginxApi";
 
 /** ReTable 列定义 */
-type Column = { prop: string; label: string; width?: number; minWidth?: number; slot?: string; fixed?: string; align?: string };
+type Column = { prop: string; label: string; width?: number; minWidth?: number; slot?: string; fixed?: boolean | "left" | "right"; align?: "left" | "center" | "right"; formatter?: (row: any) => string };
 
 const { datasourceId, source, gap, bind, fail, ready } = useMiddlewareSource();
 
@@ -381,7 +381,7 @@ const bucketColumns: Column[] = [
   { prop: "name", label: "存储桶名称", minWidth: 180 },
   { prop: "retentionHours", label: "保留时长(h)", width: 120 },
   { prop: "createdAt", label: "创建时间", minWidth: 170 },
-  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right" as const, align: "center" as const },
 ];
 const measurementColumns: Column[] = [
   { prop: "name", label: "度量名称", minWidth: 160 },

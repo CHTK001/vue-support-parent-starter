@@ -342,8 +342,8 @@ function openDetailPage(row: ServerNodeView, index: number) {
 
     <!-- 筛选工具条 + 全部操作（原 hero 的新增服务/刷新合并到右侧，图标 + tip） -->
     <div class="page-toolbar">
-      <ReInput v-model="keyword" placeholder="搜索名称 / 协议 / 监听地址" clearable prefix-icon="Search" class="tb-search" />
-      <ReSelect v-model="filterProtocol" placeholder="全部协议" clearable :data="protocolOptions" class="tb-proto" />
+      <ReInput v-model="keyword" aria-label="搜索服务" placeholder="搜索名称 / 协议 / 监听地址" clearable prefix-icon="Search" class="tb-search" />
+      <ReSelect v-model="filterProtocol" aria-label="按协议筛选" placeholder="全部协议" clearable :data="protocolOptions" class="tb-proto" />
       <span class="dim tb-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
       <div class="tb-ops">
         <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="openCreate" />
@@ -417,7 +417,9 @@ function openDetailPage(row: ServerNodeView, index: number) {
           <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="330" fixed="right" align="right">
+      <!-- 操作列宽按 4 枚带字按钮实测计算：78+78+80+78=314 + 3×12 间距=350；单元格 padding 实测
+           td 12/12 + .cell 12/12 = 48 → 需 ≥398。取 410 留 12px 余量（330/380 实测均折行）。 -->
+      <ReTableColumn label="操作" width="410" fixed="right" align="right">
         <template #default="{ row }">
           <span @click.stop>
             <ReButton

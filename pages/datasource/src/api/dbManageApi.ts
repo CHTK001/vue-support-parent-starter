@@ -13,6 +13,7 @@ const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 
 /** 表索引列信息（来自 DatabaseMetaData.getIndexInfo） */
 export interface DbIndexInfo {
+  [key: string]: unknown;
   indexName: string;
   columnName: string;
   /** true 表示非唯一索引（与 JDBC NON_UNIQUE 语义一致） */

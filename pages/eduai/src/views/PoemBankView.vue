@@ -41,11 +41,13 @@
             placeholder="标题 / 作者"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
+            @change="commitSearch"
+            @clear="commitSearch"
           />
         </div>
         <div class="filter-field">
           <label class="filter-field__label">学段</label>
-          <el-select v-model="search.gradeLevel" clearable placeholder="全部学段" style="width: 100%">
+          <el-select v-model="search.gradeLevel" clearable placeholder="全部学段" style="width: 100%" @change="commitSearch">
             <el-option v-for="lv in GRADE_LEVELS" :key="lv" :label="lv" :value="lv" />
           </el-select>
         </div>

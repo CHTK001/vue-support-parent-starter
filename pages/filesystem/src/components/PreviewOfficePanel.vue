@@ -112,6 +112,19 @@ const CONVERT_TARGET: Readonly<Record<string, { format: "docx" | "xlsx"; mime: s
     mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     renderer: "excel",
   },
+  // CSV 是纯文本，后端容器闸门对其用「扩展名白名单 + looksLikeText 内容校验」放行
+  // （见 FileStorageServerFilter#TEXT_CONVERT_SOURCES），Aspose.Cells 的源格式里
+  // 已有 csv。转换失败仍按原兜底走服务端 CsvPreviewProvider。
+  csv: {
+    format: "xlsx",
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    renderer: "excel",
+  },
+  tsv: {
+    format: "xlsx",
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    renderer: "excel",
+  },
 };
 
 /**

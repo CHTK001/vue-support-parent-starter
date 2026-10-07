@@ -20,7 +20,7 @@ import {
   type NginxMetricPush,
   type NginxRuntime,
   type NginxTrendPoint,
-} from "./api";
+} from "../api/nginx/api";
 
 /** SSE 连接状态，供界面显示「实时中 / 重连中」。 */
 export type StreamState = "idle" | "connecting" | "open" | "error";

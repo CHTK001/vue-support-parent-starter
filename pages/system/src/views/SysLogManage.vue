@@ -172,7 +172,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysLogCost", label: "耗时(ms)", width: 100, slot: "cost", align: "center" },
   { prop: "sysLogStatus", label: "状态", width: 100, slot: "status" },
   { prop: "createTime", label: "操作时间", width: 170 },
-  { prop: "action", label: "操作", width: 80, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 80, slot: "action", fixed: "right", align: "center" },
 ];
 </script>
 

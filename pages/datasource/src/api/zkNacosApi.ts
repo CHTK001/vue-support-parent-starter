@@ -36,6 +36,7 @@ export interface ZkClusterNode {
  * @since 4.0.0.43
  */
 export interface ZkNodeAcl {
+  [key: string]: unknown;
   scheme: string;
   id: string;
   perms: number;

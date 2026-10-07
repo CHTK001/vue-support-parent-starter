@@ -129,14 +129,35 @@ const emit = defineEmits<{
 
 /** 内部过滤值（支持 v-model 双向绑定，未受控时内部维护） */
 const filterValues = ref<Record<string, any>>({ ...props.modelValue });
+
+/**
+ * 上一次的过滤值快照。
+ *
+ * <p>用来识别「值由非空变空」这一次**清除动作**（点输入框的 X、清空下拉）。
+ * 没有它就分不清「用户把条件清掉了」和「用户一直在输入」，也就无法在清空时
+ * 立即重查 —— 表现为「输入框清干净了，表格却还停在旧条件上」。</p>
+ */
+let lastSeen: Record<string, any> = { ...filterValues.value };
+
+/** 空值判定：undefined / null / 空串 / 空数组都算「没有这个筛选条件」 */
+const isBlank = (v: unknown): boolean =>
+  v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+
 watch(
   () => props.modelValue,
-  (v) => { filterValues.value = { ...v }; },
+  (v) => { filterValues.value = { ...v }; lastSeen = { ...v }; },
   { deep: true },
 );
 function onFilterInput(key: string, val: unknown): void {
+  const prev = lastSeen[key];
   filterValues.value[key] = val;
+  lastSeen = { ...lastSeen, [key]: val };
+  // 必须先把新值推给父级，再 emit search —— 父级的搜索处理读的就是这份新值，
+  // 顺序反了就会拿旧条件查一遍（用户看到「清空了却没恢复」）。
   emit("update:modelValue", { ...filterValues.value });
+  if (isBlank(val) && !isBlank(prev)) {
+    emit("search");
+  }
 }
 
 /** 是否有过滤内容（filters prop 或 default slot） */
@@ -282,6 +303,7 @@ function resetForm(): void {
     const cleared: Record<string, unknown> = {};
     props.filters.forEach((f) => { cleared[f.key] = undefined as unknown; });
     filterValues.value = cleared;
+    lastSeen = { ...cleared };
     emit("update:modelValue", { ...cleared });
   }
   // 清空 slot 中的 el-form
@@ -399,6 +421,7 @@ function ariaOf(filter: { label?: string; placeholder?: string }): string | unde
                 clearable
                 v-bind="filter.attrs || {}"
                 @input="(val: string) => onFilterInput(filter.key, val)"
+                @keyup.enter="emit('search')"
               />
               <ElSelect
                 v-else-if="filter.type === 'select'"

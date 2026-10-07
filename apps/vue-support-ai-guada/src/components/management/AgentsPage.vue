@@ -32,7 +32,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right" align="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleConfig(row)">工作流配置</el-button>
           <el-button type="success" link @click="handleRegister(row)">注册为模型</el-button>
@@ -69,7 +69,7 @@
           <el-switch :model-value="row.enabled" @change="(v: any) => handleTogglePackage(row, v)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right" align="right">
+      <el-table-column label="操作" width="100" fixed="right">
         <template #default="{ row }">
           <el-button type="danger" link @click="handleUninstallPackage(row)">卸载</el-button>
         </template>
@@ -127,7 +127,7 @@
             <el-table-column prop="role" label="角色" width="120" />
             <el-table-column prop="order" label="执行顺序" width="100" align="center" />
             <el-table-column prop="condition" label="触发条件" min-width="150" show-overflow-tooltip />
-            <el-table-column label="操作" width="150" fixed="right" align="right">
+            <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
                 <el-button type="warning" link @click="handleEditSubAgent(row)">编辑</el-button>
                 <el-button type="danger" link @click="handleDeleteSubAgent(row)">删除</el-button>
@@ -230,7 +230,7 @@
             <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
             <el-table-column prop="model" label="模型" width="120" />
             <el-table-column prop="display_source" label="来源" width="110" />
-            <el-table-column label="操作" width="90" fixed="right" align="right">
+            <el-table-column label="操作" width="90" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" link @click="handleInstallFromMarket(row)">安装</el-button>
               </template>

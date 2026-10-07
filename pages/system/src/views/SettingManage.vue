@@ -153,6 +153,7 @@ const groupCategoryMap: Record<string, string> = {
   gitee: "integration",
   github: "integration",
   google: "integration",
+  oidc: "integration",
   sso: "integration",
   sms: "message",
   smtp: "message",

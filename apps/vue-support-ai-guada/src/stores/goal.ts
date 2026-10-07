@@ -231,25 +231,34 @@ export const useGoalStore = defineStore('goal', () => {
   }
 
   /**
-   * 取消目标。
+   * 取消目标：用户已明确要求「整个目标条销毁，前后端都不保留」，
+   * 因此取消后直接删除本地目标条目（含 localStorage 持久化），不再展示「已取消」。
    *
    * @param sessionId 会话标识
    * @param reason    取消原因
    */
   async function cancel(sessionId: string, reason = '用户取消'): Promise<void> {
-    const current = goals.value[sessionId]
-    if (!current) {
+    remove(sessionId)
+    try {
+      await apiService.cancelGoal(sessionId, reason)
+    } catch {
+      // 本地已销毁：后端端点缺失也不影响
+    }
+  }
+
+  /**
+   * 彻底删除某会话的本地目标（目标条销毁：内存 + localStorage 都不要了）。
+   *
+   * @param sessionId 会话标识
+   */
+  function remove(sessionId: string): void {
+    if (!sessionId || !(sessionId in goals.value)) {
       return
     }
-    put(sessionId, { ...current, state: 'CANCELED', updatedAt: Date.now() })
-    try {
-      const remote = await apiService.cancelGoal(sessionId, reason)
-      if (remote && remote.id) {
-        put(sessionId, remote)
-      }
-    } catch {
-      // 保留本地态
-    }
+    const next = { ...goals.value }
+    delete next[sessionId]
+    goals.value = next
+    saveAll(next)
   }
 
   /**
@@ -271,6 +280,7 @@ export const useGoalStore = defineStore('goal', () => {
     pause,
     resume,
     cancel,
+    remove,
     stateLabel,
     formatTokens,
   }

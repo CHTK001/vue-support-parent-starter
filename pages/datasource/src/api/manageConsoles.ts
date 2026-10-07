@@ -233,6 +233,7 @@ export const fetchTableDdl = (tableName: string, datasourceId?: number, database
 
 /** 外键信息 */
 export interface DbForeignKeyInfo {
+  [key: string]: unknown;
   fkName?: string;
   columnName?: string;
   refTable?: string;
@@ -509,6 +510,7 @@ export const executeInfluxdbQuery = (flux: string, datasourceId?: number) =>
  * @since 4.0.0
  */
 export interface Neo4jLabel {
+  [key: string]: unknown;
   name: string;
   nodeCount?: number;
   propertyCount?: number;
@@ -522,6 +524,7 @@ export interface Neo4jLabel {
  * @since 4.0.0
  */
 export interface Neo4jRelationship {
+  [key: string]: unknown;
   type: string;
   relationshipCount?: number;
   propertyCount?: number;
@@ -602,6 +605,7 @@ export interface NacosNamespace {
  * @since 4.0.0
  */
 export interface NacosConfig {
+  [key: string]: unknown;
   dataId: string;
   group: string;
   format: string;
@@ -644,6 +648,7 @@ export interface NacosConfigSaveRequest {
  * @since 4.0.0
  */
 export interface NacosService {
+  [key: string]: unknown;
   name: string;
   clusterCount: number;
   healthyInstanceCount: number;
@@ -657,6 +662,7 @@ export interface NacosService {
  * @since 4.0.0
  */
 export interface NacosClusterNode {
+  [key: string]: unknown;
   ip: string;
   port: number;
   status: string;
@@ -765,6 +771,7 @@ export interface ZkNodeDetail {
  * @since 4.0.0
  */
 export interface ZkChildNode {
+  [key: string]: unknown;
   name: string;
   path: string;
   ephemeral: boolean;

@@ -16,7 +16,7 @@
 import { computed } from "vue";
 import ReEmpty from "@repo/ui/re-empty";
 import ScDataSourceView from "@pages/datasource/src/views/ScDataSourceView.vue";
-import DatabaseManagerView from "./DatabaseManagerView.vue";
+import DatabaseManagerView from "@pages/datasource/src/views/console/DatabaseManagerView.vue";
 import type { DataSourceInfo } from "@pages/datasource";
 import type { ReTabItem } from "@repo/ui/re-tab";
 

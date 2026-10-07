@@ -22,7 +22,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { existObject, objectUrl, putObject } from "../api/filestorageApi";
+import { authHeaders, existObject, putObject, resolveObjectUrl } from "../api/filestorageApi";
 import { extensionOf } from "../utils/officeRenderer";
 import { displayToImage } from "../utils/imageCoords";
 
@@ -158,16 +158,27 @@ const imgStyle = computed(() => {
 /** 缓存击穿序号：保存后自增，强制重新拉图 */
 const reloadSeq = ref(0);
 
-/** 原图地址（带缓存击穿参数，保存后能立刻看到新图） */
-const src = computed(() => {
-  const base = objectUrl(props.bucket, props.objectKey);
-  return `${base}${base.includes("?") ? "&" : "?"}_r=${reloadSeq.value}`;
-});
+/**
+ * 原图地址（带缓存击穿参数，保存后能立刻看到新图）
+ *
+ * <p>票据是异步换来的，解析完成前先返回空串 —— 让 {@code <img>} 暂不发起请求，
+ * 而不是先用「无令牌的直链」闪一下再被 401 打断。</p>
+ */
+const src = ref("");
+
+/** 按需签发票据并刷新原图地址 */
+async function refreshSrc(): Promise<void> {
+  const ticketUrl = await resolveObjectUrl(props.bucket, props.objectKey, {
+    params: { _r: String(reloadSeq.value) },
+  });
+  src.value = ticketUrl;
+}
 
 /** 拉原图字节（供裁剪导出与「还原」用） */
 async function loadOriginal(): Promise<void> {
   try {
-    const res = await fetch(src.value);
+    // 程序化 fetch 能带请求头，令牌只走头
+    const res = await fetch(src.value, { headers: authHeaders() });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -858,6 +869,7 @@ onMounted(() => {
   document.addEventListener("click", onDocClick);
   // 松开鼠标可能发生在视口之外，必须挂到 window，否则会一直处于平移态
   window.addEventListener("mouseup", onPanUp);
+  void refreshSrc();
   if (viewportRef.value) {
     viewportRo = new ResizeObserver(() => {
       const el = viewportRef.value;
@@ -894,6 +906,7 @@ watch(
     errorMsg.value = "";
     resetAll();
     reloadSeq.value += 1;
+    void refreshSrc();
   },
 );
 </script>

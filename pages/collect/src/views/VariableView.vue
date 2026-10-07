@@ -89,7 +89,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectVariableEncrypted", label: "密文", width: 80, slot: "encrypted", align: "center" },
   { prop: "collectVariableDescription", label: "说明", minWidth: 180, showOverflowTooltip: true },
   { prop: "updateTime", label: "更新时间", width: 160 },
-  { prop: "action", label: "操作", width: 100, slot: "action", fixed: "right", align: "right" },
+  { prop: "action", label: "操作", width: 100, slot: "action", fixed: "right" },
 ]);
 
 function openCreate(): void {

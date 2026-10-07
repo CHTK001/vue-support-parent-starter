@@ -448,7 +448,15 @@ async function load() {
     // 首次登录引导改密：管理员设/重置过初始口令、且学生还没自己改过时弹一次引导。
     // 标记由服务端在学生自助改密成功后置 0，所以只有第一次（或每次被重置后）会弹。
     // 用窄类型断言读这个可选字段，不改 types.ts —— 该文件当前有他人未提交改动，按 §4.7 不裹入。
-    if ((me as { mustChangePassword?: boolean }).mustChangePassword === true) {
+    //
+    // 管理员代入（impersonating）时不弹：这个引导弹窗故意做成不可取消/不可关闭
+    // （学生必须先改掉全班同一个的初始口令），但代入视角下管理员不该、也不能去改
+    // 学生的口令——不拦住就会把管理员死锁在学生端，连「退出代入」都点不到。
+    // 学生本人未代入时的引导改密行为保持不变。
+    if (
+      (me as { mustChangePassword?: boolean }).mustChangePassword === true &&
+      !impersonating.value
+    ) {
       openChangePassword(true);
     }
     overview.value = await eduaiApi.studentOverview();

@@ -61,7 +61,7 @@ import {
   isUploadAborted,
   listObjects,
   moveObjects,
-  objectUrl,
+  resolveObjectUrl,
   renameObject,
   unzipObject,
   zipArchiveName,
@@ -298,10 +298,34 @@ const configStamp = computed(() => {
  */
 function objectThumbUrl(name: string): string {
   if (isArchive(name) || !isPreviewable(name)) return "";
-  // objectUrl 已可能带 ?x-oauth-token=，分隔符必须按需取 &/?，拼成两个 ? 会让
-  // 服务端只认到第一个问号，后面的 preview/_cfg 全部丢失。
-  const base = objectUrl(bucket.value, fullKey(name), false);
-  return `${base}${base.includes("?") ? "&" : "?"}preview=true&_cfg=${encodeURIComponent(configStamp.value)}`;
+  // 票据异步签发，未就绪时返回空串走占位图 —— 绝不用「无令牌的直链」先闪一下
+  return thumbUrls.value[fullKey(name)] ?? "";
+}
+
+/**
+ * 大图标模式缩略图直链表：对象 Key -> 票据直链。
+ *
+ * <p>票据是异步换来的，没法在模板里同步取，因此先批量签发再写进这张表；
+ * 模板读到空串就走占位图。签发失败也留空 —— 私有桶取不到票据时表现为占位图，
+ * 与修复前「图片加载失败」一致，但不会把访问令牌写进 URL。</p>
+ */
+const thumbUrls = ref<Record<string, string>>({});
+
+/** 为当前目录的大图标缩略图批量签发票据 */
+async function refreshThumbUrls(): Promise<void> {
+  const stamp = configStamp.value;
+  const entries = await Promise.all(
+    sortedObjects.value
+      .filter((o) => !o.directory && isPreviewable(o.name) && !isArchive(o.name))
+      .map(async (o) => {
+        const key = fullKey(o.name);
+        const url = await resolveObjectUrl(bucket.value, key, {
+          params: { preview: "true", _cfg: stamp },
+        });
+        return [key, url] as const;
+      }),
+  );
+  thumbUrls.value = Object.fromEntries(entries);
 }
 
 /** 排序点击切换 */
@@ -1114,7 +1138,10 @@ async function smartDownload(keys: string[]): Promise<void> {
     const only = keys[0];
     const onlyObj = objects.value.find((o) => fullKey(o.name) === only);
     if (onlyObj && !onlyObj.directory) {
-      window.open(objectUrl(bucket.value, only, true), "_blank");
+      const url = await resolveObjectUrl(bucket.value, only, {
+        params: { download: "true" },
+      });
+      window.open(url, "_blank");
       return;
     }
   }
@@ -2309,6 +2336,9 @@ async function openPreview(row: StorageObject): Promise<void> {
   }
   previewName.value = row.name;
   previewKey.value = fullKey(row.name);
+  // 票据是异步的：先把旧地址清空，避免弹框先用上一个对象的地址闪一下
+  previewSrc.value = "";
+  void refreshPreviewSrc();
   previewError.value = false;
   previewForceServer.value = false;
   // 服务端有转换器但**没有** HTML 渲染器的文档（ODF / RTF）：直接 `?preview=true`
@@ -2322,7 +2352,27 @@ async function openPreview(row: StorageObject): Promise<void> {
   previewVisible.value = true;
 }
 
-const previewSrc = computed(() => objectUrl(bucket.value, previewKey.value));
+/**
+ * 预览对象直链。
+ *
+ * <p>用短时一次性票据而不是访问令牌：预览 iframe / {@code <img>} 无法自定义请求头，
+ * 令牌进 URL 会留在浏览器历史与网关访问日志里。票据与直读共用同一条渲染通道，
+ * 因此这里能带上的参数（{@code preview} / {@code format} / {@code inner} /
+ * {@code render}）在票据路径上同样有效。</p>
+ *
+ * <p>票据是异步换来的，解析完成前为空串 —— 让 iframe 暂不发起请求，
+ * 而不是先用「无令牌的直链」闪一下再被 401 打断。</p>
+ */
+const previewSrc = ref("");
+
+/** 按需为当前预览对象签发票据并刷新直链 */
+async function refreshPreviewSrc(): Promise<void> {
+  if (!previewKey.value) {
+    previewSrc.value = "";
+    return;
+  }
+  previewSrc.value = await resolveObjectUrl(bucket.value, previewKey.value);
+}
 
 /**
  * 当前文件是否走客户端直渲染（Vue3 Office 组件解析，服务端不转换）。
@@ -2518,7 +2568,7 @@ const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
  * 预览 iframe 地址：统一走后端预览通道 {@code ?preview=true}。
  *
  * <p>所有类型（图片/文本/PDF/Office/音视频/压缩包等）一致，由后端按类型内联渲染或直出字节；
- * objectUrl 可能已带令牌查询参数，故分隔符按需取 &/?。
+ * 底址是短时一次性票据（不含访问令牌），故分隔符仍需按已有查询串取 &/?。
  * 客户端渲染失败退回时追加 {@code render=server}，要求后端走服务端渲染链路。</p>
  *
  * <p>预览压缩包内条目时追加 {@code inner=包内路径}，后端据此提取条目并按
@@ -2612,11 +2662,15 @@ onUnmounted(() => { document.removeEventListener("keydown", onPreviewKeydown); }
 
 /* ================== 下载 / 检查 / 删除 ================== */
 
-function handleDownload(row: StorageObject): void {
+/** 下载单个对象：用短时一次性票据直连，令牌不落 URL */
+async function handleDownload(row: StorageObject): Promise<void> {
   if (!guardDownload()) {
     return;
   }
-  window.open(objectUrl(bucket.value, fullKey(row.name), true), "_blank");
+  const url = await resolveObjectUrl(bucket.value, fullKey(row.name), {
+    params: { download: "true" },
+  });
+  window.open(url, "_blank");
 }
 
 async function handleExist(row: StorageObject): Promise<void> {
@@ -2797,6 +2851,13 @@ watch(bucket, (now, prev) => {
   loadObjects();
   loadBucketConfig();
   loadCapabilities();
+  void refreshThumbUrls();
+});
+
+// 缩略图直链依赖四件事：目录内容、当前桶、配置指纹（?preview 的渲染结果）、
+// 以及是否处于大图标模式。少触发一项就会看到「配置改了缩略图不更新」这类陈旧画面。
+watch([sortedObjects, configStamp, viewMode], () => {
+  void refreshThumbUrls();
 });
 
 onUnmounted(() => {

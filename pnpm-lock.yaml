@@ -1903,6 +1903,24 @@ importers:
 
   pages/datasource:
     dependencies:
+      '@codemirror/autocomplete':
+        specifier: ^6.20.3
+        version: 6.20.3
+      '@codemirror/commands':
+        specifier: ^6.11.0
+        version: 6.11.0
+      '@codemirror/lang-sql':
+        specifier: ^6.10.0
+        version: 6.10.0
+      '@codemirror/language':
+        specifier: ^6.12.4
+        version: 6.12.4
+      '@codemirror/state':
+        specifier: ^6.7.4
+        version: 6.7.4
+      '@codemirror/view':
+        specifier: ^6.43.11
+        version: 6.43.11
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.40(typescript@6.0.3))
@@ -1921,6 +1939,9 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      echarts:
+        specifier: 'catalog:'
+        version: 5.6.0
       element-plus:
         specifier: 'catalog:'
         version: 2.14.3(vue@3.5.40(typescript@6.0.3))

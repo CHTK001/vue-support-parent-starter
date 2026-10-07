@@ -60,7 +60,7 @@
           type="button"
           class="next-task__item-main"
           :title="task.detail || task.title"
-          :aria-label="`把「${task.title}」设为当前会话目标`"
+          :aria-label="`发送「${task.title}」`"
           @click="onPick(task)"
         >
           <span class="next-task__item-title">{{ task.title }}</span>
@@ -76,7 +76,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { apiService } from '@/services/ApiService'
-import { useGoalStore } from '@/stores/goal'
 import type { SessionNextTaskItem, SessionNextTaskState } from '@/services/modules/session-next-task.api'
 
 const props = defineProps<{
@@ -84,7 +83,10 @@ const props = defineProps<{
   sessionId?: string | null
 }>()
 
-const goalStore = useGoalStore()
+const emit = defineEmits<{
+  /** 用户点了一条建议：直接作为用户消息发出（由 ChatInput 负责真正发送） */
+  (e: 'send-suggestion', text: string): void
+}>()
 
 const state = ref<SessionNextTaskState | null>(null)
 const collapsed = ref(false)
@@ -105,10 +107,7 @@ const pinnedTitle = '该会话已保留开启时的取值，之后设置中心�
 const inheritedTitle = '该会话还没有自己的取值，暂时跟随设置中心的默认值'
 
 /**
- * 把某条联想任务设为当前会话目标。
- *
- * 只写本地 goal store：目标的后端端点尚未上线，store 内部已按「本地先落地」
- * 处理，等端点上线会自动切为服务端为准。这里不再额外调接口，避免两处口径。
+ * 点击某条联想任务：直接作为用户消息发送出去（用户已明确要求：不是设为目标）。
  *
  * @param task 联想出的任务
  */
@@ -116,7 +115,11 @@ async function onPick(task: SessionNextTaskItem): Promise<void> {
   if (!props.sessionId) {
     return
   }
-  await goalStore.setGoal(props.sessionId, task.title, task.detail)
+  const text = [task.title, task.detail].filter(Boolean).join('\n')
+  if (!text.trim()) {
+    return
+  }
+  emit('send-suggestion', text)
 }
 
 /**

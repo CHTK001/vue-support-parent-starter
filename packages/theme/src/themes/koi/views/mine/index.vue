@@ -310,6 +310,16 @@
               <AvatarFramePanel :avatar="mineAvatar" @updated="refreshMine" />
             </el-tab-pane>
 
+            <el-tab-pane name="third">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Collection /></el-icon>
+                  <span>第三方绑定</span>
+                </span>
+              </template>
+              <ThirdBindPanel />
+            </el-tab-pane>
+
             <el-tab-pane name="logs">
               <template #label>
                 <span class="flex items-center gap-4px">
@@ -376,7 +386,7 @@
               </div>
             </el-tab-pane>
 
-            <el-tab-pane name="third">
+            <el-tab-pane name="lock">
               <template #label>
                 <span class="flex items-center gap-4px">
                   <el-icon :size="15"><Lock /></el-icon>
@@ -461,6 +471,7 @@ import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
+import ThirdBindPanel from "./components/ThirdBindPanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 

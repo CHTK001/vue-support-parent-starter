@@ -24,7 +24,23 @@ import { createVite } from "../../turbo/vite/createVite.ts";
     // 需要指向其他实例时用环境变量覆盖：
     //   COLLECT_API_TARGET=http://127.0.0.1:18190 pnpm dev
     const apiTarget = process.env.COLLECT_API_TARGET ?? "http://192.168.50.198:18190";
-const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://127.0.0.1:18191";
+// 调度节点同样跑在 Kali 上（198:18191 实测响应，缺 token 时 403）。
+// 缺省曾指向 127.0.0.1:18191 —— 本机没人监听，平台总览的调度摘要/节点列表
+// 恒报 ECONNREFUSED（dev 日志每分钟刷红），与 apiTarget 的口径对齐改为远端。
+const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.50.198:18191";
+
+// 数据源中心（/ms/datasource/** 与 /ms/monitor/**）由 datasource-hub 后端提供，
+// 与 monitor 应用共用同一个 hub（8081）。为什么不能打到 18190：采集后端内嵌的
+// datasource-hub 是旧构建，只有 /ms/datasource/**（列表 2 条），没有任何
+// /ms/monitor/** 控制台端点（DbConsole/Etcd/Influxdb/Nacos/Neo4j/Nginx/RedisManage
+// 全部 S0503C0000 未映射），数据源中心控制台会整体 404。
+// 打到 hub 还有一致性收益：列表与控制台用同一注册表的同一批 datasourceId，
+// 不会出现「列表读 18190 的 id=2、控制台打 8081 的 id=2（nacos）」串库。
+// 令牌互通已实测：18190 签发的 token 在 8081 上 list/redis-manage 均可用。
+// 前缀必须剥掉（hub 没有 /collect/api 这层 context-path）。
+//   COLLECT_HUB_TARGET=http://127.0.0.1:8081 pnpm dev 可覆盖。
+const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
+const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 
 // dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。
 // 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 192.168.50.198:18190；
@@ -40,9 +56,65 @@ const stripOriginHeaders = (proxyServer: any) => {
   });
 };
 
+/**
+ * 实时浏览器 sidecar 自动拉起：dev server 启动时把 scripts/live-browser.mjs 挂到后台，
+ * 关闭时杀掉。拾取器的「实时模式」依赖 http://127.0.0.1:19097，
+ * 手动起容易忘，这里做成全自动；已有人占端口时直接复用（幂等）。
+ */
+const liveBrowserPlugin = () => ({
+  name: "live-browser-sidecar",
+  apply: "serve" as const,
+  configureServer(server: any) {
+    const port = process.env.LIVE_BROWSER_PORT || "19097";
+    // 幂等探测：端口上已有 /api/health 就不重复拉起
+    const probe = async (): Promise<boolean> => {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 800);
+        const r = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: ctrl.signal });
+        clearTimeout(t);
+        return r.ok;
+      } catch {
+        return false;
+      }
+    };
+    let child: any = null;
+    const boot = async () => {
+      if (await probe()) {
+        server.config.logger.info(`[live-browser] reuse http://127.0.0.1:${port}`);
+        return;
+      }
+      const { spawn } = await import("node:child_process");
+      const script = new URL("../../../scripts/live-browser.mjs", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+      child = spawn(process.execPath, [script], {
+        detached: false,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, LIVE_BROWSER_PORT: port },
+      });
+      child.stdout?.on("data", (b: Buffer) => process.stdout.write(`[live-browser] ${b}`));
+      child.stderr?.on("data", (b: Buffer) => process.stderr.write(`[live-browser] ${b}`));
+      // 等它报 listening（最多 15s；首次拉起要启动 Chromium 是在建会话时，启动很快）
+      for (let i = 0; i < 30; i += 1) {
+        await new Promise((r) => setTimeout(r, 500));
+        if (await probe()) {
+          server.config.logger.info(`[live-browser] ready at http://127.0.0.1:${port}`);
+          return;
+        }
+      }
+      server.config.logger.warn(`[live-browser] 15s 内未就绪，实时模式将不可用（静态模式不受影响）`);
+    };
+    void boot();
+    server.httpServer?.on("close", () => {
+      child?.kill();
+    });
+  },
+});
+
 export default createVite({
   appName: "vue-support-collect-scheduler-starter",
   title: "采集调度一体化平台",
+  // 实时浏览器 sidecar：dev 启动时自动挂到 19097，拾取器实时模式依赖它
+  plugins: [liveBrowserPlugin() as any],
   // alias 指向各 pages 的真实目录，这样包内引用（含 "@pages/xxx/src/views/*.vue"
   // 这类深路径）才能解析到 .vue 文件，而不是只走 workspace 的入口。
   alias: {
@@ -54,13 +126,23 @@ export default createVite({
     port: 19096,
     strictPort: false,
     proxy: {
-      // 数据源模块接口在 context-path 下（前端已按 httpConfig.baseUrl 注入 /collect/api/ms/datasource），
-      // 因此由下面的 /collect/api 前缀统一代理，不需要单独条目。
-      // 顺序敏感：调度控制台前缀更长，必须排在通用前缀前面
+      // 顺序敏感：前缀更长的条目必须排在通用 /collect/api 前面，先匹配到的先生效。
+      // 三条路由各司其职：
+      //   /collect/api/v2/scheduler -> 调度节点（执行器注册表只在 SCHEDULER 进程里）
+      //   /collect/api/ms           -> datasource-hub（8081），见下方 hubTarget 注释
+      //   /collect/api              -> 采集业务节点 18190（登录 /v2/user/login、采集接口）
       "/collect/api/v2/scheduler": {
         target: schedulerTarget,
         changeOrigin: true,
         configure: stripOriginHeaders,
+      },
+      // 数据源中心（列表 + 控制台）-> datasource-hub（8081），并剥掉 /collect/api 前缀。
+      // 顺序敏感：必须排在通用 /collect/api 前面，否则会先被通用条目转去 18190。
+      "/collect/api/ms": {
+        target: hubTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+        rewrite: stripCollectApiPrefix,
       },
       "/collect/api": {
         target: apiTarget,

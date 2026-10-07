@@ -7,7 +7,13 @@ appConfig:
   title: AI 控制台
   systemCode: ai-guada
   # 登录守卫由本应用路由自行实现（见 src/router 守卫），不启用框架远程菜单鉴权
-  openAuth: false
+  openAuth: true
+
+  # 鉴权开关。**必须保持 true**：置 false 时 router/guard.ts 与 router/access.ts
+  # 都会直接放行 —— 前端不再做任何登录态与权限判断（后端 AuthFilter 仍在，
+  # 所以不是越权漏洞，但用户会看到空菜单、刷新即掉登录态）。
+  # 历史上曾为了绕开「白名单路由没被消费」的守卫 bug 而置 false，
+  # 该 bug 已修（guard.ts 现已实际消费 route.whiteList），无需再关。
   # 品牌 Logo / favicon 统一由 getConfig('app') 提供，组件与 index.html 不再硬编码
   logoUrl: /images/guada_logo_small.png
   logoLargeUrl: /images/guada_logo.png

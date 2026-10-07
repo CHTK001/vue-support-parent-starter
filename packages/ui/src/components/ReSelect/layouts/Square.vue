@@ -22,7 +22,13 @@
     >
       <ReIcon v-if="opt.icon" :name="opt.icon" :size="iconSize" />
       <span v-if="!vertical && !opt.icon" class="re-select-square__fallback">{{ String(opt.label).charAt(0) }}</span>
-      <span v-if="!iconOnly || vertical" class="re-select-square__label">{{ opt.label }}</span>
+      <!-- 竖向档位行两行结构：主标题 + 副说明（参考图的自动刷新频率菜单）；
+           横向档（iconOnly=false）仍是单行 label，保持原结构不动。 -->
+      <div v-if="vertical" class="re-select-square__body">
+        <span class="re-select-square__label">{{ opt.label }}</span>
+        <span v-if="opt.description" class="re-select-square__desc">{{ opt.description }}</span>
+      </div>
+      <span v-else-if="!iconOnly" class="re-select-square__label">{{ opt.label }}</span>
       <span v-if="isSelected(opt)" class="re-select-square__check">
         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="2 6 5 9 10 3" />
@@ -253,7 +259,8 @@ function select(opt: ReOption) {
 }
 
 /* ===== 竖向档位档（vertical）：一行一档，用于浮层里选间隔 =====
-   整行走「无边框 + 底色」的菜单感，不走方块档的描边选中，避免窄浮层里出现一串框 */
+   整行走「无边框 + 底色」的菜单感，不走方块档的描边选中，避免窄浮层里出现一串框。
+   行高不写死：两行档位（主标题 + 副说明）用 padding 撑，单行档位由 min-height 兜底。 */
 .re-select-square--vertical {
   flex-direction: column;
   align-items: stretch;
@@ -264,32 +271,66 @@ function select(opt: ReOption) {
   flex-direction: row;
   align-items: center;
   width: 100%;
-  height: 34px;
-  padding: 0 10px;
+  min-height: 34px;
+  height: auto;
+  padding: 5px 10px;
   gap: 10px;
   justify-content: flex-start;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--el-radius-base, 4px);
   background: transparent;
+}
+.re-select-square--vertical .re-select-square__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 .re-select-square--vertical .re-select-square__label {
   font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-regular, #606266);
 }
+/* 副说明（参考图每档下方的灰色小字），溢出省略避免长文案把浮层撑破 */
+.re-select-square--vertical .re-select-square__desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary, #909399);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 档位左侧的圆形图标底座：灰底中性色，选中后转主色浅底 */
+.re-select-square--vertical .re-select-square__item > .re-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-secondary, #909399);
+}
 .re-select-square--vertical .re-select-square__item:hover {
   background: var(--el-fill-color-light, #f5f7fa);
   border-color: transparent;
 }
 .re-select-square--vertical .re-select-square__item--active {
-  padding: 0 10px;
+  padding: 5px 10px;
   border: 1px solid transparent;
   background: var(--el-color-primary-light-9, #ecf5ff);
-  box-shadow: none;
+  /* 参考图的选中态：左侧主色竖条（inset 阴影不占布局宽度，不把内容挤偏） */
+  box-shadow: inset 3px 0 0 var(--el-color-primary, #409eff);
 }
 .re-select-square--vertical .re-select-square__item--active .re-select-square__label {
   color: var(--el-color-primary, #409eff);
   font-weight: 600;
+}
+.re-select-square--vertical .re-select-square__item--active > .re-icon {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
 }
 /* 选中态用整行右侧的对勾，不飘在方块角上 */
 .re-select-square--vertical .re-select-square__check {

@@ -49,6 +49,9 @@ export const useSessionStore = defineStore('session', () => {
     // 会话侧边栏状态（未读 / 工作中）
     const sessionSidebarStates: Ref<Map<string, { unread: boolean; working: boolean }>> = ref(new Map())
 
+    /** 各会话运行开始时间（毫秒），前端计算实时耗时的起点 */
+    const workingStartAt: Ref<Map<string, number>> = ref(new Map())
+
     /**
      * 获取或初始化会话状态
      * @param sessionId - 会话 ID
@@ -490,6 +493,10 @@ export const useSessionStore = defineStore('session', () => {
      * @param value - 标记值
      */
     const setSidebarFlag = (sessionId: string, flag: SidebarFlag, value: boolean): void => {
+        if (flag === 'working') {
+            setWorking(sessionId, value)
+            return
+        }
         getSidebarState(sessionId)[flag] = value
     }
 
@@ -510,7 +517,32 @@ export const useSessionStore = defineStore('session', () => {
      * @param isStreaming - 后端返回的流式状态
      */
     const syncStreamingState = (sessionId: string, isStreaming: boolean): void => {
-        getSidebarState(sessionId).working = isStreaming
+        setWorking(sessionId, isStreaming)
+    }
+
+    /**
+     * 设置运行态并记录开始时间（前端计算实时耗时的起点）。
+     *
+     * @param sessionId - 会话 ID
+     * @param working - 是否运行中
+     */
+    const setWorking = (sessionId: string, working: boolean): void => {
+        const state = getSidebarState(sessionId)
+        if (working && !state.working) {
+            workingStartAt.value.set(sessionId, Date.now())
+        } else if (!working) {
+            workingStartAt.value.delete(sessionId)
+        }
+        state.working = working
+    }
+
+    /**
+     * 取运行开始时间（毫秒）；未记录时返回 null。
+     *
+     * @param sessionId - 会话 ID
+     */
+    const getWorkingStartAt = (sessionId: string): number | null => {
+        return workingStartAt.value.get(sessionId) ?? null
     }
 
     /**
@@ -519,6 +551,7 @@ export const useSessionStore = defineStore('session', () => {
      */
     const clearSidebarState = (sessionId: string): void => {
         sessionSidebarStates.value.delete(sessionId)
+        workingStartAt.value.delete(sessionId)
     }
 
     // =====================
@@ -608,6 +641,8 @@ export const useSessionStore = defineStore('session', () => {
         setSidebarFlag,
         getSidebarFlag,
         syncStreamingState,
-        clearSidebarState
+        setWorking,
+        getWorkingStartAt,
+        clearSidebarState,
     }
 })

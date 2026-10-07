@@ -92,7 +92,9 @@ export const messageApi: MessageApi = {
   },
 
   async updateMessage(this: ApiContext, messageId: string, data: any) {
-    return await this._request(`/messages/${messageId}`, {
+    // 后端映射：PUT /v2/sessions/messages/{messageId}（AiSessionController 基路径 /v2/sessions）。
+    // 之前这里拼的是 /messages/{id}，根本没有这个端点 → 编辑消息（改内容/重命名）全部失败。
+    return await this._request(`/sessions/messages/${messageId}`, {
       method: "PUT",
       data,
     });

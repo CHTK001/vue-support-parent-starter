@@ -5,8 +5,13 @@
 # 系统信息
 appConfig:
   title: 系统管理平台
-  openAuth: false
+  openAuth: true
 
+  # 鉴权开关。**必须保持 true**：置 false 时 router/guard.ts 与 router/access.ts
+  # 都会直接放行 —— 前端不再做任何登录态与权限判断（后端 AuthFilter 仍在，
+  # 所以不是越权漏洞，但用户会看到空菜单、刷新即掉登录态）。
+  # 历史上曾为了绕开「白名单路由没被消费」的守卫 bug 而置 false，
+  # 该 bug 已修（guard.ts 现已实际消费 route.whiteList），无需再关。
 # 站内消息
 messageConfig:
   # 开启站内消息 HTTP 查询（头部铃铛 / 消息面板拉历史、未读、已读）
@@ -44,9 +49,10 @@ otherConfig:
     enable: true
   # 文件服务器（独立文件存储网关，默认值与后端 plugin.filesystem.storage-server 对齐）
   filestorage:
-    # 连接地址（文件存储网关）：本机后端已启动内置存储服务
-    # （plugin.filesystem.storage-server，端口 18080），本地联调直接指向它
-    server: http://127.0.0.1:18080
+    # 连接地址（文件存储网关，与本应用 vite proxy 的后端同机：192.168.50.198）
+    # 注意：前端本地跑时本机并没有文件服务，写 127.0.0.1:18080 会直接打不通，
+    # 列表恒为空且不报错。部署侧（198 自带的 app.yaml）保持本机地址不变。
+    server: http://192.168.50.198:18080
     # 默认存储桶（后端 provider 名）
     bucket: local
     # 存储配额（GB）：用于"存储用量"进度展示，页面 localStorage filestorage.quotaGb 可覆盖

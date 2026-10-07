@@ -63,10 +63,16 @@ export const hostRoutes: RouteConfigsTable[] = [
     meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/collect/datasource/list" },
   },
   {
-    path: "/etc",
+    path: "/etcd",
     name: "CollectEtcd",
     component: () => import("@pages/datasource/src/views/console/EtcdManageView.vue"),
     meta: { title: "etcd 管理", icon: "Coin", showLink: false, activeMenu: "/collect/datasource/list" },
+  },
+  {
+    path: "/redis-manage",
+    name: "CollectRedisManage",
+    component: () => import("@pages/datasource/src/views/console/RedisManageView.vue"),
+    meta: { title: "Redis 管理", icon: "Coin", showLink: false, activeMenu: "/collect/datasource/list" },
   },
 ];
 

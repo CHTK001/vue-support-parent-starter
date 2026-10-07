@@ -448,7 +448,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
             </span>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="270" align="right" fixed="right">
+        <ReTableColumn label="操作" width="270">
           <template #default="{ row }">
             <button class="ex-link" type="button" @click="openRunDialog(row)"><i class="ex-link__dot" />执行</button>
             <button class="ex-link" type="button" @click="openJobLogs(row)">全部日志</button>

@@ -76,7 +76,7 @@
           <span v-else class="text-muted">未测试</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right" align="right">
+      <el-table-column label="操作" width="280" fixed="right" align="center">
         <template #default="{ row }">
           <el-button type="primary" link @click="testLatency(row)" :loading="row.testing">
             <el-icon><Timer /></el-icon> 测试延迟

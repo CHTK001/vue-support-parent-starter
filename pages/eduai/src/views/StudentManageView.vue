@@ -59,86 +59,98 @@
             </div>
           </el-card>
 
-          <el-table v-loading="loading" :data="filteredStudents" stripe row-key="studentId" @row-click="openStudent">
-            <template #empty><el-empty :image-size="80" description="暂无学生，点击「新增学生」创建" /></template>
-            <el-table-column prop="studentId" label="ID" width="70" />
-            <el-table-column label="学号" width="190" show-overflow-tooltip>
-              <template #default="{ row }">
-                <!-- 学号是发给家长的登录凭据，最常被「念一遍 / 贴进群里」：
-                     给一个一键复制，省掉手工框选。按钮必须 .stop ——
-                     该表格绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
-                <span class="no-cell">
-                  <span class="no-cell__text">{{ row.studentNo || "—" }}</span>
-                  <!-- 复制学号：不是按钮，用 ReIcon；默认隐藏，鼠标经过该单元格才显示。
-                       必须 .stop —— 该表格绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
-                  <span
-                    v-if="row.studentNo"
-                    class="no-cell__copy"
-                    role="button"
-                    tabindex="0"
-                    title="复制学号"
-                    aria-label="复制学号"
-                    @click.stop="copyStudentNo(row.studentNo)"
-                    @keydown.enter.stop="copyStudentNo(row.studentNo)"
-                  >
-                    <ReIcon name="CopyDocument" :size="14" aria-hidden="true" />
-                  </span>
+          <!-- 管理页统一收敛为 ReTable（本页自带底部总数行与 tab 计数，
+               所以关掉 ReTable 自带的 toolbar / pagination，避免双套分页/工具条）。
+               原裸 el-table 的列、插槽、行点击全部等价迁移。 -->
+          <ReTable
+            v-loading="loading"
+            :data="studentRows"
+            :columns="studentColumns"
+            :row-key="'studentId'"
+            layout="table"
+            :layout-switch="false"
+            :pagination="false"
+            :toolbar="false"
+            stripe
+            @row-click="(row: Record<string, unknown>) => openStudent(row as unknown as EduStudent)"
+          >
+            <!-- 空态门控：本页 loading 在 ReTable 外层（v-loading 直接挂在组件上，
+                 不进 ReTable 内部状态），加载窗口内不画空态，杜绝「暂无数据」闪现 -->
+            <template #empty>
+              <el-empty v-if="!loading" :image-size="80" description="暂无学生，点击「新增学生」创建" />
+            </template>
+            <!-- 学号：发给家长的登录凭据，最常被「念一遍 / 贴进群里」：
+                 给一个一键复制，省掉手工框选。按钮必须 .stop ——
+                 ReTable 绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
+            <template #col-studentNo="{ row }">
+              <span class="no-cell">
+                <span class="no-cell__text">{{ row.studentNo || "—" }}</span>
+                <!-- 复制学号：不是按钮，用 ReIcon；默认隐藏，鼠标经过该单元格才显示。
+                     必须 .stop —— ReTable 绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
+                <span
+                  v-if="row.studentNo"
+                  class="no-cell__copy"
+                  role="button"
+                  tabindex="0"
+                  title="复制学号"
+                  aria-label="复制学号"
+                  @click.stop="copyStudentNo(row.studentNo)"
+                  @keydown.enter.stop="copyStudentNo(row.studentNo)"
+                >
+                  <ReIcon name="CopyDocument" :size="14" aria-hidden="true" />
                 </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="studentName" label="姓名" width="120" />
-            <el-table-column label="学段" width="90">
-              <template #default="{ row }">{{ levelText(row.studentGradeLevel) }}</template>
-            </el-table-column>
-            <el-table-column prop="studentGrade" label="年级" width="100" />
-            <el-table-column label="班级" min-width="140">
-              <template #default="{ row }">{{ className(row.studentClassId) }}</template>
-            </el-table-column>
-            <el-table-column label="学生端绑定" width="140" align="center">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="row.studentAccount ? 'is-green' : 'is-grey'">
-                  {{ row.studentAccount ? "已绑定" : "未绑定" }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="studentAccount" label="绑定账号" width="140" show-overflow-tooltip />
-            <el-table-column label="家长手机号" width="130">
-              <template #default="{ row }">
-                <span v-if="row.studentParentPhone">{{ row.studentParentPhone }}</span>
-                <span v-else class="cell-muted">未填</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="90" align="center">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="row.studentStatus === 1 ? 'is-blue' : 'is-grey'">
-                  {{ row.studentStatus === 1 ? "在读" : "离校" }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="170" align="center" fixed="right" class-name="op-col">
-              <template #default="{ row }">
-                <!-- 操作列按钮必须 .stop：el-table 上绑了 @row-click="openStudent"，
-                     不阻止冒泡会让「点任何按钮」都额外触发一次「打开编辑弹窗」
-                     （实测：点代入/重置密码/删除都会弹出编辑学生对话框）。 -->
-                <ReButton
-                  layout="square"
-                  type="success"
-                  :icon="View"
-                  tip="代入该学生"
-                  @click.stop="impersonate(row)"
-                />
-                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openStudent(row)" />
-                <ReButton
-                  layout="square"
-                  type="warning"
-                  :icon="Key"
-                  tip="重置密码"
-                  @click.stop="openResetPassword(row)"
-                />
-                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeStudent(row)" />
-              </template>
-            </el-table-column>
-          </el-table>
+              </span>
+            </template>
+            <template #col-studentGradeLevel="{ row }">{{ levelText(row.studentGradeLevel) }}</template>
+            <template #col-studentClassId="{ row }">{{ className(row.studentClassId) }}</template>
+            <template #col-accountBind="{ row }">
+              <span class="tag-pill" :class="row.studentAccount ? 'is-green' : 'is-grey'">
+                {{ row.studentAccount ? "已绑定" : "未绑定" }}
+              </span>
+            </template>
+            <template #col-studentParentPhone="{ row }">
+              <span v-if="row.studentParentPhone">{{ row.studentParentPhone }}</span>
+              <span v-else class="cell-muted">未填</span>
+            </template>
+            <template #col-studentStatus="{ row }">
+              <span class="tag-pill" :class="row.studentStatus === 1 ? 'is-blue' : 'is-grey'">
+                {{ row.studentStatus === 1 ? "在读" : "离校" }}
+              </span>
+            </template>
+            <template #col-actions="{ row }">
+              <!-- 操作列按钮必须 .stop：ReTable 上绑了 @row-click="openStudent"，
+                   不阻止冒泡会让「点任何按钮」都额外触发一次「打开编辑弹窗」
+                   （实测：点代入/重置密码/删除都会弹出编辑学生对话框）。 -->
+              <ReButton
+                layout="square"
+                type="success"
+                :icon="View"
+                tip="代入该学生"
+                @click.stop="impersonate(row as unknown as EduStudent)"
+              />
+              <ReButton
+                layout="square"
+                type="primary"
+                :icon="EditPen"
+                tip="编辑"
+                @click.stop="openStudent(row as unknown as EduStudent)"
+              />
+              <ReButton
+                layout="square"
+                type="warning"
+                :icon="Key"
+                tip="重置密码"
+                @click.stop="openResetPassword(row as unknown as EduStudent)"
+              />
+              <ReButton
+                layout="square"
+                type="danger"
+                :icon="Delete"
+                tip="删除"
+                @click.stop="removeStudent(row as unknown as EduStudent)"
+              />
+            </template>
+          </ReTable>
           <div class="table-footer"><span class="table-footer__total">共 {{ filteredStudents.length }} 条</span></div>
         </el-tab-pane>
 
@@ -148,25 +160,41 @@
             <el-button type="primary" :icon="Plus" @click="openClass()">新增班级</el-button>
             <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
           </div>
-          <el-table v-loading="loading" :data="classes" stripe row-key="classId" @row-click="openClass">
-            <template #empty><el-empty :image-size="80" description="暂无班级" /></template>
-            <el-table-column prop="classId" label="ID" width="70" />
-            <el-table-column prop="classCode" label="班级编码" width="200" show-overflow-tooltip />
-            <el-table-column prop="className" label="班级名称" min-width="160" />
-            <el-table-column label="学段" width="90">
-              <template #default="{ row }">{{ levelText(row.classGradeLevel) }}</template>
-            </el-table-column>
-            <el-table-column prop="classGrade" label="年级" width="110" />
-            <el-table-column label="学生数" width="90" align="center">
-              <template #default="{ row }">{{ studentsInClass(row.classId) }}</template>
-            </el-table-column>
-            <el-table-column label="操作" width="96" align="center" fixed="right" class-name="op-col">
-              <template #default="{ row }">
-                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openClass(row)" />
-                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeClass(row)" />
-              </template>
-            </el-table-column>
-          </el-table>
+          <ReTable
+            v-loading="loading"
+            :data="classRows"
+            :columns="classColumns"
+            :row-key="'classId'"
+            layout="table"
+            :layout-switch="false"
+            :pagination="false"
+            :toolbar="false"
+            stripe
+            @row-click="(row: Record<string, unknown>) => openClass(row as unknown as EduClass)"
+          >
+            <template #empty>
+              <el-empty v-if="!loading" :image-size="80" description="暂无班级" />
+            </template>
+            <template #col-classGradeLevel="{ row }">{{ levelText(row.classGradeLevel) }}</template>
+            <template #col-studentCount="{ row }">{{ studentsInClass(row.classId) }}</template>
+            <template #col-actions="{ row }">
+              <!-- .stop：ReTable 绑了 @row-click="openClass"，不挡冒泡会顺带打开编辑 -->
+              <ReButton
+                layout="square"
+                type="primary"
+                :icon="EditPen"
+                tip="编辑"
+                @click.stop="openClass(row as unknown as EduClass)"
+              />
+              <ReButton
+                layout="square"
+                type="danger"
+                :icon="Delete"
+                tip="删除"
+                @click.stop="removeClass(row as unknown as EduClass)"
+              />
+            </template>
+          </ReTable>
         </el-tab-pane>
 
         <!-- ============ 教师 ============ -->
@@ -175,33 +203,49 @@
             <el-button type="primary" :icon="Plus" @click="openTeacher()">新增教师</el-button>
             <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
           </div>
-          <el-table v-loading="loading" :data="teachers" stripe row-key="teacherId" @row-click="openTeacher">
-            <template #empty><el-empty :image-size="80" description="暂无教师" /></template>
-            <el-table-column prop="teacherId" label="ID" width="70" />
-            <el-table-column prop="teacherNo" label="工号" width="160" show-overflow-tooltip />
-            <el-table-column prop="teacherName" label="姓名" width="130" />
-            <el-table-column prop="teacherSubjectCode" label="任教学科" width="130" />
-            <el-table-column label="老师端绑定" width="140" align="center">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="row.teacherAccount ? 'is-green' : 'is-grey'">
-                  {{ row.teacherAccount ? "已绑定" : "未绑定" }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="90" align="center">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="row.teacherStatus === 1 ? 'is-blue' : 'is-grey'">
-                  {{ row.teacherStatus === 1 ? "在职" : "离职" }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="96" align="center" fixed="right" class-name="op-col">
-              <template #default="{ row }">
-                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openTeacher(row)" />
-                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeTeacher(row)" />
-              </template>
-            </el-table-column>
-          </el-table>
+          <ReTable
+            v-loading="loading"
+            :data="teacherRows"
+            :columns="teacherColumns"
+            :row-key="'teacherId'"
+            layout="table"
+            :layout-switch="false"
+            :pagination="false"
+            :toolbar="false"
+            stripe
+            @row-click="(row: Record<string, unknown>) => openTeacher(row as unknown as EduTeacher)"
+          >
+            <template #empty>
+              <el-empty v-if="!loading" :image-size="80" description="暂无教师" />
+            </template>
+            <template #col-accountBind="{ row }">
+              <span class="tag-pill" :class="row.teacherAccount ? 'is-green' : 'is-grey'">
+                {{ row.teacherAccount ? "已绑定" : "未绑定" }}
+              </span>
+            </template>
+            <template #col-teacherStatus="{ row }">
+              <span class="tag-pill" :class="row.teacherStatus === 1 ? 'is-blue' : 'is-grey'">
+                {{ row.teacherStatus === 1 ? "在职" : "离职" }}
+              </span>
+            </template>
+            <template #col-actions="{ row }">
+              <!-- .stop：ReTable 绑了 @row-click="openTeacher"，不挡冒泡会顺带打开编辑 -->
+              <ReButton
+                layout="square"
+                type="primary"
+                :icon="EditPen"
+                tip="编辑"
+                @click.stop="openTeacher(row as unknown as EduTeacher)"
+              />
+              <ReButton
+                layout="square"
+                type="danger"
+                :icon="Delete"
+                tip="删除"
+                @click.stop="removeTeacher(row as unknown as EduTeacher)"
+              />
+            </template>
+          </ReTable>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -510,6 +554,8 @@ import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, 
   Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
+import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -581,6 +627,54 @@ function className(id?: number | null): string {
 function studentsInClass(classId: number): number {
   return students.value.filter((s) => s.studentClassId === classId).length;
 }
+
+// ==================== ReTable 列定义 ====================
+/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
+const studentRows = computed(() => filteredStudents.value as unknown as Record<string, unknown>[]);
+const classRows = computed(() => classes.value as unknown as Record<string, unknown>[]);
+const teacherRows = computed(() => teachers.value as unknown as Record<string, unknown>[]);
+
+/**
+ * 学生表列定义（原裸 el-table 迁移为 ReTable）
+ *
+ * 「操作」列带 className: "op-col" —— 透传给 el-table-column 的 class-name，
+ * 按钮组的 flex 居中/清零 margin 样式依赖它。
+ */
+const studentColumns: ReTableColumn[] = [
+  { prop: "studentId", label: "ID", width: 70 },
+  { prop: "studentNo", label: "学号", width: 190, slot: "col-studentNo", showOverflowTooltip: true },
+  { prop: "studentName", label: "姓名", width: 120 },
+  { prop: "studentGradeLevel", label: "学段", width: 90, slot: "col-studentGradeLevel" },
+  { prop: "studentGrade", label: "年级", width: 100 },
+  { prop: "studentClassId", label: "班级", minWidth: 140, slot: "col-studentClassId" },
+  { prop: "accountBind", label: "学生端绑定", width: 140, align: "center", slot: "col-accountBind" },
+  { prop: "studentAccount", label: "绑定账号", width: 140, showOverflowTooltip: true },
+  { prop: "studentParentPhone", label: "家长手机号", width: 130, slot: "col-studentParentPhone" },
+  { prop: "studentStatus", label: "状态", width: 90, align: "center", slot: "col-studentStatus" },
+  { prop: "actions", label: "操作", width: 170, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+];
+
+/** 班级表列定义 */
+const classColumns: ReTableColumn[] = [
+  { prop: "classId", label: "ID", width: 70 },
+  { prop: "classCode", label: "班级编码", width: 200, showOverflowTooltip: true },
+  { prop: "className", label: "班级名称", minWidth: 160 },
+  { prop: "classGradeLevel", label: "学段", width: 90, slot: "col-classGradeLevel" },
+  { prop: "classGrade", label: "年级", width: 110 },
+  { prop: "studentCount", label: "学生数", width: 90, align: "center", slot: "col-studentCount" },
+  { prop: "actions", label: "操作", width: 96, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+];
+
+/** 教师表列定义 */
+const teacherColumns: ReTableColumn[] = [
+  { prop: "teacherId", label: "ID", width: 70 },
+  { prop: "teacherNo", label: "工号", width: 160, showOverflowTooltip: true },
+  { prop: "teacherName", label: "姓名", width: 130 },
+  { prop: "teacherSubjectCode", label: "任教学科", width: 130 },
+  { prop: "accountBind", label: "老师端绑定", width: 140, align: "center", slot: "col-accountBind" },
+  { prop: "teacherStatus", label: "状态", width: 90, align: "center", slot: "col-teacherStatus" },
+  { prop: "actions", label: "操作", width: 96, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+];
 
 // ==================== 加载 ====================
 async function loadAll() {

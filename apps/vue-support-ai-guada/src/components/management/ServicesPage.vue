@@ -40,7 +40,7 @@
         <el-table-column prop="uptime" label="运行时长" min-width="160">
           <template #default="{ row }">{{ formatUptime(row.uptime) }}</template>
         </el-table-column>
-        <el-table-column v-if="admin" label="操作" width="140" fixed="right" align="right">
+        <el-table-column v-if="admin" label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <el-button v-if="!row.running" type="success" link @click="handleStart(row.name)">启动</el-button>
             <el-button v-else type="warning" link @click="handleStop(row.name)">停止</el-button>

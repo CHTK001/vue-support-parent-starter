@@ -1991,7 +1991,7 @@ function coreRowOpt(index: number): Opt {
                     </ReTag>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="150" align="right" fixed="right">
+                <el-table-column label="操作" width="150" align="center" fixed="right">
                   <template #default="{ row }">
                     <el-button link type="primary"  :disabled="managedSaving === row.key" @click="saveManagedCron(row)">保存</el-button>
                     <el-button link type="warning"  :disabled="managedSaving === row.key" @click="runManagedTask(row)">执行一次</el-button>

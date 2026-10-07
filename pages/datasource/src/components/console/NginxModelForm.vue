@@ -164,7 +164,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { NginxConfigNode, NginxDirectiveMeta, NginxPatch } from "../../nginx/api";
+import type { NginxConfigNode, NginxDirectiveMeta, NginxPatch } from "../../api/nginx/api";
 
 const props = withDefaults(
   defineProps<{

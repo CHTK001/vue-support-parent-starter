@@ -174,7 +174,7 @@
               {{ row.createdAt ? formatDate(row.createdAt) : "-" }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" fixed="right" align="right">
+          <el-table-column label="操作" width="160" fixed="right">
             <template #default="{ row }">
               <el-button
                 link

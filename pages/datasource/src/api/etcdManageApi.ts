@@ -10,6 +10,7 @@ const unwrap = <T>(res: any): T => unwrapResult<T>(res);
  * @since 4.0.0.43
  */
 export interface EtcdKey {
+  [key: string]: unknown;
   key: string;
   createRevision?: number;
   modRevision?: number;
@@ -41,6 +42,7 @@ export interface EtcdKeyDetail {
  * @since 4.0.0.43
  */
 export interface EtcdStatus {
+  [key: string]: unknown;
   version?: string;
   leader?: string;
   dbSize?: number | null;
@@ -56,6 +58,7 @@ export interface EtcdStatus {
  * @since 4.0.0.43
  */
 export interface EtcdLease {
+  [key: string]: unknown;
   id: number;
   ttl?: number | null;
   grantedTtl?: number | null;
@@ -68,6 +71,7 @@ export interface EtcdLease {
  * @since 4.0.0.43
  */
 export interface EtcdMember {
+  [key: string]: unknown;
   id: string;
   name?: string;
   peerUrls?: string;
