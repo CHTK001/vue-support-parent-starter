@@ -2150,6 +2150,7 @@ async function submitProfileEnv(): Promise<void> {
 .pp-error { margin: 0 14px 12px; padding: 9px 12px; font-size: 12.5px; color: var(--status-error-text); background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px; }
 .pp-loading { padding: 22px 0; text-align: center; }
 .pp-scroll { max-height: 420px; overflow: auto; border-top: 1px solid var(--p-line-2); }
+.pp-net { border-top: 1px solid var(--p-line-2); padding: 4px 14px 14px; }
 .pp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .pp-table th, .pp-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--p-line-2); white-space: nowrap; }
 .pp-table th { font-size: 11px; font-weight: 600; color: var(--p-text-2); background: var(--p-bg); position: sticky; top: 0; }
