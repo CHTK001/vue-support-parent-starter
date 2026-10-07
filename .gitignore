@@ -191,6 +191,8 @@ parser-trim.png
 # 临时构建校验脚手架（vite 临时入口 + 其产物，验证完即删，不属于源码）
 **/tmp-*.html
 **/tmp-*.ts
+**/tmp-*.mjs
+**/tmp-*.js
 **/tmp-dist/
 
 # Rust 编译产物（wasm 本身不忽略：crates/*/src/wasm 下的产物要随包提交）
