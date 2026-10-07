@@ -1452,17 +1452,21 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron :deep(.el-input__inner:-webkit-autofill:focus) {
   -webkit-box-shadow: 0 0 0 1000px var(--el-bg-color, #ffffff) inset !important;
   -webkit-text-fill-color: var(--el-text-color-primary) !important;
-  transition: background-color 999999s ease-out 0s !important;
   caret-color: var(--el-text-color-primary);
 }
 
 /*
- * autofill 没命中时（扩展常走自己的属性而非 :-webkit-autofill），残余底色会铺满
- * 输入框、在空表达式时正好盖住 placeholder，表现为「没数据时输入框里一圈怪底色
- * + 左侧色条」。background-clip:text 把底色收进字形内，色条不再溢出到留白处。
- * 只对 .el-input__inner 生效，不碰 wrapper，聚焦内描边照旧。
+ * 背景色过渡一律置零，而不是用常见的 `background-color 999999s` trick。
+ *
+ * 那条 trick（给过渡一个近乎无穷的时长，让 Chrome 以为"你已处理过"）有个反效果：
+ * 过渡时长会**接住此后每一次背景色变化**并摊到 999999 秒上，于是浏览器/扩展画的
+ * 底色变成肉眼可辨的极慢漂移 —— 正是「cron 输入框没数据时紫色在缓慢呼吸」的成因：
+ * 按键/失焦/自动填充每次改一次背景，就多一段看不见起止的渐变。
+ *
+ * `transition: none` 是斩断而不是掩盖：底色该由谁画由谁画，但不再被拉成慢动画。
  */
 .re-cron :deep(.el-input__inner) {
+  transition: none !important;
   -webkit-background-clip: text;
   background-clip: text;
 }
