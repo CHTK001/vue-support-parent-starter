@@ -1688,6 +1688,19 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   color: var(--el-text-color-regular);
 }
 
+/* 路径行：图标 + 可折行的路径 + 右侧状态标签。标签固定在右侧不参与折行 */
+.ngx-path-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--el-text-color-placeholder);
+}
+
+.ngx-path-row .ngx-break {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .ngx-break {
   word-break: break-all;
 }
