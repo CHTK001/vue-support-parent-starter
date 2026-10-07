@@ -645,9 +645,16 @@ async function closeOverlays(p) {
           R.notes.push('崩溃自愈第 ' + crashes + ' 次（点「' + label + '」时），已重建会话续跑');
         }
 
-        const beforeOverlays = await page.evaluate(COUNT_OVERLAYS).catch(() => 0);
-        await page.evaluate(START_MUT).catch(() => {});
-
+        /**
+         * beforeOverlays / START_MUT 必须在**最后一次导航之后**装。
+         *
+         * 原来这里先装、下面「重新导航回本路由」才 goto —— page.goto 会销毁整个
+         * document，连带把刚装的 MutationObserver 一起带走，于是 READ_MUT 恒读 0。
+         * 实测后果：Plugins 的 46 个「已召唤」点了其实已 router.push 跳到
+         * /chat/new-session（urlChanged=true、afterUrl=/chat/new-session），
+         * 却因 DOM变更0条 被判成 no-effect —— 把能用的按钮错报成死按钮。
+         * 现挪到 urlBefore 之后（见下），保证观察器存活到点击之后。
+         */
         /**
          * 点击前**重新采集**并按指纹重新定位。
          *
@@ -693,6 +700,12 @@ async function closeOverlays(p) {
         rec.fresh = freshCount;
         rec.renavigated = renavigated;
         const urlBefore = page.url();
+        /**
+         * 基线必须在 urlBefore 之后取：上面的 goto（崩溃自愈 / 重新导航回本路由）
+         * 都会销毁 document 并重置 MutationObserver，早装的观察器到这里已经死了。
+         */
+        const beforeOverlays = await page.evaluate(COUNT_OVERLAYS).catch(() => 0);
+        await page.evaluate(START_MUT).catch(() => {});
 
         let clicked = true, clickErr = '', forced = false;
         if (!target) {
@@ -834,7 +847,17 @@ async function closeOverlays(p) {
           rec.err = rec.err || clickErr;
         } else if (rec.err) {
           rec.state = 'click-error';
-        } else if (netLog.length === 0 && toasts.length === 0 && overlays <= beforeOverlays && muts === 0) {
+        } else if (netLog.length === 0 && toasts.length === 0
+          && overlays <= beforeOverlays && muts === 0 && !rec.urlChanged) {
+          /**
+           * `!rec.urlChanged`：路由跳转本身就是可观测副作用，必须算「有点反应」。
+           *
+           * 漏掉它的实测后果：Plugins 的 46 个「已召唤」按钮点击后
+           * `router.push` 跳到 /chat/new-session（urlChanged=true、afterUrl 已记），
+           * 却因 接口0次 toast0 弹窗0 DOM变更0条 被判成 no-effect，
+           * 等于把能正常跳转的按钮错报成「点了没反应的死按钮」。
+           * 加上 urlChanged 后这类记录归 pass，no-effect 只剩真·无任何可观测变化的。
+           */
           rec.state = 'no-effect';
         } else if (forced) {
           rec.state = 'needs-force';
