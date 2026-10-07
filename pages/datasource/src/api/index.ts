@@ -181,10 +181,16 @@ export interface DataSourceTunnel {
   status?: number | null;
 }
 
-/** 通用下拉选项 */
+/**
+ * 通用下拉选项。
+ *
+ * <p>带索引签名：table/column 选项会挂上表名、字段名、类型等额外字段供 ReSelect
+ * 的 table 布局与自定义插槽渲染（见 {@link toTableOptions} / {@link toColumnOptions}）。</p>
+ */
 export interface CollectOption {
   value: string;
   label: string;
+  [key: string]: unknown;
 }
 
 /** 数据表列元数据，入库节点字段映射的候选列 */

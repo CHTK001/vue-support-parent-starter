@@ -72,6 +72,35 @@ import { fmtMs } from "../utils/time";
 import { resolveHostPath } from "../utils/hostPath";
 import { CronExpression } from "@repo/utils";
 import ReIcon from "@repo/ui/re-icon";
+import {
+  ALARM_TYPE_OPTIONS,
+  DEFAULT_GLUE_ENGINE,
+  DISPATCH_OPTIONS,
+  FALLBACK_GLUE_ENGINES,
+  FORM_MSG_DURATION,
+  GLUE_BEAN,
+  GLUE_ENGINE_LABELS,
+  GLUE_FRAGMENT_PREFIX,
+  MISFIRE_OPTIONS,
+  SCHEDULE_NAME,
+  SCHEDULE_OPTIONS,
+  SCHEDULE_TIME_HINT,
+  STATUS_OPTIONS,
+} from "../constants/jobOptions";
+import {
+  alarmTypeText,
+  canPreviewFireTimes,
+  detailSourceLabel,
+  engineOfGlueType,
+  fmtFireTime,
+  flowIdOf,
+  glueEngineLabel,
+  glueKindLabel,
+  isFlowRow,
+  isScriptJob,
+  kindOfGlueType,
+  scheduleText,
+} from "../utils/jobFormat";
 
 defineOptions({ name: "CollectJob" });
 
@@ -83,84 +112,6 @@ const query = ref({ page: 1, pageSize: 20 });
 
 /** 内置搜索区的实时草稿值，ReTable 会把它并进 loader 的 params */
 const searchModel = ref<Record<string, unknown>>({ keyword: "", status: "", dispatchMode: "" });
-
-/** 状态下拉：空串是「全部」这一档，过筛时归一为不带该条件 */
-const STATUS_OPTIONS: ReOption[] = [
-  { label: "全部状态", value: "" },
-  { label: "启用中", value: 1 },
-  { label: "已停用", value: 0 },
-];
-
-const DISPATCH_OPTIONS: ReOption[] = [
-  { label: "全部分发", value: "", icon: "Grid" },
-  { label: "本地执行", value: "LOCAL", icon: "Monitor" },
-  { label: "远程分发", value: "REMOTE", icon: "Connection" },
-];
-
-/** 调度类型取值与后端 JobSpec 常量一致 */
-const SCHEDULE_OPTIONS: ReOption[] = [
-  { label: "CRON 表达式", value: "CRON" },
-  { label: "固定频率（毫秒）", value: "FIXED" },
-  { label: "固定延迟（毫秒）", value: "DELAY" },
-  { label: "不自动调度", value: "NONE" },
-];
-
-/**
- * 表单校验提示的展示时长（毫秒）。
- *
- * 比 msgError 默认的 2 秒更长：这些提示都要求用户回到表单改字段，
- * 2 秒内常常还没看清就消失了（自动化验收里直接读不到）。
- */
-const FORM_MSG_DURATION = 4000;
-
-/** 调度类型 → 简称：校验提示里用它对齐下拉选项，避免用户找不到说的是哪一项 */
-const SCHEDULE_NAME: Record<string, string> = {
-  CRON: "CRON 表达式",
-  FIXED: "固定频率",
-  DELAY: "固定延迟",
-  NONE: "不自动调度",
-};
-
-/** 调度类型 → 该填的调度配置举例，直接告诉用户填什么格式 */
-const SCHEDULE_TIME_HINT: Record<string, string> = {
-  CRON: "cron 表达式（6 段，例如 0 0/30 * * * ?）",
-  FIXED: "固定频率毫秒数（例如 60000 表示每分钟一次）",
-  DELAY: "固定延迟毫秒数（例如 60000 表示上次结束后隔一分钟）",
-};
-
-const MISFIRE_OPTIONS: ReOption[] = [
-  { label: "错过不补跑", value: "DO_NOTHING" },
-  { label: "错过补跑一次", value: "FIRE_ONCE_NOW" },
-];
-
-/** 失败告警类型：空串表示不告警，值域与后端 JobAlarmMessage 常量一致 */
-const ALARM_TYPE_OPTIONS: ReOption[] = [
-  { label: "不告警", value: "" },
-  { label: "邮件", value: "EMAIL" },
-  { label: "Webhook", value: "WEBHOOK" },
-];
-
-/**
- * 执行类型（顶部三张卡片，与后端 GlueTypes 收敛后的三类语义一致）：
- *  - 对象（BEAN）：从已注册执行器对象（@Job 处理器）里选一个执行，任务键即处理器名，正文为空；
- *  - 脚本（裸引擎名，如 java / groovy）：写**完整文件**（完整 Java 类 / 完整 Groovy 脚本），
- *    保存时由对应引擎预编译校验，执行时复用同一份编译产物；
- *  - 片段（GLUE_ + 引擎名大写，如 GLUE_JAVA / GLUE_GROOVY）：只写 @Job 方法的**方法体**，
- *    由后端 GlueScriptSynthesizer 合成完整脚本后再交同一引擎。
- *
- * 判据只有一条：值以 GLUE_ 开头就是片段（需要后端合成），否则是脚本；BEAN 是对象。
- * 语言不写死在前端，由 SPI 运行时枚举（GET /glue/engines）驱动，装了新引擎自动进下拉。
- */
-const GLUE_BEAN = "BEAN";
-/** 片段类型前缀：带此前缀表示只写方法体，需要后端合成完整脚本 */
-const GLUE_FRAGMENT_PREFIX = "GLUE_";
-/** 用户首次点脚本 / 片段时的默认语言；选过之后由 lastGlueEngine 记住 */
-const DEFAULT_GLUE_ENGINE = "groovy";
-/** 引擎枚举拉取失败时的兜底清单，保证下拉始终可用 */
-const FALLBACK_GLUE_ENGINES = ["groovy", "java"];
-
-/** 已注册引擎名 -> 下拉展示名；未收录的引擎原样显示 */
-const GLUE_ENGINE_LABELS: Record<string, string> = { java: "Java", groovy: "Groovy" };
 
 const SEARCH: ReTableSearchConfig = {
   title: "搜索任务",
@@ -279,115 +230,6 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
 ]);
 
-/**
- * 台账行是否按「采集流程镜像」处理（启停/删除都回落到采集流程接口）。
- *
- * 不能只看分组：脚本与片段任务同样登记在 collect-flow 分组下，
- * 但它们的 jobKey 是 script-<脚本ID>，末尾那串是脚本的雪花 ID——
- * 既不是流程 ID，也远超 Integer 范围。若按流程行处理，flowIdOf 会用正则
- * 从 jobKey 末尾抓出该数字发给 /collect/flow/status，后端以 Integer 接收
- * 直接 400（且 JS Number 已把雪花末位舍掉），启用与删除整个不可用。
- *
- * 所以这里要求同时满足：属于该分组、不是脚本类任务、且真能解析出流程 ID。
- * 解析不出的行（如 collect.self.check 这类非流程的内置任务）走调度治理接口，
- * 与批量启停「缺流程 ID 的行跳过」的口径一致。
- *
- * @param job 台账行
- * @returns true 表示应走采集流程接口，false 表示走调度治理接口
- */
-function isFlowRow(job: JobRuntime): boolean {
-  return job.group === COLLECT_FLOW_GROUP && !isScriptJob(job) && flowIdOf(job) > 0;
-}
-
-/** 代码片段任务：执行类型非 BEAN，不依赖处理器注册表（脚本与片段都算） */
-function isScriptJob(job: JobRuntime): boolean {
-  return Boolean(job.glueType) && job.glueType !== GLUE_BEAN;
-}
-
-/** 从 glueType 原值判形态：GLUE_ 前缀 = 片段，BEAN（含空）= 对象，其余 = 脚本 */
-function kindOfGlueType(glueType: string | null | undefined): "bean" | "script" | "fragment" {
-  const value = String(glueType ?? "");
-  if (!value || value === GLUE_BEAN) {
-    return "bean";
-  }
-  return value.toUpperCase().startsWith(GLUE_FRAGMENT_PREFIX) ? "fragment" : "script";
-}
-
-/** 从 glueType 原值取引擎名：片段去掉 GLUE_ 前缀，脚本原样；对象返回空串 */
-function engineOfGlueType(glueType: string | null | undefined): string {
-  const kind = kindOfGlueType(glueType);
-  if (kind === "bean") {
-    return "";
-  }
-  const value = String(glueType);
-  return (kind === "fragment" ? value.slice(GLUE_FRAGMENT_PREFIX.length) : value).toLowerCase();
-}
-
-/** 引擎展示名：java / groovy 归一成首字母大写，其余引擎名原样，空串落到「脚本」 */
-function glueEngineLabel(engine: string): string {
-  if (engine === "java") {
-    return "Java";
-  }
-  if (engine === "groovy") {
-    return "Groovy";
-  }
-  return engine || "脚本";
-}
-
-/** 列表标签用：片段 / 脚本 前缀 + 语言，例如「片段 · Java」「脚本 · Groovy」 */
-function glueKindLabel(job: JobRuntime): string {
-  const kind = kindOfGlueType(job.glueType);
-  const label = glueEngineLabel(engineOfGlueType(job.glueType));
-  return kind === "fragment" ? `片段 · ${label}` : `脚本 · ${label}`;
-}
-
-/** 详情正文标签：片段写方法体、脚本写完整文件，按语言分别说明 */
-function detailSourceLabel(job: JobRuntime): string {
-  const kind = kindOfGlueType(job.glueType);
-  const isJava = engineOfGlueType(job.glueType) === "java";
-  if (kind === "fragment") {
-    return isJava ? "Java 片段（方法体）" : `${glueEngineLabel(engineOfGlueType(job.glueType))} 片段`;
-  }
-  return isJava ? "Java 脚本（完整类）" : `${glueEngineLabel(engineOfGlueType(job.glueType))} 脚本（完整文件）`;
-}
-
-/** 台账行回到流程：优先用执行参数里的流程 ID，退回按 collect-flow-<id> 约定解析 */
-function flowIdOf(job: JobRuntime): number {
-  const fromParam = Number(job.executeParam);
-  if (Number.isFinite(fromParam) && fromParam > 0) {
-    return fromParam;
-  }
-  const matched = /(\d+)$/.exec(job.jobKey ?? "");
-  return matched ? Number(matched[1]) : 0;
-}
-
-/**
- * 告警类型展示名。
- *
- * @param alarmType 台账告警类型
- * @param target    告警目标
- * @returns 展示名（空类型但有目标时按邮件，与后端兼容口径一致）
- */
-function alarmTypeText(alarmType: unknown, target: unknown): string {
-  const key = String(alarmType ?? "").toUpperCase();
-  if (key === "WEBHOOK") {
-    return "Webhook";
-  }
-  if (key === "EMAIL") {
-    return "邮件";
-  }
-  return target ? "邮件" : "不告警";
-}
-
-function scheduleText(job: JobRuntime): string {
-  if (job.scheduleType === "NONE" || !job.scheduleTime) {
-    return "不自动调度";
-  }
-  if (job.scheduleType === "CRON") {
-    return `CRON · ${job.scheduleTime}`;
-  }
-  return `${job.scheduleType} · ${job.scheduleTime}ms`;
-}
 
 /** 注册表里没有同名处理器 = 这一轮派发必然记处理器未注册；本机不领取的远程行与脚本任务除外 */
 function executorMissing(job: JobRuntime): boolean {
@@ -722,19 +564,6 @@ function openFireTimes(job: JobRuntime): void {
   fireTimesVisible.value = true;
 }
 
-/** 后续执行时间是否可看：仅 cron 任务 */
-function canPreviewFireTimes(job: JobRuntime): boolean {
-  return String(job.scheduleType ?? "").toUpperCase() === "CRON" && Boolean(String(job.scheduleTime ?? "").trim());
-}
-
-/** 预览弹层里的时间展示格式 */
-function fmtFireTime(value: Date): string {
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  return (
-    `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ` +
-    `${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
-  );
-}
 
 /** 复制：流程行走采集的流程复制（副本默认停用），外部任务预填新建表单（含脚本正文与策略） */
 async function copy(job: JobRuntime): Promise<void> {
