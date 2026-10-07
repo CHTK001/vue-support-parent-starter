@@ -64,6 +64,8 @@ export function toTableOptions(tables: SchemaTable[]): SelectOption[] {
     table: item.name,
     comment: item.comment,
     type: item.type,
+    /** 原始元数据：外部喂选项模式下要把完整行还原给宿主（如表格列定义） */
+    raw: item,
   }));
 }
 
@@ -83,5 +85,7 @@ export function toColumnOptions(columns: SchemaColumn[]): SelectOption[] {
     comment: (item.label ?? "").trim() || null,
     type: item.typeName,
     primaryKey: item.primaryKey ?? null,
+    /** 原始元数据：外部喂选项模式下要把完整行还原给宿主 */
+    raw: item,
   }));
 }
