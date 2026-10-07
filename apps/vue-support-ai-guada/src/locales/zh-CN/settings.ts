@@ -381,6 +381,9 @@ export default {
     deleteModel: '删除模型',
     deleteModelConfirm: '确定要删除该模型吗？删除后将无法恢复。',
     modelDeleted: '模型已删除',
+    // 内置 Agent 供应商等「非模型库」模型：后端没有对应行，启停端点恒 404，
+    // 开关被禁用时用它解释原因（否则用户只看到一个点不动的开关）
+    modelToggleUnavailable: '该模型不在模型库中，暂不支持启用/停用',
     modelEnabled: '模型已启用',
     modelDisabled: '模型已禁用',
     toggleModelError: '切换模型状态时发生错误',
