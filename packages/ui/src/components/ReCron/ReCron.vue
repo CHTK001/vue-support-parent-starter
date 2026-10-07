@@ -2069,4 +2069,14 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   max-height: 84vh;
   overflow-y: auto;
 }
+
+/*
+ * reference 挂的是整条 .re-cron__line，而它带着 scoped 标记。
+ * Popover 的 #reference 走 ElOnlyChild，会把该节点搬到 popper 的 popper 容器旁
+ * （只做 DOM 位置调整，节点本身不搬家），作用域标记保持不变，所以内部样式照旧命中。
+ * 这里只补一条：line 本身要能撑满，Popover 以它量尺寸，宽度塌掉会导致弹层错位。
+ */
+.re-cron__line {
+  width: 100%;
+}
 </style>
