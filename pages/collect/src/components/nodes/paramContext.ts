@@ -91,42 +91,6 @@ export interface NodeFormContext {
   refreshColumns: () => void;
   /** 写回抽取字段（仅 extract 等带 fieldEditor 的节点使用），实现仍在 FlowDesigner */
   writeFields: (fields: CollectExtractField[]) => void;
-  /**
-   * 建表 / 补列请求：只给「目标列名 + 主键列名」，列类型由宿主按运行期的同一套规则补齐
-   * （运行期 {@code CollectJdbcSupport.ensureTable} 用 TEXT），避免表单自己编类型。
-   */
-  ddlRequest?: () => {
-    datasource: string;
-    table: string;
-    columns: string[];
-    primaryKey: string[];
-  } | null;
-  /** 预览建表 / 补列 DDL（不执行）；缺省时不显示「建表」入口 */
-  previewDdl?: (request: {
-    datasource: string;
-    table: string;
-    columns: string[];
-    primaryKey: string[];
-  }) => Promise<DdlPreviewPayload>;
-  /** 执行建表 / 补列；缺省时不显示「建表」入口 */
-  executeDdl?: (request: {
-    datasource: string;
-    table: string;
-    columns: string[];
-    primaryKey: string[];
-  }) => Promise<DdlPreviewPayload>;
-}
-
-/** 建表 / 补列的预览与执行结果（字段与数据源中心的 TableDdlResult 对齐，SQL 已摊平成一段文本） */
-export interface DdlPreviewPayload {
-  /** 将要执行 / 已执行的 SQL 文本（可能多条，已用换行拼接） */
-  sql: string;
-  /** 执行前表是否已存在 */
-  exists: boolean;
-  /** 本次是否建了新表 */
-  created: boolean;
-  /** 本次补上的列 */
-  appended: string[];
 }
 
 /**

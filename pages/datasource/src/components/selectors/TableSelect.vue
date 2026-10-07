@@ -111,7 +111,7 @@ function onChange(value: unknown): void {
     :options="options"
     :allow-create="allowCreate"
     :default-first-option="allowCreate"
-    popover-width="320px"
+    :popover-width="320"
     filterable
     @update:model-value="onChange"
   />

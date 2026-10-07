@@ -7,12 +7,11 @@
 -->
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import CreateTableDialog from "@repo/ui/create-table-dialog";
+import { CreateTableDialog } from "@pages/datasource";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
 import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
-import type { TableDdlRequest, TableDdlResult } from "@repo/ui/create-table-dialog";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
 
@@ -58,55 +57,20 @@ const headerColumns = computed<string[]>(() => {
     .filter(Boolean);
 });
 
-/** 弹窗可见性与请求快照 */
+/** 弹窗可见性；预览 / 执行 / 类型补齐都在共享组件里 */
 const ddlOpen = ref(false);
-const ddlReq = ref<TableDdlRequest | null>(null);
 
-/** 建表入口：宿主给了 DDL 能力 + 选了数据源和表 + 表头至少一列 */
+/** 建表入口：选了数据源和表 + 表头至少一列 */
 const canDdl = computed(
   () =>
-    Boolean(props.ctx.previewDdl)
-    && Boolean(props.ctx.executeDdl)
-    && Boolean(valueOf("datasource").trim())
+    Boolean(valueOf("datasource").trim())
     && Boolean(valueOf("table").trim())
     && headerColumns.value.length > 0,
 );
 
-/** 打开建表对话框：按表头列生成请求，预览 / 执行交给共享组件 */
+/** 打开建表对话框：按表头列建，预览 / 执行交给共享组件 */
 function openDdl(): void {
-  ddlReq.value = {
-    datasource: valueOf("datasource").trim(),
-    table: valueOf("table").trim(),
-    columns: headerColumns.value,
-    primaryKey: [],
-  };
   ddlOpen.value = true;
-}
-
-/**
- * 预览回调（入口已由 canDdl 挡过，这里兜底报可读错误）。
- *
- * @param request 建表请求
- * @return 预览结果
- */
-async function mustPreview(request: TableDdlRequest): Promise<TableDdlResult> {
-  if (!props.ctx.previewDdl) {
-    throw new Error("宿主未提供 DDL 预览能力");
-  }
-  return props.ctx.previewDdl(request);
-}
-
-/**
- * 执行回调。
- *
- * @param request 建表请求
- * @return 执行结果
- */
-async function mustExecute(request: TableDdlRequest): Promise<TableDdlResult> {
-  if (!props.ctx.executeDdl) {
-    throw new Error("宿主未提供 DDL 执行能力");
-  }
-  return props.ctx.executeDdl(request);
 }
 
 /**
@@ -193,9 +157,9 @@ function extraTip(name: string): string {
   <!-- 共享建表对话框：与数据库节点、数据源中心同一份实现 -->
   <CreateTableDialog
     v-model="ddlOpen"
-    :request="ddlReq"
-    :preview="(request: TableDdlRequest) => mustPreview(request)"
-    :execute="(request: TableDdlRequest) => mustExecute(request)"
+    :datasource="valueOf('datasource').trim()"
+    :table="valueOf('table').trim()"
+    :columns="headerColumns"
     @executed="ctx.refreshColumns()"
   />
 </template>

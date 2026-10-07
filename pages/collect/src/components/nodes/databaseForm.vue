@@ -5,12 +5,11 @@
 -->
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import CreateTableDialog from "@repo/ui/create-table-dialog";
+import { CreateTableDialog } from "@pages/datasource";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
 import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
-import type { TableDdlRequest, TableDdlResult } from "@repo/ui/create-table-dialog";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
 
@@ -59,9 +58,8 @@ const visibleFields = computed(() => {
 
 /* ---------------------------- 建表 / 补列（B9-3） ---------------------------- */
 
-/** 弹窗可见性与请求快照：预览 / 执行逻辑收在 CreateTableDialog 里，这里只负责「按什么建」 */
+/** 弹窗可见性；预览 / 执行 / 列类型补齐都在共享组件里，这里只管「按什么建」 */
 const ddlOpen = ref(false);
-const ddlReq = ref<TableDdlRequest | null>(null);
 
 /** 已映射的目标列（字段映射左侧的列名，去掉空行） */
 const ddlColumns = computed(() =>
@@ -76,52 +74,21 @@ const ddlKeys = computed(() => {
     .filter(name => Boolean(name) && mapped.has(name));
 });
 
-/** 是否给出建表入口：宿主提供了 DDL 能力 + 选了数据源和表 + 至少映射了一列 */
+/** 是否给出建表入口：选了数据源和表 + 至少映射了一列 */
 const canDdl = computed(() =>
-  Boolean(props.ctx.previewDdl)
-  && Boolean(props.ctx.executeDdl)
-  && Boolean(valueOf("datasource").trim())
+  Boolean(valueOf("datasource").trim())
   && Boolean(valueOf("table").trim())
   && ddlColumns.value.length > 0,
 );
 
 /**
- * 打开建表 / 补列：快照当前请求后交给共享对话框，预览与执行都由它完成。
+ * 打开建表 / 补列。
+ *
+ * <p>数据源 / 表 / 列 / 主键都以 props 交给共享组件，这样组件自己就能补类型并预览，
+ * 宿主不再需要为了「建个表」先拼一份请求、再实现一遍预览与执行。</p>
  */
 function openDdl(): void {
-  ddlReq.value = {
-    datasource: valueOf("datasource").trim(),
-    table: valueOf("table").trim(),
-    columns: ddlColumns.value,
-    primaryKey: ddlKeys.value,
-  };
   ddlOpen.value = true;
-}
-
-/**
- * 预览回调：入口在 canDdl 已经挡过，这里再兜一次底，缺能力时报可读错误而不是静默。
- *
- * @param request 建表请求
- * @return 预览结果
- */
-async function mustPreview(request: TableDdlRequest): Promise<TableDdlResult> {
-  if (!props.ctx.previewDdl) {
-    throw new Error("宿主未提供 DDL 预览能力");
-  }
-  return props.ctx.previewDdl(request);
-}
-
-/**
- * 执行回调。
- *
- * @param request 建表请求
- * @return 执行结果
- */
-async function mustExecute(request: TableDdlRequest): Promise<TableDdlResult> {
-  if (!props.ctx.executeDdl) {
-    throw new Error("宿主未提供 DDL 执行能力");
-  }
-  return props.ctx.executeDdl(request);
 }
 
 /**
@@ -238,12 +205,13 @@ function extraTip(name: string): string {
     </div>
   </template>
 
-  <!-- 共享建表对话框：预览 / 执行一份实现，建完刷新左侧列候选 -->
+  <!-- 共享建表对话框：预览 / 执行 / 类型补齐一份实现，建完刷新左侧列候选 -->
   <CreateTableDialog
     v-model="ddlOpen"
-    :request="ddlReq"
-    :preview="(request: TableDdlRequest) => mustPreview(request)"
-    :execute="(request: TableDdlRequest) => mustExecute(request)"
+    :datasource="valueOf('datasource').trim()"
+    :table="valueOf('table').trim()"
+    :columns="ddlColumns"
+    :primary-key="ddlKeys"
     @executed="ctx.refreshColumns()"
   />
 </template>
