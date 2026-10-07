@@ -260,6 +260,16 @@ const searchNodes = (keyword: string): string[] => {
 
 /** 高亮命中节点并聚焦首个 */
 const highlightMatches = (ids: string[]) => {
+  searchMatches.value = ids;
+  searchMatchIndex.value = ids.length ? 0 : -1;
+  if (is3d.value) {
+    // 3D 层没有 G6 的 element state，用 highlight 集合 + centerOn 达到同样效果
+    highlight3d.value = ids.length ? [...ids] : null;
+    if (ids[0]) {
+      fg3dRef.value?.centerOn?.(ids[0]);
+    }
+    return;
+  }
   const g = graphRef.value;
   if (ids.length) {
     g?.setElementState({} as any, false); // 先清已有选中
@@ -271,8 +281,6 @@ const highlightMatches = (ids: string[]) => {
   } else {
     g?.setElementState({} as any, false);
   }
-  searchMatches.value = ids;
-  searchMatchIndex.value = ids.length ? 0 : -1;
   if (ids[0]) {
     g?.focusElement(ids[0], true as any).catch(() => {});
   }
@@ -286,7 +294,11 @@ const runSearch = (keyword: string) => {
 /** 清除搜索 */
 const clearSearch = () => {
   searchText.value = "";
-  graphRef.value?.setElementState({} as any, false);
+  if (is3d.value) {
+    highlight3d.value = null;
+  } else {
+    graphRef.value?.setElementState({} as any, false);
+  }
   searchMatches.value = [];
   searchMatchIndex.value = -1;
 };
@@ -495,7 +507,7 @@ const idOf = (ev: any): string => {
 
 /** 节点 -> G6 NodeData */
 const toNodeData = (n: RelationNode) => {
-  const isHtml = (n.type ?? props.nodeType) === "html" || (!!n.style as any)?.__htmlSlot;
+  const isHtml = (n.type ?? props.nodeType) === "html" || (n.style as any)?.__htmlSlot === true;
   const size = n.size ?? (isHtml ? [160, 64] : props.nodeSize);
   // HTML 节点默认关闭画布 label（G6 HTML.defaultStyleProps.label=false）：
   // 一旦再设 labelText，label 定位会和 HTML 关键图形互相递归，抛
@@ -650,7 +662,6 @@ const buildBehaviors = () => {
     onCreate: (edge: any) => toEdgeData(edge as RelationEdge) as any,
     onFinish: (edge: any) => {
       // G6 已经把边加进 model；这里把业务对象交回并同步 3D / 空态
-      createdEdgeIds.add(edge.id);
       const rel = edgeById(edge.id) ?? {
         id: edge.id,
         source: edge.source,
@@ -669,9 +680,6 @@ const buildBehaviors = () => {
   });
   return list;
 };
-
-/** 由拖边连线在本会话内新造出来的边 id（用于事件回调里回填业务对象） */
-const createdEdgeIds = new Set<string>();
 
 /** 构建 plugins */
 const buildPlugins = () => {
@@ -692,40 +700,53 @@ const buildPlugins = () => {
  * @return false 表示不入库
  */
 const beforeAddHistory = (cmd: any): boolean => {
-  const strip = (d: any) => {
-    if (!d) return d;
-    const out: any = { nodes: [], edges: [], combos: [] };
-    (d.nodes ?? []).forEach((n: any) => {
-      const s = { ...(n.style ?? {}) };
-      delete s.x;
-      delete s.y;
-      out.nodes.push({ ...n, style: s });
-    });
-    (d.edges ?? []).forEach((e: any) => out.edges.push(e));
-    (d.combos ?? []).forEach((c: any) => out.combos.push(c));
-    return out;
-  };
-  const same = (a: any, b: any) => JSON.stringify(strip(a)) === JSON.stringify(strip(b));
+  const categories = ["nodes", "edges", "combos"];
+  const operations = ["add", "update", "remove"];
+  const isAssist = (item: any) => String(item?.id ?? "").startsWith("g6-create-edge-");
+
+  // create-edge 把临时 assist node/edge 与真实边放进同一个 G6 batch。
+  // 只过滤辅助项，不能把整条 command 丢掉，否则用户新建的边也无法撤销。
+  for (const side of [cmd?.current, cmd?.original]) {
+    for (const operation of operations) {
+      for (const category of categories) {
+        const items = side?.[operation]?.[category];
+        if (Array.isArray(items)) {
+          side[operation][category] = items.filter((item: any) => !isAssist(item));
+        }
+      }
+    }
+  }
+
   const c = cmd?.current;
   const o = cmd?.original;
   if (!c || !o) return true;
-  // 只有 update 且去掉 x/y 后完全一致 = 纯位移，剔除
+
+  const hasChanges = (side: any) => operations.some(operation =>
+    categories.some(category => (side?.[operation]?.[category]?.length ?? 0) > 0),
+  );
+  if (!hasChanges(c)) return false;
+
+  const stripPosition = (changes: any) => {
+    const out: any = {};
+    for (const category of categories) {
+      out[category] = (changes?.[category] ?? []).map((item: any) => {
+        const style = { ...(item.style ?? {}) };
+        delete style.x;
+        delete style.y;
+        return { ...item, style };
+      });
+    }
+    return out;
+  };
+  const same = (a: any, b: any) => JSON.stringify(stripPosition(a)) === JSON.stringify(stripPosition(b));
+
+  // 只有 update 且去掉 x/y 后完全一致 = 纯位移，剔除。
   const noAdd = !(c.add?.nodes?.length || c.add?.edges?.length || c.add?.combos?.length);
   const noRemove = !(c.remove?.nodes?.length || c.remove?.edges?.length || c.remove?.combos?.length);
   const updateIsPosOnly =
     (c.update?.nodes?.length || c.update?.edges?.length || c.update?.combos?.length) &&
     same(c.update, o.update);
-  if (noAdd && noRemove && updateIsPosOnly) {
-    return false;
-  }
-  // 辅助元素（create-edge 的 assist node/edge）不进历史
-  if (c.add?.nodes?.some((n: any) => String(n.id).startsWith("g6-create-edge-")) ||
-      c.add?.edges?.some((e: any) => String(e.id).startsWith("g6-create-edge-")) ||
-      c.remove?.nodes?.some((n: any) => String(n.id).startsWith("g6-create-edge-")) ||
-      c.remove?.edges?.some((e: any) => String(e.id).startsWith("g6-create-edge-"))) {
-    return false;
-  }
-  return true;
+  return !(noAdd && noRemove && updateIsPosOnly);
 };
 
 /** 依据 highlight 配置，在悬停时高亮同组 / 淡出其余 */
@@ -1055,6 +1076,9 @@ const doSetData = async (d: RelationGraphData) => {
   if (prevCombos.length) {
     graph.removeComboData(prevCombos);
   }
+  // 被移除节点的插槽容器要显式卸载：否则 slotEls / 手工 render 的实例会随每次
+  // setData 累积（G6 只销毁自己的 html DOM，不管我们挂进去的子元素与 Vue 实例）。
+  prevNodes.forEach(id => unmountSlot(id));
   await graph.draw();
   await loadData(d);
   clearHistoryStack();
@@ -1626,6 +1650,11 @@ const buildPluginsFor = (withMinimap: boolean) => {
   if (withMinimap) {
     list.push({ type: "minimap", size: [200, 128], padding: 8, position: "right-bottom" });
   }
+  // history 必须留在列表里：setPlugins 走 ExtensionController.setExtensions，
+  // 列表里没有的扩展会被 destroyExtensions(exit) 真正销毁（instance.destroy() 且
+  // context 被清空），此后 undo/redo 静默失效。若这里漏掉 history，
+  // 用户点一次内置工具栏的「小地图」按钮就会丢掉撤销能力。
+  list.push({ type: "history", key: "history", stackSize: 50, beforeAddCommand: beforeAddHistory });
   return list;
 };
 
