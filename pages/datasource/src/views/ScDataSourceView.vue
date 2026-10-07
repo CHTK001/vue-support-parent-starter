@@ -969,8 +969,8 @@ onMounted(load);
         </ReForm>
       </div>
       <template #footer>
-        <ReButton class="ds-pill" @click="dialogVisible = false">取消</ReButton>
-        <ReButton type="primary" class="ds-pill" :loading="saving" @click="save">保存</ReButton>
+        <ReButton class="ds-pill" @click="dialogVisible = false"><template #icon><ReIcon name="Close" :size="12" /></template>取消</ReButton>
+        <ReButton type="primary" class="ds-pill" :loading="saving" @click="save"><template #icon><ReIcon name="Check" :size="12" /></template>保存</ReButton>
       </template>
     </ReDialog>
 

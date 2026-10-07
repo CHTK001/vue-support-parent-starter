@@ -287,14 +287,15 @@ const props = withDefaults(
     /**
      * 表格渲染引擎。
      *
-     * <p>{@code "element"}（默认）= element-plus 的 el-table；{@code "vxe"} = vxe-table。
+     * <p>{@code "vxe"}（默认）= vxe-table；{@code "element"} = element-plus 的 el-table。
      * 两者对外能力（列、插槽、事件、批量操作、行拖拽）完全一致，切换只换渲染引擎，
      * 业务页面不需要改代码。</p>
      *
-     * <p>默认必须是 element：vxe-table 的 DOM 结构与 el-table 不同，页面里
-     * {@code :deep(.el-table …)} 这类内部覆盖、以及依赖 el-table 内部结构的脚本
-     * （读 {@code store.states.data}）都只在 element 引擎下成立。vxe 作为可选引擎，
-     * 用于需要固定表头 / 大数据量虚拟滚动的场景。</p>
+     * <p>2026-10-07 起默认改为 vxe（需求：ReTable 默认 vxe）：vxe 自带固定表头 /
+     * 大数据量虚拟滚动，DOM 稳定且两套选择器 class 完全不相交。注意 element 引擎是
+     * 兼容回退：页面里 {@code :deep(.el-table …)} 这类内部覆盖、以及依赖 el-table
+     * 内部结构的脚本（读 {@code store.states.data}）只在 {@code engine="element"}
+     * 下成立；vxe 下这些选择器自然落空（vxe 自带完整样式）。</p>
      */
     engine?: "element" | "vxe";
     /**
@@ -465,7 +466,7 @@ const props = withDefaults(
     loading: false,
     settings: () => ({}),
     rowKey: "id",
-  engine: "element",
+    engine: "vxe",
     emptyText: "暂无数据",
     pagination: true,
     total: 0,
@@ -1110,7 +1111,7 @@ interface TableInstanceHandle {
 }
 const vxeTableRef = ref<TableInstanceHandle | null>(null);
 const vxeDragData = ref<Array<Record<string, unknown>>>([]);
-/** element 引擎的表格实例（默认引擎）。只用到它的公开实例方法，不依赖内部结构。 */
+/** element 引擎的表格实例（兼容回退引擎；默认是 vxe）。只用到它的公开实例方法，不依赖内部结构。 */
 const elTableRef = ref<TableInstanceHandle | null>(null);
 
 /** 当前是否走 vxe 引擎 */
@@ -1665,6 +1666,43 @@ const vxeRowConfig = computed(() => ({
  * restoreSelection），vxe 的 reserve 负责让已勾选行在翻页回来时保持勾选态。</p>
  */
 const vxeCheckboxConfig = computed(() => ({ reserve: true }));
+
+/**
+ * 排序配置：与 element-plus 的「点表头即排序」语义对齐。
+ *
+ * <p>vxe 的 {@code sortConfig.trigger} 默认**不是** {@code 'cell'}，点表头单元格不排序，
+ * 只有点标题后的asc/desc小图标才排 —— 与 element 引擎点表头即排序的行为分叉，
+ * 依赖 {@code sort-change} 的调用方（如 DBM 的服务端排序）点表头会毫无反应。
+ * 这里统一置为 {@code 'cell'}。</p>
+ *
+ * <p>{@code remote}：全部可排序列都是 {@code 'custom'}（服务端排序）时置 true，
+ * 让 vxe 不本地排序、只派发 sort-change 交给调用方重查（与 element 的
+ * {@code sortable="custom"} 完全一致 —— 否则 vxe 会用 JS 排序覆盖掉服务端
+ * 已经排好的当前页，两套排序规则不一致时顺序就错了）。混用或本地排序列时
+ * 保持 false，与 element 的 {@code sortable: true} 本地排序行为一致。</p>
+ */
+const vxeSortConfig = computed(() => {
+  const sortableCols = props.columns.filter((c) => c.sortable);
+  const allRemote =
+    sortableCols.length > 0 && sortableCols.every((c) => c.sortable === "custom");
+  return {
+    trigger: "cell" as const,
+    remote: allRemote,
+  };
+});
+
+/**
+ * 右键菜单：vxe 只有在启用 menu-config 时才派发 cell-menu 事件。
+ *
+ * <p>vxe 源码里 {@code handleGlobalContextmenuEvent} 整段被
+ * {@code if (isEnableConf(menuConfig))} 包着：不传 menu-config 时 cell-menu
+ * 事件根本不会派发，外层的 {@code @cell-menu} 永远收不到，ReTable 的右键菜单
+ * 就打不开。这里只在有菜单项时启用 —— 只传 {@code enabled} 不传 options，
+ * vxe 便只派发事件、不渲染它自己的菜单，外观仍由 ReTable 的 .re-ctx-menu 决定。</p>
+ */
+const vxeMenuConfig = computed(() =>
+  props.contextMenu && props.contextMenu.length > 0 ? { enabled: true } : undefined,
+);
 
 /**
  * 树形配置：把 element-plus 的 tree-props 语义翻译成 vxe 的 tree-config。
@@ -2952,8 +2990,8 @@ function switchLayout(key: ReTableSwitchLayout): void {
   });
 }
 
-/** 当前生效的引擎：优先跟 props.engine 走（v-model:engine 时由外部驱动） */
-const currentEngine = computed<"element" | "vxe">(() => props.engine ?? "element");
+/** 当前生效的引擎：优先跟 props.engine 走（v-model:engine 时由外部驱动），默认 vxe */
+const currentEngine = computed<"element" | "vxe">(() => props.engine ?? "vxe");
 
 /**
  * 切换表格引擎。
@@ -3700,7 +3738,7 @@ const iconSelect = Select;
            5. Sortable 行拖拽（initSortable / destroySortable / onEnd 一段，已标注）
            6. import 里的 ElTable / ElTableColumn / type TableColumnCtx
          ================================================================== -->
-    <!-- 表格模式 · element 引擎（默认）：el-table，行拖拽走 Sortable 直改 tbody -->
+    <!-- 表格模式 · element 引擎（engine="element" 兼容回退；默认是 vxe）：el-table，行拖拽走 Sortable 直改 tbody -->
     <ElTable
       v-if="!useVxe && activeLayout === 'table'"
       ref="elTableRef"
@@ -3866,7 +3904,7 @@ const iconSelect = Select;
     <!-- ==================== ENGINE: element (END) ==================== -->
 
     <!-- ==================== ENGINE: vxe (BEGIN) ==================== -->
-    <!-- 表格模式 · vxe 引擎（engine="vxe"）：固定表头 / 虚拟滚动场景 -->
+    <!-- 表格模式 · vxe 引擎（默认，2026-10-07 起）：固定表头 / 虚拟滚动场景 -->
     <VxeTable
       v-else-if="activeLayout === 'table'"
       :key="vxeColumnKey"
@@ -3885,6 +3923,8 @@ const iconSelect = Select;
       :row-config="vxeRowConfig"
       :column-config="vxeColumnConfig"
       :checkbox-config="vxeCheckboxConfig"
+      :sort-config="vxeSortConfig"
+      :menu-config="vxeMenuConfig"
       :tree-config="vxeTreeConfig"
       :seq-config="vxeSeqConfig"
       :virtual-y-config="vxeVirtualYConfig"
@@ -4320,7 +4360,7 @@ const iconSelect = Select;
   flex-direction: column;
 }
 /* 主体区里承载表格的元素吃满剩余高度（工具栏行在前、表格在后）。
-   四条渲染路径的根节点：.el-table（element 引擎，默认）/ .vxe-table（vxe 引擎）/
+   四条渲染路径的根节点：.el-table（element 引擎，兼容回退）/ .vxe-table（vxe 引擎，默认）/
    .re-table__view-layout / .re-table__card-layout。后两路自带 overflow，
    内部滚动由各自根节点负责；两个表格引擎同一时刻只渲染一个。
 
@@ -4529,13 +4569,13 @@ const iconSelect = Select;
   min-height: 0 !important;
 }
 
-/* ============ element 引擎（默认）的表格视觉 ============
+/* ============ element 引擎（兼容回退）的表格视觉 ============
    与上面 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、
    44/36 行高、更淡的斑马纹、hover 混主色、首列主色条。
    两套选择器的 class 名完全不相交（.el-table* vs .vxe-*），同时挂在样式表里也不会
    互相干扰——同一时刻只有一个引擎渲染出 DOM，另一套自然全部落空。
-   ⚠ 页面里 :deep(.el-table …) 这类内部覆盖只在 element 引擎下成立，
-     这也是 engine 默认为 "element" 的原因。 */
+   ⚠ 页面里 :deep(.el-table …) 这类内部覆盖只在 engine="element" 下成立，
+     默认引擎是 vxe（2026-10-07），这类覆盖需自行改成引擎无关或显式传 element。 */
 /* element 引擎表格视觉（表头 / 表体 / 斑马纹 / 选中行 / 单元格）已移入
    engines/element/element-table.css */
 /* element 引擎 · 横向滚动表头投影 / 固定右列底色 / 拖拽禁选 已移入
@@ -4555,7 +4595,6 @@ const iconSelect = Select;
   border-radius: var(--rt-radius);
   padding: var(--rt-padding, 12px);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: var(--rt-shadow-card);
   transition: box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--separated > .re-table__main {
@@ -4563,7 +4602,6 @@ const iconSelect = Select;
   border-radius: var(--rt-radius);
   padding: var(--rt-padding, 12px);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: var(--rt-shadow-card);
   /* 表格浮层（vxe 固定列、空态）在主体卡上收口（根容器已改为 visible） */
   overflow: hidden;
   /* ⚠ 主体卡刻意不写 transition，也不挂 :hover 换投影。
