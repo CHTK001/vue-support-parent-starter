@@ -2,7 +2,19 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "types": ["vite/client"],
-    "noUnusedLocals": false
+    "noUnusedLocals": false,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/theme/koi/framework": ["../../packages/theme/src/themes/koi/framework"],
+      "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],
+      "@repo/ui/components/*": ["../../packages/ui/src/components/*"],
+      "@pages/datasource/*": ["../../pages/datasource/*"],
+      "@pages/datasource": ["../../pages/datasource/src/index.ts"],
+      "@pages/collect/*": ["../../pages/collect/*"],
+      "@pages/collect": ["../../pages/collect/src/index.ts"],
+      "@pages/job/*": ["../../pages/job/*"],
+      "@pages/job": ["../../pages/job/src/index.ts"]
+    }
   },
   "include": [
     "src/**/*.ts",
