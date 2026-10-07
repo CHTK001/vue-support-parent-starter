@@ -199,6 +199,17 @@ export interface CollectColumn {
 }
 
 /**
+ * 数据表元数据：三联选的表下拉用 label=中文备注、subtitle=表名渲染。
+ *
+ * <p>与后端 {@code SchemaTableVO} 对齐：表名 + 表备注（REMARKS）+ 表类型（TABLE / VIEW）。</p>
+ */
+export interface CollectTable {
+  name: string;
+  comment: string | null;
+  type: string | null;
+}
+
+/**
  * 获取所有数据源。
  * @return 数据源列表
  */
@@ -344,6 +355,17 @@ export interface DatasourceSchemaProvider {
   fetchTables(datasource: string | number | null | undefined): Promise<string[]>;
 
   /**
+   * 读数据源下的表元数据（含表备注与类型）。
+   *
+   * <p>新后端走 {@code /table-infos}；老 provider 没实现时前端按表名兜底拼（comment/type 为 null），
+   * 调用方渲染时按「有备注显示中文、无备注显示表名」处理。</p>
+   *
+   * @param datasource 数据源 ID 或名称；不传、空串、保留字 app 表示应用主库
+   * @return 表元数据
+   */
+  fetchTableInfos?: (datasource: string | number | null | undefined) => Promise<CollectTable[]>;
+
+  /**
    * 读指定表的列元数据。
    *
    * @param datasource 数据源 ID 或名称；不传、空串、保留字 app 表示应用主库
@@ -357,6 +379,9 @@ export interface DatasourceSchemaProvider {
 const hubSchemaProvider: DatasourceSchemaProvider = {
 
   fetchTables: datasource => get<string[]>(`${hubBase}/tables`, { datasource: normalizeRef(datasource) }),
+
+  fetchTableInfos: datasource =>
+    get<CollectTable[]>(`${hubBase}/table-infos`, { datasource: normalizeRef(datasource) }),
 
   fetchColumns: (datasource, table) =>
     get<CollectColumn[]>(`${hubBase}/columns`, { datasource: normalizeRef(datasource), table }),
@@ -382,6 +407,71 @@ export function setDatasourceSchemaProvider(provider: DatasourceSchemaProvider |
  */
 export function fetchDatasourceTables(datasource?: string | number | null): Promise<string[]> {
   return schemaProvider.fetchTables(datasource);
+}
+
+/**
+ * 读表元数据（含表备注与类型），供三联选的表下拉渲染「中文名 + 表名 subtitle」。
+ *
+ * <p>老 provider 没实现 {@code fetchTableInfos}（或后端还是旧版没有 {@code /table-infos}）
+ * 时按表名兜底：逐项拼 {@code {name, comment: null, type: null}}，调用方按无备注渲染。</p>
+ *
+ * @param datasource 数据源 ID 或名称；不传、空串、保留字 app 表示应用主库
+ * @return 表元数据
+ */
+export async function fetchDatasourceTableInfos(
+  datasource?: string | number | null,
+): Promise<CollectTable[]> {
+  if (schemaProvider.fetchTableInfos) {
+    try {
+      return (await schemaProvider.fetchTableInfos(datasource)) ?? [];
+    } catch {
+      // 旧后端没有 /table-infos 时按表名兜底，不把三联选整体打挂
+    }
+  }
+  const names = (await schemaProvider.fetchTables(datasource)) ?? [];
+  return names.map(name => ({ name, comment: null, type: null }));
+}
+
+/**
+ * 表下拉选项映射：label=中文备注（无备注时回退表名），description=表名·类型。
+ *
+ * <p>ReSelect 的 card 布局读 {@code description} 做副标题，table 布局按
+ * {@code tableColumns} 取额外字段；这里把表名、备注、类型都带上，两种布局都能渲染。</p>
+ *
+ * @param tables 表元数据
+ * @return ReSelect 选项
+ */
+export function toTableOptions(tables: CollectTable[]): CollectOption[] {
+  return (tables ?? []).map(item => ({
+    value: item.name,
+    label: item.comment?.trim() ? item.comment.trim() : item.name,
+    description: item.type ? `${item.name} · ${item.type}` : item.name,
+    comment: item.comment,
+    table: item.name,
+    type: item.type,
+  }) as CollectOption);
+}
+
+/**
+ * 字段下拉选项映射：label=中文备注（无备注时回退字段名），description=字段名·类型。
+ *
+ * @param columns 列元数据
+ * @return ReSelect 选项
+ */
+export function toColumnOptions(columns: CollectColumn[]): CollectOption[] {
+  return (columns ?? []).map(item => {
+    const name = item.name ?? "";
+    const remark = (item.label ?? "").trim();
+    const type = (item.typeName ?? "").trim();
+    return {
+      value: name,
+      label: remark ? remark : name,
+      description: type ? `${name} · ${type}` : name,
+      field: name,
+      fieldType: item.typeName,
+      primaryKey: item.primaryKey,
+    } as CollectOption;
+  });
 }
 
 /**
