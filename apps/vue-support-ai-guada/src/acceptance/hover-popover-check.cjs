@@ -67,6 +67,16 @@ async function login(p) {
     // ── 1. 模型面板：currentModel 三级兜底 + 悬停卡 ─────────────────────────
     await page.goto(BASE + '/chat/new-session', { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForSelector('button.model-selector-btn', { timeout: 40000 });
+    // 配置就绪：按钮从占位「+ 添加模型」变为真实模型名后，点击才是打开面板语义
+    // （未就绪点击走「添加模型」分支 → .model-panel 永不出现，2026-10-08 实测 FATAL）
+    let btnReadyText = '';
+    for (let i = 0; i < 30; i++) {
+      btnReadyText = ((await page.locator('button.model-selector-btn').first().textContent().catch(() => '')) || '').trim();
+      if (btnReadyText && !/添加模型/.test(btnReadyText)) break;
+      await page.waitForTimeout(1000);
+    }
+    add('panel.configReady', !!btnReadyText && !/添加模型/.test(btnReadyText),
+      'btnText=' + btnReadyText.replace(/\s+/g, ' ').slice(0, 40));
     await page.locator('button.model-selector-btn').click();
     await page.waitForSelector('.model-panel', { timeout: 15000 });
     add('panel.open', true, 'panel=1');
