@@ -95,6 +95,20 @@ export const agentApi = {
   delete: (id: string) => apiHttp.delete(`/api/agents/managed/${id}`),
   get: (id: string) => apiHttp.get(`/api/agents/managed/${id}`),
   // 子Agent管理（主从工作流）
+  /**
+   * ⚠️ **后端未实现该 GET**：`ApiAgentManageController` 对
+   * `/api/agents/managed/{id}/sub-agents` 只有 POST / PUT / DELETE 三个映射，
+   * 没有 `@GetMapping`，Spring 对 GET 一律回 **405**（路径在、方法不匹配）。
+   *
+   * <p>保留契约以免后来者重踩，但**勿再接回调用方**：子 Agent 列表已由
+   * `GET /api/agents/managed/{id}` 以 `sub_agents` 字段一并返回
+   * （`SysAiAgentServiceImpl.getAgent → toResponse(agent, true)`）。
+   * `AgentsPage.loadSubAgents()` 现在走的就是那条既有契约。</p>
+   *
+   * @param agentId 主 Agent 标识
+   * @return 该路径当前恒 405
+   * @deprecated 改用 `get(agentId)` 读取 `sub_agents`
+   */
   listSubAgents: (agentId: string) =>
     apiHttp.get(`/api/agents/managed/${agentId}/sub-agents`),
   addSubAgent: (agentId: string, data: any) =>

@@ -137,7 +137,7 @@
             <el-table-column prop="model" label="绑定模型" min-width="120" />
             <el-table-column prop="role" label="角色" width="120" />
             <el-table-column prop="order" label="执行顺序" width="100" align="center" />
-            <el-table-column prop="condition" label="触发条件" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="systemPrompt" label="系统提示词" min-width="180" show-overflow-tooltip />
             <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
                 <el-button type="warning" link @click="handleEditSubAgent(row)">编辑</el-button>
@@ -210,9 +210,6 @@
         </el-form-item>
         <el-form-item label="执行顺序">
           <el-input-number v-model="subAgentForm.order" :min="1" :max="100" />
-        </el-form-item>
-        <el-form-item label="触发条件">
-          <el-input v-model="subAgentForm.condition" type="textarea" :rows="2" placeholder="如：用户意图为分析时执行" />
         </el-form-item>
         <el-form-item label="系统提示词">
           <el-input v-model="subAgentForm.systemPrompt" type="textarea" :rows="3" />
@@ -556,18 +553,34 @@ const subAgentForm = ref({
   model: '',
   role: '',
   order: 1,
-  condition: '',
   systemPrompt: '',
 });
 
+/** 后端 Agent 响应使用 snake_case；表格与表单使用稳定的 camelCase 视图模型。 */
+const normalizeSubAgent = (agent: any) => ({
+  ...agent,
+  id: agent.agent_id ?? agent.id,
+  order: agent.sort_order ?? agent.order ?? 0,
+  systemPrompt: agent.system_prompt ?? agent.systemPrompt ?? agent.instruction ?? '',
+});
+
+/**
+ * GET /{agentId}/sub-agents 在当前后端不存在（返回 405）。
+ * 已有 GET /{agentId} 明确通过 toResponse(..., true) 带完整 sub_agents，
+ * 刷新和首次加载统一使用已存在的详情契约，避免依赖不存在的路由。
+ */
 const loadSubAgents = async () => {
   if (!currentAgent.value?.id) return;
   loadingSubAgents.value = true;
   try {
-    const res = await agentApi.listSubAgents(currentAgent.value.id);
-    subAgentList.value = res?.data || res || [];
-  } catch (e) {
+    const res = await agentApi.get(currentAgent.value.id);
+    const data = res?.data || res || {};
+    const subAgents = Array.isArray(data.sub_agents) ? data.sub_agents : [];
+    subAgentList.value = subAgents.map(normalizeSubAgent);
+    currentAgent.value = { ...currentAgent.value, subAgents: subAgentList.value };
+  } catch (e: any) {
     subAgentList.value = [];
+    ElMessage.error('加载子Agent失败: ' + (e?.message || ''));
   } finally {
     loadingSubAgents.value = false;
   }
@@ -575,15 +588,35 @@ const loadSubAgents = async () => {
 
 const handleAddSubAgent = () => {
   editingSubId.value = null;
-  subAgentForm.value = { name: '', model: '', role: '', order: subAgentList.value.length + 1, condition: '', systemPrompt: '' };
+  subAgentForm.value = {
+    name: '',
+    model: '',
+    role: '',
+    order: subAgentList.value.length + 1,
+    systemPrompt: '',
+  };
   subAgentDialogVisible.value = true;
 };
 
 const handleEditSubAgent = (row: any) => {
   editingSubId.value = row.id;
-  subAgentForm.value = { ...row };
+  subAgentForm.value = {
+    name: row.name || '',
+    model: row.model || '',
+    role: row.role || '',
+    order: row.order ?? 0,
+    systemPrompt: row.systemPrompt || '',
+  };
   subAgentDialogVisible.value = true;
 };
+
+const toSubAgentPayload = () => ({
+  name: subAgentForm.value.name,
+  model: subAgentForm.value.model,
+  role: subAgentForm.value.role,
+  sort_order: Number(subAgentForm.value.order),
+  system_prompt: subAgentForm.value.systemPrompt,
+});
 
 const saveSubAgent = async () => {
   if (!currentAgent.value?.id || !subAgentForm.value.name) {
@@ -592,11 +625,12 @@ const saveSubAgent = async () => {
   }
   savingSubAgent.value = true;
   try {
+    const payload = toSubAgentPayload();
     if (editingSubId.value) {
-      await agentApi.updateSubAgent(currentAgent.value.id, editingSubId.value, subAgentForm.value);
+      await agentApi.updateSubAgent(currentAgent.value.id, editingSubId.value, payload);
       ElMessage.success('子Agent更新成功');
     } else {
-      await agentApi.addSubAgent(currentAgent.value.id, subAgentForm.value);
+      await agentApi.addSubAgent(currentAgent.value.id, payload);
       ElMessage.success('子Agent添加成功');
     }
     subAgentDialogVisible.value = false;
