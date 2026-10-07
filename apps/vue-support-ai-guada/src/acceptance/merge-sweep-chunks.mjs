@@ -13,14 +13,22 @@
 // Usage:
 //   node src/acceptance/merge-sweep-chunks.mjs            # merge + print summary
 //   node src/acceptance/merge-sweep-chunks.mjs --write    # also write report.json
+//   node src/acceptance/merge-sweep-chunks.mjs --dir <d> --out <f>   # 分块目录/输出可覆盖
+//     默认仍读仓库内 src/acceptance/.ui-click-sweep-chunks、写 .ui-click-sweep/report.json；
+//     run-sweep-chunks.ps1 把块落在 .local-run/sweep-chunks（那里装的是本会话 base=15690
+//     的块，而仓库目录里是 21 个 base=15689 的旧块，混用会张冠李戴），故用这两个参数指路。
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP = path.resolve(__dirname, '..', '..')
-const CHUNK_DIR = path.join(APP, 'src', 'acceptance', '.ui-click-sweep-chunks')
-const OUT = path.join(APP, '.ui-click-sweep', 'report.json')
+const argOf = (name, dflt) => {
+  const i = process.argv.indexOf(name)
+  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : dflt
+}
+const CHUNK_DIR = path.resolve(argOf('--dir', path.join(APP, 'src', 'acceptance', '.ui-click-sweep-chunks')))
+const OUT = path.resolve(argOf('--out', path.join(APP, '.ui-click-sweep', 'report.json')))
 
 const FAIL_STATES = new Set(['click-error', 'not-clickable'])
 const WARN_STATES = new Set(['no-effect', 'needs-force', 'vanished', 'state-dependent'])
@@ -58,6 +66,10 @@ const routes = [...byRoute.values()]
 let pass = 0
 let fail = 0
 let warn = 0
+// 与单次全量跑的 summary 对齐：§3.2 要用 total / byState / 空路由 / 无名元素，
+// 只给 pass/fail/warn 会让合并报告比一次跑完的报告少一截，反而没法互相印证。
+const byState = {}
+let noNameCount = 0
 const clickError = []
 const notClickable = []
 const noEffect = []
@@ -68,6 +80,8 @@ const buckets = { clickError, notClickable, noEffect, needsForce, vanished, stat
 
 for (const rt of routes) {
   for (const e of rt.elements || []) {
+    byState[e.state] = (byState[e.state] || 0) + 1
+    if (e.noName) noNameCount++
     if (FAIL_STATES.has(e.state)) {
       fail++
       if (e.state === 'click-error') clickError.push({ ...e, route: rt.route })
@@ -84,6 +98,32 @@ for (const rt of routes) {
   }
 }
 
+/**
+ * HTTP 层异常台账。
+ *
+ * 元素上本来就带 `err4xx`/`err5xx`，但**汇总里看不见** —— 报告只报 PASS/FAIL/WARN，
+ * 于是「点了、后端回了 4xx、但产品自己没抛错」这类样本会静悄悄算成 PASS。
+ * 这里把它们按「状态码 + 端点 + 路由」汇总出来，只做**显式化**：
+ *   * 不改 FAIL/WARN 判据（判据只能加强不能放松，改分类属于放宽/收紧的实质变更，
+ *     必须先有敏感性对照再动，不能顺手改）；
+ *   * 每一类的定性（哪些是正确的业务响应、哪些是真缺陷）写在 SIGNOFF 里逐条给证据。
+ * 分割要同时吃「空格分隔」和「逗号分隔」两种形态：实测同一元素的多个 4xx 是
+ * `404 /a.png,404 /b.svg` 拼在一起的，只按空格切会把它们粘成一条。
+ */
+const httpErrors = {}
+let httpErrorElements = 0
+for (const rt of routes) {
+  for (const e of (rt.elements || [])) {
+    const raw = [e.err4xx, e.err5xx].filter(Boolean).join(',')
+    if (!raw) continue
+    httpErrorElements++
+    for (const part of String(raw).split(/(?=\d{3}\s)/).map((s) => s.trim().replace(/,$/, '')).filter(Boolean)) {
+      const key = part + '  @' + rt.route
+      httpErrors[key] = (httpErrors[key] || 0) + 1
+    }
+  }
+}
+
 const merged = {
   base,
   startedAt,
@@ -91,12 +131,31 @@ const merged = {
   mergedFrom: files,
   discovered,
   routes,
-  summary: { pass, fail, warn, ...Object.fromEntries(Object.entries(buckets).map(([k, v]) => [k, v.length])) },
+  summary: {
+    total: Object.values(byState).reduce((a, b) => a + b, 0),
+    byState,
+    pass, fail: fail + routes.filter((r) => r.total === 0).length, warn,
+    emptyRoutes: routes.filter((r) => r.total === 0).map((r) => ({ name: r.name, notes: r.notes })),
+    skippedRoutes: [],
+    // noName：无 accessible name 但**已照常点击**的元素（a11y 观察，不影响 FAIL）
+    noAccessibleName: routes.flatMap((r) => (r.elements || []).filter((e) => e.noName)),
+    noAccessibleNameCount: noNameCount,
+    // HTTP 层台账：不影响上面的 pass/fail/warn，仅显式化，逐类定性见 SIGNOFF
+    httpErrorElements,
+    httpErrors,
+    ...Object.fromEntries(Object.entries(buckets).map(([k, v]) => [k, v.length])),
+  },
 }
 
 console.log('')
 console.log('  merged routes=' + routes.length + ' from ' + files.length + ' chunks')
-console.log('  PASS=' + pass + ' FAIL=' + fail + ' WARN=' + warn)
+console.log('  total=' + merged.summary.total + '  PASS=' + pass + ' FAIL=' + merged.summary.fail + ' WARN=' + warn)
+console.log('  byState=' + JSON.stringify(byState))
+console.log('  空采集路由=' + merged.summary.emptyRoutes.length + '  可点但无 accessible name(已点击)=' + noNameCount)
+console.log('  携带 HTTP 4xx/5xx 的元素=' + httpErrorElements + ' 条（不影响 PASS/FAIL，逐类定性见 SIGNOFF）')
+for (const [k, v] of Object.entries(httpErrors).sort((a, b) => b[1] - a[1])) {
+  console.log('    ' + String(v).padStart(3) + ' x ' + k)
+}
 console.log('  ' + JSON.stringify(merged.summary))
 if (clickError.length) {
   console.log('  --- FAIL click-error ---')

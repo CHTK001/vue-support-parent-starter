@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-07T11:19:09.436Z",
+  "generatedAt": "2026-10-07T11:48:25.944Z",
   "base": "http://192.168.50.198:8787",
   "fingerprint": {
-    "jarMd5": "a03cc7358a1b0156e4172502e17b6df1",
+    "jarMd5": "5717cefdd6a0880dbf4c25573513fb87",
     "activeState": "active",
-    "mainPID": "1853013",
+    "mainPID": "1865587",
     "nRestarts": "0",
-    "execMainStartTimestamp": "Wed 2026-10-07 07:15:14 EDT",
+    "execMainStartTimestamp": "Wed 2026-10-07 07:41:54 EDT",
     "instanceCount": "1",
     "compactObjectHeaders": "1"
   },
@@ -36,7 +36,7 @@
       "section": "fingerprint",
       "name": "jar md5 reported",
       "pass": true,
-      "detail": "a03cc7358a1b0156e4172502e17b6df1"
+      "detail": "5717cefdd6a0880dbf4c25573513fb87"
     },
     {
       "section": "auth",
@@ -84,19 +84,19 @@
       "section": "agents",
       "name": "POST /packages/import (JSON {path})",
       "pass": true,
-      "detail": "status=200 data={\"name\":\"fixture-json\",\"agent_id\":\"01a11616-704a-79cc-800e-e195e96d7bad\",\"installed_path\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"sub_agents\":[],\"updated\":true}"
+      "detail": "status=200 data={\"name\":\"fixture-json\",\"agent_id\":\"01a11631-3987-74a7-8001-44689771f666\",\"installed_path\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"sub_agents\":[],\"updated\":true}"
     },
     {
       "section": "agents",
       "name": "POST /packages/toggle enabled=false",
       "pass": true,
-      "detail": "status=200 item={\"name\":\"fixture-json\",\"description\":\"acceptance fixture imported through the JSON {path} endpoint\",\"model\":null,\"role\":\"fixture\",\"source\":\"user\",\"location\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"installed\":true,\"enabled\":false,\"agent_id\":\"01a11616-704a-79cc-800e-e195e96d7bad\",\"sub_agents\":0}"
+      "detail": "status=200 item={\"name\":\"fixture-json\",\"description\":\"acceptance fixture imported through the JSON {path} endpoint\",\"model\":null,\"role\":\"fixture\",\"source\":\"user\",\"location\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"installed\":true,\"enabled\":false,\"agent_id\":\"01a11631-3987-74a7-8001-44689771f666\",\"sub_agents\":0}"
     },
     {
       "section": "agents",
       "name": "POST /packages/toggle enabled=true (restored)",
       "pass": true,
-      "detail": "status=200 item={\"name\":\"fixture-json\",\"description\":\"acceptance fixture imported through the JSON {path} endpoint\",\"model\":null,\"role\":\"fixture\",\"source\":\"user\",\"location\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"installed\":true,\"enabled\":true,\"agent_id\":\"01a11616-704a-79cc-800e-e195e96d7bad\",\"sub_agents\":0}"
+      "detail": "status=200 item={\"name\":\"fixture-json\",\"description\":\"acceptance fixture imported through the JSON {path} endpoint\",\"model\":null,\"role\":\"fixture\",\"source\":\"user\",\"location\":\"/opt/ai-starter/runtime/agents/user/fixture-json\",\"installed\":true,\"enabled\":true,\"agent_id\":\"01a11631-3987-74a7-8001-44689771f666\",\"sub_agents\":0}"
     },
     {
       "section": "agents",
@@ -234,7 +234,7 @@
       "section": "sse",
       "name": "real add event for the touched file",
       "pass": true,
-      "detail": "events=2 types=add,heartbeat path=sse-probe-1791371932912.txt"
+      "detail": "events=2 types=add,heartbeat path=sse-probe-1791373688452.txt"
     },
     {
       "section": "sse",
@@ -246,13 +246,13 @@
       "section": "sse",
       "name": "path is workspace-relative with forward slashes",
       "pass": true,
-      "detail": "path=sse-probe-1791371932912.txt"
+      "detail": "path=sse-probe-1791373688452.txt"
     },
     {
       "section": "sse",
       "name": "heartbeat inside 15s",
       "pass": true,
-      "detail": "heartbeat={\"type\":\"heartbeat\",\"sessionId\":\"1\",\"timestamp\":1791371951565}"
+      "detail": "heartbeat={\"type\":\"heartbeat\",\"sessionId\":\"1\",\"timestamp\":1791373708152}"
     }
   ]
 }

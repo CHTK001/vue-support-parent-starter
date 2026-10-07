@@ -37,6 +37,8 @@ const KNOWN_404 = [
   /sessionAgentApi|\/session\/agent\//,
   /favicon\.ico/,
   /weather-api/, // dev 下 vite 代理外部天气 API，历轮验收均列为环境噪音
+  // 天气小组件直连的第三方限流：并发验收触发 429，与产品代码无关
+  /api\.open-meteo\.com/,
 ];
 
 const checks = [];
@@ -226,7 +228,10 @@ const parseCounts = (txt) => {
     await page.waitForSelector('.model-fetch-dialog', { timeout: 20000 });
     add('fetchDialog.open', true, 'dialog=1');
 
-    await sleep(800); // 列表异步渲染，不等会读到 0 的假失败
+    // 列表是打开弹窗后才向上游拉的：固定 sleep(800) 在网关慢时读到 0 假失败
+    // （2026-10-08 实测 rows=0 而 upstream=12），改为等真实行出现，20s 兜底
+    await page.waitForSelector('.model-fetch-dialog .fetch-row', { timeout: 20000 }).catch(() => {});
+    await sleep(300);
     const rowCount = await page.locator('.model-fetch-dialog .fetch-row').count();
     add('fetchDialog.rows', rowCount === upstreamNames.length,
       'rows=' + rowCount + ' upstream=' + upstreamNames.length);
