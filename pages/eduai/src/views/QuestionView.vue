@@ -1734,10 +1734,18 @@ onMounted(() => {
 }
 
 .table-wrap {
-  min-height: 440px;
+  /* 固定容器高度（同汉字库）：消除滚动条液面高度随滚动反复重算的抖动。
+     579 = 本页实测值：wrap.top 503 + 分页条与其间距 50 + 卡片 body 底部内边距 18
+     + 余量 8；表格 + 分页正好落在 page-container 可视区（底 892）内，
+     不再纵向滚动（消掉残留的 18px 小滚动条）。
+     min-height 由 440 收到 300：579 下 900 视口只剩 321，440/320 的下限都会把
+     固定高度顶破、页面重新出现纵向滚动。contain: layout size 让 ReTable 走 height:100%。 */
+  height: calc(100vh - 579px);
+  min-height: 300px;
+  contain: layout size;
+  overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  overflow: hidden;
 }
 
 .question-table {

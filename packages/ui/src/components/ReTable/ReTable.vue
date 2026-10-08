@@ -2682,20 +2682,21 @@ function detectParentHeight(): void {
     return;
   }
   /**
-   * 固定容器：父容器自身高度确定、且内容已经溢出它
-   * （scrollHeight 明显大于自身高度）。
+   * 固定容器：调用方给表格外面套了一个「确定高度」的盒子，并用
+   * {@code contain: layout size} 声明它「尺寸与内容无关」。此标记稳定地表示
+   * 父容器高度不应从表格内容反向测量。
    *
-   * <p>内容撑开的父容器，computedHeight 恒等于自身内容高、与 scrollHeight 相等；
-   * 一旦 scrollHeight &gt; height，就说明父容器的高度**不是由内容决定的**——
-   * 调用方给了它一个确定的盒子（典型写法：表格外面套一层
-   * {@code .table-wrap { height: calc(100vh - Npx) }} 并配 {@code contain: layout size}）。
-   *
-   * <p>这种情况必须走 CSS {@code height:100%} 把表格钉在这个盒子里，
-   * <b>不能</b>退回下面的「量到最近滚动容器下沿」像素补偿：那个值取决于测量当刻的
-   * 页面滚动位置，RO 任意一次触发（或滚动中）都会把它改写成另一个高度，
+   * <p>这种盒子必须走 CSS {@code height:100%} 把表格钉进去，<b>不能</b>退回下面的
+   * 「量到最近滚动容器下沿」像素补偿：那个值取决于测量当刻的页面滚动位置，
+   * RO 任意一次触发（数据渲染、窗口缩放、滚动引发的懒渲染……）都会把它改写成另一个高度，
    * 表格与外层滚动条随之反复重排 —— 正是「一页数据多、滚动时滚动条高度不停变」的抖动。</p>
+   *
+   * <p>判据用 {@code contain} 里的 {@code size}，而不是「内容是否溢出父容器」：
+   * 溢出与否会随表格高度在「撑满 / 溢出」之间来回翻转（高度一旦等于容器就不再溢出），
+   * 判据本身不稳定，会让 {@code 100%} 与像素补偿两条路径反复互切，抖动照旧。
+   * {@code contain: size} 是调用方写死的声明，与当前高度无关，天然稳定。</p>
    */
-  if (p.scrollHeight > h + 1) {
+  if (getComputedStyle(p).contain.includes("size")) {
     parentHeightUsable.value = true;
     viewportFillHeight.value = null;
     return;
@@ -2754,8 +2755,15 @@ function nearestScrollContainer(el: HTMLElement | null): HTMLElement | null {
 /**
  * 量「本组件上沿 → 最近滚动容器可视下沿」之间的距离，作为 fill 的像素高度。
  *
- * <p>减去组件上沿与容器上沿的差，再加上容器自身的 scrollTop：
- * 页面已经向下滚过一段时，可用高度要按当前可见范围算，否则表格会高出一屏。</p>
+ * <p>结果必须与「当前滚动位置」无关：用
+ * {@code 容器可视下沿 - 组件上沿 - 容器 scrollTop}，
+ * 把组件在容器内容坐标里的偏移量算成固定值。</p>
+ *
+ * <p>反面教材（修复前的写法）：直接 {@code 容器可视下沿 - 组件上沿}。
+ * 它等于 {@code clientHeight + scrollTop - 组件在内容里的偏移}，会随滚动持续变大；
+ * ResizeObserver 每次触发都把它当成新高度写回去，表格与外层滚动条就反复重排 ——
+ * 「一页数据过多、滚动时滚动条高度一直变」的抖动即源于此。
+ * 组件在内容中的偏移是不变的，减去 scrollTop 后测量值恒定，反馈回路自然断开。</p>
  *
  * <p>拿不到滚动容器时退回视口底部，保证「至少填到看得见的地方」。</p>
  */
@@ -2765,14 +2773,19 @@ function measureViewportFillHeight(): number | null {
   const top = root.getBoundingClientRect().top;
   const scroller = nearestScrollContainer(root);
   let bottom: number;
+  let scrollTop = 0;
   if (scroller) {
     bottom = scroller.getBoundingClientRect().bottom;
+    scrollTop = scroller.scrollTop;
   } else if (typeof window !== "undefined") {
     bottom = window.innerHeight;
+    scrollTop = window.scrollY || document.documentElement?.scrollTop || 0;
   } else {
     return null;
   }
-  const h = Math.floor(bottom - top);
+  // 减去已滚过的距离：无论页面滚到哪里，量出的都是「组件上沿到容器可视下沿」
+  // 在内容坐标里的固定距离，避免高度随滚动位置漂移造成抖动。
+  const h = Math.floor(bottom - top - scrollTop);
   return Number.isFinite(h) ? h : null;
 }
 

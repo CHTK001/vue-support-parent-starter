@@ -73,102 +73,104 @@
           切换在本会话内始终可用
         - #view 插槽接管视图模式单条；列插槽接管表格模式的两列摘要与操作列
       -->
-      <ReTable
-        :data="poemRows"
-        :columns="poemColumns"
-        :loading="loading"
-        :row-key="'poemId'"
-        layout="table"
-        :layout-switch="true"
-        :layout-persist="false"
-        :layouts="['table', 'view']"
-        :layout-labels="LAYOUT_LABELS"
-        :pagination="false"
-        :toolbar="false"
-        border
-        stripe
-        empty-text="暂无古诗数据：可在「采集管理」启用古诗采集，或点右上角手工新增"
-        @row-click="(row: Record<string, unknown>) => openPoem(row as unknown as Poem, 'view')"
-      >
-        <template #col-poemContent="{ row }">
-          <span class="pb-cell">{{ contentPreview(row.poemContent) }}</span>
-        </template>
-        <template #col-poemTranslation="{ row }">
-          <span v-if="translationPreview(row.poemTranslation)" class="pb-cell">
-            {{ translationPreview(row.poemTranslation) }}
-          </span>
-          <span v-else class="pb-cell pb-cell--none">—</span>
-        </template>
-        <template #col-actions="{ row }">
-          <!-- 必须 .stop：ReTable 绑了 @row-click 打开预览，
-               不阻止冒泡会让「点编辑/删除」也触发一次预览 -->
-          <ReButton
-            layout="square"
-            :icon="View"
-            tip="预览"
-            @click.stop="openPoem(row as unknown as Poem, 'view')"
-          />
-          <ReButton
-            layout="square"
-            type="primary"
-            :icon="EditPen"
-            tip="编辑"
-            @click.stop="openPoem(row as unknown as Poem, 'edit')"
-          />
-          <ReButton
-            layout="square"
-            type="danger"
-            :icon="Delete"
-            tip="删除"
-            @click.stop="remove(row as unknown as Poem)"
-          />
-        </template>
-
-        <!-- 视图模式：标题/作者朝代/难度 + 正文与译文并排 + 操作 -->
-        <template #view="{ row }">
-          <div class="pb-view">
-            <div class="pb-view__head">
-              <span class="pb-view__title">{{ row.poemTitle }}</span>
-              <span class="pb-view__meta">{{ row.poemDynasty }} · {{ row.poemAuthor }}</span>
-              <span class="pb-view__level">{{ difficultyLabel(row.poemDifficulty) }}</span>
-            </div>
-            <div class="pb-view__cols">
-              <div>
-                <div class="pb-view__label">正文</div>
-                <p class="pb-view__text">{{ contentPreview(row.poemContent) }}</p>
+      <div v-loading="loading" class="table-wrap">
+        <ReTable
+          :data="poemRows"
+          :columns="poemColumns"
+          :loading="loading"
+          :row-key="'poemId'"
+          layout="table"
+          :layout-switch="true"
+          :layout-persist="false"
+          :layouts="['table', 'view']"
+          :layout-labels="LAYOUT_LABELS"
+          :pagination="false"
+          :toolbar="false"
+          border
+          stripe
+          empty-text="暂无古诗数据：可在「采集管理」启用古诗采集，或点右上角手工新增"
+          @row-click="(row: Record<string, unknown>) => openPoem(row as unknown as Poem, 'view')"
+        >
+          <template #col-poemContent="{ row }">
+            <span class="pb-cell">{{ contentPreview(row.poemContent) }}</span>
+          </template>
+          <template #col-poemTranslation="{ row }">
+            <span v-if="translationPreview(row.poemTranslation)" class="pb-cell">
+              {{ translationPreview(row.poemTranslation) }}
+            </span>
+            <span v-else class="pb-cell pb-cell--none">—</span>
+          </template>
+          <template #col-actions="{ row }">
+            <!-- 必须 .stop：ReTable 绑了 @row-click 打开预览，
+                 不阻止冒泡会让「点编辑/删除」也触发一次预览 -->
+            <ReButton
+              layout="square"
+              :icon="View"
+              tip="预览"
+              @click.stop="openPoem(row as unknown as Poem, 'view')"
+            />
+            <ReButton
+              layout="square"
+              type="primary"
+              :icon="EditPen"
+              tip="编辑"
+              @click.stop="openPoem(row as unknown as Poem, 'edit')"
+            />
+            <ReButton
+              layout="square"
+              type="danger"
+              :icon="Delete"
+              tip="删除"
+              @click.stop="remove(row as unknown as Poem)"
+            />
+          </template>
+  
+          <!-- 视图模式：标题/作者朝代/难度 + 正文与译文并排 + 操作 -->
+          <template #view="{ row }">
+            <div class="pb-view">
+              <div class="pb-view__head">
+                <span class="pb-view__title">{{ row.poemTitle }}</span>
+                <span class="pb-view__meta">{{ row.poemDynasty }} · {{ row.poemAuthor }}</span>
+                <span class="pb-view__level">{{ difficultyLabel(row.poemDifficulty) }}</span>
               </div>
-              <div>
-                <div class="pb-view__label">译文</div>
-                <p class="pb-view__text pb-view__text--trans">
-                  {{ translationPreview(row.poemTranslation) || "—" }}
-                </p>
+              <div class="pb-view__cols">
+                <div>
+                  <div class="pb-view__label">正文</div>
+                  <p class="pb-view__text">{{ contentPreview(row.poemContent) }}</p>
+                </div>
+                <div>
+                  <div class="pb-view__label">译文</div>
+                  <p class="pb-view__text pb-view__text--trans">
+                    {{ translationPreview(row.poemTranslation) || "—" }}
+                  </p>
+                </div>
+              </div>
+              <div class="pb-view__ops">
+                <ReButton
+                  layout="square"
+                  :icon="View"
+                  tip="预览"
+                  @click.stop="openPoem(row as unknown as Poem, 'view')"
+                />
+                <ReButton
+                  layout="square"
+                  type="primary"
+                  :icon="EditPen"
+                  tip="编辑"
+                  @click.stop="openPoem(row as unknown as Poem, 'edit')"
+                />
+                <ReButton
+                  layout="square"
+                  type="danger"
+                  :icon="Delete"
+                  tip="删除"
+                  @click.stop="remove(row as unknown as Poem)"
+                />
               </div>
             </div>
-            <div class="pb-view__ops">
-              <ReButton
-                layout="square"
-                :icon="View"
-                tip="预览"
-                @click.stop="openPoem(row as unknown as Poem, 'view')"
-              />
-              <ReButton
-                layout="square"
-                type="primary"
-                :icon="EditPen"
-                tip="编辑"
-                @click.stop="openPoem(row as unknown as Poem, 'edit')"
-              />
-              <ReButton
-                layout="square"
-                type="danger"
-                :icon="Delete"
-                tip="删除"
-                @click.stop="remove(row as unknown as Poem)"
-              />
-            </div>
-          </div>
-        </template>
-      </ReTable>
+          </template>
+        </ReTable>
+      </div>
 
       <div class="table-footer">
         <span class="table-footer__total">共 {{ total }} 条</span>
@@ -816,6 +818,19 @@ onMounted(() => {
 .table-toolbar__left .el-button {
   border-radius: var(--el-radius-lg, 12px);
   font-weight: 600;
+}
+.table-wrap {
+  /* 固定容器高度（同汉字库）：表格高度不再随页面滚动位置重算，消除滚动条液面高度抖动。
+     503 = 实测值 wrap.top 427 + 分页与间距 50 + 卡片 body 底部内边距 18 + 余量 8，
+     与汉字库同版式故同值；页面不纵向滚动，只留表格内部滚动。
+     contain: layout size 声明「本盒尺寸与内容无关」，ReTable 据此走 height:100%，
+     不再做视口像素补偿。 */
+  height: calc(100vh - 503px);
+  min-height: 320px;
+  contain: layout size;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
 }
 .table-footer {
   display: flex;

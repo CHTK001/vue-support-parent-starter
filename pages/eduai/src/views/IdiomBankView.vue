@@ -724,10 +724,17 @@ onMounted(() => {
   font-weight: 600;
 }
 .table-wrap {
+  /* 固定容器高度（同汉字库）：表格高度不再随页面滚动位置重算，消除滚动条液面高度抖动。
+     503 = 实测值 wrap.top 427 + 分页与间距 50 + 卡片 body 底部内边距 18 + 余量 8，
+     与汉字库同版式故同值；页面不纵向滚动，只留表格内部滚动。
+     contain: layout size 声明「本盒尺寸与内容无关」，ReTable 据此走 height:100%，
+     不再做视口像素补偿。 */
+  height: calc(100vh - 503px);
   min-height: 320px;
+  contain: layout size;
+  overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  overflow: hidden;
 }
 .idiom-table {
   width: 100%;

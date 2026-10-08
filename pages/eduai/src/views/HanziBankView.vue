@@ -569,11 +569,16 @@ onMounted(() => {
   font-weight: 600;
 }
 .table-wrap {
-  /* 固定容器高度，防止滚动抖动：ReTable fill 模式不再依赖视口测量 */
-  height: calc(100vh - 260px);
+  /* 固定容器高度：表格自身高度不再随页面滚动位置重算（那是滚动抖动的根因）。
+     503 为 1440×900 实测值：wrap.top 427 + 分页条与其间距 50 + 卡片 body 底部
+     内边距 18 + 余量 8；表格 + 分页正好落在 page-container 可视区内，
+     页面不再纵向滚动，只保留表格内部滚动（消掉残留的 23px 小滚动条）。
+     contain: layout size 声明「本盒尺寸与内容无关」，配合 ReTable 内的
+     fill 逻辑走 height:100%，彻底断开 ResizeObserver 的高度反馈回路。 */
+  height: calc(100vh - 503px);
+  min-height: 320px;
   contain: layout size;
   overflow: hidden;
-  min-height: 320px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
 }
