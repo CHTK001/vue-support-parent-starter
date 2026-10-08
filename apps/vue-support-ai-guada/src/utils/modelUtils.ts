@@ -219,17 +219,19 @@ export function getModelThinkingEfforts(
     return [];
   }
 
-  // 直接从模型自身的 thinkingEfforts 字段读取（后端完整控制选项）
+  // 模型自身声明了档位就直接用（后端白名单透传，集合由模型管理配置）
   const efforts = model.thinkingEfforts || [];
-
-  // 如果后端返回了配置，直接返回（后端已决定是否包含 'none'）
   if (efforts.length > 0) {
-    return efforts;
+    // 'default' 始终排在首位：表示「不指定档位，交由各厂商默认」
+    return efforts.includes('default') ? efforts : ['default', ...efforts];
   }
 
-  // 备用逻辑：如果模型支持思考功能但没有配置具体强度，提供简化的开关模式
-  // 注意：后端已根据协议过滤了无效选项，此处不额外添加
-  return [];
+  // 未显式配置：仅对「支持思考」的模型给默认集合（default + low/medium/high/max），
+  // 其余模型不展示档位区——避免给不支持思考的模型挂一排无效选项。
+  const features: string[] = model.config?.features || [];
+  const reasoningFlag = model.metrics?.reasoning_model;
+  const supportsThinking = reasoningFlag === true || reasoningFlag === 'true' || features.includes('thinking');
+  return supportsThinking ? ['default', 'low', 'medium', 'high', 'max'] : [];
 }
 
 /**
@@ -238,6 +240,99 @@ export function getModelThinkingEfforts(
 export function isThinkingSupported(model: any, providers: any[]): boolean {
   const efforts = getModelThinkingEfforts(model, providers);
   return efforts.length > 0;
+}
+
+/* ==================== 上下文大小过滤（模型选择卡片 / 模型管理通用） ==================== */
+
+/**
+ * 常见上下文档位标签：多选过滤，区间为 [min, max)。
+ *
+ * <p>取的是各家模型卡最常见的量级（32K / 128K / 256K / 1M），不是精确分档；
+ * 「unknown」表示模型行与指标表都没有上下文数据——模型管理里可据此发现漏配。
+ * 标签文案走 i18n：`common.contextSize.<key>`。</p>
+ */
+export const CONTEXT_SIZE_TAGS: Array<{ key: string; min: number; max: number }> = [
+  { key: 'lt32k', min: 0, max: 32000 },
+  { key: 'k32to128', min: 32000, max: 128000 },
+  { key: 'k128to256', min: 128000, max: 256000 },
+  { key: 'k256to1m', min: 256000, max: 1000000 },
+  { key: 'gte1m', min: 1000000, max: Number.POSITIVE_INFINITY },
+  { key: 'unknown', min: Number.NaN, max: Number.NaN },
+];
+
+/**
+ * 模型的有效上下文窗口（token 数）。
+ *
+ * <p>取值口径与模型卡片一致：手填 `context_window`（sys_ai_provider_model 同名列）
+ * 优先，未填回退指标表快照 `metrics.context_window_tokens`；同时兼容
+ * 「后端原始行」与「mapModel 映射行（config.contextWindow）」两种形态。
+ * 取不到返回 null（=「未知」档）。</p>
+ *
+ * @param model 模型行（原始或映射后）
+ */
+export function getModelContextWindow(model: any): number | null {
+  if (!model) {
+    return null;
+  }
+  const candidates = [
+    model.context_window,
+    model.contextWindow,
+    model.config?.contextWindow,
+    model.metrics?.context_window_tokens,
+    model.metrics?.context_window,
+  ];
+  for (const candidate of candidates) {
+    const n = Number(candidate);
+    if (candidate !== null && candidate !== undefined && candidate !== '' && Number.isFinite(n) && n > 0) {
+      return n;
+    }
+  }
+  return null;
+}
+
+/**
+ * 上下文大小的人类可读徽标：131072 → 「128K」，1000000 → 「1M」，4096 → 「4096」。
+ *
+ * @param size 上下文 token 数（null/0/负数返回空串，调用方用 v-if 兜）
+ */
+export function formatContextSize(size: number | null): string {
+  if (!size || size <= 0) {
+    return '';
+  }
+  if (size >= 1000000) {
+    const m = size / 1000000;
+    return `${Number.isInteger(m) ? m : m.toFixed(1)}M`;
+  }
+  if (size >= 1000) {
+    return `${Math.round(size / 1000)}K`;
+  }
+  return String(size);
+}
+
+/**
+ * 模型是否命中选中的上下文档位标签集合。
+ *
+ * <p>未选任何标签 = 不过滤（全部显示）；多选 = 任一命中即显示（并集）。
+ * 「unknown」只匹配取不到上下文数据的模型；已知档位不会匹配无数据模型。</p>
+ *
+ * @param model 模型行
+ * @param keys  选中的标签 key 列表（CONTEXT_SIZE_TAGS 的 key）
+ */
+export function matchesContextTags(model: any, keys: string[]): boolean {
+  if (!keys || keys.length === 0) {
+    return true;
+  }
+  const size = getModelContextWindow(model);
+  return keys.some((key) => {
+    if (key === 'unknown') {
+      return size === null;
+    }
+    const tag = CONTEXT_SIZE_TAGS.find((item) => item.key === key);
+    if (!tag) {
+      return true;
+    }
+    return size !== null && size >= tag.min && size < tag.max;
+  });
 }
 
 /**

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>上下文大小过滤验证夹具（配合 model-ctx-filter-probe.cjs，非应用入口）</title>
+  <!--
+    用途：在**私有 dev server** 上同页挂载两个真实组件（ModelSelectorPanel 模型选择卡片 +
+    ModelsProviderDetail 模型管理详情），用夹具模型数据覆盖全部档位（<32K / 32K-128K /
+    128K-256K / 256K-1M / ≥1M / 未知）与"指标表回退"（只有 metrics.context_window_tokens）。
+    供 model-ctx-filter-probe.cjs 断言语义：
+      - 标签渲染（6 个常用档位，多选 = 并集）
+      - 点击过滤 / 再次点击取消 / 无匹配提示
+      - 行尾上下文徽标（4K / 32K / 128K / 256K / 1M，未知不显示）
+      - 模型行点击仍能选中（过滤不吞点击）
+    运行：node node_modules/vite/bin/vite.js --port 15692 --strictPort
+          BASE=http://localhost:15692 node src/acceptance/model-ctx-filter-probe.cjs
+    变体：?only=huge-1m 只挂一个 ≥1M 模型，用于验证"筛选后无匹配"提示。
+    说明：本文件不是应用入口，不会进入 dist 产物。
+  -->
+</head>
+
+<body>
+  <div style="display: flex; gap: 24px; padding: 20px; font-family: sans-serif;">
+    <div>
+      <div style="font-size: 12px; color: #888; margin-bottom: 6px;">模型选择卡片（选择"模型"按钮的弹层）</div>
+      <button id="anchor-btn" type="button" style="padding: 4px 12px;">模型 ▾</button>
+      <div id="selector-host"></div>
+    </div>
+    <div style="flex: 1; max-width: 900px;">
+      <div style="font-size: 12px; color: #888; margin-bottom: 6px;">模型管理 · 供应商详情（模型卡片网格）</div>
+      <div id="detail-host"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createApp, h } from 'vue'
+    import { i18n } from '/src/locales/index.ts'
+
+    window.__fixtureErrors = []
+
+    // 夹具模型覆盖全部档位；big-256k 故意只带 metrics（验证指标表回退）；
+    // mystery 无任何上下文数据（「未知」档）。
+    const models = [
+      { id: 'p1:mini-4k', provider_id: 'p1', model: 'mini-4k', modelName: 'mini-4k', context_window: 4096, isFavorite: false },
+      { id: 'p1:small-32k', provider_id: 'p1', model: 'small-32k', modelName: 'small-32k', context_window: 32000, isFavorite: false },
+      { id: 'p1:mid-128k', provider_id: 'p1', model: 'mid-128k', modelName: 'mid-128k', context_window: 128000, isFavorite: true },
+      { id: 'p1:big-256k', provider_id: 'p1', model: 'big-256k', modelName: 'big-256k', metrics: { context_window_tokens: 256000 }, isFavorite: false },
+      { id: 'p1:huge-1m', provider_id: 'p1', model: 'huge-1m', modelName: 'huge-1m', context_window: 1000000, isFavorite: false },
+      { id: 'p1:mystery', provider_id: 'p1', model: 'mystery', modelName: 'mystery', isFavorite: false },
+    ]
+
+    const params = new URLSearchParams(location.search)
+    const only = params.get('only')
+    const variant = params.get('variant')
+    let fixtureModels = only ? models.filter((m) => m.id.endsWith(only)) : models
+    if (variant === 'nomatch') {
+      // 两个模型都落在 128K 以下：点 128K-256K / ≥1M 后两处都应出现「无匹配」提示
+      fixtureModels = models.filter((m) => m.id === 'p1:mini-4k' || m.id === 'p1:small-32k')
+    }
+
+    const providers = [{ id: 'p1', provider_id: 'p1', name: 'Fixture Provider', models: fixtureModels }]
+
+    async function mountSelector() {
+      const { default: ModelSelectorPanel } = await import('/src/components/chat/chat-input/ModelSelectorPanel.vue')
+      const btn = document.getElementById('anchor-btn')
+      const picked = []
+      window.__picked = picked
+      const app = createApp({
+        render: () => h(ModelSelectorPanel, {
+          visible: true,
+          anchorEl: btn,
+          models: fixtureModels,
+          providers,
+          currentModelId: 'p1:mid-128k',
+          thinkingEffortOptions: [],
+          thinkingEffortValue: 'default',
+          onSelect: (id) => picked.push(id),
+        }),
+      })
+      app.use(i18n)
+      app.mount('#selector-host')
+    }
+
+    async function mountDetail() {
+      const { default: ModelsProviderDetail } = await import('/src/components/models/ModelsProviderDetail.vue')
+      const detailModels = fixtureModels.map((m) => ({
+        id: m.id, providerId: 'p1', model: m.model, modelName: m.modelName, name: m.modelName,
+        modelType: 'text', isActive: true, hasNativeId: true,
+        config: {
+          inputCapabilities: ['text'], outputCapabilities: ['text'], features: [],
+          contextWindow: m.context_window ?? null, maxOutputTokens: null,
+        },
+        metrics: m.metrics || {},
+      }))
+      const app = createApp({
+        render: () => h(ModelsProviderDetail, {
+          provider: { id: 'p1', name: 'Fixture Provider', apiUrl: 'https://fixture.example/v1' },
+          models: detailModels,
+          modelPresets: [],
+        }),
+      })
+      app.use(i18n)
+      app.mount('#detail-host')
+    }
+
+    mountSelector().catch((e) => window.__fixtureErrors.push('selector: ' + e.message))
+    mountDetail().catch((e) => window.__fixtureErrors.push('detail: ' + e.message))
+  </script>
+</body>
+
+</html>

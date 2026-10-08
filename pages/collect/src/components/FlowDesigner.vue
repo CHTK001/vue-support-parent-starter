@@ -633,27 +633,22 @@ const activeColumns = computed<CollectColumn[]>(
 async function loadColumnsForActive(force = false): Promise<void> {
   const key = activeColumnKey.value;
   if (!mappingParamName.value || !activeTable.value) return;
+  if (!force && columnsByKey.value[key]) return;
   if (!props.loadColumns) return;
-  // 表确认不存在时不去读列：读不到是必然结果，只会换来一次注定失败的请求和一条
+  // 表还不存在时不去读列：读不到是必然结果，只会换来一次注定失败的请求和一条
   // 红色报错，把"运行时会自动建表"这件正常事显示成故障。直接给空候选即可。
-  // 注意这段必须在缓存检查之前：读列先于表清单返回、失败后会把 [] 写进缓存（见下），
-  // 若先查缓存，"确认不存在"的重新判定会在缓存处提前返回，报错永远留在界面上，
-  // 映射编辑器会被错误态卡死（2026-10-08 用户实测：映射点不出来）。force 例外 ——
-  // 建表 / 补列刚执行完时表清单是旧的，必须真读一次才知道新表的列。
-  if (tableExists.value === false && !force) {
+  if (tableExists.value === false) {
     columnsByKey.value = { ...columnsByKey.value, [key]: [] };
     columnsError.value = null;
     return;
   }
-  if (!force && columnsByKey.value[key]) return;
   columnsLoading.value = true;
   columnsError.value = null;
   try {
     const columns = await props.loadColumns(activeDatasource.value || "app", activeTable.value);
     columnsByKey.value = { ...columnsByKey.value, [key]: columns };
   } catch (error) {
-    // 失败不写缓存：写进去（哪怕是 []）会让下一次重判在缓存处提前返回，
-    // 报错状态就永远清不掉；不写则表清单随后到位、或用户点「重新读取」时都能再试。
+    columnsByKey.value = { ...columnsByKey.value, [key]: [] };
     columnsError.value = error instanceof Error ? error.message : String(error);
   } finally {
     columnsLoading.value = false;
@@ -919,16 +914,6 @@ const formContext = computed<NodeFormContext>(() => ({
   columnsError: columnsError.value,
   columnKey: activeColumnKey.value,
   refreshColumns: () => {
-    // 建表 / 补列执行完回这里：表清单是存在性判断的唯一依据，只刷列不刷清单的话，
-    // 「目标表尚不存在」的横幅会一直挂在刚建好的表上。先让本数据源的表清单缓存失效，
-    // 列与清单一起重读 —— 「重新读取表结构」按钮也走这里，顺带把存在性修正过来。
-    const key = activeTableKey.value;
-    if (tablesByKey.value[key]) {
-      const next = { ...tablesByKey.value };
-      delete next[key];
-      tablesByKey.value = next;
-    }
-    void loadTablesForActive();
     void loadColumnsForActive(true);
   },
   // 建表 / 补列不再经由上下文：两个表单各自用 @pages/datasource 的共享 CreateTableDialog，

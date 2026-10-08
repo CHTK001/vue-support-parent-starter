@@ -183,6 +183,10 @@
 
   // ── Thinking Effort ──
   thinkingEffort: {
+    // 'default' = session does not pin an effort (no thinking_effort sent; vendor default applies)
+    default: 'Default',
+    // Field label in the model management dialog
+    levels: 'Thinking effort levels',
     none: 'None',
     on: 'Thinking Mode',
     low: 'Low',
@@ -192,5 +196,17 @@
     xhigh: 'Max',
     minimal: 'Minimal',
     minimum: 'Minimum',
+  },
+
+  // ── Context size filter (shared tags for the model selector card & model management) ──
+  contextSize: {
+    title: 'Context',
+    lt32k: '<32K',
+    k32to128: '32K-128K',
+    k128to256: '128K-256K',
+    k256to1m: '256K-1M',
+    gte1m: '≥1M',
+    unknown: 'Unknown',
+    noMatch: 'No models match the selected filters',
   },
 }
