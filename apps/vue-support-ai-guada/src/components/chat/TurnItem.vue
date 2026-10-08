@@ -98,25 +98,12 @@
             @decision="handleConfirmationDecision"
           />
 
-          <!-- 执行日志（agentscope 全量 trace：thinking/输出/轮次/工具/用量/边缘） -->
-          <div v-if="allTraceLog.length" class="trace-console">
-            <div class="trace-console__header" @click="traceExpanded = !traceExpanded">
-              <el-icon size="13" class="trace-console__icon"><CodeOutlined /></el-icon>
-              <span class="trace-console__title">执行日志</span>
-              <span class="trace-console__count">{{ allTraceLog.length }}</span>
-              <el-icon size="12" class="trace-console__chevron" :class="{ 'is-open': traceExpanded }">
-                <ChevronDown12Regular />
-              </el-icon>
-            </div>
-            <div v-show="traceExpanded" class="trace-console__body">
-              <div v-for="(tr, i) in allTraceLog" :key="i" class="trace-line" :class="'trace-line--' + tr.kind">
-                <span class="trace-line__time">{{ formatTraceTime(tr.timestamp) }}</span>
-                <span class="trace-line__tag">{{ traceKindLabel(tr.kind) }}</span>
-                <span v-if="tr.toolName" class="trace-line__tool">{{ tr.toolName }}</span>
-                <span class="trace-line__text">{{ tr.text }}</span>
-              </div>
-            </div>
-          </div>
+          <!--
+            执行日志（agentscope 全量 trace 控制台）已按用户要求下线：
+            每个工具调用改为**单独一行、可展开、默认折叠**（见 ProcessTimeline -> MessageToolCalls，
+            参数/结果与详情弹窗同源）。需要保留的只有「工具调用」这类可交互记录，
+            纯文本 trace（thinking/轮次/用量）不再整块倾倒给用户。
+          -->
 
           <!-- 错误提示 -->
           <el-alert v-if="assistantMetadata?.finishReason === 'error'" :title="t('chat.turn.apiError')" type="error" :closable="false">
