@@ -49,7 +49,8 @@ const add = (n, ok, d) => { checks.push({ n, ok: !!ok, d: String(d ?? '') }); co
   if (await scroller.count() > 0) {
     await scroller.evaluate((el) => { el.scrollTop = el.scrollHeight; el.dispatchEvent(new Event('scroll')); });
     await page.waitForTimeout(800);
-    const btn = page.locator('.scroll-to-bottom, [class*="scroll-to-bottom"], [aria-label*="底部"]').first();
+    // 真实类名来自 ScrollToBottomButton.vue：.scroll-to-bottom-btn（由 v-if="show" 控制显隐）
+    const btn = page.locator('.scroll-to-bottom-btn').first();
     const visible = (await btn.count()) > 0 ? await btn.isVisible().catch(() => false) : false;
     add('scrollBtn.hiddenAtBottom', !visible, 'visible=' + visible + ' btnCount=' + (await btn.count()));
   } else {
