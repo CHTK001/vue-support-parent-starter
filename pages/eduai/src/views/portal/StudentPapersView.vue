@@ -32,7 +32,7 @@
     </div>
 
     <!-- 试卷详情（只读） -->
-    <el-dialog v-model="detailVisible" :title="detail?.paperName || '试卷'" width="760" append-to-body>
+    <ReDialog v-model="detailVisible" :title="detail?.paperName || '试卷'" width="760" append-to-body>
       <div v-loading="detailLoading" class="sp-detail">
         <div v-if="detail" class="sp-detail__meta">
           <span class="sp-chip">{{ detail.paperSubject }}</span>
@@ -51,7 +51,7 @@
         </ol>
         <div v-if="detail && !(detail.questions || []).length" class="sp-empty">这份试卷还没有题目。</div>
       </div>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -67,6 +67,7 @@ import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { Paper, PaperAssignVO } from "../../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const loading = ref(false);
 const papers = ref<PaperAssignVO[]>([]);

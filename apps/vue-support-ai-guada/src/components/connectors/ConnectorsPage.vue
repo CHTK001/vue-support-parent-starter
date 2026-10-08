@@ -103,7 +103,7 @@
     </section>
 
     <!-- 绑定对话框 -->
-    <el-dialog
+    <ReDialog
       v-model="bindDialogVisible"
       :title="currentConnector ? `绑定 ${currentConnector.name}` : '绑定连接器'"
       width="440px"
@@ -132,10 +132,10 @@
       <template #footer>
         <el-button v-if="!bindIsQr" type="primary" :loading="binding" @click="handleBind">确认绑定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="editDialogVisible" title="编辑连接器" width="480px">
+    <ReDialog v-model="editDialogVisible" title="编辑连接器" width="480px">
       <el-form label-position="top">
         <el-form-item label="名称">
           <el-input v-model="editForm.nickname" placeholder="请输入名称" maxlength="64" show-word-limit />
@@ -182,7 +182,7 @@
         <el-button @click="editDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSaveEdit">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -198,7 +198,8 @@ import FeishuBindForm from './bind-forms/FeishuBindForm.vue'
 import WecomBindForm from './bind-forms/WecomBindForm.vue'
 import QqBindForm from './bind-forms/QqBindForm.vue'
 
-// 数据
+
+import ReDialog from '@repo/ui/re-dialog';// 数据
 const boundConnectors = ref<any[]>([])
 const availableConnectors = ref<any[]>([])
 const models = ref<string[]>([])

@@ -57,7 +57,7 @@
       <li v-if="!loading && !tasks.length" class="mr-card__empty">还没有答题记录</li>
     </ul>
 
-    <el-dialog v-model="dialogVisible" title="答题详情" width="720px">
+    <ReDialog v-model="dialogVisible" title="答题详情" width="720px">
       <div v-if="result" class="mr-result">
         <p class="mr-sum">
           得分 <b>{{ result.totalScore }}</b> · 共 {{ result.results.length }} 题 ·
@@ -77,7 +77,7 @@
         </el-table>
       </div>
       <el-empty v-else description="加载中…" />
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -92,6 +92,7 @@ import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { MarkingResultVO, TeacherMarkingTask } from "../../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const loading = ref(false);
 const tasks = ref<TeacherMarkingTask[]>([]);

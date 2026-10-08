@@ -157,7 +157,7 @@ const BPMN_EXTS = ["bpmn"];
 /** TGA 扩展名（浏览器原生不支持，内置纯 TS 解码器前端解码，见 utils/tga.ts） */
 const TGA_EXTS = ["tga"];
 
-/** OFD 版式文档扩展名（纯前端 ofd.js 面板渲染，不经后端） */
+/** OFD 版式文档扩展名（纯前端 @ofdjs/viewer 面板渲染，不经后端） */
 const OFD_EXTS = ["ofd"];
 
 /** drawio 绘图扩展名（自托管 viewer-static 前端渲染，不经后端） */

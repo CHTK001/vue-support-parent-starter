@@ -9,6 +9,7 @@ import { ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { resetTenantPassword } from "../../api/systemApi";
 import type { SysTenant } from "../../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -47,7 +48,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <el-dialog v-model="visible" :title="`重置密码 - ${tenant.sysTenantName}`" width="420px" destroy-on-close>
+  <ReDialog v-model="visible" :title="`重置密码 - ${tenant.sysTenantName}`" width="420px" destroy-on-close>
     <p class="mb-3 text-sm text-[--el-text-color-secondary]">重置后将推送租户端，租户端登录账号密码同步更新</p>
     <el-input
       v-model="newPassword"
@@ -60,5 +61,5 @@ async function handleSubmit() {
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" @click="handleSubmit">确认重置</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>

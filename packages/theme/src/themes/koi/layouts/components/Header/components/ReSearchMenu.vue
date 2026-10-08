@@ -9,7 +9,7 @@
       </el-tooltip>
     </div>
 
-    <el-dialog
+    <ReDialog
       v-model="isShowSearch"
       class="search-menu-dialog"
       width="520"
@@ -82,7 +82,7 @@
           </span>
         </div>
       </div>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -95,6 +95,7 @@ import { useRouter } from "vue-router";
 import { useDebounceFn } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { getMenuLanguage } from "@repo/languages";
+import ReDialog from "@repo/ui/re-dialog";
 
 const router = useRouter();
 const authStore = useAuthStore();

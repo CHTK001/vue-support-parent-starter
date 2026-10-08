@@ -479,7 +479,6 @@ onBeforeUnmount(() => {
     <!-- ===== 底部状态栏 ===== -->
     <footer class="ifc__footer">
       <span>{{ fileName }}</span>
-      <span>纯前端 3D（web-ifc + three.js）</span>
     </footer>
   </section>
 </template>

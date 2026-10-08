@@ -2681,6 +2681,25 @@ function detectParentHeight(): void {
     parentHeightUsable.value = false;
     return;
   }
+  /**
+   * 固定容器：父容器自身高度确定、且内容已经溢出它
+   * （scrollHeight 明显大于自身高度）。
+   *
+   * <p>内容撑开的父容器，computedHeight 恒等于自身内容高、与 scrollHeight 相等；
+   * 一旦 scrollHeight &gt; height，就说明父容器的高度**不是由内容决定的**——
+   * 调用方给了它一个确定的盒子（典型写法：表格外面套一层
+   * {@code .table-wrap { height: calc(100vh - Npx) }} 并配 {@code contain: layout size}）。
+   *
+   * <p>这种情况必须走 CSS {@code height:100%} 把表格钉在这个盒子里，
+   * <b>不能</b>退回下面的「量到最近滚动容器下沿」像素补偿：那个值取决于测量当刻的
+   * 页面滚动位置，RO 任意一次触发（或滚动中）都会把它改写成另一个高度，
+   * 表格与外层滚动条随之反复重排 —— 正是「一页数据多、滚动时滚动条高度不停变」的抖动。</p>
+   */
+  if (p.scrollHeight > h + 1) {
+    parentHeightUsable.value = true;
+    viewportFillHeight.value = null;
+    return;
+  }
   if (ancestorHasSpareRoom(p)) {
     // 父链本身有分配余量：走原来的 CSS 百分比路径即可，不需要像素补偿
     parentHeightUsable.value = true;

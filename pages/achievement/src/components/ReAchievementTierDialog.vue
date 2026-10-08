@@ -6,6 +6,7 @@ import { ref } from "vue";
 import { ElMessage } from "element-plus";
 import { saveTier, updateTier } from "../api/achievementApi";
 import type { AchievementTier } from "../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
   visible: boolean;
@@ -46,7 +47,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     :model-value="visible"
     :title="isEdit ? 'Edit Tier' : 'Add Tier'"
     width="560"
@@ -95,5 +96,5 @@ async function handleSubmit() {
         Confirm
       </el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>

@@ -11,14 +11,18 @@
   参数名是前后端契约，一个都不能改；分组只改展示位置，写回仍走 set-param / set-pairs。
 -->
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { ElDialog } from "element-plus";
+import {
+  computed,
+  ref } from "vue";
+import { ElDialog,
+} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
 import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext, PreviewPayload } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
   /** 当前节点的表单镜像 */
@@ -340,7 +344,7 @@ function statusClass(status: number): string {
     </div>
 
     <!-- append-to-body：属性面板自身可能有 overflow / transform，弹框留在面板内会被裁掉 -->
-    <ElDialog v-model="previewOpen" title="响应预览" width="760px" append-to-body>
+    <ReDialog v-model="previewOpen" title="响应预览" width="760px" append-to-body>
       <div v-if="previewLoading" class="preview-state">正在请求 {{ urlValue }} …</div>
       <div v-else-if="previewError" class="preview-state preview-error">
         预览失败：{{ previewError }}
@@ -365,7 +369,7 @@ function statusClass(status: number): string {
           仅显示前 20 行，共 {{ previewLines.length }} 行；完整内容请把 URL 复制到浏览器查看。
         </div>
       </template>
-    </ElDialog>
+    </ReDialog>
   </div>
 </template>
 

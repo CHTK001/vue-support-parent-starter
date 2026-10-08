@@ -41,7 +41,7 @@
       </ReTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.examId ? '编辑考试' : '新建考试'" width="560">
+    <ReDialog v-model="dialogVisible" :title="form.examId ? '编辑考试' : '新建考试'" width="560">
       <el-form :model="form" label-width="100">
         <el-form-item label="考试名" required>
           <el-input v-model="form.examName" />
@@ -66,7 +66,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -77,6 +77,7 @@ import { eduaiApi } from '../api/eduaiApi';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { Exam } from '../api/types';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
+import ReDialog from "@repo/ui/re-dialog";
 
 const pageNo = ref(1);
 const pageSize = ref(20);

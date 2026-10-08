@@ -2,7 +2,7 @@
 /**
  * OFD 版式文档预览面板组件
  *
- * <p><b>纯前端渲染</b>：票据直链取回 OFD 字节，浏览器内用 ofd.js 解析并渲染，
+ * <p><b>纯前端渲染</b>：票据直链取回 OFD 字节，浏览器内解析并渲染到 Canvas，
  * 不经后端转 PDF、不依赖外网。OFD（GB/T 33190）是国产版式文档标准，
  * 常见于电子发票、公文与电子档案，Windows 上双击通常打不开，
  * 服务端也没有对应的转换提供者，因此完全在前端消化。</p>
@@ -16,23 +16,23 @@
  * {@code ?preview=true&inner=}，条目提取只挂在预览分支上，只传 inner 会拿到
  * 整个压缩包的字节。</p>
  *
- * <p><b>ofd.js 的接入结论（@1.5.0）</b>：产物是 webpack UMD（{@code module.exports}
- * 形态），具名导出靠 {@code Object.defineProperty(exports, name, {get})} 挂载，
- * 打包器无法可靠静态识别，故<b>按 default 对象取用</b>并在运行时逐函数校验。
- * 解析与解包全部在该包内联的 WASM（{@code data:application/wasm;base64}）里完成，
- * <b>不需要全局 JSZip</b>，也不需要外部 .wasm 文件；{@code parser_helper_x.js} /
- * {@code axios} 已随 pnpm 装好。类型面见 {@code src/types/ofd.d.ts}。</p>
+ * <p><b>为什么用 {@code @ofdjs/viewer} 而不是 {@code ofd.js}</b>：
+ * DLTech21 的 {@code ofd.js} 把解析内联进 WASM 并做了授权校验，未携带有效
+ * secret 时对任意文档都回「授权信息错误」，等于不可用；其 fork {@code ofd-tools}
+ * 虽是纯 JS，但产物是大型 CJS 包，Vite 直引无法预打包。
+ * {@code @ofdjs/viewer}（MIT，仅依赖 {@code fflate}）是标准 ESM，API 参考 PDF.js
+ * 的 document / page / renderTask 分层，实测对本项目全部 OFD 样例（含 ofd.js 与
+ * 另一候选库均失败的 999.ofd / h.ofd）都能正常出图。</p>
  *
- * <p><b>渲染策略</b>：页数 ≤ {@link MAX_ALL_PAGES} 时用 {@code renderOfd} 一次性
- * 渲染全部页、滚动连续阅读（滚动位置反推当前页号）；页数更多时改用
- * {@code renderOfdByIndex} 单页渲染 + 上一页/下一页，避免几十上百个 canvas
- * 同时驻留把内存打满。缩放提供「适宽」（渲染宽度取容器宽）与「100%」
+ * <p><b>渲染策略</b>：页数 ≤ {@link MAX_ALL_PAGES} 时一次渲染全部页、滚动连续阅读
+ * （滚动位置反推当前页号）；页数更多时只渲染当前页 + 上一页/下一页，避免几十上百个
+ * canvas 同时驻留把内存打满。缩放提供「适宽」（渲染宽度取容器宽）与「100%」
  * （按页面物理宽度的 96 DPI 换算值）两档。</p>
  *
- * <p><b>已知限制</b>：未提供授权 secret/digest 时，ofd.js 会给每页叠加
- * {@code demotest} 水印（库的未授权行为，面板不做规避）；卸载时不调用导出的
- * {@code free()}（其实现不清空内部单例，会导致下一次解析二次 free），
- * 最多滞留一份文档的内存，下一次解析时由库内部释放。</p>
+ * <p><b>已知限制（库能力边界，如实展示）</b>：数字签名与电子印章不参与渲染与验签
+ * （库以 {@code diagnostics} 回报，面板会在统计条下方提示）；未内嵌的字体用本机字体
+ * 替代，个别字形可能与原稿有差；缺失的公共资源会被跳过。这些都是该库的解析边界，
+ * 不是本面板的实现缺陷。</p>
  *
  * @author CH
  * @since 2026/10/08
@@ -40,6 +40,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ArrowLeft, ArrowRight, Download, Refresh } from "@element-plus/icons-vue";
 import { resolveObjectUrl } from "../api/filestorageApi";
+import type { Diagnostic, OFDDocument } from "@ofdjs/viewer";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -57,10 +58,10 @@ const props = defineProps<{
 /** 页数超过该值时改走单页渲染（几十个 canvas 同时驻留会把内存打满） */
 const MAX_ALL_PAGES = 20;
 
-/** 解析字节数上限：主线程 WASM 解析，超大文件只会把页面卡死 */
+/** 解析字节数上限：主线程解析，超大文件只会把页面卡死 */
 const MAX_BYTES = 100 * 1024 * 1024;
 
-/** 解析超时（毫秒）：库是回调式 API，异常形态下回调可能永不到达 */
+/** 解析超时（毫秒）：异常形态下 getDocument 的 Promise 可能迟迟不落地 */
 const PARSE_TIMEOUT_MS = 60_000;
 
 /** 容器宽度取不到时的兜底渲染宽度（A4 @ 96 DPI ≈ 794px） */
@@ -72,37 +73,23 @@ const FIT_PADDING = 32;
 /** 适宽模式重排的防抖时长（毫秒） */
 const REFIT_DEBOUNCE_MS = 150;
 
-/** 渲染文档下标：OFD 多文档容器少见，面板固定渲染首文档 */
-const DOC_INDEX = 0;
+/** 渲染像素比上限：超过 2 只会徒增显存，视觉上已无差别 */
+const MAX_PIXEL_RATIO = 2;
 
 /** 缩放档位 */
 type ZoomMode = "fit" | "actual";
 
 /**
- * ofd.js 的最小 API 面。
+ * diagnostics 码 → 中文提示。
  *
- * <p>UMD 产物无类型声明，且具名导出经 {@code Object.defineProperty} 动态挂载，
- * 因此这里只声明本面板用到的一小块，运行时取 default 对象后逐项校验。</p>
+ * <p>库用稳定的英文码回报解析边界，这里映射成面向用户的一句中文；未收录的码保留原文，
+ * 便于后续排查新出现的边界。</p>
  */
-interface OfdApi {
-  /** 解析 OFD 字节（回调式） */
-  parseOfdDocument(options: {
-    /** OFD 字节 */
-    ofd: ArrayBuffer;
-    /** 成功回调 */
-    success?: () => void;
-    /** 失败回调 */
-    fail?: (message: unknown) => void;
-  }): void;
-  /** 一次性渲染全部页，返回每页一个 div */
-  renderOfd(documentIndex: number, width: number): HTMLDivElement[];
-  /** 渲染单页，返回一个 div */
-  renderOfdByIndex(documentIndex: number, pageIndex: number, width: number): HTMLDivElement;
-  /** 取页数 */
-  getOFDPageCount(documentIndex: number): number;
-  /** 取页面尺寸（用 renderWidth 反推 100% 档位的渲染宽度） */
-  pageSize(documentIndex: number, pageIndex: number, dpi?: number): { renderWidth?: number };
-}
+const DIAGNOSTIC_TEXT: Record<string, string> = {
+  SIGNATURE_UNSUPPORTED: "数字签名与电子印章不参与渲染与验签",
+  FONT_SUBSTITUTION: "部分字体未内嵌，使用本机字体替代",
+  MISSING_RESOURCE: "部分公共资源缺失，渲染可能不完整",
+};
 
 /** 生效文件名：包内条目取路径末段（fileName 此时是压缩包自己的名字） */
 const effectiveName = computed(() => {
@@ -133,15 +120,16 @@ const nativeWidth = ref(0);
 /** 上次实际渲染宽度（像素） */
 const lastRenderWidth = ref(0);
 
+/** 解析边界提示（面向用户的中文文案） */
+const diagnosticTexts = ref<string[]>([]);
+
 /** 滚动视口引用（页面栈的滚动容器） */
 const viewportEl = ref<HTMLDivElement>();
-/** 页面栈引用（ofd.js 生成的页 div 挂在这里） */
+/** 页面栈引用（解析后生成的页 canvas 挂在这里） */
 const pagesEl = ref<HTMLDivElement>();
 
-/** ofd.js 模块（动态 import 单飞缓存） */
-let ofdModulePromise: Promise<OfdApi> | null = null;
-/** 取到的 ofd.js API */
-let ofdApi: OfdApi | null = null;
+/** 已解析的文档（持有解压缓存与字体/图片资源，卸载或重载时必须 destroy） */
+let docRef: OFDDocument | null = null;
 /** 是否已成功解析出文档（决定能否渲染 / 翻页 / 缩放） */
 let parsed = false;
 /** 组件是否已卸载（拦截在途异步回调） */
@@ -190,17 +178,10 @@ function friendlyError(e: unknown): string {
   return typeof e === "string" && e ? e : "加载失败";
 }
 
-/** 解析失败回调的原始信息 → 统一文案 */
-function friendlyParseError(message: unknown): string {
-  const raw = message instanceof Error ? message.message : typeof message === "string" ? message : "";
-  const brief = raw.trim().slice(0, 120);
-  return brief ? `不是有效的 OFD 文档（${brief}）` : "不是有效的 OFD 文档";
-}
-
 /**
  * 轻量容器头校验：OFD 是 ZIP 容器（GB/T 33190），少数实现直接给 XML。
  *
- * <p>不是这两种开头就不必再喂给 WASM 解析器 —— 早失败比等解析超时好。</p>
+ * <p>不是这两种开头就不必再喂给解析器 —— 早失败比等解析超时好。</p>
  *
  * @param buffer 文件字节
  */
@@ -214,67 +195,23 @@ function assertOfdContainer(buffer: ArrayBuffer): void {
 }
 
 /**
- * 动态加载 ofd.js 并校验导出形态。
+ * 解析 OFD 字节（动态 import 库 + 超时兜底）。
  *
- * <p>UMD 的具名导出对打包器不可见，优先取 default 对象；为兼容具名导出被正确
- * 识别的情况，default 缺失时退回模块命名空间本身。缺任一必需函数即视为接入失败。</p>
- *
- * @returns 校验通过的 API
- */
-function loadOfdApi(): Promise<OfdApi> {
-  ofdModulePromise ??= import("ofd.js").then((mod: unknown): OfdApi => {
-    const candidate = ((mod as { default?: unknown }).default ?? mod) as Partial<OfdApi>;
-    if (
-      typeof candidate.parseOfdDocument !== "function"
-      || typeof candidate.renderOfd !== "function"
-      || typeof candidate.renderOfdByIndex !== "function"
-      || typeof candidate.getOFDPageCount !== "function"
-      || typeof candidate.pageSize !== "function"
-    ) {
-      throw new Error("OFD 渲染库导出形态不符合预期（ofd.js 版本或打包形态已变化）");
-    }
-    return candidate as OfdApi;
-  });
-  return ofdModulePromise;
-}
-
-/**
- * 解析 OFD 字节（把回调式 API 包成 Promise，并加超时兜底）。
- *
- * @param api    ofd.js API
  * @param buffer 文件字节
+ * @returns 解析出的文档
  */
-function parseOfd(api: OfdApi, buffer: ArrayBuffer): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const timer = window.setTimeout(() => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      reject(new Error("解析超时（文件过大或不是有效的 OFD 文档）"));
-    }, PARSE_TIMEOUT_MS);
-    const finish = (fn: () => void): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      window.clearTimeout(timer);
-      fn();
-    };
-    try {
-      api.parseOfdDocument({
-        ofd: buffer,
-        success: () => finish(resolve),
-        fail: (message) => finish(() => reject(new Error(friendlyParseError(message)))),
-      });
-    } catch (e) {
-      finish(() => reject(new Error(friendlyError(e))));
-    }
+async function parseOfd(buffer: ArrayBuffer): Promise<OFDDocument> {
+  const mod = await import("@ofdjs/viewer");
+  const timeout = new Promise<never>((_, reject) => {
+    window.setTimeout(() => reject(new Error("解析超时（文件过大或不是有效的 OFD 文档）")), PARSE_TIMEOUT_MS);
   });
+  return Promise.race([
+    mod.getDocument(buffer, { maxFileSize: MAX_BYTES }),
+    timeout,
+  ]);
 }
 
-/** 清空页面栈（ofd.js 生成的页 div 全部是手工挂上去的，需手工移除） */
+/** 清空页面栈（页 canvas 是手工挂上去的，需手工移除） */
 function clearPages(): void {
   const host = pagesEl.value;
   if (!host) {
@@ -285,7 +222,7 @@ function clearPages(): void {
   }
 }
 
-/** 重置解析态（重新加载前调用；在途渲染一并作废） */
+/** 重置解析态（重新加载前调用；在途渲染一并作废，旧文档释放） */
 function resetDocument(): void {
   renderSeq += 1;
   parsed = false;
@@ -294,11 +231,39 @@ function resetDocument(): void {
   nativeWidth.value = 0;
   lastRenderWidth.value = 0;
   rendering.value = false;
+  diagnosticTexts.value = [];
   clearPages();
+  if (docRef) {
+    docRef.destroy();
+    docRef = null;
+  }
 }
 
 /**
- * 计算本次渲染宽度，并顺带回填页面物理宽度。
+ * 刷新当前页的物理宽度（96 DPI，scale=1 时的 viewport 宽）。
+ *
+ * <p>单页模式取当前页，整卷模式取首页 —— 后者决定整卷的统一渲染宽度，
+ * 各页仍按自身物理宽高成比例缩放。</p>
+ */
+async function refreshNativeWidth(): Promise<void> {
+  const doc = docRef;
+  if (!doc) {
+    return;
+  }
+  const pageNumber = singlePageMode.value ? currentPage.value : 1;
+  try {
+    const page = await doc.getPage(pageNumber);
+    const vp = page.getViewport({ scale: 1 });
+    if (vp.width > 0) {
+      nativeWidth.value = Math.round(vp.width);
+    }
+  } catch {
+    // 取尺寸失败不致命：computeRenderWidth 会退回 DEFAULT_WIDTH
+  }
+}
+
+/**
+ * 计算本次渲染宽度。
  *
  * <p>适宽：容器宽减两侧留白，容器还没量出宽（弹层动画中）时退到默认值，
  * 尺寸观察器稳定后会重排；100%：按页面物理宽度的 96 DPI 换算值。</p>
@@ -308,30 +273,68 @@ function resetDocument(): void {
 function computeRenderWidth(): number {
   const viewport = viewportEl.value;
   const avail = viewport ? viewport.clientWidth - FIT_PADDING : 0;
-  const pageIndex = singlePageMode.value ? Math.max(0, currentPage.value - 1) : 0;
-  const sized = ofdApi?.pageSize(DOC_INDEX, pageIndex, 96);
-  const native = Number(sized?.renderWidth ?? 0);
-  nativeWidth.value = native > 0 ? Math.round(native) : DEFAULT_WIDTH;
+  const native = nativeWidth.value > 0 ? nativeWidth.value : DEFAULT_WIDTH;
   if (zoomMode.value === "actual") {
-    return nativeWidth.value;
+    return native;
   }
   if (avail > 0) {
     return Math.max(320, avail);
   }
-  return nativeWidth.value > 0 ? nativeWidth.value : DEFAULT_WIDTH;
+  return native;
+}
+
+/**
+ * 把一页渲染成 canvas（白底）。
+ *
+ * <p>库按 {@code viewport} 自行设置 canvas 的像素尺寸与 CSS 尺寸，本函数只负责
+ * 建 canvas、建包装 div、算缩放比。scale=1 即 96 DPI，缩放比 =
+ * 目标宽度 / 物理宽度。</p>
+ *
+ * @param doc         文档
+ * @param pageNumber  页号（1 基）
+ * @param targetWidth 目标渲染宽度（像素）
+ * @param pixelRatio  设备像素比
+ * @returns 包装好的页 div
+ */
+async function renderPageToDiv(
+  doc: OFDDocument,
+  pageNumber: number,
+  targetWidth: number,
+  pixelRatio: number,
+): Promise<HTMLDivElement> {
+  const page = await doc.getPage(pageNumber);
+  const native = page.getViewport({ scale: 1 });
+  const scale = native.width > 0 ? targetWidth / native.width : 1;
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("当前浏览器不支持 Canvas 2D，无法渲染 OFD");
+  }
+  await page.render({
+    canvasContext: ctx,
+    viewport,
+    pixelRatio,
+    background: "#ffffff",
+  }).promise;
+  const wrap = document.createElement("div");
+  wrap.className = "ofd__page";
+  wrap.dataset.page = String(pageNumber);
+  wrap.appendChild(canvas);
+  return wrap;
 }
 
 /**
  * 按当前档位把文档画进页面栈。
  *
- * <p>整卷模式用 {@link OfdApi.renderOfd} 一次渲染所有页；单页模式用
- * {@link OfdApi.renderOfdByIndex} 只画当前页。两者都会重建 DOM，故先清空。
- * 渲染是可重入的（缩放 / 翻页 / 容器变宽都会触发），用渲染序号保证只有最后一次生效。</p>
+ * <p>整卷模式渲染全部页并按页序纵向堆叠；单页模式只画当前页。两者都会重建 DOM，
+ * 故先清空。渲染是可重入的（缩放 / 翻页 / 容器变宽都会触发），用渲染序号保证
+ * 只有最后一次生效。</p>
  */
 async function renderPages(): Promise<void> {
   const host = pagesEl.value;
-  const api = ofdApi;
-  if (!host || !api || !parsed || disposed) {
+  const doc = docRef;
+  if (!host || !doc || !parsed || disposed) {
     return;
   }
   const seq = ++renderSeq;
@@ -341,24 +344,34 @@ async function renderPages(): Promise<void> {
     if (disposed || seq !== renderSeq) {
       return;
     }
+    await refreshNativeWidth();
+    if (disposed || seq !== renderSeq) {
+      return;
+    }
     const width = computeRenderWidth();
+    const pixelRatio = Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1);
     lastRenderWidth.value = width;
     clearPages();
     if (singlePageMode.value) {
-      const page = api.renderOfdByIndex(DOC_INDEX, currentPage.value - 1, width);
-      if (page) {
-        host.appendChild(page);
+      const wrap = await renderPageToDiv(doc, currentPage.value, width, pixelRatio);
+      if (disposed || seq !== renderSeq) {
+        return;
       }
+      host.appendChild(wrap);
     } else {
-      const divs = api.renderOfd(DOC_INDEX, width);
-      divs.forEach((div, index) => {
-        div.dataset.page = String(index + 1);
-        host.appendChild(div);
-      });
+      for (let i = 1; i <= pageCount.value; i++) {
+        const wrap = await renderPageToDiv(doc, i, width, pixelRatio);
+        if (disposed || seq !== renderSeq) {
+          return;
+        }
+        host.appendChild(wrap);
+      }
       scrollToPage(currentPage.value, "auto");
     }
   } catch (e) {
-    errorText.value = `渲染失败（${friendlyError(e)}）`;
+    if (seq === renderSeq) {
+      errorText.value = `渲染失败（${friendlyError(e)}）`;
+    }
   } finally {
     if (seq === renderSeq) {
       rendering.value = false;
@@ -440,7 +453,7 @@ function setZoom(mode: ZoomMode): void {
 }
 
 /**
- * 加载并渲染：签票据 → fetch 字节 → 校验 → 动态加载 ofd.js → 解析 → 渲染。
+ * 加载并渲染：签票据 → fetch 字节 → 校验 → 动态加载库 → 解析 → 渲染。
  *
  * <p>包内条目必须带 {@code preview=true&inner=}：条目提取只挂在预览分支上，
  * 只传 inner 会拿到整个压缩包的字节。</p>
@@ -474,20 +487,21 @@ async function load(): Promise<void> {
       throw new Error("文件超过 100 MB，请下载后用专业 OFD 阅读器查看");
     }
     assertOfdContainer(buffer);
-    const api = ofdApi ?? (ofdApi = await loadOfdApi());
+    const doc = await parseOfd(buffer);
     if (disposed) {
+      doc.destroy();
       return;
     }
-    await parseOfd(api, buffer);
-    if (disposed) {
-      return;
-    }
-    const count = api.getOFDPageCount(DOC_INDEX);
+    docRef = doc;
+    const count = doc.numPages;
     if (!Number.isFinite(count) || count <= 0) {
       throw new Error("不是有效的 OFD 文档（解析完成但不含页面）");
     }
     pageCount.value = count;
     currentPage.value = 1;
+    diagnosticTexts.value = (doc.diagnostics ?? []).map(
+      (d: Diagnostic) => DIAGNOSTIC_TEXT[d.code] ?? d.message,
+    );
     parsed = true;
     await nextTick();
     await renderPages();
@@ -555,8 +569,8 @@ onBeforeUnmount(() => {
   refitTimer = 0;
   resizeObs?.disconnect();
   resizeObs = null;
-  // ofd.js 生成的页 div（含 canvas）必须手工摘掉，否则会随组件一起被 Vue 之外
-  // 的引用留住；文档本体交由下一次 parseOfdDocument 内部释放（见文件头「已知限制」）
+  docRef?.destroy();
+  docRef = null;
   clearPages();
 });
 
@@ -618,7 +632,7 @@ const statusText = computed(() => {
       <el-button-group>
         <el-button
           :type="zoomMode === 'fit' ? 'primary' : undefined"
-          :disabled="!parsed"
+          :disabled="!pageCount"
           title="渲染宽度取容器宽"
           @click="setZoom('fit')"
         >
@@ -626,7 +640,7 @@ const statusText = computed(() => {
         </el-button>
         <el-button
           :type="zoomMode === 'actual' ? 'primary' : undefined"
-          :disabled="!parsed"
+          :disabled="!pageCount"
           title="按页面物理宽度（96 DPI）渲染"
           @click="setZoom('actual')"
         >
@@ -636,7 +650,7 @@ const statusText = computed(() => {
       <el-button-group>
         <el-button
           :icon="ArrowLeft"
-          :disabled="!parsed || currentPage <= 1"
+          :disabled="!pageCount || currentPage <= 1"
           title="上一页"
           aria-label="上一页"
           @click="prevPage"
@@ -646,7 +660,7 @@ const statusText = computed(() => {
         </span>
         <el-button
           :icon="ArrowRight"
-          :disabled="!parsed || currentPage >= pageCount"
+          :disabled="!pageCount || currentPage >= pageCount"
           title="下一页"
           aria-label="下一页"
           @click="nextPage"
@@ -660,6 +674,11 @@ const statusText = computed(() => {
       <el-button :icon="Download" title="下载文件" @click="downloadSelf">
         {{ inner ? "打开" : "下载" }}
       </el-button>
+    </div>
+
+    <!-- ===== 解析边界提示（签名/印章、字体替换等）===== -->
+    <div v-if="diagnosticTexts.length && !errorText" class="ofd__diag" role="note">
+      <span v-for="(text, i) in diagnosticTexts" :key="i" class="ofd__diag-item">{{ text }}</span>
     </div>
 
     <!-- ===== 主体 ===== -->
@@ -696,7 +715,7 @@ const statusText = computed(() => {
    OFD 预览面板（koi / Element Plus 变量体系）
 
    结构与 Geo / CAD / BPMN / 音视频面板一致：统计条 + 工具条 + 主体 + 状态栏。
-   ofd.js 生成的是内联白底页 div（版式文档以纸面为基准，保持白底才正确），
+   解析后生成的是内联白底 canvas（版式文档以纸面为基准，保持白底才正确），
    容器底色与阴影走主题变量，暗色模式不写死颜色。
    ======================================================== */
 .ofd {
@@ -797,6 +816,29 @@ const statusText = computed(() => {
   min-width: 0;
 }
 
+/* ---- 解析边界提示 ---- */
+.ofd__diag {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-color-warning-light-9);
+  font-size: 12px;
+  color: var(--el-color-warning-dark-2, var(--el-text-color-secondary));
+}
+
+.ofd__diag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ofd__diag-item::before {
+  content: "·";
+  color: var(--el-color-warning);
+}
+
 /* ---- 主体 ---- */
 .ofd__stage-wrap {
   position: relative;
@@ -816,7 +858,7 @@ const statusText = computed(() => {
   background-size: 24px 24px;
 }
 
-/* 页面栈：ofd.js 返回的页 div 直接挂在这里，纵向居中排布 */
+/* 页面栈：生成的页 div 直接挂在这里，纵向居中排布 */
 .ofd__pages {
   position: relative;
   display: flex;
@@ -826,9 +868,19 @@ const statusText = computed(() => {
   padding: 16px;
 }
 
-/* 页 div 是深层子节点（内联白底 + 固定宽高），只补一层主题阴影 */
-.ofd__pages > :deep(div) {
+/* 页 div 是手工创建的（无 scoped 属性），用 :deep 补白底与主题阴影 */
+.ofd__pages :deep(.ofd__page) {
+  line-height: 0;
+  background: #ffffff;
   box-shadow: var(--el-box-shadow-light);
+}
+
+.ofd__pages :deep(.ofd__page + .ofd__page) {
+  margin-top: 16px;
+}
+
+.ofd__pages :deep(.ofd__page canvas) {
+  display: block;
 }
 
 /* 加载 / 错误覆盖层：盖住整块阅读区，不挤压布局 */

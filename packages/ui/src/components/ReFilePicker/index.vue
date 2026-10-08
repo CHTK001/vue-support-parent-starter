@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ReDialog
     v-model="dialogVisible"
     :title="dialogTitle"
     width="720px"
@@ -79,7 +79,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -95,8 +95,11 @@
  *     @select="files => handleSelect(files)"
  *   />
  */
-import { http } from "@repo/core";
-import { ref, computed, watch } from "vue";
+import {
+  http } from "@repo/core";
+import { ref,
+  computed,
+  watch } from "vue";
 import {
   ElDialog,
   ElInput,
@@ -114,6 +117,7 @@ import {
   Loading,
 } from "@element-plus/icons-vue";
 import { DEFAULT_MOCK_TREE, type FilePickerItem, type FilePickerListResult } from "./types";
+import ReDialog from "../ReDialog";
 
 interface Props {
   /** 是否显示弹窗 */

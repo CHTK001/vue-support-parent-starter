@@ -74,7 +74,7 @@
     </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑厂商Key' : '新增厂商Key'" width="520px" append-to-body>
+    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑厂商Key' : '新增厂商Key'" width="520px" append-to-body>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-form-item label="厂商" prop="sysAiManufacturerCode">
           <el-select
@@ -121,7 +121,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -131,6 +131,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import { isAdmin } from '@repo/core';
 import { manufacturerApi, manufacturerKeyApi } from '@/services/javaApi';
+import ReDialog from '@repo/ui/re-dialog';
 
 /** 厂商 Key 出口全部 @Permission("admin")，非管理员不发请求、不显示写操作 */
 const admin = ref(isAdmin());

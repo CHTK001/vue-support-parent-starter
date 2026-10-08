@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" title="添加快捷" width="440px" :close-on-click-modal="false" append-to-body @close="dialogVisible = false">
+    <ReDialog v-model="dialogVisible" title="添加快捷" width="440px" :close-on-click-modal="false" append-to-body @close="dialogVisible = false">
       <el-form label-width="70px" label-position="left">
         <el-form-item label="类型">
           <el-radio-group v-model="form.type">
@@ -70,7 +70,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="save">添加</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -84,6 +84,7 @@ import { IndexedDBStore } from "@repo/utils";
 import { getMenuLanguage } from "@repo/languages";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
+import ReDialog from "@repo/ui/re-dialog";
 
 defineProps<{ widget: WidgetItem }>();
 

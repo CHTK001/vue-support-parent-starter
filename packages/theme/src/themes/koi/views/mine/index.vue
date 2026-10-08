@@ -156,7 +156,7 @@
                 </el-row>
               </el-form>
 
-              <el-dialog v-model="emailDialogVisible" title="邮箱验证" width="440px" @closed="resetEmailVerify">
+              <ReDialog v-model="emailDialogVisible" title="邮箱验证" width="440px" @closed="resetEmailVerify">
                 <div class="flex flex-column gap-10px">
                   <div class="text-13px text-[--el-text-color-regular]">
                     验证码将发送至
@@ -186,7 +186,7 @@
                     确认验证
                   </el-button>
                 </template>
-              </el-dialog>
+              </ReDialog>
             </el-tab-pane>
 
             <!-- 修改密码 -->
@@ -262,7 +262,7 @@
                 </div>
               </div>
 
-              <el-dialog v-model="totpDialogVisible" title="开启两步验证" width="520px" @closed="handleTotpDialogClosed">
+              <ReDialog v-model="totpDialogVisible" title="开启两步验证" width="520px" @closed="handleTotpDialogClosed">
                 <div class="totp-bind">
                   <el-radio-group v-model="totpBindMode" class="totp-bind__mode">
                     <el-radio-button value="scan">扫码添加</el-radio-button>
@@ -309,7 +309,7 @@
                   <el-button @click="totpDialogVisible = false">取消</el-button>
                   <el-button type="primary" :loading="totpVerifying" @click="handleTotpConfirm">确认开启</el-button>
                 </template>
-              </el-dialog>
+              </ReDialog>
             </el-tab-pane>
 
             <el-tab-pane v-if="frameEnabled" name="frame">
@@ -486,6 +486,7 @@ import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import ThirdBindPanel from "./components/ThirdBindPanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
+import ReDialog from "@repo/ui/re-dialog";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();

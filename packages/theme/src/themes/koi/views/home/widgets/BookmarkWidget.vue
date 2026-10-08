@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑书签' : '添加书签'" width="420px" :close-on-click-modal="false" append-to-body @close="dialogVisible = false">
+    <ReDialog v-model="dialogVisible" :title="editingId ? '编辑书签' : '添加书签'" width="420px" :close-on-click-modal="false" append-to-body @close="dialogVisible = false">
       <el-form label-width="60px" label-position="left">
         <el-form-item label="名称"><el-input v-model="form.title" maxlength="20" placeholder="书签名称" /></el-form-item>
         <el-form-item label="链接"><el-input v-model="form.url" placeholder="https://example.com" clearable /></el-form-item>
@@ -39,7 +39,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="save">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -51,6 +51,7 @@ import { Close, Collection, Link, Plus } from "@element-plus/icons-vue";
 import { IndexedDBStore } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{ widget: WidgetItem }>();
 

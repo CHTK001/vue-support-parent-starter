@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="dialogTitle"
     width="640px"
@@ -108,7 +108,7 @@
     </template>
 
     <input ref="fileInput" type="file" accept="image/*" class="fe-hidden" @change="onPhotoPicked" />
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -120,7 +120,8 @@ import ReInputNumber from '@repo/ui/re-input-number'
 import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, isValidIdCard, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 
-const props = defineProps<{ modelValue: boolean; record?: FaceRecord | null }>()
+
+import ReDialog from '@repo/ui/re-dialog';const props = defineProps<{ modelValue: boolean; record?: FaceRecord | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'enrolled', record: FaceRecord): void }>()
 
 /**

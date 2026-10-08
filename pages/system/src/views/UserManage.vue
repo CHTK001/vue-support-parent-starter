@@ -28,6 +28,7 @@ import { pageForUserLog, pageForSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
+import ReDialog from "@repo/ui/re-dialog";
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
@@ -978,7 +979,7 @@ onMounted(() => {
     </ReDialog>
 
     <!-- 用户画像弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="profileVisible"
       title="用户画像"
       width="900"
@@ -1057,7 +1058,7 @@ onMounted(() => {
           </el-tabs>
         </div>
       </div>
-    </el-dialog>
+    </ReDialog>
 
 
     <!-- 用户详情抽屉 -->

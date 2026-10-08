@@ -181,8 +181,9 @@
                       <ReIcon name="Files" size="12" />JSON
                     </button>
                   </div>
-                  <!-- 保存：字符串 / JSON 可保存，HEX 为只读字节视图不可保存 -->
-                  <ReButton layout="square" icon="Check" v-if="stringView !== 'hex'" type="primary" :loading="saving" data-testid="dsm-btn-save" @click="saveStringValue" />
+                  <!-- 保存：字符串 / JSON 可保存，HEX 为只读字节视图不可保存。本轮补 tip：
+                       与工具栏/行内 square 按钮同一契约（aria-label=保存值） -->
+                  <ReButton layout="square" icon="Check" tip="保存值" v-if="stringView !== 'hex'" type="primary" :loading="saving" data-testid="dsm-btn-save" @click="saveStringValue" />
                 </div>
               </div>
               <textarea

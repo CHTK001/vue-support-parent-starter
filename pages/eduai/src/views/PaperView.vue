@@ -89,7 +89,7 @@
       </ReTable>
 
     <!-- 组卷对话框：手动 / AI 共用一套卷头配置，AI 方式多出题量与分值 -->
-    <el-dialog v-model="createDialogVisible" title="组卷" width="560">
+    <ReDialog v-model="createDialogVisible" title="组卷" width="560">
       <el-form :model="createForm" label-width="100">
         <el-form-item label="组卷方式">
           <el-radio-group v-model="composeMode">
@@ -160,13 +160,13 @@
           生成试卷
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 题库市场：勾选题目后加入该试卷的购物车 -->
     <QuestionMarketDialog v-model="marketVisible" :paper-id="currentPaperId" @picked="onMarketPicked" />
 
     <!-- 详情：直接渲染纸张预览，与组卷页中栏同一套排版 -->
-    <el-dialog v-model="detailVisible" :title="detail?.paperName" width="900">
+    <ReDialog v-model="detailVisible" :title="detail?.paperName" width="900">
       <div v-if="detail" class="detail-preview">
         <div class="detail-preview__meta">
           <span>{{ detail.paperSubject }}</span>
@@ -182,10 +182,10 @@
           empty-text="该试卷没有题目，请确认题库中已有匹配学科与年级的题目后重新组卷"
         />
       </div>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 编辑：改卷头属性（组卷页只管题目与纸张，卷头属性在这里维护） -->
-    <el-dialog v-model="editVisible" title="编辑试卷" width="560">
+    <ReDialog v-model="editVisible" title="编辑试卷" width="560">
       <el-form :model="editForm" label-width="100px">
         <el-form-item label="试卷名称" required>
           <el-input v-model="editForm.name" placeholder="请输入试卷名称" />
@@ -224,7 +224,7 @@
         <el-button @click="editVisible = false">取消</el-button>
         <el-button type="primary" :loading="editing" @click="doEdit">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!--
       打印预览：这里渲染的是**试卷本身**（A4 版面，与组卷页中栏、详情弹框同一套 PaperPreview），
@@ -232,7 +232,7 @@
       屏幕上把 .print-sheet 移到可视区外，打印时再用 @media print 把它移回页面原点；
       多份试卷之间用 break-after 分页。
     -->
-    <el-dialog
+    <ReDialog
       v-model="printVisible"
       title="打印预览"
       width="860px"
@@ -279,7 +279,7 @@
         <el-button @click="printVisible = false">关闭</el-button>
         <el-button type="primary" :icon="Printer" :disabled="!printSheets.length" @click="doPrint">打印</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -296,6 +296,7 @@ import QuestionMarketDialog from '../components/paper/QuestionMarketDialog.vue';
 import PaperPreview from '../components/paper/PaperPreview.vue';
 import type { PreviewHeader, PreviewQuestion } from '../components/paper/PaperPreview.vue';
 import { usePaperCart, toCartItem, type CartItem } from '../composables/usePaperCart';
+import ReDialog from "@repo/ui/re-dialog";
 
 const pageNo = ref(1);
 const pageSize = ref(20);

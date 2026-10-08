@@ -38,7 +38,7 @@
       </div>
     </div>
 
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="editingId ? '编辑闹钟' : '添加闹钟'"
       width="400px"
@@ -73,7 +73,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="save">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -86,6 +86,7 @@ import { IndexedDBStore } from "@repo/utils";
 import { useMessageStore } from "@repo/pinia";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{ widget: WidgetItem }>();
 

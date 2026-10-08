@@ -50,14 +50,14 @@
       </template>
     </el-upload>
 
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       :title="previewTitle"
       width="600px"
       append-to-body
     >
       <img v-if="previewUrl" :src="previewUrl" class="re-upload__preview-img" />
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -71,6 +71,7 @@
 import { ref, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Plus, Upload, UploadFilled } from "@element-plus/icons-vue";
+import ReDialog from "../ReDialog";
 
 interface UploadFileItem {
   name: string;

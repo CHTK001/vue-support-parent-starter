@@ -94,7 +94,7 @@
     </el-card>
 
     <!-- 提交答题卡对话框 -->
-    <el-dialog v-model="submitDialogVisible" title="提交答题卡" width="640">
+    <ReDialog v-model="submitDialogVisible" title="提交答题卡" width="640">
       <el-form :model="submitForm" label-width="100">
         <el-form-item label="考试 ID" required>
           <el-select
@@ -136,12 +136,12 @@
         <el-button @click="submitDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="doSubmit">提交</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 扫描阅卷对话框：上传试卷/答题卡图片，支持自有卷与任意卷两种模式 -->
     <!-- destroy-on-close：关闭即销毁内容，否则 el-upload 内部列表跨开合残留，
          openScan 虽重置 scanForm.files，但下次 on-change 会把旧图同步回来造成串页 -->
-    <el-dialog v-model="scanDialogVisible" title="扫描阅卷" width="680" destroy-on-close>
+    <ReDialog v-model="scanDialogVisible" title="扫描阅卷" width="680" destroy-on-close>
       <el-form :model="scanForm" label-width="110">
         <el-form-item label="试卷类型" required>
           <el-radio-group v-model="scanForm.mode">
@@ -180,7 +180,7 @@
         <el-button @click="scanDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="scanning" @click="doScan">开始阅卷</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -193,6 +193,7 @@ import { eduaiApi } from '../api/eduaiApi';
 import { failToast } from '../api/errorText';
 import type { MarkingProgressVO, MarkingResultVO } from '../api/types';
 import SheetStructureView from '../components/marking/SheetStructureView.vue';
+import ReDialog from "@repo/ui/re-dialog";
 
 const taskId = ref('');
 const loading = ref(false);

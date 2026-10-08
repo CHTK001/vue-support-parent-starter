@@ -153,7 +153,7 @@
       <div class="st-foot">显示 {{ filteredTasks.length }} 条，共 {{ tasks.length }} 个同步任务</div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="920px" :close-on-click-modal="false">
+    <ReDialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="920px" :close-on-click-modal="false">
       <el-steps :active="step" align-center finish-status="success" class="st-steps">
         <el-step title="设置输入" description="源数据源与取数方式" />
         <el-step title="设置输出" description="目标数据源与写入表" />
@@ -455,7 +455,7 @@
         <ReButton v-if="step < 2" type="primary" @click="nextStep">下一步</ReButton>
         <ReButton v-else type="primary" :loading="saving" @click="submit">保存</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 本机文件/目录选择器：数据同步的文件与文件夹源都指向后端所在机器，
          由 monitor 的 /ms/monitor/local-files/list 列举；FILE 模式同时列出数据文件。
@@ -509,6 +509,7 @@ import {
   type SyncTaskRunResult,
   type SyncWriteMode,
 } from "../syncTaskApi";
+import ReDialog from "@repo/ui/re-dialog";
 
 defineOptions({ name: "SyncTaskView" });
 

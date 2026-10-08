@@ -324,7 +324,7 @@
     </el-card>
 
     <!-- 编辑/新增对话框（按原型分节） -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       class="q-dialog"
       width="1120"
@@ -656,17 +656,17 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 批量导入对话框 -->
-    <el-dialog v-model="importDialogVisible" title="批量导入题目（JSON 数组）" width="720">
+    <ReDialog v-model="importDialogVisible" title="批量导入题目（JSON 数组）" width="720">
       <el-input v-model="importJson" type="textarea" :rows="12" placeholder='[{"questionType":"JUDGE","questionSubject":"数学","questionGradeLevel":"小学","questionGrade":"三年级","questionStem":"...","questionAnswer":"T"}]' />
       <p class="import-hint">必填：题型 questionType、学科 questionSubject、学段 questionGradeLevel、年级 questionGrade、题干 questionStem、答案 questionAnswer；选择题选项需为 JSON 字符串。</p>
       <template #footer>
         <el-button @click="importDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -703,6 +703,7 @@ import type { ReTableColumn } from "@repo/ui/components/ReTable/types";
 import { isAdmin } from "@repo/core";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
+import ReDialog from "@repo/ui/re-dialog";
 
 /** 学段词表：码值与 edu_question 落库值一致 */
 const GRADE_LEVELS = [

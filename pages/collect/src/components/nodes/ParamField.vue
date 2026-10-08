@@ -5,8 +5,11 @@
   控件变更只 emit「新值 / 新 pairs」，写回仍由 FlowDesigner 统一处理。</p>
 -->
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { ElDialog } from "element-plus";
+import {
+  computed,
+  ref } from "vue";
+import { ElDialog,
+} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
@@ -23,6 +26,7 @@ import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta } from "../../types/collect";
 import { LOOP_PARAM_NAMES } from "./paramContext";
 import type { NodeFormContext } from "./paramContext";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
   /** 参数元数据，决定控件类型、标题与提示 */
@@ -233,7 +237,7 @@ const mappingSummary = computed(() => {
         <span class="summary-text">{{ mappingSummary }}</span>
         <ReButton text type="primary" @click="mappingOpen = true">配置</ReButton>
       </div>
-      <ElDialog v-model="mappingOpen" :title="param.label" width="920px" append-to-body>
+      <ReDialog v-model="mappingOpen" :title="param.label" width="920px" append-to-body>
         <MappingEditor
           :key="`${nodeId}:${param.name}:${ctx.columnKey}`"
           :model-value="pairs"
@@ -245,7 +249,7 @@ const mappingSummary = computed(() => {
           :on-refresh="ctx.refreshColumns"
           @update:model-value="(v: ParamPair[]) => emit('pairs', v)"
         />
-      </ElDialog>
+      </ReDialog>
     </template>
     <PairsEditor
       v-else-if="param.type === 'pairs'"

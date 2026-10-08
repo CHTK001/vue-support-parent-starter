@@ -11,6 +11,7 @@ import { ElMessage } from "element-plus";
 import { bindTenantService, getTenant, listForService } from "../../api/systemApi";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { SysService, SysTenant } from "../../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -77,7 +78,7 @@ const columns: ReTableColumn[] = [
 </script>
 
 <template>
-  <el-dialog v-model="visible" :title="`分配服务 - ${tenant.sysTenantName}`" width="600px" destroy-on-close>
+  <ReDialog v-model="visible" :title="`分配服务 - ${tenant.sysTenantName}`" width="600px" destroy-on-close>
     <p class="mb-3 text-sm text-[--el-text-color-secondary]">
       绑定服务后自动按订阅重新计算菜单并全量推送给租户端（租户端不可自行维护菜单，只能被分配）
     </p>
@@ -106,5 +107,5 @@ const columns: ReTableColumn[] = [
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" @click="handleSubmit">保存并推送</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>

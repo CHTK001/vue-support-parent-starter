@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="title"
     :width="width"
@@ -20,14 +20,15 @@
         </slot>
       </div>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import ReButton from './ReButton.vue'
 
-const props = defineProps({
+
+import ReDialog from '@repo/ui/re-dialog';const props = defineProps({
   modelValue: { type: Boolean, default: false },
   title: { type: String, default: '' },
   width: { type: [String, Number], default: '520px' },

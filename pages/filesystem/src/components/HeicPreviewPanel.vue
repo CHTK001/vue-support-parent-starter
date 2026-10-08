@@ -316,7 +316,6 @@ onBeforeUnmount(() => {
     <!-- ===== 底部状态栏 ===== -->
     <footer class="heic__footer">
       <span>{{ fileName }}</span>
-      <span>纯前端解码（libheif WASM）</span>
     </footer>
   </section>
 </template>

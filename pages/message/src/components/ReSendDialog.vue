@@ -10,6 +10,7 @@ import { reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { previewTemplate, sendMessage } from "../api/messageApi";
 import type { MessageTemplate, TemplatePreviewResponse } from "../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -104,7 +105,7 @@ async function handleSend() {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="`发送：${model?.sysMessageTemplateName ?? ''}`"
     width="560px"
@@ -132,7 +133,7 @@ async function handleSend() {
     </template>
 
     <!-- 预览结果弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       title="渲染预览"
       width="560px"
@@ -161,6 +162,6 @@ async function handleSend() {
       <template #footer>
         <el-button @click="previewVisible = false">关闭</el-button>
       </template>
-    </el-dialog>
-  </el-dialog>
+    </ReDialog>
+  </ReDialog>
 </template>

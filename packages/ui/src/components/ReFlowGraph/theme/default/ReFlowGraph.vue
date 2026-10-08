@@ -11,9 +11,18 @@
  * 提供能力：撤销重做、框选、复制粘贴、辅助线、就地改名、右键菜单、结构预检、
  * 缩放/适配/网格/小地图、PNG 导出、JSON 导入导出。
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  shallowRef,
+  watch } from "vue";
 import ReButton from "../../../ReButton/ReButton.vue";
-import { ElDialog } from "element-plus";
+import { ElDialog,
+} from "element-plus";
 import { FlowGraphEngine } from "../../internals/engine";
 import { resolveFlowIcon } from "../../internals/icons";
 import type {
@@ -26,6 +35,7 @@ import type {
   FlowStructureIssue,
 } from "../../internals/types";
 import type { Component } from "vue";
+import ReDialog from "../../../ReDialog";
 
 defineOptions({ name: "ReFlowGraph" });
 
@@ -592,7 +602,7 @@ defineExpose({
       </section>
 
       <!-- 属性面板弹窗：面板窄/收起时把同一份内容放大编辑；只在打开时渲染，避免两份表单实例 -->
-      <ElDialog
+      <ReDialog
         v-if="ui.popup"
         v-model="ui.popup"
         title="节点参数"
@@ -605,7 +615,7 @@ defineExpose({
             <div class="flow-props-hint">选中节点或连线后在此编辑参数</div>
           </slot>
         </div>
-      </ElDialog>
+      </ReDialog>
     </div>
 
     <!-- 结构问题 -->

@@ -167,7 +167,7 @@
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" class="q-dialog" width="920" :show-close="false" align-center>
+    <ReDialog v-model="dialogVisible" class="q-dialog" width="920" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -453,7 +453,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -488,6 +488,7 @@ import { modelSlugOf } from "../components/insect/modelSlug";
 import { knownSpecies } from "../insect/three/registry";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReDialog from "@repo/ui/re-dialog";
 
 const FACT_ICONS = ["size", "weight", "time", "place", "food", "ability"];
 const HOTSPOT_TONES = ["coral", "sage", "amber", "lavender"];

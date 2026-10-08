@@ -38,7 +38,7 @@
       </template>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑通道' : '添加通道'" width="460" append-to-body>
+    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑通道' : '添加通道'" width="460" append-to-body>
       <el-form :model="form" label-width="90">
         <el-form-item label="通道号">
           <el-input-number v-model="form.deviceChannelNo" :min="1" :max="999" />
@@ -62,7 +62,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submit">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -73,7 +73,8 @@ import { Plus } from '@element-plus/icons-vue'
 import { deviceApi } from '@/api/deviceApi'
 import type { DeviceChannel } from '@/types/device'
 
-const props = defineProps<{
+
+import ReDialog from "@repo/ui/re-dialog";const props = defineProps<{
   deviceId: string
 }>()
 

@@ -213,7 +213,7 @@
     </div>
 
     <!-- 卡片编辑对话框：左表单 + 右实时预览 -->
-    <el-dialog
+    <ReDialog
       v-model="cardDialogVisible"
       width="980"
       class="card-dialog card-dialog--preview"
@@ -379,7 +379,7 @@
         <el-button class="dialog-footer__btn" @click="cardDialogVisible = false">取消</el-button>
         <el-button class="dialog-footer__btn dialog-footer__btn--primary" type="primary" :loading="cardSaving" @click="saveCard">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 卡片详情抽屉：富文本正文（渲染主体）+ 附件（可被正文引用） -->
     <el-drawer
@@ -523,6 +523,7 @@ import ReRichText from "@repo/ui/re-rich-text";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import KnowledgeFilePreview from "../components/KnowledgeFilePreview.vue";
+import ReDialog from "@repo/ui/re-dialog";
 
 const GRADE_LEVELS = [
   { label: "小学", value: "PRIMARY" },

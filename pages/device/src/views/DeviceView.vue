@@ -162,7 +162,7 @@
       @channel-change="onMultiChannelChange"
     />
 
-    <el-dialog v-model="addDialogVisible" title="添加设备" width="560" append-to-body>
+    <ReDialog v-model="addDialogVisible" title="添加设备" width="560" append-to-body>
       <el-form :model="addForm" label-width="110">
         <el-form-item label="设备名称">
           <el-input v-model="addForm.deviceInfoName" />
@@ -238,9 +238,9 @@
         <el-button @click="addDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitAdd">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
-    <el-dialog v-model="thresholdDialogVisible" title="离线检测设置" width="420">
+    <ReDialog v-model="thresholdDialogVisible" title="离线检测设置" width="420">
       <div class="space-y-4">
         <div>
           <div class="text-sm text-el-text-secondary mb-2">当前设备离线阈值</div>
@@ -266,7 +266,7 @@
         <el-button @click="thresholdDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveDeviceThreshold">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -289,7 +289,8 @@ import { deviceApi } from '@/api/deviceApi'
 import { getCategoryLabel, getSubCategoryOptions } from '@/utils/deviceCategory'
 import type { DeviceInfo, OrgNode, TimelineItem, Preset, AccessEvent, DeviceEvent } from '@/types/device'
 
-const orgTree = ref<OrgNode[]>([])
+
+import ReDialog from "@repo/ui/re-dialog";const orgTree = ref<OrgNode[]>([])
 const devices = ref<DeviceInfo[]>([])
 const selectedDevice = ref<DeviceInfo | null>(null)
 const activeTab = ref('overview')

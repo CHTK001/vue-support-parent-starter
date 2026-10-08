@@ -30,7 +30,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
+    <ReDialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
       <el-form :model="form" label-position="top">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -79,7 +79,7 @@
         <el-button @click="showDialog = false">取消</el-button>
         <el-button type="primary" @click="handleSubmit">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -87,7 +87,8 @@
 import { ref, onMounted } from 'vue'
 import { getMonitors, saveMonitor, delMonitor } from '../../api'
 
-interface Asset {
+
+import ReDialog from "@repo/ui/re-dialog";interface Asset {
   id: number
   monitorName: string
   monitorHost: string

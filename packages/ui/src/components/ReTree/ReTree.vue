@@ -71,7 +71,7 @@
       </template>
     </el-tree>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="400px">
+    <ReDialog v-model="dialogVisible" :title="dialogTitle" width="400px">
       <el-form :model="formData" label-width="80px">
         <el-form-item label="名称">
           <el-input v-model="(formData[labelKey] as string)" />
@@ -82,17 +82,29 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmDialog">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick, watch, inject, provide } from "vue";
-import { ElTree, ElButton, ElDialog, ElForm, ElFormItem, ElInput } from "element-plus";
+import {
+  computed,
+  ref,
+  nextTick,
+  watch,
+  inject,
+  provide } from "vue";
+import { ElTree,
+  ElButton,
+  ElForm,
+  ElFormItem,
+  ElInput,
+} from "element-plus";
 import type Node from "element-plus/es/components/tree/src/model/node";
 import type { TreeNodeData } from "element-plus";
 import type { ReTreeItem, ReTreeEmitParams, ReTreeDragEvent, ReTreeLoader } from "./types";
 import { useDataSource, http } from "@repo/core";
+import ReDialog from "../ReDialog";
 
 interface ReTreeProps {
   // -- 数据源双模式 --

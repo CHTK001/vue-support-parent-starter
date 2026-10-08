@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :model-value="modelValue" title="多路视频" width="80%" :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
+  <ReDialog :model-value="modelValue" title="多路视频" width="80%" :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
     <div class="flex items-center gap-4 mb-4">
       <span class="text-sm">布局：</span>
       <el-radio-group :model-value="layout" @update:model-value="(v: number) => emit('update:layout', v)">
@@ -35,14 +35,15 @@
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">关闭</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import ReVideo from './ReVideo.vue'
 import type { DeviceChannel } from '@/types/device'
 
-defineProps<{
+
+import ReDialog from "@repo/ui/re-dialog";defineProps<{
   modelValue: boolean
   layout: number
   urls: string[]

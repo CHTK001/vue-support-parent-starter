@@ -18,10 +18,13 @@
   这样组件可单测、可复用在别的宿主里。
 -->
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  ref,
+  watch } from "vue";
 import {
   ElButton,
-  ElDialog,
   ElInput,
   ElMessage,
   ElRadioButton,
@@ -32,6 +35,7 @@ import {
 import { finder } from "@medv/finder";
 import LiveView from "./LiveView.vue";
 import { probeLive } from "./liveClient";
+import ReDialog from "../ReDialog";
 
 /** 抓取结果，形状与后端 CollectPreviewVO 对齐 */
 export interface ElementPreviewPayload {
@@ -492,7 +496,7 @@ async function copy(text: string): Promise<void> {
 </script>
 
 <template>
-  <ElDialog
+  <ReDialog
     :model-value="visible"
     title="选取页面元素"
     width="1400px"
@@ -612,7 +616,7 @@ async function copy(text: string): Promise<void> {
         </ElTabs>
       </div>
     </div>
-  </ElDialog>
+  </ReDialog>
 </template>
 
 <style scoped>

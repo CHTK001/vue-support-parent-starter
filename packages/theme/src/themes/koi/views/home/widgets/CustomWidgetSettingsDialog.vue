@@ -8,6 +8,7 @@
 import { reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import type { CustomWidgetConfig } from "../widgets";
+import ReDialog from "@repo/ui/re-dialog";
 
 interface Props {
   modelValue: boolean;
@@ -88,7 +89,7 @@ async function handleSave(): Promise<void> {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     :model-value="modelValue"
     title="自定义 widget 配置"
     width="520px"
@@ -141,5 +142,5 @@ async function handleSave(): Promise<void> {
       <el-button @click="close">取消</el-button>
       <el-button type="primary" @click="handleSave">保存</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>

@@ -291,7 +291,7 @@
           </div>
         </div>
       </div>
-      <div class="flex-1 overflow-auto min-h-0" @scroll="handleScroll">
+      <div class="flex-1 overflow-auto min-h-0 flex flex-col" @scroll="handleScroll">
         <div class="w-full kb-detail__body">
           <!-- 文件列表 Tab：左「文档」+ 右「智能问答」双栏 -->
           <KBMenu
@@ -302,7 +302,8 @@
             @back="backToList"
           />
 
-          <div v-show="activeTab === 'overview'" class="flex-1 flex flex-col min-h-0">
+          <div v-show="activeTab === 'overview'" class="flex flex-1 flex-col min-h-0 w-full gap-4 p-4 overflow-auto">
+            <!-- 统计卡 -->
             <div class="kb-stats kb-overview__stats">
               <div class="kb-stat re-surface re-surface--dense">
                 <el-icon :size="26" class="kb-stat__icon"><Document /></el-icon>
@@ -326,8 +327,73 @@
                 </div>
               </div>
             </div>
-            <div class="kb-overview__hint re-surface">
-              这里的统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新。
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <!-- 实体类型分布 -->
+              <section class="re-surface re-surface--dense flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="kb-ov__title">实体类型分布</h3>
+                  <ReTag size="small">{{ fmtCount(graphView.entityCount) }} 个实体</ReTag>
+                </div>
+                <div v-if="entityTypeStats.length > 0" class="flex flex-col gap-2.5">
+                  <div v-for="s in entityTypeStats" :key="s.type" class="kb-ov__bar">
+                    <span class="kb-ov__label">{{ s.label }}</span>
+                    <span class="kb-ov__track">
+                      <i class="kb-ov__fill" :style="{ width: barWidth(s.count, entityTypeStats[0].count), background: s.color }" />
+                    </span>
+                    <span class="kb-ov__count">{{ s.count }}</span>
+                  </div>
+                </div>
+                <ReEmpty v-else text="暂无实体，上传文档或生成图谱后可见" />
+              </section>
+
+              <!-- 关系类型分布 -->
+              <section class="re-surface re-surface--dense flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="kb-ov__title">关系类型分布</h3>
+                  <ReTag size="small">{{ fmtCount(graphView.relationCount) }} 条关系</ReTag>
+                </div>
+                <div v-if="relationTypeStats.length > 0" class="flex flex-col gap-2.5">
+                  <div v-for="s in relationTypeStats" :key="s.type" class="kb-ov__bar">
+                    <span class="kb-ov__label">{{ s.type }}</span>
+                    <span class="kb-ov__track">
+                      <i class="kb-ov__fill" :style="{ width: barWidth(s.count, relationTypeStats[0].count) }" />
+                    </span>
+                    <span class="kb-ov__count">{{ s.count }}</span>
+                  </div>
+                </div>
+                <ReEmpty v-else text="暂无关系，点「知识图谱 → 生成图谱」抽取" />
+              </section>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <!-- 关联最多的实体 -->
+              <section class="re-surface re-surface--dense flex flex-col gap-3">
+                <h3 class="kb-ov__title">关联最多的实体</h3>
+                <ul v-if="topEntities.length > 0" class="kb-ov__list">
+                  <li v-for="(e, i) in topEntities" :key="e.id" class="kb-ov__row" @click="openEntityInGraph(e.name)">
+                    <span class="kb-ov__rank" :class="{ 'is-top': i < 3 }">{{ i + 1 }}</span>
+                    <span class="kb-ov__name truncate">{{ e.name }}</span>
+                    <el-tag size="small" :type="entityTagType(e.type)">{{ entityTypeLabel(e.type) }}</el-tag>
+                    <span class="kb-ov__degree">{{ e.degree }} 关系</span>
+                  </li>
+                </ul>
+                <ReEmpty v-else text="暂无实体" />
+              </section>
+
+              <!-- 快捷操作 -->
+              <section class="re-surface re-surface--dense flex flex-col gap-3">
+                <h3 class="kb-ov__title">快捷操作</h3>
+                <div class="flex flex-wrap gap-2">
+                  <ReButton type="primary" :icon="UploadFilled" @click="handleMenuSelect('files')">上传文档</ReButton>
+                  <ReButton :icon="Search" @click="handleMenuSelect('search')">检索内容</ReButton>
+                  <ReButton :icon="Connection" @click="handleMenuSelect('graph')">查看图谱</ReButton>
+                  <ReButton :icon="Document" @click="handleMenuSelect('ask')">智能问答</ReButton>
+                </div>
+                <p class="kb-ov__hint">
+                  统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新。
+                </p>
+              </section>
             </div>
           </div>
 
@@ -519,13 +585,13 @@
             </div>
             <div class="flex-1 min-h-0 flex gap-2 m-2">
               <div v-loading="graphLoading" class="flex-1 min-h-0 rounded-lg kb-graph__canvas kb-graph__stage">
-                <ReRelationGraph v-if="graphNodes.length > 0" :nodes="graphNodes" :edges="graphEdges" height="100%"
-                  @node-click="handleGraphNodeClick" />
+                <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" :nodes="graphNodes" :edges="graphEdges"
+                  layout="force-atlas2" height="100%" @node-click="handleGraphNodeClick" />
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
                 <div v-if="graphLegend.length > 0" class="kb-graph__legend">
                   <span v-for="l in graphLegend" :key="l" class="kb-graph__legend-item">
-                    <i class="kb-graph__legend-dot" />{{ l }}
+                    <i class="kb-graph__legend-dot" :style="{ background: entityColor(l) }" />{{ entityTypeLabel(l) }}
                   </span>
                 </div>
               </div>
@@ -538,7 +604,7 @@
                 </div>
                 <div class="kb-gedetail__sub">
                   实体 ID:{{ selectedGraphNode.id }}
-                  <template v-if="selectedGraphNode.type"> · {{ selectedGraphNode.type }}</template>
+                  <template v-if="selectedGraphNode.type"> · {{ entityTypeLabel(selectedGraphNode.type) }}</template>
                 </div>
 
                 <div class="kb-gedetail__metrics">
@@ -765,6 +831,11 @@ import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
+import ReTag from '@/components/re/ReTag.vue'
+import ReEmpty from '@/components/re/ReEmpty.vue'
+// 模板数据集类型：携带完整文档 / 实体 / 关系，创建后整体复制进新库
+import type { KbTemplateDataset } from '@/data/kb/templates/types'
+import { SANGUO_DATASET } from '@/data/kb/templates/sanguo'
 
 // 初始化组合式函数
 const { confirm, toast } = usePopup()
@@ -822,18 +893,26 @@ function nodeSizeOf(degree: unknown): number {
 }
 
 /**
- * 实体类型 → 节点图标。
+ * 实体类型 → 节点填充色。
  *
- * <p>ReGraph 的调色板只内置了 start/llm/knowledge 这类流程节点，没有 person/location/event，
- * 组件会把未知类型回退成 default 形状。所以类型区分靠这里的图标 + 后端给的 color 承担，
- * 原始类型同时保留在 data.entityType 供点击提示使用。</p>
+ * <p>G6 v5 的节点 {@code type} 是**图元原型**（circle/rect/…），不是业务类型，
+ * 所以「人物/地点/事件/组织」的区分只能靠填充色与图例，不能再塞进 {@code type}。</p>
  */
-const ENTITY_ICONS: Record<string, string> = {
-  person: '人',
-  location: '地',
-  event: '事',
-  organization: '组',
-  other: '其',
+const ENTITY_COLORS: Record<string, string> = {
+  person: '#3b82f6',
+  location: '#10b981',
+  event: '#f59e0b',
+  organization: '#ef4444',
+  other: '#8b93a7',
+}
+
+/**
+ * 实体类型 → 节点色（未知类型回退到 other）。
+ * @param t 实体类型
+ * @returns 十六进制色值
+ */
+function entityColor(t: string): string {
+  return ENTITY_COLORS[t] ?? ENTITY_COLORS.other
 }
 
 // ---- 实体 / 关系手工维护 ----
@@ -981,10 +1060,10 @@ function nodeNameById(id: string): string {
  * 不是某个真实库的运行数据；后端出模板接口后换成接口数据即可。</p>
  */
 const overviewTemplates = computed(() => [
-  { key: 'sanguo', name: '三国演义知识图谱', cover: coverSanguo, entity: 84, relation: 196 },
-  { key: 'poem', name: '古诗词库', cover: coverPoem, entity: 84, relation: 196 },
-  { key: 'idiom', name: '成语库', cover: coverIdiom, entity: 84, relation: 196 },
-  { key: 'question', name: '题库知识库', cover: coverQuestion, entity: 84, relation: 196 },
+  { key: 'sanguo', name: '三国演义知识图谱', cover: coverSanguo, entity: SANGUO_DATASET.entities.length, relation: SANGUO_DATASET.relations.length },
+  { key: 'poem', name: '古诗词库', cover: coverPoem, entity: 0, relation: 0 },
+  { key: 'idiom', name: '成语库', cover: coverIdiom, entity: 0, relation: 0 },
+  { key: 'question', name: '题库知识库', cover: coverQuestion, entity: 0, relation: 0 },
 ])
 
 /**
@@ -1096,16 +1175,16 @@ const overviewRef = ref<any>(null)
 /**
  * 用模板创建知识库。
  *
- * <p>模板的「预置结构」当前不会落地 —— 后端没有知识库模板接口，
- * 所以这里只把模板名作为库名走既有建库流程，并在交付说明里注明，
- * 不假装预置成功。</p>
+ * <p>模板携带完整数据集（文档 + 实体 + 关系）：这里先记住数据集并切到建库弹框，
+ * 建库成功后由 {@link materializeTemplate} 整体复制进新库。</p>
  *
- * @param name 模板名（同时作为知识库名）
+ * @param name    模板名 / 知识库名
+ * @param dataset 模板数据集（文档 + 实体 + 关系）
  */
-function handleTemplateCreate(name: string, docs?: Array<{ path: string; content: string }>) {  showTplGallery.value = false
-  // 模板自带的示例文档：建库成功后逐篇落库（见 materializeTemplateDocs），
-  // 不再只显示文件名而库里没有对应文件。
-  pendingTemplateDocs.value = Array.isArray(docs) ? docs : []
+function handleTemplateCreate(name: string, dataset?: KbTemplateDataset) {
+  showTplGallery.value = false
+  // 模板携带的完整数据集：建库成功后整体复制（文档 + 实体 + 关系，见 materializeTemplate）
+  pendingTemplateDataset.value = dataset ?? { docs: [], entities: [], relations: [] }
   // 注意：handleOpenCreate() 无参，且模板里多处写作 @click="handleOpenCreate"
   // （Vue 会把事件对象当第一个实参），所以这里不能给它加形参，
   // 只能在它把表单重置完之后再写名字，否则 dialogForm.name 会被 MouseEvent 覆盖。
@@ -1122,40 +1201,70 @@ function handleTemplateCreate(name: string, docs?: Array<{ path: string; content
   })
 }
 
-/** 模板自带的示例文档（建库成功后落库；空数组表示非模板创建） */
-const pendingTemplateDocs = ref<Array<{ path: string; content: string }>>([])
+/** 模板携带的完整数据集（建库成功后整体复制；空数据集表示非模板创建） */
+const pendingTemplateDataset = ref<KbTemplateDataset>({ docs: [], entities: [], relations: [] })
 
 /**
- * 把模板的示例文档写入新建的知识库。
+ * 把模板携带的完整数据集整体复制进新建的知识库。
  *
- * <p>模板页展示的 {@code 01-xx概述.md} 等文件名必须是**真实存在**的文件，否则
- * 用户点「使用此模板创建」后进文件树会一片空白。这里逐篇按文本写入
- * （复用 {@code PUT /bases/{id}/file}，写完即建索引），最后刷新文件树。</p>
+ * <p>顺序：先写文档（按 path 的目录层级逐篇 {@code PUT /bases/{id}/file} 并建索引），
+ * 再建实体（{@code POST /v2/rag/graph/entity}，带真实类型 person/organization/event/location），
+ * 最后建关系（{@code POST /v2/rag/graph/relation}）。这样图谱里既有实体又有关系，
+ * 且实体类型正确，不会退化成清一色 other 占位节点。</p>
  *
- * @param kbId 新建知识库标识
+ * @param kbId   新建知识库标识
+ * @param kbName 新建知识库名称（图谱写入端点的 knowledge_base_name 参数）
  */
-async function materializeTemplateDocs(kbId: string) {
-  const docs = pendingTemplateDocs.value
-  pendingTemplateDocs.value = []
-  if (!docs.length) {
+async function materializeTemplate(kbId: string, kbName: string) {
+  const dataset = pendingTemplateDataset.value
+  pendingTemplateDataset.value = { docs: [], entities: [], relations: [] }
+  if (!dataset || (!dataset.docs.length && !dataset.entities.length && !dataset.relations.length)) {
     return
   }
-  let ok = 0
-  for (const doc of docs) {
+
+  let docsOk = 0
+  let entitiesOk = 0
+  let relationsOk = 0
+
+  // 1) 文档：保留目录层级（如 人物/关羽.md），后端写入时自动建父目录
+  for (const doc of dataset.docs) {
     try {
-      const fileName = doc.path.split('/').pop() || doc.path
+      const segments = String(doc.path).split('/')
+      const fileName = segments.pop() || doc.path
+      const targetDir = segments.join('/') || null
       const file = new File([doc.content], fileName, { type: 'text/markdown' })
-      await knowledgeBaseApi.uploadKBFile(kbId, file, null)
-      ok++
+      await knowledgeBaseApi.uploadKBFile(kbId, file, targetDir)
+      docsOk++
     } catch (e) {
       console.warn('[KB] 模板文档写入失败:', doc.path, e)
     }
   }
-  if (ok > 0) {
-    toast.success(`已按模板生成 ${ok} 篇示例文档`)
-    if (fileTreeRef.value && fileTreeRef.value.forceReload) {
-      await fileTreeRef.value.forceReload()
+
+  // 2) 实体：先建好带类型的节点，避免关系端点退化成 other 占位
+  for (const entity of dataset.entities) {
+    try {
+      await knowledgeBaseApi.createGraphEntity(kbId, kbName, entity.name, entity.type, entity.description)
+      entitiesOk++
+    } catch (e) {
+      console.warn('[KB] 模板实体写入失败:', entity.name, e)
     }
+  }
+
+  // 3) 关系：端点不存在时后端自动补占位实体
+  for (const relation of dataset.relations) {
+    try {
+      await knowledgeBaseApi.createGraphRelation(kbId, kbName, relation.source, relation.target, relation.type)
+      relationsOk++
+    } catch (e) {
+      console.warn('[KB] 模板关系写入失败:', relation.source, '->', relation.target, e)
+    }
+  }
+
+  if (docsOk || entitiesOk || relationsOk) {
+    toast.success(`模板数据已复制：${docsOk} 篇文档 · ${entitiesOk} 个实体 · ${relationsOk} 条关系`)
+  }
+  if (fileTreeRef.value && fileTreeRef.value.forceReload) {
+    await fileTreeRef.value.forceReload()
   }
 }
 
@@ -1380,18 +1489,30 @@ async function handleBatchDeleteRelations() {
 }
 
 /**
- * 给后端节点补上尺寸、关系数与类型图标。
- * @param n 后端节点（只有 degree，没有像素尺寸）
- * @returns 符合 ReGraphNode 契约的节点
+ * 后端节点 → {@code ReRelationGraph} 的 RelationNode 契约。
+ *
+ * <p><b>关键修复</b>：G6 v5 的 {@code type} 是**图元原型**（circle/rect/…），
+ * 后端给的 {@code person/location/event} 不是注册过的原型，直接透传会让 G6 抛
+ * 「The element person of node is not registered.」并**整张图的节点都不渲染**。
+ * 因此这里把原型固定为 circle，实体类型改放 {@code data.entityType} 并由
+ * {@code style.fill} 上色，名称走 {@code label}。</p>
+ *
+ * @param n 后端节点（id / text / type / degree）
+ * @returns 符合 {@code RelationNode} 的节点
  */
 function decorateGraphNode(n: any) {
-  const size = nodeSizeOf(n?.degree)
   const entityType = String(n?.type ?? 'other')
+  const size = nodeSizeOf(n?.degree)
   return {
-    ...n,
-    width: size,
-    height: size,
-    icon: ENTITY_ICONS[entityType] ?? '●',
+    id: String(n?.id ?? ''),
+    label: String(n?.text ?? n?.label ?? n?.id ?? ''),
+    type: 'circle' as const,
+    size,
+    style: {
+      fill: entityColor(entityType),
+      stroke: 'rgba(255,255,255,0.85)',
+      lineWidth: 1.5,
+    },
     data: {
       ...(n?.data ?? {}),
       degree: Math.max(0, Number(n?.degree) || 0),
@@ -1426,10 +1547,24 @@ const graphNodes = computed(() => {
   return graphView.nodes.filter((n) => keep.has(n.id)).map(decorateGraphNode)
 })
 
-/** 只保留两端都可见的连线，避免过滤后出现悬空边 */
+/**
+ * 只保留两端都可见的连线，并转成 {@code RelationEdge} 契约。
+ *
+ * <p>后端边 VO 用 {@code from/to/text}，而 G6 需要 {@code source/target/label}；
+ * 不转换的话 G6 找不到端点，边不会画出来。</p>
+ */
 const graphEdges = computed(() => {
   const ids = new Set(graphNodes.value.map((n) => n.id))
-  return graphView.edges.filter((e) => ids.has(e.from) && ids.has(e.to))
+  return (graphView.edges as Array<any>)
+    .filter((e) => ids.has(e.from) && ids.has(e.to))
+    .map((e) => ({
+      id: String(e.id ?? `${e.from}->${e.to}`),
+      source: String(e.from),
+      target: String(e.to),
+      label: String(e.text ?? e.label ?? ''),
+      style: { endArrow: true },
+      data: e.data ?? {},
+    }))
 })
 
 /**
@@ -1511,13 +1646,79 @@ const selectedGraphNode = ref<{ id: string; name: string; type?: string; degree:
 const graphLegend = computed(() => {
   const set = new Set<string>()
   for (const n of graphView.nodes as Array<any>) {
-    const t = String(n?.data?.entityType ?? '').trim()
+    const t = String(n?.type ?? '').trim()
     if (t) {
       set.add(t)
     }
   }
   return [...set].sort()
 })
+
+/**
+ * 概览：实体类型分布（按数量降序）。
+ * @returns 每项 { type, count, label, color }
+ */
+const entityTypeStats = computed(() => {
+  const map = new Map<string, number>()
+  for (const n of graphView.nodes as Array<any>) {
+    const t = String(n?.type ?? 'other')
+    map.set(t, (map.get(t) ?? 0) + 1)
+  }
+  return [...map.entries()]
+    .map(([type, count]) => ({ type, count, label: entityTypeLabel(type), color: entityColor(type) }))
+    .sort((a, b) => b.count - a.count)
+})
+
+/**
+ * 概览：关系类型分布（按数量降序取前 8）。
+ * @returns 每项 { type, count }
+ */
+const relationTypeStats = computed(() => {
+  const map = new Map<string, number>()
+  for (const e of graphView.edges as Array<any>) {
+    const t = String(e?.text ?? '相关').trim() || '相关'
+    map.set(t, (map.get(t) ?? 0) + 1)
+  }
+  return [...map.entries()]
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
+})
+
+/** 概览：关联最多的实体（Top 10，按关系数降序） */
+const topEntities = computed(() =>
+  (graphView.nodes as Array<any>)
+    .map((n) => ({
+      id: String(n.id),
+      name: String(n.text ?? n.id),
+      type: String(n.type ?? 'other'),
+      degree: Math.max(0, Number(n.degree) || 0),
+    }))
+    .sort((a, b) => b.degree - a.degree)
+    .slice(0, 10),
+)
+
+/**
+ * 概览：类型条宽度（相对最大计数，最小 6% 保证可见）。
+ * @param count 当前计数
+ * @param max 最大计数
+ * @returns 百分比字符串
+ */
+function barWidth(count: number, max: number): string {
+  if (!max || max <= 0) {
+    return '0%'
+  }
+  return `${Math.max(6, Math.round((count / max) * 100))}%`
+}
+
+/**
+ * 概览里点实体 → 带着该实体名跳到图谱页并高亮子图。
+ * @param name 实体名
+ */
+function openEntityInGraph(name: string) {
+  graphKeyword.value = name
+  activeTab.value = 'graph'
+}
 
 /**
  * 选中实体的关系列表：每条边解析出「关系类型 + 对端实体名」。
@@ -1546,22 +1747,17 @@ const selectedNodeRelations = computed(() => {
 
 function handleGraphNodeClick(node: any) {
   const clickId = String(node?.id ?? '')
-  if (clickId) {
-    selectedGraphNode.value = {
-      id: clickId,
-      name: String(node?.text ?? clickId),
-      type: node?.data?.entityType ? String(node.data.entityType) : undefined,
-      degree: Number(node?.data?.degree)
-        || graphEdges.value.filter((e) => e.from === clickId || e.to === clickId).length,
-    }
-  }
-  const name = node?.text ?? ''
-  // 优先用后端给的 degree；被关键词过滤时兜底按当前可见边统计
+  // G6 回传的是模型节点：显示名在 data.__label（组件 toNodeData 写入），
+  // 不再是原始的 text 字段。
+  const name = String(node?.data?.__label ?? node?.data?.name ?? clickId)
   const degree = Number(node?.data?.degree)
-    || graphEdges.value.filter((e) => e.from === node?.id || e.to === node?.id).length
-  const type = node?.data?.entityType
+    || graphEdges.value.filter((e) => e.source === clickId || e.target === clickId).length
+  const type = node?.data?.entityType ? String(node.data.entityType) : undefined
+  if (clickId) {
+    selectedGraphNode.value = { id: clickId, name, type, degree }
+  }
   if (name) {
-    toast.info(`${name}${type ? `（${type}）` : ''}：${degree} 条关系`)
+    toast.info(`${name}${type ? `（${entityTypeLabel(type)}）` : ''}：${degree} 条关系`)
   }
 }
 
@@ -1774,8 +1970,8 @@ async function handleKbSave() {
         await handleSelectKB(createdKb)
       }
 
-      // 来自模板创建：把模板的示例文档真正写进新库（模板页展示的文件名必须真实存在）
-      await materializeTemplateDocs(newKb.id)
+      // 来自模板创建：把模板的完整数据集（文档 + 实体 + 关系）真正复制进新库
+      await materializeTemplate(newKb.id, dialogForm.name)
     } else {
       // 更新
       await store.updateKnowledgeBase(dialogForm.id, {
@@ -2389,7 +2585,8 @@ function getCurrentFiles(): KBFile[] {
 // 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
 // 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
 watch(activeTab, (tab) => {
-  if (tab === 'graph') {
+  if (tab === 'graph' || tab === 'overview') {
+    // 概览页也要展示实体/关系分布，所以和图谱页一样拉整张图
     void loadGraph()
     return
   }
@@ -3059,8 +3256,14 @@ watch(
 /* 详情页：二级功能菜单 + 内容区并排（只做内容区，不含系统一级侧栏与顶栏） */
 .kb-detail__body {
   display: flex;
-  align-items: flex-start;
+  /* 子视图（图谱/概览等）需要撑满可用高度：flex-start 会让面板只剩内容高度，
+     图谱画布的 flex-1 就塌成 ~120px。顺带把外层滚动容器改成 flex 列，
+     这里用 flex:1 拿到确定高度；内容更高的视图仍旧把滚动条撑出来。 */
+  align-items: stretch;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 /* 详情页头：返回 + 标题/副标题 + 动作，与管理页页头同构 */
@@ -3141,6 +3344,113 @@ watch(
 .kb-overview__hint {
   padding: 16px 18px;
   font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+/* ── 详情页「概览」：实体/关系分布、Top 实体、快捷操作 ─────────────── */
+.kb-ov__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.kb-ov__bar {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 10px;
+}
+
+.kb-ov__label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-ov__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--el-fill-color-light);
+  overflow: hidden;
+}
+
+.kb-ov__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+  transition: width 0.3s ease;
+}
+
+.kb-ov__count {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-ov__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-ov__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.kb-ov__row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.kb-ov__rank {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+
+.kb-ov__rank.is-top {
+  color: #fff;
+  background: var(--el-color-primary);
+}
+
+.kb-ov__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+
+.kb-ov__degree {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-ov__hint {
+  margin: 0;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
 }

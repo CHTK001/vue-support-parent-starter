@@ -105,7 +105,7 @@
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑模型' : '新增模型'"
       width="700px"
@@ -222,7 +222,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -231,6 +231,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh, Edit, Delete, Timer } from '@element-plus/icons-vue';
 import { modelApi } from '@/services/javaApi';
+import ReDialog from '@repo/ui/re-dialog';
 
 const loading = ref(false);
 const models = ref<any[]>([]);
