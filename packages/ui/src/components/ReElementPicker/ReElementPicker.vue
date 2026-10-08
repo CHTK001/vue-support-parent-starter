@@ -209,6 +209,9 @@ function openTarget(): void {
     navNonce.value += 1;
     return;
   }
+  // 静态抓取是显式动作：与点「静态渲染」radio 同口径，置 modeTouched，
+  // sidecar 探测晚到的成功结果不得再把界面切回实时（原先会被切走、丢掉刚抓的静态内容）。
+  modeTouched.value = true;
   void load();
 }
 
@@ -519,9 +522,18 @@ async function copy(text: string): Promise<void> {
         clearable
         @keyup.enter="openTarget"
       />
-      <ElButton type="primary" :loading="loading || probing" @click="openTarget">
+      <!--
+        :loading 只跟抓取（loading），不跟 sidecar 探测（probing）：
+        2026-10-08 全量批两次「点击未生效」实测，机器负载高时探测窗口被拉长，
+        期间按钮是**原生 disabled**（EP use-button：disabled = _disabled || loading，
+        handleClick 也先判 loading），「抓取并渲染」的显式点击会被整个吞掉。
+        探测状态改由右侧徽标展示；探测晚到的成功结果也不会再覆盖这次手动抓取
+        （openTarget 里已置 modeTouched）。
+      -->
+      <ElButton type="primary" :loading="loading" @click="openTarget">
         {{ mode === "live" ? "打开" : "抓取并渲染" }}
       </ElButton>
+      <span v-if="probing" class="picker-badge picker-badge--probing">探测实时服务…</span>
       <span v-if="!liveAvailable && !probing && mode === 'static'" class="picker-badge">
         静态兜底（实时服务未启动）
       </span>
@@ -640,6 +652,12 @@ async function copy(text: string): Promise<void> {
   color: var(--el-color-warning);
   background: var(--el-color-warning-light-9);
   border-radius: 10px;
+}
+
+/* 探测中的提示：与「静态兜底」同形、中性色，避免探测被误读成抓取进行中 */
+.picker-badge--probing {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
 }
 
 .picker-body {
