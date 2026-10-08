@@ -109,6 +109,13 @@ const inheritedTitle = '该会话还没有自己的取值，暂时跟随设置�
 /**
  * 点击某条联想任务：直接作为用户消息发送出去（用户已明确要求：不是设为目标）。
  *
+ * <p><b>发送即消费</b>：把这条从本地列表移除 —— 否则建议发出去了还一直挂在面板上，
+ * 既能被反复点（重复发送），也让用户以为没发出去。面板可见性本身就是
+ * {@code tasks.length > 0}，所以当初中的是最后一条时，整块面板随之消失。</p>
+ *
+ * <p>只做本地移除：后端仍持有原列表，下一次 {@code load()}／「重新联想」以后端返回为准
+ * —— 新对话轮次后由后端重新生成的建议是「新的建议」，不该被本地的历史点击永久屏蔽。</p>
+ *
  * @param task 联想出的任务
  */
 async function onPick(task: SessionNextTaskItem): Promise<void> {
@@ -118,6 +125,13 @@ async function onPick(task: SessionNextTaskItem): Promise<void> {
   const text = [task.title, task.detail].filter(Boolean).join('\n')
   if (!text.trim()) {
     return
+  }
+  const list = state.value?.tasks
+  if (list) {
+    const idx = list.findIndex((t) => t.order === task.order && t.title === task.title)
+    if (idx >= 0) {
+      list.splice(idx, 1)
+    }
   }
   emit('send-suggestion', text)
 }

@@ -178,7 +178,7 @@ async function loadModelGroups() {
       if (!textModels.length) return
       groups.push({
         label: provider.name || provider.id,
-        options: textModels.map((m: any) => ({ label: m.modelName || m.name || m.id, value: m.id })),
+        options: textModels.map((m: any) => ({ label: m.modelName || m.model || m.name || m.id, value: m.id })),
       })
     })
     modelGroups.value = groups

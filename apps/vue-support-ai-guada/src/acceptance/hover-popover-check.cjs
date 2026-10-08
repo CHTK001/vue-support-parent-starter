@@ -98,6 +98,18 @@ async function login(p) {
     const n = await items.count();
     add('panel.items', n > 0, 'count=' + n);
 
+    // 模型名显示口径：显示裸模型名，不能把复合键 `providerId:modelId` 当名字
+    // （用户实测：面板/选择器按钮显示成 `1791352877398:laguna-s-2.1`）
+    const curText = ((await cur.first().textContent().catch(() => '')) || '').trim();
+    add('model.rowNoCompositeKey', curText.length > 0 && !curText.includes(':'),
+      `current="${curText.replace(/\s+/g, ' ').slice(0, 60)}"`);
+    add('model.btnNoCompositeKey', !!btnReadyText && !btnReadyText.includes(':'),
+      `btn="${btnReadyText.replace(/\s+/g, ' ').slice(0, 60)}"`);
+    const itemTitles = await page.locator('.model-item .text-sm.font-medium').allTextContents();
+    const compositeTitles = itemTitles.map((t) => t.trim()).filter((t) => t.includes(':'));
+    add('model.itemsNoCompositeKey', itemTitles.length > 0 && compositeTitles.length === 0,
+      `titles=${itemTitles.length} composite=${JSON.stringify(compositeTitles.slice(0, 3))}`);
+
     // 悬停第 2 个模型项（避开当前项，确保 hover 目标不同）
     const target = n > 1 ? items.nth(1) : items.first();
     await target.hover();
