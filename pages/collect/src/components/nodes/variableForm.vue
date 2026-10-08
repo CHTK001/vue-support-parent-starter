@@ -3,10 +3,11 @@
 
   变量节点把表达式的结果写进变量，供下游用 ${名} 引用；作用域可选「仅本分支」（默认）
   或「写入全局」（整次执行共享，用于累计计数、跨分支传值）。
-  循环四参数由 paramContext 统一排在末尾。
+  循环四参数由 LoopFields 以「循环迭代」分节展示。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -98,6 +99,15 @@ function extraTip(name: string): string {
     />
     <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
   </div>
+
+  <!-- 循环迭代分节：留空单次执行 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>

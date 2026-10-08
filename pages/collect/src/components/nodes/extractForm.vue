@@ -1,6 +1,7 @@
 <!--
   抽取节点表单：抽取来源、抽取模式、行选择器、出参变量名，以及抽取字段（弹框内配置）。
-  参数顺序由 paramContext 统一决定（必填置顶、循环参数在末尾）。
+  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」
+  分节展示，插在「抽取字段」卡之前（先配怎么循环，再配抽什么字段）。
 -->
 <script setup lang="ts">
 import {
@@ -11,6 +12,7 @@ import { ElDialog,
 import ReButton from "@repo/ui/re-button";
 import FieldTable from "../FieldTable.vue";
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -87,6 +89,16 @@ const fieldSummary = computed(() => {
     @update="(value: unknown) => emit('set-param', param, value)"
     @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
   />
+
+  <!-- 循环迭代分节：抽出来的行集合可逐项迭代；插在「抽取字段」卡之前 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
+
   <div v-if="meta.fieldEditor" class="field field-wide">
     <div class="field-label">抽取字段<span class="req">*</span></div>
     <div class="field-summary" :class="{ 'summary-missing': !node.fields?.length }">
@@ -119,7 +131,8 @@ const fieldSummary = computed(() => {
 .field-label {
   margin-bottom: 3px;
   font-size: 12px;
-  color: #86909c;
+  /* 写死的 #86909c 不跟随主题；改用 koi 体系令牌 */
+  color: var(--el-text-color-secondary);
 }
 
 /* 摘要行与字段映射控件同形：左侧文本、右侧「配置」 */

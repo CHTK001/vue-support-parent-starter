@@ -3,7 +3,7 @@
 
   结束节点本身不执行任何操作，作用是「显式收束」—— 每条分支的末端都必须收到一个结束节点，
   结构校验据此判断流程有没有走到头。因此这里没有可配项，只给说明，不留空白；
-  它也不是可迭代单元，循环四参数用 includeLoop=false 一并摘掉。
+  它也不是可迭代单元，循环四参数由 NON_LOOP_SHAPES 门控，连分节都不出现。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
@@ -26,12 +26,11 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** 结束节点没有专属参数；它也不是可迭代单元，循环四参数一并摘掉 */
+/** 结束节点没有专属参数；它也不是可迭代单元，循环分节由 NON_LOOP_SHAPES 门控不渲染 */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
   [],
-  { includeLoop: false },
 );
 </script>
 

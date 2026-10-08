@@ -1,9 +1,10 @@
 <!--
   输出节点表单：逐条集合、业务表数据源 / 表、字段映射、业务主键与来源地址。
-  参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。
+  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」分节展示。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -47,6 +48,15 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
     :ctx="ctx"
     @update="(value: unknown) => emit('set-param', param, value)"
     @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+  />
+
+  <!-- 循环迭代分节：留空单次执行 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
   />
 </template>
 

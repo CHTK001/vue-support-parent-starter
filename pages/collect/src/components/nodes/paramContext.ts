@@ -45,6 +45,15 @@ export const LOOP_PARAM_NAMES: string[] = [
   "loopParallel",
 ];
 
+/**
+ * 不参与循环的 shape（结构节点本身不执行迭代）。
+ *
+ * <p>循环四参数不再进表单字段流（由 LoopFields 分节统一渲染），
+ * 这三个 shape 连分节都不该出现——后端 metas 对它们本就不下发 loop 参数，
+ * 此处再兜一层，防止 metas 口径变化把「循环」刷回开始/结束/注释节点。</p>
+ */
+export const NON_LOOP_SHAPES: string[] = ["start", "end", "comment"];
+
 /** 预览抓取载荷，与 ReElementPicker 的 loader 返回形状一致 */
 export interface PreviewPayload {
   /** HTTP 状态码 */
@@ -94,52 +103,62 @@ export interface NodeFormContext {
 }
 
 /**
- * 按固定顺序取参数字段：先本节点自身参数（必填在前），再其余后端参数，最后才是循环四参数。
+ * 取本 shape 可用的循环四参数元数据；start / end / comment 返回空数组。
  *
- * <p>顺序依据是「用户最该先填的东西排最前」：原先循环四参数固定占开头，
- * 导致节点自己的必填项（如开始节点的种子 URL、输出节点的字段映射）被挤到中间，
- * 用户会以为没这一项。循环是可选项，放末尾。</p>
+ * <p>LoopFields 分节用它决定渲染与否：循环不再混在字段流里（用户问「节点的循环是啥
+ * 干啥的」时被循环参数挤在表单头部误导），改为独立「循环迭代」分节展示。</p>
  *
- * @param meta        该 shape 的参数元数据
- * @param names       该表单专属参数名，按期望展示顺序
- * @param includeLoop 是否把循环四参数附在末尾；开始节点这类不该循环的节点传 false
- * @returns 排好序的参数元数据列表
+ * @param meta 该 shape 的参数元数据
+ * @returns 循环四参数中该 shape 实际下发的那些（保持后端声明顺序）
+ */
+export function loopParamsOf(meta: CollectShapeMeta): CollectParamMeta[] {
+  if (NON_LOOP_SHAPES.includes(meta.shape)) return [];
+  const names = new Set(LOOP_PARAM_NAMES);
+  return (meta.params ?? []).filter(item => names.has(item.name));
+}
+
+/**
+ * 按固定顺序取参数字段：先本节点自身参数，再其余后端参数；必填项整体前置。
+ *
+ * <p>顺序依据是「用户最该先填的东西排最前」（用户反馈「必填的放到最上面啊」）：
+ * 必填前置对 own 与 rest 全量生效——同组内保持后端声明顺序，只把必填项整体提到前面；
+ * 可选项按原序跟在后面。循环四参数不再进字段流（loopParamsOf → LoopFields 分节），
+ * 曾被旧参数挤到中间的节点必填项（开始节点的种子 URL、输出节点的字段映射）不再被挤走。</p>
+ *
+ * @param meta  该 shape 的参数元数据
+ * @param names 该表单专属参数名，按期望展示顺序
+ * @returns 排好序的参数元数据列表（不含循环四参数）
  */
 export function orderedParams(
   meta: CollectShapeMeta,
   names: string[],
-  includeLoop = true,
 ): CollectParamMeta[] {
   const find = (name: string): CollectParamMeta | undefined =>
     (meta.params ?? []).find(item => item.name === name);
   const fill = (list: string[]): CollectParamMeta[] =>
     list.map(find).filter((item): item is CollectParamMeta => Boolean(item));
   const used = new Set([...LOOP_PARAM_NAMES, ...names]);
-  // 末段兜底保证后端新增参数时不会从表单里漏掉（循环参数已在 used 里，不会重复）
+  // 末段兜底保证后端新增参数时不会从表单里漏掉（循环参数已剥离，不再占位）
   const rest = (meta.params ?? []).filter(item => !used.has(item.name));
-  const own = fill(names);
-  // 必填前置：同组内保持后端声明顺序，只把必填项整体提到前面
-  const ownOrdered = [...own.filter(item => item.required), ...own.filter(item => !item.required)];
-  const head = [...ownOrdered, ...rest];
-  return includeLoop ? [...head, ...fill(LOOP_PARAM_NAMES)] : head;
+  const all = [...fill(names), ...rest];
+  // 必填前置：own 与 rest 全量稳定前置——声明顺序不变，只把必填项整体提到最前
+  return [...all.filter(item => item.required), ...all.filter(item => !item.required)];
 }
 
 /**
  * shape 表单的取数工具：给出专属参数顺序后，返回排好序的参数元数据与按参数名读值/读组的方法。
  *
- * @param node    当前节点的表单镜像（getter，保持响应式）
- * @param meta    该 shape 的参数元数据（getter，保持响应式）
- * @param names   该表单专属参数名，按期望展示顺序
- * @param options 可选项：includeLoop=false 时不展示循环四参数（如开始节点）
- * @returns fields 排好序的参数元数据；valueOf 读单个参数值；pairsOfParam 读 pairs / mapping 组
+ * @param node  当前节点的表单镜像（getter，保持响应式）
+ * @param meta  该 shape 的参数元数据（getter，保持响应式）
+ * @param names 该表单专属参数名，按期望展示顺序
+ * @returns fields 排好序的参数元数据（不含循环四参数）；valueOf 读单个参数值；pairsOfParam 读 pairs / mapping 组
  */
 export function useShapeFieldList(
   node: () => NodeForm,
   meta: () => CollectShapeMeta,
   names: string[],
-  options: { includeLoop?: boolean } = {},
 ) {
-  const fields = computed(() => orderedParams(meta(), names, options.includeLoop !== false));
+  const fields = computed(() => orderedParams(meta(), names));
   const valueOf = (name: string): string => node().params.find(item => item.name === name)?.value ?? "";
   const pairsOfParam = (name: string): ParamPair[] => pairsOf({ params: node().params }, pairPrefix(name));
   return { fields, valueOf, pairsOfParam };

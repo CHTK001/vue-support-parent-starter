@@ -738,7 +738,8 @@ defineExpose({
   flex-direction: column;
   flex: none;
   height: 100%;
-  background: #fff;
+  /* 原为 #fff：改用主题令牌，暗色下跟随 */
+  background: var(--el-bg-color);
   border-left: 1px solid var(--flow-line);
 }
 .flow-props-head {
@@ -749,16 +750,17 @@ defineExpose({
   flex: none;
   padding: 0 10px;
   cursor: ew-resize;
-  background: #fbfcfd;
+  /* 原为 #fbfcfd */
+  background: var(--el-fill-color-lighter);
   border-bottom: 1px solid var(--flow-line);
   user-select: none;
 }
-.flow-props-grip { width: 3px; height: 26px; flex: none; border-radius: 2px; background: #d6dae0; }
-.flow-props-title { flex: 1; min-width: 0; font-size: 12px; color: #4e5969; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flow-props-grip { width: 3px; height: 26px; flex: none; border-radius: 2px; /* 原为 #d6dae0 */ background: var(--el-border-color-darker, #d6dae0); }
+.flow-props-title { flex: 1; min-width: 0; font-size: 12px; /* 原为 #4e5969 */ color: var(--el-text-color-regular); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .flow-props-title em { margin-left: 6px; font-style: normal; color: var(--flow-accent); }
-.flow-props-title em.muted { color: #a4abb5; }
+.flow-props-title em.muted { /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); }
 .flow-props-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; }
-.flow-props-hint { font-size: 12px; color: #a4abb5; }
+.flow-props-hint { font-size: 12px; /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); }
 .flow-issues {
   position: absolute;
   left: 50%;

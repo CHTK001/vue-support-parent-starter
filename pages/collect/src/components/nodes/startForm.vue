@@ -4,7 +4,7 @@
   开始节点是流程的入口：每行一个种子 URL，流程会以列表里的每个地址各自跑一遍下游。
   urls 为必填；集合变量名（outputVariable，引擎默认 urlList）按需求不在界面上暴露 ——
   它由 orderedParams 的末段兜底带出，这里用 HIDDEN_PARAMS 摘掉，数据不动。
-  开始节点不是可迭代单元，循环四参数用 includeLoop=false 摘掉。
+  开始节点不是可迭代单元，循环四参数由 NON_LOOP_SHAPES 门控，整节不渲染。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
@@ -32,7 +32,6 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
   ["urls"],
-  { includeLoop: false },
 );
 
 /**

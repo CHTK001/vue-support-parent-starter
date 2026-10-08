@@ -1,11 +1,12 @@
 <!--
   SQL 节点表单：SQL 语句、数据源与结果变量名。
-  参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。
+  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」分节展示。
   SQL 属于高危节点，表单顶部固定展示一条警示条（契约 §4.4）。
 -->
 <script setup lang="ts">
 import { computed } from "vue";
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -111,6 +112,15 @@ function extraTip(name: string): string {
     />
     <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
   </div>
+
+  <!-- 循环迭代分节：留空单次执行，查询结果集合可逐项迭代 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>

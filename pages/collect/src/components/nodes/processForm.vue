@@ -1,9 +1,10 @@
 <!--
   子流程节点表单：目标子流程、传入变量、继承 / 回写策略、出参前缀与超时毫秒。
-  参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。
+  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」分节展示。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -93,6 +94,15 @@ function extraTip(name: string): string {
     />
     <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
   </div>
+
+  <!-- 循环迭代分节：留空单次执行 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>

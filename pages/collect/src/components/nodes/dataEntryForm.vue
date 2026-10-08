@@ -1,7 +1,8 @@
 <!--
   数据录入节点表单：录入口径说明 + 录入数据 / 出参名 / 建表数据源与表 / 一键建表。
 
-  <p>参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。建表入口挂在
+  <p>参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以
+  「循环迭代」分节展示。建表入口挂在
   「建表目标表」下面，请求按录入文本的表头列生成（与后端 parseRows 同口径），
   对话框走共享的 CreateTableDialog（预览 → 执行）。</p>
 -->
@@ -10,7 +11,8 @@ import { computed, ref } from "vue";
 import { CreateTableDialog } from "@pages/datasource";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
-import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
+import LoopFields from "./LoopFields.vue";
+import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -35,9 +37,6 @@ const { fields, valueOf } = useShapeFieldList(
   () => props.meta,
   ["rows", "outputVariable", "datasource", "table"],
 );
-
-/** 循环四参数名集合，用于给「循环」分段定位 */
-const loopNames = new Set(LOOP_PARAM_NAMES);
 
 /**
  * 录入文本的表头列：首行非空行按制表符 / 逗号拆（与后端 parseRows 的分隔符判定同口径）。
@@ -88,25 +87,6 @@ function isWide(param: CollectParamMeta): boolean {
   );
 }
 
-/**
- * 判断某个字段是不是「循环」分段的第一个参数。
- *
- * @param index 字段在 fields 里的下标
- * @returns 是分段首项返回 true
- */
-function startsLoopSegment(index: number): boolean {
-  const list = fields.value;
-  const current = list[index];
-  const previous = list[index - 1];
-  return (
-    index > 0 &&
-    current !== undefined &&
-    previous !== undefined &&
-    loopNames.has(current.name) &&
-    !loopNames.has(previous.name)
-  );
-}
-
 /** 前端补充的参数说明（后端 tip 对 textarea 只当占位符，输入后即消失） */
 const EXTRA_TIPS: Record<string, string> = {
   rows:
@@ -133,9 +113,7 @@ function extraTip(name: string): string {
     需要目标表时，先用「建表」按表头列把表落好，再让下游选同一数据源与表写入。
   </div>
 
-  <template v-for="(param, index) in fields" :key="param.name">
-    <div v-if="startsLoopSegment(index)" class="field field-wide group-title">循环</div>
-
+  <template v-for="param in fields" :key="param.name">
     <div class="field" :class="{ 'field-wide': isWide(param) }">
       <ParamField
         :param="param"
@@ -153,6 +131,15 @@ function extraTip(name: string): string {
       </div>
     </div>
   </template>
+
+  <!-- 循环迭代分节：留空单次执行，本节点可对录入集合逐项迭代 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 
   <!-- 共享建表对话框：与数据库节点、数据源中心同一份实现 -->
   <CreateTableDialog
@@ -187,13 +174,7 @@ function extraTip(name: string): string {
   transition: border-color 200ms, background-color 200ms;
 }
 
-/* 分组标题：把节点自身参数与末尾的循环四参数分开 */
-.group-title {
-  margin: 12px 0 6px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
+/* 分组标题样式已随「循环」分段一起移除：循环参数改由 LoopFields 独立分节渲染 */
 
 /* 前端补充的参数说明 */
 .field-tip {

@@ -10,4 +10,10 @@ export interface ReTabItem {
   closable?: boolean;
   /** 是否禁用 */
   disabled?: boolean;
+  /**
+   * 计数 badge（underline 变体渲染；其它变体忽略）。
+   *
+   * <p>空串 / null / undefined 不渲染 —— 空壳数字只添噪音。</p>
+   */
+  badge?: string | number | null;
 }
