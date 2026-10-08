@@ -1,43 +1,71 @@
 <template>
   <div class="process-section tool-calls-section space-y-2">
     <div class="" v-for="(tool, toolIndex) in toolCalls" :key="toolIndex">
-      <!-- 循环展示每个工具调用 -->
-      <div
-        class="flex items-center text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200 min-w-0"
-        @click.stop="openSingleToolDialog(toolIndex)">
-        <el-icon v-if="tool.outcome === 'error' || tool.outcome === 'rejected'" class="shrink-0" size="15"
-          style="color: #f56c6c;">
-          <component :is="getToolIcon(tool)" />
-        </el-icon>
-        <el-icon v-else-if="tool.outcome === 'aborted'" class="shrink-0" size="15" style="color: #c0c4cc;">
-          <component :is="getToolIcon(tool)" />
-        </el-icon>
-        <el-icon v-else class="shrink-0" size="15" :class="{ 'shimmer-icon': isToolExecuting(tool, toolIndex) }">
-          <component :is="getToolIcon(tool)" class="text-gray-500" />
-        </el-icon>
-        <div class="ml-1.5 min-w-0 flex-1 flex items-center text-gray-400 dark:text-gray-500 overflow-hidden">
-          <span class="shrink-0"
-            :class="tool.outcome === 'aborted' ? 'text-gray-400 dark:text-gray-500 font-medium' : 'text-gray-700 dark:text-gray-300 font-medium'">{{
-              getActionText(tool, toolIndex) }}</span>
-          <span v-if="getArgsText(tool)" class="text-sm ml-2 truncate">{{ getArgsText(tool) }}</span>
-        </div>
-      </div>
-      <!-- 内联内容区（暂时禁用，待交互方案确定后启用）
-      <div v-if="getInlineContent(tool) && isToolExecuting(tool, toolIndex)" class="inline-content-container"
-        :class="{ 'inline-content-container--expanded': true }">
-        <div class="inline-content-wrapper">
-          <div class="border-l ml-1.5 pl-4 border-gray-300 dark:border-gray-700">
-            <pre class="inline-content-pre text-xs text-gray-500 dark:text-gray-400 overflow-auto"
-              ref="inlineContentRefs">{{ getInlineContent(tool) }}</pre>
+      <!--
+        工具调用行（可折叠）：
+          默认  → 工具对应图标（失败/终止态换色）
+          悬停  → 「>」右折角（提示可展开）
+          展开  → 「v」折下箭头（chevron 旋转 90° 得到，展开态优先于悬停态）
+        点击行体 = 行内展开/收起参数与结果；行尾「详情」按钮打开原弹窗（大内容用）。
+
+        a11y：行体是 role="button"，行尾「详情」是真正的 <button>。二者**必须同级**——
+        把 button 嵌在 role="button" 里属于交互控件嵌套，读屏会把内层按钮当装饰、
+        键盘可达性也变得不可预测（2026-10-08 修正）。
+      -->
+      <div class="tool-row-line flex items-center min-w-0">
+        <div
+          class="tool-row flex items-center flex-1 min-w-0 text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+          :class="{ 'is-expanded': isExpanded(toolIndex) }" role="button" tabindex="0"
+          :aria-expanded="isExpanded(toolIndex)" @click.stop="toggleTool(toolIndex)"
+          @keydown.enter.prevent="toggleTool(toolIndex)" @keydown.space.prevent="toggleTool(toolIndex)">
+          <span class="tool-row__glyph shrink-0">
+            <el-icon v-if="tool.outcome === 'error' || tool.outcome === 'rejected'" class="glyph-icon" size="15"
+              style="color: #f56c6c;">
+              <component :is="getToolIcon(tool)" />
+            </el-icon>
+            <el-icon v-else-if="tool.outcome === 'aborted'" class="glyph-icon" size="15" style="color: #c0c4cc;">
+              <component :is="getToolIcon(tool)" />
+            </el-icon>
+            <el-icon v-else class="glyph-icon" size="15" :class="{ 'shimmer-icon': isToolExecuting(tool, toolIndex) }">
+              <component :is="getToolIcon(tool)" class="text-gray-500" />
+            </el-icon>
+            <el-icon class="glyph-chevron" size="12">
+              <ChevronRight12Regular />
+            </el-icon>
+          </span>
+          <div class="ml-1.5 min-w-0 flex-1 flex items-center text-gray-400 dark:text-gray-500 overflow-hidden">
+            <span class="shrink-0"
+              :class="tool.outcome === 'aborted' ? 'text-gray-400 dark:text-gray-500 font-medium' : 'text-gray-700 dark:text-gray-300 font-medium'">{{
+                getActionText(tool, toolIndex) }}</span>
+            <span v-if="getArgsText(tool)" class="text-sm ml-2 truncate">{{ getArgsText(tool) }}</span>
           </div>
         </div>
+
+        <!-- 「详情」入口（与行体同级）：悬停/展开时出现；单独弹窗承载超长内容 -->
+        <button type="button" class="tool-row__detail shrink-0" :title="t('chat.toolCalls.viewDetail')"
+          :aria-label="t('chat.toolCalls.viewDetail')" @click.stop="openSingleToolDialog(toolIndex)">
+          <el-icon size="14">
+            <Info24Regular />
+          </el-icon>
+        </button>
       </div>
-      -->
+
+      <!-- 行内展开：调用参数 + 执行结果（与弹窗同源） -->
+      <div v-if="isExpanded(toolIndex)" class="tool-inline" @click.stop>
+        <div v-if="isLoadingDetails" class="tool-inline__loading">
+          <el-icon size="14" class="animate-spin text-blue-500 mr-1">
+            <Loading />
+          </el-icon>
+          <span>{{ t('chat.toolCalls.loadingDetails') }}</span>
+        </div>
+        <ToolCallDetail v-else :tool="tool" :response="inlineResponse(toolIndex)"
+          :executing="isToolExecuting(tool, toolIndex)" />
+      </div>
     </div>
   </div>
 
 
-  <!-- 单个工具详情对话框 -->
+  <!-- 单个工具详情对话框（保留入口：超长参数/结果的完整视图） -->
   <LDialog v-if="keepElement && selectedToolIndex !== null" v-model="showDialog"
     :title="t('chat.toolCalls.detailTitle', { index: selectedToolIndex + 1 })" width="700px" :close-on-click-modal="true" destroy-on-close
     :append-to-body="true" class="tool-dialog" @closed="keepElement = false">
@@ -49,7 +77,7 @@
         </el-icon>
         <span class="text-gray-500">{{ t('chat.toolCalls.loadingDetails') }}</span>
       </div>
-      <div v-else-if="selectedTool" class="tool-call-detail">
+      <div v-else-if="selectedTool" class="tool-call-detail-wrap">
         <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
           <el-icon v-if="isExecuting" size="18" class="text-blue-500">
             <component :is="getToolIcon(selectedTool)" />
@@ -69,64 +97,8 @@
           </span>
         </div>
 
-        <div v-if="getToolArgs(selectedTool)" class="mb-4">
-          <div class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center">
-            <el-icon size="14" class="mr-1">
-              <SettingsOutlined />
-            </el-icon>
-            {{ t('chat.toolCalls.callParams') }}
-          </div>
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-            <div v-if="isSimpleParams(getToolArgs(selectedTool))" class="params-table">
-              <div class="param-header py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="param-key text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('chat.toolCalls.paramKey') }}</span>
-                <span class="param-value text-sm font-semibold text-gray-800 dark:text-gray-200 ml-4">{{ t('chat.toolCalls.paramValue') }}</span>
-              </div>
-              <div v-for="(value, key) in parseParams(getToolArgs(selectedTool))" :key="key"
-                class="param-row py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0">
-                <span class="param-key text-sm font-medium text-gray-700 dark:text-gray-300">{{ key }}</span>
-                <span class="param-value text-sm text-gray-600 dark:text-gray-400 ml-4">{{ formatParamValue(value)
-                  }}</span>
-              </div>
-            </div>
-            <pre v-else class="text-sm overflow-x-auto text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-all">
-                <code>{{ formatToolArgs(getToolArgs(selectedTool)) }}</code>
-              </pre>
-          </div>
-        </div>
-
-        <div v-if="currentToolResponses && currentToolResponses[selectedToolIndex]" class="mt-4">
-          <div class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center">
-            <el-icon v-if="selectedTool?.outcome === 'error' || selectedTool?.outcome === 'rejected'" size="14"
-              class="mr-1" style="color:#f56c6c">
-              <ErrorCircle16Regular />
-            </el-icon>
-            <el-icon v-else size="14" class="mr-1 text-green-500">
-              <CheckCircleOutlined />
-            </el-icon>
-            <span v-if="selectedTool?.outcome === 'error' || selectedTool?.outcome === 'rejected'">{{ t('chat.toolCalls.resultFailed') }}</span>
-            <span v-else>{{ t('chat.toolCalls.resultSuccess') }}</span>
-          </div>
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-            <!-- JSON 解码成功且为简单对象 → 表格展示 -->
-            <div v-if="isSimpleResult(currentToolResponses[selectedToolIndex])" class="params-table">
-              <div class="param-header py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="param-key text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('chat.toolCalls.fieldKey') }}</span>
-                <span class="param-value text-sm font-semibold text-gray-800 dark:text-gray-200 ml-4">{{ t('chat.toolCalls.paramValue') }}</span>
-              </div>
-              <div v-for="(value, key) in parseResult(currentToolResponses[selectedToolIndex])" :key="key"
-                class="param-row py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0">
-                <span class="param-key text-sm font-medium text-gray-700 dark:text-gray-300">{{ key }}</span>
-                <span class="param-value text-sm text-gray-600 dark:text-gray-400 ml-4">{{ formatParamValue(value)
-                  }}</span>
-              </div>
-            </div>
-            <!-- JSON 解码失败或复杂对象 → pre 展示 -->
-            <pre v-else class="text-sm overflow-x-auto text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-all">{{
-              formatToolResponse(currentToolResponses[selectedToolIndex])
-            }}</pre>
-          </div>
-        </div>
+        <ToolCallDetail :tool="selectedTool" :response="currentToolResponses?.[selectedToolIndex]"
+          :executing="isExecuting" />
       </div>
     </div>
 
@@ -142,18 +114,17 @@
 import { computed, ref, watch } from 'vue';
 import { ElIcon, ElButton } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { SettingsOutlined, CheckCircleOutlined } from '@vicons/material';
-import { ErrorCircle16Regular } from '@vicons/fluent';
+import { Info24Regular, ChevronRight12Regular } from '@vicons/fluent';
 // @ts-ignore - icons 组件尚未迁移到 TypeScript
 import { Loading } from '@/components/icons';
-import { parse as partialParse } from 'partial-json';
 import { apiService } from '@/services/ApiService';
 import { usePopup } from '@/composables/usePopup';
 import LDialog from '@/components/ui/LDialog.vue';
+import ToolCallDetail from './ToolCallDetail.vue';
 import {
   type ToolCall,
   resolveToolName, getToolConfig, getToolIcon,
-  formatArgSummary, getToolArgs, getArgsText,
+  getArgsText,
 } from '@/utils/toolDisplay';
 
 const props = defineProps<{
@@ -165,6 +136,29 @@ const props = defineProps<{
 
 const { toast } = usePopup();
 const { t } = useI18n();
+
+// ── 行内展开状态 ──
+
+/**
+ * 已展开的行下标（允许同时展开多行：用户常需要对照两次调用的参数/结果）。
+ * 展开是纯展示状态，不写回消息数据。
+ */
+const expandedIndexes = ref<number[]>([]);
+
+const isExpanded = (index: number): boolean => expandedIndexes.value.includes(index);
+
+/**
+ * 点击行体：切换展开；首次展开且详情需懒加载时，顺带把完整 details 拉回来。
+ */
+const toggleTool = (index: number) => {
+  const at = expandedIndexes.value.indexOf(index);
+  if (at >= 0) {
+    expandedIndexes.value = expandedIndexes.value.filter((i) => i !== index);
+    return;
+  }
+  expandedIndexes.value = [...expandedIndexes.value, index];
+  void loadToolDetails();
+};
 
 // ── 执行状态 ──
 
@@ -226,6 +220,9 @@ const currentToolResponses = computed(() => {
   return props.toolResponses;
 });
 
+/** 行内展开取用与弹窗同源的结果载荷 */
+const inlineResponse = (index: number): any => currentToolResponses.value?.[index];
+
 const needsLazyLoad = computed(() => {
   if (!props.contentId) return false;
   if (isExecuting.value) return false;
@@ -235,6 +232,7 @@ const needsLazyLoad = computed(() => {
 async function loadToolDetails() {
   if (!props.contentId || !needsLazyLoad.value) return;
   if (isLoadingDetails.value) return;
+  if (loadedToolResponses.value) return;
 
   isLoadingDetails.value = true;
   try {
@@ -267,86 +265,6 @@ const closeDialog = () => {
   showDialog.value = false;
   selectedToolIndex.value = null;
 };
-
-// ── 参数 / 结果格式化 ──
-
-const isSimpleParams = (args: any): boolean => {
-  try {
-    const parsed = typeof args === 'string' ? partialParse(args) : args;
-    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) && Object.keys(parsed).length > 0;
-  } catch {
-    return false;
-  }
-};
-
-const parseParams = (args: any): Record<string, any> => {
-  try {
-    return typeof args === 'string' ? partialParse(args) : args;
-  } catch {
-    return {};
-  }
-};
-
-const formatParamValue = (value: any): string => {
-  if (value === null) return 'null';
-  if (value === undefined) return 'undefined';
-  if (typeof value === 'object') return JSON.stringify(value, null, 2);
-  return String(value);
-};
-
-const formatToolArgs = (args: any): string => {
-  if (!args) return '{}';
-  try {
-    const parsed = typeof args === 'string' ? partialParse(args) : args;
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return String(args);
-  }
-};
-
-const extractResultContent = (response: any): any => {
-  if (!response) return null;
-  try {
-    const parsed = typeof response === 'string' ? partialParse(response) : response;
-    if (parsed.content) {
-      try {
-        const parsedContent = typeof parsed.content === 'string' ? partialParse(parsed.content) : parsed.content;
-        // partialParse 会将 "[ ] step1" 等非 JSON 文本误解析为空数组 []
-        // 此时回退到原始字符串
-        if (Array.isArray(parsedContent) && parsedContent.length === 0) {
-          return parsed.content;
-        }
-        return parsedContent;
-      } catch {
-        return parsed.content;
-      }
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const formatToolResponse = (response: any): string => {
-  if (!response) return t('chat.toolCalls.noResponse');
-  const content = extractResultContent(response);
-  if (content) {
-    if (typeof content === 'string') return content;
-    return JSON.stringify(content, null, 2);
-  }
-  return String(response);
-};
-
-const isSimpleResult = (response: any): boolean => {
-  const content = extractResultContent(response);
-  if (!content) return false;
-  return typeof content === 'object' && content !== null && !Array.isArray(content) && Object.keys(content).length > 0;
-};
-
-const parseResult = (response: any): Record<string, any> => {
-  const content = extractResultContent(response);
-  return content && typeof content === 'object' ? content : {};
-};
 </script>
 
 <style scoped>
@@ -354,39 +272,100 @@ const parseResult = (response: any): Record<string, any> => {
   line-height: 1.6;
 }
 
-.tool-call-detail pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+/* ── 行首字形：默认工具图标 / 悬停「>」/ 展开「v」 ── */
+.tool-row {
+  user-select: none;
 }
 
-.tool-call-detail code {
+.tool-row__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 20px;
+}
+
+.tool-row__glyph .glyph-icon {
+  display: inline-flex;
+}
+
+.tool-row__glyph .glyph-chevron {
+  display: none;
+  color: var(--el-text-color-secondary);
+  transition: transform 0.15s ease;
+}
+
+/* 悬停（未展开）：图标让位给右折角 */
+.tool-row:not(.is-expanded):hover .glyph-icon {
+  display: none;
+}
+
+.tool-row:not(.is-expanded):hover .glyph-chevron {
+  display: inline-flex;
+}
+
+/* 展开：折下的箭头（右折角旋转 90°），优先于悬停态 */
+.tool-row.is-expanded .glyph-icon {
+  display: none;
+}
+
+.tool-row.is-expanded .glyph-chevron {
+  display: inline-flex;
+  transform: rotate(90deg);
+}
+
+/* 「详情」入口：悬停或展开时可见（触屏/键盘聚焦也能看到） */
+.tool-row__detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+/* 「详情」入口：悬停或展开时可见（触屏/键盘聚焦也能看到）。
+   按钮与行体同级，故悬停态挂在整行容器 .tool-row-line 上；
+   展开态用相邻兄弟选择器 `.tool-row.is-expanded + .tool-row__detail`。 */
+.tool-row-line:hover .tool-row__detail,
+.tool-row.is-expanded + .tool-row__detail,
+.tool-row__detail:focus-visible {
+  opacity: 1;
+}
+
+.tool-row__detail:hover {
+  background: var(--el-fill-color);
+  color: var(--el-text-color-primary);
+}
+
+/* ── 行内展开区：左侧细线缩进，与「过程行」层级一致 ── */
+.tool-inline {
+  margin: 4px 0 2px 16px;
+  padding-left: 12px;
+  border-left: 2px solid var(--el-border-color-lighter);
+}
+
+.tool-inline__loading {
+  display: flex;
+  align-items: center;
   font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
-.params-table {
-  display: flex;
-  flex-direction: column;
+/* 工具正在执行时图标闪烁提示（原定义已被清理，补回） */
+.shimmer-icon {
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
-.param-header {
-  display: flex;
-  align-items: baseline;
-}
-
-.param-row {
-  display: flex;
-  align-items: baseline;
-}
-
-.param-key {
-  min-width: 120px;
-  flex-shrink: 0;
-}
-
-.param-value {
-  flex: 1;
-  word-break: break-word;
-  white-space: pre-wrap;
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 </style>

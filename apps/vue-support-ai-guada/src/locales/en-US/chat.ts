@@ -289,6 +289,8 @@
     aborted: 'Aborted',
     noResponse: 'No Response',
     loadDetailsFailed: 'Failed to load tool details',
+    executing: 'Executing…',
+    viewDetail: 'View details',
   },
 
   // ── 文件变更 ──

@@ -289,6 +289,8 @@ export default {
     aborted: '已终止',
     noResponse: '无响应',
     loadDetailsFailed: '加载工具详情失败',
+    executing: '执行中…',
+    viewDetail: '查看详情',
   },
 
   // ── 文件变更 ──
