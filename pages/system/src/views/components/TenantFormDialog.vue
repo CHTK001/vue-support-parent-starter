@@ -10,6 +10,7 @@ import { reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { saveTenant, updateTenant } from "../../api/systemApi";
 import type { SysTenant } from "../../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -60,7 +61,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="mode === 'create' ? '新增租户' : '编辑租户'"
     width="560px"
@@ -118,5 +119,5 @@ async function handleSubmit() {
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" @click="handleSubmit">保存</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>

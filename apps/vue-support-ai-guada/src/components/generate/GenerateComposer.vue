@@ -162,23 +162,36 @@
         @select-thinking-effort="handleThinkingEffortChange" />
 
       <!-- 粘贴文本预览弹窗（利用 el-dialog 原生滚动） -->
-      <el-dialog v-model="previewDialogVisible" :title="t('chat.input.previewTitle', { name: previewFileName })"
+      <ReDialog v-model="previewDialogVisible" :title="t('chat.input.previewTitle', { name: previewFileName })"
         width="640px" :close-on-click-modal="false" destroy-on-close class="pasted-preview-dialog"
         @close="closeFilePreview">
         <pre class="pasted-preview-text">{{ previewContent }}</pre>
         <template #footer>
           <el-button @click="closeFilePreview">{{ t('common.close') }}</el-button>
         </template>
-      </el-dialog>
+      </ReDialog>
     </div>
   </div>
 </template>
 
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, onUnmounted, onMounted, reactive, type PropType } from 'vue'
+import {
+  ref,
+  watch,
+  computed,
+  nextTick,
+  onUnmounted,
+  onMounted,
+  reactive,
+  type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElButton, ElDialog, ElTag, ElMessageBox, ElMessage } from 'element-plus';
+import { ElIcon,
+  ElButton,
+  ElTag,
+  ElMessageBox,
+  ElMessage,
+} from "element-plus";
 import type { Model, ModelProvider } from '@/types/api';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
@@ -199,6 +212,7 @@ import { usePopup } from '@/composables/usePopup';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
 import { isAdmin } from '@repo/core';
+import ReDialog from '@repo/ui/re-dialog';
 
 /** File object managed by ChatInput (created via createFileObject) */
 interface ChatFile {

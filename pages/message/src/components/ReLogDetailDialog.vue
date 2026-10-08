@@ -7,6 +7,7 @@
 import type { MessageLog } from "../api/types";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -14,7 +15,7 @@ const model = defineModel<MessageLog | null>("model", { required: true });
 </script>
 
 <template>
-  <el-dialog v-model="visible" title="推送日志详情" width="560px">
+  <ReDialog v-model="visible" title="推送日志详情" width="560px">
     <el-descriptions v-if="model" :column="1" border>
       <el-descriptions-item label="接收人">{{ model.sysMessageLogTarget }}</el-descriptions-item>
       <el-descriptions-item label="渠道">{{ model.sysMessageLogChannel }}</el-descriptions-item>
@@ -51,5 +52,5 @@ const model = defineModel<MessageLog | null>("model", { required: true });
       <el-descriptions-item label="发送内容">{{ model.sysMessageLogContent ?? "-" }}</el-descriptions-item>
       <el-descriptions-item label="发送时间">{{ model.createTime }}</el-descriptions-item>
     </el-descriptions>
-  </el-dialog>
+  </ReDialog>
 </template>

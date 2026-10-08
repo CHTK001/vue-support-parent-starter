@@ -334,7 +334,6 @@ onBeforeUnmount(() => {
     <!-- ===== 底部状态栏 ===== -->
     <footer class="psd__footer">
       <span>{{ fileName }}</span>
-      <span>纯前端解析（ag-psd）</span>
     </footer>
   </section>
 </template>

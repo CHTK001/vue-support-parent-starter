@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="title"
     width="360px"
@@ -38,7 +38,7 @@
         </el-button>
       </div>
     </div>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script lang="ts" setup>

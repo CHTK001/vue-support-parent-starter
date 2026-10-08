@@ -132,7 +132,7 @@
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" align-center>
+    <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -209,13 +209,13 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!--
       纯预览弹窗：只读，刻意不放任何输入框 / 保存按钮。
       与上方编辑弹窗并存，编辑入口仍在列表操作列。
     -->
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       class="q-dialog pv-dialog"
       width="720"
@@ -288,7 +288,7 @@
           <el-button @click="previewVisible = false">关闭</el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -306,6 +306,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReDialog from "@repo/ui/re-dialog";
 
 const GRADE_LEVELS = ["小学", "初中", "高中", "大学"] as const;
 const GRADES_BY_LEVEL: Record<string, string[]> = {

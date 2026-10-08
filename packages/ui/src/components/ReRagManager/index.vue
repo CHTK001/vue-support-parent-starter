@@ -212,7 +212,7 @@
     </el-tabs>
 
     <!-- 文档预览弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       :title="previewTitle"
       width="600px"
@@ -221,7 +221,7 @@
       <div v-loading="previewLoading" class="re-rag-manager__preview">
         <pre>{{ previewContent }}</pre>
       </div>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -240,8 +240,11 @@
  *
  *   <ReRagManager base-url="/v2/ai/rag" />
  */
-import { http } from "@repo/core";
-import { ref, computed, onMounted } from "vue";
+import {
+  http } from "@repo/core";
+import { ref,
+  computed,
+  onMounted } from "vue";
 import type { Component } from "vue";
 import {
   ElTabs,
@@ -253,7 +256,6 @@ import {
   ElTableColumn,
   ElTag,
   ElPagination,
-  ElDialog,
   ElCheckbox,
   ElLink,
   ElMessage,
@@ -275,6 +277,7 @@ import ReCountup from "../ReCountup/index.vue";
 import ReCardTextarea from "../ReCardTextarea/index.vue";
 import type { ChunkUploadFile } from "../ReUploadChunk/types";
 import type { RagDocument, RagStatus, RagEmbeddingEngine } from "./types";
+import ReDialog from "../ReDialog";
 
 interface Props {
   /** 后端 RAG base URL */

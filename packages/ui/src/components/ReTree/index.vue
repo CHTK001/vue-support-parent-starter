@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="400px">
+    <ReDialog v-model="dialogVisible" :title="dialogTitle" width="400px">
       <el-form :model="formData" label-width="80px">
         <el-form-item label="名称">
           <el-input v-model="formData[labelField]" />
@@ -61,13 +61,22 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmDialog">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
-import { ElButton, ElDialog, ElForm, ElFormItem, ElInput } from "element-plus";
+import {
+  ref,
+  computed,
+  watch,
+  nextTick } from "vue";
+import { ElButton,
+  ElForm,
+  ElFormItem,
+  ElInput,
+} from "element-plus";
+import ReDialog from "../ReDialog";
 
 export interface ReTreeNode {
   [key: string]: unknown;

@@ -81,7 +81,7 @@
     </div>
 
     <!-- 编辑弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="dialogTitle"
       width="600px"
@@ -148,7 +148,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -156,6 +156,7 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
+import ReDialog from '@repo/ui/re-dialog';
 
 interface Column {
   prop: string;

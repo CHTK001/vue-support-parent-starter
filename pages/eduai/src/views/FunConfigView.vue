@@ -61,7 +61,7 @@
     </ReTable>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑模块' : '添加模块'" width="500px">
+    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑模块' : '添加模块'" width="500px">
       <el-form :model="formData" label-width="90px">
         <el-form-item label="适用学段">
           <el-select v-model="formData.funConfigGradeLevel" clearable placeholder="留空 = 各学段通用（管理端模块）" style="width: 100%">
@@ -111,7 +111,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveConfig">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -121,6 +121,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
 import type { ReTableSearchConfig } from "@repo/ui/re-table";
+import ReDialog from "@repo/ui/re-dialog";
 
 const configs = ref<FunConfig[]>([]);
 const loading = ref(false);

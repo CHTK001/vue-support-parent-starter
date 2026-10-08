@@ -266,7 +266,7 @@
     </Teleport>
 
     <!-- 新建文件夹 -->
-    <el-dialog
+    <ReDialog
       v-model="mkdirVisible"
       title="新建文件夹"
       width="340px"
@@ -285,10 +285,10 @@
           创建
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 文本编辑 -->
-    <el-dialog
+    <ReDialog
       v-model="editorVisible"
       :title="'编辑 - ' + (editorName || '')"
       width="70%"
@@ -307,10 +307,10 @@
           保存
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 图片预览 -->
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       :title="'预览 - ' + previewName"
       width="78%"
@@ -327,10 +327,10 @@
         <span class="we-preview-meta dim">{{ previewName }} · {{ formatSize(previewSize) }}</span>
         <el-button @click="closePreview">关闭</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 权限编辑（类 Unix） -->
-    <el-dialog
+    <ReDialog
       v-model="permVisible"
       title="权限"
       width="430px"
@@ -367,7 +367,7 @@
         <el-button @click="permVisible = false">取消</el-button>
         <el-button type="primary" :loading="permSaving" @click="savePerms">应用</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 状态栏 -->
     <div class="we-status">
@@ -429,6 +429,7 @@ import {
   saveHostPerms,
   type HostFileItem,
 } from "../monitorApi";
+import ReDialog from "@repo/ui/re-dialog";
 
 interface Props {
   hostId: number;

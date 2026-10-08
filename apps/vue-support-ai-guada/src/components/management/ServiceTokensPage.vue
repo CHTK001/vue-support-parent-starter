@@ -67,7 +67,7 @@
     </div>
 
     <!-- 签发令牌对话框 -->
-    <el-dialog v-model="showCreate" title="签发访问令牌" width="520px" append-to-body>
+    <ReDialog v-model="showCreate" title="签发访问令牌" width="520px" append-to-body>
       <el-form :model="form" label-width="110px">
         <el-form-item label="令牌名称">
           <el-input v-model="form.name" placeholder="如：前端调用令牌" />
@@ -100,7 +100,7 @@
         <el-button @click="showCreate = false">取消</el-button>
         <el-button type="primary" @click="submit">签发</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -115,7 +115,8 @@ import {
   Copy24Regular,
 } from '@vicons/fluent'
 
-const http = createClient(v2Http, { unwrap: false })
+
+import ReDialog from '@repo/ui/re-dialog';const http = createClient(v2Http, { unwrap: false })
 
 /** el-tag 的 type 不接受空串，永久令牌用 info 区分 */
 const tokenTagType = (t: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' =>

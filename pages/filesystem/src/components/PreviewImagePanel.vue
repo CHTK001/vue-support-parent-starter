@@ -25,6 +25,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { authHeaders, existObject, putObject, resolveObjectUrl } from "../api/filestorageApi";
 import { extensionOf } from "../utils/officeRenderer";
 import { displayToImage } from "../utils/imageCoords";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -1014,7 +1015,7 @@ watch(
       放进面板内部（而非 ElMessageBox）是因为要同时给出「单选 + 文件名输入」，
       MessageBox 只能给二个按钮，塞不下输入框。
     -->
-    <el-dialog
+    <ReDialog
       v-model="saveDlgVisible"
       title="保存图片"
       width="440px"
@@ -1050,7 +1051,7 @@ watch(
           {{ saveMode === "overwrite" ? "覆盖保存" : "另存为" }}
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
   </div>
 </template>

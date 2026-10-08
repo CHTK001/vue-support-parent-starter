@@ -259,7 +259,7 @@
     <QuestionMarketDialog v-model="marketVisible" :paper-id="paperId" @picked="onMarketPicked" />
 
     <!-- ==================== 设置弹框（左配置 / 右实时预览） ==================== -->
-    <el-dialog v-model="settingsVisible" title="试卷设置" width="1080px" top="5vh" append-to-body destroy-on-close class="paper-settings-dialog">
+    <ReDialog v-model="settingsVisible" title="试卷设置" width="1080px" top="5vh" append-to-body destroy-on-close class="paper-settings-dialog">
       <div class="settings-grid">
         <!-- 左：配置项 -->
         <div class="settings-form">
@@ -331,12 +331,12 @@
         <el-button @click="settingsVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmSettings">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ==================== 分值配置弹框 ====================
          题多时行内逐个改分很吃力，这里集中列出「简化题目 + 分值输入」，
          并可一键按题数均分，确认后整体写回。 -->
-    <el-dialog v-model="scoreDialogVisible" title="分值配置" width="720px" top="6vh" append-to-body class="score-dialog">
+    <ReDialog v-model="scoreDialogVisible" title="分值配置" width="720px" top="6vh" append-to-body class="score-dialog">
       <div class="score-dlg__bar">
         <span class="score-dlg__sum" :class="{ 'is-warn': scoreDraftTotal !== header.targetScore }">
           合计 {{ scoreDraftTotal }} / {{ header.targetScore }} 分
@@ -367,12 +367,12 @@
         <el-button @click="scoreDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="applyScoreDraft">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ==================== AI 组卷弹框（往当前试卷补题） ====================
          与试卷列表页的「组卷」不同：这里不建新卷，只按条件向 AI 要一批题目加入购物车，
          用户再决定要不要加进试卷。能力不可用时按钮已禁用，本弹框不会被打开。 -->
-    <el-dialog
+    <ReDialog
       v-model="aiDialogVisible"
       title="AI 组卷（补充题目）"
       width="560px"
@@ -424,11 +424,11 @@
           AI 选题并加入购物车
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ==================== 编辑题目弹框 ====================
          只改「本卷内」这份题的展示内容，不回写题库。 -->
-    <el-dialog v-model="editDialogVisible" title="编辑题目" width="760px" top="6vh" append-to-body class="edit-q-dialog">
+    <ReDialog v-model="editDialogVisible" title="编辑题目" width="760px" top="6vh" append-to-body class="edit-q-dialog">
       <el-form v-if="editDraft" label-width="72" @submit.prevent>
         <el-form-item label="题型">
           <el-input v-model="editDraft.type" disabled />
@@ -456,7 +456,7 @@
         <el-button @click="editDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="applyEditQuestion">保存到试卷</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -483,6 +483,7 @@ import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaper
 import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
 import PaperPreview from "../components/paper/PaperPreview.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
+import ReDialog from "@repo/ui/re-dialog";
 
 defineOptions({ name: "PaperComposeView" });
 

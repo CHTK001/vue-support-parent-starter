@@ -43,7 +43,7 @@
     </template>
   </el-upload>
 
-  <el-dialog
+  <ReDialog
     v-model="dialogVisible"
     :title="dialogTitle"
     width="640px"
@@ -73,7 +73,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -89,6 +89,7 @@
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
 import ReCropper from "../ReCropper/index.vue";
+import ReDialog from "../ReDialog";
 
 interface Props {
   /** 双向绑定的图片 URL */

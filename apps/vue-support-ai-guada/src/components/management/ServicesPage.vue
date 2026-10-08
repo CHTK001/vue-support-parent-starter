@@ -54,7 +54,7 @@
     </div>
 
     <!-- 登记服务弹窗 -->
-    <el-dialog v-model="dialogVisible" title="登记服务" width="460px" :close-on-click-modal="false" append-to-body>
+    <ReDialog v-model="dialogVisible" title="登记服务" width="460px" :close-on-click-modal="false" append-to-body>
       <el-form label-width="90px">
         <el-form-item label="服务名称">
           <el-input v-model="newServiceName" placeholder="请输入要登记并启动的服务名称" />
@@ -64,7 +64,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSubmit">启动</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -74,6 +74,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
 import { isAdmin } from '@repo/core';
 import { serviceApi } from '@/services/javaApi';
+import ReDialog from '@repo/ui/re-dialog';
 
 const admin = ref(isAdmin());
 const loading = ref(false);

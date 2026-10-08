@@ -4,7 +4,7 @@
     <header class="shrink-0 border-b border-[var(--rm-border-light)] px-4 py-3 flex flex-wrap items-end gap-4">
       <div class="flex-1 min-w-0">
         <h1 class="text-lg font-bold flex items-center gap-1"><ReButton link :icon="ArrowLeft" title="返回" @click="emit('cancel')" />从模板创建</h1>
-        <p class="text-xs text-[var(--rm-text-secondary)] mt-0.5">选择预置模板，自动生成实体类型与关系结构</p>
+        <p class="text-xs text-[var(--rm-text-secondary)] mt-0.5">选择预置模板，自动生成文档、实体类型与关系结构</p>
       </div>
 
       <el-input v-model="keyword" class="!w-72 max-w-full" clearable placeholder="搜索模板名称、关键词" :prefix-icon="Search" />
@@ -55,7 +55,8 @@
               <b class="text-sm font-medium truncate">{{ t.name }}</b>
               <p class="text-xs text-[var(--rm-text-secondary)] leading-relaxed line-clamp-2">{{ t.desc }}</p>
               <div class="flex items-center justify-between gap-2 mt-auto flex-wrap">
-                <span class="text-xs text-[var(--rm-text-disabled)]">预置实体 · 关系结构</span>
+                <span v-if="t.dataset" class="text-xs text-[var(--rm-text-disabled)]">{{ t.dataset.docs.length }} 文档 · {{ t.dataset.entities.length }} 实体</span>
+                <span v-else class="text-xs text-[var(--rm-text-disabled)]">预置实体 · 关系结构</span>
                 <ReButton size="small" round :type="selected?.key === t.key ? 'primary' : 'default'" @click.stop="select(t)">
                   {{ selected?.key === t.key ? '已选模板' : '使用模板' }}
                 </ReButton>
@@ -75,6 +76,22 @@
           </div>
 
           <p class="text-xs text-[var(--rm-text-secondary)] leading-relaxed">{{ selected.desc }}</p>
+
+          <!-- 数据集规模（有完整数据集时展示真实数量） -->
+          <div v-if="selected.dataset" class="grid grid-cols-3 gap-2">
+            <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
+              <b class="text-sm font-bold">{{ selected.dataset.docs.length }}</b>
+              <span class="text-xs text-[var(--rm-text-secondary)]">文档</span>
+            </div>
+            <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
+              <b class="text-sm font-bold">{{ selected.dataset.entities.length }}</b>
+              <span class="text-xs text-[var(--rm-text-secondary)]">实体</span>
+            </div>
+            <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
+              <b class="text-sm font-bold">{{ selected.dataset.relations.length }}</b>
+              <span class="text-xs text-[var(--rm-text-secondary)]">关系</span>
+            </div>
+          </div>
 
           <div class="grid grid-cols-3 gap-2">
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
@@ -105,7 +122,8 @@
             </div>
           </div>
 
-          <p class="text-xs text-[var(--rm-text-disabled)]">官方模板 · 预置结构（示例文档需创建后上传）</p>
+          <p v-if="selected.dataset" class="text-xs text-[var(--rm-text-success,#22c55e)]">该模板携带完整数据：创建后会把这 {{ selected.dataset.docs.length }} 篇文档、{{ selected.dataset.entities.length }} 个实体、{{ selected.dataset.relations.length }} 条关系全部复制进新知识库。</p>
+          <p v-else class="text-xs text-[var(--rm-text-disabled)]">官方模板 · 预置结构（创建后生成骨架文档，示例内容需自行补充）</p>
 
           <div>
             <div class="text-xs text-[var(--rm-text-secondary)] font-medium mb-1.5">知识库名称</div>
@@ -148,6 +166,12 @@
     <!-- 预览效果（用 ReDialog，不再手写遮罩） -->
     <ReDialog v-model="previewVisible" :title="selected ? `预览：${selected.name}` : '预览'" :width="560">
       <div v-if="selected" class="flex flex-col gap-3">
+        <div v-if="selected.dataset">
+          <div class="text-xs text-[var(--rm-text-secondary)] font-medium mb-1.5">包含文档（{{ selected.dataset.docs.length }} 篇）</div>
+          <ul class="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+            <li v-for="d in selected.dataset.docs" :key="d.path" class="text-xs text-[var(--rm-text-regular)] px-2.5 py-1.5 rounded-[var(--rm-radius-sm,8px)] bg-[var(--rm-bg-subtle)]">{{ d.path }}</li>
+          </ul>
+        </div>
         <div>
           <div class="text-xs text-[var(--rm-text-secondary)] font-medium mb-1.5">实体类型（{{ selected.entityTypes.length }} 类）</div>
           <div class="flex flex-wrap gap-1.5">
@@ -160,8 +184,8 @@
             <ReTag v-for="x in selected.relationTypes" :key="x" size="small">{{ x }}</ReTag>
           </div>
         </div>
-        <div>
-          <div class="text-xs text-[var(--rm-text-secondary)] font-medium mb-1.5">示例文档结构（创建后按此结构上传）</div>
+        <div v-if="!selected.dataset">
+          <div class="text-xs text-[var(--rm-text-secondary)] font-medium mb-1.5">示例文档结构（创建后按此结构生成）</div>
           <ul class="flex flex-col gap-1.5">
             <li v-for="d in sampleDocs" :key="d" class="text-xs text-[var(--rm-text-regular)] px-2.5 py-1.5 rounded-[var(--rm-radius-sm,8px)] bg-[var(--rm-bg-subtle)]">{{ d }}</li>
           </ul>
@@ -179,11 +203,12 @@
  * {@code re-surface}，语义组件用应用本地 koi 封装 {@code @/components/re/*}
  * （ReCard / ReTag / ReButton / ReEmpty），弹框用 {@code ReDialog}。不再手写 BEM CSS。</p>
  *
- * <p><b>数据诚实性</b>：模板只提供「名称 + 分类 + 预置实体/关系类型」，因此卡片与详情
- * 只展示这些真实存在的项；不再宣称「N 实体 / N 关系 / N 篇文档 / N 人使用」这类
- * 模板并不携带的数字。示例文档结构是按预置类型拼出的<b>结构示意</b>，非真实文档。</p>
+ * <p><b>数据诚实性</b>：预置类型来自静态清单；对**携带完整数据集**的模板（如三国演义），
+ * 展示的是数据集真实条数（文档 / 实体 / 关系），创建后由父页面整体复制进新库。
+ * 其余模板只生成骨架文档，不宣称拥有并不存在的数据。</p>
  *
- * <p><b>契约</b>：props {@code creating?}；emits {@code cancel} 与 {@code create(name)}。</p>
+ * <p><b>契约</b>：props {@code creating?}；emits {@code cancel} 与 {@code create(name, dataset)}。
+ * 父页面负责建库、写文档、建实体、建关系。</p>
  */
 import { computed, ref, watch } from 'vue'
 import { ArrowLeft, Search } from '@element-plus/icons-vue'
@@ -196,6 +221,8 @@ import coverSanguo from '@/assets/kb/tpl-sanguo.png'
 import coverPoem from '@/assets/kb/tpl-poem.png'
 import coverIdiom from '@/assets/kb/tpl-idiom.png'
 import coverQuestion from '@/assets/kb/tpl-question.png'
+import { SANGUO_DATASET } from '@/data/kb/templates/sanguo'
+import type { KbTemplateDataset } from '@/data/kb/templates/types'
 
 /** 模板条目 */
 interface TemplateItem {
@@ -217,6 +244,8 @@ interface TemplateItem {
   entityTypes: string[]
   /** 预设关系类型 */
   relationTypes: string[]
+  /** 完整数据集（有则整体复制入库） */
+  dataset?: KbTemplateDataset
 }
 
 defineProps<{
@@ -227,8 +256,8 @@ defineProps<{
 const emit = defineEmits<{
   /** 取消并回到列表 */
   (e: 'cancel'): void
-  /** 用该模板名创建知识库，并携带模板示例文档（建库后落库） */
-  (e: 'create', name: string, docs: Array<{ path: string; content: string }>): void
+  /** 用该模板创建知识库，并携带完整数据集（文档 + 实体 + 关系） */
+  (e: 'create', name: string, dataset: KbTemplateDataset): void
 }>()
 
 /** 分类清单 */
@@ -244,6 +273,7 @@ const templates: ReadonlyArray<TemplateItem> = [
     desc: '预置人物、势力、战役三类实体与从属、敌对、联姻等关系',
     entityTypes: ['人物', '势力', '战役', '地点'],
     relationTypes: ['从属', '敌对', '联姻', '结义'],
+    dataset: SANGUO_DATASET,
   },
   {
     key: 'poem', name: '古诗词库', category: '语文学习', cover: coverPoem,
@@ -300,6 +330,7 @@ const activeCategory = ref('全部模板')
 const selected = ref<TemplateItem | null>(templates[0] ?? null)
 const kbName = ref(selected.value ? selected.value.name : '')
 const previewVisible = ref(false)
+const creating = ref(false)
 
 /** 分类 + 关键词过滤 */
 const filtered = computed(() => {
@@ -351,20 +382,31 @@ function select(t: TemplateItem) {
   kbName.value = t.name
 }
 
-/** 用当前模板创建（携带示例文档，建库后由父页面逐篇落库） */
+/**
+ * 用当前模板创建。
+ *
+ * <p>携带完整数据集：建库成功后由父页面写文档、建实体、建关系。
+ * 无数据集的模板回退为「按预置类型生成骨架文档」。</p>
+ */
 function onCreate() {
   const name = kbName.value.trim()
   if (name.length < 2 || name.length > 20) {
     return
   }
-  emit('create', name, selected.value ? buildTemplateDocs(selected.value) : [])
+  const t = selected.value
+  if (!t) {
+    return
+  }
+  const dataset: KbTemplateDataset = t.dataset ?? {
+    docs: buildTemplateDocs(t),
+    entities: [],
+    relations: [],
+  }
+  emit('create', name, dataset)
 }
 
 /**
- * 按模板的预置类型生成示例文档内容。
- *
- * <p>以前这里只给出文件名（结构示意），用户建完库文件树是空的；现在生成真实内容，
- * 由父页面在建库成功后写进知识库，保证「模板里看到的 md」= 「库里真实存在的 md」。</p>
+ * 按模板的预置类型生成骨架文档内容（无数据集的模板使用）。
  *
  * @param t 模板
  * @returns 文档列表（path + content）

@@ -209,3 +209,5 @@ parser-trim.png
 dist-verify/
 **/.tmp-probe-*.mjs
 **/dbg-*.mjs
+
+**/_ofdtest/

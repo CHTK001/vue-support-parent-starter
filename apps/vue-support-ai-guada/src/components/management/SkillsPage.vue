@@ -61,7 +61,7 @@
     </div>
 
     <!-- 技能搜索弹层：已安装 + 推荐 + 市场结果 -->
-    <el-dialog v-model="showSearch" title="技能搜索" width="880px" top="6vh">
+    <ReDialog v-model="showSearch" title="技能搜索" width="880px" top="6vh">
       <div class="flex items-center gap-2 mb-3">
         <el-input
           v-model="keyword"
@@ -168,7 +168,7 @@
           </div>
         </div>
       </div>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 技能详情：已安装读本地 / 市场远程预览，弹窗内可直接安装 -->
     <SkillDetailDialog v-model="detailVisible" :skill="detailTarget" @install="handleDetailInstall" />
@@ -184,6 +184,7 @@ import { ArrowBackIosFilled } from '@vicons/material';
 import { skillsApi } from '@/services/javaApi';
 import PluginIcon from '@/components/ui/PluginIcon.vue';
 import SkillDetailDialog from '@/components/plugins/SkillDetailDialog.vue';
+import ReDialog from '@repo/ui/re-dialog';
 
 const router = useRouter();
 

@@ -11,11 +11,16 @@
   <p>「先预览再执行」是刻意的：建表/补列是 DDL，错了要人工收拾。</p>
 -->
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { ElDialog } from "element-plus";
+import {
+  computed,
+  ref,
+  watch } from "vue";
+import { ElDialog,
+} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import { APP_DATASOURCE, executeTableDdl, previewTableDdl } from "../../api";
 import type { DdlColumn, TableDdlRequest, TableDdlResult } from "../../api";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = withDefaults(
   defineProps<{
@@ -144,7 +149,7 @@ const sqlText = computed(() => (payload.value?.statements ?? []).join("\n"));
 </script>
 
 <template>
-  <ElDialog
+  <ReDialog
     :model-value="modelValue"
     title="建表 / 补列"
     width="760px"
@@ -169,7 +174,7 @@ const sqlText = computed(() => (payload.value?.statements ?? []).join("\n"));
       <ReButton @click="close">关闭</ReButton>
       <ReButton type="primary" :loading="busy" :disabled="!canRun" @click="run">执行</ReButton>
     </template>
-  </ElDialog>
+  </ReDialog>
 </template>
 
 <style scoped>

@@ -9,7 +9,7 @@
     <span v-if="latex" class="rx-inline-math__body" v-html="rendered" />
     <span v-else class="rx-inline-math__ph">公式</span>
 
-    <el-dialog
+    <ReDialog
       v-model="visible"
       title="编辑公式"
       width="600px"
@@ -45,7 +45,7 @@
         <el-button @click="visible = false">取消</el-button>
         <el-button type="primary" @click="confirm">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </NodeViewWrapper>
 </template>
 
@@ -61,6 +61,7 @@ import { NodeViewWrapper } from "@tiptap/vue-3";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { MATH_SYMBOLS, renderMixedText } from "./math-symbols";
+import ReDialog from "../ReDialog";
 
 defineOptions({ name: "MathNodeView" });
 

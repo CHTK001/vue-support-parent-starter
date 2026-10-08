@@ -3,8 +3,11 @@
   参数顺序由 paramContext 统一决定（必填置顶、循环参数在末尾）。
 -->
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { ElDialog } from "element-plus";
+import {
+  computed,
+  ref } from "vue";
+import { ElDialog,
+} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import FieldTable from "../FieldTable.vue";
 import ParamField from "./ParamField.vue";
@@ -12,6 +15,7 @@ import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
   /** 当前节点的表单镜像 */
@@ -90,7 +94,7 @@ const fieldSummary = computed(() => {
       <ReButton text type="primary" @click="fieldsOpen = true">配置</ReButton>
     </div>
     <!-- append-to-body：属性面板自身可能有 overflow/transform，弹框留在面板内会被裁掉 -->
-    <ElDialog v-model="fieldsOpen" title="抽取字段" width="1400px" top="10px" append-to-body>
+    <ReDialog v-model="fieldsOpen" title="抽取字段" width="1400px" top="10px" append-to-body>
       <FieldTable
         :model-value="node.fields"
         :preview-url="ctx.previewUrl"
@@ -98,7 +102,7 @@ const fieldSummary = computed(() => {
         :placeholder-groups="ctx.placeholderGroups"
         @update:model-value="ctx.writeFields"
       />
-    </ElDialog>
+    </ReDialog>
   </div>
 </template>
 

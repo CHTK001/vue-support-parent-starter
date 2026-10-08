@@ -128,7 +128,7 @@ const PreviewTgaPanel = defineAsyncComponent(() => import("../components/Preview
 /**
  * OFD / drawio / DICOM / SWF 预览面板按需加载。
  *
- * <p>这四个面板各带一份可观的解码/渲染依赖（ofd.js 约 4.9 MB、drawio 自托管
+ * <p>这四个面板各带一份可观的解码/渲染依赖（@ofdjs/viewer 约 40 KB + fflate、drawio 自托管
  * viewer 约 4.4 MB、cornerstone3D、Ruffle WASM 模拟器），与上面同理：只在
  * 真正预览对应格式时才加载，不给文件页主包增重。</p>
  */
@@ -149,6 +149,7 @@ import { CONVERTIBLE_TEXT_EXTS, extensionOf, isClientRenderable, RENDER_SERVER }
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import { detectModel3dFormat } from "../utils/model3d";
+import ReDialog from "@repo/ui/re-dialog";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
 type SortKey = "name" | "size" | "lastModified";
@@ -2952,7 +2953,7 @@ const drawioInnerPath = computed(() => (innerIsDrawio.value ? previewInnerPath.v
 /**
  * 当前文件是否走 OFD 面板（{@link PreviewOfdPanel}）。
  *
- * <p>OFD 是国产版式文档（电子发票/公文常用），纯前端 ofd.js 解析渲染，
+ * <p>OFD 是国产版式文档（电子发票/公文常用），纯前端 @ofdjs/viewer 解析渲染，
  * 后端没有对应提供者。与 PDF 的关系：扩展名互斥，各走各的通道。</p>
  */
 const previewIsOfd = computed(() => kindOf(previewName.value) === "ofd");
@@ -4336,7 +4337,7 @@ onUnmounted(() => {
 
     <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性）
          左分组 + 右内容的双栏结构，右侧分区可搜索过滤；色值全部走 koi 的 --el-* 令牌。 ===== -->
-    <el-dialog
+    <ReDialog
       v-model="adminVisible"
       class="fs-admin-dialog"
       width="1040px"
@@ -4641,12 +4642,12 @@ onUnmounted(() => {
           </span>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ===== 上传对话框 =====
          队列式上传：选文件只入队，由「开始上传 / 全部开始」触发；
          关闭时若还有未完成项先确认，确认后中断全部请求。 -->
-    <el-dialog
+    <ReDialog
       v-model="uploadVisible"
       class="fs-up-dlg"
       width="720px"
@@ -4747,10 +4748,10 @@ onUnmounted(() => {
           开始上传
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ===== 上传目标目录选择 ===== -->
-    <el-dialog
+    <ReDialog
       v-model="uploadDirVisible"
       class="fs-updir-dlg"
       width="420px"
@@ -4794,10 +4795,10 @@ onUnmounted(() => {
         <el-button @click="uploadDirVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmUploadDir">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ===== 创建链接对话框 ===== -->
-    <el-dialog v-model="oneTimeVisible" :title="`创建访问链接 — ${oneTimeTarget?.name ?? ''}`" width="440px" :append-to-body="true" destroy-on-close>
+    <ReDialog v-model="oneTimeVisible" :title="`创建访问链接 — ${oneTimeTarget?.name ?? ''}`" width="440px" :append-to-body="true" destroy-on-close>
       <el-form label-width="80px">
         <el-form-item label="类型">
           <el-radio-group v-model="oneTimeType">
@@ -4824,12 +4825,12 @@ onUnmounted(() => {
         <el-button @click="oneTimeVisible = false">关闭</el-button>
       </template>
       <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
-    </el-dialog>
+    </ReDialog>
 
     <!-- ===== 自定义过期时间的限时链接（右键直达）=====
          与上面的「创建链接」分开：那个要先选类型再挑 9 档预设，
          这个只填一个时长就出链接，适合知道自己要多久的场景。 -->
-    <el-dialog
+    <ReDialog
       v-model="quickExpiryVisible"
       :title="`生成限时链接 — ${quickExpiryTarget?.name ?? ''}`"
       width="440px"
@@ -4855,14 +4856,14 @@ onUnmounted(() => {
         <el-button v-else type="primary" :loading="quickExpiryBusy" :icon="Document" @click="generateQuickExpiryLink">生成</el-button>
         <el-button @click="quickExpiryVisible = false">关闭</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ===== 预览弹层 =====
          保留 header 并启用 el-dialog 自带的 draggable：手柄就是 header，只有按住标题栏才拖得动。
          内容区（Excel / Word / iframe / Office 组件）不再挂任何 mousedown —— 此前把拖拽接管到
          内容外壳上，导致在 Excel 里点选单元格被当成拖拽起点，单元格跟着抖。
          代价是 header 高度从内容里扣掉，但换来「按哪动哪」，对表格类预览是必需的。 -->
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       class="fs-preview-dlg"
       width="min(1200px, 92vw)"
@@ -5035,7 +5036,7 @@ onUnmounted(() => {
             :inner="drawioInnerPath"
             :size="previewSize"
           />
-          <!-- OFD 版式文档：纯前端 ofd.js 渲染（异步加载，见组件导入处） -->
+          <!-- OFD 版式文档：纯前端 @ofdjs/viewer 渲染（异步加载，见组件导入处） -->
           <PreviewOfdPanel
             v-else-if="!previewError && showOfdPanel"
             :bucket="bucket"
@@ -5079,7 +5080,7 @@ onUnmounted(() => {
           />
         </div>
       </div>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

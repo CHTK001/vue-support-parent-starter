@@ -292,7 +292,7 @@ const statusText = computed(() => {
     return "无法渲染";
   }
   const i = info.value;
-  return i ? `${i.width}×${i.height} · 纯前端解码` : "纯前端解码";
+  return i ? `${i.width}×${i.height}` : "";
 });
 
 onMounted(() => void load());

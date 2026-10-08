@@ -57,7 +57,7 @@
     </div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑AppKey' : '新增AppKey'" width="500px" append-to-body>
+    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑AppKey' : '新增AppKey'" width="500px" append-to-body>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-form-item label="应用名称" prop="appName">
           <el-input v-model="form.appName" placeholder="请输入应用名称" />
@@ -86,7 +86,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -95,6 +95,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import { appKeyApi } from '@/services/javaApi';
+import ReDialog from '@repo/ui/re-dialog';
 
 const loading = ref(false);
 const dataList = ref<any[]>([]);

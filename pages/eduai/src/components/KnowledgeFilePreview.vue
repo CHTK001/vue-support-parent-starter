@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="title"
     width="860px"
@@ -39,7 +39,7 @@
       <el-button @click="visible = false">关闭</el-button>
       <el-button type="primary" @click="download">下载</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -56,6 +56,7 @@
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { http } from "@repo/utils";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>({ default: false });
 

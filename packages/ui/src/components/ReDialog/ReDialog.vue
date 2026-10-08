@@ -319,8 +319,22 @@ const showCloseFab = computed(() => props.headless);
     }"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   >
-    <!-- 自定义 header 支持拖拽 + 全屏按钮（headless 下不渲染） -->
-    <template v-if="(draggable || fullscreenable) && !headless" #header>
+    <!-- 业务自定义 header 优先透传（el-dialog → ReDialog 迁移时头部插槽不丢）；
+         draggable 时外包一层拖拽容器，保证自定义头也能拖动 -->
+    <template v-if="$slots.header && !headless" #header>
+      <div
+        v-if="draggable"
+        class="re-dialog__header-inner"
+        :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"
+        @mousedown="onHeaderMouseDown"
+      >
+        <slot name="header" />
+      </div>
+      <slot v-else name="header" />
+    </template>
+
+    <!-- 无业务 header 时，draggable / fullscreenable 使用自带 header（拖拽 + 全屏按钮） -->
+    <template v-else-if="(draggable || fullscreenable) && !headless" #header>
       <div
         class="re-dialog__header-inner"
         :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"

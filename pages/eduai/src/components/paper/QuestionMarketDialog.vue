@@ -10,7 +10,7 @@
   动画为纯 CSS transition + requestAnimationFrame，不引入新依赖。
 -->
 <template>
-  <el-dialog
+  <ReDialog
     :model-value="props.modelValue"
     width="880px"
     top="6vh"
@@ -113,7 +113,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -130,6 +130,7 @@ import ReButton from "@repo/ui/re-button";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { MarketQuestion } from "../../api/types";
 import { renderMathSummary } from "../../utils/mathText";
+import ReDialog from "@repo/ui/re-dialog";
 
 defineOptions({ name: "QuestionMarketDialog" });
 

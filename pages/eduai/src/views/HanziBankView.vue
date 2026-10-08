@@ -130,7 +130,7 @@
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" align-center>
+    <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -209,7 +209,7 @@
           <el-button class="dialog-foot__save" type="primary" :loading="saving" @click="save">保存汉字</el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -228,6 +228,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduHanzi } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReDialog from "@repo/ui/re-dialog";
 
 const GRADE_LEVELS = ["小学", "初中", "高中"] as const;
 const STRUCTURES = ["独体", "上下", "左右", "左中右", "上中下", "半包围", "全包围"] as const;
@@ -568,10 +569,13 @@ onMounted(() => {
   font-weight: 600;
 }
 .table-wrap {
+  /* 固定容器高度，防止滚动抖动：ReTable fill 模式不再依赖视口测量 */
+  height: calc(100vh - 260px);
+  contain: layout size;
+  overflow: hidden;
   min-height: 320px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  overflow: hidden;
 }
 .hanzi-table {
   width: 100%;

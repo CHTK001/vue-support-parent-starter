@@ -290,7 +290,7 @@
     </section>
 
     <!-- 班级弹框 -->
-    <el-dialog v-model="classDialog.visible" :title="classDialog.id ? '编辑班级' : '新增班级'" width="420px">
+    <ReDialog v-model="classDialog.visible" :title="classDialog.id ? '编辑班级' : '新增班级'" width="420px">
       <el-form :model="classDialog" label-width="80px">
         <el-form-item label="班级名称" required>
           <el-input v-model="classDialog.className" placeholder="如 高一(3)班" />
@@ -310,10 +310,10 @@
         <el-button @click="classDialog.visible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="submitClass">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 学生弹框 -->
-    <el-dialog v-model="stuDialog.visible" :title="stuDialog.id ? '编辑学生' : '新增学生'" width="480px">
+    <ReDialog v-model="stuDialog.visible" :title="stuDialog.id ? '编辑学生' : '新增学生'" width="480px">
       <el-form :model="stuDialog" label-width="90px">
         <el-form-item label="姓名" required>
           <el-input v-model="stuDialog.name" placeholder="学生姓名" />
@@ -336,10 +336,10 @@
         <el-button @click="stuDialog.visible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="submitStudent">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 重置口令弹框 -->
-    <el-dialog v-model="resetDialog.visible" title="重置学生口令" width="420px">
+    <ReDialog v-model="resetDialog.visible" title="重置学生口令" width="420px">
       <el-form :model="resetDialog" label-width="80px">
         <el-form-item label="学生">
           <span>{{ resetDialog.name }}</span>
@@ -352,10 +352,10 @@
         <el-button @click="resetDialog.visible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="submitReset">确认重置</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- AI 组卷弹框 -->
-    <el-dialog v-model="aiDialog.visible" title="AI 组卷" width="460px">
+    <ReDialog v-model="aiDialog.visible" title="AI 组卷" width="460px">
       <el-form :model="aiDialog" label-width="90px">
         <el-form-item label="试卷名称" required>
           <el-input v-model="aiDialog.name" placeholder="如 三年级数学期末卷" />
@@ -386,10 +386,10 @@
         <el-button @click="aiDialog.visible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="doGenerate">生成</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 布置试卷到班级：只列出「我名下的班级」（后端同样按登录态校验，前端只是提前拦） -->
-    <el-dialog v-model="assignDialog.visible" title="布置试卷到班级" width="460px">
+    <ReDialog v-model="assignDialog.visible" title="布置试卷到班级" width="460px">
       <el-form label-width="72px">
         <el-form-item label="试卷">
           <span class="tp-dialog-static">{{ assignDialog.paperName || "—" }}</span>
@@ -417,7 +417,7 @@
           布置
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -447,6 +447,7 @@ import type {
   TeacherMarkingTask,
   TeacherOverview,
 } from "../../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const router = useRouter();
 

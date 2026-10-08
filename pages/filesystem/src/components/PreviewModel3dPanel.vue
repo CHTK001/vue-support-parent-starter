@@ -540,7 +540,6 @@ onBeforeUnmount(() => {
       <span :title="inner ? `${fileName} › ${effectiveName}` : effectiveName">
         {{ inner ? `${fileName} › ${effectiveName}` : effectiveName }}
       </span>
-      <span>纯前端 3D（{{ engineText }}）</span>
     </footer>
   </section>
 </template>

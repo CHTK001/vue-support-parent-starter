@@ -10,6 +10,7 @@ import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { saveTemplate, updateTemplate } from "../api/messageApi";
 import type { MessageProvider, MessageTemplate } from "../api/types";
+import ReDialog from "@repo/ui/re-dialog";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -75,7 +76,7 @@ async function handleSave() {
 </script>
 
 <template>
-  <el-dialog
+  <ReDialog
     v-model="visible"
     :title="isEdit ? '编辑模板' : '新增模板'"
     width="640px"
@@ -129,5 +130,5 @@ async function handleSave() {
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>

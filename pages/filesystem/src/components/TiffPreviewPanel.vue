@@ -341,7 +341,7 @@ onBeforeUnmount(() => {
     <!-- ===== 底部状态栏 ===== -->
     <footer class="tiff__footer">
       <span>{{ fileName }}</span>
-      <span>纯前端解码（UTIF.js）</span>
+      <span>解码（UTIF.js）</span>
     </footer>
   </section>
 </template>

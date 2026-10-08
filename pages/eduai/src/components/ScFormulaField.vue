@@ -17,7 +17,7 @@
     </div>
 
     <!-- 编辑模式：大字编辑 + 符号面板 + 实时预览 -->
-    <el-dialog
+    <ReDialog
       v-model="editorVisible"
       title="编辑内容（支持公式）"
       width="640px"
@@ -53,7 +53,7 @@
         <el-button @click="editorVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmEdit">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -73,6 +73,7 @@ import { computed, nextTick, ref } from "vue";
 import "katex/dist/katex.min.css";
 import { MATH_SYMBOLS as SYMBOLS } from "@repo/ui/components/ReRichText/math-symbols";
 import { renderMixedText } from "../utils/mathText";
+import ReDialog from "@repo/ui/re-dialog";
 
 defineOptions({ name: "ScFormulaField", inheritAttrs: true });
 

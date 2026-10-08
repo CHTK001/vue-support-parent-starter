@@ -39,14 +39,14 @@
       </ReTable>
     </el-card>
 
-    <el-dialog v-model="reviewVisible" title="复习卷生成结果" width="520">
+    <ReDialog v-model="reviewVisible" title="复习卷生成结果" width="520">
       <div class="text-sm">
         已为当前学生挑选 {{ reviewQuestionIds.length }} 道错题用于复习（题目 ID：{{ reviewQuestionIds.join('、') || '无' }}）。
       </div>
       <template #footer>
         <el-button @click="reviewVisible = false">关闭</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -57,6 +57,7 @@ import { eduaiApi } from '../api/eduaiApi';
 import type { WrongQuestion } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
+import ReDialog from "@repo/ui/re-dialog";
 
 const pageNo = ref(1);
 const pageSize = ref(20);

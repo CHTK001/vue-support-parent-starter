@@ -49,7 +49,7 @@
     <EditorContent :editor="editor" class="re-rich-text__content" />
 
     <!-- 插入公式：符号面板 + LaTeX 输入 + 实时预览 -->
-    <el-dialog v-model="mathVisible" title="插入公式" width="600px" append-to-body destroy-on-close>
+    <ReDialog v-model="mathVisible" title="插入公式" width="600px" append-to-body destroy-on-close>
       <div class="re-rich-text__math">
         <div class="re-rich-text__math-symbols">
           <button
@@ -78,7 +78,7 @@
         <el-button @click="mathVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmMath">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -121,6 +121,7 @@ import { UndoRedo } from "@tiptap/extensions";
 import katex from "katex";
 import { InlineMath } from "./inline-math";
 import { MATH_SYMBOLS } from "./math-symbols";
+import ReDialog from "../ReDialog";
 
 defineOptions({ name: "ReRichText", inheritAttrs: true });
 

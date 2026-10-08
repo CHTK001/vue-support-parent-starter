@@ -102,7 +102,9 @@
                 <div class="flex flex-col gap-2 p-3 flex-1">
                   <b class="text-sm font-medium truncate">{{ t.name }}</b>
                   <div class="flex items-center justify-between gap-2 mt-auto flex-wrap">
-                    <span class="text-xs text-[var(--rm-text-disabled)]">预置实体 · 关系结构</span>
+                    <span class="text-xs text-[var(--rm-text-disabled)]">
+                      {{ t.entity > 0 ? `${t.entity} 实体 · ${t.relation} 关系` : '预置结构' }}
+                    </span>
                     <ReButton size="small" round @click="useTemplate(t)">使用模板</ReButton>
                   </div>
                 </div>
@@ -322,13 +324,15 @@ function openModal() {
 }
 
 /**
- * 使用模板：直接把该模板名作为知识库名提交创建（一次点击即建库），
- * 不再只跳模板页 —— 模板本身目前只提供「名称 + 预置结构说明」，
- * 真实示例文档/实体/关系需要后端模板接口支持（见交付说明 §4）。
+ * 使用模板：跳到「从模板创建」页并选中该模板。
+ *
+ * <p>不再直接建库 —— 模板现在携带完整数据集（文档 / 实体 / 关系），
+ * 必须走模板页的建库流程才能把数据整体复制进新库。</p>
  * @param t 被选中的模板
  */
 function useTemplate(t: TemplateItem) {
-  emit('create', { name: t.name, description: `${t.name}（由模板创建）`, isPublic: false })
+  void t
+  emit('all-templates')
 }
 
 /** 底栏跳模板 */

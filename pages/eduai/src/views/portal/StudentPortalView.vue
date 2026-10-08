@@ -135,7 +135,7 @@
     </div>
 
     <!-- 修改密码对话框；首次登录时作为「引导修改初始密码」弹窗，不可点遮罩/ESC 关闭 -->
-    <el-dialog
+    <ReDialog
       v-model="pwdVisible"
       :title="pwdFirstTime ? '首次登录：请修改初始密码' : '修改登录密码'"
       width="420"
@@ -177,7 +177,7 @@
           {{ pwdFirstTime ? "设置我的密码" : "确认修改" }}
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -206,6 +206,7 @@ import { providePortalModuleHost } from "./portalHost";
 import PrimaryHome from "./PrimaryHome.vue";
 import JuniorHome from "./JuniorHome.vue";
 import SeniorHome from "./SeniorHome.vue";
+import ReDialog from "@repo/ui/re-dialog";
 
 const router = useRouter();
 const route = useRoute();

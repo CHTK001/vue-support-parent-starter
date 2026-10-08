@@ -251,7 +251,7 @@
     </el-card>
 
     <!-- ============ 学生对话框 ============ -->
-    <el-dialog v-model="stuVisible" class="q-dialog" width="920" :show-close="false" align-center>
+    <ReDialog v-model="stuVisible" class="q-dialog" width="920" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -394,10 +394,10 @@
           <el-button type="primary" :loading="saving" @click="saveStudent">保存</el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ============ 班级对话框 ============ -->
-    <el-dialog v-model="clsVisible" class="q-dialog" width="860" :show-close="false" align-center>
+    <ReDialog v-model="clsVisible" class="q-dialog" width="860" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -465,10 +465,10 @@
           <el-button type="primary" :loading="saving" @click="saveClass">保存</el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- ============ 教师对话框 ============ -->
-    <el-dialog v-model="teaVisible" class="q-dialog" width="860" :show-close="false" align-center>
+    <ReDialog v-model="teaVisible" class="q-dialog" width="860" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -532,7 +532,7 @@
           <el-button type="primary" :loading="saving" @click="saveTeacher">保存</el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -556,6 +556,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReDialog from "@repo/ui/re-dialog";
 
 const loading = ref(false);
 const saving = ref(false);

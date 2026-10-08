@@ -31,6 +31,7 @@ import * as echarts from "echarts";
 import HostFileManager from "../components/HostFileManager.vue";
 import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 import type { Host, Group } from "./AssetsView.vue";
+import ReDialog from "@repo/ui/re-dialog";
 
 interface Props {
   hosts: Host[];
@@ -1262,7 +1263,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
     </section>
 
     <!-- 文件管理器弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="fileManagerVisible"
       :title="'文件管理 - ' + (selectedHost?.serverHostName || '')"
       width="86%"
@@ -1277,10 +1278,10 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         :initial-path="fileManagerPath"
         :platform="fileManagerPlatform"
       />
-    </el-dialog>
+    </ReDialog>
 
     <!-- 新增环境变量弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="envDialog" title="新增系统级环境变量" width="520px" append-to-body
       class="host-sub-dialog"
     >
@@ -1297,7 +1298,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         <ReButton @click="envDialog = false">取消</ReButton>
         <ReButton type="primary" :loading="busyRow.startsWith('env-set')" @click="submitEnv">保存</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

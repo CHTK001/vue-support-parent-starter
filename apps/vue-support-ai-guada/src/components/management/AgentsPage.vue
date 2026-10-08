@@ -88,7 +88,7 @@
     </el-table>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="editDialogVisible" :title="editingId ? '编辑Agent' : '新增Agent'" width="600px">
+    <ReDialog v-model="editDialogVisible" :title="editingId ? '编辑Agent' : '新增Agent'" width="600px">
       <el-form :model="editForm" label-width="120px">
         <el-form-item label="Agent名称">
           <el-input v-model="editForm.name" placeholder="请输入Agent名称" />
@@ -116,10 +116,10 @@
         <el-button @click="editDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveAgent" :loading="saving">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 工作流配置弹窗 -->
-    <el-dialog v-model="configDialogVisible" :title="`工作流配置 - ${currentAgent?.name || ''}`" width="900px" top="5vh">
+    <ReDialog v-model="configDialogVisible" :title="`工作流配置 - ${currentAgent?.name || ''}`" width="900px" top="5vh">
       <el-tabs v-model="configTab" type="border-card">
         <!-- 子Agent管理 -->
         <el-tab-pane label="子Agent管理" name="sub-agents">
@@ -194,10 +194,10 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 子Agent编辑弹窗 -->
-    <el-dialog v-model="subAgentDialogVisible" :title="editingSubId ? '编辑子Agent' : '添加子Agent'" width="500px">
+    <ReDialog v-model="subAgentDialogVisible" :title="editingSubId ? '编辑子Agent' : '添加子Agent'" width="500px">
       <el-form :model="subAgentForm" label-width="100px">
         <el-form-item label="子Agent名称">
           <el-input v-model="subAgentForm.name" placeholder="请输入子Agent名称" />
@@ -219,10 +219,10 @@
         <el-button @click="subAgentDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveSubAgent" :loading="savingSubAgent">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 安装智能体 -->
-    <el-dialog v-model="installDialogVisible" title="安装智能体" width="720px" top="6vh">
+    <ReDialog v-model="installDialogVisible" title="安装智能体" width="720px" top="6vh">
       <el-tabs v-model="installTab">
         <!-- 市场 -->
         <el-tab-pane label="市场" name="market">
@@ -267,7 +267,7 @@
           <div class="install-hint" v-if="installHint">{{ installHint }}</div>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -276,6 +276,7 @@ import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh, Download } from '@element-plus/icons-vue';
 import { agentApi } from '@/services/javaApi';
+import ReDialog from '@repo/ui/re-dialog';
 
 // ==================== Agent列表 ====================
 const agentList = ref<any[]>([]);

@@ -122,7 +122,7 @@
     </div>
 
     <!-- 新建实例对话框 -->
-    <el-dialog v-model="showCreateDialog" title="新建服务实例" width="min(500px, 92vw)" append-to-body>
+    <ReDialog v-model="showCreateDialog" title="新建服务实例" width="min(500px, 92vw)" append-to-body>
       <el-form :model="newInstance" label-width="100px">
         <el-form-item label="名称">
           <el-input v-model="newInstance.name" placeholder="如：我的AGNES服务" />
@@ -143,7 +143,7 @@
         <el-button @click="showCreateDialog = false">取消</el-button>
         <el-button type="primary" @click="createInstance">创建</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -155,7 +155,8 @@ import { createClient, v2Http } from '@/framework/context'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import { ArrowClockwise24Regular } from '@vicons/fluent'
 
-const http = createClient(v2Http, { unwrap: false })
+
+import ReDialog from '@repo/ui/re-dialog';const http = createClient(v2Http, { unwrap: false })
 const router = useRouter()
 
 const toBool = (v: any) => v === 1 || v === true

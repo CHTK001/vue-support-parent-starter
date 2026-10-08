@@ -166,7 +166,7 @@
     </ReTable>
 
     <!-- 新建/编辑对话框：一个采集任务 = 一个数据来源 + 前置/入库处理器 + 一个调度任务 -->
-    <el-dialog v-model="dialogVisible" :title="form.collectTaskId ? '编辑采集任务' : '新建采集任务'" width="880" top="6vh" destroy-on-close>
+    <ReDialog v-model="dialogVisible" :title="form.collectTaskId ? '编辑采集任务' : '新建采集任务'" width="880" top="6vh" destroy-on-close>
       <el-form :model="form" label-width="100" label-position="right">
         <el-form-item label="任务名称" required>
           <el-input v-model="form.collectTaskName" placeholder="如：高中物理选择题-百度题库" maxlength="100" show-word-limit />
@@ -339,10 +339,10 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitForm" :loading="saving">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 前置处理器配置弹窗（必填）：JSONPath → 输出名，一行一个 -->
-    <el-dialog v-model="preDialogVisible" title="前置处理器（字段映射：JSONPath → 输出名）" width="800" append-to-body>
+    <ReDialog v-model="preDialogVisible" title="前置处理器（字段映射：JSONPath → 输出名）" width="800" append-to-body>
       <div class="proc-tip">
         key 填 <b>JSONPath</b>，value 填<b>输出给入库的字段名</b>；路径里的 <code>[*]</code> 会自动展开成「一行一个」
       </div>
@@ -394,10 +394,10 @@
         <el-button @click="preDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmPre">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 入库处理器配置弹窗（必填）：key → 数据库列 -->
-    <el-dialog v-model="impDialogVisible" title="入库处理器（key → 数据库列）" width="880" append-to-body>
+    <ReDialog v-model="impDialogVisible" title="入库处理器（key → 数据库列）" width="880" append-to-body>
       <el-form label-width="90">
         <el-row :gutter="16">
           <el-col :span="12">
@@ -461,10 +461,10 @@
         <el-button @click="impDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmImp">确定</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 采集日志对话框 -->
-    <el-dialog v-model="logDialogVisible" :title="`执行日志 - ${logTaskName}`" width="960" destroy-on-close>
+    <ReDialog v-model="logDialogVisible" :title="`执行日志 - ${logTaskName}`" width="960" destroy-on-close>
       <ReTable
         :loader="loadLogs"
         :params="logParams"
@@ -505,7 +505,7 @@
           </template>
         </ReTableColumn>
       </ReTable>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -517,6 +517,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { CollectMeta, CollectTask, CollectTaskForm, CollectDbTable } from "../api/types";
 import { createPageLoader, numParam, pageLoadError, strParam } from "../api/pageLoader";
 import { formatDuration } from "@repo/ui/re-time";
+import ReDialog from "@repo/ui/re-dialog";
 
 /** 默认公开成语词库（约 3 万条，含 拼音/释义/出处/例句），页面默认填入，不留空 */
 const IDIOM_CORPUS_DEFAULT = "https://cdn.jsdelivr.net/gh/pwxcoo/chinese-xinhua@master/data/idiom.json";

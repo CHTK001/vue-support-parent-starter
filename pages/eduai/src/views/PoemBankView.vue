@@ -185,7 +185,7 @@
       </div>
     </el-card>
 
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       width="1180px"
       top="5vh"
@@ -345,7 +345,7 @@
           </template>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -366,6 +366,7 @@ import type { Poem } from "../api/types";
 import ScPoemPreview from "../components/ScPoemPreview.vue";
 import { DYNASTY_OPTIONS, POEM_TAG_OPTIONS } from "../constants/dimensions";
 import { flattenPreview, parseTags } from "../utils/poemText";
+import ReDialog from "@repo/ui/re-dialog";
 
 /** 学段与对应年级（与后端入库值保持一致） */
 const GRADE_LEVELS = ["小学", "初中", "高中", "大学"] as const;

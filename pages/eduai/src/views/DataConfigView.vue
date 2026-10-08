@@ -329,7 +329,7 @@
     </el-card>
 
     <!-- 新增/编辑学科（对齐原型） -->
-    <el-dialog
+    <ReDialog
       v-model="subjectDialogVisible"
       width="560px"
       class="card-dialog subject-dialog"
@@ -449,10 +449,10 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 新增/编辑年级（对齐原型） -->
-    <el-dialog
+    <ReDialog
       v-model="gradeDialogVisible"
       width="560px"
       class="card-dialog subject-dialog grade-dialog"
@@ -541,10 +541,10 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 新增/编辑班级 -->
-    <el-dialog
+    <ReDialog
       v-model="classDialogVisible"
       width="560px"
       class="card-dialog subject-dialog grade-dialog"
@@ -614,10 +614,10 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 新增/编辑组卷模板 -->
-    <el-dialog
+    <ReDialog
       v-model="templateDialogVisible"
       width="640px"
       class="card-dialog subject-dialog template-dialog"
@@ -701,7 +701,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -742,6 +742,7 @@ import type { Component } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
+import ReDialog from "@repo/ui/re-dialog";
 
 const FALLBACK_GRADE_LEVELS: GradeLevelOption[] = [
   { value: "PRIMARY", label: "小学" },

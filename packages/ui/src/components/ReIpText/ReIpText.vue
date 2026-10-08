@@ -12,9 +12,16 @@
  *   <ReIpText ip="114.114.114.114" address="南京" icon="location" />
  *   <ReIpText ip="114.114.114.114" :clickable="true" />
  */
-import { ref, computed, onMounted, watch } from "vue";
-import { ElDialog, ElTag } from "element-plus";
+import {
+  ref,
+  computed,
+  onMounted,
+  watch } from "vue";
+import { ElDialog,
+  ElTag,
+} from "element-plus";
 import { getApiHttp, isCapabilityPathEnabled, IP_LOOKUP_PATH, type ApiResult } from "@repo/core";
+import ReDialog from "../ReDialog";
 
 const props = withDefaults(
   defineProps<{
@@ -173,14 +180,14 @@ onMounted(resolve);
     </span>
   </span>
 
-  <ElDialog v-if="clickable" v-model="dialogVisible" title="IP 详情" width="400px" :close-on-click-modal="true">
+  <ReDialog v-if="clickable" v-model="dialogVisible" title="IP 详情" width="400px" :close-on-click-modal="true">
     <div class="re-ip-text__detail">
       <div v-for="(val, key) in detailData" :key="key" class="re-ip-text__detail-row">
         <span class="re-ip-text__detail-label">{{ key }}</span>
         <span class="re-ip-text__detail-value">{{ val }}</span>
       </div>
     </div>
-  </ElDialog>
+  </ReDialog>
 </template>
 
 <style scoped>

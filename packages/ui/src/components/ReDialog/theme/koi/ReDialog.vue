@@ -203,6 +203,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 <template>
   <ElDialog
+    v-bind="$attrs"
     class="koi-dialog-shell"
     :class="{ 'is-headless': headless, 'koi-dialog-compact': compact }"
     v-model="localOpen"

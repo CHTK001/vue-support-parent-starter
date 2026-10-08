@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ReDialog
     :model-value="visible"
     :title="'「' + widget.title + '」设置'"
     width="580px"
@@ -139,7 +139,7 @@
         <el-button type="primary" @click="handleSave">保存</el-button>
       </div>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts" name="WidgetSettingsDialog">
@@ -155,6 +155,7 @@ import {
   type WidgetScrollDir,
   type WidgetShadowLevel,
 } from "../widgets";
+import ReDialog from "@repo/ui/re-dialog";
 
 const props = defineProps<{
   visible: boolean;
