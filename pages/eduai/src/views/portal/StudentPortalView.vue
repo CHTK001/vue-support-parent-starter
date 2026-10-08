@@ -734,18 +734,24 @@ onMounted(() => {
 }
 
 /*
- * 右上角「修改密码」入口。
+ * 「修改密码」入口（右下角浮动胶囊）。
  *
- * <p>原先这个按钮**一条样式都没有**（.portal-pwd / .portal-pwd__btn 都不在样式表里），
- * 于是浏览器按原生 button 渲染 —— 用户看到的正是「一个突兀的原生按钮」。
- * 这里补成与学生端一致的主色描边胶囊。</p>
+ * <p>原放在右上角（absolute top:0 right:0）：但舞台首页 `.pp` 是整屏
+ * `position:fixed; z-index:2000` 的层（用于盖住管理后台外壳），它连同页头
+ * 的统计药丸（本周学习/星星奖励/连续打卡）整层绘制在本按钮之上——
+ * 实测 elementFromPoint 命中的是 pp-pill，Playwright 真实点击 5s 超时，
+ * 用户同样看不到、点不到（r39 全站点击扫描发现，截图取证）。</p>
+ *
+ * <p>修复：① z-index 提到舞台首页之上（2010>2000）；② 挪到右下角，
+ * 与页头药丸/标题区彻底错开，移动端药丸换行也不会再撞上；
+ * 底部留 safe-area，iOS 圆角屏不贴边。</p>
  */
 .portal-pwd {
   position: absolute;
-  top: 0;
   right: 0;
-  z-index: 10;
-  padding: 12px 16px;
+  bottom: 0;
+  z-index: 2010;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
 }
 .portal-pwd__btn {
   display: inline-flex;
