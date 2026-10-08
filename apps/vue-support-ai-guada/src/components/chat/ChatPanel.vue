@@ -355,7 +355,18 @@ function handleScroll(event: any) {
       needScrollToBottom.value = true;
     }
     lastScrollTop = scrollTop;
-    updateScrollButtonVisibility();
+    // 直接用本次滚动的实测 isAtBottom（5px 容差）决定按钮显隐：
+    // 原实现走 debounce 里再读一次容器的 isAtBottom，实测会出现「已经在底部了按钮还在」
+    // （用户报障 2.2）。这里以本次实测为准，到底即隐藏。
+    if (isAtBottom) {
+      showScrollToBottomBtn.value = false;
+      shouldButtonBreathe.value = false;
+    } else if (isStreaming.value) {
+      showScrollToBottomBtn.value = true;
+      shouldButtonBreathe.value = true;
+    } else {
+      showScrollToBottomBtn.value = false;
+    }
     scrollTicking = false;
   });
 }
