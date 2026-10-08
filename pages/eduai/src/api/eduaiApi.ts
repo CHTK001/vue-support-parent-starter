@@ -609,6 +609,12 @@ export const eduaiApi = {
       .get("/v2/edu/poem/list")
       .query(params)
       .then<Poem[]>(unwrap),
+  /** 分页查询古诗（服务端分页：关键字/学段过滤 + 全库 total，替代前端 count=5000 全量拉取） */
+  pagePoems: (params: { keyword?: string; gradeLevel?: string; grade?: string; pageNum?: number; pageSize?: number }) =>
+    http()
+      .get("/v2/edu/poem/page")
+      .query(params)
+      .then<PageResult<Poem>>(unwrap),
   generatePoemGame: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
     http()
       .get("/v2/edu/poem/game/generate")

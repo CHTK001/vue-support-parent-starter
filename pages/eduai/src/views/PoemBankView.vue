@@ -382,8 +382,6 @@ const GRADES_BY_LEVEL: Record<string, string[]> = {
 const loading = ref(false);
 const saving = ref(false);
 const rows = ref<Poem[]>([]);
-/** 筛选后的全量结果（不只是当前页），统计卡按它算，否则分页后卡片会跟着页码变 */
-const matched = ref<Poem[]>([]);
 const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -465,39 +463,40 @@ const formTags = ref<string[]>([]);
 const translationInline = ref(true);
 const form = reactive<Partial<Poem>>(emptyForm());
 
-/** 收录作者数：按筛选后的全量去重，不是当前页 */
-const authorCount = computed(() => new Set(matched.value.map((r) => r.poemAuthor).filter(Boolean)).size);
-/** 可游戏篇目：按筛选后的全量统计正文含两句及以上的诗，不是当前页 */
-const playableCount = computed(() => matched.value.filter((r) => splitCount(r.poemContent) >= 2).length);
-/** 已补译文的篇数：按筛选后的全量统计 */
-const translatedCount = computed(() => matched.value.filter((r) => Boolean(r.poemTranslation?.trim())).length);
+/** 收录作者数：按当前页去重（服务端分页后前端不再持有全量，卡片为本页口径） */
+const authorCount = computed(() => new Set(rows.value.map((r) => r.poemAuthor).filter(Boolean)).size);
+/** 可游戏篇目：当前页正文含两句及以上的诗 */
+const playableCount = computed(() => rows.value.filter((r) => splitCount(r.poemContent) >= 2).length);
+/** 已补译文的篇数：当前页口径 */
+const translatedCount = computed(() => rows.value.filter((r) => Boolean(r.poemTranslation?.trim())).length);
 
 /**
  * 统计卡（与成语页同构：标题 / 数值 / 提示 + 右上角图标底色）。
- * 数值一律取 matched（筛选后全量），不是当前页。
+ * 「古诗总数」取服务端全库 total（按筛选条件）；其余三张为**本页**口径 ——
+ * 服务端分页后前端只持有当前页，不再有全量数据可算。
  */
 const statCards = computed(() => [
-  { title: "古诗总数", value: total.value, icon: Reading, bg: "var(--el-color-primary)", hint: "按筛选条件" },
+  { title: "古诗总数", value: total.value, icon: Reading, bg: "var(--el-color-primary)", hint: "全库，按筛选条件" },
   {
     title: "可游戏篇目",
     value: playableCount.value,
     icon: Plus,
     bg: "var(--el-color-success)",
-    hint: "正文含两句及以上",
+    hint: "本页正文含两句及以上",
   },
   {
     title: "收录作者",
     value: authorCount.value,
     icon: EditPen,
     bg: "var(--el-color-warning)",
-    hint: "去重后数量",
+    hint: "本页去重数量",
   },
   {
     title: "已有译文",
     value: translatedCount.value,
     icon: View,
     bg: "var(--el-color-success)",
-    hint: "可对照学习",
+    hint: "本页可对照学习",
   },
 ]);
 const gradeOptions = computed(() => {
@@ -532,19 +531,18 @@ function splitCount(content?: string) {
 async function load() {
   loading.value = true;
   try {
-    // 取较大数量后在本地做分页与关键字过滤，避免后端额外加接口
-    const list = (await eduaiApi.listPoems({ gradeLevel: search.gradeLevel || undefined, count: 5000 })) ?? [];
-    const kw = search.keyword.trim();
-    const filtered = kw
-      ? list.filter((p) => (p.poemTitle ?? "").includes(kw) || (p.poemAuthor ?? "").includes(kw))
-      : list;
-    total.value = filtered.length;
-    matched.value = filtered;
-    const start = (pageNo.value - 1) * pageSize.value;
-    rows.value = filtered.slice(start, start + pageSize.value);
+    // 服务端分页：全唐诗补采后库内数万首，前端全量拉取（旧实现 count=5000）
+    // 会撞上「共 5000 条」天花板；关键字与学段过滤一并交给后端，total 即全库口径。
+    const res = await eduaiApi.pagePoems({
+      keyword: search.keyword.trim() || undefined,
+      gradeLevel: search.gradeLevel || undefined,
+      pageNum: pageNo.value,
+      pageSize: pageSize.value,
+    });
+    rows.value = res?.data ?? [];
+    total.value = res?.total ?? 0;
   } catch {
     rows.value = [];
-    matched.value = [];
     total.value = 0;
     ElMessage.error("加载古诗失败");
   } finally {
