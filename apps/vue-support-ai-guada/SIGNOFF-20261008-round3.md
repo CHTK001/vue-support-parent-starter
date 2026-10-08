@@ -51,4 +51,12 @@
 | **effectLevel 模型侧写/读** | 已验证 | `PUT /api/provider-models{provider_id:agnes, model:{model:agnes-2.0-flash, thinking_efforts:[low,medium,high,max]}}` → 读回 `['low','medium','high','max']`；DB `capabilities[].thinking_efforts` 同上；`alias` 等字段未被破坏 |
 | **effectLevel 运行链路** | 已验证 | `thinkingEffort=high` → 日志「应用思考强度档位」+1；`default` → +0 |
 | 分块 runner 严校验 | 已加强 | 报告合格判据由"字节数"改为**核对报告内路由条数**（防半截报告） |
-| 本次新增提交 | 本地 | `c1293d50a`（刷新丢回复修复 + 探针 + runner 严校验） |
+| 本次新增提交 | 本地 | `c1293d50a`（刷新丢回复修复 + 探针 + runner 严校验）、`a0c128497`（runner 每块超时） |
+
+## 7. 验收基建修正（同一晚，为让 25 路由结论可信）
+
+| 问题 | 现象/证据 | 修正 |
+| --- | --- | --- |
+| 报告合格判据太松 | 此前按"字节数 ≥1KB"接受，实测这些报告**只含 1 条路由**（21KB 也可能只是 1 条路由的明细）→ 那些"✓"不作数 | 改为**核对报告内 `routes` 条数 ≥ 本块路由数**；实测日志已出现 `report routes=1 < 5 -> retry`（校验生效） |
+| runner 无每块超时 | 最终轮 chunk 0 挂在 `/characters`：`run.log` 只有 2 行、报告停更、**进程却一直活着** → 永久卡住 | 新增 `-TimeoutSec`（默认 720s），超时杀掉重试（提交 `a0c128497`） |
+| 分块粒度不适配"被杀窗口" | 实测今天外部会话杀 node 的间隔**约 2 分钟**，而 5 条/块需 7 分钟 → 每轮必被腰斩、只收到 ~1 条路由 | 最终轮改 **每块 2 条**（约 2 分钟）+ 超时 480s + 最多 14 次重试，靠重试补齐 25 条 |
