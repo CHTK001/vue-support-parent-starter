@@ -71,8 +71,8 @@
         <span v-if="file.totalChunks">{{ file.totalChunks }} {{ t('knowledge.file.chunks') }}</span>
       </div>
       <div class="flex items-center gap-1 shrink-0" @click.stop>
-        <ReButton link :icon="RefreshRight" @click="handleRetry">{{ t('knowledge.file.retry') }}</ReButton>
-        <ReButton link type="danger" :icon="Delete" @click="handleDelete">{{ t('common.delete') }}</ReButton>
+        <ReSquareButton layout="square" size="small" :icon="RefreshRight" :tip="t('knowledge.file.retry')" @click="handleRetry" />
+        <ReSquareButton layout="square" size="small" type="danger" :icon="Delete" :tip="t('common.delete')" @click="handleDelete" />
       </div>
     </div>
   </div>
@@ -94,6 +94,7 @@ import { RefreshRight, Delete } from '@element-plus/icons-vue'
 import { KBFile } from '@/stores/knowledgeBase'
 import ReTag from '@/components/re/ReTag.vue'
 import ReButton from '@/components/re/ReButton.vue'
+import ReSquareButton from '@repo/ui/re-button'
 
 // 导入所有文件图标
 import fileCodeIcon from '@/assets/file_code.svg'

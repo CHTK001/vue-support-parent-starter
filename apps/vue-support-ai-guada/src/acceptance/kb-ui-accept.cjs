@@ -101,6 +101,25 @@ const clickNav = async (p, name) => {
   const R = { pass: 0, fail: 0, checks: [], pageErrors: [], consoleErrors: [], failedRequests: [] };
   const ok = (n, c, e) => { c ? (R.pass++, R.checks.push('PASS ' + n)) : (R.fail++, R.checks.push('FAIL ' + n + (e ? ' :: ' + e : ''))); };
 
+  /**
+   * 直连后端（带登录令牌），用于造/删验收临时数据与轮询断言。
+   */
+  const apiJson = async (method, path, body) => {
+    try {
+      const r = await fetch(BASE + path, {
+        method,
+        headers: { Authorization: 'Bearer ' + RAW_TOKEN, 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const t = await r.text();
+      let j = null;
+      try { j = JSON.parse(t); } catch { /* 非 JSON 体 */ }
+      return { status: r.status, json: j };
+    } catch (e) {
+      return { status: 0, json: null, err: String(e.message) };
+    }
+  };
+
   if (!(await login(p))) { console.log('LOGIN FAIL'); await b.close(); process.exit(3); }
   if (!KID) KID = await discoverKbId(p);
   R.kbId = KID;
@@ -114,6 +133,32 @@ const clickNav = async (p, name) => {
   }));
   ok('列表页 4 张统计卡', list.statCards === 4);
   ok('列表页 知识库卡片 > 0', list.kbCards > 0);
+
+  // A1) 列表页「我的知识库」卡片：方形 编辑/删除 按钮（内建 el-tooltip）
+  const lb = await p.evaluate(() => {
+    const cards = [...document.querySelectorAll('.re-surface.cursor-pointer')];
+    const btns = cards.flatMap((c) => [...c.querySelectorAll('button.rs-btn')]);
+    const square = btns.filter((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && Math.abs(r.width - r.height) <= 4; });
+    const tipWrapped = btns.filter((x) => !!x.closest('.re-button__tip-wrap')).length;
+    return { cards: cards.length, btns: btns.length, square: square.length, tipWrapped };
+  });
+  ok('列表 知识库卡片有方形编辑/删除按钮', lb.btns >= 2 && lb.square >= 2, JSON.stringify(lb));
+  ok('列表 方形按钮 tip 内建(el-tooltip 外壳)', lb.tipWrapped >= 2, JSON.stringify(lb));
+
+  // A2) 点开数量徽章 → 弹层里每个库也有方形 编辑/删除
+  await p.locator('.re-card-extra .el-tag').first().click().catch(() => {});
+  await p.waitForTimeout(1600);
+  const pop = await p.evaluate(() => {
+    const pv = [...document.querySelectorAll('.el-popover, .el-popper')].filter((x) => x.offsetParent !== null).pop();
+    if (!pv) return { open: false, btns: 0, square: 0 };
+    const btns = [...pv.querySelectorAll('button.rs-btn')];
+    const square = btns.filter((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && Math.abs(r.width - r.height) <= 4; });
+    return { open: true, btns: btns.length, square: square.length };
+  });
+  ok('列表 弹层知识库列表有方形编辑/删除', pop.open && pop.btns >= 2 && pop.square >= 2, JSON.stringify(pop));
+  await p.screenshot({ path: OUT + '\\F1b-list-popover.png' });
+  await p.keyboard.press('Escape').catch(() => {});
+  await p.waitForTimeout(600);
 
   // B) 新建弹框：无后端不存在的选项
   await p.locator('.re-button:has-text("空白创建"), button:has-text("空白创建")').first().click().catch(() => {});
@@ -148,6 +193,25 @@ const clickNav = async (p, name) => {
   }
   await p.keyboard.press('Escape').catch(() => {});
   await p.waitForTimeout(800);
+
+  // C3) 详情页头部：刷新/设置/删除 三个方形按钮 + 内建 tip + 悬停出提示
+  const dh = await p.evaluate(() => {
+    const box = document.querySelector('.kb-detail__actions');
+    if (!box) return null;
+    const btns = [...box.querySelectorAll('button.rs-btn')];
+    const square = btns.filter((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && Math.abs(r.width - r.height) <= 4; });
+    return { total: btns.length, square: square.length, tipWrapped: btns.filter((x) => !!x.closest('.re-button__tip-wrap')).length };
+  });
+  ok('详情头部 3 个方形按钮(刷新/设置/删除)', !!dh && dh.total === 3 && dh.square === 3, JSON.stringify(dh));
+  ok('详情头部 方形按钮 tip 内建', !!dh && dh.tipWrapped === 3, JSON.stringify(dh));
+  await p.locator('.kb-detail__actions button.rs-btn').last().hover().catch(() => {});
+  await p.waitForTimeout(1400);
+  const tipText = await p.evaluate(() => {
+    const tips = [...document.querySelectorAll('.el-popper[role="tooltip"], .el-popper.is-dark')].filter((x) => x.offsetParent !== null);
+    return tips.map((x) => (x.innerText || '').trim()).join(' | ');
+  });
+  ok('详情头部 悬停显示 tip 文案(删除知识库)', /删除知识库/.test(tipText), tipText.slice(0, 100));
+  await p.screenshot({ path: OUT + '\\F2d-header-square.png' });
 
   // C1) 概览页新内容：实体/关系分布 + Top 实体 + 快捷操作
   await clickNav(p, '概览');
@@ -210,6 +274,78 @@ const clickNav = async (p, name) => {
   }
   ok('文档标题单行(h<=30, nowrap)', !!h2 && h2.h <= 30 && h2.ws === 'nowrap', JSON.stringify(h2));
   ok('文档标题未被裁剪', !!h2 && h2.clipped === false, JSON.stringify(h2));
+
+  // E) 删除功能 E2E：造 2 个临时库，分别从「列表弹层」与「详情页头部」删除，断言后端已消失
+  const mkKb = async (label) => {
+    const name = label + String(Date.now()).slice(-5);
+    const res = await apiJson('POST', '/api/knowledge/bases', { name, description: '自动化删除验收临时库' });
+    const id = res.json?.data?.knowledge_base_id || res.json?.data?.id || '';
+    return { name, id };
+  };
+  const isGone = async (id) => {
+    if (!id) return false;
+    const res = await apiJson('GET', '/api/knowledge/bases');
+    const rows = res.json?.data || [];
+    return !rows.some((x) => (x.knowledge_base_id || x.id) === id);
+  };
+
+  // E1) 列表页弹层删除
+  const t1 = await mkKb('UI删除验收A');
+  ok('临时库A已创建', !!t1.id, JSON.stringify(t1));
+  await p.goto(BASE + '/knowledge-base', { waitUntil: 'domcontentloaded', timeout: 180000 });
+  await p.waitForTimeout(6500);
+  await p.locator('.re-card-extra .el-tag').first().click().catch(() => {});
+  await p.waitForTimeout(1600);
+  let clicked1 = false;
+  for (let i = 0; i < 10 && !clicked1; i++) {
+    clicked1 = await p.evaluate((nm) => {
+      const pv = [...document.querySelectorAll('.el-popover, .el-popper')].filter((x) => x.offsetParent !== null).pop();
+      if (!pv) return false;
+      const nameBtn = [...pv.querySelectorAll('button')].find((b) => (b.innerText || '').trim().startsWith(nm));
+      if (!nameBtn) return false;
+      const row = nameBtn.parentElement;
+      const del = row.querySelector('button.rs-btn--danger') || [...row.querySelectorAll('button.rs-btn')].pop();
+      if (!del) return false;
+      del.click();
+      return true;
+    }, t1.name);
+    if (!clicked1) await p.waitForTimeout(1000);
+  }
+  ok('定位并点击临时库A的删除按钮', clicked1, t1.name);
+  await p.waitForTimeout(1300);
+  const confirmed1 = await p.locator('.el-message-box__btns .el-button--primary').last().click().then(() => true).catch(() => false);
+  ok('列表删除确认框已确认', confirmed1);
+  let removed1 = false;
+  for (let i = 0; i < 12 && !removed1; i++) { removed1 = await isGone(t1.id); if (!removed1) await p.waitForTimeout(1500); }
+  ok('列表弹层删除后后端已消失', removed1, t1.id);
+
+  // E2) 详情页头部删除
+  const t2 = await mkKb('UI删除验收B');
+  ok('临时库B已创建', !!t2.id, JSON.stringify(t2));
+  await p.goto(BASE + '/knowledge-base/' + t2.id, { waitUntil: 'domcontentloaded', timeout: 180000 });
+  await p.waitForTimeout(6500);
+  await p.locator('.kb-detail__actions button.rs-btn').last().click().catch(() => {});
+  await p.waitForTimeout(1300);
+  const confirmed2 = await p.locator('.el-message-box__btns .el-button--primary').last().click().then(() => true).catch(() => false);
+  ok('详情头部删除确认框已确认', confirmed2);
+  let removed2 = false;
+  for (let i = 0; i < 12 && !removed2; i++) { removed2 = await isGone(t2.id); if (!removed2) await p.waitForTimeout(1500); }
+  ok('详情头部删除后后端已消失', removed2, t2.id);
+  // 删除后应回到列表页（异步跳转，有界轮询）
+  let backOnList = false;
+  let backDiag = '';
+  for (let i = 0; i < 10 && !backOnList; i++) {
+    const d = await p.evaluate(() => ({
+      stat: document.querySelectorAll('.re-stat-card').length,
+      detail: !!document.querySelector('.kb-detail__actions'),
+      path: location.pathname,
+    })).catch(() => ({ stat: -1, detail: true, path: '?' }));
+    backDiag = JSON.stringify(d);
+    backOnList = d.stat > 0 && d.detail === false;
+    if (!backOnList) await p.waitForTimeout(1500);
+  }
+  ok('详情头部删除后回到列表页', backOnList, backDiag);
+  await p.screenshot({ path: OUT + '\\F4-deleted-back-to-list.png' });
 
   // D) 模板页
   await p.goto(BASE + '/knowledge-base', { waitUntil: 'domcontentloaded', timeout: 180000 });

@@ -23,13 +23,23 @@
                   <div
                     v-for="kb in bases"
                     :key="kb.id"
-                    class="flex flex-col gap-0.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--rm-bg-subtle)]"
-                    @click="emit('open', { id: kb.id })"
+                    class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--rm-bg-subtle)]"
                   >
-                    <span class="text-sm font-medium truncate">{{ kb.name }}</span>
-                    <span class="text-xs text-[var(--rm-text-disabled)]">
-                      {{ kb.fileCount }} 篇文档 · {{ kb.ready ? '已就绪' : '待索引' }}
-                    </span>
+                    <button
+                      type="button"
+                      class="min-w-0 flex-1 text-left cursor-pointer"
+                      :aria-label="`打开知识库 ${kb.name}`"
+                      @click="emit('open', { id: kb.id })"
+                    >
+                      <span class="block text-sm font-medium truncate">{{ kb.name }}</span>
+                      <span class="block text-xs text-[var(--rm-text-disabled)]">
+                        {{ kb.fileCount }} 篇文档 · {{ kb.ready ? '已就绪' : '待索引' }}
+                      </span>
+                    </button>
+                    <div class="flex shrink-0 items-center">
+                      <ReSquareButton layout="square" size="small" :icon="Edit" tip="编辑知识库" @click.stop="onEdit(kb)" />
+                      <ReSquareButton layout="square" size="small" type="danger" :icon="Delete" tip="删除知识库" @click.stop="onRemove(kb)" />
+                    </div>
                   </div>
                 </div>
               </el-popover>
@@ -47,12 +57,16 @@
                   <img v-if="kb.cover" :src="kb.cover" :alt="kb.name" class="w-full h-full object-cover" />
                   <template v-else>{{ initialsOf(kb.name) }}</template>
                 </span>
-                <span class="min-w-0 flex flex-col">
+                <span class="min-w-0 flex-1 flex flex-col">
                   <span class="text-sm font-medium truncate">{{ kb.name }}</span>
                   <span class="text-xs text-[var(--rm-text-disabled)]">
                     {{ kb.fileCount }} 篇文档 · {{ kb.ready ? '已就绪' : '待索引' }}
                   </span>
                 </span>
+                <div class="flex shrink-0 items-center" @click.stop>
+                  <ReSquareButton layout="square" size="small" :icon="Edit" tip="编辑知识库" @click="onEdit(kb)" />
+                  <ReSquareButton layout="square" size="small" type="danger" :icon="Delete" tip="删除知识库" @click="onRemove(kb)" />
+                </div>
               </div>
             </div>
           </ReCard>
@@ -198,11 +212,12 @@
 import { computed, reactive, ref } from 'vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReStatCard from '@repo/ui/re-stat-card'
-import { Collection, Document, Location, Share } from '@element-plus/icons-vue'
+import { Collection, Document, Location, Share, Edit, Delete } from '@element-plus/icons-vue'
 import ReCard from '@/components/re/ReCard.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReSquareButton from '@repo/ui/re-button'
 import heroIllustration from '@/assets/kb/kb-empty-hero.png'
 
 /** 最近活动条目 */
@@ -251,6 +266,8 @@ interface BaseItem {
   relationCount: number
   /** 是否已索引 */
   ready: boolean
+  /** 是否公开（用于编辑弹框回填） */
+  isPublic: boolean
 }
 
 const props = defineProps<{
@@ -339,6 +356,21 @@ function useTemplate(t: TemplateItem) {
 function onToTemplate() {
   modalVisible.value = false
   emit('all-templates')
+}
+
+/** 编辑当前知识库：上抛 update（由页面复用既有编辑流程） */
+function onEdit(kb: BaseItem) {
+  emit('update', {
+    id: kb.id,
+    name: kb.name,
+    description: kb.description ?? '',
+    isPublic: kb.isPublic,
+  })
+}
+
+/** 删除当前知识库：上抛 remove */
+function onRemove(kb: BaseItem) {
+  emit('remove', { id: kb.id })
 }
 
 /** 提交新建 */

@@ -258,37 +258,26 @@
 
     <!-- 视图模式：知识库详情 -->
     <div v-else class="flex-1 flex flex-col overflow-hidden">
-      <!-- 详情页头：与管理页（Services/AppKeys）同构 —— 左 返回+标题/副标题，右 动作。
-           水平 Tab 已收敛为左侧二级菜单（KBMenu），不再保留隐藏的第二套导航 -->
+      <!-- 详情页头：左 返回（图标钮）+ 标题/副标题，右 图标动作组。
+           全站图标按钮统一「无底色 + 悬浮提示」形态（.kb-btn），不再出现文字按钮 -->
       <div class="shrink-0 kb-detail__header">
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3 flex-1 min-w-0">
-            <el-button link @click="backToList"
-              class="flex items-center gap-1 kb-back font-medium">
-              <el-icon :size="22">
-                <ArrowLeft24Filled />
-              </el-icon>
-              <span class="text-base">{{ t('knowledge.page.backToList') }}</span>
-            </el-button>
-            <el-divider direction="vertical" />
-            <div class="min-w-0 kb-detail__titlebox">
-              <h1 class="kb-detail__title">{{ currentKB?.name }}</h1>
-              <p class="kb-detail__subtitle">
-                文档 {{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }} 篇 ·
-                实体 {{ fmtCount(countOf(currentKB?.id || '', 'entity_count')) }} ·
-                关系 {{ fmtCount(countOf(currentKB?.id || '', 'relation_count')) }}
-              </p>
-            </div>
-          </div>
-          <div class="kb-detail__actions">
-            <el-button :icon="Refresh" :loading="detailRefreshing" @click="refreshDetail">
-              刷新
-            </el-button>
-            <el-button type="primary" :icon="Setting" :disabled="!canEditCurrent"
-              @click="handleMenuAction('settings')">
-              设置
-            </el-button>
-          </div>
+        <ReSquareButton layout="square" class="kb-btn" :icon="ArrowLeft24Filled" tip="返回知识库列表" @click="backToList" />
+        <div class="min-w-0 kb-detail__titlebox">
+          <h1 class="kb-detail__title">{{ currentKB?.name }}</h1>
+          <p class="kb-detail__subtitle">
+            文档 {{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }} 篇 ·
+            实体 {{ fmtCount(countOf(currentKB?.id || '', 'entity_count')) }} ·
+            关系 {{ fmtCount(countOf(currentKB?.id || '', 'relation_count')) }}
+          </p>
+        </div>
+        <div class="flex-1" />
+        <div class="kb-detail__actions">
+          <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新"
+            :loading="detailRefreshing" @click="refreshDetail" />
+          <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting" tip="设置"
+            :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
+          <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete" tip="删除知识库"
+            :disabled="!canEditCurrent" @click="handleDeleteFromDetail" />
         </div>
       </div>
       <div class="flex-1 overflow-auto min-h-0 flex flex-col" @scroll="handleScroll">
@@ -302,7 +291,7 @@
             @back="backToList"
           />
 
-          <div v-show="activeTab === 'overview'" class="flex flex-1 flex-col min-h-0 w-full gap-4 p-4 overflow-auto">
+          <div v-show="activeTab === 'overview'" class="kb-pane kb-pane--scroll">
             <!-- 统计卡 -->
             <div class="kb-stats kb-overview__stats">
               <div class="kb-stat re-surface re-surface--dense">
@@ -328,9 +317,9 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div class="kb-ov-grid">
               <!-- 实体类型分布 -->
-              <section class="re-surface re-surface--dense flex flex-col gap-3">
+              <section class="re-surface re-surface--dense kb-ov-card">
                 <div class="flex items-center justify-between gap-2">
                   <h3 class="kb-ov__title">实体类型分布</h3>
                   <ReTag size="small">{{ fmtCount(graphView.entityCount) }} 个实体</ReTag>
@@ -348,7 +337,7 @@
               </section>
 
               <!-- 关系类型分布 -->
-              <section class="re-surface re-surface--dense flex flex-col gap-3">
+              <section class="re-surface re-surface--dense kb-ov-card">
                 <div class="flex items-center justify-between gap-2">
                   <h3 class="kb-ov__title">关系类型分布</h3>
                   <ReTag size="small">{{ fmtCount(graphView.relationCount) }} 条关系</ReTag>
@@ -364,11 +353,9 @@
                 </div>
                 <ReEmpty v-else text="暂无关系，点「知识图谱 → 生成图谱」抽取" />
               </section>
-            </div>
 
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <!-- 关联最多的实体 -->
-              <section class="re-surface re-surface--dense flex flex-col gap-3">
+              <section class="re-surface re-surface--dense kb-ov-card">
                 <h3 class="kb-ov__title">关联最多的实体</h3>
                 <ul v-if="topEntities.length > 0" class="kb-ov__list">
                   <li v-for="(e, i) in topEntities" :key="e.id" class="kb-ov__row" @click="openEntityInGraph(e.name)">
@@ -381,14 +368,14 @@
                 <ReEmpty v-else text="暂无实体" />
               </section>
 
-              <!-- 快捷操作 -->
-              <section class="re-surface re-surface--dense flex flex-col gap-3">
+              <!-- 快捷操作：纯图标动作组 + 悬浮提示 -->
+              <section class="re-surface re-surface--dense kb-ov-card">
                 <h3 class="kb-ov__title">快捷操作</h3>
-                <div class="flex flex-wrap gap-2">
-                  <ReButton type="primary" :icon="UploadFilled" @click="handleMenuSelect('files')">上传文档</ReButton>
-                  <ReButton :icon="Search" @click="handleMenuSelect('search')">检索内容</ReButton>
-                  <ReButton :icon="Connection" @click="handleMenuSelect('graph')">查看图谱</ReButton>
-                  <ReButton :icon="Document" @click="handleMenuSelect('ask')">智能问答</ReButton>
+                <div class="kb-actions">
+                  <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="UploadFilled" tip="上传文档" @click="handleMenuSelect('files')" />
+                  <ReSquareButton layout="square" class="kb-btn" :icon="Search" tip="检索内容" @click="handleMenuSelect('search')" />
+                  <ReSquareButton layout="square" class="kb-btn" :icon="Share" tip="查看图谱" @click="handleMenuSelect('graph')" />
+                  <ReSquareButton layout="square" class="kb-btn" :icon="ChatDotRound" tip="智能问答" @click="handleMenuSelect('ask')" />
                 </div>
                 <p class="kb-ov__hint">
                   统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新。
@@ -397,90 +384,93 @@
             </div>
           </div>
 
-          <div v-show="activeTab === 'files'" class="flex-1 flex flex-col min-h-0">
-            <div class="kb-split">
-              <!-- 左栏：文档 -->
-              <section class="kb-split__docs">
-                <div class="kb-split__head">
-                  <div class="kb-split__title">
-                    <h2>文档</h2>
-                    <span class="kb-split__sub">{{ currentKB?.name }}</span>
-                    <el-tag effect="plain">{{ filesForFilter.length }} 篇</el-tag>
-                  </div>
-                  <!-- 上传入口（仅 owner；他人公开库只读） -->
-                  <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
-                    :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
-                    @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
-                    @folder-created="handleFolderCreated" />
+          <div v-show="activeTab === 'files'" class="kb-split">
+            <!-- 左栏：文档 -->
+            <section class="kb-split__docs">
+              <div class="kb-split__head">
+                <div class="kb-split__title">
+                  <h2>文档</h2>
+                  <el-tag effect="plain" round size="small">{{ filesForFilter.length }} 篇</el-tag>
+                  <span v-if="currentKB?.name" class="kb-split__sub" :title="currentKB?.name">{{ currentKB?.name }}</span>
                 </div>
+                <!-- 上传入口（仅 owner；他人公开库只读）：纯图标方形按钮组 + 悬浮提示 -->
+                <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
+                  :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
+                  @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
+                  @folder-created="handleFolderCreated" />
+              </div>
 
-                <div v-if="!canEditCurrent" class="kb-split__readonly">
-                  {{ t('knowledge.page.readonlyHint') }}
-                </div>
+              <div v-if="!canEditCurrent" class="kb-split__readonly">
+                {{ t('knowledge.page.readonlyHint') }}
+              </div>
 
-                <!-- 状态分栏：全部 / 已索引 / 解析中 / 失败 -->
-                <div class="kb-split__filters">
-                  <button
-                    v-for="f in fileStatusFilters"
-                    :key="f.key"
-                    type="button"
-                    class="kb-split__filter"
-                    :class="{ 'is-active': fileStatusFilter === f.key }"
-                    @click="fileStatusFilter = f.key"
-                  >
-                    {{ f.label }} {{ f.count }}
-                  </button>
-                </div>
+              <!-- 状态分栏：全部 / 已索引 / 解析中 / 失败 -->
+              <div class="kb-split__filters">
+                <button
+                  v-for="f in fileStatusFilters"
+                  :key="f.key"
+                  type="button"
+                  class="kb-split__filter"
+                  :class="{ 'is-active': fileStatusFilter === f.key }"
+                  @click="fileStatusFilter = f.key"
+                >
+                  <span>{{ f.label }}</span>
+                  <i class="kb-split__filter-count">{{ f.count }}</i>
+                </button>
+              </div>
 
-                <!-- 文件列表内容区 -->
-                <div class="kb-split__tree">
-                  <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
-                    :status-filter="fileStatusFilter"
-                    @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
-                    @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
-                </div>
-              </section>
+              <!-- 文件列表内容区 -->
+              <div class="kb-split__tree">
+                <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
+                  :status-filter="fileStatusFilter"
+                  @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
+                  @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
+              </div>
+            </section>
 
-              <!-- 右栏：智能问答 -->
-              <section class="kb-split__ask">
-                <KBAskPanel
-                  :kb-id="currentKB?.id || ''"
-                  :kb-name="currentKB?.name"
-                  :graph-nodes="graphNodes"
-                  :graph-edges="graphEdges"
-                />
-              </section>
-            </div>
-          </div>
-
-          <!-- 搜索 Tab -->
-          <div v-show="activeTab === 'search'" class="flex flex-1 overflow-hidden min-h-0 w-full">
-            <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId" />
-          </div>
-
-          <!-- 关系图谱 Tab：节点/连线由后端 /v2/rag/graph 提供，结构对齐 ReGraphData -->
-          <div v-show="activeTab === 'ask'" class="flex flex-1 flex-col min-h-0 w-full">
-            <section class="kb-split__ask kb-ask-standalone">
+            <!-- 右栏：智能问答 -->
+            <section class="kb-split__ask">
               <KBAskPanel
                 :kb-id="currentKB?.id || ''"
                 :kb-name="currentKB?.name"
                 :graph-nodes="graphNodes"
                 :graph-edges="graphEdges"
+                @view-graph="handleMenuSelect('graph')"
               />
             </section>
           </div>
 
-          <!-- 实体管理：管理页同构 —— 工具条（搜索+动作）+ 卡片表格 + 客户端分页 -->
-          <div v-show="activeTab === 'entities'" class="flex flex-col flex-1 min-h-0 w-full gap-3 p-4">
+          <!-- 搜索 Tab -->
+          <div v-show="activeTab === 'search'" class="kb-pane">
+            <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId" />
+          </div>
+
+          <!-- 智能问答 Tab -->
+          <div v-show="activeTab === 'ask'" class="kb-pane">
+            <section class="kb-ask-standalone">
+              <KBAskPanel
+                :kb-id="currentKB?.id || ''"
+                :kb-name="currentKB?.name"
+                :graph-nodes="graphNodes"
+                :graph-edges="graphEdges"
+                @view-graph="handleMenuSelect('graph')"
+              />
+            </section>
+          </div>
+
+          <!-- 实体管理：工具条（搜索 + 图标动作组）+ 卡片表格 + 客户端分页 -->
+          <div v-show="activeTab === 'entities'" class="kb-pane">
             <div class="kb-view__toolbar">
               <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
-                style="width: 220px" />
+                class="kb-view__search" />
               <div class="flex-1" />
-              <el-button :icon="Refresh" :loading="graphLoading" @click="loadGraph">刷新</el-button>
-              <el-button type="primary" :icon="Plus" @click="openEntityForm()">新增实体</el-button>
-              <el-button type="danger" :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities">
-                批量删除{{ selectedEntityUids.length ? `(${selectedEntityUids.length})` : '' }}
-              </el-button>
+              <div class="kb-actions">
+                <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
+                <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Plus" tip="新增实体" @click="openEntityForm()" />
+                <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
+                  :tip="selectedEntityUids.length ? `批量删除(${selectedEntityUids.length})` : '批量删除'"
+                  :disabled="selectedEntityUids.length === 0" @click="handleBatchDeleteEntities" />
+              </div>
             </div>
             <div class="panel-card">
               <el-table ref="entityTableRef" v-loading="graphLoading" :data="pagedGraphEntities" stripe
@@ -495,8 +485,8 @@
                 <el-table-column prop="degree" label="关系数" width="90" align="right" />
                 <el-table-column label="操作" width="140" align="right">
                   <template #default="{ row }">
-                    <ReButton link type="primary" size="small" @click="openEntityForm(row)">编辑</ReButton>
-                    <ReButton link type="danger" size="small" @click="handleDeleteEntity(row)">删除</ReButton>
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteEntity(row)" />
                   </template>
                 </el-table-column>
               </el-table>
@@ -512,17 +502,19 @@
             </div>
           </div>
 
-          <!-- 关系管理：管理页同构 —— 工具条（搜索+动作）+ 卡片表格 + 客户端分页 -->
-          <div v-show="activeTab === 'relations'" class="flex flex-col flex-1 min-h-0 w-full gap-3 p-4">
+          <!-- 关系管理：工具条（搜索 + 图标动作组）+ 卡片表格 + 客户端分页 -->
+          <div v-show="activeTab === 'relations'" class="kb-pane">
             <div class="kb-view__toolbar">
               <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
-                style="width: 240px" />
+                class="kb-view__search" />
               <div class="flex-1" />
-              <el-button :icon="Refresh" :loading="graphLoading" @click="loadGraph">刷新</el-button>
-              <el-button type="primary" :icon="Plus" @click="openRelationForm()">新增关系</el-button>
-              <el-button type="danger" :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations">
-                批量删除{{ selectedRelationUids.length ? `(${selectedRelationUids.length})` : '' }}
-              </el-button>
+              <div class="kb-actions">
+                <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
+                <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Plus" tip="新增关系" @click="openRelationForm()" />
+                <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
+                  :tip="selectedRelationUids.length ? `批量删除(${selectedRelationUids.length})` : '批量删除'"
+                  :disabled="selectedRelationUids.length === 0" @click="handleBatchDeleteRelations" />
+              </div>
             </div>
             <div class="panel-card">
               <el-table ref="relationTableRef" v-loading="graphLoading" :data="pagedGraphRelations" stripe
@@ -537,7 +529,7 @@
                 </el-table-column>
                 <el-table-column label="操作" width="100" align="right">
                   <template #default="{ row }">
-                    <ReButton link type="danger" size="small" @click="handleDeleteRelation(row)">删除</ReButton>
+                    <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
                   </template>
                 </el-table-column>
               </el-table>
@@ -553,20 +545,24 @@
             </div>
           </div>
 
-          <div v-show="activeTab === 'graph'" class="flex flex-col flex-1 min-h-0 w-full">
-            <div class="kb-view__toolbar px-4 py-2">
+          <div v-show="activeTab === 'graph'" class="kb-pane kb-pane--graph">
+            <div class="kb-graph__bar">
               <span class="text-sm kb-graph__count">
                 实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
               </span>
-              <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
-                style="width: 200px" />
-              <el-button :icon="Refresh" :loading="graphLoading" @click="loadGraph">刷新</el-button>
-              <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
-              <el-button v-if="ragReady" type="primary" :loading="graphGenerating" @click="handleGenerateGraph">
-                {{ graphView.placeholder ? '生成图谱' : '重新生成' }}
-              </el-button>
-              <el-button v-if="graphView.nodes.length > 0" @click="goManage('entity')">管理实体</el-button>
-              <el-button v-if="graphView.nodes.length > 0" @click="goManage('relation')">管理关系</el-button>
+              <!-- 图例说明与手工补录提示收敛进悬浮气泡，不再占用两行版面 -->
+              <el-tooltip placement="bottom-start" effect="light" :show-after="150">
+                <template #content>
+                  <div class="leading-relaxed max-w-[320px]">
+                    节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关系 +{{ NODE_SIZE_STEP }}px），点击节点可看关系明细。
+                  </div>
+                  <div class="leading-relaxed max-w-[320px] mt-1">
+                    画布直接用鼠标滚轮 / 触控板缩放；手工补录的内容独立于知识点，删除知识点不会连带删掉。
+                  </div>
+                </template>
+                <el-icon class="kb-graph__help"><QuestionFilled /></el-icon>
+              </el-tooltip>
+
               <span v-if="graphError" class="text-sm text-[var(--rm-danger)]">{{ graphError }}</span>
               <span v-else-if="!graphLoading && graphView.nodes.length === 0" class="text-sm kb-graph__hint">
                 <template v-if="graphView.placeholder">
@@ -576,17 +572,27 @@
                   当前范围确实没有关系。可点「重新生成」按最新原文再抽一次。
                 </template>
               </span>
+
+              <div class="flex-1" />
+
+              <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
+                class="kb-view__search" />
+              <div class="kb-actions">
+                <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
+                <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
+                <ReSquareButton layout="square" v-if="ragReady" class="kb-btn" type="primary" :icon="Refresh"
+                  :tip="graphView.placeholder ? '生成图谱' : '重新生成'"
+                  :loading="graphGenerating" @click="handleGenerateGraph" />
+                <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Grid" tip="管理实体" @click="goManage('entity')" />
+                <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Connection" tip="管理关系" @click="goManage('relation')" />
+              </div>
             </div>
-            <div v-if="graphView.nodes.length > 0" class="px-4 pb-1 shrink-0 text-xs kb-graph__hint">
-              节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关系 +{{ NODE_SIZE_STEP }}px），点击节点可看关系数
-            </div>
-            <div v-if="graphView.nodes.length > 0" class="px-4 pb-2 shrink-0 text-xs kb-graph__hint">
-              手工补录的内容独立于知识点，删除知识点不会连带删掉
-            </div>
-            <div class="flex-1 min-h-0 flex gap-2 m-2">
-              <div v-loading="graphLoading" class="flex-1 min-h-0 rounded-lg kb-graph__canvas kb-graph__stage">
+
+            <div class="kb-graph__body">
+              <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
+                <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph 的 zoom-canvas 行为） -->
                 <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
-                  layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
+                  :toolbar="false" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
                 <div v-if="graphLegend.length > 0" class="kb-graph__legend">
@@ -596,11 +602,11 @@
                 </div>
               </div>
 
-              <!-- 右：实体详情（对应参考图右栏；点击节点出现） -->
+              <!-- 右：实体详情（点击节点出现） -->
               <aside v-if="selectedGraphNode" class="kb-gedetail re-surface">
                 <div class="kb-gedetail__head">
                   <h3 class="kb-gedetail__name truncate">{{ selectedGraphNode.name }}</h3>
-                  <ReButton link class="kb-gedetail__close" :icon="Close" @click="selectedGraphNode = null" />
+                  <ReSquareButton layout="square" class="kb-btn kb-gedetail__close" size="small" :icon="Close" tip="关闭" @click="selectedGraphNode = null" />
                 </div>
                 <div class="kb-gedetail__sub">
                   实体 ID:{{ selectedGraphNode.id }}
@@ -626,8 +632,8 @@
                 </ul>
 
                 <div class="kb-gedetail__actions">
-                  <ReButton size="small" type="primary" @click="goManage('entity')">编辑实体</ReButton>
-                  <ReButton size="small" @click="goManage('relation')">查看来源文档</ReButton>
+                  <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑实体" @click="goManage('entity')" />
+                  <ReSquareButton layout="square" class="kb-btn" size="small" :icon="Document" tip="查看来源文档" @click="goManage('relation')" />
                 </div>
               </aside>
             </div>
@@ -799,6 +805,7 @@ import { useI18n } from 'vue-i18n'
 import {
   Plus, Search, FolderOpened, Document, Share, Connection,
   Grid, Clock, Files, Close, UploadFilled, Calendar, Refresh, Setting,
+  Delete, Edit, ChatDotRound, QuestionFilled,
 } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
@@ -831,6 +838,9 @@ import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
+// 仓库标准的正方形图标按钮（layout="square" 且内建 el-tooltip）：
+// 工具栏 / 表格操作列的「纯图标 + 悬浮提示」统一用它，避免各处再包一层 el-tooltip。
+import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
 // 模板数据集类型：携带完整文档 / 实体 / 关系，创建后整体复制进新库
@@ -1082,6 +1092,7 @@ const overviewBases = computed(() =>
     entityCount: countOf(kb.id, 'entity_count'),
     relationCount: countOf(kb.id, 'relation_count'),
     ready: isKbReady(kb),
+    isPublic: !!kb.isPublic,
   })),
 )
 
@@ -2076,9 +2087,15 @@ function handleEdit(kb: KnowledgeBase) {
 
 
 /**
- * 删除知识库
+ * 弹确认框并真正删除知识库（只负责「确认 + 调接口」，不处理删除后的视图跳转）。
+ *
+ * <p>列表页与详情页的删除入口共用这里的确认流程，区别只在删除成功后去哪：
+ * 列表页自动选中下一个库，详情页回到列表。</p>
+ *
+ * @param kb 目标知识库
+ * @returns 是否真的删除了（取消或失败返回 false）
  */
-async function handleDelete(kb: KnowledgeBase) {
+async function confirmAndDeleteKb(kb: KnowledgeBase): Promise<boolean> {
   try {
     const deleteMessage =
       t('knowledge.page.deleteKbConfirm', { name: kb.name }) +
@@ -2089,23 +2106,41 @@ async function handleDelete(kb: KnowledgeBase) {
       { type: 'warning' }
     )
 
-    if (!confirmed) return
+    if (!confirmed) return false
 
-    // 记录当前删除的知识库 ID 和索引
-    const deletedKbId = kb.id
-    const currentIndex = store.knowledgeBases.findIndex(k => k.id === deletedKbId)
-
-    // 执行删除
     await store.deleteKnowledgeBase(kb.id)
     toast.success(t('common.deleteSuccess'))
-
-    // 删除后处理：自动选中下一个知识库
-    handleAfterDelete(deletedKbId, currentIndex)
+    return true
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
       toast.error(error.response?.data?.detail || t('common.deleteFailed'))
     }
+    return false
+  }
+}
+
+/**
+ * 列表页删除知识库：删除成功后自动选中下一个库。
+ *
+ * @param kb 目标知识库
+ */
+async function handleDelete(kb: KnowledgeBase) {
+  // 索引必须在删除前取：删除后 store 列表已不含该库
+  const currentIndex = store.knowledgeBases.findIndex(k => k.id === kb.id)
+  if (await confirmAndDeleteKb(kb)) {
+    handleAfterDelete(kb.id, currentIndex)
+  }
+}
+
+/**
+ * 详情页头部删除当前知识库：删除成功后回到列表页。
+ */
+async function handleDeleteFromDetail() {
+  const kb = currentKB.value
+  if (!kb) return
+  if (await confirmAndDeleteKb(kb)) {
+    backToList()
   }
 }
 
@@ -3062,14 +3097,14 @@ watch(
 }
 
 /* ── 文件列表 Tab：左「文档」+ 右「智能问答」双栏 ──────────────────────────
-   宽度比 1fr : 1fr，窄屏（< 1180px）退化为上下堆叠——问答面板是主操作，
-   挤到第二行也不该被压到读不了的高度。 */
+   左栏吃剩余宽度、右栏固定舒适宽（400px 基准），窄屏（< 1180px）退化为上下堆叠——
+   问答面板是主操作，挤到第二行也不该被压到读不了的高度。 */
 .kb-split {
   display: flex;
   flex: 1;
+  min-width: 0;
   min-height: 0;
-  gap: 12px;
-  padding: 4px 16px 16px;
+  gap: 16px;
 }
 
 .kb-split__docs {
@@ -3082,12 +3117,14 @@ watch(
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-card-border-radius, 12px);
   overflow: hidden;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
 }
 
+/* 右栏问答固定一个舒适宽度，文档列吃剩余空间（避免两栏各半把表格挤扁） */
 .kb-split__ask {
   display: flex;
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 400px;
+  min-width: 300px;
   min-height: 0;
 }
 
@@ -3102,8 +3139,9 @@ watch(
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(180deg, var(--el-fill-color-blank) 0%, transparent 100%);
 }
 
 .kb-split__title {
@@ -3116,12 +3154,13 @@ watch(
 .kb-split__title h2 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--el-text-color-primary);
   /* 标题与篇数徽标不参与压缩，压缩只发生在副标题（知识库名）上，
      否则窄栏下「文档」会被右侧上传按钮挤成竖排两行 */
   flex: 0 0 auto;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .kb-split__title .el-tag {
@@ -3151,32 +3190,55 @@ watch(
 .kb-split__filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 18px;
+  gap: 6px;
+  padding: 10px 16px;
 }
 
-/* 分栏按钮：pill 形，未选中走填充面，选中走主色浅底 + 主色字 */
+/* 分栏按钮：pills 形，未选中走填充面，选中走主色浅底 + 主色字；计数用内嵌小徽标 */
 .kb-split__filter {
-  padding: 7px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
   border: 1px solid transparent;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1.4;
   cursor: pointer;
   transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s),
-    border-color var(--el-transition-duration, 0.2s);
+    border-color var(--el-transition-duration, 0.2s), transform 0.12s ease;
+}
+
+.kb-split__filter-count {
+  font-style: normal;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  background: color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
+  color: var(--el-text-color-secondary);
 }
 
 .kb-split__filter:hover {
   background: var(--el-fill-color);
+  transform: translateY(-1px);
 }
 
 .kb-split__filter.is-active {
-  background: var(--el-color-primary-light-9);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   border-color: var(--el-color-primary-light-5);
-  color: var(--el-color-primary);
-  font-weight: 500;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+}
+
+.kb-split__filter.is-active .kb-split__filter-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
 .kb-split__filter:focus-visible {
@@ -3188,7 +3250,7 @@ watch(
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0 10px 10px;
+  padding: 0 8px 10px;
 }
 
 @media (max-width: 1180px) {
@@ -3226,6 +3288,11 @@ watch(
   gap: 15px;
   min-height: 96px;
   padding: 20px 22px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.kb-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 
 /* 右侧装饰：设计图里每张统计卡右端有一片淡色山形。
@@ -3262,27 +3329,30 @@ watch(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-color-primary-light-9);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
   color: var(--el-color-primary);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
 }
 
 /* 数字 26px/800 在上、标签 13.5px 在下，与 HTML 原型一致 */
 .kb-stat__value {
   display: block;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--el-text-color-primary);
 }
 
 .kb-stat__label {
   display: block;
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
+  margin-top: 2px;
 }
 
 /* 详情页「概览」里的统计块仍是「图标 + 上下堆叠的数字/标签」结构，
@@ -3302,16 +3372,116 @@ watch(
      图谱画布的 flex-1 就塌成 ~120px。顺带把外层滚动容器改成 flex 列，
      这里用 flex:1 拿到确定高度；内容更高的视图仍旧把滚动条撑出来。 */
   align-items: stretch;
-  gap: 12px;
+  gap: 16px;
   flex: 1;
   min-height: 0;
+  padding: 16px 20px 20px;
   box-sizing: border-box;
 }
 
-/* 详情页头：返回 + 标题/副标题 + 动作，与管理页页头同构 */
+/* 详情页头：返回图标钮 + 标题/副标题 + 图标动作组，一行三段垂直居中 */
 .kb-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 14px 24px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 60%);
+  position: relative;
+}
+.kb-detail__header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, transparent 50%);
+  opacity: 0.35;
+}
+
+/* 详情页各 Tab 面板：撑满内容区，统一列布局与块间距 */
+.kb-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  gap: 12px;
+  animation: kb-pane-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes kb-pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-pane,
+  .kb-stat,
+  .kb-ov-card,
+  .kb-split__filter {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* 概览：内容整体可滚动，块间距更舒展 */
+.kb-pane--scroll {
+  overflow: auto;
+  gap: 16px;
+}
+
+/* 图谱：工具条与画布之间保持默认 12px 节奏 */
+.kb-pane--graph {
+  gap: 12px;
+}
+
+/* 详情页统一「图标动作组」：方形幽灵按钮，无底色无边框，贴合但留一点空隙 */
+.kb-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* 幽灵态覆盖：按钮来自 @repo/ui ReButton(square)，默认是「白底 + 边框」。
+   这里用 :deep + 提高一档特异性（.kb-btn.rs-btn）压过组件内部的 scoped 默认样式 */
+:deep(.kb-btn.rs-btn) {
+  margin: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--el-text-color-regular);
+}
+
+:deep(.kb-btn.rs-btn:hover:not(.is-disabled):not(:disabled)) {
+  border-color: transparent;
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+:deep(.kb-btn.rs-btn--primary) {
+  color: var(--el-color-primary);
+}
+
+:deep(.kb-btn.rs-btn--primary:hover:not(.is-disabled):not(:disabled)) {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+:deep(.kb-btn.rs-btn--danger) {
+  color: var(--el-color-danger);
+}
+
+:deep(.kb-btn.rs-btn--danger:hover:not(.is-disabled):not(:disabled)) {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
 }
 
 .kb-detail__titlebox {
@@ -3320,8 +3490,9 @@ watch(
 
 .kb-detail__title {
   margin: 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -3329,18 +3500,21 @@ watch(
 }
 
 .kb-detail__subtitle {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .kb-detail__actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -3353,6 +3527,17 @@ watch(
   flex-shrink: 0;
 }
 
+/* 工具条里的搜索框：固定宽，窄屏拉满一行 */
+.kb-view__search {
+  width: 220px;
+}
+
+@media (max-width: 720px) {
+  .kb-view__search {
+    width: 100%;
+  }
+}
+
 /* 表格面板：与管理页 panel-card / flat-table / 分页同一套视觉 */
 .panel-card {
   background: var(--el-bg-color);
@@ -3361,6 +3546,7 @@ watch(
   border-radius: var(--el-radius-xl, 16px);
   padding: 16px 18px 14px;
   /* 表格容器是页面区块，不加投影 */
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
 }
 
 .flat-table {
@@ -3373,6 +3559,14 @@ watch(
   font-weight: 600;
 }
 
+.flat-table :deep(.el-table__row) {
+  transition: background 0.15s ease;
+}
+
+.flat-table :deep(.el-table__row:hover > td.el-table__cell) {
+  background: var(--el-color-primary-light-9);
+}
+
 .pagination-wrapper {
   margin-top: 16px;
   display: flex;
@@ -3380,7 +3574,70 @@ watch(
 }
 
 .kb-overview__stats {
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  /* 详情页只有 3 张卡：覆盖列表页「宽屏固定四列」的规则 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .kb-overview__stats {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  /* 窄屏：二级菜单从左侧竖栏变顶部横排 chip，内容区整宽 */
+  .kb-detail__body {
+    flex-direction: column;
+    padding: 12px 12px 16px;
+  }
+
+  .kb-detail__body :deep(.kb-menu) {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .kb-detail__body :deep(.kb-menu__list) {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .kb-detail__body :deep(.kb-menu__divider) {
+    display: none;
+  }
+}
+
+/* 详情概览的统计卡比列表页略矮，信息密度更轻 */
+.kb-overview__stats .kb-stat {
+  min-height: 88px;
+  padding: 16px 18px;
+}
+
+/* 概览三卡各自的主题色：文档=主色 / 实体=警示 / 关系=成功，全部走 Element 变量，
+   color-mix 取淡色叠加，暗色主题下自动适配，不写死 hex */
+.kb-overview__stats .kb-stat:nth-child(1) .kb-stat__icon {
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  color: var(--el-color-primary);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+}
+.kb-overview__stats .kb-stat:nth-child(2) .kb-stat__icon {
+  background: color-mix(in srgb, var(--el-color-warning) 16%, transparent);
+  color: var(--el-color-warning);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-warning) 40%, transparent);
+}
+.kb-overview__stats .kb-stat:nth-child(3) .kb-stat__icon {
+  background: color-mix(in srgb, var(--el-color-success) 16%, transparent);
+  color: var(--el-color-success);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-success) 40%, transparent);
+}
+.kb-overview__stats .kb-stat:nth-child(1) {
+  border-left: 3px solid var(--el-color-primary);
+}
+.kb-overview__stats .kb-stat:nth-child(2) {
+  border-left: 3px solid var(--el-color-warning);
+}
+.kb-overview__stats .kb-stat:nth-child(3) {
+  border-left: 3px solid var(--el-color-success);
 }
 
 .kb-overview__hint {
@@ -3390,17 +3647,54 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
+/* 概览内容网格：两大列，窄屏落单列 */
+.kb-ov-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1280px) {
+  .kb-ov-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 概览内容卡：统一内边距与纵向节奏（覆盖 re-surface--dense 的 10px 内距） */
+.kb-ov-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.kb-ov-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+}
+
 /* ── 详情页「概览」：实体/关系分布、Top 实体、快捷操作 ─────────────── */
 .kb-ov__title {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.01em;
+}
+.kb-ov__title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-5) 100%);
 }
 
 .kb-ov__bar {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 40px;
+  grid-template-columns: 56px minmax(0, 1fr) 40px;
   align-items: center;
   gap: 10px;
 }
@@ -3414,7 +3708,7 @@ watch(
 }
 
 .kb-ov__track {
-  height: 8px;
+  height: 9px;
   border-radius: 999px;
   background: var(--el-fill-color-light);
   overflow: hidden;
@@ -3424,15 +3718,15 @@ watch(
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--el-color-primary);
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .kb-ov__count {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-align: right;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3448,21 +3742,22 @@ watch(
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 8px;
-  border-radius: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .kb-ov__row:hover {
   background: var(--el-fill-color-light);
+  transform: translateX(2px);
 }
 
 .kb-ov__rank {
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   display: grid;
   place-items: center;
   font-size: 11px;
@@ -3471,9 +3766,21 @@ watch(
   background: var(--el-fill-color-light);
 }
 
+/* 前三名：金 / 银 / 铜奖牌配色 */
 .kb-ov__rank.is-top {
   color: #fff;
-  background: var(--el-color-primary);
+}
+.kb-ov__row:nth-child(1) .kb-ov__rank {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 2px 6px -1px rgba(245, 158, 11, 0.5);
+}
+.kb-ov__row:nth-child(2) .kb-ov__rank {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  box-shadow: 0 2px 6px -1px rgba(148, 163, 184, 0.5);
+}
+.kb-ov__row:nth-child(3) .kb-ov__rank {
+  background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+  box-shadow: 0 2px 6px -1px rgba(180, 83, 9, 0.5);
 }
 
 .kb-ov__name {
@@ -3502,6 +3809,11 @@ watch(
   flex: 1;
   min-width: 0;
   display: flex;
+}
+
+.kb-ask-standalone :deep(.kb-ask) {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── 页头：左标题+副标题，中搜索，右新建 ───────────────────────────────
@@ -3542,15 +3854,31 @@ watch(
   flex: 0 0 auto;
 }
 
-/* 详情页顶部：返回按钮
-   原先这里写死了 text-gray-900 / dark:text-[#e8e9ed] / dark:text-[#9aa0a6]，
-   暗色下靠手写色值硬撑；改为 koi/Element 变量，交给主题自动切换。 */
-.kb-back {
-  color: var(--el-text-color-primary);
+/* 图谱工具条：统计 + 说明气泡 + 搜索 + 图标动作组 */
+.kb-graph__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.kb-back:hover {
+/* 说明气泡触发图标：弱化存在感，悬浮时才亮起 */
+.kb-graph__help {
+  color: var(--el-text-color-placeholder);
+  cursor: help;
+}
+
+.kb-graph__help:hover {
   color: var(--el-color-primary);
+}
+
+/* 图谱画布 + 实体详情两栏容器 */
+.kb-graph__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
 }
 
 .kb-graph__count {
@@ -3566,9 +3894,16 @@ watch(
   background: var(--el-bg-color-overlay);
 }
 
-/* 画布容器：图例绝对定位在左下角 */
+/* 画布容器：图例绝对定位在左下角；自带描边圆角，画布铺满 */
 .kb-graph__stage {
   position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
 }
 
 /* 图例：按实际出现的实体类型生成，颜色统一走主色，不引入图里的自定义色 */
@@ -3578,7 +3913,7 @@ watch(
   bottom: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   max-height: 40%;
   overflow: auto;
   padding: 10px 12px;
@@ -3587,6 +3922,8 @@ watch(
   background: var(--el-bg-color-overlay);
   font-size: 12px;
   color: var(--el-text-color-regular);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .kb-graph__legend-item {
@@ -3605,13 +3942,14 @@ watch(
 
 /* ── 右栏：实体详情（对应参考图右栏） ─────────────────────────────── */
 .kb-gedetail {
-  flex: 0 0 264px;
-  width: 264px;
+  flex: 0 0 280px;
+  width: 280px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   padding: 0 0 12px;
   overflow: auto;
+  box-shadow: 0 2px 8px -4px color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
 }
 
 .kb-gedetail__head {
@@ -3696,8 +4034,9 @@ watch(
   padding: 1px 7px;
   font-size: 12px;
   border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-primary-light-9);
+  background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
   color: var(--el-color-primary);
+  font-weight: 500;
 }
 
 .kb-gedetail__relation-peer {
@@ -3711,7 +4050,7 @@ watch(
 
 .kb-gedetail__actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-top: auto;
   padding: 12px 14px 0;
 }

@@ -18,11 +18,12 @@
  * 导入后从未使用；本次补齐与清理。</p>
  */
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { Promotion, Search, Position, ChatLineSquare, Document } from '@element-plus/icons-vue'
+import { Promotion, Search, Position, ChatLineSquare, Document, Delete, WarningFilled } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import KBFilePreview from './KBFilePreview.vue'
 import ReButton from '@/components/re/ReButton.vue'
+import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
 
@@ -45,6 +46,11 @@ const props = defineProps<{
   graphEdges?: Array<{ from: string; to: string; text?: string }>
 }>()
 
+const emit = defineEmits<{
+  /** 「在关系图谱中查看」：请求宿主切换到知识图谱视图 */
+  (e: 'view-graph'): void
+}>()
+
 const { toast } = usePopup()
 
 /** 一次问答的记录 */
@@ -57,10 +63,44 @@ interface Turn {
   answer: string
   /** 是否加载中 */
   loading: boolean
+  /** 是否失败（渲染成告警态，而非普通答复） */
+  error?: boolean
   /** 后端耗时（毫秒） */
   elapsed?: number
   /** 引用来源 */
   citations: Array<{ index?: number; doc_path?: string; file_name?: string; score?: number; snippet?: string }>
+}
+
+/**
+ * 把后端内部错误翻译成用户能看懂的话。
+ *
+ * <p>检索管线未就绪时后端会抛 {@code Node execution failed: search [pipeline=rag-query] [node=search]}
+ * 这类内部串，直接展示会让人一头雾水；这里按特征归类，给出可操作的提示。
+ * 后端错误体字段是 {@code msg}（不是 {@code message}），调用方需把状态码一并传入，
+ * 以便在拿不到可读正文时也能给出 5xx 兜底文案。</p>
+ *
+ * @param raw    原始错误文案（优先取响应体 msg/message/detail）
+ * @param status HTTP 状态码（可选）
+ * @returns 面向用户的提示
+ */
+function friendlyError(raw: string, status?: number): string {
+  const s = String(raw || '')
+  if (/pipeline=rag-query|node=search|vector dimensions|arraycopy|jvector|LoadVectors/i.test(s)) {
+    return '检索服务暂时不可用：向量索引与当前嵌入模型不一致。请在「设置中心 → 默认模型」确认嵌入模型后，重新上传文档或点「重新生成图谱」以重建索引，然后重试。'
+  }
+  if (/timeout|timed out|超时/i.test(s)) {
+    return '问答超时：知识库较大或模型繁忙，请稍后重试，或缩小提问范围。'
+  }
+  if (/unauthor|401|403|权限/i.test(s)) {
+    return '没有访问该知识库的权限，请确认登录状态或联系管理员。'
+  }
+  if (s && !/status code/i.test(s)) {
+    return s
+  }
+  if (status && status >= 500) {
+    return `服务端处理问答时出错（HTTP ${status}）：可能是检索索引未就绪或模型服务异常。请稍后重试；若持续失败，请联系管理员检查检索服务。`
+  }
+  return status ? `问答失败（HTTP ${status}），请稍后重试。` : '未知错误，请稍后重试。'
 }
 
 /** 问答记录列表 */
@@ -148,7 +188,10 @@ async function submit(q?: string) {
     turn.elapsed = r?.elapsed_ms
     turn.loading = false
   } catch (e: any) {
-    turn.answer = '提问失败：' + (e?.response?.data?.message || e?.message || '未知错误')
+    const d = e?.response?.data
+    const raw = d?.msg || d?.message || d?.detail || d?.error || e?.message || ''
+    turn.answer = friendlyError(raw, e?.response?.status)
+    turn.error = true
     turn.loading = false
   } finally {
     asking.value = false
@@ -178,7 +221,7 @@ watch(() => props.kbId, () => clearTurns())
 </script>
 
 <template>
-  <div class="re-surface h-full min-h-0 flex flex-col !p-0 overflow-hidden">
+  <div class="kb-ask re-surface h-full min-h-0 flex flex-col !p-0 overflow-hidden">
     <!-- 标题栏 -->
     <div class="shrink-0 flex items-center justify-between gap-2 px-5 pt-4 pb-3 border-b border-[var(--rm-border-light)]">
       <div class="flex items-baseline gap-2.5 min-w-0">
@@ -187,7 +230,8 @@ watch(() => props.kbId, () => clearTurns())
           <i class="w-1.5 h-1.5 rounded-full bg-[var(--rm-success)]" />已接入{{ kbName || '本知识库' }}
         </span>
       </div>
-      <ReButton v-if="hasTurns" link @click="clearTurns">清空</ReButton>
+      <ReSquareButton v-if="hasTurns" layout="square" size="small" class="kb-btn" :icon="Delete" tip="清空对话"
+        @click="clearTurns" />
     </div>
 
     <!-- 问答记录 -->
@@ -208,8 +252,14 @@ watch(() => props.kbId, () => clearTurns())
         <div class="mt-3">
           <el-skeleton v-if="turn.loading" :rows="3" animated />
           <template v-else>
-            <div class="re-surface re-surface--dense flex flex-col">
-              <p class="m-0 text-sm leading-relaxed whitespace-pre-wrap break-words">{{ turn.answer }}</p>
+            <div
+              class="re-surface re-surface--dense flex flex-col"
+              :class="turn.error ? 'kb-ask__error' : ''"
+            >
+              <p class="m-0 text-sm leading-relaxed whitespace-pre-wrap break-words flex items-start gap-2">
+                <el-icon v-if="turn.error" class="mt-0.5 shrink-0 text-[var(--rm-danger)]"><WarningFilled /></el-icon>
+                <span>{{ turn.answer }}</span>
+              </p>
 
               <!-- 引用来源 -->
               <div
@@ -238,9 +288,10 @@ watch(() => props.kbId, () => clearTurns())
                   <ReTag v-for="n in miniGraph.nodes.slice(0, 6)" :key="n.id" size="small" effect="plain">{{ n.text }}</ReTag>
                 </div>
                 <div class="rounded-[var(--rm-radius-sm,6px)] overflow-hidden bg-[var(--rm-bg-overlay)]">
-                  <ReRelationGraph :nodes="miniGraph.nodes" :edges="miniGraph.edges" height="180px" />
+                  <!-- 迷你图同样关闭按钮工具条（缩放走滚轮），保持 180px 画布干净 -->
+                  <ReRelationGraph :nodes="miniGraph.nodes" :edges="miniGraph.edges" height="180px" :toolbar="false" />
                 </div>
-                <ReButton link type="primary" :icon="Position" size="small" class="mt-1.5">在关系图谱中查看</ReButton>
+                <ReButton link type="primary" :icon="Position" size="small" class="mt-1.5" @click="emit('view-graph')">在关系图谱中查看</ReButton>
               </div>
 
               <div v-if="turn.elapsed" class="mt-2 text-[11px] text-[var(--rm-text-disabled)] text-right">
@@ -292,3 +343,12 @@ watch(() => props.kbId, () => clearTurns())
     <KBFilePreview v-model="previewVisible" :kb-id="kbId" :path="previewPath" />
   </div>
 </template>
+
+<style scoped>
+/* 失败态：整块气泡描边与浅底转危险色，和正常答复一眼区分 */
+.kb-ask__error {
+  border: 1px solid color-mix(in srgb, var(--rm-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--rm-danger) 6%, transparent);
+  color: var(--rm-text-regular);
+}
+</style>

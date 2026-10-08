@@ -1,48 +1,38 @@
 <!-- components/KBFileUploader.vue -->
 <template>
     <div class="">
-        <!-- 上传按钮组 -->
-        <div class="flex gap-2 items-center">
+        <!-- 上传按钮组：ReButton(square) 纯图标方形按钮，内建 el-tooltip；
+             无底色、无边框（.kb-btn 幽灵态由详情页统一定义），贴合排列仅留 6px 空隙 -->
+        <div class="kb-up-actions">
             <!-- 新建文件夹按钮 -->
-            <ReButton type="default" @click="showCreateFolderDialog = true">
-                <FolderAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
-                {{ t('knowledge.upload.newFolder') }}
-            </ReButton>
+            <ReSquareButton layout="square" class="kb-btn" :icon="FolderAdd16Regular" tip="新建文件夹"
+                @click="showCreateFolderDialog = true" />
 
             <!-- 上传文件按钮 -->
             <input ref="fileInputRef" type="file" multiple :accept="ALLOWED_FILE_EXTENSIONS" @change="handleFileSelect"
                 class="hidden" />
-            <ReButton type="primary" @click="triggerFileInput">
-                <DocumentAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
-                {{ t('knowledge.upload.uploadFile') }}
-            </ReButton>
+            <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="UploadFilled" tip="上传文件"
+                @click="triggerFileInput" />
 
             <!-- 上传文件夹按钮 -->
             <input ref="folderInputRef" type="file" webkitdirectory directory multiple @change="handleFolderSelect"
                 class="hidden" />
-            <ReButton type="default" @click="triggerFolderInput">
-                <FolderAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
-                {{ t('knowledge.upload.uploadFolder') }}
-            </ReButton>
+            <ReSquareButton layout="square" class="kb-btn" :icon="FolderOpened" tip="上传文件夹"
+                @click="triggerFolderInput" />
 
             <!-- 新建 Markdown 文档（直接按文本写入，不占上传任务队列） -->
-            <ReButton type="default" @click="openMarkdownDialog">
-                <DocumentAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
-                新建 Markdown
-            </ReButton>
+            <ReSquareButton layout="square" class="kb-btn" :icon="DocumentAdd16Regular" tip="新建 Markdown"
+                @click="openMarkdownDialog" />
 
             <!-- 从网页导入（抓取正文落成 Markdown） -->
-            <ReButton type="default" @click="openWebDialog">
-                <el-icon class="mr-1.5 !align-middle"><Link /></el-icon>
-                从网页导入
-            </ReButton>
+            <ReSquareButton layout="square" class="kb-btn" :icon="Link" tip="从网页导入"
+                @click="openWebDialog" />
 
-            <!-- 上传任务按钮(仅在有任务时显示) -->
-            <ReButton type="default" v-if="uploadTasks.length > 0" @click="emit('show-upload-task')">
-                <Upload class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
-                {{ t('knowledge.upload.uploadTask') }}
-                <el-badge :value="uploadTasks.length" type="warning" class="ml-1" />
-            </ReButton>
+            <!-- 上传任务按钮(仅在有任务时显示；角标显示队列数量) -->
+            <el-badge v-if="uploadTasks.length > 0" :value="uploadTasks.length" :max="99" class="kb-up-badge">
+                <ReSquareButton layout="square" class="kb-btn" :icon="Upload" tip="上传任务"
+                    @click="emit('show-upload-task')" />
+            </el-badge>
         </div>
 
         <!-- 新建文件夹对话框 -->
@@ -164,7 +154,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Upload, Folder, Document, Link } from '@element-plus/icons-vue'
+import { Upload, UploadFilled, Folder, FolderOpened, Document, Link } from '@element-plus/icons-vue'
 import { DocumentAdd16Regular, FolderAdd16Regular } from '@vicons/fluent'
 import { ElMessage } from 'element-plus'
 import { useFileUploadStore } from '@/stores/fileUpload'
@@ -172,6 +162,7 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import type { KBFile } from '@/stores/knowledgeBase'
 import ReDialog from '@repo/ui/re-dialog'
+import ReSquareButton from '@repo/ui/re-button'
 import ReButton from '@/components/re/ReButton.vue'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 
@@ -846,6 +837,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 样式全部由 Tailwind 工具类 + 组件库基线 re-surface + koi 令牌承担；
-   原先的 .upload-btn / .btn-icon 手写规则已随按钮改造成 ReButton 一并移除。 */
+/* 按钮组：方形图标按钮贴近排列，仅留 6px 空隙；幽灵态（无底色无边框）由
+   详情页的 :deep(.kb-btn.rs-btn) 统一定义，此处只负责排布与角标位置 */
+.kb-up-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 上传任务角标：贴着按钮右上角，不撑大占位 */
+.kb-up-badge {
+    display: inline-flex;
+    vertical-align: middle;
+}
 </style>

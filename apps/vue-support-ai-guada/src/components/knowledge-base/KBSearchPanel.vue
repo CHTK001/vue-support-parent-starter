@@ -1,6 +1,6 @@
 <!-- KnowledgeBasePage/KBSearchPanel.vue -->
 <template>
-  <div class="flex w-full h-full flex-1 flex-col gap-4 p-4 overflow-hidden min-h-0">
+  <div class="flex w-full h-full flex-1 flex-col gap-4 overflow-hidden min-h-0">
     <!-- 搜索区 -->
     <div class="re-surface shrink-0">
       <div class="flex flex-col gap-3">
@@ -17,13 +17,16 @@
             <span class="text-sm text-[var(--rm-text-secondary)] shrink-0">{{ t('knowledge.search.resultCount') }}</span>
             <el-slider v-model="searchForm.topK" :min="1" :max="20" :step="1" show-input class="flex-1" />
           </div>
-          <ReButton
+          <ReSquareButton
+            layout="square"
+            class="kb-btn"
             type="primary"
             :icon="Search"
+            :tip="t('knowledge.search.searchBtn')"
             :loading="isSearching"
             :disabled="!canSearch"
             @click="handleSearch"
-          >{{ t('knowledge.search.searchBtn') }}</ReButton>
+          />
         </div>
       </div>
     </div>
@@ -38,7 +41,8 @@
       <div v-else class="flex-1 min-h-0 flex flex-col overflow-hidden">
         <div class="flex justify-between items-center gap-2 mb-3 pb-2 border-b border-[var(--rm-border-light)]">
           <span class="text-sm font-medium">{{ t('knowledge.search.foundResults', { count: searchResults.length }) }}</span>
-          <ReButton link @click="clearResults">{{ t('knowledge.search.clearResults') }}</ReButton>
+          <ReSquareButton layout="square" size="small" class="kb-btn" :icon="Delete"
+            :tip="t('knowledge.search.clearResults')" @click="clearResults" />
         </div>
 
         <div class="flex-1 overflow-y-auto flex flex-col gap-2">
@@ -117,11 +121,11 @@
  */
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Search, Loading } from '@element-plus/icons-vue'
+import { Search, Loading, Delete } from '@element-plus/icons-vue'
 import type { KnowledgeBase } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
-import ReButton from '@/components/re/ReButton.vue'
+import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
 
