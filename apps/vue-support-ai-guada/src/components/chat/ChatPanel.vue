@@ -99,7 +99,7 @@
           <div class="w-full flex items-center relative">
 
             <ChatInput ref="chatInputRef" v-model:value="inputMessage.content" v-model:files="inputMessage.files"
-              :session-id="effectiveSessionId" :character-id="props.session?.characterId != null ? String(props.session.characterId) : ''"
+              :session-id="effectiveSessionId" :editing="!!editMode" :character-id="props.session?.characterId != null ? String(props.session.characterId) : ''"
               :config="chatInputConfig" :streaming="isStreaming" :readonly="readonly" mode="chat"
               :backdrop="hasWallpaper"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">

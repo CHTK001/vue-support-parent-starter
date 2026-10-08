@@ -47,10 +47,12 @@
         type="button"
         class="next-task__action"
         :aria-pressed="state.enabled"
-        :aria-label="state.enabled ? '关闭本会话的 AI 联想' : '开启本会话的 AI 联想'"
+        :aria-label="state.enabled ? 'AI 联想当前已开启，点击关闭本会话的联想' : 'AI 联想当前已关闭，点击开启本会话的联想'"
         @click="onToggle"
       >
-        {{ state.enabled ? '关闭本会话' : '开启本会话' }}
+        <!-- 旧文案「关闭本会话/开启本会话」是动作而非状态，用户看不出当前到底是开还是关；
+             这里显式写成「联想：已开启（点击关闭）」——状态在前、动作在后。 -->
+        {{ state.enabled ? '联想：已开启（点击关闭）' : '联想：已关闭（点击开启）' }}
       </button>
     </header>
 

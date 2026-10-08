@@ -6,7 +6,8 @@
       AI 联想的下一步任务：位置在「目标条下方、输入框上方」。
       开关关闭时组件整块不渲染（v-if 在组件内部），不占任何高度。
     -->
-    <AiNextTaskPanel :session-id="sessionId == null ? null : String(sessionId)"
+    <!-- 编辑消息时不渲染建议面板（避免与编辑条重叠，报障 2.5） -->
+    <AiNextTaskPanel v-if="!props.editing" :session-id="sessionId == null ? null : String(sessionId)"
       @send-suggestion="onSendSuggestion" />
     <!-- 输入框区域 -->
     <div
@@ -379,6 +380,8 @@ const props = defineProps({
   files: { type: Array as PropType<ChatFile[]>, default: () => [] },
   streaming: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
+  // 编辑消息时抑制「AI 建议的下一步」面板：否则它会与编辑条叠在一起（用户报障 2.5）
+  editing: { type: Boolean, default: false },
   buttons: { type: Object as PropType<Record<string, boolean>>, default: () => ({}) },
   class: { type: String, default: '' },
   sessionId: { type: [String, Number], default: null },

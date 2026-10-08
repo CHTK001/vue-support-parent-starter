@@ -64,6 +64,8 @@
           <div class="tv-chat-title-wrap">
             <span class="tv-chat-name">{{ currentGroup.name }}</span>
             <span class="tv-chat-count">（{{ members.length }} 名角色）</span>
+            <!-- 批量配置入口：一次改所有角色的模型，免去逐个点开弹框（用户需求 1） -->
+            <el-button size="small" style="margin-left: 10px" @click="openBulkModel">批量配置</el-button>
           </div>
           <button class="tv-chat-set" type="button" title="群设置" @click="settingsVisible = true">
             <el-icon><MoreFilled /></el-icon>
@@ -356,6 +358,24 @@
       <template #footer>
         <el-button @click="modelPickerVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmModelPicker">保存</el-button>
+      </template>
+    </LDialog>
+
+    <!-- ============ 批量配置模型（一次改所有角色，替代逐个点开） ============ -->
+    <LDialog v-model="bulkModelVisible" width="480" append-to-body class="tv-dialog">
+      <template #header>
+        <span class="tv-dlg-title">批量设置全部角色的模型（{{ members.length }} 名）</span>
+      </template>
+      <el-select v-model="bulkModelValue" placeholder="选择模型" filterable style="width: 100%">
+        <el-option label="跟随默认" value="" />
+        <el-option-group v-for="g in groupedModelOptions" :key="g.providerId" :label="g.providerName">
+          <el-option v-for="opt in g.options" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-option-group>
+      </el-select>
+      <p class="tv-set-tip" style="margin-top: 10px">保存后会把该模型应用到群里**所有**角色；选「跟随默认」则全部恢复跟随系统默认。</p>
+      <template #footer>
+        <el-button @click="bulkModelVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmBulkModel">应用到全部角色</el-button>
       </template>
     </LDialog>
   </div>
@@ -696,6 +716,38 @@ async function confirmModelPicker() {
   modelPickerVisible.value = false
   await loadMembers()
   ElMessage.success('模型已更新')
+}
+
+/* ── 批量配置：一次把所有角色设为同一个模型（免去逐个点开弹框，用户需求 1） ── */
+const bulkModelVisible = ref(false)
+const bulkModelValue = ref('')
+
+async function openBulkModel() {
+  bulkModelValue.value = ''
+  bulkModelVisible.value = true
+  await loadModelOptions()
+}
+
+async function confirmBulkModel() {
+  const value = bulkModelValue.value || ''
+  const list = members.value || []
+  if (!list.length) {
+    ElMessage.warning('群里还没有角色')
+    return
+  }
+  let ok = 0
+  for (const mb of list) {
+    try {
+      // 与单个配置同语义：清空时发空字符串，而不是 null（请求封装会剥掉 null）
+      await apiService.updateTavernMember(mb.id, { modelOverride: value })
+      ok++
+    } catch (e) {
+      console.error('[Tavern] 批量配置某角色失败:', mb.id, e)
+    }
+  }
+  bulkModelVisible.value = false
+  await loadMembers()
+  ElMessage.success(`已为 ${ok}/${list.length} 个角色更新模型`)
 }
 
 async function onMemberCmd(cmd: string, mb: TaverMember) {
