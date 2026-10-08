@@ -181,6 +181,125 @@ const onPickDriverJar = async (event: Event) => {
   }
 };
 
+// ------------------------------ JDBC 额外连接参数 ------------------------------
+// JDBC 数据源建连串允许两种形态：库名（三段式，后端按 MySQL 模板拼）或整串 URL。
+// 这里给「额外参数」一个结构化编辑器：一行 = ReSelect 参数名 + 值输入框。
+// 保存时并入连接串的 query：整串 URL 形态原地合并；三段式按后端同款模板补默认参数
+// 再叠加自定义行（同名覆盖）。这样 MySQL 的 useSSL / serverTimezone /
+// allowPublicKeyRetrieval 之类不用整串手抄。
+
+/** 额外参数行：键为空的行在保存时忽略 */
+const extraParams = ref<Array<{ key: string; value: string }>>([]);
+
+/** 常用 JDBC 连接参数预置（MySQL 系为主，兼顾各库高频项） */
+const COMMON_JDBC_PARAMS: Array<{ label: string; value: string }> = [
+  { label: "useSSL（常配 false）", value: "useSSL" },
+  { label: "serverTimezone（如 Asia/Shanghai）", value: "serverTimezone" },
+  { label: "characterEncoding（如 utf8 / utf8mb4）", value: "characterEncoding" },
+  { label: "useUnicode（常配 true）", value: "useUnicode" },
+  { label: "allowPublicKeyRetrieval（常配 true）", value: "allowPublicKeyRetrieval" },
+  { label: "connectTimeout（毫秒）", value: "connectTimeout" },
+  { label: "socketTimeout（毫秒）", value: "socketTimeout" },
+  { label: "rewriteBatchedStatements（常配 true）", value: "rewriteBatchedStatements" },
+  { label: "zeroDateTimeBehavior（如 convertToNull）", value: "zeroDateTimeBehavior" },
+  { label: "useInformationSchema（元数据开关）", value: "useInformationSchema" },
+  { label: "autoReconnect（断线重连）", value: "autoReconnect" },
+  { label: "tinyInt1isBit（tinyint(1) 映射）", value: "tinyInt1isBit" },
+  { label: "nullCatalogMeansCurrent（常配 true）", value: "nullCatalogMeansCurrent" },
+  { label: "currentSchema（PostgreSQL 用）", value: "currentSchema" },
+  { label: "ssl（PostgreSQL 用）", value: "ssl" },
+  { label: "loginTimeout（SQL Server，秒）", value: "loginTimeout" },
+  { label: "oracle.net.CONNECT_TIMEOUT（Oracle，毫秒）", value: "oracle.net.CONNECT_TIMEOUT" },
+];
+
+/** 下拉选项 = 预置项 + 当前行里未预置的自定义键（编辑整串 URL 时让旧参数可见可选） */
+const extraParamOptions = computed(() => {
+  const seen = new Set(COMMON_JDBC_PARAMS.map((p) => p.value));
+  const extra = extraParams.value
+    .filter((r) => r.key && !seen.has(r.key))
+    .map((r) => ({ label: `${r.key}（当前）`, value: r.key }));
+  return [...COMMON_JDBC_PARAMS, ...extra];
+});
+
+/** 追加一行额外参数 */
+const addExtraParam = () => {
+  extraParams.value.push({ key: "", value: "" });
+};
+
+/** 删除一行额外参数 */
+const removeExtraParam = (index: number) => {
+  extraParams.value.splice(index, 1);
+};
+
+/** 解析整串 JDBC URL 的 query 为编辑行（保持原始文本，不做百分号解码/编码，往返不丢字节） */
+const parseJdbcExtraParams = (url: string): Array<{ key: string; value: string }> => {
+  const qIndex = url.indexOf("?");
+  if (qIndex < 0) return [];
+  const rows: Array<{ key: string; value: string }> = [];
+  for (const seg of url.slice(qIndex + 1).split("&")) {
+    if (!seg) continue;
+    const eq = seg.indexOf("=");
+    const key = (eq >= 0 ? seg.slice(0, eq) : seg).trim();
+    if (!key) continue;
+    rows.push({ key, value: eq >= 0 ? seg.slice(eq + 1).trim() : "" });
+  }
+  return rows;
+};
+
+/** 后端三段式拼装用的默认参数（与 DatasourceServiceImpl.resolveJdbcUrl 同款，并入时不丢） */
+const MYSQL_URL_DEFAULTS: Array<[string, string]> = [
+  ["useUnicode", "true"],
+  ["characterEncoding", "utf8"],
+  ["serverTimezone", "Asia/Shanghai"],
+];
+
+/**
+ * 保存前把额外参数并入 form.database（仅 jdbc 类型）。
+ *
+ * @returns 值非法时为 false，调用方应中止保存
+ */
+const applyJdbcExtraParams = (): boolean => {
+  if (form.value.type !== "jdbc") return true;
+  const rows = extraParams.value
+    .map((r) => ({ key: (r.key ?? "").trim(), value: (r.value ?? "").trim() }))
+    .filter((r) => r.key !== "");
+  const blankKeyWithValue = extraParams.value.some(
+    (r) => !(r.key ?? "").trim() && (r.value ?? "").trim() !== ""
+  );
+  if (blankKeyWithValue) {
+    ElMessage.warning("有一行额外参数只填了值、没选参数名");
+    return false;
+  }
+  const badValue = rows.find((r) => /[&#?\s]/.test(r.value));
+  if (badValue) {
+    ElMessage.warning(`参数 ${badValue.key} 的值里不能有空格或 & ? # 分隔符`);
+    return false;
+  }
+  const db = (form.value.database ?? "").trim();
+  if (rows.length === 0 && !db.toLowerCase().startsWith("jdbc:")) return true;
+  const query = new Map<string, string>();
+  let base: string;
+  if (db.toLowerCase().startsWith("jdbc:")) {
+    // 整串 URL：保留 URL 本体（host/port/库名以 URL 为准），query 完全由行决定
+    const qIndex = db.indexOf("?");
+    base = qIndex >= 0 ? db.slice(0, qIndex) : db;
+  } else {
+    // 三段式：与后端同模板拼 mysql 串，再叠加行（同名覆盖默认）
+    const host = (form.value.host ?? "").trim();
+    if (!host || !db) {
+      ElMessage.warning("填额外参数时需要主机地址与库名（或直接把完整 JDBC URL 粘进库名）");
+      return false;
+    }
+    const port = form.value.port ?? 3306;
+    base = `jdbc:mysql://${host}:${port}/${db}`;
+    for (const [k, v] of MYSQL_URL_DEFAULTS) query.set(k, v);
+  }
+  for (const r of rows) query.set(r.key, r.value);
+  const qs = [...query.entries()].map(([k, v]) => `${k}=${v}`).join("&");
+  form.value.database = qs ? `${base}?${qs}` : base;
+  return true;
+};
+
 // 测试连接
 const testing = ref<number | null>(null);
 
@@ -239,6 +358,7 @@ const openCreate = () => {
     controlMode: "",
     controlTarget: ""
   };
+  extraParams.value = [];
   // 新建弹窗也要能选**已登记**的 jar：不加载的话下拉是空的，
   // 同一个驱动每次建数据源都得重传一遍（编辑弹窗 openEdit 已加载）
   void loadDriverJars();
@@ -249,6 +369,11 @@ const openCreate = () => {
 const openEdit = (item: DataSourceInfo) => {
   editing.value = item;
   form.value = { ...item };
+  // 整串 URL 形态的数据源：把已有 query 参数回显成可编辑行
+  const dbText = typeof item.database === "string" ? item.database.trim() : "";
+  extraParams.value = item.type === "jdbc" && dbText.toLowerCase().startsWith("jdbc:")
+    ? parseJdbcExtraParams(dbText)
+    : [];
   // 编辑既有数据源时也要能选 jar：老数据源没有这个字段，
   // 但用户可能正想给它换一个上传的驱动
   void loadDriverJars();
@@ -265,6 +390,7 @@ const save = async () => {
     ElMessage.warning("请选择数据源类型");
     return;
   }
+  if (!applyJdbcExtraParams()) return;
   saving.value = true;
   try {
     if (editing.value) {
@@ -1232,6 +1358,45 @@ onMounted(load);
                 文件库（H2 / SQLite）也要在这里选驱动：它们不在应用 classpath 上。
               </div>
             </ReFormItem>
+            <!-- 额外连接参数：MySQL 等的扩展参数（useSSL / serverTimezone / …）。
+                 左 ReSelect 选常用参数名，右填值；保存时并入 JDBC 连接串：
+                 整串 URL 原地合并 query，三段式按后端同款模板补默认参数后再叠加。 -->
+            <ReFormItem label="额外参数" class="is-full">
+              <div class="ds-xparam">
+                <div v-for="(row, i) in extraParams" :key="i" class="ds-xparam__row">
+                  <ReSelect
+                    v-model="row.key"
+                    class="ds-xparam__key"
+                    :options="extraParamOptions"
+                    placeholder="选择常用参数"
+                    :data-testid="`dsm-xparam-key-${i}`"
+                  />
+                  <ReInput
+                    v-model="row.value"
+                    class="ds-xparam__value"
+                    placeholder="参数值，如 false / Asia/Shanghai"
+                    :data-testid="`dsm-xparam-value-${i}`"
+                  />
+                  <ReButton
+                    layout="square"
+                    icon="Delete"
+                    type="danger"
+                    tip="删除此参数"
+                    :data-testid="`dsm-xparam-del-${i}`"
+                    @click="removeExtraParam(i)"
+                  />
+                </div>
+                <div class="ds-xparam__foot">
+                  <ReButton size="small" data-testid="dsm-xparam-add" @click="addExtraParam">
+                    <template #icon><ReIcon name="Plus" :size="12" /></template>
+                    添加参数
+                  </ReButton>
+                  <span class="ds-form-hint">
+                    追加到 JDBC 连接串；同名参数覆盖后端默认值。值里不要带空格或 &amp; ? #
+                  </span>
+                </div>
+              </div>
+            </ReFormItem>
           </template>
           <!-- 进程控制方式：只对 nginx 有意义。
                留空 = 自动探测（后端认得出托管单元且当前用户有免密 systemctl 权限才走 systemd），
@@ -1962,5 +2127,36 @@ onMounted(load);
    各浏览器的 file input 很难一致地藏起来，而它又是唯一可靠的取文件方式 */
 .ds-driver-jar-file {
   display: none;
+}
+
+/* ---------------- JDBC 额外连接参数编辑器 ---------------- */
+.ds-xparam {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.ds-xparam__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-xparam__key {
+  width: 230px;
+  flex: 0 0 auto;
+}
+
+.ds-xparam__value {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-xparam__foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 </style>
