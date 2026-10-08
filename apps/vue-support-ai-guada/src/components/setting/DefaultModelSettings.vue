@@ -442,7 +442,6 @@ const getFieldLabel = (item) => {
             'compression_model': '压缩模型',
             'rag_embedding_model': 'Embedding引擎',
             'rag_llm_model': 'LLM模型',
-            'rag_ocr_model': 'OCR模型',
             'image_model': '文生图模型',
             'video_model': '文生视频模型',
             'media_base_path': '生成文件根目录',
