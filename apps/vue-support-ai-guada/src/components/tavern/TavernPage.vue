@@ -64,12 +64,16 @@
           <div class="tv-chat-title-wrap">
             <span class="tv-chat-name">{{ currentGroup.name }}</span>
             <span class="tv-chat-count">（{{ members.length }} 名角色）</span>
-            <!-- 批量配置入口：一次改所有角色的模型，免去逐个点开弹框（用户需求 1） -->
-            <el-button size="small" style="margin-left: 10px" @click="openBulkModel">批量配置</el-button>
           </div>
-          <button class="tv-chat-set" type="button" title="群设置" @click="settingsVisible = true">
-            <el-icon><MoreFilled /></el-icon>
-          </button>
+          <div class="tv-chat-head-actions">
+            <!-- 批量配置入口：图标放在头部右侧，点开「一行一个角色」逐个配模型（用户需求 3） -->
+            <button class="tv-chat-set" type="button" title="批量配置" aria-label="批量配置" @click="openBulkModel">
+              <el-icon><Settings20Regular /></el-icon>
+            </button>
+            <button class="tv-chat-set" type="button" title="群设置" aria-label="群设置" @click="settingsVisible = true">
+              <el-icon><MoreFilled /></el-icon>
+            </button>
+          </div>
         </header>
 
         <!-- 消息区 -->
@@ -90,7 +94,7 @@
             <div class="tv-msg-col">
               <div v-if="m.speakerType !== 'user'" class="tv-msg-meta">
                 <span class="tv-msg-name">{{ m.speakerName }}</span>
-                <span v-if="m.modelName" class="tv-msg-model">{{ m.modelName }}</span>
+                <span v-if="m.modelName" class="tv-msg-model">{{ displayModel(m.modelName) }}</span>
               </div>
               <div class="tv-bubble" :class="m.speakerType === 'user' ? 'b-self' : 'b-other'">
                 <MarkdownContent v-if="m.speakerType !== 'user'" class="markdown-text" :content="m.content" />
@@ -361,21 +365,28 @@
       </template>
     </LDialog>
 
-    <!-- ============ 批量配置模型（一次改所有角色，替代逐个点开） ============ -->
-    <LDialog v-model="bulkModelVisible" width="480" append-to-body class="tv-dialog">
+    <!-- ============ 批量配置角色（view 模式：一行一个角色，逐个选模型，用户需求 3） ============ -->
+    <LDialog v-model="bulkModelVisible" width="560" append-to-body class="tv-dialog tv-bulk-dialog">
       <template #header>
-        <span class="tv-dlg-title">批量设置全部角色的模型（{{ members.length }} 名）</span>
+        <span class="tv-dlg-title">批量配置角色（{{ bulkRows.length }} 名）</span>
       </template>
-      <el-select v-model="bulkModelValue" placeholder="选择模型" filterable style="width: 100%">
-        <el-option label="跟随默认" value="" />
-        <el-option-group v-for="g in groupedModelOptions" :key="g.providerId" :label="g.providerName">
-          <el-option v-for="opt in g.options" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-option-group>
-      </el-select>
-      <p class="tv-set-tip" style="margin-top: 10px">保存后会把该模型应用到群里**所有**角色；选「跟随默认」则全部恢复跟随系统默认。</p>
+      <p class="tv-bulk-hint">一行一个角色，选择各自要使用的模型；「跟随默认」表示使用系统默认对话模型。</p>
+      <div class="tv-bulk-list">
+        <div v-for="row in bulkRows" :key="row.id" class="tv-bulk-row">
+          <CardAvatar :src="row.roleAvatar" :name="row.roleName || 'AI'" size="md" class="tv-bulk-avatar" />
+          <span class="tv-bulk-name" :title="row.roleName">{{ row.roleName }}</span>
+          <el-select v-model="row.model" placeholder="选择模型" filterable size="small" class="tv-bulk-model">
+            <el-option label="跟随默认" value="" />
+            <el-option-group v-for="g in groupedModelOptions" :key="g.providerId" :label="g.providerName">
+              <el-option v-for="opt in g.options" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-option-group>
+          </el-select>
+        </div>
+        <div v-if="!bulkRows.length" class="tv-bulk-empty">群里还没有角色，先去群设置添加</div>
+      </div>
       <template #footer>
         <el-button @click="bulkModelVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmBulkModel">应用到全部角色</el-button>
+        <el-button :disabled="!bulkRows.length" type="primary" @click="confirmBulkModel">保存配置</el-button>
       </template>
     </LDialog>
   </div>
@@ -385,6 +396,7 @@
 import { ref, reactive, computed, nextTick, watch, onMounted } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { MoreFilled, Plus } from '@element-plus/icons-vue'
+import { Settings20Regular } from '@vicons/fluent'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import LDialog from '@/components/ui/LDialog.vue'
@@ -482,7 +494,9 @@ async function loadModelOptions(force = false) {
       const looksCv = cvHints.some((h) => lname.includes(h))
       if (isChat || (!looksCv && !/onnx/i.test(provider.provider_id || ''))) {
         out.push({
-          value: `${provider.provider_id}:${m.model}`,
+          // 存裸模型名：后端按模型名查 ChatClient，带 providerId 前缀会让「模型管理里查无此模型」而整段失败。
+          // 展示侧按需用 normalizeModelOverride 兼容历史「providerId:模型名」写法。
+          value: m.model,
           label: m.model,
           providerId: provider.provider_id,
           providerName: provider.name,
@@ -491,6 +505,27 @@ async function loadModelOptions(force = false) {
     })
   })
   modelOptions.value = out
+}
+
+/**
+ * 归一化成员的模型覆盖值。
+ *
+ * <p>模型选项一律用「裸模型名」落库；但历史数据里可能是「providerId:模型名」或
+ * 「provider名:模型名」。这里在「前缀确实是某个已知供应商」且「冒号后确实是某个已知模型」时
+ * 才剥掉前缀，避免误伤本身带冒号的模型名（如 nvidia/xxx:free）。</p>
+ */
+function normalizeModelOverride(v?: string | null): string {
+  const s = String(v ?? '').trim()
+  if (!s) return ''
+  if (modelOptions.value.some((o) => o.value === s)) return s
+  const i = s.indexOf(':')
+  if (i > 0) {
+    const prefix = s.slice(0, i)
+    const after = s.slice(i + 1)
+    const knownPrefix = modelOptions.value.some((o) => o.providerId === prefix)
+    if (knownPrefix && modelOptions.value.some((o) => o.value === after)) return after
+  }
+  return s
 }
 
 function previewCount(g: TaverGroup) {
@@ -508,8 +543,19 @@ function avatarOf(m: UIMessage) {
 function modelLabel(mb: TaverMember) {
   const v = mb.modelOverride || mb.roleModel
   if (!v) return '跟随默认'
-  const i = String(v).indexOf(':')
-  return i >= 0 ? String(v).slice(i + 1) : String(v)
+  return displayModel(v)
+}
+
+/**
+ * 展示用的模型名：去掉历史遗留的「providerId:」前缀。
+ * 模型选项未加载时按首个冒号兜底（后端修复后 SSE 里本就是裸模型名）。
+ */
+function displayModel(v?: string | null): string {
+  const s = String(v ?? '').trim()
+  if (!s) return ''
+  if (modelOptions.value.length) return normalizeModelOverride(s)
+  const i = s.indexOf(':')
+  return i >= 0 ? s.slice(i + 1) : s
 }
 
 function fmtDay(t?: string | null) {
@@ -540,6 +586,37 @@ async function selectGroup(g: TaverGroup) {
 async function loadMembers() {
   if (!currentGroupId.value) return
   members.value = await apiService.fetchTavernMembers(currentGroupId.value)
+  await migrateCompositeModelOverrides()
+}
+
+/**
+ * 历史数据迁移（幂等）：早期批量配置把模型覆盖存成「providerId:模型名」，
+ * 后端按裸模型名查 ChatClient，这些角色一发言就整段失败（用户报障 3.1）。
+ * 加载成员时把仍是「已知供应商前缀 + 已知模型」的覆盖值改写成裸模型名，其余保持不动。
+ */
+async function migrateCompositeModelOverrides() {
+  const need = members.value.filter((mb) => mb.modelOverride && mb.modelOverride.includes(':'))
+  if (!need.length) return
+  if (!modelOptions.value.length) {
+    try {
+      await loadModelOptions()
+    } catch {
+      return
+    }
+  }
+  for (const mb of need) {
+    const raw = mb.modelOverride as string
+    const bare = normalizeModelOverride(raw)
+    if (!bare || bare === raw) continue
+    if (!modelOptions.value.some((o) => o.value === bare)) continue
+    try {
+      await apiService.updateTavernMember(mb.id, { modelOverride: bare })
+      mb.modelOverride = bare
+      console.info('[Tavern] 已迁移模型覆盖:', raw, '→', bare)
+    } catch (e) {
+      console.warn('[Tavern] 迁移模型覆盖失败:', mb.id, e)
+    }
+  }
 }
 
 async function loadMessages() {
@@ -702,9 +779,9 @@ function onToggleRandom(mb: TaverMember) {
 
 async function openModelPicker(mb: TaverMember) {
   modelPickerTarget.value = mb
-  modelPickerValue.value = mb.modelOverride || ''
-  modelPickerVisible.value = true
   await loadModelOptions()
+  modelPickerValue.value = normalizeModelOverride(mb.modelOverride || mb.roleModel)
+  modelPickerVisible.value = true
 }
 
 async function confirmModelPicker() {
@@ -718,36 +795,47 @@ async function confirmModelPicker() {
   ElMessage.success('模型已更新')
 }
 
-/* ── 批量配置：一次把所有角色设为同一个模型（免去逐个点开弹框，用户需求 1） ── */
+/* ── 批量配置：view 模式，一行一个角色，逐个选模型（图标按钮在头部右侧，用户需求 3） ── */
 const bulkModelVisible = ref(false)
-const bulkModelValue = ref('')
+const bulkRows = ref<Array<{ id: number; roleName: string; roleAvatar?: string | null; model: string }>>([])
 
 async function openBulkModel() {
-  bulkModelValue.value = ''
   bulkModelVisible.value = true
   await loadModelOptions()
+  bulkRows.value = members.value.map((mb) => ({
+    id: mb.id,
+    roleName: mb.roleName || 'AI',
+    roleAvatar: mb.roleAvatar,
+    model: normalizeModelOverride(mb.modelOverride || mb.roleModel),
+  }))
 }
 
 async function confirmBulkModel() {
-  const value = bulkModelValue.value || ''
-  const list = members.value || []
-  if (!list.length) {
+  const rows = bulkRows.value
+  if (!rows.length) {
     ElMessage.warning('群里还没有角色')
     return
   }
   let ok = 0
-  for (const mb of list) {
+  for (const row of rows) {
+    const before = normalizeModelOverride(
+      members.value.find((m) => m.id === row.id)?.modelOverride,
+    )
+    if (row.model === before) {
+      ok++
+      continue
+    }
     try {
       // 与单个配置同语义：清空时发空字符串，而不是 null（请求封装会剥掉 null）
-      await apiService.updateTavernMember(mb.id, { modelOverride: value })
+      await apiService.updateTavernMember(row.id, { modelOverride: row.model })
       ok++
     } catch (e) {
-      console.error('[Tavern] 批量配置某角色失败:', mb.id, e)
+      console.error('[Tavern] 批量配置某角色失败:', row.id, e)
     }
   }
   bulkModelVisible.value = false
   await loadMembers()
-  ElMessage.success(`已为 ${ok}/${list.length} 个角色更新模型`)
+  ElMessage.success(`已更新 ${ok}/${rows.length} 个角色的模型`)
 }
 
 async function onMemberCmd(cmd: string, mb: TaverMember) {
@@ -989,6 +1077,33 @@ onMounted(loadGroups)
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .tv-chat-set :deep(.el-icon) { font-size: 19px; }
+
+/* 头部右侧操作区：批量配置 + 群设置（用户需求 3） */
+.tv-chat-head-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+/* 批量配置弹窗：一行一个角色 */
+.tv-bulk-hint { margin: 0 0 10px; font-size: 12px; color: var(--el-text-color-secondary); }
+.tv-bulk-list { max-height: 52vh; overflow-y: auto; }
+.tv-bulk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.tv-bulk-row:last-child { border-bottom: 0; }
+.tv-bulk-avatar { flex-shrink: 0; }
+.tv-bulk-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tv-bulk-model { width: 240px; flex-shrink: 0; }
+.tv-bulk-empty { padding: 24px 0; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
 
 /* 消息区 */
 .tv-msgs {
