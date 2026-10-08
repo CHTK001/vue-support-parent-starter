@@ -159,7 +159,7 @@
                 <Avatar v-if="currentModel" :src="getModelAvatarPath(currentModel.modelName, detectModelProvider(currentModel.modelName)) || undefined"
                   :name="currentModel.modelName" type="assistant" :round="false" class="w-full h-full" />
               </div>
-              <span class="text-sm font-medium truncate flex-1 min-w-0"
+              <span class="model-name-text text-sm font-medium truncate flex-1 min-w-0"
                 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{
                   currentModelNameOnly }}</span>
               <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
@@ -618,9 +618,10 @@ const currentModelNameOnly = computed(() => {
 });
 
 const currentThinkingLabel = computed(() => {
-  if (!showButtons.thinkingButton || !thinkingEnabled.value) return '';
-  const effort = localThinkingEffort.value;
-  return getThinkingEffortLabel(effort);
+  // 合并入口后：只要思考开启，就在模型按钮上回显当前档位（用户需求 4.2）。
+  // 不再依赖 showButtons.thinkingButton——入口本身是常驻的，开启后理应可见。
+  if (!thinkingEnabled.value) return '';
+  return getThinkingEffortLabel(localThinkingEffort.value);
 });
 
 const currentModelName = computed(() => {
@@ -780,16 +781,24 @@ let modelCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
 function measureModelButtonNaturalWidth(): number {
   const button = modelButtonRef.value as HTMLElement | null
-  if (!button) return 80
+  if (!button) return MODEL_BUTTON_MIN_WIDTH
 
   const clone = button.cloneNode(true) as HTMLElement
   clone.classList.remove('is-open')
   clone.style.position = 'fixed'
   clone.style.visibility = 'hidden'
   clone.style.pointerEvents = 'none'
-  clone.style.width = 'auto'
+  clone.style.width = 'max-content'
   clone.style.maxWidth = `${MODEL_BUTTON_MAX_WIDTH}px`
   clone.style.left = '-9999px'
+  // 名称 span 平时是 flex-1 + min-w-0（flex-basis:0%），对容器固有宽度贡献为 0，
+  // 直接量会把宽度算小、把模型名截断。这里临时还原为内容宽，量到真实需要的宽度（用户需求 4.1）。
+  const nameEl = clone.querySelector('.model-name-text') as HTMLElement | null
+  if (nameEl) {
+    nameEl.style.flex = '0 0 auto'
+    nameEl.style.minWidth = 'max-content'
+    nameEl.style.overflow = 'visible'
+  }
   document.body.appendChild(clone)
   const width = Math.min(MODEL_BUTTON_MAX_WIDTH, Math.max(MODEL_BUTTON_MIN_WIDTH, clone.getBoundingClientRect().width))
   clone.remove()
@@ -1285,6 +1294,14 @@ const handleThinkingLevelSelect = (level: string) => {
   handleThinkingEffortChange(level);
 };
 
+// 模型名 / 思考档位变化时重算按钮宽度，保证自适应宽度始终贴合内容（用户需求 4.1 / 4.2）。
+// 必须放在 thinkingEnabled 声明之后：watch 的数组源会立即求值以收集依赖，
+// 提前引用会让 currentThinkingLabel 在初始化前访问 thinkingEnabled（TDZ）。
+// flush:'post' 让回调在 DOM 更新后再量，避免量到旧文本。
+watch([currentModelNameOnly, currentThinkingLabel], () => {
+  modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
+}, { flush: 'post' })
+
 // MCP 工具选择（仅管理员，会话级持久化）
 // 响应式管理员标记：组件可能在角色写入前挂载，挂载时再校正一次，避免登录后按钮缺失
 const admin = ref(isAdmin());
@@ -1672,7 +1689,11 @@ watch(() => props.config?.thinkingEffort, (newEffort) => {
 
 // 角色/会话级默认能力：进入会话时预置深度思考、在线检索开关
 watch(() => props.config?.defaultThink, (val) => {
-  if (val === true || val === false) thinkingEnabled.value = val;
+  if (val === true || val === false) {
+    thinkingEnabled.value = val;
+    // 开启思考但档位仍是「不思考」时补齐为「默认」，避免按钮态与档位自相矛盾（用户需求 4.2）
+    if (val && localThinkingEffort.value === 'none') localThinkingEffort.value = 'default';
+  }
 }, { immediate: true });
 watch(() => props.config?.defaultSearch, (val) => {
   if (val === true || val === false) webSearchEnabled.value = val;
