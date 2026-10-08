@@ -28,6 +28,7 @@ import {
 } from "./config";
 import { deepMerge } from "./shared";
 import {
+  REMOTE_INJECTABLE_PATH_PREFIXES,
   REMOTE_INJECTABLE_TOP_KEYS,
   safeAssignTopLevel,
   safeSetDotted,
@@ -463,6 +464,7 @@ function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<A
     // 「改了就不只是改观感」的键 —— 远程设置接口只该管品牌与展示。
     safeSetDotted(partial, pathKey, value, {
       topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+      pathPrefixAllowlist: REMOTE_INJECTABLE_PATH_PREFIXES,
       normalizeTopKey: normalizeTopKey,
       onReject: warnRejectedRemoteKey,
     });
@@ -477,6 +479,7 @@ function normalizeTopLevelKeys(data: Record<string, unknown>): Record<string, un
   // result 自身的原型（配置对象被塞成一个诡异实例）。改走安全写入 + 顶层白名单。
   safeAssignTopLevel(result, data, {
     topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+    pathPrefixAllowlist: REMOTE_INJECTABLE_PATH_PREFIXES,
     normalizeTopKey: normalizeTopKey,
     onReject: warnRejectedRemoteKey,
   });

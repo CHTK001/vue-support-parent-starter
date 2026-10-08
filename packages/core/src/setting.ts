@@ -13,7 +13,7 @@
  * http 响应头 x-response-version 触发），版本变化后重新拉取设置，
  * 并执行已注册的 onConfigHotReload 回调。
  */
-import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList, hasRemoteSettingFetched, normalizeTopKey, REMOTE_INJECTABLE_TOP_KEYS, safeSetDotted } from "@repo/config";
+import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList, hasRemoteSettingFetched, normalizeTopKey, REMOTE_INJECTABLE_TOP_KEYS, REMOTE_INJECTABLE_PATH_PREFIXES, safeSetDotted } from "@repo/config";
 import { getDefaultSetting, type SettingItem } from "./api";
 import { log, getAccessToken } from "@repo/utils";
 
@@ -74,6 +74,7 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
       // 「改了就不只是改观感」的键：远程设置的定位是品牌与展示，不是安全基线。
       safeSetDotted(patch, code, val, {
         topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+        pathPrefixAllowlist: REMOTE_INJECTABLE_PATH_PREFIXES,
         normalizeTopKey: normalizeTopKey,
         onReject: (path, reason) => {
           log.warn(`[setting] 已拒绝远程配置项 "${path}"：${reason}`);

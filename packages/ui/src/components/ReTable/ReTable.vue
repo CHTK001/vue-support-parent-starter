@@ -5005,6 +5005,15 @@ const iconSelect = Select;
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
 .re-table .vxe-table--body-wrapper .vxe-table--empty-block {
+  /* ⚠⚠ vxe 4.22.2 自身缺陷：空块基础规则是 `display:none; visibility:hidden`，
+     is--empty 分支只把 display 恢复成 flex、**从不恢复 visibility**（已 grep
+     vxe 全部 css/scss/js：无任何 visibility:visible，JS 也只动滚动条节点）。
+     visibility 是可继承属性 → 块内 el-empty 一并隐藏，空态对用户完全不可见
+     （实测 computed visibility=hidden，e2e retable-layout:04 就是被这条卡住的）。
+     这里显式恢复。有数据时幽灵空块仍被下方 :has(.vxe-body--row) 规则压成 0 高
+     （overflow:hidden），未进入 is--empty 时更是 display:none —— 两个分支
+     都不受这条影响，不会把空态"显形"到有数据的表里。 */
+  visibility: visible;
   /* ⚠ vxe 用 JS 在内联样式里把空块宽度写成「整表内容宽」（实测 1160px），
      而 .vxe-table--body-wrapper 的可视宽只有 780（横向可滚）。内联样式优先于
      普通声明，所以这里的 width 必须带 !important 才压得住。
