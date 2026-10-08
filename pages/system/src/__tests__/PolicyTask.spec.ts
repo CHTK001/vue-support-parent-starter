@@ -1,5 +1,5 @@
 /**
- * 策略任务页面（PolicyTask.vue）组件测试
+ * 策略控制台页面（PolicyTask.vue）组件测试
  *
  * 重点覆盖两处最容易再次回归、且单靠肉眼看不出来的逻辑：
  *
@@ -224,7 +224,7 @@ beforeEach(() => {
   api.policyHitDetail.mockResolvedValue({ data: { total: 0, data: [] } });
 });
 
-describe("策略任务 · 页签", () => {
+describe("策略控制台 · 页签", () => {
   it("7 个页签都能点进去，标题各不相同", async () => {
     const w = mountPage();
     await settle(w);
@@ -269,7 +269,7 @@ describe("策略任务 · 页签", () => {
   });
 });
 
-describe("策略任务 · 接口管控有效状态（action × status）", () => {
+describe("策略控制台 · 接口管控有效状态（action × status）", () => {
   /**
    * 进入接口管控页签并**等表格真的出行**
    *
@@ -384,7 +384,7 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
  * 可选链一短路就结束了 —— header / route / gray 三个页签点刷新**什么都不发生，也不报错**。
  * 这种缺陷编译绿、页面不红、只有人肉点一遍才能发现，所以在这里钉死。
  */
-describe("策略任务 · 顶部刷新按当前页签分发", () => {
+describe("策略控制台 · 顶部刷新按当前页签分发", () => {
   /**
    * tab   —— 导航项下标（与 policy-nav__item 顺序一致）
    * hit   —— 刷新后必须被调到的接口，挑的是这一页签**独有**的那个，
@@ -460,7 +460,7 @@ describe("策略任务 · 顶部刷新按当前页签分发", () => {
  * 没有行就永远不会求值行插槽里的 {@code headerHitCount}。所以这条用例的关键
  * 是**必须给一行真实数据**。</p>
  */
-describe("策略任务 · 消息头行渲染", () => {
+describe("策略控制台 · 消息头行渲染", () => {
   it("有行时能算出并渲染命中次数（回归：hitCountOf 漏解构导致 patch 中断）", async () => {
     api.listHeaderRules.mockResolvedValue({
       data: [
@@ -518,7 +518,7 @@ describe("策略任务 · 消息头行渲染", () => {
  * <p>用例要点：必须**真的给一条 enabled=1 的规则**。规则为空时
  * 「0/0 条已启用」和「都不生效」看上去一样，断言会假绿。</p>
  */
-describe("策略任务 · 全局限流闸门的「生不生效」说明", () => {
+describe("策略控制台 · 全局限流闸门的「生不生效」说明", () => {
   /** 一条启用中的接口维度规则。
    *
    * <p>按维度区分返回值：{@code loadOverview} 会把 interface / ip / account 三个维度
@@ -613,7 +613,7 @@ describe("策略任务 · 全局限流闸门的「生不生效」说明", () => 
  * 以及下拉值必须保持数字类型（DOM 的 value 永远是字符串，
  * 不还原成 0/1 就会把「黑名单」查成查不到）。</p>
  */
-describe("策略任务 · 访问名单搜索过滤", () => {
+describe("策略控制台 · 访问名单搜索过滤", () => {
   /** 切到访问名单页签并等表格就绪 */
   async function openBw() {
     const w = mountPage();

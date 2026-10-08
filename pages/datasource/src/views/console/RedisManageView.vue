@@ -182,7 +182,7 @@
                     </button>
                   </div>
                   <!-- 保存：字符串 / JSON 可保存，HEX 为只读字节视图不可保存 -->
-                  <ReButton v-if="stringView !== 'hex'" type="primary" :loading="saving" data-testid="dsm-btn-save" @click="saveStringValue"><template #icon><ReIcon name="Check" size="12" /></template>保存值</ReButton>
+                  <ReButton layout="square" icon="Check" v-if="stringView !== 'hex'" type="primary" :loading="saving" data-testid="dsm-btn-save" @click="saveStringValue" />
                 </div>
               </div>
               <textarea

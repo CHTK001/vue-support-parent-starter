@@ -61,12 +61,11 @@ const el = ref<HTMLElement | null>(null);
 const elRef = computed(() => el.value);
 
 /** 三段明细，null 归 0：stub_status 缺字段时报「0」比报「—」更贴近真实（确实没有该状态连接）。
- *  配色只用 Element 核心令牌（不取 --metric-* 这类应用级令牌）：本组件被采集台与监控台共用，
- *  应用级令牌在采集台不存在，落不到回退色就会变成灰点。 */
+ *  配色统一走 koi 语义令牌（两个宿主应用都装了 koi 主题，令牌必然存在）。 */
 const parts = computed(() => [
-  { key: "reading", label: "读取", value: Math.max(props.reading ?? 0, 0), token: "--el-color-warning" },
-  { key: "writing", label: "写入", value: Math.max(props.writing ?? 0, 0), token: "--el-color-success" },
-  { key: "waiting", label: "等待", value: Math.max(props.waiting ?? 0, 0), token: "--el-color-info" },
+  { key: "reading", label: "读取", value: Math.max(props.reading ?? 0, 0), token: "--status-warning" },
+  { key: "writing", label: "写入", value: Math.max(props.writing ?? 0, 0), token: "--status-success" },
+  { key: "waiting", label: "等待", value: Math.max(props.waiting ?? 0, 0), token: "--brand-400" },
 ]);
 
 /** 活跃连接总数 = 圆心数字 */
@@ -89,8 +88,8 @@ function pctOf(value: number): string {
 }
 
 const build = (): EChartsOption => {
-  const subColor = token("--el-text-color-secondary");
-  const emptyColor = token("--el-border-color-lighter");
+  const subColor = token("--text-secondary");
+  const emptyColor = token("--border-subtle");
 
   const data = total.value > 0
     ? parts.value.map(p => ({
@@ -103,9 +102,9 @@ const build = (): EChartsOption => {
   return {
     tooltip: {
       trigger: "item",
-      backgroundColor: token("--el-bg-color-overlay") || token("--el-bg-color"),
-      borderColor: token("--el-border-color-lighter"),
-      textStyle: { color: token("--el-text-color-primary") || token("--text-primary"), fontSize: 12 },
+      backgroundColor: token("--bg-elevated") || token("--bg-container"),
+      borderColor: token("--border-subtle"),
+      textStyle: { color: token("--text-primary"), fontSize: 12 },
       formatter: (p: unknown) => {
         const it = p as { name: string; value: number; percent: number };
         if (total.value === 0) {
@@ -183,7 +182,7 @@ watch(() => [props.reading, props.writing, props.waiting, props.height], render)
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
 .ngx-donut-dot {
@@ -193,19 +192,19 @@ watch(() => [props.reading, props.writing, props.waiting, props.height], render)
 }
 
 .ngx-donut-name {
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
 .ngx-donut-num {
   font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .ngx-donut-pct {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 1180px) {
@@ -240,17 +239,17 @@ watch(() => [props.reading, props.writing, props.waiting, props.height], render)
 .ngx-donut-value {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-primary, var(--el-text-color-primary));
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 
   &.is-zero {
     /* 0 是正常状态（空闲实例），不该和「有连接」一样醒目 */
-    color: var(--el-text-color-secondary);
+    color: var(--text-secondary);
   }
 }
 
 .ngx-donut-label {
   font-size: 11px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 </style>

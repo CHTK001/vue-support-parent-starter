@@ -27,15 +27,9 @@
            原来带文字标签，标题行被撑得过长，区块名和行号被挤到换行；
            而这三个操作在图标上语义已经明确（+ / 文件夹+ / 垃圾桶），
            靠 title 提示补充说明即可。 -->
-      <ReButton text title="给这个块加一条指令" @click="emit('add-directive')">
-        <template #icon><ReIcon name="Plus" :size="13" /></template>
-      </ReButton>
-      <ReButton text title="给这个块加一层子块" @click="emit('add-block')">
-        <template #icon><ReIcon name="FolderAdd" :size="13" /></template>
-      </ReButton>
-      <ReButton text type="danger" title="删除这个块" @click="emit('remove')">
-        <template #icon><ReIcon name="Delete" :size="13" /></template>
-      </ReButton>
+      <ReButton layout="square" icon="Plus" tip="给这个块加一条指令" @click="emit('add-directive')" />
+      <ReButton layout="square" icon="FolderAdd" tip="给这个块加一层子块" @click="emit('add-block')" />
+      <ReButton layout="square" type="danger" icon="Delete" tip="删除这个块" @click="emit('remove')" />
     </div>
 
     <!-- 子项 -->
@@ -143,9 +137,7 @@
               />
             </template>
           </div>
-          <ReButton text type="danger" :title="`删除指令 ${d.name}`" @click="emit('remove', d)">
-            <template #icon><ReIcon name="Close" :size="12" /></template>
-          </ReButton>
+          <ReButton layout="square" type="danger" icon="Close" :tip="`删除指令 ${d.name}`" @click="emit('remove', d)" />
         </div>
         <!-- 中文说明 + 示例：新人模式的主要信息来源 -->
         <div v-if="showHelp && d.meta" class="ngf-help">
@@ -296,19 +288,19 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   align-items: center;
   gap: 6px;
   padding: 4px 0;
-  border-radius: var(--el-border-radius-base, 6px);
+  border-radius: 6px;
 
   /* 由站点页签跳转过来时高亮目标块，让用户一眼看到要改的是哪一个 */
   &.is-focused {
-    background: var(--el-color-primary-light-9);
-    box-shadow: inset 2px 0 0 var(--el-color-primary);
+    background: var(--brand-50);
+    box-shadow: inset 2px 0 0 var(--brand-500);
     padding-left: 6px;
   }
 }
 
 .ngf-caret {
   cursor: pointer;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngf-blockname {
@@ -316,7 +308,7 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--el-color-primary);
+  color: var(--brand-500);
   white-space: nowrap;
 }
 
@@ -337,14 +329,14 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
 .ngf-lines {
   flex: 0 0 auto;
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   margin-left: auto;
   white-space: nowrap;
 }
 
 .ngf-children {
   padding-left: 18px;
-  border-left: 1px dashed var(--el-border-color-lighter);
+  border-left: 1px dashed var(--border-subtle);
   margin-left: 6px;
   display: flex;
   flex-direction: column;
@@ -352,10 +344,10 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
 }
 
 .ngf-item {
-  border-radius: var(--el-border-radius-base, 6px);
+  border-radius: 6px;
 
   &.is-directive:hover {
-    background: var(--el-fill-color-light);
+    background: var(--bg-fill);
   }
 }
 
@@ -382,7 +374,7 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   gap: 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   /* 名字是主要信息：宽度不够时压缩它，而不是换行 */
   white-space: nowrap;
   overflow: hidden;
@@ -436,7 +428,7 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
 
 .ngf-unit {
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
@@ -450,28 +442,28 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   padding: 0 6px 6px 8px;
   font-size: 11.5px;
   line-height: 1.55;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 
   &.is-unknown {
-    color: var(--el-text-color-placeholder);
+    color: var(--text-tertiary);
   }
 
   code {
     padding: 0 4px;
     border-radius: 3px;
-    background: var(--el-fill-color-light);
+    background: var(--bg-fill);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 }
 
 .ngf-help-eg {
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .ngf-empty {
   padding: 8px 10px;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 </style>

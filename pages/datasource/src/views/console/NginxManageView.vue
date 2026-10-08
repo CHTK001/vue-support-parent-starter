@@ -1,44 +1,60 @@
 <template>
-  <div class="ngm">
-    <!-- 顶栏：面包屑 + 状态 + 实例元信息 + 实例选择 + 生命周期（对应 UI 图 2-7 顶栏） -->
-    <div class="ngm-topbar">
-      <div class="ngm-crumb">
-        <span class="ngm-crumb-root">数据源中心</span>
-        <span class="ngm-crumb-sep">/</span>
-        <span class="ngm-crumb-cur">{{ source?.name || source?.host || "Nginx 控制台" }}</span>
+  <div class="dsm tel-page">
+    <!-- 顶栏：与 Redis/ZK/etcd 等控制台同款（左=图标+标题+运行状态；右=模式/实例/操作） -->
+    <div class="dsm-toolbar">
+      <div class="dsm-toolbar-left">
+        <ReIcon name="Connection" :size="18" class="dsm-title-icon dsm-nginx-icon" />
+        <span class="dsm-title">Nginx 服务管理</span>
         <span class="ngm-state" :class="stateClass">
           <i class="ngm-state-dot" />
           {{ statusText }}
         </span>
-        <span class="ngm-meta">
-          <template v-if="overview?.version?.version">{{ overview.version.version }}</template>
-          <template v-if="overview?.masterPid"> · PID {{ overview.masterPid }}</template>
-          <template v-if="overview?.uptimeText"> · 已运行 {{ overview.uptimeText }}</template>
-        </span>
+        <span v-if="metaText" class="ngm-meta">{{ metaText }}</span>
       </div>
 
-      <div class="ngm-actions">
-        <ReRadioGroup v-model="mode" >
-          <ReRadioButton value="standard">标准</ReRadioButton>
-          <ReRadioButton value="newbie">新人</ReRadioButton>
-        </ReRadioGroup>
+      <div class="dsm-toolbar-right">
+        <div class="dsm-seg ngm-mode" role="group" aria-label="使用模式">
+          <button
+            type="button"
+            data-testid="ngm-mode-standard"
+            :class="{ 'is-active': mode === 'standard' }"
+            @click="mode = 'standard'"
+          >
+            标准
+          </button>
+          <button
+            type="button"
+            data-testid="ngm-mode-newbie"
+            :class="{ 'is-active': mode === 'newbie' }"
+            @click="mode = 'newbie'"
+          >
+            新人
+          </button>
+        </div>
 
-        <ReSelect
-          :model-value="datasourceId"
+        <div class="dsm-db-select">
+          <ReSelect
+            :model-value="datasourceId"
+            placeholder="选择实例"
+            @change="onSwitchSource"
+          >
+            <ReOption
+              v-for="d in sources"
+              :key="d.id"
+              :value="d.id"
+              :label="d.name || `${d.host}:${d.port || 22}`"
+            />
+          </ReSelect>
+        </div>
 
-          style="width: 170px"
-          placeholder="选择实例"
-          @change="onSwitchSource"
-        >
-          <ReOption
-            v-for="d in sources"
-            :key="d.id"
-            :value="d.id"
-            :label="d.name || `${d.host}:${d.port || 22}`"
-          />
-        </ReSelect>
-
-        <ReButton show-text icon="Refresh" @click="reloadOverview">刷新</ReButton>
+        <ReButton
+          layout="square"
+          icon="Refresh"
+          tip="刷新"
+          data-testid="ngm-btn-refresh"
+          :loading="overviewLoading"
+          @click="reloadOverview"
+        />
 
         <NginxLifecycleBar
           :datasource-id="datasourceId"
@@ -72,24 +88,25 @@
 
     <MiddlewareGap v-if="gap" :text="gap" />
 
-    <div v-else class="ngm-body">
-      <!-- 左侧竖导航（对应 UI 图左侧 NGINX 控制台菜单） -->
-      <aside class="ngm-nav">
-        <div class="ngm-nav-title">
-          <ReIcon name="Position" :size="16" />
-          <span>NGINX 控制台</span>
+    <div v-else class="dsm-body">
+      <!-- 左侧菜单（统一皮肤：对齐 Redis/etcd 侧栏列表样式） -->
+      <aside class="dsm-sidebar ngm-nav">
+        <div class="dsm-view-bar">
+          <span class="ngm-nav-title">NGINX 控制台</span>
         </div>
-        <button
-          v-for="t in tabs"
-          :key="t.name"
-          class="ngm-nav-item"
-          :class="{ 'is-active': activeTab === t.name }"
-          type="button"
-          @click="goTab(t.name)"
-        >
-          <ReIcon :name="t.icon" :size="15" />
-          <span>{{ t.label }}</span>
-        </button>
+        <div class="ngm-nav-list">
+          <button
+            v-for="t in tabs"
+            :key="t.name"
+            class="ngm-nav-item"
+            :class="{ active: activeTab === t.name }"
+            type="button"
+            @click="goTab(t.name)"
+          >
+            <ReIcon :name="t.icon" :size="14" class="ngm-nav-icon" />
+            <span>{{ t.label }}</span>
+          </button>
+        </div>
       </aside>
 
       <!-- 内容区 -->
@@ -138,7 +155,7 @@ import { ElMessage } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
-import { ReAlert, ReOption, ReRadioButton, ReRadioGroup } from "@repo/ui/re-kit";
+import { ReAlert, ReOption } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import NginxLifecycleBar from "../../components/console/NginxLifecycleBar.vue";
 import NginxOverviewPanel from "../../components/console/NginxOverviewPanel.vue";
@@ -158,7 +175,7 @@ const { datasourceId, source, gap, bind, ready } = useMiddlewareSource();
 const mode = ref<"standard" | "newbie">("standard");
 const isNewbie = computed(() => mode.value === "newbie");
 
-/** 左侧竖导航条目 */
+/** 左侧菜单条目 */
 const tabs = computed(() => [
   { name: "overview", label: "总览", icon: "HomeFilled" },
   { name: "site", label: "站点", icon: "Link" },
@@ -218,6 +235,25 @@ const stateClass = computed(() => {
     return "is-loading";
   }
   return "is-unknown";
+});
+
+/** 版本 / PID / 运行时长，拼成一行元信息并进顶栏 */
+const metaText = computed(() => {
+  const o = overview.value;
+  if (!o) {
+    return "";
+  }
+  const parts: string[] = [];
+  if (o.version?.version) {
+    parts.push(o.version.version);
+  }
+  if (o.masterPid) {
+    parts.push(`PID ${o.masterPid}`);
+  }
+  if (o.uptimeText) {
+    parts.push(`已运行 ${o.uptimeText}`);
+  }
+  return parts.join(" · ");
 });
 
 /** 实例接入点，形如 host:port，供总览 Hero 的「监听地址」使用 */
@@ -301,54 +337,101 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-/* 整页：纵向 flex，间距与主机资产一致。
-   色值全部走 koi / Element 令牌，暗色由 html.dark 自动覆盖。 */
-.ngm {
+/* 整页：与 Redis/ZK/etcd 控制台同款 dsm 壳。
+   色值全部走 koi 设计令牌（--brand-* / --text-* / --border-* / --bg-*），暗色自动覆盖。 */
+.dsm {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: calc(100vh - 120px);
-  min-height: 0;
+  height: 100%;
+  min-height: 100%;
 }
 
 /* ============ 顶栏 ============ */
-.ngm-topbar {
+.dsm-toolbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  border-radius: var(--el-border-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 16px;
 }
 
-.ngm-crumb {
+.dsm-toolbar-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  font-size: 13px;
 }
 
-.ngm-crumb-root {
-  color: var(--el-text-color-secondary);
-}
-
-.ngm-crumb-sep {
-  color: var(--el-text-color-placeholder);
-}
-
-.ngm-crumb-cur {
+.dsm-title {
+  font-size: 16px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
-/* 运行状态胶囊：绿/红/灰三态 */
+.dsm-nginx-icon {
+  color: #009639;
+}
+
+.dsm-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dsm-toolbar-right :deep(.rs-btn) {
+  margin: 0;
+}
+
+.dsm-db-select {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+/* 标准/新人 切换：复用统一分段控件样式（同 Redis 字符串视图切换） */
+.dsm-seg {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.dsm-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dsm-seg button:last-child {
+  border-right: none;
+}
+
+.dsm-seg button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dsm-seg button.is-active {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
+/* 运行状态胶囊：五种状态各自语义色 */
 .ngm-state {
   display: inline-flex;
   align-items: center;
@@ -361,35 +444,35 @@ onMounted(async () => {
   white-space: nowrap;
 
   &.is-running {
-    color: var(--el-color-success);
-    background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
-    border-color: color-mix(in srgb, var(--el-color-success) 32%, transparent);
+    color: var(--status-success);
+    background: color-mix(in srgb, var(--status-success) 12%, transparent);
+    border-color: color-mix(in srgb, var(--status-success) 32%, transparent);
   }
 
   &.is-stopped {
-    color: var(--el-color-danger);
-    background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
-    border-color: color-mix(in srgb, var(--el-color-danger) 32%, transparent);
+    color: var(--status-error);
+    background: color-mix(in srgb, var(--status-error) 12%, transparent);
+    border-color: color-mix(in srgb, var(--status-error) 32%, transparent);
   }
 
   &.is-unknown {
-    color: var(--el-text-color-secondary);
-    background: var(--el-fill-color-light);
-    border-color: var(--el-border-color-lighter);
+    color: var(--text-secondary);
+    background: var(--bg-fill);
+    border-color: var(--border-subtle);
   }
 
-  /* 加载中：中性灰蓝 + 呼吸动画，与「已停止」的红色明确区分开 */
+  /* 加载中：品牌色 + 呼吸动画，与「已停止」的红色明确区分开 */
   &.is-loading {
-    color: var(--el-color-info);
-    background: color-mix(in srgb, var(--el-color-info) 12%, transparent);
-    border-color: color-mix(in srgb, var(--el-color-info) 32%, transparent);
+    color: var(--brand-500);
+    background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+    border-color: color-mix(in srgb, var(--brand-500) 32%, transparent);
   }
 
   /* 取数失败：橙红警示，明确区别于「运行中/已停止」这两个真实状态 */
   &.is-error {
-    color: var(--el-color-warning);
-    background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
-    border-color: color-mix(in srgb, var(--el-color-warning) 32%, transparent);
+    color: var(--status-warning);
+    background: color-mix(in srgb, var(--status-warning) 12%, transparent);
+    border-color: color-mix(in srgb, var(--status-warning) 32%, transparent);
   }
 }
 
@@ -417,78 +500,68 @@ onMounted(async () => {
 
 .ngm-meta {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.ngm-actions {
+/* ============ 主体：左菜单 + 内容 ============ */
+.dsm-body {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* ============ 主体：左导航 + 内容 ============ */
-.ngm-body {
-  display: flex;
-  gap: 12px;
   flex: 1;
-  min-height: 0;
+  gap: 16px;
+  overflow: hidden;
 }
 
+/* 左侧菜单：外层用 dsm-sidebar（边框/圆角/底色），条目皮肤对齐 dsm-tree-node */
 .ngm-nav {
+  width: 180px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  width: 168px;
-  flex: 0 0 168px;
-  padding: 10px 8px;
-  border-radius: var(--el-border-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-  overflow: auto;
 }
 
 .ngm-nav-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px 10px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--el-text-color-primary);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
 }
 
-/* 导航项：激活态复用 koi 菜单令牌，保证与侧边栏风格一致 */
+.ngm-nav-list {
+  flex: 1;
+  padding: 6px 0;
+  overflow-y: auto;
+}
+
 .ngm-nav-item {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   width: 100%;
-  padding: 9px 10px;
+  padding: 6px 12px;
   border: 0;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: transparent;
+  background: var(--bg-container);
   font-size: 13px;
   text-align: left;
-  color: var(--el-menu-text-color, var(--el-text-color-regular));
+  color: var(--text-primary);
   cursor: pointer;
-  transition: background-color 0.18s var(--el-transition-function-ease-in-out-bezier, ease),
-    color 0.18s var(--el-transition-function-ease-in-out-bezier, ease);
+  transition: background 0.15s;
 
   &:hover {
-    background: var(--el-menu-hover-bg-color, var(--el-fill-color-light));
-    color: var(--el-menu-hover-text-color, var(--el-color-primary));
+    background: var(--bg-hover);
   }
 
-  &.is-active {
-    background: var(--el-menu-active-bg-color, var(--el-color-primary-light-9));
-    color: var(--el-menu-active-text-color, var(--el-color-primary));
+  &.active {
+    background: var(--brand-50);
+    color: var(--brand-600);
     font-weight: 600;
   }
+}
+
+.ngm-nav-icon {
+  flex-shrink: 0;
 }
 
 .ngm-main {
@@ -501,15 +574,15 @@ onMounted(async () => {
 /* 各子面板是 .ngm-main 的直接子元素，自身按内容高度收缩。
    铺满后 v-loading 的 .el-loading-mask（position:absolute; inset:0 贴在面板根元素上）
    才能盖住整块内容区，而不是只盖住上半截。
-   .ngm-main 是 .ngm-body 的 flex 子项、.ngm 有 height: calc(100vh - 120px)，
-   所以这里的百分比高度能解析；面板内容更高时按内容撑开并由 .ngm-main 滚动。 */
+   .ngm-main 是 .dsm-body 的 flex 子项、.dsm 有 height:100%，所以这里的百分比高度能解析；
+   面板内容更高时按内容撑开并由 .ngm-main 滚动。 */
 .ngm-main > * {
   min-height: 100%;
 }
 
 /* ============ 新人引导 ============ */
 .ngm-guide {
-  margin: 0;
+  margin: 0 0 16px;
 }
 
 .ngm-guide-body {
@@ -519,12 +592,12 @@ onMounted(async () => {
 
 .ngm-guide-sub {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 
 .ngm-link {
-  color: var(--el-color-primary);
+  color: var(--brand-500);
   cursor: pointer;
   text-decoration: underline;
   margin: 0 2px;

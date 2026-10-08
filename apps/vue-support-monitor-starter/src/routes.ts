@@ -120,11 +120,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
   },
 
   // ==================== 文件管理 ====================
-  // 与「资产管理」平级的独立分组：文件服务器(FileStorageServerFilter)暴露
-  // 独立 HTTP 服务（默认 127.0.0.1:18082），不走网关 /ms 前缀。
-  // 后端 CorsFilter 默认开启 CORS（allowedOrigins=*, allowCredentials=true），
-  // 前端直接跨域请求，无需 Vite 代理。见 vite.config.ts（已移除文件存储代理）。
-  // 生产环境则走应用配置 otherConfig.filestorage.server 或用户手动选定。
+  // 与「资产管理」平级的独立分组：文件服务器(FileStorageServerFilter)由后端
+  // monitor 的 MonitorFileStorageGatewayConfig 随应用启动（plugin.filesystem.
+  // storage-server，默认 18082），是应用进程内的独立 HTTP 服务，不走网关 /ms 前缀。
+  // 开发环境(pnpm dev)：文件服务在 198 上，浏览器直连会跨域且本机无该进程，
+  // 由 Vite 代理 /localFileStorage 等前缀转发到 198:18082（见 vite.config.ts）；
+  // 生产环境走应用配置 otherConfig.filestorage.server 或用户手动选定。
   //
   // 此前「文件资产」菜单嵌在资产管理分组下，现在提升为顶层分组。
   {

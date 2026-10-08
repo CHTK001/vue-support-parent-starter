@@ -1499,7 +1499,7 @@ export function runScheduleTask(key: string) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/* ================== 策略任务 - 限流 ================== */
+/* ================== 策略控制台 - 限流 ================== */
 
 /** 限流规则列表（按维度） */
 export function listRateLimit(dimension?: RateLimitRule["dimension"]) {
@@ -1548,7 +1548,7 @@ export function applyRateLimitGlobal(data: RateLimitGlobal) {
     .then<ApiResult<string>>((r) => r.data);
 }
 
-/* ================== 策略任务 - 账号黑白名单 ================== */
+/* ================== 策略控制台 - 账号黑白名单 ================== */
 
 /** 账号黑白名单分页（后端记录位于 list） */
 export function pageForAccountBw(params: {
@@ -1588,7 +1588,7 @@ export function deleteAccountBw(id: number) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/* ================== 策略任务 - 热更新 ================== */
+/* ================== 策略控制台 - 热更新 ================== */
 
 /** 热更新配置列表 */
 export function listHotReload() {
@@ -1620,7 +1620,7 @@ export function reloadHotReload() {
     .then<ApiResult<HotReloadRuntimeResult>>((r) => r.data);
 }
 
-/* ================== 策略任务 - 统一策略配置（灰度 / 功能开关） ================== */
+/* ================== 策略控制台 - 统一策略配置（灰度 / 功能开关） ================== */
 
 /**
  * 按 type 分页查询统一策略配置。
@@ -1744,7 +1744,7 @@ export function policyHitDetail(type: string, key: string) {
     .then<ApiResult<PolicyHitDetail>>((r) => r.data);
 }
 
-/* ================== 策略任务 - 消息头拦截 ================== */
+/* ================== 策略控制台 - 消息头拦截 ================== */
 
 /** 消息头拦截规则列表（后端已解析 config，前端直接展示/编辑） */
 export function listHeaderRules() {

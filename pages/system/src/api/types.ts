@@ -1266,7 +1266,7 @@ export interface RestfulApiStats {
   topIps?: RestfulTopIp[];
 }
 
-/* ================== 策略任务 - 限流 ================== */
+/* ================== 策略控制台 - 限流 ================== */
 
 /** 限流规则（后端 0/1 状态口径） */
 export interface RateLimitRule {
@@ -1290,7 +1290,7 @@ export interface RateLimitGlobal {
   dimension?: "global" | string;
 }
 
-/* ================== 策略任务 - 账号黑白名单 ================== */
+/* ================== 策略控制台 - 账号黑白名单 ================== */
 
 /** 账号黑白名单（后端 1=黑名单、2=白名单；1=启用、0=禁用） */
 export interface AccountBlackwhite {
@@ -1312,7 +1312,7 @@ export interface AccountBlackwhitePage {
   pages: number;
 }
 
-/* ================== 策略任务 - 消息头拦截 ================== */
+/* ================== 策略控制台 - 消息头拦截 ================== */
 
 /** 消息头匹配方式 */
 export type HeaderMatchType = "CONTAINS" | "EQUALS" | "PREFIX" | "REGEX";
@@ -1345,7 +1345,7 @@ export interface HeaderPresets {
   flat: string[];
 }
 
-/* ================== 策略任务 - 命中统计 ================== */
+/* ================== 策略控制台 - 命中统计 ================== */
 
 /** 命中统计的策略类型；与后端 {@code PolicyHitCollector.TYPE_*} 一一对应 */
 export type PolicyHitType =
@@ -1382,7 +1382,7 @@ export interface PolicyHitDetail {
   trend: PolicyHitTrendPoint[];
 }
 
-/* ================== 策略任务 - 热更新 ================== */
+/* ================== 策略控制台 - 热更新 ================== */
 
 /** 热重载执行结果 */
 export interface HotReloadRuntimeResult {

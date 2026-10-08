@@ -18,14 +18,8 @@
       >
         <ReOption v-for="f in files" :key="f.path" :value="f.path" :label="f.path" />
       </ReSelect>
-      <ReButton :loading="backing" :disabled="!configPath" @click="doBackup">
-        <template #icon><ReIcon name="CopyDocument" :size="13" /></template>
-        立即备份
-      </ReButton>
-      <ReButton :loading="loading" @click="load">
-        <template #icon><ReIcon name="Refresh" :size="13" /></template>
-        刷新列表
-      </ReButton>
+      <ReButton layout="square" icon="CopyDocument" tip="立即备份" data-testid="ngb-btn-backup" :loading="backing" :disabled="!configPath" @click="doBackup" />
+      <ReButton layout="square" icon="Refresh" tip="刷新列表" data-testid="ngb-btn-refresh" :loading="loading" @click="load" />
       <span class="ngb-count">共 {{ backups.length }} 个备份</span>
     </div>
 
@@ -52,14 +46,8 @@
               <span v-if="b.reason"> · {{ b.reason }}</span>
             </div>
           </div>
-          <ReButton text :loading="previewing === b.name" @click="openPreview(b)">
-            <template #icon><ReIcon name="View" :size="13" /></template>
-            查看
-          </ReButton>
-          <ReButton text :loading="restoring === b.name" @click="openRestore(b)">
-            <template #icon><ReIcon name="RefreshLeft" :size="13" /></template>
-            回退到此版本
-          </ReButton>
+          <ReButton layout="square" icon="View" tip="查看" data-testid="ngb-btn-preview" :loading="previewing === b.name" @click="openPreview(b)" />
+          <ReButton layout="square" icon="RefreshLeft" tip="回退到此版本" data-testid="ngb-btn-restore" :loading="restoring === b.name" @click="openRestore(b)" />
         </div>
       </template>
     </div>
@@ -473,7 +461,7 @@ defineExpose({ load });
   code {
     padding: 0 4px;
     border-radius: 3px;
-    background: var(--el-fill-color);
+    background: var(--bg-fill);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 }
@@ -485,9 +473,13 @@ defineExpose({ load });
   flex-wrap: wrap;
 }
 
+.ngb-bar :deep(.rs-btn) {
+  margin: 0;
+}
+
 .ngb-count {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -499,9 +491,9 @@ defineExpose({ load });
   flex-direction: column;
   gap: 6px;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
 }
 
 /* ============ 首屏骨架屏 ============ */
@@ -518,8 +510,8 @@ defineExpose({ load });
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base, 6px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
 }
 
 .ngb-skel-icon {
@@ -535,8 +527,8 @@ defineExpose({ load });
 /* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
    覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
 .ngb-skel :deep(.el-skeleton) {
-  --el-skeleton-animation-bg-color: var(--el-fill-color);
-  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
 }
 
 /* ============ 内容预览 / 对比 ============ */
@@ -549,15 +541,15 @@ defineExpose({ load });
 
 .ngb-preview-meta {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngb-add {
-  color: var(--el-color-success);
+  color: var(--status-success);
 }
 
 .ngb-del {
-  color: var(--el-color-danger);
+  color: var(--status-error);
 }
 
 .ngb-preview-body {
@@ -565,9 +557,9 @@ defineExpose({ load });
   margin: 0;
   padding: 12px 14px;
   overflow: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base, 6px);
-  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-fill);
   font-size: 12px;
   line-height: 1.65;
   white-space: pre;
@@ -583,11 +575,11 @@ defineExpose({ load });
 }
 
 .ngb-diff :deep(.el-diff-add) {
-  background: var(--el-color-success-light-9);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
 }
 
 .ngb-diff :deep(.el-diff-del) {
-  background: var(--el-color-danger-light-9);
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
 }
 
 .ngb-item {
@@ -595,12 +587,16 @@ defineExpose({ load });
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base, 6px);
-  transition: background-color var(--el-transition-duration, 0.15s) ease;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
   &:hover {
-    background: var(--el-fill-color-light);
+    background: var(--bg-hover);
   }
+}
+
+.ngb-item :deep(.rs-btn) {
+  margin: 0;
 }
 
 .ngb-info {
@@ -617,7 +613,7 @@ defineExpose({ load });
 
 .ngb-meta {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
@@ -631,7 +627,7 @@ defineExpose({ load });
 .ngb-hint {
   font-size: 12px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 

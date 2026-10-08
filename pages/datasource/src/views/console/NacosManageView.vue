@@ -1,21 +1,35 @@
 <template>
-  <div class="dsm tel-page">
+  <div class="dsm tel-page" :class="{ resizing }">
     <div class="dsm-toolbar">
       <div class="dsm-toolbar-left">
         <ReIcon name="Setting" :size="18" class="dsm-title-icon dsm-nacos-icon" />
         <span class="dsm-title">Nacos 配置中心管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton :loading="loading" @click="reloadAll"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建配置</ReButton>
+        <ReButton layout="square" icon="Connection" tip="测试连接" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
+        <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-btn-refresh" :loading="loading" @click="reloadAll" />
+        <ReButton layout="square" type="primary" icon="Plus" tip="新建配置" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
     </div>
 
     <MiddlewareGap :text="gap" @retry="reloadAll" />
 
     <div class="dsm-body">
-      <div class="dsm-sidebar">
+      <div class="dsm-sidebar" :style="{ width: leftWidth + 'px' }">
+        <!-- 侧栏搜索（Redis 模板）：过滤命名空间，回车或点查询触发重载 -->
+        <div class="dsm-search-section">
+          <ReInput v-model="sidebarKeyword" placeholder="过滤命名空间" @keyup.enter="reloadAll" />
+          <ReButton type="primary" :loading="loading" @click="reloadAll"><template #icon><ReIcon name="Search" size="12" /></template>查询</ReButton>
+        </div>
+        <!-- 计数条 + 快捷刷新（Redis dsm-view-bar） -->
+        <div class="dsm-view-bar">
+          <span class="dsm-view-count">{{ filteredNamespaces.length }} 命名空间 · {{ services.length }} 服务</span>
+          <span class="dsm-view-spacer" />
+          <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-view-refresh" :loading="loading" @click="reloadAll" />
+        </div>
+        <div class="dsm-key-list">
+          <!-- 顶部细扫描条 = 刷新中 -->
+          <div class="dsm-scan-bar" :class="{ 'is-active': loading }" data-testid="dsm-scan-bar"><span /></div>
         <div class="dsm-tree">
           <div class="dsm-tree-node dsm-tree-root" @click="toggleNode('root')">
             <ReIcon :name="expandedNodes.has('root') ? 'ArrowDown' : 'ArrowRight'" size="12" />
@@ -28,26 +42,27 @@
               <ReIcon name="FolderOpened" size="14" class="dsm-tree-icon" />
               <span class="dsm-tree-label">命名空间</span>
               <span class="dsm-tree-count">{{ namespaces.length }}</span>
-              <span class="dsm-tree-actions" @click.stop>
-                <ReButton text tip="新建命名空间" @click="openNamespaceDialog('create')"><ReIcon name="Plus" size="13" /></ReButton>
-                <ReButton text tip="编辑命名空间" :disabled="!canEditNamespace" @click="openNamespaceDialog('edit')"><ReIcon name="Edit" size="13" /></ReButton>
-                <ReButton text type="danger" tip="删除命名空间" :disabled="!canEditNamespace" @click="removeNamespace"><ReIcon name="Delete" size="13" /></ReButton>
+              <span class="dsm-tree-actions" data-testid="dsm-tree-actions" @click.stop>
+                <ReButton layout="square" size="small" icon="Plus" tip="新建命名空间" data-testid="dsm-ns-create" @click="openNamespaceDialog('create')" />
+                <ReButton layout="square" size="small" icon="Edit" tip="编辑命名空间" data-testid="dsm-ns-edit" :disabled="!canEditNamespace" @click="openNamespaceDialog('edit')" />
+                <ReButton layout="square" size="small" type="danger" icon="Delete" tip="删除命名空间" data-testid="dsm-ns-delete" :disabled="!canEditNamespace" @click="removeNamespace" />
               </span>
             </div>
             <div v-if="expandedNodes.has('ns')" class="dsm-tree-children">
               <div
-                v-for="ns in namespaces"
+                v-for="ns in filteredNamespaces"
                 :key="ns.id"
                 class="dsm-tree-node dsm-leaf-node"
                 :class="{ active: activeNs === ns.id }"
                 @click="selectNs(ns.id)"
+                @contextmenu.prevent="onNsContextMenu($event, ns.id)"
               >
                 <ReIcon name="Folder" size="12" class="dsm-tree-icon" />
                 <span class="dsm-tree-label">{{ ns.name }}</span>
                 <span class="dsm-tree-count">{{ ns.configCount }}</span>
               </div>
-              <div v-if="namespaces.length === 0" class="dsm-tree-node dsm-leaf-node">
-                <span class="dsm-tree-label">{{ gap ? "未读取到命名空间" : "暂无命名空间" }}</span>
+              <div v-if="filteredNamespaces.length === 0" class="dsm-tree-node dsm-leaf-node">
+                <span class="dsm-tree-label">{{ gap ? "未读取到命名空间" : (sidebarKeyword ? "无匹配命名空间" : "暂无命名空间") }}</span>
               </div>
             </div>
             <div class="dsm-tree-node" :class="{ active: activeView === 'services' }" @click="activeView = 'services'">
@@ -62,7 +77,11 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
+
+      <!-- 拖拽调节左右宽度（Redis 同形态） -->
+      <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
 
       <div class="dsm-content">
         <div class="dsm-info-card">
@@ -212,6 +231,14 @@
         </template>
       </ReTable>
     </ReDialog>
+    <!-- 命名空间行右键菜单（第九批统一 zk 模板） -->
+    <DsmContextMenu
+      v-model:visible="nsMenu.visible"
+      :x="nsMenu.x"
+      :y="nsMenu.y"
+      :items="nsMenuItems"
+      @select="onNsMenuSelect"
+    />
   </div>
 </template>
 
@@ -227,6 +254,7 @@
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { View, Edit, CopyDocument, Download, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -236,6 +264,7 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReOption } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   deleteNacosConfig,
@@ -269,6 +298,34 @@ const expandedNodes = ref(new Set(["root", "ns"]));
 const activeNs = ref("public");
 const activeView = ref<"configs" | "services" | "clusters">("configs");
 const loading = ref(false);
+/** 侧栏宽度持久化键（nacos 独立于 redis/etcd 等控制台） */
+const LEFT_WIDTH_KEY = "nacos-side-width";
+/** 侧栏宽度（拖拽调节，记录到 localStorage） */
+const leftWidth = ref<number>(Math.min(560, Math.max(260, Number(localStorage.getItem(LEFT_WIDTH_KEY)) || 340)));
+/** 是否正在拖拽（拖拽中禁用文本选择） */
+const resizing = ref(false);
+
+/**
+ * 开始拖拽调节左侧宽度（Redis 同形态）。
+ *
+ * @param e 鼠标按下事件
+ */
+function startResize(e: MouseEvent): void {
+  resizing.value = true;
+  const startX = e.clientX;
+  const startWidth = leftWidth.value;
+  const onMove = (ev: MouseEvent): void => {
+    leftWidth.value = Math.min(560, Math.max(260, startWidth + ev.clientX - startX));
+  };
+  const onUp = (): void => {
+    resizing.value = false;
+    localStorage.setItem(LEFT_WIDTH_KEY, String(leftWidth.value));
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
 const saving = ref(false);
 const testing = ref(false);
 /** 测试连接探测到的 Nacos 版本，未探测为空串 */
@@ -286,6 +343,15 @@ interface NamespaceRow {
 type Column = { prop: string; label: string; width?: number | string; minWidth?: number; fixed?: boolean | "left" | "right"; slot?: string; formatter?: (row: any) => string };
 
 const namespaces = ref<NamespaceRow[]>([]);
+/** 侧栏搜索词：仅过滤命名空间树（配置列表另有 Data ID 过滤框，互不干扰） */
+const sidebarKeyword = ref("");
+const filteredNamespaces = computed(() => {
+  const kw = sidebarKeyword.value.trim().toLowerCase();
+  if (!kw) return namespaces.value;
+  return namespaces.value.filter(
+    ns => String(ns.name || "").toLowerCase().includes(kw) || String(ns.id || "").toLowerCase().includes(kw),
+  );
+});
 const configs = ref<NacosConfig[]>([]);
 const services = ref<NacosService[]>([]);
 const clusters = ref<NacosClusterNode[]>([]);
@@ -321,13 +387,13 @@ const activeNsName = computed(
   () => namespaces.value.find(n => n.id === activeNs.value)?.name || activeNs.value || "public"
 );
 
-/** 配置行右键菜单，由 ReTable 内置菜单渲染 */
+/** 配置行右键菜单，由 ReTable 内置菜单渲染（第九批统一 zk 样式 + 逐项图标） */
 const configMenu = [
-  { key: "view", label: "查看配置" },
-  { key: "edit", label: "编辑配置" },
-  { key: "clone", label: "克隆配置" },
-  { key: "export", label: "导出配置" },
-  { key: "delete", label: "删除配置", divided: true },
+  { key: "view", label: "查看配置", icon: View },
+  { key: "edit", label: "编辑配置", icon: Edit },
+  { key: "clone", label: "克隆配置", icon: CopyDocument },
+  { key: "export", label: "导出配置", icon: Download },
+  { key: "delete", label: "删除配置", icon: Delete, divided: true },
 ];
 
 const configVisible = ref(false);
@@ -343,6 +409,36 @@ const nsDialogVisible = ref(false);
 const nsDialogMode = ref<"create" | "edit">("create");
 const nsSaving = ref(false);
 const nsForm = reactive({ namespaceId: "", namespaceName: "", namespaceDesc: "" });
+
+/** 命名空间行右键菜单（第九批统一 zk 模板） */
+const nsMenu = reactive({ visible: false, x: 0, y: 0, key: "" });
+const nsMenuItems = [
+  { key: "copy", label: "复制命名空间 ID", icon: "Document" },
+  { key: "edit", label: "编辑命名空间", icon: "Edit" },
+  { key: "delete", label: "删除命名空间", icon: "Delete", danger: true, divided: true },
+];
+/** 打开命名空间行右键菜单 */
+function onNsContextMenu(e: MouseEvent, id: string) {
+  Object.assign(nsMenu, { visible: true, x: e.clientX, y: e.clientY, key: id });
+}
+/** 菜单动作分发 */
+async function onNsMenuSelect(key: string) {
+  const id = nsMenu.key;
+  if (!id) return;
+  if (key === "copy") {
+    try {
+      await navigator.clipboard.writeText(id);
+      ElMessage.success("已复制命名空间 ID");
+    } catch {
+      ElMessage.error("复制失败");
+    }
+    return;
+  }
+  // 编辑/删除依赖 activeNs 指向该命名空间（右键不等同于选中）
+  activeNs.value = id;
+  if (key === "edit") openNamespaceDialog("edit");
+  if (key === "delete") removeNamespace();
+}
 
 /** 公有命名空间不可编辑/删除 */
 const canEditNamespace = computed(() => {
@@ -864,10 +960,33 @@ onMounted(async () => {
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .dsm-nacos-icon { color: #fbbf24; }
 .dsm-toolbar-right { display: flex; gap: 8px; }
-.dsm-body { display: flex; flex: 1; gap: 16px; overflow: hidden; }
-.dsm-sidebar { width: 240px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow-y: auto; flex-shrink: 0; }
+.dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
+.dsm.resizing { user-select: none; }
+.dsm-split { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize; }
+.dsm-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s; }
+.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-400); }
+.dsm-sidebar {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-search-section > *:first-child { flex: 1; }
+.dsm-view-bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-view-count { font-size: 12px; color: var(--text-tertiary); }
+.dsm-view-spacer { flex: 1; }
+.dsm-key-list { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto; }
+.dsm-scan-bar { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s; }
+.dsm-scan-bar.is-active { opacity: 1; }
+.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%); }
+.dsm-scan-bar.is-active span { animation: dsm-scan-slide 1s linear infinite; }
+@keyframes dsm-scan-slide { to { transform: translateX(350%); } }
 .dsm-tree { padding: 8px 0; }
-.dsm-tree-node { display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
+.dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
 .dsm-tree-node:hover { background: var(--bg-hover); }
 .dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
 .dsm-tree-root { font-weight: 600; }
@@ -875,7 +994,20 @@ onMounted(async () => {
 .dsm-tree-icon { flex-shrink: 0; }
 .dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsm-tree-count { font-size: 11px; color: var(--text-tertiary); background: var(--bg-fill); padding: 1px 6px; border-radius: 10px; }
-.dsm-tree-actions { display: inline-flex; gap: 2px; margin-left: auto; }
+/* 行操作：悬停出现的方形图标条（与 Redis .dsm-row-actions 同形态） */
+.dsm-tree-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding-left: 18px;
+  background: inherit;
+}
+.dsm-tree-node:hover .dsm-tree-actions { display: inline-flex; }
+.dsm-tree-actions :deep(.rs-btn) { margin: 0; }
 .dsm-section-hint { font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
 .dsm-info-card { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 14px 16px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); }

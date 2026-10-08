@@ -15,8 +15,27 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef, type Ref } from "vue";
 import * as echarts from "echarts";
 
-/** 令牌 → 回退色。回退只在令牌缺失（如单测无 DOM）时生效，正常运行读的是令牌值。 */
+/** 令牌 → 回退色。回退只在令牌缺失（如单测无 DOM）时生效，正常运行读的是令牌值。
+ *  koi 令牌为主；el 键保留给仍按 Element 变量取色的历史调用方。 */
 const FALLBACK: Record<string, string> = {
+  "--brand-500": "#6d5dfc",
+  "--brand-400": "#8f83fd",
+  "--status-success": "#2fbf71",
+  "--status-warning": "#f59e0b",
+  "--status-error": "#ff4c4c",
+  "--border-subtle": "#eef0f6",
+  "--text-primary": "#303133",
+  "--text-secondary": "#5c6270",
+  "--text-tertiary": "#909399",
+  "--bg-container": "#ffffff",
+  "--bg-elevated": "#fbfbff",
+  "--bg-fill": "#f5f7fa",
+  "--metric-cpu": "#3b82f6",
+  "--metric-mem": "#8b5cf6",
+  "--metric-net": "#06b6d4",
+  "--metric-jvm": "#14b8a6",
+  "--metric-disk": "#f59e0b",
+  "--metric-db": "#0ea5e9",
   "--el-color-primary": "#409eff",
   "--el-color-success": "#67c23a",
   "--el-color-warning": "#e6a23c",
@@ -26,9 +45,8 @@ const FALLBACK: Record<string, string> = {
   "--el-text-color-secondary": "#909399",
   "--el-text-color-regular": "#606266",
   "--el-bg-color": "#ffffff",
+  "--el-bg-color-overlay": "#ffffff",
   "--el-color-white": "#ffffff",
-  "--text-primary": "#303133",
-  "--text-tertiary": "#909399",
 };
 
 /**
@@ -54,16 +72,16 @@ export function token(token: string): string {
  * 这里用一组在浅色与深色下都能互相区分的语义色，并按序号取用、超出长度就循环。</p>
  */
 export const URL_TREND_COLORS = [
-  "--el-color-primary",
-  "--el-color-warning",
-  "--el-color-success",
-  "--el-color-danger",
-  "--el-color-info",
-  "--metric-cpu",
+  "--brand-500",
+  "--status-warning",
   "--status-success",
-  "--el-color-primary-light-3",
-  "--el-color-warning-light-3",
-  "--el-color-success-light-3"
+  "--status-error",
+  "--metric-cpu",
+  "--metric-mem",
+  "--metric-net",
+  "--metric-jvm",
+  "--metric-disk",
+  "--metric-db"
 ];
 
 /** 是否深色主题 */

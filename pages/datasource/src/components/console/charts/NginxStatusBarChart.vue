@@ -50,15 +50,15 @@ function tokenOf(category: string): string {
   if (category.startsWith("5")) {
     return "--status-error";
   }
-  return "--el-text-color-secondary";
+  return "--text-secondary";
 }
 
 const el = ref<HTMLElement | null>(null);
 const elRef = computed(() => el.value);
 
 const build = (): EChartsOption => {
-  const axisColor = token("--el-text-color-secondary");
-  const splitColor = token("--el-border-color-lighter");
+  const axisColor = token("--text-secondary");
+  const splitColor = token("--border-subtle");
 
   // 倒序：ECharts 类目轴自下而上排，反过来让 2xx 落在顶部，符合阅读顺序
   const cats = props.items.map(i => i.category).reverse();
@@ -70,9 +70,9 @@ const build = (): EChartsOption => {
     grid: { top: 6, right: 52, bottom: 4, left: 4, containLabel: true },
     tooltip: {
       trigger: "item",
-      backgroundColor: token("--el-bg-color-overlay") || token("--el-bg-color"),
+      backgroundColor: token("--bg-elevated") || token("--bg-container"),
       borderColor: splitColor,
-      textStyle: { color: token("--el-text-color-primary") || token("--text-primary"), fontSize: 12 },
+      textStyle: { color: token("--text-primary"), fontSize: 12 },
       formatter: (p: unknown) => {
         const it = p as { dataIndex: number };
         const name = cats[it.dataIndex];

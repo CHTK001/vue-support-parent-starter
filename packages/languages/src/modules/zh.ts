@@ -1073,14 +1073,14 @@ export default {
       notConfigured: "未配置",
     },
     hero: {
-      title: "策略任务",
+      title: "策略控制台",
       subtitle: "从配置发布、流量保护到访问名单，统一管理应用运行时策略",
       chainOk: "运行链路正常",
       refresh: "刷新",
       enterConfig: "进入配置 →",
     },
     nav: {
-      aria: "策略任务导航",
+      aria: "策略控制台导航",
       workspace: "策略工作区",
       overview: { label: "策略总览", caption: "运行链路与容量" },
       hotreload: { label: "热更新配置", caption: "运行时参数" },

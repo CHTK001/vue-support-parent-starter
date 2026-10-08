@@ -205,3 +205,7 @@ parser-trim.png
 # 完全一致（schema version 不匹配会直接构建失败），锁不住就无法复现构建。
 # 放在 `**/Cargo.lock` 之后才生效 —— 同一文件里后面的规则优先。
 !pages/filesystem/crates/**/Cargo.lock
+
+dist-verify/
+**/.tmp-probe-*.mjs
+**/dbg-*.mjs
