@@ -440,6 +440,37 @@
                     >
                       <WgIcon :d="ICONS.star" />
                     </button>
+                    <!--
+                      「更多」：把生成结果送去两个底库（需求：图像生成图片上加「更多」：
+                      添加到人脸库、图像库）。只对图片开放——视频没有提特征的意义；
+                      复用与 ImageSearchPage「加入图像底库」同一套 index 接口口径。
+                    -->
+                    <el-dropdown
+                      v-if="row.task.type === 'image'"
+                      trigger="click"
+                      @command="(cmd) => onMoreCommand(cmd, entry, row)"
+                    >
+                      <button
+                        type="button"
+                        class="wg-icon"
+                        aria-label="更多"
+                        title="更多"
+                        :disabled="moreBusy"
+                        @click.stop
+                      >
+                        <WgIcon :d="ICONS.dots" />
+                      </button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="face" :disabled="moreBusy"
+                            >添加到人脸库</el-dropdown-item
+                          >
+                          <el-dropdown-item command="image" :disabled="moreBusy"
+                            >添加到图像库</el-dropdown-item
+                          >
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
                   </figcaption>
                 </figure>
               </div>
@@ -847,6 +878,7 @@ const ICONS: Record<string, string> = {
   star: 'M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z',
   grid: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z',
   list: 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
+  dots: 'M12 6h.01M12 12h.01M12 18h.01', // 「更多」菜单：三点竖排（round 线帽下 h.01 渲染成圆点）
   image:
     'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Z',
   video:
@@ -1724,7 +1756,12 @@ const readAsDataUrl = (file: File): Promise<string> =>
 function clearCanvasDraft() {
   prompt.value = ''
   clearReference()
-  ElMessage.success('已清空当前绘画草稿')
+  // 参数一并恢复默认（用户要求）：尺寸/时长取该模型配置的首项、张数 1、风格清空
+  size.value = sizes.value[0] ?? ''
+  count.value = 1
+  duration.value = durations.value[0] ?? undefined
+  style.value = ''
+  ElMessage.success('已清空画布草稿，并把参数恢复默认')
 }
 
 const clearReference = () => {
@@ -1770,6 +1807,103 @@ const download = (url: string, type: 'image' | 'video') => {
     url,
     type === 'video' ? 'generate.mp4' : 'generate.png',
   )
+}
+
+/* ============================================================================
+   「更多」菜单：添加到人脸库 / 添加到图像库
+   ============================================================================= */
+
+/** 「更多」菜单进行中（防重复提交；两个动作共用一个忙标） */
+const moreBusy = ref(false)
+
+/**
+ * 取生成结果的图片字节。
+ *
+ * <p>「更多」两个动作都要以 multipart 上传，而内联地址带鉴权、令牌又不进 URL
+ * （与 {@link download} 同一条口径）。缩略图正常情况下已经由 mediaImages
+ * 加载过 → isReady 直接复用其 blob URL；未就绪就等它加载完（最长约 6s），
+ * 等不到就明确报错，绝不把 1×1 占位 GIF 传给后端。</p>
+ *
+ * @param url 结果图地址（内联 /v2/... 或供应商直链）
+ * @return 图片字节
+ */
+async function fetchMediaBlob(url: string): Promise<Blob> {
+  if (!url) {
+    throw new Error('图片地址为空')
+  }
+  if (!isInlineMedia(url)) {
+    // 供应商直链不带鉴权，普通 fetch 即可（与下载同口径：不附令牌）
+    const res = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' })
+    if (!res.ok) throw new Error(`获取图片失败（HTTP ${res.status}）`)
+    return res.blob()
+  }
+  for (let i = 0; i < 30 && !mediaImages.isReady(url); i += 1) {
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  if (!mediaImages.isReady(url)) {
+    throw new Error('图片尚未加载完成，请稍后再试')
+  }
+  const res = await fetch(mediaImages.resolve(url))
+  if (!res.ok) throw new Error(`读取图片失败（HTTP ${res.status}）`)
+  return res.blob()
+}
+
+/** 提示词 → 底库名（截断防超长；空提示词兜底） */
+function promptName(prompt: string, max: number, fallback: string): string {
+  const s = (prompt ?? '').trim()
+  return s ? s.slice(0, max) : fallback
+}
+
+/** 「更多 → 添加到人脸库」：以生成图直接登记（图里没人脸/多脸时后端会明确报错） */
+async function enrollGeneratedFace(url: string, prompt: string) {
+  if (moreBusy.value) return
+  moreBusy.value = true
+  try {
+    const blob = await fetchMediaBlob(url)
+    const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const name = promptName(prompt, 20, '生成人脸')
+    await apiService.enrollFace(id, blob, { label: name, name, note: '来自图像生成' }, 'generated.png')
+    ElMessage.success(`已添加到人脸库：${name}`)
+  } catch (e: any) {
+    ElMessage.error(`添加到人脸库失败：${(e as Error)?.message || '未知错误'}`)
+  } finally {
+    moreBusy.value = false
+  }
+}
+
+/** 「更多 → 添加到图像库」：建图像检索索引（接口与 ImageSearchPage「加入图像底库」一致） */
+async function indexGeneratedImage(url: string, prompt: string) {
+  if (moreBusy.value) return
+  moreBusy.value = true
+  try {
+    const blob = await fetchMediaBlob(url)
+    const form = new FormData()
+    form.append('file', blob, 'generated.png')
+    form.append('name', promptName(prompt, 60, '生成图'))
+    await apiService._request('/image-search/index', {
+      method: 'POST',
+      data: form,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    ElMessage.success('已加入图像底库')
+  } catch (e: any) {
+    ElMessage.error(`加入图像底库失败：${(e as Error)?.message || '未知错误'}`)
+  } finally {
+    moreBusy.value = false
+  }
+}
+
+/** 「更多」菜单分发 */
+function onMoreCommand(
+  cmd: string | number | object,
+  entry: { key: string; url: string },
+  row: Row,
+) {
+  if (cmd === 'face') {
+    void enrollGeneratedFace(entry.url, row.task.prompt)
+  } else if (cmd === 'image') {
+    void indexGeneratedImage(entry.url, row.task.prompt)
+  }
 }
 
 const remake = (task: GenerateTask) => {

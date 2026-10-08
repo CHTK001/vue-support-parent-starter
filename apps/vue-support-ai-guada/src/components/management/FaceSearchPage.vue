@@ -48,6 +48,29 @@
               />
             </svg>
 
+            <!-- 106 点特征点：独立 landmark 模型，单独一层，可与检测器 5 点各自开关 -->
+            <svg
+              v-if="landmarks106.length && showLandmark106"
+              class="fs-overlay"
+              :viewBox="`0 0 ${natural.w} ${natural.h}`"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <circle
+                v-for="(kp, i) in landmarks106"
+                :key="'lm' + i"
+                class="fs-kp106"
+                :cx="kp[0]"
+                :cy="kp[1]"
+                r="2.6"
+              />
+            </svg>
+
+            <!-- 106 点层的状态说明：推理中 / 不可用的原因（不打断检测与识别） -->
+            <div v-if="showLandmark106 && (landmark106Busy || landmark106Error)" class="fs-lm-hint">
+              <el-icon v-if="landmark106Busy" class="is-spin"><Loading /></el-icon>
+              <span>{{ landmark106Busy ? '正在提取 106 点特征点…' : landmark106Error }}</span>
+            </div>
+
             <!-- 识别中遮罩 -->
             <div v-if="detecting" class="fs-mask">
               <el-icon :size="26" class="is-spin"><Loading /></el-icon>
@@ -59,7 +82,7 @@
               <div class="fs-found-title">
                 <el-icon><Search /></el-icon>找到相似脸
               </div>
-              <div class="fs-found-sub">匹配度参考</div>
+              <div class="fs-found-sub">{{ foundSub }}</div>
             </div>
 
             <!-- 未检出人脸 -->
@@ -87,7 +110,8 @@
               :loading="identifying"
               @click="runIdentify"
             >
-              <el-icon v-if="!identifying"><Refresh /></el-icon>重新识别
+              <el-icon v-if="!identifying"><component :is="identifyDone ? Refresh : Search" /></el-icon
+              >{{ identifyDone ? '重新识别' : '识别' }}
             </el-button>
           </div>
         </div>
@@ -140,6 +164,7 @@
               </svg>
               <span v-if="pickedId === item.id" class="fs-check"><el-icon><Check /></el-icon></span>
             </div>
+            <p class="fs-card-name" :title="item.name || item.id">{{ item.name || '未命名' }}</p>
             <p class="fs-card-cap">
               <b class="fs-card-score">{{ percent(item.score) }}%</b>
               <span class="fs-card-sep">|</span>
@@ -192,7 +217,7 @@
       <!-- ==================== 右缘悬浮工具条 ==================== -->
       <div class="fs-rail">
         <button
-          v-for="tool in RAIL"
+          v-for="tool in railItems"
           :key="tool.key"
           class="fs-rail-btn"
           :class="{ 'is-on': tool.active() }"
@@ -228,6 +253,24 @@ const natural = ref({ w: 1, h: 1 })
 const hits = ref<FaceHit[]>([])
 const matches = ref<FaceMatch[]>([])
 const models = ref<Record<string, any>>({})
+/**
+ * face 分组「对当前用户生效」的合并视图（全局默认 + 本人覆盖）。
+ *
+ * <p><b>为什么不用 {@code /face/config}（全局层）做判据：</b>系统设置保存 face 分组
+ * 写的是用户覆盖层（face 属 userScoped 组，管理员也只写自己），而
+ * {@code GET /v2/face/config} 只回全局层，两者可能不一致。后端
+ * {@code FaceClientManager.isModelConfigured} 走 {@code GlobalSettingReader.getStr}
+ * —— 覆盖优先、**覆盖为空也算显式清空** —— 与 {@code /settings/face/merged} 完全同口径。</p>
+ */
+const faceMerged = ref<Record<string, any>>({})
+/**
+ * 关键点模型是否已配置（对当前用户生效值非空白）。
+ *
+ * <p>未配置时**特征点业务入口不渲染** —— 一个必然回「能力未启用」的按钮不该出现在
+ * 界面上；后端那道校验仍然保留（防直连 API）。合并视图读失败时 faceMerged 为空
+ * → 隐藏（fail-closed）：宁可暂时不给入口，也不显示一个点了必然报错的按钮。</p>
+ */
+const landmarkReady = computed(() => String(faceMerged.value.landmark_model ?? '').trim() !== '')
 const pickedId = ref('')
 const galleryKey = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -235,13 +278,62 @@ const enrollVisible = ref(false)
 
 const detecting = ref(false)
 const identifying = ref(false)
+/**
+ * 当前照片是否已完成过一次识别。
+ *
+ * <p>用于按钮文案：首次显示「识别」，出过结果后显示「重新识别」——
+ * 此前恒定叫「重新识别」，但上传后并不会自动识别，用户没点过就显示
+ * 「重新识别」属于文案撒谎。配合 {@link loadFile} 的上传后自动识别。</p>
+ */
+const identifyDone = ref(false)
 
 /** 叠加层显隐，由右缘悬浮条控制 */
 const showBox = ref(true)
 const showLandmark = ref(true)
 const showRing = ref(true)
 
+/**
+ * 106 点人脸特征点（独立 landmark 模型）。
+ *
+ * <p>与检测器自带的 5 点不同：5 点（眼/鼻/嘴）随 `detect` 一起返回；106 点是
+ * 脸型轮廓 + 眉眼 + 嘴部的稠密点，要单独调 `POST /v2/face/landmark`，
+ * 且**该模型未配置时不可用**。推理有开销，故默认关闭，由右缘悬浮条按需开启，
+ * 开启后才请求（也才在换图后重新请求）。</p>
+ */
+const landmarks106 = ref<number[][]>([])
+const showLandmark106 = ref(false)
+const landmark106Busy = ref(false)
+const landmark106Error = ref('')
+
 const registry = useFaceRegistry()
+
+/**
+ * 服务端档案索引（id → metadata）。
+ *
+ * <p>为什么要它：`/v2/face/identify` 的 hit 只有 `{id, score}`（后端契约如此，
+ * 见 `FaceStores` 的注释：档案的权威只有快照一处，调用方拿 hit 的 id 回列表取档案）。
+ * 而这里原来只回落到**浏览器本地登记簿** `useFaceRegistry` —— 于是换浏览器 / 清缓存 /
+ * 换账号之后，识别命中了却显示不出姓名等信息（只剩一串裸 id）。
+ * 现在以服务端 `GET /v2/face/list` 为权威来源，本地登记簿只用来补服务端不存的缩略图。</p>
+ */
+const serverMeta = ref<Record<string, Record<string, unknown>>>({})
+
+async function loadServerMeta() {
+  try {
+    const { items } = await apiService.listFaces()
+    const map: Record<string, Record<string, unknown>> = {}
+    for (const it of items) {
+      const id = String((it as Record<string, unknown>)?.id ?? '')
+      if (!id) continue
+      const md = (it as Record<string, unknown>)?.metadata
+      map[id] = md && typeof md === 'object' ? (md as Record<string, unknown>) : {}
+    }
+    serverMeta.value = map
+  } catch {
+    // 拉不到就退回本地登记簿（不阻断识别本身）
+    serverMeta.value = {}
+  }
+}
 
 /** 目标人脸（取面积最大的一张） */
 const mainHit = computed<FaceHit | null>(() => {
@@ -277,7 +369,10 @@ interface HitCard {
 
 const cards = computed<HitCard[]>(() =>
   matches.value.map((m) => {
-    const meta = (m.metadata ?? {}) as Record<string, any>
+    // 档案优先取**服务端列表**（权威，换浏览器也在），其次 hit 自带metadata（当前后端不回），
+    // 最后才落到本地登记簿 —— 本地只用来补缩略图。
+    const sv = serverMeta.value[String(m.id)] ?? {}
+    const meta = (Object.keys(sv).length ? sv : (m.metadata ?? {})) as Record<string, any>
     const local = registry.byId(String(m.id))
     const name = String(meta.name ?? meta.label ?? local?.name ?? m.id)
     const age = meta.age ?? local?.age ?? null
@@ -286,12 +381,13 @@ const cards = computed<HitCard[]>(() =>
     const photogenic = Number(meta.photogenic ?? local?.photogenic ?? 0)
     const idCard = String(meta.idCard ?? local?.idCard ?? '')
 
-    // 真实字段拼说明文案；没有档案字段就只显示相似度，不编造描述
+    // 真实字段拼说明文案；没有档案字段就用占位符 —— 姓名已单独渲染在 .fs-card-name，
+    // 这里不再回落成姓名，否则同一张卡片会把姓名显示两遍
     const bits: string[] = []
     if (gender && gender !== '未知') bits.push(gender)
     if (age != null && Number.isFinite(Number(age))) bits.push(`${age}岁`)
     if (hair) bits.push(hair)
-    const caption = bits.length ? bits.join(' · ') : name
+    const caption = bits.length ? bits.join(' · ') : '—'
 
     return {
       id: String(m.id),
@@ -355,16 +451,43 @@ const blankDesc = computed(() => {
   if (!previewUrl.value) return '上传一张含人脸的照片，这里会给出最像的几张'
   if (cards.value.length && !visibleHits.value.length) return '换个分类看看，或先登记更多档案'
   if (registry.records.value.length) return '向量库是内存存储，后端重启后会清空，需要重新登记'
-  return '先点「人脸登记入库」录入档案（含年龄、身份证等），再点「重新识别」'
+  return '先点「人脸登记入库」录入档案（含年龄、身份证等），再上传照片（自动识别）或点「识别」'
 })
 
+/** 右缘悬浮工具条的一项 */
+interface RailTool {
+  key: string
+  title: string
+  icon: any
+  active: () => boolean
+  toggle: () => void
+  /** 返回 false 时该按钮**不渲染**（如 landmark 模型未配置就不显示特征点开关） */
+  visible?: () => boolean
+}
+
 /** 右缘悬浮工具条 */
-const RAIL = [
+const RAIL: RailTool[] = [
   { key: 'box', title: '显示/隐藏人脸框', icon: Crop, active: () => showBox.value, toggle: () => { showBox.value = !showBox.value } },
   { key: 'landmark', title: '显示/隐藏关键点', icon: Aim, active: () => showLandmark.value, toggle: () => { showLandmark.value = !showLandmark.value } },
   { key: 'ring', title: '显示/隐藏相似度环', icon: View, active: () => showRing.value, toggle: () => { showRing.value = !showRing.value } },
+  {
+    key: 'landmark106',
+    title: '显示/隐藏 106 点人脸特征点（需 landmark 模型已配置）',
+    icon: Aim,
+    active: () => showLandmark106.value,
+    toggle: () => {
+      showLandmark106.value = !showLandmark106.value
+      if (showLandmark106.value) void runLandmark106()
+      else { landmarks106.value = []; landmark106Error.value = '' }
+    },
+    // 关键点模型没配置 → 整个入口不显示（不是置灰：没配置时点了也只会得到业务错误）
+    visible: () => landmarkReady.value,
+  },
   { key: 'enroll', title: '人脸登记入库', icon: Star, active: () => enrollVisible.value, toggle: () => { openEnroll() } },
 ]
+
+/** 右缘工具条：按当前配置过滤（如 landmark 模型未配置就不显示 106 点开关） */
+const railItems = computed(() => RAIL.filter((t) => (t.visible ? t.visible() : true)))
 
 /** 余弦相似度 → 百分比展示 */
 function percent(score: number): number {
@@ -375,6 +498,20 @@ function percent(score: number): number {
 function ringOffset(score: number): number {
   return RING_C * (1 - Math.max(0, Math.min(1, score <= 1 ? score : score / 100)))
 }
+
+/**
+ * 角标副文案：显示识别的真实结果数据。
+ *
+ * <p>此前这里是恒定的「匹配度参考」四个字，没有任何信息量。现在按状态给出
+ * 最高匹配度、命中张数；识别中/未识别/未命中各有对应文案。</p>
+ */
+const foundSub = computed(() => {
+  if (identifying.value) return '正在与人脸库比对…'
+  if (!identifyDone.value) return '已检出人脸'
+  if (!matches.value.length) return '未命中库中人脸'
+  const top = Math.max(...matches.value.map((m) => m.score))
+  return `最高匹配度 ${percent(top)}% · 命中 ${matches.value.length} 张`
+})
 
 function openEnroll() {
   enrollVisible.value = true
@@ -390,6 +527,16 @@ async function loadModels() {
     models.value = await apiService.getFaceSettings()
   } catch {
     models.value = {}
+  }
+  // 特征点开关的判据：取「对当前用户生效」的合并视图（与后端 isModelConfigured 同口径）
+  try {
+    const resp = await apiService.fetchMergedGroupSettings('face')
+    const items = (resp as any)?.data ?? resp ?? []
+    const m: Record<string, any> = {}
+    if (Array.isArray(items)) for (const it of items) if (it && it.field) m[it.field] = it.value
+    faceMerged.value = m
+  } catch {
+    faceMerged.value = {} // fail-closed：读不到生效值就不显示入口
   }
 }
 
@@ -411,7 +558,12 @@ async function loadFile(file: File) {
   pickedId.value = ''
   matches.value = []
   hits.value = []
+  landmarks106.value = []
+  landmark106Error.value = ''
+  identifyDone.value = false
   await runDetect(file)
+  // 上传后自动识别一次：此前上传完还必须再手动点一次「重新识别」才出比对结果
+  if (hits.value.length) await runIdentify()
 }
 
 function revokePreview() {
@@ -443,6 +595,68 @@ async function runDetect(file: File) {
   } finally {
     detecting.value = false
   }
+  // 开关已打开时，换图后同步刷新 106 点特征点
+  if (showLandmark106.value) void runLandmark106()
+}
+
+/**
+ * 拉当前图的 106 点特征点（后端已映射回**原图像素**）。
+ *
+ * <p>失败**不打断主流程**（检测/识别照常）：把原因记在 `landmark106Error`
+ * 里，界面上给一句可见的说明 —— 最常见的原因是 landmark 模型没配（后端会回业务错误）。</p>
+ */
+async function runLandmark106() {
+  if (!previewUrl.value) return
+  // 双保险：开关此刻本不该渲染（landmarkReady=false），但配置可能在会话中途被改空，
+  // 这里再挡一次，不让一个必然回「能力未启用」的请求打到后端。
+  if (!landmarkReady.value) {
+    landmark106Error.value = '人脸关键点模型未配置（系统配置 → 人脸识别 → landmark_model）'
+    return
+  }
+  landmark106Busy.value = true
+  landmark106Error.value = ''
+  try {
+    const blob = await (await fetch(previewUrl.value)).blob()
+    const res = await apiService.landmarkFace(blob, 'landmark.png')
+    if (!res.matched || !res.points.length) {
+      landmarks106.value = []
+      landmark106Error.value = '未返回特征点（landmark 模型未配置或未检出人脸）'
+      return
+    }
+    const pts: number[][] = []
+    for (let i = 0; i + 1 < res.points.length; i += 2) pts.push([res.points[i], res.points[i + 1]])
+
+    // 坐标自校验（不信任后端口径，也不相信自己）：管线方法应当把点映射回原图像素，
+    // 因此绝大多数点必须同时落在「原图范围内」且「人脸框内」。任一不成立都拒画并说明，
+    // 绝不在界面上画出错误图形 —— 这是「判据只加强不放松」在 UI 侧的同一条口径。
+    const w = natural.value.w || 1
+    const h = natural.value.h || 1
+    const inImage = pts.every(([x, y]) => x >= -2 && y >= -2 && x <= w + 2 && y <= h + 2)
+    let inBox = true
+    const box = res.box
+    if (box && Number.isFinite(Number(box.x)) && Number(box.width) > 0) {
+      const pad = Math.max(6, Number(box.width) * 0.3)
+      const inner = pts.filter(
+        ([x, y]) =>
+          x >= Number(box.x) - pad &&
+          y >= Number(box.y) - pad &&
+          x <= Number(box.x) + Number(box.width) + pad &&
+          y <= Number(box.y) + Number(box.height) + pad,
+      ).length
+      inBox = inner >= Math.ceil(pts.length * 0.8)
+    }
+    if (!inImage || !inBox) {
+      landmarks106.value = []
+      landmark106Error.value = '特征点坐标校验未通过（未落在原图/人脸框内），已拒绝绘制'
+      return
+    }
+    landmarks106.value = pts
+  } catch (e: any) {
+    landmarks106.value = []
+    landmark106Error.value = String(e?.message ?? e).slice(0, 120)
+  } finally {
+    landmark106Busy.value = false
+  }
 }
 
 /** 1:N 识别：拿当前照片与向量库比对 */
@@ -453,7 +667,9 @@ async function runIdentify() {
     const blob = await (await fetch(previewUrl.value)).blob()
     const res = await apiService.identifyFace(blob, 'query.png')
     matches.value = res.hits ?? []
+    void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
+    identifyDone.value = true
     if (!matches.value.length) {
       ElMessage.info(
         registry.records.value.length
@@ -482,7 +698,9 @@ async function recognizeCrop() {
     for (let i = 0; i < bin.length; i += 1) buf[i] = bin.charCodeAt(i)
     const res = await apiService.identifyFace(new Blob([buf], { type: 'image/jpeg' }), 'crop.jpg')
     matches.value = res.hits ?? []
+    void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
+    identifyDone.value = true
     ElMessage.success(matches.value.length ? `裁剪后命中 ${matches.value.length} 张` : '裁剪后未命中')
   } catch (e: any) {
     ElMessage.error(`裁剪识别失败：${e?.message ?? e}`)
@@ -493,6 +711,7 @@ async function recognizeCrop() {
 
 onMounted(() => {
   void loadModels()
+  void loadServerMeta()
 })
 
 onBeforeUnmount(() => {
@@ -624,6 +843,35 @@ onBeforeUnmount(() => {
   fill: #fff;
   stroke: var(--fs-accent);
   stroke-width: 3;
+}
+
+/* 106 点特征点：点必须比检测器那 5 点小得多（106 个挤在脸上），
+   用本页身份色（主橙）+ 白描边，保证在任意肤色/背景上都看得清 */
+.fs-kp106 {
+  fill: var(--fs-brand);
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+/* 106 点层的状态说明：贴舞台顶部居中，与 .fs-noface 同风格 */
+.fs-lm-hint {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--fs-card);
+  border: 1px solid var(--fs-border);
+  color: var(--fs-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 识别中遮罩：盖在用户照片上，色源从卡片底派生（半透明），
@@ -934,6 +1182,20 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 姓名行：与 .fs-card-cap 分开渲染 —— 姓名是主体，属性位是补充；
+   卡片高亮主橙用于区分「这个人」和「相似度/属性」三组信息 */
+.fs-card-name {
+  margin: 0 0 2px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fs-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 1.3em;
 }
 
 .fs-card-score { color: var(--fs-brand); font-size: 13px; }
