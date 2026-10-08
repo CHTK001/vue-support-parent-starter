@@ -9,6 +9,11 @@
   目标表还不存在时（tableExists === false）走"新建表"模式：左列退回自由输入，
   运行时由后端按这里填的列名自动建表。此时"字段在当前表里不存在"的告警要静默——
   新列本来就不在库里，那条告警会把正常配置全部染成警告。
+
+  读列中 / 读列失败只压一条状态横幅，不吞下面的映射行（2026-10-08 起）：
+  读列是辅助信息，抖一次网络不能把用户已配的行和「添加字段」一起换成错误页——
+  实测反馈「映射点不出来」就是这条硬阻断路径。列清单不可用时左列退回自由输入，
+  映射照常能配；告警只在真拿到了列清单时才能判定，拿不到就不猜。
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
@@ -68,9 +73,18 @@ const knownColumns = computed(() => new Set(props.columns.map(column => column.n
 /** 目标表还不存在 → 新建表模式，左列改成自由输入，不做孤儿列告警 */
 const creatingTable = computed(() => props.tableExists === false);
 
-/** 已经配了但当前表里没有的列：表结构变了，必须让用户看见（新建表模式不算） */
+/**
+ * 左列是否退回自由输入：新建表、读列失败、或还没读到列清单。
+ *
+ * <p>下拉没有可挑的候选时，映射行必须照样能配 —— 读列失败还有数据源不可达、
+ * 权限不足、连接超时等多种原因，不能让一次失败把整张映射表吞掉；
+ * 等列清单到位会自动切回下拉。</p>
+ */
+const freeInput = computed(() => creatingTable.value || !props.columns.length);
+
+/** 已经配了但当前表里没有的列：表结构变了，必须让用户看见（新建表模式与列清单缺失时不算，不猜） */
 const orphanRows = computed(() =>
-  creatingTable.value
+  creatingTable.value || !props.columns.length
     ? []
     : rows.value
       .map((row, index) => ({ row, index }))
@@ -121,11 +135,11 @@ function typeHint(name: string): string {
 
 <template>
   <div class="mapping-editor" @focusout="commit">
-    <!-- 状态与空态：每一种都要给出下一步动作，不能只报「没有」 -->
+    <!-- 状态横幅：只提示不挡路 —— 读列中 / 读列失败也照常渲染下面的映射行 -->
     <div v-if="loading" class="mapping-state">正在读取表结构…</div>
     <div v-else-if="loadError" class="mapping-state mapping-state-error">
       <span>{{ loadError }}</span>
-      <span class="mapping-state-hint">可点下方「重新读取表结构」重试，或检查目标表名与数据源是否可用。</span>
+      <span class="mapping-state-hint">可点下方「重新读取表结构」重试，或检查目标表名与数据源是否可用；期间左列可自由输入列名，映射照常能配。</span>
     </div>
     <div v-else-if="!table" class="mapping-state">
       先在上方填「目标表」，再回来配置：左边选这张表的列，右边写要写进去的值 / ${表达式}。
@@ -134,13 +148,12 @@ function typeHint(name: string): string {
       目标表 {{ table }} 尚不存在，将按下面填的列名自动建表，列类型按这一批实际取值推断；左边填新列名（如 title），右边写值。
     </div>
     <div v-else-if="!columnOptions.length" class="mapping-state">
-      该表没有读到列：确认表名正确、数据源可达，或点下方「重新读取表结构」重试。
+      该表没有读到列：确认表名正确、数据源可达，或点下方「重新读取表结构」重试；期间左列可自由输入列名，映射照常能配。
     </div>
 
-    <template v-else>
-      <!-- 表头：写清左右两列各是什么，避免「目标列 ← 值表达式」的对应关系靠猜 -->
-      <div v-if="rows.length" class="mapping-head">
-        <span class="head-col">{{ creatingTable ? "新列名（将自动建列）" : "目标列（写到哪）" }}</span>
+    <!-- 表头：写清左右两列各是什么，避免「目标列 ← 值表达式」的对应关系靠猜 -->
+    <div v-if="rows.length" class="mapping-head">
+        <span class="head-col">{{ creatingTable ? "新列名（将自动建列）" : freeInput ? "目标列（列清单暂缺，自由输入）" : "目标列（写到哪）" }}</span>
         <span class="head-value">值表达式（写什么）</span>
         <span class="head-type">列类型</span>
         <span class="head-op"></span>
@@ -153,10 +166,10 @@ function typeHint(name: string): string {
         :class="{ 'mapping-row--orphan': orphanIndexes.has(index) }"
       >
         <ReInput
-          v-if="creatingTable"
+          v-if="freeInput"
           
           class="mapping-column"
-          placeholder="新列名，如 title"
+          :placeholder="creatingTable ? '新列名，如 title' : '列名（列清单暂不可用，自由输入）'"
           :model-value="row.key"
           @update:model-value="(v: unknown) => (row.key = String(v ?? ''))"
         />
@@ -197,7 +210,7 @@ function typeHint(name: string): string {
       <div v-if="!rows.length" class="mapping-empty">
         <div class="mapping-empty-title">还没有字段映射</div>
         <div class="mapping-empty-tip">
-          点下面的「添加字段」新建一行：左边选目标表的列，右边写要写进去的值。
+          点下面的「添加字段」新建一行：{{ freeInput ? "左边填目标列名（列清单可挑时会变成下拉）" : "左边选目标表的列" }}，右边写要写进去的值。
           例：目标列 title ← 值表达式 ${title}；也可以直接写固定文本。
         </div>
       </div>
@@ -217,8 +230,7 @@ function typeHint(name: string): string {
       >
         重新读取表结构
       </ReButton>
-      <ReButton  plain icon="Plus" @click="addRow">添加字段</ReButton>
-    </template>
+    <ReButton  plain icon="Plus" @click="addRow">添加字段</ReButton>
   </div>
 </template>
 
