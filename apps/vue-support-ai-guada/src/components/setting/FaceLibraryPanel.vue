@@ -9,10 +9,10 @@
     与图像底库的差异只有「业务动作」：
       · 图像底库的拖放区直接把图上传入库；人脸登记需要档案字段（姓名/身份证等，身份证为必填），
         所以拖放区改为**打开登记弹窗**，视觉与交互形态保持与图像底库一致。
-      · 状态筛选按「有缩略图 / 缺缩略图」分（人脸缩略图只存在登记它的浏览器里；图像底库按 hasOriginal）。
+      · 状态筛选按「有图片 / 无图片」分（有图 = 服务端登记图或本机缩略图；图像底库按 hasOriginal）。
 
     数据来源：服务端 GET /v2/face/list 是**权威**（跨浏览器/账号以它为准），
-    本地登记簿只补服务端不存的缩略图 thumb；按 id 合并，服务端优先。
+    登记图由服务端落存（GET /v2/face/{id}/image），本机缩略图只作优先展示；按 id 合并，服务端优先。
   -->
   <div class="lib-page">
     <!-- ── 页头 ───────────────────────────────────────────── -->
@@ -40,12 +40,12 @@
       </div>
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-success"><Picture /></el-icon>
-        <span class="lib-stat-label">有缩略图</span>
+        <span class="lib-stat-label">有图片</span>
         <strong class="lib-stat-value">{{ withThumb }}</strong>
       </div>
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-warning"><Warning /></el-icon>
-        <span class="lib-stat-label">仅无缩略图</span>
+        <span class="lib-stat-label">无图片</span>
         <strong class="lib-stat-value">{{ rows.length - withThumb }}</strong>
       </div>
       <div class="lib-stat">
@@ -55,15 +55,15 @@
       </div>
     </section>
 
-    <!-- 服务端有条目、本地无缩略图：说清原因，别让人以为底库丢了 -->
+    <!-- 服务端有条目、但两边都没图：说清原因，别让人以为底库丢了 -->
     <el-alert
       v-if="rows.length - withThumb > 0"
       class="fl-alert"
       type="info"
       :closable="false"
       show-icon
-      :title="`有 ${rows.length - withThumb} 条在本浏览器没有缩略图`"
-      description="缩略图只存在登记它的那个浏览器里（后端不存）。底库条目本身以服务端为准，1:N 识别不受影响。"
+      :title="`有 ${rows.length - withThumb} 条没有人脸图`"
+      description="图片优先取服务端登记图（登记时落存的裁剪脸，换浏览器也在）；改造前登记的老数据两边都没有。底库条目本身以服务端为准，1:N 识别不受影响。"
     />
 
     <!-- ── 登记区（与图像底库的拖放区同版式）──────────────── -->
@@ -86,6 +86,14 @@
 
     <FaceEnrollDialog v-model="enrollVisible" :record="editItem" @enrolled="load" />
 
+    <!-- 特征点弹窗：仅在关键点模型已配置时按钮可见（openLandmark 里还有一道守卫） -->
+    <FaceLandmarkDialog
+      v-model="lmVisible"
+      :face-id="lmItem?.id ?? ''"
+      :face-name="lmItem?.name"
+      :fallback-thumb="lmItem?.localThumb"
+    />
+
     <!-- ── 列表区 ─────────────────────────────────────────── -->
     <section class="lib-panel">
       <div class="lib-toolbar">
@@ -100,8 +108,8 @@
 
         <el-select v-model="statusFilter" class="lib-filter">
           <el-option label="全部状态" value="all" />
-          <el-option label="有缩略图" value="thumb" />
-          <el-option label="无缩略图" value="noThumb" />
+          <el-option label="有图片" value="thumb" />
+          <el-option label="无图片" value="noThumb" />
         </el-select>
 
         <div class="lib-view-toggle">
@@ -129,11 +137,15 @@
             </span>
 
             <span class="lib-badges">
-              <span v-if="item.thumb" class="lib-badge is-ok">有缩略图</span>
-              <span v-else class="lib-badge is-warn">无缩略图</span>
+              <span v-if="item.hasImage" class="lib-badge is-ok">有图片</span>
+              <span v-else class="lib-badge is-warn">无图片</span>
             </span>
 
             <div class="lib-actions">
+              <button v-if="landmarkReady" type="button" class="lib-act" title="查看特征点"
+                @click.stop="openLandmark(item)">
+                <el-icon><Aim /></el-icon>
+              </button>
               <button type="button" class="lib-act" title="编辑信息" @click.stop="openEdit(item)">
                 <el-icon><EditPen /></el-icon>
               </button>
@@ -174,9 +186,13 @@
             <span class="lib-dim">{{ formatMeta(item) }}</span>
           </div>
           <span class="lib-badges is-inline">
-            <span v-if="item.thumb" class="lib-badge is-ok">有缩略图</span>
-            <span v-else class="lib-badge is-warn">无缩略图</span>
+            <span v-if="item.hasImage" class="lib-badge is-ok">有图片</span>
+            <span v-else class="lib-badge is-warn">无图片</span>
           </span>
+          <button v-if="landmarkReady" type="button" class="lib-act is-onlight" title="查看特征点"
+            @click.stop="openLandmark(item)">
+            <el-icon><Aim /></el-icon>
+          </button>
           <button type="button" class="lib-act is-onlight" title="编辑信息" @click.stop="openEdit(item)">
             <el-icon><EditPen /></el-icon>
           </button>
@@ -223,20 +239,26 @@
  * 差别只在业务动作：图像底库的拖放区直接上传入库，人脸登记需要档案字段
  * （身份证已改为必填），故拖放区改为打开登记弹窗。</p>
  *
- * <p>数据：服务端 `GET /v2/face/list` 权威（每条 `{id, metadata}`），
- * 本地登记簿只补服务端不存的缩略图 `thumb`，按 id 合并、字段服务端优先。</p>
+ * <p>数据：服务端 `GET /v2/face/list` 权威（每条 `{id, metadata, hasImage}`），
+ * 登记图由服务端落存（`GET /v2/face/{id}/image`），本机缩略图优先展示、服务端图兜底，
+ * 按 id 合并、字段服务端优先。</p>
+ *
+ * <p>「特征点」按钮**只在关键点模型已配置时渲染**（口径同后端
+ * `FaceClientManager.isModelConfigured("landmark_model")`）—— 没配置就不给入口。</p>
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Upload,
+  Aim, CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Upload,
   UploadFilled, UserFilled, Warning, ZoomIn,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, ageBucket, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
+import { createAuthImageLoader } from '@/utils/authImage'
 import FaceEnrollDialog from '../management/FaceEnrollDialog.vue'
+import FaceLandmarkDialog from '../management/FaceLandmarkDialog.vue'
 
 /** 合并后的展示行 */
 interface Row {
@@ -248,7 +270,12 @@ interface Row {
   idCard: string
   photogenic: number
   note: string
+  /** 展示用图地址（服务端登记图优先，回落本机缩略图；都可能为空串） */
   thumb: string
+  /** 本机（localStorage 登记簿）缩略图，仅用于服务端没图时的兜底绘制 */
+  localThumb: string
+  /** 是否有图可看（服务端 `hasImage` 或本机缩略图）—— 统计与筛选按它算，别按展示地址算 */
+  hasImage: boolean
 }
 
 const loading = ref(false)
@@ -265,9 +292,31 @@ const selected = ref<Set<string>>(new Set())
 const serverItems = ref<Array<Record<string, unknown>>>([])
 const detectorModel = ref('')
 const featureModel = ref('')
+/**
+ * 关键点模型（`landmark_model`）对**当前用户**的生效值；空 = 未配置。
+ *
+ * <p><b>为什么取合并视图而不是 {@code /face/config}：</b>系统设置保存 face 分组走的是
+ * **用户覆盖层**（face 属于 userScoped 组，管理员也写自己），而 {@code /face/config} 只回
+ * 全局层 —— 两边可能不一致。后端 {@code isModelConfigured} 读的是
+ * {@code GlobalSettingReader.getStr}（覆盖优先、空也算显式清空），与
+ * {@code GET /v2/settings/face/merged} 同一口径。读失败按未配置处理（fail-closed）：
+ * 宁可不给入口，也不显示一个点了必然报「能力未启用」的按钮。</p>
+ */
+const landmarkModel = ref('')
 const registry = useFaceRegistry()
 const gridRef = ref<HTMLElement | null>(null)
 let viewer: InstanceType<typeof Viewer> | null = null
+
+/**
+ * 服务端登记图加载器。
+ *
+ * <p>底库缩略图与「特征点」弹窗都要拿到那张登记时的裁剪脸。令牌走请求头、不进 URL，
+ * 与以图搜图 / 图像底库同一条口径（见 {@code utils/authImage}）。</p>
+ */
+const authImages = createAuthImageLoader()
+/** 特征点弹窗：正在查看的条目 */
+const lmVisible = ref(false)
+const lmItem = ref<Row | null>(null)
 
 const rows = computed<Row[]>(() =>
   serverItems.value.map((s) => {
@@ -286,19 +335,25 @@ const rows = computed<Row[]>(() =>
       idCard: String(pick('idCard') ?? ''),
       photogenic: typeof photoRaw === 'number' ? photoRaw : photoRaw == null || photoRaw === '' ? 3 : Number(photoRaw),
       note: String(pick('note') ?? ''),
-      thumb: local?.thumb ?? '',
+      // 缩略图优先本地（登记它的浏览器立刻就有），否则取**服务端落存的登记图** ——
+      // 换浏览器/换账号也能看到图，这正是「在图上画特征点」的前提。
+      thumb: local?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`),
+      localThumb: local?.thumb ?? '',
+      hasImage: !!s.hasImage || !!local?.thumb,
     }
   }),
 )
 
-const withThumb = computed(() => rows.value.filter((r) => !!r.thumb).length)
+const withThumb = computed(() => rows.value.filter((r) => r.hasImage).length)
 const withIdCard = computed(() => rows.value.filter((r) => !!r.idCard.trim()).length)
+/** 关键点模型是否已配置：决定「特征点」按钮是否显示 */
+const landmarkReady = computed(() => String(landmarkModel.value ?? '').trim() !== '')
 
 const filtered = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   return rows.value.filter((r) => {
-    if (statusFilter.value === 'thumb' && !r.thumb) return false
-    if (statusFilter.value === 'noThumb' && r.thumb) return false
+    if (statusFilter.value === 'thumb' && !r.hasImage) return false
+    if (statusFilter.value === 'noThumb' && r.hasImage) return false
     if (!kw) return true
     return (
       r.name.toLowerCase().includes(kw) ||
@@ -333,6 +388,15 @@ async function load() {
       detectorModel.value = String(s.detector_model ?? '')
       featureModel.value = String(s.feature_model ?? '')
     } catch { /* 配置读不到不影响底库列表 */ }
+    // 特征点按钮的判据取「对当前用户生效」的合并视图（覆盖优先），与后端
+    // isModelConfigured 同口径；读失败按未配置处理（fail-closed，不显示必然报错的按钮）。
+    try {
+      const resp = await apiService.fetchMergedGroupSettings('face')
+      const mItems = (resp as any)?.data ?? resp ?? []
+      const m: Record<string, unknown> = {}
+      if (Array.isArray(mItems)) for (const it of mItems) if (it && it.field) m[it.field] = it.value
+      landmarkModel.value = String(m.landmark_model ?? '')
+    } catch { landmarkModel.value = '' }
     await mountViewer()
   } catch (e: any) {
     ElMessage.error('加载人脸底库失败：' + (e?.message ?? e))
@@ -379,6 +443,23 @@ function openEdit(item: Row) {
   enrollVisible.value = true
 }
 
+/**
+ * 打开「特征点」弹窗。
+ *
+ * <p>按钮在模型未配置时不渲染；这里再挡一道（配置可能在会话中途被改空），
+ * 不让一个必然回「能力未启用」的请求打到后端。</p>
+ *
+ * @param item 列表行
+ */
+function openLandmark(item: Row) {
+  if (!landmarkReady.value) {
+    ElMessage.info('人脸关键点模型未配置：请先在「系统配置 → 人脸识别」中配置 landmark_model')
+    return
+  }
+  lmItem.value = item
+  lmVisible.value = true
+}
+
 function toggleSelect(item: Row) {
   const s = selected.value
   if (s.has(item.id)) s.delete(item.id)
@@ -397,8 +478,8 @@ function preview(item: Row) {
     if (idx >= 0) viewer.view(idx)
     return
   }
-  // 列表视图 / 无缩略图：viewerjs 未挂载时，直接提示
-  if (!item.thumb) ElMessage.info('该条在本浏览器没有缩略图')
+  // 列表视图 / 无图：viewerjs 未挂载时，直接提示
+  if (!item.thumb) ElMessage.info('该条没有人脸图（老数据可能两边都没有，重新登记一次即可）')
 }
 
 /**
@@ -457,7 +538,11 @@ async function removeSelected() {
 }
 
 onMounted(load)
-onBeforeUnmount(() => { viewer?.destroy(); viewer = null })
+onBeforeUnmount(() => {
+  viewer?.destroy()
+  viewer = null
+  authImages.dispose()
+})
 </script>
 
 <style scoped src="./library-panel.css"></style>

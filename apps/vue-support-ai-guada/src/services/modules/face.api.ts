@@ -1,5 +1,6 @@
 import type { ApiContext } from "./api-context";
-import type { RequestOptions } from "@/framework/context";
+import { currentToken, type RequestOptions } from "@/framework/context";
+import { authHeaders } from "@/utils/token-origin";
 
 /**
  * 人脸识别 API（后端 {@code /v2/face}）。
@@ -73,6 +74,22 @@ export interface FaceLibraryItem {
   [k: string]: unknown;
 }
 
+/** 人脸关键点管线结果：坐标为**原图像素**（可直接叠加到原图上）。 */
+export interface FaceLandmarkResult {
+  /** 是否检出人脸并取到关键点 */
+  matched: boolean;
+  /** 取点所用的人脸框（原图像素） */
+  box?: FaceBox | null;
+  /** 扁平坐标 `[x1,y1,x2,y2,...]`，**原图像素** */
+  points: number[];
+  /** 关键点个数 */
+  count: number;
+  /** 模型输出的归一化约定：true=[-1,1]，false=[0,1]（排查坐标异常用） */
+  signed?: boolean;
+  /** 后端耗时至（毫秒） */
+  elapsedMs?: number;
+}
+
 export interface FaceApi {
   /** 读 `face` 分组配置（检测/特征模型、阈值、topK 等），即「系统设置里的默认模型」 */
   getFaceSettings(): Promise<Record<string, unknown>>;
@@ -84,8 +101,31 @@ export interface FaceApi {
   deleteFace(id: string): Promise<boolean>;
   /** 更新一条人脸的档案字段（不重跑检测、不动特征向量） */
   updateFace(id: string, metadata: Record<string, unknown>): Promise<boolean>;
+  /**
+   * 取一条人脸的**登记图**（后端在登记时落存的裁剪脸）二进制。
+   *
+   * <p>给「看大图 / 画人脸特征点」用。后端没有这张图时（改造前登记的老数据、
+   * 登记时裁剪失败）回 404，这里统一转成 `null`，调用方按「无图」降级展示。</p>
+   *
+   * @param id 人脸标识
+   * @return PNG 二进制；无图时 null
+   */
+  faceImageBlob(id: string): Promise<Blob | null>;
   /** 人脸检测：返回框、关键点、裁剪图、活体分数 */
   detectFace(file: File | Blob, filename?: string): Promise<FaceDetectResult>;
+  /**
+   * 人脸关键点管线（**坐标为原图像素**，可直接叠加到原图上）。
+   *
+   * <p>为什么不用 {@code /face/landmark}：那个端点把整图直接喂关键点模型，返回的是
+   * 「相对模型输入图」的归一化坐标（±1），画到原图上会挤成一团。本方法走
+   * `POST /face/landmark-pipeline`：后端先按检测框裁出最大脸、在裁剪脸上取点，
+   * 再映射回原图像素，返回值可直接绘制。模型未配置时后端回业务错误，这里吞成未命中。</p>
+   *
+   * @param file     图片
+   * @param filename 文件名
+   * @return 关键点（原图像素）；不可用时 `matched=false`、`points` 为空
+   */
+  landmarkFace(file: File | Blob, filename?: string): Promise<FaceLandmarkResult>;
   /** 1:N 识别：拿上传图片与向量库里已登记人脸比对 */
   identifyFace(file: File | Blob, filename?: string): Promise<FaceIdentifyResult>;
   /** 1:1 比对 */
@@ -171,6 +211,30 @@ export const faceApi: FaceApi = {
     return true;
   },
 
+  async faceImageBlob(this: ApiContext, id: string) {
+    // 图片端点返回二进制，不能走 JSON 通道；令牌走请求头，绝不进 URL
+    // （与 utils/authImage 同一条口径）。
+    const token = currentToken();
+    if (!token || !id) {
+      return null;
+    }
+    const base = (this.baseURL || "").replace(/\/+$/, "");
+    const url = `${base}/face/${encodeURIComponent(id)}/image`;
+    try {
+      const res = await fetch(url, {
+        headers: authHeaders(token, url),
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      });
+      if (!res.ok) {
+        return null;
+      }
+      return await res.blob();
+    } catch {
+      return null;
+    }
+  },
+
   async detectFace(this: ApiContext, file: File | Blob, filename = "face.png") {
     const res = await this.client.post("/face/detect", toForm(file, filename), MULTIPART);
     const data = unwrap<FaceDetectResult>(res);
@@ -181,6 +245,29 @@ export const faceApi: FaceApi = {
     const res = await this.client.post("/face/identify", toForm(file, filename), MULTIPART);
     const data = unwrap<FaceIdentifyResult>(res);
     return { matched: !!data?.matched, bestId: data?.bestId, bestScore: data?.bestScore, hits: data?.hits ?? [] };
+  },
+
+  async landmarkFace(this: ApiContext, file: File | Blob, filename = "face.png") {
+    const res = await this.client.post("/face/landmark-pipeline", toForm(file, filename), MULTIPART);
+    const data = unwrap<{
+      matched?: boolean;
+      box?: FaceBox | null;
+      points?: number[];
+      count?: number;
+      signed?: boolean;
+      elapsedMs?: number;
+    }>(res);
+    const pts = Array.isArray(data?.points)
+      ? data.points.filter((n) => Number.isFinite(Number(n))).map(Number)
+      : [];
+    return {
+      matched: !!data?.matched && pts.length > 0,
+      box: data?.box ?? null,
+      points: pts,
+      count: typeof data?.count === "number" ? data.count : Math.floor(pts.length / 2),
+      signed: data?.signed,
+      elapsedMs: data?.elapsedMs,
+    };
   },
 
   async compareFaces(this: ApiContext, fileA: File | Blob, fileB: File | Blob, filenameA = "a.png", filenameB = "b.png") {
