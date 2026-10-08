@@ -82,6 +82,8 @@ const mode = ref<"live" | "static">("static");
 const liveAvailable = ref(false);
 /** 探测中：期间不渲染静态 iframe，避免白闪一次抓取 */
 const probing = ref(false);
+/** 用户是否手动切过模式：切过之后，异步探测结果只更新可用性，不覆盖用户选择 */
+const modeTouched = ref(false);
 /** 实时模式「打开」计数：自增触发 LiveView 导航 */
 const navNonce = ref(0);
 /** 已渲染的正文（剥过脚本） */
@@ -118,6 +120,7 @@ watch(
       // 失败路径不抛异常（probeLive 内部吞掉并自带重试）。
       // immediate 必须有：宿主（FieldTable）用 v-if + :visible="true" 挂载本组件，
       // visible 从不「变化」，非 immediate 的 watcher 永远不会触发 → 探测静默丢失。
+      modeTouched.value = false;
       probing.value = true;
       void probeLive()
         .then((ok) => {
@@ -126,11 +129,18 @@ watch(
           }
           liveAvailable.value = ok;
           if (ok) {
-            mode.value = "live";
+            // 探测成功：只有用户没手动选过模式时才自动切实时，
+            // 否则会出现「打开弹窗 → 探测飞行中用户点静态 → 探测回来又被切走」。
+            if (!modeTouched.value) {
+              mode.value = "live";
+            }
           } else {
+            // 探测失败：实时不可用，必须回静态兜底（用户选了实时也不例外）
             mode.value = "static";
-            // 静态模式仍然要抓一次：页面可能已经变了，缓存住反而让人以为看的是旧内容
-            void load();
+            if (!srcdoc.value) {
+              // 静态模式仍然要抓一次：页面可能已经变了，缓存住反而让人以为看的是旧内容
+              void load();
+            }
           }
         })
         .catch(() => {
@@ -138,7 +148,9 @@ watch(
             return;
           }
           mode.value = "static";
-          void load();
+          if (!srcdoc.value) {
+            void load();
+          }
         })
         .finally(() => {
           probing.value = false;
@@ -163,6 +175,7 @@ function switchMode(next: "live" | "static"): void {
   if (mode.value === next) {
     return;
   }
+  modeTouched.value = true;
   mode.value = next;
   error.value = "";
   if (next === "static" && !srcdoc.value) {

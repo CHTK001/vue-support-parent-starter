@@ -163,12 +163,24 @@ export default createVite({
     strictPort: false,
     proxy: {
       // 顺序敏感：前缀更长的条目必须排在通用 /collect/api 前面，先匹配到的先生效。
-      // 三条路由各司其职：
+      // 四条路由各司其职：
       //   /collect/api/v2/scheduler -> 调度节点（执行器注册表只在 SCHEDULER 进程里）
+      //   /collect/api/ms/datasource/ddl -> 采集节点（app=采集库，建表与运行期写库同目标）
       //   /collect/api/ms           -> datasource-hub（8081），见下方 hubTarget 注释
       //   /collect/api              -> 采集业务节点 18190（登录 /v2/user/login、采集接口）
       "/collect/api/v2/scheduler": {
         target: schedulerTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      // DDL（建表/补列）必须打在采集节点（18190）自己身上：
+      // 「应用主库（app）」解析的是宿主应用的主 DataSource —— 采集侧解析到采集库，
+      // 与运行期写库目标一致；中心（8081）的 app 是中心自己的主库（ngxacc），走中心会
+      // 「执行成功、表却不在采集库里」（2026-10-08 pw-ddl 实测）。
+      // 内嵌 hub 原生提供 ddl 端点（挂在 /collect/api 之下），所以直连且不加 rewrite。
+      // 顺序敏感：必须排在 /collect/api/ms 前面，否则会先被中心条目接管。
+      "/collect/api/ms/datasource/ddl": {
+        target: apiTarget,
         changeOrigin: true,
         configure: stripOriginHeaders,
       },
