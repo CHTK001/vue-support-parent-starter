@@ -246,37 +246,53 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
   }
 
   /**
-   * 处理 update 事件（断点恢复模式）
-   * 复用已有消息和内容块，更新流式状态
+   * 处理 update 事件（断点恢复／刷新重连）
+   *
+   * 复用已有消息和内容块；**本地没有时现场创建占位**，而不是跳过。
+   *
+   * 【为什么不能跳过，2026-10-08 实测】后端不依赖客户端连接（实验中 3 秒掐断后
+   * `isRunning=true`，40 秒后助手消息 +1 照常落库），但刷新会把本地 store 清空，
+   * 而这条助手消息**尚未落库** → 之前的两处 `skipping` 会把整条新回复吞掉，
+   * 用户表现就是「重新生成时刷新页面，AI 回复数据没了」。
    */
   function handleUpdateMessage(
     response: StreamResponse,
     streamingSessionId: string,
   ): { message: Message; contentIndex: number } | null {
-    const existingMessage = sessionStore
+    let existingMessage = sessionStore
       .getMessages(streamingSessionId)
       .find((msg: Message) => msg.id === response.messageId);
 
+    if (!existingMessage && response.messageId) {
+      // 刷新重连：后端仍在生成，但本地还没有这条助手消息 → 建占位，接住后续增量
+      const placeholder = {
+        id: response.messageId,
+        role: 'assistant',
+        contents: [],
+        state: { isStreaming: true, isThinking: false },
+      } as unknown as Message;
+      sessionStore.addMessage(streamingSessionId, placeholder);
+      console.info('[subscribe] 本地缺少消息，已建占位以接住增量:', response.messageId);
+      existingMessage = placeholder;
+    }
+
     if (!existingMessage) {
-      // subscribe 模式下可能因缓冲区溢出丢失 create 事件，此处容错而非中断整个流
-      console.warn(
-        "[subscribe] Message not found, skipping:",
-        response.messageId,
-      );
+      console.warn('[subscribe] Message not found and no messageId, skipping:', response);
       return null;
     }
 
-    // 查找对应的内容块
-    const existingContentIndex = existingMessage.contents.findIndex(
+    // 查找对应的内容块；缺失则补一个内容块（同上，不能跳过）
+    let existingContentIndex = existingMessage.contents.findIndex(
       (c: MessageContent) => c.id === response.contentId,
     );
-
     if (existingContentIndex < 0) {
-      console.warn(
-        "[subscribe] Content not found, skipping:",
-        response.contentId,
-      );
-      return null;
+      existingMessage.contents.push({
+        id: response.contentId,
+        content: '',
+        state: { isStreaming: true, isThinking: false },
+      } as unknown as MessageContent);
+      existingContentIndex = existingMessage.contents.length - 1;
+      console.info('[subscribe] 本地缺少内容块，已补占位:', response.contentId);
     }
 
     // 更新消息状态为流式中
