@@ -42,3 +42,13 @@
 1. **25 路由 dev 分块 sweep（本轮冻结版本）**：运行中（`sweep-dev-chunks.ps1`，每块 5 条、被杀自动补跑）；完成后给出逐路由 PASS/FAIL/WARN + 4xx/5xx 台账，FAIL/WARN 逐条修或定性。
 2. effectLevel 模型管理侧写/读的真实数据取证。
 3. push：以上提交均在本地，等用户批准。
+
+## 6. 追加（同日晚，用户新报 + effectLevel 取证）
+
+| 项 | 结论 | 证据 |
+| --- | --- | --- |
+| **#5 生成中刷新丢回复** | 已修并验收 | 根因实验：生成 3 秒掐断客户端 → `isRunning=true`、40 秒后助手消息 **+1 落库**（后端不依赖客户端）；丢点在刷新后前端 subscribe 模式两处 `skipping`（本地 store 空 + 消息未落库 → 目标不存在即整条跳过）。修法：`handleUpdateMessage` **建占位接住增量**。验收 `refresh-stream-probe` **5/5 PASS**（刷新后可见 576 字、落库 546 字） |
+| **effectLevel 模型侧写/读** | 已验证 | `PUT /api/provider-models{provider_id:agnes, model:{model:agnes-2.0-flash, thinking_efforts:[low,medium,high,max]}}` → 读回 `['low','medium','high','max']`；DB `capabilities[].thinking_efforts` 同上；`alias` 等字段未被破坏 |
+| **effectLevel 运行链路** | 已验证 | `thinkingEffort=high` → 日志「应用思考强度档位」+1；`default` → +0 |
+| 分块 runner 严校验 | 已加强 | 报告合格判据由"字节数"改为**核对报告内路由条数**（防半截报告） |
+| 本次新增提交 | 本地 | `c1293d50a`（刷新丢回复修复 + 探针 + runner 严校验） |
