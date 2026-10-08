@@ -646,9 +646,14 @@ async function loadChildren(node: WorkspaceNode): Promise<WorkspaceNode[]> {
     if (!props.sessionId) return [];
     try {
         const response = await apiService.getWorkspaceChildren(props.sessionId, node.path);
-        return response.children || [];
+        // 兼容后端不同返回形态；取不到时回退 tree 数据（可能只是空目录，也可能是子层接口未实现）
+        const kids: any[] = (response as any)?.children || (response as any)?.data?.children || [];
+        return kids.length ? kids : (findNodeByPath(treeData.value, node.path)?.children || []);
     } catch (error: any) {
-        console.error('[WorkspaceSidebar] Failed to load children:', error);
+        // 后端当前**没有** /workspace/children 端点（只有 /workspace/tree）→ 404 时若直接吞掉，
+        // 目录展开会永远是空的（用户报障 2.1）。这里回退到已加载 tree 里同路径节点的 children。
+        console.warn('[WorkspaceSidebar] children 接口不可用，回退 tree 数据:', error);
+        return findNodeByPath(treeData.value, node.path)?.children || [];
         return [];
     }
 }
