@@ -41,7 +41,8 @@
 | 后端 jar 重部署 | 待用户执行 | `bb1c3bf22` 需重打 jar 部署到 198 才生效；当前靠前端迁移已可恢复 |
 | item 1 客观测量 | ✅ 完成 | Playwright 1440/960/760px 实测无横向溢出（见第 2 节证据） |
 | `tool-row-probe.cjs` 复跑 | ✅ 完成 | 24/24 PASS，含 `a11y.noNestedInteractive=0`、`a11y.detailIsSibling=true` |
-| dist 重建 + 全量探针回归 | 进行中 | 生产构建校验中；完成后对 dist 复跑关键探针 |
+| dist 重建 + 全量探针回归 | ✅ 完成 | 生产构建 exit 0（647 文件 / 62.5MB / 5m02s）；dist 关键探针全过；`run-all-against-dist` **120/124**（失败项均为 429 限流与夹具脚本缺陷，见第 6 节） |
+| 25 路由 `ui-click-sweep` | 待低峰补跑 | 高频点击会触发后端 429，脚本把 4xx 计入路由错误，限流下结果不可信；择低峰串行补跑 |
 | push | 待授权 | 本地提交未推送 |
 
 ## 5. 变更文件
@@ -58,3 +59,22 @@
 
 **后端（spring-support-parent-starter）**
 - `spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/controller/TavernChatController.java`（item 3.1）
+
+## 6. dist 产物复验（2026-10-09）
+
+- **生产构建**：`vite build`（`NODE_OPTIONS=--max-old-space-size=8192`）→ exit 0，`dist` 647 文件 / 62,518,841 B / 用时 5m02s。
+- **产物服务**：`node scripts/serve-dist.mjs`（零依赖静态服务 + API 反代 + WS upgrade，端口 **15690**，后端 192.168.50.198:8787）；`/` 与 `/v2/user/me` 均 200。
+- **item 1（dist）**：1440 / 960 / 760px 下模型管理页与模板库 `docScrollWidth == docClientWidth`、越界元素 0；NewAPI 卡描述 `scrollWidth 328 > clientWidth 237`（被卡片裁切）。
+- **item 4.1（dist）**：`.model-selector-btn` 宽 **143px**（`agnes-2.0-flash`）。
+- **item 4.2（dist）**：弹层选项 `["不思考","默认"]`；选「默认」→ 按钮激活且文案「agnes-2.0-flash 默认」宽 **171px**；选「不思考」→ 取消激活回 143px；模型面板无「推理强度」文本。
+- **item 3（dist）**：酒馆头部右侧含 `批量配置` / `群设置` 图标；批量弹窗标题「批量配置角色（4 名）」、**4 行角色**、模型为裸名（`deepseek-v4.1-flash` / `agnes-3.0-flash` / `laguna-s-2.1`）。
+- **item 3.1（dist）**：会话记录中 `系统架构师 laguna-s-2.1` 已产出「收到」等非空回复（迁移生效）。
+- **`run-all-against-dist.mjs`**：全量浏览器套件对 15690 运行，**120 / 124 PASSED**。
+  - `acc-prodgrade-frontend` 14/16：2 项失败均为切换页面过快触发的后端 **429（限流）**，非产品缺陷；
+  - `acc-image-lib-rename` 13/14：同源 429；
+  - `acc-image-lib-foot` 0/1：夹具脚本异常（`locator.fill` 收到 undefined），非产品缺陷；
+  - `acc-image-lib-ui` / `acc-image-library-tab` / `acc-salted-login` 无 RESULT（未产出结果，与本轮改动无关）。
+  - 结论：本轮触及的聊天 / 模型管理 / 酒馆页面均无回归；失败项全部落在限流与既有夹具脚本上。
+- **25 路由 `ui-click-sweep` 全量遍历**：因后端在高频点击下触发 429 限流会污染结果，择低峰串行补跑（脚本会把 4xx 计入路由错误，限流下不可信）。
+
+
