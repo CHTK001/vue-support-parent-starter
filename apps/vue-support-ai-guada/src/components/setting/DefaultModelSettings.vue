@@ -412,7 +412,9 @@ const ENGINE_FIELDS = ['rag_embedding_model']
 // 获取字段中文标签
 const getFieldLabel = (item) => {
     // 从描述中提取中文名称
-    if (item.description) {
+    // 值域兜底补的行（valueOnly）没有后端描述，但字段名可能在 labelMap 里
+    // （如 corrector_model → 文本矫正模型），必须同样走这层，否则直接露出英文字段名
+    if (item.description || item.valueOnly) {
         // 取描述的前几个字作为标签
         const labelMap = {
             'default_model': '默认模型',
@@ -913,6 +915,62 @@ const pickGroups = (response) => {
     return []
 }
 
+/**
+ * 已知的「值域遗留字段」：字段名是模型范式、库里可能还有值行，但已无任何运行时读者
+ * （全仓 grep 证实），mergeValueOnlyModelFields 不得因它们补行，避免旧库残留
+ * 以设置项形态回流到界面。
+ */
+const LEGACY_VALUE_ONLY_FIELDS = {
+    // 旧版 OCR 一体化默认模型：现管线读 detector / recognizer / direction / restorer / corrector
+    ocr: ['default_ocr_model'],
+    // 旧版版面分析遗留：layout 管线现只读 layout_model
+    layout: ['pose_model', 'super_resolution_model'],
+}
+
+/**
+ * 值域兜底：定义里没有、但合并值里存在的「选模型」字段，补进分组渲染。
+ *
+ * <p><b>为什么需要。</b>本页的行由 {@code /v2/global-setting-definitions} 的定义驱动，
+ * 定义来自后端 GlobalSettingProvider 的启动期缓存。共享联调后端与本地新代码之间常有
+ * 一两个版本滞后 —— 例如 OCR 的 {@code corrector_model}：值行已入库（/v2/settings/ocr
+ * 能读到），旧后端定义里却没有它，于是「文本矫正模型」在设置中心整行消失，
+ * 只能在能力页（/capabilities/ocr）配置。这里按「已存值 + 命名约定」兜底补行；
+ * 后端补齐定义后该字段已存在，合并为空操作，不会重复渲染。</p>
+ *
+ * <p><b>并入范围。</b>只收 `_model` 结尾的字段（本页「选模型」行的既有命名约定）；
+ * {@code enable_model_metrics_push} 这类名称含 model 的开关/间隔不适用选择器语义，不并入。
+ * {@code rag_embedding_model} 等引擎字段照常被 shouldShowField 的 ENGINE_FIELDS 拦下。</p>
+ *
+ * @param group 分组名
+ * @param values 该分组的合并值（field -> value，可能含 __meta）
+ */
+const mergeValueOnlyModelFields = (group, values) => {
+    const def = settingGroups.value.find((g) => g.group === group)
+    if (!def || !Array.isArray(def.items)) {
+        return
+    }
+    const known = new Set(def.items.map((item) => item.field))
+    const legacy = new Set(LEGACY_VALUE_ONLY_FIELDS[group] || [])
+    for (const field of Object.keys(values || {})) {
+        if (field === '__meta' || known.has(field) || legacy.has(field)) {
+            continue
+        }
+        if (!String(field).endsWith('_model')) {
+            continue
+        }
+        def.items.push({
+            field,
+            defaultValue: '',
+            valueType: 'STRING',
+            description: '',
+            sort: 9999,
+            adminOnly: false,
+            // 标记来源：值域兜底补的行（非后端定义），供后续差异化展示/排查
+            valueOnly: true,
+        })
+    }
+}
+
 // 加载某个分组对当前用户生效的值（全局默认 + 本人覆盖）
 const loadGroupValues = async (group) => {
     try {
@@ -951,6 +1009,8 @@ const loadGroupValues = async (group) => {
         groupValues[group] = values
         fieldMeta[group] = meta
         dirtyFields[group] = new Set()
+        // 定义滞后兜底（幂等：字段已在定义中时不重复 push）
+        mergeValueOnlyModelFields(group, values)
     } catch (error) {
         console.error(`获取 ${group} 分组设置失败:`, error)
     }
