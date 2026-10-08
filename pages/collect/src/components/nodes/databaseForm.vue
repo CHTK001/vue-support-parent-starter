@@ -74,12 +74,18 @@ const ddlKeys = computed(() => {
     .filter(name => Boolean(name) && mapped.has(name));
 });
 
-/** 是否给出建表入口：选了数据源和表 + 至少映射了一列 */
-const canDdl = computed(() =>
-  Boolean(valueOf("datasource").trim())
-  && Boolean(valueOf("table").trim())
-  && ddlColumns.value.length > 0,
-);
+/**
+ * 「建表 / 补列」按钮文案：由前端对表存在性（ctx.tableExists 三态）的判断决定。
+ *
+ * <p>用户诉求（2026-10-08）：入口不再看「是否已映射列」这类门槛，常驻在字段映射下方，
+ * 点了就要出设计表对话框；该建表还是该补列由前端按表清单判断、对话框预览再兜底确认。
+ * false=确认不存在 →「建表…」；true=已存在 →「补列…」；null=表清单还没读到 → 两者都给，不猜。</p>
+ */
+const ddlLabel = computed(() => {
+  if (props.ctx.tableExists === false) return "建表…";
+  if (props.ctx.tableExists === true) return "补列…";
+  return "建表 / 补列…";
+});
 
 /**
  * 打开建表 / 补列。
@@ -195,11 +201,12 @@ function extraTip(name: string): string {
         @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
       />
       <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
-      <!-- 建表 / 补列：放在「字段映射」下面，顺序就是「先选数据源与表 → 需要时先建表 → 再映射」 -->
-      <div v-if="param.name === 'column:目标列' && canDdl" class="ddl-actions">
-        <ReButton text type="primary" @click="openDdl">建表 / 补列…</ReButton>
+      <!-- 建表 / 补列：常驻入口（不要求已映射列，也不管表存不存在），点开即设计表；
+           建表还是补列由前端按表清单判断（按钮文案），对话框预览再兜底确认 -->
+      <div v-if="param.name === 'column:目标列'" class="ddl-actions">
+        <ReButton text type="primary" @click="openDdl">{{ ddlLabel }}</ReButton>
         <span class="ddl-hint">
-          按上方映射的目标列建表或补列（列类型 TEXT，与运行期自动建表同一套规则）；建完自动刷新左侧列候选。
+          打开设计表对话框：按上方映射的目标列建表或补缺失列（列类型 TEXT，与运行期自动建表同一套规则）；建完自动刷新左侧列候选。
         </span>
       </div>
     </div>
