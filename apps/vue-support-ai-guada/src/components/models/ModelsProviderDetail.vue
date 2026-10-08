@@ -448,7 +448,9 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 </script>
 
 <style scoped>
-.detail-scroll { scrollbar-gutter: stable both-edges; }
+/* 详情滚动区：垂直滚动即可；内容（超长模型名 / 极窄窗口下的卡片网格）一律不产生横向滚动条。
+   背景：模型管理里超长文字（如 NewAPI 模板描述）曾把整页顶出水平滚动条（用户需求 1）。 */
+.detail-scroll { scrollbar-gutter: stable both-edges; overflow-x: hidden; }
 
 /* 供应商头部（扁平：实色表面，无渐变） */
 .d-band {
