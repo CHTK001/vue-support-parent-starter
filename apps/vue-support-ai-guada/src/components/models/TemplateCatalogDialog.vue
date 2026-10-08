@@ -222,6 +222,11 @@ defineExpose({ open })
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+  /* 描述文字（如 NewAPI「国产 API 聚合平台，支持 GPT、Claude…」）很长，
+     网格项默认 min-width:auto 时最小内容宽会被撑开、整行溢出出横向滚动条。
+     这里把网格自身与卡片的收缩下限钉死，超长文本一律走省略号（用户需求 1）。 */
+  min-width: 0;
+  overflow-x: hidden;
 }
 .tc-card {
   display: flex;
@@ -234,6 +239,8 @@ defineExpose({ open })
   cursor: pointer;
   transition: all 0.18s ease;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 .tc-card:hover {
   border-color: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-border-color-light));
@@ -247,6 +254,7 @@ defineExpose({ open })
   min-width: 0;
   flex: 1;
   gap: 3px;
+  overflow: hidden;
 }
 .tc-name {
   font-size: 13px;
