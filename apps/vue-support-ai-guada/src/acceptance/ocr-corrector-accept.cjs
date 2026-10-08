@@ -21,6 +21,7 @@
  *  10. 「文本矫正模型」行渲染为模型选择器；对话框搜索 macbert 命中 macbert4csc
  *  11. 对话框选中 → 自动持久化（回读含 macbert4csc），收尾恢复空串关闭态
  *  12. 全程零 pageerror、零 5xx、零 /v2/ 控制台错误
+ *  13. 值域兜底：mock 旧后端（definitions 剔除 corrector_model）后行仍渲染且恰好一行
  *
  * 用法（需本机 dev + 指向含 corrector_model 的后端）：
  *   set NODE_PATH=D:\ch\project\vue-support-parent-starter\node_modules
@@ -284,6 +285,9 @@ async function main() {
     const rowVisible = await row.isVisible().catch(() => false);
     ok('「文本矫正模型」设置行渲染（labelMap 生效）', rowVisible,
       rowVisible ? '' : `set-row total=${await page.locator('.set-row').count()}`);
+    // 新后端定义已含 corrector_model：值域兜底应零产出，行必须恰好一条（幂等性）
+    const rowCount = await page.locator('.set-row').filter({ hasText: '文本矫正模型' }).count();
+    ok('「文本矫正模型」行唯一（值域兜底不与定义重复）', rowCount === 1, `count=${rowCount}`);
 
     const picker = row.locator('input[readonly]').first();
     const pickerVisible = rowVisible && await picker.isVisible().catch(() => false);
@@ -332,6 +336,33 @@ async function main() {
     ok('收尾恢复关闭态（corrector 置空并回读）',
       ocrFinal.json?.data?.data?.corrector_model === '',
       `value=[${ocrFinal.json?.data?.data?.corrector_model}]`);
+
+    console.log('[4] 浏览器层  旧后端定义韧性（模拟 definitions 缺 corrector_model）');
+    // 模拟共享联调后端的滞后形态：definitions 剔除 corrector_model、值域照常返回。
+    // 设置中心默认模型页应通过值域兜底继续渲染该行（恰好一行）。
+    const defsPattern = '**/v2/global-setting-definitions*';
+    await page.route(defsPattern, async (route) => {
+      const resp = await route.fetch();
+      let json = null;
+      try { json = await resp.json(); } catch { /* 非 JSON 保持原样 */ }
+      if (json && Array.isArray(json?.data?.data)) {
+        for (const g of json.data.data) {
+          if (g && g.group === 'ocr' && Array.isArray(g.items)) {
+            g.items = g.items.filter((it) => it && it.field !== 'corrector_model');
+          }
+        }
+        await route.fulfill({ response: resp, json });
+        return;
+      }
+      await route.fulfill({ response: resp });
+    });
+    await page.goto(BASE + '/setting/default-models', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const staleRow = page.locator('.set-row').filter({ hasText: '文本矫正模型' });
+    await staleRow.first().waitFor({ timeout: 45000 }).catch(() => {});
+    const staleCount = await staleRow.count();
+    ok('旧定义下「文本矫正模型」仍渲染（值域兜底合并生效）', staleCount === 1,
+      `count=${staleCount}（0=兜底未生效；>1=重复渲染）`);
+    await page.unroute(defsPattern);
 
     // ---- 12. 全程错误面 ----
     ok('全程零 pageerror', pageErrors.length === 0, pageErrors.slice(0, 3).join(' ; '));
