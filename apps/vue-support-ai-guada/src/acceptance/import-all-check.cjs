@@ -37,6 +37,10 @@ const KNOWN_404 = [
   /sessionAgentApi|\/session\/agent\//,
   /favicon\.ico/,
   /weather-api/, // dev 下 vite 代理外部天气 API，历轮验收均列为环境噪音
+  // 顶栏台风小组件（TopEnvironment.vue -> getActiveTyphoonList）打的是第三方接口，
+  // 同样属环境噪音；ui-click-sweep.cjs 的 NOISE 与 kb-ui-accept.cjs 早已排除它，
+  // 本套件的白名单此前漏配。
+  /typhoon-api/,
   // 天气小组件直连的第三方限流：并发验收触发 429，与产品代码无关
   /api\.open-meteo\.com/,
 ];
