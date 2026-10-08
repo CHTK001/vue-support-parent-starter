@@ -585,8 +585,8 @@
             </div>
             <div class="flex-1 min-h-0 flex gap-2 m-2">
               <div v-loading="graphLoading" class="flex-1 min-h-0 rounded-lg kb-graph__canvas kb-graph__stage">
-                <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" :nodes="graphNodes" :edges="graphEdges"
-                  layout="force-atlas2" height="100%" @node-click="handleGraphNodeClick" />
+                <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
+                  layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
                 <div v-if="graphLegend.length > 0" class="kb-graph__legend">
@@ -1503,9 +1503,13 @@ async function handleBatchDeleteRelations() {
 function decorateGraphNode(n: any) {
   const entityType = String(n?.type ?? 'other')
   const size = nodeSizeOf(n?.degree)
+  const name = String(n?.text ?? n?.label ?? n?.id ?? '')
   return {
     id: String(n?.id ?? ''),
-    label: String(n?.text ?? n?.label ?? n?.id ?? ''),
+    // 同时保留 text 与 label：text 供 KBAskPanel 的迷你子图（走后端契约），
+    // label 供 G6（ReRelationGraph 的 RelationNode 契约）渲染节点名。
+    text: name,
+    label: name,
     type: 'circle' as const,
     size,
     style: {
@@ -1559,6 +1563,10 @@ const graphEdges = computed(() => {
     .filter((e) => ids.has(e.from) && ids.has(e.to))
     .map((e) => ({
       id: String(e.id ?? `${e.from}->${e.to}`),
+      // from/to 供 KBAskPanel（后端契约），source/target 供 G6；text/label 同理。
+      from: String(e.from),
+      to: String(e.to),
+      text: String(e.text ?? e.label ?? ''),
       source: String(e.from),
       target: String(e.to),
       label: String(e.text ?? e.label ?? ''),
@@ -1759,6 +1767,40 @@ function handleGraphNodeClick(node: any) {
   if (name) {
     toast.info(`${name}${type ? `（${entityTypeLabel(type)}）` : ''}：${degree} 条关系`)
   }
+}
+
+/** 图谱组件实例（用于首帧后主动重跑一次布局） */
+const graphCompRef = ref<any>(null)
+
+/** 知识图谱布局名：G6 的 force 在这套数据上会退化成 (0,0)，实测 force-atlas2 正常 */
+const GRAPH_LAYOUT = 'force-atlas2'
+
+/**
+ * 图谱渲染就绪回调。
+ *
+ * <p>G6 首次装载若发生在容器尺寸确定之前，会把所有节点留在 (0,0)，
+ * 表现为整图缩放到一个点（放大 6 倍只看到一个大圆）。此时容器尺寸已确定，
+ * 这里主动重跑一次同名布局让节点真正散开，随后由组件 autoFit 重新适配视口。</p>
+ */
+function handleGraphReady() {
+  nextTick(() => {
+    window.setTimeout(async () => {
+      if (!graphCompRef.value?.setLayout) {
+        return
+      }
+      try {
+        await graphCompRef.value.setLayout(GRAPH_LAYOUT)
+      } catch {
+        // 布局失败不阻断：至少保留组件自身的首帧适配
+      }
+      // 力导是异步迭代：布局中途触发 fitView，可能正好落在「节点还没散开」的一瞬，
+      // 把视口缩放到极近（整图只剩一两个大圆）。等迭代收敛后再适配一次视口。
+      window.setTimeout(() => {
+        const api = graphCompRef.value as { fitView?: () => Promise<void> } | null
+        void api?.fitView?.()
+      }, 700)
+    }, 120)
+  })
 }
 
 

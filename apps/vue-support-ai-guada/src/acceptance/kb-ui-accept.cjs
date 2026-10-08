@@ -54,22 +54,37 @@ async function login(p) {
   return false;
 }
 
-/** 用登录态自动发现一个知识库 ID（避免依赖固定环境数据） */
+/**
+ * 用登录态自动发现一个知识库 ID（避免依赖固定环境数据）。
+ *
+ * <p>优先挑「已有实体/关系」的库，这样概览页的分布区块与图谱页才有真实数据可断言；
+ * 都为空时退回第一个库，保证仍能跑通「空态」路径。</p>
+ */
 async function discoverKbId(p) {
   return p.evaluate(async (token) => {
     const r = await fetch('/api/knowledge/bases', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
     const j = await r.json();
     const rows = j && j.data ? j.data : [];
-    return rows && rows.length ? rows[0].knowledge_base_id : '';
+    if (!rows || !rows.length) return '';
+    const withGraph = rows.find((x) => (Number(x.entity_count) || 0) > 0) || rows.find((x) => (Number(x.file_count) || 0) > 0);
+    return (withGraph || rows[0]).knowledge_base_id;
   }, RAW_TOKEN);
 }
 
-const clickNav = (p, name) => p.evaluate((n) => {
-  const b = [...document.querySelectorAll('nav.re-surface button')].find((e) => (e.innerText || '').trim() === n);
-  if (!b) return 'no-btn';
-  b.click();
-  return 'ok';
-}, name);
+const clickNav = async (p, name) => {
+  // 后端慢时详情页外壳会晚于 goto 返回渲染，菜单按钮可能还没出现 —— 有界重试，避免假失败。
+  for (let i = 0; i < 12; i++) {
+    const r = await p.evaluate((n) => {
+      const b = [...document.querySelectorAll('nav.re-surface button')].find((e) => (e.innerText || '').trim() === n);
+      if (!b) return 'no-btn';
+      b.click();
+      return 'ok';
+    }, name);
+    if (r === 'ok') return 'ok';
+    await p.waitForTimeout(1500);
+  }
+  return 'no-btn';
+};
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -84,7 +99,7 @@ const clickNav = (p, name) => p.evaluate((n) => {
   });
 
   const R = { pass: 0, fail: 0, checks: [], pageErrors: [], consoleErrors: [], failedRequests: [] };
-  const ok = (n, c) => { c ? (R.pass++, R.checks.push('PASS ' + n)) : (R.fail++, R.checks.push('FAIL ' + n)); };
+  const ok = (n, c, e) => { c ? (R.pass++, R.checks.push('PASS ' + n)) : (R.fail++, R.checks.push('FAIL ' + n + (e ? ' :: ' + e : ''))); };
 
   if (!(await login(p))) { console.log('LOGIN FAIL'); await b.close(); process.exit(3); }
   if (!KID) KID = await discoverKbId(p);
@@ -120,25 +135,93 @@ const clickNav = (p, name) => p.evaluate((n) => {
 
   // C) 详情页 8 个 Tab
   await p.goto(BASE + '/knowledge-base/' + KID, { waitUntil: 'domcontentloaded', timeout: 180000 });
+  await p.waitForSelector('nav.re-surface button', { timeout: 60000 }).catch(() => {});
   await p.waitForTimeout(9000);
   for (const t of ['概览', '文档', '搜索', '知识图谱', '智能问答', '实体管理', '关系管理', '设置']) {
     const r = await clickNav(p, t);
     await p.waitForTimeout(3200);
     await p.screenshot({ path: OUT + '\\F2-tab-' + t + '.png' });
     ok('Tab「' + t + '」可切换(' + r + ')', r === 'ok');
+    // 「设置」是动作项，会弹出知识库档案弹框；不关掉会盖住后续的概览/图谱断言
+    await p.keyboard.press('Escape').catch(() => {});
+    await p.waitForTimeout(600);
   }
+  await p.keyboard.press('Escape').catch(() => {});
+  await p.waitForTimeout(800);
+
+  // C1) 概览页新内容：实体/关系分布 + Top 实体 + 快捷操作
+  await clickNav(p, '概览');
+  let ov = { sections: 0, bars: 0, rows: 0, hint: false };
+  for (let i = 0; i < 20; i++) {
+    await p.waitForTimeout(2000);
+    ov = await p.evaluate(() => ({
+      sections: document.querySelectorAll('.kb-ov__title').length,
+      bars: document.querySelectorAll('.kb-ov__bar').length,
+      rows: document.querySelectorAll('.kb-ov__row').length,
+      hint: !!document.querySelector('.kb-ov__hint'),
+    }));
+    if (ov.sections >= 3 && ov.bars > 0) break;
+  }
+  ok('概览页有 3 个内容区块', ov.sections >= 3, 'got ' + ov.sections);
+  ok('概览页有分布条 > 0', ov.bars > 0, 'got ' + ov.bars);
+  ok('概览页有快捷操作说明', ov.hint);
+  await p.screenshot({ path: OUT + '\\F2b-overview.png' });
+
+  // C2) 图谱渲染：节点必须真正散开（(0,0) 堆叠会缩放到一个点）
+  await clickNav(p, '知识图谱');
+  let g6 = null;
+  for (let i = 0; i < 25; i++) {
+    await p.waitForTimeout(3000);
+    g6 = await p.evaluate(() => {
+      const el = document.querySelector('.rrg');
+      if (!el) return null;
+      let inst = el.__vueParentComponent, api = null, d = 0;
+      while (inst && d < 8) { if (inst.exposed && typeof inst.exposed.getInstance === 'function') { api = inst.exposed; break; } inst = inst.parent; d++; }
+      if (!api) return null;
+      const g = api.getInstance();
+      const nd = (g.getNodeData && g.getNodeData()) || [];
+      const xs = nd.map((n) => Number(n.style && n.style.x)).filter((v) => !isNaN(v));
+      const ys = nd.map((n) => Number(n.style && n.style.y)).filter((v) => !isNaN(v));
+      return {
+        nodes: nd.length,
+        xSpan: xs.length ? Math.max.apply(null, xs) - Math.min.apply(null, xs) : 0,
+        ySpan: ys.length ? Math.max.apply(null, ys) - Math.min.apply(null, ys) : 0,
+        zoom: g.getZoom ? g.getZoom() : 0,
+      };
+    });
+    // 布局是异步迭代：必须等到「既散开、缩放又合理」才算收敛，否则可能抓到中间态
+    if (g6 && g6.nodes > 1 && g6.xSpan > 200 && g6.zoom > 0.1 && g6.zoom < 3) break;
+  }
+  ok('图谱挂载且有节点', !!g6 && g6.nodes > 0, JSON.stringify(g6));
+  if (g6 && g6.nodes > 1) {
+    ok('图谱节点已散开(xSpan>200)', g6.xSpan > 200, 'xSpan=' + Math.round(g6.xSpan) + ' nodes=' + g6.nodes);
+    ok('图谱缩放合理(0.1~3)', g6.zoom > 0.1 && g6.zoom < 3, 'zoom=' + Number(g6.zoom).toFixed(2) + ' xSpan=' + Math.round(g6.xSpan));
+  } else {
+    ok('图谱节点已散开(xSpan>200)', true, '本库无图谱数据，跳过');
+    ok('图谱缩放合理(0.1~3)', true, '本库无图谱数据，跳过');
+  }
+  await p.screenshot({ path: OUT + '\\F2c-graph.png' });
   await clickNav(p, '文档');
-  await p.waitForTimeout(2500);
-  const h2 = await p.evaluate(() => { const e = [...document.querySelectorAll('.kb-split__title h2')].find((x) => (x.innerText || '').trim() === '文档'); if (!e) return null; const r = e.getBoundingClientRect(); return { h: Math.round(r.height), ws: getComputedStyle(e).whiteSpace }; });
-  ok('文档标题单行(h<=30, nowrap)', h2 && h2.h <= 30 && h2.ws === 'nowrap');
+  let h2 = null;
+  for (let i = 0; i < 12; i++) {
+    await p.waitForTimeout(1500);
+    h2 = await p.evaluate(() => { const e = [...document.querySelectorAll('.kb-split__title h2')].find((x) => (x.innerText || '').trim() === '文档'); if (!e) return null; const r = e.getBoundingClientRect(); return { h: Math.round(r.height), ws: getComputedStyle(e).whiteSpace, clipped: e.scrollWidth > e.clientWidth + 2 }; });
+    if (h2) break;
+  }
+  ok('文档标题单行(h<=30, nowrap)', !!h2 && h2.h <= 30 && h2.ws === 'nowrap', JSON.stringify(h2));
+  ok('文档标题未被裁剪', !!h2 && h2.clipped === false, JSON.stringify(h2));
 
   // D) 模板页
   await p.goto(BASE + '/knowledge-base', { waitUntil: 'domcontentloaded', timeout: 180000 });
   await p.waitForTimeout(5000);
-  await p.locator('.re-button:has-text("从模板创建"), button:has-text("从模板创建")').first().click().catch(() => {});
-  await p.waitForTimeout(4000);
-  const tpl = await p.evaluate(() => ({ cards: document.querySelectorAll('article').length }));
-  ok('模板页 模板卡 > 0', tpl.cards > 0);
+  await p.locator('.re-button:has-text("从模板创建"), button:has-text("从模板创建")').first().click({ timeout: 20000 }).catch(() => {});
+  let tpl = { cards: 0 };
+  for (let i = 0; i < 10; i++) {
+    await p.waitForTimeout(2000);
+    tpl = await p.evaluate(() => ({ cards: document.querySelectorAll('article').length }));
+    if (tpl.cards > 0) break;
+  }
+  ok('模板页 模板卡 > 0', tpl.cards > 0, 'got ' + tpl.cards);
   await p.screenshot({ path: OUT + '\\F3-template.png' });
 
   R.pageErrors = [...new Set(perr)];
