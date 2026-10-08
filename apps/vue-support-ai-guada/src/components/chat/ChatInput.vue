@@ -219,7 +219,7 @@ import AiNextTaskPanel from './AiNextTaskPanel.vue';
 import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
-import { getModelThinkingEfforts, getThinkingEffortLabel } from '@/utils/modelUtils';
+import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName } from '@/utils/modelUtils';
 import Avatar from '../ui/Avatar.vue';
 import { getModelAvatarPath } from '@/utils/modelUtils';
 import { detectModelProvider } from '@/utils/modelUtils';
@@ -274,7 +274,7 @@ type FileWithContent = File & { _originalContent?: string }
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('lg') // md = 768px
 
-const { confirm } = usePopup();
+const { confirm, notify } = usePopup();
 const router = useRouter();
 const sessionStore = useSessionStore();
 const { t } = useI18n()
@@ -290,6 +290,15 @@ const isDragOver = ref(false);
 // 模型选择器相关
 const models = ref<Model[]>([]);
 const providers = ref<ModelProvider[]>([]);
+/**
+ * 模型列表加载状态。
+ *
+ * 「加载失败」必须与「确实没有模型」区分开：后者引导用户去模型管理是正确的，
+ * 前者静默跳走会让用户以为模型丢了（2026-10-08 实测偶发：/api/providers 瞬时 500
+ * → models 恒空 → 按钮退化成「+ 添加模型」→ 点击被硬跳走）。
+ */
+const modelsLoaded = ref(false);
+const modelsLoadFailed = ref(false);
 // 弹窗触发按钮引用
 const modelButtonRef = ref<any>(null);
 // Token 上限 popover
@@ -583,7 +592,8 @@ const currentModelNameOnly = computed(() => {
   }
   // 如果没有选中模型，显示"自动"
   const model = currentModel.value;
-  return model ? model.modelName.split("/").pop() : '自动';
+  // 与模型面板同源：用 getModelDisplayName 去命名空间，避免面板/按钮两处口径分叉
+  return model ? getModelDisplayName(model.modelName) : '自动';
 });
 
 const currentThinkingLabel = computed(() => {
@@ -779,11 +789,21 @@ function collapseModelButton() {
   }, MODEL_BUTTON_TRANSITION_MS)
 }
 
-const openModelPanel = () => {
-  // 如果没有模型，直接跳转到模型管理页面
+const openModelPanel = async () => {
+  // 列表为空：先重载一次做自愈（首次请求可能还没回来，或上次瞬时失败）。
   if (!models.value || models.value.length === 0) {
-    window.location.href = '/models'
-    return
+    await loadModels();
+  }
+  if (!models.value || models.value.length === 0) {
+    if (modelsLoadFailed.value) {
+      // 「加载失败」≠「没有模型」：留在原页如实提示，别把用户静默扔到模型管理页，
+      // 否则用户会以为自己的模型丢了（2026-10-08 实测缺陷）。
+      notify.error(t('common.error.loadFailed'), new Error('GET /api/providers'));
+      return;
+    }
+    // 确实一个可用模型都没有：引导去模型管理（原有语义）
+    window.location.href = '/models';
+    return;
   }
 
   if (modelPanelVisible.value) {
@@ -930,31 +950,57 @@ const removeKnowledgeBase = (kbId: string) => {
   emit('config-change', { knowledgeBaseIds: newKbIds });  // 通知父组件保存配置
 };
 
-// 加载模型列表
+/**
+ * 加载模型列表（带退避重试）。
+ *
+ * <p>为什么必须重试：`GET /api/providers` 在服务端瞬时故障（重启 / DB 抖动 / 迁移窗口）
+ * 时会 500，旧实现只 `console.error` 就放弃，`models` 从此恒空 → 模型按钮退化成
+ * 「+ 添加模型」，点击还被硬跳去模型管理页——用户实测偶发（2026-10-08），
+ * 线上也确有 `/api/providers` 500 的时段（升级前）。</p>
+ *
+ * <p>每次尝试前先清空 `models/providers`：重试若直接 push 会累积重复项。</p>
+ */
 const loadModels = async () => {
-  try {
-    const response = await apiService.fetchModels();
-    response.items.forEach(provider => {
-      // 过滤只保留 mode_type 为 'text' 的模型
-      const textModels = provider.models?.filter(model => model.modelType === "text") ?? [];
-      // 兜底：后端多数只给 modelName，个别供应商给 model，这里统一兜底
-      textModels.forEach(model => {
-        model.modelName = model.modelName || model.id;
+  const MAX_ATTEMPT = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
+    try {
+      const response = await apiService.fetchModels();
+      models.value = [];
+      providers.value = [];
+      response.items.forEach(provider => {
+        // 过滤只保留 mode_type 为 'text' 的模型
+        const textModels = provider.models?.filter(model => model.modelType === "text") ?? [];
+        // 兜底：后端多数只给 modelName，个别供应商给 model，这里统一兜底。
+        // 注意**不能**退回 model.id：id 是复合键 `providerId:modelId`（如
+        // `1791352877398:laguna-s-2.1`），当名字显示出来就是「前缀不该显示」的
+        // 那个缺陷（用户实测：模型面板/选择器按钮显示 `providerId:modelId`）。
+        // 后端行实测字段：id=复合键、model=裸模型名、provider_id；故优先取 model。
+        textModels.forEach(model => {
+          model.modelName = model.modelName || model.model || model.id;
+        });
+        models.value.push(...textModels);
+        delete provider.models;
+        // 只有当该供应商有符合条件的模型时才加入列表
+        if (textModels.length > 0) {
+          providers.value.push(provider);
+        }
       });
-      models.value.push(...textModels);
-      delete provider.models;
-      // 只有当该供应商有符合条件的模型时才加入列表
-      if (textModels.length > 0) {
-        providers.value.push(provider);
+      modelsLoaded.value = true;
+      modelsLoadFailed.value = false;
+      if (models.value.length > 0 && !props.config?.modelId) {
+        // 如果没有传入 modelId，默认选择第一个
+        emit('update:modelId', models.value[0].id);
       }
-    });
-    if (models.value.length > 0 && !props.config?.modelId) {
-      // 如果没有传入 modelId，默认选择第一个
-      emit('update:modelId', models.value[0].id);
+      return;
+    } catch (error) {
+      console.error(`获取模型列表失败(第 ${attempt}/${MAX_ATTEMPT} 次):`, error);
+      if (attempt < MAX_ATTEMPT) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
+      }
     }
-  } catch (error) {
-    console.error('获取模型列表失败:', error);
   }
+  // 全部尝试失败：如实标记，供「打开模型面板」时区分失败与空
+  modelsLoadFailed.value = true;
 };
 
 // 加载知识库列表

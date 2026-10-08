@@ -38,6 +38,8 @@ export interface ChatStreamParams {
   };
   think?: boolean;
   search?: boolean;
+  // 思考强度档位（low/medium/high/max）：'default' 或缺省 = 不传，交由各厂商默认
+  thinkingEffort?: string | null;
   model?: string;
   skillNames?: string[];
   // 当前会话绑定的角色（助手）id，后端据此加载角色人设 systemPrompt
@@ -100,6 +102,7 @@ export class ChatStreamService {
       skillNames,
       characterId = null,
       mode = null,
+      thinkingEffort = null,
       transport = "auto",
     } = params;
 
@@ -135,6 +138,8 @@ export class ChatStreamService {
       skillNames,
       characterId,
       mode,
+      // 思考强度档位：'default'/空 = 不传（后端仅在非空且非 default 时写 parameters.thinking_effort）
+      thinkingEffort: thinkingEffort && thinkingEffort !== "default" ? thinkingEffort : undefined,
       chatRequestId,
     };
 

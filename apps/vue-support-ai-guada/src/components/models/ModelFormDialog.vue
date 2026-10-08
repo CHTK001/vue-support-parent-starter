@@ -111,6 +111,16 @@
               </el-checkbox-group>
             </el-form-item>
 
+            <!-- 思考强度档位：在模型管理里配置该模型可选的档位（默认 low/medium/high/max）。
+                 会话侧选「默认」= 不传档位，交由各厂商默认。 -->
+            <el-form-item :label="t('common.thinkingEffort.levels')" prop="config.thinkingEfforts" class="mb-2">
+              <el-checkbox-group v-model="form.config.thinkingEfforts">
+                <el-checkbox-button v-for="effort in ['low', 'medium', 'high', 'max']" :key="effort" :value="effort">
+                  {{ t(`common.thinkingEffort.${effort}`) }}
+                </el-checkbox-button>
+              </el-checkbox-group>
+            </el-form-item>
+
             <div class="me-group-title mt-2">参数</div>
             <div class="me-grid">
               <el-form-item :label="t('settings.providerDetail.contextWindow')" prop="config.contextWindow">
@@ -466,7 +476,12 @@ const openEdit = (model: any) => {
     alias: model.alias || '',
     modelType: model.modelType || 'text',
     // generate 节点后端已回传（toProviderModelResponse），这里带回生成参数
-    config: createDefaultModelConfig({ ...model.config, generate: model.generate }),
+    config: createDefaultModelConfig({
+      ...model.config,
+      generate: model.generate,
+      // 档位后端同样以顶层 thinking_efforts 回传（见 ApiProviderController.toProviderModelResponse）
+      thinkingEfforts: model.thinking_efforts,
+    }),
   }
   formRef.value?.clearValidate?.()
   visible.value = true
@@ -503,6 +518,9 @@ const handleSave = async () => {
       ...form.value,
       providerId: props.provider.id,
       capabilities: [{ task, traits: [] }],
+      // 思考强度档位：后端写进 capabilities[].thinking_efforts
+      // （复用已有 JSON 列，不新增数据库字段；见 ApiProviderController.applyThinkingEfforts）
+      thinking_efforts: form.value.config.thinkingEfforts,
     }
     if (isEditMode.value) {
       if (editingId.value) await apiService.updateModel(editingId.value, payload)

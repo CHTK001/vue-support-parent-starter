@@ -470,7 +470,8 @@ const currentRunMode = computed(() => {
  */
 const chatInputConfig = computed(() => ({
   modelId: currentModelId.value,
-  thinkingEffort: currentSession.value?.settings?.thinkingEffort || 'none',
+  // 思考强度档位：缺省 'default' = 不指定（请求里不传，交由各厂商默认）
+  thinkingEffort: currentSession.value?.settings?.thinkingEffort || 'default',
   maxTokensLimit: currentSession.value?.settings?.maxTokensLimit ?? null,
   knowledgeBaseIds: inputMessage.value?.knowledgeBaseIds || currentSession.value?.settings?.referencedKbs || [],
   workspacePath: currentSession.value?.workspacePath || null,
