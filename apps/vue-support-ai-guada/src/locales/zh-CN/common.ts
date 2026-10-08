@@ -183,6 +183,10 @@ export default {
 
   // ── 思考强度 ──
   thinkingEffort: {
+    // 'default' = 会话不指定档位，交由模型/厂商默认（请求里不传 thinking_effort）
+    default: '默认',
+    // 模型管理里该项的标题
+    levels: '思考强度档位',
     none: '不思考',
     on: '思考模式',
     low: '低强度',
@@ -192,5 +196,17 @@ export default {
     xhigh: '极致',
     minimal: '最小',
     minimum: '最小',
+  },
+
+  // ── 上下文大小过滤（模型选择卡片 / 模型管理通用标签） ──
+  contextSize: {
+    title: '上下文',
+    lt32k: '<32K',
+    k32to128: '32K-128K',
+    k128to256: '128K-256K',
+    k256to1m: '256K-1M',
+    gte1m: '≥1M',
+    unknown: '未知',
+    noMatch: '没有符合筛选条件的模型',
   },
 }

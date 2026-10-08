@@ -16,6 +16,16 @@
         </el-icon>
       </div>
 
+      <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
+      <div v-if="models.length > 1" class="ctx-filter">
+        <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
+          :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
+          :title="t(`common.contextSize.${tag.key}`)"
+          @click="toggleCtxTag(tag.key)">
+          {{ t(`common.contextSize.${tag.key}`) }}
+        </span>
+      </div>
+
       <!-- 所有模型列表 -->
       <div class="models-list" @scroll.passive="repositionInfoCard">
         <!-- 空状态：显示添加模型按钮 -->
@@ -29,8 +39,13 @@
           <div class="empty-hint">暂无可用模型，请先添加模型供应商</div>
         </div>
 
+        <!-- 筛选后无匹配 -->
+        <div v-else-if="filteredModels.length === 0" class="ctx-no-match">
+          {{ t('common.contextSize.noMatch') }}
+        </div>
+
         <!-- 模型列表 -->
-        <div v-for="model in allModels" :key="model.id"
+        <div v-for="model in filteredModels" :key="model.id"
           class="model-item"
           :class="{ 'model-item-active': currentModelId === model.id }"
           @click="handleSelect(model.id)"
@@ -44,6 +59,10 @@
             <div v-if="getModelProviderName(model) && getModelProviderName(model) !== getModelDisplayName(model.modelName)"
               class="text-xs text-gray-400 truncate">{{ getModelProviderName(model) }}</div>
           </div>
+          <!-- 上下文徽标：128K / 1M；无数据显示空（不占位） -->
+          <span v-if="formatContextSize(getModelContextWindow(model))" class="model-ctx">
+            {{ formatContextSize(getModelContextWindow(model)) }}
+          </span>
         </div>
       </div>
 
@@ -82,7 +101,10 @@ import { Checkmark24Regular, Add24Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
 import ModelInfoCard from './ModelInfoCard.vue'
-import { getModelDisplayName, getModelAvatarPath, getThinkingEffortLabel } from '@/utils/modelUtils'
+import {
+  getModelDisplayName, getModelAvatarPath, getThinkingEffortLabel,
+  CONTEXT_SIZE_TAGS, getModelContextWindow, formatContextSize, matchesContextTags,
+} from '@/utils/modelUtils'
 
 interface Model {
   id: string
@@ -158,6 +180,26 @@ const allModels = computed(() => {
   const others = props.models.filter(m => !m.isFavorite)
   return [...favorites, ...others]
 })
+
+/** 选中的上下文档位 key（多选 = 并集；空 = 不过滤） */
+const ctxFilter = ref<string[]>([])
+
+/** 命中档位标签的模型（只影响展示，不改数据源与收藏顺序） */
+const filteredModels = computed(() => allModels.value.filter(m => matchesContextTags(m, ctxFilter.value)))
+
+/**
+ * 切换上下文档位标签：已选中则取消，否则加入。
+ *
+ * @param key CONTEXT_SIZE_TAGS 的 key
+ */
+function toggleCtxTag(key: string) {
+  const idx = ctxFilter.value.indexOf(key)
+  if (idx >= 0) {
+    ctxFilter.value.splice(idx, 1)
+  } else {
+    ctxFilter.value.push(key)
+  }
+}
 
 /**
  * 供应商 id：模型侧优先 providerId（模型管理页映射后的字段）→ provider_id（后端原始字段）
@@ -395,6 +437,51 @@ watch(() => props.visible, (newVal) => {
 
 .model-item-active {
   background: var(--el-fill-color);
+}
+
+/* 上下文大小过滤（档位标签行） */
+.ctx-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 12px 0;
+}
+
+.ctx-tag {
+  padding: 2px 7px;
+  /* 原值 99px → 胶囊最小档 */
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ctx-tag:hover {
+  background: var(--el-fill-color-dark);
+}
+
+.ctx-tag-active {
+  color: #fff;
+  background: var(--color-primary, var(--el-color-primary));
+}
+
+/* 行尾上下文徽标：128K / 1M */
+.model-ctx {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 筛选后无匹配 */
+.ctx-no-match {
+  padding: 14px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
 }
 
 /* 分割线 */

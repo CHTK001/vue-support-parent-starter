@@ -52,10 +52,24 @@
       <template v-else>
         <div class="d-section-head">
           <span class="d-section-title">模型</span>
-          <span class="d-section-count">{{ models.length }}</span>
+          <span class="d-section-count" :title="t('common.contextSize.title')">
+            {{ filteredModels.length }}/{{ models.length }}
+          </span>
+          <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
+          <div class="ctx-filter">
+            <span class="ctx-filter-title">{{ t('common.contextSize.title') }}</span>
+            <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
+              :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
+              @click="toggleCtxTag(tag.key)">
+              {{ t(`common.contextSize.${tag.key}`) }}
+            </span>
+          </div>
         </div>
-        <div class="model-grid">
-          <article v-for="model in models" :key="model.id" class="mc">
+        <div v-if="filteredModels.length === 0" class="ctx-no-match">
+          {{ t('common.contextSize.noMatch') }}
+        </div>
+        <div v-else class="model-grid">
+          <article v-for="model in filteredModels" :key="model.id" class="mc">
             <div class="mc-head">
               <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
@@ -174,7 +188,10 @@ import {
 } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
-import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils'
+import {
+  getModelDisplayName, getModelAvatarPath,
+  CONTEXT_SIZE_TAGS, matchesContextTags,
+} from '@/utils/modelUtils'
 import ProviderLogo from './ProviderLogo.vue'
 import ModelFormDialog from './ModelFormDialog.vue'
 import ModelFetchDialog from './ModelFetchDialog.vue'
@@ -198,6 +215,27 @@ const { notify, confirm } = usePopup()
 
 const formRef = ref<any>(null)
 const fetchRef = ref<any>(null)
+
+/* ==================== 上下文大小过滤（与模型选择卡片共用同一套标签） ==================== */
+
+/** 选中的档位 key 集合（多选 = 并集；空 = 不过滤） */
+const ctxFilter = ref<string[]>([])
+
+/**
+ * 切换上下文档位标签：已选中则取消，否则加入。
+ *
+ * @param key CONTEXT_SIZE_TAGS 的 key
+ */
+const toggleCtxTag = (key: string) => {
+  const idx = ctxFilter.value.indexOf(key)
+  if (idx >= 0) ctxFilter.value.splice(idx, 1)
+  else ctxFilter.value.push(key)
+}
+
+/** 命中档位标签的模型（过滤只影响展示；增删改仍走全量 props.models） */
+const filteredModels = computed(() =>
+  props.models.filter((m: any) => matchesContextTags(m, ctxFilter.value)),
+)
 
 /**
  * 是否为 ONNX 本地推理供应商。
@@ -481,6 +519,36 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 11px; font-weight: 600;
   color: var(--el-text-color-secondary);
   background: var(--el-border-color-lighter);
+}
+
+/* 上下文大小过滤（与模型选择卡片共用同一套标签） */
+.ctx-filter {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ctx-filter-title { font-size: 12px; color: var(--color-text-gray); }
+.ctx-tag {
+  padding: 2px 8px;
+  /* 原值 99px → 胶囊最小档 */
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+.ctx-tag:hover { background: var(--el-fill-color-dark); }
+.ctx-tag-active { color: #fff; background: var(--color-primary); }
+.ctx-no-match {
+  padding: 34px 0 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-disabled);
 }
 
 /* 模型卡片 */
