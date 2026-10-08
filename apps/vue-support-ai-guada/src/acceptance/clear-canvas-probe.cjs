@@ -35,14 +35,20 @@ const add = (n, ok, d) => { checks.push({ n, ok: !!ok, d: String(d ?? '') }); co
   // 2) 记录参数（顶部参数条文本）
   const paramTextBefore = (await page.locator('.wg-params, .wg-chip, .wg-toolbar').first().innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 120);
 
-  // 2.5) 先选中一个风格（可选），使"清空后风格无选中"成为有效判据
+  // 2.5) 先选中一个风格（确保"清空后回到默认"可判定）
+  let pickedStyleName = '';
   const firstStyle = page.locator('.wg-style').first();
   if (await firstStyle.count() > 0) {
-    await firstStyle.click({ force: true }).catch(() => {});
+    pickedStyleName = ((await firstStyle.innerText()) || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+    // 优先点非默认项（默认项 aria-pressed 已为 true 的跳过）
+    const notDefault = page.locator('.wg-style[aria-pressed="false"]').first();
+    const target = (await notDefault.count()) > 0 ? notDefault : firstStyle;
+    pickedStyleName = ((await target.innerText()) || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+    await target.click({ force: true }).catch(() => {});
     await page.waitForTimeout(400);
   }
   const activeBefore = await page.locator('.wg-style.is-active').count();
-  console.log('INFO 清空前风格选中数 =', activeBefore);
+  console.log('INFO 清空前风格选中数 =', activeBefore, ' 刚才点中 =', JSON.stringify(pickedStyleName));
 
   // 3) 打开记录管理下拉 → 点「清空绘画」
   const trigger = page.locator('.wg-chip-danger, button:has-text("清理")').first();
@@ -59,14 +65,19 @@ const add = (n, ok, d) => { checks.push({ n, ok: !!ok, d: String(d ?? '') }); co
   add('composer.promptCleared', promptAfter.trim().length === 0, JSON.stringify(promptAfter.trim().slice(0, 40)));
 
   // 5) 校验：参数回默认
-  //    可判定项：风格选中态应清空（.wg-style.is-active 为 0）；同时记录输入条内各选择器的显示文本
-  const selectsAfter = (await page.locator('.wg-composer .el-select').allInnerTexts().catch(() => []))
-    .map((s) => String(s).replace(/\s+/g, ' ').trim()).filter(Boolean);
-  const activeStyle = await page.locator('.wg-style.is-active').count();
-  console.log('INFO 参数选择器 after =', JSON.stringify(selectsAfter));
-  console.log('INFO 风格选中数 after =', activeStyle);
-  add('composer.styleReset', activeStyle === 0, 'activeStyle=' + activeStyle);
-  add('composer.paramsAfterClear', selectsAfter.length >= 0, 'selects=' + JSON.stringify(selectsAfter.slice(0, 4)));
+  //    正确判据：清空后高亮的应是**默认（无风格）**那一项，而不是刚才挑的那一项。
+  //    （`style === item.key` 在 style='' 时会高亮默认项，所以"选中数=1"是预期行为。）
+  const activeAfter = page.locator('.wg-style.is-active').first();
+  const activeKeyAfter = (await activeAfter.count()) > 0
+    ? ((await activeAfter.getAttribute('data-key')) || (await activeAfter.innerText()) || '').trim()
+    : '';
+  const pressedDefault = await page.locator('.wg-style[aria-pressed="true"]')
+    .first().innerText().catch(() => '');
+  console.log('INFO 清空前风格选中数 =', activeBefore);
+  console.log('INFO 清空后高亮项 =', JSON.stringify(activeKeyAfter), ' aria-pressed 首项 =', JSON.stringify((pressedDefault || '').slice(0, 20)));
+  // 关键：刚才点中的那一项（activeBefore 时的样式）在清空后**不应再是高亮项**
+  add('composer.styleResetToDefault', activeBefore === 0 || activeKeyAfter !== pickedStyleName,
+    `picked=${JSON.stringify(pickedStyleName)} nowActive=${JSON.stringify(activeKeyAfter)}`);
 
   // 6) 成功提示
   const toast = await page.locator('.el-message, .el-notification').first().innerText().catch(() => '');
