@@ -70,7 +70,9 @@
       </LTooltip>
     </template>
 
-    <LTooltip :content="t('chat.messageActions.more')" placement="top">
+    <!-- 「更多」（编辑内容/删除消息）只对**用户消息**出现：
+         助手回复上出现这两项会让用户以为能改/删 AI 的内容（报障 2.4），故整块按 role 收敛 -->
+    <LTooltip v-if="!isAssistant" :content="t('chat.messageActions.more')" placement="top">
       <DropdownMenu @command="handleCommand">
         <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.more')">
           <el-icon :size="16" class="pointer-events-none">
