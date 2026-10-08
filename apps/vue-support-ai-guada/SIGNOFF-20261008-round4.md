@@ -19,7 +19,7 @@
 
 | # | 缺陷 | 根因 | 修法 | 复现级证据 |
 | --- | --- | --- | --- | --- |
-| 1 | 模型管理里 NewAPI 文字太多 → 横向滚动条 | 模板库卡片/网格未收敛最小宽度；供应商详情滚动区允许横向溢出 | `.tc-grid`/`.tc-card` 补 `min-width:0` + 网格 `overflow-x:hidden`；`.tc-desc` 已省略号；`.detail-scroll` 补 `overflow-x:hidden` | 609px 视口实测：NewAPI 卡 `.tc-desc` 125px 单行省略，卡片右缘 299 < 609；供应商详情（gavinchen 25 模型）无元素右缘超视口 |
+| 1 | 模型管理里 NewAPI 文字太多 → 横向滚动条 | 模板库卡片/网格未收敛最小宽度；供应商详情滚动区允许横向溢出 | `.tc-grid`/`.tc-card` 补 `min-width:0` + 网格 `overflow-x:hidden`；`.tc-desc` 已省略号；`.detail-scroll` 补 `overflow-x:hidden` | Playwright 实测（1440/960/760px）：模型管理页与模板库 `docScrollWidth == docClientWidth`、越界元素 0；NewAPI 卡描述 `scrollWidth 328 > clientWidth 237`（被卡片裁掉，不外溢），卡右缘 715 < 1440 |
 | 3 | 酒馆「批量配置」应改成图标放右侧、弹窗一行一个角色 | 原为头部文字按钮 + 「一次全部设成同一个模型」 | 头部改 `Settings20Regular` 图标按钮（与群设置并列）；弹窗改 view 列表，一行一个角色各自选模型，仅提交变化行 | 头部 `button[aria-label="批量配置"]` 在右侧（x=525）；弹窗标题「批量配置角色（4 名）」+ 4 行角色 + 4 个下拉 |
 | 3.1 | 酒馆 AI 全报错（`未配置主 ChatClient...`） | 成员模型覆盖值落库为 `providerId:模型名`，后端按裸模型名查 ChatClient 落空 | ①前端存裸模型名并幂等迁移存量；②后端 `resolveModel` 走 `EffectiveChatModelResolver` 归一化并回落默认 | 迁移前 SSE `create(modelName=1791352877398:deepseek-v4.1-flash)` → `finish(error=未配置主 ChatClient...)`；迁移后 members 全裸名 → SSE `text(收到)` → `finish(stop)` |
 | 4.1 | 底部模型按钮宽度应自适应并给最小宽度 | 宽度写死为自然宽 ×2（≤400）；且名称 span 为 `flex-1/min-w-0`，直接量会低估 | 取真实自然宽并 clamp 到 `[96, 400]`：克隆节点时把名称 span 还原为内容宽再量；CSS `width:90px` → `min-width:96px`；模型名/档位变化后 `flush:'post'` 重算 | `agnes-2.0-flash` 实测 143px（修复前估算 ×2=111px 且内容被截断）；开启思考后「agnes-2.0-flash 默认」171px；选「不思考」回 143px |
@@ -39,10 +39,10 @@
 | --- | --- | --- |
 | ④「漏数据」(image-1) | **待用户补图** | 原图在本机不可读，已请用户重新发图，按图定位后修复 |
 | 后端 jar 重部署 | 待用户执行 | `bb1c3bf22` 需重打 jar 部署到 198 才生效；当前靠前端迁移已可恢复 |
-| item 1 客观测量 | 部分完成 | 已用浏览器 inspect 实测元素边界与省略；完整 `document.scrollWidth == clientWidth` 断言待并发 Playwright 套件结束后补跑 |
-| dist 重建 + 全量探针回归 | 待办 | 并发会话占用 dev server / dist，需择机串行重建并回归 |
-| `tool-row-probe.cjs` 复跑 | 待办 | `MessageToolCalls.vue` 的 ARIA 嵌套按钮修正已在位（行体 role=button，行尾「详情」为同级 button），等并发套件结束复跑 |
-| push | 待授权 | 4 个本地提交未推送 |
+| item 1 客观测量 | ✅ 完成 | Playwright 1440/960/760px 实测无横向溢出（见第 2 节证据） |
+| `tool-row-probe.cjs` 复跑 | ✅ 完成 | 24/24 PASS，含 `a11y.noNestedInteractive=0`、`a11y.detailIsSibling=true` |
+| dist 重建 + 全量探针回归 | 进行中 | 生产构建校验中；完成后对 dist 复跑关键探针 |
+| push | 待授权 | 本地提交未推送 |
 
 ## 5. 变更文件
 
