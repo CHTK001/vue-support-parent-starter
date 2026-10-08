@@ -131,6 +131,18 @@ function frameworkSharedAssets(): PluginOption {
 export default defineConfig({
   // Electron 环境使用相对路径，Web 环境使用根路径
   base: process.env.ELECTRON === 'true' ? './' : '/',
+  /**
+   * 生产构建必须用 ES 格式的 worker。
+   *
+   * <p>`@cornerstonejs/dicom-image-loader` 的 worker 会做代码分割，而 Rollup
+   * 不接受 `"iife"`（vite 默认）用于 code-splitting 构建，报
+   * `[commonjs--resolver] Invalid value "iife" for option "worker.format"`，
+   * 直接让 `vite build` 失败 —— 即 DICOM 预览接入后**整个生产构建不可用**。
+   * 实测 2026-10-08：加这一行后 `vite build` 由 exit 1 变为 exit 0。</p>
+   */
+  worker: {
+    format: 'es',
+  },
   plugins: [
     frameworkSharedAssets(),
     vue({
