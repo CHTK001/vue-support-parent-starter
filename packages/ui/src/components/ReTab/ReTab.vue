@@ -40,8 +40,10 @@ const props = withDefaults(
      *   - "capsule"：胶囊式分段选项卡（浅灰白底盘 + 白底激活项 + 图标文字均分）
      *   - "koi"：卡片页签（激活项浅主色块 + 白色大圆角内容卡片，支持 tabPosition 四个方向）
      *   - "icon"：图标磁贴页签（图标 + 文字，支持 tabPosition 四个方向，可收起）
+     *   - "underline"：下划线页签（激活项主色文字 + 底部延伸下划线，可带计数 badge），
+     *     用于属性停靠区等与 UI 稿对齐的轻页签
      */
-    variant?: "default" | "capsule" | "koi" | "icon";
+    variant?: "default" | "capsule" | "koi" | "icon" | "underline";
     /** koi / icon 布局的页签方向（默认 top） */
     tabPosition?: "top" | "right" | "bottom" | "left";
     /** icon 布局：是否收起（收起后仅显示当前激活项） */
@@ -202,6 +204,36 @@ function toggleCollapsed(): void {
     </div>
   </div>
 
+  <!-- underline 下划线页签：激活项主色文字 + 底部下划线，可带计数 badge（属性停靠区 UI 稿样式） -->
+  <div
+    v-else-if="variant === 'underline'"
+    class="re-tab re-tab--underline"
+    :class="{ 'is-stretch': stretch }"
+    v-bind="$attrs"
+  >
+    <div class="re-tab-underline__nav">
+      <div
+        v-for="tab in tabs"
+        :key="tab.name"
+        class="re-tab-underline__item"
+        :class="{ 'is-active': activeName === tab.name, 'is-disabled': tab.disabled }"
+        @click="handleItemClick(tab)"
+      >
+        <ReIcon v-if="tab.icon" :name="tab.icon" class="re-tab-underline__icon" />
+        <span v-if="tab.label" class="re-tab-underline__label">{{ tab.label }}</span>
+        <span
+          v-if="tab.badge !== undefined && tab.badge !== null && tab.badge !== ''"
+          class="re-tab-underline__badge"
+        >{{ tab.badge }}</span>
+      </div>
+    </div>
+    <div class="re-tab-underline__panel" v-if="!navOnly">
+      <template v-for="tab in tabs" :key="tab.name">
+        <slot v-if="activeName === tab.name" :name="tab.name"></slot>
+      </template>
+    </div>
+  </div>
+
   <!-- default 布局：element-plus el-tabs 原样 -->
   <ElTabs
     v-else
@@ -242,6 +274,99 @@ function toggleCollapsed(): void {
 }
 .re-tab__icon {
   font-size: 14px;
+}
+
+/* ===== underline 下划线页签（属性停靠区 UI 稿样式） ===== */
+/* 全部走 koi / Element 变量，亮暗色自动适配 */
+.re-tab--underline {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+/* 页签条：底部一条细线贯通，激活项的下划线压在它上面 */
+.re-tab-underline__nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.re-tab-underline__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition:
+    color var(--el-transition-duration, 0.2s) ease;
+
+  &:hover {
+    color: var(--el-text-color-primary);
+  }
+
+  &.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &.is-active {
+    color: var(--el-color-primary);
+    font-weight: 600;
+
+    /* 激活下划线：与页签内边距对齐，压在导航底线之上 */
+    &::after {
+      content: "";
+      position: absolute;
+      right: 12px;
+      bottom: -1px;
+      left: 12px;
+      height: 2px;
+      background: var(--el-color-primary);
+      border-radius: 1px;
+    }
+  }
+}
+
+.re-tab-underline__icon {
+  flex: none;
+  font-size: 14px;
+}
+
+.re-tab-underline__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 计数 badge：主色浅底小圆角胶囊（加法式扩展，不带 badge 的页签不受影响） */
+.re-tab-underline__badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+.re-tab-underline__panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 14px;
 }
 
 /* ===== capsule 胶囊式分段选项卡 ===== */
@@ -333,7 +458,8 @@ function toggleCollapsed(): void {
    面板与根节点都要 min-height:0，否则内容会把面板顶高而不是让内部滚动。 */
 .re-tab--capsule.is-stretch,
 .re-tab--koi.is-stretch,
-.re-tab--icon.is-stretch {
+.re-tab--icon.is-stretch,
+.re-tab--underline.is-stretch {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -344,7 +470,8 @@ function toggleCollapsed(): void {
    其 flex:1 1 auto 不生效，内容仍按自身高度收尾。 */
 .re-tab--capsule.is-stretch > .re-tab-capsule__panel,
 .re-tab--koi.is-stretch > .re-tab-koi__panel,
-.re-tab--icon.is-stretch > .re-tab-icon__panel {
+.re-tab--icon.is-stretch > .re-tab-icon__panel,
+.re-tab--underline.is-stretch > .re-tab-underline__panel {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;

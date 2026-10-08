@@ -2,7 +2,7 @@
   注释节点表单：流程批注。
 
   注释不参与执行、不影响数据，只用于在设计器里标注流程意图，文字会出现在节点日志摘要里。
-  注释不是可迭代单元，循环四参数用 includeLoop=false 摘掉。
+  注释不是可迭代单元，循环四参数由 NON_LOOP_SHAPES 门控，整节不渲染。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
@@ -25,12 +25,11 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** 注释节点专属参数；注释不参与执行，循环四参数摘掉 */
+/** 注释节点专属参数；注释不参与执行，循环分节由 NON_LOOP_SHAPES 门控不渲染 */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
   ["comment"],
-  { includeLoop: false },
 );
 
 /**

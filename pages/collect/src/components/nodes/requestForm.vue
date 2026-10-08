@@ -6,7 +6,7 @@
   2. 「请求头 / Cookie」：header:名称、cookie:名称，两个 pairs 控件必须同组相邻；
   3. 「请求体」：body（textarea，整行）与 contentType；
   4. 「高级」：超时 / 重试 / 代理 / 抓取器 / 出参变量等低频项，默认收起；
-  5. 「循环」与「其它」：paramContext 追加的循环四参数与后端后续新增项，兜底渲染避免漏项。
+  5. 「循环迭代」分节（LoopFields，原循环组位置）与「其它」：后端后续新增项兜底渲染避免漏项。
 
   参数名是前后端契约，一个都不能改；分组只改展示位置，写回仍走 set-param / set-pairs。
 -->
@@ -18,7 +18,8 @@ import { ElDialog,
 } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
-import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
+import LoopFields from "./LoopFields.vue";
+import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext, PreviewPayload } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -127,8 +128,6 @@ const advancedFields = computed(() =>
     param => !(param.name === "outputVariable" && outputVarIsSingleOption.value),
   ),
 );
-/** 循环四参数由 paramContext 统一追加，单独成组 */
-const loopFields = computed(() => fieldsBySet(LOOP_PARAM_NAMES));
 /** 兜底组：不属于上面任何分组的后端新增参数，避免后端加了参数前端却不显示 */
 const otherFields = computed(() => {
   const used = new Set([
@@ -136,7 +135,6 @@ const otherFields = computed(() => {
     ...HEADER_NAMES,
     ...BODY_NAMES,
     ...ADVANCED_NAMES,
-    ...LOOP_PARAM_NAMES,
   ]);
   return fields.value.filter((param) => !used.has(param.name));
 });
@@ -307,23 +305,14 @@ function statusClass(status: number): string {
       </div>
     </div>
 
-    <!-- 循环四参数：paramContext 统一追加，固定排在专属参数之后 -->
-    <div v-if="loopFields.length" class="request-group">
-      <div class="group-title">循环</div>
-      <div class="group-grid">
-        <ParamField
-          v-for="param in loopFields"
-          :key="param.name"
-          :param="param"
-          :value="valueOf(param.name)"
-          :pairs="pairsOfParam(param.name)"
-          :node-id="node.id"
-          :ctx="ctx"
-          @update="(value: unknown) => emit('set-param', param, value)"
-          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
-        />
-      </div>
-    </div>
+    <!-- 循环迭代：独立分节（原「循环」组位置），留空单次执行、填集合按项迭代 -->
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="ctx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+    />
 
     <!-- 兜底组：后端新增但未纳入上面分组的参数，避免静默丢失 -->
     <div v-if="otherFields.length" class="request-group">

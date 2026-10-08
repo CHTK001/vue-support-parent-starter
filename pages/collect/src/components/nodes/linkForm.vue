@@ -1,10 +1,11 @@
 <!--
   链接节点表单：页面来源、选择器、取值属性、过滤正则、转绝对地址与出参变量名。
-  参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。
+  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」分节展示。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
-import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
+import LoopFields from "./LoopFields.vue";
+import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -30,9 +31,6 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   ["source", "selector", "attribute", "pattern", "absolute", "limit", "outputVariable"],
 );
 
-/** 循环四参数名集合，用于给「循环」分段定位 */
-const loopNames = new Set(LOOP_PARAM_NAMES);
-
 /**
  * 参数是否整行展示。
  *
@@ -48,28 +46,6 @@ function isWide(param: CollectParamMeta): boolean {
     param.type === "pairs" ||
     param.type === "mapping" ||
     param.type === "table"
-  );
-}
-
-/**
- * 判断某个字段是不是「循环」分段的第一个参数。
- *
- * <p>循环四参数由 orderedParams 统一追加在末尾，位置固定；命中它时插一条分段标题，
- * 把节点自身参数与循环配置分开，避免用户把循环参数当成节点必填项。</p>
- *
- * @param index 字段在 fields 里的下标
- * @returns 是分段首项返回 true
- */
-function startsLoopSegment(index: number): boolean {
-  const list = fields.value;
-  const current = list[index];
-  const previous = list[index - 1];
-  return (
-    index > 0 &&
-    current !== undefined &&
-    previous !== undefined &&
-    loopNames.has(current.name) &&
-    !loopNames.has(previous.name)
   );
 }
 
@@ -101,9 +77,7 @@ function extraTip(name: string): string {
     逐条抓取 —— 这是「列表页 → 详情页」两跳采集的标准接法。
   </div>
 
-  <template v-for="(param, index) in fields" :key="param.name">
-    <div v-if="startsLoopSegment(index)" class="field field-wide group-title">循环</div>
-
+  <template v-for="param in fields" :key="param.name">
     <div class="field" :class="{ 'field-wide': isWide(param) }">
       <ParamField
         :param="param"
@@ -117,6 +91,15 @@ function extraTip(name: string): string {
       <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
     </div>
   </template>
+
+  <!-- 循环迭代分节：留空单次执行，抽出的链接集合可逐条迭代 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>
@@ -142,13 +125,7 @@ function extraTip(name: string): string {
   transition: border-color 200ms, background-color 200ms;
 }
 
-/* 分组标题：把节点自身参数与末尾的循环四参数分开（契约 §3.2） */
-.group-title {
-  margin: 12px 0 6px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
+/* 分组标题样式已随「循环」分段一起移除：循环参数改由 LoopFields 独立分节渲染 */
 
 /* 前端补充的参数说明：后端 meta 没给 tip，或 tip 只当占位符时补一句「是什么 / 怎么用」 */
 .field-tip {

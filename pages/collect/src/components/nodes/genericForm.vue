@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import FieldTable from "../FieldTable.vue";
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -25,7 +26,7 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** names 传空：orderedParams 依次输出循环四参数与 meta 里的其余参数，顺序与通用渲染一致 */
+/** names 传空：orderedParams 按必填前置输出 meta 里的其余参数（循环四参数已剥离，走 LoopFields 分节） */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
@@ -45,6 +46,16 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
     @update="(value: unknown) => emit('set-param', param, value)"
     @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
   />
+
+  <!-- 循环迭代分节：留空单次执行；start / end / comment 由 NON_LOOP_SHAPES 门控不渲染 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
+
   <div v-if="meta.fieldEditor" class="field field-wide">
     <div class="field-label">抽取字段</div>
     <FieldTable
@@ -68,6 +79,7 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
 .field-label {
   margin-bottom: 3px;
   font-size: 12px;
-  color: #86909c;
+  /* 写死的 #86909c 不跟随主题；改用 koi 体系令牌 */
+  color: var(--el-text-color-secondary);
 }
 </style>

@@ -42,6 +42,7 @@ import sleepForm from "./nodes/sleepForm.vue";
 import sqlForm from "./nodes/sqlForm.vue";
 import startForm from "./nodes/startForm.vue";
 import variableForm from "./nodes/variableForm.vue";
+import SectionHead from "./nodes/SectionHead.vue";
 import {
   createNode,
   emptyDsl,
@@ -192,12 +193,10 @@ const EXCEPTION_OPTIONS = [
  * <p>「流程设置」按要求停用：页签禁用、点不动，内容仍保留在下方插槽里，以便日后恢复。
  * 「连线」**保持可用**：判断节点（condition）算出的真假要靠出边的「流转条件」分流，
  * 而那个输入框就在这个页签里 —— 禁掉它，条件分支就只能靠手改 DSL 才能编辑。</p>
+ *
+ * <p>「连线」带计数 badge：当前图里有几条连线一眼可见（0 条不渲染 badge，
+ * 空壳数字只添噪音）；页签行按 UI 稿用 underline 变体（见模板）。</p>
  */
-const TABS: { name: TabKey; label: string; disabled?: boolean }[] = [
-  { name: "node", label: "节点参数" },
-  { name: "edge", label: "连线" },
-  { name: "flow", label: "流程设置", disabled: true },
-];
 
 const graphData = ref<FlowGraphData>({ nodes: [], edges: [] });
 const flow = ref<FlowLevel>(emptyDsl());
@@ -205,6 +204,16 @@ const engine = shallowRef<FlowGraphEngine | null>(null);
 const tab = ref<TabKey>("node");
 const nodeForm = ref<NodeForm | null>(null);
 const edgeForm = ref<EdgeForm | null>(null);
+
+/** 连线数 badge：「连线」页签的计数来源；图变化由 onGraphChange 写回 graphData 驱动重算 */
+const TABS = computed<{ name: TabKey; label: string; disabled?: boolean; badge?: string }[]>(() => {
+  const edgeCount = graphData.value.edges?.length ?? 0;
+  return [
+    { name: "node", label: "节点参数" },
+    { name: "edge", label: "连线", badge: edgeCount > 0 ? String(edgeCount) : undefined },
+    { name: "flow", label: "流程设置", disabled: true },
+  ];
+});
 
 /** 整体灌图后的第一个 change 来自内核 setData，不算用户改动 */
 let pending = true;
@@ -1340,9 +1349,11 @@ defineExpose({ load, getGraph, addNode, startWith });
       </template>
 
       <template #properties>
-        <ReTab v-model="tab" :tabs="TABS" variant="capsule">
+        <ReTab v-model="tab" :tabs="TABS" variant="underline">
           <template #node>
             <div v-if="nodeForm && selectedMeta" class="pane-grid">
+              <!-- 分节头（UI 稿）：基础信息 = 名称 / ID / 最近执行；其余表单归「类型配置」节 -->
+              <SectionHead title="基础信息" />
               <div class="field">
                 <div class="field-label">节点名称</div>
                 <ReInput  :model-value="nodeForm.name" @update:model-value="renameNode"/>
@@ -1380,6 +1391,9 @@ defineExpose({ load, getGraph, addNode, startWith });
                   {{ selectedMeta.outputVariable }}
                 </div>
               </div>
+
+              <!-- 「${节点类型}配置」分节头：extract →「抽取配置」，恰合 UI 稿叫法 -->
+              <SectionHead :title="`${selectedMeta.label}配置`" />
 
               <!-- 参数表单按 shape 拆成独立组件，写回仍走上面的 setParam / writeNodePairs / writeFields -->
               <component
@@ -1543,12 +1557,14 @@ defineExpose({ load, getGraph, addNode, startWith });
 .field-label {
   margin-bottom: 3px;
   font-size: 12px;
-  color: #86909c;
+  /* 写死的 #86909c 不跟随主题；改用 koi 体系令牌 */
+  color: var(--el-text-color-secondary);
 }
 
 .req {
   margin-left: 2px;
-  color: #e5484d;
+  /* 写死的 #e5484d → danger 令牌 */
+  color: var(--el-color-danger);
 }
 
 .pane-fill {
@@ -1559,13 +1575,15 @@ defineExpose({ load, getGraph, addNode, startWith });
   margin-top: 3px;
   font-size: 11px;
   line-height: 1.5;
-  color: #a3abb6;
+  /* 原为 #a3abb6：比任何主题令牌都浅，暗色下几乎不可读；secondary 是可访问性下限 */
+  color: var(--el-text-color-secondary);
 }
 
 .field-tip code {
   padding: 0 3px;
-  color: #4f7cff;
-  background: #f2f6ff;
+  /* 原为 #4f7cff / #f2f6ff：改用主色令牌 */
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
   border-radius: 3px;
 }
 
@@ -1576,35 +1594,40 @@ defineExpose({ load, getGraph, addNode, startWith });
   align-items: center;
   padding: 2px 8px;
   font-size: 12px;
-  color: #4e5969;
-  background: #f5f7fa;
+  /* 原为 #4e5969 / #f5f7fa：改用令牌 */
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
   border-radius: 999px;
 }
 
 .field-state em {
   font-style: normal;
-  color: #a3abb6;
+  color: var(--el-text-color-secondary);
 }
 
 .field-state.state-SUCCESS {
-  color: #068a52;
-  background: #e8f8f0;
+  /* 原为 #068a52 / #e8f8f0 */
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
 }
 
 .field-state.state-FAILURE {
-  color: #c9403f;
-  background: #fff1f0;
+  /* 原为 #c9403f / #fff1f0 */
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
 }
 
 .field-state.state-RUNNING {
-  color: #2f5fd8;
-  background: #eef3ff;
+  /* 原为 #2f5fd8 / #eef3ff */
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .pane-hint {
   padding: 18px 4px;
   font-size: 12px;
-  color: #a4abb5;
+  /* 原为 #a4abb5：同 field-tip，secondary 为下限 */
+  color: var(--el-text-color-secondary);
   text-align: center;
 }
 </style>

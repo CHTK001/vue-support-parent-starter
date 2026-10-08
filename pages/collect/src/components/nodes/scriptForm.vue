@@ -1,10 +1,11 @@
 <!--
   脚本节点表单：脚本正文、输出变量名、作用域与超时毫秒。
-  参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。
+  参数顺序由 paramContext 统一决定（必填置顶）；循环四参数由 LoopFields 以「循环迭代」分节展示。
   脚本属于高危节点（服务器任意代码执行），表单顶部固定展示一条警示条（契约 §4.4）。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -104,6 +105,15 @@ function extraTip(name: string): string {
     />
     <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
   </div>
+
+  <!-- 循环迭代分节：留空单次执行，脚本可对集合逐项迭代 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>

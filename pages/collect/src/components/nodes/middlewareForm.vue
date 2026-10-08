@@ -10,7 +10,8 @@
 import { computed, onMounted, ref } from "vue";
 import { fetchDataSources } from "@pages/datasource";
 import ParamField from "./ParamField.vue";
-import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
+import LoopFields from "./LoopFields.vue";
+import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
@@ -31,9 +32,6 @@ const emit = defineEmits<{
 
 /** 中间件表单没有 pairs 类参数，按后端 meta 顺序渲染全部参数即可 */
 const { fields, valueOf } = useShapeFieldList(() => props.node, () => props.meta, []);
-
-/** 循环四参数名集合，用于给「循环」分段定位 */
-const loopNames = new Set(LOOP_PARAM_NAMES);
 
 /** 本节点要求的数据源类型：shape 前缀决定（influxdb-* / neo4j-*） */
 const dsType = computed(() => (props.node.shape.startsWith("influxdb") ? "influxdb" : "neo4j"));
@@ -101,25 +99,6 @@ function isWide(param: CollectParamMeta): boolean {
 }
 
 /**
- * 判断某个字段是不是「循环」分段的第一个参数。
- *
- * @param index 字段在 fields 里的下标
- * @returns 是分段首项返回 true
- */
-function startsLoopSegment(index: number): boolean {
-  const list = fields.value;
-  const current = list[index];
-  const previous = list[index - 1];
-  return (
-    index > 0 &&
-    current !== undefined &&
-    previous !== undefined &&
-    loopNames.has(current.name) &&
-    !loopNames.has(previous.name)
-  );
-}
-
-/**
  * 取某参数的补充说明。
  *
  * @param name 参数名
@@ -142,9 +121,7 @@ function extraTip(name: string): string {
     </span>
   </div>
 
-  <template v-for="(param, index) in fields" :key="param.name">
-    <div v-if="startsLoopSegment(index)" class="field field-wide group-title">循环</div>
-
+  <template v-for="param in fields" :key="param.name">
     <div class="field" :class="{ 'field-wide': isWide(param) }">
       <ParamField
         :param="param"
@@ -157,6 +134,15 @@ function extraTip(name: string): string {
       <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
     </div>
   </template>
+
+  <!-- 循环迭代分节：留空单次执行；ctx 走 filteredCtx 与主字段同口径 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="filteredCtx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>
@@ -185,13 +171,7 @@ function extraTip(name: string): string {
   color: var(--el-color-warning);
 }
 
-/* 分组标题：把节点自身参数与末尾的循环四参数分开 */
-.group-title {
-  margin: 12px 0 6px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
+/* 分组标题样式已随「循环」分段一起移除：循环参数改由 LoopFields 独立分节渲染 */
 
 /* 前端补充的参数说明 */
 .field-tip {

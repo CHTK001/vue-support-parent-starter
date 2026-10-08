@@ -3,10 +3,11 @@
 
   等待节点用来控制采集节奏：串行流程里插在两个抓取节点之间，按毫秒等待以降低对目标站点的压力；
   填了随机上限后每次等待落在 [下限, 上限] 区间内，避免固定间隔被识别为机器行为。
-  循环四参数由 paramContext 统一排在末尾。
+  循环四参数由 LoopFields 以「循环迭代」分节展示。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -97,6 +98,15 @@ function extraTip(name: string): string {
     />
     <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
   </div>
+
+  <!-- 循环迭代分节：留空单次等待 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
 </template>
 
 <style scoped>

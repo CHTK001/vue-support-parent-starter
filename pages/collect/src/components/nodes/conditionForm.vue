@@ -1,6 +1,6 @@
 <!--
   判断节点表单：判断表达式 + 结果变量名。
-  循环四参数由 paramContext 统一排在最前。
+  循环四参数由 LoopFields 以「循环迭代」分节展示。
 
   这里特意给判断节点写了专属表单而不是回落通用表单：判断节点**必须**配合出边条件使用 ——
   求值结果写进结果变量，出边再用 `${结果变量名}` 分流。通用表单只能把参数逐个摆出来，
@@ -11,6 +11,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import ParamField from "./ParamField.vue";
+import LoopFields from "./LoopFields.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
@@ -64,6 +65,16 @@ const falseEdgeCondition = computed(() => "${" + resultVariable.value + " == fal
     @update="(value: unknown) => emit('set-param', param, value)"
     @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
   />
+
+  <!-- 循环迭代分节：留空单次执行 -->
+  <LoopFields
+    :node="node"
+    :meta="meta"
+    :ctx="ctx"
+    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+  />
+
   <div class="field field-wide">
     <div class="field-label">出边条件怎么写</div>
     <div class="edge-hint">
@@ -87,15 +98,17 @@ const falseEdgeCondition = computed(() => "${" + resultVariable.value + " == fal
 .field-label {
   margin-bottom: 3px;
   font-size: 12px;
-  color: #86909c;
+  /* 写死的 #86909c 不跟随主题；改用 koi 体系令牌 */
+  color: var(--el-text-color-secondary);
 }
 
 .edge-hint {
   padding: 6px 8px;
   font-size: 12px;
   line-height: 1.7;
-  color: #4e5969;
-  background: #f7f8fa;
+  /* 原为 #4e5969 / #f7f8fa：写死色值不跟随主题，改用令牌 */
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
   border-radius: 4px;
 }
 
