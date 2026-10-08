@@ -66,24 +66,7 @@
         </div>
       </div>
 
-      <!-- 分割线 -->
-      <div class="divider"></div>
-
-      <!-- 推理强度 -->
-      <div v-if="thinkingEffortOptions.length > 0" class="thinking-effort-section">
-        <div class="section-title">推理强度</div>
-        <div class="effort-options">
-          <div v-for="effort in thinkingEffortOptions" :key="effort"
-            class="effort-item"
-            :class="{ 'effort-item-active': thinkingEffortValue === effort }"
-            @click="handleThinkingEffortSelect(effort)">
-            <span>{{ getThinkingEffortLabel(effort) }}</span>
-            <el-icon v-if="thinkingEffortValue === effort" size="14" class="text-primary">
-              <Checkmark24Regular />
-            </el-icon>
-          </div>
-        </div>
-      </div>
+      <!-- 推理强度已合并到输入框工具条上的「思考等级」入口（用户需求 4.2），此处不再重复展示。 -->
     </div>
   </CustomPopover>
 
@@ -102,7 +85,7 @@ import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
 import ModelInfoCard from './ModelInfoCard.vue'
 import {
-  getModelDisplayName, getModelAvatarPath, getThinkingEffortLabel,
+  getModelDisplayName, getModelAvatarPath,
   CONTEXT_SIZE_TAGS, getModelContextWindow, formatContextSize, matchesContextTags,
 } from '@/utils/modelUtils'
 
@@ -146,15 +129,12 @@ const props = defineProps<{
   models: Model[]
   providers: Provider[]
   currentModelId: string | null
-  thinkingEffortOptions: string[]
-  thinkingEffortValue: string
 }>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   'select': [modelId: string]
   'favorite-changed': [modelId: string, isFavorite: boolean]
-  'select-thinking-effort': [effort: string]
 }>()
 
 const { t } = useI18n()
@@ -249,10 +229,6 @@ function getModelProviderName(model: Model): string {
 function handleSelect(modelId: string) {
   emit('select', modelId)
   closePanel()
-}
-
-function handleThinkingEffortSelect(effort: string) {
-  emit('select-thinking-effort', effort)
 }
 
 function closePanel() {
@@ -484,51 +460,7 @@ watch(() => props.visible, (newVal) => {
   color: var(--el-text-color-placeholder);
 }
 
-/* 分割线 */
-.divider {
-  height: 1px;
-  background: var(--el-border-color-lighter);
-  margin: 8px 0;
-}
-
-/* 推理强度 */
-.thinking-effort-section {
-  padding-top: 4px;
-}
-
-.section-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-gray);
-  padding: 4px 12px;
-  margin-bottom: 4px;
-}
-
-.effort-options {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.effort-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  /* 原值 8px → md 档 */
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-  transition: background 0.15s;
-  font-size: 14px;
-}
-
-.effort-item:hover {
-  background: var(--el-fill-color-light);
-}
-
-.effort-item-active {
-  background: var(--el-fill-color);
-}
+/* 推理强度/分割线相关样式已随「思考等级」入口一起合并到 ChatInput 工具条（用户需求 4.2），此处不再保留。 */
 
 /* 滚动条美化 */
 .models-list::-webkit-scrollbar {
@@ -555,8 +487,7 @@ watch(() => props.visible, (newVal) => {
    三者都只带 transition（无 animation），选中态底色是静态声明，照常成立。 */
 @media (prefers-reduced-motion: reduce) {
   .current-model-item,
-  .model-item,
-  .effort-item {
+  .model-item {
     transition: none;
   }
 }
@@ -568,7 +499,6 @@ watch(() => props.visible, (newVal) => {
    属于「可点却看不出可点」，这里一并补上。 */
 .current-model-item,
 .model-item,
-.effort-item,
 .add-model-btn {
   outline: none;
 }
@@ -579,7 +509,6 @@ watch(() => props.visible, (newVal) => {
 
 .current-model-item:focus-visible,
 .model-item:focus-visible,
-.effort-item:focus-visible,
 .add-model-btn:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }

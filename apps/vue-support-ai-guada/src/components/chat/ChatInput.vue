@@ -121,13 +121,18 @@
             <McpSelectorPopover v-if="admin" v-model:visible="mcpPopoverVisible"
               :anchor-el="mcpButtonRef" :selected-ids="mcpSelectedIds" @change="handleMcpChange" />
           </template>
-            <!-- 深度思考开关（图标+tip） -->
-            <LTooltip content="深度思考" placement="top">
-              <button class="tool-btn" aria-label="深度思考" :class="{ 'tool-btn-active': thinkingEnabled }"
-                :aria-pressed="thinkingEnabled" @click.stop="thinkingEnabled = !thinkingEnabled">
+            <!-- 思考等级：把「深度思考开关」与「推理强度档位」合并为一个入口（用户需求 4.2）。
+                 点开可选「不思考 / 默认 / 低 / 中 / 高 / 极致」，选档即开启思考，选「不思考」即关闭。 -->
+            <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
+              <button ref="thinkingLevelButtonRef" class="tool-btn" :aria-label="t('chat.input.thinkingLevelTitle')"
+                :class="{ 'tool-btn-active': thinkingEnabled }" :aria-pressed="thinkingEnabled"
+                @click.stop="toggleThinkingLevelPopover">
                 <el-icon size="16"><BrainCircuit20Regular /></el-icon>
               </button>
             </LTooltip>
+            <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
+              :options="thinkingLevelOptions" :current-value="currentThinkingValue"
+              @select="handleThinkingLevelSelect" />
             <!-- 网页搜索开关（图标+tip） -->
             <LTooltip content="在线检索" placement="top">
               <button class="tool-btn" aria-label="在线检索" :class="{ 'tool-btn-active': webSearchEnabled }"
@@ -183,9 +188,7 @@
       <!-- 模型选择器弹窗 -->
       <ModelSelectorPanel v-model:visible="modelPanelVisible" :anchor-el="modelButtonRef" :models="models"
         :providers="providers" :current-model-id="props.config?.modelId || null"
-        :thinking-effort-options="thinkingEffortOptions" :thinking-effort-value="localThinkingEffort"
-        @select="handleModelSelect" @favorite-changed="handleFavoriteChanged"
-        @select-thinking-effort="handleThinkingEffortChange" />
+        @select="handleModelSelect" @favorite-changed="handleFavoriteChanged" />
 
       <!-- 粘贴文本预览弹窗（利用 el-dialog 原生滚动） -->
       <ReDialog v-model="previewDialogVisible" :title="t('chat.input.previewTitle', { name: previewFileName })"
@@ -227,6 +230,7 @@ import LTooltip from '../ui/LTooltip.vue';
 import AttachmentPopover from './chat-input/AttachmentPopover.vue';
 import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
+import ThinkingEffortPopover from './chat-input/ThinkingEffortPopover.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import GoalBar from './GoalBar.vue';
 import AiNextTaskPanel from './AiNextTaskPanel.vue';
@@ -614,7 +618,7 @@ const currentModelNameOnly = computed(() => {
 });
 
 const currentThinkingLabel = computed(() => {
-  if (!showButtons.thinkingButton) return '';
+  if (!showButtons.thinkingButton || !thinkingEnabled.value) return '';
   const effort = localThinkingEffort.value;
   return getThinkingEffortLabel(effort);
 });
@@ -766,6 +770,9 @@ const createFileObject = (file: File, fileType: string, isPasted = false) => {
 };
 
 // 打开模型面板
+// 底部模型按钮宽度：自适应内容，但收敛在 [MIN, MAX] 之间——
+// 太短会让模型名被截断、按钮看着像个小方块；太长会挤占发送按钮。用户需求 4.1。
+const MODEL_BUTTON_MIN_WIDTH = 96
 const MODEL_BUTTON_MAX_WIDTH = 400
 const MODEL_BUTTON_TRANSITION_MS = 200
 let modelOpenTimer: ReturnType<typeof setTimeout> | null = null;
@@ -784,7 +791,7 @@ function measureModelButtonNaturalWidth(): number {
   clone.style.maxWidth = `${MODEL_BUTTON_MAX_WIDTH}px`
   clone.style.left = '-9999px'
   document.body.appendChild(clone)
-  const width = Math.min(MODEL_BUTTON_MAX_WIDTH, Math.max(80, clone.getBoundingClientRect().width))
+  const width = Math.min(MODEL_BUTTON_MAX_WIDTH, Math.max(MODEL_BUTTON_MIN_WIDTH, clone.getBoundingClientRect().width))
   clone.remove()
   return width
 }
@@ -797,11 +804,11 @@ function collapseModelButton() {
   if (modelCloseTimer) clearTimeout(modelCloseTimer)
 
   modelButtonExpanded.value = false
-  // 输入框模型名称的宽度：取自然宽的 2 倍（上限见 MODEL_BUTTON_MAX_WIDTH）
-  modelButtonWidth.value = `${measureModelButtonNaturalWidth() * 2}px`
+  // 宽度自适应模型名内容，收敛在 [MODEL_BUTTON_MIN_WIDTH, MODEL_BUTTON_MAX_WIDTH]（用户需求 4.1）
+  modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
   modelCloseTimer = setTimeout(() => {
-    // 常驻 2 倍宽（用户要求「选中的宽度增加一倍」）：收起时保持，不回落到自适应窄宽
-    modelButtonWidth.value = `${measureModelButtonNaturalWidth() * 2}px`
+    // 收起后保持同一自适应宽度，不回落到固定宽度
+    modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
     modelCloseTimer = null
   }, MODEL_BUTTON_TRANSITION_MS)
 }
@@ -1247,9 +1254,36 @@ const removeFile = (fileId: number) => {
 const triggerFileInput = () => fileInputRef.value?.click();
 const triggerImageInput = () => imageInputRef.value?.click();
 
-// 深度思考/网页搜索开关
+// 思考等级（合并「深度思考开关」与「推理强度档位」后的单一状态，用户需求 4.2）：
+// thinkingEnabled = 是否思考；localThinkingEffort = 具体档位。两者由同一个「思考等级」入口维护。
 const thinkingEnabled = ref(false);
 const webSearchEnabled = ref(false);
+
+/** 思考等级弹层是否可见 */
+const thinkingLevelPopoverVisible = ref(false);
+/** 思考等级按钮锚点（弹层定位用） */
+const thinkingLevelButtonRef = ref<any>(null);
+/** 打开/收起思考等级弹层 */
+const toggleThinkingLevelPopover = () => {
+  thinkingLevelPopoverVisible.value = !thinkingLevelPopoverVisible.value;
+};
+/** 档位选项：首位固定「不思考」(none)，其后为模型声明的档位；
+ *  模型未声明档位但当前会话/角色支持思考时，至少给一个「默认」档，保证合并后的入口仍然可用。 */
+const thinkingLevelOptions = computed(() => {
+  const levels = thinkingEffortOptions.value.length ? thinkingEffortOptions.value : ['default'];
+  return ['none', ...levels];
+});
+/** 当前值：关闭思考时统一显示为「不思考」 */
+const currentThinkingValue = computed(() => (thinkingEnabled.value ? localThinkingEffort.value : 'none'));
+/** 选择档位：none = 关闭思考；其余 = 开启思考并切到该档 */
+const handleThinkingLevelSelect = (level: string) => {
+  if (level === 'none') {
+    thinkingEnabled.value = false;
+    return;
+  }
+  thinkingEnabled.value = true;
+  handleThinkingEffortChange(level);
+};
 
 // MCP 工具选择（仅管理员，会话级持久化）
 // 响应式管理员标记：组件可能在角色写入前挂载，挂载时再校正一次，避免登录后按钮缺失
@@ -1667,9 +1701,9 @@ const handleClickOutside = (e: MouseEvent) => {
 };
 
 onMounted(() => {
-  // 模型名称按钮常驻 2 倍宽（用户要求「选中的宽度增加一倍」）：挂载后量一次自然宽并置位
+  // 模型名称按钮宽度自适应内容（最小 MODEL_BUTTON_MIN_WIDTH，用户需求 4.1）：挂载后量一次自然宽并置位
   nextTick(() => {
-    modelButtonWidth.value = `${measureModelButtonNaturalWidth() * 2}px`
+    modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
   });
   adjustTextareaHeight();
   loadModels();
@@ -2053,7 +2087,8 @@ defineExpose({ insertText, insertBadge });
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 90px;
+  /* 宽度自适应模型名内容，最小宽度兜底（用户需求 4.1） */
+  min-width: 96px;
   overflow: hidden;
   outline: none;
   font-size: 12px;

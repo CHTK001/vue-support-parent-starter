@@ -5,7 +5,7 @@
         <el-icon size="16" class="text-gray-600 dark:text-gray-400">
           <LightbulbFilament24Regular />
         </el-icon>
-        <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('chat.input.thinkingEffortTitle') }}</span>
+        <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('chat.input.thinkingLevelTitle') }}</span>
       </div>
     </template>
     <div class="popover-content space-y-0.5">
@@ -14,7 +14,9 @@
           'te-item-active': currentValue === effort
         }" :data-effort="effort" @click="handleSelect(effort)">
         <span>{{ getLabel(effort) }}</span>
-        <span class="text-xs text-gray-400 dark:text-gray-500">{{ effort }}</span>
+        <el-icon v-if="currentValue === effort" size="14" class="text-primary">
+          <Checkmark24Regular />
+        </el-icon>
       </div>
     </div>
   </CustomPopover>
@@ -23,7 +25,7 @@
 <script setup lang="ts">
 import { ElIcon } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { LightbulbFilament24Regular } from '@vicons/fluent'
+import { LightbulbFilament24Regular, Checkmark24Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import { getThinkingEffortLabel } from '@/utils/modelUtils'
 

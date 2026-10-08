@@ -70,6 +70,10 @@
 
     // ThinkingEffortPopover.vue
     thinkingEffortTitle: 'Thinking Effort',
+    // Thinking level: unified entry merging the deep-thinking toggle and the reasoning-effort levels
+    thinkingLevelTitle: 'Thinking Level',
+    // The "off" option inside the thinking level control
+    thinkingLevelOff: 'Off',
 
     // WorkspaceSelectorPopover.vue
     recent: 'Recent',
