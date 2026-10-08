@@ -109,11 +109,11 @@ const inheritedTitle = '该会话还没有自己的取值，暂时跟随设置�
 /**
  * 点击某条联想任务：直接作为用户消息发送出去（用户已明确要求：不是设为目标）。
  *
- * <p><b>发送即消费</b>：把这条从本地列表移除 —— 否则建议发出去了还一直挂在面板上，
- * 既能被反复点（重复发送），也让用户以为没发出去。面板可见性本身就是
- * {@code tasks.length > 0}，所以当初中的是最后一条时，整块面板随之消失。</p>
+ * <p><b>点一条 = 消费整块</b>：点后清空本地列表，整块面板随即卸载（与点 X 同效果），
+ * 既避免「建议已经发出去了还挂着、还能被反复点」的假状态，也符合用户口径
+ * 「点了建议就把这个组件销毁」。<b>不是</b>只摘掉被点的那一条。</p>
  *
- * <p>只做本地移除：后端仍持有原列表，下一次 {@code load()}／「重新联想」以后端返回为准
+ * <p>只做本地清空：后端仍持有原列表，下一次 {@code load()}／「重新联想」以后端返回为准
  * —— 新对话轮次后由后端重新生成的建议是「新的建议」，不该被本地的历史点击永久屏蔽。</p>
  *
  * @param task 联想出的任务
@@ -128,10 +128,10 @@ async function onPick(task: SessionNextTaskItem): Promise<void> {
   }
   const list = state.value?.tasks
   if (list) {
-    const idx = list.findIndex((t) => t.order === task.order && t.title === task.title)
-    if (idx >= 0) {
-      list.splice(idx, 1)
-    }
+    // 「点了建议」= **消费整块**：用户要求点一条就把这个组件销毁（与点右上角 X 同效果），
+    // 而不是只摘掉被点的那一条。清空本地列表 → visible=false → v-if 直接卸载整块面板。
+    // 后端仍持有原列表，下一次 load()／「重新联想」以后端返回为准（新建议照常出现）。
+    state.value!.tasks = []
   }
   emit('send-suggestion', text)
 }

@@ -722,16 +722,25 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         }
 
         if (response.type === "user_message") {
-          // 后端广播的用户消息：按 id 去重后写入，避免重连/重演时整轮重复。
-          // 重新回答（multi_version）时后端会先回放既有用户消息再发 create；
-          // 若直接 push，界面会出现「点一次重新生成就多出一对消息」，
-          // 且补推的副本与真正的用户轮次 id 不同，导致版本切换与删除失效。
+          // 后端广播的用户消息。
+          // 【重复行根因，2026-10-08】重新生成走 multi_version 时，后端会**先回放既有
+          // 用户消息**，而补推副本的 id 与真正的用户轮次**不同** —— 只按 id 去重判不掉，
+          // 于是切会话/重载后多出一行用户消息（用户实测：点一次「重新生成」再切回
+          // 第一个会话，就变成两行记录）。重新生成本身不产生新的用户消息 → 直接忽略回放帧。
+          if (regenerationMode === "multi_version") {
+            continue;
+          }
           const userMsg = response.userMessage;
           if (userMsg?.id) {
-            const exists = sessionStore
-              .getMessages(streamingSessionId)
-              .some((msg: Message) => msg.id === userMsg.id);
-            if (!exists) {
+            const existing = sessionStore.getMessages(streamingSessionId);
+            const dupById = existing.some((msg: Message) => msg.id === userMsg.id);
+            // 内容兜底：与「最后一条用户消息」同文，视为回放副本（id 不同也判得掉）
+            const lastUser = [...existing].reverse().find((m: Message) => m.role === "user");
+            const newText = userMsg.contents?.[0]?.content ?? "";
+            const dupByContent = !!lastUser
+              && (lastUser.contents?.[0]?.content ?? "") === newText
+              && !!newText;
+            if (!dupById && !dupByContent) {
               sessionStore.addMessage(streamingSessionId, userMsg);
             }
           }

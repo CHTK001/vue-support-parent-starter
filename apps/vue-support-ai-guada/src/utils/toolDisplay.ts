@@ -114,10 +114,37 @@ export function resolveToolName(tool: ToolCall): string {
   return tool.name || "";
 }
 
+/**
+ * 内置工具的兜底展示。
+ *
+ * 用户口径（2026-10-08）：每个工具调用要**单独一行、可展开、默认折叠**，
+ * 且 agent_send / list_files / agent_spawn 这类要显示成可辨认的名字而不是通用「调用工具」。
+ * 后端 /v2/plugins/tool-displays 目前是空桩（恒返回 {}），插件注册表拿不到这些名字，
+ * 故此处按工具名给出前端兜底图标（文案沿用 common.tool.*）。
+ */
+const BUILTIN_TOOL_ICONS: Record<string, string> = {
+  // 子智能体
+  agent_send: 'todo', agent_spawn: 'todo', agent_spawn_sub: 'todo', agent_cancel: 'todo',
+  // 文件
+  list_files: 'file', list_directory: 'file', list_dir: 'file', glob: 'file', ls: 'file',
+  read_file: 'read', file_read: 'read', view_file: 'read',
+  write_file: 'edit', file_write: 'edit', edit_file: 'edit', create_file: 'edit',
+  search_files: 'search', grep: 'search', web_search: 'search', fetch: 'search',
+  // 终端
+  bash: 'terminal', shell: 'terminal', run_command: 'terminal', execute: 'terminal',
+};
+
+function getBuiltinConfig(name: string): ToolDisplayConfig | null {
+  const icon = BUILTIN_TOOL_ICONS[name];
+  if (!icon) return null;
+  const defaults = getDefaultConfig();
+  return { icon, text: defaults.text, aggregate: defaults.aggregate };
+}
+
 export function getToolConfig(tool: ToolCall): ToolDisplayConfig {
   const name = resolveToolName(tool);
   const custom = pluginToolDisplays.value[name];
-  if (!custom) return getDefaultConfig();
+  if (!custom) return getBuiltinConfig(name) ?? getDefaultConfig();
   // 防御性合并:插件注册的配置可能缺少 text/aggregate 等字段,补齐默认值避免渲染崩溃
   const defaults = getDefaultConfig();
   return {
