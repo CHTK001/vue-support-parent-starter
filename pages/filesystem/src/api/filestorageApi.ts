@@ -118,8 +118,14 @@ export interface BucketConfig {
   showSize: boolean;
   /** 详情视图是否显示"修改时间"列 */
   showTime: boolean;
-  /** 图片滤镜（NONE/GRAYSCALE/SEPIA/INVERT/BLUR/SATURATE） */
+  /** 图片滤镜（ImageFilter SPI 扩展名，NONE 表示原图） */
   imageFilter: string;
+  /** 是否启用路径穿透防护（默认开启） */
+  openPathGuard: boolean;
+  /** 是否启用全局图片滤镜链（默认关闭） */
+  imageFilterEnabled: boolean;
+  /** 全局图片滤镜链（紧凑串 id:key=value;id2；可空） */
+  filterChain: string | null;
   /** 是否私有桶（私有桶请求需携带访问令牌，由 OAuthServerFilter 鉴权） */
   private?: boolean;
   /** 全部私有桶（provider 名） */
@@ -431,6 +437,8 @@ export interface SpiCapability {
   name: string;
   /** 人类可读标签 */
   label: string;
+  /** 前端预览用 CSS filter 值（来自 FileStorageImageFilterProvider#getCssFilter，可能为空） */
+  css?: string;
 }
 
 /**
