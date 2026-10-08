@@ -42,6 +42,8 @@ const lastHover = ref<string>("-");
 const eventCount = ref(0);
 const graphRef = ref<any>(null);
 const extraSeq = ref(1);
+/** 最近一次 data-change 载荷的元素数量（用于验收「回调拿到实时模型」） */
+const lastDataChange = ref<{ nodes: number; edges: number } | null>(null);
 
 const say = (m: string) => {
   logLines.value.unshift(`${new Date().toLocaleTimeString()}  ${m}`);
@@ -171,7 +173,10 @@ const onNodeHover = (n: any) => { lastHover.value = n ? String(n.id) : "-"; if (
 const onEdgeClick = (e: any) => say(`edge-click ${e.id}`);
 const onSelectionChange = (ids: string[]) => { selection.value = ids; say(`selection-change [${ids.join(",")}]`); };
 const onLayoutChange = (name: string) => say(`layout-change ${name}`);
-const onDataChange = (d: any) => say(`data-change nodes=${d.nodes?.length ?? 0} edges=${d.edges?.length ?? 0}`);
+const onDataChange = (d: any) => {
+  lastDataChange.value = { nodes: d.nodes?.length ?? 0, edges: d.edges?.length ?? 0 };
+  say(`data-change nodes=${d.nodes?.length ?? 0} edges=${d.edges?.length ?? 0}`);
+};
 
 // ---------- 工具栏动作（1.4 动态控制） ----------
 const addNode = async () => {
@@ -296,6 +301,16 @@ onMounted(() => {
     /** 切换应用语言（验证组件文案随共享 i18n 切换） */
     setLang: (l: string) => { (i18n.global.locale as any).value = l; },
     getLang: () => (i18n.global.locale as any).value,
+    /** 最近一次 data-change 载荷的元素数量（验证回调拿到实时模型而非 props 旧值） */
+    lastDataChange: () => lastDataChange.value,
+    /** 指定节点当前 label（业务字段） */
+    nodeLabel: (id: string) =>
+      (graphRef.value?.getInstance?.()?.getNodeData?.() ?? []).find((n: any) => n.id === id)?.data?.__label ?? "-",
+    /** 指定边当前 label（业务字段） */
+    edgeLabel: (id: string) =>
+      (graphRef.value?.getInstance?.()?.getEdgeData?.() ?? []).find((e: any) => e.id === id)?.data?.__label ?? "-",
+    /** 选中元素（走组件 API，用于工具栏更新/删除按钮的验收） */
+    select: (ids: string[]) => graphRef.value?.select?.(ids),
     /** 画布像素非透明占比（证明真画出来了） */
     painted: () => {
       const list = [...document.querySelectorAll(".rrglab__stage canvas")] as HTMLCanvasElement[];
