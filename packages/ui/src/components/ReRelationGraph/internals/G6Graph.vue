@@ -621,6 +621,31 @@ const edgeById = (id: string): RelationEdge | undefined => {
   } as RelationEdge;
 };
 
+/** 判断 id 是否为（普通）节点：先查 props 业务数据，再问 G6 模型。
+ *  G6 的 getElementType 对未知 id 会抛异常，这里兜底为 false；combo 不算节点。 */
+const isNodeId = (id: string): boolean => {
+  if ((graphData.value.nodes ?? []).some(n => n.id === id)) {
+    return true;
+  }
+  try {
+    return graphRef.value?.getElementType?.(id) === "node";
+  } catch {
+    return false;
+  }
+};
+
+/** 判断 id 是否为边：语义与 {@link isNodeId} 对称。 */
+const isEdgeId = (id: string): boolean => {
+  if ((graphData.value.edges ?? []).some(e => (e.id ?? `${e.source}->${e.target}`) === id)) {
+    return true;
+  }
+  try {
+    return graphRef.value?.getElementType?.(id) === "edge";
+  } catch {
+    return false;
+  }
+};
+
 /** 构建 behaviors */
 const buildBehaviors = () => {
   const list: any[] = ["drag-canvas"];
@@ -672,7 +697,7 @@ const buildBehaviors = () => {
       } as RelationEdge;
       log("create-edge finished", rel);
       emit("edge-created", rel);
-      emit("data-change", exportData());
+      emitDataChange();
       empty.value = false;
       sync3d();
       refreshHistoryState();
@@ -1107,7 +1132,7 @@ const addNode = async (n: RelationNode) => {
   await graph.draw();
   empty.value = false;
   attachSlots();
-  emit("data-change", graphData.value);
+  emitDataChange();
   sync3d();
 };
 
@@ -1118,7 +1143,7 @@ const addEdge = async (e: RelationEdge) => {
   }
   graph.addEdgeData([toEdgeData(e)]);
   await graph.draw();
-  emit("data-change", graphData.value);
+  emitDataChange();
   sync3d();
 };
 
@@ -1130,7 +1155,7 @@ const updateNode = async (n: RelationNode) => {
   graph.updateNodeData([toNodeData(n)] as any);
   await graph.draw();
   attachSlots();
-  emit("data-change", graphData.value);
+  emitDataChange();
   sync3d();
 };
 
@@ -1141,7 +1166,7 @@ const updateEdge = async (e: RelationEdge) => {
   }
   graph.updateEdgeData([toEdgeData(e)] as any);
   await graph.draw();
-  emit("data-change", graphData.value);
+  emitDataChange();
   sync3d();
 };
 
@@ -1154,7 +1179,7 @@ const removeNode = async (id: string) => {
   await graph.draw();
   unmountSlot(id);
   empty.value = (graph.getNodeData?.() ?? []).length === 0;
-  emit("data-change", graphData.value);
+  emitDataChange();
   sync3d();
 };
 
@@ -1165,8 +1190,70 @@ const removeEdge = async (id: string) => {
   }
   graph.removeEdgeData([id]);
   await graph.draw();
-  emit("data-change", graphData.value);
+  emitDataChange();
   sync3d();
+};
+
+/**
+ * 更新当前选中的单个节点（工具栏「更新节点」按钮）。
+ *
+ * <p>内联编辑的最小实现：label 追加 _udt 并写入 __updated 标记，
+ * 全程复用公开 API {@link updateNode}（含撤销栈与 3D 同步）；
+ * 业务需要自定义编辑表单时，按同样方式调用 updateNode 即可。</p>
+ */
+const updateSelectedNode = async () => {
+  const ids = selectedIds.value;
+  if (ids.length !== 1) {
+    return;
+  }
+  const node = nodeById(ids[0]);
+  if (!node) {
+    return;
+  }
+  await updateNode({
+    ...node,
+    label: `${node.label ?? node.id}_udt`,
+    data: { ...(node.data ?? {}), __updated: true },
+  });
+};
+
+/**
+ * 更新当前选中的单条边（工具栏「更新边」按钮）。
+ *
+ * <p>语义与 {@link updateSelectedNode} 对称。</p>
+ */
+const updateSelectedEdge = async () => {
+  const ids = selectedIds.value;
+  if (ids.length !== 1) {
+    return;
+  }
+  const edge = edgeById(ids[0]);
+  if (!edge) {
+    return;
+  }
+  await updateEdge({
+    ...edge,
+    label: `${edge.label ?? edge.id}_udt`,
+    data: { ...(edge.data ?? {}), __updated: true },
+  });
+};
+
+/** 删除当前选中的单个节点（工具栏「删除节点」按钮） */
+const removeSelectedNode = async () => {
+  const ids = selectedIds.value;
+  if (ids.length !== 1) {
+    return;
+  }
+  await removeNode(ids[0]);
+};
+
+/** 删除当前选中的单条边（工具栏「删除边」按钮） */
+const removeSelectedEdge = async () => {
+  const ids = selectedIds.value;
+  if (ids.length !== 1) {
+    return;
+  }
+  await removeEdge(ids[0]);
 };
 
 /** 切换布局 */
@@ -1213,6 +1300,24 @@ const exportData = (): RelationGraphData => ({
     data: d.data,
   })) as RelationEdge[],
 });
+
+/**
+ * 广播一次数据变更。
+ *
+ * <p>把 G6 实时模型导出为业务快照后 emit，并同步 id 指纹（appliedKey）。
+ * 两个细节：</p>
+ * <ul>
+ *   <li>不能 emit props 派生数据 —— add/update/remove 之后父组件拿到的
+ *       必须是包含本次变更的完整模型，否则回写 props 会丢掉动态节点/边；</li>
+ *   <li>appliedKey 跟着模型走，让「父组件把回调数据原样回传 props」的
+ *       回声不会触发整图重装（重装会清空撤销栈）。</li>
+ * </ul>
+ */
+const emitDataChange = () => {
+  const snapshot = exportData();
+  appliedKey = keyOf(snapshot);
+  emit("data-change", snapshot);
+};
 
 // ==================== 3D 视图 ====================
 
@@ -1532,7 +1637,7 @@ const api: RelationGraphApi = {
     refreshHistoryState();
     syncSelected(graphRef.value as Graph);
     sync3d();
-    emit("data-change", exportData());
+    emitDataChange();
   },
   redo: async () => {
     if (is3d.value || !historyInst.value?.canRedo?.()) {
@@ -1543,7 +1648,7 @@ const api: RelationGraphApi = {
     refreshHistoryState();
     syncSelected(graphRef.value as Graph);
     sync3d();
-    emit("data-change", exportData());
+    emitDataChange();
   },
   canUndo: () => canUndo.value,
   canRedo: () => canRedo.value,
@@ -1958,6 +2063,44 @@ onBeforeUnmount(() => {
       <ReButton size="small" :type="is3d ? 'primary' : ''" :title="is3d ? t('toolbar.modeTitle2d', '切回 2D 画布') : t('toolbar.modeTitle3d', '切换到 3D 力导向视图')" :aria-label="is3d ? t('toolbar.modeTitle2d', '切回 2D 画布') : t('toolbar.modeTitle3d', '切换到 3D 力导向视图')" @click="toggleMode">
         {{ is3d ? t('toolbar.toggleMode2d', '2D') : t('toolbar.toggleMode3d', '3D') }}
       </ReButton>
+      <ReButton
+        v-if="editable && !is3d && selectedIds.length === 1 && isNodeId(selectedIds[0])"
+        size="small"
+        :title="t('toolbar.updateNodeTip', '更新选中节点')"
+        :aria-label="t('toolbar.updateNodeTip', '更新选中节点')"
+        @click="updateSelectedNode"
+      >
+        {{ t('toolbar.updateNode', '更新节点') }}
+      </ReButton>
+      <ReButton
+        v-if="editable && !is3d && selectedIds.length === 1 && isEdgeId(selectedIds[0])"
+        size="small"
+        :title="t('toolbar.updateEdgeTip', '更新选中边')"
+        :aria-label="t('toolbar.updateEdgeTip', '更新选中边')"
+        @click="updateSelectedEdge"
+      >
+        {{ t('toolbar.updateEdge', '更新边') }}
+      </ReButton>
+      <ReButton
+        v-if="editable && !is3d && selectedIds.length === 1 && isNodeId(selectedIds[0])"
+        size="small"
+        type="danger"
+        :title="t('toolbar.removeNodeTip', '删除选中节点')"
+        :aria-label="t('toolbar.removeNodeTip', '删除选中节点')"
+        @click="removeSelectedNode"
+      >
+        {{ t('toolbar.removeNode', '删除节点') }}
+      </ReButton>
+      <ReButton
+        v-if="editable && !is3d && selectedIds.length === 1 && isEdgeId(selectedIds[0])"
+        size="small"
+        type="danger"
+        :title="t('toolbar.removeEdgeTip', '删除选中边')"
+        :aria-label="t('toolbar.removeEdgeTip', '删除选中边')"
+        @click="removeSelectedEdge"
+      >
+        {{ t('toolbar.removeEdge', '删除边') }}
+      </ReButton>
       <slot name="toolbar-extra" :api="api" :nodes="graphData.nodes" :mode="mode" />
     </div>
 
@@ -2042,21 +2185,41 @@ onBeforeUnmount(() => {
 }
 
 .rrg__toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
+  max-width: calc(100% - 24px);
   padding: 6px 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-  background: var(--el-fill-color-lighter, #fafafa);
-  flex: 0 0 auto;
+  /* 类地图悬浮工具栏：半透明底 + 圆角 + 阴影 + 背景模糊。
+     先用 rgba 兜底旧浏览器，再用 color-mix 跟随主题变量（暗色模式同样生效）。 */
+  background: rgba(255, 255, 255, 0.88);
+  background: color-mix(in srgb, var(--el-bg-color-overlay, #fff) 88%, transparent);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(6px);
 }
 
-.rrg__layout {
-  width: 148px;
+/* ReSelect / ReInput 的根节点带上的是子组件自己的 scope 标记，
+   普通 scoped 选择器打不中；用 :deep 强制宽度，避免两个控件在悬浮工具栏里各占满一行。 */
+.rrg__toolbar :deep(.rrg__layout) {
+  width: 132px;
 }
 
-.rrg__search {
-  width: 150px;
+.rrg__toolbar :deep(.rrg__search) {
+  width: 132px;
+}
+
+/* Element Plus 给相邻按钮加 margin-left:12px，和 flex gap 会叠加成 18px 并挤出一行；
+   悬浮工具栏统一交给 gap 控制间距。 */
+.rrg__toolbar :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 /* 工具栏键盘可达：给可聚焦控件一个清晰的 focus ring */
