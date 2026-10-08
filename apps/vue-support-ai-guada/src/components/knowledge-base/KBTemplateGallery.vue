@@ -3,7 +3,7 @@
     <!-- ===== 顶栏：面包屑 + 标题 + 搜索 ===== -->
     <header class="shrink-0 border-b border-[var(--rm-border-light)] px-4 py-3 flex flex-wrap items-end gap-4">
       <div class="flex-1 min-w-0">
-        <h1 class="text-lg font-bold flex items-center gap-1"><ReButton link :icon="ArrowLeft" title="返回" @click="emit('cancel')" />从模板创建</h1>
+        <h1 class="text-lg font-bold flex items-center gap-1"><ReSquareButton layout="square" size="small" :icon="ArrowLeft" tip="返回" @click="emit('cancel')" />从模板创建</h1>
         <p class="text-xs text-[var(--rm-text-secondary)] mt-0.5">选择预置模板，自动生成文档、实体类型与关系结构</p>
       </div>
 
@@ -217,6 +217,7 @@ import ReCard from '@/components/re/ReCard.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReSquareButton from '@repo/ui/re-button'
 import coverSanguo from '@/assets/kb/tpl-sanguo.png'
 import coverPoem from '@/assets/kb/tpl-poem.png'
 import coverIdiom from '@/assets/kb/tpl-idiom.png'
