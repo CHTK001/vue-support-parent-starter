@@ -1338,12 +1338,14 @@ async function loadBucketConfig(): Promise<void> {
   }
 }
 
-/** 容错地从服务端拉取 SPI 真实能力（失败静默，下拉回退到内置 CSS 滤镜） */
+/** 容错地从服务端拉取 SPI 真实能力（失败置 capabilitiesFailed 由界面显式提示，不再静默回退内置滤镜） */
 async function loadCapabilities(): Promise<void> {
   try {
     capabilities.value = await getCapabilities(bucket.value);
+    capabilitiesFailed.value = false;
   } catch {
     capabilities.value = null;
+    capabilitiesFailed.value = true;
   }
 }
 
@@ -1389,6 +1391,10 @@ const adminForm = reactive({
   showTime: true,
   /** 图片滤镜（ImageFilter SPI 扩展名，NONE 表示原图） */
   imageFilter: "NONE",
+  /** 路径穿透防护（默认开启；拦截 ..、反斜杠等穿越请求并筛查文件动作参数） */
+  openPathGuard: true,
+  /** 全局图片滤镜链开关（默认关闭；开启后每次图片请求按滤镜链强制处理） */
+  imageFilterEnabled: false,
   /** 是否私有桶（私有桶请求需携带访问令牌，由 OAuthServerFilter 鉴权；保存后实时生效） */
   privateBucket: false,
   /**
@@ -1407,55 +1413,37 @@ const adminForm = reactive({
   oneTimeTtlMinutes: "",
 });
 
-/** 能力接口不可用时的内置兜底选项（纯前端 CSS 滤镜） */
-const FALLBACK_FILTER_OPTIONS = [
-  { value: "NONE", label: "原图", css: "" },
-  { value: "GRAYSCALE", label: "灰度", css: "grayscale(1)" },
-  { value: "SEPIA", label: "怀旧", css: "sepia(0.9)" },
-  { value: "INVERT", label: "反色", css: "invert(1)" },
-  { value: "BLUR", label: "模糊", css: "blur(3px)" },
-  { value: "SATURATE", label: "鲜艳", css: "saturate(1.8)" },
-] as const;
-
-/** SPI 滤镜名到前端 CSS filter 的映射（仅用于缩略图即时预览，实际效果以后端处理为准） */
-const SPI_FILTER_CSS: Record<string, string> = {
-  GRAY: "grayscale(1)",
-  GRAYSCALE: "grayscale(1)",
-  SEPIATONE: "sepia(0.9)",
-  OLDFASHION: "sepia(0.6)",
-  NEGATIVE: "invert(1)",
-  GAUSSIANBLUR: "blur(3px)",
-  BLUR: "blur(3px)",
-  BSC: "saturate(1.4) contrast(1.05)",
-  BRIGHT: "brightness(1.15)",
-};
-
-/** 图片滤镜可选项：首项固定"原图"，其余取自后端 ImageFilter SPI 真实实现；能力加载失败时回退内置 CSS 滤镜 */
-const imageFilterOptions = computed<{ value: string; label: string }[]>(() => {
-  const opts: { value: string; label: string }[] = [{ value: "NONE", label: "原图" }];
-  const spiFilters = capabilities.value?.imageFilters;
-  if (spiFilters && spiFilters.length > 0) {
-    for (const f of spiFilters) {
-      opts.push({ value: f.name, label: f.label || f.name });
-    }
-  } else {
-    for (const f of FALLBACK_FILTER_OPTIONS) {
-      if (f.value !== "NONE") {
-        opts.push({ value: f.value, label: f.label });
-      }
-    }
+/**
+ * 图片滤镜可选项：首项固定"原图"，其余一律取自后端 ImageFilter SPI 真实实现。
+ *
+ * <p>此前能力加载失败时会回退到前端硬编码的 6 项内置滤镜（并配一份硬编码 CSS），
+ * 把「滤镜不是来自后台 SPI」这一故障静默掩盖；现在列表是纯 SPI 来源，
+ * 加载失败只保留「原图」并由 {@link imageFilterLoadFailed} 显式提示。</p>
+ */
+const imageFilterOptions = computed<{ value: string; label: string; css: string }[]>(() => {
+  const opts: { value: string; label: string; css: string }[] = [
+    { value: "NONE", label: "原图", css: "" },
+  ];
+  for (const f of capabilities.value?.imageFilters ?? []) {
+    if (!f.name || f.name === "NONE") continue;
+    opts.push({ value: f.name, label: f.label || f.name, css: f.css ?? "" });
   }
   return opts;
 });
 
-/** 当前滤镜的 CSS filter 值（应用于图片缩略图与图片预览；SPI 滤镜无 CSS 对应时为空，实际效果以后端处理为准） */
+/** 能力接口是否加载失败（滤镜列表只剩「原图」时给显式提示，不做静默兜底） */
+const capabilitiesFailed = ref(false);
+
+/** 滤镜列表是否因能力接口失败而不可用 */
+const imageFilterLoadFailed = computed(() => capabilitiesFailed.value);
+
+/** 当前滤镜的 CSS filter 值（缩略图/预览即时演示；值来自后端 SPI 能力的 css 字段，实际效果以后端处理为准） */
 const imageFilterCss = computed(() => {
   const value = bucketConfig.value?.imageFilter ?? "NONE";
   if (value === "NONE") {
     return "";
   }
-  const fallbackCss = FALLBACK_FILTER_OPTIONS.find((o) => o.value === value)?.css;
-  return SPI_FILTER_CSS[value] ?? fallbackCss ?? "";
+  return imageFilterOptions.value.find((o) => o.value === value)?.css ?? "";
 });
 
 /** 服务端是否显示"类型"列 */
@@ -1486,6 +1474,9 @@ function applyConfigToForm(cfg: BucketConfig | null): void {
   adminForm.showSize = cfg.showSize ?? true;
   adminForm.showTime = cfg.showTime ?? true;
   adminForm.imageFilter = cfg.imageFilter || "NONE";
+  adminForm.openPathGuard = cfg.openPathGuard ?? true;
+  adminForm.imageFilterEnabled = cfg.imageFilterEnabled ?? false;
+  chainRows.value = parseChainRows(cfg.filterChain);
   adminForm.privateBucket = cfg.private ?? false;
   adminForm.privateBuckets = (cfg.privateBuckets ?? []).join(",");
   // 后端是毫秒，换算成分钟回显；非正数（不该出现）时留空，避免显示成 0
@@ -1523,6 +1514,7 @@ const adminGroup = ref("fs-adm-file");
 const adminGroups = [
   { id: "fs-adm-file", label: "文件功能", icon: Files },
   { id: "fs-adm-layout", label: "布局显示", icon: Grid },
+  { id: "fs-adm-image", label: "图片处理", icon: Picture },
   { id: "fs-adm-security", label: "水印与安全", icon: Lock },
   { id: "fs-adm-token", label: "管理员令牌", icon: Key },
 ] as const;
@@ -1579,8 +1571,17 @@ const ADMIN_LAYOUT_ITEM_TERMS: Record<string, string[]> = {
   ttl: ["布局显示", "链接默认有效期", "有效期", "分钟", "链接", "ttl"],
 };
 
-/** 「水印与安全」分组搜索词 */
-const ADMIN_SECURITY_TERMS = ["水印与安全", "水印", "文字", "watermark"];
+/** 「图片处理」分组各项的搜索词；分组显隐 = 任一项命中（与模板里的 v-if 一一对应） */
+const ADMIN_IMAGE_ITEM_TERMS: Record<string, string[]> = {
+  caps: ["图片处理", "参数", "能力", "url 参数", "spi", "capability"],
+  chain: ["图片处理", "滤镜链", "全局滤镜", "灰度", "gray", "size", "缩放", "模糊", "blur", "滤镜"],
+};
+
+/** 「水印与安全」分组各项的搜索词；分组显隐 = 任一项命中（与模板里的 v-if 一一对应） */
+const ADMIN_SECURITY_ITEM_TERMS: Record<string, string[]> = {
+  watermark: ["水印与安全", "水印", "文字", "watermark"],
+  pathGuard: ["水印与安全", "路径穿透", "穿透", "穿越", "防护", "guard", "path", "traversal", "安全"],
+};
 
 /** 「管理员令牌」分组搜索词 */
 const ADMIN_TOKEN_TERMS = ["管理员令牌", "令牌", "token", "api", "鉴权"];
@@ -1597,11 +1598,12 @@ function admHitAny(terms: readonly string[]): boolean {
   return terms.some((t) => t.toLowerCase().includes(q));
 }
 
-/** 四个分组是否可见（搜索过滤后） */
+/** 五个分组是否可见（搜索过滤后） */
 const adminSectionsShown = computed(() => ({
   file: adminFileToggles.some((t) => admHitAny(t.terms)),
   layout: Object.values(ADMIN_LAYOUT_ITEM_TERMS).some((terms) => admHitAny(terms)),
-  security: admHitAny(ADMIN_SECURITY_TERMS),
+  image: Object.values(ADMIN_IMAGE_ITEM_TERMS).some((terms) => admHitAny(terms)),
+  security: Object.values(ADMIN_SECURITY_ITEM_TERMS).some((terms) => admHitAny(terms)),
   token: admHitAny(ADMIN_TOKEN_TERMS),
 }));
 
@@ -1611,11 +1613,120 @@ const visibleFileToggles = computed(() => adminFileToggles.filter((t) => admHitA
 /** 命中搜索的列显隐开关（用于 v-for 渲染） */
 const visibleColumnToggles = computed(() => adminColumnToggles.filter((t) => admHitAny(t.terms)));
 
+/* ===== 「图片处理」分组：能力与滤镜链全部来自后台 SPI 或后台存储 ===== */
+
+/**
+ * 文件级 URL 参数能力（FileStorageFileSetting SPI）汇总
+ *
+ * <p>只读展示：这些参数由后台解析执行（如 {@code ?size=100x100}、{@code ?grayscale=1}），
+ * 列表来源是 /capabilities 的能力组，前端不硬编码。</p>
+ */
+const fileCapabilityChips = computed<string[]>(() => {
+  const groups = capabilities.value?.fileSettingCapabilities ?? [];
+  const set = new Set<string>();
+  for (const g of groups) {
+    for (const c of g.capabilities ?? []) {
+      if (c) set.add(c);
+    }
+  }
+  return [...set];
+});
+
+/**
+ * 全局滤镜链可选择项（FileStorageFilterSetting SPI）汇总
+ *
+ * <p>值即写入 filterChain 的 id（gray、size、blur 等），来自后台 SPI 能力组；
+ * 后端写入时会再次校验「必须命中 SPI 能力」，前端列表与后端校验同源。</p>
+ */
+const filterChainOptions = computed<{ value: string; label: string }[]>(() => {
+  const groups = capabilities.value?.filterSettingCapabilities ?? [];
+  const set = new Set<string>();
+  for (const g of groups) {
+    for (const c of g.capabilities ?? []) {
+      if (c) set.add(c);
+    }
+  }
+  return [...set].map((id) => ({ value: id, label: id }));
+});
+
+/** 滤镜链编辑行 */
+interface FilterChainRow {
+  id: string;
+  params: string;
+}
+
+/** 滤镜链编辑态（保存时序列化为 filterChain 紧凑串；与 adminForm 分开，避免数组串进请求体） */
+const chainRows = ref<FilterChainRow[]>([]);
+
+/**
+ * 解析后端 filterChain 紧凑串为编辑行（{@code id:key=value,key=value;id2}）
+ *
+ * @param chain 后端紧凑串
+ * @returns 编辑行列表
+ */
+function parseChainRows(chain: string | null | undefined): FilterChainRow[] {
+  if (!chain) {
+    return [];
+  }
+  return chain
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const colon = entry.indexOf(":");
+      if (colon < 0) {
+        return { id: entry.trim(), params: "" };
+      }
+      return { id: entry.slice(0, colon).trim(), params: entry.slice(colon + 1).trim() };
+    })
+    .filter((row) => row.id !== "");
+}
+
+/**
+ * 序列化编辑行为 filterChain 紧凑串（空列表返回空串 = 清空）
+ *
+ * @returns 紧凑串
+ */
+function serializeChainRows(): string {
+  return chainRows.value
+    .filter((row) => row.id.trim() !== "")
+    .map((row) => {
+      const id = row.id.trim();
+      const params = row.params.trim();
+      return params ? `${id}:${params}` : id;
+    })
+    .join(";");
+}
+
+/** 新增一行滤镜链（默认选中第一个可用滤镜） */
+function addChainRow(): void {
+  chainRows.value.push({ id: filterChainOptions.value[0]?.value ?? "gray", params: "" });
+}
+
+/**
+ * 删除一行滤镜链
+ *
+ * @param index 行下标
+ */
+function removeChainRow(index: number): void {
+  chainRows.value.splice(index, 1);
+}
+
 /** 是否还有任一分组可见（全被过滤掉时给空态提示） */
 const adminAnySectionShown = computed(() => Object.values(adminSectionsShown.value).some(Boolean));
 
+/** 程序化滚动锁：平滑滚动期间暂停滚动反查，避免高亮被中途位置抢回上一分组 */
+let adminNavLock = false;
+
+/** 解锁定时器句柄 */
+let adminNavTimer = 0;
+
 /**
  * 左侧分组点击：滚动右侧内容到对应分区
+ *
+ * <p>修复要点：右侧滚动容器必须自身可滚（CSS 已让 .fs-admin__main 继承弹窗限高），
+ * 否则 scrollTo 是无操作、点击表现为「没反应」；末段（管理员令牌）顶不到视口顶部，
+ * 由 {@link syncAdminGroup} 的触底判定兜底高亮。</p>
  *
  * @param id 分区 id
  */
@@ -1624,13 +1735,30 @@ function scrollToAdminSection(id: string): void {
   const main = adminMainRef.value;
   const el = main?.querySelector<HTMLElement>(`#${id}`);
   // 分区的 offsetTop 以 .fs-admin__main（position:relative）为基准，直接滚动容器即可
-  if (main && el) main.scrollTo({ top: el.offsetTop, behavior: "smooth" });
+  if (!main || !el) return;
+  adminNavLock = true;
+  window.clearTimeout(adminNavTimer);
+  adminNavTimer = window.setTimeout(() => {
+    // 只解锁、不反查：点击语义是「高亮我要看的分组」。末段顶不到顶时会触底，
+    // 若在解锁时再跑一次位置反查，会把高亮抢到「管理员令牌」，与点击意图相反。
+    adminNavLock = false;
+  }, 480);
+  main.scrollTo({ top: el.offsetTop, behavior: "smooth" });
 }
 
 /** 右侧滚动 → 反向高亮左侧分组 */
 function syncAdminGroup(): void {
+  if (adminNavLock) return;
   const main = adminMainRef.value;
   if (!main) return;
+  // 内容不足以滚动（如搜索过滤后只剩一两段）：保留点击选中的高亮，不做位置反查
+  if (main.scrollHeight <= main.clientHeight + 4) return;
+  // 触底：直接高亮最后一段——末段高度不足时永远顶不到容器顶部
+  if (main.scrollTop + main.clientHeight >= main.scrollHeight - 4) {
+    const last = adminGroups[adminGroups.length - 1];
+    if (last) adminGroup.value = last.id;
+    return;
+  }
   let current = "";
   for (const g of adminGroups) {
     const el = main.querySelector<HTMLElement>(`#${g.id}`);
@@ -1705,10 +1833,13 @@ function resetAdminForm(): void {
     showSize: true,
     showTime: true,
     imageFilter: "NONE",
+    openPathGuard: true,
+    imageFilterEnabled: false,
     privateBucket: false,
     privateBuckets: "",
     oneTimeTtlMinutes: "10",
   });
+  chainRows.value = [];
   bucketDraft.value = "";
   ElMessage.success("已恢复默认设置，点「保存并生效」后写入服务端");
 }
@@ -1779,6 +1910,8 @@ async function saveAdminConfig(): Promise<void> {
     await setBucketConfig(bucket.value, tokenValue, {
       ...rest,
       watermark: adminForm.watermark.trim(),
+      // 滤镜链由编辑行序列化（空串 = 清空服务端配置；非法 id 由服务端校验并回显错误）
+      filterChain: serializeChainRows(),
       private: privateBucket,
       privateBuckets: privateBuckets.split(",").map((s) => s.trim()).filter(Boolean),
       ...(oneTimeTtlMs === undefined ? {} : { oneTimeTtlMs }),
@@ -4334,6 +4467,9 @@ onUnmounted(() => {
                   <template #prefix><el-icon><Picture /></el-icon></template>
                   <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
                 </el-select>
+                <p v-if="imageFilterLoadFailed" class="fs-admin__hint fs-admin__hint--warn">
+                  能力接口不可用：滤镜列表仅保留「原图」，未使用前端内置选项。请检查服务连接后重试。
+                </p>
               </div>
 
               <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.access)" class="fs-admin__field">
@@ -4384,15 +4520,86 @@ onUnmounted(() => {
             </div>
           </section>
 
+          <!-- 图片处理 -->
+          <section v-if="adminSectionsShown.image" id="fs-adm-image" class="fs-admin__section">
+            <div class="fs-admin__group">图片处理</div>
+
+            <div v-if="admHitAny(ADMIN_IMAGE_ITEM_TERMS.caps)" class="fs-admin__field fs-admin__field--wide">
+              <span class="fs-admin__label fs-admin__label--field">URL 参数能力</span>
+              <div class="fs-admin__caps">
+                <span v-if="fileCapabilityChips.length === 0" class="fs-admin__cap fs-admin__cap--muted">
+                  {{ capabilitiesFailed ? "能力接口不可用" : "加载中…" }}
+                </span>
+                <span v-for="c in fileCapabilityChips" :key="c" class="fs-admin__cap">{{ c }}</span>
+              </div>
+              <p class="fs-admin__hint">
+                后台 SPI 实际支持的 URL 处理参数（如 ?size=100x100、?grayscale=1），列表来自能力接口，前端不硬编码。
+              </p>
+            </div>
+
+            <div v-if="admHitAny(ADMIN_IMAGE_ITEM_TERMS.chain)" class="fs-admin__field fs-admin__field--wide">
+              <span class="fs-admin__label fs-admin__label--field">全局滤镜链</span>
+              <div class="fs-admin__chainhead">
+                <el-switch v-model="adminForm.imageFilterEnabled" />
+                <span class="fs-admin__chainstate">
+                  {{ adminForm.imageFilterEnabled ? "已启用：每次图片请求按链顺序强制处理" : "未启用" }}
+                </span>
+              </div>
+              <div class="fs-admin__chain">
+                <div v-for="(row, index) in chainRows" :key="index" class="fs-admin__chainrow">
+                  <el-select v-model="row.id" class="fs-admin__chainpick" placeholder="选择滤镜">
+                    <el-option
+                      v-for="opt in filterChainOptions"
+                      :key="opt.value"
+                      :value="opt.value"
+                      :label="opt.label"
+                    />
+                  </el-select>
+                  <el-input
+                    v-model="row.params"
+                    placeholder="参数（如 width=200,height=200；gray 等无参滤镜留空）"
+                    clearable
+                  />
+                  <el-button class="fs-admin__chaindel" text type="danger" @click="removeChainRow(index)">
+                    删除
+                  </el-button>
+                </div>
+                <div class="fs-admin__chainadd">
+                  <el-button text type="primary" @click="addChainRow">＋ 添加滤镜</el-button>
+                  <span class="fs-admin__hint">
+                    滤镜清单来自后台 FileStorageFilterSetting SPI（gray、size、blur…），保存时服务端再次校验。
+                  </span>
+                </div>
+              </div>
+              <p class="fs-admin__hint">
+                链按顺序执行：size/resize 缩放、gray/grayscale 灰度、blur 模糊、sharpen 锐化、bright 亮度、rotate/flip、watermark 文本水印；
+                JDK 管线不支持的滤镜会被跳过并在服务端日志告警。
+              </p>
+              <p v-if="adminForm.imageFilterEnabled && serializeChainRows() === ''" class="fs-admin__hint fs-admin__hint--warn">
+                已启用但链为空：不会产生处理效果，请先添加滤镜。
+              </p>
+            </div>
+          </section>
+
           <!-- 水印与安全 -->
           <section v-if="adminSectionsShown.security" id="fs-adm-security" class="fs-admin__section">
             <div class="fs-admin__group">水印与安全</div>
-            <div class="fs-admin__field">
+            <div v-if="admHitAny(ADMIN_SECURITY_ITEM_TERMS.watermark)" class="fs-admin__field">
               <span class="fs-admin__label fs-admin__label--field">水印文字</span>
               <el-input v-model="adminForm.watermark" placeholder="如：内部资料" clearable>
                 <template #prefix><el-icon><Stamp /></el-icon></template>
               </el-input>
               <p class="fs-admin__hint">叠加到图片/文档预览上；留空表示不加水印。</p>
+            </div>
+            <div v-if="admHitAny(ADMIN_SECURITY_ITEM_TERMS.pathGuard)" class="fs-admin__field">
+              <span class="fs-admin__label fs-admin__label--field">路径穿透防护</span>
+              <div class="fs-admin__chainhead">
+                <el-switch v-model="adminForm.openPathGuard" />
+                <span class="fs-admin__chainstate">{{ adminForm.openPathGuard ? "已开启（默认）" : "已关闭" }}</span>
+              </div>
+              <p class="fs-admin__hint">
+                拦截请求路径与文件动作参数中的 ..、反斜杠、NUL 等穿越特征（返回 400）；对象键级防护始终生效，与此开关无关。
+              </p>
             </div>
           </section>
 
@@ -6259,6 +6466,10 @@ button.fs-stat:hover {
   position: relative;
   flex: 1;
   min-width: 0;
+  /* 关键：让右栏拉伸到 .fs-admin 的限高（min-height/max-height），自身产生滚动条。
+     此前缺 align-self（父级 align-items:flex-start），右栏高度等于内容高度，
+     overflow-y:auto 永不生效 —— 左侧点击 scrollTo 成了无操作，表现为「点击没反应」。 */
+  align-self: stretch;
   overflow-y: auto;
   padding-right: 6px;
 }
@@ -6532,6 +6743,78 @@ button.fs-stat:hover {
   font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
+}
+
+.fs-admin__hint--warn {
+  color: var(--el-color-warning);
+}
+
+/* 图片处理：URL 参数能力徽标 */
+.fs-admin__caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fs-admin__cap {
+  padding: 3px 9px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.fs-admin__cap--muted {
+  color: var(--el-text-color-secondary);
+}
+
+/* 图片处理：全局滤镜链编辑 */
+.fs-admin__chainhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-admin__chainstate {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__chain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.fs-admin__chainrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fs-admin__chainpick {
+  width: 170px;
+  flex-shrink: 0;
+}
+
+.fs-admin__chainrow .el-input {
+  flex: 1;
+}
+
+.fs-admin__chaindel {
+  flex-shrink: 0;
+}
+
+.fs-admin__chainadd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-admin__chainadd .fs-admin__hint {
+  margin: 0;
 }
 
 .fs-admin__unit {
