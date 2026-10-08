@@ -267,6 +267,7 @@ declare module 'vue' {
     Thinking2: typeof import('./../components/icons/Thinking2.vue')['default']
     ThinkingEffortPopover: typeof import('./../components/chat/chat-input/ThinkingEffortPopover.vue')['default']
     TitlebarLeftPanel: typeof import('./../components/TitlebarLeftPanel.vue')['default']
+    ToolCallDetail: typeof import('./../components/chat/message-item/ToolCallDetail.vue')['default']
     TopEnvironment: typeof import('./../components/TopEnvironment.vue')['default']
     TreeNode: typeof import('./../components/knowledge-base/TreeNode.vue')['default']
     TurnItem: typeof import('./../components/chat/TurnItem.vue')['default']

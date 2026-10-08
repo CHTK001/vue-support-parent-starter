@@ -7,21 +7,11 @@
         <span class="dsm-title">InfluxDB 时序数据库管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton :disabled="!source" @click="testConnection">
-          <template #icon><ReIcon name="Connection" /></template>测试连接
-        </ReButton>
-        <ReButton @click="refresh">
-          <template #icon><ReIcon name="Refresh" /></template>刷新
-        </ReButton>
-        <ReButton type="primary" @click="openQuery">
-          <template #icon><ReIcon name="Search" /></template>Flux 查询
-        </ReButton>
-        <ReButton type="primary" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket">
-          <template #icon><ReIcon name="Plus" /></template>新建 Bucket
-        </ReButton>
-        <ReButton :disabled="!source" :loading="writeSaving" @click="openWritePoint">
-          <template #icon><ReIcon name="EditPen" /></template>写入数据
-        </ReButton>
+        <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" @click="testConnection" />
+        <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" @click="refresh" />
+        <ReButton layout="square" type="primary" tip="Flux 查询" icon="Search" data-testid="dsm-btn-query" @click="openQuery" />
+        <ReButton layout="square" type="primary" tip="新建 Bucket" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket" />
+        <ReButton layout="square" tip="写入数据" icon="EditPen" data-testid="dsm-btn-write" :disabled="!source" :loading="writeSaving" @click="openWritePoint" />
       </div>
     </div>
 
@@ -51,6 +41,7 @@
                 class="dsm-tree-node dsm-leaf-node"
                 :class="{ active: activeBucket === bucket.name }"
                 @click="selectBucket(bucket.name)"
+                @contextmenu.prevent="onBucketContextMenu($event, bucket.name)"
               >
                 <ReIcon name="Collection" size="14" class="dsm-tree-icon" />
                 <span class="dsm-tree-label">{{ bucket.name }}</span>
@@ -69,6 +60,7 @@
                 :key="m.name"
                 class="dsm-tree-node dsm-leaf-node"
                 @click="selectMeasurement(m.name)"
+                @contextmenu.prevent="onMeasurementContextMenu($event, m.name)"
               >
                 <ReIcon name="DataLine" size="14" class="dsm-tree-icon" />
                 <span class="dsm-tree-label">{{ m.name }}</span>
@@ -83,8 +75,26 @@
 
       <!-- 右侧内容区 -->
       <div class="dsm-content">
+        <!-- 工作区页签（对齐 jdbc dbm-tabs）：总览 + 多个 Flux 查询页签，可多开、切换保留 -->
+        <div class="dsm-tabs">
+          <div class="dsm-tab" :class="{ active: activeWorkspaceTab === 'overview' }" @click="activeWorkspaceTab = 'overview'">
+            <ReIcon name="Collection" size="12" />
+            <span class="dsm-tab-title">总览</span>
+          </div>
+          <div
+            v-for="t in queryTabs"
+            :key="t.id"
+            class="dsm-tab"
+            :class="{ active: activeWorkspaceTab === t.id }"
+            @click="activeWorkspaceTab = t.id"
+          >
+            <ReIcon name="Edit" size="12" />
+            <span class="dsm-tab-title">{{ t.title }}</span>
+            <ReIcon name="Close" size="12" class="dsm-tab-close" @click.stop="closeQueryTab(t.id)" />
+          </div>
+        </div>
         <!-- 连接信息 -->
-        <div class="dsm-info-card">
+        <div v-if="activeWorkspaceTab === 'overview'" class="dsm-info-card">
           <div class="dsm-info-row">
             <span class="dsm-info-label">数据源</span>
             <span class="dsm-info-value">{{ source ? source.name : "未选择" }}</span>
@@ -111,7 +121,7 @@
         </div>
 
         <!-- 存储桶列表 -->
-        <div class="dsm-section">
+        <div v-if="activeWorkspaceTab === 'overview'" class="dsm-section">
           <div class="dsm-section-title">存储桶列表</div>
           <ReTable
             :data="buckets"
@@ -120,6 +130,8 @@
             stripe
             border
             height="300px"
+            :context-menu="bucketTableMenu"
+            @context-menu-select="onBucketTableMenuSelect"
           >
             <template #action="{ row }">
               <div class="dsm-row-ops">
@@ -131,7 +143,7 @@
         </div>
 
         <!-- 测量列表 -->
-        <div class="dsm-section" v-if="activeBucket">
+        <div class="dsm-section" v-if="activeWorkspaceTab === 'overview' && activeBucket">
           <div class="dsm-section-title">
             {{ activeBucket }} - 测量列表
             <ReButton text @click="loadMeasurements">
@@ -151,7 +163,7 @@
         </div>
 
         <!-- 最近数据 -->
-        <div class="dsm-section" v-if="activeBucket">
+        <div class="dsm-section" v-if="activeWorkspaceTab === 'overview' && activeBucket">
           <div class="dsm-section-title">
             {{ activeBucket }} - 最近数据
             <ReButton text @click="loadBucketData">
@@ -169,48 +181,66 @@
         </div>
 
         <!-- 空状态 -->
-        <div v-if="!activeBucket && buckets.length === 0" class="dsm-empty">
+        <div v-if="activeWorkspaceTab === 'overview' && !activeBucket && buckets.length === 0" class="dsm-empty">
           <ReIcon name="Collection" size="48" class="dsm-empty-icon" />
           <p>{{ gap ? "未读取到真实存储桶" : "暂无存储桶，点击「刷新」重新加载" }}</p>
         </div>
-      </div>
-    </div>
 
-    <!-- Flux 查询弹窗 -->
-    <ReDialog v-model="queryVisible" title="Flux 查询" width="700px">
-      <div class="dsm-query-area">
-        <textarea
-          v-model="fluxQuery"
-          class="dsm-query-editor"
-          placeholder="输入 Flux 查询语句，例如：&#10;from(bucket: &quot;my-bucket&quot;)&#10;  |&gt; range(start: -1h)&#10;  |&gt; filter(fn: (r) =&gt; r._measurement == &quot;cpu&quot;)"
-          rows="8"
-        ></textarea>
-        <div class="dsm-query-result">
-          <div class="dsm-query-header">
-            查询结果
-            <span v-if="queryResult.rows.length > 0" class="dsm-query-meta">
-              {{ queryResult.rows.length }} 行 · {{ queryElapsed }} ms
-              <span v-if="queryTruncated" class="dsm-query-warn">已截断，服务端共 {{ queryTotalRows }} 行，请加 limit 或收窄时间窗</span>
-            </span>
+        <!-- Flux 查询页签内容（对齐 jdbc 查询页：方钮工具栏 + 编辑器 + 结果表；多开、切换保留） -->
+        <div
+          v-for="t in queryTabs"
+          v-show="activeWorkspaceTab === t.id"
+          :key="t.id"
+          class="dsm-query-area"
+        >
+          <div class="dsm-query-toolbar">
+            <ReButton
+              layout="square"
+              type="primary"
+              icon="VideoPlay"
+              tip="执行（Ctrl+Enter）"
+              data-testid="dsm-btn-exec"
+              :loading="t.executing"
+              @click="executeQuery(t)"
+            />
+            <ReButton
+              layout="square"
+              icon="Delete"
+              tip="清空编辑器"
+              data-testid="dsm-btn-clear"
+              @click="t.flux = ''"
+            />
+            <span class="dsm-spacer" />
+            <span class="dsm-query-hint">桶/测量名与 Flux 函数输入即提示</span>
           </div>
-          <ReTable
-            v-if="queryResult.columns.length > 0"
-            :data="queryResult.rows"
-            :columns="queryResult.columns"
-            stripe
-            border
-            height="200px"
+          <DbSqlEditor
+            v-model="t.flux"
+            language="flux"
+            :keywords="fluxKeywords"
+            data-testid="dsm-flux-editor"
+            @execute="executeQuery(t)"
           />
-          <ReEmpty v-else description="执行查询后显示结果" />
+          <div class="dsm-query-result">
+            <div class="dsm-query-header">
+              查询结果
+              <span v-if="t.result.rows.length > 0" class="dsm-query-meta">
+                {{ t.result.rows.length }} 行 · {{ t.elapsed }} ms
+                <span v-if="t.truncated" class="dsm-query-warn">已截断，服务端共 {{ t.totalRows }} 行，请加 limit 或收窄时间窗</span>
+              </span>
+            </div>
+            <ReTable
+              v-if="t.result.columns.length > 0"
+              :data="t.result.rows"
+              :columns="t.result.columns"
+              stripe
+              border
+              height="360px"
+            />
+            <ReEmpty v-else description="执行查询后显示结果" />
+          </div>
         </div>
       </div>
-      <template #footer>
-        <ReButton @click="queryVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="queryExecuting" @click="executeQuery">
-          <template #icon><ReIcon name="VideoPlay" /></template>执行查询
-        </ReButton>
-      </template>
-    </ReDialog>
+    </div>
 
     <!-- 新建 / 编辑 Bucket 弹窗 -->
     <ReDialog v-model="bucketDialogVisible" :title="bucketForm.id ? '编辑保留期' : '新建 Bucket'" width="460px">
@@ -290,6 +320,14 @@
         </ReButton>
       </template>
     </ReDialog>
+    <!-- 桶/测量行右键菜单（第九批统一 zk 模板） -->
+    <DsmContextMenu
+      v-model:visible="sideMenu.visible"
+      :x="sideMenu.x"
+      :y="sideMenu.y"
+      :items="sideMenuItems"
+      @select="onSideMenuSelect"
+    />
   </div>
 </template>
 
@@ -302,8 +340,9 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -316,6 +355,8 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem, ReOption } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
+import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import { extraText } from "../../utils/externalDatasource";
 import {
@@ -353,6 +394,67 @@ const dataLoading = ref(false);
 const testing = ref(false);
 const influxVersion = ref("");
 const buckets = ref<InfluxdbBucket[]>([]);
+
+/** 桶/测量行右键菜单（第九批统一 zk 模板）：侧栏共用一个菜单实例，按 kind 切换条目 */
+const sideMenu = reactive({ visible: false, x: 0, y: 0, kind: "bucket" as "bucket" | "measurement", key: "" });
+const sideMenuItems = computed(() =>
+  sideMenu.kind === "bucket"
+    ? [
+        { key: "view", label: "查看该桶数据", icon: "Collection" },
+        { key: "copy", label: "复制桶名", icon: "Document" },
+        { key: "delete", label: "删除 Bucket", icon: "Delete", danger: true, divided: true },
+      ]
+    : [
+        { key: "view", label: "查看该测量", icon: "TrendCharts" },
+        { key: "copy", label: "复制名称", icon: "Document" },
+      ],
+);
+/** 存储桶表格行右键（ReTable 内置菜单，图标为组件引用） */
+const bucketTableMenu = [
+  { key: "retention", label: "编辑保留期", icon: EditPen },
+  { key: "copy", label: "复制桶名", icon: CopyDocument },
+  { key: "delete", label: "删除 Bucket", icon: Delete, divided: true },
+];
+/** 打开侧栏桶行右键菜单 */
+function onBucketContextMenu(e: MouseEvent, name: string) {
+  Object.assign(sideMenu, { visible: true, x: e.clientX, y: e.clientY, kind: "bucket", key: name });
+}
+/** 打开侧栏测量行右键菜单 */
+function onMeasurementContextMenu(e: MouseEvent, name: string) {
+  Object.assign(sideMenu, { visible: true, x: e.clientX, y: e.clientY, kind: "measurement", key: name });
+}
+/** 复制文本（菜单动作共用） */
+function copyMenuText(text: string, okMsg: string) {
+  navigator.clipboard
+    .writeText(text)
+    .then(() => ElMessage.success(okMsg))
+    .catch(() => ElMessage.error("复制失败"));
+}
+/** 侧栏菜单分发 */
+function onSideMenuSelect(action: string) {
+  const name = sideMenu.key;
+  if (!name) return;
+  if (action === "copy") {
+    copyMenuText(name, "已复制名称");
+    return;
+  }
+  if (action === "view") {
+    if (sideMenu.kind === "bucket") selectBucket(name);
+    else selectMeasurement(name);
+    return;
+  }
+  if (action === "delete" && sideMenu.kind === "bucket") {
+    const row = buckets.value.find(b => b.name === name);
+    if (row) confirmDeleteBucket(row);
+  }
+}
+/** 存储桶表格菜单分发 */
+function onBucketTableMenuSelect(item: { key: string }, ctx: { row: Record<string, unknown> }) {
+  const row = ctx.row as InfluxdbBucket;
+  if (item.key === "retention") openEditRetention(row);
+  else if (item.key === "copy") copyMenuText(String(row.name ?? ""), "已复制桶名");
+  else if (item.key === "delete") confirmDeleteBucket(row);
+}
 const measurements = ref<InfluxdbMeasurement[]>([]);
 
 /**
@@ -391,14 +493,25 @@ const measurementColumns: Column[] = [
 ];
 const dataColumns = computed<Column[]>(() => toColumns(recentData.value));
 
-// Flux 查询
-const queryVisible = ref(false);
-const queryExecuting = ref(false);
-const queryElapsed = ref(0);
-const queryTruncated = ref(false);
-const queryTotalRows = ref(0);
-const fluxQuery = ref("");
-const queryResult = ref<{ columns: Column[]; rows: Record<string, unknown>[] }>({ columns: [], rows: [] });
+// Flux 查询（工作区页签：jdbc「查询 N」式，可多开、各自保留编辑器与结果）
+interface QueryTab {
+  id: string;
+  title: string;
+  flux: string;
+  executing: boolean;
+  elapsed: number;
+  truncated: boolean;
+  totalRows: number;
+  result: { columns: Column[]; rows: Record<string, unknown>[] };
+}
+const queryTabs = ref<QueryTab[]>([]);
+const activeWorkspaceTab = ref<string>("overview");
+let queryTabSeq = 0;
+/** Flux 补全候选：桶名 + 已加载的测量名（输入即提示，随数据异步刷新） */
+const fluxKeywords = computed(() => [
+  ...buckets.value.map(b => b.name),
+  ...measurements.value.map(m => m.name),
+]);
 
 // Org 信息
 const orgInfo = ref<InfluxdbOrg>({ orgId: "", orgName: "" });
@@ -506,14 +619,14 @@ function selectBucket(name: string) {
 }
 
 /**
- * 选中度量，生成对应的 Flux 查询
+ * 选中度量，按该度量新建一个 Flux 查询页签并激活
  * @param name 度量名
  */
 function selectMeasurement(name: string) {
-  fluxQuery.value =
+  openQueryTab(
     `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n` +
-    `  |> filter(fn: (r) => r._measurement == "${name}")\n  |> limit(n: 50)`;
-  queryVisible.value = true;
+    `  |> filter(fn: (r) => r._measurement == "${name}")\n  |> limit(n: 50)`
+  );
 }
 
 /**
@@ -595,7 +708,7 @@ async function loadBucketData() {
   }
   dataLoading.value = true;
   try {
-    const rows = await runFlux(
+    const { rows } = await runFlux(
       `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`
     );
     recentData.value = rows;
@@ -624,46 +737,85 @@ function displayRows(rows: Record<string, unknown>[]): Record<string, unknown>[]
 }
 
 /**
- * 执行 Flux 查询并返回行数据
+ * 执行 Flux 查询并返回行数据与耗时/截断信息
  * @param flux Flux 语句
- * @returns 行数据
+ * @returns 行数据与元信息
  */
-async function runFlux(flux: string): Promise<Record<string, unknown>[]> {
+async function runFlux(flux: string): Promise<{ rows: Record<string, unknown>[]; elapsed: number; truncated: boolean; totalRows: number }> {
   const result = await executeInfluxdbQuery(flux, datasourceId.value);
-  queryElapsed.value = result?.executionTimeMs ?? 0;
-  queryTruncated.value = !!result?.truncated;
-  queryTotalRows.value = result?.totalRows ?? (result?.rows?.length || 0);
-  return displayRows(result?.rows || []);
+  return {
+    rows: displayRows(result?.rows || []),
+    elapsed: result?.executionTimeMs ?? 0,
+    truncated: !!result?.truncated,
+    totalRows: result?.totalRows ?? (result?.rows?.length || 0),
+  };
 }
 
 /**
- * 打开 Flux 查询面板，未编辑过语句时按当前 Bucket 预填
+ * 新建一个 Flux 查询页签并激活（jdbc「查询 N」式，可多开）
+ * @param flux 预填语句，缺省按当前 Bucket 生成
+ * @returns 新页签
+ */
+function openQueryTab(flux?: string): QueryTab {
+  const seq = ++queryTabSeq;
+  const tab: QueryTab = {
+    id: `q${seq}`,
+    title: `查询 ${seq}`,
+    flux: flux ?? (activeBucket.value ? `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)` : ""),
+    executing: false,
+    elapsed: 0,
+    truncated: false,
+    totalRows: 0,
+    result: { columns: [], rows: [] },
+  };
+  queryTabs.value.push(tab);
+  activeWorkspaceTab.value = tab.id;
+  return tab;
+}
+
+/**
+ * 关闭查询页签；关的是当前页签时回退到相邻页签或总览
+ * @param id 页签 ID
+ */
+function closeQueryTab(id: string) {
+  const idx = queryTabs.value.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  queryTabs.value.splice(idx, 1);
+  if (activeWorkspaceTab.value === id) {
+    const next = queryTabs.value[idx] || queryTabs.value[idx - 1];
+    activeWorkspaceTab.value = next ? next.id : "overview";
+  }
+}
+
+/**
+ * 工具栏「Flux 查询」：新建一个查询页签
  */
 function openQuery() {
-  if (!fluxQuery.value && activeBucket.value) {
-    fluxQuery.value = `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`;
-  }
-  queryVisible.value = true;
+  openQueryTab();
 }
 
 /**
- * 执行面板里的 Flux 查询
+ * 执行指定页签里的 Flux 查询
+ * @param tab 查询页签
  */
-async function executeQuery() {
-  if (!fluxQuery.value.trim()) {
+async function executeQuery(tab: QueryTab) {
+  if (!tab.flux.trim()) {
     ElMessage.warning("请输入 Flux 查询语句");
     return;
   }
-  queryExecuting.value = true;
+  tab.executing = true;
   try {
-    const rows = await runFlux(fluxQuery.value);
-    queryResult.value = { columns: toColumns(rows), rows };
+    const res = await runFlux(tab.flux);
+    tab.elapsed = res.elapsed;
+    tab.truncated = res.truncated;
+    tab.totalRows = res.totalRows;
+    tab.result = { columns: toColumns(res.rows), rows: res.rows };
     ready();
   } catch (e) {
-    queryResult.value = { columns: [], rows: [] };
+    tab.result = { columns: [], rows: [] };
     fail(e, "/ms/monitor/influxdb/query");
   } finally {
-    queryExecuting.value = false;
+    tab.executing = false;
   }
 }
 
@@ -1042,6 +1194,21 @@ watch(source, applyConnectionInfo);
   border-radius: 10px;
 }
 
+/* 工作区页签（jdbc dbm-tabs 式）：总览 + Flux 查询 */
+.dsm-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+
+.dsm-tab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-tertiary); border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none; }
+
+.dsm-tab:hover { color: var(--text-primary); }
+
+.dsm-tab.active { color: var(--brand-600); border-bottom-color: var(--brand-500); font-weight: 600; }
+
+.dsm-tab-title { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dsm-tab-close { opacity: 0.5; transition: opacity 0.15s ease; }
+
+.dsm-tab-close:hover { opacity: 1; color: var(--el-color-danger); }
+
 .dsm-content {
   flex: 1;
   display: flex;
@@ -1135,6 +1302,23 @@ watch(source, applyConnectionInfo);
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+}
+
+/* 查询工具栏：对齐 jdbc 查询页（方钮 + 弹性占位 + 提示文案） */
+.dsm-query-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dsm-spacer {
+  flex: 1;
+}
+
+.dsm-query-hint {
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 
 .dsm-query-editor {

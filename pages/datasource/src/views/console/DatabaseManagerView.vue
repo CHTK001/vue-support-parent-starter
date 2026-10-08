@@ -9,7 +9,7 @@
         <span class="dbm-toolbar-hint">右键表 / 库 / 空白处可执行新建、导入导出等操作</span>
       </div>
       <div class="dbm-toolbar-right">
-        <ReButton layout="square" icon="Refresh" tip="刷新连接树" @click="refreshTree" />
+        <ReButton layout="square" icon="Refresh" tip="刷新连接树" data-testid="dsm-btn-refresh" @click="refreshTree" />
         <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
              再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
         <template v-if="!embedded">
@@ -50,9 +50,9 @@
                 <span class="dbm-tree-label">{{ dbLabel(db) }}</span>
               </div>
 
-              <!-- 表 / 视图（挂在本库之下，Navicat 式分组） -->
+              <!-- 表 / 视图（挂在本库之下，Navicat 式平铺：分组计数头「表（N）」第九批按需移除，
+                   表用 Grid 图标、视图用 View 图标即可区分） -->
               <div v-if="expandedNodes.has('db:' + db)" class="dbm-tree-children">
-                <div v-if="tablesOf(db).length" class="dbm-tree-group">表（{{ tablesOf(db).length }}）</div>
                 <template v-for="table in tablesOf(db)" :key="db + '.T.' + table.name">
                   <div
                     class="dbm-tree-node dbm-table-node"
@@ -131,7 +131,6 @@
                   </div>
                 </template>
 
-                <div v-if="viewsOf(db).length" class="dbm-tree-group">视图（{{ viewsOf(db).length }}）</div>
                 <template v-for="view in viewsOf(db)" :key="db + '.V.' + view.name">
                   <div
                     class="dbm-tree-node dbm-table-node"
@@ -165,14 +164,15 @@
 
       <!-- 右侧内容区 -->
       <div class="dbm-content">
-        <!-- 标签页 -->
-        <div class="dbm-tabs" v-if="tabs.length > 0">
+        <!-- 标签页（第九批：支持右键关闭当前/其他/全部） -->
+        <div class="dbm-tabs" v-if="tabs.length > 0" @contextmenu.prevent>
           <div
             v-for="tab in tabs"
             :key="tab.id"
             class="dbm-tab"
             :class="{ active: activeTab === tab.id }"
             @click="selectTab(tab.id)"
+            @contextmenu.prevent="onTabContextMenu($event, tab.id)"
           >
             <ReIcon
               :name="tab.type === 'query' ? 'Edit' : tab.type === 'object'
@@ -503,6 +503,22 @@
               <ReButton layout="square" icon="Download" tip="保存为 SQL 文件" @click="saveSqlFile" />
               <ReButton layout="square" icon="Upload" tip="打开 SQL 文件" @click="openSqlFile" />
               <ReButton layout="square" icon="Clock" tip="查询历史" @click="toggleHistory" />
+              <!-- 第九批 7.2：SQL 模板（保存/回填，落 localStorage）；
+                   text2sql 入口按后端探测结果 available 显示（有整个功能才出现） -->
+              <ReButton layout="square" icon="DocumentAdd" tip="保存为 SQL 模板" @click="saveSqlTemplate" />
+              <ReButton layout="square" icon="Collection" tip="SQL 模板列表" @click="toggleTemplates" />
+              <ReButton
+                v-if="dbAi.available"
+                layout="square"
+                icon="ChatDotSquare"
+                tip="AI 生成 SQL（text2sql）"
+                @click="openAiDialog"
+              />
+              <!-- 第九批 8.1：执行超时可配（默认 120s > 后端语句级 60s，
+                   让后端超时先报、错误信息可读；原全局 10s 会把慢查询在前端掐断） -->
+              <ReSelect v-model="execTimeoutSec" class="dbm-timeout-select" style="width: 96px">
+                <ReOption v-for="opt in execTimeoutOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </ReSelect>
               <ReSelect v-model="activeTabObj.database" placeholder="目标库" style="width: 200px">
                 <ReOption v-for="db in databases" :key="db" :label="dbLabel(db)" :value="db" />
               </ReSelect>
@@ -597,6 +613,30 @@
                 <span class="dbm-history-meta">{{ h.summary }}</span>
               </div>
               <ReEmpty v-if="queryHistory.length === 0" description="还没有执行记录" />
+            </div>
+          </div>
+
+          <!-- SQL 模板（第九批 7.2：保存当前编辑器 SQL，点条目回填；与查询历史互斥显示） -->
+          <div v-if="templatesVisible" class="dbm-history dbm-tpl-panel">
+            <div class="dbm-history-head">
+              <span class="dbm-hint">SQL 模板（{{ sqlTemplates.length }} 个）</span>
+              <span class="dbm-spacer" />
+              <ReButton layout="square" icon="Close" tip="关闭模板列表" @click="templatesVisible = false" />
+            </div>
+            <div class="dbm-history-list">
+              <div
+                v-for="t in sqlTemplates"
+                :key="t.name"
+                class="dbm-history-item dbm-tpl-item"
+                :title="t.sql"
+                @click="loadSqlTemplate(t)"
+              >
+                <span class="dbm-history-time">{{ t.at }}</span>
+                <span class="dbm-tpl-name">{{ t.name }}</span>
+                <span class="dbm-history-sql">{{ t.sql }}</span>
+                <ReIcon name="Delete" size="14" class="dbm-tpl-del" @click.stop="removeSqlTemplate(t.name)" />
+              </div>
+              <ReEmpty v-if="sqlTemplates.length === 0" description="还没有保存的模板" />
             </div>
           </div>
         </div>
@@ -818,6 +858,20 @@
           <div class="dbm-context-divider" />
           <div class="dbm-context-item dbm-danger" @click="deleteDatabase(contextMenu.database)">
             <ReIcon name="Delete" :size="14" />删除数据库
+          </div>
+        </template>
+
+        <!-- 页签右键：关闭当前 / 关闭其他 / 关闭全部 -->
+        <template v-else-if="contextMenu.tabId">
+          <div class="dbm-context-item" @click="closeTab(contextMenu.tabId)">
+            <ReIcon name="Close" :size="14" />关闭当前
+          </div>
+          <div class="dbm-context-item" @click="closeOtherTabs(contextMenu.tabId)">
+            <ReIcon name="CircleClose" :size="14" />关闭其他
+          </div>
+          <div class="dbm-context-divider" />
+          <div class="dbm-context-item dbm-danger" @click="closeAllTabs()">
+            <ReIcon name="Delete" :size="14" />关闭全部
           </div>
         </template>
 
@@ -1607,6 +1661,28 @@
       </template>
     </ReDialog>
 
+    <!-- 第九批 7.2：AI text2sql。生成结果只落预览区，点「应用到编辑器」才写 SQL，绝不自动执行 -->
+    <ReDialog v-model="aiDialogVisible" title="AI 生成 SQL" width="640px">
+      <div class="dbm-ai-body">
+        <ReInput
+          v-model="aiPrompt"
+          type="textarea"
+          :rows="4"
+          placeholder="用自然语言描述要查的数据，例如：查每张表的行数"
+        />
+        <div class="dbm-ai-hint">
+          <span>模型：{{ dbAi.model || '未识别' }}</span>
+          <span v-if="aiContextHint" class="dbm-ai-ctx" :title="aiContextHint">结构上下文：{{ aiContextHint }}</span>
+        </div>
+        <pre v-if="aiSql" class="dbm-ai-sql" data-testid="dbm-ai-sql">{{ aiSql }}</pre>
+      </div>
+      <template #footer>
+        <ReButton :loading="aiBusy" type="primary" @click="generateAiSql">生成 SQL</ReButton>
+        <ReButton v-if="aiSql" type="success" @click="applyAiSql">应用到编辑器</ReButton>
+        <ReButton @click="aiDialogVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
   <!-- 表属性弹窗 -->
   <ReDialog v-model="optionsDialogVisible" title="表属性" width="560px">
     <div class="dbm-create-form">
@@ -1758,6 +1834,9 @@ import {
   type DbErRelation,
   compareDbStructure,
   type DbStructureDiffItem,
+  fetchDbAiStatus,
+  requestDbText2Sql,
+  type DbAiStatus,
 } from "../../api/manageConsoles";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
 import {
@@ -4889,9 +4968,10 @@ function loadQueryHistory(): QueryHistoryItem[] {
 }
 const queryHistory = ref<QueryHistoryItem[]>(loadQueryHistory());
 const historyVisible = ref(false);
-/** 切换历史面板显示 */
+/** 切换历史面板显示（与模板面板互斥，避免两个面板叠在一起） */
 function toggleHistory(): void {
   historyVisible.value = !historyVisible.value;
+  if (historyVisible.value) templatesVisible.value = false;
 }
 /** 记一条执行历史（最新在前；同一段 SQL 不重复记） */
 function pushQueryHistory(sql: string, summary: string): void {
@@ -4923,6 +5003,187 @@ function clearQueryHistory(): void {
     // 同上：清不了就只清内存，提示一次
   }
   ElMessage.success("查询历史已清空");
+}
+
+// ---------- SQL 模板（第九批 7.2：保存/复用常用 SQL，落 localStorage，口径同历史） ----------
+const TPL_KEY = "dbm-sql-templates";
+/** 模板条数上限：单条就是一段 SQL，100 个已远超日常需要 */
+const TPL_LIMIT = 100;
+interface SqlTemplateItem {
+  /** 模板名（用户起的，唯一键；同名覆盖） */
+  name: string;
+  /** 模板 SQL 原文 */
+  sql: string;
+  /** 保存时刻 */
+  at: string;
+}
+/**
+ * 从 localStorage 读模板。
+ *
+ * <p>存储损坏时返回空数组而不是抛错 —— 模板是便利功能，
+ * 不该因为它坏了就打不开查询页签（与历史同一策略）。</p>
+ *
+ * @returns 模板列表
+ */
+function loadSqlTemplates(): SqlTemplateItem[] {
+  try {
+    const raw = localStorage.getItem(TPL_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as SqlTemplateItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+const sqlTemplates = ref<SqlTemplateItem[]>(loadSqlTemplates());
+const templatesVisible = ref(false);
+/** 持久化模板（配额满 / 隐私模式降级为仅本次会话，与历史同策略） */
+function persistSqlTemplates(): void {
+  try {
+    localStorage.setItem(TPL_KEY, JSON.stringify(sqlTemplates.value));
+  } catch {
+    ElMessage.warning("SQL 模板无法持久化（浏览器存储不可用），本次会话内仍可使用");
+  }
+}
+/** 切换模板面板显示（与查询历史互斥） */
+function toggleTemplates(): void {
+  templatesVisible.value = !templatesVisible.value;
+  if (templatesVisible.value) historyVisible.value = false;
+}
+/** 把当前编辑器 SQL 存为模板（同名覆盖，走 prompt 与重命名表同款归一化） */
+async function saveSqlTemplate(): Promise<void> {
+  const tab = activeTabObj.value;
+  const sql = (tab?.sql || "").trim();
+  if (!sql) {
+    ElMessage.warning("当前编辑器没有可保存的 SQL");
+    return;
+  }
+  try {
+    const res = await ElMessageBox.prompt("模板名称（同名将覆盖）", "保存 SQL 模板", {
+      inputValue: "",
+      inputPlaceholder: "如：近 7 天订单汇总",
+      inputValidator: (v: string) => (v && v.trim() ? true : "请输入模板名称"),
+    });
+    const name = promptValue(res);
+    if (!name) return;
+    const at = new Date().toLocaleString("zh-CN", { hour12: false });
+    const rest = sqlTemplates.value.filter(t => t.name !== name);
+    sqlTemplates.value = [{ name, sql, at }, ...rest].slice(0, TPL_LIMIT);
+    persistSqlTemplates();
+    ElMessage.success(`模板「${name}」已保存`);
+  } catch {
+    // 用户取消 prompt（reject 是正常路径，不提示）
+  }
+}
+/** 点模板条目把 SQL 回填编辑器 */
+function loadSqlTemplate(t: SqlTemplateItem): void {
+  const tab = activeTabObj.value;
+  if (!tab) return;
+  tab.sql = t.sql;
+  templatesVisible.value = false;
+  ElMessage.success(`已载入模板「${t.name}」`);
+}
+/** 删一个模板（localStorage 同步清） */
+function removeSqlTemplate(name: string): void {
+  sqlTemplates.value = sqlTemplates.value.filter(t => t.name !== name);
+  persistSqlTemplates();
+}
+
+// ---------- 执行超时（第九批 8.1：可配「会话时间」，原全局 10s 慢查询被前端掐断） ----------
+const EXEC_TIMEOUT_KEY = "dbm-exec-timeout-sec";
+/**
+ * 可选超时（秒）。
+ *
+ * <p>刻意**不含 60s**：后端语句级超时默认正好 60s，前后端同刻竞争会让用户
+ * 看到 axios 的「timeout of 60000ms exceeded」而不是后端可读的超时原因。
+ * 默认 120s（> 60s）保证后端先报、错误信息可读。</p>
+ */
+const execTimeoutOptions = [
+  { label: "10s", value: 10 },
+  { label: "30s", value: 30 },
+  { label: "120s", value: 120 },
+  { label: "300s", value: 300 },
+  { label: "不限", value: 0 },
+];
+function loadExecTimeout(): number {
+  // 注意：Number(localStorage.getItem(..)) 在键缺失时是 Number(null)=0，
+  // 会恰好命中「不限」的 0 —— 默认值就从 120s 悄悄变成不限。必须先判空。
+  const raw = localStorage.getItem(EXEC_TIMEOUT_KEY);
+  if (raw == null || raw === "") return 120;
+  const n = Number(raw);
+  return execTimeoutOptions.some(o => o.value === n) ? n : 120;
+}
+const execTimeoutSec = ref<number>(loadExecTimeout());
+watch(execTimeoutSec, v => {
+  try {
+    localStorage.setItem(EXEC_TIMEOUT_KEY, String(v));
+  } catch {
+    // 存不了就只在本次会话生效，不打扰用户
+  }
+});
+/**
+ * 当前执行超时毫秒。
+ *
+ * @returns {number} >0 为毫秒数；0 = 不限（axios timeout 0 即不设上限）
+ */
+function execTimeoutMs(): number {
+  return execTimeoutSec.value > 0 ? execTimeoutSec.value * 1000 : 0;
+}
+
+// ---------- AI text2sql（第九批 7.2：后端有整个功能才显示入口） ----------
+const dbAi = ref<DbAiStatus>({ available: false });
+const aiDialogVisible = ref(false);
+const aiPrompt = ref("");
+const aiSql = ref("");
+const aiBusy = ref(false);
+/** 结构上下文提示（展示截断，发送时用全量表清单） */
+const aiContextHint = computed(() => {
+  const db = activeTabObj.value?.database || activeDatabase.value;
+  const names = getTablesForDb(db).map(t => t.name);
+  if (!names.length) return "";
+  return `${db}：${names.slice(0, 8).join(", ")}${names.length > 8 ? ` 等 ${names.length} 张表` : ""}`;
+});
+/** 探测 text2sql 可用性（fetchDbAiStatus 内部已兜底，失败即隐藏入口） */
+async function refreshAiStatus(): Promise<void> {
+  dbAi.value = await fetchDbAiStatus();
+}
+function openAiDialog(): void {
+  aiPrompt.value = "";
+  aiSql.value = "";
+  aiDialogVisible.value = true;
+}
+/**
+ * 生成 SQL（不执行）。
+ *
+ * <p>结构上下文取当前库已加载的表清单 —— 后端提示词要求「只用真实存在的
+ * 表与列」，带上表名能显著减少虚构；没加载过表清单时留空由后端自行兜底。</p>
+ */
+async function generateAiSql(): Promise<void> {
+  const text = aiPrompt.value.trim();
+  if (!text) {
+    ElMessage.warning("请先输入查询需求");
+    return;
+  }
+  aiBusy.value = true;
+  try {
+    const db = activeTabObj.value?.database || activeDatabase.value;
+    const names = getTablesForDb(db).map(t => t.name);
+    const context = names.length ? `库 ${db} 的表：${names.join(", ")}` : undefined;
+    const res = await requestDbText2Sql(text, context, currentDatasourceId.value);
+    aiSql.value = res.sql;
+  } catch (e) {
+    ElMessage.error((e as Error)?.message || "AI 生成失败");
+  } finally {
+    aiBusy.value = false;
+  }
+}
+/** 把生成结果填入编辑器（不执行；执行仍由用户 Ctrl+Enter / 点执行） */
+function applyAiSql(): void {
+  const tab = activeTabObj.value;
+  if (!tab || !aiSql.value) return;
+  tab.sql = aiSql.value;
+  aiDialogVisible.value = false;
+  ElMessage.success("已填入编辑器（未执行，Ctrl+Enter 执行）");
 }
 
 // ---------- 查询参数 ----------
@@ -4973,8 +5234,8 @@ async function runWithParams(): Promise<void> {
   await executeScriptWithParams();
 }
 
-// 右键菜单
-const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "" });
+// 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / 全空=侧栏空白）
+const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "" });
 
 // 新建表
 const createTableVisible = ref(false);
@@ -4987,6 +5248,8 @@ const newTableDatabase = ref("");
 // 初始化
 onMounted(async () => {
   await loadDatasources();
+  // text2sql 入口按后端能力显隐（未集成/未配置 = 隐藏），失败已在 API 内兜底
+  void refreshAiStatus();
 });
 
 /**
@@ -5072,6 +5335,8 @@ watch(currentDatasourceId, id => {
   // 换数据源意味着「库.表」这套键全部换了含义，
   // 上一批偏好对这里一张表都不适用，按真实存在的表清理掉。
   void pruneStaleTablePrefs();
+  // 顺带重探 AI 能力（后端可能在会话期间重新部署/配置）
+  void refreshAiStatus();
 });
 
 /**
@@ -5861,7 +6126,7 @@ async function executeQuery() {
   const started = Date.now();
   try {
     const tx = await ensureTx();
-    const result = await executeDbSql(tab.sql, currentDatasourceId.value, queryTargetDatabase(), tx || undefined);
+    const result = await executeDbSql(tab.sql, currentDatasourceId.value, queryTargetDatabase(), tx || undefined, execTimeoutMs());
     Object.assign(queryResult, result);
     resultSets.value = [{ ...result }];
     activeResultSet.value = 0;
@@ -6056,7 +6321,7 @@ async function executeScript(): Promise<void> {
   const started = Date.now();
   try {
     const tx = await ensureTx();
-    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase(), undefined, undefined, tx || undefined);
+    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase(), undefined, undefined, tx || undefined, execTimeoutMs());
     applyBatchResult(batch);
     pushQueryHistory(tab.sql, describeBatch(batch));
   } catch (e) {
@@ -6077,7 +6342,7 @@ async function executeScriptWithParams(): Promise<void> {
   activeResultSet.value = 0;
   const started = Date.now();
   try {
-    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase(), params);
+    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase(), params, undefined, undefined, execTimeoutMs());
     applyBatchResult(batch);
     pushQueryHistory(tab.sql, describeBatch(batch));
   } catch (e) {
@@ -6148,7 +6413,7 @@ async function executeExplain(): Promise<void> {
   const started = Date.now();
   try {
     // 用单条端点而不是批量：EXPLAIN 只需要一条的结果，批量会让页签多出一个壳
-    const result = await executeDbSql(`EXPLAIN ${sql}`, currentDatasourceId.value, queryTargetDatabase());
+    const result = await executeDbSql(`EXPLAIN ${sql}`, currentDatasourceId.value, queryTargetDatabase(), undefined, execTimeoutMs());
     Object.assign(queryResult, result);
     resultSets.value = [{ ...result }];
     activeResultSet.value = 0;
@@ -6222,6 +6487,7 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string) 
   contextMenu.y = e.clientY;
   contextMenu.tableName = tableName;
   contextMenu.database = database;
+  contextMenu.tabId = "";
   activeDatabase.value = database;
   void clampContextMenuPosition();
 }
@@ -6238,6 +6504,7 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
   contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = database;
+  contextMenu.tabId = "";
   activeDatabase.value = database;
   void clampContextMenuPosition();
 }
@@ -6248,7 +6515,44 @@ function onSidebarContextMenu(e: MouseEvent) {
   contextMenu.y = e.clientY;
   contextMenu.tableName = "";
   contextMenu.database = "";
+  contextMenu.tabId = "";
   void clampContextMenuPosition();
+}
+
+/**
+ * 页签右键（第九批 item 7：顶部页签支持右键关闭）
+ * @param e 右键事件
+ * @param tabId 目标页签 ID
+ */
+function onTabContextMenu(e: MouseEvent, tabId: string) {
+  e.stopPropagation();
+  contextMenu.visible = true;
+  contextMenu.x = e.clientX;
+  contextMenu.y = e.clientY;
+  contextMenu.tableName = "";
+  contextMenu.database = "";
+  contextMenu.tabId = tabId;
+  void clampContextMenuPosition();
+}
+
+/**
+ * 关闭除指定页签外的全部页签，并把激活页签切到留下的那一个。
+ * @param tabId 要保留的页签 ID
+ */
+function closeOtherTabs(tabId: string) {
+  const keep = tabs.value.find(t => t.id === tabId);
+  tabs.value = tabs.value.filter(t => t.id === tabId);
+  if (keep) {
+    selectTab(keep.id);
+  } else {
+    activeTab.value = "";
+  }
+}
+
+/** 关闭全部页签（与逐个点 × 的终态一致：内容区回到空态） */
+function closeAllTabs() {
+  tabs.value = [];
+  activeTab.value = "";
 }
 
 function closeContextMenu() {
@@ -6257,10 +6561,10 @@ function closeContextMenu() {
 
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
 function menuEstimatedHeight(): number {
-  // 项数必须与模板三套菜单实际条目同步：表 13 项/3 分割线、库 8 项/2 分割线、空白 5 项/1 分割线。
+  // 项数必须与模板四套菜单实际条目同步：表 13 项/3 分割线、库 8 项/2 分割线、页签 3 项/1 分割线、空白 5 项/1 分割线。
   // 曾硬编码库 5 项（实际 8 项）→ 低估 96px → 靠近窗口底部时菜单溢出视口，
   // 末项「删除数据库」落在屏幕外永远点不到（普通点击超时、force 点到屏外无响应）
-  const count = contextMenu.tableName ? 13 : contextMenu.database ? 8 : 5;
+  const count = contextMenu.tableName ? 13 : contextMenu.database ? 8 : contextMenu.tabId ? 3 : 5;
   const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : 1;
   return count * 32 + dividers * 11 + 10;
 }
@@ -7427,6 +7731,51 @@ onBeforeUnmount(() => {
 }
 .dbm-history-meta { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
 
+/* SQL 模板面板（复用历史面板骨架；四列：时刻 | 名 | SQL 预览 | 删除） */
+.dbm-tpl-item { grid-template-columns: auto auto 1fr auto; align-items: center; }
+.dbm-tpl-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+.dbm-tpl-del {
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.dbm-tpl-item:hover .dbm-tpl-del { color: var(--el-text-color-secondary); }
+.dbm-tpl-del:hover { color: var(--el-color-danger); }
+
+/* AI text2sql 弹窗 */
+.dbm-ai-body { display: flex; flex-direction: column; gap: 10px; }
+.dbm-ai-hint {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-ai-ctx {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.dbm-ai-sql {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow: auto;
+}
+
 /* 参数弹窗里的变量行 */
 .dbm-params-row code { font-family: var(--el-font-family-mono, monospace); }
 
@@ -7780,14 +8129,6 @@ onBeforeUnmount(() => {
 }
 .dbm-sel-count { font-size: 12.5px; color: var(--el-text-color-secondary); }
 
-/* 树分组标题（表 / 视图） */
-.dbm-tree-group {
-  padding: 8px 10px 2px 22px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--el-text-color-placeholder);
-}
 .dbm-view-icon { color: var(--metric-net, var(--el-color-info)); }
 .dbm-cell-box { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .dbm-cell-comment {

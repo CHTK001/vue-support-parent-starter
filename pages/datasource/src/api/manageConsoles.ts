@@ -262,14 +262,84 @@ export const fetchForeignKeys = (tableName: string, datasourceId?: number, datab
  * @param datasourceId 数据源 ID（可选）
  * @param database 目标库名（可选，为空用连接默认库）
  * @param txId 显式事务 ID（可选）；传了就在该事务的连接上执行
+ * @param timeoutMs 请求超时毫秒（可选；第九批 8.1 执行超时可配）。
+ *                  不传用全局默认 10s；传 0 = 不设上限（axios 约定）
  * @returns SQL 执行结果
  */
-export const executeDbSql = (sql: string, datasourceId?: number, database?: string, txId?: string) =>
-  http()
+export const executeDbSql = (sql: string, datasourceId?: number, database?: string, txId?: string, timeoutMs?: number) => {
+  const req = http()
     .post("/ms/monitor/db/execute")
     .noToast(true)
-    .data({ sql, datasourceId, database, txId })
-    .then(r => unwrap<DbQueryResult>(r));
+    .data({ sql, datasourceId, database, txId });
+  return (timeoutMs === undefined ? req : req.timeout(timeoutMs)).then(r => unwrap<DbQueryResult>(r));
+};
+
+// ---------- AI text2sql（第九批 7.2：后端集成 ai-starter 才有这两个端点） ----------
+
+/**
+ * AI text2sql 可用状态（`/db/ai/status` 的 data）
+ *
+ * @author CH
+ * @since 4.0.0.42
+ */
+export interface DbAiStatus {
+  /** 是否可用：存在 AI 实现且探测到可用模型；false 时前端隐藏 text2sql 入口 */
+  available: boolean;
+  /** 解析后的模型名 */
+  model?: string | null;
+  /** 不可用原因（现场排查用） */
+  reason?: string | null;
+}
+
+/**
+ * 探测 text2sql 是否可用。
+ *
+ * <p><b>失败不抛</b>：后端未部署（404）或探测接口异常一律归一为「不可用」，
+ * 让入口保持隐藏 —— 「有整个功能才显示 text2sql」；错误也只留 reason 不弹 toast。</p>
+ *
+ * @returns 可用状态（永不 reject）
+ */
+export const fetchDbAiStatus = async (): Promise<DbAiStatus> => {
+  try {
+    return await http()
+      .get("/ms/monitor/db/ai/status")
+      .noToast(true)
+      .then(r => unwrap<DbAiStatus>(r));
+  } catch (e) {
+    return { available: false, reason: (e as Error)?.message || "AI 状态探测失败（后端未集成或不可达）" };
+  }
+};
+
+/**
+ * text2sql 结果（`/db/ai/text2sql` 的 data）
+ *
+ * @author CH
+ * @since 4.0.0.42
+ */
+export interface DbText2SqlResult {
+  /** 已剥 markdown 围栏的 SQL（可直接落编辑器） */
+  sql: string;
+  /** 实际使用的模型名 */
+  model?: string | null;
+}
+
+/**
+ * 自然语言 → SQL。
+ *
+ * <p>生成**不执行**：结果只回给编辑器，是否执行始终由用户显式点击。</p>
+ *
+ * @param text 查询需求（必填，非空由后端校验）
+ * @param context 结构上下文（可选，如已加载的表清单；注入系统提示词提升准确率）
+ * @param datasourceId 目标数据源 ID（可选）
+ * @returns 生成的 SQL 与模型名
+ */
+export const requestDbText2Sql = (text: string, context?: string, datasourceId?: number) =>
+  http()
+    .post("/ms/monitor/db/ai/text2sql")
+    .noToast(true)
+    .timeout(120_000)
+    .data({ text, context, datasourceId })
+    .then(r => unwrap<DbText2SqlResult>(r));
 
 /** ER 图里的一个表 */
 export interface DbErTable {

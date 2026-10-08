@@ -35,6 +35,13 @@ export type PreviewKind =
   | "audio"
   | "font"
   | "archive"
+  | "geo"
+  | "bpmn"
+  | "tga"
+  | "ofd"
+  | "drawio"
+  | "dicom"
+  | "swf"
   | "unknown";
 
 /** 图片扩展名（浏览器原生可解码） */
@@ -73,10 +80,13 @@ const CODE_EXTS = [
  */
 const OFFICE_EXTS = [
   "xlsx", "xls", "docx", "doc", "pptx", "ppt",
-  // wps：WPS 文字文档。归到 office 只是**语义归类**（isClientRenderable 不看本清单，
-  // 它只认 EXTENSION_TO_RENDERER / LEGACY_BINARY_EXTS），实际走「服务端转 PDF」通道
-  // —— 见 FileStorageManage.vue 的 needsPdfConvert。
-  "wps",
+  // WPS 家族：wps(文字) / wpt(文字模板) / et、ett(表格) / dps(演示)。
+  // 归到 office 只是**语义归类**（isClientRenderable 不看本清单，它只认
+  // EXTENSION_TO_RENDERER / LEGACY_BINARY_EXTS），实际通道由文件内容决定：
+  // wps 走 needsPdfConvert 的服务端转 PDF 链路；et/ett/dps/wpt 目前走服务端。
+  // 若日后要改成「OOXML 型客户端直渲」，需同步改后端 ClientPreviewSupport
+  // 的 LEGACY_BINARY_EXTS + 本文件 officeRenderer.ts 的 LEGACY_BINARY_EXTS。
+  "wps", "wpt", "et", "ett", "dps",
   "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
   "rtf", "epub", "xmind",
   // MOBI 电子书（后端 MobiPreviewProvider：PDB/PalmDOC/HUFF-CDIC 自研解析）
@@ -111,6 +121,8 @@ const MODEL_EXTS = [
   "step", "stp", "iges", "igs", "brep", "shp", "dgn",
   // IFC（Industry Foundation Classes，BIM 模型，STEP/ISO 10303-21 文本）
   "ifc",
+  // 以下 8 类归 PreviewModel3dPanel（three 加载器 / occt-import-js / rhino3dm WASM 前端渲染）
+  "3dm", "3ds", "ply", "dae", "wrl", "3mf", "off",
 ];
 
 /** 邮件扩展名 */
@@ -131,6 +143,32 @@ const AUDIO_EXTS = ["mp3", "wav", "flac", "m4a", "oga", "opus", "weba"];
 /** 字体扩展名 */
 const FONT_EXTS = ["ttf", "otf", "woff", "woff2", "eot"];
 
+/**
+ * 地理数据扩展名（纯前端 Leaflet 面板渲染，不经后端）。
+ *
+ * <p>仅收标准 GeoJSON（RFC 7946）。TopoJSON 结构与之不同（量化坐标 + 拓扑弧段），
+ * Leaflet 不能直接解析，未收录 —— 让它走 `unknown` 兜底，比解析成一张错图诚实。</p>
+ */
+const GEO_EXTS = ["geojson"];
+
+/** BPMN 流程图扩展名（纯前端 bpmn-js 面板渲染，不经后端） */
+const BPMN_EXTS = ["bpmn"];
+
+/** TGA 扩展名（浏览器原生不支持，内置纯 TS 解码器前端解码，见 utils/tga.ts） */
+const TGA_EXTS = ["tga"];
+
+/** OFD 版式文档扩展名（纯前端 ofd.js 面板渲染，不经后端） */
+const OFD_EXTS = ["ofd"];
+
+/** drawio 绘图扩展名（自托管 viewer-static 前端渲染，不经后端） */
+const DRAWIO_EXTS = ["drawio"];
+
+/** DICOM 医疗影像扩展名（cornerstone3D 前端渲染，不经后端） */
+const DICOM_EXTS = ["dcm", "dicom"];
+
+/** SWF 扩展名（Ruffle WASM 模拟器前端播放，不经后端） */
+const SWF_EXTS = ["swf"];
+
 /** 压缩包扩展名（走后端条目列表预览） */
 const ARCHIVE_EXTS = [
   "zip", "zipx", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz",
@@ -148,7 +186,7 @@ const ARCHIVE_EXTS = [
  * <p>目录为经典黄色双层文件夹；txt/json/代码/office/pdf/压缩包等常见类型
  * 均按 Windows 资源管理器风格绘制（白纸折角 + 类型色块/字符）。</p>
  */
-const iconModules = import.meta.glob<string>("./assets/file-icons/*.svg", {
+const iconModules = import.meta.glob<string>("../assets/file-icons/*.svg", {
   query: "?raw",
   import: "default",
   eager: true,
@@ -189,6 +227,13 @@ export function kindOf(name: string): PreviewKind {
   if (CONTACT_EXTS.includes(ext)) return "contact";
   if (ext === "ipynb") return "notebook";
   if (WEBPAGE_EXTS.includes(ext)) return "webpage";
+  if (GEO_EXTS.includes(ext)) return "geo";
+  if (BPMN_EXTS.includes(ext)) return "bpmn";
+  if (TGA_EXTS.includes(ext)) return "tga";
+  if (OFD_EXTS.includes(ext)) return "ofd";
+  if (DRAWIO_EXTS.includes(ext)) return "drawio";
+  if (DICOM_EXTS.includes(ext)) return "dicom";
+  if (SWF_EXTS.includes(ext)) return "swf";
   if (DATA_EXTS.includes(ext)) return "data";
   if (DESIGN_EXTS.includes(ext)) return "design";
   if (MODEL_EXTS.includes(ext)) return "model";
@@ -223,6 +268,7 @@ export function fileSvg(name: string, isDir: boolean): string {
     case "image":
     case "tiff":
     case "heic":
+    case "tga":
       return icon("image");
     case "video":
       return icon("video");
@@ -236,10 +282,10 @@ export function fileSvg(name: string, isDir: boolean): string {
       return icon("font");
     case "office":
       // Excel 表格类 / PPT 演示类 / 电子书 / 其余按 Word 文档
-      if (["xlsx", "xls", "ods", "numbers"].includes(ext)) {
+      if (["xlsx", "xls", "ods", "numbers", "et", "ett"].includes(ext)) {
         return icon("excel");
       }
-      if (["pptx", "ppt", "odp", "pps", "key"].includes(ext)) {
+      if (["pptx", "ppt", "odp", "pps", "key", "dps"].includes(ext)) {
         return icon("ppt");
       }
       if (["epub", "mobi", "azw", "azw3", "xps", "oxps", "djvu", "djv", "pages"].includes(ext)) {
@@ -273,6 +319,24 @@ export function fileSvg(name: string, isDir: boolean): string {
         return icon("cad");
       }
       return icon("model");
+    // 地理数据使用地图 + 定位针图标
+    case "geo":
+      return icon("geo");
+    // BPMN 流程图专属图标
+    case "bpmn":
+      return icon("bpmn");
+    // OFD 版式文档专属图标（红色公文风）
+    case "ofd":
+      return icon("ofd");
+    // drawio 绘图专属图标（三色节点流程图风）
+    case "drawio":
+      return icon("drawio");
+    // DICOM 医疗影像专属图标（胶片风）
+    case "dicom":
+      return icon("dcm");
+    // SWF 动画专属图标（Flash 红色 F 风）
+    case "swf":
+      return icon("swf");
     // HTML 网页 / 数据库 / 设计稿各有专属图标
     case "webpage":
       return icon("webpage");
@@ -336,6 +400,13 @@ export function fileTypeText(name: string): string {
     case "data": return "数据文件";
     case "design": return "设计稿";
     case "model": return "3D / CAD 模型";
+    case "geo": return "地理数据";
+    case "bpmn": return "BPMN 流程图";
+    case "tga": return "TGA 图像";
+    case "ofd": return "OFD 版式文档";
+    case "drawio": return "drawio 绘图";
+    case "dicom": return "DICOM 医疗影像";
+    case "swf": return "SWF 动画";
     case "video": return "视频";
     case "audio": return "音频";
     case "font": return "字体";

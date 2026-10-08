@@ -294,10 +294,16 @@ function buildScene(bytes: Uint8Array): void {
         group.add(new THREE.Mesh(geometry, material));
         triangles += indices.length / 3;
       } finally {
-        geomData.delete();
+        // web-ifc 各版本返回对象的释放方法名不一致（d.ts 声明有 delete，实测某些构建没有），
+        // 缺失时不能抛错，否则整段解析失败
+        if (typeof geomData.delete === "function") {
+          geomData.delete();
+        }
       }
     }
-    mesh.delete();
+    if (typeof mesh.delete === "function") {
+      mesh.delete();
+    }
     // 进度：按已处理构件比例（顶到 99，最后一步再收口）
     progress.value = count > 0 ? Math.min(99, Math.round(((index + 1) / count) * 100)) : 0;
   });

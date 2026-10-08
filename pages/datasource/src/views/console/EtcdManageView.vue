@@ -1,55 +1,83 @@
 <template>
-  <div class="dsm tel-page">
+  <div class="dsm tel-page" :class="{ resizing }">
     <div class="dsm-toolbar">
       <div class="dsm-toolbar-left">
         <ReIcon name="Coin" :size="18" class="dsm-title-icon dsm-etcd-icon" />
         <span class="dsm-title">etcd 配置中心管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton :disabled="!source" @click="openLeaseDialog"><template #icon><ReIcon name="Timer" /></template>新建租约</ReButton>
-        <ReButton type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建键</ReButton>
+        <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
+        <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <ReButton layout="square" tip="新建租约" icon="Timer" data-testid="dsm-btn-lease" :disabled="!source" @click="openLeaseDialog" />
+        <ReButton layout="square" type="primary" tip="新建键" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
     </div>
 
     <MiddlewareGap :text="gap" @retry="refresh" />
 
     <div class="dsm-body">
-      <div class="dsm-sidebar">
-        <div class="dsm-tree">
+      <div class="dsm-sidebar" :style="{ width: leftWidth + 'px' }">
+        <!-- 侧栏搜索（Redis 模板）：按目录/键名过滤当前前缀下的条目 -->
+        <div class="dsm-search-section">
+          <ReInput v-model="prefixFilter" placeholder="过滤目录/键名" clearable @keyup.enter="loadKeys" />
+          <ReButton type="primary" :loading="loading" @click="loadKeys"><template #icon><ReIcon name="Search" size="12" /></template>查询</ReButton>
+        </div>
+        <!-- 计数条 + 快捷刷新（Redis dsm-view-bar） -->
+        <div class="dsm-view-bar">
+          <span class="dsm-view-count">{{ filteredFolders.length }} 目录 · {{ filteredLeaves.length }} 键</span>
+          <span class="dsm-view-spacer" />
+          <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-view-refresh" :loading="loading" @click="loadKeys" />
+        </div>
+        <div class="dsm-key-list">
+          <!-- 顶部细扫描条 = 刷新中（Redis 同形态） -->
+          <div class="dsm-scan-bar" :class="{ 'is-active': loading }" data-testid="dsm-scan-bar"><span /></div>
+          <div class="dsm-tree">
           <div class="dsm-tree-node dsm-tree-root" :class="{ active: activePrefix === '' }" @click="enterPrefix('')">
             <ReIcon name="FolderOpened" size="14" class="dsm-tree-icon" />
             <span class="dsm-tree-label">/ (根)</span>
           </div>
           <div class="dsm-tree-branch">{{ activePrefix || "/" }}</div>
           <div
-            v-for="folder in folders"
+            v-for="folder in filteredFolders"
             :key="'d:' + folder.path"
             class="dsm-tree-node"
             :class="{ active: activePrefix === folder.path }"
             @click="enterPrefix(folder.path)"
           >
-            <ReIcon name="Folder" size="14" class="dsm-tree-icon" />
+            <ReIcon name="Folder" size="14" class="dsm-tree-icon dsm-tree-folder" />
             <span class="dsm-tree-label">{{ folder.name }}</span>
             <span class="dsm-tree-count">{{ folder.count }}</span>
+            <!-- 悬停行操作（Redis 同形态）：复制前缀 / 删除目录下全部键（DeleteRange） -->
+            <div class="dsm-row-actions" data-testid="dsm-row-actions" @click.stop>
+              <ReButton layout="square" size="small" icon="CopyDocument" tip="复制前缀" data-testid="dsm-row-copy" @click="copyKeyText(folder.path)" />
+              <ReButton layout="square" size="small" type="danger" icon="Delete" tip="删除目录下全部键" data-testid="dsm-row-delete-dir" @click="confirmDeletePrefix(folder.path, folder.count)" />
+            </div>
           </div>
           <div
-            v-for="row in leafKeys"
+            v-for="row in filteredLeaves"
             :key="'k:' + row.key"
             class="dsm-tree-node"
             :class="{ active: activeKey === row.key }"
             @click="selectKey(row.key)"
+            @contextmenu.prevent="onKeyContextMenu($event, row.key)"
           >
             <ReIcon name="Document" size="13" class="dsm-tree-icon" />
             <span class="dsm-tree-label">{{ row.name }}</span>
             <span v-if="row.lease" class="dsm-lease-tag" :title="`绑定租约 ${row.lease}`">TTL</span>
+            <div class="dsm-row-actions" data-testid="dsm-row-actions" @click.stop>
+              <ReButton layout="square" size="small" icon="CopyDocument" tip="复制键名" data-testid="dsm-row-copy" @click="copyKeyText(row.key)" />
+              <ReButton layout="square" size="small" icon="Delete" tip="删除键" data-testid="dsm-row-delete" @click="confirmDelete(row.key)" />
+            </div>
           </div>
-          <div v-if="folders.length === 0 && leafKeys.length === 0" class="dsm-tree-node">
-            <span class="dsm-tree-label">{{ gap ? "未读取到键" : "该前缀下暂无键" }}</span>
+          <div v-if="filteredFolders.length === 0 && filteredLeaves.length === 0" class="dsm-tree-node">
+            <span class="dsm-tree-label">{{ gap ? "未读取到键" : (prefixFilter ? "无匹配目录/键" : "该前缀下暂无键") }}</span>
+          </div>
           </div>
         </div>
       </div>
+
+      <!-- 拖拽调节左右宽度（Redis 同形态） -->
+      <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
 
       <div class="dsm-content">
         <div class="dsm-info-card">
@@ -78,7 +106,17 @@
               <ReButton text @click="loadKeys"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
             </div>
           </div>
-          <ReTable :data="keyRows" :columns="keyColumns" :loading="loading" :pagination="false" stripe border height="360px">
+          <ReTable
+            :data="keyRows"
+            :columns="keyColumns"
+            :loading="loading"
+            :pagination="false"
+            stripe
+            border
+            height="360px"
+            :context-menu="keyTableMenu"
+            @context-menu-select="onKeyTableMenuSelect"
+          >
             <template #col-key="{ row }">
               <ReButton text type="primary" @click="selectKey((row as EtcdKeyRow).key)">{{ (row as EtcdKeyRow).key }}</ReButton>
             </template>
@@ -206,6 +244,14 @@
         <ReButton type="primary" :loading="saving" @click="submitLease"><template #icon><ReIcon name="Check" /></template>授予</ReButton>
       </template>
     </ReDialog>
+    <!-- 键行右键菜单（第九批统一 zk 模板） -->
+    <DsmContextMenu
+      v-model:visible="keyMenu.visible"
+      :x="keyMenu.x"
+      :y="keyMenu.y"
+      :items="keyMenuItems"
+      @select="onKeyMenuSelect"
+    />
   </div>
 </template>
 
@@ -224,6 +270,7 @@
  */
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { View, EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -231,6 +278,7 @@ import ReInput from "@repo/ui/re-input";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   deleteEtcdKey,
@@ -266,6 +314,13 @@ const saving = ref(false);
 const activeTab = ref<"keys" | "leases" | "cluster">("keys");
 /** 当前浏览前缀，空串表示根 */
 const activePrefix = ref("");
+/** 侧栏目录/键名本地过滤（etcd 按前缀读取，过滤不改变后端查询范围） */
+const prefixFilter = ref("");
+/** 左侧栏宽度持久化键，避免与 Redis 等控制台冲突 */
+const LEFT_WIDTH_KEY = "etcd-side-width";
+const leftWidth = ref<number>(Math.min(560, Math.max(260, Number(localStorage.getItem(LEFT_WIDTH_KEY)) || 340)));
+/** 是否正在拖拽侧栏分隔条 */
+const resizing = ref(false);
 const activeKey = ref("");
 const keys = ref<EtcdKey[]>([]);
 const detail = ref<EtcdKeyDetail | null>(null);
@@ -325,6 +380,85 @@ const folders = computed(() => {
 
 /** 当前前缀下的叶子键（不再分层） */
 const leafKeys = computed<EtcdKeyRow[]>(() => keyRows.value.filter(r => !stripPrefix(r.key).includes("/")));
+
+/** 目录过滤（过滤词不匹配目录名时隐藏，展示条数由计数条给出） */
+const filteredFolders = computed(() => {
+  const kw = prefixFilter.value.trim().toLowerCase();
+  return kw ? folders.value.filter(f => f.name.toLowerCase().includes(kw)) : folders.value;
+});
+
+/** 叶子键过滤 */
+const filteredLeaves = computed(() => {
+  const kw = prefixFilter.value.trim().toLowerCase();
+  return kw ? leafKeys.value.filter(r => r.name.toLowerCase().includes(kw)) : leafKeys.value;
+});
+
+/**
+ * 开始拖拽侧栏分隔条（Redis 同形态）。
+ *
+ * @param e 鼠标按下事件
+ */
+function startResize(e: MouseEvent): void {
+  resizing.value = true;
+  const startX = e.clientX;
+  const startWidth = leftWidth.value;
+  const onMove = (ev: MouseEvent): void => {
+    leftWidth.value = Math.min(560, Math.max(260, startWidth + ev.clientX - startX));
+  };
+  const onUp = (): void => {
+    resizing.value = false;
+    localStorage.setItem(LEFT_WIDTH_KEY, String(leftWidth.value));
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
+
+/** 键行右键菜单（第九批统一 zk 模板）：侧栏叶子行 + 键列表表格共用一套动作 */
+const keyMenu = reactive({ visible: false, x: 0, y: 0, key: "" });
+const keyMenuItems = [
+  { key: "view", label: "查看详情", icon: "View" },
+  { key: "edit", label: "编辑", icon: "Edit" },
+  { key: "copy", label: "复制键名", icon: "CopyDocument" },
+  { key: "delete", label: "删除", icon: "Delete", danger: true, divided: true },
+];
+/** 表格行右键（ReTable 内置菜单，图标为组件引用） */
+const keyTableMenu = [
+  { key: "view", label: "查看详情", icon: View },
+  { key: "edit", label: "编辑", icon: EditPen },
+  { key: "copy", label: "复制键名", icon: CopyDocument },
+  { key: "delete", label: "删除", icon: Delete, divided: true },
+];
+/** 打开侧栏键行右键菜单 */
+function onKeyContextMenu(e: MouseEvent, key: string) {
+  Object.assign(keyMenu, { visible: true, x: e.clientX, y: e.clientY, key });
+}
+/** 复制文本到剪贴板（菜单动作共用） */
+function copyKeyText(key: string) {
+  navigator.clipboard
+    .writeText(key)
+    .then(() => ElMessage.success("已复制键名"))
+    .catch(() => ElMessage.error("复制失败"));
+}
+/** 侧栏菜单分发 */
+function onKeyMenuSelect(action: string) {
+  const key = keyMenu.key;
+  if (!key) return;
+  if (action === "view") openDetail(key);
+  else if (action === "edit") openEdit(key);
+  else if (action === "copy") copyKeyText(key);
+  else if (action === "delete") confirmDelete(key);
+}
+/** 表格菜单分发 */
+function onKeyTableMenuSelect(item: { key: string }, ctx: { row: Record<string, unknown> }) {
+  const key = String((ctx.row as EtcdKeyRow).key ?? "");
+  if (!key) return;
+  if (item.key === "view") openDetail(key);
+  else if (item.key === "edit") openEdit(key);
+  else if (item.key === "copy") copyKeyText(key);
+  else if (item.key === "delete") confirmDelete(key);
+}
 
 /**
  * 去掉当前前缀，得到剩余部分。
@@ -577,6 +711,35 @@ async function confirmDelete(key: string) {
   }
 }
 
+/**
+ * 确认并删除目录（前缀）下全部键。
+ *
+ * <p>对应 etcd 的 DeleteRange：后端按前缀删除，目录下的键一次性清空；删除目录就是删除
+ * 其前缀下的所有键。删除后若当前选中的键落在该前缀内，需要清掉详情避免展示已删数据。</p>
+ *
+ * @param path 目录绝对前缀
+ * @param count 目录下的键数量（仅用于确认文案）
+ */
+async function confirmDeletePrefix(path: string, count: number) {
+  try {
+    await ElMessageBox.confirm(`确定删除目录 ${path} 下全部 ${count} 个键吗？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    const deleted = await deleteEtcdKey(path, datasourceId.value, true);
+    ElMessage.success(`已删除（${deleted} 个）`);
+    if (activeKey.value.startsWith(path)) {
+      activeKey.value = "";
+      detail.value = null;
+    }
+    ready();
+    await loadKeys();
+  } catch (e) {
+    fail(e, "/ms/monitor/etcd/key?prefix=true");
+  }
+}
+
 /** 打开授予租约弹窗 */
 function openLeaseDialog() {
   leaseTtl.value = "300";
@@ -706,10 +869,27 @@ onMounted(refresh);
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .dsm-etcd-icon { color: #10b981; }
 .dsm-toolbar-right { display: flex; gap: 8px; }
-.dsm-body { display: flex; flex: 1; gap: 16px; overflow: hidden; }
-.dsm-sidebar { width: 280px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow-y: auto; flex-shrink: 0; }
+.dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
+.dsm.resizing { user-select: none; }
+.dsm-split { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize; }
+.dsm-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s; }
+.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-400); }
+.dsm-sidebar { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column; }
+.dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.dsm-search-section > *:first-child { flex: 1; }
+.dsm-view-bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.dsm-view-bar :deep(.rs-btn) { margin: 0; }
+.dsm-view-count { font-size: 12px; color: var(--text-tertiary); }
+.dsm-view-spacer { flex: 1; }
+.dsm-key-list { flex: 1; min-height: 80px; overflow-y: auto; display: flex; flex-direction: column; }
 .dsm-tree { padding: 8px 0; }
-.dsm-tree-node { display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
+/* 键列表顶部扫描条：刷新中走动画（sticky 在滚动容器顶部） */
+.dsm-scan-bar { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+.dsm-scan-bar.is-active { opacity: 1; }
+.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%); }
+.dsm-scan-bar.is-active span { animation: dsm-scan-slide 1s linear infinite; }
+@keyframes dsm-scan-slide { to { transform: translateX(350%); } }
+.dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; background: var(--bg-container); }
 .dsm-tree-node:hover { background: var(--bg-hover); }
 .dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
 .dsm-tree-root { font-weight: 600; }

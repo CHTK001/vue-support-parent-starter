@@ -193,7 +193,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     name: "MonitorPolicy",
     component: () => import("../views/monitor/PolicyTask.vue"),
     meta: {
-      title: "策略任务",
+      title: "策略控制台",
       icon: "Setting",
       showLink: false,
       keepAlive: true,
@@ -240,7 +240,7 @@ export const systemMenus: StaticMenuItem[] = [
       { path: "/monitor/server", name: "MonitorServer", meta: { title: "监控大屏", icon: "Cpu", isVisible: "1" } },
       { path: "/monitor/redis", name: "MonitorRedis", meta: { title: "Redis 监控", icon: "Coin", isVisible: "1" } },
       { path: "/monitor/cache", name: "MonitorCache", meta: { title: "缓存监控", icon: "Histogram", isVisible: "1" } },
-      { path: "/monitor/policy", name: "MonitorPolicy", meta: { title: "策略任务", icon: "Setting", isVisible: "1" } },
+      { path: "/monitor/policy", name: "MonitorPolicy", meta: { title: "策略控制台", icon: "Setting", isVisible: "1" } },
     ],
   },
 ];

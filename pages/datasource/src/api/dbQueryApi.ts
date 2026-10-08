@@ -68,6 +68,8 @@ export interface DbBatchResult {
  * @param params {@code ${name}} 占位符取值（可选）
  * @param stopOnError 遇错是否停止（默认 true）
  * @param txId 显式事务 ID（可选）；传了就在该事务的连接上执行
+ * @param timeoutMs 请求超时毫秒（可选；第九批 8.1 执行超时可配）。
+ *                  不传用全局默认 10s；传 0 = 不设上限（axios 约定）
  * @returns 批量执行结果
  */
 export const executeDbSqlBatch = (
@@ -77,12 +79,14 @@ export const executeDbSqlBatch = (
   params?: Record<string, string>,
   stopOnError?: boolean,
   txId?: string,
-) =>
-  http()
+  timeoutMs?: number,
+) => {
+  const req = http()
     .post("/ms/monitor/db/execute-batch")
     .noToast(true)
-    .data({ sql, datasourceId, database, params, stopOnError, txId })
-    .then(r => unwrap<DbBatchResult>(r));
+    .data({ sql, datasourceId, database, params, stopOnError, txId });
+  return (timeoutMs === undefined ? req : req.timeout(timeoutMs)).then(r => unwrap<DbBatchResult>(r));
+};
 
 /** 事务会话状态 */
 export interface DbTxStatus {

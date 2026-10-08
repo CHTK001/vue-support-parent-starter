@@ -6,10 +6,10 @@
         <span class="dsm-title">Neo4j 图数据库管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton :disabled="!source" @click="openCreateNode"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
-        <ReButton type="primary" :disabled="!source" @click="openCypher"><template #icon><ReIcon name="Search" /></template>Cypher 查询</ReButton>
+        <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
+        <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <ReButton layout="square" tip="新建节点" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" @click="openCreateNode" />
+        <ReButton layout="square" type="primary" tip="Cypher 查询" icon="Search" data-testid="dsm-btn-query" :disabled="!source" @click="openCypher" />
       </div>
     </div>
 
@@ -37,6 +37,7 @@
                 class="dsm-tree-node dsm-leaf-node"
                 :class="{ active: activeLabel === label.name }"
                 @click="selectLabel(label.name)"
+                @contextmenu.prevent="onLabelContextMenu($event, label.name)"
               >
                 <ReIcon name="Circle" size="12" class="dsm-tree-icon" />
                 <span class="dsm-tree-label">{{ label.name }}</span>
@@ -58,6 +59,7 @@
                 :key="rel.type"
                 class="dsm-tree-node dsm-leaf-node"
                 @click="selectRel(rel.type)"
+                @contextmenu.prevent="onRelContextMenu($event, rel.type)"
               >
                 <ReIcon name="Right" size="12" class="dsm-tree-icon" />
                 <span class="dsm-tree-label">{{ rel.type }}</span>
@@ -131,30 +133,24 @@
               <template #icon><ReIcon name="Refresh" /></template>重新采样
             </ReButton>
           </div>
-          <svg v-if="graphEdges.length > 0" class="ngv-svg" viewBox="0 0 800 500">
-            <line
-              v-for="(rel, idx) in graphEdges"
-              :key="'e' + idx"
-              :x1="rel.x1" :y1="rel.y1" :x2="rel.x2" :y2="rel.y2"
-              stroke="var(--border-default, #94a3b8)" stroke-width="1.5" stroke-dasharray="4,2"
-            />
-            <g
-              v-for="node in graphNodes"
-              :key="'n' + node.id"
-              :transform="`translate(${node.x}, ${node.y})`"
-              style="cursor: pointer"
-              @click="showNode(node.id)"
-            >
-              <circle r="28" :fill="node.color" stroke="var(--primary, #3b82f6)" stroke-width="2" />
-              <text text-anchor="middle" dy="4" fill="white" font-size="11" font-weight="600">{{ node.label }}</text>
-            </g>
-            <text
-              v-for="(rel, idx) in graphEdges"
-              :key="'rl' + idx"
-              :x="(rel.x1 + rel.x2) / 2" :y="(rel.y1 + rel.y2) / 2 - 5"
-              text-anchor="middle" font-size="10" fill="var(--text-secondary, #64748b)"
-            >{{ rel.type }}</text>
-          </svg>
+          <ReRelationGraph
+            v-if="graphEdges.length > 0"
+            :nodes="relationNodes"
+            :edges="relationEdges"
+            layout="force"
+            height="450px"
+            highlight="both"
+            :minimap="relationNodes.length > 3"
+            :node-size="44"
+            empty-text="采样图无关系可绘制"
+            data-testid="dsm-neo4j-graph"
+            @node-click="onGraphNodeClick"
+          >
+            <template #hover="{ node }">
+              <div class="ngv-tip-title">{{ node.label }}</div>
+              <div class="ngv-tip-row">id：{{ node.id }}</div>
+            </template>
+          </ReRelationGraph>
           <ReEmpty v-else :description="graphNote || '暂无采样数据'" />
           <div v-if="graphNodes.length > 0" class="ngv-legend">
             <span v-for="(color, label) in nodeColors" :key="label" class="ngv-legend-item">
@@ -179,6 +175,8 @@
             stripe
             border
             height="400px"
+            :context-menu="nodeTableMenu"
+            @context-menu-select="onNodeTableMenuSelect"
             @row-click="onNodeClick"
           />
           <div v-if="!activeLabel" class="ngv-hint">从左侧选择一个节点标签后查询其节点</div>
@@ -197,10 +195,35 @@
       </div>
     </div>
 
-    <!-- Cypher 查询 -->
-    <ReDialog v-model="cypherVisible" title="Cypher 查询" width="700px">
+    <!-- Cypher 查询：编辑器与结果区对齐 jdbc 查询页（工具栏方钮 + 三方编辑器 + 结果表） -->
+    <ReDialog v-model="cypherVisible" title="Cypher 查询" width="760px">
       <div class="dsm-query-area">
-        <textarea v-model="cypherQuery" class="dsm-query-editor" placeholder="输入 Cypher 查询语句，例如：&#10;MATCH (n:Person)&#10;RETURN n.name, n.age&#10;LIMIT 10" rows="6"></textarea>
+        <div class="dsm-query-toolbar">
+          <ReButton
+            layout="square"
+            type="primary"
+            icon="VideoPlay"
+            tip="执行（Ctrl+Enter）"
+            data-testid="dsm-btn-exec"
+            @click="executeCypher"
+          />
+          <ReButton
+            layout="square"
+            icon="Delete"
+            tip="清空编辑器"
+            data-testid="dsm-btn-clear"
+            @click="cypherQuery = ''"
+          />
+          <span class="dsm-spacer" />
+          <span class="dsm-query-hint">标签/关系类型与 Cypher 关键字输入即提示</span>
+        </div>
+        <DbSqlEditor
+          v-model="cypherQuery"
+          language="cypher"
+          :keywords="cypherKeywords"
+          data-testid="dsm-cypher-editor"
+          @execute="executeCypher"
+        />
         <div class="dsm-query-result">
           <div class="dsm-query-header">
             查询结果
@@ -266,6 +289,14 @@
         <ReButton type="primary" :loading="creatingRel" @click="createRel">创建</ReButton>
       </template>
     </ReDialog>
+    <!-- 标签/关系类型行右键菜单（第九批统一 zk 模板） -->
+    <DsmContextMenu
+      v-model:visible="sideMenu.visible"
+      :x="sideMenu.x"
+      :y="sideMenu.y"
+      :items="sideMenuItems"
+      @select="onSideMenuSelect"
+    />
   </div>
 </template>
 
@@ -279,18 +310,22 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { View, CopyDocument } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
 import ReForm from "@repo/ui/re-form";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
+import ReRelationGraph from "@repo/ui/re-relation-graph";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
+import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   executeNeo4jQuery,
@@ -304,22 +339,18 @@ import {
 /** ReTable 列定义 */
 type Column = { prop: string; label: string; width?: number | string; minWidth?: number; slot?: string; fixed?: boolean | "left" | "right"; formatter?: (row: any) => string };
 
-/** 图上节点 */
+/** 图上节点（坐标交由 ReRelationGraph/G6 布局，这里只存业务数据） */
 interface GraphNode {
   id: string;
   label: string;
   color: string;
-  x: number;
-  y: number;
   properties: string;
 }
 
-/** 图上的边 */
+/** 图上的边（端点 id + 关系类型，渲染坐标由图布局引擎计算） */
 interface GraphEdge {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+  from: string;
+  to: string;
   type: string;
 }
 
@@ -361,12 +392,69 @@ const relColumns: Column[] = [
 
 const nodeLoading = ref(false);
 const nodes = ref<Record<string, unknown>[]>([]);
+
+/** 标签/关系类型行右键菜单（第九批统一 zk 模板） */
+const sideMenu = reactive({ visible: false, x: 0, y: 0, kind: "label" as "label" | "rel", key: "" });
+const sideMenuItems = computed(() =>
+  sideMenu.kind === "label"
+    ? [
+        { key: "view", label: "查看该标签节点", icon: "Circle" },
+        { key: "copy", label: "复制标签名", icon: "Document" },
+      ]
+    : [
+        { key: "view", label: "查看该类型关系", icon: "Right" },
+        { key: "copy", label: "复制类型名", icon: "Document" },
+      ],
+);
+/** 节点列表表格行右键（ReTable 内置菜单，图标为组件引用） */
+const nodeTableMenu = [
+  { key: "view", label: "查看节点详情", icon: View },
+  { key: "copy", label: "复制 elementId", icon: CopyDocument },
+];
+/** 打开侧栏标签行右键菜单 */
+function onLabelContextMenu(e: MouseEvent, name: string) {
+  Object.assign(sideMenu, { visible: true, x: e.clientX, y: e.clientY, kind: "label", key: name });
+}
+/** 打开侧栏关系类型行右键菜单 */
+function onRelContextMenu(e: MouseEvent, type: string) {
+  Object.assign(sideMenu, { visible: true, x: e.clientX, y: e.clientY, kind: "rel", key: type });
+}
+/** 侧栏菜单分发 */
+function onSideMenuSelect(action: string) {
+  const key = sideMenu.key;
+  if (!key) return;
+  if (action === "view") {
+    if (sideMenu.kind === "label") selectLabel(key);
+    else selectRel(key);
+  } else if (action === "copy") {
+    navigator.clipboard
+      .writeText(key)
+      .then(() => ElMessage.success("已复制"))
+      .catch(() => ElMessage.error("复制失败"));
+  }
+}
+/** 节点表格菜单分发 */
+function onNodeTableMenuSelect(item: { key: string }, ctx: { row: Record<string, unknown> }) {
+  if (item.key === "view") {
+    onNodeClick(ctx.row);
+  } else if (item.key === "copy") {
+    navigator.clipboard
+      .writeText(String(ctx.row.id ?? ""))
+      .then(() => ElMessage.success("已复制 elementId"))
+      .catch(() => ElMessage.error("复制失败"));
+  }
+}
 const nodeColumns = ref<Column[]>([]);
 
 const cypherVisible = ref(false);
 const cypherRunning = ref(false);
 const cypherElapsed = ref(0);
 const cypherQuery = ref("");
+/** Cypher 补全候选：节点标签 + 关系类型（输入即提示，随数据异步刷新） */
+const cypherKeywords = computed(() => [
+  ...nodeLabels.value.map(l => l.name),
+  ...relTypes.value.map(r => r.type),
+]);
 const queryResult = ref<{ columns: Column[]; rows: Record<string, unknown>[]; truncated: boolean; totalRows: number }>({ columns: [], rows: [], truncated: false, totalRows: 0 });
 
 const nodeDetailVisible = ref(false);
@@ -577,6 +665,38 @@ const graphNodes = ref<GraphNode[]>([]);
 const graphEdges = ref<GraphEdge[]>([]);
 const nodeColors = ref<Record<string, string>>({});
 
+/** ReRelationGraph 节点：标签作分组（同标签高亮），配色沿用图例色板，属性进业务数据 */
+const relationNodes = computed(() =>
+  graphNodes.value.map(n => ({
+    id: n.id,
+    label: n.label,
+    group: n.label,
+    size: 44,
+    style: { fill: n.color, stroke: "#ffffff", lineWidth: 2 },
+    data: { properties: n.properties },
+  })),
+);
+
+/** ReRelationGraph 边：关系类型作边标签，带方向箭头 */
+const relationEdges = computed(() =>
+  graphEdges.value.map((e, idx) => ({
+    id: `e${idx}`,
+    source: e.from,
+    target: e.to,
+    label: e.type,
+    directed: true,
+    group: e.type,
+  })),
+);
+
+/**
+ * 图上节点点击：复用节点详情弹窗（先查节点列表，再退回采样缓存）
+ * @param node 图插件回传的节点（含 id）
+ */
+function onGraphNodeClick(node: { id: string }) {
+  showNode(node.id);
+}
+
 /** 采样用的关系查询，列别名即渲染契约 */
 const GRAPH_CYPHER =
   "MATCH (a)-[r]->(b)\nRETURN elementId(a) AS fromId, labels(a) AS fromLabel, properties(a) AS fromProps, " +
@@ -619,8 +739,6 @@ async function loadGraph() {
             id: key,
             label,
             color: "",
-            x: 0,
-            y: 0,
             properties: String(row[propsKey] ?? "{}"),
           });
         }
@@ -630,20 +748,17 @@ async function loadGraph() {
     const labels = [...new Set(list.map(n => n.label))];
     const colorMap: Record<string, string> = {};
     labels.forEach((label, idx) => (colorMap[label] = PALETTE[idx % PALETTE.length]));
-    const centerX = 400;
-    const centerY = 250;
-    const radius = Math.min(190, 40 + list.length * 12);
-    list.forEach((node, idx) => {
-      const angle = (idx / list.length) * Math.PI * 2 - Math.PI / 2;
-      node.x = centerX + radius * Math.cos(angle);
-      node.y = centerY + radius * Math.sin(angle);
+    list.forEach(node => {
       node.color = colorMap[node.label] || PALETTE[PALETTE.length - 1];
     });
+    const inSample = new Set(list.map(n => n.id));
     const edges: GraphEdge[] = [];
     for (const row of rows) {
-      const from = list.find(n => n.id === String(row.fromId));
-      const to = list.find(n => n.id === String(row.toId));
-      if (from && to) edges.push({ x1: from.x, y1: from.y, x2: to.x, y2: to.y, type: String(row.rel ?? "") });
+      const from = String(row.fromId);
+      const to = String(row.toId);
+      if (inSample.has(from) && inSample.has(to)) {
+        edges.push({ from, to, type: String(row.rel ?? "") });
+      }
     }
     graphNodes.value = list;
     graphEdges.value = edges;
@@ -899,11 +1014,9 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--text-secondary, #64748b);
 }
-.ngv-svg {
-  width: 100%;
-  height: 450px;
-  background: var(--bg-subtle, #f8fafc);
-}
+/* 图节点悬停提示（ReRelationGraph #hover 插槽） */
+.ngv-tip-title { font-weight: 600; margin-bottom: 2px; }
+.ngv-tip-row { font-size: 12px; opacity: 0.85; }
 .ngv-legend {
   display: flex;
   flex-wrap: wrap;
@@ -945,6 +1058,10 @@ onMounted(async () => {
   margin-top: 8px;
 }
 .dsm-query-area { display: flex; flex-direction: column; gap: 12px; }
+/* 查询工具栏：对齐 jdbc 查询页（方钮 + 弹性占位 + 提示文案） */
+.dsm-query-toolbar { display: flex; align-items: center; gap: 8px; }
+.dsm-spacer { flex: 1; }
+.dsm-query-hint { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary)); }
 .dsm-query-editor { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
 .dsm-query-editor:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
 .dsm-query-result { border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; }

@@ -18,6 +18,7 @@
             :class="{ active: f.path === currentPath }"
             :title="f.path"
             @click="openFile(f.path)"
+            @contextmenu.prevent="onFileContextMenu($event, f.path)"
           >
             <ReIcon name="Document" :size="13" />
             <span class="ngc-filename">{{ shortName(f.path) }}</span>
@@ -226,12 +227,21 @@
         </ReButton>
       </template>
     </ReDialog>
+    <!-- 配置文件行右键菜单（第九批统一 zk 模板） -->
+    <DsmContextMenu
+      v-model:visible="fileMenu.visible"
+      :x="fileMenu.x"
+      :y="fileMenu.y"
+      :items="fileMenuItems"
+      @select="onFileMenuSelect"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import DsmContextMenu from "./DsmContextMenu.vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -281,6 +291,29 @@ const showHelp = computed(() => props.newbie);
 const files = ref<NginxConfigFile[]>([]);
 const filesLoading = ref(false);
 const currentPath = ref("");
+
+/** 配置文件行右键菜单（第九批统一 zk 模板） */
+const fileMenu = reactive({ visible: false, x: 0, y: 0, path: "" });
+const fileMenuItems = [
+  { key: "open", label: "打开文件", icon: "View" },
+  { key: "copy", label: "复制路径", icon: "CopyDocument" },
+];
+/** 打开配置文件行右键菜单 */
+function onFileContextMenu(e: MouseEvent, path: string) {
+  Object.assign(fileMenu, { visible: true, x: e.clientX, y: e.clientY, path });
+}
+/** 菜单动作分发 */
+function onFileMenuSelect(action: string) {
+  const path = fileMenu.path;
+  if (!path) return;
+  if (action === "open") openFile(path);
+  else if (action === "copy") {
+    navigator.clipboard
+      .writeText(path)
+      .then(() => ElMessage.success("已复制路径"))
+      .catch(() => ElMessage.error("复制失败"));
+  }
+}
 const content = ref("");
 const parsed = ref<NginxConfigParse | null>(null);
 const metas = ref<Record<string, NginxDirectiveMeta>>({});
@@ -689,9 +722,9 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   display: flex;
   flex-direction: column;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
   overflow: hidden;
 }
 
@@ -709,12 +742,12 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 .ngc-side-head {
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 8px;
 }
 
@@ -730,15 +763,15 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   padding: 7px 10px;
   font-size: 12px;
   cursor: pointer;
-  border-radius: var(--el-border-radius-base, 6px);
+  border-radius: 6px;
 
   &:hover {
-    background: var(--el-fill-color-light);
+    background: var(--bg-fill);
   }
 
   &.active {
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
+    background: var(--brand-50);
+    color: var(--brand-500);
     font-weight: 600;
   }
 }
@@ -767,7 +800,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 .ngc-filedir {
   margin-left: auto;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -782,9 +815,9 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   display: flex;
   flex-direction: column;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
   overflow: hidden;
 }
 
@@ -794,12 +827,12 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .ngc-path {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -828,8 +861,8 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 /* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
    覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
 .ngc-skel :deep(.el-skeleton) {
-  --el-skeleton-animation-bg-color: var(--el-fill-color);
-  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
 }
 
 .ngc-skel :deep(.el-skeleton__item) {
@@ -842,15 +875,15 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   margin-top: 10px;
   display: flex;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base, 6px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
 }
 
 .ngc-gutter {
   flex: none;
   padding: 12px 6px 12px 10px;
-  background: var(--el-fill-color-light);
-  border-right: 1px solid var(--el-border-color-lighter);
+  background: var(--bg-fill);
+  border-right: 1px solid var(--border-subtle);
   overflow: hidden;
   user-select: none;
 }
@@ -860,7 +893,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   font-size: 12.5px;
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   text-align: right;
 }
 
@@ -874,8 +907,8 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.6;
-  background: var(--el-bg-color);
-  color: var(--el-text-color-primary);
+  background: var(--bg-container);
+  color: var(--text-primary);
 }
 
 /* 表单模式 */
@@ -894,7 +927,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   gap: 12px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--border-subtle);
   margin-top: 10px;
 }
 
@@ -907,7 +940,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 
 .ngc-opt-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-right: 8px;
 }
 
@@ -929,17 +962,17 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  border-radius: var(--el-border-radius-base, 6px);
+  border-radius: 6px;
   font-size: 13px;
 
   &.is-ok {
-    color: var(--el-color-success);
-    background: var(--el-color-success-light-9);
+    color: var(--status-success);
+    background: color-mix(in srgb, var(--status-success) 12%, transparent);
   }
 
   &.is-info {
-    color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+    color: var(--brand-500);
+    background: var(--brand-50);
   }
 }
 
@@ -948,12 +981,12 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   padding-left: 20px;
   font-size: 12.5px;
   line-height: 1.8;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
 .ngc-block-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
@@ -962,9 +995,9 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   padding: 10px 12px;
   max-height: 260px;
   overflow: auto;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.55;
@@ -973,7 +1006,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   word-break: break-all;
 
   &.is-err {
-    color: var(--el-color-danger);
+    color: var(--status-error);
   }
 }
 
@@ -981,13 +1014,13 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   display: block;
 
   &.add {
-    color: var(--el-color-success);
-    background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+    color: var(--status-success);
+    background: color-mix(in srgb, var(--status-success) 10%, transparent);
   }
 
   &.del {
-    color: var(--el-color-danger);
-    background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+    color: var(--status-error);
+    background: color-mix(in srgb, var(--status-error) 10%, transparent);
   }
 }
 
@@ -995,11 +1028,11 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   margin-top: 6px;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngc-addmeta-eg {
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 </style>

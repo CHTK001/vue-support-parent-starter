@@ -138,27 +138,28 @@ onBeforeUnmount(() => {
 .re-ctx-menu {
   position: fixed;
   z-index: 9999;
-  min-width: 160px;
+  min-width: 180px;
   max-width: 280px;
-  padding: 4px 0;
-  background: var(--el-bg-color-overlay, #fff);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: var(--rm-radius, 8px);
-  box-shadow: var(--rm-shadow-md, 0 10px 15px -3px rgba(0,0,0,0.08));
+  padding: 4px;
+  background: var(--bg-container, var(--el-bg-color-overlay, #fff));
+  border: 1px solid var(--border-default, var(--el-border-color-lighter, #ebeef5));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
   font-size: 13px;
-  color: var(--el-text-color-primary, #303133);
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
 }
 .re-ctx-menu__item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 12px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
 }
 .re-ctx-menu__item:hover:not(.re-ctx-menu__item--disabled) {
-  background: var(--el-fill-color, #f5f7fa);
+  background: var(--bg-hover, var(--el-fill-color, #f5f7fa));
 }
 .re-ctx-menu__item--disabled {
   color: var(--el-text-color-disabled, #c0c4cc);

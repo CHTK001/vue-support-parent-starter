@@ -1,22 +1,36 @@
 <template>
-  <div class="dsm tel-page">
+  <div class="dsm tel-page" :class="{ resizing }">
     <div class="dsm-toolbar">
       <div class="dsm-toolbar-left">
         <ReIcon name="Share" :size="18" class="dsm-title-icon dsm-zk-icon" />
         <span class="dsm-title">ZooKeeper 注册中心管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton :disabled="!source" :loading="clusterLoading" @click="openCluster"><template #icon><ReIcon name="Monitor" /></template>集群信息</ReButton>
-        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
+        <ReButton layout="square" tip="集群信息" icon="Monitor" data-testid="dsm-btn-cluster" :disabled="!source" :loading="clusterLoading" @click="openCluster" />
+        <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
+        <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <ReButton layout="square" type="primary" tip="新建节点" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
     </div>
 
     <MiddlewareGap :text="gap" @retry="refresh" />
 
     <div class="dsm-body">
-      <div class="dsm-sidebar">
+      <div class="dsm-sidebar" :style="{ width: leftWidth + 'px' }">
+        <!-- 侧栏搜索（Redis 模板）：过滤已加载节点路径，回车或查询触发刷新 -->
+        <div class="dsm-search-section">
+          <ReInput v-model="nodeFilter" placeholder="过滤节点路径" @keyup.enter="refresh" />
+          <ReButton type="primary" :loading="loading" @click="refresh"><template #icon><ReIcon name="Search" size="12" /></template>查询</ReButton>
+        </div>
+        <!-- 计数条 + 快捷刷新 -->
+        <div class="dsm-view-bar">
+          <span class="dsm-view-count">{{ filteredTreeNodes.length }} 节点</span>
+          <span class="dsm-view-spacer" />
+          <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-view-refresh" :loading="loading" @click="refresh" />
+        </div>
+        <div class="dsm-key-list">
+          <!-- 顶部细扫描条 = 刷新中 -->
+          <div class="dsm-scan-bar" :class="{ 'is-active': loading }" data-testid="dsm-scan-bar"><span /></div>
         <div class="dsm-tree">
           <div
             class="dsm-tree-node dsm-tree-root"
@@ -30,7 +44,7 @@
           </div>
           <div v-if="rootExpanded" class="dsm-tree-children dsm-tree-flat">
             <div
-              v-for="node in treeNodes"
+              v-for="node in filteredTreeNodes"
               :key="node.path"
               class="dsm-tree-node"
               :class="{ active: activePath === node.path }"
@@ -47,13 +61,22 @@
               <span class="dsm-tree-label">{{ node.name }}</span>
               <span v-if="node.childCount > 0" class="dsm-tree-count">{{ node.childCount }}</span>
               <span v-if="node.ephemeral" class="dsm-ephemeral-tag">E</span>
+              <!-- 悬停行操作（Redis 同形态）；删除/编辑等完整能力仍在右键菜单 -->
+              <span class="dsm-row-actions" data-testid="dsm-row-actions" @click.stop>
+                <ReButton layout="square" size="small" icon="CopyDocument" tip="复制路径" data-testid="dsm-row-copy" @click="copyRowPath(node.path)" />
+                <ReButton layout="square" size="small" type="danger" icon="Delete" tip="删除节点" data-testid="dsm-row-delete" @click="deleteNode(node.path)" />
+              </span>
             </div>
-            <div v-if="treeNodes.length === 0" class="dsm-tree-node">
-              <span class="dsm-tree-label">{{ gap ? "未读取到子节点" : "根节点下暂无子节点" }}</span>
+            <div v-if="filteredTreeNodes.length === 0" class="dsm-tree-node">
+              <span class="dsm-tree-label">{{ gap ? "未读取到子节点" : nodeFilter ? "无匹配节点" : "根节点下暂无子节点" }}</span>
             </div>
           </div>
         </div>
+        </div>
       </div>
+
+      <!-- 拖拽调节左右宽度（Redis 同形态） -->
+      <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
 
       <div class="dsm-content">
         <div class="dsm-info-card">
@@ -336,8 +359,43 @@ const { datasourceId, source, gap, bind, fail, ready } = useMiddlewareSource();
 
 const rootExpanded = ref(false);
 const treeNodes = ref<FlatNode[]>([]);
+/** 侧栏过滤词：只过滤已加载的扁平节点，不影响服务端读取 */
+const nodeFilter = ref("");
+const filteredTreeNodes = computed(() => {
+  const kw = nodeFilter.value.trim().toLowerCase();
+  if (!kw) return treeNodes.value;
+  return treeNodes.value.filter(n => n.path.toLowerCase().includes(kw) || n.name.toLowerCase().includes(kw));
+});
 const activePath = ref("");
 const loading = ref(false);
+/** 侧栏宽度持久化键（zk 独立于 redis/nacos 等控制台） */
+const LEFT_WIDTH_KEY = "zk-side-width";
+/** 侧栏宽度（拖拽调节，记录到 localStorage） */
+const leftWidth = ref<number>(Math.min(560, Math.max(260, Number(localStorage.getItem(LEFT_WIDTH_KEY)) || 340)));
+/** 是否正在拖拽（拖拽中禁用文本选择） */
+const resizing = ref(false);
+
+/**
+ * 开始拖拽调节左侧宽度（Redis 同形态）。
+ *
+ * @param e 鼠标按下事件
+ */
+function startResize(e: MouseEvent): void {
+  resizing.value = true;
+  const startX = e.clientX;
+  const startWidth = leftWidth.value;
+  const onMove = (ev: MouseEvent): void => {
+    leftWidth.value = Math.min(560, Math.max(260, startWidth + ev.clientX - startX));
+  };
+  const onUp = (): void => {
+    resizing.value = false;
+    localStorage.setItem(LEFT_WIDTH_KEY, String(leftWidth.value));
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
 const testing = ref(false);
 const nodeLoading = ref(false);
 const childLoading = ref(false);
@@ -879,6 +937,15 @@ function closeMenu() {
 }
 
 /**
+ * 行悬停「复制路径」：复用右键菜单 copy 分发逻辑
+ * @param path 节点路径
+ */
+function copyRowPath(path: string) {
+  Object.assign(nodeContextMenu, { path });
+  menuSelect("copy");
+}
+
+/**
  * 菜单动作分发
  * @param action 动作键
  */
@@ -926,12 +993,49 @@ onMounted(async () => {
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .dsm-zk-icon { color: #fb923c; }
 .dsm-toolbar-right { display: flex; gap: 8px; }
-.dsm-body { display: flex; flex: 1; gap: 16px; overflow: hidden; }
-.dsm-sidebar { width: 280px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow-y: auto; flex-shrink: 0; }
+.dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
+.dsm.resizing { user-select: none; }
+.dsm-split { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize; }
+.dsm-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s; }
+.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-400); }
+.dsm-sidebar {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-search-section > *:first-child { flex: 1; }
+.dsm-view-bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-view-count { font-size: 12px; color: var(--text-tertiary); }
+.dsm-view-spacer { flex: 1; }
+.dsm-key-list { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto; }
+.dsm-scan-bar { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s; }
+.dsm-scan-bar.is-active { opacity: 1; }
+.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%); }
+.dsm-scan-bar.is-active span { animation: dsm-scan-slide 1s linear infinite; }
+@keyframes dsm-scan-slide { to { transform: translateX(350%); } }
 .dsm-tree { padding: 8px 0; }
-.dsm-tree-node { display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
+.dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; }
 .dsm-tree-node:hover { background: var(--bg-hover); }
 .dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
+/* 行操作：悬停出现的方形图标条（与 Redis .dsm-row-actions 同形态） */
+.dsm-row-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding-left: 18px;
+  background: inherit;
+}
+.dsm-tree-node:hover .dsm-row-actions { display: flex; }
+.dsm-row-actions :deep(.rs-btn) { margin: 0; }
 .dsm-tree-root { font-weight: 600; }
 .dsm-tree-children { padding-left: 16px; }
 .dsm-tree-flat { padding-left: 4px; }

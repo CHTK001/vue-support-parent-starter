@@ -1,44 +1,60 @@
 <template>
   <div class="ngx-lifecycle">
-    <ReButton  :loading="busy === 'test'" @click="run('test')">
-      <template #icon><ReIcon name="CircleCheck" :size="14" /></template>
-      校验配置
-    </ReButton>
+    <!-- 统一风格：方形图标按钮 + tooltip（aria-label=操作名，验收脚本据此断言） -->
+    <ReButton
+      layout="square"
+      icon="CircleCheck"
+      tip="校验配置"
+      data-testid="ngx-btn-test"
+      :loading="busy === 'test'"
+      @click="run('test')"
+    />
 
     <!-- 生命周期按钮按真实状态显示：停止中的实例不该出现「重载/重启/停止」，
          运行中的实例不该出现「启动」。原来 5 个按钮无条件全渲染，且
          isRunning 算了却没用上。UNKNOWN 视为「未运行」，保留「启动」兜底。 -->
     <ReButton
       v-if="canReload"
-      
+      layout="square"
       type="primary"
+      icon="Refresh"
+      tip="重载（不中断连接）"
+      data-testid="ngx-btn-reload"
       :loading="busy === 'reload'"
       @click="run('reload')"
-    >
-      <template #icon><ReIcon name="Refresh" :size="14" /></template>
-      重载
-    </ReButton>
+    />
 
-    <ReButton v-if="canRestart"  :loading="busy === 'restart'" @click="confirmThen('restart')">
-      <template #icon><ReIcon name="RefreshRight" :size="14" /></template>
-      重启
-    </ReButton>
+    <ReButton
+      v-if="canRestart"
+      layout="square"
+      icon="RefreshRight"
+      tip="重启（会中断连接）"
+      data-testid="ngx-btn-restart"
+      :loading="busy === 'restart'"
+      @click="confirmThen('restart')"
+    />
 
-    <ReButton v-if="canStart"  :loading="busy === 'start'" @click="run('start')">
-      <template #icon><ReIcon name="VideoPlay" :size="14" /></template>
-      启动
-    </ReButton>
+    <ReButton
+      v-if="canStart"
+      layout="square"
+      type="primary"
+      icon="VideoPlay"
+      tip="启动"
+      data-testid="ngx-btn-start"
+      :loading="busy === 'start'"
+      @click="run('start')"
+    />
 
     <ReButton
       v-if="canStop"
-      
+      layout="square"
       type="danger"
+      icon="VideoPause"
+      tip="停止（站点将不可访问）"
+      data-testid="ngx-btn-stop"
       :loading="busy === 'stop'"
       @click="confirmThen('stop')"
-    >
-      <template #icon><ReIcon name="VideoPause" :size="14" /></template>
-      停止
-    </ReButton>
+    />
 
     <span class="ngx-tip" :title="tipText">
       <ReIcon name="InfoFilled" :size="12" />
@@ -284,6 +300,7 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+/* 统一风格：koi 令牌；作为顶栏操作区的一部分，与其它控制台的方形图标按钮同排 */
 .ngx-lifecycle {
   display: flex;
   align-items: center;
@@ -291,12 +308,20 @@ defineExpose({
   flex-wrap: wrap;
 }
 
+.ngx-lifecycle :deep(.rs-btn) {
+  margin: 0;
+}
+
 .ngx-tip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary);
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 告警独占一行：.ngx-lifecycle 是 flex 容器，不换行会被挤到按钮右边，
@@ -322,18 +347,18 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  border-radius: var(--el-border-radius-base, 6px);
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
 
   &.is-ok {
-    color: var(--el-color-success);
-    background: var(--el-color-success-light-9);
+    color: var(--status-success);
+    background: color-mix(in srgb, var(--status-success) 12%, transparent);
   }
 
   &.is-err {
-    color: var(--el-color-danger);
-    background: var(--el-color-danger-light-9);
+    color: var(--status-error);
+    background: color-mix(in srgb, var(--status-error) 12%, transparent);
   }
 }
 
@@ -345,7 +370,7 @@ defineExpose({
 
 .ngx-result-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-result-pre {
@@ -353,9 +378,9 @@ defineExpose({
   padding: 10px 12px;
   max-height: 240px;
   overflow: auto;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.55;
@@ -364,7 +389,7 @@ defineExpose({
   word-break: break-all;
 
   &.is-err {
-    color: var(--el-color-danger);
+    color: var(--status-error);
   }
 }
 </style>

@@ -291,21 +291,21 @@ defineExpose({ load, templates });
 
 .ngt-card {
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
   cursor: pointer;
-  transition: border-color var(--el-transition-duration, 0.15s) ease,
-    background-color var(--el-transition-duration, 0.15s) ease;
+  transition: border-color 0.15s ease,
+    background-color 0.15s ease;
 
   &:hover {
-    border-color: var(--el-color-primary-light-5);
-    background: var(--el-color-primary-light-9);
+    border-color: color-mix(in srgb, var(--brand-500) 35%, transparent);
+    background: var(--brand-50);
   }
 
   &.active {
-    border-color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+    border-color: var(--brand-500);
+    background: var(--brand-50);
   }
 }
 
@@ -323,20 +323,20 @@ defineExpose({ load, templates });
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 .ngt-summary {
   margin-top: 6px;
   font-size: 12.5px;
   line-height: 1.6;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
 .ngt-scene {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 /* 向导 */
@@ -351,7 +351,7 @@ defineExpose({ load, templates });
   display: flex;
   gap: 18px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .ngw-step {
@@ -359,15 +359,15 @@ defineExpose({ load, templates });
   align-items: center;
   gap: 6px;
   font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 
   &.active {
-    color: var(--el-color-primary);
+    color: var(--brand-500);
     font-weight: 600;
   }
 
   &.done {
-    color: var(--el-color-success);
+    color: var(--status-success);
   }
 }
 
@@ -395,13 +395,13 @@ defineExpose({ load, templates });
 
 .ngw-intro {
   font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngw-hint {
   font-size: 12px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 
@@ -410,9 +410,9 @@ defineExpose({ load, templates });
   padding: 12px;
   max-height: 300px;
   overflow: auto;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
   font-size: 12px;
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
@@ -425,10 +425,10 @@ defineExpose({ load, templates });
   padding-left: 18px;
   font-size: 12px;
   line-height: 1.8;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 
   li::marker {
-    color: var(--el-color-primary);
+    color: var(--brand-500);
   }
 }
 </style>

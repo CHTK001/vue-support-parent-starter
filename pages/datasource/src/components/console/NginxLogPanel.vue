@@ -43,14 +43,8 @@
         <span v-else-if="auto" class="ngl-state is-ok">每 {{ Math.round(intervalMs / 1000) }} 秒刷新</span>
         <span v-else class="ngl-state">已停止</span>
         <span class="ngl-count">{{ lineCount }} 行 / {{ formatSize(byteSize) }}</span>
-        <ReButton text :loading="loading" @click="refresh(true)">
-          <template #icon><ReIcon name="Refresh" :size="12" /></template>
-          立即刷新
-        </ReButton>
-        <ReButton text @click="clear">
-          <template #icon><ReIcon name="Delete" :size="12" /></template>
-          清屏
-        </ReButton>
+        <ReButton layout="square" icon="Refresh" tip="立即刷新" data-testid="ngl-btn-refresh" :loading="loading" @click="refresh(true)" />
+        <ReButton layout="square" icon="Delete" tip="清屏" data-testid="ngl-btn-clear" @click="clear" />
       </div>
     </div>
 
@@ -349,7 +343,7 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
 
 .ngl-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngl-status {
@@ -361,20 +355,20 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
 
 .ngl-state {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 
   &.is-ok {
-    color: var(--el-color-success);
+    color: var(--status-success);
   }
 
   &.is-warn {
-    color: var(--el-color-warning);
+    color: var(--status-warning);
   }
 }
 
 .ngl-count {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -391,8 +385,8 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
 /* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
    覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
 .ngl-skel :deep(.el-skeleton) {
-  --el-skeleton-animation-bg-color: var(--el-fill-color);
-  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
 }
 
 .ngl-skel :deep(.el-skeleton__item) {
@@ -405,16 +399,16 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
   flex: 1;
   min-height: 260px;
   overflow: auto;
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
 }
 
 .ngl-empty {
   margin: 0;
   padding: 24px 16px;
   font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -435,25 +429,25 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
   display: block;
   white-space: pre-wrap;
   word-break: break-all;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 
   &.is-warn {
-    color: var(--el-color-warning);
+    color: var(--status-warning);
   }
 
   &.is-error,
   &.is-5xx {
-    color: var(--el-color-danger);
+    color: var(--status-error);
   }
 
   &.is-crit {
-    color: var(--el-color-danger);
+    color: var(--status-error);
     font-weight: 700;
-    background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+    background: color-mix(in srgb, var(--status-error) 12%, transparent);
   }
 
   &.is-4xx {
-    color: var(--el-color-warning);
+    color: var(--status-warning);
   }
 }
 
@@ -462,6 +456,6 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--el-color-warning);
+  color: var(--status-warning);
 }
 </style>

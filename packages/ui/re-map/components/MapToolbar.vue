@@ -1737,8 +1737,12 @@ defineExpose({
   padding: 8px;
 }
 
-/* 修改全局active样式，避免影响子菜单项 */
-.active:not(.submenu-item):not(.color-override) {
+/* 仅作用于地图工具栏自身 —— 这里原本是裸 .active 的**全局**规则（注释也自称「修改全局」），
+   会把数据源中心等所有 .active 选中态容器内的 path/circle 一并涂白：控制台侧栏选中行图标、
+   jdbc 激活页签的关闭图标在浅色选中背景上白到近乎不可见（第九批「图标发白」缺陷根因）。
+   收窄到 .map-toolbar 根类后，地图工具栏（含 v-html 注入的图标，scoped 样式够不到它）
+   行为不变，其它页面的选中图标恢复继承行文字色。 */
+.map-toolbar .active:not(.submenu-item):not(.color-override) {
   path {
     fill: #fff;
   }
@@ -1748,8 +1752,8 @@ defineExpose({
   }
 }
 
-/* 单独定义子菜单项激活样式 */
-.submenu-item.active {
+/* 单独定义子菜单项激活样式（同样限定在地图工具栏内） */
+.map-toolbar .submenu-item.active {
   path {
     fill: #fff !important;
   }

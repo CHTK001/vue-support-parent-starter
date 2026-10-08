@@ -17,10 +17,7 @@
       <span class="ngs-count">
         共 {{ sites.length }} 个站点<template v-if="filtered.length !== sites.length">，当前显示 {{ filtered.length }} 个</template>
       </span>
-      <ReButton :loading="loading" @click="load">
-        <template #icon><ReIcon name="Refresh" :size="13" /></template>
-        刷新
-      </ReButton>
+      <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="ngs-btn-refresh" :loading="loading" @click="load" />
     </div>
 
     <ReAlert
@@ -86,14 +83,8 @@
         </ul>
 
         <div class="ngs-ops">
-          <ReButton @click="emit('edit', s)">
-            <template #icon><ReIcon name="Edit" :size="13" /></template>
-            编辑这个站点
-          </ReButton>
-          <ReButton text @click="copyUrl(s)">
-            <template #icon><ReIcon name="CopyDocument" :size="13" /></template>
-            复制访问地址
-          </ReButton>
+          <ReButton layout="square" icon="Edit" tip="编辑这个站点" data-testid="ngs-btn-edit" @click="emit('edit', s)" />
+          <ReButton layout="square" icon="CopyDocument" tip="复制访问地址" data-testid="ngs-btn-copy" @click="copyUrl(s)" />
         </div>
       </div>
       <!-- /v-else：首屏骨架屏 -->
@@ -263,7 +254,7 @@ defineExpose({ load, sites });
 .ngs-label,
 .ngs-count {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngs-count {
@@ -295,9 +286,9 @@ defineExpose({ load, sites });
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
 }
 
 .ngs-skel-head {
@@ -307,8 +298,8 @@ defineExpose({ load, sites });
 /* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
    覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
 .ngs-skel :deep(.el-skeleton) {
-  --el-skeleton-animation-bg-color: var(--el-fill-color);
-  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
 }
 
 .ngs-skel :deep(.el-skeleton__item) {
@@ -320,17 +311,17 @@ defineExpose({ load, sites });
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-bg-color);
-  transition: border-color var(--el-transition-duration, 0.15s) ease;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  transition: border-color 0.15s ease;
 
   &.has-warn {
-    border-color: color-mix(in srgb, var(--el-color-warning) 40%, var(--el-border-color-lighter));
+    border-color: color-mix(in srgb, var(--status-warning) 40%, var(--border-subtle));
   }
 
   &:hover {
-    border-color: var(--el-color-primary-light-5);
+    border-color: var(--brand-400);
   }
 }
 
@@ -349,7 +340,7 @@ defineExpose({ load, sites });
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -379,13 +370,13 @@ defineExpose({ load, sites });
   dt {
     flex: none;
     width: 60px;
-    color: var(--el-text-color-secondary);
+    color: var(--text-secondary);
   }
 
   dd {
     margin: 0;
     min-width: 0;
-    color: var(--el-text-color-regular);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -399,14 +390,14 @@ defineExpose({ load, sites });
 .ngs-warns {
   margin: 0;
   padding: 8px 10px 8px 24px;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: color-mix(in srgb, var(--el-color-warning) 8%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--status-warning) 8%, transparent);
   font-size: 12px;
   line-height: 1.7;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 
   li::marker {
-    color: var(--el-color-warning);
+    color: var(--status-warning);
   }
 }
 
@@ -414,5 +405,9 @@ defineExpose({ load, sites });
   display: flex;
   gap: 8px;
   margin-top: auto;
+}
+
+.ngs-ops :deep(.rs-btn) {
+  margin: 0;
 }
 </style>

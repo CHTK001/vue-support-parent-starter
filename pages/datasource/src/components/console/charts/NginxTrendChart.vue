@@ -54,9 +54,9 @@ const el = ref<HTMLElement | null>(null);
 const elRef = computed(() => el.value);
 
 const build = (): EChartsOption => {
-  const axisColor = token("--el-text-color-secondary");
-  const splitColor = token("--el-border-color-lighter");
-  const tipBg = token("--el-bg-color-overlay") || token("--el-bg-color");
+  const axisColor = token("--text-secondary");
+  const splitColor = token("--border-subtle");
+  const tipBg = token("--bg-elevated") || token("--bg-container");
 
   const urlLive = hasUrl.value ? props.urlSeries.filter(s => s.data.length > 0) : [];
 
@@ -142,7 +142,7 @@ const build = (): EChartsOption => {
       trigger: "axis",
       backgroundColor: tipBg,
       borderColor: splitColor,
-      textStyle: { color: token("--text-primary") || token("--el-text-color-primary"), fontSize: 12 },
+      textStyle: { color: token("--text-primary"), fontSize: 12 },
       // link 让十字线跨两块联动，方便对照「同一时刻的指标与 URL 命中」
       axisPointer: { type: "line", link: [{ xAxisIndex: "all" }], lineStyle: { color: axisColor, opacity: 0.4 } },
       formatter: (params: unknown) => {

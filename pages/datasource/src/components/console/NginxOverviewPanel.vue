@@ -89,7 +89,7 @@
          丢弃连接并进 Hero 的告警区：它平时是 0，单独占一张卡不值，
          但一旦 >0 必须在第一屏显眼处报出来。 -->
     <div class="ngx-kpis">
-      <div class="ngx-kpi" :style="{ '--k': 'var(--metric-cpu, var(--el-color-primary))' }" :title="KPI_HINTS.active">
+      <div class="ngx-kpi" :style="{ '--k': 'var(--metric-cpu, var(--brand-500))' }" :title="KPI_HINTS.active">
         <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />活跃连接</div>
         <div class="ngx-kpi-value">{{ liveOverview?.status?.activeConnections ?? "—" }}</div>
         <div class="ngx-kpi-foot">
@@ -102,7 +102,7 @@
         </div>
       </div>
 
-      <div class="ngx-kpi" :style="{ '--k': 'var(--metric-disk, var(--el-color-warning))' }" :title="KPI_HINTS.requests">
+      <div class="ngx-kpi" :style="{ '--k': 'var(--metric-disk, var(--status-warning))' }" :title="KPI_HINTS.requests">
         <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />每秒请求</div>
         <div class="ngx-kpi-value">
           {{ trendRequestRate ?? "—" }}<span class="ngx-kpi-unit">req/s</span>
@@ -119,7 +119,7 @@
       <div
         class="ngx-kpi"
         :class="{ 'is-warn': top?.clientErrors, 'is-bad': top?.serverErrors }"
-        :style="{ '--k': 'var(--status-success, var(--el-color-success))' }"
+        :style="{ '--k': 'var(--status-success, var(--status-success))' }"
         :title="KPI_HINTS.errorRate"
       >
         <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />错误率</div>
@@ -137,7 +137,7 @@
 
       <div
         class="ngx-kpi"
-        :style="{ '--k': 'var(--metric-mem, var(--el-color-primary))' }"
+        :style="{ '--k': 'var(--metric-mem, var(--brand-500))' }"
         :title="KPI_HINTS.bytes"
       >
         <div class="ngx-kpi-label"><i class="ngx-kpi-dot" />出站流量</div>
@@ -174,9 +174,7 @@
             <i class="ngx-trend-dot" />{{ s.label }}
           </button>
         </div>
-        <ReButton text tip="刷新趋势" :loading="trendLoading" @click="loadTrend">
-          <template #icon><ReIcon name="Refresh" :size="12" /></template>
-        </ReButton>
+        <ReButton layout="square" icon="Refresh" tip="刷新趋势" data-testid="ngx-btn-refresh-trend" :loading="trendLoading" @click="loadTrend" />
       </div>
 
       <div v-if="!trendLoaded" class="ngx-trend-empty">
@@ -225,9 +223,7 @@
         <span class="ngx-card-sub">
           {{ topLabel }}
         </span>
-        <ReButton text tip="刷新访问 Top" :loading="topLoading" @click="loadTop">
-          <template #icon><ReIcon name="Refresh" :size="12" /></template>
-        </ReButton>
+        <ReButton layout="square" icon="Refresh" tip="刷新访问 Top" data-testid="ngx-btn-refresh-top" :loading="topLoading" @click="loadTop" />
       </div>
 
       <div v-if="!topLoaded" class="ngx-trend-empty">
@@ -1055,8 +1051,8 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
    那条标题灰条能看见），这里把它的动画两色覆盖成与 .ngx-skel-block 同一档灰。
    覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
 .ngx-skeleton :deep(.el-skeleton) {
-  --el-skeleton-animation-bg-color: var(--el-fill-color);
-  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
 }
 
 .ngx-skel-hero {
@@ -1065,7 +1061,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 16px;
   padding: 18px 20px;
   border-radius: 12px;
-  background: var(--el-fill-color-lighter);
+  background: var(--bg-fill);
 }
 
 /* ReSkeleton 的根就是 el-skeleton，rows=0 时它自身不产生 item，
@@ -1074,7 +1070,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--el-fill-color);
+  background: var(--bg-fill);
 }
 
 .ngx-skel-hero-text :deep(.el-skeleton__item),
@@ -1127,7 +1123,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 
 .ngx-skel-block {
   border-radius: 6px;
-  background: var(--el-fill-color);
+  background: var(--bg-fill);
 }
 
 .ngx-skel-w-sm {
@@ -1153,9 +1149,9 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 16px;
   flex-wrap: wrap;
   padding: 16px 20px;
-  border-radius: var(--el-border-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
 }
 
 .ngx-hero-icon {
@@ -1166,30 +1162,32 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   height: 54px;
   flex: 0 0 54px;
   border-radius: 9999px;
-  color: var(--el-color-white);
-  background: var(--el-color-info);
+  /* 徽章底色是饱和状态色，图标恒为白色；不用 var(--bg-container)，
+     暗色主题下它会变深灰、和底色糊在一起 */
+  color: #fff;
+  background: var(--text-secondary);
 
   .is-running & {
-    background: var(--el-color-success);
-    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--el-color-success) 65%, transparent);
+    background: var(--status-success);
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--status-success) 65%, transparent);
   }
 
   .is-stopped & {
-    background: var(--el-color-danger);
-    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--el-color-danger) 65%, transparent);
+    background: var(--status-error);
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--status-error) 65%, transparent);
   }
 
   /* 未取到数据：橙黄，与「已停止」的红一眼可辨。
      缺这一条时取数失败会退回 is-unknown，图标是中性灰 + 问号，
      看起来像「服务状态未知」，实际是「我们没取到」，两回事。 */
   .is-error & {
-    background: var(--el-color-warning);
-    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--el-color-warning) 65%, transparent);
+    background: var(--status-warning);
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--status-warning) 65%, transparent);
   }
 
-  /* 加载中：中性灰蓝 + 呼吸，和静态的问号图标区分开 */
+  /* 加载中：品牌色 + 呼吸，和静态的问号图标区分开（与顶栏状态胶囊 is-loading 同色） */
   .is-loading & {
-    background: var(--el-color-info);
+    background: var(--brand-500);
     animation: ngx-hero-breathe 1.2s ease-in-out infinite;
   }
 }
@@ -1212,12 +1210,12 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 .ngx-hero-sub {
   font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 
@@ -1248,20 +1246,20 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
    所以只在宽屏（单行四列）下画 */
 @media (min-width: 1101px) {
   .ngx-fact + .ngx-fact {
-    border-inline-start: 1px solid var(--el-border-color-lighter);
+    border-inline-start: 1px solid var(--border-subtle);
     padding-inline-start: 20px;
   }
 }
 
 .ngx-fact-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-fact-value {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 /* ============ KPI 行 ============ */
@@ -1278,27 +1276,27 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 5px;
   margin-top: 4px;
   padding: 2px 8px;
-  border: 1px solid var(--el-color-danger-light-5);
-  border-radius: var(--el-border-radius-base, 4px);
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+  border: 1px solid color-mix(in srgb, var(--status-error) 30%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  color: var(--status-error);
   font-size: 12px;
   line-height: 18px;
 }
 
 .ngx-fact-value.is-bad {
-  color: var(--el-color-danger);
+  color: var(--status-error);
 }
 
 .ngx-kpi-warn {
   margin-top: 2px;
   font-size: 11px;
   line-height: 1.4;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-kpi.is-bad .ngx-kpi-warn {
-  color: var(--el-color-danger);
+  color: var(--status-error);
 }
 
 @media (max-width: 1100px) {
@@ -1310,9 +1308,9 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-kpi {
   position: relative;
   padding: 13px 16px;
-  border-radius: var(--el-border-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
 }
 
 /* 标题行：语义色圆点 + 文案。颜色由 --k 注入，卡片自带色系不必再各写一份 */
@@ -1321,7 +1319,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   align-items: center;
   gap: 7px;
   font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-kpi-dot {
@@ -1341,14 +1339,14 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   font-weight: 700;
   line-height: 1.3;
   margin-top: 4px;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .ngx-kpi-unit {
   font-size: 12px;
   font-weight: 400;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 /* 底部一行：左侧副信息，右侧迷你趋势。副信息过长时省略号收尾，不把 sparkline 挤走 */
@@ -1364,7 +1362,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-kpi-sub {
   font-size: 11.5px;
   line-height: 1.5;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1378,11 +1376,11 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 
 /* 需要提示的 KPI：值本身不变色，只加左边框，避免整块底色把数字盖住 */
 .ngx-kpi.is-warn {
-  box-shadow: inset 2px 0 0 var(--el-color-warning);
+  box-shadow: inset 2px 0 0 var(--status-warning);
 }
 
 .ngx-kpi.is-bad {
-  box-shadow: inset 2px 0 0 var(--el-color-danger);
+  box-shadow: inset 2px 0 0 var(--status-error);
 }
 
 /* ============ 三栏卡片 ============ */
@@ -1419,7 +1417,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   margin-bottom: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-top-list {
@@ -1445,7 +1443,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 .ngx-top-hits {
@@ -1453,9 +1451,9 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   align-items: baseline;
   gap: 6px;
   padding: 1px 7px;
-  border-radius: var(--el-border-radius-base);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
+  border-radius: 6px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1464,7 +1462,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 /* 百分比弱一档：它是补充信息，不该和命中数抢注意力 */
 .ngx-top-pct {
   font-style: normal;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 /* 进度条占满一整行（grid 第二列合并），长度 = 占已解析行数的比例 */
@@ -1472,7 +1470,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   grid-column: 1 / -1;
   height: 5px;
   border-radius: 999px;
-  background: var(--el-fill-color);
+  background: var(--bg-fill);
   overflow: hidden;
 }
 
@@ -1480,17 +1478,17 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--metric-cpu, var(--el-color-primary));
+  background: var(--metric-cpu, var(--brand-500));
 }
 
 /* 来源 IP 换一种色，与左列一眼可分（两列同色会被当成同一组数据） */
 .ngx-top-fill.is-ip {
-  background: var(--metric-mem, var(--el-color-primary));
+  background: var(--metric-mem, var(--brand-500));
 }
 
 .ngx-top-none {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
 /* ============ 24 小时趋势 ============ */
@@ -1512,23 +1510,23 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
   background: transparent;
   font-family: inherit;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s), background-color var(--el-transition-duration, 0.2s);
+  transition: color 0.2s, background-color 0.2s;
 
   &:hover {
-    background: var(--el-fill-color-light);
+    background: var(--bg-fill);
   }
 
   /* 关掉的序列淡化，但保留图例位置，避免开合时整行跳动 */
   &.is-off {
-    color: var(--el-text-color-placeholder);
+    color: var(--text-tertiary);
     opacity: 0.55;
   }
 }
@@ -1547,7 +1545,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 6px;
   height: 120px;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-trend-body {
@@ -1565,7 +1563,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   align-items: center;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
 /* 实时推送状态：夹在起止时间中间，不额外占一行 */
@@ -1591,7 +1589,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   /* connecting 用中性色而不是成功色：正在连还没连上，染成绿色会误报已就绪 */
   &.is-connecting,
   &.is-idle {
-    background: var(--el-text-color-placeholder);
+    background: var(--text-tertiary);
   }
 
   &.is-error {
@@ -1618,7 +1616,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-trend-note {
   font-size: 11px;
   line-height: 1.5;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-grid {
@@ -1635,9 +1633,9 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 
 .ngx-card {
   padding: 14px 16px;
-  border-radius: var(--el-border-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
 }
 
 .ngx-card-head {
@@ -1658,7 +1656,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 .ngx-card-sub {
@@ -1667,25 +1665,25 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 4px;
   font-size: 12px;
   font-weight: 400;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .ngx-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin: 10px 0 4px;
 }
 
 .ngx-dim {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   line-height: 1.7;
 }
 
 .ngx-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
 /* 路径行：图标 + 可折行的路径 + 右侧状态标签。标签固定在右侧不参与折行 */
@@ -1693,7 +1691,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
 .ngx-path-row .ngx-break {
@@ -1720,7 +1718,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   gap: 16px;
   margin-top: 8px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 /* 巡检：正常态用绿色对勾 */
@@ -1731,11 +1729,11 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   margin-top: 12px;
   font-size: 12.5px;
   line-height: 1.7;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
 .ngx-ok-icon {
-  color: var(--el-color-success);
+  color: var(--status-success);
   flex: 0 0 auto;
   margin-top: 2px;
 }
@@ -1745,10 +1743,10 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   padding-left: 18px;
   font-size: 12.5px;
   line-height: 1.75;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 
   li::marker {
-    color: var(--el-color-warning);
+    color: var(--status-warning);
   }
 }
 
@@ -1757,13 +1755,13 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
   max-height: 200px;
   overflow: auto;
   padding: 10px 12px;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  background: var(--bg-fill);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11.5px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 </style>
