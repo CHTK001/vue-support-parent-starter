@@ -1606,7 +1606,21 @@ function insertBadge(data: {
   editorContent.value = editor.value.getText();
 }
 
-defineExpose({ insertText, insertBadge });
+/**
+ * 清空当前画布草稿：清空编辑器文本与本地内容镜像。
+ *
+ * <p>参考图由父页面持有（本组件只发 {@code pick-reference}），故由父页面一并清。</p>
+ */
+function clearDraft() {
+  try {
+    editor.value?.commands?.clearContent?.(true);
+  } catch {
+    // 编辑器未就绪时忽略
+  }
+  editorContent.value = '';
+}
+
+defineExpose({ insertText, insertBadge, clearDraft });
 </script>
 <style scoped>
 /* ============================================================================

@@ -182,6 +182,13 @@
                   <span class="wg-menu-desc">勾选后删除指定记录</span>
                 </span>
               </button>
+              <!-- 清空当前画布草稿（提示词 + 参考图），不动历史记录（用户需求 1.1） -->
+              <button type="button" class="wg-menu-item" @click="clearCanvasDraft()">
+                <span class="wg-menu-text">
+                  <span class="wg-menu-name">清空绘画</span>
+                  <span class="wg-menu-desc">清空当前提示词与参考图，不影响历史记录</span>
+                </span>
+              </button>
               <button
                 type="button"
                 class="wg-menu-item is-danger"
@@ -1709,6 +1716,17 @@ const readAsDataUrl = (file: File): Promise<string> =>
   })
 
 /** 清空参考图及其尺寸信息 */
+/**
+ * 清空当前画布草稿：**提示词 + 参考图**（参数保持默认不动，避免误改用户偏好）。
+ *
+ * <p>用户需求 1.1：左侧下拉里加「清空绘画」，清的是当前草稿，不是历史记录。</p>
+ */
+function clearCanvasDraft() {
+  prompt.value = ''
+  clearReference()
+  ElMessage.success('已清空当前绘画草稿')
+}
+
 const clearReference = () => {
   referenceImage.value = ''
   referenceMeta.value = null
