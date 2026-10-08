@@ -165,7 +165,15 @@ async function login(p) {
     add('popover.reopen', await panelOpen(), 'reopened, newErrors=' + (pageErrors.length - b2));
 
     const before = pageErrors.length;
-    await page.mouse.click(1200, 300); // 面板外的空白区
+    // Click a point computed to be OUTSIDE the panel. A hard-coded (1200,300)
+    // silently stopped being "outside" once the panel grew (verified 2026-10-08:
+    // panel bbox x:[978,1288] y:[209,580] CONTAINS that point, so the click landed
+    // inside, the panel correctly stayed open, and the case failed for a reason
+    // that had nothing to do with the product). Anchor on the live bbox instead.
+    const pbox = await page.locator('.model-panel').first().boundingBox().catch(() => null);
+    const outX = Math.max(4, Math.round((pbox ? pbox.x : 900) - 40));
+    const outY = Math.max(4, Math.round((pbox ? pbox.y : 200) + 30));
+    await page.mouse.click(outX, outY); // 面板外的空白区（按 bbox 计算，不硬编码）
     let closed = false;
     for (let i = 0; i < 30 && !closed; i++) {
       closed = !(await panelOpen());
