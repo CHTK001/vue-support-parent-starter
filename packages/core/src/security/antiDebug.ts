@@ -9,7 +9,9 @@
  *
  * 检测到调试行为时执行对应策略：
  *  - action=clear    清空本地缓存（localStorage / sessionStorage / cookie）并跳转空页面
- *  - action=redirect 清空本地缓存并跳转到 jumpUrl（为空则跳首页）
+ *  - action=redirect 清空本地缓存并跳转到 jumpUrl（为空则跳首页）；
+ *                    保留 accessToken / refreshToken / userInfo —— openAuth=true 下
+ *                    清掉令牌会让守卫把 jumpUrl 改写成登录页，该动作等于失效
  *
  * 注意：前端反调试只能增加逆向成本，无法彻底杜绝，请配合后端接口鉴权使用。
  */
@@ -56,6 +58,50 @@ function readOptions(): AntiDebugOptions {
     action: baiduJs?.action ?? DEFAULT_OPTIONS.action,
     jumpUrl: baiduJs?.jumpUrl ?? DEFAULT_OPTIONS.jumpUrl,
   };
+}
+
+/**
+ * redirect 惩罚要保留的登录凭据（按 key 末段匹配，兼容前缀 / 用户级变体）。
+ *
+ * <p><b>为什么保留</b>：{@code openAuth=true} 生产口径下 jumpUrl 通常是站内受保护
+ * 路由；若把令牌一并清掉，落地瞬间路由守卫就会把它改写成登录页，
+ * 管理员配置的 jumpUrl 永远到不了——该动作在生产环境形同失效
+ * （e2e security-config 05 实测：落在 {@code #/login} 而非 {@code #/home}）。</p>
+ *
+ * <p>彻底销毁会话是 {@code action=clear} 的职责（清空一切 + about:blank）；
+ * {@code action=redirect} 的语义是「把人支开，应用仍可用」，
+ * 因此只清缓存、保留 {@code accessToken / refreshToken / userInfo}。</p>
+ */
+const AUTH_KEEP_BASE_KEYS: readonly string[] = ["accessToken", "refreshToken", "userInfo"];
+
+/** key 的末段（去掉前缀 / 用户级段）：{@code system:1:accessToken} → {@code accessToken} */
+function baseKeyOf(key: string): string {
+  return key.includes(":") ? key.slice(key.lastIndexOf(":") + 1) : key;
+}
+
+/** 快照某 storage 里的登录凭据条目（清缓存前调用，取原始编码值原样回写） */
+function collectAuthEntries(store: Storage): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  try {
+    for (let i = 0; i < store.length; i++) {
+      const key = store.key(i);
+      if (!key || !AUTH_KEEP_BASE_KEYS.includes(baseKeyOf(key))) continue;
+      const value = store.getItem(key);
+      if (value != null) out.push([key, value]);
+    }
+  } catch {
+    // 忽略隐私模式等场景的异常
+  }
+  return out;
+}
+
+/** 回写登录凭据（清缓存后调用） */
+function restoreAuthEntries(store: Storage, entries: Array<[string, string]>): void {
+  try {
+    for (const [key, value] of entries) store.setItem(key, value);
+  } catch {
+    // 忽略
+  }
 }
 
 /** 清空本地缓存（localStorage / sessionStorage / cookie） */
@@ -109,8 +155,14 @@ function punish(): void {
   if (action === "redirect" && readPunishFlag() === target) {
     return;
   }
+  // redirect：快照登录凭据 → 清缓存 → 回写，保证 jumpUrl 落地后守卫仍放行
+  // （见 AUTH_KEEP_BASE_KEYS 注释；clear 分支不保留，照旧彻底清空）
+  const keepLocal = action === "redirect" ? collectAuthEntries(window.localStorage) : [];
+  const keepSession = action === "redirect" ? collectAuthEntries(window.sessionStorage) : [];
   clearLocalStorage();
   if (action === "redirect") {
+    restoreAuthEntries(window.localStorage, keepLocal);
+    restoreAuthEntries(window.sessionStorage, keepSession);
     writePunishFlag(target);
     // 比较完整地址（而非仅 pathname），否则 jumpUrl 为 "/" 时子路由永远不跳转
     const resolved = new URL(target, location.origin).href;

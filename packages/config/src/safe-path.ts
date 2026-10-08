@@ -86,6 +86,23 @@ export const REMOTE_INJECTABLE_TOP_KEYS: ReadonlySet<string> = new Set([
   "upload",
 ]);
 
+/**
+ * 远程配置<b>允许写入的完整路径前缀</b>（顶层键之外的细粒度放行）。
+ *
+ * <p>{@code security} 整体不可远程注入（见上），但平台的反爬脚本下发
+ * （{@code security.baiduJs.*}：enable/action/jumpUrl/url）就是设计为
+ * 「管理员在后台配置、前端按下发值注入外部脚本」的产品功能，
+ * 会被 {@code /v2/setting/default} 正常下发。若连它一起拒，
+ * 后台配置的反爬策略在前端永远不生效（e2e security-config 04/05/06 复现的正是该缺陷）。</p>
+ *
+ * <p>只放行 {@code security.baiduJs} 这一棵子树：
+ * {@code security.csrf} / {@code security.xxx} 等其余键照旧被白名单拦下。</p>
+ */
+export const REMOTE_INJECTABLE_PATH_PREFIXES: ReadonlySet<string> = new Set([
+  "security.baiduJs",
+]);
+
+
 /** 判断是否为「纯对象」（排除 null、数组、以及 Date/Map/Set 等内建类型） */
 function isPlainContainer(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) return false;
@@ -111,6 +128,12 @@ export interface SafeSetOptions {
    * 不传表示不限制（仅用于可信的本地 app.yaml 解析路径）。
    */
   topKeyAllowlist?: ReadonlySet<string>;
+  /**
+   * 完整路径前缀白名单（如 {@code security.baiduJs}）。
+   * 顶层键不在 topKeyAllowlist 时先比对本表：路径等于前缀、或以「前缀.」开头即放行，
+   * 用于「顶层键整体不可远程注入，但个别子树是产品功能」的场景。
+   */
+  pathPrefixAllowlist?: ReadonlySet<string>;
   /** 归一化顶层键（如 appConfig → app），白名单比对前调用 */
   normalizeTopKey?: (key: string) => string;
   /** 拒绝时的回调（便于告警与排障） */
@@ -160,11 +183,16 @@ export function safeSetDotted(
     const normalize = options.normalizeTopKey;
     const topRaw = segments[0];
     const top = normalize ? normalize(topRaw) : topRaw;
-    if (!allowlist.has(top)) {
+    if (top !== topRaw) segments = [top, ...segments.slice(1)];
+    const normalizedPath = segments.join(".");
+    const inPrefixAllow =
+      options.pathPrefixAllowlist != null &&
+      [...options.pathPrefixAllowlist].some(
+        (p) => normalizedPath === p || normalizedPath.startsWith(`${p}.`),
+      );
+    if (!allowlist.has(top) && !inPrefixAllow) {
       return reject(`顶层键 "${top}" 不在远程可注入白名单内`);
     }
-    // 归一化后的顶层键与原始键不同时，后续访问要用归一化后的键
-    if (top !== topRaw) segments = [top, ...segments.slice(1)];
   }
 
   const leaf = segments[segments.length - 1];

@@ -183,7 +183,8 @@ onMounted(fetchAll);
       <span class="f-count">{{ filtered.length }} 条</span>
     </div>
 
-    <!-- 事件流 -->
+    <!-- 事件流。布局切换器显式开启（ReTable 默认 false、页面按需开启的产品口径），
+         告警页视图/卡片走组件兜底模板，渲染全部字段 -->
     <ReCard :radius="12" shadow="never">
       <ReTable
         :data="filtered"
@@ -191,7 +192,7 @@ onMounted(fetchAll);
         :columns="alarmColumns"
         :loading="loading"
         :border="false"
-        
+        :layout-switch="true"
         empty-text="暂无告警事件"
         table-id="monitor-alarms"
       >
