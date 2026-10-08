@@ -648,6 +648,9 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
       let responseContent = "";
       let thinkingContent = "";
 
+      // 思考强度档位：取会话设置（'default'/空 = 不传，交由各厂商默认）。
+      // 直接读 store，省掉把档位参数一路透传穿过 4 层调用签名。
+      const sessionEffort = sessionStore.getSessionSetting(streamingSessionId, 'thinkingEffort')
       const chatParams: any = {
         sessionId: streamingSessionId,
         regenerationMode,
@@ -661,6 +664,10 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         mcpServerIds,
         mode,
       };
+      // 'default'/'none'/空 = 不传档位（保持后端"不传即各厂商默认"的语义）
+      if (sessionEffort && sessionEffort !== 'default' && sessionEffort !== 'none') {
+        chatParams.thinkingEffort = sessionEffort
+      }
       if (userMessage) {
         chatParams.userMessage = userMessage;
       }

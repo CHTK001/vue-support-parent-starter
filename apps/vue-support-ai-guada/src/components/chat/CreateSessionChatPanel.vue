@@ -290,22 +290,36 @@ const chatInputButtons = computed(() => {
   }
 })
 
-// 加载模型列表
+/**
+ * 加载模型列表（带退避重试）。
+ *
+ * <p>与 ChatInput.loadModels 同口径：`GET /api/providers` 瞬时故障时不能只报一次错就
+ * 放弃（会表现为「没有模型」）；重试前先清空，避免重复累积。</p>
+ */
 const loadModels = async (): Promise<void> => {
-  try {
-    const response = await apiService.fetchModels();
-    // 提取所有启用的模型，并映射字段
-    (response.items || []).forEach(provider => {
-      const availableModels = provider.models?.filter((m: any) => m.enabled).map((m: any) => ({
-        ...m,
-        id: m.id,
-        name: m.model
-      })) || [];
-      models.value.push(...availableModels);
-    });
-  } catch (error) {
-    console.error('获取模型列表失败:', error);
-    notify.error(t('common.error.loadFailed'), error);
+  const MAX_ATTEMPT = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
+    try {
+      const response = await apiService.fetchModels();
+      models.value = [];
+      // 提取所有启用的模型，并映射字段
+      (response.items || []).forEach(provider => {
+        const availableModels = provider.models?.filter((m: any) => m.enabled).map((m: any) => ({
+          ...m,
+          id: m.id,
+          name: m.model
+        })) || [];
+        models.value.push(...availableModels);
+      });
+      return;
+    } catch (error) {
+      console.error(`获取模型列表失败(第 ${attempt}/${MAX_ATTEMPT} 次):`, error);
+      if (attempt < MAX_ATTEMPT) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
+        continue;
+      }
+      notify.error(t('common.error.loadFailed'), error);
+    }
   }
 };
 
@@ -412,7 +426,8 @@ const chatInputConfig = computed(() => ({
   modelId: currentModelId.value,
 
   // 思考强度
-  thinkingEffort: currentSession.value?.settings?.thinkingEffort || 'none',
+  // 思考强度档位：缺省 'default' = 不指定（请求里不传，交由各厂商默认）
+  thinkingEffort: currentSession.value?.settings?.thinkingEffort || 'default',
 
   // Token 上限（会话级别独立配置）
   maxTokensLimit: currentSession.value?.settings?.maxTokensLimit ?? null,

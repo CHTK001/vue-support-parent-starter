@@ -24,6 +24,11 @@ export interface ModelConfig {
   cvConfidence: number | null
   /** 生成参数（仅 image / video 类型）：随模型走 capabilities[].generate 节点 */
   generate: ModelGenerateConfig
+  /**
+   * 思考强度档位（low/medium/high/max）：随模型走 capabilities[].thinking_efforts 节点。
+   * 空数组视为「未配置」，前端按默认集合兜底；'default' 由会话层表示「不传」。
+   */
+  thinkingEfforts: string[]
   [key: string]: any
 }
 
@@ -99,6 +104,11 @@ export function createDefaultModelConfig(src: any = {}): ModelConfig {
     cvMode: src.cvMode || 'classify',
     cvConfidence: src.cvConfidence ?? null,
     generate: createDefaultGenerateConfig(src.generate),
+    // 思考强度档位：默认 low/medium/high/max（用户可在模型管理里改；清空视为未配置，
+    // 保存时仍会写成空数组，前端读取时再按默认集合兜底）
+    thinkingEfforts: Array.isArray(src.thinkingEfforts) && src.thinkingEfforts.length
+      ? [...src.thinkingEfforts]
+      : ['low', 'medium', 'high', 'max'],
   }
 }
 
