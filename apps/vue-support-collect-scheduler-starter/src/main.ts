@@ -4,8 +4,11 @@
  * 结构对齐后端：一个「采集调度系统」承载部署，能力由两个平级模块提供——
  *   采集侧 @pages/collect（平台总览 + 数据采集分组）
  *   调度侧 @pages/job   （调度中心分组）
- * 本入口只做装配：拼路由树、装 koi 主题、在挂载后登记 keep-alive 与静态菜单。
+ * 本入口只做装配：拼路由树、在挂载后登记 keep-alive 与静态菜单。
  * 视图、API、样式都在各自 pages 包内，这里不写业务代码。
+ *
+ * koi 主题（ElementPlus / 图标 / 指令 / 组件 / router 守卫）由 createContextApp
+ * 按 app.yaml 的 other.themeId 自动解析安装，本入口不手动传递安装器。
  *
  * 路由树即菜单树：.routes() 注入后由 createVueApp 平铺挂到 layout 之下并推导侧边栏。
  * 页面控件一律显式引入 @repo/ui 的 Re* 组件，不依赖全局注册。
@@ -14,8 +17,6 @@
  * urlConfig 指向框架 oauth 体系的 /v2/user/**，本应用不自带登录界面。
  */
 import { createContextApp } from "@repo/app";
-import type { App as VueApp } from "vue";
-import { installKoi } from "@repo/theme/koi/framework";
 import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
 import { collectRoutes, collectWidgets, registerCollectKeepAlive } from "@pages/collect";
@@ -34,15 +35,6 @@ const APP_TITLE = "采集调度一体化平台";
  * 三个来源各自维护自己的路由，这里只做合并。
  */
 const routes = [...hostRoutes, ...collectRoutes, ...jobRoutes];
-
-/**
- * 安装 koi 主题与 Element Plus。
- *
- * @param app Vue 应用实例
- */
-async function installCollectScheduler(app: VueApp): Promise<void> {
-  await installKoi(app);
-}
 
 /**
  * 启动流程整体包在 async IIFE 里，刻意**不用顶层 await**。
@@ -76,7 +68,9 @@ void (async () => {
      *   生产（base=/collect/api/static/）-> "/collect/api/static"
      */
     baseUrl: import.meta.env.BASE_URL.replace(/\/+$/, ""),
-    install: installCollectScheduler,
+    // 不传 install：koi 主题由 createContextApp 按 app.yaml 的 other.themeId 自动
+    // 解析安装（@repo/theme loadTheme → koi/framework 注册的安装器），带 router 守卫
+    // （setRouter + title/favicon 前置）与无静态菜单时的兜底；本入口无需手写安装器。
   })
     .routes(routes as never)
     // 采集侧向 home 仪表板贡献「采集概览」widget。与 .routes() 同构：
