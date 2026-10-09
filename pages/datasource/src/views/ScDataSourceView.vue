@@ -192,24 +192,129 @@ const onPickDriverJar = async (event: Event) => {
 const extraParams = ref<Array<{ key: string; value: string }>>([]);
 
 /** 常用 JDBC 连接参数预置（MySQL 系为主，兼顾各库高频项） */
+/**
+ * JDBC 连接参数白名单。
+ *
+ * <p>下拉里的每一项都是**任意 JDBC 驱动都可能认的参数名**，而不是某一个
+ * 数据库的专属参数 —— 选驱动与填参数是两件独立的事：同一个 `connectTimeout`
+ * MySQL / PostgreSQL / H2 都认，`ssl` 三家都有各自的实现。这里按「通用 / 各家专属」
+ * 分组标注，只为让用户知道从哪来，不做按驱动类型过滤（过滤会让换驱动后
+ * 之前配好的参数凭空消失，代价大于收益）。</p>
+ *
+ * <p><b>白名单列不全，所以下拉必须允许自定义</b>：各驱动有大量私有参数
+ * （{@code oracle.jdbc.*}、{@code sqlserver.*}、{@code h2.*} 之类），
+ * 靠枚举维护既不完整也易过时。故下拉开了 {@code allow-create}，
+ * 敲什么就是什么，保存时原样进连接串。</p>
+ */
 const COMMON_JDBC_PARAMS: Array<{ label: string; value: string }> = [
-  { label: "useSSL（常配 false）", value: "useSSL" },
-  { label: "serverTimezone（如 Asia/Shanghai）", value: "serverTimezone" },
+  // ---- 通用（多数驱动都认） ----
+  { label: "connectTimeout（连接超时，毫秒）", value: "connectTimeout" },
+  { label: "socketTimeout（读超时，毫秒）", value: "socketTimeout" },
+  { label: "loginTimeout（登录超时，秒）", value: "loginTimeout" },
+  { label: "ssl（是否启用 SSL）", value: "ssl" },
+  { label: "sslMode（PG/PG 风格：disable/require/verify-full）", value: "sslMode" },
+  { label: "tcpKeepAlive（TCP 保活）", value: "tcpKeepAlive" },
+  { label: "applicationName（驱动上报的应用名）", value: "ApplicationName" },
+  { label: "currentSchema（当前 schema）", value: "currentSchema" },
+  { label: "catalog（默认库）", value: "catalog" },
+  { label: "properties（驱动自定义属性容器）", value: "properties" },
+  { label: "user（用户名，部分驱动认）", value: "user" },
+  { label: "password（密码，部分驱动认）", value: "password" },
+
+  // ---- MySQL / MariaDB ----
+  { label: "useSSL（MySQL，常配 false）", value: "useSSL" },
+  { label: "serverTimezone（MySQL，如 Asia/Shanghai）", value: "serverTimezone" },
   { label: "characterEncoding（如 utf8 / utf8mb4）", value: "characterEncoding" },
   { label: "useUnicode（常配 true）", value: "useUnicode" },
   { label: "allowPublicKeyRetrieval（常配 true）", value: "allowPublicKeyRetrieval" },
-  { label: "connectTimeout（毫秒）", value: "connectTimeout" },
-  { label: "socketTimeout（毫秒）", value: "socketTimeout" },
-  { label: "rewriteBatchedStatements（常配 true）", value: "rewriteBatchedStatements" },
+  { label: "rewriteBatchedStatements（批处理重写）", value: "rewriteBatchedStatements" },
   { label: "zeroDateTimeBehavior（如 convertToNull）", value: "zeroDateTimeBehavior" },
-  { label: "useInformationSchema（元数据开关）", value: "useInformationSchema" },
+  { label: "useInformationSchema（元数据走 information_schema）", value: "useInformationSchema" },
+  { label: "useServerPrepStmts（服务端预编译）", value: "useServerPrepStmts" },
+  { label: "cachePrepStmts（预编译缓存）", value: "cachePrepStmts" },
+  { label: "prepStmtCacheSize（预编译缓存条数）", value: "prepStmtCacheSize" },
+  { label: "prepStmtCacheSqlLimit（预编译 SQL 长度上限）", value: "prepStmtCacheSqlLimit" },
+  { label: "useLocalSessionState（本地会话状态）", value: "useLocalSessionState" },
+  { label: "useLocalTransactionState（本地事务状态）", value: "useLocalTransactionState" },
+  { label: "elideSetAutoCommits（省略 setAutoCommit）", value: "elideSetAutoCommits" },
   { label: "autoReconnect（断线重连）", value: "autoReconnect" },
-  { label: "tinyInt1isBit（tinyint(1) 映射）", value: "tinyInt1isBit" },
+  { label: "tinyInt1isBit（tinyint(1) 映射为布尔）", value: "tinyInt1isBit" },
   { label: "nullCatalogMeansCurrent（常配 true）", value: "nullCatalogMeansCurrent" },
-  { label: "currentSchema（PostgreSQL 用）", value: "currentSchema" },
-  { label: "ssl（PostgreSQL 用）", value: "ssl" },
-  { label: "loginTimeout（SQL Server，秒）", value: "loginTimeout" },
-  { label: "oracle.net.CONNECT_TIMEOUT（Oracle，毫秒）", value: "oracle.net.CONNECT_TIMEOUT" },
+  { label: "allowMultiQueries（多语句）", value: "allowMultiQueries" },
+  { label: "useAffectedRows（受影响行数语义）", value: "useAffectedRows" },
+  { label: "useCursorFetch（游标分批拉取）", value: "useCursorFetch" },
+  { label: "netTimeoutForStreamingResults（大结果集超时）", value: "netTimeoutForStreamingResults" },
+  { label: "maxAllowedPacket（单包上限）", value: "maxAllowedPacket" },
+  { label: "disableColumnStats（关统计）", value: "disableColumnStats" },
+  { label: "cacheServerConfiguration（缓存服务器变量）", value: "cacheServerConfiguration" },
+  { label: "maintainTimeStats（不统计维护时间）", value: "maintainTimeStats" },
+  { label: "useOldAliasMetadataBehavior（旧别名元数据）", value: "useOldAliasMetadataBehavior" },
+  { label: "useConfigs（按 profile 覆盖参数）", value: "useConfigs" },
+
+  // ---- PostgreSQL ----
+  { label: "sslmode（PG：disable/allow/prefer/require/verify-ca/verify-full）", value: "sslmode" },
+  { label: "sslfactory（PG：org.postgresql.ssl.NonValidatingFactory）", value: "sslfactory" },
+  { label: "sslrootcert（PG：CA 证书路径）", value: "sslrootcert" },
+  { label: "sslcert（PG：客户端证书）", value: "sslcert" },
+  { label: "sslkey（PG：客户端私钥）", value: "sslkey" },
+  { label: "sslpassword（PG：私钥口令）", value: "sslpassword" },
+  { label: "targetServerType（primary/any）", value: "targetServerType" },
+  { label: "loadBalanceHosts（多主机轮询）", value: "loadBalanceHosts" },
+  { label: "hostRecheckSeconds（主机存活复查间隔）", value: "hostRecheckSeconds" },
+  { label: "connect_timeout（PG 连接超时，秒）", value: "connect_timeout" },
+  { label: "options（PG 启动选项）", value: "options" },
+  { label: "ApplicationName（PG 侧应用名）", value: "pgAppName" },
+  { label: "loggerLevel（驱动日志级别）", value: "loggerLevel" },
+  { label: "assumeMinServerVersion（假设的最低服务端版本）", value: "assumeMinServerVersion" },
+  { label: "reWriteBatchedInserts（批量插入重写）", value: "reWriteBatchedInserts" },
+  { label: "preferQueryMode（simple/extended）", value: "preferQueryMode" },
+  { label: "stringtype（string 映射类型）", value: "stringtype" },
+  { label: "DateStyle（日期字面量风格）", value: "DateStyle" },
+  { label: "TimeZone（会话时区）", value: "TimeZone" },
+
+  // ---- Oracle ----
+  { label: "oracle.jdbc.ReadTimeout（Oracle 读超时，毫秒）", value: "oracle.jdbc.ReadTimeout" },
+  { label: "oracle.net.CONNECT_TIMEOUT（Oracle 连接超时，毫秒）", value: "oracle.net.CONNECT_TIMEOUT" },
+  { label: "oracle.jdbc.defaultNChar（默认 NCHAR）", value: "oracle.jdbc.defaultNChar" },
+  { label: "oracle.jdbc.convertNCHARsToNvarchar（NCHAR 转换）", value: "oracle.jdbc.convertNCHARsToNvarchar" },
+  { label: "oracle.jdbc.translationVariant（字符集变体）", value: "oracle.jdbc.translationVariant" },
+  { label: "oracle.net.encryption_client（Oracle 加密）", value: "oracle.net.encryption_client" },
+  { label: "oracle.net.crypto_checksum_client（校验和）", value: "oracle.net.crypto_checksum_client" },
+  { label: "oracle.jdbc.fanEnabled（TAF 故障转移）", value: "oracle.jdbc.fanEnabled" },
+  { label: "oracle.jdbc.implicitStatementCacheSize（隐式语句缓存）", value: "oracle.jdbc.implicitStatementCacheSize" },
+
+  // ---- SQL Server ----
+  { label: "encrypt（SQL Server 加密）", value: "encrypt" },
+  { label: "trustServerCertificate（信任服务端证书）", value: "trustServerCertificate" },
+  { label: "instanceName（命名实例）", value: "instanceName" },
+  { label: "databaseName（默认库）", value: "databaseName" },
+  { label: "sendTimeAsDatetime（时间按 datetime 发送）", value: "sendTimeAsDatetime" },
+  { label: "responseBuffering（响应缓冲）", value: "responseBuffering" },
+  { label: "selectMethod（游标/直接）", value: "selectMethod" },
+  { label: "failoverPartner（故障转移伙伴）", value: "failoverPartner" },
+
+  // ---- DB2 ----
+  { label: "currentSchema（DB2 当前 schema）", value: "currentSchemaDB2" },
+  { label: "retrieveMessagesFromServerOnGetMessage（DB2 取服务端消息）", value: "retrieveMessagesFromServerOnGetMessage" },
+  { label: "progressiveStreaming（DB2 渐进流式）", value: "progressiveStreaming" },
+  { label: "sslConnection（DB2 SSL）", value: "sslConnection" },
+
+  // ---- H2 / 文件库 ----
+  { label: "MODE（H2 兼容模式，如 MySQL/PostgreSQL）", value: "MODE" },
+  { label: "DB_CLOSE_DELAY（H2 常开库，-1）", value: "DB_CLOSE_DELAY" },
+  { label: "AUTO_SERVER（H2 多进程共享）", value: "AUTO_SERVER" },
+  { label: "DATABASE_TO_UPPER（H2 标识符大小写）", value: "DATABASE_TO_UPPER" },
+  { label: "CASE_INSENSITIVE_IDENTIFIERS（H2 不敏感标识）", value: "CASE_INSENSITIVE_IDENTIFIERS" },
+  { label: "NON_KEYWORDS（H2 非关键字）", value: "NON_KEYWORDS" },
+  { label: "IFEXISTS（H2 建表前判存在）", value: "IFEXISTS" },
+  { label: "ACCESS_MODE_DATA（H2 内存表模式）", value: "ACCESS_MODE_DATA" },
+
+  // ---- SQLite ----
+  { label: "journal_mode（SQLite：WAL/MEMORY）", value: "journal_mode" },
+  { label: "synchronous（SQLite 同步级别）", value: "synchronous" },
+  { label: "busy_timeout（SQLite 忙等毫秒）", value: "busy_timeout" },
+  { label: "cache_size（SQLite 页缓存，KB）", value: "cache_size" },
+  { label: "foreign_keys（SQLite 外键开关）", value: "foreign_keys" },
 ];
 
 /** 下拉选项 = 预置项 + 当前行里未预置的自定义键（编辑整串 URL 时让旧参数可见可选） */
@@ -275,6 +380,15 @@ const applyJdbcExtraParams = (): boolean => {
     ElMessage.warning(`参数 ${badValue.key} 的值里不能有空格或 & ? # 分隔符`);
     return false;
   }
+  /* 参数名同样要拦分隔符：下拉开了 allow-create，用户能敲任意文本。
+     key 里混进 & 会凭空多出一个参数、混进 = 会把 key 和值错位，
+     而后端 resolveJdbcUrl 对整串 URL 是原样透传的（只做文件库路径白名单），
+     不会替我们兜住 query 结构的破坏。 */
+  const badKey = rows.find((r) => /[&#?=\s]/.test(r.key));
+  if (badKey) {
+    ElMessage.warning(`参数名「${badKey.key}」里不能有空格或 & ? # = 分隔符`);
+    return false;
+  }
   const db = (form.value.database ?? "").trim();
   if (rows.length === 0 && !db.toLowerCase().startsWith("jdbc:")) return true;
   const query = new Map<string, string>();
@@ -293,6 +407,13 @@ const applyJdbcExtraParams = (): boolean => {
     const port = form.value.port ?? 3306;
     base = `jdbc:mysql://${host}:${port}/${db}`;
     for (const [k, v] of MYSQL_URL_DEFAULTS) query.set(k, v);
+  }
+  // 同名参数会被 Map 覆盖、只留最后一条，用户却看不出哪条被吞了 —— 先拦下来说清楚
+  const seenKeys = new Set<string>();
+  const dupKey = rows.find((r) => (seenKeys.has(r.key) ? true : (seenKeys.add(r.key), false)));
+  if (dupKey) {
+    ElMessage.warning(`参数「${dupKey.key}」重复填写了，只会保留最后一条`);
+    return false;
   }
   for (const r of rows) query.set(r.key, r.value);
   const qs = [...query.entries()].map(([k, v]) => `${k}=${v}`).join("&");
@@ -1371,7 +1492,10 @@ onMounted(load);
                     v-model="row.key"
                     class="ds-xparam__key"
                     :options="extraParamOptions"
-                    placeholder="选择常用参数"
+                    placeholder="选择或输入参数名"
+                    filterable
+                    allow-create
+                    clearable
                     :data-testid="`dsm-xparam-key-${i}`"
                   />
                   <ReInput
@@ -1522,8 +1646,11 @@ onMounted(load);
   min-height: 0;
 }
 .ds-side {
-  flex: 0 0 340px;
-  max-width: 340px;
+  /* clamp 而非固定 340px：视口 1400px 时给 340，两侧留白均衡；
+     视口收到 1200px 时跟着缩到 260，右栏详情不会被挤成一条缝。
+     260px 是「状态过滤四行 + 数据源名不换行」的实测下限，再窄名字就折行了。 */
+  flex: 0 0 clamp(260px, 24vw, 340px);
+  max-width: clamp(260px, 24vw, 340px);
   min-width: 0;
   /* 与右栏 .ds-main 同理：这一环不断，.ds-side-card 的 min-height:0 就传不下去，
      右栏内容一长，左栏卡片会被一起顶高而不是自己内部滚动。 */
@@ -2049,7 +2176,18 @@ onMounted(load);
 }
 
 /* ---------------- 响应式 ---------------- */
-@media (max-width: 992px) {
+/*
+ * 断点从 992px 提到 1180px。
+ *
+ * <p>为什么不能只看视口：左栏固定 340px，且布局外面还压着左侧菜单（约 220px），
+ * 两者都要从视口宽度里扣掉。992px 断点下窗口宽 1200px 时内容区只剩 980px，
+ * 却仍按「够宽」处理、把两栏并排放 —— 340 + 12 + 628，右侧详情被压得读不下去。
+ * 用户看到的「变成上下堆叠」和「应该左右」来回跳，根因就是这个断点定早了。</p>
+ *
+ * <p>改成 1180px 后：窗口 ≥1180px 一定放得下两栏；<1180px 拆成上下，
+ * 此时左栏卡片不再死撑满高（见下），避免上下堆叠时左栏下面拖出一大段空白。</p>
+ */
+@media (max-width: 1180px) {
   .ds-layout {
     flex-direction: column;
   }
@@ -2057,6 +2195,11 @@ onMounted(load);
     flex: none;
     width: 100%;
     max-width: none;
+  }
+  /* 上下堆叠时两栏各自按内容高度收尾：左栏再 flex:1 就会把
+     「添加数据源」按钮顶到屏幕底部，中间留一大段空白。 */
+  .ds-side-card {
+    flex: 0 0 auto;
   }
   .ds-head__actions {
     flex: 1 1 auto;
@@ -2076,7 +2219,11 @@ onMounted(load);
     flex-basis: 96px;
   }
 }
-@media (max-width: 1100px) {
+/* KPI 四卡降级成两列。
+   断点同样后移到 1280px：左栏占了 340、菜单占了约 220，
+   视口 1280 时右栏只剩约 720，四张 KPI 卡各 165px，
+   「连接延迟 6.16 秒」这类值会折行，所以在这之前就该降成两列。 */
+@media (max-width: 1280px) {
   .ds-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

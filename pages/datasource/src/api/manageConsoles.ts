@@ -9,6 +9,7 @@
  * @since 4.0.0
  */
 import { http, unwrapResult } from "@repo/utils";
+import type { DbColumnPayload } from "./dbManageApi";
 
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 // ==================== 数据库 web 管理器（使用默认主 datasource） ====================
@@ -423,6 +424,63 @@ export const compareDbStructure = (payload: DbStructureDiffPayload) =>
     // .data() 的入参是 RequestBody（索引签名约束），具体类型由调用点保证
     .data({ ...payload })
     .then(r => unwrap<DbStructureDiffItem[]>(r));
+
+/**
+ * 新建表请求
+ *
+ * <p>列定义**优先用结构化形态 `columns`**（设计表网格的一行一列，键与「新增列」一致），
+ * 后端按内核拼 DDL；`fields` 是列定义原文（如 `id BIGINT PRIMARY KEY, name VARCHAR(255)`），
+ * 保留给「粘一段就建」的用法。两条路都**不在前端拼 `CREATE TABLE`**：反引号与内联
+ * `COMMENT` 都只对 MySQL 成立，H2/PostgreSQL 上会直接语法错。</p>
+ */
+export type DbCreateTablePayload = {
+  /** 表名 */
+  table: string;
+  /** 结构化列（设计表）；非空时忽略 fields */
+  columns?: DbColumnPayload[];
+  /** 主键列名，须取自 columns；可为空 */
+  primaryKey?: string[];
+  /** 列定义原文；columns 为空时必填 */
+  fields?: string;
+  /** 表注释，可为空 */
+  comment?: string;
+  /** 数据源 ID（可选） */
+  datasourceId?: number;
+  /** 目标库名（可选，为空用连接默认库） */
+  database?: string;
+};
+
+/**
+ * 新建表（跨方言）
+ * @param payload 表名、列定义、可选注释与目标库
+ * @returns 是否创建成功
+ */
+export const createDbTable = (payload: DbCreateTablePayload) =>
+  http()
+    .post("/ms/monitor/db/table")
+    .noToast(true)
+    // .data() 的入参是 RequestBody（索引签名约束），具体类型由调用点保证
+    .data({ ...payload })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 重命名表（跨方言）
+ *
+ * <p>不要在前端拼 `ALTER TABLE \`a\` RENAME TO \`b\``：反引号只对 MySQL 成立，
+ * H2/PostgreSQL 上会直接语法错。引号与候选写法交后端按内核选。</p>
+ *
+ * @param tableName 原表名
+ * @param newName 新表名
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库名（可选）
+ * @returns 是否成功
+ */
+export const renameDbTable = (tableName: string, newName: string, datasourceId?: number, database?: string) =>
+  http()
+    .put(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/name`)
+    .noToast(true)
+    .query({ newName, datasourceId, database })
+    .then(r => unwrap<boolean>(r));
 
 /**
  * 删除表

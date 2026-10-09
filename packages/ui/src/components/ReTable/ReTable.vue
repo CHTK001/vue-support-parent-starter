@@ -5006,6 +5006,15 @@ const iconSelect = Select;
   height: auto !important;
   min-height: 0 !important;
 }
+/* 表头文字一律不折行：表头一折行就与 39px 的行高口径打架（折成两行把行撑高），
+   而且列宽不足时「横向被截断」比「换行占两行」更可读——列宽本来就能拖。
+   overflow/ellipsis 是配套的：不写这两条，nowrap 只会让文字盖到右边列的表头上。
+   只管表头；表体单元格仍按各自列的 showOverflow/ellipsis 配置走。 */
+.re-table .vxe-header--column .vxe-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ============ element 引擎（兼容回退）的表格视觉 ============
    与上面 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、

@@ -157,19 +157,44 @@ function blank(): FieldState {
   return { mode: "all", start: 0, end: 0, step: 1, points: [], nth: 1 };
 }
 
-const PRESETS: { label: string; cron: string }[] = [
+/**
+ * 常用预设：恒显。
+ *
+ * <p>窄弹层（320px）里每行只放得下两个胶囊，11 个平铺要占六行、把下面的字段编辑
+ * 挤到要滚动，所以拆成两档：这里 6 个高频的常显，{@link PRESETS_MORE} 折叠。</p>
+ */
+const PRESETS_QUICK: { label: string; cron: string }[] = [
   { label: "每分钟", cron: "0 * * * * *" },
   { label: "每 5 分钟", cron: "0 */5 * * * *" },
-  { label: "每 10 分钟", cron: "0 */10 * * * *" },
-  { label: "每 30 分钟", cron: "0 */30 * * * *" },
   { label: "每小时整点", cron: "0 0 * * * *" },
   { label: "每天 09:00", cron: "0 0 9 * * *" },
-  { label: "每天 09:30", cron: "0 30 9 * * *" },
-  { label: "工作日 09:00", cron: "0 0 9 * * 1,2,3,4,5" },
-  { label: "每周一 09:00", cron: "0 0 9 * * 1" },
-  { label: "每月 1 日 09:00", cron: "0 0 9 1 * *" },
-  { label: "每年 1 月 1 日 00:00", cron: "0 0 0 1 1 *" },
+  { label: "工作日", cron: "0 0 9 * * 1,2,3,4,5" },
+  { label: "每周一", cron: "0 0 9 * * 1" },
 ];
+
+/** 罕见档预设：由「更多」按钮展开（每 10 分钟 / 每月 / 每年…） */
+const PRESETS_MORE: { label: string; cron: string }[] = [
+  { label: "每 10 分钟", cron: "0 */10 * * * *" },
+  { label: "每 30 分钟", cron: "0 */30 * * * *" },
+  { label: "每天 09:30", cron: "0 30 9 * * *" },
+  { label: "每月 1 日", cron: "0 0 9 1 * *" },
+  { label: "每年 1 月 1 日", cron: "0 0 0 1 1 *" },
+];
+
+/** 「更多预设」是否展开 */
+const presetsExpanded = ref(false);
+
+/**
+ * 当前该展示的预设列表。
+ *
+ * <p>折叠时命中罕见档也要把命中的那个补出来 —— 否则用户明明存了"每月 1 日"，
+ * 面板上一个都没高亮，看着像没生效。</p>
+ */
+const visiblePresets = computed<{ label: string; cron: string }[]>(() => {
+  if (presetsExpanded.value) return [...PRESETS_QUICK, ...PRESETS_MORE];
+  const hit = PRESETS_MORE.find((p) => p.cron === trimmed.value);
+  return hit ? [...PRESETS_QUICK, hit] : PRESETS_QUICK;
+});
 
 /** 匹配方式文案：胶囊分段项与摘要文案共用一套叫法 */
 const MODE_LABELS: Record<FieldMode, string> = {
@@ -1126,7 +1151,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       v-model:visible="open"
       placement="bottom-start"
       :trigger="[]"
-      :width="760"
+      :width="480"
       popper-class="re-cron__popper"
       :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
     >
@@ -1241,7 +1266,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
         <span class="re-cron__section-title re-cron__section-title--inline">常用预设</span>
         <div class="re-cron__pill-row">
           <button
-            v-for="preset in PRESETS"
+            v-for="preset in visiblePresets"
             :key="preset.cron"
             type="button"
             class="re-cron__pill"
@@ -1249,6 +1274,15 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             @click="applyPreset(preset.cron)"
           >
             {{ preset.label }}
+          </button>
+          <!-- 罕见档折叠：320px 弹层里每行只放得下两个胶囊，11 个平铺要占六行 -->
+          <button
+            v-if="PRESETS_MORE.length"
+            type="button"
+            class="re-cron__pill re-cron__pill--more"
+            @click="presetsExpanded = !presetsExpanded"
+          >
+            {{ presetsExpanded ? "收起" : "更多" }}
           </button>
           <button v-if="defaultCron" type="button" class="re-cron__pill" @click="applyDefaultCron">用默认</button>
           <button type="button" class="re-cron__pill" @click="clearAll">清空</button>
@@ -1467,7 +1501,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -1620,11 +1654,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 /*
  * 选中态与自动填充：
- *  - 文本选中不再用浏览器默认的整块高亮蓝，改成极淡主色底，聚焦时不会"闪一下蓝条"；
+ *  - 文本选中用极淡中性底，不用主色：主色偏紫/偏亮时，cron 表达式整行被选中
+ *    会铺满整个输入框，很容易被当成"输入框坏了"；
  *  - 浏览器自动填充的整块底色/闪烁动画一并压掉（字段名已用 new-password 规避触发）。
  */
 .re-cron :deep(.el-input__inner)::selection {
-  background: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+  background: var(--el-fill-color-dark, #dcdfe6);
   color: var(--el-text-color-primary);
 }
 
@@ -1645,11 +1680,14 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
  * 按键/失焦/自动填充每次改一次背景，就多一段看不见起止的渐变。
  *
  * `transition: none` 是斩断而不是掩盖：底色该由谁画由谁画，但不再被拉成慢动画。
+ *
+ * 这里**不能**加 `background-clip: text`：它把背景限制在字形内，输入框聚焦时
+ * placeholder 恰好被浏览器按文本渲染，于是上面 ::selection 的选区色会以
+ * 「贴在字上」的形式糊住整个输入框 —— 就是截图里 cron 输入框那圈紫色。
+ * autofill 已由上面那条 1000px inset 盖住，不需要它。
  */
 .re-cron :deep(.el-input__inner) {
   transition: none !important;
-  -webkit-background-clip: text;
-  background-clip: text;
 }
 
 .re-cron :deep(.el-input__wrapper.is-focus) {
@@ -1727,8 +1765,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 22px 16px;
+  gap: 8px;
+  padding: 12px 12px;
   /* 描边用主色掺白/掺黑再混边框色，跟随主题切换，不写死色值 */
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter, #ebeef5));
   border-radius: var(--el-radius-lg, 12px);
@@ -1798,8 +1836,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__presets {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 /* 与 34px 高的胶囊视觉居中对齐 */
@@ -1826,19 +1864,19 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__pill-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* 预设/匹配方式胶囊：普通态描边，选中态主色实底（圆角见上方合并规则） */
 .re-cron__pill {
-  height: 34px;
-  padding: 0 16px;
+  height: 28px;
+  padding: 0 10px;
   border: 1px solid var(--el-border-color, #dcdfe6);
   background: var(--el-bg-color, #ffffff);
   color: var(--el-text-color-regular, #606266);
   font-family: inherit;
-  font-size: 13px;
-  line-height: 32px;
+  font-size: 12px;
+  line-height: 26px;
   cursor: pointer;
 }
 
@@ -1848,17 +1886,36 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-color-white, #ffffff);
 }
 
+/* 「更多 / 收起」是动作不是取值：用虚线边 + 次要色区分，避免被误当成一个 cron 预设 */
+.re-cron__pill--more {
+  border-style: dashed;
+  color: var(--el-text-color-secondary, #909399);
+}
+
 .re-cron__pill:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* 两列：左字段编辑、右触发预览 */
+/*
+ * 两列：左字段编辑、右触发预览。
+ *
+ * 比例取 1.4fr : 1fr 而不是原先的 1.55fr : 1fr —— 480px 弹层扣掉内距后剩 ~452px，
+ * 1.55fr 会把右列压到 ~178px，"2026-10-09 09:00:00" 这种时间戳要折成两行；
+ * 1.4fr 让右列拿到 ~205px，正好一行放下，省掉一行高度。
+ */
 .re-cron__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: 24px;
-  margin-top: 22px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* 视口窄到弹层被 max-width: 94vw 压到 ~400px 以下时并排就挤了，落回单列 */
+@media (width <= 520px) {
+  .re-cron__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* 窄屏回落单列。
@@ -1877,8 +1934,18 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 /* 六个字段盒子：点一下切换当前字段，下方匹配方式只作用于它 */
 .re-cron__fields {
   display: grid;
+  /* 六字段排 1×6：480px 弹层扣掉 24px 内距与 5×6px 间隙后每格约 71px，
+     15px 等宽字体的 MON-FRI（约 45px）放得下。320px 时每格只剩 46px，
+     所以那条窄屏兜底在下方 media 里切成 3×2。 */
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
+}
+
+/* 极窄视口（弹层被 max-width: 94vw 压到 380px 以下）时六列会挤成竖条 */
+@media (width <= 400px) {
+  .re-cron__fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .re-cron__field {
@@ -1921,8 +1988,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 .re-cron__field-value {
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  /* 17px：六个盒子并排时，15px 的 MON-FRI 这类多字符值会顶到盒子边缘 */
-  font-size: 17px;
+  /* 15px：320px 弹层里每格约 96px（3 列），17px 的 MON-FRI 会被 ellipsis 截成 "MON-F…" */
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary, #303133);
   max-width: 100%;
@@ -2077,13 +2144,26 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   transition: none !important;
 }
 
-.re-cron__popper.el-popover {
+/*
+ * 尺寸只能挂 .re-cron__popper 本身。
+ *
+ * 早先写的是 `.re-cron__popper.el-popover` —— 但 EP 的 ElPopover 渲染出的根元素
+ * class 是 `el-popper`（`el-popover` 这个类在别处/不存在），组合选择器匹配不到，
+ * 于是 max-height / overflow 一直是死代码，弹层才会直接伸出屏幕外。
+ */
+.re-cron__popper {
   max-width: 94vw;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-radius: var(--el-popover-border-radius, var(--el-radius-lg, 12px));
-  /* Popover 内容可能比触发器高很多（字段模式那三列 + 预设行）：
-     给正文加上限并允许滚动，保证任何窗口尺寸下"保存/取消"都点得到。 */
-  max-height: 84vh;
+  /*
+   * 内容可能比触发器高很多（预设行 + 六字段 + 触发预览）：给正文加上限并允许滚动，
+   * 保证任何窗口尺寸下"保存/取消"都点得到。
+   *
+   * 高度上限按"弹层是从页面中部往下浮"来定，不能按整屏算：
+   * 触发器大致在视口中线偏上，可用空间本来就只有视口的一半左右，
+   * 所以取 45vh（900px 高的窗口约 405px）。84vh/60vh 都会让下半截伸出屏幕外。
+   */
+  max-height: 45vh;
   overflow-y: auto;
 }
 

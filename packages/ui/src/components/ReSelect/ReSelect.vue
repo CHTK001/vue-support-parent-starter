@@ -59,6 +59,18 @@ const props = withDefaults(
     clearable?: boolean;
     /** 是否可搜索 */
     filterable?: boolean;
+    /**
+     * 允许把「输入框里敲的、选项里没有的文本」直接当作一个新选项选中。
+     *
+     * <p>用于「选项是白名单但用户可能要填白名单外的值」的场景：典型是 JDBC 额外
+     * 连接参数 —— 下拉列的是各驱动常用参数名，但任何驱动都能带自己独有的参数，
+     * 白名单永远列不全，所以必须留这个口子。</p>
+     *
+     * <p>只对 default 布局（ElSelect）生效，且需要同时开 {@link filterable}：
+     * Element Plus 的 {@code allow-create} 依赖 filterable 提供的输入过滤行为，
+     * 单独开它不会出现「创建新选项」行。</p>
+     */
+    allowCreate?: boolean;
     /** 多选 */
     multiple?: boolean;
     /** 多选折叠 tag */
@@ -105,6 +117,7 @@ const props = withDefaults(
     placeholder: "请选择",
     clearable: false,
     filterable: false,
+    allowCreate: false,
     multiple: false,
     collapseTags: false,
     disabled: false,
@@ -366,6 +379,8 @@ defineExpose({
     :placeholder="placeholder"
     :clearable="clearable"
     :filterable="filterable"
+    :allow-create="allowCreate"
+    :default-first-option="allowCreate"
     :multiple="multiple"
     :collapse-tags="collapseTags"
     :disabled="disabled"
