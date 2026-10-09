@@ -391,7 +391,7 @@ defineExpose({ expression });
 .re-cron-cal {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -402,15 +402,15 @@ defineExpose({ expression });
 }
 
 .re-cron-cal__cadence {
-  height: 28px;
-  padding: 0 12px;
+  height: 26px;
+  padding: 0 11px;
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
   font-family: inherit;
   font-size: 12px;
-  line-height: 26px;
+  line-height: 24px;
   cursor: pointer;
 }
 
@@ -450,9 +450,9 @@ defineExpose({ expression });
 
 .re-cron-cal__cal-head {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 26px;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
   align-items: center;
-  padding: 7px 6px;
+  padding: 5px 6px;
 }
 
 .re-cron-cal__cal-title {
@@ -507,7 +507,15 @@ defineExpose({ expression });
   align-items: center;
   justify-content: center;
   gap: 2px;
-  aspect-ratio: 1;
+  /*
+   * 固定高度而不是 aspect-ratio: 1。
+   *
+   * 弹层 480px 宽时每格有 59px 宽，正方形就意味着 59px 高 —— 六行连间隙整整
+   * 380px，单它一个就吃掉整个可用高度（~420px），底下的「应用此时间」
+   * 和「保存」只能靠滚动才够得到。压到 20px 高后整块月历 147px。
+   * 格子因此是扁的（59×20），但日期只有两位数，视觉上仍读得清。
+   */
+  height: 20px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: var(--el-radius-md);
@@ -556,7 +564,7 @@ defineExpose({ expression });
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 4px 10px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md);
   background: var(--el-bg-color);
@@ -572,8 +580,8 @@ defineExpose({ expression });
 .re-cron-cal__clock {
   position: relative;
   flex: none;
-  width: 46px;
-  height: 46px;
+  width: 38px;
+  height: 38px;
   border: 2px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-fill-color-blank);
@@ -589,13 +597,13 @@ defineExpose({ expression });
 }
 
 .re-cron-cal__hand--hour {
-  width: 12px;
+  width: 10px;
   height: 2px;
   margin-top: -1px;
 }
 
 .re-cron-cal__hand--min {
-  width: 18px;
+  width: 15px;
   height: 2px;
   margin-top: -1px;
 }
@@ -640,6 +648,13 @@ defineExpose({ expression });
   color: var(--el-text-color-secondary);
   font-size: 11px;
   text-align: left;
+  /*
+   * 必须单行省略：横向 flex 里 hint 是唯一可压缩项，不锁住它就会自己换行，
+   * 把整条「执行时间」从 60px 撑到 170px（实测）。锁住后剩余空间不够就出省略号。
+   */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .re-cron-cal__apply {
