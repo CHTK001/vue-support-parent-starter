@@ -24,6 +24,7 @@
           v-for="(turn, index) in visibleTurns"
           :key="turn.user.id"
           :turn="turn"
+          :session-id="props.session?.id"
           :character-name="props.session?.character?.title"
           :character-avatar="props.session?.character?.avatarUrl"
           :is-last="index === visibleTurns.length - 1"

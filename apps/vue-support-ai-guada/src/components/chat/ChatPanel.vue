@@ -38,6 +38,7 @@
 
             <TurnItem :class="{ 'opacity-0': showSkeleton, 'opacity-100': !showSkeleton }"
               v-for="(turn, index) in visibleTurns" :key="turn.user.id" :turn="turn" :avatar="userAvater"
+              :session-id="effectiveSessionId"
               :character-name="currentSession?.character?.title"
               :character-avatar="currentSession?.character?.avatarUrl" :is-last="index === visibleTurns.length - 1"
               :allow-generate="!isStreaming && index === lastUserMessageIndex"
