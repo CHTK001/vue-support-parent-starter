@@ -227,3 +227,5 @@ public/flyfish-viewer-assets.json
 **/tmp-sync-*.png
 **/_tmp-*.mjs
 prom-embed-probe.mjs
+
+**/*-probe.mjs
