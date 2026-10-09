@@ -14,7 +14,6 @@
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
 import { createVNode, render } from "vue";
-import { installKoi } from "@repo/theme/koi/framework";
 import "./styles/pages.css";
 import "./styles/telemetry.css";
 import { installUi } from "@repo/ui";
@@ -23,8 +22,9 @@ import monitorRoutes from "./routes";
 import { registerMonitorDatasourceSchema } from "./datasourceSchemaProvider";
 
 /** 本页可能用到的 Re* 组件。
- *  注意：ReIcon / ReScrollNav / ReDrawer 已由 installKoi 内部 installUiComponents 注册（await 先于本清单），
- *  不要再列入 —— 重复 app.component 会触发 Vue「has already been registered」生产期控制台告警。 */
+ *  注意：ReIcon / ReScrollNav / ReDrawer 已由 koi 主题安装器（installKoi 内部 installUiComponents）
+ *  注册，且先于本清单执行（extend 在主题安装之后），不要再列入 ——
+ *  重复 app.component 会触发 Vue「has already been registered」生产期控制台告警。 */
 const MONITOR_RE_COMPONENTS = [
   "ReButton",
   "ReTag",
@@ -62,19 +62,18 @@ const MONITOR_RE_COMPONENTS = [
 ];
 
 /**
- * koi 单页面安装：
- * 1. installKoi —— ElementPlus + 图标 + 公共指令 + koi SVG sprite + koi 主题样式
- * 2. installUi —— 按需注册本应用用到的 Re* 组件
- */
-/**
- * koi 单页面安装：
- * 1. installKoi —— ElementPlus + 图标 + 公共指令 + koi SVG sprite + koi 主题样式
- * 2. installUi —— 按需注册本应用用到的 Re* 组件
+ * 应用扩展安装（extend 钩子，由 createContextApp 在主题安装完成后调用）：
+ * 1. installUi —— 按需注册本应用用到的 Re* 组件
+ * 2. mountProcessHost —— 挂载全局过程任务浮层宿主
+ *
+ * koi 主题（ElementPlus / 图标 / 公共指令 / koi sprite / 主题样式 / router 守卫 /
+ * 菜单兜底）由 createContextApp 按 app.yaml 的 themeId 自动解析安装（见 @repo/theme
+ * loadTheme → koi/framework 注册的安装器），本入口不再安装也不再替换主题安装器。
+ *
  * @param app Vue 应用实例
  * @returns 安装完成
  */
-async function installKoiSinglePage(app: VueApp): Promise<void> {
-  await installKoi(app);
+async function extendMonitorApp(app: VueApp): Promise<void> {
   await installUi(app, { components: MONITOR_RE_COMPONENTS });
   mountProcessHost(app);
 }
@@ -110,7 +109,7 @@ await createContextApp({
   title: "监控管理平台",
   mode: "router",
   routerMode: "hash",
-  install: installKoiSinglePage,
+  extend: extendMonitorApp,
   /**
    * 本应用的代码级默认配置（优先级最低的一层）。
    *
