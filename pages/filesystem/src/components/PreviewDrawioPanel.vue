@@ -375,6 +375,21 @@ async function mountViewer(): Promise<void> {
     if (!GV) {
       throw new Error("drawio 渲染引擎不可用");
     }
+    // 画布 lightbox/工具条 z-index 从 999 提到 5000：drawio 默认值低于
+    // el-dialog（.el-overlay z-index≈2003），lightbox 遮罩/图片会被预览弹层盖住。
+    // 必须在 new GV 之前 patch：构造时懒执行的 initCss() 会把
+    // lightboxZIndex+1/+2 烘进注入的 <style>，晚一步就固化在 1000 上。
+    // 5000 > el-dialog 2003，且 < mxPopupMenu(10006)，层级语义不变。
+    // 幂等保护：只在仍是低值时抬升，避免重复调用二次放大。
+    const gvProto = (
+      GV as unknown as {
+        prototype?: { lightboxZIndex?: number; toolbarZIndex?: number };
+      }
+    ).prototype;
+    if (gvProto && typeof gvProto.lightboxZIndex === "number" && gvProto.lightboxZIndex < 5000) {
+      gvProto.lightboxZIndex = 5000;
+      gvProto.toolbarZIndex = 5000;
+    }
     destroyViewer();
     const config: Record<string, unknown> = {
       page: currentPage.value,

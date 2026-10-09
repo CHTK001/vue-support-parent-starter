@@ -39,6 +39,7 @@ import {
 } from "../utils/xlsxSelectStats";
 import {
   FV_SELECTION_EVENT,
+  installEVirtTableFillerColumns,
   installEVirtTableSelectionBridge,
 } from "../utils/eVirtTableSelectionBridge";
 
@@ -128,19 +129,26 @@ let fileViewerReady = false;
  * 懒加载 file-viewer 全套依赖
  *
  * <p>并行拉取：vue3 组件、preset-office 渲染器、e-virt-table 选区桥接补丁、
- * 组件样式。补丁必须在 file-viewer 创建表格实例之前装好，故在此先行 await。</p>
+ * 窄表格补列补丁、组件样式。补丁必须在 file-viewer 创建表格实例之前装好，
+ * 故在此先行 await。补列补丁失败仅损失"右侧铺满"的视觉效果（回退到留白原状），
+ * 不阻塞主流程。</p>
  *
  * @returns 全部就绪返回 true；任一 import 失败返回 false（调用方改走兜底）
  */
 async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   try {
-    const [bridgeOk, vueMod, presetMod, cssMod] = await Promise.all([
+    const [bridgeOk, fillOk, vueMod, presetMod, cssMod] = await Promise.all([
       installEVirtTableSelectionBridge(),
+      installEVirtTableFillerColumns(),
       import("@file-viewer/vue3"),
       import("@file-viewer/preset-office"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
     ]);
+    if (!fillOk) {
+      // 非门闩：补列失败仅右侧留白（原状），不影响预览与统计
+      console.warn("[PreviewOfficePanel] e-virt-table 窄表格补列补丁未生效");
+    }
     void cssMod; // 样式副作用导入（shadow 模式下组件也会自注入，此处冗余但无害）
     officePreset =
       (presetMod as { default?: unknown; officeRenderers?: unknown }).default
