@@ -15,7 +15,6 @@ import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
 import { createVNode, render } from "vue";
 import { installKoi } from "@repo/theme/koi/framework";
-import "./styles/tokens.css";
 import "./styles/pages.css";
 import "./styles/telemetry.css";
 import { installUi } from "@repo/ui";
