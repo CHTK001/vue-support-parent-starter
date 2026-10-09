@@ -52,13 +52,13 @@
 
       <!-- 行内展开：调用参数 + 执行结果（与弹窗同源） -->
       <div v-if="isExpanded(toolIndex)" class="tool-inline" @click.stop>
-        <div v-if="isLoadingDetails" class="tool-inline__loading">
-          <el-icon size="14" class="animate-spin text-blue-500 mr-1">
-            <Loading />
-          </el-icon>
-          <span>{{ t('chat.toolCalls.loadingDetails') }}</span>
-        </div>
-        <ToolCallDetail v-else :tool="tool" :response="inlineResponse(toolIndex)"
+        <!--
+          详情直读消息自带的 toolCalls / toolCallsResponse 轨迹（历史消息接口随消息返回，
+          AiSessionController 已把 toolTrace 写进 contentMetadata）。
+          不再请求 /message-content/{id}/tool-details：该端点后端从未存在，
+          每次展开必 404 → 弹「加载工具详情失败」（2026-10-09 报障根因）。
+        -->
+        <ToolCallDetail :tool="tool" :response="inlineResponse(toolIndex)"
           :executing="isToolExecuting(tool, toolIndex)" />
       </div>
     </div>
@@ -70,14 +70,7 @@
     :title="t('chat.toolCalls.detailTitle', { index: selectedToolIndex + 1 })" width="700px" :close-on-click-modal="true" destroy-on-close
     :append-to-body="true" class="tool-dialog" @closed="keepElement = false">
     <div class="tool-dialog-content">
-      <!-- 加载状态 -->
-      <div v-if="isLoadingDetails" class="flex items-center justify-center py-8">
-        <el-icon size="24" class="animate-spin text-blue-500 mr-2">
-          <Loading />
-        </el-icon>
-        <span class="text-gray-500">{{ t('chat.toolCalls.loadingDetails') }}</span>
-      </div>
-      <div v-else-if="selectedTool" class="tool-call-detail-wrap">
+      <div v-if="selectedTool" class="tool-call-detail-wrap">
         <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
           <el-icon v-if="isExecuting" size="18" class="text-blue-500">
             <component :is="getToolIcon(selectedTool)" />
@@ -97,7 +90,7 @@
           </span>
         </div>
 
-        <ToolCallDetail :tool="selectedTool" :response="currentToolResponses?.[selectedToolIndex]"
+        <ToolCallDetail :tool="selectedTool" :response="inlineResponse(selectedToolIndex)"
           :executing="isExecuting" />
       </div>
     </div>
@@ -111,14 +104,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { ElIcon, ElButton } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { Info24Regular, ChevronRight12Regular } from '@vicons/fluent';
-// @ts-ignore - icons 组件尚未迁移到 TypeScript
-import { Loading } from '@/components/icons';
-import { apiService } from '@/services/ApiService';
-import { usePopup } from '@/composables/usePopup';
 import LDialog from '@/components/ui/LDialog.vue';
 import ToolCallDetail from './ToolCallDetail.vue';
 import {
@@ -131,10 +120,8 @@ const props = defineProps<{
   toolCalls: ToolCall[];
   toolResponses?: any[];
   isStreaming?: boolean;
-  contentId?: string;
 }>();
 
-const { toast } = usePopup();
 const { t } = useI18n();
 
 // ── 行内展开状态 ──
@@ -148,7 +135,8 @@ const expandedIndexes = ref<number[]>([]);
 const isExpanded = (index: number): boolean => expandedIndexes.value.includes(index);
 
 /**
- * 点击行体：切换展开；首次展开且详情需懒加载时，顺带把完整 details 拉回来。
+ * 点击行体：切换展开。详情**无需懒加载**——工具轨迹（toolCalls/toolCallsResponse）
+ * 随消息本体返回，展开即渲染（历史幽灵端点已移除，见模板内注释）。
  */
 const toggleTool = (index: number) => {
   const at = expandedIndexes.value.indexOf(index);
@@ -157,7 +145,6 @@ const toggleTool = (index: number) => {
     return;
   }
   expandedIndexes.value = [...expandedIndexes.value, index];
-  void loadToolDetails();
 };
 
 // ── 执行状态 ──
@@ -195,68 +182,23 @@ const getToolDisplayName = (tool: ToolCall): string => {
   return tool.name || 'Unknown Tool';
 };
 
-// ── 弹窗 & 懒加载 ──
+// ── 弹窗 ──
 
 const showDialog = ref(false);
 const keepElement = ref(false);
 const selectedToolIndex = ref<number | null>(null);
-const isLoadingDetails = ref(false);
-const loadedToolCalls = ref<ToolCall[] | null>(null);
-const loadedToolResponses = ref<any[] | null>(null);
 
 const selectedTool = computed(() => {
   if (selectedToolIndex.value === null) return null;
-  if (loadedToolCalls.value && loadedToolCalls.value[selectedToolIndex.value]) {
-    return loadedToolCalls.value[selectedToolIndex.value];
-  }
-  if (props.toolCalls) {
-    return props.toolCalls[selectedToolIndex.value];
-  }
-  return null;
+  return props.toolCalls[selectedToolIndex.value] || null;
 });
 
-const currentToolResponses = computed(() => {
-  if (loadedToolResponses.value) return loadedToolResponses.value;
-  return props.toolResponses;
-});
-
-/** 行内展开取用与弹窗同源的结果载荷 */
-const inlineResponse = (index: number): any => currentToolResponses.value?.[index];
-
-const needsLazyLoad = computed(() => {
-  if (!props.contentId) return false;
-  if (isExecuting.value) return false;
-  return true;
-});
-
-async function loadToolDetails() {
-  if (!props.contentId || !needsLazyLoad.value) return;
-  if (isLoadingDetails.value) return;
-  if (loadedToolResponses.value) return;
-
-  isLoadingDetails.value = true;
-  try {
-    const result = await apiService.fetchMessageContentToolDetails(props.contentId);
-    loadedToolCalls.value = result.toolCalls || [];
-    loadedToolResponses.value = result.toolCallsResponse || [];
-  } catch (error: any) {
-    console.error('加载工具调用详情失败:', error);
-    toast.error(t('chat.toolCalls.loadDetailsFailed'));
-  } finally {
-    isLoadingDetails.value = false;
-  }
-}
-
-watch(showDialog, (newVal) => {
-  if (newVal && needsLazyLoad.value) {
-    loadToolDetails();
-  }
-});
+/** 行内展开/弹窗共用的结果载荷：与工具行同索引的响应（历史轨迹随消息返回） */
+const inlineResponse = (index: number | null): any =>
+  (index === null ? undefined : props.toolResponses?.[index]);
 
 const openSingleToolDialog = (index: number) => {
   selectedToolIndex.value = index;
-  loadedToolCalls.value = null;
-  loadedToolResponses.value = null;
   showDialog.value = true;
   keepElement.value = true;
 };
@@ -350,13 +292,6 @@ const closeDialog = () => {
   margin: 4px 0 2px 16px;
   padding-left: 12px;
   border-left: 2px solid var(--el-border-color-lighter);
-}
-
-.tool-inline__loading {
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
 /* 工具正在执行时图标闪烁提示（原定义已被清理，补回） */

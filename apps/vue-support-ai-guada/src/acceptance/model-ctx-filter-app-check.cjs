@@ -1,11 +1,13 @@
 /**
- * 业务级验收：上下文大小过滤在**真实应用**中的表现（聊天页模型选择卡片 + 模型管理）。
+ * 业务级验收：模型选择卡片**检索框**（2026-10-09 用户需求改版）+ 模型管理档位过滤，
+ * 全部跑在**真实应用**上。
  *
  * 与夹具探针（model-ctx-filter-probe.cjs）分工：
- *   - 夹具探针：全档位矩阵、并集/取消/无匹配等交互语义，跑在私有 dev 夹具页（免登录）；
+ *   - 夹具探针：检索交互语义（子串/大小写/供应商命中、无匹配提示、清空恢复）与管理页档位矩阵，
+ *     跑在私有 dev 夹具页（免登录）；
  *   - 本探针：跑在**真实应用**（本地 pnpm dev，默认代理远端 198:8787）上，用线上真实模型
- *     数据校验"标签渲染 → 点击过滤 → 可见行与其上下文徽标自洽 → 再点恢复"，
- *     以及模型管理页的同类行为。属于浏览器业务验收，不依赖夹具。
+ *     数据校验"选择卡片已无上下文过滤标签 + 检索框就绪（自动聚焦）+ 检索收敛自洽 +
+ *     清空恢复全量"，以及模型管理页的档位过滤行为。属于浏览器业务验收，不依赖夹具。
  *
  * 用法：BASE=http://localhost:15689 node src/acceptance/model-ctx-filter-app-check.cjs
  */
@@ -46,22 +48,6 @@ function badgeToTokens(text) {
   if (!m) return null;
   const n = Number(m[1]);
   return m[2] === 'M' ? Math.round(n * 1000000) : Math.round(n * 1000);
-}
-
-/** 可见行是否都自洽于当前选中的档位（并集语义；无徽标=未知） */
-function rowsConsistentWithBands(rows, keys) {
-  const bands = keys.map((k) => BANDS[k]).filter(Boolean);
-  const wantUnknown = keys.includes('unknown');
-  for (const r of rows) {
-    const tokens = badgeToTokens(r.ctx);
-    if (tokens === null) {
-      if (!wantUnknown) return { ok: false, why: `未知行在已知档位筛选下仍可见: ${r.name}` };
-      continue;
-    }
-    const inBand = bands.some(([lo, hi]) => tokens >= lo && tokens < hi);
-    if (!inBand) return { ok: false, why: `行 ${r.name}(${r.ctx}) 不在所选档位内` };
-  }
-  return { ok: true };
 }
 
 (async () => {
@@ -155,46 +141,58 @@ function rowsConsistentWithBands(rows, keys) {
   await page.waitForSelector('.model-panel', { state: 'visible', timeout: 15000 });
   await page.waitForTimeout(400);
 
+  // 2026-10-09 用户需求：选择卡片**移除**上下文大小过滤标签 → 改为检索框。
   const panelChips = page.locator('.model-panel .ctx-tag');
+  const panelSearch = page.locator('.model-panel .model-search__input');
   const panelRows = page.locator('.model-panel .model-item');
-  const chipLabels = (await panelChips.allTextContents()).map((s) => s.trim());
   const initialRows = await panelRows.count();
-  add('app.panel.opened', true, `chips=${chipLabels.length} rows=${initialRows}`);
+  add('app.panel.opened', true, `chips=${await panelChips.count()} rows=${initialRows}`);
   add('app.panel.rowsPresent', initialRows > 0, 'rows=' + initialRows);
-  add('app.panel.chipsValid',
-    chipLabels.length > 0 && chipLabels.every((l) => LABEL_TO_KEY[l]),
-    chipLabels.join('|'));
+  add('app.panel.ctxFilterRemoved', (await panelChips.count()) === 0, 'chips=' + (await panelChips.count()));
+  add('app.panel.searchRendered', (await panelSearch.count()) === 1, 'search=' + (await panelSearch.count()));
+  const focused = await page.evaluate(() => {
+    const el = document.activeElement;
+    return !!(el && el.classList && el.classList.contains('model-search__input'));
+  });
+  add('app.panel.searchAutoFocused', focused,
+    'active=' + await page.evaluate(() => (document.activeElement && document.activeElement.className) || 'none'));
 
-  const readRows = () => page.$$eval('.model-panel .model-item', (rows) => rows.map((r) => ({
-    name: (r.querySelector('.flex-1 > div')?.textContent || '').trim(),
-    ctx: (r.querySelector('.model-ctx')?.textContent || '').trim(),
-  })));
+  const readRows = () => page.$$eval('.model-panel .model-item', (rows) => rows.map((r) => {
+    const box = r.querySelector('.flex-1');
+    const divs = box ? box.querySelectorAll(':scope > div') : [];
+    return {
+      name: (divs[0]?.textContent || '').trim(),
+      provider: (divs[1]?.textContent || '').trim(),
+      ctx: (r.querySelector('.model-ctx')?.textContent || '').trim(),
+    };
+  }));
 
-  // 取一个"有可见结果"的档位来验证过滤自洽；逐个试，保证用真实数据也能命中
-  let verifiedKey = null;
-  for (const label of chipLabels) {
-    const key = LABEL_TO_KEY[label];
-    const before = await panelRows.count();
-    await page.locator('.model-panel .ctx-tag', { hasText: label }).first().click();
-    await page.waitForTimeout(300);
-    const filtered = await readRows();
-    if (filtered.length > 0) {
-      const cons = rowsConsistentWithBands(filtered, [key]);
-      add(`app.panel.filter[${label}].consistent`, cons.ok, cons.why || `rows=${filtered.length} (before=${before})`);
-      add(`app.panel.filter[${label}].subset`, filtered.length <= before, `${filtered.length}<=${before}`);
-      verifiedKey = key;
-      // 再点一次取消，恢复
-      await page.locator('.model-panel .ctx-tag', { hasText: label }).first().click();
-      await page.waitForTimeout(300);
-      const restored = await panelRows.count();
-      add(`app.panel.filter[${label}].restored`, restored === before, `restored=${restored} before=${before}`);
-      break;
-    }
-    // 没命中就取消后换下一个
-    await page.locator('.model-panel .ctx-tag', { hasText: label }).first().click();
-    await page.waitForTimeout(200);
-  }
-  add('app.panel.someBandVerified', !!verifiedKey, 'verifiedBand=' + verifiedKey);
+  // ── 检索：取首行显示名前缀做关键词 → 结果收敛，且确有显示名命中的行 ──
+  const all = await readRows();
+  const sample = all[0]?.name || '';
+  const kw = sample.slice(0, Math.max(3, Math.ceil(sample.length / 2)));
+  await panelSearch.fill(kw);
+  await page.waitForTimeout(350);
+  const filtered = await readRows();
+  const hitShown = filtered.some((r) => r.name.toLowerCase().includes(kw.toLowerCase()));
+  add('app.panel.searchFilter',
+    kw.length >= 3 && filtered.length > 0 && filtered.length <= all.length && hitShown,
+    `kw=${kw} rows=${filtered.length}/${all.length} hitShown=${hitShown}`);
+  add('app.panel.searchSubset', filtered.length <= all.length, `${filtered.length}<=${all.length}`);
+
+  // ── 无匹配词 → 空态提示（沿用 common.contextSize.noMatch 文案） ──
+  await panelSearch.fill('zzz~no~such~model');
+  await page.waitForTimeout(350);
+  add('app.panel.searchNoMatch',
+    (await panelRows.count()) === 0
+    && (await page.locator('.model-panel .ctx-no-match').isVisible()),
+    'rows=' + (await panelRows.count()));
+
+  // ── 清空按钮恢复全量 ──
+  await page.locator('.model-panel .model-search__clear').click();
+  await page.waitForTimeout(350);
+  const restored = await panelRows.count();
+  add('app.panel.searchCleared', restored === all.length, `restored=${restored} expect=${all.length}`);
 
   // 关闭弹层
   await page.keyboard.press('Escape');

@@ -45,7 +45,7 @@
         <span class="timeline-rail"><el-icon size="14"><Wrench24Filled /></el-icon></span>
         <div class="timeline-body">
           <MessageToolCalls :tool-calls="item.toolCalls || []" :tool-responses="item.toolResponses"
-            :content-id="item.source.id" :is-streaming="isStreaming" />
+            :is-streaming="isStreaming" />
         </div>
       </div>
     </template>

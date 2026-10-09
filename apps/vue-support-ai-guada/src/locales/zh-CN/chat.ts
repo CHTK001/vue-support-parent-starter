@@ -78,6 +78,9 @@ export default {
     // 思考等级里的「关闭」项（对应不思考）
     thinkingLevelOff: '不思考',
 
+    // ModelSelectorPanel.vue —— 模型检索框占位文案
+    modelSearchPlaceholder: '搜索模型',
+
     // WorkspaceSelectorPopover.vue
     recent: '最近选择',
     usePublicDir: '使用公共目录',
@@ -230,7 +233,6 @@ export default {
     maxIterationsReached: '已达到最大工具调用轮次限制',
     continueExecution: '继续执行',
     working: '工作中',
-    workingWithDuration: '工作中 · {duration}',
     codeCopied: '代码已复制到剪贴板',
     thinkingActive: '正在思考...',
     thinkingDone: '已深度思考',
@@ -239,19 +241,6 @@ export default {
     executingSteps: '正在执行{n}个步骤',
     executingStepsWithCompleted: '正在执行{n}个步骤,已完成{m}个步骤',
     executedSteps: '已执行{n}个步骤',
-
-    // ── 回合级执行摘要条 ──
-    expandProcess: '展开执行过程',
-    collapseProcess: '收起执行过程',
-    noProcess: '无执行过程',
-    phaseThink: '思考',
-    phaseSearch: '检索',
-    phaseCommand: '执行命令',
-    phaseEditFile: '编辑文件',
-    phaseRead: '读取文件',
-    phaseWeb: '联网',
-    phaseTool: '工具调用',
-    phaseCompose: '组织回答',
   },
 
   // ── 消息操作 ──
@@ -286,7 +275,6 @@ export default {
   // ── 工具调用 ──
   toolCalls: {
     detailTitle: '工具调用详情 #{index}',
-    loadingDetails: '加载工具详情中...',
     callParams: '调用参数',
     paramKey: '参数',
     paramValue: '值',
@@ -295,7 +283,6 @@ export default {
     fieldKey: '字段',
     aborted: '已终止',
     noResponse: '无响应',
-    loadDetailsFailed: '加载工具详情失败',
     executing: '执行中…',
     viewDetail: '查看详情',
   },

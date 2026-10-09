@@ -78,6 +78,9 @@
     // The "off" option inside the thinking level control
     thinkingLevelOff: 'Off',
 
+    // ModelSelectorPanel —— model search box placeholder
+    modelSearchPlaceholder: 'Search models',
+
     // WorkspaceSelectorPopover.vue
     recent: 'Recent',
     usePublicDir: 'Use Public Directory',
@@ -230,7 +233,6 @@
     maxIterationsReached: 'Maximum tool call iterations reached',
     continueExecution: 'Continue Execution',
     working: 'Working',
-    workingWithDuration: 'Working · {duration}',
     codeCopied: 'Code copied to clipboard',
     thinkingActive: 'Thinking...',
     thinkingDone: 'Deep Thinking Complete',
@@ -239,19 +241,6 @@
     executingSteps: 'Executing {n} steps',
     executingStepsWithCompleted: 'Executing {n} steps, {m} completed',
     executedSteps: '{n} steps executed',
-
-    // ── Turn-level process summary ──
-    expandProcess: 'Expand process',
-    collapseProcess: 'Collapse process',
-    noProcess: 'No process',
-    phaseThink: 'thinking',
-    phaseSearch: 'searching',
-    phaseCommand: 'running command',
-    phaseEditFile: 'edit file',
-    phaseRead: 'read file',
-    phaseWeb: 'web',
-    phaseTool: 'tool call',
-    phaseCompose: 'composing',
   },
 
   // ── 消息操作 ──
@@ -286,7 +275,6 @@
   // ── 工具调用 ──
   toolCalls: {
     detailTitle: 'Tool Call Details #{index}',
-    loadingDetails: 'Loading tool details...',
     callParams: 'Call Parameters',
     paramKey: 'Parameter',
     paramValue: 'Value',
@@ -295,7 +283,6 @@
     fieldKey: 'Field',
     aborted: 'Aborted',
     noResponse: 'No Response',
-    loadDetailsFailed: 'Failed to load tool details',
     executing: 'Executing…',
     viewDetail: 'View details',
   },
