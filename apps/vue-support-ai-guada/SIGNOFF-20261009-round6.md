@@ -119,3 +119,48 @@
 - `apps/vue-support-ai-guada/vite.config.ts`（`f75df91b5`，部分暂存 —— 仅 manualChunks hunk）
 - `apps/vue-support-ai-guada/src/acceptance/acc-image-lib-foot.mjs`、`run-all-against-dist.mjs`（`b710a35b2`）
 - `apps/vue-support-ai-guada/SIGNOFF-20261009-round6.md`（本文件，签核更正 + §7）
+
+## 8. 「agent 没有输出结果、页面不显示」缺陷分析与修复（2026-10-10）
+
+> 现场：用户让 agent 画鹈鹕骑车，页面上看不到任何图；模型正文里还留着一段未执行的
+> magick 伪工具调用（用户贴出并标注「没处理」）。
+
+### 8.1 三层根因（全部实证）
+
+1. **模型层（输出没被执行）**：#229 正文里是模型自己吐的**纯文本伪工具调用**
+   （`execute<arg_key>cmd</arg_key>...`）——全仓库 grep `arg_key` **零匹配**，
+   不存在任何解析器，magick 转换从未真正运行。结构化 toolCalls 里只有 2 次 write_file。
+2. **数据层（图其实早已生成）**：#227 的 convert 已成功 —— 服务端
+   `/opt/ai-starter/workspace/admin/agent/85/pelican_bike.png` 实存 **31239 字节、PNG 魔数正确**；
+   `raw-file` 端点 200 image/png 可取回。另有 3 个 SVG 变体同实存。
+   （`/workspace/file` 端点读二进制 500 "Input length = 1" = Java 按 UTF-8 解 PNG，
+   但 `raw-file` 裸流端点完好，前端取图应走后者。）
+3. **前端层（根本缺口）**：聊天消息渲染链 `MarkdownContent(marked)` 只把路径渲染成
+   行内代码/纯文本，**全无「消息内展示工作区图片」的机制** —— 图在服务器上、端点可取，
+   页面却无处显示，用户遂判「agent 没输出」。
+
+### 8.2 修复：MessageOutputImages 组件
+
+- 新增 `src/components/chat/message-item/MessageOutputImages.vue`：
+  扫描本轮**全部版本**消息 JSON（正文 + toolCalls 参数 + 工具返回）提取图片路径 token
+  （png/jpg/gif/webp/svg/bmp/avif），逐 token 生成候选路径
+  （绝对原样 / 去头斜杠 / `{sessionId}/` 前缀 / 工作区根），经
+  `getWorkspaceRawFileUrl` + `loadAuthenticatedImage`（令牌不进 URL）取回才渲染；
+  幻觉路径（404）静默丢弃不显裂图；流式结束给失败 token 一次重试（文件可能后落地）。
+- **去重**：`normalizeKey()` 把绝对/相对双写法归一（`/opt/.../85/x.png` 与 `85/x.png`
+  同一文件只出一张）；token 封顶 16、展示封顶 12、单 token 候选封顶 3，防请求风暴。
+- 挂载：`TurnItem` 新增 `sessionId` prop，`ProcessTimeline` 之后渲染
+  `<MessageOutputImages :messages="turn.assistants">`（传整轮全版本——图片是真实产物，
+  不随文本版本 4/4 切换丢失）；`ChatPanel` 传 `effectiveSessionId`、
+  `BotSessionDialog` 传 `session.id`。点击缩略图开 `el-image-viewer` 大图。
+
+### 8.3 验证（dev 15689 生产级浏览器实测）
+
+- 会话 85 回归：**5 张唯一图**（去重前 7）、naturalWidth 全部 >0（0 裂图）、**pageerror 0**；
+  点击开查看器 `el-image-viewer__wrapper` 在 DOM、blob img 正常。
+- 端到端：输入框真实发送「戴蓝色头盔的鹈鹕骑车」→ 流结束**新回合产出的 SVG 实时上屏（6 张）**、0 报错。
+- 回归面：纯文本会话 94 与 new-session —— `raw-file` 请求数 **0**、图片 **0**、pageerror 0
+  （无图片 token 时不产生任何额外请求）。
+- 提交归属：组件与三处挂载被并行会话的宽泛提交 `5674f51a4` 扫入 git（内容即最终验证版）。
+- 附带确认（非本轮改动）：正文里伪工具调用按原文显示属模型输出如实呈现，
+  后端无对应解析器属 agent 工具链问题，已在此记录待后端案处理。
