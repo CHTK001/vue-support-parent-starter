@@ -160,23 +160,25 @@ function blank(): FieldState {
 /**
  * 常用预设：恒显。
  *
- * <p>窄弹层（320px）里每行只放得下两个胶囊，11 个平铺要占六行、把下面的字段编辑
- * 挤到要滚动，所以拆成两档：这里 6 个高频的常显，{@link PRESETS_MORE} 折叠。</p>
+ * <p>只留 4 个真正高频的。「工作日 09:00」「每周一 09:00」这类按周维度的排期
+ * 一次配好就不再改，藏进 {@link PRESETS_MORE} 更合适；而常显区每多一个胶囊，
+ * 在 480px 弹层里就多一行（每行约 24px），弹层高度一旦越过「触发器上/下方可用空间」
+ * 就会溢出屏幕，「保存」和「应用此时间」只能靠滚动才够得到。</p>
  */
 const PRESETS_QUICK: { label: string; cron: string }[] = [
   { label: "每分钟", cron: "0 * * * * *" },
   { label: "每 5 分钟", cron: "0 */5 * * * *" },
   { label: "每小时整点", cron: "0 0 * * * *" },
   { label: "每天 09:00", cron: "0 0 9 * * *" },
-  { label: "工作日", cron: "0 0 9 * * 1,2,3,4,5" },
-  { label: "每周一", cron: "0 0 9 * * 1" },
 ];
 
-/** 罕见档预设：由「更多」按钮展开（每 10 分钟 / 每月 / 每年…） */
+/** 罕见档预设：由「更多」按钮展开（按周排期 / 每 10 分钟 / 每月 / 每年…） */
 const PRESETS_MORE: { label: string; cron: string }[] = [
   { label: "每 10 分钟", cron: "0 */10 * * * *" },
   { label: "每 30 分钟", cron: "0 */30 * * * *" },
   { label: "每天 09:30", cron: "0 30 9 * * *" },
+  { label: "工作日", cron: "0 0 9 * * 1,2,3,4,5" },
+  { label: "每周一", cron: "0 0 9 * * 1" },
   { label: "每月 1 日", cron: "0 0 9 1 * *" },
   { label: "每年 1 月 1 日", cron: "0 0 0 1 1 *" },
 ];
@@ -1071,6 +1073,49 @@ function useExpressionText(): void {
 }
 
 /**
+ * 弹层的定位修饰符。
+ *
+ * 这个面板内容高（字段模式约 510px，日历模式约 440px），而它是从表单中部往下浮的：
+ * 触发器下方只剩 ~420px、上方 ~470px，两侧都不够，floating-ui 的 flip 判定
+ * 「哪边都放不下」后哪儿都不去，于是溢出屏幕底部、并在内部出滚动条 ——
+ * 用户要滚到底才够得到「保存」和「应用此时间」。
+ *
+ * 所以不用 flip，直接用 offset：下方放不下就把弹层整体上移，让它向上生长。
+ * 高度从 DOM 实测而不是写死，因为内容高度随模式（字段/日历）、表达式合法性
+ * （错误提示会多一行）变化，写死会在这些情况下算错。
+ *
+ * 声明在 script 而不是模板内联字面量：内联每次渲染都是新对象，
+ * 会让 popper 反复重算定位。
+ */
+const POPPER_OPTIONS = {
+  modifiers: [
+    {
+      name: "offset",
+      options: {
+        /*
+         * 注意：floating-ui 的 offset 在 options.offset 是**函数**时会直接拿返回值当
+         * data 用（而不是在默认 placement 结果上叠加增量）。所以这里必须返回绝对
+         * 坐标；早先按增量写 `{x: 0, y: -N}` 会把弹层顶到 (0,0) 去。
+         *
+         * bottom-start 的自然位置是：x 对齐触发器左边、y = 触发器底边。
+         */
+        offset: ({ rects }: { rects: { reference: DOMRect } }) => {
+          const el = document.querySelector<HTMLElement>(".re-cron__popper");
+          const height = el?.offsetHeight ?? 0;
+          const GAP = 8;
+          const x = rects.reference.left;
+          const y = rects.reference.bottom;
+          const below = window.innerHeight - y - GAP;
+          // 下方放不下就整体上移（y 变小），让弹层向上生长；放得下时与普通浮层无异
+          return { x, y: y - Math.max(0, height - below) };
+        },
+      },
+    },
+    { name: "preventOverflow", options: { padding: 8 } },
+  ],
+};
+
+/**
  * 打开面板时记下表达式快照。
  *
  * <p>面板是实时把改动写回 model 的（state → expression → model），
@@ -1153,7 +1198,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       :trigger="[]"
       :width="480"
       popper-class="re-cron__popper"
-      :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
+      :fallback-placements="['top-start', 'right-start', 'bottom-start']"
+      :popper-options="POPPER_OPTIONS"
     >
       <!--
         reference 是「整条触发行」而不是那颗齿轮按钮：Popover 只能挂一个 reference，
@@ -1221,37 +1267,52 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       <div class="re-cron__panel">
         <header class="re-cron__panel-head">
           <span class="re-cron__panel-title">设置调度周期</span>
+
+          <!--
+            模式切换：字段 / 日历。两者共用同一条写入路径，见 applyCalendar 注释。
+            放在标题行右侧而不是独立一块：弹层要在 45vh 内无滚动放完全部内容，
+            独立成块要多付 26px 高度 + 8px 间隙。
+          -->
+          <div class="re-cron__modes" role="tablist" aria-label="调度周期设置方式">
+            <button
+              type="button"
+              role="tab"
+              class="re-cron__mode"
+              :class="{ 'is-active': panelMode === 'field' }"
+              :aria-selected="panelMode === 'field'"
+              @click="panelMode = 'field'"
+            >
+              字段
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="re-cron__mode"
+              :class="{ 'is-active': panelMode === 'calendar' }"
+              :aria-selected="panelMode === 'calendar'"
+              @click="panelMode = 'calendar'"
+            >
+              日历
+            </button>
+          </div>
+
           <button type="button" class="re-cron__panel-close" aria-label="关闭" @click="cancelPanel">
             <el-icon><Close /></el-icon>
           </button>
         </header>
 
-        <!-- 模式切换：字段 / 日历。两者共用同一条写入路径，见 applyCalendar 注释 -->
-        <div class="re-cron__modes" role="tablist" aria-label="调度周期设置方式">
-          <button
-            type="button"
-            role="tab"
-            class="re-cron__mode"
-            :class="{ 'is-active': panelMode === 'field' }"
-            :aria-selected="panelMode === 'field'"
-            @click="panelMode = 'field'"
-          >
-            字段
-          </button>
-          <button
-            type="button"
-            role="tab"
-            class="re-cron__mode"
-            :class="{ 'is-active': panelMode === 'calendar' }"
-            :aria-selected="panelMode === 'calendar'"
-            @click="panelMode = 'calendar'"
-          >
-            日历
-          </button>
-        </div>
+        <!--
+          摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面。
 
-        <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
-        <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }">
+          只在字段模式出现。日历模式下 cadence 胶囊 + 执行时间已经把语义说全了，
+          而表达式此刻就显示在上方触发器的输入框里，重复一遍要白占 39px + 8px 间隙
+          —— 这点高度直接决定弹层要不要出滚动条（见 .re-cron__popper 的 max-height）。
+        -->
+        <div
+          v-if="panelMode === 'field'"
+          class="re-cron__summary"
+          :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }"
+        >
           <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
             {{ humanSummary || (trimmed ? (summary || errorText) : "未设置调度周期") }}
           </div>
@@ -1501,7 +1562,9 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  /* 5px：弹层要落进「触发器上方 ~470px / 下方 ~420px」这两个空间之一才能不滚动，
+     差几像素就会溢出屏幕。每档 1px 在这里都是滚动条的开关。 */
+  gap: 5px;
   min-width: 0;
 }
 
@@ -1509,16 +1572,26 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* 标题 · 字段/日历切换 · ×：space-between 会把中间那组顶到最右，
+     改用固定间隙 + margin-left:auto 只把 × 推到最右 */
   gap: 12px;
 }
 
 .re-cron__panel-title {
+  flex: none;
   color: var(--el-text-color-primary);
   font-size: 15px;
   font-weight: 600;
 }
 
+/* 模式切换组贴在标题右侧（而不是靠 space-between 推到最右），留出中间的呼吸 */
+.re-cron__modes {
+  flex: none;
+  margin-left: auto;
+}
+
 .re-cron__panel-close {
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1763,15 +1836,31 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
    就改成 color-mix，两者实测逐值相同。 */
 .re-cron__summary {
   display: flex;
-  flex-direction: column;
+  /*
+   * 横向一行：人话在左、表达式在右。
+   *
+   * 竖排时这块要 66px（15px 大字一行 + 13px 表达式一行 + 间隙 + 内距），
+   * 而弹层要在 45vh 内无滚动地放下全部内容。并排后只占一行，省下 ~22px。
+   * 窄屏（表达式长到要折行）由下面那条媒体查询回落竖排。
+   */
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  padding: 12px 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 5px 12px;
   /* 描边用主色掺白/掺黑再混边框色，跟随主题切换，不写死色值 */
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter, #ebeef5));
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary-light-9, #ecf5ff);
   text-align: center;
+}
+
+@media (width <= 560px) {
+  .re-cron__summary {
+    flex-direction: column;
+    gap: 4px;
+  }
 }
 
 .re-cron__summary.is-invalid {
@@ -1790,10 +1879,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   border-color: var(--el-border-color-lighter, #ebeef5);
 }
 
+/* 20px：弹层要在 45vh 内不滚动地放下全部内容（实测超出会把「保存」挤出可视区），
+   大字压到 15px、摘要条总高从 88px 降到 ~46px。 */
 .re-cron__summary-text {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.3;
   color: var(--el-color-primary, #409eff);
 }
 
@@ -1823,11 +1914,11 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 }
 
 .re-cron__summary-expr {
-  padding: 3px 14px;
+  padding: 2px 10px;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   background: var(--el-bg-color, #ffffff);
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--el-text-color-regular, #606266);
 }
 
@@ -1837,14 +1928,14 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
-/* 与 34px 高的胶囊视觉居中对齐 */
+/* 与 24px 高的胶囊视觉居中对齐 */
 .re-cron__section-title--inline {
   flex: none;
   margin-bottom: 0;
-  padding-top: 8px;
+  padding-top: 5px;
   white-space: nowrap;
 }
 
@@ -1869,14 +1960,17 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 /* 预设/匹配方式胶囊：普通态描边，选中态主色实底（圆角见上方合并规则） */
 .re-cron__pill {
-  height: 28px;
+  /* 24px / 10px 内距 / 11px 字：480px 弹层里预设胶囊一行放得下 5 个，
+     9 个（6 常显 + 更多 + 用默认 + 清空）从三行压到两行，省下约 30px —— 
+     这 30px 直接决定弹层要不要出滚动条。 */
+  height: 24px;
   padding: 0 10px;
   border: 1px solid var(--el-border-color, #dcdfe6);
   background: var(--el-bg-color, #ffffff);
   color: var(--el-text-color-regular, #606266);
   font-family: inherit;
-  font-size: 12px;
-  line-height: 26px;
+  font-size: 11px;
+  line-height: 22px;
   cursor: pointer;
 }
 
@@ -1952,8 +2046,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 4px;
+  gap: 2px;
+  padding: 6px 4px;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   background: var(--el-bg-color, #ffffff);
   cursor: pointer;
@@ -2068,6 +2162,43 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   font-weight: 600;
 }
 
+/*
+ * 日历模式下的触发预览压成一行横排（字段模式仍是竖列表）。
+ *
+ * 竖排卡片 5 次触发要 106px —— 光这一块就吃掉弹层（可用 ~420px）的四分之一，
+ * 底下的「应用此时间」和「保存」只能靠滚动才够得到。改成「标题 + 时间横排、
+ * 放不下就横向裁掉」后只占 ~24px，信息（最近几次什么时候跑）一点没少。
+ */
+.re-cron__cal-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.re-cron__cal-preview .re-cron__section-title {
+  flex: none;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.re-cron__cal-preview .re-cron__times {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  gap: 14px;
+  min-width: 0;
+  padding: 3px 12px;
+  overflow: hidden;
+}
+
+.re-cron__cal-preview .re-cron__times li,
+.re-cron__cal-preview .re-cron__times--empty {
+  flex: none;
+  padding: 0;
+  border-bottom: 0;
+}
+
 .re-cron__times-dot {
   flex: none;
   width: 6px;
@@ -2153,17 +2284,17 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
  */
 .re-cron__popper {
   max-width: 94vw;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--el-popover-border-radius, var(--el-radius-lg, 12px));
   /*
    * 内容可能比触发器高很多（预设行 + 六字段 + 触发预览）：给正文加上限并允许滚动，
    * 保证任何窗口尺寸下"保存/取消"都点得到。
    *
-   * 高度上限按"弹层是从页面中部往下浮"来定，不能按整屏算：
-   * 触发器大致在视口中线偏上，可用空间本来就只有视口的一半左右，
-   * 所以取 45vh（900px 高的窗口约 405px）。84vh/60vh 都会让下半截伸出屏幕外。
+   * 高度上限只兜"视口本身不够高"的极端情况（弹层已由 offset 向上生长避开触发器）。
+   * 给到接近整屏：正常情况下内容 ~510px 完全放得下，不会触发内部滚动；
+   * 只有窗口矮到连整屏都装不下时才会滚，那本来就是没法解决的。
    */
-  max-height: 45vh;
+  max-height: calc(100vh - 16px);
   overflow-y: auto;
 }
 
