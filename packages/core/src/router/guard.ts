@@ -95,6 +95,14 @@ export function setupRouterGuard(
 ): void {
   const { getAccessToken, loadRemoteRoutes, hooks } = options;
   const layoutName = options.layoutName ?? "layout";
+  /**
+   * 已回放过一次的深链路径（每个 Router 实例一份）。
+   *
+   * <p>冷启动深链在远程模式下会被 NotFound 兜底重定向到 /404，需回放到原路径；
+   * 但**真** 404（路径在菜单注册后依旧不存在）若也无限回放会形成重定向环。
+   * 每条路径只回放一次：第二次仍落 /404 时按白名单正常放行、渲染 404 页。</p>
+   */
+  const replayedPaths = new Set<string>();
 
   router.beforeEach(async (to, from) => {
     const config = getConfig();
@@ -135,7 +143,26 @@ export function setupRouterGuard(
     // （文件头注释「白名单路由直接放行」描述的行为并不存在）。
     // 后果：任何不在 loginPath 上的免登录页（如学生登录页 /edu/student-login）
     // 在未登录时都会被推回 loginPath，学生用自己的学号根本进不去。
-    if (isWhitelisted(whiteList, to.path)) {
+    //
+    // 例外 —— 「冷启动深链未注册」不能在白名单处结案（2026-10-10）：
+    // 远程模式下首次访问某深链（如文件管理「预览（新窗口）」新开的
+    // /system/manage/filestorage?preview=<完整key>）时业务路由还没注册，
+    // NotFound 兜底会把它重定向到 /404；而 /404 恰在白名单里 —— 若这里直接
+    // 放行，404 页就地提交，第 8 步「先注册再回放」永远轮不到，深链上的
+    // 入口参数（?preview= 等）全部作废，表现为「打开一个空 404 页」。
+    // 例外条件收紧到「远程模式 + 已登录 + 该路径尚未回放过」：
+    //   - 未登录访客乱输网址仍直接落 404 页（不会被弹去登录）
+    //   - 真 404 第二次落 /404 时放行渲染，不会无限重定向
+    const rfPath = to.redirectedFrom?.path;
+    const unresolvedDeepLink =
+      to.path === "/404" &&
+      !!rfPath &&
+      rfPath !== "/404" &&
+      (route.mode === "remote" || route.mode === "all") &&
+      !!loadRemoteRoutes &&
+      !!getAccessToken() &&
+      !replayedPaths.has(rfPath);
+    if (isWhitelisted(whiteList, to.path) && !unresolvedDeepLink) {
       return true;
     }
 
@@ -158,6 +185,15 @@ export function setupRouterGuard(
       const wasRedirectedTo404 = to.path === "/404" && to.redirectedFrom && to.redirectedFrom.path !== "/404";
       const isFallbackOnly = wasRedirectedTo404 || (to.matched.length > 0 && to.matched[to.matched.length - 1]?.path?.includes("pathMatch"));
       if (isFallbackOnly) {
+        // 回放必须带上原深链的 query/hash，只回 path 会把入口参数整体丢掉：
+        // 首次导航时业务路由尚未注册 → NotFound 重定向，query 只存在于 redirectedFrom；
+        // 文件管理「预览（新窗口）」正是靠 /filestorage?preview=<完整key> 在目标页
+        // onMounted 自动弹出预览弹框，丢掉 query 就退化成「打开一个空列表页」。
+        const back = to.redirectedFrom;
+        if (back) {
+          replayedPaths.add(back.path);
+          return { path: back.path, query: back.query, hash: back.hash, replace: true };
+        }
         return { path: originalPath, replace: true };
       }
     }

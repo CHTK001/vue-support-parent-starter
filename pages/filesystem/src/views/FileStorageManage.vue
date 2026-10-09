@@ -145,7 +145,7 @@ const PreviewSwfPanel = defineAsyncComponent(() => import("../components/Preview
  * 同理按需加载，避免 three 场景常驻主包。</p>
  */
 const PreviewModel3dPanel = defineAsyncComponent(() => import("../components/PreviewModel3dPanel.vue"));
-import { CONVERTIBLE_TEXT_EXTS, extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
+import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import { detectModel3dFormat } from "../utils/model3d";
@@ -2273,7 +2273,7 @@ function ctxAction(action: string) {
       if (row) void openPreview(row);
       break;
     case "previewNew":
-      if (row && !row.directory) void openPreviewInNewTab(row);
+      if (row && !row.directory) openPreviewInNewTab(row);
       break;
     case "download":
       if (row) void smartDownload([fullKey(row.name)]);
@@ -2767,6 +2767,15 @@ function unbindDragEvents(): void {
 /* ================== 预览 ================== */
 
 const previewVisible = ref(false);
+/**
+ * 压缩包「第一层」结构弹层（两层拆分，需求：点包内**文件**弹新对话框）。
+ *
+ * <p>预览压缩包时开的是本弹层（只装 {@link ArchivePreviewPanel}），面板内用面包屑
+ * 下钻目录；点文件才叠开第二层内容弹层（{@link previewVisible}，openArchiveEntry）。
+ * 第一层在第二层打开期间保持挂载 —— 面包屑与展开状态因此原样保留，
+ * 关掉第二层即回到原层级。其余类型不开本弹层，直接开内容弹层。</p>
+ */
+const archiveVisible = ref(false);
 const previewLoading = ref(false);
 const previewName = ref("");
 const previewKey = ref("");
@@ -2812,7 +2821,11 @@ async function openPreview(row: StorageObject): Promise<void> {
   officeLoading.value = false;
   iframeLoading.value = true;
   previewLoading.value = false;
-  previewVisible.value = true;
+  // 两层拆分（需求：点压缩包内**文件**弹新对话框，关闭回到原层级、面包屑状态保留；
+  // 目录仍同层面包屑进入）：压缩包开第一层结构弹层，其余类型直接开第二层内容弹层。
+  const isArchive = previewIsArchive.value;
+  archiveVisible.value = isArchive;
+  previewVisible.value = !isArchive;
 }
 
 /**
@@ -3130,11 +3143,6 @@ const innerEntryName = computed(() => {
   return slash >= 0 ? p.slice(slash + 1) : p;
 });
 
-/** 是否展示压缩包面板（选中压缩包且未下钻到包内文件） */
-const showArchivePanel = computed(
-  () => previewIsArchive.value && previewInnerPath.value === "",
-);
-
 /** 是否展示 CAD 面板（DXF 出图形 / DWG 出头部信息） */
 const showCadPanel = computed(() => previewIsCad.value || innerIsCad.value);
 
@@ -3246,9 +3254,15 @@ const heicPanelInnerPath = computed(() => (innerIsHeic.value ? previewInnerPath.
 const psdPanelInnerPath = computed(() => (innerIsPsd.value ? previewInnerPath.value : ""));
 const tgaPanelInnerPath = computed(() => (innerIsTga.value ? previewInnerPath.value : ""));
 
-/** 预览包内条目：CAD / 音视频 / 地理数据与其它前端直渲面板自己发请求，其余切到 iframe 通道 */
+/** 预览包内条目：叠开第二层内容弹层（第一层结构弹层保持打开，面包屑状态保留）；
+ *  CAD / 音视频 / 地理数据与其它前端直渲面板自己发请求，其余切到 iframe 通道 */
 function openArchiveEntry(path: string): void {
   previewInnerPath.value = path;
+  previewVisible.value = true;
+  // 再次下钻前复位内容层状态：上次关闭时 onEntryDialogClosed → retryPreview 会把
+  // previewLoading 置回 true（骨架），不清掉会让骨架盖住新条目、看不到内容链路。
+  previewError.value = false;
+  previewLoading.value = false;
   const slash = path.lastIndexOf("/");
   const name = slash >= 0 ? path.slice(slash + 1) : path;
   const kind = kindOf(name);
@@ -3260,11 +3274,19 @@ function openArchiveEntry(path: string): void {
   iframeKey.value++;
 }
 
-/** 从包内文件返回压缩包结构面板 */
+/**
+ * 从包内文件返回压缩包结构：关掉第二层内容弹层即可 —— 第一层结构弹层全程没关，
+ * 面板没被卸载，面包屑与展开状态原样保留。路径清空放在关闭动画结束的
+ * {@link onEntryDialogClosed} 里，避免过渡期间内容链路回退闪一下。
+ */
 function backToArchive(): void {
+  previewVisible.value = false;
+}
+
+/** 内容弹层关闭收尾：清掉包内路径（回到「只看包结构」），并复位加载/错误态 */
+function onEntryDialogClosed(): void {
   previewInnerPath.value = "";
-  iframeLoading.value = true;
-  iframeKey.value++;
+  retryPreview();
 }
 
 /**
@@ -3386,73 +3408,53 @@ const previewFrameSrc = computed(() => {
 });
 
 /**
- * 构造「新标签全窗口预览」的地址（需求 3）
+ * 读取并剥掉「新窗口预览」标记 {@code ?preview=<完整 key>}（一次性，读完即焚）
  *
- * <p>新标签是一份**独立文档**，没有主应用的 Vue 组件，所以只能命中服务端链路，
- * 按类型分三档：</p>
+ * <p>标记同时可能出现在 {@code location.search} 与 hash 查询串
+ * （{@code #/files?preview=...}）两处，两处都要剥 —— 否则刷新后又会自动打开
+ * 一次。剥除走 {@code history.replaceState}，不触发路由跳转也不产生历史记录。</p>
  *
- * <ul>
- *   <li><b>图片</b> → 票据直链。浏览器原生即可完整展示，全窗口查看即可，
- *       不必再经 {@code ?preview=true} 走一遍服务端 HTML。</li>
- *   <li><b>原生 PDF</b> → {@code ?preview=true} 交给 pdf.js viewer</li>
- *   <li><b>可转 PDF 的文档</b>（OOXML / 传统二进制 Office、ODF / RTF / WPS）→
- *       {@code ?preview=true&format=pdf} 再交给 viewer。新窗口里没有客户端组件，
- *       服务端转 PDF 是唯一能输出整页内容的通道；转不动时后端会带
- *       {@code conv=unavailable} 继续走原通道，最坏情况退回提示卡，不会白屏。</li>
- *   <li><b>其余</b> → {@code ?preview=true}，服务端按类型渲染整页 HTML
- *       （文本高亮 / CSV 表格 / 音视频播放页 / 压缩包目录 …）。</li>
- * </ul>
- *
- * <p>csv / tsv 走最后一档而不是转 PDF：服务端 {@code CsvPreviewProvider} 只是
- * 字符串切表格，比调用一次 Aspose 转换的开销小得多。</p>
- *
- * @param base 对象票据直链
- * @param name 文件名
- * @returns 可直接打开的绝对地址
+ * @returns 标记值（已解码的完整 key）；不存在返回空串
  */
-function newWindowPreviewUrl(base: string, name: string): string {
-  const sep = base.includes("?") ? "&" : "?";
-  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  const kind = kindOf(name);
-  if (kind === "image") {
-    return base;
+function takePreviewFlag(): string {
+  const value = urlFlag("preview");
+  if (!value) return "";
+  const url = new URL(window.location.href);
+  url.searchParams.delete("preview");
+  const hi = url.hash.indexOf("?");
+  if (hi >= 0) {
+    const qs = new URLSearchParams(url.hash.slice(hi + 1));
+    if (qs.has("preview")) {
+      qs.delete("preview");
+      const rest = qs.toString();
+      url.hash = rest ? `${url.hash.slice(0, hi)}?${rest}` : url.hash.slice(0, hi);
+    }
   }
-  if (kind === "pdf") {
-    return withPdfViewer(`${base}${sep}preview=true`);
-  }
-  if (!CONVERTIBLE_TEXT_EXTS.has(ext) && (isClientRenderable(name) || needsPdfConvert(name))) {
-    return withPdfViewer(`${base}${sep}preview=true&format=pdf`);
-  }
-  return `${base}${sep}preview=true`;
+  history.replaceState(history.state, "", url.toString());
+  return value;
 }
 
 /**
- * 「预览（新窗口）」：在新标签页里全窗口看这个文件（需求 3）
+ * 「预览（新窗口）」：新开一个应用页并自动弹出同一个预览弹框（需求 3 的统一口径）
  *
- * <p><b>为什么先占一个空白标签再填地址</b>：票据要异步换，{@code await} 之后再
- * {@code window.open} 已经脱离用户手势，会被浏览器当弹窗拦掉。先同步开出
- * {@code about:blank}，拿到地址再跳转 —— 标签页自始至终由这次点击产生，
- * 既不被拦，也不会出现「点了没反应」。</p>
+ * <p>新窗口不再是「服务端整页 HTML / pdf.js viewer 直链」——那条通道没有 Vue 组件，
+ * 效果与本页弹框不一致（xls 只能转 PDF、拿不到统计工具条）。改为带上
+ * {@code ?preview=<完整 key>} 打开本应用：目标页 onMounted 读到标记后定位到
+ * 文件所在目录并调用同一个 {@link openPreview}，office（@file-viewer/vue3 +
+ * 统计工具条）、pdf（pdf.js viewer.html）、图片/音视频/压缩包等全部与本页一致。</p>
  *
- * @param row 目标对象
+ * <p>地址是当场同步构造的（不换票据），整个调用仍在用户手势内 ——
+ * {@code window.open} 不会被浏览器当弹窗拦掉。既有查询参数（{@code ?bucket=} 等）原样保留。</p>
+ *
+ * @param row 目标对象（非目录）
  */
-async function openPreviewInNewTab(row: StorageObject): Promise<void> {
+function openPreviewInNewTab(row: StorageObject): void {
   if (row.directory || !guardPreview()) {
     return;
   }
-  const pending = window.open("about:blank", "_blank");
-  const base = await resolveObjectUrl(bucket.value, fullKey(row.name)).catch(() => "");
-  if (!base) {
-    pending?.close();
-    return;
-  }
-  const url = newWindowPreviewUrl(base, row.name);
-  if (pending) {
-    pending.location.replace(url);
-  } else {
-    // 极端情况（用户改了浏览器设置）也别静默失败，退回去再试一次普通打开
-    window.open(url, "_blank");
-  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("preview", fullKey(row.name));
+  window.open(url.toString(), "_blank");
 }
 
 
@@ -3677,13 +3679,29 @@ function copyOneTimeLink(): void {
 }
 
 onMounted(() => {
+  // 「预览（新窗口）」标记：先读并剥掉（一次性，两处地址都剥），否则刷新后又会自动打开
+  const autoPreviewKey = takePreviewFlag();
   // 必须排在最前：视图/目录/排序都从这里恢复，后面所有播种都基于恢复后的值
   applyUiState(bucket.value);
+  // ?preview 指定文件的所在目录覆盖记忆路径：openPreview 要用 fullKey(row.name)
+  // 拼出完整 key，只有当前目录正好是它的父级才拼得对
+  if (autoPreviewKey) {
+    const slash = autoPreviewKey.lastIndexOf("/");
+    currentPath.value = slash > 0 ? autoPreviewKey.slice(0, slash) : "";
+  }
   loadBucketConfig();
   loadCapabilities();
   // 播种初始历史：起始目录就是历史栈的第一条，否则后退/前进的索引会整体错位一格
   recordHistory(currentPath.value);
-  loadObjects();
+  void (async () => {
+    await loadObjects();
+    if (!autoPreviewKey) return;
+    const name = autoPreviewKey.slice(autoPreviewKey.lastIndexOf("/") + 1);
+    const row = objects.value.find((o) => o.name === name && !o.directory)
+      // 列表里找不到（刚被删除/无权限）时也照样弹：key 已知，让票据环节去报错
+      ?? { name, directory: false, size: 0 };
+    void openPreview(row);
+  })();
   loadRecycle();
   bindDragEvents();
 });
@@ -4858,6 +4876,35 @@ onUnmounted(() => {
       </template>
     </ReDialog>
 
+    <!-- ===== 压缩包结构弹层（第一层，两层拆分） =====
+         需求：点包内**文件**弹新对话框（关闭回到原层级、面包屑状态保留），目录仍同层
+         面包屑进入。因此结构面板独占本弹层，且在第二层内容弹层打开期间保持挂载 ——
+         面板不卸载，面包屑/展开状态自然保留。内容链路（CAD/IFC/iframe…）全在第二层。 -->
+    <ReDialog
+      v-model="archiveVisible"
+      class="fs-preview-dlg fs-archive-dlg"
+      width="min(1200px, 92vw)"
+      top="10px"
+      :title="previewName"
+      :show-close="true"
+      :draggable="true"
+      :append-to-body="true"
+      :close-on-click-modal="true"
+      destroy-on-close
+    >
+      <div class="fs-preview-shell">
+        <div class="fs-preview">
+          <ArchivePreviewPanel
+            v-if="previewIsArchive"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            @open-entry="openArchiveEntry"
+          />
+        </div>
+      </div>
+    </ReDialog>
+
     <!-- ===== 预览弹层 =====
          保留 header 并启用 el-dialog 自带的 draggable：手柄就是 header，只有按住标题栏才拖得动。
          内容区（Excel / Word / iframe / Office 组件）不再挂任何 mousedown —— 此前把拖拽接管到
@@ -4865,7 +4912,7 @@ onUnmounted(() => {
          代价是 header 高度从内容里扣掉，但换来「按哪动哪」，对表格类预览是必需的。 -->
     <ReDialog
       v-model="previewVisible"
-      class="fs-preview-dlg"
+      class="fs-preview-dlg fs-content-dlg"
       width="min(1200px, 92vw)"
       top="10px"
       :title="previewTitle"
@@ -4874,7 +4921,7 @@ onUnmounted(() => {
       :append-to-body="true"
       :close-on-click-modal="true"
       destroy-on-close
-      @closed="retryPreview"
+      @closed="onEntryDialogClosed"
     >
       <div ref="previewShellRef" class="fs-preview-shell">
         <div class="fs-preview">
@@ -4888,8 +4935,8 @@ onUnmounted(() => {
               <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
             </el-empty>
           </div>
-          <!-- 下钻到压缩包内文件后的返回条：包结构由面板渲染，文件内容走 iframe，
-               这里补一条回到面板的路径，否则用户只能关掉弹层重开。 -->
+          <!-- 下钻到压缩包内文件后的返回条：结构面板在第一层弹层里保持打开，
+               这里的返回按钮等价于关闭本层弹层（也可直接点 X / Esc）。 -->
           <div
             v-if="!previewError && previewIsArchive && previewInnerPath"
             class="fs-preview__inner-bar"
@@ -4897,15 +4944,10 @@ onUnmounted(() => {
             <el-button :icon="ArrowLeft" text @click="backToArchive">返回压缩包</el-button>
             <span class="fs-preview__inner-path" :title="previewInnerPath">{{ previewInnerPath }}</span>
           </div>
-          <ArchivePreviewPanel
-            v-if="!previewError && showArchivePanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            @open-entry="openArchiveEntry"
-          />
+          <!-- 压缩包结构面板（ArchivePreviewPanel）已拆到第一层弹层 fs-archive-dlg：
+               本层只放包内条目 / 普通文件的内容链路，分支从 CAD 起。 -->
           <CadPreviewPanel
-            v-else-if="!previewError && showCadPanel"
+            v-if="!previewError && showCadPanel"
             :bucket="bucket"
             :object-key="previewKey"
             :file-name="previewName"

@@ -25,20 +25,32 @@
  *
  * <p>不含 {@code ofd}：它有专用 PreviewOfdPanel 路由，混入本清单会抢走
  * 原有链路。</p>
+ *
+ * <p><b>口径</b>：preset-office 3.1.2 各 renderer 包根目录
+ * {@code file-viewer.capability.json} 的 {@code formats} 并集（2026/10/10
+ * 逐包核对：word / spreadsheet / pptx / ppt / pdf / ofd / iwork /
+ * wordperfect / hangul；rtf 由 renderer-word 的 sanitizeRtf 支持，未进
+ * manifest 但 preset README 明示）。上次核对补齐了 odp / xla / xlam /
+ * dbf / wp / wp5 / wp6 —— 漏一个格式，它就会从客户端 Office 面板掉进
+ * iframe 服务端通道或「暂不支持预览」兜底。</p>
  */
 const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
   // Word：OOXML wordprocessingml 家族 + 传统 OLE2 + RTF / OpenDocument
-  "docx", "docm", "dotx", "dotm", "doc", "dot", "rtf", "odt",
-  // Excel：OOXML spreadsheetml 家族 + 传统 BIFF + 二进制 xlsb + OpenDocument + 文本表格
+  // （renderer-word capability：docx/docm/dotx/dotm/doc/dot/odt/odp）
+  "docx", "docm", "dotx", "dotm", "doc", "dot", "rtf", "odt", "odp",
+  // Excel：OOXML spreadsheetml 家族 + 传统 BIFF + 二进制 xlsb + OpenDocument + 文本表格 + dBase
+  // （renderer-spreadsheet capability：xlsx/xltx/xlsm/xlsb/xls/xlt/xla/xlam/xltm/csv/tsv/ods/fods/dbf）
   "xlsx", "xlsm", "xlsb", "xltx", "xltm", "xlt", "xls", "ods", "fods", "csv", "tsv",
+  "xla", "xlam", "dbf",
   // PowerPoint：OOXML presentationml 家族 + 传统 OLE2（渲染走引擎链路，带水印）
+  // （renderer-pptx capability：pptx/pptm/potx/potm/ppsx/ppsm；renderer-ppt：ppt/pot）
   "pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt", "pot",
   // PDF
   "pdf",
-  // iWork
+  // iWork（renderer-iwork README：pages/numbers/key）
   "pages", "numbers", "key",
-  // WordPerfect / Hangul
-  "wpd", "hwp", "hwpx",
+  // WordPerfect（renderer-wordperfect README：wpd/wp/wp5/wp6）+ Hangul（hwp/hwpx）
+  "wpd", "wp", "wp5", "wp6", "hwp", "hwpx",
 ]);
 
 /**
@@ -51,15 +63,6 @@ const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
  * {@link resolveViewerFileName} 校正。</p>
  */
 const LEGACY_BINARY_EXTS: ReadonlySet<string> = new Set(["doc", "xls", "ppt"]);
-
-/**
- * 可服务端转 OOXML 的纯文本源扩展名（与后端 TEXT_CONVERT_SOURCES 严格一致）。
- *
- * <p>本清单不再用于面板路由（csv / tsv 已入 {@link CLIENT_RENDERABLE_EXTS}，
- * file-viewer 原生渲染），仅供新窗口预览 URL 逻辑
- * （FileStorageManage#newWindowPreviewUrl）沿用旧口径。</p>
- */
-export const CONVERTIBLE_TEXT_EXTS: ReadonlySet<string> = new Set(["csv", "tsv"]);
 
 /** OLE2 / CFB 复合文档文件头（传统 .doc / .xls / .ppt） */
 const OLE2_MAGIC: readonly number[] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];

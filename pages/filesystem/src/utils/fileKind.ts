@@ -87,6 +87,10 @@ const OFFICE_EXTS = [
   // 若日后要改成「OOXML 型客户端直渲」，需同步改后端 ClientPreviewSupport
   // 的 LEGACY_BINARY_EXTS + 本文件 officeRenderer.ts 的 LEGACY_BINARY_EXTS。
   "wps", "wpt", "et", "ett", "dps",
+  // file-viewer 客户端直渲染的补充格式（2026/10/10 与 preset-office capability 对齐）：
+  // WordPerfect wp/wp5/wp6、Excel 加载宏 xla/xlam、dBase 表 dbf。语义归 office，
+  // 实际通道由 isClientRenderable 决定（这几个都命中客户端 Office 面板）。
+  "wp", "wp5", "wp6", "xla", "xlam", "dbf",
   "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
   "rtf", "epub", "xmind",
   // MOBI 电子书（后端 MobiPreviewProvider：PDB/PalmDOC/HUFF-CDIC 自研解析）
@@ -282,7 +286,7 @@ export function fileSvg(name: string, isDir: boolean): string {
       return icon("font");
     case "office":
       // Excel 表格类 / PPT 演示类 / 电子书 / 其余按 Word 文档
-      if (["xlsx", "xls", "ods", "numbers", "et", "ett"].includes(ext)) {
+      if (["xlsx", "xls", "ods", "numbers", "et", "ett", "xla", "xlam", "dbf"].includes(ext)) {
         return icon("excel");
       }
       if (["pptx", "ppt", "odp", "pps", "key", "dps"].includes(ext)) {
