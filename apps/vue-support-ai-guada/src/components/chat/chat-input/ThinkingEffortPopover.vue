@@ -9,20 +9,25 @@
       </div>
     </template>
     <div class="popover-content space-y-0.5">
-      <div v-for="effort in options" :key="effort"
-        class="te-item flex items-center justify-between px-2 py-1.5 rounded-(--size-dialog-rounded-radius) cursor-pointer transition-all text-sm" :class="{
-          'te-item-active': currentValue === effort
-        }" :data-effort="effort" @click="handleSelect(effort)">
-        <span>{{ getLabel(effort) }}</span>
-        <el-icon v-if="currentValue === effort" size="14" class="text-primary">
-          <Checkmark24Regular />
-        </el-icon>
-      </div>
+      <template v-for="item in items" :key="item.effort">
+        <!-- 分组分隔线：把「不思考 / 默认」与「模型配置的档位」分开（对齐设计稿） -->
+        <div v-if="item.divider" class="te-divider" role="separator"></div>
+        <div
+          class="te-item flex items-center justify-between px-2 py-1.5 rounded-(--size-dialog-rounded-radius) cursor-pointer transition-all text-sm"
+          :class="{ 'te-item-active': currentValue === item.effort }" :data-effort="item.effort"
+          @click="handleSelect(item.effort)">
+          <span>{{ getLabel(item.effort) }}</span>
+          <el-icon v-if="currentValue === item.effort" size="14" class="text-primary">
+            <Checkmark24Regular />
+          </el-icon>
+        </div>
+      </template>
     </div>
   </CustomPopover>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ElIcon } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { LightbulbFilament24Regular, Checkmark24Regular } from '@vicons/fluent'
@@ -31,17 +36,29 @@ import { getThinkingEffortLabel } from '@/utils/modelUtils'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   visible: boolean
   anchorEl: HTMLElement | null
   options: string[]
   currentValue: string
-}>()
+  /** 在该档位之后插入分组分隔线（模型配置档位与「默认」之间的视觉分组） */
+  dividerAfter?: string
+}>(), {
+  dividerAfter: 'default',
+})
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   'select': [effort: string]
 }>()
+
+/** 列表项：标记哪些项之前需要画分隔线 */
+const items = computed(() =>
+  props.options.map((effort, index) => ({
+    effort,
+    divider: index > 0 && props.options[index - 1] === props.dividerAfter,
+  })),
+)
 
 /**
  * 获取思考强度的显示标签
@@ -70,5 +87,12 @@ function handleSelect(effort: string) {
 
 .te-item-active {
   background: var(--color-sidebar-bg-active);
+}
+
+/* 分组分隔线：「默认」与模型配置档位之间 */
+.te-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--el-border-color-extra-light, var(--el-border-color-lighter));
 }
 </style>

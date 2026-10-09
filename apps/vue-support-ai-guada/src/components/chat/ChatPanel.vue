@@ -481,8 +481,10 @@ const currentRunMode = computed(() => {
  */
 const chatInputConfig = computed(() => ({
   modelId: currentModelId.value,
-  // 思考强度档位：缺省 'default' = 不指定（请求里不传，交由各厂商默认）
-  thinkingEffort: currentSession.value?.settings?.thinkingEffort || 'default',
+  // 思考强度档位：缺省 'none' = 关闭（匹配 ChatInput default 为「不思考」；
+  // 之前用 `|| 'default'` 导致新/空会话瞬态点亮思考，加上 watcher 未对称关掉「不思考」——修。
+  // 已显式存为 'default'/'low'/'high'/'max' 的如实透传。）
+  thinkingEffort: currentSession.value?.settings?.thinkingEffort || 'none',
   maxTokensLimit: currentSession.value?.settings?.maxTokensLimit ?? null,
   knowledgeBaseIds: inputMessage.value?.knowledgeBaseIds || currentSession.value?.settings?.referencedKbs || [],
   workspacePath: currentSession.value?.workspacePath || null,

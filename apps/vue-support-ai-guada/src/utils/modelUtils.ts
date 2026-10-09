@@ -206,6 +206,34 @@ export function useModelDisplay(modelName: string, providerName?: string) {
 }
 
 /**
+ * 收集模型「已配置」的思考档位（模型管理里勾选的集合）。
+ *
+ * <p>同一份档位在后端有三种下发形态，必须全部兼容，否则读不到：
+ * ① 模型管理页 mapModel 后的 `thinkingEfforts`（camelCase）；
+ * ② `GET /api/providers` 裸行顶层 `thinking_efforts`（snake_case）；
+ * ③ 裸行 `capabilities[].thinking_efforts`（后端把档位挂在能力节点上）。</p>
+ *
+ * <p>早期实现只读 ①，而聊天页拿到的正是 ②/③ 的裸行，导致模型明明配了档位，
+ * 思考弹层却只剩「不思考 / 默认」（用户实测报障）。</p>
+ */
+function collectDeclaredThinkingEfforts(model: any): string[] {
+  const pick = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((v): v is string => typeof v === 'string' && v.length > 0)
+      : [];
+  const dedupe = (list: string[]) => [...new Set(list)];
+
+  const mapped = pick(model.thinkingEfforts);
+  if (mapped.length) return dedupe(mapped);
+
+  const raw = pick(model.thinking_efforts);
+  if (raw.length) return dedupe(raw);
+
+  const capabilities = Array.isArray(model.capabilities) ? model.capabilities : [];
+  return dedupe(capabilities.flatMap((cap: any) => pick(cap?.thinking_efforts)));
+}
+
+/**
  * 获取模型的思考强度选项
  * @param model 模型对象（包含 providerId 和 features）
  * @param providers 供应商列表（从 API 获取，仅用于备用）
@@ -220,7 +248,7 @@ export function getModelThinkingEfforts(
   }
 
   // 模型自身声明了档位就直接用（后端白名单透传，集合由模型管理配置）
-  const efforts = model.thinkingEfforts || [];
+  const efforts = collectDeclaredThinkingEfforts(model);
   if (efforts.length > 0) {
     // 'default' 始终排在首位：表示「不指定档位，交由各厂商默认」
     return efforts.includes('default') ? efforts : ['default', ...efforts];

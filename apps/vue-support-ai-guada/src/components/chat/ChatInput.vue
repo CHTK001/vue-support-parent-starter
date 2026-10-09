@@ -89,18 +89,6 @@
               @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
               @toggle-attachment="toggleAttachmentSelection" />
 
-            <!-- 运行模式按钮（仅管理员：Build/Plan，图标+tip） -->
-            <LTooltip v-if="admin" :content="runModeLabel" placement="top">
-              <button ref="runModeButtonRef" class="tool-btn" :aria-label="runModeLabel" @click.stop="toggleRunModePopover">
-                <el-icon size="16">
-                  <component :is="runModeIcon" class="text-gray-600" />
-                </el-icon>
-              </button>
-            </LTooltip>
-            <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
-              :current-value="currentRunMode" @select="handleRunModeChange" />
-            <el-divider v-if="admin" direction="vertical"></el-divider>
-
             <!-- 技能按钮（图标+tip） -->
             <LTooltip content="技能" placement="top">
               <button class="tool-btn skill-btn" aria-label="技能" @click.stop="openCommandPicker('', 'slash')">
@@ -121,18 +109,6 @@
             <McpSelectorPopover v-if="admin" v-model:visible="mcpPopoverVisible"
               :anchor-el="mcpButtonRef" :selected-ids="mcpSelectedIds" @change="handleMcpChange" />
           </template>
-            <!-- 思考等级：把「深度思考开关」与「推理强度档位」合并为一个入口（用户需求 4.2）。
-                 点开可选「不思考 / 默认 / 低 / 中 / 高 / 极致」，选档即开启思考，选「不思考」即关闭。 -->
-            <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
-              <button ref="thinkingLevelButtonRef" class="tool-btn" :aria-label="t('chat.input.thinkingLevelTitle')"
-                :class="{ 'tool-btn-active': thinkingEnabled }" :aria-pressed="thinkingEnabled"
-                @click.stop="toggleThinkingLevelPopover">
-                <el-icon size="16"><BrainCircuit20Regular /></el-icon>
-              </button>
-            </LTooltip>
-            <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
-              :options="thinkingLevelOptions" :current-value="currentThinkingValue"
-              @select="handleThinkingLevelSelect" />
             <!-- 网页搜索开关（图标+tip） -->
             <LTooltip content="在线检索" placement="top">
               <button class="tool-btn" aria-label="在线检索" :class="{ 'tool-btn-active': webSearchEnabled }"
@@ -165,6 +141,31 @@
               <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
             </button>
           </LTooltip>
+
+          <!-- 思考等级：入口紧挨模型按钮（用户需求：贴近模型控制；档位含模型管理里配置的集合） -->
+          <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
+            <button ref="thinkingLevelButtonRef" class="tool-btn" :aria-label="t('chat.input.thinkingLevelTitle')"
+              :class="{ 'tool-btn-active': thinkingEnabled }" :aria-pressed="thinkingEnabled"
+              @click.stop="toggleThinkingLevelPopover">
+              <el-icon size="16"><BrainCircuit20Regular /></el-icon>
+            </button>
+          </LTooltip>
+          <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
+            :options="thinkingLevelOptions" :current-value="currentThinkingValue"
+            @select="handleThinkingLevelSelect" />
+
+          <!-- 运行模式徽标（仅管理员）：放到模型右侧，构建/规划两色区分（用户需求 3） -->
+          <LTooltip v-if="admin" :content="runModeLabel" placement="top">
+            <button ref="runModeButtonRef" class="run-mode-chip"
+              :class="currentRunMode === 'plan' ? 'is-plan' : 'is-build'" :aria-label="runModeLabel"
+              @click.stop="toggleRunModePopover">
+              <el-icon size="14"><component :is="runModeIcon" /></el-icon>
+              <span class="run-mode-chip-text">{{ runModeShortLabel }}</span>
+            </button>
+          </LTooltip>
+          <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
+            :current-value="currentRunMode" @select="handleRunModeChange" />
+
           <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
           <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
             <button class="send-btn stop-btn" :aria-label="t('chat.input.stopGenerating')" @click="abortResponse">
@@ -563,6 +564,10 @@ const runModeLabel = computed(() => {
 });
 const runModeIcon = computed(() => {
   return currentRunMode.value === 'plan' ? ClipboardTask24Regular : Flash24Regular;
+});
+/** 徽标短文案（长文案「构建模式/规划模式」留给 tooltip 与弹层） */
+const runModeShortLabel = computed(() => {
+  return currentRunMode.value === 'plan' ? t('chat.input.runModePlanShort') : t('chat.input.runModeBuildShort');
 });
 
 const toggleRunModePopover = () => {
@@ -1288,6 +1293,9 @@ const currentThinkingValue = computed(() => (thinkingEnabled.value ? localThinki
 const handleThinkingLevelSelect = (level: string) => {
   if (level === 'none') {
     thinkingEnabled.value = false;
+    // 「不思考」同样要落库：若只在本地关闭，会话里仍存着上次的档位，
+    // 刷新后会被判为「已保存档位 = 开启」而错误复现（实测缺陷）。
+    handleThinkingEffortChange('none');
     return;
   }
   thinkingEnabled.value = true;
@@ -1685,14 +1693,21 @@ watch(() => props.config?.thinkingEffort, (newEffort) => {
   if (newEffort !== undefined && newEffort !== localThinkingEffort.value) {
     localThinkingEffort.value = newEffort;
   }
+  // 档位是思考开关的唯一持久化事实源：'none' = 关，其余（含 'default'）= 开。
+  // 修刷新回显 & 「不思考」被瞬态 'default' 重新点亮两类缺陷。
+  if (newEffort === 'none') thinkingEnabled.value = false;
+  else if (newEffort) thinkingEnabled.value = true;
 }, { immediate: true });
 
 // 角色/会话级默认能力：进入会话时预置深度思考、在线检索开关
 watch(() => props.config?.defaultThink, (val) => {
   if (val === true || val === false) {
-    thinkingEnabled.value = val;
+    // 已保存档位优先：档位在 = 用户开着思考，不能被角色默认关掉
+    const savedEffort = props.config?.thinkingEffort;
+    const hasSavedEffort = !!savedEffort && savedEffort !== 'none';
+    thinkingEnabled.value = val || hasSavedEffort;
     // 开启思考但档位仍是「不思考」时补齐为「默认」，避免按钮态与档位自相矛盾（用户需求 4.2）
-    if (val && localThinkingEffort.value === 'none') localThinkingEffort.value = 'default';
+    if (thinkingEnabled.value && localThinkingEffort.value === 'none') localThinkingEffort.value = 'default';
   }
 }, { immediate: true });
 watch(() => props.config?.defaultSearch, (val) => {
@@ -2130,6 +2145,52 @@ defineExpose({ insertText, insertBadge });
 
 .model-selector-btn.is-open {
   background: var(--color-sidebar-bg-active);
+}
+
+/* 运行模式徽标（构建/规划）：放模型按钮右侧，两种模式用不同色系区分（用户需求 3）。
+   绿色 = 构建（可直接动手）；紫色 = 规划（先只读调研）。颜色用 color-mix 派生，
+   暗色模式下自动降饱和，不需要单独维护暗色值。 */
+.run-mode-chip {
+  cursor: pointer;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--el-radius-xl, 16px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s);
+  --run-mode-color: var(--el-color-success);
+}
+
+.run-mode-chip.is-build {
+  --run-mode-color: #3da35d;
+}
+
+.run-mode-chip.is-plan {
+  --run-mode-color: #7c5cff;
+}
+
+.run-mode-chip {
+  color: var(--run-mode-color);
+  background: color-mix(in srgb, var(--run-mode-color) 10%, transparent);
+}
+
+.run-mode-chip:hover {
+  background: color-mix(in srgb, var(--run-mode-color) 18%, transparent);
+}
+
+.run-mode-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--run-mode-color) 22%, transparent);
+}
+
+.run-mode-chip-text {
+  line-height: 1;
+  white-space: nowrap;
 }
 
 /* 发送按钮 - 原生 button */

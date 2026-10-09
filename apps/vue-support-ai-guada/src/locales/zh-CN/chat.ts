@@ -29,6 +29,9 @@ export default {
     runModeSandbox: '轻沙盒模式',
     runModeBuild: '构建模式',
     runModePlan: '规划模式',
+    // 运行模式徽标短文案（模型按钮右侧，构建/规划双色区分）
+    runModeBuildShort: '构建',
+    runModePlanShort: '规划',
 
     // AttachmentPopover.vue
     uploadImage: '上传图片',
