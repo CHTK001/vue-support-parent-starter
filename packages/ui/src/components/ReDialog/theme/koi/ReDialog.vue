@@ -19,6 +19,8 @@ defineOptions({ name: "ReDialog", inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
     title?: string;
+    /** 标题下方副标题（可选；不传则与历史渲染完全一致） */
+    subtitle?: string;
     /** 标题栏图标（Element Plus 图标组件） */
     icon?: Component;
     width?: number | string;
@@ -79,6 +81,7 @@ const props = withDefaults(
   }>(),
   {
     title: "ReDialog",
+    subtitle: "",
     icon: Aim,
     height: 0,
     width: 650,
@@ -230,7 +233,11 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
             <span v-if="icon" class="koi-dialog-header-icon-wrap">
               <el-icon class="koi-dialog-header-icon"><component :is="icon" /></el-icon>
             </span>
-            <span class="el-dialog__title">{{ title }}</span>
+            <span v-if="subtitle" class="koi-dialog-header-titles">
+              <span class="el-dialog__title">{{ title }}</span>
+              <small class="koi-dialog-subtitle">{{ subtitle }}</small>
+            </span>
+            <span v-else class="el-dialog__title">{{ title }}</span>
           </span>
           <KoiShellHeaderActions
             :is-fullscreen="dialogFullscreen"
@@ -321,6 +328,25 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     font-size: 11px;
     color: var(--el-color-primary);
     flex-shrink: 0;
+  }
+
+  /* 标题 + 副标题纵向排布（subtitle 未传时不渲染，历史弹窗零影响） */
+  .koi-dialog-header-titles {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .koi-dialog-subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.3;
+    color: var(--el-text-color-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .el-dialog__title {
