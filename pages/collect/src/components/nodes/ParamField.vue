@@ -8,7 +8,7 @@
 import {
   computed,
   ref } from "vue";
-import ReButton from "@repo/ui/re-button";
+import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 // 数据源 / 表下拉走共享件：中文名与副标题的口径全站只有一份，
@@ -82,6 +82,30 @@ function optionLabel(param: CollectParamMeta, value: string): string {
   return PARAM_OPTION_LABELS[`${param.name}:${value}`] ?? OPTION_LABELS[value] ?? value;
 }
 
+/**
+ * 分段选择（写入方式 / 抽取模式）的短标签（UI 稿「抽取模式」分段控件）。
+ *
+ * <p>分段控件按选项均分宽度，OPTION_LABELS 里的长文案（如「按主键更新（改或插）」）
+ * 会把每一格挤爆；这里给短标签，长文案口径仍在下拉与 title 提示里保留。</p>
+ */
+const SEGMENT_LABELS: Record<string, string> = {
+  single: "单条取一",
+  list: "列表抽行",
+  append: "追加",
+  replace: "覆盖",
+  update: "按主键更新",
+};
+
+/**
+ * 分段项文案：短标签优先，没收录的回落到通用选项文案。
+ *
+ * @param opt 后端下发的枚举值
+ * @returns 展示文案
+ */
+function segmentLabel(opt: string): string {
+  return SEGMENT_LABELS[opt] ?? optionLabel(props.param, opt);
+}
+
 /** ReSelect 吃的是对象字面量数组，自定义接口不能直接赋值，故逐项新建 */
 function optionsOf(param: CollectParamMeta): { value: string; label: string }[] {
   return (param.options ?? []).map(item => ({ value: item, label: optionLabel(param, item) }));
@@ -130,21 +154,30 @@ function appendPlaceholder(value: string): void {
 /** 字段映射弹框开关（每个 mapping 参数各一个实例，互不影响） */
 const mappingOpen = ref(false);
 
-/**
- * 字段映射的摘要文案。
- *
- * <p>映射行数一多（十几列很常见），整张表铺在属性面板里会把其它参数挤到屏幕外；
- * 这里只给「几列 + 列名」，需要改的时候再点开弹框。</p>
- */
-const mappingSummary = computed(() => {
+/** 映射预览行数：UI 稿口径——先露 5 行，其余折叠进「展开查看」 */
+const MAP_PREVIEW = 5;
+
+/** 预览展开态（仅影响预览；编辑仍在弹框里，两处不互相打架） */
+const mapExpanded = ref(false);
+
+/** 预览行：折叠态只露前 5 行 */
+const shownPairs = computed<ParamPair[]>(() => {
   const list = props.pairs ?? [];
-  if (!list.length) {
-    return "未配置";
-  }
-  const names = list.map(pair => pair.key).filter(Boolean);
-  const shown = names.slice(0, 4).join(" / ");
-  return `${list.length} 列（${shown}${names.length > 4 ? " …" : ""}）`;
+  return mapExpanded.value ? list : list.slice(0, MAP_PREVIEW);
 });
+
+/**
+ * 预览行的类型徽标：左列名去表列元数据里找 typeName。
+ *
+ * <p>找不到就不显示 —— 表还没建时列元数据本来就是空的，此时猜一个类型
+ * 比留空更误导（徽标是「数据库里真实是什么」的证据，不是装饰）。</p>
+ *
+ * @param key 映射行的目标列名
+ * @returns 类型名；元数据里没有则空串
+ */
+function typeOf(key: string): string {
+  return props.ctx.activeColumns?.find(col => col.name === key)?.typeName ?? "";
+}
 </script>
 
 <template>
@@ -180,6 +213,25 @@ const mappingSummary = computed(() => {
       :model-value="value === '1'"
       @update:model-value="(v: boolean | string | number) => emit('update', v ? '1' : '0')"
     />
+    <!-- 写入方式 / 抽取模式：选项少且语义对仗，走分段选择（UI 稿「抽取模式」控件）；其余 select 仍是下拉 -->
+    <div
+      v-else-if="param.type === 'select' && param.name === 'mode'"
+      class="seg"
+      role="group"
+      :aria-label="param.label"
+    >
+      <button
+        v-for="opt in param.options"
+        :key="opt"
+        type="button"
+        class="seg-item"
+        :class="{ 'is-active': value === opt }"
+        :title="optionLabel(param, opt)"
+        @click="emit('update', opt)"
+      >
+        {{ segmentLabel(opt) }}
+      </button>
+    </div>
     <ReSelect
       v-else-if="param.type === 'select'"
       class="pane-fill"
@@ -226,10 +278,39 @@ const mappingSummary = computed(() => {
       @update:model-value="(v: string) => emit('update', v)"
     />
     <template v-else-if="param.type === 'mapping'">
-      <!-- 映射收进弹框：与「抽取字段」同形（摘要 + 配置），需要改时才点开 -->
-      <div class="field-summary">
-        <span class="summary-text">{{ mappingSummary }}</span>
-        <ReButton text type="primary" @click="mappingOpen = true">配置</ReButton>
+      <!-- 字段映射卡片（UI 稿）：头＝标题 + 计数 + 配置入口；行＝列名 / 表达式 / 表列类型；编辑仍在弹框 -->
+      <div class="map-card">
+        <div class="map-card-head">
+          <span class="map-card-title">{{ param.label }}</span>
+          <span class="map-card-badge"><b>{{ pairs.length }}</b> 个字段</span>
+          <button type="button" class="map-card-action" @click="mappingOpen = true">
+            <ReIcon name="EditPen" :size="13" />
+            配置字段映射
+          </button>
+        </div>
+        <div v-if="pairs.length" class="map-card-rows">
+          <div
+            v-for="(row, index) in shownPairs"
+            :key="`${index}:${row.key}`"
+            class="map-row"
+            title="点击配置字段映射"
+            @click="mappingOpen = true"
+          >
+            <span class="map-row-key">{{ row.key }}</span>
+            <span class="map-row-val">{{ row.value || "—" }}</span>
+            <span v-if="typeOf(row.key)" class="map-row-type">{{ typeOf(row.key) }}</span>
+          </div>
+          <button
+            v-if="pairs.length > MAP_PREVIEW"
+            type="button"
+            class="map-card-more"
+            @click="mapExpanded = !mapExpanded"
+          >
+            <ReIcon :name="mapExpanded ? 'ArrowUp' : 'ArrowDown'" :size="12" />
+            {{ mapExpanded ? "收起" : `其余 ${pairs.length - MAP_PREVIEW} 个字段 · 展开查看` }}
+          </button>
+        </div>
+        <div v-else class="map-card-empty">还没有映射字段，点「配置字段映射」开始</div>
       </div>
       <ReDialog v-model="mappingOpen" :title="param.label" width="920px" append-to-body>
         <MappingEditor
@@ -300,26 +381,193 @@ const mappingSummary = computed(() => {
   width: 100%;
 }
 
-/* 摘要行：与「抽取字段」的配置入口同形 */
-.field-summary {
+/* ===== 分段选择（UI 稿「抽取模式」）：浅底盘 + 白底激活格 ===== */
+.seg {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 10px;
-  background: var(--el-fill-color-lighter);
+  gap: 4px;
+  padding: 4px;
+  background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
+  border-radius: var(--radius-lg, 12px);
 }
 
-.summary-text {
+.seg-item {
   flex: 1;
   min-width: 0;
+  padding: 7px 8px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--el-text-color-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-out, ease),
+    color 0.2s var(--ease-out, ease),
+    box-shadow 0.2s var(--ease-out, ease);
+}
+
+.seg-item:hover {
+  color: var(--el-color-primary);
+}
+
+.seg-item.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+/* ===== 字段映射卡片（UI 稿「字段映射」） ===== */
+.map-card {
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.map-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.map-card-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-card-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border-radius: var(--radius-sm, 6px);
+}
+
+/* 计数走主色（UI 稿徽标里的数字是彩色的） */
+.map-card-badge b {
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
+
+.map-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 0;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.map-card-action:hover {
+  text-decoration: underline;
+}
+
+.map-card-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 预览行：可点击（打开编辑弹框），行内三项＝列名 / 表达式 / 表列类型 */
+.map-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  transition: background-color 0.15s var(--ease-out, ease);
+}
+
+.map-row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.map-row-key {
+  flex: none;
+  min-width: 0;
+  max-width: 42%;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-row-val {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-row-type {
+  flex: none;
+  max-width: 88px;
+  padding: 1px 7px;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.map-card-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    color 0.15s var(--ease-out, ease),
+    background-color 0.15s var(--ease-out, ease);
+}
+
+.map-card-more:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+
+.map-card-empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 
 .field-tip {

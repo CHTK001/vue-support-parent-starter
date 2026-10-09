@@ -115,6 +115,44 @@ export function replacePairs(
   owner.params = [...kept, ...written];
 }
 
+/**
+ * 表达式体检：扫单个参数值里 `${...}` 的闭合与空体，返回首个问题；全通过返回 null。
+ *
+ * <p>只报三类**确定性**错误，绝不碰裸 `}` —— JSON 片段、正则字面量（如 `{1,3}`）里
+ * 它是合法字符，报了就是误报：</p>
+ * <ol>
+ *   <li>${ 到值末尾没有配上的 }（未闭合）；</li>
+ *   <li>${} / ${ } 空表达式（运行期解析必失败）；</li>
+ *   <li>表达式体内再嵌 ${（模板不支持嵌套，外层 } 会提前关掉）。</li>
+ * </ol>
+ *
+ * @param input 参数值原文（文本类参数与 pairs / mapping 的值都走这里）
+ * @returns 问题文案；无问题返回 null
+ */
+export function lintExpression(input: string): string | null {
+  let depth = 0;
+  let bodyStart = -1;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (ch === "$" && input[i + 1] === "{") {
+      if (depth > 0) {
+        return "表达式不能嵌套 ${";
+      }
+      depth = 1;
+      bodyStart = i + 2;
+      i++; // 吃掉 "{"
+      continue;
+    }
+    if (depth > 0 && ch === "}") {
+      if (input.slice(bodyStart, i).trim() === "") {
+        return "有空表达式 ${}";
+      }
+      depth = 0;
+    }
+  }
+  return depth > 0 ? "有未闭合的 ${" : null;
+}
+
 /** 图内唯一节点 ID */
 export function nextNodeId(nodes: CollectNode[]): string {
   let max = 0;
