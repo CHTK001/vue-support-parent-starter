@@ -276,6 +276,21 @@ onMounted(() => {
     edgeCount: () => graphRef.value?.getInstance?.()?.getEdgeData?.()?.length ?? -1,
     /** 当前缩放比例 */
     zoom: () => graphRef.value?.getInstance?.()?.getZoom?.() ?? -1,
+    /** 节点坐标铺开程度与缩放（回归守卫：装载后布局必须真的跑过，适配不得顶格） */
+    posSpan: () => {
+      const g = graphRef.value?.getInstance?.();
+      const data = (g?.getNodeData?.() ?? []) as Array<{ style?: { x?: number; y?: number } }>;
+      const xs = data.map(d => d.style?.x).filter((v): v is number => typeof v === "number");
+      const ys = data.map(d => d.style?.y).filter((v): v is number => typeof v === "number");
+      if (!xs.length || !ys.length) {
+        return { xSpan: 0, ySpan: 0, zoom: g?.getZoom?.() ?? -1 };
+      }
+      return {
+        xSpan: Math.round(Math.max(...xs) - Math.min(...xs)),
+        ySpan: Math.round(Math.max(...ys) - Math.min(...ys)),
+        zoom: g?.getZoom?.() ?? -1,
+      };
+    },
     /** 全部节点 type */
     nodeTypes: () => (graphRef.value?.getInstance?.()?.getNodeData?.() ?? []).map((d: any) => d.type),
     /** 全部边 type */

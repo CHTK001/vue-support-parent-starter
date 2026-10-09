@@ -667,8 +667,9 @@ const buildBehaviors = () => {
     type: "click-select",
     multiple: props.multiSelect,
     // ShortcutKey 是 string[]（默认 ['shift']）；写成字符串 "ctrl" 会让
-    // Shortcut.match -> lowerCaseKeys 里 keys.map 抛 "keys.map is not a function"
-    trigger: ["ctrl"],
+    // Shortcut.match -> lowerCaseKeys 里 keys.map 抛 "keys.map is not a function"。
+    // 注意值必须是 event.key 的小写："control"（不是 "ctrl"，后者永不命中）。
+    trigger: ["control"],
     state: "selected",
     unselectedState: undefined,
   });
@@ -774,6 +775,10 @@ const beforeAddHistory = (cmd: any): boolean => {
   return !(noAdd && noRemove && updateIsPosOnly);
 };
 
+/** 取节点上除高亮状态外的既有状态（如 selected），避免整表替换时被抹掉 */
+const baseStates = (graph: any, id: string): string[] =>
+  (graph.getElementState?.(id) ?? []).filter((s: string) => s !== "active" && s !== "inactive");
+
 /** 依据 highlight 配置，在悬停时高亮同组 / 淡出其余 */
 const applyGroupHighlight = async (nodeId: string | null, on: boolean) => {
   const graph = graphRef.value;
@@ -781,7 +786,19 @@ const applyGroupHighlight = async (nodeId: string | null, on: boolean) => {
     return;
   }
   if (!on || !nodeId) {
-    await graph.setElementState({}, false);
+    // 只清除高亮状态（active/inactive），保留 selected 等其它状态：
+    // setElementState 是「整表替换」语义，早先的 setElementState({}) 实际是空操作，
+    // 而进入分支的整体替换会把选中态一并抹掉。
+    const clearMap: Record<string, string[]> = {};
+    (graphData.value.nodes ?? []).forEach(n => {
+      const cur: string[] = (graph as any).getElementState?.(n.id) ?? [];
+      if (cur.includes("active") || cur.includes("inactive")) {
+        clearMap[n.id] = baseStates(graph, n.id);
+      }
+    });
+    if (Object.keys(clearMap).length) {
+      await graph.setElementState(clearMap as any, false);
+    }
     return;
   }
   const node = nodeById(nodeId);
@@ -797,7 +814,8 @@ const applyGroupHighlight = async (nodeId: string | null, on: boolean) => {
   });
   const stateMap: Record<string, string[]> = {};
   (graphData.value.nodes ?? []).forEach(n => {
-    stateMap[n.id] = ids.has(n.id) ? ["active"] : ["inactive"];
+    const base = baseStates(graph, n.id);
+    stateMap[n.id] = ids.has(n.id) ? [...base, "active"] : [...base, "inactive"];
   });
   await graph.setElementState(stateMap as any, false);
 };
@@ -873,8 +891,19 @@ const loadData = async (d: RelationGraphData) => {
   }
   (d.combos ?? []).forEach(c => graph.addComboData([c as any]));
   await graph.draw();
+  // 装载后必须真跑一次布局：draw() 只画不排，节点坐标一直缺省（全堆在图原点），
+  // 随后的 fitView 会把这一小簇按「适配」放大到 maxZoom——观感就是巨大的节点与边互相重叠。
+  // setLayout 走的正是 layout() → fitView 这条链路，这里对齐它。
+  try {
+    await graph.layout();
+  } catch (e) {
+    // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，
+    // 用在普通关系图上 G6 会抛 "Tree structure not found"：如实记日志，不让它变成未捕获异常
+    log("装载后布局失败（树布局需要树形数据）：", e);
+  }
   appliedKey = keyOf(d);
   empty.value = nodes.length === 0;
+  await fitAfterLoad(graph);
   pinFixedNodes();
   // 首装 / 重装不属于「可撤销的编辑」：清空撤销栈，保证 undo 回到的是本次装载前的状态。
   clearHistoryStack();
@@ -942,7 +971,6 @@ const initGraph = async () => {
   // history 插件在 render 时实例化，取出实例用于 undo/redo 与状态刷新
   setupHistory(graph);
   await loadData(graphData.value);
-  awaitingFit();
   ready.value = true;
   // 初始化是异步的：父组件若在 render 期间取到数并更新了 props，那次更新会落在 ready 之前，
   // 被 watcher 跳过（实测就是这里丢了节点）。这里按指纹补一次最终同步。
@@ -954,41 +982,39 @@ const initGraph = async () => {
   emit("ready", graph);
 };
 
-const awaitingFit = () => {
-  // 力导等异步布局结束后再适配一次视口，避免首帧只看到一小块
-  const graph = graphRef.value;
-  if (!graph) {
+/**
+ * 装载（首装 / 换数据）完成后的视口适配。
+ *
+ * <p>调用时机在 layout() resolve 之后（见 loadData），此时布局已把节点铺开，
+ * fitView 计算的是真实内容包围盒。此前是 400ms 定时抢跑：布局尚未铺开，
+ * 会把聚簇包围盒按「适配」放大到 maxZoom（10），观感即巨大的点边重叠。</p>
+ *
+ * @param graph 本次装载使用的 G6 实例（identity 守卫：期间若被 rebuild 替换则跳过）
+ */
+const fitAfterLoad = async (graph: Graph) => {
+  if (graphRef.value !== graph) {
+    log("装载后适配跳过：graph 实例已被替换或已卸载");
     return;
   }
-  window.setTimeout(() => {
-    // 这个闭包捕获的是 400ms **之前**的 graph 实例。
-    // 若期间发生了 rebuild()（小地图这类「只能重建生效」的变更）或组件卸载，
-    // 该实例已被 destroy()；此时再调 fitView，G6 会去摸已拆掉的内部控制器，
-    // 抛 "Cannot read properties of undefined (reading 'getData')"。
-    // 那是**未捕获**的异步异常，会直接冒泡成页面级 PAGEERROR，
-    // 在低负载下不出现、批量跑时才偶发（切换时机正好落进这 400ms 窗口）。
-    // 只有「捕获的实例仍是当前实例」时才动手。
-    // 顺带说明：同一个闭包里 pinFixedNodes() 读的是实时 graphRef，
-    // 两者不一致正是这个 bug 的破绽。
-    if (graphRef.value !== graph) {
-      log("awaitingFit 跳过：graph 实例已被替换或已卸载");
-      return;
-    }
-    try {
-      graph.fitView?.(undefined as any, false as any)?.catch?.(() => {});
-      pinFixedNodes();
-    } catch (e) {
-      log("awaitingFit 失败", e);
-    }
-  }, 400);
+  try {
+    await graph.fitView?.(undefined as any, false as any)?.catch?.(() => {});
+    pinFixedNodes();
+  } catch (e) {
+    log("装载后适配失败", e);
+  }
 };
 
 const syncSelected = (graph: Graph) => {
-  const ids = graph.getElementDataByState?.("node", "selected")?.map((x: any) => x.id) ?? [];
-  selectedIds.value = ids;
-  emit("selection-change", ids);
-  // 选中态变了：让插槽 scope 里的 selected 跟着更新
-  attachSlots();
+  // click-select 行为的状态应用是异步的（先同步 updateData，再 yield 等待渲染动画），
+  // 在 node:click / canvas:click 里同步读会读到点击前的旧状态（永远慢一拍、发空数组）。
+  // 推迟到微任务：事件分发结束时行为的同步段已完成，读到的是本次交互后的真实选中。
+  queueMicrotask(() => {
+    const ids = graph.getElementDataByState?.("node", "selected")?.map((x: any) => x.id) ?? [];
+    selectedIds.value = ids;
+    emit("selection-change", ids);
+    // 选中态变了：让插槽 scope 里的 selected 跟着更新
+    attachSlots();
+  });
 };
 
 /** 绑定交互事件 */
