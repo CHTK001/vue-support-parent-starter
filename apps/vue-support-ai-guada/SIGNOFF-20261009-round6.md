@@ -53,8 +53,8 @@
 - **`r6-verify.cjs`（dist）**：**16/16 PASS**（与 dev 逐项一致）：徽标 `"0s"→"2s"` 自增、思考行流中 3s 内直接可见、流中/流后 `.turn-summary`=0、流后徽标=0、思考档位往返恢复（`none→none`）、mock 键清理、页面报错 0。
 - **`model-ctx-filter-app-check.cjs`（dist）**：**21/21 PASS**（与 dev 逐项一致）：面板 `.ctx-tag`=0（37 模型）、检索框渲染且自动聚焦、`agnes-2.` → 5/37、无匹配提示、清空恢复 37/37；管理页 6 档过滤自洽（25 卡、`128K-256K`→6/25）；页面/接口错误 0。
 - **`run-all-against-dist.mjs` 全量产物套件**：**109 / 110 PASSED**（round5 123/124，round4 120/124）：
-  - 唯一计分失败仍是 `acc-image-lib-foot 0/1`：夹具脚本自身异常（`locator.fill: value: expected string, got undefined`，round4/5 同款，非产品缺陷）；
-  - 与 round5 差 14 分 = `acc-face-edit` 本次**未产生计分**：造数 `POST /v2/face/enroll` 后端报 `S0503C0000 人脸登记失败: DJL 图像转换失败: scrfd-face-detector`——**绕开前端直调该接口复现同一错误**，属 198 环境人脸检测服务故障，非前端缺陷（round5 时该接口正常、14 项全过）；
+  - 唯一计分失败仍是 `acc-image-lib-foot 0/1`：夹具脚本自身异常（`locator.fill: value: expected string, got undefined`，round4/5 同款，非产品缺陷）——**根因与修复见 §7.2**；
+  - 与 round5 差 14 分 = `acc-face-edit` 本次**未产生计分**：造数 `POST /v2/face/enroll` 后端报 `S0503C0000 人脸登记失败: DJL 图像转换失败: scrfd-face-detector`——**绕开前端直调该接口复现同一错误**，属 198 环境人脸检测服务故障，非前端缺陷（round5 时该接口正常、14 项全过）——**该判断后被复验收口推翻，根因更正见 §7.1（非后端故障）**；
   - 分套件：`prodgrade 16/16`、`search-ux 22/22`、`search-render 12/12`、`rename 14/14`、`video 15/15`、`library-menu 30/30`。
 - **`tool-row-probe`/夹具类**：dev 专用（`/src/acceptance/*.html` 产物不含），dist 下不适用，dev 侧已 28/28。
 
@@ -62,12 +62,13 @@
 
 | 项 | 状态 | 说明 |
 | --- | --- | --- |
-| 198 人脸登记接口故障 | 待后端处理 | `POST /v2/face/enroll` 报 `DJL 图像转换失败: scrfd-face-detector`（绕开前端直调复现），dist 全量套件 `acc-face-edit` 因此不计分；round5 时正常，疑似 198 检测模型资源异常 |
-| 他人未提交的 `@file-viewer` 集成挂死**产物**构建 | 已知（非本轮范围） | 共享工作树按现状 `vite build` 得到白屏产物：`file-viewer-word` 分块 `_c` 循环导入 TDZ（`vite.config.ts`/`package.json`/`pages/filesystem` 均为未提交态）。dev 正常故易漏测——对应会话需在提交前补一次 dist 自检；本轮 dist 验收改走冻结提交的 worktree 绕开 |
+| ~~198 人脸登记接口故障~~ | **已撤回**（根因更正，§7.1） | 实为隔离 worktree 缺 gitignore（`*.jpg`）的 `public/gen-style/photo.jpg` → 套件把 404 页当照片上传 → imdecode 失败被包成同款报错；后端健康（dev 直调 enroll 3/3 成功），补拷 8 个被忽略资产后 `acc-face-edit` 14/14 |
+| 他人未提交的 `@file-viewer` 集成挂死**产物**构建 | **本仓已修复**（包上游待办） | `f75df91b5` manualChunks 合并 ofd/word 单块恢复求值顺序；boot pageerror=0 + r6 回归 + 全量 194/194 验证（§7.3）。遗留：合并块约 9MB eager、`@file-viewer` 包上游 ofd/word 源码环——移交对应会话 |
+| 三套件依赖 `AI_ACCEPT_PASS` 静默丢覆盖 | 已加固（§7.4） | image-lib-ui/image-library-tab/salted-login 刻意 env-only，round4/5/6 每轮静默丢 67 项；runner 现启动预警 + 「无 RESULT/有失败」非零退出（`b710a35b2`），操作侧设 env 后 194/194 |
 | mock 工具场景陈旧 | 已知非产品问题 | `VITE_ENABLE_MOCK` 的 `WITH_TOOL_CALLS` 场景流事件能跑完但 UI 不落消息（`createMessage` 拦截日志缺失、消息区空白）——dev 演示夹具与现行发送链路脱节，未属本轮范围；A3 验收改用带 `contentId` 的组件夹具复现 |
 | 后端 jar 重部署 | 待用户执行 | round4 的 `bb1c3bf22`（酒馆模型归一化）需重打 jar 部署到 198 才生效；当前靠前端迁移已可恢复 |
 | 25 路由 `ui-click-sweep` | 待低峰补跑 | 高频点击触发后端 429，限流下结果不可信 |
-| push | 待授权 | 本地提交未推送（round4/5/6 累计 6 个） |
+| push | 待授权 | 本地提交未推送（round4/5/6 累计 7 个 + 本轮 fixup 3 个 = **10 个**） |
 
 ## 6. 变更文件
 
@@ -82,3 +83,39 @@
 - `apps/vue-support-ai-guada/src/types/components.d.ts`（`TurnProcessSummary` 过期条目移除；顺带带上已提交组件 `FaceLandmarkDialog` 的自动生成条目）
 - `apps/vue-support-ai-guada/src/acceptance/model-ctx-filter-probe.cjs`、`model-ctx-filter-app-check.cjs`（条目 4/5 探针改写）
 - `apps/vue-support-ai-guada/src/acceptance/tool-row-check.html`、`tool-row-probe.cjs`（条目 3 — 夹具带 contentId + 4 项零请求/零 toast 断言）
+
+## 7. 二次修复与收口（2026-10-09 round6-fixup）
+
+> 交付后用户指示「修复」，选定三项：①产物白屏 ②`acc-image-lib-foot` 夹具 ③人脸登记复验收口。
+> 复验环境：主共享工作树重建（含他人 `@file-viewer` 未提交集成 + 本轮配置修复）→ dist 服务 15691；冻结 worktree（15690，`49de89d90`）用于 foot/face 单项复验。
+
+### 7.1 人脸登记复验收口 —— 结论反转：非后端故障
+
+- **根因**：`.gitignore:117` 全局忽略 `*.jpg`，`public/gen-style/photo.jpg` 从未 checkout 进隔离 worktree；serve-dist 的 `resolveStatic` 无 `public/` 兜底（仅 dist → SHARED → `/wasm` → app.yaml 垫片），套件取到 404 页 HTML 当照片上传 → OpenCV imdecode 失败 → 被 `DjlModelTranslator` 包成 `DJL 图像转换失败: scrfd-face-detector` 返回。此前「绕开前端直调复现」同样经 15690 取图，故复现出同款报错——**并非 198 后端故障**。
+- **证据**：dev 代理（15689，主树 public 齐备）直调 `POST /v2/face/enroll` 连试 3 次全部 `00000 操作成功`（222–379ms）；补拷 8 个被 gitignore 的 public 资产（跳过他人 `vendor/`）到 worktree public + dist 后，`acc-face-edit` **14/14 PASSED**（15690）。
+- **处置**：§4.2/§5 原「198 人脸登记接口故障、待后端处理」判断**撤回**（20261004 报告的 3 条同款报错属另案历史问题，非本轮范围）。
+
+### 7.2 `acc-image-lib-foot` 夹具修复 —— round4/5/6 三轮 0/1 根因
+
+- **根因**：`const PASS = process.env.AI_ACCEPT_PASS` 无默认值，而所有 runner 只注入 `AI_ACCEPT_BASE` → 登录 `.fill(undefined)` 必抛 `value: expected string, got undefined`；其余 9 个套件均 `|| 'admin123'`，仅此文件漏配。
+- **修复/验证**：补默认值（`b710a35b2`）；dist（15690）**4/4**、dev（15689）**4/4**（底栏 `特征模型：cn-clip-rn50-image · 相似度下限 0.76`、占用 `9.5 MB`）。
+
+### 7.3 产物白屏修复 —— `@file-viewer` ofd ⇄ word 跨块循环引用 TDZ
+
+- **根因链**（CDP initiator + 分块边实证）：`file-viewer-ofd` ⇄ `file-viewer-word` **跨块静态互引**（ofd `import{e} from word`；word `import{…, D as _c, …} from ofd`），入口 `index-BittFdeF` 又静态引用两块 → 浏览器按「入口 → word → ofd」求值，word 顶层 `_c.filter(...)` 执行时 ofd 的 `_c` 尚在 TDZ → `ReferenceError: Cannot access '_c' before initialization` boot 即死。全 dist **132 个块**静态引用该共享块 → 任一路由皆崩；dev 逐模块求值顺序不同故仅构建态暴露。
+- **修复**：`vite.config.ts` 新增 `build.rollupOptions.output.manualChunks`，`@file-viewer`/`docx-preview` 并入单块（`f75df91b5`，**仅部分暂存本 hunk**——该文件其余未提交改动属集成会话，保留在工作区）。
+- **验证**（主树重建 6m32s 零 error → 15691）：boot sanity `bodyLen 0→328`、侧栏/会话列表/编辑器/模型按钮全渲染、**pageerror 0**（修复前同脚本必现 `_c`）；r6 回归 **16/16**、`model-ctx-filter-app-check` **21/21**；全量见 7.4。
+- **权衡/移交**：合并块 `file-viewer-*.js` 约 9.0MB（入口静态引用渲染器块所致，该结构源自他人未提交集成）；根治需在 `@file-viewer` 包上游解开 ofd/word 源码环——已列入 §5 待办移交对应会话。
+
+### 7.4 全量产物套件覆盖修正 —— 194/194
+
+- 修复后首轮合计 **127/127**（face 14/14、foot 4/4 已入计），但 `acc-image-lib-ui`/`acc-image-library-tab`/`acc-salted-login` 三套件「无 RESULT」。
+- **追查**：三者均**刻意 env-only**（salted-login 注释明言「拒绝把明文口令写进脚本」），runner 透传 env 而操作侧从未设置 → round4/5/6 每轮**静默丢 67 项覆盖**（round5 的 123/124 同样不含它们，历史总分不可比）。
+- **补跑**（shell env 注入 `AI_ACCEPT_PASS`，不入库）：image-lib-ui **38/38**、image-library-tab **14/14**、salted-login **15/15** → **全量 194/194 PASSED、runner exit=0**（11 套件全部产出结果）。
+- **runner 加固**（`b710a35b2`）：缺 `AI_ACCEPT_PASS` 启动预警点名三套件；「无 RESULT」或任一检查失败 → `exitCode=1`（此前恒 0）。
+
+### 7.5 fixup 变更文件
+
+- `apps/vue-support-ai-guada/vite.config.ts`（`f75df91b5`，部分暂存 —— 仅 manualChunks hunk）
+- `apps/vue-support-ai-guada/src/acceptance/acc-image-lib-foot.mjs`、`run-all-against-dist.mjs`（`b710a35b2`）
+- `apps/vue-support-ai-guada/SIGNOFF-20261009-round6.md`（本文件，签核更正 + §7）
