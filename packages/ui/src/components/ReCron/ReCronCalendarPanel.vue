@@ -23,16 +23,10 @@ export type CalendarExpression = string;
 /**
  * 面板向外抛的事件。
  *
- * <p>只有 {@code update:expression} 一条，而且是**实时**的：改档位、勾日期、改时间
- * 都立刻把新的 6 段表达式抛给 ReCron。</p>
- *
- * <p>早先这里还有个 {@code apply} 事件，靠面板底部那颗「应用此时间」按钮触发。
- * 去掉它是因为它与字段模式的行为不一致 —— 字段模式是改一下就实时写回 model、
- * 由弹层的「取消/保存」统一收口，日历模式却要用户记得再点一次按钮才生效，
- * 按了之后弹层状态毫无变化，很容易被当成按钮坏了。现在两种模式口径一致。</p>
+ * <p>由弹层底栏那颗「应用到表达式」按钮触发（不在面板内部），见 ReCron.vue。</p>
  */
 export interface ReCronCalendarPanelEmits {
-  (e: "update:expression", expression: CalendarExpression): void;
+  (e: "apply", expression: CalendarExpression): void;
 }
 
 const props = defineProps<{
@@ -136,12 +130,10 @@ function shiftMonth(delta: number): void {
 function toggleDay(cell: Cell): void {
   if (!cell.inMonth) return;
   // 点日期即切到自定义，避免"看着改了、实际档位没变"
-  touched.value = true;
   cadence.value = "custom";
   pickedDays.value = pickedDays.value.includes(cell.date)
     ? pickedDays.value.filter((d) => d !== cell.date)
     : [...pickedDays.value, cell.date].sort((a, b) => a - b);
-  publish();
 }
 
 /**
@@ -288,54 +280,30 @@ function initFromExpression(text: string): void {
 
 watch(
   () => props.expression ?? "",
-  (v) => {
-    initFromExpression(v);
-    // 外部改进来的（不是我们抛出去的）就停手，否则会用面板旧状态把它盖回去
-    if (v !== lastEmitted) touched.value = false;
-  },
+  (v) => initFromExpression(v),
   { immediate: true },
 );
 
-// 时间输入框直接双向绑在 hour/minute/second 上，改完同样要实时抛出去
-watch([hour, minute, second], publish);
-
-/**
- * 是否已经发生过用户操作。
- *
- * <p>只有用户动过面板才往外抛。用它把「面板从表达式反向初始化」和「用户改了」
- * 区分开：打开弹层时 {@link initFromExpression} 会写一堆内部状态，若那时也抛，
- * 就会把用户手写的、面板本来读不懂的表达式覆盖成面板的猜测值。</p>
- */
-const touched = ref(false);
-
-/**
- * 上一次抛出去的表达式。
- *
- * <p>用来分辨「表达式变化是我自己抛出去的」还是「外面改了它」：后者要停手，
- * 否则外部刚同步进来的值会被面板的旧状态又盖回去。</p>
- */
-let lastEmitted = "";
-
-/** 把当前表达式实时抛给 ReCron。只在用户动过面板后才有意义。 */
-function publish(): void {
-  if (!touched.value) return;
-  const value = expression.value;
-  if (!value || value === lastEmitted) return;
-  lastEmitted = value;
-  emit("update:expression", value);
-}
-
 function pickCadence(key: Cadence): void {
-  touched.value = true;
   cadence.value = key;
   if (key === "custom" && !pickedDays.value.length) {
     // 自定义没选日期时先给今天，避免面板空着无从下手
     pickedDays.value = [new Date().getDate()];
   }
-  publish();
 }
 
-defineExpose({ expression });
+/**
+ * 把当前表达式抛给 ReCron。
+ *
+ * <p>由弹层**底栏**的按钮调用，不在本面板模板里 —— 见 {@link ReCron.vue}：
+ * 它原来挤在「执行时间」行右侧，既不是配置项又不是收口动作，
+ * 位置含糊；挪到与「清空/取消/保存」同一排后语义就清楚了。</p>
+ */
+function emitApply(): void {
+  if (expression.value) emit("apply", expression.value);
+}
+
+defineExpose({ expression, emitApply });
 </script>
 
 <template>

@@ -1009,15 +1009,20 @@ function applyDefaultCron(): void {
 /** 弹层模式：字段（原有六段编辑）/ 日历（参考 UI 的月历调度器） */
 const panelMode = ref<"field" | "calendar">("field");
 
+/** 日历面板实例：底栏「应用到表达式」要问它当前攒出的表达式 */
+const calPanelRef = ref<InstanceType<typeof ReCronCalendarPanel> | null>(null);
+
+/** 底栏「应用到表达式」：转调面板的 emitApply，表达式由面板自己攒、自己抛 */
+function applyCalendarFromPanel(): void {
+  calPanelRef.value?.emitApply();
+}
+
 /**
- * 日历模式改档位/选日期/改时间：面板实时抛来新的 6 段表达式，走 applyPreset 写入。
+ * 日历模式写入表达式：复用 applyPreset 那条写入路径。
  *
  * 日历面板自己只负责「攒出一个 6 段字符串」，解析/校验/预览仍由本组件的
  * syncFromModel + analysis 统一负责 —— 两种入口共用一条管线，不会出现
  * 「日历能接受、字段模式读不懂」的不一致。
- *
- * 写入时机是实时的（与字段模式同一口径），弹层的「取消/保存」负责收口：
- * 面板打开时记的快照还在，取消照样能把整段还原回去。
  */
 function applyCalendar(expr: string): void {
   if (!expr) return;
@@ -1296,11 +1301,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
         </div>
 
-        <ReCronCalendarPanel
-          v-if="panelMode === 'calendar'"
-          :expression="model"
-          @update:expression="applyCalendar"
-        />
+        <ReCronCalendarPanel ref="calPanelRef" v-if="panelMode === 'calendar'" :expression="model" @apply="applyCalendar" />
 
         <template v-else>
       <div class="re-cron__presets">
@@ -1488,6 +1489,15 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           </span>
           <div class="re-cron__footer-actions">
             <ReButton @click="clearAll">清空</ReButton>
+            <!--
+              日历模式的「应用到表达式」：从「执行时间」行右侧挪到这里。
+              它既不是一项配置（不该混在参数行里），也不是收口动作（它只写表达式、
+              不关弹层），原来夹在中间两头不靠；而与「清空/取消/保存」同排后，
+              这一排就是弹层的全部动作，读起来是一句完整的话。
+            -->
+            <ReButton v-if="panelMode === 'calendar'" type="primary" plain @click="applyCalendarFromPanel">
+              应用到表达式
+            </ReButton>
             <ReButton @click="cancelPanel">取消</ReButton>
             <ReButton type="primary" @click="savePanel">保存</ReButton>
           </div>
