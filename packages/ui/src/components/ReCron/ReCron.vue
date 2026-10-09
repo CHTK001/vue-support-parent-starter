@@ -1293,7 +1293,11 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
         </div>
 
-        <ReCronCalendarPanel v-if="panelMode === 'calendar'" :expression="model" @apply="applyCalendar" />
+        <ReCronCalendarPanel
+          v-if="panelMode === 'calendar'"
+          :expression="model"
+          @update:expression="applyCalendar"
+        />
 
         <template v-else>
       <div class="re-cron__presets">
