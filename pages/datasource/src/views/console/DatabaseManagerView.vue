@@ -429,7 +429,7 @@
                 <ReInput v-model="row.name" class="dbm-mono" @dblclick="openColumnDialog('edit', row)" />
                 <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
                 <ReInputNumber :model-value="row.size ?? undefined" @update:model-value="row.size = $event ?? null" :min="1" :max="65535" controls-position="right" style="width: 100%" />
-                <ReSwitch v-model="row.nullable" />
+                <ReSwitch v-model="row.nullable" size="small" />
                 <span class="dbm-dgrid-pk"><ReIcon v-if="row.isPrimaryKey" name="Key" :size="13" /></span>
                 <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
                 <ReInput v-model="row.comment" placeholder="注释" />
@@ -1805,6 +1805,8 @@ import ReInputNumber from "@repo/ui/re-input-number";
 import RePagination from "@repo/ui/re-pagination";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "../../components/console/ConsoleSwitch.vue";
+// 类型分组与长度/小数位/UNSIGNED 适用范围：与「设计表」建表对话框共用一份
+import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } from "../../utils/columnTypes";
 import ReTable from "@repo/ui/re-table";
 import ReRelationGraph from "@repo/ui/re-relation-graph";
 import { ReFormItem, ReOption } from "@repo/ui/re-kit";
@@ -3861,42 +3863,19 @@ const columnDialogVisible = ref(false);
 const columnDialogMode = ref<"add" | "edit">("add");
 
 /**
- * 列类型全集（按类别分组，与后端 `DbColumnDef.SUPPORTED_TYPES` 对齐）。
+ * 列类型全集的两个视图：扁平下拉项与分组下拉项。
  *
- * <p>此前只有 10 种，用户想建 ENUM / JSON / MEDIUMINT 时根本选不到，
- * 只能去别处改结构。按类别分组是为了下拉可读，不是为了分批请求。</p>
+ * <p>类型表本身（{@link COLUMN_TYPE_GROUPS}）已抽到 `utils/columnTypes.ts` ——
+ * 「设计表」建表对话框要与这里用同一份，否则下拉选项会各改各的。</p>
+ *
+ * <p>分组项刻意是计算属性而不是常量：`openColumnDialog` 遇到后端类型表以外的类型时
+ * 会往分组里补一条「其他」，常量快照看不到补进去的项。</p>
  */
-const COLUMN_TYPE_GROUPS: Array<{ label: string; types: string[] }> = [
-  { label: "整数", types: ["TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT"] },
-  { label: "布尔 / 位", types: ["BIT", "BOOL", "BOOLEAN"] },
-  { label: "定点 / 浮点", types: ["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION"] },
-  { label: "字符", types: ["CHAR", "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT"] },
-  { label: "二进制", types: ["BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB"] },
-  { label: "日期时间", types: ["DATE", "TIME", "DATETIME", "TIMESTAMP", "YEAR"] },
-  { label: "枚举 / 集合", types: ["ENUM", "SET"] },
-  { label: "JSON", types: ["JSON"] },
-];
 const columnTypeOptions = COLUMN_TYPE_GROUPS.flatMap(g => g.types);
-
-/**
- * 列类型下拉项（ReSelect 用 `group` 字段做分组标题，不是 el-option-group）。
- *
- * <p>分组是可计算属性而不是常量：`openColumnDialog` 在遇到后端类型表以外的类型时
- * 会往分组里补一条「其他」，若下拉项是常量快照就看不到新补的项。</p>
- */
 const columnTypeSelectOptions = computed(() =>
   COLUMN_TYPE_GROUPS.flatMap(g => g.types.map(t => ({ label: t, value: t, group: g.label })))
 );
 
-/** 允许 UNSIGNED 的类型（与后端 UNSIGNED_ALLOWED 一致，用于置灰而不是让用户试错） */
-const UNSIGNED_ALLOWED = new Set([
-  "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT",
-  "DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION", "BIT", "YEAR",
-]);
-/** 需要长度输入的类型 */
-const SIZE_REQUIRED = new Set(["CHAR", "VARCHAR", "BINARY", "VARBINARY", "DECIMAL", "NUMERIC"]);
-/** 允许小数位的类型 */
-const SCALE_ALLOWED = new Set(["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL"]);
 /** ON UPDATE 可选值（后端只放行这几个） */
 const ON_UPDATE_OPTIONS = ["", "CURRENT_TIMESTAMP", "NOW()", "CURRENT_TIMESTAMP(3)", "CURRENT_TIMESTAMP(6)"];
 /** ON UPDATE 下拉项 */
@@ -8178,11 +8157,13 @@ onBeforeUnmount(() => {
 .dbm-dgrid-head,
 .dbm-dgrid-row {
   display: grid;
-  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 70px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 92px;
+  /* 「可空」那格现在是 ReRadio 分段单选（是/否），比原来的开关宽：
+     70px 会把两枚按钮挤到换行/溢出，撑到 96px。 */
+  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 96px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 100px;
   gap: 8px;
   align-items: center;
   padding: 6px 12px;
-  min-width: 1080px;
+  min-width: 1120px;
 }
 .dbm-dgrid-head {
   position: sticky;

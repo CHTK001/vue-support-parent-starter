@@ -391,26 +391,26 @@ defineExpose({ expression });
 .re-cron-cal {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .re-cron-cal__cadences {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .re-cron-cal__cadence {
-  height: 32px;
-  padding: 0 18px;
+  height: 28px;
+  padding: 0 12px;
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
   font-family: inherit;
-  font-size: 13px;
-  line-height: 30px;
+  font-size: 12px;
+  line-height: 26px;
   cursor: pointer;
 }
 
@@ -425,13 +425,15 @@ defineExpose({ expression });
   color: var(--el-color-white);
 }
 
+/* 右列是"表盘 + 实时行数"。180px 在 480px 弹层里会把月历压到只剩 ~240px
+   （7 列每格 34px，日期数字顶到格子边缘），收到 148px。 */
 .re-cron-cal__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 148px;
+  gap: 10px;
 }
 
-@media (width <= 520px) {
+@media (width <= 440px) {
   .re-cron-cal__body {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -448,15 +450,15 @@ defineExpose({ expression });
 
 .re-cron-cal__cal-head {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 26px;
   align-items: center;
-  padding: 10px 8px;
+  padding: 7px 6px;
 }
 
 .re-cron-cal__cal-title {
   text-align: center;
   color: var(--el-text-color-primary);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -464,8 +466,8 @@ defineExpose({ expression });
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
   border-radius: var(--el-radius-sm);
@@ -482,21 +484,21 @@ defineExpose({ expression });
 .re-cron-cal__week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  padding: 6px 8px;
+  padding: 4px 6px;
   background: var(--el-fill-color-light);
 }
 
 .re-cron-cal__week-cell {
   text-align: center;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .re-cron-cal__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-  padding: 8px;
+  gap: 3px;
+  padding: 6px;
 }
 
 .re-cron-cal__day {
@@ -512,7 +514,7 @@ defineExpose({ expression });
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -547,8 +549,8 @@ defineExpose({ expression });
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px 8px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md);
   background: var(--el-bg-color);
@@ -556,15 +558,16 @@ defineExpose({ expression });
 
 .re-cron-cal__side-title {
   color: var(--el-text-color-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
-/* 表盘：只做视觉示意，指针角度由小时/分钟驱动 */
+/* 表盘：只做视觉示意，指针角度由小时/分钟驱动。96px 在 148px 的右列里
+   还要再留 2×10px 内距，太满；收到 78px 让整列有个呼吸。 */
 .re-cron-cal__clock {
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: 78px;
+  height: 78px;
   border: 2px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-fill-color-blank);
@@ -580,13 +583,13 @@ defineExpose({ expression });
 }
 
 .re-cron-cal__hand--hour {
-  width: 26px;
+  width: 21px;
   height: 3px;
   margin-top: -1.5px;
 }
 
 .re-cron-cal__hand--min {
-  width: 38px;
+  width: 30px;
   height: 2px;
   margin-top: -1px;
 }
@@ -595,9 +598,9 @@ defineExpose({ expression });
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
   border-radius: var(--el-radius-full);
   background: var(--el-color-primary);
 }
@@ -605,27 +608,27 @@ defineExpose({ expression });
 .re-cron-cal__time {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .re-cron-cal__time :deep(.el-input__inner) {
-  width: 56px;
+  width: 44px;
   text-align: center;
   font-family: var(--cc-font-num);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .re-cron-cal__time-colon {
   color: var(--el-text-color-primary);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .re-cron-cal__hint {
   margin: 0;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
   text-align: center;
 }
 

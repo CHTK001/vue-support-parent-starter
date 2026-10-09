@@ -9,6 +9,7 @@
  * @since 4.0.0
  */
 import { http, unwrapResult } from "@repo/utils";
+import type { DbColumnPayload } from "./dbManageApi";
 
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 // ==================== 数据库 web 管理器（使用默认主 datasource） ====================
@@ -427,15 +428,20 @@ export const compareDbStructure = (payload: DbStructureDiffPayload) =>
 /**
  * 新建表请求
  *
- * <p>字段定义 `fields` 是列定义原文（如 `id BIGINT PRIMARY KEY, name VARCHAR(255)`），
- * 后端按内核选引号与注释写法后执行 —— 不要在前端拼 `CREATE TABLE`：反引号与
- * 内联 `COMMENT` 都只对 MySQL 成立，H2/PostgreSQL 上会直接语法错。
+ * <p>列定义**优先用结构化形态 `columns`**（设计表网格的一行一列，键与「新增列」一致），
+ * 后端按内核拼 DDL；`fields` 是列定义原文（如 `id BIGINT PRIMARY KEY, name VARCHAR(255)`），
+ * 保留给「粘一段就建」的用法。两条路都**不在前端拼 `CREATE TABLE`**：反引号与内联
+ * `COMMENT` 都只对 MySQL 成立，H2/PostgreSQL 上会直接语法错。</p>
  */
 export type DbCreateTablePayload = {
   /** 表名 */
   table: string;
-  /** 列定义原文 */
-  fields: string;
+  /** 结构化列（设计表）；非空时忽略 fields */
+  columns?: DbColumnPayload[];
+  /** 主键列名，须取自 columns；可为空 */
+  primaryKey?: string[];
+  /** 列定义原文；columns 为空时必填 */
+  fields?: string;
   /** 表注释，可为空 */
   comment?: string;
   /** 数据源 ID（可选） */
