@@ -89,6 +89,23 @@ catalog:
   "@file-viewer/vue3": 3.1.2
   "@file-viewer/preset-office": 3.1.2
   "@file-viewer/vite-plugin": 3.1.2
+  # 按需渲染器：与 @file-viewer/core 严格同版本，混版会导致渲染器注册失败。
+  "@file-viewer/renderer-image": 3.1.2
+  "@file-viewer/renderer-text": 3.1.2
+  "@file-viewer/renderer-media": 3.1.2
+  "@file-viewer/renderer-archive": 3.1.2
+  "@file-viewer/renderer-cad": 3.1.2
+  "@file-viewer/renderer-3d": 3.1.2
+  "@file-viewer/renderer-geo": 3.1.2
+  "@file-viewer/renderer-data": 3.1.2
+  "@file-viewer/renderer-drawing": 3.1.2
+  "@file-viewer/renderer-mindmap": 3.1.2
+  "@file-viewer/renderer-epub": 3.1.2
+  "@file-viewer/renderer-dicom": 3.1.2
+  "@file-viewer/renderer-design": 3.1.2
+  "@file-viewer/renderer-binary": 3.1.2
+  "@file-viewer/renderer-signature": 3.1.2
+  "@file-viewer/renderer-email": 3.1.2
   # 与 @file-viewer/renderer-spreadsheet 的内部依赖严格同版本：
   # PreviewOfficePanel 直接 import 它做选区事件桥接（prototype patch），
   # 版本一旦分叉 pnpm 会装出两个实例，补丁就打不到渲染器用的那张表上

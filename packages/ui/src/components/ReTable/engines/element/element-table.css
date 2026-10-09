@@ -65,6 +65,12 @@
   padding: 0 12px;
   line-height: 20px;
 }
+/* 表头文字一律不折行（与 vxe 侧同一条口径，见 ReTable.vue 同名注释）：
+   element 的 .cell 默认 white-space: normal，长表头会折成两行把表头行撑高。
+   .cell 自带 overflow:hidden + text-overflow:ellipsis，nowrap 后自然变成截断省略。 */
+.re-table .el-table__header-wrapper th.el-table__cell .cell {
+  white-space: nowrap;
+}
 /* 横向滚动时表头投影，提示"右边还有列" */
 .re-table .el-table__header-wrapper.is-scrolling-middle,
 .re-table .el-table__header-wrapper.is-scrolling-left,

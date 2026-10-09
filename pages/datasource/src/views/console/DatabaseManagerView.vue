@@ -13,10 +13,16 @@
         <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
              再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
         <template v-if="!embedded">
-          <!-- 用 watch 而非 @change：ReSelect 不发 change 事件 -->
-          <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" style="width: 200px">
-            <ReOption v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
-          </ReSelect>
+          <!-- 共享数据源选择器（外部选项模式）：本页的候选是「默认主数据源」+ 台账，
+               且 id 在本页是 number（要喂给各 API），所以由本页出选项、组件只管渲染。
+               用 watch 而非 @change：ReSelect 不发 change 事件 -->
+          <DatasourceSelect
+            class="dbm-ds-select"
+            placeholder="选择数据源"
+            :model-value="String(currentDatasourceId)"
+            :options="datasourceOptions"
+            @update:model-value="onDatasourcePick"
+          />
         </template>
         <span v-else class="dbm-ds-chip">
           <ReIcon name="Coin" :size="13" />
@@ -260,29 +266,39 @@
               />
             </span>
           </div>
-          <!-- 过滤条（Navicat 式 WHERE 条件 + 快捷筛选） -->
+          <!-- 过滤条（Navicat 式 WHERE 条件 + 快捷筛选）：默认折叠，展开后才有 WHERE 输入行 -->
           <div class="dbm-filter-bar">
-            <span class="dbm-filter-label">WHERE</span>
-            <ReInput
-              v-model="filterWhere"
-
-              class="dbm-mono dbm-filter-input"
-              placeholder="例：status = 1 AND name LIKE 'a%'（留空不过滤）"
-              clearable
-              @keyup.enter="applyFilter"
-            />
-            <ReButton layout="square" type="primary" icon="Search" tip="应用过滤（Enter）" @click="applyFilter" />
-            <ReButton layout="square" icon="RefreshLeft" tip="清除过滤" @click="clearFilter" />
             <ReButton
               layout="square"
-              icon="Filter"
-              tip="高级筛选（列 + 运算符 + 值）"
-              @click="openFilterDialog"
+              :icon="filterBarOpen ? 'ArrowUp' : 'ArrowDown'"
+              :tip="filterBarOpen ? '收起 WHERE 过滤' : '展开 WHERE 过滤'"
+              @click="filterBarOpen = !filterBarOpen"
             />
-            <span
-              v-if="activeFilters.length"
-              class="dbm-filter-badge"
-            >{{ activeFilters.length }} 个条件</span>
+            <!-- 折叠着但过滤正生效：条件被藏起来了，这里必须留个记号，否则只看到「数据变少」 -->
+            <span v-if="!filterBarOpen && filterActive" class="dbm-filter-badge">过滤中</span>
+            <template v-if="filterBarOpen">
+              <span class="dbm-filter-label">WHERE</span>
+              <ReInput
+                v-model="filterWhere"
+
+                class="dbm-mono dbm-filter-input"
+                placeholder="例：status = 1 AND name LIKE 'a%'（留空不过滤）"
+                clearable
+                @keyup.enter="applyFilter"
+              />
+              <ReButton layout="square" type="primary" icon="Search" tip="应用过滤（Enter）" @click="applyFilter" />
+              <ReButton layout="square" icon="RefreshLeft" tip="清除过滤" @click="clearFilter" />
+              <ReButton
+                layout="square"
+                icon="Filter"
+                tip="高级筛选（列 + 运算符 + 值）"
+                @click="openFilterDialog"
+              />
+              <span
+                v-if="activeFilters.length"
+                class="dbm-filter-badge"
+              >{{ activeFilters.length }} 个条件</span>
+            </template>
             <span class="dbm-spacer" />
             <span v-if="selection.length" class="dbm-sel-count">已选 {{ selection.length }} 行</span>
             <ReButton
@@ -295,7 +311,7 @@
               @click="deleteSelectedRows"
             />
           </div>
-          <!-- 行/单元格操作走右键菜单（无操作列） -->
+          <!-- 行/单元格操作走右键菜单（无操作列）；列可拖拽调序 —— ReTable 默认关闭，控制台这里开 -->
           <ReTable
             :data="tableData.rows"
             :columns="tableColumns"
@@ -303,6 +319,7 @@
             :loading="tableLoading"
             :pagination="false"
             :border="true"
+            column-draggable
             show-selection
             stripe
             height="calc(100% - 100px)"
@@ -412,7 +429,7 @@
                 <ReInput v-model="row.name" class="dbm-mono" @dblclick="openColumnDialog('edit', row)" />
                 <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
                 <ReInputNumber :model-value="row.size ?? undefined" @update:model-value="row.size = $event ?? null" :min="1" :max="65535" controls-position="right" style="width: 100%" />
-                <ReSwitch v-model="row.nullable" />
+                <ReSwitch v-model="row.nullable" size="small" />
                 <span class="dbm-dgrid-pk"><ReIcon v-if="row.isPrimaryKey" name="Key" :size="13" /></span>
                 <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
                 <ReInput v-model="row.comment" placeholder="注释" />
@@ -446,6 +463,7 @@
               :pagination="false"
               stripe
               border
+              column-draggable
               height="calc(100% - 70px)"
             >
               <template #col-actions="{ row }">
@@ -464,6 +482,7 @@
               :pagination="false"
               stripe
               border
+              column-draggable
               height="calc(100% - 70px)"
             >
               <template #col-fk-actions="{ row }">
@@ -578,6 +597,7 @@
               :pagination="false"
               stripe
               border
+              column-draggable
               height="calc(100% - 40px)"
             />
             <!-- 失败的那条没有结果集，但**必须把原因整段显示出来**：
@@ -1143,31 +1163,13 @@
       </template>
     </ReDialog>
 
-    <!-- 新建表弹窗 -->
-    <ReDialog v-model="createTableVisible" title="新建表" width="600px">
-      <div class="dbm-create-form">
-        <div class="dbm-form-item">
-          <label>目标库</label>
-          <ReInput :model-value="newTableDatabase" disabled />
-        </div>
-        <div class="dbm-form-item">
-          <label>表名</label>
-          <ReInput v-model="newTableName" placeholder="请输入表名" />
-        </div>
-        <div class="dbm-form-item">
-          <label>表注释</label>
-          <ReInput v-model="newTableRemark" placeholder="请输入表注释" />
-        </div>
-        <div class="dbm-form-item">
-          <label>初始字段</label>
-          <ReInput v-model="newTableFields" type="textarea" :rows="4" placeholder="id BIGINT PRIMARY KEY AUTO_INCREMENT,&#10;name VARCHAR(255) NOT NULL,&#10;created_at DATETIME" />
-        </div>
-      </div>
-      <template #footer>
-        <ReButton @click="createTableVisible = false">取消</ReButton>
-        <ReButton type="primary" @click="confirmCreateTable">创建</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 新建表弹窗：设计表网格（列 → 结构化入参），SQL 拼装在方言层，前端不拼 MySQL-only 语句 -->
+    <CreateTableDialog
+      v-model="createTableVisible"
+      :database="newTableDatabase"
+      :datasource-id="currentDatasourceId"
+      @created="(db: string) => loadTables(db)"
+    />
 
     <!-- 新建数据库弹窗 -->
     <ReDialog v-model="createDbVisible" title="新建数据库" width="480px">
@@ -1295,6 +1297,7 @@
             :pagination="false"
             stripe
             border
+            column-draggable
             height="240px"
           >
             <template #col-mapping="{ row }">
@@ -1801,11 +1804,17 @@ import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import RePagination from "@repo/ui/re-pagination";
 import ReSelect from "@repo/ui/re-select";
-import ReSwitch from "@repo/ui/re-switch";
+import ReSwitch from "../../components/console/ConsoleSwitch.vue";
+// 类型分组与长度/小数位/UNSIGNED 适用范围：与「设计表」建表对话框共用一份
+import { COLUMN_TYPE_GROUPS, SCALE_ALLOWED, SIZE_REQUIRED, UNSIGNED_ALLOWED } from "../../utils/columnTypes";
 import ReTable from "@repo/ui/re-table";
 import ReRelationGraph from "@repo/ui/re-relation-graph";
 import { ReFormItem, ReOption } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
+import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+// 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
+import { DatasourceSelect } from "@pages/datasource";
+import type { CollectOption } from "@pages/datasource";
 import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -1822,6 +1831,7 @@ import {
   fetchForeignKeys,
   executeDbSql,
   dropDbTable,
+  renameDbTable,
   createDbDatabase,
   dropDbDatabase,
   type DbTableInfo,
@@ -1920,6 +1930,27 @@ const currentDatasourceName = computed(() => {
   const ds = datasources.value.find(d => d.id === currentDatasourceId.value);
   return ds ? ds.name : DEFAULT_DATASOURCE.name;
 });
+
+/**
+ * 数据源下拉选项。
+ *
+ * <p>副标题给类型与地址：台账里有十几项时，光看名字分不出是哪个库。</p>
+ */
+const datasourceOptions = computed<CollectOption[]>(() =>
+  datasources.value.map(ds => {
+    const parts = [ds.type, ds.database || ds.host].filter(Boolean);
+    return {
+      value: String(ds.id ?? 0),
+      label: ds.name,
+      description: parts.length ? parts.join(" · ") : "",
+    };
+  }),
+);
+
+/** 选中数据源：组件给的是字符串，这里转回 number —— 本页的 id 要直接喂给各 API */
+function onDatasourcePick(value: string): void {
+  currentDatasourceId.value = Number(value) || 0;
+}
 
 // 连接树
 const databases = ref<string[]>([]);
@@ -2301,6 +2332,15 @@ const columnComments = reactive<Record<string, string>>({});
 
 /** WHERE 过滤条件（已应用值） */
 const filterWhere = ref("");
+/**
+ * WHERE 过滤条是否展开。
+ *
+ * <p>默认**折叠**：表页签一打开就是「干净的网格」，WHERE 那行只在需要时出现
+ * （点条最左侧的箭头按钮展开）。真正生效的过滤条件会把 {@link filterActive}
+ * 顶成 true，由下面的 watch 自动把条撑开——过滤是「改了就得看得见」的事，
+ * 默认折叠不能变成「数据被过滤了却看不出为什么」。</p>
+ */
+const filterBarOpen = ref(false);
 /** 当前排序（服务器端） */
 const sortState = reactive<{ prop: string; order: "ASC" | "DESC" | "" }>({ prop: "", order: "" });
 
@@ -2391,6 +2431,16 @@ const filterDialogVisible = ref(false);
  * 后者只能靠「拒绝分隔符」的黑名单。两条路径各自的安全性不该互相依赖。</p>
  */
 const activeFilters = ref<DbFilterCondition[]>([]);
+/**
+ * 是否存在生效中的过滤（自由文本或结构化条件任一）。
+ *
+ * <p>两套机制独立（见上），但对「过滤条该不该自己弹开」这件事是一回事：
+ * 只要数据被过滤了，条件就必须摆在明面上。</p>
+ */
+const filterActive = computed(() => filterWhere.value.trim() !== "" || activeFilters.value.length > 0);
+watch(filterActive, (active) => {
+  if (active) filterBarOpen.value = true;
+});
 /** 弹窗里正在编辑的草稿（点「取消」不影响已生效的条件） */
 const filterDraft = ref<DbFilterCondition[]>([]);
 /**
@@ -3813,42 +3863,19 @@ const columnDialogVisible = ref(false);
 const columnDialogMode = ref<"add" | "edit">("add");
 
 /**
- * 列类型全集（按类别分组，与后端 `DbColumnDef.SUPPORTED_TYPES` 对齐）。
+ * 列类型全集的两个视图：扁平下拉项与分组下拉项。
  *
- * <p>此前只有 10 种，用户想建 ENUM / JSON / MEDIUMINT 时根本选不到，
- * 只能去别处改结构。按类别分组是为了下拉可读，不是为了分批请求。</p>
+ * <p>类型表本身（{@link COLUMN_TYPE_GROUPS}）已抽到 `utils/columnTypes.ts` ——
+ * 「设计表」建表对话框要与这里用同一份，否则下拉选项会各改各的。</p>
+ *
+ * <p>分组项刻意是计算属性而不是常量：`openColumnDialog` 遇到后端类型表以外的类型时
+ * 会往分组里补一条「其他」，常量快照看不到补进去的项。</p>
  */
-const COLUMN_TYPE_GROUPS: Array<{ label: string; types: string[] }> = [
-  { label: "整数", types: ["TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT"] },
-  { label: "布尔 / 位", types: ["BIT", "BOOL", "BOOLEAN"] },
-  { label: "定点 / 浮点", types: ["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION"] },
-  { label: "字符", types: ["CHAR", "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT"] },
-  { label: "二进制", types: ["BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB"] },
-  { label: "日期时间", types: ["DATE", "TIME", "DATETIME", "TIMESTAMP", "YEAR"] },
-  { label: "枚举 / 集合", types: ["ENUM", "SET"] },
-  { label: "JSON", types: ["JSON"] },
-];
 const columnTypeOptions = COLUMN_TYPE_GROUPS.flatMap(g => g.types);
-
-/**
- * 列类型下拉项（ReSelect 用 `group` 字段做分组标题，不是 el-option-group）。
- *
- * <p>分组是可计算属性而不是常量：`openColumnDialog` 在遇到后端类型表以外的类型时
- * 会往分组里补一条「其他」，若下拉项是常量快照就看不到新补的项。</p>
- */
 const columnTypeSelectOptions = computed(() =>
   COLUMN_TYPE_GROUPS.flatMap(g => g.types.map(t => ({ label: t, value: t, group: g.label })))
 );
 
-/** 允许 UNSIGNED 的类型（与后端 UNSIGNED_ALLOWED 一致，用于置灰而不是让用户试错） */
-const UNSIGNED_ALLOWED = new Set([
-  "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT",
-  "DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION", "BIT", "YEAR",
-]);
-/** 需要长度输入的类型 */
-const SIZE_REQUIRED = new Set(["CHAR", "VARCHAR", "BINARY", "VARBINARY", "DECIMAL", "NUMERIC"]);
-/** 允许小数位的类型 */
-const SCALE_ALLOWED = new Set(["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL"]);
 /** ON UPDATE 可选值（后端只放行这几个） */
 const ON_UPDATE_OPTIONS = ["", "CURRENT_TIMESTAMP", "NOW()", "CURRENT_TIMESTAMP(3)", "CURRENT_TIMESTAMP(6)"];
 /** ON UPDATE 下拉项 */
@@ -5237,11 +5264,8 @@ async function runWithParams(): Promise<void> {
 // 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / 全空=侧栏空白）
 const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "" });
 
-// 新建表
+// 新建表：表单与 SQL 拼装都在共享组件里，这里只保留「弹窗开关 + 目标库」
 const createTableVisible = ref(false);
-const newTableName = ref("");
-const newTableRemark = ref("");
-const newTableFields = ref("id BIGINT PRIMARY KEY AUTO_INCREMENT,\nname VARCHAR(255) NOT NULL,\ncreated_at DATETIME");
 /** 新建表的目标库，来自左侧树选中节点 */
 const newTableDatabase = ref("");
 
@@ -6599,35 +6623,14 @@ const contextMenuStyle = computed<Record<string, string>>(() => {
   };
 });
 
+/** 打开新建表弹窗：只定目标库，表单与建表都在共享组件里 */
 function openCreateTable(database?: string) {
   newTableDatabase.value = database || activeDatabase.value;
   if (!newTableDatabase.value) {
     ElMessage.warning("请先在左侧选择一个数据库");
     return;
   }
-  newTableName.value = "";
-  newTableRemark.value = "";
   createTableVisible.value = true;
-}
-
-async function confirmCreateTable() {
-  const name = newTableName.value.trim();
-  if (!name) {
-    ElMessage.warning("请输入表名");
-    return;
-  }
-  let sql = `CREATE TABLE \`${name}\` (\n${newTableFields.value}\n)`;
-  if (newTableRemark.value) {
-    sql += ` COMMENT='${newTableRemark.value.replace(/'/g, "''")}'`;
-  }
-  try {
-    await executeDbSql(sql, currentDatasourceId.value, newTableDatabase.value);
-    ElMessage.success(`表 ${name} 创建成功`);
-    createTableVisible.value = false;
-    await loadTables(newTableDatabase.value);
-  } catch (e) {
-    ElMessage.error(`创建表失败: ${String((e as Error)?.message ?? e)}`);
-  }
 }
 
 async function deleteTable(tableName: string, database?: string) {
@@ -6923,7 +6926,7 @@ async function renameTable(tableName: string, database?: string): Promise<void> 
   const name = promptValue(input);
   if (!name || name === tableName) return;
   try {
-    await executeDbSql(`ALTER TABLE \`${tableName}\` RENAME TO \`${name}\``, currentDatasourceId.value, db);
+    await renameDbTable(tableName, name, currentDatasourceId.value, db);
     ElMessage.success(`表已重命名为 ${name}`);
     tabs.value = tabs.value.filter(t => !(t.tableName === tableName && (t.database || "") === (db || "")));
     if (!tabs.value.some(t => t.id === activeTab.value)) {
@@ -7116,6 +7119,11 @@ onBeforeUnmount(() => {
    这里收到 240px，把宽度让给内容。 */
 .dbm.is-embedded .dbm-sidebar {
   width: 240px;
+}
+
+/* 独立模式的数据源下拉：宽度与原 ReSelect 一致，避免工具栏布局跳动 */
+.dbm-ds-select {
+  width: 200px;
 }
 
 /* 内嵌模式的数据源标识：替代独立模式的下拉，只读展示当前浏览对象 */
@@ -8149,11 +8157,13 @@ onBeforeUnmount(() => {
 .dbm-dgrid-head,
 .dbm-dgrid-row {
   display: grid;
-  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 70px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 92px;
+  /* 「可空」那格现在是 ReRadio 分段单选（是/否），比原来的开关宽：
+     70px 会把两枚按钮挤到换行/溢出，撑到 96px。 */
+  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 96px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 100px;
   gap: 8px;
   align-items: center;
   padding: 6px 12px;
-  min-width: 1080px;
+  min-width: 1120px;
 }
 .dbm-dgrid-head {
   position: sticky;

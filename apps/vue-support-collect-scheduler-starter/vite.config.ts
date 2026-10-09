@@ -37,8 +37,13 @@ const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.
 // 打到 hub 还有一致性收益：列表与控制台用同一注册表的同一批 datasourceId，
 // 不会出现「列表读 18190 的 id=2、控制台打 8081 的 id=2（nacos）」串库。
 // 令牌互通已实测：18190 签发的 token 在 8081 上 list/redis-manage 均可用。
-// 前缀必须剥掉（hub 没有 /collect/api 这层 context-path）。
 //   COLLECT_HUB_TARGET=http://127.0.0.1:8081 pnpm dev 可覆盖。
+//
+// 前缀处理按 hubTarget 分两种情况，代理条目按各自所需决定是否 rewrite：
+//  - 指向 8081 这类**独立 hub**（没有自己的 context-path）：必须剥掉 /collect/api；
+//  - 指向 18190（**内嵌 hub**，context-path 就是 /collect/api）：绝不能剥，
+//    剥了请求就落在容器层、没有路由，返回 Tomcat 原生 404 HTML 而非应用 JSON。
+// 详见下方 /collect/api/ms 条目的注释。
 const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 
@@ -184,13 +189,16 @@ export default createVite({
         changeOrigin: true,
         configure: stripOriginHeaders,
       },
-      // 数据源中心（列表 + 控制台）-> datasource-hub（8081），并剥掉 /collect/api 前缀。
+      // 数据源中心（列表 + 控制台）-> hub。
+      // **不剥 /collect/api 前缀**：18190 的 context-path 是 /collect/api（application.yml:20），
+      // 内嵌 hub 的 /ms/** 与采集接口一样挂在这个前缀之下，剥掉后打到容器层就没有路由了
+      // （返回 Tomcat 原生 404 HTML，而不是应用的 403 JSON —— 说明请求没进 Spring MVC）。
+      // 之前那条 rewrite 是按「hub 独立部署在 8081、没有 context-path」写的，对内嵌 hub 不成立。
       // 顺序敏感：必须排在通用 /collect/api 前面，否则会先被通用条目转去 18190。
       "/collect/api/ms": {
         target: hubTarget,
         changeOrigin: true,
         configure: stripOriginHeaders,
-        rewrite: stripCollectApiPrefix,
       },
       "/collect/api": {
         target: apiTarget,

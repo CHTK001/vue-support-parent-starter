@@ -35,10 +35,19 @@ const emit = defineEmits<ReCronCalendarPanelEmits>();
 /** 周期档位：与参考 UI 的四个胶囊一一对应 */
 type Cadence = "daily" | "weekday" | "weekend" | "custom";
 
-const CADENCES: { key: Cadence; label: string; cron: string; days: number[] }[] = [
-  { key: "daily", label: "每天", cron: "0 0 9 * * *", days: [] },
-  { key: "weekday", label: "工作日", cron: "0 30 9 ? * 1-5", days: [1, 2, 3, 4, 5] },
-  { key: "weekend", label: "周末", cron: "0 30 9 ? * 0,6", days: [0, 6] },
+/**
+ * 三个内置档位。
+ *
+ * <p>这里**只存语义（label + 星期集合），不存 cron 字面量**：一旦把
+ * {@code "0 30 9 ? * 1-5"} 这样的样例串写死，它与 {@link expression} 里的拼接逻辑
+ * 就是两份独立事实，改一处忘另一处就会出现「面板显示工作日、实际拼出别的」这种
+ * 静默不一致（此前 daily 就因此多拼出一段、变成 7 段被引擎判非法）。
+ * 拼串一律由 {@link dayMonthWeekOf} 从 days 现算。</p>
+ */
+const CADENCES: { key: Cadence; label: string; days: number[] }[] = [
+  { key: "daily", label: "每天", days: [] },
+  { key: "weekday", label: "工作日", days: [1, 2, 3, 4, 5] },
+  { key: "weekend", label: "周末", days: [0, 6] },
 ];
 
 const cadence = ref<Cadence>("daily");
@@ -131,21 +140,52 @@ function toggleDay(cell: Cell): void {
  *  - 每天：日周都写 `*`；
  *  - 自定义选日期：日位写逗号分隔的日期、周位写 `?`。
  */
+/**
+ * 星期集合 → cron 的周字段写法。
+ *
+ * <p>连续区间写成 {@code 1-5}（可读性），离散写成 {@code 0,6}。
+ * 服务端与 {@link CronExpression} 两种都解析。</p>
+ */
+function weekTokenOf(days: number[]): string {
+  if (!days.length) return "*";
+  if (days.length === 2 && days[1] - days[0] === 1) return `${days[0]}-${days[1]}`;
+  return [...days].sort((a, b) => a - b).join(",");
+}
+
+/**
+ * 当前档位的「日 / 月 / 周」三段。
+ *
+ * <p>日与周不能同时受限（服务端语义是「一侧为空则整体放开」），所以：
+ * 按星期跑 → 日位 {@code ?}；按日期跑 → **日期落日位**、周位 {@code ?}；
+ * 每天 → 两侧都是 {@code *}。</p>
+ *
+ * <p>「日期落哪一段」必须写死且与 {@link initFromExpression} 对称：把 {@code 1,15,28}
+ * 塞进周位会变成「每周 1/15/28 号」，语义全错且引擎不报错。</p>
+ */
+function dayMonthWeekOf(key: Cadence): [string, string, string] {
+  if (key === "daily") return ["*", "*", "*"];
+  /* 自定义按日期跑：日期列表落在**日位**，周位让位成 `?`。
+   * 早前误写成 ["?", "*", 日期列表]，等于把「每月 1/15/28 日」表达成
+   * 「每周 1/15/28 号」，引擎照跑不误，于是面板说选日期、实际每周触发 ——
+   * 引擎不会报错，只能靠断言比对触发日才能发现。 */
+  if (key === "custom") {
+    return pickedDays.value.length ? [pickedDays.value.join(","), "*", "?"] : ["", "*", "?"];
+  }
+  const days = CADENCES.find((c) => c.key === key)?.days ?? [];
+  return days.length ? ["?", "*", weekTokenOf(days)] : ["?", "*", ""];
+}
+
 const expression = computed<string>(() => {
   // 「秒 分 时」三段 + 「日 月 周」三段 = 固定 6 段。
-  // 之前写成 `${base} * * * *` 之类时手数错了段数（base 已含 3 段，
-  // 后面只该再补 3 段），会产出 7 段并被引擎判非法。
+  // 拼接只在这里发生，且由 dayMonthWeekOf 保证恰好补 3 段 ——
+  // 早前手写成 `${base} * * * *` 时多算一段，产出 7 段并被引擎判非法。
   const head = `${second.value} ${minute.value} ${hour.value}`;
-  if (cadence.value === "daily") return `${head} * * *`;
-  if (cadence.value === "custom") {
-    if (!pickedDays.value.length) return "";
-    return `${head} ? * ${pickedDays.value.join(",")}`;
-  }
-  const days = CADENCES.find((c) => c.key === cadence.value)?.days ?? [];
-  if (!days.length) return "";
-  // 连续区间写成 1-5 更好读，也与服务端解析一致
-  const list = days.length === 2 && days[1] - days[0] === 1 ? `${days[0]}-${days[1]}` : days.join(",");
-  return `${head} ? * ${list}`;
+  const [day, month, week] = dayMonthWeekOf(cadence.value);
+  // 日周至少一侧要有实际限制；两侧都空（自定义未选日期）时不产出表达式，
+  // 免得写出 `0 0 9  * * ?` 这种空日位被引擎当成"每月全部"而误触发。
+  if (!day && week === "?") return "";
+  if (!week && !day) return "";
+  return `${head} ${day || "?"} ${month} ${week || "?"}`;
 });
 
 const timeLabel = computed(
@@ -162,30 +202,76 @@ const cadenceLabel = computed(() => {
   return `${CADENCES.find((c) => c.key === cadence.value)?.label ?? ""} ${timeLabel.value}`;
 });
 
-/** 从现有表达式反向初始化：能认出来就落到对应档位，认不出来就停在自定义 */
+/**
+ * 周字段归一化，让 `1-5` / `1,2,3,4,5` / `?` / `*` 落到可比较的同一形式。
+ *
+ * <p>不归一的后果：面板自己拼出的是 `1-5`，用户从别处粘进来的是 `1,2,3,4,5`，
+ * 两者语义相同但字符串不等，反向初始化就会把「工作日」误判成自定义。</p>
+ */
+function normalizeWeek(token: string): number[] | null {
+  const t = String(token ?? "").trim();
+  if (t === "*" || t === "?") return [];
+  const out: number[] = [];
+  for (const part of t.split(",")) {
+    const seg = part.trim();
+    if (!seg) continue;
+    const range = /^(\d+)-(\d+)$/.exec(seg);
+    if (range) {
+      for (let n = Number(range[1]); n <= Number(range[2]); n++) out.push(n);
+    } else if (/^\d+$/.test(seg)) {
+      out.push(Number(seg));
+    } else {
+      // 英文星期名（MON-FRI 等）交给字段模式处理，日历模式不硬解
+      return null;
+    }
+  }
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+
+function sameDays(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/**
+ * 从现有表达式反向初始化。
+ *
+ * <p>先按「日位是日期还是占位」分流，再让 {@link expression} 自己回算一次做校验 ——
+ * 反向识别与正向拼串共用 {@link dayMonthWeekOf}，这样两边不会各写一套判据而漂移。</p>
+ */
 function initFromExpression(text: string): void {
-  const parts = String(text ?? "").trim().split(/\s+/);
+  const parts = String(text ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length !== 6) return;
   const [s, mi, h, day, , week] = parts;
   if (/^\d+$/.test(s)) second.value = Number(s);
   if (/^\d+$/.test(mi)) minute.value = Number(mi);
   if (/^\d+$/.test(h)) hour.value = Number(h);
 
-  const known = CADENCES.find(
-    (c) => c.cron.endsWith(`${day} * ${week === "?" ? "*" : week}`) && c.cron.startsWith(`${s} ${mi} ${h}`),
-  );
-  if (known) {
-    cadence.value = known.key;
-    pickedDays.value = [];
-    return;
-  }
-  if (day !== "*" && day !== "?") {
-    cadence.value = "custom";
-    pickedDays.value = day
+  // 日位是具体日期 → 自定义选日期
+  if (/^\d/.test(day)) {
+    const days = day
       .split(",")
-      .map((v) => Number(v))
+      .map((v) => Number(v.trim()))
       .filter((v) => Number.isInteger(v) && v >= 1 && v <= 31);
+    if (days.length) {
+      cadence.value = "custom";
+      pickedDays.value = days.sort((a, b) => a - b);
+      return;
+    }
   }
+
+  // 日位是占位（* / ?）→ 看周位能否对上某个内置档位
+  const weeks = normalizeWeek(week);
+  if (weeks) {
+    const hit = CADENCES.find((c) => sameDays(weeks, [...c.days].sort((a, b) => a - b)));
+    if (hit) {
+      cadence.value = hit.key;
+      pickedDays.value = [];
+      return;
+    }
+  }
+
+  // 对不上任何内置档位：停在自定义，保留用户原有选日（不覆盖为今天）
+  cadence.value = "custom";
 }
 
 watch(
@@ -273,7 +359,7 @@ defineExpose({ expression });
         </div>
       </div>
 
-      <!-- 右：执行时间 + 应用 -->
+      <!-- 下：执行时间 + 应用（独占整行，见 .re-cron-cal__body 注释） -->
       <div class="re-cron-cal__side">
         <div class="re-cron-cal__side-title">执行时间</div>
 
@@ -305,26 +391,26 @@ defineExpose({ expression });
 .re-cron-cal {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .re-cron-cal__cadences {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .re-cron-cal__cadence {
-  height: 32px;
-  padding: 0 18px;
+  height: 28px;
+  padding: 0 12px;
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
   font-family: inherit;
-  font-size: 13px;
-  line-height: 30px;
+  font-size: 12px;
+  line-height: 26px;
   cursor: pointer;
 }
 
@@ -339,16 +425,18 @@ defineExpose({ expression });
   color: var(--el-color-white);
 }
 
+/*
+ * 单列：月历在上，「执行时间」独占下方一整行。
+ *
+ * 原来是 `1fr 180px` 左右并排，右列只有 180px —— 扣掉 side 的内距后剩 ~156px，
+ * 时/分输入框 + 冒号 + 「应用此时间」按钮挤在一起，输入框窄到 44px，
+ * 打两位小时分钟都要盯着看；而月历被压到 7 列每格 34px，日期数字顶边。
+ * 两边都不够。改成上下并置后月历拿到全宽（约 62px 每格），执行时间也拿到全宽。
+ */
 .re-cron-cal__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px;
-  gap: 16px;
-}
-
-@media (width <= 520px) {
-  .re-cron-cal__body {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 /* ---------------- 月历 ---------------- */
@@ -362,15 +450,15 @@ defineExpose({ expression });
 
 .re-cron-cal__cal-head {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 26px;
   align-items: center;
-  padding: 10px 8px;
+  padding: 7px 6px;
 }
 
 .re-cron-cal__cal-title {
   text-align: center;
   color: var(--el-text-color-primary);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -378,8 +466,8 @@ defineExpose({ expression });
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
   border-radius: var(--el-radius-sm);
@@ -396,21 +484,21 @@ defineExpose({ expression });
 .re-cron-cal__week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  padding: 6px 8px;
+  padding: 4px 6px;
   background: var(--el-fill-color-light);
 }
 
 .re-cron-cal__week-cell {
   text-align: center;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .re-cron-cal__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-  padding: 8px;
+  gap: 3px;
+  padding: 6px;
 }
 
 .re-cron-cal__day {
@@ -426,7 +514,7 @@ defineExpose({ expression });
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -457,28 +545,35 @@ defineExpose({ expression });
 
 /* ---------------- 右列 ---------------- */
 
+/*
+ * 「执行时间」独占一行后改成横向排布：标题 · 表盘 · 时分 · 提示 · 应用按钮。
+ *
+ * 表盘在这里只是视觉示意（真正的输入是时/分两个框），横向布局下不需要再抢高度，
+ * 收到 46px；同时指针长度按 46px 直径重算，否则会捅出圆外。
+ */
 .re-cron-cal__side {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding: 12px;
+  padding: 7px 10px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md);
   background: var(--el-bg-color);
 }
 
 .re-cron-cal__side-title {
+  flex: none;
   color: var(--el-text-color-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
-/* 表盘：只做视觉示意，指针角度由小时/分钟驱动 */
 .re-cron-cal__clock {
   position: relative;
-  width: 96px;
-  height: 96px;
+  flex: none;
+  width: 46px;
+  height: 46px;
   border: 2px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-fill-color-blank);
@@ -494,13 +589,13 @@ defineExpose({ expression });
 }
 
 .re-cron-cal__hand--hour {
-  width: 26px;
-  height: 3px;
-  margin-top: -1.5px;
+  width: 12px;
+  height: 2px;
+  margin-top: -1px;
 }
 
 .re-cron-cal__hand--min {
-  width: 38px;
+  width: 18px;
   height: 2px;
   margin-top: -1px;
 }
@@ -509,42 +604,47 @@ defineExpose({ expression });
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
   border-radius: var(--el-radius-full);
   background: var(--el-color-primary);
 }
 
 .re-cron-cal__time {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
+/* 独占一行后有富余宽度，输入框从 44px 放回 62px，打两位时分不用盯着看 */
 .re-cron-cal__time :deep(.el-input__inner) {
-  width: 56px;
+  width: 62px;
   text-align: center;
   font-family: var(--cc-font-num);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .re-cron-cal__time-colon {
   color: var(--el-text-color-primary);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .re-cron-cal__hint {
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
-  text-align: center;
+  font-size: 11px;
+  text-align: left;
 }
 
 .re-cron-cal__apply {
-  width: 100%;
-  margin-top: auto;
+  flex: none;
+  width: auto;
+  margin-top: 0;
 }
 </style>
