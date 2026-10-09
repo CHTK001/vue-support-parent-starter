@@ -22,6 +22,7 @@ import { costMs } from "@repo/utils";
 import CategoryDialog from "../components/CategoryDialog.vue";
 import FlowDesigner from "../components/FlowDesigner.vue";
 import {
+  aiGenerateFlow,
   copyFlow,
   deleteFlow,
     dryRun,
@@ -104,6 +105,11 @@ const activeTask = ref<CollectTask | null>(null);
 
 const propsVisible = ref(false);
 const categoryVisible = ref(false);
+
+/** AI 生成流程：弹窗开关 / 输入 / 生成中 */
+const aiVisible = ref(false);
+const aiInput = ref("");
+const aiLoading = ref(false);
 /** ReCron 回报的表达式合法性；留空视为不定时调度，合法 */
 const cronBroken = ref(false);
 
@@ -504,6 +510,30 @@ async function validate(): Promise<void> {
   }
 }
 
+/** AI 生成流程：把输入发给服务端生成 DSL（服务端已过图校验），成功后直接装载到画布 */
+async function aiGenerate(): Promise<void> {
+  const input = aiInput.value.trim();
+  if (!input) {
+    msgWarning("请先描述要采集的目标");
+    return;
+  }
+  aiLoading.value = true;
+  try {
+    const dsl = await aiGenerateFlow(input);
+    designer.value?.load(dsl);
+    if (dsl?.name && !form.name) {
+      form.name = dsl.name;
+    }
+    dirty.value = true;
+    msgSuccess("AI 已生成流程，请检查后保存");
+    aiVisible.value = false;
+  } catch (error) {
+    msgError(errText(error));
+  } finally {
+    aiLoading.value = false;
+  }
+}
+
 /** 试运行：提交当前画布（无需先保存），结果不落库 */
 async function doDryRun(): Promise<void> {
   const dsl = graphOf();
@@ -643,6 +673,7 @@ async function refreshStates(): Promise<void> {
       <span class="tb-sep"/>
       <ReButton layout="square" type="primary" icon="Check" tip="保存流程" :loading="saving" @click="save" />
       <ReButton layout="square" icon="CircleCheck" tip="结构校验" @click="validate" />
+      <ReButton layout="square" icon="MagicStick" tip="AI 生成流程" @click="aiVisible = true" />
       <ReButton layout="square" icon="VideoPlay" tip="试运行" @click="doDryRun" />
       <ReButton layout="square" icon="Promotion" tip="运行" :disabled="!currentId" @click="doRun" />
       <ReButton
@@ -719,6 +750,31 @@ async function refreshStates(): Promise<void> {
       />
 
     <CategoryDialog v-model="categoryVisible"/>
+
+    <ReDialog
+      v-model="aiVisible"
+      title="AI 生成流程"
+      :width="620"
+      :close-on-click-modal="false"
+    >
+      <div class="collect-form">
+        <div class="collect-form__item collect-form__item--stack">
+          <span class="collect-form__label"><i class="req">*</i>需求描述</span>
+          <ReInput
+            v-model="aiInput"
+            type="textarea"
+            :rows="5"
+            maxlength="2000"
+            placeholder="描述要采集什么、数据从哪来、要哪些字段、是否要落库。例如：抓取 GitHub 搜索「stars>20000」的前 100 个仓库，抽取名称/star 数/语言/主页，写入数据库表 collect_github_repo"
+          />
+          <span class="collect-hint collect-hint--muted">由同机 ai-starter 生成，结果直接载入画布；保存前可继续手工调整</span>
+        </div>
+      </div>
+      <template #footer="{ cancel }">
+        <ReButton @click="cancel">取消</ReButton>
+        <ReButton type="primary" :loading="aiLoading" @click="aiGenerate">生成</ReButton>
+      </template>
+    </ReDialog>
 
     <ReDialog
       v-model="propsVisible"
