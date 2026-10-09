@@ -17,6 +17,11 @@
  * ruffle.js，Ruffle 从 script src 自动解析出 chunk / wasm 地址，无需任何
  * vite 配置改动。</p>
  *
+ * <p>资产实际放在<b>共享根 public/</b>（{@code {WORKSPACE_ROOT}/public/ruffle/}），
+ * 由 {@code turbo/vite/createVite.ts} 把 Vite 的 {@code publicDir} 指向该目录统一
+ * 服务 —— 而不是页面包内的 {@code pages/filesystem/public/}。后者不会被任何消费方
+ * App 的 dev/build 服务到（Vite 只认一个 publicDir），放那里会 404。</p>
+ *
  * <p><b>错误口径</b>：加载前先校验 FWS/CWS/ZWS 文件头，坏文件直接给中文
  * 提示（「不是有效的 SWF 文件」）；播放期失败 Ruffle 会把英文 panic 屏画进
  * 容器（{@code #panic} 节点），这里用 MutationObserver 探测到后再叠一层中文
@@ -535,7 +540,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 72vh;
+  height: 100%;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 8px);
   background: var(--el-bg-color);

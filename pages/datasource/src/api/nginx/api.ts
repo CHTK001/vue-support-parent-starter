@@ -581,3 +581,127 @@ export const fetchNginxBackupDiff = (
     .query({ datasourceId, name, target })
     .timeout(60_000)
     .then(r => unwrap<NginxBackupDiff>(r));
+
+// ==================== 自定义看板 ====================
+
+/** 看板 */
+export interface NginxDashboard {
+  datasourceId: number;
+  name: string;
+  /** 布局配置（JSON 文本） */
+  config: string;
+  embedToken: string;
+  updateTime: string | null;
+}
+
+/** 读取看板 */
+export const fetchNginxDashboard = (datasourceId?: number | null) =>
+  http().get(`${B}/dashboard`).query({ datasourceId }).noToast(true).then(r => unwrap<NginxDashboard>(r));
+
+/** 保存看板（实时保存链路后端入口） */
+export const saveNginxDashboard = (payload: {
+  datasourceId?: number | null;
+  name?: string;
+  config: string;
+}) => http().put(`${B}/dashboard`).data(payload).noToast(true).then(r => unwrap<NginxDashboard>(r));
+
+/** 重新生成嵌入令牌 */
+export const regenerateNginxToken = (datasourceId?: number | null) =>
+  http().post(`${B}/dashboard/token`).query({ datasourceId }).noToast(true).then(r => unwrap<NginxDashboard>(r));
+
+// ==================== 嵌入（公开只读，原生 fetch） ====================
+
+/** 嵌入返回解包：后端 ReturnResult 信封 */
+const unwrapNgxEmbed = <T>(body: any): T => {
+  if (body && (body.code === "00000" || body.code === 200 || body.success === true)) {
+    return body.data as T;
+  }
+  throw new Error(body?.msg || body?.message || "嵌入请求失败");
+};
+
+const ngxEmbedGet = async <T>(token: string, subPath: string, query?: Record<string, string | number | undefined>): Promise<T> => {
+  let url = `${B}/dashboard/embed/${encodeURIComponent(token)}${subPath}`;
+  if (query) {
+    const qs = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== "") {
+        qs.set(k, String(v));
+      }
+    });
+    const text = qs.toString();
+    if (text) {
+      url += `?${text}`;
+    }
+  }
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  const body = await res.json().catch(() => null);
+  if (!res.ok && !body) {
+    throw new Error(`嵌入请求失败（HTTP ${res.status}）`);
+  }
+  return unwrapNgxEmbed<T>(body);
+};
+
+/** 按令牌读取嵌入看板 */
+export const fetchEmbedNginxDashboard = (token: string) =>
+  ngxEmbedGet<NginxDashboard>(token, "");
+
+/** 嵌入实时状态 */
+export const embedNginxStatus = (token: string) =>
+  ngxEmbedGet<NginxStatus>(token, "/status");
+
+/** 嵌入指标趋势 */
+export const embedNginxTrend = (token: string, hours?: number, interval?: number) =>
+  ngxEmbedGet<NginxTrend>(token, "/metric/trend", { hours, interval });
+
+/** 嵌入访问日志 Top 统计 */
+export const embedNginxAccessTop = (token: string, lines?: number, minutes?: number, topN?: number) =>
+  ngxEmbedGet<NginxAccessTop>(token, "/log/top", { lines, minutes, topN });
+
+/** 嵌入 URL 访问趋势 */
+export const embedNginxUrlTrend = (token: string, lines?: number, topN?: number) =>
+  ngxEmbedGet<NginxUrlTrend>(token, "/log/url-trend", { lines, topN });
+
+// ==================== 卡片数据上下文 ====================
+
+/**
+ * 卡片取数上下文。
+ *
+ * <p>同一批卡片组件在两种宿主里复用：控制台（登录态、datasourceId）与嵌入页
+ * （免登录、token）。把「怎么取数」抽成上下文注入，卡片本身不关心自己在哪。</p>
+ */
+export interface NgxDataContext {
+  /** 是否嵌入模式（影响提示文案等） */
+  embed: boolean;
+  /** 数据源 ID（控制台模式），嵌入模式为 null */
+  datasourceId?: number | null;
+  /** 读取 stub_status 实时状态 */
+  status: () => Promise<NginxStatus>;
+  /** 读取指标趋势 */
+  trend: (hours?: number, interval?: number) => Promise<NginxTrend>;
+  /** 读取访问日志 Top 统计 */
+  accessTop: (lines?: number, minutes?: number, topN?: number) => Promise<NginxAccessTop>;
+  /** 读取 URL 访问趋势 */
+  urlTrend: (lines?: number, topN?: number) => Promise<NginxUrlTrend>;
+}
+
+/** 构造控制台取数上下文 */
+export const createNgxConsoleContext = (getDatasourceId: () => number | null | undefined): NgxDataContext => ({
+  embed: false,
+  get datasourceId() {
+    return getDatasourceId() ?? null;
+  },
+  status: () => fetchNginxStatus(getDatasourceId() ?? undefined),
+  trend: (hours, interval) => fetchNginxTrend(getDatasourceId() ?? undefined, hours, interval),
+  accessTop: (lines, minutes, topN) => fetchNginxAccessTop(getDatasourceId() ?? undefined, lines, minutes, topN),
+  urlTrend: (lines, topN) => fetchNginxUrlTrend(getDatasourceId() ?? undefined, lines, topN),
+});
+
+/** 构造嵌入取数上下文 */
+export const createNgxEmbedContext = (token: string): NgxDataContext => ({
+  embed: true,
+  datasourceId: null,
+  status: () => embedNginxStatus(token),
+  trend: (hours, interval) => embedNginxTrend(token, hours, interval),
+  accessTop: (lines, minutes, topN) => embedNginxAccessTop(token, lines, minutes, topN),
+  urlTrend: (lines, topN) => embedNginxUrlTrend(token, lines, topN),
+});

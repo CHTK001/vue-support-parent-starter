@@ -235,49 +235,53 @@
               </div>
             </div>
 
+            <!-- 试卷详情：原始试卷 / 版面解析一体（组件内置切换）；改分在版面解析面板，AI 分保留 -->
             <div v-if="markResult" class="tp-mark__result">
               <div class="tp-mark__sum">
-                任务 {{ markResult.taskId }} · 状态 {{ markResult.finished ? "已判分" : "判分中" }} ·
-                得分 <b>{{ markResult.totalScore }}</b> / 已判 {{ markResult.results.length }} 题
+                试卷记录 · 任务 {{ markResult.taskId }} ·
+                状态 {{ markResult.finished ? "已判分" : "判分中" }} ·
+                AI 总分 <b>{{ markAiTotal }}</b> ·
+                老师总分 <b>{{ markFinalTotal }}</b>
+                <el-tag size="small" type="success" class="tp-mark__tag">老师为主</el-tag>
               </div>
-              <el-table :data="markResult.results" size="small" border class="tp-table">
-                <el-table-column prop="questionId" label="题号" width="80" />
-                <el-table-column prop="maxScore" label="满分" width="80" />
-                <el-table-column prop="score" label="AI 得分" width="90" />
-                <el-table-column label="教师复核分" width="120">
-                  <template #default="{ row }">
-                    <el-input-number v-model="row.teacherScore" :min="0" :max="row.maxScore ?? 100" size="small" controls-position="right" />
-                  </template>
-                </el-table-column>
-                <el-table-column label="评语" min-width="200">
-                  <template #default="{ row }">
-                    <el-input v-model="row.teacherComment" size="small" placeholder="可选" />
-                  </template>
-                </el-table-column>
-              </el-table>
-              <div class="tp-mark__act">
-                <el-button type="primary" @click="confirmMarking">确认评分</el-button>
+              <div class="tp-mark__sheet">
+                <SheetStructureView
+                  :key="`${markResult.taskId}:${markSheetKey}`"
+                  :task-id="markResult.taskId"
+                  @saved="onMarkSaved"
+                />
               </div>
             </div>
 
             <div class="tp-mark__tasks">
               <div class="tp-side__head">
-                <span>我的阅卷任务</span>
+                <span>我的阅卷记录（试卷）</span>
                 <el-button size="small" @click="loadMarkTasks">刷新</el-button>
               </div>
               <el-table :data="markTasks" size="small" border class="tp-table">
-                <el-table-column prop="markingTaskTaskId" label="任务号" min-width="200" />
-                <el-table-column label="类型" width="90">
+                <el-table-column prop="markingTaskTaskId" label="任务号" min-width="190" show-overflow-tooltip />
+                <el-table-column label="类型" width="80">
                   <template #default="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
                 </el-table-column>
-                <el-table-column label="状态" width="100">
+                <el-table-column label="试卷" min-width="140" show-overflow-tooltip>
+                  <template #default="{ row }">{{ paperNameOf(row) }}</template>
+                </el-table-column>
+                <el-table-column label="学生" width="90" show-overflow-tooltip>
+                  <template #default="{ row }">{{ row.markingTaskStudentId || "匿名" }}</template>
+                </el-table-column>
+                <el-table-column label="状态" width="90">
                   <template #default="{ row }">
                     <el-tag size="small" :type="taskStatusType(row.markingTaskStatus)">{{ taskStatusLabel(row.markingTaskStatus) }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="markingTaskStage" label="阶段" width="120" />
-                <el-table-column prop="markingTaskCreateTime" label="创建时间" min-width="160" />
-                <el-table-column label="操作" width="110">
+                <el-table-column label="AI 总分" width="80">
+                  <template #default="{ row }">{{ taskScoreOf(row)?.ai ?? "—" }}</template>
+                </el-table-column>
+                <el-table-column label="老师总分" width="90">
+                  <template #default="{ row }"><b class="tp-mark__td-final">{{ taskScoreOf(row)?.final ?? "—" }}</b></template>
+                </el-table-column>
+                <el-table-column prop="markingTaskStartTime" label="创建时间" min-width="150" />
+                <el-table-column label="操作" width="90">
                   <template #default="{ row }">
                     <el-button link type="primary" @click.stop="loadTaskResult(row)">查看</el-button>
                   </template>
@@ -448,6 +452,7 @@ import type {
   TeacherOverview,
 } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import SheetStructureView from "../../components/marking/SheetStructureView.vue";
 
 const router = useRouter();
 
@@ -958,7 +963,37 @@ const markFiles = ref<File[]>([]);
 const marking = ref(false);
 const markResult = ref<MarkingResultVO | null>(null);
 const markTasks = ref<TeacherMarkingTask[]>([]);
+/** 任务号 → 总分快照（列表展示用，已完成的任务后台补齐） */
+const markTaskScores = ref<Record<string, { ai: number; final: number }>>({});
+/** 结构视图刷新令牌：每次点「查看」或判分完成时递增，强制重挂载拿最新结构 */
+const markSheetKey = ref(0);
 const markForm = reactive({ paperId: null as number | null, studentId: "", mode: "SELF", maxScore: 100 });
+
+/** AI 总分 / 老师总分：老师总分 = Σ(老师分 ?? AI 分)，老师为主（与后端 totalScore 同口径） */
+const markAiTotal = computed(() => scoreOf(markResult.value).ai);
+const markFinalTotal = computed(() => scoreOf(markResult.value).final);
+
+function scoreOf(res: MarkingResultVO | null) {
+  let ai = 0;
+  let final = 0;
+  for (const r of res?.results ?? []) {
+    ai += Number(r.score ?? 0);
+    final += Number(r.teacherScore ?? r.score ?? 0);
+  }
+  return { ai, final };
+}
+
+/** 记录列表里的试卷名：SELF 卷按 paperId 反查，ANY 卷标「任意卷」 */
+function paperNameOf(row: TeacherMarkingTask) {
+  if (row.markingTaskPaperId) {
+    const hit = papers.value.find((p) => p.paperId === row.markingTaskPaperId);
+    return hit?.paperName ?? `试卷#${row.markingTaskPaperId}`;
+  }
+  return row.markingTaskMode === "ANY" ? "任意卷" : "—";
+}
+
+const taskScoreOf = (row: TeacherMarkingTask) =>
+  row.markingTaskTaskId ? markTaskScores.value[row.markingTaskTaskId] || null : null;
 
 function onPickFiles(e: Event) {
   const input = e.target as HTMLInputElement;
@@ -999,6 +1034,8 @@ async function pollResult(taskId: string) {
     const res = await eduaiApi.getMarkingResult(taskId);
     markResult.value = res;
     if (res?.finished) {
+      // 判分终态：重挂结构视图，把判分期间新增的题目/分数刷出来
+      markSheetKey.value += 1;
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -1007,37 +1044,45 @@ async function pollResult(taskId: string) {
 
 async function loadTaskResult(row: TeacherMarkingTask) {
   try {
+    // 每次点「查看」都重挂结构视图：避免复用旧缓存，看到别次改动前的分数
+    markSheetKey.value += 1;
     markResult.value = await eduaiApi.getMarkingResult(row.markingTaskTaskId);
   } catch (e) {
     ElMessage.error(`结果加载失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
-async function confirmMarking() {
-  if (!markResult.value) {
-    return;
-  }
+/** 老师分保存成功：刷新汇总与记录列表（结构视图自身已重载） */
+async function onMarkSaved() {
+  if (!markResult.value) return;
   try {
-    const adjustments = markResult.value.results.map((r) => ({
-      resultId: r.resultId,
-      score: r.teacherScore ?? r.score,
-      // 教师没写评语就不传该字段（后端视为「不改评语」，见 MarkingView.confirmAdjust 同款注释），
-      // 否则会把 AI 评语写进「教师评语」列覆盖已有评语
-      comment: r.teacherComment ?? undefined,
-    }));
-    await eduaiApi.confirmMarking({ taskId: markResult.value.taskId, adjustments });
-    ElMessage.success("已确认评分");
-  } catch (e) {
-    ElMessage.error(`确认失败：${e instanceof Error ? e.message : String(e)}`);
+    markResult.value = await eduaiApi.getMarkingResult(markResult.value.taskId);
+  } catch {
+    // 刷新失败保留旧值，保存动作本身已成功
   }
+  void loadMarkTasks();
 }
 
 async function loadMarkTasks() {
   try {
-    markTasks.value = await eduaiApi.teacherMarkingTasks(30);
+    const rows = await eduaiApi.teacherMarkingTasks(30);
+    markTasks.value = [...rows].sort((a, b) => (b.markingTaskId ?? 0) - (a.markingTaskId ?? 0));
   } catch {
     markTasks.value = [];
   }
+  // 已完成的任务后台补齐 AI / 老师总分，不阻塞列表首屏
+  void Promise.all(
+    markTasks.value
+      .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !markTaskScores.value[t.markingTaskTaskId])
+      .map(async (t) => {
+        try {
+          const res = await eduaiApi.getMarkingResult(t.markingTaskTaskId);
+          markTaskScores.value[t.markingTaskTaskId] = scoreOf(res);
+        } catch {
+          // 单条失败不影响列表其余行
+        }
+      })
+  );
 }
 
 const taskStatusLabel = (n?: number) =>
@@ -1325,9 +1370,19 @@ onMounted(() => {
   color: var(--el-color-primary);
   font-size: 18px;
 }
-.tp-mark__act {
-  margin-top: 12px;
-  text-align: right;
+.tp-mark__tag {
+  margin-left: 8px;
+}
+.tp-mark__td-final {
+  color: var(--el-color-success);
+  font-weight: 700;
+}
+.tp-mark__sheet {
+  height: 560px;
+  padding: 4px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  overflow: hidden;
 }
 .tp-mark__tasks {
   margin-top: 20px;

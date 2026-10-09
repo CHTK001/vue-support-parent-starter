@@ -211,3 +211,13 @@ dist-verify/
 **/dbg-*.mjs
 
 **/_ofdtest/
+
+# @file-viewer vite-plugin 渲染器资产：dev 启动与构建时由插件再生（约 27MB，勿入库）
+public/vendor/
+public/flyfish-viewer-assets.json
+
+**/.kb-ui-accept/
+**/dcm-probe*.mjs
+**/tmp-sync-*.png
+**/_tmp-*.mjs
+prom-embed-probe.mjs

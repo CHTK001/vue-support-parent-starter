@@ -1,11 +1,12 @@
 <template>
   <div class="page-container">
     <el-card shadow="never" class="toolbar">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <ReButton type="primary" icon="Promotion" @click="openSubmit">提交答题卡</ReButton>
         <ReButton type="success" icon="Camera" @click="openScan">扫描阅卷</ReButton>
-        <el-input v-model="taskId" placeholder="已有 taskId 可直接查询" clearable style="width: 260px" />
-        <ReButton icon="Search" @click="fetchResult">查询</ReButton>
+        <el-input v-model="taskId" placeholder="任务号直达（可选）" clearable style="width: 260px" />
+        <ReButton icon="Search" @click="openDetail()">查询</ReButton>
+        <ReButton v-if="view === 'detail'" icon="Back" @click="backToList">返回记录</ReButton>
       </div>
     </el-card>
 
@@ -40,50 +41,104 @@
       </div>
     </el-card>
 
-    <el-card shadow="never" class="mt-3 flex-1">
+    <!-- AI 阅卷记录：一行 = 一份试卷（试卷为主体，不是题目） -->
+    <el-card v-if="view === 'list'" shadow="never" class="mt-3 flex-1 records-card">
       <template #header>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
           <el-icon><Reading /></el-icon>
-          <span class="font-semibold">阅卷结果</span>
-          <el-tag v-if="result" :type="result.finished ? 'success' : 'warning'">
-            {{ result.finished ? '已完成' : '批改中' }}
-          </el-tag>
-          <el-tag v-if="result" type="info">总分 {{ result.totalScore }}</el-tag>
-          <el-tag v-if="result" type="info">{{ result.results?.length || 0 }} 题</el-tag>
+          <span class="font-semibold">AI 阅卷记录（试卷）</span>
+          <el-tag type="info">{{ tasks.length }} 份</el-tag>
+          <el-tag type="success" effect="plain">老师总分为最终成绩</el-tag>
+          <div class="flex-1" />
+          <ReButton icon="Refresh" :loading="tasksLoading" @click="loadTasks">刷新</ReButton>
         </div>
       </template>
-      <!-- 结果与解析合并：同版式解析页签已按产品要求移除，这里只呈现阅卷结果 -->
       <ReTable
-        :data="result?.results ?? []"
-        :loading="loading"
-        row-key="resultId"
+        :data="tasks"
+        :loading="tasksLoading"
+        row-key="markingTaskId"
         :toolbar="false"
         :pagination="false"
         border
         stripe
-        @refresh="fetchResult"
+        @refresh="loadTasks"
       >
-        <ReTableColumn label="题号" width="120">
-          <template #default="{ row }">{{ row.no || row.questionId }}</template>
+        <ReTableColumn label="任务号" min-width="230" show-overflow-tooltip>
+          <template #default="{ row }"><span class="task-id-cell">{{ row.markingTaskTaskId }}</span></template>
         </ReTableColumn>
-        <ReTableColumn prop="studentAnswer" label="学生作答" min-width="220" show-overflow-tooltip />
-        <ReTableColumn label="AI 得分" width="130">
-          <template #default="{ row }">{{ row.score }} / {{ row.maxScore ?? '-' }}</template>
-        </ReTableColumn>
-        <ReTableColumn prop="comment" label="AI 评语" min-width="240" show-overflow-tooltip />
-        <ReTableColumn label="教师修正" width="180">
+        <ReTableColumn label="类型" width="86">
           <template #default="{ row }">
-            <el-input-number v-model="row.teacherScore" :min="0" :max="row.maxScore ?? 100" controls-position="right" />
+            <el-tag size="small" :type="row.markingTaskMode === 'ANY' ? 'warning' : 'primary'">
+              {{ modeLabel(row) }}
+            </el-tag>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="教师评语" min-width="220">
+        <ReTableColumn label="试卷" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">{{ paperNameOf(row) }}</template>
+        </ReTableColumn>
+        <ReTableColumn label="学生" width="110" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.markingTaskStudentId || '匿名' }}</template>
+        </ReTableColumn>
+        <ReTableColumn label="状态" width="150">
           <template #default="{ row }">
-            <el-input v-model="row.teacherComment" />
+            <el-tag size="small" :type="taskStatusType(row.markingTaskStatus)">
+              {{ taskStatusLabel(row.markingTaskStatus) }}
+            </el-tag>
+            <span v-if="row.markingTaskStage" class="stage-text">{{ row.markingTaskStage }}</span>
+          </template>
+        </ReTableColumn>
+        <ReTableColumn label="AI 总分" width="90">
+          <template #default="{ row }">{{ scoreOf(row)?.ai ?? '—' }}</template>
+        </ReTableColumn>
+        <ReTableColumn label="老师总分" width="100">
+          <template #default="{ row }">
+            <b class="final-score">{{ scoreOf(row)?.final ?? '—' }}</b>
+          </template>
+        </ReTableColumn>
+        <ReTableColumn label="时间" min-width="160">
+          <template #default="{ row }">{{ row.markingTaskStartTime || row.markingTaskFinishTime || '—' }}</template>
+        </ReTableColumn>
+        <ReTableColumn label="操作" width="90">
+          <template #default="{ row }">
+            <ReButton link type="primary" @click="openDetail(row.markingTaskTaskId)">查看</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>
-      <div v-if="result?.finished" class="flex justify-end mt-3">
-        <ReButton type="primary" icon="CircleCheck" :loading="confirming" @click="confirmAdjust">教师确认/修正</ReButton>
+    </el-card>
+
+    <!-- 试卷详情：原始试卷 / 版面解析 + AI 分与老师分（老师为主） -->
+    <el-card v-else shadow="never" class="mt-3 detail-card">
+      <template #header>
+        <div class="flex items-center gap-2 flex-wrap">
+          <el-icon><Reading /></el-icon>
+          <span class="font-semibold">阅卷详情</span>
+          <span class="detail-id" :title="selectedTaskId">{{ selectedTaskId }}</span>
+          <el-tag v-if="selectedRow" size="small" type="info">{{ modeLabel(selectedRow) }}</el-tag>
+          <span v-if="selectedRow?.markingTaskStudentId" class="detail-meta">
+            学生：{{ selectedRow.markingTaskStudentId }}
+          </span>
+          <span v-if="paperNameOf(selectedRow) !== '—'" class="detail-meta">
+            试卷：{{ paperNameOf(selectedRow) }}
+          </span>
+          <el-tag v-if="selectedRow" size="small" :type="taskStatusType(selectedRow.markingTaskStatus)">
+            {{ taskStatusLabel(selectedRow.markingTaskStatus) }}
+          </el-tag>
+          <el-tag v-else-if="selectedScores" size="small" :type="selectedScores.finished ? 'success' : 'warning'">
+            {{ selectedScores.finished ? '已完成' : '判分中' }}
+          </el-tag>
+          <div class="flex-1" />
+          <el-tag type="info">AI 总分 {{ selectedScores?.ai ?? '…' }}</el-tag>
+          <el-tag type="success" effect="dark">
+            老师总分 {{ selectedScores?.final ?? '…' }}（老师为主）
+          </el-tag>
+        </div>
+      </template>
+      <div class="detail-body">
+        <SheetStructureView
+          :key="`${selectedTaskId}:${structureKey}`"
+          :task-id="selectedTaskId"
+          @saved="onSaved"
+        />
       </div>
     </el-card>
 
@@ -185,13 +240,108 @@ import { Reading } from '@element-plus/icons-vue';
 import { http } from '@repo/utils';
 import { eduaiApi } from '../api/eduaiApi';
 import { failToast } from '../api/errorText';
-import type { MarkingProgressVO, MarkingResultVO } from '../api/types';
+import type { MarkingProgressVO, MarkingResultVO, TeacherMarkingTask } from '../api/types';
 import ReDialog from "@repo/ui/re-dialog";
+import SheetStructureView from '../components/marking/SheetStructureView.vue';
 
 const taskId = ref('');
-const loading = ref(false);
-const result = ref<MarkingResultVO | null>(null);
 
+/* ==================== AI 阅卷记录（试卷为主体） ==================== */
+const tasks = ref<TeacherMarkingTask[]>([]);
+const tasksLoading = ref(false);
+/** taskId → 总分快照。AI 总分 = Σ AI 分；老师总分 = Σ (老师分 ?? AI 分)，与后端 totalScore 同口径（老师为主） */
+const scores = ref<Record<string, { ai: number; final: number; finished: boolean }>>({});
+/** list=记录列表（默认首屏），detail=单份试卷详情 */
+const view = ref<'list' | 'detail'>('list');
+const selectedTaskId = ref('');
+/** 结构刷新令牌：任务判完/改分后递增，让 SheetStructureView 重挂载拿最新结构与图片 */
+const structureKey = ref(0);
+
+const modeLabel = (row?: TeacherMarkingTask | null) =>
+  row?.markingTaskMode === 'ANY' ? '任意卷' : '自有卷';
+const taskStatusLabel = (n?: number) =>
+  ({ 0: '排队中', 1: '处理中', 2: '已完成', 3: '失败' })[Number(n ?? 0)] ?? '排队中';
+const taskStatusType = (n?: number) => {
+  const code = Number(n ?? 0);
+  return code === 2 ? 'success' : code === 3 ? 'danger' : code === 1 ? 'warning' : 'info';
+};
+const selectedRow = computed(() => tasks.value.find((t) => t.markingTaskTaskId === selectedTaskId.value) || null);
+const selectedScores = computed(() => scores.value[selectedTaskId.value] || null);
+
+const scoreOfResult = (res: MarkingResultVO | null | undefined) => {
+  let ai = 0;
+  let final = 0;
+  for (const r of res?.results ?? []) {
+    ai += Number(r.score ?? 0);
+    final += Number(r.teacherScore ?? r.score ?? 0);
+  }
+  return { ai, final, finished: !!res?.finished };
+};
+
+/** 拉取单任务结果并回填总分快照；返回结果供调用方判断终态 */
+const fillScore = async (id: string): Promise<MarkingResultVO | null> => {
+  if (!id) return null;
+  try {
+    const res = await eduaiApi.getMarkingResult(id);
+    scores.value = { ...scores.value, [id]: scoreOfResult(res) };
+    return res;
+  } catch {
+    return null;
+  }
+};
+
+const loadTasks = async () => {
+  tasksLoading.value = true;
+  try {
+    const rows = (await eduaiApi.teacherMarkingTasks()) ?? [];
+    tasks.value = [...rows].sort((a, b) => (b.markingTaskId ?? 0) - (a.markingTaskId ?? 0));
+    // 已完成的任务后台补齐总分；不阻塞列表首屏
+    void Promise.all(
+      tasks.value
+        .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !scores.value[t.markingTaskTaskId])
+        .map((t) => fillScore(t.markingTaskTaskId)),
+    );
+  } catch {
+    tasks.value = [];
+  } finally {
+    tasksLoading.value = false;
+  }
+};
+
+/**
+ * 打开一份试卷的详情（记录行「查看」或任务号直达）。
+ * 进入即重挂载结构视图拿最新数据；未判完的任务顺带挂上 SSE 实时进度。
+ */
+const openDetail = async (id?: string) => {
+  const target = (id ?? '').trim() || taskId.value.trim();
+  if (!target) {
+    ElMessage.warning('请输入任务号，或从阅卷记录里选择一份试卷');
+    return;
+  }
+  taskId.value = target;
+  selectedTaskId.value = target;
+  view.value = 'detail';
+  structureKey.value += 1;
+  const res = await fillScore(target);
+  if (res && !res.finished) {
+    if (progressTaskId !== target) startProgressStream(target);
+  } else if (res?.finished && progress.value?.taskId === target) {
+    progress.value = null;
+  }
+};
+
+const backToList = () => {
+  view.value = 'list';
+  void loadTasks();
+};
+
+/** 老师分保存成功：刷新该卷总分与记录列表（详情视图由 SheetStructureView 自身重载） */
+const onSaved = () => {
+  void fillScore(selectedTaskId.value);
+  void loadTasks();
+};
+
+/* ==================== 考试 / 作答（提交答题卡弹窗） ==================== */
 const submitDialogVisible = ref(false);
 const submitting = ref(false);
 const submitForm = reactive<{ examId: number | null; studentId: string; content: string; answers: Array<{ questionId: number | null; answer: string }> }>({
@@ -252,7 +402,6 @@ const onSubmitExamChange = async (examId: number | null) => {
   }
 };
 
-const confirming = ref(false);
 let pollHandle: any = null;
 /** 当前轮询对应的 taskId：切换任务时必须先停掉上一个任务的轮询 */
 let pollTaskId = '';
@@ -300,6 +449,13 @@ const stopProgressStream = () => {
   streamState.value = 'idle';
 };
 
+/** 任务到终态的统一收尾：刷新总分、重挂结构视图、刷新记录列表 */
+const onTaskFinished = (id: string) => {
+  void fillScore(id);
+  structureKey.value += 1;
+  void loadTasks();
+};
+
 /** 轮询兜底：SSE 连不上时才启用（原路径保留，代理掐流后页面不会停在半途） */
 const startPolling = (id: string) => {
   if (pollHandle || !id) return;
@@ -312,21 +468,24 @@ const startPolling = (id: string) => {
     try {
       const rr = await eduaiApi.getMarkingResult(id);
       if (id !== taskId.value.trim()) return;
-      result.value = rr;
-      if (rr?.finished) stopPolling();
+      scores.value = { ...scores.value, [id]: scoreOfResult(rr) };
+      if (rr?.finished) {
+        stopPolling();
+        onTaskFinished(id);
+      }
     } catch {
       // 静默
     }
   }, 2000);
 };
 
-/** 收到一帧进度：刷新进度条；终态则收流并拉取最终结果 */
+/** 收到一帧进度：刷新进度条；终态则收流并收尾 */
 const applyProgress = async (p: MarkingProgressVO) => {
   if (p.taskId && p.taskId !== taskId.value.trim()) return; // 旧任务的尾帧，丢弃
   progress.value = p;
   if (p.finished) {
     stopProgressStream();
-    await fetchResult();
+    onTaskFinished(p.taskId || taskId.value.trim());
   }
 };
 
@@ -372,7 +531,7 @@ const stopPolling = () => {
   pollTaskId = '';
 };
 
-/** 扫描阅卷：模式选择（SELF 自有卷 / ANY 任意卷）、可选试卷、图片文件（可多张，按页序） */
+/* ==================== 扫描阅卷 ==================== */
 const scanDialogVisible = ref(false);
 const scanning = ref(false);
 const paperOptions = ref<Array<{ paperId: number; paperName: string }>>([]);
@@ -390,14 +549,8 @@ const scanForm = reactive<{
   files: [],
 });
 
-const openScan = async () => {
-  scanForm.mode = 'SELF';
-  scanForm.paperId = undefined;
-  scanForm.studentId = '';
-  scanForm.maxScore = 5;
-  scanForm.files = [];
-  scanDialogVisible.value = true;
-  // 自有卷需要选择试卷：分值与标准答案都按试卷题号回数据库取
+/** 试卷下拉/记录列表展示共用：分值与试卷名都按试卷回数据库取 */
+const loadPapers = async () => {
   try {
     const page = await eduaiApi.pagePapers({ pageNum: 1, pageSize: 100 });
     // PageResult 的主数组字段是 data（records 为兼容保留），二者取其一
@@ -406,6 +559,29 @@ const openScan = async () => {
   } catch {
     paperOptions.value = [];
   }
+};
+
+/** 记录列表里的试卷名：SELF 卷按 paperId 反查，ANY 卷标「任意卷」，未关联标 — */
+const paperNameOf = (row?: TeacherMarkingTask | null) => {
+  if (!row) return '—';
+  if (row.markingTaskPaperId) {
+    const hit = paperOptions.value.find((p) => p.paperId === row.markingTaskPaperId);
+    return hit?.paperName ?? `试卷#${row.markingTaskPaperId}`;
+  }
+  return row.markingTaskMode === 'ANY' ? '任意卷' : '—';
+};
+const scoreOf = (row?: TeacherMarkingTask | null) =>
+  row?.markingTaskTaskId ? scores.value[row.markingTaskTaskId] || null : null;
+
+const openScan = async () => {
+  scanForm.mode = 'SELF';
+  scanForm.paperId = undefined;
+  scanForm.studentId = '';
+  scanForm.maxScore = 5;
+  scanForm.files = [];
+  scanDialogVisible.value = true;
+  // 自有卷需要选择试卷：分值与标准答案都按试卷题号回数据库取
+  await loadPapers();
 };
 
 /** el-upload 的 change 回调：保存当前列表的原始 File（多张按页序），提交时再组 FormData */
@@ -443,14 +619,15 @@ const doScan = async () => {
     }
     const newTaskId = await eduaiApi.scanMarking(form);
     ElMessage.success('已提交，正在识别与判分…');
-    taskId.value = newTaskId;
     scanDialogVisible.value = false;
-    // SSE 实时进度：建连后逐帧刷新阶段与百分比，终态自动收流并拉最终结果；
+    // SSE 实时进度：建连后逐帧刷新阶段与百分比，终态自动收流并收尾；
     // 连不上时 startProgressStream 的 onError 会降级到 2s 轮询
     progress.value = null;
     stopPolling();
     startProgressStream(newTaskId);
-    await fetchResult();
+    await loadTasks();
+    // 上传后直接进这份试卷的详情：记录列表已含该行，判完即见原卷与分数
+    await openDetail(newTaskId);
   } catch (e) {
     failToast('扫描阅卷失败', e);
   } finally {
@@ -458,6 +635,7 @@ const doScan = async () => {
   }
 };
 
+/* ==================== 提交答题卡 ==================== */
 /** 题号下拉有值时优先取第一题，避免写死 1 号题（卷上没有 1 号题时后端会 400） */
 const addAnswer = () =>
   submitForm.answers.push({ questionId: questionOptions.value[0]?.id ?? null, answer: '' });
@@ -512,9 +690,8 @@ const doSubmit = async () => {
       answers,
     });
     ElMessage.success(`提交成功，taskId: ${newTaskId}`);
-    taskId.value = newTaskId;
     submitDialogVisible.value = false;
-    fetchResult();
+    await openDetail(newTaskId);
   } catch (e) {
     failToast('提交失败', e);
   } finally {
@@ -522,90 +699,13 @@ const doSubmit = async () => {
   }
 };
 
-const fetchResult = async () => {
-  const id = taskId.value.trim();
-  if (!id) {
-    ElMessage.warning('请先提交或输入 taskId');
-    return;
-  }
-  // 切到别的 taskId 时，先停掉上一个任务的轮询：否则旧任务的轮询会在 2 秒后
-  // 拿旧数据覆盖 result，页面显示成另一个任务的结果（教师会据此判错分）。
-  if (id !== pollTaskId) stopPolling();
-  if (id !== progressTaskId) {
-    stopProgressStream();
-    // 切任务必须同时清进度卡：只停流会把上一个任务的「处理中/识别中 0%」留在卡片上，
-    // 教师会以为新查的任务还在跑
-    progress.value = null;
-  }
-  loading.value = true;
-  try {
-    const r = await eduaiApi.getMarkingResult(id);
-    if (id !== taskId.value.trim()) return; // 响应回来时用户已切走，丢弃
-    result.value = r;
-    if (r?.finished) {
-      // 终态：结果表已展示，进度卡清掉（否则 OOM/断流后残留的旧阶段一直挂着）
-      progress.value = null;
-    }
-    if (!r?.finished) {
-      // 未判完：优先走 SSE 实时进度；只有流已降级不可用时才退回轮询
-      if (!progressClient && progressTaskId !== id) {
-        startProgressStream(id);
-      }
-    }
-  } catch (e) {
-    // 查询失败时必须清掉旧结果：taskId 已是新值而表格还留着上一个任务的分，
-    // 教师会把上一份成绩当成这次的结果
-    if (id === taskId.value.trim()) {
-      stopPolling();
-      result.value = null;
-    }
-    failToast('查询失败', e);
-  } finally {
-    loading.value = false;
-  }
-};
-
-const confirmAdjust = async () => {
-  if (!result.value) return;
-  const adjustments = (result.value.results || []).map((r) => ({
-    resultId: r.resultId,
-    score: r.teacherScore ?? r.score,
-    // 教师没写评语就不传该字段（后端视为「不改评语」），否则会把 AI 评语写进「教师评语」列
-    comment: r.teacherComment ?? undefined,
-  })).filter((a) => a.resultId > 0);
-  if (adjustments.length === 0) {
-    ElMessage.warning('暂无可确认的结果');
-    return;
-  }
-  confirming.value = true;
-  try {
-    await eduaiApi.confirmMarking({ taskId: taskId.value, adjustments });
-    ElMessage.success('教师确认已提交');
-    await fetchResult();
-  } catch (e) {
-    failToast('确认失败', e);
-  } finally {
-    confirming.value = false;
-  }
-};
-
 /**
- * 进入页面默认加载最近一次阅卷结果：教师打开页面即看到数据，
- * 不必先手工贴 taskId 查询（此前 onMounted 为空，空表被当成「没数据」）。
- * 取 markingTaskId 最大者（主键自增 = 最新），无历史任务时保持空态。
+ * 进入页面先落「阅卷记录」列表（试卷为主体，一行一份卷）。
+ * 记录本身即数据，不再出现空表；试卷名下拉同步加载供记录展示。
  */
-onMounted(async () => {
-  if (taskId.value.trim()) return;
-  try {
-    const tasks = (await eduaiApi.teacherMarkingTasks()) ?? [];
-    const latest = [...tasks].sort((a, b) => (b.markingTaskId ?? 0) - (a.markingTaskId ?? 0))[0];
-    if (latest?.markingTaskTaskId) {
-      taskId.value = latest.markingTaskTaskId;
-      await fetchResult();
-    }
-  } catch {
-    // 无历史任务或接口异常：保持空态，不影响手动查询
-  }
+onMounted(() => {
+  void loadTasks();
+  void loadPapers();
 });
 onUnmounted(() => {
   stopPolling();
@@ -614,8 +714,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page-container { height: 100%; display: flex; flex-direction: column; }
+.page-container { height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
 .toolbar :deep(.el-card__body) { padding: 12px 16px; }
 .answer-row { display: flex; align-items: center; }
 .tip-text { font-size: 12px; color: var(--el-color-warning); line-height: 1.6; }
+.progress-task-id { font-size: 12px; color: var(--el-text-color-secondary); font-family: monospace; }
+.task-id-cell { font-family: monospace; font-size: 12px; }
+.stage-text { font-size: 12px; color: var(--el-text-color-secondary); margin-left: 6px; }
+.final-score { color: var(--el-color-primary); font-size: 15px; }
+/* 记录卡片：撑满剩余高度，表格内部滚动 */
+.records-card { min-height: 240px; display: flex; flex-direction: column; }
+.records-card :deep(.el-card__body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* 详情卡片：结构视图按视口留足高度，整页可滚动兜底 */
+.detail-card { display: flex; flex-direction: column; }
+.detail-card :deep(.el-card__body) { display: flex; flex-direction: column; }
+.detail-body { height: calc(100vh - 300px); min-height: 440px; }
+.detail-id { font-family: monospace; font-size: 12px; color: var(--el-text-color-secondary); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-meta { font-size: 13px; color: var(--el-text-color-regular); }
 </style>

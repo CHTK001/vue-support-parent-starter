@@ -1,10 +1,15 @@
 <template>
   <div class="sheet-structure">
     <div class="ss-toolbar">
-      <el-radio-group v-model="page" size="small">
+      <el-radio-group v-if="pageCount > 1" v-model="page" size="small">
         <el-radio-button v-for="p in pageCount" :key="p" :value="p">第 {{ p }} 页</el-radio-button>
       </el-radio-group>
-      <div class="ss-legend">
+      <!-- 原始试卷 / 版面解析：原卷纯看，版面解析做分数复核（老师分为最终成绩） -->
+      <el-radio-group v-model="mode" size="small">
+        <el-radio-button value="layout">版面解析</el-radio-button>
+        <el-radio-button value="original">原始试卷</el-radio-button>
+      </el-radio-group>
+      <div v-if="mode === 'layout'" class="ss-legend">
         <span class="ss-dot ss-correct"></span>正确
         <span class="ss-dot ss-partial"></span>部分分
         <span class="ss-dot ss-wrong"></span>错误
@@ -12,11 +17,11 @@
       </div>
     </div>
 
-    <div class="ss-body">
+    <div class="ss-body" :class="{ 'ss-body--original': mode === 'original' }">
       <div class="ss-stage-wrap">
         <div class="ss-stage">
           <img v-if="imageUrl" :src="imageUrl" class="ss-image" alt="答卷" />
-          <div v-if="imageUrl" class="ss-overlay">
+          <div v-if="imageUrl && mode === 'layout'" class="ss-overlay">
             <div
               v-for="(b, i) in currentLayout"
               :key="'layout-' + i"
@@ -38,38 +43,39 @@
               <span class="ss-badge">{{ anchorText(String(a.no)) }}</span>
             </div>
           </div>
-          <el-empty v-else description="未取到答卷图片" :image-size="80" />
+          <el-empty v-else-if="!imageUrl" description="未取到答卷图片" :image-size="80" />
         </div>
       </div>
 
-      <div class="ss-panel">
+      <div v-if="mode === 'layout'" class="ss-panel">
         <el-table :data="questions" height="100%" @row-click="(row: any) => selectQuestion(String(row.no))">
-          <el-table-column label="题号" width="72">
+          <el-table-column label="题号" width="64">
             <template #default="{ row }">
               <span :class="{ 'ss-row-active': String(row.no) === selectedNo }">{{ row.no || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="得分" width="96">
+          <el-table-column label="AI 分" width="76">
             <template #default="{ row }">
-              <span :class="scoreClass(row)">{{ row.editScore }} / {{ row.maxScore ?? '-' }}</span>
+              <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="作答" min-width="120" show-overflow-tooltip>
+          <el-table-column label="老师分" width="136">
+            <template #default="{ row }">
+              <el-input-number
+                v-model="row.editScore"
+                :min="0"
+                :max="row.maxScore ?? 100"
+                controls-position="right"
+                size="small"
+                @change="onScoreChange(row)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="作答" min-width="110" show-overflow-tooltip>
             <template #default="{ row }">{{ row.studentAnswer || '—' }}</template>
           </el-table-column>
-          <el-table-column label="对错编辑" width="150">
-            <template #default="{ row }">
-              <el-button
-                size="small"
-                :type="row.edit === 'right' ? 'success' : 'default'"
-                @click.stop="mark(row, 'right')"
-              >对</el-button>
-              <el-button
-                size="small"
-                :type="row.edit === 'wrong' ? 'danger' : 'default'"
-                @click.stop="mark(row, 'wrong')"
-              >错</el-button>
-            </template>
+          <el-table-column label="AI 评语" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.comment || '—' }}</template>
           </el-table-column>
           <el-table-column label="知识点" min-width="170">
             <template #default="{ row }">
@@ -87,7 +93,8 @@
           </el-table-column>
         </el-table>
         <div class="ss-actions">
-          <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存对错修正</el-button>
+          <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存老师分</el-button>
+          <span class="ss-hint">AI 分保留不动，老师分为最终成绩</span>
           <span v-if="selectedNo" class="ss-sel">已选中第 {{ selectedNo }} 题</span>
         </div>
       </div>
@@ -116,9 +123,13 @@ import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
 
 const props = defineProps<{ taskId: string }>();
+/** 老师分保存成功后广播：父级（阅卷记录详情 / 教师端）据此刷新总分 */
+const emit = defineEmits<{ (e: 'saved'): void }>();
 
 const structure = ref<Record<string, any> | null>(null);
 const page = ref(1);
+/** layout=版面解析（图 + 版面框 + 题目面板），original=原始试卷（纯原图全宽） */
+const mode = ref<'layout' | 'original'>('layout');
 const imageUrl = ref('');
 const activeLayout = ref(-1);
 const selectedNo = ref('');
@@ -182,10 +193,10 @@ const selectQuestion = (no: string) => {
   selectedNo.value = no;
 };
 
-const mark = (row: any, kind: 'right' | 'wrong') => {
-  row.edit = kind;
-  row.editScore = kind === 'right' ? Number(row.maxScore ?? 0) : 0;
-  dirty.value = true;
+/** 老师分改动即标脏：只有动过的行才进保存载荷（AI 分永远不被覆盖） */
+const onScoreChange = (row: any) => {
+  row.dirty = Number(row.editScore ?? 0) !== Number(row.origScore ?? 0);
+  dirty.value = questions.value.some((q) => q.dirty);
 };
 
 const openKp = (kp: any) => {
@@ -222,11 +233,16 @@ const load = async (taskId: string) => {
   try {
     const data = await eduaiApi.getMarkingStructure(taskId);
     structure.value = data || null;
-    questions.value = (data?.questions || []).map((q: any) => ({
-      ...q,
-      edit: undefined as 'right' | 'wrong' | undefined,
-      editScore: Number(q.score ?? 0),
-    }));
+    // 老师分初值 = 已有老师分，否则回落 AI 分；origScore 记初值做脏判断
+    questions.value = (data?.questions || []).map((q: any) => {
+      const initial = Number(q.teacherScore ?? q.score ?? 0);
+      return {
+        ...q,
+        editScore: initial,
+        origScore: initial,
+        dirty: false,
+      };
+    });
     await loadImage(taskId, 1);
   } catch (e) {
     failToast('获取结构化解析失败', e);
@@ -249,23 +265,24 @@ watch(page, async (p) => {
 const save = async () => {
   if (!props.taskId) return;
   const adjustments = questions.value
-    .filter((q) => q.edit && Number(q.resultId) > 0)
-    // 本面板只改对错、不改评语，故不传 comment：否则后端会把 AI 评语写进「教师评语」列，
-    // 冲掉教师此前手工写过的评语
+    .filter((q) => q.dirty && Number(q.resultId) > 0)
+    // 只回传分数、不传 comment：后端「不传评语 = 不改评语」，
+    // 避免把 AI 评语或教师已写评语覆盖掉
     .map((q) => ({
       resultId: Number(q.resultId),
       score: Number(q.editScore ?? 0),
     }));
   if (!adjustments.length) {
-    ElMessage.warning('没有需要保存的对错修正');
+    ElMessage.warning('没有需要保存的老师分改动');
     return;
   }
   saving.value = true;
   try {
     await eduaiApi.confirmMarking({ taskId: props.taskId, adjustments });
-    ElMessage.success('对错修正已保存');
+    ElMessage.success('老师分已保存（AI 分保留）');
     dirty.value = false;
     await load(props.taskId);
+    emit('saved');
   } catch (e) {
     failToast('保存失败', e);
   } finally {
@@ -317,11 +334,13 @@ onUnmounted(() => {
   min-height: 0;
   padding-top: 12px;
 }
+/* 原始试卷模式：没有右侧题目面板，原图占满整行 */
+.ss-body--original .ss-stage-wrap { flex: 1 1 auto; }
 .ss-stage-wrap {
   flex: 0 0 46%;
   overflow: auto;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-base);
   background: var(--el-fill-color-blank);
   display: flex;
   justify-content: center;
@@ -403,7 +422,9 @@ onUnmounted(() => {
   gap: 12px;
   padding-top: 8px;
 }
+.ss-hint { font-size: 12px; color: var(--el-text-color-secondary); }
 .ss-sel { font-size: 12px; color: var(--el-text-color-secondary); }
+.ss-ai-score { color: var(--el-text-color-secondary); font-weight: 600; }
 .ss-score-correct { color: var(--el-color-success); font-weight: 600; }
 .ss-score-partial { color: var(--el-color-warning); font-weight: 600; }
 .ss-score-wrong { color: var(--el-color-danger); font-weight: 600; }

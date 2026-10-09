@@ -12,7 +12,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { onBeforeUnmount, onMounted, ref, shallowRef, type Ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from "vue";
 import * as echarts from "echarts";
 
 /** 令牌 → 回退色。回退只在令牌缺失（如单测无 DOM）时生效，正常运行读的是令牌值。
@@ -161,20 +161,47 @@ const chart = shallowRef<echarts.ECharts | null>(null);
     chart.value.setOption(build(), true);
   };
 
-  onMounted(() => {
-    if (elRef.value) {
-      chart.value = echarts.init(elRef.value);
-      render();
+  /** 容器尺寸观察：容器换了节点必须重挂，只看旧节点等于失明 */
+  const attachRo = (el: HTMLElement | null | undefined): void => {
+    ro?.disconnect();
+    ro = null;
+    if (el && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => chart.value?.resize());
+      ro.observe(el);
     }
+  };
+
+  /**
+   * （重）建立图表实例。
+   *
+   * <p>为什么不能只在 onMounted 里 init：容器若是 {@code v-if} 控制（查询面板
+   * 切到「范围」模式才出现），挂载时 ref 还是 null，之后元素出现不会再有钩子
+   * 通知——图表就永远建不起来。这里补上：ref 变化时按需 init；元素被 v-if
+   * 卸载/替换时旧实例绑在已移除的节点上，必须 dispose 重建。</p>
+   */
+  const ensureChart = (el: HTMLElement | null | undefined): void => {
+    if (el) {
+      if (!chart.value || chart.value.getDom() !== el) {
+        chart.value?.dispose();
+        chart.value = echarts.init(el);
+        attachRo(el);
+        render();
+      }
+      return;
+    }
+    chart.value?.dispose();
+    chart.value = null;
+    attachRo(null);
+  };
+
+  watch(elRef, ensureChart);
+
+  onMounted(() => {
+    ensureChart(elRef.value);
     // 主题切换：令牌变了必须重建 option，否则暗色下画布还是亮色的坐标轴
     observer = new MutationObserver(render);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     window.addEventListener("resize", render);
-    // 容器自身尺寸变化（侧栏折叠、栅格换行）不会触发 window resize
-    if (elRef.value && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => chart.value?.resize());
-      ro.observe(elRef.value);
-    }
   });
 
   onBeforeUnmount(() => {

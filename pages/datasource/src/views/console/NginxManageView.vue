@@ -144,6 +144,7 @@
           :datasource-id="datasourceId"
           @saved="onTemplateSaved"
         />
+        <NgxLayoutPanel v-else-if="activeTab === 'layout'" :datasource-id="datasourceId" />
       </section>
     </div>
   </div>
@@ -164,6 +165,7 @@ import NginxConfigPanel from "../../components/console/NginxConfigPanel.vue";
 import NginxLogPanel from "../../components/console/NginxLogPanel.vue";
 import NginxBackupPanel from "../../components/console/NginxBackupPanel.vue";
 import NginxTemplatePanel from "../../components/console/NginxTemplatePanel.vue";
+import NgxLayoutPanel from "../../components/console/nginx/NgxLayoutPanel.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import { fetchNginxOverview, fetchNginxSources, type NginxOverview, type NginxSite } from "../../api/nginx/api";
 
@@ -183,6 +185,7 @@ const tabs = computed(() => [
   { name: "log", label: "日志", icon: "Document" },
   { name: "backup", label: "备份", icon: "Files" },
   { name: "template", label: "模板库", icon: "Grid" },
+  { name: "layout", label: "自定义布局", icon: "DataBoard" },
 ]);
 
 const activeTab = ref("overview");
@@ -338,12 +341,14 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 /* 整页：与 Redis/ZK/etcd 控制台同款 dsm 壳。
-   色值全部走 koi 设计令牌（--brand-* / --text-* / --border-* / --bg-*），暗色自动覆盖。 */
+   色值全部走 koi 设计令牌（--brand-* / --text-* / --border-* / --bg-*），暗色自动覆盖。
+   背景用 --bg-fill 铺底（用户要求非白底）：白卡片落在浅灰画布上，边界一眼可分。 */
 .dsm {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 100%;
+  background: var(--bg-fill);
 }
 
 /* ============ 顶栏 ============ */
@@ -510,7 +515,7 @@ onMounted(async () => {
 .dsm-body {
   display: flex;
   flex: 1;
-  gap: 16px;
+  gap: 6px;
   overflow: hidden;
 }
 
@@ -520,6 +525,20 @@ onMounted(async () => {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+}
+
+/* 侧栏标题行：与 Redis/etcd 控制台 dsm-view-bar 同款 */
+.dsm-view-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .ngm-nav-title {
@@ -542,7 +561,7 @@ onMounted(async () => {
   width: 100%;
   padding: 6px 12px;
   border: 0;
-  background: var(--bg-container);
+  background: transparent;
   font-size: 13px;
   text-align: left;
   color: var(--text-primary);

@@ -5,6 +5,7 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import clean from 'vite-plugin-clean'
+import { fileViewerRenderers } from '@file-viewer/vite-plugin'
 
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -191,6 +192,8 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
       dts: 'src/types/components.d.ts',
     }),
+    // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
+    fileViewerRenderers({ inject: false, preset: 'office', copyAssets: true }) as PluginOption,
   ],
   optimizeDeps: {
     // 与 createVite 一致：ol-echarts 走默认导入 echarts，交给预打包会在
@@ -276,7 +279,16 @@ export default defineConfig({
     port: 15689,
     watch: {
       // agent 写文件时会产生 .agent_infra_tmp_* 临时文件，监听它偶发 EBUSY 会导致 watcher 整体崩溃
-      ignored: ['**/*.agent_infra_tmp_*', '**/agent_infra_tmp_*'],
+      ignored: [
+        '**/*.agent_infra_tmp_*',
+        '**/agent_infra_tmp_*',
+        // @file-viewer 插件每次 dev 启动 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体），
+        // Windows 下 chokidar 对仍在写入的大文件建 fs.watch → EBUSY → dev 进程崩溃；
+        // 这些是插件生成的只读资产，监听无意义，故排除。
+        (p: string) =>
+          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+      ],
     },
     proxy: {
       '/api/v1': {

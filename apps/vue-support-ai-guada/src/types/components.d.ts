@@ -190,6 +190,7 @@ declare module 'vue' {
     MemoPanel: typeof import('./../components/chat/MemoPanel.vue')['default']
     MessageActions: typeof import('./../components/chat/message-item/MessageActions.vue')['default']
     MessageComposer: typeof import('./../components/connectors/chat/MessageComposer.vue')['default']
+    MessageOutputImages: typeof import('./../components/chat/message-item/MessageOutputImages.vue')['default']
     MessageSearchSection: typeof import('./../components/chat/message-item/MessageSearchSection.vue')['default']
     MessageSkeleton: typeof import('./../components/chat/MessageSkeleton.vue')['default']
     MessageStream: typeof import('./../components/connectors/chat/MessageStream.vue')['default']

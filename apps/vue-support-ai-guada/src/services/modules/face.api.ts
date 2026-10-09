@@ -74,6 +74,41 @@ export interface FaceLibraryItem {
   [k: string]: unknown;
 }
 
+/** `GET /face/list` 的可选查询参数；不传任何参数时后端返回全量（兼容旧调用方）。 */
+export interface FaceListParams {
+  /** 页码（从 1 开始）；与 size 同时传才启用服务端分页 */
+  page?: number;
+  /** 每页条数（后端上限 500） */
+  size?: number;
+  /** 关键词：匹配 id 与元数据字符串字段，大小写不敏感 */
+  keyword?: string;
+  /** 状态筛选：thumb=有图 / noThumb=无图 */
+  status?: string;
+  /** 排序字段：id / hasImage / 或元数据键（name、age、idCard…） */
+  sortField?: string;
+  /** 排序方向：asc / desc */
+  sortOrder?: string;
+}
+
+/** 人脸库全库统计（不受 keyword/status/sort 筛选影响）。 */
+export interface FaceListStats {
+  /** 全库条目数 */
+  total: number;
+  /** 服务端有登记图的条数 */
+  withImage: number;
+  /** 身份证已填的条数 */
+  withIdCard: number;
+}
+
+/** `GET /face/list` 的返回体。 */
+export interface FaceListPage {
+  items: FaceLibraryItem[];
+  /** **命中**总数（受 keyword/status 影响；分页时用于翻页） */
+  total: number;
+  /** 全库统计（服务端返回；全量模式下由调用方兜底推算） */
+  stats?: FaceListStats;
+}
+
 /** 人脸关键点管线结果：坐标为**原图像素**（可直接叠加到原图上）。 */
 export interface FaceLandmarkResult {
   /** 是否检出人脸并取到关键点 */
@@ -96,7 +131,7 @@ export interface FaceApi {
   /** 可用模型目录，按能力分组（detector / feature / liveness / ...） */
   getFaceModels(): Promise<Record<string, string[]>>;
   /** 当前账号人脸库已登记条目（服务端权威：跨浏览器/跨账号以它为准） */
-  listFaces(): Promise<{ items: FaceLibraryItem[]; total: number }>;
+  listFaces(params?: FaceListParams): Promise<FaceListPage>;
   /** 从当前账号人脸库删除一条（后端同步删向量索引与快照） */
   deleteFace(id: string): Promise<boolean>;
   /** 更新一条人脸的档案字段（不重跑检测、不动特征向量） */
@@ -186,11 +221,23 @@ export const faceApi: FaceApi = {
     return unwrap<Record<string, string[]>>(res) ?? {};
   },
 
-  async listFaces(this: ApiContext) {
-    const res = await this._request("/face/list");
-    const data = unwrap<{ items?: FaceLibraryItem[]; total?: number }>(res) ?? {};
+  async listFaces(this: ApiContext, params?: FaceListParams) {
+    const res = await this._request("/face/list", {
+      params: params
+        ? {
+            page: params.page,
+            size: params.size,
+            keyword: params.keyword || undefined,
+            status: params.status || undefined,
+            sortField: params.sortField || undefined,
+            sortOrder: params.sortOrder || undefined,
+          }
+        : undefined,
+    });
+    const data = unwrap<{ items?: FaceLibraryItem[]; total?: number; stats?: FaceListStats }>(res) ?? {};
     const items = Array.isArray(data.items) ? data.items : [];
-    return { items, total: typeof data.total === "number" ? data.total : items.length };
+    const total = typeof data.total === "number" ? data.total : items.length;
+    return { items, total, stats: data.stats };
   },
 
   async deleteFace(this: ApiContext, id: string) {

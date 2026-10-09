@@ -1,5 +1,7 @@
 import type { PluginOption } from "vite";
 
+import { fileViewerRenderers } from "@file-viewer/vite-plugin";
+
 import { createVite } from "../../turbo/vite/createVite.ts";
 
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
@@ -130,10 +132,45 @@ function dropProxyOrigin(): PluginOption {
   };
 }
 
+/**
+ * 生产构建去重 element-plus。
+ *
+ * <p>问题（2026-10-09 冻结 dist 验收实测）：pnpm 按 peer 变体装了两棵**物理副本**
+ * （`element-plus@2.14.3_...typescript@5.9.3_` 与 `..._typescript@6.0.3_`）——
+ * apps/* 与 packages/ui 解析到前者，pages/datasource 解析到后者。
+ * dev 由依赖预打包（optimizeDeps）天然合并为一份运行；
+ * `vite build` 会把两棵都打进产物，于是出现**两个互相独立的 z-index 计数器**：
+ * 嵌入弹窗（ReDialog，ui 副本）已到 2016，而「重新生成令牌」确认框
+ * （MessageBox，datasource 副本）只拿到 2002 —— 确认框被弹窗盖住、按钮点不到。
+ * 这类「MessageBox 叠在 ReDialog 上面」的交互在整个 datasource 控制台族都存在，
+ * 不修就是一颗生产地雷。</p>
+ *
+ * <p>修法：`resolve.dedupe` 让所有 import 一律解析到 app 根那一份（源码完全同版，
+ * 仅 peer 上下文不同），恢复单计数器。dev/构建都生效，对其它包无副作用。</p>
+ */
+function dedupeElementPlus(): PluginOption {
+  return {
+    name: "ms-dedupe-element-plus",
+    config() {
+      return { resolve: { dedupe: ["element-plus"] } };
+    },
+  };
+}
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
-  plugins: [apiTargetSelfCheck(), dropProxyOrigin()],
+  plugins: [
+    apiTargetSelfCheck(),
+    dropProxyOrigin(),
+    dedupeElementPlus(),
+    // 文件预览（@file-viewer）资源接入：
+    //   - preset 显式指定 office，copyAssets 把渲染器 worker/wasm/字体复制到
+    //     public（本仓库 publicDir 是工作区根 public，见 createVite sharedPublic）；
+    //   - 渲染器注册由组件显式传入 preset 完成（见 PreviewOfficePanel），
+    //     不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
+    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
+  ],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。
   // 注意：业务代码以 "@pages/server/src/api" 形式引用，alias 目标应指向页面根（pages/server），
@@ -149,6 +186,16 @@ export default createVite({
   server: {
     port: 8848,
     strictPort: true,
+    watch: {
+      // 插件每次 dev 启动都会 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体）。
+      // Windows 下 chokidar 对仍在写入的大文件建 fs.watch → EBUSY → dev 进程崩溃，
+      // 而监听这些插件生成的只读资产没有意义，故从 watcher 排除。
+      ignored: [
+        (p: string) =>
+          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+      ],
+    },
     // 启动预编译：预热弹窗相关源码文件，首次点击弹窗不再现场 transform（避免 5s~1min 卡顿）
     warmup: {
       clientFiles: [
@@ -261,6 +308,9 @@ export default createVite({
       "/ot": { target: fileStorageTarget, changeOrigin: true },
       "/config": { target: fileStorageTarget, changeOrigin: true },
       "/recycle": { target: fileStorageTarget, changeOrigin: true },
+      // pdf.js viewer 入口（PDF_VIEWER_PATH，服务端 classpath:/static/preview-vendor/...）。
+      // 缺这条 dev 下原生 PDF 预览直接 404 白屏；随 /ot 同一文件存储后端出。
+      "/preview-vendor": { target: fileStorageTarget, changeOrigin: true },
     },
   },
   optimizeDeps: {

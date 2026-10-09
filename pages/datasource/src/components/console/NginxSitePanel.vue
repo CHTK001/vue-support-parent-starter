@@ -268,7 +268,7 @@ defineExpose({ load, sites });
   overflow: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 10px;
+  gap: 6px;
   align-content: start;
 }
 
@@ -278,7 +278,7 @@ defineExpose({ load, sites });
 .ngs-skel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .ngs-skel-card {

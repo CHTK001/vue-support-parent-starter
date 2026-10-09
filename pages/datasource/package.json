@@ -24,6 +24,7 @@
     "echarts": "catalog:",
     "@element-plus/icons-vue": "catalog:",
     "@repo/core": "workspace:*",
+    "@repo/theme": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/config": "workspace:*",

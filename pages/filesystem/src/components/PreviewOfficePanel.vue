@@ -1,46 +1,56 @@
 <script setup lang="ts">
 /**
- * 客户端 Office 文档预览面板组件。
+ * 客户端 Office 文档预览面板组件（@file-viewer / preset-office 版）。
  *
- * 通过 Vue3 Office 组件族（`@vue-office/docx` / `excel` / `pdf` / `pptx`）
- * 在浏览器内直接解析并渲染 docx / xlsx / xls / pdf / pptx，
- * 服务端只需回吐原始字节，不再经过 LibreOffice / Aspose / OnlyOffice 转换，
- * 首次打开延迟与服务器资源占用显著下降。
+ * <p>渲染底座由 {@code @vue-office/*} 换成 {@code @file-viewer/vue3} +
+ * {@code @file-viewer/preset-office}：一个 {@code <file-viewer>} 组件按
+ * 文件名扩展名自选渲染器（OOXML / OLE2 / RTF / OpenDocument / iWork /
+ * WordPerfect / Hangul），传统二进制（.doc / .xls / .ppt）不再需要服务端转换，
+ * 服务端只需回吐原始字节。Excel 选区统计（求和 / 平均 / 计数 / 最值 + 复制）
+ * 经 e-virt-table prototype 补丁桥接保留（见 {@link eVirtTableSelectionBridge}）。</p>
  *
- * 组件按**内容魔数**选择渲染器（而非只看扩展名），因此能正确处理
- * 「扩展名是 .doc、内容其实是 .docx」这类文件；真正的传统二进制 .doc 则
- * 由后端渲染，组件收到非 client 通道后抛出 `error`，父组件改用
- * `?preview=true&render=server` 退回服务端渲染链路。
+ * <p>组件按**内容魔数**校正交给 file-viewer 的文件名（见
+ * {@link resolveViewerFileName}），能正确处理「扩展名是 .doc、内容其实是
+ * .docx」这类文件；真正的传统二进制 .doc 由 preset-office 原生渲染，
+ * 不再退回服务端。服务端判需服务端渲染（channel=spi）时，面板仍会自行
+ * 嗅探原始字节、在可直渲染时改走客户端渲染。</p>
  *
  * @author CH
- * @since 2026/09/26
+ * @since 2026/09/26（@file-viewer 迁移：2026/10/09）
  */
-import { computed, defineAsyncComponent, ref, shallowRef, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import type { Component } from "vue";
 import {
   extensionOf,
   isCorruptOfficeFile,
   isEncryptedDoc,
-  officeRendererOfSniffed,
   RENDER_SERVER,
-  type OfficeRenderer,
+  resolveViewerFileName,
 } from "../utils/officeRenderer";
+import { ElMessage } from "element-plus";
+import {
+  colIndexToLetter,
+  computeRangeStats,
+  type ParsedXlsx,
+  parseXlsxWorkbook,
+  type RangeSelection,
+  type RangeStats,
+  rangeToTsv,
+} from "../utils/xlsxSelectStats";
+import {
+  FV_SELECTION_EVENT,
+  installEVirtTableSelectionBridge,
+} from "../utils/eVirtTableSelectionBridge";
 
 /**
- * Vue3 Office 组件按需异步加载
+ * 可做选区统计的表格扩展名（xlsxSelectStats 能解析，或 xls 经 WASM 转换后可解析）。
  *
- * 四个渲染器各自内嵌完整解析器（docx-preview / exceljs + x-data-spreadsheet /
- * pdf.js / pptx-preview），静态引入会让主包膨胀到 7MB 量级。
- * 改为 defineAsyncComponent 后，只有真正打开对应类型文档时才拉取该解析器。
- * 注意：渲染器与扩展名的对应关系不变，仍由 officeRenderer.ts 统一维护。
+ * <p>非 OOXML 表格（csv / tsv / ods / fods / xlsb）无法用 JSZip 解析，
+ * 工具条不显示；file-viewer 仍正常渲染它们，只是不带统计。</p>
  */
-const VueOfficeDocx = defineAsyncComponent(() => import("@vue-office/docx"));
-const VueOfficeExcel = defineAsyncComponent(() => import("@vue-office/excel"));
-const VueOfficePdf = defineAsyncComponent(() => import("@vue-office/pdf"));
-const VueOfficePptx = defineAsyncComponent(() => import("@vue-office/pptx"));
-
-/** docx / excel 渲染器所需样式（静态引入，避免异步 chunk 内样式闪烁） */
-import "@vue-office/docx/lib/index.css";
-import "@vue-office/excel/lib/index.css";
+const STATS_EXTS: ReadonlySet<string> = new Set([
+  "xlsx", "xlsm", "xltx", "xltm", "xls", "xlt",
+]);
 
 /** 数据加载中状态（v-model，由本组件在拉取字节期间置位） */
 const loading = defineModel<boolean>("loading", { default: false });
@@ -85,168 +95,278 @@ const wrapRef = ref<HTMLDivElement>();
 const buffer = shallowRef<ArrayBuffer | null>(null);
 
 /**
- * 服务端转换后使用的渲染器（传统二进制 → OOXML 后置位）
+ * 交给 file-viewer 的 File 对象（按内容魔数校正过文件名）
  *
- * <p>前端组件吃不下真正的 OLE2 传统格式（.doc / .xls），但后端可以用
- * {@code ?format=docx} / {@code ?format=xlsx} 把它们转成 OOXML；转换成功后
- * 在这里记录目标渲染器，并用转换后的字节驱动 {@code @vue-office/*} 组件。
- * 为空时仍按原字节的魔数嗅探结果选渲染器。</p>
+ * <p>file-viewer 按文件名扩展名选渲染器，故文件名必须反映真实格式
+ * （见 {@link resolveViewerFileName}）。</p>
  */
-const convertedRenderer = ref<OfficeRenderer | "">("");
+const fileRef = shallowRef<File | null>(null);
 
 /**
- * 传统二进制格式 → 可客户端渲染的 OOXML 目标
+ * file-viewer 组件（懒加载）
  *
- * <p>只收录「浏览器组件解析不了、但能转成 OOXML」的格式。转换失败时后端会
- * 带 {@code X-FileStorage-Convert: unavailable} 返回原字节，前端据此继续走
- * PDF / 服务端渲染兜底。</p>
- *
- * <p><b>两条转换路径</b>（见 {@link tryClientWasmConvert} / {@link tryConvertFallback}）：
- * {@code .xls} 优先在浏览器内用 WASM 转换（快、不依赖服务端），失败再退回服务端
- * {@code ?format=xlsx}；其余格式只有服务端一条路。</p>
+ * <p>vue3 + preset-office + e-virt-table 补丁 + 样式只在真正打开文档时才加载，
+ * 不进主包。{@link ensureFileViewerLoaded} 幂等，首个文档触发一次后缓存。</p>
  */
-const CONVERT_TARGET: Readonly<Record<string, { format: "docx" | "xlsx"; mime: string; renderer: OfficeRenderer }>> = {
-  doc: {
-    format: "docx",
-    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    renderer: "docx",
-  },
-  xls: {
-    format: "xlsx",
-    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    renderer: "excel",
-  },
-  // CSV 是纯文本，后端容器闸门对其用「扩展名白名单 + looksLikeText 内容校验」放行
-  // （见 FileStorageServerFilter#TEXT_CONVERT_SOURCES），Aspose.Cells 的源格式里
-  // 已有 csv。转换失败仍按原兜底走服务端 CsvPreviewProvider。
-  csv: {
-    format: "xlsx",
-    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    renderer: "excel",
-  },
-  tsv: {
-    format: "xlsx",
-    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    renderer: "excel",
-  },
-};
+const viewerComp = shallowRef<Component | null>(null);
+/** file-viewer 实例 ref（用于读 Shadow DOM 内的活动工作表） */
+const viewerRef = ref<{ $el?: HTMLElement } | null>(null);
+/** preset-office 渲染器集合（rendererMode:'replace' 时唯一 registry 来源） */
+let officePreset: unknown = null;
 
 /**
- * 尝试在**浏览器内**用 WASM 把 xls 转成 xlsx（不经服务端）
+ * file-viewer 依赖是否已加载成功（幂等门闩；失败不置位，下次打开可重试）
  *
- * <p>这是 `.xls` 的首选路径：转换在本机完成，不用等服务端起Aspose，
- * 也不占用服务端资源。转换成功后 {@link buffer} 与 {@link convertedRenderer}
- * 的填法与服务端转换完全一致，所以渲染器那边感知不到差别 ——
- * <b>xls 与 xlsx 因此共用同一套 UI 与交互</b>。</p>
- *
- * <p>只有 `.xls` 走这条：它是本文件唯一能被纯前端读懂的 OLE2 表格格式
- * （`.doc` / `.ppt` 没有纯 JS 方案）。</p>
- *
- * @param xlsBytes 原始 xls 字节
- * @returns 转换成功并已填充状态返回 true
+ * <p>刻意不用 {@code if (viewerComp.value)} 做门闩：条件判空会把该属性
+ * 窄化成 {@code null}（TS 4.4 还会经别名条件反向追踪），后续
+ * {@code viewerComp.value = ...} 赋 {@code Component | null} 触发 TS2322。
+ * 门闩只读这个普通标志，条件里完全不碰该属性。</p>
  */
-async function tryClientWasmConvert(xlsBytes: Uint8Array): Promise<boolean> {
-  // 动态引入：WASM 胶水 + 1.1MB 的 .wasm 只在真的打开 .xls 时才下载
-  const { convertXlsToXlsx } = await import("../utils/xls2xlsx");
-  const ab = await convertXlsToXlsx(xlsBytes);
-  // 二次嗅探：转换器可能产出空文档或非 OOXML，交给组件会抛
-  // JSZip 的原始英文异常，直接拒掉并退回服务端通道更可控
-  if (!officeRendererOfSniffed("converted.xlsx", new Uint8Array(ab))) {
-    throw new Error("转换结果不是有效的 XLSX 容器");
-  }
-  buffer.value = ab;
-  convertedRenderer.value = "excel";
-  return true;
-}
+let fileViewerReady = false;
 
 /**
- * 尝试让服务端把传统二进制文档转成 OOXML 后本地渲染。
+ * 懒加载 file-viewer 全套依赖
  *
- * @returns 转换成功并已填充 {@link buffer} / {@link convertedRenderer} 返回 true
+ * <p>并行拉取：vue3 组件、preset-office 渲染器、e-virt-table 选区桥接补丁、
+ * 组件样式。补丁必须在 file-viewer 创建表格实例之前装好，故在此先行 await。</p>
+ *
+ * @returns 全部就绪返回 true；任一 import 失败返回 false（调用方改走兜底）
  */
-async function tryConvertFallback(rawBytes?: Uint8Array): Promise<boolean> {
-  const target = CONVERT_TARGET[extensionOf(props.fileName)];
-  if (!target) {
-    return false;
-  }
-  // `.xls` 先试浏览器内 WASM：少一次网络往返，也不依赖服务端转换器。
-  // 失败（体积超限 / 罕见 BIFF 变体 / wasm 加载失败）则继续走服务端那条路。
-  if (target.format === "xlsx" && rawBytes?.byteLength) {
-    try {
-      await tryClientWasmConvert(rawBytes);
-      return true;
-    } catch (e) {
-      console.warn("[PreviewOfficePanel] 浏览器内 XLS 转换失败，改走服务端", e);
-    }
-  }
-  // rawSrc（不带 preview/render 参数）更干净；缺失时退回 src 也可命中后端 format 分支
-  const base = props.rawSrc || props.src;
-  const sep = base.includes("?") ? "&" : "?";
+async function ensureFileViewerLoaded(): Promise<boolean> {
+  if (fileViewerReady) return true;
   try {
-    const res = await fetch(`${base}${sep}format=${target.format}`);
-    if (!res.ok) {
-      return false;
-    }
-    // 只看状态码不行：转换失败时服务端仍返回 200（原始字节）。
-    // 转换成功的判定同时看响应头与内容类型——存储服务是独立 origin（如 :18080），
-    // 未把 X-FileStorage-Convert 放进 CORS expose-headers 时该头读不到，
-    // 只能靠内容类型（与 ?format=pdf 兜底同一套判定口径）。
-    const header = res.headers.get("X-FileStorage-Convert");
-    const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
-    if (header !== target.format && !contentType.startsWith(target.mime)) {
-      return false;
-    }
-    const ab = await res.arrayBuffer();
-    // 二次嗅探：防止后端误标或转换器产出非 OOXML/空文档
-    if (!officeRendererOfSniffed(`converted.${target.format}`, new Uint8Array(ab))) {
-      return false;
-    }
-    buffer.value = ab;
-    convertedRenderer.value = target.renderer;
-    return true;
-  } catch {
+    const [bridgeOk, vueMod, presetMod, cssMod] = await Promise.all([
+      installEVirtTableSelectionBridge(),
+      import("@file-viewer/vue3"),
+      import("@file-viewer/preset-office"),
+      import("@file-viewer/vue3/dist/file-viewer3.css"),
+    ]);
+    void cssMod; // 样式副作用导入（shadow 模式下组件也会自注入，此处冗余但无害）
+    officePreset =
+      (presetMod as { default?: unknown; officeRenderers?: unknown }).default
+      ?? (presetMod as { officeRenderers?: unknown }).officeRenderers;
+    viewerComp.value =
+      (vueMod as { FileViewer?: Component; default?: Component }).FileViewer
+      ?? (vueMod as { default?: Component }).default
+      ?? null;
+    fileViewerReady = bridgeOk && !!viewerComp.value && !!officePreset;
+    return fileViewerReady;
+  } catch (e) {
+    console.warn("[PreviewOfficePanel] file-viewer 依赖加载失败", e);
     return false;
   }
 }
+
+/** 传给 file-viewer 的 options（preset + replace 模式 + 主题 + 工具条位置） */
+const viewerOptions = computed(() => ({
+  preset: officePreset,
+  rendererMode: "replace" as const,
+  theme: "light" as const,
+  toolbar: { position: "bottom-right" as const },
+}));
 
 /** 加载失败信息（渲染错误时展示，便于定位） */
 const failReason = ref("");
 
-/**
- * 当前文件实际使用的渲染器
+/* ------------------------------------------------------------------ *
+ *  Excel 选区统计（求和 / 平均值 / 计数 / 最小值 / 最大值 + 复制）
  *
- * 依据**内容魔数**判定而非扩展名：扩展名为 doc / xls / ppt 的文件里，
- * 相当一部分实际是 OOXML（Word「另存为」、在线转换、邮件附件都会产生），
- * 只有嗅探出真实类型才能交给对应的客户端组件。
- * 拿到字节前退化为按扩展名判定。
+ *  <p>file-viewer 的 spreadsheet 渲染器底层用 e-virt-table（见
+ *  eVirtTableSelectionBridge），选区经 prototype 补丁以 composed
+ *  CustomEvent 派发到容器，外部 document 监听即得行列范围。
+ *  行列范围只给坐标、不给单元格值，故另用 JSZip 在浏览器内解析
+ *  xlsx 容器建稀疏索引，配合事件计算统计 / 生成 TSV。
+ *  传统 .xls 经浏览器内 WASM 转成 xlsx 后同样可解析（见 ensureExcelParsed）。</p>
+ * ------------------------------------------------------------------ */
+const excelSheetIndex = ref(0);
+const excelSelection = ref<RangeSelection | null>(null);
+const excelParsed = shallowRef<ParsedXlsx | null>(null);
+const excelStats = ref<RangeStats | null>(null);
+const excelStatsError = ref(false);
+
+/** 防竞态令牌：每次重新解析递增，只采信最后一次的结果 */
+let excelParseToken = 0;
+
+/** rAF 合并令牌：一个帧内多次选区事件只刷新一次统计 */
+let statsFrame = 0;
+
+/** 切换文件时重置全部统计状态 */
+function resetExcelStats(): void {
+  excelSheetIndex.value = 0;
+  excelSelection.value = null;
+  excelParsed.value = null;
+  excelStats.value = null;
+  excelStatsError.value = false;
+  excelParseToken++;
+}
+
+/**
+ * 懒解析当前表格为稀疏单元格索引（首次选区事件时触发）
+ *
+ * <p>ZIP 容器（xlsx 家族）直接解析；非 ZIP（传统 .xls BIFF）先经浏览器内
+ * WASM 转成 xlsx 再解析 —— 这样 <b>.xls 与 .xlsx 共用同一套统计</b>。
+ * 转换器失败或非已知表格结构时置 {@link excelStatsError}，工具条提示「不可用」。</p>
  */
-const renderer = computed<OfficeRenderer | "">(() =>
-  convertedRenderer.value
-    || officeRendererOfSniffed(props.fileName, buffer.value ? new Uint8Array(buffer.value) : undefined),
+async function ensureExcelParsed(): Promise<void> {
+  if (excelParsed.value || excelStatsError.value) return;
+  const bytes = buffer.value;
+  if (!bytes) return;
+  const token = ++excelParseToken;
+  try {
+    const u8 = new Uint8Array(bytes);
+    // ZIP 容器直接解析；否则按 .xls 的 BIFF 走 WASM 转换再解析
+    const isZip =
+      u8.length > 3 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
+    const parsed = isZip
+      ? await parseXlsxWorkbook(bytes)
+      : await parseXlsBytesForStats(u8);
+    if (token === excelParseToken) excelParsed.value = parsed;
+  } catch (e) {
+    console.warn("[PreviewOfficePanel] 表格统计解析失败", e);
+    if (token === excelParseToken) excelStatsError.value = true;
+  }
+}
+
+/** 把 BIFF(.xls) 字节转成 xlsx 后解析（仅 .xls 统计用；渲染仍用原 BIFF 字节） */
+async function parseXlsBytesForStats(u8: Uint8Array): Promise<ParsedXlsx> {
+  const { convertXlsToXlsx } = await import("../utils/xls2xlsx");
+  const ab = await convertXlsToXlsx(u8);
+  return parseXlsxWorkbook(ab);
+}
+
+/** 根据当前选区 + 工作表计算统计 */
+async function refreshExcelStats(): Promise<void> {
+  const sel = excelSelection.value;
+  if (!sel) {
+    excelStats.value = null;
+    return;
+  }
+  if (!excelParsed.value && !excelStatsError.value) await ensureExcelParsed();
+  if (!excelParsed.value) {
+    excelStats.value = null;
+    return;
+  }
+  const sheet = excelParsed.value.sheets[excelSheetIndex.value];
+  excelStats.value = sheet ? computeRangeStats(sheet, sel) : null;
+}
+
+/**
+ * 从 file-viewer 的 Shadow DOM 内读取当前活动工作表序号
+ *
+ * <p>file-viewer 的 spreadsheet 渲染器把 sheet 页签渲染在宿主元素的
+ * Shadow DOM 内（{@code .sheet-tab}，活动页签带 {@code .active}）。
+ * 页签序号与 workbook 的 sheet 数组序号一致。每次选区事件时即时读取，
+ * 避免工作表切换与统计刷新之间的竞态。读不到时退化为当前值。</p>
+ */
+function readActiveSheetIndex(): number {
+  const host = viewerRef.value?.$el as HTMLElement | undefined;
+  const root = host?.shadowRoot ?? null;
+  if (!root) return excelSheetIndex.value;
+  const tabs = root.querySelectorAll(".sheet-tab");
+  for (let i = 0; i < tabs.length; i++) {
+    if (tabs[i].classList.contains("active")) return i;
+  }
+  return excelSheetIndex.value;
+}
+
+/** 选区变化事件处理（document 级，composed 穿透 Shadow DOM） */
+function onSelectionChange(e: Event): void {
+  const detail = (e as CustomEvent).detail as { xArr: number[]; yArr: number[] } | null;
+  if (detail) {
+    excelSheetIndex.value = readActiveSheetIndex();
+    excelSelection.value = {
+      sci: Math.min(detail.xArr[0], detail.xArr[1]),
+      eci: Math.max(detail.xArr[0], detail.xArr[1]),
+      sri: Math.min(detail.yArr[0], detail.yArr[1]),
+      eri: Math.max(detail.yArr[0], detail.yArr[1]),
+    };
+  } else {
+    excelSelection.value = null;
+    excelStats.value = null;
+    return;
+  }
+  // 一个 rAF 内多次事件合并刷新，避免拖选过程每格都重算
+  if (statsFrame) return;
+  statsFrame = requestAnimationFrame(() => {
+    statsFrame = 0;
+    void refreshExcelStats();
+  });
+}
+
+/** 格式化统计数值显示 */
+function formatStat(n: number): string {
+  if (!Number.isFinite(n)) return "-";
+  if (Number.isInteger(n)) return n.toLocaleString("zh-CN");
+  return n.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+}
+
+/** 选区地址标签（如 "Sheet1!B2:D5"） */
+const excelRangeLabel = computed(() => {
+  const sel = excelSelection.value;
+  if (!sel) return "";
+  const r1 = Math.min(sel.sri, sel.eri);
+  const r2 = Math.max(sel.sri, sel.eri);
+  const c1 = Math.min(sel.sci, sel.eci);
+  const c2 = Math.max(sel.sci, sel.eci);
+  const sheet = excelParsed.value?.sheets[excelSheetIndex.value];
+  const name = sheet?.name ? `${sheet.name}!` : "";
+  return `${name}${colIndexToLetter(c1)}${r1 + 1}:${colIndexToLetter(c2)}${r2 + 1}`;
+});
+
+/** 复制选区内容到系统剪贴板（TSV 格式） */
+async function copyExcelSelection(): Promise<void> {
+  const sel = excelSelection.value;
+  if (!sel) return;
+  if (!excelParsed.value && !excelStatsError.value) await ensureExcelParsed();
+  const sheet = excelParsed.value?.sheets[excelSheetIndex.value];
+  if (!sheet) {
+    ElMessage.warning("当前文件暂不支持复制");
+    return;
+  }
+  const r1 = Math.min(sel.sri, sel.eri);
+  const r2 = Math.max(sel.sri, sel.eri);
+  const c1 = Math.min(sel.sci, sel.eci);
+  const c2 = Math.max(sel.sci, sel.eci);
+  if ((r2 - r1 + 1) * (c2 - c1 + 1) > 200_000) {
+    ElMessage.warning("选区过大，请缩小范围后再复制");
+    return;
+  }
+  const tsv = rangeToTsv(sheet, sel);
+  if (!tsv.trim()) {
+    ElMessage.warning("所选区域没有可复制的内容");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(tsv);
+    ElMessage.success("已复制选区内容");
+  } catch {
+    // 降级：部分 http 环境剪贴板 API 不可用
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = tsv;
+      ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      ElMessage.success("已复制选区内容");
+    } catch {
+      ElMessage.error("复制失败，请手动选择内容");
+    }
+  }
+}
+
+/** 是否显示 Excel 选区统计工具条 */
+const showStatsBar = computed(
+  () => STATS_EXTS.has(extensionOf(props.fileName)) && !failReason.value && !!fileRef.value,
 );
 
-/** 是否为可客户端直渲染的类型（false 时提示父组件走服务端） */
-const supported = computed(() => renderer.value !== "");
-
-/** 传给 Vue3 Office 组件的 src：统一使用 ArrayBuffer，避免组件二次发起带凭证请求 */
-const officeSrc = computed<ArrayBuffer | string | undefined>(() =>
-  supported.value && buffer.value ? buffer.value : undefined,
-);
-
-/**
- * 拉取文档字节
- *
- * <p>与后端约定：命中客户端直渲染通道时，响应头 {@code X-FileStorage-Preview}
- * 为 {@code client} 且响应体是原始文件字节；若后端判定该文件需服务端渲染
- * （如真正的 OLE2 传统 .doc），响应体是 HTML 预览页，此时不能作为
- * {@code ArrayBuffer} 交给 Office 组件解析，需交回父组件走服务端渲染。</p>
- */
 /**
  * 取原始字节用于嗅探（不带 preview/render 参数）
  *
  * <p>拿不到时返回 undefined：嗅探失败不应阻断原有的兜底流程。</p>
  *
- * @returns 原始字节；失败返回 undefined
+ * @returns 原始字节（前 64 字节，用于密文头判定）；失败返回 undefined
  */
 async function sniffRawBytes(): Promise<Uint8Array | undefined> {
   if (!props.rawSrc) {
@@ -266,12 +386,10 @@ async function sniffRawBytes(): Promise<Uint8Array | undefined> {
 }
 
 /**
- * 取完整原始字节（供 .xls 的浏览器内 WASM 转换用）
+ * 取完整原始字节（供 .xls 统计用 WASM 转换，以及服务端判 spi 时改走客户端渲染）
  *
- * <p>{@link sniffRawBytes} 只取前 64 字节做密文嗅探，而 WASM 转换需要完整文件。
- * 两条通道的取舍：服务端已判为需服务端渲染时，{@link buffer} 里装的是它渲染的
- * HTML、没有原始字节，所以必须再拉一次；拉不到就让转换退回服务端
- * {@code ?format=xlsx}（{@link tryConvertFallback} 对 rawBytes 为空会跳过 wasm）。</p>
+ * <p>{@link sniffRawBytes} 只取前 64 字节做密文嗅探；当服务端已判需服务端渲染时，
+ * {@link buffer} 里装的是它的 HTML、没有原始字节，所以必须再拉一次。</p>
  *
  * @returns 原始字节；未配置 rawSrc 或失败返回 undefined
  */
@@ -290,11 +408,27 @@ async function fetchFullRawBytes(): Promise<Uint8Array | undefined> {
   }
 }
 
+/**
+ * 拉取文档字节并准备客户端渲染
+ *
+ * <p>与后端约定：命中客户端直渲染通道时，响应头 {@code X-FileStorage-Preview}
+ * 为 {@code client} 且响应体是原始文件字节；若后端判定该文件需服务端渲染
+ * （channel=spi 等），响应体是 HTML 预览页 —— 面板会自行嗅探原始字节，
+ * 能直渲染就改走客户端（file-viewer 直接吃原始字节），否则退回服务端。</p>
+ */
 async function load(): Promise<void> {
+  // 预览地址（短时票据）是异步换来的，挂载瞬间可能还是空串。此时 fetch("") 会
+  // 命中当前文档 URL —— 也就是应用自己的 index.html，把那段 HTML 当成「文档字节」
+  // 喂给解析器：日志报 "Cannot detect file format"，还可能被误判成
+  // 「需服务端渲染」而把面板降级成 iframe。等票据就绪后 watch 会再触发一次。
+  if (!props.src) {
+    return;
+  }
   loading.value = true;
   failReason.value = "";
   buffer.value = null;
-  convertedRenderer.value = "";
+  fileRef.value = null;
+  resetExcelStats();
   try {
     // 不带 credentials：数据源是独立 origin（如 http://host:18080），鉴权由 URL 上的
     // x-oauth-token 与请求头承担，不依赖 cookie。一旦写 credentials:"include"，
@@ -317,74 +451,96 @@ async function load(): Promise<void> {
         emit("error", { noFallback: true, reason: failReason.value });
         return;
       }
-      // 传统二进制（.doc / .xls）被服务端判为需服务端渲染（channel=spi/native）时，
-      // 先尝试转成 OOXML（doc→docx / xls→xlsx）：转成了就仍回到客户端组件渲染，
-      // 保真度与交互都优于服务端拼的 HTML 或转 PDF。
-      // 这里 buffer 里没有字节（服务端回的是 HTML），xls 的浏览器内转换需要原始
-      // 字节，故单独再取一次完整内容。
-      if (await tryConvertFallback(await fetchFullRawBytes())) {
+      // 内容损坏（仅 OOXML 扩展名 .docx/.xlsx/.pptx 校验容器头）：不再退回服务端
+      // （服务端拿到的是同一堆坏字节），直接给可执行提示。
+      if (isCorruptOfficeFile(props.fileName, raw)) {
+        failReason.value = `文件不是有效的 ${props.fileName.split(".").pop()?.toUpperCase()} 容器（${props.fileName}）：`
+          + "内容已损坏或格式不符，请重新上传后再试";
+        emit("error", { noFallback: true, reason: failReason.value });
         return;
       }
-      failReason.value = "该文件需由服务端渲染";
-      emit("error");
+      // 能直渲染：拉完整原始字节，交 file-viewer 客户端渲染
+      const fullRaw = await fetchFullRawBytes();
+      if (fullRaw) {
+        await prepareClientRender(fullRaw);
+        return;
+      }
+      // 拿不到原始字节：探测服务端兜底通道
+      const fallback = await probeFallback();
+      emitFallback(fallback);
       return;
     }
-    buffer.value = await res.arrayBuffer();
-    const bytes = new Uint8Array(buffer.value);
-    if (!officeRendererOfSniffed(props.fileName, bytes)) {
-      // 客户端组件吃不下这个文件，先判断是「内容坏了」还是「格式不支持」
-      const corrupt = isCorruptOfficeFile(props.fileName, bytes);
-      if (corrupt) {
-        // 加密与损坏分开说：加密时必须点破「重新上传无用」，否则用户会反复
-        // 重传同一个密文文件（实测 .doc/.dwg/.docx 都被 360 防泄密透明加密，
-        // 4 个不同类型文件共用同一 18 字节密文头）。
-        failReason.value = isEncryptedDoc(bytes)
-          ? `该文件已被文档防泄密软件透明加密（${props.fileName}）：`
-            + "磁盘上存放的是密文，只有装了客户端并获授权的终端才能解密。"
-            + "服务端与浏览器读到的都是密文，重新上传也没用，请提供未加密的副本"
-          : `文件不是有效的 ${props.fileName.split(".").pop()?.toUpperCase()} 容器（${props.fileName}）：`
-            + "内容已损坏或格式不符，请重新上传后再试";
-        // 内容损坏时退回服务端毫无意义（服务端拿到的是同一堆坏字节），
-        // 只会把面板自己的中文提示顶掉，换成一个空白的服务端渲染页。
-        emit("error", { noFallback: true, reason: failReason.value });
-        return;
+    // channel=client（或无 channel 头）：响应体即原始字节
+    // （显式标注 Uint8Array：下面回退分支赋的是 ArrayBufferLike 泛型实例）
+    let bytes: Uint8Array = new Uint8Array(await res.arrayBuffer());
+    if (bytes.length === 0) {
+      // 部署差异兜底：有的实例（198:18080 实测）对 client 通道只回通道头、
+      // 不回响应体（200 + 空 body）——空字节会绕过长度守卫下的密文/损坏校验，
+      // 直接喂给解析器抛「不是有效压缩包」。此时改拉票据直链
+      // （rawSrc 不带 preview 参数，实测返回完整原始字节）。
+      const fullRaw = await fetchFullRawBytes();
+      if (!fullRaw || fullRaw.length === 0) {
+        throw new Error("预览通道返回空响应体且票据直链不可用");
       }
-      // 格式不支持：确认服务端到底能不能渲染/转换。
-      // 有些扩展名（实测 OLE2 的 .xls）服务端没有 HTML 渲染器，`render=server`
-      // 会原样吐回二进制、不带任何 channel 头——直接丢给 iframe 只会得到一屏乱码
-      // 或一个意料之外的下载。
-      //
-      // 优先把传统二进制转成 OOXML（doc→docx / xls→xlsx）：转换成功后
-      // 仍由客户端组件渲染，保真度与交互都优于退回 PDF / 服务端 HTML。
-      // .xls 会先在浏览器内用 WASM 转（见 tryClientWasmConvert），失败才问服务端。
-      // 服务端没有对应转换器时会带 X-FileStorage-Convert: unavailable，此处返回 false。
-      if (await tryConvertFallback(bytes)) {
-        return;
-      }
-      // 退路有两条，按优先级：
-      //   ① 服务端有该格式的 HTML 渲染器（channel=spi）→ 走 iframe；
-      //   ② 没有 HTML 渲染器，但有 Office→PDF 转换器（Aspose SPI）
-      //      → 让父组件用 ?format=pdf 直接把 PDF 交给浏览器内置阅读器。
-      const fallback = await probeFallback();
-      if (fallback === "server") {
-        failReason.value = "该文件需由服务端渲染";
-        emit("error", { noFallback: false, reason: failReason.value, channel: "server" });
-      } else if (fallback === "pdf") {
-        failReason.value = "该文件需由服务端转换为 PDF 后预览";
-        emit("error", { noFallback: false, reason: failReason.value, channel: "pdf" });
-      } else {
-        failReason.value = `该格式暂不支持在线预览（${props.fileName}），请下载后用本地软件打开`;
-        emit("error", { noFallback: true, reason: failReason.value });
-      }
+      bytes = fullRaw;
     }
+    if (isEncryptedDoc(bytes)) {
+      failReason.value = `该文件已被文档防泄密软件透明加密（${props.fileName}）：`
+        + "磁盘上存放的是密文，只有装了客户端并获授权的终端才能解密。"
+        + "服务端与浏览器读到的都是密文，重新上传也没用，请提供未加密的副本";
+      emit("error", { noFallback: true, reason: failReason.value });
+      return;
+    }
+    if (isCorruptOfficeFile(props.fileName, bytes)) {
+      failReason.value = `文件不是有效的 ${props.fileName.split(".").pop()?.toUpperCase()} 容器（${props.fileName}）：`
+        + "内容已损坏或格式不符，请重新上传后再试";
+      emit("error", { noFallback: true, reason: failReason.value });
+      return;
+    }
+    await prepareClientRender(bytes);
   } catch (e) {
-    // JSZip / PDF 解析库抛的是英文原始异常（如 "Can't find end of central directory"），
+    // 解析库抛的是英文原始异常（如 "Can't find end of central directory"），
     // 直达界面对用户无意义。统一收敛为中文文案，具体原因见控制台。
     console.warn("[PreviewOfficePanel] 文档加载失败", e);
     failReason.value = `文档加载失败（${props.fileName}），可尝试下载后用本地软件打开`;
     emit("error");
   } finally {
     loading.value = false;
+  }
+}
+
+/**
+ * 把字节装入 buffer、懒加载 file-viewer 全套依赖、构造 File 交给组件渲染
+ *
+ * @param bytes 原始文档字节（已通过密文 / 损坏校验）
+ */
+async function prepareClientRender(bytes: Uint8Array): Promise<void> {
+  const ab = bytes.slice().buffer as ArrayBuffer;
+  buffer.value = ab;
+  const ready = await ensureFileViewerLoaded();
+  if (!ready) {
+    // file-viewer 依赖加载失败：按客户端解析失败走兜底
+    await fallbackAfterClientError();
+    return;
+  }
+  // 按内容魔数校正文件名（处理「扩展名说谎」的文件），让 file-viewer 选对渲染器
+  const viewerName = resolveViewerFileName(props.fileName, bytes);
+  fileRef.value = new File([ab], viewerName);
+}
+
+/**
+ * 把兜底探测结果转成 error 事件
+ */
+function emitFallback(fallback: "server" | "pdf" | null): void {
+  if (fallback === "server") {
+    failReason.value = "该文件需由服务端渲染";
+    emit("error", { noFallback: false, reason: failReason.value, channel: "server" });
+  } else if (fallback === "pdf") {
+    failReason.value = "该文件需由服务端转换为 PDF 后预览";
+    emit("error", { noFallback: false, reason: failReason.value, channel: "pdf" });
+  } else {
+    failReason.value = `该格式暂不支持在线预览（${props.fileName}），请下载后用本地软件打开`;
+    emit("error", { noFallback: true, reason: failReason.value });
   }
 }
 
@@ -403,9 +559,6 @@ async function load(): Promise<void> {
  * <p>必须看响应头而不是只看状态码：转不成功时服务端**不报错**，而是带
  * {@code X-FileStorage-Convert: unavailable} 继续走原通道并返回原始字节，
  * 只看状态码会把 Office 二进制当成 PDF 交给读取器。</p>
- *
- * <p>探测失败（网络/超时）按「都没有」处理：宁可给一句可执行的提示，
- * 也不要让用户看到一屏乱码。</p>
  *
  * @returns 可用通道；都没有返回 null
  */
@@ -441,17 +594,11 @@ async function probeFallback(): Promise<"server" | "pdf" | null> {
 
 watch(() => [props.src, props.fileName], () => void load(), { immediate: true });
 
-/** Vue3 Office 组件渲染完成 */
+/** file-viewer 渲染完成 */
 function onRendered(): void {
   emit("rendered");
 }
 
-/**
- * Vue3 Office 组件解析失败
- *
- * 四个组件均声明 emits:["rendered","error"]，但错误载荷不一致
- * （pdf 透传异常对象，其余无载荷），故此处只取固定文案。
- */
 /**
  * 客户端组件解析失败后的兜底
  *
@@ -471,35 +618,56 @@ async function fallbackAfterClientError(): Promise<void> {
   } finally {
     loading.value = false;
   }
-  if (fallback === "pdf") {
-    failReason.value = "客户端解析失败，已改用 PDF 预览";
-    emit("error", { noFallback: false, reason: failReason.value, channel: "pdf" });
-    return;
-  }
-  if (fallback === "server") {
-    failReason.value = "该文件需由服务端渲染";
-    emit("error", { noFallback: false, reason: failReason.value, channel: "server" });
-    return;
-  }
-  failReason.value = `文档解析失败（${props.fileName}），可尝试下载后用本地软件打开`;
-  emit("error", { noFallback: true, reason: failReason.value });
+  emitFallback(fallback);
 }
 
 /**
- * Vue3 Office 组件解析失败
+ * file-viewer 解析失败
  *
- * <p>四个组件的错误载荷不一致（pdf 透传异常对象，其余无载荷），故此处不取载荷，
- * 统一交给 {@link fallbackAfterClientError} 按兜底通道决定去向。</p>
+ * <p>file-viewer 的 error 事件载荷不一致，此处不取载荷，统一交给
+ * {@link fallbackAfterClientError} 按兜底通道决定去向。</p>
  */
 function onRenderError(): void {
+  console.warn("[PreviewOfficePanel] file-viewer 渲染失败", props.fileName);
   void fallbackAfterClientError();
 }
+
+onMounted(() => {
+  document.addEventListener(FV_SELECTION_EVENT, onSelectionChange);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener(FV_SELECTION_EVENT, onSelectionChange);
+  if (statsFrame) cancelAnimationFrame(statsFrame);
+});
 
 defineExpose({ wrapRef });
 </script>
 
 <template>
   <div class="preview-office-panel">
+    <!-- Excel 选区统计工具条（求和 / 平均值 / 计数 / 最值 + 复制选区） -->
+    <div v-if="showStatsBar" class="preview-office-panel__toolbar">
+      <template v-if="excelSelection">
+        <span class="preview-office-panel__toolbar-range">{{ excelRangeLabel }}</span>
+        <template v-if="excelStats">
+          <span class="preview-office-panel__stat">求和 <b>{{ formatStat(excelStats.sum) }}</b></span>
+          <span class="preview-office-panel__stat">平均值 <b>{{ formatStat(excelStats.avg) }}</b></span>
+          <span class="preview-office-panel__stat">计数 <b>{{ excelStats.count }}</b></span>
+          <span class="preview-office-panel__stat">最小值 <b>{{ formatStat(excelStats.min) }}</b></span>
+          <span class="preview-office-panel__stat">最大值 <b>{{ formatStat(excelStats.max) }}</b></span>
+        </template>
+        <span v-else class="preview-office-panel__toolbar-hint">{{ excelStatsError ? "统计不可用（表格结构异常）" : "所选区域没有数值" }}</span>
+        <button
+          type="button"
+          class="preview-office-panel__copy-btn"
+          :disabled="!excelParsed || excelStatsError"
+          @click="copyExcelSelection"
+        >
+          复制选区
+        </button>
+      </template>
+      <span v-else class="preview-office-panel__toolbar-hint">选择单元格可查看求和 / 平均值 / 计数等统计</span>
+    </div>
     <!-- 不再对 wrap 做 transform: scale()：那会连同遮罩与边框一起缩放，
          表现为「缩放时整个弹框都在动」。缩放工具条已按产品要求移除。 -->
     <div ref="wrapRef" class="preview-office-panel__wrap">
@@ -511,32 +679,15 @@ defineExpose({ wrapRef });
         <span class="preview-office-panel__mask-text">{{ failReason }}</span>
       </div>
 
-      <VueOfficeDocx
-        v-else-if="renderer === 'docx'"
-        :src="officeSrc"
+      <component
+        :is="viewerComp"
+        v-else-if="viewerComp && fileRef"
+        ref="viewerRef"
+        :file="fileRef"
+        :options="viewerOptions"
         class="preview-office-panel__body"
-        @rendered="onRendered"
-        @error="onRenderError"
-      />
-      <VueOfficeExcel
-        v-else-if="renderer === 'excel'"
-        :src="officeSrc"
-        class="preview-office-panel__body"
-        @rendered="onRendered"
-        @error="onRenderError"
-      />
-      <VueOfficePdf
-        v-else-if="renderer === 'pdf'"
-        :src="officeSrc"
-        class="preview-office-panel__body"
-        @rendered="onRendered"
-        @error="onRenderError"
-      />
-      <VueOfficePptx
-        v-else-if="renderer === 'pptx'"
-        :src="officeSrc"
-        class="preview-office-panel__body"
-        @rendered="onRendered"
+        data-testid="file-viewer"
+        @load-complete="onRendered"
         @error="onRenderError"
       />
     </div>
@@ -582,6 +733,63 @@ defineExpose({ wrapRef });
 .preview-office-panel__mask-text {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+
+/* ---- Excel 选区统计工具条 ---- */
+.preview-office-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: none;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light, #fafafa);
+  color: var(--el-text-color-regular, #606266);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.preview-office-panel__toolbar-range {
+  color: var(--el-color-primary, #409eff);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.preview-office-panel__stat {
+  white-space: nowrap;
+  color: var(--el-text-color-secondary, #909399);
+}
+.preview-office-panel__stat b {
+  color: var(--el-text-color-primary, #303133);
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.preview-office-panel__toolbar-hint {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  user-select: none;
+}
+
+.preview-office-panel__copy-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--el-color-primary, #409eff);
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: var(--el-radius-sm, 4px);
+  transition: background 0.15s;
+}
+.preview-office-panel__copy-btn:hover:not(:disabled) {
+  background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.08));
+}
+.preview-office-panel__copy-btn:disabled {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  cursor: default;
 }
 
 /* 尊重系统「减少动态效果」偏好 */

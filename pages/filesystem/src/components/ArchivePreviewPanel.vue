@@ -649,7 +649,7 @@ async function extractTo(): Promise<void> {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 72vh;
+  height: 100%;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 8px);
   background: var(--el-bg-color);

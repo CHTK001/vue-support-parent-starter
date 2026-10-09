@@ -588,7 +588,7 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: 72vh;
+  max-height: 100%;
   overflow: auto;
 }
 

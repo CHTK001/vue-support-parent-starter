@@ -55,6 +55,7 @@
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
+    "@file-viewer/vite-plugin": "catalog:",
     "@tailwindcss/vite": "^4.1.18",
     "@types/event-source-polyfill": "^1.0.5",
     "@types/node": "^25.5.0",

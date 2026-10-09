@@ -107,6 +107,8 @@ export interface ReTableFullState extends ReTableColumnState {
   page?: number;
   /** 每页条数 */
   pageSize?: number;
+  /** 分页方式（页码菜单 / 滚动加载；仅 paginationModeSwitch 开启的表会写入） */
+  paginationMode?: RePaginationMode;
   /** 表格设置 */
   settings?: ReTableSettings;
   /** 布局（表格 / 视图 / 卡片） */
@@ -135,6 +137,14 @@ export interface ReTableSettings {
 
 /** 表格布局模式：table（默认）/ view / card；modern / virtual / canvas / radial 已随功能下线移除 */
 export type ReTableLayout = "table" | "view" | "card";
+
+/**
+ * 分页方式：
+ * - "pager"（默认）：页码 + 每页条数菜单（RePagination）
+ * - "scroll"：滚动分页——隐藏分页菜单，表格触底自动追加下一批
+ *   （本地数据按 pageSize 逐步放出；远程 loader 按页取数追加）
+ */
+export type RePaginationMode = "pager" | "scroll";
 
 /** 布局切换器里可展示的布局（视图/卡片自带默认模板，调用方无需额外传模板） */
 export type ReTableSwitchLayout = Extract<ReTableLayout, "table" | "view" | "card">;
@@ -329,11 +339,19 @@ export interface ReTableToolbarConfig {
   batchEdit?: boolean | ReTableToolbarBatchEdit;
   /** 是否显示刷新按钮（默认 true） */
   refresh?: boolean;
-  /** 是否显示列设置按钮（默认 true） */
+  /**
+   * 是否显示列设置按钮（默认 true）。
+   * 注意：列改由 `<ReTableColumn>` 子节点声明（未传 `columns` prop）时，ReTable 会强制关掉它
+   * —— 列设置面板只读 `props.columns`，那种写法下按钮点开是空面板（死按钮）。
+   * 表现就是「有的表 3 个按钮、有的只有表格设置+刷新」。
+   */
   columnSettings?: boolean;
   /** 是否显示表格设置按钮（默认 true） */
   tableSettings?: boolean;
-  /** toolbar 位置：'top' 表格上方 | 'bottom' 分页同行（默认 'bottom'） */
+  /**
+   * toolbar 位置：'top' 表格上方（默认） | 'bottom' 与分页行同行。
+   * 默认 'top'：批量操作按钮渲染在表格上方，分页行只保留右侧工具区（列设置/表格设置/刷新）。
+   */
   position?: "top" | "bottom";
 }
 

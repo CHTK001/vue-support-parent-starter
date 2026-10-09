@@ -710,7 +710,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 
 .ngc-body {
   display: flex;
-  gap: 12px;
+  gap: 6px;
   height: 100%;
   min-height: 0;
 }

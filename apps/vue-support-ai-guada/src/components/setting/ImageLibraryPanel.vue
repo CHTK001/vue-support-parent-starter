@@ -108,7 +108,7 @@
         </div>
 
         <el-input v-model="keyword" placeholder="按名称检索" clearable class="lib-search"
-          @keyup.enter="load(1)" @clear="load(1)">
+          @keyup.enter="applyKeyword" @clear="applyKeyword">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
 
@@ -127,6 +127,10 @@
           <button type="button" class="lib-view-btn" :class="{ 'is-active': viewMode === 'list' }"
             title="列表视图" @click="viewMode = 'list'">
             <el-icon><Menu /></el-icon>
+          </button>
+          <button type="button" class="lib-view-btn" :class="{ 'is-active': viewMode === 'table' }"
+            title="表格视图（服务端分页，适合大量条目）" @click="viewMode = 'table'">
+            <el-icon><Tickets /></el-icon>
           </button>
         </div>
       </div>
@@ -174,7 +178,7 @@
       </div>
 
       <!-- 列表视图：名称/规格/状态一览，条目多时比网格好扫 -->
-      <div v-else v-loading="loading" class="lib-list">
+      <div v-else-if="viewMode === 'list'" v-loading="loading" class="lib-list">
         <div v-for="item in visibleItems" :key="item.id" class="lib-row"
           :class="{ 'is-selected': selected.has(item.id) }">
           <span class="lib-check is-inline" @click.stop="toggleSelect(item)">
@@ -200,8 +204,55 @@
         <el-empty v-if="!loading && visibleItems.length === 0" description="没有符合条件的图片" />
       </div>
 
-      <!-- 翻页 -->
-      <div v-if="total > pageSize" class="lib-pager">
+      <!--
+        表格视图（ReTable）：后端分页/检索走 GET /image-search/list（page/size/keyword），
+        状态筛选仍在页内做（后端 list 无该维度，与网格/列表同一口径）。
+        列可显隐/拖列（ReTable 列配置持久化），带完整分页器（总数/跳页/每页条数）。
+      -->
+      <div v-else class="lib-table">
+        <ReTable
+          ref="tableRef"
+          table-id="image-lib-table"
+          :loader="tableLoader"
+          :columns="tableColumns"
+          :params="tableParams"
+          :show-selection="true"
+          :pagination="true"
+          row-key="id"
+          empty-text="没有符合条件的图片"
+          @selection-change="onTableSelection"
+        >
+          <template #thumb="{ row }">
+            <img class="lt-thumb" :src="resolveUrl(asItem(row))" :alt="String(row.name ?? '')" loading="lazy"
+              @click="preview(asItem(row))" />
+          </template>
+          <template #name="{ row }">
+            <span class="lib-name" :title="String(row.name ?? '')">{{ row.name || '未命名' }}</span>
+          </template>
+          <template #state="{ row }">
+            <span class="lib-badges is-inline">
+              <span v-if="isDuplicate(asItem(row))" class="lib-badge is-dup">重复</span>
+              <span v-if="asItem(row).hasOriginal" class="lib-badge is-ok">特征已入库</span>
+              <span v-else class="lib-badge is-warn">仅缩略图</span>
+            </span>
+          </template>
+          <template #actions="{ row }">
+            <div class="lt-actions">
+              <button type="button" class="lib-act is-onlight" title="查看原图"
+                @click.stop="preview(asItem(row))">
+                <el-icon><ZoomIn /></el-icon>
+              </button>
+              <button type="button" class="lib-act is-danger is-onlight" title="删除" :disabled="busy"
+                @click.stop="removeOne(asItem(row))">
+                <el-icon><Delete /></el-icon>
+              </button>
+            </div>
+          </template>
+        </ReTable>
+      </div>
+
+      <!-- 翻页（表格视图用 ReTable 自带分页器） -->
+      <div v-if="viewMode !== 'table' && total > pageSize" class="lib-pager">
         <el-button :disabled="page <= 1 || loading" @click="load(page - 1)">上一页</el-button>
         <span class="lib-pager-text">{{ page }} / {{ pageCount }}</span>
         <el-button :disabled="page >= pageCount || loading" @click="load(page + 1)">下一页</el-button>
@@ -231,12 +282,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
-  CircleCheck, Delete, Files, Grid, Menu, Picture, Refresh, Search, Select, Setting, Upload,
+  CircleCheck, Delete, Files, Grid, Menu, Picture, Refresh, Search, Select, Setting, Tickets, Upload,
   UploadFilled, Warning, WarningFilled, ZoomIn,
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
@@ -279,7 +332,11 @@ const page = ref(1)
 const pageSize = ref(24)
 const keyword = ref('')
 const statusFilter = ref<'all' | 'original' | 'thumbOnly' | 'duplicate'>('all')
-const viewMode = ref<'grid' | 'list'>('grid')
+const viewMode = ref<'grid' | 'list' | 'table'>('grid')
+/** 已提交的检索词（回车/清空生效）：网格与表格共用同一口径 */
+const kwApplied = ref('')
+/** 表格视图实例：删除/上传后让它重新拉当页、清空它的勾选 */
+const tableRef = ref<{ reload: () => void; clearAllSelection: () => void } | null>(null)
 const loading = ref(false)
 const busy = ref(false)
 const dragging = ref(false)
@@ -461,6 +518,110 @@ function toggleSelect(item: ImageItem) {
 
 function clearSelection() {
   selected.value = new Set()
+  // 表格视图有自己的勾选状态，不同步清会留下「看着没选、批量还删」的幽灵态
+  tableRef.value?.clearAllSelection()
+}
+
+/**
+ * 检索词提交（回车/清空触发）。
+ *
+ * <p>与网格一致：输入过程中不打服务端，提交后一次查询。表格视图通过
+ * {@link tableParams} 感知变化自动回第 1 页重查。</p>
+ */
+function applyKeyword() {
+  kwApplied.value = keyword.value.trim()
+  if (viewMode.value !== 'table') void load(1)
+}
+
+/* ── 表格视图（ReTable · 后端分页/检索；状态筛选仍按页内口径，同网格） ── */
+
+/** 表格参数：检索词/状态变化 → ReTable 自动回第 1 页重查 */
+const tableParams = computed(() => ({
+  keyword: kwApplied.value,
+  status: statusFilter.value,
+}))
+
+/**
+ * 表格行 → 图像条目（loader 已返回原始 ImageItem，这里只是槽位的类型收窄）。
+ *
+ * @param row 表格行
+ * @return 图像条目
+ */
+function asItem(row: unknown): ImageItem {
+  return row as ImageItem
+}
+
+/** 表格列：缩略图/名称/规格/体积/状态/操作（图像后端暂无排序字段，不开列排序） */
+const tableColumns: ReTableColumn[] = [
+  { prop: 'thumb', label: '图片', width: 76, slot: 'thumb', align: 'center' },
+  { prop: 'name', label: '名称', minWidth: 160, slot: 'name', showOverflowTooltip: true },
+  {
+    prop: 'dims',
+    label: '规格',
+    width: 130,
+    align: 'center',
+    formatter: (row) => {
+      const w = Number((row as Record<string, unknown>).width ?? 0)
+      const h = Number((row as Record<string, unknown>).height ?? 0)
+      return w && h ? `${w} × ${h}` : '—'
+    },
+  },
+  {
+    prop: 'size',
+    label: '体积',
+    width: 100,
+    align: 'right',
+    formatter: (_row, _col, cell) => (typeof cell === 'number' ? formatSize(cell) : '—'),
+  },
+  { prop: 'state', label: '状态', width: 190, slot: 'state' },
+  { prop: 'actions', label: '操作', width: 110, slot: 'actions', fixed: 'right', align: 'center' },
+]
+
+/**
+ * 表格 loader：ReTable 注入 page/pageSize 与 params（{@link tableParams}）。
+ *
+ * <p>状态筛选后端 list 没有该维度，仍在**当页内**过滤 —— 与网格/列表
+ * {@link visibleItems} 完全同口径（total 用服务端命中数）。</p>
+ *
+ * @param p ReTable 传入的分页与查询参数
+ * @return 分页结果
+ */
+async function tableLoader(p: ReTableLoadParams): Promise<RePageResult> {
+  const params = (p.params ?? {}) as Record<string, unknown>
+  const kw = String(params.keyword ?? '').trim()
+  const st = String(params.status ?? 'all')
+  const data = await apiService._request('/image-search/list', {
+    params: { page: p.page, size: p.pageSize, keyword: kw || undefined },
+  })
+  const list: ImageItem[] = data?.items ?? []
+  // 状态卡与重复指纹在表格模式下同样按「当页」口径（与网格一致），同步数据源
+  items.value = list
+  let out = list
+  if (st === 'original') {
+    out = list.filter((x) => x.hasOriginal)
+  } else if (st === 'thumbOnly') {
+    out = list.filter((x) => !x.hasOriginal)
+  } else if (st === 'duplicate') {
+    // 重复指纹基于当页缩略图计算，口径与网格一致
+    const seen = new Set<string>()
+    const dup = new Set<number>()
+    for (const x of list) {
+      if (!x.thumbnail) continue
+      if (seen.has(x.thumbnail)) dup.add(x.id)
+      seen.add(x.thumbnail)
+    }
+    out = list.filter((x) => dup.has(x.id))
+  }
+  return { total: data?.total ?? 0, items: out }
+}
+
+/**
+ * 表格勾选 → 同步到批量删除条（与网格/列表共用同一个 {@link selected}）。
+ *
+ * @param rows 当前勾选的行
+ */
+function onTableSelection(rows: Array<Record<string, unknown>>) {
+  selected.value = new Set(rows.map((r) => Number(r.id)))
 }
 
 async function onPicked(event: Event) {
@@ -642,10 +803,15 @@ function openTransientViewer(src: string, item: ImageItem) {
 }
 
 async function load(target = 1) {
+  // 表格视图自管数据（ReTable loader）：这里只负责网格/列表的数据源与状态卡
+  if (viewMode.value === 'table') {
+    tableRef.value?.reload()
+    return
+  }
   loading.value = true
   try {
     const data = await apiService._request('/image-search/list', {
-      params: { page: target, size: pageSize.value, keyword: keyword.value || undefined },
+      params: { page: target, size: pageSize.value, keyword: kwApplied.value || undefined },
     })
     items.value = data?.items ?? []
     total.value = data?.total ?? 0
@@ -746,15 +912,18 @@ async function loadSearchParams() {
   }
 }
 
-// 视图切换：list 视图下没有网格容器，销毁 viewer 释放监听
-watch(viewMode, async (mode) => {
+// 视图切换：list/table 视图下没有网格容器，销毁 viewer 释放监听；
+// 从表格切回网格/列表时补一次加载（表格期间可能改过检索条件）
+watch(viewMode, async (mode, prev) => {
   if (mode !== 'grid' && viewer) {
     viewer.destroy()
     viewer = null
-    return
   }
   if (mode === 'grid') {
     await syncViewer()
+  }
+  if (prev === 'table' && mode !== 'table') {
+    await load(page.value)
   }
 })
 
@@ -776,3 +945,25 @@ defineExpose({ reload: load })
 </script>
 
 <style scoped src="./library-panel.css"></style>
+
+<style scoped>
+/* ── 表格视图（ReTable 内的槽位内容）── */
+.lib-table {
+  width: 100%;
+}
+
+.lt-thumb {
+  display: block;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--el-border-radius-base, 4px);
+  background: var(--el-fill-color-light);
+  cursor: zoom-in;
+}
+
+.lt-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+</style>
