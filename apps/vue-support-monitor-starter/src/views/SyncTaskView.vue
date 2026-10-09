@@ -218,24 +218,51 @@
       </div>
     </div>
 
-    <ReDialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="920px" :close-on-click-modal="false">
-      <el-steps :active="step" align-center finish-status="success" class="st-steps">
-        <el-step title="设置输入" description="源数据源与取数方式" />
-        <el-step title="设置输出" description="目标数据源与写入表" />
-        <el-step title="设置配置" description="调度与运行参数" />
-      </el-steps>
+    <ReDialog
+      v-model="dialogVisible"
+      class="st-sync-dlg"
+      :title="editingId ? '编辑同步任务' : '新建同步任务'"
+      subtitle="配置输入、输出与调度参数"
+      :icon="UploadIcon"
+      width="920px"
+      :close-on-click-modal="false"
+    >
+      <!-- 步骤条（UI 图）：圆形序号 + 连接线 + 标题/说明，全走 koi 变量、亮暗自适应 -->
+      <div class="st-steps">
+        <div
+          v-for="(item, index) in WIZ_STEPS"
+          :key="item.title"
+          class="st-step"
+          :class="{ 'is-on': index === step, 'is-done': index < step }"
+        >
+          <span class="st-step-dot">
+            <ReIcon v-if="index < step" name="Select" :size="13" />
+            <template v-else>{{ index + 1 }}</template>
+          </span>
+          <span v-if="index < WIZ_STEPS.length - 1" class="st-step-line" />
+          <span class="st-step-labels">
+            <span class="st-step-title">{{ item.title }}</span>
+            <span class="st-step-desc">{{ item.description }}</span>
+          </span>
+        </div>
+      </div>
 
       <div class="st-form">
         <!-- ① 设置输入：五种源——数据源(jdbc) / 文件 / 文件夹 / HTTP-JSON / HTTP-HTML -->
         <template v-if="step === 0">
           <div class="st-form-item">
             <label>输入源类型</label>
-            <el-radio-group v-model="form.sourceType" @change="onSourceTypeChange">
-              <el-radio-button value="JDBC">数据源</el-radio-button>
-              <el-radio-button value="FILE">文件</el-radio-button>
-              <el-radio-button value="DIR">文件夹</el-radio-button>
-              <el-radio-button value="HTTP_JSON">HTTP-JSON</el-radio-button>
-              <el-radio-button value="HTTP_HTML">HTTP-HTML</el-radio-button>
+            <el-radio-group v-model="form.sourceType" class="st-src-cards" @change="onSourceTypeChange">
+              <el-radio
+                v-for="item in SOURCE_TYPES"
+                :key="item.value"
+                :value="item.value"
+                class="st-src-card"
+                :class="{ 'is-checked': form.sourceType === item.value }"
+              >
+                <span class="st-src-ic"><ReIcon :name="item.icon" :size="16" /></span>
+                <span class="st-src-name">{{ item.label }}</span>
+              </el-radio>
             </el-radio-group>
             <div class="st-form-hint">{{ SOURCE_TYPE_HINT[form.sourceType] }}</div>
           </div>
@@ -278,12 +305,15 @@
             <div class="st-form-item">
               <label>服务器本地文件</label>
               <div class="st-inline">
-                <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/order.csv" class="mono" />
-                <ReButton layout="square" @click="openPathPicker('FILE')">浏览…</ReButton>
+                <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/order.csv" class="mono st-path-input">
+                  <template #prefix><ReIcon name="Document" :size="14" /></template>
+                </el-input>
+                <ReButton layout="square" icon="FolderOpened" @click="openPathPicker('FILE')">浏览…</ReButton>
               </div>
-              <div class="st-form-hint">路径是<b>后端服务所在机器</b>的路径，不是浏览器所在机器。</div>
+              <div class="st-form-hint st-hint-dot">路径是<b>后端服务所在机器</b>的路径，不是浏览器所在机器。</div>
             </div>
-            <div class="st-grid">
+            <div class="st-section-label">解析设置</div>
+            <div class="st-grid st-grid-parse">
               <div class="st-form-item">
                 <label>文件格式</label>
                 <el-select v-model="form.sourceFormat" class="st-full">
@@ -293,12 +323,12 @@
               </div>
               <div v-if="form.sourceFormat === 'CSV'" class="st-form-item">
                 <label>定界符</label>
-                <el-select v-model="form.sourceDelimiter" class="st-full">
-                  <el-option label="逗号 ," value="," />
-                  <el-option label="制表符 Tab" value="\t" />
-                  <el-option label="分号 ;" value=";" />
-                  <el-option label="竖线 |" value="|" />
-                </el-select>
+                <el-radio-group v-model="form.sourceDelimiter" class="st-seg-delim">
+                  <el-radio-button value=",">逗号 ,</el-radio-button>
+                  <el-radio-button value=";">分号 ;</el-radio-button>
+                  <el-radio-button value="\t">Tab</el-radio-button>
+                  <el-radio-button value="|">竖线 |</el-radio-button>
+                </el-radio-group>
               </div>
               <div v-else class="st-form-item">
                 <label>工作表序号（0 起）</label>
@@ -314,7 +344,7 @@
               <label>服务器本地文件夹</label>
               <div class="st-inline">
                 <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/incoming" class="mono" />
-                <ReButton layout="square" @click="openPathPicker('DIR')">浏览…</ReButton>
+                <ReButton layout="square" icon="Folder" @click="openPathPicker('DIR')">浏览…</ReButton>
               </div>
               <div class="st-form-hint">启用后自动监听该目录，新文件落盘即实时录入。</div>
             </div>
@@ -451,19 +481,38 @@
             </div>
           </div>
 
+          <!-- 解析预览（UI 图卡片）：真实预览结果（源/目标列 + 类型），未预览时如实说明，不造假日数 -->
+          <div class="st-preview">
+            <div class="st-preview-head">
+              <span class="st-preview-title">解析预览</span>
+              <span class="st-preview-meta">
+                {{ previewSourceColumns.length
+                  ? `源 ${previewSourceColumns.length} 列 · 目标 ${previewTargetColumns.length} 列 · 已配对 ${form.mapping.length} 项`
+                  : "尚未预览" }}
+              </span>
+              <ReButton @click="doPreview">
+                <template #icon><ReIcon name="Refresh" /></template>预览 / 自动配对
+              </ReButton>
+            </div>
+            <div v-if="previewSourceColumns.length" class="st-preview-chips">
+              <span v-for="col in previewSourceColumns" :key="col.name" class="st-chip">
+                <b class="st-chip-name">{{ col.name }}</b>
+                <i class="st-chip-type">{{ col.type }}</i>
+              </span>
+            </div>
+            <div v-else class="st-form-hint">点「预览 / 自动配对」真实读取一次源列与目标列，并按同名自动配对。</div>
+            <div v-for="(warning, index) in previewWarnings" :key="index" class="st-warn">{{ warning }}</div>
+          </div>
+
           <div class="st-map">
             <div class="st-map-head">
               <span>字段映射（源 → 目标）</span>
               <div class="st-inline">
-                <ReButton @click="doPreview">
-                  <template #icon><ReIcon name="View" /></template>预览 / 自动配对
-                </ReButton>
                 <ReButton @click="addMappingRow">
                   <template #icon><ReIcon name="Plus" /></template>加一行
                 </ReButton>
               </div>
             </div>
-            <div v-for="(warning, index) in previewWarnings" :key="index" class="st-warn">{{ warning }}</div>
             <div v-for="(item, index) in form.mapping" :key="index" class="st-map-row">
               <el-select v-model="item.source" placeholder="源列" filterable class="st-map-col">
                 <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
@@ -515,10 +564,24 @@
       </div>
 
       <template #footer>
-        <ReButton v-if="step > 0" @click="prevStep">上一步</ReButton>
-        <ReButton @click="dialogVisible = false">取消</ReButton>
-        <ReButton v-if="step < 2" type="primary" @click="nextStep">下一步</ReButton>
-        <ReButton v-else type="primary" :loading="saving" @click="submit">保存</ReButton>
+        <div class="st-dlg-foot">
+          <div class="st-dlg-status" :class="stepIssueNow ? 'is-bad' : 'is-ok'">
+            <ReIcon :name="stepIssueNow ? 'Warning' : 'Select'" :size="13" />
+            <span>{{ stepIssueNow ? `待完善：${stepIssueNow}` : "本步填写已通过校验" }}</span>
+          </div>
+          <div class="st-dlg-actions">
+            <ReButton v-if="step > 0" @click="prevStep">
+              <template #icon><ReIcon name="CaretLeft" :size="12" /></template>上一步
+            </ReButton>
+            <ReButton @click="dialogVisible = false">取消</ReButton>
+            <ReButton v-if="step < 2" type="primary" @click="nextStep">
+              <template #icon><ReIcon name="CaretRight" :size="12" /></template>下一步 · {{ WIZ_STEPS[step + 1].title }}
+            </ReButton>
+            <ReButton v-else type="primary" :loading="saving" @click="submit">
+              <template #icon><ReIcon name="Select" :size="12" /></template>保存
+            </ReButton>
+          </div>
+        </div>
       </template>
     </ReDialog>
 
@@ -551,7 +614,7 @@
  */
 import { computed, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { CircleCheck, Files, Loading, Warning } from "@element-plus/icons-vue";
+import { CircleCheck, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
@@ -624,6 +687,22 @@ const SOURCE_TYPE_HINT: Record<SourceType, string> = {
   HTTP_JSON: "调用接口取 JSON，数组里的每个对象即一行。",
   HTTP_HTML: "抓网页并按 CSS 选择器解析表格行（需要时走 cron 定时抓）。",
 };
+
+/** 输入源类型卡片（与 SOURCE_TYPE_HINT 对齐；icon 走 ReIcon/EP 图标名） */
+const SOURCE_TYPES: Array<{ value: SourceType; label: string; icon: string }> = [
+  { value: "JDBC", label: "数据源", icon: "Coin" },
+  { value: "FILE", label: "文件", icon: "Document" },
+  { value: "DIR", label: "文件夹", icon: "Folder" },
+  { value: "HTTP_JSON", label: "HTTP-JSON", icon: "Link" },
+  { value: "HTTP_HTML", label: "HTTP-HTML", icon: "Position" },
+];
+
+/** 向导三步（标题与说明供步骤条与「下一步 · {{下一步标题}}」按钮取文案） */
+const WIZ_STEPS = [
+  { title: "设置输入", description: "源数据源与取数方式" },
+  { title: "设置输出", description: "目标数据源与写入表" },
+  { title: "设置配置", description: "调度与运行参数" },
+];
 
 /** 表单 */
 const form = reactive({
@@ -1386,56 +1465,53 @@ const onCronChange = (expression: string, valid: boolean) => {
 };
 
 /**
- * 校验某一步能否进入下一步
+ * 某一步的校验结论（纯函数、无副作用：只读表单，不弹消息、不改状态）。
+ * 「下一步」拦截与页脚实时状态条共用这同一条真实结论，保证两处口径一致。
  * @param index 步骤下标
+ * @returns 通过返回 null，否则返回第一条待完善说明
  */
-const validateStep = (index: number): boolean => {
+const stepIssue = (index: number): string | null => {
   if (index === 0) {
     if (form.sourceType === "JDBC") {
-      if (form.sourceDatasourceId == null) {
-        ElMessage.warning("请先选择源数据源");
-        return false;
-      }
-      if (!form.sourceSql.trim()) {
-        ElMessage.warning("请选择数据表或填写源读取 SQL");
-        return false;
-      }
-      if (!/^\s*select/i.test(form.sourceSql)) {
-        ElMessage.warning("源读取 SQL 必须以 SELECT 开头");
-        return false;
-      }
-      return true;
+      if (form.sourceDatasourceId == null) return "请先选择源数据源";
+      if (!form.sourceSql.trim()) return "请选择数据表或填写源读取 SQL";
+      if (!/^\s*select/i.test(form.sourceSql)) return "源读取 SQL 必须以 SELECT 开头";
+      return null;
     }
     const path = form.sourcePath.trim();
     if (!path) {
-      ElMessage.warning(form.sourceType === "FILE"
-        ? "请选择要同步的文件"
-        : form.sourceType === "DIR"
-          ? "请选择要监听的文件夹"
-          : "请填写请求地址");
-      return false;
+      if (form.sourceType === "FILE") return "请选择要同步的文件";
+      if (form.sourceType === "DIR") return "请选择要监听的文件夹";
+      return "请填写请求地址";
     }
     if (form.sourceType === "HTTP_JSON" || form.sourceType === "HTTP_HTML") {
-      if (!/^https?:\/\//i.test(path)) {
-        ElMessage.warning("请求地址必须以 http:// 或 https:// 开头");
-        return false;
-      }
+      if (!/^https?:\/\//i.test(path)) return "请求地址必须以 http:// 或 https:// 开头";
     }
-    return true;
+    return null;
   }
   if (index === 1) {
-    if (form.targetDatasourceId == null) {
-      ElMessage.warning("请先选择目标数据源");
-      return false;
-    }
-    if (!form.targetTable.trim()) {
-      ElMessage.warning("请选择或输入目标数据表");
-      return false;
-    }
-    return true;
+    if (form.targetDatasourceId == null) return "请先选择目标数据源";
+    if (!form.targetTable.trim()) return "请选择或输入目标数据表";
+    return null;
+  }
+  return null;
+};
+
+/**
+ * 校验某一步能否进入下一步（stepIssue 的包装：拦截时如实弹出第一条问题）
+ * @param index 步骤下标
+ */
+const validateStep = (index: number): boolean => {
+  const issue = stepIssue(index);
+  if (issue) {
+    ElMessage.warning(issue);
+    return false;
   }
   return true;
 };
+
+/** 当前步骤的实时校验结论（页脚状态条用；随表单输入即时更新） */
+const stepIssueNow = computed(() => stepIssue(step.value));
 
 /** 下一步 */
 const nextStep = () => {
@@ -2079,9 +2155,51 @@ onUnmounted(() => {
   color: var(--text-tertiary);
 }
 /* 三步向导头部：与表单区留出呼吸感 */
-.st-steps { margin-bottom: 20px; }
-.st-steps :deep(.el-step__title) { font-size: 13px; }
-.st-steps :deep(.el-step__description) { font-size: 12px; }
+/* ---------- 向导步骤条（UI 图）：圆序号 + 连接线 + 标题/说明，全走 koi 变量 ---------- */
+.st-steps { display: flex; align-items: flex-start; margin-bottom: 18px; }
+.st-step {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+/* 列间连接线：从本列圆右侧伸到下一列圆左侧（绝对定位，末列不渲染） */
+.st-step-line {
+  position: absolute;
+  top: 15px;
+  left: calc(50% + 21px);
+  right: calc(-50% + 21px);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--border-subtle);
+}
+.st-step.is-done .st-step-line { background: var(--el-color-primary); }
+.st-step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--border-default);
+  border-radius: 50%;
+  background: var(--bg-container);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.st-step.is-on .st-step-dot,
+.st-step.is-done .st-step-dot {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+.st-step-labels { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.st-step-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.st-step.is-on .st-step-title { color: var(--el-color-primary); }
+.st-step-desc { font-size: 12px; color: var(--text-tertiary); }
 .st-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .st-sub { font-size: 12px; color: var(--text-tertiary); }
 .st-sql { font-size: 12px; color: var(--text-secondary); }
@@ -2103,6 +2221,186 @@ onUnmounted(() => {
 .st-map-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .st-map-col { flex: 1; }
 .st-arrow { color: var(--text-tertiary); }
-.st-warn { font-size: 12px; color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; }
+.st-warn { font-size: 12px; color: var(--el-color-warning); background: var(--el-color-warning-light-9); border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; }
 .mono { font-family: "JetBrains Mono", "Consolas", monospace; }
+
+/* ---------- 输入源类型卡片（UI 图）：图标磁贴 + 名称，选中=主色描边浅底 ---------- */
+.st-src-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.st-src-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: auto;
+  margin: 0 !important;
+  padding: 13px 8px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.st-src-card:hover { border-color: var(--el-color-primary); }
+.st-src-card :deep(.el-radio__input),
+.st-src-card :deep(.el-radio__inner) { display: none; }
+.st-src-card :deep(.el-radio__label) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-left: 0;
+  color: inherit;
+  font-size: 13px;
+}
+.st-src-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+}
+.st-src-name { color: var(--text-primary); font-weight: 500; }
+.st-src-card.is-checked { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.st-src-card.is-checked .st-src-ic { background: var(--bg-container); color: var(--el-color-primary); }
+.st-src-card.is-checked .st-src-name { color: var(--el-color-primary); }
+
+/* ---------- 解析设置区（小节标题 + 定界符分段控件） ---------- */
+.st-section-label { margin-top: -2px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 1px; }
+.st-grid-parse { grid-template-columns: 210px minmax(0, 1fr); align-items: end; }
+.st-seg-delim { display: flex; width: 100%; }
+.st-seg-delim :deep(.el-radio-button) { flex: 1; min-width: 0; }
+.st-seg-delim :deep(.el-radio-button__inner) {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-left-width: 1px;
+  border-radius: 0 !important;
+  background: var(--bg-container);
+  color: var(--text-primary);
+  box-shadow: none;
+  text-align: center;
+}
+.st-seg-delim :deep(.el-radio-button:first-child .el-radio-button__inner) {
+  border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px) !important;
+}
+.st-seg-delim :deep(.el-radio-button:last-child .el-radio-button__inner) {
+  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0 !important;
+}
+.st-seg-delim :deep(.el-radio-button + .el-radio-button .el-radio-button__inner),
+.st-seg-delim :deep(.el-radio-button:not(:first-child) .el-radio-button__inner) { margin-left: -1px; }
+.st-seg-delim :deep(.el-radio-button.is-active .el-radio-button__inner),
+.st-seg-delim :deep(.el-radio-button__original:checked + .el-radio-button__inner) {
+  background: var(--el-color-primary-light-9) !important;
+  border-color: var(--el-color-primary) !important;
+  color: var(--el-color-primary) !important;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- 解析预览卡（UI 图）：真实源列 chips + 类型 ---------- */
+.st-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container);
+}
+.st-preview-head { display: flex; align-items: center; gap: 10px; }
+.st-preview-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.st-preview-meta { flex: 1; min-width: 0; font-size: 12px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.st-preview-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.st-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 3px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-fill);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.st-chip-name { font-family: "JetBrains Mono", "Consolas", monospace; font-weight: 500; }
+.st-chip-type { font-family: "JetBrains Mono", "Consolas", monospace; font-style: normal; color: var(--text-tertiary); }
+.st-preview .st-warn { margin-bottom: 0; }
+
+/* ---------- 页脚：左真实校验状态 + 右操作按钮 ---------- */
+.st-dlg-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.st-dlg-status { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-dlg-status.is-ok { color: var(--el-color-success); }
+.st-dlg-status.is-bad { color: var(--el-color-warning); }
+.st-dlg-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* ---------- 本机路径行：输入框占满 + 方形「浏览」按钮 ---------- */
+.st-path-input { flex: 1; min-width: 0; }
+.st-path-input :deep(.el-input__wrapper) { padding-left: 10px; }
+.st-path-input :deep(.el-input__prefix) { color: var(--text-tertiary); }
+.st-hint-dot::before { content: "●"; margin-right: 6px; font-size: 8px; color: var(--text-tertiary); vertical-align: 1px; }
+</style>
+
+<style>
+/* ==================== 同步任务向导弹窗 chrome（对齐 UI 图） ====================
+   koi ReDialog 的壳结构（.koi-dialog-shell 及其 header/body/footer）在全平台弹窗共用，
+   这里只按本页注入的 .st-sync-dlg 类收口，一行都不动共享组件默认样式。
+   两个实测事实（2026-10-09 dist 形态）：
+   - 业务侧传入的 class 经 ReDialog($attrs 透传) 落在 .el-dialog 本体（与 .koi-dialog-shell 同元素），
+     故根写复合类 .st-sync-dlg.el-dialog，后代直接从它起算；
+   - koi ReDialog 是异步组件，其 scoped 样式晚于本页样式注入——凡与其 scoped 规则同名的属性，
+     特异性必须稳压其「类+类+[data-v]」三段式，这里统一用 .st-sync-dlg.el-dialog 前缀（四段式）。
+   所有颜色/圆角走 koi（--bg/--text/--border/--radius）与 --el-* 变量，暗黑自动切换。 */
+.st-sync-dlg.el-dialog {
+  border-radius: var(--radius-xl, 16px);
+  background: var(--bg-container);
+}
+/* koi 壳把标题栏压成 3px 20px 紧凑条（带 !important），本弹窗按 UI 图放大成大标题头 */
+.st-sync-dlg.el-dialog .el-dialog__header {
+  padding: 16px 24px 6px !important;
+  margin-bottom: 6px !important;
+}
+.st-sync-dlg.el-dialog .koi-dialog-custom-header {
+  align-items: flex-start;
+}
+.st-sync-dlg.el-dialog .koi-dialog-custom-header .koi-dialog-header-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--el-color-primary);
+}
+.st-sync-dlg.el-dialog .koi-dialog-custom-header .koi-dialog-header-icon {
+  font-size: 22px;
+  color: var(--el-color-white);
+}
+.st-sync-dlg.el-dialog .koi-dialog-custom-header .koi-dialog-header-titles {
+  gap: 3px;
+}
+.st-sync-dlg.el-dialog .koi-dialog-custom-header .koi-dialog-header-titles .el-dialog__title {
+  flex: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.st-sync-dlg.el-dialog .koi-dialog-custom-header .koi-dialog-subtitle {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+/* koi 壳默认 body 8px / footer 4px 20px 6px（均 !important）——本弹窗放宽为 24px 版心 */
+.st-sync-dlg.el-dialog .el-dialog__body {
+  padding: 2px 24px 8px !important;
+}
+.st-sync-dlg.el-dialog .el-dialog__footer {
+  box-sizing: border-box;
+  padding: 12px 24px !important;
+  border-top: 1px solid var(--border-subtle);
+}
 </style>
