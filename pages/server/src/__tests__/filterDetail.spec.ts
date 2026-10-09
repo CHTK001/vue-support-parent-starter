@@ -9,10 +9,12 @@
  *      深度页面若不归一，用户点「打开文件管理器」得到的是打不开的地址。
  *   2. node 型入口在服务未运行、或处于表单态（还没有节点）时，必须给出
  *      **可区分的** 两种提示，而不是笼统一句「打不开」。
- *   3. bucket 缺省必须是 local——与 pages/filesystem 的 DEFAULT_BUCKET 对齐，
- *      拼错会打开到一个不存在的桶，页面表现为 404。
+ *   3. bucket 缺省随部署配置（otherConfig.filestorage.bucket），未配置时兜底 local——
+ *      与 pages/filesystem 的 resolveBucket 口径一致。写死 local 会让 monitor 部署
+ *      （桶名 localFileStorage）打开到不存在的桶，页面表现为 404。
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setConfig } from "@repo/core";
 import {
   hasFilterDetail,
   resolveFilterDetail,
@@ -162,5 +164,36 @@ describe("hasFilterDetail 与解析结果同源", () => {
     expect(hasFilterDetail(noDetailMeta)).toBe(false);
     expect(hasFilterDetail(null)).toBe(false);
     expect(hasFilterDetail(undefined)).toBe(false);
+  });
+});
+
+describe("node 型入口的默认桶名随部署配置（otherConfig.filestorage.bucket）", () => {
+  // 本组用例改写全局配置；afterEach 把桶名重置回空串，使其回落到 DEFAULT_BUCKET=local，
+  // 不影响后续用例（vitest 按文件内 describe 顺序执行，本组排在最后）。
+  afterEach(() => {
+    setConfig({ other: { filestorage: { bucket: "" } } } as never);
+  });
+
+  it("配置了 localFileStorage 时深度入口 URL 用该桶（monitor 部署的真实形态）", () => {
+    setConfig({ other: { filestorage: { bucket: "localFileStorage" } } } as never);
+    const t = resolveFilterDetail(nodeMeta, { params: {} }, {
+      serverUrl: "http://127.0.0.1:19080",
+    });
+    expect(t?.kind === "node" && t.url).toBe("http://127.0.0.1:19080/localFileStorage");
+  });
+
+  it("未配置时兜底 local（与 pages/filesystem 的 DEFAULT_BUCKET 对齐）", () => {
+    const t = resolveFilterDetail(nodeMeta, { params: {} }, {
+      serverUrl: "http://127.0.0.1:19080",
+    });
+    expect(t?.kind === "node" && t.url).toBe("http://127.0.0.1:19080/local");
+  });
+
+  it("实例参数显式 bucket 仍最高优先（盖过部署配置）", () => {
+    setConfig({ other: { filestorage: { bucket: "localFileStorage" } } } as never);
+    const t = resolveFilterDetail(nodeMeta, { params: { bucket: "media" } }, {
+      serverUrl: "http://127.0.0.1:19080",
+    });
+    expect(t?.kind === "node" && t.url).toBe("http://127.0.0.1:19080/media");
   });
 });
