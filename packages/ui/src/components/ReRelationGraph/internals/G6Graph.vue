@@ -952,7 +952,13 @@ const initGraph = async () => {
   const graph = new Graph({
     container: containerRef.value,
     autoResize: true,
-    autoFit: "view",
+    // 关键：不要开 autoFit: "view"。它在**每次 render** 都按当前包围盒执行 fitView，
+    // 而空图（数据未到 / 弹窗 v-loading 期间先挂载）的包围盒是原点处的零面积簇，
+    // G6 会把它「适配」放大到接近 maxZoom（实测 zoom 4.7~10）——业务页看到的巨大点边重叠。
+    // 更糟的是 G6 v5 的 fitView 默认 when:'overflow'：一旦被放大到「填满视口」，后续真数据
+    // render 时判定「内容不超出、无需适配」，缩放就永久卡在那个放大值上。
+    // 视口适配改由 loadData 末尾的 fitAfterLoad（when:'always' + 空数据守卫）统一负责。
+    autoFit: false,
     animation: true,
     data: { nodes: [], edges: [], combos: [] },
     node: { style: { fill: "#e8f3ff", stroke: "#2992ff", lineWidth: 1.5 } },
@@ -989,6 +995,11 @@ const initGraph = async () => {
  * fitView 计算的是真实内容包围盒。此前是 400ms 定时抢跑：布局尚未铺开，
  * 会把聚簇包围盒按「适配」放大到 maxZoom（10），观感即巨大的点边重叠。</p>
  *
+ * <p><strong>when:'always'</strong>：G6 v5 的 fitView 默认 {@code when:'overflow'}，
+ * 只在内容超出视口时才适配。空图阶段（数据未到 / 弹窗先挂载）包围盒是原点零面积簇，
+ * 一旦被放大到「填满视口」，后续真数据来了会被判定「不超出、无需适配」而原样卡死——
+ * 这正是业务页看到节点巨大且缩放再也回不去的根因。这里强制按真实包围盒重算。</p>
+ *
  * @param graph 本次装载使用的 G6 实例（identity 守卫：期间若被 rebuild 替换则跳过）
  */
 const fitAfterLoad = async (graph: Graph) => {
@@ -996,8 +1007,13 @@ const fitAfterLoad = async (graph: Graph) => {
     log("装载后适配跳过：graph 实例已被替换或已卸载");
     return;
   }
+  // 空图不 fit：没有节点时包围盒退化到原点零面积簇，G6 会把它放大到接近 maxZoom，
+  // 反而制造出「巨大点」的假象。等数据真正进来再 fit。
+  if (!(graph.getNodeData?.() ?? []).length) {
+    return;
+  }
   try {
-    await graph.fitView?.(undefined as any, false as any)?.catch?.(() => {});
+    await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
     pinFixedNodes();
   } catch (e) {
     log("装载后适配失败", e);
@@ -1300,7 +1316,7 @@ const setLayout = async (name: RelationLayoutName, options?: Record<string, unkn
     emit("layout-change", name + ":failed");
     return;
   }
-  await graph.fitView?.(undefined as any, false as any)?.catch?.(() => {});
+  await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
   pinFixedNodes();
   emit("layout-change", name);
 };
@@ -1440,7 +1456,7 @@ const setMode = async (m: RelationViewMode) => {
     mode.value = "2d";
     await nextTick();
     // 隐藏期间 G6 尺寸没变（visibility 不触发 resize），这里只需重新适配一次视角
-    graphRef.value?.fitView?.(undefined as any, false as any)?.catch?.(() => {});
+    graphRef.value?.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
   }
   emit("mode-change", m);
   log("mode ->", m);
@@ -1558,7 +1574,7 @@ const api: RelationGraphApi = {
       fg3dRef.value?.fitView?.(600);
       return;
     }
-    await graphRef.value?.fitView?.(undefined as any, true as any);
+    await graphRef.value?.fitView?.({ when: "always" } as any, true as any);
   },
   zoomIn: async () => {
     if (is3d.value) {
