@@ -425,6 +425,58 @@ export const compareDbStructure = (payload: DbStructureDiffPayload) =>
     .then(r => unwrap<DbStructureDiffItem[]>(r));
 
 /**
+ * 新建表请求
+ *
+ * <p>字段定义 `fields` 是列定义原文（如 `id BIGINT PRIMARY KEY, name VARCHAR(255)`），
+ * 后端按内核选引号与注释写法后执行 —— 不要在前端拼 `CREATE TABLE`：反引号与
+ * 内联 `COMMENT` 都只对 MySQL 成立，H2/PostgreSQL 上会直接语法错。
+ */
+export type DbCreateTablePayload = {
+  /** 表名 */
+  table: string;
+  /** 列定义原文 */
+  fields: string;
+  /** 表注释，可为空 */
+  comment?: string;
+  /** 数据源 ID（可选） */
+  datasourceId?: number;
+  /** 目标库名（可选，为空用连接默认库） */
+  database?: string;
+};
+
+/**
+ * 新建表（跨方言）
+ * @param payload 表名、列定义、可选注释与目标库
+ * @returns 是否创建成功
+ */
+export const createDbTable = (payload: DbCreateTablePayload) =>
+  http()
+    .post("/ms/monitor/db/table")
+    .noToast(true)
+    // .data() 的入参是 RequestBody（索引签名约束），具体类型由调用点保证
+    .data({ ...payload })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 重命名表（跨方言）
+ *
+ * <p>不要在前端拼 `ALTER TABLE \`a\` RENAME TO \`b\``：反引号只对 MySQL 成立，
+ * H2/PostgreSQL 上会直接语法错。引号与候选写法交后端按内核选。</p>
+ *
+ * @param tableName 原表名
+ * @param newName 新表名
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库名（可选）
+ * @returns 是否成功
+ */
+export const renameDbTable = (tableName: string, newName: string, datasourceId?: number, database?: string) =>
+  http()
+    .put(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/name`)
+    .noToast(true)
+    .query({ newName, datasourceId, database })
+    .then(r => unwrap<boolean>(r));
+
+/**
  * 删除表
  * @param tableName 表名
  * @param datasourceId 数据源 ID（可选）

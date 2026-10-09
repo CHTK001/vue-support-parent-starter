@@ -8,6 +8,7 @@
  *   <ReSwitch layout="popover" icon="Timer" title="自动刷新：已关闭" v-model="ms">
  *     <ReSelect layout="square" vertical :data="档位" />   <!-- 纯方块入口 + 无边框浮层取档 -->
  *   </ReSwitch>
+ *   <ReSwitch layout="radio" title="允许为空" v-model="nullable" />  <!-- 分段单选 是/否，两态文字直读 -->
  *
  * 布局通用 props：title / tip / sub / description
  * 布局专属 props：以布局名开头，如 card-hide-switch / card-show-radio
@@ -20,8 +21,8 @@ defineOptions({ name: "ReSwitch", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局类型：default（原生行内）| card（卡片式）| modern（现代化扁平）| square（正方形纯图标）| popover（纯方块入口 + 无边框浮层取档） */
-    layout?: "default" | "card" | "modern" | "square" | "popover";
+    /** 布局类型：default（原生行内）| card（卡片式）| modern（现代化扁平）| square（正方形纯图标）| popover（纯方块入口 + 无边框浮层取档）| radio（分段单选是/否） */
+    layout?: "default" | "card" | "modern" | "square" | "popover" | "radio";
     /** 主标题（通用） */
     title?: string;
     /** 灰色小标题（通用） */
@@ -40,6 +41,10 @@ const props = withDefaults(
     activeIcon?: string;
     /** square 布局：非激活态图标名（缺省回退到 icon） */
     inactiveIcon?: string;
+    /** radio 布局：「开」的文案 */
+    radioOnLabel?: string;
+    /** radio 布局：「关」的文案 */
+    radioOffLabel?: string;
   }>(),
   {
     layout: "default",
@@ -48,6 +53,8 @@ const props = withDefaults(
     icon: "",
     activeIcon: "",
     inactiveIcon: "",
+    radioOnLabel: "是",
+    radioOffLabel: "否",
   },
 );
 
@@ -70,6 +77,9 @@ watch(
         layoutComp.value = mod.default;
       } else if (layout === "popover") {
         const mod = await import("./layouts/Popover.vue");
+        layoutComp.value = mod.default;
+      } else if (layout === "radio") {
+        const mod = await import("./layouts/Radio.vue");
         layoutComp.value = mod.default;
       } else {
         const mod = await import("./layouts/DefaultReSwitch.vue");
@@ -96,6 +106,8 @@ watch(
     :icon="icon"
     :active-icon="activeIcon"
     :inactive-icon="inactiveIcon"
+    :radio-on-label="layout === 'radio' ? radioOnLabel : undefined"
+    :radio-off-label="layout === 'radio' ? radioOffLabel : undefined"
     v-model="modelValue"
   >
     <slot />

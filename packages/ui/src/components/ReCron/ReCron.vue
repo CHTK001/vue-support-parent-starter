@@ -1126,7 +1126,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       v-model:visible="open"
       placement="bottom-start"
       :trigger="[]"
-      :width="760"
+      :width="320"
       popper-class="re-cron__popper"
       :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
     >
@@ -1467,7 +1467,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -1727,8 +1727,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 22px 16px;
+  gap: 8px;
+  padding: 12px 12px;
   /* 描边用主色掺白/掺黑再混边框色，跟随主题切换，不写死色值 */
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter, #ebeef5));
   border-radius: var(--el-radius-lg, 12px);
@@ -1798,8 +1798,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__presets {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 /* 与 34px 高的胶囊视觉居中对齐 */
@@ -1826,19 +1826,19 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__pill-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* 预设/匹配方式胶囊：普通态描边，选中态主色实底（圆角见上方合并规则） */
 .re-cron__pill {
-  height: 34px;
-  padding: 0 16px;
+  height: 28px;
+  padding: 0 10px;
   border: 1px solid var(--el-border-color, #dcdfe6);
   background: var(--el-bg-color, #ffffff);
   color: var(--el-text-color-regular, #606266);
   font-family: inherit;
-  font-size: 13px;
-  line-height: 32px;
+  font-size: 12px;
+  line-height: 26px;
   cursor: pointer;
 }
 
@@ -1853,12 +1853,13 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   cursor: not-allowed;
 }
 
-/* 两列：左字段编辑、右触发预览 */
+/* 单列纵向：320px 宽放不下「字段编辑 + 触发预览」并排，
+   1.55fr : 1fr 会把右侧预览压到 120px，时间戳整条折行。 */
 .re-cron__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: 24px;
-  margin-top: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
 }
 
 /* 窄屏回落单列。
@@ -1877,8 +1878,9 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 /* 六个字段盒子：点一下切换当前字段，下方匹配方式只作用于它 */
 .re-cron__fields {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  /* 六字段排 3×2：320px 下 1×6 每格只剩 46px，两位数都放不下 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .re-cron__field {
@@ -1921,8 +1923,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 .re-cron__field-value {
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  /* 17px：六个盒子并排时，15px 的 MON-FRI 这类多字符值会顶到盒子边缘 */
-  font-size: 17px;
+  /* 15px：320px 弹层里每格约 96px（3 列），17px 的 MON-FRI 会被 ellipsis 截成 "MON-F…" */
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary, #303133);
   max-width: 100%;
