@@ -1163,7 +1163,7 @@
       </template>
     </ReDialog>
 
-    <!-- 新建表弹窗：走共享组件，SQL 拼装在方言层，前端不再拼 MySQL-only 语句 -->
+    <!-- 新建表弹窗：设计表网格（列 → 结构化入参），SQL 拼装在方言层，前端不拼 MySQL-only 语句 -->
     <CreateTableDialog
       v-model="createTableVisible"
       :database="newTableDatabase"

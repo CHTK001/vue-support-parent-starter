@@ -16,7 +16,7 @@
  */
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { resolveObjectUrl } from "../api/filestorageApi";
+import { resolveObjectUrl } from "../../api/filestorageApi";
 
 const props = defineProps<{
   /** 存储桶名 */

@@ -359,7 +359,7 @@ defineExpose({ expression });
         </div>
       </div>
 
-      <!-- 右：执行时间 + 应用 -->
+      <!-- 下：执行时间 + 应用（独占整行，见 .re-cron-cal__body 注释） -->
       <div class="re-cron-cal__side">
         <div class="re-cron-cal__side-title">执行时间</div>
 
@@ -425,18 +425,18 @@ defineExpose({ expression });
   color: var(--el-color-white);
 }
 
-/* 右列是"表盘 + 实时行数"。180px 在 480px 弹层里会把月历压到只剩 ~240px
-   （7 列每格 34px，日期数字顶到格子边缘），收到 148px。 */
+/*
+ * 单列：月历在上，「执行时间」独占下方一整行。
+ *
+ * 原来是 `1fr 180px` 左右并排，右列只有 180px —— 扣掉 side 的内距后剩 ~156px，
+ * 时/分输入框 + 冒号 + 「应用此时间」按钮挤在一起，输入框窄到 44px，
+ * 打两位小时分钟都要盯着看；而月历被压到 7 列每格 34px，日期数字顶边。
+ * 两边都不够。改成上下并置后月历拿到全宽（约 62px 每格），执行时间也拿到全宽。
+ */
 .re-cron-cal__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 148px;
-  gap: 10px;
-}
-
-@media (width <= 440px) {
-  .re-cron-cal__body {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 /* ---------------- 月历 ---------------- */
@@ -545,29 +545,35 @@ defineExpose({ expression });
 
 /* ---------------- 右列 ---------------- */
 
+/*
+ * 「执行时间」独占一行后改成横向排布：标题 · 表盘 · 时分 · 提示 · 应用按钮。
+ *
+ * 表盘在这里只是视觉示意（真正的输入是时/分两个框），横向布局下不需要再抢高度，
+ * 收到 46px；同时指针长度按 46px 直径重算，否则会捅出圆外。
+ */
 .re-cron-cal__side {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  padding: 10px 8px;
+  gap: 10px;
+  padding: 7px 10px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md);
   background: var(--el-bg-color);
 }
 
 .re-cron-cal__side-title {
+  flex: none;
   color: var(--el-text-color-primary);
   font-size: 12px;
   font-weight: 600;
 }
 
-/* 表盘：只做视觉示意，指针角度由小时/分钟驱动。96px 在 148px 的右列里
-   还要再留 2×10px 内距，太满；收到 78px 让整列有个呼吸。 */
 .re-cron-cal__clock {
   position: relative;
-  width: 78px;
-  height: 78px;
+  flex: none;
+  width: 46px;
+  height: 46px;
   border: 2px solid var(--el-border-color);
   border-radius: var(--el-radius-full);
   background: var(--el-fill-color-blank);
@@ -583,13 +589,13 @@ defineExpose({ expression });
 }
 
 .re-cron-cal__hand--hour {
-  width: 21px;
-  height: 3px;
-  margin-top: -1.5px;
+  width: 12px;
+  height: 2px;
+  margin-top: -1px;
 }
 
 .re-cron-cal__hand--min {
-  width: 30px;
+  width: 18px;
   height: 2px;
   margin-top: -1px;
 }
@@ -598,42 +604,47 @@ defineExpose({ expression });
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
   border-radius: var(--el-radius-full);
   background: var(--el-color-primary);
 }
 
 .re-cron-cal__time {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 2px;
 }
 
+/* 独占一行后有富余宽度，输入框从 44px 放回 62px，打两位时分不用盯着看 */
 .re-cron-cal__time :deep(.el-input__inner) {
-  width: 44px;
+  width: 62px;
   text-align: center;
   font-family: var(--cc-font-num);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .re-cron-cal__time-colon {
   color: var(--el-text-color-primary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .re-cron-cal__hint {
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   color: var(--el-text-color-secondary);
   font-size: 11px;
-  text-align: center;
+  text-align: left;
 }
 
 .re-cron-cal__apply {
-  width: 100%;
-  margin-top: auto;
+  flex: none;
+  width: auto;
+  margin-top: 0;
 }
 </style>
