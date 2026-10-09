@@ -164,3 +164,15 @@
 - 提交归属：组件与三处挂载被并行会话的宽泛提交 `5674f51a4` 扫入 git（内容即最终验证版）。
 - 附带确认（非本轮改动）：正文里伪工具调用按原文显示属模型输出如实呈现，
   后端无对应解析器属 agent 工具链问题，已在此记录待后端案处理。
+
+### 8.4 dist 生产形态复验（2026-10-09 晚，端口 15690 / serve-dist）
+
+- **构建**：`vite build` 5m10s 成功（file-viewer 合并块 9,002 kB 照旧，无新增告警）。
+- **产物服务**：`node scripts/serve-dist.mjs 15690`（含 Origin 改写绕后端 CORS 白名单）。
+  插曲：曾误用 `vite preview` 起同端口，两进程并存导致请求落在无 Origin 改写的实例上
+  → 浏览器登录 403 「Invalid CORS request」；杀掉 vite preview、单留 serve-dist 后恢复。
+- **图片上屏冒烟（dist-smoke-pelican，9/9 PASSED）**：会话 85 六张唯一图 0 裂图、查看器可开、
+  纯文本会话 94 与 new-session **raw-file 请求 0**、pageerror 0。
+- **chat-stream-accept（14/14 PASSED，ACCEPT_BASE=15690）**：模型面板/选中 laguna/发送/
+  流式增长/正常结束/无失败文案/无 pageerror，聊天主链路在 dist 形态无回归。
+- 环境注记：期间 198:8787 短暂 TCP 不通（约 1 分钟后自愈，疑 jar 重部署/重启），非本轮改动所致。
