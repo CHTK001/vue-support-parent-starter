@@ -7,8 +7,6 @@
 import {
   computed,
   ref } from "vue";
-import { ElDialog,
-} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import FieldTable from "../FieldTable.vue";
 import ParamField from "./ParamField.vue";

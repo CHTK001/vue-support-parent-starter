@@ -17,9 +17,6 @@ import {
   computed,
   onMounted,
   watch } from "vue";
-import { ElDialog,
-  ElTag,
-} from "element-plus";
 import { getApiHttp, isCapabilityPathEnabled, IP_LOOKUP_PATH, type ApiResult } from "@repo/core";
 import ReDialog from "../ReDialog";
 

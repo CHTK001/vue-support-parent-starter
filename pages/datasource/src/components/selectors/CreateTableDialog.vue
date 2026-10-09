@@ -15,8 +15,6 @@ import {
   computed,
   ref,
   watch } from "vue";
-import { ElDialog,
-} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import { APP_DATASOURCE, executeTableDdl, previewTableDdl } from "../../api";
 import type { DdlColumn, TableDdlRequest, TableDdlResult } from "../../api";

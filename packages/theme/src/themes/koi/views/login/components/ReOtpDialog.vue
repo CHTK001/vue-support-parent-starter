@@ -44,6 +44,7 @@
 <script lang="ts" setup>
 import { Lock } from "@element-plus/icons-vue";
 import { ref, nextTick } from "vue";
+import ReDialog from "@repo/ui/re-dialog";
 import ReOtpInput from "./ReOtpInput.vue";
 import { useI18n } from "vue-i18n";
 

@@ -8,8 +8,6 @@
 import {
   computed,
   ref } from "vue";
-import { ElDialog,
-} from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
