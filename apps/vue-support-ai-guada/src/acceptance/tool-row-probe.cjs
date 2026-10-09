@@ -1,10 +1,12 @@
 /**
  * 定向验收：工具调用行交互（默认工具图标 → 悬停「>」→ 点击「v」展开）。
  *
- * 背景：本环境未安装任何工具插件（/v2/plugins/tool-displays 为空），库内 21 个会话
+ * 背景：本环境未安装任何工具插件（/v2/plugins/tool-displays 为空），库内会话
  * 均无工具调用记录，因此真机聊天页造不出工具行。本探针跑在临时夹具页
- * `tool-row-check.html`（挂载**真实** MessageToolCalls 组件 + 夹具数据）上，
- * 断言的是组件自身的样式状态机与展开行为；最终 dist 另跑全套件回归。
+ * `tool-row-check.html`（挂载**真实** MessageToolCalls 组件 + 夹具数据 + contentId
+ * 模拟历史消息）上，断言组件自身的样式状态机与展开行为，并回归
+ * **A3（2026-10-09）**：展开/开弹窗期间零幽灵端点请求、零「加载工具详情失败」toast；
+ * 最终 dist 另跑全套件回归。
  *
  * 用法：node src/acceptance/tool-row-probe.cjs
  *   BASE 默认 http://localhost:15692（自查专用 dev server）
@@ -27,6 +29,13 @@ const add = (name, ok, detail) => {
   const errs = [];
   page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 160)); });
+  // A3 根因回归监控：夹具带着 contentId（模拟历史消息），但组件已删除懒加载 ——
+  // 展开/开弹窗期间不得向幽灵端点 /message-content/{id}/tool-details 发出任何请求
+  // （后端从未实现该端点，旧实现必 404 → 弹「加载工具详情失败」，2026-10-09 报障）。
+  const lazyFetches = [];
+  page.on('request', (r) => { if (r.url().includes('/message-content/')) lazyFetches.push(r.url()); });
+  const toastTexts = () => page.$$eval('.el-message', (els) => els.map((e) => (e.textContent || '').trim()))
+    .catch(() => []);
 
   await page.goto(`${BASE}${HARNESS}`, { waitUntil: 'networkidle', timeout: 60000 });
 
@@ -102,6 +111,15 @@ const add = (name, ok, detail) => {
     'inline="' + inlineText.slice(0, 120) + '"');
   add('expand.hasResult', /执行结果|执行失败/.test(inlineText), 'hasResultText=' + /执行结果|执行失败/.test(inlineText));
 
+  // ── 3b) A3 回归：展开期间不发懒加载请求、不弹「加载工具详情失败」/错误 toast ──
+  await page.waitForTimeout(500);
+  add('expand.noLazyFetch', lazyFetches.length === 0, JSON.stringify(lazyFetches));
+  const toastAfterExpand = await toastTexts();
+  const errToastAfterExpand = await page.locator('.el-message--error').count();
+  add('expand.noLoadFailedToast',
+    !toastAfterExpand.some((t) => t.includes('加载工具详情失败')) && errToastAfterExpand === 0,
+    `toasts=${JSON.stringify(toastAfterExpand)} errCount=${errToastAfterExpand}`);
+
   // ── 4) 再点一次：收起，折角回「>」 ──
   await row.click();
   await page.waitForTimeout(300);
@@ -130,6 +148,14 @@ const add = (name, ok, detail) => {
   await page.waitForTimeout(600);
   const dialogText = ((await page.locator('.el-dialog, .tool-dialog').first().textContent().catch(() => '')) || '').replace(/\s+/g, ' ').trim();
   add('dialog.opens', /工具调用详情/.test(dialogText), 'dialog="' + dialogText.slice(0, 100) + '"');
+  // 旧实现 watch(showDialog) 也会触发拉取 → 弹窗路径同样必须零请求、零错误 toast
+  await page.waitForTimeout(500);
+  add('dialog.noLazyFetch', lazyFetches.length === 0, JSON.stringify(lazyFetches));
+  const toastAfterDialog = await toastTexts();
+  const errToastAfterDialog = await page.locator('.el-message--error').count();
+  add('dialog.noLoadFailedToast',
+    !toastAfterDialog.some((t) => t.includes('加载工具详情失败')) && errToastAfterDialog === 0,
+    `toasts=${JSON.stringify(toastAfterDialog)} errCount=${errToastAfterDialog}`);
 
   add('noPageErrors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
 

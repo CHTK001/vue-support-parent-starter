@@ -74,22 +74,26 @@
           </div>
         </div>
         <div class="message-item__card message-item--hover" :title="assistantTime.full">
-          <!-- 回合级执行摘要条：折叠时只显示「模型 · 全部阶段」，展开后放出下面的分组详情 -->
-          <TurnProcessSummary
-            v-if="turnPhases.length"
-            :phases="turnPhases"
-            :model-name="currentModelName"
-            :expanded="processExpanded"
-            :active="streamingState.isStreaming"
-            @toggle="processExpanded = !processExpanded" />
-
-          <!-- 展示分组：content / think / tool -->
+          <!--
+            「执行过程」折叠摘要条已按用户要求下线（2026-10-09）：
+            工具/思考/检索过程行**直接放出**，进回合即见每一步，不再需要点开。
+          -->
+          <!-- 展示分组：content / think / tool（过程行始终展示） -->
           <ProcessTimeline
             v-if="timelineItems.length"
             :items="timelineItems"
             :is-streaming="streamingState.isStreaming"
-            :show-process="processExpanded"
             @click="handleClick" />
+
+          <!--
+            执行计时徽标（居中）：回合仍在执行的实时信号，按整秒自增（图示 17s 样式）。
+            时长源自 useStreamResponse 的 100ms 计时器（message.totalDurationMs）；
+            流式结束徽标即消失，最终耗时由底部操作区展示。
+          -->
+          <div v-if="streamingState.isStreaming && elapsedPillText" class="exec-timer" role="timer"
+            :aria-label="t('chat.turn.working')">
+            <span class="exec-timer__pill">{{ elapsedPillText }}</span>
+          </div>
 
           <!-- 计划批准卡片（plan_exit 人工确认） -->
           <PlanApprovalCard
@@ -160,8 +164,8 @@
               <span class="text-amber-500 dark:text-amber-400">{{ assistantMetadata.retryInfo.message }}</span>
             </template>
             <template v-else>
-              <span v-if="durationText">{{ t('chat.turn.workingWithDuration', { duration: durationText }) }}</span>
-              <span v-else>{{ t('chat.turn.working') }}</span>
+              <!-- 时长已改由居中的计时徽标承载，这里只留状态文案，避免同一数字出现两处 -->
+              <span>{{ t('chat.turn.working') }}</span>
             </template>
           </div>
 
@@ -227,9 +231,6 @@ import { getCurrentTurns, groupContentsForDisplay, flattenContentsForTimeline, t
 import { getToolConfig, getToolIcon, resolveToolName as _resolveToolName, getArgsText, countSteps, DEFAULT_CONFIG, type ToolCall } from '@/utils/toolDisplay';
 import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils';
 import { usePopup } from "../../composables/usePopup";
-import MessageThinkingSection from './message-item/MessageThinkingSection.vue';
-import MessageSearchSection from './message-item/MessageSearchSection.vue';
-import TurnProcessSummary from './message-item/TurnProcessSummary.vue';
 import MessageToolCalls from './message-item/MessageToolCalls.vue';
 import ProcessTimeline from './message-item/ProcessTimeline.vue';
 import MessageActions from './message-item/MessageActions.vue';
@@ -237,7 +238,6 @@ import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
 import PlanApprovalCard from './message-item/PlanApprovalCard.vue';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
-import { deriveTurnPhases } from '@/utils/turnPhases';
 import { useAuthStore } from '@/stores/auth';
 
 const { toast } = usePopup();
@@ -376,13 +376,6 @@ const timelineItems = computed<DisplayItem[]>(() => {
 });
 
 // ============================================
-// 回合级执行摘要
-// ============================================
-/** 过程分组默认收起，由摘要条统一控制；正文不受影响 */
-const processExpanded = ref(false);
-
-
-// ============================================
 // 执行日志（agentscope trace）
 // ============================================
 const traceExpanded = ref(false);
@@ -440,10 +433,8 @@ const traceKindLabel = (kind: string): string => {
 
 // 文件变更记录
 const { fileChanges } = useFileChanges(turnsCache);
-/** 本回合发生过的阶段序列（思考 / 执行命令 / 编辑文件 / 组织回答…） */
-const turnPhases = computed(() =>
-  deriveTurnPhases(timelineItems.value, { editedFileCount: fileChanges.value.length }),
-);
+// 「回合级执行摘要（阶段序列）」已随执行过程折叠条一起下线（2026-10-09 用户要求），
+// deriveTurnPhases 不再被回合组件消费。
 const diffDialogVisible = ref(false);
 const activeDiffEntry = ref<FileChangeEntry | null>(null);
 
@@ -660,6 +651,18 @@ const durationText = computed(() => {
   const ms = totalDurationMs.value;
   if (ms === null || ms === undefined) return null;
   return formatDuration(ms);
+});
+
+/**
+ * 居中计时徽标文案：整秒显示（<60s → `17s`，≥60s → `2m 5s`）。
+ * 与底部 MessageActions 的最终耗时（带小数）区分——徽标只服务于「还在跑」的实时信号。
+ */
+const elapsedPillText = computed(() => {
+  const ms = totalDurationMs.value;
+  if (ms === null || ms === undefined) return '';
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
 });
 
 const tokenUsage = computed(() => {
@@ -1190,6 +1193,45 @@ const handleClick = (event: MouseEvent) => {
   .typing-indicator span {
     animation: none;
     transform: scale(0.55);
+  }
+}
+
+/* ── 居中执行计时徽标（17s 样式）：回合执行期间的实时信号 ── */
+.exec-timer {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 2px;
+}
+
+.exec-timer__pill {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--el-font-family, inherit);
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+/* 秒数每秒跳动，用极轻的透明度呼吸提示「还在计时」（减少动效偏好下静止） */
+.exec-timer__pill {
+  animation: exec-timer-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes exec-timer-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exec-timer__pill {
+    animation: none;
   }
 }
 </style>

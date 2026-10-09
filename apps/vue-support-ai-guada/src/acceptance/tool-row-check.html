@@ -47,7 +47,11 @@
         toolCalls,
         toolResponses,
         isStreaming: false,
-        // contentId 缺省 → 不走懒加载，直接用上面的 props 数据（夹具自足）
+        // contentId 模拟「历史消息」展开场景（2026-10-09 报障根因）：旧实现会拿它去请求
+        // 幽灵端点 /message-content/{id}/tool-details —— 后端从未实现该端点 → 必 404 →
+        // 弹「加载工具详情失败」。组件已删除整条懒加载（工具轨迹随消息本体现在自带），
+        // 该值现仅为透传属性：探针据此断言「展开/开弹窗期间不得发出任何该端点请求」。
+        contentId: 'fixture-historical-1',
       }),
     })
     app.use(i18n)

@@ -16,14 +16,23 @@
         </el-icon>
       </div>
 
-      <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
-      <div v-if="models.length > 1" class="ctx-filter">
-        <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
-          :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
-          :title="t(`common.contextSize.${tag.key}`)"
-          @click="toggleCtxTag(tag.key)">
-          {{ t(`common.contextSize.${tag.key}`) }}
-        </span>
+      <!--
+        模型检索框：按「显示名 / 裸模型名 / 供应商名」即时过滤（用户需求 2026-10-09）。
+        上下文大小过滤已按用户要求移除（原 .ctx-filter 标签行）；
+        行尾的上下文徽标（128K/1M）保留，仅展示不过滤。
+      -->
+      <div v-if="allModels.length > 1" class="model-search">
+        <el-icon size="14" class="model-search__ico">
+          <Search16Filled />
+        </el-icon>
+        <input ref="searchInputRef" v-model="searchKw" class="model-search__input" type="text"
+          :placeholder="t('chat.input.modelSearchPlaceholder')" />
+        <button v-if="searchKw" type="button" class="model-search__clear" :aria-label="t('common.clear')"
+          @click="searchKw = ''">
+          <el-icon size="12">
+            <Dismiss16Regular />
+          </el-icon>
+        </button>
       </div>
 
       <!-- 所有模型列表 -->
@@ -77,16 +86,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElIcon } from 'element-plus'
-import { Checkmark24Regular, Add24Regular } from '@vicons/fluent'
+import { Checkmark24Regular, Add24Regular, Search16Filled, Dismiss16Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
 import ModelInfoCard from './ModelInfoCard.vue'
 import {
   getModelDisplayName, getModelAvatarPath,
-  CONTEXT_SIZE_TAGS, getModelContextWindow, formatContextSize, matchesContextTags,
+  getModelContextWindow, formatContextSize,
 } from '@/utils/modelUtils'
 
 interface Model {
@@ -161,25 +170,19 @@ const allModels = computed(() => {
   return [...favorites, ...others]
 })
 
-/** 选中的上下文档位 key（多选 = 并集；空 = 不过滤） */
-const ctxFilter = ref<string[]>([])
+/** 检索关键词：按显示名 / 裸模型名 / 供应商名匹配，不区分大小写（空 = 不过滤） */
+const searchKw = ref('')
 
-/** 命中档位标签的模型（只影响展示，不改数据源与收藏顺序） */
-const filteredModels = computed(() => allModels.value.filter(m => matchesContextTags(m, ctxFilter.value)))
-
-/**
- * 切换上下文档位标签：已选中则取消，否则加入。
- *
- * @param key CONTEXT_SIZE_TAGS 的 key
- */
-function toggleCtxTag(key: string) {
-  const idx = ctxFilter.value.indexOf(key)
-  if (idx >= 0) {
-    ctxFilter.value.splice(idx, 1)
-  } else {
-    ctxFilter.value.push(key)
-  }
-}
+/** 检索命中的模型（只影响展示，不改数据源与收藏顺序） */
+const filteredModels = computed(() => {
+  const kw = searchKw.value.trim().toLowerCase()
+  if (!kw) return allModels.value
+  return allModels.value.filter((m) =>
+    getModelDisplayName(m.modelName).toLowerCase().includes(kw)
+    || (m.model || '').toLowerCase().includes(kw)
+    || getModelProviderName(m).toLowerCase().includes(kw),
+  )
+})
 
 /**
  * 供应商 id：模型侧优先 providerId（模型管理页映射后的字段）→ provider_id（后端原始字段）
@@ -358,9 +361,39 @@ function closeHoverCard() {
 
 onUnmounted(closeHoverCard)
 
+/** 检索框元素：面板打开后自动聚焦，立即可输入 */
+const searchInputRef = ref<HTMLInputElement | null>(null)
+
 watch(() => props.visible, (newVal) => {
-  // 面板关闭时一并收起信息卡
   if (!newVal) {
+    // 面板关闭：收起信息卡 + 清空检索词（下次打开回到完整列表）
+    closeHoverCard()
+    searchKw.value = ''
+    return
+  }
+  // 打开即聚焦检索框（弹层内容可能晚一拍挂载 → 短重试兜底；
+  // 单模型变体不渲染检索框，重试若干次后放弃即可）
+  void nextTick(() => {
+    if (searchInputRef.value) {
+      searchInputRef.value.focus()
+      return
+    }
+    let tries = 0
+    const timer = setInterval(() => {
+      tries++
+      if (searchInputRef.value) {
+        searchInputRef.value.focus()
+        clearInterval(timer)
+      } else if (tries >= 10) {
+        clearInterval(timer)
+      }
+    }, 50)
+  })
+})
+
+// 检索词变化后列表行被整体替换，旧悬停元素已失效 → 立即收起信息卡，避免卡片挂空行
+watch(searchKw, () => {
+  if (searchKw.value) {
     closeHoverCard()
   }
 })
@@ -415,34 +448,60 @@ watch(() => props.visible, (newVal) => {
   background: var(--el-fill-color);
 }
 
-/* 上下文大小过滤（档位标签行） */
-.ctx-filter {
+/* 模型检索框（原上下文过滤标签行已按用户要求移除，2026-10-09） */
+.model-search {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px 12px 0;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 4px 0;
+  padding: 5px 9px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.ctx-tag {
-  padding: 2px 7px;
-  /* 原值 99px → 胶囊最小档 */
+.model-search:focus-within {
+  border-color: var(--el-color-primary);
+  background: var(--el-bg-color-overlay);
+}
+
+.model-search__ico {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder);
+}
+
+.model-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+
+.model-search__input::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+.model-search__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
   border-radius: var(--el-radius-full, 9999px);
-  font-size: 11px;
-  line-height: 16px;
+  background: transparent;
   color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
   cursor: pointer;
-  user-select: none;
-  transition: background 0.15s, color 0.15s;
 }
 
-.ctx-tag:hover {
+.model-search__clear:hover {
   background: var(--el-fill-color-dark);
-}
-
-.ctx-tag-active {
-  color: #fff;
-  background: var(--color-primary, var(--el-color-primary));
+  color: var(--el-text-color-primary);
 }
 
 /* 行尾上下文徽标：128K / 1M */
