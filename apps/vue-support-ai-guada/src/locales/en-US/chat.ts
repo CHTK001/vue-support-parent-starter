@@ -29,6 +29,9 @@
     runModeSandbox: 'Lightweight Sandbox Mode',
     runModeBuild: 'Build Mode',
     runModePlan: 'Plan Mode',
+    // Run-mode badge short labels (right of the model button, color-coded Build/Plan)
+    runModeBuildShort: 'Build',
+    runModePlanShort: 'Plan',
 
     // AttachmentPopover.vue
     uploadImage: 'Upload Image',

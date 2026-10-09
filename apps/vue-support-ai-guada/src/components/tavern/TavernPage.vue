@@ -622,15 +622,20 @@ async function migrateCompositeModelOverrides() {
 async function loadMessages() {
   if (!currentGroupId.value) return
   const list = await apiService.fetchTavernMessages(currentGroupId.value)
-  messages.value = (list as TaverMessage[]).map((m) => ({
-    _key: keySeq++,
-    speakerType: m.speakerType,
-    speakerId: m.speakerId,
-    speakerName: m.speakerName,
-    content: m.content || '',
-    modelName: m.modelName,
-    streaming: false,
-  }))
+  messages.value = (list as TaverMessage[])
+    // 修复前的「AI 全报错」时代，生成失败的 AI 行会以空内容落库，历史加载时表现为
+    // 一排空气泡（用户看到的「漏数据」观感）。这里直接隐藏空内容 AI 行；
+    // 实时流式不受影响（send() 自行维护 streaming 行）。
+    .filter((m) => m.speakerType !== 'ai' || (m.content || '').trim().length > 0)
+    .map((m) => ({
+      _key: keySeq++,
+      speakerType: m.speakerType,
+      speakerId: m.speakerId,
+      speakerName: m.speakerName,
+      content: m.content || '',
+      modelName: m.modelName,
+      streaming: false,
+    }))
   scrollBottom()
 }
 
