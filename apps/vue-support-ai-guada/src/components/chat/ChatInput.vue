@@ -2020,9 +2020,22 @@ defineExpose({ insertText, insertBadge });
 }
 
 
+/* 底栏窄窗防溢出（2026-10-09 实测）：≤420px 时左右两组合计超出容器
+   （scrollW 383 > 行宽 361），justify-between 撑开整行、发送钮被挤出输入卡片。
+   两组作为整体换行（左组一行、右组一行），不隐藏任何按钮；右组用
+   margin-left:auto 保证单行时贴右、换行后仍贴右。宽窗表现与原先一致。 */
+.input-actions {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  justify-content: flex-start;
+}
+
 .left-tools {
   display: flex;
   align-items: center;
+  /* 极窄窗兜底：组内按钮也允许换行（正常宽度下不会触发） */
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 :deep(.el-button+.el-button) {
@@ -2033,6 +2046,9 @@ defineExpose({ insertText, insertBadge });
   display: flex;
   align-items: center;
   gap: 2px;
+  /* 配合 .input-actions 的换行：单行时贴右，窄窗换行后仍贴右（space-between
+     在换行后的单子项行会退化为靠左） */
+  margin-left: auto;
 }
 
 .right-tools {

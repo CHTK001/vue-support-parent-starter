@@ -1744,9 +1744,20 @@ defineExpose({ insertText, insertBadge, clearDraft });
 }
 
 
+/* 窄窗防溢出（与 ChatInput 同款，2026-10-09 实测 420px 下 scrollW 540 > 373）：
+   左右两组作为整体换行，不隐藏任何按钮；右组 margin-left:auto 保证换行后仍贴右。 */
+.input-actions {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  justify-content: flex-start;
+}
+
 .left-tools {
   display: flex;
   align-items: center;
+  /* 参数 chips 很宽（实测组内 min-content 540px），组内也要换行才能整体收进卡片 */
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 :deep(.el-button+.el-button) {
@@ -1757,6 +1768,7 @@ defineExpose({ insertText, insertBadge, clearDraft });
   display: flex;
   align-items: center;
   gap: 2px;
+  margin-left: auto;
 }
 
 .right-tools {
