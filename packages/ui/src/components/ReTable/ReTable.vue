@@ -5509,35 +5509,23 @@ const iconSelect = Select;
 }
 /* 空态下右侧固定列浮层要"让位"。
    vxe 的 .vxe-table--fixed-right-wrapper 是 position:absolute + z-index:5 +
-   background-color:inherit（不透明），覆盖在 body 右侧。有数据时它显示固定列的行，
-   是对的；**无数据时它没有内容可显示，却仍把空态右半截盖住，左沿形成一条硬边**
-   —— 这才是"没有消息的组件跑到固定列下面"的第二个成因（第一个是空块宽度，见上）。
-   空态时把浮层底色与表体摘掉即可：表头在独立的 header-wrapper 里，列名照样可见；
-   被盖住的只是没有内容的表格体。element 引擎空态下干脆不生成固定列浮层，
-   这里等于把两个引擎的行为对齐。 */
+   background-color:var(--vxe-ui-layout-background-color)（不透明），覆盖在 body 右侧。
+   有数据时它显示固定列的行，是对的；**无数据时它没有行可显示，却仍把空态右半截盖住，
+   左沿形成一条硬边** —— 这是"没有消息的组件跑到固定列下面"的第二个成因
+   （第一个是空块宽度，见上）。
+
+   ⚠⚠ 但**不能只摘 body-wrapper**：固定列浮层里还嵌着一份独立的 header-wrapper，
+     它渲染的是「操作」列表头，而主 wrapper 的 header-wrapper 同样渲染了一遍
+     「操作」——空态下两份表头叠在同一位置，于是字**重叠**成一片（实测函数库页
+     表头右侧「操作」与「最近结果」糊在一起）。
+     只隐藏 body 的话，浮层里那份 header 仍然可见，重叠依旧。
+     所以这里把浮层整体收起：表头由主 wrapper 那份负责，浮层在空态下不该存在。
+     element 引擎空态下干脆不生成固定列浮层，这里等于把两个引擎的行为对齐。 */
 .re-table--empty .vxe-table--fixed-right-wrapper {
-  background-color: transparent;
-  /* ⚠ 还得摘掉 vxe 给固定列加的左侧投影：
-     `.vxe-table--render-default .vxe-table--fixed-right-wrapper.scrolling--middle`
-     带 box-shadow -8px 0 10px -5px（权重 0,3,0，比本选择器高），这条投影正是
-     空态右侧那条"竖线"—— 背景置透明只去掉了底，线还留着。必须 !important。 */
-  box-shadow: none !important;
-  /* ⚠ 同时要放行点击：浮层是 position:absolute + z-index:30（见上方既有规则），
-     即使不绘制也仍盖在空态之上，会吞掉落在该区域的点击 —— 空态里的按钮
-     一旦被列宽推到浮层范围内就会点不动。空态下浮层没有可交互内容，直接放行。 */
-  pointer-events: none;
-}
-.re-table--empty .vxe-table--fixed-right-wrapper .vxe-table--body-wrapper {
   display: none;
 }
-/* 左固定列同理（如序号 / 勾选列固定时）。同一类缺陷，一并处理，
-   否则空态左侧会被左浮层盖住、并留下一条硬边。 */
+/* 左固定列同理（序号 / 勾选列固定时）。同一类缺陷，一并处理。 */
 .re-table--empty .vxe-table--fixed-left-wrapper {
-  background-color: transparent;
-  box-shadow: none !important;
-  pointer-events: none;
-}
-.re-table--empty .vxe-table--fixed-left-wrapper .vxe-table--body-wrapper {
   display: none;
 }
 /* 表格高度已确定（调用方给了 height/max-height，或 fill 生效）：
