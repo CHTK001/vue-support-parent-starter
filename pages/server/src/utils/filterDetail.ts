@@ -9,10 +9,34 @@
  *
  * 调用点：ScServiceManage.vue / ScServerDetailDrawer.vue / ScServerFormDrawer.vue。
  */
+import { getConfig } from '@repo/core';
 import type { FilterTypeMeta, ServerFilterDescriptor, ServerNodeView } from '../api';
 
-/** 默认存储桶名（与 pages/filesystem 的 filestorageApi DEFAULT_BUCKET 对齐） */
+/**
+ * 兜底桶名（与 pages/filesystem 的 filestorageApi DEFAULT_BUCKET 对齐）。
+ * 仅在部署未配置 otherConfig.filestorage.bucket 时使用。
+ */
 const DEFAULT_BUCKET = 'local';
+
+/**
+ * 解析当前部署的主存储桶名。
+ *
+ * <p>桶名 = 容器中 FileStorage Bean 名，随部署而变（monitor 后端的本地桶叫
+ * {@code localFileStorage}，而模板默认是 {@code local}）。此前写死 {@code local}，
+ * 在 monitor 部署下「打开文件管理器」会落到一个不存在的桶（实测 404）。
+ * 取值口径与 pages/filesystem 的 {@code resolveBucket} 一致：部署配置
+ * {@code otherConfig.filestorage.bucket} 优先，{@link #DEFAULT_BUCKET} 只做兜底。</p>
+ */
+function resolveDefaultBucket(): string {
+  try {
+    const cfg = getConfig() as unknown as {
+      other?: { filestorage?: { bucket?: string } };
+    };
+    return cfg?.other?.filestorage?.bucket || DEFAULT_BUCKET;
+  } catch {
+    return DEFAULT_BUCKET;
+  }
+}
 
 /** 深度查看入口解析结果 */
 export type FilterDetailTarget =
@@ -56,7 +80,8 @@ export function resolveFilterDetail(
         label,
       };
     }
-    const bucket = filter?.params?.bucket || DEFAULT_BUCKET;
+    // 实例参数显式指定的 bucket 最高优先，其次部署配置的主桶，最后兜底 local
+    const bucket = filter?.params?.bucket || resolveDefaultBucket();
     return { kind: 'node', url: joinUrl(normalizeHost(base), bucket), label };
   }
 
