@@ -109,7 +109,7 @@ function extraTip(name: string): string {
 
 <template>
   <div class="field field-wide node-intro">
-    手工录行：首行表头、每行一条数据，产出集合（默认 ${rows}）供下游数据库 / 输出节点整批消费。
+    手工录行：首行表头、每行一条数据，产出集合（默认 ${rows}）供下游数据库 / 采集平台节点整批消费。
     需要目标表时，先用「建表」按表头列把表落好，再让下游选同一数据源与表写入。
   </div>
 
