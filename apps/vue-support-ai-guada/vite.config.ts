@@ -143,6 +143,29 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  /**
+   * 修复 dist 全站白屏（2026-10-09 实测）：`@file-viewer` 的 ofd / word 渲染器
+   * 存在**源码级循环引用**（ofd ⇄ word，两侧分别 `import{e}from` 对方）。
+   * Rollup 默认把它们拆成两个块后，浏览器按「入口 → word → ofd」求值：
+   * word 先执行时 ofd 尚未跑过，其导出的 `_c`（共享渲染器定义数组）还在
+   * TDZ，word 顶层的 `_c.filter(...)` 即抛
+   * `ReferenceError: Cannot access '_c' before initialization` → boot 即死、
+   * 页面 body 全空。dev 逐模块 DFS 求值无此问题，故仅构建态暴露（132 个块
+   * 静态引用该共享块，任何路由都会崩）。
+   *
+   * manualChunks 把两侧合进同一个块，恢复与 dev 一致的 DFS 求值顺序，
+   * 跨块环消失（docx-preview 一并并入，避免它经 word/ofd 再次成环）。
+   * 验证：合并重建后 boot sanity 无 pageerror、聊天页正常渲染。
+   */
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('@file-viewer') || id.includes('docx-preview')) return 'file-viewer'
+        },
+      },
+    },
+  },
   plugins: [
     frameworkSharedAssets(),
     vue({
