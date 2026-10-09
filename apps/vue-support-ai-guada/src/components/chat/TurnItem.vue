@@ -86,6 +86,15 @@
             @click="handleClick" />
 
           <!--
+            Agent 产出图片就地预览：正文/工具调用里提到的工作区图片文件，
+            真实存在就渲染缩略图（幻觉路径静默跳过）。
+            传本轮全部版本——图片是 agent 的真实产物，不随文本版本切换丢失。
+            见 MessageOutputImages.vue（鹈鹕骑车缺陷 2026-10-09）。
+          -->
+          <MessageOutputImages v-if="sessionId && turn.assistants?.length" :session-id="sessionId"
+            :messages="turn.assistants" />
+
+          <!--
             执行计时徽标（居中）：回合仍在执行的实时信号，按整秒自增（图示 17s 样式）。
             时长源自 useStreamResponse 的 100ms 计时器（message.totalDurationMs）；
             流式结束徽标即消失，最终耗时由底部操作区展示。
@@ -233,6 +242,7 @@ import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils';
 import { usePopup } from "../../composables/usePopup";
 import MessageToolCalls from './message-item/MessageToolCalls.vue';
 import ProcessTimeline from './message-item/ProcessTimeline.vue';
+import MessageOutputImages from './message-item/MessageOutputImages.vue';
 import MessageActions from './message-item/MessageActions.vue';
 import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
@@ -258,6 +268,8 @@ const props = defineProps<{
   characterName?: string;
   characterAvatar?: string;
   animateIn?: boolean;
+  /** 会话 ID：用于把消息里提到的工作区图片文件渲染成缩略图（raw-file 取回） */
+  sessionId?: string;
 }>();
 
 const emit = defineEmits<{

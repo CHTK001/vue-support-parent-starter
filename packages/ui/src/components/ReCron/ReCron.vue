@@ -1117,10 +1117,15 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 <template>
   <div :class="['re-cron', { 'is-disabled': disabled }]" :style="width ? { width: typeof width === 'number' ? `${width}px` : width } : undefined">
+    <!-- trigger 必须给空数组：开面板由 .re-cron__line 的 @click=openPanel 独管。
+         EP 对带 v-model:visible 的弹层不启用 controlled 门控
+         （controlled = isBoolean(visible) && !hasUpdateHandler），trigger="click"
+         的 onToggle 会命中陈旧的 open 指示器 → onClose → hideAfter=200ms，
+         面板刚开就被关掉（实测：点开 200ms 后自动消失，只留一道闪烁）。 -->
     <ElPopover
       v-model:visible="open"
       placement="bottom-start"
-      trigger="click"
+      :trigger="[]"
       :width="760"
       popper-class="re-cron__popper"
       :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
