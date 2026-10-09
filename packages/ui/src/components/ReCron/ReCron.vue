@@ -1010,11 +1010,14 @@ function applyDefaultCron(): void {
 const panelMode = ref<"field" | "calendar">("field");
 
 /**
- * 日历模式点「应用此时间」：复用 applyPreset 那条写入路径。
+ * 日历模式改档位/选日期/改时间：面板实时抛来新的 6 段表达式，走 applyPreset 写入。
  *
  * 日历面板自己只负责「攒出一个 6 段字符串」，解析/校验/预览仍由本组件的
  * syncFromModel + analysis 统一负责 —— 两种入口共用一条管线，不会出现
  * 「日历能接受、字段模式读不懂」的不一致。
+ *
+ * 写入时机是实时的（与字段模式同一口径），弹层的「取消/保存」负责收口：
+ * 面板打开时记的快照还在，取消照样能把整段还原回去。
  */
 function applyCalendar(expr: string): void {
   if (!expr) return;
