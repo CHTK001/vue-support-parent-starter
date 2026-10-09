@@ -11,7 +11,7 @@
 -->
 <script setup lang="ts">
 import { computed } from "vue";
-import { ReRadio, ReRadioGroup } from "../../ReKit/index";
+import { ReRadioButton, ReRadioGroup } from "../../ReKit/index";
 
 defineOptions({ name: "RadioReSwitch", inheritAttrs: false });
 
@@ -51,8 +51,8 @@ function onUpdate(value: unknown): void {
       v-bind="$attrs"
       @update:model-value="onUpdate"
     >
-      <ReRadio :value="true">{{ props.radioOnLabel }}</ReRadio>
-      <ReRadio :value="false">{{ props.radioOffLabel }}</ReRadio>
+      <ReRadioButton :value="true">{{ props.radioOnLabel }}</ReRadioButton>
+      <ReRadioButton :value="false">{{ props.radioOffLabel }}</ReRadioButton>
     </ReRadioGroup>
   </div>
 </template>

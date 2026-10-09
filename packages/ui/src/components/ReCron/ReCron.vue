@@ -1151,7 +1151,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
       v-model:visible="open"
       placement="bottom-start"
       :trigger="[]"
-      :width="320"
+      :width="480"
       popper-class="re-cron__popper"
       :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 8 } }] }"
     >
@@ -1897,13 +1897,25 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   cursor: not-allowed;
 }
 
-/* 单列纵向：320px 宽放不下「字段编辑 + 触发预览」并排，
-   1.55fr : 1fr 会把右侧预览压到 120px，时间戳整条折行。 */
+/*
+ * 两列：左字段编辑、右触发预览。
+ *
+ * 比例取 1.4fr : 1fr 而不是原先的 1.55fr : 1fr —— 480px 弹层扣掉内距后剩 ~452px，
+ * 1.55fr 会把右列压到 ~178px，"2026-10-09 09:00:00" 这种时间戳要折成两行；
+ * 1.4fr 让右列拿到 ~205px，正好一行放下，省掉一行高度。
+ */
 .re-cron__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 12px;
   margin-top: 12px;
+}
+
+/* 视口窄到弹层被 max-width: 94vw 压到 ~400px 以下时并排就挤了，落回单列 */
+@media (width <= 520px) {
+  .re-cron__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* 窄屏回落单列。
@@ -1922,9 +1934,18 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 /* 六个字段盒子：点一下切换当前字段，下方匹配方式只作用于它 */
 .re-cron__fields {
   display: grid;
-  /* 六字段排 3×2：320px 下 1×6 每格只剩 46px，两位数都放不下 */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 六字段排 1×6：480px 弹层扣掉 24px 内距与 5×6px 间隙后每格约 71px，
+     15px 等宽字体的 MON-FRI（约 45px）放得下。320px 时每格只剩 46px，
+     所以那条窄屏兜底在下方 media 里切成 3×2。 */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
+}
+
+/* 极窄视口（弹层被 max-width: 94vw 压到 380px 以下）时六列会挤成竖条 */
+@media (width <= 400px) {
+  .re-cron__fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .re-cron__field {
@@ -2123,13 +2144,26 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   transition: none !important;
 }
 
-.re-cron__popper.el-popover {
+/*
+ * 尺寸只能挂 .re-cron__popper 本身。
+ *
+ * 早先写的是 `.re-cron__popper.el-popover` —— 但 EP 的 ElPopover 渲染出的根元素
+ * class 是 `el-popper`（`el-popover` 这个类在别处/不存在），组合选择器匹配不到，
+ * 于是 max-height / overflow 一直是死代码，弹层才会直接伸出屏幕外。
+ */
+.re-cron__popper {
   max-width: 94vw;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-radius: var(--el-popover-border-radius, var(--el-radius-lg, 12px));
-  /* Popover 内容可能比触发器高很多（字段模式那三列 + 预设行）：
-     给正文加上限并允许滚动，保证任何窗口尺寸下"保存/取消"都点得到。 */
-  max-height: 84vh;
+  /*
+   * 内容可能比触发器高很多（预设行 + 六字段 + 触发预览）：给正文加上限并允许滚动，
+   * 保证任何窗口尺寸下"保存/取消"都点得到。
+   *
+   * 高度上限按"弹层是从页面中部往下浮"来定，不能按整屏算：
+   * 触发器大致在视口中线偏上，可用空间本来就只有视口的一半左右，
+   * 所以取 45vh（900px 高的窗口约 405px）。84vh/60vh 都会让下半截伸出屏幕外。
+   */
+  max-height: 45vh;
   overflow-y: auto;
 }
 
