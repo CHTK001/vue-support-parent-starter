@@ -49,6 +49,55 @@
           @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
       </SettingsRow>
 
+      <!-- 向量库配置：仅 RAG 组 + 管理员（描述器驱动的动态表单，保存到全局层）。
+           后端 /v2/rag/options.vectorStorageOptions 返回每个 SPI 的字段声明，
+           前端据此渲染表单；新增向量库实现无需再改这里。 -->
+      <div v-if="group.group === 'rag' && isAdmin()" class="vector-storage-block">
+        <div class="vs-head">
+          <span class="vs-title">向量库配置</span>
+          <span class="vs-sub">管理员专属 · 保存到全局（所有账号共用）</span>
+        </div>
+        <SettingsRow label="向量库实现" :description="selectedDescriptor?.description" control-flex>
+          <el-select v-model="selectedVectorStorage" class="w-full">
+            <el-option v-for="desc in vectorStorageOptions" :key="desc.name"
+              :label="desc.displayName || desc.name" :value="desc.name">
+              <div class="vs-opt-row">
+                <span>{{ desc.displayName || desc.name }}</span>
+                <span class="vs-opt-sub">{{ desc.name }}</span>
+              </div>
+            </el-option>
+          </el-select>
+        </SettingsRow>
+        <SettingsRow v-for="field in selectedVectorFields" :key="field.key"
+          :label="field.label" :description="field.description"
+          :badge="field.required ? '必填' : undefined" control-flex>
+          <!-- 密码/敏感字段：保存后不回显，留空=保持不变 -->
+          <el-input v-if="field.secret || field.type === 'PASSWORD'"
+            v-model="vectorFormValues[field.key]"
+            type="password" show-password clearable
+            :placeholder="secretPlaceholder(field)" />
+          <!-- 数字 -->
+          <el-input-number v-else-if="field.type === 'NUMBER'"
+            v-model="vectorFormValues[field.key]" class="w-full" />
+          <!-- 开关 -->
+          <el-switch v-else-if="field.type === 'BOOLEAN'"
+            v-model="vectorFormValues[field.key]" />
+          <!-- 下拉 -->
+          <el-select v-else-if="field.type === 'SELECT'" v-model="vectorFormValues[field.key]"
+            class="w-full" clearable>
+            <el-option v-for="opt in (field.options || [])" :key="opt" :label="opt" :value="opt" />
+          </el-select>
+          <!-- 文本（含 PATH：服务器路径，暂以文本输入） -->
+          <el-input v-else v-model="vectorFormValues[field.key]"
+            :placeholder="field.placeholder || ''" clearable />
+        </SettingsRow>
+        <div class="vs-actions">
+          <ReButton type="primary" :loading="vectorConfigSaving" @click="saveVectorConfig">
+            保存向量库配置
+          </ReButton>
+        </div>
+      </div>
+
       <!-- 高级选项：折叠显示 -->
       <el-collapse v-if="hasAdvancedSettings(group)" v-model="activeAdvanced" class="adv-collapse">
         <el-collapse-item :name="group.group">
@@ -204,6 +253,104 @@ const usageParsers = ref([])
 
 // 高级选项展开的分组
 const activeAdvanced = ref([])
+
+// ===================== 向量库配置（描述器驱动的动态表单） =====================
+// 后端 VectorStorageProvider SPI 的 descriptor() 声明每个实现的配置项（键/类型/必填/敏感），
+// /v2/rag/options.vectorStorageOptions 原样下发；前端据此渲染表单——新增向量库实现
+// 后端注册 SPI 即自动出现，无需改这里。保存走 /v2/global-settings（全局层、管理员专属）：
+// 向量库连接是共享基础设施，不属于个人偏好；RagClientManager 读全局值动态建库。
+const vectorStorageOptions = ref([])
+const selectedVectorStorage = ref('')
+const savedVectorConfig = ref({})
+const vectorFormValues = reactive({})
+const vectorConfigSaving = ref(false)
+
+// 当前选中实现的描述器
+const selectedDescriptor = computed(() =>
+    vectorStorageOptions.value.find((d) => d?.name === selectedVectorStorage.value) || null)
+
+// 选中实现的配置字段（无需配置的实现返回空列表，表单区自动隐藏）
+const selectedVectorFields = computed(() => selectedDescriptor.value?.fields || [])
+
+// 敏感字段占位：已保存（后端回掩码）→ 提示留空保持不变；未保存 → 字段自己的提示
+const secretPlaceholder = (field) => {
+    const saved = savedVectorConfig.value[selectedVectorStorage.value]
+    const has = saved && saved[field.key] != null && String(saved[field.key]).trim() !== ''
+    return has ? '已保存（留空保持不变）' : (field.placeholder || '')
+}
+
+// 读取全局设置里的当前向量库与已保存配置（敏感字段后端已掩码为 ******）
+const loadVectorGlobalSettings = async () => {
+    try {
+        const resp = await apiService._request('/global-settings')
+        const data = resp?.data ?? resp ?? {}
+        selectedVectorStorage.value = data.ragVectorStorage || 'jvector'
+        savedVectorConfig.value = data.ragVectorStorageConfig || {}
+        resetVectorFormValues()
+    } catch (error) {
+        console.warn('[设置] 读取全局向量库配置失败:', error?.message || error)
+    }
+}
+
+// 切换向量库或加载完成后，按描述器重置表单值（敏感字段不回显）。
+// BOOLEAN 统一转布尔：描述器默认值是字符串 "true"/"false"，直接用会触发
+// el-switch 的 model-value 类型告警；已保存值可能是 JSON 布尔或字符串，一并归一。
+const resetVectorFormValues = () => {
+    Object.keys(vectorFormValues).forEach((k) => delete vectorFormValues[k])
+    const saved = savedVectorConfig.value[selectedVectorStorage.value] || {}
+    for (const field of selectedVectorFields.value) {
+        if (field.secret) {
+            vectorFormValues[field.key] = ''
+            continue
+        }
+        const raw = saved[field.key] != null ? saved[field.key] : field.defaultValue
+        if (raw == null) {
+            vectorFormValues[field.key] = field.type === 'BOOLEAN' ? false
+                : (field.type === 'NUMBER' ? undefined : '')
+        } else if (field.type === 'BOOLEAN') {
+            vectorFormValues[field.key] = raw === true || String(raw).toLowerCase() === 'true'
+        } else if (field.type === 'NUMBER') {
+            const n = Number(raw)
+            vectorFormValues[field.key] = Number.isNaN(n) ? undefined : n
+        } else {
+            vectorFormValues[field.key] = raw
+        }
+    }
+}
+
+// 切换实现时表单跟着切（描述器变了，字段集合不同）
+watch(selectedVectorStorage, () => resetVectorFormValues())
+
+// 保存：PUT /v2/global-settings（DTO 部分更新；后端拒绝未注册 SPI/未知字段、
+// 敏感字段留空自动保留原值、两层增量合并不抹其它库的配置）。
+// 保存后顺手清掉本人 rag_vector_storage 的个人覆盖——旧界面把它写进过覆盖层，
+// 覆盖层优先级高于全局值，不清掉的话新选择对该账号不生效。
+const saveVectorConfig = async () => {
+    try {
+        vectorConfigSaving.value = true
+        const fields = {}
+        for (const field of selectedVectorFields.value) {
+            const raw = vectorFormValues[field.key]
+            if (raw === '' || raw == null) continue
+            fields[field.key] = raw
+        }
+        const payload = { ragVectorStorage: selectedVectorStorage.value }
+        if (selectedVectorFields.value.length > 0) {
+            payload.ragVectorStorageConfig = { [selectedVectorStorage.value]: fields }
+        }
+        await apiService._request('/global-settings', { method: 'PUT', data: payload })
+        try {
+            await apiService.updateUserGroupOverrides('rag', { rag_vector_storage: null })
+        } catch { /* 个人覆盖清不掉不致命：全局值已保存 */ }
+        notify.success('向量库配置已保存')
+        await loadVectorGlobalSettings()
+    } catch (error) {
+        console.error('保存向量库配置失败:', error)
+        notify.error('保存向量库配置失败', error)
+    } finally {
+        vectorConfigSaving.value = false
+    }
+}
 
 // 模型选择对话框相关
 const modelDialogVisible = ref(false)
@@ -588,6 +735,11 @@ const shouldShowField = (group, field) => {
     if (ENGINE_FIELDS.includes(field)) {
         return false
     }
+    // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），
+    // 这里隐藏通用行，避免出现双入口（下拉值与动态表单各自保存会互相打架）
+    if (group === 'rag' && field === 'rag_vector_storage') {
+        return false
+    }
     return true
 }
 
@@ -786,6 +938,10 @@ const loadLocalModels = async () => {
     try {
         const body = await apiService._request('/rag/options')
         const data = body?.data ?? body ?? {}
+        // 向量库描述器：RAG 组「向量库配置」动态表单的数据源（与本地模型共用一次请求）
+        if (Array.isArray(data.vectorStorageOptions)) {
+            vectorStorageOptions.value = data.vectorStorageOptions
+        }
         const local = []
         const collect = (items, task) => {
             ;(items || []).forEach((it) => {
@@ -1052,6 +1208,10 @@ onMounted(async () => {
     await loadAllGroupValues()
     await loadModels()
     await loadUsageParsers()
+    // 向量库配置：管理员专属（全局层）；放模型加载后——表单字段依赖 /rag/options 的描述器
+    if (isAdmin()) {
+        await loadVectorGlobalSettings()
+    }
 })
 </script>
 
@@ -1079,6 +1239,52 @@ onMounted(async () => {
 .lib-slot-desc {
   font-size: 12px;
   color: var(--el-text-color-secondary, #909399);
+}
+
+/* ============ 向量库配置（描述器驱动的动态表单） ============ */
+.vector-storage-block {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--el-border-color-lighter, #ebeef5);
+}
+
+.vs-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.vs-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.vs-sub {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+/* 下拉候选行：显示名 + SPI 名（区分同名实现） */
+.vs-opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vs-opt-sub {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.vs-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-extra-light, #f2f6fc);
 }
 
 /* ============ 高级选项折叠 ============ */

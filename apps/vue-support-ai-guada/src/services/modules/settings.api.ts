@@ -18,6 +18,15 @@ export interface SettingsApi {
    * 值传 null 表示撤销该字段的本人覆盖（即「重置」，回落到继承值）。
    */
   updateUserGroupOverrides(group: string, data: any): Promise<any>;
+  /**
+   * 读取全局设置（管理员专属）：含 ragVectorStorage / ragVectorStorageConfig（敏感字段已掩码）。
+   */
+  fetchGlobalSettings(): Promise<any>;
+  /**
+   * 更新全局设置（管理员专属）：DTO 部分更新，null 字段不覆盖；向量库配置走
+   * 后端描述器校验（未知 SPI/未知字段拒绝、敏感字段留空保留原值）。
+   */
+  updateGlobalSettings(data: any): Promise<any>;
   fetchWorkspaceBaseDir(): Promise<{ workspaceBaseDir: string | null }>;
   updateWorkspaceBaseDir(workspaceBaseDir: string | null): Promise<{ success: boolean }>;
   queryPlugins(config?: any, lang?: string): Promise<any>;
@@ -50,6 +59,14 @@ export const settingsApi: SettingsApi = {
 
   async updateUserGroupOverrides(this: ApiContext, group: string, data: any) {
     return await this._request(`/settings/${group}/overrides`, { method: "PUT", data });
+  },
+
+  async fetchGlobalSettings(this: ApiContext) {
+    return await this._request("/global-settings");
+  },
+
+  async updateGlobalSettings(this: ApiContext, data: any) {
+    return await this._request("/global-settings", { method: "PUT", data });
   },
 
   async fetchWorkspaceBaseDir(this: ApiContext) {
