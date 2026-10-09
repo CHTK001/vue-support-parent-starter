@@ -1075,43 +1075,18 @@ function useExpressionText(): void {
 /**
  * 弹层的定位修饰符。
  *
- * 这个面板内容高（字段模式约 510px，日历模式约 440px），而它是从表单中部往下浮的：
- * 触发器下方只剩 ~420px、上方 ~470px，两侧都不够，floating-ui 的 flip 判定
- * 「哪边都放不下」后哪儿都不去，于是溢出屏幕底部、并在内部出滚动条 ——
- * 用户要滚到底才够得到「保存」和「应用此时间」。
+ * 面板内容高（字段模式约 680px，日历模式约 440px），而它是从表单中部往下浮的：
+ * 触发器下方只剩 ~420px，floating-ui 的 flip 判定「上下都放不下」后哪儿都不去 ——
+ * 弹层直接溢出屏幕底部，用户要滚到底才够得到「保存」。
  *
- * 所以不用 flip，直接用 offset：下方放不下就把弹层整体上移，让它向上生长。
- * 高度从 DOM 实测而不是写死，因为内容高度随模式（字段/日历）、表达式合法性
- * （错误提示会多一行）变化，写死会在这些情况下算错。
- *
- * 声明在 script 而不是模板内联字面量：内联每次渲染都是新对象，
- * 会让 popper 反复重算定位。
+ * 这里把 flip 关掉，真正的定位由 CSS 接管（见 .re-cron__popper 的 fixed 贴顶规则）：
+ * 与其指望引擎挑一个"放得下"的方向，不如直接固定到视口顶部居中 ——
+ * 面板本来就比视口的一半高，贴顶是唯一能整块露出来的位置。
  */
 const POPPER_OPTIONS = {
   modifiers: [
-    {
-      name: "offset",
-      options: {
-        /*
-         * 注意：floating-ui 的 offset 在 options.offset 是**函数**时会直接拿返回值当
-         * data 用（而不是在默认 placement 结果上叠加增量）。所以这里必须返回绝对
-         * 坐标；早先按增量写 `{x: 0, y: -N}` 会把弹层顶到 (0,0) 去。
-         *
-         * bottom-start 的自然位置是：x 对齐触发器左边、y = 触发器底边。
-         */
-        offset: ({ rects }: { rects: { reference: DOMRect } }) => {
-          const el = document.querySelector<HTMLElement>(".re-cron__popper");
-          const height = el?.offsetHeight ?? 0;
-          const GAP = 8;
-          const x = rects.reference.left;
-          const y = rects.reference.bottom;
-          const below = window.innerHeight - y - GAP;
-          // 下方放不下就整体上移（y 变小），让弹层向上生长；放得下时与普通浮层无异
-          return { x, y: y - Math.max(0, height - below) };
-        },
-      },
-    },
-    { name: "preventOverflow", options: { padding: 8 } },
+    { name: "flip", enabled: false },
+    { name: "preventOverflow", enabled: false },
   ],
 };
 
@@ -1194,11 +1169,9 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
          面板刚开就被关掉（实测：点开 200ms 后自动消失，只留一道闪烁）。 -->
     <ElPopover
       v-model:visible="open"
-      placement="bottom-start"
-      :trigger="[]"
+      placement="top-start"      :trigger="[]"
       :width="480"
       popper-class="re-cron__popper"
-      :fallback-placements="['top-start', 'right-start', 'bottom-start']"
       :popper-options="POPPER_OPTIONS"
     >
       <!--
@@ -2124,8 +2097,24 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /*
+   * flex-wrap + 给 hint 一个基准宽度：早先这里是「提示文字 + 重建按钮」一行 flex，
+   * 但 hint 作为 flex item 没有 min-width/flex-basis，按钮又把可用空间吃掉大半，
+   * 结果文字被压到一两字宽、竖着排成 20 行（实测整块 286px）——
+   * 光这一个块就吃掉弹层高度的四成。允许换行并给 hint 基准宽度后回到两行。
+   */
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 8px;
+}
+
+.re-cron__raw .re-cron__hint {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.re-cron__raw :deep(.el-button) {
+  flex: none;
 }
 
 .re-cron__hint {
@@ -2283,16 +2272,29 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
  * 于是 max-height / overflow 一直是死代码，弹层才会直接伸出屏幕外。
  */
 .re-cron__popper {
+  /*
+   * 定位完全由 CSS 接管：`!important` 用来压过 floating-ui 写在元素上的 inline
+   * 定位样式（inline 非 important 输给 `!important`）。
+   *
+   * 为什么要接管：这块面板比视口的一半还高（字段模式约 680px），而它从表单中部
+   * 往下浮，下方只剩 ~420px。内置策略实测都失效 —— flip 判定「上下都放不下」
+   * 后哪儿都不去、直接溢出屏幕；preventOverflow 的 shift 也拉不回来
+   * （top-start 下仍停在 y=-301）。贴顶居中是唯一能整块露出、无内部滚动条的位置。
+   */
+  position: fixed !important;
+  top: 8px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: translateX(-50%) !important;
+
   max-width: 94vw;
   padding: 8px 12px;
   border-radius: var(--el-popover-border-radius, var(--el-radius-lg, 12px));
   /*
-   * 内容可能比触发器高很多（预设行 + 六字段 + 触发预览）：给正文加上限并允许滚动，
-   * 保证任何窗口尺寸下"保存/取消"都点得到。
-   *
-   * 高度上限只兜"视口本身不够高"的极端情况（弹层已由 offset 向上生长避开触发器）。
-   * 给到接近整屏：正常情况下内容 ~510px 完全放得下，不会触发内部滚动；
-   * 只有窗口矮到连整屏都装不下时才会滚，那本来就是没法解决的。
+   * 高度上限只兜「视口本身不够高」的极端情况。正常内容（~680px）在 900px 高的窗口里
+   * 完全放得下，不会触发内部滚动；只有窗口矮到连整屏都装不下时才会滚。
    */
   max-height: calc(100vh - 16px);
   overflow-y: auto;
