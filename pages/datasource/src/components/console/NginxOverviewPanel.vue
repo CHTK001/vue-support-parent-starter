@@ -1035,7 +1035,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-overview {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 /* ============ 首屏骨架屏 ============ */
@@ -1044,7 +1044,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-skeleton {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
 }
 
 /* el-skeleton 自带的 item 背景在本主题下过淡（实测几乎不可见，只剩本组件自己写的
@@ -1108,7 +1108,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-skel-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 6px;
 }
 
 .ngx-skel-card {
@@ -1266,7 +1266,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 6px;
 }
 
 /* Hero 里的丢弃连接告警：只在真的有丢弃时出现，平时不占位 */
@@ -1622,7 +1622,7 @@ defineExpose({ formatSize, formatNumber, fetchNginxOverview, emit });
 .ngx-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 6px;
 }
 
 @media (max-width: 1100px) {

@@ -1,11 +1,15 @@
 <template>
-  <div class="dsm tel-page">
+  <div class="dsm tel-page sync-tasks">
+    <!-- 页面头：标题 + 生产环境徽标 / 右侧刷新计时 + 刷新按钮 + 新建 -->
     <div class="dsm-toolbar">
       <div class="dsm-toolbar-left">
-        <ReIcon name="Refresh" :size="18" class="dsm-title-icon" />
-        <span class="dsm-title">数据同步</span>
+        <div class="st-page-title">数据同步
+          <span class="st-env-badge">● 生产环境</span>
+        </div>
+        <div class="st-page-sub">管理从数据源到数仓 / 应用的同步任务，监控执行状态与告警</div>
       </div>
-      <div class="dsm-toolbar-right">
+      <div class="dsm-toolbar-right st-head-actions">
+        <span class="st-refreshed">{{ refreshedText || "— 分钟前更新" }}</span>
         <ReButton :loading="loading" @click="refresh">
           <template #icon><ReIcon name="Refresh" /></template>刷新
         </ReButton>
@@ -17,7 +21,7 @@
 
     <!-- ================= 四张 KPI 卡（全部由现有列表字段算出，不新增后端接口） =================
          ReStatCard 只有 #icon 插槽、没有 #extra，所以 sparkline 不用插槽传入，
-         而是与卡片叠放（父级 relative + svg absolute），避免「插槽不存在被静默丢弃」。 -->
+         而是与卡片叠放（父级 relative + svg absolute），避免「插槽不存在被静默丢弃」。-->
     <section class="st-kpi-row">
       <div v-for="k in kpiCards" :key="k.key" class="st-kpi-cell">
         <ReStatCard
@@ -36,6 +40,42 @@
       </div>
     </section>
 
+    <!-- ================= 失败告警横幅：有失败任务才出现；UI 图里的红色条 =================
+         「×」只隐藏本轮展示（bannerDismissed），不碰数据；刷新/数据变化后恢复显示。
+         全部重试 = 对 failedTasks 逐个 run，最后统一 refresh。-->
+    <section v-if="failedTasks.length && !bannerDismissed" class="st-alert" role="alert">
+      <span class="st-alert-bell" aria-hidden="true">
+        <ReIcon name="Bell" :size="18" />
+      </span>
+      <div class="st-alert-body">
+        <div class="st-alert-title">
+          {{ failedTasks.length }} 个任务最近执行失败
+          <el-tag type="danger" effect="dark" size="small" round>需处理</el-tag>
+        </div>
+        <div class="st-alert-chips">
+          <button
+            v-for="t in failedTasks" :key="t.id" type="button"
+            class="st-alert-chip" :title="`查看 ${t.syncTaskName}`"
+            @click="openEdit(t)"
+          >
+            <span class="st-alert-dot" aria-hidden="true" />
+            <span class="st-alert-chip-name">{{ t.syncTaskName }}</span>
+            <span class="st-alert-chip-msg">{{ t.syncTaskLastMessage || "执行失败" }}</span>
+            <ReIcon name="Right" :size="12" />
+          </button>
+        </div>
+      </div>
+      <div class="st-alert-actions">
+        <ReButton :loading="retryingAll" size="small" @click="retryAllFailed">全部重试</ReButton>
+        <button
+          type="button" class="st-alert-close" aria-label="关闭失败提醒"
+          @click="bannerDismissed = true"
+        >
+          <ReIcon name="Close" :size="14" />
+        </button>
+      </div>
+    </section>
+
     <!-- ================= 状态分段筛选 + 写入模式 / 时间范围下拉 ================= -->
     <div class="st-filter-bar">
       <div class="st-segments">
@@ -51,25 +91,38 @@
       <div class="st-filter-right">
         <ReSelect
           v-model="writeModeFilter" class="st-filter-sel"
-          :options="[{ label: '写入模式：全部', value: '' }, ...writeModeOptions]"
+          :options="[{ label: '写入模式：全部', value: 'all' }, ...writeModeOptions]"
         />
         <ReSelect
           v-model="rangeFilter" class="st-filter-sel"
           :options="RANGE_OPTIONS"
         />
-        <span class="st-refreshed">{{ refreshedText }}</span>
+        <el-input
+          v-model="nameFilter" class="st-search" placeholder="搜索任务名称…"
+          aria-label="搜索任务名称" clearable
+        >
+          <template #prefix><ReIcon name="Search" :size="14" /></template>
+        </el-input>
       </div>
     </div>
 
     <div class="st-body">
       <el-table
-        v-loading="loading" :data="filteredTasks" border stripe
+        v-loading="loading" :data="pageTasks" border stripe
         empty-text="没有符合条件的同步任务"
       >
-        <el-table-column label="任务" min-width="210">
+        <el-table-column label="任务" min-width="230">
           <template #default="{ row }">
-            <div class="st-name">{{ row.syncTaskName }}</div>
-            <div class="st-sub">{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
+            <div class="st-task-head">
+              <span class="st-dot" :class="statusOf(row)" aria-hidden="true" />
+              <button
+                type="button" class="st-name st-name-btn"
+                :title="`编辑 ${row.syncTaskName}`" @click="openEdit(row)"
+              >
+                {{ row.syncTaskName }}
+              </button>
+            </div>
+            <div class="st-sub mono">{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
           </template>
         </el-table-column>
         <el-table-column label="数据流向" min-width="250">
@@ -94,7 +147,10 @@
         </el-table-column>
         <el-table-column label="定时" width="150">
           <template #default="{ row }">
-            <span v-if="row.syncTaskCron" class="mono st-cron">{{ row.syncTaskCron }}</span>
+            <template v-if="row.syncTaskCron">
+              <div class="mono st-cron" :title="row.syncTaskCron">{{ cronShort(row.syncTaskCron) }}</div>
+              <div class="st-sub">{{ cronDesc(row.syncTaskCron) }}</div>
+            </template>
             <span v-else class="st-sub">仅手动</span>
           </template>
         </el-table-column>
@@ -115,42 +171,51 @@
               <div class="st-last">
                 <el-tag
                   :type="row.syncTaskLastStatus === 'SUCCESS' ? 'success' : 'danger'"
-                  size="small" effect="plain"
+                  size="small" effect="light" round
                 >
                   {{ row.syncTaskLastStatus === 'SUCCESS' ? '成功' : '失败' }}
                 </el-tag>
-                <span class="st-sub">{{ row.syncTaskLastRunTime }}</span>
+                <span class="st-sub mono">{{ row.syncTaskLastRunTime }}</span>
               </div>
               <div class="st-sub">
                 读 {{ row.syncTaskLastReadCount ?? 0 }} / 写 {{ row.syncTaskLastWriteCount ?? 0 }} 行
                 · {{ formatCost(row.syncTaskLastCostMs) }}
               </div>
-              <div v-if="row.syncTaskLastMessage" class="st-msg" :title="row.syncTaskLastMessage">
-                {{ row.syncTaskLastMessage }}
+              <div v-if="row.syncTaskLastMessage" class="st-msg st-msg-fail" :title="row.syncTaskLastMessage">
+                <ReIcon name="Warning" :size="12" />{{ row.syncTaskLastMessage }}
               </div>
             </template>
             <span v-else-if="row.syncTaskEnabled !== 1" class="st-sub">已停用调度</span>
             <span v-else class="st-sub">尚未执行</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="172" fixed="right" align="center">
+        <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
-            <ReButton
-              :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1" title="立即执行"
-              @click="run(row)" circle
-            >
-              <template #icon><ReIcon name="VideoPlay" /></template>
-            </ReButton>
-            <ReButton title="编辑" circle @click="openEdit(row)">
-              <template #icon><ReIcon name="EditPen" /></template>
-            </ReButton>
-            <ReButton title="删除" circle type="danger" @click="remove(row)">
-              <template #icon><ReIcon name="Delete" /></template>
-            </ReButton>
+            <div class="st-acts">
+              <ReButton
+                :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1" title="立即执行"
+                class="st-act" link @click="run(row)"
+              >
+                <template #icon><ReIcon name="VideoPlay" /></template>
+              </ReButton>
+              <ReButton title="编辑" class="st-act" link @click="openEdit(row)">
+                <template #icon><ReIcon name="EditPen" /></template>
+              </ReButton>
+              <ReButton title="删除" class="st-act st-act-del" link @click="remove(row)">
+                <template #icon><ReIcon name="Delete" /></template>
+              </ReButton>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-      <div class="st-foot">显示 {{ filteredTasks.length }} 条，共 {{ tasks.length }} 个同步任务</div>
+      <div class="st-foot">
+        <span>显示 {{ pageStart }}-{{ pageEnd }} 条，共 {{ tasks.length }} 个同步任务</span>
+        <el-pagination
+          v-model:current-page="pageNo" :page-size="PAGE_SIZE" :total="filteredTasks.length"
+          :pager-count="5" size="small" background layout="prev, pager, next"
+          aria-label="同步任务分页"
+        />
+      </div>
     </div>
 
     <ReDialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="920px" :close-on-click-modal="false">
@@ -484,7 +549,7 @@
  * @author CH
  * @since 4.0.0.43
  */
-import { computed, onMounted, onUnmounted, reactive, ref, type Component } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CircleCheck, Files, Loading, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
@@ -872,8 +937,13 @@ const STATUS_SEGMENTS: Array<{ key: StatusKey; label: string }> = [
 ];
 /** 当前状态分段 */
 const statusFilter = ref<StatusKey>("all");
-/** 写入模式筛选，空=全部 */
-const writeModeFilter = ref("");
+/** 写入模式筛选：'all'=全部（空串会被 el-select 当未选择，显示「请选择」而非选项文案） */
+const writeModeFilter = ref("all");
+/** 任务名称搜索（UI 图右上搜索框；e2e 对照的「不匹配即归零」口径同样经过它） */
+const nameFilter = ref("");
+/** 分页：UI 图底部分页；e2e 的行数口径按「当前页行数」+ 徽标仍按全过滤集 */
+const pageNo = ref(1);
+const PAGE_SIZE = 8;
 /** 时间范围筛选，默认「全部时间」：默认就按 24 小时裁会让「全部 10」只显示 7 行，计数与表格对不上 */
 const rangeFilter = ref("all");
 const RANGE_OPTIONS = [
@@ -898,6 +968,10 @@ const refreshedText = computed(() => {
 });
 /** 写入模式下拉项（来自字典，附「全部」项已在模板里单独给） */
 const writeModeOptions = computed(() => writeModes.value.map(m => ({ label: m.label, value: m.code })));
+/** 筛选条件变化 → 回到第 1 页（分页口径下换筛选停在空页尾是假象） */
+watch([statusFilter, writeModeFilter, rangeFilter, nameFilter], () => {
+  pageNo.value = 1;
+});
 
 /** 运行中的任务：本地点击「立即执行」期间标记，后端无 RUNNING 状态字段 */
 const runningIds = ref<Set<number>>(new Set());
@@ -943,14 +1017,21 @@ function inRange(row: SyncTask): boolean {
   if (t == null || ms == null) return true;
   return Date.now() - t <= ms;
 }
-/** 基础集：写入模式 + 时间范围两道与状态无关的过滤 */
+/** 基础集：写入模式 + 时间范围 + 名称搜索三道与状态无关的过滤 */
 const baseTasks = computed(() => tasks.value.filter(row =>
-  (!writeModeFilter.value || row.syncTaskWriteMode === writeModeFilter.value) && inRange(row),
+  (writeModeFilter.value === "all" || row.syncTaskWriteMode === writeModeFilter.value)
+  && inRange(row)
+  && (!nameFilter.value.trim() || (row.syncTaskName || "").toLowerCase().includes(nameFilter.value.trim().toLowerCase())),
 ));
 /** 表格实际数据源：基础集再按状态分段收一道 */
 const filteredTasks = computed(() => baseTasks.value.filter(row =>
   statusFilter.value === "all" || statusOf(row) === statusFilter.value,
 ));
+/** 当前页切片；筛选条件变化时回到第 1 页（watch 见下方） */
+const pageTasks = computed(() => filteredTasks.value.slice((pageNo.value - 1) * PAGE_SIZE, pageNo.value * PAGE_SIZE));
+/** 页脚「显示 a-b 条」 */
+const pageStart = computed(() => (filteredTasks.value.length ? (pageNo.value - 1) * PAGE_SIZE + 1 : 0));
+const pageEnd = computed(() => Math.min(pageNo.value * PAGE_SIZE, filteredTasks.value.length));
 
 /** 今日成功率：今日有执行记录的任务里成功占比；无今日执行则为 null（显示「—」，不伪造 100%） */
 const todayRate = computed<number | null>(() => {
@@ -971,6 +1052,70 @@ function globalCount(key: StatusKey): number {
   if (key === "all") return tasks.value.length;
   return tasks.value.filter(t => statusOf(t) === key).length;
 }
+/**
+ * Spring 6 段 cron → 中文一句话（定时列第二行，UI 图里的「每 5 分钟」）。
+ *
+ * <p>只解析演示数据里出现的形状（秒 分 时 日 月 周），不追求完整 cron 语义：
+ * 其它形状原样回显 cron，不伪造中文。</p>
+ *
+ * @param expr cron 表达式
+ */
+function cronDesc(expr?: string | null): string {
+  const raw = (expr || "").trim().split(/\s+/);
+  // Quartz/Spring 常见第 7 段是年份（如 "2099"）：中文描述只看前 6 段的调度语义
+  const parts = raw.length === 7 ? raw.slice(0, 6) : raw;
+  if (parts.length !== 6) return "";
+  const [sec, min, hour, dom, mon, dow] = parts;
+  if (sec === "0" && dom === "*" && mon === "*" && dow === "?") {
+    if (min !== "*" && hour === "*") {
+      const stepMin = /^0\/(\d+)$/.exec(min);
+      if (stepMin) return `每 ${stepMin[1]} 分钟`;
+    }
+    if (/^\d+$/.test(min) && hour === "*") return `每 1 小时`;
+    if (/^\d+$/.test(min) && /^\d+$/.test(hour)) return `每天 ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+    if (/^\d+$/.test(min) && /^0\/(\d+)$/.test(hour)) return `每 ${/^0\/(\d+)$/.exec(hour)![1]} 小时`;
+  }
+  if (sec === "0" && /^\d+$/.test(min) && /^\d+$/.test(hour) && /^\d+$/.test(dom) && mon === "*" && dow === "?") {
+    return `每月 ${dom} 日 ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+  }
+  if (sec === "0" && /^\d+$/.test(min) && /^\d+$/.test(hour) && dom === "?" && mon === "*" && /^\d+$/.test(dow)) {
+    return `每周${"日一二三四五六"[Number(dow) % 7]} ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+  }
+  return "";
+}
+
+/**
+ * cron 显示用短式：7 段（带年份）只显示前 6 段调度语义，全文落在 title。
+ * @param expr cron 表达式
+ */
+function cronShort(expr?: string | null): string {
+  const raw = (expr || "").trim().split(/\s+/);
+  return (raw.length === 7 ? raw.slice(0, 6) : raw).join(" ");
+}
+
+/** 失败任务（全量口径：横幅与全部重试的输入，不随筛选跳动） */
+const failedTasks = computed(() => tasks.value.filter(t => statusOf(t) === "failed"));
+/** 横幅本轮是否被手动关闭 */
+const bannerDismissed = ref(false);
+/** 全部重试进行中 */
+const retryingAll = ref(false);
+/**
+ * 全部重试：对失败任务逐个立即执行，最后统一刷新。
+ * @returns 是否全部成功
+ */
+const retryAllFailed = async (): Promise<void> => {
+  if (!failedTasks.value.length || retryingAll.value) {
+    return;
+  }
+  retryingAll.value = true;
+  try {
+    for (const t of failedTasks.value) {
+      await run(t);
+    }
+  } finally {
+    retryingAll.value = false;
+  }
+};
 /** 失败任务数（全量口径） */
 const failedCount = computed(() => globalCount("failed"));
 /** 已停用任务数 */
@@ -1046,7 +1191,7 @@ interface KpiCard {
   key: string; title: string; value: string; desc: string;
   icon: Component; color: string; spark: number[];
 }
-/** 四张 KPI 卡 */
+/** 四张 KPI 卡（标题/字段口径保持 e2e 契约：4 卡 + .re-stat-card__title 文案不变） */
 const kpiCards = computed<KpiCard[]>(() => {
   const enabled = tasks.value.filter(t => t.syncTaskEnabled === 1).length;
   const disabled = disabledCountOf();
@@ -1155,6 +1300,9 @@ const refresh = async () => {
     // 「N 分钟前更新」的时间戳；顺手清掉已结束的执行中标记
     refreshedAt.value = Date.now();
     runningIds.value = new Set();
+    // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）、分页回到第 1 页
+    bannerDismissed.value = false;
+    pageNo.value = 1;
   } catch (e) {
     ElMessage.error("加载同步任务失败：" + (e as Error)?.message);
   } finally {
@@ -1628,15 +1776,65 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.st-body { padding: 0 16px 16px; }
+/* ==================== 页面底 ==================== */
+/* koi 变量口径：--bg-page 页面底 / --bg-container 卡面 / --border-subtle 柔和边框 /
+   --text-primary/secondary/tertiary 三档文本 / --el-color-* 语义色（主题色联动） */
+.sync-tasks {
+  background: var(--bg-page);
+  min-height: 100%;
+  padding-bottom: 16px;
+}
+.sync-tasks .dsm-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 4px;
+}
+.sync-tasks .dsm-toolbar-left,
+.sync-tasks .dsm-toolbar-right { flex: none; }
+.st-page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.st-env-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+  border: 1px solid var(--el-color-success-light-7);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.st-page-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.st-head-actions { gap: 12px; }
+.st-body {
+  margin: 0 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-container);
+  padding: 0 0 12px;
+  overflow: hidden;
+}
 
 /* ==================== KPI 卡 ==================== */
 /* 卡面规格交给 ReStatCard，这里只负责四卡等宽排布与卡内 sparkline 的落位 */
 .st-kpi-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding: 0 16px 12px;
+  gap: 16px;
+  padding: 14px 24px 16px;
 }
 .st-spark {
   position: absolute;
@@ -1662,6 +1860,92 @@ onUnmounted(() => {
   .st-kpi-row { grid-template-columns: 1fr; }
 }
 
+/* ==================== 失败告警横幅（UI 图红色条） ==================== */
+.st-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0 24px 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--el-color-danger-light-7);
+  background: var(--el-color-danger-light-9);
+}
+.st-alert-bell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--el-color-white);
+  background: var(--el-color-danger);
+}
+.st-alert-body { flex: 1; min-width: 0; }
+.st-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-color-danger);
+}
+.st-alert-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.st-alert-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 6px 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--el-color-danger-light-7);
+  background: var(--el-color-white);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.st-alert-chip:hover { border-color: var(--el-color-danger); }
+.st-alert-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-danger);
+  flex-shrink: 0;
+}
+.st-alert-chip-name { font-weight: 600; white-space: nowrap; }
+.st-alert-chip-msg {
+  color: var(--el-color-danger);
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.st-alert-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.st-alert-close:hover { color: var(--text-primary); background: var(--el-color-danger-light-8); }
+
 /* ==================== 状态分段筛选 ==================== */
 .st-filter-bar {
   display: flex;
@@ -1669,14 +1953,14 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 0 16px 12px;
+  padding: 0 24px 12px;
 }
 .st-segments {
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 3px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
 }
@@ -1684,9 +1968,9 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   cursor: pointer;
   font-size: 13px;
@@ -1696,7 +1980,8 @@ onUnmounted(() => {
 .st-seg:hover { color: var(--text-primary); }
 .st-seg.on {
   background: var(--el-color-primary);
-  color: #fff;
+  color: var(--el-color-white);
+  font-weight: 600;
 }
 .st-seg-count {
   font-size: 12px;
@@ -1707,13 +1992,47 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: none;
 }
-.st-filter-sel { width: 168px; }
+/* 必须用 :deep 抬高特异性并落在**后代**上：ReSelect 根同时挂自己的 data-v，
+   父级 data-v 回落属性不保证在它身上（实测 .st-filter-sel[data-v-父] 匹配不上、
+   被 .re-select{width:auto} 压到 46px 只剩箭头）。:deep 编译成
+   `.st-filter-right[data-v-x] .st-filter-sel`，只认父容器的 scope，稳定命中。 */
+.st-filter-right :deep(.st-filter-sel) { width: 168px; flex: none; }
+/* el-input 根（span.el-input）会被 flex 压缩：显式 flex:none 保住 240px（实测曾被压到 84px） */
+.st-filter-right :deep(.st-search) { width: 240px; flex: none; }
 .st-refreshed {
   font-size: 12px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
+
+/* ==================== 表格行 ==================== */
+.st-task-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.st-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-tertiary);
+}
+.st-dot.running { background: var(--el-color-primary); }
+.st-dot.success { background: var(--el-color-success); }
+.st-dot.failed { background: var(--el-color-danger); }
+.st-dot.disabled { background: var(--el-border-color); }
+.st-name-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+}
+.st-name-btn:hover { color: var(--el-color-primary); }
 
 /* ==================== 数据流向 chip ==================== */
 .st-flow {
@@ -1725,11 +2044,11 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: 130px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-container);
+  max-width: 140px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-fill);
   font-size: 12px;
   color: var(--text-primary);
   font-family: "JetBrains Mono", "Consolas", monospace;
@@ -1739,8 +2058,23 @@ onUnmounted(() => {
 }
 .st-flow-arrow { color: var(--text-tertiary); flex-shrink: 0; }
 
+/* 操作列：UI 图是行内文字图标按钮（flex nowrap：EP 按钮默认 inline，三个排不下会折行） */
+.st-acts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.st-act { padding: 4px; font-size: 15px; }
+.st-act-del { color: var(--el-color-danger); }
+
 .st-foot {
-  padding: 10px 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 0;
   font-size: 12px;
   color: var(--text-tertiary);
 }
@@ -1751,9 +2085,10 @@ onUnmounted(() => {
 .st-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .st-sub { font-size: 12px; color: var(--text-tertiary); }
 .st-sql { font-size: 12px; color: var(--text-secondary); }
-.st-cron { font-size: 12px; color: var(--brand-600); }
+.st-cron { font-size: 12px; color: var(--el-color-primary); }
 .st-last { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
 .st-msg { margin-top: 2px; font-size: 12px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-msg-fail { color: var(--el-color-danger); display: flex; align-items: center; gap: 4px; }
 .st-form { display: flex; flex-direction: column; gap: 14px; max-height: 62vh; overflow-y: auto; padding-right: 6px; }
 .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .st-form-item { display: flex; flex-direction: column; gap: 6px; }

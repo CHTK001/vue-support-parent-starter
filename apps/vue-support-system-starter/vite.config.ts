@@ -1,9 +1,16 @@
+import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 import { createVite } from "../../turbo/vite/createVite.ts";
 
 export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
   publicDir: "../../public",
+  plugins: [
+    // 文件预览（@file-viewer）资源接入：与 monitor / standalone / ai-guada 一致。
+    //   - copyAssets 把渲染器 worker/wasm/字体复制到工作区根 public（本应用 publicDir 指向它）；
+    //   - 渲染器注册由 PreviewOfficePanel 显式传 preset 完成，inject:false 不注入虚拟模块。
+    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
+  ],
   /*
    * CSS 压缩器切换：vite(rolldown) 默认用 lightningcss 压缩，本仓库在「合并后的样式」上会报
    * `Unexpected token Semicolon`（逐文件压缩、以及 dist 里 102 个 CSS 产物全部累加后压缩都复现不到，
@@ -31,11 +38,32 @@ export default createVite({
   server: {
     port: 8096,
     strictPort: true,
+    watch: {
+      // 插件每次 dev 启动都会 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体）。
+      // Windows 下 chokidar 对仍在写入的大文件建 fs.watch → EBUSY → dev 进程崩溃，
+      // 而监听这些插件生成的只读资产没有意义，故从 watcher 排除（与 monitor 同口径）。
+      ignored: [
+        (p: string) =>
+          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+      ],
+    },
     proxy: {
       // 系统管理控制台后端：部署在 192.168.50.198 的 API（context-path /system/api）。
       // 前端本地跑，后端在 198，故代理指向远端而不是 localhost。
+      // SYSTEM_API_TARGET 可覆盖：本机若有 18170 隧道/本地实例保持默认，
+      // E2E 等直连 198 场景用 SYSTEM_API_TARGET=http://192.168.50.198:18170。
       "/system/api": {
-        target: "http://127.0.0.1:18170",
+        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        changeOrigin: true,
+      },
+      // 文件存储服务器：pdf.js viewer 入口 /preview-vendor/* 是 FileStorageServerFilter
+      // 的 classpath 静态资源。注意它只在 18082 上托管（18080 只有 /local /ot 等桶 API，
+      // /preview-vendor 404），故默认指向 18082。本应用文件内容由 localStorage 直连
+      // 后端（18080），但 viewer.html 是同源路径，不代理会在 dev 下 404、
+      // 原生 PDF 预览白屏（与 monitor 同口径）。
+      "/preview-vendor": {
+        target: process.env.FS_API_TARGET ?? "http://192.168.50.198:18082",
         changeOrigin: true,
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）

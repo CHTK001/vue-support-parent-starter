@@ -51,6 +51,10 @@
  * 引擎专属能力（element 无等价物，element 下忽略并在 dev 提示）：
  *   - virtualScroll：vxe 纵向虚拟滚动，需配合 layout-table 的 height / maxHeight
  *   - areaSelect / areaClip：vxe 单元格区域选择与复制 / 粘贴 / 剪切
+ *   - paginationMode="scroll"：滚动分页（基于 vxe 内置 scroll-boundary 触底事件，
+ *     触底自动追加下一批；本地数据按 pageSize 逐步放出、远程 loader 按页追加）。
+ *     paginationModeSwitch 打开后工具条出现「分页 / 滚动」切换器，选择随 tableId 持久化；
+ *     前提是表格有内部纵向滚动（fill / height / maxHeight），状态条保留点击兜底
  *
  * 事件：
  *   - row-click / cell-click / selection-change
@@ -112,6 +116,7 @@ import type {
   ReViewLayoutProps,
   EditOptionValue,
   RePageResult,
+  RePaginationMode,
   ReTableColumn,
   ReTableColumnState,
   ReTableFullState,
@@ -208,6 +213,32 @@ const props = withDefaults(
     pageSize?: number;
     /** 每页条数选项 */
     pageSizes?: number[];
+    /**
+     * 分页方式："pager"（默认）= 页码 + 每页条数菜单；"scroll" = 滚动分页：
+     * 隐藏分页菜单，表格滚到底部自动追加下一批（本地数据按 pageSize 逐步放出，
+     * 远程 loader 按页取数追加）。
+     *
+     * <p><b>vxe 引擎专属</b>：element 引擎没有等价的触底事件，传 "scroll" 时
+     * 回落为页码分页并在 dev 下提示。</p>
+     *
+     * <p><b>前提</b>：表格要有内部纵向滚动（fill 模式 / layout-table 的 height /
+     * maxHeight），页面滚动条触底不会触发；分页行保留「点击加载更多」兜底。</p>
+     */
+    paginationMode?: RePaginationMode;
+    /**
+     * 是否在工具条渲染「分页 / 滚动」切换器（默认 false，页面显式开启）。
+     *
+     * <p>与 {@link layoutSwitch} 同一档设计：不是所有页面都适合滚动分页
+     * （数据量小、需要页码跳转的场景），入口由页面决定，不由组件替它决定。</p>
+     */
+    paginationModeSwitch?: boolean;
+    /**
+     * 用户切换的分页方式是否跨会话持久化（写 localStorage，默认 true）。
+     *
+     * <p>与 {@link layoutPersist} 同一语义：false 时 {@code paginationMode} 永远优先，
+     * 适合业务上固定要某种分页方式的页面。</p>
+     */
+    paginationModePersist?: boolean;
     /** 远程模式：自动随 params / page / pageSize 重新加载 */
     autoReload?: boolean;
     /** 表格唯一标识；传入后列配置（顺序 / 隐藏）会持久化 */
@@ -473,6 +504,9 @@ const props = withDefaults(
     page: 1,
     pageSize: 50,
     pageSizes: () => [20, 50, 100],
+    paginationMode: "pager",
+    paginationModeSwitch: false,
+    paginationModePersist: true,
     autoReload: true,
     tableId: "",
     storage: undefined,
@@ -527,6 +561,12 @@ const emit = defineEmits<{
   (e: "update:page", page: number): void;
   (e: "update:pageSize", size: number): void;
   (e: "update:total", total: number): void;
+  (e: "update:paginationMode", mode: RePaginationMode): void;
+  /**
+   * 滚动分页每追加一批后触发（首批走 load 事件，不在这里重复）。
+   * records 是本批新增行，total 是接口最新总数。
+   */
+  (e: "load-more", payload: { page: number; records: Array<Record<string, unknown>>; total: number }): void;
   (e: "update:settings", settings: ReTableSettings): void;
   (e: "row-click", row: Record<string, unknown>): void;
   (e: "cell-click", payload: ReTableCellClickPayload): void;
@@ -697,6 +737,29 @@ watch(
   () => props.pageSize,
   (v) => {
     if (typeof v === "number") internalPageSize.value = clampPageSize(v, "props.page-size");
+  },
+);
+
+/**
+ * 当前生效的分页方式（"pager" 页码菜单 / "scroll" 滚动加载）。
+ *
+ * <p>声明在 pagedRows / buildRemoteSource / loadColumnState 之前：这三处在
+ * setup 期间就可能读到它（useDataSource 的 immediate 首取会跑 buildRemoteSource、
+ * loadColumnState 在 immediate watch 里恢复存档），放后面会撞 TDZ。</p>
+ *
+ * <p>取值来源两条：props.paginationMode（受控，缺省 pager）；存档恢复——
+ * 仅当 {@code paginationModeSwitch} 开着（页面给了用户切换入口）且
+ * {@code paginationModePersist !== false} 时，localStorage 里的历史选择优先于
+ * props，尊重用户偏好（与 activeLayout 同一套语义）。</p>
+ */
+const activePaginationMode = ref<RePaginationMode>(
+  props.paginationMode === "scroll" ? "scroll" : "pager",
+);
+/** props.paginationMode 变化时跟随（受控场景） */
+watch(
+  () => props.paginationMode,
+  (val) => {
+    activePaginationMode.value = val === "scroll" ? "scroll" : "pager";
   },
 );
 
@@ -1123,6 +1186,125 @@ const elTableRef = ref<TableInstanceHandle | null>(null);
  * 保证插槽式用法（采集/阅卷/数据配置等存量页面）不因默认引擎切换而白屏。</p>
  */
 const useVxe = computed<boolean>(() => props.engine === "vxe" && !!props.columns?.length);
+
+/* ==================== 滚动分页（paginationMode="scroll"） ==================== */
+/*
+ * 设计要点（为什么这样切状态）：
+ *  - useDataSource 是**整页替换**语义（每次 resolve 都 data.value = next），
+ *    追加的批次不能进 dataList，否则一次失败/刷新就把已加载的行全清掉；
+ *    所以独立放 scrollAppendedRows，首批仍走 dataList，两条互不干扰。
+ *  - reset 的锚点是「首批数据重新落地」（watch dataList）：翻页、换查询条件、
+ *    刷新、切回页码模式，最终都会让 useDataSource 换一批新数据，一个 watch 全覆盖，
+ *    不用在每个重载入口各写一遍清空（漏一处就是「新条件 + 旧行混排」）。
+ *  - 竞态用代际号（scrollGeneration）：追加请求在飞时用户改了条件/切了模式，
+ *    迟到的响应按代际丢弃，不污染新一轮的首批。useDataSource 内部的 seq
+ *    守卫不了这条路径——追加根本不经过它。
+ */
+
+/** 滚动模式已加载到第几批（首批 = 1，即 dataList 那批） */
+const scrollPage = ref(1);
+/** 远程模式：第 2 批起追加的行（本地模式不用它，直接按 scrollPage * pageSize 放出） */
+const scrollAppendedRows = ref<Array<Record<string, unknown>>>([]);
+/** 远程模式：最近一批拉到的行数（total 缺失时用它判断「可能还有」） */
+const scrollLastBatchCount = ref(0);
+/** 服务端 total 不可信 / 不返回时的「到底」标记（拉到空批即置位） */
+const scrollExhausted = ref(false);
+/** 追加中标志：与 dataLoading 分开——追加不该闪全表 loading 遮罩 */
+const scrollLoadingMore = ref(false);
+/** 代际号：reset 时 +1，让在飞追加的响应作废 */
+let scrollGeneration = 0;
+
+/**
+ * 触底提前量（px）：传给 vxe virtual-y-config.threshold。
+ * vxe 源码用它算 isBottomBoundary（scrollTop + bodyHeight >= scrollHeight - threshold），
+ * 提前 120px 触发，用户不用滚到像素级最底才等加载，体感更接近原生无限列表。
+ * 只传 threshold 不传 enabled 不会启用虚拟滚动（源码 table.ts:4421 单独判断 enabled）。
+ */
+const SCROLL_BOUNDARY_THRESHOLD = 120;
+
+/**
+ * 滚动分页是否生效。
+ *
+ * <p>三个条件都满足才生效：pagination 开着（它是「分页方式」的一种，不分页的表格
+ * 本来就全量直出）、模式选了 scroll、vxe 引擎（element 没有触底事件，回落页码分页）。
+ * useVxe 为 false 时 activePaginationMode 可能仍是 "scroll"，但本计算属性为 false，
+ * 分页菜单照常渲染——这是刻意的优雅降级，不是状态不一致。</p>
+ */
+const isScrollPaging = computed<boolean>(
+  () => props.pagination === true && activePaginationMode.value === "scroll" && useVxe.value,
+);
+
+/** 滚动模式下已加载的行数（本地 = 已放出的行数；远程 = 首批 + 追加） */
+const scrollLoadedCount = computed<number>(() => {
+  if (isRemote.value) {
+    return (dataList.value?.length ?? 0) + scrollAppendedRows.value.length;
+  }
+  const size = currentPageSize.value;
+  return Math.min(Math.max(1, scrollPage.value) * size, dataList.value?.length ?? 0);
+});
+
+/**
+ * 还有没有下一批可加载。
+ *
+ * <p>远程模式优先信接口 total；total 没给（<=0）时退化为「上一批拉满了就认为可能还有」，
+ * 拉到空批立即置 scrollExhausted 收口，不死循环。</p>
+ */
+const hasMoreInScroll = computed<boolean>(() => {
+  if (!isScrollPaging.value || scrollExhausted.value) return false;
+  if (isRemote.value) {
+    if (remoteTotal.value > 0) return scrollLoadedCount.value < remoteTotal.value;
+    const lastCount = scrollAppendedRows.value.length
+      ? scrollLastBatchCount.value
+      : (dataList.value?.length ?? 0);
+    return lastCount >= currentPageSize.value;
+  }
+  return scrollLoadedCount.value < (dataList.value?.length ?? 0);
+});
+
+/** 滚动分页回到起点（重置 = 清追加 + 回第 1 批 + 作废在飞请求） */
+function resetScrollPaging(): void {
+  scrollGeneration++;
+  scrollPage.value = 1;
+  scrollAppendedRows.value = [];
+  scrollLastBatchCount.value = 0;
+  scrollExhausted.value = false;
+  scrollLoadingMore.value = false;
+}
+
+/**
+ * 分页方式切换的副作用收口（用户点切换器 / 受控改 props / 存档恢复，都走这里）。
+ *
+ * <p>进滚动模式固定从第 1 批开始：页码归 1（翻页 watcher 顺带 emit + 重新取数），
+ * 否则「在页码模式翻到第 3 页再切滚动」会把第 3 页当首批、后续批次全错位。
+ * 出滚动模式同样 reset——已追加的行属于滚动会话，页码模式不认。</p>
+ *
+ * <p>isRestoringState 时跳过：存档恢复本来就是要到的那个状态，重取一遍纯属浪费
+ * （首批在 setup 期的 immediate 取数里已经按目标模式拉好了）。</p>
+ */
+watch(activePaginationMode, (val, old) => {
+  if (val === old || isRestoringState) return;
+  resetScrollPaging();
+  if (val === "scroll" && internalPage.value !== 1) {
+    internalPage.value = 1;
+    emit("update:page", 1);
+  } else if (isRemote.value && props.autoReload) {
+    nextTick(() => { void dsReload(); });
+  }
+  if (props.paginationModeSwitch === true && props.paginationModePersist !== false) {
+    saveColumnState();
+  }
+});
+
+/** element 引擎不支持滚动分页：开启只提示，不假装生效（与 virtualScroll 同一策略） */
+watch(
+  [() => props.paginationMode, useVxe],
+  ([mode, vxe]) => {
+    if (mode === "scroll" && !vxe && import.meta.env.DEV) {
+      console.warn("[ReTable] 滚动分页仅 vxe 引擎支持（columns 属性声明列），当前为 element 引擎，已回落为页码分页。");
+    }
+  },
+  { immediate: true },
+);
 
 /**
  * 让表格按当前容器宽度重新计算列宽。
@@ -1883,6 +2065,16 @@ const localRows = computed<Array<Record<string, unknown>>>(() =>
  * pagination 为 false 时不分页，返回全量。</p>
  */
 const pagedRows = computed<Array<Record<string, unknown>>>(() => {
+  // 滚动分页：本地按 scrollPage * pageSize 逐步放出；远程 = 首批(dataList) + 追加批次。
+  // 序号/选中/拖拽快照都消费本计算属性，切换分页方式对它们零感知。
+  if (isScrollPaging.value) {
+    const all = dataList.value ?? [];
+    if (isRemote.value) {
+      return scrollAppendedRows.value.length ? [...all, ...scrollAppendedRows.value] : all;
+    }
+    const size = currentPageSize.value;
+    return all.slice(0, Math.max(1, scrollPage.value) * size);
+  }
   if (isRemote.value || !props.pagination) return dataList.value ?? [];
   const all = dataList.value ?? [];
   const size = currentPageSize.value;
@@ -2056,7 +2248,27 @@ function loadColumnState(): void {
     let restoredPage = false;
     try {
       const full = saved as ReTableFullState;
-        if (typeof full.page === "number") { emit("update:page", full.page); restoredPage = true; }
+      // 分页方式存档：仅 switch 开启（页面给了用户切换入口）且持久化未关闭时恢复。
+      // 与 layout 同语义——开关关闭意味着「业务上固定」，存档的脏历史不干扰；
+      // 但开关开着、用户曾经选过，下次应回到上次习惯。
+      if (
+        props.paginationModeSwitch === true &&
+        props.paginationModePersist !== false &&
+        (full.paginationMode === "pager" || full.paginationMode === "scroll")
+      ) {
+        activePaginationMode.value = full.paginationMode;
+      }
+      if (typeof full.page === "number") {
+        if (activePaginationMode.value === "scroll") {
+          // 滚动模式固定从第 1 批开始：不恢复历史页码（那批数据已在首批里），只归位
+          // 内部状态，让翻页 watcher 顺带把页面状态也对齐一下。首批已在 setup 期立即取数阶段按
+          // buildRemoteSource 的 isScrollPaging 分支拿到第 1 批了，这里不用再来一次。
+          internalPage.value = 1;
+          emit("update:page", 1);
+        } else {
+          emit("update:page", full.page);
+          restoredPage = true;
+        }
         // pageSize 需校验档位：默认档位调整后，老用户 localStorage 里存的旧值（如 10）
         // 不在 pageSizes 中，若照搬会渲染出「分页器档位」与「实际每页条数」不一致的界面
         if (typeof full.pageSize === "number" && isAllowedPageSize(full.pageSize)) {
@@ -2064,6 +2276,7 @@ function loadColumnState(): void {
           // 只靠上面的档位校验挡不住（pageSizes 为空时 isAllowedPageSize 恒真）
           emit("update:pageSize", clampPageSize(full.pageSize, "localStorage 存档"));
         }
+      }
       if (full.settings) {
         localSettings.value = { ...localSettings.value, ...full.settings };
         emitSettings();
@@ -2092,6 +2305,9 @@ function saveColumnState(): void {
     ...columnState.value,
     page: props.page,
     pageSize: props.pageSize,
+    ...(props.paginationModeSwitch === true && props.paginationModePersist !== false
+      ? { paginationMode: activePaginationMode.value }
+      : {}),
     settings: localSettings.value,
     layout: activeLayout.value,
   };
@@ -2226,34 +2442,56 @@ function resetColumns(): void {
  */
 const vxeColumnKey = computed<string>(() => columnState.value.order.join("|"));
 
-/** 远程（后端分页）数据加载 */
+/**
+ * 远程 loader 的最小调用封装：合并 params + page/pageSize → 调 fn → 解出记录与 total。
+ *
+ * <p>抽出来是因为「首批」（buildRemoteSource）与「滚动追加」（loadMoreForScroll）
+ * 两处都走同样的合并/解包逻辑——复制一份就会出现「翻页合并规则改了改一处、滚动又漏了」
+ * 这类难查的分叉。emits 放在外面做：首发走 load/update:total，追加走 load-more，
+ * 二者共享纯数据逻辑。</p>
+ */
+async function callLoader(
+  page: number,
+  size: number,
+): Promise<{ result: RePageResult; records: Array<Record<string, unknown>>; total: number }> {
+  /** params 是页面显式声明的查询对象（提交快照），优先级高于搜索区的实时草稿值 */
+  const paramObj = { ...(props.searchModel ?? {}), ...(props.params ?? {}) };
+  const loadParams: ReTableLoadParams = {
+    page,
+    pageSize: size,
+    params: { ...paramObj, page, pageSize: size },
+  };
+  const fn = typeof props.data === "function" ? props.data : props.loader;
+  if (typeof fn !== "function") throw new Error("未提供 loader（或 data 传函数）");
+  const result = await fn(loadParams);
+  if (!result) throw new Error("未获取到分页数据");
+  return {
+    result,
+    records: extractRecords(result),
+    total: Number(result.total ?? 0),
+  };
+}
+
+function extractRecords(result: RePageResult): Array<Record<string, unknown>> {
+  for (const key of ["records", "rows", "list", "items", "content", "data"] as const) {
+    if (Array.isArray(result[key])) return result[key] as Array<Record<string, unknown>>;
+  }
+  return [];
+}
+
+/** 远程（后端分页）数据加载 —— 走 useDataSource 的首批。page 来自 internalPage。 */
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
-    /** params 是页面显式声明的查询对象（提交快照），优先级高于搜索区的实时草稿值 */
-    const paramObj = { ...(props.searchModel ?? {}), ...(props.params ?? {}) };
-    const curPage = internalPage.value || props.page || 1;
+    // 滚动分页固定从第 1 批开始：追加由 loadMoreForScroll 驱动，这里只能拿首批；
+    // 否则「页码模式翻到第 3 页再切滚动」会把第 3 页当首批、后续批次全错位。
+    const curPage = isScrollPaging.value ? 1 : (internalPage.value || props.page || 1);
     const curSize = currentPageSize.value;
-    /**
-     * page / pageSize 在合并 **之后** 写回：调用方在 params 里塞的同名字段一律作废。
-     * 分页真值只能来自组件内部状态 —— 否则会出现「页码跳了但查询条件没跟上」这类
-     * 难查的错位（接口按旧条件返回，看起来就是翻页没反应或数据重复）。
-     */
-    const loadParams: ReTableLoadParams = {
-      page: curPage,
-      pageSize: curSize,
-      params: { ...paramObj, page: curPage, pageSize: curSize },
-    };
-    let result: RePageResult | undefined;
     try {
-      // 两个远程入口等价，data 传函数时优先用它
-      const fn = typeof props.data === "function" ? props.data : props.loader;
-      if (typeof fn !== "function") throw new Error("未提供 loader（或 data 传函数）");
-      result = await fn(loadParams);
-      if (!result) throw new Error("未获取到分页数据");
-      remoteTotal.value = Number(result.total ?? 0);
-      emit("update:total", remoteTotal.value);
+      const { result, records, total } = await callLoader(curPage, curSize);
+      remoteTotal.value = total;
+      emit("update:total", total);
       emit("load", result);
-      return extractRecords(result);
+      return records;
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       emit("load-error", err);
@@ -2263,11 +2501,64 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   return run;
 }
 
-function extractRecords(result: RePageResult): Array<Record<string, unknown>> {
-  for (const key of ["records", "rows", "list", "items", "content", "data"] as const) {
-    if (Array.isArray(result[key])) return result[key] as Array<Record<string, unknown>>;
+/**
+ * 滚动分页：触发下一批的加载。
+ *
+ * <p>远程 = 调 loader 拉第 N+1 页、把记录追加进 scrollAppendedRows（首批留在 dataList
+ * 里，不替换）；本地 = 直接推进 scrollPage，pagedRows 的 slice 会放出更多行。</p>
+ *
+ * <p>竞态守卫：用 scrollGeneration（reset 时 +1）丢弃取数期间被重置的响应，
+ * 不能复用 useDataSource 里的 seq——追加绕过了它。</p>
+ */
+async function loadMoreForScroll(): Promise<void> {
+  if (
+    !isScrollPaging.value ||
+    scrollLoadingMore.value ||
+    dataLoading.value ||
+    !hasMoreInScroll.value
+  ) {
+    return;
   }
-  return [];
+
+  // 本地模式：不用取数，直接放出下一批切片
+  if (!isRemote.value) {
+    scrollPage.value += 1;
+    return;
+  }
+
+  const gen = scrollGeneration;
+  const nextPage = scrollPage.value + 1;
+  scrollLoadingMore.value = true;
+  try {
+    const { records, total } = await callLoader(nextPage, currentPageSize.value);
+    // reset / 切模式 / 清空已发生 → 迟到的响应直接丢弃
+    if (gen !== scrollGeneration) return;
+    scrollLastBatchCount.value = records.length;
+    if (records.length === 0) {
+      scrollExhausted.value = true; // 空批 = 到底（即使 total 不准）
+      return;
+    }
+    scrollAppendedRows.value = [...scrollAppendedRows.value, ...records];
+    scrollPage.value = nextPage;
+    if (Number.isFinite(total) && total !== remoteTotal.value) {
+      remoteTotal.value = total;
+      emit("update:total", total);
+    }
+    emit("load-more", { page: nextPage, records, total });
+  } catch (e) {
+    if (gen !== scrollGeneration) return;
+    const err = e instanceof Error ? e : new Error(String(e));
+    // 追加失败不销毁已加载行、不向上抛 —— 用户可以再滚动一遍重试
+    emit("load-error", err);
+  } finally {
+    if (gen === scrollGeneration) scrollLoadingMore.value = false;
+  }
+}
+
+/** vxe 触底事件(@scroll-boundary) → 仅滚动分页模式消费 isBottom */
+function onVxeScrollBoundary(params: { isBottom?: boolean; isTop?: boolean }): void {
+  if (!isScrollPaging.value || !params?.isBottom) return;
+  void loadMoreForScroll();
 }
 
 const sourceRef = computed<ReDataSource<Array<Record<string, unknown>>>>(() => {
@@ -2278,6 +2569,18 @@ const sourceRef = computed<ReDataSource<Array<Record<string, unknown>>>>(() => {
 const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource<Array<Record<string, unknown>>>(
   sourceRef,
 );
+
+/**
+ * 首批数据（重新）落地 = 滚动分页回到起点：清空此前追加的批次与重置追加状态。
+ *
+ * <p>为什么 watch dataList 而不是每个 reload 口：远程模式下所有「带条件的刷新」
+ * 本质都是 useDataSource 换 data（换数组）—— 包括 params 变化、页码归 1、search、
+ * 刷新、切回页码模式——唯一次 source resolve 落地就覆盖 dataList。一条 watch 就把
+ * 它们全部收拢，遗漏一处就会出现「新条件下滚到底，旧批次悄悄补上去」的脏数据。</p>
+ */
+watch(dataList, () => {
+  if (isScrollPaging.value) resetScrollPaging();
+});
 
 /** params 变化 → 重置回第 1 页并重新加载 */
 const internalParamsKey = computed<string>(() => {
@@ -2361,6 +2664,9 @@ function onSizeChange(s: number): void {
 }
 
 async function reload(): Promise<void> {
+  // 滚动分页的刷新 = 回第 1 批重新来（追加的批次随旧条件作废）。
+  // 本地模式 dsReload 可能不换数组引用（watch dataList 不触发），这里显式重置兜底。
+  resetScrollPaging();
   await dsReload();
 }
 
@@ -2478,15 +2784,18 @@ onDeactivated(stopAutoRefresh);
  * 使用 nextTick 确保 page/pageSize props 更新后再 reload。
  */
 async function goto(page?: number, size?: number): Promise<void> {
-  if (typeof page === "number" && page > 0) {
-    internalPage.value = page;
-    emit("update:page", page);
+  // 滚动模式不提供页码跳转：程序化 goto 统一回到第 1 批（size 仍可调整批大小）。
+  const targetPage = isScrollPaging.value ? 1 : page;
+  if (typeof targetPage === "number" && targetPage > 0) {
+    internalPage.value = targetPage;
+    emit("update:page", targetPage);
   }
   if (typeof size === "number" && size > 0) {
     const clamped = clampPageSize(size, "goto()");
     internalPageSize.value = clamped;
     emit("update:pageSize", clamped);
   }
+  resetScrollPaging();
   await nextTick();
   await dsReload();
 }
@@ -2990,6 +3299,41 @@ function layoutText(key: ReTableSwitchLayout): string {
 /** 是否显示布局切换器：开关打开 + 候选 ≥ 2（有可切换的 DOM） */
 const showLayoutSwitch = computed<boolean>(() => props.layoutSwitch !== false && switchLayoutOptions.value.length > 1);
 
+/* ========== 分页方式切换（页码菜单 / 滚动加载） ========== */
+
+/** 候选分页方式（固定两档：切换意义只在「有页码」与「无页码」之间） */
+const PAGINATION_MODE_OPTIONS: RePaginationMode[] = ["pager", "scroll"];
+/** 档位文案（与引擎切换同为文字型分段控件：两档两个汉字，图形化反而难读） */
+const PAGINATION_MODE_TEXT: Record<RePaginationMode, string> = { pager: "分页", scroll: "滚动" };
+/** 悬浮提示：解释两档的差异，光看「分页/滚动」两个字不够 */
+const PAGINATION_MODE_TIP: Record<RePaginationMode, string> = {
+  pager: "页码分页：页码 + 每页条数菜单",
+  scroll: "滚动分页：滚到底部自动加载下一批",
+};
+
+/**
+ * 是否显示分页方式切换器。
+ *
+ * <p>三个条件：页面显式开了 {@code paginationModeSwitch}（与 layoutSwitch 同档设计——
+ * 滚动分页不适合所有页面，入口由页面决定）；{@code pagination} 开着（不分页的表格
+ * 全量直出，没有「分页方式」可言）；vxe 引擎（element 没有触底事件，切了也不生效，
+ * 干脆不渲染这个控件，不留一个点了没反应的按钮）。</p>
+ */
+const showPaginationModeSwitch = computed<boolean>(
+  () => props.paginationModeSwitch === true && props.pagination === true && useVxe.value,
+);
+
+/**
+ * 用户点切换器。副作用（重置滚动状态 / 回第 1 批 / 持久化 / 重新取数）
+ * 不在这里做，统一收在 watch(activePaginationMode)——存档恢复、受控改 props
+ * 也要走同一套副作用，写在点击处就会漏掉那两条入口。
+ */
+function switchPaginationMode(key: RePaginationMode): void {
+  if (key === activePaginationMode.value) return;
+  activePaginationMode.value = key;
+  emit("update:paginationMode", key);
+}
+
 /** 当前布局不可用（数据清空 / 白名单变化）时回落到表格；可用则记忆 */
 watch(
   [() => activeLayout.value, () => switchLayoutOptions.value.join(",")],
@@ -3052,9 +3396,11 @@ function switchEngine(key: "element" | "vxe"): void {
 }
 
 /** 视图模式序号跨页连续 */
-const layoutIndexOffset = computed<number>(() =>
-  props.pagination ? Math.max(0, (internalPage.value - 1) * currentPageSize.value) : 0,
-);
+const layoutIndexOffset = computed<number>(() => {
+  // 滚动分页：视图模式下列表由第一页起累计，无需页码偏移
+  if (isScrollPaging.value) return 0;
+  return props.pagination ? Math.max(0, (internalPage.value - 1) * currentPageSize.value) : 0;
+});
 
 /** 数据加载/翻页后重新布局，确保表头与表体列宽始终对齐（异步数据、横向滚动、窗口缩放场景） */
 watch(dataList, () => {
@@ -3116,6 +3462,8 @@ const vxeIndexFixed = computed<"left" | "right" | "">(() => {
  * 保证连续编号在切换引擎时一致。</p>
  */
 const indexStart = computed<number>(() => {
+  // 滚动分页：累计列表本身从第 1 条开始（第一页就从 1 开始，不需要按页码偏移）
+  if (isScrollPaging.value) return 0;
   if (!props.indexContinuous) {
     return 0;
   }
@@ -3307,10 +3655,22 @@ const vxeColumnConfig = computed(() => ({
   drag: props.columnDraggable,
 }));
 
-/** vxe 纵向虚拟滚动配置（virtualScroll 开启时总是启用，阈值走 virtualScrollGt） */
-const vxeVirtualYConfig = computed(() =>
-  props.virtualScroll ? { enabled: true, gt: Math.max(0, props.virtualScrollGt) } : undefined,
-);
+/**
+ * vxe 纵向虚拟滚动配置。
+ *
+ * <p>virtualScroll 开启时沿用现有 enabled/gt；滚动分页则只补 threshold 提前量，
+ * 依赖 vxe 原生 scroll-boundary 判断（threshold 单独设置不会打开虚拟滚动）。
+ * 两者可并存，scroll 模式不会擅自把用户没开的虚拟滚动打开。</p>
+ */
+const vxeVirtualYConfig = computed(() => {
+  const base = props.virtualScroll
+    ? { enabled: true, gt: Math.max(0, props.virtualScrollGt) }
+    : {};
+  if (isScrollPaging.value) {
+    return { ...base, threshold: SCROLL_BOUNDARY_THRESHOLD };
+  }
+  return props.virtualScroll ? base : undefined;
+});
 
 /** vxe 区域选择 · 鼠标配置（area 打开框选） */
 const vxeMouseConfig = { area: true };
@@ -3606,7 +3966,7 @@ const iconSelect = Select;
     <div ref="mainRef" class="re-table__main">
     <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
     <div
-      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || editable || autoRefresh || showLayoutSwitch || debug"
+      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || editable || autoRefresh || showPaginationModeSwitch || showLayoutSwitch || debug"
       class="re-table__toolbar-row"
     >
       <div v-if="$slots.toolbar" class="re-table__toolbar-left">
@@ -3710,6 +4070,27 @@ const iconSelect = Select;
             <template v-else>选中即生效，表格按该间隔自动重取当前页</template>
           </div>
         </ReSwitch>
+        <!-- 分页方式切换：仅 vxe + pagination + 页面显式开启时展示。
+             放布局切换左侧，保留既有「布局切换是工具区最后一个控件」的结构约定。 -->
+        <div
+          v-if="showPaginationModeSwitch"
+          class="re-table__layout-switch re-table__pagination-mode-switch"
+          role="group"
+          aria-label="分页方式切换"
+        >
+          <button
+            v-for="key in PAGINATION_MODE_OPTIONS"
+            :key="key"
+            type="button"
+            class="re-table__layout-switch-item re-table__layout-switch-item--text"
+            :class="{ 'is-active': activePaginationMode === key }"
+            :aria-pressed="activePaginationMode === key"
+            :title="PAGINATION_MODE_TIP[key]"
+            @click="switchPaginationMode(key)"
+          >
+            {{ PAGINATION_MODE_TEXT[key] }}
+          </button>
+        </div>
         <!-- 布局切换（系统级分段控件，位于自动刷新右侧）：表格 / 视图 / 卡片
              候选 <2 或无数据时不渲染（没有可切换的 DOM 就不出现） -->
         <div
@@ -3982,6 +4363,7 @@ const iconSelect = Select;
       @sort-change="onVxeSortChange"
       @row-dragend="onVxeRowDragEnd"
       @column-dragend="onVxeColumnDragEnd"
+      @scroll-boundary="onVxeScrollBoundary"
     >
       <!-- 勾选列：常驻选择 / 批量选择 / 批量删除三种场景共用一列 -->
       <VxeColumn
@@ -4156,7 +4538,7 @@ const iconSelect = Select;
           size 变更走 onSizeChange 而不是直接 v-model：它顺带 emit 回父级、把页码收回第 1 页、
           并在远程模式下重新取数，直接 v-model 会漏掉这些副作用。
         -->
-        <div v-if="pagination" class="re-table__pagination">
+        <div v-if="pagination && !isScrollPaging" class="re-table__pagination">
           <RePagination
             layout="modern"
             :total="totalToShow"
@@ -4167,6 +4549,23 @@ const iconSelect = Select;
             @current-change="onPageClick"
             @size-change="onSizeChange"
           />
+        </div>
+        <!-- 滚动分页状态条替代页码菜单；除触底自动加载外，点击可兜底加载（页面滚动 / 卡片布局等）。 -->
+        <div v-else-if="isScrollPaging" class="re-table__scroll-pagination">
+          <button
+            type="button"
+            class="re-table__scroll-status"
+            :disabled="!hasMoreInScroll || scrollLoadingMore || dataLoading"
+            :aria-label="scrollLoadingMore ? '正在加载更多数据' : hasMoreInScroll ? '加载更多数据' : `已加载全部 ${scrollLoadedCount} 条数据`"
+            @click="loadMoreForScroll"
+          >
+            <template v-if="scrollLoadingMore || dataLoading">正在加载更多…</template>
+            <template v-else-if="hasMoreInScroll">
+              已加载 {{ scrollLoadedCount }} 条<template v-if="totalToShow > 0"> / {{ totalToShow }} 条</template>
+              · 滚动到底部或点击加载更多
+            </template>
+            <template v-else>已加载全部 {{ scrollLoadedCount }} 条</template>
+          </button>
         </div>
 
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
@@ -4966,6 +5365,45 @@ const iconSelect = Select;
   height: 28px;
   border-radius: 8px;
   font-size: 12px;
+}
+/* ============ 滚动分页状态条（替代页码菜单的位置） ============
+   可点击（触底事件的兜底：页面滚动 / 视图卡片布局没有 vxe 内滚，触底永远不会来），
+   但视觉上是次要信息文字，不做大按钮——主交互是滚动本身，按钮只是保底通道。
+   加载中 / 到底用 disabled 态表达；字号与分页行一致（13px），走同一套文字令牌。 */
+.re-table__scroll-pagination {
+  display: flex;
+  align-items: center;
+  flex: none;
+  order: 0;
+  position: relative;
+  z-index: 1;
+  padding: 12px 0;
+}
+.re-table__scroll-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    color var(--rt-duration, 200ms) var(--rt-ease, ease),
+    background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
+}
+.re-table__scroll-status:disabled {
+  cursor: default;
+}
+.re-table__scroll-status:not(:disabled):hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+.re-table__scroll-status:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 :deep(.el-popper.is-dark),
 :deep(.el-tooltip__popper) {

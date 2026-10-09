@@ -323,6 +323,7 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
   zookeeper: { icon: "Coin", color: "var(--el-color-warning)", label: "ZooKeeper" },
   nginx: { icon: "Connection", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
   etcd: { icon: "Coin", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
+  prometheus: { icon: "DataLine", color: "#e6522c", label: "Prometheus" },
 };
 
 const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
@@ -569,6 +570,7 @@ const TYPE_ROUTE_MAP: Record<string, string> = {
   zookeeper: "/zookeeper",
   nginx: "/nginx",
   etcd: "/etcd",
+  prometheus: "/prometheus",
 };
 
 /**
@@ -617,6 +619,7 @@ const defaultPort = (type: string): number => {
     zookeeper: 2181,
     nginx: 80,
     etcd: 2379,
+    prometheus: 9090,
   };
   return ports[type] ?? 3306;
 };
@@ -1090,10 +1093,10 @@ onMounted(load);
               placeholder="搜索数据源"
               clearable
             />
-            <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreate">新增数据源</ReButton>
+            <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreate" layout="square">新增数据源</ReButton>
             <template v-if="current">
-              <ReButton icon="Lightning" :show-text="true" :loading="testing === current.id" @click="test(current)">测试连接</ReButton>
-              <ReButton icon="View" :show-text="true" type="primary" @click="openManager(current)">打开管理</ReButton>
+              <ReButton icon="Lightning" :show-text="true" :loading="testing === current.id" @click="test(current)" layout="square">测试连接</ReButton>
+              <ReButton icon="View" :show-text="true" type="primary" @click="openManager(current)" layout="square">打开管理</ReButton>
             </template>
             <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string | number | object) => runHeadCommand(cmd as string)">
                 <!-- 触发器刻意用裸 el-button 而非 ReButton：

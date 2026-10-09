@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,7 +26,11 @@ const FS_SERVER = process.env.FS_SERVER || "http://127.0.0.1:18080";
 
 export default defineConfig({
   root,
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
+    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
+  ],
   resolve: {
     alias: Object.entries(REPO_ALIAS).map(([find, replacement]) => ({
       find,
@@ -51,6 +56,19 @@ export default defineConfig({
       "/ot": { target: FS_SERVER, changeOrigin: true },
       "/config": { target: FS_SERVER, changeOrigin: true },
       "/local": { target: FS_SERVER, changeOrigin: true },
+      // pdf.js viewer 入口（PDF_VIEWER_PATH，服务端 classpath:/static/preview-vendor/...）
+      "/preview-vendor": { target: FS_SERVER, changeOrigin: true },
+    },
+    watch: {
+      // @file-viewer 插件每次 dev 启动都会 rm+cp 把渲染器资源写入 public/vendor
+      // （约 27MB，含 17MB 的 ppt 字体）。Windows 下 chokidar 会对这些仍在写入
+      // 的大文件建 fs.watch 句柄，触发 EBUSY 并使 dev server 进程直接崩溃。
+      // public/vendor 是插件生成的只读资产，监听其变化没有意义，故排除。
+      ignored: [
+        (p: string) =>
+          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+      ],
     },
   },
 });

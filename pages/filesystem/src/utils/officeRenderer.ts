@@ -1,78 +1,63 @@
 /**
- * 客户端 Office 直渲染类型映射
+ * 客户端 Office 直渲染能力映射（@file-viewer / preset-office 版）。
  *
- * 与后端 `com.chua.filestorage.support.preview.ClientPreviewSupport` 保持严格一致：
- * 后端据此决定 `?preview=true` 是否直吐原始字节（而非走 SPI / LibreOffice / Aspose 转换），
- * 前端据此选择对应的 Vue3 Office 组件。两侧清单必须同步修改，否则会出现
- * 「后端已直出字节、前端却按 iframe 服务端页面渲染」或反之的空转。
+ * <p>渲染底座已从 {@code @vue-office/*} 换成 {@code @file-viewer/vue3} +
+ * {@code @file-viewer/preset-office}：preset-office 内置 OOXML / OLE2 /
+ * RTF / OpenDocument / iWork / WordPerfect / Hangul 解析器，传统二进制
+ * （.doc / .xls / .ppt）可在浏览器内直接渲染，不再需要服务端转换。</p>
  *
- * 能力边界（已对发布产物做字节级扫描确认，勿凭 README 臆断）：
- * `@vue-office/*` 组件族底层全部为 ZIP / OOXML 解析器，均不含 OLE2 / CFB
- * （复合文档）文件头 `D0 CF 11 E0 A1 B1 1A E1`，也无任何 OLE 解析器符号。
- * 因此传统二进制格式无法在浏览器端解析：
- *   - `.doc`、`.ppt`（OLE2 复合文档）→ 不支持，仍走服务端转换链路
- *   - `.odt` / `.ods` / `.odp`（OpenDocument）→ 不属于该组件族
- * 这类扩展名不在下表中，由后端继续走服务端渲染，前端继续使用 iframe。
+ * <p>与后端 {@code com.chua.filestorage.support.preview.ClientPreviewSupport}
+ * 的关系：后端清单决定 {@code ?preview=true} 是否直吐原始字节
+ * （channel=client）。即便后端未把某扩展名判为 client（返回 channel=spi
+ * 的服务端 HTML），前端面板也会自行嗅探原始字节，在可直渲染时改走客户端
+ * 渲染（见 PreviewOfficePanel#load）。</p>
+ *
+ * <p>渲染器选择由 file-viewer 按<b>文件名扩展名</b>完成；扩展名说谎的文件
+ * （如扩展名 .doc、内容是 OOXML）由 {@link resolveViewerFileName} 按内容
+ * 魔数校正后传入。</p>
  *
  * @author CH
- * @since 2026/09/26
+ * @since 2026/09/26（@file-viewer 迁移：2026/10/09）
  */
 
-/** 客户端渲染器标识 */
-export type OfficeRenderer = "docx" | "excel" | "pdf" | "pptx";
-
-/** 扩展名到客户端渲染器标识的映射 */
-const EXTENSION_TO_RENDERER: Readonly<Record<string, OfficeRenderer>> = Object.freeze({
-  // Word：OOXML wordprocessingml 家族（含宏启用与模板变体）
-  docx: "docx",
-  docm: "docx",
-  dotx: "docx",
-  dotm: "docx",
-  // Excel：OOXML spreadsheetml 家族 + 传统 xls + 二进制 xlsb
-  xlsx: "excel",
-  xlsm: "excel",
-  xlsb: "excel",
-  xltx: "excel",
-  xltm: "excel",
-  xlt: "excel",
-  xls: "excel",
-  // PowerPoint：OOXML presentationml 家族（传统 ppt 为 OLE2，不在支持范围）
-  pptx: "pptx",
-  pptm: "pptx",
-  potx: "pptx",
-  potm: "pptx",
-  ppsx: "pptx",
-  ppsm: "pptx",
+/**
+ * 可客户端直渲染的扩展名（preset-office 覆盖范围）。
+ *
+ * <p>不含 {@code ofd}：它有专用 PreviewOfdPanel 路由，混入本清单会抢走
+ * 原有链路。</p>
+ */
+const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
+  // Word：OOXML wordprocessingml 家族 + 传统 OLE2 + RTF / OpenDocument
+  "docx", "docm", "dotx", "dotm", "doc", "dot", "rtf", "odt",
+  // Excel：OOXML spreadsheetml 家族 + 传统 BIFF + 二进制 xlsb + OpenDocument + 文本表格
+  "xlsx", "xlsm", "xlsb", "xltx", "xltm", "xlt", "xls", "ods", "fods", "csv", "tsv",
+  // PowerPoint：OOXML presentationml 家族 + 传统 OLE2（渲染走引擎链路，带水印）
+  "pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt", "pot",
   // PDF
-  pdf: "pdf",
-});
+  "pdf",
+  // iWork
+  "pages", "numbers", "key",
+  // WordPerfect / Hangul
+  "wpd", "hwp", "hwpx",
+]);
 
 /**
- * 仅支持传统二进制形态、客户端无法解析的扩展名（OLE2 容器）
+ * 传统二进制扩展名（OLE2 容器）
  *
- * 这些扩展名与 OOXML 同名系列（`.doc` vs `.docx`）在扩展名层面无法区分，
- * 必须结合内容魔数判断。
- *
- * 实测依据（务必以此为准，勿被产物里的字符串误导）：
- *   - `@vue-office/excel` **不能**读取传统 BIFF(.xls)。虽然其产物中可检出
- *     108 处 `BIFF` 与 `Workbook stream` 字样，但实测把真实 BIFF8 文件交给它
- *     渲染会抛 `Can't find end of central directory : is this a zip file`
- *     —— 即它按 ZIP 解析 OLE2 字节后失败。那些字样只是 exceljs 内部常量，
- *     并非可用的 BIFF 读取器。
- *   - `@vue-office/docx` / `@vue-office/pptx` 分别基于 docx-preview 与
- *     pptx-preview，均为 ZIP/OOXML 解析器，读不了 OLE2。
- *
- * 因此 doc / xls / ppt 三者都必须嗅探：命中 OLE2 交服务端 POI，
- * 命中 ZIP（扩展名骗人的 OOXML）才交客户端。
+ * <p>这些扩展名与 OOXML 同名系列（{@code .doc} vs {@code .docx}）在扩展名
+ * 层面无法区分，必须结合内容魔数判断：preset-office 能直接渲染 OLE2 本体，
+ * 但「扩展名是 .doc、内容其实是 .docx」的文件若按原名交给 file-viewer，
+ * 会按扩展名选 OLE2 解析器、在 ZIP 字节上失败 —— 由
+ * {@link resolveViewerFileName} 校正。</p>
  */
 const LEGACY_BINARY_EXTS: ReadonlySet<string> = new Set(["doc", "xls", "ppt"]);
 
 /**
  * 可服务端转 OOXML 的纯文本源扩展名（与后端 TEXT_CONVERT_SOURCES 严格一致）。
  *
- * <p>这些扩展名本身不是客户端可渲染格式，但后端 {@code ?format=xlsx} 能经
- * Aspose 转成 xlsx，仍由客户端 excel 组件渲染。{@link isClientRenderable}
- * 放行它们进 Office 面板，转换失败由面板内兜底走服务端渲染。</p>
+ * <p>本清单不再用于面板路由（csv / tsv 已入 {@link CLIENT_RENDERABLE_EXTS}，
+ * file-viewer 原生渲染），仅供新窗口预览 URL 逻辑
+ * （FileStorageManage#newWindowPreviewUrl）沿用旧口径。</p>
  */
 export const CONVERTIBLE_TEXT_EXTS: ReadonlySet<string> = new Set(["csv", "tsv"]);
 
@@ -82,14 +67,6 @@ const OLE2_MAGIC: readonly number[] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a,
 /** ZIP 本地文件头（OOXML 家族） */
 const ZIP_MAGIC: readonly number[] = [0x50, 0x4b, 0x03, 0x04];
 
-/**
- * 必须以 ZIP 容器为前提的 OOXML 扩展名
- *
- * <p>这些格式按规范一定是 ZIP 容器，取到字节后若魔数不是 {@link ZIP_MAGIC}
- * 即可判定文件本身已损坏（或上传时被写入了非预期内容）。此时必须拒绝直渲染，
- * 否则 JSZip 会抛出 `Can't find end of central directory` 这类原始英文异常直达界面。
- * 不含 pdf：PDF 不是 ZIP 容器，由 {@link EXTENSION_TO_RENDERER} 单独放行。</p>
- */
 /**
  * 文档防泄密软件（实测 360 防泄密）透明加密后的密文文件头
  *
@@ -119,13 +96,21 @@ export function isEncryptedDoc(bytes?: Uint8Array): boolean {
   return CIPHER_MAGIC.every((b, i) => bytes[i] === b);
 }
 
+/**
+ * 必须以 ZIP 容器为前提的 OOXML 扩展名
+ *
+ * <p>这些格式按规范一定是 ZIP 容器，取到字节后若魔数不是 {@link ZIP_MAGIC}
+ * 即可判定文件本身已损坏（或上传时被写入了非预期内容）。此时必须拒绝直渲染，
+ * 否则解析器会抛出 {@code Can't find end of central directory} 这类原始英文
+ * 异常直达界面。不含 pdf：PDF 不是 ZIP 容器，单独放行。</p>
+ */
 const OOXML_EXTS: ReadonlySet<string> = new Set(["docx", "xlsx", "pptx"]);
 
 /** 嗅探 OOXML 内部部件路径的最大扫描字节数 */
 const OOXML_SNIFF_LIMIT = 64 * 1024;
 
 /** 已知会伪装成传统扩展名的 OOXML 部件标记（与后端 ClientPreviewSupport 保持一致） */
-const OOXML_PART_MARKERS: ReadonlyArray<readonly [string, OfficeRenderer]> = [
+const OOXML_PART_MARKERS: ReadonlyArray<readonly [string, "docx" | "excel" | "pptx"]> = [
   ["word/document.xml", "docx"],
   ["xl/workbook.xml", "excel"],
   ["ppt/presentation.xml", "pptx"],
@@ -176,65 +161,22 @@ function indexOfAscii(data: Uint8Array, needle: string): number {
  * 扫描 ZIP 容器内的部件路径，识别真实 OOXML 类型
  *
  * @param data ZIP 字节
- * @returns 渲染器标识；非已知 OOXML 返回空串
+ * @returns OOXML 家族标识（docx / excel / pptx）；非已知 OOXML 返回空串
  */
-function sniffOoxmlRenderer(data: Uint8Array): OfficeRenderer | "" {
-  for (const [marker, renderer] of OOXML_PART_MARKERS) {
+function sniffOoxmlRenderer(data: Uint8Array): "docx" | "excel" | "pptx" | "" {
+  for (const [marker, family] of OOXML_PART_MARKERS) {
     if (indexOfAscii(data, marker) >= 0) {
-      return renderer;
+      return family;
     }
   }
   return "";
 }
 
 /**
- * 结合内容魔数判定客户端渲染器，处理「扩展名与真实格式不符」的文件
- *
- * 现实中大量文件扩展名不可信（Word/WPS「另存为」、在线转换、邮件附件等），
- * 会产生「实际是 .docx 却叫 .doc」的文件。仅按扩展名判断会让这类文件
- * 误入服务端 OLE2 解析链路而失败。
- *
- * @param fileName 文件名或对象键
- * @param bytes    文件字节；未取到时传 undefined，退化为纯扩展名判定
- * @returns 渲染器标识；不支持客户端直渲染时返回空串
- */
-export function officeRendererOfSniffed(fileName: string, bytes?: Uint8Array): OfficeRenderer | "" {
-  const ext = extensionOf(fileName);
-  const renderer = LEGACY_BINARY_EXTS.has(ext) ? "" : (EXTENSION_TO_RENDERER[ext] ?? "");
-  if (!renderer) {
-    return "";
-  }
-  if (!bytes || bytes.length < 4) {
-    // 无内容可嗅探：传统二进制扩展名交服务端处理
-    return "";
-  }
-  if (isEncryptedDoc(bytes)) {
-    // 防泄密软件加密的密文：客户端组件解析不了，服务端同样解析不了
-    // （读到的是密文），直接拒绝，由上层给出「已加密」的可执行提示。
-    return "";
-  }
-  if (startsWith(bytes, OLE2_MAGIC)) {
-    // 确实是传统二进制格式（真 .doc / .xls / .ppt），交服务端
-    return "";
-  }
-  if (startsWith(bytes, ZIP_MAGIC)) {
-    // 扩展名写着 doc，内容其实是 OOXML：按真实类型走客户端组件
-    return sniffOoxmlRenderer(bytes);
-  }
-  if (OOXML_EXTS.has(ext)) {
-    // 扩展名是 .docx/.xlsx/.pptx，但内容既不是 ZIP(OOXML 容器) 也不是 OLE2(传统二进制)，
-    // 说明文件本身已损坏或被写入了非预期内容。此时不能交给 Office 组件，
-    // 否则 JSZip 会抛出 "Can't find end of central directory" 这类原始英文异常直达用户界面。
-    return "";
-  }
-  return renderer;
-}
-
-/**
  * 判断文件内容是否已损坏（扩展名与实际格式不符）
  *
  * <p>用于把「浏览器不支持该格式」和「文件本身坏了」区分开：前者换浏览器有用，
- * 后者只能重传。判定口径与 {@link officeRendererOfSniffed} 的拒绝分支保持一致。</p>
+ * 后者只能重传。</p>
  *
  * @param fileName 文件名或对象键
  * @param bytes    文件字节
@@ -271,19 +213,53 @@ export function extensionOf(fileName: string): string {
 /**
  * 判断文件是否可能走客户端直渲染
  *
- * 包含三类：
- *   1. 扩展名即可确定的客户端格式（docx / xlsx / pdf 等）
- *   2. 传统二进制扩展名（doc / xls / ppt）——它们有可能实际是 OOXML，
- *      需要取到字节后嗅探真实类型，交由 {@link officeRendererOfSniffed} 判定
- *   3. 可服务端转 OOXML 的文本源（csv / tsv）——后端 ?format=xlsx 经 Aspose
- *      转换后仍由客户端 excel 组件渲染（见 PreviewOfficePanel#CONVERT_TARGET）
+ * <p>命中即由 PreviewOfficePanel（file-viewer + preset-office）接管；
+ * 内容级拒载（密文 / 损坏 OOXML）由面板取到字节后另行判定。</p>
  *
  * @param fileName 文件名或对象键
  * @returns true 表示可能走客户端直渲染
  */
 export function isClientRenderable(fileName: string): boolean {
+  return CLIENT_RENDERABLE_EXTS.has(extensionOf(fileName));
+}
+
+/**
+ * 校正交给 file-viewer 的文件名（处理「扩展名说谎」的文件）
+ *
+ * <p>file-viewer 按扩展名选渲染器。现实中大量文件扩展名不可信
+ * （Word/WPS「另存为」、在线转换、邮件附件），会产生「实际是 .docx
+ * 却叫 .doc」的文件：这类文件若按原名交给 file-viewer，会走 OLE2
+ * 解析器、在 ZIP 字节上失败。这里按内容魔数把扩展名改回真实家族。</p>
+ *
+ * <p>真 OLE2 的 .doc / .xls / .ppt（preset-office 原生可渲染）与其它
+ * 扩展名一律原样返回。</p>
+ *
+ * @param fileName 原文件名
+ * @param bytes    文件字节（未取到时传 undefined，退化为原名）
+ * @returns 校正后的文件名（仅当传统二进制扩展名 + ZIP 内容 + 已知 OOXML 部件时改写）
+ */
+export function resolveViewerFileName(fileName: string, bytes?: Uint8Array): string {
   const ext = extensionOf(fileName);
-  return Boolean(EXTENSION_TO_RENDERER[ext]) || LEGACY_BINARY_EXTS.has(ext) || CONVERTIBLE_TEXT_EXTS.has(ext);
+  if (!LEGACY_BINARY_EXTS.has(ext) || !bytes || bytes.length < 4) {
+    return fileName;
+  }
+  if (!startsWith(bytes, ZIP_MAGIC)) {
+    // 真 OLE2（或其它未知容器）：原名交给 file-viewer 尝试
+    return fileName;
+  }
+  const family = sniffOoxmlRenderer(bytes);
+  const dot = fileName.lastIndexOf(".");
+  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+  switch (family) {
+    case "docx":
+      return `${base}.docx`;
+    case "excel":
+      return `${base}.xlsx`;
+    case "pptx":
+      return `${base}.pptx`;
+    default:
+      return fileName;
+  }
 }
 
 /**

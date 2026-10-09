@@ -322,6 +322,28 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/datasource" },
   },
   {
+    // 自定义看板嵌入页：standalone 注册为顶层路由（不套 layout），供其他系统 iframe 嵌入；
+    // 免登录由 route.whiteList 的 /nginx/embed/** 放行。
+    path: "/nginx/embed/:token",
+    name: "NginxEmbed",
+    component: () => import("@pages/datasource/src/views/console/NginxEmbedView.vue"),
+    meta: { title: "Nginx 看板", showLink: false, standalone: true },
+  },
+  {
+    path: "/prometheus",
+    name: "Prometheus",
+    component: () => import("@pages/datasource/src/views/console/PrometheusManageView.vue"),
+    meta: { title: "Prometheus 管理", icon: "DataLine", showLink: false, activeMenu: "/datasource" },
+  },
+  {
+    // 自定义看板嵌入页：standalone 注册为顶层路由（不套 layout），供其他系统 iframe 嵌入；
+    // 免登录由 route.whiteList 的 /prometheus/embed/** 放行。
+    path: "/prometheus/embed/:token",
+    name: "PrometheusEmbed",
+    component: () => import("@pages/datasource/src/views/console/PrometheusEmbedView.vue"),
+    meta: { title: "Prometheus 看板", showLink: false, standalone: true },
+  },
+  {
     path: "/redis-manage",
     name: "RedisManage",
     component: () => import("@pages/datasource/src/views/console/RedisManageView.vue"),

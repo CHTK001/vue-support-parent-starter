@@ -1,11 +1,13 @@
 /**
  * XLS → XLSX 转换器（浏览器内 WASM）加载层
  *
- * <p>`.xls` 是 BIFF（二进制复合文档），而前端唯一能渲染表格的
- * {@code @vue-office/excel} 走的是 ZIP/OOXML 解包 —— 直接喂 `.xls` 字节会抛
- * {@code Can't find end of central directory}。所以这里把 `.xls` 转成合法
- * {@code .xlsx} 字节，再交给同一个组件：<b>xls 与 xlsx 于是走同一套 UI 与交互</b>
- * （sheet 页签、冻结窗格、选区、主题跟随），渲染器那边一行都不用改。</p>
+ * <p>`.xls` 是 BIFF（二进制复合文档）。<b>渲染</b>已由
+ * {@code @file-viewer} 原生承担（其 BIFF 解析器直接吃 `.xls` 字节，不再需要
+ * 转换），但<b>选区统计的解析层</b>（excelParsed + {@code xlsxSelectStats}）
+ * 只认 OOXML —— 所以 `.xls` 出统计前先经这里转成合法 `.xlsx` 字节：
+ * <b>渲染走原生、统计走转换的双轨</b>，数值口径与 `.xlsx` 完全一致
+ * （B3:D3 → 求和 53 / 计数 3 已验收），UI 与交互也仍是同一套
+ * （sheet 页签、冻结窗格、选区、主题跟随）。</p>
  *
  * <p>实现是 Rust/WASM（{@code crates/xls2xlsx}）：calamine 读 BIFF8，
  * rust_xlsxwriter 写 xlsx，两个都是纯 Rust、无 C 依赖。</p>

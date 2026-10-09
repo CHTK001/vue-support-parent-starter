@@ -9,6 +9,7 @@
     "vue": "catalog:"
   },
   "devDependencies": {
+    "@file-viewer/vite-plugin": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"

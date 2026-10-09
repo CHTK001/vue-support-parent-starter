@@ -22,7 +22,7 @@
         <p class="lib-head-sub">当前账号的人脸底库，登记后可用于 1:N 人脸识别与检索</p>
       </div>
       <div class="lib-head-actions">
-        <el-button :disabled="loading" @click="load">
+        <el-button :disabled="loading" @click="load(page)">
           <el-icon><Refresh /></el-icon>刷新
         </el-button>
         <el-button type="primary" :disabled="loading" @click="openEnroll">
@@ -31,38 +31,38 @@
       </div>
     </header>
 
-    <!-- ── 统计卡 ─────────────────────────────────────────── -->
+    <!-- ── 统计卡（全库口径：来自服务端 stats，不受检索/筛选影响）── -->
     <section class="lib-stats">
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-primary"><UserFilled /></el-icon>
         <span class="lib-stat-label">已登记</span>
-        <strong class="lib-stat-value">{{ rows.length }}</strong>
+        <strong class="lib-stat-value">{{ stats.total }}</strong>
       </div>
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-success"><Picture /></el-icon>
         <span class="lib-stat-label">有图片</span>
-        <strong class="lib-stat-value">{{ withThumb }}</strong>
+        <strong class="lib-stat-value">{{ stats.withImage }}</strong>
       </div>
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-warning"><Warning /></el-icon>
         <span class="lib-stat-label">无图片</span>
-        <strong class="lib-stat-value">{{ rows.length - withThumb }}</strong>
+        <strong class="lib-stat-value">{{ stats.total - stats.withImage }}</strong>
       </div>
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-info"><Postcard /></el-icon>
         <span class="lib-stat-label">身份证已填</span>
-        <strong class="lib-stat-value">{{ withIdCard }}</strong>
+        <strong class="lib-stat-value">{{ stats.withIdCard }}</strong>
       </div>
     </section>
 
     <!-- 服务端有条目、但两边都没图：说清原因，别让人以为底库丢了 -->
     <el-alert
-      v-if="rows.length - withThumb > 0"
+      v-if="stats.total - stats.withImage > 0"
       class="fl-alert"
       type="info"
       :closable="false"
       show-icon
-      :title="`有 ${rows.length - withThumb} 条没有人脸图`"
+      :title="`有 ${stats.total - stats.withImage} 条没有人脸图`"
       description="图片优先取服务端登记图（登记时落存的裁剪脸，换浏览器也在）；改造前登记的老数据两边都没有。底库条目本身以服务端为准，1:N 识别不受影响。"
     />
 
@@ -84,7 +84,7 @@
       </ul>
     </section>
 
-    <FaceEnrollDialog v-model="enrollVisible" :record="editItem" @enrolled="load" />
+    <FaceEnrollDialog v-model="enrollVisible" :record="editItem" @enrolled="() => load(page)" />
 
     <!-- 特征点弹窗：仅在关键点模型已配置时按钮可见（openLandmark 里还有一道守卫） -->
     <FaceLandmarkDialog
@@ -102,11 +102,12 @@
           <span class="lib-panel-count">共 {{ total }} 条</span>
         </div>
 
-        <el-input v-model="keyword" placeholder="按姓名/身份证检索" clearable class="lib-search">
+        <el-input v-model="keyword" placeholder="按姓名/身份证检索（服务端）" clearable class="lib-search"
+          @input="commitKeyword()" @keyup.enter="commitKeyword(true)" @clear="commitKeyword(true)">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
 
-        <el-select v-model="statusFilter" class="lib-filter">
+        <el-select v-model="statusFilter" class="lib-filter" @change="load(1)">
           <el-option label="全部状态" value="all" />
           <el-option label="有图片" value="thumb" />
           <el-option label="无图片" value="noThumb" />
@@ -120,6 +121,10 @@
           <button type="button" class="lib-view-btn" :class="{ 'is-active': viewMode === 'list' }"
             title="列表视图" @click="viewMode = 'list'">
             <el-icon><Menu /></el-icon>
+          </button>
+          <button type="button" class="lib-view-btn" :class="{ 'is-active': viewMode === 'table' }"
+            title="表格视图（服务端分页/排序，适合大量条目）" @click="viewMode = 'table'">
+            <el-icon><Tickets /></el-icon>
           </button>
         </div>
       </div>
@@ -170,7 +175,7 @@
       </div>
 
       <!-- 列表视图 -->
-      <div v-else v-loading="loading" class="lib-list">
+      <div v-else-if="viewMode === 'list'" v-loading="loading" class="lib-list">
         <div v-for="item in visibleItems" :key="item.id" class="lib-row"
           :class="{ 'is-selected': selected.has(item.id) }">
           <span class="lib-check is-inline" @click.stop="toggleSelect(item)">
@@ -205,11 +210,63 @@
         <el-empty v-if="!loading && visibleItems.length === 0" description="没有符合条件的人脸" />
       </div>
 
-      <!-- 翻页 -->
-      <div v-if="total > pageSize" class="lib-pager">
-        <el-button :disabled="page <= 1 || loading" @click="page--">上一页</el-button>
+      <!--
+        表格视图（ReTable）：真正的表格形态，为「上万条底库」准备 ——
+        分页/检索/排序全部走服务端（loader → GET /v2/face/list），
+        列可排序（sortable=custom → 服务端排序）、可显隐/拖列（ReTable 列配置持久化），
+        带总数/跳页/每页条数的完整分页器。勾选列接批量删除条。
+      -->
+      <div v-else class="lib-table">
+        <ReTable
+          ref="tableRef"
+          table-id="face-lib-table"
+          :loader="tableLoader"
+          :columns="tableColumns"
+          :params="tableParams"
+          :loading="loading"
+          :show-selection="true"
+          :pagination="true"
+          row-key="id"
+          empty-text="没有符合条件的人脸"
+          @sort-change="onTableSort"
+          @selection-change="onTableSelection"
+        >
+          <template #thumb="{ row }">
+            <img v-if="String(row.id)" class="lt-thumb" :src="thumbFor(String(row.id))" alt=""
+              loading="lazy" @click="previewById(String(row.id))" />
+            <span v-else class="lt-thumb lt-thumb-empty"><el-icon><UserFilled /></el-icon></span>
+          </template>
+          <template #idCard="{ row }">
+            <span class="lt-mono">{{ maskIdCard(String(row.idCard ?? '')) || '—' }}</span>
+          </template>
+          <template #hasImage="{ row }">
+            <span v-if="row.hasImage" class="lib-badge is-ok">有图片</span>
+            <span v-else class="lib-badge is-warn">无图片</span>
+          </template>
+          <template #actions="{ row }">
+            <div class="lt-actions">
+              <button v-if="landmarkReady" type="button" class="lib-act is-onlight" title="查看特征点"
+                @click.stop="openLandmark(asRow(row))">
+                <el-icon><Aim /></el-icon>
+              </button>
+              <button type="button" class="lib-act is-onlight" title="编辑信息"
+                @click.stop="openEdit(asRow(row))">
+                <el-icon><EditPen /></el-icon>
+              </button>
+              <button type="button" class="lib-act is-danger is-onlight" title="删除" :disabled="busy"
+                @click.stop="removeOne(asRow(row))">
+                <el-icon><Delete /></el-icon>
+              </button>
+            </div>
+          </template>
+        </ReTable>
+      </div>
+
+      <!-- 翻页（表格视图用 ReTable 自带分页器） -->
+      <div v-if="viewMode !== 'table' && total > pageSize" class="lib-pager">
+        <el-button :disabled="page <= 1 || loading" @click="load(page - 1)">上一页</el-button>
         <span class="lib-pager-text">{{ page }} / {{ pageCount }}</span>
-        <el-button :disabled="page >= pageCount || loading" @click="page++">下一页</el-button>
+        <el-button :disabled="page >= pageCount || loading" @click="load(page + 1)">下一页</el-button>
       </div>
     </section>
 
@@ -249,14 +306,16 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Aim, CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Upload,
+  Aim, CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Tickets, Upload,
   UploadFilled, UserFilled, Warning, ZoomIn,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, ageBucket, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
-import { createAuthImageLoader } from '@/utils/authImage'
+import { createAuthImageLoader, pendingPlaceholder } from '@/utils/authImage'
 import FaceEnrollDialog from '../management/FaceEnrollDialog.vue'
 import FaceLandmarkDialog from '../management/FaceLandmarkDialog.vue'
 
@@ -284,12 +343,20 @@ const enrollVisible = ref(false)
 /** 正在编辑的行；null = 新增登记模式 */
 const editItem = ref<FaceRecord | null>(null)
 const keyword = ref('')
+/** 已提交的检索词（回车/清空/防抖后生效）：网格与表格共用同一口径 */
+const kwApplied = ref('')
 const statusFilter = ref<'all' | 'thumb' | 'noThumb'>('all')
-const viewMode = ref<'grid' | 'list'>('grid')
+const viewMode = ref<'grid' | 'list' | 'table'>('grid')
 const page = ref(1)
 const pageSize = 24
+/** 服务端排序（表格列头点出来的）；空 = 登记顺序 */
+const sortField = ref('')
+const sortOrder = ref('')
 const selected = ref<Set<string>>(new Set())
 const serverItems = ref<Array<Record<string, unknown>>>([])
+/** 命中总数（受 keyword/status 影响）与全库统计（不受影响）——都以服务端为准 */
+const total = ref(0)
+const stats = ref({ total: 0, withImage: 0, withIdCard: 0 })
 const detectorModel = ref('')
 const featureModel = ref('')
 /**
@@ -305,6 +372,8 @@ const featureModel = ref('')
 const landmarkModel = ref('')
 const registry = useFaceRegistry()
 const gridRef = ref<HTMLElement | null>(null)
+/** 表格视图实例：删除/登记后让它重新拉当页、清空它的勾选 */
+const tableRef = ref<{ reload: () => void; clearAllSelection: () => void } | null>(null)
 let viewer: InstanceType<typeof Viewer> | null = null
 
 /**
@@ -318,55 +387,133 @@ const authImages = createAuthImageLoader()
 const lmVisible = ref(false)
 const lmItem = ref<Row | null>(null)
 
-const rows = computed<Row[]>(() =>
-  serverItems.value.map((s) => {
-    const id = String(s.id ?? '')
-    const meta = (s.metadata && typeof s.metadata === 'object' ? s.metadata : {}) as Record<string, unknown>
-    const local = registry.byId(id)
-    const pick = (k: string): unknown => (meta[k] != null && meta[k] !== '' ? meta[k] : (local as any)?.[k])
-    const ageRaw = pick('age')
-    const photoRaw = pick('photogenic')
-    return {
-      id,
-      name: String(pick('name') ?? pick('label') ?? ''),
-      age: typeof ageRaw === 'number' ? ageRaw : ageRaw == null || ageRaw === '' ? null : Number(ageRaw),
-      gender: String(pick('gender') ?? ''),
-      hair: String(pick('hair') ?? ''),
-      idCard: String(pick('idCard') ?? ''),
-      photogenic: typeof photoRaw === 'number' ? photoRaw : photoRaw == null || photoRaw === '' ? 3 : Number(photoRaw),
-      note: String(pick('note') ?? ''),
-      // 缩略图优先本地（登记它的浏览器立刻就有），否则取**服务端落存的登记图** ——
-      // 换浏览器/换账号也能看到图，这正是「在图上画特征点」的前提。
-      thumb: local?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`),
-      localThumb: local?.thumb ?? '',
-      hasImage: !!s.hasImage || !!local?.thumb,
-    }
-  }),
-)
-
-const withThumb = computed(() => rows.value.filter((r) => r.hasImage).length)
-const withIdCard = computed(() => rows.value.filter((r) => !!r.idCard.trim()).length)
 /** 关键点模型是否已配置：决定「特征点」按钮是否显示 */
 const landmarkReady = computed(() => String(landmarkModel.value ?? '').trim() !== '')
 
-const filtered = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  return rows.value.filter((r) => {
-    if (statusFilter.value === 'thumb' && !r.hasImage) return false
-    if (statusFilter.value === 'noThumb' && r.hasImage) return false
-    if (!kw) return true
-    return (
-      r.name.toLowerCase().includes(kw) ||
-      r.idCard.toLowerCase().includes(kw) ||
-      r.id.toLowerCase().includes(kw)
-    )
-  })
-})
-const total = computed(() => filtered.value.length)
-const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
-const visibleItems = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+/**
+ * 服务端条目 → 展示行（网格/列表/表格三视图共用同一映射）。
+ *
+ * @param s 服务端条目（{@code {id, metadata, hasImage}}）
+ * @return 展示行
+ */
+function toRow(s: Record<string, unknown>): Row {
+  const id = String(s.id ?? '')
+  const meta = (s.metadata && typeof s.metadata === 'object' ? s.metadata : {}) as Record<string, unknown>
+  const local = registry.byId(id)
+  const pick = (k: string): unknown => (meta[k] != null && meta[k] !== '' ? meta[k] : (local as any)?.[k])
+  const ageRaw = pick('age')
+  const photoRaw = pick('photogenic')
+  return {
+    id,
+    name: String(pick('name') ?? pick('label') ?? ''),
+    age: typeof ageRaw === 'number' ? ageRaw : ageRaw == null || ageRaw === '' ? null : Number(ageRaw),
+    gender: String(pick('gender') ?? ''),
+    hair: String(pick('hair') ?? ''),
+    idCard: String(pick('idCard') ?? ''),
+    photogenic: typeof photoRaw === 'number' ? photoRaw : photoRaw == null || photoRaw === '' ? 3 : Number(photoRaw),
+    note: String(pick('note') ?? ''),
+    // 缩略图优先本地（登记它的浏览器立刻就有），否则取**服务端落存的登记图** ——
+    // 换浏览器/换账号也能看到图，这正是「在图上画特征点」的前提。
+    thumb: local?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`),
+    localThumb: local?.thumb ?? '',
+    hasImage: !!s.hasImage || !!local?.thumb,
+  }
+}
 
-watch([keyword, statusFilter, viewMode], () => { page.value = 1 })
+/**
+ * 当前页行（网格/列表用）。
+ *
+ * <p>检索与分页已下沉到服务端（{@code GET /v2/face/list?page&size&keyword&status}），
+ * 这里只做「服务端条目 → 展示行」的字段映射，不再本地过滤 —— 1 万条时浏览器
+ * 只会拿到当页 24 条。</p>
+ */
+const visibleItems = computed<Row[]>(() => serverItems.value.map(toRow))
+
+const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
+
+/**
+ * 表格行的登记图地址。
+ *
+ * <p>不能直接用 {@code Row.thumb}：那是加载时求值一次的字符串，blob 未就绪时
+ * 会**永远停在占位图**（表格行存的是 ReTable 内部状态，不随 blobUrls 重算）。
+ * 这里在渲染期调用 {@code resolve}，blobUrls 是响应式映射，加载完成自动重渲染。</p>
+ *
+ * @param id 人脸标识
+ * @return 可直接给 img.src 的地址（本地优先、服务端图兜底）
+ */
+function thumbFor(id: string): string {
+  return registry.byId(id)?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`)
+}
+
+/**
+ * 表格行 → 展示行（loader 已按 {@link toRow} 产出，这里只是槽位的类型收窄）。
+ *
+ * @param row 表格行
+ * @return 展示行
+ */
+function asRow(row: unknown): Row {
+  return row as Row
+}
+
+/**
+ * 表格缩略图点击：blob 就绪时新开页放大（表格视图没有 viewerjs 容器）。
+ *
+ * @param id 人脸标识
+ */
+function previewById(id: string) {
+  const url = thumbFor(id)
+  if (!url || url === pendingPlaceholder) {
+    ElMessage.info('图片加载中或该条没有人脸图（老数据重新登记一次即可）')
+    return
+  }
+  window.open(url, '_blank')
+}
+
+/**
+ * 输入防抖提交检索词（300ms）：先本地改输入框，停顿后一次性打服务端。
+ *
+ * <p>回车/清空立即生效（见模板）——「敲完回车就查」是检索框的通用预期。</p>
+ */
+let kwTimer: ReturnType<typeof setTimeout> | null = null
+function commitKeyword(immediate = false) {
+  if (kwTimer) {
+    clearTimeout(kwTimer)
+    kwTimer = null
+  }
+  const apply = () => {
+    kwTimer = null
+    if (kwApplied.value === keyword.value.trim()) {
+      return
+    }
+    kwApplied.value = keyword.value.trim()
+    // 表格视图：kwApplied 变化即 tableParams 变化，ReTable 自己回第 1 页重查，
+    // 这里再发一次就是双请求；网格/列表才需要手动 load
+    if (viewMode.value !== 'table') void load(1)
+  }
+  if (immediate) {
+    apply()
+  } else {
+    kwTimer = setTimeout(apply, 300)
+  }
+}
+
+// 状态筛选立即生效；服务端按 status 过滤后回第 1 页（表格视图同理由 ReTable 自行重查）
+watch(statusFilter, () => {
+  if (viewMode.value !== 'table') void load(1)
+})
+
+// 切回网格/列表时用最新检索条件补一次加载（表格期间可能改过条件）
+watch(viewMode, (m) => {
+  if (m !== 'table') void load(page.value)
+})
+
+// 表格视图的参数（交给 ReTable：变化自动回第 1 页并重载 loader）
+const tableParams = computed(() => ({
+  keyword: kwApplied.value,
+  status: statusFilter.value === 'all' ? '' : statusFilter.value,
+  sortField: sortField.value,
+  sortOrder: sortOrder.value,
+}))
 
 /** 元信息一行：年龄段 · 性别 · 发型 · 身份证(脱敏) */
 function formatMeta(item: Row): string {
@@ -377,11 +524,42 @@ function formatMeta(item: Row): string {
   return parts.join(' · ')
 }
 
-async function load() {
+/**
+ * 按页/检索词加载（服务端分页：网格与列表只拿当页 24 条）。
+ *
+ * @param target 目标页码
+ */
+async function load(target = 1) {
   loading.value = true
   try {
-    const { items } = await apiService.listFaces()
-    serverItems.value = items as Array<Record<string, unknown>>
+    const data = await apiService.listFaces({
+      page: target,
+      size: pageSize,
+      keyword: kwApplied.value || undefined,
+      status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+    })
+    serverItems.value = data.items as Array<Record<string, unknown>>
+    total.value = data.total
+    if (data.stats) {
+      stats.value = data.stats
+    } else if (target === 1 && data.items.length === data.total) {
+      // 旧后端（无 stats）：全量回包时按当包推算，避免统计卡变哑
+      const items = data.items as Array<Record<string, unknown>>
+      stats.value = {
+        total: data.total,
+        withImage: items.filter((x) => !!x.hasImage).length,
+        withIdCard: items.filter((x) => {
+          const m = (x.metadata ?? {}) as Record<string, unknown>
+          return typeof m.idCard === 'string' && m.idCard.trim() !== ''
+        }).length,
+      }
+    }
+    page.value = target
+    // 越界兜底：删空最后一页后回落到上一页
+    if (data.items.length === 0 && target > 1 && target > pageCount.value) {
+      await load(pageCount.value)
+      return
+    }
     // 底栏显示当前生效的模型（读 face 分组配置，失败不阻断列表）
     try {
       const s = (await apiService.getFaceSettings()) as Record<string, unknown>
@@ -398,11 +576,72 @@ async function load() {
       landmarkModel.value = String(m.landmark_model ?? '')
     } catch { landmarkModel.value = '' }
     await mountViewer()
+    // 表格模式下的删除/登记等动作：本函数顺带把表格也重查一遍（stats 以本次为准）
+    if (viewMode.value === 'table' && target === page.value) {
+      tableRef.value?.reload()
+    }
   } catch (e: any) {
     ElMessage.error('加载人脸底库失败：' + (e?.message ?? e))
   } finally {
     loading.value = false
   }
+}
+
+/* ── 表格视图（ReTable · 后端分页/筛选/排序） ──────────────────── */
+
+/** 表格列：缩略图/档案字段/状态/操作；可排序列全部走服务端（sortable='custom'） */
+const tableColumns: ReTableColumn[] = [
+  { prop: 'thumb', label: '登记图', width: 76, slot: 'thumb', align: 'center' },
+  { prop: 'name', label: '姓名', minWidth: 130, sortable: 'custom', showOverflowTooltip: true },
+  { prop: 'idCard', label: '身份证', width: 170, sortable: 'custom', slot: 'idCard' },
+  { prop: 'age', label: '年龄', width: 80, sortable: 'custom', align: 'center' },
+  { prop: 'gender', label: '性别', width: 80, align: 'center' },
+  { prop: 'hair', label: '发型', width: 100 },
+  { prop: 'note', label: '备注', minWidth: 140, showOverflowTooltip: true },
+  { prop: 'hasImage', label: '登记图', width: 92, sortable: 'custom', slot: 'hasImage', align: 'center' },
+  { prop: 'actions', label: '操作', width: 150, slot: 'actions', fixed: 'right', align: 'center' },
+]
+
+/**
+ * 表格 loader：ReTable 注入 page/pageSize，params 来自 {@link tableParams}
+ * （检索词/状态/排序任一变化都会让它自动回第 1 页重查）。
+ *
+ * @param p ReTable 传入的分页与查询参数
+ * @return 分页结果（total 为服务端命中数）
+ */
+async function tableLoader(p: ReTableLoadParams): Promise<RePageResult> {
+  const params = (p.params ?? {}) as Record<string, unknown>
+  const kw = String(params.keyword ?? '').trim()
+  const st = String(params.status ?? '')
+  const data = await apiService.listFaces({
+    page: p.page,
+    size: p.pageSize,
+    keyword: kw || undefined,
+    status: st || undefined,
+    sortField: String(params.sortField ?? '') || undefined,
+    sortOrder: String(params.sortOrder ?? '') || undefined,
+  })
+  return { total: data.total, items: data.items.map((s) => toRow(s as Record<string, unknown>)) }
+}
+
+/**
+ * 列头排序 → 写回 {@link tableParams}（触发 ReTable 回第 1 页重查）。
+ *
+ * @param payload 列头排序载荷（prop + ascending/descending/null）
+ */
+function onTableSort(payload: { prop?: string; order?: string | null }) {
+  const order = payload?.order
+  sortField.value = order ? String(payload.prop ?? '') : ''
+  sortOrder.value = order === 'descending' ? 'desc' : order ? 'asc' : ''
+}
+
+/**
+ * 表格勾选 → 同步到批量删除条（与网格/列表共用同一个 {@link selected}）。
+ *
+ * @param rows 当前勾选的行
+ */
+function onTableSelection(rows: Array<Record<string, unknown>>) {
+  selected.value = new Set(rows.map((r) => String(r.id ?? '')))
 }
 
 /** viewerjs 挂到网格容器；网格重渲染后需要重建 */
@@ -470,6 +709,8 @@ function toggleSelect(item: Row) {
 
 function clearSelection() {
   selected.value = new Set()
+  // 表格视图有自己的勾选状态（ReTable 内部），不同步清会留下「看着没选、批量还删」的幽灵态
+  tableRef.value?.clearAllSelection()
 }
 
 function preview(item: Row) {
@@ -505,7 +746,7 @@ async function removeOne(item: Row) {
     selected.value.delete(item.id)
     selected.value = new Set(selected.value)
     ElMessage.success(`已删除：${label}`)
-    await load()
+    await load(page.value)
   } catch (e: any) {
     ElMessage.error('删除失败：' + (e?.message ?? e))
   } finally {
@@ -531,13 +772,13 @@ async function removeSelected() {
     }
     ElMessage[okCount === ids.length ? 'success' : 'warning'](`已删除 ${okCount}/${ids.length} 条`)
     clearSelection()
-    await load()
+    await load(page.value)
   } finally {
     busy.value = false
   }
 }
 
-onMounted(load)
+onMounted(() => void load(1))
 onBeforeUnmount(() => {
   viewer?.destroy()
   viewer = null
@@ -561,5 +802,38 @@ onBeforeUnmount(() => {
 
 .fl-alert {
   margin: 0;
+}
+
+/* ── 表格视图（ReTable 内的槽位内容，作用域样式经插槽作用到这些节点）── */
+.lib-table {
+  width: 100%;
+}
+
+.lt-thumb {
+  display: block;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--el-border-radius-base, 4px);
+  background: var(--el-fill-color-light);
+  cursor: zoom-in;
+}
+
+.lt-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-placeholder);
+  cursor: default;
+}
+
+.lt-mono {
+  font-family: var(--el-font-family, monospace);
+  font-size: var(--el-font-size-small);
+}
+
+.lt-actions {
+  display: inline-flex;
+  gap: 4px;
 }
 </style>

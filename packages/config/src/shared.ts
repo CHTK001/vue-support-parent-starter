@@ -267,7 +267,9 @@ export const defaultAppConfig: AppConfig = {
     mergeLocalMenu: false,
     modulePaths: [],
     allowPrefixes: [],
-    whiteList: ["/login", "/403", "/404", "/500"],
+    // /prometheus/embed/**：Prometheus 自定义看板的免登录嵌入页（其他系统 iframe 使用）
+    // /nginx/embed/**：Nginx 自定义看板的免登录嵌入页（其他系统 iframe 使用）
+    whiteList: ["/login", "/403", "/404", "/500", "/prometheus/embed/**", "/nginx/embed/**"],
     loginPath: "/login",
     homePath: "/home",
     // 与其它 route 路径一致：这是 router 路径，不含 vite base（base=/system 时浏览器地址是 /system/personage）。

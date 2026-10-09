@@ -5048,7 +5048,8 @@ onUnmounted(() => {
           <!--
             需求 1：PDF 与「服务端转成 PDF 的文档」统一交给 pdf.js 的 viewer.html。
             分支位置必须在客户端 Office 面板之前 —— .pdf 本身也是客户端可渲染格式，
-            落到下面那个分支就会被 @vue-office/pdf 接走，viewer 永远轮不到。
+            落到下面那个分支就会被客户端 Office 面板（file-viewer 的 pdf 渲染器）
+            接走，viewer 永远轮不到。
           -->
           <PreviewIframePanel
             v-else-if="!previewError && previewPdfViewer"
@@ -6185,6 +6186,7 @@ button.fs-stat:hover {
    这里的 move 光标会让人以为内容区也能拖，白按一场。 */
 .fs-preview-shell {
   display: flex;
+  height: 100%;
   flex-direction: column;
   min-height: 0;
   /* 吃满 body：否则内部面板的 height:100% / flex:1 没有可参照的高度，
@@ -6193,6 +6195,7 @@ button.fs-stat:hover {
 }
 
 .fs-preview {
+  height: 100%;
   min-height: 200px;
   display: flex;
   flex-direction: column;
@@ -7577,7 +7580,7 @@ button.fs-stat:hover {
   /*
     高度钉成「视口 - 上下各 10px」，让内容真正吃满屏幕：
     此前弹框高度由内容决定，而 iframe 面板固定 65vh、PDF 面板更是能撑到
-    20 万像素（VueOfficePdf 按原始尺寸堆叠全部页面），表现为
+    20 万像素（旧 VueOfficePdf 按原始尺寸堆叠全部页面），表现为
     「弹框只占屏幕一部分、滚动条出现在半空」。
     改成确定高度后，滚动交给各面板内部（flex:1 + min-height:0）。
   */

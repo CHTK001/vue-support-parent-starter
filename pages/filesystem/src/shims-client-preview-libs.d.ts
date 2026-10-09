@@ -67,3 +67,21 @@ declare module "sql.js" {
   const initSqlJs: (config?: SqlJsConfig) => Promise<SqlJsStatic>;
   export default initSqlJs;
 }
+
+/**
+ * e-virt-table 的 ESM 产物子路径。
+ *
+ * <p>{@code @file-viewer/renderer-spreadsheet} 与
+ * {@link module:eVirtTableSelectionBridge} 都以
+ * {@code 'e-virt-table/dist/index.es.js'} 这一<b>完全相同</b>的路径 import，
+ * 保证拿到同一模块实例（补丁才能命中渲染器实际用的那张表）。</p>
+ *
+ * <p>包的 {@code types} 字段只映射主入口（{@code dist/lib/index.d.ts}），
+ * 子路径没有类型映射，动态 import 会报 TS7016。这里只声明桥接用到的
+ * 默认导出形状（要 patch 其 {@code prototype.draw} 的主类）。</p>
+ */
+declare module "e-virt-table/dist/index.es.js" {
+  /** 主类（默认导出），桥接只 patch 其 prototype.draw */
+  const EVirtTable: { prototype?: Record<string, unknown> };
+  export default EVirtTable;
+}

@@ -86,8 +86,10 @@ catalog:
   "@iconify-icons/ri": ^1.2.10
   "@iconify-icons/humbleicons": ^1.2.4
   "@iconify-icons/ep": ^1.2.12
-  vue-demi: ^0.14.6
-  "@vue-office/docx": ^1.6.3
-  "@vue-office/excel": ^1.7.14
-  "@vue-office/pdf": ^2.0.10
-  "@vue-office/pptx": ^1.0.1
+  "@file-viewer/vue3": 3.1.2
+  "@file-viewer/preset-office": 3.1.2
+  "@file-viewer/vite-plugin": 3.1.2
+  # 与 @file-viewer/renderer-spreadsheet 的内部依赖严格同版本：
+  # PreviewOfficePanel 直接 import 它做选区事件桥接（prototype patch），
+  # 版本一旦分叉 pnpm 会装出两个实例，补丁就打不到渲染器用的那张表上
+  e-virt-table: 1.4.15
