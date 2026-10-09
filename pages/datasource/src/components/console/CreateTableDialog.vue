@@ -288,8 +288,10 @@ async function submit(): Promise<void> {
           <span class="ct-grid__idx">{{ i + 1 }}</span>
           <ReInput v-model="row.name" class="ct-mono" placeholder="字段名" />
           <ReSelect v-model="row.type" :options="typeOptions" filterable />
+          <!-- 长度 / 小数位：该类型用不上时留一个占位横线，而不是空一格 ——
+               空格子看起来像「没渲染完」，横线才说明是「这个类型没有这一项」。 -->
           <ReInputNumber
-            v-show="typeNeedsSize(row.type)"
+            v-if="typeNeedsSize(row.type)"
             :model-value="row.size ?? undefined"
             :min="1"
             :max="65535"
@@ -297,8 +299,9 @@ async function submit(): Promise<void> {
             placeholder="长度"
             @update:model-value="row.size = $event ?? null"
           />
+          <span v-else class="ct-na" aria-hidden="true">—</span>
           <ReInputNumber
-            v-show="typeAllowsScale(row.type)"
+            v-if="typeAllowsScale(row.type)"
             :model-value="row.scale ?? undefined"
             :min="0"
             :max="30"
@@ -306,19 +309,24 @@ async function submit(): Promise<void> {
             placeholder="位"
             @update:model-value="row.scale = $event ?? null"
           />
+          <span v-else class="ct-na" aria-hidden="true">—</span>
+          <!-- 布尔三列用同一套分段单选（与数据库控制台的开关同源，见 utils/columnTypes 同款口径），
+               但格子只有 78~92px，必须配 ct-bool 这层「格子内」样式（见文件末尾）。
+               少了它，re-kit 给单项的 64px min-width 会让三组溢出轨道、互相叠住。 -->
           <ReRadioGroup
             v-model="row.nullable"
+            class="ct-bool"
             :disabled="row.primaryKey || row.autoIncrement"
             size="small"
           >
             <ReRadioButton :value="true">是</ReRadioButton>
             <ReRadioButton :value="false">否</ReRadioButton>
           </ReRadioGroup>
-          <ReRadioGroup :model-value="row.primaryKey" size="small" @update:model-value="togglePk(row, $event)">
+          <ReRadioGroup class="ct-bool" :model-value="row.primaryKey" size="small" @update:model-value="togglePk(row, $event)">
             <ReRadioButton :value="true">是</ReRadioButton>
             <ReRadioButton :value="false">否</ReRadioButton>
           </ReRadioGroup>
-          <ReRadioGroup :model-value="row.autoIncrement" size="small" @update:model-value="toggleAuto(row, $event)">
+          <ReRadioGroup class="ct-bool" :model-value="row.autoIncrement" size="small" @update:model-value="toggleAuto(row, $event)">
             <ReRadioButton :value="true">是</ReRadioButton>
             <ReRadioButton :value="false">否</ReRadioButton>
           </ReRadioGroup>
@@ -446,6 +454,36 @@ async function submit(): Promise<void> {
 
 .ct-grid__row > * {
   min-width: 0;
+}
+
+/* 布尔三列（可空 / 主键 / 自增）的「是 / 否」分段，必须钉在格宽里。
+   re-kit.css 给 .el-radio-button__inner 定了 min-width: 64px —— 那是为
+   「独立控件」定的（比如控制台里那些开关，宽一点好看）；设计网格的轨道
+   只有 78~92px，两组 128px 会直接溢出、叠到右边的列上。
+   截图里三组糊成一团，根因就是这条 min-width。
+   特异性写到 (0,5,0)（重复类写法）才能压过 re-kit 的 (0,4,0)。 */
+.ct-grid__row :deep(.ct-bool.ct-bool) {
+  width: 100%;
+  min-width: 0;
+}
+
+.ct-grid__row :deep(.ct-bool.ct-bool .el-radio-button) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ct-grid__row :deep(.ct-bool.ct-bool .el-radio-button__inner) {
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+/* 类型用不上的长度 / 小数位占位 */
+.ct-na {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  text-align: center;
 }
 
 /* 子组件默认是收缩的：不给 100% 它们会按自身内容宽，轨道就撑不住了 */
