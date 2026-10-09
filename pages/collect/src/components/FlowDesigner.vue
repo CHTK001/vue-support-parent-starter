@@ -48,6 +48,7 @@ import {
   emptyDsl,
   hasCycle,
   indexMetas,
+  lintExpression,
   pairPrefix,
   replacePairs,
 } from "../utils/dsl";
@@ -284,6 +285,24 @@ const panelTitle = computed(() => {
 const selectedState = computed(() =>
   nodeForm.value ? props.states?.[nodeForm.value.id] ?? null : null,
 );
+
+/**
+ * 状态条的表达式体检结果（UI 稿底栏「表达式校验通过」）。
+ *
+ * <p>实时扫本节点**全部**参数值（含 pairs / mapping 每一行，它们同样是参数）：
+ * 有问题报「参数标签 + 问题」，全通过返回 null。判定口径见 {@link lintExpression}
+ * ——只报未闭合 / 空体 / 嵌套三类确定性错误，不碰裸 }，不会对 JSON 与正则误报。</p>
+ */
+const exprIssue = computed<string | null>(() => {
+  for (const param of nodeForm.value?.params ?? []) {
+    const issue = lintExpression(param.value ?? "");
+    if (issue) {
+      const label = selectedMeta.value?.params.find(item => item.name === param.name)?.label;
+      return label ? `${label}：${issue}` : issue;
+    }
+  }
+  return null;
+});
 
 const edgeFlowText = computed(() =>
   edgeForm.value ? `${nameOf(edgeForm.value.from)} → ${nameOf(edgeForm.value.to)}` : "",
@@ -1404,6 +1423,14 @@ defineExpose({ load, getGraph, addNode, startWith });
                 @set-param="setParam"
                 @set-pairs="writeNodePairs"
               />
+
+              <!-- 状态条（UI 稿底栏）：左＝表达式体检实时结果；右＝如实说明「为什么没有保存/取消按钮」 -->
+              <div class="pane-status">
+                <span class="pane-status-flag" :class="exprIssue ? 'is-bad' : 'is-ok'">
+                  {{ exprIssue ? `⚠ ${exprIssue}` : "✓ 表达式校验通过" }}
+                </span>
+                <span class="pane-status-hint">改动实时生效，随流程一起保存</span>
+              </div>
             </div>
             <div v-else class="pane-hint">
               点击画布中的节点即可编辑参数；双击节点可就地改名
@@ -1544,6 +1571,39 @@ defineExpose({ load, getGraph, addNode, startWith });
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 10px 14px;
   align-content: start;
+}
+
+/* 状态条（UI 稿底栏）：跨满整行，上分隔线；绿＝体检通过，橙＝首个问题 */
+.pane-status {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.pane-status-flag {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.pane-status-flag.is-ok {
+  color: var(--status-success);
+}
+
+.pane-status-flag.is-bad {
+  color: var(--status-warning);
+}
+
+.pane-status-hint {
+  flex: none;
+  color: var(--el-text-color-secondary);
 }
 
 .field {

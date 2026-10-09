@@ -142,6 +142,19 @@ const ui = reactive({
   edges: 0,
 });
 const selection = ref<FlowSelection>(null);
+
+/**
+ * 选中对象徽标文案（UI 稿面板头胶囊「抽取节点」）：节点给「类型 + 节点」
+ * （如 {@code 数据库节点}），连线给「连线」。类型文案从 nodeTypes（宿主 meta）查，
+ * 查不到回落 flowType 本身；label 已带「节点」后缀时不再叠字。
+ */
+const selectionBadge = computed(() => {
+  const sel = selection.value;
+  if (!sel) return "";
+  if (sel.kind === "edge") return "连线";
+  const label = props.nodeTypes.find((t) => t.type === sel.node.type)?.label ?? sel.node.type;
+  return label.endsWith("节点") ? label : `${label}节点`;
+});
 const issues = ref<FlowStructureIssue[]>([]);
 const rename = reactive({ visible: false, value: "", id: "", left: 0, top: 0, width: 120 });
 const menu = reactive({ visible: false, x: 0, y: 0, node: null as FlowNode | null, event: null as MouseEvent | null });
@@ -570,9 +583,18 @@ defineExpose({
       >
         <div class="flow-props-head" @mousedown="startResize">
           <span class="flow-props-grip" />
+          <span class="flow-props-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 7h6M13 7h8M3 12h10M17 12h4M3 17h4M11 17h10" />
+              <circle cx="11" cy="7" r="2" />
+              <circle cx="15" cy="12" r="2" />
+              <circle cx="9" cy="17" r="2" />
+            </svg>
+          </span>
           <span class="flow-props-title">
-            {{ propertiesTitle }}
-            <em v-if="selection">{{ selection.kind === 'node' ? selection.node.label : '连线' }}</em>
+            <span class="flow-props-name">{{ propertiesTitle }}</span>
+            <em v-if="selection">{{ selectionBadge }}</em>
             <em v-else class="muted">未选中</em>
           </span>
           <ReButton
@@ -590,6 +612,9 @@ defineExpose({
           >
             {{ ui.collapsed ? '展开' : '收起' }}
           </ReButton>
+          <span v-if="selection" class="flow-props-sub">
+            {{ selection.kind === 'node' ? '配置该节点的解析与输出行为' : '配置这条连线的流转条件' }}
+          </span>
         </div>
         <div v-show="!ui.collapsed" class="flow-props-body">
           <slot name="properties" :selection="selection" :node="selection?.kind === 'node' ? selection.node : null"
@@ -742,11 +767,13 @@ defineExpose({
 }
 .flow-props-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  row-gap: 2px;
+  min-height: 34px;
   flex: none;
-  padding: 0 10px;
+  padding: 5px 10px;
   cursor: ew-resize;
   /* 原为 #fbfcfd */
   background: var(--el-fill-color-lighter);
@@ -754,9 +781,60 @@ defineExpose({
   user-select: none;
 }
 .flow-props-grip { width: 3px; height: 26px; flex: none; border-radius: 2px; /* 原为 #d6dae0 */ background: var(--el-border-color-darker, #d6dae0); }
-.flow-props-title { flex: 1; min-width: 0; font-size: 12px; /* 原为 #4e5969 */ color: var(--el-text-color-regular); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.flow-props-title em { margin-left: 6px; font-style: normal; color: var(--flow-accent); }
-.flow-props-title em.muted { /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); }
+/* 图标磁贴（UI 稿头部）：主色浅底圆角方块 + 主色滑杆图标 */
+.flow-props-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: var(--radius-md, 8px);
+}
+.flow-props-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.flow-props-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 选中对象徽标（UI 稿「抽取节点」胶囊）：主色浅底圆角胶囊 */
+.flow-props-title em {
+  flex: none;
+  max-width: 50%;
+  padding: 1px 8px;
+  overflow: hidden;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--el-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--el-color-primary-light-9);
+  border-radius: 999px;
+}
+.flow-props-title em.muted { /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); background: var(--el-fill-color); }
+/* 副标题（UI 稿头部第二行）：对齐标题起点（grip 3 + 间隙 8 + 磁贴 24 + 间隙 8） */
+.flow-props-sub {
+  flex-basis: 100%;
+  padding-left: 43px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .flow-props-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; }
 .flow-props-hint { font-size: 12px; /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); }
 .flow-issues {

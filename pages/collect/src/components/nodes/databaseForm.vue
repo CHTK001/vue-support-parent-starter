@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { CreateTableDialog } from "@pages/datasource";
+import ReIcon from "@repo/ui/re-icon";
 import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
 import LoopFields from "./LoopFields.vue";
@@ -159,8 +160,11 @@ function extraTip(name: string): string {
 
 <template>
   <div class="field field-wide node-intro">
-    批量入库：把上游产出的集合整批写进目标表。表不存在会自动建、缺列会自动补，列类型按这一批
-    实际取值推断；本节点不产采集记录，写入行数看节点摘要。
+    <ReIcon name="InfoFilled" :size="15" class="intro-icon" />
+    <span>
+      批量入库：把上游产出的集合整批写进目标表。表不存在会自动建、缺列会自动补，列类型按这一批
+      实际取值推断；本节点不产采集记录，写入行数看节点摘要。
+    </span>
   </div>
 
   <template v-for="param in visibleFields" :key="param.name">
@@ -216,17 +220,29 @@ function extraTip(name: string): string {
   grid-column: 1 / -1;
 }
 
-/* 节点级说明：一眼看清这个节点在流程里扮演什么角色 */
+/* 节点级说明（UI 稿信息横幅）：主色浅底 + 圆角 + 前置信息图标，一眼看清本节点的角色 */
 .node-intro {
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-left: 2px solid var(--el-color-primary);
-  border-radius: var(--el-radius-md, 8px);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--el-text-color-regular);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: var(--radius-lg, 12px);
   transition: border-color 200ms, background-color 200ms;
+}
+
+.node-intro:hover {
+  background: var(--el-color-primary-light-8);
+}
+
+.intro-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--el-color-primary);
 }
 
 /* 分组标题样式已随「循环」分段一起移除：循环参数改由 LoopFields 独立分节渲染 */
