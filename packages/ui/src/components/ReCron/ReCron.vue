@@ -157,19 +157,44 @@ function blank(): FieldState {
   return { mode: "all", start: 0, end: 0, step: 1, points: [], nth: 1 };
 }
 
-const PRESETS: { label: string; cron: string }[] = [
+/**
+ * 常用预设：恒显。
+ *
+ * <p>窄弹层（320px）里每行只放得下两个胶囊，11 个平铺要占六行、把下面的字段编辑
+ * 挤到要滚动，所以拆成两档：这里 6 个高频的常显，{@link PRESETS_MORE} 折叠。</p>
+ */
+const PRESETS_QUICK: { label: string; cron: string }[] = [
   { label: "每分钟", cron: "0 * * * * *" },
   { label: "每 5 分钟", cron: "0 */5 * * * *" },
-  { label: "每 10 分钟", cron: "0 */10 * * * *" },
-  { label: "每 30 分钟", cron: "0 */30 * * * *" },
   { label: "每小时整点", cron: "0 0 * * * *" },
   { label: "每天 09:00", cron: "0 0 9 * * *" },
-  { label: "每天 09:30", cron: "0 30 9 * * *" },
-  { label: "工作日 09:00", cron: "0 0 9 * * 1,2,3,4,5" },
-  { label: "每周一 09:00", cron: "0 0 9 * * 1" },
-  { label: "每月 1 日 09:00", cron: "0 0 9 1 * *" },
-  { label: "每年 1 月 1 日 00:00", cron: "0 0 0 1 1 *" },
+  { label: "工作日", cron: "0 0 9 * * 1,2,3,4,5" },
+  { label: "每周一", cron: "0 0 9 * * 1" },
 ];
+
+/** 罕见档预设：由「更多」按钮展开（每 10 分钟 / 每月 / 每年…） */
+const PRESETS_MORE: { label: string; cron: string }[] = [
+  { label: "每 10 分钟", cron: "0 */10 * * * *" },
+  { label: "每 30 分钟", cron: "0 */30 * * * *" },
+  { label: "每天 09:30", cron: "0 30 9 * * *" },
+  { label: "每月 1 日", cron: "0 0 9 1 * *" },
+  { label: "每年 1 月 1 日", cron: "0 0 0 1 1 *" },
+];
+
+/** 「更多预设」是否展开 */
+const presetsExpanded = ref(false);
+
+/**
+ * 当前该展示的预设列表。
+ *
+ * <p>折叠时命中罕见档也要把命中的那个补出来 —— 否则用户明明存了"每月 1 日"，
+ * 面板上一个都没高亮，看着像没生效。</p>
+ */
+const visiblePresets = computed<{ label: string; cron: string }[]>(() => {
+  if (presetsExpanded.value) return [...PRESETS_QUICK, ...PRESETS_MORE];
+  const hit = PRESETS_MORE.find((p) => p.cron === trimmed.value);
+  return hit ? [...PRESETS_QUICK, hit] : PRESETS_QUICK;
+});
 
 /** 匹配方式文案：胶囊分段项与摘要文案共用一套叫法 */
 const MODE_LABELS: Record<FieldMode, string> = {
@@ -1241,7 +1266,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
         <span class="re-cron__section-title re-cron__section-title--inline">常用预设</span>
         <div class="re-cron__pill-row">
           <button
-            v-for="preset in PRESETS"
+            v-for="preset in visiblePresets"
             :key="preset.cron"
             type="button"
             class="re-cron__pill"
@@ -1249,6 +1274,15 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             @click="applyPreset(preset.cron)"
           >
             {{ preset.label }}
+          </button>
+          <!-- 罕见档折叠：320px 弹层里每行只放得下两个胶囊，11 个平铺要占六行 -->
+          <button
+            v-if="PRESETS_MORE.length"
+            type="button"
+            class="re-cron__pill re-cron__pill--more"
+            @click="presetsExpanded = !presetsExpanded"
+          >
+            {{ presetsExpanded ? "收起" : "更多" }}
           </button>
           <button v-if="defaultCron" type="button" class="re-cron__pill" @click="applyDefaultCron">用默认</button>
           <button type="button" class="re-cron__pill" @click="clearAll">清空</button>
@@ -1620,11 +1654,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 /*
  * 选中态与自动填充：
- *  - 文本选中不再用浏览器默认的整块高亮蓝，改成极淡主色底，聚焦时不会"闪一下蓝条"；
+ *  - 文本选中用极淡中性底，不用主色：主色偏紫/偏亮时，cron 表达式整行被选中
+ *    会铺满整个输入框，很容易被当成"输入框坏了"；
  *  - 浏览器自动填充的整块底色/闪烁动画一并压掉（字段名已用 new-password 规避触发）。
  */
 .re-cron :deep(.el-input__inner)::selection {
-  background: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+  background: var(--el-fill-color-dark, #dcdfe6);
   color: var(--el-text-color-primary);
 }
 
@@ -1645,11 +1680,14 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
  * 按键/失焦/自动填充每次改一次背景，就多一段看不见起止的渐变。
  *
  * `transition: none` 是斩断而不是掩盖：底色该由谁画由谁画，但不再被拉成慢动画。
+ *
+ * 这里**不能**加 `background-clip: text`：它把背景限制在字形内，输入框聚焦时
+ * placeholder 恰好被浏览器按文本渲染，于是上面 ::selection 的选区色会以
+ * 「贴在字上」的形式糊住整个输入框 —— 就是截图里 cron 输入框那圈紫色。
+ * autofill 已由上面那条 1000px inset 盖住，不需要它。
  */
 .re-cron :deep(.el-input__inner) {
   transition: none !important;
-  -webkit-background-clip: text;
-  background-clip: text;
 }
 
 .re-cron :deep(.el-input__wrapper.is-focus) {
@@ -1846,6 +1884,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   border-color: var(--el-color-primary, #409eff);
   background: var(--el-color-primary, #409eff);
   color: var(--el-color-white, #ffffff);
+}
+
+/* 「更多 / 收起」是动作不是取值：用虚线边 + 次要色区分，避免被误当成一个 cron 预设 */
+.re-cron__pill--more {
+  border-style: dashed;
+  color: var(--el-text-color-secondary, #909399);
 }
 
 .re-cron__pill:disabled {
