@@ -1,5 +1,40 @@
 import type { ApiContext } from "./api-context";
 import type { Session, SessionGroup, SessionListResponse, SearchSessionResponse, SidebarSessionsResponse } from "@/types/session";
+import { characterApi } from "./character.api";
+
+/**
+ * 单会话详情里后端只回 `characterId`，不内联角色对象，而消息头要用
+ * `session.character.title` 显示「是谁在说话」。缺了这一步时前端只能退回
+ * 模型名，表现为头部出现「agnes-2.0-flash agnes-2.0-flash」（角色名漏数据）。
+ * 这里按 characterId 补挂角色详情，并按 id 缓存（含 in-flight 去重），
+ * 避免每次切换会话重复请求；角色改名的缓存失效代价可忽略（刷新即更新）。
+ */
+const sessionCharacterCache = new Map<string, Promise<any>>();
+
+/**
+ * 给单会话补挂角色详情（已有 character 或没有 characterId 时原样返回）。
+ *
+ * @param ctx     请求上下文（apiService 实例）
+ * @param session 后端返回的会话对象
+ * @returns 补挂 character 后的同一会话对象
+ */
+async function attachSessionCharacter(ctx: ApiContext, session: any): Promise<any> {
+  const characterId = session?.characterId;
+  if (!characterId || session.character) {
+    return session;
+  }
+  const key = String(characterId);
+  let pending = sessionCharacterCache.get(key);
+  if (!pending) {
+    pending = characterApi.fetchCharacter.call(ctx, key).catch(() => null);
+    sessionCharacterCache.set(key, pending);
+  }
+  const character = await pending;
+  if (character) {
+    session.character = character;
+  }
+  return session;
+}
 
 export interface SessionApi {
   createSession(data: any): Promise<Session>;
@@ -345,7 +380,8 @@ export const sessionApi: SessionApi = {
   },
 
   async fetchSession(this: ApiContext, sessionId: string) {
-    return await this._request(`/sessions/${sessionId}`);
+    const session = await this._request(`/sessions/${sessionId}`);
+    return attachSessionCharacter(this, session);
   },
 
   async fetchSessions(this: ApiContext, skip?: number, limit?: number, groupId?: string | null, keyword?: string, includeArchived?: boolean) {

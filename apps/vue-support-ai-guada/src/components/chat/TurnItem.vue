@@ -68,7 +68,7 @@
                 type="assistant" :name="displayName"></Avatar>
               <span class="text-[1.3em] text-gray-700 dark:text-gray-300 font-medium leading-tight mr-2">{{
                 displayName }}</span>
-              <span v-if="currentModelName && currentModelName !== 'unknown'" class="text-[1em] text-gray-400 mt-0.5">{{
+              <span v-if="currentModelName && currentModelName !== 'unknown' && currentModelName !== displayName" class="text-[1em] text-gray-400 mt-0.5">{{
                 currentModelName }}</span>
             </div>
           </div>
