@@ -1,12 +1,14 @@
 /**
- * 监控平台 UI 设计令牌 v2 —— 对齐 monitor-ui-design/design.md §1
+ * 共享设计令牌 v2 —— 来源 apps/vue-support-monitor-starter
  * 品牌色(koi #6d5dfc) / 中性色 / 监控域语义色 / 告警级别色 / 状态点
+ * 由 @repo/theme 提供，monitor / collect-scheduler 两个宿主 app 均引入
  */
 :root {
   /* 品牌色 */
   --brand-500: #6d5dfc;
   --brand-600: #5a4bd9;
   --brand-400: #8f83fd;
+  --brand-300: #b3a9fe;
   --brand-100: #ece9ff;
   --brand-50: #f6f4ff;
   --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-400) 100%);
@@ -210,7 +212,6 @@ html.dark {
   --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-400) 100%);
 
   /* 阴影（dark 下更深更柔） */
-  --bg-hover: #2a2e3d;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);

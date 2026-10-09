@@ -17,6 +17,7 @@
     },
     "./koi/*.ts": "./src/themes/koi/*.ts",
     "./koi/*": "./src/themes/koi/*",
+    "./styles/tokens.css": "./src/styles/tokens.css",
     "./*": "./src/*",
     "./*.ts": "./src/*.ts",
     "./composables/*": "./src/composables/*.ts"
