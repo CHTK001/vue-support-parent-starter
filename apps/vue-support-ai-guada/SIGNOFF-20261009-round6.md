@@ -1,0 +1,84 @@
+# AI 控制台（ai-guada）第 6 轮修复记录 — 2026-10-09
+
+> 承接 `SIGNOFF-20261009-round5.md`。本轮处理用户新报的 5 项（两批消息）：
+> ① 「执行过程」折叠摘要条不要了，里面的过程行直接放出来；
+> ② 回合执行期间中间要有自动计算、实时更新的耗时（用户示例 `17s` 徽标），用于判断整个命令还在执行；
+> ③ 「加载工具详情失败」修复——展开已调用工具必弹；
+> ④ 模型选择去除上下文大小过滤；
+> ⑤ 模型选择添加检索框搜索模型。
+
+## 1. 指纹绑定
+
+| 项 | 值 |
+| --- | --- |
+| 后端 | `192.168.50.198:8787`（本机经 vite 代理 `localhost:15689` 访问） |
+| 前端形态 | 本地 `vite dev`（15689）→ 代理 198:8787；`dist` 产物由 `scripts/serve-dist.mjs`（15690）复验 |
+| 本轮前端提交 | `49de89d90`（五项 + 探针同步） |
+| 分支 | 本地提交（含 round4/round5 的 `435a7e67c` `1f26fbc07` `28a115479` `b442baed7` `59c18f41e`），**未 push**（等用户授权） |
+
+## 2. 本轮修复（用户报障）
+
+| # | 缺陷 | 根因 | 修法 | 证据（见第 4 节） |
+| --- | --- | --- | --- | --- |
+| 1 | 「执行过程」折叠条多此一举，过程要点开才见 | `TurnItem` 用 `TurnProcessSummary` 摘要条 + `processExpanded=false` 门控 `ProcessTimeline` 的 search/think/tool 行 | 摘要条组件与门控整体下线：删 `TurnProcessSummary.vue`、`turnPhases.ts`、`processExpanded`/`turnPhases` 代码与 locale 文案；`ProcessTimeline` 走 `showProcess` 默认 `true`，过程行进回合即见 | 流中 `.turn-summary`/`.ts-head` 计数 0；思考行（此前被门控）流中 **1s 内直接可见**并留存，内容行流中/流后可见 |
+| 2 | 执行期间无法判断整个命令还在跑 | 只有左下角小字「工作中」，无居中实时耗时 | 新增居中 `.exec-timer__pill` 徽标：数据源 `useStreamResponse` 的 100ms 计时器（`message.totalDurationMs`），整秒自增（`17s`/`2m 5s`），随流式起落，流结束即隐；底部状态行去重时长只留「工作中」 | 连续两次读数 `"0s" → "2s"` 自增；流后徽标计数 0；截图中居中 `3s` 徽标 + 底部「工作中」 |
+| 3 | 展开已调用工具必弹「加载工具详情失败」 | `MessageToolCalls` 懒加载打到 `/message-content/{id}/tool-details`——**后端从未实现该端点**（spring 仓 grep 无 `message-content`/`tool-details`，实测 `GET /v2/message-content/123/tool-details` → **404 S0503C0000 资源不存在**），每次展开/开弹窗必 404 → toast | 删除整条懒加载（`loadToolDetails`/`needsLazyLoad`/`watch(showDialog)`/loading 态/toast/`contentId` prop），详情直读消息自带的 `toolCalls`/`toolCallsResponse` 轨迹（`AiSessionController` 历史接口本就随消息返回 toolTrace）；行体展开与「查看详情」弹窗双路径零网络请求 | 夹具带 `contentId` 复现报障场景：展开后**零** `/message-content/` 请求、**零**错误 toast；弹窗路径同 |
+| 4 | 模型选择的上下文大小过滤要去掉 | 用户需求 | 选择卡片移除 `.ctx-filter` 标签行与 `ctxFilter`/`matchesContextTags` 消费；**模型管理页档位过滤保留**（`ModelsProviderDetail` 独立实现不受影响）；行尾上下文徽标（128K/1M）仅展示不过滤 | 真实应用 `.model-panel .ctx-tag` = 0（37 模型）；管理页 `.d-section-head .ctx-tag` 仍 6 档且过滤自洽 |
+| 5 | 模型选择要加检索框 | 用户需求（37 个模型肉眼翻太慢） | 面板顶部新增 `.model-search`：按「显示名/裸模型名/供应商名」不区分大小写即时过滤；打开自动聚焦（弹层晚挂载短重试兜底）；关闭重置关键词；输入即收起悬停信息卡（行被整体替换防挂空行）；单模型变体不渲染；空态复用「没有符合筛选条件的模型」；i18n `chat.input.modelSearchPlaceholder`（搜索模型 / Search models） | 真实应用：检索框渲染且**自动聚焦**，`agnes-2.` → 5/37 行，无匹配提示、清空恢复 37；夹具语义 37/37（子串/大小写/供应商/裸名片段/清空/无匹配） |
+
+## 3. 关键实现说明
+
+- **计时徽标数据源**：`useStreamResponse` 的 `startDurationTimer` 在流开始时挂 100ms 定时器累加 `message.totalDurationMs`（消息级，含续跑基线），`TurnItem` 的 `durationText`/`elapsedPillText` 消费同一值——徽标天然与「整回合」对齐，`<60s` 显示 `17s`，`≥60s` 显示 `2m 5s`，`prefers-reduced-motion` 下停掉呼吸动画。
+- **A3 根因链**：端点不存在（404 实测）→ 修复不是「把错误吞掉」，而是**删除无意义的网络往返**——工具轨迹历史接口已随消息返回（`AiSessionController` 把 `toolTrace` 写进 `contentMetadata.toolCalls/toolCallsResponse`），实时轨迹在消息本体里，展开即渲染。同时移除 locale 的 `loadingDetails`/`loadDetailsFailed` 等死文案。
+- **检索与悬停卡的交互**：检索词变化会整体替换列表 DOM，旧悬停目标失联会让信息卡挂在空节点上——`watch(searchKw)` 先 `closeHoverCard()` 再渲染，保证卡片只挂在存活行。
+- **面板关闭三清**：`visible=false` 时收起信息卡 + 清空检索词，保证下次打开是完整列表（探针 `searchCleared` 断言即此语义）。
+- **探针同步（防误导）**：`model-ctx-filter-probe`（夹具）与 `model-ctx-filter-app-check`（真实应用）原断言面板 ctx 标签，按新行为改写为「标签移除 + 检索语义」；管理页侧断言原样保留。`tool-row-check.html` 夹具补 `contentId`（模拟历史消息报障现场），`tool-row-probe` 新增 4 项零请求/零 toast 断言。
+
+## 4. 实测证据
+
+### 4.1 dev（15689）
+
+- **条目 1+2（`r6-verify.cjs`，真实流）**：**16/16 PASS** —— 思考等级开到「高强度」发推导题：徽标 `"0s"→"2s"` 自增、流中 `.turn-summary`/`.ts-head`=0、**思考行流中 1s 内直接可见**（此前被门控）、内容行流中/流后可见、思考行流后留存、流后徽标=0；收尾把思考档位弹层往返恢复到探针前值（`none→none`）、mock 键清理、页面报错 0。截图 `r6-a2-stream.png`：居中 `3s` 徽标 + 思考/内容行直出 + 底部仅「工作中」。
+- **条目 3（`tool-row-probe.cjs`，夹具带 contentId 复现现场）**：**28/28 PASS**（原 24 + 新 4）—— 展开行体：`expand.noLazyFetch=[]`（零 `/message-content/` 请求）、`expand.noLoadFailedToast`（零错误 toast）；「查看详情」弹窗：`dialog.noLazyFetch=[]`、`dialog.noLoadFailedToast`；夹具自身无页面报错。
+- **条目 3（根因实证）**：`GET /v2/message-content/123/tool-details` → **404**（`S0503C0000 资源不存在`）；spring 仓 grep `tool-details|toolDetails|message-content` 无任何端点定义。
+- **条目 4+5（`model-ctx-filter-probe.cjs`，夹具）**：**37/37 PASS** —— 面板标签 0、检索框渲染、`huge/HUGE/fixture(供应商)/128k` 命中语义、清空按钮恢复 6 行、无匹配提示；管理页 6 档过滤矩阵原样通过；单模型变体不渲染检索框；页面报错 0。
+- **条目 4+5（`model-ctx-filter-app-check.cjs`，真实应用）**：**21/21 PASS** —— `.model-panel .ctx-tag`=0、检索框渲染且**自动聚焦**（`activeElement.className=model-search__input`）、`agnes-2.` → 5/37 行、无匹配提示、清空恢复 37/37；管理页 25 卡 + 6 档过滤自洽（`128K-256K`→6/25、计数徽标、恢复 25）；页面/接口错误 0。
+- **面板与流式回归**：`hover-popover-check.cjs` **23/23 PASS**；`chat-stream-accept.cjs` **14/14 PASS**（含完整流式、7.7s 收尾、接口无失败）。
+
+### 4.2 dist 产物（15690）——隔离构建
+
+- **共享工作树构建被他人未提交改动污染（重要）**：首次按工作树直接 `vite build` 虽成功（5m35s），但产物**白屏**：`ReferenceError: Cannot access '_c' before initialization`（`file-viewer-word` 分块，`@file-viewer/renderer-word` 顶层 `_c.filter(...)` 循环导入 TDZ）。溯源：另一会话正在集成 `@file-viewer`，其**未提交**的 `vite.config.ts`/`package.json`/`pages/filesystem` 改动随构建进入产物；dev 不受影响（模块初始化顺序不同），产物必挂。**与本轮五项无关**（ai-guada 聊天组件零涉及）。
+- **隔离方案**：`git worktree add D:\ch\project\dist-verify-r6 49de89d90`（冻结在本轮提交）→ `pnpm install`（1m47s）→ 补 `index.html`（`apps/*/index.html` 为 gitignore 生成物，内容为 9/26 老文件、无他人痕迹）→ 镜像主仓历史遗留的未声明依赖链接（`@repo/*` junction 5 个 + 真实目录 219 个，fresh install 不会重建、主仓构建依赖它们）→ `vite build` **built in 3m24s，零 error**。
+- **产物服务**：worktree 内 `node scripts/serve-dist.mjs 15690`（反代 198:8787，`app.yaml` 齐备）：`/` 200、登录 200、**boot sanity 通过**（`.model-selector-btn` 渲染 = 1，即主仓产物白屏处）。
+- **`r6-verify.cjs`（dist）**：**16/16 PASS**（与 dev 逐项一致）：徽标 `"0s"→"2s"` 自增、思考行流中 3s 内直接可见、流中/流后 `.turn-summary`=0、流后徽标=0、思考档位往返恢复（`none→none`）、mock 键清理、页面报错 0。
+- **`model-ctx-filter-app-check.cjs`（dist）**：**21/21 PASS**（与 dev 逐项一致）：面板 `.ctx-tag`=0（37 模型）、检索框渲染且自动聚焦、`agnes-2.` → 5/37、无匹配提示、清空恢复 37/37；管理页 6 档过滤自洽（25 卡、`128K-256K`→6/25）；页面/接口错误 0。
+- **`run-all-against-dist.mjs` 全量产物套件**：**109 / 110 PASSED**（round5 123/124，round4 120/124）：
+  - 唯一计分失败仍是 `acc-image-lib-foot 0/1`：夹具脚本自身异常（`locator.fill: value: expected string, got undefined`，round4/5 同款，非产品缺陷）；
+  - 与 round5 差 14 分 = `acc-face-edit` 本次**未产生计分**：造数 `POST /v2/face/enroll` 后端报 `S0503C0000 人脸登记失败: DJL 图像转换失败: scrfd-face-detector`——**绕开前端直调该接口复现同一错误**，属 198 环境人脸检测服务故障，非前端缺陷（round5 时该接口正常、14 项全过）；
+  - 分套件：`prodgrade 16/16`、`search-ux 22/22`、`search-render 12/12`、`rename 14/14`、`video 15/15`、`library-menu 30/30`。
+- **`tool-row-probe`/夹具类**：dev 专用（`/src/acceptance/*.html` 产物不含），dist 下不适用，dev 侧已 28/28。
+
+## 5. 待办
+
+| 项 | 状态 | 说明 |
+| --- | --- | --- |
+| 198 人脸登记接口故障 | 待后端处理 | `POST /v2/face/enroll` 报 `DJL 图像转换失败: scrfd-face-detector`（绕开前端直调复现），dist 全量套件 `acc-face-edit` 因此不计分；round5 时正常，疑似 198 检测模型资源异常 |
+| 他人未提交的 `@file-viewer` 集成挂死**产物**构建 | 已知（非本轮范围） | 共享工作树按现状 `vite build` 得到白屏产物：`file-viewer-word` 分块 `_c` 循环导入 TDZ（`vite.config.ts`/`package.json`/`pages/filesystem` 均为未提交态）。dev 正常故易漏测——对应会话需在提交前补一次 dist 自检；本轮 dist 验收改走冻结提交的 worktree 绕开 |
+| mock 工具场景陈旧 | 已知非产品问题 | `VITE_ENABLE_MOCK` 的 `WITH_TOOL_CALLS` 场景流事件能跑完但 UI 不落消息（`createMessage` 拦截日志缺失、消息区空白）——dev 演示夹具与现行发送链路脱节，未属本轮范围；A3 验收改用带 `contentId` 的组件夹具复现 |
+| 后端 jar 重部署 | 待用户执行 | round4 的 `bb1c3bf22`（酒馆模型归一化）需重打 jar 部署到 198 才生效；当前靠前端迁移已可恢复 |
+| 25 路由 `ui-click-sweep` | 待低峰补跑 | 高频点击触发后端 429，限流下结果不可信 |
+| push | 待授权 | 本地提交未推送（round4/5/6 累计 6 个） |
+
+## 6. 变更文件
+
+**前端（vue-support-parent-starter，提交 `49de89d90`）**
+- `apps/vue-support-ai-guada/src/components/chat/TurnItem.vue`（条目 1/2 — 摘要条下线、计时徽标、状态行去重、死代码清理）
+- `apps/vue-support-ai-guada/src/components/chat/message-item/TurnProcessSummary.vue`（条目 1 — **删除**）
+- `apps/vue-support-ai-guada/src/utils/turnPhases.ts`（条目 1 — **删除**，仅摘要条消费）
+- `apps/vue-support-ai-guada/src/components/chat/message-item/MessageToolCalls.vue`（条目 3 — 幽灵端点懒加载整链删除）
+- `apps/vue-support-ai-guada/src/components/chat/message-item/ProcessTimeline.vue`（条目 1/3 — 去 `show-process` 门控传参、去 `content-id` 传参）
+- `apps/vue-support-ai-guada/src/components/chat/chat-input/ModelSelectorPanel.vue`（条目 4/5 — 过滤行移除、检索框 + 聚焦/重置/悬停联动）
+- `apps/vue-support-ai-guada/src/locales/zh-CN/chat.ts`、`src/locales/en-US/chat.ts`（条目 5 检索占位文案；条目 1/3 死文案清理）
+- `apps/vue-support-ai-guada/src/types/components.d.ts`（`TurnProcessSummary` 过期条目移除；顺带带上已提交组件 `FaceLandmarkDialog` 的自动生成条目）
+- `apps/vue-support-ai-guada/src/acceptance/model-ctx-filter-probe.cjs`、`model-ctx-filter-app-check.cjs`（条目 4/5 探针改写）
+- `apps/vue-support-ai-guada/src/acceptance/tool-row-check.html`、`tool-row-probe.cjs`（条目 3 — 夹具带 contentId + 4 项零请求/零 toast 断言）
