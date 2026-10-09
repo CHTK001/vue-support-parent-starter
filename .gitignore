@@ -197,6 +197,12 @@ parser-trim.png
 **/tmp-dist/
 **/tmp-fixtures/
 
+# 冒烟构建产物与格式夹具（构建输出 + 造样本用的小文件，均非源码）
+**/dist-smoke/
+**/tmp-smoke-public/
+**/tmp-fx/
+**/tmp-fx2/
+
 # Rust 编译产物（wasm 本身不忽略：crates/*/src/wasm 下的产物要随包提交）
 **/target/
 **/crates/*/target/
@@ -212,7 +218,7 @@ dist-verify/
 
 **/_ofdtest/
 
-# @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩
+# @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩
 public/vendor/
 public/flyfish-viewer-assets.json
 
