@@ -13,6 +13,16 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 const run = promisify(execFile)
 
+// image-lib-ui / image-library-tab / salted-login 三个套件**刻意**不写死口令，
+// 强制从环境变量 AI_ACCEPT_PASS 读取（salted-login 注释明言「拒绝把明文口令
+// 写进脚本」）；未设置时它们直接 exit(2) 且不打印 RESULT —— round4/5/6 曾因此
+// 静默丢掉 67 项覆盖而无人察觉。这里提前预警，结尾再把「无 RESULT」计为硬失败。
+if (!process.env.AI_ACCEPT_PASS) {
+  console.log('[warn] 未设置 AI_ACCEPT_PASS —— 以下套件将无结果:')
+  console.log('       acc-image-lib-ui / acc-image-library-tab / acc-salted-login')
+  console.log("       用法: 先 $env:AI_ACCEPT_PASS='xxx' 再运行本 runner（口令不入库）")
+}
+
 let totalPass = 0, totalAll = 0
 const failed = []
 console.log(`目标: ${BASE}`)
@@ -38,3 +48,6 @@ for (const s of SUITES) {
 console.log('')
 console.log(`  【产物】浏览器合计: ${totalPass} / ${totalAll} PASSED`)
 if (failed.length) console.log('  未产生结果: ' + failed.join(', '))
+// 有套件无 RESULT（含 AI_ACCEPT_PASS 未设导致的静默退出）或检查项失败 → 非零退出，
+// 让流水线/验收脚本能按退出码判定，而不是只靠人眼扫合计
+if (failed.length || totalPass < totalAll) process.exitCode = 1
