@@ -56,6 +56,9 @@ export const fetchMetas = () => get<CollectShapeMeta[]>(`${API}/designer/metas`)
 /** 运行时概览（执行器、统计、线程与超时配置） */
 export const fetchRuntime = () => get<CollectRuntime>(`${API}/designer/runtime`);
 
+/** AI 生成流程：把自然语言描述生成流程 DSL（服务端经图校验后返回）。 */
+export const aiGenerateFlow = (input: string) => post<CollectDsl>(`${API}/designer/ai-generate`, { input });
+
 /** 预览抓取出参，形状与后端 CollectPreviewVO 对齐 */
 export interface CollectPreviewPayload {
   /** HTTP 状态码 */
