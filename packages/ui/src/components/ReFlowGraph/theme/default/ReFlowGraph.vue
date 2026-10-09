@@ -21,8 +21,6 @@ import {
   shallowRef,
   watch } from "vue";
 import ReButton from "../../../ReButton/ReButton.vue";
-import { ElDialog,
-} from "element-plus";
 import { FlowGraphEngine } from "../../internals/engine";
 import { resolveFlowIcon } from "../../internals/icons";
 import type {
