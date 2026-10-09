@@ -742,6 +742,10 @@ async function send() {
             currentAI.streaming = false
             if (ev.error) {
               currentAI.content += `\n[错误] ${ev.error}`
+            } else if (!currentAI.content.trim()) {
+              // provider 偶发零输出（只发 create/finish，没有任何 text 帧，实测 2026-10-09）：
+              // 显式给出占位提示，不留无信息的空气泡（历史加载侧同样会过滤这种行）。
+              currentAI.content = '（模型未返回内容）'
             }
           } else if (type === 'user_message') {
             // 后端回显用户消息，忽略（本地已 push）
