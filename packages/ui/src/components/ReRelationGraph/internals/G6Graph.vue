@@ -1913,7 +1913,7 @@ const buildPluginsFor = (withMinimap: boolean) => {
  *
  * <p><b>坑：{@code graph.getPlugins()} 返回的是配置数组，不是实例。</b>
  * G6 源码里就是 {@code return this.options.plugins || []} ——
- * 拿到的�� {@code [{ type: 'minimap', size: [200, 128], ... }]} 这种纯配置对象，
+ * 拿到的是 {@code [{ type: 'minimap', size: [200, 128], ... }]} 这种纯配置对象，
  * 上面当然没有 debounce 函数的 {@code .cancel}。
  * 本组件第一版 {@code safeDestroy} 就栽在这里：遍历了一堆配置对象、
  * 一个 cancel 都没找到、**静默什么都没做**，于是「已修复」的假象一直持续到
