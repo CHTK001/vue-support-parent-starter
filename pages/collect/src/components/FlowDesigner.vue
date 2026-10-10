@@ -680,9 +680,20 @@ async function loadColumnsForActive(force = false): Promise<void> {
     const columns = await props.loadColumns(activeDatasource.value || "app", activeTable.value);
     columnsByKey.value = { ...columnsByKey.value, [key]: columns };
   } catch (error) {
-    // 失败不写缓存：写进去（哪怕是 []）会让下一次重判在缓存处提前返回，
-    // 报错状态就永远清不掉；不写则表清单随后到位、或用户点「重新读取」时都能再试。
-    columnsError.value = error instanceof Error ? error.message : String(error);
+    // 表清单此刻明确确认表不存在：读列 409（表不存在或没有可见列）是必然结果，
+    // 不是故障 —— 与上面非 force 的跳过同语义，清掉红条让映射编辑器进「新建表模式」。
+    // force 也适用：force 是为了「建完表真读一次」，读失败即表确实还没建成，
+    // 旧清单的「不存在」与实测一致；反过来清单说存在却读不到，才是数据源 / 权限类
+    // 真故障，照常留红条（否则点一次「重新读取表结构」就永久卡红，见 2026-10-10 用户反馈：
+    // 表不存在 → 红条 → 按提示重读 → force 绕过拦截又 409 → 死循环）。
+    if (tableExists.value === false) {
+      columnsByKey.value = { ...columnsByKey.value, [key]: [] };
+      columnsError.value = null;
+    } else {
+      // 失败不写缓存：写进去（哪怕是 []）会让下一次重判在缓存处提前返回，
+      // 报错状态就永远清不掉；不写则表清单随后到位、或用户点「重新读取」时都能再试。
+      columnsError.value = error instanceof Error ? error.message : String(error);
+    }
   } finally {
     columnsLoading.value = false;
   }
