@@ -50,6 +50,18 @@ export interface SyncTask {
   syncTaskLastWriteCount?: number | null;
   syncTaskLastCostMs?: number | null;
   syncTaskLastMessage?: string | null;
+  /** 同步模式：FULL 全量 / INCREMENTAL 增量（存量行为空按 FULL） */
+  syncTaskSyncMode?: string | null;
+  /** 增量字段（仅增量模式） */
+  syncTaskIncField?: string | null;
+  /** 增量每批数量（单次执行最多同步条数），null/缺省=不限 */
+  syncTaskIncBatchSize?: number | null;
+  /** 增量水位（服务端执行成功后回写，不可由入参指定） */
+  syncTaskLastSeq?: string | null;
+  /** Hook 通知地址，空=不通知 */
+  syncTaskHookUrl?: string | null;
+  /** Hook 通知时机：DONE 完成通知 / ROW 每条数据+完成（全量固定 DONE） */
+  syncTaskHookNotify?: string | null;
 }
 
 /** 任务新建/修改入参（用 type 而非 interface：`.data()` 的参数要求 Record<string, unknown>，
@@ -68,6 +80,16 @@ export type SyncTaskPayload = {
   targetTable: string;
   columnMapping?: string | null;
   writeMode: string;
+  /** 同步模式 FULL/INCREMENTAL，空按 FULL */
+  syncMode?: string | null;
+  /** 增量字段（INCREMENTAL 时必填，只允许字母数字下划线） */
+  incField?: string | null;
+  /** 增量每批数量，null=不限 */
+  incBatchSize?: number | null;
+  /** Hook 通知地址（http/https），null=不通知 */
+  hookUrl?: string | null;
+  /** Hook 通知时机 DONE/ROW，空按 DONE（全量固定 DONE） */
+  hookNotify?: string | null;
   batchSize?: number;
   cron?: string | null;
   enabled?: number;
