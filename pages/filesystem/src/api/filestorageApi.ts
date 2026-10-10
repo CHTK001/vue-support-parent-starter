@@ -104,8 +104,13 @@ export interface BucketConfig {
   openWebjars: boolean;
   /** 开关 */
   openRemoteFile: boolean;
-  /** 开关（三方 URL 预览，?url=base64 编码地址） */
-  openThirdPreview: boolean;
+  /**
+   * 三方 URL 预览能力（FileStorageUrlPreviewProvider SPI 实现名，NONE 表示关闭）
+   *
+   * <p>不是布尔开关：可选实现由后台 SPI 枚举并下发给前端，管理员显式选择后才生效；
+   * 只有声明 supported=true 的实现（内置为 SERVER，即后台拉取）才真正放行 ?url=。</p>
+   */
+  thirdUrlPreview: string;
   /** 水印文字（可能为空） */
   watermark: string | null;
   /** 布局开关 */
@@ -119,8 +124,7 @@ export interface BucketConfig {
   /** 详情视图是否显示"修改时间"列 */
   showTime: boolean;
   /** 图片滤镜（ImageFilter SPI 扩展名，NONE 表示原图） */
-  imageFilter: string;
-  /** 是否启用路径穿透防护（默认开启） */
+  imageFilter: string;  /** 是否启用路径穿透防护（默认开启） */
   openPathGuard: boolean;
   /** 是否启用全局图片滤镜链（默认关闭） */
   imageFilterEnabled: boolean;
@@ -439,6 +443,31 @@ export interface SpiCapability {
   label: string;
   /** 前端预览用 CSS filter 值（来自 FileStorageImageFilterProvider#getCssFilter，可能为空） */
   css?: string;
+  /**
+   * 图片路径参数（来自 FileStorageImageFilterProvider#getPathParam）
+   *
+   * <p>非空时前端把它拼进图片地址，图片渲染因此先经过该滤镜（后台处理）；</p>
+   *
+   * <p>为空表示后台图片管线不执行该滤镜（原图，或反色/怀旧/鲜艳这类
+   * 后台不支持的效果），此时前端回退到 css 做即时预览。</p>
+   */
+  path?: string;
+  /** 该滤镜是否由后台图片管线真正执行（true 时前端不再叠加 CSS，避免同一滤镜作用两次） */
+  server?: boolean;
+}
+
+/**
+ * 三方 URL 预览能力项（FileStorageUrlPreviewProvider SPI 实现）
+ */
+export interface SpiUrlPreviewer {
+  /** 实现名（写入配置，如 NONE / SERVER） */
+  name: string;
+  /** 展示名（如「关闭」「后台」） */
+  label: string;
+  /** 实现说明（作为选项描述下发展示） */
+  description?: string;
+  /** 是否真正支持 ?url=（只有 true 的实现被选中时才放行） */
+  supported?: boolean;
 }
 
 /**
@@ -459,8 +488,10 @@ export interface CapabilitiesResponse {
   fileSettingCapabilities: SpiCapabilityGroup[];
   /** 全局滤镜能力（FileStorageFilterSetting SPI） */
   filterSettingCapabilities: SpiCapabilityGroup[];
-  /** 图片滤镜实现列表（ImageFilter SPI，含 name + label） */
+  /** 图片滤镜实现列表（ImageFilter SPI，含 name + label + 图片路径参数） */
   imageFilters: SpiCapability[];
+  /** 三方 URL 预览能力实现列表（FileStorageUrlPreviewProvider SPI） */
+  urlPreviewers: SpiUrlPreviewer[];
 }
 
 /**

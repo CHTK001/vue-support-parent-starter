@@ -1,7 +1,8 @@
 <!--
-  file-viewer 文档预览面板（一对多：xmind/epub/eml 三种各一个渲染器，按扩展名选）。
+  file-viewer 文档预览面板（一对多：xmind/epub/eml 等按扩展名选渲染器）。
   替换旧通道：xmind/epub/eml 此前走 FileStorageManage.vue 的服务端 iframe 通道，
-  现改为前端直渲（xmind→mindmapRenderer、epub/fb2→ebookRenderer、eml/msg→emailRenderer）。
+  现改为前端直渲（xmind→mindmapRenderer、epub/fb2/umd→ebookRenderer、
+  eml/msg/mbox→emailRenderer）。
   取字节照抄 PreviewGeoPanel.vue/PreviewDrawioPanel.vue 的 load 取字节段：
   票据直链优先（props.src），否则顶层直取 objectUrl，包内条目走 ?preview=true&inner= 通道。
   file-viewer 接线自包含（照抄 PreviewOfficePanel.vue 第 106-166 行模式），未使用 FvPanelBase。
@@ -40,7 +41,7 @@ const emit = defineEmits<{
 
 void props.size; // 仅声明以兼容调用点透传，纯预览不需要体积
 
-/** 文档分支：xmind=脑图、epub/fb2=电子书、eml/msg=邮件 */
+/** 文档分支：xmind=脑图、epub/fb2/umd=电子书、eml/msg/mbox=邮件 */
 type DocKind = "mindmap" | "ebook" | "email";
 
 /** 数据加载中（v-model:loading 兼容） */
@@ -125,9 +126,11 @@ function kindOf(name: string): DocKind | null {
       return "mindmap";
     case "epub":
     case "fb2":
+    case "umd":
       return "ebook";
     case "eml":
     case "msg":
+    case "mbox":
       return "email";
     default:
       return null;
@@ -180,7 +183,7 @@ function mimeOf(name: string, kind: DocKind): string {
     case "ebook":
       return extensionOf(name).toLowerCase() === "fb2" ? "text/xml" : "application/epub+zip";
     case "email":
-      return "message/rfc822";
+      return extensionOf(name).toLowerCase() === "mbox" ? "application/mbox" : "message/rfc822";
     default:
       return "";
   }

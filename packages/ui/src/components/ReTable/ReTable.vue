@@ -3865,6 +3865,33 @@ const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConf
 const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
   const cfg = props.toolbarConfig;
   const canConfigureColumns = props.columns.length > 0;
+
+  /**
+   * `toolbar=false` ⇒ 三个工具按钮全部不渲染。
+   *
+   * <p>prop 注释写的是「是否显示工具栏（刷新 / 列设置 / 表格设置）」，
+   * 但此前这里根本没接 `toolbar`：页面传 `:toolbar="false"` 后刷新/列设置/表格设置
+   * 照旧渲染，**与文档相反**。顶部批量条（`re-table__toolbar-top`）当时却已经用
+   * `toolbar &&` 门控了，同一个 prop 对两处工具栏给出相反结果。</p>
+   *
+   * <p>实测踩坑三处（均为「要分页、不要工具栏」的意图）：
+   * `ScSessionTab.vue`、`MarkingView.vue`、`CollectTaskView.vue` 日志表。</p>
+   *
+   * <p>批量按钮一并关掉：本 prop 的 toolbarConfig 注释已写明「toolbar=true 时生效」，
+   * 且 `isBatchEnabled` 对 `false` 返回 false，语义一致。</p>
+   */
+  if (!props.toolbar) {
+    return {
+      ...cfg,
+      refresh: false,
+      columnSettings: false,
+      tableSettings: false,
+      batchDelete: false,
+      batchSelect: false,
+      batchEdit: false,
+    };
+  }
+
   return {
     ...cfg,
     columnSettings: canConfigureColumns ? cfg.columnSettings !== false : false,

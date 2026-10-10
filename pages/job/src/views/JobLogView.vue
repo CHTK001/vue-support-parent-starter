@@ -478,16 +478,19 @@ onActivated(() => {
         <ReInputNumber v-model="retentionDays"  :min="0" :max="3650" controls-position="right"
                        style="width: 104px" aria-label="日志保留天数"/>
         <span class="collect-hint collect-hint--muted">{{ retentionDays === 0 ? "天（0=清空全部）" : "天" }}</span>
-        <ReButton icon="Delete" type="danger" title="按保留天数清理日志" @click="clean">按保留天数清理日志</ReButton>
+        <ReButton
+          icon="Delete"
+          type="danger"
+          layout="square"
+          tip="按保留天数清理日志"
+          @click="clean"/>
         <ReButton
           icon="Download"
+          layout="square"
           :loading="exporting"
           :disabled="exporting"
-          title="把当前筛选条件下的日志导出为 CSV"
-          @click="exportLogs"
-        >
-          导出 CSV
-        </ReButton>
+          tip="把当前筛选条件下的日志导出为 CSV"
+          @click="exportLogs"/>
       </template>
 
       <!--

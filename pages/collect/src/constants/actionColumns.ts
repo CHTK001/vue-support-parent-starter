@@ -46,6 +46,7 @@ export type CollectActionKey =
   | "testNotice"
   | "deleteNotice"
   | "designFlow"
+  | "editFlow"
   | "previewFlow"
   | "runFlow"
   | "flowRuns"
@@ -87,7 +88,8 @@ export const COLLECT_ACTIONS: Record<CollectActionKey, CollectActionMeta> = {
   deleteNotice: { icon: "Delete", type: "danger", tip: "删除这条通知配置" },
 
   // 采集流程（CollectorView）
-  designFlow: { icon: "Share", type: "primary", tip: "流程设计" },
+  designFlow: { icon: "Share", type: "primary", tip: "流程设计（画布：节点 / 连线 / 参数）" },
+  editFlow: { icon: "Edit", type: "primary", tip: "编辑采集器属性（名称 / 分类 / 调度等）" },
   previewFlow: { icon: "Grid", type: "primary", tip: "预览图" },
   runFlow: { icon: "VideoPlay", type: "success", tip: "运行" },
   flowRuns: { icon: "Timer", tip: "运行记录" },

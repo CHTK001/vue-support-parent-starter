@@ -41,46 +41,46 @@
         <el-checkbox v-model="listErrorOnly" >仅看错误边</el-checkbox>
         <span class="filter-hint">聚合后 {{ filteredEdges.length }} / {{ edges.length }} 条边</span>
       </div>
-      <el-table
-        :data="filteredEdges"
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
+           .apm-table 变量覆盖与 e2e 的 .el-table__body 选择器不失效；
+           pagination=false / toolbar=false —— 原表既无分页也无工具栏按钮；
+           原 el-table 没写 border → settings.border=false 抑制默认边框；
+           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。
+           原两列的 sort-by="p95Ms"/"errorRate" 改为把 p95Ms/errorRate 直接写成 prop
+           （ReTableColumn 无 sort-by），排序口径与原来完全一致。 -->
+      <ReTable
+        :data="filteredEdges as unknown as Record<string, unknown>[]"
+        :columns="edgeColumns"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ minHeight: 0 }"
         class="apm-table"
         empty-text="暂无依赖关系"
       >
-        <el-table-column label="源端" min-width="180">
-          <template #default="{ row }">
-            <span class="mono">{{ row.source }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="目标" min-width="180">
-          <template #default="{ row }">
-            <span class="mono target">{{ row.target }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="protocol" label="协议" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.protocol" effect="plain" round>{{ row.protocol }}</el-tag>
-            <span v-else class="muted">—</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="callCount" label="调用次数" width="100" align="center" sortable />
-        <el-table-column label="P95 耗时" width="100" align="center" sortable sort-by="p95Ms">
-          <template #default="{ row }">
-            <span class="mono">{{ (row.p95Ms ?? 0).toFixed(1) }} ms</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="错误" width="80" align="center">
-          <template #default="{ row }">
-            <span :class="['mono', row.errorCount > 0 ? 'err' : 'muted']">{{ row.errorCount }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="错误率" width="90" align="center" sortable sort-by="errorRate">
-          <template #default="{ row }">
-            <span :class="['mono', (row.errorRate ?? 0) > 5 ? 'err' : (row.errorRate ?? 0) > 1 ? 'warn' : 'muted']">
-              {{ (row.errorRate ?? 0).toFixed(2) }}%
-            </span>
-          </template>
-        </el-table-column>
-      </el-table>
+        <template #col-source="{ row }">
+          <span class="mono">{{ row.source }}</span>
+        </template>
+        <template #col-target="{ row }">
+          <span class="mono target">{{ row.target }}</span>
+        </template>
+        <template #col-protocol="{ row }">
+          <el-tag v-if="row.protocol" effect="plain" round>{{ row.protocol }}</el-tag>
+          <span v-else class="muted">—</span>
+        </template>
+        <template #col-p95Ms="{ row }">
+          <span class="mono">{{ p95MsOf(row).toFixed(1) }} ms</span>
+        </template>
+        <template #col-errorCount="{ row }">
+          <span :class="['mono', errorCountOf(row) > 0 ? 'err' : 'muted']">{{ errorCountOf(row) }}</span>
+        </template>
+        <template #col-errorRate="{ row }">
+          <span :class="['mono', errorRateOf(row) > 5 ? 'err' : errorRateOf(row) > 1 ? 'warn' : 'muted']">
+            {{ errorRateOf(row).toFixed(2) }}%
+          </span>
+        </template>
+      </ReTable>
     </div>
   </div>
 </template>
@@ -90,6 +90,8 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { ElMessage } from "element-plus";
 import { Refresh, Plus, MagicStick } from "@element-plus/icons-vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { getDependenciesAggregated, injectTransmission, injectBatch } from "../api/apmApi";
 import type { DependencyEdge } from "../api/apmApi";
 
@@ -112,6 +114,37 @@ const filteredEdges = computed(() => {
     );
   });
 });
+
+/**
+ * 列表视图的列配置：原来散在模板里的 7 个 el-table-column 收敛到这里。
+ *
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。原「源端 / 目标 / P95 耗时 /
+ * 错误 / 错误率」没有 prop，这里补稳定合成 prop；其中 P95 耗时、错误率原是
+ * sort-by="p95Ms" / sort-by="errorRate"（ReTableColumn 没有 sort-by），
+ * 直接把排序字段写成 prop，排序口径与原来一致。</p>
+ */
+const edgeColumns: ReTableColumn[] = [
+  { prop: "source", label: "源端", minWidth: 180, slot: "source" },
+  { prop: "target", label: "目标", minWidth: 180, slot: "target" },
+  { prop: "protocol", label: "协议", width: 100, slot: "protocol" },
+  { prop: "callCount", label: "调用次数", width: 100, align: "center", sortable: true },
+  { prop: "p95Ms", label: "P95 耗时", width: 100, align: "center", sortable: true, slot: "p95Ms" },
+  { prop: "errorCount", label: "错误", width: 80, align: "center", slot: "errorCount" },
+  { prop: "errorRate", label: "错误率", width: 90, align: "center", sortable: true, slot: "errorRate" },
+];
+
+/** 插槽里的 row 是宽类型（unknown）：下列取值都是算术/比较入参，先收窄成 number */
+function p95MsOf(row: Record<string, unknown>): number {
+  return Number(row.p95Ms ?? 0);
+}
+
+function errorCountOf(row: Record<string, unknown>): number {
+  return Number(row.errorCount ?? 0);
+}
+
+function errorRateOf(row: Record<string, unknown>): number {
+  return Number(row.errorRate ?? 0);
+}
 
 let chart: echarts.ECharts | null = null;
 

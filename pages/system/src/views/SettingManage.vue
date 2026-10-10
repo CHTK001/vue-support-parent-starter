@@ -49,6 +49,7 @@ import {
   checkEmailConnectivity,
 } from "../api/systemApi";
 import type { SysSetting, SysSettingHistory, EmailConnectivity } from "../api/types";
+import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, RePageResult } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
@@ -601,6 +602,22 @@ const detailColumns: ReTableColumn[] = [
   { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "right" },
 ];
 
+/**
+ * 变更历史表格列（原模板里的 7 个 el-table-column 收敛到这里）。
+ *
+ * <p>标题都是中文字面量、不含 {@code t(...)}，所以用普通常量即可
+ * （只有带 t() 的列标题才需要 computed，否则切语言表头不刷新）。</p>
+ */
+const historyColumns: ReTableColumn[] = [
+  { prop: "sysSettingOperation", label: "操作", width: 80, align: "right", slot: "sysSettingOperation" },
+  { prop: "sysSettingOldValue", label: "变更前", minWidth: 140, showOverflowTooltip: true, slot: "sysSettingOldValue" },
+  { prop: "sysSettingNewValue", label: "变更后", minWidth: 140, showOverflowTooltip: true, slot: "sysSettingNewValue" },
+  { prop: "sysSettingOperatorName", label: "操作人", width: 100 },
+  { prop: "sysSettingBatchNo", label: "批次号", width: 140, showOverflowTooltip: true, slot: "sysSettingBatchNo" },
+  { prop: "createTime", label: "时间", width: 170 },
+  { prop: "action", label: "操作", width: 90, fixed: "right", align: "right", slot: "action" },
+];
+
 onMounted(() => {
   loadAll();
 });
@@ -904,51 +921,50 @@ onMounted(() => {
             <el-button type="primary" :loading="batchLoading" @click="handleViewBatch">查看批次</el-button>
             <el-button v-if="batchMode" link type="info" @click="exitBatchMode">返回普通查看</el-button>
           </div>
-          <el-table :data="batchMode ? batchList : historyList" border stripe style="width: 100%" >
-            <el-table-column prop="sysSettingOperation" label="操作" width="80" align="right">
-              <template #default="{ row }">
-                <el-tag :type="(operationMap[row.sysSettingOperation ?? '']?.type ?? 'info') as never"  effect="plain">
-                  {{ operationMap[row.sysSettingOperation ?? '']?.label ?? row.sysSettingOperation }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="sysSettingOldValue" label="变更前" minWidth="140" show-overflow-tooltip>
-              <template #default="{ row }">
-                <code class="setting-old">{{ formatValue(row.sysSettingOldValue) }}</code>
-              </template>
-            </el-table-column>
-            <el-table-column prop="sysSettingNewValue" label="变更后" minWidth="140" show-overflow-tooltip>
-              <template #default="{ row }">
-                <code class="setting-new">{{ formatValue(row.sysSettingNewValue) }}</code>
-              </template>
-            </el-table-column>
-            <el-table-column prop="sysSettingOperatorName" label="操作人" width="100" />
-            <el-table-column prop="sysSettingBatchNo" label="批次号" width="140" show-overflow-tooltip>
-              <template #default="{ row }">
-                <span
-                  v-if="row.sysSettingBatchNo"
-                  class="batch-link"
-                  role="button"
-                  :tabindex="0"
-                  :aria-label="`按批次 ${row.sysSettingBatchNo} 回滚`"
-                  @click="handleRollbackBatch(row.sysSettingBatchNo!)"
-                  @keydown.enter="handleRollbackBatch(row.sysSettingBatchNo!)"
-                  @keydown.space.prevent="handleRollbackBatch(row.sysSettingBatchNo!)"
-                >
-                  {{ row.sysSettingBatchNo }}
-                </span>
-                <span v-else class="setting-na">-</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createTime" label="时间" width="170" />
-            <el-table-column label="操作" width="90" fixed="right" align="right">
-              <template #default="{ row }">
-                <el-button type="primary" link  :loading="rollbackLoading === row.sysSettingHistoryId" @click="handleRollbackSingle(row)">
-                  回滚
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+               边框/斑马纹样式；pagination=false / toolbar=false —— 不新增页码与工具栏按钮；
+               原 el-table 的 border 走 ReTable 默认（border: true），stripe 走同名 prop。 -->
+          <ReTable
+            :data="batchMode ? batchList : historyList"
+            :columns="historyColumns"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            stripe
+            style="width: 100%"
+          >
+            <template #col-sysSettingOperation="{ row }">
+              <el-tag :type="(operationMap[row.sysSettingOperation ?? '']?.type ?? 'info') as never"  effect="plain">
+                {{ operationMap[row.sysSettingOperation ?? '']?.label ?? row.sysSettingOperation }}
+              </el-tag>
+            </template>
+            <template #col-sysSettingOldValue="{ row }">
+              <code class="setting-old">{{ formatValue(row.sysSettingOldValue) }}</code>
+            </template>
+            <template #col-sysSettingNewValue="{ row }">
+              <code class="setting-new">{{ formatValue(row.sysSettingNewValue) }}</code>
+            </template>
+            <template #col-sysSettingBatchNo="{ row }">
+              <span
+                v-if="row.sysSettingBatchNo"
+                class="batch-link"
+                role="button"
+                :tabindex="0"
+                :aria-label="`按批次 ${row.sysSettingBatchNo} 回滚`"
+                @click="handleRollbackBatch(row.sysSettingBatchNo!)"
+                @keydown.enter="handleRollbackBatch(row.sysSettingBatchNo!)"
+                @keydown.space.prevent="handleRollbackBatch(row.sysSettingBatchNo!)"
+              >
+                {{ row.sysSettingBatchNo }}
+              </span>
+              <span v-else class="setting-na">-</span>
+            </template>
+            <template #col-action="{ row }">
+              <el-button type="primary" link  :loading="rollbackLoading === row.sysSettingHistoryId" @click="handleRollbackSingle(row)">
+                回滚
+              </el-button>
+            </template>
+          </ReTable>
           <div class="flex justify-end items-center mt-3 gap-2">
             <template v-if="batchMode">
               <el-button type="danger"  @click="handleRollbackBatch(batchNoInput.trim())">

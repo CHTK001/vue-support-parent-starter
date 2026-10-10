@@ -27,7 +27,7 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
-import { ReRadioButton, ReRadioGroup } from "@repo/ui/re-kit";
+import ReSwitch from "@repo/ui/re-switch";
 import { createDbTable } from "../../api/manageConsoles";
 import type { DbColumnPayload } from "../../api/dbManageApi";
 import { columnTypeSelectOptions, ENUM_LIKE_TYPES, typeAllowsScale, typeNeedsSize } from "../../utils/columnTypes";
@@ -348,26 +348,38 @@ async function submit(): Promise<void> {
             @update:model-value="row.scale = $event ?? null"
           />
           <span v-else class="ct-na" aria-hidden="true">—</span>
-          <!-- 布尔三列用同一套分段单选（与数据库控制台的开关同源，见 utils/columnTypes 同款口径），
-               但格子只有 78~92px，必须配 ct-bool 这层「格子内」样式（见文件末尾）。
-               少了它，re-kit 给单项的 64px min-width 会让三组溢出轨道、互相叠住。 -->
-          <ReRadioGroup
+          <!-- 布尔三列（可空 / 主键 / 自增）改用 ReSwitch square：32px 见方的图标开关，
+               正好钉进 92/78/78px 的轨道，激活态 = 主色边框 + 右上角打勾，一眼可辨。
+               原来的「是/否」分段两个单项各 64px（re-kit 的 min-width），两组 128px
+               直接溢出轨道、叠到右边的列上（教训记在文件末尾 .re-switch-square 那段 CSS 注释）。
+               纯图标对读屏是空的，故每颗都带 aria-label + title 兜住名称。 -->
+          <ReSwitch
             v-model="row.nullable"
-            class="ct-bool"
-            :disabled="row.primaryKey || row.autoIncrement"
+            layout="square"
             size="small"
-          >
-            <ReRadioButton :value="true">是</ReRadioButton>
-            <ReRadioButton :value="false">否</ReRadioButton>
-          </ReRadioGroup>
-          <ReRadioGroup class="ct-bool" :model-value="row.primaryKey" size="small" @update:model-value="togglePk(row, $event)">
-            <ReRadioButton :value="true">是</ReRadioButton>
-            <ReRadioButton :value="false">否</ReRadioButton>
-          </ReRadioGroup>
-          <ReRadioGroup class="ct-bool" :model-value="row.autoIncrement" size="small" @update:model-value="toggleAuto(row, $event)">
-            <ReRadioButton :value="true">是</ReRadioButton>
-            <ReRadioButton :value="false">否</ReRadioButton>
-          </ReRadioGroup>
+            class="ct-bool"
+            aria-label="允许为空"
+            title="允许为空"
+            :disabled="row.primaryKey || row.autoIncrement"
+          />
+          <ReSwitch
+            :model-value="row.primaryKey"
+            layout="square"
+            size="small"
+            class="ct-bool"
+            aria-label="主键"
+            title="主键"
+            @update:model-value="togglePk(row, $event)"
+          />
+          <ReSwitch
+            :model-value="row.autoIncrement"
+            layout="square"
+            size="small"
+            class="ct-bool"
+            aria-label="自增"
+            title="自增"
+            @update:model-value="toggleAuto(row, $event)"
+          />
           <ReInput v-model="row.defaultValue" class="ct-mono" placeholder="默认值" />
           <ReInput v-model="row.comment" placeholder="列注释" />
           <span class="ct-grid__ops">
@@ -494,27 +506,13 @@ async function submit(): Promise<void> {
   min-width: 0;
 }
 
-/* 布尔三列（可空 / 主键 / 自增）的「是 / 否」分段，必须钉在格宽里。
-   re-kit.css 给 .el-radio-button__inner 定了 min-width: 64px —— 那是为
-   「独立控件」定的（比如控制台里那些开关，宽一点好看）；设计网格的轨道
-   只有 78~92px，两组 128px 会直接溢出、叠到右边的列上。
-   截图里三组糊成一团，根因就是这条 min-width。
-   特异性写到 (0,5,0)（重复类写法）才能压过 re-kit 的 (0,4,0)。 */
-.ct-grid__row :deep(.ct-bool.ct-bool) {
-  width: 100%;
-  min-width: 0;
-}
-
-.ct-grid__row :deep(.ct-bool.ct-bool .el-radio-button) {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.ct-grid__row :deep(.ct-bool.ct-bool .el-radio-button__inner) {
-  width: 100%;
-  min-width: 0;
-  padding: 0 6px;
-  font-size: 12px;
+/* 布尔三列（可空 / 主键 / 自增）的 ReSwitch square：组件自带 32×32 定宽，
+   轨道（92/78/78px）按 grid 默认会把它按 start 对齐 —— 居中才稳稳落在格子中间。
+   刻意不给 width:100%：方块一旦被拉伸就不是方块了。
+   （旧版是「是/否」分段，被 re-kit 给单项的 64px min-width 顶爆轨道、叠到右列，
+   根因写在这里备查；换成方块后天然 32px，再没有溢出问题。） */
+.ct-grid__row :deep(.re-switch-square) {
+  justify-self: center;
 }
 
 /* 类型用不上的长度 / 小数位占位 */

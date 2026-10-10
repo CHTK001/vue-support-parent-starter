@@ -88,6 +88,7 @@ catalog:
   "@iconify-icons/ep": ^1.2.12
   "@file-viewer/vue3": 3.1.2
   "@file-viewer/preset-office": 3.1.2
+  "@file-viewer/preset-all": 3.1.2
   "@file-viewer/vite-plugin": 3.1.2
   # 按需渲染器：与 @file-viewer/core 严格同版本，混版会导致渲染器注册失败。
   "@file-viewer/renderer-image": 3.1.2

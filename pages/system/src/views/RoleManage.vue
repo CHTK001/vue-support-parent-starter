@@ -42,6 +42,7 @@ import {
   pageForUser,
 } from "../api/systemApi";
 import type { SysDept, SysMenu, SysRole, SysUser } from "../api/types";
+import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 const roleStatusOptions = [
@@ -461,6 +462,19 @@ const columns: ReTableColumn[] = [
   { prop: "action", label: "操作", width: 340, slot: "action", fixed: "right" },
 ];
 
+/**
+ * 角色用户抽屉里的用户列表列（原模板里的 5 个 el-table-column 收敛到这里）。
+ *
+ * <p>序号列（原 {@code type="index"} label="#" width="60}）由 ReTable 的
+ * {@code show-index} 提供，不进列数组；标题均为字面量，用普通常量即可。</p>
+ */
+const roleUserColumns: ReTableColumn[] = [
+  { prop: "sysUserUsername", label: "账号", minWidth: 130, showOverflowTooltip: true },
+  { prop: "sysUserNickname", label: "昵称", minWidth: 120, showOverflowTooltip: true },
+  { prop: "sysUserPhone", label: "手机号", minWidth: 130 },
+  { prop: "status", label: "状态", width: 80, align: "center", slot: "status" },
+];
+
 onMounted(() => {
   tableRef.value?.reload();
 });
@@ -709,20 +723,28 @@ onMounted(() => {
       :footer-hidden="true"
     >
       <template #content>
-        <el-table v-loading="usersLoading" :data="roleUsers" border stripe  style="width: 100%">
-          <el-table-column type="index" label="#" width="60" align="center" />
-          <el-table-column prop="sysUserUsername" label="账号" min-width="130" show-overflow-tooltip />
-          <el-table-column prop="sysUserNickname" label="昵称" min-width="120" show-overflow-tooltip />
-          <el-table-column prop="sysUserPhone" label="手机号" min-width="130" />
-          <el-table-column label="状态" width="80" align="center">
-            <template #default="{ row }">
-              <!-- B：抽屉里的用户状态同样统一为 ReTag + plain + dot（成功=success，禁用=danger） -->
-              <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
-                {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
-              </ReTag>
-            </template>
-          </el-table-column>
-        </el-table>
+        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+             边框/斑马纹样式；pagination=false / toolbar=false —— 无分页、不新增工具栏按钮；
+             原 el-table 的 border 走 ReTable 默认（border: true），stripe 走同名 prop；
+             type="index" 列换成 show-index（表头 # / 宽 60 / 居中与 ReTable 默认一致）。 -->
+        <ReTable
+          :loading="usersLoading"
+          :data="roleUsers"
+          :columns="roleUserColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          stripe
+          show-index
+          style="width: 100%"
+        >
+          <template #col-status="{ row }">
+            <!-- B：抽屉里的用户状态同样统一为 ReTag + plain + dot（成功=success，禁用=danger） -->
+            <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
+              {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
+            </ReTag>
+          </template>
+        </ReTable>
         <p class="mt-3 text-sm text-[--el-text-color-secondary]">共 {{ roleUsers.length }} 个用户</p>
       </template>
     </ReDrawer>

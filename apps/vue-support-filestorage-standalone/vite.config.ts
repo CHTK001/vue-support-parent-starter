@@ -29,7 +29,7 @@ export default defineConfig({
   plugins: [
     vue(),
     // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
-    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
+    fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
   ],
   resolve: {
     alias: Object.entries(REPO_ALIAS).map(([find, replacement]) => ({
@@ -56,29 +56,6 @@ export default defineConfig({
       "/ot": { target: FS_SERVER, changeOrigin: true },
       "/config": { target: FS_SERVER, changeOrigin: true },
       "/local": { target: FS_SERVER, changeOrigin: true },
-      // pdf.js viewer 入口（PDF_VIEWER_PATH，服务端 classpath:/static/preview-vendor/...）
-      //
-      // ⚠️⚠️ 临时 rewrite：pdf.js 图标/locale 404 补偿，198 重新部署后必须删除 ⚠️⚠️
-      // 远端 18082 的 preview-vendor/pdf/viewer 下是 images/images/、locale/locale/
-      // 双层嵌套（打包时多套了一层），pdf.js 按 flat 路径取 images/*.svg → 404 →
-      // 顶部工具条图标全缺。spring 仓库源码与 target/classes 已拍平，但 198 上跑的
-      // 仍是旧 jar。这里把 flat 请求改写回 nested 作过渡补偿。
-      // **重新部署 198（拍平后的资产）后删掉下面的 rewrite** ——
-      // 届时服务端已是 flat，再改写会让所有图标反过来 404。
-      "/preview-vendor": {
-        target: FS_SERVER,
-        changeOrigin: true,
-        rewrite: (path: string) =>
-          path
-            .replace(
-              /^\/preview-vendor\/pdf\/viewer\/images\/(?!images\/)/,
-              "/preview-vendor/pdf/viewer/images/images/",
-            )
-            .replace(
-              /^\/preview-vendor\/pdf\/viewer\/locale\/(?!locale\/)/,
-              "/preview-vendor/pdf/viewer/locale/locale/",
-            ),
-      },
     },
     watch: {
       // @file-viewer 插件每次 dev 启动都会 rm+cp 把渲染器资源写入 public/vendor

@@ -298,10 +298,16 @@ function showDetail(input: Record<string, unknown>): void {
         </span>
         <ReButton
           icon="Delete"
+          layout="square"
           :disabled="!selected.length"
-          :title="selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果'"
-          @click="removeSelected">{{ selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果' }}</ReButton>
-        <ReButton icon="CircleClose" type="danger" title="清空当前流程的全部结果" @click="clearFlowRecords">清空当前流程的全部结果</ReButton>
+          :tip="selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果'"
+          @click="removeSelected"/>
+        <ReButton
+          icon="CircleClose"
+          type="danger"
+          layout="square"
+          tip="清空当前流程的全部结果"
+          @click="clearFlowRecords"/>
       </template>
 
       <template #action="{ row }">

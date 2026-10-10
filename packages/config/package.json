@@ -20,6 +20,7 @@
     "verify:security": "node ../../scripts/verify-safe-path.mts"
   },
   "dependencies": {
+    "@repo/utils": "workspace:*",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "js-yaml": "catalog:"

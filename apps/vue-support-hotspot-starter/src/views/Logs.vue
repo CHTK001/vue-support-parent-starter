@@ -87,48 +87,47 @@
     </div>
 
     <div class="table-panel">
-      <el-table
-        v-loading="loading"
-        :data="items"
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
+           .apm-table 变量覆盖与 e2e 的 .el-table__body 选择器不失效；
+           pagination=false —— 分页仍由下方 el-pagination 自管；toolbar=false 不新增工具栏；
+           原 el-table 没写 border → settings.border=false 抑制默认边框；
+           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。 -->
+      <ReTable
+        :data="items as unknown as Record<string, unknown>[]"
+        :columns="logColumns"
+        :loading="loading"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ minHeight: 0 }"
         class="apm-table"
         empty-text="暂无日志记录"
       >
-        <el-table-column label="时间" width="160">
-          <template #default="{ row }">
-            <span class="muted mono">{{ row.timestamp }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="级别" width="90">
-          <template #default="{ row }">
-            <el-tag :type="levelTag(row.level)" round>
-              {{ row.level }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="logger" label="Logger" min-width="180">
-          <template #default="{ row }">
-            <span class="mono">{{ row.logger }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="方法" min-width="160">
-          <template #default="{ row }">
-            <span class="mono muted">{{ row.className ? row.className + "." : "" }}{{ row.methodName }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="消息" min-width="280">
-          <template #default="{ row }">
-            <span :class="{ 'err-text': row.level === 'ERROR' }">{{ row.message }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Trace" width="160">
-          <template #default="{ row }">
-            <a v-if="row.traceId" class="trace-link" @click="openTrace(row.traceId)">
-              <code class="mono">{{ shortId(row.traceId) }}</code>
-            </a>
-            <span v-else class="muted">—</span>
-          </template>
-        </el-table-column>
-      </el-table>
+        <template #col-timestamp="{ row }">
+          <span class="muted mono">{{ row.timestamp }}</span>
+        </template>
+        <template #col-level="{ row }">
+          <el-tag :type="levelTagOf(row)" round>
+            {{ row.level }}
+          </el-tag>
+        </template>
+        <template #col-logger="{ row }">
+          <span class="mono">{{ row.logger }}</span>
+        </template>
+        <template #col-method="{ row }">
+          <span class="mono muted">{{ row.className ? row.className + "." : "" }}{{ row.methodName }}</span>
+        </template>
+        <template #col-message="{ row }">
+          <span :class="{ 'err-text': row.level === 'ERROR' }">{{ row.message }}</span>
+        </template>
+        <template #col-traceId="{ row }">
+          <a v-if="row.traceId" class="trace-link" @click="openTrace(traceIdOf(row))">
+            <code class="mono">{{ shortId(traceIdOf(row)) }}</code>
+          </a>
+          <span v-else class="muted">—</span>
+        </template>
+      </ReTable>
 
       <div class="pager">
         <el-pagination
@@ -150,6 +149,8 @@ import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Refresh, Download, Search, Plus } from "@element-plus/icons-vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageLogs, exportLogsCsv, injectLog, getLogStats } from "../api/apmApi";
 import type { LogRecord, LogLevelStat } from "../api/apmApi";
 
@@ -170,6 +171,32 @@ const filterLevel = ref("");
 const keyword = ref("");
 const traceIdSearch = ref("");
 const filters = reactive({ range: null as [Date, Date] | null });
+
+/**
+ * 列配置：原来散在模板里的 6 个 el-table-column 收敛到这里。
+ *
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。「时间 / 级别 / 方法 / 消息 / Trace」
+ * 五列原 el-table-column 没有 prop，这里补稳定合成 prop（method 汇总 className+methodName），
+ * 其余沿用行数据字段名，模板里一一对应 #col-&lt;prop&gt; 插槽。</p>
+ */
+const logColumns: ReTableColumn[] = [
+  { prop: "timestamp", label: "时间", width: 160, slot: "timestamp" },
+  { prop: "level", label: "级别", width: 90, slot: "level" },
+  { prop: "logger", label: "Logger", minWidth: 180, slot: "logger" },
+  { prop: "method", label: "方法", minWidth: 160, slot: "method" },
+  { prop: "message", label: "消息", minWidth: 280, slot: "message" },
+  { prop: "traceId", label: "Trace", width: 160, slot: "traceId" },
+];
+
+/** 插槽里的 row 是宽类型（unknown）：级别取色前先收窄成 string（原 levelTag(row.level) 同义） */
+function levelTagOf(row: Record<string, unknown>) {
+  return levelTag(String(row.level ?? ""));
+}
+
+/** 插槽里的 row 是宽类型（unknown）：traceId 收窄成 string 再传给 openTrace / shortId */
+function traceIdOf(row: Record<string, unknown>): string {
+  return String(row.traceId ?? "");
+}
 
 /** 服务端搜索：把关键字/traceId/时间范围传给后端 /logs 过滤 */
 function doServerSearch() {

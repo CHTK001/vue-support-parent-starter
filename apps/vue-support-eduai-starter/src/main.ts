@@ -8,7 +8,6 @@
  */
 import { createContextApp } from "@repo/app";
 import { eduaiRoutes } from "@pages/eduai";
-import { aiRoutes } from "@pages/ai";
 import type { App as VueApp } from "vue";
 import { installKoi } from "@repo/theme/koi/framework";
 import { installUi } from "@repo/ui";
@@ -31,7 +30,7 @@ const instance = await createContextApp({
   // 框架默认即 true，这里显式声明是为了让本应用「菜单长相」的意图在入口处可见。
   defaults: { menu: { groupNav: true } },
 })
-  .routes([...eduaiRoutes, ...aiRoutes] as never)
+  .routes(eduaiRoutes as never)
   .mount("#app");
 
 /**

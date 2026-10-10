@@ -9,7 +9,9 @@
 
   新建/编辑任务的弹层是手写的卡片式布局（模板里的 task-form 分支）：顶部三张卡片切执行类型（对象 / 脚本 / 片段），
   脚本与片段再按 SPI 枚举出的「语言」下拉细分引擎；往下按「基本信息 / 代码正文 / 调度配置 / 策略与告警」分区，
-  字段集只在这一处维护；cron 用 ReCron 收口，毫秒间隔按调度类型显隐。只有「编辑流程调度」另一种弹层状态
+  字段集只在这一处维护；cron 用 ReCron 收口，毫秒间隔按调度类型显隐。新建与编辑共用同一套字段集——
+  脚本/片段行的「任务标识」两种模式都占同一栏（新建留空、由后端生成，编辑只读回显），
+  不再出现编辑比新建多一栏、两张表单长得不一样的情况。只有「编辑流程调度」另一种弹层状态
   走 ReForm schema（FLOW_FIELDS）。
 
   两类行的写入口不同，这里按分组分流：
@@ -21,6 +23,11 @@
    自动派发，所以停用行的触发按钮禁用。远程分发（dispatchMode=REMOTE）的行本机不领取：本节点不是调度中心时，
    这类行在「执行器」列打「远程」标记（带归属提示）、「下次触发」列直接写「非本机执行」，工具条上给出本机不领取的
    条数，而不是让人对着一个永远不来的时刻等。
+
+   「下次触发」列是两行：台账里的触发时刻原样留在第一行，第二行是行内倒计时。每秒都在变的文本收在
+   行内组件（FireCountdown）里各自订阅共享心跳（utils/ticker.ts，整页只跑一个定时器、订阅者归零即停），
+   父组件不持有「当前时刻」——否则每次 tick 都会让整张 ReTable 重新 diff，行数一多就与表格自带的自动刷新
+   叠在一起。已到点但台账还没刷新时第二行写「已到点」，不显示负数、也不把人误导成任务坏了。
 
    顶部状态条把 summary 里的节点身份一次说完：角色 / 是否 Leader / 节点标识 / 台账构成 / 未注册处理器 /
    在线执行器，让「本机到底会不会派发」在进页面第一眼就有答案，不必逐行翻找标记。行内「详情」回显
@@ -66,6 +73,7 @@ import {
   type JobSummary,
 } from "../types/job";
 import type { CollectFlow } from "@pages/collect";
+import FireCountdown from "../components/FireCountdown.vue";
 import ScriptSourceField from "../components/ScriptSourceField.vue";
 import JobDetailDialog from "../components/JobDetailDialog.vue";
 import JobFireTimesDialog from "../components/JobFireTimesDialog.vue";
@@ -1129,7 +1137,7 @@ watch(formVisible, (visible) => {
             <span class="job-toolbar-selected">已选 {{ selectedCount }} 项</span>
             <el-button text :disabled="Boolean(busyKey)" @click="batchToggle(true)">批量启用</el-button>
             <el-button text :disabled="Boolean(busyKey)" @click="batchToggle(false)">批量停用</el-button>
-            <el-button text type="danger" :disabled="Boolean(busyKey)" @click="batchRemove">批量删除</el-button>
+            <ReButton icon="Delete" type="danger" layout="square" tip="批量删除" :disabled="Boolean(busyKey)" @click="batchRemove"/>
             <el-button text @click="clearSelection">清空选择</el-button>
           </template>
           <span v-if="remoteIdleHere > 0" class="job-toolbar-hint">
@@ -1189,7 +1197,14 @@ watch(formVisible, (visible) => {
         </div>
       </template>
       <template #schedule="{ row }">
-        <span class="collect-cell-mono collect-cell-ellipsis">{{ scheduleText(row as unknown as JobRuntime) }}</span>
+        <!-- CRON 行用 ReCron 文本模式：表达式 + 人话与校验引擎同源（表格里写死描述必然漂移）；
+            固定间隔等非 CRON 类型与「不自动调度」保持纯文本 -->
+        <ReCron
+          v-if="canPreviewFireTimes(row as unknown as JobRuntime)"
+          :model-value="row.scheduleTime"
+          mode="text"
+        />
+        <span v-else class="collect-cell-mono collect-cell-ellipsis">{{ scheduleText(row as unknown as JobRuntime) }}</span>
       </template>
       <template #executor="{ row }">
         <span class="collect-cell-mono">{{ row.jobKey }}</span>
@@ -1223,6 +1238,7 @@ watch(formVisible, (visible) => {
           @change="toggle(row as unknown as JobRuntime, $event === true)"
         />
       </template>
+      <!-- 倒计时放在行内组件里自己跳：父组件不持有「当前时刻」，整张表不会每秒重渲染一遍 -->
       <template #next="{ row }">
         <span
           v-if="remoteIdleFor(row as unknown as JobRuntime)"
@@ -1231,7 +1247,7 @@ watch(formVisible, (visible) => {
         >
           非本机执行
         </span>
-        <span v-else class="collect-num">{{ row.enabled ? fmtMs(row.nextFireTime) : "—" }}</span>
+        <FireCountdown v-else :at="row.enabled ? row.nextFireTime : null" />
       </template>
       <template #last="{ row }">
         <span class="collect-num">
@@ -1317,7 +1333,7 @@ watch(formVisible, (visible) => {
 
     <ReDialog
       v-model="formVisible"
-      :title="formMode === 'create' ? '新建调度任务' : formMode === 'flow' ? '编辑流程调度' : `编辑任务 · ${form.jobKey}`"
+      :title="formMode === 'create' ? '新建调度任务' : formMode === 'flow' ? '编辑流程调度' : `编辑调度任务 · ${form.jobKey}`"
       width="820px"
       top="6vh"
       :footer-hidden="false"
@@ -1390,10 +1406,20 @@ watch(formVisible, (visible) => {
               />
               <em class="task-form__help">〔@Job〕/〔注入〕为本节点处理器，〔执行器〕为在线执行器上报的远端处理器</em>
             </label>
-            <label v-else-if="formMode === 'edit'" class="task-form__field">
+            <!-- 任务标识新建与编辑都占同一栏：新建时留空由后端生成，编辑时只读回显，
+                 两处布局一致，不必因为多一个字段就让两张表单长得不一样 -->
+            <label v-else class="task-form__field">
               <span>任务标识</span>
-              <ReInput v-model="form.jobKey" disabled />
-              <em class="task-form__help">代码片段任务标识由系统生成，创建后保持不变</em>
+              <ReInput
+                v-model="form.jobKey"
+                disabled
+                :placeholder="formMode === 'create' ? '保存时由系统生成' : ''"
+              />
+              <em class="task-form__help">
+                {{ formMode === "create"
+                  ? "标识由系统在保存时生成；新建与编辑看到的是同一栏"
+                  : "代码片段任务标识由系统生成，创建后保持不变" }}
+              </em>
             </label>
             <label class="task-form__field">
               <span>任务名称</span>
@@ -1540,7 +1566,7 @@ watch(formVisible, (visible) => {
             </label>
             <label class="task-form__field task-form__field--wide">
               <span>说明</span>
-              <ReInput v-model="form.desc" type="textarea" :rows="2" maxlength="200" placeholder="任务用途" />
+              <ReInput v-model="form.desc" type="textarea" :rows="4" maxlength="200" placeholder="任务用途" />
             </label>
           </div>
         </section>

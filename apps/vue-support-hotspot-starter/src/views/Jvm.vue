@@ -76,45 +76,58 @@
       <div class="panel-row">
         <div class="panel">
           <div class="panel-head"><span>线程池</span><span class="panel-sub">按线程名分组（/thread-pools）</span></div>
-          <el-table :data="threadPools" class="apm-table" empty-text="暂无线程池数据">
-            <el-table-column prop="name" label="线程组" min-width="140">
-              <template #default="{ row }">
-                <span class="mono">
-                  {{ row.name }}
-                  <ReTag v-if="row.knownPool" type="success" round effect="plain" style="margin-left:6px">已知池</ReTag>
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="count" label="总数" width="70" align="right" />
-            <el-table-column prop="daemonCount" label="守护线程" width="80" align="right" />
-            <el-table-column label="状态分布" min-width="180">
-              <template #default="{ row }">
-                <span class="mono muted">{{ stateText(row.sampleStates) }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
+          <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
+               .apm-table 变量覆盖与 e2e 的 .el-table__body 选择器不失效；
+               pagination=false / toolbar=false —— 原表既无分页也无工具栏按钮；
+               原 el-table 没写 border → settings.border=false 抑制默认边框；
+               layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。
+               本页两张表各自独立 columns，插槽名互不重名（#col-name/#col-states 与
+               #col-endpoint/#col-avgMs/#col-lastCall），作用域无歧义。 -->
+          <ReTable
+            :data="threadPools as unknown as Record<string, unknown>[]"
+            :columns="threadPoolColumns"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :settings="{ border: false }"
+            :layout-table="{ minHeight: 0 }"
+            class="apm-table"
+            empty-text="暂无线程池数据"
+          >
+            <template #col-name="{ row }">
+              <span class="mono">
+                {{ row.name }}
+                <ReTag v-if="row.knownPool" type="success" round effect="plain" style="margin-left:6px">已知池</ReTag>
+              </span>
+            </template>
+            <template #col-states="{ row }">
+              <span class="mono muted">{{ stateTextOf(row) }}</span>
+            </template>
+          </ReTable>
         </div>
         <div class="panel">
           <div class="panel-head"><span>连接池</span><span class="panel-sub">按目标端点分组 + OS-FD（/connection-pools）</span></div>
-          <el-table :data="connectionPools" class="apm-table" empty-text="暂无连接池数据">
-            <el-table-column label="端点" min-width="160">
-              <template #default="{ row }">
-                <span class="mono">{{ row.endpoint }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="callCount" label="调用量" width="80" align="right" />
-            <el-table-column label="平均耗时" width="90" align="right">
-              <template #default="{ row }">
-                <span class="mono">{{ row.avgMs.toFixed ? row.avgMs.toFixed(1) : row.avgMs }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="activeLeakCount" label="活跃泄漏" width="80" align="right" />
-            <el-table-column label="最后调用" min-width="140">
-              <template #default="{ row }">
-                <span class="mono muted">{{ row.openFileDescriptors !== undefined ? 'OS-FD ' + row.openFileDescriptors : (row.lastCallAt || '—') }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
+          <ReTable
+            :data="connectionPools as unknown as Record<string, unknown>[]"
+            :columns="connectionPoolColumns"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :settings="{ border: false }"
+            :layout-table="{ minHeight: 0 }"
+            class="apm-table"
+            empty-text="暂无连接池数据"
+          >
+            <template #col-endpoint="{ row }">
+              <span class="mono">{{ row.endpoint }}</span>
+            </template>
+            <template #col-avgMs="{ row }">
+              <span class="mono">{{ avgMsText(row) }}</span>
+            </template>
+            <template #col-lastCall="{ row }">
+              <span class="mono muted">{{ lastCallText(row) }}</span>
+            </template>
+          </ReTable>
         </div>
       </div>
     </template>
@@ -130,6 +143,8 @@ import ReTag from "@repo/ui/re-tag";
 import ReButton from "@repo/ui/re-button";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReStatusIndicator from "@repo/ui/re-status-indicator";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { ReDescriptions, ReDescriptionsItem, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import { getJvmSnapshot, getJvmMetrics, getThreadPools, getConnectionPools } from "../api/apmApi";
 import type { JvmSnapshot, JvmMetricPoint, ThreadPoolStat, ConnectionPoolStat, ThreadStateSample } from "../api/apmApi";
@@ -148,6 +163,53 @@ const connectionPools = ref<ConnectionPoolStat[]>([]);
 function stateText(states: ThreadStateSample[] | undefined): string {
   if (!states?.length) return "—";
   return states.map((s) => `${s.state}×${s.count}`).join(" / ");
+}
+
+/**
+ * 线程池表列配置（原 4 个 el-table-column 收敛到这里）。
+ *
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。「状态分布」原 el-table-column
+ * 没有 prop，补稳定合成 prop，模板 #col-states 对应。</p>
+ */
+const threadPoolColumns: ReTableColumn[] = [
+  { prop: "name", label: "线程组", minWidth: 140, slot: "name" },
+  { prop: "count", label: "总数", width: 70, align: "right" },
+  { prop: "daemonCount", label: "守护线程", width: 80, align: "right" },
+  { prop: "states", label: "状态分布", minWidth: 180, slot: "states" },
+];
+
+/**
+ * 连接池表列配置（原 5 个 el-table-column 收敛到这里）。
+ *
+ * <p>「端点 / 平均耗时 / 最后调用」原 el-table-column 没有 prop，补稳定合成 prop
+ * （lastCall 承载「OS-FD 计数 / 最后调用时间」这格），模板 #col-* 一一对应。</p>
+ */
+const connectionPoolColumns: ReTableColumn[] = [
+  { prop: "endpoint", label: "端点", minWidth: 160, slot: "endpoint" },
+  { prop: "callCount", label: "调用量", width: 80, align: "right" },
+  { prop: "avgMs", label: "平均耗时", width: 90, align: "right", slot: "avgMs" },
+  { prop: "activeLeakCount", label: "活跃泄漏", width: 80, align: "right" },
+  { prop: "lastCall", label: "最后调用", minWidth: 140, slot: "lastCall" },
+];
+
+/** 插槽里的 row 是宽类型（unknown）：状态分布入参先收窄成线程采样数组（原 stateText(row.sampleStates) 同义） */
+function stateTextOf(row: Record<string, unknown>): string {
+  const states = Array.isArray(row.sampleStates)
+    ? (row.sampleStates as ThreadStateSample[])
+    : undefined;
+  return stateText(states);
+}
+
+/** 平均耗时：原模板 row.avgMs.toFixed ? row.avgMs.toFixed(1) : row.avgMs，这里原样保留该口径 */
+function avgMsText(row: Record<string, unknown>): string {
+  const v = row.avgMs as { toFixed?: (fractionDigits: number) => string } | null | undefined;
+  return v?.toFixed ? v.toFixed(1) : String(v ?? "");
+}
+
+/** 最后调用：原模板 openFileDescriptors 存在则显示 OS-FD 计数，否则显示最后调用时间 */
+function lastCallText(row: Record<string, unknown>): string {
+  if (row.openFileDescriptors !== undefined) return `OS-FD ${row.openFileDescriptors}`;
+  return String(row.lastCallAt || "—");
 }
 
 /** 趋势图数据源（后端 /jvm/metrics 环形缓冲，跨路由/刷新不丢数据） */

@@ -120,6 +120,51 @@ export function scheduleText(job: JobRuntime): string {
   return `${job.scheduleType} · ${job.scheduleTime}ms`;
 }
 
+/**
+ * cron 表达式的人话描述（"每 30 分钟" / "每天 03:30" / "每周三 03:30"）。
+ *
+ * 只解析秒固定为 0 的常见形状，不追求完整 cron 语义：其它形状返回空串，
+ * 由调用方决定只显示表达式本身，不伪造中文。解析不出来的形状原样回显 cron 即可，
+ * 强行翻译成"每天"会让运维按错的节奏去核对任务。
+ *
+ * @param expr cron 表达式（6 段或带年份的 7 段）
+ * @returns 人话描述；解析不出时返回空串
+ */
+export function cronDesc(expr: string | null | undefined): string {
+  const raw = String(expr ?? "").trim().split(/\s+/);
+  // Quartz/Spring 常见第 7 段是年份（如 "2099"）：描述只看前 6 段的调度语义
+  const parts = raw.length === 7 ? raw.slice(0, 6) : raw;
+  if (parts.length !== 6) {
+    return "";
+  }
+  const [sec, min, hour, dom, mon, dow] = parts;
+  const isNum = (value: string) => /^\d+$/.test(value);
+  const hhmm = `${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+  if (sec === "0" && dom === "*" && mon === "*" && dow === "?") {
+    const stepMin = /^0\/(\d+)$/.exec(min);
+    if (stepMin && hour === "*") {
+      return `每 ${stepMin[1]} 分钟`;
+    }
+    if (isNum(min) && hour === "*") {
+      return "每 1 小时";
+    }
+    if (isNum(min) && isNum(hour)) {
+      return `每天 ${hhmm}`;
+    }
+    const stepHour = /^0\/(\d+)$/.exec(hour);
+    if (isNum(min) && stepHour) {
+      return `每 ${stepHour[1]} 小时`;
+    }
+  }
+  if (sec === "0" && isNum(min) && isNum(hour) && isNum(dom) && mon === "*" && dow === "?") {
+    return `每月 ${dom} 日 ${hhmm}`;
+  }
+  if (sec === "0" && isNum(min) && isNum(hour) && dom === "?" && mon === "*" && isNum(dow)) {
+    return `每周${"日一二三四五六"[Number(dow) % 7]} ${hhmm}`;
+  }
+  return "";
+}
+
 /** 后续执行时间是否可看：仅 cron 任务 */
 export function canPreviewFireTimes(job: JobRuntime): boolean {
   return String(job.scheduleType ?? "").toUpperCase() === "CRON" && Boolean(String(job.scheduleTime ?? "").trim());
