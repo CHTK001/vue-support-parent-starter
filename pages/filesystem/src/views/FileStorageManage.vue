@@ -2850,13 +2850,21 @@ async function refreshPreviewSrc(): Promise<void> {
   previewSrc.value = await resolveObjectUrl(bucket.value, previewKey.value);
 }
 
+/** 客户端直渲用文件名：包内条目用条目名，顶层用原文件名（扩展名决定渲染器选择） */
+const fileNameForClientRender = computed(
+  () => innerEntryName.value || previewName.value,
+);
+
 /**
- * 当前文件是否走客户端直渲染（Vue3 Office 组件解析，服务端不转换）。
+ * 当前预览是否由 file-viewer 直渲。
  *
- * 与后端 `ClientPreviewSupport` 清单严格一致；doc / ppt / odt 等
- * 客户端无法解析的格式返回 false，继续走服务端渲染链路。
+ * <p>扩展名命中 preset-office 清单（含原生 PDF，由 renderer-pdf 处理），
+ * 或已启用服务端 {@code ?format=pdf} 转换（转换结果同样交给 renderer-pdf）
+ * 时，走 {@link PreviewOfficePanel}。</p>
  */
-const previewUsesClient = computed(() => isClientRenderable(previewName.value));
+const previewUsesClient = computed(() =>
+  isClientRenderable(fileNameForClientRender.value) || previewUsePdf.value,
+);
 
 /**
  * 当前文件是否走压缩包面板（{@link ArchivePreviewPanel}）。
@@ -3020,28 +3028,6 @@ const showSwfPanel = computed(() => previewIsSwf.value || innerIsSwf.value);
 /** SWF 面板的条目路径：顶层为空串，包内为包内路径 */
 const swfInnerPath = computed(() => (innerIsSwf.value ? previewInnerPath.value : ""));
 
-/**
- * 当前文件是否是原生 PDF（老口径，现仅作 {@link previewPdfViewer} 的一个分支条件）
- *
- * <p>需求口径变了：PDF 不再由面板内自渲染，而是与「服务端转成 PDF 的文档」一起
- * 交给 pdf.js 的 {@code viewer.html}（见 {@link previewPdfViewer}）。</p>
- */
-const showPdfPanel = computed(() => kindOf(previewName.value) === "pdf");
-
-/**
- * 当前预览是否交给 pdf.js viewer（{@code viewer.html}）统一呈现。
- *
- * <p>需求口径：PDF 格式与「服务端转成 PDF 的格式」都用 pdf.js 的 viewer.html
- * 预览——覆盖原生 PDF、{@code ?format=pdf} 转换通道（ODF/RTF/WPS 与
- * Office 面板 channel:pdf 兜底），以及压缩包内下钻出的 PDF 条目。</p>
- */
-const previewPdfViewer = computed(() => {
-  if (showPdfPanel.value || previewUsePdf.value) {
-    return true;
-  }
-  return previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "pdf";
-});
-
 /** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
 function onImageSaved(): void {
   void loadObjects();
@@ -3058,19 +3044,22 @@ function onImageSaved(): void {
 /**
  * 该文件是否应走服务端「转 PDF」通道预览。
  *
- * <p>这些格式的共同点是：**服务端没有可用的 HTML 渲染器，但 Aspose 能转成 PDF**。</p>
+ * <p>这些格式的共同点是：**服务端没有可用的 HTML 渲染器，但 Aspose 能转成 PDF**，
+ * 且 preset-office 也未收录为可直渲染扩展名（odt/ods/odp/rtf 已在
+ * {@code CLIENT_RENDERABLE_EXTS} 中直接走前端，不再预转 PDF）。</p>
  *
  * <ul>
- *   <li><b>ODF（odt/ott、ods/ots、odp/otp）</b>：SPI 提供器只回一张
+ *   <li><b>ODF 模板（ott/ots/otp）</b>：SPI 提供器只回一张
  *       「需配置 LibreOffice」的提示卡；而 Aspose 三个转换器都能直接读，
  *       实测转出 23 KB / 7.6 KB / 14.8 KB 的有效 PDF。</li>
- *   <li><b>RTF</b>：SPI 预览会把中文退化成 {@code ???}（实测同一份样本，
- *       SPI 出 {@code RTF ???????????}，Aspose 转 PDF 后中文与加粗/斜体完整保留）。</li>
+ *   <li><b>WPS（wps）</b>：后端 AsposeWord 的源格式里已经有 wps（实测把一份 OLE2
+ *       文档改名成 .wps 走 format=pdf 能出真 PDF 19745 B），故接线。</li>
  * </ul>
  *
- * <p>注意：这条通道原本**只有「客户端组件失败后回报 channel:pdf」才会走**，
- * 而上述格式都不是客户端可渲染格式（{@code previewUsesClient=false}），
- * 那条路永远触发不到 —— 所以必须在预览入口预置。</p>
+ * <p>注意：这条通道原本**只有「客户端组件失败后回报 channel:pdf」才会走**；
+ * 而上述扩展名都不在 preset-office 清单内，客户端直渲分支本来轮不到它们，
+ * 所以必须在预览入口预置 {@code previewUsePdf=true}（同时让
+ * {@code previewUsesClient} 命中同一面板）。</p>
  *
  * @param name 文件名
  * @returns true 表示应走 PDF 转换通道
@@ -3085,7 +3074,7 @@ function needsPdfConvert(name: string): boolean {
   //
   // et / dps 不在此列：三个 Aspose 转换器的源格式里都没有它们，实测接线也只会
   // 得到 convert=unavailable 并退回提示卡，属于白试一次，故不接。
-  return ["odt", "ott", "ods", "ots", "odp", "otp", "rtf", "wps"].includes(ext);
+  return ["ott", "ots", "otp", "wps"].includes(ext);
 }
 
 /**
@@ -3332,50 +3321,6 @@ function onClientPanelFallback(): void {
 }
 
 /**
- * pdf.js viewer 入口的路径（服务端 {@code classpath:/static/preview-vendor/pdf/viewer/viewer.html}）
- *
- * <p>需求口径：PDF 格式与「服务端转成 PDF 的格式」都统一用 pdf.js 的 viewer.html 预览。
- * 它是 pdf.js 官方的全功能阅读器（缩略图栏 / 大纲 / 页内搜索 / 打印 / 旋转 / 多档缩放），
- * 比面板内自渲染那版功能更全，并且让**原生 PDF 与转换出来的 PDF 共用一个入口**，
- * 不再出现「原生 PDF 一套界面、转换结果另一套界面」。</p>
- *
- * <p><b>为什么 viewer 资产必须落在文件服务器上</b>：viewer.html 用 {@code ?file=}
- * 指定待渲染地址，而 pdf.js 只接受**同源** file 地址（跨源会被它自己的检查拒掉）。
- * 所以 viewer 必须与票据同一个源 —— 即文件存储服务，而不是前端 dev server。
- * 资产因此放在 {@code spring-support-filesystem-starter} 的 {@code static/preview-vendor} 下，
- * 由 {@code FileStorageServerFilter#servePreviewVendor} 直接吐字节。</p>
- */
-const PDF_VIEWER_PATH = "/preview-vendor/pdf/viewer/viewer.html";
-
-/**
- * 由票据地址推出**同源**的 viewer.html 地址
- *
- * @param ticketUrl 对象票据直链（可能自带查询串）
- * @returns viewer.html 绝对地址；票据为空或解析失败时返回空串
- */
-function pdfViewerUrlOf(ticketUrl: string): string {
-  if (!ticketUrl) {
-    return "";
-  }
-  try {
-    return `${new URL(ticketUrl, window.location.href).origin}${PDF_VIEWER_PATH}`;
-  } catch {
-    return "";
-  }
-}
-
-/**
- * 把一条「待渲染地址」包成 pdf.js viewer 的整页地址
- *
- * @param target 后端渲染地址（{@code ?preview=true} / {@code &format=pdf} / 带 {@code inner}）
- * @returns {@code viewer.html?file=<encodeURIComponent(target)>}；viewer 不同源时原样返回
- */
-function withPdfViewer(target: string): string {
-  const viewer = pdfViewerUrlOf(target);
-  return viewer ? `${viewer}?file=${encodeURIComponent(target)}` : target;
-}
-
-/**
  * 预览 iframe 地址：统一走后端预览通道 {@code ?preview=true}。
  *
  * <p>所有类型（图片/文本/PDF/Office/音视频/压缩包等）一致，由后端按类型内联渲染或直出字节；
@@ -3385,9 +3330,9 @@ function withPdfViewer(target: string): string {
  * <p>预览压缩包内条目时追加 {@code inner=包内路径}，后端据此提取条目并按
  * 条目自身类型渲染（见 {@link openArchiveEntry}）。</p>
  *
- * <p><b>需求 1</b>：{@link previewPdfViewer} 命中时，真正的 {@code ?preview=true}
- * 地址被**编码进** {@code ?file=} 交给 pdf.js 的 viewer.html —— viewer 负责取字节、
- * 渲染、翻页与搜索，本组件只负责把 viewer 塞进 iframe。</p>
+ * <p>打包成 file-viewer 直渲的地址：PDF 与 {@code ?format=pdf} 转换结果都由
+ * {@link PreviewOfficePanel} 取回字节后用 renderer-pdf 渲染，不再经 pdf.js
+ * viewer.html 包装。</p>
  */
 const previewFrameSrc = computed(() => {
   const base = previewSrc.value;
@@ -3398,13 +3343,11 @@ const previewFrameSrc = computed(() => {
   }
   const sep = base.includes("?") ? "&" : "?";
   // 兜底通道互斥：能转 PDF 就**不**再要求服务端渲染，否则地址里会同时出现
-  // render=server 与 format=pdf（两个参数语义冲突，虽然 PDF 分支先命中没错，
-  // 但地址自相矛盾会让排查的人以为有两条通道在打架）。
+  // render=server 与 format=pdf（两个参数语义冲突）。
   const pdf = previewUsePdf.value ? "&format=pdf" : "";
   const server = previewForceServer.value && !previewUsePdf.value ? `&render=${RENDER_SERVER}` : "";
   const inner = previewInnerPath.value ? `&inner=${encodeURIComponent(previewInnerPath.value)}` : "";
-  const target = `${base}${sep}preview=true${server}${pdf}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
-  return previewPdfViewer.value ? withPdfViewer(target) : target;
+  return `${base}${sep}preview=true${server}${pdf}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
 });
 
 /**
@@ -3441,7 +3384,7 @@ function takePreviewFlag(): string {
  * 效果与本页弹框不一致（xls 只能转 PDF、拿不到统计工具条）。改为带上
  * {@code ?preview=<完整 key>} 打开本应用：目标页 onMounted 读到标记后定位到
  * 文件所在目录并调用同一个 {@link openPreview}，office（@file-viewer/vue3 +
- * 统计工具条）、pdf（pdf.js viewer.html）、图片/音视频/压缩包等全部与本页一致。</p>
+ * 统计工具条）、pdf（file-viewer renderer-pdf）、图片/音视频/压缩包等全部与本页一致。</p>
  *
  * <p>地址是当场同步构造的（不换票据），整个调用仍在用户手势内 ——
  * {@code window.open} 不会被浏览器当弹窗拦掉。既有查询参数（{@code ?bucket=} 等）原样保留。</p>
@@ -3489,8 +3432,13 @@ function onOfficeError(payload?: { noFallback?: boolean; reason?: string; channe
     return;
   }
   if (!previewForceServer.value && !previewUsePdf.value) {
-    // 按探测结果选兜底通道：能转 PDF 就转 PDF，否则退回服务端渲染
-    previewUsePdf.value = payload?.channel === "pdf";
+    // 按探测结果选兜底通道：能转 PDF 就转 PDF，且转换结果仍由 file-viewer
+    // 的 renderer-pdf 接管（不能置 previewForceServer，否则会掉进 iframe
+    // 服务端预览 / 浏览器原生 PDF 查看器）；否则退回服务端渲染。
+    if (payload?.channel === "pdf") {
+      previewUsePdf.value = true;
+      return;
+    }
     previewForceServer.value = true;
     return;
   }
@@ -5088,27 +5036,18 @@ onUnmounted(() => {
             :size="previewSize"
           />
           <!--
-            需求 1：PDF 与「服务端转成 PDF 的文档」统一交给 pdf.js 的 viewer.html。
-            分支位置必须在客户端 Office 面板之前 —— .pdf 本身也是客户端可渲染格式，
-            落到下面那个分支就会被客户端 Office 面板（file-viewer 的 pdf 渲染器）
-            接走，viewer 永远轮不到。
+            PDF 与「服务端转成 PDF 的文档」统一交给 file-viewer 的 renderer-pdf：
+            .pdf 命中 previewUsesClient，落到下面的 PreviewOfficePanel；
+            转换格式（ott/ots/otp/wps）也因 previewUsePdf=true 命中同一面板。
+            不再使用 pdf.js viewer.html 分支。
           -->
-          <PreviewIframePanel
-            v-else-if="!previewError && previewPdfViewer"
-            ref="iframePanelRef"
-            :src="previewFrameSrc"
-            :loading="iframeLoading"
-            :frame-key="iframeKey"
-            @load="onFrameLoad"
-            @error="onFrameError"
-          />
           <PreviewOfficePanel
             v-else-if="!previewError && previewUsesClient && !previewForceServer"
             ref="officePanelRef"
             v-model:loading="officeLoading"
             :src="previewFrameSrc"
-            :raw-src="previewSrc"
-            :file-name="previewName"
+            :raw-src="previewInnerPath ? undefined : previewSrc"
+            :file-name="fileNameForClientRender"
             @rendered="onOfficeRendered"
             @error="onOfficeError"
           />
