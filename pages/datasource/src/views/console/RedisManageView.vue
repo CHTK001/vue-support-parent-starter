@@ -134,7 +134,8 @@
       <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
 
       <div class="dsm-content">
-        <div class="dsm-info-card">
+        <!-- 卡片视觉（圆角/透明边框/双层投影）走 re-surface 统一底座 -->
+        <div class="dsm-info-card re-surface">
           <div class="dsm-info-row"><span class="dsm-info-label">数据源</span><span class="dsm-info-value">{{ source ? source.name : "未选择" }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">连接地址</span><span class="dsm-info-value mono">{{ source ? `${source.host || "127.0.0.1"}:${source.port || 6379}` : "—" }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">当前库</span><span class="dsm-info-value mono">db{{ activeDb }}</span></div>
@@ -144,6 +145,11 @@
             <ReTag :type="gap ? 'danger' : 'success'">{{ gap ? "读取失败" : "正常" }}</ReTag>
           </div>
           <div class="dsm-info-row"><span class="dsm-info-label">服务端版本</span><span class="dsm-info-value mono">{{ info.redis_version || "未探测" }}</span></div>
+        </div>
+
+        <!-- 未选择键：value 区空态（el-empty） -->
+        <div v-if="!activeKey" class="dsm-section dsm-value-empty" data-testid="dsm-value-empty">
+          <el-empty description="暂无数据" :image-size="72" />
         </div>
 
         <!-- 键详情 -->
@@ -395,6 +401,8 @@ import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
+// 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
+import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import { testDataSource } from "../../api";
@@ -1620,7 +1628,9 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsm-load-more { padding: 6px 8px; text-align: center; }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
-.dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px 16px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); flex-shrink: 0; }
+/* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
+   透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */
+.dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex-shrink: 0; }
 .dsm-info-row { display: flex; flex-direction: column; gap: 4px; }
 .dsm-info-label { font-size: 12px; color: var(--text-tertiary); }
 .dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }

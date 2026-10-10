@@ -550,6 +550,28 @@ export const backupNginxConfig = (datasourceId: number | undefined, path: string
 export const fetchNginxBackups = (datasourceId?: number) =>
   http().get(`${B}/backup`).query({ datasourceId }).then(r => unwrap<NginxBackup[]>(r));
 
+/** 备份批量删除结果：部分成功语义，成功与失败分列 */
+export interface NginxBackupDeleteResult {
+  /** 成功删除（或本就不存在，幂等）的文件名 */
+  deleted: string[];
+  /** 未删除的条目，格式 "文件名: 原因" */
+  failed: string[];
+}
+
+/**
+ * 删除备份（单条与批量同一入口：names 单元素即单条删除）。
+ *
+ * <p>名字逐个 encodeURIComponent 后按 {@code names=a&names=b} 重复拼进 URL：
+ * axios 对数组参数的默认序列化是 {@code names[]=a} 形态，Spring 的
+ * {@code @RequestParam("names")} 认不了——这里不赌序列化默认行为。</p>
+ */
+export const deleteNginxBackups = (datasourceId: number | undefined, names: string[]) => {
+  const qs = [`datasourceId=${datasourceId ?? ""}`]
+    .concat(names.map(n => `names=${encodeURIComponent(n)}`))
+    .join("&");
+  return http().delete(`${B}/backup?${qs}`).timeout(60_000).then(r => unwrap<NginxBackupDeleteResult>(r));
+};
+
 /** 从备份恢复；原始路径含下划线时反推不可逆，必须显式给出 targetPath */
 export const restoreNginxBackup = (
   datasourceId: number | undefined,

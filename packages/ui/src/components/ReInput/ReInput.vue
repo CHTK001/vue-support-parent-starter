@@ -81,6 +81,36 @@ function onInput(value: string | number | null | undefined): void {
   } else {
     model.value = value as never;
   }
+  // 把 input 一并向外转发。根因（2026-10-10「表单模式没有编辑」）：
+  // ReInput 用 defineEmits 声明了 input / change，却只在内部消费、从不 emit——
+  // Vue 会把「已声明事件」的监听器从 $attrs 里摘掉（attrs 只收未声明项），
+  // 于是父组件的 @input / @change 永远收不到，NginxConfigPanel 的
+  // @input="markDirty"、NginxModelForm 的 @change="onHeadArg" 全部哑掉。
+  emit("input", model.value);
+}
+
+/**
+ * el 分支的 change 转发：ElInput 失焦 / 回车时 emit change(当前值)。
+ *
+ * <p>优先报组件自己的 model（parser 处理后的值），事件值仅作兜底——
+ * 下游 {@code onHeadArg(val)} 等消费的是「组件当前值」而不是原始输入。</p>
+ *
+ * @param value ElInput change 携带的原始值
+ */
+function onChangeEl(value: string | number | null | undefined): void {
+  emit("change", model.value ?? value);
+}
+
+/**
+ * modern 分支的 change 转发：Modern 布局不声明 change 事件，
+ * 绑到它身上的 onChangeNative 会落进其 $attrs 并被铺到内部原生 input 上，
+ * 收到的是原生 Event，值要从 target 上取。
+ *
+ * @param e 原生 change 事件
+ */
+function onChangeNative(e: Event): void {
+  const t = e.target as HTMLInputElement | null;
+  emit("change", t ? t.value : model.value);
 }
 
 /** 点 × 清空：ElInput 会 emit update:model-value("")，这里回写 model 后再把 clear 向外透传。 */
@@ -96,6 +126,7 @@ function onClear(): void {
       v-if="layout === 'modern'"
       :model-value="model"
       @update:model-value="onInput"
+      @change="onChangeNative"
       v-bind="$attrs"
       :type="type"
       :placeholder="placeholder"
@@ -150,6 +181,7 @@ function onClear(): void {
       :suffix-icon="suffixIcon || undefined"
       :status="status"
       @update:model-value="onInput"
+      @change="onChangeEl"
       @clear="onClear"
     >
       <template v-if="$slots.prefix" #prefix>

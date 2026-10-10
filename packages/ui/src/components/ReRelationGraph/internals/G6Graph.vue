@@ -872,6 +872,51 @@ const keyOf = (d: RelationGraphData) =>
   (d.edges ?? []).map(e => e.id ?? `${e.source}->${e.target}`).join("|");
 
 /**
+ * 力导向（force / d3-force）布局的默认细分参数。
+ *
+ * <p>底层 d3-force 的默认值节点斥力很弱（{@code manyBody.strength:-30}）、
+ * 且默认 {@code preventOverlap:false}、{@code nodeSpacing:0}——连了边的节点
+ * 会因为斥力不足、又不防重叠而紧紧挤成一团。这里给一组更松、更防重叠的默认值，
+ * 让「连接线」两侧节点保持可读间距；调用方仍可用 {@code layoutOptions} 覆盖任意项。</p>
+ */
+const FORCE_LAYOUT_DEFAULTS: Record<string, unknown> = {
+  // 连接距离：一条边两端的目标间距（越大越松）
+  linkDistance: 140,
+  // 节点斥力（顶层入口，等价 manyBody.strength，默认仅 -30）：负值越大彼此推得越开
+  nodeStrength: -320,
+  // 防重叠：按 nodeSize + nodeSpacing 做碰撞分离，避免节点/边叠在一起
+  preventOverlap: true,
+  nodeSize: 40,
+  nodeSpacing: 18,
+};
+
+/**
+ * 合并布局参数：把 force 默认值与调用方 layoutOptions 做深合并（调用方可覆盖任意项）。
+ *
+ * <p>只对 force 系布局注入默认值；其它布局（radial/circular/...）原样透传，
+ * 避免给不相关的布局塞进无效参数。</p>
+ *
+ * @param layoutType 布局类型
+ * @param override 调用方传入的 layoutOptions
+ * @return 合并后的布局参数
+ */
+const resolveLayoutOptions = (layoutType: string, override?: Record<string, unknown>): Record<string, unknown> => {
+  const base = layoutType === "force" ? FORCE_LAYOUT_DEFAULTS : {};
+  if (!override) {
+    return base;
+  }
+  const out: Record<string, unknown> = { ...base };
+  for (const k of Object.keys(override)) {
+    const bv = base[k];
+    const ov = override[k];
+    out[k] = bv && ov && typeof bv === "object" && typeof ov === "object" && !Array.isArray(bv)
+      ? { ...(bv as object), ...(ov as object) }
+      : ov;
+  }
+  return out;
+};
+
+/**
  * 装载数据：走 addNodeData / addEdgeData 追加路径。
  *
  * @param d 图数据
@@ -964,7 +1009,7 @@ const initGraph = async () => {
     node: { style: { fill: "#e8f3ff", stroke: "#2992ff", lineWidth: 1.5 } },
     edge: { style: { stroke: "#c3cbd8", lineWidth: 1.2 } },
     combo: { type: "rect", style: { fill: "rgba(109,93,252,0.06)", stroke: "#c9c2ff", lineWidth: 1, labelText: "" } },
-    layout: { type: props.layout, ...(props.layoutOptions ?? {}) } as any,
+    layout: { type: props.layout, ...resolveLayoutOptions(props.layout, props.layoutOptions) } as any,
     behaviors: buildBehaviors(),
     plugins: buildPlugins(),
     nodeState: stateStyle.node,
@@ -1306,7 +1351,7 @@ const setLayout = async (name: RelationLayoutName, options?: Record<string, unkn
   }
   currentLayout.value = name;
   try {
-    graph.setLayout({ type: name, ...(options ?? props.layoutOptions ?? {}) } as any);
+    graph.setLayout({ type: name, ...resolveLayoutOptions(name, options ?? props.layoutOptions) } as any);
     await graph.layout();
   } catch (e) {
     // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，

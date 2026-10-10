@@ -23,6 +23,14 @@ export interface KbTemplateEntity {
   type: string
   /** 实体说明 */
   description: string
+  /**
+   * 实体图片地址，可选。
+   *
+   * <p>相对路径（如 {@code /kb-images/sanguo/关羽.png}，由前端静态目录托管）或完整
+   * URL 均可；创建知识库时经 {@code POST /v2/rag/graph/entity} 的 {@code logo}
+   * 参数落库，图谱节点有图即用图渲染。</p>
+   */
+  image?: string
 }
 
 /** 模板关系 */

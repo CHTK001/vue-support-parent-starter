@@ -10,27 +10,21 @@
         <span class="ngx-donut-label">{{ total > 0 ? "活跃连接" : "无活跃连接" }}</span>
       </div>
     </div>
-    <!-- 明细用 DOM 画在环右侧而不是 ECharts legend：
-         legend 要跟随 series 顺序与交互态重排，且字号跟着主题缩放；
-         这三行是固定的三态，写死 DOM 更省事，也更容易在窄卡片里换行。 -->
-    <ul class="ngx-donut-legend">
-      <li v-for="p in parts" :key="p.key" class="ngx-donut-legend-row">
-        <i class="ngx-donut-dot" :style="{ background: `var(${p.token})` }" />
-        <span class="ngx-donut-name">{{ p.label }}</span>
-        <span class="ngx-donut-num mono">{{ p.value.toLocaleString("en-US") }}</span>
-        <span class="ngx-donut-pct">{{ pctOf(p.value) }}%</span>
-      </li>
-    </ul>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * Nginx 连接状态分布（ECharts 环形图）。
+ * Nginx 连接状态分布（整卡 ECharts：环 + 图例 + tooltip 全在 canvas 里）。
  *
  * <p><strong>为什么环形而不是分段横条</strong>：三种状态是「一个整体的互斥拆分」，
  * 环形能直接把总量和占比同时画出来——圆心放活跃连接总数，环上放三段比例。
  * 原来的 flex 分段条在三者都接近 0 时会退化成三条看不见的 0.001 细线。</p>
+ *
+ * <p><strong>图例（本轮改造）</strong>：原右侧「读取/写入/等待」明细是 DOM 列表
+ * （与 canvas 各画一半），现改为 ECharts legend —— 名称/数量/占比经 formatter +
+ * rich 进 canvas，主题令牌统一取色；selectedMode 关闭，点掉一项会让环的占比失真。
+ * 环内标签只留数值（原「名称+数值」两行超出环宽会互相重叠）。</p>
  *
  * <p><strong>全 0 的处理</strong>：总活跃连接为 0 是完全正常的状态（空闲实例），
  * 但空环画出来是一片空白，与「数据没取到」无法区分。所以补一整圈中性色的 100% 环，
@@ -100,6 +94,45 @@ const build = (): EChartsOption => {
     : [{ value: 1, name: "无活跃连接", itemStyle: { color: emptyColor } }];
 
   return {
+    // 右侧竖排图例：名称 + 数量 + 占比（rich 分栏对齐），图标颜色跟 series 走
+    legend: {
+      orient: "vertical",
+      right: 0,
+      top: "middle",
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 12,
+      // 分布是互斥拆分：允许点掉一项会让环的占比读数失真，图例只读不做开关
+      selectedMode: false,
+      textStyle: {
+        color: token("--text-secondary"),
+        fontSize: 12,
+        rich: {
+          value: {
+            color: token("--text-primary"),
+            fontSize: 12,
+            fontWeight: 600,
+            align: "right",
+            width: 40,
+          },
+          pct: {
+            color: token("--text-secondary"),
+            fontSize: 12,
+            align: "right",
+            width: 46,
+          },
+        },
+      },
+      formatter: (name: string) => {
+        const p = parts.value.find((x) => x.label === name);
+        if (!p) {
+          // 空态环的「无活跃连接」不在三态里，原样返回
+          return name;
+        }
+        return `${p.label}{value|${p.value.toLocaleString("en-US")}}{pct|${pctOf(p.value)}%}`;
+      },
+    },
     tooltip: {
       trigger: "item",
       backgroundColor: token("--bg-elevated") || token("--bg-container"),
@@ -116,11 +149,11 @@ const build = (): EChartsOption => {
     series: [
       {
         type: "pie",
-        // 内圈留空给圆心文字；中心稍微上移，给下方的「活跃连接」标签腾位置
+        // 内圈留空给圆心文字；中心偏左 30% 给右侧图例腾位置（原居中 + DOM 图例）
         radius: ["64%", "84%"],
-        center: ["50%", "46%"],
+        center: ["30%", "46%"],
         avoidLabelOverlap: true,
-        // 环太薄时标签会挤成一团，收进环内
+        // 环内标签只放数值：名称在图例里，两行文字会超出环宽互相重叠
         label: {
           show: total.value > 0,
           position: "inside",
@@ -128,8 +161,8 @@ const build = (): EChartsOption => {
           // 这里同样从令牌取（--el-color-white），不写死 #fff：
           // 项目禁止硬编码色值，且令牌缺失时 FALLBACK 会给出兜底
           color: token("--el-color-white"),
-          fontSize: 11,
-          formatter: (p: unknown) => `${(p as { name: string }).name}\n${(p as { value: number }).value}`,
+          fontSize: 10,
+          formatter: "{c}",
         },
         labelLine: { show: false },
         itemStyle: { borderWidth: 0 },
@@ -153,65 +186,15 @@ watch(() => [props.reading, props.writing, props.waiting, props.height], render)
 </script>
 
 <style scoped lang="scss">
+/* 环 + 图例现在同在一块 canvas 里，外层只负责铺满卡片 */
+.ngx-donut-wrap {
+  display: block;
+}
+
 .ngx-donut {
   position: relative;
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
-}
-
-/* 环 + 明细并排；窄卡片（<240px）时明细换到环下方 */
-.ngx-donut-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.ngx-donut-legend {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.ngx-donut-legend-row {
-  display: grid;
-  grid-template-columns: 8px minmax(38px, auto) auto 42px;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.ngx-donut-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-
-.ngx-donut-name {
-  color: var(--text-secondary);
-}
-
-.ngx-donut-num {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.ngx-donut-pct {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
-}
-
-@media (max-width: 1180px) {
-  .ngx-donut-wrap {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 
 .ngx-echart {
@@ -221,10 +204,10 @@ watch(() => [props.reading, props.writing, props.waiting, props.height], render)
 
 .ngx-donut-center {
   position: absolute;
-  /* 环心在 50% / 46%，标题在环心下方 11px；这里用 flex 一次居中到位，
+  /* 环心在 30% / 46%（偏左给右侧图例腾位），标题在环心下方；flex 一次居中到位，
      免得两行文字各自算 top 出现错位 */
   top: 46%;
-  left: 50%;
+  left: 30%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;

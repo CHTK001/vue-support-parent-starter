@@ -79,7 +79,8 @@
       <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
 
       <div class="dsm-content">
-        <div class="dsm-info-card">
+        <!-- 卡片视觉（圆角/透明边框/双层投影）走 re-surface 统一底座 -->
+        <div class="dsm-info-card re-surface">
           <div class="dsm-info-row"><span class="dsm-info-label">数据源</span><span class="dsm-info-value">{{ source ? source.name : "未选择" }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">连接地址</span><span class="dsm-info-value mono">{{ source ? `${source.host}:${source.port || 2181}` : "—" }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">当前路径</span><span class="dsm-info-value mono">{{ activePath || "—" }}</span></div>
@@ -322,6 +323,8 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import ReRelationGraph from "@repo/ui/re-relation-graph";
+// 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
+import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
@@ -1045,7 +1048,9 @@ onMounted(async () => {
 .dsm-tree-count { font-size: 11px; color: var(--text-tertiary); background: var(--bg-fill); padding: 1px 6px; border-radius: 10px; }
 .dsm-ephemeral-tag { font-size: 10px; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
-.dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px 16px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); }
+/* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
+   透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */
+.dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .dsm-info-row { display: flex; flex-direction: column; gap: 4px; }
 .dsm-info-label { font-size: 12px; color: var(--text-tertiary); }
 .dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }

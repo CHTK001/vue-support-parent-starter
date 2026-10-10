@@ -1,7 +1,8 @@
 <template>
   <div class="dsm tel-page">
     <!-- 顶栏：与 Redis/ZK/etcd 等控制台同款（左=图标+标题+运行状态；右=模式/实例/操作） -->
-    <div class="dsm-toolbar">
+    <!-- 顶部工具条：卡片视觉（圆角/透明边框/双层投影）走 re-surface 统一底座 -->
+    <div class="dsm-toolbar re-surface">
       <div class="dsm-toolbar-left">
         <ReIcon name="Connection" :size="18" class="dsm-title-icon dsm-nginx-icon" />
         <span class="dsm-title">Nginx 服务管理</span>
@@ -157,6 +158,8 @@ import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
 import { ReAlert, ReOption } from "@repo/ui/re-kit";
+// 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
+import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import NginxLifecycleBar from "../../components/console/NginxLifecycleBar.vue";
 import NginxOverviewPanel from "../../components/console/NginxOverviewPanel.vue";
@@ -352,14 +355,14 @@ onMounted(async () => {
 }
 
 /* ============ 顶栏 ============ */
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 类统一提供
+   （16px 圆角、透明边框 + 双层柔光投影），这里只留布局——不再自写一套卡片壳防漂移 */
 .dsm-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 16px;
 }
 
