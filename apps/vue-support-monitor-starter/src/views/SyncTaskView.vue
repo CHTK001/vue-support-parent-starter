@@ -556,21 +556,39 @@
                 </ReButton>
               </div>
             </div>
-            <div v-for="(item, index) in form.mapping" :key="index" class="st-map-row">
-              <el-select v-model="item.source" placeholder="源列" filterable class="st-map-col">
-                <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
-              </el-select>
-              <span class="st-arrow">→</span>
-              <el-select v-model="item.target" placeholder="目标列" filterable class="st-map-col">
-                <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
-              </el-select>
-              <ReButton type="danger" circle title="删除" @click="form.mapping.splice(index, 1)">
-                <template #icon><ReIcon name="Delete" /></template>
-              </ReButton>
-            </div>
-            <div v-if="!form.mapping.length" class="st-form-hint">
-              留空则按「同名（忽略大小写）」自动配对；建议先点「预览 / 自动配对」确认配对结果。
-            </div>
+            <!-- 映射列表同样收口 ReTable（表格统一）：原来是无表头的 flex 行 + 中间一个 → 箭头，
+                 换成真表头「源字段 / 目标字段 / 操作」，方向语义由列名承担，箭头不再需要。
+                 四个无条件属性同列表页；原行没有任何边框/斑马纹，故 border:false 抑制默认边框。 -->
+            <ReTable
+              :data="form.mapping"
+              :columns="mappingColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :layout-table="{ minHeight: 0 }"
+              :settings="{ border: false }"
+            >
+              <template #col-source="{ row }">
+                <el-select v-model="row.source" placeholder="源列" filterable class="st-map-col">
+                  <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
+                </el-select>
+              </template>
+              <template #col-target="{ row }">
+                <el-select v-model="row.target" placeholder="目标列" filterable class="st-map-col">
+                  <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
+                </el-select>
+              </template>
+              <template #col-actions="{ row }">
+                <ReButton type="danger" circle title="删除" @click="removeMappingRow(row)">
+                  <template #icon><ReIcon name="Delete" /></template>
+                </ReButton>
+              </template>
+              <template #empty>
+                <div class="st-form-hint">
+                  留空则按「同名（忽略大小写）」自动配对；建议先点「预览 / 自动配对」确认配对结果。
+                </div>
+              </template>
+            </ReTable>
           </div>
         </template>
 
@@ -1256,6 +1274,18 @@ const taskColumns: ReTableColumn[] = [
   { prop: "lastRun", label: "最近执行", minWidth: 260 },
   { prop: "actions", label: "操作", width: 170, fixed: "right", align: "center" },
 ];
+/**
+ * 字段映射列（编辑弹窗第 ② 步）：三列全是自定义控件（两个下拉 + 删除按钮），
+ * 故每列都配 slot；「操作」列没有对应数据字段，造稳定合成 prop `actions`。
+ *
+ * <p>原来是无表头的 flex 行，方向靠中间一个 `→` 箭头表达；改成真表头后
+ * 「源字段 / 目标字段」列名本身就说清了方向，箭头不再需要。</p>
+ */
+const mappingColumns: ReTableColumn[] = [
+  { prop: "source", label: "源字段", slot: "source" },
+  { prop: "target", label: "目标字段", slot: "target" },
+  { prop: "actions", label: "操作", width: 84, align: "center", slot: "actions" },
+];
 /** 分页：UI 图底部分页；e2e 的行数口径按「当前页行数」+ 徽标仍按全过滤集 */
 const pageNo = ref(1);
 const PAGE_SIZE = 8;
@@ -1909,6 +1939,16 @@ const parseMapping = (json?: string | null): SyncFieldMapping[] => {
 /** 加一行空白映射 */
 const addMappingRow = () => {
   form.mapping.push({ source: "", target: "" });
+};
+
+/**
+ * 删一行映射（ReTable 插槽只回传 row，没有 el-table 列插槽的 $index，
+ * 故按下标查找后 splice —— 与原 `form.mapping.splice(index, 1)` 等价）。
+ */
+const removeMappingRow = (cellRow: Record<string, unknown>) => {
+  const item = cellRow as unknown as SyncFieldMapping;
+  const i = form.mapping.indexOf(item);
+  if (i >= 0) form.mapping.splice(i, 1);
 };
 
 /** 预览并自动配对 */
@@ -2808,9 +2848,9 @@ onUnmounted(() => {
 .st-switch-item { flex-direction: row; align-items: center; gap: 10px; }
 .st-map { border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; background: var(--bg-container); }
 .st-map-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-.st-map-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.st-map-col { flex: 1; }
-.st-arrow { color: var(--text-tertiary); }
+/* 映射区换成 ReTable 后：行容器 .st-map-row 与 → 箭头没有引用了（方向改由列名承担）；
+   下拉也不再是 flex 子项，flex:1 失效，改成满宽，否则在单元格里会缩成一小截。 */
+.st-map-col { width: 100%; }
 .st-warn { font-size: 12px; color: var(--el-color-warning); background: var(--el-color-warning-light-9); border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; }
 .mono { font-family: "JetBrains Mono", "Consolas", monospace; }
 

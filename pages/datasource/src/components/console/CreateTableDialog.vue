@@ -28,6 +28,8 @@ import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { createDbTable } from "../../api/manageConsoles";
 import type { DbColumnPayload } from "../../api/dbManageApi";
 import { columnTypeSelectOptions, ENUM_LIKE_TYPES, typeAllowsScale, typeNeedsSize } from "../../utils/columnTypes";
@@ -124,6 +126,39 @@ const error = ref("");
 /** 类型下拉项（分组） */
 const typeOptions = computed(() => columnTypeSelectOptions());
 
+/**
+ * 列设计网格 → ReTable 列配置（原来 11 轨手写 grid 的表头收敛到此）。
+ *
+ * <p>除「类型」外每列都配 slot —— 单元格里是输入控件而不是数据值；
+ * 「操作」列没有对应字段，造稳定合成 prop {@code actions}；
+ * 序号列改走 ReTable 的 show-index，不再单开一轨。</p>
+ *
+ * <p>宽度按原轨道（150 / 76 / 64 / 92 / 78 / 78 / …）等价给出，两处**有意加宽**：
+ * 类型 150→190，因为 ENUM/SET 的取值输入从「跨整行副行」收进了该单元格；
+ * 操作 40→56，因为 el-table 单元格自带内边距，40px 装不下 32px 的方块按钮。</p>
+ */
+const ctColumns: ReTableColumn[] = [
+  { prop: "name", label: "字段名", minWidth: 110, slot: "name" },
+  { prop: "type", label: "类型", width: 190, slot: "type" },
+  { prop: "size", label: "长度", width: 84, slot: "size" },
+  { prop: "scale", label: "小数位", width: 76, slot: "scale" },
+  { prop: "nullable", label: "可空", width: 72, align: "center", slot: "nullable" },
+  { prop: "primaryKey", label: "主键", width: 72, align: "center", slot: "primaryKey" },
+  { prop: "autoIncrement", label: "自增", width: 72, align: "center", slot: "autoIncrement" },
+  { prop: "defaultValue", label: "默认值", minWidth: 96, slot: "defaultValue" },
+  { prop: "comment", label: "注释", minWidth: 110, slot: "comment" },
+  { prop: "actions", label: "操作", width: 56, align: "center", slot: "actions" },
+];
+
+/**
+ * 表格数据桥接：{@link DesignColumn} 没有索引签名，直接喂 {@code data} 会报 TS2322
+ * （仓内既有写法统一走 {@code as unknown as} 收成 Record 形状）。
+ *
+ * <p>{@code as} 是零成本断言，返回的仍是 {@code rows.value} 本身 —— 同一个数组、
+ * 同一批行对象，所以单元格里 v-model 的改动与删行都直接落在原数组上，不需要回写。</p>
+ */
+const gridData = computed(() => rows.value as unknown as Array<Record<string, unknown>>);
+
 /** 有表名且至少填了一列才能提交 */
 const canSubmit = computed(() => Boolean(name.value.trim()) && rows.value.some(r => r.name.trim()));
 
@@ -163,9 +198,13 @@ function addRow(): void {
   rows.value.push(newRow());
 }
 
-/** 删一列（删空了也允许，提交前会拦） */
-function removeRow(index: number): void {
-  rows.value.splice(index, 1);
+/** 删一列（删空了也允许，提交前会拦）
+ *  ReTable 列插槽只回传 row、没有 el-table 列插槽的 $index，
+ *  故按下标查找后 splice —— 与原来直接 splice(index, 1) 等价。 */
+function removeRow(cellRow: Record<string, unknown>): void {
+  const row = cellRow as unknown as DesignColumn;
+  const i = rows.value.indexOf(row);
+  if (i >= 0) rows.value.splice(i, 1);
 }
 
 /**
@@ -308,92 +347,122 @@ async function submit(): Promise<void> {
         <ReButton layout="square" type="primary" icon="Plus" tip="添加一列" @click="addRow" />
       </div>
 
+      <!-- 列设计网格收口 ReTable（表格统一）：11 轨手写 grid → 列配置 + #col-* 插槽。
+           engine="element" 保住既有 :deep(.ct-grid…) 覆盖与 el-table 的 DOM 口径；
+           max-height:46vh 原本写在 .ct-grid 上（overflow:auto 容器内滚 + sticky 表头），
+           这里交给 layout-table.maxHeight —— 有高度就走 hasFixedHeight 分支：
+           fill 天然关闭、表头固定、表体内滚，等价于原来的 sticky 表头 + 容器内滚。 -->
       <div class="ct-grid">
-        <div class="ct-grid__head">
-          <span>#</span>
-          <span>字段名</span>
-          <span>类型</span>
-          <span>长度</span>
-          <span>小数位</span>
-          <span>可空</span>
-          <span>主键</span>
-          <span>自增</span>
-          <span>默认值</span>
-          <span>注释</span>
-          <span>操作</span>
-        </div>
-        <div v-for="(row, i) in rows" :key="row.key" class="ct-grid__row">
-          <span class="ct-grid__idx">{{ i + 1 }}</span>
-          <ReInput v-model="row.name" class="ct-mono" placeholder="字段名" />
-          <ReSelect v-model="row.type" :options="typeOptions" filterable />
+        <ReTable
+          :data="gridData"
+          :columns="ctColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :layout-table="{ maxHeight: '46vh' }"
+          :settings="{ border: false }"
+          row-key="key"
+          show-index
+          index-width="40"
+          index-align="right"
+        >
+          <template #col-name="{ row }">
+            <ReInput v-model="row.name" class="ct-mono" placeholder="字段名" />
+          </template>
+
+          <template #col-type="{ row }">
+            <ReSelect v-model="row.type" :options="typeOptions" filterable />
+            <!-- ENUM/SET 取值：原先是 grid-column:1/-1 的整行副条。表格没有「跨列副行」，
+                 收进「类型」单元格里 —— 取值本就属于该类型，语义上更贴。 -->
+            <div v-if="ENUM_LIKE_TYPES.has(row.type)" class="ct-grid__sub">
+              <span class="ct-grid__sub-label">{{ row.type }} 取值</span>
+              <ReInput v-model="row.enumText" placeholder="a, b, c（逗号分隔，必填）" />
+            </div>
+          </template>
           <!-- 长度 / 小数位：该类型用不上时留一个占位横线，而不是空一格 ——
                空格子看起来像「没渲染完」，横线才说明是「这个类型没有这一项」。 -->
-          <ReInputNumber
-            v-if="typeNeedsSize(row.type)"
-            :model-value="row.size ?? undefined"
-            size="small"
-            :min="1"
-            :max="65535"
-            controls-position="right"
-            placeholder="长度"
-            @update:model-value="row.size = $event ?? null"
-          />
-          <span v-else class="ct-na" aria-hidden="true">—</span>
-          <ReInputNumber
-            v-if="typeAllowsScale(row.type)"
-            :model-value="row.scale ?? undefined"
-            size="small"
-            :min="0"
-            :max="30"
-            controls-position="right"
-            placeholder="位"
-            @update:model-value="row.scale = $event ?? null"
-          />
-          <span v-else class="ct-na" aria-hidden="true">—</span>
-          <!-- 布尔三列（可空 / 主键 / 自增）改用 ReSwitch square：32px 见方的图标开关，
-               正好钉进 92/78/78px 的轨道，激活态 = 主色边框 + 右上角打勾，一眼可辨。
-               原来的「是/否」分段两个单项各 64px（re-kit 的 min-width），两组 128px
-               直接溢出轨道、叠到右边的列上（教训记在文件末尾 .re-switch-square 那段 CSS 注释）。
+          <template #col-size="{ row }">
+            <ReInputNumber
+              v-if="typeNeedsSize(row.type)"
+              :model-value="row.size ?? undefined"
+              size="small"
+              :min="1"
+              :max="65535"
+              controls-position="right"
+              placeholder="长度"
+              @update:model-value="row.size = $event ?? null"
+            />
+            <span v-else class="ct-na" aria-hidden="true">—</span>
+          </template>
+
+          <template #col-scale="{ row }">
+            <ReInputNumber
+              v-if="typeAllowsScale(row.type)"
+              :model-value="row.scale ?? undefined"
+              size="small"
+              :min="0"
+              :max="30"
+              controls-position="right"
+              placeholder="位"
+              @update:model-value="row.scale = $event ?? null"
+            />
+            <span v-else class="ct-na" aria-hidden="true">—</span>
+          </template>
+          <!-- 布尔三列（可空 / 主键 / 自增）用 ReSwitch square：32px 见方的图标开关，
+               激活态 = 主色边框 + 右上角打勾，一眼可辨。
                纯图标对读屏是空的，故每颗都带 aria-label + title 兜住名称。 -->
-          <ReSwitch
-            v-model="row.nullable"
-            layout="square"
-            size="small"
-            class="ct-bool"
-            aria-label="允许为空"
-            title="允许为空"
-            :disabled="row.primaryKey || row.autoIncrement"
-          />
-          <ReSwitch
-            :model-value="row.primaryKey"
-            layout="square"
-            size="small"
-            class="ct-bool"
-            aria-label="主键"
-            title="主键"
-            @update:model-value="togglePk(row, $event)"
-          />
-          <ReSwitch
-            :model-value="row.autoIncrement"
-            layout="square"
-            size="small"
-            class="ct-bool"
-            aria-label="自增"
-            title="自增"
-            @update:model-value="toggleAuto(row, $event)"
-          />
-          <ReInput v-model="row.defaultValue" class="ct-mono" placeholder="默认值" />
-          <ReInput v-model="row.comment" placeholder="列注释" />
-          <span class="ct-grid__ops">
-            <ReButton icon="Delete" layout="square" type="danger" tip="删除该列" @click="removeRow(i)" />
-          </span>
-          <!-- 枚举取值 / 小数位提示单独占一行，不为它们再加列 -->
-          <div v-if="ENUM_LIKE_TYPES.has(row.type)" class="ct-grid__sub">
-            <span class="ct-grid__sub-label">{{ row.type }} 取值</span>
-            <ReInput v-model="row.enumText" placeholder="a, b, c（逗号分隔，必填）" />
-          </div>
-        </div>
-        <p v-if="rows.length === 0" class="ct-grid__empty">还没有列，点右上角「添加一列」开始设计</p>
+          <template #col-nullable="{ row }">
+            <ReSwitch
+              v-model="row.nullable"
+              layout="square"
+              size="small"
+              class="ct-bool"
+              aria-label="允许为空"
+              title="允许为空"
+              :disabled="row.primaryKey || row.autoIncrement"
+            />
+          </template>
+
+          <template #col-primaryKey="{ row }">
+            <ReSwitch
+              :model-value="row.primaryKey"
+              layout="square"
+              size="small"
+              class="ct-bool"
+              aria-label="主键"
+              title="主键"
+              @update:model-value="togglePk(row, $event)"
+            />
+          </template>
+
+          <template #col-autoIncrement="{ row }">
+            <ReSwitch
+              :model-value="row.autoIncrement"
+              layout="square"
+              size="small"
+              class="ct-bool"
+              aria-label="自增"
+              title="自增"
+              @update:model-value="toggleAuto(row, $event)"
+            />
+          </template>
+          <template #col-defaultValue="{ row }">
+            <ReInput v-model="row.defaultValue" class="ct-mono" placeholder="默认值" />
+          </template>
+
+          <template #col-comment="{ row }">
+            <ReInput v-model="row.comment" placeholder="列注释" />
+          </template>
+
+          <template #col-actions="{ row }">
+            <ReButton icon="Delete" layout="square" type="danger" tip="删除该列" @click="removeRow(row)" />
+          </template>
+
+          <!-- 空态保留原纯文本形态（ReTable 默认回落 el-empty 卡片，这里不改观感） -->
+          <template #empty>
+            <p class="ct-grid__empty">还没有列，点右上角「添加一列」开始设计</p>
+          </template>
+        </ReTable>
       </div>
 
       <p class="ct-form__tip">
@@ -468,53 +537,48 @@ async function submit(): Promise<void> {
 .ct-grid {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  overflow: auto;
-  max-height: 46vh;
+  /* 溢出与 46vh 上限已交给 ReTable 的 layout-table.maxHeight —— 这里**不能**再开
+     overflow:auto，否则变成双层滚动（外层没有内容可滚，内层滚到底还被外层顶住）。 */
+  overflow: hidden;
 }
 
-/* 11 轨：# / 字段名 / 类型 / 长度 / 小数位 / 可空 / 主键 / 自增 / 默认值 / 注释 / 操作。
-   head 与 row 必须同一套轨道，否则表头与输入框错位。 */
-.ct-grid__head,
-.ct-grid__row {
-  display: grid;
-  grid-template-columns:
-    26px minmax(100px, 1.3fr) 150px 76px 64px 92px 78px 78px
-    minmax(90px, 1fr) minmax(100px, 1.2fr) 40px;
-  gap: 6px;
-  align-items: center;
-  padding: 6px 10px;
-  min-width: 960px;
-}
+/* ==== 换成 ReTable 后的等价样式（原 .ct-grid__head/__row 手写 11 轨已作废，
+       下面每条都是把 el-table 的默认观感对回原设计，一条都不能少） ==== */
 
-.ct-grid__head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+/* 表头：原 .ct-grid__head 的字号 / 字重 / 底色 */
+.ct-grid :deep(.el-table__header th.el-table__cell) {
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
 }
 
-.ct-grid__row {
-  border-top: 1px solid var(--el-border-color-lighter);
+/* 单元格内边距：el-table 默认每侧 12px，11 列叠加会比原手写网格宽出近 300px，
+   输入框被挤得又窄又长。压到 6/8 才和原「min-width:960px」口径对得上。 */
+.ct-grid :deep(.el-table .cell) {
+  padding: 6px 8px;
 }
 
-.ct-grid__row:hover {
+/* 行悬停：原 .ct-grid__row:hover 用的是 fill-color-extra-light，不是 EP 默认那档 */
+.ct-grid :deep(.el-table__body tr:hover > td.el-table__cell) {
   background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
 }
 
-.ct-grid__row > * {
-  min-width: 0;
+/* 序号列（show-index 代替原 .ct-grid__idx）：等宽字体 + 占位色 + 右对齐，样式一条不丢 */
+.ct-grid :deep(.el-table-column--index .cell) {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  text-align: right;
 }
 
 /* 布尔三列（可空 / 主键 / 自增）的 ReSwitch square：组件自带 32×32 定宽，
-   轨道（92/78/78px）按 grid 默认会把它按 start 对齐 —— 居中才稳稳落在格子中间。
-   刻意不给 width:100%：方块一旦被拉伸就不是方块了。
-   （旧版是「是/否」分段，被 re-kit 给单项的 64px min-width 顶爆轨道、叠到右列，
-   根因写在这里备查；换成方块后天然 32px，再没有溢出问题。） */
-.ct-grid__row :deep(.re-switch-square) {
-  justify-self: center;
+   不可拉伸（方块一拉就不是方块），靠 inline-flex + 父级 text-align:center 居中。
+   （旧版是「是/否」分段，被 re-kit 给单项的 64px min-width 顶爆轨道、叠到右列；
+   换成方块后天然 32px，再没有溢出问题，教训留档。） */
+.ct-grid :deep(.re-switch-square) {
+  display: inline-flex;
+  margin: 0 auto;
 }
 
 /* 类型用不上的长度 / 小数位占位 */
@@ -524,37 +588,27 @@ async function submit(): Promise<void> {
   text-align: center;
 }
 
-/* 子组件默认是收缩的：不给 100% 它们会按自身内容宽，轨道就撑不住了。
+/* 子组件默认是收缩的：不给 100% 它们会按自身内容宽，列就撑不住了。
    .rm-number（ReInputNumber）还另有 min-width: 96px 的独立控件口径，
-   在 76/64px 的轨道里会顶到右边一列 —— 这里连 min-width 一起清零。 */
-.ct-grid__row :deep(.re-input),
-.ct-grid__row :deep(.el-input),
-.ct-grid__row :deep(.re-select),
-.ct-grid__row :deep(.el-select),
-.ct-grid__row :deep(.el-input-number),
-.ct-grid__row :deep(.rm-number) {
+   在 84/76px 的列里会顶到右边一列 —— 这里连 min-width 一起清零。
+   （选择器由已删除的 .ct-grid__row 改成 .ct-grid，现在命中的是 ReTable 的单元格。） */
+.ct-grid :deep(.re-input),
+.ct-grid :deep(.el-input),
+.ct-grid :deep(.re-select),
+.ct-grid :deep(.el-select),
+.ct-grid :deep(.el-input-number),
+.ct-grid :deep(.rm-number) {
   width: 100%;
   min-width: 0;
 }
 
-.ct-grid__idx {
-  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  text-align: right;
-}
-
-.ct-grid__ops {
-  display: flex;
-  justify-content: center;
-}
-
-/* 枚举取值行：占满整行，不参与上面 11 轨的排布 */
+/* 枚举取值：原先是 grid-column:1/-1 的跨整行副条；表格没有「跨列副行」，
+   收进「类型」单元格内（取值本就属于该类型），用 margin 与上方下拉拉开距离。 */
 .ct-grid__sub {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 6px;
 }
 
 .ct-grid__sub-label {
