@@ -197,7 +197,7 @@ export default defineConfig({
       dts: path.resolve(WORKSPACE_ROOT, 'pages/ai/src/types/components.d.ts'),
     }),
     // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
-    fileViewerRenderers({ inject: false, preset: 'office', copyAssets: true }) as PluginOption,
+    fileViewerRenderers({ inject: false, preset: 'all', copyAssets: true }) as PluginOption,
   ],
   optimizeDeps: {
     // 与 createVite 一致：ol-echarts 走默认导入 echarts，交给预打包会在
