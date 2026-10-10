@@ -189,7 +189,7 @@ interface Kpi {
   tone: "brand" | "success" | "warning" | "error";
   path: string;
   visual:
-    | { kind: "ratio"; parts: KpiPart[] }
+    | { kind: "ratio"; parts: KpiPart[]; gradient: string }
     | { kind: "spark"; values: number[]; color: string };
 }
 
@@ -204,6 +204,11 @@ const kpis = computed<Kpi[]>(() => {
   const unreg = s?.unregisteredJobs ?? 0;
   const handlers = s?.registeredHandlers ?? 0;
   const covered = Math.max(running - unreg, 0);
+  const ratio = (parts: KpiPart[]) => ({
+    kind: "ratio" as const,
+    parts,
+    gradient: ratioGradient(parts),
+  });
   return [
     {
       key: "total",
@@ -213,13 +218,10 @@ const kpis = computed<Kpi[]>(() => {
       icon: "AlarmClock",
       tone: "brand",
       path: "/collect/job",
-      visual: {
-        kind: "ratio",
-        parts: [
-          { label: "启用", value: running, color: "var(--brand-500)" },
-          { label: "停用", value: stopped, color: "var(--border-default)" },
-        ],
-      },
+      visual: ratio([
+        { label: "启用", value: running, color: "var(--brand-500)" },
+        { label: "停用", value: stopped, color: "var(--border-default)" },
+      ]),
     },
     {
       key: "dispatch",
@@ -231,13 +233,10 @@ const kpis = computed<Kpi[]>(() => {
       icon: "Connection",
       tone: "brand",
       path: "/collect/job",
-      visual: {
-        kind: "ratio",
-        parts: [
-          { label: "本地", value: local, color: "var(--brand-500)" },
-          { label: "远程", value: remote, color: "var(--metric-net)" },
-        ],
-      },
+      visual: ratio([
+        { label: "本地", value: local, color: "var(--brand-500)" },
+        { label: "远程", value: remote, color: "var(--metric-net)" },
+      ]),
     },
     {
       key: "fail",
@@ -259,13 +258,10 @@ const kpis = computed<Kpi[]>(() => {
       icon: "Cpu",
       tone: unreg > 0 ? "warning" : "success",
       path: "/collect/job",
-      visual: {
-        kind: "ratio",
-        parts: [
-          { label: "已覆盖", value: covered, color: "var(--status-success)" },
-          { label: "未注册", value: unreg, color: "var(--status-warning)" },
-        ],
-      },
+      visual: ratio([
+        { label: "已覆盖", value: covered, color: "var(--status-success)" },
+        { label: "未注册", value: unreg, color: "var(--status-warning)" },
+      ]),
     },
   ];
 });
@@ -543,13 +539,27 @@ function scheduleCellText(row: JobRuntime): string {
   return `${row.scheduleType} · ${row.scheduleTime}ms`;
 }
 
-/** 构成条各段宽度（百分比字符串）；总量为 0 时整条留给最后一段，避免出现空条 */
-function ratioWidth(part: KpiPart, parts: KpiPart[]): string {
+/**
+ * 构成条的 CSS 渐变（硬边分段，用单个元素承载，避免为每段单独建节点）。
+ *
+ * 总量为 0 时整条留给最后一段，避免出现空条。
+ */
+function ratioGradient(parts: KpiPart[]): string {
   const total = parts.reduce((sum, item) => sum + Math.max(item.value, 0), 0);
-  if (total <= 0) {
-    return part === parts[parts.length - 1] ? "100%" : "0%";
+  const stops: string[] = [];
+  let from = 0;
+  for (const part of parts) {
+    const pct =
+      total <= 0
+        ? part === parts[parts.length - 1]
+          ? 100
+          : 0
+        : (Math.max(part.value, 0) / total) * 100;
+    const to = from + pct;
+    stops.push(`${part.color} ${from}%`, `${part.color} ${to}%`);
+    from = to;
   }
-  return `${(Math.max(part.value, 0) / total) * 100}%`;
+  return `linear-gradient(90deg, ${stops.join(", ")})`;
 }
 
 function jobNameOf(row: JobLog): string {
@@ -637,14 +647,7 @@ function go(path: string): void {
             :values="kpi.visual.values"
             :style="{ color: kpi.visual.color }"
           />
-          <span v-else class="ov-ratio">
-            <span
-              v-for="part in kpi.visual.parts"
-              :key="part.label"
-              class="ov-ratio__seg"
-              :style="{ width: ratioWidth(part, kpi.visual.parts), background: part.color }"
-            />
-          </span>
+          <span v-else class="ov-ratio" :style="{ background: kpi.visual.gradient }" />
         </span>
       </button>
     </div>
@@ -1041,18 +1044,14 @@ function go(path: string): void {
   height: 30px;
 }
 
+/* 构成条：单元素承载，分段由 computed 产出的 CSS 渐变绘制（见 ratioGradient） */
 .ov-ratio {
-  display: flex;
+  display: block;
   width: 100%;
   height: 6px;
   border-radius: 999px;
   overflow: hidden;
   background: var(--bg-fill);
-}
-
-.ov-ratio__seg {
-  display: block;
-  height: 100%;
 }
 
 /* ============ 状态条 ============ */
