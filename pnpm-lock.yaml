@@ -438,6 +438,9 @@ importers:
       event-source-polyfill:
         specifier: ^1.0.31
         version: 1.0.31
+      events:
+        specifier: ^3.3.0
+        version: 3.3.0
       highlight.js:
         specifier: ^11.11.1
         version: 11.12.0
@@ -7072,6 +7075,10 @@ packages:
 
   eventemitter3@5.0.4:
     resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
+
+  events@3.3.0:
+    resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
+    engines: {node: '>=0.8.x'}
 
   execa@8.0.1:
     resolution: {integrity: sha512-VyhnebXciFV2DESc+p6B+y0LjSm0krU4OgJN44qFAhBY0TJ+1V61tYD2+wHusZ6F9n5K+vl8k0sTy7PEfV4qpg==}
@@ -15369,6 +15376,8 @@ snapshots:
   event-source-polyfill@1.0.31: {}
 
   eventemitter3@5.0.4: {}
+
+  events@3.3.0: {}
 
   execa@8.0.1:
     dependencies:
