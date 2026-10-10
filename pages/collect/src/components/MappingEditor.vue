@@ -139,7 +139,9 @@ function typeHint(name: string): string {
     <div v-if="loading" class="mapping-state">正在读取表结构…</div>
     <div v-else-if="loadError" class="mapping-state mapping-state-error">
       <span>{{ loadError }}</span>
-      <span class="mapping-state-hint">可点下方「重新读取表结构」重试，或检查目标表名与数据源是否可用；期间左列可自由输入列名，映射照常能配。</span>
+      <span class="mapping-state-hint">
+        若是目标表还没建过：本字段下方常驻「建表…」按钮，点开设计表即可（或直接手填列名，运行期首跑会自动建表）；表清单读到后若确认表不存在，这里会自动切为新建表模式。也可能是数据源不可达或表没有读权限 —— 可点「重新读取表结构」重试。
+      </span>
     </div>
     <div v-else-if="!table" class="mapping-state">
       先在上方填「目标表」，再回来配置：左边选这张表的列，右边写要写进去的值 / ${表达式}。
