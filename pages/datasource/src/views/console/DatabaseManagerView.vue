@@ -8245,6 +8245,28 @@ onBeforeUnmount(() => {
   font-size: 12.5px;
 }
 
+/* ==================== 设计网格「可空」那格的分段单选 ====================
+   这格是 ReSwitch（radio 布局）的「是/否」分段。re-kit 给每个分段定了
+   min-width: 64px —— 那是独立控件的口径，两枚加起来 128px，塞不进 96px 的
+   轨道，于是两枚完全叠在一起（用户截图里看到的就是这个）。
+   只在网格里收窄，re-kit 那份全局的 64px 别动（控制台开关要它）。
+   类写两遍是为了把特异性抬到 re-kit 那条 (0,3,0) 之上。 */
+.dbm-dgrid-row.dbm-dgrid-row :deep(.re-switch-radio),
+.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group) {
+  width: 100%;
+  min-width: 0;
+}
+.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group .el-radio-button) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group .el-radio-button__inner) {
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
 /* ==================== SQL 编辑器 ==================== */
 .dbm-sql-component { margin-top: 2px; }
 </style>
