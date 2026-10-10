@@ -2047,8 +2047,6 @@ onBeforeUnmount(() => {
         @keyup.enter="runSearch(searchText)"
         @clear="clearSearch"
       />
-      <ReButton size="small" :title="t('toolbar.zoomIn', '放大')" :aria-label="t('toolbar.zoomIn', '放大')" @click="api.zoomIn()">＋</ReButton>
-      <ReButton size="small" :title="t('toolbar.zoomOut', '缩小')" :aria-label="t('toolbar.zoomOut', '缩小')" @click="api.zoomOut()">－</ReButton>
       <ReButton size="small" :title="t('toolbar.fit', '适配视口')" :aria-label="t('toolbar.fit', '适配视口')" @click="api.fitView()">适配</ReButton>
       <ReButton
         v-if="editable"
@@ -2235,17 +2233,10 @@ onBeforeUnmount(() => {
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 6px;
+  /* 去底悬浮工具栏：不要半透明底/圆角/边框/阴影/模糊，
+     按钮直接浮在画布上，仅保留 2px 间距。 */
+  gap: 2px;
   max-width: calc(100% - 24px);
-  padding: 6px 8px;
-  /* 类地图悬浮工具栏：半透明底 + 圆角 + 阴影 + 背景模糊。
-     先用 rgba 兜底旧浏览器，再用 color-mix 跟随主题变量（暗色模式同样生效）。 */
-  background: rgba(255, 255, 255, 0.88);
-  background: color-mix(in srgb, var(--el-bg-color-overlay, #fff) 88%, transparent);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(6px);
 }
 
 /* ReSelect / ReInput 的根节点带上的是子组件自己的 scope 标记，
