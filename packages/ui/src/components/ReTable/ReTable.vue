@@ -5528,6 +5528,20 @@ const iconSelect = Select;
 .re-table--empty .vxe-table--fixed-left-wrapper {
   display: none;
 }
+/* ⚠⚠ vxe 空态的「双容器」缺陷（题库管理实测：空态文字重影、DOM 却只有一份）：
+   同一份空内容被渲染进两个容器，is--empty 时两者都 display:flex → 画两遍重叠。
+     - .vxe-table--empty-block：在 body-wrapper 内，就是上面一直在美化/居中/撑高的那份，
+       fill / fixed-height 的空态高度也全挂在它上面 → ReTable 以它为准；
+     - .vxe-table--empty-place-wrapper：table.js renderEmptyBody 生成的绝对定位覆盖层
+       （top=表头高、height=表体高、z-index:5、pointer-events:none），里面放的也是 #empty 插槽。
+   插图两者都居中故看似一份；文字因两容器宽度/定位不同（empty-block 撑满可视宽且 sticky 吸左，
+   place-wrapper 是覆盖层）而错位，于是「文字重影」。
+   这里把覆盖层整份隐藏，空态只留 empty-block —— 与上方隐藏固定列浮层同一思路。
+   !important：vxe 自带 `.vxe-table--render-default.is--empty .vxe-table--empty-place-wrapper{display:flex}`
+   权重 (0,3,0) 高于 `.re-table .vxe-table--empty-place-wrapper`(0,2,0)，不加强会被压回去。 */
+.re-table .vxe-table--empty-place-wrapper {
+  display: none !important;
+}
 /* 表格高度已确定（调用方给了 height/max-height，或 fill 生效）：
    空态改为填满 body 剩余区域，取消 440px 强撑。
    ⚠ 缺省开启 fill 之后这条最关键：min-height:0 会把空块压成 0 高、整体不可见
