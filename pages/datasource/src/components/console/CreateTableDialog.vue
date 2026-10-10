@@ -331,6 +331,7 @@ async function submit(): Promise<void> {
           <ReInputNumber
             v-if="typeNeedsSize(row.type)"
             :model-value="row.size ?? undefined"
+            size="small"
             :min="1"
             :max="65535"
             controls-position="right"
@@ -341,6 +342,7 @@ async function submit(): Promise<void> {
           <ReInputNumber
             v-if="typeAllowsScale(row.type)"
             :model-value="row.scale ?? undefined"
+            size="small"
             :min="0"
             :max="30"
             controls-position="right"
@@ -522,13 +524,17 @@ async function submit(): Promise<void> {
   text-align: center;
 }
 
-/* 子组件默认是收缩的：不给 100% 它们会按自身内容宽，轨道就撑不住了 */
+/* 子组件默认是收缩的：不给 100% 它们会按自身内容宽，轨道就撑不住了。
+   .rm-number（ReInputNumber）还另有 min-width: 96px 的独立控件口径，
+   在 76/64px 的轨道里会顶到右边一列 —— 这里连 min-width 一起清零。 */
 .ct-grid__row :deep(.re-input),
 .ct-grid__row :deep(.el-input),
 .ct-grid__row :deep(.re-select),
 .ct-grid__row :deep(.el-select),
-.ct-grid__row :deep(.el-input-number) {
+.ct-grid__row :deep(.el-input-number),
+.ct-grid__row :deep(.rm-number) {
   width: 100%;
+  min-width: 0;
 }
 
 .ct-grid__idx {
