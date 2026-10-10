@@ -340,8 +340,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -427,8 +428,8 @@ function onMeasurementContextMenu(e: MouseEvent, name: string) {
 function copyMenuText(text: string, okMsg: string) {
   navigator.clipboard
     .writeText(text)
-    .then(() => ElMessage.success(okMsg))
-    .catch(() => ElMessage.error("复制失败"));
+    .then(() => message.success(okMsg))
+    .catch(() => message.error("复制失败"));
 }
 /** 侧栏菜单分发 */
 function onSideMenuSelect(action: string) {
@@ -663,9 +664,9 @@ async function testConnection() {
     if (result?.connected) {
       influxVersion.value = result.version || "";
       ready();
-      ElMessage.success(result.version ? `连接成功 · InfluxDB ${result.version}` : "连接成功");
+      message.success(result.version ? `连接成功 · InfluxDB ${result.version}` : "连接成功");
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
   } catch (e) {
     fail(e, "/ms/monitor/influxdb/test");
@@ -800,7 +801,7 @@ function openQuery() {
  */
 async function executeQuery(tab: QueryTab) {
   if (!tab.flux.trim()) {
-    ElMessage.warning("请输入 Flux 查询语句");
+    message.warning("请输入 Flux 查询语句");
     return;
   }
   tab.executing = true;
@@ -858,14 +859,14 @@ function openEditRetention(row: InfluxdbBucket) {
  */
 async function submitBucket() {
   if (!bucketForm.value.name.trim()) {
-    ElMessage.warning("请输入 Bucket 名称");
+    message.warning("请输入 Bucket 名称");
     return;
   }
   bucketSaving.value = true;
   try {
     if (bucketForm.value.id) {
       await updateInfluxdbBucketRetention(bucketForm.value.id, bucketForm.value.retentionHours, datasourceId.value);
-      ElMessage.success("保留期已更新");
+      message.success("保留期已更新");
     } else {
       await createInfluxdbBucket({
         datasourceId: datasourceId.value,
@@ -873,7 +874,7 @@ async function submitBucket() {
         retentionHours: bucketForm.value.retentionHours,
         description: bucketForm.value.description,
       });
-      ElMessage.success("Bucket 创建成功");
+      message.success("Bucket 创建成功");
     }
     bucketDialogVisible.value = false;
     await refresh();
@@ -900,7 +901,7 @@ async function confirmDeleteBucket(row: InfluxdbBucket) {
   }
   try {
     await deleteInfluxdbBucket(row.id, datasourceId.value);
-    ElMessage.success("Bucket 已删除");
+    message.success("Bucket 已删除");
     if (activeBucket.value === row.name) activeBucket.value = "";
     await refresh();
   } catch (e) {
@@ -1011,15 +1012,15 @@ function parseKv(text: string, escapeValue: boolean): string {
  */
 async function submitWrite() {
   if (!writeForm.value.bucket.trim()) {
-    ElMessage.warning("请选择 Bucket");
+    message.warning("请选择 Bucket");
     return;
   }
   if (!writeForm.value.measurement.trim()) {
-    ElMessage.warning("请输入 Measurement");
+    message.warning("请输入 Measurement");
     return;
   }
   if (!writeForm.value.fields.trim()) {
-    ElMessage.warning("请至少填写一个 Field");
+    message.warning("请至少填写一个 Field");
     return;
   }
   // measurement 转义
@@ -1027,7 +1028,7 @@ async function submitWrite() {
   const tags = parseKv(writeForm.value.tags, false);
   const fields = parseKv(writeForm.value.fields, true);
   if (!fields) {
-    ElMessage.warning("Field 格式无效，应为 key=value");
+    message.warning("Field 格式无效，应为 key=value");
     return;
   }
   let line = measurement;
@@ -1044,7 +1045,7 @@ async function submitWrite() {
       precision: "ns",
       lines: line,
     });
-    ElMessage.success("写入成功");
+    message.success("写入成功");
     writeVisible.value = false;
     if (activeBucket.value) await loadBucketData();
   } catch (e) {
@@ -1073,7 +1074,7 @@ watch(
       activeBucket.value = "";
       connected.value = false;
       connectionInfo.version = "-";
-      if (err) ElMessage.warning(err);
+      if (err) message.warning(err);
       return;
     }
     await refresh();

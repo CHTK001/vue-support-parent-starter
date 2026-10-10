@@ -207,8 +207,9 @@
   </div>
 </template>
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import ReEcharts from '@repo/ui/re-echarts';
 import type { EChartsOption } from 'echarts';
 import ReCard from '@/components/re/ReCard.vue';
@@ -511,7 +512,7 @@ async function loadData() {
     modelPage.value = 1;
     groupPage.value = 1;
   } catch (e: any) {
-    ElMessage.error('加载用量数据失败: ' + (e?.message || e));
+    message.error('加载用量数据失败: ' + (e?.message || e));
   }
 }
 
@@ -531,7 +532,7 @@ async function reloadDetails() {
     detailRecords.value = payload.records || [];
     detailTotal.value = payload.total || 0;
   } catch (e: any) {
-    ElMessage.error('加载明细失败: ' + (e?.message || e));
+    message.error('加载明细失败: ' + (e?.message || e));
   } finally {
     detailLoading.value = false;
   }

@@ -112,8 +112,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, nextTick, reactive, ref, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { type FormInstance, type FormRules } from 'element-plus';
 import { Close, UploadFilled, Warning } from '@element-plus/icons-vue'
 // 系统统一的数字输入控件（自带边框，与 el-input 观感一致）
 import ReInputNumber from '@repo/ui/re-input-number'
@@ -279,7 +280,7 @@ async function submit() {
       const id = props.record.id
       const okUpd = await apiService.updateFace(id, metadata)
       if (!okUpd) {
-        ElMessage.error('更新失败：底库未确认更新')
+        message.error('更新失败：底库未确认更新')
         return
       }
       const updated: FaceRecord = {
@@ -294,7 +295,7 @@ async function submit() {
       }
       upsert(updated)
       emit('enrolled', updated)
-      ElMessage.success(`已更新：${form.name}`)
+      message.success(`已更新：${form.name}`)
       visible.value = false
       return
     }
@@ -316,11 +317,11 @@ async function submit() {
       enrolledAt: Date.now(),
     })
     emit('enrolled', { id, name: form.name, age: form.age, gender: form.gender, hair: form.hair, idCard: form.idCard, photogenic: form.photogenic, note: form.note, thumb: form.photo, enrolledAt: Date.now() })
-    ElMessage.success(`已登记：${form.name}`)
+    message.success(`已登记：${form.name}`)
     visible.value = false
     reset()
   } catch (e: any) {
-    ElMessage.error(`${isEdit.value ? '更新' : '登记'}失败：${e?.message ?? e}`)
+    message.error(`${isEdit.value ? '更新' : '登记'}失败：${e?.message ?? e}`)
   } finally {
     submitting.value = false
   }

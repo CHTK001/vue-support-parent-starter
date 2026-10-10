@@ -205,8 +205,9 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -377,7 +378,7 @@ function validateCustom(): boolean {
   try {
     applyCustom(JSON.parse(customText.value));
     customError.value = "";
-    ElMessage.success("JSON 合法");
+    message.success("JSON 合法");
     return true;
   } catch (e) {
     customError.value = `JSON 解析失败：${(e as Error)?.message ?? e}`;
@@ -396,7 +397,7 @@ function save(): void {
       applyCustom(parsed);
     } catch (e) {
       customError.value = `JSON 解析失败：${(e as Error)?.message ?? e}`;
-      ElMessage.error("自定义 JSON 不合法，无法保存");
+      message.error("自定义 JSON 不合法，无法保存");
       return;
     }
   }

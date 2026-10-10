@@ -4,8 +4,9 @@
  * 左侧：机构树，支持搜索、节点拖拽调整层级/排序
  * 右侧：选中机构详情 + 操作按钮
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref, nextTick } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   OfficeBuilding,
   Plus,
@@ -71,7 +72,7 @@ async function loadList() {
     await nextTick();
     if (filterText.value) treeRef.value?.filter(filterText.value);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "机构列表加载失败");
+    message.error((e as Error)?.message ?? "机构列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -188,23 +189,23 @@ function handleEdit() {
 
 async function handleSubmit() {
   if (!form.value.sysDeptName) {
-    ElMessage.warning("请输入机构名称");
+    message.warning("请输入机构名称");
     return;
   }
   saving.value = true;
   try {
     if (isEdit.value) {
       await updateDept(form.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveDept(form.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dialogVisible.value = false;
     await loadList();
     if(currentDept.value) loadDeptUsers(currentDept.value.sysDeptId!);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     saving.value = false;
   }
@@ -228,10 +229,10 @@ async function handleDrop(draggingNode: any, dropNode: any, dropType: string) {
     dragData.sysDeptPid = newPid;
     dragData.sysDeptSort = sort;
     await updateDept(dragData);
-    ElMessage.success("机构层级已更新");
+    message.success("机构层级已更新");
     await loadList();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "拖拽调整失败");
+    message.error((e as Error)?.message ?? "拖拽调整失败");
     await loadList();
   }
 }
@@ -240,7 +241,7 @@ async function handleDelete() {
   const dept = currentDept.value;
   if (!dept) return;
   if (dept.children?.length) {
-    ElMessage.warning("存在子机构，请先删除子机构");
+    message.warning("存在子机构，请先删除子机构");
     return;
   }
   if (deleteLoading.value) return;
@@ -256,12 +257,12 @@ async function handleDelete() {
   deleteLoading.value = dept.sysDeptId!;
   try {
     await deleteDept(dept.sysDeptId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     currentDept.value = null;
     deptUsers.value = [];
     await loadList();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   } finally {
     deleteLoading.value = 0;
   }

@@ -8,8 +8,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed } from "vue";
-import { ElMessage } from "element-plus";
+
 
 const form = ref({
   urlTemplate: "https://tiles.example.com/{z}/{x}/{y}.pbf",
@@ -37,13 +38,13 @@ const previewUrl = computed(() =>
 function copyPreviewUrl(): void {
   const text = previewUrl.value;
   if (!navigator.clipboard) {
-    ElMessage.warning("当前环境不支持剪贴板写入");
+    message.warning("当前环境不支持剪贴板写入");
     return;
   }
   navigator.clipboard
     .writeText(text)
-    .then(() => ElMessage.success("已复制"))
-    .catch(() => ElMessage.error("复制失败"));
+    .then(() => message.success("已复制"))
+    .catch(() => message.error("复制失败"));
 }
 </script>
 

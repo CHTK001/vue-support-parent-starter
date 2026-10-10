@@ -76,9 +76,10 @@
 
 <script setup lang="ts" name="QuickAccessWidget">
 
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { Close, Grid, Menu, Plus, Setting, User, Document, DataBoard, Monitor, ChatDotSquare, Message, Bell, Key, Files, Folder, Tools, InfoFilled, Link } from "@element-plus/icons-vue";
 import { IndexedDBStore } from "@repo/utils";
 import { getMenuLanguage } from "@repo/languages";
@@ -214,7 +215,7 @@ function openAdd(): void {
 async function save(): Promise<void> {
   const now = Date.now();
   if (form.type === "route") {
-    if (!form.routePath) { ElMessage.warning("请选择系统路由"); return; }
+    if (!form.routePath) { message.warning("请选择系统路由"); return; }
     const found = systemItems.value.find((m) => m.path === form.routePath);
     if (!found) return;
     const item: StoredQuickItem = { id: "cust_" + now, title: found.title, path: found.path, icon: found.icon, isSystem: false };
@@ -223,14 +224,14 @@ async function save(): Promise<void> {
   } else {
     const title = form.linkTitle.trim();
     const url = form.linkUrl.trim();
-    if (!title) { ElMessage.warning("请输入快捷名称"); return; }
-    if (!url) { ElMessage.warning("请输入链接地址"); return; }
+    if (!title) { message.warning("请输入快捷名称"); return; }
+    if (!url) { message.warning("请输入链接地址"); return; }
     const item: StoredQuickItem = { id: "cust_" + now, title, url, icon: resolveIcon(url), isSystem: false };
     await store.put(item);
     customItems.value.push(item);
   }
   dialogVisible.value = false;
-  ElMessage.success("已添加");
+  message.success("已添加");
 }
 
 /** 判断是否为图片 URL（本地路径 / http 链接 / 数据 URL） */

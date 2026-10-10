@@ -5,8 +5,9 @@
   保存后通过 emit('save', config) 把新配置交给父组件。
 -->
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import type { CustomWidgetConfig } from "../widgets";
 import ReDialog from "@repo/ui/re-dialog";
 
@@ -73,7 +74,7 @@ async function handleSave(): Promise<void> {
   try {
     await formRef.value.validate();
   } catch {
-    ElMessage.warning("请检查表单输入");
+    message.warning("请检查表单输入");
     return;
   }
   const payload: CustomWidgetConfig = {

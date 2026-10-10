@@ -55,8 +55,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
@@ -95,7 +96,7 @@ async function loadData() {
     tableData.value = Array.isArray(data) ? data : (data.records || data.list || []);
     total.value = Number(data.total ?? res?.total ?? res?.count) || tableData.value.length;
   } catch (e: any) {
-    ElMessage.error(`加载失败: ${e.message}`);
+    message.error(`加载失败: ${e.message}`);
   } finally {
     loading.value = false;
   }

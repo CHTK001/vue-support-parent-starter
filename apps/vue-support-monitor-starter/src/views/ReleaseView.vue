@@ -116,9 +116,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Loading, Monitor, Files, Box, ArrowRight, EditPen, Delete } from '@element-plus/icons-vue';
 import { http, unwrapResult } from '@repo/utils';
 import { osIconSvg, osLabel } from '../utils/osIcon';
@@ -213,7 +214,7 @@ async function loadList() {
     list.value = res || [];
     loadCounts();
   } catch (e) {
-    ElMessage.error('加载发布列表失败');
+    message.error('加载发布列表失败');
   }
 }
 
@@ -278,15 +279,15 @@ async function handleSave() {
   try {
     if (editingId.value != null) {
       await http().put(BASE + `/${editingId.value}`).data(form.value);
-      ElMessage.success('更新成功');
+      message.success('更新成功');
     } else {
       await http().post(BASE).data(form.value);
-      ElMessage.success('创建成功');
+      message.success('创建成功');
     }
     dialogVisible.value = false;
     loadList();
   } catch (e) {
-    ElMessage.error('保存失败');
+    message.error('保存失败');
   }
 }
 
@@ -294,11 +295,11 @@ async function handleDelete(item: Release) {
   try {
     await ElMessageBox.confirm(`确定删除发布「${item.releaseName}」吗？其下项目将一并删除。`, '提示', { type: 'warning' });
     await http().delete(BASE + `/${item.id}`);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     loadList();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error('删除失败');
+      message.error('删除失败');
     }
   }
 }
@@ -317,11 +318,11 @@ async function openInstallDialog(item: Release) {
 
 async function handleSearch() {
   if (!searchForm.value.hostId) {
-    ElMessage.warning('该发布未绑定主机，请先在编辑中选择主机');
+    message.warning('该发布未绑定主机，请先在编辑中选择主机');
     return;
   }
   if (!searchForm.value.keyword) {
-    ElMessage.warning('请输入软件名称');
+    message.warning('请输入软件名称');
     return;
   }
 
@@ -335,7 +336,7 @@ async function handleSearch() {
       .timeout(30000);
     searchResults.value = unwrapResult(res) || [];
   } catch (e) {
-    ElMessage.error('搜索失败，请检查主机连接');
+    message.error('搜索失败，请检查主机连接');
   } finally {
     searching.value = false;
   }
@@ -343,7 +344,7 @@ async function handleSearch() {
 
 async function handleInstall(pkg: SoftwarePackage) {
   if (!searchForm.value.hostId) {
-    ElMessage.warning('该发布未绑定主机，请先在编辑中选择主机');
+    message.warning('该发布未绑定主机，请先在编辑中选择主机');
     return;
   }
   try {
@@ -356,7 +357,7 @@ async function handleInstall(pkg: SoftwarePackage) {
       trackTask(taskId, pkg.name, 'install');
     }
   } catch (e) {
-    ElMessage.error('安装触发失败');
+    message.error('安装触发失败');
   }
 }
 

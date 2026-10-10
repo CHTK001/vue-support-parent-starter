@@ -105,9 +105,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { createClient, v2Http } from '@/framework/context'
 import {
   ArrowLeft24Regular,
@@ -191,7 +192,7 @@ async function loadTokens() {
     const res = await http.get('/service/tokens', { params: { instanceId } })
     tokens.value = asList(res.data, 'tokens').map(mapToken)
   } catch (e: any) {
-    ElMessage.error('加载令牌失败: ' + e.message)
+    message.error('加载令牌失败: ' + e.message)
   } finally {
     loading.value = false
   }
@@ -215,11 +216,11 @@ function openCreate() {
 
 async function submit() {
   if (!form.value.name.trim()) {
-    ElMessage.warning('请填写令牌名称')
+    message.warning('请填写令牌名称')
     return
   }
   if (form.value.type === 'temporary' && !form.value.expiresAt) {
-    ElMessage.warning('请选择过期时间')
+    message.warning('请选择过期时间')
     return
   }
   try {
@@ -231,11 +232,11 @@ async function submit() {
       maxRequests: form.value.maxRequests || null,
       maxTokens: form.value.maxTokens || null,
     })
-    ElMessage.success('令牌已签发')
+    message.success('令牌已签发')
     showCreate.value = false
     loadTokens()
   } catch (e: any) {
-    ElMessage.error('签发失败: ' + e.message)
+    message.error('签发失败: ' + e.message)
   }
 }
 
@@ -249,11 +250,11 @@ async function toggle(row: any) {
       })
     }
     await http.post(`/service/tokens/${row.id}/toggle`)
-    ElMessage.success(row.enabled ? '已禁用' : '已启用')
+    message.success(row.enabled ? '已禁用' : '已启用')
     loadTokens()
   } catch (e: any) {
     if (e === 'cancel' || e?.message === 'cancel') return
-    ElMessage.error('操作失败: ' + e.message)
+    message.error('操作失败: ' + e.message)
   }
 }
 
@@ -265,20 +266,20 @@ async function remove(row: any) {
       cancelButtonText: '取消',
     })
     await http.delete(`/service/tokens/${row.id}`)
-    ElMessage.success('已删除')
+    message.success('已删除')
     loadTokens()
   } catch (e: any) {
     if (e === 'cancel' || e?.message === 'cancel') return
-    ElMessage.error('删除失败: ' + e.message)
+    message.error('删除失败: ' + e.message)
   }
 }
 
 async function copy(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制')
+    message.success('已复制')
   } catch {
-    ElMessage.warning('复制失败，请手动选择复制')
+    message.warning('复制失败，请手动选择复制')
   }
 }
 

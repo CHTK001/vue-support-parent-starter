@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ReTable from '@repo/ui/re-table';
@@ -49,7 +50,7 @@ import type { ReTableColumn } from '@repo/ui/re-table';
 import { getDependencies } from '../api/hotsportApi';
 import type { DependencyEdge } from '../api/types';
 import type { JsonNode, JsonLine } from '@relation-graph/vue3';
-import { ElMessage } from 'element-plus';
+
 import { formatDuration } from '@repo/ui/re-time';
 import { costMs } from '@repo/utils';
 
@@ -118,7 +119,7 @@ const fetchEdges = async () => {
     const res = (await getDependencies()) as DependencyEdge[] | { items?: DependencyEdge[] };
     edges.value = Array.isArray(res) ? res : (res.items || []);
   } catch (e) {
-    ElMessage.error(t('hotsport.dependencies.fetchError'));
+    message.error(t('hotsport.dependencies.fetchError'));
   } finally {
     loading.value = false;
   }

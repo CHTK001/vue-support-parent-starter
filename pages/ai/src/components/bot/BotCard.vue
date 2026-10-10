@@ -92,10 +92,11 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CircleCheck, Timer, SwitchButton, Refresh } from '@element-plus/icons-vue'
-import { ElMessage, ElIcon } from 'element-plus'
+import { ElIcon } from 'element-plus';
 import type { BotInstance } from '@/types/bot'
 import { fixFrontendAssetUrl } from '@/utils/url'
 import { apiService } from '@/services/ApiService'
@@ -154,7 +155,7 @@ const fetchQrStatus = async () => {
       qrMessage.value = result.message || ''
     }
   } catch (error: any) {
-    ElMessage.error(error?.message || error.response?.data?.msg || t('bot.card.getQrFailed'))
+    message.error(error?.message || error.response?.data?.msg || t('bot.card.getQrFailed'))
   }
 }
 
@@ -194,16 +195,16 @@ const handleLogout = async () => {
   try {
     const result = await apiService.logoutBot(props.bot.id)
     if (result.success) {
-      ElMessage.success(result.message)
+      message.success(result.message)
       qrDialogVisible.value = false
       // 退出登录后自动停止机器人
       await apiService.stopBotInstance(props.bot.id)
       emit('stop', props.bot.id)
     } else {
-      ElMessage.warning(result.message)
+      message.warning(result.message)
     }
   } catch (error: any) {
-    ElMessage.error(error?.message || error.response?.data?.msg || t('bot.card.logoutFailed'))
+    message.error(error?.message || error.response?.data?.msg || t('bot.card.logoutFailed'))
   }
 }
 

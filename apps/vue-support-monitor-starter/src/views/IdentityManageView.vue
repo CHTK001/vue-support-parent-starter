@@ -16,9 +16,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import type { Component } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleCheck, Collection, Connection, Key, Lock, Monitor, Postcard, Unlock, User } from "@element-plus/icons-vue";
 import { ReFormItem } from "@repo/ui/re-kit";
 import ReStatCard from "@repo/ui/re-stat-card";
@@ -135,7 +136,7 @@ async function load(): Promise<void> {
     }
     bindCache.value = map;
   } catch (e) {
-    ElMessage.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     loading.value = false;
   }
@@ -188,7 +189,7 @@ async function loadKeys(): Promise<void> {
   try {
     keys.value = ((await getKeys()) ?? []) as KeyRow[];
   } catch (e) {
-    ElMessage.error(`密钥加载失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`密钥加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     keyLoading.value = false;
   }
@@ -229,7 +230,7 @@ function openKeyEdit(row: KeyRow): void {
 }
 
 async function submitKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName?.trim()) { ElMessage.warning("请输入密钥名称"); return; }
+  if (!keyForm.value.msServerKeyName?.trim()) { message.warning("请输入密钥名称"); return; }
   keySaving.value = true;
   try {
     await saveKey(editingKeyId.value, {
@@ -240,12 +241,12 @@ async function submitKey(): Promise<void> {
       msServerKeyPassword: keyForm.value.msServerKeyPassword || undefined,
       msServerKeyRemark: keyForm.value.msServerKeyRemark,
     });
-    ElMessage.success(editingKeyId.value != null ? "密钥已更新" : "密钥已创建");
+    message.success(editingKeyId.value != null ? "密钥已更新" : "密钥已创建");
     keyFormVisible.value = false;
     await loadKeys();
     await load();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     keySaving.value = false;
   }
@@ -255,17 +256,17 @@ async function removeKey(row: KeyRow): Promise<void> {
   await ElMessageBox.confirm(`删除密钥「${row.msServerKeyName}」？被引用的身份将受影响`, "删除确认", { type: "warning" });
   try {
     await delKey(row.id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await loadKeys();
     await load();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 
 /** 生成密钥对 */
 async function generateKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName?.trim()) { ElMessage.warning("请输入密钥名称"); return; }
+  if (!keyForm.value.msServerKeyName?.trim()) { message.warning("请输入密钥名称"); return; }
   keySaving.value = true;
   try {
     const r = await generateKeyPair(
@@ -274,11 +275,11 @@ async function generateKey(): Promise<void> {
       keyForm.value.msServerKeyPassword || undefined,
       keyForm.value.msServerKeyRemark,
     );
-    ElMessage.success("密钥对已生成并保存");
+    message.success("密钥对已生成并保存");
     keyFormVisible.value = false;
     await loadKeys();
   } catch (e) {
-    ElMessage.error(`生成失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`生成失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     keySaving.value = false;
   }
@@ -288,10 +289,10 @@ async function remove(i: Identity): Promise<void> {
   await ElMessageBox.confirm(`删除身份「${i.msServerIdentityName}」？`, "删除确认", { type: "warning" });
   try {
     await delIdentity(i.id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await load();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 
@@ -317,10 +318,10 @@ async function doBind(hostId: number): Promise<void> {
   if (!bindTarget.value) return;
   try {
     await bindIdentity(hostId, bindTarget.value.id);
-    ElMessage.success("已绑定");
+    message.success("已绑定");
     await openBind(bindTarget.value);
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 
@@ -328,10 +329,10 @@ async function doUnbind(hostId: number): Promise<void> {
   if (!bindTarget.value) return;
   try {
     await unbindIdentity(hostId, bindTarget.value.id);
-    ElMessage.success("已解绑");
+    message.success("已解绑");
     await openBind(bindTarget.value);
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 
@@ -375,7 +376,7 @@ async function openMail(row: Identity): Promise<void> {
     mails.value = list;
   } catch (e) {
     mails.value = [];
-    ElMessage.error(`加载邮件失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载邮件失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     mailLoading.value = false;
   }
@@ -410,7 +411,7 @@ async function selectMail(m: { id?: string; subject?: string }, idx: number): Pr
 function downloadPublicKey(row: KeyRow): void {
   const content = row.msServerKeyPublicKey ?? "";
   if (!content) {
-    ElMessage.warning("该密钥暂无公钥内容");
+    message.warning("该密钥暂无公钥内容");
     return;
   }
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -434,7 +435,7 @@ async function batchDelete(rows: Record<string, unknown>[]): Promise<void> {
       console.error('删除失败:', e);
     }
   }
-  ElMessage.success(`删除 ${ok}/${rows.length} 条`);
+  message.success(`删除 ${ok}/${rows.length} 条`);
   selection.value = [];
   await load();
 }
@@ -443,7 +444,7 @@ async function batchDelete(rows: Record<string, unknown>[]): Promise<void> {
 function exportCsv(): void {
   const rows = filteredList.value;
   if (!rows.length) {
-    ElMessage.warning("没有可导出的数据");
+    message.warning("没有可导出的数据");
     return;
   }
   const head = ["名称", "类型", "登录用户", "密钥", "备注"];
@@ -463,7 +464,7 @@ function exportCsv(): void {
   a.download = `账号身份-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
-  ElMessage.success(`已导出 ${rows.length} 条`);
+  message.success(`已导出 ${rows.length} 条`);
 }
 
 const authTypeOptions = [
@@ -633,9 +634,9 @@ const filteredList = computed(() => {
 async function copyUsername(i: Identity): Promise<void> {
   try {
     await navigator.clipboard.writeText(i.msServerIdentityUsername || "");
-    ElMessage.success("用户名已复制");
+    message.success("用户名已复制");
   } catch {
-    ElMessage.info(i.msServerIdentityUsername || "");
+    message.info(i.msServerIdentityUsername || "");
   }
 }
 
@@ -688,19 +689,19 @@ function openEdit(row: Identity): void {
 }
 
 async function submitAdd(): Promise<void> {
-  if (!addForm.value.msServerIdentityName?.trim()) { ElMessage.warning("请输入身份名称"); return; }
-  if (!addForm.value.msServerIdentityUsername?.trim()) { ElMessage.warning("请输入登录用户名"); return; }
+  if (!addForm.value.msServerIdentityName?.trim()) { message.warning("请输入身份名称"); return; }
+  if (!addForm.value.msServerIdentityUsername?.trim()) { message.warning("请输入登录用户名"); return; }
   addSaving.value = true;
   try {
     await saveIdentity(editingId.value, {
       ...addForm.value,
       msServerIdentityPassword: addForm.value.msServerIdentityPassword || undefined,
     });
-    ElMessage.success(editingId.value != null ? "身份已更新" : "身份已创建");
+    message.success(editingId.value != null ? "身份已更新" : "身份已创建");
     addVisible.value = false;
     await load();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     addSaving.value = false;
   }

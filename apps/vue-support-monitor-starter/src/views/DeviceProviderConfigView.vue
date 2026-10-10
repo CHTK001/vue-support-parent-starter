@@ -15,8 +15,9 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Bell, Clock, Grid, Operation } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
@@ -130,7 +131,7 @@ async function fetchConfig(): Promise<void> {
   } catch (e: unknown) {
     rows.value = [];
     loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
-    ElMessage.error(`提供商配置加载失败：${loadError.value}`);
+    message.error(`提供商配置加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
@@ -138,7 +139,7 @@ async function fetchConfig(): Promise<void> {
 
 async function onSave(r: VendorRow): Promise<void> {
   if (!Number.isFinite(r.draft) || r.draft <= 0) {
-    ElMessage.warning("阈值必须大于 0");
+    message.warning("阈值必须大于 0");
     return;
   }
   r.saving = true;
@@ -146,9 +147,9 @@ async function onSave(r: VendorRow): Promise<void> {
     await deviceApi.updateProviderConfig(r.vendor, r.draft);
     r.threshold = r.draft;
     r.dirty = false;
-    ElMessage.success(`${r.label} 的离线阈值已更新为 ${r.draft} 秒`);
+    message.success(`${r.label} 的离线阈值已更新为 ${r.draft} 秒`);
   } catch (e: unknown) {
-    ElMessage.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     r.saving = false;
   }
@@ -162,7 +163,7 @@ function onReset(r: VendorRow): void {
 async function onSaveAll(): Promise<void> {
   const dirty = rows.value.filter((r) => r.dirty && Number.isFinite(r.draft) && r.draft > 0);
   if (!dirty.length) {
-    ElMessage.info("没有待保存的改动");
+    message.info("没有待保存的改动");
     return;
   }
   for (const r of dirty) await onSave(r);

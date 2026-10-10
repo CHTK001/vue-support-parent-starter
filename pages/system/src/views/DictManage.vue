@@ -4,9 +4,10 @@
  * 左侧：字典分类列表，支持搜索、新增
  * 右侧上下：上方字典详情，下方 ReTable 字典项（支持拖拽排序、图标、扩展配置）
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import Sortable from "sortablejs";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Search, Collection } from "@element-plus/icons-vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import {
@@ -92,7 +93,7 @@ async function loadDictList() {
       await nextTickReload();
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "字典列表加载失败");
+    message.error((e as Error)?.message ?? "字典列表加载失败");
   } finally {
     dictLoading.value = false;
     await nextTick();
@@ -146,9 +147,9 @@ function initDictSortable() {
       dictList.value = list;
       try {
         await updateDictSortBatch(sortPayload);
-        ElMessage.success("字典排序已更新");
+        message.success("字典排序已更新");
       } catch (e) {
-        ElMessage.error((e as Error)?.message ?? "排序保存失败，正在刷新");
+        message.error((e as Error)?.message ?? "排序保存失败，正在刷新");
         await loadDictList();
       }
     },
@@ -210,26 +211,26 @@ function handleDictEdit() {
 
 async function handleDictSubmit() {
   if (!dictForm.value.sysDictName) {
-    ElMessage.warning("请输入字典名称");
+    message.warning("请输入字典名称");
     return;
   }
   if (!dictForm.value.sysDictCode) {
-    ElMessage.warning("请输入字典编码");
+    message.warning("请输入字典编码");
     return;
   }
   dictSaving.value = true;
   try {
     if (isEditDict.value) {
       await updateDict(dictForm.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveDict(dictForm.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dictDialogVisible.value = false;
     await loadDictList();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     dictSaving.value = false;
   }
@@ -238,7 +239,7 @@ async function handleDictSubmit() {
 async function handleDictDelete() {
   if (!currentDict.value) return;
   if (currentDict.value.sysDictInSystem === 1) {
-    ElMessage.warning("内置字典不允许删除");
+    message.warning("内置字典不允许删除");
     return;
   }
   try {
@@ -248,7 +249,7 @@ async function handleDictDelete() {
       { type: "warning" }
     );
     await deleteDict(currentDict.value.sysDictId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     currentDict.value = null;
     await loadDictList();
     if (dictList.value.length) {
@@ -256,7 +257,7 @@ async function handleDictDelete() {
       await nextTickReload();
     }
   } catch (error: unknown) {
-    if (error !== "cancel") ElMessage.error(error instanceof Error ? error.message : "删除失败");
+    if (error !== "cancel") message.error(error instanceof Error ? error.message : "删除失败");
   }
 }
 
@@ -328,26 +329,26 @@ function handleItemEdit(row: Record<string, unknown>) {
 
 async function handleItemSubmit() {
   if (!itemForm.value.sysDictItemName) {
-    ElMessage.warning("请输入子项名称");
+    message.warning("请输入子项名称");
     return;
   }
   if (!itemForm.value.sysDictItemCode) {
-    ElMessage.warning("请输入子项值");
+    message.warning("请输入子项值");
     return;
   }
   itemSaving.value = true;
   try {
     if (isEditItem.value) {
       await updateDictItem(itemForm.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveDictItem(itemForm.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     itemDialogVisible.value = false;
     itemTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     itemSaving.value = false;
   }
@@ -362,10 +363,10 @@ async function handleItemDelete(row: Record<string, unknown>) {
       { type: "warning" }
     );
     await deleteDictItem(item.sysDictItemId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     itemTableRef.value?.reload();
   } catch (error: unknown) {
-    if (error !== "cancel") ElMessage.error(error instanceof Error ? error.message : "删除失败");
+    if (error !== "cancel") message.error(error instanceof Error ? error.message : "删除失败");
   }
 }
 
@@ -382,10 +383,10 @@ async function handleItemDragSort({ newData }: { newData: SysDictItem[] }) {
           }],
     );
     await updateDictItemSortBatch(list);
-    ElMessage.success("排序已更新");
+    message.success("排序已更新");
     itemTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "排序更新失败");
+    message.error((e as Error)?.message ?? "排序更新失败");
   }
 }
 

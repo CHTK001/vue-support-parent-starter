@@ -1810,6 +1810,7 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
 import { EditPen, CopyDocument, Delete, RefreshRight } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
@@ -1833,7 +1834,7 @@ import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import { DatasourceSelect } from "@pages/datasource";
 import type { CollectOption } from "@pages/datasource";
 import { useRoute } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   fetchDbDatabases,
   fetchDbTables,
@@ -2092,7 +2093,7 @@ async function openObjectDefinition(category: DbObjectCategory, name: string, db
     try {
       objectDefinition.value = await fetchDbObjectDefinition(category, name, currentDatasourceId.value, db);
     } catch (e) {
-      ElMessage.error(`读取定义失败: ${String((e as Error)?.message ?? e)}`);
+      message.error(`读取定义失败: ${String((e as Error)?.message ?? e)}`);
       objectDefinition.value = "";
     } finally {
       objectLoading.value = false;
@@ -2163,7 +2164,7 @@ async function saveObjectDefinition(): Promise<void> {
   if (!tab || tab.type !== "object" || !tab.objectCategory) return;
   const definition = objectDefinition.value.trim();
   if (!definition) {
-    ElMessage.warning("定义不能为空");
+    message.warning("定义不能为空");
     return;
   }
   objectSaving.value = true;
@@ -2174,14 +2175,14 @@ async function saveObjectDefinition(): Promise<void> {
       { datasourceId: currentDatasourceId.value, database: tab.database },
       true
     );
-    ElMessage.success("已保存");
+    message.success("已保存");
     objectDirty.value = false;
     if (tab.database) {
       await loadDbObjects(tab.database);
       await loadDbObjectList(tab.database, tab.objectCategory);
     }
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     objectSaving.value = false;
   }
@@ -2207,14 +2208,14 @@ async function deleteCurrentObject(): Promise<void> {
       { datasourceId: currentDatasourceId.value, database: tab.database },
       true
     );
-    ElMessage.success("已删除");
+    message.success("已删除");
     if (tab.database) {
       await loadDbObjects(tab.database);
       await loadDbObjectList(tab.database, tab.objectCategory);
     }
     closeTab(tab.id);
   } catch (e) {
-    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 /** 当前选中的库，跨库查看数据/执行 SQL 都以它为准 */
@@ -2253,7 +2254,7 @@ async function toggleTable(table: string, db: string): Promise<void> {
     try {
       tableColumnsCache[key] = await fetchTableColumns(table, currentDatasourceId.value, db);
     } catch (e) {
-      ElMessage.error(`加载字段失败: ${String((e as Error)?.message ?? e)}`);
+      message.error(`加载字段失败: ${String((e as Error)?.message ?? e)}`);
     }
   }
 }
@@ -2482,7 +2483,7 @@ async function loadFilterColumns(tab: Tab): Promise<void> {
     filterColumns.value = cols.map(c => ({ name: c.name, type: c.type, remark: c.remark }));
   } catch {
     filterColumns.value = [];
-    ElMessage.error("加载列信息失败，筛选面板没有可选列");
+    message.error("加载列信息失败，筛选面板没有可选列");
   }
 }
 
@@ -2501,7 +2502,7 @@ function columnOptionLabel(c: { name: string; type?: string; remark?: string }):
 function openFilterDialog(): void {
   const tab = activeTabObj.value;
   if (!tab?.tableName) {
-    ElMessage.info("先打开一张表再用高级筛选");
+    message.info("先打开一张表再用高级筛选");
     return;
   }
   void loadFilterColumns(tab);
@@ -2523,13 +2524,13 @@ function applyAdvancedFilter(): void {
   // 否则用户不小心点掉列下拉再点应用，会**静默丢掉所有已生效的筛选**，
   // 表现是「我明明设了条件，怎么全表出来了」。
   if (filterDraft.value.length > 0 && filterDraft.value.every(f => !f.column.trim().length)) {
-    ElMessage.warning("至少给一条条件选择列名");
+    message.warning("至少给一条条件选择列名");
     return;
   }
   const usable = filterDraft.value.filter(f => f.column.trim().length > 0);
   const bad = usable.find(f => !DB_FILTER_OPS.includes(f.op as (typeof DB_FILTER_OPS)[number]));
   if (bad) {
-    ElMessage.warning(`运算符「${bad.op}」不可用`);
+    message.warning(`运算符「${bad.op}」不可用`);
     return;
   }
   const missingValue = usable.find(f =>
@@ -2537,12 +2538,12 @@ function applyAdvancedFilter(): void {
     && (!f.value || !f.value.trim().length)
     && !(dbFilterTakesMultipleValues(f.op) && f.value));
   if (missingValue) {
-    ElMessage.warning(`条件「${missingValue.column} ${missingValue.op}」还没填值`);
+    message.warning(`条件「${missingValue.column} ${missingValue.op}」还没填值`);
     return;
   }
   const betweenMissing = usable.find(f => dbFilterNeedsValue2(f.op) && !(f.value2 || "").trim().length);
   if (betweenMissing) {
-    ElMessage.warning(`区间条件「${betweenMissing.column}」缺上界`);
+    message.warning(`区间条件「${betweenMissing.column}」缺上界`);
     return;
   }
   activeFilters.value = usable.map(f => ({ ...f }));
@@ -2582,14 +2583,14 @@ async function deleteSelectedRows(): Promise<void> {
       affected += typeof res?.affectedRows === "number" ? res.affectedRows : 0;
     }
     if (affected < rows.length) {
-      ElMessage.warning(`已删除 ${affected} 行；请求的 ${rows.length} 行中有 ${rows.length - affected} 行未命中（可能已被他人删除）`);
+      message.warning(`已删除 ${affected} 行；请求的 ${rows.length} 行中有 ${rows.length - affected} 行未命中（可能已被他人删除）`);
     } else {
-      ElMessage.success(`已删除 ${affected} 行`);
+      message.success(`已删除 ${affected} 行`);
     }
     selection.value = [];
     await refreshTableData();
   } catch (e) {
-    ElMessage.error(`批量删除失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`批量删除失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -2666,10 +2667,10 @@ async function duplicateRow(row: Record<string, unknown>): Promise<void> {
       currentDatasourceId.value,
       tab.database,
     );
-    ElMessage.success("已插入副本行");
+    message.success("已插入副本行");
     await refreshTableData();
   } catch (e) {
-    ElMessage.error(`插入副本失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`插入副本失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -2715,12 +2716,12 @@ const onCharsetChange = () => {
 
 const createDatabase = async () => {
   if (!newDbName.value.trim()) {
-    ElMessage.warning("请输入数据库名称");
+    message.warning("请输入数据库名称");
     return;
   }
   const name = newDbName.value.trim();
   if (!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(name)) {
-    ElMessage.warning("数据库名只能由字母、数字和下划线组成，且不能以数字开头");
+    message.warning("数据库名只能由字母、数字和下划线组成，且不能以数字开头");
     return;
   }
   creatingDb.value = true;
@@ -2731,11 +2732,11 @@ const createDatabase = async () => {
       charset: newDbCharset.value || undefined,
       collation: newDbCollation.value || undefined,
     });
-    ElMessage.success("数据库创建成功");
+    message.success("数据库创建成功");
     createDbVisible.value = false;
     await loadTree();
   } catch (e) {
-    ElMessage.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     creatingDb.value = false;
   }
@@ -2790,7 +2791,7 @@ const importColumnsKey = ref("");
 const openImportData = async (tableName?: string, database?: string) => {
   const db = database || activeDatabase.value;
   if (!db) {
-    ElMessage.warning("请先在左侧选择一个数据库");
+    message.warning("请先在左侧选择一个数据库");
     return;
   }
   importDatabase.value = db;
@@ -2834,7 +2835,7 @@ async function loadImportTargetColumns(): Promise<void> {
     importColumnsKey.value = key;
   } catch (e) {
     importColumns.value = [];
-    ElMessage.warning(`读取目标表结构失败：${String((e as Error)?.message ?? e)}`);
+    message.warning(`读取目标表结构失败：${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -2927,7 +2928,7 @@ function onImportFilePicked(event: Event) {
 async function runImportPreview(): Promise<void> {
   const file = importFile.value;
   if (!file) {
-    ElMessage.warning("请先选择文件");
+    message.warning("请先选择文件");
     return;
   }
   importPreviewing.value = true;
@@ -2942,7 +2943,7 @@ async function runImportPreview(): Promise<void> {
     importMapping.value = next;
   } catch (e) {
     importPreview.value = null;
-    ElMessage.error(`解析失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`解析失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     importPreviewing.value = false;
   }
@@ -3050,11 +3051,11 @@ const importPreviewColumns = computed(() => [
  */
 async function doImportData(): Promise<void> {
   if (!importTableName.value) {
-    ElMessage.warning("请选择目标表");
+    message.warning("请选择目标表");
     return;
   }
   if (!importFile.value) {
-    ElMessage.warning("请选择要导入的文件");
+    message.warning("请选择要导入的文件");
     return;
   }
   // SQL 脚本自带完整语句，**不需要也不应该**配字段映射；
@@ -3066,11 +3067,11 @@ async function doImportData(): Promise<void> {
   }
   if (!isSqlScript) {
     if (Object.keys(mapping).length === 0) {
-      ElMessage.warning("请至少配置一个字段映射");
+      message.warning("请至少配置一个字段映射");
       return;
     }
     if (importMappingConflict.value) {
-      ElMessage.warning(`字段映射有冲突：${importMappingConflict.value}`);
+      message.warning(`字段映射有冲突：${importMappingConflict.value}`);
       return;
     }
   }
@@ -3104,13 +3105,13 @@ async function doImportData(): Promise<void> {
     importResult.value = result;
     const done = result.inserted + result.replaced;
     if (result.skipped > 0) {
-      ElMessage.warning(`导入完成：成功 ${done} 行，跳过 ${result.skipped} 行（见下方错误报告）`);
+      message.warning(`导入完成：成功 ${done} 行，跳过 ${result.skipped} 行（见下方错误报告）`);
     } else {
-      ElMessage.success(`导入完成：成功 ${done} 行`);
+      message.success(`导入完成：成功 ${done} 行`);
     }
     openTableData(importTableName.value, importDatabase.value);
   } catch (e) {
-    ElMessage.error(`导入失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`导入失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     importing.value = false;
   }
@@ -3166,7 +3167,7 @@ const exporting = ref(false);
 /** 从工具栏/右键打开导出对话框 */
 function openExportDialog(tableName?: string, database?: string): void {
   if (!tableName) {
-    ElMessage.warning("请先选择要导出的表");
+    message.warning("请先选择要导出的表");
     return;
   }
   exportTable.value = tableName;
@@ -3220,17 +3221,17 @@ async function doExport(): Promise<void> {
       orderDir: exportOrderDir.value,
     });
     if (!result.content) {
-      ElMessage.warning("没有可导出的内容");
+      message.warning("没有可导出的内容");
       return;
     }
     downloadText(result.fileName || `${exportTable.value}.${exportFormat.value}`, result.content,
       EXPORT_MIME[exportFormat.value] ?? "text/plain");
-    ElMessage.success(
+    message.success(
       `已导出 ${result.rowCount} 行${result.truncated ? `（达到上限 ${exportLimit.value} 行，已截断）` : ""}`
     );
     exportVisible.value = false;
   } catch (e) {
-    ElMessage.error(`导出失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`导出失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     exporting.value = false;
   }
@@ -3281,7 +3282,7 @@ const saveRow = async () => {
       const vals = cols.map(c => sqlLiteral(rowForm.value[c]));
       const sql = `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${vals.join(', ')})`;
       await executeDbSql(sql, currentDatasourceId.value, database);
-      ElMessage.success('新增行成功');
+      message.success('新增行成功');
     } else {
       // 编辑行：构建 UPDATE SQL（无主键元数据时退化为全字段等值定位）
       const sets = Object.keys(rowForm.value).map(k => `${k} = ${sqlLiteral(rowForm.value[k])}`);
@@ -3289,15 +3290,15 @@ const saveRow = async () => {
       const sql = `UPDATE ${tableName} SET ${sets.join(', ')} WHERE ${wheres.join(' AND ')}`;
       const res = await executeDbSql(sql, currentDatasourceId.value, database);
       if (res?.affectedRows === 0) {
-        ElMessage.warning('未匹配到任何行，数据可能已被其他会话修改，请刷新后重试');
+        message.warning('未匹配到任何行，数据可能已被其他会话修改，请刷新后重试');
       } else {
-        ElMessage.success('更新行成功');
+        message.success('更新行成功');
       }
     }
     rowDialogVisible.value = false;
     await refreshTableData();
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     rowSaving.value = false;
   }
@@ -3314,26 +3315,26 @@ const deleteRow = async (row: Record<string, any>) => {
     const tableName = activeTabObj.value.tableName;
     const keys = Object.keys(row);
     if (keys.length === 0) {
-      ElMessage.warning('该行无可定位字段，已取消删除');
+      message.warning('该行无可定位字段，已取消删除');
       return;
     }
     const wheres = keys.map(k => sqlWhereEq(k, row[k])).join(' AND ');
     const sql = `DELETE FROM ${tableName} WHERE ${wheres}`;
     const res = await executeDbSql(sql, currentDatasourceId.value, activeTabObj.value.database || activeDatabase.value);
     if (res?.affectedRows === 0) {
-      ElMessage.warning('未匹配到任何行，数据可能已被其他会话修改，请刷新后重试');
+      message.warning('未匹配到任何行，数据可能已被其他会话修改，请刷新后重试');
     } else {
-      ElMessage.success('删除行成功');
+      message.success('删除行成功');
     }
     await refreshTableData();
   } catch (e) {
-    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   }
 };
 
 const exportTableCsv = () => {
   if (tableData.rows.length === 0) {
-    ElMessage.warning('没有数据可导出');
+    message.warning('没有数据可导出');
     return;
   }
   const headers = tableData.columns.join(',');
@@ -3347,7 +3348,7 @@ const exportTableCsv = () => {
   link.download = `${activeTabObj.value?.tableName || 'table'}-${Date.now()}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
-  ElMessage.success('导出成功');
+  message.success('导出成功');
 };
 const tableLoading = ref(false);
 /**
@@ -3414,7 +3415,7 @@ function saveColumnPref(key: string, pref: ColumnPref): void {
   try {
     localStorage.setItem(COLUMN_PREF_KEY, JSON.stringify(columnPrefs.value));
   } catch {
-    ElMessage.warning("列偏好无法持久化（浏览器存储不可用），本次会话内仍有效");
+    message.warning("列偏好无法持久化（浏览器存储不可用），本次会话内仍有效");
   }
 }
 
@@ -3429,7 +3430,7 @@ const columnViewDraft = ref<{ name: string; visible: boolean; pinned: boolean }[
 function openColumnViewDialog(): void {
   const tab = activeTabObj.value;
   if (!tab?.tableName) {
-    ElMessage.info("先打开一张表");
+    message.info("先打开一张表");
     return;
   }
   const hidden = hiddenColumns.value;
@@ -3454,7 +3455,7 @@ function applyColumnViewSettings(): void {
   if (!key) return;
   const visible = columnViewDraft.value.filter(c => c.visible);
   if (visible.length === 0) {
-    ElMessage.warning("至少保留一列，否则表格会变成空白且无法恢复");
+    message.warning("至少保留一列，否则表格会变成空白且无法恢复");
     return;
   }
   saveColumnPref(key, {
@@ -3650,10 +3651,10 @@ async function saveDesignRow(row: DesignRow): Promise<void> {
   if (!tab?.tableName || !isDesignDirty(row)) return;
   try {
     await modifyDbColumn(tab.tableName, row.originalName, { ...designPayload(row), database: tab.database });
-    ElMessage.success(`字段 ${row.name} 已保存`);
+    message.success(`字段 ${row.name} 已保存`);
     await loadTableDesign(tab);
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -3668,10 +3669,10 @@ async function saveDesignAll(): Promise<void> {
     for (const row of dirty) {
       await modifyDbColumn(tab.tableName, row.originalName, { ...designPayload(row), database: tab.database });
     }
-    ElMessage.success(`已保存 ${dirty.length} 个字段变更`);
+    message.success(`已保存 ${dirty.length} 个字段变更`);
     await loadTableDesign(tab);
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     designLoading.value = false;
   }
@@ -3763,7 +3764,7 @@ async function loadForeignKeyRefColumns(table: string): Promise<void> {
     fkRefColumns.value = (await fetchTableColumns(table, currentDatasourceId.value, db)) || [];
   } catch (e) {
     fkRefColumns.value = [];
-    ElMessage.warning(`读取引用表结构失败：${String((e as Error)?.message ?? e)}`);
+    message.warning(`读取引用表结构失败：${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -3799,7 +3800,7 @@ async function submitAddForeignKey(): Promise<void> {
   const tab = activeTabObj.value;
   if (!tab?.tableName || !tab.database) return;
   if (!fkForm.name || !fkForm.column || !fkForm.refTable || !fkForm.refColumn) {
-    ElMessage.warning("请填写完整的约束名、本表列、引用表与引用列");
+    message.warning("请填写完整的约束名、本表列、引用表与引用列");
     return;
   }
   fkSaving.value = true;
@@ -3814,11 +3815,11 @@ async function submitAddForeignKey(): Promise<void> {
       datasourceId: currentDatasourceId.value,
       database: tab.database,
     });
-    ElMessage.success("外键已创建");
+    message.success("外键已创建");
     fkDialogVisible.value = false;
     await loadForeignKeys();
   } catch (e) {
-    ElMessage.error(`新增外键失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`新增外键失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     fkSaving.value = false;
   }
@@ -3837,7 +3838,7 @@ async function removeForeignKey(row: DbForeignKeyInfo): Promise<void> {
   const tab = activeTabObj.value;
   if (!tab?.tableName || !tab.database) return;
   if (!row.fkName) {
-    ElMessage.warning("该外键没有名称，无法删除");
+    message.warning("该外键没有名称，无法删除");
     return;
   }
   try {
@@ -3847,10 +3848,10 @@ async function removeForeignKey(row: DbForeignKeyInfo): Promise<void> {
   }
   try {
     await dropDbForeignKey(tab.tableName, row.fkName, currentDatasourceId.value, tab.database);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await loadForeignKeys();
   } catch (e) {
-    ElMessage.error(`删除外键失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除外键失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -3869,7 +3870,7 @@ async function loadForeignKeys(): Promise<void> {
     foreignKeys.value = await fetchForeignKeys(tab.tableName, currentDatasourceId.value, tab.database);
   } catch (e) {
     foreignKeys.value = [];
-    ElMessage.error(`加载外键失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载外键失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     fkLoading.value = false;
   }
@@ -4294,7 +4295,7 @@ async function saveBlob(): Promise<void> {
     if (keys.includes(k)) primaryKey[k] = row[k];
   }
   if (Object.keys(primaryKey).length === 0) {
-    ElMessage.error("该表没有主键，无法定位要修改的行");
+    message.error("该表没有主键，无法定位要修改的行");
     return;
   }
   const value = blobIsBinary.value
@@ -4320,10 +4321,10 @@ async function saveBlob(): Promise<void> {
       const mime = sniffImageMime(bytes);
       blobImageSrc.value = mime ? `data:${mime};base64,${value}` : "";
     }
-    ElMessage.success("已保存");
+    message.success("已保存");
     void loadTableData(tab);
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     blobSaving.value = false;
   }
@@ -4363,7 +4364,7 @@ function isAutoIncrement(col: string) {
 
 function startEditCell(row: Record<string, any>, col: string, value: unknown) {
   if (pkColumns.value.has(col)) {
-    ElMessage.info("主键列不可编辑");
+    message.info("主键列不可编辑");
     return;
   }
   editingCell.value = { row, column: col, value: value === null || value === undefined ? "" : String(value) };
@@ -4382,7 +4383,7 @@ async function saveCell(row: Record<string, any>, col: string) {
   const pk: Record<string, unknown> = {};
   pkColumns.value.forEach(k => { pk[k] = row[k]; });
   if (Object.keys(pk).length === 0) {
-    ElMessage.warning("该表无主键，无法定位更新");
+    message.warning("该表无主键，无法定位更新");
     return;
   }
   const newValue = normalizeCellValue(col, cell.value);
@@ -4401,16 +4402,16 @@ async function saveCell(row: Record<string, any>, col: string) {
     // 而且下面 row[col] = newValue 会把界面改成库里根本没有的值，
     // 直到下一次刷新才对 —— 现场排查时极具误导性。
     if (typeof affected === "number" && affected === 0) {
-      ElMessage.warning(`未找到要更新的行（主键 ${JSON.stringify(pk)}），可能已被他人删除，请刷新后重试`);
+      message.warning(`未找到要更新的行（主键 ${JSON.stringify(pk)}），可能已被他人删除，请刷新后重试`);
       refreshTableData();
       return;
     }
-    ElMessage.success(`已更新 ${col}`);
+    message.success(`已更新 ${col}`);
     row[col] = newValue;
     loadPkInfo(tab);
     refreshTableData();
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
     refreshTableData();
   }
 }
@@ -4418,7 +4419,7 @@ async function saveCell(row: Record<string, any>, col: string) {
 /** 清空表：二次确认后 TRUNCATE/DELETE */
 async function confirmTruncate(tableName?: string, database?: string) {
   if (!tableName) {
-    ElMessage.warning("请先选择一个表");
+    message.warning("请先选择一个表");
     return;
   }
   const db = database || activeDatabase.value;
@@ -4433,13 +4434,13 @@ async function confirmTruncate(tableName?: string, database?: string) {
   }
   try {
     await truncateDbTable(tableName, currentDatasourceId.value, db);
-    ElMessage.success("表已清空");
+    message.success("表已清空");
     const tab = activeTabObj.value;
     if (tab?.type === "table" && tab.tableName === tableName) {
       refreshTableData();
     }
   } catch (e) {
-    ElMessage.error(`清空失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`清空失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -4456,7 +4457,7 @@ async function loadIndexes() {
   try {
     indexes.value = await fetchDbIndexes(tab.tableName, currentDatasourceId.value, tab.database);
   } catch (e) {
-    ElMessage.error(`加载索引失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载索引失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     indexLoading.value = false;
   }
@@ -4597,11 +4598,11 @@ async function saveIndex() {
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
   if (!indexForm.primary && !indexForm.indexName.trim()) {
-    ElMessage.warning("请输入索引名");
+    message.warning("请输入索引名");
     return;
   }
   if (indexForm.columns.length === 0) {
-    ElMessage.warning("请选择至少一列");
+    message.warning("请选择至少一列");
     return;
   }
   try {
@@ -4615,13 +4616,13 @@ async function saveIndex() {
       database: tab.database,
       datasourceId: currentDatasourceId.value,
     });
-    ElMessage.success(indexForm.primary ? "已设为主键" : "索引已创建");
+    message.success(indexForm.primary ? "已设为主键" : "索引已创建");
     indexDialogVisible.value = false;
     await loadIndexes();
     await loadTableDesign(tab);
     loadPkInfo(tab);
   } catch (e) {
-    ElMessage.error(`${indexForm.primary ? "设置主键" : "创建索引"}失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`${indexForm.primary ? "设置主键" : "创建索引"}失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -4648,7 +4649,7 @@ async function openTableOptionsDialog() {
     Object.assign(tableOptionOriginal, { ...optionsForm });
     optionsDialogVisible.value = true;
   } catch (e) {
-    ElMessage.error(`读取表属性失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`读取表属性失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -4671,7 +4672,7 @@ async function saveTableOptions() {
     payload.autoIncrement = optionsForm.autoIncrement;
   }
   if (Object.keys(payload).length === 0) {
-    ElMessage.info("没有改动");
+    message.info("没有改动");
     optionsDialogVisible.value = false;
     return;
   }
@@ -4682,12 +4683,12 @@ async function saveTableOptions() {
       database: tab.database,
       datasourceId: currentDatasourceId.value,
     } as never);
-    ElMessage.success("表属性已保存");
+    message.success("表属性已保存");
     optionsDialogVisible.value = false;
     // 表属性变了会连带影响行的存储格式，重新读一次设计视图让用户看到最终态
     await loadTableDesign(tab);
   } catch (e) {
-    ElMessage.error(`保存表属性失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存表属性失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     optionsSaving.value = false;
   }
@@ -4727,12 +4728,12 @@ async function savePrimaryKey() {
       currentDatasourceId.value,
       tab.database
     );
-    ElMessage.success(clearing ? "主键已清除" : "主键已保存");
+    message.success(clearing ? "主键已清除" : "主键已保存");
     pkDialogVisible.value = false;
     await loadTableDesign(tab);
     loadPkInfo(tab);
   } catch (e) {
-    ElMessage.error(`设置主键失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`设置主键失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     pkSaving.value = false;
   }
@@ -4748,10 +4749,10 @@ async function removeIndex(row: DbIndexInfo) {
   }
   try {
     await dropDbIndex(tab.tableName, row.indexName, currentDatasourceId.value, tab.database);
-    ElMessage.success("索引已删除");
+    message.success("索引已删除");
     loadIndexes();
   } catch (e) {
-    ElMessage.error(`删除索引失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除索引失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -4832,25 +4833,25 @@ async function saveColumn() {
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
   if (!columnForm.columnName.trim()) {
-    ElMessage.warning("请输入列名");
+    message.warning("请输入列名");
     return;
   }
   // 前端先做一遍与后端同口径的校验：目的是给出**就地**提示，
   // 而不是让用户发一次请求、再从内核报错里读懂自己填错了什么。
   if (columnNeedsSize.value && !columnForm.size) {
-    ElMessage.warning(`${columnForm.type} 必须指定长度`);
+    message.warning(`${columnForm.type} 必须指定长度`);
     return;
   }
   if (columnIsEnum.value && parseEnumValues().length === 0) {
-    ElMessage.warning(`${columnForm.type} 必须至少配置一个取值`);
+    message.warning(`${columnForm.type} 必须至少配置一个取值`);
     return;
   }
   if (columnForm.autoIncrement && columnForm.nullable) {
-    ElMessage.warning("自动递增的列不能可空");
+    message.warning("自动递增的列不能可空");
     return;
   }
   if (columnForm.unsigned && !columnAllowsUnsigned.value) {
-    ElMessage.warning(`${columnForm.type} 不支持无符号`);
+    message.warning(`${columnForm.type} 不支持无符号`);
     return;
   }
   const enumValues = columnIsEnum.value ? parseEnumValues() : undefined;
@@ -4875,17 +4876,17 @@ async function saveColumn() {
   try {
     if (columnDialogMode.value === "add") {
       await addDbColumn(tab.tableName, payload);
-      ElMessage.success("列已新增");
+      message.success("列已新增");
     } else {
       await modifyDbColumn(tab.tableName, columnForm.columnName.trim(), payload);
-      ElMessage.success("列已修改");
+      message.success("列已修改");
     }
     columnDialogVisible.value = false;
     await loadTableDesign(tab);
     loadPkInfo(tab);
     refreshTableData();
   } catch (e) {
-    ElMessage.error(`保存列失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存列失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -4899,11 +4900,11 @@ async function removeColumn(row: DbColumnInfo) {
   }
   try {
     await dropDbColumn(tab.tableName, row.name, currentDatasourceId.value, tab.database);
-    ElMessage.success("列已删除");
+    message.success("列已删除");
     await loadTableDesign(tab);
     refreshTableData();
   } catch (e) {
-    ElMessage.error(`删除列失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除列失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -5028,7 +5029,7 @@ function pushQueryHistory(sql: string, summary: string): void {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(queryHistory.value));
   } catch {
     // 配额满 / 隐私模式禁写：历史降级为「仅本次会话」，不影响查询功能
-    ElMessage.warning("查询历史无法持久化（浏览器存储不可用），本次会话内仍可回看");
+    message.warning("查询历史无法持久化（浏览器存储不可用），本次会话内仍可回看");
   }
 }
 /** 点历史条目把 SQL 回填编辑器 */
@@ -5046,7 +5047,7 @@ function clearQueryHistory(): void {
   } catch {
     // 同上：清不了就只清内存，提示一次
   }
-  ElMessage.success("查询历史已清空");
+  message.success("查询历史已清空");
 }
 
 // ---------- SQL 模板（第九批 7.2：保存/复用常用 SQL，落 localStorage，口径同历史） ----------
@@ -5086,7 +5087,7 @@ function persistSqlTemplates(): void {
   try {
     localStorage.setItem(TPL_KEY, JSON.stringify(sqlTemplates.value));
   } catch {
-    ElMessage.warning("SQL 模板无法持久化（浏览器存储不可用），本次会话内仍可使用");
+    message.warning("SQL 模板无法持久化（浏览器存储不可用），本次会话内仍可使用");
   }
 }
 /** 切换模板面板显示（与查询历史互斥） */
@@ -5099,7 +5100,7 @@ async function saveSqlTemplate(): Promise<void> {
   const tab = activeTabObj.value;
   const sql = (tab?.sql || "").trim();
   if (!sql) {
-    ElMessage.warning("当前编辑器没有可保存的 SQL");
+    message.warning("当前编辑器没有可保存的 SQL");
     return;
   }
   try {
@@ -5114,7 +5115,7 @@ async function saveSqlTemplate(): Promise<void> {
     const rest = sqlTemplates.value.filter(t => t.name !== name);
     sqlTemplates.value = [{ name, sql, at }, ...rest].slice(0, TPL_LIMIT);
     persistSqlTemplates();
-    ElMessage.success(`模板「${name}」已保存`);
+    message.success(`模板「${name}」已保存`);
   } catch {
     // 用户取消 prompt（reject 是正常路径，不提示）
   }
@@ -5125,7 +5126,7 @@ function loadSqlTemplate(t: SqlTemplateItem): void {
   if (!tab) return;
   tab.sql = t.sql;
   templatesVisible.value = false;
-  ElMessage.success(`已载入模板「${t.name}」`);
+  message.success(`已载入模板「${t.name}」`);
 }
 /** 删一个模板（localStorage 同步清） */
 function removeSqlTemplate(name: string): void {
@@ -5205,7 +5206,7 @@ function openAiDialog(): void {
 async function generateAiSql(): Promise<void> {
   const text = aiPrompt.value.trim();
   if (!text) {
-    ElMessage.warning("请先输入查询需求");
+    message.warning("请先输入查询需求");
     return;
   }
   aiBusy.value = true;
@@ -5216,7 +5217,7 @@ async function generateAiSql(): Promise<void> {
     const res = await requestDbText2Sql(text, context, currentDatasourceId.value);
     aiSql.value = res.sql;
   } catch (e) {
-    ElMessage.error((e as Error)?.message || "AI 生成失败");
+    message.error((e as Error)?.message || "AI 生成失败");
   } finally {
     aiBusy.value = false;
   }
@@ -5227,7 +5228,7 @@ function applyAiSql(): void {
   if (!tab || !aiSql.value) return;
   tab.sql = aiSql.value;
   aiDialogVisible.value = false;
-  ElMessage.success("已填入编辑器（未执行，Ctrl+Enter 执行）");
+  message.success("已填入编辑器（未执行，Ctrl+Enter 执行）");
 }
 
 // ---------- 查询参数 ----------
@@ -5249,7 +5250,7 @@ function queryTargetDatabase(): string | undefined {
 async function openParamDialog(): Promise<void> {
   const sql = activeTabObj.value?.sql ?? "";
   if (!sql.trim()) {
-    ElMessage.info("先写点 SQL 再填参数");
+    message.info("先写点 SQL 再填参数");
     return;
   }
   try {
@@ -5264,14 +5265,14 @@ async function openParamDialog(): Promise<void> {
     }
     paramDialogVisible.value = true;
   } catch (e) {
-    ElMessage.error(`扫描参数失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`扫描参数失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 /** 填完参数直接执行（关弹窗） */
 async function runWithParams(): Promise<void> {
   const missing = paramNames.value.filter(n => paramValues[n] === undefined || paramValues[n] === "");
   if (missing.length > 0) {
-    ElMessage.warning(`请填写参数：${missing.join("、")}`);
+    message.warning(`请填写参数：${missing.join("、")}`);
     return;
   }
   paramDialogVisible.value = false;
@@ -5332,7 +5333,7 @@ async function loadDatasources() {
         // 内嵌模式不做弹窗：宿主的左栏可能选中了 Redis/Nginx 这类非 JDBC 数据源，
         // 弹一次「已改用默认主数据源」会把用户从这个页签里推走，体验比留空更差。
         if (!embedded) {
-          ElMessage.warning(`数据源 #${requested} 未登记或不是 JDBC 类型，已改用默认主数据源`);
+          message.warning(`数据源 #${requested} 未登记或不是 JDBC 类型，已改用默认主数据源`);
         }
         currentDatasourceId.value = DEFAULT_DATASOURCE.id ?? 0;
       }
@@ -5431,7 +5432,7 @@ async function loadTree() {
       await loadTables(databases.value[0]);
     }
   } catch (e) {
-    ElMessage.error(`加载数据库树失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载数据库树失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -5440,7 +5441,7 @@ async function loadTables(db: string) {
     tablesByDb[db] = await fetchDbTables(currentDatasourceId.value, db);
     activeDatabase.value = db;
   } catch (e) {
-    ElMessage.error(`加载 ${db} 表列表失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载 ${db} 表列表失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -5514,7 +5515,7 @@ function selectTable(tableName: string, database: string) {
  */
 function openTableData(tableName: string, database = activeDatabase.value) {
   if (!tableName) {
-    ElMessage.warning("请先在左侧选择一个表");
+    message.warning("请先在左侧选择一个表");
     return;
   }
   const id = "table-" + database + "." + tableName;
@@ -5556,7 +5557,7 @@ function selectTab(id: string) {
  */
 function openTableDesign(tableName: string, database = activeDatabase.value) {
   if (!tableName) {
-    ElMessage.warning("请先在左侧选择一个表");
+    message.warning("请先在左侧选择一个表");
     return;
   }
   designSubTab.value = "columns";
@@ -5688,7 +5689,7 @@ const qualifiedEr = computed(() => {
  */
 function openErDiagram(database = activeDatabase.value) {
   if (!database) {
-    ElMessage.warning("请先在左侧选择一个库");
+    message.warning("请先在左侧选择一个库");
     return;
   }
   const id = "er-" + database;
@@ -5751,7 +5752,7 @@ const syncScript = computed(
  */
 function openStructureSync(database = activeDatabase.value) {
   if (!database) {
-    ElMessage.warning("请先在左侧选择一个库");
+    message.warning("请先在左侧选择一个库");
     return;
   }
   syncSourceDb.value = database;
@@ -5766,11 +5767,11 @@ function openStructureSync(database = activeDatabase.value) {
 /** 比较两个库 */
 async function runStructureDiff(): Promise<void> {
   if (!syncSourceDb.value || !syncTargetDb.value) {
-    ElMessage.warning("请同时选择源库与目标库");
+    message.warning("请同时选择源库与目标库");
     return;
   }
   if (syncSourceDb.value === syncTargetDb.value) {
-    ElMessage.warning("源库与目标库相同，没有可比较的差异");
+    message.warning("源库与目标库相同，没有可比较的差异");
     return;
   }
   syncLoading.value = true;
@@ -5822,12 +5823,12 @@ async function runStructureScript(): Promise<void> {
       r => !!r.message && r.columns === undefined && r.affectedRows === undefined,
     );
     if (bad.length > 0) {
-      ElMessage.error(`${bad.length}/${lines} 条语句失败：` + String(bad[0].message || "").slice(0, 120));
+      message.error(`${bad.length}/${lines} 条语句失败：` + String(bad[0].message || "").slice(0, 120));
     } else {
-      ElMessage.success(`已执行 ${lines} 条语句，正在重新比较`);
+      message.success(`已执行 ${lines} 条语句，正在重新比较`);
     }
   } catch (e) {
-    ElMessage.error(`执行失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`执行失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     syncLoading.value = false;
   }
@@ -5891,7 +5892,7 @@ async function openErColumns(name: string): Promise<void> {
     const cols = await fetchTableColumns(name, currentDatasourceId.value, activeTabObj.value?.database);
     erPickedColumns.value = cols || [];
   } catch (e) {
-    ElMessage.error(`读取列失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`读取列失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -5941,7 +5942,7 @@ function exportErDot(): void {
     lines.join("\n"),
     "text/plain",
   );
-  ElMessage.success(`已导出 ${erRelations.value.length} 条关系`);
+  message.success(`已导出 ${erRelations.value.length} 条关系`);
 }
 
 /**
@@ -6021,7 +6022,7 @@ function restoreTablePref(tab: { tableName?: string; database?: string }): void 
     tabPrefRestoring = false;
   }
   if (pref && (pref.filterWhere || pref.filters.length > 0)) {
-    ElMessage.info(`已恢复该表的筛选条件（${pref.filters.length} 个条件）`);
+    message.info(`已恢复该表的筛选条件（${pref.filters.length} 个条件）`);
   }
 }
 
@@ -6069,7 +6070,7 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
     loadPkInfo(tab);
   } catch (e) {
     if (seq === tableDataReqSeq.value) {
-      ElMessage.error(`加载表数据失败: ${String((e as Error)?.message ?? e)}`);
+      message.error(`加载表数据失败: ${String((e as Error)?.message ?? e)}`);
     }
   } finally {
     // 只有最后一次请求才复位 loading，否则新请求的转圈会被旧请求提前关掉
@@ -6152,7 +6153,7 @@ async function loadTableDesign(tab: Tab) {
       };
     });
   } catch (e) {
-    ElMessage.error(`加载表结构失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载表结构失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     designLoading.value = false;
   }
@@ -6178,7 +6179,7 @@ async function executeQuery() {
     // 失败也要入历史：调试时最想回看的恰恰是「刚才那条报错的」
     pushQueryHistory(tab.sql, "失败");
   }
-  ElMessage.info(`耗时 ${Date.now() - started} ms`);
+  message.info(`耗时 ${Date.now() - started} ms`);
 }
 
 /**
@@ -6224,9 +6225,9 @@ async function ensureTx(): Promise<string> {
     // 先回滚并如实告知，不静默丢弃用户的改动。
     try {
       await rollbackDbTx(txId.value);
-      ElMessage.warning(`目标库已切换，原事务已回滚（改动在 ${txDatabase.value || "默认库"}）`);
+      message.warning(`目标库已切换，原事务已回滚（改动在 ${txDatabase.value || "默认库"}）`);
     } catch {
-      ElMessage.warning("目标库已切换，但原事务回滚失败，请刷新页面确认");
+      message.warning("目标库已切换，但原事务回滚失败，请刷新页面确认");
     }
     txId.value = "";
   }
@@ -6235,9 +6236,9 @@ async function ensureTx(): Promise<string> {
     const started = await beginDbTx(currentDatasourceId.value, db);
     txId.value = started.txId;
     txDatabase.value = started.database || db || "";
-    ElMessage.success(`已开启事务（库：${txDatabase.value || "默认"}），执行后请提交或回滚`);
+    message.success(`已开启事务（库：${txDatabase.value || "默认"}），执行后请提交或回滚`);
   } catch (e) {
-    ElMessage.error(`开启事务失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`开启事务失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     txBusy.value = false;
   }
@@ -6250,11 +6251,11 @@ async function commitTx(): Promise<void> {
   txBusy.value = true;
   try {
     await commitDbTx(txId.value);
-    ElMessage.success("事务已提交");
+    message.success("事务已提交");
     txId.value = "";
     txDatabase.value = "";
   } catch (e) {
-    ElMessage.error(`提交失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`提交失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     txBusy.value = false;
   }
@@ -6280,11 +6281,11 @@ async function rollbackTx(): Promise<void> {
   txBusy.value = true;
   try {
     await rollbackDbTx(txId.value);
-    ElMessage.success("事务已回滚");
+    message.success("事务已回滚");
     txId.value = "";
     txDatabase.value = "";
   } catch (e) {
-    ElMessage.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     txBusy.value = false;
   }
@@ -6336,7 +6337,7 @@ async function adoptOrphanTx(): Promise<void> {
     txDatabase.value = mine.database || "";
     txWanted.value = true;
     const rest = list.filter(s => s.datasourceId === dsId).length - 1;
-    ElMessage.warning(rest > 0
+    message.warning(rest > 0
       ? `发现上次未结束的事务，已接管（另有 ${rest} 个待处理）`
       : "发现上次未结束的事务，已接管；请提交或回滚");
   } catch {
@@ -6369,7 +6370,7 @@ async function executeScript(): Promise<void> {
     queryResult.message = "执行失败: " + String((e as Error)?.message ?? e);
     pushQueryHistory(tab.sql, "失败");
   }
-  ElMessage.info(`耗时 ${Date.now() - started} ms`);
+  message.info(`耗时 ${Date.now() - started} ms`);
 }
 
 /** 带参数执行脚本（参数弹窗的「执行」） */
@@ -6390,7 +6391,7 @@ async function executeScriptWithParams(): Promise<void> {
     queryResult.message = "执行失败: " + String((e as Error)?.message ?? e);
     pushQueryHistory(tab.sql, "失败");
   }
-  ElMessage.info(`耗时 ${Date.now() - started} ms`);
+  message.info(`耗时 ${Date.now() - started} ms`);
 }
 
 /**
@@ -6439,7 +6440,7 @@ async function executeExplain(): Promise<void> {
   const tab = activeTabObj.value;
   const sql = (tab?.sql ?? "").trim();
   if (!sql) {
-    ElMessage.info("先写点 SQL 再看执行计划");
+    message.info("先写点 SQL 再看执行计划");
     return;
   }
   const withoutComments = sql
@@ -6448,7 +6449,7 @@ async function executeExplain(): Promise<void> {
     .replace(/#[^\n]*/g, " ")
     .trim();
   if (withoutComments.includes(";")) {
-    ElMessage.warning("执行计划只支持单条语句：脚本含多条时，请先只选中要分析的那条");
+    message.warning("执行计划只支持单条语句：脚本含多条时，请先只选中要分析的那条");
     return;
   }
   const started = Date.now();
@@ -6458,9 +6459,9 @@ async function executeExplain(): Promise<void> {
     Object.assign(queryResult, result);
     resultSets.value = [{ ...result }];
     activeResultSet.value = 0;
-    ElMessage.success(`执行计划已生成（${Date.now() - started} ms）`);
+    message.success(`执行计划已生成（${Date.now() - started} ms）`);
   } catch (e) {
-    ElMessage.error(`生成执行计划失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`生成执行计划失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -6468,7 +6469,7 @@ async function executeExplain(): Promise<void> {
 function saveSqlFile(): void {
   const sql = activeTabObj.value?.sql ?? "";
   if (!sql.trim()) {
-    ElMessage.info("编辑器是空的，没什么可保存");
+    message.info("编辑器是空的，没什么可保存");
     return;
   }
   const db = queryTargetDatabase() || "sql";
@@ -6481,7 +6482,7 @@ function saveSqlFile(): void {
   a.download = `${db}_${stamp}.sql`;
   a.click();
   URL.revokeObjectURL(url);
-  ElMessage.success("已保存为 .sql 文件");
+  message.success("已保存为 .sql 文件");
 }
 
 /** 触发隐藏的 file input */
@@ -6504,9 +6505,9 @@ async function onSqlFilePicked(e: Event): Promise<void> {
   if (!tab) return;
   try {
     tab.sql = await file.text();
-    ElMessage.success(`已打开 ${file.name}`);
+    message.success(`已打开 ${file.name}`);
   } catch (e) {
-    ElMessage.error(`读取文件失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`读取文件失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -6644,7 +6645,7 @@ const contextMenuStyle = computed<Record<string, string>>(() => {
 function openCreateTable(database?: string) {
   newTableDatabase.value = database || activeDatabase.value;
   if (!newTableDatabase.value) {
-    ElMessage.warning("请先在左侧选择一个数据库");
+    message.warning("请先在左侧选择一个数据库");
     return;
   }
   createTableVisible.value = true;
@@ -6659,7 +6660,7 @@ async function deleteTable(tableName: string, database?: string) {
   }
   try {
     await dropDbTable(tableName, currentDatasourceId.value, db);
-    ElMessage.success(`表 ${tableName} 已删除`);
+    message.success(`表 ${tableName} 已删除`);
     if (db) {
       await loadTables(db);
     } else {
@@ -6670,7 +6671,7 @@ async function deleteTable(tableName: string, database?: string) {
       activeTab.value = tabs.value[0]?.id || "";
     }
   } catch (e) {
-    ElMessage.error(`删除表失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除表失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -6686,7 +6687,7 @@ async function deleteDatabase(database: string) {
   }
   try {
     await dropDbDatabase(database, currentDatasourceId.value);
-    ElMessage.success(`数据库 ${database} 已删除`);
+    message.success(`数据库 ${database} 已删除`);
     delete tablesByDb[database];
     tabs.value = tabs.value.filter(t => (t.database || "") !== database);
     if (!tabs.value.some(t => t.id === activeTab.value)) {
@@ -6698,7 +6699,7 @@ async function deleteDatabase(database: string) {
     }
     await loadTree();
   } catch (e) {
-    ElMessage.error(`删除数据库失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除数据库失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -6799,7 +6800,7 @@ async function resetViewSettings(): Promise<void> {
   } else if (tab?.type === "er") {
     void loadErDiagram();
   }
-  ElMessage.success("已恢复默认设置");
+  message.success("已恢复默认设置");
 }
 
 /** SQL 编辑器补全字段缓存（库.表 → 字段名） */
@@ -6855,17 +6856,17 @@ async function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
-      ElMessage.success("已复制");
+      message.success("已复制");
       return;
     } catch {
       // 权限被拒或非安全上下文：走下面的兜底
     }
   }
   if (legacyCopy(text)) {
-    ElMessage.success("已复制");
+    message.success("已复制");
     return;
   }
-  ElMessage.warning("复制失败，请手动选中文本复制");
+  message.warning("复制失败，请手动选中文本复制");
 }
 
 /**
@@ -6944,14 +6945,14 @@ async function renameTable(tableName: string, database?: string): Promise<void> 
   if (!name || name === tableName) return;
   try {
     await renameDbTable(tableName, name, currentDatasourceId.value, db);
-    ElMessage.success(`表已重命名为 ${name}`);
+    message.success(`表已重命名为 ${name}`);
     tabs.value = tabs.value.filter(t => !(t.tableName === tableName && (t.database || "") === (db || "")));
     if (!tabs.value.some(t => t.id === activeTab.value)) {
       activeTab.value = tabs.value[0]?.id || "";
     }
     await loadTables(db);
   } catch (e) {
-    ElMessage.error(`重命名失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`重命名失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -6991,10 +6992,10 @@ async function duplicateTable(tableName: string, database?: string): Promise<voi
     }
   }
   if (lastError) {
-    ElMessage.error(`复制表失败: ${String((lastError as Error)?.message ?? lastError)}`);
+    message.error(`复制表失败: ${String((lastError as Error)?.message ?? lastError)}`);
     return;
   }
-  ElMessage.success(`已复制为 ${name}`);
+  message.success(`已复制为 ${name}`);
   await loadTables(db);
 }
 
@@ -7009,7 +7010,7 @@ async function showTableDdl(tableName: string, database?: string): Promise<void>
     // 服务端统一处理 SHOW CREATE TABLE 与跨方言兜底
     ddlText.value = await fetchTableDdl(tableName, currentDatasourceId.value, db);
   } catch (e) {
-    ElMessage.error(`获取建表语句失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`获取建表语句失败: ${String((e as Error)?.message ?? e)}`);
     return;
   }
   ddlVisible.value = true;
@@ -7049,7 +7050,7 @@ function exportQueryCsv(format: "csv" | "tsv" | "json" | "xml" = "csv"): void {
   const cols = queryResult.columns ?? [];
   const rows = queryResult.rows ?? [];
   if (!cols.length) {
-    ElMessage.warning("没有可导出的查询结果");
+    message.warning("没有可导出的查询结果");
     return;
   }
   const cell = (v: unknown): string => {
@@ -7082,7 +7083,7 @@ function exportQueryCsv(format: "csv" | "tsv" | "json" | "xml" = "csv"): void {
       .join("\n");
   }
   downloadText(`query-result-${Date.now()}.${format}`, content, EXPORT_MIME[format] ?? "text/plain");
-  ElMessage.success(`已导出 ${rows.length} 行`);
+  message.success(`已导出 ${rows.length} 行`);
   // 复位成空：否则连续导出同一格式第二次是同值，change 不再触发
   queryExportFormat.value = "";
 }

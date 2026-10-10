@@ -169,11 +169,8 @@
  *   3. 历史记录 GET /v2/generate/task/list?type=image
  */
 import { onBeforeUnmount, ref } from 'vue';
-import { http } from '@repo/core';
-import {
-  ElButton, ElInput, ElIcon, ElMessage, ElSelect, ElOption,
-  ElRadioGroup, ElRadioButton, ElTag,
-} from 'element-plus';
+import {http, message} from '@repo/core';
+import { ElButton, ElInput, ElIcon, ElSelect, ElOption, ElRadioGroup, ElRadioButton, ElTag } from 'element-plus';
 import { MagicStick, Loading, Download, PictureFilled, WarningFilled, Lightning } from '@element-plus/icons-vue';
 
 interface Props {
@@ -256,7 +253,7 @@ async function loadHistory() {
       if (t.status === 'PROCESSING') startPolling(t.taskId);
     });
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     historyLoading.value = false;
   }
@@ -275,7 +272,7 @@ async function handleGenerate() {
     await Promise.all(jobs);
     await loadHistory();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     generating.value = false;
   }

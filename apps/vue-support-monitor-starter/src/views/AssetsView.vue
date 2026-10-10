@@ -7,7 +7,7 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover } from "element-plus";
+import { ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
@@ -16,7 +16,7 @@ import HostConfigDialog from "./HostConfigDialog.vue";
 import HostProfileDialog from "./HostProfileDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
-import { useSocketService } from "@repo/core";
+import {useSocketService, message} from "@repo/core";
 import ReMaskDialog from "../components/ReMaskDialog.vue";
 import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
@@ -203,9 +203,9 @@ function portText(p: PortItem): string {
 async function scanHostPorts(h: Host): Promise<void> {
   try {
     const r: any = await scanPorts(h.id);
-    ElMessage.success(r?.msg || `端口扫描已开始，完成后自动更新 ${h.serverHostAddress}`);
+    message.success(r?.msg || `端口扫描已开始，完成后自动更新 ${h.serverHostAddress}`);
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 /**
@@ -515,10 +515,10 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
   try {
     if (bind) await bindIdentity(hostId, identityId);
     else await unbindIdentity(hostId, identityId);
-    ElMessage.success(bind ? "已绑定该身份" : "已解绑");
+    message.success(bind ? "已绑定该身份" : "已解绑");
     const list = await listBoundIdentities(hostId);
     hostBoundIdentities.value = list ?? [];
-  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
+  } catch (e) { message.error(String((e as Error)?.message ?? e)); }
 }
 
 // ---- 更多菜单：在离线 / 指标 / 延迟检测（后台 HostOnlineScheduler 三项检测）----
@@ -661,11 +661,11 @@ async function removeHost(h: Host): Promise<void> {
   await ElMessageBox.confirm(`删除主机「${h.serverHostName}」？`, "删除确认", { type: "warning" });
   try {
     const ok = await delHost(h.id);
-    if (ok === false) { ElMessage.warning("删除未生效（可能仍有绑定）"); return; }
-    ElMessage.success("已删除");
+    if (ok === false) { message.warning("删除未生效（可能仍有绑定）"); return; }
+    message.success("已删除");
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 
@@ -761,10 +761,10 @@ function onTableContextMenu(event: MouseEvent): void {
 async function toggleHost(h: Host): Promise<void> {
   try {
     await switchHost(h.id, h.serverHostRemoteEnabled !== 1);
-    ElMessage.success("已切换");
+    message.success("已切换");
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 async function batchDelete(): Promise<void> {
@@ -774,7 +774,7 @@ async function batchDelete(): Promise<void> {
   for (const h of selection.value) {
     try { await delHost(h.id); ok++; } catch { /* 单条失败继续 */ }
   }
-  ElMessage.success(`删除 ${ok}/${selection.value.length}`);
+  message.success(`删除 ${ok}/${selection.value.length}`);
   selection.value = [];
   await fetchAll();
 }
@@ -849,9 +849,9 @@ onMounted(() => {
         target.serverHostLastPortScanTime = d.scanTime ?? null;
       }
       if (d.success) {
-        ElMessage.success(`端口扫描完成：发现 ${d.openCount ?? 0} 个开放端口（耗时 ${d.elapsedSeconds ?? 0}s）`);
+        message.success(`端口扫描完成：发现 ${d.openCount ?? 0} 个开放端口（耗时 ${d.elapsedSeconds ?? 0}s）`);
       } else {
-        ElMessage.error(`端口扫描失败：${d.error ?? "未知错误"}`);
+        message.error(`端口扫描失败：${d.error ?? "未知错误"}`);
       }
     } catch { /* 静默 */ }
   });

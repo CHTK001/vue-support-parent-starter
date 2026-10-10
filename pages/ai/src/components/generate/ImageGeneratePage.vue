@@ -813,6 +813,7 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, h, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { apiService } from '../../services/ApiService'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
@@ -853,7 +854,7 @@ import 'viewerjs/dist/viewer.css'
 const vViewer = viewerDirective({ name: 'viewer' })
 import GenerateComposer from './GenerateComposer.vue'
 import { getModelAvatarPath } from '../../utils/modelUtils'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 
 /**
  * 内联 SVG 图标（Heroicons 24 outline 风格）。
@@ -1661,7 +1662,7 @@ const switchMedia = (value: 'image' | 'video') => {
 const pickReference = () => {
   // 上一张还在缩放：再开选择框会让两次结果互相覆盖
   if (shrinkingRef.value) {
-    ElMessage.info('上一张图还在处理中')
+    message.info('上一张图还在处理中')
     return
   }
   fileInput.value?.click()
@@ -1761,7 +1762,7 @@ function clearCanvasDraft() {
   count.value = 1
   duration.value = durations.value[0] ?? undefined
   style.value = ''
-  ElMessage.success('已清空画布草稿，并把参数恢复默认')
+  message.success('已清空画布草稿，并把参数恢复默认')
 }
 
 const clearReference = () => {
@@ -1789,7 +1790,7 @@ const onFilePicked = async (event: Event) => {
     }
     // 缩放信息只记在 referenceMeta 里供渲染与提交使用，不在界面上显示文案
   } catch {
-    ElMessage.error('读取图片失败，请换一张试试')
+    message.error('读取图片失败，请换一张试试')
   } finally {
     shrinkingRef.value = false
   }
@@ -1863,9 +1864,9 @@ async function enrollGeneratedFace(url: string, prompt: string) {
     const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const name = promptName(prompt, 20, '生成人脸')
     await apiService.enrollFace(id, blob, { label: name, name, note: '来自图像生成' }, 'generated.png')
-    ElMessage.success(`已添加到人脸库：${name}`)
+    message.success(`已添加到人脸库：${name}`)
   } catch (e: any) {
-    ElMessage.error(`添加到人脸库失败：${(e as Error)?.message || '未知错误'}`)
+    message.error(`添加到人脸库失败：${(e as Error)?.message || '未知错误'}`)
   } finally {
     moreBusy.value = false
   }
@@ -1885,9 +1886,9 @@ async function indexGeneratedImage(url: string, prompt: string) {
       data: form,
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    ElMessage.success('已加入图像底库')
+    message.success('已加入图像底库')
   } catch (e: any) {
-    ElMessage.error(`加入图像底库失败：${(e as Error)?.message || '未知错误'}`)
+    message.error(`加入图像底库失败：${(e as Error)?.message || '未知错误'}`)
   } finally {
     moreBusy.value = false
   }
@@ -2153,7 +2154,7 @@ const deleteSelected = async () => {
   }
   const ids = [...selectedIds.value]
   if (!ids.length) {
-    ElMessage.info('请先勾选要删除的记录')
+    message.info('请先勾选要删除的记录')
     return
   }
   try {
@@ -2170,9 +2171,9 @@ const deleteSelected = async () => {
     const removed = await apiService.batchDeleteTasks(ids)
     await loadHistory()
     exitSelectMode()
-    ElMessage.success(removed > 0 ? `已删除 ${removed} 条` : '没有可删除的记录')
+    message.success(removed > 0 ? `已删除 ${removed} 条` : '没有可删除的记录')
   } catch (error) {
-    ElMessage.error(`删除失败：${(error as Error)?.message || '未知错误'}`)
+    message.error(`删除失败：${(error as Error)?.message || '未知错误'}`)
   } finally {
     busyClearing.value = false
   }
@@ -2191,7 +2192,7 @@ const confirmClearAll = async () => {
   }
   const total = tasks.value.length
   if (!total) {
-    ElMessage.info('当前没有记录')
+    message.info('当前没有记录')
     return
   }
   try {
@@ -2213,9 +2214,9 @@ const confirmClearAll = async () => {
   try {
     const removed = await apiService.deleteAllTasks()
     await loadHistory()
-    ElMessage.success(removed > 0 ? `已清空 ${removed} 条` : '没有可清空的记录')
+    message.success(removed > 0 ? `已清空 ${removed} 条` : '没有可清空的记录')
   } catch (error) {
-    ElMessage.error(`清空失败：${(error as Error)?.message || '未知错误'}`)
+    message.error(`清空失败：${(error as Error)?.message || '未知错误'}`)
   } finally {
     busyClearing.value = false
   }
@@ -2249,7 +2250,7 @@ const removeTask = async (task: GenerateTask) => {
   try {
     const ok = await apiService.deleteGenerateTask(task.taskId)
     if (!ok) {
-      ElMessage.error('删除失败：记录不存在或不属于当前用户')
+      message.error('删除失败：记录不存在或不属于当前用户')
       return
     }
     const index = tasks.value.findIndex((item) => item.taskId === task.taskId)
@@ -2263,9 +2264,9 @@ const removeTask = async (task: GenerateTask) => {
       clearTimeout(timer)
       pollTimers.delete(task.taskId)
     }
-    ElMessage.success('已删除')
+    message.success('已删除')
   } catch (error) {
-    ElMessage.error(`删除失败：${(error as Error)?.message || '未知错误'}`)
+    message.error(`删除失败：${(error as Error)?.message || '未知错误'}`)
   } finally {
     deletingId.value = ''
   }
@@ -2280,7 +2281,7 @@ const clearFailedTasks = async () => {
     (item) => item.status === 'FAILED' || item.status === 'CANCELED',
   ).length
   if (!count) {
-    ElMessage.info('当前没有失败记录')
+    message.info('当前没有失败记录')
     return
   }
   try {
@@ -2298,9 +2299,9 @@ const clearFailedTasks = async () => {
     if (removed > 0) {
       await loadHistory()
     }
-    ElMessage.success(removed > 0 ? `已清理 ${removed} 条` : '没有可清理的记录')
+    message.success(removed > 0 ? `已清理 ${removed} 条` : '没有可清理的记录')
   } catch (error) {
-    ElMessage.error(`清理失败：${(error as Error)?.message || '未知错误'}`)
+    message.error(`清理失败：${(error as Error)?.message || '未知错误'}`)
   } finally {
     busyClearing.value = false
   }
@@ -2315,7 +2316,7 @@ const clearFailedTasks = async () => {
 const copyPrompt = async (text: string) => {
   const value = (text || '').trim()
   if (!value) {
-    ElMessage.warning('该任务没有提示词')
+    message.warning('该任务没有提示词')
     return
   }
   try {
@@ -2334,9 +2335,9 @@ const copyPrompt = async (text: string) => {
       document.execCommand('copy')
       ta.remove()
     }
-    ElMessage.success('提示词已复制')
+    message.success('提示词已复制')
   } catch {
-    ElMessage.error('复制失败，请手动选择文本复制')
+    message.error('复制失败，请手动选择文本复制')
   }
 }
 
@@ -2576,17 +2577,17 @@ const onOptimize = async () => {
     const result = await apiService.optimizeInput(source, mediaType.value)
     const cleaned = cleanOptimized(result?.optimized ?? '')
     if (!cleaned) {
-      ElMessage.warning('优化结果为空，已保留原文')
+      message.warning('优化结果为空，已保留原文')
       return
     }
     if (cleaned === source) {
-      ElMessage.info('模型认为当前描述已经够具体了')
+      message.info('模型认为当前描述已经够具体了')
       return
     }
     prompt.value = cleaned
-    ElMessage.success(`已优化（${result?.model || '默认模型'}，${result?.elapsedMillis ?? 0}ms）`)
+    message.success(`已优化（${result?.model || '默认模型'}，${result?.elapsedMillis ?? 0}ms）`)
   } catch (error) {
-    ElMessage.error(`优化失败：${(error as Error)?.message || '未知错误'}`)
+    message.error(`优化失败：${(error as Error)?.message || '未知错误'}`)
   } finally {
     optimizing.value = false
   }
@@ -2599,7 +2600,7 @@ const onComposerSubmit = async (text: string) => {
     return
   }
   if (!text.trim()) {
-    ElMessage.warning('请先描述你想生成的画面')
+    message.warning('请先描述你想生成的画面')
     return
   }
   if (!model.value) {
@@ -2608,7 +2609,7 @@ const onComposerSubmit = async (text: string) => {
     await loadModels()
   }
   if (!model.value) {
-    ElMessage.warning('请先选择生成模型')
+    message.warning('请先选择生成模型')
     return
   }
   submitting.value = true
@@ -2654,7 +2655,7 @@ const onComposerSubmit = async (text: string) => {
   } catch (error) {
     // 之前这里只有 finally，异常被静默吞掉，表现为「点了发送没反应」
     const message = error instanceof Error ? error.message : String(error)
-    ElMessage.error(`生成请求失败：${message}`)
+    message.error(`生成请求失败：${message}`)
   } finally {
     submitting.value = false
   }
@@ -2689,7 +2690,7 @@ watch(
       return
     }
     notifiedFailure.add(task.taskId)
-    ElMessage.error(task.errorMessage || '生成失败，请查看任务记录了解详情')
+    message.error(task.errorMessage || '生成失败，请查看任务记录了解详情')
   },
   { deep: true }
 )

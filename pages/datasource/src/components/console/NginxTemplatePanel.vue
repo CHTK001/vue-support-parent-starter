@@ -123,8 +123,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReForm from "@repo/ui/re-form";
@@ -231,7 +232,7 @@ async function load() {
     templates.value = t.status === "fulfilled" ? t.value || [] : [];
     files.value = f.status === "fulfilled" ? f.value || [] : [];
   } catch (e) {
-    ElMessage.error(`读取模板失败：${(e as Error).message}`);
+    message.error(`读取模板失败：${(e as Error).message}`);
   }
 }
 
@@ -252,13 +253,13 @@ async function doSave() {
     });
     wizardVisible.value = false;
     if (r.saved) {
-      ElMessage.success(r.message);
+      message.success(r.message);
       emit("saved", r);
     } else {
-      ElMessage.error(r.message);
+      message.error(r.message);
     }
   } catch (e) {
-    ElMessage.error(`写入失败：${(e as Error).message}`);
+    message.error(`写入失败：${(e as Error).message}`);
   } finally {
     saving.value = false;
   }

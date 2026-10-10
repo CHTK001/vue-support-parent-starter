@@ -7,10 +7,10 @@
  * @since 4.0.0
  */
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
-import { useSocketService } from "@repo/core";
+import {useSocketService, message} from "@repo/core";
 import { useUserStore } from "@repo/pinia";
 import { getMyAchievements, getStats, getTierList } from "../api/achievementApi";
 import ReAchievementStatCard from "../components/ReAchievementStatCard.vue";
@@ -63,7 +63,7 @@ async function loadData() {
     if (activeType.value) await loadTiersForType(activeType.value);
     pageLoaded.value = true;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "Failed to load achievements");
+    message.error((e as Error)?.message ?? "Failed to load achievements");
   } finally {
     loading.value = false;
   }
@@ -76,7 +76,7 @@ async function loadTiersForType(type: string) {
     const res = await getTierList(type);
     allTiers.value = (res?.data ?? []) as AchievementTier[];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "Failed to load tiers");
+    message.error((e as Error)?.message ?? "Failed to load tiers");
   } finally {
     loading.value = false;
   }
@@ -97,7 +97,7 @@ function bindSocket() {
     if (payload) {
       const list = payload.list as UnlockedAchievement[] | undefined;
       if (list && list.length > 0) {
-        ElMessage.success(`Achievement unlocked: ${list[0]?.name ?? "Unknown"}`);
+        message.success(`Achievement unlocked: ${list[0]?.name ?? "Unknown"}`);
         loadData();
       }
     }

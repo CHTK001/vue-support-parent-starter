@@ -170,9 +170,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { Refresh, Right, Download } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -263,7 +264,7 @@ async function load() {
     items.value = res.items;
     total.value = res.total;
   } catch {
-    ElMessage.error("加载调用链路失败");
+    message.error("加载调用链路失败");
   } finally {
     loading.value = false;
   }
@@ -317,7 +318,7 @@ async function openDetail(row: Record<string, unknown>) {
   try {
     detailSpans.value = (await getTraceDetail(traceId)) || [];
   } catch {
-    ElMessage.error("加载链路详情失败");
+    message.error("加载链路详情失败");
   } finally {
     detailLoading.value = false;
   }

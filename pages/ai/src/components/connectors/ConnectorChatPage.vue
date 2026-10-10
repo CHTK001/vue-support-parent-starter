@@ -98,12 +98,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { Tools } from '@element-plus/icons-vue'
 import {
   ArrowLeft24Regular, Person24Regular, People24Regular,
 } from '@vicons/fluent'
-import { isAdmin } from '@repo/core'
+import {isAdmin, message} from '@repo/core'
 import { api } from '@/framework/context'
 import ConnectorIcon from './ConnectorIcon.vue'
 import McpSelectorPopover from '../chat/chat-input/McpSelectorPopover.vue'
@@ -207,15 +207,15 @@ async function handleSend() {
       mcpServerIds: selectedMcpServerIds.value,
     })
     if (data?.sent === false) {
-      ElMessage.warning(data.errorMessage || data.message || '消息未能送达，对方可能暂时不可达')
+      message.warning(data.errorMessage || data.message || '消息未能送达，对方可能暂时不可达')
     } else {
-      ElMessage.success('消息已发送')
+      message.success('消息已发送')
     }
     inputMessage.value = ''
     await loadMessages()
     await loadConversations()
   } catch (e: any) {
-    ElMessage.error(e?.message || '发送失败')
+    message.error(e?.message || '发送失败')
   } finally {
     sending.value = false
   }
@@ -232,15 +232,15 @@ async function handleAiSend() {
       mcpServerIds: selectedMcpServerIds.value,
     })
     if (data?.sent === false) {
-      ElMessage.warning(data.errorMessage || data.message || 'AI 回复未能送达，对方可能暂时不可达')
+      message.warning(data.errorMessage || data.message || 'AI 回复未能送达，对方可能暂时不可达')
     } else {
-      ElMessage.success('AI 回复已发送')
+      message.success('AI 回复已发送')
     }
     inputMessage.value = ''
     await loadMessages()
     await loadConversations()
   } catch (e: any) {
-    ElMessage.error(e?.message || 'AI 发送失败')
+    message.error(e?.message || 'AI 发送失败')
   } finally {
     aiSending.value = false
   }
@@ -260,14 +260,14 @@ async function handleClearConversation(conv: any) {
     await api.delete(`/connectors/${connectorId.value}/conversations`, {
       params: { chatId: conv.chatId },
     })
-    ElMessage.success('会话已清除')
+    message.success('会话已清除')
     if (activeChatId.value === conv.chatId) {
       activeChatId.value = ''
       messages.value = []
     }
     await loadConversations()
   } catch (e: any) {
-    ElMessage.error(e?.message || '清除失败')
+    message.error(e?.message || '清除失败')
   }
 }
 

@@ -125,8 +125,9 @@
  *     ]"
  *   />
  */
+import { message } from "@repo/core";
 import { ref, computed, onMounted, nextTick, watch, shallowRef } from "vue";
-import { ElMessage } from "element-plus";
+
 import { createOpenAiSseClient, createSpringAiSseClient } from "@repo/utils/sse";
 import type { SseClient, OpenAiChunk, SpringAiChunk } from "@repo/utils/types";
 
@@ -450,7 +451,7 @@ const stop = () => {
 const rebuildChat = () => {
   // 模型切换时清空上下文（避免跨模型上下文污染）
   if (internalMessages.value.length > 0) {
-    ElMessage.info("已切换模型，旧对话已清空");
+    message.info("已切换模型，旧对话已清空");
     internalMessages.value = [];
     syncMessages();
   }

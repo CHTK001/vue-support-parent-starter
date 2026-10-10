@@ -79,9 +79,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElMessage } from 'element-plus'
+import { ElIcon } from 'element-plus';
 import { Folder20Regular, Desktop16Regular, FolderAdd24Regular, Checkmark16Filled, PeopleCommunity16Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -132,7 +133,7 @@ async function handleOpenFolder() {
     }
   } catch (error) {
     console.error('选择文件夹失败:', error)
-    ElMessage.error(t('chat.input.selectFolderFailed'))
+    message.error(t('chat.input.selectFolderFailed'))
   } finally {
     emit('update:visible', false)
   }

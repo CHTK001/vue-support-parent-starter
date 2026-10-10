@@ -8,9 +8,10 @@
  * 白名单是「放行豁免」不是准入名单：命中的 IP 跳过限流，
  * 未列入任何名单的 IP 仍默认放行。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReDialog from "@repo/ui/re-dialog";
@@ -286,11 +287,11 @@ function validIpRule(value: string): boolean {
 async function handleIpSubmit(): Promise<void> {
   const address = ipForm.value.sysIpIp?.trim() ?? "";
   if (!address) {
-    ElMessage.warning(t("policy.bw.errIpBlank"));
+    message.warning(t("policy.bw.errIpBlank"));
     return;
   }
   if (!validIpRule(address)) {
-    ElMessage.warning(t("policy.bw.errIpInvalid"));
+    message.warning(t("policy.bw.errIpInvalid"));
     return;
   }
 
@@ -299,11 +300,11 @@ async function handleIpSubmit(): Promise<void> {
     const payload: SysIpBlackwhite = { ...ipForm.value, sysIpIp: address };
     const res = ipIsEdit.value ? await updateIp(payload) : await saveIp(payload);
     if (ipIsEdit.value && res.data === false) throw new Error(t("policy.bw.errIpNotUpdated"));
-    ElMessage.success(ipIsEdit.value ? t("policy.bw.ipSaved") : t("policy.bw.ipCreated"));
+    message.success(ipIsEdit.value ? t("policy.bw.ipSaved") : t("policy.bw.ipCreated"));
     ipDialogVisible.value = false;
     await ipTableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     ipSaving.value = false;
   }
@@ -326,10 +327,10 @@ async function handleIpDelete(row: Record<string, unknown>): Promise<void> {
   try {
     const res = await deleteIp(ip.sysIpId);
     if (res.data === false) throw new Error(t("policy.bw.errIpNotDeleted"));
-    ElMessage.success(t("policy.bw.ipDeleted"));
+    message.success(t("policy.bw.ipDeleted"));
     await ipTableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
   } finally {
     ipDeleteLoadingId.value = null;
   }
@@ -353,19 +354,19 @@ function handleAccEdit(row: Record<string, unknown>): void {
 async function handleAccSubmit(): Promise<void> {
   const account = accForm.value.account?.trim() ?? "";
   if (!account) {
-    ElMessage.warning(t("policy.bw.phAccount"));
+    message.warning(t("policy.bw.phAccount"));
     return;
   }
   if (account.length > 100) {
-    ElMessage.warning(t("policy.bw.errAccTooLong"));
+    message.warning(t("policy.bw.errAccTooLong"));
     return;
   }
   if (accForm.value.type !== 1 && accForm.value.type !== 2) {
-    ElMessage.warning(t("policy.bw.errPickType"));
+    message.warning(t("policy.bw.errPickType"));
     return;
   }
   if (accForm.value.status !== 0 && accForm.value.status !== 1) {
-    ElMessage.warning(t("policy.bw.errPickStatus"));
+    message.warning(t("policy.bw.errPickStatus"));
     return;
   }
 
@@ -374,11 +375,11 @@ async function handleAccSubmit(): Promise<void> {
     const payload: AccountBlackwhite = { ...accForm.value, account };
     const res = accIsEdit.value ? await updateAccountBw(payload) : await saveAccountBw(payload);
     if (accIsEdit.value && res.data === false) throw new Error(t("policy.bw.errAccNotUpdated"));
-    ElMessage.success(accIsEdit.value ? t("policy.bw.accSaved") : t("policy.bw.accCreated"));
+    message.success(accIsEdit.value ? t("policy.bw.accSaved") : t("policy.bw.accCreated"));
     accDialogVisible.value = false;
     await accTableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     accSaving.value = false;
   }
@@ -401,10 +402,10 @@ async function handleAccDelete(row: Record<string, unknown>): Promise<void> {
   try {
     const res = await deleteAccountBw(account.sysAccountBwId);
     if (res.data === false) throw new Error(t("policy.bw.errAccNotDeleted"));
-    ElMessage.success(t("policy.bw.accDeleted"));
+    message.success(t("policy.bw.accDeleted"));
     await accTableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
   } finally {
     accDeleteLoadingId.value = null;
   }

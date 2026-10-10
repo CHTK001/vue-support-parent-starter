@@ -496,8 +496,9 @@
  * - 详情抽屉：富文本正文为渲染主体；附件可上传并插入正文（图片内联、其它为链接）
  * - 元数据与正文走 knowledge-point/save；附件走 upload/file 子端点
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import {
   ChatDotRound,
   CircleCheck,
@@ -803,7 +804,7 @@ const reload = async () => {
       return true;
     });
   } catch (e) {
-    ElMessage.error("加载知识卡片失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("加载知识卡片失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     loading.value = false;
   }
@@ -841,20 +842,20 @@ const openEdit = (row: KnowledgeCard) => {
 
 const saveCard = async () => {
   if (!cardForm.knowledgePointName) {
-    ElMessage.warning("请填写卡片名称");
+    message.warning("请填写卡片名称");
     return;
   }
   cardSaving.value = true;
   try {
     await eduaiApi.saveKnowledgePoint(cardForm);
-    ElMessage.success("已保存");
+    message.success("已保存");
     cardDialogVisible.value = false;
     await reload();
     if (detailCard.value && detailCard.value.knowledgePointId === cardForm.knowledgePointId) {
       detailCard.value = { ...detailCard.value, ...cardForm } as KnowledgeCard;
     }
   } catch (e) {
-    ElMessage.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     cardSaving.value = false;
   }
@@ -863,13 +864,13 @@ const saveCard = async () => {
 const removeCard = async (row: KnowledgeCard) => {
   try {
     await eduaiApi.deleteKnowledgePoint(row.knowledgePointId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     if (detailCard.value?.knowledgePointId === row.knowledgePointId) {
       detailVisible.value = false;
     }
     await reload();
   } catch (e) {
-    ElMessage.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -909,7 +910,7 @@ const loadDetailContent = async (id: number) => {
     apply(cards.value);
     apply(allCards.value);
   } catch (e) {
-    ElMessage.error("加载卡片内容失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("加载卡片内容失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -931,7 +932,7 @@ const saveContent = async () => {
       knowledgePointContentType: "TEXT",
       knowledgePointContent: detailContent.value,
     });
-    ElMessage.success("正文已保存");
+    message.success("正文已保存");
     const has = Boolean(detailContent.value && detailContent.value.replace(/<[^>]*>/g, "").trim());
     detailCard.value = { ...detailCard.value, hasContent: has };
     const id = detailCard.value.knowledgePointId;
@@ -940,7 +941,7 @@ const saveContent = async () => {
       if (idx >= 0) list[idx] = { ...list[idx], hasContent: has };
     }
   } catch (e) {
-    ElMessage.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     contentSaving.value = false;
   }
@@ -956,7 +957,7 @@ const insertIntoBody = (item: KnowledgeFileItem) => {
     ? `<img src="${url}" alt="${name}" />`
     : `<a href="${url}" target="_blank" rel="noopener">${name}</a>`;
   richRef.value?.insertHtml(html);
-  ElMessage.success(isImage ? "图片已插入正文" : "链接已插入正文");
+  message.success(isImage ? "图片已插入正文" : "链接已插入正文");
 };
 
 // 文件
@@ -966,7 +967,7 @@ const onUploadFile = async (e: Event) => {
   input.value = "";
   if (!file || !detailCard.value) return;
   if (file.size > 20 * 1024 * 1024) {
-    ElMessage.warning("文件不能超过 20MB");
+    message.warning("文件不能超过 20MB");
     return;
   }
   uploading.value = true;
@@ -979,10 +980,10 @@ const onUploadFile = async (e: Event) => {
       knowledgeFileType: r.fileType,
       knowledgeFileSize: r.fileSize,
     });
-    ElMessage.success("附件已上传，可在列表中「插入正文」");
+    message.success("附件已上传，可在列表中「插入正文」");
     await loadDetailContent(detailCard.value.knowledgePointId);
   } catch (err) {
-    ElMessage.error("上传失败: " + (err instanceof Error ? err.message : String(err)));
+    message.error("上传失败: " + (err instanceof Error ? err.message : String(err)));
   } finally {
     uploading.value = false;
   }
@@ -991,10 +992,10 @@ const onUploadFile = async (e: Event) => {
 const removeFile = async (item: KnowledgeFileItem) => {
   try {
     await eduaiApi.deleteKnowledgeFile(item.knowledgeFileId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     if (detailCard.value) await loadDetailContent(detailCard.value.knowledgePointId);
   } catch (e) {
-    ElMessage.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 

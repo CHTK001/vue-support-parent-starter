@@ -89,8 +89,9 @@
  * <p>题目由服务端自动生成（读音题、笔画题交替），题干带笔顺/部首/结构/释义/字画，
  * 答完直接当「学习卡」。这里只负责展示与判分，不自己造题。</p>
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { eduaiApi } from "../api/eduaiApi";
 import type { HanziQuestion } from "../api/types";
 
@@ -216,11 +217,11 @@ async function load() {
   try {
     questions.value = (await eduaiApi.hanziPractice({ count: 8, gradeLevel: props.level })) ?? [];
     if (!questions.value.length) {
-      ElMessage.warning("汉字库暂时没有可出的题");
+      message.warning("汉字库暂时没有可出的题");
     }
   } catch (e) {
     questions.value = [];
-    ElMessage.error(`出题失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`出题失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

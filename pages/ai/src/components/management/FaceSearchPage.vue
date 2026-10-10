@@ -235,8 +235,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import {
   Aim, Check, Crop, FolderOpened, Loading, Picture, Refresh, Search, Setting, Star, User, View, Warning,
 } from '@element-plus/icons-vue'
@@ -588,10 +589,10 @@ async function runDetect(file: File) {
     const res = await apiService.detectFace(file, file.name)
     hits.value = res.faces ?? []
     if (!hits.value.length) {
-      ElMessage.warning('未检测到人脸，请换一张正面清晰的照片')
+      message.warning('未检测到人脸，请换一张正面清晰的照片')
     }
   } catch (e: any) {
-    ElMessage.error(`人脸检测失败：${e?.message ?? e}`)
+    message.error(`人脸检测失败：${e?.message ?? e}`)
   } finally {
     detecting.value = false
   }
@@ -671,14 +672,14 @@ async function runIdentify() {
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
     identifyDone.value = true
     if (!matches.value.length) {
-      ElMessage.info(
+      message.info(
         registry.records.value.length
           ? '没有命中任何已登记人脸（向量库可能已随服务重启清空）'
           : '人脸库为空，先点「人脸登记入库」录入档案',
       )
     }
   } catch (e: any) {
-    ElMessage.error(`识别失败：${e?.message ?? e}`)
+    message.error(`识别失败：${e?.message ?? e}`)
   } finally {
     identifying.value = false
   }
@@ -688,7 +689,7 @@ async function runIdentify() {
 async function recognizeCrop() {
   const hit = mainHit.value
   if (!hit?.faceImage) {
-    ElMessage.warning('没有拿到裁剪图，请重新检测')
+    message.warning('没有拿到裁剪图，请重新检测')
     return
   }
   identifying.value = true
@@ -701,9 +702,9 @@ async function recognizeCrop() {
     void loadServerMeta()
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
     identifyDone.value = true
-    ElMessage.success(matches.value.length ? `裁剪后命中 ${matches.value.length} 张` : '裁剪后未命中')
+    message.success(matches.value.length ? `裁剪后命中 ${matches.value.length} 张` : '裁剪后未命中')
   } catch (e: any) {
-    ElMessage.error(`裁剪识别失败：${e?.message ?? e}`)
+    message.error(`裁剪识别失败：${e?.message ?? e}`)
   } finally {
     identifying.value = false
   }

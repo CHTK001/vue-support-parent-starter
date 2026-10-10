@@ -71,8 +71,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { Upload, Document, View, Promotion, Warning } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
 import type { ScanRecord, ScanQuestion } from '../api/types';
@@ -90,17 +91,17 @@ const handleFileChange = (f: File[]) => {
 
 const doUpload = async () => {
   if (!file.value || !userId.value || !scanType.value) {
-    ElMessage.warning('请选择图片、填写用户 ID 和扫描类型');
+    message.warning('请选择图片、填写用户 ID 和扫描类型');
     return;
   }
   uploading.value = true;
   try {
     const res = await eduaiApi.uploadScan(file.value, userId.value, scanType.value);
     scanRecord.value = { scanId: res.scanId, userId: userId.value, scanType: scanType.value, status: 1 };
-    ElMessage.success(`上传成功，scanId: ${res.scanId}，正在 OCR...`);
+    message.success(`上传成功，scanId: ${res.scanId}，正在 OCR...`);
     await pollAnalyze(res.scanId);
   } catch (e) {
-    ElMessage.error('上传失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('上传失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {
     uploading.value = false;
   }
@@ -113,12 +114,12 @@ const pollAnalyze = async (scanId: number) => {
       const r = await eduaiApi.analyzeScan(scanId);
       scanRecord.value = r as ScanRecord;
       if (r.status === 2) {
-        ElMessage.success('分析完成');
+        message.success('分析完成');
         questions.value = parseQuestions(r);
         return;
       }
       if (r.status === 3) {
-        ElMessage.error('分析失败');
+        message.error('分析失败');
         return;
       }
     } catch {
@@ -126,7 +127,7 @@ const pollAnalyze = async (scanId: number) => {
     }
     await new Promise(r => setTimeout(r, 2000));
   }
-  ElMessage.error('分析超时');
+  message.error('分析超时');
 };
 
 const parseQuestions = (record: ScanRecord): ScanQuestion[] => {
@@ -153,9 +154,9 @@ const doGenerateQuestions = async () => {
       gradeLevel: '',
       grade: '',
     });
-    ElMessage.success(`成功生成 ${res.count} 道题目`);
+    message.success(`成功生成 ${res.count} 道题目`);
   } catch (e) {
-    ElMessage.error('生成题目失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('生成题目失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -163,9 +164,9 @@ const doGenerateWrongbook = async () => {
   if (!scanRecord.value) return;
   try {
     const res = await eduaiApi.generateWrongbook(scanRecord.value.scanId);
-    ElMessage.success(`成功生成 ${res.count} 道错题`);
+    message.success(`成功生成 ${res.count} 道错题`);
   } catch (e) {
-    ElMessage.error('生成错题失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('生成错题失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 </script>

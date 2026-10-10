@@ -5,8 +5,9 @@
  * 提供窗口壳能力：最小化浮标、全屏切换、关闭二次确认。
  * 使用方式与 default 主题对齐（v-model 控制显隐）。
  */
+import { message } from "@repo/core";
 import { ref, toRefs, computed, onMounted, onUnmounted, type Component } from "vue";
-import { ElDrawer, ElButton, ElMessageBox, ElMessage } from "element-plus";
+import { ElDrawer, ElButton, ElMessageBox } from "element-plus";
 import { Aim } from "@element-plus/icons-vue";
 import { useKoiWindowShell } from "./useKoiWindowShell";
 import KoiShellHeaderActions from "./KoiShellHeaderActions.vue";
@@ -110,10 +111,10 @@ function koiClose() {
       .then(() => {
         visible.value = false;
         clearMinimized();
-        ElMessage.warning("已关闭");
+        message.warning("已关闭");
       })
       .catch(() => {
-        ElMessage.warning("已取消");
+        message.warning("已取消");
       });
   } else {
     visible.value = false;

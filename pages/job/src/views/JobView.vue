@@ -735,7 +735,10 @@ const FLOW_FIELDS = computed<ReFormField[]>(() => [
     span: 24,
     component: ReCron,
     attrs: {
-      previewCount: 3,
+      /* 5 条：UI 稿的「下次触发」左栏是 4~5 行。3 条只能看出"半小时一次"，
+         5 条能看出跨整点/跨天的形态（如每天 09:00 连着排 5 天），
+         而弹层内容 ~600px 仍远小于可用高度，多两行不换滚动条。 */
+      previewCount: 5,
       placeholder: "留空表示只登记台账、不自动调度",
       onChange: onCronChange,
     },
@@ -1478,7 +1481,7 @@ watch(formVisible, (visible) => {
               <span>cron 表达式</span>
               <ReCron
                 v-model="form.scheduleTime"
-                :preview-count="3"
+                :preview-count="5"
                 placeholder="6 段表达式，例如 0 0/30 * * * ?"
                 @change="onCronChange"
               />

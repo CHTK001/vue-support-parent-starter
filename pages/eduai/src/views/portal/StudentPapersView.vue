@@ -63,8 +63,9 @@
  * 不接受客户端传班级 ID，所以看不到别班的卷，也不会越权。
  * 只展示，不做提交（答题/阅卷是另一条链路）。
  */
+import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { eduaiApi } from "../../api/eduaiApi";
 import type { Paper, PaperAssignVO } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -81,7 +82,7 @@ async function load() {
   try {
     papers.value = (await eduaiApi.myClassPapers()) || [];
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载试卷失败");
+    message.error(e instanceof Error ? e.message : "加载试卷失败");
   } finally {
     loading.value = false;
   }
@@ -103,7 +104,7 @@ async function openPaper(row: PaperAssignVO) {
   try {
     detail.value = await eduaiApi.myClassPaperDetail(row.paperId);
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载试卷详情失败");
+    message.error(e instanceof Error ? e.message : "加载试卷详情失败");
   } finally {
     detailLoading.value = false;
   }

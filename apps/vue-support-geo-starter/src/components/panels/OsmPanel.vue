@@ -8,9 +8,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { useSelectionStore } from "@/store/selection";
 import { osmQuery, createOsmDownloadTask } from "@/api/osm";
 
@@ -42,18 +43,18 @@ const bboxText = computed(() => {
 /** 用当前选区 bbox 填充查询语句 */
 function fillBounds() {
   if (!selection.bounds) {
-    ElMessage.warning("请先在地图上绘制选区");
+    message.warning("请先在地图上绘制选区");
     return;
   }
   const b = selection.bounds;
   const bbox = `${b.south},${b.west},${b.north},${b.east}`;
   form.value.query = form.value.query.replace(/\(\{\{bbox\}\}\)/, `(${bbox})`);
-  ElMessage.success("已用当前选区填充 bbox");
+  message.success("已用当前选区填充 bbox");
 }
 
 /** 执行 OSM 查询估算 */
 async function onEstimate() {
-  if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
+  if (!selection.bounds) return message.warning("请先在地图上绘制选区");
   estimating.value = true;
   estimate.value = null;
   try {
@@ -64,7 +65,7 @@ async function onEstimate() {
       form.value.format,
     );
   } catch (e: any) {
-    ElMessage.error(`查询失败：${e?.message ?? e}`);
+    message.error(`查询失败：${e?.message ?? e}`);
   } finally {
     estimating.value = false;
   }
@@ -72,7 +73,7 @@ async function onEstimate() {
 
 /** 创建 OSM 下载任务并跳转任务中心 */
 async function onSubmit() {
-  if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
+  if (!selection.bounds) return message.warning("请先在地图上绘制选区");
   submitting.value = true;
   try {
     const b = selection.bounds;
@@ -82,10 +83,10 @@ async function onSubmit() {
       form.value.format,
       form.value.savePath || "",
     );
-    ElMessage.success(`OSM 下载任务已创建：${res.taskId}（${res.elementCount} 元素）`);
+    message.success(`OSM 下载任务已创建：${res.taskId}（${res.elementCount} 元素）`);
     router.push("/tasks");
   } catch (e: any) {
-    ElMessage.error(`创建任务失败：${e?.message ?? e}`);
+    message.error(`创建任务失败：${e?.message ?? e}`);
   } finally {
     submitting.value = false;
   }

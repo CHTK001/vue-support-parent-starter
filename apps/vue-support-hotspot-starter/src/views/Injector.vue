@@ -99,8 +99,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Connection, Close, Histogram, DocumentAdd, Plus, Refresh, Share, Warning } from "@element-plus/icons-vue";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -150,7 +151,7 @@ async function loadStats() {
   try {
     stats.value = await getStats();
   } catch {
-    ElMessage.error("加载统计失败");
+    message.error("加载统计失败");
   } finally {
     statsLoading.value = false;
   }
@@ -192,12 +193,12 @@ async function doInjectTransmission() {
       protocol: protocol.value || undefined,
       error: injectedError.value || undefined,
     });
-    ElMessage.success("已注入 1 条传输调用");
+    message.success("已注入 1 条传输调用");
     recordHistory(true, `注入传输 ${protocol.value}${injectedError.value ? "（错误）" : ""} ${source.value || "auto"} → ${target.value || "auto"}`);
     refreshAfterInject();
   } catch {
     recordHistory(false, "注入传输调用失败");
-    ElMessage.error("注入传输调用失败");
+    message.error("注入传输调用失败");
   } finally {
     injectingTransmission.value = false;
   }
@@ -207,12 +208,12 @@ async function doInjectBatch() {
   injectingBatch.value = true;
   try {
     await injectBatch(batchCount.value);
-    ElMessage.success(`已批量注入 ${batchCount.value} 条传输调用`);
+    message.success(`已批量注入 ${batchCount.value} 条传输调用`);
     recordHistory(true, `批量注入 ${batchCount.value} 条传输调用`);
     refreshAfterInject();
   } catch {
     recordHistory(false, `批量注入 ${batchCount.value} 条失败`);
-    ElMessage.error("批量注入失败");
+    message.error("批量注入失败");
   } finally {
     injectingBatch.value = false;
   }
@@ -234,12 +235,12 @@ async function doInjectLeak() {
   injectingLeak.value = true;
   try {
     await injectLeak(leakType.value || undefined, leakName.value.trim() || undefined);
-    ElMessage.success(`已制造 1 条 ${leakType.value} 资源泄漏`);
+    message.success(`已制造 1 条 ${leakType.value} 资源泄漏`);
     recordHistory(true, `制造泄漏 ${leakType.value}${leakName.value ? ` · ${leakName.value}` : ""}`);
     refreshAfterInject();
   } catch {
     recordHistory(false, "制造资源泄漏失败");
-    ElMessage.error("制造资源泄漏失败");
+    message.error("制造资源泄漏失败");
   } finally {
     injectingLeak.value = false;
   }
@@ -261,12 +262,12 @@ async function doInjectLog() {
   injectingLog.value = true;
   try {
     await injectLog(logLevel.value || undefined, logMessage.value.trim() || undefined);
-    ElMessage.success(`已写入 1 条 ${logLevel.value} 日志`);
+    message.success(`已写入 1 条 ${logLevel.value} 日志`);
     recordHistory(true, `写入日志 ${logLevel.value}${logMessage.value ? ` · ${logMessage.value.slice(0, 20)}` : ""}`);
     refreshAfterInject();
   } catch {
     recordHistory(false, "写入日志失败");
-    ElMessage.error("写入日志失败");
+    message.error("写入日志失败");
   } finally {
     injectingLog.value = false;
   }

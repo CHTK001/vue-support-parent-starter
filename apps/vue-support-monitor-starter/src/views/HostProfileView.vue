@@ -10,8 +10,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   closeNetProcess,
   deleteHostEnvVar,
@@ -441,7 +442,7 @@ async function runAction(key: string, task: Promise<string>): Promise<boolean> {
   busyRow.value = key;
   try {
     const msg = await task;
-    ElMessage.success(String(msg || "操作已完成"));
+    message.success(String(msg || "操作已完成"));
     await loadSection();
     return true;
   } catch {
@@ -515,9 +516,9 @@ function openEnvDialog(): void {
 /** 提交环境变量 */
 async function submitEnv(): Promise<void> {
   const name = envForm.value.name.trim();
-  if (!name) { ElMessage.warning("请填写变量名"); return; }
+  if (!name) { message.warning("请填写变量名"); return; }
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-    ElMessage.warning("变量名只能包含字母、数字、下划线，且不能以数字开头"); return;
+    message.warning("变量名只能包含字母、数字、下划线，且不能以数字开头"); return;
   }
   const hid = actionHostId();
   if (hid == null) return;

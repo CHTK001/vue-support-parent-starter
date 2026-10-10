@@ -5,9 +5,10 @@
  * 顶部支持切换「全部模板」或指定提供商，查询该提供商的模板列表，
  * 提供模板增删改查、按模板发送、手动同步远端模板能力。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Message, Search, Refresh, Plus } from "@element-plus/icons-vue";
 import {
   deleteTemplate,
@@ -81,7 +82,7 @@ async function loadList() {
     list.value = res?.data?.data ?? [];
     total.value = res?.data?.total ?? 0;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "模板列表加载失败");
+    message.error((e as Error)?.message ?? "模板列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -93,7 +94,7 @@ async function loadProviders() {
     const res = await listForProvider();
     providers.value = res?.data ?? [];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "提供商列表加载失败");
+    message.error((e as Error)?.message ?? "提供商列表加载失败");
   }
 }
 
@@ -142,7 +143,7 @@ async function handleDelete(row: MessageTemplate) {
     type: "warning",
   });
   await deleteTemplate(row.sysMessageTemplateId!);
-  ElMessage.success("删除成功");
+  message.success("删除成功");
   loadList();
 }
 
@@ -152,20 +153,20 @@ async function handleStatus(row: MessageTemplate) {
     ...row,
     sysMessageTemplateStatus: row.sysMessageTemplateStatus === 1 ? 0 : 1,
   });
-  ElMessage.success(row.sysMessageTemplateStatus === 1 ? "已启用" : "已停用");
+  message.success(row.sysMessageTemplateStatus === 1 ? "已启用" : "已停用");
   loadList();
 }
 
 /** 手动同步远端模板 */
 async function handleSync() {
   if (!query.sysMessageProviderId) {
-    ElMessage.warning("请先选择提供商");
+    message.warning("请先选择提供商");
     return;
   }
   syncLoading.value = true;
   try {
     const res = await syncTemplate(query.sysMessageProviderId);
-    ElMessage.success(`同步完成，共 ${res?.data ?? 0} 个模板`);
+    message.success(`同步完成，共 ${res?.data ?? 0} 个模板`);
     loadList();
   } finally {
     syncLoading.value = false;

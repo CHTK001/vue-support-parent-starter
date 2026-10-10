@@ -146,9 +146,10 @@
  * <p>按需求本页**不提供第三方登录**（微信 / QQ / 支付宝均不实现），
  * 因此设计稿里的「其他登录方式」整块被移除。</p>
  */
+import { message } from "@repo/core";
 import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import mascotBook from "../../assets/mascot-book.png";
 
 const router = useRouter();
@@ -279,7 +280,7 @@ async function submit() {
     const roles = ((res as { roles?: string[] } | undefined)?.roles ?? []).map((r) => String(r).toUpperCase());
     const ext = (res as { user?: { ext?: { accountType?: string } } } | undefined)?.user?.ext;
     const toStudent = isStudent || roles.includes("STUDENT") || ext?.accountType === "student";
-    ElMessage.success("登录成功");
+    message.success("登录成功");
     await router.push(toStudent ? "/edu/student" : "/edu/teacher");
   } catch (e) {
     passwordError.value = errorText(e);
@@ -290,12 +291,12 @@ async function submit() {
 
 /** 忘记密码：学生端不自助找回，统一由校方重置 */
 function onForget() {
-  ElMessage.info("请联系班主任或校方管理员重置密码");
+  message.info("请联系班主任或校方管理员重置密码");
 }
 
 /** 注册：学生账号由学校统一开通 */
 function onRegister() {
-  ElMessage.info("学生账号由学校统一开通，无需自行注册");
+  message.info("学生账号由学校统一开通，无需自行注册");
 }
 
 // 进入页面就把上次记住的账号填回来（只回填账号，绝不回填口令）

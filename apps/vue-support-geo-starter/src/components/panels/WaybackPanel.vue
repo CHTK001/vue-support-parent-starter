@@ -10,9 +10,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { useSelectionStore } from "@/store/selection";
 import { getWaybackVersions, createWaybackTask, probeWaybackMaxZoom } from "@/api/wayback";
 import { FORMAT_OPTIONS } from "@/constants/modes";
@@ -45,7 +46,7 @@ async function loadVersions() {
     versions.value = res.versions ?? [];
     if (versions.value.length && !form.value.versionId) form.value.versionId = versions.value[0].id;
   } catch (e: any) {
-    ElMessage.warning(`Wayback 版本加载失败：${e?.message ?? e}`);
+    message.warning(`Wayback 版本加载失败：${e?.message ?? e}`);
   } finally {
     loadingVersions.value = false;
   }
@@ -53,17 +54,17 @@ async function loadVersions() {
 
 /** 探测选区中心点的最大可用缩放级别 */
 async function onProbe() {
-  if (!form.value.versionId) return ElMessage.warning("请选择历史版本");
-  if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
+  if (!form.value.versionId) return message.warning("请选择历史版本");
+  if (!selection.bounds) return message.warning("请先在地图上绘制选区");
   probing.value = true;
   try {
     const lat = (selection.bounds.north + selection.bounds.south) / 2;
     const lng = (selection.bounds.east + selection.bounds.west) / 2;
     const r = await probeWaybackMaxZoom({ versionId: form.value.versionId, lat, lng });
     probedMaxZoom.value = r.maxZoom;
-    ElMessage.success(`探测到最大可用级别：Z${r.maxZoom}`);
+    message.success(`探测到最大可用级别：Z${r.maxZoom}`);
   } catch (e: any) {
-    ElMessage.error(`探测失败：${e?.message ?? e}`);
+    message.error(`探测失败：${e?.message ?? e}`);
   } finally {
     probing.value = false;
   }
@@ -71,8 +72,8 @@ async function onProbe() {
 
 /** 创建 Wayback 下载任务并跳转任务中心 */
 async function onSubmit() {
-  if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
-  if (!form.value.versionId) return ElMessage.warning("请选择历史版本");
+  if (!selection.bounds) return message.warning("请先在地图上绘制选区");
+  if (!form.value.versionId) return message.warning("请选择历史版本");
   submitting.value = true;
   try {
     const res = await createWaybackTask({
@@ -84,10 +85,10 @@ async function onSubmit() {
       concurrency: form.value.concurrency,
       savePath: form.value.savePath || null,
     });
-    ElMessage.success(`Wayback 任务已创建：${res.taskId}`);
+    message.success(`Wayback 任务已创建：${res.taskId}`);
     router.push("/tasks");
   } catch (e: any) {
-    ElMessage.error(`创建任务失败：${e?.message ?? e}`);
+    message.error(`创建任务失败：${e?.message ?? e}`);
   } finally {
     submitting.value = false;
   }

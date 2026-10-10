@@ -118,8 +118,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onUnmounted, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
 import ReTable from '@repo/ui/re-table';
@@ -286,13 +287,13 @@ const save = async () => {
       score: Number(q.editScore ?? 0),
     }));
   if (!adjustments.length) {
-    ElMessage.warning('没有需要保存的老师分改动');
+    message.warning('没有需要保存的老师分改动');
     return;
   }
   saving.value = true;
   try {
     await eduaiApi.confirmMarking({ taskId: props.taskId, adjustments });
-    ElMessage.success('老师分已保存（AI 分保留）');
+    message.success('老师分已保存（AI 分保留）');
     dirty.value = false;
     await load(props.taskId);
     emit('saved');

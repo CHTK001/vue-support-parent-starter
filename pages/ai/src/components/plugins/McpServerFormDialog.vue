@@ -86,8 +86,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { reactive, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import LDialog from '@/components/ui/LDialog.vue'
 import {
   Info24Regular, PlugConnected24Regular, Checkmark24Regular,
@@ -190,7 +191,7 @@ function parseJsonObject(text: string, label: string): Record<string, string> | 
     }
     return obj
   } catch {
-    ElMessage.error(`${label} 不是合法的 JSON 对象`)
+    message.error(`${label} 不是合法的 JSON 对象`)
     throw new Error(`invalid ${label}`)
   }
 }
@@ -206,7 +207,7 @@ function splitArgs(text: string): string[] {
 
 function handleSave() {
   if (!form.name.trim()) {
-    ElMessage.error('请填写名称')
+    message.error('请填写名称')
     return
   }
 
@@ -214,7 +215,7 @@ function handleSave() {
   try {
     if (form.transportType === 'stdio') {
       if (!form.command.trim()) {
-        ElMessage.error('请填写启动命令')
+        message.error('请填写启动命令')
         return
       }
       transport = { type: 'stdio', command: form.command.trim(), args: splitArgs(form.argsText) }
@@ -222,7 +223,7 @@ function handleSave() {
       if (env) transport.env = env
     } else {
       if (!form.url.trim()) {
-        ElMessage.error('请填写服务地址')
+        message.error('请填写服务地址')
         return
       }
       transport = { type: form.transportType, url: form.url.trim() }

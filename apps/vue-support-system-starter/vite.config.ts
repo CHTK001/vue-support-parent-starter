@@ -11,7 +11,7 @@ export default createVite({
     // 文件预览（@file-viewer）资源接入：与 monitor / standalone / ai-guada 一致。
     //   - copyAssets 把渲染器 worker/wasm/字体复制到工作区根 public（本应用 publicDir 指向它）；
     //   - 渲染器注册由 PreviewOfficePanel 显式传 preset 完成，inject:false 不注入虚拟模块。
-    fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
+    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
   ],
   /*
    * CSS 压缩器切换：vite(rolldown) 默认用 lightningcss 压缩，本仓库在「合并后的样式」上会报

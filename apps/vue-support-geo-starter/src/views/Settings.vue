@@ -10,8 +10,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, onMounted, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { useSettingsStore } from "@/store/settings";
 import { FORMAT_OPTIONS } from "@/constants/modes";
 import type { AppSettings } from "@/types";
@@ -58,9 +59,9 @@ async function onSave() {
   saving.value = true;
   try {
     await settingsStore.saveSettings(form.value);
-    ElMessage.success("设置已保存");
+    message.success("设置已保存");
   } catch (e: any) {
-    ElMessage.error(`保存失败：${e?.message ?? e}`);
+    message.error(`保存失败：${e?.message ?? e}`);
   } finally {
     saving.value = false;
   }

@@ -6,8 +6,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   getDownloadHistory,
   deleteDownloadRecord,
@@ -137,10 +138,10 @@ async function onDelete(id: string | number) {
   try {
     await ElMessageBox.confirm("确定删除该记录？", "删除", { type: "warning" });
     await deleteDownloadRecord(id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     refresh();
   } catch (e: any) {
-    if (e !== "cancel") ElMessage.error(`删除失败：${e?.message ?? e}`);
+    if (e !== "cancel") message.error(`删除失败：${e?.message ?? e}`);
   }
 }
 
@@ -149,10 +150,10 @@ async function onClearAll() {
   try {
     await ElMessageBox.confirm("确定清空全部下载历史？此操作不可恢复。", "清空历史", { type: "warning" });
     await clearDownloadHistory();
-    ElMessage.success("已清空");
+    message.success("已清空");
     refresh();
   } catch (e: any) {
-    if (e !== "cancel") ElMessage.error(`清空失败：${e?.message ?? e}`);
+    if (e !== "cancel") message.error(`清空失败：${e?.message ?? e}`);
   }
 }
 
@@ -163,9 +164,9 @@ async function onClearAll() {
 async function onBuildPyramid(id: string | number) {
   try {
     const res = await buildPyramidForFile(id);
-    ElMessage.success(res.message || "已触发金字塔构建");
+    message.success(res.message || "已触发金字塔构建");
   } catch (e: any) {
-    ElMessage.error(`金字塔构建失败：${e?.message ?? e}`);
+    message.error(`金字塔构建失败：${e?.message ?? e}`);
   }
 }
 

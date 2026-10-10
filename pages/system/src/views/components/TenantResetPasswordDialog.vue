@@ -5,8 +5,9 @@
  * 通过 v-model:visible 控制显隐，props 传入目标租户。
  * 重置后后端推送给租户端，租户端登录账号密码同步更新。
  */
+import { message } from "@repo/core";
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { resetTenantPassword } from "../../api/systemApi";
 import type { SysTenant } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -37,11 +38,11 @@ watch(
 /** 确认重置 */
 async function handleSubmit() {
   if (!newPassword.value) {
-    ElMessage.warning("请输入新密码");
+    message.warning("请输入新密码");
     return;
   }
   await resetTenantPassword(props.tenant.sysTenantId ?? "", newPassword.value);
-  ElMessage.success("密码已重置并推送租户端");
+  message.success("密码已重置并推送租户端");
   visible.value = false;
   emit("success");
 }

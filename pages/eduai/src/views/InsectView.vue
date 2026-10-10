@@ -134,8 +134,9 @@
  * 3D 建模资产（src/insect/three/builders，63 个物种 + 48 个生活史阶段模型）
  * 原样复用，未改一行几何代码。
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { eduaiApi } from "../api/eduaiApi";
 import type {
   InsectDetail,
@@ -265,7 +266,7 @@ async function loadStage(code: string) {
   } catch (e) {
     insect.value = null;
     guide.value = null;
-    ElMessage.error(`物种详情加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`物种详情加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     stageLoading.value = false;
   }
@@ -369,7 +370,7 @@ function saveNote() {
   notes.value = next;
   try {
     localStorage.setItem(NOTES_KEY, JSON.stringify(next));
-    ElMessage.success(text ? "笔记已保存" : "笔记已清空");
+    message.success(text ? "笔记已保存" : "笔记已清空");
   } catch {
     /* ignore */
   }
@@ -381,8 +382,8 @@ function copyNotes() {
     .join("\n---\n\n");
   void navigator.clipboard
     ?.writeText(`# 昆虫观察笔记\n\n${md}`)
-    .then(() => ElMessage.success("已复制到剪贴板"))
-    .catch(() => ElMessage.warning("剪贴板不可用"));
+    .then(() => message.success("已复制到剪贴板"))
+    .catch(() => message.warning("剪贴板不可用"));
 }
 
 // ==================== 键盘：上下翻图鉴 ====================

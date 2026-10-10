@@ -145,9 +145,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { Refresh, Download, Search, Plus } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -220,7 +221,7 @@ async function load() {
     total.value = res.total;
     loadLogStats();
   } catch {
-    ElMessage.error("加载日志失败");
+    message.error("加载日志失败");
   } finally {
     loading.value = false;
   }
@@ -236,10 +237,10 @@ async function doInjectLog() {
     logSeq.value++;
     const lv = ["INFO", "WARN", "ERROR"][logSeq.value % 3];
     await injectLog(lv, `手动写入的${lv}日志 #${logSeq.value}`);
-    ElMessage.success(`已写入一条 ${lv} 日志`);
+    message.success(`已写入一条 ${lv} 日志`);
     await load();
   } catch {
-    ElMessage.error("写入失败");
+    message.error("写入失败");
   } finally {
     injecting.value = false;
   }

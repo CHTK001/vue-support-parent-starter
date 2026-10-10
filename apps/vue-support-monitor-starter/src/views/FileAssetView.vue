@@ -3,8 +3,9 @@
  * 文件资产 — 文件存储管理
  * 接口：monitor FileAssetController（/ms/monitor/file-assets/**），后端为 FileStorage SPI 存储桶
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   deleteFileAsset,
   downloadFileAsset,
@@ -26,7 +27,7 @@ const currentPath = ref("");
 /** 失败提示：优先展示后端返回的业务消息 */
 function fail(e: unknown, fallback: string): void {
   const err = e as { message?: string; response?: { data?: { msg?: string } } };
-  ElMessage.error(err?.response?.data?.msg || err?.message || fallback);
+  message.error(err?.response?.data?.msg || err?.message || fallback);
 }
 
 /** 加载存储桶列表，仅有一个桶时直接选中 */
@@ -68,7 +69,7 @@ async function handleUpload(event: Event): Promise<void> {
   loading.value = true;
   try {
     const item = await uploadFileAsset(currentPath.value, file, bucket.value || undefined);
-    ElMessage.success(`上传成功: ${item?.name ?? file.name}`);
+    message.success(`上传成功: ${item?.name ?? file.name}`);
     await loadItems();
   } catch (e) {
     fail(e, "上传失败");
@@ -83,7 +84,7 @@ async function deleteItem(item: FileAssetItem): Promise<void> {
   await ElMessageBox.confirm(`确认删除「${item.name}」？`, "删除确认", { type: "warning" });
   try {
     await deleteFileAsset(item.path, bucket.value || undefined);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await loadItems();
   } catch (e) {
     fail(e, "删除失败");

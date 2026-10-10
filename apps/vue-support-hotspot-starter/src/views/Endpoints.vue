@@ -133,8 +133,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { DataLine, Timer, Warning } from "@element-plus/icons-vue";
 import ReInput from "@repo/ui/re-input";
 import ReButton from "@repo/ui/re-button";
@@ -214,7 +215,7 @@ async function load() {
     items.value = await getEndpoints(50);
     loadEndpointTrend();
   } catch {
-    ElMessage.error("加载端点失败");
+    message.error("加载端点失败");
   } finally {
     loading.value = false;
   }

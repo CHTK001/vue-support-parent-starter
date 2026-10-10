@@ -405,8 +405,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   FolderAdd, Upload, Refresh, Top, Search,
   ArrowLeft, ArrowRight, Grid, Menu, Tickets, Operation,
@@ -588,7 +589,7 @@ async function openImagePreview(file: HostFileItem) {
     const blob = await downloadHostFile(props.hostId, join(currentPath.value, file.name));
     previewUrl.value = URL.createObjectURL(blob);
   } catch (e: any) {
-    ElMessage.error("加载图片失败: " + (e?.message || e));
+    message.error("加载图片失败: " + (e?.message || e));
   } finally {
     previewLoading.value = false;
   }
@@ -623,7 +624,7 @@ async function openPerms(file: HostFileItem) {
     permOwner.value = p.owner;
     permGroup.value = p.group;
   } catch (e: any) {
-    ElMessage.error("读取权限失败: " + (e?.message || e));
+    message.error("读取权限失败: " + (e?.message || e));
   } finally {
     permLoading.value = false;
   }
@@ -632,11 +633,11 @@ async function savePerms() {
   permSaving.value = true;
   try {
     await saveHostPerms(props.hostId, permPath.value, permMode.value);
-    ElMessage.success("权限已更新");
+    message.success("权限已更新");
     permVisible.value = false;
     load();
   } catch (e: any) {
-    ElMessage.error("更新权限失败: " + (e?.message || e));
+    message.error("更新权限失败: " + (e?.message || e));
   } finally {
     permSaving.value = false;
   }
@@ -747,7 +748,7 @@ async function load() {
     files.value = await fetchHostFiles(props.hostId, currentPath.value);
     loadError.value = "";
   } catch (e: any) {
-    ElMessage.error("加载目录失败: " + (e?.message || e));
+    message.error("加载目录失败: " + (e?.message || e));
     files.value = [];
     loadError.value = e?.message || String(e);
   } finally {
@@ -893,7 +894,7 @@ async function openEditor(name: string, full: string) {
   try {
     editorContent.value = await readHostFileContent(props.hostId, full);
   } catch (e: any) {
-    ElMessage.error("读取文件失败: " + (e?.message || e));
+    message.error("读取文件失败: " + (e?.message || e));
   }
 }
 async function saveEditor() {
@@ -901,10 +902,10 @@ async function saveEditor() {
   saving.value = true;
   try {
     await writeHostFileContent(props.hostId, full, editorContent.value);
-    ElMessage.success("已保存");
+    message.success("已保存");
     editorVisible.value = false;
   } catch (e: any) {
-    ElMessage.error("保存失败: " + (e?.message || e));
+    message.error("保存失败: " + (e?.message || e));
   } finally {
     saving.value = false;
   }
@@ -918,7 +919,7 @@ async function doDownload(name: string, full: string, isDir = false) {
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
   } catch (e: any) {
-    ElMessage.error("下载失败: " + (e?.message || e));
+    message.error("下载失败: " + (e?.message || e));
   }
 }
 
@@ -929,11 +930,11 @@ async function confirmMkdir() {
   if (!name) return;
   try {
     await mkdirHostFile(props.hostId, join(currentPath.value, name));
-    ElMessage.success("已创建");
+    message.success("已创建");
     mkdirVisible.value = false;
     load();
   } catch (e: any) {
-    ElMessage.error("创建失败: " + (e?.message || e));
+    message.error("创建失败: " + (e?.message || e));
   }
 }
 
@@ -946,10 +947,10 @@ async function confirmDelete(file: HostFileItem) {
   } catch { return; }
   try {
     await deleteHostFile(props.hostId, join(currentPath.value, file.name));
-    ElMessage.success("已删除");
+    message.success("已删除");
     load();
   } catch (e: any) {
-    ElMessage.error("删除失败: " + (e?.message || e));
+    message.error("删除失败: " + (e?.message || e));
   }
 }
 async function confirmRename(file: HostFileItem) {
@@ -968,10 +969,10 @@ async function confirmRename(file: HostFileItem) {
       join(currentPath.value, file.name),
       join(currentPath.value, target)
     );
-    ElMessage.success("已重命名");
+    message.success("已重命名");
     load();
   } catch (e: any) {
-    ElMessage.error("重命名失败: " + (e?.message || e));
+    message.error("重命名失败: " + (e?.message || e));
   }
 }
 
@@ -1031,10 +1032,10 @@ async function onFolderDrop(e: DragEvent, folder: HostFileItem) {
   const to = join(join(currentPath.value, folder.name), file.name);
   try {
     await renameHostFile(props.hostId, from, to);
-    ElMessage.success(`已移动到 ${folder.name}`);
+    message.success(`已移动到 ${folder.name}`);
     load();
   } catch (err: any) {
-    ElMessage.error("移动失败: " + (err?.message || err));
+    message.error("移动失败: " + (err?.message || err));
   }
 }
 function stateText(state: string) {

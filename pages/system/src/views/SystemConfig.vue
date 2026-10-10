@@ -11,6 +11,7 @@
  *   - 每个模块有英雄区 + 紧凑实时预览；支持全局搜索、就绪度概览；
  *   - 分区内拖拽 = 交换两条配置的 sort 值并批量更新。
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from "vue";
 import {
   Cellphone,
@@ -28,7 +29,7 @@ import {
   CircleCheck,
   CircleClose,
 } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+
 import {
   pageForSetting,
   updateBatchSetting,
@@ -366,9 +367,9 @@ async function initSortables() {
               const t = allSettings.value.find((s) => s.sysSettingId === r.sysSettingId);
               if (t) t.sysSettingSort = r.sysSettingSort;
             });
-            ElMessage.success("排序已更新");
+            message.success("排序已更新");
           } catch (e) {
-            ElMessage.error((e as Error)?.message ?? "排序更新失败");
+            message.error((e as Error)?.message ?? "排序更新失败");
           }
         },
       }),
@@ -404,10 +405,10 @@ async function saveAll() {
   savingAll.value = true;
   try {
     await updateBatchSetting(dirtyRows.value);
-    ElMessage.success(`已保存 ${dirtyRows.value.length} 项配置`);
+    message.success(`已保存 ${dirtyRows.value.length} 项配置`);
     await loadAll();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "批量保存失败");
+    message.error((e as Error)?.message ?? "批量保存失败");
   } finally {
     savingAll.value = false;
   }
@@ -453,9 +454,9 @@ async function testEmail() {
   emailTesting.value = true;
   try {
     await checkEmailConnectivity();
-    ElMessage.success("邮件连接正常");
+    message.success("邮件连接正常");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "邮件连接失败");
+    message.error((e as Error)?.message ?? "邮件连接失败");
   } finally {
     emailTesting.value = false;
   }
@@ -466,9 +467,9 @@ async function handleSyncTemplate(channel: string) {
   syncLoading.value = true;
   try {
     const res = await syncMessageTemplate(channel);
-    ElMessage.success("同步完成");
+    message.success("同步完成");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "同步失败");
+    message.error((e as Error)?.message ?? "同步失败");
   } finally {
     syncLoading.value = false;
   }

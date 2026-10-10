@@ -84,9 +84,10 @@
  * 背景色 / 自定义 CSS / 采集脚本 / ECharts 参数均在卡片设置里配置（表单或 JSON 双模式，默认表单）。
  * 布局变化实时保存（debounce），并生成免登录嵌入链接供其他系统 iframe 使用。</p>
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReDialog from "@repo/ui/re-dialog";
@@ -194,7 +195,7 @@ async function reload(): Promise<void> {
     savedAt.value = dashboard?.updateTime ? formatTime(dashboard.updateTime) : "";
   } catch (e) {
     saveError.value = (e as Error)?.message || String(e);
-    ElMessage.error(`看板读取失败：${saveError.value}`);
+    message.error(`看板读取失败：${saveError.value}`);
   } finally {
     loading.value = false;
   }
@@ -278,7 +279,7 @@ function onAdd(type: string): void {
   }
   const existing = layout.value.widgets.filter(w => w.type === type).length;
   if (existing >= 24) {
-    ElMessage.warning(`${meta.label} 数量已达上限`);
+    message.warning(`${meta.label} 数量已达上限`);
     return;
   }
   const id = newCardId();
@@ -323,7 +324,7 @@ function openEmbed(): void {
     void saveNow().then(() => {
       if (!embedToken.value) {
         // saveNow 失败时提示
-        ElMessage.warning("请先成功保存看板后再获取嵌入链接");
+        message.warning("请先成功保存看板后再获取嵌入链接");
       }
     });
   }
@@ -343,9 +344,9 @@ async function regenerate(): Promise<void> {
   try {
     const dashboard = await regeneratePrometheusToken(props.datasourceId);
     embedToken.value = dashboard?.embedToken || "";
-    ElMessage.success("令牌已更新");
+    message.success("令牌已更新");
   } catch (e) {
-    ElMessage.error(`生成失败：${(e as Error)?.message ?? e}`);
+    message.error(`生成失败：${(e as Error)?.message ?? e}`);
   } finally {
     regenerating.value = false;
   }
@@ -357,15 +358,15 @@ function selectText(e: FocusEvent): void {
 
 async function copyText(text: string, label: string): Promise<void> {
   if (!text) {
-    ElMessage.warning("暂无可复制的链接");
+    message.warning("暂无可复制的链接");
     return;
   }
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success(`${label}已复制`);
+    message.success(`${label}已复制`);
   } catch {
     // 剪贴板不可用（非安全上下文）时退化为选中输入框内容
-    ElMessage.warning("复制失败，请手动选中复制");
+    message.warning("复制失败，请手动选中复制");
   }
 }
 

@@ -7,8 +7,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { getActiveTasks, cancelTask, togglePauseTask, removeTask, exportPartialTask } from "@/api/tile";
 import { useRouter } from "vue-router";
 import type { TaskInfo } from "@/types";
@@ -117,10 +118,10 @@ async function refresh() {
 async function onCancel(id: string) {
   try {
     await cancelTask(id);
-    ElMessage.success("已取消任务");
+    message.success("已取消任务");
     refresh();
   } catch (e: any) {
-    ElMessage.error(`取消失败：${e?.message ?? e}`);
+    message.error(`取消失败：${e?.message ?? e}`);
   }
 }
 
@@ -131,10 +132,10 @@ async function onCancel(id: string) {
 async function onPause(id: string) {
   try {
     const res = await togglePauseTask(id);
-    ElMessage.success(res.message || "已切换暂停状态");
+    message.success(res.message || "已切换暂停状态");
     refresh();
   } catch (e: any) {
-    ElMessage.error(`操作失败：${e?.message ?? e}`);
+    message.error(`操作失败：${e?.message ?? e}`);
   }
 }
 
@@ -145,9 +146,9 @@ async function onPause(id: string) {
 async function onExportPartial(id: string) {
   try {
     const res = await exportPartialTask(id);
-    ElMessage.success(res.message || "已请求导出");
+    message.success(res.message || "已请求导出");
   } catch (e: any) {
-    ElMessage.error(`导出失败：${e?.message ?? e}`);
+    message.error(`导出失败：${e?.message ?? e}`);
   }
 }
 
@@ -159,10 +160,10 @@ async function onRemove(id: string) {
   try {
     await ElMessageBox.confirm("确定删除该任务记录？", "删除任务", { type: "warning" });
     await removeTask(id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     refresh();
   } catch (e: any) {
-    if (e !== "cancel") ElMessage.error(`删除失败：${e?.message ?? e}`);
+    if (e !== "cancel") message.error(`删除失败：${e?.message ?? e}`);
   }
 }
 

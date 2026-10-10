@@ -9,9 +9,10 @@
  * <p>状态、并集、过滤分页、弹窗都在本组件内闭环；命中次数走
  * {@link usePolicyHitContext} 注入的整页共享数据。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -374,7 +375,7 @@ async function loadTargets(): Promise<void> {
     targets.value = res.data ?? [];
     indexCount.value = targets.value.length;
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.route.routesLoadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.route.routesLoadFailed"));
   } finally {
     targetLoading.value = false;
   }
@@ -407,7 +408,7 @@ async function load(params?: ReTableLoadParams): Promise<RePageResult> {
     total.value = count;
     return { total: count, data: slice as Record<string, unknown>[] };
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.route.loadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.route.loadFailed"));
     throw error;
   } finally {
     loading.value = false;
@@ -424,9 +425,9 @@ async function handleRefresh(): Promise<void> {
     // 同步进表：后端重采了路由索引，前端这张表必须重新取一次并重排
     await tableRef.value?.reload();
     void loadHitCounts();
-    ElMessage.success(t("policy.route.synced", { routes: res.data?.routeCount ?? 0, policies: res.data?.policyCount ?? 0 }));
+    message.success(t("policy.route.synced", { routes: res.data?.routeCount ?? 0, policies: res.data?.policyCount ?? 0 }));
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.reloadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.reloadFailed"));
   } finally {
     refreshLoading.value = false;
   }
@@ -494,22 +495,22 @@ function handleActionChange(action: ApiRouteAction): void {
 /** 保存规则（新增或更新） */
 async function handleSubmit(): Promise<void> {
   if (!form.value.bizKey) {
-    ElMessage.warning(t("policy.route.errPathBlank"));
+    message.warning(t("policy.route.errPathBlank"));
     return;
   }
   if (!form.value.bizKey.startsWith("/")) {
-    ElMessage.warning(t("policy.route.errPathSlash"));
+    message.warning(t("policy.route.errPathSlash"));
     return;
   }
   if (rule.value.action === "FORWARD" && !rule.value.targetKey) {
-    ElMessage.warning(t("policy.route.errTargetBlank"));
+    message.warning(t("policy.route.errTargetBlank"));
     return;
   }
   // 自定义路径是允许的（未注册的路径也能写规则），但要如实提示它的代价：
   // 停用/放行对未注册路径没有运行时意义，只有转发到别处才可能被人访问到。
   const known = targets.value.some((r) => r.path === form.value.bizKey);
   if (!known) {
-    ElMessage.warning(t("policy.route.errPathUnknown"));
+    message.warning(t("policy.route.errPathUnknown"));
   }
   const payload: PolicyConfig = {
     ...form.value,
@@ -521,10 +522,10 @@ async function handleSubmit(): Promise<void> {
   try {
     if (isEdit.value) {
       await updatePolicyConfig(payload);
-      ElMessage.success(t("policy.route.saved"));
+      message.success(t("policy.route.saved"));
     } else {
       await savePolicyConfig(payload);
-      ElMessage.success(t("policy.route.created"));
+      message.success(t("policy.route.created"));
     }
     dialogVisible.value = false;
     // 必须走 ReTable 实例的 reload()，不能直接调 load()：
@@ -532,7 +533,7 @@ async function handleSubmit(): Promise<void> {
     // 表现为「保存成功但列表不刷新 / 切页后行消失」。与 IP 名单表保持同一机制。
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     saving.value = false;
   }
@@ -546,7 +547,7 @@ async function handleSubmit(): Promise<void> {
  */
 async function handleToggle(row: ApiRouteRow, value: boolean | string | number): Promise<void> {
   if (row.policyId == null) {
-    ElMessage.warning(t("policy.route.errNotConfigured"));
+    message.warning(t("policy.route.errNotConfigured"));
     return;
   }
   toggleLoadingId.value = row.policyId;
@@ -557,10 +558,10 @@ async function handleToggle(row: ApiRouteRow, value: boolean | string | number):
     // 用户读到的是自己想要的反面结果，于是又点一次把接口重新拦了回去。
     // 关掉一律是「放行」；打开时按动作分「拦截」还是「转发」。
     const onText = row.action === "FORWARD" ? t("policy.route.toastForwardOn") : t("policy.route.toastBlocked");
-    ElMessage.success(value ? onText : t("policy.route.toastAllowed"));
+    message.success(value ? onText : t("policy.route.toastAllowed"));
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.toggleFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.toggleFailed"));
   } finally {
     toggleLoadingId.value = null;
   }
@@ -579,7 +580,7 @@ async function handleToggle(row: ApiRouteRow, value: boolean | string | number):
  */
 async function deleteRule(policyId: number | null, path: string): Promise<boolean> {
   if (policyId == null) {
-    ElMessage.warning(t("policy.route.errNothingToDelete"));
+    message.warning(t("policy.route.errNothingToDelete"));
     return false;
   }
   try {
@@ -590,12 +591,12 @@ async function deleteRule(policyId: number | null, path: string): Promise<boolea
   deleteLoadingId.value = policyId;
   try {
     await deletePolicyConfig(policyId);
-    ElMessage.success(t("policy.route.ruleDeleted"));
+    message.success(t("policy.route.ruleDeleted"));
     await loadPolicies();
     await tableRef.value?.reload();
     return true;
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
     return false;
   } finally {
     deleteLoadingId.value = null;

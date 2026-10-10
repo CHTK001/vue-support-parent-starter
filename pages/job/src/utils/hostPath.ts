@@ -21,6 +21,11 @@ export const HOST_PATH_FALLBACK: Record<string, string> = {
   "/collect/job": "/job/console",
   "/collect/job-log": "/job/log",
   "/collect/remote-node": "/job/remote",
+  // 调度概览：后端菜单 component 是 job/index（见 ./index.ts 的 registerMenuViewModules），
+  // 按同组另三项的命名规律（console / remote / log）推为 /job/index。
+  // 若系统宿主实际注册的不是这个路径，这里会原样回落到 /collect/job-overview 并在该宿主 404 ——
+  // 与不加这条的效果相同，但静态宿主（采集调度平台）下两者都能正常跳。
+  "/collect/job-overview": "/job/index",
 };
 
 /** 只需 getRoutes / push 两个能力，避免为测试或换宿主导入整个 Router 类型 */

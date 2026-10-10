@@ -197,8 +197,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { apiService, type FileChangeEvent } from '@/services/ApiService';
 import { Refresh, CopyDocument, Edit, Delete, Plus, Close } from '@element-plus/icons-vue';
@@ -612,7 +613,7 @@ async function createNewBrowserWindow(): Promise<void> {
             createdBy: props.sessionId,
         });
         if (!result.success) {
-            ElMessage.warning(result.error || t('chat.workspace.createWindowFailed'));
+            message.warning(result.error || t('chat.workspace.createWindowFailed'));
         } else if (result.window?.windowId) {
             tabStore.enterPreviewMode()
             tabStore.selectTab(`browser:${result.window.windowId}`)
@@ -937,11 +938,11 @@ async function writeToClipboard(text: string): Promise<void> {
             await navigator.clipboard.writeText(text);
         } catch (error) {
             console.error('[Workspace] Web Clipboard API 写入失败:', error);
-            ElMessage.error(t('chat.workspace.copyFailed'));
+            message.error(t('chat.workspace.copyFailed'));
         }
     } else {
         console.error('[Workspace] 所有剪贴板 API 都不可用');
-        ElMessage.error(t('chat.workspace.copyFailed'));
+        message.error(t('chat.workspace.copyFailed'));
     }
 }
 
@@ -953,7 +954,7 @@ async function handleCopyFileName() {
     if (!node) return;
 
     await writeToClipboard(node.name);
-    ElMessage.success(t('chat.workspace.fileNameCopied'));
+    message.success(t('chat.workspace.fileNameCopied'));
     closeContextMenu();
 }
 
@@ -969,7 +970,7 @@ async function handleCopyFilePath() {
         const response = await apiService.getWorkspacePath(props.sessionId);
         const workspacePath = response.workspacePath;
         if (!workspacePath) {
-            ElMessage.error(t('chat.workspace.workspacePathError'));
+            message.error(t('chat.workspace.workspacePathError'));
             closeContextMenu();
             return;
         }
@@ -980,10 +981,10 @@ async function handleCopyFilePath() {
         const fullPath = workspacePath + separator + relativePath;
 
         await writeToClipboard(fullPath);
-        ElMessage.success(t('chat.workspace.pathCopied'));
+        message.success(t('chat.workspace.pathCopied'));
     } catch (error: any) {
         console.error('Failed to get workspace path for copy:', error);
-        ElMessage.error(t('common.copyFailed'));
+        message.error(t('common.copyFailed'));
     }
     closeContextMenu();
 }
@@ -1000,7 +1001,7 @@ async function handleOpenInExplorer() {
         const response = await apiService.getWorkspacePath(props.sessionId);
         const workspacePath = response.workspacePath;
         if (!workspacePath) {
-            ElMessage.error(t('chat.workspace.workspacePathError'));
+            message.error(t('chat.workspace.workspacePathError'));
             closeContextMenu();
             return;
         }
@@ -1019,7 +1020,7 @@ async function handleOpenInExplorer() {
         }
     } catch (error: any) {
         console.error('Failed to open in explorer:', error);
-        ElMessage.error(t('chat.workspace.openFailed'));
+        message.error(t('chat.workspace.openFailed'));
     }
     closeContextMenu();
 }
@@ -1045,7 +1046,7 @@ async function handleOpenInVSCode() {
         const response = await apiService.getWorkspacePath(props.sessionId);
         const workspacePath = response.workspacePath;
         if (!workspacePath) {
-            ElMessage.error(t('chat.workspace.workspacePathError'));
+            message.error(t('chat.workspace.workspacePathError'));
             closeContextMenu();
             return;
         }
@@ -1055,10 +1056,10 @@ async function handleOpenInVSCode() {
         const fullPath = workspacePath + separator + relativePath;
 
         await window.electronAPI!.openWithEditor(fullPath, 'vscode');
-        ElMessage.success(t('chat.workspace.openedInVSCode'));
+        message.success(t('chat.workspace.openedInVSCode'));
     } catch (error: any) {
         console.error('Failed to open in VSCode:', error);
-        ElMessage.error(t('chat.workspace.openVSCodeFailed'));
+        message.error(t('chat.workspace.openVSCodeFailed'));
     }
     closeContextMenu();
 }
@@ -1102,7 +1103,7 @@ async function handleRename() {
         );
 
         if (result.success) {
-            ElMessage.success(t('chat.workspace.renameSuccess'));
+            message.success(t('chat.workspace.renameSuccess'));
             // 本地更新节点名称，避免重新加载整棵树
             const oldPath = node.path;
             node.name = newName.trim();
@@ -1133,7 +1134,7 @@ async function handleRename() {
             return;
         }
         console.error('[WorkspaceSidebar] Rename failed:', error);
-        ElMessage.error(error?.response?.data?.message || error.message || t('chat.workspace.renameFailed'));
+        message.error(error?.response?.data?.message || error.message || t('chat.workspace.renameFailed'));
     }
     closeContextMenu();
 }
@@ -1170,7 +1171,7 @@ async function handleDelete() {
         );
 
         if (result.success) {
-            ElMessage.success(t('common.deleteSuccess'));
+            message.success(t('common.deleteSuccess'));
             // 如果删除的是已打开的文件标签，关闭对应标签
             const deleteTabKey = `file:${node.path}`;
             const deleteTab = tabStore.tabs.find(t => t.key === deleteTabKey);
@@ -1185,7 +1186,7 @@ async function handleDelete() {
             return;
         }
         console.error('[WorkspaceSidebar] Delete failed:', error);
-        ElMessage.error(error?.response?.data?.message || error.message || t('chat.workspace.deleteFailed'));
+        message.error(error?.response?.data?.message || error.message || t('chat.workspace.deleteFailed'));
     }
     closeContextMenu();
 }
@@ -1249,7 +1250,7 @@ async function openWorkspaceInVSCode() {
         }
     } catch (error: any) {
         console.error('Failed to open workspace in VSCode:', error);
-        ElMessage.error(t('chat.workspace.openVSCodeFailed'));
+        message.error(t('chat.workspace.openVSCodeFailed'));
     }
 }
 

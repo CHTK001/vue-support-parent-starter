@@ -106,8 +106,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -265,7 +266,7 @@ async function confirmThen(op: "restart" | "stop") {
 
 async function run(op: "test" | "reload" | "restart" | "start" | "stop") {
   if (!props.datasourceId) {
-    ElMessage.warning("请先选择数据源");
+    message.warning("请先选择数据源");
     return;
   }
   busy.value = op;
@@ -281,13 +282,13 @@ async function run(op: "test" | "reload" | "restart" | "start" | "stop") {
     result.value = r;
     resultVisible.value = true;
     if (r.success) {
-      ElMessage.success(r.message);
+      message.success(r.message);
     } else {
-      ElMessage.error(r.message);
+      message.error(r.message);
     }
     emit("changed");
   } catch (e) {
-    ElMessage.error(`${labelOf(op)}失败：${(e as Error).message}`);
+    message.error(`${labelOf(op)}失败：${(e as Error).message}`);
   } finally {
     busy.value = "";
   }
