@@ -13,57 +13,57 @@
     </div>
 
     <div class="panel-card">
-    <el-table :data="tokens" v-loading="loading" stripe class="flat-table">
-      <el-table-column label="令牌" min-width="240">
-        <template #default="{ row }">
-          <div class="token-cell">
-            <span class="token-text">{{ row.token }}</span>
-            <el-button text class="copy-btn" @click="copy(row.token)">
-              <el-icon><Copy24Regular /></el-icon>
-            </el-button>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="name" label="名称" width="140" />
-      <el-table-column label="类型" width="90">
-        <template #default="{ row }">
-          <el-tag :type="tokenTagType(row.type)">
-            {{ row.type === 'temporary' ? '临时' : '永久' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="过期时间" width="170">
-        <template #default="{ row }">
-          <span v-if="row.expiresAt" :class="{ expired: isExpired(row) }">{{ row.expiresAt }}</span>
-          <span v-else class="muted">不过期</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="请求次数" width="130">
-        <template #default="{ row }">
-          <span>{{ row.usedRequests ?? 0 }} / {{ row.maxRequests ?? '不限' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Token 额度" width="150">
-        <template #default="{ row }">
-          <span>{{ formatNumber(row.usedTokens) }} / {{ row.maxTokens ? formatNumber(row.maxTokens) : '不限' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.enabled ? 'success' : 'danger'" >
-            {{ row.enabled ? '启用' : '禁用' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="150">
-        <template #default="{ row }">
-          <el-button @click="toggle(row)">
-            {{ row.enabled ? '禁用' : '启用' }}
+    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+         pagination=false —— 页面没有外置分页，保持全量直出；toolbar=false 不新增工具栏；
+         原表没有 border → :settings="{ border: false }" 显式抑制 ReTable 的默认边框；
+         v-loading → :loading。 -->
+    <ReTable
+      :data="tokens"
+      :columns="tokenColumns"
+      :loading="loading"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+      :settings="{ border: false }"
+      stripe
+      class="flat-table"
+    >
+      <template #col-token="{ row }">
+        <div class="token-cell">
+          <span class="token-text">{{ row.token }}</span>
+          <el-button text class="copy-btn" @click="copy(row.token)">
+            <el-icon><Copy24Regular /></el-icon>
           </el-button>
-          <el-button type="danger" plain @click="remove(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        </div>
+      </template>
+      <template #col-type="{ row }">
+        <el-tag :type="tokenTagType(row.type)">
+          {{ row.type === 'temporary' ? '临时' : '永久' }}
+        </el-tag>
+      </template>
+      <template #col-expiresAt="{ row }">
+        <span v-if="row.expiresAt" :class="{ expired: isExpired(row) }">{{ row.expiresAt }}</span>
+        <span v-else class="muted">不过期</span>
+      </template>
+      <template #col-usedRequests="{ row }">
+        <span>{{ row.usedRequests ?? 0 }} / {{ row.maxRequests ?? '不限' }}</span>
+      </template>
+      <template #col-usedTokens="{ row }">
+        <span>{{ formatNumber(row.usedTokens) }} / {{ row.maxTokens ? formatNumber(row.maxTokens) : '不限' }}</span>
+      </template>
+      <template #col-enabled="{ row }">
+        <el-tag :type="row.enabled ? 'success' : 'danger'" >
+          {{ row.enabled ? '启用' : '禁用' }}
+        </el-tag>
+      </template>
+      <template #col-actions="{ row }">
+        <el-button @click="toggle(row)">
+          {{ row.enabled ? '禁用' : '启用' }}
+        </el-button>
+        <el-button type="danger" plain @click="remove(row)">删除</el-button>
+      </template>
+    </ReTable>
     </div>
 
     <!-- 签发令牌对话框 -->
@@ -114,9 +114,29 @@ import {
   Add24Regular,
   Copy24Regular,
 } from '@vicons/fluent'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
 
 
 import ReDialog from '@repo/ui/re-dialog';const http = createClient(v2Http, { unwrap: false })
+
+/**
+ * 列配置：原模板里的 9 个 el-table-column 收敛为数组。
+ *
+ * <p>「令牌 / 类型 / 过期时间 / 请求次数 / Token 额度 / 状态 / 操作」原本没有 prop
+ * 或带 {@code <template #default>}，这里补稳定的合成 prop 并配 {@code slot}，
+ * 模板里用 {@code #col-<prop>} 插槽承接原内容。</p>
+ */
+const tokenColumns: ReTableColumn[] = [
+  { prop: 'token', label: '令牌', minWidth: 240, slot: 'token' },
+  { prop: 'name', label: '名称', width: 140 },
+  { prop: 'type', label: '类型', width: 90, slot: 'type' },
+  { prop: 'expiresAt', label: '过期时间', width: 170, slot: 'expiresAt' },
+  { prop: 'usedRequests', label: '请求次数', width: 130, slot: 'usedRequests' },
+  { prop: 'usedTokens', label: 'Token 额度', width: 150, slot: 'usedTokens' },
+  { prop: 'enabled', label: '状态', width: 90, slot: 'enabled' },
+  { prop: 'actions', label: '操作', width: 150, slot: 'actions' },
+]
 
 /** el-tag 的 type 不接受空串，永久令牌用 info 区分 */
 const tokenTagType = (t: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' =>

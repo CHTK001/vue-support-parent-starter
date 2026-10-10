@@ -34,37 +34,38 @@
 
     <!-- 数据表格 -->
     <div class="flex-1 overflow-auto p-6">
-      <el-table
+      <!-- 数据表格：裸 el-table → ReTable。列由 props.columns 动态生成；每列原有一个
+           <template #default>（转发页面自己的 cell-<prop> 插槽），ReTable 的列插槽在这里用
+           动态插槽名 #col-<prop> 一一承接，内层再透传给外部插槽，调用方签名不变。
+           engine="element" 保持原 el-table DOM；原表带 border → ReTable 默认（省略 settings）；
+           分页由下方 el-pagination 自管 → :pagination="false"；toolbar 关闭。 -->
+      <ReTable
         :data="tableData"
-        v-loading="loading"
+        :columns="tableColumns"
+        :loading="loading"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
         stripe
-        border
         style="width: 100%"
         :empty-text="`暂无${title}数据`"
       >
-        <el-table-column
+        <template
           v-for="col in columns"
           :key="col.prop"
-          :prop="col.prop"
-          :label="col.label"
-          :width="col.width"
-          :min-width="col.minWidth || 120"
-          :formatter="col.formatter"
+          #[`col-${col.prop}`]="scope"
         >
-          <template #default="scope">
-            <slot :name="`cell-${col.prop}`" :row="scope.row" :value="scope.row[col.prop]">
-              {{ scope.row[col.prop] }}
-            </slot>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="scope">
-            <el-button type="primary" link @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button type="danger" link @click="handleDelete(scope.row)">删除</el-button>
-            <slot name="row-actions" :row="scope.row"></slot>
-          </template>
-        </el-table-column>
-      </el-table>
+          <slot :name="`cell-${col.prop}`" :row="scope.row" :value="scope.row[col.prop]">
+            {{ scope.row[col.prop] }}
+          </slot>
+        </template>
+        <template #col-actions="scope">
+          <el-button type="primary" link @click="handleEdit(scope.row)">编辑</el-button>
+          <el-button type="danger" link @click="handleDelete(scope.row)">删除</el-button>
+          <slot name="row-actions" :row="scope.row"></slot>
+        </template>
+      </ReTable>
 
       <!-- 分页 -->
       <div class="flex justify-end mt-4">
@@ -156,6 +157,8 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import ReDialog from '@repo/ui/re-dialog';
 
 interface Column {
@@ -203,6 +206,25 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits(['created', 'updated', 'deleted', 'row-action']);
+
+/**
+ * 列配置：把父组件传入的 {@link Props.columns} 映射成 ReTable 列数组。
+ *
+ * <p>用 computed 而不是常量 —— columns 是响应式 props，父组件换列要跟着刷新；
+ * 每列都声明 {@code slot}，模板里用动态 {@code #col-<prop>} 插槽承接原来的
+ * {@code <template #default>}（内部再转发页面自己的 {@code cell-<prop>} 插槽），
+ * 所以 formatter 与 el-table 时代一样只作为导出/兜底取值，不参与单元格渲染。</p>
+ */
+const tableColumns = computed<ReTableColumn[]>(() =>
+  props.columns.map((col) => ({
+    prop: col.prop,
+    label: col.label,
+    width: col.width,
+    minWidth: col.minWidth || 120,
+    formatter: col.formatter,
+    slot: col.prop,
+  }))
+);
 
 const loading = ref(false);
 const saving = ref(false);

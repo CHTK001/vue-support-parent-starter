@@ -98,27 +98,31 @@
                 </div>
               </div>
 
-              <el-table v-loading="stuLoading" :data="students" size="small" border class="tp-table">
-                <el-table-column prop="studentNo" label="学号" width="150" />
-                <el-table-column prop="studentName" label="姓名" width="110" />
-                <el-table-column prop="studentParentPhone" label="家长手机号" width="130" />
-                <el-table-column label="登录账号" width="150">
-                  <template #default="{ row }">
-                    <span v-if="row.studentAccount">{{ row.studentAccount }}</span>
-                    <el-tag v-else size="small" type="info">未绑定</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="状态" width="80">
-                  <template #default="{ row }">{{ row.studentStatus === 1 ? "在读" : "离校" }}</template>
-                </el-table-column>
-                <el-table-column label="操作" min-width="210">
-                  <template #default="{ row }">
-                    <el-button link type="primary" @click.stop="openStudentDialog(row)">编辑</el-button>
-                    <el-button link type="warning" @click.stop="openResetDialog(row)">重置口令</el-button>
-                    <el-button link type="danger" @click.stop="removeStudent(row)">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+              <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+                   边框样式（border 走 ReTable 默认 true）；分页/工具栏关闭（原表没有）；
+                   minHeight:0 关掉 fill 与空态 440px 强撑；v-loading → :loading。下同。 -->
+              <ReTable
+                :loading="stuLoading"
+                :data="students"
+                :columns="studentColumns"
+                size="small"
+                class="tp-table"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :layout-table="{ minHeight: 0 }"
+              >
+                <template #col-studentAccount="{ row }">
+                  <span v-if="row.studentAccount">{{ row.studentAccount }}</span>
+                  <el-tag v-else size="small" type="info">未绑定</el-tag>
+                </template>
+                <template #col-studentStatus="{ row }">{{ row.studentStatus === 1 ? "在读" : "离校" }}</template>
+                <template #col-studentActions="{ row }">
+                  <el-button link type="primary" @click.stop="openStudentDialog(row)">编辑</el-button>
+                  <el-button link type="warning" @click.stop="openResetDialog(row)">重置口令</el-button>
+                  <el-button link type="danger" @click.stop="removeStudent(row)">删除</el-button>
+                </template>
+              </ReTable>
             </div>
           </div>
         </el-tab-pane>
@@ -142,38 +146,36 @@
             <el-button type="primary" @click="goCompose">手动组卷</el-button>
           </div>
 
-          <el-table v-loading="paperLoading" :data="papers" size="small" border class="tp-table">
-            <el-table-column prop="paperName" label="试卷名称" min-width="200" />
-            <el-table-column prop="paperSubject" label="学科" width="100" />
-            <el-table-column label="学段" width="90">
-              <template #default="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
-            </el-table-column>
-            <el-table-column prop="paperQuestionCount" label="题数" width="70" />
-            <el-table-column prop="paperTotalScore" label="总分" width="70" />
-            <el-table-column label="来源" width="80">
-              <template #default="{ row }">
-                <el-tag size="small" :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="90">
-              <template #default="{ row }">
-                <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" min-width="300">
-              <template #default="{ row }">
-                <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
-                <!-- 布置：把这张卷发给自己的某个班级，班内学生端「我的试卷」即可看到。
-                     未发布的卷点布置会先提示发布（学生端只显示已发布的卷）。
-                     类名 tp-assign-open 是稳定钩子：与「发布」同为 success 色，
-                     只靠文本/颜色定位在自动化里会点错行。 -->
-                <el-button link type="success" class="tp-assign-open" @click.stop="openAssign(row)">布置给班级</el-button>
-                <el-button v-if="paperStatusCode(row) === 0" link type="success" @click.stop="publishPaper(row)">发布</el-button>
-                <el-button v-else-if="paperStatusCode(row) === 1" link type="warning" @click.stop="unpublishPaper(row)">下架</el-button>
-                <el-button v-if="paperStatusCode(row) !== 2" link @click.stop="archivePaper(row)">归档</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <ReTable
+            :loading="paperLoading"
+            :data="papers"
+            :columns="paperColumns"
+            size="small"
+            class="tp-table"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :layout-table="{ minHeight: 0 }"
+          >
+            <template #col-paperGradeLevel="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
+            <template #col-paperSource="{ row }">
+              <el-tag size="small" :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
+            </template>
+            <template #col-paperStatus="{ row }">
+              <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
+            </template>
+            <template #col-paperActions="{ row }">
+              <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
+              <!-- 布置：把这张卷发给自己的某个班级，班内学生端「我的试卷」即可看到。
+                   未发布的卷点布置会先提示发布（学生端只显示已发布的卷）。
+                   类名 tp-assign-open 是稳定钩子：与「发布」同为 success 色，
+                   只靠文本/颜色定位在自动化里会点错行。 -->
+              <el-button link type="success" class="tp-assign-open" @click.stop="openAssign(row)">布置给班级</el-button>
+              <el-button v-if="paperStatusCode(row) === 0" link type="success" @click.stop="publishPaper(row)">发布</el-button>
+              <el-button v-else-if="paperStatusCode(row) === 1" link type="warning" @click.stop="unpublishPaper(row)">下架</el-button>
+              <el-button v-if="paperStatusCode(row) !== 2" link @click.stop="archivePaper(row)">归档</el-button>
+            </template>
+          </ReTable>
 
           <!-- 已布置记录：谁把哪张卷布置到了哪个班，可撤回（撤回后学生端立即看不到） -->
           <div class="tp-assign">
@@ -181,29 +183,30 @@
               <h3 class="tp-assign__title">我布置的试卷</h3>
               <el-button link type="primary" :loading="assignLoading" @click="loadAssigns">刷新</el-button>
             </div>
-            <el-table v-loading="assignLoading" :data="assigns" size="small" border class="tp-table">
-              <el-table-column prop="paperName" label="试卷" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="className" label="班级" width="150" show-overflow-tooltip />
-              <el-table-column label="学段" width="90">
-                <template #default="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
-              </el-table-column>
-              <el-table-column label="状态" width="90">
-                <template #default="{ row }">
-                  <el-tag size="small" :type="row.assignStatus === 1 ? 'success' : 'info'">
-                    {{ row.assignStatus === 1 ? "已布置" : "已撤回" }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="assignTime" label="布置时间" width="180" />
-              <el-table-column label="操作" width="100">
-                <template #default="{ row }">
-                  <el-button v-if="row.assignStatus === 1" link type="danger" @click.stop="revokeAssign(row)">撤回</el-button>
-                </template>
-              </el-table-column>
+            <ReTable
+              :loading="assignLoading"
+              :data="assigns"
+              :columns="assignColumns"
+              size="small"
+              class="tp-table"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :layout-table="{ minHeight: 0 }"
+            >
+              <template #col-assignGradeLevel="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
+              <template #col-assignStatus="{ row }">
+                <el-tag size="small" :type="row.assignStatus === 1 ? 'success' : 'info'">
+                  {{ row.assignStatus === 1 ? "已布置" : "已撤回" }}
+                </el-tag>
+              </template>
+              <template #col-assignActions="{ row }">
+                <el-button v-if="row.assignStatus === 1" link type="danger" @click.stop="revokeAssign(row)">撤回</el-button>
+              </template>
               <template #empty>
                 <span class="tp-empty-text">还没有布置过试卷 —— 在上表点「布置给班级」即可</span>
               </template>
-            </el-table>
+            </ReTable>
           </div>
         </el-tab-pane>
 
@@ -258,35 +261,28 @@
                 <span>我的阅卷记录（试卷）</span>
                 <el-button size="small" @click="loadMarkTasks">刷新</el-button>
               </div>
-              <el-table :data="markTasks" size="small" border class="tp-table">
-                <el-table-column prop="markingTaskTaskId" label="任务号" min-width="190" show-overflow-tooltip />
-                <el-table-column label="类型" width="80">
-                  <template #default="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
-                </el-table-column>
-                <el-table-column label="试卷" min-width="140" show-overflow-tooltip>
-                  <template #default="{ row }">{{ paperNameOf(row) }}</template>
-                </el-table-column>
-                <el-table-column label="学生" width="90" show-overflow-tooltip>
-                  <template #default="{ row }">{{ row.markingTaskStudentId || "匿名" }}</template>
-                </el-table-column>
-                <el-table-column label="状态" width="90">
-                  <template #default="{ row }">
-                    <el-tag size="small" :type="taskStatusType(row.markingTaskStatus)">{{ taskStatusLabel(row.markingTaskStatus) }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="AI 总分" width="80">
-                  <template #default="{ row }">{{ taskScoreOf(row)?.ai ?? "—" }}</template>
-                </el-table-column>
-                <el-table-column label="老师总分" width="90">
-                  <template #default="{ row }"><b class="tp-mark__td-final">{{ taskScoreOf(row)?.final ?? "—" }}</b></template>
-                </el-table-column>
-                <el-table-column prop="markingTaskStartTime" label="创建时间" min-width="150" />
-                <el-table-column label="操作" width="90">
-                  <template #default="{ row }">
-                    <el-button link type="primary" @click.stop="loadTaskResult(row)">查看</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+              <ReTable
+                :data="markTasks"
+                :columns="markTaskColumns"
+                size="small"
+                class="tp-table"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :layout-table="{ minHeight: 0 }"
+              >
+                <template #col-markingTaskMode="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
+                <template #col-taskPaper="{ row }">{{ paperNameOf(row) }}</template>
+                <template #col-taskStudent="{ row }">{{ row.markingTaskStudentId || "匿名" }}</template>
+                <template #col-taskStatus="{ row }">
+                  <el-tag size="small" :type="taskStatusType(row.markingTaskStatus)">{{ taskStatusLabel(row.markingTaskStatus) }}</el-tag>
+                </template>
+                <template #col-taskAiScore="{ row }">{{ taskScoreOf(row)?.ai ?? "—" }}</template>
+                <template #col-taskFinalScore="{ row }"><b class="tp-mark__td-final">{{ taskScoreOf(row)?.final ?? "—" }}</b></template>
+                <template #col-taskActions="{ row }">
+                  <el-button link type="primary" @click.stop="loadTaskResult(row)">查看</el-button>
+                </template>
+              </ReTable>
             </div>
           </div>
         </el-tab-pane>
@@ -452,6 +448,8 @@ import type {
   TeacherOverview,
 } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import SheetStructureView from "../../components/marking/SheetStructureView.vue";
 
 const router = useRouter();
@@ -489,6 +487,16 @@ const students = ref<EduStudent[]>([]);
 const stuLoading = ref(false);
 const saving = ref(false);
 const activeClass = computed(() => classes.value.find((c) => c.classId === activeClassId.value) ?? null);
+
+/** 学生表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
+const studentColumns: ReTableColumn[] = [
+  { prop: "studentNo", label: "学号", width: 150 },
+  { prop: "studentName", label: "姓名", width: 110 },
+  { prop: "studentParentPhone", label: "家长手机号", width: 130 },
+  { prop: "studentAccount", label: "登录账号", width: 150, slot: "studentAccount" },
+  { prop: "studentStatus", label: "状态", width: 80, slot: "studentStatus" },
+  { prop: "studentActions", label: "操作", minWidth: 210, slot: "studentActions" },
+];
 
 const classDialog = reactive({ visible: false, id: null as number | null, className: "", gradeLevel: "", grade: "" });
 const stuDialog = reactive({
@@ -747,6 +755,18 @@ const aiDialog = reactive({
   scorePerQuestion: 10,
 });
 
+/** 试卷表列配置 */
+const paperColumns: ReTableColumn[] = [
+  { prop: "paperName", label: "试卷名称", minWidth: 200 },
+  { prop: "paperSubject", label: "学科", width: 100 },
+  { prop: "paperGradeLevel", label: "学段", width: 90, slot: "paperGradeLevel" },
+  { prop: "paperQuestionCount", label: "题数", width: 70 },
+  { prop: "paperTotalScore", label: "总分", width: 70 },
+  { prop: "paperSource", label: "来源", width: 80, slot: "paperSource" },
+  { prop: "paperStatus", label: "状态", width: 90, slot: "paperStatus" },
+  { prop: "paperActions", label: "操作", minWidth: 300, slot: "paperActions" },
+];
+
 async function loadPapers() {
   paperLoading.value = true;
   try {
@@ -783,6 +803,16 @@ const assignDialog = reactive<{
   classId: null,
   remark: "",
 });
+
+/** 「我布置的试卷」表列配置 */
+const assignColumns: ReTableColumn[] = [
+  { prop: "paperName", label: "试卷", minWidth: 200, showOverflowTooltip: true },
+  { prop: "className", label: "班级", width: 150, showOverflowTooltip: true },
+  { prop: "assignGradeLevel", label: "学段", width: 90, slot: "assignGradeLevel" },
+  { prop: "assignStatus", label: "状态", width: 90, slot: "assignStatus" },
+  { prop: "assignTime", label: "布置时间", width: 180 },
+  { prop: "assignActions", label: "操作", width: 100, slot: "assignActions" },
+];
 
 /**
  * 打开「布置到班级」对话框。
@@ -968,6 +998,19 @@ const markTaskScores = ref<Record<string, { ai: number; final: number }>>({});
 /** 结构视图刷新令牌：每次点「查看」或判分完成时递增，强制重挂载拿最新结构 */
 const markSheetKey = ref(0);
 const markForm = reactive({ paperId: null as number | null, studentId: "", mode: "SELF", maxScore: 100 });
+
+/** 阅卷记录表列配置 */
+const markTaskColumns: ReTableColumn[] = [
+  { prop: "markingTaskTaskId", label: "任务号", minWidth: 190, showOverflowTooltip: true },
+  { prop: "markingTaskMode", label: "类型", width: 80, slot: "markingTaskMode" },
+  { prop: "taskPaper", label: "试卷", minWidth: 140, showOverflowTooltip: true, slot: "taskPaper" },
+  { prop: "taskStudent", label: "学生", width: 90, showOverflowTooltip: true, slot: "taskStudent" },
+  { prop: "taskStatus", label: "状态", width: 90, slot: "taskStatus" },
+  { prop: "taskAiScore", label: "AI 总分", width: 80, slot: "taskAiScore" },
+  { prop: "taskFinalScore", label: "老师总分", width: 90, slot: "taskFinalScore" },
+  { prop: "markingTaskStartTime", label: "创建时间", minWidth: 150 },
+  { prop: "taskActions", label: "操作", width: 90, slot: "taskActions" },
+];
 
 /** AI 总分 / 老师总分：老师总分 = Σ(老师分 ?? AI 分)，老师为主（与后端 totalScore 同口径） */
 const markAiTotal = computed(() => scoreOf(markResult.value).ai);

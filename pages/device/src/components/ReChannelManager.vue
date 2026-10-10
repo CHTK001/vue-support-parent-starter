@@ -7,36 +7,43 @@
       </el-button>
     </div>
 
-    <el-table :data="channels" style="width: 100%" v-loading="loading">
-      <el-table-column prop="deviceChannelNo" label="通道号" width="90" />
-      <el-table-column prop="deviceChannelName" label="通道名称" min-width="140" />
-      <el-table-column prop="deviceChannelType" label="类型" width="100">
-        <template #default="{ row }">
-          <el-tag effect="plain">{{ channelTypeLabel(row.deviceChannelType) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="deviceChannelSort" label="排序" width="80" />
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-switch
-            :model-value="row.deviceChannelStatus === 'enabled'"
-            active-text="启用"
-            inactive-text="禁用"
+    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+         pagination/toolbar 关闭，不新增页码控件与工具栏按钮；
+         v-loading → :loading（同语义透传）；
+         原表未写 border → settings.border=false 显式抑制默认边框；
+         原表无 height/maxHeight → layout-table.minHeight=0：抑制 ReTable 缺省开启的
+         fill（表头固定内滚）与空态 440px min-height，保持「内容多高表多高 + 整页滚动」。 -->
+    <ReTable
+      :data="channels"
+      :columns="channelColumns"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :loading="loading"
+      :layout-table="{ minHeight: 0 }"
+      :settings="{ border: false }"
+      style="width: 100%"
+    >
+      <template #col-deviceChannelType="{ row }">
+        <el-tag effect="plain">{{ channelTypeLabel(channelOf(row).deviceChannelType) }}</el-tag>
+      </template>
+      <template #col-status="{ row }">
+        <el-switch
+          :model-value="channelOf(row).deviceChannelStatus === 'enabled'"
+          active-text="启用"
+          inactive-text="禁用"
 
-            @change="(val: any) => toggleStatus(row, val)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="140">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" @click="removeChannel(row)">删除</el-button>
-        </template>
-      </el-table-column>
+          @change="(val: any) => toggleStatus(channelOf(row), val)"
+        />
+      </template>
+      <template #col-actions="{ row }">
+        <el-button link type="primary" @click="openEdit(channelOf(row))">编辑</el-button>
+        <el-button link type="danger" @click="removeChannel(channelOf(row))">删除</el-button>
+      </template>
       <template #empty>
         <el-empty description="暂无通道" :image-size="50" />
       </template>
-    </el-table>
+    </ReTable>
 
     <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑通道' : '添加通道'" width="460" append-to-body>
       <el-form :model="form" label-width="90">
@@ -74,7 +81,34 @@ import { deviceApi } from '@/api/deviceApi'
 import type { DeviceChannel } from '@/types/device'
 
 
-import ReDialog from "@repo/ui/re-dialog";const props = defineProps<{
+import ReDialog from "@repo/ui/re-dialog";
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
+
+/**
+ * 列配置：原模板 6 个 el-table-column 收敛到数组。
+ * 标题是静态文案（无 t()），普通常量即可。
+ * 「状态」「操作」两列原本就没有 prop（纯模板列），按规格造合成 prop status / actions。
+ */
+const channelColumns: ReTableColumn[] = [
+  { prop: 'deviceChannelNo', label: '通道号', width: 90 },
+  { prop: 'deviceChannelName', label: '通道名称', minWidth: 140 },
+  { prop: 'deviceChannelType', label: '类型', width: 100, slot: 'deviceChannelType' },
+  { prop: 'deviceChannelSort', label: '排序', width: 80 },
+  { prop: 'status', label: '状态', width: 100, slot: 'status' },
+  { prop: 'actions', label: '操作', width: 140, slot: 'actions' },
+]
+
+/**
+ * ReTable 列插槽的 row 是宽类型（字段为 unknown），直接传给
+ * {@link channelTypeLabel} / {@link openEdit} / {@link toggleStatus} 等强类型函数会 TS2345。
+ * 这里统一收窄回 {@link DeviceChannel}，模板里不再散落断言。
+ */
+function channelOf(row: Record<string, unknown>): DeviceChannel {
+  return row as unknown as DeviceChannel
+}
+
+const props = defineProps<{
   deviceId: string
 }>()
 

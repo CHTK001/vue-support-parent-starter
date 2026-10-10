@@ -74,16 +74,22 @@
         <template #header>
           <span class="font-bold">必填管线模型</span>
         </template>
-        <el-table :data="requiredModels" stripe border style="width: 100%">
-          <el-table-column prop="name" label="模型名称" min-width="150" />
-          <el-table-column prop="provider" label="供应商" width="120" />
-          <el-table-column prop="capability" label="能力" width="150" />
-          <el-table-column prop="enabled" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
+        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 保持原 DOM；原表带 border →
+             ReTable 默认省略；分页/工具栏关闭（页面没有分页）；无 height → :layout-table minHeight。 -->
+        <ReTable
+          :data="requiredModels"
+          :columns="pipelineModelColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :layout-table="{ minHeight: 0 }"
+          stripe
+          style="width: 100%"
+        >
+          <template #col-enabled="{ row }">
+            <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
+          </template>
+        </ReTable>
       </el-card>
 
       <!-- 非必填管线模型 -->
@@ -91,16 +97,21 @@
         <template #header>
           <span class="font-bold">非必填管线模型</span>
         </template>
-        <el-table :data="optionalModels" stripe border style="width: 100%">
-          <el-table-column prop="name" label="模型名称" min-width="150" />
-          <el-table-column prop="provider" label="供应商" width="120" />
-          <el-table-column prop="capability" label="能力" width="150" />
-          <el-table-column prop="enabled" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
+        <!-- 同上：裸 el-table → ReTable（两张表列结构相同，共用 pipelineModelColumns） -->
+        <ReTable
+          :data="optionalModels"
+          :columns="pipelineModelColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :layout-table="{ minHeight: 0 }"
+          stripe
+          style="width: 100%"
+        >
+          <template #col-enabled="{ row }">
+            <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
+          </template>
+        </ReTable>
       </el-card>
     </div>
   </div>
@@ -111,7 +122,20 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { pipelineApi } from '@/services/javaApi';
+
+/**
+ * 「管线模型」列配置：两张表（必填 / 非必填）结构完全相同，原各 4 个 el-table-column
+ * 收敛成一份数组共用；enabled 列带 {@code <template #default>} → slot + 两张表各自的 #col-enabled。
+ */
+const pipelineModelColumns: ReTableColumn[] = [
+  { prop: 'name', label: '模型名称', minWidth: 150 },
+  { prop: 'provider', label: '供应商', width: 120 },
+  { prop: 'capability', label: '能力', width: 150 },
+  { prop: 'enabled', label: '状态', width: 100, slot: 'enabled' },
+];
 
 const route = useRoute();
 const pipelineCode = computed(() => route.params.pipeline as string);

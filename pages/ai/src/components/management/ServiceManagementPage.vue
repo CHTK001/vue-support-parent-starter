@@ -12,42 +12,47 @@
             </div>
 
             <div class="panel-card panel-card--fill">
-              <el-table :data="instances" v-loading="loading" stripe class="flat-table" height="100%">
-                <el-table-column prop="name" label="名称" min-width="130" />
-                <el-table-column prop="port" label="端口" width="76" />
-                <el-table-column label="协议" min-width="150">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.enableGpt" style="margin-right:4px">GPT</el-tag>
-                    <el-tag v-if="row.enableCc" type="success" style="margin-right:4px">CC</el-tag>
-                    <el-tag v-if="row.enableGemini" type="warning">Gemini</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="logUsage" label="记录用量" min-width="96">
-                  <template #default="{ row }">
-                    <el-tag :type="row.logUsage ? 'success' : 'info'" >
-                      {{ row.logUsage ? '开启' : '关闭' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="状态" min-width="92">
-                  <template #default="{ row }">
-                    <el-tag :type="row.running ? 'success' : 'info'" >
-                      {{ row.running ? '运行中' : '已停止' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" min-width="220">
-                  <template #default="{ row }">
-                    <el-button @click="toggleInstance(row)">
-                      {{ row.running ? '停止' : '启动' }}
-                    </el-button>
-                    <el-button @click="goTokens(row)">令牌</el-button>
-                    <el-button type="danger" plain :disabled="row.running"
-                      :title="row.running ? '请先停止该服务实例，再删除' : ''"
-                      @click="deleteInstance(row)">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+              <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+                   原表 height="100%" → :layout-table="{ height: '100%' }"（带 height 即走固定高度分支，
+                   按规格无需再补 minHeight）；pagination/toolbar 关闭，页面没有分页与工具栏；
+                   原表没有 border → :settings="{ border: false }"；v-loading → :loading。 -->
+              <ReTable
+                :data="instances"
+                :columns="instanceColumns"
+                :loading="loading"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :layout-table="{ height: '100%' }"
+                :settings="{ border: false }"
+                stripe
+                class="flat-table"
+              >
+                <template #col-protocol="{ row }">
+                  <el-tag v-if="row.enableGpt" style="margin-right:4px">GPT</el-tag>
+                  <el-tag v-if="row.enableCc" type="success" style="margin-right:4px">CC</el-tag>
+                  <el-tag v-if="row.enableGemini" type="warning">Gemini</el-tag>
+                </template>
+                <template #col-logUsage="{ row }">
+                  <el-tag :type="row.logUsage ? 'success' : 'info'" >
+                    {{ row.logUsage ? '开启' : '关闭' }}
+                  </el-tag>
+                </template>
+                <template #col-status="{ row }">
+                  <el-tag :type="row.running ? 'success' : 'info'" >
+                    {{ row.running ? '运行中' : '已停止' }}
+                  </el-tag>
+                </template>
+                <template #col-actions="{ row }">
+                  <el-button @click="toggleInstance(row)">
+                    {{ row.running ? '停止' : '启动' }}
+                  </el-button>
+                  <el-button @click="goTokens(row)">令牌</el-button>
+                  <el-button type="danger" plain :disabled="row.running"
+                    :title="row.running ? '请先停止该服务实例，再删除' : ''"
+                    @click="deleteInstance(row)">删除</el-button>
+                </template>
+              </ReTable>
             </div>
           </div>
 
@@ -64,23 +69,24 @@
               </div>
             </div>
             <div class="panel-card panel-card--fill">
-              <el-table :data="logs" v-loading="logsLoading" stripe class="flat-table" height="100%">
-                <el-table-column prop="callTime" label="时间" min-width="160" />
-                <el-table-column prop="endpoint" label="端点" min-width="170" show-overflow-tooltip />
-                <el-table-column prop="protocol" label="协议" min-width="84" />
-                <el-table-column prop="model" label="模型" min-width="140" show-overflow-tooltip />
-                <el-table-column prop="status" label="状态" min-width="76" />
-                <el-table-column label="输入/输出" min-width="104">
-                  <template #default="{ row }">
-                    {{ row.promptTokens ?? 0 }} / {{ row.completionTokens ?? 0 }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="totalTokens" label="总Token" min-width="94" />
-                <el-table-column label="耗时" min-width="94">
-                  <template #default="{ row }">{{ formatLatency(row.latency) }}</template>
-                </el-table-column>
-                <el-table-column prop="clientIp" label="来源IP" min-width="124" />
-              </el-table>
+              <!-- 同上：裸 el-table → ReTable（height="100%" → layout-table.height，无 border） -->
+              <ReTable
+                :data="logs"
+                :columns="logColumns"
+                :loading="logsLoading"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :layout-table="{ height: '100%' }"
+                :settings="{ border: false }"
+                stripe
+                class="flat-table"
+              >
+                <template #col-tokens="{ row }">
+                  {{ row.promptTokens ?? 0 }} / {{ row.completionTokens ?? 0 }}
+                </template>
+                <template #col-latency="{ row }">{{ formatLatency(row.latency) }}</template>
+              </ReTable>
             </div>
           </div>
         </div>
@@ -154,10 +160,38 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { createClient, v2Http } from '@/framework/context'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import { ArrowClockwise24Regular } from '@vicons/fluent'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
 
 
 import ReDialog from '@repo/ui/re-dialog';const http = createClient(v2Http, { unwrap: false })
 const router = useRouter()
+
+/**
+ * 「服务实例」表列配置：原模板里的 6 个 el-table-column 收敛为数组。
+ * 协议 / 记录用量 / 状态 / 操作原本没有 prop 或带默认插槽 → 合成 prop + slot。
+ */
+const instanceColumns: ReTableColumn[] = [
+  { prop: 'name', label: '名称', minWidth: 130 },
+  { prop: 'port', label: '端口', width: 76 },
+  { prop: 'protocol', label: '协议', minWidth: 150, slot: 'protocol' },
+  { prop: 'logUsage', label: '记录用量', minWidth: 96, slot: 'logUsage' },
+  { prop: 'status', label: '状态', minWidth: 92, slot: 'status' },
+  { prop: 'actions', label: '操作', minWidth: 220, slot: 'actions' },
+]
+
+/** 「访问日志」表列配置：原模板里的 9 个 el-table-column 收敛为数组。 */
+const logColumns: ReTableColumn[] = [
+  { prop: 'callTime', label: '时间', minWidth: 160 },
+  { prop: 'endpoint', label: '端点', minWidth: 170, showOverflowTooltip: true },
+  { prop: 'protocol', label: '协议', minWidth: 84 },
+  { prop: 'model', label: '模型', minWidth: 140, showOverflowTooltip: true },
+  { prop: 'status', label: '状态', minWidth: 76 },
+  { prop: 'tokens', label: '输入/输出', minWidth: 104, slot: 'tokens' },
+  { prop: 'totalTokens', label: '总Token', minWidth: 94 },
+  { prop: 'latency', label: '耗时', minWidth: 94, slot: 'latency' },
+  { prop: 'clientIp', label: '来源IP', minWidth: 124 },
+]
 
 const toBool = (v: any) => v === 1 || v === true
 function asList(payload: any, key: string): any[] {

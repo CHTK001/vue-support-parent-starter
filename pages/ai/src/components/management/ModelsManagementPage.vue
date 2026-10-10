@@ -24,72 +24,72 @@
       </div>
     </div>
 
-    <!-- 模型列表表格 -->
-    <el-table :data="filteredModels" v-loading="loading" border stripe style="width: 100%">
-      <el-table-column prop="modelName" label="模型名称" min-width="180">
-        <template #default="{ row }">
-          <div class="model-name-cell">
-            <span class="model-name">{{ row.modelName }}</span>
-            <el-tag v-if="row.modelEnabled" type="success" style="margin-left: 8px">启用</el-tag>
-            <el-tag v-else type="info" style="margin-left: 8px">禁用</el-tag>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="modelCode" label="模型编码" min-width="150" />
-      <el-table-column prop="modelAliases" label="别名" min-width="150">
-        <template #default="{ row }">
-          <div class="aliases-cell">
-            <el-tag
-              v-for="(alias, idx) in parseAliases(row.modelAliases)"
-              :key="idx"
-
-              type="warning"
-              style="margin: 2px"
-            >
-              {{ alias }}
-            </el-tag>
-            <span v-if="!parseAliases(row.modelAliases)?.length" class="text-muted">-</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="modelProviderId" label="提供商" min-width="120" />
-      <el-table-column prop="modelCapabilities" label="能力" min-width="150">
-        <template #default="{ row }">
+    <!-- 模型列表表格：裸 el-table → ReTable（engine="element" 保持原 DOM；原表带 border 走
+         ReTable 默认；分页由下方 el-pagination 自管 → :pagination="false"；toolbar 关闭；
+         原表无 height → :layout-table="{ minHeight: 0 }" 抑制空态 440px 与 fill 内滚）。 -->
+    <ReTable
+      :data="filteredModels"
+      :columns="modelColumns"
+      :loading="loading"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+      stripe
+      style="width: 100%"
+    >
+      <template #col-modelName="{ row }">
+        <div class="model-name-cell">
+          <span class="model-name">{{ row.modelName }}</span>
+          <el-tag v-if="row.modelEnabled" type="success" style="margin-left: 8px">启用</el-tag>
+          <el-tag v-else type="info" style="margin-left: 8px">禁用</el-tag>
+        </div>
+      </template>
+      <template #col-modelAliases="{ row }">
+        <div class="aliases-cell">
           <el-tag
-            v-for="(cap, idx) in parseCapabilities(row.modelCapabilities)"
+            v-for="(alias, idx) in parseAliases(row.modelAliases)"
             :key="idx"
 
+            type="warning"
             style="margin: 2px"
           >
-            {{ cap }}
+            {{ alias }}
           </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="延迟" width="140" align="center">
-        <template #default="{ row }">
-          <div v-if="row.modelLastLatency" class="latency-cell">
-            <span :class="getLatencyClass(row.modelLastLatency)">
-              {{ row.modelLastLatency }}ms
-            </span>
-            <span class="latency-time">{{ formatTime(row.modelLastTestTime) }}</span>
-          </div>
-          <span v-else class="text-muted">未测试</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="testLatency(row)" :loading="row.testing">
-            <el-icon><Timer /></el-icon> 测试延迟
-          </el-button>
-          <el-button type="primary" link @click="openEditDialog(row)">
-            <el-icon><Edit /></el-icon> 编辑
-          </el-button>
-          <el-button type="danger" link @click="deleteModel(row)">
-            <el-icon><Delete /></el-icon> 删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+          <span v-if="!parseAliases(row.modelAliases)?.length" class="text-muted">-</span>
+        </div>
+      </template>
+      <template #col-modelCapabilities="{ row }">
+        <el-tag
+          v-for="(cap, idx) in parseCapabilities(row.modelCapabilities)"
+          :key="idx"
+
+          style="margin: 2px"
+        >
+          {{ cap }}
+        </el-tag>
+      </template>
+      <template #col-latency="{ row }">
+        <div v-if="row.modelLastLatency" class="latency-cell">
+          <span :class="getLatencyClass(row.modelLastLatency)">
+            {{ row.modelLastLatency }}ms
+          </span>
+          <span class="latency-time">{{ formatTime(row.modelLastTestTime) }}</span>
+        </div>
+        <span v-else class="text-muted">未测试</span>
+      </template>
+      <template #col-actions="{ row }">
+        <el-button type="primary" link @click="testLatency(row)" :loading="row.testing">
+          <el-icon><Timer /></el-icon> 测试延迟
+        </el-button>
+        <el-button type="primary" link @click="openEditDialog(row)">
+          <el-icon><Edit /></el-icon> 编辑
+        </el-button>
+        <el-button type="danger" link @click="deleteModel(row)">
+          <el-icon><Delete /></el-icon> 删除
+        </el-button>
+      </template>
+    </ReTable>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
@@ -230,8 +230,26 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh, Edit, Delete, Timer } from '@element-plus/icons-vue';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { modelApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+
+/**
+ * 列配置：原模板里的 7 个 el-table-column 收敛为数组。
+ *
+ * <p>「延迟」「操作」原本无 prop 且带 {@code <template #default>} → 合成 prop（latency / actions）
+ * + {@code slot}，模板里对应 {@code #col-latency} / {@code #col-actions}。</p>
+ */
+const modelColumns: ReTableColumn[] = [
+  { prop: 'modelName', label: '模型名称', minWidth: 180, slot: 'modelName' },
+  { prop: 'modelCode', label: '模型编码', minWidth: 150 },
+  { prop: 'modelAliases', label: '别名', minWidth: 150, slot: 'modelAliases' },
+  { prop: 'modelProviderId', label: '提供商', minWidth: 120 },
+  { prop: 'modelCapabilities', label: '能力', minWidth: 150, slot: 'modelCapabilities' },
+  { prop: 'latency', label: '延迟', width: 140, align: 'center', slot: 'latency' },
+  { prop: 'actions', label: '操作', width: 280, fixed: 'right', align: 'center', slot: 'actions' },
+];
 
 const loading = ref(false);
 const models = ref<any[]>([]);

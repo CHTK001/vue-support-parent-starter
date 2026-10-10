@@ -13,6 +13,8 @@ import { deleteProvider, listChannels, pageForLog, pageForProvider, pageForTempl
 import type { MessageProvider } from "../api/types";
 import ReStatCard from "../components/ReStatCard.vue";
 import ReProviderFormDialog from "../components/ReProviderFormDialog.vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const router = useRouter();
 
@@ -50,6 +52,17 @@ const statsLoading = ref(false);
 const dialogVisible = ref(false);
 const form = reactive<MessageProvider>({});
 const saving = ref(false);
+
+/** 提供商表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
+const providerColumns: ReTableColumn[] = [
+  { prop: "sysMessageProviderName", label: "提供商", minWidth: 180, slot: "sysMessageProviderName" },
+  { prop: "sysMessageProviderType", label: "类型", width: 100, slot: "sysMessageProviderType" },
+  { prop: "sysMessageProviderVender", label: "渠道", minWidth: 140, slot: "sysMessageProviderVender" },
+  { prop: "sysMessageProviderEndpoint", label: "端点地址", minWidth: 160, showOverflowTooltip: true, slot: "sysMessageProviderEndpoint" },
+  { prop: "interval", label: "防抖间隔", width: 110, slot: "interval" },
+  { prop: "status", label: "状态", width: 90, slot: "status" },
+  { prop: "actions", label: "操作", width: 250, fixed: "right", slot: "actions" },
+];
 
 // 渠道标识 → 中文名称映射（来自 SPI 描述，列表展示用）
 const channelLabelMap = ref<Record<string, string>>({});
@@ -291,73 +304,74 @@ onMounted(() => {
 
     <!-- 提供商列表 -->
     <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <el-table v-loading="loading" :data="list" stripe class="w-full">
-        <el-table-column prop="sysMessageProviderName" label="提供商" min-width="180">
-          <template #default="{ row }">
-            <div class="flex items-center gap-3">
-              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[--el-fill-color-light]">
-                <el-icon :size="16" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
-              </div>
-              <div>
-                <div class="text-sm font-medium text-[--el-text-color-primary]">
-                  {{ row.sysMessageProviderName }}
-                </div>
-                <div class="text-xs text-[--el-text-color-secondary]">{{ row.sysMessageProviderCode }}</div>
-              </div>
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+           原表没有 border → :settings="{ border: false }"；stripe 同名保留；v-loading → :loading；
+           分页仍由下方 el-pagination 自管，ReTable 自带分页/工具栏关闭；minHeight:0 关掉 fill
+           与空态 440px 强撑。 -->
+      <ReTable
+        :loading="loading"
+        :data="list"
+        :columns="providerColumns"
+        stripe
+        class="w-full"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+      >
+        <template #col-sysMessageProviderName="{ row }">
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[--el-fill-color-light]">
+              <el-icon :size="16" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
             </div>
+            <div>
+              <div class="text-sm font-medium text-[--el-text-color-primary]">
+                {{ row.sysMessageProviderName }}
+              </div>
+              <div class="text-xs text-[--el-text-color-secondary]">{{ row.sysMessageProviderCode }}</div>
+            </div>
+          </div>
+        </template>
+        <template #col-sysMessageProviderType="{ row }">
+          <el-tag effect="plain">{{ row.sysMessageProviderType }}</el-tag>
+        </template>
+        <template #col-sysMessageProviderVender="{ row }">
+          <span class="text-[--el-text-color-secondary]">
+            {{ channelLabel(row.sysMessageProviderVender) }}
+          </span>
+        </template>
+        <template #col-sysMessageProviderEndpoint="{ row }">
+          <span class="text-[--el-text-color-secondary]">{{ endpointOf(row) || "-" }}</span>
+        </template>
+        <template #col-interval="{ row }">
+          <template v-if="row.sysMessageProviderInterval && row.sysMessageProviderInterval > 0">
+            <span class="text-[--el-text-color-secondary]">{{ row.sysMessageProviderInterval }} 分钟</span>
           </template>
-        </el-table-column>
-        <el-table-column prop="sysMessageProviderType" label="类型" width="100">
-          <template #default="{ row }">
-            <el-tag effect="plain">{{ row.sysMessageProviderType }}</el-tag>
+          <template v-else-if="row.sysMessageProviderInterval === 0">
+            <span class="text-xs text-[--el-text-color-secondary]">不限</span>
           </template>
-        </el-table-column>
-        <el-table-column prop="sysMessageProviderVender" label="渠道" min-width="140">
-          <template #default="{ row }">
-            <span class="text-[--el-text-color-secondary]">
-              {{ channelLabel(row.sysMessageProviderVender) }}
-            </span>
+          <template v-else>
+            <span class="text-xs text-[--el-text-color-secondary]">默认 1 分钟</span>
           </template>
-        </el-table-column>
-        <el-table-column prop="sysMessageProviderEndpoint" label="端点地址" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="text-[--el-text-color-secondary]">{{ endpointOf(row) || "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="防抖间隔" width="110">
-          <template #default="{ row }">
-            <template v-if="row.sysMessageProviderInterval && row.sysMessageProviderInterval > 0">
-              <span class="text-[--el-text-color-secondary]">{{ row.sysMessageProviderInterval }} 分钟</span>
-            </template>
-            <template v-else-if="row.sysMessageProviderInterval === 0">
-              <span class="text-xs text-[--el-text-color-secondary]">不限</span>
-            </template>
-            <template v-else>
-              <span class="text-xs text-[--el-text-color-secondary]">默认 1 分钟</span>
-            </template>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-switch
-              :model-value="row.sysMessageProviderStatus === 1"
-              @change="handleStatus(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openTemplates(row.sysMessageProviderId)">
-              <el-icon class="mr-0.5" :size="14"><Memo /></el-icon>模板
-            </el-button>
-            <el-button link type="primary" @click="openLogs(row.sysMessageProviderId)">
-              <el-icon class="mr-0.5" :size="14"><Document /></el-icon>日志
-            </el-button>
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        </template>
+        <template #col-status="{ row }">
+          <el-switch
+            :model-value="row.sysMessageProviderStatus === 1"
+            @change="handleStatus(row)"
+          />
+        </template>
+        <template #col-actions="{ row }">
+          <el-button link type="primary" @click="openTemplates(row.sysMessageProviderId)">
+            <el-icon class="mr-0.5" :size="14"><Memo /></el-icon>模板
+          </el-button>
+          <el-button link type="primary" @click="openLogs(row.sysMessageProviderId)">
+            <el-icon class="mr-0.5" :size="14"><Document /></el-icon>日志
+          </el-button>
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </ReTable>
       <div class="mt-4 flex justify-end">
         <el-pagination
           :total="pagination.total"

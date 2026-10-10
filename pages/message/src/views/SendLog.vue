@@ -15,6 +15,8 @@ import ReProviderFilterBar from "../components/ReProviderFilterBar.vue";
 import ReLogDetailDialog from "../components/ReLogDetailDialog.vue";
 import ReStationMessage from "@repo/ui/re-station-message";
 import ReTime from "@repo/ui/re-time";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { costMs } from "@repo/utils";
 
 const route = useRoute();
@@ -41,6 +43,19 @@ const list = ref<MessageLog[]>([]);
 const providers = ref<MessageProvider[]>([]);
 const total = ref(0);
 const loading = ref(false);
+
+/** 推送日志表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
+const logColumns: ReTableColumn[] = [
+  { prop: "sysMessageLogTarget", label: "接收人", minWidth: 140 },
+  { prop: "sysMessageLogChannel", label: "渠道", width: 110, slot: "sysMessageLogChannel" },
+  { prop: "status", label: "状态", width: 90, slot: "status" },
+  { prop: "readStatus", label: "阅读", width: 90, slot: "readStatus" },
+  { prop: "sysMessageLogSubject", label: "主题", minWidth: 140, showOverflowTooltip: true, slot: "sysMessageLogSubject" },
+  { prop: "sysMessageLogContent", label: "内容", minWidth: 200, showOverflowTooltip: true },
+  { prop: "cost", label: "耗时", width: 100, slot: "cost" },
+  { prop: "createTime", label: "发送时间", width: 170 },
+  { prop: "actions", label: "操作", width: 90, fixed: "right", slot: "actions" },
+];
 
 /** 当前提供商（用于上下文展示） */
 const currentProvider = computed(() =>
@@ -209,56 +224,54 @@ onMounted(() => {
         <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
         <el-button :icon="Refresh" @click="handleReset">重置</el-button>
       </div>
-      <el-table v-loading="loading" :data="list" stripe class="w-full">
-        <el-table-column prop="sysMessageLogTarget" label="接收人" min-width="140" />
-        <el-table-column prop="sysMessageLogChannel" label="渠道" width="110">
-          <template #default="{ row }">
-            <el-tag  effect="plain">{{ row.sysMessageLogChannel }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+           原表没有 border → :settings="{ border: false }"；stripe 同名保留；v-loading → :loading；
+           分页仍由下方 el-pagination 自管，ReTable 自带分页/工具栏关闭；minHeight:0 关掉 fill
+           与空态 440px 强撑。下同。 -->
+      <ReTable
+        :loading="loading"
+        :data="list"
+        :columns="logColumns"
+        stripe
+        class="w-full"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+      >
+        <template #col-sysMessageLogChannel="{ row }">
+          <el-tag effect="plain">{{ row.sysMessageLogChannel }}</el-tag>
+        </template>
+        <template #col-status="{ row }">
+          <el-tag
+            :type="row.sysMessageCode === 'SUCCESS' ? 'success' : 'danger'"
+            effect="plain"
+          >
+            {{ row.sysMessageCode === "SUCCESS" ? "成功" : "失败" }}
+          </el-tag>
+        </template>
+        <template #col-readStatus="{ row }">
+          <template v-if="row.sysMessageTrackToken">
             <el-tag
-              
-              :type="row.sysMessageCode === 'SUCCESS' ? 'success' : 'danger'"
+              :type="row.sysMessageReadStatus === 1 ? 'success' : 'info'"
               effect="plain"
             >
-              {{ row.sysMessageCode === "SUCCESS" ? "成功" : "失败" }}
+              {{ row.sysMessageReadStatus === 1 ? "已读" : "未读" }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="阅读" width="90">
-          <template #default="{ row }">
-            <template v-if="row.sysMessageTrackToken">
-              <el-tag
-                
-                :type="row.sysMessageReadStatus === 1 ? 'success' : 'info'"
-                effect="plain"
-              >
-                {{ row.sysMessageReadStatus === 1 ? "已读" : "未读" }}
-              </el-tag>
-            </template>
-            <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysMessageLogSubject" label="主题" min-width="140" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span>{{ row.sysMessageLogSubject ?? "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysMessageLogContent" label="内容" min-width="200" show-overflow-tooltip />
-        <el-table-column label="耗时" width="100">
-          <template #default="{ row }">
-            <span class="text-[--el-text-color-secondary]"><ReTime :value="costMs(row.sysMessageCost)" format="duration" placeholder="—" /></span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="发送时间" width="170" />
-        <el-table-column label="操作" width="90" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="showDetail(row)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
+        </template>
+        <template #col-sysMessageLogSubject="{ row }">
+          <span>{{ row.sysMessageLogSubject ?? "-" }}</span>
+        </template>
+        <template #col-cost="{ row }">
+          <span class="text-[--el-text-color-secondary]"><ReTime :value="costMs(row.sysMessageCost)" format="duration" placeholder="—" /></span>
+        </template>
+        <template #col-actions="{ row }">
+          <el-button link type="primary" @click="showDetail(row)">详情</el-button>
+        </template>
+      </ReTable>
       <div class="mt-4 flex justify-end">
         <el-pagination
           :total="pagination.total"

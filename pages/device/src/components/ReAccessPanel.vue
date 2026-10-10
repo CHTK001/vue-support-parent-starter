@@ -22,13 +22,25 @@
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
       </div>
-      <el-table :data="events" style="width:100%">
-        <el-table-column prop="time" label="时间" width="180" />
-        <el-table-column prop="doorName" label="门" />
-        <el-table-column prop="eventType" label="事件类型" />
-        <el-table-column prop="cardNo" label="卡号" />
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+           pagination/toolbar 关闭，不新增页码控件与工具栏按钮；
+           原表未写 border → settings.border=false 显式抑制默认边框；
+           原表无 height/maxHeight → layout-table.minHeight=0：抑制 ReTable 缺省开启的
+           fill（表头固定内滚）与空态 440px min-height，保持「内容多高表多高 + 整页滚动」。
+           下方 el-empty 是原模板里直接挂在 el-table 默认插槽的散子元素（并非 #empty 模板），
+           按零回归原样保留为 ReTable 默认插槽子元素，落点与改造前一致（hidden-columns）。 -->
+      <ReTable
+        :data="events as unknown as Record<string, unknown>[]"
+        :columns="accessEventColumns"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+        style="width:100%"
+      >
         <el-empty v-if="events.length === 0" description="无事件" :image-size="40" />
-      </el-table>
+      </ReTable>
     </el-card>
   </div>
 </template>
@@ -36,6 +48,19 @@
 <script setup lang="ts">
 import { Refresh } from '@element-plus/icons-vue'
 import type { DeviceDoor, AccessEvent } from '@/types/device'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
+
+/**
+ * 列配置：原模板 4 个 el-table-column 收敛到数组。
+ * 标题是静态文案（无 t()），普通常量即可。
+ */
+const accessEventColumns: ReTableColumn[] = [
+  { prop: 'time', label: '时间', width: 180 },
+  { prop: 'doorName', label: '门' },
+  { prop: 'eventType', label: '事件类型' },
+  { prop: 'cardNo', label: '卡号' },
+]
 
 defineProps<{
   doors: DeviceDoor[]

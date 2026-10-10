@@ -25,31 +25,38 @@
     <!-- 数据表格 -->
     <div class="flex-1 overflow-auto p-6">
      <div class="panel-card">
-      <el-table :data="tableData" v-loading="loading" stripe class="flat-table" style="width: 100%">
-        <el-table-column prop="name" label="服务名称" min-width="180" />
-        <el-table-column prop="running" label="运行状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="row.running ? 'success' : 'info'" >
-              {{ row.running ? '运行中' : '已停止' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="pid" label="进程 PID" width="140">
-          <template #default="{ row }">{{ row.pid ?? '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="uptime" label="运行时长" min-width="160">
-          <template #default="{ row }">{{ formatUptime(row.uptime) }}</template>
-        </el-table-column>
-        <el-table-column v-if="admin" label="操作" width="140" fixed="right">
-          <template #default="{ row }">
-            <el-button v-if="!row.running" type="success" link @click="handleStart(row.name)">启动</el-button>
-            <el-button v-else type="warning" link @click="handleStop(row.name)">停止</el-button>
-          </template>
-        </el-table-column>
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+           pagination=false —— 页面没有分页，保持全量直出；toolbar=false 不新增工具栏；
+           原表没有 border → :settings="{ border: false }"；v-loading → :loading；
+           #empty 插槽（原 <template #empty>）ReTable 同名支持，原样保留。 -->
+      <ReTable
+        :data="tableData"
+        :columns="serviceColumns"
+        :loading="loading"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+        stripe
+        class="flat-table"
+        style="width: 100%"
+      >
+        <template #col-running="{ row }">
+          <el-tag :type="row.running ? 'success' : 'info'" >
+            {{ row.running ? '运行中' : '已停止' }}
+          </el-tag>
+        </template>
+        <template #col-pid="{ row }">{{ row.pid ?? '-' }}</template>
+        <template #col-uptime="{ row }">{{ formatUptime(row.uptime) }}</template>
+        <template #col-actions="{ row }">
+          <el-button v-if="!row.running" type="success" link @click="handleStart(row.name)">启动</el-button>
+          <el-button v-else type="warning" link @click="handleStop(row.name)">停止</el-button>
+        </template>
         <template #empty>
           <span class="svc-empty">暂无服务记录，登记启动后此处展示运行状态</span>
         </template>
-      </el-table>
+      </ReTable>
      </div>
     </div>
 
@@ -69,10 +76,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
 import { isAdmin } from '@repo/core';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { serviceApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
 
@@ -82,6 +91,25 @@ const saving = ref(false);
 const tableData = ref<any[]>([]);
 const dialogVisible = ref(false);
 const newServiceName = ref('');
+
+/**
+ * 列配置：原模板里的 5 个 el-table-column 收敛为数组。
+ *
+ * <p>「操作」列原本带 {@code v-if="admin"}，列级条件渲染改由 computed 里拼接同一列数组实现；
+ * running / pid / uptime 三列带 {@code <template #default>} → 配 {@code slot} + {@code #col-*}。</p>
+ */
+const serviceColumns = computed<ReTableColumn[]>(() => {
+  const cols: ReTableColumn[] = [
+    { prop: 'name', label: '服务名称', minWidth: 180 },
+    { prop: 'running', label: '运行状态', width: 120, slot: 'running' },
+    { prop: 'pid', label: '进程 PID', width: 140, slot: 'pid' },
+    { prop: 'uptime', label: '运行时长', minWidth: 160, slot: 'uptime' },
+  ];
+  if (admin.value) {
+    cols.push({ prop: 'actions', label: '操作', width: 140, fixed: 'right', slot: 'actions' });
+  }
+  return cols;
+});
 
 /** 后端返回 {code,data,msg} 信封，data 为状态数组 */
 function asArray(res: any): any[] {

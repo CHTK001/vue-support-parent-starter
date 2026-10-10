@@ -19,24 +19,28 @@
       两套都渲染、只用 CSS 切换：不引 viewport 状态，就没有 resize 监听和
       首帧闪一下表格的问题。
     -->
-    <el-table v-loading="loading" class="mr-wide" :data="tasks" size="small" border>
-      <el-table-column prop="markingTaskTaskId" label="任务号" min-width="220" />
-      <el-table-column label="类型" width="90">
-        <template #default="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
-      </el-table-column>
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag size="small" :type="statusType(row.markingTaskStatus)">{{ statusLabel(row.markingTaskStatus) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="markingTaskStage" label="阶段" width="120" />
-      <el-table-column prop="markingTaskStartTime" label="时间" min-width="170" />
-      <el-table-column label="操作" width="100">
-        <template #default="{ row }">
-          <el-button link type="primary" @click.stop="viewResult(row)">查看</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+         边框样式（border 走 ReTable 默认 true）；分页/工具栏关闭（原表没有）；
+         minHeight:0 关掉 fill 与空态 440px 强撑；v-loading → :loading。下同。 -->
+    <ReTable
+      :loading="loading"
+      class="mr-wide"
+      :data="tasks"
+      :columns="taskColumns"
+      size="small"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+    >
+      <template #col-markingTaskMode="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
+      <template #col-markingTaskStatus="{ row }">
+        <el-tag size="small" :type="statusType(row.markingTaskStatus)">{{ statusLabel(row.markingTaskStatus) }}</el-tag>
+      </template>
+      <template #col-actions="{ row }">
+        <el-button link type="primary" @click.stop="viewResult(row)">查看</el-button>
+      </template>
+    </ReTable>
 
     <ul v-loading="loading" class="mr-cards">
       <li v-for="row in tasks" :key="row.markingTaskTaskId" class="mr-card">
@@ -63,18 +67,21 @@
           得分 <b>{{ result.totalScore }}</b> · 共 {{ result.results.length }} 题 ·
           {{ result.finished ? "已批改" : "批改中" }}
         </p>
-        <el-table :data="result.results" size="small" border>
-          <el-table-column prop="questionId" label="题号" width="80" />
-          <el-table-column prop="maxScore" label="满分" width="80" />
-          <el-table-column label="得分" width="90">
-            <template #default="{ row }">
-              {{ row.teacherScore != null ? row.teacherScore : row.score }}
-            </template>
-          </el-table-column>
-          <el-table-column label="评语" min-width="220">
-            <template #default="{ row }">{{ row.teacherComment || row.comment || "—" }}</template>
-          </el-table-column>
-        </el-table>
+        <!-- 表格统一 ReTable（替换裸 el-table）：同上；border 走 ReTable 默认 -->
+        <ReTable
+          :data="result.results"
+          :columns="resultColumns"
+          size="small"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :layout-table="{ minHeight: 0 }"
+        >
+          <template #col-score="{ row }">
+            {{ row.teacherScore != null ? row.teacherScore : row.score }}
+          </template>
+          <template #col-comment="{ row }">{{ row.teacherComment || row.comment || "—" }}</template>
+        </ReTable>
       </div>
       <el-empty v-else description="加载中…" />
     </ReDialog>
@@ -93,11 +100,31 @@ import { ElMessage } from "element-plus";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { MarkingResultVO, TeacherMarkingTask } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const loading = ref(false);
 const tasks = ref<TeacherMarkingTask[]>([]);
 const dialogVisible = ref(false);
 const result = ref<MarkingResultVO | null>(null);
+
+/** 记录表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
+const taskColumns: ReTableColumn[] = [
+  { prop: "markingTaskTaskId", label: "任务号", minWidth: 220 },
+  { prop: "markingTaskMode", label: "类型", width: 90, slot: "markingTaskMode" },
+  { prop: "markingTaskStatus", label: "状态", width: 100, slot: "markingTaskStatus" },
+  { prop: "markingTaskStage", label: "阶段", width: 120 },
+  { prop: "markingTaskStartTime", label: "时间", minWidth: 170 },
+  { prop: "actions", label: "操作", width: 100, slot: "actions" },
+];
+
+/** 答题详情表列配置（弹窗里的结果表） */
+const resultColumns: ReTableColumn[] = [
+  { prop: "questionId", label: "题号", width: 80 },
+  { prop: "maxScore", label: "满分", width: 80 },
+  { prop: "score", label: "得分", width: 90, slot: "score" },
+  { prop: "comment", label: "评语", minWidth: 220, slot: "comment" },
+];
 
 const statusLabel = (n?: number) => ({ 0: "待处理", 1: "处理中", 2: "已完成", 3: "失败" })[Number(n ?? 0)] ?? "待处理";
 const statusType = (n?: number) => {
