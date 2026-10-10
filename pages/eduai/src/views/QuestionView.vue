@@ -204,33 +204,28 @@
             </template>
             <template #col-actions="{ row }">
               <!-- 必须 .stop：ReTable 绑了 @row-click 打开编辑，不阻止冒泡会再多弹一次 -->
-              <button
-                type="button"
-                class="row-edit-btn"
-                title="编辑"
+              <ReButton
+                layout="square"
+                type="primary"
+                :icon="EditPen"
+                tip="编辑"
                 @click.stop="openEdit(row as unknown as Question)"
-              >
-                <el-icon><EditPen /></el-icon>
-              </button>
+              />
               <template v-if="isAdmin()">
-                <el-button
-                  link
+                <ReButton
+                  layout="square"
                   type="success"
-                  size="small"
-                  title="审核通过"
+                  :icon="CircleCheck"
+                  tip="审核通过"
                   @click.stop="auditOne(row as unknown as Question, true)"
-                >
-                  通过
-                </el-button>
-                <el-button
-                  link
+                />
+                <ReButton
+                  layout="square"
                   type="danger"
-                  size="small"
-                  title="驳回（需填理由）"
+                  :icon="CircleClose"
+                  tip="驳回（需填理由）"
                   @click.stop="auditOne(row as unknown as Question, false)"
-                >
-                  驳回
-                </el-button>
+                />
               </template>
             </template>
             <!-- 空态门控：本页 loading 是自己 div 上的 v-loading，没传给 ReTable，
@@ -290,14 +285,13 @@
                 <span class="status-text">{{ row.questionStatus === 0 ? "草稿" : "已发布" }}</span>
                 <span class="q-card__use">使用 {{ row.questionUseCount ?? 0 }}次</span>
                 <span class="q-card__use">加入 {{ row.questionAddCount ?? 0 }}次</span>
-                <button
-                  type="button"
-                  class="row-edit-btn"
-                  title="编辑"
+                <ReButton
+                  layout="square"
+                  type="primary"
+                  :icon="EditPen"
+                  tip="编辑"
                   @click.stop="openEdit(row)"
-                >
-                  <el-icon><EditPen /></el-icon>
-                </button>
+                />
               </div>
             </div>
           </div>
@@ -681,6 +675,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  CircleCheck,
+  CircleClose,
   Close,
   Delete,
   Document,
@@ -698,6 +694,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduGrade, EduSubject, KnowledgePoint, Question, QuestionGradeDimension } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReTab from "@repo/ui/re-tab";
+import ReButton from "@repo/ui/re-button";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/components/ReTable/types";
 import { isAdmin } from "@repo/core";
@@ -2349,29 +2346,6 @@ onMounted(() => {
   vertical-align: middle;
 }
 
-.row-edit-btn {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: var(--el-radius-md, 8px);
-  background: transparent;
-  color: var(--el-color-primary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
-  outline: none;
-  transition: background var(--el-transition-duration-fast, 0.2s) ease;
-}
-.row-edit-btn:hover {
-  background: var(--el-color-primary-light-8);
-}
-.row-edit-btn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
 .table-footer {
   display: flex;
   align-items: center;
@@ -2384,6 +2358,12 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   font-weight: 600;
+}
+/* 底部分页按钮圆角：el-pagination 的 上一页/下一页/页码 按钮统一读 --el-pagination-border-radius
+   （Element 默认 2px，近乎直角）。这里覆盖成与全局按钮一致的圆角（--el-border-radius-base，
+   koi 映射到 6px）。走 :deep 是因为 el-pagination 是子组件，其内部类名不带本文件的 scoped 标记。 */
+.table-footer :deep(.el-pagination) {
+  --el-pagination-border-radius: var(--el-border-radius-base, 6px);
 }
 
 /* 表单辅助 */
@@ -2419,7 +2399,6 @@ onMounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .stat-card,
   .q-card,
-  .row-edit-btn,
   .answer-chip {
     transition: none;
   }
