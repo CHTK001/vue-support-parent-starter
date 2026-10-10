@@ -104,6 +104,30 @@ export interface SyncPreview {
   warnings: string[];
 }
 
+/** 调试日志的单行（服务端内存采集：时间 / 级别 / 内容） */
+export interface SyncTaskRunLogLine {
+  /** 行时间 HH:mm:ss.SSS */
+  time: string;
+  /** INFO / WARN / ERROR */
+  level: string;
+  /** 内容；ERROR 行可能内嵌换行（完整堆栈） */
+  message: string;
+}
+
+/** 一次执行的调试日志（过程日志，不是结果摘要） */
+export interface SyncTaskRunLog {
+  /** MANUAL 手动 / SCHEDULED 定时 / REALTIME 实时录入 */
+  trigger: string;
+  /** RUNNING 进行中 / SUCCESS / FAILED */
+  status: string;
+  /** 执行开始时刻 yyyy-MM-dd HH:mm:ss */
+  runTime: string;
+  /** 已进行/总耗时毫秒 */
+  costMs: number | null;
+  /** 逐步过程行（执行先后顺序） */
+  lines: SyncTaskRunLogLine[];
+}
+
 /**
  * 任务列表
  */
@@ -145,6 +169,13 @@ export const deleteSyncTask = (id: number) =>
  */
 export const runSyncTask = (id: number) =>
   http().post(`/ms/monitor/datasync/tasks/${id}/run`).noToast(true).then(r => unwrap<SyncTaskRunResult>(r));
+
+/**
+ * 查询执行调试日志（服务端内存缓冲：进行中执行在最前，其后已完成执行新在前）
+ * @param id 任务 ID
+ */
+export const fetchSyncTaskLogs = (id: number) =>
+  http().get(`/ms/monitor/datasync/tasks/${id}/logs`).then(r => unwrap<SyncTaskRunLog[]>(r));
 
 /**
  * 启用定时
