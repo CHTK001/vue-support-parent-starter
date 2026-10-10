@@ -116,8 +116,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
 import type { ReTableSearchConfig } from "@repo/ui/re-table";
@@ -229,7 +230,7 @@ const loadConfigs = async () => {
   try {
     configs.value = await eduaiApi.listAllFunConfigs();
   } catch (e) {
-    ElMessage.error("加载配置失败");
+    message.error("加载配置失败");
   } finally {
     loading.value = false;
   }
@@ -268,41 +269,41 @@ const editConfig = (config: FunConfig) => {
 const saveConfig = async () => {
   const f = formData.value;
   if (!f.moduleCode?.trim()) {
-    ElMessage.warning("请填写模块编码");
+    message.warning("请填写模块编码");
     return;
   }
   if (!f.moduleName?.trim()) {
-    ElMessage.warning("请填写模块名称");
+    message.warning("请填写模块名称");
     return;
   }
   if (!f.modulePath?.trim()) {
-    ElMessage.warning("请填写路径");
+    message.warning("请填写路径");
     return;
   }
   if (f.configJson?.trim()) {
     try {
       JSON.parse(f.configJson);
     } catch {
-      ElMessage.warning("配置 JSON 格式不正确");
+      message.warning("配置 JSON 格式不正确");
       return;
     }
   }
   try {
     await eduaiApi.saveFunConfig(f);
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     dialogVisible.value = false;
     loadConfigs();
   } catch (e) {
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   }
 };
 
 const toggleEnabled = async (config: FunConfig) => {
   try {
     await eduaiApi.toggleFunConfig(config.moduleCode, config.enabled);
-    ElMessage.success("更新成功");
+    message.success("更新成功");
   } catch (e) {
-    ElMessage.error("更新失败");
+    message.error("更新失败");
     config.enabled = config.enabled === 1 ? 0 : 1;
   }
 };
@@ -313,11 +314,11 @@ const deleteConfig = async (config: FunConfig) => {
       type: "warning",
     });
     await eduaiApi.deleteFunConfig(config.configId);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     loadConfigs();
   } catch (e) {
     if (e !== "cancel") {
-      ElMessage.error("删除失败");
+      message.error("删除失败");
     }
   }
 };

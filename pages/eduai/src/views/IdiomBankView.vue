@@ -299,8 +299,9 @@
  * 成语内容 CRUD + 适用学段/年级绑定（保存时同步 edu_idiom_grade，供消消乐按学段取材）。
  * 样式统一使用 koi / Element Plus 变量（--el-*）。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom } from "../api/types";
@@ -407,7 +408,7 @@ async function loadList() {
     rows.value = (await eduaiApi.listIdioms({ gradeLevel: applied.gradeLevel || undefined, grade: applied.grade || undefined, count: 5000 })) ?? [];
   } catch {
     rows.value = [];
-    ElMessage.error("加载成语失败");
+    message.error("加载成语失败");
   } finally {
     loading.value = false;
   }
@@ -514,7 +515,7 @@ async function openEdit(row: Idiom) {
 
 const save = async () => {
   if (!form.idiomContent || !form.idiomPinyin || !form.idiomMeaning) {
-    ElMessage.warning("请填写成语/拼音/释义");
+    message.warning("请填写成语/拼音/释义");
     return;
   }
   saving.value = true;
@@ -524,11 +525,11 @@ const save = async () => {
       gradeLevels: formLevels.value,
       grades: formGrades.value,
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     dialogVisible.value = false;
     await loadList();
   } catch (e) {
-    ElMessage.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     saving.value = false;
   }
@@ -546,10 +547,10 @@ async function remove(row: Idiom) {
   }
   try {
     await eduaiApi.deleteIdiom(row.idiomId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await loadList();
   } catch (e) {
-    ElMessage.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 

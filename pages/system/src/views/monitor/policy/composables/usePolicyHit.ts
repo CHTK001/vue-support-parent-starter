@@ -7,9 +7,10 @@
  * <p>统计是<b>内存态</b>（后端 {@code PolicyHitCollector} 单例），进程重启归零，
  * 因此这里不做本地累加，只在写操作后重新拉一次。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage } from "element-plus";
+
 // EChartsOption 是纯类型导入（type）：只用于给两个 computed 标注返回类型，
 // 运行时不需要 echarts 本身，那份体积由 ReEChart 组件引入。
 import type { EChartsOption } from "echarts";
@@ -77,7 +78,7 @@ export function usePolicyHit() {
       const res = await policyHitDetail(type, key);
       hitDetail.value = res.data ?? null;
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : t("policy.hit.loadFailed"));
+      message.error(error instanceof Error ? error.message : t("policy.hit.loadFailed"));
     } finally {
       hitLoading.value = false;
     }

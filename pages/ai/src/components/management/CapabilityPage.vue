@@ -118,9 +118,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
+
 import { Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
@@ -216,7 +217,7 @@ async function loadData() {
     // 加载配置
     await loadConfig();
   } catch (e: any) {
-    ElMessage.error(`加载失败: ${e.message}`);
+    message.error(`加载失败: ${e.message}`);
   } finally {
     loading.value = false;
   }
@@ -250,9 +251,9 @@ async function saveConfig() {
   savingConfig.value = true;
   try {
     await pipelineApi.updateConfig(configGroup.value || pipelineCode.value, configForm);
-    ElMessage.success('配置保存成功');
+    message.success('配置保存成功');
   } catch (e: any) {
-    ElMessage.error(`保存失败: ${e.message}`);
+    message.error(`保存失败: ${e.message}`);
   } finally {
     savingConfig.value = false;
   }

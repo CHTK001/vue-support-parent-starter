@@ -53,8 +53,9 @@
  * 直链已由后端 whitelist 放行（/v2/edu/knowledge-point/file），
  * img/iframe 无需鉴权头即可访问；路径为服务端 UUID 落盘相对路径。
  */
+import { message } from "@repo/core";
 import { computed, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { http } from "@repo/utils";
 import ReDialog from "@repo/ui/re-dialog";
 
@@ -96,7 +97,7 @@ function guessExt(name: string): string {
 function onError() {
   loading.value = false;
   error.value = true;
-  ElMessage.error("预览加载失败");
+  message.error("预览加载失败");
 }
 
 async function download() {

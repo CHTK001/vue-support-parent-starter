@@ -93,8 +93,9 @@
  *   <ReRichText v-model="html" placeholder="编写正文…" />
  *   import ReRichText from "@repo/ui/re-rich-text";
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { ElMessageBox } from "element-plus";
 import { Link, Picture, RefreshLeft, RefreshRight } from "@element-plus/icons-vue";
 import { Editor, EditorContent } from "@tiptap/vue-3";
@@ -301,10 +302,10 @@ function confirmMath() {
   try {
     const ok = editor.chain().focus().insertContent({ type: "inlineMath", attrs: { latex: tex } }).run();
     if (!ok) {
-      ElMessage.error("公式插入失败：编辑器未接受内容");
+      message.error("公式插入失败：编辑器未接受内容");
     }
   } catch (e) {
-    ElMessage.error(`公式插入异常：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`公式插入异常：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

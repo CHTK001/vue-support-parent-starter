@@ -111,9 +111,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { Search, Plus, Delete } from '@element-plus/icons-vue'
-import { isAdmin } from '@repo/core'
+import {isAdmin, message} from '@repo/core'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import CharacterDetailDialog from './CharacterDetailDialog.vue'
 import CharacterFormDialog from './CharacterFormDialog.vue'
@@ -202,7 +202,7 @@ async function load() {
     items.value = merged
   } catch (e) {
     console.error('加载角色市场失败:', e)
-    ElMessage.error('加载角色市场失败')
+    message.error('加载角色市场失败')
   } finally {
     loading.value = false
   }
@@ -225,11 +225,11 @@ async function handleDelete(item: DisplayItem) {
       type: 'warning',
     })
     await apiService.deleteCharacter(item.roleId)
-    ElMessage.success('已删除')
+    message.success('已删除')
     await load()
   } catch (e: any) {
     if (e !== 'cancel' && e?.message !== 'cancel') {
-      ElMessage.error(e?.message || '删除失败')
+      message.error(e?.message || '删除失败')
     }
   }
 }
@@ -265,7 +265,7 @@ async function quickSummon(item: CharacterCatalogItem) {
     item.added = true
     go(roleId)
   } catch (e: any) {
-    ElMessage.error(e?.message || '召唤失败')
+    message.error(e?.message || '召唤失败')
   } finally {
     quickLoadingId.value = ''
   }
@@ -277,7 +277,7 @@ async function handleSummon(detail: CharacterCatalogDetail) {
     const roleId = await ensureRoleId(detail.id, detail.added)
     go(roleId)
   } catch (e: any) {
-    ElMessage.error(e?.message || '召唤失败')
+    message.error(e?.message || '召唤失败')
   } finally {
     addingId.value = ''
   }
@@ -289,7 +289,7 @@ async function handleUsePrompt(detail: CharacterCatalogDetail, prompt: string) {
     const roleId = await ensureRoleId(detail.id, detail.added)
     go(roleId, prompt)
   } catch (e: any) {
-    ElMessage.error(e?.message || '召唤失败')
+    message.error(e?.message || '召唤失败')
   } finally {
     addingId.value = ''
   }

@@ -131,8 +131,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import LDialog from '@/components/ui/LDialog.vue'
 import {
   Info24Regular, Edit24Regular, Image24Regular, WrenchScrewdriver24Regular,
@@ -248,16 +249,16 @@ async function handleSave() {
     }
     if (isEdit.value && editingId.value) {
       await apiService.updateCharacter(editingId.value, payload)
-      ElMessage.success('角色已更新')
+      message.success('角色已更新')
     } else {
       await apiService.createCharacter(payload)
-      ElMessage.success('角色已创建')
+      message.success('角色已创建')
     }
     visible.value = false
     emit('saved')
   } catch (e: any) {
     console.error('保存角色失败:', e)
-    ElMessage.error(e?.message || '保存失败')
+    message.error(e?.message || '保存失败')
   } finally {
     saving.value = false
   }

@@ -240,8 +240,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { isAdmin } from '@repo/core'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import {isAdmin, message} from '@repo/core'
+import { ElMessageBox } from 'element-plus';
 import {
   SearchOutlined, PlusOutlined, SettingsOutlined, LockOutlined, DeleteOutlined,
   EditOutlined, InboxOutlined, ArrowBackOutlined, WifiTetheringOutlined,
@@ -348,15 +348,15 @@ async function handleInstall(card: any) {
       icon: card.icon,
       transport: card.transport,
     })
-    ElMessage.success(`已添加「${card.name}」`)
+    message.success(`已添加「${card.name}」`)
     await loadBound()
     if (card.requiresKey) {
-      ElMessage.warning('该服务器需要 API Key，请在管理中编辑补充环境变量')
+      message.warning('该服务器需要 API Key，请在管理中编辑补充环境变量')
     } else if (card.requiresConfig) {
-      ElMessage.warning('请在管理中编辑确认授权目录等配置')
+      message.warning('请在管理中编辑确认授权目录等配置')
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '添加失败')
+    message.error(e?.message || '添加失败')
   } finally {
     installingId.value = ''
   }
@@ -398,15 +398,15 @@ async function handleFormSave({ id, data }: { id?: string; data: any }) {
   try {
     if (id) {
       await mcpApi.update(id, data)
-      ElMessage.success('已保存')
+      message.success('已保存')
     } else {
       await mcpApi.create(data)
-      ElMessage.success('已添加')
+      message.success('已添加')
     }
     formVisible.value = false
     await loadBound()
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    message.error(e?.message || '保存失败')
   } finally {
     formSaving.value = false
   }
@@ -419,7 +419,7 @@ async function handleToggle(s: any, enabled: boolean) {
     await mcpApi.toggle(s.mcp_server_id, enabled)
     s.enabled = enabled
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    message.error(e?.message || '操作失败')
   }
 }
 async function handleTest(s: any) {
@@ -427,13 +427,13 @@ async function handleTest(s: any) {
   try {
     const res = await mcpApi.testConnection({ mcp_server_id: s.mcp_server_id, name: s.name, transport: s.transport })
     if (res?.data?.success) {
-      ElMessage.success(`连接成功，发现 ${res.data.tools?.length || 0} 个工具`)
+      message.success(`连接成功，发现 ${res.data.tools?.length || 0} 个工具`)
       await loadBound()
     } else {
-      ElMessage.error(res?.data?.error || '连接失败')
+      message.error(res?.data?.error || '连接失败')
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '连接失败')
+    message.error(e?.message || '连接失败')
   } finally {
     testingId.value = ''
   }
@@ -448,10 +448,10 @@ async function handleDelete(s: any) {
   }
   try {
     await mcpApi.delete(s.mcp_server_id)
-    ElMessage.success('已删除')
+    message.success('已删除')
     await loadBound()
   } catch (e: any) {
-    ElMessage.error(e?.message || '删除失败')
+    message.error(e?.message || '删除失败')
   }
 }
 function switchManage() {
@@ -478,17 +478,17 @@ async function openSourceConfig() {
     sourceState.value = state
     sourceVisible.value = true
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载来源失败')
+    message.error(e?.message || '加载来源失败')
   }
 }
 async function saveSourceConfig() {
   sourceSaving.value = true
   try {
     await mcpApi.updateCatalogConfig(sourceState.value)
-    ElMessage.success('来源设置已保存')
+    message.success('来源设置已保存')
     sourceVisible.value = false
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    message.error(e?.message || '保存失败')
   } finally {
     sourceSaving.value = false
   }

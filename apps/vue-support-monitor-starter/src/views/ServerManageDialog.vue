@@ -168,9 +168,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   hasFilterDetail,
   resolveFilterDetail,
@@ -295,8 +296,8 @@ function onProtocolChange() {
 }
 
 async function saveForm() {
-  if (!formData.value.name?.trim()) { ElMessage.error("请输入服务器名称"); return; }
-  if (!formData.value.protocol) { ElMessage.error("请选择协议类型"); return; }
+  if (!formData.value.name?.trim()) { message.error("请输入服务器名称"); return; }
+  if (!formData.value.protocol) { message.error("请选择协议类型"); return; }
   saving.value = true;
   try {
     const payload: ServerNodeRequest = {
@@ -312,15 +313,15 @@ async function saveForm() {
     };
     if (formData.value.id) {
       await updateServerNode(formData.value.id, payload);
-      ElMessage.success("更新成功，配置已实时生效");
+      message.success("更新成功，配置已实时生效");
     } else {
       await createServerNode(payload);
-      ElMessage.success("创建成功");
+      message.success("创建成功");
     }
     formVisible.value = false;
     loadList();
   } catch (e: any) {
-    ElMessage.error(`保存失败：${e?.message ?? e}`);
+    message.error(`保存失败：${e?.message ?? e}`);
   } finally {
     saving.value = false;
   }
@@ -328,18 +329,18 @@ async function saveForm() {
 
 // 启停删
 async function doStart(row: ServerNodeView) {
-  try { await startServerNode(row.id!); ElMessage.success("已启动"); loadList(); }
-  catch (e: any) { ElMessage.error(`启动失败：${e?.message ?? e}`); }
+  try { await startServerNode(row.id!); message.success("已启动"); loadList(); }
+  catch (e: any) { message.error(`启动失败：${e?.message ?? e}`); }
 }
 async function doStop(row: ServerNodeView) {
-  try { await stopServerNode(row.id!); ElMessage.success("已停止"); loadList(); }
-  catch (e: any) { ElMessage.error(`停止失败：${e?.message ?? e}`); }
+  try { await stopServerNode(row.id!); message.success("已停止"); loadList(); }
+  catch (e: any) { message.error(`停止失败：${e?.message ?? e}`); }
 }
 async function doDelete(row: ServerNodeView) {
   try {
     await ElMessageBox.confirm(`确认删除服务器「${row.name}」？将先停止运行实例再删除定义。`, "删除确认", { type: "warning" });
     await deleteServerNode(row.id!);
-    ElMessage.success("已删除");
+    message.success("已删除");
     loadList();
   } catch { /* cancelled */ }
 }
@@ -393,11 +394,11 @@ function openFilterDetail(row: ServerFilterDescriptor) {
     return;
   }
   if (target.kind === "unavailable") {
-    ElMessage.info(target.reason);
+    message.info(target.reason);
     return;
   }
   if (!router.resolve(target.path).matched.length) {
-    ElMessage.info(`当前应用未接入该插件的深度查看页（${target.path}）`);
+    message.info(`当前应用未接入该插件的深度查看页（${target.path}）`);
     return;
   }
   router.push(target.path);
@@ -476,7 +477,7 @@ function removeParam(key: string | number) {
  * 保存 ServerFilter 配置
  */
 function saveFilter() {
-  if (!filterForm.value.name?.trim()) { ElMessage.error("请输入过滤器名称"); return; }
+  if (!filterForm.value.name?.trim()) { message.error("请输入过滤器名称"); return; }
   // 同步 paramKeys 到 params 的 key
   const newParams: Record<string, string> = {};
   Object.entries(filterForm.value.params).forEach(([k, v]) => {
@@ -508,11 +509,11 @@ async function saveFilters() {
       filters: filterList.value,
     };
     await updateServerNode(filterTarget.value.id!, payload);
-    ElMessage.success("过滤器配置已保存，实时生效");
+    message.success("过滤器配置已保存，实时生效");
     filterVisible.value = false;
     loadList();
   } catch (e: any) {
-    ElMessage.error(`保存失败：${e?.message ?? e}`);
+    message.error(`保存失败：${e?.message ?? e}`);
   } finally {
     savingFilters.value = false;
   }
@@ -543,7 +544,7 @@ async function loadList() {
       fetchServerFilterTypes().catch(() => []),
     ]);
   } catch (e: any) {
-    ElMessage.error(`加载失败：${e?.message ?? e}`);
+    message.error(`加载失败：${e?.message ?? e}`);
   } finally {
     loading.value = false;
   }

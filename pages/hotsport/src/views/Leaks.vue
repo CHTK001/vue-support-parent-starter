@@ -56,13 +56,14 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { pageLeaks } from '../api/hotsportApi';
 import type { LeakRecord } from '../api/types';
-import { ElMessage } from 'element-plus';
+
 
 const { t } = useI18n();
 const leaks = ref<LeakRecord[]>([]);
@@ -98,7 +99,7 @@ const fetchLeaks = async () => {
     leaks.value = res.items || res.records || [];
     total.value = res.total || leaks.value.length;
   } catch (e) {
-    ElMessage.error(t('hotsport.leaks.fetchError'));
+    message.error(t('hotsport.leaks.fetchError'));
   }
 };
 

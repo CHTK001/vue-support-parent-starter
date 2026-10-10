@@ -469,9 +469,10 @@
  * - 右栏购物车：usePaperCart(paperId) 维护待上卷题目，支持拖拽/点击上卷。
  * - 保存：先建卷 / 改卷头，再同步增删题与分值，最后按题项编号数组提交排序。
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import QRCode from "qrcode";
 import { Check, Coin, Delete, EditPen, Plus, Rank, Setting, Sort, Upload, Warning } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
@@ -861,7 +862,7 @@ async function loadTemplates() {
     templatesLoaded.value = true;
   } catch (e) {
     templateRows.value = [];
-    ElMessage.error("模板加载失败: " + errorText(e));
+    message.error("模板加载失败: " + errorText(e));
   } finally {
     templatesLoading.value = false;
   }
@@ -901,7 +902,7 @@ function onTemplateChange(id: number | null) {
   if (orientation) {
     settingsDraft.pageOrientation = orientation;
   }
-  ElMessage.success(`已套用模板「${templateNameOf(tpl)}」`);
+  message.success(`已套用模板「${templateNameOf(tpl)}」`);
 }
 
 /* ==================== 维度下拉（工具栏学科 / 年级） ==================== */
@@ -960,9 +961,9 @@ function onMarketPicked(list: MarketQuestion[]) {
   const skipped = mapped.length - fresh.length;
   if (fresh.length) {
     addCartMany(fresh);
-    ElMessage.success(`已加入购物车 ${fresh.length} 题${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
+    message.success(`已加入购物车 ${fresh.length} 题${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
   } else {
-    ElMessage.info("所选题目都已在购物车中");
+    message.info("所选题目都已在购物车中");
   }
 }
 
@@ -1027,7 +1028,7 @@ async function loadAiCapability(): Promise<void> {
     aiCapability.value = await eduaiApi.aiCapability();
   } catch (e) {
     aiCapability.value = null;
-    ElMessage.warning("AI 组卷能力检测失败：" + errorText(e));
+    message.warning("AI 组卷能力检测失败：" + errorText(e));
   } finally {
     aiProbing.value = false;
   }
@@ -1062,7 +1063,7 @@ async function runAiSelect(): Promise<void> {
       count: aiForm.count,
     });
     if (!list.length) {
-      ElMessage.warning("AI 没有选出符合条件的题目，请放宽学科/学段/年级后重试");
+      message.warning("AI 没有选出符合条件的题目，请放宽学科/学段/年级后重试");
       return;
     }
     // 复用题库挑题的映射（含分值兜底）与去重逻辑
@@ -1072,12 +1073,12 @@ async function runAiSelect(): Promise<void> {
     if (fresh.length) {
       addCartMany(fresh);
       aiDialogVisible.value = false;
-      ElMessage.success(`AI 选出 ${fresh.length} 题已加入购物车${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
+      message.success(`AI 选出 ${fresh.length} 题已加入购物车${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
     } else {
-      ElMessage.info("AI 选出的题目都已在购物车中");
+      message.info("AI 选出的题目都已在购物车中");
     }
   } catch (e) {
-    ElMessage.error("AI 选题失败: " + errorText(e));
+    message.error("AI 选题失败: " + errorText(e));
   } finally {
     aiLoading.value = false;
   }
@@ -1148,7 +1149,7 @@ function onComposeDrop(event: DragEvent) {
 function addCartItemToPaper(item: CartItem) {
   if (composeQuestions.value.some((q) => q.questionId === item.questionId)) {
     removeFromCart(item.questionId);
-    ElMessage.info("该题已在试卷中，已从购物车移除");
+    message.info("该题已在试卷中，已从购物车移除");
     return;
   }
   composeQuestions.value.push({
@@ -1164,7 +1165,7 @@ function addCartItemToPaper(item: CartItem) {
     source: item.source,
   });
   removeFromCart(item.questionId);
-  ElMessage.success("已加入试卷");
+  message.success("已加入试卷");
 }
 
 /* ==================== 二维码（每题唯一，内容 = paperQuestionNo） ==================== */
@@ -1397,7 +1398,7 @@ async function pushQuestionChanges(id: number) {
 /** 保存草稿（notify=false 供发布流程静默保存） */
 async function savePaper(notify = true): Promise<boolean> {
   if (!header.name.trim()) {
-    ElMessage.warning("请先填写试卷名称");
+    message.warning("请先填写试卷名称");
     return false;
   }
   saving.value = true;
@@ -1409,11 +1410,11 @@ async function savePaper(notify = true): Promise<boolean> {
       composeQuestions.value.map((q) => q.paperQuestionNo),
     );
     if (notify) {
-      ElMessage.success("草稿已保存");
+      message.success("草稿已保存");
     }
     return true;
   } catch (e) {
-    ElMessage.error("保存失败: " + errorText(e));
+    message.error("保存失败: " + errorText(e));
     return false;
   } finally {
     saving.value = false;
@@ -1423,7 +1424,7 @@ async function savePaper(notify = true): Promise<boolean> {
 function onSaveDraft() {
   // 非草稿一律不可保存（后端也会拒，这里先给出明确提示，不让用户白等一次往返）
   if (readOnly.value) {
-    ElMessage.warning(readOnlyReason.value);
+    message.warning(readOnlyReason.value);
     return;
   }
   void savePaper();
@@ -1453,7 +1454,7 @@ const unscoredCount = computed(() => {
 /** 打开分值配置弹框（题多时集中核对，比行内逐个改更好操作） */
 function openScoreDialog(): void {
   if (!composeQuestions.value.length) {
-    ElMessage.warning("请先加入题目");
+    message.warning("请先加入题目");
     return;
   }
   scoreDraft.value = composeQuestions.value.map((q) => ({
@@ -1500,7 +1501,7 @@ function applyScoreDraft(): void {
     }
   });
   scoreDialogVisible.value = false;
-  ElMessage.success(`分值已更新：合计 ${totalScore.value} / ${header.targetScore} 分`);
+  message.success(`分值已更新：合计 ${totalScore.value} / ${header.targetScore} 分`);
 }
 
 /* ==================== 编辑题目弹框（只改本卷内这份，不回写题库） ==================== */
@@ -1538,7 +1539,7 @@ function applyEditQuestion(): void {
   q.analysis = draft.analysis;
   q.options = JSON.stringify(editOptionRows.value.filter((s) => s.trim() !== ""));
   editDialogVisible.value = false;
-  ElMessage.success("已更新到试卷（保存草稿后同步到后端）");
+  message.success("已更新到试卷（保存草稿后同步到后端）");
 }
 
 /**
@@ -1562,7 +1563,7 @@ function sourceLabel(code?: string): string {
 
 async function distributeEvenly() {
   if (!composeQuestions.value.length) {
-    ElMessage.warning("请先加入题目");
+    message.warning("请先加入题目");
     return;
   }
   const allPersisted = composeQuestions.value.every((q) => !isPendingQuestion(q));
@@ -1571,9 +1572,9 @@ async function distributeEvenly() {
     try {
       await eduaiApi.evenPaperScores(paperId.value);
       await loadDetail(paperId.value);
-      ElMessage.success(`已按题数均分 ${header.targetScore} 分`);
+      message.success(`已按题数均分 ${header.targetScore} 分`);
     } catch (e) {
-      ElMessage.error("均分失败: " + errorText(e));
+      message.error("均分失败: " + errorText(e));
     }
     return;
   }
@@ -1585,12 +1586,12 @@ async function distributeEvenly() {
   composeQuestions.value.forEach((q, i) => {
     q.score = clampScore(base + (i < rest ? 1 : 0));
   });
-  ElMessage.success("已在本地均分，保存后同步到后端");
+  message.success("已在本地均分，保存后同步到后端");
 }
 
 function onPublish() {
   if (readOnly.value) {
-    ElMessage.warning(readOnlyReason.value);
+    message.warning(readOnlyReason.value);
     return;
   }
   void publishPaper();
@@ -1598,11 +1599,11 @@ function onPublish() {
 
 async function publishPaper() {
   if (!composeQuestions.value.length) {
-    ElMessage.warning("试卷还没有题目，无法发布");
+    message.warning("试卷还没有题目，无法发布");
     return;
   }
   if (!scoreOk.value) {
-    ElMessage.warning(`当前总分 ${totalScore.value} 分，需先调整到 ${header.targetScore} 分再发布`);
+    message.warning(`当前总分 ${totalScore.value} 分，需先调整到 ${header.targetScore} 分再发布`);
     return;
   }
   publishing.value = true;
@@ -1612,9 +1613,9 @@ async function publishPaper() {
       return;
     }
     await eduaiApi.publishPaper(paperId.value);
-    ElMessage.success("发布成功");
+    message.success("发布成功");
   } catch (e) {
-    ElMessage.error("发布失败: " + errorText(e));
+    message.error("发布失败: " + errorText(e));
   } finally {
     publishing.value = false;
   }
@@ -1725,7 +1726,7 @@ async function initFromRoute() {
     try {
       await loadDetail(id);
     } catch (e) {
-      ElMessage.error("试卷加载失败: " + errorText(e));
+      message.error("试卷加载失败: " + errorText(e));
     }
     return;
   }

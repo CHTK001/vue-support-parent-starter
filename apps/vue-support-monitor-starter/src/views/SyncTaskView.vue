@@ -815,8 +815,9 @@
  * @author CH
  * @since 4.0.0.43
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
 import { fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
@@ -1117,7 +1118,7 @@ const onSourceTypeChange = (type: string | number | boolean | undefined) => {
 const onSyncModeChange = (mode: string | number | boolean | undefined) => {
   if (mode === "INCREMENTAL" && form.writeMode === "OVERWRITE") {
     form.writeMode = "UPSERT";
-    ElMessage.info("增量模式已将写入模式调整为「存在即更新」——先清空再插入会清掉未同步的数据");
+    message.info("增量模式已将写入模式调整为「存在即更新」——先清空再插入会清掉未同步的数据");
   }
 };
 
@@ -1631,7 +1632,7 @@ const loadDatasources = async () => {
   try {
     datasources.value = await fetchDataSources();
   } catch (e) {
-    ElMessage.error("加载数据源失败：" + (e as Error)?.message);
+    message.error("加载数据源失败：" + (e as Error)?.message);
   }
 };
 
@@ -1647,7 +1648,7 @@ const refresh = async () => {
     bannerDismissed.value = false;
     pageNo.value = 1;
   } catch (e) {
-    ElMessage.error("加载同步任务失败：" + (e as Error)?.message);
+    message.error("加载同步任务失败：" + (e as Error)?.message);
   } finally {
     loading.value = false;
   }
@@ -1783,7 +1784,7 @@ const stepIssue = (index: number): string | null => {
 const validateStep = (index: number): boolean => {
   const issue = stepIssue(index);
   if (issue) {
-    ElMessage.warning(issue);
+    message.warning(issue);
     return false;
   }
   return true;
@@ -1954,24 +1955,24 @@ const removeMappingRow = (cellRow: Record<string, unknown>) => {
 /** 预览并自动配对 */
 const doPreview = async () => {
   if (form.targetDatasourceId == null) {
-    ElMessage.warning("请先选择目标数据源");
+    message.warning("请先选择目标数据源");
     return;
   }
   if (form.sourceType === "JDBC") {
     if (form.sourceDatasourceId == null) {
-      ElMessage.warning("请先选择源数据源");
+      message.warning("请先选择源数据源");
       return;
     }
     if (!form.sourceSql.trim()) {
-      ElMessage.warning("请先填写源读取 SQL");
+      message.warning("请先填写源读取 SQL");
       return;
     }
   } else if (!form.sourcePath.trim()) {
-    ElMessage.warning("请先选择文件或文件夹");
+    message.warning("请先选择文件或文件夹");
     return;
   }
   if (!form.targetTable.trim()) {
-    ElMessage.warning("请先填写目标表名");
+    message.warning("请先填写目标表名");
     return;
   }
   try {
@@ -1989,11 +1990,11 @@ const doPreview = async () => {
     previewTargetColumns.value = preview.targetColumns;
     previewWarnings.value = preview.warnings;
     form.mapping = preview.mapping.map(item => ({ ...item }));
-    ElMessage.success(`源 ${preview.sourceColumns.length} 列 / 目标 ${preview.targetColumns.length} 列，已配对 ${preview.mapping.length} 项`);
+    message.success(`源 ${preview.sourceColumns.length} 列 / 目标 ${preview.targetColumns.length} 列，已配对 ${preview.mapping.length} 项`);
   } catch (e) {
     previewWarnings.value = [];
     const message = (e as Error)?.message || "未知错误";
-    ElMessage.error("预览失败：" + message);
+    message.error("预览失败：" + message);
     // 「表不存在」不是配置填错，光提示用户也续不上 —— 直接弹设计表，
     // 在缺表的那一侧库建好后回填表名并自动续跑预览。
     if (isTableMissingError(message)) {
@@ -2133,15 +2134,15 @@ const submit = async () => {
     return;
   }
   if (cronError.value) {
-    ElMessage.warning(cronError.value);
+    message.warning(cronError.value);
     return;
   }
   if (!form.name.trim()) {
-    ElMessage.warning("任务名称不能为空");
+    message.warning("任务名称不能为空");
     return;
   }
   if (form.enabled && !form.cron.trim()) {
-    ElMessage.warning("启用定时前请先填写定时表达式");
+    message.warning("启用定时前请先填写定时表达式");
     return;
   }
   const mapping = form.mapping.filter(item => item.source && item.target);
@@ -2179,11 +2180,11 @@ const submit = async () => {
     } else {
       await createSyncTask(payload);
     }
-    ElMessage.success("已保存");
+    message.success("已保存");
     dialogVisible.value = false;
     await refresh();
   } catch (e) {
-    ElMessage.error("保存失败：" + (e as Error)?.message);
+    message.error("保存失败：" + (e as Error)?.message);
   } finally {
     saving.value = false;
   }
@@ -2209,9 +2210,9 @@ const run = async (row: SyncTask) => {
       message: result.message || "",
     });
     if (result.status === "SUCCESS") {
-      ElMessage.success(`执行成功：读 ${result.readCount} 行，写 ${result.writeCount} 行，${result.costMs}ms`);
+      message.success(`执行成功：读 ${result.readCount} 行，写 ${result.writeCount} 行，${result.costMs}ms`);
     } else {
-      ElMessage.error(`执行失败：${result.message}`);
+      message.error(`执行失败：${result.message}`);
     }
   } catch (e) {
     const message = (e as Error)?.message || String(e);
@@ -2224,7 +2225,7 @@ const run = async (row: SyncTask) => {
       costMs: 0,
       message,
     });
-    ElMessage.error("执行失败：" + message);
+    message.error("执行失败：" + message);
   } finally {
     runningId.value = null;
     await refresh();
@@ -2407,18 +2408,18 @@ const toggle = async (row: SyncTask, enabled: boolean) => {
   try {
     if (enabled) {
       if (!row.syncTaskCron) {
-        ElMessage.warning("该任务没有定时表达式，请先编辑任务填写 cron");
+        message.warning("该任务没有定时表达式，请先编辑任务填写 cron");
         return;
       }
       await enableSyncTask(row.id);
-      ElMessage.success("已启用定时");
+      message.success("已启用定时");
     } else {
       await disableSyncTask(row.id);
-      ElMessage.success("已停用定时");
+      message.success("已停用定时");
     }
     await refresh();
   } catch (e) {
-    ElMessage.error("切换失败：" + (e as Error)?.message);
+    message.error("切换失败：" + (e as Error)?.message);
     await refresh();
   }
 };
@@ -2435,10 +2436,10 @@ const remove = async (row: SyncTask) => {
   }
   try {
     await deleteSyncTask(row.id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await refresh();
   } catch (e) {
-    ElMessage.error("删除失败：" + (e as Error)?.message);
+    message.error("删除失败：" + (e as Error)?.message);
   }
 };
 

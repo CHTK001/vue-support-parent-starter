@@ -53,8 +53,9 @@
  * <p>数据走 {@code /v2/edu/student/wrongbook}：后端按登录态的学号过滤，
  * 学生只能看到自己的错题，且返回题干/选项/答案，便于直接复习。</p>
  */
+import { message } from "@repo/core";
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentWrongQuestion } from "../../api/types";
 
@@ -102,7 +103,7 @@ async function load() {
       masteryLevel: filter.masteryLevel ?? undefined,
     });
   } catch (e) {
-    ElMessage.error(`错题加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`错题加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     loading.value = false;
   }
@@ -112,9 +113,9 @@ async function setMastery(row: StudentWrongQuestion, level: number) {
   try {
     await eduaiApi.updateStudentWrongMastery(row.wrongQuestionId, level);
     row.masteryLevel = level;
-    ElMessage.success(`已标记为「${masteryLabel(level)}」`);
+    message.success(`已标记为「${masteryLabel(level)}」`);
   } catch (e) {
-    ElMessage.error(`标记失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`标记失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

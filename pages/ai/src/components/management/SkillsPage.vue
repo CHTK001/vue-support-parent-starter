@@ -176,9 +176,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Search, Refresh, Files, Delete } from '@element-plus/icons-vue';
 import { ArrowBackIosFilled } from '@vicons/material';
 import { skillsApi } from '@/services/javaApi';
@@ -256,7 +257,7 @@ async function loadInstalled() {
   try {
     installed.value = unwrap(await skillsApi.installed()) || [];
   } catch (e: any) {
-    ElMessage.error(`加载已安装技能失败: ${e.message}`);
+    message.error(`加载已安装技能失败: ${e.message}`);
   } finally {
     loading.value = false;
   }
@@ -284,7 +285,7 @@ async function handleMarketSearch() {
   } catch (e: any) {
     marketList.value = [];
     sourceStates.value = [];
-    ElMessage.error(`市场搜索失败: ${e.message}`);
+    message.error(`市场搜索失败: ${e.message}`);
   } finally {
     marketLoading.value = false;
   }
@@ -299,9 +300,9 @@ async function handleToggle(row: InstalledSkill) {
   const enabled = Boolean(row.enabled);
   try {
     unwrap(await skillsApi.toggle(row.name, enabled, row.source));
-    ElMessage.success(enabled ? '已启用' : '已停用');
+    message.success(enabled ? '已启用' : '已停用');
   } catch (e: any) {
-    ElMessage.error(`切换失败: ${e.message}`);
+    message.error(`切换失败: ${e.message}`);
     await loadInstalled();
   } finally {
     toggling.value = '';
@@ -316,10 +317,10 @@ async function handleUninstall(row: InstalledSkill) {
   }
   try {
     unwrap(await skillsApi.uninstall(row.name));
-    ElMessage.success('卸载成功');
+    message.success('卸载成功');
     await loadInstalled();
   } catch (e: any) {
-    ElMessage.error(`卸载失败: ${e.message}`);
+    message.error(`卸载失败: ${e.message}`);
   }
 }
 
@@ -337,14 +338,14 @@ async function handleInstall(item: MarketItem) {
     const names: string[] = data?.installed_skill_names || [];
     const errors: { message?: string }[] = data?.errors || [];
     if (!names.length) {
-      ElMessage.error(`安装失败: ${errors[0]?.message || '未安装任何技能'}`);
+      message.error(`安装失败: ${errors[0]?.message || '未安装任何技能'}`);
       return;
     }
     item.installed = true;
-    ElMessage.success(`已安装：${names.join('、')}`);
+    message.success(`已安装：${names.join('、')}`);
     await loadInstalled();
   } catch (e: any) {
-    ElMessage.error(`安装失败: ${e.message}`);
+    message.error(`安装失败: ${e.message}`);
   } finally {
     installing.value = '';
   }

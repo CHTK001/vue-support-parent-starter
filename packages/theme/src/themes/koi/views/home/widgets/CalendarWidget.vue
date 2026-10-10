@@ -239,7 +239,7 @@
  * 格子与「节日安排」面板才不会显示不一致的内容。
  */
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Calendar, Plus, Present, Right, Sunny } from "@element-plus/icons-vue";
 // CalendarCategory 由 calendarStore 定义（calendarCategories 只导入未再导出），
 // 从来源直接取，避免依赖一个并不存在的再导出
@@ -255,7 +255,7 @@ import {
   setRemoteHolidays,
   type DayInfo,
 } from "./calendar";
-import { fetchHolidays } from "@repo/core";
+import {fetchHolidays, message} from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import {
   CALENDAR_FIXED_CELL_HEIGHT,
@@ -374,9 +374,9 @@ async function loadRemoteHolidays(force = false): Promise<boolean> {
 async function refreshRemoteHolidays(): Promise<void> {
   const ok = await loadRemoteHolidays(true);
   if (ok) {
-    ElMessage.success(remoteCount.value ? `已更新，后台共 ${remoteCount.value} 条` : "后台今年暂无数据");
+    message.success(remoteCount.value ? `已更新，后台共 ${remoteCount.value} 条` : "后台今年暂无数据");
   } else {
-    ElMessage.warning("后台节假日接口不可用，已使用内置数据");
+    message.warning("后台节假日接口不可用，已使用内置数据");
   }
 }
 
@@ -604,7 +604,7 @@ function openEdit(ev: CalendarEvent): void {
 async function save(): Promise<void> {
   const title = form.value.title.trim();
   if (!title) {
-    ElMessage.warning("请输入标题");
+    message.warning("请输入标题");
     return;
   }
   const now = Date.now();
@@ -624,10 +624,10 @@ async function save(): Promise<void> {
     await store.value.put(ev);
     dialogVisible.value = false;
     load();
-    ElMessage.success("已保存");
+    message.success("已保存");
   } catch (err) {
     console.error(err);
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   }
 }
 
@@ -638,11 +638,11 @@ async function remove(): Promise<void> {
     await store.value.remove(form.value.id);
     dialogVisible.value = false;
     load();
-    ElMessage.success("已删除");
+    message.success("已删除");
   } catch (err) {
     if (err === "cancel") return;
     console.error(err);
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 }
 

@@ -196,8 +196,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { Checkmark20Regular } from '@vicons/fluent';
 import { settingsApi, usageApi, modelMetricsApi } from '@/services/javaApi';
 import ModelMetricsSettings from '@/components/setting/ModelMetricsSettings.vue';
@@ -308,9 +309,9 @@ const saveGlobalBeans = async () => {
   savingBeans.value = true;
   try {
     await settingsApi.updateGlobalBeans('ai', globalBeansForm.value);
-    ElMessage.success('全局Bean保存成功');
+    message.success('全局Bean保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingBeans.value = false;
   }
@@ -320,9 +321,9 @@ const saveUsageConfig = async () => {
   savingUsage.value = true;
   try {
     await settingsApi.updateUsageConfig(usageConfigForm.value);
-    ElMessage.success('用量配置保存成功');
+    message.success('用量配置保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingUsage.value = false;
   }
@@ -332,9 +333,9 @@ const saveSkillsConfig = async () => {
   savingSkills.value = true;
   try {
     await settingsApi.updateSkillsConfig(skillsConfigForm.value);
-    ElMessage.success('Skills配置保存成功');
+    message.success('Skills配置保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingSkills.value = false;
   }
@@ -347,9 +348,9 @@ const saveExtConfig = async () => {
     await settingsApi.updateRolesConfig({ enabled: extConfigForm.value.rolesEnabled, path: extConfigForm.value.rolesPath });
     await settingsApi.updateMcpConfig({ enabled: extConfigForm.value.mcpEnabled, path: extConfigForm.value.mcpPath });
     await settingsApi.updatePluginsConfig({ enabled: extConfigForm.value.pluginsEnabled, path: extConfigForm.value.pluginsPath });
-    ElMessage.success('扩展配置保存成功');
+    message.success('扩展配置保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingExt.value = false;
   }
@@ -364,9 +365,9 @@ const savePipelineConfig = async () => {
     await settingsApi.updateFaceConfig({ model: pipelineConfigForm.value.faceModel, enabled: pipelineConfigForm.value.faceEnabled });
     await settingsApi.updateImageRecognitionConfig({ model: pipelineConfigForm.value.imageRecognitionModel, enabled: pipelineConfigForm.value.imageRecognitionEnabled });
     await settingsApi.updateGenerateConfig({ model: pipelineConfigForm.value.generateModel, enabled: pipelineConfigForm.value.generateEnabled });
-    ElMessage.success('管线配置保存成功');
+    message.success('管线配置保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingPipeline.value = false;
   }
@@ -376,9 +377,9 @@ const manualSyncAll = async () => {
   syncing.value = true;
   try {
     await usageApi.syncAll();
-    ElMessage.success('全量同步已触发');
+    message.success('全量同步已触发');
   } catch (e: any) {
-    ElMessage.error('同步失败: ' + (e.message || ''));
+    message.error('同步失败: ' + (e.message || ''));
   } finally {
     syncing.value = false;
   }
@@ -425,9 +426,9 @@ const saveModelMetricsConfig = async () => {
   savingMetrics.value = true;
   try {
     await modelMetricsApi.updateConfig(modelMetricsForm.value);
-    ElMessage.success('模型指标配置保存成功');
+    message.success('模型指标配置保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingMetrics.value = false;
   }
@@ -437,10 +438,10 @@ const refreshModelMetrics = async () => {
   refreshingMetrics.value = true;
   try {
     await modelMetricsApi.refresh();
-    ElMessage.success('指标刷新已触发');
+    message.success('指标刷新已触发');
     await loadModelMetricsList();
   } catch (e: any) {
-    ElMessage.error('刷新失败: ' + (e.message || ''));
+    message.error('刷新失败: ' + (e.message || ''));
   } finally {
     refreshingMetrics.value = false;
   }
@@ -450,9 +451,9 @@ const syncPricing = async () => {
   syncingPricing.value = true;
   try {
     await modelMetricsApi.syncPricing();
-    ElMessage.success('官方定价同步成功');
+    message.success('官方定价同步成功');
   } catch (e: any) {
-    ElMessage.error('同步失败: ' + (e.message || ''));
+    message.error('同步失败: ' + (e.message || ''));
   } finally {
     syncingPricing.value = false;
   }
@@ -469,9 +470,9 @@ const saveAll = async () => {
       savePipelineConfig(),
       saveModelMetricsConfig(),
     ]);
-    ElMessage.success('全部配置保存成功');
+    message.success('全部配置保存成功');
   } catch (e) {
-    ElMessage.error('部分配置保存失败');
+    message.error('部分配置保存失败');
   } finally {
     saving.value = false;
   }

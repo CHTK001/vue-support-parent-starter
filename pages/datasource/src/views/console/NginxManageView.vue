@@ -152,8 +152,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
@@ -304,7 +305,7 @@ async function reloadOverview() {
     overviewError.value = (e as Error)?.message || String(e);
     overview.value = null;
     console.error("[nginx] 总览加载失败", datasourceId.value, e);
-    ElMessage.error(`总览加载失败：${overviewError.value}`);
+    message.error(`总览加载失败：${overviewError.value}`);
   } finally {
     overviewLoading.value = false;
   }

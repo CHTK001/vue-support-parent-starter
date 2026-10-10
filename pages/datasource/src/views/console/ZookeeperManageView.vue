@@ -312,8 +312,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -766,9 +767,9 @@ async function testConnection() {
       zkVersion.value = result.version || "";
       sessionId.value = result.sessionId || "";
       ready();
-      ElMessage.success(result.version ? `连接成功 · ZooKeeper ${result.version}` : "连接成功");
+      message.success(result.version ? `连接成功 · ZooKeeper ${result.version}` : "连接成功");
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
   } catch (e) {
     fail(e, "/ms/monitor/zookeeper/test");
@@ -812,17 +813,17 @@ function editNode() {
 async function saveNode() {
   const path = nodeForm.path.trim();
   if (!path || (editing.value === false && !path.startsWith("/"))) {
-    ElMessage.warning("节点路径需以 / 开头");
+    message.warning("节点路径需以 / 开头");
     return;
   }
   saving.value = true;
   try {
     if (editing.value) {
       await updateZkNode({ path, data: nodeForm.data, datasourceId: datasourceId.value });
-      ElMessage.success("节点数据已更新");
+      message.success("节点数据已更新");
     } else {
       await createZkNode({ path, data: nodeForm.data, ephemeral: nodeForm.ephemeral, datasourceId: datasourceId.value });
-      ElMessage.success("节点已创建");
+      message.success("节点已创建");
     }
     nodeDialogVisible.value = false;
     ready();
@@ -848,7 +849,7 @@ async function deleteNode(path = activePath.value) {
   }
   try {
     await deleteZkNode(path, datasourceId.value);
-    ElMessage.success("节点已删除");
+    message.success("节点已删除");
     ready();
     if (activePath.value === path) {
       activePath.value = "";
@@ -877,7 +878,7 @@ async function deleteRecursive(path: string) {
   }
   try {
     await deleteZkNodeRecursive(path, datasourceId.value, true);
-    ElMessage.success("递归删除完成");
+    message.success("递归删除完成");
     ready();
     if (activePath.value === path) {
       activePath.value = "";
@@ -913,7 +914,7 @@ async function exportNode(path: string) {
     link.download = `zk-${path.replace(/[^a-zA-Z0-9]/g, "_") || "root"}-${Date.now()}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
-    ElMessage.success("导出成功");
+    message.success("导出成功");
   } catch (e) {
     fail(e, "/ms/monitor/zookeeper/node");
   }
@@ -963,8 +964,8 @@ function menuSelect(action: "detail" | "copy" | "edit" | "child" | "export" | "d
   if (action === "copy") {
     navigator.clipboard
       .writeText(path)
-      .then(() => ElMessage.success("已复制路径"))
-      .catch(() => ElMessage.error("复制失败"));
+      .then(() => message.success("已复制路径"))
+      .catch(() => message.error("复制失败"));
     return;
   }
   if (action === "edit") {

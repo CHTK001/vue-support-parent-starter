@@ -6,8 +6,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import {
   fetchAlarmPolicies,
@@ -53,7 +54,7 @@ async function fetchAll(): Promise<void> {
     windows.value = w ?? [];
     monitors.value = (m ?? []).map(x => ({ id: x.id, monitorName: x.monitorName }));
   } catch (e) {
-    ElMessage.error(`加载失败：${String((e as Error)?.message ?? e)}`);
+    message.error(`加载失败：${String((e as Error)?.message ?? e)}`);
   } finally {
     loading.value = false;
   }
@@ -103,17 +104,17 @@ function openPolicyEdit(p: AlarmPolicy): void {
 }
 async function submitPolicy(): Promise<void> {
   if (!policyForm.value.msMonitorAlarmPolicyName?.trim()) {
-    ElMessage.warning("请输入策略名称");
+    message.warning("请输入策略名称");
     return;
   }
   policySaving.value = true;
   try {
     await saveAlarmPolicy(policyForm.value.id ?? null, policyForm.value);
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     policyVisible.value = false;
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     policySaving.value = false;
   }
@@ -122,10 +123,10 @@ async function removePolicy(p: AlarmPolicy): Promise<void> {
   await ElMessageBox.confirm(`删除策略「${p.msMonitorAlarmPolicyName}」将级联删除其所有规则，确认？`, "删除确认", { type: "warning" });
   try {
     await delAlarmPolicy(p.id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 
@@ -175,11 +176,11 @@ async function submitRule(): Promise<void> {
   ruleSaving.value = true;
   try {
     await saveAlarmRule(ruleForm.value.id ?? null, ruleForm.value);
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     ruleVisible.value = false;
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     ruleSaving.value = false;
   }
@@ -188,19 +189,19 @@ async function removeRule(r: AlarmRule): Promise<void> {
   await ElMessageBox.confirm(`删除该规则（${r.msMonitorAlarmRuleMetricName} ${condText(r.msMonitorAlarmRuleCondition)} ${r.msMonitorAlarmRuleThreshold}）？`, "删除确认", { type: "warning" });
   try {
     await delAlarmRule(r.id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 async function runRuleTest(r: AlarmRule): Promise<void> {
   ruleTesting.value = true;
   try {
     const hit = await testAlarmRule(r.id, r.msMonitorAlarmRuleMetricName, Number(r.msMonitorAlarmRuleThreshold) + 1);
-    ElMessage.success(hit ? `触发：模拟值 ${Number(r.msMonitorAlarmRuleThreshold) + 1} > 阈值，会告警` : "未触发（条件不满足）");
+    message.success(hit ? `触发：模拟值 ${Number(r.msMonitorAlarmRuleThreshold) + 1} > 阈值，会告警` : "未触发（条件不满足）");
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     ruleTesting.value = false;
   }
@@ -250,11 +251,11 @@ function openWindowEdit(w: AlarmMaintenanceWindow): void {
 async function submitWindow(): Promise<void> {
   const f = windowForm.value;
   if (!f.windowName?.trim()) {
-    ElMessage.warning("请输入窗口名称");
+    message.warning("请输入窗口名称");
     return;
   }
   if (!HHMM.test(f.startTime ?? "") || !HHMM.test(f.endTime ?? "")) {
-    ElMessage.warning("时段须为 HH:mm（如 22:00）");
+    message.warning("时段须为 HH:mm（如 22:00）");
     return;
   }
   windowSaving.value = true;
@@ -264,11 +265,11 @@ async function submitWindow(): Promise<void> {
       msMonitorAlarmMaintenanceWindowLevel: f.msMonitorAlarmMaintenanceWindowLevel ?? "",
       weekdays: windowDays.value.join(","),
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     windowVisible.value = false;
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     windowSaving.value = false;
   }
@@ -277,10 +278,10 @@ async function removeWindow(w: AlarmMaintenanceWindow): Promise<void> {
   await ElMessageBox.confirm(`删除维护窗口「${w.windowName}」？删除后该时段将不再静默告警。`, "删除确认", { type: "warning" });
   try {
     await delAlarmWindow(w.id);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await fetchAll();
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   }
 }
 /**

@@ -7,10 +7,11 @@
  * 交互：集数高亮、线路切换重置选集、加载骨架、错误空态、返回浏览页。
  * 数据：videoApi.fetchVideoDetail；后端未启动时降级演示数据。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft, Download } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+
 import { fetchVideoDetail } from "@/api/videoApi";
 import type { VideoDetail } from "@/types/video";
 import VdPlayer from "@/components/VdPlayer.vue";
@@ -58,7 +59,7 @@ watch(activeLine, () => {
 function playEpisode(index: number) {
   activeEpisode.value = index;
   if (!currentUrl.value) {
-    ElMessage.info("该集暂无可播放的地址");
+    message.info("该集暂无可播放的地址");
   }
 }
 
@@ -68,7 +69,7 @@ function goBack() {
 
 /** 播放器错误提示（VdPlayer 已展示内嵌错误空态，这里补充轻提示） */
 function onPlayerError(msg: string) {
-  ElMessage.error(msg || "视频播放失败");
+  message.error(msg || "视频播放失败");
 }
 
 onMounted(() => void load());

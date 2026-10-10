@@ -5,7 +5,7 @@
 import { ref, computed, watch, onScopeDispose } from "vue";
 import { getConfig } from "@repo/config";
 import type { AiChatConfig } from "@repo/config";
-import { ElMessage } from "element-plus";
+
 import ReSwitch from "@repo/ui/re-switch";
 import ReSelect from "@repo/ui/re-select";
 import ReInputNumber from "@repo/ui/re-input-number";
@@ -14,7 +14,7 @@ import type { ReOption } from "@repo/ui/re-select";
 import { useWebLLM } from "@repo/web-llm";
 import { Cpu, Loading, CircleCloseFilled, SuccessFilled } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
-import { http } from "@repo/core";
+import {http, message} from "@repo/core";
 
 const { t } = useI18n();
 
@@ -77,16 +77,16 @@ const handleModeChange = (val: string) => {
 const handleLoadModel = async () => {
   try {
     await loadModel();
-    ElMessage.success(t("aiChat.toast.loaded"));
+    message.success(t("aiChat.toast.loaded"));
   } catch (err) {
-    ElMessage.error(`${t("aiChat.toast.loadFailed")}：${err instanceof Error ? err.message : String(err)}`);
+    message.error(`${t("aiChat.toast.loadFailed")}：${err instanceof Error ? err.message : String(err)}`);
   }
 };
 
 const handleUnloadModel = () => {
   unloadModel();
   progressText.value = "";
-  ElMessage.info(t("aiChat.toast.unloaded"));
+  message.info(t("aiChat.toast.unloaded"));
 };
 
 /** 获取厂商模型列表（OpenAI 兼容 /v1/models），给 ReRemoteSelect loader 使用 */

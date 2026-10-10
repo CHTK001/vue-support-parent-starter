@@ -5,8 +5,9 @@
  * 通过 v-model:visible 控制显隐，v-model:model 绑定当前行数据，
  * 提供模板基本字段录入与校验，保存成功后通过 save 事件通知父组件刷新列表。
  */
+import { message } from "@repo/core";
 import { reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import type { FormInstance, FormRules } from "element-plus";
 import { saveTemplate, updateTemplate } from "../api/messageApi";
 import type { MessageProvider, MessageTemplate } from "../api/types";
@@ -66,7 +67,7 @@ async function handleSave() {
     } else {
       await saveTemplate({ ...model.value });
     }
-    ElMessage.success(isEdit.value ? "更新成功" : "新增成功");
+    message.success(isEdit.value ? "更新成功" : "新增成功");
     visible.value = false;
     emit("save");
   } finally {

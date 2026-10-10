@@ -68,9 +68,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+
 import { useI18n } from 'vue-i18n'
 import { Close, QuestionFilled } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
@@ -182,7 +183,7 @@ const finishGuide = () => {
   localStorage.removeItem('setupGuideStep')
   hasCompleted.value = true
   visible.value = false
-  ElMessage.success(t('ui.setupGuide.completed'))
+  message.success(t('ui.setupGuide.completed'))
   
   // 完成后跳转到对话页面
   router.replace('/chat/new-session')

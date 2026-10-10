@@ -111,9 +111,9 @@
  *
  *   <ReUploadChunk v-model="files" base-url="/api/filesystem" />
  */
-import { http } from "@repo/core";
+import {http, message} from "@repo/core";
 import { ref, shallowRef, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Upload, UploadFilled, Document } from "@element-plus/icons-vue";
 import type { ChunkUploadFile } from "./types";
 
@@ -365,7 +365,7 @@ const handleRemove = (index: number) => {
 const handleCopy = (url: string) => {
   if (navigator.clipboard) {
     void navigator.clipboard.writeText(url);
-    ElMessage.success("链接已复制");
+    message.success("链接已复制");
   }
 };
 

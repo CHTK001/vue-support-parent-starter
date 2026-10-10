@@ -6,8 +6,9 @@
  * 数据：configApi（GET /config、/config/export；POST /import、/reload、/sync）。
  * 保存：把表单与目录 JSON 组装为 VideoConfigSnapshot，POST /config/import。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Refresh, Download, Upload, Connection, Plus, Delete, MagicStick } from "@element-plus/icons-vue";
 import {
   exportConfigSnapshot,
@@ -52,7 +53,7 @@ async function load() {
     overview.value = ov;
     applySnapshot(snap);
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "配置加载失败，请确认后端服务已启动");
+    message.error(e instanceof Error ? e.message : "配置加载失败，请确认后端服务已启动");
   } finally {
     loading.value = false;
   }
@@ -88,7 +89,7 @@ function buildSnapshot(): VideoConfigSnapshot | null {
     };
   } catch (e) {
     liveCatalogError.value = e instanceof Error ? e.message : "直播目录 JSON 解析失败";
-    ElMessage.error("直播目录 JSON 格式有误：" + liveCatalogError.value);
+    message.error("直播目录 JSON 格式有误：" + liveCatalogError.value);
     return null;
   }
 }
@@ -100,10 +101,10 @@ async function save() {
   saving.value = true;
   try {
     await importConfigSnapshot(snapshot, true);
-    ElMessage.success("配置已保存并热加载");
+    message.success("配置已保存并热加载");
     await load();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "配置保存失败");
+    message.error(e instanceof Error ? e.message : "配置保存失败");
   } finally {
     saving.value = false;
   }
@@ -112,20 +113,20 @@ async function save() {
 async function reload() {
   try {
     await reloadConfig();
-    ElMessage.success("已从配置库热加载");
+    message.success("已从配置库热加载");
     await load();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "热加载失败");
+    message.error(e instanceof Error ? e.message : "热加载失败");
   }
 }
 
 async function sync() {
   try {
     const result = await syncConfig();
-    ElMessage.success(`配置同步完成（pulled=${String(result.pulled)}）`);
+    message.success(`配置同步完成（pulled=${String(result.pulled)}）`);
     await load();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "配置同步失败");
+    message.error(e instanceof Error ? e.message : "配置同步失败");
   }
 }
 
@@ -144,12 +145,12 @@ async function download() {
 function formatCatalog() {
   const catalog = parsedCatalog.value;
   if (!catalog) {
-    ElMessage.error("直播目录 JSON 格式有误");
+    message.error("直播目录 JSON 格式有误");
     return;
   }
   liveCatalogText.value = JSON.stringify(catalog, null, 2);
   liveCatalogError.value = "";
-  ElMessage.success("已格式化");
+  message.success("已格式化");
 }
 
 function addBrowseRow() {

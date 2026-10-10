@@ -260,9 +260,10 @@
  * 设置页：学段/年级胶囊、数量滑块、难度单选、今日推荐成语、我的战绩（本地统计）。
  * 样式全部使用 koi / Element Plus 变量（--el-*）。
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { RefreshLeft, RefreshRight } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom, IdiomGameData } from "../api/types";
@@ -702,7 +703,7 @@ const startGame = async () => {
       };
       if (!gameData.value.items.length) gameData.value.items = MOCK_GAME.items.slice(0, need);
       usingMock.value = true;
-      ElMessage.info("当前条件下暂无成语数据，已用演示数据展示效果");
+      message.info("当前条件下暂无成语数据，已用演示数据展示效果");
     } else {
       gameData.value = { ...data, items: items.slice(0, need) };
       usingMock.value = false;
@@ -712,7 +713,7 @@ const startGame = async () => {
     gameData.value = { ...MOCK_GAME, gradeLevel: selectedGradeLevel.value, grade: selectedGrade.value };
     usingMock.value = true;
     enterGame();
-    ElMessage.info("成语数据加载失败，已用演示数据展示效果");
+    message.info("成语数据加载失败，已用演示数据展示效果");
   } finally {
     loading.value = false;
   }

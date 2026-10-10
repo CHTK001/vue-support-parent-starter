@@ -41,9 +41,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { apiService } from '@/services/ApiService'
 import { setLinkOpenMode, setAutoShowSidebar, type LinkOpenMode } from '@/utils/workspacePreview'
 import SettingsCard from './SettingsCard.vue'
@@ -81,7 +82,7 @@ async function onLinkOpenModeChange(val: string | number | boolean | undefined):
     await apiService.updateGroupSettings('browser', { linkOpenMode: mode })
   } catch (error) {
     console.error('保存链接打开方式失败:', error)
-    ElMessage.error(t('common.error.saveFailed'))
+    message.error(t('common.error.saveFailed'))
   }
 }
 
@@ -93,13 +94,13 @@ async function onAutoShowSidebarChange(val: string | number | boolean | undefine
     await apiService.updateGroupSettings('browser', { autoShowSidebar: enabled })
   } catch (error) {
     console.error('保存侧边栏设置失败:', error)
-    ElMessage.error(t('common.error.saveFailed'))
+    message.error(t('common.error.saveFailed'))
   }
 }
 
 async function handleClearData(): Promise<void> {
   if (!isElectron || !window.electronAPI?.clearBrowserData) {
-    ElMessage.warning(t('settings.browser.desktopOnly'))
+    message.warning(t('settings.browser.desktopOnly'))
     return
   }
 
@@ -121,13 +122,13 @@ async function handleClearData(): Promise<void> {
   try {
     const result = await window.electronAPI.clearBrowserData()
     if (result.success) {
-      ElMessage.success(t('settings.browser.dataCleared'))
+      message.success(t('settings.browser.dataCleared'))
     } else {
-      ElMessage.error(result.error || t('common.deleteFailed'))
+      message.error(result.error || t('common.deleteFailed'))
     }
   } catch (error) {
     console.error('Failed to clear browser data:', error)
-    ElMessage.error(t('common.deleteFailed'))
+    message.error(t('common.deleteFailed'))
   } finally {
     clearing.value = false
   }

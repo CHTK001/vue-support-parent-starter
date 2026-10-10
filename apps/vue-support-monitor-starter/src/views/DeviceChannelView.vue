@@ -12,8 +12,9 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleCheck, Connection, Grid, Tickets } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
@@ -117,7 +118,7 @@ async function fetchDevices(): Promise<void> {
     devices.value = (await deviceApi.list()) || [];
   } catch (e: unknown) {
     devices.value = [];
-    ElMessage.error(`设备清单加载失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`设备清单加载失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     devicesLoading.value = false;
   }
@@ -136,7 +137,7 @@ async function fetchChannels(): Promise<void> {
   } catch (e: unknown) {
     channels.value = [];
     loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
-    ElMessage.error(`通道加载失败：${loadError.value}`);
+    message.error(`通道加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
@@ -168,7 +169,7 @@ function openEdit(row: DeviceChannel): void {
 
 async function onSubmit(): Promise<void> {
   if (noInvalid.value) {
-    ElMessage.warning("请填写未占用的通道号");
+    message.warning("请填写未占用的通道号");
     return;
   }
   dialogSaving.value = true;
@@ -176,15 +177,15 @@ async function onSubmit(): Promise<void> {
     const payload = { ...form, deviceChannelDeviceId: filters.deviceId } as DeviceChannel;
     if (editingId.value) {
       await deviceApi.updateChannel(editingId.value, payload);
-      ElMessage.success("通道已更新");
+      message.success("通道已更新");
     } else {
       await deviceApi.addChannel(payload);
-      ElMessage.success("通道已新增");
+      message.success("通道已新增");
     }
     dialogVisible.value = false;
     await fetchChannels();
   } catch (e: unknown) {
-    ElMessage.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     dialogSaving.value = false;
   }
@@ -194,10 +195,10 @@ async function onToggle(row: DeviceChannel): Promise<void> {
   const next = row.deviceChannelStatus === "enabled" ? "disabled" : "enabled";
   try {
     await deviceApi.toggleChannelStatus(row.deviceChannelId, next);
-    ElMessage.success(next === "enabled" ? "已启用" : "已禁用");
+    message.success(next === "enabled" ? "已启用" : "已禁用");
     await fetchChannels();
   } catch (e: unknown) {
-    ElMessage.error(`操作失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`操作失败：${(e as { msg?: string })?.msg || e}`);
   }
 }
 
@@ -213,10 +214,10 @@ async function onDelete(row: DeviceChannel): Promise<void> {
   }
   try {
     await deviceApi.deleteChannel(row.deviceChannelId);
-    ElMessage.success("通道已删除");
+    message.success("通道已删除");
     await fetchChannels();
   } catch (e: unknown) {
-    ElMessage.error(`删除失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`删除失败：${(e as { msg?: string })?.msg || e}`);
   }
 }
 

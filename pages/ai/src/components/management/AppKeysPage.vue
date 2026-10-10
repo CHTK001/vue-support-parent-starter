@@ -96,8 +96,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
@@ -150,7 +151,7 @@ const loadData = async () => {
     const res: any = await appKeyApi.list();
     dataList.value = res?.data || res?.records || res || [];
   } catch (e: any) {
-    ElMessage.error('加载失败: ' + (e.message || ''));
+    message.error('加载失败: ' + (e.message || ''));
     dataList.value = [];
   } finally {
     loading.value = false;
@@ -159,7 +160,7 @@ const loadData = async () => {
 
 const copyKey = (key: string) => {
   navigator.clipboard.writeText(key);
-  ElMessage.success('已复制到剪贴板');
+  message.success('已复制到剪贴板');
 };
 
 const openCreateDialog = () => {
@@ -182,15 +183,15 @@ const submitForm = async () => {
     try {
       if (isEdit.value) {
         await appKeyApi.update(form.value.id, form.value);
-        ElMessage.success('更新成功');
+        message.success('更新成功');
       } else {
         await appKeyApi.create(form.value);
-        ElMessage.success('创建成功');
+        message.success('创建成功');
       }
       dialogVisible.value = false;
       loadData();
     } catch (e: any) {
-      ElMessage.error('保存失败: ' + (e.message || ''));
+      message.error('保存失败: ' + (e.message || ''));
     } finally {
       submitting.value = false;
     }
@@ -201,10 +202,10 @@ const deleteItem = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确定删除「${row.appName}」吗？`, '删除确认', { type: 'warning' });
     await appKeyApi.delete(row.id);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     loadData();
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败');
+    if (e !== 'cancel') message.error('删除失败');
   }
 };
 

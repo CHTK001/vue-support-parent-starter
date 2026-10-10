@@ -154,9 +154,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { createClient, v2Http } from '@/framework/context'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import { ArrowClockwise24Regular } from '@vicons/fluent'
@@ -258,7 +259,7 @@ async function loadInstances() {
       loadLogs()
     }
   } catch (e: any) {
-    ElMessage.error('加载实例失败: ' + e.message)
+    message.error('加载实例失败: ' + e.message)
   } finally {
     loading.value = false
   }
@@ -266,7 +267,7 @@ async function loadInstances() {
 
 async function createInstance() {
   if (!newInstance.value.name.trim()) {
-    ElMessage.warning('请填写实例名称')
+    message.warning('请填写实例名称')
     return
   }
   try {
@@ -278,22 +279,22 @@ async function createInstance() {
       gemini: newInstance.value.enableGemini,
       recordUsage: newInstance.value.logUsage,
     })
-    ElMessage.success('创建成功')
+    message.success('创建成功')
     showCreateDialog.value = false
     newInstance.value = { name: '', port: 8790, enableGpt: true, enableCc: true, enableGemini: true, logUsage: true }
     loadInstances()
   } catch (e: any) {
-    ElMessage.error('创建失败: ' + e.message)
+    message.error('创建失败: ' + e.message)
   }
 }
 
 async function toggleInstance(row: any) {
   try {
     await http.post(`/service/instances/${row.id}/${row.running ? 'stop' : 'start'}`)
-    ElMessage.success(row.running ? '已停止' : '已启动')
+    message.success(row.running ? '已停止' : '已启动')
     loadInstances()
   } catch (e: any) {
-    ElMessage.error('操作失败: ' + e.message)
+    message.error('操作失败: ' + e.message)
   }
 }
 
@@ -303,15 +304,15 @@ async function deleteInstance(row: any) {
     const res = await http.delete(`/service/instances/${row.id}`)
     const d = res.data || {}
     if (d.ok === false) {
-      ElMessage.warning(d.error || '请先停止该服务实例，再删除')
+      message.warning(d.error || '请先停止该服务实例，再删除')
       return
     }
-    ElMessage.success('已删除')
+    message.success('已删除')
     logs.value = []
     logInstanceId.value = ''
     loadInstances()
   } catch (e: any) {
-    if (e !== 'cancel') ElMessage.error('删除失败: ' + e.message)
+    if (e !== 'cancel') message.error('删除失败: ' + e.message)
   }
 }
 
@@ -330,7 +331,7 @@ async function loadLogs() {
     const res = await http.get('/service/logs', { params: { instanceId: logInstanceId.value, limit: 50 } })
     logs.value = asList(res.data, 'logs').map(mapLog)
   } catch (e: any) {
-    ElMessage.error('加载日志失败: ' + e.message)
+    message.error('加载日志失败: ' + e.message)
   } finally {
     logsLoading.value = false
   }
@@ -373,7 +374,7 @@ async function loadRuntimeLogs() {
     runtimePath.value = d.path || ''
     scrollConsoleToBottom()
   } catch (e: any) {
-    ElMessage.error('加载运行日志失败: ' + e.message)
+    message.error('加载运行日志失败: ' + e.message)
   } finally {
     runtimeLoading.value = false
   }

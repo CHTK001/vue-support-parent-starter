@@ -95,8 +95,9 @@
  * <p>数据走 {@code /v2/edu/student/marking/*}：后端按任务上的学生标识 = 本人学号过滤，
  * 学生只能看到属于自己的答卷与得分。</p>
  */
+import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { eduaiApi } from "../../api/eduaiApi";
 import type { MarkingResultVO, TeacherMarkingTask } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -137,7 +138,7 @@ async function load() {
   try {
     tasks.value = await eduaiApi.studentMarkingTasks(50);
   } catch (e) {
-    ElMessage.error(`记录加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`记录加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     loading.value = false;
   }
@@ -149,7 +150,7 @@ async function viewResult(row: TeacherMarkingTask) {
   try {
     result.value = await eduaiApi.studentMarkingResult(row.markingTaskTaskId);
   } catch (e) {
-    ElMessage.error(`详情加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`详情加载失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

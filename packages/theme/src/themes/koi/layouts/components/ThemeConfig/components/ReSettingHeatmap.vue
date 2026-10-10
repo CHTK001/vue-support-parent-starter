@@ -5,11 +5,12 @@
  * 记录用户点击热点，以热力图形式覆盖展示。
  * 设置项实时写入 appConfig.other.heatmap，由 config.ts 的 watch 自动持久化。
  */
+import { message } from "@repo/core";
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { getConfig } from "@repo/config";
 import type { HeatmapConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
-import { ElMessage } from "element-plus";
+
 import { Flag } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 
@@ -127,7 +128,7 @@ function removeCanvas() {
 const clearHeatmap = () => {
   heatPoints.length = 0;
   heatPointCount.value = 0;
-  ElMessage.success(t("heatmap.cleared"));
+  message.success(t("heatmap.cleared"));
 };
 
 /** 监听开关 */

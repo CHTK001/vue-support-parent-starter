@@ -123,8 +123,9 @@
  * 选中题目后点「加入购物车」：先播飞入动画，动画结束再抛出 picked 事件，
  * 由调用方（组卷页）决定如何写入购物车 / 试卷。
  */
+import { message } from "@repo/core";
 import { computed, reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Search, ShoppingCart } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import { eduaiApi } from "../../api/eduaiApi";
@@ -315,7 +316,7 @@ async function loadMarket(): Promise<void> {
     marketAll.value = res?.data ?? res?.records ?? [];
   } catch (e) {
     marketAll.value = [];
-    ElMessage.error("题库加载失败: " + errorText(e));
+    message.error("题库加载失败: " + errorText(e));
   } finally {
     loading.value = false;
   }
@@ -446,7 +447,7 @@ async function addToCart(): Promise<void> {
   }
   const picked = marketAll.value.filter((q) => selectedIds.value.includes(q.questionId));
   if (!picked.length) {
-    ElMessage.warning("请先勾选题目");
+    message.warning("请先勾选题目");
     return;
   }
   flying.value = true;

@@ -82,9 +82,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+
 import { ScienceOutlined, SearchFilled, CheckCircleFilled, ArrowDropDownTwotone } from '@vicons/material'
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
@@ -152,7 +153,7 @@ const loadModels = async () => {
         }
     } catch (error: any) {
         console.error('获取模型列表失败:', error)
-        ElMessage.error(t('ui.embeddingModel.loadFailed'))
+        message.error(t('ui.embeddingModel.loadFailed'))
     }
 }
 
@@ -200,7 +201,7 @@ const selectModel = (modelId: string) => {
 // 确认选择
 const confirmSelection = () => {
     if (!tempSelectedModelId.value) {
-        ElMessage.warning(t('ui.embeddingModel.selectRequired'))
+        message.warning(t('ui.embeddingModel.selectRequired'))
         return
     }
 
@@ -208,7 +209,7 @@ const confirmSelection = () => {
     if (selectedModel) {
         // 直接返回模型的 ID，而不是 model_name
         emit('update:modelId', selectedModel.id)
-        ElMessage.success(t('ui.embeddingModel.selected', { name: selectedModel.modelName }))
+        message.success(t('ui.embeddingModel.selected', { name: selectedModel.modelName }))
     }
 
     dialogVisible.value = false

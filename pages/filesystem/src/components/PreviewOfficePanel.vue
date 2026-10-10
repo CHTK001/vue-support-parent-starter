@@ -18,6 +18,7 @@
  * @author CH
  * @since 2026/09/26（@file-viewer 迁移：2026/10/09）
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import {
@@ -27,7 +28,7 @@ import {
   RENDER_SERVER,
   resolveViewerFileName,
 } from "../utils/officeRenderer";
-import { ElMessage } from "element-plus";
+
 import {
   colIndexToLetter,
   computeRangeStats,
@@ -328,7 +329,7 @@ async function copyExcelSelection(): Promise<void> {
   if (!excelParsed.value && !excelStatsError.value) await ensureExcelParsed();
   const sheet = excelParsed.value?.sheets[excelSheetIndex.value];
   if (!sheet) {
-    ElMessage.warning("当前文件暂不支持复制");
+    message.warning("当前文件暂不支持复制");
     return;
   }
   const r1 = Math.min(sel.sri, sel.eri);
@@ -336,17 +337,17 @@ async function copyExcelSelection(): Promise<void> {
   const c1 = Math.min(sel.sci, sel.eci);
   const c2 = Math.max(sel.sci, sel.eci);
   if ((r2 - r1 + 1) * (c2 - c1 + 1) > 200_000) {
-    ElMessage.warning("选区过大，请缩小范围后再复制");
+    message.warning("选区过大，请缩小范围后再复制");
     return;
   }
   const tsv = rangeToTsv(sheet, sel);
   if (!tsv.trim()) {
-    ElMessage.warning("所选区域没有可复制的内容");
+    message.warning("所选区域没有可复制的内容");
     return;
   }
   try {
     await navigator.clipboard.writeText(tsv);
-    ElMessage.success("已复制选区内容");
+    message.success("已复制选区内容");
   } catch {
     // 降级：部分 http 环境剪贴板 API 不可用
     try {
@@ -357,9 +358,9 @@ async function copyExcelSelection(): Promise<void> {
       ta.select();
       document.execCommand("copy");
       ta.remove();
-      ElMessage.success("已复制选区内容");
+      message.success("已复制选区内容");
     } catch {
-      ElMessage.error("复制失败，请手动选择内容");
+      message.error("复制失败，请手动选择内容");
     }
   }
 }

@@ -673,7 +673,7 @@
  * - 编辑对话框与批量导入逻辑保持原样
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   CircleCheck,
   CircleClose,
@@ -697,7 +697,7 @@ import ReTab from "@repo/ui/re-tab";
 import ReButton from "@repo/ui/re-button";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/components/ReTable/types";
-import { isAdmin } from "@repo/core";
+import {isAdmin, message} from "@repo/core";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
@@ -1000,7 +1000,7 @@ const reloadStats = async () => {
     total.value = res?.total ?? allQuestions.value.length;
     loadPage();
   } catch (e) {
-    ElMessage.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));
     // 失败时保留已有行：清空会让表格先闪「暂无数据」，接口一恢复又闪回数据，
     // 网络抖动/后端重启期间就是这么来的反复闪烁。首次加载失败 rows 本就为空，无影响。
   } finally {
@@ -1276,7 +1276,7 @@ const openEdit = (row: Question) => {
 const save = async (auditOnSave = false) => {
   const stemPlain = plainText(form.questionStem);
   if (!form.questionType || !form.questionSubject || !stemPlain) {
-    ElMessage.warning("请填写题型/学科/题干");
+    message.warning("请填写题型/学科/题干");
     return;
   }
   if (!form.questionScore || form.questionScore < 1) {
@@ -1300,15 +1300,15 @@ const save = async (auditOnSave = false) => {
     .replace(/&nbsp;/g, " ")
     .trim();
   if (!plainAnswer && isChoice.value) {
-    ElMessage.warning("请选择标准答案");
+    message.warning("请选择标准答案");
     return;
   }
   if (!plainAnswer && (form.questionType === "JUDGE" || form.questionType === "FILL")) {
-    ElMessage.warning("请填写标准答案");
+    message.warning("请填写标准答案");
     return;
   }
   if (!plainAnswer && (form.questionType === "SHORT_ANSWER" || form.questionType === "ESSAY")) {
-    ElMessage.warning("请填写标准答案");
+    message.warning("请填写标准答案");
     return;
   }
   saving.value = true;
@@ -1316,11 +1316,11 @@ const save = async (auditOnSave = false) => {
     // 审核态由服务端裁定：前端不经 save 直写 auditStatus；保存并审核走 auditOnSave 通道。
     const { questionAuditStatus: _omitAudit, questionAuditRemark: _omitRemark, ...payload } = form;
     await eduaiApi.saveQuestion({ ...payload, auditOnSave } as Parameters<typeof eduaiApi.saveQuestion>[0]);
-    ElMessage.success(auditOnSave ? "已保存并审核通过" : "保存成功");
+    message.success(auditOnSave ? "已保存并审核通过" : "保存成功");
     dialogVisible.value = false;
     await reloadStats();
   } catch (e) {
-    ElMessage.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     saving.value = false;
   }
@@ -1353,17 +1353,17 @@ const auditOne = async (row: Question, passed: boolean) => {
   }
   try {
     await eduaiApi.auditQuestion(row.questionId, passed, remark || undefined);
-    ElMessage.success(passed ? "已通过" : "已驳回");
+    message.success(passed ? "已通过" : "已驳回");
     await reloadStats();
   } catch (e) {
-    ElMessage.error("审核失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("审核失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
 /** 批量审核：通过直接调，驳回弹理由输入框；空选时按钮已禁用，这里再兜一层 */
 const batchAudit = async (passed: boolean) => {
   if (!selectedIds.value.length) {
-    ElMessage.warning("请先勾选题目");
+    message.warning("请先勾选题目");
     return;
   }
   let remark = "";
@@ -1396,11 +1396,11 @@ const batchAudit = async (passed: boolean) => {
   }
   try {
     const count = await eduaiApi.auditQuestions(selectedIds.value, passed, remark || undefined);
-    ElMessage.success(`审核完成，成功 ${count} 条`);
+    message.success(`审核完成，成功 ${count} 条`);
     selectedIds.value = [];
     await reloadStats();
   } catch (e) {
-    ElMessage.error("批量审核失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("批量审核失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -1416,10 +1416,10 @@ const remove = async (row: Question) => {
   }
   try {
     await eduaiApi.deleteQuestion(row.questionId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await reloadStats();
   } catch (e) {
-    ElMessage.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -1430,7 +1430,7 @@ const openImport = () => {
 
 const doImport = async () => {
   if (!importJson.value.trim()) {
-    ElMessage.warning("请粘贴 JSON");
+    message.warning("请粘贴 JSON");
     return;
   }
   try {
@@ -1439,23 +1439,23 @@ const doImport = async () => {
     importing.value = true;
     const result = await eduaiApi.importQuestions(parsed);
     if (result.successCount === 0 && result.failedCount === 0) {
-      ElMessage.warning("数组为空，没有可导入的数据");
+      message.warning("数组为空，没有可导入的数据");
       return;
     }
     // 失败原因必须透出：后端逐条容错，只回成功条数时用户无从得知缺了什么
     if (result.failedCount > 0) {
       const detail = result.errors.slice(0, 3).join("；");
       const more = result.failedCount > 3 ? `（等 ${result.failedCount} 条失败）` : "";
-      ElMessage.warning(`导入成功 ${result.successCount} 条，失败 ${result.failedCount} 条：${detail}${more}`);
+      message.warning(`导入成功 ${result.successCount} 条，失败 ${result.failedCount} 条：${detail}${more}`);
     } else {
-      ElMessage.success(`导入成功 ${result.successCount} 条`);
+      message.success(`导入成功 ${result.successCount} 条`);
     }
     if (result.successCount > 0) {
       importDialogVisible.value = false;
       await reloadStats();
     }
   } catch (e) {
-    ElMessage.error("导入失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("导入失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     importing.value = false;
   }

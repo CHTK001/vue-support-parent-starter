@@ -1,9 +1,10 @@
+import { message } from "@repo/core";
 /**
  * 接口异常文案提取。
  *
  * <p>框架的响应拦截器（`packages/core/src/httpCrypto.ts`）在 5xx / 502 / 503 / 504 时
  * 会弹一次通用 toast，并**故意把 `error.message` 置为 `undefined`**
- * （注释写明是「防止调用方 ElMessage.error 直接展示原始错误」）。页面若沿用
+ * （注释写明是「防止调用方 message.error 直接展示原始错误」）。页面若沿用
  * `e instanceof Error ? e.message : String(e)` 的老写法，5xx 场景就会弹成
  * 「提交失败: undefined」——用户既看不到后端原因，也会被弹两次提示。</p>
  *
@@ -11,7 +12,7 @@
  * `response.data.msg` → `bizMsg` → `message` 的顺序取；全都取不到时返回空串，
  * 由调用方决定不再重复弹窗（框架已经提示过）。</p>
  */
-import { ElMessage } from "element-plus";
+
 
 /** axios / 框架异常的最小结构（只取需要的字段，避免依赖具体类型） */
 export interface ApiErrorLike {
@@ -41,5 +42,5 @@ export function errText(e: unknown): string {
  */
 export function failToast(prefix: string, e: unknown): void {
   const text = errText(e);
-  if (text) ElMessage.error(`${prefix}: ${text}`);
+  if (text) message.error(`${prefix}: ${text}`);
 }

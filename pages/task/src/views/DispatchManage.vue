@@ -4,8 +4,9 @@
  *
  * 派发任务列表 + 详情/取消/暂停/恢复/删除 + 节点列表/删除
  */
+import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleClose, Delete, Monitor, VideoPause, VideoPlay } from "@element-plus/icons-vue";
 import {
   cancelDispatchTask,
@@ -45,7 +46,7 @@ async function loadTasks() {
     const res = await listDispatchTasks();
     tasks.value = (res?.data ?? []) as DispatchTask[];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "加载任务失败");
+    message.error((e as Error)?.message ?? "加载任务失败");
   } finally {
     loading.value = false;
   }
@@ -57,7 +58,7 @@ async function loadNodes() {
     const res = await listDispatchNodes();
     nodes.value = (res?.data ?? []) as DispatchNode[];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "加载节点失败");
+    message.error((e as Error)?.message ?? "加载节点失败");
   } finally {
     nodeLoading.value = false;
   }
@@ -87,10 +88,10 @@ async function handleTaskAction(action: "cancel" | "pause" | "resume" | "delete"
       delete: deleteDispatchTask,
     }[action];
     await fn(task.taskId!);
-    ElMessage.success({ cancel: "已取消", pause: "已暂停", resume: "已恢复", delete: "已删除" }[action]);
+    message.success({ cancel: "已取消", pause: "已暂停", resume: "已恢复", delete: "已删除" }[action]);
     await loadTasks();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "操作失败");
+    message.error((e as Error)?.message ?? "操作失败");
   } finally {
     opTaskId.value = "";
   }
@@ -106,10 +107,10 @@ async function handleRemoveNode(node: DispatchNode) {
   opNodeId.value = node.nodeId!;
   try {
     await removeDispatchNode(node.nodeId!);
-    ElMessage.success("节点已移除");
+    message.success("节点已移除");
     await loadNodes();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "移除失败");
+    message.error((e as Error)?.message ?? "移除失败");
   } finally {
     opNodeId.value = "";
   }

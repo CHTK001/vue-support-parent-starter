@@ -154,8 +154,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, onMounted, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
@@ -265,7 +266,7 @@ async function loadData() {
     tableData.value = Array.isArray(data) ? data : (data.records || data.list || []);
     total.value = res?.total || res?.count || tableData.value.length;
   } catch (e: any) {
-    ElMessage.error(`加载失败: ${e.message}`);
+    message.error(`加载失败: ${e.message}`);
   } finally {
     loading.value = false;
   }
@@ -298,12 +299,12 @@ async function handleDelete(row: any) {
       cancelButtonText: '取消',
     });
     await props.api.delete(row[props.idField]);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     emit('deleted', row);
     loadData();
   } catch (e: any) {
     if (e !== 'cancel') {
-      ElMessage.error(`删除失败: ${e.message}`);
+      message.error(`删除失败: ${e.message}`);
     }
   }
 }
@@ -315,18 +316,18 @@ async function handleSubmit() {
     saving.value = true;
     if (isEdit.value) {
       await props.api.update(formData[props.idField], formData);
-      ElMessage.success('更新成功');
+      message.success('更新成功');
       emit('updated', formData);
     } else {
       await props.api.create(formData);
-      ElMessage.success('创建成功');
+      message.success('创建成功');
       emit('created', formData);
     }
     dialogVisible.value = false;
     loadData();
   } catch (e: any) {
     if (e !== false) {
-      ElMessage.error(`保存失败: ${e.message || '验证未通过'}`);
+      message.error(`保存失败: ${e.message || '验证未通过'}`);
     }
   } finally {
     saving.value = false;

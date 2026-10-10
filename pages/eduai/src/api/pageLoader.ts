@@ -1,7 +1,8 @@
 /**
  * ReTable 远程分页工装：把 eduai 的分页接口包成组件认识的 loader，并合并重复请求。
  */
-import { ElMessage } from "element-plus";
+
+import { message } from "@repo/core";
 import { computed, ref, type Ref } from "vue";
 import type { RePageResult, ReTableLoader } from "@repo/ui/re-table";
 import type { PageResult } from "./types";
@@ -64,5 +65,5 @@ export function useSnapshotSearch<T extends Record<string, unknown>>(blank: () =
 
 /** 统一的服务端分页失败提示 */
 export function pageLoadError(e: unknown): void {
-  ElMessage.error("加载失败: " + (e instanceof Error ? e.message : String(e)));
+  message.error("加载失败: " + (e instanceof Error ? e.message : String(e)));
 }

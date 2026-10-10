@@ -276,8 +276,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Plus, Refresh, Download } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
@@ -404,10 +405,10 @@ const loadPackages = async () => {
 const handleTogglePackage = async (row: any, enabled: boolean) => {
   try {
     await agentApi.togglePackage(row.name, enabled);
-    ElMessage.success(enabled ? '已启用' : '已禁用');
+    message.success(enabled ? '已启用' : '已禁用');
     await Promise.all([loadPackages(), loadAgents()]);
   } catch (e: any) {
-    ElMessage.error('切换失败: ' + (e?.message || ''));
+    message.error('切换失败: ' + (e?.message || ''));
   }
 };
 
@@ -415,10 +416,10 @@ const handleUninstallPackage = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确定卸载智能体包 "${row.name}" 吗？将同时删除库中记录。`, '确认卸载', { type: 'warning' });
     await agentApi.uninstallPackage(row.name);
-    ElMessage.success('已卸载');
+    message.success('已卸载');
     await Promise.all([loadPackages(), loadAgents()]);
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('卸载失败');
+    if (e !== 'cancel') message.error('卸载失败');
   }
 };
 
@@ -456,7 +457,7 @@ const handleMarketSearch = async () => {
     marketItems.value = items;
   } catch (e: any) {
     marketItems.value = [];
-    ElMessage.error('检索失败: ' + (e?.message || ''));
+    message.error('检索失败: ' + (e?.message || ''));
   } finally {
     searchingMarket.value = false;
   }
@@ -466,11 +467,11 @@ const handleInstallFromMarket = async (row: any) => {
   installing.value = true;
   try {
     await agentApi.installPackage({ source: row.source, path: row.path, url: row.url });
-    ElMessage.success(`已安装 ${row.name}`);
+    message.success(`已安装 ${row.name}`);
     installHint.value = `已安装：${row.name}`;
     await Promise.all([loadPackages(), loadAgents(), handleMarketSearch()]);
   } catch (e: any) {
-    ElMessage.error('安装失败: ' + (e?.message || ''));
+    message.error('安装失败: ' + (e?.message || ''));
   } finally {
     installing.value = false;
   }
@@ -483,7 +484,7 @@ const installing = ref(false);
 
 const handleImportPath = async () => {
   if (!importPath.value) {
-    ElMessage.warning('请输入目录路径');
+    message.warning('请输入目录路径');
     return;
   }
   importing.value = true;
@@ -491,10 +492,10 @@ const handleImportPath = async () => {
     const res = await agentApi.importPackage({ path: importPath.value });
     const data = res?.data || res || {};
     installHint.value = `已安装：${data.name}（子智能体 ${(data.sub_agents || []).length} 个）`;
-    ElMessage.success('导入成功');
+    message.success('导入成功');
     await Promise.all([loadPackages(), loadAgents()]);
   } catch (e: any) {
-    ElMessage.error('导入失败: ' + (e?.message || ''));
+    message.error('导入失败: ' + (e?.message || ''));
   } finally {
     importing.value = false;
   }
@@ -510,10 +511,10 @@ const handleZipSelected = async (uploadFile: any) => {
     const res = await agentApi.importPackage(fd);
     const data = res?.data || res || {};
     installHint.value = `已安装：${data.name}（子智能体 ${(data.sub_agents || []).length} 个）`;
-    ElMessage.success('上传安装成功');
+    message.success('上传安装成功');
     await Promise.all([loadPackages(), loadAgents()]);
   } catch (e: any) {
-    ElMessage.error('上传安装失败: ' + (e?.message || ''));
+    message.error('上传安装失败: ' + (e?.message || ''));
   } finally {
     importing.value = false;
   }
@@ -546,7 +547,7 @@ const handleEdit = (row: any) => {
 
 const saveAgent = async () => {
   if (!editForm.value.name) {
-    ElMessage.warning('请输入Agent名称');
+    message.warning('请输入Agent名称');
     return;
   }
   saving.value = true;
@@ -554,15 +555,15 @@ const saveAgent = async () => {
     const payload = toAgentPayload(editForm.value);
     if (editingId.value) {
       await agentApi.update(editingId.value, payload);
-      ElMessage.success('更新成功');
+      message.success('更新成功');
     } else {
       await agentApi.create(payload);
-      ElMessage.success('创建成功');
+      message.success('创建成功');
     }
     editDialogVisible.value = false;
     await loadAgents();
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     saving.value = false;
   }
@@ -572,10 +573,10 @@ const handleDelete = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确定删除Agent "${row.name}" 吗？`, '确认删除', { type: 'warning' });
     await agentApi.delete(row.id);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     await loadAgents();
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败');
+    if (e !== 'cancel') message.error('删除失败');
   }
 };
 
@@ -631,7 +632,7 @@ const loadSubAgents = async () => {
     currentAgent.value = { ...currentAgent.value, subAgents: subAgentList.value };
   } catch (e: any) {
     subAgentList.value = [];
-    ElMessage.error('加载子Agent失败: ' + (e?.message || ''));
+    message.error('加载子Agent失败: ' + (e?.message || ''));
   } finally {
     loadingSubAgents.value = false;
   }
@@ -671,7 +672,7 @@ const toSubAgentPayload = () => ({
 
 const saveSubAgent = async () => {
   if (!currentAgent.value?.id || !subAgentForm.value.name) {
-    ElMessage.warning('请输入子Agent名称');
+    message.warning('请输入子Agent名称');
     return;
   }
   savingSubAgent.value = true;
@@ -679,15 +680,15 @@ const saveSubAgent = async () => {
     const payload = toSubAgentPayload();
     if (editingSubId.value) {
       await agentApi.updateSubAgent(currentAgent.value.id, editingSubId.value, payload);
-      ElMessage.success('子Agent更新成功');
+      message.success('子Agent更新成功');
     } else {
       await agentApi.addSubAgent(currentAgent.value.id, payload);
-      ElMessage.success('子Agent添加成功');
+      message.success('子Agent添加成功');
     }
     subAgentDialogVisible.value = false;
     await loadSubAgents();
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingSubAgent.value = false;
   }
@@ -698,10 +699,10 @@ const handleDeleteSubAgent = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确定删除子Agent "${row.name}" 吗？`, '确认删除', { type: 'warning' });
     await agentApi.deleteSubAgent(currentAgent.value.id, row.id);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     await loadSubAgents();
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败');
+    if (e !== 'cancel') message.error('删除失败');
   }
 };
 
@@ -736,9 +737,9 @@ const saveOrchestration = async () => {
       config = { raw: orchestrationConfig.value };
     }
     await agentApi.saveOrchestration(currentAgent.value.id, config);
-    ElMessage.success('编排配置保存成功');
+    message.success('编排配置保存成功');
   } catch (e: any) {
-    ElMessage.error('保存失败: ' + (e.message || ''));
+    message.error('保存失败: ' + (e.message || ''));
   } finally {
     savingOrchestration.value = false;
   }
@@ -749,9 +750,9 @@ const runOrchestration = async () => {
   runningOrchestration.value = true;
   try {
     await agentApi.runOrchestration(currentAgent.value.id, { test: true });
-    ElMessage.success('编排运行测试已触发');
+    message.success('编排运行测试已触发');
   } catch (e: any) {
-    ElMessage.error('运行失败: ' + (e.message || ''));
+    message.error('运行失败: ' + (e.message || ''));
   } finally {
     runningOrchestration.value = false;
   }
@@ -776,10 +777,10 @@ const handleRegister = async (row: any) => {
   currentAgent.value = row;
   try {
     await agentApi.registerAsModel(row.id);
-    ElMessage.success('Agent已注册为模型');
+    message.success('Agent已注册为模型');
     await loadRegisteredModel();
   } catch (e: any) {
-    ElMessage.error('注册失败: ' + (e.message || ''));
+    message.error('注册失败: ' + (e.message || ''));
   }
 };
 
@@ -788,10 +789,10 @@ const registerAsModel = async () => {
   registering.value = true;
   try {
     await agentApi.registerAsModel(currentAgent.value.id);
-    ElMessage.success('注册成功');
+    message.success('注册成功');
     await loadRegisteredModel();
   } catch (e: any) {
-    ElMessage.error('注册失败: ' + (e.message || ''));
+    message.error('注册失败: ' + (e.message || ''));
   } finally {
     registering.value = false;
   }
@@ -802,10 +803,10 @@ const unregisterModel = async () => {
   unregistering.value = true;
   try {
     await agentApi.unregisterModel(currentAgent.value.id);
-    ElMessage.success('已取消注册');
+    message.success('已取消注册');
     registeredModel.value = null;
   } catch (e: any) {
-    ElMessage.error('取消失败: ' + (e.message || ''));
+    message.error('取消失败: ' + (e.message || ''));
   } finally {
     unregistering.value = false;
   }
