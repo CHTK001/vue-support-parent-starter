@@ -917,6 +917,37 @@ const resolveLayoutOptions = (layoutType: string, override?: Record<string, unkn
 };
 
 /**
+ * 元素数阈值：超过它就放弃布局动画，改走同步布局。
+ *
+ * <p>G6 v5 的「动画布局」每个 tick 都会 {@code getLayoutResult + updateElementPosition}
+ * 全量重绘全部节点与边——几百个元素时单 tick 即几十毫秒、300 次迭代要分钟级，
+ * 组件表现为永远停在「暂无数据」（{@code empty} 一直是 true、{@code @ready} 不触发）。</p>
+ */
+const LAYOUT_ANIMATION_MAX_ELEMENTS = 150;
+
+/**
+ * 大图布局降级：元素数超过 {@link LAYOUT_ANIMATION_MAX_ELEMENTS} 时，
+ * 显式给布局参数补 {@code animation:false}，让 G6 走 execute/stop/tick 的同步分支——
+ * 纯物理迭代（实测 298 节点 + 487 边约 1s）+ 一次终态重绘，收敛结果与动画路径一致。
+ * 小图保持动画布局（观察力导收敛过程）不变。
+ *
+ * @param graph 本次要执行布局的 G6 实例
+ */
+const layoutForGraph = async (graph: Graph) => {
+  const nodes = graph.getNodeData?.() ?? [];
+  const edges = graph.getEdgeData?.() ?? [];
+  if (nodes.length + edges.length <= LAYOUT_ANIMATION_MAX_ELEMENTS) {
+    await graph.layout();
+    return;
+  }
+  const cur = graph.getLayout?.();
+  const withAnimationOff = Array.isArray(cur)
+    ? cur.map((l: any) => ({ ...l, animation: false }))
+    : { ...(cur && typeof cur === "object" ? cur : {}), animation: false };
+  await graph.layout(withAnimationOff as any);
+};
+
+/**
  * 装载数据：走 addNodeData / addEdgeData 追加路径。
  *
  * @param d 图数据
@@ -940,7 +971,7 @@ const loadData = async (d: RelationGraphData) => {
   // 随后的 fitView 会把这一小簇按「适配」放大到 maxZoom——观感就是巨大的节点与边互相重叠。
   // setLayout 走的正是 layout() → fitView 这条链路，这里对齐它。
   try {
-    await graph.layout();
+    await layoutForGraph(graph);
   } catch (e) {
     // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，
     // 用在普通关系图上 G6 会抛 "Tree structure not found"：如实记日志，不让它变成未捕获异常
@@ -1352,7 +1383,7 @@ const setLayout = async (name: RelationLayoutName, options?: Record<string, unkn
   currentLayout.value = name;
   try {
     graph.setLayout({ type: name, ...resolveLayoutOptions(name, options ?? props.layoutOptions) } as any);
-    await graph.layout();
+    await layoutForGraph(graph);
   } catch (e) {
     // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，
     // 用在普通关系图上 G6 会抛 "Tree structure not found"。这里优雅失败并如实记日志，
