@@ -656,12 +656,29 @@ const LABEL_OF: Record<string, string> = { sec: "秒", min: "分", hour: "时", 
  * "面板无法表达 日=?"，而 `?` 恰恰是最常见的写法，还会给出一个毫无意义的
  * "按表达式重建面板"按钮。</p>
  */
-const notUnderstood = computed(() => FIELDS.filter((f) => !panelParsed[f.key]).map((f) => f.label));
+const notUnderstood = computed(() =>
+  /* 空表达式不算"面板读不懂"：此时根本没解析过任何 token，panelParsed 全空，
+     直接过滤会把六个字段全列成"表达不了"，新建任务的空表单上凭空多出一条
+     "所有字段都读不懂"的假报错。 */
+  analysis.value.empty ? [] : FIELDS.filter((f) => !panelParsed[f.key]).map((f) => f.label),
+);
 
 /** 面板读得懂、但写回去会改变写法（`?`、英文名称、周写 7、倒序区间）的字段 */
 const spellingDiff = computed(() =>
   FIELDS.filter((f) => panelParsed[f.key] === true && rawTokens[f.key] !== undefined).map((f) => f.label),
 );
+
+/**
+ * 该字段是否真的"面板读不懂"（需要标成警示态）。
+ *
+ * <p>只看 rawTokens 是不够的：`?` 与英文名称都会落进 rawTokens（为了原样回显），
+ * 但面板**读得懂**它们 —— 把 `?` 标成"面板未接管"会让预设里每一个带 `?` 的表达式
+ * 都把周字段染成警示色，而它恰恰是最常见、最正确的写法（见 UI 稿的 `0 0/30 * * * ?`）。
+ * 真正的读不懂要靠 panelParsed 缺失来判。</p>
+ */
+function isRawField(key: string): boolean {
+  return rawTokens[key] !== undefined && panelParsed[key] !== true;
+}
 
 /** "指定值"点了但一个都没选的字段（这些字段当前会写成 `*`） */
 const emptyPointsLabels = computed(() =>
@@ -828,13 +845,19 @@ const summary = computed(() => {
   const parts: string[] = [];
   const describe = (key: string, unit: string) => {
     const raw = rawTokens[key];
+    /* `?` 是"不指定"的占位，不是用户挑的取值：写进描述只会让人以为
+       "周=?" 是某种排期（UI 稿的副标题里没有这一项）。 */
     if (raw !== undefined) {
+      if (raw === "?") return;
       // 面板表达不了：如实回显 token，不猜它的意思
       parts.push(`${unit} ${raw}`);
       return;
     }
     const f = state[key];
     if (f.mode === "all") return;
+    /* 秒写 `*` 与写单个 `0` 在分钟级排期里是一回事（humanTime 同此口径），
+       已经由下面的分钟/小时步进说清了，重复一遍「秒 0」只是噪声。 */
+    if (key === "sec" && f.mode === "points" && f.points.length === 1 && f.points[0] === 0) return;
     if (f.mode === "step") parts.push(`每 ${f.step} ${unit}（自 ${f.start} 起）`);
     else if (f.mode === "range") parts.push(`${unit} ${f.start}-${f.end}${f.step > 1 ? ` 步长 ${f.step}` : ""}`);
     /* 空的多选此前会 push 出一个没有值的"日 "，摘要里留下悬空单位。
@@ -1480,7 +1503,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             <ReInput
               v-model="model"
               class="re-cron__expr-input"
-              placeholder="秒 分 时 日 月 周，如 0 0/30 * * * ?"
+              :placeholder="placeholder"
               spellcheck="false"
               name="cron-expression"
               autocomplete="off"
@@ -1530,6 +1553,16 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
               >
                 {{ presetsExpanded ? "收起" : "更多预设" }}
               </button>
+              <!-- 用默认：宿主配了 defaultCron 才出现（留空即按后端默认登记），
+                   和预设同属"把表达式直接写成某个值"，所以放在同一栏而不是底栏 -->
+              <button
+                v-if="defaultCron"
+                type="button"
+                class="re-cron__preset-more"
+                @click="applyDefaultCron"
+              >
+                用后端默认 {{ defaultCron }}
+              </button>
             </section>
           </div>
 
@@ -1543,9 +1576,9 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
               :key="spec.key"
               type="button"
               class="re-cron__field"
-              :class="{ 'is-active': tab === spec.key, 'is-stale': rawTokens[spec.key] !== undefined }"
+              :class="{ 'is-active': tab === spec.key, 'is-stale': isRawField(spec.key) }"
               :aria-pressed="tab === spec.key"
-              :aria-label="`${spec.label}字段，当前 ${tokenOf(spec.key)}${rawTokens[spec.key] !== undefined ? '（面板未接管该写法）' : ''}`"
+              :aria-label="`${spec.label}字段，当前 ${tokenOf(spec.key)}${isRawField(spec.key) ? '（面板未接管该写法）' : ''}`"
               @click="tab = spec.key"
             >
               <span class="re-cron__field-label">{{ spec.label }}</span>
