@@ -106,6 +106,9 @@ catalog:
   "@file-viewer/renderer-binary": 3.1.2
   "@file-viewer/renderer-signature": 3.1.2
   "@file-viewer/renderer-email": 3.1.2
+  "@file-viewer/renderer-chm": 3.1.2
+  "@file-viewer/renderer-eda": 3.1.2
+  "@file-viewer/renderer-typst": 3.1.2
   # 与 @file-viewer/renderer-spreadsheet 的内部依赖严格同版本：
   # PreviewOfficePanel 直接 import 它做选区事件桥接（prototype patch），
   # 版本一旦分叉 pnpm 会装出两个实例，补丁就打不到渲染器用的那张表上

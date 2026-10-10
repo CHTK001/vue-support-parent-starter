@@ -70,6 +70,9 @@ const OLE2_MAGIC: readonly number[] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a,
 /** ZIP 本地文件头（OOXML 家族） */
 const ZIP_MAGIC: readonly number[] = [0x50, 0x4b, 0x03, 0x04];
 
+/** PDF 文件头（file-viewer 按扩展名选 renderer-pdf） */
+const PDF_MAGIC: readonly number[] = [0x25, 0x50, 0x44, 0x46];
+
 /**
  * 文档防泄密软件（实测 360 防泄密）透明加密后的密文文件头
  *
@@ -227,23 +230,31 @@ export function isClientRenderable(fileName: string): boolean {
 }
 
 /**
- * 校正交给 file-viewer 的文件名（处理「扩展名说谎」的文件）
+ * 按内容魔数校正交给 file-viewer 的文件名（处理「扩展名说谎」的文件）
  *
- * <p>file-viewer 按扩展名选渲染器。现实中大量文件扩展名不可信
- * （Word/WPS「另存为」、在线转换、邮件附件），会产生「实际是 .docx
- * 却叫 .doc」的文件：这类文件若按原名交给 file-viewer，会走 OLE2
- * 解析器、在 ZIP 字节上失败。这里按内容魔数把扩展名改回真实家族。</p>
+ * <p>两类说谎文件需要改名：①传统二进制扩展名（.doc/.xls/.ppt）里实际是
+ * OOXML ZIP 容器时改回真实家族；②服务端 {@code ?format=pdf} 转换出的
+ * PDF 字节扩展名仍是源文档（如 .wps）时改回 .pdf —— 否则 file-viewer
+ * 会按源扩展名选渲染器并在 PDF 字节上失败。</p>
  *
  * <p>真 OLE2 的 .doc / .xls / .ppt（preset-office 原生可渲染）与其它
- * 扩展名一律原样返回。</p>
+ * 内容与原名一致的扩展名一律原样返回。</p>
  *
  * @param fileName 原文件名
  * @param bytes    文件字节（未取到时传 undefined，退化为原名）
- * @returns 校正后的文件名（仅当传统二进制扩展名 + ZIP 内容 + 已知 OOXML 部件时改写）
+ * @returns 校正后的文件名（仅当内容魔数与扩展名明显不符时改写）
  */
 export function resolveViewerFileName(fileName: string, bytes?: Uint8Array): string {
+  if (!bytes || bytes.length < 4) {
+    return fileName;
+  }
   const ext = extensionOf(fileName);
-  if (!LEGACY_BINARY_EXTS.has(ext) || !bytes || bytes.length < 4) {
+  const dot = fileName.lastIndexOf(".");
+  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+  if (ext !== "pdf" && startsWith(bytes, PDF_MAGIC)) {
+    return `${base}.pdf`;
+  }
+  if (!LEGACY_BINARY_EXTS.has(ext)) {
     return fileName;
   }
   if (!startsWith(bytes, ZIP_MAGIC)) {
@@ -251,8 +262,6 @@ export function resolveViewerFileName(fileName: string, bytes?: Uint8Array): str
     return fileName;
   }
   const family = sniffOoxmlRenderer(bytes);
-  const dot = fileName.lastIndexOf(".");
-  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
   switch (family) {
     case "docx":
       return `${base}.docx`;

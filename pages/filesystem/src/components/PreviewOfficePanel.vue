@@ -420,9 +420,11 @@ async function fetchFullRawBytes(): Promise<Uint8Array | undefined> {
  * 拉取文档字节并准备客户端渲染
  *
  * <p>与后端约定：命中客户端直渲染通道时，响应头 {@code X-FileStorage-Preview}
- * 为 {@code client} 且响应体是原始文件字节；若后端判定该文件需服务端渲染
- * （channel=spi 等），响应体是 HTML 预览页 —— 面板会自行嗅探原始字节，
- * 能直渲染就改走客户端（file-viewer 直接吃原始字节），否则退回服务端。</p>
+ * 为 {@code client} 且响应体是原始文件字节；命中转换通道时响应头为
+ * {@code pdf}（或 {@code X-FileStorage-Convert: pdf}）且响应体是**转换后的
+ * PDF 字节**；若后端判定该文件需服务端渲染（channel=spi 等），响应体是
+ * HTML 预览页 —— 面板会自行嗅探原始字节，能直渲染就改走客户端
+ * （file-viewer 直接吃原始字节），否则退回服务端。</p>
  */
 async function load(): Promise<void> {
   // 预览地址（短时票据）是异步换来的，挂载瞬间可能还是空串。此时 fetch("") 会
@@ -447,6 +449,20 @@ async function load(): Promise<void> {
       throw new Error(`HTTP ${res.status}`);
     }
     const channel = res.headers.get("X-FileStorage-Preview");
+    // ?format=pdf 转换通道：响应体是转换好的 PDF 字节，不是服务端 HTML。
+    // 与后端约定：转换成功回 X-FileStorage-Preview: pdf（或 X-FileStorage-Convert: pdf），
+    // 转换失败回 X-FileStorage-Convert: unavailable 并继续走原通道，故只看状态码不够。
+    const convertHeader = res.headers.get("X-FileStorage-Convert");
+    const isPdfBytes = channel === "pdf" || convertHeader === "pdf"
+      || (res.headers.get("content-type") ?? "").startsWith("application/pdf");
+    if (isPdfBytes) {
+      const pdfBytes = new Uint8Array(await res.arrayBuffer());
+      if (pdfBytes.length === 0) {
+        throw new Error("PDF 转换通道返回空响应体");
+      }
+      await prepareClientRender(pdfBytes);
+      return;
+    }
     if (channel && channel !== "client") {
       // 服务端已按自己的链路渲染出 HTML 预览页，无法作为文档字节解析。
       // 但**先嗅探一次原始字节**：密文（防泄密软件透明加密）后端同样解析不了，
@@ -544,7 +560,7 @@ function emitFallback(fallback: "server" | "pdf" | null): void {
     failReason.value = "该文件需由服务端渲染";
     emit("error", { noFallback: false, reason: failReason.value, channel: "server" });
   } else if (fallback === "pdf") {
-    failReason.value = "该文件需由服务端转换为 PDF 后预览";
+    failReason.value = "该文件需由服务端转换为 PDF 后由 file-viewer 预览";
     emit("error", { noFallback: false, reason: failReason.value, channel: "pdf" });
   } else {
     failReason.value = `该格式暂不支持在线预览（${props.fileName}），请下载后用本地软件打开`;
