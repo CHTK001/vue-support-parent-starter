@@ -14,6 +14,10 @@
 
   <p>列类型与长度 / 小数位的适用范围取自 `utils/columnTypes.ts`，与设计视图、列属性对话框同一份；
   校验口径镜像后端 `DbColumnDef`（构造期就会拒绝，这里是提前提示，不是少校验一层）。</p>
+
+  <p><b>可预填</b>（initialName / initialColumns）：数据同步向导在预览发现「表不存在」时，
+  会带着缺失的表名与源表列打开本对话框；created 事件回传（库名, 最终表名），宿主据此
+  回填并继续预览。不传这两个 prop 时行为与历史完全一致 —— 打开即空白单列。</p>
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
@@ -62,17 +66,34 @@ const props = withDefaults(
     database?: string;
     /** 数据源 ID */
     datasourceId?: number;
+    /** 预填表名（数据同步预览发现「表不存在」时把缺失表名带进来；默认空） */
+    initialName?: string;
+    /** 预填列（目标侧缺表时从源表元数据带入；默认空 = 打开即空白单列，与历史一致） */
+    initialColumns?: Array<{
+      name: string;
+      type?: string;
+      size?: number | null;
+      scale?: number | null;
+      nullable?: boolean;
+      primaryKey?: boolean;
+      autoIncrement?: boolean;
+      defaultValue?: string;
+      comment?: string;
+      enumText?: string;
+    }>;
   }>(),
   {
     database: "",
     datasourceId: undefined,
+    initialName: "",
+    initialColumns: () => [],
   },
 );
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: boolean): void;
-  /** 建表成功（带上库名，宿主据此刷新对应库的表树） */
-  (e: "created", database: string): void;
+  /** 建表成功（带上库名与最终表名：宿主据此刷新表树 / 回填表名继续业务流程） */
+  (e: "created", database: string, table: string): void;
 }>();
 
 /** 行 key 自增（数组里可能有多行同名/空名，key 必须唯一且稳定） */
@@ -113,9 +134,26 @@ watch(
     if (!open) {
       return;
     }
-    name.value = "";
+    // 预填表名与列（数据同步的「设计表」流程会带缺失表名与源表列进来）；
+    // 没给预填时保持历史行为：打开即清空、一行空白列
+    name.value = props.initialName || "";
     remark.value = "";
-    rows.value = [newRow()];
+    rows.value = props.initialColumns.length
+      ? props.initialColumns.map(c =>
+          newRow({
+            name: c.name,
+            type: c.type || "VARCHAR",
+            size: c.size ?? null,
+            scale: c.scale ?? null,
+            nullable: c.nullable ?? true,
+            primaryKey: c.primaryKey ?? false,
+            autoIncrement: c.autoIncrement ?? false,
+            defaultValue: c.defaultValue || "",
+            comment: c.comment || "",
+            enumText: c.enumText || "",
+          }),
+        )
+      : [newRow()];
     error.value = "";
   },
 );
@@ -229,7 +267,7 @@ async function submit(): Promise<void> {
       database: props.database || undefined,
     });
     ElMessage.success(`表 ${table} 创建成功`);
-    emit("created", props.database);
+    emit("created", props.database, table);
     emit("update:modelValue", false);
   } catch (e) {
     // 建表失败原因（内核不支持、类型/长度被拒等）要原样给出，用户据此改设计
