@@ -7,7 +7,7 @@
           class="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-normal text-gray-400 dark:text-gray-500 select-none">
           {{ item.section }}
         </div>
-        <div @click="handleNavClick(item.key)"
+        <div @click="handleNavClick(item.key)" role="button" :aria-label="item.label" :aria-current="currentActiveTab === item.key ? 'page' : undefined"
           class="nav-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
           :class="currentActiveTab === item.key
             ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'

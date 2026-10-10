@@ -291,14 +291,18 @@
             <span v-if="!filterBarOpen && filterActive" class="dbm-filter-badge">过滤中</span>
             <template v-if="filterBarOpen">
               <span class="dbm-filter-label">WHERE</span>
-              <ReInput
-                v-model="filterWhere"
+              <!-- ReInput 根是 display:contents（无盒），width 落在根上等于没写。
+                   这里用父作用域的 wrapper 产生真盒：内部 el-input 自动铺满 wrapper。 -->
+              <span class="dbm-filter-input-wrap">
+                <ReInput
+                  v-model="filterWhere"
 
-                class="dbm-mono dbm-filter-input"
-                placeholder="例：status = 1 AND name LIKE 'a%'（留空不过滤）"
-                clearable
-                @keyup.enter="applyFilter"
-              />
+                  class="dbm-mono dbm-filter-input"
+                  placeholder="例：status = 1 AND name LIKE 'a%'（留空不过滤）"
+                  clearable
+                  @keyup.enter="applyFilter"
+                />
+              </span>
               <ReButton layout="square" type="primary" icon="Search" tip="应用过滤（Enter）" @click="applyFilter" />
               <ReButton layout="square" icon="RefreshLeft" tip="清除过滤" @click="clearFilter" />
               <ReButton
