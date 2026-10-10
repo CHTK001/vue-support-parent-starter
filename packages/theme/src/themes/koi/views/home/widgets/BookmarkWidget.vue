@@ -45,8 +45,9 @@
 
 <script setup lang="ts" name="BookmarkWidget">
 
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Close, Collection, Link, Plus } from "@element-plus/icons-vue";
 import { IndexedDBStore } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -84,14 +85,14 @@ function openAdd(): void { editingId.value = null; form.title = ""; form.url = "
 
 async function save(): Promise<void> {
   const title = form.title.trim(), url = form.url.trim();
-  if (!title) { ElMessage.warning("请输入书签名称"); return; }
-  if (!url) { ElMessage.warning("请输入链接地址"); return; }
+  if (!title) { message.warning("请输入书签名称"); return; }
+  if (!url) { message.warning("请输入链接地址"); return; }
   const now = Date.now();
   const bm: Bookmark = { id: editingId.value ?? `bm_${now}_${Math.random().toString(36).slice(2, 6)}`, title, url };
   await store.put(bm);
   if (editingId.value) { const i = bookmarks.value.findIndex((x) => x.id === editingId.value); if (i >= 0) bookmarks.value[i] = bm; }
   else { bookmarks.value.push(bm); }
-  dialogVisible.value = false; ElMessage.success("已保存");
+  dialogVisible.value = false; message.success("已保存");
 }
 
 onMounted(() => load());

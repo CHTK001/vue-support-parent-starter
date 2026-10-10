@@ -284,9 +284,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Printer } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
 import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
@@ -518,7 +519,7 @@ const loadEditGrades = async () => {
     editGrades.value = Array.isArray(drop?.grades) ? drop.grades : [];
   } catch (e) {
     editGrades.value = [];
-    ElMessage.error('加载年级候选失败: ' + errorText(e));
+    message.error('加载年级候选失败: ' + errorText(e));
   }
 };
 
@@ -550,19 +551,19 @@ const doEdit = async () => {
     return;
   }
   if (!editForm.name.trim()) {
-    ElMessage.warning('请填写试卷名称');
+    message.warning('请填写试卷名称');
     return;
   }
   if (!editForm.subject.trim()) {
-    ElMessage.warning('请填写学科');
+    message.warning('请填写学科');
     return;
   }
   if (!editForm.gradeLevel) {
-    ElMessage.warning('请选择学段');
+    message.warning('请选择学段');
     return;
   }
   if (!editForm.grade) {
-    ElMessage.warning('请选择年级');
+    message.warning('请选择年级');
     return;
   }
   editing.value = true;
@@ -577,11 +578,11 @@ const doEdit = async () => {
       duration: editForm.duration,
     };
     await eduaiApi.updatePaper(editTargetId.value, payload);
-    ElMessage.success('保存成功');
+    message.success('保存成功');
     editVisible.value = false;
     reload();
   } catch (e) {
-    ElMessage.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {
     editing.value = false;
   }
@@ -603,7 +604,7 @@ const openCompose = () => {
 
 const doGenerate = async () => {
   if (!createForm.name || !createForm.subject || !createForm.grade) {
-    ElMessage.warning('请填写试卷名称/学科/年级');
+    message.warning('请填写试卷名称/学科/年级');
     return;
   }
   generating.value = true;
@@ -619,11 +620,11 @@ const doGenerate = async () => {
       knowledgePointIds: [],
       typeConfigs: [],
     });
-    ElMessage.success(`生成成功，试卷 ID: ${paperId}`);
+    message.success(`生成成功，试卷 ID: ${paperId}`);
     createDialogVisible.value = false;
     reload();
   } catch (e) {
-    ElMessage.error('AI 组卷失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('AI 组卷失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {
     generating.value = false;
   }
@@ -736,20 +737,20 @@ const openCreate = () => {
 /** 建卷：POST /v2/edu/paper（PaperComposeUpdateDTO 短字段），成功后跳组卷页 */
 const doCreate = async () => {
   if (!createForm.name.trim()) {
-    ElMessage.warning('请填写试卷名称');
+    message.warning('请填写试卷名称');
     return;
   }
   if (!createForm.subject.trim()) {
-    ElMessage.warning('请填写学科');
+    message.warning('请填写学科');
     return;
   }
   // 学段/年级为后端必填（edu_paper 对应列 NOT NULL 无默认值）
   if (!createForm.gradeLevel) {
-    ElMessage.warning('请选择学段');
+    message.warning('请选择学段');
     return;
   }
   if (!createForm.grade) {
-    ElMessage.warning('请选择年级');
+    message.warning('请选择年级');
     return;
   }
   creating.value = true;
@@ -765,11 +766,11 @@ const doCreate = async () => {
       templateId: createForm.templateId ?? undefined,
     };
     const newId = await eduaiApi.createPaper(payload);
-    ElMessage.success('创建成功，正在进入组卷页');
+    message.success('创建成功，正在进入组卷页');
     createDialogVisible.value = false;
     void router.push({ path: '/eduai/paper-compose', query: { paperId: String(newId) } });
   } catch (e) {
-    ElMessage.error('创建失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('创建失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {
     creating.value = false;
   }
@@ -795,7 +796,7 @@ const onMarketPicked = (list: MarketQuestion[]) => {
   // 统一走共享映射（含分值兜底），避免各处各写一遍、并防止缺分值落成 0 分
   const items: CartItem[] = list.map((q) => toCartItem(q));
   const added = addMany(items);
-  ElMessage.success(`已加入购物车 ${added} 题`);
+  message.success(`已加入购物车 ${added} 题`);
 };
 
 const openDetail = async (row: Paper) => {
@@ -803,7 +804,7 @@ const openDetail = async (row: Paper) => {
     detail.value = await eduaiApi.getPaper(row.paperId);
     detailVisible.value = true;
   } catch (e) {
-    ElMessage.error('加载详情失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('加载详情失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 
@@ -847,10 +848,10 @@ const onPublishRow = async (row: Paper) => {
   }
   try {
     await eduaiApi.publishPaper(row.paperId);
-    ElMessage.success('发布成功');
+    message.success('发布成功');
     reload();
   } catch (e) {
-    ElMessage.error('发布失败: ' + errorText(e));
+    message.error('发布失败: ' + errorText(e));
   }
 };
 
@@ -865,10 +866,10 @@ const onUnpublishRow = async (row: Paper) => {
   }
   try {
     await eduaiApi.unpublishPaper(row.paperId);
-    ElMessage.success('已下架，试卷回到草稿态');
+    message.success('已下架，试卷回到草稿态');
     reload();
   } catch (e) {
-    ElMessage.error('下架失败: ' + errorText(e));
+    message.error('下架失败: ' + errorText(e));
   }
 };
 
@@ -883,10 +884,10 @@ const onArchiveRow = async (row: Paper) => {
   }
   try {
     await eduaiApi.archivePaper(row.paperId);
-    ElMessage.success('已归档');
+    message.success('已归档');
     reload();
   } catch (e) {
-    ElMessage.error('归档失败: ' + errorText(e));
+    message.error('归档失败: ' + errorText(e));
   }
 };
 
@@ -961,7 +962,7 @@ const openPrint = async () => {
   // 以 ReTable 的权威勾选集重算一次，避免用到过期数据
   syncPrintSelection();
   if (!printSelection.value.length) {
-    ElMessage.warning('请先勾选要打印的试卷');
+    message.warning('请先勾选要打印的试卷');
     return;
   }
   printLoading.value = true;
@@ -1003,7 +1004,7 @@ const openPrint = async () => {
     printVisible.value = true;
     document.body.classList.add(PRINT_BODY_CLASS);
   } catch (e) {
-    ElMessage.error('加载试卷内容失败: ' + errorText(e));
+    message.error('加载试卷内容失败: ' + errorText(e));
   } finally {
     printLoading.value = false;
   }

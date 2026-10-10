@@ -27,6 +27,47 @@
       </SettingsRow>
     </SettingsCard>
 
+    <!-- 指标图表 -->
+    <SettingsCard
+      title="指标图表"
+      subtitle="按任意单项指标对全量模型排行（价格、智能指数、人类评测等），并以「智能指数 × 输出价」看性价比象限。图表取指标库全量快照，与下方分页表同一份数据。"
+    >
+      <template #actions>
+        <div class="chart-actions">
+          <el-select v-model="chartMetric" class="chart-metric" filterable placeholder="选择指标">
+            <el-option-group v-for="g in chartMetricGroups" :key="g.label" :label="g.label">
+              <el-option v-for="m in g.items" :key="m.snake" :label="m.label" :value="m.snake" />
+            </el-option-group>
+          </el-select>
+          <el-select v-model="chartTopN" class="chart-num">
+            <el-option v-for="n in chartTopNOptions" :key="n" :label="'Top ' + n" :value="n" />
+          </el-select>
+          <el-select v-model="chartOrder" class="chart-order">
+            <el-option label="高 → 低" value="desc" />
+            <el-option label="低 → 高" value="asc" />
+          </el-select>
+        </div>
+      </template>
+
+      <div v-loading="chartLoading" class="chart-grid">
+        <section class="chart-box">
+          <header class="chart-box__head">
+            <span class="chart-box__title">{{ chartMetricLabel }} · 模型排行</span>
+            <span class="chart-box__sub">{{ rankPool.length }} 个模型有该指标，展示前 {{ rankModels.length }} 个</span>
+          </header>
+          <ReEcharts :option="rankOption" height="420px" not-merge />
+        </section>
+
+        <section class="chart-box">
+          <header class="chart-box__head">
+            <span class="chart-box__title">性价比象限 · 智能指数 × 输出价</span>
+            <span class="chart-box__sub">纵轴为对数刻度，越靠左上越划算</span>
+          </header>
+          <ReEcharts :option="scatterOption" height="420px" not-merge />
+        </section>
+      </div>
+    </SettingsCard>
+
     <!-- 模型指标库 -->
     <SettingsCard
       title="模型指标库"
@@ -114,13 +155,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/core";
+import { ref, computed, onMounted } from 'vue'
+
+import ReEcharts from '@repo/ui/re-echarts'
+import type { EChartsOption } from 'echarts'
+
 import { Search } from '@element-plus/icons-vue'
 
 import { modelMetricsApi } from '@/services/javaApi'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+
+/** tooltip 里要拼 HTML，模型名/厂商来自指标源，先转义避免破坏标签结构 */
+const esc = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 /** 模型图标加载失败时隐藏 img，落到占位首字母 */
 function onImgError(e: Event) {
@@ -157,10 +206,10 @@ const save = async () => {
       enabled: form.value.enabled,
       intervalSec: form.value.intervalSec,
     })
-    ElMessage.success('模型指标配置保存成功')
+    message.success('模型指标配置保存成功')
   } catch (e) {
     console.error('保存模型指标配置失败:', e)
-    ElMessage.error('保存失败')
+    message.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -170,11 +219,12 @@ const manualRefresh = async () => {
   refreshing.value = true
   try {
     await modelMetricsApi.refresh()
-    ElMessage.success('全量指标已同步')
+    message.success('全量指标已同步')
     await loadTable()
+    await loadChartData()
   } catch (e) {
     console.error('全量同步失败:', e)
-    ElMessage.error('同步失败')
+    message.error('同步失败')
   } finally {
     refreshing.value = false
   }
@@ -184,10 +234,10 @@ const manualSyncPricing = async () => {
   syncing.value = true
   try {
     await modelMetricsApi.syncPricing()
-    ElMessage.success('官方定价已同步')
+    message.success('官方定价已同步')
   } catch (e) {
     console.error('同步定价失败:', e)
-    ElMessage.error('同步失败')
+    message.error('同步失败')
   } finally {
     syncing.value = false
   }
@@ -290,7 +340,7 @@ const loadTable = async () => {
     rows.value = Array.isArray(data?.records) ? data.records.map(buildRow) : []
   } catch (e) {
     console.error('加载指标库失败:', e)
-    ElMessage.error('加载指标库失败')
+    message.error('加载指标库失败')
   } finally {
     loadingRows.value = false
   }
@@ -350,10 +400,10 @@ const saveRow = async (row: RowState) => {
       const i = rows.value.findIndex((r) => r.key === row.key)
       if (i >= 0) rows.value.splice(i, 1, fresh)
     }
-    ElMessage.success('已保存，同步将跳过锁定字段')
+    message.success('已保存，同步将跳过锁定字段')
   } catch (e) {
     console.error('保存手动指标失败:', e)
-    ElMessage.error('保存失败')
+    message.error('保存失败')
   } finally {
     row.saving = false
   }
@@ -365,23 +415,250 @@ const discardRow = (row: RowState) => {
   if (i >= 0) rows.value.splice(i, 1, fresh)
 }
 
+/** 指标数值的展示格式：表格、tooltip 与坐标轴共用同一套口径 */
+const fmtNum = (snake: string, n: number): string => {
+  if (snake === 'context_window_tokens') return n.toLocaleString()
+  if (snake === 'elo') return n.toFixed(0)
+  if (snake === 'cost_per_task') return '$' + n
+  if (snake.endsWith('_score') || snake === 'omniscience_accuracy' || snake === 'omniscience_non_hallucination') return Number((n * 100).toFixed(1)) + '%'
+  if (snake === 'omniscience_index') return String(Number(n.toFixed(4)))
+  if (snake.startsWith('price')) return '$' + n
+  return String(n)
+}
+
+/** 坐标轴刻度用的紧凑格式（与 tooltip 的完整格式区分开，避免刻度挤成一团） */
+const shortNum = (snake: string, n: number): string => {
+  if (snake === 'context_window_tokens') return n >= 10000 ? (n / 10000).toFixed(0) + '万' : String(n)
+  if (snake === 'elo') return String(Math.round(n))
+  if (snake.startsWith('price') || snake === 'cost_per_task') return '$' + Number(n.toFixed(2))
+  if (snake.endsWith('_score') || snake === 'omniscience_accuracy' || snake === 'omniscience_non_hallucination') return Math.round(n * 100) + '%'
+  if (snake === 'omniscience_index') return n.toFixed(2)
+  return String(Number(n.toFixed(2)))
+}
+
+/** 模型名在 Y 轴上截断，避免超长模型名把绘图区挤窄 */
+const shortName = (name: string): string => (name.length > 26 ? name.slice(0, 25) + '…' : name)
+
 const fmtVal = (row: RowState, col: Column) => {
   const v = row._raw[col.camel]
   if (v == null || v === '') return '—'
   const n = Number(v)
   if (Number.isNaN(n)) return v
-  if (col.snake === 'context_window_tokens') return n.toLocaleString()
-  if (col.snake === 'elo') return n.toFixed(0)
-  if (col.snake === 'cost_per_task') return '$' + n
-  if (col.snake.endsWith('_score') || col.snake === 'omniscience_accuracy' || col.snake === 'omniscience_non_hallucination') return Number((n * 100).toFixed(1)) + '%'
-  if (col.snake === 'omniscience_index') return Number(n.toFixed(4))
-  if (col.snake.startsWith('price')) return '$' + n
-  return n
+  return fmtNum(col.snake, n)
 }
+
+// ==================== 指标图表 ====================
+/** 图表用的模型行（values 只保留有限数值，缺测指标直接不进图表） */
+interface MetricRow {
+  key: string
+  modelName: string
+  provider: string
+  values: Record<string, number>
+}
+
+const columnBySnake = (snake: string): Column | undefined => columns.find((c) => c.snake === snake)
+
+/** 人类评测（Human evaluation）口径：题库 / 竞赛 / 智能体类基准，与「智能指数」区分开 */
+const HUMAN_EVAL_SNAKES = [
+  'hle_score', 'gpqa_score', 'aime25_score', 'livecodebench_score', 'scicode_score', 'ifbench_score',
+  'critpt_score', 'mmmu_pro_score', 'tau2_score', 'tau_banking_score', 'lcr_score',
+  'terminalbench_hard_score', 'terminal_bench21_score', 'terminal_bench40_score',
+  'automation_bench_score', 'gdpval_normalized_score', 'briefcase_score', 'harvey_lab_score',
+  'apex_agents_score', 'itbench_sre_score', 'omniscience_accuracy', 'omniscience_non_hallucination',
+]
+
+/** 图表可选指标（沿用表格 columns，按语义分组） */
+const chartMetricGroups: Array<{ label: string; items: Column[] }> = [
+  {
+    label: '价格',
+    items: columns.filter((c) => c.snake.startsWith('price') || c.snake === 'cost_per_task'),
+  },
+  {
+    label: '智能',
+    items: columns.filter((c) => ['intelligence_index', 'omniscience_index', 'elo'].includes(c.snake)),
+  },
+  {
+    label: '人类评测',
+    items: columns.filter((c) => HUMAN_EVAL_SNAKES.includes(c.snake)),
+  },
+  {
+    label: '速度与容量',
+    items: columns.filter((c) =>
+      ['output_speed_tps', 'latency_first_token_seconds', 'context_window_tokens'].includes(c.snake)),
+  },
+]
+
+const chartMetric = ref('intelligence_index')
+const chartTopN = ref(20)
+const chartOrder = ref<'desc' | 'asc'>('desc')
+const chartTopNOptions = [10, 15, 20, 30, 50]
+
+const chartRows = ref<MetricRow[]>([])
+const chartLoading = ref(false)
+
+const chartMetricLabel = computed(
+  () => columnBySnake(chartMetric.value)?.label ?? '智能指数',
+)
+
+/** 当前指标下有值的全部模型（未做 Top 截断，用于显示分母） */
+const rankPool = computed<MetricRow[]>(() => {
+  const col = columnBySnake(chartMetric.value)
+  if (!col) return []
+  return chartRows.value.filter((r) => Number.isFinite(r.values[col.snake]))
+})
+
+/** 排序并截断到 Top N */
+const rankModels = computed<MetricRow[]>(() => {
+  const col = columnBySnake(chartMetric.value)
+  if (!col) return []
+  const sorted = [...rankPool.value].sort((a, b) =>
+    chartOrder.value === 'desc'
+      ? b.values[col.snake] - a.values[col.snake]
+      : a.values[col.snake] - b.values[col.snake])
+  return sorted.slice(0, chartTopN.value)
+})
+
+const toMetricRow = (r: Record<string, any>): MetricRow => {
+  const values: Record<string, number> = {}
+  columns.forEach((c) => {
+    const v = r[c.camel]
+    if (v == null || v === '') return
+    const n = Number(v)
+    if (Number.isFinite(n)) values[c.snake] = n
+  })
+  return {
+    key: r.modelKey,
+    modelName: r.modelName || r.modelKey,
+    provider: r.provider || r.source || '',
+    values,
+  }
+}
+
+/**
+ * 拉取指标库全量数据供图表使用。
+ *
+ * <p>分页表只返回当前页，图表要算「Top N」必须先拿到全量，因此按 200 条一页
+ * 把 total 拉完（最多 5 页 / 1000 条，足够覆盖指标源全量，且不会打爆接口）。</p>
+ */
+const loadChartData = async () => {
+  chartLoading.value = true
+  try {
+    const acc: MetricRow[] = []
+    const pageSize = 200
+    let page = 1
+    for (;;) {
+      const res = await modelMetricsApi.table({ page, size: pageSize })
+      const data = res?.data ?? res
+      const total = Number(data?.total ?? 0)
+      const records = Array.isArray(data?.records) ? data.records : []
+      records.forEach((r: Record<string, any>) => acc.push(toMetricRow(r)))
+      if (records.length < pageSize || acc.length >= total || page >= 5) break
+      page += 1
+    }
+    chartRows.value = acc
+  } catch (e) {
+    console.error('加载指标图表数据失败:', e)
+    message.error('加载指标图表失败')
+  } finally {
+    chartLoading.value = false
+  }
+}
+
+/** 单项指标排行（横向条形图，最高的排最上面） */
+const rankOption = computed<EChartsOption>(() => {
+  const col = columnBySnake(chartMetric.value)
+  const models = [...rankModels.value].reverse()
+  return {
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      valueFormatter: (v: any) => (col ? fmtNum(col.snake, Number(v)) : String(v)),
+    },
+    grid: { left: 8, right: 64, top: 12, bottom: 8, containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLabel: { formatter: (v: number) => (col ? shortNum(col.snake, v) : String(v)) },
+      splitLine: { lineStyle: { type: 'dashed' } },
+    },
+    yAxis: {
+      type: 'category',
+      data: models.map((m) => shortName(m.modelName)),
+      axisLabel: { width: 140, overflow: 'truncate' },
+      axisTick: { show: false },
+    },
+    series: [
+      {
+        type: 'bar',
+        barMaxWidth: 16,
+        itemStyle: { borderRadius: [0, 4, 4, 0] },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: (p: any) => (col ? fmtNum(col.snake, Number(p.value)) : String(p.value)),
+        },
+        data: models.map((m) => ({ value: m.values[col?.snake ?? ''], name: m.modelName })),
+      },
+    ],
+  }
+})
+
+/** 性价比象限：智能指数 × 输出价（纵轴对数刻度，越靠左上越划算） */
+const scatterOption = computed<EChartsOption>(() => {
+  const points = chartRows.value
+    .filter(
+      (r) =>
+        Number.isFinite(r.values.intelligence_index) &&
+        Number.isFinite(r.values.price_output_per_musd) &&
+        r.values.price_output_per_musd > 0,
+    )
+    .map((r) => ({
+      value: [r.values.intelligence_index, r.values.price_output_per_musd],
+      name: r.modelName,
+      provider: r.provider,
+    }))
+  return {
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      formatter: (p: any) => {
+        const d = p.data
+        return (
+          `<b>${esc(String(d.name))}</b><br/>智能指数：${Number(d.value[0]).toFixed(1)}` +
+          `<br/>输出价：$${d.value[1]}` +
+          (d.provider ? `<br/>${esc(String(d.provider))}` : '')
+        )
+      },
+    },
+    grid: { left: 8, right: 24, top: 24, bottom: 36, containLabel: true },
+    xAxis: {
+      name: '智能指数',
+      type: 'value',
+      scale: true,
+      splitLine: { lineStyle: { type: 'dashed' } },
+    },
+    yAxis: {
+      name: '输出价 ($/M)',
+      type: 'log',
+      logBase: 10,
+      minorSplitLine: { show: false },
+      axisLabel: { formatter: (v: number) => '$' + v },
+    },
+    series: [
+      {
+        type: 'scatter',
+        symbolSize: 9,
+        itemStyle: { opacity: 0.75, borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1 },
+        emphasis: { itemStyle: { opacity: 1 }, scale: 1.4 },
+        data: points,
+      },
+    ],
+  }
+})
 
 onMounted(() => {
   load()
   loadTable()
+  loadChartData()
 })
 </script>
 
@@ -456,6 +733,37 @@ onMounted(() => {
 .empty-row { text-align: center; color: var(--el-text-color-secondary); padding: 28px 12px; }
 
 .metrics-foot { display: flex; justify-content: flex-end; }
+
+/* ==================== 指标图表 ==================== */
+.chart-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chart-metric { width: 190px; }
+.chart-num, .chart-order { width: 96px; }
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 14px;
+  padding: 14px;
+  min-height: 200px;
+}
+
+.chart-box {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 12px 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-lighter);
+  min-width: 0;
+}
+.chart-box__head { display: flex; flex-direction: column; gap: 2px; }
+.chart-box__title {
+  font-size: 13px; font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+.chart-box__sub {
+  font-size: 11.5px; color: var(--el-text-color-secondary);
+}
 
 /* 动效降级：系统开启「减少动态效果」时，锁定按钮的颜色与底色直接到位。
    只关 .lock-btn 自己的 transition，不写 `*` / .lock-btn * 通配，

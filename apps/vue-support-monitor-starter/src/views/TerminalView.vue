@@ -6,9 +6,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage, ElDropdown, ElDropdownMenu, ElDropdownItem } from "element-plus";
+import { ElDropdown, ElDropdownMenu, ElDropdownItem } from "element-plus";
 import { queryHosts, getHost } from "@pages/server/src/api";
 import ScGuacViewer from "@pages/server/src/components/ScGuacViewer.vue";
 import ScSshDirectViewer from "@pages/server/src/components/ScSshDirectViewer.vue";
@@ -194,7 +195,7 @@ async function toggleFullscreen(): Promise<void> {
   } catch (e) {
     // 内嵌 / 自动化浏览器可能禁止 Fullscreen API：回落到应用内沉浸，仍把显示区最大化
     immersive.value = true;
-    ElMessage.warning("浏览器未允许全屏，已切换为应用内全屏");
+    message.warning("浏览器未允许全屏，已切换为应用内全屏");
   }
 }
 function onFsChange(): void {

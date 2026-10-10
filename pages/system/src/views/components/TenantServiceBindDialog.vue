@@ -6,8 +6,9 @@
  * 服务列表与已绑定项在打开时加载，选中采用行内复选框（ReTable 本地数据模式）。
  * 绑定成功后由后端按订阅重新计算菜单并全量推送给租户端。
  */
+import { message } from "@repo/core";
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { bindTenantService, getTenant, listForService } from "../../api/systemApi";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { SysService, SysTenant } from "../../api/types";
@@ -63,7 +64,7 @@ async function handleSubmit() {
       validTime: item._validTime,
     })),
   });
-  ElMessage.success("服务绑定成功，已推送菜单重置");
+  message.success("服务绑定成功，已推送菜单重置");
   visible.value = false;
   emit("success");
 }

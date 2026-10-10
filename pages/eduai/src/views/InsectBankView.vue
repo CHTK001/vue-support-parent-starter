@@ -471,8 +471,9 @@
  * 在库里是 JSON 文本。/detail 已经把前两者解析成对象数组、后两者解析成字符串数组，
  * 编辑时直接用；保存前再序列化回 JSON 文本（后端实体收的就是文本）。
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type {
@@ -603,7 +604,7 @@ async function loadList() {
   try {
     rows.value = (await eduaiApi.insectLibrary()) ?? [];
   } catch (e) {
-    ElMessage.error(`昆虫库加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`昆虫库加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     loading.value = false;
   }
@@ -751,7 +752,7 @@ async function openEdit(row: InsectLibraryItem) {
       guideTouched.value = false;
     });
   } catch (e) {
-    ElMessage.error(`详情加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`详情加载失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -798,9 +799,9 @@ async function saveGuideIfNeeded(insectCode: string): Promise<boolean | null> {
 }
 
 const save = async () => {
-  if (!form.insectName?.trim()) return ElMessage.warning("请填写中文名");
-  if (!form.insectCode?.trim()) return ElMessage.warning("请填写标识 slug");
-  if (!form.insectOrder) return ElMessage.warning("请选择所属目");
+  if (!form.insectName?.trim()) return message.warning("请填写中文名");
+  if (!form.insectCode?.trim()) return message.warning("请填写标识 slug");
+  if (!form.insectOrder) return message.warning("请选择所属目");
 
   saving.value = true;
   try {
@@ -821,17 +822,17 @@ const save = async () => {
     };
     const ok = await eduaiApi.saveInsect(payload);
     if (!ok) {
-      ElMessage.error("保存失败");
+      message.error("保存失败");
       return;
     }
     // 讲解按 slug 关联，必须在物种落库之后再存，否则新建时 slug 还不存在
     const saved = await saveGuideIfNeeded(payload.insectCode ?? "");
     if (saved === false) {
-      ElMessage.warning("物种已保存，但讲解保存失败，请重试");
+      message.warning("物种已保存，但讲解保存失败，请重试");
       await loadList();
       return;
     }
-    ElMessage.success(form.insectId ? "已保存" : "已新增");
+    message.success(form.insectId ? "已保存" : "已新增");
     dialogVisible.value = false;
     // 保存后自动按名称筛选并定位到第一页：列表按「目 + ID」排序，
     // 新记录很可能落在第 2 页之后，不筛的话用户会以为没保存成功。
@@ -843,7 +844,7 @@ const save = async () => {
     });
     await loadList();
   } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -861,10 +862,10 @@ async function remove(row: InsectLibraryItem) {
   }
   try {
     const ok = await eduaiApi.deleteInsect(row.insectId);
-    ElMessage[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
+    message[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
     await loadList();
   } catch (e) {
-    ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

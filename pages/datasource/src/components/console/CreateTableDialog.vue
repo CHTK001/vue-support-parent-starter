@@ -20,8 +20,9 @@
   回填并继续预览。不传这两个 prop 时行为与历史完全一致 —— 打开即空白单列。</p>
 -->
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
@@ -266,7 +267,7 @@ async function submit(): Promise<void> {
       datasourceId: props.datasourceId,
       database: props.database || undefined,
     });
-    ElMessage.success(`表 ${table} 创建成功`);
+    message.success(`表 ${table} 创建成功`);
     emit("created", props.database, table);
     emit("update:modelValue", false);
   } catch (e) {

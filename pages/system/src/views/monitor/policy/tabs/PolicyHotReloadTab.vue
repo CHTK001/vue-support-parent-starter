@@ -8,9 +8,10 @@
  *
  * <p>状态、校验、请求与弹窗都在本组件内闭环，父级只负责「什么时候挂载我」。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -53,7 +54,7 @@ async function load(): Promise<void> {
     const res = await listHotReload();
     list.value = res.data ?? [];
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.hotreload.loadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.hotreload.loadFailed"));
   } finally {
     loading.value = false;
     markReady();
@@ -70,10 +71,10 @@ async function handleReload(): Promise<void> {
       enabledCount: res.data?.enabledCount ?? 0,
       reloadTime: res.data?.reloadTime ?? new Date().toLocaleTimeString(),
     };
-    ElMessage.success(t("policy.hotreload.reloaded", { count: info.value.enabledCount }));
+    message.success(t("policy.hotreload.reloaded", { count: info.value.enabledCount }));
     await load();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.hotreload.reloadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.hotreload.reloadFailed"));
   } finally {
     reloading.value = false;
   }
@@ -120,10 +121,10 @@ async function handleDelete(row: HotReloadConfig): Promise<void> {
     if (res.data === false) {
       throw new Error(t("policy.hotreload.errNotDeleted"));
     }
-    ElMessage.success(t("policy.hotreload.deleted"));
+    message.success(t("policy.hotreload.deleted"));
     await load();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
   } finally {
     deletingId.value = null;
   }
@@ -158,16 +159,16 @@ async function handleSubmit(): Promise<void> {
   const name = form.value.sysSettingName?.trim() ?? "";
   const code = form.value.sysSettingCode?.trim() ?? "";
   if (!name || !code) {
-    ElMessage.warning(t("policy.hotreload.errValue"));
+    message.warning(t("policy.hotreload.errValue"));
     return;
   }
   if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(code)) {
-    ElMessage.warning(t("policy.hotreload.errCode"));
+    message.warning(t("policy.hotreload.errCode"));
     return;
   }
   const valueError = validateValue(form.value.sysSettingValue, form.value.sysSettingValueType);
   if (valueError) {
-    ElMessage.warning(valueError);
+    message.warning(valueError);
     return;
   }
 
@@ -175,11 +176,11 @@ async function handleSubmit(): Promise<void> {
   try {
     const res = await saveHotReload({ ...form.value, sysSettingName: name, sysSettingCode: code });
     if (res.data === false) throw new Error(t("policy.hotreload.errDuplicate"));
-    ElMessage.success(isEdit.value ? t("policy.hotreload.saved") : t("policy.hotreload.created"));
+    message.success(isEdit.value ? t("policy.hotreload.saved") : t("policy.hotreload.created"));
     dialogVisible.value = false;
     await load();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     saving.value = false;
   }

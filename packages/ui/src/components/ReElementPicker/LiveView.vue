@@ -17,8 +17,9 @@
   sidecar 不可用或建会话失败时向父组件 emit('fallback')，由父组件回退静态模式。
 -->
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
-import { ElButton, ElInput, ElMessage, ElTabPane, ElTabs } from "element-plus";
+import { ElButton, ElInput, ElTabPane, ElTabs } from "element-plus";
 import {
   closeLiveSession,
   createLiveSession,
@@ -423,7 +424,7 @@ function resetPicked(): void {
 /** 用某种解析器插入（与静态模式同一语义，由父组件回填字段表达式并关闭弹窗） */
 function insert(parserType: string, expression: string): void {
   if (!expression) {
-    ElMessage.warning("还没有选中元素");
+    message.warning("还没有选中元素");
     return;
   }
   emit("pick", { expression, parserType });
@@ -435,9 +436,9 @@ async function copy(text: string): Promise<void> {
   }
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success("已复制");
+    message.success("已复制");
   } catch {
-    ElMessage.warning("复制失败，请手动选中");
+    message.warning("复制失败，请手动选中");
   }
 }
 

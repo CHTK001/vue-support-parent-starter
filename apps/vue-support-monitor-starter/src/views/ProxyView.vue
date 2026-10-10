@@ -17,9 +17,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import type { Component } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleCheck, DataAnalysis, Postcard, Tickets } from "@element-plus/icons-vue";
 import { http, unwrapResult } from "@repo/utils";
 import ReStatCard from "@repo/ui/re-stat-card";
@@ -181,7 +182,7 @@ async function loadList(): Promise<void> {
       source: p.source || "databay",
     }));
   } catch (e) {
-    ElMessage.error(`加载代理列表失败: ${errText(e)}`);
+    message.error(`加载代理列表失败: ${errText(e)}`);
   } finally {
     loading.value = false;
   }
@@ -193,10 +194,10 @@ async function fetchFree(): Promise<void> {
   try {
     const fetched = (await get<FreeProxy[]>("/free", undefined, 120000)) ?? [];
     await loadList();
-    if (!fetched.length) ElMessage.warning("暂未获取到免费代理（外部代理源可能超时，代理表已保留）");
-    else ElMessage.success(`获取到 ${fetched.length} 个免费代理（已录入代理表）`);
+    if (!fetched.length) message.warning("暂未获取到免费代理（外部代理源可能超时，代理表已保留）");
+    else message.success(`获取到 ${fetched.length} 个免费代理（已录入代理表）`);
   } catch (e) {
-    ElMessage.error(`获取失败: ${errText(e)}`);
+    message.error(`获取失败: ${errText(e)}`);
   } finally {
     fetching.value = false;
   }
@@ -205,16 +206,16 @@ async function fetchFree(): Promise<void> {
 /** 批量检测（后端并发探测、全部收敛后才返回） */
 async function checkAll(): Promise<void> {
   if (!freeList.value.length) {
-    ElMessage.warning("代理表为空，请先获取免费代理或手工新增");
+    message.warning("代理表为空，请先获取免费代理或手工新增");
     return;
   }
   checking.value = true;
   try {
     const msg = await get<string>("/check", undefined, 300000);
-    ElMessage.success(msg || "批量检测完成");
+    message.success(msg || "批量检测完成");
     await loadList();
   } catch (e) {
-    ElMessage.error(`批量检测失败: ${errText(e)}`);
+    message.error(`批量检测失败: ${errText(e)}`);
   } finally {
     checking.value = false;
   }
@@ -226,15 +227,15 @@ async function checkAll(): Promise<void> {
  */
 async function checkOne(row: FreeProxy): Promise<void> {
   if (row.id == null) {
-    ElMessage.error("该行缺少代理主键，无法检测");
+    message.error("该行缺少代理主键，无法检测");
     return;
   }
   try {
     await get<string>(`/check/${row.id}`, undefined, 60000);
-    ElMessage.success(`${row.host}:${row.port} 检测完成`);
+    message.success(`${row.host}:${row.port} 检测完成`);
     loadList();
   } catch (e) {
-    ElMessage.error(`检测失败: ${errText(e)}`);
+    message.error(`检测失败: ${errText(e)}`);
   }
 }
 
@@ -263,11 +264,11 @@ function openEdit(row: FreeProxy): void {
 /** 保存新增/编辑 */
 async function saveForm(): Promise<void> {
   if (!form.host.trim()) {
-    ElMessage.warning("请填写代理主机");
+    message.warning("请填写代理主机");
     return;
   }
   if (!Number.isInteger(form.port) || form.port < 1 || form.port > 65535) {
-    ElMessage.warning("代理端口必须是 1~65535 之间的整数");
+    message.warning("代理端口必须是 1~65535 之间的整数");
     return;
   }
   saving.value = true;
@@ -277,12 +278,12 @@ async function saveForm(): Promise<void> {
       ? http().post(BASE).noToast(true).data(body)
       : http().put(`${BASE}/${editingId.value}`).noToast(true).data(body);
     const saved = unwrapResult<FreeProxy>(await req);
-    ElMessage.success(editingId.value == null ? "已新增代理" : "已更新代理（探测结果已重置）");
+    message.success(editingId.value == null ? "已新增代理" : "已更新代理（探测结果已重置）");
     formVisible.value = false;
     await loadList();
     if (saved) void checkOne(saved);
   } catch (e) {
-    ElMessage.error(`保存失败: ${errText(e)}`);
+    message.error(`保存失败: ${errText(e)}`);
   } finally {
     saving.value = false;
   }
@@ -300,10 +301,10 @@ async function removeOne(row: FreeProxy): Promise<void> {
   }
   try {
     unwrapResult<void>(await http().delete(`${BASE}/${row.id}`).noToast(true));
-    ElMessage.success("已删除");
+    message.success("已删除");
     loadList();
   } catch (e) {
-    ElMessage.error(`删除失败: ${errText(e)}`);
+    message.error(`删除失败: ${errText(e)}`);
   }
 }
 
@@ -316,10 +317,10 @@ async function clearAll(): Promise<void> {
   }
   try {
     const removed = unwrapResult<number>(await http().delete(BASE).noToast(true));
-    ElMessage.success(`已清空 ${removed ?? 0} 条代理`);
+    message.success(`已清空 ${removed ?? 0} 条代理`);
     loadList();
   } catch (e) {
-    ElMessage.error(`清空失败: ${errText(e)}`);
+    message.error(`清空失败: ${errText(e)}`);
   }
 }
 

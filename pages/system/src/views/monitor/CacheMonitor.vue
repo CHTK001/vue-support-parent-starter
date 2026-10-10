@@ -4,8 +4,9 @@
  *
  * 页头 + 4统计卡 + 三栏主从（胶囊行 + 深色代码查看器）
  */
+import { message } from "@repo/core";
 import { onMounted, ref, computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   Refresh, Delete, Edit, FolderOpened, Document,
   Coin, User, Files, TrendCharts, ArrowRight, CircleCheck,
@@ -49,7 +50,7 @@ async function loadModules() {
     const res = await listCacheMonitorModules();
     modules.value = res?.data ?? [];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "缓存列表加载失败");
+    message.error((e as Error)?.message ?? "缓存列表加载失败");
   } finally {
     moduleLoading.value = false;
   }
@@ -70,7 +71,7 @@ async function handleDeleteModule(mod: CacheModuleInfo) {
   } catch { return; }
   try {
     await clearCacheMonitorModule(mod.module ?? "");
-    ElMessage.success("已清空");
+    message.success("已清空");
     loadModules();
     loadStats();
     if (selectedModule.value?.module === mod.module) {
@@ -80,7 +81,7 @@ async function handleDeleteModule(mod: CacheModuleInfo) {
       keys.value = [];
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "清空失败");
+    message.error((e as Error)?.message ?? "清空失败");
   }
 }
 
@@ -96,7 +97,7 @@ async function loadKeys() {
     const res = await listCacheMonitorKeys(selectedModule.value.module);
     keys.value = res?.data ?? [];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "键名列表加载失败");
+    message.error((e as Error)?.message ?? "键名列表加载失败");
     keys.value = [];
   } finally {
     keyLoading.value = false;
@@ -116,13 +117,13 @@ async function handleDeleteKey(key: string) {
   } catch { return; }
   try {
     await deleteCacheMonitorKey(key);
-    ElMessage.success("已删除");
+    message.success("已删除");
     loadKeys();
     loadModules();
     loadStats();
     if (selectedKey.value === key) { selectedKey.value = null; cacheValue.value = null; }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   }
 }
 
@@ -138,7 +139,7 @@ async function loadValue() {
     cacheValue.value = res?.data ?? null;
     previewMode.value = "json"; // 新值默认自动 JSON（不可解析时自动回落原始）
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "缓存内容加载失败");
+    message.error((e as Error)?.message ?? "缓存内容加载失败");
     cacheValue.value = null;
   } finally {
     valueLoading.value = false;
@@ -176,9 +177,9 @@ function openEditValue() {
 function formatEditJson() {
   try {
     editValue.value = JSON.stringify(JSON.parse(editValue.value), null, 2);
-    ElMessage.success("已格式化");
+    message.success("已格式化");
   } catch {
-    ElMessage.error("当前内容不是合法 JSON，无法格式化");
+    message.error("当前内容不是合法 JSON，无法格式化");
   }
 }
 
@@ -186,17 +187,17 @@ async function submitEditValue() {
   const module = selectedModule.value?.module;
   if (!module || !selectedKey.value) return;
   if (!editJsonValid.value) {
-    ElMessage.warning("JSON 格式不合法，请修正后再保存");
+    message.warning("JSON 格式不合法，请修正后再保存");
     return;
   }
   editLoading.value = true;
   try {
     await updateCacheValue({ module, key: selectedKey.value, value: editValue.value });
-    ElMessage.success("缓存值已更新");
+    message.success("缓存值已更新");
     editVisible.value = false;
     await loadValue();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "缓存值更新失败");
+    message.error((e as Error)?.message ?? "缓存值更新失败");
   } finally {
     editLoading.value = false;
   }
@@ -342,9 +343,9 @@ async function copyCode() {
   if (!text) return;
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success("已复制缓存内容");
+    message.success("已复制缓存内容");
   } catch {
-    ElMessage.error("复制失败，请手动选择复制");
+    message.error("复制失败，请手动选择复制");
   }
 }
 </script>

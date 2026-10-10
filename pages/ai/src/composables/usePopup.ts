@@ -1,12 +1,7 @@
 // src/composables/usePopup.ts
+import { message } from "@repo/core";
 import { ref, h, type VNode } from 'vue'
-import {
-    ElMessageBox,
-    ElMessage,
-    ElNotification,
-    ElButton,
-    type ElMessageBoxOptions
-} from 'element-plus'
+import { ElMessageBox, ElNotification, ElButton, type ElMessageBoxOptions } from 'element-plus';
 import { t } from '@/locales'
 
 /**
@@ -162,7 +157,7 @@ export function usePopup(): UsePopupReturn {
                 const inputValue = value.trim()
 
                 if (required && !inputValue) {
-                    ElMessage.error(t('session.popup.contentRequired'))
+                    message.error(t('session.popup.contentRequired'))
                     return resolve(null)
                 }
 
@@ -235,7 +230,7 @@ export function usePopup(): UsePopupReturn {
                         const value = textarea ? textarea.value.trim() : ''
 
                         if (required && !value) {
-                            ElMessage.error(t('session.popup.contentRequired'))
+                            message.error(t('session.popup.contentRequired'))
                             return
                         }
 
@@ -277,7 +272,7 @@ export function usePopup(): UsePopupReturn {
      */
     const toast: ToastApi = {
         success: (content: string, duration: number = 2000): void => {
-            ElMessage.success({
+            message.success({
                 message: content,
                 duration,
                 showClose: true
@@ -285,7 +280,7 @@ export function usePopup(): UsePopupReturn {
         },
 
         error: (content: string, duration: number = 3000): void => {
-            ElMessage.error({
+            message.error({
                 message: content,
                 duration,
                 showClose: true
@@ -293,7 +288,7 @@ export function usePopup(): UsePopupReturn {
         },
 
         warning: (content: string, duration: number = 2500): void => {
-            ElMessage.warning({
+            message.warning({
                 message: content,
                 duration,
                 showClose: true
@@ -301,7 +296,7 @@ export function usePopup(): UsePopupReturn {
         },
 
         info: (content: string, duration: number = 2000): void => {
-            ElMessage.info({
+            message.info({
                 message: content,
                 duration,
                 showClose: true
@@ -309,7 +304,7 @@ export function usePopup(): UsePopupReturn {
         },
 
         loading: (content: string, duration: number = 0) => {
-            // ElMessage.loading 不在 Element Plus 类型定义中，但运行时可用
+            // message.loading 不在 Element Plus 类型定义中，但运行时可用
             const messageFn = ElMessage as typeof ElMessage & {
                 loading(opts: Record<string, unknown>): unknown
             };
@@ -388,7 +383,7 @@ export function usePopup(): UsePopupReturn {
      * 关闭所有消息和弹窗
      */
     const closeAll = (): void => {
-        ElMessage.closeAll()
+        message.closeAll()
         // ElMessageBox 没有 closeAll 方法
     }
 

@@ -7,8 +7,9 @@
  * 选择渠道后自动推导提供商类型。
  * 保存成功后通过 save 事件通知父组件刷新列表。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import type { FormInstance, FormRules } from "element-plus";
 import { listChannels, saveProvider, updateProvider } from "../api/messageApi";
 import type { MessageProvider } from "../api/types";
@@ -130,7 +131,7 @@ async function handleSave() {
     } else {
       await saveProvider({ ...model.value });
     }
-    ElMessage.success(isEdit.value ? "更新成功" : "新增成功");
+    message.success(isEdit.value ? "更新成功" : "新增成功");
     visible.value = false;
     emit("save");
   } finally {

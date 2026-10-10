@@ -87,11 +87,11 @@
 <script setup lang="ts" name="homePage">
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { debounce, getDayText } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
-import { getUserPermission } from "@repo/core";
+import {getUserPermission, message} from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";
@@ -230,13 +230,13 @@ function addWidget(type: WidgetType): void {
   // （source 必须随 widget 落盘，缺少该模块的 app 才能显示占位卡片文案）
   const reg = getWidgetRegistration(type);
   if (!reg) {
-    ElMessage.warning(`组件「${type}」在当前应用未注册`);
+    message.warning(`组件「${type}」在当前应用未注册`);
     return;
   }
   const { component: _c, iconComponent: _i, source, ...catalog } = reg;
   const counted = state.widgets.filter((w) => w.type === type).length;
   if (counted >= catalog.maxCount) {
-    ElMessage.warning(`「${catalog.title}」最多添加 ${catalog.maxCount} 个`);
+    message.warning(`「${catalog.title}」最多添加 ${catalog.maxCount} 个`);
     return;
   }
   const id = nextId();
@@ -324,7 +324,7 @@ function saveLayout(): void {
   // 同步快照基准，避免 save() 克隆数组后 watch 重复触发时误判为有变更
   lastSavedSnapshot = layoutSnapshot();
   editMode.value = false;
-  ElMessage.success("布局已保存");
+  message.success("布局已保存");
 }
 
 onMounted(() => {

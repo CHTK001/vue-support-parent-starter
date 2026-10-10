@@ -116,9 +116,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { useBotStore } from '@/stores/bot'
@@ -225,7 +226,7 @@ const loadSessions = async () => {
     total.value = response.total || 0
   } catch (error) {
     console.error('加载 Bot 会话失败:', error)
-    ElMessage.error(t('bot.sessions.loadFailed'))
+    message.error(t('bot.sessions.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -300,7 +301,7 @@ const handleClearMessages = async (session: Session) => {
     )
 
     await apiService.clearSessionMessages(session.id)
-    ElMessage.success(t('bot.sessions.clearSuccess'))
+    message.success(t('bot.sessions.clearSuccess'))
 
     // 如果对话框打开，关闭它
     if (dialogVisible.value && selectedSession.value?.id === session.id) {
@@ -310,7 +311,7 @@ const handleClearMessages = async (session: Session) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('清空聊天记录失败:', error)
-      ElMessage.error(t('bot.sessions.clearFailed'))
+      message.error(t('bot.sessions.clearFailed'))
     }
   }
 }
@@ -329,14 +330,14 @@ const handleDeleteSession = async (session: Session) => {
     )
 
     await apiService.deleteSession(session.id)
-    ElMessage.success(t('bot.sessions.deleteSuccess'))
+    message.success(t('bot.sessions.deleteSuccess'))
 
     // 重新加载列表
     await loadSessions()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除会话失败:', error)
-      ElMessage.error(t('bot.sessions.deleteFailed'))
+      message.error(t('bot.sessions.deleteFailed'))
     }
   }
 }

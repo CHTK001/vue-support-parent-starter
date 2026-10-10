@@ -94,8 +94,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
@@ -202,7 +203,7 @@ async function load() {
     sites.value = (await fetchNginxSites(props.datasourceId)) || [];
   } catch (e) {
     sites.value = [];
-    ElMessage.error(`读取站点清单失败：${(e as Error).message}`);
+    message.error(`读取站点清单失败：${(e as Error).message}`);
   } finally {
     loading.value = false;
     // 成功失败都算首屏结束：失败时要显示「读取失败」而不是永远停在骨架上
@@ -219,15 +220,15 @@ function copyUrl(s: NginxSite) {
   const port = s.listenPorts[0];
   const host = s.serverNames[0] || s.displayName;
   if (!host) {
-    ElMessage.warning("该站点没有 server_name，无法拼出访问地址");
+    message.warning("该站点没有 server_name，无法拼出访问地址");
     return;
   }
   const omitPort = (schemeName === "http" && port === 80) || (schemeName === "https" && port === 443);
   const url = `${schemeName}://${host}${omitPort || !port ? "" : `:${port}`}`;
   navigator.clipboard
     ?.writeText(url)
-    .then(() => ElMessage.success(`已复制 ${url}`))
-    .catch(() => ElMessage.warning(`复制失败，请手动复制：${url}`));
+    .then(() => message.success(`已复制 ${url}`))
+    .catch(() => message.warning(`复制失败，请手动复制：${url}`));
 }
 
 watch(() => props.datasourceId, load, { immediate: true });

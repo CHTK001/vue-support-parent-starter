@@ -5,9 +5,10 @@
  * 顶部展示全部统计概览（提供商 / 模板 / 日志），
  * 提供商列表支持查看该提供商的模板管理与推送日志。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { OfficeBuilding, Message, Document, Plus, Search, Refresh, Memo } from "@element-plus/icons-vue";
 import { deleteProvider, listChannels, pageForLog, pageForProvider, pageForTemplate, updateProvider } from "../api/messageApi";
 import type { MessageProvider } from "../api/types";
@@ -122,7 +123,7 @@ async function loadList() {
     list.value = res?.data?.data ?? [];
     total.value = res?.data?.total ?? 0;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "提供商列表加载失败");
+    message.error((e as Error)?.message ?? "提供商列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -141,7 +142,7 @@ async function loadStats() {
     stats.templateTotal = templates?.data?.total ?? 0;
     stats.logTotal = logs?.data?.total ?? 0;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "统计概览加载失败");
+    message.error((e as Error)?.message ?? "统计概览加载失败");
   } finally {
     statsLoading.value = false;
   }
@@ -174,7 +175,7 @@ async function handleDelete(row: MessageProvider) {
     type: "warning",
   });
   await deleteProvider(row.sysMessageProviderId!);
-  ElMessage.success("删除成功");
+  message.success("删除成功");
   loadList();
   loadStats();
 }
@@ -185,7 +186,7 @@ async function handleStatus(row: MessageProvider) {
     ...row,
     sysMessageProviderStatus: row.sysMessageProviderStatus === 1 ? 0 : 1,
   });
-  ElMessage.success(row.sysMessageProviderStatus === 1 ? "已启用" : "已停用");
+  message.success(row.sysMessageProviderStatus === 1 ? "已启用" : "已停用");
   loadList();
 }
 

@@ -12,8 +12,9 @@
  * 主题组件（ReGraph default / koi 及各 ReGraph* 变体）均以不同 props 复用本组件，
  * 只有被选中的主题实现会被打包。
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   ArrowLeft,
   ArrowRight,
@@ -318,7 +319,7 @@ function exportJSON() {
   a.download = `x6-graph-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  ElMessage.success("图谱已导出");
+  message.success("图谱已导出");
 }
 function triggerImport() {
   fileInputRef.value?.click();
@@ -331,9 +332,9 @@ async function handleImportFile(ev: Event) {
     const text = await file.text();
     engine.value.fromJSON(JSON.parse(text));
     refreshStat();
-    ElMessage.success("图谱已导入");
+    message.success("图谱已导入");
   } catch (err) {
-    ElMessage.error(`导入失败：${err instanceof Error ? err.message : String(err)}`);
+    message.error(`导入失败：${err instanceof Error ? err.message : String(err)}`);
   } finally {
     input.value = "";
   }
@@ -365,7 +366,7 @@ async function handleMenuAction(action: ReGraphNodeMenuAction) {
 async function expandNode(node: ReGraphNode) {
   const fetchExpand = props.fetchExpand;
   if (!fetchExpand) {
-    ElMessage.info("未配置 fetchExpand，无法扩线");
+    message.info("未配置 fetchExpand，无法扩线");
     return;
   }
   if (!engine.value) return;
@@ -376,9 +377,9 @@ async function expandNode(node: ReGraphNode) {
     const payload = await engine.value.expand(node.id, fetchExpand);
     refreshStat();
     emit("expand", node, payload);
-    ElMessage.success(`已扩展 ${payload.nodes.length} 个节点`);
+    message.success(`已扩展 ${payload.nodes.length} 个节点`);
   } catch (err) {
-    ElMessage.error(`扩线失败：${err instanceof Error ? err.message : String(err)}`);
+    message.error(`扩线失败：${err instanceof Error ? err.message : String(err)}`);
   } finally {
     delete loadingMap[node.id];
     stat.loading -= 1;

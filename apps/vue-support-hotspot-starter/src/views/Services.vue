@@ -77,10 +77,11 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Connection, Histogram, Warning } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReTable from "@repo/ui/re-table";
 import ReSkeleton from "@repo/ui/re-skeleton";
@@ -120,7 +121,7 @@ async function load() {
       errorRate: s.callCount > 0 ? Math.round((s.errorCount / s.callCount) * 10000) / 100 : 0,
     }));
   } catch {
-    ElMessage.error("加载服务列表失败");
+    message.error("加载服务列表失败");
   } finally {
     loading.value = false;
   }

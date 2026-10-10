@@ -1,8 +1,9 @@
+import { message } from "@repo/core";
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiService } from '@/services/ApiService'
 import type { BotInstance, PlatformMetadata } from '@/types/bot'
-import { ElMessage } from 'element-plus'
+
 import { t } from '@/locales'
 
 export const useBotStore = defineStore('bot', () => {
@@ -22,7 +23,7 @@ export const useBotStore = defineStore('bot', () => {
     try {
       platforms.value = await apiService.fetchBotPlatforms()
     } catch (error) {
-      ElMessage.error(t('session.bot.loadPlatformsFailed'))
+      message.error(t('session.bot.loadPlatformsFailed'))
       throw error
     }
   }
@@ -32,7 +33,7 @@ export const useBotStore = defineStore('bot', () => {
     try {
       botInstances.value = await apiService.fetchBotInstances()
     } catch (error) {
-      ElMessage.error(t('session.bot.loadBotsFailed'))
+      message.error(t('session.bot.loadBotsFailed'))
       throw error
     } finally {
       loading.value = false
@@ -43,10 +44,10 @@ export const useBotStore = defineStore('bot', () => {
     try {
       const newBot = await apiService.createBotInstance(data)
       botInstances.value.unshift(newBot)
-      ElMessage.success(t('session.bot.createSuccess'))
+      message.success(t('session.bot.createSuccess'))
       return newBot
     } catch (error) {
-      ElMessage.error(t('session.bot.createFailed'))
+      message.error(t('session.bot.createFailed'))
       throw error
     }
   }
@@ -58,10 +59,10 @@ export const useBotStore = defineStore('bot', () => {
       if (index !== -1) {
         botInstances.value[index] = updatedBot
       }
-      ElMessage.success(t('session.bot.updateSuccess'))
+      message.success(t('session.bot.updateSuccess'))
       return updatedBot
     } catch (error) {
-      ElMessage.error(t('session.bot.updateFailed'))
+      message.error(t('session.bot.updateFailed'))
       throw error
     }
   }
@@ -70,9 +71,9 @@ export const useBotStore = defineStore('bot', () => {
     try {
       await apiService.deleteBotInstance(id)
       botInstances.value = botInstances.value.filter(bot => bot.id !== id)
-      ElMessage.success(t('session.bot.deleteSuccess'))
+      message.success(t('session.bot.deleteSuccess'))
     } catch (error) {
-      ElMessage.error(t('session.bot.deleteFailed'))
+      message.error(t('session.bot.deleteFailed'))
       throw error
     }
   }
@@ -85,9 +86,9 @@ export const useBotStore = defineStore('bot', () => {
         bot.status = 'running'
         bot.runtimeStatus = 'CONNECTING'
       }
-      ElMessage.success(t('session.bot.starting'))
+      message.success(t('session.bot.starting'))
     } catch (error: any) {
-      ElMessage.error(error?.message || t('session.bot.startFailed'))
+      message.error(error?.message || t('session.bot.startFailed'))
       throw error
     }
   }
@@ -100,9 +101,9 @@ export const useBotStore = defineStore('bot', () => {
         bot.status = 'stopped'
         bot.runtimeStatus = 'DISCONNECTED'
       }
-      ElMessage.success(t('session.bot.stopped'))
+      message.success(t('session.bot.stopped'))
     } catch (error: any) {
-      ElMessage.error(error?.message || t('session.bot.stopFailed'))
+      message.error(error?.message || t('session.bot.stopFailed'))
       throw error
     }
   }
@@ -115,9 +116,9 @@ export const useBotStore = defineStore('bot', () => {
         bot.status = 'running'
         bot.runtimeStatus = 'CONNECTING'
       }
-      ElMessage.success(t('session.bot.restarting'))
+      message.success(t('session.bot.restarting'))
     } catch (error: any) {
-      ElMessage.error(error?.message || t('session.bot.restartFailed'))
+      message.error(error?.message || t('session.bot.restartFailed'))
       throw error
     }
   }

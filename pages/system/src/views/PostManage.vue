@@ -5,8 +5,9 @@
  * 岗位分页查询 + 新增/编辑/删除。
  * 全部使用 ReXxx modern 组件渲染，风格对齐 UserManage.vue。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { pageForPost, savePost, updatePost, deletePost, updatePostSortBatch } from "../api/systemApi";
 import type { SysPost } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
@@ -86,26 +87,26 @@ function handleEdit(row: Record<string, unknown>) {
 
 async function handleSubmit() {
   if (!form.value.sysPostName) {
-    ElMessage.warning("请输入岗位名称");
+    message.warning("请输入岗位名称");
     return;
   }
   if (!form.value.sysPostCode) {
-    ElMessage.warning("请输入岗位编码");
+    message.warning("请输入岗位编码");
     return;
   }
   saving.value = true;
   try {
     if (isEdit.value) {
       await updatePost(form.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await savePost(form.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dialogVisible.value = false;
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     saving.value = false;
   }
@@ -123,10 +124,10 @@ async function handleDragSort({ newData }: { newData: SysPost[] }) {
           }],
     );
     await updatePostSortBatch(list);
-    ElMessage.success("排序已更新");
+    message.success("排序已更新");
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "排序更新失败");
+    message.error((e as Error)?.message ?? "排序更新失败");
   }
 }
 
@@ -144,10 +145,10 @@ async function handleDelete(row: Record<string, unknown>) {
   deleteLoading.value = post.sysPostId!;
   try {
     await deletePost(post.sysPostId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   } finally {
     deleteLoading.value = 0;
   }

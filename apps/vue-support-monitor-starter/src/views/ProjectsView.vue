@@ -421,8 +421,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { getGlobalSocketService } from '@repo/core';
+import { ElMessageBox } from 'element-plus';
+import {getGlobalSocketService, message} from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, listTemplates } from '@repo/ui/components/ReCommand/templates';
 import { trackTask } from '../utils/processTasks';
@@ -602,7 +602,7 @@ async function loadList() {
     const res = await http().get(`${BASE}/${releaseId.value}/projects`);
     list.value = unwrapResult<Project[]>(res) || [];
   } catch (e) {
-    ElMessage.error('加载项目列表失败');
+    message.error('加载项目列表失败');
   } finally {
     loading.value = false;
   }
@@ -768,14 +768,14 @@ const autogenLoading = ref(false);
 function fillScriptsFromTemplate(silent = false): boolean {
   if (!form.value.projectType) {
     if (!silent) {
-      ElMessage.error('请先在「基础信息」选择项目类型');
+      message.error('请先在「基础信息」选择项目类型');
       activeTab.value = 'basic';
     }
     return false;
   }
   if (!form.value.projectPath) {
     if (!silent) {
-      ElMessage.error('请先在「基础信息」填写项目地址');
+      message.error('请先在「基础信息」填写项目地址');
       activeTab.value = 'basic';
     }
     return false;
@@ -784,7 +784,7 @@ function fillScriptsFromTemplate(silent = false): boolean {
   // 优先精确匹配类型，其次取第一个可用模板
   const tpl = templates.find((t) => t.types.includes(form.value.projectType)) || templates[0];
   if (!tpl) {
-    if (!silent) ElMessage.error('当前类型暂无内置模板');
+    if (!silent) message.error('当前类型暂无内置模板');
     return false;
   }
   try {
@@ -800,10 +800,10 @@ function fillScriptsFromTemplate(silent = false): boolean {
     if (!form.value.stopScript) form.value.stopScript = filled.stop;
     if (!form.value.restartScript) form.value.restartScript = filled.restart;
     if (!form.value.statusScript && filled.status) form.value.statusScript = filled.status;
-    if (!silent) ElMessage.success('已根据基础配置生成脚本');
+    if (!silent) message.success('已根据基础配置生成脚本');
     return true;
   } catch (e: any) {
-    if (!silent) ElMessage.error(e?.message || '脚本生成失败');
+    if (!silent) message.error(e?.message || '脚本生成失败');
     return false;
   }
 }
@@ -814,19 +814,19 @@ function fillScriptsFromTemplate(silent = false): boolean {
  */
 async function autoGenerateScripts() {
   if (!form.value.projectType) {
-    ElMessage.error('请先在「基础信息」选择项目类型');
+    message.error('请先在「基础信息」选择项目类型');
     activeTab.value = 'basic';
     return;
   }
   if (!form.value.projectPath) {
-    ElMessage.error('请先在「基础信息」填写项目地址');
+    message.error('请先在「基础信息」填写项目地址');
     activeTab.value = 'basic';
     return;
   }
   const templates = listTemplates(hostOs.value, form.value.projectType);
   const tpl = templates.find((t) => t.types.includes(form.value.projectType)) || templates[0];
   if (!tpl) {
-    ElMessage.error('当前类型暂无内置模板');
+    message.error('当前类型暂无内置模板');
     return;
   }
   const hasAny = [form.value.startScript, form.value.stopScript, form.value.restartScript, form.value.statusScript]
@@ -853,9 +853,9 @@ async function autoGenerateScripts() {
     form.value.statusScript = filled.status || '';
     // 展开 __JVMARGS__/__ARGS__ 为 $JVM_ARGS/$APP_ARGS（或 PS 变量）并注入变量块，保证生成即可用
     materializeVars();
-    ElMessage.success('已生成 启动·停止·重启·状态 四个脚本');
+    message.success('已生成 启动·停止·重启·状态 四个脚本');
   } catch (e: any) {
-    ElMessage.error(e?.message || '脚本生成失败');
+    message.error(e?.message || '脚本生成失败');
   } finally {
     autogenLoading.value = false;
   }
@@ -863,23 +863,23 @@ async function autoGenerateScripts() {
 
 async function handleSave() {
   if (!form.value.projectName.trim()) {
-    ElMessage.error('请填写「项目名称」');
+    message.error('请填写「项目名称」');
     return;
   }
   if (!form.value.projectType) {
-    ElMessage.error('请选择「项目类型」');
+    message.error('请选择「项目类型」');
     return;
   }
   if (!form.value.projectPath.trim()) {
-    ElMessage.error('请填写「项目地址」');
+    message.error('请填写「项目地址」');
     return;
   }
   if (!form.value.logPath.trim()) {
-    ElMessage.error('请填写「日志地址」');
+    message.error('请填写「日志地址」');
     return;
   }
   if (mainEntryRequired.value && !form.value.mainEntry.trim()) {
-    ElMessage.error('当前项目类型必须填写「主入口名称」');
+    message.error('当前项目类型必须填写「主入口名称」');
     return;
   }
   // 规范化自定义服务名（仅小写字母数字、-、_）
@@ -901,15 +901,15 @@ async function handleSave() {
     };
     if (editingId.value != null) {
       await http().put(`${BASE}/project/${editingId.value}`).data(payload);
-      ElMessage.success('更新成功');
+      message.success('更新成功');
     } else {
       await http().post(`${BASE}/project`).data({ ...payload, releaseId: releaseId.value });
-      ElMessage.success('创建成功');
+      message.success('创建成功');
     }
     dialogVisible.value = false;
     loadList();
   } catch (e) {
-    ElMessage.error('保存失败');
+    message.error('保存失败');
   }
 }
 
@@ -918,10 +918,10 @@ async function toggleEnabled(item: Project) {
   const next = item.enabled === false;
   try {
     await http().put(`${BASE}/project/${item.id}`).data({ enabled: next });
-    ElMessage.success(next ? '已激活' : '已禁用');
+    message.success(next ? '已激活' : '已禁用');
     loadList();
   } catch {
-    ElMessage.error('操作失败');
+    message.error('操作失败');
   }
 }
 
@@ -957,7 +957,7 @@ async function runOperation(item: Project, operation: string, path: string) {
       trackTask(taskId, item.projectName, operation);
     }
   } catch (e) {
-    ElMessage.error('操作触发失败');
+    message.error('操作触发失败');
   }
 }
 
@@ -978,7 +978,7 @@ async function handleRollback(row: Project) {
     await ElMessageBox.confirm(`确定回滚项目「${row.projectName}」到上一个版本吗？`, '回滚确认', { type: 'warning' });
     await runOperation(row, 'rollback', `/project/${row.id}/rollback`);
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('回滚失败');
+    if (e !== 'cancel') message.error('回滚失败');
   }
 }
 
@@ -1280,7 +1280,7 @@ function confirmAppConfig() {
 // ---- 系统服务 ----
 async function handleInstallService() {
   if (form.value.guardian && !form.value.statusScript) {
-    ElMessage.error('开启守护进程需先在「脚本配置」中配置状态命令');
+    message.error('开启守护进程需先在「脚本配置」中配置状态命令');
     return;
   }
   await handleSave();
@@ -1290,7 +1290,7 @@ async function handleInstallService() {
       const taskId = unwrapResult<string>(res);
       if (taskId) trackTask(taskId, form.value.projectName, 'install-service');
     } catch {
-      ElMessage.error('挂载服务失败');
+      message.error('挂载服务失败');
     }
   }
 }
@@ -1301,7 +1301,7 @@ async function handleUninstallService() {
     form.value.serviceName = '';
     if (taskId) trackTask(taskId, form.value.projectName, 'uninstall-service');
   } catch {
-    ElMessage.error('卸载服务失败');
+    message.error('卸载服务失败');
   }
 }
 
@@ -1319,10 +1319,10 @@ async function onDropFile(item: Project, ev: DragEvent) {
     if (taskId) {
       trackTask(taskId, item.projectName, 'upgrade');
     } else {
-      ElMessage.error('上传升级失败');
+      message.error('上传升级失败');
     }
   } catch {
-    ElMessage.error('上传升级失败');
+    message.error('上传升级失败');
   }
 }
 
@@ -1352,9 +1352,9 @@ async function openUpgradeDialog(item: Project) {
 async function saveGlobalConfig() {
   try {
     await http().put(`${BASE}/upgrade/config?scope=global`).data(upgForm.value);
-    ElMessage.success('已保存为全局默认');
+    message.success('已保存为全局默认');
   } catch {
-    ElMessage.error('保存失败');
+    message.error('保存失败');
   }
 }
 async function executeUpgrade() {
@@ -1366,7 +1366,7 @@ async function executeUpgrade() {
     upgVisible.value = false;
     if (taskId) trackTask(taskId, upgProject.value.projectName, 'upgrade');
   } catch {
-    ElMessage.error('升级触发失败');
+    message.error('升级触发失败');
   }
 }
 
@@ -1442,10 +1442,10 @@ async function handleDelete(row: Project) {
   try {
     await ElMessageBox.confirm(`确定删除项目「${row.projectName}」吗？`, '提示', { type: 'warning' });
     await http().delete(`${BASE}/project/${row.id}`);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     loadList();
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败');
+    if (e !== 'cancel') message.error('删除失败');
   }
 }
 
@@ -1475,7 +1475,7 @@ async function loadBackups() {
     const res = await http().get(`${BASE}/project/${editingId.value}/backups`);
     backupRows.value = unwrapResult<BackupRow[]>(res) || [];
   } catch {
-    ElMessage.error('加载备份记录失败');
+    message.error('加载备份记录失败');
   } finally {
     backupLoading.value = false;
   }
@@ -1493,10 +1493,10 @@ async function handleBackupNow() {
         if (fin) { stopWatch(); loadBackups(); }
       });
     } else {
-      ElMessage.error('备份触发失败');
+      message.error('备份触发失败');
     }
   } catch {
-    ElMessage.error('备份失败');
+    message.error('备份失败');
   } finally {
     backupActionLoading.value = false;
   }
@@ -1516,10 +1516,10 @@ async function handleRollbackTo(b: BackupRow) {
         if (fin) { stopWatch(); loadBackups(); loadList(); }
       });
     } else {
-      ElMessage.error('回滚触发失败');
+      message.error('回滚触发失败');
     }
   } catch {
-    ElMessage.error('回滚失败');
+    message.error('回滚失败');
   }
 }
 

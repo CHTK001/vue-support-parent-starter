@@ -7,9 +7,10 @@
  *
  * <p>状态、列定义、请求与弹窗都在本组件内闭环，父级只负责「什么时候挂载我」。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -81,7 +82,7 @@ async function load(params?: ReTableLoadParams): Promise<RePageResult> {
     total.value = res.data?.total ?? 0;
     return { total: res.data?.total ?? 0, data: records as Record<string, unknown>[] };
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.gray.loadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.gray.loadFailed"));
     throw error;
   } finally {
     loading.value = false;
@@ -106,14 +107,14 @@ function handleEdit(row: PolicyConfig): void {
 /** 保存灰度配置 */
 async function handleSubmit(): Promise<void> {
   if (!form.value.bizKey) {
-    ElMessage.warning(t("policy.gray.errKeyBlank"));
+    message.warning(t("policy.gray.errKeyBlank"));
     return;
   }
   if (form.value.config) {
     try {
       JSON.parse(form.value.config);
     } catch {
-      ElMessage.warning(t("policy.gray.errNotJson"));
+      message.warning(t("policy.gray.errNotJson"));
       return;
     }
   }
@@ -121,16 +122,16 @@ async function handleSubmit(): Promise<void> {
   try {
     if (isEdit.value) {
       await updatePolicyConfig(form.value);
-      ElMessage.success(t("policy.gray.saved"));
+      message.success(t("policy.gray.saved"));
     } else {
       await savePolicyConfig(form.value);
-      ElMessage.success(t("policy.gray.created"));
+      message.success(t("policy.gray.created"));
     }
     dialogVisible.value = false;
     // 走 ReTable 实例 reload()；直接调 load() 不会让表格重绘
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     saving.value = false;
   }
@@ -147,10 +148,10 @@ async function handleToggle(row: PolicyConfig, value: boolean | string | number)
   toggleLoadingId.value = row.sysPolicyConfigId;
   try {
     await togglePolicyConfig(row.sysPolicyConfigId, value ? 1 : 0);
-    ElMessage.success(value ? t("policy.common.enabled") : t("policy.common.stopped"));
+    message.success(value ? t("policy.common.enabled") : t("policy.common.stopped"));
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.toggleFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.toggleFailed"));
   } finally {
     toggleLoadingId.value = null;
   }
@@ -171,10 +172,10 @@ async function handleDelete(row: PolicyConfig): Promise<void> {
   deleteLoadingId.value = row.sysPolicyConfigId;
   try {
     await deletePolicyConfig(row.sysPolicyConfigId);
-    ElMessage.success(t("policy.common.deleted"));
+    message.success(t("policy.common.deleted"));
     await load();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
   } finally {
     deleteLoadingId.value = null;
   }

@@ -510,8 +510,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleCheck, DataLine, Document, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { CollectMeta, CollectTask, CollectTaskForm, CollectDbTable } from "../api/types";
@@ -812,7 +813,7 @@ function openPre() {
 async function runPrePreview() {
   const url = preUrl.value.trim() || currentSourceUrl();
   if (!url) {
-    ElMessage.warning("请填写数据地址");
+    message.warning("请填写数据地址");
     return;
   }
   prePreviewLoading.value = true;
@@ -824,10 +825,10 @@ async function runPrePreview() {
       limit: 3,
     });
     if (!prePreviewRows.value.length) {
-      ElMessage.warning("没有解析出任何行，请检查 JSONPath / 脚本");
+      message.warning("没有解析出任何行，请检查 JSONPath / 脚本");
     }
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || e?.message || "试跑失败");
+    message.error(e?.response?.data?.message || e?.message || "试跑失败");
   } finally {
     prePreviewLoading.value = false;
   }
@@ -835,7 +836,7 @@ async function runPrePreview() {
 
 function confirmPre() {
   if (!preMapping.value.some((m) => m.path.trim() && m.name.trim())) {
-    ElMessage.warning("请至少配置一条字段映射（JSONPath → 输出名）");
+    message.warning("请至少配置一条字段映射（JSONPath → 输出名）");
     return;
   }
   preConfigured.value = true;
@@ -898,11 +899,11 @@ function autoFillMapping() {
 
 function confirmImp() {
   if (!impTable.value) {
-    ElMessage.warning("请选择目标表");
+    message.warning("请选择目标表");
     return;
   }
   if (!impMapping.value.some((m) => m.column && m.key)) {
-    ElMessage.warning("请至少配置一个字段映射");
+    message.warning("请至少配置一个字段映射");
     return;
   }
   impConfigured.value = true;
@@ -1098,7 +1099,7 @@ function buildSourceConfig(): string {
       JSON.parse(constants);
       importProcessor.constants = constants;
     } catch {
-      ElMessage.warning("常量列不是合法 JSON，已忽略");
+      message.warning("常量列不是合法 JSON，已忽略");
     }
   }
   if (impGradeLevel.value.trim()) importProcessor.gradeLevel = impGradeLevel.value.trim();
@@ -1113,43 +1114,43 @@ function buildSourceConfig(): string {
 }
 
 async function submitForm() {
-  if (!form.collectTaskName) return ElMessage.warning("请输入任务名称");
-  if (!form.collectTaskSourceType) return ElMessage.warning("请选择来源类型");
+  if (!form.collectTaskName) return message.warning("请输入任务名称");
+  if (!form.collectTaskSourceType) return message.warning("请选择来源类型");
   // 自落库来源由 Provider 自己落库，不需要前置/入库处理器
   if (!isSelfPersisted(form.collectTaskSourceType)) {
     if (!preConfigured.value) {
       preDialogVisible.value = true;
-      return ElMessage.warning("请先配置前置处理器（JSONPath / Groovy）");
+      return message.warning("请先配置前置处理器（JSONPath / Groovy）");
     }
     if (!impConfigured.value) {
       impDialogVisible.value = true;
-      return ElMessage.warning("请先配置入库处理器（目标表 / 字段映射）");
+      return message.warning("请先配置入库处理器（目标表 / 字段映射）");
     }
   }
 
   // 校验来源配置必填
   if (form.collectTaskSourceType === "TEXT" && !textConfig.value.trim()) {
-    return ElMessage.warning("请输入粘贴的题目文本");
+    return message.warning("请输入粘贴的题目文本");
   }
   if (form.collectTaskSourceType === "URL" && !urlConfig.value.trim()) {
-    return ElMessage.warning("请输入网页 URL");
+    return message.warning("请输入网页 URL");
   }
   if (form.collectTaskSourceType === "API" && !apiConfig.value.trim()) {
-    return ElMessage.warning("请输入 API 地址");
+    return message.warning("请输入 API 地址");
   }
   if (form.collectTaskSourceType === "FILE" && !fileConfig.value.trim()) {
-    return ElMessage.warning("请输入本地文件路径");
+    return message.warning("请输入本地文件路径");
   }
   if (form.collectTaskSourceType === "GROOVY"
     && !groovyScript.value.trim() && !groovyScriptPath.value.trim()) {
-    return ElMessage.warning("请编写 Groovy 脚本或填写服务器脚本文件路径");
+    return message.warning("请编写 Groovy 脚本或填写服务器脚本文件路径");
   }
   if (!["TEXT", "URL", "API", "FILE", "GROOVY"].includes(form.collectTaskSourceType || "")
     && rawConfig.value.trim()) {
     try {
       JSON.parse(rawConfig.value);
     } catch {
-      return ElMessage.warning("来源配置不是合法 JSON");
+      return message.warning("来源配置不是合法 JSON");
     }
   }
 
@@ -1159,11 +1160,11 @@ async function submitForm() {
       ...form,
       collectTaskSourceConfig: buildSourceConfig(),
     });
-    ElMessage.success("保存成功，调度已同步生效");
+    message.success("保存成功，调度已同步生效");
     dialogVisible.value = false;
     reload();
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || e?.message || "保存失败");
+    message.error(e?.response?.data?.message || e?.message || "保存失败");
   } finally {
     saving.value = false;
   }
@@ -1180,7 +1181,7 @@ async function remove(row: CollectTask) {
     return;
   }
   await eduaiApi.deleteCollectTask(row.collectTaskId);
-  ElMessage.success("删除成功");
+  message.success("删除成功");
   reload();
 }
 
@@ -1189,7 +1190,7 @@ async function handleStatusChange(row: CollectTask, enabled: boolean) {
   statusPendingId.value = row.collectTaskId;
   try {
     await eduaiApi.changeCollectTaskStatus(row.collectTaskId, enabled ? 1 : 0);
-    ElMessage.success(enabled ? "已启用调度" : "已停止调度");
+    message.success(enabled ? "已启用调度" : "已停止调度");
     reload();
   } finally {
     statusPendingId.value = null;
@@ -1203,13 +1204,13 @@ async function handleTrigger(row: CollectTask) {
   try {
     const res = await eduaiApi.triggerCollectTask(row.collectTaskId);
     if (res.status === "success") {
-      ElMessage.success(`采集完成：${res.message}`);
+      message.success(`采集完成：${res.message}`);
     } else {
-      ElMessage.warning(res.message || "采集未完成");
+      message.warning(res.message || "采集未完成");
     }
     reload();
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || e?.message || "触发失败");
+    message.error(e?.response?.data?.message || e?.message || "触发失败");
   } finally {
     triggerPending.value = null;
   }
@@ -1285,7 +1286,7 @@ const HANZI_PRESET = {
 
 function applyHanziPreset() {
   rawConfig.value = JSON.stringify(HANZI_PRESET, null, 2);
-  ElMessage.success("已填入汉字采集默认配置（单次 500 字，可改）");
+  message.success("已填入汉字采集默认配置（单次 500 字，可改）");
 }
 
 function visibleSourceTypes(list: string[]) {

@@ -548,8 +548,9 @@
  *   - 学生本人首次进 /edu/student 时，用学号/姓名自己绑定登录账号
  *     （落到 edu_student.student_account），因此这里的「绑定账号」是只读状态。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
   Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
@@ -690,7 +691,7 @@ async function loadAll() {
     classes.value = cls ?? [];
     teachers.value = tea ?? [];
   } catch (e) {
-    ElMessage.error(`加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     loading.value = false;
   }
@@ -812,20 +813,20 @@ async function onStuAvatarPicked(e: Event) {
     return;
   }
   if (!file.type.startsWith("image/")) {
-    return ElMessage.warning("请选择图片文件");
+    return message.warning("请选择图片文件");
   }
   if (file.size > 2 * 1024 * 1024) {
-    return ElMessage.warning("头像图片不要超过 2MB");
+    return message.warning("头像图片不要超过 2MB");
   }
   try {
     const res = await eduaiApi.uploadStudentAvatar(file);
     if (!res?.filePath) {
-      return ElMessage.error("上传失败");
+      return message.error("上传失败");
     }
     stuForm.studentAvatar = res.filePath;
-    ElMessage.success("头像已更新，点「保存」生效");
+    message.success("头像已更新，点「保存」生效");
   } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : "上传失败");
+    message.error(err instanceof Error ? err.message : "上传失败");
   }
 }
 
@@ -857,7 +858,7 @@ function openStudent(row?: EduStudent) {
 async function copyStudentNo(studentNo?: string): Promise<void> {
   const text = (studentNo ?? "").trim();
   if (!text) {
-    ElMessage.warning("该学生还没有学号");
+    message.warning("该学生还没有学号");
     return;
   }
   try {
@@ -873,9 +874,9 @@ async function copyStudentNo(studentNo?: string): Promise<void> {
       document.execCommand("copy");
       document.body.removeChild(area);
     }
-    ElMessage.success(`已复制学号 ${text}`);
+    message.success(`已复制学号 ${text}`);
   } catch {
-    ElMessage.error("复制失败，请手动选择后复制");
+    message.error("复制失败，请手动选择后复制");
   }
 }
 
@@ -887,21 +888,21 @@ async function copyStudentNo(studentNo?: string): Promise<void> {
  * 令牌只在本次跳转的窗口里用一次，因此不写入本地存储（刷新即失效）。
  */
 async function impersonate(row: EduStudent) {
-  if (!row.studentId) return ElMessage.warning("该学生缺少标识，无法代入");
+  if (!row.studentId) return message.warning("该学生缺少标识，无法代入");
   try {
     const res = await eduaiApi.impersonateStudent({ studentId: row.studentId, expireSeconds: 300 });
     if (!res?.accessToken) {
-      return ElMessage.error("签发临时令牌失败");
+      return message.error("签发临时令牌失败");
     }
     const url = `/edu/student?impersonate=${encodeURIComponent(res.accessToken)}`;
     const win = window.open(url, "_blank", "noopener");
     if (!win) {
-      ElMessage.warning("浏览器拦截了新窗口，请允许弹窗后重试");
+      message.warning("浏览器拦截了新窗口，请允许弹窗后重试");
       return;
     }
-    ElMessage.success(`已代入 ${row.studentName || row.studentNo}（5 分钟内有效）`);
+    message.success(`已代入 ${row.studentName || row.studentNo}（5 分钟内有效）`);
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "代入失败");
+    message.error(e instanceof Error ? e.message : "代入失败");
   }
 }
 
@@ -909,20 +910,20 @@ async function saveStudent() {
   // 学号由系统生成：新增时不填（输入框 disabled），保存后回填；只有编辑态才要求它已存在。
   // 原先这里无条件要求学号，而输入框是 disabled —— 新增学生会被前端自己拦住。
   if (stuForm.studentId && !stuForm.studentNo?.trim()) {
-    return ElMessage.warning("学号缺失，无法保存");
+    return message.warning("学号缺失，无法保存");
   }
-  if (!stuForm.studentName?.trim()) return ElMessage.warning("请填写姓名");
+  if (!stuForm.studentName?.trim()) return message.warning("请填写姓名");
   // 家长手机号非必填，但填了就必须是 11 位手机号 —— 它将来是登录凭据，
   // 格式错的号会让家长永远登不进来且查不出原因，故在提交前就拦。
   const phone = stuForm.studentParentPhone?.trim() ?? "";
   if (phone && !/^1\d{10}$/.test(phone)) {
-    return ElMessage.warning("家长手机号格式不对，应为 11 位手机号");
+    return message.warning("家长手机号格式不对，应为 11 位手机号");
   }
   // 口令非必填（留空表示本次不改），但填了就要够长 —— 后端只存加盐摘要，
   // 填得太短等于给学生留一个一猜就中的账号，故在提交前就拦。
   const pwd = stuForm.studentPwdInput?.trim() ?? "";
   if (pwd && (pwd.length < 6 || pwd.length > 32)) {
-    return ElMessage.warning("登录密码长度需为 6 到 32 位");
+    return message.warning("登录密码长度需为 6 到 32 位");
   }
   saving.value = true;
   try {
@@ -935,11 +936,11 @@ async function saveStudent() {
       // 传空串会被当成「设置成空口令」。
       studentPwdInput: pwd || undefined,
     });
-    ElMessage.success("已保存");
+    message.success("已保存");
     stuVisible.value = false;
     await loadAll();
   } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -957,10 +958,10 @@ async function removeStudent(row: EduStudent) {
   }
   try {
     const ok = await eduaiApi.deleteStudent(row.studentId);
-    ElMessage[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
+    message[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
     await loadAll();
   } catch (e) {
-    ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -997,9 +998,9 @@ async function openResetPassword(row: EduStudent) {
   }
   try {
     await eduaiApi.resetStudentPassword(row.studentId, input);
-    ElMessage.success("口令已重置");
+    message.success("口令已重置");
   } catch (e) {
-    ElMessage.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -1036,11 +1037,11 @@ function openClass(row?: EduClass) {
 
 async function saveClass() {
   const name = clsForm.className?.trim() ?? "";
-  if (!name) return ElMessage.warning("请填写班级名称");
+  if (!name) return message.warning("请填写班级名称");
   // 班名是业务唯一（后端有唯一索引兜底）。先在已加载列表里查一次重名，
   // 目的是把"唯一索引冲突"变成一句人话，而不是等请求失败才报。
   const dup = classes.value.find((c) => c.className === name && c.classId !== clsForm.classId);
-  if (dup) return ElMessage.warning(`班级名称「${name}」已存在，请换一个名称`);
+  if (dup) return message.warning(`班级名称「${name}」已存在，请换一个名称`);
   saving.value = true;
   try {
     await eduaiApi.saveClass({
@@ -1048,11 +1049,11 @@ async function saveClass() {
       className: name,
       classCode: clsForm.classCode?.trim() || undefined,
     });
-    ElMessage.success("已保存");
+    message.success("已保存");
     clsVisible.value = false;
     await loadAll();
   } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -1061,7 +1062,7 @@ async function saveClass() {
 async function removeClass(row: EduClass) {
   const inClass = studentsInClass(row.classId);
   if (inClass > 0) {
-    ElMessage.warning(`该班级下还有 ${inClass} 名学生，请先转班或删学生`);
+    message.warning(`该班级下还有 ${inClass} 名学生，请先转班或删学生`);
     return;
   }
   try {
@@ -1073,10 +1074,10 @@ async function removeClass(row: EduClass) {
   }
   try {
     const ok = await eduaiApi.deleteClass(row.classId);
-    ElMessage[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
+    message[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
     await loadAll();
   } catch (e) {
-    ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -1108,8 +1109,8 @@ function openTeacher(row?: EduTeacher) {
 }
 
 async function saveTeacher() {
-  if (!teaForm.teacherNo?.trim()) return ElMessage.warning("请填写工号");
-  if (!teaForm.teacherName?.trim()) return ElMessage.warning("请填写姓名");
+  if (!teaForm.teacherNo?.trim()) return message.warning("请填写工号");
+  if (!teaForm.teacherName?.trim()) return message.warning("请填写姓名");
   saving.value = true;
   try {
     await eduaiApi.saveTeacher({
@@ -1117,11 +1118,11 @@ async function saveTeacher() {
       teacherNo: teaForm.teacherNo.trim(),
       teacherName: teaForm.teacherName.trim(),
     });
-    ElMessage.success("已保存");
+    message.success("已保存");
     teaVisible.value = false;
     await loadAll();
   } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -1137,10 +1138,10 @@ async function removeTeacher(row: EduTeacher) {
   }
   try {
     const ok = await eduaiApi.deleteTeacher(row.teacherId);
-    ElMessage[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
+    message[ok ? "success" : "warning"](ok ? "已删除" : "该记录已不存在");
     await loadAll();
   } catch (e) {
-    ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

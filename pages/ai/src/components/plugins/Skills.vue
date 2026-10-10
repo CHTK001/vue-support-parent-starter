@@ -504,10 +504,11 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus'
+import { ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus';
 import { RefreshOutlined, InboxOutlined, DescriptionOutlined, UploadOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@vicons/material'
 import { RefreshRight, Loading, UploadFilled, Document, Close } from '@element-plus/icons-vue'
 import { ArrowDownload16Regular, ArrowClockwise16Regular } from '@vicons/fluent'
@@ -877,15 +878,15 @@ async function onZipPicked(e: Event) {
     try {
         const res = await apiService.installSkill(file, false)
         if (res.success) {
-            ElMessage.success(res.message || t('common.createSuccess'))
+            message.success(res.message || t('common.createSuccess'))
             await loadSkills()
             await loadMarketSkills()
         } else {
-            ElMessage.error(res.message || t('plugins.skills.installFailed'))
+            message.error(res.message || t('plugins.skills.installFailed'))
         }
     } catch (err: any) {
         console.error('上传技能失败:', err)
-        ElMessage.error(err.message || t('plugins.skills.installFailed'))
+        message.error(err.message || t('plugins.skills.installFailed'))
     } finally {
         uploadingZip.value = false
         input.value = ''
@@ -957,7 +958,7 @@ async function handleDetailAdd() {
 async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus): Promise<boolean> {
     const zipUrl = getInstallUrl(marketSkill, 'zip')
     if (!zipUrl) {
-        ElMessage.warning(t('plugins.skills.marketNoZip'))
+        message.warning(t('plugins.skills.marketNoZip'))
         return false
     }
 
@@ -966,18 +967,18 @@ async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus): P
     try {
         const response = await apiService.installSkillFromUrl(zipUrl)
         if (response.success) {
-            ElMessage.success(response.message || t('common.createSuccess'))
+            message.success(response.message || t('common.createSuccess'))
             showMarketInstallDialog.value = false
             selectedMarketSkill.value = null
             // 刷新本地技能列表
             await loadSkills()
             return true
         }
-        ElMessage.error(response.message || '安装失败')
+        message.error(response.message || '安装失败')
         return false
     } catch (err: any) {
         console.error('从市场安装技能失败:', err)
-        ElMessage.error(err.message || t('plugins.skills.installFailed'))
+        message.error(err.message || t('plugins.skills.installFailed'))
         return false
     } finally {
         installingFromMarket.value.delete(marketSkill.id)
@@ -990,7 +991,7 @@ async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus): P
 function handleViewSourceCode(marketSkill: MarketSkillWithStatus) {
     const gitUrl = getInstallUrl(marketSkill, 'git')
     if (!gitUrl) {
-        ElMessage.warning(t('plugins.skills.marketNoGit'))
+        message.warning(t('plugins.skills.marketNoGit'))
         return
     }
     openInExternalBrowser(gitUrl)
@@ -1045,7 +1046,7 @@ async function loadSkills() {
     } catch (err: any) {
         console.error('加载 Skills 失败:', err)
         const errorMsg = err.message || t('plugins.skills.loadFailed')
-        ElMessage.error(errorMsg)
+        message.error(errorMsg)
         skills.value = []
     } finally {
         loading.value = false
@@ -1074,7 +1075,7 @@ async function handleToggleSkill(skillId: string, enabled: boolean) {
         // 失败回滚
         skill.enabled = previousState
         console.error('切换技能状态失败:', err)
-        ElMessage.error(err.message || t('plugins.skills.toggleFailed'))
+        message.error(err.message || t('plugins.skills.toggleFailed'))
     } finally {
         updatingSkills.value.delete(skillId)
     }
@@ -1089,13 +1090,13 @@ async function handleReloadSkill(skillId: string) {
     try {
         reloadingSkills.value.add(skillId)
         await apiService.reloadSkill(skillId)
-        ElMessage.success(t('plugins.skills.reloadSuccess'))
+        message.success(t('plugins.skills.reloadSuccess'))
         // 重载后重新加载列表
         await loadSkills()
     } catch (err: any) {
         console.error('重载 Skill 失败:', err)
         const errorMsg = err.message || t('plugins.skills.reloadFailed')
-        ElMessage.error(errorMsg)
+        message.error(errorMsg)
     } finally {
         reloadingSkills.value.delete(skillId)
     }
@@ -1122,7 +1123,7 @@ async function handleViewDocumentation(skillId: string) {
         console.error('获取 Skill 文档失败:', err)
         const errorMsg: string = err.message || t('plugins.skills.docLoadFailed')
         docError.value = errorMsg
-        ElMessage.error(errorMsg)
+        message.error(errorMsg)
     } finally {
         loadingDoc.value = false
     }
@@ -1186,22 +1187,22 @@ async function handleSearch() {
 async function handleInstallLocal(item: LocalCatalogItem) {
     const tool = item.sources && item.sources.length > 0 ? item.sources[0] : ''
     if (!tool) {
-        ElMessage.warning(t('plugins.skills.localEmpty'))
+        message.warning(t('plugins.skills.localEmpty'))
         return
     }
     installingCatalog.value = item.name
     try {
         const res = await apiService.installLocalSkill(tool, item.name, forceOverwrite.value)
         if (res.success) {
-            ElMessage.success(res.message || t('common.createSuccess'))
+            message.success(res.message || t('common.createSuccess'))
             await loadSkills()
             item.installed = true
         } else {
-            ElMessage.error(res.message || t('plugins.skills.installFailed'))
+            message.error(res.message || t('plugins.skills.installFailed'))
         }
     } catch (err: any) {
         console.error('安装本地技能失败:', err)
-        ElMessage.error(err.message || t('plugins.skills.installFailed'))
+        message.error(err.message || t('plugins.skills.installFailed'))
     } finally {
         installingCatalog.value = ''
     }
@@ -1241,7 +1242,7 @@ function formatFileSize(bytes: number): string {
  */
 async function handleInstallSkill() {
     if (!selectedFile.value) {
-        ElMessage.warning(t('plugins.skills.installSelectWarning'))
+        message.warning(t('plugins.skills.installSelectWarning'))
         return
     }
 
@@ -1251,18 +1252,18 @@ async function handleInstallSkill() {
         const response = await apiService.installSkill(selectedFile.value, forceOverwrite.value)
 
         if (response.success) {
-            ElMessage.success(response.message || t('common.createSuccess'))
+            message.success(response.message || t('common.createSuccess'))
             showInstallDialog.value = false
             selectedFile.value = null
             forceOverwrite.value = false
             // 重新加载列表
             await loadSkills()
         } else {
-            ElMessage.error(response.message || t('plugins.skills.installFailed'))
+            message.error(response.message || t('plugins.skills.installFailed'))
         }
     } catch (err: any) {
         console.error('安装 Skill 失败:', err)
-        ElMessage.error(err.message || t('plugins.skills.installFailed'))
+        message.error(err.message || t('plugins.skills.installFailed'))
     } finally {
         installing.value = false
     }
@@ -1291,16 +1292,16 @@ async function handleUninstallSkill(skillId: string) {
         const response = await apiService.uninstallSkill(skillId)
 
         if (response.success) {
-            ElMessage.success(response.message || t('plugins.skills.uninstallSuccess'))
+            message.success(response.message || t('plugins.skills.uninstallSuccess'))
             // 重新加载列表
             await loadSkills()
         } else {
-            ElMessage.error(response.message || t('plugins.skills.uninstallFailed'))
+            message.error(response.message || t('plugins.skills.uninstallFailed'))
         }
     } catch (err: any) {
         if (err !== 'cancel' && err !== 'close') {
             console.error('卸载 Skill 失败:', err)
-            ElMessage.error(err.message || t('plugins.skills.uninstallFailed'))
+            message.error(err.message || t('plugins.skills.uninstallFailed'))
         }
     } finally {
         uninstallingSkills.value.delete(skillId)
@@ -1383,7 +1384,7 @@ async function loadMarketSkills() {
  */
 function handleOpenDetailUrl(marketSkill: MarketSkillWithStatus) {
     if (!marketSkill.detailUrl) {
-        ElMessage.warning(t('plugins.skills.marketNoDetail'))
+        message.warning(t('plugins.skills.marketNoDetail'))
         return
     }
     openInExternalBrowser(marketSkill.detailUrl)

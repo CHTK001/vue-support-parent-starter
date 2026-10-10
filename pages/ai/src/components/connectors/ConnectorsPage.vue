@@ -187,9 +187,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { EditOutlined, DeleteOutlined, MessageOutlined } from '@vicons/antd'
 import { api } from '@/framework/context'
 import ConnectorIcon from './ConnectorIcon.vue'
@@ -250,7 +251,7 @@ const bindIsQr = computed(() => currentConnector.value?.bindType === 'qrcode')
 
 const onQrConfirmed = () => {
   bindDialogVisible.value = false
-  ElMessage.success('绑定成功')
+  message.success('绑定成功')
   fetchConnectors()
 }
 
@@ -291,11 +292,11 @@ const handleBind = async () => {
       type: currentConnector.value.type,
       ...bindForm.value,
     })
-    ElMessage.success('绑定成功')
+    message.success('绑定成功')
     bindDialogVisible.value = false
     fetchConnectors()
   } catch (error: any) {
-    ElMessage.error(error?.msg || error?.message || '绑定失败')
+    message.error(error?.msg || error?.message || '绑定失败')
   } finally {
     binding.value = false
   }
@@ -329,11 +330,11 @@ const handleSaveEdit = async () => {
       randomContextCount: editForm.value.randomContextCount,
       randomProbability: editForm.value.randomProbability,
     })
-    ElMessage.success('已保存')
+    message.success('已保存')
     editDialogVisible.value = false
     fetchConnectors()
   } catch (error: any) {
-    ElMessage.error(error?.msg || error?.message || '保存失败')
+    message.error(error?.msg || error?.message || '保存失败')
   } finally {
     saving.value = false
   }
@@ -346,11 +347,11 @@ const unbindConnector = async (connector: any) => {
       type: 'warning',
     })
     await api.delete(`/connectors/${connector.id}`)
-    ElMessage.success('解绑成功')
+    message.success('解绑成功')
     fetchConnectors()
   } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error(error?.msg || error?.message || '解绑失败')
+      message.error(error?.msg || error?.message || '解绑失败')
     }
   }
 }

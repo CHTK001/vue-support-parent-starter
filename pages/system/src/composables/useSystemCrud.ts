@@ -5,8 +5,9 @@
  * 与 ReTable 配合时，可将 loadList / loading / list 等只用于兼容旧 el-table 页面；
  * ReTable 页面主要复用 dialogVisible / dialogMode / form / handleAdd / handleEdit / handleSubmit。
  */
+import { message } from "@repo/core";
 import { reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import type { PageQuery } from "../api/types";
 import type { DialogMode, UseSystemCrudOptions, UseSystemCrudReturn } from "../types/crud";
 
@@ -31,7 +32,7 @@ export function useSystemCrud<T, Q extends PageQuery, F>(
       list.value = (data?.data ?? data?.records ?? []) as T[];
       total.value = data?.total ?? 0;
     } catch (e) {
-      ElMessage.error((e as Error)?.message ?? "列表加载失败");
+      message.error((e as Error)?.message ?? "列表加载失败");
     } finally {
       loading.value = false;
     }
@@ -71,7 +72,7 @@ export function useSystemCrud<T, Q extends PageQuery, F>(
     if (options.validate) {
       const err = options.validate(form, dialogMode.value);
       if (err) {
-        ElMessage.warning(err);
+        message.warning(err);
         return;
       }
     }
@@ -79,18 +80,18 @@ export function useSystemCrud<T, Q extends PageQuery, F>(
     const isEdit = dialogMode.value === "edit";
     const api = isEdit ? options.update : options.save;
     if (!api) {
-      ElMessage.warning("未配置保存接口");
+      message.warning("未配置保存接口");
       return;
     }
 
     saving.value = true;
     try {
       await api(form);
-      ElMessage.success(isEdit ? (options.messages?.update ?? "修改成功") : (options.messages?.save ?? "新增成功"));
+      message.success(isEdit ? (options.messages?.update ?? "修改成功") : (options.messages?.save ?? "新增成功"));
       dialogVisible.value = false;
       await loadList();
     } catch (e) {
-      ElMessage.error((e as Error)?.message ?? "保存失败");
+      message.error((e as Error)?.message ?? "保存失败");
     } finally {
       saving.value = false;
     }
@@ -98,18 +99,18 @@ export function useSystemCrud<T, Q extends PageQuery, F>(
 
   async function handleDelete(row: T, idKey: keyof T = "id" as keyof T): Promise<void> {
     if (!options.remove) {
-      ElMessage.warning("未配置删除接口");
+      message.warning("未配置删除接口");
       return;
     }
     const id = row[idKey] as string | number;
     try {
       await ElMessageBox.confirm(`确认删除该记录？`, "提示", { type: "warning" });
       await options.remove(id);
-      ElMessage.success(options.messages?.remove ?? "删除成功");
+      message.success(options.messages?.remove ?? "删除成功");
       await loadList();
     } catch (e) {
       if (e !== "cancel") {
-        ElMessage.error((e as Error)?.message ?? "删除失败");
+        message.error((e as Error)?.message ?? "删除失败");
       }
     }
   }

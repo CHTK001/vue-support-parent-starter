@@ -6,8 +6,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Edit, Delete } from "@element-plus/icons-vue";
 import ReCard from "@repo/ui/re-card";
 import ReTable from "@repo/ui/re-table";
@@ -72,7 +73,7 @@ function handleEdit(row: AchievementTier) {
 async function handleDelete(row: AchievementTier) {
   await ElMessageBox.confirm(`Delete tier "${row.name}"?`, "Confirm", { type: "warning" });
   await deleteTier(row.id!);
-  ElMessage.success("Deleted");
+  message.success("Deleted");
   tableRef.value?.reload();
 }
 

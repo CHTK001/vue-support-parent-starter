@@ -227,8 +227,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh, Edit, Delete, Timer } from '@element-plus/icons-vue';
 import { modelApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
@@ -337,7 +338,7 @@ const loadModels = async () => {
     const res: any = await modelApi.list();
     models.value = res?.data || res?.records || res || [];
   } catch (e: any) {
-    ElMessage.error('加载模型列表失败: ' + (e.message || ''));
+    message.error('加载模型列表失败: ' + (e.message || ''));
     models.value = [];
   } finally {
     loading.value = false;
@@ -399,15 +400,15 @@ const submitForm = async () => {
       };
       if (isEdit.value) {
         await modelApi.update(form.value.modelId, payload);
-        ElMessage.success('模型更新成功');
+        message.success('模型更新成功');
       } else {
         await modelApi.create(payload);
-        ElMessage.success('模型创建成功');
+        message.success('模型创建成功');
       }
       dialogVisible.value = false;
       loadModels();
     } catch (e: any) {
-      ElMessage.error('保存失败: ' + (e.message || ''));
+      message.error('保存失败: ' + (e.message || ''));
     } finally {
       submitting.value = false;
     }
@@ -422,11 +423,11 @@ const deleteModel = async (row: any) => {
       cancelButtonText: '取消',
     });
     await modelApi.delete(row.modelId);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     loadModels();
   } catch (e: any) {
     if (e !== 'cancel') {
-      ElMessage.error('删除失败: ' + (e.message || ''));
+      message.error('删除失败: ' + (e.message || ''));
     }
   }
 };
@@ -439,13 +440,13 @@ const testLatency = async (row: any) => {
     if (latency) {
       row.modelLastLatency = latency;
       row.modelLastTestTime = new Date().toISOString();
-      ElMessage.success(`延迟测试完成: ${latency}ms`);
+      message.success(`延迟测试完成: ${latency}ms`);
     } else {
-      ElMessage.success('延迟测试完成');
+      message.success('延迟测试完成');
       loadModels();
     }
   } catch (e: any) {
-    ElMessage.error('延迟测试失败: ' + (e.message || ''));
+    message.error('延迟测试失败: ' + (e.message || ''));
   } finally {
     row.testing = false;
   }

@@ -4,8 +4,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "../monitorApi";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
@@ -131,10 +132,10 @@ async function submitHandle(): Promise<void> {
   handleSubmitting.value = true;
   try {
     await handleAlarmEvent(handleTarget.value.id, handleRemark.value || (handleFalseAlarm.value ? "误报" : "已处理"), handleFalseAlarm.value);
-    ElMessage.success("处理完成");
+    message.success("处理完成");
     handleVisible.value = false;
     await fetchAll();
-  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
+  } catch (e) { message.error(String((e as Error)?.message ?? e)); }
   finally { handleSubmitting.value = false; }
 }
 

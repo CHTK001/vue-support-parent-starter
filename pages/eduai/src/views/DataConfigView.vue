@@ -713,8 +713,9 @@
  * - 学科：搜索 + 卡片网格（图标/编码/学段标签/启停状态/编辑删除）
  * - 学段：只读卡片；年级：列表 CRUD；组卷模板：列表 CRUD（页眉页脚富文本）
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   Aim,
   MagicStick,
@@ -900,7 +901,7 @@ const loadSubjects = async () => {
     const res = await eduaiApi.listSubjects();
     subjects.value = Array.isArray(res) ? res : [];
   } catch {
-    ElMessage.error("加载学科失败");
+    message.error("加载学科失败");
   } finally {
     subjectLoading.value = false;
   }
@@ -944,15 +945,15 @@ const onSubjectMenu = (cmd: string, row: EduSubject) => {
 
 const saveSubject = async () => {
   if (!subjectForm.subjectName?.trim()) {
-    ElMessage.warning("学科名称必填");
+    message.warning("学科名称必填");
     return;
   }
   if (!subjectForm.subjectCode?.trim()) {
-    ElMessage.warning("学科编码必填");
+    message.warning("学科编码必填");
     return;
   }
   if (!subjectLevels.value.length) {
-    ElMessage.warning("请至少选择一个适用学段");
+    message.warning("请至少选择一个适用学段");
     return;
   }
   subjectSaving.value = true;
@@ -963,11 +964,11 @@ const saveSubject = async () => {
       subjectIcon: subjectForm.subjectIcon || "book",
       subjectColor: subjectForm.subjectColor || "#3b82f6",
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     subjectDialogVisible.value = false;
     void loadSubjects();
   } catch {
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   } finally {
     subjectSaving.value = false;
   }
@@ -979,10 +980,10 @@ const toggleSubject = async (row: EduSubject) => {
       ...row,
       subjectStatus: row.subjectStatus === 1 ? 0 : 1,
     });
-    ElMessage.success(row.subjectStatus === 1 ? "已停用" : "已启用");
+    message.success(row.subjectStatus === 1 ? "已停用" : "已启用");
     void loadSubjects();
   } catch {
-    ElMessage.error("操作失败");
+    message.error("操作失败");
   }
 };
 
@@ -998,15 +999,15 @@ const confirmDeleteSubject = async (row: EduSubject) => {
 const removeSubject = async (row: EduSubject) => {
   try {
     await eduaiApi.deleteSubject(row.subjectId as number);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     void loadSubjects();
   } catch {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 };
 
 const onImport = () => {
-  ElMessage.info("批量导入开发中，可先逐条新增");
+  message.info("批量导入开发中，可先逐条新增");
 };
 
 // ==================== 年级 ====================
@@ -1023,7 +1024,7 @@ const loadGrades = async () => {
     const res = await eduaiApi.listGrades(gradeLevelFilter.value || undefined);
     grades.value = Array.isArray(res) ? res : [];
   } catch {
-    ElMessage.error("加载年级失败");
+    message.error("加载年级失败");
   } finally {
     gradeLoading.value = false;
   }
@@ -1063,17 +1064,17 @@ const openGradeEdit = (row: EduGrade) => {
 
 const saveGrade = async () => {
   if (!gradeForm.gradeLevel || !gradeForm.gradeName?.trim()) {
-    ElMessage.warning("学段与年级名称必填");
+    message.warning("学段与年级名称必填");
     return;
   }
   gradeSaving.value = true;
   try {
     await eduaiApi.saveGrade(gradeForm);
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     gradeDialogVisible.value = false;
     void loadGrades();
   } catch {
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   } finally {
     gradeSaving.value = false;
   }
@@ -1082,10 +1083,10 @@ const saveGrade = async () => {
 const removeGrade = async (row: EduGrade) => {
   try {
     await eduaiApi.deleteGrade(row.gradeId as number);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     void loadGrades();
   } catch {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 };
 
@@ -1110,7 +1111,7 @@ const loadClasses = async () => {
     classes.value = Array.isArray(cls) ? cls : [];
     classStudents.value = Array.isArray(stu) ? stu : [];
   } catch {
-    ElMessage.error("加载班级失败");
+    message.error("加载班级失败");
   } finally {
     classLoading.value = false;
   }
@@ -1145,7 +1146,7 @@ const openClassEdit = (row: EduClass) => {
 
 const saveClass = async () => {
   if (!classForm.className?.trim()) {
-    ElMessage.warning("班级名称必填");
+    message.warning("班级名称必填");
     return;
   }
   classSaving.value = true;
@@ -1155,11 +1156,11 @@ const saveClass = async () => {
       className: classForm.className.trim(),
       classCode: classForm.classCode?.trim() || undefined,
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     classDialogVisible.value = false;
     void loadClasses();
   } catch {
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   } finally {
     classSaving.value = false;
   }
@@ -1168,10 +1169,10 @@ const saveClass = async () => {
 const removeClass = async (row: EduClass) => {
   try {
     await eduaiApi.deleteClass(row.classId as number);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     void loadClasses();
   } catch {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 };
 
@@ -1221,7 +1222,7 @@ const loadTemplates = async () => {
     const res = await eduaiApi.getPaperTemplatePage({ pageNum: 1, pageSize: 100 });
     templates.value = Array.isArray(res?.data) ? res.data : [];
   } catch {
-    ElMessage.error("加载组卷模板失败");
+    message.error("加载组卷模板失败");
   } finally {
     templateLoading.value = false;
   }
@@ -1257,7 +1258,7 @@ const openTemplateEdit = (row: PaperTemplate) => {
 
 const saveTemplate = async () => {
   if (!templateForm.templateName?.trim()) {
-    ElMessage.warning("模板名称必填");
+    message.warning("模板名称必填");
     return;
   }
   const payload: Partial<PaperTemplate> = {
@@ -1277,11 +1278,11 @@ const saveTemplate = async () => {
     } else {
       await eduaiApi.savePaperTemplate(payload);
     }
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     templateDialogVisible.value = false;
     void loadTemplates();
   } catch {
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   } finally {
     templateSaving.value = false;
   }
@@ -1290,10 +1291,10 @@ const saveTemplate = async () => {
 const removeTemplate = async (row: PaperTemplate) => {
   try {
     await eduaiApi.deletePaperTemplate(row.templateId);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     void loadTemplates();
   } catch {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 };
 

@@ -86,9 +86,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import * as echarts from "echarts";
-import { ElMessage } from "element-plus";
+
 import { Refresh, Plus, MagicStick } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -179,10 +180,10 @@ async function doInject() {
       operation: "manual inject",
       error: false,
     });
-    ElMessage.success(`已注入 ${injectProto.value} 调用：${source} → ${target}`);
+    message.success(`已注入 ${injectProto.value} 调用：${source} → ${target}`);
     await load();
   } catch {
-    ElMessage.error("注入失败");
+    message.error("注入失败");
   } finally {
     injecting.value = false;
   }
@@ -192,10 +193,10 @@ async function doBatch() {
   batching.value = true;
   try {
     const r = await injectBatch(20);
-    ElMessage.success(`批量注入 ${r.count ?? 20} 条调用，多条依赖边已生成`);
+    message.success(`批量注入 ${r.count ?? 20} 条调用，多条依赖边已生成`);
     await load();
   } catch {
-    ElMessage.error("批量注入失败");
+    message.error("批量注入失败");
   } finally {
     batching.value = false;
   }
@@ -207,7 +208,7 @@ async function load() {
     edges.value = await getDependenciesAggregated(100);
     renderGraph();
   } catch {
-    ElMessage.error("加载依赖拓扑失败");
+    message.error("加载依赖拓扑失败");
   } finally {
     loading.value = false;
   }

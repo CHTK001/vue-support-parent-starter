@@ -182,9 +182,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
-import { ElMessage } from "element-plus";
+
 import {
   DataAnalysis,
   Document,
@@ -341,7 +342,7 @@ async function load() {
     stats.value = s;
     renderCharts();
   } catch {
-    ElMessage.error("加载统计失败");
+    message.error("加载统计失败");
   } finally {
     loading.value = false;
   }

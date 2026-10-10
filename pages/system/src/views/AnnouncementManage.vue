@@ -5,8 +5,9 @@
  * 维护 sys_announcement 表的公告数据，支持新增/编辑/发布/下架/删除。
  * 公告类型支持全局和指定角色，位置支持默认和固定顶部。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { ArrowRight, BellFilled, Clock } from "@element-plus/icons-vue";
 import { pageForAnnouncement, saveAnnouncement, updateAnnouncement, deleteAnnouncement, publishAnnouncement, unpublishAnnouncement } from "../api/announcementApi";
 import type { SysAnnouncement } from "../api/announcementApi";
@@ -105,7 +106,7 @@ async function openReadUsers(row: SysAnnouncement) {
     });
     readUsers.value = ((res?.data?.data ?? res?.data?.rows ?? []) ?? []) as Array<{ username?: string; readTime?: string }>;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "已读用户加载失败");
+    message.error((e as Error)?.message ?? "已读用户加载失败");
   } finally {
     readDrawerLoading.value = false;
   }
@@ -227,11 +228,11 @@ async function handleSave() {
   // 基础校验
   const title = (form.value.sysAnnouncementTitle ?? "").trim();
   if (!title) {
-    ElMessage.warning("请输入公告标题");
+    message.warning("请输入公告标题");
     return;
   }
   if (form.value.sysAnnouncementType === "role" && !targetRoleIds.value.length) {
-    ElMessage.warning("指定角色时请至少选择一个目标角色");
+    message.warning("指定角色时请至少选择一个目标角色");
     return;
   }
   // 序列化目标角色：指定角色且有选择时写 JSON 数组，否则置空
@@ -244,15 +245,15 @@ async function handleSave() {
   try {
     if (isEdit.value) {
       await updateAnnouncement(form.value as SysAnnouncement);
-      ElMessage.success("更新成功");
+      message.success("更新成功");
     } else {
       await saveAnnouncement(form.value as SysAnnouncement);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dialogVisible.value = false;
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "操作失败");
+    message.error((e as Error)?.message ?? "操作失败");
   } finally {
     saving.value = false;
   }
@@ -262,7 +263,7 @@ async function handlePublish(row: SysAnnouncement) {
   if (!row.sysAnnouncementId) return;
   await ElMessageBox.confirm("确认发布该公告？", "提示", { type: "info" });
   await publishAnnouncement(row.sysAnnouncementId);
-  ElMessage.success("已发布");
+  message.success("已发布");
   tableRef.value?.reload();
 }
 
@@ -270,7 +271,7 @@ async function handleUnpublish(row: SysAnnouncement) {
   if (!row.sysAnnouncementId) return;
   await ElMessageBox.confirm("确认下架该公告？", "提示", { type: "warning" });
   await unpublishAnnouncement(row.sysAnnouncementId);
-  ElMessage.success("已下架");
+  message.success("已下架");
   tableRef.value?.reload();
 }
 
@@ -278,7 +279,7 @@ async function handleDelete(row: SysAnnouncement) {
   if (!row.sysAnnouncementId) return;
   await ElMessageBox.confirm("确认删除该公告？", "提示", { type: "warning" });
   await deleteAnnouncement(row.sysAnnouncementId);
-  ElMessage.success("已删除");
+  message.success("已删除");
   tableRef.value?.reload();
 }
 

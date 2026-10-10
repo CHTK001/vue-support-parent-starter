@@ -9,12 +9,12 @@
  * 不注入 adapter 时（后端接口未就绪）静默降级为仅实时推送。
  */
 import { ref, watch, onMounted } from "vue";
-import { ElNotification, ElMessage, ElMessageBox } from "element-plus";
+import { ElNotification, ElMessageBox } from "element-plus";
 import { Bell, Refresh } from "@element-plus/icons-vue";
 import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import { useMessageStore } from "@repo/pinia";
-import { getStationMessageAdapter } from "@repo/core";
+import {getStationMessageAdapter, message} from "@repo/core";
 
 const props = withDefaults(
   defineProps<{
@@ -95,13 +95,13 @@ async function handleShow() {
 /** 手动同步按钮：强制重新拉取历史与未读 */
 async function handleSync() {
   await loadMessages(true);
-  ElMessage.success("已同步");
+  message.success("已同步");
 }
 
 /** 全部已读 */
 async function handleMarkAllRead() {
   await messageStore.markAllRead();
-  ElMessage.success("已全部标记为已读");
+  message.success("已全部标记为已读");
 }
 
 /** 判断消息是否未读：后端字段 readStatus（0 未读 / 1 已读），兼容 isRead */

@@ -4,8 +4,9 @@
  *
  * 进入页面拉一次，手动刷新。图表走 ReEChart。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import type { EChartsOption } from "echarts";
 import { Refresh, Coin, Connection, Clock, Histogram, Cpu, DataLine, Box } from "@element-plus/icons-vue";
 import ReEChart from "../components/ReEChart.vue";
@@ -26,7 +27,7 @@ async function loadInfo() {
     info.value = res?.data ?? {};
     updateTime.value = new Date().toLocaleTimeString();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "Redis 信息加载失败");
+    message.error((e as Error)?.message ?? "Redis 信息加载失败");
   } finally {
     loading.value = false;
   }

@@ -67,8 +67,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, watch, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue'
 import { deviceApi } from '@/api/deviceApi'
 import type { DeviceChannel } from '@/types/device'
@@ -134,11 +135,11 @@ function submit() {
   const req = isEdit.value ? deviceApi.updateChannel(editingId.value, payload) : deviceApi.addChannel(payload)
   req
     .then(() => {
-      ElMessage.success(isEdit.value ? '通道已更新' : '通道已添加')
+      message.success(isEdit.value ? '通道已更新' : '通道已添加')
       dialogVisible.value = false
       load()
     })
-    .catch(() => ElMessage.error('操作失败'))
+    .catch(() => message.error('操作失败'))
 }
 
 function toggleStatus(row: DeviceChannel, val: boolean) {
@@ -147,16 +148,16 @@ function toggleStatus(row: DeviceChannel, val: boolean) {
     .toggleChannelStatus(row.deviceChannelId, status)
     .then(() => {
       row.deviceChannelStatus = status
-      ElMessage.success(val ? '已启用' : '已禁用')
+      message.success(val ? '已启用' : '已禁用')
     })
-    .catch(() => ElMessage.error('状态更新失败'))
+    .catch(() => message.error('状态更新失败'))
 }
 
 function removeChannel(row: DeviceChannel) {
   ElMessageBox.confirm(`确认删除通道「${row.deviceChannelName}」？`, '提示', { type: 'warning' })
     .then(() => deviceApi.deleteChannel(row.deviceChannelId))
     .then(() => {
-      ElMessage.success('通道已删除')
+      message.success('通道已删除')
       load()
     })
     .catch(() => null)

@@ -118,8 +118,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Refresh, Download, Plus } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -181,7 +182,7 @@ async function load() {
     items.value = res.items;
     total.value = res.total;
   } catch {
-    ElMessage.error("加载泄漏记录失败");
+    message.error("加载泄漏记录失败");
   } finally {
     loading.value = false;
   }
@@ -234,10 +235,10 @@ async function doInjectLeak() {
     const kinds = ["File", "Socket", "Connection", "Thread"];
     const kind = kinds[leakSeq.value % kinds.length];
     await injectLeak(kind, `${kind.toLowerCase()}-manual-${leakSeq.value}`);
-    ElMessage.success(`已制造一条 ${kind} 泄漏记录`);
+    message.success(`已制造一条 ${kind} 泄漏记录`);
     await load();
   } catch {
-    ElMessage.error("写入失败");
+    message.error("写入失败");
   } finally {
     injecting.value = false;
   }

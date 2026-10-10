@@ -235,8 +235,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { Reading } from '@element-plus/icons-vue';
 import { http } from '@repo/utils';
 import { eduaiApi } from '../api/eduaiApi';
@@ -326,7 +327,7 @@ const reloadList = async () => {
 const openDetail = async (id?: string, row?: TeacherMarkingTask) => {
   const target = (id ?? '').trim() || taskId.value.trim();
   if (!target) {
-    ElMessage.warning('请输入任务号，或从阅卷记录里选择一份试卷');
+    message.warning('请输入任务号，或从阅卷记录里选择一份试卷');
     return;
   }
   taskId.value = target;
@@ -396,7 +397,7 @@ const onSubmitExamChange = async (examId: number | null) => {
   try {
     const exam = examOptions.value.find((e) => e.examId === examId);
     if (!exam?.examPaperId) {
-      ElMessage.warning('该考试未关联试卷，无法提交答题卡');
+      message.warning('该考试未关联试卷，无法提交答题卡');
       submitForm.answers = [];
       return;
     }
@@ -608,11 +609,11 @@ const onScanFileRemove = (_uploadFile: any, uploadFiles: any[]) => {
 
 const doScan = async () => {
   if (!scanForm.files.length) {
-    ElMessage.warning('请先选择试卷图片');
+    message.warning('请先选择试卷图片');
     return;
   }
   if (scanForm.mode === 'SELF' && !scanForm.paperId) {
-    ElMessage.warning('自有卷必须选择试卷（用于按题号取准确分值）');
+    message.warning('自有卷必须选择试卷（用于按题号取准确分值）');
     return;
   }
   scanning.value = true;
@@ -630,7 +631,7 @@ const doScan = async () => {
       form.append('studentId', scanForm.studentId);
     }
     const newTaskId = await eduaiApi.scanMarking(form);
-    ElMessage.success('已提交，正在识别与判分…');
+    message.success('已提交，正在识别与判分…');
     scanDialogVisible.value = false;
     // SSE 实时进度：建连后逐帧刷新阶段与百分比，终态自动收流并收尾；
     // 连不上时 startProgressStream 的 onError 会降级到 2s 轮询
@@ -665,20 +666,20 @@ const openSubmit = async () => {
 const doSubmit = async () => {
   const studentId = submitForm.studentId.trim();
   if (!studentId || submitForm.answers.length === 0) {
-    ElMessage.warning('请填写学生 ID 与至少一条作答');
+    message.warning('请填写学生 ID 与至少一条作答');
     return;
   }
   // 题号必须来自所选考试的试卷：后端 validateExamPaper 会拒绝卷外题号，
   // 这里提前拦下并给出可读提示，而不是甩一个 400。
   const examId = submitForm.examId;
   if (!examId) {
-    ElMessage.warning('请选择考试');
+    message.warning('请选择考试');
     return;
   }
   const validIds = new Set(questionOptions.value.map((q) => q.id));
   const picked = submitForm.answers.filter((a) => a.questionId != null && validIds.has(a.questionId));
   if (questionOptions.value.length === 0 || picked.length !== submitForm.answers.length) {
-    ElMessage.warning('作答里有不在该考试试卷上的题号，请重新选择');
+    message.warning('作答里有不在该考试试卷上的题号，请重新选择');
     return;
   }
   const answers = picked.map((a) => ({ questionId: a.questionId as number, answer: a.answer }));
@@ -689,7 +690,7 @@ const doSubmit = async () => {
     try {
       JSON.parse(content);
     } catch {
-      ElMessage.warning('答题内容必须是合法 JSON（例如 {"1":"北京"}），请检查后重试');
+      message.warning('答题内容必须是合法 JSON（例如 {"1":"北京"}），请检查后重试');
       return;
     }
   }
@@ -701,7 +702,7 @@ const doSubmit = async () => {
       content: content || undefined,
       answers,
     });
-    ElMessage.success(`提交成功，taskId: ${newTaskId}`);
+    message.success(`提交成功，taskId: ${newTaskId}`);
     submitDialogVisible.value = false;
     await openDetail(newTaskId);
   } catch (e) {

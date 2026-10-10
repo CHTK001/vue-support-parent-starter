@@ -9,8 +9,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed } from "vue";
-import { ElMessage } from "element-plus";
+
 import { analyze3dTiles, download3dTiles } from "@/api/tiles3d";
 import { useSelectionStore } from "@/store/selection";
 import type { TilesetSummary } from "@/types";
@@ -52,7 +53,7 @@ async function onAnalyze() {
           };
     summary.value = await analyze3dTiles(source, form.value.proxy || null);
   } catch (e: any) {
-    ElMessage.error(`分析失败：${e?.message ?? e}`);
+    message.error(`分析失败：${e?.message ?? e}`);
   } finally {
     analyzing.value = false;
   }
@@ -61,7 +62,7 @@ async function onAnalyze() {
 /** 下载 3D Tiles 模型 */
 async function onSubmit() {
   if (!polygonCoords.value) {
-    ElMessage.warning("3D 模型下载请先在图上绘制多边形选区");
+    message.warning("3D 模型下载请先在图上绘制多边形选区");
     return;
   }
   submitting.value = true;
@@ -80,9 +81,9 @@ async function onSubmit() {
       form.value.savePath || "",
       form.value.proxy || null,
     );
-    ElMessage.success(`3D Tiles 已下载：${res.contentCount} 内容 / ${res.totalTiles} 瓦片`);
+    message.success(`3D Tiles 已下载：${res.contentCount} 内容 / ${res.totalTiles} 瓦片`);
   } catch (e: any) {
-    ElMessage.error(`下载失败：${e?.message ?? e}`);
+    message.error(`下载失败：${e?.message ?? e}`);
   } finally {
     submitting.value = false;
   }

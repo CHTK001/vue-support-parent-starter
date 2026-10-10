@@ -5,8 +5,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   fetchProxyServers, fetchServerProtocols, createServerNode, updateServerNode,
   deleteServerNode, startServerNode, stopServerNode,
@@ -196,19 +197,19 @@ function onProtocolChange(): void {
 /** 保存新增/编辑 */
 async function saveForm(): Promise<void> {
   if (!form.name.trim()) {
-    ElMessage.warning("请填写节点名称");
+    message.warning("请填写节点名称");
     return;
   }
   if (!form.protocol) {
-    ElMessage.warning("请选择代理协议");
+    message.warning("请选择代理协议");
     return;
   }
   if (!form.port) {
-    ElMessage.warning("请填写监听端口");
+    message.warning("请填写监听端口");
     return;
   }
   if (requiresBackend.value && !form.backendHost.trim()) {
-    ElMessage.warning("该协议需要后端地址，请填写后端主机");
+    message.warning("该协议需要后端地址，请填写后端主机");
     return;
   }
   const config: Record<string, unknown> = { ...originalConfig.value };
@@ -230,15 +231,15 @@ async function saveForm(): Promise<void> {
   try {
     if (editingId.value == null) {
       await createServerNode(payload);
-      ElMessage.success("已新增代理节点");
+      message.success("已新增代理节点");
     } else {
       await updateServerNode(editingId.value, payload);
-      ElMessage.success("已保存，运行中的节点已按新配置重启");
+      message.success("已保存，运行中的节点已按新配置重启");
     }
     formVisible.value = false;
     await loadList();
   } catch (e) {
-    ElMessage.error(`保存失败：${errText(e)}`);
+    message.error(`保存失败：${errText(e)}`);
   } finally {
     saving.value = false;
   }
@@ -256,10 +257,10 @@ async function removeOne(row: ServerNodeView): Promise<void> {
   }
   try {
     await deleteServerNode(row.id!);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await loadList();
   } catch (e) {
-    ElMessage.error(`删除失败：${errText(e)}`);
+    message.error(`删除失败：${errText(e)}`);
   }
 }
 
@@ -270,10 +271,10 @@ async function removeOne(row: ServerNodeView): Promise<void> {
 async function doStart(row: ServerNodeView) {
   try {
     await startServerNode(row.id!);
-    ElMessage.success("已启动");
+    message.success("已启动");
     await loadList();
   } catch (e) {
-    ElMessage.error(`启动失败：${errText(e)}`);
+    message.error(`启动失败：${errText(e)}`);
   }
 }
 
@@ -284,10 +285,10 @@ async function doStart(row: ServerNodeView) {
 async function doStop(row: ServerNodeView) {
   try {
     await stopServerNode(row.id!);
-    ElMessage.success("已停止");
+    message.success("已停止");
     await loadList();
   } catch (e) {
-    ElMessage.error(`停止失败：${errText(e)}`);
+    message.error(`停止失败：${errText(e)}`);
   }
 }
 
@@ -299,7 +300,7 @@ async function loadList() {
   try {
     list.value = (await fetchProxyServers()) ?? [];
   } catch (e) {
-    ElMessage.error(`加载失败：${errText(e)}`);
+    message.error(`加载失败：${errText(e)}`);
   } finally {
     loading.value = false;
   }

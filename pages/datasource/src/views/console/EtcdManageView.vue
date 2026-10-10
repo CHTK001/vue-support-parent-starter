@@ -269,8 +269,9 @@
  * @author CH
  * @since 4.0.0.43
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { View, EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -441,8 +442,8 @@ function onKeyContextMenu(e: MouseEvent, key: string) {
 function copyKeyText(key: string) {
   navigator.clipboard
     .writeText(key)
-    .then(() => ElMessage.success("已复制键名"))
-    .catch(() => ElMessage.error("复制失败"));
+    .then(() => message.success("已复制键名"))
+    .catch(() => message.error("复制失败"));
 }
 /** 侧栏菜单分发 */
 function onKeyMenuSelect(action: string) {
@@ -663,7 +664,7 @@ async function openDetail(key: string) {
 async function submitKey() {
   const key = form.key.trim();
   if (!key) {
-    ElMessage.warning("键名不能为空");
+    message.warning("键名不能为空");
     return;
   }
   const lease = Number(form.lease.trim());
@@ -675,7 +676,7 @@ async function submitKey() {
       value: form.value,
       lease: Number.isFinite(lease) && lease > 0 ? lease : undefined,
     });
-    ElMessage.success(keyDialogMode.value === "create" ? "键已创建" : "键已保存");
+    message.success(keyDialogMode.value === "create" ? "键已创建" : "键已保存");
     keyVisible.value = false;
     ready();
     await loadKeys();
@@ -702,7 +703,7 @@ async function confirmDelete(key: string) {
   }
   try {
     const deleted = await deleteEtcdKey(key, datasourceId.value, false);
-    ElMessage.success(`已删除（${deleted} 个）`);
+    message.success(`已删除（${deleted} 个）`);
     if (activeKey.value === key) {
       activeKey.value = "";
       detail.value = null;
@@ -731,7 +732,7 @@ async function confirmDeletePrefix(path: string, count: number) {
   }
   try {
     const deleted = await deleteEtcdKey(path, datasourceId.value, true);
-    ElMessage.success(`已删除（${deleted} 个）`);
+    message.success(`已删除（${deleted} 个）`);
     if (activeKey.value.startsWith(path)) {
       activeKey.value = "";
       detail.value = null;
@@ -753,13 +754,13 @@ function openLeaseDialog() {
 async function submitLease() {
   const ttl = Number(leaseTtl.value.trim());
   if (!Number.isFinite(ttl) || ttl <= 0) {
-    ElMessage.warning("TTL 必须为正整数秒");
+    message.warning("TTL 必须为正整数秒");
     return;
   }
   saving.value = true;
   try {
     const created = await grantEtcdLease({ datasourceId: datasourceId.value, ttl });
-    ElMessage.success(`租约已授予：${created?.id}`);
+    message.success(`租约已授予：${created?.id}`);
     leaseVisible.value = false;
     await switchTab("leases");
   } catch (e) {
@@ -782,7 +783,7 @@ async function confirmRevoke(lease: EtcdLease) {
   }
   try {
     await revokeEtcdLease(lease.id, datasourceId.value);
-    ElMessage.success("租约已撤销");
+    message.success("租约已撤销");
     await loadLeases();
   } catch (e) {
     fail(e, "/ms/monitor/etcd/lease");
@@ -795,7 +796,7 @@ async function confirmRevoke(lease: EtcdLease) {
  * @param lease 租约行
  */
 function showLeaseKeys(lease: EtcdLease) {
-  ElMessage.info(lease.keyCount ? `该租约绑定了 ${lease.keyCount} 个键` : "该租约当前没有绑定键");
+  message.info(lease.keyCount ? `该租约绑定了 ${lease.keyCount} 个键` : "该租约当前没有绑定键");
 }
 
 /** 测试连接 */
@@ -804,9 +805,9 @@ async function testConnection() {
   try {
     const result = await testEtcdConnection(datasourceId.value);
     if (result?.connected) {
-      ElMessage.success(`连接成功（etcd ${result.version || "未知版本"}）`);
+      message.success(`连接成功（etcd ${result.version || "未知版本"}）`);
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
     ready();
     await loadStatus();

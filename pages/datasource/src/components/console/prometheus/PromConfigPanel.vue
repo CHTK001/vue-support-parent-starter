@@ -122,8 +122,9 @@
  * Prometheus 配置面板（参考 nginx 控制台）：
  * 左侧文件 / 备份列表，右侧编辑 + 保存（临时文件 → promtool 校验 → 备份 → 覆盖 → 重载）。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -199,7 +200,7 @@ async function loadFiles(): Promise<void> {
   try {
     files.value = (await fetchPrometheusConfigFiles(props.datasourceId)) || [];
   } catch (e) {
-    ElMessage.error(`读取配置文件列表失败：${(e as Error)?.message ?? e}`);
+    message.error(`读取配置文件列表失败：${(e as Error)?.message ?? e}`);
   } finally {
     filesLoading.value = false;
   }
@@ -210,7 +211,7 @@ async function loadBackups(): Promise<void> {
   try {
     backups.value = (await fetchPrometheusBackups(props.datasourceId)) || [];
   } catch (e) {
-    ElMessage.error(`读取备份列表失败：${(e as Error)?.message ?? e}`);
+    message.error(`读取备份列表失败：${(e as Error)?.message ?? e}`);
   } finally {
     backupsLoading.value = false;
   }
@@ -229,7 +230,7 @@ async function openFile(path: string): Promise<void> {
     content.value = config.content ?? "";
     loadedContent.value = content.value;
   } catch (e) {
-    ElMessage.error(`读取配置失败：${(e as Error)?.message ?? e}`);
+    message.error(`读取配置失败：${(e as Error)?.message ?? e}`);
   } finally {
     loading.value = false;
   }
@@ -253,13 +254,13 @@ async function doSave(): Promise<void> {
     result.value = apply;
     if (apply.success) {
       loadedContent.value = content.value;
-      ElMessage.success(apply.message || "保存成功");
+      message.success(apply.message || "保存成功");
       void loadBackups();
     } else {
-      ElMessage.error(apply.message || "保存失败");
+      message.error(apply.message || "保存失败");
     }
   } catch (e) {
-    ElMessage.error(`保存失败：${(e as Error)?.message ?? e}`);
+    message.error(`保存失败：${(e as Error)?.message ?? e}`);
   } finally {
     saving.value = false;
   }
@@ -272,12 +273,12 @@ async function doReload(): Promise<void> {
     const cmd = await reloadPrometheusConfig(props.datasourceId);
     commandResult.value = cmd;
     if (cmd.success) {
-      ElMessage.success(cmd.message || "重载成功");
+      message.success(cmd.message || "重载成功");
     } else {
-      ElMessage.error(cmd.message || "重载失败");
+      message.error(cmd.message || "重载失败");
     }
   } catch (e) {
-    ElMessage.error(`重载失败：${(e as Error)?.message ?? e}`);
+    message.error(`重载失败：${(e as Error)?.message ?? e}`);
   } finally {
     reloading.value = false;
   }
@@ -290,7 +291,7 @@ async function previewBackup(b: PromFile): Promise<void> {
     pendingRestore.value = b;
     backupVisible.value = true;
   } catch (e) {
-    ElMessage.error(`读取备份失败：${(e as Error)?.message ?? e}`);
+    message.error(`读取备份失败：${(e as Error)?.message ?? e}`);
   }
 }
 
@@ -304,16 +305,16 @@ async function doRestore(): Promise<void> {
     backupVisible.value = false;
     result.value = apply;
     if (apply.success) {
-      ElMessage.success(apply.message || "恢复成功");
+      message.success(apply.message || "恢复成功");
       if (currentPath.value) {
         await openFile(currentPath.value);
       }
       void loadBackups();
     } else {
-      ElMessage.error(apply.message || "恢复失败");
+      message.error(apply.message || "恢复失败");
     }
   } catch (e) {
-    ElMessage.error(`恢复失败：${(e as Error)?.message ?? e}`);
+    message.error(`恢复失败：${(e as Error)?.message ?? e}`);
   } finally {
     restoring.value = false;
   }

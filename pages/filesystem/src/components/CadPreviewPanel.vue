@@ -18,8 +18,9 @@
  * @author Buffy
  * @since 2026/09/29
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import {
   Aim,
   Document,
@@ -220,8 +221,8 @@ function copyHint(): void {
   const text = "DWG 为 Autodesk 私有二进制格式，浏览器无法解析其图元几何。"
     + "请在 CAD 软件中将图纸「另存为 DXF」（开放文本格式）后重新上传，即可完整预览。";
   void navigator.clipboard?.writeText(text)
-    .then(() => ElMessage.success("提示已复制"))
-    .catch(() => ElMessage.warning("复制失败，请手动记录"));
+    .then(() => message.success("提示已复制"))
+    .catch(() => message.warning("复制失败，请手动记录"));
 }
 
 /**

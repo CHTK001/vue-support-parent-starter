@@ -5,8 +5,9 @@
  * 角色分页查询 + 增删改查 + 分配菜单权限（drawer 树形勾选）。
  * 全部使用 ReXxx modern 组件渲染。
  */
+import { message } from "@repo/core";
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox, ElTree } from "element-plus";
+import { ElMessageBox, ElTree } from "element-plus";
 import {
   UserFilled,
   Plus,
@@ -111,7 +112,7 @@ function handleEdit(row: Record<string, unknown>) {
 
 async function handleSubmit() {
   if (!form.value.sysRoleName || !form.value.sysRoleCode) {
-    ElMessage.warning("请输入角色名称和编码");
+    message.warning("请输入角色名称和编码");
     return;
   }
   
@@ -119,18 +120,18 @@ async function handleSubmit() {
   const originalCode = form.value.sysRoleCode;
   const cleanedCode = originalCode.replace(/[\s\t\r\n]+/g, "");
   if (cleanedCode !== originalCode) {
-    ElMessage.warning("角色编码不允许包含空格或制表符");
+    message.warning("角色编码不允许包含空格或制表符");
     return;
   }
   if (!/^[a-zA-Z]+$/.test(cleanedCode)) {
-    ElMessage.warning("角色编码只能使用字母（大小写都支持），不允许数字和特殊字符");
+    message.warning("角色编码只能使用字母（大小写都支持），不允许数字和特殊字符");
     return;
   }
   
   // 禁止新建内置角色编码
   const reservedCodes = ["admin", "sa", "superadmin", "super_admin"];
   if (!isEdit.value && reservedCodes.includes(cleanedCode.toLowerCase())) {
-    ElMessage.warning("该角色编码为系统内置，不允许新建");
+    message.warning("该角色编码为系统内置，不允许新建");
     return;
   }
   
@@ -140,10 +141,10 @@ async function handleSubmit() {
   try {
     if (isEdit.value) {
       await updateRole(form.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       const saved = await saveRole(form.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
       // 复制场景：新角色创建后，把原角色的菜单授权一并复制过来
       if (copyFromRoleId.value != null && saved?.data?.sysRoleId) {
         const srcMenus = await getRoleMenu(copyFromRoleId.value);
@@ -153,7 +154,7 @@ async function handleSubmit() {
     dialogVisible.value = false;
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     saving.value = false;
   }
@@ -163,14 +164,14 @@ async function handleDelete(row: Record<string, unknown>) {
   const role = row as unknown as SysRole;
   await ElMessageBox.confirm(`确认删除角色「${role.sysRoleName}」？`, "提示", { type: "warning" });
   await deleteRole(role.sysRoleId!);
-  ElMessage.success("删除成功");
+  message.success("删除成功");
   tableRef.value?.reload();
 }
 
 async function handleStatus(row: Record<string, unknown>) {
   const role = row as unknown as SysRole;
   await updateRole({ ...role, sysRoleStatus: role.sysRoleStatus === 1 ? 0 : 1 });
-  ElMessage.success(role.sysRoleStatus === 1 ? "已启用" : "已停用");
+  message.success(role.sysRoleStatus === 1 ? "已启用" : "已停用");
   tableRef.value?.reload();
 }
 
@@ -376,7 +377,7 @@ async function openPermDialog(row: Record<string, unknown>) {
     await nextTick();
     onMenuCheck();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "权限加载失败");
+    message.error((e as Error)?.message ?? "权限加载失败");
   }
 }
 
@@ -399,11 +400,11 @@ async function handleSavePerm() {
       sysRoleDataScope: dataScope.value,
       sysRoleDataScopeDeptIds: customDeptIds,
     });
-    ElMessage.success("权限已更新");
+    message.success("权限已更新");
     permVisible.value = false;
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     permSaving.value = false;
   }
@@ -444,7 +445,7 @@ async function openRoleUsers(row: Record<string, unknown>) {
     const res = await pageForUser({ page: 1, pageSize: 200, sysRoleId: role.sysRoleId });
     roleUsers.value = (res?.data?.data ?? []) as SysUser[];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "角色用户加载失败");
+    message.error((e as Error)?.message ?? "角色用户加载失败");
     roleUsers.value = [];
   } finally {
     usersLoading.value = false;

@@ -69,8 +69,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { eduaiApi } from '../api/eduaiApi';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { Exam } from '../api/types';
@@ -160,7 +161,7 @@ const openEdit = (row: Exam) => {
 
 const save = async () => {
   if (!form.examName || !form.examPaperId) {
-    ElMessage.warning('请填写考试名与试卷ID');
+    message.warning('请填写考试名与试卷ID');
     return;
   }
   saving.value = true;
@@ -170,11 +171,11 @@ const save = async () => {
     } else {
       await eduaiApi.createExam(form);
     }
-    ElMessage.success('保存成功');
+    message.success('保存成功');
     dialogVisible.value = false;
     reload();
   } catch (e) {
-    ElMessage.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {
     saving.value = false;
   }
@@ -194,13 +195,13 @@ const remove = async (row: Exam) => {
     const ok = await eduaiApi.deleteExam(row.examId);
     if (!ok) {
       // 后端返回 false（未实际删掉任何行）时不能报成功，否则列表与提示会自相矛盾
-      ElMessage.error(`删除失败: 考试 ${row.examName} 未被删除，请刷新后重试`);
+      message.error(`删除失败: 考试 ${row.examName} 未被删除，请刷新后重试`);
       return;
     }
-    ElMessage.success('已删除');
+    message.success('已删除');
     reload();
   } catch (e) {
-    ElMessage.error('删除失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('删除失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 

@@ -64,8 +64,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { verifyAgent, createGatewayWsUrl } from '../api/remoteApi'
 
 const form = reactive({
@@ -91,7 +92,7 @@ let sshSessionId: string | null = null
 /** 校验并连接网关 */
 function doConnect() {
   if (!form.agentId || !form.verifyCode) {
-    ElMessage.warning('请填写ID和验证码')
+    message.warning('请填写ID和验证码')
     return
   }
   connecting.value = true
@@ -123,7 +124,7 @@ function connectWebSocket(url: string): Promise<void> {
     ws.onopen = () => {
       ws!.send(JSON.stringify({ action: 'connect', clientId: form.agentId, serverUrl: url }))
       wsConnected.value = true
-      ElMessage.success('已连接到网关')
+      message.success('已连接到网关')
       if (form.connMethod === 'ssh') {
         startSSHSession()
       }
@@ -137,13 +138,13 @@ function connectWebSocket(url: string): Promise<void> {
       }
     }
     ws.onerror = () => {
-      ElMessage.error('WebSocket连接失败')
+      message.error('WebSocket连接失败')
       reject(new Error('WebSocket error'))
     }
     ws.onclose = () => {
       wsConnected.value = false
       sshSessionId = null
-      ElMessage.info('连接已断开')
+      message.info('连接已断开')
     }
   })
 }

@@ -236,8 +236,7 @@
  *
  *   <ReRagManager base-url="/v2/ai/rag" />
  */
-import {
-  http } from "@repo/core";
+import {http, message} from "@repo/core";
 import { ref,
   computed,
   onMounted } from "vue";
@@ -252,7 +251,6 @@ import {
   ElPagination,
   ElCheckbox,
   ElLink,
-  ElMessage,
   ElMessageBox,
 } from "element-plus";
 import {
@@ -431,7 +429,7 @@ const fetchDocuments = async () => {
     emit("change", documents.value);
   } catch (e) {
     console.error("fetch documents failed", e);
-    ElMessage.error("加载文档列表失败");
+    message.error("加载文档列表失败");
   } finally {
     loading.value = false;
   }
@@ -439,7 +437,7 @@ const fetchDocuments = async () => {
 
 const handleUploadSuccess = (file: ChunkUploadFile) => {
   if (file.url) {
-    ElMessage.success(`已上传：${file.name}`);
+    message.success(`已上传：${file.name}`);
     emit("add", {
       id: file.uploadId ?? file.name,
       name: file.name,
@@ -456,7 +454,7 @@ const handleUploadSuccess = (file: ChunkUploadFile) => {
 const handleUrlCrawl = async () => {
   const urls = parseUrls(urlInput.value);
   if (urls.length === 0) {
-    ElMessage.warning("请输入有效的 URL");
+    message.warning("请输入有效的 URL");
     return;
   }
 
@@ -524,17 +522,17 @@ const handleDelete = async (doc: RagDocument) => {
   try {
     const res = await fetchJson<boolean>(`${props.baseUrl}/document/${doc.id}`, { method: "DELETE" });
     if (unwrap(res)) {
-      ElMessage.success("删除成功");
+      message.success("删除成功");
       emit("remove", doc.id);
       void fetchDocuments();
     }
   } catch (e) {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 };
 
 const handleEngineChange = (engine: string) => {
-  ElMessage.info(`已切换到 ${engine} 引擎`);
+  message.info(`已切换到 ${engine} 引擎`);
 };
 
 const goToDocuments = () => {

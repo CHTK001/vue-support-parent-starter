@@ -38,13 +38,14 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ReEcharts from '@repo/ui/re-echarts';
 import type { EChartsOption } from 'echarts';
 import { getStats, getAgentDependencies } from '../api/hotsportApi';
 import type { ApmStats, DependencyEdge } from '../api/types';
-import { ElMessage } from 'element-plus';
+
 import { DataLine, Document, Share, Warning } from '@element-plus/icons-vue';
 
 const { t } = useI18n();
@@ -69,7 +70,7 @@ const fetchStats = async () => {
       { label: t('hotsport.dashboard.leakCount'), value: count('logs', 'leakCount'), icon: Warning, color: '#f56c6c' },
     ];
   } catch (e) {
-    ElMessage.error(t('hotsport.dashboard.fetchStatsError'));
+    message.error(t('hotsport.dashboard.fetchStatsError'));
   }
 };
 

@@ -216,12 +216,7 @@ import {
   reactive,
   type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon,
-  ElButton,
-  ElTag,
-  ElMessageBox,
-  ElMessage,
-} from "element-plus";
+import { ElIcon, ElButton, ElTag, ElMessageBox } from "element-plus";
 import type { Model, ModelProvider } from '@/types/api';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
@@ -252,7 +247,7 @@ import { useRouter } from 'vue-router';
 import { useSessionStore } from '@/stores/session';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
-import { isAdmin } from '@repo/core';
+import {isAdmin, message} from '@repo/core';
 import ReDialog from '@repo/ui/re-dialog';
 
 /** File object managed by ChatInput (created via createFileObject) */
@@ -1340,15 +1335,15 @@ const handleOptimize = async () => {
     const payload = res?.data ?? res;
     const optimized = payload?.optimized || payload?.optimizedContent;
     if (!optimized || !optimized.trim()) {
-      ElMessage.warning(t('chat.input.optimizeUnavailable'));
+      message.warning(t('chat.input.optimizeUnavailable'));
     } else if (optimized.trim() === text.trim()) {
-      ElMessage.info(t('chat.input.optimizeNoChange'));
+      message.info(t('chat.input.optimizeNoChange'));
     } else if (editor.value) {
       editor.value.commands.setContent(optimized);
     }
   } catch (e) {
     console.warn("优化失败", e);
-    ElMessage.error(t('chat.input.optimizeFailed'));
+    message.error(t('chat.input.optimizeFailed'));
   } finally {
     optimizing.value = false;
   }
@@ -1629,23 +1624,23 @@ async function runBuiltinCommand(kind: string): Promise<void> {
   if (kind === 'compress') {
     const sessionId = props.sessionId == null ? '' : String(props.sessionId);
     if (!sessionId) {
-      ElMessage.warning('当前没有会话，无法压缩上下文');
+      message.warning('当前没有会话，无法压缩上下文');
       return;
     }
     if (sessionStore.sessionIsStreaming(sessionId)) {
-      ElMessage.warning('会话正在生成中，请稍后再试');
+      message.warning('会话正在生成中，请稍后再试');
       return;
     }
     try {
       sessionStore.setSessionIsCompressing(sessionId, true);
       const res: any = await apiService.compressSession(sessionId);
       if (res && res.success) {
-        ElMessage.success('上下文已压缩');
+        message.success('上下文已压缩');
       } else {
-        ElMessage.warning(res?.message || '未执行压缩');
+        message.warning(res?.message || '未执行压缩');
       }
     } catch (error: any) {
-      ElMessage.error(error?.message || '压缩失败');
+      message.error(error?.message || '压缩失败');
     } finally {
       sessionStore.setSessionIsCompressing(sessionId, false);
     }

@@ -310,8 +310,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { View, CopyDocument } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -429,8 +430,8 @@ function onSideMenuSelect(action: string) {
   } else if (action === "copy") {
     navigator.clipboard
       .writeText(key)
-      .then(() => ElMessage.success("已复制"))
-      .catch(() => ElMessage.error("复制失败"));
+      .then(() => message.success("已复制"))
+      .catch(() => message.error("复制失败"));
   }
 }
 /** 节点表格菜单分发 */
@@ -440,8 +441,8 @@ function onNodeTableMenuSelect(item: { key: string }, ctx: { row: Record<string,
   } else if (item.key === "copy") {
     navigator.clipboard
       .writeText(String(ctx.row.id ?? ""))
-      .then(() => ElMessage.success("已复制 elementId"))
-      .catch(() => ElMessage.error("复制失败"));
+      .then(() => message.success("已复制 elementId"))
+      .catch(() => message.error("复制失败"));
   }
 }
 const nodeColumns = ref<Column[]>([]);
@@ -554,9 +555,9 @@ async function testConnection() {
       neo4jVersion.value = result.version || "";
       neo4jEdition.value = result.edition || "";
       ready();
-      ElMessage.success(result.version ? `连接成功 · Neo4j ${result.version}` : "连接成功");
+      message.success(result.version ? `连接成功 · Neo4j ${result.version}` : "连接成功");
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
   } catch (e) {
     fail(e, "/ms/monitor/neo4j/test");
@@ -791,7 +792,7 @@ function openCypher() {
  */
 async function executeCypher() {
   if (!cypherQuery.value.trim()) {
-    ElMessage.warning("请输入 Cypher 语句");
+    message.warning("请输入 Cypher 语句");
     return;
   }
   cypherRunning.value = true;
@@ -851,23 +852,23 @@ function propsLiteral(raw: string): string | null {
   try {
     parsed = raw.trim() ? JSON.parse(raw) : {};
   } catch {
-    ElMessage.error("属性必须是合法 JSON");
+    message.error("属性必须是合法 JSON");
     return null;
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    ElMessage.error("属性必须是 JSON 对象");
+    message.error("属性必须是 JSON 对象");
     return null;
   }
   const parts: string[] = [];
   for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
     if (!IDENT.test(key)) {
-      ElMessage.error(`属性名不合法: ${key}`);
+      message.error(`属性名不合法: ${key}`);
       return null;
     }
     if (value === null || ["string", "number", "boolean"].includes(typeof value)) {
       parts.push(`${key}: ${JSON.stringify(value)}`);
     } else {
-      ElMessage.error(`属性 ${key} 仅支持字符串/数字/布尔/NULL`);
+      message.error(`属性 ${key} 仅支持字符串/数字/布尔/NULL`);
       return null;
     }
   }
@@ -880,7 +881,7 @@ function propsLiteral(raw: string): string | null {
 async function createNode() {
   const label = newNodeLabel.value.trim();
   if (!IDENT.test(label)) {
-    ElMessage.warning("节点标签只能由字母、数字、下划线组成且不以数字开头");
+    message.warning("节点标签只能由字母、数字、下划线组成且不以数字开头");
     return;
   }
   const props = propsLiteral(newNodeProps.value);
@@ -889,7 +890,7 @@ async function createNode() {
   try {
     const { rows } = await runCypher(`CREATE (n:\`${label}\` {${props}})\nRETURN elementId(n) AS id, labels(n) AS labels`);
     if (rows.length === 0) throw new Error("后端未返回新建节点 ID");
-    ElMessage.success(`节点已创建，Element ID=${rows[0].id}`);
+    message.success(`节点已创建，Element ID=${rows[0].id}`);
     createNodeVisible.value = false;
     ready();
     await refresh();
@@ -906,13 +907,13 @@ async function createNode() {
 async function createRel() {
   const type = newRelType.value.trim();
   if (!IDENT.test(type)) {
-    ElMessage.warning("关系类型只能由字母、数字、下划线组成且不以数字开头");
+    message.warning("关系类型只能由字母、数字、下划线组成且不以数字开头");
     return;
   }
   const fromId = newRelFrom.value.trim();
   const toId = newRelTo.value.trim();
   if (!ELEMENT_ID.test(fromId) || !ELEMENT_ID.test(toId)) {
-    ElMessage.warning("起始/目标节点须填 elementId（形如 4:abi:0），可在节点列表里复制");
+    message.warning("起始/目标节点须填 elementId（形如 4:abi:0），可在节点列表里复制");
     return;
   }
   const props = propsLiteral(newRelProps.value);
@@ -924,7 +925,7 @@ async function createRel() {
         `CREATE (a)-[r:\`${type}\` {${props}}]->(b)\nRETURN elementId(r) AS id, type(r) AS type`
     );
     if (rows.length === 0) throw new Error("未匹配到起止节点，关系未创建");
-    ElMessage.success(`关系已创建，Element ID=${rows[0].id}`);
+    message.success(`关系已创建，Element ID=${rows[0].id}`);
     createRelVisible.value = false;
     ready();
     await refresh();

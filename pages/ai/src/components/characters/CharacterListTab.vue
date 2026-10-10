@@ -127,9 +127,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElButton, ElMessage } from 'element-plus'
+import { ElIcon, ElButton } from 'element-plus';
 import { People } from '@vicons/ionicons5'
 import { Close } from '@element-plus/icons-vue'
 import { PlusOutlined, DeleteOutlineOutlined, UploadOutlined } from '@vicons/material'
@@ -183,14 +184,14 @@ const handleFileSelect = async (event: Event) => {
     const okCount = results.filter(r => r.status === 'ok').length
     const failCount = results.filter(r => r.status !== 'ok').length
     if (okCount > 0) {
-      ElMessage.success(t('characters.list.importSuccess', { count: okCount }))
+      message.success(t('characters.list.importSuccess', { count: okCount }))
     }
     if (failCount > 0) {
-      ElMessage.warning(t('characters.list.importPartial', { count: failCount }))
+      message.warning(t('characters.list.importPartial', { count: failCount }))
     }
     emit('imported')
   } catch (err: any) {
-    ElMessage.error(err.message || t('characters.list.importFailed'))
+    message.error(err.message || t('characters.list.importFailed'))
   }
 
   // 重置 input 以便重复选择同一文件

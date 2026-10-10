@@ -7,8 +7,9 @@
  * - 消息模板：CRUD + 渠道(EMAIL/SMS) + TEXT/HTML/RICHTEXT + 预览(左右布局动态表单) + 按角色编码发送 + 同步运营商。
  * - 发送日志：推送记录 + 详情 + 按日期清理。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import ReTab from "@repo/ui/re-tab";
 /** 耗时着色文本：绿 / 黄 / 红标识推送快慢（同系统日志页） */
 const ReCostText = defineAsyncComponent(() =>
@@ -235,7 +236,7 @@ const msgEngine = ref<"element" | "vxe">("vxe");
  * 排序字段 + 保存接口。</p>
  */
 function onMsgRowSort(payload: ReTableRowSortPayload): void {
-  ElMessage.success(`拖拽排序已确认，本次共 ${payload.newData.length} 行（未持久化，仅供验收）`);
+  message.success(`拖拽排序已确认，本次共 ${payload.newData.length} 行（未持久化，仅供验收）`);
 }
 
 async function loadMessages({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
@@ -284,10 +285,10 @@ async function handleRecall(row: Record<string, unknown>) {
   msgActionLoading.value = msg.sysMessageId!;
   try {
     await recallMessage(msg.sysMessageId!);
-    ElMessage.success("已撤回");
+    message.success("已撤回");
     msgTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "撤回失败");
+    message.error((e as Error)?.message ?? "撤回失败");
   } finally {
     msgActionLoading.value = 0;
   }
@@ -307,10 +308,10 @@ async function handleDeleteMsg(row: Record<string, unknown>) {
   msgActionLoading.value = msg.sysMessageId!;
   try {
     await deleteMessage(msg.sysMessageId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     msgTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   } finally {
     msgActionLoading.value = 0;
   }
@@ -361,17 +362,17 @@ function onTemplateChange(code?: string) {
 
 async function handleSend() {
   if (!sendForm.value.sysMessageTitle) {
-    ElMessage.warning("请输入消息标题");
+    message.warning("请输入消息标题");
     return;
   }
   sendSaving.value = true;
   try {
     await sendMessage(sendForm.value);
-    ElMessage.success("发送成功");
+    message.success("发送成功");
     sendVisible.value = false;
     msgTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "发送失败");
+    message.error((e as Error)?.message ?? "发送失败");
   } finally {
     sendSaving.value = false;
   }
@@ -485,11 +486,11 @@ function execRichCommand(cmd: string, value?: string) {
 
 async function handleTplSubmit() {
   if (!tplForm.value.sysMessageTemplateCode?.trim()) {
-    ElMessage.warning("请输入模板编码");
+    message.warning("请输入模板编码");
     return;
   }
   if (!tplForm.value.sysMessageChannel) {
-    ElMessage.warning("请选择消息渠道");
+    message.warning("请选择消息渠道");
     return;
   }
   syncRichEditorContent();
@@ -497,16 +498,16 @@ async function handleTplSubmit() {
   try {
     if (tplIsEdit.value) {
       await updateMessageTemplate(tplForm.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveMessageTemplate(tplForm.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     tplDialogVisible.value = false;
     tplTableRef.value?.reload();
     loadTemplates();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     tplSaving.value = false;
   }
@@ -517,10 +518,10 @@ async function handleTplStatus(row: SysMessageTemplate) {
   const newStatus = row.sysMessageTemplateStatus === 1 ? 0 : 1;
   try {
     await updateMessageTemplate({ ...row, sysMessageTemplateStatus: newStatus });
-    ElMessage.success(newStatus === 1 ? "已启用" : "已禁用");
+    message.success(newStatus === 1 ? "已启用" : "已禁用");
     tplTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "状态切换失败");
+    message.error((e as Error)?.message ?? "状态切换失败");
   }
 }
 
@@ -538,11 +539,11 @@ async function handleTplDelete(row: Record<string, unknown>) {
   tplActionLoading.value = tpl.sysMessageTemplateId!;
   try {
     await deleteMessageTemplate(tpl.sysMessageTemplateId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     tplTableRef.value?.reload();
     loadTemplates();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   } finally {
     tplActionLoading.value = 0;
   }
@@ -581,7 +582,7 @@ async function doPreview() {
     });
     previewResult.value = res?.data ?? null;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "预览失败");
+    message.error((e as Error)?.message ?? "预览失败");
   } finally {
     previewLoading.value = false;
   }
@@ -630,7 +631,7 @@ async function handleTplSend(row: Record<string, unknown>) {
 
 async function doTplSend() {
   if (!tplSendRow.value?.sysMessageTemplateCode) {
-    ElMessage.warning("模板缺少编码，无法发送");
+    message.warning("模板缺少编码，无法发送");
     return;
   }
   const hasRoles = tplSendForm.value.roleKeys.length > 0;
@@ -639,7 +640,7 @@ async function doTplSend() {
     .map((s) => s.trim())
     .filter(Boolean);
   if (!hasRoles && !targets.length) {
-    ElMessage.warning("请选择接收角色或输入接收人地址");
+    message.warning("请选择接收角色或输入接收人地址");
     return;
   }
   tplSendLoading.value = true;
@@ -656,13 +657,13 @@ async function doTplSend() {
     const okCount = list.filter((r) => r.success).length;
     const failCount = list.length - okCount;
     if (failCount === 0) {
-      ElMessage.success(`发送成功（${okCount} 条）`);
+      message.success(`发送成功（${okCount} 条）`);
     } else {
-      ElMessage.warning(`完成：成功 ${okCount} 条，失败 ${failCount} 条`);
+      message.warning(`完成：成功 ${okCount} 条，失败 ${failCount} 条`);
     }
     tplSendVisible.value = false;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "发送失败");
+    message.error((e as Error)?.message ?? "发送失败");
   } finally {
     tplSendLoading.value = false;
   }
@@ -730,7 +731,7 @@ function handleLogOpenClean() {
 
 async function doLogClean() {
   if (!logCleanBeforeTime.value) {
-    ElMessage.warning("请选择截止日期");
+    message.warning("请选择截止日期");
     return;
   }
   try {
@@ -743,11 +744,11 @@ async function doLogClean() {
   logCleanLoading.value = true;
   try {
     const res = await cleanMessageLog(logCleanBeforeTime.value);
-    ElMessage.success(`清理完成，共删除 ${res?.data ?? 0} 条`);
+    message.success(`清理完成，共删除 ${res?.data ?? 0} 条`);
     logCleanVisible.value = false;
     logTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "清理失败");
+    message.error((e as Error)?.message ?? "清理失败");
   } finally {
     logCleanLoading.value = false;
   }

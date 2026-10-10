@@ -437,9 +437,10 @@
  * {@code /v2/edu/marking/**}，只有「班级学生」与「字典下拉」走教师中心专用端点
  * （管理端的维度接口是管理员专属，教师令牌会 403）。</p>
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { eduaiApi } from "../../api/eduaiApi";
 import type {
   DimensionDropdown,
@@ -536,7 +537,7 @@ async function load() {
       selectClass(classes.value[0].classId);
     }
   } catch (e) {
-    ElMessage.error(`教师端数据加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`教师端数据加载失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -562,7 +563,7 @@ async function doBind() {
       teacherName: bindForm.teacherName.trim(),
       subjectCode: bindForm.subjectCode.trim() || undefined,
     });
-    ElMessage.success("绑定完成");
+    message.success("绑定完成");
     await load();
   } catch (e) {
     bindError.value = e instanceof Error ? e.message : String(e);
@@ -597,7 +598,7 @@ async function loadStudents() {
   try {
     students.value = await eduaiApi.teacherClassStudents(activeClassId.value);
   } catch (e) {
-    ElMessage.error(`学生加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`学生加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     stuLoading.value = false;
   }
@@ -613,7 +614,7 @@ function openClassDialog(clazz?: EduClass | null) {
 
 async function submitClass() {
   if (!classDialog.className.trim()) {
-    ElMessage.warning("请填写班级名称");
+    message.warning("请填写班级名称");
     return;
   }
   saving.value = true;
@@ -624,11 +625,11 @@ async function submitClass() {
       classGradeLevel: classDialog.gradeLevel || undefined,
       classGrade: classDialog.grade || undefined,
     });
-    ElMessage.success("已保存");
+    message.success("已保存");
     classDialog.visible = false;
     await load();
   } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -643,12 +644,12 @@ async function removeClass() {
       type: "warning",
     });
     await eduaiApi.deleteTeacherClass(activeClass.value.classId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     activeClassId.value = null;
     await load();
   } catch (e) {
     if (e !== "cancel" && e !== "close") {
-      ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+      message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }
@@ -665,11 +666,11 @@ function openStudentDialog(row?: EduStudent) {
 
 async function submitStudent() {
   if (activeClassId.value == null) {
-    ElMessage.warning("请先选择班级");
+    message.warning("请先选择班级");
     return;
   }
   if (!stuDialog.name.trim()) {
-    ElMessage.warning("请填写学生姓名");
+    message.warning("请填写学生姓名");
     return;
   }
   saving.value = true;
@@ -682,11 +683,11 @@ async function submitStudent() {
       studentIdCard: stuDialog.idCard.trim() || undefined,
       studentPwdInput: stuDialog.id ? undefined : stuDialog.pwd || undefined,
     });
-    ElMessage.success("已保存");
+    message.success("已保存");
     stuDialog.visible = false;
     await Promise.all([loadStudents(), load()]);
   } catch (e) {
-    ElMessage.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -701,16 +702,16 @@ function openResetDialog(row: EduStudent) {
 
 async function submitReset() {
   if (!resetDialog.pwd) {
-    ElMessage.warning("请输入新口令");
+    message.warning("请输入新口令");
     return;
   }
   saving.value = true;
   try {
     await eduaiApi.resetTeacherStudentPassword(resetDialog.studentId, resetDialog.pwd);
-    ElMessage.success("口令已重置");
+    message.success("口令已重置");
     resetDialog.visible = false;
   } catch (e) {
-    ElMessage.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -722,11 +723,11 @@ async function removeStudent(row: EduStudent) {
       type: "warning",
     });
     await eduaiApi.deleteTeacherStudent(row.studentId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await Promise.all([loadStudents(), load()]);
   } catch (e) {
     if (e !== "cancel" && e !== "close") {
-      ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+      message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }
@@ -758,7 +759,7 @@ async function loadPapers() {
     });
     papers.value = (res?.data ?? res?.records ?? []) as Paper[];
   } catch (e) {
-    ElMessage.error(`试卷加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`试卷加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     paperLoading.value = false;
   }
@@ -794,7 +795,7 @@ const assignDialog = reactive<{
  */
 function openAssign(row: Paper) {
   if (paperStatusCode(row) !== 1) {
-    ElMessage.warning("请先把试卷「发布」，再布置给班级（未发布的试卷学生端看不到）");
+    message.warning("请先把试卷「发布」，再布置给班级（未发布的试卷学生端看不到）");
     return;
   }
   assignDialog.paperId = row.paperId;
@@ -807,7 +808,7 @@ function openAssign(row: Paper) {
 /** 提交布置：同一班同一卷重复布置由后端「复活」已有行，不会堆出重复记录 */
 async function submitAssign() {
   if (!assignDialog.paperId || !assignDialog.classId) {
-    return ElMessage.warning("请选择班级");
+    return message.warning("请选择班级");
   }
   assignSaving.value = true;
   try {
@@ -816,11 +817,11 @@ async function submitAssign() {
       classId: assignDialog.classId,
       remark: assignDialog.remark.trim() || undefined,
     });
-    ElMessage.success("已布置，班内学生现在能在学生端看到这份试卷");
+    message.success("已布置，班内学生现在能在学生端看到这份试卷");
     assignDialog.visible = false;
     await loadAssigns();
   } catch (e) {
-    ElMessage.error(`布置失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`布置失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     assignSaving.value = false;
   }
@@ -832,7 +833,7 @@ async function loadAssigns() {
   try {
     assigns.value = (await eduaiApi.myPaperAssigns()) || [];
   } catch (e) {
-    ElMessage.error(`布置记录加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`布置记录加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     assignLoading.value = false;
   }
@@ -855,10 +856,10 @@ async function revokeAssign(row: PaperAssignVO) {
   }
   try {
     await eduaiApi.revokePaperAssign(row.assignId);
-    ElMessage.success("已撤回");
+    message.success("已撤回");
     await loadAssigns();
   } catch (e) {
-    ElMessage.error(`撤回失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`撤回失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -884,7 +885,7 @@ function openAiDialog() {
 
 async function doGenerate() {
   if (!aiDialog.name.trim() || !aiDialog.subject || !aiDialog.gradeLevel) {
-    ElMessage.warning("请填写试卷名称 / 学科 / 学段");
+    message.warning("请填写试卷名称 / 学科 / 学段");
     return;
   }
   saving.value = true;
@@ -899,11 +900,11 @@ async function doGenerate() {
       knowledgePointIds: [],
       typeConfigs: [],
     });
-    ElMessage.success(`生成成功（试卷 ID ${paperId}）`);
+    message.success(`生成成功（试卷 ID ${paperId}）`);
     aiDialog.visible = false;
     await loadPapers();
   } catch (e) {
-    ElMessage.error(`AI 组卷失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`AI 组卷失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     saving.value = false;
   }
@@ -927,20 +928,20 @@ const paperStatusType = (n?: number) => {
 async function publishPaper(row: Paper) {
   try {
     await eduaiApi.publishPaper(row.paperId);
-    ElMessage.success("已发布");
+    message.success("已发布");
     await loadPapers();
   } catch (e) {
-    ElMessage.error(`发布失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`发布失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
 async function unpublishPaper(row: Paper) {
   try {
     await eduaiApi.unpublishPaper(row.paperId);
-    ElMessage.success("已下架");
+    message.success("已下架");
     await loadPapers();
   } catch (e) {
-    ElMessage.error(`下架失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`下架失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -948,11 +949,11 @@ async function archivePaper(row: Paper) {
   try {
     await ElMessageBox.confirm(`确定归档「${row.paperName}」吗？归档后只读。`, "归档确认", { type: "warning" });
     await eduaiApi.archivePaper(row.paperId);
-    ElMessage.success("已归档");
+    message.success("已归档");
     await loadPapers();
   } catch (e) {
     if (e !== "cancel" && e !== "close") {
-      ElMessage.error(`归档失败：${e instanceof Error ? e.message : String(e)}`);
+      message.error(`归档失败：${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }
@@ -1002,7 +1003,7 @@ function onPickFiles(e: Event) {
 
 async function startMarking() {
   if (!markFiles.value.length) {
-    ElMessage.warning("请选择答卷图片");
+    message.warning("请选择答卷图片");
     return;
   }
   const form = new FormData();
@@ -1018,11 +1019,11 @@ async function startMarking() {
   marking.value = true;
   try {
     const taskId = await eduaiApi.scanMarking(form);
-    ElMessage.success("已提交，正在阅卷…");
+    message.success("已提交，正在阅卷…");
     await pollResult(taskId);
     await loadMarkTasks();
   } catch (e) {
-    ElMessage.error(`阅卷失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`阅卷失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     marking.value = false;
   }
@@ -1048,7 +1049,7 @@ async function loadTaskResult(row: TeacherMarkingTask) {
     markSheetKey.value += 1;
     markResult.value = await eduaiApi.getMarkingResult(row.markingTaskTaskId);
   } catch (e) {
-    ElMessage.error(`结果加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`结果加载失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

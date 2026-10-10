@@ -6,8 +6,9 @@
  * 新增模式必填初始密码，编辑模式不传密码表示不修改。
  * 保存成功后通过 success 事件通知父组件刷新。
  */
+import { message } from "@repo/core";
 import { reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { saveTenant, updateTenant } from "../../api/systemApi";
 import type { SysTenant } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -50,10 +51,10 @@ async function handleSubmit() {
   await formRef.value?.validate?.();
   if (props.mode === "create") {
     await saveTenant({ ...form });
-    ElMessage.success("租户创建成功，菜单已重置推送");
+    message.success("租户创建成功，菜单已重置推送");
   } else {
     await updateTenant({ ...form });
-    ElMessage.success("租户更新成功，菜单已重置推送");
+    message.success("租户更新成功，菜单已重置推送");
   }
   visible.value = false;
   emit("success");

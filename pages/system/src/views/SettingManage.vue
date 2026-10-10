@@ -5,8 +5,9 @@
  * 纯卡片视图：按分组渲染卡片，点击卡片进入该分组配置页；每个配置一行，
  * 左右结构（左图标 / 名称+描述 / 值编辑，校验失败显示在底部），支持行拖拽排序。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   Edit,
   Delete,
@@ -303,9 +304,9 @@ async function handleRowSort({ newData }: { newData?: SysSetting[] }) {
       const t = allSettings.value.find((s) => s.sysSettingId === p.sysSettingId);
       if (t) t.sysSettingSort = p.sysSettingSort;
     });
-    ElMessage.success("排序已保存");
+    message.success("排序已保存");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "排序保存失败");
+    message.error((e as Error)?.message ?? "排序保存失败");
   } finally {
     sortSaving.value = false;
     detailTableRef.value?.reload();
@@ -345,15 +346,15 @@ function handleEdit(row: Record<string,unknown>) {
 
 async function handleSubmit() {
   if (!form.value.sysSettingName || !form.value.sysSettingCode) {
-    ElMessage.warning("请填写名称和编码");
+    message.warning("请填写名称和编码");
     return;
   }
   if (!form.value.sysSettingGroup) {
-    ElMessage.warning("请填写分组");
+    message.warning("请填写分组");
     return;
   }
   if (!form.value.sysSettingValueType) {
-    ElMessage.warning("请选择类型");
+    message.warning("请选择类型");
     return;
   }
   form.value.sysSettingValueType = normType(form.value.sysSettingValueType);
@@ -361,15 +362,15 @@ async function handleSubmit() {
   try {
     if (isEdit.value) {
       await updateSetting(form.value);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveSetting(form.value);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dialogVisible.value = false;
     await refreshAll();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     saving.value = false;
   }
@@ -379,7 +380,7 @@ async function handleDelete(row: Record<string,unknown>) {
   const setting = row as unknown as SysSetting;
   await ElMessageBox.confirm(`确认删除配置「${setting.sysSettingName}」？`, "提示", { type: "warning" });
   await deleteSetting(setting.sysSettingId!);
-  ElMessage.success("删除成功");
+  message.success("删除成功");
   await refreshAll();
 }
 
@@ -412,7 +413,7 @@ async function toggleSensitive(row: SysSetting) {
     if (revealTimers[id]) clearTimeout(revealTimers[id]);
     revealTimers[id] = setTimeout(() => delete revealedMap.value[id], 10000);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "获取明文失败");
+    message.error((e as Error)?.message ?? "获取明文失败");
   }
 }
 
@@ -455,7 +456,7 @@ async function loadHistory() {
     historyList.value = (res?.data?.data ?? res?.data?.records ?? []) as SysSettingHistory[];
     historyTotal.value = res?.data?.total ?? 0;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "历史记录加载失败");
+    message.error((e as Error)?.message ?? "历史记录加载失败");
   } finally {
     historyLoading.value = false;
   }
@@ -471,11 +472,11 @@ async function handleRollbackSingle(record: SysSettingHistory) {
   rollbackLoading.value = record.sysSettingHistoryId;
   try {
     await rollbackSettingHistorySingle(record.sysSettingHistoryId);
-    ElMessage.success("回滚成功");
+    message.success("回滚成功");
     await refreshAll();
     loadHistory();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "回滚失败");
+    message.error((e as Error)?.message ?? "回滚失败");
   } finally {
     rollbackLoading.value = 0;
   }
@@ -486,11 +487,11 @@ async function handleRollbackBatch(batchNo: string) {
   await ElMessageBox.confirm(`确认按批次「${batchNo}」回滚所有相关配置？`, "批次回滚确认", { type: "warning" });
   try {
     await rollbackSettingHistoryBatch(batchNo);
-    ElMessage.success("批次回滚成功");
+    message.success("批次回滚成功");
     await refreshAll();
     loadHistory();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "回滚失败");
+    message.error((e as Error)?.message ?? "回滚失败");
   }
 }
 
@@ -508,7 +509,7 @@ const batchLoading = ref(false);
 async function handleViewBatch() {
   const no = batchNoInput.value.trim();
   if (!no) {
-    ElMessage.warning("请输入批次号");
+    message.warning("请输入批次号");
     return;
   }
   batchLoading.value = true;
@@ -516,9 +517,9 @@ async function handleViewBatch() {
     const res = await listSettingHistoryByBatch(no);
     batchList.value = (res?.data ?? []) as SysSettingHistory[];
     batchMode.value = true;
-    if (!batchList.value.length) ElMessage.info("该批次无记录");
+    if (!batchList.value.length) message.info("该批次无记录");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "批次查询失败");
+    message.error((e as Error)?.message ?? "批次查询失败");
   } finally {
     batchLoading.value = false;
   }
@@ -546,9 +547,9 @@ async function handleSettingExport(group?: string) {
     a.download = `系统配置_${group ?? "all"}_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success("导出成功");
+    message.success("导出成功");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "导出失败");
+    message.error((e as Error)?.message ?? "导出失败");
   } finally {
     exporting.value = false;
   }
@@ -585,10 +586,10 @@ async function handleEmailCheck() {
       emailResult.value = res.data;
       emailDialogVisible.value = true;
     } else {
-      ElMessage.error(res?.msg ?? "邮箱检测失败");
+      message.error(res?.msg ?? "邮箱检测失败");
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "邮箱检测失败");
+    message.error((e as Error)?.message ?? "邮箱检测失败");
   } finally {
     emailChecking.value = false;
   }

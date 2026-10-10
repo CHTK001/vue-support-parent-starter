@@ -7,9 +7,10 @@
  *
  * 数据流：REST /v2/server/info 首拉 → SSE /v2/server/info/stream 每秒推送（OSHI + JMX 真实采集）。
  */
+import { message } from "@repo/core";
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { Component } from "vue";
-import { ElMessage } from "element-plus";
+
 import {
   Refresh, Cpu, Document, Coffee, DocumentCopy,
   Coin, DataBoard, FolderOpened, Share, Odometer,
@@ -133,7 +134,7 @@ const disconnectSSE = () => { sseClient?.close(); sseClient = null; };
 async function loadInfo(silent = false) {
   if (!silent) loading.value = true;
   try { const res = await getServerInfo(); info.value = res?.data ?? {}; updateTime.value = new Date().toLocaleTimeString(); pushTrend(info.value); }
-  catch (e) { if (!silent) ElMessage.error((e as Error)?.message ?? "加载失败"); }
+  catch (e) { if (!silent) message.error((e as Error)?.message ?? "加载失败"); }
   finally { if (!silent) loading.value = false; }
 }
 onMounted(async () => {
@@ -168,7 +169,7 @@ function shortUrl(u?: string): string {
 function fmtRate(k: number): string { return k < 1024 ? `${k.toFixed(1)} KB/s` : `${(k / 1024).toFixed(2)} MB/s`; }
 /** KB/s → Mbps（网卡侧栏展示） */
 function toMbps(k: number): string { return `${(k * 8.192 / 1000).toFixed(1)} Mbps`; }
-async function copyText(t?: string) { if (!t) return; try { await navigator.clipboard.writeText(t); ElMessage.success("已复制"); } catch { ElMessage.warning("复制失败"); } }
+async function copyText(t?: string) { if (!t) return; try { await navigator.clipboard.writeText(t); message.success("已复制"); } catch { message.warning("复制失败"); } }
 
 function toggleFullscreen() {
   try {
@@ -376,10 +377,10 @@ async function saveManagedCron(row: ManagedScheduleTask) {
   managedSaving.value = row.key;
   try {
     await updateScheduleTask(row.key, { cron: row.cron });
-    ElMessage.success(`「${row.label || row.key}」执行周期已更新`);
+    message.success(`「${row.label || row.key}」执行周期已更新`);
     await loadManagedTasks();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "更新 cron 失败");
+    message.error((e as Error)?.message ?? "更新 cron 失败");
     await loadManagedTasks();
   } finally {
     managedSaving.value = "";
@@ -390,10 +391,10 @@ async function toggleManagedTask(row: ManagedScheduleTask, enabled: boolean) {
   managedSaving.value = row.key;
   try {
     await updateScheduleTask(row.key, { enabled });
-    ElMessage.success(`已${enabled ? "启用" : "停用"}「${row.label || row.key}」`);
+    message.success(`已${enabled ? "启用" : "停用"}「${row.label || row.key}」`);
     await loadManagedTasks();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "更新任务状态失败");
+    message.error((e as Error)?.message ?? "更新任务状态失败");
     await loadManagedTasks();
   } finally {
     managedSaving.value = "";
@@ -404,10 +405,10 @@ async function runManagedTask(row: ManagedScheduleTask) {
   managedSaving.value = row.key;
   try {
     await runScheduleTask(row.key);
-    ElMessage.success(`已触发「${row.label || row.key}」`);
+    message.success(`已触发「${row.label || row.key}」`);
     await loadManagedTasks();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "触发任务失败");
+    message.error((e as Error)?.message ?? "触发任务失败");
   } finally {
     managedSaving.value = "";
   }
@@ -548,10 +549,10 @@ async function changeLoggerLevel(name: string, level: string) {
   actLevelSaving.value = name;
   try {
     await setActuatorLogger(name, level);
-    ElMessage.success(`已将「${name}」级别设为 ${level === "INHERITED" ? "继承" : level}`);
+    message.success(`已将「${name}」级别设为 ${level === "INHERITED" ? "继承" : level}`);
     await loadActuator("loggers");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "修改日志级别失败");
+    message.error((e as Error)?.message ?? "修改日志级别失败");
   } finally {
     actLevelSaving.value = "";
   }

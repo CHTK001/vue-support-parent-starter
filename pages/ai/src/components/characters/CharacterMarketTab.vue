@@ -85,8 +85,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { Search } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { apiService } from '../../services/ApiService'
@@ -126,7 +127,7 @@ const loadTemplates = async () => {
     templates.value = await apiService.fetchBuiltinCharacterCatalog()
   } catch (e) {
     console.error('加载角色模板失败:', e)
-    ElMessage.error('加载角色模板失败')
+    message.error('加载角色模板失败')
   } finally {
     loading.value = false
   }
@@ -138,13 +139,13 @@ const handleAdd = async (item: CharacterCatalogItem) => {
     const res = await apiService.addBuiltinCharacterToRoles(item.id)
     if (res.success) {
       item.added = true
-      ElMessage.success(res.alreadyAdded ? '已在助手中' : '添加成功')
+      message.success(res.alreadyAdded ? '已在助手中' : '添加成功')
       emit('added')
     } else {
-      ElMessage.error(res.message || '添加失败')
+      message.error(res.message || '添加失败')
     }
   } catch (e) {
-    ElMessage.error('添加失败')
+    message.error('添加失败')
   } finally {
     adding.value = ''
   }

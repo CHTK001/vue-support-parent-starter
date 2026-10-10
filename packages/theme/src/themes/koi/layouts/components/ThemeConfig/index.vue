@@ -696,11 +696,11 @@ import { useTheme } from "@repo/theme";
 import { storeToRefs } from "pinia";
 import { mittBus, applyMessageColorVars, mixColor, normalizeThemeColor } from "@repo/utils";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { msgSuccess, BACKEND_CAPABILITIES } from "@repo/core";
+import {msgSuccess, BACKEND_CAPABILITIES, message} from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { getConfig, setConfig, isCapabilityDeployOff } from "@repo/config";
 import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityConfig, DevToolsConfig, HeatmapConfig, PerformanceConfig, AiChatConfig } from "@repo/config";
-import { ElMessage } from "element-plus";
+
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
 import ReInputNumber from "@repo/ui/re-input-number";
@@ -825,10 +825,10 @@ const handleMsgColorChange = (item: { type: string; color: string }, val: string
 /** 点击状态卡片 → 触发对应类型的 el-message 演示 */
 const handleMsgStatusClick = (type: string) => {
   const handlers: Record<string, () => void> = {
-    success: () => ElMessage.success(t("themeConfig.msgStatus.successToast")),
-    warning: () => ElMessage.warning(t("themeConfig.msgStatus.warningToast")),
-    danger: () => ElMessage.error(t("themeConfig.msgStatus.dangerToast")),
-    info: () => ElMessage.info(t("themeConfig.msgStatus.infoToast")),
+    success: () => message.success(t("themeConfig.msgStatus.successToast")),
+    warning: () => message.warning(t("themeConfig.msgStatus.warningToast")),
+    danger: () => message.error(t("themeConfig.msgStatus.dangerToast")),
+    info: () => message.info(t("themeConfig.msgStatus.infoToast")),
   };
   handlers[type]?.();
 };
@@ -1194,7 +1194,7 @@ const importUserConfig = () => {
       applyImportedConfig(data);
       msgSuccess(t("themeConfig.io.importSuccess"));
     } catch {
-      ElMessage.error(t("themeConfig.io.importError"));
+      message.error(t("themeConfig.io.importError"));
     }
   };
   input.click();

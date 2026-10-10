@@ -144,9 +144,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { LockOutlined, InboxOutlined, PlusOutlined } from '@vicons/material'
-import { isAdmin } from '@repo/core'
+import {isAdmin, message} from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { getLocale } from '@/locales'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
@@ -222,7 +222,7 @@ async function loadGlobalTools() {
     console.error('加载全局工具失败:', err)
     const errorMsg = err.message || t('plugins.localTools.loadFailed')
     error.value = errorMsg
-    ElMessage.error(errorMsg)
+    message.error(errorMsg)
   } finally {
     loading.value = false
   }
@@ -239,7 +239,7 @@ async function updateGlobalToolStatus(pluginId: string, enabled: boolean) {
     }
   } catch (err: any) {
     console.error('更新全局工具状态失败:', err)
-    ElMessage.error(err.message || t('plugins.localTools.updateFailed'))
+    message.error(err.message || t('plugins.localTools.updateFailed'))
   }
 }
 
@@ -255,7 +255,7 @@ function handleToggleTool(pluginId: string, enabled: boolean) {
   } catch (err: any) {
     console.error('更新工具状态失败:', err)
     tool.enabled = previousState
-    ElMessage.error(err.message || t('plugins.localTools.toggleFailed'))
+    message.error(err.message || t('plugins.localTools.toggleFailed'))
   } finally {
     updatingTools.value.delete(pluginId)
   }
@@ -273,14 +273,14 @@ async function handleUninstall(pluginId: string) {
       data: { pluginId },
     })
     if (response.success) {
-      ElMessage.success(t('plugins.localTools.uninstallSuccess'))
+      message.success(t('plugins.localTools.uninstallSuccess'))
       await loadGlobalTools()
     } else {
-      ElMessage.error(response.message || t('plugins.localTools.uninstallFailed'))
+      message.error(response.message || t('plugins.localTools.uninstallFailed'))
     }
   } catch (err: any) {
     if (err !== 'cancel' && err?.message !== 'cancel') {
-      ElMessage.error(err.message || t('plugins.localTools.uninstallFailed'))
+      message.error(err.message || t('plugins.localTools.uninstallFailed'))
     }
   }
 }

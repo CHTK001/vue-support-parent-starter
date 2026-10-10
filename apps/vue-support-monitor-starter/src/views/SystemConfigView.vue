@@ -3,8 +3,8 @@
  * 系统配置 —— 系统级（Guacd 远控网关 + SIP 内网穿透）配置
  */
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { http } from "@repo/core";
+
+import {http, message} from "@repo/core";
 import { unwrapResult } from "@repo/utils";
 
 interface ConfigField {
@@ -107,7 +107,7 @@ async function load(): Promise<void> {
     sipCmds.value = await http().get("/ms/server/sip/deploy-cmds").then(r => unwrapResult<Record<string, string>>(r));
   } catch (e) {
     values.value = { ...FALLBACK };
-    ElMessage.error(`加载失败：${String((e as Error)?.message ?? e)}`);
+    message.error(`加载失败：${String((e as Error)?.message ?? e)}`);
   } finally {
     loading.value = false;
   }
@@ -122,9 +122,9 @@ async function save(): Promise<void> {
       if (v != null && v !== "") payload[k] = String(v);
     }
     await http().post("/ms/server/config").data(payload);
-    ElMessage.success("系统配置已保存");
+    message.success("系统配置已保存");
   } catch (e) {
-    ElMessage.error(`保存失败：${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败：${String((e as Error)?.message ?? e)}`);
   } finally {
     saving.value = false;
   }
@@ -137,7 +137,7 @@ async function toggleSip(): Promise<void> {
       await http().post("/ms/server/sip/stop");
       sipRunning.value = false;
       sipForm.value.enabled = false;
-      ElMessage.success("SIP 服务已停止");
+      message.success("SIP 服务已停止");
     } else {
       // 先保存配置
       await http().post("/ms/server/config").data({
@@ -149,10 +149,10 @@ async function toggleSip(): Promise<void> {
       await http().post("/ms/server/sip/start");
       sipRunning.value = true;
       sipForm.value.enabled = true;
-      ElMessage.success("SIP 服务已启动");
+      message.success("SIP 服务已启动");
     }
   } catch (e) {
-    ElMessage.error(`操作失败：${String((e as Error)?.message ?? e)}`);
+    message.error(`操作失败：${String((e as Error)?.message ?? e)}`);
   } finally {
     sipStarting.value = false;
   }

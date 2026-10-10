@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, watch, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import {
   Add24Regular, Link24Regular, Eye24Regular, EyeOff24Regular,
   Info24Regular, Key24Regular, Settings24Regular, CloudCheckmark24Regular,
@@ -221,13 +222,13 @@ const handleBack = () => {
 }
 
 const handleSave = async () => {
-  if (!form.name.trim()) { ElMessage.warning(t('settings.models.nameRequired')); return }
-  if (!form.apiUrl.trim()) { ElMessage.warning(t('settings.models.apiUrlRequired')); return }
+  if (!form.name.trim()) { message.warning(t('settings.models.nameRequired')); return }
+  if (!form.apiUrl.trim()) { message.warning(t('settings.models.apiUrlRequired')); return }
   const headerErrors = validateHeadersText(form.customHeaders, t)
-  if (headerErrors.length > 0) { ElMessage.warning(headerErrors[0]); return }
+  if (headerErrors.length > 0) { message.warning(headerErrors[0]); return }
   // 自定义认证方式必须给出请求头名称，否则等于配了一个空头名
   if (form.authMode === 'custom' && !form.authHeader.trim()) {
-    ElMessage.warning('请填写自定义认证的请求头名称'); return
+    message.warning('请填写自定义认证的请求头名称'); return
   }
   // 本地推理（ONNX）：凭证就是本地模型路径，鉴权卡片整体不适用
   const effectiveApiKey = isLocalProvider.value
@@ -250,7 +251,7 @@ const handleSave = async () => {
     updateData.name = form.name
     updateData.protocol = form.protocol
     await apiService.updateProvider(providerId.value, updateData)
-    ElMessage.success(t('settings.models.providerUpdated'))
+    message.success(t('settings.models.providerUpdated'))
   } else {
     // 依据名称 / 地址推断品牌，避免把自定义添加的 DeepSeek 等存成协议图标
     const inferred = resolveProviderBrand({ name: form.name, base_url: form.apiUrl })
@@ -264,7 +265,7 @@ const handleSave = async () => {
     }
     if (form.proxyUrl.trim()) payload.proxy = form.proxyUrl.trim()
     await adminApi.post('/api/providers', payload)
-    ElMessage.success(t('settings.models.providerAdded', { name: form.name }))
+    message.success(t('settings.models.providerAdded', { name: form.name }))
   }
   dialogVisible.value = false
   emit('saved')

@@ -100,8 +100,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { http, unwrapResult } from '@repo/utils';
 import {
   fillTemplate,
@@ -230,9 +231,9 @@ function applyTpl(t: CommandTemplate) {
     });
     setValue(filled[props.scriptKind]);
     tplOpen.value = false;
-    ElMessage.success('已套用内置模板');
+    message.success('已套用内置模板');
   } catch (e: any) {
-    ElMessage.error(e?.message || '模板生成失败');
+    message.error(e?.message || '模板生成失败');
   }
 }
 
@@ -241,14 +242,14 @@ function applyTpl(t: CommandTemplate) {
 async function copy() {
   const text = props.modelValue || '';
   if (!text) {
-    ElMessage.warning('暂无内容可复制');
+    message.warning('暂无内容可复制');
     return;
   }
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success('已复制到剪贴板');
+    message.success('已复制到剪贴板');
   } catch {
-    ElMessage.error('复制失败');
+    message.error('复制失败');
   }
 }
 
@@ -322,7 +323,7 @@ function aiGenerate() {
     return;
   }
   if (!modelList.value.length) {
-    ElMessage.warning('暂无可用模型，请先在 AI 设置中配置并启用模型');
+    message.warning('暂无可用模型，请先在 AI 设置中配置并启用模型');
     return;
   }
   generating.value = true;
@@ -357,20 +358,20 @@ function aiGenerate() {
               setValue(ev.full);
             }
             finish();
-            ElMessage.success('AI 已生成命令，请确认后使用');
+            message.success('AI 已生成命令，请确认后使用');
           } else if (ev.type === 'error') {
-            ElMessage.error(ev.message || '生成失败');
+            message.error(ev.message || '生成失败');
             finish();
           }
         },
         onError: () => {
-          ElMessage.error('AI 连接失败');
+          message.error('AI 连接失败');
           finish();
         },
         onClose: () => finish(),
       });
   } catch {
-    ElMessage.error('AI 调用失败');
+    message.error('AI 调用失败');
     finish();
   }
 }

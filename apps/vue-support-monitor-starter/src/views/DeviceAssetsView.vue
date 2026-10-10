@@ -18,8 +18,9 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { CircleCheck, Connection, Tickets, VideoCamera } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
@@ -149,7 +150,7 @@ async function fetchList(): Promise<void> {
   } catch (e: unknown) {
     devices.value = [];
     loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
-    ElMessage.error(`设备资产加载失败：${loadError.value}`);
+    message.error(`设备资产加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
@@ -169,7 +170,7 @@ async function openDetail(row: DeviceInfo): Promise<void> {
   try {
     detail.value = await deviceApi.get(row.deviceInfoId);
   } catch (e: unknown) {
-    ElMessage.error((e as { msg?: string })?.msg || "设备详情加载失败");
+    message.error((e as { msg?: string })?.msg || "设备详情加载失败");
   } finally {
     detailLoading.value = false;
   }

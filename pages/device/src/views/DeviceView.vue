@@ -271,8 +271,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { Grid, Timer, Download, Refresh } from '@element-plus/icons-vue'
 
 import ReVideo from '@/components/ReVideo.vue'
@@ -350,12 +351,12 @@ function reloadStream() {
     .then((res: unknown) => {
       videoUrl.value = String(res || '')
       if (!videoUrl.value) {
-        ElMessage.warning('后端未返回拉流地址，请检查平台账号配置')
+        message.warning('后端未返回拉流地址，请检查平台账号配置')
       }
     })
     .catch((err: unknown) => {
       videoUrl.value = ''
-      ElMessage.error('获取视频流失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+      message.error('获取视频流失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
     })
 }
 
@@ -364,14 +365,14 @@ function reconnectDevice() {
   deviceApi
     .reconnect(selectedDevice.value.deviceInfoId)
     .then(() => {
-      ElMessage.success('设备重连成功')
+      message.success('设备重连成功')
       reloadStream()
     })
-    .catch((err: unknown) => ElMessage.error('设备重连失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('设备重连失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function onVideoError(err: unknown) {
-  ElMessage.error('视频加载失败: ' + ((err as Error)?.message || '未知错误'))
+  message.error('视频加载失败: ' + ((err as Error)?.message || '未知错误'))
 }
 
 function openMultiView() {
@@ -417,7 +418,7 @@ function ptzControl(cmd: string) {
         content: `云台 ${cmd}`
       })
     })
-    .catch((err: unknown) => ElMessage.error('云台控制失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('云台控制失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function addPreset() {
@@ -428,17 +429,17 @@ function addPreset() {
     .setPreset(selectedDevice.value.deviceInfoId, Date.now(), name)
     .then(() => {
       presets.value.push({ devicePresetNo: Date.now(), devicePresetName: name })
-      ElMessage.success('添加预置位成功')
+      message.success('添加预置位成功')
     })
-    .catch((err: unknown) => ElMessage.error('添加预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('添加预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function callPreset(id: number) {
   if (!selectedDevice.value) return
   deviceApi
     .callPreset(selectedDevice.value.deviceInfoId, id)
-    .then(() => ElMessage.success(`调用预置位 ${id}`))
-    .catch((err: unknown) => ElMessage.error('调用预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .then(() => message.success(`调用预置位 ${id}`))
+    .catch((err: unknown) => message.error('调用预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function deletePreset(id: number) {
@@ -447,27 +448,27 @@ function deletePreset(id: number) {
     .deletePreset(selectedDevice.value.deviceInfoId, id)
     .then(() => {
       presets.value = presets.value.filter((p: Preset) => p.devicePresetNo !== id)
-      ElMessage.success('删除预置位成功')
+      message.success('删除预置位成功')
     })
-    .catch((err: unknown) => ElMessage.error('删除预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('删除预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function remoteUnlock(doorId: number) {
   if (!selectedDevice.value) return
   deviceApi
     .unlock(selectedDevice.value.deviceInfoId, doorId)
-    .then(() => ElMessage.success(`门 ${doorId} 已开`))
-    .catch((err: unknown) => ElMessage.error('远程开门失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .then(() => message.success(`门 ${doorId} 已开`))
+    .catch((err: unknown) => message.error('远程开门失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function syncOrg() {
   deviceApi
     .syncOrg()
     .then(() => {
-      ElMessage.success('组织树同步成功')
+      message.success('组织树同步成功')
       fetchOrgTree()
     })
-    .catch((err: unknown) => ElMessage.error('组织树同步失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('组织树同步失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function onOrgSelect(org: OrgNode) {
@@ -562,17 +563,17 @@ function saveDeviceThreshold() {
   if (!selectedDevice.value) return
   const threshold = deviceThreshold.value
   if (threshold == null || threshold <= 0) {
-    ElMessage.warning('请输入有效的阈值（秒）')
+    message.warning('请输入有效的阈值（秒）')
     return
   }
   deviceApi
     .updateOfflineThreshold(selectedDevice.value.deviceInfoId, threshold)
     .then(() => {
       selectedDevice.value!.deviceInfoOfflineThreshold = threshold
-      ElMessage.success('设备离线阈值已保存')
+      message.success('设备离线阈值已保存')
       thresholdDialogVisible.value = false
     })
-    .catch((err: unknown) => ElMessage.error('保存失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('保存失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function saveProviderConfig(vendor: string) {
@@ -580,8 +581,8 @@ function saveProviderConfig(vendor: string) {
   if (!threshold || threshold <= 0) return
   deviceApi
     .updateProviderConfig(vendor, threshold)
-    .then(() => ElMessage.success(`${vendorLabel(vendor)} 阈值已更新`))
-    .catch((err: unknown) => ElMessage.error('更新失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .then(() => message.success(`${vendorLabel(vendor)} 阈值已更新`))
+    .catch((err: unknown) => message.error('更新失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function vendorLabel(vendor: string): string {
@@ -608,9 +609,9 @@ function exportDevices() {
       a.download = '设备列表.xlsx'
       a.click()
       URL.revokeObjectURL(url)
-      ElMessage.success('导出成功')
+      message.success('导出成功')
     })
-    .catch((err: unknown) => ElMessage.error('导出失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('导出失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 function submitAdd() {
@@ -623,10 +624,10 @@ function submitAdd() {
       } else {
         fetchDevices()
       }
-      ElMessage.success('设备添加成功')
+      message.success('设备添加成功')
       addDialogVisible.value = false
     })
-    .catch((err: unknown) => ElMessage.error('设备添加失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+    .catch((err: unknown) => message.error('设备添加失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
 }
 
 onMounted(() => {
@@ -648,7 +649,7 @@ function fetchDevices() {
       devices.value = (res as DeviceInfo[]) || []
     })
     .catch((err: unknown) => {
-      ElMessage.error('加载设备列表失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+      message.error('加载设备列表失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
       devices.value = []
     })
 }
@@ -660,7 +661,7 @@ function fetchOrgTree() {
       orgTree.value = (res as OrgNode[]) || []
     })
     .catch((err: unknown) => {
-      ElMessage.error('加载组织树失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+      message.error('加载组织树失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
       orgTree.value = []
     })
 }

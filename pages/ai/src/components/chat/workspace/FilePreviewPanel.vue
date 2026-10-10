@@ -120,8 +120,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { useI18n } from 'vue-i18n'
 import { apiService } from '@/services/ApiService'
 import { loadAuthenticatedImage } from '@/utils/authImage'
@@ -500,7 +501,7 @@ async function handleOpenInExplorerForCurrent(): Promise<void> {
         const resp = await apiService.getWorkspacePath(props.sessionId)
         const wsPath = resp.workspacePath
         if (!wsPath) {
-            ElMessage.error(t('chat.workspace.workspacePathError'))
+            message.error(t('chat.workspace.workspacePathError'))
             return
         }
         const relativePath = selectedFile.value.path.replace(/\\/g, '/')
@@ -513,7 +514,7 @@ async function handleOpenInExplorerForCurrent(): Promise<void> {
         await window.electronAPI!.openFolder(fullPath)
     } catch (error: any) {
         console.error('[FilePreviewPanel] Open in explorer failed:', error)
-        ElMessage.error(t('chat.workspace.openFailed'))
+        message.error(t('chat.workspace.openFailed'))
     }
 }
 
