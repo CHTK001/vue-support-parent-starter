@@ -168,9 +168,10 @@ export default createVite({
     strictPort: false,
     proxy: {
       // 顺序敏感：前缀更长的条目必须排在通用 /collect/api 前面，先匹配到的先生效。
-      // 四条路由各司其职：
+      // 路由分组各司其职：
       //   /collect/api/v2/scheduler -> 调度节点（执行器注册表只在 SCHEDULER 进程里）
-      //   /collect/api/ms/datasource/ddl -> 采集节点（app=采集库，建表与运行期写库同目标）
+      //   /collect/api/ms/datasource/{ddl,tables,table-infos,table-exists,columns,mapping/resolve}
+      //       -> 采集节点（app=采集库，结构读取与建表、运行期写库同目标）
       //   /collect/api/ms           -> datasource-hub（8081），见下方 hubTarget 注释
       //   /collect/api              -> 采集业务节点 18190（登录 /v2/user/login、采集接口）
       "/collect/api/v2/scheduler": {
@@ -185,6 +186,37 @@ export default createVite({
       // 内嵌 hub 原生提供 ddl 端点（挂在 /collect/api 之下），所以直连且不加 rewrite。
       // 顺序敏感：必须排在 /collect/api/ms 前面，否则会先被中心条目接管。
       "/collect/api/ms/datasource/ddl": {
+        target: apiTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      // 表结构读取（清单/列/存在性）与 mapping/resolve 同 DDL 打采集节点（18190）：
+      // 同一个「app」在中心(8081)解析到 ngxacc、在采集(18190)解析到 collect，
+      // 读写不同节点会自相矛盾 —— 2026-10-10 实测「读接口说表不存在（读的是 ngxacc）、
+      // DDL 预览说已存在（查的是 collect 里运行期自动建好的表）」，用户撞到红条
+      // 却无从下手。注册表(list/save/test)与 dbconsole 仍留中心（见上方 hubTarget 注释）。
+      // 顺序敏感：全部必须排在 /collect/api/ms 前面。
+      "/collect/api/ms/datasource/tables": {
+        target: apiTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      "/collect/api/ms/datasource/table-infos": {
+        target: apiTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      "/collect/api/ms/datasource/table-exists": {
+        target: apiTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      "/collect/api/ms/datasource/columns": {
+        target: apiTarget,
+        changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      "/collect/api/ms/datasource/mapping/resolve": {
         target: apiTarget,
         changeOrigin: true,
         configure: stripOriginHeaders,
