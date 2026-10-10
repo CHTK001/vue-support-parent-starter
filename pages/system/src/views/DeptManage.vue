@@ -18,6 +18,8 @@ import {
   ArrowDown,
 } from "@element-plus/icons-vue";
 import ReTab from "@repo/ui/re-tab";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { listDept, saveDept, updateDept, deleteDept, pageForUser } from "../api/systemApi";
 import type { SysDept, SysUser } from "../api/types";
 
@@ -92,6 +94,19 @@ function handleNodeClick(data: SysDept) {
   currentDept.value = data;
   loadDeptUsers(data.sysDeptId!);
 }
+
+/**
+ * 机构详情里「机构用户」表格的列（原模板里的 5 个 el-table-column 收敛到这里）。
+ *
+ * <p>序号列（原 {@code type="index"} label="#" width="50}）由 ReTable 的
+ * {@code show-index} 提供，不进列数组；标题均为字面量，用普通常量即可。</p>
+ */
+const deptUserColumns: ReTableColumn[] = [
+  { prop: "sysUserUsername", label: "账号", minWidth: 120, showOverflowTooltip: true },
+  { prop: "sysUserNickname", label: "昵称", minWidth: 120, showOverflowTooltip: true },
+  { prop: "sysUserPhone", label: "手机号", minWidth: 120 },
+  { prop: "status", label: "状态", width: 70, align: "center", slot: "status" },
+];
 
 /* ================== 布局切换：树形（默认）/ 卡片式 ================== */
 const layoutMode = ref("tree");
@@ -464,19 +479,30 @@ onMounted(loadList);
             <ElIcon><User /></ElIcon>
             <span>机构用户（{{ deptUsers.length }}）</span>
           </div>
-          <el-table v-loading="deptUsersLoading" :data="deptUsers" stripe  style="width: 100%" height="260">
-            <el-table-column type="index" label="#" width="50" align="center" />
-            <el-table-column prop="sysUserUsername" label="账号" min-width="120" show-overflow-tooltip />
-            <el-table-column prop="sysUserNickname" label="昵称" min-width="120" show-overflow-tooltip />
-            <el-table-column prop="sysUserPhone" label="手机号" min-width="120" />
-            <el-table-column label="状态" width="70" align="center">
-              <template #default="{ row }">
-                <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
-                  {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
-                </ReTag>
-              </template>
-            </el-table-column>
-          </el-table>
+          <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+               斑马纹样式；pagination=false / toolbar=false —— 无分页、不新增工具栏按钮；
+               原 el-table 没有 border，用 settings.border=false 抑制 ReTable 默认边框；
+               height="260" 收进 layout-table；type="index" 列换成 show-index（宽 50，表头 #）。 -->
+          <ReTable
+            :loading="deptUsersLoading"
+            :data="deptUsers"
+            :columns="deptUserColumns"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :settings="{ border: false }"
+            :layout-table="{ height: 260 }"
+            stripe
+            show-index
+            index-width="50"
+            style="width: 100%"
+          >
+            <template #col-status="{ row }">
+              <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
+                {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
+              </ReTag>
+            </template>
+          </ReTable>
         </div>
       </template>
       <ElEmpty v-else description="请选择左侧机构查看详情" class="dept-empty" />

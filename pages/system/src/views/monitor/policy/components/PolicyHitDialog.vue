@@ -7,8 +7,11 @@
  * 本组件只负责呈现，不再自己发请求。</p>
  */
 import { useI18n } from "vue-i18n";
+import { computed } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import ReEChart from "../../../components/ReEChart.vue";
 import { usePolicyHitContext } from "../composables/policyHitContext";
 
@@ -23,6 +26,17 @@ const {
   hitTopOption,
   hitTrendOption,
 } = usePolicyHitContext();
+
+/**
+ * 客户端 IP 排行表格的列（原模板里的 2 个 el-table-column 收敛到这里）。
+ *
+ * <p>列标题里有 {@code t(...)}，必须写成 computed —— 普通常量只在 setup 时
+ * 算一次，切语言表头不会跟着变（原模板的 {@code :label="t(…)"} 是每次渲染都算的）。</p>
+ */
+const hitIpColumns = computed<ReTableColumn[]>(() => [
+  { prop: "ip", label: t("policy.hit.colIp"), minWidth: 200 },
+  { prop: "count", label: t("policy.hit.colCount"), width: 120, align: "right", sortable: true },
+]);
 </script>
 
 <template>
@@ -76,10 +90,18 @@ const {
           </div>
 
           <h4 class="policy-hit__sub">{{ t("policy.hit.detailTitle") }}</h4>
-          <el-table :data="hitDetail.topIps" max-height="300" border>
-            <el-table-column prop="ip" :label="t('policy.hit.colIp')" min-width="200" />
-            <el-table-column prop="count" :label="t('policy.hit.colCount')" width="120" align="right" sortable />
-          </el-table>
+          <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+               边框样式；pagination=false / toolbar=false —— 无分页、不新增工具栏按钮；
+               原 el-table 的 border 走 ReTable 默认（border: true）；
+               max-height="300" 收进 layout-table；列标题带 t()，列数组写成 computed。 -->
+          <ReTable
+            :data="hitDetail.topIps"
+            :columns="hitIpColumns"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :layout-table="{ maxHeight: 300 }"
+          />
         </template>
       </template>
     </div>

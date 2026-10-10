@@ -1,40 +1,44 @@
 <!--
   调度总览：调度中心的落地页，只看「这一台节点在调度链路里的健康度」。
 
-  数据全部来自现网接口：节点身份与计数取 /v2/scheduler/summary 一份概览；台账分页拉全后本地算
-  「即将触发」（启用任务按 nextFireTime 升序取前 N）；失败面取近 24 小时的 FAILURE 日志，一份数据
-  同时喂「每小时失败趋势」与「最近失败」列表，避免为了画图和列表各拉一次。
+  数据全部来自现网接口：
+  - 节点身份与计数取 /v2/scheduler/summary 一份概览
+  - 台账分页拉全后本地算「即将触发」（启用任务按 nextFireTime 升序取前 N）
+  - 近 24 小时日志（不限状态码）分页拉全，一份数据同时喂「每小时趋势」与「最近派发」列表
+  - 执行器与处理器清单取 /nodes 与 /executors，两个辅助面板取数失败不影响整页
 
   与平台总览的分工：平台总览回答「采集平台整体怎么样」，本页只回答调度面——谁在派发、下一拍是什么、
   失败集中在哪个时段、哪些启用任务其实没有处理器。因此每个面板都带一个直达对应明细页的入口。
 -->
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onUnmounted, ref } from "vue";
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ReButton from "@repo/ui/re-button";
 import ReEcharts from "@repo/ui/re-echarts";
 import ReIcon from "@repo/ui/re-icon";
-import ReStatCard from "@repo/ui/re-stat-card";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import ReTime from "@repo/ui/re-time";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import FireCountdown from "../components/FireCountdown.vue";
+import OvSpark from "../components/OvSpark.vue";
+import { getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../api/jobApi";
+import { costMs, statusTagType, statusText } from "../constants/taskStatus";
+import type { JobExecutor, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
+import { useCollectView, errText } from "../composables/useCollectView";
+import { cronDesc, isFlowRow, scheduleText } from "../utils/jobFormat";
+import { fmtFireShort, fmtMs } from "../utils/time";
+import { resolveHostPath } from "../utils/hostPath";
 
 /** ECharts 配置类型从组件实例的 props 反推：app 未直接依赖 echarts，不引它的类型入口 */
 type ChartOption = InstanceType<typeof ReEcharts>["$props"]["option"];
-import { getSummary, pageJobLogs, pageJobs } from "../api/jobApi";
-import { costMs } from "../constants/taskStatus";
-import { COLLECT_FLOW_GROUP, type JobLog, type JobRuntime, type JobSummary } from "../types/job";
-import { useCollectView } from "../composables/useCollectView";
-import { fmtMs } from "../utils/time";
-import { resolveHostPath } from "../utils/hostPath";
 
 defineOptions({ name: "CollectJobOverview" });
 
 const router = useRouter();
 
-/** 失败观测窗口与趋势分桶粒度 */
+/** 日志观测窗口与趋势分桶粒度 */
 const FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -42,12 +46,17 @@ const HOUR_MS = 60 * 60 * 1000;
 const LEDGER_PAGE_SIZE = 500;
 const LEDGER_MAX_PAGES = 20;
 
-/** 失败日志分页拉全的页数上限：趋势图不需要把整表读回浏览器 */
-const FAILURE_MAX_PAGES = 4;
+/** 日志分页拉全的页数上限：趋势图不需要把整表读回浏览器 */
+const LOG_PAGE_SIZE = 500;
+const LOG_MAX_PAGES = 4;
 
 const summary = ref<JobSummary | null>(null);
 const jobs = ref<JobRuntime[]>([]);
-const failures = ref<JobLog[]>([]);
+const logs = ref<JobLog[]>([]);
+const logTruncated = ref(false);
+const nodes = ref<JobNode[]>([]);
+const executors = ref<JobExecutor[]>([]);
+const registryError = ref("");
 const updatedAt = ref("");
 const autoRefresh = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -67,23 +76,44 @@ async function loadJobs(): Promise<void> {
   jobs.value = all;
 }
 
-/** 近 24 小时失败日志，分页拉全（到上限即停） */
-async function loadFailures(): Promise<void> {
+/** 近 24 小时日志分页拉全（不限状态码）；到上限即停并标记截断 */
+async function loadLogs(): Promise<void> {
   const startTime = Date.now() - FAILURE_WINDOW_MS;
   const all: JobLog[] = [];
-  for (let pageNum = 1; pageNum <= FAILURE_MAX_PAGES; pageNum++) {
-    const page = await pageJobLogs({ pageNum, pageSize: 500, executeCode: "FAILURE", startTime });
+  let truncated = false;
+  for (let pageNum = 1; pageNum <= LOG_MAX_PAGES; pageNum++) {
+    const page = await pageJobLogs({ pageNum, pageSize: LOG_PAGE_SIZE, startTime });
     const rows = Array.isArray(page?.data) ? page.data : [];
     all.push(...rows);
-    if (rows.length < 500) {
+    const total = Number(page?.total ?? 0);
+    if (rows.length < LOG_PAGE_SIZE || all.length >= total) {
       break;
     }
+    if (pageNum === LOG_MAX_PAGES) {
+      truncated = true;
+    }
   }
-  failures.value = all;
+  logs.value = all;
+  logTruncated.value = truncated;
+}
+
+/** 执行器与处理器清单：辅助面板，取数失败只让对应面板显示提示，不拖垮整页 */
+async function loadRegistry(): Promise<void> {
+  try {
+    nodes.value = await listNodes();
+  } catch (error) {
+    nodes.value = [];
+    registryError.value = errText(error);
+  }
+  try {
+    executors.value = await listExecutors();
+  } catch {
+    executors.value = [];
+  }
 }
 
 const { loading, reload } = useCollectView(async () => {
-  const [sum] = await Promise.all([getSummary(), loadJobs(), loadFailures()]);
+  const [sum] = await Promise.all([getSummary(), loadJobs(), loadLogs(), loadRegistry()]);
   summary.value = sum;
   updatedAt.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
 });
@@ -102,93 +132,200 @@ onActivated(() => {
 });
 onDeactivated(() => toggleAuto(false));
 
+/* ============ 图表配色：canvas 不认 CSS 变量，读真实色值 ============ */
+
+/** 暗色类名变化时重算图表配色 */
+const themeTick = ref(0);
+let themeObserver: MutationObserver | null = null;
+
+onMounted(() => {
+  if (typeof MutationObserver === "undefined") {
+    return;
+  }
+  themeObserver = new MutationObserver(() => {
+    themeTick.value += 1;
+  });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+});
+
+onUnmounted(() => {
+  themeObserver?.disconnect();
+  themeObserver = null;
+});
+
+/** 读一个 koi 令牌的真实值（canvas 用）；读不到时回落兜底色 */
+function koiColor(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+const chartPalette = computed(() => {
+  void themeTick.value; // 建立依赖：暗色类名变化时整体重算
+  return {
+    brand: koiColor("--brand-500", "#6d5dfc"),
+    error: koiColor("--status-error", "#ff4c4c"),
+    axis: koiColor("--text-secondary", "#5c6270"),
+    axisLine: koiColor("--border-default", "#e3e6ef"),
+    split: koiColor("--border-subtle", "#eef0f6"),
+    tipBg: koiColor("--bg-elevated", "#fbfbff"),
+    tipText: koiColor("--text-primary", "#1f2430"),
+  };
+});
+
+/* ============ KPI ============ */
+
+interface KpiPart {
+  label: string;
+  value: number;
+  color: string;
+}
+
 interface Kpi {
   key: string;
   title: string;
   value: string;
   desc: string;
   icon: string;
-  color: string;
+  tone: "brand" | "success" | "warning" | "error";
   path: string;
+  visual:
+    | { kind: "ratio"; parts: KpiPart[] }
+    | { kind: "spark"; values: number[]; color: string };
 }
 
 const kpis = computed<Kpi[]>(() => {
   const s = summary.value;
+  const h = hourly.value;
   const num = (value: number | undefined) => (value ?? 0).toLocaleString("zh-CN");
+  const running = s?.runningJobs ?? 0;
+  const stopped = s?.stoppedJobs ?? 0;
+  const local = s?.localJobs ?? 0;
+  const remote = s?.remoteJobs ?? 0;
+  const unreg = s?.unregisteredJobs ?? 0;
+  const handlers = s?.registeredHandlers ?? 0;
+  const covered = Math.max(running - unreg, 0);
   return [
     {
       key: "total",
       title: "台账任务",
       value: num(s?.totalJobs),
-      desc: `启用 ${s?.runningJobs ?? 0} · 停用 ${s?.stoppedJobs ?? 0}`,
+      desc: `启用 ${running} · 停用 ${stopped}`,
       icon: "AlarmClock",
-      color: "var(--el-color-primary)",
+      tone: "brand",
       path: "/collect/job",
+      visual: {
+        kind: "ratio",
+        parts: [
+          { label: "启用", value: running, color: "var(--brand-500)" },
+          { label: "停用", value: stopped, color: "var(--border-default)" },
+        ],
+      },
     },
     {
       key: "dispatch",
       title: "本地 / 远程",
-      value: `${s?.localJobs ?? 0} / ${s?.remoteJobs ?? 0}`,
+      value: `${local} / ${remote}`,
       desc: s?.remoteDispatchOwnedByMe
         ? "远程行由本节点下发"
         : `本机不领取 ${s?.unclaimedRemoteJobs ?? 0} 个`,
       icon: "Connection",
-      color: "var(--el-color-info)",
+      tone: "brand",
       path: "/collect/job",
+      visual: {
+        kind: "ratio",
+        parts: [
+          { label: "本地", value: local, color: "var(--brand-500)" },
+          { label: "远程", value: remote, color: "var(--metric-net)" },
+        ],
+      },
     },
     {
       key: "fail",
       title: "24 小时失败",
-      value: num(s?.recentFailures),
-      desc: (s?.recentFailures ?? 0) > 0 ? "看「最近失败」定位" : "暂无失败派发",
+      value: num(h.totalFailure),
+      desc: h.totalFailure > 0 ? "看「最近派发」定位" : "暂无失败派发",
       icon: "WarningFilled",
-      color: (s?.recentFailures ?? 0) > 0 ? "var(--el-color-danger)" : "var(--el-color-info)",
+      tone: h.totalFailure > 0 ? "error" : "success",
       path: "/collect/job-log",
+      visual: { kind: "spark", values: h.failure, color: "var(--status-error)" },
     },
     {
       key: "unregistered",
       title: "未注册处理器",
-      value: num(s?.unregisteredJobs),
-      desc: (s?.unregisteredJobs ?? 0) > 0 ? "这些任务每一拍都会被跳过" : "启用任务都有同名处理器",
+      value: num(unreg),
+      desc: unreg > 0
+        ? "这些任务每一拍都会被跳过"
+        : `启用任务都有同名处理器（${handlers} 个）`,
       icon: "Cpu",
-      color: (s?.unregisteredJobs ?? 0) > 0 ? "var(--el-color-warning)" : "var(--el-color-success)",
+      tone: unreg > 0 ? "warning" : "success",
       path: "/collect/job",
+      visual: {
+        kind: "ratio",
+        parts: [
+          { label: "已覆盖", value: covered, color: "var(--status-success)" },
+          { label: "未注册", value: unreg, color: "var(--status-warning)" },
+        ],
+      },
     },
   ];
 });
 
-/** 一句话说清本节点在调度链路里的处境，颜色随健康度变化 */
-const engineRow = computed<{ tone: "ok" | "warn"; text: string }>(() => {
+/* ============ 状态条 ============ */
+
+const strip = computed<{ tone: "ok" | "warn"; items: string[] }>(() => {
   const s = summary.value;
   if (!s) {
-    return { tone: "warn", text: "未取到调度概览，说明 job-starter 治理接口在当前后端未启用" };
+    return { tone: "warn", items: ["未取到调度概览，说明 job-starter 治理接口在当前后端未启用"] };
   }
+  const online = s.onlineExecutors.length;
+  const facts = [
+    `扫描节奏 ${s.scanIntervalMs}ms`,
+    `已注册处理器 ${s.registeredHandlers} 个`,
+    `在线执行器 ${online} 个`,
+  ];
   if (!s.leader) {
-    return { tone: "warn", text: `${s.role ?? "—"} 角色 · 本节点 ${s.nodeId ?? "—"} 不是 Leader，到点任务不会被派发` };
+    return {
+      tone: "warn",
+      items: [`${s.role ?? "—"} 角色 · 本节点不是 Leader，到点任务不会被派发`, ...facts],
+    };
   }
   if (s.unregisteredJobs > 0) {
-    return { tone: "warn", text: `${s.unregisteredJobs} 个启用任务没有同名处理器，去工作台看「未注册」标记` };
+    return {
+      tone: "warn",
+      items: [`${s.unregisteredJobs} 个启用任务没有同名处理器，每一拍都会被跳过`, ...facts],
+    };
   }
   if (s.unclaimedRemoteJobs > 0) {
-    return { tone: "warn", text: `${s.unclaimedRemoteJobs} 个启用的远程任务本节点不领取，只由调度中心节点下发` };
+    return {
+      tone: "warn",
+      items: [
+        `${s.unclaimedRemoteJobs} 个启用的远程任务本节点不领取，只由调度中心节点下发`,
+        ...facts,
+      ],
+    };
   }
-  const online = s.onlineExecutors.length ? ` · 在线执行器 ${s.onlineExecutors.join("、")}` : "";
-  return {
-    tone: "ok",
-    text: `Leader ${s.nodeId ?? "—"} · 扫描每 ${s.scanIntervalMs}ms · 已注册处理器 ${s.registeredHandlers} 个${online}`,
-  };
+  return { tone: "ok", items: ["本节点 Leader", ...facts] };
 });
 
-/** 即将触发：启用的定时任务按下次触发升序取前 10 */
+/* ============ 即将触发 ============ */
+
 const upcoming = computed(() => jobs.value
   .filter(job => job.enabled && job.nextFireTime)
   .sort((a, b) => Number(a.nextFireTime) - Number(b.nextFireTime))
   .slice(0, 10));
 
-/** 最近失败：失败日志已按触发时刻倒序，取前 8 */
-const recentFailures = computed(() => failures.value.slice(0, 8));
+const stoppedHint = computed(() => {
+  const stopped = summary.value?.stoppedJobs ?? 0;
+  return stopped > 0 ? `另有 ${stopped} 个任务已停用，不参与调度` : "";
+});
 
-/** jobKey → 台账名，供失败列表显示任务名 */
+/* ============ 最近派发 ============ */
+
+const recentDispatches = computed(() => logs.value.slice(0, 10));
+
+/* ============ 日志分桶与趋势 ============ */
+
+/** jobKey → 台账名，供派发列表与图上标注显示任务名 */
 const jobNames = computed<Record<string, string>>(() => {
   const map: Record<string, string> = {};
   for (const job of jobs.value) {
@@ -199,104 +336,229 @@ const jobNames = computed<Record<string, string>>(() => {
   return map;
 });
 
-/** 每小时失败数：以当前整点为右端往前 24 桶，落在窗口外的丢弃 */
-const trendOption = computed<ChartOption>(() => {
+/**
+ * 近 24 小时按整点分桶（右端是当前整点）。
+ *
+ * 派发 = SUCCESS + FAILURE（真正执行过的）；SKIPPED 等其它状态不计入派发，
+ * 否则「未注册处理器」的跳过行会把派发数撑大，与趋势图语义不符。
+ */
+const hourly = computed(() => {
   const end = new Date();
   end.setMinutes(0, 0, 0);
   const base = end.getTime() - 23 * HOUR_MS;
   const labels: string[] = [];
-  const counts: number[] = [];
+  const dispatch: number[] = [];
+  const failure: number[] = [];
   for (let i = 0; i < 24; i++) {
     const hour = new Date(base + i * HOUR_MS);
     labels.push(`${String(hour.getHours()).padStart(2, "0")}:00`);
-    counts.push(0);
+    dispatch.push(0);
+    failure.push(0);
   }
-  for (const log of failures.value) {
+  for (const log of logs.value) {
     const time = Number(log.triggerTime ?? 0);
     if (!time) {
       continue;
     }
     const index = Math.floor((time - base) / HOUR_MS);
-    if (index >= 0 && index < counts.length) {
-      counts[index]++;
+    if (index < 0 || index >= dispatch.length) {
+      continue;
+    }
+    const code = String(log.executeCode ?? "").toUpperCase();
+    if (code === "FAILURE") {
+      failure[index] += 1;
+      dispatch[index] += 1;
+    } else if (code === "SUCCESS") {
+      dispatch[index] += 1;
     }
   }
+  let cumDispatch = 0;
+  let cumFailure = 0;
+  const cumD: number[] = [];
+  const cumF: number[] = [];
+  for (let i = 0; i < 24; i++) {
+    cumDispatch += dispatch[i];
+    cumFailure += failure[i];
+    cumD.push(cumDispatch);
+    cumF.push(cumFailure);
+  }
+  return { labels, dispatch, failure, cumDispatch: cumD, cumFailure: cumF, totalDispatch: cumDispatch, totalFailure: cumFailure };
+});
+
+/** 触发时刻落在哪个桶；窗口外返回 -1 */
+function hourIndexAt(time: number): number {
+  const end = new Date();
+  end.setMinutes(0, 0, 0);
+  const base = end.getTime() - 23 * HOUR_MS;
+  const index = Math.floor((time - base) / HOUR_MS);
+  return index >= 0 && index < 24 ? index : -1;
+}
+
+/**
+ * 图上标注：近 24 小时触发次数最多的前 2 个任务，标它们最后一次触发的时刻。
+ *
+ * 标注点全部来自真实日志（触发时刻 + jobKey），没有可标的就不画，不编造示例。
+ */
+const notableFires = computed(() => {
+  const counts = new Map<string, { count: number; last: number }>();
+  for (const log of logs.value) {
+    const key = log.jobKey ?? "";
+    const time = Number(log.triggerTime ?? 0);
+    if (!key || !time) {
+      continue;
+    }
+    const entry = counts.get(key) ?? { count: 0, last: 0 };
+    entry.count += 1;
+    entry.last = Math.max(entry.last, time);
+    counts.set(key, entry);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 2)
+    .map(([key, entry]) => ({ key, name: jobNames.value[key] || key, at: entry.last, count: entry.count }));
+});
+
+const trendOption = computed<ChartOption>(() => {
+  const p = chartPalette.value;
+  const h = hourly.value;
+  const marks = notableFires.value
+    .map(fire => ({ fire, index: hourIndexAt(fire.at) }))
+    .filter(item => item.index >= 0)
+    .map(item => ({
+      name: item.fire.name,
+      coord: [h.labels[item.index], h.cumDispatch[item.index]] as [string, number],
+    }));
   return {
-    grid: { left: 36, right: 12, top: 16, bottom: 26 },
-    tooltip: { trigger: "axis" },
+    grid: { left: 38, right: 14, top: 22, bottom: 24 },
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: p.tipBg,
+      borderColor: p.axisLine,
+      borderWidth: 1,
+      padding: [6, 10],
+      textStyle: { color: p.tipText, fontSize: 12 },
+      axisPointer: { type: "line", lineStyle: { color: p.axisLine, type: "dashed" } },
+      valueFormatter: (value) => `${value} 次`,
+    },
     xAxis: {
       type: "category",
-      data: labels,
-      axisLabel: { fontSize: 10, interval: 2 },
+      data: h.labels,
+      boundaryGap: false,
+      axisLabel: { color: p.axis, fontSize: 10, interval: 2, hideOverlap: true },
       axisTick: { show: false },
+      axisLine: { lineStyle: { color: p.axisLine } },
     },
-    yAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { type: "dashed" } } },
-    series: [{
-      type: "bar",
-      name: "失败",
-      data: counts,
-      barMaxWidth: 16,
-      itemStyle: { borderRadius: [3, 3, 0, 0] },
-    }],
+    yAxis: {
+      type: "value",
+      minInterval: 1,
+      axisLabel: { color: p.axis, fontSize: 10 },
+      splitLine: { lineStyle: { color: p.split, type: "dashed" } },
+    },
+    series: [
+      {
+        name: "累计派发",
+        type: "line",
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 5,
+        showSymbol: false,
+        data: h.cumDispatch,
+        lineStyle: { width: 2, color: p.brand },
+        itemStyle: { color: p.brand },
+        areaStyle: { color: p.brand, opacity: 0.14 },
+        markPoint: marks.length
+          ? {
+              symbol: "circle",
+              symbolSize: 7,
+              itemStyle: { color: p.brand, borderColor: p.tipBg, borderWidth: 2 },
+              label: {
+                show: true,
+                formatter: "{b}",
+                position: "top",
+                distance: 8,
+                color: p.axis,
+                fontSize: 10,
+              },
+              data: marks,
+            }
+          : undefined,
+        z: 2,
+      },
+      {
+        name: "累计失败",
+        type: "line",
+        smooth: false,
+        symbol: "none",
+        data: h.cumFailure,
+        lineStyle: { width: 1.5, type: "dashed", color: p.error },
+        itemStyle: { color: p.error },
+        z: 3,
+      },
+    ],
   };
 });
 
-/** 运行时参数清单（只调度面，不掺采集配置） */
+/* ============ 运行时参数 ============ */
+
 const runtimeRows = computed<{ label: string; value: string }[]>(() => {
   const s = summary.value;
   if (!s) {
     return [];
   }
   return [
-    { label: "角色", value: s.role ?? "—" },
-    { label: "节点", value: `${s.nodeId ?? "—"}（${s.leader ? "Leader" : "Follower"}）` },
+    { label: "角色", value: `${s.role ?? "—"}${s.leader ? " · Leader" : " · Follower"}` },
+    { label: "节点", value: s.nodeId ?? "—" },
     { label: "分组", value: s.group || "—" },
     { label: "扫描节奏", value: `每 ${s.scanIntervalMs}ms · 预读 ${s.preReadMs}ms` },
-    { label: "台账", value: `${s.totalJobs} 个 · 启用 ${s.runningJobs} · 停用 ${s.stoppedJobs}` },
     { label: "分发", value: `本地 ${s.localJobs} · 远程 ${s.remoteJobs}` },
-    { label: "未注册处理器", value: `${s.unregisteredJobs} 个` },
-    { label: "本机不领取远程", value: `${s.unclaimedRemoteJobs} 个` },
-    { label: "已注册处理器", value: `${s.registeredHandlers} 个` },
-    { label: "在线执行器", value: s.onlineExecutors.length ? s.onlineExecutors.join("、") : "—" },
   ];
 });
 
+/* ============ 表格列 ============ */
+
 const upcomingColumns: ReTableColumn[] = [
   { prop: "jobName", label: "任务", minWidth: 150, slot: "name", showOverflowTooltip: true },
-  { prop: "scheduleType", label: "调度", width: 170, slot: "schedule" },
-  { prop: "nextFireTime", label: "下次触发", width: 160, slot: "next" },
+  { prop: "scheduleTime", label: "调度", minWidth: 150, slot: "schedule" },
+  { prop: "nextFireTime", label: "下次触发", width: 132, slot: "next" },
+  { prop: "countdown", label: "倒计时", width: 108, slot: "countdown" },
 ];
 
-const failureColumns: ReTableColumn[] = [
-  { prop: "triggerTime", label: "触发时刻", width: 150, slot: "time" },
-  { prop: "jobKey", label: "任务", minWidth: 150, slot: "job", showOverflowTooltip: true },
-  { prop: "costMs", label: "耗时", width: 96, slot: "cost", align: "right" },
-  { prop: "message", label: "消息", minWidth: 180, slot: "msg", showOverflowTooltip: true },
+const dispatchColumns: ReTableColumn[] = [
+  { prop: "triggerTime", label: "触发时刻", width: 148, slot: "time" },
+  { prop: "jobKey", label: "任务", minWidth: 130, slot: "job", showOverflowTooltip: true },
+  { prop: "nodeId", label: "执行器", minWidth: 120, slot: "executor", showOverflowTooltip: true },
+  { prop: "costMs", label: "耗时", width: 92, slot: "cost", align: "right" },
+  { prop: "executeCode", label: "状态", width: 82, slot: "status" },
 ];
 
-function scheduleText(job: JobRuntime): string {
-  if (job.scheduleType === "NONE" || !job.scheduleTime) {
+/** 调度列文案：cron 表达式 + 人话描述（解析不出时只显示表达式） */
+function scheduleCellText(row: JobRuntime): string {
+  if (row.scheduleType === "NONE" || !row.scheduleTime) {
     return "不自动调度";
   }
-  return job.scheduleType === "CRON" ? `CRON · ${job.scheduleTime}` : `${job.scheduleType} · ${job.scheduleTime}ms`;
+  if (row.scheduleType === "CRON") {
+    const desc = cronDesc(row.scheduleTime);
+    return desc ? `${row.scheduleTime} · ${desc}` : row.scheduleTime;
+  }
+  return `${row.scheduleType} · ${row.scheduleTime}ms`;
 }
 
-/**
- * 采集流程镜像行的判断：key 约定为 collect-flow-<流程ID>。
- *
- * 不能只看 group——脚本与片段任务同样登记在 collect-flow 分组下（该分组同时是
- * 调度选举的命名空间兜底），只看分组会把「片段 · Groovy」这类任务误标成采集流程。
- *
- * @param row 台账行
- * @returns true 表示这一行是采集流程的调度镜像
- */
-function isFlowRow(row: JobRuntime): boolean {
-  return row.jobKey?.startsWith(`${COLLECT_FLOW_GROUP}-`) === true;
+/** 构成条各段宽度（百分比字符串）；总量为 0 时整条留给最后一段，避免出现空条 */
+function ratioWidth(part: KpiPart, parts: KpiPart[]): string {
+  const total = parts.reduce((sum, item) => sum + Math.max(item.value, 0), 0);
+  if (total <= 0) {
+    return part === parts[parts.length - 1] ? "100%" : "0%";
+  }
+  return `${(Math.max(part.value, 0) / total) * 100}%`;
 }
 
 function jobNameOf(row: JobLog): string {
   const key = row.jobKey ?? "";
   return jobNames.value[key] || key || "—";
+}
+
+function executorOf(row: JobLog): string {
+  return row.nodeId || row.address || "—";
 }
 
 /** 切换自动刷新：定时器随组件与 keep-alive 激活态起停 */
@@ -328,162 +590,787 @@ function go(path: string): void {
 </script>
 
 <template>
-  <div v-loading="loading" class="collect-page sched-center">
-    <div class="sc-head">
-      <div>
-        <h1 class="sc-head__title">调度总览</h1>
-        <p class="sc-head__sub">
-          {{ summary?.role ?? "—" }} 角色 · {{ summary?.nodeId || "—" }} · 更新于 {{ updatedAt || "—" }}
+  <div v-loading="loading" class="collect-page sched-center ov-page">
+    <!-- 页头 -->
+    <header class="ov-head">
+      <div class="ov-head__left">
+        <div class="ov-head__row">
+          <h1 class="ov-head__title">调度总览</h1>
+          <span v-if="summary" class="ov-badge" :class="`is-${summary.leader ? 'ok' : 'warn'}`">
+            <i class="ov-badge__dot"/>
+            {{ summary.leader ? "Leader" : "Follower" }}
+          </span>
+        </div>
+        <p class="ov-head__sub">
+          {{ summary?.role ?? "—" }} 角色 · 节点 {{ summary?.nodeId || "—" }}
+          · 分组 {{ summary?.group || "—" }} · 更新于 {{ updatedAt || "—" }}
         </p>
       </div>
-      <div class="sc-head__actions">
-        <ReTag v-if="summary" :type="summary.leader ? 'success' : 'warning'" effect="plain" dot>
-          {{ summary.leader ? "Leader" : "Follower" }}
-        </ReTag>
+      <div class="ov-head__actions">
         <span class="collect-hint collect-hint--muted">自动刷新</span>
-        <ReSwitch v-model="autoRefresh"  aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
+        <ReSwitch v-model="autoRefresh" aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
         <ReButton icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新</ReButton>
       </div>
-    </div>
+    </header>
 
-    <div class="collect-stats">
-      <ReStatCard
-        size="compact"
+    <!-- KPI -->
+    <div class="ov-kpis">
+      <button
         v-for="kpi in kpis"
         :key="kpi.key"
-        :title="kpi.title"
-        :value="kpi.value"
-        :desc="kpi.desc"
+        type="button"
+        class="ov-kpi"
+        :title="`查看${kpi.title}`"
         @click="go(kpi.path)"
       >
-        <template #icon>
-          <ReIcon :name="kpi.icon" :size="16" :style="{ color: kpi.color }"/>
-        </template>
-      </ReStatCard>
+        <span class="ov-kpi__top">
+          <span class="ov-kpi__icon" :class="`is-${kpi.tone}`">
+            <ReIcon :name="kpi.icon" :size="15"/>
+          </span>
+          <span class="ov-kpi__value">{{ kpi.value }}</span>
+        </span>
+        <span class="ov-kpi__title">{{ kpi.title }}</span>
+        <span class="ov-kpi__desc">{{ kpi.desc }}</span>
+        <span class="ov-kpi__visual">
+          <OvSpark
+            v-if="kpi.visual.kind === 'spark'"
+            :values="kpi.visual.values"
+            :style="{ color: kpi.visual.color }"
+          />
+          <span v-else class="ov-ratio">
+            <span
+              v-for="part in kpi.visual.parts"
+              :key="part.label"
+              class="ov-ratio__seg"
+              :style="{ width: ratioWidth(part, kpi.visual.parts), background: part.color }"
+            />
+          </span>
+        </span>
+      </button>
     </div>
 
-    <div class="collect-callout" :class="`is-${engineRow.tone}`">
-      <ReIcon :name="engineRow.tone === 'ok' ? 'CircleCheck' : 'Warning'" :size="14"/>
-      <span>{{ engineRow.text }}</span>
+    <!-- 状态条 -->
+    <div class="ov-strip" :class="`is-${strip.tone}`">
+      <span v-for="item in strip.items" :key="item" class="ov-strip__item">{{ item }}</span>
     </div>
 
-    <div class="ov-grid">
-      <div class="collect-card ov-panel">
-        <div class="collect-rail__title koi-ov-head">
-          <ReIcon name="TrendCharts" :size="14"/>
-          <b>近 24 小时失败趋势</b>
-          <span class="spacer"/>
-          <span class="collect-hint collect-hint--muted">共 {{ summary?.recentFailures ?? 0 }} 次</span>
-          <ReButton  text type="primary" @click="go('/collect/job-log')">作业日志</ReButton>
+    <!-- 主区：趋势 + 右栏 -->
+    <div class="ov-main">
+      <section class="ov-panel">
+        <header class="ov-panel__head">
+          <ReIcon name="TrendCharts" :size="14" class="ov-panel__icon"/>
+          <h2 class="ov-panel__title">近 24 小时调度趋势</h2>
+          <span class="ov-panel__spacer"/>
+          <span class="ov-legend">
+            <span class="ov-legend__item">
+              <i class="ov-legend__dot is-brand"/>累计派发 <b>{{ hourly.totalDispatch }}</b>
+            </span>
+            <span class="ov-legend__item">
+              <i class="ov-legend__dot is-error"/>累计失败 <b>{{ hourly.totalFailure }}</b>
+            </span>
+          </span>
+          <button type="button" class="ov-link" @click="go('/collect/job-log')">
+            作业日志 <ReIcon name="Right" :size="12"/>
+          </button>
+        </header>
+        <div class="ov-chart">
+          <ReEcharts :option="trendOption" height="240px"/>
         </div>
-        <ReEcharts :option="trendOption" height="220px"/>
-      </div>
+        <p v-if="logTruncated" class="ov-panel__note">
+          近 24 小时日志超过 {{ LOG_MAX_PAGES * LOG_PAGE_SIZE }} 条，曲线与计数只统计已读到的这一批（下限值）。
+        </p>
+      </section>
 
-      <div class="collect-card ov-panel">
-        <div class="collect-rail__title koi-ov-head">
-          <ReIcon name="AlarmClock" :size="14"/>
-          <b>即将触发</b>
-          <span class="spacer"/>
-          <ReButton  text type="primary" @click="go('/collect/job')">调度工作台</ReButton>
-        </div>
-        <ReTable
-          :data="upcoming as unknown as Record<string, unknown>[]"
-          :columns="upcomingColumns"
-          :pagination="false"
-          :toolbar="false"
-          row-key="jobKey"
-          :layout-table="{ minHeight: 0 }"
-          empty-text="没有启用的定时任务，去工作台启用一个或在流程设计页给流程配 cron"
-        >
-          <!--
-            可操作空态：默认的 el-empty 只能看不能做。
-            本面板没有工具栏（:toolbar="false"），标题栏的「调度工作台」才是它的出口，
-            所以这里只给一个「刷新」出口，不重复造「去工作台」按钮。
-            empty-text 属性保留不动，它仍是 #empty 插槽 description 的回退值。
-          -->
-          <template #empty>
-            <div class="page-empty">
-              <span class="page-empty__icon"><ReIcon name="AlarmClock" :size="22" /></span>
-              <span class="page-empty__title">没有启用的定时任务</span>
-              <span class="page-empty__desc">这里只列启用中、且算得出下次触发时刻的任务；到工作台启用一个，或在流程设计页给流程配 cron。</span>
-              <span class="page-empty__actions">
-                <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+      <div class="ov-rail">
+        <!-- 运行时参数 -->
+        <section class="ov-panel">
+          <header class="ov-panel__head">
+            <ReIcon name="Setting" :size="14" class="ov-panel__icon"/>
+            <h2 class="ov-panel__title">运行时参数</h2>
+          </header>
+          <div class="ov-panel__body">
+            <dl v-if="runtimeRows.length" class="ov-kv">
+              <template v-for="item in runtimeRows" :key="item.label">
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+              </template>
+            </dl>
+            <p v-else class="collect-hint collect-hint--muted">未取到运行时参数，说明调度治理接口在当前后端不可用。</p>
+          </div>
+        </section>
+
+        <!-- 执行器 -->
+        <section class="ov-panel">
+          <header class="ov-panel__head">
+            <ReIcon name="Connection" :size="14" class="ov-panel__icon"/>
+            <h2 class="ov-panel__title">执行器</h2>
+          </header>
+          <div class="ov-panel__body">
+            <ul v-if="nodes.length" class="ov-exec">
+              <li v-for="node in nodes" :key="node.clientId" class="ov-exec__row">
+                <i class="ov-exec__dot" :class="node.online ? 'is-online' : 'is-offline'"/>
+                <span class="ov-exec__name" :title="node.nodeId || node.clientId">
+                  {{ node.nodeId || node.clientId }}
+                </span>
+                <span class="ov-exec__meta">{{ node.role ?? "EXECUTOR" }} · {{ node.handlerCount }} 个处理器</span>
+              </li>
+            </ul>
+            <p v-else class="collect-hint collect-hint--muted">
+              暂无在线远程执行器。执行器以 EXECUTOR 角色启动并连上本调度中心后出现在这里。
+            </p>
+            <button type="button" class="ov-dashed" @click="go('/collect/remote-node')">
+              <ReIcon name="Plus" :size="13"/>接入远程执行器
+            </button>
+          </div>
+        </section>
+
+        <!-- 已注册处理器 -->
+        <section class="ov-panel">
+          <header class="ov-panel__head">
+            <ReIcon name="Cpu" :size="14" class="ov-panel__icon"/>
+            <h2 class="ov-panel__title">已注册处理器 · {{ summary?.registeredHandlers ?? 0 }}</h2>
+          </header>
+          <div class="ov-panel__body">
+            <div v-if="executors.length" class="ov-chips">
+              <span
+                v-for="executor in executors.slice(0, 14)"
+                :key="executor.name"
+                class="ov-chip"
+                :class="{ 'is-remote': executor.source === 'REMOTE' }"
+                :title="executor.desc || executor.handlerClass || executor.name"
+              >
+                {{ executor.name }}
+              </span>
+              <span v-if="executors.length > 14" class="ov-chip ov-chip--more">
+                等 {{ executors.length }} 个
               </span>
             </div>
-          </template>
-          <template #name="{ row }">
-            <span>{{ row.jobName || row.jobKey }}</span>
-            <ReTag
-              v-if="isFlowRow(row as unknown as JobRuntime)"
-              class="collect-tag-inline"
-              
-              type="primary"
-              effect="plain"
-            >
-              采集流程
-            </ReTag>
-          </template>
-          <template #schedule="{ row }">
-            <span class="collect-cell-mono collect-cell-ellipsis">{{ scheduleText(row as unknown as JobRuntime) }}</span>
-          </template>
-          <template #next="{ row }"><span class="collect-num">{{ fmtMs(row.nextFireTime) }}</span></template>
-        </ReTable>
+            <p v-else class="collect-hint collect-hint--muted">本节点没有已注册处理器。</p>
+          </div>
+        </section>
       </div>
+    </div>
 
-      <div class="collect-card ov-panel">
-        <div class="collect-rail__title koi-ov-head">
-          <ReIcon name="WarningFilled" :size="14"/>
-          <b>最近失败</b>
-          <span class="spacer"/>
-          <span class="collect-hint collect-hint--muted">近 24 小时</span>
-          <ReButton  text type="primary" @click="go('/collect/job-log')">全部失败</ReButton>
+    <!-- 底部：即将触发 + 最近派发 -->
+    <div class="ov-bottom">
+      <section class="ov-panel">
+        <header class="ov-panel__head">
+          <ReIcon name="AlarmClock" :size="14" class="ov-panel__icon"/>
+          <h2 class="ov-panel__title">即将触发</h2>
+          <span class="ov-panel__spacer"/>
+          <button type="button" class="ov-link" @click="go('/collect/job')">
+            调度工作台 <ReIcon name="Right" :size="12"/>
+          </button>
+        </header>
+        <div class="ov-table">
+          <ReTable
+            :data="upcoming as unknown as Record<string, unknown>[]"
+            :columns="upcomingColumns"
+            :pagination="false"
+            :toolbar="false"
+            row-key="jobKey"
+            :layout-table="{ minHeight: 0 }"
+            empty-text="没有启用的定时任务，去工作台启用一个或在流程设计页给流程配 cron"
+          >
+            <template #empty>
+              <div class="page-empty">
+                <span class="page-empty__icon"><ReIcon name="AlarmClock" :size="22"/></span>
+                <span class="page-empty__title">没有启用的定时任务</span>
+                <span class="page-empty__desc">这里只列启用中、且算得出下次触发时刻的任务；到工作台启用一个，或在流程设计页给流程配 cron。</span>
+                <span class="page-empty__actions">
+                  <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+                </span>
+              </div>
+            </template>
+            <template #name="{ row }">
+              <span>{{ row.jobName || row.jobKey }}</span>
+              <ReTag
+                v-if="isFlowRow(row as unknown as JobRuntime)"
+                class="collect-tag-inline"
+                type="primary"
+                effect="plain"
+                size="small"
+              >
+                采集流程
+              </ReTag>
+            </template>
+            <template #schedule="{ row }">
+              <span class="collect-cell-mono collect-cell-ellipsis">
+                {{ scheduleCellText(row as unknown as JobRuntime) }}
+              </span>
+            </template>
+            <template #next="{ row }">
+              <span class="collect-num">{{ fmtFireShort(row.nextFireTime) }}</span>
+            </template>
+            <template #countdown="{ row }">
+              <span class="ov-cd">
+                <FireCountdown :at="row.nextFireTime" bare/>
+              </span>
+            </template>
+          </ReTable>
         </div>
-        <ReTable
-          :data="recentFailures as unknown as Record<string, unknown>[]"
-          :columns="failureColumns"
-          :pagination="false"
-          :toolbar="false"
-          row-key="logId"
-          :layout-table="{ minHeight: 0 }"
-          empty-text="近 24 小时没有失败派发"
-        >
-          <template #time="{ row }"><span class="collect-num">{{ fmtMs(row.triggerTime) }}</span></template>
-          <template #job="{ row }">{{ jobNameOf(row as unknown as JobLog) }}</template>
-          <template #cost="{ row }"><ReTime :value="costMs(row.costMs)" format="duration" placeholder="—" /></template>
-          <template #msg="{ row }"><span class="collect-cell-ellipsis">{{ row.message || "—" }}</span></template>
-        </ReTable>
-      </div>
+        <p v-if="stoppedHint" class="ov-panel__foot">{{ stoppedHint }}</p>
+      </section>
 
-      <div class="collect-card ov-panel">
-        <div class="collect-rail__title koi-ov-head">
-          <ReIcon name="Setting" :size="14"/>
-          <b>运行时参数</b>
+      <section class="ov-panel">
+        <header class="ov-panel__head">
+          <ReIcon name="Tickets" :size="14" class="ov-panel__icon"/>
+          <h2 class="ov-panel__title">最近派发记录</h2>
+          <span class="ov-panel__spacer"/>
+          <span class="collect-hint collect-hint--muted">
+            近 24 小时 · {{ hourly.totalFailure > 0 ? `${hourly.totalFailure} 次失败` : "全部成功" }}
+          </span>
+          <button v-if="hourly.totalFailure > 0" type="button" class="ov-link" @click="go('/collect/job-log')">
+            查看失败
+          </button>
+        </header>
+        <div class="ov-table">
+          <ReTable
+            :data="recentDispatches as unknown as Record<string, unknown>[]"
+            :columns="dispatchColumns"
+            :pagination="false"
+            :toolbar="false"
+            row-key="logId"
+            :layout-table="{ minHeight: 0 }"
+            empty-text="近 24 小时没有派发记录"
+          >
+            <template #time="{ row }">
+              <span class="collect-num">{{ fmtMs(row.triggerTime) }}</span>
+            </template>
+            <template #job="{ row }">{{ jobNameOf(row as unknown as JobLog) }}</template>
+            <template #executor="{ row }">
+              <span class="collect-cell-ellipsis">{{ executorOf(row as unknown as JobLog) }}</span>
+            </template>
+            <template #cost="{ row }">
+              <ReTime :value="costMs(row.costMs)" format="duration" placeholder="—"/>
+            </template>
+            <template #status="{ row }">
+              <ReTag :type="statusTagType(row.executeCode)" effect="plain" size="small">
+                {{ statusText(row.executeCode) }}
+              </ReTag>
+            </template>
+          </ReTable>
         </div>
-        <dl v-if="runtimeRows.length" class="collect-kv">
-          <template v-for="item in runtimeRows" :key="item.label">
-            <dt>{{ item.label }}</dt>
-            <dd>{{ item.value }}</dd>
-          </template>
-        </dl>
-        <p v-else class="collect-hint collect-hint--muted">未取到运行时参数，说明调度治理接口在当前后端不可用。</p>
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped>
-.ov-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: var(--cc-gap);
+/* ============ 设计令牌来源 ============
+ * 颜色 / 阴影 / 圆角 / 缓动一律取 koi 共享令牌（@repo/theme 的 tokens.css，
+ * 由 @repo/app 统一注入，monitor 与 collect-scheduler 两个宿主 app 共享），
+ * 不写死十六进制，暗色主题自动跟随。
+ *
+ * 间距（--cc-gap / --cc-gap-sm）与动效时长（--cc-duration）koi 体系没有对应令牌，
+ * 它们定义在 pages/collect/src/styles/collect.css 的 :root 里。本包是独立发布的
+ * pages 模块：vue-support-system-starter 只挂 @pages/job、不加载 collect.css，
+ * 裸写 var(--cc-gap) 会让 gap 在 computed-value-time 失效、退化成 normal(0)，
+ * KPI 栅格与三栏主区整块塌成无间距。所以这里一律带兜底值，
+ * 与同包 scheduler.css 的既有写法一致；宿主加载了 collect.css 时取值不变。
+ * 缓动直接用 koi 的 --ease-out（与 --cc-ease 同值）。
+ * ==================================== */
+
+/* ============ 页头 ============ */
+.ov-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cc-gap, 12px);
+  flex-wrap: wrap;
 }
 
-.ov-panel {
+.ov-head__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ov-head__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--text-primary);
+}
+
+.ov-head__sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.ov-head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cc-gap-sm, 8px);
+}
+
+.ov-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  border: 1px solid transparent;
+}
+
+.ov-badge.is-ok {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-success) 30%, transparent);
+}
+
+.ov-badge.is-warn {
+  color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-warning) 30%, transparent);
+}
+
+.ov-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ============ KPI ============ */
+.ov-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cc-gap, 12px);
+}
+
+@media (max-width: 1280px) {
+  .ov-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ov-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--cc-duration, 180ms) var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--cc-duration, 180ms) var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color var(--cc-duration, 180ms) var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.ov-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--brand-500) 35%, transparent);
+}
+
+.ov-kpi__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ov-kpi__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  flex: none;
+}
+
+.ov-kpi__icon.is-brand {
+  color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+}
+
+.ov-kpi__icon.is-success {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+}
+
+.ov-kpi__icon.is-warning {
+  color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 14%, transparent);
+}
+
+.ov-kpi__icon.is-error {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+}
+
+.ov-kpi__value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-kpi__title {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.ov-kpi__desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-kpi__visual {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  height: 30px;
+}
+
+.ov-ratio {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-fill);
+}
+
+.ov-ratio__seg {
+  display: block;
+  height: 100%;
+}
+
+/* ============ 状态条 ============ */
+.ov-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: 12.5px;
+}
+
+.ov-strip.is-ok {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--status-success) 8%, var(--bg-container));
+  border-color: color-mix(in srgb, var(--status-success) 26%, transparent);
+}
+
+.ov-strip.is-warn {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--status-warning) 10%, var(--bg-container));
+  border-color: color-mix(in srgb, var(--status-warning) 30%, transparent);
+}
+
+.ov-strip__item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.ov-strip__item:first-child {
+  padding-left: 0;
+}
+
+.ov-strip__item + .ov-strip__item {
+  border-left: 1px solid var(--border-default);
+}
+
+/* ============ 面板 ============ */
+.ov-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--cc-gap, 12px);
+  align-items: start;
+}
+
+.ov-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--cc-gap, 12px);
+  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .ov-main,
+  .ov-bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ov-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cc-gap, 12px);
   min-width: 0;
 }
 
-.koi-ov-head {
-  padding-bottom: 8px;
+.ov-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.ov-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 8px;
+}
+
+.ov-panel__icon {
+  color: var(--brand-500);
+  flex: none;
+}
+
+.ov-panel__title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ov-panel__spacer {
+  flex: 1 1 auto;
+}
+
+.ov-panel__body {
+  padding: 0 14px 12px;
+}
+
+.ov-panel__note {
+  margin: 0 14px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.ov-panel__foot {
+  margin: 0;
+  padding: 0 14px 10px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* ============ 图例与链接 ============ */
+.ov-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ov-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.ov-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.ov-legend__dot.is-brand {
+  background: var(--brand-500);
+}
+
+.ov-legend__dot.is-error {
+  background: var(--status-error);
+}
+
+.ov-legend b {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--brand-500);
+  white-space: nowrap;
+}
+
+.ov-link:hover {
+  color: var(--brand-600);
+  text-decoration: underline;
+}
+
+/* ============ 图表与表格 ============ */
+.ov-chart {
+  padding: 0 6px 6px;
+}
+
+/* ReTable 自带卡片外壳（描边/圆角/投影），本面板已有一层壳，这里把内层壳拆掉避免双边框 */
+.ov-table :deep(.re-table) {
+  padding: 0 12px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ============ 运行时参数 ============ */
+.ov-kv {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.ov-kv dt {
+  color: var(--text-tertiary);
+}
+
+.ov-kv dd {
+  margin: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ============ 执行器 ============ */
+.ov-exec {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ov-exec__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12.5px;
+}
+
+.ov-exec__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.ov-exec__dot.is-online {
+  background: var(--pulse-online);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulse-online) 22%, transparent);
+}
+
+.ov-exec__dot.is-offline {
+  background: var(--pulse-offline);
+}
+
+.ov-exec__name {
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-exec__meta {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ov-dashed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 0;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ov-dashed:hover {
+  color: var(--brand-500);
+  border-color: color-mix(in srgb, var(--brand-500) 45%, transparent);
+  background: var(--brand-50);
+}
+
+/* ============ 处理器芯片 ============ */
+.ov-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ov-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--cc-font-num, ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace);
+}
+
+.ov-chip.is-remote {
+  color: var(--brand-600);
+  background: var(--brand-50);
+  border-color: color-mix(in srgb, var(--brand-500) 22%, transparent);
+}
+
+.ov-chip--more {
+  color: var(--text-tertiary);
+}
+
+/* ============ 倒计时芯片 ============ */
+.ov-cd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--brand-600);
+  background: var(--brand-50);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 20%, transparent);
+}
+
+.ov-cd :deep(.fire-cell__left) {
+  color: var(--brand-600);
 }
 
 /* ============ 可操作空态 ============
@@ -500,27 +1387,31 @@ function go(path: string): void {
   padding: 28px 16px;
   text-align: center;
 }
+
 .page-empty__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: var(--el-radius-lg, 12px);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  color: var(--el-color-primary);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+  color: var(--brand-500);
 }
+
 .page-empty__title {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.4;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
+
 .page-empty__desc {
   font-size: 13px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
+
 .page-empty__actions {
   display: inline-flex;
   align-items: center;
@@ -528,13 +1419,13 @@ function go(path: string): void {
   margin-top: 2px;
 }
 
-/*
-  ReTable 的卡片外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由插件提供，
-  页面不再自行补边：见 packages/ui ReTable/shared/table-vars.css 与
-  ReTable.vue 的 `.re-table` / `.re-table--separated` 规则。
-*/
+@media (prefers-reduced-motion: reduce) {
+  .ov-kpi {
+    transition: none;
+  }
 
-/* 尊重系统「减少动态效果」偏好：
-   ReTable 的过渡已由插件自带的同名媒体查询处理，本页无需再代管；
-   本页目前没有自己的过渡，故这里不再保留空的降级块。 */
+  .ov-kpi:hover {
+    transform: none;
+  }
+}
 </style>

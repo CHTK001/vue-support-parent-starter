@@ -69,6 +69,8 @@ const CODE_EXTS = [
   "diff", "patch",
   "proto", "avsc", "graphql", "gql",
   "ttc", "har", "editorconfig", "gitignore", "dockerignore", "npmrc",
+  // file-viewer renderer-text 的补充代码扩展（不占已有 text/webpage 分支）：
+  "jsonc", "json5", "bundle", "bdl", "hcl", "tex", "gv", "http", "react",
 ];
 
 /**
@@ -130,7 +132,7 @@ const MODEL_EXTS = [
 ];
 
 /** 邮件扩展名 */
-const EMAIL_EXTS = ["eml", "msg"];
+const EMAIL_EXTS = ["eml", "msg", "mbox"];
 
 /** 日历事件扩展名 */
 const CALENDAR_EXTS = ["ics", "ical", "ifb", "icalendar"];

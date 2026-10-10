@@ -165,8 +165,13 @@ export default createVite({
     dropProxyOrigin(),
     dedupeElementPlus(),
     // 文件预览（@file-viewer）资源接入：
-    //   - preset 显式指定 office，copyAssets 把渲染器 worker/wasm/字体复制到
-    //     public（本仓库 publicDir 是工作区根 public，见 createVite sharedPublic）；
+    //   - preset 用 office（已安装 @file-viewer/preset-office）：写 "all" 会要求
+    //     @file-viewer/preset-all，而该包未安装，插件 buildStart 直接抛未捕获异常、
+    //     把 dev server 带崩（manualChunks/copyAssets 都够用 office 这一档）。
+    //     非 office 的 pdf/text/typst/signature 等渲染器由各面板组件自行懒加载
+    //     （inject:false，见 FvPanelBase/PreviewOfficePanel/FvTextPanel…），不依赖此处 preset。
+    //   - copyAssets 把渲染器 worker/wasm/字体复制到 public（本仓库 publicDir 是工作区根
+    //     public，见 createVite sharedPublic）；复制清单按实际安装的包走，与 preset 无关。
     //   - 渲染器注册由组件显式传入 preset 完成（见 PreviewOfficePanel），
     //     不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
     fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
@@ -308,30 +313,6 @@ export default createVite({
       "/ot": { target: fileStorageTarget, changeOrigin: true },
       "/config": { target: fileStorageTarget, changeOrigin: true },
       "/recycle": { target: fileStorageTarget, changeOrigin: true },
-      // pdf.js viewer 入口（PDF_VIEWER_PATH，服务端 classpath:/static/preview-vendor/...）。
-      // 缺这条 dev 下原生 PDF 预览直接 404 白屏；随 /ot 同一文件存储后端出。
-      //
-      // ⚠️⚠️ 临时 rewrite：pdf.js 图标/locale 404 补偿，198 重新部署后必须删除 ⚠️⚠️
-      // 远端 18082 的 preview-vendor/pdf/viewer 下是 images/images/、locale/locale/
-      // 双层嵌套（打包时多套了一层），pdf.js 按 flat 路径取 images/*.svg → 404 →
-      // 顶部工具条图标全缺。spring 仓库源码与 target/classes 已拍平，但 198 上跑的
-      // 仍是旧 jar。这里把 flat 请求改写回 nested 作过渡补偿。
-      // **重新部署 198（拍平后的资产）后删掉下面的 rewrite** ——
-      // 届时服务端已是 flat，再改写会让所有图标反过来 404。
-      "/preview-vendor": {
-        target: fileStorageTarget,
-        changeOrigin: true,
-        rewrite: (path: string) =>
-          path
-            .replace(
-              /^\/preview-vendor\/pdf\/viewer\/images\/(?!images\/)/,
-              "/preview-vendor/pdf/viewer/images/images/",
-            )
-            .replace(
-              /^\/preview-vendor\/pdf\/viewer\/locale\/(?!locale\/)/,
-              "/preview-vendor/pdf/viewer/locale/locale/",
-            ),
-      },
     },
   },
   optimizeDeps: {

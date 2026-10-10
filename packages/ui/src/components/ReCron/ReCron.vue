@@ -5,6 +5,11 @@
  * 三方同步：面板状态 ⇄ 表达式字符串 ⇄ v-model，任一侧改动都会即时刷新另外两侧与预览。
  * 面板无法表达表达式时自动退回「表达式模式」并给出提示，绝不静默改写用户的输入。
  *
+ * 两种显示模式（mode）：
+ * - edit（默认）：输入框 + 可视化面板 + 状态行，表单里编辑用；
+ * - text：只渲染「表达式 + 人话」两行的只读预览，供表格等展示场景复用
+ *   同一套解析与人话口径（表格里写死一份描述文案必然与校验引擎漂移）。
+ *
  * 方言与后端严格一致（com.chua.common.support.task.scheduler.CronExpression）：
  *   固定 6 字段「秒 分 时 日 月 周」，5 字段会被服务端直接拒绝；
  *   周字段用 0-6（0=周日，7 亦按周日解析），`?` 解析等价于 `*`；
@@ -54,6 +59,12 @@ const props = withDefaults(
     previewCount?: number;
     /** 业务侧默认 cron：留空时提示「按默认登记」，并提供一键回填 */
     defaultCron?: string;
+    /**
+     * 显示模式：
+     * - "edit"（默认）：输入 + 可视化面板 + 状态行，表单里编辑用；
+     * - "text"：只渲染「表达式 + 人话」两行，供表格等只读预览场景复用同一套解析口径。
+     */
+    mode?: "edit" | "text";
   }>(),
   {
     placeholder: "0 0/30 * * * ?",
@@ -61,6 +72,7 @@ const props = withDefaults(
     width: undefined,
     previewCount: 5,
     defaultCron: "",
+    mode: "edit",
   },
 );
 
@@ -790,8 +802,10 @@ function humanTime(): string {
     f.mode === "step" ? f.step : f.mode === "range" && f.step > 1 ? f.step : 0;
 
   if (isAll(s) && isAll(m) && isAll(h)) return "每秒";
-  // 每小时的第 N 分钟起、每 step 分钟
-  if (isAll(s) && minuteStep(m) && isAll(h)) {
+  /* 秒写单个 0 与写 * 在这里同样等价（见 secImplicit）：`0 0/5 * * * ?`
+     是最常见的「每 N 分钟」写法，此前只因秒不是 * 就掉进兜底分支，
+     人话变成「每天 执行」—— 明明是每 5 分钟一次。 */
+  if (secImplicit && minuteStep(m) && isAll(h)) {
     return m.start === 0 ? `每 ${m.step} 分钟` : `每小时的第 ${m.start} 分钟起，每 ${m.step} 分钟`;
   }
   // 某个整点起、按步进走分钟（如 09:00 起每 15 分钟）
@@ -912,6 +926,19 @@ const humanSummary = computed(() => {
     text = `${text}（${literal}）`;
   }
   return text;
+});
+
+/**
+ * 文本模式（预览）的人话：与状态行同一份口径，只是表格一行放得下，
+ * 去掉「执行」后缀更紧凑（"每 5 分钟"而不是"每 5 分钟 执行"）。
+ *
+ * <p>非法时不静默藏错：换成人话版的错误说明，让登记时就写错的表达式在表格里一眼可见
+ * （数据来自后端，能非法说明登记环节就没拦住）。</p>
+ */
+const textModeHuman = computed(() => {
+  if (analysis.value.empty) return "";
+  if (!analysis.value.valid) return errorText.value;
+  return humanSummary.value.replace(/ 执行$/, "");
 });
 
 /**
@@ -1103,7 +1130,7 @@ const POPPER_OPTIONS = {
  *
  * <p>面板是实时把改动写回 model 的（state → expression → model），
  * 而弹层上给了「取消/保存」，所以取消必须能把整段还原回打开前的状态。
- * 同一个快照也兜住右上角 × 与 ESC（见 {@link onBeforeClose}）——
+ * 同一个快照也兜住右上角 ×（cancelPanel 走同一条还原路径）——
  * 凡是没有明确按「保存」的关闭，都得还原。</p>
  */
 const snapshot = ref("");
@@ -1126,8 +1153,7 @@ function clearExpression(): void {
 /**
  * 还原到打开弹层时的表达式与面板状态，本次改动不保留。
  *
- * <p>不负责关弹层 —— 关闭动作由 {@link cancelPanel} 与 {@link onBeforeClose}
- * 各自补上。</p>
+ * <p>不负责关弹层 —— 关闭动作由 {@link cancelPanel} 补上。</p>
  */
 function revertPanel(): void {
   const back = snapshot.value;
@@ -1142,21 +1168,6 @@ function cancelPanel(): void {
   open.value = false;
 }
 
-/**
- * 弹层的另一个关闭出口：右上角 ×、ESC（以及将来若放开"点遮罩关闭"）。
- *
- * <p>这三个入口以前直接改 `open`，**改动就留在了表达式里** —— 面板上明明写着
- * 「取消 / 保存」，用户点 × 却等于偷偷按了保存，弹层里的选择和输入框里的
- * 表达式对不上，还没法回头撤销。所以这里统一走还原：× 与 ESC 都等价于取消。</p>
- *
- * <p>用 `before-close` 而不是 `close`：前者只拦 ×/ESC/遮罩这类"用户没点保存"
- * 的关闭，「取消」按钮自己改 `open` 不会二次触发。</p>
- */
-function onBeforeClose(done: () => void): void {
-  revertPanel();
-  done();
-}
-
 /** 保存：改动已实时写入 model，关闭即可 */
 function savePanel(): void {
   open.value = false;
@@ -1169,18 +1180,53 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 </script>
 
 <template>
-  <div :class="['re-cron', { 'is-disabled': disabled }]" :style="width ? { width: typeof width === 'number' ? `${width}px` : width } : undefined">
-    <!-- trigger 必须给空数组：开面板由 .re-cron__line 的 @click=openPanel 独管。
-         EP 对带 v-model:visible 的弹层不启用 controlled 门控
-         （controlled = isBoolean(visible) && !hasUpdateHandler），trigger="click"
-         的 onToggle 会命中陈旧的 open 指示器 → onClose → hideAfter=200ms，
-         面板刚开就被关掉（实测：点开 200ms 后自动消失，只留一道闪烁）。 -->
+  <div :class="['re-cron', { 'is-disabled': disabled, 'is-text': mode === 'text' }]" :style="width ? { width: typeof width === 'number' ? `${width}px` : width } : undefined">
+    <!--
+      文本模式（预览）：只给「表达式 + 人话」两行，不挂任何交互。
+      表达式留空时显示「—」；非法时人话换成错误说明（红色）—— 表格里的行来自
+      后端数据，能非法说明登记时就写错了，必须让用户看见而不是静默藏起来。
+    -->
+    <div v-if="mode === 'text'" class="re-cron__text">
+      <code class="re-cron__text-expr" :title="trimmed || undefined">{{ trimmed || "—" }}</code>
+      <span
+        v-if="!analysis.empty"
+        class="re-cron__text-human"
+        :class="{ 'is-error': !analysis.valid }"
+        :title="textModeHuman || undefined"
+      >{{ textModeHuman }}</span>
+    </div>
+    <!--
+      两个绑定决定，都有实测事故背书：
+
+      1) trigger 空数组：开面板由 .re-cron__line 的 @click=openPanel 独管。
+         trigger="click" 的 onToggle 会命中陈旧的 open 指示器 → onClose →
+         hideAfter=200ms，面板刚开就被关掉（实测：点开 200ms 后自动消失）。
+
+      2) :visible 单向（**不接 update:visible**）：让 EP 判定 controlled=true
+         （controlled = isBoolean(visible) && !hasUpdateHandler）。EP 内容层
+         打开时会挂 @vueuse 的 onClickOutside(popperContentRef, onClose)：
+         点击目标不在面板 DOM 里就关掉整个弹层。面板内的 ReSelect 下拉
+         teleport 到 body（ReSelect 硬编码 teleported=true，且弹层容器
+         overflow-y:auto 会裁下拉，不能改成不 teleport），点选项的物理
+         事件路径是 option → body，根本不经过面板 —— 被判成"面板外点击"，
+         整个 ReCron 弹层连刚选中的值一起被关掉（实测复现）。
+         收掉 update handler 后 controlled=true，onClickOutside 回调第一行
+         `if (controlled) return` 直接短路，面板内所有 teleport 浮层的
+         点击都不再误关。代价：点面板外部也不再自动关闭 —— 关闭收敛到
+         「取消 / 保存 / ×」三个明确入口，顺带避免"点外面意外关闭把
+         实时写回的改动悄悄留下"（面板是实时写回 model 的）。
+         after-leave 兜底同步：EP 内部任何 hide（如路由切换）之后把 open
+         同步回 false，否则 open ref 与物理状态失联 —— 失联后 openPanel
+         的 open=true 不再触发 watch(props.visible)，面板再也打不开。
+    -->
     <ElPopover
-      v-model:visible="open"
+      v-if="mode === 'edit'"
+      :visible="open"
       placement="top-start"      :trigger="[]"
       :width="480"
       popper-class="re-cron__popper"
       :popper-options="POPPER_OPTIONS"
+      @after-leave="open = false"
     >
       <!--
         reference 是「整条触发行」而不是那颗齿轮按钮：Popover 只能挂一个 reference，
@@ -1506,6 +1552,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
     </ElPopover>
 
     <div
+      v-if="mode === 'edit'"
       :class="['re-cron__status', analysis.valid ? 'is-ok' : 'is-warn']"
       role="status"
       aria-live="polite"
@@ -1537,6 +1584,39 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 .re-cron.is-disabled {
   opacity: 0.7;
+}
+
+/* ---------------- 文本模式（预览） ---------------- */
+
+/* 表格等只读场景：表达式 + 人话两行，行高贴着单元格 */
+.re-cron__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.re-cron__text-expr {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.re-cron__text-human {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.re-cron__text-human.is-error {
+  color: var(--el-color-danger);
 }
 
 /* ---------------- Popover 面板外壳 ---------------- */

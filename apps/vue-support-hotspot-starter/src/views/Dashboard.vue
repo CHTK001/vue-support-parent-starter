@@ -94,27 +94,33 @@
           <span>服务 Top N</span>
           <span class="panel-sub">按调用次数 / 错误率</span>
         </div>
-        <el-table
-          :data="services.slice(0, 8)"
+        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" —— 本页 .apm-table 变量覆盖与
+             .apm-table :deep(.el-table__row){cursor:pointer} 依赖 el-table 的 DOM，vxe 引擎会让它们全部落空；
+             pagination=false / toolbar=false —— 原表既无分页也无工具栏按钮；
+             原 el-table 没写 border → settings.border=false 抑制默认边框；
+             layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。
+             三张排行表各自独立 columns，插槽名互不重名，作用域无歧义。 -->
+        <ReTable
+          :data="(services.slice(0, 8)) as unknown as Record<string, unknown>[]"
+          :columns="serviceColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
           class="apm-table"
-
           empty-text="暂无服务数据"
           @row-click="(r: Record<string, unknown>) => router.push('/endpoints')"
         >
-          <el-table-column prop="service" label="服务" min-width="140">
-            <template #default="{ row }">
-              <span class="mono">{{ row.service }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="callCount" label="调用" width="70" align="right" sortable />
-          <el-table-column label="错误率" width="80" align="right">
-            <template #default="{ row }">
-              <span :class="['mono', row.errorCount > 0 ? 'err' : 'muted']">
-                {{ row.callCount > 0 ? Math.round(10000 * row.errorCount / row.callCount) / 100 : 0 }}%
-              </span>
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #col-service="{ row }">
+            <span class="mono">{{ row.service }}</span>
+          </template>
+          <template #col-errorRate="{ row }">
+            <span :class="['mono', errorCountOf(row) > 0 ? 'err' : 'muted']">
+              {{ errorRatePct(row) }}%
+            </span>
+          </template>
+        </ReTable>
       </div>
 
       <div class="panel">
@@ -122,29 +128,28 @@
           <span>慢调用 Top 5</span>
           <span class="panel-sub">耗时最长的调用</span>
         </div>
-        <el-table
-          :data="slowCalls.slice(0, 5)"
+        <ReTable
+          :data="(slowCalls.slice(0, 5)) as unknown as Record<string, unknown>[]"
+          :columns="slowCallColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
           class="apm-table"
-
           empty-text="暂无慢调用"
           @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
         >
-          <el-table-column label="操作" min-width="120">
-            <template #default="{ row }">
-              <span class="mono">{{ String(row.operation ?? '—').slice(0, 24) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="durationMs" label="耗时" width="70" align="right">
-            <template #default="{ row }">
-              <span class="mono warn">{{ row.durationMs }}ms</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="60" align="center">
-            <template #default="{ row }">
-              <span :class="['mono', row.status === 'OK' ? 'ok' : 'err']">{{ row.status || "OK" }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #col-operation="{ row }">
+            <span class="mono">{{ String(row.operation ?? '—').slice(0, 24) }}</span>
+          </template>
+          <template #col-durationMs="{ row }">
+            <span class="mono warn">{{ row.durationMs }}ms</span>
+          </template>
+          <template #col-status="{ row }">
+            <span :class="['mono', row.status === 'OK' ? 'ok' : 'err']">{{ row.status || "OK" }}</span>
+          </template>
+        </ReTable>
       </div>
 
       <div class="panel">
@@ -152,25 +157,25 @@
           <span>错误排行 Top 5</span>
           <span class="panel-sub">按错误次数</span>
         </div>
-        <el-table
-          :data="errorRanking.slice(0, 5)"
+        <ReTable
+          :data="(errorRanking.slice(0, 5)) as unknown as Record<string, unknown>[]"
+          :columns="errorRankingColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
           class="apm-table"
-
           empty-text="暂无错误"
           @row-click="(r: Record<string, unknown>) => router.push('/errors')"
         >
-          <el-table-column label="错误类型" width="100">
-            <template #default="{ row }">
-              <span class="mono err">{{ String(row.errorType ?? '—').slice(0, 18) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="callCount" label="次数" width="60" align="right" sortable />
-          <el-table-column label="消息" min-width="120">
-            <template #default="{ row }">
-              <span class="muted">{{ String(row.errorMessage ?? '—').slice(0, 30) }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #col-errorType="{ row }">
+            <span class="mono err">{{ String(row.errorType ?? '—').slice(0, 18) }}</span>
+          </template>
+          <template #col-errorMessage="{ row }">
+            <span class="muted">{{ String(row.errorMessage ?? '—').slice(0, 30) }}</span>
+          </template>
+        </ReTable>
       </div>
     </div>
   </div>
@@ -189,6 +194,8 @@ import {
 } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import ReStatusIndicator from "@repo/ui/re-status-indicator";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { getStats, watchStats, pageTransmissions, getServices, getSlowCalls, getErrorRanking, getSla, getTrend } from "../api/apmApi";
 import type { ApmStats, ApmService, SlowCall, ErrorRanking, SlaStats, TrendPoint } from "../api/apmApi";
 
@@ -229,6 +236,43 @@ const slaPercentClass = computed(() => {
 
 function openTrace(r: SlowCall) {
   if (r.traceId) router.push({ path: "/traces/detail", query: { traceId: r.traceId } });
+}
+
+/**
+ * 三张排行表的列配置（每张表一个独立数组，原 9 个 el-table-column 收敛到这里）。
+ *
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。原没有 prop 的自定义列补了
+ * 稳定合成 prop（错误率 / 操作 / 状态 / 错误类型 / 消息），模板里一一对应
+ * #col-&lt;prop&gt; 插槽；三张表插槽名互不重名。</p>
+ */
+const serviceColumns: ReTableColumn[] = [
+  { prop: "service", label: "服务", minWidth: 140, slot: "service" },
+  { prop: "callCount", label: "调用", width: 70, align: "right", sortable: true },
+  { prop: "errorRate", label: "错误率", width: 80, align: "right", slot: "errorRate" },
+];
+
+const slowCallColumns: ReTableColumn[] = [
+  { prop: "operation", label: "操作", minWidth: 120, slot: "operation" },
+  { prop: "durationMs", label: "耗时", width: 70, align: "right", slot: "durationMs" },
+  { prop: "status", label: "状态", width: 60, align: "center", slot: "status" },
+];
+
+const errorRankingColumns: ReTableColumn[] = [
+  { prop: "errorType", label: "错误类型", width: 100, slot: "errorType" },
+  { prop: "callCount", label: "次数", width: 60, align: "right", sortable: true },
+  { prop: "errorMessage", label: "消息", minWidth: 120, slot: "errorMessage" },
+];
+
+/** 排行表的 row 是宽类型（unknown）：错误次数是算术/比较入参，先收窄成 number */
+function errorCountOf(row: Record<string, unknown>): number {
+  return Number(row.errorCount ?? 0);
+}
+
+/** 错误率（% 文本）：与原模板 Math.round(10000 * errorCount / callCount) / 100 口径一致 */
+function errorRatePct(row: Record<string, unknown>): string {
+  const calls = Number(row.callCount ?? 0);
+  const errs = errorCountOf(row);
+  return (calls > 0 ? Math.round((10000 * errs) / calls) / 100 : 0).toString();
 }
 
 const cards = computed(() => [

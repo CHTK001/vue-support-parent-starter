@@ -145,6 +145,300 @@ const PreviewSwfPanel = defineAsyncComponent(() => import("../components/Preview
  * 同理按需加载，避免 three 场景常驻主包。</p>
  */
 const PreviewModel3dPanel = defineAsyncComponent(() => import("../components/PreviewModel3dPanel.vue"));
+
+/* ================== file-viewer 长尾面板（fv/*，按需加载） ================== */
+/**
+ * fv/* 是「替换旧面板」的完整实现但此前从未接线，现用于 file-viewer 支持、
+ * 但旧原生面板不覆盖的长尾格式（PDF/Office/TIFF/HEIC/PSD/CAD/DXF/DWG/IFC/
+ * 模型3D/图片/音视频/GeoJSON/BPMN/drawio/OFD/DICOM/SWF/压缩包仍由上面的
+ * 原生链路优先接管；本表只接管原生没吃掉的那部分）。
+ *
+ * <p>全部异步组件：面板内部各自动态 import 渲染器（CHM WASM、Typst WASM、
+ * archive-wasm、binary 结构解析器等），不预览的人不该为它们付首屏成本。</p>
+ */
+const FvTextPanel = defineAsyncComponent(() => import("../components/fv/FvTextPanel.vue"));
+const FvDocPanel = defineAsyncComponent(() => import("../components/fv/FvDocPanel.vue"));
+const FvDesignPanel = defineAsyncComponent(() => import("../components/fv/FvDesignPanel.vue"));
+const FvSignaturePanel = defineAsyncComponent(() => import("../components/fv/FvSignaturePanel.vue"));
+const FvBinaryPanel = defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue"));
+const FvEdaPanel = defineAsyncComponent(() => import("../components/fv/FvEdaPanel.vue"));
+const FvChmPanel = defineAsyncComponent(() => import("../components/fv/FvChmPanel.vue"));
+const FvTypstPanel = defineAsyncComponent(() => import("../components/fv/FvTypstPanel.vue"));
+const FvDataPanel = defineAsyncComponent(() => import("../components/fv/FvDataPanel.vue"));
+const FvDrawingPanel = defineAsyncComponent(() => import("../components/fv/FvDrawingPanel.vue"));
+const FvGeoPanel = defineAsyncComponent(() => import("../components/fv/FvGeoPanel.vue"));
+const FvImagePanel = defineAsyncComponent(() => import("../components/fv/FvImagePanel.vue"));
+const FvDicomPanel = defineAsyncComponent(() => import("../components/fv/FvDicomPanel.vue"));
+const FvMediaPanel = defineAsyncComponent(() => import("../components/fv/FvMediaPanel.vue"));
+const FvModelPanel = defineAsyncComponent(() => import("../components/fv/FvModelPanel.vue"));
+const FvCadPanel = defineAsyncComponent(() => import("../components/fv/FvCadPanel.vue"));
+const FvArchivePanel = defineAsyncComponent(() => import("../components/fv/FvArchivePanel.vue"));
+
+/**
+ * file-viewer 注册表权威扩展名（47 定义 / formats.generated.js）→ 承接面板。
+ *
+ * <p>映射与原生面板的关系：原生分支在模板 fv 分支之前，因此上表即使包含
+ * 原生已接管的扩展名（如 docx/png/geojson）也只会被原生吃掉，不会产生分流。
+ * 真正落到这里的，是下面这些没有原生面板或原生只吃前半段的格式：
+ * txt/md/html/code、xmind/epub/fb2/umd/eml/msg/mbox、CHM/EDA/Typst、
+ * kml/gpx/shp、mermaid/plantuml、jxl、dwf/dwfx/xps、otf/woff、签名容器、
+ * binary/elf/exe、EDA/版图、以及 archive 长尾（iso/cbz/cbr…）。</p>
+ */
+const FV_PANEL_BY_EXT: Record<string, Component> = {
+  // renderer-text
+  md: FvTextPanel,
+  markdown: FvTextPanel,
+  txt: FvTextPanel,
+  json: FvTextPanel,
+  js: FvTextPanel,
+  mjs: FvTextPanel,
+  cjs: FvTextPanel,
+  css: FvTextPanel,
+  java: FvTextPanel,
+  py: FvTextPanel,
+  html: FvTextPanel,
+  htm: FvTextPanel,
+  jsx: FvTextPanel,
+  ts: FvTextPanel,
+  tsx: FvTextPanel,
+  xml: FvTextPanel,
+  log: FvTextPanel,
+  vue: FvTextPanel,
+  yaml: FvTextPanel,
+  yml: FvTextPanel,
+  ini: FvTextPanel,
+  sh: FvTextPanel,
+  bash: FvTextPanel,
+  sql: FvTextPanel,
+  go: FvTextPanel,
+  rs: FvTextPanel,
+  php: FvTextPanel,
+  c: FvTextPanel,
+  cpp: FvTextPanel,
+  cc: FvTextPanel,
+  h: FvTextPanel,
+  hpp: FvTextPanel,
+  cs: FvTextPanel,
+  diff: FvTextPanel,
+  patch: FvTextPanel,
+  bundle: FvTextPanel,
+  bdl: FvTextPanel,
+  jsonc: FvTextPanel,
+  json5: FvTextPanel,
+  ipynb: FvTextPanel,
+  toml: FvTextPanel,
+  proto: FvTextPanel,
+  hcl: FvTextPanel,
+  tex: FvTextPanel,
+  gv: FvTextPanel,
+  http: FvTextPanel,
+  react: FvTextPanel,
+  rb: FvTextPanel,
+  swift: FvTextPanel,
+  kt: FvTextPanel,
+  // renderer-doc
+  xmind: FvDocPanel,
+  epub: FvDocPanel,
+  fb2: FvDocPanel,
+  umd: FvDocPanel,
+  eml: FvDocPanel,
+  msg: FvDocPanel,
+  mbox: FvDocPanel,
+  // renderer-design / renderer-data / renderer-signature / renderer-binary
+  psb: FvDesignPanel,
+  pdd: FvDesignPanel,
+  psdt: FvDesignPanel,
+  ait: FvDesignPanel,
+  idml: FvDesignPanel,
+  icml: FvDesignPanel,
+  idms: FvDesignPanel,
+  inx: FvDesignPanel,
+  fla: FvDesignPanel,
+  xfl: FvDesignPanel,
+  xd: FvDesignPanel,
+  indd: FvDesignPanel,
+  indt: FvDesignPanel,
+  ps: FvDesignPanel,
+  ase: FvDesignPanel,
+  aco: FvDesignPanel,
+  abr: FvDesignPanel,
+  csh: FvDesignPanel,
+  pat: FvDesignPanel,
+  grd: FvDesignPanel,
+  asl: FvDesignPanel,
+  ttf: FvDataPanel,
+  otf: FvDataPanel,
+  woff: FvDataPanel,
+  woff2: FvDataPanel,
+  psd: FvDataPanel,
+  ai: FvDataPanel,
+  eps: FvDataPanel,
+  sqlite: FvDataPanel,
+  wasm: FvDataPanel,
+  parquet: FvDataPanel,
+  avro: FvDataPanel,
+  webarchive: FvDataPanel,
+  p7m: FvSignaturePanel,
+  p7s: FvSignaturePanel,
+  p7c: FvSignaturePanel,
+  p7b: FvSignaturePanel,
+  pkcs7: FvSignaturePanel,
+  cms: FvSignaturePanel,
+  cmsc: FvSignaturePanel,
+  tsd: FvSignaturePanel,
+  tst: FvSignaturePanel,
+  tsq: FvSignaturePanel,
+  tsr: FvSignaturePanel,
+  asics: FvSignaturePanel,
+  scs: FvSignaturePanel,
+  asice: FvSignaturePanel,
+  sce: FvSignaturePanel,
+  ers: FvSignaturePanel,
+  asc: FvSignaturePanel,
+  sig: FvSignaturePanel,
+  pgp: FvSignaturePanel,
+  gpg: FvSignaturePanel,
+  jws: FvSignaturePanel,
+  bin: FvBinaryPanel,
+  hex: FvBinaryPanel,
+  elf: FvBinaryPanel,
+  exe: FvBinaryPanel,
+  dll: FvBinaryPanel,
+  class: FvBinaryPanel,
+  macho: FvBinaryPanel,
+  // renderer-chm / renderer-eda / renderer-typst
+  chm: FvChmPanel,
+  olb: FvEdaPanel,
+  dra: FvEdaPanel,
+  gds: FvEdaPanel,
+  oas: FvEdaPanel,
+  oasis: FvEdaPanel,
+  typ: FvTypstPanel,
+  typst: FvTypstPanel,
+  // renderer-drawing / renderer-geo / renderer-media / renderer-image
+  excalidraw: FvDrawingPanel,
+  drawio: FvDrawingPanel,
+  dio: FvDrawingPanel,
+  mermaid: FvDrawingPanel,
+  mmd: FvDrawingPanel,
+  plantuml: FvDrawingPanel,
+  puml: FvDrawingPanel,
+  bpmn: FvDrawingPanel,
+  geojson: FvGeoPanel,
+  kml: FvGeoPanel,
+  gpx: FvGeoPanel,
+  shp: FvGeoPanel,
+  mp4: FvMediaPanel,
+  webm: FvMediaPanel,
+  m3u8: FvMediaPanel,
+  mp3: FvMediaPanel,
+  mpeg: FvMediaPanel,
+  wav: FvMediaPanel,
+  ogg: FvMediaPanel,
+  oga: FvMediaPanel,
+  opus: FvMediaPanel,
+  m4a: FvMediaPanel,
+  aac: FvMediaPanel,
+  flac: FvMediaPanel,
+  weba: FvMediaPanel,
+  midi: FvMediaPanel,
+  mid: FvMediaPanel,
+  gif: FvImagePanel,
+  jpg: FvImagePanel,
+  jpeg: FvImagePanel,
+  bmp: FvImagePanel,
+  tiff: FvImagePanel,
+  tif: FvImagePanel,
+  png: FvImagePanel,
+  svg: FvImagePanel,
+  webp: FvImagePanel,
+  avif: FvImagePanel,
+  ico: FvImagePanel,
+  heic: FvImagePanel,
+  heif: FvImagePanel,
+  jxl: FvImagePanel,
+  // renderer-dicom
+  dcm: FvDicomPanel,
+  dicom: FvDicomPanel,
+  // renderer-3d / renderer-cad
+  glb: FvModelPanel,
+  gltf: FvModelPanel,
+  obj: FvModelPanel,
+  stl: FvModelPanel,
+  ply: FvModelPanel,
+  fbx: FvModelPanel,
+  dae: FvModelPanel,
+  "3ds": FvModelPanel,
+  "3mf": FvModelPanel,
+  amf: FvModelPanel,
+  usd: FvModelPanel,
+  usda: FvModelPanel,
+  usdc: FvModelPanel,
+  usdz: FvModelPanel,
+  kmz: FvModelPanel,
+  step: FvModelPanel,
+  stp: FvModelPanel,
+  iges: FvModelPanel,
+  igs: FvModelPanel,
+  ifc: FvModelPanel,
+  "3dm": FvModelPanel,
+  brep: FvModelPanel,
+  pcd: FvModelPanel,
+  wrl: FvModelPanel,
+  vrml: FvModelPanel,
+  xyz: FvModelPanel,
+  vtk: FvModelPanel,
+  vtp: FvModelPanel,
+  dxf: FvCadPanel,
+  dwg: FvCadPanel,
+  dwf: FvCadPanel,
+  dwfx: FvCadPanel,
+  xps: FvCadPanel,
+  // renderer-archive（原生 ARCHIVE_EXTS 由 ArchivePreviewPanel 先接管，长尾落 fv）
+  zip: FvArchivePanel,
+  zipx: FvArchivePanel,
+  "7z": FvArchivePanel,
+  rar: FvArchivePanel,
+  tar: FvArchivePanel,
+  gz: FvArchivePanel,
+  gzip: FvArchivePanel,
+  tgz: FvArchivePanel,
+  bz2: FvArchivePanel,
+  bzip2: FvArchivePanel,
+  tbz: FvArchivePanel,
+  tbz2: FvArchivePanel,
+  xz: FvArchivePanel,
+  txz: FvArchivePanel,
+  lzma: FvArchivePanel,
+  zst: FvArchivePanel,
+  tzst: FvArchivePanel,
+  cab: FvArchivePanel,
+  ar: FvArchivePanel,
+  cpio: FvArchivePanel,
+  iso: FvArchivePanel,
+  xar: FvArchivePanel,
+  lha: FvArchivePanel,
+  lzh: FvArchivePanel,
+  jar: FvArchivePanel,
+  war: FvArchivePanel,
+  ear: FvArchivePanel,
+  apk: FvArchivePanel,
+  cbz: FvArchivePanel,
+  cbr: FvArchivePanel,
+};
+
+/** 当前 fv 路由：native 分支没吃掉时，根据生效文件名选面板（包内条目用条目名） */
+const fvPanel = computed(() => {
+  const ext = extensionOf(fileNameForClientRender.value).toLowerCase();
+  return FV_PANEL_BY_EXT[ext] ?? null;
+});
+
+/** 判断某文件名（顶层或压缩包内）是否命中 fv 面板，供 loading 归属判断复用 */
+function isFvPanelFile(name: string): boolean {
+  const ext = extensionOf(name).toLowerCase();
+  return !!FV_PANEL_BY_EXT[ext];
+}
+
 import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
@@ -389,14 +683,20 @@ const thumbUrls = ref<Record<string, string>>({});
 /** 为当前目录的大图标缩略图批量签发票据 */
 async function refreshThumbUrls(): Promise<void> {
   const stamp = configStamp.value;
+  const filterParams = imageFilterParams.value;
   const entries = await Promise.all(
     sortedObjects.value
       .filter((o) => !o.directory && isPreviewable(o.name) && !isArchive(o.name))
       .map(async (o) => {
         const key = fullKey(o.name);
-        const url = await resolveObjectUrl(bucket.value, key, {
-          params: { preview: "true", _cfg: stamp },
-        });
+        // 图片地址带上当前滤镜的路径参数：服务端据此在返回字节前先处理一遍，
+        // 缩略图因此是「滤镜后的图」，而不是浏览器把原图再 CSS 压一遍。
+        // 非图片文件不加——那些参数对它们没有意义，只会变成服务端侧的未知参数。
+        const params: Record<string, string> = { preview: "true", _cfg: stamp };
+        if (kindOf(o.name) === "image") {
+          Object.assign(params, filterParams);
+        }
+        const url = await resolveObjectUrl(bucket.value, key, { params });
         return [key, url] as const;
       }),
   );
@@ -1376,8 +1676,14 @@ const adminForm = reactive({
   openWebjars: true,
   /** 允许远程文件 */
   openRemoteFile: false,
-  /** 允许三方 URL 预览（?url=base64 编码地址） */
-  openThirdPreview: false,
+  /**
+   * 三方 URL 预览能力（FileStorageUrlPreviewProvider SPI 实现名，NONE 表示关闭）
+   *
+   * <p>不是布尔开关：可选实现由后台 {@code ?format=capabilities} 枚举下发，
+   * 管理员显式选择后才生效；只有 supported=true 的实现（内置为 SERVER，即后台拉取）
+   * 才真正放行 {@code ?url=}，选其它值仍会被服务端 403。</p>
+   */
+  thirdUrlPreview: "NONE",
   /** 目录列表页开关 */
   layout: true,
   /** 布局类型 SIMPLE/SYSTEM */
@@ -1421,13 +1727,19 @@ const adminForm = reactive({
  * 把「滤镜不是来自后台 SPI」这一故障静默掩盖；现在列表是纯 SPI 来源，
  * 加载失败只保留「原图」并由 {@link imageFilterLoadFailed} 显式提示。</p>
  */
-const imageFilterOptions = computed<{ value: string; label: string; css: string }[]>(() => {
-  const opts: { value: string; label: string; css: string }[] = [
-    { value: "NONE", label: "原图", css: "" },
+const imageFilterOptions = computed(() => {
+  const opts: { value: string; label: string; css: string; path: string; server: boolean }[] = [
+    { value: "NONE", label: "原图", css: "", path: "", server: false },
   ];
   for (const f of capabilities.value?.imageFilters ?? []) {
     if (!f.name || f.name === "NONE") continue;
-    opts.push({ value: f.name, label: f.label || f.name, css: f.css ?? "" });
+    opts.push({
+      value: f.name,
+      label: f.label || f.name,
+      css: f.css ?? "",
+      path: f.path ?? "",
+      server: f.server ?? false,
+    });
   }
   return opts;
 });
@@ -1438,14 +1750,82 @@ const capabilitiesFailed = ref(false);
 /** 滤镜列表是否因能力接口失败而不可用 */
 const imageFilterLoadFailed = computed(() => capabilitiesFailed.value);
 
-/** 当前滤镜的 CSS filter 值（缩略图/预览即时演示；值来自后端 SPI 能力的 css 字段，实际效果以后端处理为准） */
-const imageFilterCss = computed(() => {
-  const value = bucketConfig.value?.imageFilter ?? "NONE";
-  if (value === "NONE") {
-    return "";
-  }
-  return imageFilterOptions.value.find((o) => o.value === value)?.css ?? "";
+/** 当前生效的滤镜选项（配置值为空或未知时按原图处理） */
+const activeImageFilter = computed(
+  () =>
+    imageFilterOptions.value.find((o) => o.value === (bucketConfig.value?.imageFilter || "NONE")) ??
+    imageFilterOptions.value[0],
+);
+
+/**
+ * 当前滤镜的图片路径参数（拼在图片地址上，让图片渲染先走滤镜）
+ *
+ * <p>只有后台图片管线真正处理的滤镜（{@code server=true}）才返回参数值：
+ * 反色/怀旧/鲜艳这类后台不执行的效果，路径留空、改由 {@link imageFilterCss} 兜底，
+ * 否则会往地址上塞一个服务端无法执行的参数。</p>
+ */
+const imageFilterPath = computed(() => {
+  const f = activeImageFilter.value;
+  return f && f.server ? f.path : "";
 });
+
+/**
+ * 把图片路径参数拆成查询键值对（{@code grayscale=1} → {@code {grayscale:"1"}}）
+ *
+ * <p>解析失败（缺等号、空键）时该项直接丢弃，绝不把半截参数拼进地址——
+ * 那会变成服务端侧的未知参数，且很难从表现反推原因。</p>
+ */
+const imageFilterParams = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {};
+  for (const pair of imageFilterPath.value.split("&")) {
+    const p = pair.trim();
+    if (!p) continue;
+    const eq = p.indexOf("=");
+    if (eq <= 0) continue;
+    out[p.slice(0, eq).trim()] = p.slice(eq + 1).trim();
+  }
+  return out;
+});
+
+/**
+ * 当前滤镜的 CSS filter 值（仅用于后台不处理的滤镜的即时演示）
+ *
+ * <p>后台会处理的滤镜（灰度/模糊）实际像素已在服务端改过，此处再叠一层 CSS
+ * 会让同一滤镜作用两次（灰度压灰度、模糊叠模糊），因此直接留空。</p>
+ */
+const imageFilterCss = computed(() => {
+  const f = activeImageFilter.value;
+  if (!f || f.server) return "";
+  return f.css ?? "";
+});
+
+/**
+ * 三方 URL 预览能力可选项（FileStorageUrlPreviewProvider SPI 实现）
+ *
+ * <p>下拉里的每一项都是后台真实存在的实现，不硬编码「开/关」。选项描述直接取
+ * 后台下发的 description，supported 为 false 的项在选择后给出明确提示——
+ * 选它不会生效，服务端仍会 403。</p>
+ */
+const urlPreviewerOptions = computed(() =>
+  (capabilities.value?.urlPreviewers ?? []).map((p) => ({
+    value: p.name,
+    label: p.label || p.name,
+    description: p.description ?? "",
+    supported: p.supported ?? false,
+  })),
+);
+
+/** 当前选中的 URL 预览能力是否真正支持 ?url=（用于在选项旁提示「需选择后台」） */
+const activeUrlPreviewer = computed(
+  () =>
+    urlPreviewerOptions.value.find((o) => o.value === (bucketConfig.value?.thirdUrlPreview || "NONE")) ??
+    null,
+);
+
+/** 选了不支持处理的实现：给显式提示，避免用户以为打开就能用 */
+const urlPreviewerUnsupported = computed(
+  () => activeUrlPreviewer.value !== null && !activeUrlPreviewer.value.supported,
+);
 
 /** 服务端是否显示"类型"列 */
 const showFormatCol = computed(() => bucketConfig.value?.showFormat ?? true);
@@ -1467,7 +1847,7 @@ function applyConfigToForm(cfg: BucketConfig | null): void {
   adminForm.openWatermark = cfg.openWatermark;
   adminForm.openWebjars = cfg.openWebjars;
   adminForm.openRemoteFile = cfg.openRemoteFile;
-  adminForm.openThirdPreview = cfg.openThirdPreview ?? false;
+  adminForm.thirdUrlPreview = cfg.thirdUrlPreview || "NONE";
   adminForm.layout = cfg.layout;
   adminForm.layoutType = cfg.layoutType || "SIMPLE";
   adminForm.watermark = cfg.watermark ?? "";
@@ -1535,7 +1915,6 @@ const adminFileToggles: ReadonlyArray<{
     | "openWatermark"
     | "openWebjars"
     | "openRemoteFile"
-    | "openThirdPreview"
     | "layout";
   label: string;
   desc: string;
@@ -1548,9 +1927,18 @@ const adminFileToggles: ReadonlyArray<{
   { key: "openWatermark", label: "水印响应头", desc: "响应中携带水印标识", icon: Stamp, terms: ["文件功能", "水印响应头", "水印", "watermark"] },
   { key: "openWebjars", label: "Webjars 资源", desc: "暴露 Webjars 静态资源", icon: Box, terms: ["文件功能", "webjars", "静态资源"] },
   { key: "openRemoteFile", label: "远程文件透传", desc: "代理远程文件请求", icon: Connection, terms: ["文件功能", "远程文件透传", "远程", "透传", "proxy"] },
-  { key: "openThirdPreview", label: "三方 URL 预览", desc: "允许预览外部地址（地址需 base64 编码）", icon: Link, terms: ["文件功能", "三方 url 预览", "三方", "url", "外部地址"] },
   { key: "layout", label: "目录列表页", desc: "无索引文件时列出目录内容", icon: Menu, terms: ["文件功能", "目录列表页", "目录", "列表页", "layout"] },
 ];
+
+/**
+ * 「文件功能」分组里非开关项（下拉选择）的搜索词
+ *
+ * <p>与 {@link adminFileToggles} 同源约束：同样带上分组名「文件功能」，
+ * 保证「命中该项 ⇒ 所在分组一定可见」。</p>
+ */
+const ADMIN_FILE_ITEM_TERMS: Record<string, string[]> = {
+  thirdUrlPreview: ["文件功能", "三方 url 预览", "三方", "url", "外部地址", "后台"],
+};
 
 /** 详情视图列显隐清单（同样带上分组名，理由见 {@link adminFileToggles}） */
 const adminColumnToggles: ReadonlyArray<{
@@ -1601,7 +1989,9 @@ function admHitAny(terms: readonly string[]): boolean {
 
 /** 五个分组是否可见（搜索过滤后） */
 const adminSectionsShown = computed(() => ({
-  file: adminFileToggles.some((t) => admHitAny(t.terms)),
+  file:
+    adminFileToggles.some((t) => admHitAny(t.terms)) ||
+    Object.values(ADMIN_FILE_ITEM_TERMS).some((terms) => admHitAny(terms)),
   layout: Object.values(ADMIN_LAYOUT_ITEM_TERMS).some((terms) => admHitAny(terms)),
   image: Object.values(ADMIN_IMAGE_ITEM_TERMS).some((terms) => admHitAny(terms)),
   security: Object.values(ADMIN_SECURITY_ITEM_TERMS).some((terms) => admHitAny(terms)),
@@ -1826,7 +2216,7 @@ function resetAdminForm(): void {
     openWatermark: false,
     openWebjars: true,
     openRemoteFile: false,
-    openThirdPreview: false,
+    thirdUrlPreview: "NONE",
     layout: true,
     layoutType: "SIMPLE",
     watermark: "",
@@ -3081,14 +3471,8 @@ function needsPdfConvert(name: string): boolean {
  * 该文件是否交给 CAD 面板（而不是 iframe）。
  *
  * <p>CAD 面板走的是 {@code ?format=cad} 数据通道，而后端该通道**只解析 DXF 与 DWG**；
- * 其余「模型类」扩展名（glb/gltf/obj/stl/step/stp/iges/igs/brep/shp/dgn/blend/fbx）
- * 后端没有 CAD 结构可返回。继续把它们留在 CAD 面板，会得到
- * 「服务端未返回 CAD 图纸结构（?format=cad 未生效），请更新文件服务器后重试」——
- * 这条提示把**客户端的路由选择**说成了**服务端版本问题**，会把人引向错误方向
- * （实测 {@code fixture.stl} / {@code fixture.step} 都是这个表现）。
- *
- * <p>这些格式改走 iframe：后端的 3D 查看器（ThreeModelPreviewProvider）
- * 或信息卡才是它们的正解。</p>
+ * 阶段①其余模型/版图扩展名已由 fv 面板（renderer-3d / renderer-cad / renderer-geo）
+ * 接管；只有 dgn / blend 这类 file-viewer 没登记的扩展名才继续走后端信息卡。</p>
  *
  * @param name 文件名
  * @returns true 表示该走 CAD 面板
@@ -3255,7 +3639,10 @@ function openArchiveEntry(path: string): void {
   const slash = path.lastIndexOf("/");
   const name = slash >= 0 ? path.slice(slash + 1) : path;
   const kind = kindOf(name);
-  if (kind === "model" || kind === "video" || kind === "audio" || kind === "geo" || isClientPanelFile(name)) {
+  if (
+    kind === "model" || kind === "video" || kind === "audio" || kind === "geo" ||
+    isClientPanelFile(name) || isFvPanelFile(name)
+  ) {
     // 面板自己签票据、自己发请求并维护加载态，iframe 加载态会让骨架屏挂在它上面
     return;
   }
@@ -4370,6 +4757,31 @@ onUnmounted(() => {
                 <el-switch v-model="adminForm[t.key]" />
               </div>
             </div>
+
+            <!-- 三方 URL 预览：能力由后台 SPI 枚举，显式选择后才生效（不是开关） -->
+            <div v-if="admHitAny(ADMIN_FILE_ITEM_TERMS.thirdUrlPreview)" class="fs-admin__field">
+              <span class="fs-admin__label fs-admin__label--field">三方 URL 预览</span>
+              <el-select v-model="adminForm.thirdUrlPreview" class="fs-admin__select">
+                <template #prefix><el-icon><Link /></el-icon></template>
+                <el-option
+                  v-for="opt in urlPreviewerOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="opt.label"
+                >
+                  <span class="fs-admin__optiontext">
+                    <span>{{ opt.label }}</span>
+                    <span class="fs-admin__optdesc">{{ opt.description }}</span>
+                  </span>
+                </el-option>
+              </el-select>
+              <p class="fs-admin__hint">
+                由文件服务按选中的能力拉取外部地址内容并预览（?url= 需传 base64 编码后的地址）。
+              </p>
+              <p v-if="urlPreviewerUnsupported" class="fs-admin__hint fs-admin__hint--warn">
+                当前选中的能力不处理外部地址，只有选择「后台」才支持 ?url=。
+              </p>
+            </div>
           </section>
 
           <!-- 布局显示 -->
@@ -4987,6 +5399,7 @@ onUnmounted(() => {
             :bucket="bucket"
             :object-key="previewKey"
             :file-name="previewName"
+            :image-path="imageFilterPath"
             @saved="onImageSaved"
           />
           <!-- 音视频：主应用内 <video>/<audio>，票据直链 + 网关 Range 拖动；
@@ -5050,6 +5463,22 @@ onUnmounted(() => {
             :file-name="fileNameForClientRender"
             @rendered="onOfficeRendered"
             @error="onOfficeError"
+          />
+          <!-- file-viewer 长尾面板（fv/*）：原生分支没吃掉的长尾格式统一走这里。
+               取字节→File→@file-viewer 直渲；失败 @fallback 由父组件退服务端 iframe。
+               与 office 面板同款条件：previewForceServer 时为 iframe 让路。 -->
+          <component
+            :is="fvPanel"
+            v-else-if="!previewError && fvPanel && !previewForceServer"
+            :key="`${previewKey}:${previewInnerPath || 'root'}`"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :src="previewInnerPath ? undefined : previewSrc"
+            :inner="previewInnerPath"
+            :size="previewSize"
+            @rendered="onOfficeRendered"
+            @fallback="onClientPanelFallback"
           />
           <PreviewIframePanel
             v-else-if="!previewError"
@@ -6721,6 +7150,21 @@ button.fs-stat:hover {
 
 .fs-admin__select {
   width: 100%;
+}
+
+/* 下拉选项：主标签 + 后台下发的实现说明（三方 URL 预览能力） */
+.fs-admin__optiontext {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 0;
+  line-height: 1.4;
+}
+
+.fs-admin__optdesc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: normal;
 }
 
 .fs-admin__hint {

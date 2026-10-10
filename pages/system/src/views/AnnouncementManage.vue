@@ -12,6 +12,7 @@ import { pageForAnnouncement, saveAnnouncement, updateAnnouncement, deleteAnnoun
 import type { SysAnnouncement } from "../api/announcementApi";
 import { getAnnouncementReadStat, pageForAnnouncementReadUsers, listForRole } from "../api/systemApi";
 import type { SysRole } from "../api/types";
+import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 const query = ref<{
@@ -305,6 +306,17 @@ const columns: ReTableColumn[] = [
   { prop: "action", label: "操作", slot: "action", fixed: "right", width: 240, align: "center" },
 ];
 
+/**
+ * 已读用户抽屉里的表格列（原模板里的 3 个 el-table-column 收敛到这里）。
+ *
+ * <p>序号列（原 {@code type="index"} label="#" width="60}）由 ReTable 的
+ * {@code show-index} 提供，不进列数组；标题均为字面量，用普通常量即可。</p>
+ */
+const readUserColumns: ReTableColumn[] = [
+  { prop: "sysUserName", label: "用户名", minWidth: 160, showOverflowTooltip: true },
+  { prop: "readTime", label: "阅读时间", minWidth: 180 },
+];
+
 onMounted(() => {
   /* 挂载后加载角色选项（供指定角色定向使用）与公告数据 */
   loadRoles();
@@ -495,11 +507,21 @@ onMounted(() => {
 
     <!-- 已读用户抽屉 -->
     <el-drawer v-model="readDrawerVisible" :title="readDrawerTitle" size="480px">
-      <el-table v-loading="readDrawerLoading" :data="readUsers" border stripe  style="width: 100%">
-        <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column prop="sysUserName" label="用户名" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="readTime" label="阅读时间" min-width="180" />
-      </el-table>
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+           边框/斑马纹样式；pagination=false / toolbar=false —— 无分页、不新增工具栏按钮；
+           原 el-table 的 border 走 ReTable 默认（border: true），stripe 走同名 prop；
+           type="index" 列换成 show-index（表头 # / 宽 60 / 居中与 ReTable 默认一致）。 -->
+      <ReTable
+        :loading="readDrawerLoading"
+        :data="readUsers"
+        :columns="readUserColumns"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        stripe
+        show-index
+        style="width: 100%"
+      />
       <p v-if="!readDrawerLoading && !readUsers.length" style="margin-top: 12px; color: var(--el-text-color-secondary); font-size: 13px">暂无已读用户</p>
     </el-drawer>
 

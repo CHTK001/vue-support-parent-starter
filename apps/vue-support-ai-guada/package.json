@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pages/ai": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
@@ -55,6 +56,7 @@
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
+    "@file-viewer/preset-all": "catalog:",
     "@file-viewer/vite-plugin": "catalog:",
     "@tailwindcss/vite": "^4.1.18",
     "@types/event-source-polyfill": "^1.0.5",

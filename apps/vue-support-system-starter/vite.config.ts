@@ -9,7 +9,7 @@ export default createVite({
     // 文件预览（@file-viewer）资源接入：与 monitor / standalone / ai-guada 一致。
     //   - copyAssets 把渲染器 worker/wasm/字体复制到工作区根 public（本应用 publicDir 指向它）；
     //   - 渲染器注册由 PreviewOfficePanel 显式传 preset 完成，inject:false 不注入虚拟模块。
-    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
+    fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
   ],
   /*
    * CSS 压缩器切换：vite(rolldown) 默认用 lightningcss 压缩，本仓库在「合并后的样式」上会报
@@ -56,33 +56,6 @@ export default createVite({
       "/system/api": {
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
-      },
-      // 文件存储服务器：pdf.js viewer 入口 /preview-vendor/* 是 FileStorageServerFilter
-      // 的 classpath 静态资源。注意它只在 18082 上托管（18080 只有 /local /ot 等桶 API，
-      // /preview-vendor 404），故默认指向 18082。本应用文件内容由 localStorage 直连
-      // 后端（18080），但 viewer.html 是同源路径，不代理会在 dev 下 404、
-      // 原生 PDF 预览白屏（与 monitor 同口径）。
-      //
-      // ⚠️⚠️ 临时 rewrite：pdf.js 图标/locale 404 补偿，198 重新部署后必须删除 ⚠️⚠️
-      // 远端 18082 的 preview-vendor/pdf/viewer 下是 images/images/、locale/locale/
-      // 双层嵌套（打包时多套了一层），pdf.js 按 flat 路径取 images/*.svg → 404 →
-      // 顶部工具条图标全缺。spring 仓库源码与 target/classes 已拍平，但 198 上跑的
-      // 仍是旧 jar。这里把 flat 请求改写回 nested 作过渡补偿。
-      // **重新部署 198（拍平后的资产）后删掉下面的 rewrite** ——
-      // 届时服务端已是 flat，再改写会让所有图标反过来 404。
-      "/preview-vendor": {
-        target: process.env.FS_API_TARGET ?? "http://192.168.50.198:18082",
-        changeOrigin: true,
-        rewrite: (path: string) =>
-          path
-            .replace(
-              /^\/preview-vendor\/pdf\/viewer\/images\/(?!images\/)/,
-              "/preview-vendor/pdf/viewer/images/images/",
-            )
-            .replace(
-              /^\/preview-vendor\/pdf\/viewer\/locale\/(?!locale\/)/,
-              "/preview-vendor/pdf/viewer/locale/locale/",
-            ),
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）
       "/weather-api": {

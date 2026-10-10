@@ -50,70 +50,70 @@
     </div>
 
     <div class="table-panel">
-      <el-table
-        v-loading="loading"
-        :data="items"
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
+           既有 .apm-table 变量覆盖 / .trace-table :deep(.row-clickable|row-error) 与
+           e2e 的 .el-table__body 选择器一概不失效；
+           pagination=false —— 分页仍由下方 el-pagination 自管，否则会多出一套页码控件；
+           toolbar=false 不新增工具栏按钮（按钮清单与改造前逐个一致）；
+           原 el-table 没写 border → settings.border=false 抑制 ReTable 的默认边框；
+           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应，
+           维持原 el-table「内容多高表就多高」的撑开行为。 -->
+      <ReTable
+        :data="items as unknown as Record<string, unknown>[]"
+        :columns="traceColumns"
+        :loading="loading"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ minHeight: 0 }"
         :row-class-name="rowClass"
         class="apm-table trace-table"
         empty-text="暂无传输记录（Agent 未注入或无数据）"
         @row-click="openDetail"
       >
-        <el-table-column label="Trace ID" width="200">
-          <template #default="{ row }">
-            <div class="trace-id-cell">
-              <code class="mono trace-link" @click.stop="openWaterfall(row.traceId)">
-                {{ shortId(row.traceId) }}
-              </code>
-              <el-button link type="primary" @click.stop="openWaterfall(row.traceId)">
-                瀑布
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="源 → 目标" min-width="260">
-          <template #default="{ row }">
-            <div class="edge">
-              <span class="edge-endpoint">{{ row.source || "—" }}</span>
-              <el-icon class="edge-arrow"><Right /></el-icon>
-              <span class="edge-endpoint target">{{ row.target || "—" }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="protocol" label="协议" width="110">
-          <template #default="{ row }">
-            <el-tag effect="plain" round>{{ row.protocol || "—" }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="耗时" width="90" align="center">
-          <template #default="{ row }">
-            <span class="mono">{{ row.durationMs }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.status === 'OK' ? 'success' : 'danger'"
+        <template #col-traceId="{ row }">
+          <div class="trace-id-cell">
+            <code class="mono trace-link" @click.stop="openWaterfall(traceIdOf(row))">
+              {{ shortId(traceIdOf(row)) }}
+            </code>
+            <el-button link type="primary" @click.stop="openWaterfall(traceIdOf(row))">
+              瀑布
+            </el-button>
+          </div>
+        </template>
+        <template #col-route="{ row }">
+          <div class="edge">
+            <span class="edge-endpoint">{{ row.source || "—" }}</span>
+            <el-icon class="edge-arrow"><Right /></el-icon>
+            <span class="edge-endpoint target">{{ row.target || "—" }}</span>
+          </div>
+        </template>
+        <template #col-protocol="{ row }">
+          <el-tag effect="plain" round>{{ row.protocol || "—" }}</el-tag>
+        </template>
+        <template #col-durationMs="{ row }">
+          <span class="mono">{{ row.durationMs }}</span>
+        </template>
+        <template #col-status="{ row }">
+          <el-tag
+            :type="row.status === 'OK' ? 'success' : 'danger'"
 
-              round
-            >
-              {{ row.status || "OK" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="startTime" label="开始时间" width="160">
-          <template #default="{ row }">
-            <span class="muted">{{ row.startTime || "—" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="错误" min-width="180">
-          <template #default="{ row }">
-            <span v-if="row.errorMessage" class="err-text" :title="row.errorMessage">
-              {{ row.errorType }}: {{ row.errorMessage }}
-            </span>
-            <span v-else class="muted">—</span>
-          </template>
-        </el-table-column>
-      </el-table>
+            round
+          >
+            {{ row.status || "OK" }}
+          </el-tag>
+        </template>
+        <template #col-startTime="{ row }">
+          <span class="muted">{{ row.startTime || "—" }}</span>
+        </template>
+        <template #col-errorMessage="{ row }">
+          <span v-if="row.errorMessage" class="err-text" :title="row.errorMessage">
+            {{ row.errorType }}: {{ row.errorMessage }}
+          </span>
+          <span v-else class="muted">—</span>
+        </template>
+      </ReTable>
 
       <div class="pager">
         <el-pagination
@@ -174,6 +174,8 @@ import { onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Refresh, Right, Download } from "@element-plus/icons-vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageTransmissions, getTraceDetail, exportTransmissionsCsv } from "../api/apmApi";
 import type { TransmissionQuery, TransmissionRecord } from "../api/apmApi";
 
@@ -186,6 +188,28 @@ const page = ref(1);
 const size = ref(20);
 const loading = ref(false);
 const traceSearch = ref("");
+
+/**
+ * 列配置：原来散在模板里的 7 个 el-table-column 收敛到这里。
+ *
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。前两列原 el-table-column
+ * 没有 prop，这里补稳定的合成 prop（route），其余沿用行数据字段名，
+ * 模板里一一对应 #col-&lt;prop&gt; 插槽。</p>
+ */
+const traceColumns: ReTableColumn[] = [
+  { prop: "traceId", label: "Trace ID", width: 200, slot: "traceId" },
+  { prop: "route", label: "源 → 目标", minWidth: 260, slot: "route" },
+  { prop: "protocol", label: "协议", width: 110, slot: "protocol" },
+  { prop: "durationMs", label: "耗时", width: 90, align: "center", slot: "durationMs" },
+  { prop: "status", label: "状态", width: 90, align: "center", slot: "status" },
+  { prop: "startTime", label: "开始时间", width: 160, slot: "startTime" },
+  { prop: "errorMessage", label: "错误", minWidth: 180, slot: "errorMessage" },
+];
+
+/** 插槽 / 行事件里的 row 是宽类型（unknown）：取 traceId 前先收窄成 string */
+function traceIdOf(row: Record<string, unknown>): string {
+  return String(row.traceId ?? "");
+}
 
 /** 按 traceId 服务端搜索（后端 /transmissions 已支持 traceId 参数过滤） */
 function applyTraceSearch() {
@@ -277,14 +301,21 @@ const detailLoading = ref(false);
 const detailTraceId = ref("");
 const detailSpans = ref<TransmissionRecord[]>([]);
 
-async function openDetail(row: TransmissionRecord) {
-  if (!row?.traceId) return;
-  detailTraceId.value = row.traceId;
+/**
+ * 打开链路详情抽屉。
+ *
+ * <p>ReTable 的 row-click 抛的是宽类型行数据（Record&lt;string, unknown&gt;，
+ * 原 el-table 抛 any），先收窄出 traceId 再用。</p>
+ */
+async function openDetail(row: Record<string, unknown>) {
+  const traceId = traceIdOf(row);
+  if (!traceId) return;
+  detailTraceId.value = traceId;
   detailVisible.value = true;
   detailLoading.value = true;
   detailSpans.value = [];
   try {
-    detailSpans.value = (await getTraceDetail(row.traceId)) || [];
+    detailSpans.value = (await getTraceDetail(traceId)) || [];
   } catch {
     ElMessage.error("加载链路详情失败");
   } finally {

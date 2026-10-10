@@ -128,7 +128,11 @@
                 {{ row.syncTaskName }}
               </button>
             </div>
-            <div class="st-sub mono">{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
+            <!-- 源 SQL / 路径直接展示在任务名下：长 SQL 由 CSS 单行省略，悬停 title 看全文 -->
+            <div
+              class="st-sub mono st-sub-clip"
+              :title="`${sourceTypeLabel(row)} · ${sourceBrief(row)}`"
+            >{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
         </template>
         <template #col-flow="{ row }">
             <div class="st-flow">
@@ -1565,12 +1569,14 @@ function sourceTypeLabel(row: SyncTask): string {
     default: return t;
   }
 }
-/** 源侧摘要（表格「任务」列副标题用的短文案） */
+/** 源侧摘要（表格「任务」列副标题用的文案）：返回**完整**原文（SQL / 路径），
+ *  超长交给 CSS 省略（.st-sub-clip）+ title 悬停看全文 —— JS 硬截会让悬停也拿不到
+ *  后半段，长 SQL 一旦需要核对（尤其删除前）就必须能看到全量。 */
 function sourceBrief(row: SyncTask): string {
   const t = (row.syncTaskSourceType || "JDBC").toUpperCase();
-  if (t === "JDBC") return row.syncTaskSourceSql ? truncate(row.syncTaskSourceSql, 48) : "自定义 SQL";
-  if (t === "DIR") return row.syncTaskSourcePath ? truncate(row.syncTaskSourcePath, 40) : "目录";
-  if (t === "FILE" || t.startsWith("HTTP")) return row.syncTaskSourcePath ? truncate(row.syncTaskSourcePath, 40) : "—";
+  if (t === "JDBC") return row.syncTaskSourceSql || "自定义 SQL";
+  if (t === "DIR") return row.syncTaskSourcePath || "目录";
+  if (t === "FILE" || t.startsWith("HTTP")) return row.syncTaskSourcePath || "—";
   return "—";
 }
 /** 源侧完整描述（数据流向 chip 的 title） */
@@ -1588,10 +1594,6 @@ function sourceTableName(row: SyncTask): string {
   const p = row.syncTaskSourcePath || "";
   const seg = p.split(/[\\/]/).filter(Boolean);
   return seg.length ? seg[seg.length - 1] : sourceTypeLabel(row);
-}
-/** 超长文本截断 */
-function truncate(v: string, n: number): string {
-  return v.length > n ? v.slice(0, n - 1) + "…" : v;
 }
 
 /** 拉数据源台账 */
@@ -2787,6 +2789,8 @@ onUnmounted(() => {
 .st-step-desc { font-size: 12px; color: var(--text-tertiary); }
 .st-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .st-sub { font-size: 12px; color: var(--text-tertiary); }
+/* 源 SQL / 路径副标题：单行省略（长 SQL 不撑高行），全文靠 title 悬停 */
+.st-sub-clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-sql { font-size: 12px; color: var(--text-secondary); }
 .st-cron { font-size: 12px; color: var(--el-color-primary); }
 .st-mode-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }

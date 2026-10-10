@@ -121,7 +121,11 @@ function frameworkSharedAssets(): PluginOption {
         const destDir = path.join(__dirname, 'dist', prefix)
         fs.mkdirSync(destDir, { recursive: true })
         for (const entry of fs.readdirSync(dir)) {
-          fs.copyFileSync(path.join(dir, entry), path.join(destDir, entry))
+          const source = path.join(dir, entry)
+          const dest = path.join(destDir, entry)
+          // 共享目录可能含子目录（如 wasm/cad 预览资源）：copyFileSync 对目录会抛
+          // EPERM，这里统一用递归复制兼容文件与子目录两种形态。
+          fs.cpSync(source, dest, { recursive: true })
         }
       }
     },
@@ -186,11 +190,11 @@ export default defineConfig({
     clean({ cleanOnceBeforeBuildPatterns: ['**/*', '!some-important-file.txt'] }) as PluginOption,
     AutoImport({
       resolvers: [ElementPlusResolver()],
-      dts: 'src/types/auto-imports.d.ts',
+      dts: path.resolve(WORKSPACE_ROOT, 'pages/ai/src/types/auto-imports.d.ts'),
     }),
     Components({
       resolvers: [ElementPlusResolver()],
-      dts: 'src/types/components.d.ts',
+      dts: path.resolve(WORKSPACE_ROOT, 'pages/ai/src/types/components.d.ts'),
     }),
     // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
     fileViewerRenderers({ inject: false, preset: 'office', copyAssets: true }) as PluginOption,
@@ -231,7 +235,7 @@ export default defineConfig({
       // 默认导入，而 echarts 5 的 ESM 产物没有 default 导出；兼容层同时提供
       // `export *` 与 default namespace，两种写法都成立。
       { find: /^echarts$/, replacement: path.resolve(WORKSPACE_ROOT, 'packages/ui/src/shared/echarts-compat') },
-      { find: '@', replacement: path.resolve(__dirname, './src') },
+      { find: '@', replacement: path.resolve(WORKSPACE_ROOT, 'pages/ai/src') },
       // ── 跨包入口（取值同 turbo/vite/createVite.ts 的 REPO_ALIAS）────────────
       // 本应用用独立 vite 配置（不走 createVite），被 koi 组件间接引用到、且无法
       // 走 pnpm workspace 解析的入口必须在此显式声明，否则 vite build 报
@@ -252,6 +256,7 @@ export default defineConfig({
       { find: '@repo/re-map', replacement: path.resolve(WORKSPACE_ROOT, 'packages/ui/re-map') },
       // koi layouts/components/{AnnouncementBar,Main} 内是动态 import，编译期才解析；
       // 缺失时构建报 Rollup failed to resolve import "@pages/system/api/announcementApi"
+      { find: '@pages/ai', replacement: path.resolve(WORKSPACE_ROOT, 'pages/ai/src') },
       { find: '@pages/system', replacement: path.resolve(WORKSPACE_ROOT, 'pages/system/src') },
       // SystemSettings.vue 的「文件存储」页直接复用 @repo/filesystem 的 FileStorageManage。
       // 少这一行会让 dev server 报 Failed to resolve import "@pages/filesystem"，

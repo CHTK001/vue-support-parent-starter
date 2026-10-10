@@ -69,7 +69,15 @@ const AUTO_REFRESH: ReTableAutoRefresh = {
 };
 
 const flows = ref<CollectFlow[]>([]);
-const tableRef = ref<{ reload: () => void; goto: (page?: number) => void } | null>(null);
+const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null);
+
+/**
+ * 当前勾选的运行记录（跨页常驻勾选列回传），批量删除的输入。
+ *
+ * <p>与采集结果页（RecordView）同一套模式：勾选状态由 ReTable 常驻勾选列持有，
+ * 翻页不丢；删完统一 clearAllSelection 收口。</p>
+ */
+const selected = ref<CollectTask[]>([]);
 
 /** 回放弹窗选中的运行 */
 const replayTask = ref<CollectTask | null>(null);
@@ -242,6 +250,46 @@ async function removeTask(input: Record<string, unknown>): Promise<void> {
   }
 }
 
+/** ReTable 勾选列回传：跨页保持，翻页/筛选变化时由 ReTable 重新回传 */
+function pickSelection(rows: Record<string, unknown>[]): void {
+  selected.value = rows as unknown as CollectTask[];
+}
+
+/**
+ * 批量删除勾选的运行记录。
+ *
+ * <p>逐个删 + 逐行报错，任一失败不中断整批（与调度作业页 JobView 的批量删除同款模式）：
+ * 运行记录接口只有单条删除，没有批量端点，串行逐条删是既定做法。</p>
+ */
+async function removeSelected(): Promise<void> {
+  const rows = selected.value;
+  if (!rows.length) {
+    msgInfo("请先勾选要删除的运行记录");
+    return;
+  }
+  if (!(await confirmAction(`确认删除勾选的 ${rows.length} 个运行记录及其节点日志？`, "批量删除"))) {
+    return;
+  }
+  let done = 0;
+  for (const task of rows) {
+    try {
+      await deleteTask(task.collectTaskId);
+      done++;
+    } catch (error) {
+      msgError(`任务 ${task.collectTaskNo}：${errText(error)}`);
+    }
+  }
+  msgSuccess(`已删除 ${done} 个运行记录`);
+  clearSelection();
+  tableRef.value?.reload();
+}
+
+/** 清空勾选：本地 selected 与 ReTable 常驻勾选列一起清 */
+function clearSelection(): void {
+  selected.value = [];
+  tableRef.value?.clearAllSelection();
+}
+
 async function cleanHistory(): Promise<void> {
   const flowId = activeFlowId.value;
   const scope = flowId ? `流程「${flowOptions.value.find(item => item.value === flowId)?.label ?? flowId}」` : "全部流程";
@@ -281,6 +329,7 @@ onActivated(() => {
       :params="query"
       :columns="columns"
       row-key="collectTaskId"
+      show-selection
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
       v-model:search-model="searchModel"
@@ -289,6 +338,7 @@ onActivated(() => {
       :auto-refresh="AUTO_REFRESH"
       empty-text="暂无运行记录，去「采集器管理」运行一个采集器"
       stripe
+      @selection-change="pickSelection"
       @search="backToFirstPage"
       @search-reset="reloadFromFirstPage"
     >
@@ -296,8 +346,19 @@ onActivated(() => {
         <ReButton
           icon="Delete"
           type="danger"
-          :title="cleanTitle"
-          @click="cleanHistory">{{ cleanTitle }}</ReButton>
+          layout="square"
+          :tip="cleanTitle"
+          @click="cleanHistory"/>
+        <template v-if="selected.length">
+          <span class="collect-hint">已选 {{ selected.length }} 项</span>
+          <ReButton
+            icon="Delete"
+            type="danger"
+            layout="square"
+            tip="删除勾选的运行记录"
+            @click="removeSelected"/>
+          <ReButton icon="CircleClose" tip="清空选择" @click="clearSelection">清空选择</ReButton>
+        </template>
       </template>
 
       <template #no="{ row }">

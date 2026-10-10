@@ -48,62 +48,59 @@
     </div>
 
     <div class="table-panel">
-      <el-table
-        v-loading="loading"
-        :data="items"
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
+           .apm-table 变量覆盖与 e2e 的 .el-table__body 选择器不失效；
+           pagination=false —— 分页仍由下方 el-pagination 自管；toolbar=false 不新增工具栏；
+           原 el-table 没写 border → settings.border=false 抑制默认边框；
+           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。 -->
+      <ReTable
+        :data="items as unknown as Record<string, unknown>[]"
+        :columns="leakColumns"
+        :loading="loading"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ minHeight: 0 }"
         class="apm-table"
         empty-text="暂无泄漏记录"
       >
-        <el-table-column label="类型" width="120">
-          <template #default="{ row }">
-            <el-tag :type="typeTag(row.resourceType)" round>
-              {{ row.resourceType }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="资源" min-width="200">
-          <template #default="{ row }">
-            <span class="mono">{{ row.resourceName }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="线程" min-width="140">
-          <template #default="{ row }">
-            <span class="mono muted">{{ row.thread || "—" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="存活" width="100" align="center">
-          <template #default="{ row }">
-            <el-progress
-              :percentage="agePercent(row.ageMs)"
-              :color="ageColor(row.ageMs)"
-              :stroke-width="6"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.active ? 'danger' : 'info'" effect="dark">
-              {{ row.active ? "活跃" : "已关闭" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="检测时间" width="160">
-          <template #default="{ row }">
-            <span class="muted">{{ row.detectedAt || "—" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="调用栈" width="90" align="center">
-          <template #default="{ row }">
-            <el-popover v-if="row.stackTrace" trigger="hover" width="420" placement="left">
-              <template #reference>
-                <el-button text type="primary">展开</el-button>
-              </template>
-              <pre class="stack">{{ row.stackTrace }}</pre>
-            </el-popover>
-            <span v-else class="muted">—</span>
-          </template>
-        </el-table-column>
-      </el-table>
+        <template #col-resourceType="{ row }">
+          <el-tag :type="typeTagOf(row)" round>
+            {{ row.resourceType }}
+          </el-tag>
+        </template>
+        <template #col-resourceName="{ row }">
+          <span class="mono">{{ row.resourceName }}</span>
+        </template>
+        <template #col-thread="{ row }">
+          <span class="mono muted">{{ row.thread || "—" }}</span>
+        </template>
+        <template #col-ageMs="{ row }">
+          <el-progress
+            :percentage="agePercent(ageMsOf(row))"
+            :color="ageColor(ageMsOf(row))"
+            :stroke-width="6"
+          />
+        </template>
+        <template #col-active="{ row }">
+          <el-tag :type="row.active ? 'danger' : 'info'" effect="dark">
+            {{ row.active ? "活跃" : "已关闭" }}
+          </el-tag>
+        </template>
+        <template #col-detectedAt="{ row }">
+          <span class="muted">{{ row.detectedAt || "—" }}</span>
+        </template>
+        <template #col-stackTrace="{ row }">
+          <el-popover v-if="row.stackTrace" trigger="hover" width="420" placement="left">
+            <template #reference>
+              <el-button text type="primary">展开</el-button>
+            </template>
+            <pre class="stack">{{ row.stackTrace }}</pre>
+          </el-popover>
+          <span v-else class="muted">—</span>
+        </template>
+      </ReTable>
 
       <div class="pager">
         <el-pagination
@@ -124,6 +121,8 @@
 import { onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Download, Plus } from "@element-plus/icons-vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageLeaks, exportLeaksCsv, injectLeak } from "../api/apmApi";
 import type { LeakRecord, LeakQuery } from "../api/apmApi";
 
@@ -137,6 +136,33 @@ const resourceNameSearch = ref("");
 const threadSearch = ref("");
 const activeOnly = ref(false);
 const range = ref<[Date, Date] | null>(null);
+
+/**
+ * 列配置：原来散在模板里的 7 个 el-table-column 收敛到这里。
+ *
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。七列原 el-table-column
+ * 都没有 prop（纯自定义单元格），这里补稳定合成 prop（直接取行字段名，
+ * stackTrace 列取调用栈字段），模板里一一对应 #col-&lt;prop&gt; 插槽。</p>
+ */
+const leakColumns: ReTableColumn[] = [
+  { prop: "resourceType", label: "类型", width: 120, slot: "resourceType" },
+  { prop: "resourceName", label: "资源", minWidth: 200, slot: "resourceName" },
+  { prop: "thread", label: "线程", minWidth: 140, slot: "thread" },
+  { prop: "ageMs", label: "存活", width: 100, align: "center", slot: "ageMs" },
+  { prop: "active", label: "状态", width: 80, align: "center", slot: "active" },
+  { prop: "detectedAt", label: "检测时间", width: 160, slot: "detectedAt" },
+  { prop: "stackTrace", label: "调用栈", width: 90, align: "center", slot: "stackTrace" },
+];
+
+/** 插槽里的 row 是宽类型（unknown）：类型取色前先收窄成 string（原 typeTag(row.resourceType) 同义） */
+function typeTagOf(row: Record<string, unknown>) {
+  return typeTag(String(row.resourceType ?? ""));
+}
+
+/** 插槽里的 row 是宽类型（unknown）：存活毫秒是算术入参，先收窄成 number */
+function ageMsOf(row: Record<string, unknown>): number {
+  return Number(row.ageMs ?? 0);
+}
 
 async function load() {
   loading.value = true;

@@ -34,6 +34,14 @@ const props = defineProps<{
   objectKey: string;
   /** 文件名（决定导出格式） */
   fileName: string;
+  /**
+   * 图片路径参数（系统配置「图片滤镜」下发，如 {@code grayscale=1}）
+   *
+   * <p>由父组件按后台 SPI 能力计算后传入：非空时预览图也带该参数，
+   * 让「选中的滤镜」在预览里同样先经过滤镜，而不是只有缩略图生效。
+   * 空串表示原图，不拼任何参数。</p>
+   */
+  imagePath?: string;
 }>();
 
 const emit = defineEmits<{
@@ -160,6 +168,23 @@ const imgStyle = computed(() => {
 const reloadSeq = ref(0);
 
 /**
+ * 把图片路径参数拆成查询键值对（{@code grayscale=1} → {@code {grayscale:"1"}}）
+ *
+ * <p>解析失败的项直接丢弃，避免把半截参数拼进地址变成服务端侧的未知参数。</p>
+ */
+const imagePathParams = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {};
+  for (const pair of (props.imagePath ?? "").split("&")) {
+    const p = pair.trim();
+    if (!p) continue;
+    const eq = p.indexOf("=");
+    if (eq <= 0) continue;
+    out[p.slice(0, eq).trim()] = p.slice(eq + 1).trim();
+  }
+  return out;
+});
+
+/**
  * 原图地址（带缓存击穿参数，保存后能立刻看到新图）
  *
  * <p>票据是异步换来的，解析完成前先返回空串 —— 让 {@code <img>} 暂不发起请求，
@@ -170,7 +195,7 @@ const src = ref("");
 /** 按需签发票据并刷新原图地址 */
 async function refreshSrc(): Promise<void> {
   const ticketUrl = await resolveObjectUrl(props.bucket, props.objectKey, {
-    params: { _r: String(reloadSeq.value) },
+    params: { _r: String(reloadSeq.value), ...imagePathParams.value },
   });
   src.value = ticketUrl;
 }

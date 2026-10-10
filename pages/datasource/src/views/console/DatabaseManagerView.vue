@@ -1,15 +1,27 @@
 <template>
   <div class="dbm" :class="{ 'is-embedded': embedded }">
     <!-- 顶部工具栏
-         刻意**只有**数据源切换与一个刷新：新建查询 / 新建数据库 / 新建表 / 导入数据
-         四个动作已下沉到右键菜单（表 / 库 / 空白 三套），与 Navicat 的操作面一致。
-         5 个带文字的按钮占了整行高度却很少被点，压缩后主内容区能多出约 36px。 -->
+         页面级动作只留数据源切换与一个刷新：新建查询 / 新建库表 / 导入数据已下沉到右键菜单
+         （表 / 库 / 空白 三套），与 Navicat 的操作面一致。
+         表页签激活时把「统计总数 + 列显示设置 + 恢复默认设置」这簇表视图设置挂到 hero：
+         表格工具条第一行因此只放表名 / 显示模式 / 4 个数据动作，第二行分页独占右对齐 ——
+         点分页、切统计总数、总位数变化都只动分页器自己的左缘，整页零位移（防抖结构）。 -->
     <div class="dbm-toolbar">
       <div class="dbm-toolbar-left">
         <span class="dbm-toolbar-hint">右键表 / 库 / 空白处可执行新建、导入导出等操作</span>
       </div>
       <div class="dbm-toolbar-right">
+        <!-- 刷新连接树必须保持 DOM 第一位：套件用 .dbm-toolbar-right .rs-btn :first 命中它 -->
         <ReButton layout="square" icon="Refresh" tip="刷新连接树" data-testid="dsm-btn-refresh" @click="refreshTree" />
+        <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
+        <template v-if="activeTabObj && activeTabObj.type === 'table'">
+          <label class="dbm-switch">
+            <ReSwitch v-model="showTotal" />
+            <span>统计总数</span>
+          </label>
+          <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
+          <ReButton layout="square" icon="RefreshLeft" tip="恢复默认设置（视图偏好与各表筛选条件）" @click="resetViewSettings" />
+        </template>
         <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
              再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
         <template v-if="!embedded">
@@ -216,10 +228,8 @@
               >{{ m.label }}</span>
             </div>
             <span class="dbm-spacer" />
-            <label class="dbm-switch">
-              <ReSwitch v-model="showTotal" />
-              <span>统计总数</span>
-            </label>
+            <!-- 4 个数据动作留在表页签本地（套件 .dbm-table-toolbar 按钮计数/导出入口依赖这里）；
+                 「统计总数 + 列显示 + 恢复默认」已迁到 hero。 -->
             <ReButton layout="square" type="primary" icon="Plus" tip="新增行" @click="openAddRowDialog" />
             <ReButton
               layout="square"
@@ -227,8 +237,6 @@
               tip="导出数据"
               @click="openExportDialog(activeTabObj.tableName, activeTabObj.database)"
             />
-            <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
-            <ReButton layout="square" icon="RefreshLeft" tip="恢复默认设置（视图偏好与各表筛选条件）" @click="resetViewSettings" />
             <ReButton layout="square" icon="Refresh" tip="刷新数据" @click="refreshTableData" />
             <ReButton
               layout="square"
@@ -238,6 +246,10 @@
               tip="清空表"
               @click="confirmTruncate(activeTabObj.tableName, activeTabObj.database)"
             />
+            <!-- 分页独占一整行（flex-basis:100%）且右对齐：分页器宽度随页码数/总位数/
+                 统计总数开关变化时，只有它自己的左缘在动，第一行内容与工具条高度
+                 恒定 —— 这是「点分页不抖动」的结构保证。 -->
+            <div class="dbm-pager-row">
             <RePagination
               v-if="showTotal"
               v-model:current-page="tableData.page"
@@ -265,6 +277,7 @@
                 @click="onPageChange(tableData.page + 1)"
               />
             </span>
+            </div>
           </div>
           <!-- 过滤条（Navicat 式 WHERE 条件 + 快捷筛选）：默认折叠，展开后才有 WHERE 输入行 -->
           <div class="dbm-filter-bar">

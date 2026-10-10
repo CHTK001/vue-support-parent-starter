@@ -9,6 +9,9 @@ catalogs:
     '@element-plus/icons-vue':
       specifier: ^2.3.0
       version: 2.3.2
+    '@file-viewer/preset-all':
+      specifier: 3.1.2
+      version: 3.1.2
     '@file-viewer/preset-office':
       specifier: 3.1.2
       version: 3.1.2
@@ -357,6 +360,9 @@ importers:
 
   apps/vue-support-ai-guada:
     dependencies:
+      '@pages/ai':
+        specifier: workspace:*
+        version: link:../../pages/ai
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../../pages/filesystem
@@ -490,6 +496,9 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(vue@3.5.40(typescript@6.0.3))
     devDependencies:
+      '@file-viewer/preset-all':
+        specifier: 'catalog:'
+        version: 3.1.2(esbuild@0.28.1)(pdf-lib@1.17.1)
       '@file-viewer/vite-plugin':
         specifier: 'catalog:'
         version: 3.1.2(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))
@@ -669,9 +678,6 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
-      '@pages/ai':
-        specifier: workspace:*
-        version: link:../../pages/ai
       '@pages/eduai':
         specifier: workspace:*
         version: link:../../pages/eduai
@@ -1262,6 +1268,9 @@ importers:
 
   packages/config:
     dependencies:
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../utils
       js-yaml:
         specifier: 'catalog:'
         version: 4.3.0
@@ -1948,18 +1957,196 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.40(typescript@6.0.3))
+      '@pages/filesystem':
+        specifier: workspace:*
+        version: link:../filesystem
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@repo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@repo/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@tiptap/core':
+        specifier: ^3.26.0
+        version: 3.31.3(@tiptap/pm@3.31.3)
+      '@tiptap/extension-placeholder':
+        specifier: ^3.26.0
+        version: 3.31.3(@tiptap/extensions@3.31.3(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3))
+      '@tiptap/starter-kit':
+        specifier: ^3.26.0
+        version: 3.31.3
+      '@tiptap/suggestion':
+        specifier: ^3.26.0
+        version: 3.31.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)
+      '@tiptap/vue-3':
+        specifier: ^3.26.0
+        version: 3.31.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)(vue@3.5.40(typescript@6.0.3))
+      '@types/diff':
+        specifier: ^7.0.2
+        version: 7.0.2
+      '@vicons/antd':
+        specifier: ^0.13.0
+        version: 0.13.0
+      '@vicons/fluent':
+        specifier: ^0.13.0
+        version: 0.13.0
+      '@vicons/ionicons5':
+        specifier: ^0.13.0
+        version: 0.13.0
+      '@vicons/material':
+        specifier: ^0.13.0
+        version: 0.13.0
+      '@vuelidate/core':
+        specifier: ^2.0.3
+        version: 2.0.3(vue@3.5.40(typescript@6.0.3))
+      '@vuelidate/validators':
+        specifier: ^2.0.4
+        version: 2.0.4(vue@3.5.40(typescript@6.0.3))
+      '@vueuse/core':
+        specifier: ^14.1.0
+        version: 14.3.0(vue@3.5.40(typescript@6.0.3))
+      axios:
+        specifier: ^1.13.2
+        version: 1.19.0
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.21
+      diff:
+        specifier: ^9.0.0
+        version: 9.0.0
+      diff-dom:
+        specifier: ^5.2.1
+        version: 5.2.1
+      echarts:
+        specifier: 'catalog:'
+        version: 5.6.0
       element-plus:
-        specifier: 'catalog:'
+        specifier: ^2.13.0
         version: 2.14.3(vue@3.5.40(typescript@6.0.3))
+      event-source-polyfill:
+        specifier: ^1.0.31
+        version: 1.0.31
+      highlight.js:
+        specifier: ^11.11.1
+        version: 11.12.0
+      katex:
+        specifier: ^0.18.7
+        version: 0.18.9
+      marked:
+        specifier: ^16.4.2
+        version: 16.4.2
+      marked-highlight:
+        specifier: ^2.2.3
+        version: 2.2.4(marked@16.4.2)
+      marked-katex-extension:
+        specifier: ^5.1.13
+        version: 5.1.13(katex@0.18.9)(marked@16.4.2)
+      nprogress:
+        specifier: ^0.2.0
+        version: 0.2.0
+      partial-json:
+        specifier: ^0.1.7
+        version: 0.1.7
+      pinia:
+        specifier: ^3.0.4
+        version: 3.0.4(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      simplebar-vue:
+        specifier: ^2.4.2
+        version: 2.4.2(vue@3.5.40(typescript@6.0.3))
+      splitpanes:
+        specifier: ^4.0.4
+        version: 4.1.2(vue@3.5.40(typescript@6.0.3))
+      tippy.js:
+        specifier: ^6.3.7
+        version: 6.3.7
+      v-viewer:
+        specifier: ^3.0.23
+        version: 3.0.23(viewerjs@1.15.0)(vue@3.5.40(typescript@6.0.3))
+      viewerjs:
+        specifier: ^1.15.0
+        version: 1.15.0
       vue:
-        specifier: 'catalog:'
+        specifier: ^3.5.21
         version: 3.5.40(typescript@6.0.3)
+      vue-advanced-cropper:
+        specifier: ^2.8.9
+        version: 2.8.9(vue@3.5.40(typescript@6.0.3))
+      vue-i18n:
+        specifier: ^9.14.4
+        version: 9.14.5(vue@3.5.40(typescript@6.0.3))
+      vue-router:
+        specifier: ^4.6.4
+        version: 4.6.4(vue@3.5.40(typescript@6.0.3))
+      vuedraggable:
+        specifier: ^4.1.0
+        version: 4.1.0(vue@3.5.40(typescript@6.0.3))
+    devDependencies:
+      '@file-viewer/preset-all':
+        specifier: 'catalog:'
+        version: 3.1.2(esbuild@0.28.1)(pdf-lib@1.17.1)
+      '@file-viewer/vite-plugin':
+        specifier: 'catalog:'
+        version: 3.1.2(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.3.3(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))
+      '@types/event-source-polyfill':
+        specifier: ^1.0.5
+        version: 1.0.5
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.6
+      '@types/nprogress':
+        specifier: ^0.2.3
+        version: 0.2.3
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.3
+        version: 6.0.8(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))(vue@3.5.40(typescript@6.0.3))
+      rollup-plugin-visualizer:
+        specifier: ^6.0.5
+        version: 6.0.11(rolldown@1.2.1)(rollup@4.62.3)
+      sass-embedded:
+        specifier: ^1.98.0
+        version: 1.104.1
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.3.3
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+      unplugin-auto-import:
+        specifier: ^20.3.0
+        version: 20.3.0(@nuxt/kit@4.5.2(magic-string@1.2.3)(oxc-parser@0.148.0)(rolldown@1.2.1)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.1)(rollup@4.62.3)(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))))(@vueuse/core@14.3.0(vue@3.5.40(typescript@6.0.3)))
+      unplugin-vue-components:
+        specifier: ^30.0.0
+        version: 30.0.0(@babel/parser@7.29.8)(@nuxt/kit@4.5.2(magic-string@1.2.3)(oxc-parser@0.148.0)(rolldown@1.2.1)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.1)(rollup@4.62.3)(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))))(vue@3.5.40(typescript@6.0.3))
+      vite:
+        specifier: ^7.3.0
+        version: 7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)
+      vite-plugin-clean:
+        specifier: ^2.0.1
+        version: 2.0.1(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(rollup@4.62.3)(sass-embedded@1.104.1)(sass@1.104.1)
+      vite-plugin-inspect:
+        specifier: ^11.3.3
+        version: 11.4.1(@nuxt/kit@4.5.2(magic-string@1.2.3)(oxc-parser@0.148.0)(rolldown@1.2.1)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.1)(rollup@4.62.3)(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))))(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))
+      vue-tsc:
+        specifier: ^3.2.6
+        version: 3.3.11(typescript@6.0.3)
 
   pages/collect:
     dependencies:
@@ -2152,7 +2339,7 @@ importers:
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
       '@file-viewer/preset-office':
         specifier: 'catalog:'
-        version: 3.1.2
+        version: 3.1.2(pdf-lib@1.17.1)
       '@file-viewer/renderer-3d':
         specifier: 'catalog:'
         version: 3.1.2(esbuild@0.28.1)(web-ifc@0.0.78)
@@ -3617,6 +3804,30 @@ packages:
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@file-viewer/capability-drawio-official@3.1.2':
+    resolution: {integrity: sha512-Yh69pUFbB6YDguGERfIWmeQhDLkizBvMfKwYlUec5qE21muSR9Umo/oqfcAWzOvdSijQJnOWtouI0P7l+oJXiA==}
+
+  '@file-viewer/capability-mermaid@3.1.2':
+    resolution: {integrity: sha512-vMyV4DQpyqjwPjB5Uu/2nhU2IwU5Pm/PwICXttbVJu3PMPxxkv3FBcf+S7SZ+bdNYoGt+SkunOMpwYogyz+LwQ==}
+
+  '@file-viewer/capability-midi@3.1.2':
+    resolution: {integrity: sha512-Fd46dTiVz0kU7CsQvSiCk0c3Gx18uC6Zez+TyNWlwwgfBsqldU7X5eDc2aFIAD3sfqPuSOnPcCw5HMKhSlLKLg==}
+
+  '@file-viewer/capability-pdf-identity-repair@3.1.2':
+    resolution: {integrity: sha512-XwDGybL8PiEsN0nRXFLTWR27dr64+GRbwd+wFW1Th4F+Vn5UDr4U/3ozNGzEUL4SXRDywrwzuPubYWokuKIf4g==}
+
+  '@file-viewer/capability-pptx-charts@3.1.2':
+    resolution: {integrity: sha512-ly2muT9vouyzC+tE/zt3slVNbQ6Ttl9Ht6Tbmvsa9EDdmxH8apwIBcPxxPvNPcF9dcZmbSGeh5p8/cHyLn9VnQ==}
+
+  '@file-viewer/capability-rtf@3.1.2':
+    resolution: {integrity: sha512-AodJyrBS2/jkuXm1FJpR4yVpkoBV3JUvXBrrg4+4k7oPZjGyneuT2cdPYyfOeDit/ktYuvc4iQkusG++2PAW3A==}
+
+  '@file-viewer/capability-streaming-media@3.1.2':
+    resolution: {integrity: sha512-hKGT9rZqFdgN64NXIvvnu5qldkZZAk8pVwmrYIjl6D90pkuICStKKtcnExmtLz3RBNVlmHx9hsnAn8k+8EUKug==}
+
+  '@file-viewer/capability-text-tools@3.1.2':
+    resolution: {integrity: sha512-dsxsy1VMKRKHUcXZqg5C+OIBbKIV0ERNWunGsMPFM+ey0JVe7mRgvV3NuBKcGYKvoNWDKzksRUUEHhIeHij5Ng==}
+
   '@file-viewer/core@3.1.2':
     resolution: {integrity: sha512-jrHwj/zP9gQwlu8kTQ/8kkaFiXAR54ynHuTN/G6quHUMam7f6aoahWwUi9l4gDlhtQm2LyXZBX5pBIAyB/PESw==}
 
@@ -3641,6 +3852,9 @@ packages:
 
   '@file-viewer/pptx@3.1.2':
     resolution: {integrity: sha512-cr00PMBf4ioFzI6F0wVXid+I1e79+nVYmP8vf9y5/FC4esPptYHYKMJX8HJAfjigSjaRgMx0RV1YG9LeQJEL7Q==}
+
+  '@file-viewer/preset-all@3.1.2':
+    resolution: {integrity: sha512-CYJ84ENZ9qMKBWuxMkZbuOFGgOpLIA70CdTmd76euWf7b8QIhHWUC4vKlo/pLQyI8pflNBUk0pt62fmJ4Mnp1A==}
 
   '@file-viewer/preset-office@3.1.2':
     resolution: {integrity: sha512-YPCrNIoZu040Dt+WIR7mIh5W/zeGklR8WEI+egTCqeRtmdUyTUAXXpGoRfuKL39qyDptThhk5KWr07df8ndZBA==}
@@ -4369,6 +4583,12 @@ packages:
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
 
+  '@pdf-lib/standard-fonts@1.0.0':
+    resolution: {integrity: sha512-hU30BK9IUN/su0Mn9VdlVKsWBS6GyhVfqjwl1FjZN4TxP6cCw0jP2w7V3Hf5uX7M0AZJ16vey9yE0ny7Sa59ZA==}
+
+  '@pdf-lib/upng@1.0.1':
+    resolution: {integrity: sha512-dQK2FUMQtowVP00mtIksrlZhdFXQZPC+taih1q4CvPZ5vqdxR/LKBaFg0oAfzd1GlHZXXSPdQfzQnt+ViGvEIQ==}
+
   '@petamoriken/float16@3.9.3':
     resolution: {integrity: sha512-8awtpHXCx/bNpFt4mt2xdkgtgVvKqty8VbjHI/WWWQuEw+KLzFot3f4+LkQY9YmOtq7A5GdOnqoIC8Pdygjk2g==}
 
@@ -4387,6 +4607,10 @@ packages:
     resolution: {integrity: sha512-/UyNlHfkuLXG6Ed85KB0WBF283xn2yavR+UtRibBRUcvEJId2DSLdGXwJ/cDa1X++SWDPzq3+GSFniHjkNy7yg==}
     peerDependencies:
       prettier: ^3.0.0
+
+  '@profoundlogic/hogan@3.0.4':
+    resolution: {integrity: sha512-pmNVGuooS30Mm7YbZd5T7E5zYVO6D5Ct91sn4T39mUvMUc3sCGridcnhAufL1/Bz2QzAtzEn0agNrdk3+5yWzw==}
+    hasBin: true
 
   '@protobuf-ts/runtime@2.11.1':
     resolution: {integrity: sha512-KuDaT1IfHkugM2pyz+FwiY80ejWrkH1pAtOBOZFuR6SXEFTsnb/jiQWQ1rCIrcKx2BtyxnxW6BWwsVSA/Ie+WQ==}
@@ -4919,6 +5143,9 @@ packages:
 
   '@tmcw/togeojson@7.1.2':
     resolution: {integrity: sha512-QKnFs9DAuqqBVj4d6c69tV1Dj2TspSBTqffivoN0YoBCVdP/JY1+WaYCJbzU49RkoU5NOSOJ3jtFHCdEUVh21A==}
+
+  '@tonejs/midi@2.0.28':
+    resolution: {integrity: sha512-RII6YpInPsOZ5t3Si/20QKpNqB1lZ2OCFJSOzJxz38YdY/3zqDr3uaml4JuCWkdixuPqP1/TBnXzhQ39csyoVg==}
 
   '@turbo/darwin-64@2.10.7':
     resolution: {integrity: sha512-/c9cSBRermWDv85oufLhoH6XRLOVbvzJLRd+WLyfJCP+i0HFLQj4PVNDrHcY17/ve5l8X0Oua4bJBqJUgJPnZA==}
@@ -5785,6 +6012,9 @@ packages:
     resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
     engines: {node: '>=14.6'}
 
+  abbrev@1.1.1:
+    resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
+
   abbrev@5.0.0:
     resolution: {integrity: sha512-/XrFJgzQQQHpti1raDJC6m4ws6aNktmjBlhk8Fdlk7LwCEuDoieEJJY9OFHjfiFJFFRM2tK+Ky/IsfbbmlMu1w==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
@@ -5898,6 +6128,9 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
+  array-flatten@3.0.0:
+    resolution: {integrity: sha512-zPMVc3ZYlGLNk4mpK1NzP2wg0ml9t7fUgDsayR5Y5rSzxQilzR9FGu/EH2jQOcKSAeAfWeylyW8juy3OkWRvNA==}
+
   assertion-error@1.1.0:
     resolution: {integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==}
 
@@ -5955,6 +6188,9 @@ packages:
 
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
+
+  billboard.js@3.18.0:
+    resolution: {integrity: sha512-aci69MLwOX0HfdmQHk+v/iA7L4R+wG53hW9VwhkYzMOyqemWLjscf229XsQRrTau9EJSVyOHnr/rpVukoqppXw==}
 
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
@@ -6564,8 +6800,16 @@ packages:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
+  diff2html@3.4.56:
+    resolution: {integrity: sha512-u9gfn+BlbHcyO7vItCIC4z49LJDUt31tODzOfAuJ5R1E7IdlRL6KjugcB9zOpejD+XiR+dDZbsnHSQ3g6A/u8A==}
+    engines: {node: '>=12'}
+
   diff@5.2.2:
     resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
+    engines: {node: '>=0.3.1'}
+
+  diff@8.0.4:
+    resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
 
   diff@9.0.0:
@@ -7089,12 +7333,19 @@ packages:
   hermes-parser@0.36.1:
     resolution: {integrity: sha512-GApNk4zLHi2UWoWZZkx7LNCOSzLSc5lB55pZ/PhK7ycFeg7u5LcF88p/WbpIi1XUDtE0MpHE3uRR3u3KB7TjSQ==}
 
+  highlight.js@11.11.1:
+    resolution: {integrity: sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w==}
+    engines: {node: '>=12.0.0'}
+
   highlight.js@11.12.0:
     resolution: {integrity: sha512-nbfWpyRMcMrPMmDwJB+dhX/eiaPKtc2RB+0QZskqJ3WjRA/FDS0e9hZrx8EC/lbEv8gXy98FcDbNa/dspAaJMg==}
     engines: {node: '>=12.0.0'}
 
   hls.js@1.6.16:
     resolution: {integrity: sha512-VSIRpLfRwlAAdGL4wiTucx2ScRipo0ed1FBatWkyt832jC4CReKstga6yIhYVwGu9LOBjuX9wzmRMeQdBJtzEA==}
+
+  hls.js@1.7.3:
+    resolution: {integrity: sha512-MsPlx6yVW4Qv4C7mEVou4/gk/5cN2dVxOTnrNjPSmyH2f0Ln+/UkG10Ax1PE6OvrmTVPKgQYozTtBaPOuCzq7A==}
 
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
@@ -7835,6 +8086,9 @@ packages:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
 
+  midi-file@1.2.4:
+    resolution: {integrity: sha512-B5SnBC6i2bwJIXTY9MElIydJwAmnKx+r5eJ1jknTLetzLflEl0GWveuBB6ACrQpecSRkOB6fhTx1PwXk2BVxnA==}
+
   mime-db@1.52.0:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
     engines: {node: '>= 0.6'}
@@ -7964,6 +8218,10 @@ packages:
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
+
+  nopt@1.0.10:
+    resolution: {integrity: sha512-NWmpvLSqUrgrAC9HCuxEvb+PSloHpqVu+FqcO4eeF2h5qYRhA7ev6KvelyQAKtegUbC6RypJnlEOhd8vloNKYg==}
+    hasBin: true
 
   nopt@10.0.1:
     resolution: {integrity: sha512-df3sBr/6ax9hSGuC3CspvLlbnX8cP5L5nZwXF8cGN8l0zSWR6BvzmQ6jPUKjvo6+/xdpkNvEcucBNUdBeeV13g==}
@@ -8179,6 +8437,9 @@ packages:
   pbf@5.1.2:
     resolution: {integrity: sha512-mnvGdvOrIvJOBGUEdGkrVXjN8E/VkIJCkf2eS1DH2yv82ORUlLttmDt0rWY38yYZmVwciZwBUvHM20qxBZf40w==}
     hasBin: true
+
+  pdf-lib@1.17.1:
+    resolution: {integrity: sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==}
 
   perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
@@ -8619,6 +8880,9 @@ packages:
 
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
+
+  rtf.js@3.0.9:
+    resolution: {integrity: sha512-I1GpDat4i548WzmeZXv27f/743984fvEeeBS8BC01/Sop17pMlUl3M7DYcdcB3PUvOZTrFIMxGZx8qw7cSMAKQ==}
 
   run-applescript@7.1.0:
     resolution: {integrity: sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q==}
@@ -9125,6 +9389,9 @@ packages:
   ts-md5@1.3.1:
     resolution: {integrity: sha512-DiwiXfwvcTeZ5wCE0z+2A9EseZsztaiZtGrtSaY5JOD7ekPnR/GoIVD5gXZAlK9Na9Kvpo9Waz5rW64WKAWApg==}
     engines: {node: '>=12'}
+
+  tslib@1.14.1:
+    resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
 
   tslib@2.3.0:
     resolution: {integrity: sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg==}
@@ -10729,6 +10996,55 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
+  '@file-viewer/capability-drawio-official@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-drawing': 3.1.2(bpmn-js@18.31.0)
+    transitivePeerDependencies:
+      - bpmn-js
+
+  '@file-viewer/capability-mermaid@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-text': 3.1.2
+      mermaid: 11.17.2
+    transitivePeerDependencies:
+      - xmllint-wasm
+      - xslt-polyfill
+
+  '@file-viewer/capability-midi@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-media': 3.1.2
+      '@tonejs/midi': 2.0.28
+
+  '@file-viewer/capability-pdf-identity-repair@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-pdf': 3.1.2(pdf-lib@1.17.1)
+      pdf-lib: 1.17.1
+
+  '@file-viewer/capability-pptx-charts@3.1.2':
+    dependencies:
+      '@file-viewer/pptx': 3.1.2
+      billboard.js: 3.18.0
+      d3-format: 3.1.2
+
+  '@file-viewer/capability-rtf@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-word': 3.1.2
+      rtf.js: 3.0.9
+
+  '@file-viewer/capability-streaming-media@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-media': 3.1.2
+      hls.js: 1.7.3
+
+  '@file-viewer/capability-text-tools@3.1.2':
+    dependencies:
+      '@file-viewer/renderer-text': 3.1.2
+      diff2html: 3.4.56
+      pako: 2.2.0
+    transitivePeerDependencies:
+      - xmllint-wasm
+      - xslt-polyfill
+
   '@file-viewer/core@3.1.2':
     dependencies:
       dompurify: 3.4.15
@@ -10759,13 +11075,62 @@ snapshots:
       tinycolor2: 1.6.0
       utif: 3.1.0
 
-  '@file-viewer/preset-office@3.1.2':
+  '@file-viewer/preset-all@3.1.2(esbuild@0.28.1)(pdf-lib@1.17.1)':
+    dependencies:
+      '@file-viewer/capability-drawio-official': 3.1.2
+      '@file-viewer/capability-mermaid': 3.1.2
+      '@file-viewer/capability-midi': 3.1.2
+      '@file-viewer/capability-pdf-identity-repair': 3.1.2
+      '@file-viewer/capability-pptx-charts': 3.1.2
+      '@file-viewer/capability-rtf': 3.1.2
+      '@file-viewer/capability-streaming-media': 3.1.2
+      '@file-viewer/capability-text-tools': 3.1.2
+      '@file-viewer/core': 3.1.2
+      '@file-viewer/renderer-3d': 3.1.2(esbuild@0.28.1)(web-ifc@0.0.78)
+      '@file-viewer/renderer-archive': 3.1.2
+      '@file-viewer/renderer-cad': 3.1.2(three@0.185.1)
+      '@file-viewer/renderer-chm': 3.1.2
+      '@file-viewer/renderer-data': 3.1.2
+      '@file-viewer/renderer-drawing': 3.1.2(bpmn-js@18.31.0)
+      '@file-viewer/renderer-eda': 3.1.2
+      '@file-viewer/renderer-email': 3.1.2
+      '@file-viewer/renderer-epub': 3.1.2
+      '@file-viewer/renderer-geo': 3.1.2(geotiff@2.1.3)
+      '@file-viewer/renderer-hangul': 3.1.2
+      '@file-viewer/renderer-image': 3.1.2
+      '@file-viewer/renderer-iwork': 3.1.2
+      '@file-viewer/renderer-media': 3.1.2
+      '@file-viewer/renderer-mindmap': 3.1.2
+      '@file-viewer/renderer-ofd': 3.1.2
+      '@file-viewer/renderer-pdf': 3.1.2(pdf-lib@1.17.1)
+      '@file-viewer/renderer-ppt': 3.1.2
+      '@file-viewer/renderer-pptx': 3.1.2
+      '@file-viewer/renderer-presentation': 3.1.2
+      '@file-viewer/renderer-spreadsheet': 3.1.2
+      '@file-viewer/renderer-text': 3.1.2
+      '@file-viewer/renderer-typst': 3.1.2
+      '@file-viewer/renderer-word': 3.1.2
+      '@file-viewer/renderer-wordperfect': 3.1.2
+      '@fontsource-variable/noto-sans-sc': 5.3.0
+    transitivePeerDependencies:
+      - '@thatopen/components'
+      - '@thatopen/fragments'
+      - bpmn-js
+      - esbuild
+      - geotiff
+      - pdf-lib
+      - three
+      - web-ifc
+      - xmllint-wasm
+      - xslt-polyfill
+
+  '@file-viewer/preset-office@3.1.2(pdf-lib@1.17.1)':
     dependencies:
       '@file-viewer/core': 3.1.2
       '@file-viewer/renderer-hangul': 3.1.2
       '@file-viewer/renderer-iwork': 3.1.2
       '@file-viewer/renderer-ofd': 3.1.2
-      '@file-viewer/renderer-pdf': 3.1.2
+      '@file-viewer/renderer-pdf': 3.1.2(pdf-lib@1.17.1)
       '@file-viewer/renderer-presentation': 3.1.2
       '@file-viewer/renderer-spreadsheet': 3.1.2
       '@file-viewer/renderer-word': 3.1.2
@@ -10917,10 +11282,12 @@ snapshots:
       '@file-viewer/core': 3.1.2
       jszip: 3.10.2
 
-  '@file-viewer/renderer-pdf@3.1.2':
+  '@file-viewer/renderer-pdf@3.1.2(pdf-lib@1.17.1)':
     dependencies:
       '@file-viewer/core': 3.1.2
       '@fontsource-variable/noto-sans-sc': 5.3.0
+    optionalDependencies:
+      pdf-lib: 1.17.1
 
   '@file-viewer/renderer-ppt@3.1.2':
     dependencies:
@@ -11493,6 +11860,14 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.6.0
     optional: true
 
+  '@pdf-lib/standard-fonts@1.0.0':
+    dependencies:
+      pako: 1.0.11
+
+  '@pdf-lib/upng@1.0.1':
+    dependencies:
+      pako: 1.0.11
+
   '@petamoriken/float16@3.9.3': {}
 
   '@playwright/test@1.62.1':
@@ -11507,6 +11882,10 @@ snapshots:
     dependencies:
       '@xml-tools/parser': 1.0.12
       prettier: 3.9.6
+
+  '@profoundlogic/hogan@3.0.4':
+    dependencies:
+      nopt: 1.0.10
 
   '@protobuf-ts/runtime@2.11.1': {}
 
@@ -11950,6 +12329,11 @@ snapshots:
       '@tiptap/extension-floating-menu': 3.31.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)
 
   '@tmcw/togeojson@7.1.2': {}
+
+  '@tonejs/midi@2.0.28':
+    dependencies:
+      array-flatten: 3.0.0
+      midi-file: 1.2.4
 
   '@turbo/darwin-64@2.10.7':
     optional: true
@@ -13806,6 +14190,8 @@ snapshots:
 
   '@xmldom/xmldom@0.9.12': {}
 
+  abbrev@1.1.1: {}
+
   abbrev@5.0.0: {}
 
   accessor-fn@1.5.3: {}
@@ -13900,6 +14286,8 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  array-flatten@3.0.0: {}
+
   assertion-error@1.1.0: {}
 
   assertion-error@2.0.1: {}
@@ -13953,6 +14341,24 @@ snapshots:
       require-from-string: 2.0.2
 
   bignumber.js@9.3.1: {}
+
+  billboard.js@3.18.0:
+    dependencies:
+      '@types/d3-selection': 3.0.12
+      '@types/d3-transition': 3.0.9
+      d3-axis: 3.0.0
+      d3-brush: 3.0.0
+      d3-drag: 3.0.0
+      d3-dsv: 3.0.1
+      d3-ease: 3.0.1
+      d3-hierarchy: 3.1.2
+      d3-interpolate: 3.0.1
+      d3-scale: 4.0.2
+      d3-selection: 3.0.0
+      d3-shape: 3.2.0
+      d3-time-format: 4.1.0
+      d3-transition: 3.0.1(d3-selection@3.0.0)
+      d3-zoom: 3.0.0
 
   binary-extensions@2.3.0: {}
 
@@ -14580,7 +14986,16 @@ snapshots:
 
   diff-sequences@29.6.3: {}
 
+  diff2html@3.4.56:
+    dependencies:
+      '@profoundlogic/hogan': 3.0.4
+      diff: 8.0.4
+    optionalDependencies:
+      highlight.js: 11.11.1
+
   diff@5.2.2: {}
+
+  diff@8.0.4: {}
 
   diff@9.0.0: {}
 
@@ -15217,9 +15632,14 @@ snapshots:
     dependencies:
       hermes-estree: 0.36.1
 
+  highlight.js@11.11.1:
+    optional: true
+
   highlight.js@11.12.0: {}
 
   hls.js@1.6.16: {}
+
+  hls.js@1.7.3: {}
 
   hookable@5.5.3: {}
 
@@ -16046,6 +16466,8 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.2
 
+  midi-file@1.2.4: {}
+
   mime-db@1.52.0: {}
 
   mime-types@2.1.35:
@@ -16168,6 +16590,10 @@ snapshots:
   node-modules-regexp@1.0.0: {}
 
   node-releases@2.0.51: {}
+
+  nopt@1.0.10:
+    dependencies:
+      abbrev: 1.1.1
 
   nopt@10.0.1:
     dependencies:
@@ -16400,6 +16826,13 @@ snapshots:
   pbf@5.1.2:
     dependencies:
       resolve-protobuf-schema: 2.1.0
+
+  pdf-lib@1.17.1:
+    dependencies:
+      '@pdf-lib/standard-fonts': 1.0.0
+      '@pdf-lib/upng': 1.0.1
+      pako: 1.0.11
+      tslib: 1.14.1
 
   perfect-debounce@1.0.0: {}
 
@@ -16850,6 +17283,10 @@ snapshots:
   rrweb-cssom@0.7.1: {}
 
   rrweb-cssom@0.8.0: {}
+
+  rtf.js@3.0.9:
+    dependencies:
+      codepage: 1.15.0
 
   run-applescript@7.1.0: {}
 
@@ -17335,6 +17772,8 @@ snapshots:
   ts-interface-checker@0.1.13: {}
 
   ts-md5@1.3.1: {}
+
+  tslib@1.14.1: {}
 
   tslib@2.3.0: {}
 

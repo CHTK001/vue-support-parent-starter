@@ -16,6 +16,7 @@ import { computed, ref } from "vue";
 import { ElDropdown, ElDropdownItem, ElDropdownMenu } from "element-plus";
 import { getRouter, msgError, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
+import ReCron from "@repo/ui/re-cron";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
@@ -25,6 +26,7 @@ import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import FlowDesignDialog from "../components/FlowDesignDialog.vue";
+import FlowEditDialog from "../components/FlowEditDialog.vue";
 import FlowPreviewDialog from "../components/FlowPreviewDialog.vue";
 import CollectorConfigDialog from "../components/CollectorConfigDialog.vue";
 import {
@@ -54,6 +56,8 @@ const categoryFilter = ref("");
 
 const designVisible = ref(false);
 const designFlowId = ref<number | null>(null);
+const editVisible = ref(false);
+const editFlowId = ref<number | null>(null);
 const previewVisible = ref(false);
 const previewFlowId = ref<number | null>(null);
 const configVisible = ref(false);
@@ -132,8 +136,13 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFlowName", label: "采集器", minWidth: 200, slot: "name" },
   { prop: "collectFlowCategoryId", label: "分类", width: 110, slot: "category", align: "center" },
   { prop: "collectFlowStatus", label: "状态", width: 96, slot: "status", align: "center" },
+  /* 启停开关独立成列：此前塞在「自动调度」单元格里，和 cron 挤在一起，
+     开关状态读不出来（同格内容要靠宽度猜）。prop 必须与各列唯一 ——
+     ReTable 按 prop 建列索引（列顺序/隐藏持久化），复用 collectFlowStatus
+     会让本列与「状态」列互相顶掉。 */
+  { prop: "enabled", label: "启用", width: 84, slot: "switch", align: "center" },
   { prop: "nodeCount", label: "节点/连线", width: 96, align: "center" },
-  { prop: "collectFlowCron", label: "自动调度", width: 200, slot: "cron", showOverflowTooltip: true },
+  { prop: "collectFlowCron", label: "自动调度", width: 200, slot: "cron" },
   { prop: "collectFlowNextExecTime", label: "下次执行", width: 176, slot: "next" },
   { prop: "lastRun", label: "最近运行", minWidth: 210, slot: "lastRun" },
   { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right" },
@@ -144,6 +153,12 @@ const columns = computed<ReTableColumn[]>(() => [
 function openDesign(flowId: number | null): void {
   designFlowId.value = flowId;
   designVisible.value = true;
+}
+
+/** 属性快速编辑：不载画布，只改 dsl 之外的实体字段（见 FlowEditDialog 头部注释） */
+function openEdit(flow: CollectFlow): void {
+  editFlowId.value = flow.collectFlowId;
+  editVisible.value = true;
 }
 
 function openPreview(flow: CollectFlow): void {
@@ -310,15 +325,17 @@ function runMore(command: string, flow: CollectFlow): void {
         </ReTag>
       </template>
 
-      <template #cron="{ row }">
-        <span v-if="row.collectFlowCron">{{ row.collectFlowCron }}</span>
-        <span v-else class="muted">未配置</span>
+      <template #switch="{ row }">
         <ReSwitch
-          
           :model-value="row.collectFlowStatus === 1"
-          style="margin-left: 6px"
           @update:model-value="value => toggleSchedule(asFlow(row), value)"
         />
+      </template>
+
+      <template #cron="{ row }">
+        <!-- 文本模式：表达式 + 人话与 ReCron 校验引擎同源，登记错也会原样显示 -->
+        <ReCron v-if="row.collectFlowCron" :model-value="row.collectFlowCron" mode="text" />
+        <span v-else class="muted">未配置</span>
       </template>
 
       <template #next="{ row }">
@@ -352,6 +369,7 @@ function runMore(command: string, flow: CollectFlow): void {
       <template #action="{ row }">
         <div class="ops">
           <ReButton v-bind="COLLECT_ACTIONS.designFlow" layout="square" @click="openDesign(row.collectFlowId)"/>
+          <ReButton v-bind="COLLECT_ACTIONS.editFlow" layout="square" @click="openEdit(asFlow(row))"/>
           <ReButton v-bind="COLLECT_ACTIONS.previewFlow" layout="square" @click="openPreview(asFlow(row))"/>
           <ReButton
             v-bind="COLLECT_ACTIONS.runFlow"
@@ -384,6 +402,7 @@ function runMore(command: string, flow: CollectFlow): void {
       :title="designFlowId ? `流程设计 · ${flows.find(f => f.collectFlowId === designFlowId)?.collectFlowName || ''}` : '新建采集器'"
       @saved="reload"
     />
+    <FlowEditDialog v-model="editVisible" :flow-id="editFlowId" @saved="reload" />
     <FlowPreviewDialog v-model="previewVisible" :flow-id="previewFlowId" />
     <CollectorConfigDialog v-model="configVisible" :panel="configPanel" />
   </div>

@@ -449,6 +449,97 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
 
 const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
 
+/** 新增/编辑弹窗左侧类型搜索关键词 */
+const typeKeyword = ref("");
+
+/**
+ * 左侧类型面板：按关键词过滤（匹配类型键或中文标签）。
+ *
+ * <p>搜索框为空时原样返回全部类型，保持与历史下拉一致的完整清单。</p>
+ */
+const filteredTypes = computed(() => {
+  const kw = typeKeyword.value.trim().toLowerCase();
+  if (!kw) {
+    return types.value;
+  }
+  return types.value.filter((t) => {
+    const meta = typeMeta(t);
+    return t.toLowerCase().includes(kw) || meta.label.toLowerCase().includes(kw);
+  });
+});
+
+/**
+ * 各类型的一句话连接说明（右侧表单头部展示）。
+ *
+ * @param type 数据源类型键
+ * @return 说明文案
+ */
+const typeDesc = (type: string): string => {
+  const desc: Record<string, string> = {
+    jdbc: "通过 JDBC 驱动连接关系型数据库（MySQL / PostgreSQL / Oracle / SQL Server / H2 / SQLite 等）",
+    redis: "连接 Redis 缓存服务，用于键值读写与监控",
+    influxdb: "连接 InfluxDB 时序数据库，用于指标存储",
+    neo4j: "连接 Neo4j 图数据库（HTTP 接口），用于图查询",
+    nacos: "连接 Nacos 配置中心，用于配置与服务发现",
+    zookeeper: "连接 ZooKeeper 协调服务，用于节点与配置管理",
+    nginx: "连接 Nginx 服务器，可查看状态并控制进程启停",
+    etcd: "连接 etcd 配置中心，用于键值存储",
+    prometheus: "连接 Prometheus 监控服务，用于指标查询",
+  };
+  return desc[type] ?? "填写连接信息以接入该类型的数据源";
+};
+
+/**
+ * 左侧类型面板点选：切换类型并同步默认端口。
+ *
+ * <p>与历史下拉 @change 口径一致：新建时重置默认端口，编辑时保留原端口。</p>
+ *
+ * @param t 目标类型键
+ */
+const selectType = (t: string) => {
+  if (form.value.type === t) {
+    return;
+  }
+  form.value.type = t;
+  onTypeChange(t);
+};
+
+/** 弹窗内「测试连接」：仅编辑态（已有 id）可用，新建态需先保存 */
+const dialogTesting = ref(false);
+const dialogTestResult = ref<DataSourceTestResult | null>(null);
+/** 弹窗内「高级设置」折叠态（备注等可选字段） */
+const advancedOpen = ref(false);
+
+/**
+ * 弹窗内测试连接。
+ *
+ * <p>后端连通性测试按已落库的 id 进行（{@code testDataSource(id)}），
+ * 新建态还没有 id，故先提示保存；编辑态直接调用并内联展示结果。</p>
+ */
+const testInDialog = async () => {
+  const id = editing.value?.id;
+  if (id == null) {
+    ElMessage.info("请先保存数据源，再测试连接");
+    return;
+  }
+  dialogTesting.value = true;
+  try {
+    const result = await testDataSource(id);
+    dialogTestResult.value = result;
+    if (result?.success) {
+      ElMessage.success(result.message || "连接成功");
+    } else {
+      ElMessage.error(result?.message || "连接失败");
+    }
+    // 后端在测试时回写连接延迟，重新拉一次让其它视图同步最新值
+    await load();
+  } catch (e) {
+    ElMessage.error(`测试失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    dialogTesting.value = false;
+  }
+};
+
 /** 加载数据源列表 */
 const load = async () => {
   loading.value = true;
@@ -481,6 +572,8 @@ const openCreate = () => {
     controlTarget: ""
   };
   extraParams.value = [];
+  advancedOpen.value = false;
+  dialogTestResult.value = null;
   // 新建弹窗也要能选**已登记**的 jar：不加载的话下拉是空的，
   // 同一个驱动每次建数据源都得重传一遍（编辑弹窗 openEdit 已加载）
   void loadDriverJars();
@@ -499,6 +592,8 @@ const openEdit = (item: DataSourceInfo) => {
   // 编辑既有数据源时也要能选 jar：老数据源没有这个字段，
   // 但用户可能正想给它换一个上传的驱动
   void loadDriverJars();
+  advancedOpen.value = false;
+  dialogTestResult.value = null;
   dialogVisible.value = true;
 };
 
@@ -1425,142 +1520,200 @@ onMounted(load);
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <ReDialog v-model="dialogVisible" :title="editing ? '编辑数据源' : '新增数据源'" width="560px">
-      <div class="ds-dialog-body">
-        <ReForm label-position="top" class="ds-form">
-          <ReFormItem label="名称" required class="is-full">
-            <ReInput v-model="form.name" placeholder="例如：生产 MySQL" />
-          </ReFormItem>
-          <ReFormItem label="类型" required>
-            <ReSelect v-model="form.type" :options="types.map(t => ({ label: typeMeta(t).label, value: t }))" @change="onTypeChange" />
-          </ReFormItem>
-          <ReFormItem label="主机地址">
-            <ReInput v-model="form.host" placeholder="127.0.0.1" />
-          </ReFormItem>
-          <ReFormItem :label="form.type === 'neo4j' ? '端口 (HTTP)' : '端口'">
-            <ReInputNumber
-              :model-value="form.port ?? undefined"
-              :min="1"
-              :max="65535"
-              style="width: 100%"
-              @update:model-value="form.port = $event"
-            />
-          </ReFormItem>
-          <ReFormItem label="用户名">
-            <ReInput v-model="form.username" placeholder="数据库用户名" />
-          </ReFormItem>
-          <ReFormItem label="密码">
-            <ReInput v-model="form.password" type="password" show-password placeholder="数据库密码" />
-          </ReFormItem>
-          <ReFormItem :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'">
-            <ReInput
-              v-model="form.database"
-              :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号'"
-            />
-          </ReFormItem>
-          <!-- JDBC 驱动：本机不可能备齐所有数据库的驱动包（ojdbc / mssql-jdbc /
-               各类国产库驱动体积都在数 MB、许可各异），所以允许按数据源上传 jar。
-               上传时后端会**当场加载一次驱动类**，失败就连文件带台账一起回滚，
-               不会留下「传上去了、一连就报 ClassNotFound」的半成品。 -->
-          <template v-if="form.type === 'jdbc'">
-            <ReFormItem label="驱动类名" class="is-full">
-              <ReInput v-model="form.driverClassName" placeholder="org.h2.Driver（留空则用所选 jar 上登记的类名）" />
-            </ReFormItem>
-            <ReFormItem label="驱动 jar" class="is-full">
-              <div class="ds-driver-jar">
-                <ReSelect
-                  v-model="form.driverJarId"
-                  :options="driverJarOptions"
-                  placeholder="用内置驱动（应用 classpath 上的）"
-                  clearable
-                  class="ds-driver-jar-select"
-                />
-                <input ref="driverJarInput" class="ds-driver-jar-file" type="file" accept=".jar" @change="onPickDriverJar" />
-                <ReButton size="small" @click="driverJarInput?.click()">上传 jar</ReButton>
-              </div>
-              <div class="ds-form-hint">
-                文件库（H2 / SQLite）也要在这里选驱动：它们不在应用 classpath 上。
-              </div>
-            </ReFormItem>
-            <!-- 额外连接参数：MySQL 等的扩展参数（useSSL / serverTimezone / …）。
-                 左 ReSelect 选常用参数名，右填值；保存时并入 JDBC 连接串：
-                 整串 URL 原地合并 query，三段式按后端同款模板补默认参数后再叠加。 -->
-            <ReFormItem label="额外参数" class="is-full">
-              <div class="ds-xparam">
-                <div v-for="(row, i) in extraParams" :key="i" class="ds-xparam__row">
-                  <ReSelect
-                    v-model="row.key"
-                    class="ds-xparam__key"
-                    :options="extraParamOptions"
-                    placeholder="选择或输入参数名"
-                    filterable
-                    allow-create
-                    clearable
-                    :data-testid="`dsm-xparam-key-${i}`"
-                  />
-                  <ReInput
-                    v-model="row.value"
-                    class="ds-xparam__value"
-                    placeholder="参数值，如 false / Asia/Shanghai"
-                    :data-testid="`dsm-xparam-value-${i}`"
-                  />
-                  <ReButton
-                    layout="square"
-                    icon="Delete"
-                    type="danger"
-                    tip="删除此参数"
-                    :data-testid="`dsm-xparam-del-${i}`"
-                    @click="removeExtraParam(i)"
-                  />
-                </div>
-                <div class="ds-xparam__foot">
-                  <ReButton size="small" data-testid="dsm-xparam-add" @click="addExtraParam">
-                    <template #icon><ReIcon name="Plus" :size="12" /></template>
-                    添加参数
-                  </ReButton>
-                  <span class="ds-form-hint">
-                    追加到 JDBC 连接串；同名参数覆盖后端默认值。值里不要带空格或 &amp; ? #
-                  </span>
-                </div>
-              </div>
-            </ReFormItem>
-          </template>
-          <!-- 进程控制方式：只对 nginx 有意义。
-               留空 = 自动探测（后端认得出托管单元且当前用户有免密 systemctl 权限才走 systemd），
-               这是本字段引入前的行为，老数据源保持留空即可保持不变。 -->
-          <template v-if="form.type === 'nginx'">
-            <ReFormItem label="控制方式" class="is-full">
-              <ReSelect
-                v-model="form.controlMode"
-                :options="controlModeOptions"
-                placeholder="自动探测"
-              />
-            </ReFormItem>
-            <ReFormItem
-              v-if="form.controlMode === 'systemd'"
-              label="托管单元名"
-              class="is-full"
+    <ReDialog v-model="dialogVisible" :title="editing ? '编辑数据源' : '新增数据源'" width="860px" class="ds-create-dialog">
+      <div class="ds-create">
+        <!-- 左栏：数据源类型选择（搜索 + 类型列表） -->
+        <aside class="ds-create__side">
+          <div class="ds-create__search">
+            <ReInput v-model="typeKeyword" placeholder="搜索类型" clearable size="small">
+              <template #prefix><ReIcon name="Search" :size="14" /></template>
+            </ReInput>
+          </div>
+          <div class="ds-create__types">
+            <button
+              v-for="t in filteredTypes"
+              :key="t"
+              type="button"
+              class="ds-type-item"
+              :class="{ 'is-active': form.type === t }"
+              :data-testid="`ds-type-${t}`"
+              @click="selectType(t)"
             >
-              <ReInput
-                v-model="form.controlTarget"
-                placeholder="例如 nginx.service；留空则由后端自动探测"
+              <span class="ds-type-item__tile" :style="{ '--tile': typeMeta(t).color }">
+                <ReIcon :name="typeMeta(t).icon" :size="16" />
+              </span>
+              <span class="ds-type-item__label">{{ typeMeta(t).label }}</span>
+            </button>
+            <p v-if="!filteredTypes.length" class="ds-create__none">无匹配类型</p>
+          </div>
+        </aside>
+
+        <!-- 右栏：连接表单 -->
+        <section class="ds-create__main">
+          <header class="ds-create__head">
+            <span class="ds-create__tile" :style="{ '--tile': typeMeta(form.type || '').color }">
+              <ReIcon :name="typeMeta(form.type || '').icon" :size="18" />
+            </span>
+            <div class="ds-create__heading">
+              <div class="ds-create__name">{{ typeMeta(form.type || '').label }}</div>
+              <div class="ds-create__desc">{{ typeDesc(form.type || '') }}</div>
+            </div>
+            <span class="ds-create__badge">{{ (form.type || "").toUpperCase() }}</span>
+          </header>
+
+          <ReForm label-position="top" class="ds-form ds-create__form">
+            <ReFormItem label="名称" required class="is-full">
+              <ReInput v-model="form.name" placeholder="例如：生产 MySQL" />
+            </ReFormItem>
+            <ReFormItem label="主机地址" required>
+              <ReInput v-model="form.host" placeholder="127.0.0.1" />
+            </ReFormItem>
+            <ReFormItem :label="form.type === 'neo4j' ? '端口 (HTTP)' : '端口'" required>
+              <ReInputNumber
+                :model-value="form.port ?? undefined"
+                :min="1"
+                :max="65535"
+                style="width: 100%"
+                @update:model-value="form.port = $event"
               />
             </ReFormItem>
-            <p v-if="form.controlMode === 'local'" class="ds-control-hint">
-              直接在本机执行 <code>nginx -s stop</code> 与裸启动，不经过 systemctl。
-              停止后进程不再受任何进程管理器托管，机器重启不会自动拉起。
-            </p>
-            <p v-else-if="form.controlMode === 'systemd'" class="ds-control-hint">
-              启停交给 <code>systemctl</code>。仍要求 SSH 用户对该单元有免密 sudo 权限，没有时自动退回本地目录方式。
-            </p>
-            <p v-else class="ds-control-hint">
-              由后端自动判断：认得出托管单元且 SSH 用户有该单元的免密 sudo 权限才走 systemd，否则用本地目录方式。
-            </p>
-          </template>
-          <ReFormItem label="备注" class="is-full">
-            <ReInput v-model="form.remark" placeholder="可选备注信息" />
-          </ReFormItem>
-        </ReForm>
+            <ReFormItem label="用户名" required>
+              <ReInput v-model="form.username" placeholder="数据库用户名" />
+            </ReFormItem>
+            <ReFormItem label="密码" required>
+              <ReInput v-model="form.password" type="password" show-password placeholder="数据库密码" />
+            </ReFormItem>
+            <ReFormItem :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'" class="is-full">
+              <ReInput
+                v-model="form.database"
+                :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号'"
+              />
+            </ReFormItem>
+            <!-- JDBC 驱动：本机不可能备齐所有数据库的驱动包（ojdbc / mssql-jdbc /
+                 各类国产库驱动体积都在数 MB、许可各异），所以允许按数据源上传 jar。
+                 上传时后端会**当场加载一次驱动类**，失败就连文件带台账一起回滚，
+                 不会留下「传上去了、一连就报 ClassNotFound」的半成品。 -->
+            <template v-if="form.type === 'jdbc'">
+              <ReFormItem label="驱动类名" class="is-full">
+                <ReInput v-model="form.driverClassName" placeholder="org.h2.Driver（留空则用所选 jar 上登记的类名）" />
+              </ReFormItem>
+              <ReFormItem label="驱动 jar" class="is-full">
+                <div class="ds-driver-jar">
+                  <ReSelect
+                    v-model="form.driverJarId"
+                    :options="driverJarOptions"
+                    placeholder="用内置驱动（应用 classpath 上的）"
+                    clearable
+                    class="ds-driver-jar-select"
+                  />
+                  <input ref="driverJarInput" class="ds-driver-jar-file" type="file" accept=".jar" @change="onPickDriverJar" />
+                  <ReButton size="small" @click="driverJarInput?.click()">上传 jar</ReButton>
+                </div>
+                <div class="ds-form-hint">
+                  文件库（H2 / SQLite）也要在这里选驱动：它们不在应用 classpath 上。
+                </div>
+              </ReFormItem>
+              <!-- 额外连接参数：MySQL 等的扩展参数（useSSL / serverTimezone / …）。
+                   左 ReSelect 选常用参数名，右填值；保存时并入 JDBC 连接串：
+                   整串 URL 原地合并 query，三段式按后端同款模板补默认参数后再叠加。 -->
+              <ReFormItem label="额外参数" class="is-full">
+                <div class="ds-xparam">
+                  <div v-for="(row, i) in extraParams" :key="i" class="ds-xparam__row">
+                    <ReSelect
+                      v-model="row.key"
+                      class="ds-xparam__key"
+                      :options="extraParamOptions"
+                      placeholder="选择或输入参数名"
+                      filterable
+                      allow-create
+                      clearable
+                      :data-testid="`dsm-xparam-key-${i}`"
+                    />
+                    <ReInput
+                      v-model="row.value"
+                      class="ds-xparam__value"
+                      placeholder="参数值，如 false / Asia/Shanghai"
+                      :data-testid="`dsm-xparam-value-${i}`"
+                    />
+                    <ReButton
+                      layout="square"
+                      icon="Delete"
+                      type="danger"
+                      tip="删除此参数"
+                      :data-testid="`dsm-xparam-del-${i}`"
+                      @click="removeExtraParam(i)"
+                    />
+                  </div>
+                  <div class="ds-xparam__foot">
+                    <ReButton size="small" data-testid="dsm-xparam-add" @click="addExtraParam">
+                      <template #icon><ReIcon name="Plus" :size="12" /></template>
+                      添加参数
+                    </ReButton>
+                    <span class="ds-form-hint">
+                      追加到 JDBC 连接串；同名参数覆盖后端默认值。值里不要带空格或 &amp; ? #
+                    </span>
+                  </div>
+                </div>
+              </ReFormItem>
+            </template>
+            <!-- 进程控制方式：只对 nginx 有意义。
+                 留空 = 自动探测（后端认得出托管单元且当前用户有免密 systemctl 权限才走 systemd），
+                 这是本字段引入前的行为，老数据源保持留空即可保持不变。 -->
+            <template v-if="form.type === 'nginx'">
+              <ReFormItem label="控制方式" class="is-full">
+                <ReSelect
+                  v-model="form.controlMode"
+                  :options="controlModeOptions"
+                  placeholder="自动探测"
+                />
+              </ReFormItem>
+              <ReFormItem
+                v-if="form.controlMode === 'systemd'"
+                label="托管单元名"
+                class="is-full"
+              >
+                <ReInput
+                  v-model="form.controlTarget"
+                  placeholder="例如 nginx.service；留空则由后端自动探测"
+                />
+              </ReFormItem>
+              <p v-if="form.controlMode === 'local'" class="ds-control-hint">
+                直接在本机执行 <code>nginx -s stop</code> 与裸启动，不经过 systemctl。
+                停止后进程不再受任何进程管理器托管，机器重启不会自动拉起。
+              </p>
+              <p v-else-if="form.controlMode === 'systemd'" class="ds-control-hint">
+                启停交给 <code>systemctl</code>。仍要求 SSH 用户对该单元有免密 sudo 权限，没有时自动退回本地目录方式。
+              </p>
+              <p v-else class="ds-control-hint">
+                由后端自动判断：认得出托管单元且 SSH 用户有该单元的免密 sudo 权限才走 systemd，否则用本地目录方式。
+              </p>
+            </template>
+            <!-- 连接测试：编辑态直接测已落库数据源；新建态需先保存（后端按 id 测试） -->
+            <div class="ds-create__test">
+              <ReButton size="small" :loading="dialogTesting" :disabled="!editing" @click="testInDialog">
+                <template #icon><ReIcon name="Connection" :size="12" /></template>
+                测试连接
+              </ReButton>
+              <span v-if="dialogTestResult" class="ds-create__test-result" :class="dialogTestResult.success ? 'is-ok' : 'is-fail'">
+                <ReIcon :name="dialogTestResult.success ? 'CircleCheck' : 'CircleClose'" :size="13" />
+                {{ dialogTestResult.success ? (dialogTestResult.message || "连接成功") : (dialogTestResult.message || "连接失败") }}
+              </span>
+              <span v-else-if="!editing" class="ds-create__test-hint">保存数据源后即可测试连接</span>
+            </div>
+            <!-- 高级设置：备注等可选字段 -->
+            <div class="ds-create__advanced">
+              <button type="button" class="ds-create__advanced-toggle" @click="advancedOpen = !advancedOpen">
+                <ReIcon :name="advancedOpen ? 'ArrowDown' : 'ArrowRight'" :size="12" />
+                高级设置
+              </button>
+              <ReForm v-if="advancedOpen" label-position="top" class="ds-form ds-create__advanced-form">
+                <ReFormItem label="备注" class="is-full">
+                  <ReInput v-model="form.remark" placeholder="可选备注信息" />
+                </ReFormItem>
+              </ReForm>
+            </div>
+          </ReForm>
+        </section>
       </div>
       <template #footer>
         <ReButton class="ds-pill" @click="dialogVisible = false"><template #icon><ReIcon name="Close" :size="12" /></template>取消</ReButton>
@@ -2110,8 +2263,191 @@ onMounted(load);
   color: var(--el-text-color-secondary);
 }
 
+/* ---------------- 新增/编辑弹窗：左右两栏 ----------------
+   左侧类型面板（搜索 + 类型列表）+ 右侧连接表单。整体贴满弹窗 body
+   （去掉 koi ReDialog 默认 8px 内边距），左栏淡色底 + 右边框分隔，右栏白底表单。
+   固定高度让左右两栏各自内部滚动，而不是把整弹窗撑出滚动条。 */
+.ds-create-dialog :deep(.el-dialog__body) { padding: 0 !important; }
+.ds-create-dialog :deep(.dialog-content-wrapper) { padding-right: 0; overflow: hidden; }
+.ds-create-dialog :deep(.dialog-content-wrapper > *) { padding-right: 0; }
+
+.ds-create {
+  display: flex;
+  align-items: stretch;
+  height: min(540px, calc(92vh - 150px));
+  min-height: 420px;
+}
+
+/* 左栏：类型选择 */
+.ds-create__side {
+  flex: 0 0 232px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-right: 1px solid var(--el-border-color-lighter);
+  min-width: 0;
+}
+.ds-create__search { flex: 0 0 auto; }
+.ds-create__types {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 2px;
+}
+.ds-create__none {
+  margin: 10px 0;
+  font-size: 12px;
+  text-align: center;
+  color: var(--el-text-color-placeholder);
+}
+.ds-type-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--el-border-radius-base, 6px);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ds-type-item:hover { background: var(--el-fill-color, #f0f2f5); }
+.ds-type-item.is-active {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-color: var(--el-color-primary-light-7, #d9ecff);
+}
+.ds-type-item__tile {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--el-border-radius-base, 6px);
+  color: #fff;
+  background: var(--tile, var(--el-color-primary));
+}
+.ds-type-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-type-item.is-active .ds-type-item__label {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+/* 右栏：连接表单 */
+.ds-create__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px 20px 8px;
+}
+.ds-create__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ds-create__tile {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--el-border-radius-base, 8px);
+  color: #fff;
+  background: var(--tile, var(--el-color-primary));
+}
+.ds-create__heading { flex: 1 1 auto; min-width: 0; }
+.ds-create__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--el-text-color-primary);
+}
+.ds-create__desc {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+.ds-create__badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--el-border-radius-base, 4px);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border: 1px solid var(--el-color-primary-light-8, #e0efff);
+}
+.ds-create__form { margin-top: 8px; }
+
+/* 测试连接行 + 高级设置行：跨满两列 */
+.ds-create__test,
+.ds-create__advanced { grid-column: 1 / -1; }
+.ds-create__test {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 12px;
+}
+.ds-create__test-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.ds-create__test-result.is-ok { color: var(--el-color-success); }
+.ds-create__test-result.is-fail { color: var(--el-color-danger); }
+.ds-create__test-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+.ds-create__advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+.ds-create__advanced-toggle:hover { color: var(--el-color-primary); }
+.ds-create__advanced-form { margin-top: 4px; }
+
+/* 窄屏：左右两栏改为上下堆叠，类型面板限高避免占满整屏 */
+@media (max-width: 720px) {
+  .ds-create { flex-direction: column; height: auto; min-height: 0; }
+  .ds-create__side {
+    flex: 0 0 auto;
+    border-right: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+  .ds-create__types { max-height: 180px; }
+  .ds-create__main { overflow: visible; }
+}
+
 /* ---------------- 弹窗表单 ---------------- */
-.ds-dialog-body { padding: 16px 20px 4px; }
 .ds-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
