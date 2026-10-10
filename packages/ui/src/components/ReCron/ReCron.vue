@@ -15,7 +15,7 @@
  *   周字段用 0-6（0=周日，7 亦按周日解析），`?` 解析等价于 `*`；
  *   预览时间由 @repo/utils 的同源镜像 CronExpression 计算，与服务端逐字对齐。
  */
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from "vue";
 import { ElPopover } from "element-plus";
 import { CronExpression } from "@repo/utils";
 import { msgError } from "@repo/core";
@@ -164,6 +164,39 @@ const rawMode = ref(false);
 const rawExpression = ref("");
 const tab = ref("sec");
 const open = ref(false);
+
+/** 根元素：宿主弹层隐藏时 popover 已 teleport 到 body，只能靠宿主可见性兜底收起 */
+const rootRef = ref<HTMLElement | null>(null);
+let hostVisibleTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopHostVisibleWatcher(): void {
+  if (hostVisibleTimer) {
+    clearInterval(hostVisibleTimer);
+    hostVisibleTimer = null;
+  }
+}
+
+/** 编辑弹层关闭（display:none / v-if 卸载）后把 ReCron popover 一起收掉 */
+function startHostVisibleWatcher(): void {
+  stopHostVisibleWatcher();
+  hostVisibleTimer = setInterval(() => {
+    const el = rootRef.value;
+    if (!el || !el.isConnected || el.getClientRects().length === 0) {
+      open.value = false;
+      stopHostVisibleWatcher();
+    }
+  }, 200);
+}
+
+watch(open, (visible) => {
+  if (visible) {
+    startHostVisibleWatcher();
+  } else {
+    stopHostVisibleWatcher();
+  }
+});
+
+onUnmounted(stopHostVisibleWatcher);
 
 function blank(): FieldState {
   return { mode: "all", start: 0, end: 0, step: 1, points: [], nth: 1 };
@@ -1232,6 +1265,11 @@ const snapshot = ref("");
 
 function openPanel(): void {
   snapshot.value = model.value || "";
+  // 外部直接改 v-model 时面板状态还停在旧表达式——打开前按模型重放一次，
+  // 否则用户第一次看到的字段/摘要与输入框内容对不上（远端重构未带此修复）。
+  if (model.value && model.value !== expression.value) {
+    syncFromModel(model.value);
+  }
   open.value = true;
 }
 
@@ -1309,7 +1347,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 </script>
 
 <template>
-  <div :class="['re-cron', { 'is-disabled': disabled, 'is-text': mode === 'text' }]" :style="width ? { width: typeof width === 'number' ? `${width}px` : width } : undefined">
+  <div ref="rootRef" :class="['re-cron', { 'is-disabled': disabled, 'is-text': mode === 'text' }]" :style="width ? { width: typeof width === 'number' ? `${width}px` : width } : undefined">
     <!--
       文本模式（预览）：只给「表达式 + 人话」两行，不挂任何交互。
       表达式留空时显示「—」；非法时人话换成错误说明（红色）—— 表格里的行来自
