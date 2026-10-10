@@ -99,8 +99,8 @@ export interface KnowledgeBaseApi {
     elapsed_ms?: number;
   }>;
   // ── 图谱手工维护（后端 /v2/rag/graph 下的写入端点）──
-  createGraphEntity(kbId: string, kbName: string, name: string, type: string, description?: string): Promise<{ uid?: string }>;
-  updateGraphEntity(kbId: string, uid: string, patch: { name?: string; type?: string; description?: string }): Promise<unknown>;
+  createGraphEntity(kbId: string, kbName: string, name: string, type: string, description?: string, logo?: string): Promise<{ uid?: string }>;
+  updateGraphEntity(kbId: string, uid: string, patch: { name?: string; type?: string; description?: string; logo?: string }): Promise<unknown>;
   deleteGraphEntity(kbId: string, uid: string): Promise<unknown>;
   batchDeleteGraphEntities(kbId: string, uids: string[]): Promise<{ deleted?: number; requested?: number }>;
   createGraphRelation(kbId: string, kbName: string, source: string, target: string, type: string): Promise<{ uid?: string }>;
@@ -617,16 +617,16 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
   },
 
   /** POST /v2/rag/graph/entity：手工新增实体（同名同类型会复用，不会产生重复节点） */
-  async createGraphEntity(kbId: string, kbName: string, name: string, type: string, description = "") {
+  async createGraphEntity(kbId: string, kbName: string, name: string, type: string, description = "", logo = "") {
     const route = "POST /v2/rag/graph/entity";
     const env = await apiHttp.post("/v2/rag/graph/entity", {}, {
-      params: { knowledge_base_id: kbId, knowledge_base_name: kbName, name, type, description },
+      params: { knowledge_base_id: kbId, knowledge_base_name: kbName, name, type, description, logo },
     });
     return unwrapData<any>(env, route) ?? {};
   },
 
-  /** POST /v2/rag/graph/entity/update：改实体（只传要改的字段） */
-  async updateGraphEntity(kbId: string, uid: string, patch: { name?: string; type?: string; description?: string }) {
+  /** POST /v2/rag/graph/entity/update：改实体（只传要改的字段；logo 空串=清除图片，不传=不改） */
+  async updateGraphEntity(kbId: string, uid: string, patch: { name?: string; type?: string; description?: string; logo?: string }) {
     const route = "POST /v2/rag/graph/entity/update";
     const env = await apiHttp.post("/v2/rag/graph/entity/update", {}, {
       params: { knowledge_base_id: kbId, uid, ...patch },

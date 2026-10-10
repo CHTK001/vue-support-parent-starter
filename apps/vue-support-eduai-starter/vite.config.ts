@@ -102,6 +102,13 @@ export default createVite({
           target: apiTarget,
           changeOrigin: true,
         },
+        // AI 配置菜单（@pages/ai）打 ai-starter 的管理端点 /api/**（提供商 26 端点）。
+        // 与 /v2 同后端同鉴权（拦截器统一注 Authorization），漏掉会被 vite 当 404 静态资源。
+        // 生产 nginx 需同步加 location /api/（随下次前端发布带上）。
+        "/api": {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
 });

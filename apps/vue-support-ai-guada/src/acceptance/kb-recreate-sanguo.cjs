@@ -183,7 +183,7 @@ function isOk(res) {
     for (let i = 0; i < ds.entities.length; i++) {
       const e = ds.entities[i]
       const w = await api('POST', '/v2/rag/graph/entity', {
-        query: { knowledge_base_id: kbId, knowledge_base_name: KB_NAME, name: e.name, type: e.type, description: e.description || '' },
+        query: { knowledge_base_id: kbId, knowledge_base_name: KB_NAME, name: e.name, type: e.type, description: e.description || '', logo: e.image || '' },
       })
       if (isOk(w)) R.created.entities++
       else console.log(`  [entity FAIL] ${e.name} status=${w.status} ${String(w.text).slice(0, 120)}`)

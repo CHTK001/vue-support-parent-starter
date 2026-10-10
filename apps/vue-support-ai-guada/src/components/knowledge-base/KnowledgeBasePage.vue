@@ -476,7 +476,15 @@
               <el-table ref="entityTableRef" v-loading="graphLoading" :data="pagedGraphEntities" stripe
                 class="flat-table" @selection-change="onEntitySelection">
                 <el-table-column type="selection" width="42" />
-                <el-table-column prop="text" label="名称" min-width="160" />
+                <el-table-column label="名称" min-width="160">
+                  <template #default="{ row }">
+                    <div class="flex items-center gap-2">
+                      <img v-if="row.image" :src="row.image" alt="" class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                        @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                      <span>{{ row.text }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column label="类型" width="120">
                   <template #default="{ row }">
                     <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
@@ -660,6 +668,15 @@
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">说明</label>
         <el-input v-model="entityForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">图片地址</label>
+        <div class="flex items-center gap-2">
+          <el-input v-model="entityForm.logo" maxlength="512" placeholder="https://… 或 /kb-images/….png；清空即移除图片" />
+          <img v-if="entityForm.logo.trim()" :src="entityForm.logo.trim()" alt=""
+            class="w-10 h-10 rounded-md object-cover border border-[var(--rm-border)] shrink-0" @error="($event.target as HTMLImageElement).style.visibility = 'hidden'" />
+        </div>
+        <p class="text-[11px] text-[var(--rm-text-secondary)] mt-1">有图片时，图谱节点会直接用图片渲染</p>
       </div>
     </div>
     <template #footer>
@@ -944,7 +961,7 @@ const ENTITY_TYPE_OPTIONS = [
   { value: 'other', label: '其它' },
 ]
 
-const entityForm = reactive({ id: '', name: '', type: 'other', description: '' })
+const entityForm = reactive({ id: '', name: '', type: 'other', description: '', logo: '' })
 const relationForm = reactive({ source: '', type: '', target: '' })
 
 /**
@@ -1254,7 +1271,7 @@ async function materializeTemplate(kbId: string, kbName: string) {
   // 2) 实体：先建好带类型的节点，避免关系端点退化成 other 占位
   for (const entity of dataset.entities) {
     try {
-      await knowledgeBaseApi.createGraphEntity(kbId, kbName, entity.name, entity.type, entity.description)
+      await knowledgeBaseApi.createGraphEntity(kbId, kbName, entity.name, entity.type, entity.description, entity.image ?? '')
       entitiesOk++
     } catch (e) {
       console.warn('[KB] 模板实体写入失败:', entity.name, e)
@@ -1346,6 +1363,7 @@ function openEntityForm(row?: any) {
   entityForm.name = row?.text ? String(row.text) : '';
   entityForm.type = row?.type ? String(row.type) : 'other';
   entityForm.description = String(row?.data?.description ?? '');
+  entityForm.logo = String(row?.image ?? '');
   showEntityForm.value = true;
 }
 
@@ -1372,9 +1390,10 @@ async function handleSaveEntity() {
         name,
         type: entityForm.type,
         description: entityForm.description,
+        logo: entityForm.logo.trim(),
       });
     } else {
-      await apiService.createGraphEntity(kbId, (store.getActiveKnowledgeBase()?.name ?? ''), name, entityForm.type, entityForm.description);
+      await apiService.createGraphEntity(kbId, (store.getActiveKnowledgeBase()?.name ?? ''), name, entityForm.type, entityForm.description, entityForm.logo.trim());
     }
     toast.success(entityForm.id ? '已保存' : '已新增实体');
     showEntityForm.value = false;
@@ -1506,25 +1525,29 @@ async function handleBatchDeleteRelations() {
  * 后端给的 {@code person/location/event} 不是注册过的原型，直接透传会让 G6 抛
  * 「The element person of node is not registered.」并**整张图的节点都不渲染**。
  * 因此这里把原型固定为 circle，实体类型改放 {@code data.entityType} 并由
- * {@code style.fill} 上色，名称走 {@code label}。</p>
+ * {@code style.fill} 上色，名称走 {@code label}；<b>实体带图片（image）时改用
+ * G6 的 image 原型直接渲染图片</b>，此时 fill 不生效，stroke 作为图片描边。</p>
  *
- * @param n 后端节点（id / text / type / degree）
+ * @param n 后端节点（id / text / type / degree / image）
  * @returns 符合 {@code RelationNode} 的节点
  */
 function decorateGraphNode(n: any) {
   const entityType = String(n?.type ?? 'other')
   const size = nodeSizeOf(n?.degree)
   const name = String(n?.text ?? n?.label ?? n?.id ?? '')
+  // 有图的实体直接用图片节点原型（G6 image），无图才回退 circle 上色
+  const image = String(n?.image ?? '').trim()
   return {
     id: String(n?.id ?? ''),
     // 同时保留 text 与 label：text 供 KBAskPanel 的迷你子图（走后端契约），
     // label 供 G6（ReRelationGraph 的 RelationNode 契约）渲染节点名。
     text: name,
     label: name,
-    type: 'circle' as const,
+    type: image ? ('image' as const) : ('circle' as const),
+    image: image || undefined,
     size,
     style: {
-      fill: entityColor(entityType),
+      fill: image ? undefined : entityColor(entityType),
       stroke: 'rgba(255,255,255,0.85)',
       lineWidth: 1.5,
     },

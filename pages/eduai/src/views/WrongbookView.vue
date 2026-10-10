@@ -1,43 +1,41 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never" class="mt-3 flex-1">
-      <ReTable
-        ref="tableRef"
-        :loader="loadWrong"
-        :params="queryParams"
-        :search="searchConfig"
-        v-model:search-model="searchModel"
-        row-key="wrongQuestionId"
-        v-model:page="pageNo"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        border
-        stripe
-        @search="commitSearch"
-        @search-reset="resetSearch"
-        @load-error="pageLoadError"
-      >
-        <template #toolbar>
-          <ReButton type="success" icon="MagicStick" @click="generateReview">生成复习卷</ReButton>
+    <ReTable
+      ref="tableRef"
+      :loader="loadWrong"
+      :params="queryParams"
+      :search="searchConfig"
+      v-model:search-model="searchModel"
+      row-key="wrongQuestionId"
+      v-model:page="pageNo"
+      v-model:page-size="pageSize"
+      :page-sizes="[10, 20, 50, 100]"
+      border
+      stripe
+      @search="commitSearch"
+      @search-reset="resetSearch"
+      @load-error="pageLoadError"
+    >
+      <template #toolbar>
+        <ReButton type="success" icon="MagicStick" @click="generateReview">生成复习卷</ReButton>
+      </template>
+      <ReTableColumn prop="wrongQuestionId" label="ID" width="80" />
+      <ReTableColumn prop="wrongQuestionStudentId" label="学生" />
+      <ReTableColumn prop="wrongQuestionQuestionId" label="题目ID" />
+      <ReTableColumn prop="wrongQuestionWrongCount" label="错次" />
+      <ReTableColumn label="掌握度" >
+        <template #default="{ row }">
+          <el-rate v-model="row.wrongQuestionMasteryLevel" :max="2" />
         </template>
-        <ReTableColumn prop="wrongQuestionId" label="ID" width="80" />
-        <ReTableColumn prop="wrongQuestionStudentId" label="学生" width="120" />
-        <ReTableColumn prop="wrongQuestionQuestionId" label="题目ID" width="120" />
-        <ReTableColumn prop="wrongQuestionWrongCount" label="错次" width="80" />
-        <ReTableColumn label="掌握度" width="120">
-          <template #default="{ row }">
-            <el-rate v-model="row.wrongQuestionMasteryLevel" :max="2" />
-          </template>
-        </ReTableColumn>
-        <ReTableColumn prop="wrongQuestionLastWrongTime" label="最近错误" width="180" />
-        <ReTableColumn prop="wrongQuestionReviewCount" label="复习次数" width="100" />
-        <ReTableColumn label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <ReButton icon="Refresh" :show-text="false" type="primary" @click="updateMastery(row)">更新掌握度</ReButton>
-          </template>
-        </ReTableColumn>
-      </ReTable>
-    </el-card>
+      </ReTableColumn>
+      <ReTableColumn prop="wrongQuestionLastWrongTime" label="最近错误" />
+      <ReTableColumn prop="wrongQuestionReviewCount" label="复习次数" />
+      <ReTableColumn label="操作" width="120" fixed="right">
+        <template #default="{ row }">
+          <ReButton icon="Refresh" :show-text="false" type="primary" @click="updateMastery(row)">更新掌握度</ReButton>
+        </template>
+      </ReTableColumn>
+    </ReTable>
 
     <ReDialog v-model="reviewVisible" title="复习卷生成结果" width="520">
       <div class="text-sm">

@@ -1,45 +1,43 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never" class="mt-3 flex-1">
-      <ReTable
-        ref="tableRef"
-        :loader="loadExams"
-        :params="queryParams"
-        :search="searchConfig"
-        v-model:search-model="searchModel"
-        row-key="examId"
-        v-model:page="pageNo"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        border
-        stripe
-        @search="commitSearch"
-        @search-reset="resetSearch"
-        @load-error="pageLoadError"
-      >
-        <template #toolbar>
-          <ReButton type="primary" icon="Plus" @click="openCreate">新建考试</ReButton>
+    <ReTable
+      ref="tableRef"
+      :loader="loadExams"
+      :params="queryParams"
+      :search="searchConfig"
+      v-model:search-model="searchModel"
+      row-key="examId"
+      v-model:page="pageNo"
+      v-model:page-size="pageSize"
+      :page-sizes="[10, 20, 50, 100]"
+      border
+      stripe
+      @search="commitSearch"
+      @search-reset="resetSearch"
+      @load-error="pageLoadError"
+    >
+      <template #toolbar>
+        <ReButton type="primary" icon="Plus" @click="openCreate">新建考试</ReButton>
+      </template>
+      <ReTableColumn prop="examId" label="ID" width="80" />
+      <ReTableColumn prop="examName" label="考试名" min-width="220" />
+      <ReTableColumn prop="examPaperId" label="试卷ID" width="100" />
+      <ReTableColumn prop="examClassId" label="班级" width="120" />
+      <ReTableColumn prop="examStartTime" label="开始时间" width="180" />
+      <ReTableColumn prop="examEndTime" label="结束时间" width="180" />
+      <ReTableColumn prop="examDuration" label="时长(分)" width="100" />
+      <ReTableColumn label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="examStatusType(row.examStatus)">{{ examStatusLabel(row.examStatus) }}</el-tag>
         </template>
-        <ReTableColumn prop="examId" label="ID" width="80" />
-        <ReTableColumn prop="examName" label="考试名" min-width="220" />
-        <ReTableColumn prop="examPaperId" label="试卷ID" width="100" />
-        <ReTableColumn prop="examClassId" label="班级" width="120" />
-        <ReTableColumn prop="examStartTime" label="开始时间" width="180" />
-        <ReTableColumn prop="examEndTime" label="结束时间" width="180" />
-        <ReTableColumn prop="examDuration" label="时长(分)" width="100" />
-        <ReTableColumn label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="examStatusType(row.examStatus)">{{ examStatusLabel(row.examStatus) }}</el-tag>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="操作" width="180" fixed="right" align="right">
-          <template #default="{ row }">
-            <ReButton icon="Edit" :show-text="false" type="primary" @click="openEdit(row)">编辑</ReButton>
-            <ReButton icon="Delete" :show-text="false" type="danger" @click="remove(row)">删除</ReButton>
-          </template>
-        </ReTableColumn>
-      </ReTable>
-    </el-card>
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="180" fixed="right" align="right">
+        <template #default="{ row }">
+          <ReButton icon="Edit" :show-text="false" type="primary" @click="openEdit(row)">编辑</ReButton>
+          <ReButton icon="Delete" :show-text="false" type="danger" @click="remove(row)">删除</ReButton>
+        </template>
+      </ReTableColumn>
+    </ReTable>
 
     <ReDialog v-model="dialogVisible" :title="form.examId ? '编辑考试' : '新建考试'" width="560">
       <el-form :model="form" label-width="100">

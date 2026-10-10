@@ -20,6 +20,19 @@
       </ReSelect>
       <ReButton layout="square" icon="CopyDocument" tip="立即备份" data-testid="ngb-btn-backup" :loading="backing" :disabled="!configPath" @click="doBackup" />
       <ReButton layout="square" icon="Refresh" tip="刷新列表" data-testid="ngb-btn-refresh" :loading="loading" @click="load" />
+      <template v-if="backups.length">
+        <ElCheckbox v-model="allSelected" data-testid="ngb-check-all">全选</ElCheckbox>
+        <ReButton
+          type="danger"
+          :loading="deleting"
+          :disabled="!selected.length"
+          data-testid="ngb-btn-delete-selected"
+          @click="confirmDelete([...selected])"
+        >
+          <template #icon><ReIcon name="Delete" :size="13" /></template>
+          删除所选{{ selected.length ? `（${selected.length}）` : "" }}
+        </ReButton>
+      </template>
       <span class="ngb-count">共 {{ backups.length }} 个备份</span>
     </div>
 
@@ -37,7 +50,12 @@
       </div>
       <template v-else>
         <ReEmpty v-if="!backups.length" description="还没有备份。保存配置时会自动创建。" />
-        <div v-for="b in backups" :key="b.name" class="ngb-item">
+        <div v-for="b in backups" :key="b.name" class="ngb-item" :class="{ 'is-checked': selected.includes(b.name) }">
+          <ElCheckbox
+            :model-value="selected.includes(b.name)"
+            data-testid="ngb-item-check"
+            @update:model-value="(v) => toggleSelect(b.name, v)"
+          />
           <ReIcon name="DocumentCopy" :size="14" />
           <div class="ngb-info">
             <div class="ngb-name mono" :title="b.path">{{ b.name }}</div>
@@ -48,6 +66,7 @@
           </div>
           <ReButton layout="square" icon="View" tip="查看" data-testid="ngb-btn-preview" :loading="previewing === b.name" @click="openPreview(b)" />
           <ReButton layout="square" icon="RefreshLeft" tip="回退到此版本" data-testid="ngb-btn-restore" :loading="restoring === b.name" @click="openRestore(b)" />
+          <ReButton layout="square" icon="Delete" tip="删除此备份" data-testid="ngb-btn-delete" :loading="deleting" @click="confirmDelete([b.name])" />
         </div>
       </template>
     </div>
@@ -167,7 +186,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElCheckbox, ElMessage, ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -179,6 +198,7 @@ import ReTab from "@repo/ui/re-tab";
 import { ReAlert, ReFormItem, ReOption } from "@repo/ui/re-kit";
 import {
   backupNginxConfig,
+  deleteNginxBackups,
   fetchNginxBackupContent,
   fetchNginxBackupDiff,
   fetchNginxBackups,
@@ -207,6 +227,80 @@ const restoring = ref("");
 const restoreVisible = ref(false);
 const pending = ref<NginxBackup | null>(null);
 const restoreTarget = ref("");
+
+// ---------- 批量选择 / 删除 ----------
+
+/** 已勾选的备份文件名（勾选态按名字记，刷新后由 load() 剔除已消失的项） */
+const selected = ref<string[]>([]);
+/** 删除请求进行中（单条与批量共用一把锁：删除是逐文件 SSH，不允许并发叠请求） */
+const deleting = ref(false);
+
+/** 全选开关：勾上整表、取消全清，空列表时恒为未选 */
+const allSelected = computed({
+  get: () => backups.value.length > 0 && selected.value.length === backups.value.length,
+  set: (v: boolean) => {
+    selected.value = v ? backups.value.map((b) => b.name) : [];
+  },
+});
+
+/**
+ * 勾选 / 取消勾选单个备份。
+ *
+ * @param name 备份文件名
+ * @param val  勾选值（el-checkbox 的 update:model-value，可能是布尔或字符串）
+ */
+function toggleSelect(name: string, val: unknown) {
+  const on = Boolean(val);
+  selected.value = on
+    ? selected.value.includes(name)
+      ? selected.value
+      : [...selected.value, name]
+    : selected.value.filter((n) => n !== name);
+}
+
+/**
+ * 删除确认 + 执行：单条与批量走同一条路径（names 单元素即单条）。
+ *
+ * <p>后端是部分成功语义——一批里个别失败不回滚已删项，结果按成功 / 失败
+ * 分列返回，这里如实转述给使用者，不把「删了 8 个、失败 2 个」吞成一句成功。</p>
+ *
+ * @param names 要删除的备份文件名列表
+ */
+async function confirmDelete(names: string[]) {
+  if (!props.datasourceId || !names.length || deleting.value) {
+    return;
+  }
+  const batch = names.length > 1;
+  try {
+    await ElMessageBox.confirm(
+      batch
+        ? `将永久删除选中的 ${names.length} 个备份。删除不可恢复，但配置文件本身不受影响。`
+        : `将永久删除备份 ${names[0]}。删除不可恢复，但配置文件本身不受影响。`,
+      "删除备份？",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  deleting.value = true;
+  try {
+    const r = await deleteNginxBackups(props.datasourceId, names);
+    if (r.failed.length) {
+      ElMessage.warning(
+        `已删除 ${r.deleted.length} 个，失败 ${r.failed.length} 个：${r.failed.join("；")}`,
+      );
+    } else {
+      ElMessage.success(`已删除 ${r.deleted.length} 个备份`);
+    }
+    // 失败项保留在勾选态里，方便直接重试；成功项清掉
+    selected.value = selected.value.filter((n) => !r.deleted.includes(n));
+    await load();
+  } catch (e) {
+    ElMessage.error(`删除失败：${(e as Error).message}`);
+  } finally {
+    deleting.value = false;
+  }
+}
 
 /** 首屏是否已渲染过真实内容：骨架屏只在首次出现，之后刷新不再整页闪 */
 const loaded = ref(false);
@@ -359,6 +453,8 @@ async function load() {
     ]);
     backups.value = b.status === "fulfilled" ? b.value || [] : [];
     files.value = f.status === "fulfilled" ? f.value || [] : [];
+    // 刷新后剔除已不存在（被删除/被清理）的勾选项，避免批量删除把已消失的名字发给后端
+    selected.value = selected.value.filter((n) => backups.value.some((x) => x.name === n));
     if (!configPath.value && files.value.length) {
       configPath.value = files.value[0].path;
     }
@@ -593,6 +689,12 @@ defineExpose({ load });
   &:hover {
     background: var(--bg-hover);
   }
+}
+
+/* 勾选中的备份：品牌色描边 + 淡底，和工具条「删除所选（N）」的计数呼应 */
+.ngb-item.is-checked {
+  border-color: color-mix(in srgb, var(--brand-400) 45%, transparent);
+  background: color-mix(in srgb, var(--brand-400) 7%, transparent);
 }
 
 .ngb-item :deep(.rs-btn) {
