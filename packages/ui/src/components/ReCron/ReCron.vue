@@ -1204,18 +1204,19 @@ function useExpressionText(): void {
 /**
  * 弹层的定位修饰符。
  *
- * 面板内容高（字段模式约 680px，日历模式约 440px），而它是从表单中部往下浮的：
- * 触发器下方只剩 ~420px，floating-ui 的 flip 判定「上下都放不下」后哪儿都不去 ——
- * 弹层直接溢出屏幕底部，用户要滚到底才够得到「保存」。
+ * 浮层只展开当前那一个字段，高 ~200px，默认策略就够用：下方放不下时
+ * flip 翻到上方，贴边时 preventOverflow 沿轴向拉回。
  *
- * 这里把 flip 关掉，真正的定位由 CSS 接管（见 .re-cron__popper 的 fixed 贴顶规则）：
- * 与其指望引擎挑一个"放得下"的方向，不如直接固定到视口顶部居中 ——
- * 面板本来就比视口的一半高，贴顶是唯一能整块露出来的位置。
+ * 这里刻意不关任何修饰符：早先那两个 disabled 是为"比视口一半还高的整屏面板"
+ * 准备的（flip 判定上下都放不下后哪儿都不去、弹层直接溢出屏幕），那时改用
+ * CSS 硬接管定位到视口顶部居中。面板缩成一段之后归属关系更重要 ——
+ * 浮层必须跟着触发条走，硬接管会让它飘到屏幕顶上、与点的那段胶囊对不上。
  */
 const POPPER_OPTIONS = {
   modifiers: [
-    { name: "flip", enabled: false },
-    { name: "preventOverflow", enabled: false },
+    /* 触发器在视口下缘时翻到上方；上方也放不下（日历模式月历较高）才放弃 */
+    { name: "flip", enabled: true, options: { padding: 8 } },
+    { name: "preventOverflow", enabled: true, options: { padding: 8 } },
   ],
 };
 
@@ -1260,12 +1261,12 @@ const activeSpec = computed(() => FIELDS.find((f) => f.key === tab.value) ?? FIE
  */
 const fieldHint = computed(() => {
   const spec = activeSpec.value;
-  const range = `${spec.min}~${spec.max}`;
-  const mode = modeLabel(spec.key, state[spec.key].mode);
-  const known = state[spec.key].mode === "step" || state[spec.key].mode === "range"
-    || state[spec.key].mode === "points";
-  const scope = `${spec.label}字段 ${range}`;
-  return known ? `${scope} · ${mode}` : `${scope} · 不限制`;
+  const mode = state[spec.key].mode;
+  /* 标题已经是字段名，副标题这里只补两件还没说的：取值范围与当前匹配方式。
+     标题写「分」+ 副标题写「分字段」是同一件事说两遍，读起来像卡壳。 */
+  const known = mode === "step" || mode === "range" || mode === "points";
+  const how = known ? modeLabel(spec.key, mode) : "不限制";
+  return `${spec.min}~${spec.max} · ${how}`;
 });
 
 /**
@@ -1467,7 +1468,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           </span>
 
           <div class="re-cron__panel-titles">
-            <div class="re-cron__panel-title">{{ activeSpec.label }}字段</div>
+            <div class="re-cron__panel-title">{{ activeSpec.label }}</div>
             <div class="re-cron__panel-sub">{{ fieldHint }}</div>
           </div>
 
@@ -1477,6 +1478,16 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             </svg>
             有效
           </span>
+
+          <button
+            type="button"
+            class="re-cron__mode"
+            :class="{ 'is-active': panelMode === 'calendar' }"
+            :aria-pressed="panelMode === 'calendar'"
+            @click="panelMode = panelMode === 'calendar' ? 'field' : 'calendar'"
+          >
+            {{ panelMode === "calendar" ? "按字段" : "按日历" }}
+          </button>
 
           <button type="button" class="re-cron__panel-close" aria-label="关闭" @click="cancelPanel">
             <el-icon><Close /></el-icon>
@@ -1826,22 +1837,25 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   height: 13px;
 }
 
-/* 模式切换与关闭单独一行：挤进标题行会把两行文字压到只剩省略号 */
-.re-cron__panel-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+/* 模式切换（日历 / 字段）：单颗按钮，靠 .is-active 表明当前在月历上 */
+.re-cron__mode {
+  flex: none;
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--el-radius-sm);
+  background: var(--el-bg-color, #ffffff);
+  color: var(--el-text-color-regular);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
 }
 
-/* 模式切换组贴在标题右侧（而不是靠 space-between 推到最右），留出中间的呼吸 */
-.re-cron__modes {
-  flex: none;
-  display: flex;
-  gap: 4px;
-  padding: 3px;
-  border-radius: var(--el-radius-md);
-  background: var(--el-fill-color-light);
+.re-cron__mode.is-active {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
 }
 
 .re-cron__panel-close {
@@ -1862,26 +1876,6 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__panel-close:hover {
   background: var(--el-fill-color-dark);
   color: var(--el-text-color-primary);
-}
-
-/* 模式切换（字段 / 日历） */
-.re-cron__mode {
-  height: 28px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: var(--el-radius-sm);
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-family: inherit;
-  font-size: 13px;
-  line-height: 28px;
-  cursor: pointer;
-}
-
-.re-cron__mode.is-active {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
-  font-weight: 600;
 }
 
 /* 日历模式下的预览区：与月历同宽，贴面板底部 */
@@ -2379,30 +2373,19 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
  */
 .re-cron__popper {
   /*
-   * 定位完全由 CSS 接管：`!important` 用来压过 floating-ui 写在元素上的 inline
-   * 定位样式（inline 非 important 输给 `!important`）。
+   * 定位交给 floating-ui（placement="bottom-start"）：浮层只有当前字段编辑器
+   * 一块，天然贴着触发条就该出现在它下面。
    *
-   * 为什么要接管：这块面板比视口的一半还高（字段模式约 680px），而它从表单中部
-   * 往下浮，下方只剩 ~420px。内置策略实测都失效 —— flip 判定「上下都放不下」
-   * 后哪儿都不去、直接溢出屏幕；preventOverflow 的 shift 也拉不回来
-   * （top-start 下仍停在 y=-301）。贴顶居中是唯一能整块露出、无内部滚动条的位置。
+   * 此前用 `position: fixed; top: 8px; left: 50%` 硬接管、贴顶居中，
+   * 是为那块"六字段 + 预设 + 预览"的大面板选的（它比视口一半还高，放不下）。
+   * 现在面板只展开一段，内容高 ~200px，硬接管反而会让它飘到屏幕顶部正中、
+   * 与点的那一段胶囊对不上 —— 归属关系比"尽量不滚动"更要紧。
    */
-  position: fixed !important;
-  top: 8px !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: auto !important;
-  margin: 0 !important;
-  transform: translateX(-50%) !important;
-
-  max-width: 94vw;
-  padding: 8px 12px;
+  max-width: min(94vw, 380px);
+  padding: 10px 12px;
   border-radius: var(--el-popover-border-radius, var(--el-radius-lg, 12px));
-  /*
-   * 高度上限只兜「视口本身不够高」的极端情况。正常内容（~680px）在 900px 高的窗口里
-   * 完全放得下，不会触发内部滚动；只有窗口矮到连整屏都装不下时才会滚。
-   */
-  max-height: calc(100vh - 16px);
+  /* 兜「视口本身不够高」的极端情况：正常内容 ~200px，永远碰不到 */
+  max-height: calc(100vh - 24px);
   overflow-y: auto;
 }
 
