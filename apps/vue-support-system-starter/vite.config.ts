@@ -1,5 +1,7 @@
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
-import { createVite } from "../../turbo/vite/createVite.ts";
+import { createVite, SHARED_PUBLIC_DIR } from "../../turbo/vite/createVite.ts";
+
+const sharedPublicDir = SHARED_PUBLIC_DIR.replace(/\\/g, "/").replace(/\/+$/, "");
 
 export default createVite({
   appName: "vue-support-system-starter",
@@ -39,15 +41,16 @@ export default createVite({
     port: 8096,
     strictPort: true,
     watch: {
-      // 插件每次 dev 启动都会 rm+cp 重写工作区根 public（copyAssets 产出的
-      // vendor/wasm/assets/ruffle/os 约 379 个文件 + typst 字体）。Windows 下
-      // chokidar 对仍在写入的文件建 fs.watch → EBUSY → dev 进程直接崩溃
-      // （实测崩点 public/wasm/typst/fonts/LibertinusSerif-Bold.otf）。
-      // 整个 publicDir 都是生成的只读资产，监听它毫无意义，故整体排除。
-      // 曾按目录逐个列举（vendor、flyfish-viewer-assets.json），新增 typst
-      // 字体后再次 EBUSY —— 改为按 publicDir 整体排除，避免逐个追漏。
+      // copyAssets 每次 dev 启动都会重写根 publicDir（vendor/*、wasm/cad|data|model|typst、
+      // flyfish-viewer-assets.json 等）。Windows 下 chokidar 对仍在写入的文件建 fs.watch
+      // → EBUSY → dev 进程直接崩溃（实测崩点 public/wasm/typst/fonts/LibertinusSerif-Bold.otf）。
+      // 根 public 整体不作为 HMR 源，精确排除 SHARED_PUBLIC_DIR，避免误忽略 apps/*/public
+      // 等源码维护的静态资产；曾按目录逐个列举，新增 typst 字体后再次 EBUSY。
       ignored: [
-        (p: string) => /(^|[/\\])public([/\\]|$)/.test(p),
+        (p: string) => {
+          const normalized = p.replace(/\\/g, "/").replace(/\/+$/, "");
+          return normalized === sharedPublicDir || normalized.startsWith(`${sharedPublicDir}/`);
+        },
       ],
     },
     proxy: {

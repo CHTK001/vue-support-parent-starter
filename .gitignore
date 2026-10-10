@@ -239,3 +239,8 @@ prom-embed-probe.mjs
 
 # temp ratio probe html
 **/__*probe*.html
+
+# temp debug scripts + e2e caches
+**/.tmp-*.mjs
+**/tests/e2e/.cache/
+**/scripts/.cache/

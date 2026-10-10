@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import fs from 'fs'
 import path from 'path'
+import { createRequire } from 'node:module'
 import tailwindcss from '@tailwindcss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import clean from 'vite-plugin-clean'
@@ -14,6 +15,18 @@ import type { PluginOption } from 'vite'
 
 const APP_NAME = 'vue-support-ai-guada'
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..')
+/**
+ * Node 内置 `events` 的浏览器垫片绝对路径，供下面 resolve.alias 使用。
+ *
+ * 两个坑，都实测过：
+ * ① 不能只写裸包名 `events` —— pnpm 严格布局下，Vite 会从真正的引用方
+ *    （.pnpm 里的 xmlbuilder2）向上找 node_modules，那一侧没有 events，构建直接报
+ *    `Could not resolve "events"`，所以必须解析成绝对路径。
+ * ② `require.resolve('events')` **返回的就是字符串 `'events'`** —— Node 对内置模块
+ *    短路，直接回显裸名，别名会退化成 self-alias（等于没改），故障照旧。
+ *    改用子路径 `events/events.js` 绕开内置短路（该包无 exports 字段，子路径可解析）。
+ */
+const EVENTS_POLYFILL = createRequire(path.join(__dirname, 'package.json')).resolve('events/events.js')
 const SHARED_PUBLIC_DIR = path.join(WORKSPACE_ROOT, 'public')
 // 后端地址。
 //
@@ -197,7 +210,7 @@ export default defineConfig({
       dts: path.resolve(WORKSPACE_ROOT, 'pages/ai/src/types/components.d.ts'),
     }),
     // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
-    fileViewerRenderers({ inject: false, preset: 'all', copyAssets: true }) as PluginOption,
+    fileViewerRenderers({ inject: false, preset: 'office', copyAssets: true }) as PluginOption,
   ],
   optimizeDeps: {
     // 与 createVite 一致：ol-echarts 走默认导入 echarts，交给预打包会在
@@ -235,6 +248,25 @@ export default defineConfig({
       // 默认导入，而 echarts 5 的 ESM 产物没有 default 导出；兼容层同时提供
       // `export *` 与 default namespace，两种写法都成立。
       { find: /^echarts$/, replacement: path.resolve(WORKSPACE_ROOT, 'packages/ui/src/shared/echarts-compat') },
+      /**
+       * Node 内置 `events` 的浏览器垫片（2026-10-10 dist 实测修复：整站白屏）。
+       *
+       * `xmlbuilder2` 由 `@kitware/vtk.js` → `@cornerstonejs/core` 经两条路传递引入
+       * （`@pages/filesystem` 与 `@file-viewer/renderer-dicom`），它在**模块顶层**写
+       * `require("events")` + `class XMLBuilderCBImpl extends EventEmitter`。`events`
+       * 是 Node 内置且工作区未装垫片，Vite 构建期把它换成 browser-external **空模块**
+       * → `EventEmitter` 为 undefined → 类定义那一行即抛
+       * `Class extends value undefined is not a constructor or null`。
+       *
+       * 这段代码被 manualChunks 并进 file-viewer 单块，而该块由入口静态引入
+       * （index.html 里 modulepreload + entry 静态 import），于是 **boot 即死、
+       * dist 整站白屏**；dev 是逐模块求值、不走这条路径，故缺陷只在构建态暴露。
+       *
+       * 用锚定正则（与 /^echarts$/ 同理）而非字符串别名，避免前缀匹配误伤
+       * `events/*` 子路径；`node:events` 同根因一并指过去。
+       */
+      { find: /^events$/, replacement: EVENTS_POLYFILL },
+      { find: /^node:events$/, replacement: EVENTS_POLYFILL },
       { find: '@', replacement: path.resolve(WORKSPACE_ROOT, 'pages/ai/src') },
       // ── 跨包入口（取值同 turbo/vite/createVite.ts 的 REPO_ALIAS）────────────
       // 本应用用独立 vite 配置（不走 createVite），被 koi 组件间接引用到、且无法
@@ -287,12 +319,14 @@ export default defineConfig({
       ignored: [
         '**/*.agent_infra_tmp_*',
         '**/agent_infra_tmp_*',
-        // @file-viewer 插件每次 dev 启动 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体），
-        // Windows 下 chokidar 对仍在写入的大文件建 fs.watch → EBUSY → dev 进程崩溃；
+        // @file-viewer 插件每次 dev 启动 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体）、
+        // public/wasm/cad（含 9.5MB libredwg-web.wasm CAD 渲染器），
+        // Windows 下 chokidar 对仍在写入/被读取的大文件建 fs.watch → EBUSY → dev 进程崩溃；
         // 这些是插件生成的只读资产，监听无意义，故排除。
         (p: string) =>
           /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
-          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p) ||
+          /(^|[/\\])public[/\\]wasm([/\\]|$)/.test(p),
       ],
     },
     proxy: {
