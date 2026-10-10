@@ -142,9 +142,17 @@
             </div>
         </template>
         <template #col-writeMode="{ row }">
-            <el-tag :type="writeModeTagType(row.syncTaskWriteMode)" effect="plain" size="small">
-              {{ modeLabel(row.syncTaskWriteMode) }}
-            </el-tag>
+            <div class="st-mode-cell">
+              <el-tag :type="writeModeTagType(row.syncTaskWriteMode)" effect="plain" size="small">
+                {{ modeLabel(row.syncTaskWriteMode) }}
+              </el-tag>
+              <!-- 增量任务标注模式与水位：水位是服务端执行后回写的真实值，悬停可见 -->
+              <el-tag
+                v-if="effectiveSyncMode(row) === 'INCREMENTAL'"
+                type="warning" effect="plain" size="small"
+                :title="`增量字段 ${row.syncTaskIncField || '-'} · 每批 ${row.syncTaskIncBatchSize ?? '不限'} 条 · 水位 ${row.syncTaskLastSeq || '（首跑）'}`"
+              >增量</el-tag>
+            </div>
         </template>
         <template #col-cron="{ row }">
             <template v-if="row.syncTaskCron">
@@ -472,6 +480,46 @@
             </div>
           </div>
 
+          <!-- 同步模式与增量配置：与「写入模式」分开的维度——写入模式管目标端语句长什么样，
+               同步模式管这一轮从源读全部还是按水位只读新增 -->
+          <div class="st-grid">
+            <div class="st-form-item">
+              <label>同步模式</label>
+              <el-select v-model="form.syncMode" class="st-full" @change="onSyncModeChange">
+                <el-option label="全量（每次读取全部源数据）" value="FULL" />
+                <el-option label="增量（按增量字段水位取新数据）" value="INCREMENTAL" />
+              </el-select>
+              <div class="st-form-hint">
+                {{ form.syncMode === 'INCREMENTAL'
+                  ? '按增量字段升序分批取数，每轮成功后自动记录水位，下次只取新于水位的数据；配合「存在即更新」不产生重复。'
+                  : '单次流式读完全部源数据，适用于小数据范围；配合「先清空再插入」即为全量覆盖。大数据请用增量模式。' }}
+              </div>
+            </div>
+            <div class="st-form-item">
+              <label>增量字段</label>
+              <el-input
+                v-model="form.incField" class="mono"
+                :disabled="form.syncMode !== 'INCREMENTAL'"
+                placeholder="如 id / updated_at（源结果集里存在的列）"
+              />
+              <div class="st-form-hint" v-if="form.syncMode === 'INCREMENTAL'">
+                JDBC：自动包裹进源 SQL（水位条件+升序+每批上限）；HTTP：以查询参数携带上次水位。
+                <template v-if="form.lastSeq"><b>当前水位：{{ form.lastSeq }}</b>（改动字段会清空水位）</template>
+                <template v-else>尚无水位，首跑按升序分批引导。</template>
+              </div>
+              <div class="st-form-hint" v-else>切换为增量模式后可填写；源 SQL 与该列需同时存在于结果集。</div>
+            </div>
+          </div>
+
+          <div v-if="form.syncMode === 'INCREMENTAL'" class="st-form-item">
+            <label>每批数量（单次执行最多同步条数，留空不限）</label>
+            <el-input-number
+              v-model="form.incBatchSize" :min="1" :max="100000000" :step="1000"
+              controls-position="right" class="st-full" placeholder="留空表示不限"
+            />
+            <div class="st-form-hint">积压数据分轮自动消化：每轮取最老的 N 条并推进水位，下一轮接着往后，不漏不重。</div>
+          </div>
+
           <!-- 解析预览（UI 图卡片）：真实预览结果（源/目标列 + 类型），未预览时如实说明，不造假日数 -->
           <div class="st-preview">
             <div class="st-preview-head">
@@ -550,6 +598,29 @@
             <label>启用定时</label>
             <el-switch v-model="form.enabled" aria-label="启用定时" :disabled="!form.cron.trim()" />
             <span class="st-form-hint">未填定时表达式时不能启用</span>
+          </div>
+
+          <!-- Hook HTTP 回调：旁路通知，发送失败只记日志不影响同步结果 -->
+          <div class="st-form-item">
+            <label>Hook 通知地址（HTTP 回调，留空不通知）</label>
+            <el-input
+              v-model="form.hookUrl" class="mono"
+              placeholder="https://example.com/hooks/sync-done"
+            />
+            <div class="st-form-hint">每轮执行结束向该地址 JSON POST 执行结果（成功/失败都发）；增量选「每条」时每写入一条再推一条。</div>
+          </div>
+          <div v-if="form.hookUrl.trim()" class="st-form-item">
+            <label>通知时机</label>
+            <el-select v-model="form.hookNotify" class="st-full" :disabled="form.syncMode === 'FULL'">
+              <el-option label="完成通知（每轮一条，成功/失败各带 status）" value="DONE" />
+              <el-option label="每条数据 + 完成通知" value="ROW" />
+            </el-select>
+            <div class="st-form-hint">
+              {{ form.syncMode === 'FULL'
+                ? '全量模式固定为完成通知。'
+                : '增量模式可逐条推送（异步发送，慢接收端不拖累同步吞吐；队列满丢通知不丢数据）。' }}
+              通知失败只记日志，不影响同步。
+            </div>
           </div>
         </template>
       </div>
@@ -863,6 +934,18 @@ const form = reactive({
   targetDatasourceId: null as number | null,
   targetTable: "",
   writeMode: "INSERT",
+  /** 同步模式：FULL 全量 / INCREMENTAL 增量 */
+  syncMode: "FULL" as "FULL" | "INCREMENTAL",
+  /** 增量字段（源结果集里存在的列名） */
+  incField: "",
+  /** 增量每批数量（单次执行最多同步条数），null=不限 */
+  incBatchSize: null as number | null,
+  /** Hook 通知地址，空=不通知 */
+  hookUrl: "",
+  /** Hook 通知时机：DONE 完成通知 / ROW 每条数据+完成 */
+  hookNotify: "DONE" as "DONE" | "ROW",
+  /** 增量水位（仅编辑时展示；服务端执行成功后回写，不随表单提交） */
+  lastSeq: "",
   batchSize: 500,
   cron: "",
   enabled: false,
@@ -1002,6 +1085,25 @@ const onSourceTypeChange = (type: string | number | boolean | undefined) => {
   previewSourceColumns.value = [];
   previewWarnings.value = [];
 };
+
+/**
+ * 切换同步模式：增量模式下把「先清空再插入」换成「存在即更新」。
+ *
+ * <p>先清空语义与增量水位天然冲突——每批执行都会把目标表清掉，
+ * 上一轮同步的数据直接消失。后端也会在保存时拦，这里提前调好少一次报错往返。</p>
+ */
+const onSyncModeChange = (mode: string | number | boolean | undefined) => {
+  if (mode === "INCREMENTAL" && form.writeMode === "OVERWRITE") {
+    form.writeMode = "UPSERT";
+    ElMessage.info("增量模式已将写入模式调整为「存在即更新」——先清空再插入会清掉未同步的数据");
+  }
+};
+
+/**
+ * 任务生效的同步模式（存量行该列为空时按全量）
+ * @param row 任务
+ */
+const effectiveSyncMode = (row: SyncTask): string => row.syncTaskSyncMode || "FULL";
 
 /**
  * 把存储的 sourceOptions 回填到表单
@@ -1622,6 +1724,21 @@ const stepIssue = (index: number): string | null => {
   if (index === 1) {
     if (form.targetDatasourceId == null) return "请先选择目标数据源";
     if (!form.targetTable.trim()) return "请选择或输入目标数据表";
+    if (form.syncMode === "INCREMENTAL") {
+      if (form.sourceType !== "JDBC" && form.sourceType !== "HTTP_JSON" && form.sourceType !== "HTTP_HTML") {
+        return "增量模式仅支持 JDBC / HTTP 输入源，文件/目录请用全量";
+      }
+      const incField = form.incField.trim();
+      if (!incField) return "增量模式必须填写增量字段";
+      if (!/^[A-Za-z0-9_]{1,64}$/.test(incField)) return "增量字段名只允许字母、数字、下划线";
+      if (form.writeMode === "OVERWRITE") return "增量模式不能使用「先清空再插入」（每批都会清空目标表）";
+    }
+    return null;
+  }
+  if (index === 2) {
+    const hookUrl = form.hookUrl.trim();
+    if (hookUrl && !/^https?:\/\//i.test(hookUrl)) return "Hook 通知地址必须以 http:// 或 https:// 开头";
+    if (hookUrl.length > 512) return "Hook 通知地址过长（最多 512 字符）";
     return null;
   }
   return null;
@@ -1686,6 +1803,12 @@ const openCreate = () => {
   form.targetDatasourceId = defaultTarget ? (defaultTarget.id ?? null) : null;
   form.targetTable = "";
   form.writeMode = "INSERT";
+  form.syncMode = "FULL";
+  form.incField = "";
+  form.incBatchSize = null;
+  form.hookUrl = "";
+  form.hookNotify = "DONE";
+  form.lastSeq = "";
   form.batchSize = 500;
   form.cron = "";
   form.enabled = false;
@@ -1737,6 +1860,12 @@ const openEdit = (row: SyncTask) => {
   form.targetDatasourceId = row.syncTaskTargetDatasourceId;
   form.targetTable = row.syncTaskTargetTable;
   form.writeMode = row.syncTaskWriteMode || "INSERT";
+  form.syncMode = row.syncTaskSyncMode === "INCREMENTAL" ? "INCREMENTAL" : "FULL";
+  form.incField = row.syncTaskIncField || "";
+  form.incBatchSize = row.syncTaskIncBatchSize ?? null;
+  form.hookUrl = row.syncTaskHookUrl || "";
+  form.hookNotify = row.syncTaskHookNotify === "ROW" ? "ROW" : "DONE";
+  form.lastSeq = row.syncTaskLastSeq || "";
   form.batchSize = row.syncTaskBatchSize || 500;
   form.cron = row.syncTaskCron || "";
   form.enabled = row.syncTaskEnabled === 1;
@@ -1957,6 +2086,10 @@ const submit = async () => {
     step.value = 1;
     return;
   }
+  if (!validateStep(2)) {
+    step.value = 2;
+    return;
+  }
   if (cronError.value) {
     ElMessage.warning(cronError.value);
     return;
@@ -1989,6 +2122,12 @@ const submit = async () => {
       targetTable: form.targetTable.trim(),
       columnMapping: mapping.length ? JSON.stringify(mapping) : null,
       writeMode: form.writeMode,
+      syncMode: form.syncMode,
+      // 全量模式也回传增量字段表单值：后端全量分支不覆盖存量配置，来回切换不丢水位
+      incField: form.incField.trim() || null,
+      incBatchSize: form.syncMode === "INCREMENTAL" ? (form.incBatchSize ?? null) : null,
+      hookUrl: form.hookUrl.trim() || null,
+      hookNotify: form.hookNotify,
       batchSize: form.batchSize,
       cron: form.cron.trim() ? form.cron.trim() : null,
       enabled: form.enabled ? 1 : 0,
@@ -2650,6 +2789,7 @@ onUnmounted(() => {
 .st-sub { font-size: 12px; color: var(--text-tertiary); }
 .st-sql { font-size: 12px; color: var(--text-secondary); }
 .st-cron { font-size: 12px; color: var(--el-color-primary); }
+.st-mode-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .st-last { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
 .st-msg { margin-top: 2px; font-size: 12px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-msg-fail { color: var(--el-color-danger); display: flex; align-items: center; gap: 4px; }
