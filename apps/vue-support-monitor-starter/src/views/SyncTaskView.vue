@@ -55,8 +55,8 @@
         <div class="st-alert-chips">
           <button
             v-for="t in failedTasks" :key="t.id" type="button"
-            class="st-alert-chip" :title="`查看 ${t.syncTaskName}`"
-            @click="openEdit(t)"
+            class="st-alert-chip" :title="`查看 ${t.syncTaskName} 的执行日志`"
+            @click="openLog(t)"
           >
             <span class="st-alert-dot" aria-hidden="true" />
             <span class="st-alert-chip-name">{{ t.syncTaskName }}</span>
@@ -107,12 +107,18 @@
     </div>
 
     <div class="st-body">
-      <el-table
-        v-loading="loading" :data="pageTasks" border stripe
+      <!-- 表格统一 ReTable（替换裸 el-table）：列收敛为 columns 配置 + #col-* 插槽。
+           engine="element" 显式指定：本页 UI 图契约（.st-foot 自带页脚 + el-pagination）
+           与既有 e2e / 可点元素普查的 DOM 口径（.el-table__body tbody tr 等）都按
+           el-table 写死，vxe 引擎会换掉整棵表格 DOM；pagination=false 表示分页由页脚
+           自管（pageTasks 切片与原实现逐行一致），toolbar=false 保持本页按钮清单不变。 -->
+      <ReTable
+        :data="pageTasks" :columns="taskColumns" :loading="loading"
+        engine="element" :pagination="false" :toolbar="false"
+        table-id="monitor-sync-tasks" stripe
         empty-text="没有符合条件的同步任务"
       >
-        <el-table-column label="任务" min-width="230">
-          <template #default="{ row }">
+        <template #col-task="{ row }">
             <div class="st-task-head">
               <span class="st-dot" :class="statusOf(row)" aria-hidden="true" />
               <button
@@ -123,10 +129,8 @@
               </button>
             </div>
             <div class="st-sub mono">{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="数据流向" min-width="250">
-          <template #default="{ row }">
+        </template>
+        <template #col-flow="{ row }">
             <div class="st-flow">
               <span class="st-flow-chip" :title="sourceFull(row)">
                 <ReIcon name="Coin" :size="12" />{{ sourceTableName(row) }}
@@ -136,26 +140,20 @@
                 <ReIcon name="Grid" :size="12" />{{ row.syncTaskTargetTable || "-" }}
               </span>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="写入模式" width="118" align="center">
-          <template #default="{ row }">
+        </template>
+        <template #col-writeMode="{ row }">
             <el-tag :type="writeModeTagType(row.syncTaskWriteMode)" effect="plain" size="small">
               {{ modeLabel(row.syncTaskWriteMode) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="定时" width="150">
-          <template #default="{ row }">
+        </template>
+        <template #col-cron="{ row }">
             <template v-if="row.syncTaskCron">
               <div class="mono st-cron" :title="row.syncTaskCron">{{ cronShort(row.syncTaskCron) }}</div>
               <div class="st-sub">{{ cronDesc(row.syncTaskCron) }}</div>
             </template>
             <span v-else class="st-sub">仅手动</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="启用" width="78" align="center">
-          <template #default="{ row }">
+        </template>
+        <template #col-enabled="{ row }">
             <!-- EP 2.14 的 el-switch 只认 ariaLabel prop（switch.vue:136 直接 __props.ariaLabel），
                  写原生 aria-label 会被丢弃 → 开关读不出名字，普查判「没有可访问名」。 -->
             <el-switch
@@ -163,10 +161,8 @@
               :aria-label="`启用 ${row.syncTaskName}`"
               @change="(value: string | number | boolean) => toggle(row, !!value)"
             />
-          </template>
-        </el-table-column>
-        <el-table-column label="最近执行" min-width="260">
-          <template #default="{ row }">
+        </template>
+        <template #col-lastRun="{ row }">
             <template v-if="row.syncTaskLastStatus">
               <div class="st-last">
                 <el-tag
@@ -187,27 +183,22 @@
             </template>
             <span v-else-if="row.syncTaskEnabled !== 1" class="st-sub">已停用调度</span>
             <span v-else class="st-sub">尚未执行</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right" align="center">
-          <template #default="{ row }">
+        </template>
+        <!-- 操作列：统一 ReButton square 纯图标按钮（执行 / 日志 / 编辑 / 删除），
+             tip 即悬浮提示；「日志」打开同步日志弹窗（服务端最近一次 + 本机记录）。 -->
+        <template #col-actions="{ row }">
             <div class="st-acts">
               <ReButton
-                :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1" title="立即执行"
-                class="st-act" link @click="run(row)"
-              >
-                <template #icon><ReIcon name="VideoPlay" /></template>
-              </ReButton>
-              <ReButton title="编辑" class="st-act" link @click="openEdit(row)">
-                <template #icon><ReIcon name="EditPen" /></template>
-              </ReButton>
-              <ReButton title="删除" class="st-act st-act-del" link @click="remove(row)">
-                <template #icon><ReIcon name="Delete" /></template>
-              </ReButton>
+                layout="square" icon="VideoPlay" tip="立即执行"
+                :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1"
+                @click="run(row)"
+              />
+              <ReButton layout="square" icon="Document" tip="日志" @click="openLog(row)" />
+              <ReButton layout="square" icon="EditPen" tip="编辑" @click="openEdit(row)" />
+              <ReButton layout="square" icon="Delete" type="danger" tip="删除" @click="remove(row)" />
             </div>
-          </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </ReTable>
       <div class="st-foot">
         <span>显示 {{ pageStart }}-{{ pageEnd }} 条，共 {{ tasks.length }} 个同步任务</span>
         <el-pagination
@@ -471,7 +462,7 @@
               <el-select v-model="form.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
                 <el-option v-for="t in targetTables" :key="t" :label="t" :value="t" />
               </el-select>
-              <div class="st-form-hint">表清单取自目标数据源；不在清单中的表名可直接输入。</div>
+              <div class="st-form-hint">表清单取自目标数据源；不在清单中的表名可直接输入。预览发现表不存在时，会弹出设计表向导在对应库建好并自动继续预览。</div>
             </div>
             <div class="st-form-item">
               <label>写入模式</label>
@@ -549,16 +540,16 @@
             <div v-if="cronError" class="st-warn">{{ cronError }}</div>
           </div>
 
-          <div class="st-grid">
-            <div class="st-form-item">
-              <label>批量提交条数</label>
-              <el-input-number v-model="form.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
-            </div>
-            <div class="st-form-item st-switch-item">
-              <label>启用定时</label>
-              <el-switch v-model="form.enabled" aria-label="启用定时" :disabled="!form.cron.trim()" />
-              <span class="st-form-hint">未填定时表达式时不能启用</span>
-            </div>
+          <!-- 批量提交条数与启用定时各占一行：原先两列并排，控件挤在一起读与调都不顺手 -->
+          <div class="st-form-item">
+            <label>批量提交条数</label>
+            <el-input-number v-model="form.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
+            <div class="st-form-hint">每批写入的行数：调大提升吞吐，调小降低单事务压力。</div>
+          </div>
+          <div class="st-form-item st-switch-item">
+            <label>启用定时</label>
+            <el-switch v-model="form.enabled" aria-label="启用定时" :disabled="!form.cron.trim()" />
+            <span class="st-form-hint">未填定时表达式时不能启用</span>
           </div>
         </template>
       </div>
@@ -584,6 +575,125 @@
         </div>
       </template>
     </ReDialog>
+
+    <!-- ================= 调试日志弹窗：主体 = 服务端执行调试日志（连源、SQL、列解析、映射、
+         逐文件读写、错误堆栈的逐步过程行；进行中的执行在打开期间轮询实时追加）。
+         摘要条只给「最近一次结果」一眼上下文。服务端接口不可用时降级展示本机执行记录
+         （本页触发的真实结果），如实报错、不编造后端没有的数据。 -->
+    <ReDialog
+      v-model="logVisible"
+      class="st-sync-dlg st-log-dlg"
+      title="同步日志"
+      :subtitle="logTask ? logTask.syncTaskName : ''"
+      :icon="DocumentIcon"
+      width="760px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="logTask" class="st-log">
+        <!-- 摘要条：任务行最近一次执行（上下文，过程详情以下方调试日志为准） -->
+        <div class="st-log-summary">
+          <el-tag
+            v-if="logTask.syncTaskLastStatus"
+            :type="logTask.syncTaskLastStatus === 'SUCCESS' ? 'success' : 'danger'"
+            size="small" effect="dark" round
+          >{{ logTask.syncTaskLastStatus === "SUCCESS" ? "成功" : "失败" }}</el-tag>
+          <span v-if="runningId === logTask.id" class="st-log-running">
+            <ReIcon name="Loading" :size="13" />执行中…
+          </span>
+          <span v-if="logTask.syncTaskLastRunTime" class="st-log-summary-meta">
+            最近一次 {{ logTask.syncTaskLastRunTime }} · 读 {{ logTask.syncTaskLastReadCount ?? "—" }} / 写 {{ logTask.syncTaskLastWriteCount ?? "—" }} 行 · {{ logTask.syncTaskLastCostMs ?? "—" }} ms
+          </span>
+          <span v-else class="st-log-summary-meta">该任务还没有执行过</span>
+          <span
+            v-if="logTask.syncTaskLastMessage"
+            class="st-log-summary-msg"
+            :title="logTask.syncTaskLastMessage"
+          >{{ logTask.syncTaskLastMessage }}</span>
+        </div>
+
+        <div class="st-log-block">
+          <div class="st-log-block-head">
+            <span class="st-log-block-title">调试日志</span>
+            <ReIcon v-if="logLoading" name="Loading" :size="13" />
+            <span class="st-log-hint-inline">服务端内存保留最近 10 次执行，后端重启即清空；弹窗打开期间自动刷新</span>
+          </div>
+
+          <!-- 服务端不可用（接口未部署 / 网关错误）：如实报错，降级展示本机执行记录 -->
+          <template v-if="logFetchError">
+            <p class="st-log-hint st-log-fetch-error">服务端调试日志暂不可用：{{ logFetchError }}。以下为本机执行记录（仅本页触发的真实执行）。</p>
+            <div v-if="logEntries.length" class="st-log-list">
+              <div
+                v-for="(entry, index) in logEntries" :key="`${entry.at}-${index}`"
+                class="st-log-row" :class="entry.status === 'SUCCESS' ? 'is-ok' : 'is-bad'"
+              >
+                <span class="st-log-time">{{ entry.at }}</span>
+                <span class="st-log-badge">{{ entry.status === "SUCCESS" ? "成功" : "失败" }}</span>
+                <span class="st-log-counts">读 {{ entry.read }} / 写 {{ entry.write }} 行 · {{ entry.costMs }} ms</span>
+                <span class="st-log-msg-text" :title="entry.message">{{ entry.message || "（无附加消息）" }}</span>
+              </div>
+            </div>
+            <div v-else class="st-log-empty">本机也没有触发过执行</div>
+          </template>
+
+          <!-- 服务端调试日志：进行中执行在最前，其后为已完成执行（新 → 旧）；点击条头展开/收起 -->
+          <div v-else-if="logRuns.length" class="st-log-runs">
+            <div
+              v-for="(entry, index) in logRuns"
+              :key="`${entry.runTime}-${index}`"
+              class="st-log-run"
+              :class="entry.status === 'RUNNING' ? 'is-active' : (entry.status === 'SUCCESS' ? 'is-ok' : 'is-bad')"
+            >
+              <div class="st-log-run-head" @click="expandedLogRun = expandedLogRun === index ? -1 : index">
+                <span class="st-log-run-caret">{{ expandedLogRun === index ? "▾" : "▸" }}</span>
+                <span class="st-log-run-trigger">{{ triggerLabel(entry.trigger) }}</span>
+                <el-tag
+                  :type="entry.status === 'RUNNING' ? 'primary' : (entry.status === 'SUCCESS' ? 'success' : 'danger')"
+                  size="small" effect="dark" round
+                >{{ statusLabel(entry.status) }}</el-tag>
+                <span class="st-log-run-time">{{ entry.runTime }}</span>
+                <span class="st-log-run-cost">{{ entry.costMs ?? "—" }} ms</span>
+                <span class="st-log-run-count">{{ entry.lines.length }} 行</span>
+              </div>
+              <div v-if="expandedLogRun === index" class="st-log-run-body">
+                <div
+                  v-for="(line, li) in entry.lines" :key="li"
+                  class="st-log-line" :class="`is-${line.level.toLowerCase()}`"
+                >
+                  <span class="st-log-line-time">{{ line.time }}</span>
+                  <span class="st-log-line-level">{{ line.level }}</span>
+                  <span class="st-log-line-msg">{{ line.message }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="st-log-empty">服务端暂无调试日志——从本页「立即执行」或等定时触发一次，这里会显示逐步过程日志。</div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="st-dlg-actions">
+          <ReButton v-if="logFetchError && logEntries.length" @click="clearLogEntries">清空本机记录</ReButton>
+          <ReButton @click="logVisible = false">关闭</ReButton>
+          <ReButton v-if="logTask" @click="openEditFromLog">编辑任务</ReButton>
+          <ReButton
+            v-if="logTask" type="primary"
+            :loading="runningId === logTask.id"
+            :disabled="logTask.syncTaskEnabled !== 1"
+            @click="runFromLog"
+          >立即执行</ReButton>
+        </div>
+      </template>
+    </ReDialog>
+
+    <!-- 设计表向导（@pages/datasource 数据库管理器同款）：预览发现「表不存在」时弹出，
+         initial-name / initial-columns 带入缺失表名与源列；后端 POST /ms/monitor/db/table
+         按目标库方言建表，created 后回填表名并自动继续预览。 -->
+    <CreateTableDialog
+      v-model="tableDesignerVisible"
+      :datasource-id="designerDatasourceId ?? undefined"
+      :initial-name="designerTable"
+      :initial-columns="designerColumns"
+      @created="onTableCreated"
+    />
 
     <!-- 本机文件/目录选择器：数据同步的文件与文件夹源都指向后端所在机器，
          由 monitor 的 /ms/monitor/local-files/list 列举；FILE 模式同时列出数据文件。
@@ -612,10 +722,12 @@
  * @author CH
  * @since 4.0.0.43
  */
-import { computed, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { CircleCheck, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
+import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
+import { fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
+import CreateTableDialog from "@pages/datasource/src/components/console/CreateTableDialog.vue";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
@@ -626,6 +738,7 @@ import {
   disableSyncTask,
   fetchLocalFiles,
   fetchSyncTasks,
+  fetchSyncTaskLogs,
   fetchSyncWriteModes,
   previewSyncMapping,
   runSyncTask,
@@ -634,10 +747,12 @@ import {
   type SyncFieldMapping,
   type SyncTask,
   type SyncTaskPayload,
+  type SyncTaskRunLog,
   type SyncTaskRunResult,
   type SyncWriteMode,
 } from "../syncTaskApi";
 import ReDialog from "@repo/ui/re-dialog";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 defineOptions({ name: "SyncTaskView" });
 
@@ -1020,6 +1135,21 @@ const statusFilter = ref<StatusKey>("all");
 const writeModeFilter = ref("all");
 /** 任务名称搜索（UI 图右上搜索框；e2e 对照的「不匹配即归零」口径同样经过它） */
 const nameFilter = ref("");
+/**
+ * 表格统一 ReTable 的列定义（原七个 el-table-column 收敛于此）。
+ *
+ * <p>七列全部自定义渲染：prop 只作列的稳定标识（列设置 / 持久化按键），
+ * 单元格内容一律走 {@code #col-<prop>} 插槽；宽度 / 对齐 / 固定列与 UI 图逐列一致。</p>
+ */
+const taskColumns: ReTableColumn[] = [
+  { prop: "task", label: "任务", minWidth: 230 },
+  { prop: "flow", label: "数据流向", minWidth: 250 },
+  { prop: "writeMode", label: "写入模式", width: 118, align: "center" },
+  { prop: "cron", label: "定时", width: 150 },
+  { prop: "enabled", label: "启用", width: 78, align: "center" },
+  { prop: "lastRun", label: "最近执行", minWidth: 260 },
+  { prop: "actions", label: "操作", width: 170, fixed: "right", align: "center" },
+];
 /** 分页：UI 图底部分页；e2e 的行数口径按「当前页行数」+ 徽标仍按全过滤集 */
 const pageNo = ref(1);
 const PAGE_SIZE = 8;
@@ -1691,8 +1821,129 @@ const doPreview = async () => {
     ElMessage.success(`源 ${preview.sourceColumns.length} 列 / 目标 ${preview.targetColumns.length} 列，已配对 ${preview.mapping.length} 项`);
   } catch (e) {
     previewWarnings.value = [];
-    ElMessage.error("预览失败：" + (e as Error)?.message);
+    const message = (e as Error)?.message || "未知错误";
+    ElMessage.error("预览失败：" + message);
+    // 「表不存在」不是配置填错，光提示用户也续不上 —— 直接弹设计表，
+    // 在缺表的那一侧库建好后回填表名并自动续跑预览。
+    if (isTableMissingError(message)) {
+      void openTableDesigner(message);
+    }
   }
+};
+
+/** 设计表网格的一行（与 CreateTableDialog 的列定义同形；来自源表元数据时只填真实读到的项） */
+type DesignerColumn = {
+  name: string;
+  type?: string;
+  size?: number | null;
+  scale?: number | null;
+  nullable?: boolean;
+  primaryKey?: boolean;
+  autoIncrement?: boolean;
+  defaultValue?: string;
+  comment?: string;
+  enumText?: string;
+};
+
+/** 表设计器（预览发现「表不存在」时弹出）：可见性 */
+const tableDesignerVisible = ref(false);
+/** 缺失的表在哪一侧：决定设计器连哪个数据源、建完刷新哪张表清单 */
+const designerSide = ref<"source" | "target">("target");
+/** 预填的表名（缺失表名；用户可在设计器里改） */
+const designerTable = ref("");
+/** 预填的列：目标侧缺表时带入真实源列，源侧缺表（无从读列）留空由用户设计 */
+const designerColumns = ref<DesignerColumn[]>([]);
+/** 设计器要连的数据源 ID */
+const designerDatasourceId = ref<number | null>(null);
+
+/** 预览报错是不是「表不存在」（MySQL / PostgreSQL / Oracle 三种方言的形态） */
+const isTableMissingError = (message: string): boolean =>
+  /doesn'?t exist|does not exist|ORA-00942|表不存在/i.test(message);
+
+/** 从方言报错里抠出缺失的表名：Table 'db.tbl' / relation "tbl" / 表 tbl 不存在 */
+const parseMissingTable = (message: string): string | null => {
+  const hit =
+    /Table '([^']+)'/.exec(message) ||
+    /relation "([^"]+)"/.exec(message) ||
+    /表\s*[`'"]?([\w.]+)[`'"]?\s*不存在/.exec(message);
+  const raw = hit?.[1] ?? "";
+  const table = (raw.split(".").pop() ?? raw).replace(/[`"]/g, "").trim();
+  return table || null;
+};
+
+/** 缺失表在源侧还是目标侧：与目标表名、选表模式表名、SQL 的 FROM/JOIN 表逐一比对 */
+const detectMissingSide = (table: string | null): "source" | "target" => {
+  const norm = (s: string) => s.replace(/[`"\s]/g, "").toLowerCase();
+  // 文件 / 目录源没有「源表」概念；解析不出表名时按目标表处理（建目标表是主要场景）
+  if (form.sourceType !== "JDBC" || !table) {
+    return "target";
+  }
+  if (norm(form.targetTable) === norm(table)) {
+    return "target";
+  }
+  if (sourceMode.value === "table" && pickedSourceTable.value && norm(pickedSourceTable.value) === norm(table)) {
+    return "source";
+  }
+  if (sourceMode.value === "sql") {
+    const refs = [...form.sourceSql.matchAll(/(?:from|join)\s+`?([\w.]+)`?/gi)]
+      .map(m => (m[1] ?? "").split(".").pop() ?? "");
+    if (refs.some(ref => norm(ref) === norm(table))) {
+      return "source";
+    }
+  }
+  return "target";
+};
+
+/** 目标侧预填：拿真实源列当设计起点（源列取不到就空着手设计，不编造列） */
+const fetchSourcePrefill = async (): Promise<DesignerColumn[]> => {
+  if (form.sourceType !== "JDBC" || form.sourceDatasourceId == null) {
+    return [];
+  }
+  try {
+    if (sourceMode.value === "table" && pickedSourceTable.value) {
+      const columns = await fetchTableColumns(pickedSourceTable.value, form.sourceDatasourceId);
+      return columns.map(c => ({
+        name: c.name,
+        type: (c.baseType || c.type || "VARCHAR").toUpperCase(),
+        size: c.size > 0 ? c.size : null,
+        scale: c.scale && c.scale > 0 ? c.scale : null,
+        nullable: c.nullable,
+        primaryKey: c.isPrimaryKey ?? false,
+        autoIncrement: c.autoIncrement ?? false,
+        defaultValue: c.default ?? "",
+        comment: c.remark ?? "",
+        enumText: (c.enumValues ?? []).join(", "),
+      }));
+    }
+  } catch {
+    // 源列取不到（权限 / 方言差异）不拦建表：进设计器后手动设计
+  }
+  return [];
+};
+
+/** 预览失败且是「表不存在」→ 打开设计表向导 */
+const openTableDesigner = async (message: string): Promise<void> => {
+  const missing = parseMissingTable(message);
+  const side = detectMissingSide(missing);
+  designerSide.value = side;
+  designerTable.value = missing ?? (side === "target" ? form.targetTable.trim() : pickedSourceTable.value ?? "");
+  designerDatasourceId.value = (side === "target" ? form.targetDatasourceId : form.sourceDatasourceId) ?? null;
+  designerColumns.value = side === "target" ? await fetchSourcePrefill() : [];
+  tableDesignerVisible.value = true;
+};
+
+/** 建表成功（后端已按方言 CREATE TABLE）→ 回填表名、刷新表清单并自动续跑预览 */
+const onTableCreated = async (_database: string, table: string): Promise<void> => {
+  if (designerSide.value === "target") {
+    form.targetTable = table;
+    void loadTables(form.targetDatasourceId, true);
+  } else {
+    sourceMode.value = "table";
+    pickedSourceTable.value = table;
+    form.sourceSql = `SELECT * FROM \`${table}\``;
+    void loadTables(form.sourceDatasourceId, false);
+  }
+  await doPreview();
 };
 
 /** 保存任务 */
@@ -1767,18 +2018,204 @@ const run = async (row: SyncTask) => {
   runningIds.value = new Set([...runningIds.value, row.id]);
   try {
     const result: SyncTaskRunResult = await runSyncTask(row.id);
+    // 每次执行都记进本机日志（后端任务行只保留「最近一次」，历史靠这里累积）
+    appendLogEntry(row.id, {
+      at: result.runTime || new Date().toLocaleString(),
+      status: result.status,
+      read: result.readCount,
+      write: result.writeCount,
+      costMs: result.costMs,
+      message: result.message || "",
+    });
     if (result.status === "SUCCESS") {
       ElMessage.success(`执行成功：读 ${result.readCount} 行，写 ${result.writeCount} 行，${result.costMs}ms`);
     } else {
       ElMessage.error(`执行失败：${result.message}`);
     }
   } catch (e) {
-    ElMessage.error("执行失败：" + (e as Error)?.message);
+    const message = (e as Error)?.message || String(e);
+    // 网络 / 网关错误没有 runTime，用触发时刻记录；status 用 ERROR 与业务 FAILED 区分开
+    appendLogEntry(row.id, {
+      at: new Date().toLocaleString(),
+      status: "ERROR",
+      read: 0,
+      write: 0,
+      costMs: 0,
+      message,
+    });
+    ElMessage.error("执行失败：" + message);
   } finally {
     runningId.value = null;
     await refresh();
   }
 };
+
+// ==================== 执行日志：服务端调试日志为主，本机记录为降级 ====================
+// 主体是服务端逐步调试日志（GET /tasks/{id}/logs，后端内存环形缓冲：连源、SQL、列解析、
+// 字段映射、逐文件读写、错误堆栈），弹窗打开期间轮询实时追加；顶部摘要条读任务行
+// last_* 字段只给一眼上下文。服务端接口不可用时降级展示「本机执行记录」——本页每次
+// 触发执行写进 localStorage 的真实结果，只记真实发生过的执行，不编造后端没有的数据。
+/** localStorage key 前缀（按任务隔离） */
+const LOG_LS_PREFIX = "monitor:sync-task-log:";
+/** 单任务本机记录上限：只留最近 100 条，避免无限膨胀 */
+const LOG_MAX_ENTRIES = 100;
+/** 一条本机执行记录 */
+type LogEntry = {
+  at: string;
+  status: string;
+  read: number;
+  write: number;
+  costMs: number;
+  message: string;
+};
+/** 日志弹窗可见性 */
+const logVisible = ref(false);
+/** 日志弹窗当前任务 */
+const logTask = ref<SyncTask | null>(null);
+/** 本机执行记录（新 → 旧；服务端接口不可用时的降级数据） */
+const logEntries = ref<LogEntry[]>([]);
+/** 服务端执行调试日志（进行中执行在最前，其后已完成执行新 → 旧） */
+const logRuns = ref<SyncTaskRunLog[]>([]);
+/** 服务端日志拉取错误；非空表示进入降级展示 */
+const logFetchError = ref("");
+/** 服务端日志拉取中 */
+const logLoading = ref(false);
+/** 当前展开的执行条目下标（默认最新一次；-1 表示全部收起） */
+const expandedLogRun = ref(0);
+/** 弹窗打开期间的轮询句柄 */
+let logPollTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 读某任务的本机记录（存储损坏时静默降级为空） */
+const readLogEntries = (taskId: number): LogEntry[] => {
+  try {
+    const raw = localStorage.getItem(LOG_LS_PREFIX + taskId);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? (list as LogEntry[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+/** 追加一条记录并回写存储；日志弹窗开着且正是这个任务时同步刷新列表 */
+const appendLogEntry = (taskId: number, entry: LogEntry): void => {
+  const list = [entry, ...readLogEntries(taskId)].slice(0, LOG_MAX_ENTRIES);
+  try {
+    localStorage.setItem(LOG_LS_PREFIX + taskId, JSON.stringify(list));
+  } catch {
+    // 隐私模式 / 存储满：记录是增强能力，写不进去不影响执行本身
+  }
+  if (logVisible.value && logTask.value?.id === taskId) {
+    logEntries.value = list;
+  }
+};
+
+/** 打开日志弹窗（操作列「日志」与失败横幅的任务名都走这里，绝不触碰新建）；
+ *  服务端调试日志由 logVisible 的 watcher 拉取并启动轮询 */
+const openLog = (row: SyncTask): void => {
+  logTask.value = row;
+  logEntries.value = readLogEntries(row.id);
+  logRuns.value = [];
+  logFetchError.value = "";
+  expandedLogRun.value = 0;
+  logVisible.value = true;
+};
+
+/** 清空当前任务的本机记录 */
+const clearLogEntries = (): void => {
+  const task = logTask.value;
+  if (!task) {
+    return;
+  }
+  try {
+    localStorage.removeItem(LOG_LS_PREFIX + task.id);
+  } catch {
+    // 存储不可用时列表本来就为空，清不掉也不影响
+  }
+  logEntries.value = [];
+};
+
+/** 弹窗内直接执行一次：run() 负责刷新任务行与本机记录，随后立刻拉服务端调试日志对齐最新 */
+const runFromLog = async (): Promise<void> => {
+  const task = logTask.value;
+  if (!task) {
+    return;
+  }
+  await run(task);
+  logEntries.value = readLogEntries(task.id);
+  const fresh = tasks.value.find(t => t.id === task.id);
+  if (fresh) {
+    logTask.value = fresh;
+  }
+  await fetchLogRuns();
+};
+
+/** 从日志弹窗跳到编辑（先关日志；任务可能已在别处删除，拿不到最新行就用弹窗里的快照） */
+const openEditFromLog = (): void => {
+  const current = logTask.value;
+  if (!current) {
+    return;
+  }
+  logVisible.value = false;
+  openEdit(tasks.value.find(t => t.id === current.id) ?? current);
+};
+
+/** 拉取当前任务的服务端调试日志；失败时进入降级展示（错误原文如实显示给用户） */
+const fetchLogRuns = async (): Promise<void> => {
+  const task = logTask.value;
+  if (!task || logLoading.value) {
+    return;
+  }
+  logLoading.value = true;
+  try {
+    logRuns.value = await fetchSyncTaskLogs(task.id);
+    logFetchError.value = "";
+    await nextTick();
+    // 最新一次正在跑且处于展开状态时，跟随日志尾部滚动（排障时盯着最新行）
+    if (logRuns.value[0]?.status === "RUNNING" && expandedLogRun.value === 0) {
+      const body = document.querySelector(".st-log-dlg .st-log-run.is-active .st-log-run-body");
+      if (body) {
+        body.scrollTop = body.scrollHeight;
+      }
+    }
+  } catch (e) {
+    logFetchError.value = (e as Error)?.message || String(e);
+  } finally {
+    logLoading.value = false;
+  }
+};
+
+/** 触发方式展示名 */
+const triggerLabel = (trigger: string): string =>
+  trigger === "SCHEDULED" ? "定时" : trigger === "REALTIME" ? "实时" : "手动";
+
+/** 执行状态展示名 */
+const statusLabel = (status: string): string =>
+  status === "RUNNING" ? "执行中" : status === "SUCCESS" ? "成功" : "失败";
+
+/** 弹窗可见性联动：打开即拉一次并启动轮询（进行中的执行实时追加），关闭即停 */
+watch(logVisible, async visible => {
+  if (visible) {
+    await fetchLogRuns();
+    if (logPollTimer == null) {
+      logPollTimer = setInterval(() => {
+        if (!document.hidden) {
+          void fetchLogRuns();
+        }
+      }, 1500);
+    }
+  } else if (logPollTimer != null) {
+    clearInterval(logPollTimer);
+    logPollTimer = null;
+  }
+});
+
+/** 组件卸载兜底清理轮询 */
+onUnmounted(() => {
+  if (logPollTimer != null) {
+    clearInterval(logPollTimer);
+    logPollTimer = null;
+  }
+});
 
 /**
  * 启停定时
@@ -1902,6 +2339,15 @@ onUnmounted(() => {
   background: var(--bg-container);
   padding: 0 0 12px;
   overflow: hidden;
+}
+
+/* 表格统一 ReTable：卡面沿用 .st-body（外层已有边框 / 圆角 / 背景 / 内边距），
+   关掉 ReTable 根自带的卡面样式，避免嵌套后出现双层边框与双重内边距。 */
+.st-body :deep(.re-table) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 /* ==================== KPI 卡 ==================== */
@@ -2134,7 +2580,8 @@ onUnmounted(() => {
 }
 .st-flow-arrow { color: var(--text-tertiary); flex-shrink: 0; }
 
-/* 操作列：UI 图是行内文字图标按钮（flex nowrap：EP 按钮默认 inline，三个排不下会折行） */
+/* 操作列：统一 ReButton square 纯图标按钮（flex nowrap：按钮默认 inline，多个排不下会折行）。
+   square 自带 4px 左右外边距，在 st-acts 内清零，由 gap 统一控制 6px 间距。 */
 .st-acts {
   display: flex;
   align-items: center;
@@ -2142,8 +2589,7 @@ onUnmounted(() => {
   gap: 6px;
   flex-wrap: nowrap;
 }
-.st-act { padding: 4px; font-size: 15px; }
-.st-act-del { color: var(--el-color-danger); }
+.st-acts :deep(.rs-btn) { margin: 0; }
 
 .st-foot {
   display: flex;
@@ -2346,6 +2792,119 @@ onUnmounted(() => {
 .st-path-input :deep(.el-input__wrapper) { padding-left: 10px; }
 .st-path-input :deep(.el-input__prefix) { color: var(--text-tertiary); }
 .st-hint-dot::before { content: "●"; margin-right: 6px; font-size: 8px; color: var(--text-tertiary); vertical-align: 1px; }
+
+/* ---------- 调试日志弹窗：摘要条 + 服务端逐步日志（降级时为本机记录，全走 EP 变量，亮暗自适应） ---------- */
+.st-log { display: flex; flex-direction: column; gap: 14px; }
+.st-log-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  font-size: 12.5px;
+}
+.st-log-summary-meta { color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
+.st-log-summary-msg {
+  min-width: 0;
+  max-width: 280px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-log-block {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  padding: 12px 14px;
+  background: var(--el-fill-color-blank);
+}
+.st-log-block-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.st-log-block-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
+.st-log-running { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--el-color-primary); }
+.st-log-hint { margin: -2px 0 8px; font-size: 11.5px; line-height: 1.6; color: var(--el-text-color-placeholder); }
+.st-log-hint-inline { margin-left: auto; font-size: 11.5px; color: var(--el-text-color-placeholder); }
+.st-log-fetch-error { color: var(--el-color-warning); }
+.st-log-empty { font-size: 12.5px; color: var(--el-text-color-placeholder); padding: 4px 0; }
+
+/* 服务端调试日志：执行条目（头可点开合）+ 等宽着色过程行 */
+.st-log-runs { display: flex; flex-direction: column; gap: 8px; max-height: 430px; overflow: auto; padding-right: 2px; }
+.st-log-run {
+  border: 1px solid var(--el-border-color-lighter);
+  border-left-width: 3px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-blank);
+  overflow: hidden;
+}
+.st-log-run.is-active { border-left-color: var(--el-color-primary); }
+.st-log-run.is-ok { border-left-color: var(--el-color-success); }
+.st-log-run.is-bad { border-left-color: var(--el-color-danger); }
+.st-log-run-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  background: var(--el-fill-color-light);
+}
+.st-log-run-head:hover { background: var(--el-fill-color); }
+.st-log-run-caret { flex: none; width: 12px; color: var(--el-text-color-placeholder); font-size: 11px; }
+.st-log-run-trigger { font-weight: 600; color: var(--el-text-color-primary); }
+.st-log-run-time { color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
+.st-log-run-cost { margin-left: auto; color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
+.st-log-run-count { color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
+.st-log-run-body {
+  max-height: 300px;
+  overflow: auto;
+  padding: 8px 10px;
+  background: var(--el-fill-color-blank);
+  font-family: var(--el-font-family-mono, "JetBrains Mono", "Consolas", monospace);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.st-log-line { display: flex; gap: 10px; align-items: flex-start; white-space: pre-wrap; word-break: break-all; }
+.st-log-line-time { flex: none; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
+.st-log-line-level { flex: none; width: 46px; font-weight: 600; }
+.st-log-line-msg { flex: 1; min-width: 0; color: var(--el-text-color-regular); }
+.st-log-line.is-info .st-log-line-level { color: var(--el-color-primary); }
+.st-log-line.is-warn .st-log-line-level { color: var(--el-color-warning); }
+.st-log-line.is-error .st-log-line-level { color: var(--el-color-danger); }
+.st-log-line.is-error .st-log-line-msg { color: var(--el-color-danger); }
+
+/* 降级：本机执行记录（服务端接口不可用时展示） */
+.st-log-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow: auto; }
+.st-log-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-left-width: 3px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+  font-size: 12px;
+}
+.st-log-row.is-ok { border-left-color: var(--el-color-success); }
+.st-log-row.is-bad { border-left-color: var(--el-color-danger); }
+.st-log-time { color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
+.st-log-badge { font-weight: 600; }
+.st-log-row.is-ok .st-log-badge { color: var(--el-color-success); }
+.st-log-row.is-bad .st-log-badge { color: var(--el-color-danger); }
+.st-log-counts { color: var(--el-text-color-secondary); text-align: right; }
+.st-log-msg-text {
+  grid-column: 1 / -1;
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>
 
 <style>
