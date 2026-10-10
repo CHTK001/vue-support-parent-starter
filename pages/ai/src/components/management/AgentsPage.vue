@@ -12,35 +12,35 @@
       </div>
     </div>
 
-    <!-- Agent列表 -->
-    <el-table :data="agentList" v-loading="loading" border style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="Agent名称" min-width="150" />
-      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="model" label="绑定模型" min-width="120" />
-      <el-table-column label="类型" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.type === 'master' ? 'warning' : 'info'" >
-            {{ row.type === 'master' ? '主Agent' : '子Agent' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="80">
-        <template #default="{ row }">
-          <el-tag :type="row.enabled ? 'success' : 'danger'" >
-            {{ row.enabled ? '启用' : '禁用' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="handleConfig(row)">工作流配置</el-button>
-          <el-button type="success" link @click="handleRegister(row)">注册为模型</el-button>
-          <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
-          <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Agent列表：裸 el-table → ReTable（engine="element" 保持原 DOM；原表带 border 走
+         ReTable 默认省略；页面无分页 → :pagination="false"；toolbar 关闭；无 height → minHeight 抑制）。 -->
+    <ReTable
+      :data="agentList"
+      :columns="agentColumns"
+      :loading="loading"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+      style="width: 100%"
+    >
+      <template #col-type="{ row }">
+        <el-tag :type="row.type === 'master' ? 'warning' : 'info'" >
+          {{ row.type === 'master' ? '主Agent' : '子Agent' }}
+        </el-tag>
+      </template>
+      <template #col-status="{ row }">
+        <el-tag :type="row.enabled ? 'success' : 'danger'" >
+          {{ row.enabled ? '启用' : '禁用' }}
+        </el-tag>
+      </template>
+      <template #col-actions="{ row }">
+        <el-button type="primary" link @click="handleConfig(row)">工作流配置</el-button>
+        <el-button type="success" link @click="handleRegister(row)">注册为模型</el-button>
+        <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
+        <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+      </template>
+    </ReTable>
 
     <!-- 已安装的智能体包（磁盘 + 落库状态） -->
     <div class="section-header">
@@ -49,43 +49,41 @@
         <el-icon><Refresh /></el-icon> 刷新
       </el-button>
     </div>
-    <el-table :data="packageList" v-loading="loadingPackages" border style="width: 100%">
-      <el-table-column prop="name" label="包名" min-width="140" />
-      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="model" label="绑定模型" min-width="120" />
-      <el-table-column label="来源" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.source === 'builtin' ? 'info' : 'success'">{{ row.source }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="sub_agents" label="子智能体" width="90" align="center" />
-      <el-table-column label="已落库" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.installed ? 'success' : 'warning'">{{ row.installed ? '是' : '否' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="启用" width="80" align="center">
-        <template #default="{ row }">
-          <!--
-            内置（builtin）智能体包不可停用：后端 toggle 只认用户安装包，
-            对 build/coordinator/plan 恒回 404「智能体不存在」（2026-10-07 逐按钮
-            sweep 实测：3 个内置包开关全 404 + 报错 toast）。给一个点了必失败的
-            开关不如直接禁用并说明原因；用户包（source=user）保持原行为。
-          -->
-          <el-switch
-            :model-value="row.enabled"
-            :disabled="row.source === 'builtin'"
-            :title="row.source === 'builtin' ? '内置智能体不支持启停' : ''"
-            @change="(v: any) => handleTogglePackage(row, v)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
-        <template #default="{ row }">
-          <el-button type="danger" link @click="handleUninstallPackage(row)">卸载</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- 已安装的智能体包：裸 el-table → ReTable（border 走默认省略；分页/工具栏关闭） -->
+    <ReTable
+      :data="packageList"
+      :columns="packageColumns"
+      :loading="loadingPackages"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+      style="width: 100%"
+    >
+      <template #col-source="{ row }">
+        <el-tag :type="row.source === 'builtin' ? 'info' : 'success'">{{ row.source }}</el-tag>
+      </template>
+      <template #col-installed="{ row }">
+        <el-tag :type="row.installed ? 'success' : 'warning'">{{ row.installed ? '是' : '否' }}</el-tag>
+      </template>
+      <template #col-enabled="{ row }">
+        <!--
+          内置（builtin）智能体包不可停用：后端 toggle 只认用户安装包，
+          对 build/coordinator/plan 恒回 404「智能体不存在」（2026-10-07 逐按钮
+          sweep 实测：3 个内置包开关全 404 + 报错 toast）。给一个点了必失败的
+          开关不如直接禁用并说明原因；用户包（source=user）保持原行为。
+        -->
+        <el-switch
+          :model-value="row.enabled"
+          :disabled="row.source === 'builtin'"
+          :title="row.source === 'builtin' ? '内置智能体不支持启停' : ''"
+          @change="(v: any) => handleTogglePackage(row, v)"
+        />
+      </template>
+      <template #col-actions="{ row }">
+        <el-button type="danger" link @click="handleUninstallPackage(row)">卸载</el-button>
+      </template>
+    </ReTable>
 
     <!-- 新增/编辑弹窗 -->
     <ReDialog v-model="editDialogVisible" :title="editingId ? '编辑Agent' : '新增Agent'" width="600px">
@@ -131,20 +129,22 @@
               <el-icon><Refresh /></el-icon> 刷新
             </el-button>
           </div>
-          <el-table :data="subAgentList" v-loading="loadingSubAgents" border style="width: 100%; margin-top: 10px">
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="name" label="子Agent名称" min-width="150" />
-            <el-table-column prop="model" label="绑定模型" min-width="120" />
-            <el-table-column prop="role" label="角色" width="120" />
-            <el-table-column prop="order" label="执行顺序" width="100" align="center" />
-            <el-table-column prop="systemPrompt" label="系统提示词" min-width="180" show-overflow-tooltip />
-            <el-table-column label="操作" width="150" fixed="right">
-              <template #default="{ row }">
-                <el-button type="warning" link @click="handleEditSubAgent(row)">编辑</el-button>
-                <el-button type="danger" link @click="handleDeleteSubAgent(row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <!-- 子Agent表：裸 el-table → ReTable（border 走默认；对话框内无分页） -->
+          <ReTable
+            :data="subAgentList"
+            :columns="subAgentColumns"
+            :loading="loadingSubAgents"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :layout-table="{ minHeight: 0 }"
+            style="width: 100%; margin-top: 10px"
+          >
+            <template #col-actions="{ row }">
+              <el-button type="warning" link @click="handleEditSubAgent(row)">编辑</el-button>
+              <el-button type="danger" link @click="handleDeleteSubAgent(row)">删除</el-button>
+            </template>
+          </ReTable>
         </el-tab-pane>
 
         <!-- 编排配置 -->
@@ -233,17 +233,21 @@
             <el-input v-model="marketKeyword" placeholder="关键词，可空" style="width: 220px" clearable @keyup.enter="handleMarketSearch" />
             <el-button type="primary" @click="handleMarketSearch" :loading="searchingMarket">搜索</el-button>
           </div>
-          <el-table :data="marketItems" v-loading="searchingMarket" border style="width: 100%; margin-top: 10px">
-            <el-table-column prop="name" label="名称" min-width="140" />
-            <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="model" label="模型" width="120" />
-            <el-table-column prop="display_source" label="来源" width="110" />
-            <el-table-column label="操作" width="90" fixed="right">
-              <template #default="{ row }">
-                <el-button type="primary" link @click="handleInstallFromMarket(row)">安装</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <!-- 市场表：裸 el-table → ReTable（border 走默认；对话框内无分页） -->
+          <ReTable
+            :data="marketItems"
+            :columns="marketColumns"
+            :loading="searchingMarket"
+            engine="element"
+            :pagination="false"
+            :toolbar="false"
+            :layout-table="{ minHeight: 0 }"
+            style="width: 100%; margin-top: 10px"
+          >
+            <template #col-actions="{ row }">
+              <el-button type="primary" link @click="handleInstallFromMarket(row)">安装</el-button>
+            </template>
+          </ReTable>
         </el-tab-pane>
 
         <!-- 本地导入 -->
@@ -275,8 +279,54 @@
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh, Download } from '@element-plus/icons-vue';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { agentApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+
+// ==================== 四张表的列配置（原模板里的 el-table-column 收敛为数组） ====================
+/** Agent 列表：类型 / 状态 / 操作原本无 prop 或带默认插槽 → slot。 */
+const agentColumns: ReTableColumn[] = [
+  { prop: 'id', label: 'ID', width: 80 },
+  { prop: 'name', label: 'Agent名称', minWidth: 150 },
+  { prop: 'description', label: '描述', minWidth: 200, showOverflowTooltip: true },
+  { prop: 'model', label: '绑定模型', minWidth: 120 },
+  { prop: 'type', label: '类型', width: 100, slot: 'type' },
+  { prop: 'status', label: '状态', width: 80, slot: 'status' },
+  { prop: 'actions', label: '操作', width: 280, fixed: 'right', slot: 'actions' },
+];
+
+/** 智能体包列表：来源 / 已落库 / 启用 / 操作 → slot（后三列原为无 prop 的模板列）。 */
+const packageColumns: ReTableColumn[] = [
+  { prop: 'name', label: '包名', minWidth: 140 },
+  { prop: 'description', label: '描述', minWidth: 200, showOverflowTooltip: true },
+  { prop: 'model', label: '绑定模型', minWidth: 120 },
+  { prop: 'source', label: '来源', width: 90, slot: 'source' },
+  { prop: 'sub_agents', label: '子智能体', width: 90, align: 'center' },
+  { prop: 'installed', label: '已落库', width: 80, align: 'center', slot: 'installed' },
+  { prop: 'enabled', label: '启用', width: 80, align: 'center', slot: 'enabled' },
+  { prop: 'actions', label: '操作', width: 100, fixed: 'right', slot: 'actions' },
+];
+
+/** 子 Agent 表（工作流配置弹窗）。 */
+const subAgentColumns: ReTableColumn[] = [
+  { prop: 'id', label: 'ID', width: 80 },
+  { prop: 'name', label: '子Agent名称', minWidth: 150 },
+  { prop: 'model', label: '绑定模型', minWidth: 120 },
+  { prop: 'role', label: '角色', width: 120 },
+  { prop: 'order', label: '执行顺序', width: 100, align: 'center' },
+  { prop: 'systemPrompt', label: '系统提示词', minWidth: 180, showOverflowTooltip: true },
+  { prop: 'actions', label: '操作', width: 150, fixed: 'right', slot: 'actions' },
+];
+
+/** 安装市场表（安装智能体弹窗）。 */
+const marketColumns: ReTableColumn[] = [
+  { prop: 'name', label: '名称', minWidth: 140 },
+  { prop: 'description', label: '描述', minWidth: 180, showOverflowTooltip: true },
+  { prop: 'model', label: '模型', width: 120 },
+  { prop: 'display_source', label: '来源', width: 110 },
+  { prop: 'actions', label: '操作', width: 90, fixed: 'right', slot: 'actions' },
+];
 
 // ==================== Agent列表 ====================
 const agentList = ref<any[]>([]);

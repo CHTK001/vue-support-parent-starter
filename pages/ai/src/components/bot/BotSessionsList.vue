@@ -45,53 +45,57 @@
 
     <!-- 会话列表 -->
     <div v-else class="flex-1">
-      <el-table v-if="sessions.length > 0" :data="sessions" style="width: 100%" stripe @row-click="handleRowClick">
-        <el-table-column prop="title" :label="t('bot.sessions.colTitle')" min-width="200">
-          <template #default="{ row }">
-            <span class="truncate">{{ row.title || t('bot.sessions.unnamedSession') }}</span>
-          </template>
-        </el-table-column>
+      <!-- ReTable 换算：列标签全部走 t() → computed<ReTableColumn[]>；原表无 border → settings.border=false；
+           :pagination/:toolbar 关闭（分页仍由下方 el-pagination 自管）；@row-click 用 Record<string,unknown> 桥接 Session 类型。 -->
+      <ReTable
+        v-if="sessions.length > 0"
+        :data="sessions"
+        :columns="sessionColumns"
+        style="width: 100%"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+        stripe
+        @row-click="(row: Record<string, unknown>) => handleRowClick(row as unknown as Session)"
+      >
+        <template #col-title="{ row }">
+          <span class="truncate">{{ row.title || t('bot.sessions.unnamedSession') }}</span>
+        </template>
 
-        <el-table-column prop="platform" :label="t('bot.sessions.colPlatform')" width="120">
-          <template #default="{ row }">
-            <el-tag type="info">
-              {{ getPlatformName(row.platform) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <template #col-platform="{ row }">
+          <el-tag type="info">
+            {{ getPlatformName(row.platform) }}
+          </el-tag>
+        </template>
 
-        <el-table-column prop="botId" :label="t('bot.sessions.colBot')" min-width="150">
-          <template #default="{ row }">
-            <span class="text-sm text-gray-600 dark:text-[#8b8d95]">
-              {{ getBotName(row.botId) || t('bot.sessions.unknownBot') }}
-            </span>
-          </template>
-        </el-table-column>
+        <template #col-botId="{ row }">
+          <span class="text-sm text-gray-600 dark:text-[#8b8d95]">
+            {{ getBotName(row.botId) || t('bot.sessions.unknownBot') }}
+          </span>
+        </template>
 
-        <el-table-column prop="lastActiveAt" :label="t('bot.sessions.colLastActive')" width="180">
-          <template #default="{ row }">
-            <span class="text-sm text-gray-500 dark:text-[#8b8d95]">
-              {{ formatTime(row.lastActiveAt) }}
-            </span>
-          </template>
-        </el-table-column>
+        <template #col-lastActiveAt="{ row }">
+          <span class="text-sm text-gray-500 dark:text-[#8b8d95]">
+            {{ formatTime(row.lastActiveAt) }}
+          </span>
+        </template>
 
-        <el-table-column :label="t('bot.sessions.colActions')" width="240" fixed="right">
-          <template #default="{ row }">
-            <div class="flex gap-2">
-              <el-button link type="primary" @click.stop="handleViewChat(row as Session)">
-                {{ t('bot.sessions.viewChat') }}
-              </el-button>
-              <el-button link type="warning" @click.stop="handleClearMessages(row as Session)">
-                {{ t('bot.sessions.clearMessages') }}
-              </el-button>
-              <el-button link type="danger" @click.stop="handleDeleteSession(row as Session)">
-                {{ t('bot.sessions.delete') }}
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+        <template #col-actions="{ row }">
+          <div class="flex gap-2">
+            <el-button link type="primary" @click.stop="handleViewChat(row as Session)">
+              {{ t('bot.sessions.viewChat') }}
+            </el-button>
+            <el-button link type="warning" @click.stop="handleClearMessages(row as Session)">
+              {{ t('bot.sessions.clearMessages') }}
+            </el-button>
+            <el-button link type="danger" @click.stop="handleDeleteSession(row as Session)">
+              {{ t('bot.sessions.delete') }}
+            </el-button>
+          </div>
+        </template>
+      </ReTable>
 
       <!-- 空状态 -->
       <div v-else class="text-center py-12">
@@ -116,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading, ChatDotRound } from '@element-plus/icons-vue'
@@ -125,6 +129,9 @@ import { useBotStore } from '@/stores/bot'
 import BotSessionDialog from './BotSessionDialog.vue'
 import type { Session } from '@/types/session'
 import { useRoute, useRouter } from 'vue-router'
+// ReTable 换算：仓库标准表格组件与列类型
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
 
 const botStore = useBotStore()
 const route = useRoute()
@@ -141,6 +148,15 @@ const selectedBotId = ref<string | null>(null) // 当前选中的机器人ID，n
 // 对话框相关
 const dialogVisible = ref(false)
 const selectedSession = ref<Session | null>(null)
+
+// 会话表列：标签全部走 t()，故用 computed（原 el-table-column 的 min-width/width/fixed 原样保留）
+const sessionColumns = computed<ReTableColumn[]>(() => [
+  { prop: 'title', label: t('bot.sessions.colTitle'), minWidth: 200, slot: 'title' },
+  { prop: 'platform', label: t('bot.sessions.colPlatform'), width: 120, slot: 'platform' },
+  { prop: 'botId', label: t('bot.sessions.colBot'), minWidth: 150, slot: 'botId' },
+  { prop: 'lastActiveAt', label: t('bot.sessions.colLastActive'), width: 180, slot: 'lastActiveAt' },
+  { prop: 'actions', label: t('bot.sessions.colActions'), width: 240, fixed: 'right', slot: 'actions' },
+])
 
 // 从URL查询参数恢复筛选状态
 const restoreFilterState = () => {

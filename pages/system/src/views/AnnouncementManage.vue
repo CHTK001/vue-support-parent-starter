@@ -331,6 +331,7 @@ onMounted(() => {
       :loader="loadAnnouncements"
       :columns="columns"
       :pagination="true"
+      :layout-table="{ minHeight: 0 }"
       :params="{}"
       row-key="sysAnnouncementId"
       v-model:page="query.page"
@@ -518,6 +519,7 @@ onMounted(() => {
         engine="element"
         :pagination="false"
         :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
         stripe
         show-index
         style="width: 100%"

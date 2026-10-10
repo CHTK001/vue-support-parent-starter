@@ -8,26 +8,31 @@
         </div>
       </template>
 
-      <el-table :data="assets" style="width: 100%">
-        <el-table-column prop="monitorName" label="资产名称" width="150" />
-        <el-table-column prop="monitorHost" label="主机地址" width="150" />
-        <el-table-column prop="monitorPort" label="端口" width="80" />
-        <el-table-column prop="serviceType" label="服务类型" width="100" />
-        <el-table-column prop="serverType" label="系统类型" width="100" />
-        <el-table-column prop="monitorEnabled" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.monitorEnabled === 1 ? 'success' : 'danger'">
-              {{ row.monitorEnabled === 1 ? '运行中' : '已停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150">
-          <template #default="{ row }">
-            <el-button text type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button text type="danger" @click="handleDelete(row.id)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+           pagination/toolbar 关闭，不新增页码控件与工具栏按钮；
+           style="width: 100%" 原样保留；原表未写 border → settings.border=false 抑制默认边框；
+           原表无 height/maxHeight → layout-table.minHeight=0：抑制 ReTable 缺省开启的
+           fill（表头固定内滚）与空态 440px min-height，保持「内容多高表多高 + 整页滚动」。 -->
+      <ReTable
+        :data="assets"
+        :columns="assetColumns"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+        style="width: 100%"
+      >
+        <template #col-monitorEnabled="{ row }">
+          <el-tag :type="assetOf(row).monitorEnabled === 1 ? 'success' : 'danger'">
+            {{ assetOf(row).monitorEnabled === 1 ? '运行中' : '已停用' }}
+          </el-tag>
+        </template>
+        <template #col-actions="{ row }">
+          <el-button text type="primary" @click="handleEdit(assetOf(row))">编辑</el-button>
+          <el-button text type="danger" @click="handleDelete(assetOf(row).id)">删除</el-button>
+        </template>
+      </ReTable>
     </el-card>
 
     <ReDialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
@@ -88,7 +93,11 @@ import { ref, onMounted } from 'vue'
 import { getMonitors, saveMonitor, delMonitor } from '../../api'
 
 
-import ReDialog from "@repo/ui/re-dialog";interface Asset {
+import ReDialog from "@repo/ui/re-dialog";
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
+
+interface Asset {
   id: number
   monitorName: string
   monitorHost: string
@@ -96,6 +105,32 @@ import ReDialog from "@repo/ui/re-dialog";interface Asset {
   serviceType: string
   serverType: string
   monitorEnabled: number
+}
+
+/**
+ * 列配置：原模板 7 个 el-table-column 收敛到数组。
+ * 标题是静态文案（无 t()），普通常量即可。
+ * 「状态」列原本就有 prop="monitorEnabled"，按规格以该 prop 作插槽名；
+ * 「操作」列原本没有 prop，造合成 prop actions。
+ */
+const assetColumns: ReTableColumn[] = [
+  { prop: 'monitorName', label: '资产名称', width: 150 },
+  { prop: 'monitorHost', label: '主机地址', width: 150 },
+  { prop: 'monitorPort', label: '端口', width: 80 },
+  { prop: 'serviceType', label: '服务类型', width: 100 },
+  { prop: 'serverType', label: '系统类型', width: 100 },
+  { prop: 'monitorEnabled', label: '状态', width: 80, slot: 'monitorEnabled' },
+  { prop: 'actions', label: '操作', width: 150, slot: 'actions' },
+]
+
+/**
+ * ReTable 列插槽的 row 是宽类型（字段为 unknown），直接传给
+ * {@link handleEdit}（参数 Asset）或读 {@code row.id}（喂给 {@link handleDelete} 的 number 参数）、
+ * {@code row.monitorEnabled === 1} 比较都不成立，会在模板里堆断言。
+ * 这里统一收窄回 {@link Asset}，模板里不再散落断言。
+ */
+function assetOf(row: Record<string, unknown>): Asset {
+  return row as unknown as Asset
 }
 
 const assets = ref<Asset[]>([])

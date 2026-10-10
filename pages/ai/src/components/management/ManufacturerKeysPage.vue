@@ -28,40 +28,42 @@
     />
 
     <div v-if="admin" class="panel-card">
-    <el-table :data="pagedData" v-loading="loading" stripe class="flat-table" style="width: 100%">
-      <el-table-column prop="sysAiManufacturerName" label="厂商名称" min-width="140" />
-      <el-table-column prop="sysAiManufacturerCode" label="厂商编码" min-width="130" />
-      <el-table-column prop="value" label="API Key" min-width="180">
-        <template #default="{ row }">
-          <span class="key-text">{{ row.value || '-' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="secret" label="Secret" min-width="150">
-        <template #default="{ row }">
-          <span class="key-text">{{ row.secret || '-' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="weight" label="权重" width="80" align="center" />
-      <el-table-column prop="status" label="状态" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" >{{ statusText(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-      <el-table-column prop="createTime" label="创建时间" min-width="160" />
-      <el-table-column label="操作" width="210" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
-          <el-button
+    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element"；pagination/toolbar 关闭
+         （分页由下方 el-pagination 自管）；原表没有 border → :settings="{ border: false }"；
+         v-loading → :loading。 -->
+    <ReTable
+      :data="pagedData"
+      :columns="manufacturerKeyColumns"
+      :loading="loading"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+      :settings="{ border: false }"
+      stripe
+      class="flat-table"
+      style="width: 100%"
+    >
+      <template #col-value="{ row }">
+        <span class="key-text">{{ row.value || '-' }}</span>
+      </template>
+      <template #col-secret="{ row }">
+        <span class="key-text">{{ row.secret || '-' }}</span>
+      </template>
+      <template #col-status="{ row }">
+        <el-tag :type="statusTag(row.status)" >{{ statusText(row.status) }}</el-tag>
+      </template>
+      <template #col-actions="{ row }">
+        <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
+        <el-button
 
-            :type="row.status === 1 ? 'warning' : 'success'"
-            link
-            @click="toggleItem(row)"
-          >{{ row.status === 1 ? '停用' : '启用' }}</el-button>
-          <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+          :type="row.status === 1 ? 'warning' : 'success'"
+          link
+          @click="toggleItem(row)"
+        >{{ row.status === 1 ? '停用' : '启用' }}</el-button>
+        <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
+      </template>
+    </ReTable>
 
     <div class="pagination-wrapper">
       <el-pagination
@@ -130,8 +132,28 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import { isAdmin } from '@repo/core';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { manufacturerApi, manufacturerKeyApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+
+/**
+ * 列配置：原模板里的 9 个 el-table-column 收敛为数组。
+ *
+ * <p>value / secret / status 带 {@code <template #default>} → {@code slot}；「操作」原本无 prop
+ * → 合成 prop {@code actions}。remark / createTime 原样只取值。</p>
+ */
+const manufacturerKeyColumns: ReTableColumn[] = [
+  { prop: 'sysAiManufacturerName', label: '厂商名称', minWidth: 140 },
+  { prop: 'sysAiManufacturerCode', label: '厂商编码', minWidth: 130 },
+  { prop: 'value', label: 'API Key', minWidth: 180, slot: 'value' },
+  { prop: 'secret', label: 'Secret', minWidth: 150, slot: 'secret' },
+  { prop: 'weight', label: '权重', width: 80, align: 'center' },
+  { prop: 'status', label: '状态', width: 90, align: 'center', slot: 'status' },
+  { prop: 'remark', label: '备注', minWidth: 140, showOverflowTooltip: true },
+  { prop: 'createTime', label: '创建时间', minWidth: 160 },
+  { prop: 'actions', label: '操作', width: 210, fixed: 'right', align: 'center', slot: 'actions' },
+];
 
 /** 厂商 Key 出口全部 @Permission("admin")，非管理员不发请求、不显示写操作 */
 const admin = ref(isAdmin());

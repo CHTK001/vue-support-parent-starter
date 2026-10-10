@@ -20,6 +20,8 @@ import type { MessageProvider, MessageTemplate } from "../api/types";
 import ReProviderFilterBar from "../components/ReProviderFilterBar.vue";
 import ReTemplateFormDialog from "../components/ReTemplateFormDialog.vue";
 import ReSendDialog from "../components/ReSendDialog.vue";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const route = useRoute();
 const router = useRouter();
@@ -44,6 +46,17 @@ const providers = ref<MessageProvider[]>([]);
 const total = ref(0);
 const loading = ref(false);
 const syncLoading = ref(false);
+
+/** 模板表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
+const templateColumns: ReTableColumn[] = [
+  { prop: "sysMessageTemplateName", label: "名称", minWidth: 140 },
+  { prop: "sysMessageTemplateCode", label: "编码", minWidth: 130 },
+  { prop: "sysMessageTemplateType", label: "类型", width: 90, slot: "sysMessageTemplateType" },
+  { prop: "status", label: "状态", width: 90, slot: "status" },
+  { prop: "content", label: "内容", minWidth: 200, showOverflowTooltip: true, slot: "content" },
+  { prop: "createTime", label: "创建时间", width: 170 },
+  { prop: "actions", label: "操作", width: 200, fixed: "right", slot: "actions" },
+];
 
 /** 当前提供商（用于面包屑/上下文展示） */
 const currentProvider = computed(() =>
@@ -235,36 +248,40 @@ onMounted(() => {
         <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
         <el-button :icon="Refresh" @click="handleReset">重置</el-button>
       </div>
-      <el-table v-loading="loading" :data="list" stripe class="w-full">
-        <el-table-column prop="sysMessageTemplateName" label="名称" min-width="140" />
-        <el-table-column prop="sysMessageTemplateCode" label="编码" min-width="130" />
-        <el-table-column prop="sysMessageTemplateType" label="类型" width="90">
-          <template #default="{ row }">
-            <el-tag effect="plain">{{ row.sysMessageTemplateType }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-switch
-              :model-value="row.sysMessageTemplateStatus === 1"
-              @change="handleStatus(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="内容" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span>{{ row.sysMessageTemplateContent || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleSend(row)">发送</el-button>
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+           原表没有 border → :settings="{ border: false }"；stripe 同名保留；v-loading → :loading；
+           分页仍由下方 el-pagination 自管，ReTable 自带分页/工具栏关闭；minHeight:0 关掉 fill
+           与空态 440px 强撑。下同。 -->
+      <ReTable
+        :loading="loading"
+        :data="list"
+        :columns="templateColumns"
+        stripe
+        class="w-full"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
+        :settings="{ border: false }"
+      >
+        <template #col-sysMessageTemplateType="{ row }">
+          <el-tag effect="plain">{{ row.sysMessageTemplateType }}</el-tag>
+        </template>
+        <template #col-status="{ row }">
+          <el-switch
+            :model-value="row.sysMessageTemplateStatus === 1"
+            @change="handleStatus(row)"
+          />
+        </template>
+        <template #col-content="{ row }">
+          <span>{{ row.sysMessageTemplateContent || '-' }}</span>
+        </template>
+        <template #col-actions="{ row }">
+          <el-button link type="primary" @click="handleSend(row)">发送</el-button>
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </ReTable>
       <div class="mt-4 flex justify-end">
         <el-pagination
           :total="pagination.total"

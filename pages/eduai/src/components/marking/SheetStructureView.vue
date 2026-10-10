@@ -48,50 +48,51 @@
       </div>
 
       <div v-if="mode === 'layout'" class="ss-panel">
-        <el-table :data="questions" height="100%" @row-click="(row: any) => selectQuestion(String(row.no))">
-          <el-table-column label="题号" width="64">
-            <template #default="{ row }">
-              <span :class="{ 'ss-row-active': String(row.no) === selectedNo }">{{ row.no || '-' }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="AI 分" width="76">
-            <template #default="{ row }">
-              <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="老师分" width="136">
-            <template #default="{ row }">
-              <el-input-number
-                v-model="row.editScore"
-                :min="0"
-                :max="row.maxScore ?? 100"
-                controls-position="right"
+        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+             原表 height="100%" → :layout-table="{ height: '100%' }"（带 height 即走固定高度分支，
+             按规格无需再补 minHeight）；原表没有 border → :settings="{ border: false }"；
+             分页/工具栏关闭（原表没有）。 -->
+        <ReTable
+          :data="questions"
+          :columns="questionColumns"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :layout-table="{ height: '100%' }"
+          :settings="{ border: false }"
+          @row-click="(row: any) => selectQuestion(String(row.no))"
+        >
+          <template #col-no="{ row }">
+            <span :class="{ 'ss-row-active': String(row.no) === selectedNo }">{{ row.no || '-' }}</span>
+          </template>
+          <template #col-score="{ row }">
+            <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
+          </template>
+          <template #col-editScore="{ row }">
+            <el-input-number
+              v-model="row.editScore"
+              :min="0"
+              :max="row.maxScore ?? 100"
+              controls-position="right"
+              size="small"
+              @change="onScoreChange(row)"
+            />
+          </template>
+          <template #col-studentAnswer="{ row }">{{ row.studentAnswer || '—' }}</template>
+          <template #col-comment="{ row }">{{ row.comment || '—' }}</template>
+          <template #col-knowledgePoints="{ row }">
+            <template v-if="kpList(row).length">
+              <el-tag
+                v-for="kp in kpList(row)"
+                :key="kp.id"
                 size="small"
-                @change="onScoreChange(row)"
-              />
+                class="ss-kp"
+                @click.stop="openKp(kp)"
+              >{{ kp.name }}</el-tag>
             </template>
-          </el-table-column>
-          <el-table-column label="作答" min-width="110" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.studentAnswer || '—' }}</template>
-          </el-table-column>
-          <el-table-column label="AI 评语" min-width="160" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.comment || '—' }}</template>
-          </el-table-column>
-          <el-table-column label="知识点" min-width="170">
-            <template #default="{ row }">
-              <template v-if="kpList(row).length">
-                <el-tag
-                  v-for="kp in kpList(row)"
-                  :key="kp.id"
-                  size="small"
-                  class="ss-kp"
-                  @click.stop="openKp(kp)"
-                >{{ kp.name }}</el-tag>
-              </template>
-              <span v-else class="ss-muted">无</span>
-            </template>
-          </el-table-column>
-        </el-table>
+            <span v-else class="ss-muted">无</span>
+          </template>
+        </ReTable>
         <div class="ss-actions">
           <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存老师分</el-button>
           <span class="ss-hint">AI 分保留不动，老师分为最终成绩</span>
@@ -121,6 +122,8 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 
 const props = defineProps<{ taskId: string }>();
 /** 老师分保存成功后广播：父级（阅卷记录详情 / 教师端）据此刷新总分 */
@@ -136,6 +139,16 @@ const selectedNo = ref('');
 const dirty = ref(false);
 const saving = ref(false);
 const questions = ref<any[]>([]);
+
+/** 题目表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
+const questionColumns: ReTableColumn[] = [
+  { prop: 'no', label: '题号', width: 64, slot: 'no' },
+  { prop: 'score', label: 'AI 分', width: 76, slot: 'score' },
+  { prop: 'editScore', label: '老师分', width: 136, slot: 'editScore' },
+  { prop: 'studentAnswer', label: '作答', minWidth: 110, showOverflowTooltip: true, slot: 'studentAnswer' },
+  { prop: 'comment', label: 'AI 评语', minWidth: 160, showOverflowTooltip: true, slot: 'comment' },
+  { prop: 'knowledgePoints', label: '知识点', minWidth: 170, slot: 'knowledgePoints' },
+];
 
 const kpDrawer = ref(false);
 const kpKeyword = ref('');

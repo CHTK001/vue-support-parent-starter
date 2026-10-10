@@ -22,20 +22,46 @@
       <el-switch :model-value="realtime" active-text="实时" inactive-text="轮询" @update:model-value="(v: boolean) => emit('update:realtime', v)" />
     </div>
 
-    <el-table :data="events" style="width:100%" max-height="500">
-      <el-table-column prop="deviceEventRecordOccurredAt" label="时间" width="180" />
-      <el-table-column prop="deviceEventRecordEventType" label="类型" width="120" />
-      <el-table-column prop="deviceEventRecordChannelNo" label="通道" width="80" />
-      <el-table-column prop="deviceEventRecordDetail" label="详情" />
+    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
+         既有 :deep(.el-table…) 覆盖与 e2e 选择器一概不失效；
+         pagination/toolbar 关闭 —— 不新增页码控件与工具栏按钮，按钮清单与改造前一致；
+         原表未写 border → settings.border=false 显式抑制 ReTable 默认边框；
+         max-height="500" → layout-table.maxHeight（已给固定高度，hasFixedHeight 为真，
+         fill 天然关闭、空态走 fixed-height 分支，故按规格例外不再补 minHeight）。
+         events 是 defineProps 里的接口数组（无索引签名），直接喂 data 会 TS2322，
+         按仓内既有写法（Leaks.vue / ServerMonitor.vue）做收窄转换。 -->
+    <ReTable
+      :data="events as unknown as Record<string, unknown>[]"
+      :columns="eventColumns"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ maxHeight: 500 }"
+      :settings="{ border: false }"
+      style="width:100%"
+    >
       <template #empty>
         <el-empty description="无事件" :image-size="60" />
       </template>
-    </el-table>
+    </ReTable>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { DeviceEvent } from '@/types/device'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
+
+/**
+ * 列配置：原模板 4 个 el-table-column 收敛到数组。
+ * 标题是静态文案（无 t()），故用普通常量即可，不需要 computed。
+ */
+const eventColumns: ReTableColumn[] = [
+  { prop: 'deviceEventRecordOccurredAt', label: '时间', width: 180 },
+  { prop: 'deviceEventRecordEventType', label: '类型', width: 120 },
+  { prop: 'deviceEventRecordChannelNo', label: '通道', width: 80 },
+  { prop: 'deviceEventRecordDetail', label: '详情' },
+]
 
 defineProps<{
   events: DeviceEvent[]

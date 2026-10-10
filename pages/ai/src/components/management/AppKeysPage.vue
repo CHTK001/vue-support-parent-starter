@@ -21,30 +21,35 @@
     </div>
 
     <div class="panel-card">
-    <el-table :data="filteredData" v-loading="loading" stripe class="flat-table" style="width: 100%">
-      <el-table-column prop="appName" label="应用名称" min-width="150" />
-      <el-table-column prop="appKey" label="AppKey" min-width="200">
-        <template #default="{ row }">
-          <span class="key-text">{{ row.appKey }}</span>
-          <el-button link type="primary" @click="copyKey(row.appKey)">复制</el-button>
-        </template>
-      </el-table-column>
-      <el-table-column prop="provider" label="提供商" min-width="120" />
-      <el-table-column prop="status" label="状态" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'" >
-            {{ row.status === 1 ? '启用' : '禁用' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" min-width="160" />
-      <el-table-column label="操作" width="180" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
-          <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- 表格统一 ReTable（替换裸 el-table）：engine="element"；分页由下方 el-pagination 自管；
+         原表没有 border → :settings="{ border: false }"；v-loading → :loading。 -->
+    <ReTable
+      :data="filteredData"
+      :columns="appKeyColumns"
+      :loading="loading"
+      engine="element"
+      :pagination="false"
+      :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
+      :settings="{ border: false }"
+      stripe
+      class="flat-table"
+      style="width: 100%"
+    >
+      <template #col-appKey="{ row }">
+        <span class="key-text">{{ row.appKey }}</span>
+        <el-button link type="primary" @click="copyKey(row.appKey)">复制</el-button>
+      </template>
+      <template #col-status="{ row }">
+        <el-tag :type="row.status === 1 ? 'success' : 'info'" >
+          {{ row.status === 1 ? '启用' : '禁用' }}
+        </el-tag>
+      </template>
+      <template #col-actions="{ row }">
+        <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
+        <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
+      </template>
+    </ReTable>
 
     <div class="pagination-wrapper">
       <el-pagination
@@ -94,8 +99,23 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { appKeyApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+
+/**
+ * 列配置：原模板里的 6 个 el-table-column 收敛为数组。
+ * appKey / status 带 {@code <template #default>} → slot；「操作」原本无 prop → 合成 prop actions。
+ */
+const appKeyColumns: ReTableColumn[] = [
+  { prop: 'appName', label: '应用名称', minWidth: 150 },
+  { prop: 'appKey', label: 'AppKey', minWidth: 200, slot: 'appKey' },
+  { prop: 'provider', label: '提供商', minWidth: 120 },
+  { prop: 'status', label: '状态', width: 100, align: 'center', slot: 'status' },
+  { prop: 'createTime', label: '创建时间', minWidth: 160 },
+  { prop: 'actions', label: '操作', width: 180, fixed: 'right', align: 'center', slot: 'actions' },
+];
 
 const loading = ref(false);
 const dataList = ref<any[]>([]);
