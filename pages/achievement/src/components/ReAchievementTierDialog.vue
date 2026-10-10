@@ -2,8 +2,9 @@
 /**
  * 成就段位编辑对话框组件
  */
+import { message } from "@repo/core";
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { saveTier, updateTier } from "../api/achievementApi";
 import type { AchievementTier } from "../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -23,22 +24,22 @@ const saving = ref(false);
 
 async function handleSubmit() {
   if (!props.form.type || !props.form.name) {
-    ElMessage.warning("Please enter type and name");
+    message.warning("Please enter type and name");
     return;
   }
   saving.value = true;
   try {
     if (props.isEdit) {
       await updateTier(props.form);
-      ElMessage.success("Updated");
+      message.success("Updated");
     } else {
       await saveTier(props.form);
-      ElMessage.success("Created");
+      message.success("Created");
     }
     emit("update:visible", false);
     emit("saved");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "Save failed");
+    message.error((e as Error)?.message ?? "Save failed");
   } finally {
     saving.value = false;
   }

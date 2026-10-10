@@ -5,8 +5,9 @@
  * 复用 ReTable（loader 模式：自动分页 / loading / 列设置持久化）。
  * 全部使用 ReXxx modern 组件渲染。
  */
+import { message } from "@repo/core";
 import { computed, ref, defineAsyncComponent } from "vue";
-import { ElMessage } from "element-plus";
+
 import { ArrowRight, Document, Download, Refresh, Search, Stamp } from "@element-plus/icons-vue";
 import { pageForSysLog, exportSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
@@ -57,9 +58,9 @@ async function handleExport() {
     a.download = `操作日志_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success("导出成功");
+    message.success("导出成功");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "导出失败");
+    message.error((e as Error)?.message ?? "导出失败");
   } finally {
     exporting.value = false;
   }

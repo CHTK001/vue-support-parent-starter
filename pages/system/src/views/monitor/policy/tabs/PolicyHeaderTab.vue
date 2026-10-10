@@ -9,9 +9,10 @@
  * <p>状态、列定义、请求与弹窗都在本组件内闭环；命中统计是整页共用的，
  * 走 {@link usePolicyHitContext} 注入的同一份数据，不在这里自己拉。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -169,11 +170,11 @@ async function loadPresets(): Promise<void> {
 function handleFillPresets(): void {
   const flat = presets.value.flat ?? [];
   if (!flat.length) {
-    ElMessage.warning(t("policy.header.errPresets"));
+    message.warning(t("policy.header.errPresets"));
     return;
   }
   form.value.patternsText = flat.join("\n");
-  ElMessage.success(t("policy.header.presetFilled", { count: flat.length }));
+  message.success(t("policy.header.presetFilled", { count: flat.length }));
 }
 
 /** 打开新增规则弹窗 */
@@ -226,12 +227,12 @@ function ruleConfig(): string {
 async function handleSubmit(): Promise<void> {
   const headerName = form.value.headerName.trim();
   if (!headerName) {
-    ElMessage.warning(t("policy.header.errNameBlank"));
+    message.warning(t("policy.header.errNameBlank"));
     return;
   }
   const patterns = patternsOf(form.value.patternsText);
   if (!patterns.length) {
-    ElMessage.warning(t("policy.header.errPatternsEmpty"));
+    message.warning(t("policy.header.errPatternsEmpty"));
     return;
   }
   const payload: PolicyConfig = {
@@ -251,15 +252,15 @@ async function handleSubmit(): Promise<void> {
   try {
     if (isEdit.value && payload.sysPolicyConfigId != null) {
       await updatePolicyConfig(payload);
-      ElMessage.success(t("policy.header.saved"));
+      message.success(t("policy.header.saved"));
     } else {
       await savePolicyConfig(payload);
-      ElMessage.success(t("policy.header.created"));
+      message.success(t("policy.header.created"));
     }
     dialogVisible.value = false;
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     saving.value = false;
   }
@@ -279,10 +280,10 @@ async function handleToggle(row: Record<string, unknown>, value: boolean | strin
   toggleLoadingId.value = r.sysPolicyConfigId;
   try {
     await togglePolicyConfig(r.sysPolicyConfigId, value ? 1 : 0);
-    ElMessage.success(value ? t("policy.header.enabledNow") : t("policy.header.stoppedNow"));
+    message.success(value ? t("policy.header.enabledNow") : t("policy.header.stoppedNow"));
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.toggleFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.toggleFailed"));
   } finally {
     toggleLoadingId.value = null;
   }
@@ -306,10 +307,10 @@ async function handleDelete(row: Record<string, unknown>): Promise<void> {
   deleteLoadingId.value = r.sysPolicyConfigId;
   try {
     await deletePolicyConfig(r.sysPolicyConfigId);
-    ElMessage.success(t("policy.header.deletedNow"));
+    message.success(t("policy.header.deletedNow"));
     await tableRef.value?.reload();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
   } finally {
     deleteLoadingId.value = null;
   }
@@ -319,11 +320,11 @@ async function handleDelete(row: Record<string, unknown>): Promise<void> {
 async function handleRefresh(): Promise<void> {
   try {
     const res = await refreshHeaderRules();
-    ElMessage.success(t("policy.header.reloaded", { count: res.data?.policyCount ?? 0 }));
+    message.success(t("policy.header.reloaded", { count: res.data?.policyCount ?? 0 }));
     await tableRef.value?.reload();
     void loadHitCounts();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.reloadFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.reloadFailed"));
   }
 }
 

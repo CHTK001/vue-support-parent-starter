@@ -176,10 +176,11 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Folder, View, RefreshRight, Delete, Loading, Edit, Position } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+
 import type { KBFile } from '@/stores/knowledgeBase'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'
@@ -1010,7 +1011,7 @@ async function confirmRename() {
   // 前端验证
   const validation = validateFileName(renameForm.value.newName)
   if (!validation.valid) {
-    ElMessage.warning(validation.message)
+    message.warning(validation.message)
     return
   }
 
@@ -1021,14 +1022,14 @@ async function confirmRename() {
       renamingFileId.value,
       renameForm.value.newName,
     )
-    ElMessage.success(t('common.renameSuccess'))
+    message.success(t('common.renameSuccess'))
     showRenameDialog.value = false
 
     // 刷新当前目录
     await loadFolderContents(currentRelativePath.value)
   } catch (error: any) {
     console.error('[DEBUG] 重命名失败:', error)
-    ElMessage.error(error.message || t('common.renameFailed'))
+    message.error(error.message || t('common.renameFailed'))
   } finally {
     renameLoading.value = false
   }
@@ -1134,14 +1135,14 @@ async function confirmMove() {
       movingFileId.value,
       selectedTargetFolderId.value,
     )
-    ElMessage.success(t('knowledge.tree.moveSuccess'))
+    message.success(t('knowledge.tree.moveSuccess'))
     showMoveDialog.value = false
 
     // 刷新当前目录
     await loadFolderContents(currentRelativePath.value)
   } catch (error: any) {
     console.error('[DEBUG] 移动失败:', error)
-    ElMessage.error(error.message || t('knowledge.tree.moveFailed'))
+    message.error(error.message || t('knowledge.tree.moveFailed'))
   } finally {
     moveLoading.value = false
   }

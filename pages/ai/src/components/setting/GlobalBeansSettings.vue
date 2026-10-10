@@ -36,8 +36,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { settingsApi } from '@/services/javaApi'
 
 const form = ref({
@@ -68,10 +69,10 @@ const save = async () => {
   saving.value = true
   try {
     await settingsApi.updateGlobalBeans('default', form.value)
-    ElMessage.success('全局Bean保存成功')
+    message.success('全局Bean保存成功')
   } catch (e) {
     console.error('保存全局Bean失败:', e)
-    ElMessage.error('保存失败')
+    message.error('保存失败')
   } finally {
     saving.value = false
   }

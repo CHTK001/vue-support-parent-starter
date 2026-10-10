@@ -80,8 +80,9 @@
 /**
  * Prometheus 控制台：总览 / 查询 / 监控 / 配置 / 自定义看板。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
@@ -164,7 +165,7 @@ async function reloadOverview(): Promise<void> {
   } catch (e) {
     overview.value = null;
     fail(e, "/ms/monitor/prometheus/overview");
-    ElMessage.error(`总览加载失败：${(e as Error)?.message ?? e}`);
+    message.error(`总览加载失败：${(e as Error)?.message ?? e}`);
   } finally {
     overviewLoading.value = false;
   }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+
 import type { EChartsOption } from "echarts";
 import {
   ChatDotRound,
@@ -263,7 +264,7 @@ const imageViewerUrls = ref<string[]>([]);
 function previewImages(images?: string) {
   const urls = parseImages(images);
   if (urls.length === 0) {
-    ElMessage.info("暂无图片");
+    message.info("暂无图片");
     return;
   }
   imageViewerUrls.value = urls;
@@ -290,18 +291,18 @@ function showIssue(row: SysFeedback) {
 
 async function submitIssue() {
   if (!issueForm.value.sysFeedbackRecoverContent.trim()) {
-    ElMessage.warning("请填写处理回复内容");
+    message.warning("请填写处理回复内容");
     return;
   }
   issueLoading.value = true;
   try {
     await issueFeedback({ ...issueForm.value });
-    ElMessage.success("反馈处理成功");
+    message.success("反馈处理成功");
     issueVisible.value = false;
     tableRef.value?.reload();
     loadStatistic();
   } catch (error: unknown) {
-    ElMessage.error(error instanceof Error ? error.message : "处理失败");
+    message.error(error instanceof Error ? error.message : "处理失败");
   } finally {
     issueLoading.value = false;
   }

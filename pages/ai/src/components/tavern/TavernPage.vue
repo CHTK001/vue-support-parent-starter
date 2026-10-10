@@ -394,13 +394,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, watch, onMounted } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { MoreFilled, Plus } from '@element-plus/icons-vue'
 import { Settings20Regular } from '@vicons/fluent'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import LDialog from '@/components/ui/LDialog.vue'
-import { isAdmin } from '@repo/core'
+import {isAdmin, message} from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import type { TaverGroup, TaverMember, TaverMessage } from '@/services/modules/tavern.api'
@@ -686,7 +686,7 @@ async function saveConfig() {
     defaultMemberId: cfg.defaultMemberId,
     autoRoute: cfg.autoRouteBool ? 1 : 0,
   })
-  ElMessage.success('群设置已保存')
+  message.success('群设置已保存')
   if (currentGroup.value) {
     currentGroup.value.defaultMemberId = cfg.defaultMemberId
     currentGroup.value.autoRoute = cfg.autoRouteBool ? 1 : 0
@@ -766,7 +766,7 @@ async function send() {
   } catch (e) {
     console.error(e)
     sending.value = false
-    ElMessage.error('发送失败')
+    message.error('发送失败')
   }
 }
 
@@ -801,7 +801,7 @@ async function confirmModelPicker() {
   await apiService.updateTavernMember(target.id, { modelOverride: value })
   modelPickerVisible.value = false
   await loadMembers()
-  ElMessage.success('模型已更新')
+  message.success('模型已更新')
 }
 
 /* ── 批量配置：view 模式，一行一个角色，逐个选模型（图标按钮在头部右侧，用户需求 3） ── */
@@ -822,7 +822,7 @@ async function openBulkModel() {
 async function confirmBulkModel() {
   const rows = bulkRows.value
   if (!rows.length) {
-    ElMessage.warning('群里还没有角色')
+    message.warning('群里还没有角色')
     return
   }
   let ok = 0
@@ -844,7 +844,7 @@ async function confirmBulkModel() {
   }
   bulkModelVisible.value = false
   await loadMembers()
-  ElMessage.success(`已更新 ${ok}/${rows.length} 个角色的模型`)
+  message.success(`已更新 ${ok}/${rows.length} 个角色的模型`)
 }
 
 async function onMemberCmd(cmd: string, mb: TaverMember) {
@@ -871,7 +871,7 @@ async function confirmAddMember(c: any) {
   if (!currentGroupId.value) return
   await apiService.addTavernMember(currentGroupId.value, Number(c.id), null)
   await loadMembers()
-  ElMessage.success(`已添加 ${c.name}`)
+  message.success(`已添加 ${c.name}`)
 }
 
 watch(addMemberVisible, (v) => { if (v) openCharacters() })

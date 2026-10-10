@@ -5,9 +5,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { http, unwrapResult } from "@repo/utils";
 import { ReFormItem } from "@repo/ui/re-kit";
 import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress } from "@pages/server/src/api";
@@ -114,17 +115,17 @@ function onGroupChange(v: number | null): void {
 /** Prometheus 凭据校验：调用后端 /metrics 连通性测试 */
 async function verifyPrometheus(): Promise<void> {
   if (!form.value.id) {
-    ElMessage.warning("请先保存主机后再校验 Prometheus");
+    message.warning("请先保存主机后再校验 Prometheus");
     return;
   }
   promVerifying.value = true;
   try {
     const msg = await testPrometheusHost(form.value.id);
     promVerified.value = true;
-    ElMessage.success(msg || "校验成功");
+    message.success(msg || "校验成功");
   } catch (e) {
     promVerified.value = false;
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     promVerifying.value = false;
   }
@@ -252,7 +253,7 @@ const credVerified = ref(false);
 
 async function verifyCredentials(): Promise<void> {
   if (!form.value.id) {
-    ElMessage.warning("请先保存主机后再校验凭据");
+    message.warning("请先保存主机后再校验凭据");
     return;
   }
   verifying.value = true;
@@ -268,10 +269,10 @@ async function verifyCredentials(): Promise<void> {
       form.value = { ...(form.value as any), ...detected };
     }
     credVerified.value = true;
-    ElMessage.success("凭据校验成功");
+    message.success("凭据校验成功");
   } catch (e) {
     credVerified.value = false;
-    ElMessage.error("凭据校验失败：" + String((e as Error)?.message ?? e));
+    message.error("凭据校验失败：" + String((e as Error)?.message ?? e));
   } finally {
     verifying.value = false;
   }
@@ -282,12 +283,12 @@ async function testAgentConnection(): Promise<void> {
     const r = await http().get(`/ms/monitor/host/agent/test/${form.value.id}`).then((r: any) => unwrapResult<any>(r));
     if (r?.available) {
       form.value.serverHostAgentInstalled = 1;
-      ElMessage.success("Agent 连接成功，已标记为已安装");
+      message.success("Agent 连接成功，已标记为已安装");
     } else {
-      ElMessage.error("Agent 连接失败：" + (r?.msg || "无法连接"));
+      message.error("Agent 连接失败：" + (r?.msg || "无法连接"));
     }
   } catch (e) {
-    ElMessage.error("Agent 连接测试失败");
+    message.error("Agent 连接测试失败");
   }
 }
 
@@ -297,16 +298,16 @@ async function deployAgent(): Promise<void> {
     // 调用后端部署接口
     const hostId = form.value.id;
     if (!hostId) {
-      ElMessage.warning("请先保存主机信息");
+      message.warning("请先保存主机信息");
       return;
     }
     // 关闭编辑弹窗，打开部署弹窗
     emit("update:modelValue", false);
     // 触发部署事件，传递主机信息和操作类型
     emit("deploy-agent", { id: hostId, serverHostName: form.value.serverHostName ?? '', action: 'install' });
-    ElMessage.success("Agent 部署已启动");
+    message.success("Agent 部署已启动");
   } catch (e) {
-    ElMessage.error("Agent 部署失败");
+    message.error("Agent 部署失败");
   } finally {
     deploying.value = false;
   }
@@ -376,9 +377,9 @@ function onFormIdentityChange(v: number | null): void {
  * 校验表单必填项
  */
 function validForm(): boolean {
-  if (!form.value.serverHostName?.trim()) { ElMessage.warning("请输入主机名"); return false; }
-  if (!form.value.serverHostAddress?.trim()) { ElMessage.warning("请输入地址"); return false; }
-  if (!form.value.serverHostPort) { ElMessage.warning("请输入端口"); return false; }
+  if (!form.value.serverHostName?.trim()) { message.warning("请输入主机名"); return false; }
+  if (!form.value.serverHostAddress?.trim()) { message.warning("请输入地址"); return false; }
+  if (!form.value.serverHostPort) { message.warning("请输入端口"); return false; }
   return true;
 }
 
@@ -426,11 +427,11 @@ async function submitForm(): Promise<void> {
     if (hostId && formIdentityChanged.value && formIdentityId.value != null) {
       await bindIdentity(hostId, formIdentityId.value);
     }
-    ElMessage.success(props.isEdit ? "已更新" : "已新增");
+    message.success(props.isEdit ? "已更新" : "已新增");
     emit("update:modelValue", false);
     emit("saved");
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     formSaving.value = false;
   }

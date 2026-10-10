@@ -48,8 +48,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { Loading } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import SettingsCard from './SettingsCard.vue'
@@ -97,7 +98,7 @@ async function loadConfig() {
     config.value.aggregators.forEach(i => { d[i.key] = !!i.enabled })
     draft.value = d
   } catch (err: any) {
-    ElMessage.error(err.message || '加载 Skills 来源配置失败')
+    message.error(err.message || '加载 Skills 来源配置失败')
   } finally {
     loading.value = false
   }
@@ -107,10 +108,10 @@ async function handleSave() {
   saving.value = true
   try {
     await apiService.updateSkillCatalogConfig({ ...draft.value })
-    ElMessage.success('已保存')
+    message.success('已保存')
     await loadConfig()
   } catch (err: any) {
-    ElMessage.error(err.message || '保存失败')
+    message.error(err.message || '保存失败')
   } finally {
     saving.value = false
   }

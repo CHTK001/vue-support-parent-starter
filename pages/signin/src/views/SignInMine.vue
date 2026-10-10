@@ -3,8 +3,8 @@
  * 用户签到页面
  */
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { useSocketService } from "@repo/core";
+
+import {useSocketService, message} from "@repo/core";
 import { useUserStore } from "@repo/pinia";
 import { checkToday, doSignIn, getCalendar, getStats } from "../api/signinApi";
 import ReSignInStatCard from "../components/ReSignInStatCard.vue";
@@ -57,7 +57,7 @@ async function loadData() {
     signed.value = !!todayRes?.data?.signed;
     buildCalendar((calRes?.data ?? []) as SignInDay[]);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "加载签到数据失败");
+    message.error((e as Error)?.message ?? "加载签到数据失败");
   }
 }
 
@@ -69,14 +69,14 @@ async function handleSignIn() {
     const result = res?.data as SignInResult;
     if (result?.success) {
       signed.value = true;
-      ElMessage.success(`签到成功！获得 ${result.todayPoints} 积分，连续 ${result.streak} 天`);
+      message.success(`签到成功！获得 ${result.todayPoints} 积分，连续 ${result.streak} 天`);
       await loadData();
     } else {
-      ElMessage.warning(result?.msg ?? "签到失败");
+      message.warning(result?.msg ?? "签到失败");
       if (result?.alreadySigned) signed.value = true;
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "签到失败");
+    message.error((e as Error)?.message ?? "签到失败");
   } finally {
     signing.value = false;
   }
@@ -93,7 +93,7 @@ function bindSocket() {
       const result = payload.result as SignInResult | undefined;
       if (result && !result.alreadySigned) {
         signed.value = true;
-        ElMessage.success(`签到成功！获得 ${result.todayPoints} 积分`);
+        message.success(`签到成功！获得 ${result.todayPoints} 积分`);
         loadData();
       }
     }

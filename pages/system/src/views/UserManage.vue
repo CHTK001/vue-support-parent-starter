@@ -5,8 +5,9 @@
  * 用户分页查询 + 增删改查 + 重置密码；角色/岗位统一在编辑弹窗内分配。
  * 全部使用 ReXxx modern 组件渲染。
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard } from "@element-plus/icons-vue";
 import {
   pageForUser,
@@ -169,12 +170,12 @@ async function handleBatchDeleteRows(rows: Record<string, unknown>[]): Promise<v
   const selfHit = picked.some((id) => String(id) === selfId);
   const ids = picked.filter((id) => String(id) !== selfId);
   if (!ids.length) {
-    ElMessage.warning(selfHit ? "不允许删除当前登录账号" : "请选择要删除的用户");
+    message.warning(selfHit ? "不允许删除当前登录账号" : "请选择要删除的用户");
     throw new Error("no-valid-delete-target");
   }
   await deleteUsers(ids);
-  ElMessage.success(`已删除 ${ids.length} 个用户`);
-  if (selfHit) ElMessage.warning("已自动跳过当前登录账号");
+  message.success(`已删除 ${ids.length} 个用户`);
+  if (selfHit) message.warning("已自动跳过当前登录账号");
 }
 
 /**
@@ -239,10 +240,10 @@ async function handleUnbindTotp(row: Record<string, unknown>) {
   }
   try {
     await unbindTotp();
-    ElMessage.success("已解绑 2FA");
+    message.success("已解绑 2FA");
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "解绑失败");
+    message.error((e as Error)?.message ?? "解绑失败");
   }
 }
 
@@ -297,9 +298,9 @@ async function handleDownloadTemplate() {
     a.download = "用户导入模板.xlsx";
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success("模板下载成功");
+    message.success("模板下载成功");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "模板下载失败");
+    message.error((e as Error)?.message ?? "模板下载失败");
   }
 }
 
@@ -319,9 +320,9 @@ async function handleExport() {
     a.download = `用户列表_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success("导出成功");
+    message.success("导出成功");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "导出失败");
+    message.error((e as Error)?.message ?? "导出失败");
   } finally {
     exporting.value = false;
   }
@@ -336,13 +337,13 @@ async function handleFileChange(e: Event) {
   try {
     const res = await importUsers(file);
     if (res?.code === 200 || res?.status === 200) {
-      ElMessage.success(res?.data ?? "导入成功");
+      message.success(res?.data ?? "导入成功");
       tableRef.value?.reload();
     } else {
-      ElMessage.error(res?.msg ?? "导入失败");
+      message.error(res?.msg ?? "导入失败");
     }
   } catch (err) {
-    ElMessage.error((err as Error)?.message ?? "导入失败");
+    message.error((err as Error)?.message ?? "导入失败");
   } finally {
     importing.value = false;
     input.value = "";
@@ -413,11 +414,11 @@ function handleRowAvatarChange(e: Event) {
         try {
           await updateUser({ sysUserId: userId, sysUserAvatar: base64 });
           await refreshSelfCache(row as unknown as SysUser);
-          ElMessage.success('头像已更新');
+          message.success('头像已更新');
           tableRef.value?.reload();
         } catch (error: unknown) {
           console.error('头像更新失败:', error);
-          ElMessage.error(error instanceof Error ? error.message : '头像更新失败');
+          message.error(error instanceof Error ? error.message : '头像更新失败');
         }
       }
     };
@@ -508,7 +509,7 @@ function handleEdit(row: Record<string, unknown>) {
 
 async function handleSubmit() {
   if (!form.value.sysUserUsername || (!isEdit.value && !form.value.sysUserPassword) || !form.value.sysUserNickname) {
-    ElMessage.warning("请填写账号、密码、昵称");
+    message.warning("请填写账号、密码、昵称");
     return;
   }
   
@@ -516,19 +517,19 @@ async function handleSubmit() {
   const username = form.value.sysUserUsername.trim();
   if (!isEdit.value) {
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      ElMessage.warning("账号只能使用字母、数字和下划线，不允许特殊字符");
+      message.warning("账号只能使用字母、数字和下划线，不允许特殊字符");
       return;
     }
     // 不允许保留字作为账号
     const reservedUsernames = ["null", "void", "undefined", "admin", "sa", "root", "test", "guest", "anonymous"];
     if (reservedUsernames.includes(username.toLowerCase())) {
-      ElMessage.warning("该名称为系统保留字，不允许作为账号");
+      message.warning("该名称为系统保留字，不允许作为账号");
       return;
     }
   }
   
   if (!isEdit.value && form.value.sysUserPassword !== form.value.sysUserPasswordConfirm) {
-    ElMessage.warning("两次输入的密码不一致");
+    message.warning("两次输入的密码不一致");
     return;
   }
   
@@ -546,16 +547,16 @@ async function handleSubmit() {
     if (isEdit.value) {
       await updateUser(data);
       await refreshSelfCache(data);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveUser(data);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dialogVisible.value = false;
     tableRef.value?.reload();
   } catch (error: unknown) {
     console.error('handleSubmit error:', error);
-    ElMessage.error(error instanceof Error ? error.message : "保存失败");
+    message.error(error instanceof Error ? error.message : "保存失败");
   } finally {
     saving.value = false;
   }
@@ -575,10 +576,10 @@ async function handleDelete(row: Record<string, unknown>) {
   deleteLoading.value = user.sysUserId!;
   try {
     await deleteUser(user.sysUserId!);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   } finally {
     deleteLoading.value = 0;
   }
@@ -588,16 +589,16 @@ async function handleStatus(row: Record<string, unknown>) {
   const user = row as unknown as SysUser;
   if (statusLoading.value) return;
   if (user.sysUserUsername === userStore.loginName || user.sysUserUsername === userStore.username) {
-    ElMessage.warning("不允许禁用自己");
+    message.warning("不允许禁用自己");
     return;
   }
   statusLoading.value = user.sysUserId!;
   try {
     await updateUser({ ...user, sysUserStatus: user.sysUserStatus === 1 ? 0 : 1 });
-    ElMessage.success(user.sysUserStatus === 1 ? "已禁用" : "已启用");
+    message.success(user.sysUserStatus === 1 ? "已禁用" : "已启用");
     tableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "操作失败");
+    message.error((e as Error)?.message ?? "操作失败");
   } finally {
     statusLoading.value = 0;
   }
@@ -626,11 +627,11 @@ async function handleResetPwdSubmit() {
   // 手动输入模式校验
   if (resetPwdMode.value === "manual") {
     if (!resetPwdNew.value) {
-      ElMessage.warning("请输入新密码");
+      message.warning("请输入新密码");
       return;
     }
     if (resetPwdNew.value !== resetPwdConfirm.value) {
-      ElMessage.warning("两次输入的密码不一致");
+      message.warning("两次输入的密码不一致");
       return;
     }
   }
@@ -650,19 +651,19 @@ async function handleResetPwdSubmit() {
       }).then(() => {
         if (newPwd) {
           navigator.clipboard.writeText(newPwd);
-          ElMessage.success("密码已复制到剪贴板");
+          message.success("密码已复制到剪贴板");
         }
       }).catch(() => {
-        ElMessage.warning("请截图保存新密码，关闭后将无法再次查看");
+        message.warning("请截图保存新密码，关闭后将无法再次查看");
       });
     } else {
       // 手动输入密码模式
       await resetUserPassword(resetPwdUser.value.sysUserId!, resetPwdNew.value);
-      ElMessage.success("密码已重置，请使用新密码登录");
+      message.success("密码已重置，请使用新密码登录");
       resetPwdDialogVisible.value = false;
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "重置失败");
+    message.error((e as Error)?.message ?? "重置失败");
   } finally {
     resetPwdSaving.value = false;
   }

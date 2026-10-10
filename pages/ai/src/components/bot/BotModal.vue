@@ -165,9 +165,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+
 import type { FormInstance, FormRules } from 'element-plus'
 import LDialog from '@/components/ui/LDialog.vue'
 import { useBotStore } from '@/stores/bot'
@@ -425,7 +426,7 @@ const loadCharacters = async () => {
     characters.value = response.items || []
   } catch (error) {
     console.error('获取角色列表失败:', error)
-    ElMessage.error(t('bot.modal.loadCharactersFailed'))
+    message.error(t('bot.modal.loadCharactersFailed'))
   }
 }
 
@@ -436,7 +437,7 @@ const loadKnowledgeBases = async () => {
     knowledgeBases.value = knowledgeBaseStore.knowledgeBases
   } catch (error) {
     console.error('获取知识库列表失败:', error)
-    ElMessage.error(t('bot.modal.loadKbFailed'))
+    message.error(t('bot.modal.loadKbFailed'))
   }
 }
 
@@ -454,7 +455,7 @@ const loadModels = async () => {
     )
   } catch (error) {
     console.error('获取模型列表失败:', error)
-    ElMessage.error(t('bot.modal.loadModelsFailed'))
+    message.error(t('bot.modal.loadModelsFailed'))
   }
 }
 

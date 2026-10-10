@@ -49,8 +49,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { eduaiApi } from '../api/eduaiApi';
 import type { WrongQuestion } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
@@ -120,17 +121,17 @@ const reload = () => {
 const updateMastery = async (row: WrongQuestion) => {
   try {
     await eduaiApi.updateMastery(row.wrongQuestionId, row.wrongQuestionMasteryLevel ?? 0);
-    ElMessage.success('已更新');
+    message.success('已更新');
     reload();
   } catch (e) {
-    ElMessage.error('更新失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('更新失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 
 const generateReview = async () => {
   const studentId = strParam(applied.value.studentId);
   if (!studentId) {
-    ElMessage.warning('请先填写学生 ID 并查询');
+    message.warning('请先填写学生 ID 并查询');
     return;
   }
   try {
@@ -138,7 +139,7 @@ const generateReview = async () => {
     reviewQuestionIds.value = Array.isArray(questionIds) ? questionIds : [];
     reviewVisible.value = true;
   } catch (e) {
-    ElMessage.error('生成失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.error('生成失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 </script>

@@ -9,8 +9,9 @@
  *  - 弹窗预览（图片/文本/Office/PDF/音视频）
  *  - 一次性链接（自定义过期时间）
  */
+import { message } from "@repo/core";
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   ArrowDown,
   ArrowLeft,
@@ -982,7 +983,7 @@ function toggleFavorite(path: string): void {
   const has = isFavorite(path);
   favoritePaths.value = has ? favoritePaths.value.filter((p) => p !== path) : [path, ...favoritePaths.value];
   writeList(FAVORITE_KEY, favoritePaths.value);
-  ElMessage.success(has ? "已取消收藏" : "已加入收藏夹");
+  message.success(has ? "已取消收藏" : "已加入收藏夹");
 }
 
 /**
@@ -1081,10 +1082,10 @@ async function restoreRecycleItem(item: StorageObject): Promise<void> {
   actionRunning.value = true;
   try {
     await moveObjects(bucket.value, [`${RECYCLE_DIR}/${item.name}`], "");
-    ElMessage.success(`已还原「${item.name}」`);
+    message.success(`已还原「${item.name}」`);
     await Promise.all([loadRecycle(), loadObjects()]);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "还原失败");
+    message.error((e as Error)?.message ?? "还原失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1098,10 +1099,10 @@ async function purgeRecycleItem(item: StorageObject): Promise<void> {
   actionRunning.value = true;
   try {
     await deleteObject(bucket.value, `${RECYCLE_DIR}/${item.name}`);
-    ElMessage.success("已彻底删除");
+    message.success("已彻底删除");
     await loadRecycle();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
+    message.error((e as Error)?.message ?? "删除失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1110,7 +1111,7 @@ async function purgeRecycleItem(item: StorageObject): Promise<void> {
 /** 清空回收站 */
 async function emptyRecycle(): Promise<void> {
   if (!recycleItems.value.length) {
-    ElMessage.warning("回收站为空");
+    message.warning("回收站为空");
     return;
   }
   try {
@@ -1119,10 +1120,10 @@ async function emptyRecycle(): Promise<void> {
   actionRunning.value = true;
   try {
     await deleteObject(bucket.value, RECYCLE_DIR);
-    ElMessage.success("回收站已清空");
+    message.success("回收站已清空");
     await loadRecycle();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "清空失败");
+    message.error((e as Error)?.message ?? "清空失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1175,7 +1176,7 @@ async function loadObjects(): Promise<void> {
     setDefaultBucket(bucket.value);
     loadError.value = "";
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "加载失败");
+    message.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
     // 分栏渲染的是 colObjects 这份「每列一份」的缓存：成功分支会写它，失败分支不写的话
     // colObjects[currentPath] 会一直是 undefined，列头就永远停在「加载中…」——
@@ -1267,10 +1268,10 @@ async function deleteSelected(): Promise<void> {
   } catch { return; }
   try {
     await moveToRecycle(targets);
-    ElMessage.success(`已移入回收站 ${targets.length} 个对象`);
+    message.success(`已移入回收站 ${targets.length} 个对象`);
     clearSelect();
     await Promise.all([loadObjects(), loadRecycle()]);
-  } catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
+  } catch (e) { message.error((e as Error)?.message ?? "删除失败"); }
 }
 
 /* ============== 分发到服务器（URL 参数开启，数据经 postMessage 交宿主） ============== */
@@ -1314,7 +1315,7 @@ const distributableTarget = computed<StorageObject | null>(() => {
 function openDistribute(target?: StorageObject | null): void {
   const file = target ?? distributableTarget.value;
   if (!file || file.directory) {
-    ElMessage.warning("请选择一个文件进行分发");
+    message.warning("请选择一个文件进行分发");
     return;
   }
   const payload = {
@@ -1329,9 +1330,9 @@ function openDistribute(target?: StorageObject | null): void {
   const host = window.parent && window.parent !== window ? window.parent : window.opener;
   if (host) {
     host.postMessage(payload, "*");
-    ElMessage.success(`已发送分发请求：${file.name}`);
+    message.success(`已发送分发请求：${file.name}`);
   } else {
-    ElMessage.warning("当前页面未嵌入宿主，无法分发");
+    message.warning("当前页面未嵌入宿主，无法分发");
   }
 }
 
@@ -1383,10 +1384,10 @@ async function onCreateDir(): Promise<void> {
   actionRunning.value = true;
   try {
     await createDirectory(bucket.value, currentPath.value, name);
-    ElMessage.success(`文件夹「${name}」已创建`);
+    message.success(`文件夹「${name}」已创建`);
     await refreshAfterAction();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "新建文件夹失败");
+    message.error((e as Error)?.message ?? "新建文件夹失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1399,10 +1400,10 @@ async function onCreateFile(): Promise<void> {
   actionRunning.value = true;
   try {
     await createFile(bucket.value, currentPath.value, name);
-    ElMessage.success(`文件「${name}」已创建`);
+    message.success(`文件「${name}」已创建`);
     await refreshAfterAction();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "新建文件失败");
+    message.error((e as Error)?.message ?? "新建文件失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1423,7 +1424,7 @@ function singleTarget(row?: StorageObject | null): StorageObject | null {
 async function onRename(row?: StorageObject | null): Promise<void> {
   const target = singleTarget(row);
   if (!target) {
-    ElMessage.warning("请选择一个对象进行重命名");
+    message.warning("请选择一个对象进行重命名");
     return;
   }
   const newName = await promptInput(`将「${target.name}」重命名为`, target.name);
@@ -1431,10 +1432,10 @@ async function onRename(row?: StorageObject | null): Promise<void> {
   actionRunning.value = true;
   try {
     await renameObject(bucket.value, currentPath.value, target.name, newName);
-    ElMessage.success("重命名成功");
+    message.success("重命名成功");
     await refreshAfterAction();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "重命名失败");
+    message.error((e as Error)?.message ?? "重命名失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1444,44 +1445,44 @@ async function onRename(row?: StorageObject | null): Promise<void> {
 function onCopySelected(): void {
   const keys = selectedKeys();
   if (!keys.length) {
-    ElMessage.warning("请先选择对象");
+    message.warning("请先选择对象");
     return;
   }
   clipboard.value = { mode: "copy", keys };
-  ElMessage.success(`已复制 ${keys.length} 项，进入目标目录后粘贴`);
+  message.success(`已复制 ${keys.length} 项，进入目标目录后粘贴`);
 }
 
 /** 剪切选中对象到剪贴板 */
 function onCutSelected(): void {
   const keys = selectedKeys();
   if (!keys.length) {
-    ElMessage.warning("请先选择对象");
+    message.warning("请先选择对象");
     return;
   }
   clipboard.value = { mode: "move", keys };
-  ElMessage.success(`已剪切 ${keys.length} 项，进入目标目录后粘贴`);
+  message.success(`已剪切 ${keys.length} 项，进入目标目录后粘贴`);
 }
 
 /** 粘贴剪贴板对象到当前目录 */
 async function onPaste(): Promise<void> {
   const board = clipboard.value;
   if (!board || !board.keys.length) {
-    ElMessage.warning("剪贴板为空");
+    message.warning("剪贴板为空");
     return;
   }
   actionRunning.value = true;
   try {
     if (board.mode === "copy") {
       await copyObjects(bucket.value, board.keys, currentPath.value);
-      ElMessage.success("粘贴成功");
+      message.success("粘贴成功");
     } else {
       await moveObjects(bucket.value, board.keys, currentPath.value);
-      ElMessage.success("移动成功");
+      message.success("移动成功");
       clipboard.value = null;
     }
     await refreshAfterAction();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "粘贴失败");
+    message.error((e as Error)?.message ?? "粘贴失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1506,7 +1507,7 @@ async function smartDownload(keys: string[]): Promise<void> {
     return;
   }
   if (!keys.length) {
-    ElMessage.warning("请先选择对象");
+    message.warning("请先选择对象");
     return;
   }
   if (keys.length === 1) {
@@ -1525,7 +1526,7 @@ async function smartDownload(keys: string[]): Promise<void> {
     const blob = await downloadZip(bucket.value, keys);
     saveBlob(blob, zipArchiveName(keys));
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "打包下载失败");
+    message.error((e as Error)?.message ?? "打包下载失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1540,16 +1541,16 @@ async function onZipSelected(): Promise<void> {
 async function onUnzip(row?: StorageObject | null): Promise<void> {
   const target = singleTarget(row);
   if (!target || !isArchive(target.name)) {
-    ElMessage.warning("请选择一个压缩包");
+    message.warning("请选择一个压缩包");
     return;
   }
   actionRunning.value = true;
   try {
     const res = await unzipObject(bucket.value, currentPath.value, target.name, currentPath.value);
-    ElMessage.success(`解压完成，共 ${(res.entries as number) ?? 0} 项`);
+    message.success(`解压完成，共 ${(res.entries as number) ?? 0} 项`);
     await refreshAfterAction();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "解压失败");
+    message.error((e as Error)?.message ?? "解压失败");
   } finally {
     actionRunning.value = false;
   }
@@ -1604,14 +1605,14 @@ async function dropKeysTo(targetDir: string, e?: DragEvent): Promise<void> {
   try {
     if (copy) {
       await copyObjects(bucket.value, filtered, targetDir);
-      ElMessage.success(`复制 ${filtered.length} 项到「${targetDir || "/"}」`);
+      message.success(`复制 ${filtered.length} 项到「${targetDir || "/"}」`);
     } else {
       await moveObjects(bucket.value, filtered, targetDir);
-      ElMessage.success(`移动 ${filtered.length} 项到「${targetDir || "/"}」`);
+      message.success(`移动 ${filtered.length} 项到「${targetDir || "/"}」`);
     }
     await refreshAfterAction();
   } catch (err) {
-    ElMessage.error((err as Error)?.message ?? (copy ? "复制失败" : "移动失败"));
+    message.error((err as Error)?.message ?? (copy ? "复制失败" : "移动失败"));
   } finally {
     actionRunning.value = false;
     dragOverDir.value = "";
@@ -2232,7 +2233,7 @@ function resetAdminForm(): void {
   });
   chainRows.value = [];
   bucketDraft.value = "";
-  ElMessage.success("已恢复默认设置，点「保存并生效」后写入服务端");
+  message.success("已恢复默认设置，点「保存并生效」后写入服务端");
 }
 
 /**
@@ -2241,10 +2242,10 @@ function resetAdminForm(): void {
 function copyAdminToken(): void {
   const text = adminToken.value;
   if (!text) {
-    ElMessage.warning("当前没有令牌可复制");
+    message.warning("当前没有令牌可复制");
     return;
   }
-  const done = () => ElMessage.success("令牌已复制");
+  const done = () => message.success("令牌已复制");
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopyToken(text, done));
   } else {
@@ -2270,7 +2271,7 @@ function fallbackCopyToken(text: string, done: () => void): void {
     document.body.removeChild(ta);
     done();
   } catch {
-    ElMessage.error("复制失败，请手动选择文本复制");
+    message.error("复制失败，请手动选择文本复制");
   }
 }
 
@@ -2280,7 +2281,7 @@ function fallbackCopyToken(text: string, done: () => void): void {
 async function saveAdminConfig(): Promise<void> {
   const tokenValue = adminToken.value.trim();
   if (!tokenValue) {
-    ElMessage.warning("请输入管理员令牌");
+    message.warning("请输入管理员令牌");
     return;
   }
   adminSaving.value = true;
@@ -2292,7 +2293,7 @@ async function saveAdminConfig(): Promise<void> {
     if (ttlText !== "") {
       const minutes = Number(ttlText);
       if (!Number.isFinite(minutes) || minutes <= 0) {
-        ElMessage.warning("链接默认有效期需为正数（分钟）");
+        message.warning("链接默认有效期需为正数（分钟）");
         adminSaving.value = false;
         return;
       }
@@ -2309,10 +2310,10 @@ async function saveAdminConfig(): Promise<void> {
     });
     localStorage.setItem(ADMIN_TOKEN_KEY, tokenValue);
     adminVisible.value = false;
-    ElMessage.success("配置已保存并实时生效");
+    message.success("配置已保存并实时生效");
     await loadBucketConfig();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "配置保存失败");
+    message.error((e as Error)?.message ?? "配置保存失败");
   } finally {
     adminSaving.value = false;
   }
@@ -2341,7 +2342,7 @@ function guardPreview(): boolean {
   if (allowPreview.value) {
     return true;
   }
-  ElMessage.warning("该存储桶已关闭预览，可在「系统配置 → 允许预览」中开启");
+  message.warning("该存储桶已关闭预览，可在「系统配置 → 允许预览」中开启");
   return false;
 }
 
@@ -2354,7 +2355,7 @@ function guardDownload(): boolean {
   if (allowDownload.value) {
     return true;
   }
-  ElMessage.warning("该存储桶已关闭下载，可在「系统配置 → 允许下载」中开启");
+  message.warning("该存储桶已关闭下载，可在「系统配置 → 允许下载」中开启");
   return false;
 }
 
@@ -2858,7 +2859,7 @@ function addUploadFiles(files: File[]): void {
     }
   }
   if (tooLarge.length) {
-    ElMessage.error(`超过 500MB 上限：${tooLarge.join("、")}`);
+    message.error(`超过 500MB 上限：${tooLarge.join("、")}`);
   }
   if (!accepted.length) {
     return;
@@ -3011,7 +3012,7 @@ async function openUploadDirPicker(): Promise<void> {
   try {
     uploadTree.value = await getBucketTree(bucket.value);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "目录树获取失败");
+    message.error((e as Error)?.message ?? "目录树获取失败");
   } finally {
     uploadTreeLoading.value = false;
   }
@@ -3082,10 +3083,10 @@ async function doUpload(files: File[]): Promise<void> {
       await putObject(bucket.value, fullKey(f.name), f);
       success++;
     }
-    ElMessage.success(`上传成功 ${success} 个文件`);
+    message.success(`上传成功 ${success} 个文件`);
     await loadObjects();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "上传失败");
+    message.error((e as Error)?.message ?? "上传失败");
   } finally {
     uploading.value = false;
   }
@@ -3133,7 +3134,7 @@ async function onDrop(e: DragEvent): Promise<void> {
   const files = Array.from(e.dataTransfer?.files ?? []);
   if (!files.length) return;
   if (uploading.value) {
-    ElMessage.warning("正在上传，请稍候");
+    message.warning("正在上传，请稍候");
     return;
   }
   await doUpload(files);
@@ -3421,7 +3422,7 @@ const swfInnerPath = computed(() => (innerIsSwf.value ? previewInnerPath.value :
 /** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
 function onImageSaved(): void {
   void loadObjects();
-  ElMessage.success("图片已更新");
+  message.success("图片已更新");
 }
 
 /**
@@ -3876,8 +3877,8 @@ async function handleDownload(row: StorageObject): Promise<void> {
 async function handleExist(row: StorageObject): Promise<void> {
   try {
     const exists = await existObject(bucket.value, fullKey(row.name));
-    ElMessage[exists ? "success" : "warning"](exists ? `「${row.name}」存在` : `「${row.name}」不存在`);
-  } catch (e) { ElMessage.error((e as Error)?.message ?? "检查失败"); }
+    message[exists ? "success" : "warning"](exists ? `「${row.name}」存在` : `「${row.name}」不存在`);
+  } catch (e) { message.error((e as Error)?.message ?? "检查失败"); }
 }
 
 async function handleDelete(row: StorageObject): Promise<void> {
@@ -3889,10 +3890,10 @@ async function handleDelete(row: StorageObject): Promise<void> {
   try { await ElMessageBox.confirm(label, "移入回收站", { type: "warning" }); } catch { return; }
   try {
     await moveToRecycle(targets);
-    ElMessage.success(`已移入回收站 ${targets.length} 个对象`);
+    message.success(`已移入回收站 ${targets.length} 个对象`);
     clearSelect();
     await Promise.all([loadObjects(), loadRecycle()]);
-  } catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
+  } catch (e) { message.error((e as Error)?.message ?? "删除失败"); }
 }
 
 /* ================== 创建链接（一次性 / 限时） ================== */
@@ -3913,7 +3914,7 @@ const oneTimeGenerating = ref(false);
 const oneTimeTarget = ref<{ name: string; key: string }>();
 
 function openOneTime(row: StorageObject): void {
-  if (row.directory) { ElMessage.warning("目录不支持生成访问链接"); return; }
+  if (row.directory) { message.warning("目录不支持生成访问链接"); return; }
   oneTimeTarget.value = { name: row.name, key: fullKey(row.name) };
   oneTimeLink.value = "";
   oneTimeType.value = "once";
@@ -3941,7 +3942,7 @@ const quickExpiryTarget = ref<{ name: string; key: string }>();
 /** 打开「自定义过期时间」弹框（右键直达，不经过一次性/限时二选一那一步） */
 function openQuickExpiry(row: StorageObject): void {
   if (row.directory) {
-    ElMessage.warning("目录不支持生成访问链接");
+    message.warning("目录不支持生成访问链接");
     return;
   }
   quickExpiryTarget.value = { name: row.name, key: fullKey(row.name) };
@@ -3957,16 +3958,16 @@ async function generateQuickExpiryLink(): Promise<void> {
   }
   const seconds = parseExpiryToSeconds(quickExpiryInput.value);
   if (!seconds) {
-    ElMessage.warning("过期时间格式不对，例：30s / 15m / 2h / 7d 或纯数字秒（最长 30 天）");
+    message.warning("过期时间格式不对，例：30s / 15m / 2h / 7d 或纯数字秒（最长 30 天）");
     return;
   }
   quickExpiryBusy.value = true;
   try {
     const res = await createOneTimeLink(bucket.value, quickExpiryTarget.value.key, seconds, "expiry");
     quickExpiryResult.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
-    ElMessage.success(`限时链接已生成（${quickExpiryInput.value.trim()} 内可多次访问）`);
+    message.success(`限时链接已生成（${quickExpiryInput.value.trim()} 内可多次访问）`);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "生成失败");
+    message.error((e as Error)?.message ?? "生成失败");
   } finally {
     quickExpiryBusy.value = false;
   }
@@ -3988,7 +3989,7 @@ async function generateOneTimeLink(): Promise<void> {
   if (oneTimeType.value === "expiry") {
     expires = Number(oneTimeExpiry.value);
     if (!Number.isFinite(expires) || expires <= 0) {
-      ElMessage.warning("请输入有效的过期时间（秒）");
+      message.warning("请输入有效的过期时间（秒）");
       return;
     }
     expires = Math.floor(expires);
@@ -3997,8 +3998,8 @@ async function generateOneTimeLink(): Promise<void> {
   try {
     const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, expires, oneTimeType.value);
     oneTimeLink.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
-    ElMessage.success(oneTimeType.value === "once" ? "一次性链接已生成（仅可访问一次）" : "限时链接已生成（有效期内可多次访问）");
-  } catch (e) { ElMessage.error((e as Error)?.message ?? "生成失败"); }
+    message.success(oneTimeType.value === "once" ? "一次性链接已生成（仅可访问一次）" : "限时链接已生成（有效期内可多次访问）");
+  } catch (e) { message.error((e as Error)?.message ?? "生成失败"); }
   finally { oneTimeGenerating.value = false; }
 }
 
@@ -4008,8 +4009,8 @@ function copyOneTimeLink(): void {
   el.value = oneTimeLink.value;
   document.body.appendChild(el);
   el.select();
-  try { document.execCommand("copy"); ElMessage.success("已复制到剪贴板"); }
-  catch { ElMessage.error("复制失败"); }
+  try { document.execCommand("copy"); message.success("已复制到剪贴板"); }
+  catch { message.error("复制失败"); }
   el.remove();
 }
 

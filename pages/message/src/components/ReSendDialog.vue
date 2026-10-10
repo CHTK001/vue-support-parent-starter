@@ -6,8 +6,9 @@
  * 支持发送前预览渲染结果，未填充的占位符会高亮提示。
  * 发送完成后通过 success 事件通知父组件。
  */
+import { message } from "@repo/core";
 import { reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { previewTemplate, sendMessage } from "../api/messageApi";
 import type { MessageTemplate, TemplatePreviewResponse } from "../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -51,7 +52,7 @@ function parseParams(): Record<string, unknown> | null {
   try {
     return JSON.parse(sendForm.params || "{}");
   } catch {
-    ElMessage.error("参数不是合法的 JSON");
+    message.error("参数不是合法的 JSON");
     return null;
   }
 }
@@ -92,9 +93,9 @@ async function handleSend() {
     });
     const failed = (res?.data ?? []).filter((r) => !r.success);
     if (failed.length === 0) {
-      ElMessage.success("发送成功");
+      message.success("发送成功");
     } else {
-      ElMessage.warning(`部分发送失败：${failed.map((r) => r.errorMessage).join("; ")}`);
+      message.warning(`部分发送失败：${failed.map((r) => r.errorMessage).join("; ")}`);
     }
     visible.value = false;
     emit("success");

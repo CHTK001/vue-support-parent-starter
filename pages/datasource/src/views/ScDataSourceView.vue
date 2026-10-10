@@ -15,9 +15,10 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
 // 组件全部显式引入：本页被采集台与监控台共用，两个应用都不保证全局注册 Re*，
 // 只靠全局注册会出现「卡片能显示但按钮/表格不渲染」的问题。
@@ -144,7 +145,7 @@ const loadDriverJars = async () => {
   try {
     driverJars.value = await fetchJdbcDriverJars();
   } catch (error) {
-    ElMessage.warning(`读取驱动 jar 列表失败: ${String((error as Error)?.message ?? error)}`);
+    message.warning(`读取驱动 jar 列表失败: ${String((error as Error)?.message ?? error)}`);
   }
 };
 
@@ -164,7 +165,7 @@ const onPickDriverJar = async (event: Event) => {
   if (!file) return;
   const driverClass = (form.value.driverClassName ?? "").trim();
   if (!driverClass) {
-    ElMessage.warning("先填驱动类名，再上传 jar（后端要当场验证这个类能不能加载）");
+    message.warning("先填驱动类名，再上传 jar（后端要当场验证这个类能不能加载）");
     return;
   }
   driverJarUploading.value = true;
@@ -173,9 +174,9 @@ const onPickDriverJar = async (event: Event) => {
     await loadDriverJars();
     form.value.driverJarId = saved.id;
     form.value.driverClassName = saved.driverClassName;
-    ElMessage.success(`已上传并选中驱动 ${saved.jarName}`);
+    message.success(`已上传并选中驱动 ${saved.jarName}`);
   } catch (error) {
-    ElMessage.error(`上传驱动 jar 失败: ${String((error as Error)?.message ?? error)}`);
+    message.error(`上传驱动 jar 失败: ${String((error as Error)?.message ?? error)}`);
   } finally {
     driverJarUploading.value = false;
   }
@@ -372,12 +373,12 @@ const applyJdbcExtraParams = (): boolean => {
     (r) => !(r.key ?? "").trim() && (r.value ?? "").trim() !== ""
   );
   if (blankKeyWithValue) {
-    ElMessage.warning("有一行额外参数只填了值、没选参数名");
+    message.warning("有一行额外参数只填了值、没选参数名");
     return false;
   }
   const badValue = rows.find((r) => /[&#?\s]/.test(r.value));
   if (badValue) {
-    ElMessage.warning(`参数 ${badValue.key} 的值里不能有空格或 & ? # 分隔符`);
+    message.warning(`参数 ${badValue.key} 的值里不能有空格或 & ? # 分隔符`);
     return false;
   }
   /* 参数名同样要拦分隔符：下拉开了 allow-create，用户能敲任意文本。
@@ -386,7 +387,7 @@ const applyJdbcExtraParams = (): boolean => {
      不会替我们兜住 query 结构的破坏。 */
   const badKey = rows.find((r) => /[&#?=\s]/.test(r.key));
   if (badKey) {
-    ElMessage.warning(`参数名「${badKey.key}」里不能有空格或 & ? # = 分隔符`);
+    message.warning(`参数名「${badKey.key}」里不能有空格或 & ? # = 分隔符`);
     return false;
   }
   const db = (form.value.database ?? "").trim();
@@ -401,7 +402,7 @@ const applyJdbcExtraParams = (): boolean => {
     // 三段式：与后端同模板拼 mysql 串，再叠加行（同名覆盖默认）
     const host = (form.value.host ?? "").trim();
     if (!host || !db) {
-      ElMessage.warning("填额外参数时需要主机地址与库名（或直接把完整 JDBC URL 粘进库名）");
+      message.warning("填额外参数时需要主机地址与库名（或直接把完整 JDBC URL 粘进库名）");
       return false;
     }
     const port = form.value.port ?? 3306;
@@ -412,7 +413,7 @@ const applyJdbcExtraParams = (): boolean => {
   const seenKeys = new Set<string>();
   const dupKey = rows.find((r) => (seenKeys.has(r.key) ? true : (seenKeys.add(r.key), false)));
   if (dupKey) {
-    ElMessage.warning(`参数「${dupKey.key}」重复填写了，只会保留最后一条`);
+    message.warning(`参数「${dupKey.key}」重复填写了，只会保留最后一条`);
     return false;
   }
   for (const r of rows) query.set(r.key, r.value);
@@ -519,7 +520,7 @@ const advancedOpen = ref(false);
 const testInDialog = async () => {
   const id = editing.value?.id;
   if (id == null) {
-    ElMessage.info("请先保存数据源，再测试连接");
+    message.info("请先保存数据源，再测试连接");
     return;
   }
   dialogTesting.value = true;
@@ -527,14 +528,14 @@ const testInDialog = async () => {
     const result = await testDataSource(id);
     dialogTestResult.value = result;
     if (result?.success) {
-      ElMessage.success(result.message || "连接成功");
+      message.success(result.message || "连接成功");
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
     // 后端在测试时回写连接延迟，重新拉一次让其它视图同步最新值
     await load();
   } catch (e) {
-    ElMessage.error(`测试失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`测试失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     dialogTesting.value = false;
   }
@@ -548,7 +549,7 @@ const load = async () => {
     list.value = data ?? [];
     types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper"];
   } catch (e) {
-    ElMessage.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     loading.value = false;
   }
@@ -600,11 +601,11 @@ const openEdit = (item: DataSourceInfo) => {
 /** 保存 */
 const save = async () => {
   if (!form.value.name?.trim()) {
-    ElMessage.warning("请输入数据源名称");
+    message.warning("请输入数据源名称");
     return;
   }
   if (!form.value.type) {
-    ElMessage.warning("请选择数据源类型");
+    message.warning("请选择数据源类型");
     return;
   }
   if (!applyJdbcExtraParams()) return;
@@ -613,19 +614,19 @@ const save = async () => {
     if (editing.value) {
       // id 声明为可选（新建时无 id），但更新必须落到某条既有记录
       if (editing.value.id == null) {
-        ElMessage.warning("数据源缺少 ID，无法更新");
+        message.warning("数据源缺少 ID，无法更新");
         return;
       }
       await updateDataSource(editing.value.id, form.value);
-      ElMessage.success("更新成功");
+      message.success("更新成功");
     } else {
       await createDataSource(form.value);
-      ElMessage.success("创建成功");
+      message.success("创建成功");
     }
     dialogVisible.value = false;
     await load();
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     saving.value = false;
   }
@@ -640,14 +641,14 @@ const remove = async (item: DataSourceInfo) => {
   }
   try {
     if (item.id == null) {
-      ElMessage.warning("数据源缺少 ID，无法删除");
+      message.warning("数据源缺少 ID，无法删除");
       return;
     }
     await deleteDataSource(item.id);
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     await load();
   } catch (e) {
-    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   }
 };
 
@@ -687,7 +688,7 @@ const schemaTablePicker = ref<InstanceType<typeof TableSelect> | null>(null);
 /** 打开某数据源的表结构浏览 */
 const openSchema = async (item: DataSourceInfo) => {
   if (item.id == null) {
-    ElMessage.warning("数据源缺少 ID，无法浏览表结构");
+    message.warning("数据源缺少 ID，无法浏览表结构");
     return;
   }
   schemaSourceId.value = item.id;
@@ -742,7 +743,7 @@ const schemaColumnDefs = computed<ReTableColumn[]>(() => [
 /** 测试连接 */
 const test = async (item: DataSourceInfo) => {
   if (item.id == null) {
-    ElMessage.warning("数据源缺少 ID，无法测试");
+    message.warning("数据源缺少 ID，无法测试");
     return;
   }
   testing.value = item.id;
@@ -752,12 +753,12 @@ const test = async (item: DataSourceInfo) => {
     await load();
     if (result?.success) {
       const detail = describeLatency(result);
-      ElMessage.success(detail ? `${result.message || "连接成功"}（${detail}）` : result.message || "连接成功");
+      message.success(detail ? `${result.message || "连接成功"}（${detail}）` : result.message || "连接成功");
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
   } catch (e) {
-    ElMessage.error(`测试失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`测试失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     testing.value = null;
   }
@@ -800,12 +801,12 @@ const TYPE_ROUTE_MAP: Record<string, string> = {
 const openManager = (item: DataSourceInfo) => {
   const route = TYPE_ROUTE_MAP[item.type];
   if (!route) {
-    ElMessage.warning(`类型 ${item.type} 的管理页面开发中`);
+    message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
   }
   const registered = router.getRoutes().some((r) => r.path === route);
   if (!registered) {
-    ElMessage.warning(`当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`);
+    message.warning(`当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`);
     return;
   }
   void router.push({ path: route, query: { datasourceId: item.id } });
@@ -1123,7 +1124,7 @@ const loadTunnel = async (id: number) => {
       status: data.status ?? 0
     };
   } catch (e) {
-    ElMessage.error(`读取隧道配置失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`读取隧道配置失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     tunnelLoading.value = false;
   }
@@ -1137,34 +1138,34 @@ const saveTunnel = async () => {
   }
   const f = tunnel.value;
   if (!f.sshHost.trim()) {
-    ElMessage.warning("请填写 SSH 服务器地址");
+    message.warning("请填写 SSH 服务器地址");
     return;
   }
   if (!f.sshUsername.trim()) {
-    ElMessage.warning("请填写 SSH 用户名");
+    message.warning("请填写 SSH 用户名");
     return;
   }
   if (!tunnelIsDynamic.value) {
     if (!f.remoteHost.trim()) {
-      ElMessage.warning("请填写远端目标主机（数据库地址）");
+      message.warning("请填写远端目标主机（数据库地址）");
       return;
     }
     if (!f.remotePort || f.remotePort <= 0) {
-      ElMessage.warning("请填写远端目标端口");
+      message.warning("请填写远端目标端口");
       return;
     }
   }
   if (tunnelIsKeyAuth.value && !f.sshPrivateKey.trim()) {
-    ElMessage.warning("私钥认证请填写私钥（PEM 文本或私钥文件路径）");
+    message.warning("私钥认证请填写私钥（PEM 文本或私钥文件路径）");
     return;
   }
   tunnelSaving.value = true;
   try {
     await saveDatasourceTunnel(id, { ...f } as Partial<DataSourceTunnel>);
-    ElMessage.success("隧道配置已保存");
+    message.success("隧道配置已保存");
     await loadTunnel(id);
   } catch (e) {
-    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     tunnelSaving.value = false;
   }
@@ -1186,10 +1187,10 @@ const removeTunnel = async () => {
   tunnelSaving.value = true;
   try {
     await deleteDatasourceTunnel(id);
-    ElMessage.success("隧道已删除");
+    message.success("隧道已删除");
     await loadTunnel(id);
   } catch (e) {
-    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     tunnelSaving.value = false;
   }

@@ -46,13 +46,14 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { getAgentTraces } from '../api/hotsportApi';
 import type { TraceSpan } from '../api/types';
-import { ElMessage } from 'element-plus';
+
 
 const { t } = useI18n();
 const traces = ref<TraceSpan[]>([]);
@@ -94,7 +95,7 @@ const fetchTraces = async () => {
     traces.value = (await getAgentTraces()) || [];
     total.value = traces.value.length;
   } catch (e) {
-    ElMessage.error(t('hotsport.traces.fetchError'));
+    message.error(t('hotsport.traces.fetchError'));
   }
 };
 

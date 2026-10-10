@@ -77,8 +77,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
@@ -222,7 +223,7 @@ async function refresh(reset = false) {
       paused.value = true;
       auto.value = false;
       stopTimer();
-      ElMessage.warning(`日志刷新连续失败 ${failures} 次，已暂停自动刷新：${(e as Error).message}`);
+      message.warning(`日志刷新连续失败 ${failures} 次，已暂停自动刷新：${(e as Error).message}`);
     }
   } finally {
     loading.value = false;

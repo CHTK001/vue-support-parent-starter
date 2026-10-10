@@ -55,8 +55,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import LDialog from '@/components/ui/LDialog.vue'
 import {
   Info24Regular, Tag24Regular, Folder24Regular,
@@ -91,14 +92,14 @@ async function handleSave() {
   try {
     const res = await apiService.addCustomTool(form.value.name.trim(), form.value.path.trim())
     if (!res.success) {
-      ElMessage.error(res.message || '添加失败')
+      message.error(res.message || '添加失败')
       return
     }
-    ElMessage.success(`已添加 ${res.count ?? ''} 个工具`)
+    message.success(`已添加 ${res.count ?? ''} 个工具`)
     visible.value = false
     emit('saved')
   } catch (e: any) {
-    ElMessage.error(e?.message || '添加失败')
+    message.error(e?.message || '添加失败')
   } finally {
     saving.value = false
   }

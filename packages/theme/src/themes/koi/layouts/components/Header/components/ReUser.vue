@@ -65,8 +65,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { User, Lock, RefreshRight } from "@element-plus/icons-vue";
 import {
   clearSessionStorage,
@@ -177,9 +178,9 @@ const handleClearCache = async () => {
     if (current.name && !router.hasRoute(current.name)) {
       await router.replace(getConfig().route.homePath || "/home");
     }
-    ElMessage.success("缓存已清理，菜单已刷新");
+    message.success("缓存已清理，菜单已刷新");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "缓存清理失败，请重试");
+    message.error((e as Error)?.message ?? "缓存清理失败，请重试");
   } finally {
     clearingCache.value = false;
   }

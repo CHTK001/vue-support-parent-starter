@@ -155,9 +155,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
@@ -294,13 +295,13 @@ const selectFolder = async () => {
       const selectedPath = await window.electronAPI.selectFolder()
       if (selectedPath) {
         settingsForm.workspaceBaseDir = selectedPath
-        ElMessage.success(t('settings.general.folderSelected'))
+        message.success(t('settings.general.folderSelected'))
       }
     } catch (error) {
-      ElMessage.error(t('settings.general.selectFolderFailed'))
+      message.error(t('settings.general.selectFolderFailed'))
     }
   } else {
-    ElMessage.warning(t('settings.general.folderSelectNotSupported'))
+    message.warning(t('settings.general.folderSelectNotSupported'))
   }
 }
 
@@ -325,7 +326,7 @@ const handleSave = async () => {
     if (path) {
       const isAbsolute = /^[a-zA-Z]:\\/.test(path) || path.startsWith('/')
       if (!isAbsolute) {
-        ElMessage.error(t('settings.general.pathMustBeAbsolute'))
+        message.error(t('settings.general.pathMustBeAbsolute'))
         return
       }
     }
@@ -367,7 +368,7 @@ const openThinkingTextDialog = () => {
     inputValue: settingsForm.thinkingTextCN,
   }).then(({ value }) => {
     settingsForm.thinkingTextCN = value
-    ElMessage.success('思考状态文案已更新')
+    message.success('思考状态文案已更新')
   }).catch(() => {})
 }
 

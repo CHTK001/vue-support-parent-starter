@@ -5,9 +5,10 @@
  * 顶部支持切换「全部日志」或指定提供商，展示推送日志分页列表，
  * 可按接收人、返回码过滤，并查看发送详情。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Document, Search, Refresh, Delete } from "@element-plus/icons-vue";
 import { cleanLog, listForProvider, pageForLog } from "../api/messageApi";
 import type { MessageLog, MessageProvider } from "../api/types";
@@ -59,7 +60,7 @@ async function loadList() {
     list.value = res?.data?.data ?? [];
     total.value = res?.data?.total ?? 0;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "日志列表加载失败");
+    message.error((e as Error)?.message ?? "日志列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -71,7 +72,7 @@ async function loadProviders() {
     const res = await listForProvider();
     providers.value = res?.data ?? [];
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "提供商列表加载失败");
+    message.error((e as Error)?.message ?? "提供商列表加载失败");
   }
 }
 
@@ -135,7 +136,7 @@ async function handleClean() {
       },
     );
     const res = await cleanLog(`${value}T00:00:00`);
-    ElMessage.success(`已清理 ${res?.data ?? 0} 条日志`);
+    message.success(`已清理 ${res?.data ?? 0} 条日志`);
     loadList();
   } catch {
     // 用户取消，忽略

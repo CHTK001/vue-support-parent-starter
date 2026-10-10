@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import {
@@ -85,7 +86,7 @@ import {
   Warning as WarningIcon,
   Document,
 } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+
 import { eduaiApi } from '../api/eduaiApi';
 
 const router = useRouter();
@@ -185,7 +186,7 @@ const loadHealth = async () => {
       registeredProviders: Array.isArray(res?.registeredProviders) ? res.registeredProviders : [],
     });
   } catch (e) {
-    ElMessage.warning('AI 健康信息获取失败: ' + (e instanceof Error ? e.message : String(e)));
+    message.warning('AI 健康信息获取失败: ' + (e instanceof Error ? e.message : String(e)));
   }
 };
 

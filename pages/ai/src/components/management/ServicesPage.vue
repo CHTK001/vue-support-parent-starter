@@ -70,9 +70,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
-import { isAdmin } from '@repo/core';
+import {isAdmin, message} from '@repo/core';
 import { serviceApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
 
@@ -107,7 +107,7 @@ async function loadData() {
   try {
     tableData.value = asArray(await serviceApi.list());
   } catch (e: any) {
-    ElMessage.error(`加载失败: ${e?.msg || e?.message || ''}`);
+    message.error(`加载失败: ${e?.msg || e?.message || ''}`);
   } finally {
     loading.value = false;
   }
@@ -121,10 +121,10 @@ function handleCreate() {
 async function handleStart(name: string) {
   try {
     await serviceApi.start(name);
-    ElMessage.success('服务已启动');
+    message.success('服务已启动');
     loadData();
   } catch (e: any) {
-    ElMessage.error(`启动失败: ${e?.msg || e?.message || ''}`);
+    message.error(`启动失败: ${e?.msg || e?.message || ''}`);
   }
 }
 
@@ -132,27 +132,27 @@ async function handleStop(name: string) {
   try {
     await ElMessageBox.confirm(`确定要停止服务「${name}」吗？`, '停止确认', { type: 'warning' });
     await serviceApi.stop(name);
-    ElMessage.success('服务已停止');
+    message.success('服务已停止');
     loadData();
   } catch (e: any) {
-    if (e !== 'cancel') ElMessage.error(`停止失败: ${e?.msg || e?.message || ''}`);
+    if (e !== 'cancel') message.error(`停止失败: ${e?.msg || e?.message || ''}`);
   }
 }
 
 async function handleSubmit() {
   const name = newServiceName.value.trim();
   if (!name) {
-    ElMessage.warning('请输入服务名称');
+    message.warning('请输入服务名称');
     return;
   }
   saving.value = true;
   try {
     await serviceApi.start(name);
-    ElMessage.success('登记并启动成功');
+    message.success('登记并启动成功');
     dialogVisible.value = false;
     loadData();
   } catch (e: any) {
-    ElMessage.error(`保存失败: ${e?.msg || e?.message || ''}`);
+    message.error(`保存失败: ${e?.msg || e?.message || ''}`);
   } finally {
     saving.value = false;
   }

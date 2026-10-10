@@ -126,8 +126,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, onMounted, watch, markRaw, computed } from 'vue'
-import { ElMessage, ElUpload, ElSlider, ElSwitch, ElButton, ElIcon, ElSelect, ElOption } from 'element-plus'
+import { ElUpload, ElSlider, ElSwitch, ElButton, ElIcon, ElSelect, ElOption } from 'element-plus';
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { WeatherSunny20Regular, WeatherMoon20Filled, Desktop16Regular } from '@vicons/fluent'
 import { useDebounceFn } from '@vueuse/core'
@@ -299,7 +300,7 @@ const handleSave = async () => {
     pushFloatWidgetSettings()
   } catch (error: any) {
     console.error('保存外观设置失败:', error)
-    ElMessage.error('保存失败: ' + (error.message || '未知错误'))
+    message.error('保存失败: ' + (error.message || '未知错误'))
   }
 }
 
@@ -311,14 +312,14 @@ const handleFileChange = async (uploadFile: any) => {
   // 验证文件类型
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(file.type)) {
-    ElMessage.error('不支持的文件类型，请上传 JPG、PNG 或 WebP 格式图片')
+    message.error('不支持的文件类型，请上传 JPG、PNG 或 WebP 格式图片')
     return
   }
 
   // 验证文件大小（最大 10MB）
   const maxSize = 10 * 1024 * 1024
   if (file.size > maxSize) {
-    ElMessage.error('图片大小不能超过 10MB')
+    message.error('图片大小不能超过 10MB')
     return
   }
 
@@ -326,10 +327,10 @@ const handleFileChange = async (uploadFile: any) => {
     const response = await apiService.uploadWallpaper(file)
     previewUrl.value = resolveWallpaperUrl(extractRelativePath(response.url))
     await handleSave()
-    ElMessage.success('壁纸上传成功')
+    message.success('壁纸上传成功')
   } catch (error: any) {
     console.error('壁纸上传失败:', error)
-    ElMessage.error('壁纸上传失败: ' + (error.message || '未知错误'))
+    message.error('壁纸上传失败: ' + (error.message || '未知错误'))
   }
 }
 
@@ -339,10 +340,10 @@ const handleRemoveWallpaper = async () => {
     await apiService.deleteWallpaper()
     previewUrl.value = null
     await handleSave()
-    ElMessage.success('壁纸已删除')
+    message.success('壁纸已删除')
   } catch (error: any) {
     console.error('壁纸删除失败:', error)
-    ElMessage.error('壁纸删除失败: ' + (error.message || '未知错误'))
+    message.error('壁纸删除失败: ' + (error.message || '未知错误'))
   }
 }
 
@@ -406,7 +407,7 @@ const handleReset = async () => {
   }
 
   await handleSave()
-  ElMessage.success('已恢复默认设置')
+  message.success('已恢复默认设置')
 }
 
 // 生命周期

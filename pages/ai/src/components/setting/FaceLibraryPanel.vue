@@ -303,8 +303,9 @@
  * <p>「特征点」按钮**只在关键点模型已配置时渲染**（口径同后端
  * `FaceClientManager.isModelConfigured("landmark_model")`）—— 没配置就不给入口。</p>
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
 import {
   Aim, CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Tickets, Upload,
   UploadFilled, UserFilled, Warning, ZoomIn,
@@ -463,7 +464,7 @@ function asRow(row: unknown): Row {
 function previewById(id: string) {
   const url = thumbFor(id)
   if (!url || url === pendingPlaceholder) {
-    ElMessage.info('图片加载中或该条没有人脸图（老数据重新登记一次即可）')
+    message.info('图片加载中或该条没有人脸图（老数据重新登记一次即可）')
     return
   }
   window.open(url, '_blank')
@@ -581,7 +582,7 @@ async function load(target = 1) {
       tableRef.value?.reload()
     }
   } catch (e: any) {
-    ElMessage.error('加载人脸底库失败：' + (e?.message ?? e))
+    message.error('加载人脸底库失败：' + (e?.message ?? e))
   } finally {
     loading.value = false
   }
@@ -692,7 +693,7 @@ function openEdit(item: Row) {
  */
 function openLandmark(item: Row) {
   if (!landmarkReady.value) {
-    ElMessage.info('人脸关键点模型未配置：请先在「系统配置 → 人脸识别」中配置 landmark_model')
+    message.info('人脸关键点模型未配置：请先在「系统配置 → 人脸识别」中配置 landmark_model')
     return
   }
   lmItem.value = item
@@ -720,7 +721,7 @@ function preview(item: Row) {
     return
   }
   // 列表视图 / 无图：viewerjs 未挂载时，直接提示
-  if (!item.thumb) ElMessage.info('该条没有人脸图（老数据可能两边都没有，重新登记一次即可）')
+  if (!item.thumb) message.info('该条没有人脸图（老数据可能两边都没有，重新登记一次即可）')
 }
 
 /**
@@ -741,14 +742,14 @@ async function removeOne(item: Row) {
   busy.value = true
   try {
     const ok = await apiService.deleteFace(item.id)
-    if (!ok) { ElMessage.error('删除失败：底库未确认删除'); return }
+    if (!ok) { message.error('删除失败：底库未确认删除'); return }
     registry.remove(item.id)
     selected.value.delete(item.id)
     selected.value = new Set(selected.value)
-    ElMessage.success(`已删除：${label}`)
+    message.success(`已删除：${label}`)
     await load(page.value)
   } catch (e: any) {
-    ElMessage.error('删除失败：' + (e?.message ?? e))
+    message.error('删除失败：' + (e?.message ?? e))
   } finally {
     busy.value = false
   }
@@ -770,7 +771,7 @@ async function removeSelected() {
         if (await apiService.deleteFace(id)) { registry.remove(id); okCount++ }
       } catch { /* 单条失败继续，最后统一报数 */ }
     }
-    ElMessage[okCount === ids.length ? 'success' : 'warning'](`已删除 ${okCount}/${ids.length} 条`)
+    message[okCount === ids.length ? 'success' : 'warning'](`已删除 ${okCount}/${ids.length} 条`)
     clearSelection()
     await load(page.value)
   } finally {

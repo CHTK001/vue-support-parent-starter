@@ -47,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -121,7 +122,7 @@ const loadMessages = async () => {
     messages.value = response.items || []
   } catch (error) {
     console.error('加载消息失败:', error)
-    ElMessage.error(t('bot.sessionDialog.loadFailed'))
+    message.error(t('bot.sessionDialog.loadFailed'))
   } finally {
     loading.value = false
   }

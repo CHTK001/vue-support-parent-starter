@@ -17,8 +17,8 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { useSocketService } from "@repo/core";
+import { ElMessageBox } from "element-plus";
+import {useSocketService, message} from "@repo/core";
 import * as echarts from "echarts";
 import { Loading } from "@element-plus/icons-vue";
 import {
@@ -1129,7 +1129,7 @@ async function runProfileAction(key: string, task: Promise<string>): Promise<boo
   profileBusyRow.value = key;
   try {
     const msg = await task;
-    ElMessage.success(String(msg || "操作已完成"));
+    message.success(String(msg || "操作已完成"));
     await loadProfileSection();
     return true;
   } catch {
@@ -1152,9 +1152,9 @@ async function confirmProfileAction(message: string): Promise<boolean> {
 /** 提交新增环境变量 */
 async function submitProfileEnv(): Promise<void> {
   const name = profileEnvForm.value.name.trim();
-  if (!name) { ElMessage.warning("请填写变量名"); return; }
+  if (!name) { message.warning("请填写变量名"); return; }
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-    ElMessage.warning("变量名只能包含字母、数字、下划线，且不能以数字开头"); return;
+    message.warning("变量名只能包含字母、数字、下划线，且不能以数字开头"); return;
   }
   const ok = await runProfileAction(`env-set-${name}`,
     setHostEnvVar(hostId.value, name, profileEnvForm.value.value));

@@ -85,8 +85,9 @@
 /**
  * PromQL 查询面板：即时/范围双模式，范围结果用 ECharts 折线呈现。
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
@@ -196,7 +197,7 @@ async function run(): Promise<void> {
   } catch (e) {
     error.value = (e as Error)?.message || String(e);
     series.value = [];
-    ElMessage.error(`查询失败：${error.value}`);
+    message.error(`查询失败：${error.value}`);
   } finally {
     loading.value = false;
   }

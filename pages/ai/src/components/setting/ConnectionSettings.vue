@@ -213,8 +213,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+
 import { Check, Close, Top, Folder, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import LDialog from '@/components/ui/LDialog.vue'
@@ -419,7 +420,7 @@ function goUp() {
 
 async function saveConn() {
   editConfig.value.path = browserPath.value
-  if (!editName.value.trim()) { ElMessage.warning(t('settings.connection.nameRequired')); return }
+  if (!editName.value.trim()) { message.warning(t('settings.connection.nameRequired')); return }
   saving.value = true
   try {
     if (editConnId.value) {
@@ -431,9 +432,9 @@ async function saveConn() {
     }
     await loadData()
     editing.value = false
-    ElMessage.success(t('common.saveSuccess'))
+    message.success(t('common.saveSuccess'))
   } catch (e: any) {
-    ElMessage.error(t('common.saveFailed') + ': ' + (e.message || String(e)))
+    message.error(t('common.saveFailed') + ': ' + (e.message || String(e)))
   } finally {
     saving.value = false
   }
@@ -443,9 +444,9 @@ async function deleteConn(id: string) {
   try {
     await apiService.deleteConnection(id)
     connections.value = connections.value.filter(c => c.id !== id)
-    ElMessage.success(t('common.deleteSuccess'))
+    message.success(t('common.deleteSuccess'))
   } catch (e: any) {
-    ElMessage.error(t('common.deleteFailed') + ': ' + (e.message || String(e)))
+    message.error(t('common.deleteFailed') + ': ' + (e.message || String(e)))
   }
 }
 </script>

@@ -195,9 +195,10 @@
  * 页面用 position:fixed 铺满视口，脱离管理后台的侧边栏与标签栏 ——
  * 学生不该看到管理员那套导航。
  */
+import { message } from "@repo/core";
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { setImpersonateToken, getImpersonateToken, clearImpersonateToken } from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentOverview } from "../../api/types";
@@ -465,7 +466,7 @@ async function load() {
       await loadModules(stage.value);
     }
   } catch (e) {
-    ElMessage.error(`学生端数据加载失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`学生端数据加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
     loading.value = false;
   }
@@ -489,7 +490,7 @@ async function doBind() {
       grade: form.grade,
       className: form.className.trim() || undefined,
     });
-    ElMessage.success("登记完成，开始学习吧！");
+    message.success("登记完成，开始学习吧！");
     needBind.value = false;
     overview.value = await eduaiApi.studentOverview();
     if (overview.value?.stage) {
@@ -547,7 +548,7 @@ function openModule(moduleCode: string) {
   // /edu/fun/* 之类的**管理后台路由**，学生会看到侧边栏/标签栏/面包屑
   // 且无返回出口（用户实测：诗词大会落点 poem-challenge，后台菜单文字全在）。
   // 管理员代入看到的也是同一套学生端外壳 —— 本来就该看学生看到的东西。
-  ElMessage.info("该模块正在建设中，敬请期待");
+  message.info("该模块正在建设中，敬请期待");
 }
 
 /**
@@ -624,7 +625,7 @@ async function submitChangePassword() {
       oldPassword: pwdForm.oldPassword.trim() || undefined,
       newPassword,
     });
-    ElMessage.success("密码已修改，下次登录请使用新密码");
+    message.success("密码已修改，下次登录请使用新密码");
     pwdVisible.value = false;
     // 改完就退出「首次引导」态，避免后续再打开改密框时仍被当成强制
     pwdFirstTime.value = false;

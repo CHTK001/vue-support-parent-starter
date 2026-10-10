@@ -18,20 +18,13 @@
   这样组件可单测、可复用在别的宿主里。
 -->
 <script setup lang="ts">
+import { message } from "@repo/core";
 import {
   computed,
   nextTick,
   ref,
   watch } from "vue";
-import {
-  ElButton,
-  ElInput,
-  ElMessage,
-  ElRadioButton,
-  ElRadioGroup,
-  ElTabPane,
-  ElTabs,
-} from "element-plus";
+import { ElButton, ElInput, ElRadioButton, ElRadioGroup, ElTabPane, ElTabs } from "element-plus";
 import { finder } from "@medv/finder";
 import LiveView from "./LiveView.vue";
 import { probeLive } from "./liveClient";
@@ -473,7 +466,7 @@ function xpathOf(el: Element): string {
 /** 用某种解析器插入 */
 function insert(parserType: string, expression: string): void {
   if (!expression) {
-    ElMessage.warning("还没有选中元素");
+    message.warning("还没有选中元素");
     return;
   }
   emit("pick", { expression, parserType });
@@ -491,9 +484,9 @@ async function copy(text: string): Promise<void> {
   }
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success("已复制");
+    message.success("已复制");
   } catch {
-    ElMessage.warning("复制失败，请手动选中");
+    message.warning("复制失败，请手动选中");
   }
 }
 </script>

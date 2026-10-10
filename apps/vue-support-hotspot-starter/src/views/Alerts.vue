@@ -158,9 +158,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Bell, Warning, Plus } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReTag from "@repo/ui/re-tag";
 import ReTable from "@repo/ui/re-table";
@@ -287,7 +288,7 @@ async function load() {
   try {
     items.value = await getAlerts(100);
   } catch {
-    ElMessage.error("加载告警失败");
+    message.error("加载告警失败");
   } finally {
     loading.value = false;
   }
@@ -311,14 +312,14 @@ async function openRules() {
   try {
     rules.value = (await getAlertRules()) || [];
   } catch {
-    ElMessage.error("加载规则失败");
+    message.error("加载规则失败");
   }
 }
 
 async function addRule() {
   const metric = newRule.value.metric.trim();
   if (!metric) {
-    ElMessage.warning("请输入指标名");
+    message.warning("请输入指标名");
     return;
   }
   addingRule.value = true;
@@ -329,11 +330,11 @@ async function addRule() {
       severity: newRule.value.severity,
       debounceMs: newRule.value.debounceMs,
     });
-    ElMessage.success(`已新增规则 ${metric}`);
+    message.success(`已新增规则 ${metric}`);
     newRule.value.metric = "";
     rules.value = (await getAlertRules()) || [];
   } catch {
-    ElMessage.error("新增规则失败");
+    message.error("新增规则失败");
   } finally {
     addingRule.value = false;
   }
@@ -346,10 +347,10 @@ async function toggleRule(r: AlertRule) {
   r.enabled = target;
   try {
     await toggleAlertRule(r.metric, target);
-    ElMessage.success(`${r.metric} 已${target ? "启用" : "停用"}`);
+    message.success(`${r.metric} 已${target ? "启用" : "停用"}`);
   } catch {
     r.enabled = prev;
-    ElMessage.error("操作失败");
+    message.error("操作失败");
   }
 }
 
@@ -357,9 +358,9 @@ async function deleteRule(r: AlertRule) {
   try {
     await deleteAlertRule(r.metric);
     rules.value = rules.value.filter((x) => x.metric !== r.metric);
-    ElMessage.success(`已删除规则 ${r.metric}`);
+    message.success(`已删除规则 ${r.metric}`);
   } catch {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 }
 
@@ -376,10 +377,10 @@ async function handleAction(row: Record<string, unknown>, action: "acknowledge" 
       : await ignoreAlert(alert.id);
     if (ok) {
       alert.status = action === "acknowledge" ? "ACKNOWLEDGED" : action === "mute" ? "MUTED" : "IGNORED";
-      ElMessage.success(`已${label}告警事件`);
+      message.success(`已${label}告警事件`);
     }
   } catch {
-    ElMessage.error(`${label}失败`);
+    message.error(`${label}失败`);
   }
 }
 

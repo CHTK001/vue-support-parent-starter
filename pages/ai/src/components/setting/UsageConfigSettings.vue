@@ -75,8 +75,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+
 import { usageApi } from '@/services/javaApi';
 import SettingsCard from './SettingsCard.vue';
 import SettingsRow from './SettingsRow.vue';
@@ -145,7 +146,7 @@ async function load() {
       }
     }
   } catch (e: any) {
-    ElMessage.error('加载用量配置失败：' + (e?.message || e));
+    message.error('加载用量配置失败：' + (e?.message || e));
   }
 }
 
@@ -159,10 +160,10 @@ async function save() {
       description: item.desc || '',
     }));
     await usageApi.updateConfig({ fields });
-    ElMessage.success('用量配置已保存');
+    message.success('用量配置已保存');
     await load();
   } catch (e: any) {
-    ElMessage.error('保存用量配置失败：' + (e?.message || e));
+    message.error('保存用量配置失败：' + (e?.message || e));
   } finally {
     saving.value = false;
   }
@@ -201,13 +202,13 @@ async function handleSyncAll() {
         if (d.status === 'done' || d.status === 'completed' || d.status === 'cancelled') {
           syncAllProgress.running = false;
           closeEventSource();
-          ElMessage.success(d.status === 'cancelled' ? '全量回填已取消' : '全量回填完成');
+          message.success(d.status === 'cancelled' ? '全量回填已取消' : '全量回填完成');
         }
         if (d.status === 'failed' || d.error) {
           syncAllProgress.running = false;
           syncAllProgress.error = d.error || '任务失败';
           closeEventSource();
-          ElMessage.error('全量回填失败：' + (d.error || ''));
+          message.error('全量回填失败：' + (d.error || ''));
         }
       } catch {
         /* ignore */
@@ -220,7 +221,7 @@ async function handleSyncAll() {
       }
     };
   } catch (e: any) {
-    ElMessage.error('触发全量同步失败：' + (e?.message || e));
+    message.error('触发全量同步失败：' + (e?.message || e));
   } finally {
     syncAllLoading.value = false;
   }
@@ -229,9 +230,9 @@ async function handleSyncAll() {
 async function handleCancelSyncAll() {
   try {
     await usageApi.cancelSyncAll();
-    ElMessage.success('已请求取消全量回填');
+    message.success('已请求取消全量回填');
   } catch (e: any) {
-    ElMessage.error('取消失败：' + (e?.message || e));
+    message.error('取消失败：' + (e?.message || e));
   }
 }
 

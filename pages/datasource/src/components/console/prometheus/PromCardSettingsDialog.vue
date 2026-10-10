@@ -183,8 +183,9 @@
  * <p>两种模式编辑的是同一份卡片模型：切到自定义时把当前表单序列化为 JSON，
  * 切回表单时解析 JSON 回填。保存时输出新的 widget 条目（父组件负责替换进布局并触发实时保存）。</p>
  */
+import { message } from "@repo/core";
 import { computed, reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -330,7 +331,7 @@ function validateCustom(): boolean {
   try {
     applyCustom(JSON.parse(customText.value));
     customError.value = "";
-    ElMessage.success("JSON 合法");
+    message.success("JSON 合法");
     return true;
   } catch (e) {
     customError.value = `JSON 解析失败：${(e as Error)?.message ?? e}`;
@@ -351,7 +352,7 @@ function save(): void {
       applyCustom(parsed);
     } catch (e) {
       customError.value = `JSON 解析失败：${(e as Error)?.message ?? e}`;
-      ElMessage.error("自定义 JSON 不合法，无法保存");
+      message.error("自定义 JSON 不合法，无法保存");
       return;
     }
   }

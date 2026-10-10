@@ -239,8 +239,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import DsmContextMenu from "./DsmContextMenu.vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -310,8 +311,8 @@ function onFileMenuSelect(action: string) {
   else if (action === "copy") {
     navigator.clipboard
       .writeText(path)
-      .then(() => ElMessage.success("已复制路径"))
-      .catch(() => ElMessage.error("复制失败"));
+      .then(() => message.success("已复制路径"))
+      .catch(() => message.error("复制失败"));
   }
 }
 const content = ref("");
@@ -413,7 +414,7 @@ async function loadFiles() {
   try {
     files.value = (await fetchNginxConfigFiles(props.datasourceId)) || [];
   } catch (e) {
-    ElMessage.error(`读取配置文件列表失败：${(e as Error).message}`);
+    message.error(`读取配置文件列表失败：${(e as Error).message}`);
   } finally {
     filesLoading.value = false;
   }
@@ -438,12 +439,12 @@ async function openFile(path: string) {
       mode.value = "MODEL";
     }
     if (tree.warnings?.length) {
-      ElMessage.warning(`配置有 ${tree.warnings.length} 处需要注意的地方`);
+      message.warning(`配置有 ${tree.warnings.length} 处需要注意的地方`);
     }
   } catch (e) {
     content.value = "";
     parsed.value = null;
-    ElMessage.error(`读取配置失败：${(e as Error).message}`);
+    message.error(`读取配置失败：${(e as Error).message}`);
   } finally {
     loading.value = false;
     // 首屏结束（含失败）：失败时该显示「请选择配置文件」空态，而不是永远停在骨架上
@@ -496,7 +497,7 @@ const DEFAULT_CREATE_CONTENT = [
 /** 打开新建弹窗：路径预填配置根目录下的 conf.d，减少手工输入 */
 function openCreateFile() {
   if (!props.datasourceId) {
-    ElMessage.warning("请先选择数据源");
+    message.warning("请先选择数据源");
     return;
   }
   createName.value = "";
@@ -537,16 +538,16 @@ async function doCreateFile() {
       reload: false,
     });
     if (r.saved) {
-      ElMessage.success(`已创建 ${createPath.value}`);
+      message.success(`已创建 ${createPath.value}`);
       createVisible.value = false;
       await loadFiles();
       await openFile(createPath.value);
       emit("changed");
     } else {
-      ElMessage.warning(r.message);
+      message.warning(r.message);
     }
   } catch (e) {
-    ElMessage.error(`创建失败：${(e as Error).message}`);
+    message.error(`创建失败：${(e as Error).message}`);
   } finally {
     creating.value = false;
   }
@@ -633,7 +634,7 @@ async function doPreview() {
     });
     resultVisible.value = true;
   } catch (e) {
-    ElMessage.error(`预览失败：${(e as Error).message}`);
+    message.error(`预览失败：${(e as Error).message}`);
   } finally {
     previewing.value = false;
   }
@@ -657,7 +658,7 @@ async function doSave() {
     });
     resultVisible.value = true;
     if (result.value.saved) {
-      ElMessage.success(result.value.message);
+      message.success(result.value.message);
       patches.value = [];
       if (mode.value === "FILE") {
         content.value = result.value.content;
@@ -665,10 +666,10 @@ async function doSave() {
       await openFile(currentPath.value);
       emit("changed");
     } else {
-      ElMessage.warning(result.value.message);
+      message.warning(result.value.message);
     }
   } catch (e) {
-    ElMessage.error(`保存失败：${(e as Error).message}`);
+    message.error(`保存失败：${(e as Error).message}`);
   } finally {
     saving.value = false;
   }

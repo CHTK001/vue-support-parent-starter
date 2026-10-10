@@ -152,11 +152,12 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Upload, UploadFilled, Folder, FolderOpened, Document, Link } from '@element-plus/icons-vue'
 import { DocumentAdd16Regular, FolderAdd16Regular } from '@vicons/fluent'
-import { ElMessage } from 'element-plus'
+
 import { useFileUploadStore } from '@/stores/fileUpload'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
@@ -211,23 +212,23 @@ function openMarkdownDialog() {
 async function confirmMarkdown() {
     const base = mdName.value.trim().replace(/\.md$/i, '')
     if (!base) {
-        ElMessage.warning('请输入文件名')
+        message.warning('请输入文件名')
         return
     }
     if (base.length > 80) {
-        ElMessage.warning('文件名过长（最多 80 字）')
+        message.warning('文件名过长（最多 80 字）')
         return
     }
     savingMarkdown.value = true
     try {
         const file = new File([mdContent.value || ''], `${base}.md`, { type: 'text/markdown' })
         await knowledgeBaseApi.uploadKBFile(props.kbId, file, props.currentFolderPath || null)
-        ElMessage.success('已保存')
+        message.success('已保存')
         showMarkdownDialog.value = false
         // 复用「目录已变更」信号刷新文件树（父组件据此 forceReload）
         emit('folder-created')
     } catch (e: any) {
-        ElMessage.error('保存失败: ' + (e?.message || ''))
+        message.error('保存失败: ' + (e?.message || ''))
     } finally {
         savingMarkdown.value = false
     }
@@ -256,7 +257,7 @@ function openWebDialog() {
 async function confirmWebImport() {
     const url = webUrl.value.trim()
     if (!/^https?:\/\//i.test(url)) {
-        ElMessage.warning('请输入 http(s) 开头的网址')
+        message.warning('请输入 http(s) 开头的网址')
         return
     }
     importingWeb.value = true
@@ -268,10 +269,10 @@ async function confirmWebImport() {
             path: webDir.value.trim() || 'web',
         })
         webResult.value = res || null
-        ElMessage.success(`导入完成：成功 ${res?.added?.length || 0} 篇`)
+        message.success(`导入完成：成功 ${res?.added?.length || 0} 篇`)
         emit('folder-created')
     } catch (e: any) {
-        ElMessage.error('导入失败: ' + (e?.message || ''))
+        message.error('导入失败: ' + (e?.message || ''))
     } finally {
         importingWeb.value = false
     }
@@ -537,16 +538,16 @@ async function handleFileSelect(event: Event) {
     const filteredCount = input.files.length - filesWithPath.length
 
     if (filesWithPath.length === 0) {
-        ElMessage.warning(t('knowledge.upload.unsupportedFormat'))
+        message.warning(t('knowledge.upload.unsupportedFormat'))
         input.value = ''
         return
     }
 
     if (filteredCount > 0) {
-        // ElMessage.info(`检测到 ${input.files.length} 个文件，其中 ${filteredCount} 个不支持的格式已过滤，将上传 ${filesWithPath.length} 个文件...`)
+        // message.info(`检测到 ${input.files.length} 个文件，其中 ${filteredCount} 个不支持的格式已过滤，将上传 ${filesWithPath.length} 个文件...`)
         console.log(`检测到 ${input.files.length} 个文件，其中 ${filteredCount} 个不支持的格式已过滤，将上传 ${filesWithPath.length} 个文件...`)
     } else {
-        // ElMessage.info(`检测到 ${filesWithPath.length} 个文件，开始依次上传...`)
+        // message.info(`检测到 ${filesWithPath.length} 个文件，开始依次上传...`)
         console.log(`检测到 ${filesWithPath.length} 个文件，开始依次上传...`)
     }
 
@@ -602,16 +603,16 @@ async function handleFolderSelect(event: Event) {
     const filteredCount = input.files.length - filesWithPath.length
 
     if (filesWithPath.length === 0) {
-        ElMessage.warning(t('knowledge.upload.unsupportedFormat'))
+        message.warning(t('knowledge.upload.unsupportedFormat'))
         input.value = ''
         return
     }
 
     if (filteredCount > 0) {
-        // ElMessage.info(`检测到 ${input.files.length} 个文件，其中 ${filteredCount} 个不支持的格式已过滤，将上传 ${filesWithPath.length} 个文件...`)
+        // message.info(`检测到 ${input.files.length} 个文件，其中 ${filteredCount} 个不支持的格式已过滤，将上传 ${filesWithPath.length} 个文件...`)
         console.log(`检测到 ${input.files.length} 个文件，其中 ${filteredCount} 个不支持的格式已过滤，将上传 ${filesWithPath.length} 个文件...`)
     } else {
-        // ElMessage.info(`检测到 ${filesWithPath.length} 个文件，开始依次上传...`)
+        // message.info(`检测到 ${filesWithPath.length} 个文件，开始依次上传...`)
         console.log(`检测到 ${filesWithPath.length} 个文件，开始依次上传...`)
     }
 
@@ -663,7 +664,7 @@ async function executeUpload(
         // 验证文件大小
         const maxSize = 1024 * 1024 * 1024 // 1GB
         if (file.size > maxSize) {
-            ElMessage.warning(t('knowledge.upload.fileTooLarge', { path: relativePath }))
+            message.warning(t('knowledge.upload.fileTooLarge', { path: relativePath }))
             failCount++
             continue
         }
@@ -715,7 +716,7 @@ async function executeUpload(
                 status: 'failed',
                 errorMessage: error?.message || 'failed'
             })
-            ElMessage.error(t('knowledge.upload.uploadFailed', { path: relativePath }))
+            message.error(t('knowledge.upload.uploadFailed', { path: relativePath }))
             failCount++
         }
     }
@@ -756,14 +757,14 @@ async function handleConflictConfirm() {
  */
 async function confirmCreateFolder() {
     if (!newFolderName.value || !newFolderName.value.trim()) {
-        ElMessage.warning(t('knowledge.upload.folderNameEmpty'))
+        message.warning(t('knowledge.upload.folderNameEmpty'))
         return
     }
 
     // 前端验证
     const validation = validateFileName(newFolderName.value.trim())
     if (!validation.valid) {
-        ElMessage.warning(validation.message)
+        message.warning(validation.message)
         return
     }
 
@@ -777,14 +778,14 @@ async function confirmCreateFolder() {
             null, // TODO: 需要根据 currentFolderPath 获取 parentFolderId
         )
         
-        ElMessage.success(t('knowledge.upload.folderCreateSuccess'))
+        message.success(t('knowledge.upload.folderCreateSuccess'))
         showCreateFolderDialog.value = false
         newFolderName.value = ''
         
         // 通知父组件刷新
         emit('folder-created')
     } catch (error: any) {
-        ElMessage.error(error.message || t('knowledge.upload.folderCreateFailed'))
+        message.error(error.message || t('knowledge.upload.folderCreateFailed'))
     } finally {
         createFolderLoading.value = false
     }

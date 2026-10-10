@@ -12,8 +12,9 @@
  * 字段说明：目标站使用简写字段（menuName / name / auth / isVisible ...），
  * 后端为 sysMenuXxx，通过 toVM / toEntity 双向映射。
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref, watch, defineAsyncComponent } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   Plus,
   Delete,
@@ -316,7 +317,7 @@ async function loadList() {
     list.value = ((res?.data ?? []) as SysMenu[]).map(toVM);
     expandedKeys.value = collectAllKeys(list.value);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "菜单列表加载失败");
+    message.error((e as Error)?.message ?? "菜单列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -343,14 +344,14 @@ async function handleMove(dir: "up" | "down") {
   }
   const siblings = findSiblings(list.value);
   if (!siblings || siblings.length < 2) {
-    ElMessage.warning(dir === "up" ? "已是第一项" : "已是最后一项");
+    message.warning(dir === "up" ? "已是第一项" : "已是最后一项");
     return;
   }
   const sorted = [...siblings].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   const idx = sorted.findIndex((n) => n.menuId === curId);
   const target = dir === "up" ? sorted[idx - 1] : sorted[idx + 1];
   if (!target) {
-    ElMessage.warning(dir === "up" ? "已是第一项" : "已是最后一项");
+    message.warning(dir === "up" ? "已是第一项" : "已是最后一项");
     return;
   }
   moving.value = true;
@@ -359,10 +360,10 @@ async function handleMove(dir: "up" | "down") {
     const targetSort = target.sort ?? 0;
     await updateMenu({ ...toEntity(current.value), sysMenuSort: targetSort });
     await updateMenu({ ...toEntity(target), sysMenuSort: mySort });
-    ElMessage.success(dir === "up" ? "已上移" : "已下移");
+    message.success(dir === "up" ? "已上移" : "已下移");
     await loadList();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "排序调整失败");
+    message.error((e as Error)?.message ?? "排序调整失败");
   } finally {
     moving.value = false;
   }
@@ -463,9 +464,9 @@ async function onNodeDrop(draggingNode: any, dropNode: any, dropType: string) {
       // eslint-disable-next-line no-await-in-loop
       await updateMenu(u);
     }
-    ElMessage.success("菜单层级/排序已更新");
+    message.success("菜单层级/排序已更新");
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "拖拽更新失败，已恢复原顺序");
+    message.error((e as Error)?.message ?? "拖拽更新失败，已恢复原顺序");
   } finally {
     treeDragSaving.value = false;
     await loadList(); // 无论成功失败，重新拉取保证显示与库一致
@@ -557,7 +558,7 @@ function handleAdd(parent?: MenuVM) {
 function handleEdit(node?: MenuVM) {
   const target = node ?? current.value;
   if (!target?.menuId) {
-    ElMessage.warning("请先选择菜单");
+    message.warning("请先选择菜单");
     return;
   }
   dialogTitle.value = "编辑菜单配置";
@@ -568,7 +569,7 @@ function handleEdit(node?: MenuVM) {
 /** 保存 */
 async function handleSubmit() {
   if (!form.value.menuName || !form.value.name) {
-    ElMessage.warning("请输入菜单名称和路由名称");
+    message.warning("请输入菜单名称和路由名称");
     return;
   }
   try {
@@ -581,10 +582,10 @@ async function handleSubmit() {
     const entity = toEntity(form.value);
     if (form.value.menuId) {
       await updateMenu(entity);
-      ElMessage.success("修改成功");
+      message.success("修改成功");
     } else {
       await saveMenu(entity);
-      ElMessage.success("新增成功");
+      message.success("新增成功");
     }
     dialogVisible.value = false;
     await loadList();
@@ -593,7 +594,7 @@ async function handleSubmit() {
       if (hit) onNodeClick(hit);
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+    message.error((e as Error)?.message ?? "保存失败");
   } finally {
     saving.value = false;
   }
@@ -614,11 +615,11 @@ function findById(nodes: MenuVM[], id: number): MenuVM | null {
 async function handleDelete(node?: MenuVM) {
   const target = node ?? current.value;
   if (!target?.menuId) {
-    ElMessage.warning("请先选择菜单");
+    message.warning("请先选择菜单");
     return;
   }
   if (target.children?.length) {
-    ElMessage.warning("存在子菜单，请先删除子菜单");
+    message.warning("存在子菜单，请先删除子菜单");
     return;
   }
   try {
@@ -627,7 +628,7 @@ async function handleDelete(node?: MenuVM) {
     return;
   }
   await deleteMenu(target.menuId);
-  ElMessage.success("删除成功");
+  message.success("删除成功");
   if (current.value?.menuId === target.menuId) {
     current.value = null;
     buttonPerms.value = [];
@@ -638,11 +639,11 @@ async function handleDelete(node?: MenuVM) {
 /** 新增按钮权限（需选中菜单类型节点） */
 function handleAddButton() {
   if (!current.value?.menuId) {
-    ElMessage.warning("请先选择菜单");
+    message.warning("请先选择菜单");
     return;
   }
   if (String(current.value.menuType) !== "2") {
-    ElMessage.warning("请选择菜单类型节点");
+    message.warning("请选择菜单类型节点");
     return;
   }
   dialogTitle.value = "新增按钮权限";
@@ -698,11 +699,11 @@ const batchRows = ref<BatchButtonRow[]>([{ menuName: "", auth: "", sort: 0 }]);
 
 function handleOpenBatchAdd() {
   if (!current.value?.menuId) {
-    ElMessage.warning("请先选择菜单");
+    message.warning("请先选择菜单");
     return;
   }
   if (String(current.value.menuType) !== "2") {
-    ElMessage.warning("请选择菜单类型节点");
+    message.warning("请选择菜单类型节点");
     return;
   }
   batchRows.value = [{ menuName: "", auth: "", sort: 0 }];
@@ -748,7 +749,7 @@ const batchRowColumns: ReTableColumn[] = [
 async function handleBatchSubmit() {
   const valid = batchRows.value.filter((r) => r.menuName.trim());
   if (!valid.length) {
-    ElMessage.warning("请至少填写一个按钮名称");
+    message.warning("请至少填写一个按钮名称");
     return;
   }
   batchSaving.value = true;
@@ -763,7 +764,7 @@ async function handleBatchSubmit() {
       sysMenuHidden: 0,
     }));
     await batchSaveMenuButtons(items as Record<string, unknown>[]);
-    ElMessage.success(`已批量新增 ${items.length} 个按钮`);
+    message.success(`已批量新增 ${items.length} 个按钮`);
     batchDialogVisible.value = false;
     await loadList();
     if (current.value?.menuId) {
@@ -771,7 +772,7 @@ async function handleBatchSubmit() {
       if (hit) onNodeClick(hit);
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "批量保存失败");
+    message.error((e as Error)?.message ?? "批量保存失败");
   } finally {
     batchSaving.value = false;
   }
@@ -780,7 +781,7 @@ async function handleBatchSubmit() {
 /** 批量删除按钮 */
 async function handleBatchDeleteButtons() {
   if (!selectedButtons.value.length) {
-    ElMessage.warning("请先勾选要删除的按钮");
+    message.warning("请先勾选要删除的按钮");
     return;
   }
   try {
@@ -791,14 +792,14 @@ async function handleBatchDeleteButtons() {
   try {
     const ids = selectedButtons.value.map((b) => b.menuId).filter(Boolean) as number[];
     await batchDeleteMenuButtons(ids);
-    ElMessage.success("已批量删除");
+    message.success("已批量删除");
     await loadList();
     if (current.value?.menuId) {
       const hit = findById(list.value, current.value.menuId);
       if (hit) onNodeClick(hit);
     }
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "批量删除失败");
+    message.error((e as Error)?.message ?? "批量删除失败");
   }
 }
 

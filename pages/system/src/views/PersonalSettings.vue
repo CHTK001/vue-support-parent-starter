@@ -6,8 +6,9 @@
  * 优先从云端（/v2/user/preference）加载和保存，localStorage 作为降级缓存。
  * 全部使用 ReXxx modern 组件渲染。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Monitor, Bell, Lock, Setting, Upload } from "@element-plus/icons-vue";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
@@ -120,14 +121,14 @@ async function savePrefs(): Promise<void> {
   try {
     await updateUserPreference(JSON.stringify(data));
     saveStatus.value = "saved";
-    ElMessage.success("偏好设置已同步到云端");
+    message.success("偏好设置已同步到云端");
     setTimeout(() => {
       if (saveStatus.value === "saved") saveStatus.value = "idle";
     }, 2000);
   } catch (e) {
     saveStatus.value = "failed";
     cloudOffline.value = true;
-    ElMessage.warning((e as Error)?.message ?? "当前为本地模式，设置不会同步到云端");
+    message.warning((e as Error)?.message ?? "当前为本地模式，设置不会同步到云端");
   }
 }
 
@@ -148,7 +149,7 @@ function resetPrefs(): void {
   updateUserPreference(JSON.stringify(defaults)).catch(() => {
     /* 忽略云端重置失败 */
   });
-  ElMessage.success("已恢复默认偏好");
+  message.success("已恢复默认偏好");
 }
 
 const appearanceFields: ReFormField[] = [
@@ -234,7 +235,7 @@ async function openTotpBind(): Promise<void> {
     if (totpQrcodeUrl.value) URL.revokeObjectURL(totpQrcodeUrl.value);
     totpQrcodeUrl.value = URL.createObjectURL(blob);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "获取二维码失败");
+    message.error((e as Error)?.message ?? "获取二维码失败");
     totpDialogVisible.value = false;
   }
 }
@@ -242,18 +243,18 @@ async function openTotpBind(): Promise<void> {
 /** 确认绑定 */
 async function confirmTotpBind(): Promise<void> {
   if (!/^\d{6}$/.test(totpCode.value)) {
-    ElMessage.warning("请输入 6 位验证码");
+    message.warning("请输入 6 位验证码");
     return;
   }
   totpBinding.value = true;
   try {
     await bindTotp(totpCode.value);
-    ElMessage.success("2FA 已启用");
+    message.success("2FA 已启用");
     totpEnabled.value = true;
     securityForm.value.twoFactor = true;
     totpDialogVisible.value = false;
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "验证码错误，绑定失败");
+    message.error((e as Error)?.message ?? "验证码错误，绑定失败");
   } finally {
     totpBinding.value = false;
   }
@@ -278,11 +279,11 @@ async function onTotpSwitchChange(val: boolean): Promise<void> {
     }
     try {
       await unbindTotp();
-      ElMessage.success("已关闭二次验证");
+      message.success("已关闭二次验证");
       totpEnabled.value = false;
       securityForm.value.twoFactor = false;
     } catch (e) {
-      ElMessage.error((e as Error)?.message ?? "关闭失败");
+      message.error((e as Error)?.message ?? "关闭失败");
       securityForm.value.twoFactor = true;
     }
   }

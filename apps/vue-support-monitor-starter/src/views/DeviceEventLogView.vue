@@ -14,8 +14,9 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Bell, Connection, OfficeBuilding, Tickets } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
@@ -142,7 +143,7 @@ async function fetchDevices(): Promise<void> {
     devices.value = (await deviceApi.list()) || [];
   } catch (e: unknown) {
     devices.value = [];
-    ElMessage.error(`设备清单加载失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`设备清单加载失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     devicesLoading.value = false;
   }
@@ -151,7 +152,7 @@ async function fetchDevices(): Promise<void> {
 /** 按选中设备查询事件 */
 async function fetchEvents(): Promise<void> {
   if (!filters.deviceId) {
-    ElMessage.warning("请先选择设备");
+    message.warning("请先选择设备");
     return;
   }
   loading.value = true;
@@ -167,7 +168,7 @@ async function fetchEvents(): Promise<void> {
   } catch (e: unknown) {
     events.value = [];
     loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
-    ElMessage.error(`事件加载失败：${loadError.value}`);
+    message.error(`事件加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }

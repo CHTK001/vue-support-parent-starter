@@ -143,9 +143,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadioButton, ElSwitch, ElInputNumber, ElDivider, ElIcon, ElButton, ElSelect, ElOption, ElMessage } from 'element-plus'
+import { ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadioButton, ElSwitch, ElInputNumber, ElDivider, ElIcon, ElButton, ElSelect, ElOption } from 'element-plus';
 import { AddCircleOutlineRound, LogInRound } from '@vicons/material'
 import type { ScheduledTask, ScheduledTaskForm, CronSchedule } from '../../types/scheduler'
 import type { Model, ModelProvider } from '../../types/api'
@@ -267,7 +268,7 @@ async function handleSubmit() {
 
     const timeError = validateTimeConfig()
     if (timeError) {
-      ElMessage.warning(timeError)
+      message.warning(timeError)
       return
     }
 

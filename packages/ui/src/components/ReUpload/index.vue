@@ -68,8 +68,9 @@
  * 基于 Element Plus Upload，支持拖拽/图片列表/多文件/限制
  *   <ReUpload v-model="files" :action="'/api/upload'" :type="'image'" />
  */
+import { message } from "@repo/core";
 import { ref, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Plus, Upload, UploadFilled } from "@element-plus/icons-vue";
 import ReDialog from "../ReDialog";
 
@@ -183,7 +184,7 @@ const extractUrl = (obj: unknown): string => {
 
 const handleBeforeUpload = (file: File): boolean => {
   if (file.size > props.maxSize * 1024 * 1024) {
-    ElMessage.error(`文件大小不能超过 ${props.maxSize}MB`);
+    message.error(`文件大小不能超过 ${props.maxSize}MB`);
     return false;
   }
   return true;
@@ -201,12 +202,12 @@ const handleSuccess = (response: unknown, file: UploadFileItem) => {
 
 const handleError = (err: unknown, file: UploadFileItem) => {
   emit("error", err, file);
-  ElMessage.error(`${file.name} 上传失败`);
+  message.error(`${file.name} 上传失败`);
 };
 
 const handleExceed = (files: File[]) => {
   emit("exceed", files, fileList.value);
-  ElMessage.warning(`文件数量超出限制`);
+  message.warning(`文件数量超出限制`);
 };
 
 const handleRemove = (file: UploadFileItem, list: UploadFileItem[]) => {

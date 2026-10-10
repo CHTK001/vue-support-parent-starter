@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getLocale } from '@/locales'
@@ -86,7 +87,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import { openInExternalBrowser } from '@/utils/browserUtils'
-import { ElMessage } from 'element-plus'
+
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 
@@ -203,7 +204,7 @@ const handlePluginToggle = async (val: string | number | boolean) => {
     const res = await apiService.updateGlobalToolStatus('web-search', enabled)
     if (res?.success) {
       pluginEnabled.value = enabled
-      ElMessage.success(enabled ? t('settings.search.pluginEnabled') : t('settings.search.pluginDisabled'))
+      message.success(enabled ? t('settings.search.pluginEnabled') : t('settings.search.pluginDisabled'))
     }
   } catch (error: any) {
     pluginEnabled.value = !enabled

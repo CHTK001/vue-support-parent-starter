@@ -100,8 +100,9 @@
  * 数据：按当前用户 ID 隔离的 IndexedDB 数据库（koi-home-note-{userId}）。
  * 每条便签包含：text / color / createdAt / updatedAt / id。
  */
+import { message } from "@repo/core";
 import { defineAsyncComponent, onMounted, ref, watch, computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Plus, Check, Delete } from "@element-plus/icons-vue";
 import { createNoteStore, type IndexedDBStore } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -199,7 +200,7 @@ function openEdit(note: Note): void {
 async function save(): Promise<void> {
   const text = form.value.text.trim();
   if (!text) {
-    ElMessage.warning("请输入内容");
+    message.warning("请输入内容");
     return;
   }
   const now = Date.now();
@@ -214,10 +215,10 @@ async function save(): Promise<void> {
     await getNoteStore().put(note);
     dialogVisible.value = false;
     load();
-    ElMessage.success("已保存");
+    message.success("已保存");
   } catch (err) {
     console.error(err);
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   }
 }
 
@@ -226,11 +227,11 @@ async function remove(id: string): Promise<void> {
     await ElMessageBox.confirm("确认删除该便签？", "提示", { type: "warning" });
     await getNoteStore().remove(id);
     load();
-    ElMessage.success("已删除");
+    message.success("已删除");
   } catch (err) {
     if (err === "cancel") return;
     console.error(err);
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 }
 

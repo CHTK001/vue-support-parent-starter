@@ -392,8 +392,9 @@
  * @author CH
  * @since 4.0.0.43
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -915,10 +916,10 @@ async function testConnection() {
   try {
     const result = await testDataSource(datasourceId.value);
     if (result?.success) {
-      ElMessage.success(`连接成功${result.version ? `（redis ${result.version}）` : ""}`);
+      message.success(`连接成功${result.version ? `（redis ${result.version}）` : ""}`);
       ready();
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
   } catch (e) {
     fail(e, "/ms/datasource/{id}/test");
@@ -964,7 +965,7 @@ function openCreate() {
 async function submitCreate() {
   const key = createForm.key.trim();
   if (!key) {
-    ElMessage.warning("键名不能为空");
+    message.warning("键名不能为空");
     return;
   }
   const type = createForm.type;
@@ -975,7 +976,7 @@ async function submitCreate() {
   } else {
     const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) {
-      ElMessage.warning(`${type} 类型至少需要一行初始数据`);
+      message.warning(`${type} 类型至少需要一行初始数据`);
       return;
     }
     if (type === "HASH") {
@@ -984,7 +985,7 @@ async function submitCreate() {
         return { field: idx >= 0 ? l.slice(0, idx) : l, value: idx >= 0 ? l.slice(idx + 1) : "" };
       }).filter(f => f.field.trim() !== "");
       if (fields.length === 0) {
-        ElMessage.warning("至少一行 field=value");
+        message.warning("至少一行 field=value");
         return;
       }
       payload.hashFields = fields;
@@ -1003,7 +1004,7 @@ async function submitCreate() {
         return { member, score: Number.isFinite(score) ? score : 0 };
       }).filter(m => m.member.trim() !== "");
       if (members.length === 0) {
-        ElMessage.warning("至少一行 member=score");
+        message.warning("至少一行 member=score");
         return;
       }
       payload.zsetMembers = members;
@@ -1022,7 +1023,7 @@ async function submitCreate() {
       },
       activeDb.value,
     );
-    ElMessage.success("键已创建");
+    message.success("键已创建");
     createVisible.value = false;
     await loadSideData();
     await scanKeys(true);
@@ -1041,7 +1042,7 @@ async function saveStringValue() {
     try {
       JSON.parse(jsonEdit.value);
     } catch {
-      ElMessage.warning("JSON 编辑内容不是合法 JSON，无法保存");
+      message.warning("JSON 编辑内容不是合法 JSON，无法保存");
       return;
     }
     stringValue.value = jsonEdit.value;
@@ -1049,7 +1050,7 @@ async function saveStringValue() {
   saving.value = true;
   try {
     await setRedisString(datasourceId.value, activeDb.value, activeKey.value, stringValue.value);
-    ElMessage.success("值已保存");
+    message.success("值已保存");
     ready();
     await selectKey(activeKey.value);
   } catch (e) {
@@ -1069,13 +1070,13 @@ function openExpire() {
 async function submitExpire() {
   const ttl = Number(ttlValue.value.trim());
   if (!Number.isFinite(ttl)) {
-    ElMessage.warning("TTL 必须是数字");
+    message.warning("TTL 必须是数字");
     return;
   }
   saving.value = true;
   try {
     await expireRedisKey(datasourceId.value, activeDb.value, activeKey.value, ttl);
-    ElMessage.success(ttl === -1 ? "已设置为永久" : `TTL 已设置为 ${ttl} 秒`);
+    message.success(ttl === -1 ? "已设置为永久" : `TTL 已设置为 ${ttl} 秒`);
     ttlVisible.value = false;
     ready();
     await scanKeys(false);
@@ -1163,7 +1164,7 @@ async function confirmDeleteKey(key: string) {
   }
   try {
     await deleteRedisKeys(datasourceId.value, activeDb.value, [key]);
-    ElMessage.success("键已删除");
+    message.success("键已删除");
     activeKey.value = "";
     detail.value = null;
     ready();
@@ -1182,9 +1183,9 @@ async function confirmDeleteKey(key: string) {
 async function copyKeyName(key: string) {
   try {
     await navigator.clipboard.writeText(key);
-    ElMessage.success("键名已复制");
+    message.success("键名已复制");
   } catch {
-    ElMessage.warning("复制失败，浏览器拒绝了剪贴板访问");
+    message.warning("复制失败，浏览器拒绝了剪贴板访问");
   }
 }
 
@@ -1218,7 +1219,7 @@ async function confirmDeleteDir(dir: string) {
     return;
   }
   if (found.length === 0) {
-    ElMessage.info("目录下没有键");
+    message.info("目录下没有键");
     return;
   }
   try {
@@ -1228,7 +1229,7 @@ async function confirmDeleteDir(dir: string) {
   }
   try {
     await deleteRedisKeys(datasourceId.value, activeDb.value, found);
-    ElMessage.success(`已删除目录下 ${found.length} 个键`);
+    message.success(`已删除目录下 ${found.length} 个键`);
     if (activeKey.value.startsWith(prefix)) {
       activeKey.value = "";
       detail.value = null;
@@ -1245,7 +1246,7 @@ async function confirmDeleteDir(dir: string) {
 async function addHashField() {
   const field = newHashField.value.trim();
   if (!field) {
-    ElMessage.warning("字段名不能为空");
+    message.warning("字段名不能为空");
     return;
   }
   saving.value = true;
@@ -1300,7 +1301,7 @@ async function editHashField(field: string, value: string) {
   saving.value = true;
   try {
     await hsetRedisField(datasourceId.value, activeDb.value, activeKey.value, { field, value: next });
-    ElMessage.success("字段已更新");
+    message.success("字段已更新");
     ready();
     await selectKey(activeKey.value);
   } catch (e) {
@@ -1324,7 +1325,7 @@ async function removeHashField(field: string) {
   const wasLast = hashFields.value.length <= 1;
   try {
     await hdelRedisField(datasourceId.value, activeDb.value, activeKey.value, field);
-    ElMessage.success(wasLast ? "字段已删除（键已删空，列表已刷新）" : "字段已删除");
+    message.success(wasLast ? "字段已删除（键已删空，列表已刷新）" : "字段已删除");
     ready();
     await reloadAfterRemoval(wasLast);
   } catch (e) {
@@ -1335,7 +1336,7 @@ async function removeHashField(field: string) {
 /** LIST 追加元素 */
 async function pushListElement() {
   if (!newListValue.value) {
-    ElMessage.warning("元素值不能为空");
+    message.warning("元素值不能为空");
     return;
   }
   saving.value = true;
@@ -1372,7 +1373,7 @@ async function editListElement(index: number, value: string) {
   saving.value = true;
   try {
     await lsetRedisElement(datasourceId.value, activeDb.value, activeKey.value, index, next);
-    ElMessage.success("元素已更新");
+    message.success("元素已更新");
     ready();
     await selectKey(activeKey.value);
   } catch (e) {
@@ -1396,7 +1397,7 @@ async function removeListElement(index: number) {
   const wasLast = listRows.value.length <= 1;
   try {
     await lremRedisIndex(datasourceId.value, activeDb.value, activeKey.value, index);
-    ElMessage.success(wasLast ? "元素已删除（键已删空，列表已刷新）" : "元素已删除");
+    message.success(wasLast ? "元素已删除（键已删空，列表已刷新）" : "元素已删除");
     ready();
     await reloadAfterRemoval(wasLast);
   } catch (e) {
@@ -1408,7 +1409,7 @@ async function removeListElement(index: number) {
 async function addSetMember() {
   const member = newSetMember.value.trim();
   if (!member) {
-    ElMessage.warning("成员不能为空");
+    message.warning("成员不能为空");
     return;
   }
   saving.value = true;
@@ -1416,7 +1417,7 @@ async function addSetMember() {
     const added = await saddRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
     newSetMember.value = "";
     ready();
-    ElMessage.success(added ? "成员已添加" : "成员已存在，未重复添加");
+    message.success(added ? "成员已添加" : "成员已存在，未重复添加");
     await selectKey(activeKey.value);
   } catch (e) {
     fail(e, "/ms/monitor/redis-manage/key/set");
@@ -1447,7 +1448,7 @@ async function editSetMember(member: string) {
   try {
     await saddRedisMember(datasourceId.value, activeDb.value, activeKey.value, next);
     await sremRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
-    ElMessage.success("成员已更新");
+    message.success("成员已更新");
     ready();
     await selectKey(activeKey.value);
   } catch (e) {
@@ -1471,7 +1472,7 @@ async function removeSetMember(member: string) {
   const wasLast = setRows.value.length <= 1;
   try {
     await sremRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
-    ElMessage.success(wasLast ? "成员已删除（键已删空，列表已刷新）" : "成员已删除");
+    message.success(wasLast ? "成员已删除（键已删空，列表已刷新）" : "成员已删除");
     ready();
     await reloadAfterRemoval(wasLast);
   } catch (e) {
@@ -1483,12 +1484,12 @@ async function removeSetMember(member: string) {
 async function addZsetMember() {
   const member = newZsetMember.value.trim();
   if (!member) {
-    ElMessage.warning("成员不能为空");
+    message.warning("成员不能为空");
     return;
   }
   const score = Number(newZsetScore.value.trim());
   if (!Number.isFinite(score)) {
-    ElMessage.warning("分值必须是数字");
+    message.warning("分值必须是数字");
     return;
   }
   saving.value = true;
@@ -1497,7 +1498,7 @@ async function addZsetMember() {
     newZsetMember.value = "";
     newZsetScore.value = "";
     ready();
-    ElMessage.success("成员已写入");
+    message.success("成员已写入");
     await selectKey(activeKey.value);
   } catch (e) {
     fail(e, "/ms/monitor/redis-manage/key/zset");
@@ -1526,13 +1527,13 @@ async function editZsetScore(member: string, score: number) {
   }
   const num = Number(next);
   if (!Number.isFinite(num)) {
-    ElMessage.warning("分值必须是数字");
+    message.warning("分值必须是数字");
     return;
   }
   saving.value = true;
   try {
     await zaddRedisMember(datasourceId.value, activeDb.value, activeKey.value, member, num);
-    ElMessage.success("分值已更新");
+    message.success("分值已更新");
     ready();
     await selectKey(activeKey.value);
   } catch (e) {
@@ -1556,7 +1557,7 @@ async function removeZsetMember(member: string) {
   const wasLast = zsetRows.value.length <= 1;
   try {
     await zremRedisMember(datasourceId.value, activeDb.value, activeKey.value, member);
-    ElMessage.success(wasLast ? "成员已删除（键已删空，列表已刷新）" : "成员已删除");
+    message.success(wasLast ? "成员已删除（键已删空，列表已刷新）" : "成员已删除");
     ready();
     await reloadAfterRemoval(wasLast);
   } catch (e) {
@@ -1568,7 +1569,7 @@ async function removeZsetMember(member: string) {
 async function appendStreamEntry() {
   const field = newStreamField.value.trim();
   if (!field) {
-    ElMessage.warning("字段名不能为空");
+    message.warning("字段名不能为空");
     return;
   }
   saving.value = true;
@@ -1577,7 +1578,7 @@ async function appendStreamEntry() {
     newStreamField.value = "";
     newStreamValue.value = "";
     ready();
-    ElMessage.success("消息已追加");
+    message.success("消息已追加");
     await selectKey(activeKey.value);
   } catch (e) {
     fail(e, "/ms/monitor/redis-manage/key/stream");

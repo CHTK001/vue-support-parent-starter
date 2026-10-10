@@ -221,8 +221,9 @@
  * 唯一键是汉字本身，后端「按字查重后更新」，因此重复提交同一个字不会报错。
  * 分页为服务端分页（GET /v2/edu/hanzi/page）。
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduHanzi } from "../api/types";
@@ -296,7 +297,7 @@ async function loadList() {
   } catch {
     rows.value = [];
     total.value = 0;
-    ElMessage.error("加载汉字失败");
+    message.error("加载汉字失败");
   } finally {
     loading.value = false;
   }
@@ -360,13 +361,13 @@ const charCount = computed(() => [...(form.hanziChar ?? "").trim()].length);
 async function save() {
   const char = (form.hanziChar ?? "").trim();
   if (!char) {
-    ElMessage.warning("请填写汉字");
+    message.warning("请填写汉字");
     return;
   }
   // maxlength="1" 会**静默吞掉**用户敲的第 2 个字（输入框看着像坏了，且没有任何提示），
   // 这里放开输入、改为提交前显式校验，把「为什么没保存」说清楚。
   if ([...char].length > 1) {
-    ElMessage.warning(`「${char}」是 ${[...char].length} 个字，本页一个字一条，请只填一个字`);
+    message.warning(`「${char}」是 ${[...char].length} 个字，本页一个字一条，请只填一个字`);
     return;
   }
   saving.value = true;
@@ -376,11 +377,11 @@ async function save() {
       hanziChar: char,
       hanziStatus: formStatus.value ? STATUS_ON : STATUS_OFF,
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     dialogVisible.value = false;
     await loadList();
   } catch (e) {
-    ElMessage.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
     saving.value = false;
   }
@@ -398,10 +399,10 @@ async function remove(row: EduHanzi) {
   }
   try {
     await eduaiApi.deleteHanzi(row.hanziId as number);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await loadList();
   } catch (e) {
-    ElMessage.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
+    message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 }
 

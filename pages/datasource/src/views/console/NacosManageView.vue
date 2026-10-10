@@ -253,8 +253,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { View, Edit, CopyDocument, Download, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -431,9 +432,9 @@ async function onNsMenuSelect(key: string) {
   if (key === "copy") {
     try {
       await navigator.clipboard.writeText(id);
-      ElMessage.success("已复制命名空间 ID");
+      message.success("已复制命名空间 ID");
     } catch {
-      ElMessage.error("复制失败");
+      message.error("复制失败");
     }
     return;
   }
@@ -560,9 +561,9 @@ async function testConnection() {
     if (result?.connected) {
       nacosVersion.value = result.version || "";
       ready();
-      ElMessage.success(result.version ? `连接成功 · Nacos ${result.version}` : "连接成功");
+      message.success(result.version ? `连接成功 · Nacos ${result.version}` : "连接成功");
     } else {
-      ElMessage.error(result?.message || "连接失败");
+      message.error(result?.message || "连接失败");
     }
   } catch (e) {
     fail(e, "/ms/monitor/nacos/test");
@@ -644,11 +645,11 @@ function openCreate() {
  */
 async function saveConfig() {
   if (!form.dataId.trim()) {
-    ElMessage.warning("Data ID 不能为空");
+    message.warning("Data ID 不能为空");
     return;
   }
   if (!form.content.trim()) {
-    ElMessage.warning("配置内容不能为空");
+    message.warning("配置内容不能为空");
     return;
   }
   saving.value = true;
@@ -662,7 +663,7 @@ async function saveConfig() {
       content: form.content,
       betaIps: form.betaIps.trim() || undefined,
     } as any);
-    ElMessage.success(form.betaIps.trim() ? "Beta 发布完成" : dialogMode.value === "create" ? "配置已创建" : "配置已发布");
+    message.success(form.betaIps.trim() ? "Beta 发布完成" : dialogMode.value === "create" ? "配置已创建" : "配置已发布");
     configVisible.value = false;
     ready();
     await Promise.all([loadConfigs(), loadNamespaces()]);
@@ -685,7 +686,7 @@ async function deleteConfig(row: NacosConfig) {
   }
   try {
     await deleteNacosConfig(row.dataId, { datasourceId: datasourceId.value, namespace: activeNs.value, group: row.group });
-    ElMessage.success("配置已删除");
+    message.success("配置已删除");
     ready();
     await Promise.all([loadConfigs(), loadNamespaces()]);
   } catch (e) {
@@ -717,7 +718,7 @@ function openNamespaceDialog(mode: "create" | "edit") {
  */
 async function saveNamespace() {
   if (!nsForm.namespaceName.trim()) {
-    ElMessage.warning("命名空间名称不能为空");
+    message.warning("命名空间名称不能为空");
     return;
   }
   nsSaving.value = true;
@@ -730,10 +731,10 @@ async function saveNamespace() {
     };
     if (nsDialogMode.value === "create") {
       await createNacosNamespace(payload);
-      ElMessage.success("命名空间已创建");
+      message.success("命名空间已创建");
     } else {
       await updateNacosNamespace(payload);
-      ElMessage.success("命名空间已更新");
+      message.success("命名空间已更新");
     }
     nsDialogVisible.value = false;
     ready();
@@ -758,7 +759,7 @@ async function removeNamespace() {
   }
   try {
     await deleteNacosNamespace(id, datasourceId.value);
-    ElMessage.success("命名空间已删除");
+    message.success("命名空间已删除");
     ready();
     activeNs.value = "public";
     await loadNamespaces();
@@ -806,7 +807,7 @@ async function toggleInstance(inst: NacosInstance) {
       port: inst.port,
       enabled: !inst.enabled,
     });
-    ElMessage.success(inst.enabled ? "实例已下线" : "实例已上线");
+    message.success(inst.enabled ? "实例已下线" : "实例已上线");
     ready();
     await openInstances(currentService.value!);
     await loadServices();
@@ -842,7 +843,7 @@ async function editWeight(inst: NacosInstance) {
       port: inst.port,
       weight: Number(weight),
     });
-    ElMessage.success("权重已更新");
+    message.success("权重已更新");
     ready();
     await openInstances(currentService.value!);
   } catch (e) {
@@ -889,7 +890,7 @@ async function cloneConfig(row: NacosConfig) {
       namespace: activeNs.value,
       content: detail?.content ?? "",
     });
-    ElMessage.success(`已克隆为 ${newDataId}`);
+    message.success(`已克隆为 ${newDataId}`);
     ready();
     await loadConfigs();
   } catch (e) {
@@ -918,7 +919,7 @@ async function exportConfig(row: NacosConfig) {
   link.download = `nacos-${row.group}-${row.dataId}.${extMap[row.format || ""] || "txt"}`;
   link.click();
   URL.revokeObjectURL(link.href);
-  ElMessage.success("导出成功");
+  message.success("导出成功");
 }
 
 /**

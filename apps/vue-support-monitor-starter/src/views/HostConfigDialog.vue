@@ -9,8 +9,9 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+
 import { ReFormItem } from "@repo/ui/re-kit";
 import { saveHost, getHost } from "@pages/server/src/api";
 /** 主机字段（与 AssetsView.Host 保持一致——跨 .vue 文件类型导入解析不可靠，独立声明） */
@@ -108,11 +109,11 @@ async function save(): Promise<void> {
   saving.value = true;
   try {
     await saveHost(props.host.id, { ...props.host, ...form.value } as Partial<Host>);
-    ElMessage.success(`${MODE_TITLE[props.mode]}已保存`);
+    message.success(`${MODE_TITLE[props.mode]}已保存`);
     emit("update:modelValue", false);
     emit("saved");
   } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
+    message.error(String((e as Error)?.message ?? e));
   } finally {
     saving.value = false;
   }

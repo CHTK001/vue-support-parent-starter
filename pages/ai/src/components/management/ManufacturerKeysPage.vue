@@ -127,9 +127,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
-import { isAdmin } from '@repo/core';
+import {isAdmin, message} from '@repo/core';
 import { manufacturerApi, manufacturerKeyApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
 
@@ -200,7 +200,7 @@ const loadData = async () => {
     const res: any = await manufacturerKeyApi.list();
     dataList.value = unwrapList(res);
   } catch (e: any) {
-    ElMessage.error('加载失败: ' + (e?.msg || e?.message || ''));
+    message.error('加载失败: ' + (e?.msg || e?.message || ''));
     dataList.value = [];
   } finally {
     loading.value = false;
@@ -267,15 +267,15 @@ const submitForm = async () => {
       const payload = toPayload();
       if (isEdit.value) {
         await manufacturerKeyApi.update(payload);
-        ElMessage.success('更新成功');
+        message.success('更新成功');
       } else {
         await manufacturerKeyApi.create(payload);
-        ElMessage.success('创建成功');
+        message.success('创建成功');
       }
       dialogVisible.value = false;
       loadData();
     } catch (e: any) {
-      ElMessage.error('保存失败: ' + (e?.msg || e?.message || ''));
+      message.error('保存失败: ' + (e?.msg || e?.message || ''));
     } finally {
       submitting.value = false;
     }
@@ -285,10 +285,10 @@ const submitForm = async () => {
 const toggleItem = async (row: any) => {
   try {
     await manufacturerKeyApi.toggle(row.id, row.status !== 1);
-    ElMessage.success(row.status === 1 ? '已停用' : '已启用');
+    message.success(row.status === 1 ? '已停用' : '已启用');
     loadData();
   } catch (e: any) {
-    ElMessage.error('操作失败: ' + (e?.msg || e?.message || ''));
+    message.error('操作失败: ' + (e?.msg || e?.message || ''));
   }
 };
 
@@ -300,10 +300,10 @@ const deleteItem = async (row: any) => {
       { type: 'warning' }
     );
     await manufacturerKeyApi.delete(row.id);
-    ElMessage.success('删除成功');
+    message.success('删除成功');
     loadData();
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败');
+    if (e !== 'cancel') message.error('删除失败');
   }
 };
 

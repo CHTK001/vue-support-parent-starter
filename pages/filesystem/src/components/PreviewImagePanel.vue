@@ -20,8 +20,9 @@
  * @author Buffy
  * @since 2026/09/29
  */
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { authHeaders, existObject, putObject, resolveObjectUrl } from "../api/filestorageApi";
 import { extensionOf } from "../utils/officeRenderer";
 import { displayToImage } from "../utils/imageCoords";
@@ -597,7 +598,7 @@ async function renderEdited(quality = 0.92): Promise<Blob | null> {
       );
     });
   } catch (e) {
-    ElMessage.error(`图片处理失败：${(e as Error)?.message ?? "未知错误"}`);
+    message.error(`图片处理失败：${(e as Error)?.message ?? "未知错误"}`);
     return null;
   } finally {
     URL.revokeObjectURL(src2);
@@ -725,7 +726,7 @@ async function openSaveDialog(): Promise<void> {
   try {
     const blob = await renderEdited();
     if (!blob) {
-      ElMessage.error("导出失败，未保存");
+      message.error("导出失败，未保存");
       return;
     }
     pendingBlob = blob;
@@ -801,7 +802,7 @@ async function confirmSave(): Promise<void> {
     await putObject(props.bucket, targetKey, blob);
     saveDlgVisible.value = false;
     pendingBlob = null;
-    ElMessage.success(overwrite ? "已覆盖原文件" : `已另存为「${saveNewName.value.trim()}」`);
+    message.success(overwrite ? "已覆盖原文件" : `已另存为「${saveNewName.value.trim()}」`);
     emit("saved");
     if (overwrite) {
       // 覆盖时才需要把面板里的图换成服务端的新图
@@ -809,7 +810,7 @@ async function confirmSave(): Promise<void> {
       await loadOriginal();
     }
   } catch (e) {
-    ElMessage.error(`保存失败：${(e as Error)?.message ?? "未知错误"}`);
+    message.error(`保存失败：${(e as Error)?.message ?? "未知错误"}`);
   } finally {
     saving.value = false;
   }

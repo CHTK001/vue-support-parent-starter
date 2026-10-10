@@ -65,8 +65,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
-import { ElInput, ElButton, ElImage, ElMessage } from "element-plus";
+import { ElInput, ElButton, ElImage } from "element-plus";
 import { Close } from "@element-plus/icons-vue";
 import { getUserInfo } from "@repo/utils";
 import { getConfig } from "@repo/config";
@@ -166,7 +167,7 @@ function onSetPassword() {
     hasPassword.value = true;
     newPassword.value = "";
     confirmPassword.value = "";
-    ElMessage.success("密码设置成功");
+    message.success("密码设置成功");
   });
 }
 
@@ -194,7 +195,7 @@ function onResetPassword() {
   confirmPassword.value = "";
   password.value = "";
   error.value = "";
-  ElMessage.success("密码已重置");
+  message.success("密码已重置");
 }
 
 function onLogout() {

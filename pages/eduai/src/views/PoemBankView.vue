@@ -358,8 +358,9 @@
  * - 页头 + 三张统计卡 + 筛选 + 表格 + 新增/编辑弹窗
  * - 保存时同步 edu_poem_grade 学段/年级映射（供游戏按学段取数）
  */
+import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn, ReTableSwitchLayout } from "@repo/ui/components/ReTable/types";
@@ -544,7 +545,7 @@ async function load() {
   } catch {
     rows.value = [];
     total.value = 0;
-    ElMessage.error("加载古诗失败");
+    message.error("加载古诗失败");
   } finally {
     loading.value = false;
   }
@@ -601,11 +602,11 @@ async function openEdit(row: Poem) {
 
 async function save() {
   if (!form.poemTitle?.trim()) {
-    ElMessage.warning("请填写标题");
+    message.warning("请填写标题");
     return;
   }
   if (!form.poemContent?.trim()) {
-    ElMessage.warning("请填写正文");
+    message.warning("请填写正文");
     return;
   }
   saving.value = true;
@@ -617,11 +618,11 @@ async function save() {
       gradeLevels: formLevels.value,
       grades: formGrades.value,
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
     dialogVisible.value = false;
     await load();
   } catch {
-    ElMessage.error("保存失败");
+    message.error("保存失败");
   } finally {
     saving.value = false;
   }
@@ -635,10 +636,10 @@ async function remove(row: Poem) {
   }
   try {
     await eduaiApi.deletePoem(row.poemId);
-    ElMessage.success("已删除");
+    message.success("已删除");
     await load();
   } catch {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 }
 

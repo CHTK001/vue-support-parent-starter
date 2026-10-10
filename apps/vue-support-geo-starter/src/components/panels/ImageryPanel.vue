@@ -9,9 +9,10 @@
  * @author CH
  * @since 4.0.0
  */
+import { message } from "@repo/core";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { useSelectionStore } from "@/store/selection";
 import { useSettingsStore } from "@/store/settings";
 import { getTileSources, getSourcesAll } from "@/api/sources";
@@ -63,7 +64,7 @@ async function loadSources() {
       form.value.source = sourceList.value[0].value;
     }
   } catch (e: any) {
-    ElMessage.warning(`图源加载失败：${e?.message ?? e}`);
+    message.warning(`图源加载失败：${e?.message ?? e}`);
   } finally {
     sourcesLoading.value = false;
   }
@@ -86,7 +87,7 @@ function resetEstimate() {
 /** 执行瓦片下载估算 */
 async function onEstimate() {
   if (!selection.bounds) {
-    ElMessage.warning("请先在地图上绘制选区");
+    message.warning("请先在地图上绘制选区");
     return;
   }
   estimating.value = true;
@@ -103,7 +104,7 @@ async function onEstimate() {
       savePath: form.value.savePath || null,
     });
   } catch (e: any) {
-    ElMessage.error(`估算失败：${e?.message ?? e}`);
+    message.error(`估算失败：${e?.message ?? e}`);
   } finally {
     estimating.value = false;
   }
@@ -112,7 +113,7 @@ async function onEstimate() {
 /** 提交下载任务并跳转任务中心 */
 async function onSubmit() {
   if (!selection.bounds) {
-    ElMessage.warning("请先在地图上绘制选区");
+    message.warning("请先在地图上绘制选区");
     return;
   }
   submitting.value = true;
@@ -129,10 +130,10 @@ async function onSubmit() {
       buildPyramid: form.value.buildPyramid,
       generateSidecars: form.value.generateSidecars,
     });
-    ElMessage.success(`任务已创建：${res.taskId}（${res.tileCount} 瓦片）`);
+    message.success(`任务已创建：${res.taskId}（${res.tileCount} 瓦片）`);
     router.push("/tasks");
   } catch (e: any) {
-    ElMessage.error(`创建任务失败：${e?.message ?? e}`);
+    message.error(`创建任务失败：${e?.message ?? e}`);
   } finally {
     submitting.value = false;
   }

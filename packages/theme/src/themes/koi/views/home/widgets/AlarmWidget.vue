@@ -79,8 +79,9 @@
 
 <script setup lang="ts" name="AlarmWidget">
 
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElNotification } from "element-plus";
+import { ElNotification } from "element-plus";
 import { AlarmClock, Close, Plus } from "@element-plus/icons-vue";
 import { IndexedDBStore } from "@repo/utils";
 import { useMessageStore } from "@repo/pinia";
@@ -182,14 +183,14 @@ function createWorker(): void {
       const idx = alarms.value.findIndex((x) => x.id === msg.id);
       if (idx >= 0) alarms.value.splice(idx, 1);
       store.remove(msg.id).catch(() => undefined);
-      ElMessage.info("闹钟已响铃完毕");
+      message.info("闹钟已响铃完毕");
     } else if (msg.type === "disable") {
       const a = alarms.value.find((x) => x.id === msg.id);
       if (a) {
         a.enabled = false;
         if (msg.firedCount != null) a.firedCount = msg.firedCount;
         store.put(a).catch(() => undefined);
-        ElMessage.info("闹钟已达次数上限，已停用");
+        message.info("闹钟已达次数上限，已停用");
       }
     }
   };
@@ -241,7 +242,7 @@ function openAdd(): void {
 async function save(): Promise<void> {
   const title = form.title.trim();
   if (!title) {
-    ElMessage.warning("请输入闹钟标题");
+    message.warning("请输入闹钟标题");
     return;
   }
   const hour = form.time.getHours();
@@ -266,7 +267,7 @@ async function save(): Promise<void> {
   }
   syncWorker();
   dialogVisible.value = false;
-  ElMessage.success("已保存");
+  message.success("已保存");
 }
 
 onMounted(async () => {

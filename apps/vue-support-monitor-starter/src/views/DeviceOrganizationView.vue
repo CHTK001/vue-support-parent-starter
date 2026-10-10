@@ -15,8 +15,9 @@
  * @author CH
  * @since 4.0.0.42
  */
+import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import { Connection, OfficeBuilding, Position, Share } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
@@ -164,7 +165,7 @@ async function fetchTree(): Promise<void> {
     orgs.value = [];
     tree.value = [];
     loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
-    ElMessage.error(`组织架构加载失败：${loadError.value}`);
+    message.error(`组织架构加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
@@ -175,10 +176,10 @@ async function onSync(): Promise<void> {
   syncing.value = true;
   try {
     await deviceApi.syncOrg();
-    ElMessage.success("组织同步已触发");
+    message.success("组织同步已触发");
     await fetchTree();
   } catch (e: unknown) {
-    ElMessage.error(`组织同步失败：${(e as { msg?: string })?.msg || e}`);
+    message.error(`组织同步失败：${(e as { msg?: string })?.msg || e}`);
   } finally {
     syncing.value = false;
   }

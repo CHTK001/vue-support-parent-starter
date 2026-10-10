@@ -9,9 +9,10 @@
  *   - 站内跳转：支持 /watch/:id 内部地址，直接路由到播放页
  * 交互：回车/按钮播放、加载状态、错误提示、默认示例链接。
  */
+import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+
 import { VideoCamera, Delete, Link } from "@element-plus/icons-vue";
 import VdPlayer from "@/components/VdPlayer.vue";
 
@@ -49,7 +50,7 @@ function removeHistory(u: string) {
 function play(target?: string) {
   const u = (target ?? url.value).trim();
   if (!u) {
-    ElMessage.warning("请输入视频地址");
+    message.warning("请输入视频地址");
     return;
   }
   // 站内详情地址：直接路由
@@ -59,7 +60,7 @@ function play(target?: string) {
     return;
   }
   if (!/^(https?:|blob:)/i.test(u)) {
-    ElMessage.error("仅支持 http(s) 直链地址");
+    message.error("仅支持 http(s) 直链地址");
     return;
   }
   url.value = u;
@@ -68,7 +69,7 @@ function play(target?: string) {
 }
 
 function onPlayerError(msg: string) {
-  ElMessage.error(msg || "地址无法播放，请检查链接有效性、跨域限制或编码格式");
+  message.error(msg || "地址无法播放，请检查链接有效性、跨域限制或编码格式");
 }
 
 onMounted(() => {

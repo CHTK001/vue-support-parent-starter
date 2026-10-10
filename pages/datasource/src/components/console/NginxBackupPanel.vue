@@ -185,8 +185,9 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
-import { ElCheckbox, ElMessage, ElMessageBox } from "element-plus";
+import { ElCheckbox, ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -286,17 +287,17 @@ async function confirmDelete(names: string[]) {
   try {
     const r = await deleteNginxBackups(props.datasourceId, names);
     if (r.failed.length) {
-      ElMessage.warning(
+      message.warning(
         `已删除 ${r.deleted.length} 个，失败 ${r.failed.length} 个：${r.failed.join("；")}`,
       );
     } else {
-      ElMessage.success(`已删除 ${r.deleted.length} 个备份`);
+      message.success(`已删除 ${r.deleted.length} 个备份`);
     }
     // 失败项保留在勾选态里，方便直接重试；成功项清掉
     selected.value = selected.value.filter((n) => !r.deleted.includes(n));
     await load();
   } catch (e) {
-    ElMessage.error(`删除失败：${(e as Error).message}`);
+    message.error(`删除失败：${(e as Error).message}`);
   } finally {
     deleting.value = false;
   }
@@ -385,7 +386,7 @@ async function openPreview(b: NginxBackup) {
   try {
     previewText.value = await fetchNginxBackupContent(props.datasourceId, b.name);
   } catch (e) {
-    ElMessage.error(`读取备份内容失败：${(e as Error).message}`);
+    message.error(`读取备份内容失败：${(e as Error).message}`);
   } finally {
     previewLoading.value = false;
     previewing.value = "";
@@ -435,7 +436,7 @@ async function loadDiff() {
       diffTarget.value
     );
   } catch (e) {
-    ElMessage.error(`对比失败：${(e as Error).message}`);
+    message.error(`对比失败：${(e as Error).message}`);
   } finally {
     diffLoading.value = false;
   }
@@ -459,7 +460,7 @@ async function load() {
       configPath.value = files.value[0].path;
     }
     if (b.status === "rejected") {
-      ElMessage.error(`读取备份列表失败：${(b.reason as Error).message}`);
+      message.error(`读取备份列表失败：${(b.reason as Error).message}`);
     }
   } finally {
     loading.value = false;
@@ -475,10 +476,10 @@ async function doBackup() {
   backing.value = true;
   try {
     const r = await backupNginxConfig(props.datasourceId, configPath.value, "手动备份");
-    ElMessage.success(`已备份到 ${r.path}`);
+    message.success(`已备份到 ${r.path}`);
     await load();
   } catch (e) {
-    ElMessage.error(`备份失败：${(e as Error).message}`);
+    message.error(`备份失败：${(e as Error).message}`);
   } finally {
     backing.value = false;
   }
@@ -502,15 +503,15 @@ async function doRestore() {
   try {
     const r = await restoreNginxBackup(props.datasourceId, b.name, restoreTarget.value);
     if (r.success) {
-      ElMessage.success(r.message);
+      message.success(r.message);
     } else {
-      ElMessage.error(r.message);
+      message.error(r.message);
     }
     restoreVisible.value = false;
     await load();
     emit("changed");
   } catch (e) {
-    ElMessage.error(`回退失败：${(e as Error).message}`);
+    message.error(`回退失败：${(e as Error).message}`);
   } finally {
     restoring.value = "";
   }

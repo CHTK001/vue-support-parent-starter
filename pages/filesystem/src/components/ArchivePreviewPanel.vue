@@ -18,8 +18,9 @@
  * @author Buffy
  * @since 2026/09/29
  */
+import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import {
   ArrowDown,
   ArrowLeft,
@@ -447,11 +448,11 @@ async function extractTo(): Promise<void> {
     extracting.value = true;
     const result = await unzipObject(props.bucket, archivePath, archiveName, (value ?? "").trim());
     const count = (result as { count?: number }).count;
-    ElMessage.success(count != null ? `已解压 ${count} 个条目` : "解压完成");
+    message.success(count != null ? `已解压 ${count} 个条目` : "解压完成");
   } catch (e) {
     // 用户取消是正常路径，不当作错误提示
     if (e === "cancel" || e === "close") return;
-    ElMessage.error((e as Error)?.message ?? "解压失败");
+    message.error((e as Error)?.message ?? "解压失败");
   } finally {
     extracting.value = false;
   }

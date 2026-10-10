@@ -9,9 +9,10 @@
  * <p>白名单是「放行豁免」不是准入名单：命中的 IP 跳过限流，
  * 未列入任何名单的 IP 仍默认放行。</p>
  */
+import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Setting, WarningFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -102,7 +103,7 @@ async function loadList(): Promise<void> {
     const res = await listRateLimit(dimension.value);
     list.value = res.data ?? [];
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.rate.loadRulesFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.rate.loadRulesFailed"));
   } finally {
     loading.value = false;
     markReady();
@@ -116,7 +117,7 @@ async function loadGlobal(): Promise<void> {
     const res = await getRateLimitGlobal();
     globalConfig.value = res.data ?? { enabled: false, qps: 100, burstSize: 200, dimension: "global" };
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.rate.loadGlobalFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.rate.loadGlobalFailed"));
   } finally {
     globalLoading.value = false;
   }
@@ -136,11 +137,11 @@ async function load(): Promise<void> {
  */
 function validateValues(qps: number | undefined, burstSize: number | undefined): boolean {
   if (!Number.isInteger(qps) || (qps ?? 0) <= 0) {
-    ElMessage.warning(t("policy.rate.errQps"));
+    message.warning(t("policy.rate.errQps"));
     return false;
   }
   if (!Number.isInteger(burstSize) || (burstSize ?? -1) < 0) {
-    ElMessage.warning(t("policy.rate.errBurst"));
+    message.warning(t("policy.rate.errBurst"));
     return false;
   }
   return true;
@@ -159,11 +160,11 @@ async function handleApplyGlobal(): Promise<boolean> {
       burstSize: Number(globalConfig.value.burstSize),
       dimension: globalConfig.value.dimension || "global",
     });
-    ElMessage.success(res.data || t("policy.rate.globalApplied"));
+    message.success(res.data || t("policy.rate.globalApplied"));
     await loadGlobal();
     return true;
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.rate.globalApplyFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.rate.globalApplyFailed"));
     return false;
   } finally {
     globalApplying.value = false;
@@ -195,11 +196,11 @@ function handleEdit(row: RateLimitRule): void {
 async function handleSubmit(): Promise<void> {
   const target = form.value.target?.trim() ?? "";
   if (!target) {
-    ElMessage.warning(meta.value.target);
+    message.warning(meta.value.target);
     return;
   }
   if (target.length > 500) {
-    ElMessage.warning(t("policy.rate.errTargetTooLong"));
+    message.warning(t("policy.rate.errTargetTooLong"));
     return;
   }
   if (!validateValues(form.value.qps, form.value.burstSize)) return;
@@ -215,11 +216,11 @@ async function handleSubmit(): Promise<void> {
     };
     const res = isEdit.value ? await updateRateLimit(payload) : await saveRateLimit(payload);
     if (res.data === false) throw new Error(isEdit.value ? t("policy.rate.errNotUpdated") : t("policy.rate.errNotCreated"));
-    ElMessage.success(isEdit.value ? t("policy.rate.saved") : t("policy.rate.created"));
+    message.success(isEdit.value ? t("policy.rate.saved") : t("policy.rate.created"));
     dialogVisible.value = false;
     await loadList();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.saveFailed"));
   } finally {
     saving.value = false;
   }
@@ -239,10 +240,10 @@ async function handleToggle(row: RateLimitRule, value: boolean | string | number
   try {
     const res = await updateRateLimit({ ...row, enabled });
     if (res.data === false) throw new Error(t("policy.rate.errStatusNotUpdated"));
-    ElMessage.success(enabled === 1 ? t("policy.rate.ruleEnabled") : t("policy.rate.ruleStopped"));
+    message.success(enabled === 1 ? t("policy.rate.ruleEnabled") : t("policy.rate.ruleStopped"));
     await loadList();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.rate.statusFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.rate.statusFailed"));
   } finally {
     toggleLoadingId.value = null;
   }
@@ -265,10 +266,10 @@ async function handleDelete(row: RateLimitRule): Promise<void> {
   try {
     const res = await deleteRateLimit(id);
     if (res.data === false) throw new Error(t("policy.rate.errNotDeleted"));
-    ElMessage.success(t("policy.rate.deleted"));
+    message.success(t("policy.rate.deleted"));
     await loadList();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+    message.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
   } finally {
     deleteLoadingId.value = null;
   }

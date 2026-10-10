@@ -86,8 +86,9 @@
  * 基于 Element Plus Upload + ReCropper，支持裁剪后上传/预览
  *   <ReAvatarCrop v-model="avatar" :action="'/api/upload'" />
  */
+import { message } from "@repo/core";
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+
 import ReCropper from "../ReCropper/index.vue";
 import ReDialog from "../ReDialog";
 
@@ -163,7 +164,7 @@ const uploading = ref(false);
 
 const handleBeforeUpload = (file: File): boolean => {
   if (file.size > props.maxSize * 1024 * 1024) {
-    ElMessage.error(`文件大小不能超过 ${props.maxSize}MB`);
+    message.error(`文件大小不能超过 ${props.maxSize}MB`);
     return false;
   }
   const reader = new FileReader();
@@ -212,7 +213,7 @@ const handleConfirm = async () => {
         sourceUrl.value = "";
       } catch (err) {
         emit("error", err);
-        ElMessage.error("上传失败");
+        message.error("上传失败");
       } finally {
         uploading.value = false;
       }
@@ -247,7 +248,7 @@ const handleUploadSuccess = (response: unknown) => {
 
 const handleUploadError = (err: unknown) => {
   emit("error", err);
-  ElMessage.error("上传失败");
+  message.error("上传失败");
 };
 </script>
 

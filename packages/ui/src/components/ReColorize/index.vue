@@ -29,10 +29,11 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { ref, computed } from "vue";
 import { ElUpload, ElButton, ElIcon } from "element-plus";
 import { Upload, Loading, Download, Delete } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+
 
 interface Props { baseUrl?: string; headers?: Record<string, string>; }
 const props = withDefaults(defineProps<Props>(), { baseUrl: "/v2/ai/colorize" });
@@ -46,10 +47,10 @@ const handleUploadSuccess = (response: any) => {
     originalImage.value = response.data.original;
     result.value = response.data.result;
   } else {
-    ElMessage.error(response.message || "上色失败");
+    message.error(response.message || "上色失败");
   }
 };
-const handleUploadError = () => ElMessage.error("上传失败");
+const handleUploadError = () => message.error("上传失败");
 const handleDownload = () => { if (!result.value) return; const a = document.createElement("a"); a.href = result.value; a.download = "colorized.png"; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
 const reset = () => { originalImage.value = ""; result.value = ""; };
 </script>

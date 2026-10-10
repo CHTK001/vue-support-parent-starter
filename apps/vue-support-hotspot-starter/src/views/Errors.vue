@@ -100,9 +100,10 @@
 </template>
 
 <script setup lang="ts">
+import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Warning, Timer, Document } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+
 import ReButton from "@repo/ui/re-button";
 import ReTable from "@repo/ui/re-table";
 import ReSkeleton from "@repo/ui/re-skeleton";
@@ -162,7 +163,7 @@ async function load() {
     items.value = errors;
     slowCalls.value = slow;
   } catch {
-    ElMessage.error("加载错误排行失败");
+    message.error("加载错误排行失败");
   } finally {
     loading.value = false;
   }
