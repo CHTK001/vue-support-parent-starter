@@ -47,21 +47,22 @@
         <div class="flex items-center gap-3 flex-wrap">
           <el-icon><Reading /></el-icon>
           <span class="font-semibold">AI 阅卷记录（试卷）</span>
-          <el-tag type="info">{{ tasks.length }} 份</el-tag>
+          <el-tag type="info">{{ totalCount }} 份</el-tag>
           <el-tag type="success" effect="plain">老师总分为最终成绩</el-tag>
           <div class="flex-1" />
-          <ReButton icon="Refresh" :loading="tasksLoading" @click="loadTasks">刷新</ReButton>
+          <ReButton icon="Refresh" :loading="refreshing" @click="reloadList">刷新</ReButton>
         </div>
       </template>
       <ReTable
-        :data="tasks"
-        :loading="tasksLoading"
+        ref="markingTable"
+        :load="markingTasksLoader"
+        v-model:total="totalCount"
         row-key="markingTaskId"
         :toolbar="false"
-        :pagination="false"
+        :pagination="true"
         border
         stripe
-        @refresh="loadTasks"
+        @load-error="pageLoadError"
       >
         <ReTableColumn label="任务号" min-width="230" show-overflow-tooltip>
           <template #default="{ row }"><span class="task-id-cell">{{ row.markingTaskTaskId }}</span></template>
@@ -100,7 +101,7 @@
         </ReTableColumn>
         <ReTableColumn label="操作" width="90">
           <template #default="{ row }">
-            <ReButton link type="primary" @click="openDetail(row.markingTaskTaskId)">查看</ReButton>
+            <ReButton link type="primary" @click="openDetail(row.markingTaskTaskId, row)">查看</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>
@@ -239,6 +240,7 @@ import { ElMessage } from 'element-plus';
 import { Reading } from '@element-plus/icons-vue';
 import { http } from '@repo/utils';
 import { eduaiApi } from '../api/eduaiApi';
+import { createPageLoader, pageLoadError } from '../api/pageLoader';
 import { failToast } from '../api/errorText';
 import type { MarkingProgressVO, MarkingResultVO, TeacherMarkingTask } from '../api/types';
 import ReDialog from "@repo/ui/re-dialog";
@@ -247,8 +249,11 @@ import SheetStructureView from '../components/marking/SheetStructureView.vue';
 const taskId = ref('');
 
 /* ==================== AI 阅卷记录（试卷为主体） ==================== */
-const tasks = ref<TeacherMarkingTask[]>([]);
-const tasksLoading = ref(false);
+/** ReTable 远端分页：刷新按钮 loading + 表格实例（reload 用） */
+const refreshing = ref(false);
+const markingTable = ref();
+/** 记录总数：ReTable 远端加载后经 v-model:total 回传，用于卡片头部「N 份」 */
+const totalCount = ref(0);
 /** taskId → 总分快照。AI 总分 = Σ AI 分；老师总分 = Σ (老师分 ?? AI 分)，与后端 totalScore 同口径（老师为主） */
 const scores = ref<Record<string, { ai: number; final: number; finished: boolean }>>({});
 /** list=记录列表（默认首屏），detail=单份试卷详情 */
@@ -265,7 +270,8 @@ const taskStatusType = (n?: number) => {
   const code = Number(n ?? 0);
   return code === 2 ? 'success' : code === 3 ? 'danger' : code === 1 ? 'warning' : 'info';
 };
-const selectedRow = computed(() => tasks.value.find((t) => t.markingTaskTaskId === selectedTaskId.value) || null);
+/** 详情页头部的任务元数据：从记录行「查看」时带入；任务号直达无行，置 null（详情有 selectedScores 兜底） */
+const selectedRow = ref<TeacherMarkingTask | null>(null);
 const selectedScores = computed(() => scores.value[selectedTaskId.value] || null);
 
 const scoreOfResult = (res: MarkingResultVO | null | undefined) => {
@@ -290,21 +296,26 @@ const fillScore = async (id: string): Promise<MarkingResultVO | null> => {
   }
 };
 
-const loadTasks = async () => {
-  tasksLoading.value = true;
+/** 取一页阅卷任务；对当页已完成任务后台补齐总分快照（与旧 loadTasks 同口径，不阻塞首屏） */
+const fetchMarkingPage = async (page: number, pageSize: number) => {
+  const res = await eduaiApi.pageTeacherMarkingTasks({ pageNum: page, pageSize });
+  const rows = (res?.data ?? res?.records ?? []) as TeacherMarkingTask[];
+  void Promise.all(
+    rows
+      .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !scores.value[t.markingTaskTaskId])
+      .map((t) => fillScore(t.markingTaskTaskId)),
+  );
+  return res;
+};
+/** ReTable 远端分页 loader（createPageLoader 负责合并重复请求、映射 total/data） */
+const markingTasksLoader = createPageLoader<TeacherMarkingTask>(fetchMarkingPage);
+/** 刷新记录列表：触发表格 reload，并驱动刷新按钮 loading */
+const reloadList = async () => {
+  refreshing.value = true;
   try {
-    const rows = (await eduaiApi.teacherMarkingTasks()) ?? [];
-    tasks.value = [...rows].sort((a, b) => (b.markingTaskId ?? 0) - (a.markingTaskId ?? 0));
-    // 已完成的任务后台补齐总分；不阻塞列表首屏
-    void Promise.all(
-      tasks.value
-        .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !scores.value[t.markingTaskTaskId])
-        .map((t) => fillScore(t.markingTaskTaskId)),
-    );
-  } catch {
-    tasks.value = [];
+    await markingTable.value?.reload();
   } finally {
-    tasksLoading.value = false;
+    refreshing.value = false;
   }
 };
 
@@ -312,7 +323,7 @@ const loadTasks = async () => {
  * 打开一份试卷的详情（记录行「查看」或任务号直达）。
  * 进入即重挂载结构视图拿最新数据；未判完的任务顺带挂上 SSE 实时进度。
  */
-const openDetail = async (id?: string) => {
+const openDetail = async (id?: string, row?: TeacherMarkingTask) => {
   const target = (id ?? '').trim() || taskId.value.trim();
   if (!target) {
     ElMessage.warning('请输入任务号，或从阅卷记录里选择一份试卷');
@@ -320,6 +331,7 @@ const openDetail = async (id?: string) => {
   }
   taskId.value = target;
   selectedTaskId.value = target;
+  selectedRow.value = row ?? null;
   view.value = 'detail';
   structureKey.value += 1;
   const res = await fillScore(target);
@@ -332,13 +344,13 @@ const openDetail = async (id?: string) => {
 
 const backToList = () => {
   view.value = 'list';
-  void loadTasks();
+  void reloadList();
 };
 
 /** 老师分保存成功：刷新该卷总分与记录列表（详情视图由 SheetStructureView 自身重载） */
 const onSaved = () => {
   void fillScore(selectedTaskId.value);
-  void loadTasks();
+  void reloadList();
 };
 
 /* ==================== 考试 / 作答（提交答题卡弹窗） ==================== */
@@ -453,7 +465,7 @@ const stopProgressStream = () => {
 const onTaskFinished = (id: string) => {
   void fillScore(id);
   structureKey.value += 1;
-  void loadTasks();
+  void reloadList();
 };
 
 /** 轮询兜底：SSE 连不上时才启用（原路径保留，代理掐流后页面不会停在半途） */
@@ -625,7 +637,7 @@ const doScan = async () => {
     progress.value = null;
     stopPolling();
     startProgressStream(newTaskId);
-    await loadTasks();
+    await reloadList();
     // 上传后直接进这份试卷的详情：记录列表已含该行，判完即见原卷与分数
     await openDetail(newTaskId);
   } catch (e) {
@@ -704,7 +716,7 @@ const doSubmit = async () => {
  * 记录本身即数据，不再出现空表；试卷名下拉同步加载供记录展示。
  */
 onMounted(() => {
-  void loadTasks();
+  // 记录列表由 ReTable 的 :load 远端 loader 首屏自动加载，无需在此手动拉取
   void loadPapers();
 });
 onUnmounted(() => {
