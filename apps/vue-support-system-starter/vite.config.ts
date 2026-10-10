@@ -39,13 +39,15 @@ export default createVite({
     port: 8096,
     strictPort: true,
     watch: {
-      // 插件每次 dev 启动都会 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体）。
-      // Windows 下 chokidar 对仍在写入的大文件建 fs.watch → EBUSY → dev 进程崩溃，
-      // 而监听这些插件生成的只读资产没有意义，故从 watcher 排除（与 monitor 同口径）。
+      // 插件每次 dev 启动都会 rm+cp 重写工作区根 public（copyAssets 产出的
+      // vendor/wasm/assets/ruffle/os 约 379 个文件 + typst 字体）。Windows 下
+      // chokidar 对仍在写入的文件建 fs.watch → EBUSY → dev 进程直接崩溃
+      // （实测崩点 public/wasm/typst/fonts/LibertinusSerif-Bold.otf）。
+      // 整个 publicDir 都是生成的只读资产，监听它毫无意义，故整体排除。
+      // 曾按目录逐个列举（vendor、flyfish-viewer-assets.json），新增 typst
+      // 字体后再次 EBUSY —— 改为按 publicDir 整体排除，避免逐个追漏。
       ignored: [
-        (p: string) =>
-          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
-          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+        (p: string) => /(^|[/\\])public([/\\]|$)/.test(p),
       ],
     },
     proxy: {

@@ -1246,6 +1246,7 @@ onMounted(() => {
               engine="element"
               :pagination="false"
               :toolbar="false"
+              :layout-table="{ minHeight: 0 }"
               empty-text="暂无数据"
               stripe
               show-selection
@@ -1666,6 +1667,7 @@ onMounted(() => {
         engine="element"
         :pagination="false"
         :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
         style="width: 100%"
       >
         <template #col-remove="{ row }">

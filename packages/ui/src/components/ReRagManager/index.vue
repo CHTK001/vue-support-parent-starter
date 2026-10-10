@@ -127,74 +127,70 @@
             刷新
           </el-button>
         </div>
-        <el-table
-          v-loading="loading"
+        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+             斑马纹样式；pagination=false —— 分页仍由下方 el-pagination 自管，否则会多出一套页码控件；
+             toolbar=false 不新增工具栏按钮（按钮清单与改造前逐个一致）；
+             原 el-table 没有 border → settings.border=false 显式抑制 ReTable 默认边框；
+             原表无 height/maxHeight → layout-table.minHeight=0 关掉 fill 与空态 440px 撑高。 -->
+        <ReTable
+          :loading="loading"
           :data="filteredDocuments"
-
+          :columns="docColumns"
           stripe
           row-key="id"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
         >
-          <el-table-column label="名称" min-width="200">
-            <template #default="{ row }">
-              <div class="re-rag-manager__doc-name">
-                <el-icon class="re-rag-manager__doc-icon">
-                  <component :is="getDocumentIcon(row as RagDocument)" />
-                </el-icon>
-                <span :title="row.name">{{ row.name }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="来源" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.source === 'URL' ? 'warning' : 'info'" effect="plain">
-                {{ sourceLabel(row.source) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="大小" width="100">
-            <template #default="{ row }">
-              <span v-if="row.size">{{ formatSize(row.size) }}</span>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="分片数" width="80">
-            <template #default="{ row }">
-              {{ row.chunkCount ?? "-" }}
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="statusTag(row.status)" effect="light">
-                {{ statusLabel(row.status) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="创建时间" width="160">
-            <template #default="{ row }">
-              {{ row.createdAt ? formatDate(row.createdAt) : "-" }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="160" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                link
-                type="primary"
+          <template #col-name="{ row }">
+            <div class="re-rag-manager__doc-name">
+              <el-icon class="re-rag-manager__doc-icon">
+                <component :is="getDocumentIcon(row as RagDocument)" />
+              </el-icon>
+              <span :title="row.name">{{ row.name }}</span>
+            </div>
+          </template>
+          <template #col-source="{ row }">
+            <el-tag :type="row.source === 'URL' ? 'warning' : 'info'" effect="plain">
+              {{ sourceLabel(row.source) }}
+            </el-tag>
+          </template>
+          <template #col-size="{ row }">
+            <span v-if="row.size">{{ formatSize(row.size) }}</span>
+            <span v-else>-</span>
+          </template>
+          <template #col-chunkCount="{ row }">
+            {{ row.chunkCount ?? "-" }}
+          </template>
+          <template #col-status="{ row }">
+            <el-tag :type="statusTag(row.status)" effect="light">
+              {{ statusLabel(row.status) }}
+            </el-tag>
+          </template>
+          <template #col-createdAt="{ row }">
+            {{ row.createdAt ? formatDate(row.createdAt) : "-" }}
+          </template>
+          <template #col-actions="{ row }">
+            <el-button
+              link
+              type="primary"
 
-                @click="handlePreview(row as RagDocument)"
-              >
-                预览
-              </el-button>
-              <el-button
-                link
-                type="danger"
+              @click="handlePreview(row as RagDocument)"
+            >
+              预览
+            </el-button>
+            <el-button
+              link
+              type="danger"
 
-                @click="handleDelete(row as RagDocument)"
-              >
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+              @click="handleDelete(row as RagDocument)"
+            >
+              删除
+            </el-button>
+          </template>
+        </ReTable>
 
         <div class="re-rag-manager__pagination">
           <el-pagination
@@ -252,8 +248,6 @@ import {
   ElInput,
   ElButton,
   ElIcon,
-  ElTable,
-  ElTableColumn,
   ElTag,
   ElPagination,
   ElCheckbox,
@@ -278,6 +272,9 @@ import ReCardTextarea from "../ReCardTextarea/index.vue";
 import type { ChunkUploadFile } from "../ReUploadChunk/types";
 import type { RagDocument, RagStatus, RagEmbeddingEngine } from "./types";
 import ReDialog from "../ReDialog";
+// 组件内部相对路径引入（本文件就在 @repo/ui 包内，避免自引用 @repo/ui/re-table）
+import ReTable from "../ReTable";
+import type { ReTableColumn } from "../ReTable";
 
 interface Props {
   /** 后端 RAG base URL */
@@ -351,6 +348,23 @@ const filteredDocuments = computed(() => {
   const q = searchText.value.toLowerCase();
   return documents.value.filter((d) => d.name.toLowerCase().includes(q));
 });
+
+/**
+ * 文档列表列配置：原 7 个 el-table-column 收敛到此处。
+ *
+ * <p>标题都是字面量（没有 {@code t(...)}），故用普通常量即可。7 列原来全部走
+ * {@code <template #default>}，且大多没有 prop —— 各造一个稳定合成 prop（操作列为
+ * {@code actions}），配上 {@code slot}，模板侧用 {@code #col-<prop>} 接回原内容。</p>
+ */
+const docColumns: ReTableColumn[] = [
+  { prop: "name", label: "名称", minWidth: 200, slot: "name" },
+  { prop: "source", label: "来源", width: 100, slot: "source" },
+  { prop: "size", label: "大小", width: 100, slot: "size" },
+  { prop: "chunkCount", label: "分片数", width: 80, slot: "chunkCount" },
+  { prop: "status", label: "状态", width: 100, slot: "status" },
+  { prop: "createdAt", label: "创建时间", width: 160, slot: "createdAt" },
+  { prop: "actions", label: "操作", width: 160, fixed: "right", slot: "actions" },
+];
 
 const hasValidUrl = computed(() => {
   const urls = parseUrls(urlInput.value);

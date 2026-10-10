@@ -20,12 +20,12 @@
       </div>
     </div>
 
-    <!-- 视图模式：从模板创建（独立页，占满内容区） -->
+    <!-- 视图模式：从模板创建（独立页，占满内容区�?-->
     <div v-else-if="showTplGallery" class="flex-1 flex flex-col overflow-hidden px-4">
       <KBTemplateGallery @cancel="showTplGallery = false" @create="handleTemplateCreate" />
     </div>
 
-    <!-- 知识库总览（按设计稿 HTML 还原；左侧导航与顶栏由系统 layout 提供，不重复实现） -->
+    <!-- 知识库总览（按设计�?HTML 还原；左侧导航与顶栏由系�?layout 提供，不重复实现�?-->
     <KnowledgeOverview
       ref="overviewRef"
       v-else-if="viewMode === 'list'"
@@ -47,14 +47,13 @@
 
     <!-- 旧列表视图：已被上面的总览整体取代，分支保留但条件不再命中，待清理 -->
     <div v-else-if="viewMode === 'list-legacy'" class="flex-1 flex flex-col overflow-hidden">
-      <!-- 标题区（固定不滚动）：左标题+副标题，中搜索，右新建 -->
+      <!-- 标题区（固定不滚动）：左标题+副标题，中搜索，右新�?-->
       <div class="shrink-0 kb-top w-full">
         <div class="kb-top__title">
           <h1>{{ t('knowledge.page.title') }}</h1>
           <p class="kb-top__subtitle">
-            共 {{ fmtCount(overview.totals?.kb_count) }} 个知识库 ·
-            {{ fmtCount(overview.totals?.file_count) }} 篇文档
-          </p>
+            �?{{ fmtCount(overview.totals?.kb_count) }} 个知识库 ·
+            {{ fmtCount(overview.totals?.file_count) }} 篇文�?          </p>
         </div>
         <el-input
           v-model="searchKeyword"
@@ -72,10 +71,10 @@
         </el-button>
       </div>
 
-      <!-- 内容区（独立滚动） -->
+      <!-- 内容区（独立滚动�?-->
       <div class="flex-1 overflow-auto pb-4" style="scrollbar-gutter: stable both-edges;">
         <div class="py-3 px-4 w-full">
-          <!-- 顶部统计卡：知识库 / 文档总量 / 实体节点 / 关系连线 -->
+          <!-- 顶部统计卡：知识�?/ 文档总量 / 实体节点 / 关系连线 -->
           <div class="kb-stats">
             <div v-for="s in overviewStats" :key="s.key" class="kb-stat re-surface re-surface--dense">
               <div class="kb-stat__icon">
@@ -89,7 +88,7 @@
           </div>
 
           <div class="kb-home">
-            <!-- 左：知识库网格（首个库为大卡） -->
+            <!-- 左：知识库网格（首个库为大卡�?-->
             <div class="kb-home__main">
               <div class="kb-home__head">
                 <h2>{{ t('knowledge.page.title') }}</h2>
@@ -128,7 +127,7 @@
                       {{ kb.description || t('knowledge.page.noDescription') }}
                     </p>
 
-                    <!-- 小卡的次要信息行：更新时间 / 归属，用真实字段，不编造 -->
+                    <!-- 小卡的次要信息行：更新时�?/ 归属，用真实字段，不编�?-->
                     <div v-if="idx !== 0" class="kb-card__meta">
                       <span class="kb-card__meta-item">
                         <el-icon><Clock /></el-icon>{{ fmtTime(kb.updatedAt || kb.createdAt) }}
@@ -138,22 +137,21 @@
                       </span>
                     </div>
 
-                    <!-- 计数徽标：实体 / 关系 / 文档 / 就绪（来自 /bases/overview，不是前端猜的） -->
+                    <!-- 计数徽标：实�?/ 关系 / 文档 / 就绪（来�?/bases/overview，不是前端猜的） -->
                     <div class="kb-card__metrics">
                       <span class="kb-metric">
                         <i class="kb-metric__dot" />{{ countOf(kb.id, 'entity_count') }} 实体
                       </span>
                       <span class="kb-metric">{{ countOf(kb.id, 'relation_count') }} 关系</span>
                       <span v-if="idx === 0" class="kb-metric">
-                        {{ countOf(kb.id, 'file_count') }} 篇文档
-                      </span>
+                        {{ countOf(kb.id, 'file_count') }} 篇文�?                      </span>
                       <span class="kb-card__spacer" />
                       <span class="kb-metric kb-metric--ok">
-                        <i class="kb-metric__dot" />{{ isKbReady(kb) ? '已就绪' : '待索引' }}
+                        <i class="kb-metric__dot" />{{ isKbReady(kb) ? '已就�? : '待索�? }}
                       </span>
                     </div>
 
-                    <!-- 操作：常态隐藏，hover / focus 显现，避免卡片视觉噪音 -->
+                    <!-- 操作：常态隐藏，hover / focus 显现，避免卡片视觉噪�?-->
                     <div class="kb-card__actions">
                       <template v-if="isOwnerKb(kb)">
                         <el-button link @click.stop="handleEdit(kb)">{{ t('common.edit') }}</el-button>
@@ -165,16 +163,16 @@
                 </article>
               </div>
 
-              <!-- 空状态 -->
+              <!-- 空状�?-->
               <div v-else-if="!store.loading" class="re-surface kb-empty">
-                <!-- 搜索无结果：保持轻量提示，不铺引导 -->
+                <!-- 搜索无结果：保持轻量提示，不铺引�?-->
                 <template v-if="searchKeyword">
                   <el-icon size="44" class="kb-empty__icon"><Search /></el-icon>
                   <p class="kb-empty__title">{{ t('knowledge.page.notFound') }}</p>
                   <p class="kb-empty__hint">{{ t('knowledge.page.notFoundHint') }}</p>
                 </template>
 
-                <!-- 一个知识库都没有：按设计图给完整创建引导 -->
+                <!-- 一个知识库都没有：按设计图给完整创建引�?-->
                 <template v-else>
                   <div class="kb-empty__top">
                     <h2 class="kb-empty__lead">开始创建你的第一个知识库</h2>
@@ -182,24 +180,24 @@
                   </div>
 
                   <div class="kb-empty__figure">
-                    <img class="kb-empty__illus" :src="heroIllustration" alt="书本与知识节点" />
+                    <img class="kb-empty__illus" :src="heroIllustration" alt="书本与知识节�? />
                   </div>
 
                   <h3 class="kb-empty__title">还没有知识库</h3>
-                  <p class="kb-empty__hint">上传文档即可自动提取知识点，生成实体与关系网络</p>
+                  <p class="kb-empty__hint">上传文档即可自动提取知识点，生成实体与关系网�?/p>
 
                   <div class="kb-empty__cta">
                     <button type="button" class="kb-empty__cta-btn kb-empty__cta-btn--primary" @click="handleOpenCreate">
                       <el-icon :size="26"><UploadFilled /></el-icon>
                       <span class="kb-empty__cta-text">
                         <b>空白创建</b>
-                        <i>从上传文档开始</i>
+                        <i>从上传文档开�?/i>
                       </span>
                     </button>
                     <button type="button" class="kb-empty__cta-btn kb-empty__cta-btn--ghost" @click="showTplGallery = true">
                       <el-icon :size="26"><Files /></el-icon>
                       <span class="kb-empty__cta-text">
-                        <b>从模板创建</b>
+                        <b>从模板创�?/b>
                         <i>套用预置结构</i>
                       </span>
                     </button>
@@ -234,10 +232,10 @@
               </div>
             </div>
 
-            <!-- 右：最近活动 -->
+            <!-- 右：最近活�?-->
             <aside class="kb-home__side">
               <div class="kb-activity re-surface">
-                <h2 class="kb-activity__head">最近活动</h2>
+                <h2 class="kb-activity__head">最近活�?/h2>
                 <el-empty v-if="activities.length === 0" :image-size="56"
                   description="暂无活动，进入知识库上传文档或生成图谱后会出现在这里" />
                 <ul v-else class="kb-activity__list">
@@ -258,14 +256,13 @@
 
     <!-- 视图模式：知识库详情 -->
     <div v-else class="flex-1 flex flex-col overflow-hidden">
-      <!-- 详情页头：左 返回（图标钮）+ 标题/副标题，右 图标动作组。
-           全站图标按钮统一「无底色 + 悬浮提示」形态（.kb-btn），不再出现文字按钮 -->
+      <!-- 详情页头：左 返回（图标钮�? 标题/副标题，�?图标动作组�?           全站图标按钮统一「无底色 + 悬浮提示」形态（.kb-btn），不再出现文字按钮 -->
       <div class="shrink-0 kb-detail__header">
-        <ReSquareButton layout="square" class="kb-btn" :icon="ArrowLeft24Filled" tip="返回知识库列表" @click="backToList" />
+        <ReSquareButton layout="square" class="kb-btn" :icon="ArrowLeft24Filled" tip="返回知识库列�? @click="backToList" />
         <div class="min-w-0 kb-detail__titlebox">
           <h1 class="kb-detail__title">{{ currentKB?.name }}</h1>
           <p class="kb-detail__subtitle">
-            文档 {{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }} 篇 ·
+            文档 {{ fmtCount(countOf(currentKB?.id || '', 'file_count')) }} �?·
             实体 {{ fmtCount(countOf(currentKB?.id || '', 'entity_count')) }} ·
             关系 {{ fmtCount(countOf(currentKB?.id || '', 'relation_count')) }}
           </p>
@@ -276,13 +273,13 @@
             :loading="detailRefreshing" @click="refreshDetail" />
           <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting" tip="设置"
             :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
-          <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete" tip="删除知识库"
+          <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete" tip="删除知识�?
             :disabled="!canEditCurrent" @click="handleDeleteFromDetail" />
         </div>
       </div>
       <div class="flex-1 overflow-auto min-h-0 flex flex-col" @scroll="handleScroll">
         <div class="w-full kb-detail__body">
-          <!-- 文件列表 Tab：左「文档」+ 右「智能问答」双栏 -->
+          <!-- 文件列表 Tab：左「文档�? 右「智能问答」双�?-->
           <KBMenu
             :kb-name="currentKB?.name"
             :active="activeTab"
@@ -292,7 +289,7 @@
           />
 
           <div v-show="activeTab === 'overview'" class="kb-pane kb-pane--scroll">
-            <!-- 统计卡 -->
+            <!-- 统计�?-->
             <div class="kb-stats kb-overview__stats">
               <div class="kb-stat re-surface re-surface--dense">
                 <el-icon :size="26" class="kb-stat__icon"><Document /></el-icon>
@@ -322,7 +319,7 @@
               <section class="re-surface re-surface--dense kb-ov-card">
                 <div class="flex items-center justify-between gap-2">
                   <h3 class="kb-ov__title">实体类型分布</h3>
-                  <ReTag size="small">{{ fmtCount(graphView.entityCount) }} 个实体</ReTag>
+                  <ReTag size="small">{{ fmtCount(graphView.entityCount) }} 个实�?/ReTag>
                 </div>
                 <div v-if="entityTypeStats.length > 0" class="flex flex-col gap-2.5">
                   <div v-for="s in entityTypeStats" :key="s.type" class="kb-ov__bar">
@@ -333,14 +330,14 @@
                     <span class="kb-ov__count">{{ s.count }}</span>
                   </div>
                 </div>
-                <ReEmpty v-else text="暂无实体，上传文档或生成图谱后可见" />
+                <ReEmpty v-else text="暂无实体，上传文档或生成图谱后可�? />
               </section>
 
               <!-- 关系类型分布 -->
               <section class="re-surface re-surface--dense kb-ov-card">
                 <div class="flex items-center justify-between gap-2">
                   <h3 class="kb-ov__title">关系类型分布</h3>
-                  <ReTag size="small">{{ fmtCount(graphView.relationCount) }} 条关系</ReTag>
+                  <ReTag size="small">{{ fmtCount(graphView.relationCount) }} 条关�?/ReTag>
                 </div>
                 <div v-if="relationTypeStats.length > 0" class="flex flex-col gap-2.5">
                   <div v-for="s in relationTypeStats" :key="s.type" class="kb-ov__bar">
@@ -351,7 +348,7 @@
                     <span class="kb-ov__count">{{ s.count }}</span>
                   </div>
                 </div>
-                <ReEmpty v-else text="暂无关系，点「知识图谱 → 生成图谱」抽取" />
+                <ReEmpty v-else text="暂无关系，点「知识图�?�?生成图谱」抽�? />
               </section>
 
               <!-- 关联最多的实体 -->
@@ -368,32 +365,31 @@
                 <ReEmpty v-else text="暂无实体" />
               </section>
 
-              <!-- 快捷操作：纯图标动作组 + 悬浮提示 -->
+              <!-- 快捷操作：纯图标动作�?+ 悬浮提示 -->
               <section class="re-surface re-surface--dense kb-ov-card">
                 <h3 class="kb-ov__title">快捷操作</h3>
                 <div class="kb-actions">
                   <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="UploadFilled" tip="上传文档" @click="handleMenuSelect('files')" />
-                  <ReSquareButton layout="square" class="kb-btn" :icon="Search" tip="检索内容" @click="handleMenuSelect('search')" />
+                  <ReSquareButton layout="square" class="kb-btn" :icon="Search" tip="检索内�? @click="handleMenuSelect('search')" />
                   <ReSquareButton layout="square" class="kb-btn" :icon="Share" tip="查看图谱" @click="handleMenuSelect('graph')" />
                   <ReSquareButton layout="square" class="kb-btn" :icon="ChatDotRound" tip="智能问答" @click="handleMenuSelect('ask')" />
                 </div>
                 <p class="kb-ov__hint">
-                  统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新。
-                </p>
+                  统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新�?                </p>
               </section>
             </div>
           </div>
 
           <div v-show="activeTab === 'files'" class="kb-split">
-            <!-- 左栏：文档 -->
+            <!-- 左栏：文�?-->
             <section class="kb-split__docs">
               <div class="kb-split__head">
                 <div class="kb-split__title">
                   <h2>文档</h2>
-                  <el-tag effect="plain" round size="small">{{ filesForFilter.length }} 篇</el-tag>
+                  <el-tag effect="plain" round size="small">{{ filesForFilter.length }} �?/el-tag>
                   <span v-if="currentKB?.name" class="kb-split__sub" :title="currentKB?.name">{{ currentKB?.name }}</span>
                 </div>
-                <!-- 上传入口（仅 owner；他人公开库只读）：纯图标方形按钮组 + 悬浮提示 -->
+                <!-- 上传入口（仅 owner；他人公开库只读）：纯图标方形按钮�?+ 悬浮提示 -->
                 <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
                   :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
                   @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
@@ -404,7 +400,7 @@
                 {{ t('knowledge.page.readonlyHint') }}
               </div>
 
-              <!-- 状态分栏：全部 / 已索引 / 解析中 / 失败 -->
+              <!-- 状态分栏：全部 / 已索�?/ 解析�?/ 失败 -->
               <div class="kb-split__filters">
                 <button
                   v-for="f in fileStatusFilters"
@@ -419,7 +415,7 @@
                 </button>
               </div>
 
-              <!-- 文件列表内容区 -->
+              <!-- 文件列表内容�?-->
               <div class="kb-split__tree">
                 <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
                   :status-filter="fileStatusFilter"
@@ -428,7 +424,7 @@
               </div>
             </section>
 
-            <!-- 右栏：智能问答 -->
+            <!-- 右栏：智能问�?-->
             <section class="kb-split__ask">
               <KBAskPanel
                 :kb-id="currentKB?.id || ''"
@@ -458,10 +454,10 @@
             </section>
           </div>
 
-          <!-- 实体管理：工具条（搜索 + 图标动作组）+ 卡片表格 + 客户端分页 -->
+          <!-- 实体管理：工具条（搜�?+ 图标动作组）+ 卡片表格 + 客户端分�?-->
           <div v-show="activeTab === 'entities'" class="kb-pane">
             <div class="kb-view__toolbar">
-              <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
+              <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过�? clearable
                 class="kb-view__search" />
               <div class="flex-1" />
               <div class="kb-actions">
@@ -473,31 +469,36 @@
               </div>
             </div>
             <div class="panel-card">
-              <el-table ref="entityTableRef" v-loading="graphLoading" :data="pagedGraphEntities" stripe
-                class="flat-table" @selection-change="onEntitySelection">
-                <el-table-column type="selection" width="42" />
-                <el-table-column label="名称" min-width="160">
-                  <template #default="{ row }">
-                    <div class="flex items-center gap-2">
-                      <img v-if="row.image" :src="row.image" alt="" class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
-                        @error="($event.target as HTMLImageElement).style.display = 'none'" />
-                      <span>{{ row.text }}</span>
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column label="类型" width="120">
-                  <template #default="{ row }">
-                    <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="degree" label="关系数" width="90" align="right" />
-                <el-table-column label="操作" width="140" align="right">
-                  <template #default="{ row }">
-                    <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
-                    <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteEntity(row)" />
-                  </template>
-                </el-table-column>
-              </el-table>
+              <!-- 实体表：�?el-table �?ReTable。type="selection" �?�?show-selection�?                   engine="element" 保持�?el-table DOM；分页由下方 el-pagination 自管�?                   原表没有 border �?:settings="{ border: false }"；ref 仍叫 entityTableRef�?                   清勾选改�?ReTable 暴露�?clearAllSelection()（原�?el-table �?clearSelection()）�?-->
+              <ReTable
+                ref="entityTableRef"
+                :data="pagedGraphEntities"
+                :columns="entityColumns"
+                :loading="graphLoading"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :layout-table="{ minHeight: 0 }"
+                :settings="{ border: false }"
+                stripe
+                class="flat-table"
+                @selection-change="onEntitySelection"
+              >
+                <template #col-name="{ row }">
+                  <div class="flex items-center gap-2">
+                    <img v-if="row.image" :src="row.image" alt="" class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                      @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                    <span>{{ row.text }}</span>
+                  </div>
+                </template>
+                <template #col-type="{ row }">
+                  <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
+                </template>
+                <template #col-actions="{ row }">
+                  <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
+                  <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteEntity(row)" />
+                </template>
+              </ReTable>
               <div class="pagination-wrapper">
                 <el-pagination
                   v-model:current-page="entityPage"
@@ -510,7 +511,7 @@
             </div>
           </div>
 
-          <!-- 关系管理：工具条（搜索 + 图标动作组）+ 卡片表格 + 客户端分页 -->
+          <!-- 关系管理：工具条（搜�?+ 图标动作组）+ 卡片表格 + 客户端分�?-->
           <div v-show="activeTab === 'relations'" class="kb-pane">
             <div class="kb-view__toolbar">
               <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
@@ -525,22 +526,27 @@
               </div>
             </div>
             <div class="panel-card">
-              <el-table ref="relationTableRef" v-loading="graphLoading" :data="pagedGraphRelations" stripe
-                class="flat-table" @selection-change="onRelationSelection">
-                <el-table-column type="selection" width="42" />
-                <el-table-column label="源" min-width="150">
-                  <template #default="{ row }">{{ nodeNameById(row.from) }}</template>
-                </el-table-column>
-                <el-table-column prop="text" label="关系" width="140" />
-                <el-table-column label="目标" min-width="150">
-                  <template #default="{ row }">{{ nodeNameById(row.to) }}</template>
-                </el-table-column>
-                <el-table-column label="操作" width="100" align="right">
-                  <template #default="{ row }">
-                    <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
-                  </template>
-                </el-table-column>
-              </el-table>
+              <!-- 关系表：�?el-table �?ReTable（同实体表：selection �?�?show-selection�?                   �?border �?settings.border=false，清勾选走 clearAllSelection()�?-->
+              <ReTable
+                ref="relationTableRef"
+                :data="pagedGraphRelations"
+                :columns="relationColumns"
+                :loading="graphLoading"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :layout-table="{ minHeight: 0 }"
+                :settings="{ border: false }"
+                stripe
+                class="flat-table"
+                @selection-change="onRelationSelection"
+              >
+                <template #col-from="{ row }">{{ nodeNameById(row.from) }}</template>
+                <template #col-to="{ row }">{{ nodeNameById(row.to) }}</template>
+                <template #col-actions="{ row }">
+                  <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
+                </template>
+              </ReTable>
               <div class="pagination-wrapper">
                 <el-pagination
                   v-model:current-page="relationPage"
@@ -558,15 +564,13 @@
               <span class="text-sm kb-graph__count">
                 实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
               </span>
-              <!-- 图例说明与手工补录提示收敛进悬浮气泡，不再占用两行版面 -->
+              <!-- 图例说明与手工补录提示收敛进悬浮气泡，不再占用两行版�?-->
               <el-tooltip placement="bottom-start" effect="light" :show-after="150">
                 <template #content>
                   <div class="leading-relaxed max-w-[320px]">
-                    节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关系 +{{ NODE_SIZE_STEP }}px），点击节点可看关系明细。
-                  </div>
+                    节点大小按关系条数缩放（{{ NODE_MIN_SIZE }}–{{ NODE_MAX_SIZE }}px，每条关�?+{{ NODE_SIZE_STEP }}px），点击节点可看关系明细�?                  </div>
                   <div class="leading-relaxed max-w-[320px] mt-1">
-                    画布直接用鼠标滚轮 / 触控板缩放；手工补录的内容独立于知识点，删除知识点不会连带删掉。
-                  </div>
+                    画布直接用鼠标滚�?/ 触控板缩放；手工补录的内容独立于知识点，删除知识点不会连带删掉�?                  </div>
                 </template>
                 <el-icon class="kb-graph__help"><QuestionFilled /></el-icon>
               </el-tooltip>
@@ -574,11 +578,9 @@
               <span v-if="graphError" class="text-sm text-[var(--rm-danger)]">{{ graphError }}</span>
               <span v-else-if="!graphLoading && graphView.nodes.length === 0" class="text-sm kb-graph__hint">
                 <template v-if="graphView.placeholder">
-                  暂无图谱数据（尚未抽取过关系）。点「生成图谱」让 AI 从现有知识点里抽一遍。
-                </template>
+                  暂无图谱数据（尚未抽取过关系）。点「生成图谱」让 AI 从现有知识点里抽一遍�?                </template>
                 <template v-else>
-                  当前范围确实没有关系。可点「重新生成」按最新原文再抽一次。
-                </template>
+                  当前范围确实没有关系。可点「重新生成」按最新原文再抽一次�?                </template>
               </span>
 
               <div class="flex-1" />
@@ -587,7 +589,7 @@
                 class="kb-view__search" />
               <div class="kb-actions">
                 <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
-                <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
+                <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用�?-->
                 <ReSquareButton layout="square" v-if="ragReady" class="kb-btn" type="primary" :icon="Refresh"
                   :tip="graphView.placeholder ? '生成图谱' : '重新生成'"
                   :loading="graphGenerating" @click="handleGenerateGraph" />
@@ -598,7 +600,7 @@
 
             <div class="kb-graph__body">
               <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
-                <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph 的 zoom-canvas 行为） -->
+                <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph �?zoom-canvas 行为�?-->
                 <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
                   :toolbar="false" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
@@ -628,15 +630,14 @@
                   </div>
                 </div>
 
-                <h4 class="kb-gedetail__section">关系（{{ selectedNodeRelations.length }}）</h4>
+                <h4 class="kb-gedetail__section">关系（{{ selectedNodeRelations.length }}�?/h4>
                 <ul class="kb-gedetail__relations">
                   <li v-for="r in selectedNodeRelations" :key="r.key" class="kb-gedetail__relation">
                     <span class="kb-gedetail__relation-type">{{ r.type || '相关' }}</span>
                     <span class="kb-gedetail__relation-peer truncate">{{ r.peer }}</span>
                   </li>
                   <li v-if="selectedNodeRelations.length === 0" class="kb-gedetail__relation kb-gedetail__relation--empty">
-                    该实体暂无关系
-                  </li>
+                    该实体暂无关�?                  </li>
                 </ul>
 
                 <div class="kb-gedetail__actions">
@@ -672,11 +673,11 @@
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">图片地址</label>
         <div class="flex items-center gap-2">
-          <el-input v-model="entityForm.logo" maxlength="512" placeholder="https://… 或 /kb-images/….png；清空即移除图片" />
+          <el-input v-model="entityForm.logo" maxlength="512" placeholder="https://�?�?/kb-images/�?png；清空即移除图片" />
           <img v-if="entityForm.logo.trim()" :src="entityForm.logo.trim()" alt=""
             class="w-10 h-10 rounded-md object-cover border border-[var(--rm-border)] shrink-0" @error="($event.target as HTMLImageElement).style.visibility = 'hidden'" />
         </div>
-        <p class="text-[11px] text-[var(--rm-text-secondary)] mt-1">有图片时，图谱节点会直接用图片渲染</p>
+        <p class="text-[11px] text-[var(--rm-text-secondary)] mt-1">有图片时，图谱节点会直接用图片渲�?/p>
       </div>
     </div>
     <template #footer>
@@ -689,26 +690,25 @@
   <ReDialog v-model="showRelationForm" title="新增关系" :width="460" :close-on-click-modal="false">
     <div class="flex flex-col gap-4">
       <div>
-        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
+        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实�?i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
         <el-select v-model="relationForm.source" filterable allow-create default-first-option
-          placeholder="输入或选择已有实体名" class="!w-full">
+          placeholder="输入或选择已有实体�? class="!w-full">
           <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
         </el-select>
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">关系类型<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-        <el-input v-model="relationForm.type" placeholder="如 镇守 / 结义 / 放走" maxlength="32" />
+        <el-input v-model="relationForm.type" placeholder="�?镇守 / 结义 / 放走" maxlength="32" />
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">目标实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
         <el-select v-model="relationForm.target" filterable allow-create default-first-option
-          placeholder="输入或选择已有实体名" class="!w-full">
+          placeholder="输入或选择已有实体�? class="!w-full">
           <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
         </el-select>
       </div>
       <p class="text-xs text-[var(--rm-text-disabled)] leading-relaxed">
-        源/目标填了库里没有的名字时，会自动建一个「其它」类型的占位实体；源与目标相同会被拒绝。
-      </p>
+        �?目标填了库里没有的名字时，会自动建一个「其它」类型的占位实体；源与目标相同会被拒绝�?      </p>
     </div>
     <template #footer>
       <ReButton type="default" @click="showRelationForm = false">取消</ReButton>
@@ -716,7 +716,7 @@
     </template>
   </ReDialog>
 
-  <!-- 创建/编辑知识库对话框：与「新建知识库」同一套 koi ReDialog 与视觉语言 -->
+  <!-- 创建/编辑知识库对话框：与「新建知识库」同一�?koi ReDialog 与视觉语言 -->
   <ReDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" :width="560" :close-on-click-modal="false">
     <div class="flex flex-col gap-4">
       <div>
@@ -735,18 +735,17 @@
       <!-- 网址采集：填了网址即从该站点抓取正文入库（与手动上传文件等价，可被语义检索） -->
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">网址采集</label>
-        <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
+        <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启�? clearable />
         <div class="flex items-center gap-2 mt-2">
           <span class="text-xs text-[var(--rm-text-secondary)]">同域采集页数</span>
           <el-input-number v-model="dialogForm.sourceMaxPages" :min="1" :max="50" :step="1" controls-position="right" size="small" />
         </div>
         <div v-if="dialogForm.sourceUrl" class="text-xs text-[var(--rm-text-disabled)] mt-1.5">
-          创建时会立即抓取该网址：1 表示只抓入口页，大于 1 会沿同域链接继续展开；只允许 http/https 的公网地址，内网与云元数据地址会被拒绝。
-        </div>
+          创建时会立即抓取该网址�? 表示只抓入口页，大于 1 会沿同域链接继续展开；只允许 http/https 的公网地址，内网与云元数据地址会被拒绝�?        </div>
       </div>
 
-      <!-- 嵌入模型：已改为「设置中心 → 默认模型」的全局配置，后端 sys_ai_knowledge_base 无该列，
-           故此处不再放「向量模型」选择器（放了也不生效、还会标成必填误导用户）。 -->
+      <!-- 嵌入模型：已改为「设置中�?�?默认模型」的全局配置，后�?sys_ai_knowledge_base 无该列，
+           故此处不再放「向量模型」选择器（放了也不生效、还会标成必填误导用户）�?-->
 
       <!-- 分块配置 -->
       <div>
@@ -767,7 +766,7 @@
         </div>
       </div>
 
-      <!-- 可见范围：与新建弹框一致，二选一（后端只有 is_public 一列，无「团队」语义） -->
+      <!-- 可见范围：与新建弹框一致，二选一（后端只�?is_public 一列，无「团队」语义） -->
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('knowledge.page.visibility') }}</label>
         <div class="grid grid-cols-2 gap-2.5">
@@ -780,8 +779,7 @@
             @click="dialogForm.isPublic = false"
           >
             <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-            私有<br>仅自己可见
-          </button>
+            私有<br>仅自己可�?          </button>
           <button
             type="button"
             class="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-[var(--rm-radius,10px)] text-xs leading-relaxed cursor-pointer transition border"
@@ -841,7 +839,7 @@ import coverIdiom from '@/assets/kb/tpl-idiom.png'
 import coverQuestion from '@/assets/kb/tpl-question.png'
 import KBAskPanel from './KBAskPanel.vue'
 import KBFilePreview from './KBFilePreview.vue'
-// 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供），异步加载避免拖慢知识库首屏
+// 关系图谱使用 G6 内核�?ReRelationGraph（@repo/ui 已提供），异步加载避免拖慢知识库首屏
 const ReRelationGraph = defineAsyncComponent(() =>
   import('@repo/ui/re-relation-graph').then((m) => m.default),
 )
@@ -855,13 +853,11 @@ import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
-// 仓库标准的正方形图标按钮（layout="square" 且内建 el-tooltip）：
-// 工具栏 / 表格操作列的「纯图标 + 悬浮提示」统一用它，避免各处再包一层 el-tooltip。
-import ReSquareButton from '@repo/ui/re-button'
+// 仓库标准的正方形图标按钮（layout="square" 且内�?el-tooltip）：
+// 工具�?/ 表格操作列的「纯图标 + 悬浮提示」统一用它，避免各处再包一�?el-tooltip�?import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
-// 模板数据集类型：携带完整文档 / 实体 / 关系，创建后整体复制进新库
-import type { KbTemplateDataset } from '@/data/kb/templates/types'
+// 模板数据集类型：携带完整文档 / 实体 / 关系，创建后整体复制进新�?import type { KbTemplateDataset } from '@/data/kb/templates/types'
 import { SANGUO_DATASET } from '@/data/kb/templates/sanguo'
 
 // 初始化组合式函数
@@ -873,45 +869,39 @@ const uploadStore = useFileUploadStore()
 const route = useRoute()
 const router = useRouter()
 
-// ========== 状态 ==========
+// ========== 状�?==========
 const showKbDialog = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const showUploadModal = ref(false)
 const showFileChunksModal = ref(false)  // 文件分块查看弹窗
 const showUploadTaskModal = ref(false)  // 上传任务弹窗
-const selectedFile = ref<KBFile | null>(null)  // 选中的文件
-const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'>('files')  // 当前激活的 Tab
+const selectedFile = ref<KBFile | null>(null)  // 选中的文�?const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'>('files')  // 当前激活的 Tab
 const viewMode = ref<'list' | 'detail' | 'list-legacy'>('list')  // 视图模式：列表或详情（list-legacy 为保留的旧列表分支）
 const searchKeyword = ref('')  // 知识库搜索关键词
 const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
 
-// ---- 关系图谱（Tab=graph）状态 ----
-const graphLoading = ref(false)        // 图谱加载中
-const graphError = ref('')             // 图谱加载错误
+// ---- 关系图谱（Tab=graph）状�?----
+const graphLoading = ref(false)        // 图谱加载�?const graphError = ref('')             // 图谱加载错误
 const graphKeyword = ref('')           // 实体名过滤关键词
 const graphCount = ref(0)              // 图谱元素总数（上传后判断要不要整图刷新）
-const graphView = reactive({           // 后端返回的原始图谱
-  nodes: [] as any[],
+const graphView = reactive({           // 后端返回的原始图�?  nodes: [] as any[],
   edges: [] as any[],
   entityCount: 0,
   relationCount: 0,
-  // true = 该范围还没抽取过关系（占位图），false = 抽过但确实没有关系
-  placeholder: true,
+  // true = 该范围还没抽取过关系（占位图），false = 抽过但确实没有关�?  placeholder: true,
 })
 
-// ---- 节点尺寸：关系越多节点越大，且必须封顶封底 ----
-// 后端只给「关系条数 degree」，像素尺寸是展示层决策，放在前端便于随时调参
-/** 节点最小边长（像素）：0 关系的孤立实体也不会缩成一个点 */
+// ---- 节点尺寸：关系越多节点越大，且必须封顶封�?----
+// 后端只给「关系条�?degree」，像素尺寸是展示层决策，放在前端便于随时调�?/** 节点最小边长（像素）：0 关系的孤立实体也不会缩成一个点 */
 const NODE_MIN_SIZE = 36
-/** 节点最大边长（像素）：防止超级节点把图撑爆、挤掉其它实体 */
+/** 节点最大边长（像素）：防止超级节点把图撑爆、挤掉其它实�?*/
 const NODE_MAX_SIZE = 96
-/** 每 1 条关系增加的边长（像素） */
+/** �?1 条关系增加的边长（像素） */
 const NODE_SIZE_STEP = 8
 
 /**
- * 按关系条数算节点边长，并做上下限截断。
- * @param degree 关系条数（后端给的实体度数）
- * @returns 节点边长（像素），必定落在 [NODE_MIN_SIZE, NODE_MAX_SIZE]
+ * 按关系条数算节点边长，并做上下限截断�? * @param degree 关系条数（后端给的实体度数）
+ * @returns 节点边长（像素），必定落�?[NODE_MIN_SIZE, NODE_MAX_SIZE]
  */
 function nodeSizeOf(degree: unknown): number {
   const d = Math.max(0, Number(degree) || 0)
@@ -920,10 +910,9 @@ function nodeSizeOf(degree: unknown): number {
 }
 
 /**
- * 实体类型 → 节点填充色。
- *
- * <p>G6 v5 的节点 {@code type} 是**图元原型**（circle/rect/…），不是业务类型，
- * 所以「人物/地点/事件/组织」的区分只能靠填充色与图例，不能再塞进 {@code type}。</p>
+ * 实体类型 �?节点填充色�? *
+ * <p>G6 v5 的节�?{@code type} �?*图元原型**（circle/rect/…），不是业务类型，
+ * 所以「人�?地点/事件/组织」的区分只能靠填充色与图例，不能再塞�?{@code type}�?/p>
  */
 const ENTITY_COLORS: Record<string, string> = {
   person: '#3b82f6',
@@ -934,10 +923,8 @@ const ENTITY_COLORS: Record<string, string> = {
 }
 
 /**
- * 实体类型 → 节点色（未知类型回退到 other）。
- * @param t 实体类型
- * @returns 十六进制色值
- */
+ * 实体类型 �?节点色（未知类型回退�?other）�? * @param t 实体类型
+ * @returns 十六进制色�? */
 function entityColor(t: string): string {
   return ENTITY_COLORS[t] ?? ENTITY_COLORS.other
 }
@@ -965,18 +952,14 @@ const entityForm = reactive({ id: '', name: '', type: 'other', description: '', 
 const relationForm = reactive({ source: '', type: '', target: '' })
 
 /**
- * 实体类型 → 中文标签。
- * @param t 后端返回的类型
- * @returns 中文标签
+ * 实体类型 �?中文标签�? * @param t 后端返回的类�? * @returns 中文标签
  */
 function entityTypeLabel(t: string): string {
   return ENTITY_TYPE_OPTIONS.find((o) => o.value === t)?.label ?? '其它'
 }
 
 /**
- * 实体类型 → el-tag 的色系。
- * @param t 后端返回的类型
- * @returns el-tag 的 type
+ * 实体类型 �?el-tag 的色系�? * @param t 后端返回的类�? * @returns el-tag �?type
  */
 function entityTagType(t: string): 'success' | 'info' | 'warning' | 'danger' | 'primary' {
   const map: Record<string, 'success' | 'info' | 'warning' | 'danger' | 'primary'> = {
@@ -989,9 +972,9 @@ function entityTagType(t: string): 'success' | 'info' | 'warning' | 'danger' | '
   return map[t] ?? 'info';
 }
 
-/** 管理面板里的实体列表（不按关键词过滤） */
+/** 管理面板里的实体列表（不按关键词过滤�?*/
 const graphEntities = computed(() => graphView.nodes);
-/** 按名称过滤后的实体 */
+/** 按名称过滤后的实�?*/
 const filteredGraphEntities = computed(() => {
   const kw = graphEntityKeyword.value.trim().toLowerCase();
   if (!kw) return graphEntities.value;
@@ -999,7 +982,7 @@ const filteredGraphEntities = computed(() => {
 });
 /** 管理面板里的关系列表 */
 const graphRelations = computed(() => graphView.edges);
-/** 按实体名或关系类型过滤后的关系 */
+/** 按实体名或关系类型过滤后的关�?*/
 const filteredGraphRelations = computed(() => {
   const kw = graphRelationKeyword.value.trim().toLowerCase();
   if (!kw) return graphRelations.value;
@@ -1011,30 +994,29 @@ const filteredGraphRelations = computed(() => {
   });
 });
 
-// ---- 管理页式分页：实体 / 关系都在本地数据上切页，不打后端 ----
+// ---- 管理页式分页：实�?/ 关系都在本地数据上切页，不打后端 ----
 const entityPage = ref(1)
 const entityPageSize = ref(20)
 const relationPage = ref(1)
 const relationPageSize = ref(20)
 
-/** 当前页实体（对过滤结果切页，「搜索 + 表格 + 分页」的表格数据源） */
+/** 当前页实体（对过滤结果切页，「搜�?+ 表格 + 分页」的表格数据源） */
 const pagedGraphEntities = computed(() => {
   const start = (entityPage.value - 1) * entityPageSize.value
   return filteredGraphEntities.value.slice(start, start + entityPageSize.value)
 })
 
-/** 当前页关系（同上） */
+/** 当前页关系（同上�?*/
 const pagedGraphRelations = computed(() => {
   const start = (relationPage.value - 1) * relationPageSize.value
   return filteredGraphRelations.value.slice(start, start + relationPageSize.value)
 })
 
-/** 两个表格的引用：翻页 / 换词 / 换库时清掉表格内部勾选，避免与批量删除计数不一致 */
+/** 两个表格的引用：翻页 / 换词 / 换库时清掉表格内部勾选，避免与批量删除计数不一�?*/
 const entityTableRef = ref<any>(null)
 const relationTableRef = ref<any>(null)
 
-// 换过滤词回第一页；数据变少（删除 / 换库）后把越界页码钳回最后一页
-watch(graphEntityKeyword, () => { entityPage.value = 1 })
+// 换过滤词回第一页；数据变少（删�?/ 换库）后把越界页码钳回最后一�?watch(graphEntityKeyword, () => { entityPage.value = 1 })
 watch(graphRelationKeyword, () => { relationPage.value = 1 })
 watch(() => filteredGraphEntities.value.length, (len) => {
   const maxPage = Math.max(1, Math.ceil(len / entityPageSize.value))
@@ -1047,57 +1029,51 @@ watch(() => filteredGraphRelations.value.length, (len) => {
 
 // 翻页 / 换词 / 改页大小时清空勾选：批量删除只应作用于当前看得见的行
 watch([entityPage, entityPageSize, graphEntityKeyword], () => {
-  entityTableRef.value?.clearSelection?.()
+  entityTableRef.value?.clearAllSelection?.()
   selectedEntityUids.value = []
 })
 watch([relationPage, relationPageSize, graphRelationKeyword], () => {
-  relationTableRef.value?.clearSelection?.()
+  relationTableRef.value?.clearAllSelection?.()
   selectedRelationUids.value = []
 })
 
-// 图谱数据整体更换（重新拉取 / 换库）后清空勾选，避免残留指向旧行的 id
+// 图谱数据整体更换（重新拉�?/ 换库）后清空勾选，避免残留指向旧行�?id
 watch(() => graphView.nodes, () => {
-  entityTableRef.value?.clearSelection?.()
+  entityTableRef.value?.clearAllSelection?.()
   selectedEntityUids.value = []
 })
 watch(() => graphView.edges, () => {
-  relationTableRef.value?.clearSelection?.()
+  relationTableRef.value?.clearAllSelection?.()
   selectedRelationUids.value = []
 })
 
 /**
- * 节点 id → 显示名（关系列表要把 uid 还原成实体名）。
- * @param id 节点 id
- * @returns 实体名，未知 id 返回原值
- */
+ * 节点 id �?显示名（关系列表要把 uid 还原成实体名）�? * @param id 节点 id
+ * @returns 实体名，未知 id 返回原�? */
 function nodeNameById(id: string): string {
   const hit = graphView.nodes.find((n) => n.id === id);
   return hit ? String(hit.text ?? '') : String(id ?? '');
 }
 
 /**
- * 打开管理面板。
- * @param tab 初始页签
+ * 打开管理面板�? * @param tab 初始页签
  */
 /**
- * 教育场景模板清单（总览页用）。
- *
- * <p>封面是**已下载入库的本地资源**。模板本身仍是静态清单 —— 后端没有知识库模板接口，
- * 卡上的「84 实体 · 196 关系」取自设计稿的静态定义，是模板宣称的预置规模，
- * 不是某个真实库的运行数据；后端出模板接口后换成接口数据即可。</p>
+ * 教育场景模板清单（总览页用）�? *
+ * <p>封面�?*已下载入库的本地资源**。模板本身仍是静态清�?—�?后端没有知识库模板接口，
+ * 卡上的�?4 实体 · 196 关系」取自设计稿的静态定义，是模板宣称的预置规模�? * 不是某个真实库的运行数据；后端出模板接口后换成接口数据即可�?/p>
  */
 const overviewTemplates = computed(() => [
   { key: 'sanguo', name: '三国演义知识图谱', cover: coverSanguo, entity: SANGUO_DATASET.entities.length, relation: SANGUO_DATASET.relations.length },
   { key: 'poem', name: '古诗词库', cover: coverPoem, entity: 0, relation: 0 },
-  { key: 'idiom', name: '成语库', cover: coverIdiom, entity: 0, relation: 0 },
-  { key: 'question', name: '题库知识库', cover: coverQuestion, entity: 0, relation: 0 },
+  { key: 'idiom', name: '成语�?, cover: coverIdiom, entity: 0, relation: 0 },
+  { key: 'question', name: '题库知识�?, cover: coverQuestion, entity: 0, relation: 0 },
 ])
 
 /**
- * 总览页的知识库列表（含封面 / 计数 / 就绪态）。
- *
+ * 总览页的知识库列表（含封�?/ 计数 / 就绪态）�? *
  * <p>这是**进入已有知识库的唯一入口**：缺了它，有库时页面上看不到也点不进去，
- * 详情页整体不可达。</p>
+ * 详情页整体不可达�?/p>
  */
 const overviewBases = computed(() =>
   filteredKnowledgeBases.value.map((kb) => ({
@@ -1114,8 +1090,7 @@ const overviewBases = computed(() =>
 )
 
 /**
- * 从总览列表进入知识库详情。
- *
+ * 从总览列表进入知识库详情�? *
  * @param kb 被点击的列表条目
  */
 function handleOverviewOpen(kb: { id: string }) {
@@ -1126,10 +1101,8 @@ function handleOverviewOpen(kb: { id: string }) {
 }
 
 /**
- * 总览页编辑提交：切到既有的知识库编辑流程（复用其校验与保存）。
- *
- * @param p 总览弹窗交回的字段
- */
+ * 总览页编辑提交：切到既有的知识库编辑流程（复用其校验与保存）�? *
+ * @param p 总览弹窗交回的字�? */
 function handleOverviewUpdate(p: { id: string; name: string; description: string; isPublic: boolean }) {
   const target = filteredKnowledgeBases.value.find((x) => x.id === p.id)
   if (target) {
@@ -1138,8 +1111,7 @@ function handleOverviewUpdate(p: { id: string; name: string; description: string
 }
 
 /**
- * 总览页删除：复用既有的删除确认流程。
- *
+ * 总览页删除：复用既有的删除确认流程�? *
  * @param kb 目标列表条目
  */
 function handleOverviewDelete(kb: { id: string }) {
@@ -1150,14 +1122,11 @@ function handleOverviewDelete(kb: { id: string }) {
 }
 
 /**
- * 总览页提交新建：复用既有建库流程，把总览弹窗收集到的字段填进既有表单。
- *
- * @param p 总览弹窗交回的字段（只含后端真实支持的项）
- */
+ * 总览页提交新建：复用既有建库流程，把总览弹窗收集到的字段填进既有表单�? *
+ * @param p 总览弹窗交回的字段（只含后端真实支持的项�? */
 function handleOverviewCreate(p: { name: string; description: string; isPublic: boolean }) {
-  // 一次弹框一次落库：把总览页 ReDialog 交回的字段直接写进 dialogForm 并调用同一条保存路径，
-  // 不再 handleOpenCreate() 打开旧的 .kb-dialog（那样会变成「两次弹框、要点两次创建」）。
-  dialogForm.id = ''
+  // 一次弹框一次落库：把总览�?ReDialog 交回的字段直接写�?dialogForm 并调用同一条保存路径，
+  // 不再 handleOpenCreate() 打开旧的 .kb-dialog（那样会变成「两次弹框、要点两次创建」）�?  dialogForm.id = ''
   dialogForm.name = p.name
   dialogForm.description = p.description
   dialogForm.isPublic = p.isPublic
@@ -1172,10 +1141,8 @@ function handleOverviewCreate(p: { name: string; description: string; isPublic: 
 }
 
 /**
- * 总览页搜索：写入既有关键词，交给原有过滤逻辑。
- *
- * @param kw 关键词
- */
+ * 总览页搜索：写入既有关键词，交给原有过滤逻辑�? *
+ * @param kw 关键�? */
 function handleOverviewSearch(kw: string) {
   searchKeyword.value = kw
 }
@@ -1183,42 +1150,34 @@ function handleOverviewSearch(kw: string) {
 /** 是否展示「从模板创建」页（覆盖列表视图） */
 const showTplGallery = ref(false)
 
-/** 总览页实例：用于把「使用此模板创建」切到它的 koi ReDialog */
+/** 总览页实例：用于把「使用此模板创建」切到它�?koi ReDialog */
 const overviewRef = ref<any>(null)
 
 /**
- * 主页面（列表视图）的两种数据形态，二者都由同一套模板渲染，不是两个页面：
- *
+ * 主页面（列表视图）的两种数据形态，二者都由同一套模板渲染，不是两个页面�? *
  * <ul>
- *   <li><b>0 个知识库</b>：走 kb-empty 分支 —— 「开始创建你的第一个知识库」标题行 +
- *       创建引导插图 + 「空白创建 / 从模板创建」双入口 + 「教育场景模板」区。
- *       这是产品定的主页面样式，不是临时占位。</li>
- *   <li><b>≥1 个知识库</b>：走卡片网格 —— 首个库为大卡（含封面位与计数徽标），
- *       其余为小卡，右栏为「最近活动」。</li>
+ *   <li><b>0 个知识库</b>：走 kb-empty 分支 —�?「开始创建你的第一个知识库」标题行 +
+ *       创建引导插图 + 「空白创�?/ 从模板创建」双入口 + 「教育场景模板」区�? *       这是产品定的主页面样式，不是临时占位�?/li>
+ *   <li><b>�? 个知识库</b>：走卡片网格 —�?首个库为大卡（含封面位与计数徽标），
+ *       其余为小卡，右栏为「最近活动」�?/li>
  * </ul>
  *
- * <p>要不要看到哪一种，只取决于库里有没有数据，与代码版本无关。</p>
+ * <p>要不要看到哪一种，只取决于库里有没有数据，与代码版本无关�?/p>
  */
 
 /**
- * 用模板创建知识库。
- *
+ * 用模板创建知识库�? *
  * <p>模板携带完整数据集（文档 + 实体 + 关系）：这里先记住数据集并切到建库弹框，
- * 建库成功后由 {@link materializeTemplate} 整体复制进新库。</p>
+ * 建库成功后由 {@link materializeTemplate} 整体复制进新库�?/p>
  *
- * @param name    模板名 / 知识库名
- * @param dataset 模板数据集（文档 + 实体 + 关系）
- */
+ * @param name    模板�?/ 知识库名
+ * @param dataset 模板数据集（文档 + 实体 + 关系�? */
 function handleTemplateCreate(name: string, dataset?: KbTemplateDataset) {
   showTplGallery.value = false
-  // 模板携带的完整数据集：建库成功后整体复制（文档 + 实体 + 关系，见 materializeTemplate）
-  pendingTemplateDataset.value = dataset ?? { docs: [], entities: [], relations: [] }
-  // 注意：handleOpenCreate() 无参，且模板里多处写作 @click="handleOpenCreate"
-  // （Vue 会把事件对象当第一个实参），所以这里不能给它加形参，
-  // 只能在它把表单重置完之后再写名字，否则 dialogForm.name 会被 MouseEvent 覆盖。
-  // 统一走总览页的 koi ReDialog（不再弹父页面旧的 .kb-dialog）；
-  // 总览页与模板页是 v-else-if 互斥的，必须等它挂载后再调用。
-  nextTick(() => {
+  // 模板携带的完整数据集：建库成功后整体复制（文�?+ 实体 + 关系，见 materializeTemplate�?  pendingTemplateDataset.value = dataset ?? { docs: [], entities: [], relations: [] }
+  // 注意：handleOpenCreate() 无参，且模板里多处写�?@click="handleOpenCreate"
+  // （Vue 会把事件对象当第一个实参），所以这里不能给它加形参�?  // 只能在它把表单重置完之后再写名字，否�?dialogForm.name 会被 MouseEvent 覆盖�?  // 统一走总览页的 koi ReDialog（不再弹父页面旧�?.kb-dialog）；
+  // 总览页与模板页是 v-else-if 互斥的，必须等它挂载后再调用�?  nextTick(() => {
     const ov = overviewRef.value as { openCreate?: (n?: string) => void } | null
     if (ov && typeof ov.openCreate === 'function') {
       ov.openCreate(name)
@@ -1229,20 +1188,16 @@ function handleTemplateCreate(name: string, dataset?: KbTemplateDataset) {
   })
 }
 
-/** 模板携带的完整数据集（建库成功后整体复制；空数据集表示非模板创建） */
+/** 模板携带的完整数据集（建库成功后整体复制；空数据集表示非模板创建�?*/
 const pendingTemplateDataset = ref<KbTemplateDataset>({ docs: [], entities: [], relations: [] })
 
 /**
- * 把模板携带的完整数据集整体复制进新建的知识库。
- *
- * <p>顺序：先写文档（按 path 的目录层级逐篇 {@code PUT /bases/{id}/file} 并建索引），
+ * 把模板携带的完整数据集整体复制进新建的知识库�? *
+ * <p>顺序：先写文档（�?path 的目录层级逐篇 {@code PUT /bases/{id}/file} 并建索引），
  * 再建实体（{@code POST /v2/rag/graph/entity}，带真实类型 person/organization/event/location），
- * 最后建关系（{@code POST /v2/rag/graph/relation}）。这样图谱里既有实体又有关系，
- * 且实体类型正确，不会退化成清一色 other 占位节点。</p>
+ * 最后建关系（{@code POST /v2/rag/graph/relation}）。这样图谱里既有实体又有关系�? * 且实体类型正确，不会退化成清一�?other 占位节点�?/p>
  *
- * @param kbId   新建知识库标识
- * @param kbName 新建知识库名称（图谱写入端点的 knowledge_base_name 参数）
- */
+ * @param kbId   新建知识库标�? * @param kbName 新建知识库名称（图谱写入端点�?knowledge_base_name 参数�? */
 async function materializeTemplate(kbId: string, kbName: string) {
   const dataset = pendingTemplateDataset.value
   pendingTemplateDataset.value = { docs: [], entities: [], relations: [] }
@@ -1254,8 +1209,7 @@ async function materializeTemplate(kbId: string, kbName: string) {
   let entitiesOk = 0
   let relationsOk = 0
 
-  // 1) 文档：保留目录层级（如 人物/关羽.md），后端写入时自动建父目录
-  for (const doc of dataset.docs) {
+  // 1) 文档：保留目录层级（�?人物/关羽.md），后端写入时自动建父目�?  for (const doc of dataset.docs) {
     try {
       const segments = String(doc.path).split('/')
       const fileName = segments.pop() || doc.path
@@ -1289,7 +1243,7 @@ async function materializeTemplate(kbId: string, kbName: string) {
   }
 
   if (docsOk || entitiesOk || relationsOk) {
-    toast.success(`模板数据已复制：${docsOk} 篇文档 · ${entitiesOk} 个实体 · ${relationsOk} 条关系`)
+    toast.success(`模板数据已复制：${docsOk} 篇文�?· ${entitiesOk} 个实�?· ${relationsOk} 条关系`)
   }
   if (fileTreeRef.value && fileTreeRef.value.forceReload) {
     await fileTreeRef.value.forceReload()
@@ -1297,19 +1251,15 @@ async function materializeTemplate(kbId: string, kbName: string) {
 }
 
 /**
- * 二级菜单的视图项切换。
- *
- * @param key 目标视图 key（overview / files / search / graph / ask / entities / relations）
- */
+ * 二级菜单的视图项切换�? *
+ * @param key 目标视图 key（overview / files / search / graph / ask / entities / relations�? */
 function handleMenuSelect(key: string) {
   activeTab.value = key as 'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'
 }
 
 /**
- * 二级菜单的动作项：设置沿用知识库编辑弹框（实体/关系管理已改为内联视图项，不再走这里）。
- *
- * @param key 动作 key（settings）
- */
+ * 二级菜单的动作项：设置沿用知识库编辑弹框（实�?关系管理已改为内联视图项，不再走这里）�? *
+ * @param key 动作 key（settings�? */
 function handleMenuAction(key: string) {
   if (key === 'settings' && currentKB.value) {
     handleEdit(currentKB.value)
@@ -1317,8 +1267,7 @@ function handleMenuAction(key: string) {
 }
 
 /**
- * 详情页头「刷新」：按当前视图重拉数据；页头副标题统计始终跟着刷。
- */
+ * 详情页头「刷新」：按当前视图重拉数据；页头副标题统计始终跟着刷�? */
 async function refreshDetail() {
   detailRefreshing.value = true
   try {
@@ -1335,9 +1284,8 @@ async function refreshDetail() {
 }
 
 /**
- * 切到实体 / 关系管理视图（内联 Tab，不再弹框，与其它视图风格统一）。
- *
- * @param tab entity 或 relation
+ * 切到实体 / 关系管理视图（内�?Tab，不再弹框，与其它视图风格统一）�? *
+ * @param tab entity �?relation
  */
 function goManage(tab: 'entity' | 'relation') {
   selectedEntityUids.value = []
@@ -1345,18 +1293,17 @@ function goManage(tab: 'entity' | 'relation') {
   activeTab.value = tab === 'entity' ? 'entities' : 'relations'
 }
 
-/** 实体表多选变化 */
+/** 实体表多选变�?*/
 function onEntitySelection(rows: any[]) {
   selectedEntityUids.value = rows.map((r) => String(r.id));
 }
-/** 关系表多选变化 */
+/** 关系表多选变�?*/
 function onRelationSelection(rows: any[]) {
   selectedRelationUids.value = rows.map((r) => String(r.id));
 }
 
 /**
- * 打开实体表单；传 row 表示编辑，不传表示新增。
- * @param row 实体行，可空
+ * 打开实体表单；传 row 表示编辑，不传表示新增�? * @param row 实体行，可空
  */
 function openEntityForm(row?: any) {
   entityForm.id = row?.id ? String(row.id) : '';
@@ -1376,12 +1323,11 @@ function openRelationForm() {
 }
 
 /**
- * 保存实体（新增或编辑）。
- */
+ * 保存实体（新增或编辑）�? */
 async function handleSaveEntity() {
   const kbId = store.activeKnowledgeBaseId;
   const name = entityForm.name.trim();
-  if (!kbId) return toast.error('请先选择知识库');
+  if (!kbId) return toast.error('请先选择知识�?);
   if (!name) return toast.error('实体名称不能为空');
   entityFormSaving.value = true;
   try {
@@ -1395,7 +1341,7 @@ async function handleSaveEntity() {
     } else {
       await apiService.createGraphEntity(kbId, (store.getActiveKnowledgeBase()?.name ?? ''), name, entityForm.type, entityForm.description, entityForm.logo.trim());
     }
-    toast.success(entityForm.id ? '已保存' : '已新增实体');
+    toast.success(entityForm.id ? '已保�? : '已新增实�?);
     showEntityForm.value = false;
     await loadGraph();
     await refreshGraphCount();
@@ -1407,21 +1353,20 @@ async function handleSaveEntity() {
 }
 
 /**
- * 保存关系。
- */
+ * 保存关系�? */
 async function handleSaveRelation() {
   const kbId = store.activeKnowledgeBaseId;
   const s = relationForm.source.trim();
   const t = relationForm.target.trim();
   const type = relationForm.type.trim();
-  if (!kbId) return toast.error('请先选择知识库');
-  if (!s || !t) return toast.error('源与目标实体都要填');
+  if (!kbId) return toast.error('请先选择知识�?);
+  if (!s || !t) return toast.error('源与目标实体都要�?);
   if (!type) return toast.error('关系类型不能为空');
-  if (s === t) return toast.error('源与目标不能是同一个实体');
+  if (s === t) return toast.error('源与目标不能是同一个实�?);
   relationFormSaving.value = true;
   try {
     await apiService.createGraphRelation(kbId, (store.getActiveKnowledgeBase()?.name ?? ''), s, t, type);
-    toast.success('已新增关系');
+    toast.success('已新增关�?);
     showRelationForm.value = false;
     await loadGraph();
     await refreshGraphCount();
@@ -1433,19 +1378,17 @@ async function handleSaveRelation() {
 }
 
 /**
- * 删除单个实体。
- * @param row 实体行
- */
+ * 删除单个实体�? * @param row 实体�? */
 async function handleDeleteEntity(row: any) {
   const kbId = store.activeKnowledgeBaseId;
   if (!kbId) return;
-  const confirmed = await confirm(`删除实体「${row.text}」？指向它的关系也会一并删除。`, '', {
+  const confirmed = await confirm(`删除实体�?{row.text}」？指向它的关系也会一并删除。`, '', {
     type: 'warning', confirmText: '删除', cancelText: '取消',
   });
   if (!confirmed) return;
   try {
     await apiService.deleteGraphEntity(kbId, String(row.id));
-    toast.success('已删除');
+    toast.success('已删�?);
     await loadGraph();
     await refreshGraphCount();
   } catch (e: any) {
@@ -1454,8 +1397,7 @@ async function handleDeleteEntity(row: any) {
 }
 
 /**
- * 批量删除实体。
- */
+ * 批量删除实体�? */
 async function handleBatchDeleteEntities() {
   const kbId = store.activeKnowledgeBaseId;
   if (!kbId || selectedEntityUids.value.length === 0) return;
@@ -1466,7 +1408,7 @@ async function handleBatchDeleteEntities() {
   if (!confirmed) return;
   try {
     const r = await apiService.batchDeleteGraphEntities(kbId, selectedEntityUids.value);
-    toast.success(`已删除 ${r?.deleted ?? n} 个实体`);
+    toast.success(`已删�?${r?.deleted ?? n} 个实体`);
     selectedEntityUids.value = [];
     await loadGraph();
     await refreshGraphCount();
@@ -1476,19 +1418,17 @@ async function handleBatchDeleteEntities() {
 }
 
 /**
- * 删除单条关系。
- * @param row 关系行
- */
+ * 删除单条关系�? * @param row 关系�? */
 async function handleDeleteRelation(row: any) {
   const kbId = store.activeKnowledgeBaseId;
   if (!kbId) return;
-  const confirmed = await confirm(`删除关系「${nodeNameById(row.from)} --[${row.text}]--> ${nodeNameById(row.to)}」？`, '', {
+  const confirmed = await confirm(`删除关系�?{nodeNameById(row.from)} --[${row.text}]--> ${nodeNameById(row.to)}」？`, '', {
     type: 'warning', confirmText: '删除', cancelText: '取消',
   });
   if (!confirmed) return;
   try {
     await apiService.deleteGraphRelation(kbId, String(row.id));
-    toast.success('已删除');
+    toast.success('已删�?);
     await loadGraph();
     await refreshGraphCount();
   } catch (e: any) {
@@ -1497,8 +1437,7 @@ async function handleDeleteRelation(row: any) {
 }
 
 /**
- * 批量删除关系。
- */
+ * 批量删除关系�? */
 async function handleBatchDeleteRelations() {
   const kbId = store.activeKnowledgeBaseId;
   if (!kbId || selectedRelationUids.value.length === 0) return;
@@ -1509,7 +1448,7 @@ async function handleBatchDeleteRelations() {
   if (!confirmed) return;
   try {
     const r = await apiService.batchDeleteGraphRelations(kbId, selectedRelationUids.value);
-    toast.success(`已删除 ${r?.deleted ?? n} 条关系`);
+    toast.success(`已删�?${r?.deleted ?? n} 条关系`);
     selectedRelationUids.value = [];
     await loadGraph();
     await refreshGraphCount();
@@ -1519,18 +1458,12 @@ async function handleBatchDeleteRelations() {
 }
 
 /**
- * 后端节点 → {@code ReRelationGraph} 的 RelationNode 契约。
+ * 后端节点 �?{@code ReRelationGraph} �?RelationNode 契约�? *
+ * <p><b>关键修复</b>：G6 v5 �?{@code type} �?*图元原型**（circle/rect/…）�? * 后端给的 {@code person/location/event} 不是注册过的原型，直接透传会让 G6 �? * 「The element person of node is not registered.」并**整张图的节点都不渲染**�? * 因此这里把原型固定为 circle，实体类型改�?{@code data.entityType} 并由
+ * {@code style.fill} 上色，名称走 {@code label}�?b>实体带图片（image）时改用
+ * G6 �?image 原型直接渲染图片</b>，此�?fill 不生效，stroke 作为图片描边�?/p>
  *
- * <p><b>关键修复</b>：G6 v5 的 {@code type} 是**图元原型**（circle/rect/…），
- * 后端给的 {@code person/location/event} 不是注册过的原型，直接透传会让 G6 抛
- * 「The element person of node is not registered.」并**整张图的节点都不渲染**。
- * 因此这里把原型固定为 circle，实体类型改放 {@code data.entityType} 并由
- * {@code style.fill} 上色，名称走 {@code label}；<b>实体带图片（image）时改用
- * G6 的 image 原型直接渲染图片</b>，此时 fill 不生效，stroke 作为图片描边。</p>
- *
- * @param n 后端节点（id / text / type / degree / image）
- * @returns 符合 {@code RelationNode} 的节点
- */
+ * @param n 后端节点（id / text / type / degree / image�? * @returns 符合 {@code RelationNode} 的节�? */
 function decorateGraphNode(n: any) {
   const entityType = String(n?.type ?? 'other')
   const size = nodeSizeOf(n?.degree)
@@ -1539,9 +1472,7 @@ function decorateGraphNode(n: any) {
   const image = String(n?.image ?? '').trim()
   return {
     id: String(n?.id ?? ''),
-    // 同时保留 text 与 label：text 供 KBAskPanel 的迷你子图（走后端契约），
-    // label 供 G6（ReRelationGraph 的 RelationNode 契约）渲染节点名。
-    text: name,
+    // 同时保留 text �?label：text �?KBAskPanel 的迷你子图（走后端契约）�?    // label �?G6（ReRelationGraph �?RelationNode 契约）渲染节点名�?    text: name,
     label: name,
     type: image ? ('image' as const) : ('circle' as const),
     image: image || undefined,
@@ -1586,10 +1517,8 @@ const graphNodes = computed(() => {
 })
 
 /**
- * 只保留两端都可见的连线，并转成 {@code RelationEdge} 契约。
- *
- * <p>后端边 VO 用 {@code from/to/text}，而 G6 需要 {@code source/target/label}；
- * 不转换的话 G6 找不到端点，边不会画出来。</p>
+ * 只保留两端都可见的连线，并转�?{@code RelationEdge} 契约�? *
+ * <p>后端�?VO �?{@code from/to/text}，�?G6 需�?{@code source/target/label}�? * 不转换的�?G6 找不到端点，边不会画出来�?/p>
  */
 const graphEdges = computed(() => {
   const ids = new Set(graphNodes.value.map((n) => n.id))
@@ -1597,8 +1526,7 @@ const graphEdges = computed(() => {
     .filter((e) => ids.has(e.from) && ids.has(e.to))
     .map((e) => ({
       id: String(e.id ?? `${e.from}->${e.to}`),
-      // from/to 供 KBAskPanel（后端契约），source/target 供 G6；text/label 同理。
-      from: String(e.from),
+      // from/to �?KBAskPanel（后端契约），source/target �?G6；text/label 同理�?      from: String(e.from),
       to: String(e.to),
       text: String(e.text ?? e.label ?? ''),
       source: String(e.from),
@@ -1610,9 +1538,7 @@ const graphEdges = computed(() => {
 })
 
 /**
- * 拉取当前知识库的关系图谱。
- * 抽取是上传后的异步任务，因此这里同时刷新页签徽标计数。
- */
+ * 拉取当前知识库的关系图谱�? * 抽取是上传后的异步任务，因此这里同时刷新页签徽标计数�? */
 async function loadGraph() {
   const kbId = store.activeKnowledgeBaseId
   if (!kbId) {
@@ -1631,8 +1557,7 @@ async function loadGraph() {
     graphView.edges = view.edges
     graphView.entityCount = view.entityCount
     graphView.relationCount = view.relationCount
-    // 后端未返回该字段时按「有数据即非占位」兜底
-    graphView.placeholder = view.placeholder === undefined
+    // 后端未返回该字段时按「有数据即非占位」兜�?    graphView.placeholder = view.placeholder === undefined
       ? view.entityCount === 0 && view.relationCount === 0
       : Boolean(view.placeholder)
     graphCount.value = view.entityCount + view.relationCount
@@ -1651,9 +1576,8 @@ async function loadGraph() {
 const graphGenerating = ref(false)
 
 /**
- * 触发一次关系抽取并刷新图谱。
- *
- * <p>不传 doc_path 时后端会遍历该知识库下所有文本文件，网页采集来的快照也在其中。</p>
+ * 触发一次关系抽取并刷新图谱�? *
+ * <p>不传 doc_path 时后端会遍历该知识库下所有文本文件，网页采集来的快照也在其中�?/p>
  */
 async function handleGenerateGraph() {
   const kbId = store.activeKnowledgeBaseId
@@ -1664,7 +1588,7 @@ async function handleGenerateGraph() {
   try {
     const r = await apiService.generateKnowledgeBaseGraph(kbId)
     toast.success(
-      `已生成：${r?.entityCount ?? 0} 个实体 / ${r?.relationCount ?? 0} 条关系（${r?.files ?? 0} 个知识点，${r?.elapsedMs ?? 0} ms）`,
+      `已生成：${r?.entityCount ?? 0} 个实�?/ ${r?.relationCount ?? 0} 条关系（${r?.files ?? 0} 个知识点�?{r?.elapsedMs ?? 0} ms）`,
     )
     await loadGraph()
     await refreshGraphCount()
@@ -1675,15 +1599,13 @@ async function handleGenerateGraph() {
   }
 }
 
-/** 点击节点时把该实体的关联情况提示出来（后续可扩展为展开子图） */
+/** 点击节点时把该实体的关联情况提示出来（后续可扩展为展开子图�?*/
 /** 图谱右栏当前选中的实体；null 表示面板收起 */
 const selectedGraphNode = ref<{ id: string; name: string; type?: string; degree: number } | null>(null)
 
 /**
- * 图例数据：按当前图谱里实际出现的实体类型生成，不写死类型名。
- *
- * <p>参考图左下角图例（蜀 / 刘备 / 诸葛亮…）是按势力或来源分组的；
- * 我们数据里能稳定拿到的是实体类型，先按类型出图例，不编造后端没有的分组字段。</p>
+ * 图例数据：按当前图谱里实际出现的实体类型生成，不写死类型名�? *
+ * <p>参考图左下角图例（蜀 / 刘备 / 诸葛亮…）是按势力或来源分组的�? * 我们数据里能稳定拿到的是实体类型，先按类型出图例，不编造后端没有的分组字段�?/p>
  */
 const graphLegend = computed(() => {
   const set = new Set<string>()
@@ -1697,8 +1619,7 @@ const graphLegend = computed(() => {
 })
 
 /**
- * 概览：实体类型分布（按数量降序）。
- * @returns 每项 { type, count, label, color }
+ * 概览：实体类型分布（按数量降序）�? * @returns 每项 { type, count, label, color }
  */
 const entityTypeStats = computed(() => {
   const map = new Map<string, number>()
@@ -1712,8 +1633,7 @@ const entityTypeStats = computed(() => {
 })
 
 /**
- * 概览：关系类型分布（按数量降序取前 8）。
- * @returns 每项 { type, count }
+ * 概览：关系类型分布（按数量降序取�?8）�? * @returns 每项 { type, count }
  */
 const relationTypeStats = computed(() => {
   const map = new Map<string, number>()
@@ -1741,10 +1661,8 @@ const topEntities = computed(() =>
 )
 
 /**
- * 概览：类型条宽度（相对最大计数，最小 6% 保证可见）。
- * @param count 当前计数
- * @param max 最大计数
- * @returns 百分比字符串
+ * 概览：类型条宽度（相对最大计数，最�?6% 保证可见）�? * @param count 当前计数
+ * @param max 最大计�? * @returns 百分比字符串
  */
 function barWidth(count: number, max: number): string {
   if (!max || max <= 0) {
@@ -1754,18 +1672,15 @@ function barWidth(count: number, max: number): string {
 }
 
 /**
- * 概览里点实体 → 带着该实体名跳到图谱页并高亮子图。
- * @param name 实体名
- */
+ * 概览里点实体 �?带着该实体名跳到图谱页并高亮子图�? * @param name 实体�? */
 function openEntityInGraph(name: string) {
   graphKeyword.value = name
   activeTab.value = 'graph'
 }
 
 /**
- * 选中实体的关系列表：每条边解析出「关系类型 + 对端实体名」。
- *
- * <p>类型取边的 {@code text} 字段 —— 后端边 VO 把关系类型放在 text 上（不是 type）。</p>
+ * 选中实体的关系列表：每条边解析出「关系类�?+ 对端实体名」�? *
+ * <p>类型取边�?{@code text} 字段 —�?后端�?VO 把关系类型放�?text 上（不是 type）�?/p>
  */
 const selectedNodeRelations = computed(() => {
   const node = selectedGraphNode.value
@@ -1789,9 +1704,8 @@ const selectedNodeRelations = computed(() => {
 
 function handleGraphNodeClick(node: any) {
   const clickId = String(node?.id ?? '')
-  // G6 回传的是模型节点：显示名在 data.__label（组件 toNodeData 写入），
-  // 不再是原始的 text 字段。
-  const name = String(node?.data?.__label ?? node?.data?.name ?? clickId)
+  // G6 回传的是模型节点：显示名�?data.__label（组�?toNodeData 写入），
+  // 不再是原始的 text 字段�?  const name = String(node?.data?.__label ?? node?.data?.name ?? clickId)
   const degree = Number(node?.data?.degree)
     || graphEdges.value.filter((e) => e.source === clickId || e.target === clickId).length
   const type = node?.data?.entityType ? String(node.data.entityType) : undefined
@@ -1799,22 +1713,19 @@ function handleGraphNodeClick(node: any) {
     selectedGraphNode.value = { id: clickId, name, type, degree }
   }
   if (name) {
-    toast.info(`${name}${type ? `（${entityTypeLabel(type)}）` : ''}：${degree} 条关系`)
+    toast.info(`${name}${type ? `�?{entityTypeLabel(type)}）` : ''}�?{degree} 条关系`)
   }
 }
 
-/** 图谱组件实例（用于首帧后主动重跑一次布局） */
+/** 图谱组件实例（用于首帧后主动重跑一次布局�?*/
 const graphCompRef = ref<any>(null)
 
-/** 知识图谱布局名：G6 的 force 在这套数据上会退化成 (0,0)，实测 force-atlas2 正常 */
+/** 知识图谱布局名：G6 �?force 在这套数据上会退化成 (0,0)，实�?force-atlas2 正常 */
 const GRAPH_LAYOUT = 'force-atlas2'
 
 /**
- * 图谱渲染就绪回调。
- *
- * <p>G6 首次装载若发生在容器尺寸确定之前，会把所有节点留在 (0,0)，
- * 表现为整图缩放到一个点（放大 6 倍只看到一个大圆）。此时容器尺寸已确定，
- * 这里主动重跑一次同名布局让节点真正散开，随后由组件 autoFit 重新适配视口。</p>
+ * 图谱渲染就绪回调�? *
+ * <p>G6 首次装载若发生在容器尺寸确定之前，会把所有节点留�?(0,0)�? * 表现为整图缩放到一个点（放�?6 倍只看到一个大圆）。此时容器尺寸已确定�? * 这里主动重跑一次同名布局让节点真正散开，随后由组件 autoFit 重新适配视口�?/p>
  */
 function handleGraphReady() {
   nextTick(() => {
@@ -1827,9 +1738,8 @@ function handleGraphReady() {
       } catch {
         // 布局失败不阻断：至少保留组件自身的首帧适配
       }
-      // 力导是异步迭代：布局中途触发 fitView，可能正好落在「节点还没散开」的一瞬，
-      // 把视口缩放到极近（整图只剩一两个大圆）。等迭代收敛后再适配一次视口。
-      window.setTimeout(() => {
+      // 力导是异步迭代：布局中途触�?fitView，可能正好落在「节点还没散开」的一瞬，
+      // 把视口缩放到极近（整图只剩一两个大圆）。等迭代收敛后再适配一次视口�?      window.setTimeout(() => {
         const api = graphCompRef.value as { fitView?: () => Promise<void> } | null
         void api?.fitView?.()
       }, 700)
@@ -1838,61 +1748,47 @@ function handleGraphReady() {
 }
 
 
-// RAG 配置状态
-const ragStatus = ref<any>(null)
+// RAG 配置状�?const ragStatus = ref<any>(null)
 
 /**
- * RAG 是否可用。
+ * RAG 是否可用�? *
+ * <p>知识库依�?RAG：未在「系统配�?�?默认模型」配�?RAG 所需参数时，
+ * 不渲染搜索框、新建按钮与卡片数据，只提示用户去配置，避免点了必然失败�?/p>
  *
- * <p>知识库依赖 RAG：未在「系统配置 → 默认模型」配好 RAG 所需参数时，
- * 不渲染搜索框、新建按钮与卡片数据，只提示用户去配置，避免点了必然失败。</p>
- *
- * <p>状态接口未返回时按「未就绪」处理：先提示、后放行，避免用未验证的半成品数据。</p>
+ * <p>状态接口未返回时按「未就绪」处理：先提示、后放行，避免用未验证的半成品数据�?/p>
  */
-// 门禁：不仅要求 RAG 客户端可用，还要求 embedding 配置完整。
-// 后端 /v2/rag/status 的 available 只校验 ChatClient + 向量存储，embedding 静默回落成
-// 内存占位（维度全 0、检索不可用）时 available 仍为 true —— 那样会放用户进到一个
-// 「能建库、能传文档、但检索永远没结果」的空壳里。embeddingReady 由后端 embeddingIssue() 判定。
-const ragReady = computed(() =>
+// 门禁：不仅要�?RAG 客户端可用，还要�?embedding 配置完整�?// 后端 /v2/rag/status �?available 只校�?ChatClient + 向量存储，embedding 静默回落�?// 内存占位（维度全 0、检索不可用）时 available 仍为 true —�?那样会放用户进到一�?// 「能建库、能传文档、但检索永远没结果」的空壳里。embeddingReady 由后�?embeddingIssue() 判定�?const ragReady = computed(() =>
   ragStatus.value?.available === true && ragStatus.value?.embeddingReady !== false,
 )
 
-// 获取 RAG 状态
-const fetchRagStatus = async () => {
+// 获取 RAG 状�?const fetchRagStatus = async () => {
   try {
     ragStatus.value = await api.get('/rag/status')
   } catch (error) {
-    console.error('获取 RAG 状态失败:', error)
-    // 拉取失败视为未就绪，页面走提示分支
-    ragStatus.value = { available: false, message: t('knowledge.ragGate.fetchFailed') }
+    console.error('获取 RAG 状态失�?', error)
+    // 拉取失败视为未就绪，页面走提示分�?    ragStatus.value = { available: false, message: t('knowledge.ragGate.fetchFailed') }
   }
 }
 
-// 跳转到配置页面
-const goToConfig = (path: string) => {
+// 跳转到配置页�?const goToConfig = (path: string) => {
   if (path) {
     router.push(path)
   }
 }
 
-// 上传任务列表(独立于文件列表)
+// 上传任务列表(独立于文件列�?
 const uploadTasksList = ref<KBFile[]>([])
 
-// 上传任务轮询定时器
-let uploadTaskPollingTimer: number | null = null
+// 上传任务轮询定时�?let uploadTaskPollingTimer: number | null = null
 
-// 自动关闭弹窗定时器
-let autoCloseModalTimer: number | null = null
+// 自动关闭弹窗定时�?let autoCloseModalTimer: number | null = null
 
 // 当前目录路径缓存(避免频繁调用API)
 let cachedCurrentFolderPath: string | null = null
 
-// 无限滚动相关状态
-const fileListContainer = ref<any>(null) // 文件列表容器引用（ScrollContainer 组件）
-const fileTreeRef = ref<any>(null) // 文件树组件引用
-const scrollThreshold = 50 // 滚动触发阈值(像素)
+// 无限滚动相关状�?const fileListContainer = ref<any>(null) // 文件列表容器引用（ScrollContainer 组件�?const fileTreeRef = ref<any>(null) // 文件树组件引�?const scrollThreshold = 50 // 滚动触发阈�?像素)
 
-// ========== 对话框表单（创建/编辑共用） ==========
+// ========== 对话框表单（创建/编辑共用�?==========
 const dialogForm = reactive({
   id: '',
   name: '',
@@ -1901,13 +1797,12 @@ const dialogForm = reactive({
   chunkOverlapSize: 100,
   chunkMinSize: 50,
   isPublic: false,
-  // 网址采集：填了网址就按 web 型知识库创建并立即抓取
-  sourceUrl: '',
+  // 网址采集：填了网址就按 web 型知识库创建并立即抓�?  sourceUrl: '',
   sourceMode: 'snapshot',
   sourceMaxPages: 1
 })
 
-// ========== 计算属性 ==========
+// ========== 计算属�?==========
 /**
  * 当前选中的知识库对象
  */
@@ -1917,21 +1812,18 @@ const currentKB = computed(() => {
 })
 
 /**
- * 判断知识库是否归当前登录用户所有（公开库对非 owner 只读）。
- * 无法取得当前用户 id 时默认按可写处理，避免误伤 owner；后端仍有归属兜底。
- */
+ * 判断知识库是否归当前登录用户所有（公开库对�?owner 只读）�? * 无法取得当前用户 id 时默认按可写处理，避免误�?owner；后端仍有归属兜底�? */
 function isOwnerKb(kb: KnowledgeBase | null | undefined): boolean {
   const uid = (authStore.user as any)?.userId ?? (authStore.user as any)?.id
   if (!uid || !kb) return true
   return String(kb.userId ?? '') === String(uid)
 }
 
-/** 当前详情库是否可写（非 owner 的公开库只读） */
+/** 当前详情库是否可写（�?owner 的公开库只读） */
 const canEditCurrent = computed(() => isOwnerKb(currentKB.value))
 
 /**
- * 过滤后的知识库列表（支持搜索）
- */
+ * 过滤后的知识库列表（支持搜索�? */
 const filteredKnowledgeBases = computed(() => {
   if (!searchKeyword.value || !searchKeyword.value.trim()) {
     return store.knowledgeBases
@@ -1952,13 +1844,11 @@ async function handleSelectKB(kb: KnowledgeBase) {
   store.setActiveKnowledgeBase(kb.id)
   viewMode.value = 'detail'
 
-  // 更新路由（使用 params）
-  router.replace({ name: 'KnowledgeBase', params: { id: kb.id } })
+  // 更新路由（使�?params�?  router.replace({ name: 'KnowledgeBase', params: { id: kb.id } })
 
   try {
-    // 选择新知识库时重置分页
-    await refreshFileList()
-    // toast.success(`已选择：${kb.name}`)
+    // 选择新知识库时重置分�?    await refreshFileList()
+    // toast.success(`已选择�?{kb.name}`)
   } catch (error) {
     console.error('加载文件列表失败:', error)
     toast.error(t('knowledge.page.loadFileListFailed'))
@@ -1972,8 +1862,7 @@ function backToList() {
   viewMode.value = 'list'
   store.setActiveKnowledgeBase(null)
   router.replace({ name: 'KnowledgeBase' })
-  // 回到列表时统计可能已过期（期间上传过文档、生成过图谱），重新拉一次
-  loadOverview()
+  // 回到列表时统计可能已过期（期间上传过文档、生成过图谱），重新拉一�?  loadOverview()
 }
 
 /**
@@ -1988,8 +1877,7 @@ function handleDropdownCommand(command: string, kb: KnowledgeBase) {
 }
 
 /**
- * 打开创建对话框
- */
+ * 打开创建对话�? */
 function handleOpenCreate() {
   dialogForm.id = ''
   dialogForm.name = ''
@@ -1998,8 +1886,7 @@ function handleOpenCreate() {
   dialogForm.chunkOverlapSize = 100
   dialogForm.chunkMinSize = 50
   dialogForm.isPublic = false
-  // 网址采集：新建时默认不启用
-  dialogForm.sourceUrl = ''
+  // 网址采集：新建时默认不启�?  dialogForm.sourceUrl = ''
   dialogForm.sourceMode = 'snapshot'
   dialogForm.sourceMaxPages = 1
   dialogMode.value = 'create'
@@ -2007,8 +1894,7 @@ function handleOpenCreate() {
 }
 
 /**
- * 保存知识库（创建/更新共用）
- */
+ * 保存知识库（创建/更新共用�? */
 async function handleKbSave() {
   // 验证必填字段
   if (!dialogForm.name.trim()) {
@@ -2016,9 +1902,8 @@ async function handleKbSave() {
     return
   }
 
-  // 嵌入模型为「设置中心 → 默认模型」的全局配置，后端 sys_ai_knowledge_base 无该列，
-  // 因此保存不涉及 embeddingModelId；此前的「向量模型」选择器已移除，避免误导。
-
+  // 嵌入模型为「设置中�?�?默认模型」的全局配置，后�?sys_ai_knowledge_base 无该列，
+  // 因此保存不涉�?embeddingModelId；此前的「向量模型」选择器已移除，避免误导�?
   try {
     if (dialogMode.value === 'create') {
       // 创建
@@ -2046,7 +1931,7 @@ async function handleKbSave() {
         await handleSelectKB(createdKb)
       }
 
-      // 来自模板创建：把模板的完整数据集（文档 + 实体 + 关系）真正复制进新库
+      // 来自模板创建：把模板的完整数据集（文�?+ 实体 + 关系）真正复制进新库
       await materializeTemplate(newKb.id, dialogForm.name)
     } else {
       // 更新
@@ -2076,17 +1961,15 @@ async function handleKbSave() {
 }
 
 /**
- * 编辑弹窗「取消」：显式关闭，不触发表单回填。
- */
+ * 编辑弹窗「取消」：显式关闭，不触发表单回填�? */
 function handleKbCancel() {
   showKbDialog.value = false
 }
 
 /**
- * 编辑知识库
- */
+ * 编辑知识�? */
 function handleEdit(kb: KnowledgeBase) {
-  // 公开库对非 owner 只读：入口保留，点击明确拒绝，不弹出看似可保存的表单
+  // 公开库对�?owner 只读：入口保留，点击明确拒绝，不弹出看似可保存的表单
   if (!isOwnerKb(kb)) {
     toast.info('该知识库由他人创建，仅可浏览')
     return
@@ -2099,8 +1982,7 @@ function handleEdit(kb: KnowledgeBase) {
     chunkOverlapSize: kb.chunkOverlapSize,
     chunkMinSize: kb.chunkMinSize,
     isPublic: kb.isPublic,
-    // 网址采集配置回填：老数据没有这三个字段，退回默认值
-    sourceUrl: kb.sourceUrl || '',
+    // 网址采集配置回填：老数据没有这三个字段，退回默认�?    sourceUrl: kb.sourceUrl || '',
     sourceMode: kb.sourceMode || 'snapshot',
     sourceMaxPages: kb.sourceMaxPages || 1
   })
@@ -2110,14 +1992,11 @@ function handleEdit(kb: KnowledgeBase) {
 
 
 /**
- * 弹确认框并真正删除知识库（只负责「确认 + 调接口」，不处理删除后的视图跳转）。
- *
+ * 弹确认框并真正删除知识库（只负责「确�?+ 调接口」，不处理删除后的视图跳转）�? *
  * <p>列表页与详情页的删除入口共用这里的确认流程，区别只在删除成功后去哪：
- * 列表页自动选中下一个库，详情页回到列表。</p>
+ * 列表页自动选中下一个库，详情页回到列表�?/p>
  *
- * @param kb 目标知识库
- * @returns 是否真的删除了（取消或失败返回 false）
- */
+ * @param kb 目标知识�? * @returns 是否真的删除了（取消或失败返�?false�? */
 async function confirmAndDeleteKb(kb: KnowledgeBase): Promise<boolean> {
   try {
     const deleteMessage =
@@ -2144,21 +2023,17 @@ async function confirmAndDeleteKb(kb: KnowledgeBase): Promise<boolean> {
 }
 
 /**
- * 列表页删除知识库：删除成功后自动选中下一个库。
- *
- * @param kb 目标知识库
- */
+ * 列表页删除知识库：删除成功后自动选中下一个库�? *
+ * @param kb 目标知识�? */
 async function handleDelete(kb: KnowledgeBase) {
-  // 索引必须在删除前取：删除后 store 列表已不含该库
-  const currentIndex = store.knowledgeBases.findIndex(k => k.id === kb.id)
+  // 索引必须在删除前取：删除�?store 列表已不含该�?  const currentIndex = store.knowledgeBases.findIndex(k => k.id === kb.id)
   if (await confirmAndDeleteKb(kb)) {
     handleAfterDelete(kb.id, currentIndex)
   }
 }
 
 /**
- * 详情页头部删除当前知识库：删除成功后回到列表页。
- */
+ * 详情页头部删除当前知识库：删除成功后回到列表页�? */
 async function handleDeleteFromDetail() {
   const kb = currentKB.value
   if (!kb) return
@@ -2175,17 +2050,14 @@ function handleAfterDelete(deletedKbId: string, currentIndex: number) {
   const remainingKBs = store.knowledgeBases.filter(kb => kb.id !== deletedKbId)
 
   if (remainingKBs.length === 0) {
-    // 如果列表为空，清空选中状态
-    store.setActiveKnowledgeBase(null)
+    // 如果列表为空，清空选中状�?    store.setActiveKnowledgeBase(null)
     router.replace({ name: 'KnowledgeBase' })
     return
   }
 
-  // 计算应该选中的索引
-  let nextIndex = currentIndex
+  // 计算应该选中的索�?  let nextIndex = currentIndex
 
-  // 如果删除的是最后一个元素，则选中前一个
-  if (currentIndex >= remainingKBs.length) {
+  // 如果删除的是最后一个元素，则选中前一�?  if (currentIndex >= remainingKBs.length) {
     nextIndex = remainingKBs.length - 1
   }
 
@@ -2217,15 +2089,13 @@ async function handleUploadComplete(task: UploadTask) {
   // 智能插入到当前目录（如果需要）
   if (fileTreeRef.value && fileTreeRef.value.insertUploadedFile) {
     await fileTreeRef.value.insertUploadedFile(uploadedFile)
-    console.log('[DEBUG] 已尝试智能插入文件')
+    console.log('[DEBUG] 已尝试智能插入文�?)
   }
 
   // 注意:不再调用 refreshFileList,避免全局刷新
 
   // 关系抽取是上传后的异步任务，稍等一会儿再刷新图谱；
-  // 抽取失败不影响这里（接口只返回已有数据，不会报错）。
-  // 图谱 / 实体 / 关系视图正在展示时直接拉整张图，其余时刻只做计数级的轻量刷新。
-  if (graphCount.value > 0 || ['graph', 'entities', 'relations'].includes(activeTab.value)) {
+  // 抽取失败不影响这里（接口只返回已有数据，不会报错）�?  // 图谱 / 实体 / 关系视图正在展示时直接拉整张图，其余时刻只做计数级的轻量刷新�?  if (graphCount.value > 0 || ['graph', 'entities', 'relations'].includes(activeTab.value)) {
     window.setTimeout(() => {
       void loadGraph()
     }, 3000)
@@ -2237,8 +2107,7 @@ async function handleUploadComplete(task: UploadTask) {
 }
 
 /**
- * 只刷新图谱计数，不拉整张图，用于上传完成后的轻量更新。
- */
+ * 只刷新图谱计数，不拉整张图，用于上传完成后的轻量更新�? */
 async function refreshGraphCount() {
   const kbId = store.activeKnowledgeBaseId
   if (!kbId) {
@@ -2249,13 +2118,11 @@ async function refreshGraphCount() {
     const c = await apiService.fetchKnowledgeGraphCount(kbId)
     graphCount.value = c.entityCount + c.relationCount
   } catch {
-    // 计数是装饰性的，失败静默即可
-  }
+    // 计数是装饰性的，失败静默即�?  }
 }
 
 /**
- * 处理文件夹创建成功事件
- */
+ * 处理文件夹创建成功事�? */
 async function handleFolderCreated() {
   console.log('[DEBUG] 文件夹创建成功，刷新当前目录')
 
@@ -2267,8 +2134,7 @@ async function handleFolderCreated() {
 
 
 /**
- * 处理滚动事件（带防抖）
- */
+ * 处理滚动事件（带防抖�? */
 function handleScroll(event: Event) {
   if (!fileListContainer.value || !fileTreeRef.value) return
 
@@ -2277,11 +2143,9 @@ function handleScroll(event: Event) {
 
   const { scrollTop, scrollHeight, clientHeight } = container
 
-  // 计算距离底部的距离
-  const distanceToBottom = scrollHeight - scrollTop - clientHeight
+  // 计算距离底部的距�?  const distanceToBottom = scrollHeight - scrollTop - clientHeight
 
-  // 如果距离底部小于阈值，且没有正在加载，则加载更多
-  if (distanceToBottom <= scrollThreshold && fileTreeRef.value.loadMoreFiles) {
+  // 如果距离底部小于阈值，且没有正在加载，则加载更�?  if (distanceToBottom <= scrollThreshold && fileTreeRef.value.loadMoreFiles) {
     console.log('[DEBUG] 触发无限滚动加载')
     fileTreeRef.value.loadMoreFiles()
   }
@@ -2307,19 +2171,17 @@ async function handleRetryFile(file: KBFile) {
 
     toast.success(t('knowledge.page.retryStarted'))
 
-    // 关键修复：通过 KBFileTree 更新文件状态
-    if (fileTreeRef.value && fileTreeRef.value.updateFileStatus) {
+    // 关键修复：通过 KBFileTree 更新文件状�?    if (fileTreeRef.value && fileTreeRef.value.updateFileStatus) {
       fileTreeRef.value.updateFileStatus(file.id, {
         processingStatus: 'pending',
         progressPercentage: 0,
         currentStep: t('knowledge.page.waitRetry'),
         errorMessage: null
       })
-      console.log(`[DEBUG] 文件状态已更新为 pending: ${file.displayName}`)
+      console.log(`[DEBUG] 文件状态已更新�?pending: ${file.displayName}`)
     }
 
-    // 关键修复：重新处理后需要手动启动轮询
-    // 因为 updateFileStatus 不会自动触发 startFileProcessingPolling
+    // 关键修复：重新处理后需要手动启动轮�?    // 因为 updateFileStatus 不会自动触发 startFileProcessingPolling
     if (fileTreeRef.value && fileTreeRef.value.startFileProcessingPolling) {
       console.log('[DEBUG] 重新处理后，手动启动轮询')
       await fileTreeRef.value.startFileProcessingPolling()
@@ -2336,8 +2198,7 @@ async function handleRetryFile(file: KBFile) {
  * 查看文件详情
  */
 function handleViewFile(file: KBFile) {
-  // 点文件 = 看原文。分块详情另有入口（FileChunksViewer），不再占用「查看」这个动作
-  openFilePreview(file)
+  // 点文�?= 看原文。分块详情另有入口（FileChunksViewer），不再占用「查看」这个动�?  openFilePreview(file)
 }
 
 /**
@@ -2360,8 +2221,7 @@ async function handleDeleteFile(file: KBFile) {
     await store.deleteFile(store.activeKnowledgeBaseId, file.id)
     toast.success(t('common.deleteSuccess'))
 
-    // 关键优化:通知 KBFileTree 从本地列表中移除文件,避免重建 DOM 树
-    if (fileTreeRef.value && fileTreeRef.value.removeFileLocally) {
+    // 关键优化:通知 KBFileTree 从本地列表中移除文件,避免重建 DOM �?    if (fileTreeRef.value && fileTreeRef.value.removeFileLocally) {
       console.log('[DEBUG] 删除文件后本地更新文件树')
       fileTreeRef.value.removeFileLocally(file.id)
     }
@@ -2377,13 +2237,12 @@ async function handleDeleteFile(file: KBFile) {
  * 处理目录切换事件
  */
 async function handleFolderChange(relativePath: string | null) {
-  console.log(`[DEBUG] 目录切换到: ${relativePath || '根目录'}`)
+  console.log(`[DEBUG] 目录切换�? ${relativePath || '根目�?}`)
 
-  // 关键修复:更新缓存的当前目录路径
-  cachedCurrentFolderPath = relativePath
+  // 关键修复:更新缓存的当前目录路�?  cachedCurrentFolderPath = relativePath
   console.log(`[DEBUG] 更新缓存路径: ${cachedCurrentFolderPath}`)
 
-  // 注意:不再在这里启动轮询,等待 files-loaded 事件触发
+  // 注意:不再在这里启动轮�?等待 files-loaded 事件触发
 }
 
 /**
@@ -2392,15 +2251,13 @@ async function handleFolderChange(relativePath: string | null) {
  */
 function handleFilesLoaded(files: KBFile[]) {
   // 左侧「文档」栏的篇数与状态分栏都从这里取；KBFileTree 内部自行轮询状态，
-  // 它每次状态变化都会再 emit 一次 files-loaded，所以这里跟着刷新即可
+  // 它每次状态变化都会再 emit 一�?files-loaded，所以这里跟着刷新即可
   loadedFiles.value = files || []
 }
 
 /**
- * 列表页统计汇总（来自 {@code GET /api/knowledge/bases/overview}）。
- *
- * <p>不在前端累加：每张卡片的实体/关系/文档数都要走文件系统与图谱表，
- * 逐库请求就是 N+1。一次性拿回后这里只做展示格式化。</p>
+ * 列表页统计汇总（来自 {@code GET /api/knowledge/bases/overview}）�? *
+ * <p>不在前端累加：每张卡片的实体/关系/文档数都要走文件系统与图谱表�? * 逐库请求就是 N+1。一次性拿回后这里只做展示格式化�?/p>
  */
 const overview = ref<{
   totals?: { kb_count?: number; file_count?: number; entity_count?: number; relation_count?: number };
@@ -2408,19 +2265,13 @@ const overview = ref<{
 }>({})
 
 /**
- * 空状态里的「教育场景模板」清单。
- *
- * <p><b>这是静态清单，不是接口数据。</b>后端目前没有知识库模板接口
- * （{@code sys_ai_template} 只服务 Agent；知识库侧无模板 API），所以这里只做入口展示，
- * 「使用模板」当前等同于「新建知识库」，<b>不会真正预置文档与图谱结构</b>。
- * 设计图上每张模板卡的「84 实体 · 196 关系」是示意图里的填充值，我们没有对应数据，
- * 因此改标为「预置结构」，不编造数字。后端出模板接口后替换为接口数据即可。</p>
+ * 空状态里的「教育场景模板」清单�? *
+ * <p><b>这是静态清单，不是接口数据�?/b>后端目前没有知识库模板接�? * （{@code sys_ai_template} 只服�?Agent；知识库侧无模板 API），所以这里只做入口展示，
+ * 「使用模板」当前等同于「新建知识库」，<b>不会真正预置文档与图谱结�?/b>�? * 设计图上每张模板卡的�?4 实体 · 196 关系」是示意图里的填充值，我们没有对应数据�? * 因此改标为「预置结构」，不编造数字。后端出模板接口后替换为接口数据即可�?/p>
  */
 /**
- * 模板封面：按 key 映射到**本地资源**（设计稿的远程图已下载入库，
- * 运行期不外链，避免离线裂图与 CDN 失效）。
- * 没有素材的模板（昆虫/汉字/作文/名言）不在此表中，渲染时回退到色块占位。
- */
+ * 模板封面：按 key 映射�?*本地资源**（设计稿的远程图已下载入库，
+ * 运行期不外链，避免离线裂图与 CDN 失效）�? * 没有素材的模板（昆虫/汉字/作文/名言）不在此表中，渲染时回退到色块占位�? */
 const templateCovers: Record<string, string> = {
   sanguo: coverSanguo,
   poem: coverPoem,
@@ -2430,53 +2281,47 @@ const templateCovers: Record<string, string> = {
 
 const kbTemplates: ReadonlyArray<{ key: string; name: string; tag: string }> = [
   { key: 'sanguo', name: '三国演义知识图谱', tag: '人物 · 势力 · 事件' },
-  { key: 'poem', name: '古诗词库', tag: '朝代 · 作者 · 名句' },
-  { key: 'idiom', name: '成语库', tag: '释义 · 出处 · 近义' },
-  { key: 'question', name: '题库知识库', tag: '考点 · 题型 · 难度' },
+  { key: 'poem', name: '古诗词库', tag: '朝代 · 作�?· 名句' },
+  { key: 'idiom', name: '成语�?, tag: '释义 · 出处 · 近义' },
+  { key: 'question', name: '题库知识�?, tag: '考点 · 题型 · 难度' },
 ]
 
 /**
- * 取名称的首字用于封面占位。
- *
+ * 取名称的首字用于封面占位�? *
  * <p>后端没有封面字段，卡片需要一个「占位封面」而不是空白；
- * 用知识库名的前两个字做视觉锚点，中英文都适用。</p>
+ * 用知识库名的前两个字做视觉锚点，中英文都适用�?/p>
  *
- * @param name 知识库名称
- * @returns 1~2 个字符
- */
+ * @param name 知识库名�? * @returns 1~2 个字�? */
 function initialsOf(name?: string | null): string {
   const s = (name ?? '').trim()
   if (!s) {
     return 'KB'
   }
-  // 中文取前两字，英文取首字母（大写）
-  if (/^[\u4e00-\u9fa5]/.test(s)) {
+  // 中文取前两字，英文取首字母（大写�?  if (/^[\u4e00-\u9fa5]/.test(s)) {
     return s.slice(0, 2)
   }
   return s.slice(0, 1).toUpperCase()
 }
 
-/** 千分位格式化，1284 → 1,284 */
+/** 千分位格式化�?284 �?1,284 */
 function fmtCount(n: number | undefined): string {
   return (n ?? 0).toLocaleString('en-US')
 }
 
 /**
- * 卡片次要信息行的「多久以前」文案。
- *
+ * 卡片次要信息行的「多久以前」文案�? *
  * <p>用真实的 updateTime / createTime 换算，不编造数据；无有效时间或解析失败
- * 时回退为「—」，避免渲染出 Invalid Date。图上该行还有一个日历图标，同理走真实字段。</p>
+ * 时回退为「—」，避免渲染�?Invalid Date。图上该行还有一个日历图标，同理走真实字段�?/p>
  *
  * @param value 后端返回的时间字符串或时间戳
- * @returns 相对时间文案（刚刚 / N 分钟前 / N 小时前 / N 天前 / 日期）
- */
+ * @returns 相对时间文案（刚�?/ N 分钟�?/ N 小时�?/ N 天前 / 日期�? */
 function fmtTime(value?: string | number | null): string {
   if (value === undefined || value === null || value === '') {
-    return '—'
+    return '�?
   }
   const ts = typeof value === 'number' ? value : Date.parse(String(value))
   if (!Number.isFinite(ts)) {
-    return '—'
+    return '�?
   }
   const diff = Date.now() - ts
   if (diff < 60000) {
@@ -2497,41 +2342,37 @@ function fmtTime(value?: string | number | null): string {
   return new Date(ts).toLocaleDateString('zh-CN')
 }
 
-/** 顶部四个统计卡 */
+/** 顶部四个统计�?*/
 const overviewStats = computed(() => [
-  { key: 'kb', label: '知识库', value: fmtCount(overview.value.totals?.kb_count), icon: FolderOpened },
+  { key: 'kb', label: '知识�?, value: fmtCount(overview.value.totals?.kb_count), icon: FolderOpened },
   { key: 'file', label: '文档总量', value: fmtCount(overview.value.totals?.file_count), icon: Document },
   { key: 'entity', label: '实体节点', value: fmtCount(overview.value.totals?.entity_count), icon: Share },
   { key: 'relation', label: '关系连线', value: fmtCount(overview.value.totals?.relation_count), icon: Connection },
 ])
 
 /**
- * 取某个知识库的单个计数。
- *
+ * 取某个知识库的单个计数�? *
  * @param kbId 知识库ID
  * @param key 计数键：file_count / entity_count / relation_count
- * @returns 计数，缺省 0
+ * @returns 计数，缺�?0
  */
 function countOf(kbId: string, key: 'file_count' | 'entity_count' | 'relation_count'): number {
   return overview.value.per_base?.[kbId]?.[key] ?? 0
 }
 
 /**
- * 知识库是否「已就绪」：有文档且没有待处理的失败项。
- *
+ * 知识库是否「已就绪」：有文档且没有待处理的失败项�? *
  * <p>这里只用 overview 的文件数做粗判（>0 即认为已就绪），
- * 真正的索引状态要看文件列表里的 processingStatus，不在列表页重复拉一遍。</p>
+ * 真正的索引状态要看文件列表里�?processingStatus，不在列表页重复拉一遍�?/p>
  *
- * @param kb 知识库
- * @returns 是否就绪
+ * @param kb 知识�? * @returns 是否就绪
  */
 function isKbReady(kb: KnowledgeBase): boolean {
   return countOf(kb.id, 'file_count') > 0
 }
 
 /**
- * 拉取列表页统计。
- */
+ * 拉取列表页统计�? */
 async function loadOverview() {
   try {
     overview.value = (await apiService.fetchKBOverview()) || {}
@@ -2542,10 +2383,8 @@ async function loadOverview() {
 }
 
 /**
- * 把时间戳格式化成「N 分钟前 / N 小时前 / 昨天 / M月D日」。
- *
- * @param ts 毫秒时间戳
- * @returns 相对时间文案
+ * 把时间戳格式化成「N 分钟�?/ N 小时�?/ 昨天 / M月D日」�? *
+ * @param ts 毫秒时间�? * @returns 相对时间文案
  */
 function relativeTime(ts: number | string | undefined): string {
   if (!ts) return ''
@@ -2561,15 +2400,12 @@ function relativeTime(ts: number | string | undefined): string {
   if (day === 1) return '昨天'
   if (day < 7) return `${day} 天前`
   const d = new Date(t)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  return `${d.getMonth() + 1}�?{d.getDate()}日`
 }
 
 /**
- * 最近活动列表。
- *
- * <p>来源是真实数据而不是编出来的：知识库的 {@code updatedAt}（库被改动过）
- * 加上本地上传任务记录（fileUpload store）。后端目前没有活动流接口，
- * 所以「谁在什么时候上传了几篇」这类细粒度事件拿不到，这里不臆造。</p>
+ * 最近活动列表�? *
+ * <p>来源是真实数据而不是编出来的：知识库的 {@code updatedAt}（库被改动过�? * 加上本地上传任务记录（fileUpload store）。后端目前没有活动流接口�? * 所以「谁在什么时候上传了几篇」这类细粒度事件拿不到，这里不臆造�?/p>
  */
 const activities = computed(() => {
   const items: Array<{ key: string; title: string; desc: string; time: string; ts: number }> = []
@@ -2579,7 +2415,7 @@ const activities = computed(() => {
     items.push({
       key: `kb-${kb.id}`,
       title: kb.name,
-      desc: countOf(kb.id, 'file_count') > 0 ? `已索引 ${countOf(kb.id, 'file_count')} 篇` : '已创建',
+      desc: countOf(kb.id, 'file_count') > 0 ? `已索�?${countOf(kb.id, 'file_count')} 篇` : '已创�?,
       time: relativeTime(ts) || '',
       ts,
     })
@@ -2588,13 +2424,12 @@ const activities = computed(() => {
 })
 
 /**
- * 状态分栏：把 processingStatus 收敛成图 3 那样的四档。
- *
- * <p>后端有 7 个状态值（queued/uploading/uploaded/pending/processing/completed/failed），
+ * 状态分栏：�?processingStatus 收敛成图 3 那样的四档�? *
+ * <p>后端�?7 个状态值（queued/uploading/uploaded/pending/processing/completed/failed），
  * 展示上没必要分这么细——用户只关心「能不能用了」：</p>
  * <ul>
- *   <li>{@code indexed}：completed，已可检索</li>
- *   <li>{@code parsing}：queued/uploading/uploaded/pending/processing，正在处理</li>
+ *   <li>{@code indexed}：completed，已可检�?/li>
+ *   <li>{@code parsing}：queued/uploading/uploaded/pending/processing，正在处�?/li>
  *   <li>{@code failed}：failed</li>
  *   <li>{@code all}：不分组</li>
  * </ul>
@@ -2605,19 +2440,19 @@ const FILE_STATUS_GROUPS: Record<string, string[]> = {
   failed: ['failed'],
 }
 
-/** 文件状态分栏键：全部 / 已索引 / 解析中 / 失败 */
+/** 文件状态分栏键：全�?/ 已索�?/ 解析�?/ 失败 */
 type FileStatusFilter = 'all' | 'indexed' | 'parsing' | 'failed'
 
-/** 当前选中的分栏 */
+/** 当前选中的分�?*/
 const fileStatusFilter = ref<FileStatusFilter>('all')
 
-/** 当前目录下的文件（来自 KBFileTree 的 files-loaded） */
+/** 当前目录下的文件（来�?KBFileTree �?files-loaded�?*/
 const loadedFiles = ref<KBFile[]>([])
 
 /** 只统计真实文件，目录不进分栏计数 */
 const filesForFilter = computed(() => loadedFiles.value.filter((f) => !f.isDirectory))
 
-/** 四个分栏各自的计数。显式标注返回类型，否则 key 会被推断成 string，模板里回写分栏就过不了类型检查 */
+/** 四个分栏各自的计数。显式标注返回类型，否则 key 会被推断�?string，模板里回写分栏就过不了类型检�?*/
 const fileStatusFilters = computed<ReadonlyArray<{ key: FileStatusFilter; label: string; count: number }>>(() => {
   const files = filesForFilter.value
   const countOf = (key: string) => {
@@ -2629,30 +2464,27 @@ const fileStatusFilters = computed<ReadonlyArray<{ key: FileStatusFilter; label:
   }
   return [
     { key: 'all', label: '全部', count: countOf('all') },
-    { key: 'indexed', label: '已索引', count: countOf('indexed') },
-    { key: 'parsing', label: '解析中', count: countOf('parsing') },
+    { key: 'indexed', label: '已索�?, count: countOf('indexed') },
+    { key: 'parsing', label: '解析�?, count: countOf('parsing') },
     { key: 'failed', label: '失败', count: countOf('failed') },
   ]
 })
 
 /** 原文预览弹窗 */
 const previewVisible = ref(false)
-/** 预览的相对路径 */
+/** 预览的相对路�?*/
 const previewPath = ref('')
 
 /**
- * 打开知识点原文预览。
+ * 打开知识点原文预览�? *
+ * <p>这是「预览」的正路：走 {@code GET /bases/{id}/file} 拿原文并渲染�? * 原来点文件只打开分块查看（看不到正文，用户反馈「文件无法预览」）�?/p>
  *
- * <p>这是「预览」的正路：走 {@code GET /bases/{id}/file} 拿原文并渲染。
- * 原来点文件只打开分块查看（看不到正文，用户反馈「文件无法预览」）。</p>
- *
- * @param file 目标文件；也可由引用卡片直接给相对路径
- * @param path 显式相对路径，优先于 file.relativePath
+ * @param file 目标文件；也可由引用卡片直接给相对路�? * @param path 显式相对路径，优先于 file.relativePath
  */
 function openFilePreview(file?: KBFile, path?: string) {
   const p = path || file?.relativePath || file?.fileName || ''
   if (!p) {
-    toast.warning('该文件没有可预览的相对路径')
+    toast.warning('该文件没有可预览的相对路�?)
     return
   }
   previewPath.value = p
@@ -2660,8 +2492,7 @@ function openFilePreview(file?: KBFile, path?: string) {
 }
 
 /**
- * 获取当前文件夹路径（从 KBFileTree 组件）
- */
+ * 获取当前文件夹路径（�?KBFileTree 组件�? */
 function getCurrentFolderPath(): string | null {
   if (fileTreeRef.value && fileTreeRef.value.getCurrentFolderPath) {
     return fileTreeRef.value.getCurrentFolderPath()
@@ -2670,8 +2501,7 @@ function getCurrentFolderPath(): string | null {
 }
 
 /**
- * 获取当前目录下的文件列表（从 KBFileTree 组件）
- */
+ * 获取当前目录下的文件列表（从 KBFileTree 组件�? */
 function getCurrentFiles(): KBFile[] {
   if (fileTreeRef.value && fileTreeRef.value.getCurrentFiles) {
     return fileTreeRef.value.getCurrentFiles()
@@ -2682,12 +2512,10 @@ function getCurrentFiles(): KBFile[] {
 
 
 // ========== Lifecycle ==========
-// 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
-// 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
+// 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）�?// 实体 / 关系视图从菜单直开时也要有数据 —�?此前只有 graph 页签会拉，直开会是空表
 watch(activeTab, (tab) => {
   if (tab === 'graph' || tab === 'overview') {
-    // 概览页也要展示实体/关系分布，所以和图谱页一样拉整张图
-    void loadGraph()
+    // 概览页也要展示实�?关系分布，所以和图谱页一样拉整张�?    void loadGraph()
     return
   }
   if ((tab === 'entities' || tab === 'relations') && !graphLoading.value && graphView.nodes.length === 0) {
@@ -2695,8 +2523,7 @@ watch(activeTab, (tab) => {
   }
 })
 
-// 切换知识库时图谱要跟着换；计数走轻量接口，图本身等切页签再拉
-watch(() => store.activeKnowledgeBaseId, () => {
+// 切换知识库时图谱要跟着换；计数走轻量接口，图本身等切页签再�?watch(() => store.activeKnowledgeBaseId, () => {
   graphKeyword.value = ''
   graphEntityKeyword.value = ''
   graphRelationKeyword.value = ''
@@ -2714,8 +2541,7 @@ watch(() => store.activeKnowledgeBaseId, () => {
 onMounted(async () => {
   fetchRagStatus()
   await store.fetchKnowledgeBases()
-  await loadOverview() // 列表页统计卡与卡片计数（须在库列表之后，per_base 才有意义）
-
+  await loadOverview() // 列表页统计卡与卡片计数（须在库列表之后，per_base 才有意义�?
   // 从路由参数读取知识库 ID
   const kbIdFromRoute = route.params.id as string
 
@@ -2724,7 +2550,7 @@ onMounted(async () => {
     const kb = store.knowledgeBases.find(k => k.id === kbIdFromRoute)
     if (kb) {
       await handleSelectKB(kb)
-      // refreshFileList 已在 handleSelectKB 中调用,无需重复
+      // refreshFileList 已在 handleSelectKB 中调�?无需重复
     } else {
       // 如果 ID 无效,显示列表视图
       viewMode.value = 'list'
@@ -2738,10 +2564,10 @@ onMounted(async () => {
   checkAndStartUploadTaskPolling()
 })
 
-// 关键修复:组件销毁时清理定时器,防止内存泄漏
+// 关键修复:组件销毁时清理定时�?防止内存泄漏
 onUnmounted(() => {
-  console.log('[DEBUG] KnowledgeBasePage 组件销毁,清理定时器')
-  // 注意：文件轮询已由 KBFileTree 内部管理，无需在此清理
+  console.log('[DEBUG] KnowledgeBasePage 组件销�?清理定时�?)
+  // 注意：文件轮询已�?KBFileTree 内部管理，无需在此清理
   stopUploadTaskPolling() // 停止上传任务轮询
 })
 
@@ -2754,8 +2580,7 @@ function checkAndStartUploadTaskPolling() {
     return
   }
 
-  // 检查是否有活跃的上传任务
-  if (!store.activeKnowledgeBaseId) return
+  // 检查是否有活跃的上传任�?  if (!store.activeKnowledgeBaseId) return
 
   const tasks = uploadStore.getTasksByKB(store.activeKnowledgeBaseId)
   const hasActiveTasks = tasks.some(task =>
@@ -2772,13 +2597,11 @@ function checkAndStartUploadTaskPolling() {
  * 启动上传任务轮询
  */
 function startUploadTaskPolling() {
-  // 清除旧的定时器
-  if (uploadTaskPollingTimer !== null) {
+  // 清除旧的定时�?  if (uploadTaskPollingTimer !== null) {
     clearInterval(uploadTaskPollingTimer)
   }
 
-  // 每 500ms 刷新一次上传任务列表
-  uploadTaskPollingTimer = window.setInterval(() => {
+  // �?500ms 刷新一次上传任务列�?  uploadTaskPollingTimer = window.setInterval(() => {
     refreshUploadTasksList()
   }, 500)
 
@@ -2802,44 +2625,40 @@ function stopUploadTaskPolling() {
 function refreshUploadTasksList() {
   if (!store.activeKnowledgeBaseId) return
 
-  // 从 fileUpload store 获取当前知识库的上传任务
+  // �?fileUpload store 获取当前知识库的上传任务
   const tasks = uploadStore.getTasksByKB(store.activeKnowledgeBaseId)
 
   console.log(`[DEBUG] refreshUploadTasksList: store中有 ${tasks.length} 个任务`)
-  console.log(`[DEBUG] 任务状态分布:`, tasks.reduce((acc, task) => {
+  console.log(`[DEBUG] 任务状态分�?`, tasks.reduce((acc, task) => {
     acc[task.status] = (acc[task.status] || 0) + 1
     return acc
   }, {} as Record<string, number>))
 
-  // 关键修复:上传完成(uploaded)的任务应该从上传弹窗移除,显示到文件列表
-  // 只保留正在上传或排队中的任务: queued, uploading, failed
+  // 关键修复:上传完成(uploaded)的任务应该从上传弹窗移除,显示到文件列�?  // 只保留正在上传或排队中的任务: queued, uploading, failed
   const displayTasks = tasks.filter(task =>
     task.status !== 'uploaded'
   )
 
-  console.log(`[DEBUG] 过滤后显示 ${displayTasks.length} 个任务`)
+  console.log(`[DEBUG] 过滤后显�?${displayTasks.length} 个任务`)
 
-  // 关键修复:只有当任务列表真正变化时才更新,避免不必要的响应式触发
-  const oldLength = uploadTasksList.value.length
+  // 关键修复:只有当任务列表真正变化时才更�?避免不必要的响应式触�?  const oldLength = uploadTasksList.value.length
   const newLength = displayTasks.length
   const hasContentChange = oldLength !== newLength ||
     displayTasks.some((task, index) => task.id !== uploadTasksList.value[index]?.id)
 
   if (hasContentChange) {
-    // 转换为 KBFile 格式用于显示
+    // 转换�?KBFile 格式用于显示
     uploadTasksList.value = displayTasks.map(task => uploadStore.taskToFileRecord(task))
     console.log(`[DEBUG] 刷新上传任务列表: ${uploadTasksList.value.length} 个任务`)
   }
 
-  // 关键修复:先清除已完成的任务
-  autoRemoveCompletedTasks(tasks)
+  // 关键修复:先清除已完成的任�?  autoRemoveCompletedTasks(tasks)
 
-  // 关键修复:清除任务后,重新从 store 获取最新列表来判断是否关闭弹窗
+  // 关键修复:清除任务�?重新�?store 获取最新列表来判断是否关闭弹窗
   const remainingTasks = uploadStore.getTasksByKB(store.activeKnowledgeBaseId)
   checkAndAutoCloseModal(remainingTasks)
 
-  // 关键优化:检查是否还有活跃任务，如果没有则停止轮询
-  const hasActiveUploadTasks = remainingTasks.some(task =>
+  // 关键优化:检查是否还有活跃任务，如果没有则停止轮�?  const hasActiveUploadTasks = remainingTasks.some(task =>
     task.status === 'queued' || task.status === 'uploading'
   )
 
@@ -2851,15 +2670,14 @@ function refreshUploadTasksList() {
 
 /**
  * 自动移除已完成的任务
- * @param allTasks 所有上传任务列表(UploadTask[])
+ * @param allTasks 所有上传任务列�?UploadTask[])
  */
 function autoRemoveCompletedTasks(allTasks: any[]) {
   const completedTaskIds = allTasks
     .filter(task => task.status === 'uploaded' || task.status === 'failed')
     .map(task => task.id)
 
-  // 立即从 uploadStore 中清除上传完成或失败的任务
-  completedTaskIds.forEach(taskId => {
+  // 立即�?uploadStore 中清除上传完成或失败的任�?  completedTaskIds.forEach(taskId => {
     uploadStore.clearUploadTask(taskId)
     console.log(`[DEBUG] 立即移除任务: ${taskId}`)
   })
@@ -2867,25 +2685,22 @@ function autoRemoveCompletedTasks(allTasks: any[]) {
 
 /**
  * 检查并自动关闭弹窗
- * @param allTasks 所有上传任务列表(UploadTask[])
+ * @param allTasks 所有上传任务列�?UploadTask[])
  */
 function checkAndAutoCloseModal(allTasks: any[]) {
   console.log(`[DEBUG] checkAndAutoCloseModal: 收到 ${allTasks.length} 个任务`)
-  console.log(`[DEBUG] 任务状态:`, allTasks.map(t => ({ id: t.id.substring(0, 8), status: t.status })))
+  console.log(`[DEBUG] 任务状�?`, allTasks.map(t => ({ id: t.id.substring(0, 8), status: t.status })))
 
-  // 检查是否有活跃任务（排除 uploaded 和 failed）
-  const hasActiveTasks = allTasks.some(task =>
+  // 检查是否有活跃任务（排�?uploaded �?failed�?  const hasActiveTasks = allTasks.some(task =>
     task.status !== 'uploaded' &&
     task.status !== 'failed'
   )
 
   console.log(`[DEBUG] hasActiveTasks: ${hasActiveTasks}, showUploadTaskModal: ${showUploadTaskModal.value}, autoCloseModalTimer: ${autoCloseModalTimer}`)
 
-  // 如果没有活跃任务且弹窗正在显示，则自动关闭
-  if (!hasActiveTasks && showUploadTaskModal.value) {
-    // 关键修复:只在定时器不存在时才设置,避免被轮询不断重置
-    if (autoCloseModalTimer === null) {
-      console.log('[DEBUG] 满足自动关闭条件，1秒后关闭弹窗')
+  // 如果没有活跃任务且弹窗正在显示，则自动关�?  if (!hasActiveTasks && showUploadTaskModal.value) {
+    // 关键修复:只在定时器不存在时才设置,避免被轮询不断重�?    if (autoCloseModalTimer === null) {
+      console.log('[DEBUG] 满足自动关闭条件�?秒后关闭弹窗')
       autoCloseModalTimer = window.setTimeout(() => {
         showUploadTaskModal.value = false
         autoCloseModalTimer = null
@@ -2916,14 +2731,14 @@ async function refreshFileList() {
     if (fileTreeRef.value && fileTreeRef.value.forceReload) {
       console.log('[DEBUG] 触发 KBFileTree 重新加载')
       await fileTreeRef.value.forceReload()
-      // 注意:forceReload 内部会触发 files-loaded 事件,自动启动轮询
+      // 注意:forceReload 内部会触�?files-loaded 事件,自动启动轮询
     }
   } catch (error) {
     console.error('刷新文件列表失败:', error)
   }
 }
 
-// 监听路由变化，处理 URL 中的 id 参数
+// 监听路由变化，处�?URL 中的 id 参数
 watch(() => route.params.id, async (newKbId: string | string[] | undefined) => {
   // 如果是数组，取第一个值；如果是字符串直接使用；否则为 undefined
   const kbId = Array.isArray(newKbId) ? newKbId[0] : newKbId
@@ -2934,21 +2749,19 @@ watch(() => route.params.id, async (newKbId: string | string[] | undefined) => {
       await handleSelectKB(kb)
     }
   } else {
-    // 如果没有 ID，返回列表视图
-    viewMode.value = 'list'
+    // 如果没有 ID，返回列表视�?    viewMode.value = 'list'
     store.setActiveKnowledgeBase(null)
   }
 })
 
-// 关键优化:监听 uploadStore 的任务变化，动态启动/停止轮询
+// 关键优化:监听 uploadStore 的任务变化，动态启�?停止轮询
 watch(
   () => uploadStore.getTasksByKB(store.activeKnowledgeBaseId || '').length,
   (newCount, oldCount) => {
     console.log(`[DEBUG] 上传任务数量变化: ${oldCount} -> ${newCount}`)
 
-    // 如果有活跃任务且轮询未启动，则启动
-    if (newCount > 0 && uploadTaskPollingTimer === null) {
-      console.log('[DEBUG] 检测到新的上传任务，启动轮询')
+    // 如果有活跃任务且轮询未启动，则启�?    if (newCount > 0 && uploadTaskPollingTimer === null) {
+      console.log('[DEBUG] 检测到新的上传任务，启动轮�?)
       checkAndStartUploadTaskPolling()
     }
   }
@@ -2965,7 +2778,7 @@ watch(
   align-items: center;
   gap: 10px;
   padding: 36px 28px;
-  /* 原值 18px → xl 档 */
+  /* 原�?18px �?xl �?*/
   border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
@@ -2987,7 +2800,7 @@ watch(
   color: var(--color-text-gray);
 }
 
-/* ── 创建/编辑知识库弹窗 ── */
+/* ── 创建/编辑知识库弹�?── */
 .kb-form {
   display: flex;
   flex-direction: column;
@@ -2996,7 +2809,7 @@ watch(
 .kb-sec {
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  /* 原值 14px → lg 档 */
+  /* 原�?14px �?lg �?*/
   border-radius: var(--el-radius-lg, 12px);
   padding: 14px 16px;
 }
@@ -3044,7 +2857,7 @@ watch(
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  /* 原值 14px → lg 档 */
+  /* 原�?14px �?lg �?*/
   border-radius: var(--el-radius-lg, 12px);
   border: 1px solid var(--el-border-color);
   background: var(--el-bg-color);
@@ -3062,7 +2875,7 @@ watch(
   justify-content: center;
   width: 36px;
   height: 36px;
-  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  /* 原�?10px �?lg 档（�?8/12 等距，本仓统一�?12px�?*/
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
@@ -3095,20 +2908,16 @@ watch(
   gap: 12px;
 }
 
-/* 动效降级：系统开启「减少动态效果」时，公开/私有行的边框与底色直接到位。
-   只关 .kb-visibility 自己的 transition，不写 `*` / `.kb-visibility *` 通配，
-   避免把里面的 el-switch 开关轨道动画一起掐掉（那是开关状态的功能表达）。
-   .is-public 的选中态是静态声明，停掉过渡后依然成立。 */
+/* 动效降级：系统开启「减少动态效果」时，公开/私有行的边框与底色直接到位�?   只关 .kb-visibility 自己�?transition，不�?`*` / `.kb-visibility *` 通配�?   避免把里面的 el-switch 开关轨道动画一起掐掉（那是开关状态的功能表达）�?   .is-public 的选中态是静态声明，停掉过渡后依然成立�?*/
 @media (prefers-reduced-motion: reduce) {
   .kb-visibility {
     transition: none;
   }
 }
 
-/* 键盘焦点可见性：知识库卡片与「可见性」行都是带 @click 的 div（不是可聚焦控件），
-   浏览器不给默认焦点环。指针样式沿用模板里已有的 cursor-pointer / CSS 里的 cursor: pointer，
-   不重复声明。环用主色 12% —— 两处底色都是令牌化表面色（re-surface / --el-bg-color），
-   深浅主题下都只是一档主色描边，12% 足够可见。 */
+/* 键盘焦点可见性：知识库卡片与「可见性」行都是�?@click �?div（不是可聚焦控件），
+   浏览器不给默认焦点环。指针样式沿用模板里已有�?cursor-pointer / CSS 里的 cursor: pointer�?   不重复声明。环用主�?12% —�?两处底色都是令牌化表面色（re-surface / --el-bg-color），
+   深浅主题下都只是一档主色描边，12% 足够可见�?*/
 .kb-card,
 .kb-visibility {
   outline: none;
@@ -3119,9 +2928,8 @@ watch(
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-/* ── 文件列表 Tab：左「文档」+ 右「智能问答」双栏 ──────────────────────────
-   左栏吃剩余宽度、右栏固定舒适宽（400px 基准），窄屏（< 1180px）退化为上下堆叠——
-   问答面板是主操作，挤到第二行也不该被压到读不了的高度。 */
+/* ── 文件列表 Tab：左「文档�? 右「智能问答」双�?──────────────────────────
+   左栏吃剩余宽度、右栏固定舒适宽�?00px 基准），窄屏�? 1180px）退化为上下堆叠—�?   问答面板是主操作，挤到第二行也不该被压到读不了的高度�?*/
 .kb-split {
   display: flex;
   flex: 1;
@@ -3143,7 +2951,7 @@ watch(
   box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
 }
 
-/* 右栏问答固定一个舒适宽度，文档列吃剩余空间（避免两栏各半把表格挤扁） */
+/* 右栏问答固定一个舒适宽度，文档列吃剩余空间（避免两栏各半把表格挤扁�?*/
 .kb-split__ask {
   display: flex;
   flex: 0 1 400px;
@@ -3151,7 +2959,7 @@ watch(
   min-height: 0;
 }
 
-/* 面板自身已有边框，这里让容器不重复画一层 */
+/* 面板自身已有边框，这里让容器不重复画一�?*/
 .kb-split__ask :deep(.kb-ask) {
   flex: 1;
   min-width: 0;
@@ -3180,7 +2988,7 @@ watch(
   font-weight: 700;
   color: var(--el-text-color-primary);
   /* 标题与篇数徽标不参与压缩，压缩只发生在副标题（知识库名）上，
-     否则窄栏下「文档」会被右侧上传按钮挤成竖排两行 */
+     否则窄栏下「文档」会被右侧上传按钮挤成竖排两�?*/
   flex: 0 0 auto;
   white-space: nowrap;
   letter-spacing: -0.01em;
@@ -3196,7 +3004,7 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* 唯一允许被压缩的项：空间不足时先省略知识库名，而不是把标题挤换行 */
+  /* 唯一允许被压缩的项：空间不足时先省略知识库名，而不是把标题挤换�?*/
   min-width: 0;
   flex: 0 1 auto;
 }
@@ -3217,7 +3025,7 @@ watch(
   padding: 10px 16px;
 }
 
-/* 分栏按钮：pills 形，未选中走填充面，选中走主色浅底 + 主色字；计数用内嵌小徽标 */
+/* 分栏按钮：pills 形，未选中走填充面，选中走主色浅�?+ 主色字；计数用内嵌小徽标 */
 .kb-split__filter {
   display: inline-flex;
   align-items: center;
@@ -3286,9 +3094,8 @@ watch(
   }
 }
 
-/* ── 列表页：统计卡 + 卡片网格 + 最近活动 ───────────────────────────────
-   颜色全部走 --el-*，暗色由 html.dark 下的 Element 变量自动切换，
-   不再出现 text-gray-900 / dark:text-[#e8e9ed] 这类写死值。 */
+/* ── 列表页：统计�?+ 卡片网格 + 最近活�?───────────────────────────────
+   颜色全部�?--el-*，暗色由 html.dark 下的 Element 变量自动切换�?   不再出现 text-gray-900 / dark:text-[#e8e9ed] 这类写死值�?*/
 .kb-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -3296,7 +3103,7 @@ watch(
   margin-bottom: 16px;
 }
 
-/* 宽屏固定四列，对应参考图「知识库 / 文档总量 / 实体节点 / 关系连线」一排 */
+/* 宽屏固定四列，对应参考图「知识库 / 文档总量 / 实体节点 / 关系连线」一�?*/
 @media (min-width: 1024px) {
   .kb-stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3318,8 +3125,7 @@ watch(
   box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 
-/* 右侧装饰：设计图里每张统计卡右端有一片淡色山形。
-   这里用纯 CSS 拼三角，颜色取主色最浅阶，不引入位图素材。 */
+/* 右侧装饰：设计图里每张统计卡右端有一片淡色山形�?   这里用纯 CSS 拼三角，颜色取主色最浅阶，不引入位图素材�?*/
 .kb-stat::after {
   content: '';
   position: absolute;
@@ -3346,7 +3152,7 @@ watch(
   z-index: 1;
 }
 
-/* 图标按 HTML 原型是 46×46 浅底圆角方块（#e8f8fa → 主题浅阶），内 24px 线框图标 */
+/* 图标�?HTML 原型�?46×46 浅底圆角方块�?e8f8fa �?主题浅阶），�?24px 线框图标 */
 .kb-stat__icon {
   flex: 0 0 auto;
   display: inline-flex;
@@ -3360,7 +3166,7 @@ watch(
   box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
 }
 
-/* 数字 26px/800 在上、标签 13.5px 在下，与 HTML 原型一致 */
+/* 数字 26px/800 在上、标�?13.5px 在下，与 HTML 原型一�?*/
 .kb-stat__value {
   display: block;
   font-size: 28px;
@@ -3378,7 +3184,7 @@ watch(
   margin-top: 2px;
 }
 
-/* 详情页「概览」里的统计块仍是「图标 + 上下堆叠的数字/标签」结构，
+/* 详情页「概览」里的统计块仍是「图�?+ 上下堆叠的数�?标签」结构，
    与列表页的横排不同，所以单独保留这个容器样式（去掉它会导致数字与标签挤成一行） */
 .kb-stat__body {
   position: relative;
@@ -3388,12 +3194,11 @@ watch(
   line-height: 1.2;
 }
 
-/* 详情页：二级功能菜单 + 内容区并排（只做内容区，不含系统一级侧栏与顶栏） */
+/* 详情页：二级功能菜单 + 内容区并排（只做内容区，不含系统一级侧栏与顶栏�?*/
 .kb-detail__body {
   display: flex;
-  /* 子视图（图谱/概览等）需要撑满可用高度：flex-start 会让面板只剩内容高度，
-     图谱画布的 flex-1 就塌成 ~120px。顺带把外层滚动容器改成 flex 列，
-     这里用 flex:1 拿到确定高度；内容更高的视图仍旧把滚动条撑出来。 */
+  /* 子视图（图谱/概览等）需要撑满可用高度：flex-start 会让面板只剩内容高度�?     图谱画布�?flex-1 就塌�?~120px。顺带把外层滚动容器改成 flex 列，
+     这里�?flex:1 拿到确定高度；内容更高的视图仍旧把滚动条撑出来�?*/
   align-items: stretch;
   gap: 16px;
   flex: 1;
@@ -3402,7 +3207,7 @@ watch(
   box-sizing: border-box;
 }
 
-/* 详情页头：返回图标钮 + 标题/副标题 + 图标动作组，一行三段垂直居中 */
+/* 详情页头：返回图标钮 + 标题/副标�?+ 图标动作组，一行三段垂直居�?*/
 .kb-detail__header {
   display: flex;
   align-items: center;
@@ -3455,18 +3260,18 @@ watch(
   }
 }
 
-/* 概览：内容整体可滚动，块间距更舒展 */
+/* 概览：内容整体可滚动，块间距更舒�?*/
 .kb-pane--scroll {
   overflow: auto;
   gap: 16px;
 }
 
-/* 图谱：工具条与画布之间保持默认 12px 节奏 */
+/* 图谱：工具条与画布之间保持默�?12px 节奏 */
 .kb-pane--graph {
   gap: 12px;
 }
 
-/* 详情页统一「图标动作组」：方形幽灵按钮，无底色无边框，贴合但留一点空隙 */
+/* 详情页统一「图标动作组」：方形幽灵按钮，无底色无边框，贴合但留一点空�?*/
 .kb-actions {
   display: inline-flex;
   align-items: center;
@@ -3474,8 +3279,7 @@ watch(
   flex-shrink: 0;
 }
 
-/* 幽灵态覆盖：按钮来自 @repo/ui ReButton(square)，默认是「白底 + 边框」。
-   这里用 :deep + 提高一档特异性（.kb-btn.rs-btn）压过组件内部的 scoped 默认样式 */
+/* 幽灵态覆盖：按钮来自 @repo/ui ReButton(square)，默认是「白�?+ 边框」�?   这里�?:deep + 提高一档特异性（.kb-btn.rs-btn）压过组件内部的 scoped 默认样式 */
 :deep(.kb-btn.rs-btn) {
   margin: 0;
   border-color: transparent;
@@ -3550,7 +3354,7 @@ watch(
   flex-shrink: 0;
 }
 
-/* 工具条里的搜索框：固定宽，窄屏拉满一行 */
+/* 工具条里的搜索框：固定宽，窄屏拉满一�?*/
 .kb-view__search {
   width: 220px;
 }
@@ -3561,11 +3365,11 @@ watch(
   }
 }
 
-/* 表格面板：与管理页 panel-card / flat-table / 分页同一套视觉 */
+/* 表格面板：与管理�?panel-card / flat-table / 分页同一套视�?*/
 .panel-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  /* 原值 18px → xl 档 */
+  /* 原�?18px �?xl �?*/
   border-radius: var(--el-radius-xl, 16px);
   padding: 16px 18px 14px;
   /* 表格容器是页面区块，不加投影 */
@@ -3598,7 +3402,7 @@ watch(
 
 .kb-overview__stats {
   margin-bottom: 0;
-  /* 详情页只有 3 张卡：覆盖列表页「宽屏固定四列」的规则 */
+  /* 详情页只�?3 张卡：覆盖列表页「宽屏固定四列」的规则 */
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -3607,7 +3411,7 @@ watch(
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 
-  /* 窄屏：二级菜单从左侧竖栏变顶部横排 chip，内容区整宽 */
+  /* 窄屏：二级菜单从左侧竖栏变顶部横�?chip，内容区整宽 */
   .kb-detail__body {
     flex-direction: column;
     padding: 12px 12px 16px;
@@ -3630,14 +3434,13 @@ watch(
   }
 }
 
-/* 详情概览的统计卡比列表页略矮，信息密度更轻 */
+/* 详情概览的统计卡比列表页略矮，信息密度更�?*/
 .kb-overview__stats .kb-stat {
   min-height: 88px;
   padding: 16px 18px;
 }
 
-/* 概览三卡各自的主题色：文档=主色 / 实体=警示 / 关系=成功，全部走 Element 变量，
-   color-mix 取淡色叠加，暗色主题下自动适配，不写死 hex */
+/* 概览三卡各自的主题色：文�?主色 / 实体=警示 / 关系=成功，全部走 Element 变量�?   color-mix 取淡色叠加，暗色主题下自动适配，不写死 hex */
 .kb-overview__stats .kb-stat:nth-child(1) .kb-stat__icon {
   background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
   color: var(--el-color-primary);
@@ -3683,7 +3486,7 @@ watch(
   }
 }
 
-/* 概览内容卡：统一内边距与纵向节奏（覆盖 re-surface--dense 的 10px 内距） */
+/* 概览内容卡：统一内边距与纵向节奏（覆�?re-surface--dense �?10px 内距�?*/
 .kb-ov-card {
   display: flex;
   flex-direction: column;
@@ -3696,7 +3499,7 @@ watch(
   box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
 }
 
-/* ── 详情页「概览」：实体/关系分布、Top 实体、快捷操作 ─────────────── */
+/* ── 详情页「概览」：实体/关系分布、Top 实体、快捷操�?─────────────── */
 .kb-ov__title {
   margin: 0;
   font-size: 14px;
@@ -3789,7 +3592,7 @@ watch(
   background: var(--el-fill-color-light);
 }
 
-/* 前三名：金 / 银 / 铜奖牌配色 */
+/* 前三名：�?/ �?/ 铜奖牌配�?*/
 .kb-ov__rank.is-top {
   color: #fff;
 }
@@ -3827,7 +3630,7 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
-/* 独立的「智能问答」视图：整宽铺开，复用文档分栏里同一个面板 */
+/* 独立的「智能问答」视图：整宽铺开，复用文档分栏里同一个面�?*/
 .kb-ask-standalone {
   flex: 1;
   min-width: 0;
@@ -3839,8 +3642,8 @@ watch(
   min-width: 0;
 }
 
-/* ── 页头：左标题+副标题，中搜索，右新建 ───────────────────────────────
-   注意不是整页复刻参考图：左侧导航与顶部栏由系统 layout 提供，这里只做内容区。 */
+/* ── 页头：左标题+副标题，中搜索，右新�?───────────────────────────────
+   注意不是整页复刻参考图：左侧导航与顶部栏由系统 layout 提供，这里只做内容区�?*/
 .kb-top {
   display: flex;
   align-items: center;
@@ -3877,7 +3680,7 @@ watch(
   flex: 0 0 auto;
 }
 
-/* 图谱工具条：统计 + 说明气泡 + 搜索 + 图标动作组 */
+/* 图谱工具条：统计 + 说明气泡 + 搜索 + 图标动作�?*/
 .kb-graph__bar {
   display: flex;
   align-items: center;
@@ -3886,7 +3689,7 @@ watch(
   flex-wrap: wrap;
 }
 
-/* 说明气泡触发图标：弱化存在感，悬浮时才亮起 */
+/* 说明气泡触发图标：弱化存在感，悬浮时才亮�?*/
 .kb-graph__help {
   color: var(--el-text-color-placeholder);
   cursor: help;
@@ -3908,7 +3711,7 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
-/* 图谱 Tab 的辅助说明文字与画布底：原先写死 text-gray-400 与 dark:bg-[#232428] */
+/* 图谱 Tab 的辅助说明文字与画布底：原先写死 text-gray-400 �?dark:bg-[#232428] */
 .kb-graph__hint {
   color: var(--el-text-color-placeholder);
 }
@@ -3917,7 +3720,7 @@ watch(
   background: var(--el-bg-color-overlay);
 }
 
-/* 画布容器：图例绝对定位在左下角；自带描边圆角，画布铺满 */
+/* 画布容器：图例绝对定位在左下角；自带描边圆角，画布铺�?*/
 .kb-graph__stage {
   position: relative;
   flex: 1;
@@ -3963,7 +3766,7 @@ watch(
   background: var(--el-color-primary);
 }
 
-/* ── 右栏：实体详情（对应参考图右栏） ─────────────────────────────── */
+/* ── 右栏：实体详情（对应参考图右栏�?─────────────────────────────── */
 .kb-gedetail {
   flex: 0 0 280px;
   width: 280px;
@@ -4078,7 +3881,7 @@ watch(
   padding: 12px 14px 0;
 }
 
-/* 「列表视图」：描边主色的小按钮，对应用途而非纯标签 */
+/* 「列表视图」：描边主色的小按钮，对应用途而非纯标�?*/
 .kb-viewtoggle {
   --el-button-text-color: var(--el-color-primary);
   --el-button-border-color: var(--el-color-primary-light-5);
@@ -4087,7 +3890,7 @@ watch(
 
 .kb-home {
   display: flex;
-  /* 两栏等高：右栏「最近活动」不足时不再比左栏矮，避免参差 */
+  /* 两栏等高：右栏「最近活动」不足时不再比左栏矮，避免参�?*/
   align-items: stretch;
   gap: 12px;
 }
@@ -4123,8 +3926,7 @@ watch(
   gap: 12px;
 }
 
-/* 卡片本体不再留内边距，改由 __body 承担：
-   这样大卡顶部的图案带才能左右贴边（图上大卡顶部是一条通栏装饰带）。 */
+/* 卡片本体不再留内边距，改�?__body 承担�?   这样大卡顶部的图案带才能左右贴边（图上大卡顶部是一条通栏装饰带）�?*/
 .kb-home__card {
   padding: 0;
   overflow: hidden;
@@ -4136,15 +3938,14 @@ watch(
   border-color: var(--el-color-primary-light-5);
 }
 
-/* 首个库横跨整行当「大卡」，让最有代表性的库有存在感 */
+/* 首个库横跨整行当「大卡」，让最有代表性的库有存在�?*/
 .kb-home__card.is-featured {
   grid-column: 1 / -1;
 }
 
-/* 大卡封面位。
-   后端 sys_ai_knowledge_base 没有封面字段，所以「占位」是常态：
-   有 cover 就渲图，没有就渲一个设计过的占位（主色渐变 + 斜纹底 + 名称首字），
-   不允许出现空白块。颜色全部取 Element/koi 变量。 */
+/* 大卡封面位�?   后端 sys_ai_knowledge_base 没有封面字段，所以「占位」是常态：
+   �?cover 就渲图，没有就渲一个设计过的占位（主色渐变 + 斜纹�?+ 名称首字），
+   不允许出现空白块。颜色全部取 Element/koi 变量�?*/
 .kb-card__banner {
   position: relative;
   height: 96px;
@@ -4197,7 +3998,7 @@ watch(
   color: var(--el-text-color-placeholder);
 }
 
-/* 小卡：居中的文档图标 + 右下角「就绪」角标 */
+/* 小卡：居中的文档图标 + 右下角「就绪」角�?*/
 .kb-card__icon-wrap {
   position: relative;
   display: flex;
@@ -4256,7 +4057,7 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
-/* 小卡的次要信息行（更新时间 / 文档数），对应图上带图标的那一行 */
+/* 小卡的次要信息行（更新时�?/ 文档数），对应图上带图标的那一�?*/
 .kb-card__meta {
   display: flex;
   flex-wrap: wrap;
@@ -4285,7 +4086,7 @@ watch(
   flex: 1 1 auto;
 }
 
-/* 操作按钮：常态隐藏，避免卡片视觉噪音；hover / 键盘聚焦时显现 */
+/* 操作按钮：常态隐藏，避免卡片视觉噪音；hover / 键盘聚焦时显�?*/
 .kb-card__actions {
   display: flex;
   align-items: center;
@@ -4302,7 +4103,7 @@ watch(
   opacity: 1;
 }
 
-/* 无 hover 能力的设备（触屏）直接常显，否则按钮永远点不到 */
+/* �?hover 能力的设备（触屏）直接常显，否则按钮永远点不�?*/
 @media (hover: none) {
   .kb-card__actions {
     opacity: 1;
@@ -4331,7 +4132,7 @@ watch(
   background: var(--el-color-success);
 }
 
-/* ── 空状态（按设计图：标题行 + 插画位 + 双入口 + 模板区） ─────────────── */
+/* ── 空状态（按设计图：标题行 + 插画�?+ 双入�?+ 模板区） ─────────────── */
 .kb-empty {
   padding: 22px 24px 24px;
 }
@@ -4360,8 +4161,7 @@ watch(
   text-decoration: underline;
 }
 
-/* 插画位：按设计图用「书本 + 上方节点网络」的示意图形。
-   仓库没有插画素材，这里用内联 SVG 画，颜色全部取 Element 变量，不写死色值。 */
+/* 插画位：按设计图用「书�?+ 上方节点网络」的示意图形�?   仓库没有插画素材，这里用内联 SVG 画，颜色全部�?Element 变量，不写死色值�?*/
 .kb-empty__figure {
   display: flex;
   justify-content: center;
@@ -4369,7 +4169,7 @@ watch(
 }
 
 .kb-empty__illus {
-  /* 按 HTML 原型：插画宽 300px、窄屏最多占 70% */
+  /* �?HTML 原型：插画宽 300px、窄屏最多占 70% */
   width: 300px;
   max-width: 70%;
   height: auto;
@@ -4435,7 +4235,7 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
-/* 双入口：主 / 次两个大按钮横向等分 */
+/* 双入口：�?/ 次两个大按钮横向等分 */
 .kb-empty__cta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4494,7 +4294,7 @@ watch(
   opacity: 0.85;
 }
 
-/* 模板区 */
+/* 模板�?*/
 .kb-empty__tpl-head {
   display: flex;
   align-items: center;
@@ -4508,8 +4308,7 @@ watch(
 
 .kb-empty__tpl-grid {
   display: grid;
-  /* 内容区约 680px，minmax 取 150px 才能在宽屏铺满 4 列——
-     之前用 190px 只能放 3 列，第 4 张被挤到下一行，与设计图不符。 */
+  /* 内容区约 680px，minmax �?150px 才能在宽屏铺�?4 列—�?     之前�?190px 只能�?3 列，�?4 张被挤到下一行，与设计图不符�?*/
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 14px;
 }
@@ -4525,7 +4324,7 @@ watch(
   border-color: var(--el-color-primary-light-5);
 }
 
-/* 封面：设计稿是 400/225 的插画；有本地素材就铺图，没有就回退色块 */
+/* 封面：设计稿�?400/225 的插画；有本地素材就铺图，没有就回退色块 */
 .kb-tpl__cover {
   position: relative;
   display: flex;

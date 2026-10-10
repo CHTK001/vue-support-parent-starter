@@ -18,6 +18,7 @@
         engine="element"
         :pagination="false"
         :toolbar="false"
+        :layout-table="{ minHeight: 0 }"
         stripe
         style="width:100%"
       >
@@ -76,9 +77,15 @@ const traceColumns = computed<ReTableColumn[]>(() => [
   { prop: 'startTime', label: t('hotsport.traces.startTime'), width: 180 },
 ]);
 
-/** 耗时数值（旧列只有 label 没有 prop，这里顺带把取值口径收成一个函数，插槽里不再重复三元） */
+/**
+ * 耗时数值（旧列只有 label 没有 prop，这里顺带把取值口径收成一个函数，插槽里不再重复三元）。
+ *
+ * <p>用**宽于** {@link TraceSpan} 的形状收窄：原模板写的是 {@code row.durationMs ?? row.duration ?? 0}，
+ * 后端历史包里两种字段名都出现过。TraceSpan 只声明了 durationMs，直接按它收窄会
+ * TS2551（`duration` does not exist），故按实际载荷形状取值，行为与原模板逐字一致。</p>
+ */
 function durationMs(row: Record<string, unknown>): number {
-  const span = row as unknown as TraceSpan;
+  const span = row as { durationMs?: number; duration?: number };
   return Number(span.durationMs ?? span.duration ?? 0);
 }
 

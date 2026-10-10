@@ -206,6 +206,7 @@ onMounted(refresh);
       engine="element"
       :pagination="false"
       :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
       stripe
       empty-text="暂无下载历史"
       class="history-table"

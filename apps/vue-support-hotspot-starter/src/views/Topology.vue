@@ -33,6 +33,7 @@
             :columns="portColumns"
             :pagination="false"
             :toolbar="false"
+            :layout-table="{ minHeight: 0 }"
             border
 
             :loading="loading"
@@ -46,6 +47,7 @@
             :columns="connColumns"
             :pagination="false"
             :toolbar="false"
+            :layout-table="{ minHeight: 0 }"
             border
 
             :loading="loading"

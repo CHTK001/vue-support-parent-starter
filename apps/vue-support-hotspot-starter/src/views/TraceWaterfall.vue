@@ -49,6 +49,7 @@
           :columns="spanColumns"
           :pagination="false"
           :toolbar="false"
+          :layout-table="{ minHeight: 0 }"
           border
 
           row-key="spanId"

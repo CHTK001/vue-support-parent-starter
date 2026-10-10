@@ -224,6 +224,7 @@ onBeforeUnmount(() => {
       engine="element"
       :pagination="false"
       :toolbar="false"
+      :layout-table="{ minHeight: 0 }"
       stripe
       empty-text="暂无任务"
       class="tasks-table"

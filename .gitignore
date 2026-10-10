@@ -234,5 +234,8 @@ prom-embed-probe.mjs
 **/vite.e2e.tmp.mts
 **/.api-accept/
 
+# 274 格式验收 spec 的实测报告（spec 每跑一次就重写 data/acceptance-report.json，属运行产物）
+**/tests/e2e/data/acceptance-report.json
+
 # temp ratio probe html
 **/__*probe*.html

@@ -488,6 +488,7 @@ onMounted(() => {
         :loader="loadRoles"
         :columns="columns"
         :pagination="true"
+        :layout-table="{ minHeight: 0 }"
         :params="query"
         row-key="sysRoleId"
         v-model:page="query.page"
@@ -734,6 +735,7 @@ onMounted(() => {
           engine="element"
           :pagination="false"
           :toolbar="false"
+          :layout-table="{ minHeight: 0 }"
           stripe
           show-index
           style="width: 100%"

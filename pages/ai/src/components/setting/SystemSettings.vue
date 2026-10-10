@@ -88,7 +88,13 @@
                             <BrowserSettings />
                         </template>
                         <template v-else-if="currentTabValue === 'providers'">
-                            <ModelsProviderList />
+                            <ModelsProviderList
+                                :items="providerItems"
+                                :templates="providerTemplates"
+                                @item-click="gotoModels"
+                                @item-edit="gotoModels"
+                                @item-delete="gotoModels"
+                                @template-click="gotoModels" />
                         </template>
                         <template v-else-if="currentTabValue === 'about'">
                             <AboutPanel />
@@ -221,6 +227,9 @@ import PageHeader from '@/components/PageHeader.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { isAdmin } from '@repo/core'
+import { adminApi } from '@/framework/context'
+import { mapProvider } from '@/components/models/model.utils'
+import { PROVIDER_TEMPLATES } from '@/components/models/model.constants'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -463,6 +472,36 @@ const getDefaultTabPath = () => {
 
 const currentTabValue = ref(getDefaultTabPath())
 
+// providers tab 的数据：原实现把 <ModelsProviderList /> 当自取数组件用，但它其实
+// 只吃 items/templates 两个 props，于是这个 tab 恒为空。这里按模型管理页同一接口
+// （/api/providers + PROVIDER_TEMPLATES）取数，去掉已添加的模板，复用 mapProvider
+// 保证与 /models 的字段口径一致（models[] / enabled 数量同源）。
+const providerItems = ref<any[]>([])
+const providerTemplates = ref<any[]>([])
+const providerLoaded = ref(false)
+let providerLoading = false
+
+const loadProviderPanel = async () => {
+    if (providerLoading) return
+    providerLoading = true
+    try {
+        const body = await adminApi.get('/api/providers')
+        const rawList = Array.isArray(body) ? body : body?.data || []
+        const list = rawList.map(mapProvider)
+        providerItems.value = list
+        const added = new Set(list.map((p: any) => p.provider))
+        providerTemplates.value = PROVIDER_TEMPLATES.filter((tpl: any) => !added.has(tpl.id))
+        providerLoaded.value = true
+    } catch (e) {
+        console.warn('加载供应商面板失败:', e)
+    } finally {
+        providerLoading = false
+    }
+}
+
+// 面板卡片的增删改/一键添加实际落在模型管理页，这里只做入口跳转
+const gotoModels = () => router.push({ name: 'Models' })
+
 // 宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
 // 这些页签放开 max-w 限制；其余窄内容页签保持居中定宽，避免长行难读。
 const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
@@ -503,6 +542,11 @@ watch(() => route.params.tab, (newPath) => {
         currentTabValue.value = tabPath
     }
 })
+
+// 进入 providers tab 才拉供应商面板数据（该 tab 数据与设置主表无关，懒加载）
+watch(currentTabValue, (v) => {
+    if (v === 'providers') loadProviderPanel()
+}, { immediate: true })
 
 onMounted(() => {
     if (!route.params.tab) {
