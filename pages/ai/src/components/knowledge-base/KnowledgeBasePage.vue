@@ -600,7 +600,7 @@
               <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
                 <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph 的 zoom-canvas 行为） -->
                 <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
-                  :toolbar="false" layout="force-atlas2" height="100%" :debug="true" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
+                  :toolbar="false" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
                 <div v-if="graphLegend.length > 0" class="kb-graph__legend">
@@ -1817,8 +1817,8 @@ const GRAPH_LAYOUT = 'force-atlas2'
  * 这里主动重跑一次同名布局让节点真正散开，随后由组件 autoFit 重新适配视口。</p>
  */
 function handleGraphReady() {
-  console.warn('[KBDEBUG] graph ready fired; graphNodes=', graphNodes.value.length, 'edges=', graphEdges.value.length)
-  nextTick(() => {    window.setTimeout(async () => {
+  nextTick(() => {
+    window.setTimeout(async () => {
       if (!graphCompRef.value?.setLayout) {
         return
       }
@@ -2712,9 +2712,6 @@ watch(() => store.activeKnowledgeBaseId, () => {
 })
 
 onMounted(async () => {
-  window.addEventListener('unhandledrejection', (ev) => {
-    console.warn('[KBDEBUG] unhandledrejection:', String(ev.reason?.message || ev.reason).slice(0, 400))
-  })
   fetchRagStatus()
   await store.fetchKnowledgeBases()
   await loadOverview() // 列表页统计卡与卡片计数（须在库列表之后，per_base 才有意义）
@@ -2739,7 +2736,6 @@ onMounted(async () => {
 
   // 关键优化:检查是否有上传任务，按需启动轮询
   checkAndStartUploadTaskPolling()
-  console.warn('[KBDEBUG] onMounted done, activeKb=', store.activeKnowledgeBaseId)
 })
 
 // 关键修复:组件销毁时清理定时器,防止内存泄漏
