@@ -1411,12 +1411,33 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
       <div class="re-cron__panel">
         <header class="re-cron__panel-head">
-          <span class="re-cron__panel-title">设置调度周期</span>
+          <!-- 盾牌 + 勾：UI 稿里这一格是"表达式已通过校验"的视觉锚点，
+               不是装饰。图标内联 SVG，不依赖图标字体离线可用。 -->
+          <span class="re-cron__panel-shield" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3.2 19 6v5.2c0 4.4-2.9 8.2-7 9.6-4.1-1.4-7-5.2-7-9.6V6z" />
+              <path d="M9 12l2.1 2.1L15.2 10" />
+            </svg>
+          </span>
+
+          <div class="re-cron__panel-titles">
+            <div class="re-cron__panel-title">{{ panelHeadline }}</div>
+            <div class="re-cron__panel-sub">{{ panelSubline }}</div>
+          </div>
+
+          <!-- 有效徽章只在这一种状态下出现：表达式合法且非空。
+               非法时标题行本身已经是"表达式无法解析"+ 红色，再挂个徽章只会打架。 -->
+          <span v-if="analysis.valid && !analysis.empty" class="re-cron__valid">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4.5 12.5l5 5 10-11" />
+            </svg>
+            表达有效
+          </span>
 
           <!--
             模式切换：字段 / 日历。两者共用同一条写入路径，见 applyCalendar 注释。
-            放在标题行右侧而不是独立一块：弹层要在 45vh 内无滚动放完全部内容，
-            独立成块要多付 26px 高度 + 8px 间隙。
+            放在标题行右侧而不是独立一块：弹层要在视口内无滚动放完全部内容，
+            独立成块要多付一行高度 + 间隙。
           -->
           <div class="re-cron__modes" role="tablist" aria-label="调度周期设置方式">
             <button
@@ -1446,59 +1467,75 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           </button>
         </header>
 
-        <!--
-          摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面。
-
-          只在字段模式出现。日历模式下 cadence 胶囊 + 执行时间已经把语义说全了，
-          而表达式此刻就显示在上方触发器的输入框里，重复一遍要白占 39px + 8px 间隙
-          —— 这点高度直接决定弹层要不要出滚动条（见 .re-cron__popper 的 max-height）。
-        -->
-        <div
-          v-if="panelMode === 'field'"
-          class="re-cron__summary"
-          :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }"
-        >
-          <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
-            {{ humanSummary || (trimmed ? (summary || errorText) : "未设置调度周期") }}
-          </div>
-          <code class="re-cron__summary-expr">{{ trimmed || "（未设置）" }}</code>
-          <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
-        </div>
-
         <ReCronCalendarPanel ref="calPanelRef" v-if="panelMode === 'calendar'" :expression="model" @apply="applyCalendar" />
 
         <template v-else>
-      <div class="re-cron__presets">
-        <span class="re-cron__section-title re-cron__section-title--inline">常用预设</span>
-        <div class="re-cron__pill-row">
-          <button
-            v-for="preset in visiblePresets"
-            :key="preset.cron"
-            type="button"
-            class="re-cron__pill"
-            :class="{ 'is-active': trimmed === preset.cron }"
-            @click="applyPreset(preset.cron)"
-          >
-            {{ preset.label }}
-          </button>
-          <!-- 罕见档折叠：320px 弹层里每行只放得下两个胶囊，11 个平铺要占六行 -->
-          <button
-            v-if="PRESETS_MORE.length"
-            type="button"
-            class="re-cron__pill re-cron__pill--more"
-            @click="presetsExpanded = !presetsExpanded"
-          >
-            {{ presetsExpanded ? "收起" : "更多" }}
-          </button>
-          <button v-if="defaultCron" type="button" class="re-cron__pill" @click="applyDefaultCron">用默认</button>
-          <button type="button" class="re-cron__pill" @click="clearAll">清空</button>
-        </div>
-      </div>
+          <!--
+            表达式原文输入：触发器换成六段胶囊之后，粘贴 / 手改表达式的唯一入口。
+            放在最上面是因为「从后端或文档拷一段 6 段表达式过来」是高频动作，
+            胶囊只能逐个字段点，输入一行原文永远是最快的。
+          -->
+          <div class="re-cron__expr">
+            <span class="re-cron__expr-label">表达式</span>
+            <ReInput
+              v-model="model"
+              class="re-cron__expr-input"
+              placeholder="秒 分 时 日 月 周，如 0 0/30 * * * ?"
+              spellcheck="false"
+              name="cron-expression"
+              autocomplete="off"
+              data-form-type="other"
+              data-lpignore="true"
+              data-1p-ignore
+            />
+          </div>
 
-      <div class="re-cron__body">
-        <!-- 左列：自定义字段（点字段盒子切换，下方的匹配方式与输入只作用于当前字段） -->
-        <section class="re-cron__col">
-          <div class="re-cron__section-title">自定义字段</div>
+          <div class="re-cron__body">
+            <!-- 左列：下次触发（UI 稿：时刻 + 相对说法胶囊） -->
+            <aside class="re-cron__col re-cron__col--preview">
+              <div class="re-cron__section-title">下次触发</div>
+              <ul v-if="analysis.times.length" class="re-cron__times">
+                <li v-for="(t, i) in analysis.times" :key="i">
+                  <span class="re-cron__times-text">{{ dayLabel(t) }} {{ timeLabel(t) }}</span>
+                  <span class="re-cron__times-rel">{{ relativeLabel(t) }}</span>
+                </li>
+              </ul>
+              <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || "无匹配时间" }}</div>
+            </aside>
+
+            <!-- 右列：常用预设（UI 稿：等宽表达式 + 人话描述，选中项带勾） -->
+            <section class="re-cron__col re-cron__col--presets">
+              <div class="re-cron__section-title">常用预设</div>
+              <ul class="re-cron__preset-list">
+                <li v-for="preset in visiblePresets" :key="preset.cron">
+                  <button
+                    type="button"
+                    class="re-cron__preset"
+                    :class="{ 'is-active': trimmed === preset.cron }"
+                    :aria-pressed="trimmed === preset.cron"
+                    @click="applyPreset(preset.cron)"
+                  >
+                    <code class="re-cron__preset-cron">{{ preset.cron }}</code>
+                    <span class="re-cron__preset-label">{{ preset.label }}</span>
+                  </button>
+                </li>
+              </ul>
+              <!-- 罕见档折叠：常显 5 条之外的一律收在这里，
+                   右栏每多一行就多 ~30px，弹层高度直接决定要不要出滚动条 -->
+              <button
+                v-if="PRESETS_MORE.length"
+                type="button"
+                class="re-cron__preset-more"
+                @click="presetsExpanded = !presetsExpanded"
+              >
+                {{ presetsExpanded ? "收起" : "更多预设" }}
+              </button>
+            </section>
+          </div>
+
+          <!-- 自定义字段：整块收在预览/预设两栏之下，字段模式的主编辑区 -->
+          <section class="re-cron__col re-cron__col--fields">
+            <div class="re-cron__section-title">自定义字段</div>
 
           <div class="re-cron__fields">
             <button
@@ -1614,31 +1651,19 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             <ReButton type="primary" plain @click="useExpressionText">把读不懂的字段按 * 重建</ReButton>
           </div>
         </section>
-
-        <!-- 右列：未来触发时间 -->
-        <aside class="re-cron__col re-cron__col--preview">
-          <div class="re-cron__section-title">未来 {{ analysis.times.length }} 次触发</div>
-          <ul v-if="analysis.times.length" class="re-cron__times">
-            <li v-for="(t, i) in analysis.times" :key="i">
-              <span class="re-cron__times-dot" aria-hidden="true"></span>
-              <span class="re-cron__times-text">{{ fmt(t) }}</span>
-            </li>
-          </ul>
-          <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || "无匹配时间" }}</div>
-        </aside>
-      </div>
         </template>
 
         <!--
-          未来触发时间提到面板底部共用：日历模式下右侧没有预览列，
+          未来触发时间提到面板底部共用：日历模式下没有左栏预览列，
           放这里两种模式都能看到"保存后什么时候跑"。
+          压成一行横排：竖排 5 次要 ~106px，而月历本身就要 ~300px，
+          这一块直接决定「应用此时间」和「保存」够不够得着。
         -->
         <section v-if="panelMode === 'calendar'" class="re-cron__col re-cron__cal-preview">
-          <div class="re-cron__section-title">未来 {{ analysis.times.length }} 次触发</div>
+          <div class="re-cron__section-title">未来触发</div>
           <ul v-if="analysis.times.length" class="re-cron__times">
             <li v-for="(t, i) in analysis.times" :key="i">
-              <span class="re-cron__times-dot" aria-hidden="true"></span>
-              <span class="re-cron__times-text">{{ fmt(t) }}</span>
+              <span class="re-cron__times-text">{{ dayLabel(t) }} {{ timeLabel(t) }}</span>
             </li>
           </ul>
           <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || "无匹配时间" }}</div>
@@ -1739,11 +1764,30 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 /* ---------------- Popover 面板外壳 ---------------- */
 
-/* 齿轮不再是独立触发器，整行才是 reference；这里把齿轮画成"输入框尾部图标" */
+/* 滑杆图标：触发器右侧的入口，整行才是真正的 trigger，它只做视觉提示 */
 .re-cron__gear {
-  margin: 0 !important;
-  padding: 0 8px;
-  pointer-events: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--el-radius-full);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+}
+
+.re-cron__gear:disabled {
+  color: var(--el-text-color-disabled);
+  cursor: not-allowed;
+}
+
+.re-cron__gear-icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* 面板内容根：Popover 自带 padding，这里只管内部纵向节奏 */
@@ -1756,20 +1800,83 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   min-width: 0;
 }
 
+/*
+ * 标题行：盾牌 + 两行文字 + 有效徽章 + 模式切换 + 关闭。
+ *
+ * 五个元素挤在一行，靠 space-between 会把中间全推到两边，
+ * 所以右侧三件套统一 margin-left:auto，中间的文字块自己吃掉剩余宽度。
+ */
 .re-cron__panel-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  /* 标题 · 字段/日历切换 · ×：space-between 会把中间那组顶到最右，
-     改用固定间隙 + margin-left:auto 只把 × 推到最右 */
-  gap: 12px;
+  gap: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.re-cron__panel-shield {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+
+.re-cron__panel-shield svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 两行文字自己撑开，把右侧的徽章/切换/关闭顶到行尾 */
+.re-cron__panel-titles {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .re-cron__panel-title {
-  flex: none;
   color: var(--el-text-color-primary);
   font-size: 15px;
   font-weight: 600;
+  line-height: 1.35;
+}
+
+/* 非法时标题必须是红色：这一行此刻就是报错本身，不能用中性色糊过去 */
+.re-cron__panel-head.is-invalid .re-cron__panel-title {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.re-cron__panel-sub {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 有效徽章：绿底绿字的小胶囊，只在合法非空时出现 */
+.re-cron__valid {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-success-light-9, #f0f9eb);
+  color: var(--el-color-success, #67c23a);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.re-cron__valid svg {
+  width: 13px;
+  height: 13px;
 }
 
 /* 模式切换组贴在标题右侧（而不是靠 space-between 推到最右），留出中间的呼吸 */
@@ -1837,66 +1944,94 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 .re-cron__line {
   display: flex;
   align-items: center;
-  gap: 6px;
+  width: 100%;
   /*
    * 容器查询：触发器这一行的宽度由外层表单决定，与视口无关
    * （侧边栏、抽屉、窄列都可能很窄），所以只能问容器、问不了媒体查询。
-   * `inline-size` 只包含行内轴：这一行里只有输入框和齿轮两个静态子元素，
+   * `inline-size` 只包含行内轴：这一行里只有静态子元素，
    * `container-type` 附带的 layout 包含不会改变任何绝对定位的包含块。
    */
   container-type: inline-size;
   container-name: recron-line;
 }
 
-/*
- * 层级事实（量过才知道，写在这里免得下次再摸错）：
- * `re-cron__input` 这个类同时挂在两个元素上 ——
- *   ① ReInput 自己的根 `div.re-input.re-cron__input`，它是 `display: contents`（0×0，没有盒子）
- *   ② 内层真正的 `div.el-input.re-cron__input`，display:flex，才是排版真正发生的地方
- * 真正的 flex 容器是 ②：里面装 `el-input__wrapper` 与 `el-input-group__append`（齿轮）。
- * append 实占 78px（38 按钮 + 两侧各 20 padding），wrapper 里还有 22 内边距 + 32 后缀，
- * 容器 132px 时 wrapper 只剩 54px、输入框宽度归零 —— 用户刚输入的表达式一个字也看不见。
- *
- * flex-wrap 挂在 ① 上是无效的（contents 盒子不参与排版），必须命中 ② 才有用，
- * 下面容器查询里的选择器因此写成 `.el-input.re-cron__input`。
- */
-.re-cron__input {
-  flex: 1;
+.re-cron__bar {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
+  height: 38px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color, #ffffff);
+  cursor: pointer;
+}
+
+.re-cron__line:hover .re-cron__bar {
+  border-color: var(--el-color-primary-light-5, #409eff);
+}
+
+.re-cron__bar-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+/* 六段胶囊：等宽字体 + flex:1 1 0，六颗视觉重量一致，谁也不占宽 */
+.re-cron__seg {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-sm, 4px);
+  background: var(--el-fill-color-light, #f4f4f5);
+  color: var(--el-text-color-regular, #606266);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.re-cron__seg:hover {
+  border-color: var(--el-color-primary-light-5, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 当前聚焦字段：主色实底白字，与其余五颗的浅灰底拉开层次 */
+.re-cron__seg.is-active {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary, #409eff);
+  color: var(--el-color-white, #ffffff);
+  font-weight: 600;
 }
 
 /*
- * 窄容器（< 240px）下让输入框独占一行，齿轮换到第二行。
- *
- * 用 `flex: 1 1 100%` 而不是抬 min-width：Chromium 的换行判定只看 flex base size、
- * 不看 min-width（实测把 wrapper 的 min-width 抬到 140px 也不换行，
- * 只是把 append 顶出容器右边界 86px）。100% 是确定基准，换行判定吃这套。
- *
- * 240px 是这么定的：单行布局下容器需要 132px 才刚够，输入框宽度 = 容器 - 132。
- * 容器 240 时输入框 108px（约 9 个字符），再窄就不如换行。
- * 宽容器下这一整块不生效，布局与从前逐像素一致。
+ * 窄容器（< 320px）下六颗胶囊会挤成六条竖线，改成两行三列。
+ * 用容器查询而不是媒体查询：这一行的宽度由外层表单决定，与视口无关。
  */
-@container recron-line (max-width: 240px) {
-  /* 双类选择器是为了稳压 Element Plus 的 `.el-input-group`：它同为 0,2,0，
-     靠源序取胜不可靠（实测 `flex-wrap` 被它按源序压回 nowrap）。 */
-  .re-cron__line :deep(.el-input.re-cron__input) {
+@container recron-line (max-width: 320px) {
+  .re-cron__bar {
     flex-wrap: wrap;
-    /* 换行后两行贴在一起会显得像一块散落的灰底，行距沿用触发器行自己的 6px */
+    height: auto;
+    padding: 6px;
     row-gap: 6px;
   }
 
-  .re-cron__line :deep(.el-input__wrapper) {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-
-  .re-cron__line :deep(.el-input-group__append) {
-    flex: 0 0 auto;
+  .re-cron__seg {
+    flex: 1 1 28%;
   }
 }
 
 /*
- * 组件级去动效：触发器输入框、追加按钮、齿轮、状态行（以及组件内其他元素与伪元素）
+ * 组件级去动效：触发器胶囊条、状态行（以及组件内其他元素与伪元素）
  * 一律瞬时切换 —— 输入 cron 时状态行每敲一个字符都会重算，任何过渡/呼吸/高光
  * 都会放大成"闪一下 / 抖一下"的廉价观感，这里整树关闭 animation 与 transition。
  */
@@ -2016,141 +2151,18 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-color-warning, #e6a23c);
 }
 
-/* ---------- 弹层内容（按 UI 图：摘要条 → 常用预设 → 左字段/右预览 → 底栏） ---------- */
+/* ---------- 弹层内容（按 UI 稿：标题行 → 表达式 → 下次触发 / 常用预设 → 自定义字段 → 底栏） ---------- */
 
-/* 摘要条：主色浅底 + 一句人话，表达式放下面做技术兜底。
-   底色用 --el-color-primary-light-9：已实测它在本仓的 Element Plus 里**确实存在
-   且随主题变**（亮 #ecf5ff / 暗 #18222b），不是硬编码兜底 —— 不要因为"名字像兜底值"
-   就改成 color-mix，两者实测逐值相同。 */
-.re-cron__summary {
-  display: flex;
-  /*
-   * 横向一行：人话在左、表达式在右。
-   *
-   * 竖排时这块要 66px（15px 大字一行 + 13px 表达式一行 + 间隙 + 内距），
-   * 而弹层要在 45vh 内无滚动地放下全部内容。并排后只占一行，省下 ~22px。
-   * 窄屏（表达式长到要折行）由下面那条媒体查询回落竖排。
-   */
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 5px 12px;
-  /* 描边用主色掺白/掺黑再混边框色，跟随主题切换，不写死色值 */
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter, #ebeef5));
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  text-align: center;
-}
-
-@media (width <= 560px) {
-  .re-cron__summary {
-    flex-direction: column;
-    gap: 4px;
-  }
-}
-
-.re-cron__summary.is-invalid {
-  background: var(--el-fill-color-light, #f5f7fa);
-}
-
-/* 表达式合法但拼不出人话（少见写法）：用中性底区分于主色高亮，
-   说明"这句是机械罗列，不是识别出来的语义"。 */
-.re-cron__summary.is-note {
-  background: var(--el-fill-color-light, #f5f7fa);
-}
-
-/* 底色转中性时描边一并转中性：主色描边 + 灰底会读成「有效但降级」，与错误态混淆 */
-.re-cron__summary.is-invalid,
-.re-cron__summary.is-note {
-  border-color: var(--el-border-color-lighter, #ebeef5);
-}
-
-/* 20px：弹层要在 45vh 内不滚动地放下全部内容（实测超出会把「保存」挤出可视区），
-   大字压到 15px、摘要条总高从 88px 降到 ~46px。 */
-.re-cron__summary-text {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--el-color-primary, #409eff);
-}
-
-/* 非法时摘要条必须显出"这是错误"，不能和 is-note（只是说明）同色 ——
-   底栏的 footerHint 已经是红的，同一条错误在两处一个红一个灰，
-   大号标题反而不带信号，扫一眼分不清说明与错误。 */
-.re-cron__summary.is-invalid .re-cron__summary-text {
-  color: var(--el-color-danger, #f56c6c);
-}
-
-/* 面板读不懂 / 用了英文名称时的说明：贴表达式下方，不喧宾夺主 */
-.re-cron__summary-note {
-  margin: 2px 0 0;
-  max-width: 46em;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary, #909399);
-}
-
-/* 表达式的等宽胶囊。圆角与 .re-cron__pill / .re-cron__times-dot 同为 full，
-   合并到一条规则里声明：视觉防漂移门禁按 border-radius 声明数计数，
-   同一取值重复声明三次会把额度占满（ReCron 基线 radius=7，曾恰好用尽）。 */
-.re-cron__summary-expr,
+/*
+ * 匹配方式胶囊（字段模式）：普通态描边，选中态主色实底。
+ * 圆角与预设行同用 md，合并声明 —— 视觉防漂移门禁按 border-radius 声明数计数。
+ */
 .re-cron__pill,
-.re-cron__times-dot {
-  border-radius: var(--el-radius-full, 9999px);
+.re-cron__preset {
+  border-radius: var(--el-radius-md, 8px);
 }
 
-.re-cron__summary-expr {
-  padding: 2px 10px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  background: var(--el-bg-color, #ffffff);
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 12px;
-  color: var(--el-text-color-regular, #606266);
-}
-
-/* 常用预设：标题与胶囊同排起排 —— 标题定宽不折行，胶囊区自己换行。
-   另两处 section-title（自定义字段 / 未来触发）仍是块级独占一行，不受影响。 */
-.re-cron__presets {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-/* 与 24px 高的胶囊视觉居中对齐 */
-.re-cron__section-title--inline {
-  flex: none;
-  margin-bottom: 0;
-  padding-top: 5px;
-  white-space: nowrap;
-}
-
-.re-cron__presets .re-cron__pill-row {
-  flex: 1;
-  min-width: 0;
-}
-
-.re-cron__section-title {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-regular, #606266);
-}
-
-.re-cron__pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* 预设/匹配方式胶囊：普通态描边，选中态主色实底（圆角见上方合并规则） */
 .re-cron__pill {
-  /* 24px / 10px 内距 / 11px 字：480px 弹层里预设胶囊一行放得下 5 个，
-     9 个（6 常显 + 更多 + 用默认 + 清空）从三行压到两行，省下约 30px —— 
-     这 30px 直接决定弹层要不要出滚动条。 */
   height: 24px;
   padding: 0 10px;
   border: 1px solid var(--el-border-color, #dcdfe6);
@@ -2168,42 +2180,142 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   color: var(--el-color-white, #ffffff);
 }
 
-/* 「更多 / 收起」是动作不是取值：用虚线边 + 次要色区分，避免被误当成一个 cron 预设 */
-.re-cron__pill--more {
-  border-style: dashed;
-  color: var(--el-text-color-secondary, #909399);
-}
-
 .re-cron__pill:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* 表达式原文输入行：触发器换成胶囊之后，粘贴 / 手改表达式的唯一入口 */
+.re-cron__expr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.re-cron__expr-label {
+  flex: none;
+  color: var(--el-text-color-regular, #606266);
+  font-size: 12px;
+}
+
+.re-cron__expr-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.re-cron__section-title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular, #606266);
+}
+
 /*
- * 两列：左字段编辑、右触发预览。
+ * 预设列表：左等宽表达式、右人话，整行一个可点项。
  *
- * 比例取 1.4fr : 1fr 而不是原先的 1.55fr : 1fr —— 480px 弹层扣掉内距后剩 ~452px，
- * 1.55fr 会把右列压到 ~178px，"2026-10-09 09:00:00" 这种时间戳要折成两行；
- * 1.4fr 让右列拿到 ~205px，正好一行放下，省掉一行高度。
+ * 一行放"表达式 + 描述"而不是两列独立对齐：表达式长度本来就参差
+ * （`0 0/30 * * * ?` 与 `0 0 9 ? * MON`），对齐只会让描述列飘在中间；
+ * 右对齐描述能保证"每 30 分钟 / 周一 09:00"这条读起来是一列整齐的名字。
+ */
+.re-cron__preset-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.re-cron__preset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  margin-bottom: 6px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--el-text-color-regular, #606266);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.re-cron__preset:hover {
+  background: var(--el-fill-color-light, #f4f4f5);
+}
+
+.re-cron__preset-cron {
+  flex: none;
+  color: var(--el-text-color-secondary, #909399);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 选中项：主色浅底 + 主色描边，并给表达式换成主色（标签整体是"当前正在用"） */
+.re-cron__preset.is-active {
+  border-color: var(--el-color-primary-light-5, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+
+.re-cron__preset.is-active .re-cron__preset-cron {
+  color: var(--el-color-primary, #409eff);
+}
+
+.re-cron__preset-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.re-cron__preset.is-active .re-cron__preset-label {
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+
+/* 「更多预设」是动作不是取值：虚线边 + 次要色，避免被误当成一个 cron 预设 */
+.re-cron__preset-more {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  border-radius: var(--el-radius-sm, 4px);
+  background: transparent;
+  color: var(--el-text-color-secondary, #909399);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.re-cron__preset-more:hover {
+  border-color: var(--el-color-primary-light-5, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+
+.re-cron__pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/*
+ * 两列：下次触发（左）、常用预设（右）。
+ *
+ * 1.05fr : 1fr：左列的「今天 15:30:00 + 22 分钟后」要比右列的
+ * 「0 0/30 * * * ? + 每 30 分钟」宽（后者表达式定宽、人话短），
+ * 但差距不大 —— 给左列多一点点就够，两列各占一半会让预设的表达式被截断。
  */
 .re-cron__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: 12px;
-  margin-top: 12px;
 }
 
 /* 视口窄到弹层被 max-width: 94vw 压到 ~400px 以下时并排就挤了，落回单列 */
 @media (width <= 520px) {
-  .re-cron__body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* 窄屏回落单列。
-   断点从 720px 提到 880px：实测 760px 视口下两列已被压得很挤
-   （六个字段盒子各剩不到 70px，右侧预览列也在挤），而弹层本身到 900px 才收窄。 */
-@media (width <= 880px) {
   .re-cron__body {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2346,17 +2458,16 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
    与右侧编辑区拉开层次，暗色主题下 --el-bg-color 自动落到深色。 */
 .re-cron__times {
   margin: 0;
-  padding: 2px 14px;
+  padding: 0;
   list-style: none;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  background: var(--el-bg-color, #ffffff);
 }
 
 .re-cron__times li {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 9px 0;
+  padding: 7px 0;
   border-bottom: 1px dashed var(--el-border-color-lighter, #ebeef5);
 }
 
@@ -2392,7 +2503,6 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   flex-wrap: nowrap;
   gap: 14px;
   min-width: 0;
-  padding: 3px 12px;
   overflow: hidden;
 }
 
@@ -2403,24 +2513,30 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   border-bottom: 0;
 }
 
-.re-cron__times-dot {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  background: var(--el-color-primary, #409eff);
-}
-
 .re-cron__times-text {
+  color: var(--el-text-color-primary, #303133);
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 13px;
-  color: var(--el-text-color-regular, #606266);
+  white-space: nowrap;
+}
+
+/* 相对时间胶囊：与左侧时刻并排，一眼回答"等多久" */
+.re-cron__times-rel {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light, #f4f4f5);
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 /* 空态只有一行文案，卡片内边距给足，别贴着描边 */
 .re-cron__times--empty {
-  padding: 16px 14px;
-  font-family: inherit;
+  padding: 14px 0;
   color: var(--el-color-danger, #f56c6c);
+  font-family: inherit;
 }
 
 /* 底栏：左侧提示、右侧取消/保存 */
