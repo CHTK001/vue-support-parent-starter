@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="长">
+<defs>
+<linearGradient id="g" gradientTransform="rotate(358 0.5 0.5)">
+<stop offset="0" stop-color="#10b981"/>
+<stop offset="1" stop-color="#0a6e4d"/>
+</linearGradient>
+</defs>
+<circle cx="80" cy="80" r="79" fill="url(#g)"/>
+<circle cx="80" cy="80" r="73" fill="none" stroke="#fff" stroke-opacity="0.33" stroke-width="2"/>
+<text x="80" y="85" text-anchor="middle" dominant-baseline="middle" font-family="'Noto Serif SC','Songti SC','SimSun',serif" font-size="86" font-weight="700" fill="#fff" fill-opacity="0.97">长</text>
+</svg>
