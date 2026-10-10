@@ -152,6 +152,14 @@ html.dark {
   color: var(--text-primary);
   box-shadow: var(--shadow-1);
 }
+/* 控制台页（.dsm.tel-page）：自身已有 toolbar(10px 16px) / body 的补偿内边距，
+   外层 tel-page 的 18px 20px 20px 会让整页多出一圈留白、内容被挤窄一截。
+   只收这一种组合：主机详情等纯 telemetry 页仍在用 .tel-page 的 padding，
+   去掉全局那条会一并破坏它们 —— 那些页内部没有自己的补偿内边距。
+   两个类（0,2,0）压过下面响应式里的单类（0,1,0），窄屏下也生效。 */
+.tel-page.dsm {
+  padding: 0;
+}
 /* 鑳屾櫙缃戞牸锛堜袱涓婚鍏辩敤锛岀敤鍗婇€忔槑鑹诧級 */
 /* tel-page grid background removed */
 /* 椤堕儴鎵弿绾?*/
