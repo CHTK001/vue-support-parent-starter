@@ -28,6 +28,8 @@ import {
 import { listMenuTree, saveMenu, updateMenu, deleteMenu, batchSaveMenuButtons, batchDeleteMenuButtons } from "../api/systemApi";
 // (http 直连已迁移为 systemApi 具名函数，此处不再引入)
 import type { SysMenu } from "../api/types";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 /**
  * 异步加载 ReIcon（与工程其他页面一致）。
@@ -665,9 +667,28 @@ function handleEditButton(row: MenuVM) {
 /* ================== 按钮权限批量管理 ================== */
 /** 表格多选选中的按钮 */
 const selectedButtons = ref<MenuVM[]>([]);
-function onButtonSelectionChange(rows: MenuVM[]) {
-  selectedButtons.value = rows;
+/**
+ * ReTable 的 selection-change 回传 Record&lt;string, unknown&gt;[]（el-table 原来回传 any[]），
+ * 参数类型放宽后仍原样塞进 selectedButtons，取值口径不变。
+ */
+function onButtonSelectionChange(rows: MenuVM[] | Record<string, unknown>[]) {
+  selectedButtons.value = rows as MenuVM[];
 }
+
+/**
+ * 按钮权限表格列（原模板里的 7 个 el-table-column 收敛到这里）。
+ *
+ * <p>选择列 / 序号列不进列数组：分别由 ReTable 的 {@code show-selection} 与
+ * {@code show-index} 提供（序号表头「序号」/ 宽 70 用 index-label / index-width 显式带上）。
+ * 标题均为字面量，用普通常量即可。</p>
+ */
+const buttonPermColumns: ReTableColumn[] = [
+  { prop: "menuName", label: "按钮名称", minWidth: 160, showOverflowTooltip: true, slot: "menuName" },
+  { prop: "auth", label: "权限字符", minWidth: 180, showOverflowTooltip: true, slot: "auth" },
+  { prop: "menuStatus", label: "状态", width: "120px", align: "center", slot: "menuStatus" },
+  { prop: "createTime", label: "创建时间", width: "180px", align: "center" },
+  { prop: "action", label: "操作", align: "center", width: 130, fixed: "right", slot: "action" },
+];
 
 /** 批量新增按钮弹窗 */
 const batchDialogVisible = ref(false);
@@ -695,6 +716,33 @@ function addBatchRow() {
 function removeBatchRow(idx: number) {
   batchRows.value.splice(idx, 1);
 }
+
+/**
+ * 按行引用删除批量行。
+ *
+ * <p>ReTable 的列插槽只回传 {@code row / value / editing}，拿不到 el-table 的
+ * {@code $index}，所以删除按钮改为「按引用找下标」：行对象就是 batchRows 里的
+ * 同一引用，indexOf 结果与原 $index 等价。</p>
+ *
+ * @param row 插槽回传的行（宽类型，内部收窄到 BatchButtonRow）
+ */
+function removeBatchRowByRef(row: Record<string, unknown>) {
+  const idx = batchRows.value.indexOf(row as unknown as BatchButtonRow);
+  if (idx > -1) removeBatchRow(idx);
+}
+
+/**
+ * 批量新增按钮表格列（原模板里的 4 个 el-table-column 收敛到这里）。
+ *
+ * <p>原列全都没写 prop，按规格造稳定合成 prop：有真实字段的沿用字段名
+ * （menuName / auth / sort），纯操作列用 {@code remove}。</p>
+ */
+const batchRowColumns: ReTableColumn[] = [
+  { prop: "remove", label: "#", width: 60, align: "center", slot: "remove" },
+  { prop: "menuName", label: "按钮名称", minWidth: 160, slot: "menuName" },
+  { prop: "auth", label: "权限标识", minWidth: 200, slot: "auth" },
+  { prop: "sort", label: "排序", width: 110, slot: "sort" },
+];
 
 /** 批量保存按钮 */
 async function handleBatchSubmit() {
@@ -1181,7 +1229,31 @@ onMounted(() => {
               </div>
             </div>
             <!-- 按钮权限表格 -->
-            <el-table v-else :data="buttonPerms" class="menu-button-table" border stripe empty-text="暂无数据" @selection-change="onButtonSelectionChange">
+            <!--
+              表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+              边框/斑马纹样式，页面里 .menu-button-table 的既有覆盖照常生效；
+              pagination=false —— 本表原本就没有分页；toolbar=false 不新增工具栏按钮；
+              原 el-table 的 border 走 ReTable 默认（border: true），stripe 走同名 prop；
+              type="selection" → show-selection，type="index"（表头「序号」/ 宽 70）→ show-index。
+              .menu-button-table.el-table 这条「表格外壳」选择器已升为 .menu-button-table.re-table
+              （ReTable 根是普通 div，不再是 el-table 本体）。
+            -->
+            <ReTable
+              v-else
+              :data="buttonPerms"
+              :columns="buttonPermColumns"
+              class="menu-button-table"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              empty-text="暂无数据"
+              stripe
+              show-selection
+              show-index
+              index-label="序号"
+              index-width="70px"
+              @selection-change="onButtonSelectionChange"
+            >
               <!--
                 按钮权限空态：el-table 默认只写一句「暂无数据」，
                 换成可操作版本，直接把「新建按钮权限」的出口放在空位上。
@@ -1196,52 +1268,41 @@ onMounted(() => {
                   </span>
                 </div>
               </template>
-              <el-table-column type="selection" width="44" align="center" />
-              <el-table-column type="index" label="序号" width="70px" align="center" />
-              <el-table-column label="按钮名称" prop="menuName" min-width="160" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <div class="button-name-cell">
-                    <span class="button-name-cell__icon">
-                      <ReIcon :name="row.icon" :size="14" />
-                    </span>
-                    <div class="button-name-cell__content">
-                      <strong>{{ row.menuName || '-' }}</strong>
-                      <em>{{ row.auth }}</em>
-                    </div>
+              <template #col-menuName="{ row }">
+                <div class="button-name-cell">
+                  <span class="button-name-cell__icon">
+                    <ReIcon :name="row.icon" :size="14" />
+                  </span>
+                  <div class="button-name-cell__content">
+                    <strong>{{ row.menuName || '-' }}</strong>
+                    <em>{{ row.auth }}</em>
                   </div>
-                </template>
-              </el-table-column>
-              <el-table-column label="权限字符" prop="auth" min-width="180" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <el-tag effect="plain" type="info">{{ row.auth }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="状态" prop="menuStatus" width="120px" align="center">
-                <template #default="{ row }">
-                  <el-switch
-                    v-model="row.menuStatus"
-                    active-text="启用"
-                    inactive-text="停用"
-                    :active-value="1"
-                    :inactive-value="0"
-                    inline-prompt
-                  />
-                </template>
-              </el-table-column>
-              <el-table-column label="创建时间" prop="createTime" width="180px" align="center" />
-              <el-table-column label="操作" align="center" width="130" fixed="right">
-                <template #default="{ row }">
-                  <div class="menu-table-actions">
-                    <el-tooltip content="编辑" placement="top">
-                      <el-button type="primary" icon="Edit" circle plain @click="handleEditButton(row)" />
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                      <el-button type="danger" icon="Delete" circle plain @click="handleDelete(row)" />
-                    </el-tooltip>
-                  </div>
-                </template>
-              </el-table-column>
-            </el-table>
+                </div>
+              </template>
+              <template #col-auth="{ row }">
+                <el-tag effect="plain" type="info">{{ row.auth }}</el-tag>
+              </template>
+              <template #col-menuStatus="{ row }">
+                <el-switch
+                  v-model="row.menuStatus"
+                  active-text="启用"
+                  inactive-text="停用"
+                  :active-value="1"
+                  :inactive-value="0"
+                  inline-prompt
+                />
+              </template>
+              <template #col-action="{ row }">
+                <div class="menu-table-actions">
+                  <el-tooltip content="编辑" placement="top">
+                    <el-button type="primary" icon="Edit" circle plain @click="handleEditButton(row)" />
+                  </el-tooltip>
+                  <el-tooltip content="删除" placement="top">
+                    <el-button type="danger" icon="Delete" circle plain @click="handleDelete(row)" />
+                  </el-tooltip>
+                </div>
+              </template>
+            </ReTable>
           </div>
         </div>
       </div>
@@ -1595,28 +1656,31 @@ onMounted(() => {
       <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
         将为当前选中菜单批量创建按钮权限（菜单类型为按钮），权限标识建议填写如 system:user:add。
       </el-alert>
-      <el-table :data="batchRows" border  style="width: 100%">
-        <el-table-column label="#" width="60" align="center">
-          <template #default="{ $index }">
-            <el-button type="danger" link :icon="Delete" @click="removeBatchRow($index)" />
-          </template>
-        </el-table-column>
-        <el-table-column label="按钮名称" min-width="160">
-          <template #default="{ row }">
-            <el-input v-model="row.menuName" placeholder="如：新增" />
-          </template>
-        </el-table-column>
-        <el-table-column label="权限标识" min-width="200">
-          <template #default="{ row }">
-            <el-input v-model="row.auth" placeholder="如 system:user:add" />
-          </template>
-        </el-table-column>
-        <el-table-column label="排序" width="110">
-          <template #default="{ row }">
-            <el-input-number v-model="row.sort" :min="0" controls-position="right" style="width: 100%" />
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+           边框样式；pagination=false / toolbar=false —— 无分页、不新增工具栏按钮；
+           原 el-table 的 border 走 ReTable 默认（border: true）；
+           4 个原列均无 prop，造稳定合成 prop；删除按钮原用 $index，改为按行引用找下标。 -->
+      <ReTable
+        :data="batchRows"
+        :columns="batchRowColumns"
+        engine="element"
+        :pagination="false"
+        :toolbar="false"
+        style="width: 100%"
+      >
+        <template #col-remove="{ row }">
+          <el-button type="danger" link :icon="Delete" @click="removeBatchRowByRef(row)" />
+        </template>
+        <template #col-menuName="{ row }">
+          <el-input v-model="row.menuName" placeholder="如：新增" />
+        </template>
+        <template #col-auth="{ row }">
+          <el-input v-model="row.auth" placeholder="如 system:user:add" />
+        </template>
+        <template #col-sort="{ row }">
+          <el-input-number v-model="row.sort" :min="0" controls-position="right" style="width: 100%" />
+        </template>
+      </ReTable>
       <el-button type="primary" plain icon="Plus" style="margin-top: 10px" @click="addBatchRow">添加一行</el-button>
     </ReDialog>
   </div>
@@ -2109,18 +2173,20 @@ export default defineComponent({
   overflow: auto;
 }
 /*
-  表格外壳：本页没有 ReTable，按 el-table 本体加边框 + 圆角 + focus-within 变色。
-  类选择器升到 (0,2,0) 是为了压过 el-table--border 自带的 border，避免双层边框；
+  表格外壳：原选择器是 .menu-button-table.el-table（裸 el-table 本体）。
+  本页换用 ReTable 后，menu-button-table 类挂在 ReTable 根 div 上（不再是 el-table 本体），
+  选择器随之升为 .menu-button-table.re-table，声明原样保留：1px 描边 + 圆角 + focus-within 变色。
+  类选择器升到 (0,2,0) 是为了压过 ReTable 根自带的 border（.re-table），避免双层边框；
   koi 规约：卡片与表格都不加投影，区域层次靠边框表达。
 */
-.menu-button-table.el-table {
+.menu-button-table.re-table {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
   overflow: hidden;
   transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.menu-button-table.el-table:focus-within {
+.menu-button-table.re-table:focus-within {
   border-color: var(--el-color-primary-light-5);
 }
 .menu-button-placeholder {
@@ -2358,7 +2424,7 @@ export default defineComponent({
 /* 尊重系统「减少动态效果」偏好：把本页新增/沿用的过渡一并关掉 */
 @media (prefers-reduced-motion: reduce) {
   .menu-context-menu__item,
-  .menu-button-table.el-table,
+  .menu-button-table.re-table,
   .menu-tree :deep(.el-tree-node__content) {
     transition: none;
   }

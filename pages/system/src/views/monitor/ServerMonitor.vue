@@ -22,6 +22,8 @@ import type { ReStatsCardItem } from "@repo/ui/re-stats-card";
 import ReTag from "@repo/ui/components/ReTag/ReTag.vue";
 import ReInput from "@repo/ui/components/ReInput/ReInput.vue";
 import ReTab from "@repo/ui/re-tab";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import ReTime, { formatDuration } from "@repo/ui/re-time";
 import { getServerInfo, getRestfulApiStats, getActuatorEndpoint, setActuatorLogger, getScheduleTasks, updateScheduleTask, runScheduleTask } from "../../api/systemApi";
 import type { ManagedScheduleTask } from "../../api/systemApi";
@@ -450,6 +452,36 @@ function threadStateType(state: string): "success" | "warning" | "danger" | "inf
   return "info";
 }
 
+/* ===== ReTable 列插槽收窄函数（规格 §5：插槽 row 是宽类型，
+   要做算术或传给有参函数时在 script 里收窄，不在模板里堆 as any） ===== */
+
+/** 线程状态列：宽 row → 字符串状态再取配色 */
+function threadStateTypeOfRow(row: Record<string, unknown>): "success" | "warning" | "danger" | "info" {
+  return threadStateType(String(row.state ?? "-"));
+}
+
+/** 阻塞列：`N次/Mms` 文案（原模板里的模板字符串挪到这里收窄） */
+function blockedText(row: Record<string, unknown>): string {
+  const count = Number(row.blockedCount ?? 0);
+  return count ? `${count}次/${Number(row.blockedTime ?? 0)}ms` : "-";
+}
+
+/** 等待列：`N次/Mms` 文案 */
+function waitedText(row: Record<string, unknown>): string {
+  const count = Number(row.waitedCount ?? 0);
+  return count ? `${count}次/${Number(row.waitedTime ?? 0)}ms` : "-";
+}
+
+/** 日志级别列：宽 row → name 字符串（传给 changeLoggerLevel 的有参函数） */
+function changeLoggerLevelOfRow(row: Record<string, unknown>, level: string) {
+  return changeLoggerLevel(String(row.name ?? ""), level);
+}
+
+/** 定时任务列插槽里的行收窄到 ManagedScheduleTask（保存/执行/启停都吃这个类型） */
+function managedTaskOf(row: Record<string, unknown>): ManagedScheduleTask {
+  return row as unknown as ManagedScheduleTask;
+}
+
 /* --- 健康状态 --- */
 const healthStatus = computed(() => String(actuatorData.value?.status ?? "-"));
 interface HealthNode { name: string; status: string; details: string; depth: number; }
@@ -647,6 +679,83 @@ const scheduledRows = computed(() => {
   });
   return out.filter((r) => actHit(r.target, r.expr, r.type));
 });
+
+/**
+ * ===== Actuator 弹窗 8 张表格的列定义 =====
+ *
+ * <p>原模板里散落的 el-table-column 收敛到这里。标题均为中文字面量、不含
+ * {@code t(...)}，所以用普通常量即可（只有带 t() 的列标题才需要 computed）。
+ * 序号/选择列不存在：这 8 张表原本就没有 type="index" / type="selection"。</p>
+ */
+
+/** 日志级别表（配置级别列有自定义模板 → slot） */
+const loggerColumns: ReTableColumn[] = [
+  { prop: "name", label: "Logger", minWidth: 320, showOverflowTooltip: true },
+  { prop: "effective", label: "生效级别", width: 120, align: "center" },
+  { prop: "configured", label: "配置级别（可修改）", width: 200, align: "center", slot: "configured" },
+];
+
+/** 请求映射表 */
+const mappingColumns: ReTableColumn[] = [
+  { prop: "predicate", label: "映射条件", minWidth: 320, showOverflowTooltip: true },
+  { prop: "handler", label: "处理器", minWidth: 220, showOverflowTooltip: true },
+  { prop: "count", label: "请求次数", width: 110, align: "right", sortable: true, slot: "count" },
+  { prop: "avgMs", label: "平均延迟", width: 110, align: "right", sortable: true, slot: "avgMs" },
+  { prop: "ips", label: "访问 IP", minWidth: 150, showOverflowTooltip: true, sortable: true, slot: "ips" },
+  { prop: "ctx", label: "上下文", width: 110, align: "center", sortable: true },
+];
+
+/** Bean 列表（纯展示，无模板列） */
+const beanColumns: ReTableColumn[] = [
+  { prop: "name", label: "Bean 名称", minWidth: 240, showOverflowTooltip: true },
+  { prop: "type", label: "类型", minWidth: 320, showOverflowTooltip: true },
+  { prop: "scope", label: "作用域", width: 110, align: "center" },
+  { prop: "resource", label: "来源", minWidth: 200, showOverflowTooltip: true },
+];
+
+/** 自动配置条件（结果列无 prop，用行字段 result 作合成 prop） */
+const conditionColumns: ReTableColumn[] = [
+  { prop: "result", label: "结果", width: 110, align: "center", slot: "result" },
+  { prop: "name", label: "自动配置", minWidth: 300, showOverflowTooltip: true },
+  { prop: "message", label: "条件说明", minWidth: 360, showOverflowTooltip: true },
+];
+
+/** 线程快照 */
+const threadColumns: ReTableColumn[] = [
+  { prop: "name", label: "线程", minWidth: 240, showOverflowTooltip: true },
+  { prop: "state", label: "状态", width: 120, align: "center", slot: "state" },
+  { prop: "daemon", label: "守护", width: 70, align: "center", slot: "daemon" },
+  { prop: "blockedCount", label: "阻塞", width: 120, align: "center", slot: "blockedCount" },
+  { prop: "waitedCount", label: "等待", width: 120, align: "center", slot: "waitedCount" },
+  { prop: "top", label: "栈顶", minWidth: 320, showOverflowTooltip: true },
+];
+
+/** 配置属性（纯展示，无模板列） */
+const configColumns: ReTableColumn[] = [
+  { prop: "prefix", label: "前缀", minWidth: 240, showOverflowTooltip: true },
+  { prop: "key", label: "属性", minWidth: 260, showOverflowTooltip: true },
+  { prop: "value", label: "值", minWidth: 300, showOverflowTooltip: true },
+];
+
+/** 可编辑定时任务（cron / 启停 / 上次状态 / 操作 4 列有模板；「操作」列无 prop → 合成 action） */
+const managedTaskColumns: ReTableColumn[] = [
+  { prop: "label", label: "任务", minWidth: 150, showOverflowTooltip: true },
+  { prop: "cron", label: "cron 表达式", minWidth: 210, slot: "cron" },
+  { prop: "enabled", label: "启用", width: 80, align: "center", slot: "enabled" },
+  { prop: "nextTime", label: "下次执行", minWidth: 160, showOverflowTooltip: true },
+  { prop: "lastTime", label: "上次执行", minWidth: 160, showOverflowTooltip: true },
+  { prop: "lastStatus", label: "上次状态", width: 100, align: "center", slot: "lastStatus" },
+  { prop: "action", label: "操作", width: 150, align: "center", fixed: "right", slot: "action" },
+];
+
+/** Actuator 只读定时任务 */
+const scheduledTaskColumns: ReTableColumn[] = [
+  { prop: "type", label: "类型", width: 120, align: "center" },
+  { prop: "target", label: "任务", minWidth: 300, showOverflowTooltip: true },
+  { prop: "expr", label: "表达式 / 间隔", minWidth: 160 },
+  { prop: "next", label: "下次执行", minWidth: 220, showOverflowTooltip: true },
+  { prop: "lastStatus", label: "上次状态", width: 110, align: "center", slot: "lastStatus" },
+];
 
 /** 当前 Tab 过滤后的条数（用于角标/提示） */
 const actCount = computed(() => {
@@ -1834,24 +1943,35 @@ function coreRowOpt(index: number): Opt {
           </template>
 
           <!-- 日志级别（可编辑 + 前端分页） -->
+          <!--
+            表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+            页面 :deep(.el-table…) 覆盖；pagination=false —— 分页仍由下方 el-pagination 自管；
+            toolbar=false 不新增工具栏按钮；原 el-table 无 border → settings.border=false 显式抑制；
+            height="400" 收进 layout-table；配置级别列有模板 → slot + #col-configured。
+          -->
           <template v-else-if="actuatorTab === 'loggers'">
-            <el-table :data="pagedLoggerRows"  height="400" class="act-table">
-              <el-table-column prop="name" label="Logger" min-width="320" show-overflow-tooltip />
-              <el-table-column prop="effective" label="生效级别" width="120" align="center" />
-              <el-table-column label="配置级别（可修改）" width="200" align="center">
-                <template #default="{ row }">
-                  <el-select
-                    :model-value="row.configured || 'INHERITED'"
-                    :loading="actLevelSaving === row.name"
-                    
-                    style="width: 160px"
-                    @change="(v: string) => changeLoggerLevel(row.name, v)"
-                  >
-                    <el-option v-for="lv in loggerLevels" :key="lv" :label="lv === 'INHERITED' ? '继承(INHERITED)' : lv" :value="lv" />
-                  </el-select>
-                </template>
-              </el-table-column>
-            </el-table>
+            <ReTable
+              :data="pagedLoggerRows"
+              :columns="loggerColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ height: 400 }"
+              class="act-table"
+            >
+              <template #col-configured="{ row }">
+                <el-select
+                  :model-value="row.configured || 'INHERITED'"
+                  :loading="actLevelSaving === row.name"
+                  
+                  style="width: 160px"
+                  @change="(v: string) => changeLoggerLevelOfRow(row, v)"
+                >
+                  <el-option v-for="lv in loggerLevels" :key="lv" :label="lv === 'INHERITED' ? '继承(INHERITED)' : lv" :value="lv" />
+                </el-select>
+              </template>
+            </ReTable>
             <div class="act__pager">
               <el-pagination
                 v-model:current-page="loggerPage"
@@ -1865,87 +1985,101 @@ function coreRowOpt(index: number): Opt {
             </div>
           </template>
 
-          <!-- 请求映射 -->
+          <!-- 请求映射（原 el-table 无 border → settings.border=false；height=440 收进 layout-table；
+               count/avgMs/ips 三列有模板 → slot） -->
           <template v-else-if="actuatorTab === 'mappings'">
-            <el-table :data="mappingRows"  height="440" class="act-table">
-              <el-table-column prop="predicate" label="映射条件" min-width="320" show-overflow-tooltip />
-              <el-table-column prop="handler" label="处理器" min-width="220" show-overflow-tooltip />
-              <el-table-column prop="count" label="请求次数" width="110" align="right" sortable>
-                <template #default="{ row }">
-                  <span :class="{ 'act-muted': !row.count }">{{ row.count }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="avgMs" label="平均延迟" width="110" align="right" sortable>
-                <template #default="{ row }">
-                  <span :class="{ 'act-muted': !row.count }"><ReTime v-if="row.count" :value="costMs(row.avgMs)" format="duration" placeholder="-" /><template v-else>-</template></span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="ips" label="访问 IP" min-width="150" show-overflow-tooltip sortable>
-                <template #default="{ row }">
-                  <span :class="{ 'act-muted': !row.ips }">{{ row.ips || "-" }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="ctx" label="上下文" width="110" align="center" sortable />
-            </el-table>
+            <ReTable
+              :data="mappingRows"
+              :columns="mappingColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ height: 440 }"
+              class="act-table"
+            >
+              <template #col-count="{ row }">
+                <span :class="{ 'act-muted': !row.count }">{{ row.count }}</span>
+              </template>
+              <template #col-avgMs="{ row }">
+                <span :class="{ 'act-muted': !row.count }"><ReTime v-if="row.count" :value="costMs(row.avgMs)" format="duration" placeholder="-" /><template v-else>-</template></span>
+              </template>
+              <template #col-ips="{ row }">
+                <span :class="{ 'act-muted': !row.ips }">{{ row.ips || "-" }}</span>
+              </template>
+            </ReTable>
           </template>
 
-          <!-- Bean 列表 -->
+          <!-- Bean 列表（纯展示表：原 el-table 无 border → settings.border=false；height=440） -->
           <template v-else-if="actuatorTab === 'beans'">
-            <el-table :data="beanRows"  height="440" class="act-table">
-              <el-table-column prop="name" label="Bean 名称" min-width="240" show-overflow-tooltip />
-              <el-table-column prop="type" label="类型" min-width="320" show-overflow-tooltip />
-              <el-table-column prop="scope" label="作用域" width="110" align="center" />
-              <el-table-column prop="resource" label="来源" min-width="200" show-overflow-tooltip />
-            </el-table>
+            <ReTable
+              :data="beanRows"
+              :columns="beanColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ height: 440 }"
+              class="act-table"
+            />
           </template>
 
-          <!-- 自动配置条件 -->
+          <!-- 自动配置条件（结果列无 prop，用行字段 result 作合成 prop → slot） -->
           <template v-else-if="actuatorTab === 'conditions'">
-            <el-table :data="conditionRows"  height="440" class="act-table">
-              <el-table-column label="结果" width="110" align="center">
-                <template #default="{ row }">
-                  <ReTag :type="row.result === 'positive' ? 'success' : 'info'" effect="light" round >
-                    {{ row.result === "positive" ? "命中" : "未命中" }}
-                  </ReTag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="name" label="自动配置" min-width="300" show-overflow-tooltip />
-              <el-table-column prop="message" label="条件说明" min-width="360" show-overflow-tooltip />
-            </el-table>
+            <ReTable
+              :data="conditionRows"
+              :columns="conditionColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ height: 440 }"
+              class="act-table"
+            >
+              <template #col-result="{ row }">
+                <ReTag :type="row.result === 'positive' ? 'success' : 'info'" effect="light" round >
+                  {{ row.result === "positive" ? "命中" : "未命中" }}
+                </ReTag>
+              </template>
+            </ReTable>
           </template>
 
-          <!-- 线程快照 -->
+          <!-- 线程快照（状态/守护/阻塞/等待 4 列有模板 → slot；模板里的字符串拼接走 script 收窄） -->
           <template v-else-if="actuatorTab === 'threaddump'">
-            <el-table :data="threadRows"  height="440" class="act-table">
-              <el-table-column prop="name" label="线程" min-width="240" show-overflow-tooltip />
-              <el-table-column label="状态" width="120" align="center">
-                <template #default="{ row }">
-                  <ReTag :type="threadStateType(row.state)" effect="light" round >{{ row.state }}</ReTag>
-                </template>
-              </el-table-column>
-              <el-table-column label="守护" width="70" align="center">
-                <template #default="{ row }">{{ row.daemon ? "是" : "否" }}</template>
-              </el-table-column>
-              <el-table-column label="阻塞" width="120" align="center">
-                <template #default="{ row }">{{ row.blockedCount ? `${row.blockedCount}次/${row.blockedTime}ms` : "-" }}</template>
-              </el-table-column>
-              <el-table-column label="等待" width="120" align="center">
-                <template #default="{ row }">{{ row.waitedCount ? `${row.waitedCount}次/${row.waitedTime}ms` : "-" }}</template>
-              </el-table-column>
-              <el-table-column prop="top" label="栈顶" min-width="320" show-overflow-tooltip />
-            </el-table>
+            <ReTable
+              :data="threadRows"
+              :columns="threadColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ height: 440 }"
+              class="act-table"
+            >
+              <template #col-state="{ row }">
+                <ReTag :type="threadStateTypeOfRow(row)" effect="light" round >{{ row.state }}</ReTag>
+              </template>
+              <template #col-daemon="{ row }">{{ row.daemon ? "是" : "否" }}</template>
+              <template #col-blockedCount="{ row }">{{ blockedText(row) }}</template>
+              <template #col-waitedCount="{ row }">{{ waitedText(row) }}</template>
+            </ReTable>
           </template>
 
-          <!-- 配置属性 -->
+          <!-- 配置属性（纯展示表：原 el-table 无 border → settings.border=false；height=440） -->
           <template v-else-if="actuatorTab === 'configprops'">
-            <el-table :data="configRows"  height="440" class="act-table">
-              <el-table-column prop="prefix" label="前缀" min-width="240" show-overflow-tooltip />
-              <el-table-column prop="key" label="属性" min-width="260" show-overflow-tooltip />
-              <el-table-column prop="value" label="值" min-width="300" show-overflow-tooltip />
-            </el-table>
+            <ReTable
+              :data="configRows"
+              :columns="configColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ height: 440 }"
+              class="act-table"
+            />
           </template>
 
-          <!-- 定时任务 -->
+          <!-- 定时任务（可编辑表 + 只读表） -->
           <template v-else-if="actuatorTab === 'scheduledtasks'">
             <div class="act-sched-managed">
               <div class="act-sched-managed__head">
@@ -1954,68 +2088,73 @@ function coreRowOpt(index: number): Opt {
                 <small v-else-if="managedError" class="is-error">{{ managedError }}</small>
                 <small v-else>共 {{ managedTasks.length }} 个</small>
               </div>
-              <el-table :data="managedTasks"  class="act-table" :show-header="true">
-                <el-table-column prop="label" label="任务" min-width="150" show-overflow-tooltip />
-                <el-table-column label="cron 表达式" min-width="210">
-                  <template #default="{ row }">
-                    <ReInput
-                      v-model="row.cron"
-                      
-                      placeholder="如 0 * * * * ?"
-                      :disabled="managedSaving === row.key"
-                      @keyup.enter="saveManagedCron(row)"
-                    />
-                  </template>
-                </el-table-column>
-                <el-table-column label="启用" width="80" align="center">
-                  <template #default="{ row }">
-                    <el-switch
-                      :model-value="!!row.enabled"
-                      
-                      :loading="managedSaving === row.key"
-                      @change="(v: boolean | string | number) => toggleManagedTask(row, !!v)"
-                    />
-                  </template>
-                </el-table-column>
-                <el-table-column prop="nextTime" label="下次执行" min-width="160" show-overflow-tooltip />
-                <el-table-column prop="lastTime" label="上次执行" min-width="160" show-overflow-tooltip />
-                <el-table-column label="上次状态" width="100" align="center">
-                  <template #default="{ row }">
-                    <ReTag
-                      :type="String(row.lastStatus || '').startsWith('FAILED') ? 'danger' : row.lastStatus === 'SUCCESS' ? 'success' : 'info'"
-                      effect="light"
-                      round
-                      
-                    >
-                      {{ row.lastStatus || "-" }}
-                    </ReTag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="150" align="center" fixed="right">
-                  <template #default="{ row }">
-                    <el-button link type="primary"  :disabled="managedSaving === row.key" @click="saveManagedCron(row)">保存</el-button>
-                    <el-button link type="warning"  :disabled="managedSaving === row.key" @click="runManagedTask(row)">执行一次</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+              <!-- 表格统一 ReTable：原 el-table 无 border → settings.border=false；
+                   :show-header="true" 收进 layout-table；cron/启用/上次状态/操作 4 列有模板 → slot -->
+              <ReTable
+                :data="managedTasks"
+                :columns="managedTaskColumns"
+                engine="element"
+                :pagination="false"
+                :toolbar="false"
+                :settings="{ border: false }"
+                :layout-table="{ showHeader: true }"
+                class="act-table"
+              >
+                <template #col-cron="{ row }">
+                  <ReInput
+                    v-model="row.cron"
+                    
+                    placeholder="如 0 * * * * ?"
+                    :disabled="managedSaving === row.key"
+                    @keyup.enter="saveManagedCron(managedTaskOf(row))"
+                  />
+                </template>
+                <template #col-enabled="{ row }">
+                  <el-switch
+                    :model-value="!!row.enabled"
+                    
+                    :loading="managedSaving === row.key"
+                    @change="(v: boolean | string | number) => toggleManagedTask(managedTaskOf(row), !!v)"
+                  />
+                </template>
+                <template #col-lastStatus="{ row }">
+                  <ReTag
+                    :type="String(row.lastStatus || '').startsWith('FAILED') ? 'danger' : row.lastStatus === 'SUCCESS' ? 'success' : 'info'"
+                    effect="light"
+                    round
+                    
+                  >
+                    {{ row.lastStatus || "-" }}
+                  </ReTag>
+                </template>
+                <template #col-action="{ row }">
+                  <el-button link type="primary"  :disabled="managedSaving === row.key" @click="saveManagedCron(managedTaskOf(row))">保存</el-button>
+                  <el-button link type="warning"  :disabled="managedSaving === row.key" @click="runManagedTask(managedTaskOf(row))">执行一次</el-button>
+                </template>
+              </ReTable>
             </div>
             <div class="act-sched-managed__head">
               <span>Actuator 只读任务（Spring 托管）</span>
               <small>共 {{ scheduledRows.length }} 个</small>
             </div>
-            <el-table :data="scheduledRows"  max-height="260" class="act-table">
-              <el-table-column prop="type" label="类型" width="120" align="center" />
-              <el-table-column prop="target" label="任务" min-width="300" show-overflow-tooltip />
-              <el-table-column prop="expr" label="表达式 / 间隔" min-width="160" />
-              <el-table-column prop="next" label="下次执行" min-width="220" show-overflow-tooltip />
-              <el-table-column prop="lastStatus" label="上次状态" width="110" align="center">
-                <template #default="{ row }">
-                  <ReTag :type="row.lastStatus === 'SUCCESS' ? 'success' : 'info'" effect="light" round >
-                    {{ row.lastStatus }}
-                  </ReTag>
-                </template>
-              </el-table-column>
-            </el-table>
+            <!-- 只读任务表：原 el-table 无 border → settings.border=false；max-height=260 收进 layout-table；
+                 上次状态列有模板 → slot -->
+            <ReTable
+              :data="scheduledRows"
+              :columns="scheduledTaskColumns"
+              engine="element"
+              :pagination="false"
+              :toolbar="false"
+              :settings="{ border: false }"
+              :layout-table="{ maxHeight: 260 }"
+              class="act-table"
+            >
+              <template #col-lastStatus="{ row }">
+                <ReTag :type="row.lastStatus === 'SUCCESS' ? 'success' : 'info'" effect="light" round >
+                  {{ row.lastStatus }}
+                </ReTag>
+              </template>
+            </ReTable>
           </template>
 
           <el-empty v-else-if="!actuatorLoading" description="无数据" :image-size="48" />
