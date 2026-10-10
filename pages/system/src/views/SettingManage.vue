@@ -752,6 +752,7 @@ onMounted(() => {
       :loader="loadDetail"
       :columns="detailColumns"
       :pagination="false"
+      :layout-table="{ minHeight: 0 }"
       row-key="sysSettingId"
       :row-draggable="!isProduct"
       @row-sort="handleRowSort"
@@ -930,6 +931,7 @@ onMounted(() => {
             engine="element"
             :pagination="false"
             :toolbar="false"
+            :layout-table="{ minHeight: 0 }"
             stripe
             style="width: 100%"
           >

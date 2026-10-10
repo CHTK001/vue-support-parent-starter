@@ -347,43 +347,45 @@
                     刷新
                   </el-button>
                 </div>
-                <el-table
-                  v-loading="loginLogLoading"
+                <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM 与
+                     样式（下方 :deep(.login-log__row--fail) 覆盖依赖 el-table 结构，必须 element 引擎）；
+                     pagination=false —— 分页仍由下方 el-pagination 自管；toolbar=false 不新增工具栏按钮；
+                     原 el-table 没有 border → settings.border=false 显式抑制 ReTable 默认边框；
+                     原表无 height/maxHeight → layout-table.minHeight=0 关掉 fill 与空态 440px 撑高。 -->
+                <ReTable
+                  :loading="loginLogLoading"
                   :data="loginLogRows"
-
+                  :columns="loginLogColumns"
                   :row-class-name="loginLogRowClass"
                   class="login-log__table"
+                  engine="element"
+                  :pagination="false"
+                  :toolbar="false"
+                  :settings="{ border: false }"
+                  :layout-table="{ minHeight: 0 }"
                 >
-                  <el-table-column prop="createTime" label="登录时间" width="165" />
-                  <el-table-column label="IP / 归属地" min-width="200">
-                    <template #default="{ row }">
-                      <ReIpText :ip="row.sysLogIp || ''" :address="row.sysLogAddress || ''" :third-party-fix="true">
-                        <template #address="{ address }">
-                          <span>{{ [address, row.sysLogIsp].filter(Boolean).join(" · ") }}</span>
-                        </template>
-                      </ReIpText>
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="浏览器 / 系统" min-width="170">
-                    <template #default="{ row }">
-                      <div class="login-log__stack">
-                        <span>{{ row.sysLogBrowser || "--" }}</span>
-                        <span>{{ row.sysLogSystem || "--" }}</span>
-                      </div>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="sysLogLoginType" label="方式" width="90" />
-                  <el-table-column label="状态" width="80">
-                    <template #default="{ row }">
-                      <el-tooltip v-if="row.sysLogStatus === 0 && row.sysLogMessage" :content="row.sysLogMessage" placement="top">
-                        <el-tag type="danger" effect="plain">失败</el-tag>
-                      </el-tooltip>
-                      <el-tag v-else :type="row.sysLogStatus === 1 ? 'success' : 'danger'" effect="plain">
-                        {{ row.sysLogStatus === 1 ? "成功" : "失败" }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                </el-table>
+                  <template #col-sysLogIp="{ row }">
+                    <ReIpText :ip="row.sysLogIp || ''" :address="row.sysLogAddress || ''" :third-party-fix="true">
+                      <template #address="{ address }">
+                        <span>{{ [address, row.sysLogIsp].filter(Boolean).join(" · ") }}</span>
+                      </template>
+                    </ReIpText>
+                  </template>
+                  <template #col-browserSystem="{ row }">
+                    <div class="login-log__stack">
+                      <span>{{ row.sysLogBrowser || "--" }}</span>
+                      <span>{{ row.sysLogSystem || "--" }}</span>
+                    </div>
+                  </template>
+                  <template #col-sysLogStatus="{ row }">
+                    <el-tooltip v-if="row.sysLogStatus === 0 && row.sysLogMessage" :content="row.sysLogMessage" placement="top">
+                      <el-tag type="danger" effect="plain">失败</el-tag>
+                    </el-tooltip>
+                    <el-tag v-else :type="row.sysLogStatus === 1 ? 'success' : 'danger'" effect="plain">
+                      {{ row.sysLogStatus === 1 ? "成功" : "失败" }}
+                    </el-tag>
+                  </template>
+                </ReTable>
                 <el-pagination
                   v-if="loginLogTotal > loginLogPageSize"
                   class="login-log__pager"
@@ -487,6 +489,8 @@ import ThirdBindPanel from "./components/ThirdBindPanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import ReDialog from "@repo/ui/re-dialog";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
@@ -1117,6 +1121,21 @@ const loginLogRows = ref<Record<string, any>[]>([]);
 const loginLogTotal = ref(0);
 const loginLogPage = ref(1);
 const loginLogPageSize = 5;
+
+/**
+ * 登录日志列配置：原 5 个 el-table-column 收敛到此处。
+ *
+ * <p>标题都是字面量（没有 {@code t(...)}），故用普通常量即可；两处没有 prop 的
+ * 模板列各造一个稳定合成 prop（{@code browserSystem}），带模板的列配 {@code slot}，
+ * 模板侧用 {@code #col-<prop>} 接回原 {@code #default} 内容。</p>
+ */
+const loginLogColumns: ReTableColumn[] = [
+  { prop: "createTime", label: "登录时间", width: 165 },
+  { prop: "sysLogIp", label: "IP / 归属地", minWidth: 200, slot: "sysLogIp" },
+  { prop: "browserSystem", label: "浏览器 / 系统", minWidth: 170, slot: "browserSystem" },
+  { prop: "sysLogLoginType", label: "方式", width: 90 },
+  { prop: "sysLogStatus", label: "状态", width: 80, slot: "sysLogStatus" },
+];
 
 /** 拉取当前账号的登录记录（后端已按 create_by / 登录名过滤并按时间倒序） */
 async function loadLoginLogs(): Promise<void> {

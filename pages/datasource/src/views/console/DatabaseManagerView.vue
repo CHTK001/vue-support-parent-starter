@@ -250,33 +250,33 @@
                  统计总数开关变化时，只有它自己的左缘在动，第一行内容与工具条高度
                  恒定 —— 这是「点分页不抖动」的结构保证。 -->
             <div class="dbm-pager-row">
-            <RePagination
-              v-if="showTotal"
-              v-model:current-page="tableData.page"
-              :total="tableData.total"
-              :page-size="tableData.pageSize"
-              :page-sizes="[20, 50, 100, 200, 500]"
-              pagination-layout="total, sizes, prev, pager, next"
-              @current-change="onPageChange"
-              @update:page-size="onPageSizeChange"
-            />
-            <span v-else class="dbm-simple-pager">
-              <ReButton
-                layout="square"
-                icon="ArrowLeft"
-                tip="上一页"
-                :disabled="tableData.page <= 1"
-                @click="onPageChange(tableData.page - 1)"
+              <RePagination
+                v-if="showTotal"
+                v-model:current-page="tableData.page"
+                :total="tableData.total"
+                :page-size="tableData.pageSize"
+                :page-sizes="[20, 50, 100, 200, 500]"
+                pagination-layout="total, sizes, prev, pager, next"
+                @current-change="onPageChange"
+                @update:page-size="onPageSizeChange"
               />
-              <span class="dbm-hint">第 {{ tableData.page }} 页（未统计总数）</span>
-              <ReButton
-                layout="square"
-                icon="ArrowRight"
-                tip="下一页"
-                :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize"
-                @click="onPageChange(tableData.page + 1)"
-              />
-            </span>
+              <span v-else class="dbm-simple-pager">
+                <ReButton
+                  layout="square"
+                  icon="ArrowLeft"
+                  tip="上一页"
+                  :disabled="tableData.page <= 1"
+                  @click="onPageChange(tableData.page - 1)"
+                />
+                <span class="dbm-hint">第 {{ tableData.page }} 页（未统计总数）</span>
+                <ReButton
+                  layout="square"
+                  icon="ArrowRight"
+                  tip="下一页"
+                  :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize"
+                  @click="onPageChange(tableData.page + 1)"
+                />
+              </span>
             </div>
           </div>
           <!-- 过滤条（Navicat 式 WHERE 条件 + 快捷筛选）：默认折叠，展开后才有 WHERE 输入行 -->
@@ -7158,7 +7158,7 @@ onBeforeUnmount(() => {
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 32%, transparent);
 }
 
-/* 工具条：动作已下沉到右键，这里只留提示 + 数据源切换 + 刷新，
+/* 工具条：页面级动作只留数据源切换 + 刷新 + 表页签激活时的一簇视图设置，
    因此压到 6px 内边距、取消圆角与阴影，把纵向空间让给主内容区。 */
 .dbm-toolbar {
   display: flex;
@@ -7169,11 +7169,16 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-base, 4px);
+  flex-wrap: nowrap;
 }
-.dbm-toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.dbm-toolbar-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+.dbm-toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 0 1 auto; min-width: 0; }
+.dbm-toolbar-hint { font-size: 12px; color: var(--el-text-color-placeholder); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 右侧：数据源下拉与刷新按钮之间不留多余间距 */
-.dbm-toolbar-right { display: flex; align-items: center; gap: 8px; }
+.dbm-toolbar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: nowrap; }
+/* 统计总数开关（ConsoleSwitch 的 radio 胶囊）：ep-radio-group 是换行 flex，
+   一旦被压窄就会把「是 / 否」竖着叠成两行，连带把整个工具条顶高 ——
+   钉死不缩，胶囊恒定单行，工具条高度才不随页签切换抖动。 */
+.dbm-toolbar-right .dbm-switch { flex: none; }
 
 /* 主体 */
 .dbm-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
@@ -7279,6 +7284,29 @@ onBeforeUnmount(() => {
 }
 /* 设计视图：动作条跟在同一行，右侧对齐；不再单独占一行 */
 .dbm-design-toolbar .dbm-col-actions { margin-left: auto; }
+/* 表名过长时用省略号收住，否则会把第一行内容顶到第二行 */
+.dbm-table-toolbar .dbm-table-name {
+  flex: 0 1 auto;
+  min-width: 60px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 工具条第一行：模式分段与动作按钮都是固定宽度，不缩不换 */
+.dbm-table-toolbar .dbm-subtabs { flex: none; }
+.dbm-table-toolbar .re-button__tip-wrap { flex: none; }
+/* 分页独占一整行（flex-basis 100%）且右对齐：页码数 / 总位数 / 统计总数开关
+   变化时只动分页器自己的左缘，第一行内容与工具条总高恒定 —— 点分页零位移的关键。
+   52px = el-pagination 的自然高度（实测），与简易分页形态共用这个高度，
+   切「统计总数」开关时两种形态高度一致，工具条总高不变。 */
+.dbm-pager-row {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 52px;
+}
 .dbm-table-name { font-weight: 700; font-size: 14px; color: var(--el-text-color-primary); }
 /* 动作条下方的说明行：合并工具条后单独一行，占位极小 */
 .dbm-col-hint { font-size: 12px; color: var(--el-text-color-placeholder); padding: 2px 0; }
@@ -8110,12 +8138,13 @@ onBeforeUnmount(() => {
   word-break: break-all;
 }
 
-/* 过滤条（Navicat WHERE + 批量操作） */
+/* 过滤条（Navicat WHERE + 批量操作）：nowrap —— 展开后输入与按钮永远一行，
+   这样过滤条的展开/收起（47px 一行）不再让表格上下跳 */
 .dbm-filter-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding: 8px 14px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
@@ -8127,9 +8156,18 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: var(--el-color-primary);
 }
-.dbm-filter-input { width: 420px; max-width: 46vw; }
+/* ReInput 根是 display:contents（无盒），width 落在根上等于没写；
+   真盒是这个父作用域 wrapper，内部 el-input 经 :deep 铺满它。 */
+.dbm-filter-input-wrap {
+  flex: 0 1 420px;
+  min-width: 160px;
+  max-width: 46vw;
+  display: block;
+}
+.dbm-filter-input-wrap :deep(.el-input) { width: 100%; }
 /* 已生效条件数：用户得知道「现在看到的行是被筛过的」 */
 .dbm-filter-badge {
+  flex: none;
   font-size: 12px;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9, var(--el-fill-color-light));
@@ -8152,7 +8190,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-placeholder);
   width: 150px;
 }
-.dbm-sel-count { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-sel-count { flex: none; font-size: 12.5px; color: var(--el-text-color-secondary); }
 
 .dbm-view-icon { color: var(--metric-net, var(--el-color-info)); }
 .dbm-cell-box { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

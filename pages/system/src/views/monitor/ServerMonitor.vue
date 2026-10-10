@@ -2097,7 +2097,7 @@ function coreRowOpt(index: number): Opt {
                 :pagination="false"
                 :toolbar="false"
                 :settings="{ border: false }"
-                :layout-table="{ showHeader: true }"
+                :layout-table="{ showHeader: true, minHeight: 0 }"
                 class="act-table"
               >
                 <template #col-cron="{ row }">
@@ -2250,7 +2250,7 @@ function coreRowOpt(index: number): Opt {
             </button>
           </div>
           <div v-show="!jvmCollapsed.top">
-            <ReTable :data="(info.topThreads ?? []) as unknown as Record<string, unknown>[]" :columns="topThreadColumns" :pagination="false" row-key="name" />
+            <ReTable :data="(info.topThreads ?? []) as unknown as Record<string, unknown>[]" :columns="topThreadColumns" :pagination="false" :layout-table="{ minHeight: 0 }" row-key="name" />
           </div>
         </div>
 
