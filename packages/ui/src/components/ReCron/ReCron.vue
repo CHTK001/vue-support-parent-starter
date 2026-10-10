@@ -170,29 +170,29 @@ function blank(): FieldState {
 }
 
 /**
- * 常用预设：恒显。
+ * 常用预设：恒显，右栏列表按 UI 稿取这 5 条。
  *
- * <p>只留 4 个真正高频的。「工作日 09:00」「每周一 09:00」这类按周维度的排期
- * 一次配好就不再改，藏进 {@link PRESETS_MORE} 更合适；而常显区每多一个胶囊，
- * 在 480px 弹层里就多一行（每行约 24px），弹层高度一旦越过「触发器上/下方可用空间」
- * 就会溢出屏幕，「保存」和「应用此时间」只能靠滚动才够得到。</p>
+ * <p>表达式统一写成 Quartz 的 `?` 占位（日/周二选一写 `?`）：服务端登记的任务
+ * （如 `0 0/30 * * * ?`）与用户从后端拷来的表达式都是这个写法，预设和它们
+ * 逐字节一致，选中态才亮得起来 —— 用 `*` 占位会与真实数据差一个字符，
+ * 明明配的是同一件事，列表上却一个都不高亮。</p>
  */
 const PRESETS_QUICK: { label: string; cron: string }[] = [
-  { label: "每分钟", cron: "0 * * * * *" },
-  { label: "每 5 分钟", cron: "0 */5 * * * *" },
-  { label: "每小时整点", cron: "0 0 * * * *" },
-  { label: "每天 09:00", cron: "0 0 9 * * *" },
+  { label: "每 5 分钟", cron: "0 0/5 * * * ?" },
+  { label: "每 30 分钟", cron: "0 0/30 * * * ?" },
+  { label: "每小时", cron: "0 0 * * * ?" },
+  { label: "每天 00:00", cron: "0 0 0 * * ?" },
+  { label: "周一 09:00", cron: "0 0 9 ? * MON" },
 ];
 
-/** 罕见档预设：由「更多」按钮展开（按周排期 / 每 10 分钟 / 每月 / 每年…） */
+/** 罕见档预设：由「更多预设」展开（按周排期 / 更长周期 / 分钟级更细粒度） */
 const PRESETS_MORE: { label: string; cron: string }[] = [
-  { label: "每 10 分钟", cron: "0 */10 * * * *" },
-  { label: "每 30 分钟", cron: "0 */30 * * * *" },
-  { label: "每天 09:30", cron: "0 30 9 * * *" },
-  { label: "工作日", cron: "0 0 9 * * 1,2,3,4,5" },
-  { label: "每周一", cron: "0 0 9 * * 1" },
-  { label: "每月 1 日", cron: "0 0 9 1 * *" },
-  { label: "每年 1 月 1 日", cron: "0 0 0 1 1 *" },
+  { label: "每分钟", cron: "0 * * * * ?" },
+  { label: "每 15 分钟", cron: "0 0/15 * * * ?" },
+  { label: "每天 09:30", cron: "0 30 9 * * ?" },
+  { label: "工作日 09:00", cron: "0 0 9 ? * MON-FRI" },
+  { label: "每月 1 日", cron: "0 0 9 1 * ?" },
+  { label: "每年 1 月 1 日", cron: "0 0 0 1 1 ?" },
 ];
 
 /** 「更多预设」是否展开 */
@@ -705,6 +705,35 @@ const footerHint = computed(() => {
 });
 
 /**
+ * 面板标题行的一句话：UI 稿的「每 30 分钟执行一次」。
+ *
+ * <p>非法时不能沿用空态那句「未设置调度周期」——用户明明写了东西，
+ * 说成"未设置"等于把错误吞了。这里换成明说的"表达式无法解析"，
+ * 具体错在哪由副标题（errorText）接住。</p>
+ */
+const panelHeadline = computed(() => {
+  if (analysis.value.empty) return "未设置调度周期";
+  if (!analysis.value.valid) return "表达式无法解析";
+  return humanSummary.value || summary.value || "已设置调度周期";
+});
+
+/**
+ * 面板标题行的副标题：机械描述 + 段数口径，非法时换成错误说明。
+ *
+ * <p>`Quartz 6 段` 必须写在这里：面板能吃 6 段，服务端也只认 6 段，
+ * 而网上搜 cron 教程出来的几乎都是 5 段 —— 不点明段数，用户粘一段 5 段
+ * 表达式进来只会得到一句"表达式非法"，看不出差在哪。</p>
+ */
+const panelSubline = computed(() => {
+  if (analysis.value.empty) {
+    return props.defaultCron ? `留空则按后端默认 ${props.defaultCron} 登记` : "留空表示不设置调度";
+  }
+  if (!analysis.value.valid) return analysis.value.error || errorText.value || "表达式非法";
+  const detail = summary.value ? `${summary.value} · ` : "";
+  return `${detail}Quartz 6 段（秒 分 时 日 月 周）`;
+});
+
+/**
  * 只在"面板与表达式存在落差"时才展示的提示。
  *
  * <p>三种落差都要提示：面板读不懂（rawMode）、用了英文名称（面板理解但不改写）、
@@ -749,6 +778,48 @@ function pad(n: number): string {
 
 function fmt(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} 周${WEEK_LABEL[d.getDay()]}`;
+}
+
+/** 触发时刻的时刻部分：`15:30:00`（UI 稿左栏只显示时刻，日期交给 dayLabel） */
+function timeLabel(d: Date): string {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * 触发时刻的日期前缀：今天 / 明天 / 后天 / 周X。
+ *
+ * <p>「今天 15:30:00」比「2026-10-10 15:30:00 周六」短一半，而预览列表要的就是
+ * 「最快那次在多久以后」——日期越远越该显式，所以三天以内走相对说法，
+ * 再远退到星期（同一周内仍然好认），跨周才回到日期。</p>
+ */
+function dayLabel(d: Date): string {
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const diff = Math.round((a - b) / 86400000);
+  if (diff === 0) return "今天";
+  if (diff === 1) return "明天";
+  if (diff === 2) return "后天";
+  if (diff === -1) return "昨天";
+  if (diff > 2 && diff < 7) return `周${WEEK_LABEL[d.getDay()]}`;
+  return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+}
+
+/**
+ * 触发时刻的相对说法：`22 分钟后` / `1 小时后` / `3 天后`。
+ *
+ * <p>和时刻并排放，一眼回答「等多久」——预览列表的用途就是这个，
+ * 只给绝对时间的话用户还得自己算。</p>
+ */
+function relativeLabel(d: Date): string {
+  const ms = d.getTime() - Date.now();
+  if (ms <= 0) return "即将";
+  const min = Math.round(ms / 60000);
+  if (min < 1) return "1 分钟内";
+  if (min < 60) return `${min} 分钟后`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour} 小时后`;
+  return `${Math.floor(hour / 24)} 天后`;
 }
 
 /** 字段的机械描述（"秒 0，分 30…"），面板表达不了的字段按原样回显 */
@@ -1141,6 +1212,20 @@ function openPanel(): void {
 }
 
 /**
+ * 点触发器上的某一段胶囊：切到字段模式并聚焦到该字段。
+ *
+ * <p>胶囊和字段盒子说的是同一件事（都是"六个字段里的哪一个"），两处状态
+ * 必须共用 {@code tab} —— 分开存就会出现"胶囊高亮秒、编辑器却在改分"。
+ * 顺手把面板切回字段模式：从日历模式点胶囊过来的人要的就是改那个字段，
+ * 停在月历上等于没反应。</p>
+ */
+function focusField(key: string): void {
+  tab.value = key;
+  panelMode.value = "field";
+  openPanel();
+}
+
+/**
  * 清空表达式（触发区那颗 ×）。
  *
  * <p>只改 model，不碰面板内部状态 —— 触发区上的操作不该顺手改弹层里
@@ -1235,59 +1320,92 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
         ElOnlyChild 要求单根，所以必须外套一个元素，不能直接给 ReInput。
       -->
       <template #reference>
+        <!--
+          触发行按 UI 稿改成「六段胶囊」：秒 分 时 日 月 周各一颗，点哪颗
+          就把弹层切到字段模式并聚焦到那个字段。
+
+          这里不再放文本输入框，理由有两条：
+          1) UI 稿的触发器就是胶囊排，文本输入框和它二选一，混在一起两边都像半成品；
+          2) 原文输入并没有消失，收进弹层顶部的「表达式」一行（见下方 .re-cron__expr）——
+             粘贴一段 6 段表达式仍然是一次操作，而胶囊负责的是"一眼看清现在配的是什么"。
+        -->
         <div class="re-cron__line" @click="openPanel">
-          <ReInput
-            v-model="model"
-            class="re-cron__input"
-            :placeholder="placeholder"
-            :disabled="disabled"
-            aria-label="调度周期 Cron 表达式"
-            spellcheck="false"
-            name="cron-expression"
-            autocomplete="new-password"
-            data-form-type="other"
-            data-lpignore="true"
-            data-1p-ignore
-          >
-            <template #suffix>
-              <!-- 自己画清除按钮，而不是用 Element Plus 的 `clearable`：
-                   它的清除 × 是个裸 `<i class="el-input__clear">`，没有 role、没有
-                   aria-label、也不可聚焦 —— 纯图标却读不出名字，读屏只会当它不存在
-                   （实测就是普查里唯一一条无名可点元素）。
-                   这里换成真正的 `<button>`，名字写死成"清空表达式"，
-                   顺带让"清除"这件事能进 Tab 序列。图标内联 SVG，不依赖图标库离线可用。 -->
-              <button
-                v-if="trimmed && !disabled"
-                type="button"
-                class="re-cron__clear"
-                aria-label="清空表达式"
-                @click.stop="clearExpression"
+          <div class="re-cron__bar">
+            <svg
+              class="re-cron__bar-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7.5V12l3 2" />
+            </svg>
+
+            <button
+              v-for="key in FIELD_KEYS"
+              :key="key"
+              type="button"
+              class="re-cron__seg"
+              :class="{ 'is-active': tab === key }"
+              :aria-label="`${LABEL_OF[key]}字段，当前 ${tokenOf(key)}`"
+              @click.stop="focusField(key)"
+            >
+              {{ tokenOf(key) }}
+            </button>
+
+            <!-- 自己画清除按钮，而不是用 Element Plus 的 `clearable`：
+                 它的清除 × 是个裸 `<i class="el-input__clear">`，没有 role、没有
+                 aria-label、也不可聚焦 —— 纯图标却读不出名字，读屏只会当它不存在。
+                 这里换成真正的 `<button>`，名字写死成"清空表达式"。 -->
+            <button
+              v-if="trimmed && !disabled"
+              type="button"
+              class="re-cron__clear"
+              aria-label="清空表达式"
+              @click.stop="clearExpression"
+            >
+              <svg
+                class="re-cron__clear-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
               >
-                <svg
-                  class="re-cron__clear-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6 6 18 18M18 6 6 18" />
-                </svg>
-              </button>
-            </template>
-            <!-- 齿轮只是视觉入口：真正的 trigger 是整条 .re-cron__line -->
-            <template #append>
-              <ReButton
-                class="re-cron__gear"
-                icon="Setting"
-                title="可视化生成"
-                aria-label="打开调度周期可视化设置"
-                :disabled="disabled"
-                tabindex="-1"
-              />
-            </template>
-          </ReInput>
+                <path d="M6 6 18 18M18 6 6 18" />
+              </svg>
+            </button>
+
+            <!-- 滑杆图标只是视觉入口：真正的 trigger 是整条 .re-cron__line -->
+            <button
+              type="button"
+              class="re-cron__gear"
+              aria-label="打开调度周期可视化设置"
+              title="可视化生成"
+              :disabled="disabled"
+              tabindex="-1"
+              @click.stop="openPanel"
+            >
+              <svg
+                class="re-cron__gear-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M4 7h16M4 12h16M4 17h16" />
+                <circle cx="9" cy="7" r="2.4" fill="var(--el-bg-color, #ffffff)" />
+                <circle cx="15" cy="12" r="2.4" fill="var(--el-bg-color, #ffffff)" />
+                <circle cx="7" cy="17" r="2.4" fill="var(--el-bg-color, #ffffff)" />
+              </svg>
+            </button>
+          </div>
         </div>
       </template>
 
