@@ -40,6 +40,8 @@ import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 // 左栏右键菜单：同包内组件，采集台/监控台都能用（不能 import 宿主应用的东西）
 import DsmContextMenu from "../components/console/DsmContextMenu.vue";
+import DatasourceMetricPanel from "../metrics/DatasourceMetricPanel.vue";
+import DatasourceOperLogPanel from "../metrics/DatasourceOperLogPanel.vue";
 import {
   fetchDataSources,
   createDataSource,
@@ -934,13 +936,23 @@ const statusFilters = computed<StatusFilterItem[]>(() => {
   ];
 });
 
+/**
+ * 「操作日志」页签入口开关。
+ *
+ * <p>操作日志的落库与查询链路（后端 DatasourceOperLogController + 前端面板）已就位，
+ * 但还没在验收环境端到端跑通，按约定**先做功能、不露入口**：置 false 时页签条上
+ * 不出现该项，概览里的「查看操作日志」按钮一并隐藏，避免留下一个点了没反应的入口。
+ * 验收通过后把这里改成 true 即两处一起放开。</p>
+ */
+const OPER_LOG_ENTRY_VISIBLE = false;
+
 /** 右栏页签定义：内置页签 + 宿主注入页签（extraTabs 追加在后面） */
 const tabItems = computed<ReTabItem[]>(() => [
   { name: "overview", label: "概览" },
   { name: "connection", label: "连接配置" },
   { name: "tunnel", label: "SSH 隧道" },
   { name: "metrics", label: "监控指标" },
-  { name: "logs", label: "操作日志" },
+  ...(OPER_LOG_ENTRY_VISIBLE ? [{ name: "logs", label: "操作日志" }] : []),
   ...props.extraTabs,
 ]);
 
@@ -1469,7 +1481,8 @@ onMounted(load);
                       >立即检测</ReButton>
                       <ReButton class="ds-pill" icon="EditPen" :show-text="true" @click="openEdit(current)">编辑连接配置</ReButton>
                       <ReButton class="ds-pill" icon="Connection" :show-text="true" @click="activeTab = 'tunnel'">SSH 隧道</ReButton>
-                      <ReButton class="ds-pill" icon="Document" :show-text="true" @click="activeTab = 'logs'">查看操作日志</ReButton>
+                      <!-- 入口开关与页签条同源：页签藏了，这里也不能留一个跳不到的面包屑 -->
+                      <ReButton v-if="OPER_LOG_ENTRY_VISIBLE" class="ds-pill" icon="Document" :show-text="true" @click="activeTab = 'logs'">查看操作日志</ReButton>
                     </div>
                   </section>
                 </div>
@@ -1602,18 +1615,16 @@ onMounted(load);
               </section>
             </template>
 
-            <!-- 监控指标：暂无数据来源，占位 -->
+            <!-- 监控指标：SSE 实时推送 + 首屏趋势 -->
             <template #metrics>
-              <div class="ds-placeholder">
-                <ReEmpty description="暂无监控指标数据" :image-size="80" />
-              </div>
+              <DatasourceMetricPanel :datasource-id="current?.id" />
             </template>
 
-            <!-- 操作日志：暂无数据来源，占位 -->
+            <!-- 操作日志：功能已通（GET /ms/datasource/oper-log/{id} + 表格见
+                 DatasourceOperLogPanel），入口按需求先不露出。
+                 重新露出只需把下面注释掉的一行加回 tabItems。 -->
             <template #logs>
-              <div class="ds-placeholder">
-                <ReEmpty description="暂无操作日志数据" :image-size="80" />
-              </div>
+              <DatasourceOperLogPanel :datasource-id="current?.id" />
             </template>
 
             <!-- 宿注入页签：插槽名与 extraTabs[].name 一致。

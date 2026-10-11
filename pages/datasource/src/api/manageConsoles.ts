@@ -8,7 +8,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { http, unwrapResult } from "@repo/utils";
+import { getAccessToken, http, unwrapResult } from "@repo/utils";
 import type { DbColumnPayload } from "./dbManageApi";
 
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
@@ -520,6 +520,100 @@ export const dropDbDatabase = (name: string, datasourceId?: number) =>
     .noToast(true)
     .query({ name, datasourceId })
     .then(r => unwrap<boolean>(r));
+
+// ==================== 数据库文档导出（后端复用 utils 层 DocumentProvider SPI） ====================
+
+/**
+ * 当前实例可用的导出格式
+ *
+ * @author CH
+ * @since 4.0.0.43
+ */
+export interface DbDocumentFormat {
+  format: string;
+  extensions: string[];
+  /** 依赖服务端外部程序（pdf 走 wkhtmltopdf），不可用时后端会 501 */
+  external?: boolean;
+}
+
+/**
+ * 文档导出能力清单
+ *
+ * @author CH
+ * @since 4.0.0.43
+ */
+export interface DbDocumentFormats {
+  formats: DbDocumentFormat[];
+  templates: string[];
+}
+
+/**
+ * 查询可用的文档导出格式与模板
+ *
+ * <p>按 classpath 上的 DocumentProvider SPI 实际探测：宿主没引 word/pdf 模块时
+ * 那两项不会出现在清单里，前端据此只渲染装了的选项，而不是给一个点了就报错的按钮。</p>
+ *
+ * @returns 能力清单
+ */
+export const dbDocumentFormats = () =>
+  http().get("/ms/monitor/db/document/formats").noToast(true).then(r => unwrap<DbDocumentFormats>(r));
+
+/** 从 Content-Disposition 里取文件名（优先 RFC 5987 的 filename*，回退 ASCII 的 filename） */
+function filenameFromDisposition(disposition: string | null, fallback: string): string {
+  if (!disposition) return fallback;
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (star?.[1]) {
+    try {
+      return decodeURIComponent(star[1].trim());
+    } catch {
+      /* 解不出就退回 ASCII 那份 */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(disposition);
+  return plain?.[1]?.trim() || fallback;
+}
+
+/**
+ * 导出数据库设计文档并下载
+ *
+ * <p>刻意不走 `http()` 管线：那条管线按 JSON 解析响应，而这里是二进制流
+ * （word 是 zip、pdf 是二进制），走管线会得到一段乱码字符串。</p>
+ *
+ * @param params 数据源、库名、格式、模板与可选的表名白名单
+ * @returns 文档二进制与后端给出的文件名
+ * @author CH
+ * @since 4.0.0.43
+ */
+export async function downloadDbDocument(params: {
+  datasourceId: number;
+  database?: string;
+  format: string;
+  template?: string;
+  tables?: string;
+}): Promise<{ blob: Blob; filename: string }> {
+  const query = new URLSearchParams();
+  query.set("datasourceId", String(params.datasourceId));
+  if (params.database) query.set("database", params.database);
+  query.set("format", params.format);
+  if (params.template) query.set("template", params.template);
+  if (params.tables) query.set("tables", params.tables);
+
+  const token = getAccessToken();
+  const response = await fetch(`/ms/monitor/db/document/export?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    // 错误体是纯文本（后端刻意不用 JSON：这个端点的正常产物是文件）
+    throw new Error((await response.text()) || `导出失败（HTTP ${response.status}）`);
+  }
+  return {
+    blob: await response.blob(),
+    filename: filenameFromDisposition(
+      response.headers.get("Content-Disposition"),
+      `database-doc.${params.format === "markdown" ? "md" : params.format}`,
+    ),
+  };
+}
 // ==================== 外部服务管理（InfluxDB / Neo4j / Nacos / ZooKeeper） ====================
 
 /**
