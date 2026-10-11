@@ -24,6 +24,7 @@ const REPO_ALIAS: Record<string, string> = {
   "@repo/pinia": path.resolve(WORKSPACE_ROOT, "packages/pinia/src"),
   "@repo/theme": path.resolve(WORKSPACE_ROOT, "packages/theme/src"),
   "@repo/ui": path.resolve(WORKSPACE_ROOT, "packages/ui/src"),
+  "@repo/re-map": path.resolve(WORKSPACE_ROOT, "packages/ui/re-map"),
   "@repo/languages": path.resolve(WORKSPACE_ROOT, "packages/languages/src"),
   "@repo/work": path.resolve(WORKSPACE_ROOT, "packages/work/src"),
   "@repo/assets": path.resolve(WORKSPACE_ROOT, "packages/assets/src"),
