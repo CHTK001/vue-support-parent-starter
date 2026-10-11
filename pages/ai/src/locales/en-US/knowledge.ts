@@ -155,6 +155,8 @@
     keyword: 'Keyword',
     comprehensive: 'Comprehensive',
     similarity: 'Similarity',
+    /** 单分数模式的相关度（后端只回 score 时用，不臆造百分比量纲） */
+    relevance: 'Relevance',
     unknownFile: 'Unknown file',
     chunk: 'Chunk',
     notFound: 'No relevant results found',

@@ -19,6 +19,53 @@ export interface CharacterApi {
   fetchBuiltinCharacterCatalog(): Promise<CharacterCatalogItem[]>;
   fetchBuiltinCharacterDetail(id: string): Promise<CharacterCatalogDetail>;
   addBuiltinCharacterToRoles(id: string): Promise<{ success: boolean; message: string; alreadyAdded?: boolean; roleId?: string }>;
+  fetchRolePrompts(characterId: string): Promise<RolePromptMap>;
+  saveRolePrompt(characterId: string, mode: RolePromptMode, data: { content?: string; enabled?: boolean }): Promise<boolean>;
+  deleteRolePrompt(characterId: string, mode: RolePromptMode): Promise<boolean>;
+  fetchPromptForms(): Promise<PromptForm[]>;
+  createPromptForm(data: { formKey: string; formName: string; formIcon?: string; formDescription?: string }): Promise<PromptForm | null>;
+  updatePromptForm(formKey: string, data: { formName?: string; formIcon?: string; formDescription?: string; formSort?: number }): Promise<boolean>;
+  deletePromptForm(formKey: string): Promise<boolean>;
+}
+
+/** 角色提示词适用形态。build 恒存，其余由用户在角色配置里自定义 */
+export type RolePromptMode = string;
+
+/**
+ * 提示词形态定义。
+ *
+ * <p>形态是用户可自定义的（build / plan / 评审 / 只读排查…），会话里的形态切换器
+ * 与角色编辑器里的提示词分栏渲染的是<b>同一份</b>列表，所以切换器上每一项都必须
+ * 带上中文名、图标和说明——这三样正是 {@link RunModePopover} 直接消费的字段。</p>
+ */
+export interface PromptForm {
+  /** 形态标识，会话的 runMode 存的就是它 */
+  formKey: RolePromptMode;
+  /** 形态中文名 */
+  formName: string;
+  /** 图标标识（前端图标注册表 key） */
+  formIcon: string | null;
+  /** 形态说明 */
+  formDescription: string | null;
+  /** 是否内置形态（build 恒存，不可删除） */
+  builtin: number;
+  formSort: number;
+}
+
+/** 单个形态下的提示词配置 */
+export interface RolePromptEntry {
+  /** 正文是否命中分形态表；false 表示继承角色默认 */
+  fromTable: boolean;
+  /** 实际生效的正文 */
+  content: string | null;
+  enabled: boolean;
+}
+
+/** 形态 → 配置 的映射 */
+export interface RolePromptMap {
+  roleId: number;
+  modes: Record<RolePromptMode, RolePromptEntry>;
+  error?: string;
 }
 
 export interface CharacterCatalogItem {
@@ -203,6 +250,47 @@ export const characterApi: CharacterApi = {
   async addBuiltinCharacterToRoles(this: ApiContext, id: string) {
     return await this._request(`/roles/catalog/builtin/${id}/add`, {
       method: "POST",
+    });
+  },
+
+  async fetchRolePrompts(this: ApiContext, characterId: string) {
+    return (await this._request(`/roles/${characterId}/prompts`)) as RolePromptMap;
+  },
+
+  async saveRolePrompt(this: ApiContext, characterId: string, mode: RolePromptMode,
+                        data: { content?: string; enabled?: boolean }) {
+    return await this._request(`/roles/${characterId}/prompts/${mode}`, {
+      method: "PUT",
+      data,
+    });
+  },
+
+  async deleteRolePrompt(this: ApiContext, characterId: string, mode: RolePromptMode) {
+    return await this._request(`/roles/${characterId}/prompts/${mode}`, {
+      method: "DELETE",
+    });
+  },
+
+  async fetchPromptForms(this: ApiContext) {
+    const raw = await this._request("/prompt-forms");
+    return Array.isArray(raw) ? raw : (raw?.items || []);
+  },
+
+  async createPromptForm(this: ApiContext, data: { formKey: string; formName: string; formIcon?: string; formDescription?: string }) {
+    return await this._request("/prompt-forms", { method: "POST", data });
+  },
+
+  async updatePromptForm(this: ApiContext, formKey: string,
+                         data: { formName?: string; formIcon?: string; formDescription?: string; formSort?: number }) {
+    return await this._request(`/prompt-forms/${encodeURIComponent(formKey)}`, {
+      method: "PUT",
+      data,
+    });
+  },
+
+  async deletePromptForm(this: ApiContext, formKey: string) {
+    return await this._request(`/prompt-forms/${encodeURIComponent(formKey)}`, {
+      method: "DELETE",
     });
   },
 };

@@ -36,7 +36,7 @@
               v-for="a in currentAnchors"
               :key="'anchor-' + a.no"
               class="ss-anchor"
-              :class="anchorClass(a.no)"
+              :class="[anchorClass(String(a.no)), { 'ss-anchor-selected': String(a.no) === selectedNo }]"
               :style="boxStyle(a)"
               @click="selectQuestion(String(a.no))"
             >
@@ -53,6 +53,7 @@
              按规格无需再补 minHeight）；原表没有 border → :settings="{ border: false }"；
              分页/工具栏关闭（原表没有）。 -->
         <ReTable
+          ref="questionTable"
           :data="questions"
           :columns="questionColumns"
           engine="element"
@@ -80,6 +81,17 @@
           </template>
           <template #col-studentAnswer="{ row }">{{ row.studentAnswer || '—' }}</template>
           <template #col-comment="{ row }">{{ row.comment || '—' }}</template>
+          <template #col-editComment="{ row }">
+            <ReInput
+              v-model="row.editComment"
+              size="small"
+              type="textarea"
+              :rows="2"
+              maxlength="200"
+              placeholder="老师评语（可留空）"
+              @update:model-value="onCommentChange(row)"
+            />
+          </template>
           <template #col-knowledgePoints="{ row }">
             <template v-if="kpList(row).length">
               <ReTag
@@ -119,13 +131,14 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
 import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import ReInputNumber from "@repo/ui/re-input-number";
+import ReInput from "@repo/ui/re-input";
 import ReDrawer from "@repo/ui/re-drawer";
 import ReTag from "@repo/ui/re-tag";
 
@@ -143,15 +156,18 @@ const selectedNo = ref('');
 const dirty = ref(false);
 const saving = ref(false);
 const questions = ref<any[]>([]);
+/** 题目表格实例：双向联动时用它拿 DOM 把选中行滚进可视区 */
+const questionTable = ref();
 
 /** 题目表列配置（原模板里的 el-table-column 收敛到数组；带 #default 的列配 slot + #col-<slot>） */
 const questionColumns: ReTableColumn[] = [
-  { prop: 'no', label: '题号', width: 64, slot: 'no' },
-  { prop: 'score', label: 'AI 分', width: 76, slot: 'score' },
-  { prop: 'editScore', label: '老师分', width: 136, slot: 'editScore' },
-  { prop: 'studentAnswer', label: '作答', minWidth: 110, showOverflowTooltip: true, slot: 'studentAnswer' },
-  { prop: 'comment', label: 'AI 评语', minWidth: 160, showOverflowTooltip: true, slot: 'comment' },
-  { prop: 'knowledgePoints', label: '知识点', minWidth: 170, slot: 'knowledgePoints' },
+  { prop: 'no', label: '题号', width: 56, slot: 'no' },
+  { prop: 'score', label: 'AI 分', width: 64, slot: 'score' },
+  { prop: 'editScore', label: '老师分', width: 120, slot: 'editScore' },
+  { prop: 'studentAnswer', label: '作答', minWidth: 96, showOverflowTooltip: true, slot: 'studentAnswer' },
+  { prop: 'comment', label: 'AI 评语', minWidth: 130, showOverflowTooltip: true, slot: 'comment' },
+  { prop: 'editComment', label: '老师评语', minWidth: 170, slot: 'editComment' },
+  { prop: 'knowledgePoints', label: '知识点', minWidth: 130, slot: 'knowledgePoints' },
 ];
 
 const kpDrawer = ref(false);
@@ -208,11 +224,32 @@ const kpList = (row: any): Array<{ id: any; name: string; description?: string }
 
 const selectQuestion = (no: string) => {
   selectedNo.value = no;
+  // 双向联动：无论从图上锚点还是表格行发起，都把对应表格行滚进可视区
+  void scrollToQuestion(no);
+};
+
+/** 把选中题号对应的表格行滚动到可视区（el-table 内部滚动容器） */
+const scrollToQuestion = async (no: string) => {
+  if (!no) return;
+  await nextTick();
+  const index = questions.value.findIndex((q) => String(q.no) === no);
+  if (index < 0) return;
+  const root = (questionTable.value as any)?.$el as HTMLElement | undefined;
+  const rows = root?.querySelectorAll('.el-table__body tbody tr');
+  rows?.[index]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
 /** 老师分改动即标脏：只有动过的行才进保存载荷（AI 分永远不被覆盖） */
 const onScoreChange = (row: any) => {
-  row.dirty = Number(row.editScore ?? 0) !== Number(row.origScore ?? 0);
+  row.dirty = Number(row.editScore ?? 0) !== Number(row.origScore ?? 0)
+    || String(row.editComment ?? '').trim() !== String(row.origComment ?? '').trim();
+  dirty.value = questions.value.some((q) => q.dirty);
+};
+
+/** 老师评语改动同样标脏：分数与评语任一变化都算该行有改动 */
+const onCommentChange = (row: any) => {
+  row.dirty = Number(row.editScore ?? 0) !== Number(row.origScore ?? 0)
+    || String(row.editComment ?? '').trim() !== String(row.origComment ?? '').trim();
   dirty.value = questions.value.some((q) => q.dirty);
 };
 
@@ -250,13 +287,17 @@ const load = async (taskId: string) => {
   try {
     const data = await eduaiApi.getMarkingStructure(taskId);
     structure.value = data || null;
-    // 老师分初值 = 已有老师分，否则回落 AI 分；origScore 记初值做脏判断
+    // 老师分初值 = 已有老师分，否则回落 AI 分；origScore 记初值做脏判断。
+    // 老师评语初值 = 已有老师评语，否则回落 AI 评语（只做展示初值，保存时仍显式提交）。
     questions.value = (data?.questions || []).map((q: any) => {
       const initial = Number(q.teacherScore ?? q.score ?? 0);
+      const initialComment = String(q.teacherComment ?? q.comment ?? '');
       return {
         ...q,
         editScore: initial,
         origScore: initial,
+        editComment: initialComment,
+        origComment: initialComment,
         dirty: false,
       };
     });
@@ -283,12 +324,20 @@ const save = async () => {
   if (!props.taskId) return;
   const adjustments = questions.value
     .filter((q) => q.dirty && Number(q.resultId) > 0)
-    // 只回传分数、不传 comment：后端「不传评语 = 不改评语」，
-    // 避免把 AI 评语或教师已写评语覆盖掉
-    .map((q) => ({
-      resultId: Number(q.resultId),
-      score: Number(q.editScore ?? 0),
-    }));
+    .map((q) => {
+      const item: { resultId: number; score: number; comment?: string } = {
+        resultId: Number(q.resultId),
+        // 只回传分数、不传评语：后端「不传评语 = 不改评语」，
+        // 只有老师分（或评语）动过的行才进载荷，避免覆盖其他行
+        score: Number(q.editScore ?? 0),
+      };
+      // 评语改动才带 comment（含「清空评语」——显式空串即清空，后端 != null 判定覆盖）
+      const comment = String(q.editComment ?? '').trim();
+      if (comment !== String(q.origComment ?? '').trim()) {
+        item.comment = comment;
+      }
+      return item;
+    });
   if (!adjustments.length) {
     message.warning('没有需要保存的老师分改动');
     return;
@@ -296,7 +345,7 @@ const save = async () => {
   saving.value = true;
   try {
     await eduaiApi.confirmMarking({ taskId: props.taskId, adjustments });
-    message.success('老师分已保存（AI 分保留）');
+    message.success('老师批改已保存（AI 分保留）');
     dirty.value = false;
     await load(props.taskId);
     emit('saved');
@@ -422,6 +471,14 @@ onUnmounted(() => {
 .ss-anchor-partial { background: color-mix(in srgb, var(--el-color-warning) 22%, transparent); border: 1px solid var(--el-color-warning); }
 .ss-anchor-wrong { background: color-mix(in srgb, var(--el-color-danger) 22%, transparent); border: 1px solid var(--el-color-danger); }
 .ss-anchor-unknown { background: color-mix(in srgb, var(--el-text-color-secondary) 18%, transparent); border: 1px dashed var(--el-text-color-secondary); }
+/* 选中锚点：放大 + 高亮描边，与右侧题目表行联动 */
+.ss-anchor-selected {
+  z-index: 2;
+  transform: scale(1.25);
+  box-shadow: 0 0 0 2px var(--el-bg-color), 0 0 10px var(--el-color-primary);
+  opacity: 1 !important;
+  border-style: solid;
+}
 .ss-anchor-correct .ss-badge { background: var(--el-color-success); }
 .ss-anchor-partial .ss-badge { background: var(--el-color-warning); }
 .ss-anchor-wrong .ss-badge { background: var(--el-color-danger); }

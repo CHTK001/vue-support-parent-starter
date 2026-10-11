@@ -374,6 +374,74 @@ function toErrorMessage(e: unknown, action: string): string {
 }
 
 /**
+ * 存储请求错误
+ *
+ * <p>{@link toErrorMessage} 只保留可读文案，会把 HTTP 状态码丢掉，于是上层
+ * 分不清「桶名在服务端不存在（404/410，可自愈）」和「网络断了 / 权限不足
+ * （不可自愈）」两种完全不同的故障。这里把状态码挂回错误对象。</p>
+ */
+export interface StorageRequestError extends Error {
+  /** HTTP 状态码；响应根本没拿到时为 undefined */
+  status?: number;
+}
+
+/**
+ * 构造携带状态码的存储错误
+ *
+ * @param action 出错动作（如「列表查询」）
+ * @param e      原始异常
+ * @returns 带 status 的错误
+ */
+function storageError(action: string, e: unknown): StorageRequestError {
+  const err = new Error(toErrorMessage(e, action)) as StorageRequestError;
+  const status = (e as { response?: { status?: number } })?.response?.status;
+  if (typeof status === "number") err.status = status;
+  return err;
+}
+
+/**
+ * 报错是否意味着「桶名在服务端不存在」
+ *
+ * <p>文件服务器按**注册的存储名**提供路由，桶名写错就是 404/410。
+ * 这是唯一一类**可以自动回落**的故障：多半是浏览器里残留了历史桶名
+ * （改过 app.yaml 的 filestorage.bucket 之后旧值不会自己消失，
+ * 且 {@link FileStorageManage} 只在列表加载**成功**时才写回桶名，
+ * 于是桶名错 → 列表必失败 → 永远不写回 → 永远错，形成死锁）。</p>
+ *
+ * @param e 捕获到的错误
+ * @returns 是「桶名不存在」返回 true
+ */
+export function isBucketMissingError(e: unknown): boolean {
+  const status = (e as StorageRequestError)?.status;
+  return status === 404 || status === 410;
+}
+
+/**
+ * app.yaml 配置的桶名（**不含** localStorage 覆盖）
+ *
+ * @return app.yaml 的桶名，未配置时返回代码默认值
+ */
+export function getAppDefaultBucket(): string {
+  return appFileStorageConfig().bucket || DEFAULT_BUCKET;
+}
+
+/**
+ * 当前桶名是否来自 localStorage 覆盖
+ *
+ * @returns localStorage 里存过桶名返回 true
+ */
+export function hasBucketOverride(): boolean {
+  return typeof localStorage !== "undefined" && !!localStorage.getItem(BUCKET_KEY);
+}
+
+/**
+ * 清掉 localStorage 里的桶名覆盖，让读取回落到 app.yaml
+ */
+export function clearBucketOverride(): void {
+  if (typeof localStorage !== "undefined") localStorage.removeItem(BUCKET_KEY);
+}
+
+/**
  * 提取服务端错误正文
  *
  * <p>兼容两种形态：纯文本（文件服务器的错误基本都是），以及统一响应体
@@ -411,7 +479,7 @@ export async function listObjects(bucket: string, path = ""): Promise<StorageObj
       .then<ListResponse>((r) => r.data);
     return res.items ?? [];
   } catch (e) {
-    throw new Error(toErrorMessage(e, "列表查询"));
+    throw storageError("列表查询", e);
   }
 }
 
@@ -429,7 +497,7 @@ export async function getBucketConfig(bucket: string): Promise<BucketConfig> {
       .then<BucketConfig>((r) => r.data);
     return res;
   } catch (e) {
-    throw new Error(toErrorMessage(e, "配置获取"));
+    throw storageError("配置获取", e);
   }
 }
 

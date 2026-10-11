@@ -44,9 +44,18 @@ export const eduaiRoutes: RouteConfigsTable[] = [
   // ==================== 题库资源 ====================
   group("/grp-question", "GroupEduQuestion", "题库资源", "Coin", [
     {
+      // 采集管理统一走 @pages/collect 的采集器管理页。
+      //
+      // 原先这里是 eduai 自研的 CollectTaskView.vue，打 /v2/edu/collect/*，
+      // 数据模型是「单来源 + 学科/学段/难度」的扁平任务表 edu_collect_task。
+      // 采集能力已统一到采集平台模块（@pages/collect + /v2/collect/**），
+      // 那套是「采集器 + 流程 DSL + 调度」三层，自研那套属于同一能力的两份实现，
+      // 继续并存只会让两边的调度语义、节点体系越走越远，故此处收敛到唯一一份实现。
+      //
+      // 页面路径保持 /edu/collect 不变：侧边栏入口、深链、历史书签都不断。
       path: "/edu/collect",
       name: "EduCollect",
-      component: () => import("../views/CollectTaskView.vue"),
+      component: () => import("@pages/collect/src/views/CollectorView.vue"),
       meta: { title: "采集管理", icon: "Download", showLink: true, keepAlive: true, isVisible: "1" },
     },
   ]),

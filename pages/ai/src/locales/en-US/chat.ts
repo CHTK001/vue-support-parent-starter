@@ -32,6 +32,10 @@
     // Run-mode badge short labels (right of the model button, color-coded Build/Plan)
     runModeBuildShort: 'Build',
     runModePlanShort: 'Plan',
+    // Prompt forms (user-definable in role settings; build always exists)
+    runModeFormBuild: 'Build',
+    runModeFormBuildDesc: 'Execute directly, confirm as you go',
+    runModeFormEmpty: 'No prompt form available',
 
     // AttachmentPopover.vue
     uploadImage: 'Upload Image',

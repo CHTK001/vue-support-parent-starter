@@ -82,6 +82,17 @@ export default createVite({
   appName: "vue-support-eduai-starter",
   title: "教育 AI 工作台",
   plugins: [runtimeDedupe(), threeDedupe()],
+  // 「采集管理」收敛到 @pages/collect 后，本应用需要引用采集平台的视图组件。
+  //
+  // createVite 内置的 REPO_ALIAS 里 @pages/* 指向 pages/xxx/src，本条覆盖成**包根目录**，
+  // 与 collect-scheduler / hotsport 等应用保持一致。alias 优先于包 exports，所以深导入必须带 src/：
+  //   "@pages/collect/src/views/X.vue" -> pages/collect/src/views/X.vue  ✓
+  //   "@pages/collect/views/X.vue"     -> pages/collect/views/X.vue      ✗ 不存在
+  // 写错时只在 dev server 暴露（模块 500、路由桶文件连带失败、页面全白屏），
+  // 生产构建走包 exports 能解析，所以单跑 vue-tsc / vite build 发现不了。
+  alias: {
+    "@pages/collect": "pages/collect",
+  },
     server: {
       port: 19093,
       strictPort: false,

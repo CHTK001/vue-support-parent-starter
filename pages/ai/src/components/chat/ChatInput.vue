@@ -156,7 +156,7 @@
             </button>
           </LTooltip>
 
-          <!-- 运行模式徽标（仅管理员）：放到模型右侧，构建/规划两色区分（用户需求 3） -->
+          <!-- 形态徽标（仅管理员）：放到模型右侧。形态由角色配置决定，不再写死构建/规划 -->
           <LTooltip v-if="admin" :content="runModeLabel" placement="top">
             <button ref="runModeButtonRef" class="run-mode-chip"
               :class="currentRunMode === 'plan' ? 'is-plan' : 'is-build'" :aria-label="runModeLabel"
@@ -166,7 +166,7 @@
             </button>
           </LTooltip>
           <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
-            :current-value="currentRunMode" @select="handleRunModeChange" />
+            :current-value="currentRunMode" :options="runModeOptions" @select="handleRunModeChange" />
 
           <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
           <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
@@ -228,6 +228,11 @@ import LTooltip from '../ui/LTooltip.vue';
 import AttachmentPopover from './chat-input/AttachmentPopover.vue';
 import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
+import type { PromptForm } from '@/services/modules/character.api';
+import { resolvePromptFormIcon } from '@/utils/promptFormIcons';
+
+/** 内置兜底形态标识：build 恒存，形态列表取不到时也要有东西可选 */
+const FORM_KEY_BUILD = 'build';
 import ThinkingEffortPopover from './chat-input/ThinkingEffortPopover.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import GoalBar from './GoalBar.vue';
@@ -242,7 +247,7 @@ import { detectModelProvider } from '@/utils/modelUtils';
 import {
 
   Send24Filled, Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  Flash24Regular, ClipboardTask24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular,
+  Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular,
   // 「优化输入」按钮的加载态：原先写的是 <Loading />，@vicons/fluent 并没有这个导出，
   // 控制台一直报 "Failed to resolve component: Loading"，加载时按钮里是空的。
   SpinnerIos20Filled
@@ -558,17 +563,52 @@ const localThinkingEffort = ref<string>('none'); // 'none' | 'low' | 'medium' | 
 const runModeButtonRef = ref<any>(null);
 const runModePopoverVisible = ref(false);
 
-const currentRunMode = computed(() => props.config?.runMode === 'plan' ? 'plan' : 'build');
-const runModeLabel = computed(() => {
-  return currentRunMode.value === 'plan' ? t('chat.input.runModePlan') : t('chat.input.runModeBuild');
+const currentRunMode = computed(() => props.config?.runMode || FORM_KEY_BUILD);
+
+/**
+ * 可切换的形态列表，来自角色配置（/v2/prompt-forms）。
+ *
+ * <p>原先这里是写死的 build/plan 两项。现在形态可由用户自定义，切换器必须渲染
+ * 后端给的列表，否则用户在角色里新增的形态在这里选不到。</p>
+ *
+ * <p>取不到时降级为「只有 build」：build 恒存，会话始终有兜底形态可选。</p>
+ */
+const promptForms = ref<PromptForm[]>([]);
+const runModeOptions = computed(() => {
+  const list = promptForms.value.length
+    ? promptForms.value
+    : [{ formKey: FORM_KEY_BUILD, formName: t('chat.input.runModeFormBuild'), formIcon: 'flash', formDescription: t('chat.input.runModeFormBuildDesc') } as PromptForm];
+  return list.map(f => ({
+    value: f.formKey,
+    label: f.formName || f.formKey,
+    desc: f.formDescription || '',
+    icon: resolvePromptFormIcon(f.formIcon),
+  }));
 });
-const runModeIcon = computed(() => {
-  return currentRunMode.value === 'plan' ? ClipboardTask24Regular : Flash24Regular;
-});
-/** 徽标短文案（长文案「构建模式/规划模式」留给 tooltip 与弹层） */
+
+/** 当前形态；会话里存的值可能已被角色配置删掉，这时回落到 build */
+const activeForm = computed(() =>
+  runModeOptions.value.find(o => o.value === currentRunMode.value) || runModeOptions.value[0]
+);
+
+const runModeLabel = computed(() => activeForm.value?.label || FORM_KEY_BUILD);
+const runModeIcon = computed(() => activeForm.value?.icon || resolvePromptFormIcon(null));
+
+/** 徽标短文案：形态名本身已是短词，直接用；过长时截断避免撑破输入框 */
 const runModeShortLabel = computed(() => {
-  return currentRunMode.value === 'plan' ? t('chat.input.runModePlanShort') : t('chat.input.runModeBuildShort');
+  const label = runModeLabel.value;
+  return label.length > 4 ? label.slice(0, 4) : label;
 });
+
+/** 拉取形态列表；失败时保持空数组，由上面的降级分支兜底 */
+const loadPromptForms = async () => {
+  try {
+    const list = await apiService.fetchPromptForms();
+    promptForms.value = Array.isArray(list) ? list : [];
+  } catch {
+    promptForms.value = [];
+  }
+};
 
 const toggleRunModePopover = () => {
   runModePopoverVisible.value = !runModePopoverVisible.value;
@@ -1743,6 +1783,7 @@ onMounted(() => {
   });
   adjustTextareaHeight();
   loadModels();
+  loadPromptForms(); // 形态列表来自角色配置，决定徽标文案/图标与切换浮层的选项
   initThinkingEffort(); // 初始化思考强度
   document.addEventListener('click', handleClickOutside);
 

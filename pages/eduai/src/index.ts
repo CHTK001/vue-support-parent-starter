@@ -13,7 +13,6 @@ export { default as HomeView } from "./views/HomeView.vue";
 export { default as StudentManageView } from "./views/StudentManageView.vue";
 export { default as PoemBankView } from "./views/PoemBankView.vue";
 export { default as QuestionView } from "./views/QuestionView.vue";
-export { default as CollectTaskView } from "./views/CollectTaskView.vue";
 export { default as PaperView } from "./views/PaperView.vue";
 export { default as MarkingView } from "./views/MarkingView.vue";
 export { default as KnowledgeView } from "./views/KnowledgeView.vue";
