@@ -24,6 +24,20 @@ const props = withDefaults(
     disabled?: boolean;
     icon?: string | Component;
     nativeType?: "button" | "submit" | "reset";
+    /**
+     * 纯装饰：不渲染成可交互控件。
+     *
+     * 卡片标题旁的图标徽标常被顺手写成 `<ReButton icon="Warning" layout="square" />`，
+     * 但它既没有 @click、也没有 auth/tip —— 组件却照样吐出一个真实的 <button>。
+     * 后果有两个，都不是「看起来小问题」：
+     *   1. 无障碍：按钮进了 Tab 序列、读屏会念出一个没有名字的「按钮」，用户聚焦后按回车毫无反应；
+     *   2. 功能：它是货真价实的死控件，点下去什么都不发生。
+     * 验收遍历正是靠这一点把它们抓出来的（/workbench 4 个 + /alarms 5 个 KPI 徽标）。
+     *
+     * 打开后改渲染 <span aria-hidden="true">，外观类名完全不变，但不再可聚焦、
+     * 不再可点、也不再吃悬停/按压反馈 —— 该图标本来就只是视觉装饰。
+     */
+    decorative?: boolean;
   }>(),
   {
     type: "",
@@ -33,6 +47,7 @@ const props = withDefaults(
     disabled: false,
     icon: "",
     nativeType: "button",
+    decorative: false,
   },
 );
 
@@ -50,9 +65,14 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 </script>
 
 <template>
-  <button
-    :type="nativeType as any"
-    :disabled="disabled || loading"
+  <!-- decorative 时降级成 <span>：不进入 Tab 序列、不响应点击、不吃悬停/按压反馈。
+       用 v-on 对象而不是 @click="cond ? undefined : onClick"，是为了让装饰态根本不挂监听器，
+       而不是在每次点击时求值出一个 undefined 再跳过。 -->
+  <component
+    :is="decorative ? 'span' : 'button'"
+    :type="decorative ? undefined : (nativeType as any)"
+    :disabled="decorative ? undefined : (disabled || loading)"
+    :aria-hidden="decorative ? 'true' : undefined"
     :class="[
       'rs-btn',
       `rs-btn--${type || 'default'}`,
@@ -61,10 +81,11 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
         'rs-btn--plain': plain,
         'is-loading': loading,
         'is-disabled': disabled,
+        'rs-btn--decorative': decorative,
       },
     ]"
     v-bind="$attrs"
-    @click="onClick"
+    v-on="decorative ? {} : { click: onClick }"
   >
     <span v-if="loading" class="rs-btn__spinner">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -77,7 +98,7 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
         <component :is="icon" />
       </ElIcon>
     </template>
-  </button>
+  </component>
 </template>
 
 <style scoped>
@@ -105,14 +126,14 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   font-family: inherit;
   flex-shrink: 0;
 }
-.rs-btn:hover:not(.is-disabled):not(:disabled) {
+.rs-btn:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
   border-color: var(--el-color-primary-light-3, #a0cfff);
   color: var(--el-color-primary, #409eff);
   background: var(--el-color-primary-light-9, #ecf5ff);
 }
 /* 按压反馈：缩放要跟手。transform 单独给 0.08s（见 .rs-btn 的 transition），
    若跟颜色一样 0.2s，30px 的按钮会先「塌」下去再弹回，看着发黏。 */
-.rs-btn:active:not(.is-disabled):not(:disabled) {
+.rs-btn:active:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
   transform: scale(0.92);
 }
 .rs-btn--small {
@@ -139,7 +160,7 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   border-color: var(--el-border-color, #dcdfe6);
   color: var(--el-text-color-secondary, #909399);
 }
-.rs-btn--default:hover:not(.is-disabled):not(:disabled) {
+.rs-btn--default:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
   border-color: var(--el-color-primary-light-3, #a0cfff);
   color: var(--el-color-primary, #409eff);
   background: var(--el-color-primary-light-9, #ecf5ff);
@@ -148,7 +169,7 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   border-color: var(--el-color-primary, #409eff);
   color: var(--el-color-primary, #409eff);
 }
-.rs-btn--primary:hover:not(.is-disabled):not(:disabled) {
+.rs-btn--primary:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
   background: var(--el-color-primary, #409eff);
   color: #fff;
 }
@@ -156,14 +177,14 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   border-color: var(--el-color-danger, #f56c6c);
   color: var(--el-color-danger, #f56c6c);
 }
-.rs-btn--danger:hover:not(.is-disabled):not(:disabled) {
+.rs-btn--danger:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
   background: var(--el-color-danger, #f56c6c);
   color: #fff;
 }
 .rs-btn--plain.rs-btn--primary {
   background: var(--el-color-primary-light-9, #ecf5ff);
 }
-.rs-btn--plain.rs-btn--primary:hover:not(.is-disabled):not(:disabled) {
+.rs-btn--plain.rs-btn--primary:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
   background: var(--el-color-primary, #409eff);
   color: #fff;
 }
@@ -172,6 +193,12 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+/* 纯装饰徽标：鼠标指针、过渡反馈一律不要 —— 它不可点，给了 pointer 就是在骗用户。
+   外观（尺寸/边框/配色）保持与同款按钮完全一致，避免卡片视觉走样。 */
+.rs-btn--decorative {
+  cursor: default;
+  transition: none;
 }
 .rs-btn.is-loading {
   cursor: wait;
@@ -201,7 +228,7 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 }
 @media (prefers-reduced-motion: reduce) {
   .rs-btn { transition: none; }
-  .rs-btn:active:not(.is-disabled):not(:disabled) { transform: none; }
+  .rs-btn:active:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) { transform: none; }
   /* 旋转动画本身要停：spinner 靠 animation 而非 transition 驱动，
      只写 transition: none 是停不下来的（此前漏了这条，reduced-motion 下仍在转）。 */
   .rs-btn__spinner { animation: none; }

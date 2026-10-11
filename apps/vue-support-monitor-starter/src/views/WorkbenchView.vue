@@ -135,19 +135,19 @@ onBeforeUnmount(() => {
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
         <ReStatCard size="compact" title="资产总数" :desc="`已启用 ${enabledCount} · 在线 ${onlineCount}`" icon-color="var(--brand-500)">
-          <template #icon><ReButton icon="DataBoard" layout="square" /></template>
+          <template #icon><ReButton icon="DataBoard" layout="square" decorative /></template>
           <template #value><span class="kpi-big">{{ hosts.length }}</span></template>
         </ReStatCard>
         <ReStatCard size="compact" title="未处理告警" :desc="`累计事件 ${totalAlarms}`" icon-color="var(--status-alarm)">
-          <template #icon><ReButton icon="Bell" layout="square" type="danger" /></template>
+          <template #icon><ReButton icon="Bell" layout="square" type="danger" decorative /></template>
           <template #value><span class="kpi-big">{{ unhandledCount }}</span></template>
         </ReStatCard>
         <ReStatCard size="compact" title="高危告警 P0+P1" desc="30 分钟内响应" icon-color="var(--sev-p0-text)">
-          <template #icon><ReButton icon="Warning" layout="square" type="danger" /></template>
+          <template #icon><ReButton icon="Warning" layout="square" type="danger" decorative /></template>
           <template #value><span class="kpi-big">{{ levelCounts.P0 + levelCounts.P1 }}</span></template>
         </ReStatCard>
         <ReStatCard size="compact" title="中危告警 P2" desc="当班处理" icon-color="var(--sev-p2-text)">
-          <template #icon><ReButton icon="AlarmClock" layout="square" type="warning" /></template>
+          <template #icon><ReButton icon="AlarmClock" layout="square" type="warning" decorative /></template>
           <template #value><span class="kpi-big">{{ levelCounts.P2 }}</span></template>
         </ReStatCard>
       </section>

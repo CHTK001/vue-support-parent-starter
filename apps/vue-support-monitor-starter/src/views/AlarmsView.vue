@@ -163,7 +163,7 @@ onMounted(fetchAll);
     <section class="kpi-row cols-5">
       <div class="kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
         <div class="kpi-head">
-          <ReButton icon="Warning" layout="square"  />
+          <ReButton icon="Warning" layout="square" decorative />
           <span class="kpi-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
           <span class="tag" :class="`sev-${lv}`">{{ sevLabel(lv) }}</span>
         </div>

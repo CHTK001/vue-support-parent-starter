@@ -92,6 +92,12 @@ const props = withDefaults(
     tip?: string;
     /** 图标按钮宽高 px（仅 iconOnly 时生效，默认 32） */
     iconSize?: number;
+    /**
+     * 纯装饰：不渲染成可交互控件（square 布局下生效，降级为 <span aria-hidden>）。
+     *
+     * 见 {@link SquareLayout} 的 decorative 说明。默认 false，对既有调用零影响。
+     */
+    decorative?: boolean;
   }>(),
   {
     layout: "el",
@@ -113,6 +119,7 @@ const props = withDefaults(
     showText: undefined,
     tip: undefined,
     iconSize: 32,
+    decorative: false,
   },
 );
 
@@ -194,7 +201,7 @@ function onClick(e: MouseEvent): void {
 
 <template>
   <span
-    v-if="layout === 'square' && visible && labelText"
+    v-if="layout === 'square' && visible && labelText && !decorative"
     class="re-button__tip-wrap"
   >
     <ElTooltip :content="labelText" placement="top">
@@ -221,6 +228,7 @@ function onClick(e: MouseEvent): void {
     :disabled="disabled"
     :icon="icon"
     :native-type="nativeType"
+    :decorative="decorative"
     v-bind="$attrs"
     @click="onClick"
   />
