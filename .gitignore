@@ -267,3 +267,4 @@ prom-embed-probe.mjs
 **/acceptance-report.failed*.json
 **/__*.mjs
 **/__*.mts
+crud-ui-test.mjs

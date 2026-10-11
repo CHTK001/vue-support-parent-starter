@@ -3821,10 +3821,12 @@ function openPreviewInNewTab(row: StorageObject): void {
     window.open(url.toString(), "_blank");
     return;
   }
-  // 公共桶：文件直链 base64 后交给统一入口（render=server 服务器预览通道）
+  // 公共桶：文件直链 base64 后交给统一入口（render=server 服务器预览通道）。
+  // 入口页 preview.html 部署在文件服务器 static 下（Spring 静态资源），故以
+  // 文件服务器 origin 为基准解析，而非当前页面 origin（应用内嵌时两者不同）。
   const base = getServerBase().replace(/\/+$/, "");
   const direct = `${base}/${encodeURIComponent(bucket.value)}/${fullKey(row.name).split("/").map(encodeURIComponent).join("/")}`;
-  const entry = new URL("preview.html", window.location.origin);
+  const entry = new URL("preview.html", base.endsWith("/") ? base : `${base}/`);
   entry.searchParams.set("url", utf8ToBase64(direct));
   entry.searchParams.set("render", "server");
   window.open(entry.toString(), "_blank");

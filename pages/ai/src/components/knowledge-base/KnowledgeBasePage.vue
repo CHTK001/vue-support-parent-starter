@@ -384,7 +384,13 @@
           <div v-show="activeTab === 'graph'" class="kb-pane kb-pane--graph">
             <div class="kb-graph__bar">
               <span class="text-sm kb-graph__count">
-                实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
+                <template v-if="isGraphFiltered">
+                  实体 {{ graphNodes.length }} / {{ graphView.entityCount }} ·
+                  关系 {{ graphEdges.length }} / {{ graphView.relationCount }}
+                </template>
+                <template v-else>
+                  实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
+                </template>
               </span>
               <!-- 图例说明与手工补录提示收敛进悬浮气泡，不再占用两行版面 -->
               <el-tooltip placement="bottom-start" effect="light" :show-after="150">
@@ -1540,6 +1546,17 @@ const graphEdges = computed(() => {
       data: e.data ?? {},
     }))
 })
+
+/**
+ * 图谱当前是否处于「已收窄」状态（类型过滤或名称关键词生效）。
+ *
+ * <p>用于计数展示：收窄时画布上摆的是过滤后的子集，若仍按全库总数报
+ * 「实体 248」，而筛选器上写着「事件 (52)」，两处数字自相矛盾，
+ * 用户会以为筛选没生效。</p>
+ */
+const isGraphFiltered = computed(
+  () => graphTypeFilter.value.length > 0 || String(graphEntityKeyword.value ?? '').trim() !== '',
+)
 
 /**
  * 拉取当前知识库的关系图谱。
