@@ -2654,8 +2654,13 @@ const onComposerSubmit = async (text: string) => {
     void pollTask(task.taskId, 0)
   } catch (error) {
     // 之前这里只有 finally，异常被静默吞掉，表现为「点了发送没反应」
-    const message = error instanceof Error ? error.message : String(error)
-    message.error(`生成请求失败：${message}`)
+    // 变量名不能叫 message：本文件 816 行 import { message } from '@repo/core'，
+    // 在 catch 里同名 const message 会把它遮蔽掉，于是下一行 message.error(...) 实际
+    // 是作用在字符串上 → TypeError: message.error is not a function，
+    // 结果失败时既没弹提示、又多抛一个异常，与这段注释想修的问题一模一样。
+    // 同文件 1869 / 1891 行的 catch 都是直接用 e.message，也是这个道理。
+    const errText = error instanceof Error ? error.message : String(error)
+    message.error(`生成请求失败：${errText}`)
   } finally {
     submitting.value = false
   }
