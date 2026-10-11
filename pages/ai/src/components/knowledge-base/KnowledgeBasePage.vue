@@ -414,13 +414,21 @@
                   当前范围确实没有关系。可点「重新生成」按最新原文再抽一次。
                 </template>
               </span>
+              <!-- 节点过多时的引导：实测 248 节点无论把 kr/kg/碰撞半径调到哪，
+                   重叠对数都只在噪声范围内波动（甚至关掉防重叠反而更少）——
+                   力参数救不了，唯一有效的是减少节点数，所以在这里给出明确动作。
+                   筛选一旦生效提示即消失，不长期占版面。 -->
+              <span v-else-if="graphTooDense" class="text-sm kb-graph__hint">
+                节点较多，按实体类型筛选后结构更清晰。
+                <ReButton type="primary" link class="kb-graph__hint-act" @click="focusGraphTypeFilter">去筛选</ReButton>
+              </span>
 
               <div class="flex-1" />
 
               <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
                 class="kb-view__search" />
               <!-- 实体类型过滤：概览页统计了类型分布却无处可用，这里接上多选 -->
-              <el-select v-model="graphTypeFilter" multiple collapse-tags collapse-tags-tooltip
+              <el-select v-model="graphTypeFilter" ref="graphTypeFilterRef" multiple collapse-tags collapse-tags-tooltip
                 :max-collapse-tags="2" clearable placeholder="实体类型" class="kb-view__types">
                 <el-option v-for="s in entityTypeStats" :key="s.type" :label="`${s.label} (${s.count})`"
                   :value="s.type">
@@ -1557,6 +1565,43 @@ const graphEdges = computed(() => {
 const isGraphFiltered = computed(
   () => graphTypeFilter.value.length > 0 || String(graphEntityKeyword.value ?? '').trim() !== '',
 )
+
+/**
+ * 节点数超过此值即视为「挤」，提示用户改用类型筛选。
+ *
+ * <p>阈值取自实测：三国库 248 节点时重叠约 150 对、65% 节点被卷入；
+ * 而按类型收到「事件」52 节点后重叠为 <b>0</b>。中间量级的库同理。</p>
+ */
+const GRAPH_DENSE_NODE_THRESHOLD = 120
+
+/** 当前图谱是否拥挤到需要引导筛选（已在筛选中则不再提示） */
+const graphTooDense = computed(
+  () =>
+    !graphLoading.value &&
+    graphView.nodes.length > GRAPH_DENSE_NODE_THRESHOLD &&
+    !isGraphFiltered.value,
+)
+
+/** 实体类型筛选器实例（引导按钮需要聚焦并展开它） */
+const graphTypeFilterRef = ref<any>(null)
+
+/**
+ * 聚焦并展开实体类型筛选。
+ *
+ * <p>el-select 的 {@code focus()} 只把输入框置焦，未必展开下拉，
+ * 且组件实例并未公开 {@code toggleMenu}，所以再补一次真实点击兜底。</p>
+ */
+function focusGraphTypeFilter() {
+  const inst = graphTypeFilterRef.value
+  if (!inst) {
+    return
+  }
+  try {
+    inst.focus?.()
+  } catch { /* 实例未挂载，交给下面的点击兜底 */ }
+  const el = inst.$el ?? inst.$refs?.selectRef?.$el
+  el?.click?.()
+}
 
 /**
  * 拉取当前知识库的关系图谱。
@@ -3989,6 +4034,13 @@ watch(
 /* 图谱 Tab 的辅助说明文字与画布底：原先写死 text-gray-400 与 dark:bg-[#232428] */
 .kb-graph__hint {
   color: var(--el-text-color-placeholder);
+}
+
+/* 引导里的「去筛选」：默认跟正文同色，hover 才点亮，避免整条提示都在喊 */
+.kb-graph__hint-act {
+  padding: 0 2px;
+  font-size: inherit;
+  vertical-align: baseline;
 }
 
 .kb-graph__canvas {
