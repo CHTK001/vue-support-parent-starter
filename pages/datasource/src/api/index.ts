@@ -349,6 +349,8 @@ export interface DatasourceMetricPoint {
   sessionLatencyMs: number | null;
   /** 本次是否经 SSH 隧道 */
   tunneled: boolean | null;
+  /** 采样时刻目标服务上的客户端连接数；类型不支持时为 null（图上缺格） */
+  connectionCount: number | null;
   /** 失败原因 */
   errorMessage: string | null;
 }
@@ -373,6 +375,8 @@ export interface DatasourceMetricPush {
   connectLatencyMs: number | null;
   sessionLatencyMs: number | null;
   tunneled: boolean | null;
+  /** 本次采样时刻客户端连接数，取不到为 null */
+  connectionCount: number | null;
   /** 最近窗口。采集失败时为 null（此时只有本次结果，没有窗口） */
   points: DatasourceMetricTrend | null;
 }

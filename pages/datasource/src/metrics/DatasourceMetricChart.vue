@@ -15,6 +15,11 @@
  * 折线会在失败与成功之间斜插一段「正在连接」，而这是不存在的状态。
  * 状态条每个采样点是一格，高=连通、低=不通、缺格=未判定。</p>
  *
+ * <p><strong>连接数走右轴虚线</strong>：延迟（毫秒）与连接数（个）量纲不同，
+ * 共轴会把其中一方压平；虚线弱化是它是背景量，不与延迟曲线抢视觉权重。
+ * 取不到连接数的类型画成缺格（null 断线），不补 0 —— 0 会被读成
+ * 「没有客户端在连」，与事实相反。</p>
+ *
  * <p><strong>断点不连线</strong>：失败与未判定都给 `null`，
  * {@code connectNulls: false} 让延迟曲线在那一刻断开 ——
  * 「没测出来」画成一条穿过空洞的斜线，等于凭空捏造了一段延迟数据。</p>
@@ -68,6 +73,7 @@ const build = (): EChartsOption => {
   const connect: Pair[] = [];
   const session: Pair[] = [];
   const health: Pair[] = [];
+  const connections: Pair[] = [];
   const failures: Failure[] = [];
   for (const p of props.points) {
     const ts = toTs(p.time);
@@ -78,6 +84,9 @@ const build = (): EChartsOption => {
     session.push([ts, p.sessionLatencyMs ?? null]);
     // 连通性：成功 1 / 失败 0 / 未判定 null（缺格）
     health.push([ts, p.success === null ? null : p.success ? 1 : 0]);
+    // 连接数：null 缺格 —— 该类型（或设置了密码的 redis）拿不到就不画，
+    // 比补 0 诚实：0 会被读成「没有客户端在连」
+    connections.push([ts, p.connectionCount ?? null]);
     if (p.success === false) {
       failures.push([ts, p.errorMessage || "连接失败"]);
     }
@@ -117,10 +126,26 @@ const build = (): EChartsOption => {
       itemStyle: { color: token("--metric-net") },
     },
     {
+      name: "连接数",
+      type: "line",
+      xAxisIndex: 0,
+      // 双 y 轴：延迟（毫秒）与连接数（个）量纲不同，塞同一轴
+      // 会让其中一方被压成贴轴直线；右轴独立刻度才都读得清。
+      yAxisIndex: 1,
+      data: connections,
+      showSymbol: false,
+      sampling: "lttb",
+      connectNulls: false,
+      // 虚线弱化：它是背景量（「当时有多少客户端连着」），
+      // 不该和主角延迟曲线抢视觉权重
+      lineStyle: { width: 1.5, type: "dashed", color: token("--metric-redis") },
+      itemStyle: { color: token("--metric-redis") },
+    },
+    {
       name: "连通性",
       type: "bar",
       xAxisIndex: 1,
-      yAxisIndex: 1,
+      yAxisIndex: 2,
       data: health.map(([ts, v]) => ({
         value: [ts, v ?? 0.5],
         // 未判定用中性色：它是「没结论」，既不是成功也不是失败，
@@ -136,8 +161,8 @@ const build = (): EChartsOption => {
   return {
     animation: false,
     grid: [
-      { left: "3%", right: "3%", top: 18, height: LATENCY_H, containLabel: true },
-      { left: "3%", right: "3%", top: 18 + LATENCY_H + 34, height: 34, containLabel: true },
+      { left: "3%", right: "8%", top: 18, height: LATENCY_H, containLabel: true },
+      { left: "3%", right: "8%", top: 18 + LATENCY_H + 34, height: 34, containLabel: true },
     ],
     tooltip: {
       trigger: "axis",
@@ -159,7 +184,8 @@ const build = (): EChartsOption => {
           const pair = Array.isArray(item.value) ? (item.value as Pair) : null;
           const v = pair ? pair[1] : (item.value as number | null);
           const text = v === null || v === undefined ? "—" : String(Math.round(v));
-          return `${item.seriesName}: ${text}${item.seriesName?.includes("延迟") ? " ms" : ""}`;
+          const unit = item.seriesName?.includes("延迟") ? " ms" : item.seriesName === "连接数" ? " 个" : "";
+          return `${item.seriesName}: ${text}${unit}`;
         });
         if (at) {
           lines.push(`失败原因: ${at[1]}`);
@@ -204,6 +230,19 @@ const build = (): EChartsOption => {
         axisTick: { show: false },
         axisLabel: { color: axisColor, fontSize: 11 },
         splitLine: { lineStyle: { color: splitColor, type: "dashed" } },
+      },
+      {
+        type: "value",
+        gridIndex: 0,
+        // 连接数右轴：整数刻度且最小为 0；minInterval=1 防止出现 0.5 个连接的刻度
+        min: 0,
+        minInterval: 1,
+        name: "连接数",
+        nameTextStyle: { color: axisColor, fontSize: 11 },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: axisColor, fontSize: 11 },
+        splitLine: { show: false },
       },
       {
         type: "value",
