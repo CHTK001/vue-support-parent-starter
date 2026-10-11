@@ -16,7 +16,7 @@
  * @since 4.0.0.42
  */
 import { message } from "@repo/core";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
@@ -38,6 +38,8 @@ import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
+// 左栏右键菜单：同包内组件，采集台/监控台都能用（不能 import 宿主应用的东西）
+import DsmContextMenu from "../components/console/DsmContextMenu.vue";
 import {
   fetchDataSources,
   createDataSource,
@@ -667,6 +669,50 @@ const runCardCommand = (cmd: string, item: DataSourceInfo) => {
   }
 };
 
+// ------------------------------ 左栏右键菜单 ------------------------------
+/** 左栏项右侧状态点：口径与上面状态过滤完全一致（../datasourceStatus 纯函数） */
+const datasourceStatusKeyOf = (item: DataSourceInfo): Exclude<DataSourceStatusKey, "all"> =>
+  isAbnormal(item) ? "abnormal" : isEnabled(item) ? "online" : "offline";
+
+const STATUS_TEXT: Record<string, string> = { online: "在线", abnormal: "异常", offline: "离线" };
+const datasourceStatusTextOf = (item: DataSourceInfo): string => STATUS_TEXT[datasourceStatusKeyOf(item)] ?? "-";
+
+/** 右键菜单挂的目标项：菜单项闭包都基于它，弹出期间不换目标 */
+const ctxMenu = reactive({ visible: false, x: 0, y: 0, item: null as DataSourceInfo | null });
+const ctxMenuItems = [
+  { key: "manage", label: "打开管理", icon: "View" },
+  { key: "edit", label: "编辑数据源", icon: "EditPen" },
+  { key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true },
+];
+
+/**
+ * 在数据源项上右键。
+ * 顺手选中该项：菜单操作的是「被右键的那一项」，若右击 A 却作用在当前选中的 B 上，
+ * 删除类操作会直接删错对象 —— 这是列表右键最常见的事故。
+ */
+const onItemContextMenu = (e: MouseEvent, item: DataSourceInfo) => {
+  e.stopPropagation();
+  selectSource(item);
+  Object.assign(ctxMenu, { visible: true, x: e.clientX, y: e.clientY, item });
+};
+
+const onItemMenuSelect = (key: string) => {
+  const item = ctxMenu.item;
+  ctxMenu.item = null;
+  if (!item) return;
+  if (key === "manage") {
+    openManager(item);
+    return;
+  }
+  if (key === "edit") {
+    openEdit(item);
+    return;
+  }
+  if (key === "delete") {
+    void remove(item);
+  }
+};
+
 // ------------------------------ 表结构浏览 ------------------------------
 // 入库节点要按真实列配字段映射，这里给同一个能力一个可见入口。
 // 表清单与列元数据都交给共享的 TableSelect / ColumnSelect 取，
@@ -945,6 +991,12 @@ const connectLatencyText = computed<string>(() => formatLatency(current.value?.c
 
 /** 会话延迟卡片值 */
 const sessionLatencyText = computed<string>(() => formatLatency(current.value?.sessionLatencyMs));
+
+/** 趋势面板图例里的「平均 xx ms」：目前后端只回写最近一次探测值，平均即当前值 */
+const latencyLegendText = computed<string>(() => {
+  const v = current.value?.connectLatencyMs;
+  return typeof v === "number" ? `${v}ms` : "-";
+});
 
 /** 最后检测时间卡片文案：取后端回写的测试时间，而不是前端硬编码「刚刚」 */
 const lastTestText = computed<string>(() => {
@@ -1257,6 +1309,7 @@ onMounted(load);
                 class="ds-item"
                 :class="{ 'is-active': current === item }"
                 @click="selectSource(item)"
+                @contextmenu.prevent="onItemContextMenu($event, item)"
               >
                 <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
                   <ReIcon :name="typeMeta(item.type).icon" :size="16" />
@@ -1268,6 +1321,12 @@ onMounted(load);
                   </span>
                   <span class="ds-item__addr mono">{{ item.host }}:{{ item.port }}</span>
                 </span>
+                <i
+                  class="ds-item__dot"
+                  :class="`is-${datasourceStatusKeyOf(item)}`"
+                  :title="datasourceStatusTextOf(item)"
+                  aria-hidden="true"
+                />
               </button>
             </template>
           </div>
@@ -1278,51 +1337,75 @@ onMounted(load);
             <span>添加数据源</span>
           </button>
         </div>
+
+        <!-- 左栏数据源右键菜单（打开管理 / 编辑 / 删除）。
+             右键时同步选中该项：不选中却对另一项做操作，是最容易让人误删的交互。 -->
+        <DsmContextMenu
+          v-model:visible="ctxMenu.visible"
+          :x="ctxMenu.x"
+          :y="ctxMenu.y"
+          :items="ctxMenuItems"
+          @select="onItemMenuSelect"
+        />
       </aside>
 
-      <!-- 右栏：头部（面包屑 + 详情合并）/ 页签 -->
+      <!-- 右栏：头部 + 页签 + 内容合成一整张卡（白卡片落在浅灰画布上，边界一眼可分）。
+           头部两行：上行面包屑、下行「图标块 + 名称 + 类型徽标 + 状态胶囊」，右侧操作区。 -->
       <div class="ds-main">
-        <!-- 头部：面包屑与详情信息合并成一张卡片（原先是「面包屑行 + 详情头卡」上下两行）。
-             未选中数据源时只显示面包屑，详情区随 v-if 一起不渲染。 -->
-        <div class="ds-head">
-          <div class="ds-head__main">
-            <span class="ds-crumb">
-              <ReIcon name="DataBoard" :size="18" class="ds-crumb__icon" />
-              <span>基础设施 / 数据源中心</span>
-            </span>
-            <template v-if="current">
-              <span class="ds-head__sep" aria-hidden="true" />
-              <h2 class="ds-detail__name" :title="current.name">{{ current.name }}</h2>
-              <span class="ds-detail__chip" :style="{ '--tile': typeMeta(current.type).color }">
-                {{ current.type.toUpperCase() }}
+        <div class="ds-main-card">
+          <div class="ds-head">
+            <div class="ds-head__top">
+              <span class="ds-crumb">
+                <ReIcon name="DataBoard" :size="15" class="ds-crumb__icon" />
+                <span>基础设施</span>
+                <ReIcon name="ArrowRight" :size="12" class="ds-crumb__arrow" />
+                <span>数据源中心</span>
               </span>
-              <span class="ds-detail__badge" :class="detailBadgeClass">
-                <span class="ds-detail__badge-dot" />
-                {{ detailBadgeText }}
-              </span>
-            </template>
-          </div>
-          <div class="ds-head__actions">
-            <ReInput
-              v-model="keyword"
-              class="ds-head__search"
-              prefix-icon="Search"
-              placeholder="搜索数据源"
-              clearable
-            />
-            <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreate" layout="square">新增数据源</ReButton>
-            <template v-if="current">
-              <ReButton icon="Lightning" :show-text="true" :loading="testing === current.id" @click="test(current)" layout="square">测试连接</ReButton>
-              <ReButton icon="View" :show-text="true" type="primary" @click="openManager(current)" layout="square">打开管理</ReButton>
-            </template>
-            <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string | number | object) => runHeadCommand(cmd as string)">
-                <!-- 触发器刻意用裸 el-button 而非 ReButton：
-                     ReButton 在 icon + show-text=false 时内部再包一层 ElTooltip，
-                     而 ElDropdown 自身也用 ElOnlyChild 克隆子节点挂 click 监听，
-                     两层 OnlyChild 嵌套会互相干扰，导致下拉点不开。 -->
-                <el-button class="ds-head__more" text aria-label="更多">
-                  <ReIcon name="MoreFilled" :size="16" />
-                </el-button>
+            </div>
+            <div class="ds-head__row">
+              <div class="ds-head__main">
+                <span
+                  v-if="current"
+                  class="ds-head__tile"
+                  :style="{ '--tile': typeMeta(current.type).color }"
+                  aria-hidden="true"
+                >
+                  <ReIcon :name="typeMeta(current.type).icon" :size="20" />
+                </span>
+                <h2 class="ds-detail__name" :title="current?.name">{{ current?.name ?? "数据源中心" }}</h2>
+                <template v-if="current">
+                  <span class="ds-detail__chip" :style="{ '--tile': typeMeta(current.type).color }">
+                    {{ current.type.toUpperCase() }}
+                  </span>
+                  <span class="ds-detail__badge" :class="detailBadgeClass">
+                    <span class="ds-detail__badge-dot" />
+                    {{ detailBadgeText }}
+                  </span>
+                </template>
+              </div>
+              <div class="ds-head__actions">
+                <ReInput
+                  v-model="keyword"
+                  class="ds-head__search"
+                  prefix-icon="Search"
+                  placeholder="搜索数据源"
+                  clearable
+                />
+                <!-- 页头动作一律方形图标钮（文字进 tooltip / aria-label）：
+                     文字按钮会把标题行撑高，长名称一换行头卡就跟着跳。 -->
+                <ReButton icon="Plus" :show-text="false" layout="square" @click="openCreate">新增数据源</ReButton>
+                <template v-if="current">
+                  <ReButton icon="Lightning" :show-text="false" layout="square" :loading="testing === current.id" @click="test(current)">测试连接</ReButton>
+                  <ReButton icon="View" :show-text="false" type="primary" layout="square" @click="openManager(current)">打开管理</ReButton>
+                </template>
+                <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string | number | object) => runHeadCommand(cmd as string)">
+                  <!-- 触发器刻意用裸 el-button 而非 ReButton：
+                       ReButton 在 icon + show-text=false 时内部再包一层 ElTooltip，
+                       而 ElDropdown 自身也用 ElOnlyChild 克隆子节点挂 click 监听，
+                       两层 OnlyChild 嵌套会互相干扰，导致下拉点不开。 -->
+                  <el-button class="ds-head__more" text aria-label="更多">
+                    <ReIcon name="MoreFilled" :size="16" />
+                  </el-button>
                 <template #dropdown>
                   <ElDropdownMenu>
                     <ElDropdownItem command="refresh"><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
@@ -1334,31 +1417,62 @@ onMounted(load);
                   </ElDropdownMenu>
                 </template>
             </ElDropdown>
+            </div>
           </div>
         </div>
 
         <template v-if="current">
-          <!-- 页签 -->
-          <ReTab v-model="activeTab" variant="capsule" :tabs="tabItems" stretch>
-            <!-- 概览：统计卡 + 连接配置 -->
+          <!-- 页签：下划线式（UI 稿：页签条自带一条贯通的底线，激活项压主色下划线） -->
+          <ReTab v-model="activeTab" variant="underline" :tabs="tabItems" stretch>
+            <!-- 概览：统计卡 + （趋势 | 连接配置）双栏 -->
             <template #overview>
               <div class="ds-overview">
                 <div class="ds-stats">
                   <ReStatCard size="compact" title="连接延迟" :value="connectLatencyText" :icon="Timer" icon-color="var(--metric-cpu, var(--el-color-primary))" />
-                  <ReStatCard size="compact" title="会话延迟" :value="sessionLatencyText" :icon="Timer" icon-color="var(--el-color-success)" />
-                  <ReStatCard size="compact" title="最后检测" :value="lastTestText" :icon="Clock" icon-color="var(--status-success, var(--el-color-success))" />
-                  <ReStatCard size="compact" title="运行状态" :value="runtimeText" :icon="CircleCheck" icon-color="var(--brand-500, var(--el-color-primary))" />
+                  <ReStatCard size="compact" title="会话延迟" :value="sessionLatencyText" :icon="Timer" icon-color="var(--status-success)" />
+                  <ReStatCard size="compact" title="最后检测" :value="lastTestText" :icon="Clock" icon-color="var(--metric-jvm)" />
+                  <ReStatCard size="compact" title="运行状态" :value="runtimeText" :icon="CircleCheck" icon-color="var(--brand-500)" />
                 </div>
 
-                <section class="ds-panel">
-                  <h3 class="ds-panel__title">连接配置</h3>
-                  <dl class="ds-kv">
-                    <div v-for="row in configRows" :key="row.label" class="ds-kv__row">
-                      <dt class="ds-kv__label">{{ row.label }}</dt>
-                      <dd class="ds-kv__value" :class="{ mono: row.mono }">{{ row.value }}</dd>
+                <div class="ds-overview-grid">
+                  <!-- 左：连接延迟趋势（指标 SSE 打通后由图表替换空态） -->
+                  <section class="ds-panel ds-panel--trend">
+                    <header class="ds-panel__head">
+                      <h3 class="ds-panel__title">连接延迟趋势</h3>
+                      <div class="ds-panel__legend">
+                        <span class="ds-legend"><i class="ds-legend__dot" />连接延迟</span>
+                        <span class="ds-legend ds-legend--muted"><i class="ds-legend__dot" />平均 {{ latencyLegendText }}</span>
+                      </div>
+                    </header>
+                    <div class="ds-trend">
+                      <ReEmpty description="暂无监控指标数据" :image-size="60" />
                     </div>
-                  </dl>
-                </section>
+                  </section>
+
+                  <!-- 右：连接配置 + 常用动作 -->
+                  <section class="ds-panel">
+                    <h3 class="ds-panel__title">连接配置</h3>
+                    <dl class="ds-kv">
+                      <div v-for="row in configRows" :key="row.label" class="ds-kv__row">
+                        <dt class="ds-kv__label">{{ row.label }}</dt>
+                        <dd class="ds-kv__value" :class="{ mono: row.mono }">{{ row.value }}</dd>
+                      </div>
+                    </dl>
+                    <div class="ds-panel__actions">
+                      <ReButton
+                        class="ds-panel__primary"
+                        type="primary"
+                        icon="RefreshRight"
+                        :show-text="true"
+                        :loading="testing === current.id"
+                        @click="test(current)"
+                      >立即检测</ReButton>
+                      <ReButton class="ds-pill" icon="EditPen" :show-text="true" @click="openEdit(current)">编辑连接配置</ReButton>
+                      <ReButton class="ds-pill" icon="Connection" :show-text="true" @click="activeTab = 'tunnel'">SSH 隧道</ReButton>
+                      <ReButton class="ds-pill" icon="Document" :show-text="true" @click="activeTab = 'logs'">查看操作日志</ReButton>
+                    </div>
+                  </section>
+                </div>
               </div>
             </template>
 
@@ -1517,6 +1631,7 @@ onMounted(load);
         </template>
 
         <ReEmpty v-else description="暂无数据源，点击「新增数据源」创建" :image-size="80" class="ds-main__empty" />
+        </div>
       </div>
     </div>
 
@@ -1780,12 +1895,14 @@ onMounted(load);
    左右两栏：左栏状态过滤 + 列表，右栏详情 + 页签
    ============================================================ */
 .ds {
-  padding: 4px 4px 24px;
-  /* 撑满内容区：父级是纵向 flex 的子项时高度确定，min-height:100% 即可解析。
-     内容更高时按内容走（min-height 不设上限），短内容时左栏也能落到底。 */
+  /* 浅灰画布：卡片用 --bg-container 浮在上面（UI 稿的层次感来源）。
+     颜色全部走 koi 令牌（packages/theme tokens.css），亮暗色自动跟随。 */
+  padding: 16px;
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--bg-page, #f6f7fb);
+  border-radius: var(--radius-xl, 16px);
 }
 
 /* ---------------- 左右两栏布局 ---------------- */
@@ -1827,18 +1944,19 @@ onMounted(load);
 }
 
 /* ---------------- 左栏 ---------------- */
+/* 白卡片落在浅灰画布上：卡片壳只写一次，左右两栏共用同一套规格 */
 .ds-side-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px;
+  padding: 14px;
   /* 撑满左栏高度；min-height:0 让内部列表能真正收缩并滚动，而不是把卡片顶高 */
   flex: 1 1 auto;
   min-height: 0;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  box-shadow: var(--el-box-shadow-lighter);
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 18, 33, 0.06));
   transition: background-color var(--el-transition-duration, 0.2s);
 }
 
@@ -1854,11 +1972,12 @@ onMounted(load);
 .ds-status__item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--el-border-radius-base);
+  gap: 10px;
+  /* UI 稿里过滤行是「整行一条」的胶囊，26px 边距让选中态有呼吸感 */
+  padding: 9px 12px;
+  border-radius: var(--radius-lg, 12px);
   font-size: 13px;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary, #5c6270);
   cursor: pointer;
   user-select: none;
   transition:
@@ -1866,11 +1985,13 @@ onMounted(load);
     color var(--el-transition-duration, 0.2s);
 }
 .ds-status__item:hover {
-  background: var(--el-fill-color-light);
+  background: var(--bg-hover, #f1f2f8);
 }
 .ds-status__item.is-active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-text-color-primary);
+  /* 主色淡染而不是 --el-color-primary-light-*：后者是 Element 的固定梯度，
+     换主题时会和 koi 主色对不上。 */
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
   font-weight: 600;
 }
 .ds-status__dot {
@@ -1886,14 +2007,14 @@ onMounted(load);
 .ds-status__count {
   flex: none;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary, #6b7280);
   font-variant-numeric: tabular-nums;
 }
 
 /* 分隔线 */
 .ds-side__divider {
   height: 1px;
-  background: var(--el-border-color-lighter);
+  background: var(--border-subtle, #eef0f6);
 }
 
 /* 左栏列表：吃掉卡片剩余高度，超出独立滚动，
@@ -1915,41 +2036,41 @@ onMounted(load);
   color: var(--el-text-color-secondary);
 }
 
-/* 数据源卡片 */
+/* 数据源卡片：图标块 + 名称/徽标 + 地址 + 右侧状态点 */
 .ds-item {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   font-family: inherit;
   font-size: 13px;
   text-align: left;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, #1f2430);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--radius-lg, 12px);
   cursor: pointer;
   transition:
     background-color var(--el-transition-duration, 0.2s),
     border-color var(--el-transition-duration, 0.2s);
 }
 .ds-item:hover {
-  background: var(--el-fill-color-light);
+  background: var(--bg-hover, #f1f2f8);
 }
 .ds-item.is-active {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary-light-8);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 32%, transparent);
 }
 .ds-item__icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   --tile: var(--el-color-primary);
   color: var(--tile);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--radius-md, 8px);
   background: color-mix(in srgb, var(--tile) 12%, transparent);
 }
 .ds-item__body {
@@ -1992,7 +2113,24 @@ onMounted(load);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary, #6b7280);
+}
+/* 右侧在线状态点：名称过长时先压缩名字，状态点永远可见 */
+.ds-item__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pulse-offline, #9aa3b2);
+}
+.ds-item__dot.is-online {
+  background: var(--pulse-online, #2fbf71);
+}
+.ds-item__dot.is-abnormal {
+  background: var(--pulse-alarm, #f04a5d);
+}
+.ds-item__dot.is-offline {
+  background: var(--pulse-offline, #9aa3b2);
 }
 
 /* 底部新增按钮（虚线边框） */
@@ -2002,15 +2140,15 @@ onMounted(load);
   justify-content: center;
   gap: 6px;
   width: 100%;
-  padding: 9px 10px;
+  padding: 11px 10px;
   /* 不参与列表的伸缩：列表吃掉剩余高度后，本按钮自然停在卡片底部 */
   flex: none;
   font-family: inherit;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, #5c6270);
   background: transparent;
-  border: 1px dashed var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border: 1px dashed var(--border-default, #e3e6ef);
+  border-radius: var(--radius-lg, 12px);
   cursor: pointer;
   transition:
     color var(--el-transition-duration, 0.2s),
@@ -2019,8 +2157,8 @@ onMounted(load);
 }
 .ds-side__add:hover {
   color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
 }
 
 /* ReInput 内部为元素透传，搜索框宽度需用 :deep 命中 el-input 根 */
@@ -2028,17 +2166,38 @@ onMounted(load);
   width: 100%;
 }
 
-/* ---------------- 右栏头部（面包屑 + 详情合并为一张卡片） ---------------- */
+/* ---------------- 右栏整卡（头部 + 页签 + 内容） ---------------- */
+/* 头部、页签条、内容合成一张卡：页签条的底线要贯通整卡宽度，
+   所以内距分别挂在 .ds-head 与页签面板上，不能挂在整卡上。 */
+.ds-main-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 18, 33, 0.06));
+  overflow: hidden;
+}
+/* 页签面板：库内默认只有 padding-top，左右下内距在这里补齐 */
+.ds-main-card :deep(.re-tab-underline__panel) {
+  padding: 16px 20px 20px;
+}
+
 .ds-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+.ds-head__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 16px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
 }
 .ds-head__main {
   display: flex;
@@ -2047,22 +2206,31 @@ onMounted(load);
   flex-wrap: wrap;
   min-width: 0;
 }
-/* 面包屑与详情信息之间的竖向分隔线 */
-.ds-head__sep {
-  flex-shrink: 0;
-  width: 1px;
-  height: 14px;
-  background: var(--el-border-color-lighter);
+/* 头部左侧的类型图标块：36px 圆角方块，底色由类型色淡染 */
+.ds-head__tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  --tile: var(--el-color-primary);
+  color: var(--tile);
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(in srgb, var(--tile) 14%, transparent);
 }
 .ds-crumb {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-tertiary, #6b7280);
 }
 .ds-crumb__icon {
   color: var(--el-color-primary);
+}
+.ds-crumb__arrow {
+  color: var(--text-tertiary, #6b7280);
+  opacity: 0.7;
 }
 .ds-head__actions {
   display: flex;
@@ -2091,11 +2259,12 @@ onMounted(load);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 28px;
+  /* 20px：UI 稿的标题是一行紧凑字号；28px 会把长数据源名挤成两行，头卡高度跟着跳 */
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--el-text-color-primary);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #1f2430);
 }
 .ds-detail__chip {
   flex: none;
@@ -2139,12 +2308,12 @@ onMounted(load);
   background: currentColor;
 }
 
-/* ---------------- 概览：统计卡 ---------------- */
+/* ---------------- 概览：统计卡 + 双栏面板 ---------------- */
 /* 概览页的「连接配置」区块要吃掉统计卡以下的剩余高度，否则切页签时整页高度跳变 */
 .ds-overview {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -2155,18 +2324,32 @@ onMounted(load);
 }
 /* 统一卡片规格：白底 + 1px 边框 + 12px 圆角（内部排版由 ReStatCard 决定） */
 .ds-stats :deep(.re-stat-card) {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-lg, 12px);
+}
+
+/* 概览双栏：左趋势（可撑宽）+ 右配置（定宽）。窄屏回落单列。 */
+.ds-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+@media (max-width: 1180px) {
+  .ds-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ---------------- 面板 / 键值表 ---------------- */
 .ds-panel {
   padding: 16px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-lg, 12px);
-  /* 吃满页签面板的可用高度（ReTab stretch → .re-tab-capsule__panel）。
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-lg, 12px);
+  /* 吃满页签面板的可用高度（ReTab stretch → .re-tab-underline__panel）。
      转纵向 flex 是为了让标题与键值表成为两行可控子项；
      键值行按内容自然排、不加滚动，字段更多时面板会被内容顶高而不是压缩行距。 */
   display: flex;
@@ -2174,12 +2357,70 @@ onMounted(load);
   flex: 1 1 auto;
   min-height: 0;
 }
+.ds-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
 .ds-panel__title {
   margin: 0 0 8px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, #1f2430);
   flex-shrink: 0;
+}
+.ds-panel__head .ds-panel__title {
+  margin-bottom: 0;
+}
+/* 图例：色点 + 文案，弱化项用三级文字色 */
+.ds-panel__legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-secondary, #5c6270);
+}
+.ds-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ds-legend--muted {
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--metric-cpu, var(--el-color-primary));
+}
+.ds-legend--muted .ds-legend__dot {
+  background: var(--border-default, #e3e6ef);
+}
+/* 趋势画布：图表落地前先占住高度，避免空态把双栏压扁 */
+.ds-trend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 220px;
+  margin-top: 12px;
+}
+/* 面板底部动作：主按钮整行，下方三个次级动作纵向排布 */
+.ds-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  flex-shrink: 0;
+}
+.ds-panel__actions :deep(.rs-btn),
+.ds-panel__actions :deep(.el-button) {
+  width: 100%;
+  margin-left: 0;
 }
 .ds-kv {
   margin: 0;
@@ -2191,20 +2432,23 @@ onMounted(load);
   padding: 10px 0;
 }
 .ds-kv__row + .ds-kv__row {
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--border-subtle, #eef0f6);
 }
 .ds-kv__label {
-  flex: 0 0 140px;
+  flex: 0 0 96px;
   margin: 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary, #6b7280);
 }
 .ds-kv__value {
   flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   font-size: 13px;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, #1f2430);
+  /* dd 在部分全局重置里是右对齐，这里显式拉回左对齐：
+     标签列定宽后，值紧跟标签才是 UI 稿的样子，贴到卡片右边会读成另一列 */
+  text-align: left;
   word-break: break-all;
 }
 

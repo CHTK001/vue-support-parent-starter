@@ -1,6 +1,6 @@
 <template>
   <div class="dsm tel-page" :class="{ resizing }">
-    <div class="dsm-toolbar">
+    <div class="dsm-toolbar re-surface">
       <div class="dsm-toolbar-left">
         <ReIcon name="Share" :size="18" class="dsm-title-icon dsm-zk-icon" />
         <span class="dsm-title">ZooKeeper 注册中心管理</span>
@@ -991,8 +991,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.dsm { display: flex; flex-direction: column; height: 100%; min-height: 100%; }
-.dsm-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+.dsm { display: flex; flex-direction: column; height: 100%; min-height: 100%; background: var(--bg-fill); }
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 类统一提供
+   （16px 圆角、透明边框 + 双层柔光投影），这里只留布局——不再自写一套卡片壳防漂移 */
+.dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .dsm-zk-icon { color: #fb923c; }

@@ -1,7 +1,7 @@
 <template>
   <div class="dsm tel-page">
     <!-- 顶部工具栏 -->
-    <div class="dsm-toolbar">
+    <div class="dsm-toolbar re-surface">
       <div class="dsm-toolbar-left">
         <ReIcon name="DataAnalysis" :size="18" class="dsm-title-icon" />
         <span class="dsm-title">InfluxDB 时序数据库管理</span>
@@ -340,6 +340,8 @@
  * @author CH
  * @since 4.0.0
  */
+// 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
+import "@repo/ui/surface";
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -1092,14 +1094,13 @@ watch(source, applyConnectionInfo);
   flex-direction: column;
   height: 100%;
   min-height: 100%;
+  background: var(--bg-fill);
 }
 
 .dsm-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 16px;
 }
 
