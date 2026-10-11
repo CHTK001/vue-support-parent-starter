@@ -340,28 +340,27 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </ReStatCard>
     </div>
 
-    <!-- 筛选 + 操作整块收进 card：原先筛选控件与操作按钮裸排在一行，
-         视觉上和上方统计卡、下方表格同层，缺少「这是一组工具」的边界；
-         包进 card 后与统计卡/表格形成 卡片-卡片-表格 的稳定节奏。 -->
+    <!-- 筛选工具条整行进 card：搜索框、协议下拉、计数与操作按钮同属「一组工具」。
+         此前只把两个输入框圈起来，计数文字和操作按钮留在卡外，看上去像
+         「卡片 + 飘着的按钮」两件事；整行一张卡后与上方统计卡、下方表格
+         形成 卡片-卡片-卡片-表格 的稳定节奏。 -->
     <div class="page-toolbar">
-      <div class="tb-filter panel">
-        <ReInput
-          v-model="keyword"
-          aria-label="搜索服务"
-          placeholder="搜索名称 / 协议 / 监听地址"
-          clearable
-          prefix-icon="Search"
-          class="tb-search"
-        />
-        <ReSelect
-          v-model="filterProtocol"
-          aria-label="按协议筛选"
-          placeholder="全部协议"
-          clearable
-          :data="protocolOptions"
-          class="tb-proto"
-        />
-      </div>
+      <ReInput
+        v-model="keyword"
+        aria-label="搜索服务"
+        placeholder="搜索名称 / 协议 / 监听地址"
+        clearable
+        prefix-icon="Search"
+        class="tb-search"
+      />
+      <ReSelect
+        v-model="filterProtocol"
+        aria-label="按协议筛选"
+        placeholder="全部协议"
+        clearable
+        :data="protocolOptions"
+        class="tb-proto"
+      />
       <span class="dim tb-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
       <div class="tb-ops">
         <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="openCreate" />
@@ -526,24 +525,21 @@ function openDetailPage(row: ServerNodeView, index: number) {
   min-height: 0;
 }
 
-/* 筛选工具条 + 右侧操作组 */
+/* 筛选工具条：整行一张卡（搜索框 + 协议下拉 + 计数 + 操作按钮）。
+   样式走 EP 语义令牌而非 styles/page.css 的 .panel —— 那份 tokens.css
+   只有 :root、无暗色变体，暗色模式下会停在亮色值。 */
 .page-toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-/* 筛选控件的 card 容器：卡片化后输入框与协议下拉同属一个视觉单元 */
-.tb-filter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
+  padding: 8px 12px;
 }
 .tb-search { width: 260px; }
 .tb-proto { width: 240px; }
+/* 计数推到右侧，把「筛选条件」和「结果概览 + 操作」在卡内也分出左右两区 */
 .tb-meta { margin-left: auto; white-space: nowrap; }
 /* 与筛选之间用竖线分隔，视觉上区分「筛选」与「操作」 */
 .tb-ops {
@@ -561,9 +557,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
 }
 .ops :deep(.re-button) { cursor: pointer; }
 @media (max-width: 900px) {
-  .tb-filter {
-    flex-wrap: wrap;
-  }
+  .page-toolbar { flex-wrap: wrap; }
   .tb-search,
   .tb-proto { width: 100%; }
   .tb-meta { margin-left: 0; }
