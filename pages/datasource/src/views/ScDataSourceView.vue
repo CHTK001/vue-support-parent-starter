@@ -1908,7 +1908,6 @@ onMounted(load);
 .ds {
   /* 浅灰画布：卡片用 --bg-container 浮在上面（UI 稿的层次感来源）。
      颜色全部走 koi 令牌（packages/theme tokens.css），亮暗色自动跟随。 */
-  padding: 16px;
   min-height: 100%;
   display: flex;
   flex-direction: column;
