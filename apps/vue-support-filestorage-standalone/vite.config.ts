@@ -7,6 +7,8 @@ import { uiExplicitAliases } from "../../turbo/vite/createVite.ts";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(root, "../..");
+/** 共享工厂目录（events polyfill 等 vendored 资产所在） */
+const FACTORY_DIR = path.dirname(fileURLToPath(import.meta.url)).replace(/[\\/]apps[\\/]vue-support-filestorage-standalone$/, "");
 
 /** @repo/utils 源码直接引入，避免包构建依赖链 */
 const REPO_ALIAS: Record<string, string> = {
