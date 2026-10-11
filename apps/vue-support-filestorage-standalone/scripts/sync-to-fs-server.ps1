@@ -1,4 +1,4 @@
-# 把 standalone 构建产物同步到文件服务器 classpath 静态资源目录。
+﻿# 把 standalone 构建产物同步到文件服务器 classpath 静态资源目录。
 #
 #   dist/index.html   -> spring-support-filesystem-starter/src/main/resources/static/index.html（管理页壳）
 #   dist/preview.html -> .../static/preview/index.html（统一预览入口壳，readPreviewShell 读取）
@@ -20,21 +20,25 @@ if (-not (Test-Path (Join-Path $dist "index.html"))) {
     Write-Error "dist/index.html 不存在：请先执行 pnpm build"
 }
 
-$backendStatic = Resolve-Path (Join-Path $appRoot "..\..\..\spring-support-parent-starter\spring-support-filesystem-starter\src\main\resources\static")
+# 用 .NET API 直拷（避免 cmdlet 对 PathInfo 的参数绑定玄学）
+$backendStatic = [System.IO.Path]::GetFullPath(
+    (Join-Path $appRoot "..\..\..\spring-support-parent-starter\spring-support-filesystem-starter\src\main\resources\static"))
+if (-not [System.IO.Directory]::Exists($backendStatic)) {
+    Write-Error "后端静态资源目录不存在：$backendStatic"
+}
 
-function Copy-Into([string]$src, [string]$destDir, [string]$destName) {
-    $dest = Join-Path $destDir $destName
-    $destParent = Split-Path -Parent $dest
-    if (-not (Test-Path $destParent)) {
-        New-Item -ItemType Directory -Path $destParent -Force | Out-Null
+function Sync-CopyFile([string]$src, [string]$dest) {
+    $destParent = [System.IO.Path]::GetDirectoryName($dest)
+    if (-not [System.IO.Directory]::Exists($destParent)) {
+        [System.IO.Directory]::CreateDirectory($destParent) | Out-Null
     }
-    Copy-Item -Path $src -Destination $dest -Force
+    [System.IO.File]::Copy($src, $dest, $true)
     Write-Host "sync: $src -> $dest"
 }
 
 # 1. 两个入口壳（preview.html 改名为 preview/index.html）
-Copy-Into (Join-Path $dist "index.html") $backendStatic "index.html"
-Copy-Into (Join-Path $dist "preview.html") (Join-Path $backendStatic "preview") "index.html"
+Sync-CopyFile (Join-Path $dist "index.html") (Join-Path $backendStatic "index.html")
+Sync-CopyFile (Join-Path $dist "preview.html") (Join-Path $backendStatic "preview\index.html")
 
 # 2. 共享构建产物目录
 foreach ($dir in @("assets", "vendor", "wasm")) {
@@ -52,8 +56,7 @@ foreach ($dir in @("assets", "vendor", "wasm")) {
 # 3. 渲染器资产清单（若存在）
 $manifest = Join-Path $dist "flyfish-viewer-assets.json"
 if (Test-Path $manifest) {
-    Copy-Item -Path $manifest -Destination (Join-Path $backendStatic "flyfish-viewer-assets.json") -Force
-    Write-Host "sync: flyfish-viewer-assets.json"
+    Sync-CopyFile $manifest (Join-Path $backendStatic "flyfish-viewer-assets.json")
 }
 
 Write-Host "同步完成：$backendStatic"

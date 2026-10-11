@@ -7,8 +7,8 @@ import { uiExplicitAliases } from "../../turbo/vite/createVite.ts";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(root, "../..");
-/** 共享工厂目录（events polyfill 等 vendored 资产所在） */
-const FACTORY_DIR = path.dirname(fileURLToPath(import.meta.url)).replace(/[\\/]apps[\\/]vue-support-filestorage-standalone$/, "");
+/** 共享工厂目录（turbo/vite，events polyfill 等 vendored 资产所在） */
+const FACTORY_DIR = path.resolve(WORKSPACE_ROOT, "turbo/vite");
 
 /** @repo/utils 源码直接引入，避免包构建依赖链 */
 const REPO_ALIAS: Record<string, string> = {
@@ -36,10 +36,16 @@ const REPO_ALIAS: Record<string, string> = {
 };
 
 /**
- * 解析别名表：UI 组件的 kebab/compact 子路径别名（动态生成）在前，
- * 手写 @repo/* 源码别名在后——先匹配先赢，子路径不会被父前缀截胡。
+ * 解析别名表：包级正则别名（echarts 兼容 / events polyfill）与 UI 组件的
+ * kebab/compact 子路径别名（动态生成）在前，手写 @repo/* 源码别名在后——
+ * 先匹配先赢，子路径不会被父前缀截胡。
  */
 const REPO_ALIAS_ENTRIES = [
+  // ol-echarts 以 `import echarts from 'echarts'`（CJS default）引用，
+  // ESM 版 echarts 无 default 导出：指向同口径的兼容 shim（见 echarts-compat）
+  { find: /^echarts$/, replacement: path.resolve(WORKSPACE_ROOT, "packages/ui/src/shared/echarts-compat") },
+  // Node 内建 events 的浏览器 polyfill：@cornerstonejs/core（DICOM 面板）间接 require('events')
+  { find: /^events$/, replacement: path.resolve(FACTORY_DIR, "events-polyfill.js") },
   ...uiExplicitAliases(),
   ...Object.entries(REPO_ALIAS).map(([find, replacement]) => ({ find, replacement })),
 ];
