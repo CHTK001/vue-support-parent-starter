@@ -163,10 +163,15 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
   display: flex;
   gap: 12px;
   height: calc(100vh - 210px);
+  /* 与 .collect-flow 的 min-height 对齐：画布要 520px 高，容器矮于它就会裁掉画布底部 */
+  min-height: 520px;
 }
 .flow-preview__canvas {
   flex: 1;
   min-width: 0;
+  /* 显式给 520px：flex 子项默认 min-height:auto 会被 .collect-flow 的高度顶开，
+     这里锁住下界，保证画布容器本身不矮于设计器要求的尺寸 */
+  min-height: 520px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;

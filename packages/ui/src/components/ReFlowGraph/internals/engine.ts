@@ -44,6 +44,8 @@ import {
   FLOW_NODE_SHAPE,
   NODE_HEIGHT,
   NODE_WIDTH,
+  TIDY_GAP_X,
+  TIDY_GAP_Y,
   buildFlowEdgeMetadata,
   buildFlowNodeMetadata,
   ensureFlowRegistered,
@@ -461,6 +463,16 @@ export class FlowGraphEngine {
     this.graph.on("cell:removed", fire);
     this.graph.on("cell:changed", fire);
     this.graph.on("node:moved", fire);
+    // 批量操作（batchUpdate）里 cell:changed 在 batch:stop 之前触发，
+    // 此刻 History 条目尚未入栈，canUndo() 仍是旧值，工具条撤销按钮会
+    // 停在禁用态（实测「整理布局」后撤销不可点）。History 插件每次
+    // 入栈 / 出栈后触发 history:change，补一个监听把撤销态同步回来。
+    this.graph.on("history:change", () => {
+      if (this.loading) {
+        return;
+      }
+      h.onHistoryChange?.({ canUndo: this.canUndo(), canRedo: this.canRedo() });
+    });
   }
 
   /**
@@ -1113,6 +1125,186 @@ export class FlowGraphEngine {
     }
     this.fit();
     this.graph.centerContent();
+  }
+
+  /**
+   * 按拓扑分层重排节点（"整理布局"）。
+   *
+   * <p><b>为什么需要</b>：节点坐标来自 DSL 或 AI 生成，落库时未必考虑可读性——
+   * 见过 x 步进只有 210（卡片宽 180，净间距 30）、y 恒定的一字长蛇形队列，
+   * 末尾节点直接溢出画布右边界。「适应画布」只能缩放看全，不能让布局变整齐，
+   * 所以这里补一次真正的重排。</p>
+   *
+   * <p><b>算法</b>：以「入度为 0 的节点」为第 0 层做 BFS，按连线方向分层；
+   * 同层节点按各自当前 x 排序（保留用户手工调整的相对顺序），层内垂直居中、
+   * 跨层留 {@link TIDY_GAP_X} / {@link TIDY_GAP_Y} 的净间距。有环时兜底把
+   * 没能分层的节点顺次追加到最后一层，不会漏排。</p>
+   *
+   * <p>移动节点同样进 undo 栈，用户可撤销。</p>
+   */
+  tidy(): number {
+    const nodes = this.graph.getNodes();
+    if (nodes.length < 2) {
+      return 0;
+    }
+
+    // 入度表 + 出边表：分层与层内排序都靠它
+    const indegree = new Map<string, number>();
+    const outgoing = new Map<string, string[]>();
+    nodes.forEach((node) => {
+      indegree.set(node.id, 0);
+      outgoing.set(node.id, []);
+    });
+    this.graph.getEdges().forEach((edge) => {
+      const source = edge.getSource() as { cell?: string } | undefined;
+      const target = edge.getTarget() as { cell?: string } | undefined;
+      if (!source?.cell || !target?.cell) return;
+      const from = String(source.cell);
+      const to = String(target.cell);
+      // 自环不参与分层，否则该节点永远等不到入度归零
+      if (from === to || !indegree.has(to) || !outgoing.has(from)) return;
+      indegree.set(to, (indegree.get(to) ?? 0) + 1);
+      outgoing.get(from)!.push(to);
+    });
+
+    // BFS 分层：入度 0 起一层，逐层推进；只进一次，避免环导致重复入队
+    const layers: string[][] = [];
+    const depth = new Map<string, number>();
+    let frontier = nodes
+      .filter((node) => (indegree.get(node.id) ?? 0) === 0)
+      .map((node) => node.id);
+    frontier.forEach((id) => depth.set(id, 0));
+    while (frontier.length) {
+      layers.push(frontier);
+      const next: string[] = [];
+      frontier.forEach((id) => {
+        outgoing.get(id)?.forEach((to) => {
+          if (depth.has(to)) return;
+          depth.set(to, (depth.get(id) ?? 0) + 1);
+          next.push(to);
+        });
+      });
+      frontier = next;
+    }
+    // 环里的节点拿不到入度 0 的入口：BFS 到不了它们。兜底单独成末层，别让它们留在原地。
+    const orphans = nodes
+      .map((node) => node.id)
+      .filter((id) => !depth.has(id));
+    if (orphans.length) {
+      layers.push(orphans);
+    }
+
+    // 层内按原 x 排序，保住用户手工拖出来的左右次序
+    const cellOf = new Map(nodes.map((node) => [node.id, node]));
+    layers.forEach((layer) => {
+      layer.sort((a, b) => (cellOf.get(a)?.position().x ?? 0) - (cellOf.get(b)?.position().x ?? 0));
+    });
+
+    const stepX = NODE_WIDTH + TIDY_GAP_X;
+    const stepY = NODE_HEIGHT + TIDY_GAP_Y;
+    // 原点锚在第 0 层**现有**坐标的左上角，而不是硬写 (0, 0)。
+    //
+    // <p>起因：起点节点被宿主用「载入时坐标」钉住（FlowDesigner.lockStartPosition），
+    // 一旦被移动就当场弹回。若这里按 (0,0) 排布，起点会被弹回旧位置，
+    // 结果整张图歪成「起点缩在中间、其余节点另起一列」，比整理前更难看。
+    // 锚定现有坐标既尊重钉住规则，也让重复点击 tidy 幂等（第二次锚点还是同一个）。</p>
+    const anchorX = Math.min(...layers[0].map((id) => cellOf.get(id)?.position().x ?? 0));
+    const anchorY = Math.min(...layers[0].map((id) => cellOf.get(id)?.position().y ?? 0));
+    // 位置重排与端口重选必须合成一条撤销历史。
+    //
+    // <p>History 插件按 model 的 batch:start/stop 合并改动：每个
+    // {@code node.position()} 各记一条，6 个节点 + 5 条边端口就是 11 条，
+    // 用户点一次「整理布局」再点「撤销」得按 11 次才能退回原图（实测）。
+    // 包进 {@code batchUpdate} 后整批只入栈一次，撤销一步回退整张布局。
+    // 缩放 / 居中是视图变换，不进历史，放在批外。</p>
+    this.graph.batchUpdate("tidy", () => {
+      layers.forEach((layer, row) => {
+        const y = anchorY + row * stepY;
+        layer.forEach((id, col) => {
+          const node = cellOf.get(id);
+          if (!node) return;
+          node.position(anchorX + col * stepX, y, { skipHistory: false });
+        });
+      });
+
+      // 重排改了相对位置，边端口必须跟着重选：端口是建边那一刻按当时坐标定下的
+      //（setData 里 pickFlowPorts），一字横排的图重排成竖向分层后还钉在右→左，
+      // 线就会横穿整张卡片。与上面的移动同批，算一次操作。
+      this.repickEdgePorts();
+    });
+
+    // 自己按刚落好的坐标算缩放，而不是调 fit()：
+    // fit()/zoomToFit 依赖 X6 已提交的 bbox，重排当帧量到的还是旧范围（一字长条），
+    // 会算出一个按旧宽度缩小的倍率，竖向新图反而装不满。这里用确定的步长直接算。
+    const totalW = (Math.max(...layers.map((l) => l.length)) - 1) * stepX + NODE_WIDTH;
+    const totalH = (layers.length - 1) * stepY + NODE_HEIGHT;
+    // getGraphArea() 返回的是**图形坐标**下的可视范围（内部做过 graphToLocal，即 px/缩放），
+    // 而 totalW / totalH 是纯图形尺寸。要拿像素视口去比，得把面积乘回当前缩放，
+    // 否则第二次整理量到的视口会随上一次倍率一起放大，倍率越点越高。
+    const area = this.graph.getGraphArea();
+    const scale = this.graph.transform.getZoom() || 1;
+    const viewW = area.width * scale;
+    const viewH = area.height * scale;
+    const pad = 48;
+    const fitScale = Math.min(
+      1.2,
+      Math.max(0.2, Math.min((viewW - pad * 2) / totalW, (viewH - pad * 2) / totalH)),
+    );
+    this.graph.zoomTo(fitScale);
+    this.graph.centerContent();
+    return nodes.length;
+  }
+
+  /**
+   * 按当前节点坐标重选每条边的出入端口。
+   *
+   * <p>{@link setData} 建边时调一次 {@link pickFlowPorts}，节点一旦被拖动或重排，
+   * 端口就与实际走向脱节。这里复用同一套选向规则重算，改端口不单独记一步撤销——
+   * 与 {@link tidy} 的移动合起来算一次操作。</p>
+   */
+  private repickEdgePorts(): void {
+    const specOf = new Map<string, { x: number; y: number; type: string; width: number; height: number }>();
+    this.graph.getNodes().forEach((node) => {
+      // 节点类型存在 flowType（与 focusNode / removeNodes 里的取法一致）
+      const type = (node.getData() as { flowType?: string } | undefined)?.flowType ?? "";
+      const spec = this.shapeSpec(type);
+      specOf.set(node.id, {
+        x: node.position().x,
+        y: node.position().y,
+        type,
+        width: spec.width,
+        height: spec.height,
+      });
+    });
+    this.graph.getEdges().forEach((edge) => {
+      // X6 的 getSource() 返回 { cell, port }；cell 缺失说明这条边已经脱钩，跳过
+      const source = edge.getSource() as { cell?: string } | undefined;
+      const target = edge.getTarget() as { cell?: string } | undefined;
+      if (!source?.cell || !target?.cell) return;
+      const from = String(source.cell);
+      const to = String(target.cell);
+      const src = specOf.get(from);
+      const dst = specOf.get(to);
+      if (!src || !dst) return;
+      const ports = pickFlowPorts(
+        { x: src.x, y: src.y },
+        { x: dst.x, y: dst.y },
+        undefined,
+        undefined,
+        {
+          fromType: src.type,
+          toType: dst.type,
+          diamondTypes: this.diamondTypes,
+          fromSize: { width: src.width, height: src.height },
+          toSize: { width: dst.width, height: dst.height },
+        },
+      );
+      // 必须传**对象**而不是节点 id 字符串：X6 的 setTerminal 只认 Cell / 点 / 对象，
+      // 传字符串会走 cloneDeep 分支把 source 整个存成裸字符串，边随即与两端节点脱钩
+      //（表现为连线消失、getData() 的 from/to 变空）。
+      edge.setSource({ cell: from, port: ports.fromPort });
+      edge.setTarget({ cell: to, port: ports.toPort });
+    });
   }
 
   /** 撤销一步；栈空时静默返回 */

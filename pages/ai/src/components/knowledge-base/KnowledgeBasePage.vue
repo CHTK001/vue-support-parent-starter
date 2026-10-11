@@ -608,14 +608,17 @@
                   :loading="graphGenerating" @click="handleGenerateGraph" />
                 <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Grid" tip="管理实体" @click="goManage('entity')" />
                 <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Connection" tip="管理关系" @click="goManage('relation')" />
+                <!-- 布局调参：图谱自身 toolbar=false，改由本页工具栏驱动组件暴露的调参面板 -->
+                <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Setting" tip="布局参数" @click="graphCompRef?.toggleTuning?.()" />
               </div>
             </div>
 
             <div class="kb-graph__body">
               <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
-                <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph 的 zoom-canvas 行为） -->
+                <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph 的 zoom-canvas 行为）
+                     edge-label-mode=onHover：387 条边常显标签会糊成一片，改为悬停单条边才显示 -->
                 <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
-                  :toolbar="false" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
+                  :toolbar="false" edge-label-mode="onHover" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
                 <div v-if="graphLegend.length > 0" class="kb-graph__legend">

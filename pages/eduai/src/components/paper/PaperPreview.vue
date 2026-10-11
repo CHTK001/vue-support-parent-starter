@@ -15,22 +15,77 @@
           </div>
 
           <div class="pp-body">
-            <div v-for="item in page" :key="item.key" class="pp-question">
-              <div class="pp-question__stem">
-                <span class="pp-question__no">{{ item.no }}.</span>
-                <span v-if="item.stemHtml" class="pp-question__html" v-html="item.stemHtml" />
-                <span v-else class="pp-question__empty">（题干为空）</span>
-                <span class="pp-question__score">（{{ item.q.score }} 分）</span>
+            <!-- 答题卡：只保留题号与作答区，像正式答题卡一样整页留空 -->
+            <div v-if="activeMode === 'answer-sheet'" class="pp-answer-sheet">
+              <div v-for="item in page" :key="item.key" class="pp-answer-sheet__row">
+                <span class="pp-answer-sheet__no">{{ item.no }}.</span>
+                <div class="pp-answer-sheet__lines">
+                  <div v-for="n in answerSheetLineCount(item)" :key="n" class="pp-answer-sheet__line" />
+                </div>
+                <span class="pp-answer-sheet__type">{{ typeName(item.q.type) }} {{ item.q.score }}分</span>
               </div>
-              <div v-if="item.options.length" class="pp-question__options">
-                <div v-for="(opt, oi) in item.options" :key="oi" class="pp-option">
-                  <span class="pp-option__letter">{{ optionLetter(oi) }}.</span>
-                  <span v-html="renderMixedText(opt)" />
+            </div>
+
+            <!-- 参考答案：题号 + 答案 + 解析，便于核对 -->
+            <div v-else-if="activeMode === 'answer-key'" class="pp-answer-key">
+              <div v-for="item in page" :key="item.key" class="pp-answer-key__row">
+                <span class="pp-answer-key__no">{{ item.no }}.</span>
+                <div class="pp-answer-key__main">
+                  <div class="pp-answer-key__answer">
+                    <span class="pp-answer-key__label">答案</span>
+                    <span v-if="item.answerContent" v-html="renderMixedText(item.answerContent)" />
+                    <span v-else class="pp-answer-key__empty">未录入</span>
+                  </div>
+                  <div v-if="item.q.analysis" class="pp-answer-key__analysis">
+                    <span class="pp-answer-key__label">解析</span>
+                    <span v-html="renderRichWithMath(item.q.analysis)" />
+                  </div>
                 </div>
               </div>
-              <!-- 客观题在题干处作答，主观题留出空白书写区 -->
-              <div v-if="item.answerHeight > 0" class="pp-question__answer" :style="{ height: `${item.answerHeight}px` }" />
             </div>
+
+            <!-- 试卷 / 已作答：正常题目版式；已作答额外叠写答案痕迹 -->
+            <template v-else>
+              <div v-for="item in page" :key="item.key" class="pp-question">
+                <div class="pp-question__stem">
+                  <span class="pp-question__no">{{ item.no }}.</span>
+                  <span v-if="item.stemHtml" class="pp-question__html" v-html="item.stemHtml" />
+                  <span v-else class="pp-question__empty">（题干为空）</span>
+                  <span class="pp-question__score">（{{ item.q.score }} 分）</span>
+                </div>
+                <div v-if="item.options.length" class="pp-question__options">
+                  <div v-for="(opt, oi) in item.options" :key="oi" class="pp-option">
+                    <span class="pp-option__letter">{{ optionLetter(oi) }}.</span>
+                    <span v-html="renderMixedText(opt)" />
+                  </div>
+                  <div v-if="activeMode === 'answered' && item.writtenAnswer" class="pp-question__answered-choice">
+                    <span class="pp-question__answered-label">作答</span>
+                    <b>{{ item.writtenAnswer }}</b>
+                  </div>
+                </div>
+                <!-- 主观题留出空白书写区；已作答模式在空白区叠写答案 -->
+                <div v-if="item.answerHeight > 0" class="pp-question__answer" :style="{ height: `${item.answerHeight}px` }">
+                  <div
+                    v-if="activeMode === 'answered' && item.writtenAnswer"
+                    class="pp-answer__written"
+                    v-html="renderMixedText(item.writtenAnswer)"
+                  />
+                </div>
+                <!-- 客观题也给一个显式作答行，卷面看起来更接近真实试卷 -->
+                <div
+                  v-else-if="activeMode !== 'answered' && item.options.length"
+                  class="pp-question__objective-answer"
+                >
+                  作答：________
+                </div>
+                <div
+                  v-else-if="activeMode === 'answered' && item.options.length && !item.writtenAnswer"
+                  class="pp-question__objective-answer"
+                >
+                  作答：________
+                </div>
+              </div>
+            </template>
             <div v-if="!page.length" class="pp-body__empty">{{ emptyText }}</div>
           </div>
 
@@ -56,8 +111,11 @@
  * 选项行数与主观题作答留白，累加超出当前页可容纳高度就新起一页。
  * 好处是无需等待浏览器测量即可稳定出页数，代价是与打印结果可能有极小出入。</p>
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { htmlToMathText, renderMixedText, renderRichWithMath } from "../../utils/mathText";
+
+/** 导出 / 预览内容模式 */
+export type PaperExportMode = "paper" | "answer-sheet" | "answer-key" | "answered";
 
 /** 卷头 / 纸张 / 模板设置（只保留预览用到的字段，其余忽略） */
 export interface PreviewHeader {
@@ -95,6 +153,10 @@ export interface PreviewQuestion {
   score?: number;
   /** 题项编号；缺省时用序号 */
   paperQuestionNo?: string;
+  /** 标准答案（试卷详情带 answer 字段时用于参考答案/已作答导出） */
+  answer?: string;
+  /** 题目解析（答案页导出） */
+  analysis?: string;
 }
 
 const props = withDefaults(
@@ -115,8 +177,15 @@ const props = withDefaults(
     zoom?: number;
     /** 空卷时的提示文案 */
     emptyText?: string;
+    /** 内容模式：试卷 / 答题卡 / 参考答案 / 已作答 */
+    mode?: PaperExportMode;
+    /**
+     * 已作答模式的手写/勾选答案。
+     * key 优先用 paperQuestionNo，其次用 String(questionId)。
+     */
+    answers?: Record<string, string>;
   }>(),
-  { fitWidth: 0, zoom: 1, emptyText: "试卷还没有题目" },
+  { fitWidth: 0, zoom: 1, emptyText: "试卷还没有题目", mode: "paper", answers: () => ({}) },
 );
 
 defineOptions({ name: "PaperPreview" });
@@ -145,6 +214,26 @@ const HEADER_HEIGHT_RICH = 132;
 const HEADER_HEIGHT_DEFAULT = 88;
 const FOOTER_HEIGHT = 56;
 
+/** 答题卡每题的固定行数（主观题多留空，客观题一行即可） */
+const ANSWER_SHEET_LINES_BY_TYPE: Record<string, number> = {
+  SINGLE_CHOICE: 2,
+  MULTIPLE_CHOICE: 2,
+  JUDGE: 2,
+  FILL: 3,
+  SHORT_ANSWER: 6,
+  ESSAY: 10,
+};
+
+/** 题型码值 → 中文名 */
+const TYPE_LABEL: Record<string, string> = {
+  SINGLE_CHOICE: "单选",
+  MULTIPLE_CHOICE: "多选",
+  JUDGE: "判断",
+  FILL: "填空",
+  SHORT_ANSWER: "简答",
+  ESSAY: "作文",
+};
+
 /** 缩放下限，避免窄容器下缩到不可读 */
 const MIN_SCALE = 0.2;
 
@@ -165,6 +254,10 @@ interface PreviewItem {
   stemHtml: string;
   /** 作答留白高度，客观题为 0 */
   answerHeight: number;
+  /** 标准答案（模板渲染/导出用） */
+  answerContent: string;
+  /** 预写的模拟作答（answer-sheet/answered 模式用） */
+  writtenAnswer: string;
 }
 
 const optionLetter = (i: number): string => String.fromCharCode(65 + i);
@@ -261,11 +354,17 @@ const metaLine = computed(() => {
   parts.push(`${props.questions.length} 题`);
   const full = props.questions.reduce((sum, q) => sum + (Number(q.score) || 0), 0);
   parts.push(`满分 ${full} 分`);
-  return parts.join(" · ");
+  const suffix =
+    activeMode.value === "answer-sheet" ? " · 答题卡"
+      : activeMode.value === "answer-key" ? " · 参考答案"
+        : activeMode.value === "answered" ? " · 已作答" : "";
+  return parts.join(" · ") + suffix;
 });
 
 /** 组装单题预览数据 */
 function buildItem(q: PreviewQuestion, index: number): PreviewItem {
+  const byNo = q.paperQuestionNo ? activeAnswers.value[q.paperQuestionNo] : "";
+  const byId = activeAnswers.value[String(q.questionId)];
   return {
     key: q.paperQuestionNo || `Q${q.questionId}`,
     q,
@@ -273,21 +372,51 @@ function buildItem(q: PreviewQuestion, index: number): PreviewItem {
     options: parseOptions(q.options),
     stemHtml: renderRichWithMath(q.stem),
     answerHeight: answerSpaceHeight(q.type),
+    answerContent: q.answer || "",
+    writtenAnswer: byNo || byId || "",
   };
 }
 
+/** 题型中文名（答题卡紧凑显示） */
+function typeName(type?: string): string {
+  return TYPE_LABEL[type ?? ""] ?? type ?? "-";
+}
+
+/** 答题卡模式的单题估算行数 */
+function answerSheetLineCount(item: PreviewItem): number {
+  return ANSWER_SHEET_LINES_BY_TYPE[item.q.type ?? ""] ?? 3;
+}
+
 /** 估算题项渲染高度：基准 + 题干超首行部分 + 选项行 + 作答留白 */
-function estimateHeight(item: PreviewItem): number {
+function estimateHeight(item: PreviewItem, mode: PaperExportMode = "paper"): number {
   const stemLines = Math.max(1, Math.ceil(htmlToMathText(item.q.stem).length / STEM_CHARS_PER_LINE));
   const optionLines = item.options.reduce(
     (sum, text) => sum + Math.max(1, Math.ceil(htmlToMathText(text).length / OPTION_CHARS_PER_LINE)),
     0,
   );
+  if (mode === "answer-sheet") {
+    const lineHeight = 28;
+    return (BASE_HEIGHTS[item.q.type ?? ""] ?? 44) + answerSheetLineCount(item) * lineHeight + 8;
+  }
+  if (mode === "answer-key") {
+    const answerLines = Math.max(1, Math.ceil(htmlToMathText(item.answerContent).length / STEM_CHARS_PER_LINE));
+    const analysisLines = Math.max(0, Math.ceil(htmlToMathText(item.q.analysis).length / STEM_CHARS_PER_LINE));
+    return 46 + answerLines * LINE_HEIGHT + analysisLines * LINE_HEIGHT + 8;
+  }
+  const objectiveAnswerHeight = item.options.length ? 22 : 0;
   return (BASE_HEIGHTS[item.q.type ?? ""] ?? 44) + (stemLines - 1) * LINE_HEIGHT
-    + optionLines * LINE_HEIGHT + item.answerHeight + 14;
+    + optionLines * LINE_HEIGHT + item.answerHeight + objectiveAnswerHeight + 14;
 }
 
 const headerBlockHeight = computed(() => (hasHeaderContent.value ? HEADER_HEIGHT_RICH : HEADER_HEIGHT_DEFAULT));
+
+/** 当前实际渲染模式：导出时可以临时覆盖 */
+const exportModeOverride = ref<PaperExportMode | null>(null);
+const exportAnswersOverride = ref<Record<string, string> | null>(null);
+const exportScaleOverride = ref<number | null>(null);
+
+const activeMode = computed<PaperExportMode>(() => exportModeOverride.value ?? props.mode);
+const activeAnswers = computed<Record<string, string>>(() => exportAnswersOverride.value ?? props.answers);
 
 /** 多页切分：按估算高度装箱，超出当前页可容纳高度就新起一页；空卷也返回一页 */
 const pages = computed<PreviewItem[][]>(() => {
@@ -301,7 +430,7 @@ const pages = computed<PreviewItem[][]>(() => {
   let used = firstPageStart;
 
   for (const item of items) {
-    const height = estimateHeight(item);
+    const height = estimateHeight(item, activeMode.value);
     if (current.length > 0 && used + height > limit) {
       result.push(current);
       current = [];
@@ -327,6 +456,9 @@ let observer: ResizeObserver | null = null;
  * 文字不可读。外层容器负责纵向滚动即可。</p>
  */
 const scale = computed(() => {
+  if (exportScaleOverride.value !== null) {
+    return exportScaleOverride.value;
+  }
   const available = props.fitWidth > 0 ? props.fitWidth : viewportWidth.value;
   const fit = (() => {
     if (available <= 0) {
@@ -358,7 +490,60 @@ const pageStyle = computed(() => ({
 }));
 
 // 页数与缩放倍率供调用方显示（如工具栏的「共 N 页」与缩放百分比）
-defineExpose({ pageCount, scale });
+defineExpose({ pageCount, scale, exportA4Images });
+
+/** 导出所有 A4 页为 PNG，逐页触发下载 */
+async function exportA4Images(options: {
+  mode?: PaperExportMode;
+  answers?: Record<string, string>;
+  filename?: string;
+  /** 导出画布倍率；2 约为 1588×2246 A4 图片 */
+  scale?: number;
+} = {}): Promise<void> {
+  const mode = options.mode ?? activeMode.value;
+  const filename = options.filename || props.header.name || "paper";
+  exportModeOverride.value = mode;
+  exportAnswersOverride.value = options.answers ?? activeAnswers.value;
+  exportScaleOverride.value = 1;
+  await nextTick();
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  try {
+    const pageEls = Array.from(viewportRef.value?.querySelectorAll(".pp-page") ?? []);
+    if (!pageEls.length) {
+      throw new Error("没有可导出的纸张页面");
+    }
+    const scale = options.scale ?? 2;
+    const html2canvas = (await import("html2canvas")).default;
+    const blobs: Blob[] = [];
+    for (let i = 0; i < pageEls.length; i += 1) {
+      const canvas = await html2canvas(pageEls[i] as HTMLElement, {
+        scale,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+      });
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) {
+        throw new Error(`第 ${i + 1} 页导出失败`);
+      }
+      blobs.push(blob);
+    }
+    const safeBase = filename.replace(/[\\/:*?"<>|]+/g, "-").trim() || "paper";
+    blobs.forEach((blob, i) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${safeBase}-${mode}-page-${i + 1}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    });
+  } finally {
+    exportModeOverride.value = null;
+    exportAnswersOverride.value = null;
+    exportScaleOverride.value = null;
+    await nextTick();
+  }
+}
 
 onMounted(() => {
   const el = viewportRef.value;
@@ -532,6 +717,121 @@ watch(() => props.fitWidth, () => {
   margin-top: 6px;
   border: 1px dashed #d0d3d9;
   border-radius: 4px;
+}
+
+.pp-answer__written {
+  padding: 8px 12px;
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "SimSun", serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+
+.pp-question__objective-answer {
+  margin-top: 5px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #444;
+  letter-spacing: 1px;
+}
+
+.pp-question__answered-choice {
+  margin-top: 4px;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.pp-question__answered-label {
+  margin-right: 4px;
+  color: #6b7280;
+}
+
+.pp-answer-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pp-answer-sheet__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.pp-answer-sheet__no {
+  width: 30px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pp-answer-sheet__lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pp-answer-sheet__line {
+  height: 19px;
+  border-bottom: 1px solid #c0c4cc;
+}
+
+.pp-answer-sheet__type {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 24px;
+}
+
+.pp-answer-key {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp-answer-key__row {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.pp-answer-key__no {
+  width: 30px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.pp-answer-key__main {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.pp-answer-key__answer {
+  display: flex;
+  gap: 6px;
+}
+
+.pp-answer-key__analysis {
+  margin-top: 4px;
+  padding-left: 34px;
+  color: #4b5563;
+}
+
+.pp-answer-key__label {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #1f2329;
+}
+
+.pp-answer-key__empty {
+  color: #9ca3af;
 }
 
 .pp-footer {

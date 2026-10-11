@@ -133,8 +133,10 @@ const ui = reactive({
   // 属性面板弹窗：面板被拖窄或收起时，「弹窗」按钮把同一份 #properties 内容放进对话框编辑。
   // 只在打开时才渲染槽（v-if），否则页面上会同时存在两份表单实例，自动化定位与事件都会打架。
   popup: false,
-  /** 右侧属性停靠区宽度（px），由面板头拖拽调整 */
-  propsWidth: 340,
+  /** 右侧属性停靠区宽度（px），由左边框热区拖拽调整 */
+  propsWidth: 400,
+  /** 拖拽调宽过程中为 true：期间关掉宽度过渡，否则面板会「追着鼠标跑」 */
+  resizing: false,
   scale: 1,
   canUndo: false,
   canRedo: false,
@@ -410,6 +412,16 @@ function fit() {
   ui.scale = engine.value?.getScale() ?? 1;
 }
 
+/**
+ * 按拓扑分层重排节点（工具条「整理布局」）。
+ *
+ * <p>重排会改坐标，因此走 change 事件让宿主把新位置写回 DSL；整理完顺带缩放到能看全。</p>
+ */
+function tidy() {
+  engine.value?.tidy();
+  ui.scale = engine.value?.getScale() ?? 1;
+}
+
 function resetZoom() {
   engine.value?.resetZoom();
   ui.scale = 1;
@@ -459,20 +471,35 @@ function menuAction(item: FlowMenuItem, event: MouseEvent) {
   }
 }
 
+/** 属性面板宽度下限 / 上限（px） */
+const PROPS_MIN_WIDTH = 300;
+const PROPS_MAX_WIDTH = 640;
+
 /**
  * 面板区拖宽。
  *
- * 停靠在右侧，向右拖变宽、变窄要把指针往左拖，所以增量取正向差值；
- * 上下限按「画布至少还剩 300px、面板不窄于 240px」来卡，避免拖到画布被压没。
+ * 拖拽热区是面板左边框那条 6px 宽的竖条（.flow-props-resizer），不是整个头部：
+ * 头部有标题、徽标、按钮，在上面按下会误伤点击（原来整行 head 都能拖，
+ * 按钮周围没有 4px 让位，点按钮容易被当成拖拽起点）。
+ *
+ * <p>停靠在右侧，向右拖变宽、变窄要把指针往左拖，所以增量取正向差值；
+ * 上下限按「画布至少还剩 320px、面板不窄于 300px、不宽于 640px」来卡。</p>
  */
 function startResize(ev: MouseEvent) {
   ev.preventDefault();
   const startX = ev.clientX;
   const startW = ui.propsWidth;
+  ui.resizing = true;
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
   const move = (e: MouseEvent) => {
-    ui.propsWidth = Math.min(720, Math.max(240, startW + (e.clientX - startX)));
+    const max = Math.max(PROPS_MIN_WIDTH, Math.min(PROPS_MAX_WIDTH, window.innerWidth - 320));
+    ui.propsWidth = Math.round(Math.min(max, Math.max(PROPS_MIN_WIDTH, startW + (e.clientX - startX))));
   };
   const up = () => {
+    ui.resizing = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
     window.removeEventListener("mousemove", move);
     window.removeEventListener("mouseup", up);
   };
@@ -494,6 +521,16 @@ defineExpose({
   getData: (): FlowGraphData => engine.value?.getData() ?? { nodes: [], edges: [] },
   exportPNG: (name?: string) => engine.value?.exportPNG(name),
   focus: (id: string) => engine.value?.focusNode(id),
+  // 走本组件的 tidy / fit，而不是 engine 的同名方法：
+  // 那两个包装除了调引擎还负责同步工具条倍率，绕过它倍率显示就停在旧值。
+  tidy: () => {
+    tidy();
+    return engine.value?.getScale() ?? 1;
+  },
+  fit: () => {
+    fit();
+    return engine.value?.getScale() ?? 1;
+  },
   issues,
 });
 </script>
@@ -512,6 +549,7 @@ defineExpose({
         <ReButton layout="square" icon="ZoomOut" @click="zoom(-0.15)">缩小</ReButton>
         <ReButton layout="square" icon="Aim" @click="resetZoom">1:1</ReButton>
         <ReButton layout="square" icon="FullScreen" @click="fit">适应画布</ReButton>
+        <ReButton v-if="!readonly" layout="square" icon="Rank" tip="按连线方向分层重排节点，修正节点挤在一行、间距过窄的问题" @click="tidy">整理布局</ReButton>
       </div>
       <i class="flow-tb-sep" />
       <div class="flow-tb-group">
@@ -575,53 +613,77 @@ defineExpose({
         </div>
       </div>
 
-      <!-- 停靠属性面板：与调色板、画布同处一行，固定在画布右侧 -->
+      <!-- 停靠属性面板：与调色板、画布同处一行，固定在画布右侧；左边框可拖拽调宽 -->
       <section
         v-if="showProperties"
         class="flow-props"
-        :style="{ width: ui.collapsed ? '34px' : ui.propsWidth + 'px' }"
+        :class="{ 'is-resizing': ui.resizing, 'is-collapsed': ui.collapsed }"
+        :style="{ width: ui.collapsed ? '40px' : ui.propsWidth + 'px' }"
       >
-        <div class="flow-props-head" @mousedown="startResize">
-          <span class="flow-props-grip" />
+        <!-- 左边框拖拽热区：6px 宽的透明竖条，hover 时亮出主色抓手 -->
+        <span
+          class="flow-props-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          title="拖拽调整面板宽度"
+          @mousedown="startResize"
+        />
+
+        <header class="flow-props-head">
           <span class="flow-props-icon">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 7h6M13 7h8M3 12h10M17 12h4M3 17h4M11 17h10" />
-              <circle cx="11" cy="7" r="2" />
-              <circle cx="15" cy="12" r="2" />
-              <circle cx="9" cy="17" r="2" />
+              <rect x="3" y="5" width="8" height="6" rx="1.5" />
+              <rect x="13" y="13" width="8" height="6" rx="1.5" />
+              <path d="M11 8h2a2 2 0 0 1 2 2v3" />
             </svg>
           </span>
-          <span class="flow-props-title">
+          <span class="flow-props-heading">
             <span class="flow-props-name">{{ propertiesTitle }}</span>
-            <em v-if="selection">{{ selectionBadge }}</em>
-            <em v-else class="muted">未选中</em>
+            <span class="flow-props-sub">
+              <i class="flow-props-dot" :class="{ 'is-on': !!selection }" />
+              {{ selection ? selectionBadge : '未选中节点' }}
+            </span>
           </span>
-          <ReButton
-            layout="square"
-            icon="FullScreen"
-            tip="弹窗配置（面板被拖窄或收起时用）"
-            @click="ui.popup = true"
-          >
-            弹窗
-          </ReButton>
-          <ReButton
-            layout="square"
-            :icon="ui.collapsed ? 'ArrowLeft' : 'ArrowRight'"
-            @click="ui.collapsed = !ui.collapsed"
-          >
-            {{ ui.collapsed ? '展开' : '收起' }}
-          </ReButton>
-          <span v-if="selection" class="flow-props-sub">
-            {{ selection.kind === 'node' ? '配置该节点的解析与输出行为' : '配置这条连线的流转条件' }}
+          <span class="flow-props-actions">
+            <ReButton
+              layout="square"
+              icon="Grid"
+              tip="弹窗配置（面板被拖窄或收起时用）"
+              @click="ui.popup = true"
+            />
+            <ReButton
+              layout="square"
+              :icon="ui.collapsed ? 'ArrowLeft' : 'ArrowRight'"
+              :tip="ui.collapsed ? '展开面板' : '收起面板'"
+              @click="ui.collapsed = !ui.collapsed"
+            />
           </span>
-        </div>
+        </header>
+
         <div v-show="!ui.collapsed" class="flow-props-body">
           <slot name="properties" :selection="selection" :node="selection?.kind === 'node' ? selection.node : null"
                 :edge="selection?.kind === 'edge' ? selection.edge : null" :node-types="nodeTypes" :engine="engine">
             <div class="flow-props-hint">选中节点或连线后在此编辑参数</div>
           </slot>
         </div>
+
+        <!-- 底部概览：与滚动表单区分离，常驻可见；宿主可用 properties-footer 覆盖 -->
+        <footer v-show="!ui.collapsed" class="flow-props-foot">
+          <slot name="properties-footer" :nodes="ui.nodes" :edges="ui.edges">
+            <div class="flow-props-foot-title">本流程概览</div>
+            <div class="flow-props-stats">
+              <div class="flow-props-stat">
+                <b>{{ ui.nodes }}</b>
+                <span>流程节点</span>
+              </div>
+              <div class="flow-props-stat">
+                <b>{{ ui.edges }}</b>
+                <span>连线</span>
+              </div>
+            </div>
+          </slot>
+        </footer>
       </section>
 
       <!-- 属性面板弹窗：面板窄/收起时把同一份内容放大编辑；只在打开时渲染，避免两份表单实例 -->
@@ -757,46 +819,91 @@ defineExpose({
 .flow-empty-title { font-size: 14px; color: #8f98a3; }
 .flow-empty-sub { font-size: 12px; color: #b2b9c2; }
 .flow-props {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: none;
   height: 100%;
-  /* 原为 #fff：改用主题令牌，暗色下跟随 */
+  overflow: hidden;
   background: var(--el-bg-color);
-  border-left: 1px solid var(--flow-line);
+  border-left: 1px solid var(--el-border-color-lighter);
+  /* 宽度过渡只在非拖拽时生效：拖拽中会「追着鼠标跑」，手感发飘 */
+  transition: width var(--el-transition-duration, 0.2s) ease;
 }
-.flow-props-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  row-gap: 2px;
-  min-height: 34px;
-  flex: none;
-  padding: 5px 10px;
-  cursor: ew-resize;
-  /* 原为 #fbfcfd */
-  background: var(--el-fill-color-lighter);
-  border-bottom: 1px solid var(--flow-line);
+.flow-props.is-resizing {
+  transition: none;
   user-select: none;
 }
-.flow-props-grip { width: 3px; height: 26px; flex: none; border-radius: 2px; /* 原为 #d6dae0 */ background: var(--el-border-color-darker, #d6dae0); }
-/* 图标磁贴（UI 稿头部）：主色浅底圆角方块 + 主色滑杆图标 */
+/*
+ * 左边框拖拽热区：6px 宽、上下拉满的透明竖条，压在面板左沿外侧一点，
+ * hover / 拖拽时亮出一条 3px 的主色抓手（UI 稿右侧栏可拖宽的视觉暗示）。
+ * 放在这里而不是头部：头部有标题、徽标、按钮，在那按下会误伤点击。
+ */
+.flow-props-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  z-index: 3;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
+}
+.flow-props-resizer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 1px;
+  width: 3px;
+  height: 36px;
+  margin-top: -18px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
+}
+.flow-props-resizer:hover::after,
+.flow-props.is-resizing .flow-props-resizer::after {
+  background: var(--el-color-primary);
+}
+/* 收起态：只剩一条竖向标题栏（图标 + 竖排文字） */
+.flow-props.is-collapsed .flow-props-head {
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 4px;
+}
+.flow-props.is-collapsed .flow-props-heading {
+  display: none;
+}
+.flow-props.is-collapsed .flow-props-actions {
+  flex-direction: column;
+}
+
+.flow-props-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  user-select: none;
+}
+/* 图标磁贴（UI 稿头部）：主色浅底圆角方块 + 主色节点连线图标 */
 .flow-props-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   flex: none;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--el-radius-lg, 12px);
 }
-.flow-props-title {
+.flow-props-heading {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 3px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -804,39 +911,87 @@ defineExpose({
 .flow-props-name {
   min-width: 0;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--el-text-color-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 选中对象徽标（UI 稿「抽取节点」胶囊）：主色浅底圆角胶囊 */
-.flow-props-title em {
-  flex: none;
-  max-width: 50%;
-  padding: 1px 8px;
+/* 副标题：圆点 + 当前选中态文案（UI 稿头部第二行「● 未选中节点」） */
+.flow-props-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
   overflow: hidden;
-  font-size: 11px;
-  font-style: normal;
-  color: var(--el-color-primary);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: var(--el-color-primary-light-9);
-  border-radius: 999px;
 }
-.flow-props-title em.muted { /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); background: var(--el-fill-color); }
-/* 副标题（UI 稿头部第二行）：对齐标题起点（grip 3 + 间隙 8 + 磁贴 24 + 间隙 8） */
-.flow-props-sub {
-  flex-basis: 100%;
-  padding-left: 43px;
+.flow-props-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: var(--el-text-color-placeholder);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.flow-props-dot.is-on {
+  background: var(--el-color-primary);
+}
+.flow-props-actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 4px;
+}
+.flow-props-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+/* 底部概览：与滚动表单区分离的一条，上边框分隔，常驻可见 */
+.flow-props-foot {
+  flex: none;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.flow-props-foot-title {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+.flow-props-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+}
+.flow-props-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  text-align: center;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.flow-props-stat b {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.flow-props-stat span {
   font-size: 11px;
   color: var(--el-text-color-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.flow-props-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; }
-.flow-props-hint { font-size: 12px; /* 原为 #a4abb5 */ color: var(--el-text-color-secondary); }
+.flow-props-hint { font-size: 12px; color: var(--el-text-color-secondary); }
 .flow-issues {
   position: absolute;
   left: 50%;

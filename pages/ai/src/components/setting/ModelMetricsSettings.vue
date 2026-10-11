@@ -68,6 +68,26 @@
       </div>
     </SettingsCard>
 
+    <!-- 能力 × 成本 四象限（复用同一份指标库全量快照） -->
+    <SettingsCard
+      title="能力 × 成本 四象限"
+      subtitle="横轴单项任务成本、纵轴 Artificial Analysis 智能指数。帕累托前沿上的模型是「没有更便宜且更强的替代」；严格替代区内的模型可被同象限前沿模型完全取代。绿色区=比参照模型便宜但更弱，橙色区=更贵但更强。"
+    >
+      <template #actions>
+        <div class="chart-actions">
+          <el-checkbox v-model="quadShowAllLabels">显示全部名称</el-checkbox>
+          <el-checkbox v-model="quadLogCost">对数成本</el-checkbox>
+        </div>
+      </template>
+
+      <div v-loading="chartLoading" class="quad-wrap">
+        <ReEcharts :option="quadrantOption" height="560px" not-merge />
+        <p v-if="quadPoints.length === 0 && !chartLoading" class="quad-empty">
+          指标库中暂无同时具备「智能指数」与「任务成本」的模型
+        </p>
+      </div>
+    </SettingsCard>
+
     <!-- 模型指标库 -->
     <SettingsCard
       title="模型指标库"
@@ -655,6 +675,236 @@ const scatterOption = computed<EChartsOption>(() => {
   }
 })
 
+// ==================== 能力 × 成本 四象限 ====================
+const quadShowAllLabels = ref(false)
+const quadLogCost = ref(true)
+
+/** 单项任务成本低于此值视为「便宜」；$0.0032 起算，对齐指标源本身的成本分布下界 */
+const QUAD_MIN_COST = 0.0032
+
+interface QuadPoint {
+  name: string
+  provider: string
+  cost: number
+  ability: number
+  reasoning: boolean
+  /** 是否在帕累托前沿（不存在更便宜且同等/更强的模型） */
+  frontier: boolean
+}
+
+const quadPoints = computed<QuadPoint[]>(() =>
+  chartRows.value
+    .filter(
+      (r) =>
+        Number.isFinite(r.values.intelligence_index) &&
+        Number.isFinite(r.values.cost_per_task) &&
+        r.values.cost_per_task > 0,
+    )
+    .map((r) => ({
+      name: r.modelName,
+      provider: r.provider,
+      cost: r.values.cost_per_task,
+      ability: r.values.intelligence_index,
+      reasoning: r.values.reasoning != null ? Number(r.values.reasoning) > 0 : false,
+      frontier: false,
+    })),
+)
+
+/**
+ * 计算帕累托前沿：按成本升序扫描，记录目前见过的最高能力；
+ * 能力严格超过历史最高的即为前沿点。同成本时能力高的先被扫到，不会误判。
+ */
+const quadFrontierSet = computed<Set<string>>(() => {
+  const out = new Set<string>()
+  let best = -Infinity
+  for (const p of [...quadPoints.value].sort((a, b) => a.cost - b.cost || b.ability - a.ability)) {
+    if (p.ability > best) {
+      best = p.ability;
+      out.add(p.name)
+    }
+  }
+  return out
+})
+
+/** 严格替代：前沿之外、且被某个前沿点在「更便宜且更强」两个维度同时压过的点 */
+const quadDominatedSet = computed<Set<string>>(() => {
+  const out = new Set<string>()
+  const frontier = quadPoints.value.filter((p) => quadFrontierSet.value.has(p.name))
+  for (const p of quadPoints.value) {
+    if (quadFrontierSet.value.has(p.name)) continue
+    if (frontier.some((f) => f.cost <= p.cost && f.ability >= p.ability)) out.add(p.name)
+  }
+  return out
+})
+
+/** 参照模型取前沿中「成本与能力都比较居中」的一个，避免拿极端点当分界线把图切歪 */
+const quadReference = computed<QuadPoint | null>(() => {
+  const f = quadPoints.value.filter((p) => quadFrontierSet.value.has(p.name))
+  if (!f.length) return null
+  if (f.length === 1) return f[0]
+  const medianCost = [...f].sort((a, b) => a.cost - b.cost)[Math.floor(f.length / 2)]
+  return medianCost
+})
+
+const quadrantOption = computed<EChartsOption>(() => {
+  const pts = quadPoints.value
+  const ref0 = quadReference.value
+  const log = quadLogCost.value
+  const axisCost = (v: number) => (log ? `$${v}` : `$${v.toFixed(4)}`)
+
+  const dimmed = pts.filter((p) => !quadDominatedSet.value.has(p.name))
+  const dominated = pts.filter((p) => quadDominatedSet.value.has(p.name))
+  const frontierPts = dimmed.filter((p) => quadFrontierSet.value.has(p.name))
+
+  const toXY = (p: QuadPoint) => [p.cost, p.ability]
+  const baseItem = {
+    symbolSize: 9,
+    emphasis: { scale: 1.35 },
+  }
+
+  // 帕累托前沿折线：按成本升序连成折线，代价是同一成本的多点会重叠，
+  // 但这正是前沿的真实形状（能力随成本单调不减）
+  const frontierLine = [...frontierPts].sort((a, b) => a.cost - b.cost).map(toXY)
+
+  const series: any[] = []
+
+  // —— 象限底色：以参照模型为界，左绿（更便宜但更弱）右橙（更贵但更强）——
+  if (ref0) {
+    series.push({
+      type: 'line',
+      silent: true,
+      data: [],
+      markArea: {
+        silent: true,
+        itemStyle: { opacity: 1 },
+        data: [
+          [
+            { xAxis: log ? Math.log10(QUAD_MIN_COST) : QUAD_MIN_COST, yAxis: 0,
+              itemStyle: { color: 'rgba(31,136,110,0.07)' } },
+            { xAxis: ref0.cost, yAxis: 65 },
+          ],
+          [
+            { xAxis: ref0.cost, yAxis: 0, itemStyle: { color: 'rgba(200,90,50,0.07)' } },
+            { xAxis: log ? Math.log10(10) : 10, yAxis: 65 },
+          ],
+        ],
+      },
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        label: {
+          formatter: `参照：${ref0.name}`,
+          position: 'insideEndTop',
+          fontSize: 11,
+          color: 'var(--el-text-color-secondary)',
+        },
+        lineStyle: { color: '#B0BEC5', type: 'dashed', width: 1.5 },
+        data: [{ xAxis: ref0.cost }],
+      },
+    })
+  }
+
+  // —— 普通模型（淡色，被严格替代的另开一条）——
+  series.push({
+    name: '模型',
+    type: 'scatter',
+    ...baseItem,
+    itemStyle: { opacity: 0.22 },
+    data: dimmed.map((p) => ({ value: toXY(p), name: p.name, provider: p.provider })),
+  })
+  series.push({
+    name: '严格替代',
+    type: 'scatter',
+    ...baseItem,
+    symbol: 'rect',
+    symbolSize: 10,
+    itemStyle: { color: '#C85A32', opacity: 0.85 },
+    data: dominated.map((p) => ({ value: toXY(p), name: p.name, provider: p.provider })),
+  })
+  // —— 思考等级：叠加一层描边空心圈，与散点同坐标区分，不额外占图例位 ——
+  series.push({
+    name: '思考等级',
+    type: 'scatter',
+    symbol: 'circle',
+    symbolSize: 20,
+    itemStyle: { color: 'transparent', borderColor: '#4E79A7', borderWidth: 1.2, opacity: 0.55 },
+    silent: true,
+    data: pts.filter((p) => p.reasoning).map((p) => ({ value: toXY(p), name: p.name })),
+  })
+  // —— 帕累托前沿折线 ——
+  series.push({
+    name: '帕累托前沿',
+    type: 'line',
+    showSymbol: true,
+    symbolSize: 6,
+    smooth: false,
+    lineStyle: { color: '#5B6B7B', width: 1.6 },
+    itemStyle: { color: '#5B6B7B' },
+    data: frontierLine,
+  })
+  // —— 前沿点上的名称（勾选后显示全部，否则只标最便宜/最强两端）——
+  if (quadShowAllLabels.value) {
+    series.push({
+      name: '名称',
+      type: 'scatter',
+      symbolSize: 1,
+      label: {
+        show: true,
+        position: 'top',
+        fontSize: 10,
+        color: 'var(--el-text-color-regular)',
+        formatter: (p: any) => p.data.name,
+      },
+      itemStyle: { color: 'transparent' },
+      data: pts.map((p) => ({ value: toXY(p), name: p.name })),
+    })
+  }
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      formatter: (p: any) => {
+        const d = p.data
+        if (!d || !Array.isArray(d.value)) return ''
+        const src = quadPoints.value.find((x) => x.name === d.name)
+        return (
+          `<b>${esc(String(d.name))}</b><br/>` +
+          `能力 ${Number(d.value[1]).toFixed(1)}　成本 $${Number(d.value[0]).toFixed(3)}` +
+          (src?.reasoning ? '　<span style="color:#4E79A7">思考</span>' : '')
+        )
+      },
+    },
+    legend: {
+      top: 0,
+      icon: 'roundRect',
+      data: ['帕累托前沿', '严格替代', '思考等级', '模型'],
+    },
+    grid: { left: 16, right: 24, top: 40, bottom: 56, containLabel: true },
+    xAxis: {
+      type: log ? 'log' : 'value',
+      logBase: 10,
+      name: '单项任务成本（USD，对数刻度）',
+      nameLocation: 'middle',
+      nameGap: 32,
+      min: QUAD_MIN_COST,
+      max: 10,
+      axisLabel: { formatter: (v: number) => axisCost(v) },
+      splitLine: { lineStyle: { type: 'dashed' } },
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Artificial Analysis Intelligence Index',
+      nameLocation: 'middle',
+      nameGap: 46,
+      min: 0,
+      max: 65,
+      splitLine: { lineStyle: { type: 'dashed' } },
+    },
+    series,
+  } as EChartsOption
+})
+
 onMounted(() => {
   load()
   loadTable()
@@ -736,6 +986,9 @@ onMounted(() => {
 
 /* ==================== 指标图表 ==================== */
 .chart-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 四象限图较高，单独包一层以便空态与图表占位不互相挤压 */
+.quad-wrap { position: relative; min-height: 200px; }
+.quad-empty { text-align: center; color: var(--el-text-color-secondary); padding: 28px 0; font-size: 13px; }
 .chart-metric { width: 190px; }
 .chart-num, .chart-order { width: 96px; }
 

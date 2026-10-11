@@ -343,7 +343,9 @@ defineExpose({ loadData, formData });
 
 <style scoped>
 :deep(.el-table) {
-  border-radius: var(--mp-radius-lg);
+  /* 原 var(--mp-radius-lg)：--mp-* 来自并不存在的 modern-polish.css，是空令牌，
+     var() 无回退值时整条声明失效，圆角直接掉回 0（表格四角变直角）。 */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 :deep(.el-table th) {

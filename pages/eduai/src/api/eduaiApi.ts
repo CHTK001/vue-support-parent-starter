@@ -12,6 +12,7 @@ import type {
   QuestionAiSelectPayload,
   QuestionGradeDimension,
   QuestionImportResult,
+  TeacherQuestionUploadResult,
   Paper,
   PaperComposePayload,
   PaperQuestionAddItem,
@@ -942,6 +943,12 @@ export const eduaiApi = {
     http()
       .get("/v2/edu/teacher/dropdown")
       .then<DimensionDropdown>(unwrap),
+  /** 老师上传题目（待审核，管理员可配自动通过；与批量导入同格式的 JSON 数组） */
+  teacherQuestionUpload: (list: unknown[]) =>
+    http()
+      .post("/v2/edu/teacher/questions")
+      .data(list as unknown as Record<string, unknown>)
+      .then<TeacherQuestionUploadResult>(unwrap),
   /** 我发起的阅卷任务 */
   teacherMarkingTasks: (limit = 20) =>
     http()
@@ -1119,6 +1126,28 @@ export const eduaiApi = {
   deleteTeacher: (id: number) =>
     http()
       .delete(`/v2/edu/dimension/teachers/${id}`)
+      .then<boolean>(unwrap),
+  /** 教师已配置的班级（老师端数据范围；管理端「学生管理 → 教师 → 配置班级」） */
+  listTeacherClasses: (teacherId: number) =>
+    http()
+      .get(`/v2/edu/dimension/teachers/${teacherId}/classes`)
+      .then<EduClass[]>(unwrap),
+  /** 保存教师班级配置（全量替换） */
+  saveTeacherClasses: (teacherId: number, classIds: number[]) =>
+    http()
+      .post(`/v2/edu/dimension/teachers/${teacherId}/classes`)
+      .data(classIds as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  /** 读取应用配置（管理员专属，如「老师上传自动通过」） */
+  getAppConfig: (key: string) =>
+    http()
+      .get(`/v2/edu/app-config/${key}`)
+      .then<string | null>(unwrap),
+  /** 写入应用配置（管理员专属） */
+  saveAppConfig: (key: string, value: string) =>
+    http()
+      .post(`/v2/edu/app-config/${key}`)
+      .data({ value } as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
 };
 

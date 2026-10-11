@@ -35,7 +35,10 @@
             <el-icon><Close /></el-icon>
           </span>
         </div>
-        <p class="fe-tip">正面清晰单人照效果最好；登记后可在人脸识别页做 1:N 相似匹配</p>
+        <p class="fe-tip">
+          仅支持<strong>单人脸</strong>登记：多脸照片会被拒绝，请先裁剪到只含目标人脸。
+          照片需 <strong>≤ 10 MB</strong> 且短边 <strong>≥ 100px</strong>；正面清晰无遮挡效果最好。
+        </p>
       </el-form-item>
 
       <!-- 两列用 el-row/el-col 而不是自定义 grid：栅格由 Element 统一算宽度与换行，
@@ -107,7 +110,8 @@
       <el-button type="primary" :loading="submitting" @click="submit">{{ isEdit ? '保存修改' : '提交登记' }}</el-button>
     </template>
 
-    <input ref="fileInput" type="file" accept="image/*" class="fe-hidden" @change="onPhotoPicked" />
+    <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" class="fe-hidden"
+      @change="onPhotoPicked" />
   </ReDialog>
 </template>
 
@@ -239,22 +243,104 @@ function onPhotoPicked(e: Event) {
  */
 function onDrop(e: DragEvent) {
   dragover.value = false
-  const f = e.dataTransfer?.files?.[0]
-  if (f && f.type.startsWith('image/')) void setPhoto(f)
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  const images = files.filter((f) => f.type.startsWith('image/'))
+  if (!images.length) {
+    message.error('请拖入图片文件')
+    return
+  }
+  if (images.length > 1) {
+    message.warning('一次只能登记一张人脸，已取第一张；如需登记多人请分多次操作')
+  }
+  void setPhoto(images[0])
 }
 
 /**
- * 读成 dataURL 而不是 objectURL。
+ * 照片准入校验（5.5）。
  *
- * <p>档案要落 localStorage，而 objectURL 生命周期跟当前文档绑定，
- * 一刷新就失效，相册和推荐卡头像会全变空白；dataURL 才能长期保存。</p>
+ * <p>此前**完全没有体积与分辨率校验**：只有 {@code accept="image/*"} 这个选择器提示，
+ * 拖放路径更是任何 {@code image/*} 都收。一个几百 KB 的缩略图会被特征模型直接入库，
+ * 得到一个识别率极差却毫无提示的向量；反过来手机直出的 12MP 原图会经 base64 膨胀约 33%
+ * 再以 multipart 上传，极易顶到 100MB 的服务端上限。</p>
+ *
+ * <p>下限取 100×100：低于此几乎必然检不出可用人脸（后端检测模型的人脸最小边约 80px），
+ * 与其让人等一次必然失败的入库，不如当场拦下。</p>
  */
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024
+const MIN_PHOTO_EDGE = 100
+
+/** 校验并读入照片；不合格时给出可执行的提示（说清是哪一项不达标、怎么办） */
 function setPhoto(file: File) {
-  const reader = new FileReader()
-  reader.onload = () => {
-    form.photo = String(reader.result ?? '')
+  if (!file.type.startsWith('image/')) {
+    message.error('请选择图片文件')
+    return
   }
+  if (file.size > MAX_PHOTO_BYTES) {
+    message.error(`照片过大（${(file.size / 1024 / 1024).toFixed(1)} MB），请压缩到 10 MB 以内再登记`)
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = async () => {
+    const dataUrl = String(reader.result ?? '')
+    const img = new Image()
+    img.onload = async () => {
+      const { width, height } = img
+      if (Math.min(width, height) < MIN_PHOTO_EDGE) {
+        message.error(
+          `照片分辨率过低（${width}×${height}），人脸特征提取需要短边不小于 ${MIN_PHOTO_EDGE} 像素，` +
+          '请换一张更清晰的照片；过小的图即使入库，识别率也会极差',
+        )
+        return
+      }
+      // 单脸预检（5.3）：后端原本静默取最大的一张脸，多脸照片会让用户以为
+      // 「A 和 B 都登记了」，实际只进了 A。这里提交前先探一次并明确拒绝。
+      await assertSingleFace(dataUrl)
+      form.photo = dataUrl
+    }
+    img.onerror = () => message.error('无法解析该图片，请换一张')
+    img.src = dataUrl
+  }
+  reader.onerror = () => message.error('读取图片失败，请重试')
   reader.readAsDataURL(file)
+}
+
+/** 多脸提示语：说清检测到几张、后果是什么 */
+const faceCount = ref(0)
+const checkingFace = ref(false)
+
+/**
+ * 单人脸预检：调 {@code POST /v2/face/detect} 探一次脸数。
+ *
+ * <p>失败不阻断登记 —— 预检只是提前给一个更好的错误信息，真正的兜底在后端
+ * （enroll 会拒绝多脸）。若这里因网络/模型问题失败，仍放行给后端判定，
+ * 不能因为预检接口不可用就把整个登记功能锁死。</p>
+ */
+async function assertSingleFace(dataUrl: string): Promise<boolean> {
+  checkingFace.value = true
+  try {
+    const blob = await (await fetch(dataUrl)).blob()
+    const res = await apiService.detectFace(blob, 'preview.png')
+    const n = Number(res?.count ?? res?.faceCount ?? 0)
+    faceCount.value = Number.isFinite(n) ? n : 0
+    if (faceCount.value > 1) {
+      message.error(
+        `检测到 ${faceCount.value} 张人脸，人脸底库只支持单人脸登记` +
+        '（一张照片只会入库其中一张，容易录错人）。请裁剪到只含目标人脸后重试',
+      )
+      return false
+    }
+    if (faceCount.value === 0) {
+      message.warning('未在这张照片中检测到人脸，换一张正脸清晰、无遮挡的照片再试')
+      return false
+    }
+    return true
+  } catch (e: any) {
+    // 预检失败不拦截：交给后端 enroll 判定
+    faceCount.value = 0
+    return true
+  } finally {
+    checkingFace.value = false
+  }
 }
 
 /** 提交：登记走 /v2/face/enroll；编辑走 PUT /v2/face/{id}（只改档案） */

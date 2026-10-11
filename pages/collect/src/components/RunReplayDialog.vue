@@ -270,10 +270,13 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   display: flex;
   gap: 12px;
   height: calc(100vh - 230px);
+  /* 与 FlowPreviewDialog 同理：画布 520px 是设计器的硬下界，容器不能比它矮 */
+  min-height: 520px;
 }
 .replay__canvas {
   flex: 1;
   min-width: 0;
+  min-height: 520px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;

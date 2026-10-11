@@ -30,26 +30,6 @@
       </LTooltip>
     </template>
 
-    <template v-if="isLast && contentVersions.length > 1">
-      <LTooltip :content="t('chat.messageActions.prevVersion')" placement="top">
-        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.prevVersion')" @click="$emit('switchVersion', 'prev')" :disabled="!hasPrev">
-          <el-icon :size="16">
-            <ChevronLeft24Filled />
-          </el-icon>
-        </div>
-      </LTooltip>
-      <div class="text-gray-700 transition-colors duration-200 flex items-center py-1">
-        {{ currentVersionIndex + 1 }} / {{ contentVersions.length }}
-      </div>
-      <LTooltip :content="t('chat.messageActions.nextVersion')" placement="top">
-        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.nextVersion')" @click="$emit('switchVersion', 'next')" :disabled="!hasNext">
-          <el-icon :size="16">
-            <ChevronRight24Filled />
-          </el-icon>
-        </div>
-      </LTooltip>
-    </template>
-
     <!-- 从此处回退：删除本轮及之后的全部消息（破坏性，需上层确认） -->
     <template v-if="isAssistant">
       <LTooltip :content="t('chat.messageActions.rewindHere')" placement="top">
@@ -60,15 +40,21 @@
         </div>
       </LTooltip>
 
-      <!-- 从此处分叉：把截至本轮的内容复制成新会话，原会话不动 -->
-      <LTooltip :content="t('chat.messageActions.forkHere')" placement="top">
-        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.forkHere')" @click="$emit('fork')">
-          <el-icon :size="16">
-            <BranchFork16Regular />
-          </el-icon>
-        </div>
-      </LTooltip>
-    </template>
+      </template>
+
+    <!-- 从此处分叉：**只挂在用户消息上**。
+         分叉点是「复制到哪一条为止」，语义上属于提问而不是回答。
+         挂到助手消息上还会直接踩后端的坑：流式产出的助手消息 id 是前端 UUID，
+         而 POST /v2/sessions/{id}/fork 用 parseLongOrNull 解析分叉点，
+         UUID 解析为 null → 后端回「缺少分叉点消息 id」→ 前端弹「分叉失败」。
+         用户消息来自数据库、id 是数字主键，不会命中这个问题。 -->
+    <LTooltip v-if="!isAssistant" :content="t('chat.messageActions.forkHere')" placement="top">
+      <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.forkHere')" @click="$emit('fork')">
+        <el-icon :size="16">
+          <BranchFork16Regular />
+        </el-icon>
+      </div>
+    </LTooltip>
 
     <!-- 「更多」（编辑内容/删除消息）只对**用户消息**出现：
          助手回复上出现这两项会让用户以为能改/删 AI 的内容（报障 2.4），故整块按 role 收敛 -->
@@ -109,7 +95,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { ElIcon } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import DropdownMenu from '../../ui/DropdownMenu.vue';
@@ -121,8 +106,6 @@ import {
   Copy16Regular,
   ArrowClockwise16Regular,
   MoreHorizontal16Regular,
-  ChevronLeft24Filled,
-  ChevronRight24Filled,
   Delete16Regular,
   Edit16Regular,
   ArrowUndo16Regular,
@@ -134,8 +117,6 @@ const props = defineProps<{
   isAssistant: boolean;
   isLast: boolean;
   allowGenerate: boolean;
-  contentVersions: string[];
-  currentVersionIndex: number;
   timeFull: string;
   timeFriendly: string;
   durationText?: string | null;
@@ -145,16 +126,11 @@ const emit = defineEmits<{
   (e: 'copy'): void;
   (e: 'generate'): void;
   (e: 'regenerate'): void;
-  (e: 'switchVersion', direction: 'prev' | 'next'): void;
   (e: 'edit'): void;
   (e: 'delete'): void;
   (e: 'rewind'): void;
   (e: 'fork'): void;
 }>();
-
-const hasPrev = computed(() => props.currentVersionIndex > 0);
-
-const hasNext = computed(() => props.currentVersionIndex < props.contentVersions.length - 1);
 
 const handleCommand = (command: string) => {
   if (command === 'edit') {

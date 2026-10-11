@@ -69,26 +69,26 @@
             <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
           </template>
           <template #col-editScore="{ row }">
-            <el-input-number
+            <ReInputNumber
               v-model="row.editScore"
               :min="0"
               :max="row.maxScore ?? 100"
               controls-position="right"
               size="small"
-              @change="onScoreChange(row)"
+              @update:model-value="onScoreChange(row)"
             />
           </template>
           <template #col-studentAnswer="{ row }">{{ row.studentAnswer || '—' }}</template>
           <template #col-comment="{ row }">{{ row.comment || '—' }}</template>
           <template #col-knowledgePoints="{ row }">
             <template v-if="kpList(row).length">
-              <el-tag
+              <ReTag
                 v-for="kp in kpList(row)"
                 :key="kp.id"
                 size="small"
                 class="ss-kp"
                 @click.stop="openKp(kp)"
-              >{{ kp.name }}</el-tag>
+              >{{ kp.name }}</ReTag>
             </template>
             <span v-else class="ss-muted">无</span>
           </template>
@@ -101,7 +101,7 @@
       </div>
     </div>
 
-    <el-drawer v-model="kpDrawer" title="知识点详情" size="360px">
+    <ReDrawer v-model="kpDrawer" title="知识点详情" size="360px">
       <div v-if="kpLoading" class="ss-muted">加载中…</div>
       <template v-else>
         <div class="ss-kp-key">查询：{{ kpKeyword }}</div>
@@ -113,7 +113,7 @@
           </li>
         </ul>
       </template>
-    </el-drawer>
+    </ReDrawer>
   </div>
 </template>
 
@@ -125,6 +125,9 @@ import { eduaiApi } from '../../api/eduaiApi';
 import { failToast } from '../../api/errorText';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
+import ReInputNumber from "@repo/ui/re-input-number";
+import ReDrawer from "@repo/ui/re-drawer";
+import ReTag from "@repo/ui/re-tag";
 
 const props = defineProps<{ taskId: string }>();
 /** 老师分保存成功后广播：父级（阅卷记录详情 / 教师端）据此刷新总分 */

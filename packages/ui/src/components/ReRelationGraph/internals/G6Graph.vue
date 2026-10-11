@@ -28,9 +28,11 @@ import {
   watch,
 } from "vue";
 import { Graph, Minimap, register, ExtensionCategory } from "@antv/g6";
+import { useDebounceFn } from "@vueuse/core";
 import ReButton from "../../ReButton";
 import ReInput from "../../ReInput";
 import ReSelect from "../../ReSelect";
+import ReSwitch from "../../ReSwitch";
 import { t, tLayout } from "./i18n";
 import {
   type RelationEdge,
@@ -107,6 +109,23 @@ const props = withDefaults(
     searchable?: boolean;
     /** 是否在工具栏显示图片导出 */
     exportable?: boolean;
+    /**
+     * 边标签的显示策略。
+     *
+     * <p>大图（几百条边）里每条边都常显标签会糊成一片，实测 248 节点/387 边的
+     * 三国知识图谱有近一半标签互相压字。因此提供 onHover：默认全部隐藏，
+     * 只有鼠标悬停/选中某条边时才显示那一条的标签；图面立刻干净，
+     * 信息改为按需呈现。可用“显示全部标签”开关随时切回常显。</p>
+     */
+    edgeLabelMode?: "always" | "onHover";
+    /**
+     * 是否允许「布局调参」面板。
+     *
+     * <p>与 {@link toolbar} 解耦：KB 图谱这类自带工具栏的调用方传 {@code toolbar=false}
+     * 仍可开启本面板，通过 {@link RelationGraphApi.openTuning} 等方法开合，
+     * 面板浮在画布右上角，不占用任何布局空间。</p>
+     */
+    tunable?: boolean;
   }>(),
   {
     data: undefined,
@@ -134,6 +153,8 @@ const props = withDefaults(
     mode: "2d",
     searchable: true,
     exportable: true,
+    tunable: true,
+    edgeLabelMode: "always",
   },
 );
 
@@ -550,11 +571,28 @@ const escapeHtml = (s: string): string =>
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
   ));
 
+/**
+ * 当前是否让所有边的标签常显。
+ *
+ * <p>初值取自 {@link ReRelationGraphCore.props.edgeLabelMode}，之后由面板上的
+ * 「显示全部标签」开关在运行时改写——用局部 ref 而非直接改 prop，
+ * 因为 prop 是只读的，且允许调用方保持默认值不变。</p>
+ */
+const edgeLabelsShownOverride = ref<boolean | null>(null);
+
+/** 实际生效的边标签策略（override 优先于 prop） */
+const edgeLabelsShown = computed(
+  () => edgeLabelsShownOverride.value ?? props.edgeLabelMode === "always"
+);
+
 /** 边 -> G6 EdgeData */
 const toEdgeData = (e: RelationEdge) => {
   const directed = e.directed ?? props.directed;
+  // onHover 模式下默认把标签文本留空，只留一个占位样式；
+  // 悬停时由 setEdgeLabelVisible 临时把 labelText 填回去。
+  const labelText = edgeLabelsShown.value ? (e.label ?? "") : "";
   const style: Record<string, unknown> = {
-    labelText: e.label ?? "",
+    labelText,
     labelBackground: true,
     labelBackgroundFill: "rgba(0,0,0,0.55)",
     labelBackgroundRadius: 4,
@@ -820,6 +858,75 @@ const applyGroupHighlight = async (nodeId: string | null, on: boolean) => {
   await graph.setElementState(stateMap as any, false);
 };
 
+/**
+ * 显示/隐藏单条边的标签（edgeLabelMode="onHover" 时用）。
+ *
+ * <p>G6 v5 里改元素样式要走 {@code updateEdgeData} 再触发重绘，
+ * 直接改 data.style 不会立即反映到画布。</p>
+ *
+ * @param id 边 id
+ * @param visible 是否显示标签
+ */
+const setEdgeLabelVisible = async (id: string, visible: boolean) => {
+  const graph = graphRef.value;
+  if (!graph || edgeLabelsShown.value) {
+    return;
+  }
+  const edge = edgeById(id);
+  if (!edge) {
+    return;
+  }
+  const text = visible ? (edge.label ?? "") : "";
+  graph.updateEdgeData([{ id, style: { labelText: text } }]);
+};
+
+/** 边标签显隐的当前目标（记录以便移出时还原） */
+let lastRevealedEdge: string | null = null;
+
+/**
+ * 悬停/移出边时切换该边标签的显隐。
+ *
+ * @param id 边 id（移出时传 null 表示清除）
+ */
+const revealEdgeLabel = async (id: string | null) => {
+  if (edgeLabelsShown.value) {
+    return;
+  }
+  if (lastRevealedEdge && lastRevealedEdge !== id) {
+    await setEdgeLabelVisible(lastRevealedEdge, false);
+  }
+  lastRevealedEdge = id;
+  if (id) {
+    await setEdgeLabelVisible(id, true);
+  }
+};
+
+/**
+ * 切换「全部边标签常显」。
+ *
+ * <p>打开时给每条边补回 labelText；关闭时清空，并把当前悬停揭示的那条也一并收回。</p>
+ *
+ * @param v 开关新值（ReSwitch 的 update 事件签名是 string | number | boolean）
+ */
+const onToggleAllEdgeLabels = async (v: string | number | boolean) => {
+  const next = v === true || v === "true";
+  edgeLabelsShownOverride.value = next;
+  const graph = graphRef.value;
+  if (!graph) {
+    return;
+  }
+  if (!next) {
+    lastRevealedEdge = null;
+  }
+  const updates = (graphData.value.edges ?? []).map((e) => {
+    const id = e.id ?? `${e.source}->${e.target}`;
+    return { id, style: { labelText: next ? (e.label ?? "") : "" } };
+  });
+  if (updates.length) {
+    graph.updateEdgeData(updates);
+  }
+};
+
 /** 把已固定节点在布局后钉回原位（G6 的固定语义靠节点自身 x/y 保持） */
 const pinFixedNodes = async () => {
   const graph = graphRef.value;
@@ -872,23 +979,55 @@ const keyOf = (d: RelationGraphData) =>
   (d.edges ?? []).map(e => e.id ?? `${e.source}->${e.target}`).join("|");
 
 /**
- * 力导向（force / d3-force）布局的默认细分参数。
+ * 力导向（force 系）布局的默认细分参数。
  *
  * <p>底层 d3-force 的默认值节点斥力很弱（{@code manyBody.strength:-30}）、
  * 且默认 {@code preventOverlap:false}、{@code nodeSpacing:0}——连了边的节点
  * 会因为斥力不足、又不防重叠而紧紧挤成一团。这里给一组更松、更防重叠的默认值，
  * 让「连接线」两侧节点保持可读间距；调用方仍可用 {@code layoutOptions} 覆盖任意项。</p>
+ *
+ * <p><b>力导向系判定</b>：{@code force} / {@code force-atlas2} / {@code d3-force} /
+ * {@code d3-force-directed} 都是 d3 力的变体，必须共享同一套防重叠默认值。
+ * 早期实现只判全等 {@code === "force"}，导致业务侧改用 {@code force-atlas2}
+ * （知识图谱 248 节点即用此布局）时默认值全部失效、节点挤成一团。</p>
  */
 const FORCE_LAYOUT_DEFAULTS: Record<string, unknown> = {
   // 连接距离：一条边两端的目标间距（越大越松）
-  linkDistance: 140,
+  linkDistance: 120,
+  // ---- d3-force 系（force / d3-force / d3-force-directed）----
   // 节点斥力（顶层入口，等价 manyBody.strength，默认仅 -30）：负值越大彼此推得越开
-  nodeStrength: -320,
-  // 防重叠：按 nodeSize + nodeSpacing 做碰撞分离，避免节点/边叠在一起
+  nodeStrength: -600,
+  // ---- atlas2 系（force-atlas2）----
+  // 注意：atlas2 并不认 nodeRepulsion / edgeRepulsion / preventOverlapLayout / maxIterations
+  // 这类从旧版 G6 v4 传下来的参数名，它真正的力学旋钮是 kr（斥力，越大越松散）
+  // 与 kg（重力，越大越向中心聚）。kr 大 + kg 小 = 图铺开；反之挤成一团。
+  kr: 60,
+  kg: 3,
+  // 关掉自动剪枝：G6 在节点数 >100 时会默认 prune=true，
+  // 而 prune 的行为是「把出度≤1 的叶子节点坐标直接写成父节点坐标」——
+  // 248 节点的关系图里叶子占多数，一开剪枝它们就全部叠在父节点上，
+  // 这才是节点糊成一团的真正元凶（调 kr/kg 根本救不回来）。
+  prune: false,
+  // ---- 两者共用 ----
+  // 防重叠：按 nodeSize + nodeSpacing 做碰撞分离，避免节点/边叠在一起。
+  // atlas2 的 preventOverlap 必须同时给 nodeSize 才会真正做碰撞检测，这里已给。
   preventOverlap: true,
   nodeSize: 40,
-  nodeSpacing: 18,
+  nodeSpacing: 24,
 };
+
+/**
+ * 是否为 d3 力导向系布局（force / force-atlas2 / d3-force / d3-force-directed）。
+ *
+ * <p>用包含匹配而非全等：G6 v5 注册的力导向布局还有 {@code d3-force}、
+ * {@code d3-force-directed} 等变体，全等判断会让它们拿不到
+ * {@link FORCE_LAYOUT_DEFAULTS} 的防重叠参数。</p>
+ *
+ * @param layoutType 布局类型
+ * @return 是否属于力导向系
+ */
+const isForceLayout = (layoutType: string): boolean =>
+  typeof layoutType === "string" && layoutType.includes("force");
 
 /**
  * 合并布局参数：把 force 默认值与调用方 layoutOptions 做深合并（调用方可覆盖任意项）。
@@ -901,7 +1040,7 @@ const FORCE_LAYOUT_DEFAULTS: Record<string, unknown> = {
  * @return 合并后的布局参数
  */
 const resolveLayoutOptions = (layoutType: string, override?: Record<string, unknown>): Record<string, unknown> => {
-  const base = layoutType === "force" ? FORCE_LAYOUT_DEFAULTS : {};
+  const base = isForceLayout(layoutType) ? FORCE_LAYOUT_DEFAULTS : {};
   if (!override) {
     return base;
   }
@@ -1137,6 +1276,8 @@ const bindEvents = (graph: Graph) => {
     const n = nodeById(idOf(ev)) ?? null;
     hovered.value = n;
     emit("node-hover", n, ev);
+    // 指针转到节点上时收起边标签，否则上一条边的标签会一直挂着
+    void revealEdgeLabel(null);
     if (props.highlight === "group" || props.highlight === "both") {
       await applyGroupHighlight(n?.id ?? null, true);
     }
@@ -1153,6 +1294,12 @@ const bindEvents = (graph: Graph) => {
     if (e) {
       emit("edge-click", e, ev);
     }
+  });
+  graph.on("edge:pointerenter", (ev: any) => {
+    void revealEdgeLabel(idOf(ev));
+  });
+  graph.on("edge:pointerleave", () => {
+    void revealEdgeLabel(null);
   });
   graph.on("edge:contextmenu", (ev: any) => {
     const e = edgeById(idOf(ev));
@@ -1396,6 +1543,168 @@ const setLayout = async (name: RelationLayoutName, options?: Record<string, unkn
   pinFixedNodes();
   emit("layout-change", name);
 };
+
+/**
+ * 「布局调参」面板的状态。
+ *
+ * <p>面板里的每个参数都直接对应 {@link FORCE_LAYOUT_DEFAULTS} 的同名项；
+ * 改动后调用 {@link applyLayoutTuning} 以新参数重跑一次布局，做到实时生效。
+ * 非力向布局下列表为空，面板会自动提示「当前布局不支持调参」。</p>
+ */
+interface LayoutTuningField {
+  /** 传给 G6 布局的参数键 */
+  key: string;
+  /** 界面标签 */
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  /**
+   * 控件类型。
+   *
+   * <p>不能靠 {@code step === 1} 判定「是否开关」——{@code kr}/{@code kg}
+   * 的步长也是 1 却是有界数值，会被误渲染成 on/off 开关而丢掉全部调节能力。</p>
+   */
+  control: "switch" | "range";
+}
+
+/**
+ * 面板可调参数表（全部为力导向系布局共用项）。
+ *
+ * <p>取值范围围绕 {@link FORCE_LAYOUT_DEFAULTS} 展开，保证「默认即合理」，
+ * 同时留出足够的手动调节空间应对不同规模的图（几十节点到几百节点）。</p>
+ */
+const LAYOUT_TUNING_FIELDS: LayoutTuningField[] = [
+  { key: "kr", label: "斥力系数", min: 1, max: 200, step: 1, control: "range" },
+  { key: "nodeStrength", label: "节点斥力", min: -2000, max: -100, step: 100, control: "range" },
+  { key: "kg", label: "重力系数", min: 1, max: 100, step: 1, control: "range" },
+  { key: "linkDistance", label: "连线距离", min: 40, max: 400, step: 10, control: "range" },
+  { key: "nodeSpacing", label: "节点间距", min: 0, max: 120, step: 2, control: "range" },
+  { key: "nodeSize", label: "碰撞半径", min: 10, max: 120, step: 5, control: "range" },
+  { key: "prune", label: "剪枝贴附", min: 0, max: 1, step: 1, control: "switch" },
+  { key: "preventOverlap", label: "防重叠", min: 0, max: 1, step: 1, control: "switch" },
+];
+
+/**
+ * 当前布局实际支持的调参项。
+ *
+ * <p>atlas2 的力学旋钮是 {@code kr}/{@code kg}，d3-force 是 {@code nodeStrength}，
+ * 两者互不通用；只暴露当前布局真正认的那个，
+ * 免得用户拖了一个被 G6 静默忽略的参数还以为没生效。</p>
+ */
+const availableTuningFields = computed(() => {
+  const atlas = currentLayout.value.includes("atlas");
+  return LAYOUT_TUNING_FIELDS.filter((f) => {
+    if (f.key === "kr" || f.key === "kg" || f.key === "prune") return atlas;
+    if (f.key === "nodeStrength") return !atlas;
+    return true;
+  });
+});
+
+/** 面板展开状态 */
+const tuningOpen = ref(false);
+/** 当前生效的调参值（未改动时为空，表示全用默认值） */
+const tuningValues = ref<Record<string, number>>({});
+
+/** 当前布局是否支持面板调参（仅力导向系） */
+const tuningAvailable = computed(() => isForceLayout(currentLayout.value));
+
+/**
+ * 面板上每个输入框的显示值：优先用户调过的值，否则回落到 G6 默认值。
+ *
+ * @param f 参数字段定义
+ * @returns 显示值
+ */
+const tuningValueOf = (f: LayoutTuningField): number => {
+  const v = tuningValues.value[f.key];
+  if (typeof v === "number") {
+    return v;
+  }
+  const d = FORCE_LAYOUT_DEFAULTS[f.key];
+  return typeof d === "number" ? d : f.min;
+};
+
+/**
+ * 重置某一项调参（回到 G6 默认值）。
+ *
+ * @param key 参数键
+ */
+const resetTuningOne = (key: string) => {
+  const next = { ...tuningValues.value };
+  delete next[key];
+  tuningValues.value = next;
+};
+
+/** 重置全部调参 */
+const resetTuningAll = () => {
+  tuningValues.value = {};
+};
+
+/**
+ * 展开调参面板。
+ *
+ * <p>对外暴露给自带工具栏的调用方（{@code toolbar=false}），
+ * 让它们在自己的工具栏上放一个「调参」按钮来驱动本组件的面板。</p>
+ */
+const openTuning = () => {
+  if (!props.tunable) {
+    return;
+  }
+  tuningOpen.value = true;
+};
+
+/** 收起调参面板 */
+const closeTuning = () => {
+  tuningOpen.value = false;
+};
+
+/** 切换调参面板开合 */
+const toggleTuning = () => {
+  if (tuningOpen.value) {
+    closeTuning();
+  } else {
+    openTuning();
+  }
+};
+
+/**
+ * 以当前调参值重跑一次布局，实现「改参数 → 立刻看到效果」。
+ *
+ * <p>大图（元素数超 {@link LAYOUT_ANIMATION_MAX_ELEMENTS}）走同步布局，
+ * 避免动画布局的分钟级卡顿；结束后 {@code fitView} 把新布局重新框进视口，
+ * 否则节点散开后会跑到画布外看不见。</p>
+ */
+const applyLayoutTuning = async () => {
+  const graph = graphRef.value;
+  if (!graph || !tuningAvailable.value) {
+    return;
+  }
+  graph.setLayout({
+    type: currentLayout.value,
+    ...resolveLayoutOptions(currentLayout.value, tuningValues.value),
+  } as any);
+  await layoutForGraph(graph);
+  await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
+  pinFixedNodes();
+};
+
+/**
+ * 单个参数变化回调：写入值后防抖重排。
+ *
+ * <p>滑块连续拖动会产生大量 input 事件，直接重排会让 G6 每帧全量重绘；
+ * 用 220ms 防抖把一串拖动合并成最后一次重排。</p>
+ *
+ * @param key 参数键
+ * @param val 新值
+ */
+const onTuningInput = (key: string, val: number) => {
+  tuningValues.value = { ...tuningValues.value, [key]: val };
+  scheduleTuningApply();
+};
+
+const scheduleTuningApply = useDebounceFn(() => {
+  void applyLayoutTuning();
+}, 220);
 
 const exportData = (): RelationGraphData => ({
   nodes: (graphRef.value?.getNodeData?.() ?? []).map((d: any) => ({
@@ -1643,6 +1952,10 @@ const api: RelationGraphApi = {
   getData: exportData,
   setLayout,
   getLayout: () => currentLayout.value,
+  openTuning,
+  closeTuning,
+  toggleTuning,
+  applyLayoutTuning,
   setMode,
   getMode: () => mode.value,
   fitView: async () => {
@@ -2123,7 +2436,19 @@ onBeforeUnmount(() => {
         @keyup.enter="runSearch(searchText)"
         @clear="clearSearch"
       />
+      <ReButton
+        v-if="tunable"
+        size="small"
+        :type="tuningOpen ? 'primary' : ''"
+        :title="t('toolbar.tuning', '布局参数')"
+        :aria-label="t('toolbar.tuning', '布局参数')"
+        :aria-expanded="tuningOpen"
+        @click="toggleTuning()"
+      >
+        {{ t('toolbar.tuning', '调参') }}
+      </ReButton>
       <ReButton size="small" :title="t('toolbar.fit', '适配视口')" :aria-label="t('toolbar.fit', '适配视口')" @click="api.fitView()">适配</ReButton>
+
       <ReButton
         v-if="editable"
         size="small"
@@ -2220,6 +2545,90 @@ onBeforeUnmount(() => {
       <slot name="toolbar-extra" :api="api" :nodes="graphData.nodes" :mode="mode" />
     </div>
 
+    <!--
+      布局调参面板：与布局选择联动，改参数即实时重排。
+      独立于工具栏渲染（不嵌在 v-if="toolbar" 里），因此自带工具栏的调用方
+      （如知识库图谱 toolbar=false）也能通过 openTuning()/closeTuning() 开合。
+    -->
+    <div
+      v-if="tunable && tuningOpen"
+      class="rrg__tuning"
+      role="group"
+      :aria-label="t('toolbar.tuningPanel', '布局参数面板')"
+    >
+      <div class="rrg__tuning-head">
+        <span class="rrg__tuning-title">{{ t('toolbar.tuningPanel', '布局参数') }}</span>
+        <button
+          type="button"
+          class="rrg__tuning-close"
+          :title="t('toolbar.tuningClose', '关闭')"
+          :aria-label="t('toolbar.tuningClose', '关闭')"
+          @click="closeTuning()"
+        >
+          ✕
+        </button>
+      </div>
+      <p v-if="!tuningAvailable" class="rrg__tuning-tip">
+        {{ t('toolbar.tuningUnsupported', '当前布局不支持调参，请切换到力导向布局') }}
+      </p>
+      <template v-else>
+        <div v-for="f in availableTuningFields" :key="f.key" class="rrg__tuning-row">
+          <label class="rrg__tuning-label" :for="'rrg-tuning-' + f.key">{{ f.label }}</label>
+          <template v-if="f.control === 'switch'">
+            <ReSwitch
+              :id="'rrg-tuning-' + f.key"
+              size="small"
+              :model-value="tuningValueOf(f) >= 1"
+              :aria-label="f.label"
+              @update:model-value="(v: any) => onTuningInput(f.key, v ? 1 : 0)"
+            />
+            <span />
+          </template>
+          <template v-else>
+            <input
+              :id="'rrg-tuning-' + f.key"
+              class="rrg__tuning-range"
+              type="range"
+              :min="f.min"
+              :max="f.max"
+              :step="f.step"
+              :value="tuningValueOf(f)"
+              :aria-label="f.label"
+              @input="onTuningInput(f.key, Number(($event.target as HTMLInputElement).value))"
+            />
+            <span class="rrg__tuning-value">{{ tuningValueOf(f) }}</span>
+          </template>
+          <button
+            type="button"
+            class="rrg__tuning-reset"
+            :title="'重置 ' + f.label"
+            :aria-label="'重置 ' + f.label"
+            @click="resetTuningOne(f.key); applyLayoutTuning()"
+          >
+            ↺
+          </button>
+        </div>
+        <div class="rrg__tuning-actions">
+          <ReButton size="small" @click="applyLayoutTuning()">
+            {{ t('toolbar.tuningApply', '重新布局') }}
+          </ReButton>
+          <ReButton size="small" @click="resetTuningAll(); applyLayoutTuning()">
+            {{ t('toolbar.tuningReset', '恢复默认') }}
+          </ReButton>
+        </div>
+        <!-- 边标签开关：onHover 模式下默认只显示悬停那条边，此处可切回全部常显 -->
+        <label class="rrg__tuning-toggle">
+          <ReSwitch
+            size="small"
+            :model-value="edgeLabelsShown"
+            :aria-label="t('toolbar.edgeLabelsAll', '显示全部边标签')"
+            @update:model-value="onToggleAllEdgeLabels"
+          />
+          <span>{{ t('toolbar.edgeLabelsAll', '显示全部边标签') }}</span>
+        </label>
+      </template>
+    </div>
+
     <!-- 画布：2D(G6) 与 3D(vue-force-graph-3d) 双层，未激活的一层隐藏但不销毁 -->
     <div
       class="rrg__canvas"
@@ -2313,6 +2722,144 @@ onBeforeUnmount(() => {
      按钮直接浮在画布上，仅保留 2px 间距。 */
   gap: 2px;
   max-width: calc(100% - 24px);
+}
+
+/* 布局调参面板：浮在画布右上角，独立于工具栏，toolbar=false 时同样可用 */
+.rrg__tuning {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay, #fff);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+  font-size: 12px;
+  color: var(--el-text-color-primary, #0f172a);
+}
+
+.rrg__tuning-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rrg__tuning-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-primary, #0f172a);
+}
+
+.rrg__tuning-close {
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-secondary, #94a3b8);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.rrg__tuning-close:hover {
+  color: var(--el-color-primary, #3b82f6);
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+
+.rrg__tuning-close:focus-visible {
+  outline: 2px solid var(--el-color-primary, #3b82f6);
+  outline-offset: 1px;
+}
+
+.rrg__tuning-tip {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary, #64748b);
+}
+
+/* label / 控件 / 数值 / 重置 四列网格，控件行与滑块行对齐 */
+.rrg__tuning-row {
+  display: grid;
+  grid-template-columns: 62px 1fr auto 24px;
+  align-items: center;
+  gap: 8px;
+}
+
+.rrg__tuning-label {
+  white-space: nowrap;
+  color: var(--el-text-color-regular, #475569);
+}
+
+/* 滑块：accent-color 跟随主题色，避免为原生控件写整套暗色样式 */
+.rrg__tuning-range {
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--el-color-primary, #3b82f6);
+  cursor: pointer;
+}
+
+.rrg__tuning-range:focus-visible {
+  outline: 2px solid var(--el-color-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.rrg__tuning-value {
+  min-width: 34px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--el-text-color-primary, #0f172a);
+}
+
+.rrg__tuning-reset {
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-placeholder, #94a3b8);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.rrg__tuning-reset:hover {
+  color: var(--el-color-primary, #3b82f6);
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+
+.rrg__tuning-reset:hover {
+  color: var(--el-color-primary, #3b82f6);
+}
+
+.rrg__tuning-reset:focus-visible {
+  outline: 2px solid var(--el-color-primary, #3b82f6);
+  outline-offset: 1px;
+}
+
+.rrg__tuning-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--el-text-color-regular, #475569);
+  cursor: pointer;
+}
+
+.rrg__tuning-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 /* ReSelect / ReInput 的根节点带上的是子组件自己的 scope 标记，

@@ -329,6 +329,153 @@ export function deleteDatasourceTunnel(id: number): Promise<boolean> {
   return del<boolean>(`${hubBase}/tunnel/${id}`);
 }
 
+// ==================== 监控指标（SSE + 趋势） ====================
+
+/**
+ * 监控指标采样点。
+ *
+ * <p>`success` 用 `boolean | null` 而不是 0/1：连通与否不是数量，
+ * 传 0 会让 ECharts 把它当连续量连线，失败点被画成「0.5 通」这种
+ * 不存在的状态；传 `null` 让曲线断开更诚实。</p>
+ */
+export interface DatasourceMetricPoint {
+  /** 采样时刻（ISO 字符串） */
+  time: string;
+  /** 连通与否；null = 未判定（例如该类型没有探测实现） */
+  success: boolean | null;
+  /** 建连耗时（毫秒） */
+  connectLatencyMs: number | null;
+  /** 会话耗时（毫秒） */
+  sessionLatencyMs: number | null;
+  /** 本次是否经 SSH 隧道 */
+  tunneled: boolean | null;
+  /** 失败原因 */
+  errorMessage: string | null;
+}
+
+/** 指标趋势 */
+export interface DatasourceMetricTrend {
+  datasourceId: number | null;
+  from: string | null;
+  to: string | null;
+  /** 后端实际使用的采样间隔（秒），抽稀后会与请求值不同 */
+  interval: number;
+  points: DatasourceMetricPoint[];
+  /** 面向用户的说明；无数据时说明原因，有数据时为 null */
+  message: string | null;
+}
+
+/** `metric` 事件的载荷：本次探测结果 + 最近一小段窗口 */
+export interface DatasourceMetricPush {
+  datasourceId: number | null;
+  success: boolean | null;
+  message: string | null;
+  connectLatencyMs: number | null;
+  sessionLatencyMs: number | null;
+  tunneled: boolean | null;
+  /** 最近窗口。采集失败时为 null（此时只有本次结果，没有窗口） */
+  points: DatasourceMetricTrend | null;
+}
+
+/**
+ * 指标 SSE 订阅地址。
+ *
+ * <p>刻意返回相对路径而不是拼绝对地址：SSE 客户端会把 `baseUrl` 拼在前面，
+ * 写死绝对地址会让 dev 代理与生产部署各写一份、极易指错后端。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @returns 相对路径
+ */
+export function datasourceMetricStreamUrl(datasourceId?: number | null): string {
+  return datasourceId ? `${hubBase}/metric/stream/${datasourceId}` : `${hubBase}/metric/stream`;
+}
+
+/**
+ * 查询指标趋势（首屏历史）。
+ *
+ * <p>与 SSE 的分工：SSE 只做增量，首屏历史必须一次性拉。
+ * 否则建连那一刻就要推几十个点，而页面往往在历史到达前就断了。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @param hours        回溯小时数，缺省 6
+ * @param interval     采样间隔（秒），缺省 60
+ * @returns 趋势
+ */
+export function fetchDatasourceMetricTrend(
+  datasourceId: number,
+  hours?: number,
+  interval?: number,
+): Promise<DatasourceMetricTrend> {
+  return get<DatasourceMetricTrend>(`${hubBase}/metric/trend/${datasourceId}`, { hours, interval });
+}
+
+// ==================== 操作日志 ====================
+
+/** 操作日志列表项 */
+export interface DatasourceOperLog {
+  id: number;
+  datasourceId: number;
+  datasourceName: string | null;
+  /** 操作码，如 TEST / TUNNEL_SAVE / CONSOLE_EXECUTE */
+  action: string;
+  /** 操作中文名 */
+  actionName: string | null;
+  target: string | null;
+  detail: string | null;
+  /** 1 成功 / 0 失败 / null 未判定 */
+  success: number | null;
+  costMs: number | null;
+  operator: string | null;
+  clientIp: string | null;
+  requestUrl: string | null;
+  createTime: string | null;
+}
+
+/** 后端分页结果的形状（与 MyBatis-Plus 的 Page 对齐） */
+export interface DatasourceOperLogPage {
+  records: DatasourceOperLog[];
+  total: number;
+  current: number;
+  size: number;
+  pages: number;
+}
+
+/** 操作日志查询参数 */
+export interface DatasourceOperLogQuery {
+  /** 操作码过滤，空则全部 */
+  action?: string | null;
+  /** 起始时间（ISO 本地时间），空则不限 */
+  from?: string | null;
+  /** 截止时间（ISO 本地时间），空则不限 */
+  to?: string | null;
+  page?: number;
+  size?: number;
+}
+
+/**
+ * 按数据源分页查操作日志。
+ *
+ * <p>刻意不走 `/v2/log/page`：那个端点在当前部署上稳定返回
+ * `S0503C0000 资源不存在`（表不存在，且 `@SysLog` 切面发的事件全仓无监听者）。
+ * 这里读的是数据源中心自己落的表，是真正能返回数据的那条路。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @param query        过滤与分页参数
+ * @returns 分页结果
+ */
+export function fetchDatasourceOperLog(
+  datasourceId: number,
+  query: DatasourceOperLogQuery = {},
+): Promise<DatasourceOperLogPage> {
+  return get<DatasourceOperLogPage>(`${hubBase}/oper-log/${datasourceId}`, {
+    ...(query.action ? { action: query.action } : {}),
+    ...(query.from ? { from: query.from } : {}),
+    ...(query.to ? { to: query.to } : {}),
+    ...(query.page ? { page: query.page } : {}),
+    ...(query.size ? { size: query.size } : {}),
+  });
+}
+
 /**
  * 采集侧数据源下拉：首项固定是应用主库 app，其后是数据源中心里的启用项。
  *

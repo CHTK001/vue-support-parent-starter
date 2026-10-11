@@ -115,6 +115,10 @@ defineExpose({ open })
 </script>
 
 <style scoped>
+/* --mp-* 令牌原定义在 src/styles/modern-polish.css，但该文件在整个仓库里并不存在
+   （main.js 也从未引入），所以 --mp-radius / -sm / -lg / --mp-shadow-pop 全是取不到值的
+   空令牌：var() 无回退值时整条声明失效，圆角/阴影直接掉回初始值。
+   已统一到本项目实际在用的 --el-radius-* 刻度（sm 6 / md 8 / lg 12 / xl 16）。 */
 .tc-header {
   display: flex;
   align-items: center;
@@ -127,7 +131,7 @@ defineExpose({ open })
   justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-white);
   background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
@@ -165,7 +169,7 @@ defineExpose({ open })
   height: 42px;
   padding: 0 44px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: var(--mp-radius-lg);
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color-overlay);
   color: var(--el-text-color-primary);
   font-size: 14px;
@@ -185,7 +189,7 @@ defineExpose({ open })
   color: var(--el-text-color-disabled);
   cursor: pointer;
   padding: 4px;
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   transition: all 0.15s ease;
 }
 .tc-search-clear:hover { color: var(--el-text-color-primary); background: var(--el-fill-color-light); }
@@ -196,7 +200,7 @@ defineExpose({ open })
   margin-bottom: 14px;
   padding: 8px 12px;
   background: var(--el-fill-color-light);
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
 }
 .tc-stat-item {
   display: flex;
@@ -234,7 +238,7 @@ defineExpose({ open })
   gap: 11px;
   padding: 12px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: var(--mp-radius-lg);
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color-overlay);
   cursor: pointer;
   transition: all 0.18s ease;
@@ -244,7 +248,7 @@ defineExpose({ open })
 }
 .tc-card:hover {
   border-color: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-border-color-light));
-  box-shadow: var(--mp-shadow-pop);
+  box-shadow: var(--el-box-shadow-light);
   transform: translateY(-1px);
 }
 .tc-logo { flex-shrink: 0; }
@@ -293,7 +297,7 @@ defineExpose({ open })
   font-weight: 600;
   color: var(--el-color-primary);
   padding: 4px 8px;
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-color-primary-light-9);
   transition: all 0.15s ease;
 }

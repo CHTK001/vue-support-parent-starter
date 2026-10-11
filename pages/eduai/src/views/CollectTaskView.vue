@@ -303,7 +303,7 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="难度">
-              <el-input-number v-model="form.collectTaskDifficulty" :min="1" :max="5" style="width: 100%" />
+              <ReInputNumber v-model="form.collectTaskDifficulty" :min="1" :max="5" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -443,12 +443,12 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="单次条数">
-              <el-input-number v-model="impLimit" :min="1" :max="2000" :step="50" style="width: 100%" />
+              <ReInputNumber v-model="impLimit" :min="1" :max="2000" :step="50" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="起始偏移">
-              <el-input-number v-model="preOffset" :min="0" :max="50000" :step="100" style="width: 100%" />
+              <ReInputNumber v-model="preOffset" :min="0" :max="50000" :step="100" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -519,6 +519,7 @@ import type { CollectMeta, CollectTask, CollectTaskForm, CollectDbTable } from "
 import { createPageLoader, numParam, pageLoadError, strParam } from "../api/pageLoader";
 import { formatDuration } from "@repo/ui/re-time";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 /** 默认公开成语词库（约 3 万条，含 拼音/释义/出处/例句），页面默认填入，不留空 */
 const IDIOM_CORPUS_DEFAULT = "https://cdn.jsdelivr.net/gh/pwxcoo/chinese-xinhua@master/data/idiom.json";

@@ -36,6 +36,15 @@ export const NODE_WIDTH = 180;
 /** 卡片高度，取自官方 DAG 的 36 */
 export const NODE_HEIGHT = 36;
 
+/**
+ * 「整理布局」重排时相邻节点之间的净间距（不含卡片自身尺寸）。
+ *
+ * <p>取 60 / 70 是对齐 {@link NODE_WIDTH}+60、36+70 这组已在用的手工布局步长——
+ * 60px 横距给连线留出走线空间，70px 竖距在 36px 卡高下留出约一卡高的呼吸。</p>
+ */
+export const TIDY_GAP_X = 60;
+export const TIDY_GAP_Y = 70;
+
 /** 缺省主色，节点类型未给 color 时兜底 */
 export const DEFAULT_NODE_COLOR = "#4f7cff";
 

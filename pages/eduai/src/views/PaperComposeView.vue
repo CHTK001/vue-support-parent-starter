@@ -61,6 +61,15 @@
               <el-badge :value="unscoredCount" :hidden="unscoredCount === 0" type="danger" class="panel-head__badge">
                 <ReButton layout="square" icon="Setting" tip="设置" @click="openSettings" />
               </el-badge>
+              <!-- 导出 A4 图片：试卷 / 答题卡 / 参考答案 / 已作答四选一 -->
+              <ReButton
+                layout="square"
+                icon="Picture"
+                :tip="readOnly ? '导出 A4 图片' : '导出 A4 图片'"
+                :disabled="!composeQuestions.length || exporting"
+                :loading="exporting"
+                @click="openExport"
+              />
               <ReButton layout="square" type="primary" icon="Check"
                 :tip="readOnly ? '只读：非草稿不可保存' : '保存草稿'"
                 :disabled="readOnly" :loading="saving" @click="onSaveDraft" />
@@ -204,6 +213,7 @@
           <div class="panel-head">
             <span class="panel-head__title">试卷购物车</span>
             <span class="panel-head__actions">
+              <ReButton v-if="cartItems.length" type="primary" @click="addAllCartItemsToPaper">全部加入</ReButton>
               <ReButton layout="square" type="primary" icon="Plus" tip="继续添加题目" @click="openMarket" />
               <ReButton v-if="cartItems.length" layout="square" type="danger" icon="Delete" tip="清空购物车" @click="clearCart" />
             </span>
@@ -236,14 +246,14 @@
             </div>
             <div class="cart-row__stem" v-html="renderMathSummary(item.stem, 56) || '（题干为空）'" />
             <div class="cart-row__foot">
-              <el-input-number
+              <ReInputNumber
                 :model-value="item.score"
                 :min="1"
                 :max="maxQuestionScore"
                 
                 controls-position="right"
                 class="cart-row__score"
-                @change="onCartScoreChange(item, $event)"
+                @update:model-value="onCartScoreChange(item, $event)"
               />
               <ReButton  type="primary" icon="Plus" @click="addCartItemToPaper(item)">加入</ReButton>
               <el-button type="danger" link :icon="Delete" title="从购物车移除" @click="removeFromCart(item.questionId)" />
@@ -299,7 +309,7 @@
           <div class="settings-field settings-field--grid">
             <div class="settings-field">
               <label class="settings-field__label">总分</label>
-              <el-input-number v-model="settingsDraft.targetScore" :min="1" :max="1000" :step="10" style="width: 100%" />
+              <ReInputNumber v-model="settingsDraft.targetScore" :min="1" :max="1000" :step="10" style="width: 100%" />
             </div>
             <div class="settings-field">
               <label class="settings-field__label">模板选择</label>
@@ -330,6 +340,35 @@
       <template #footer>
         <el-button @click="settingsVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmSettings">确定</el-button>
+      </template>
+    </ReDialog>
+
+    <!-- ==================== 导出 A4 图片弹框 ==================== -->
+    <ReDialog v-model="exportVisible" title="导出 A4 图片" width="620px" top="8vh" append-to-body destroy-on-close class="paper-export-dialog">
+      <el-alert
+        v-if="exportMode === 'answered'"
+        type="info"
+        :closable="false"
+        show-icon
+        title="已作答卷会按题目自带答案模拟书写/勾选痕迹，适合直接当外来卷/任意卷验收。"
+      />
+      <el-form label-width="100" class="export-form">
+        <el-form-item label="导出内容">
+          <el-radio-group v-model="exportMode">
+            <el-radio-button value="paper">试卷版</el-radio-button>
+            <el-radio-button value="answer-sheet">答题卡</el-radio-button>
+            <el-radio-button value="answer-key">参考答案</el-radio-button>
+            <el-radio-button value="answered">已作答卷</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="导出说明">
+          <span class="export-tip">逐页生成 A4 PNG，共 {{ pageCount }} 页</span>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="exportVisible = false">取消</el-button>
+        <el-button type="primary" :loading="exporting" @click="runExport">导出 {{ pageCount }} 页图片</el-button>
       </template>
     </ReDialog>
 
@@ -474,7 +513,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router";
 
 import QRCode from "qrcode";
-import { Check, Coin, Delete, EditPen, Plus, Rank, Setting, Sort, Upload, Warning } from "@element-plus/icons-vue";
+import { Check, Coin, Delete, EditPen, Picture, Plus, Rank, Setting, Sort, Upload, Warning } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReRichText from "@repo/ui/re-rich-text";
@@ -482,7 +521,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduAiCapability, MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
 import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaperCart";
 import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
-import PaperPreview from "../components/paper/PaperPreview.vue";
+import PaperPreview, { type PaperExportMode } from "../components/paper/PaperPreview.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
 
@@ -713,6 +752,31 @@ function errorText(e: unknown): string {
 
 const route = useRoute();
 const router = useRouter();
+
+/**
+ * 嵌入模式（老师端门户内嵌组卷）：
+ * 初始值走 props 而非路由 query；点返回时 emit('back')
+ * 通知父组件关闭弹窗，不做路由跳转（否则会跳出老师端门户）。
+ */
+const props = withDefaults(
+  defineProps<{
+    embedded?: boolean;
+    initPaperId?: number;
+    initSubject?: string;
+    initGradeLevel?: string;
+  }>(),
+  {
+    embedded: false,
+    initPaperId: undefined,
+    initSubject: undefined,
+    initGradeLevel: undefined,
+  },
+);
+
+const emit = defineEmits<{
+  /** 嵌入模式下点返回：通知父组件关闭组卷弹窗 */
+  (e: "back"): void;
+}>();
 
 /** 读取路由 query 的字符串值（兼容数组） */
 function queryText(value: unknown): string {
@@ -1090,8 +1154,8 @@ async function runAiSelect(): Promise<void> {
  * @param {CartItem} item 购物车条目
  * @param {number | undefined} value 新分值
  */
-function onCartScoreChange(item: CartItem, value: number | undefined) {
-  setCartScore(item.questionId, clampScore(value));
+function onCartScoreChange(item: CartItem, value: number | null | undefined) {
+  setCartScore(item.questionId, clampScore(value ?? undefined));
 }
 
 /* ==================== 购物车 -> 试卷（拖拽 / 点击） ==================== */
@@ -1166,6 +1230,20 @@ function addCartItemToPaper(item: CartItem) {
   });
   removeFromCart(item.questionId);
   message.success("已加入试卷");
+}
+
+/** 把购物车里尚未上卷的题目一次全部加入试卷 */
+function addAllCartItemsToPaper() {
+  if (!cartItems.value.length) {
+    return;
+  }
+  const items = [...cartItems.value];
+  const added = items.filter((item) => {
+    const before = composeQuestions.value.length;
+    addCartItemToPaper(item);
+    return composeQuestions.value.length > before;
+  }).length;
+  message.success(`本次共加入 ${added} 题`);
 }
 
 /* ==================== 二维码（每题唯一，内容 = paperQuestionNo） ==================== */
@@ -1700,13 +1778,77 @@ function resetZoom(): void {
   previewZoom.value = 1;
 }
 
-/** 返回试卷列表 */
+/** 返回试卷列表（嵌入模式下关闭门户组卷弹窗，不跳路由） */
 function onBack(): void {
+  if (props.embedded) {
+    emit("back");
+    return;
+  }
   void router.push({ path: "/edu/paper" });
 }
 
 /** 纸张预览组件实例：从中读取总页数与实际缩放倍率（分页与缩放已下沉到组件内） */
-const previewRef = ref<{ pageCount: number; scale: number } | null>(null);
+const previewRef = ref<{
+  pageCount: number;
+  scale: number;
+  exportA4Images: (options?: {
+    mode?: PaperExportMode;
+    answers?: Record<string, string>;
+    filename?: string;
+    scale?: number;
+  }) => Promise<void>;
+} | null>(null);
+
+/** 导出 A4 图片弹框状态 */
+const exportVisible = ref(false);
+const exporting = ref(false);
+const exportMode = ref<PaperExportMode>("paper");
+
+/** 打开导出弹框 */
+function openExport() {
+  if (!composeQuestions.value.length) {
+    message.warning("请先在试卷里添加题目");
+    return;
+  }
+  exportMode.value = "paper";
+  exportVisible.value = true;
+}
+
+/** 已作答模式：用题目自带答案模拟学生书写/勾选痕迹 */
+function buildExportAnswers(): Record<string, string> {
+  const answers: Record<string, string> = {};
+  for (const q of composeQuestions.value) {
+    const key = q.paperQuestionNo || String(q.questionId);
+    const raw = q.answer?.trim();
+    if (raw) {
+      answers[key] = raw;
+      continue;
+    }
+    answers[key] = q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE" ? "A" : "略";
+  }
+  return answers;
+}
+
+/** 导出当前试卷的 A4 PNG，逐页下载 */
+async function runExport() {
+  if (!previewRef.value) {
+    return;
+  }
+  exporting.value = true;
+  try {
+    await previewRef.value.exportA4Images({
+      mode: exportMode.value,
+      filename: header.name || "未命名试卷",
+      answers: exportMode.value === "answered" ? buildExportAnswers() : {},
+    });
+    message.success(`已导出 ${pageCount.value} 页 A4 图片`);
+    exportVisible.value = false;
+  } catch (e) {
+    message.error("导出失败: " + errorText(e));
+  } finally {
+    exporting.value = false;
+  }
+}
 
 /** 总页数；组件未挂载完成时回退 1，与组件内「空卷也返回一页」的约定一致 */
 const pageCount = computed(() => previewRef.value?.pageCount ?? 1);
@@ -1718,8 +1860,23 @@ const previewScale = computed(() => previewRef.value?.scale ?? 1);
 
 /**
  * 按路由 query 初始化：带 paperId 回读详情，否则空白新建（可预填学科/学段）。
+ * 嵌入模式（老师端门户内嵌）下改读 props，不碰路由。
  */
 async function initFromRoute() {
+  if (props.embedded) {
+    const id = Number(props.initPaperId);
+    if (Number.isFinite(id) && id > 0) {
+      try {
+        await loadDetail(id);
+      } catch (e) {
+        message.error("试卷加载失败: " + errorText(e));
+      }
+      return;
+    }
+    header.subject = props.initSubject || header.subject;
+    header.gradeLevel = props.initGradeLevel || header.gradeLevel;
+    return;
+  }
   const raw = route.query.paperId;
   const id = Number(Array.isArray(raw) ? raw[0] : raw);
   if (Number.isFinite(id) && id > 0) {
@@ -1744,6 +1901,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/** 导出 A4 图片弹框说明 */
+.export-tip {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+/** 导出弹框选项不换行 */
+.export-form .el-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* ---------- 三栏布局：左试卷题目 / 中纸张预览 / 右购物车 ----------
    注意：不要再给 .compose-page 加 padding / margin。
    它是 .el-main(.main-content) 的子节点，外壳已提供内边距（实测 8px），

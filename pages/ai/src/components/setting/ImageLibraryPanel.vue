@@ -647,15 +647,88 @@ async function onDrop(event: DragEvent) {
  * <p>串行而不是并发：入库要跑特征提取（ONNX），并发只会互相抢 CPU/GPU
  * 反而更慢，还会把后端线程池打满。逐张串行顺带能给出准确的第几张进度。</p>
  */
+/**
+ * 上传前的体积与分辨率校验（5.5）。
+ *
+ * <p>此前这条路径**完全不做校验**：任何文件都直接 multipart 送去入库。后果有两头 ——
+ * 一端是几十 KB 的小图照样入库、抽出��个几乎恒等于噪声的特征向量，检索时永远不中，
+ * 用户看到的是「明明传了这张图却搜不到」，无从判断是图太小还是模型不对；
+ * 另一端是手机直出的 12MP 原图会顶到服务端 multipart 上限（100MB）整批失败。</p>
+ *
+ * <p>下限取 128px 短边：CLIP 类特征模型在这个尺寸以下基本没有可分辨语义；
+ * 上限 20MB 兼顾清晰度与传输开销，超过的请用户先压缩。</p>
+ */
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const MIN_UPLOAD_EDGE = 128
+
+/**
+ * 校验单张图片是否可入库。
+ *
+ * @param file 待上传文件
+ * @returns 通过返回 null，否则返回拒绝原因
+ */
+async function validateImage(file: File): Promise<string | null> {
+  if (!file.type.startsWith('image/')) {
+    return '不是图片文件'
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return `体积 ${(file.size / 1024 / 1024).toFixed(1)}MB 超过 20MB 上限，请压缩后再上传`
+  }
+  try {
+    const size = await readImageSize(file)
+    if (size && Math.min(size.w, size.h) < MIN_UPLOAD_EDGE) {
+      return `分辨率 ${size.w}×${size.h} 过低，短边需不小于 ${MIN_UPLOAD_EDGE}px（过小的图提不出可用特征，检索时不会命中）`
+    }
+  } catch {
+    // 尺寸读不出来不拦：让后端解码判据去兜底，它报出的错比这里更准
+  }
+  return null
+}
+
+/**
+ * 读取图片像素尺寸。
+ *
+ * @param file 图片文件
+ * @returns 宽高；读取失败时返回 null
+ */
+function readImageSize(file: File): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    const done = (v: { w: number; h: number } | null) => {
+      URL.revokeObjectURL(url)
+      resolve(v)
+    }
+    img.onload = () => done({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onerror = () => done(null)
+    img.src = url
+  })
+}
+
 async function upload(files: File[]) {
   uploading.value = true
   progress.value = 0
   let ok = 0
   const failed: string[] = []
+  // 进度以「通过校验的待传张数」为分母，避免被刷掉的文件把进度条顶住不动
+  const accepted: File[] = []
+  for (const file of files) {
+    const reason = await validateImage(file)
+    if (reason) {
+      failed.push(`${file.name}：${reason}`)
+    } else {
+      accepted.push(file)
+    }
+  }
+  if (!accepted.length) {
+    uploading.value = false
+    toast.error(`${failed.length} 张全部被拒：${failed.slice(0, 3).join('；')}`)
+    return
+  }
   try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      progressText.value = `正在入库 ${i + 1}/${files.length}：${file.name}`
+    for (let i = 0; i < accepted.length; i++) {
+      const file = accepted[i]
+      progressText.value = `正在入库 ${i + 1}/${accepted.length}：${file.name}`
       try {
         const form = new FormData()
         form.append('file', file)
@@ -669,7 +742,7 @@ async function upload(files: File[]) {
       } catch (e: any) {
         failed.push(`${file.name}：${e?.message || '未知错误'}`)
       }
-      progress.value = Math.round(((i + 1) / files.length) * 100)
+      progress.value = Math.round(((i + 1) / accepted.length) * 100)
     }
   } finally {
     uploading.value = false
@@ -681,9 +754,12 @@ async function upload(files: File[]) {
   }
   if (failed.length) {
     // 逐条报出来，不要只给一句「部分失败」让人自己猜是哪几张
-    toast.error(`${failed.length} 张失败：${failed.slice(0, 3).join('；')}`)
+    toast.error(`${failed.length} 张未入库：${failed.slice(0, 3).join('；')}`)
   }
-  await load(1)
+  // 全部被拒时不该再拉一次列表：服务端数据没变，白白闪一下加载态
+  if (ok > 0) {
+    await load(1)
+  }
 }
 
 /**

@@ -421,7 +421,7 @@
         <div class="block-title">其他设置</div>
         <el-form :model="subjectForm" label-width="96px" label-position="left" class="card-form subject-form">
           <el-form-item label="排序">
-            <el-input-number
+            <ReInputNumber
               v-model="subjectForm.subjectSortOrder"
               :min="0"
               :max="999"
@@ -522,7 +522,7 @@
         <div class="block-title">顺序设置</div>
         <el-form :model="gradeForm" label-width="72px" label-position="left" class="card-form grade-form">
           <el-form-item label="排序">
-            <el-input-number
+            <ReInputNumber
               v-model="gradeForm.gradeOrder"
               :min="0"
               :max="999"
@@ -744,6 +744,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const FALLBACK_GRADE_LEVELS: GradeLevelOption[] = [
   { value: "PRIMARY", label: "小学" },

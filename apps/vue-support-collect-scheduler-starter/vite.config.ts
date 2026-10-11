@@ -166,6 +166,15 @@ export default createVite({
   server: {
     port: 19096,
     strictPort: false,
+    // Windows 上 public/vendor/ppt/ppt-font-cjk.otf 会被其它进程短暂占用，
+    // 文件监视触发 EBUSY 直接让 Vite 整个进程退出（19096 就是这样掉线的）。
+    // 这些大字体/静态资源不改就永远不该触发 HMR，直接不 watch，避免反复崩溃。
+    watch: {
+      ignored: (p: string) =>
+        /[\\/]pp[-\w\s]*(\.otf|\.ttf|\.woff2?)$/i.test(p) ||
+        p.includes("ppt-font-cjk") ||
+        /[\\/]public[\\/]vendor[\\/]/i.test(p),
+    },
     proxy: {
       // 顺序敏感：前缀更长的条目必须排在通用 /collect/api 前面，先匹配到的先生效。
       // 路由分组各司其职：
@@ -222,14 +231,16 @@ export default createVite({
         configure: stripOriginHeaders,
       },
       // 数据源中心（列表 + 控制台）-> hub。
-      // **不剥 /collect/api 前缀**：18190 的 context-path 是 /collect/api（application.yml:20），
-      // 内嵌 hub 的 /ms/** 与采集接口一样挂在这个前缀之下，剥掉后打到容器层就没有路由了
-      // （返回 Tomcat 原生 404 HTML，而不是应用的 403 JSON —— 说明请求没进 Spring MVC）。
-      // 之前那条 rewrite 是按「hub 独立部署在 8081、没有 context-path」写的，对内嵌 hub 不成立。
+      // 按 hubTarget 是否自带 context-path 决定是否剥掉 /collect/api：
+      //   - 默认独立 hub（8081，无 context-path）：必须剥掉，否则 `/collect/api/ms/**`
+      //     会打到 Hub 容器路由之外，返回 S0503C0000「资源不存在」；
+      //   - 内嵌 hub（18190，context-path=/collect/api）：原样转发，
+     //     /ms/** 与采集接口一样挂在这个前缀之下。
       // 顺序敏感：必须排在通用 /collect/api 前面，否则会先被通用条目转去 18190。
       "/collect/api/ms": {
         target: hubTarget,
         changeOrigin: true,
+        ...(hubTarget.includes(":18190") ? {} : { rewrite: stripCollectApiPrefix }),
         configure: stripOriginHeaders,
       },
       "/collect/api": {

@@ -1,7 +1,9 @@
 <template>
   <div class="w-full flex flex-col items-center">
-    <!-- 目标条：输入框上方的会话目标（Issue），激活后随会话推进 -->
-    <GoalBar :session-id="sessionId == null ? null : String(sessionId)" />
+    <!-- 目标条：输入框上方的会话目标（Issue），激活后随会话推进。
+         编辑消息时隐藏：编辑态下「编辑提示条 + 输入框」要拼成一整张卡，
+         中间插一条独立的目标条会把卡片连续性切断（实测三段割裂）。 -->
+    <GoalBar v-if="!props.editing" :session-id="sessionId == null ? null : String(sessionId)" />
     <!--
       AI 联想的下一步任务：位置在「目标条下方、输入框上方」。
       开关关闭时组件整块不渲染（v-if 在组件内部），不占任何高度。
@@ -12,7 +14,7 @@
     <!-- 输入框区域 -->
     <div
       class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
-      :class="[styleClass, { 'drag-over': isDragOver }, { 'bg-(--color-input-bg)': !backdrop }, { 'bg-(--color-input-bg)/60 backdrop-blur-xl ': backdrop }]"
+      :class="[styleClass, { 'drag-over': isDragOver }, { 'bg-(--color-input-bg)': !backdrop }, { 'bg-(--color-input-bg)/60 backdrop-blur-xl ': backdrop }, { 'input-area--continues-banner': props.editing }]"
       @dragover.prevent @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop">
       <!-- 文件列表显示区域 -->
@@ -121,12 +123,25 @@
               <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
                 :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
                 <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
-                <el-icon size="16" v-else class="is-loading"><Loading /></el-icon>
+                <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
               </button>
             </LTooltip>
         </div>
         <div class="right-actions flex items-center gap-1">
           <slot name="right-actions-before" />
+          <!-- 思考等级：排在模型按钮**左侧**的独立胶囊，图标 + 当前档位短文案（用户需求） -->
+          <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
+            <button ref="thinkingLevelButtonRef" class="thinking-chip" :class="{ 'is-on': thinkingEnabled }"
+              :aria-label="t('chat.input.thinkingLevelTitle')" :aria-pressed="thinkingEnabled"
+              @click.stop="toggleThinkingLevelPopover">
+              <el-icon size="14"><BrainCircuit20Regular /></el-icon>
+              <span v-if="currentThinkingLabel" class="thinking-chip-text">{{ currentThinkingLabel }}</span>
+            </button>
+          </LTooltip>
+          <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
+            :options="thinkingLevelOptions" :current-value="currentThinkingValue"
+            @select="handleThinkingLevelSelect" />
+
           <!-- 模型选择按钮：悬停显示当前模型信息；宽度为自然宽的 2 倍 -->
           <LTooltip :content="modelInfoTooltip" placement="top">
             <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-selector-btn"
@@ -138,21 +153,8 @@
               <span class="model-name-text text-sm font-medium truncate flex-1 min-w-0"
                 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{
                   currentModelNameOnly }}</span>
-              <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
             </button>
           </LTooltip>
-
-          <!-- 思考等级：入口紧挨模型按钮（用户需求：贴近模型控制；档位含模型管理里配置的集合） -->
-          <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
-            <button ref="thinkingLevelButtonRef" class="tool-btn" :aria-label="t('chat.input.thinkingLevelTitle')"
-              :class="{ 'tool-btn-active': thinkingEnabled }" :aria-pressed="thinkingEnabled"
-              @click.stop="toggleThinkingLevelPopover">
-              <el-icon size="16"><BrainCircuit20Regular /></el-icon>
-            </button>
-          </LTooltip>
-          <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
-            :options="thinkingLevelOptions" :current-value="currentThinkingValue"
-            @select="handleThinkingLevelSelect" />
 
           <!-- 运行模式徽标（仅管理员）：放到模型右侧，构建/规划两色区分（用户需求 3） -->
           <LTooltip v-if="admin" :content="runModeLabel" placement="top">
@@ -240,7 +242,10 @@ import { detectModelProvider } from '@/utils/modelUtils';
 import {
 
   Send24Filled, Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  Flash24Regular, ClipboardTask24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular
+  Flash24Regular, ClipboardTask24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular,
+  // 「优化输入」按钮的加载态：原先写的是 <Loading />，@vicons/fluent 并没有这个导出，
+  // 控制台一直报 "Failed to resolve component: Loading"，加载时按钮里是空的。
+  SpinnerIos20Filled
 } from '@vicons/fluent'
 import { usePopup } from '@/composables/usePopup';
 import { useRouter } from 'vue-router';
@@ -1939,6 +1944,15 @@ defineExpose({ insertText, insertBadge });
   z-index: 10;
 }
 
+/* 编辑态：与上方「正在编辑消息」提示条拼成同一张卡。
+   提示条负责顶部圆角与上/侧边框，本段只留底部圆角与下/侧边框，
+   两段交界处边框与底色连续，看起来是一张卡而不是两张。 */
+.input-area--continues-banner {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: 0;
+}
+
 /* 拖拽悬停高亮 */
 .input-area.drag-over {
   border-color: var(--el-color-primary) !important;
@@ -2158,6 +2172,52 @@ defineExpose({ insertText, insertBadge });
   background: var(--color-sidebar-bg-active);
 }
 
+/* 思考等级徽标：放模型按钮**左侧**（用户需求：贴近模型但排在模型之前），
+   与运行模式徽标同一套胶囊语言：图标 + 短文案，开启时高亮、关闭时淡化。
+   蓝色系与运行模式的绿/紫区分开，避免两个胶囊混淆。 */
+.thinking-chip {
+  cursor: pointer;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--el-radius-xl, 16px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s);
+  --thinking-color: #3b82f6;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 用硬编码色值而非 var(--el-color-primary)：该变量在本项目 tailwind/element 混用下
+   未定义，color-mix 会整体失效（实测选中态无颜色）。与 .run-mode-chip 同一处理方式。 */
+.thinking-chip.is-on {
+  color: var(--thinking-color);
+  background: color-mix(in srgb, var(--thinking-color) 10%, transparent);
+}
+
+.thinking-chip.is-on:hover {
+  background: color-mix(in srgb, var(--thinking-color) 18%, transparent);
+}
+
+.thinking-chip:not(.is-on):hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+}
+
+.thinking-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--thinking-color) 22%, transparent);
+}
+
+.thinking-chip-text {
+  line-height: 1;
+  white-space: nowrap;
+}
+
 /* 运行模式徽标（构建/规划）：放模型按钮右侧，两种模式用不同色系区分（用户需求 3）。
    绿色 = 构建（可直接动手）；紫色 = 规划（先只读调研）。颜色用 color-mix 派生，
    暗色模式下自动降饱和，不需要单独维护暗色值。 */
@@ -2220,6 +2280,11 @@ defineExpose({ insertText, insertBadge });
   transition: all var(--el-transition-duration-fast, 0.2s);
   outline: none;
   flex-shrink: 0;
+  /* 与左侧胶囊（thinking/model/run-mode，均 padding 0 8px）拉开一档：
+     胶囊的文字到边缘有 8px 内边距，而发送是实心圆、无内边距，
+     若只靠容器 gap-1（2px），绿色胶囊底会视觉上贴住灰色圆点（用户反馈）。
+     8px = 胶囊内边距，使「文字→圆点」与「胶囊→圆点」的空白读起来一致。 */
+  margin-left: 8px;
 }
 
 .send-btn:focus-visible {

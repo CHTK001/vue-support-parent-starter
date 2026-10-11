@@ -163,7 +163,14 @@
               <el-input v-model="form.hanziRadical" maxlength="2" placeholder="如：人" />
             </el-form-item>
             <el-form-item label="笔画数">
-              <el-input-number v-model="form.hanziStrokes" :min="1" :max="64" controls-position="right" style="width: 100%" />
+              <ReInputNumber
+                :model-value="form.hanziStrokes ?? undefined"
+                :min="1"
+                :max="64"
+                controls-position="right"
+                style="width: 100%"
+                @update:model-value="(v?: number) => (form.hanziStrokes = v)"
+              />
             </el-form-item>
           </div>
 
@@ -230,6 +237,7 @@ import type { EduHanzi } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const GRADE_LEVELS = ["小学", "初中", "高中"] as const;
 const STRUCTURES = ["独体", "上下", "左右", "左中右", "上中下", "半包围", "全包围"] as const;

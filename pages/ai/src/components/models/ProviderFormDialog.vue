@@ -530,6 +530,10 @@ const protocolOptions = [
 </template>
 
 <style scoped>
+/* --mp-* 令牌原定义在 src/styles/modern-polish.css，但该文件在整个仓库里并不存在
+   （main.js 也从未引入），所以 --mp-radius / -sm / -lg / --mp-shadow-pop 全是取不到值的
+   空令牌：var() 无回退值时整条声明失效，圆角/阴影直接掉回初始值。
+   已统一到本项目实际在用的 --el-radius-* 刻度（sm 6 / md 8 / lg 12 / xl 16）。 */
 .pf-header {
   display: flex;
   align-items: center;
@@ -551,7 +555,7 @@ const protocolOptions = [
   border: none;
   background: var(--el-border-color-light);
   color: var(--el-text-color-regular);
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -594,7 +598,7 @@ const protocolOptions = [
 /* 卡片分区 */
 .pf-card {
   border: 1px solid var(--el-border-color-light);
-  border-radius: var(--mp-radius-lg);
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color-overlay);
   overflow: hidden;
   /* 禁止被 flex 压缩：卡片高度必须由内容决定 */
@@ -614,7 +618,7 @@ const protocolOptions = [
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-white);
   background: var(--el-color-primary);
   flex-shrink: 0;
@@ -635,7 +639,7 @@ const protocolOptions = [
   height: 28px;
   padding: 0 10px;
   font-size: 11.5px;
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
   color: var(--el-text-color-regular);
@@ -685,7 +689,7 @@ const protocolOptions = [
 .pf-adv :deep(.el-input__wrapper),
 .pf-adv :deep(.el-textarea__inner),
 .pf-adv :deep(.el-select:not(.re-select) .el-select__wrapper) {
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
   background: var(--el-bg-color-overlay);
   transition: box-shadow 0.18s ease;
@@ -701,7 +705,7 @@ const protocolOptions = [
   gap: 12px;
   padding: 12px 14px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   background: color-mix(in srgb, var(--el-border-color-light) 25%, var(--el-bg-color-overlay));
 }
 .pf-switch-label { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); display: block; }
@@ -717,7 +721,7 @@ const protocolOptions = [
   gap: 8px;
   padding: 12px 14px;
   border: 1px solid var(--el-border-color-light);
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   background: color-mix(in srgb, var(--el-border-color-light) 25%, var(--el-bg-color-overlay));
 }
 .auth-block-head {
@@ -729,7 +733,7 @@ const protocolOptions = [
 .auth-label { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); }
 .auth-hint { font-size: 11px; color: var(--el-text-color-regular); text-align: right; }
 .auth-custom :deep(.el-input__wrapper) {
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
   background: var(--el-bg-color-overlay);
   transition: box-shadow 0.18s ease;
@@ -755,7 +759,7 @@ const protocolOptions = [
   font-family: Consolas, Monaco, 'Courier New', monospace;
   font-size: 11px;
   padding: 1px 5px;
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
   color: var(--el-color-primary);
   word-break: break-all;
@@ -769,7 +773,7 @@ const protocolOptions = [
   background: var(--el-color-warning-light-9);
   border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
   padding: 10px 12px;
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   line-height: 1.6;
 }
 .key-exist-hint > .el-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 2px; }
@@ -788,7 +792,7 @@ const protocolOptions = [
   color: var(--el-text-color-disabled);
   display: inline-flex;
   padding: 4px;
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   transition: all 0.15s ease;
 }
 .key-eye:hover { color: var(--el-text-color-primary); background: var(--el-fill-color-light); }
@@ -802,7 +806,7 @@ const protocolOptions = [
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
@@ -816,7 +820,7 @@ const protocolOptions = [
   border: 1px dashed var(--el-text-color-disabled);
   background: transparent;
   color: var(--el-text-color-regular);
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   height: 36px;
   padding: 0 14px;
   font-size: 12.5px;
@@ -840,7 +844,7 @@ const protocolOptions = [
   font-size: 12px;
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: var(--mp-radius-sm);
+  border-radius: var(--el-radius-md, 8px);
   transition: all 0.15s ease;
 }
 .get-key-btn:hover { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
@@ -850,7 +854,7 @@ const protocolOptions = [
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   font-size: 12.5px;
   animation: pf-fade-in 0.25s ease;
   border: 1px solid transparent;
@@ -886,7 +890,7 @@ const protocolOptions = [
 .pf-testing { font-size: 12px; color: var(--el-color-primary); }
 .pf-footer-btns { display: flex; justify-content: flex-end; gap: 10px; margin-left: auto; }
 .pf-foot-btn {
-  border-radius: var(--mp-radius);
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 76px;
   transition: all 0.18s ease;
   cursor: pointer;

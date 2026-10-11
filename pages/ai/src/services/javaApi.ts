@@ -211,6 +211,13 @@ export const usageApi = {
   detailList: (params?: any) => http.get('/usage/list', { params }),
   /** 按天趋势（Token 趋势图） */
   trend: (params?: any) => http.get('/usage/trend', { params }),
+  /**
+   * 按「天 + 模型」聚合（每日模型堆叠柱状图数据源）。
+   *
+   * 与 trend() 的区别：trend() 把同一天所有模型并成一个点，丢掉了「某天各模型
+   * 分别占多少」；本接口保留模型维度，一天返回多行，前端归并成同一根柱内的分段。
+   */
+  modelTrend: (params?: any) => http.get('/usage/model-trend', { params }),
   syncLogs: (params?: any) => http.get('/usage/sync-logs', { params }),
   parsers: (params?: any) => http.get('/usage/parsers', { params }),
   taskStatus: (params?: any) => http.get('/usage/task-status', { params }),

@@ -44,7 +44,7 @@
               :allow-generate="!isStreaming && index === lastUserMessageIndex"
               :animate-in="animateIds.includes(turn.user.id)" @delete="deleteMessage" @edit="editMessage"
               @copy="copyMessage" @generate="generateResponse" @regenerate="regenerateResponse"
-              @continue="continueResponse" @switch="switchContent"
+              @continue="continueResponse"
               @rewind="rewindFromHere" @fork="forkFromHere"
               @resume-confirmation="resumeConfirmation" />
             <!-- <div class="min-h-60"></div> -->
@@ -81,13 +81,19 @@
             </div>
           </Transition>
 
-          <!-- 编辑模式提示条 -->
-          <div v-if="editMode" class="max-w-full w-full flex px-4">
+          <!-- 编辑模式提示条：与下方输入框拼成**同一张卡**（同一宽度、只圆上两角、共享底色），
+               中间不再插入任何独立块。原先外层带 px-4，比输入框左右各缩进 16px，
+               加上夹在中间的「添加目标」，视觉上碎成三段。 -->
+          <div v-if="editMode" class="edit-banner w-full flex">
             <div
-              class="max-w-full w-full flex items-center px-4 py-1.5 rounded-tl-xl rounded-tr-xl bg-gray-200/80 dark:bg-[#2a2a2a]/80 backdrop-blur-xl">
-              <span class="flex-1 text-sm mr-10 text-gray-700 dark:text-[#c5c7cc]">{{ t('chat.panel.editingMessage')
+              class="edit-banner__inner w-full flex items-center px-4 py-2">
+              <el-icon size="14" class="edit-banner__icon mr-2 shrink-0">
+                <Edit20Regular />
+              </el-icon>
+              <span class="flex-1 text-sm text-gray-600 dark:text-[#c5c7cc]">{{ t('chat.panel.editingMessage')
                 }}</span>
-              <el-button @click="exitEditMode" class="cancel-edit-btn" plain>
+              <el-button @click="exitEditMode" class="cancel-edit-btn" plain size="small"
+                :icon="Dismiss20Regular">
                 {{ t('common.cancel') }}
               </el-button>
             </div>
@@ -149,13 +155,11 @@ import WelcomeScreen from './WelcomeScreen.vue';
 import QueuedMessages from './QueuedMessages.vue';
 const MemoPanel = defineAsyncComponent(() => import("./MemoPanel.vue"));
 import { LoadingOutlined } from '@vicons/antd'
+import { Edit20Regular, Dismiss20Regular } from '@vicons/fluent'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
 import LDialog from '@/components/ui/LDialog.vue'
 
-
-// 常量定义
-const MAX_REGENERATE_VERSIONS = 5
 
 // 弹出层工具
 const { confirm, editText, toast, notify } = usePopup();
@@ -1065,21 +1069,51 @@ async function rewindFromHere(message: any) {
 }
 
 /**
- * 从此处分叉：把截至本轮的消息复制成新会话，原会话保持不变。
+ * 从此处分叉：把截至这条消息的上下文复制成新会话，原会话保持不变。
  *
- * 分叉是非破坏的，不需要确认框；成功后切到新会话，让用户直接在新分支上继续。
+ * 分叉点挂在**用户消息**上（见 MessageActions），所以这里的 message 一定是用户轮次：
+ *   1. 后端按 messageId 截断复制（parseLongOrNull 只认数字主键，用户消息来自库、
+ *      id 必定是主键；助手消息是流式产出的前端 UUID，会直接被判成「缺少分叉点」）。
+ *   2. 切到新会话后，把这条消息的正文/附件**填进输入框** —— 上下文已经复制过去了，
+ *      这一条就是「接下来要问的那句」，用户可以直接改完再发。
+ *
+ * 写入输入框必须等会话真正切过去：useMessageOperations 在 currentSessionId 变化时会把
+ * inputMessage 重置为空，先写后切会被无声冲掉。
  */
 async function forkFromHere(message: any) {
   const sessionId = currentSessionId.value
   if (!sessionId || !message?.id) return
+
+  // 分叉点必须是数字主键。历史数据里可能混进前端 UUID，这时直接给出可读提示，
+  // 不要再让后端回一句语焉不详的「缺少分叉点消息 id」。
+  if (!/^\d+$/.test(String(message.id))) {
+    toast.error(t('chat.forkFailed'))
+    return
+  }
+
+  // 先把要带到新会话输入框的内容取出来：切会话会清空 inputMessage。
+  const anchorContent = message.contents?.[0]?.content ?? ''
+  const anchorFiles = Array.isArray(message.contents?.[0]?.files) ? [...message.contents[0].files] : []
 
   try {
     const result = await apiService.forkSession(sessionId, message.id)
     toast.success(t('chat.forkSuccess', { title: result?.title || '' }))
     // 跳转由 ChatPage 负责（它持有路由与侧边栏刷新），
     // ChatPanel 只负责把新会话 id 抛上去。
-    if (result?.sessionId) {
-      emit('open-session', result.sessionId)
+    if (!result?.sessionId) return
+    emit('open-session', result.sessionId)
+
+    // 等会话切换落地（最多 ~2s），再回填输入框。
+    for (let i = 0; i < 40 && currentSessionId.value === sessionId; i++) {
+      await new Promise((r) => setTimeout(r, 50))
+    }
+    if (currentSessionId.value === sessionId) return
+
+    inputMessage.value = {
+      content: anchorContent,
+      files: anchorFiles,
+      knowledgeBaseIds: undefined,
+      isWaiting: false,
     }
   } catch (error) {
     console.error('分叉失败:', error)
@@ -1256,31 +1290,46 @@ function generateResponse(message: any) {
 }
 
 /**
- * 重新生成响应（多版本）
+ * 重新生成响应：**覆盖**而不是追加一版。
+ *
+ * 原实现走 multi_version，后端会**新建**一条 assistant 消息挂到同一个 parentId 下，
+ * 于是同轮出现两条回答，再配一套「上一版/下一版 1/2」箭头来回切。用户要的是
+ * 「直接只显示一套」，所以这里先把该轮已有的 assistant 全部删干净（本地 + 服务端），
+ * 再让流重新生成一条 —— 无论重生成多少次，库里和界面上都只留一条。
  */
-function regenerateResponse(message: any) {
-  // 新模型：统计同 parentId 的兄弟 assistant 消息数量
+async function regenerateResponse(message: any) {
   const parentId = message.parentId;
   const existingVersions = activeMessages.value.filter(
     (m) => m.parentId === parentId && m.role === "assistant"
   );
 
-  if (existingVersions.length >= MAX_REGENERATE_VERSIONS) {
-    toast.error(t('chat.panel.maxVersionsExceeded'));
-    return;
+  // 先删旧的：流式启动前清场，避免新旧两条同时在场导致重复渲染。
+  for (const old of existingVersions) {
+    // 流式刚产出的 id 是前端 UUID（未落库），后端 DELETE 只接受数字主键。
+    if (/^\d+$/.test(String(old.id))) {
+      try {
+        await apiService.deleteMessage(old.id);
+      } catch {
+        // 删不掉不能阻断重新生成：本地已移除，界面上仍只会有一条。
+      }
+    }
+    if (currentSessionId.value) {
+      sessionStore.deleteMessage(currentSessionId.value, old.id);
+    }
   }
+  activeMessages.value = activeMessages.value.filter(
+    (m) => !(m.parentId === parentId && m.role === "assistant")
+  );
 
-  const assistantMessage = activeMessages.value.find(m => m.id === message.id);
-  if (assistantMessage) {
-    assistantMessage.state = { isStreaming: true };
+  const userMessage = activeMessages.value.find((m) => m.role === "user" && m.id === parentId);
+  if (userMessage) {
+    userMessage.currentVersionId = undefined;
   }
 
   nextTick(() => {
     immediateScrollToBottom();
     if (message.sessionId) {
-      // multi_version 模式需要传递 userMessageId（通过 parentId 获取）
-      const userMessageId = message.parentId || null;
-      handleStreamResponse(message.sessionId, "multi_version", message.id, userMessageId);
+      handleStreamResponse(message.sessionId, "regenerate", null, parentId || null);
     }
   });
 }
@@ -1334,25 +1383,7 @@ function continueResponse(message: any) {
   });
 }
 
-function switchContent(message: any, versionId: string) {
-  // 定位该轮的用户消息：**优先按「助手消息的父消息」找**。
-  //
-  // 不能只按 currentVersionId 找：实时流式产出的助手消息 id 是前端 UUID，
-  // 而用户消息上存的 currentVersionId 可能是别的值（刷新后是数据库主键），
-  // 两者对不上时 userMessage 就是 undefined，下一句便在 undefined 上赋值 ——
-  // 表现为「点上一个/下一个版本毫无反应」。
-  const userMessage =
-    activeMessages.value.find((m) => m.role === "user" && m.id === message.parentId) ??
-    activeMessages.value.find((m) => m.role === "user" && m.currentVersionId === message.id);
-  if (userMessage && currentSessionId.value) {
-    userMessage.currentVersionId = versionId;
-    apiService.updateMessage(userMessage.id, { currentVersionId: versionId });
-    sessionStore.updateMessage(currentSessionId.value, userMessage.id, userMessage);
-  }
-  nextTick(() => {
-    immediateScrollToBottom();
-  });
-}
+
 
 
 
@@ -1460,6 +1491,41 @@ function scrollToMessage(messageId: string) {
 
 .queue-drawer {
   border: 1px solid var(--color-surface-border);
+}
+
+/* ===== 编辑模式提示条 =====
+   设计目标：提示条与下方输入框是**同一张卡**的头部，而不是浮在输入框上方的独立条。
+   做法 —— 与 .input-area 共享宽度、边框、圆角与底色，只保留顶部圆角；
+        收起自身下边框，让两段的边框在交界处连成一条线。
+   改动前：外层 px-4 让它比输入框窄 16px，且中间的「添加目标」把卡片切成三段。 */
+.edit-banner {
+  /* 顶部圆角与输入框一致（--size-rounded-radius 由主题统一给值） */
+  border-radius: var(--size-rounded-radius, 16px) var(--size-rounded-radius, 16px) 0 0;
+  border: 1px solid var(--color-input-border, var(--el-border-color));
+  /* 只保留三边：下边框交给输入框，避免交界处出现双线 */
+  border-bottom: none;
+  background: var(--color-input-bg);
+  /* 与输入卡之间不留缝 */
+  margin-bottom: -1px;
+  overflow: hidden;
+}
+
+.edit-banner__inner {
+  /* 高度与输入框内首行工具条接近，视觉重量不喧宾夺主 */
+  min-height: 40px;
+}
+
+.edit-banner__icon {
+  color: var(--el-color-warning, #e6a23c);
+}
+
+.cancel-edit-btn {
+  /* 取消是高频操作，但不应比主操作更醒目 */
+  --el-button-text-color: var(--color-text-gray);
+}
+
+.cancel-edit-btn:hover {
+  --el-button-hover-text-color: var(--el-color-primary);
 }
 
 /* 抽屉过渡动画 */

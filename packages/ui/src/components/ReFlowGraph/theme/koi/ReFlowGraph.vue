@@ -87,6 +87,15 @@ defineExpose({
   getData: (): FlowGraphData => shell.value?.getData() ?? { nodes: [], edges: [] },
   exportPNG: (name?: string) => shell.value?.exportPNG(name),
   focus: (id: string) => shell.value?.focus(id),
+  /**
+   * 缩放到能看全（面板空态「全览流程节点」用）。
+   *
+   * <p>必须走外壳的 {@code fit} 而不是直接 {@code engine.fitCenter()}：
+   * 外壳那版会同步工具条倍率，直接调引擎图缩放变了、倍率显示还停在旧值。</p>
+   */
+  fit: () => shell.value?.fit(),
+  /** 按拓扑分层重排（工具条「整理布局」），同样要经外壳才能同步倍率 */
+  tidy: () => shell.value?.tidy(),
 });
 </script>
 
@@ -123,6 +132,11 @@ defineExpose({
     </template>
     <template #toolbar="slotProps">
       <slot name="toolbar" v-bind="slotProps" />
+    </template>
+    <!-- 面板底栏概览：外壳提供 properties-footer，这里必须跟着转发，
+         否则 koi 主题下宿主传进来的概览内容会被丢弃、只剩外壳的兜底计数。 -->
+    <template #properties-footer="slotProps">
+      <slot name="properties-footer" v-bind="slotProps" />
     </template>
   </FlowShell>
 </template>

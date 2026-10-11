@@ -80,6 +80,8 @@ import {
   statusCounts,
   type DataSourceStatusKey
 } from "../datasourceStatus";
+import { hasRoutePath, nearbyRoutePaths } from "../managerRoutes";
+import { managerRouteFor } from "../routes";
 
 /**
  * 宿主应用注入的额外页签（如监控台的「数据表」= 数据库管理器内嵌）。
@@ -825,36 +827,34 @@ function describeLatency(result: DataSourceTestResult): string {
   return parts.join(" / ");
 }
 
-/** 类型跳转映射（宿主应用按自身路由覆盖者优先） */
-const TYPE_ROUTE_MAP: Record<string, string> = {
-  jdbc: "/db-manager",
-  redis: "/redis-manage",
-  influxdb: "/influxdb",
-  neo4j: "/neo4j",
-  nacos: "/nacos",
-  zookeeper: "/zookeeper",
-  nginx: "/nginx",
-  etcd: "/etcd",
-  prometheus: "/prometheus",
-};
-
 /**
  * 打开对应类型的管理页面。
  *
- * <p>TYPE_ROUTE_MAP 是「宿主应用按自身路由覆盖」的映射：管理页（/db-manager 等）属于
- * 另一个应用，宿主不一定注册。宿主没注册时**不能硬跳** —— 2026-10-05 实测采集应用里
- * 点「打开管理」直接落 /404?datasourceId=1（路由只在监控应用注册）。这里先查当前路由表，
- * 没有就给提示，不产生 404。</p>
+ * <p>类型→路径的映射（{@code managerRouteFor}）与这些路径的路由声明（{@code routes.ts}）
+ * 同出一处：映射写在本包、路由也由本包的 {@code createDatasourceManageRoutes} 产出，
+ * 宿主只做合并。两处一旦分开声明就会漂 —— 历史上正是宿主各抄一份、漏了 Prometheus，
+ * 导致「打开管理」对 Prometheus 稳定报「未注册」。</p>
+ *
+ * <p>宿主**不一定**注册了全部管理页（单宿主应用只 merge 自己需要的那些），
+ * 没注册时**不能硬跳** —— 2026-10-05 实测落 /404?datasourceId=1。
+ * 这里先查当前路由表，没有就给提示，不产生 404。</p>
+ *
+ * <p><strong>提示必须自带定位信息</strong>：只说「未注册 /prometheus 管理页」，
+ * 这句话在「路由真的没有」和「路由有但路径写法不一致」两种情况下长得一模一样，
+ * 而两者的修法完全不同。失败时把同前缀的已注册路径一并报出来（见 {@link managerRoutes}）。</p>
  */
 const openManager = (item: DataSourceInfo) => {
-  const route = TYPE_ROUTE_MAP[item.type];
+  const route = managerRouteFor(item.type);
   if (!route) {
     message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
   }
-  const registered = router.getRoutes().some((r) => r.path === route);
-  if (!registered) {
-    message.warning(`当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`);
+  if (!hasRoutePath(router, route)) {
+    const near = nearbyRoutePaths(router, route);
+    message.warning(
+      `当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`
+      + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
+    );
     return;
   }
   void router.push({ path: route, query: { datasourceId: item.id } });
