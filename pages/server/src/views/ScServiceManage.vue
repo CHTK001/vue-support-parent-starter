@@ -340,10 +340,28 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </ReStatCard>
     </div>
 
-    <!-- 筛选工具条 + 全部操作（原 hero 的新增服务/刷新合并到右侧，图标 + tip） -->
+    <!-- 筛选 + 操作整块收进 card：原先筛选控件与操作按钮裸排在一行，
+         视觉上和上方统计卡、下方表格同层，缺少「这是一组工具」的边界；
+         包进 card 后与统计卡/表格形成 卡片-卡片-表格 的稳定节奏。 -->
     <div class="page-toolbar">
-      <ReInput v-model="keyword" aria-label="搜索服务" placeholder="搜索名称 / 协议 / 监听地址" clearable prefix-icon="Search" class="tb-search" />
-      <ReSelect v-model="filterProtocol" aria-label="按协议筛选" placeholder="全部协议" clearable :data="protocolOptions" class="tb-proto" />
+      <div class="tb-filter panel">
+        <ReInput
+          v-model="keyword"
+          aria-label="搜索服务"
+          placeholder="搜索名称 / 协议 / 监听地址"
+          clearable
+          prefix-icon="Search"
+          class="tb-search"
+        />
+        <ReSelect
+          v-model="filterProtocol"
+          aria-label="按协议筛选"
+          placeholder="全部协议"
+          clearable
+          :data="protocolOptions"
+          class="tb-proto"
+        />
+      </div>
       <span class="dim tb-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
       <div class="tb-ops">
         <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="openCreate" />
@@ -417,32 +435,41 @@ function openDetailPage(row: ServerNodeView, index: number) {
           <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
         </template>
       </ReTableColumn>
-      <!-- 操作列宽按 4 枚带字按钮实测计算：78+78+80+78=314 + 3×12 间距=350；单元格 padding 实测
-           td 12/12 + .cell 12/12 = 48 → 需 ≥398。取 410 留 12px 余量（330/380 实测均折行）。 -->
-      <ReTableColumn label="操作" width="410" fixed="right" align="right">
+      <!-- 操作列：统一 ReButton layout="square" 纯图标 + tip。
+           原先 5 枚 show-text 带字按钮把列撑到 410px（实测 330/380 均折行），
+           在宽表里既挤占横向空间又让「值列」被迫压缩；改纯图标后 5×32+4×8=192，
+           列宽收到 220 仍留余量，语义靠 tip 承载。 -->
+      <ReTableColumn label="操作" width="220" fixed="right" align="right">
         <template #default="{ row }">
-          <span @click.stop>
+          <span class="ops" @click.stop>
             <ReButton
               v-if="row.status !== 'RUNNING'"
-              show-text
               icon="VideoPlay"
+              layout="square"
               type="success"
-
+              tip="启动"
               :loading="actingId === row.id"
               @click="onStart(row)"
-            >启动</ReButton>
+            />
             <ReButton
               v-else
-              show-text
               icon="VideoPause"
+              layout="square"
               type="warning"
-
+              tip="停止"
               :loading="actingId === row.id"
               @click="onStop(row)"
-            >停止</ReButton>
-            <ReButton show-text icon="View" type="primary" @click="openDetail(row)">详情</ReButton>
-            <ReButton show-text icon="Edit" @click="openEdit(row)">编辑</ReButton>
-            <ReButton show-text icon="Delete" type="danger" :loading="actingId === row.id" @click="onDelete(row)">删除</ReButton>
+            />
+            <ReButton icon="View" layout="square" type="primary" tip="详情" @click="openDetail(row)" />
+            <ReButton icon="Edit" layout="square" tip="编辑" @click="openEdit(row)" />
+            <ReButton
+              icon="Delete"
+              layout="square"
+              type="danger"
+              tip="删除"
+              :loading="actingId === row.id"
+              @click="onDelete(row)"
+            />
           </span>
         </template>
       </ReTableColumn>
@@ -505,6 +532,16 @@ function openDetailPage(row: ServerNodeView, index: number) {
   align-items: center;
   gap: 12px;
 }
+/* 筛选控件的 card 容器：卡片化后输入框与协议下拉同属一个视觉单元 */
+.tb-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
 .tb-search { width: 260px; }
 .tb-proto { width: 240px; }
 .tb-meta { margin-left: auto; white-space: nowrap; }
@@ -516,7 +553,17 @@ function openDetailPage(row: ServerNodeView, index: number) {
   padding-left: 10px;
   border-left: 1px solid var(--border-subtle);
 }
+/* 操作列图标组：统一间距 + 明确可点手势，避免纯图标看起来像静态徽标 */
+.ops {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ops :deep(.re-button) { cursor: pointer; }
 @media (max-width: 900px) {
+  .tb-filter {
+    flex-wrap: wrap;
+  }
   .tb-search,
   .tb-proto { width: 100%; }
   .tb-meta { margin-left: 0; }

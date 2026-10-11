@@ -8,6 +8,7 @@
 import { computed } from 'vue';
 import type { FilterTypeMeta, FilterParamSchema } from '../../api';
 import ScFilterFieldRow from './ScFilterFieldRow.vue';
+import ScFilterSectionCard from './ScFilterSectionCard.vue';
 
 const props = defineProps<{
   /** 插件元数据 */
@@ -23,10 +24,10 @@ const emit = defineEmits<{
 }>();
 
 /** 参数分区（字段名来自后端 schema） */
-const SECTIONS: Array<{ title: string; keys: string[] }> = [
-  { title: '访问控制', keys: ['openPreview', 'openDownload', 'openRange', 'openRemoteFile', 'openWebjars'] },
-  { title: '目录列表页', keys: ['layout', 'layoutType', 'showFormat', 'showSize', 'showTime'] },
-  { title: '图片与水印', keys: ['imageFilter', 'watermark', 'openWatermark'] },
+const SECTIONS: Array<{ title: string; desc: string; keys: string[] }> = [
+  { title: '访问控制', desc: '决定哪些文件操作放行；关掉预览即无法在浏览器里看到图片', keys: ['openPreview', 'openDownload', 'openRange', 'openRemoteFile', 'openWebjars'] },
+  { title: '目录列表页', desc: '目录页的展示形态与列信息', keys: ['layout', 'layoutType', 'showFormat', 'showSize', 'showTime'] },
+  { title: '图片与水印', desc: '图片渲染处理与水印叠加', keys: ['imageFilter', 'watermark', 'openWatermark'] },
 ];
 
 const schema = computed(() => props.meta?.params ?? []);
@@ -52,31 +53,36 @@ function set(name: string, value: string) {
 
 <template>
   <div class="fc-panels">
-    <div v-for="section in SECTIONS" :key="section.title" class="fc-section panel">
-      <div class="fc-section-title">{{ section.title }}</div>
-      <div class="fc-grid">
-        <ScFilterFieldRow
-          v-for="field in fieldsOf(section.keys)"
-          :key="field.name"
-          :field="field"
-          :value="modelValue?.[field.name]"
-          @update="(v: string) => set(field.name, v)"
-        />
-      </div>
-    </div>
+    <ScFilterSectionCard
+      v-for="section in SECTIONS"
+      :key="section.title"
+      :title="section.title"
+      :desc="section.desc"
+      :count="fieldsOf(section.keys).length"
+    >
+      <ScFilterFieldRow
+        v-for="field in fieldsOf(section.keys)"
+        :key="field.name"
+        :field="field"
+        :value="modelValue?.[field.name]"
+        @update="(v: string) => set(field.name, v)"
+      />
+    </ScFilterSectionCard>
 
-    <div v-if="restFields.length" class="fc-section panel">
-      <div class="fc-section-title">其它参数</div>
-      <div class="fc-grid">
-        <ScFilterFieldRow
-          v-for="field in restFields"
-          :key="field.name"
-          :field="field"
-          :value="modelValue?.[field.name]"
-          @update="(v: string) => set(field.name, v)"
-        />
-      </div>
-    </div>
+    <ScFilterSectionCard
+      v-if="restFields.length"
+      title="其它参数"
+      desc="后端新增、尚未归入语义分区的参数（不会丢配置）"
+      :count="restFields.length"
+    >
+      <ScFilterFieldRow
+        v-for="field in restFields"
+        :key="field.name"
+        :field="field"
+        :value="modelValue?.[field.name]"
+        @update="(v: string) => set(field.name, v)"
+      />
+    </ScFilterSectionCard>
   </div>
 </template>
 
@@ -85,19 +91,5 @@ function set(name: string, value: string) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-.fc-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin-bottom: 12px;
-  padding-left: 8px;
-  border-left: 3px solid var(--el-color-primary);
-  line-height: 1.2;
-}
-.fc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px 20px;
 }
 </style>

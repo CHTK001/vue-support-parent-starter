@@ -64,7 +64,7 @@ function onApply() {
 <template>
   <div class="filter-config">
     <!-- 插件头部 -->
-    <div class="fc-head panel">
+    <div class="fc-head">
       <div class="fc-title">
         <ReTag :type="meta?.spi ? 'success' : 'primary'">{{ meta?.spi ? 'SPI 插件' : '内置预设' }}</ReTag>
         <span class="fc-name">{{ filterType }}</span>
@@ -76,11 +76,12 @@ function onApply() {
         <span class="dim">共 {{ schema.length }} 个参数，已调整 {{ configuredCount }} 项</span>
         <ReButton
           v-if="hasFilterDetail(meta)"
-          show-text
           icon="TopRight"
+          layout="square"
           type="primary"
+          :tip="meta?.detailLabel || '查看详情'"
           @click="emit('open-detail-page')"
-        >{{ meta?.detailLabel || '查看详情' }}</ReButton>
+        />
       </div>
     </div>
 
@@ -120,6 +121,10 @@ function onApply() {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  padding: 14px 16px;
 }
 .fc-title {
   display: flex;
@@ -152,6 +157,11 @@ function onApply() {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  /* 生效操作区独立成卡：与上方参数卡片区分，避免「保存按钮」混在参数中间找不着 */
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  padding: 12px 16px;
 }
 .dim {
   font-size: 12px;
