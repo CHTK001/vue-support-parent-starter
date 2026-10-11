@@ -15,6 +15,7 @@ import {
   type FilterParamSchema,
 } from '../../api';
 import ScFilterFieldRow from './ScFilterFieldRow.vue';
+import ScFilterSectionCard from './ScFilterSectionCard.vue';
 
 const props = defineProps<{
   /** 插件元数据 */
@@ -30,9 +31,9 @@ const emit = defineEmits<{
 }>();
 
 /** 参数分区（字段名来自后端 schema） */
-const SECTIONS: Array<{ title: string; keys: string[] }> = [
-  { title: '发现源', keys: ['discoveryName', 'scatterId', 'protocol'] },
-  { title: '路由与负载', keys: ['routes', 'balance', 'excludeServerId'] },
+const SECTIONS: Array<{ title: string; desc: string; keys: string[] }> = [
+  { title: '发现源', desc: '从哪个注册中心发现实例；决定该过滤器能不能拿到候选节点', keys: ['discoveryName', 'scatterId', 'protocol'] },
+  { title: '路由与负载', desc: '路由表达式与转发策略；balance 决定多实例时的挑选方式', keys: ['routes', 'balance', 'excludeServerId'] },
 ];
 
 const schema = computed(() => props.meta?.params ?? []);
@@ -128,47 +129,49 @@ watch(
 
 <template>
   <div class="fc-panels">
-    <div v-for="section in SECTIONS" :key="section.title" class="fc-section panel">
-      <div class="fc-section-title">{{ section.title }}</div>
-      <div class="fc-grid">
-        <ScFilterFieldRow
-          v-for="field in fieldsOf(section.keys)"
-          :key="field.name"
-          :field="field"
-          :value="modelValue?.[field.name]"
-          @update="(v: string) => set(field.name, v)"
-        />
-      </div>
-    </div>
+    <ScFilterSectionCard
+      v-for="section in SECTIONS"
+      :key="section.title"
+      :title="section.title"
+      :desc="section.desc"
+      :count="fieldsOf(section.keys).length"
+    >
+      <ScFilterFieldRow
+        v-for="field in fieldsOf(section.keys)"
+        :key="field.name"
+        :field="field"
+        :value="modelValue?.[field.name]"
+        @update="(v: string) => set(field.name, v)"
+      />
+    </ScFilterSectionCard>
 
-    <div v-if="restFields.length" class="fc-section panel">
-      <div class="fc-section-title">其它参数</div>
-      <div class="fc-grid">
-        <ScFilterFieldRow
-          v-for="field in restFields"
-          :key="field.name"
-          :field="field"
-          :value="modelValue?.[field.name]"
-          @update="(v: string) => set(field.name, v)"
-        />
-      </div>
-    </div>
+    <ScFilterSectionCard
+      v-if="restFields.length"
+      title="其它参数"
+      desc="后端新增、尚未归入语义分区的参数（不会丢配置）"
+      :count="restFields.length"
+    >
+      <ScFilterFieldRow
+        v-for="field in restFields"
+        :key="field.name"
+        :field="field"
+        :value="modelValue?.[field.name]"
+        @update="(v: string) => set(field.name, v)"
+      />
+    </ScFilterSectionCard>
 
-    <div class="fc-section panel">
-      <div class="fc-section-title">服务实例（实时查询）</div>
+    <ScFilterSectionCard title="服务实例（实时查询）" desc="直查该插件自己的发现接口，不经参数表单，可反复查询">
       <div class="fc-query">
         <ReSelect
           v-model="discoveryProtocol"
           placeholder="发现协议"
           clearable
           :data="discoveryProtocols.map(p => ({ label: p, value: p }))"
-          style="width: 160px"
         />
         <ReInput
           v-model="discoveryUriSpec"
           placeholder="服务标识（如 order-service）"
           clearable
-          style="width: 240px"
         />
         <ReButton show-text icon="Search" :loading="discoveryLoading" @click="loadDiscoveryInstances">
           查询实例
@@ -182,7 +185,7 @@ watch(
         :pagination="false"
         :toolbar="false"
         empty-text="暂无实例（请确认发现服务已启用，或调整协议 / 服务标识）"
-        style="margin-top: 10px"
+        class="fc-table"
       >
         <ReTableColumn prop="host" label="主机" min-width="140" show-overflow-tooltip />
         <ReTableColumn prop="port" label="端口" width="80" />
@@ -200,7 +203,7 @@ watch(
           </template>
         </ReTableColumn>
       </ReTable>
-    </div>
+    </ScFilterSectionCard>
   </div>
 </template>
 
@@ -210,25 +213,22 @@ watch(
   flex-direction: column;
   gap: 12px;
 }
-.fc-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin-bottom: 12px;
-  padding-left: 8px;
-  border-left: 3px solid var(--el-color-primary);
-  line-height: 1.2;
-}
-.fc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px 20px;
-}
+/* 查询条 + 结果表同处一张分区卡片内，故都必须占满卡片宽度跨满整行 */
 .fc-query {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  grid-column: 1 / -1;
+}
+.fc-query :deep(.el-select),
+.fc-query :deep(.el-input) {
+  width: 200px;
+}
+/* 实例表同样跨满整行：七列挤在半行宽度里会逐列折行 */
+.fc-table {
+  grid-column: 1 / -1;
+  margin-top: 4px;
 }
 .dim {
   font-size: 12px;

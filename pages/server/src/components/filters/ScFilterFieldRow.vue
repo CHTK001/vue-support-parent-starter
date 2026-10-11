@@ -39,28 +39,40 @@ const asBool = computed(() => {
 const options = computed(() =>
   (props.field.options ?? []).map(o => ({ label: o, value: o })),
 );
+
+/** 是否已偏离 schema 默认值（面板头部有总计数，字段级标记让「改了哪几项」一眼可见） */
+const changed = computed(() => {
+  const v = props.value;
+  if (v === undefined || v === null || v === '') return false;
+  return String(v) !== String(props.field.defaultValue ?? '');
+});
 </script>
 
 <template>
   <div class="fc-field">
     <div class="fc-label">
-      <span>{{ field.name }}</span>
-      <span class="fc-hint">{{ field.desc }}</span>
+      <span class="fc-name">{{ field.name }}</span>
+      <!-- 已偏离默认值时打标记：原先只能靠逐个输入框比对 schema 才能发现改过什么 -->
+      <span v-if="changed" class="fc-changed" title="已修改（与默认值不同）">已改</span>
     </div>
+    <div v-if="field.desc" class="fc-hint">{{ field.desc }}</div>
+
     <ReSwitch
       v-if="field.type === 'boolean'"
+      class="fc-control fc-control--switch"
       :model-value="asBool"
       @change="(v: any) => emit('update', v ? 'true' : 'false')"
     />
     <ReSelect
       v-else-if="field.type === 'enum' && options.length"
+      class="fc-control"
       :model-value="effective"
       :data="options"
-      style="width: 100%"
       @change="(v: any) => emit('update', String(v))"
     />
     <ReInput
       v-else
+      class="fc-control"
       :model-value="effective"
       :placeholder="field.desc || field.name"
       @update:model-value="(v: any) => emit('update', String(v ?? ''))"
@@ -69,26 +81,51 @@ const options = computed(() =>
 </template>
 
 <style scoped lang="scss">
+/* 纵向堆叠而非「标签左 / 控件右」的 space-between：
+   后者的标签宽度随文案伸缩，同一栅格行里各字段的控件起始 x 坐标各不相同，
+   整片表单看上去参差不齐。改为上下堆叠后，每个控件都从字段块左边缘起算，
+   栅格再等分列宽 → 控件起始位置逐列对齐。 */
 .fc-field {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 32px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 .fc-label {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
-.fc-label > span:first-child {
+.fc-name {
   font-size: 13px;
+  line-height: 1.3;
   color: var(--el-text-color-primary);
   font-family: ui-monospace, SFMono-Regular, monospace;
+  overflow-wrap: anywhere;
+}
+/* 「已改」标记：12px 以下的浅底圆角标签，不与字段名争视觉层级 */
+.fc-changed {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--el-radius-xs, 4px);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+  color: var(--el-color-warning-dark-2);
 }
 .fc-hint {
   font-size: 11px;
+  line-height: 1.5;
   color: var(--el-text-color-secondary);
+}
+/* 控件统一占满字段块宽度，栅格各列因此视觉等宽 */
+.fc-control {
+  width: 100%;
+}
+/* 开关自身宽度固定，居中反而像没对齐；左对齐才与上方控件左边缘同线 */
+.fc-control--switch {
+  width: auto;
+  margin-top: 2px;
 }
 </style>

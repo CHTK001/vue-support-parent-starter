@@ -37,6 +37,14 @@ export interface ProtocolMeta {
   spi: boolean;
   /** SPI 参数模板 */
   params?: FilterParamSchema[];
+  /**
+   * 该协议可选引擎（Server SPI 实际注册名）。
+   *
+   * HTTP 一个实现注册了多个引擎名（jdk/jdk-http、nio/nio-http、aio/aio-http/iocp），
+   * 所以引擎候选必须由后端下发——前端不得再硬编码 jdk/nio/aio，否则新增实现时
+   * 下拉里选不到。缺省时回落到 {@link defaultEngine}。
+   */
+  engines?: string[] | null;
 }
 
 /** 插件参数字段 schema */

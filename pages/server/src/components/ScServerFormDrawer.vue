@@ -114,16 +114,16 @@ const protocolFields = computed(() => {
   return fields;
 });
 
-/** 引擎候选：HTTP 三选一，其余单值 */
+/**
+ * 引擎候选 —— 由后端下发（Server SPI 实际注册名），前端不硬编码。
+ *
+ * HTTP 一个实现注册多个引擎名（jdk/jdk-http、nio/nio-http、aio/aio-http/iocp），
+ * 候选集合随 SPI 注册表变化；其余协议只有自身这一个引擎。
+ */
 const engineOptions = computed(() => {
-  if (form.value.protocol === 'http') {
-    return [
-      { label: 'jdk', value: 'jdk' },
-      { label: 'nio', value: 'nio' },
-      { label: 'aio', value: 'aio' },
-    ];
-  }
-  return [{ label: currentProtocol.value?.defaultEngine || 'jdk', value: currentProtocol.value?.defaultEngine || 'jdk' }];
+  const meta = currentProtocol.value;
+  const engines = meta?.engines?.length ? meta.engines : [meta?.defaultEngine || 'jdk'];
+  return engines.map(v => ({ label: v, value: v }));
 });
 
 /** 插件分组标题 */
@@ -583,7 +583,11 @@ async function toggleLive(index: number, enabled: boolean) {
                     v-for="item in groupItems(group.items)"
                     :key="item.type"
                     class="picker-item"
+                    role="button"
+                    tabindex="0"
                     @click="addFilter(item)"
+                    @keydown.enter.prevent="addFilter(item)"
+                    @keydown.space.prevent="addFilter(item)"
                   >
                     <div class="pi-main">
                       <span class="pi-type">{{ item.type }}</span>
@@ -613,9 +617,14 @@ async function toggleLive(index: number, enabled: boolean) {
                 :key="f.name"
                 class="selected-item"
                 :class="{ 'is-off': f.enabled === false }"
+                role="button"
+                tabindex="0"
+                @click="openFilterConfig(index)"
+                @keydown.enter.prevent="openFilterConfig(index)"
+                @keydown.space.prevent="openFilterConfig(index)"
               >
                 <div class="si-order">{{ index + 1 }}</div>
-                <div class="si-main" @click="openFilterConfig(index)">
+                <div class="si-main">
                   <div class="si-name">
                     {{ f.name }}
                     <ReTag v-if="f.type && f.type !== f.name" type="info">{{ f.type }}</ReTag>
@@ -629,16 +638,24 @@ async function toggleLive(index: number, enabled: boolean) {
                     </ReTag>
                   </div>
                 </div>
+                <!-- 整行可点进配置页，箭头是唯一的可点提示：原先只有 cursor:pointer 暗示 -->
+                <ArrowRight class="si-go" aria-hidden="true" />
                 <div class="si-ops" @click.stop>
-                  <ReButton link type="primary" @click="openFilterConfig(index)">配置</ReButton>
                   <ReSwitch
                     :model-value="f.enabled !== false"
-
                     @change="(v: any) => { toggleDraft(index, !!v); toggleLive(index, !!v); }"
                   />
-                  <ReButton link :disabled="index === 0" @click="moveFilter(index, -1)">上移</ReButton>
-                  <ReButton link :disabled="index === form.filters.length - 1" @click="moveFilter(index, 1)">下移</ReButton>
-                  <ReButton link type="danger" @click="removeFilter(index)">移除</ReButton>
+                  <span class="si-ops-line" aria-hidden="true" />
+                  <ReButton icon="Setting" layout="square" type="primary" tip="配置该插件" @click="openFilterConfig(index)" />
+                  <ReButton icon="Top" layout="square" tip="上移一位" :disabled="index === 0" @click="moveFilter(index, -1)" />
+                  <ReButton
+                    icon="Bottom"
+                    layout="square"
+                    tip="下移一位"
+                    :disabled="index === form.filters.length - 1"
+                    @click="moveFilter(index, 1)"
+                  />
+                  <ReButton icon="Delete" layout="square" type="danger" tip="从链上移除" @click="removeFilter(index)" />
                 </div>
               </div>
             </div>
@@ -766,9 +783,7 @@ async function toggleLive(index: number, enabled: boolean) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  /* 原生可点 div：去掉默认轮廓，改用自绘焦点环。
-     注意——模板里这个 div 目前没有 tabindex，键盘还到不了，
-     焦点环要等模板补上 tabindex/role 才会真正出现（本次不动模板结构） */
+  /* 原生可点 div：去掉默认轮廓，改用自绘焦点环（模板已补 role/tabindex，焦点环现可生效） */
   outline: none;
   /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
      0.18s 不是任何标准档。显式列出真正会变的四个属性并取 0.2s 档 */
@@ -826,6 +841,9 @@ async function toggleLive(index: number, enabled: boolean) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
+  /* 整行都是「打开该插件配置页」的触发区，因此整行给可点手势与焦点环 */
+  cursor: pointer;
+  outline: none;
   transition:
     border-color var(--el-transition-duration-fast, 0.2s) ease,
     box-shadow var(--el-transition-duration-fast, 0.2s) ease;
@@ -834,6 +852,10 @@ async function toggleLive(index: number, enabled: boolean) {
   border-color: var(--el-color-primary-light-5);
   /* 允许的两处投影之一：悬浮抬升反馈 */
   box-shadow: var(--el-box-shadow-lighter);
+}
+.selected-item:focus-visible {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .selected-item.is-off {
   opacity: 0.62;
@@ -854,16 +876,25 @@ async function toggleLive(index: number, enabled: boolean) {
 .si-main {
   flex: 1;
   min-width: 0;
-  cursor: pointer;
-  /* 原生可点 div：去掉默认轮廓并自绘焦点环（同样需要模板补 tabindex 才生效） */
-  outline: none;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
-.si-main:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  border-radius: var(--el-radius-xs, 4px);
+/* 进入配置页的方向箭头：默认淡灰，悬停/聚焦时转主色并右移，
+   用 150-300ms 的 transform 过渡而不是 scale，避免图标抖动 */
+.si-go {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.selected-item:hover .si-go,
+.selected-item:focus-visible .si-go {
+  color: var(--el-color-primary);
+  transform: translateX(2px);
 }
 .si-name {
   font-size: 12px;
@@ -882,7 +913,15 @@ async function toggleLive(index: number, enabled: boolean) {
 .si-ops {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+/* 竖线分隔「启停开关」与「结构操作」：两类动作语义不同，混排时用户会误把开关当删除类 */
+.si-ops-line {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: var(--el-border-color-lighter);
   flex-shrink: 0;
 }
 .form-actions,
