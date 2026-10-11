@@ -1447,17 +1447,19 @@ onMounted(load);
                 </div>
 
                 <div class="ds-overview-grid">
-                  <!-- 左：连接延迟趋势（指标 SSE 打通后由图表替换空态） -->
+                  <!-- 左：连接延迟趋势（首屏历史走 trend 接口，增量走指标 SSE；
+                       embedded 模式只渲染图表本体，当前值由上方统计卡承担） -->
                   <section class="ds-panel ds-panel--trend">
                     <header class="ds-panel__head">
                       <h3 class="ds-panel__title">连接延迟趋势</h3>
                       <div class="ds-panel__legend">
                         <span class="ds-legend"><i class="ds-legend__dot" />连接延迟</span>
+                        <span class="ds-legend ds-legend--count"><i class="ds-legend__dot ds-legend__dot--dashed" />连接数</span>
                         <span class="ds-legend ds-legend--muted"><i class="ds-legend__dot" />平均 {{ latencyLegendText }}</span>
                       </div>
                     </header>
                     <div class="ds-trend">
-                      <ReEmpty description="暂无监控指标数据" :image-size="60" />
+                      <DatasourceMetricPanel :datasource-id="current?.id" embedded />
                     </div>
                   </section>
 
@@ -1905,10 +1907,14 @@ onMounted(load);
    数据源中心（独立页面包）—— 全部使用 koi / Element 令牌
    左右两栏：左栏状态过滤 + 列表，右栏详情 + 页签
    ============================================================ */
+/* 浅灰画布：卡片用 --bg-container 浮在上面（UI 稿的层次感来源）。
+   颜色全部走 koi 令牌（packages/theme tokens.css），亮暗色自动跟随。 */
 .ds {
-  /* 浅灰画布：卡片用 --bg-container 浮在上面（UI 稿的层次感来源）。
-     颜色全部走 koi 令牌（packages/theme tokens.css），亮暗色自动跟随。 */
-  min-height: 100%;
+  /* height 而非 min-height：把可视高度钉死在链路上，左栏卡片与右栏页签
+     的内部滚动才真正生效 —— 用 min-height 时整页会被长内容撑开，
+     左栏「添加数据源」按钮跟着内容掉出可视区。
+     宿主容器没有高度约束时 height:100% 退化为 auto，行为与原来一致，不会更差。 */
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-page, #f6f7fb);
@@ -2037,6 +2043,23 @@ onMounted(load);
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* 细滚动条：默认粗滚动条在 260~340px 的窄栏里视觉过重，
+     6px 圆角条既可见又不抢数据源卡片的注意力 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default, #e3e6ef) transparent;
+}
+.ds-side__list::-webkit-scrollbar {
+  width: 6px;
+}
+.ds-side__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ds-side__list::-webkit-scrollbar-thumb {
+  background: var(--border-default, #e3e6ef);
+  border-radius: var(--el-border-radius-round, 9999px);
+}
+.ds-side__list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary, #6b7280);
 }
 .ds-side__hint {
   margin: 0;
@@ -2401,6 +2424,21 @@ onMounted(load);
 .ds-legend--muted {
   color: var(--text-tertiary, #6b7280);
 }
+/* 连接数图例：虚线段示意曲线线型，色与图内连接数序列一致 */
+.ds-legend--count {
+  color: var(--text-secondary, #5c6270);
+}
+.ds-legend__dot--dashed {
+  background: var(--metric-redis, var(--el-color-danger));
+  /* 用渐变画出「虚线段」质感，与实心的延迟图例区分 */
+  background-image: linear-gradient(
+    90deg,
+    currentColor 0 40%,
+    transparent 40% 60%,
+    currentColor 60% 100%
+  );
+  opacity: 0.85;
+}
 .ds-legend__dot {
   width: 10px;
   height: 10px;
@@ -2410,14 +2448,18 @@ onMounted(load);
 .ds-legend--muted .ds-legend__dot {
   background: var(--border-default, #e3e6ef);
 }
-/* 趋势画布：图表落地前先占住高度，避免空态把双栏压扁 */
+/* 趋势画布：嵌入的指标面板（embedded 模式）纵向吃满面板剩余高度，
+   空态时占位高度兜底，避免空态把双栏压扁 */
 .ds-trend {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   flex: 1 1 auto;
-  min-height: 220px;
+  min-height: 240px;
   margin-top: 12px;
+}
+.ds-trend :deep(.ds-metrics) {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 /* 面板底部动作：主按钮整行，下方三个次级动作纵向排布 */
 .ds-panel__actions {

@@ -1,6 +1,6 @@
 <template>
-  <div class="ds-metrics">
-    <div class="ds-metrics__bar">
+  <div class="ds-metrics" :class="{ 'is-embedded': embedded }">
+    <div v-if="!embedded" class="ds-metrics__bar">
       <div class="ds-metrics__stat">
         <span class="ds-metrics__stat-label">连通性</span>
         <span class="ds-metrics__stat-value" :class="statusClass">{{ statusText }}</span>
@@ -24,8 +24,8 @@
     <p v-if="hint" class="ds-metrics__hint">{{ hint }}</p>
 
     <div v-if="points.length" class="ds-metrics__chart">
-      <DatasourceMetricChart :points="points" />
-      <p class="ds-metrics__foot">
+      <DatasourceMetricChart :points="points" :height="chartHeight" />
+      <p v-if="!embedded" class="ds-metrics__foot">
         共 {{ points.length }} 个采样点<span v-if="intervalSec">
           · 采样间隔约 {{ Math.round(intervalSec) }}s</span
         ><span v-if="points.length && points[points.length - 1]?.time">
@@ -67,7 +67,17 @@ import {
 const props = defineProps<{
   /** 数据源 ID；为空时不采集也不显示 */
   datasourceId?: number;
+  /**
+   * 嵌入模式：概览页签的面板里只放图表本体。
+   *
+   * <p>概览已有统计卡承担「连通性/延迟」的当前值展示，嵌入时隐藏顶部
+   * 状态胶囊与页脚，避免同一屏出现两份一样的数字。</p>
+   */
+  embedded?: boolean;
 }>();
+
+/** 嵌入模式的画布略矮：概览面板高度有限，留出标题与内边距 */
+const chartHeight = computed(() => (props.embedded ? 200 : 220));
 
 const points = ref<DatasourceMetricPoint[]>([]);
 /** 后端给的说明文案；无数据时说明原因，有数据时为 null */

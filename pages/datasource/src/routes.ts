@@ -63,7 +63,7 @@ export interface DatasourceManageRoutesOptions {
    * 停在「数据源」上，靠的就是 {@code activeMenu}。各宿主列表路径不同
    * （监控台 /datasource、采集台 /collect/datasource/list），所以由宿主传入。</p>
    *
-   * <p>缺省 {@code /datasource}：与 TYPE_ROUTE_MAP 的历史默认值一致，
+   * <p>缺省 {@code /datasource}：与监控台的数据源列表路径一致，
    * 单宿主应用（模板 starter）不传也能高亮到正确位置。</p>
    */
   activeMenu?: string;
