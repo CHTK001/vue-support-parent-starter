@@ -8,6 +8,9 @@
         :key="item.field"
         :label="getFieldLabel(item)"
         :description="item.description"
+        :tip="getFieldTip(item)"
+        :risk="getFieldRisk(item)"
+        :risk-tip="getFieldRiskTip(item)"
         control-flex
       >
         <!-- STRING：模型选择器 -->
@@ -51,52 +54,64 @@
 
       <!-- 向量库配置：仅 RAG 组 + 管理员（描述器驱动的动态表单，保存到全局层）。
            后端 /v2/rag/options.vectorStorageOptions 返回每个 SPI 的字段声明，
-           前端据此渲染表单；新增向量库实现无需再改这里。 -->
-      <div v-if="group.group === 'rag' && isAdmin()" class="vector-storage-block">
-        <div class="vs-head">
-          <span class="vs-title">向量库配置</span>
-          <span class="vs-sub">管理员专属 · 保存到全局（所有账号共用）</span>
-        </div>
-        <SettingsRow label="向量库实现" :description="selectedDescriptor?.description" control-flex>
-          <el-select v-model="selectedVectorStorage" class="w-full">
-            <el-option v-for="desc in vectorStorageOptions" :key="desc.name"
-              :label="desc.displayName || desc.name" :value="desc.name">
-              <div class="vs-opt-row">
-                <span>{{ desc.displayName || desc.name }}</span>
-                <span class="vs-opt-sub">{{ desc.name }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </SettingsRow>
-        <SettingsRow v-for="field in selectedVectorFields" :key="field.key"
-          :label="field.label" :description="field.description"
-          :badge="field.required ? '必填' : undefined" control-flex>
-          <!-- 密码/敏感字段：保存后不回显，留空=保持不变 -->
-          <el-input v-if="field.secret || field.type === 'PASSWORD'"
-            v-model="vectorFormValues[field.key]"
-            type="password" show-password clearable
-            :placeholder="secretPlaceholder(field)" />
-          <!-- 数字 -->
-          <el-input-number v-else-if="field.type === 'NUMBER'"
-            v-model="vectorFormValues[field.key]" class="w-full" />
-          <!-- 开关 -->
-          <el-switch v-else-if="field.type === 'BOOLEAN'"
-            v-model="vectorFormValues[field.key]" />
-          <!-- 下拉 -->
-          <el-select v-else-if="field.type === 'SELECT'" v-model="vectorFormValues[field.key]"
-            class="w-full" clearable>
-            <el-option v-for="opt in (field.options || [])" :key="opt" :label="opt" :value="opt" />
-          </el-select>
-          <!-- 文本（含 PATH：服务器路径，暂以文本输入） -->
-          <el-input v-else v-model="vectorFormValues[field.key]"
-            :placeholder="field.placeholder || ''" clearable />
-        </SettingsRow>
-        <div class="vs-actions">
-          <ReButton type="primary" :loading="vectorConfigSaving" @click="saveVectorConfig">
-            保存向量库配置
-          </ReButton>
-        </div>
-      </div>
+           前端据此渲染表单；新增向量库实现无需再改这里。
+
+           样式说明：这块原先是手搓的 .vs-head/.vs-title 虚线子块，与同卡片的
+           「高级选项」折叠面板完全是两套视觉语言，看着像另一个功能的残渣。
+           这里改为复用同一个 el-collapse + .adv-head 外观，只在标题上挂一个
+           「管理员」徽标以说明作用域——折叠交互、箭头、字号、间距全部与高级选项一致。 -->
+      <el-collapse v-if="group.group === 'rag' && isAdmin()" v-model="activeAdvanced"
+        class="adv-collapse">
+        <el-collapse-item name="vector-storage">
+          <template #title>
+            <div class="adv-head">
+              <span class="adv-title">向量库配置</span>
+              <span class="adv-badge">管理员专属 · 保存到全局</span>
+              <el-icon class="adv-chevron"><ArrowDown /></el-icon>
+            </div>
+          </template>
+          <SettingsRow label="向量库实现" :description="selectedDescriptor?.description" control-flex>
+            <el-select v-model="selectedVectorStorage" class="w-full">
+              <el-option v-for="desc in vectorStorageOptions" :key="desc.name"
+                :label="desc.displayName || desc.name" :value="desc.name">
+                <div class="vs-opt-row">
+                  <span>{{ desc.displayName || desc.name }}</span>
+                  <span class="vs-opt-sub">{{ desc.name }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </SettingsRow>
+          <SettingsRow v-for="field in selectedVectorFields" :key="field.key"
+            :label="field.label" :description="field.description"
+            :tip="fieldTip(field)"
+            :badge="field.required ? '必填' : undefined" control-flex>
+            <!-- 密码/敏感字段：保存后不回显，留空=保持不变 -->
+            <el-input v-if="field.secret || field.type === 'PASSWORD'"
+              v-model="vectorFormValues[field.key]"
+              type="password" show-password clearable
+              :placeholder="secretPlaceholder(field)" />
+            <!-- 数字 -->
+            <el-input-number v-else-if="field.type === 'NUMBER'"
+              v-model="vectorFormValues[field.key]" class="w-full" />
+            <!-- 开关 -->
+            <el-switch v-else-if="field.type === 'BOOLEAN'"
+              v-model="vectorFormValues[field.key]" />
+            <!-- 下拉 -->
+            <el-select v-else-if="field.type === 'SELECT'" v-model="vectorFormValues[field.key]"
+              class="w-full" clearable>
+              <el-option v-for="opt in (field.options || [])" :key="opt" :label="opt" :value="opt" />
+            </el-select>
+            <!-- 文本（含 PATH：服务器路径，暂以文本输入） -->
+            <el-input v-else v-model="vectorFormValues[field.key]"
+              :placeholder="field.placeholder || ''" clearable />
+          </SettingsRow>
+          <div class="vs-actions">
+            <ReButton type="primary" :loading="vectorConfigSaving" @click="saveVectorConfig">
+              保存向量库配置
+            </ReButton>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
 
       <!-- 高级选项：折叠显示 -->
       <el-collapse v-if="hasAdvancedSettings(group)" v-model="activeAdvanced" class="adv-collapse">
@@ -112,6 +127,9 @@
             :key="item.field"
             :label="getFieldLabel(item)"
             :description="item.description"
+            :tip="getFieldTip(item)"
+            :risk="getFieldRisk(item)"
+            :risk-tip="getFieldRiskTip(item)"
             control-flex
           >
             <!-- usage_sync_providers 多选 -->
@@ -393,12 +411,37 @@ const plainVisibleFields = (group) =>
     (group.items || []).filter(item =>
         notAdminOnly(item) && !isModelField(group.group, item.field) && isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
 
-/** 始终显示的字段：选模型的 + 上面这类目录配置 */
-const visibleFields = (group) => [...modelFields(group), ...plainVisibleFields(group)]
+/**
+ * 该分组是否存在「始终显示」区域。
+ *
+ * <p>会话(session)分组里一个模型字段都没有，也没有 generate 的目录字段，
+ * 于是 visibleFields 为空、advancedFields 吃掉了全部字段——卡片打开后只剩一个
+ * 「高级选项」折叠条，正文空空如也，用户看不到任何可配项（实测：会话分组只有高级，
+ * 不是设计如此，是这条过滤规则把整组都塞进了折叠区）。</p>
+ *
+ * <p>判据不能只看「有没有模型字段」：分组里可能只有几个开关（如 asr 的语言），
+ * 那本来就该平铺。把它们无差别塞进「高级」同样会让用户觉得功能缺失。
+ * 因此这里看的是「折叠区是否吞掉了整组的可见字段」。</p>
+ */
+const groupHasAlwaysVisibleFields = (group) =>
+    modelFields(group).length > 0 || plainVisibleFields(group).length > 0
 
-const advancedFields = (group) =>
-    (group.items || []).filter(item =>
+/** 始终显示的字段：选模型的 + 上面这类目录配置。
+ *  分组若没有任何常驻字段，则全部字段平铺，不再套一层空的「高级选项」。 */
+const visibleFields = (group) => {
+    const always = [...modelFields(group), ...plainVisibleFields(group)]
+    if (always.length > 0) return always
+    return (group.items || []).filter(item =>
+        notAdminOnly(item) && shouldShowField(group.group, item.field))
+}
+
+const advancedFields = (group) => {
+    // 该分组没有常驻字段时，visibleFields 已平铺全部字段，折叠区必须为空，
+    // 否则同一批字段会渲染两遍
+    if (!groupHasAlwaysVisibleFields(group)) return []
+    return (group.items || []).filter(item =>
         notAdminOnly(item) && !isModelField(group.group, item.field) && !isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
+}
 
 // ===================== 模型类型体系 =====================
 // 规范类型中文标签
@@ -700,9 +743,107 @@ const getFieldLabel = (item) => {
     return item.field
 }
 
+/**
+ * 左侧小标题的「tip 兜底文案」。
+ *
+ * 默认模型页的字段标签来自后端描述/字段名，个别项（如动漫人脸检测模型、
+ * 上下文压缩保留消息数、生成任务超时时间）很长，会把左侧文本列撑开、
+ * 把右侧控件挤出可视区。SettingsRow 已经支持单行省略，这里只负责把完整文案
+ * 交给气泡：短标题返回空（不显示问号图标，避免无意义的装饰）。
+ */
+const LONG_LABEL_THRESHOLD = 10
+
+const getFieldTip = (item) => {
+    const label = String(getFieldLabel(item) ?? '').trim()
+    if (!label) return ''
+    // 描述已单独成行展示，不再重复塞进气泡
+    if (label.length <= LONG_LABEL_THRESHOLD) return ''
+    return item.description ? `${label}：${item.description}` : label
+}
+
+/**
+ * 字段的「变更风险」等级（5.6）。
+ *
+ * <p>只对**底库已有数据**时才有意义：空库换模型零成本，没必要吓唬用户。
+ * 红点与黄点的分界是「改了之后已有数据还能不能用」：</p>
+ *
+ * <ul>
+ *   <li><b>红（high）</b>：特征/识别模型。特征向量活在它定义的嵌入空间里，
+ *       换模型等于换了一套坐标系，底库里所有人脸的旧向量全部对不上，
+ *       1:N 检索会「谁都不匹配」——必须重新登记整库。</li>
+ *   <li><b>黄（medium）</b>：检测/关键点/活体/分割/描述等。它们只影响**新登记**
+ *       的处理过程，历史向量本身仍然有效；影响面存在但不致命。</li>
+ * </ul>
+ */
+const HIGH_RISK_FIELDS = new Set(['feature_model', 'recognizer_model'])
+const MEDIUM_RISK_FIELDS = new Set([
+  'detector_model', 'landmark_model', 'liveness_model', 'segment_model',
+  'captioning_model', 'anime_detector_model', 'attribute_model', 'emotion_model',
+  'deepfake_model', 'direction_model',
+])
+
+/** 人脸底库 / 图像底库条目数；0 表示空库。加载失败按 0 处理（不打扰用户） */
+const faceLibraryCount = ref(0)
+const imageLibraryCount = ref(0)
+
+const getFieldRisk = (item) => {
+  const field = String(item?.field ?? '')
+  if (HIGH_RISK_FIELDS.has(field)) {
+    return faceLibraryCount.value > 0 ? 'high' : ''
+  }
+  if (MEDIUM_RISK_FIELDS.has(field)) {
+    const count = groupIsFace(item) ? faceLibraryCount.value : imageLibraryCount.value
+    return count > 0 ? 'medium' : ''
+  }
+  return ''
+}
+
+/** 该字段属于人脸底库还是图像底库：face 分组里混了图像侧的字段，不能一概而论 */
+const groupIsFace = (item) => {
+  const f = String(item?.field ?? '')
+  return !['captioning_model', 'segment_model'].includes(f)
+}
+
+const getFieldRiskTip = (item) => {
+  const field = String(item?.field ?? '')
+  if (HIGH_RISK_FIELDS.has(field)) {
+    return `人脸底库已有 ${faceLibraryCount.value} 条。换特征模型后，旧人脸向量与新模型不在同一嵌入空间，` +
+      '1:N 检索会对所有历史条目失配，必须重新登记整库。若只是想微调阈值，请改「相似度阈值」而不是换模型。'
+  }
+  const count = groupIsFace(item) ? faceLibraryCount.value : imageLibraryCount.value
+  return `${count > 0 ? '底库已有 ' + count + ' 条。' : ''}更换该模型只影响之后新登记/新检索的处理过程，` +
+    '已入库的向量仍然可用；但新旧模型混用会让部分条目的效果不一致，建议换模型后重登一遍底库。'
+}
+
+/**
+ * 读两个底库的条目数（各取一条即可拿到 total，不拉全量）。
+ *
+ * <p>失败一律按 0 处理：不显示风险点比显示一个来路不明的计数更安全。</p>
+ */
+async function loadLibraryCounts() {
+  try {
+    const r = await apiService.listFaces({ page: 1, size: 1 })
+    faceLibraryCount.value = Number(r?.total) || 0
+  } catch { faceLibraryCount.value = 0 }
+  try {
+    const r = await apiService._request('/image-search/list', { params: { page: 1, size: 1 } })
+    const d = (r && typeof r === 'object' && 'data' in r ? r.data : r) || {}
+    imageLibraryCount.value = Number(d.total) || 0
+  } catch { imageLibraryCount.value = 0 }
+}
+
+/** 向量库字段描述器同样可能给出很长的 label，走与默认模型一致的 tip 兜底 */
+const fieldTip = (field) => {
+    const label = String(field?.label ?? '').trim()
+    if (!label || label.length <= LONG_LABEL_THRESHOLD) return ''
+    return field.description ? `${label}：${field.description}` : label
+}
+
 // 判断分组是否有高级选项
 const hasAdvancedSettings = (group) => {
     if (!group || !group.items) return false
+    // 无常驻字段的分组已经整体平铺，不再显示空的折叠条
+    if (!groupHasAlwaysVisibleFields(group)) return false
     return group.items.some(item => !isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
 }
 
@@ -808,14 +949,12 @@ const numberPrecision = (group, field) => {
 const modelFieldDisplay = (group, field) => {
     const value = getFieldValue(group, field)
     const meta = fieldMeta[group]?.[field]
-    if (!value) {
+    // 系统内置默认值（origin=SYSTEM_DEFAULT）表示「从来没有人为这个字段配过模型」，
+    // 那条种子值并不是有效配置。原先渲染成「系统默认：cn-clip-rn50-image（未配置）」——
+    // 既给出一个模型名、又声称未配置，自相矛盾，用户会以为已经配好了。
+    // 现在统一按未配置处理：只提示去选，不暴露种子里的模型名。
+    if (!value || (meta && meta.origin === 'SYSTEM_DEFAULT')) {
         return '请选择模型'
-    }
-    // 系统内置默认值必须显式说明，否则用户会以为这是自己或管理员配的。
-    // 实测 2026-09-30 那批一次性种子（onnx / bge-large-zh-embedding / 1024 等）
-    // 从来没人配置过，界面上却显示「继承全局：onnx」，看着像已配置。
-    if (meta && meta.origin === 'SYSTEM_DEFAULT') {
-        return `系统默认：${value}（未配置）`
     }
     return meta && meta.overridden === false ? `继承全局：${value}` : value
 }
@@ -1208,6 +1347,8 @@ onMounted(async () => {
     await loadAllGroupValues()
     await loadModels()
     await loadUsageParsers()
+    // 风险点判据依赖底库条目数，必须在渲染前拿到，否则首屏一闪而过没有红点
+    await loadLibraryCounts()
     // 向量库配置：管理员专属（全局层）；放模型加载后——表单字段依赖 /rag/options 的描述器
     if (isAdmin()) {
         await loadVectorGlobalSettings()
@@ -1241,30 +1382,10 @@ onMounted(async () => {
   color: var(--el-text-color-secondary, #909399);
 }
 
-/* ============ 向量库配置（描述器驱动的动态表单） ============ */
-.vector-storage-block {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--el-border-color-lighter, #ebeef5);
-}
-
-.vs-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.vs-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary, #303133);
-}
-
-.vs-sub {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-}
+/* ============ 向量库配置（描述器驱动的动态表单） ============
+   外壳已改为复用「高级选项」的 el-collapse 外观，这里只保留下拉候选行
+   与保存按钮的内边距；旧的 .vector-storage-block / .vs-head / .vs-title /
+   .vs-sub 手搓头部样式已随模板一并删除，避免两套视觉语言继续并存。 */
 
 /* 下拉候选行：显示名 + SPI 名（区分同名实现） */
 .vs-opt-row {
@@ -1309,6 +1430,13 @@ onMounted(async () => {
 }
 .adv-head:hover { background: var(--el-fill-color-light); }
 .adv-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-regular); }
+/* 折叠标题上的作用域徽标（向量库配置 = 管理员专属 · 保存到全局） */
+.adv-badge {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  margin-left: 8px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 :deep(.adv-chevron) {
   color: var(--el-text-color-secondary);
   transition: transform 0.22s ease;

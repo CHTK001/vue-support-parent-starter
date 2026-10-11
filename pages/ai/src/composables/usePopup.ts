@@ -270,37 +270,29 @@ export function usePopup(): UsePopupReturn {
     /**
      * Toast 消息提示
      */
+    /**
+     * Toast 消息提示。
+     *
+     * <p>注意：@repo/core 的 message.success 签名是 (文案, options) —— **第一个参数是文案本身**，
+     * options 只认 { plain / duration / parseHtml }。此前这里按 Element Plus 的写法传了
+     * 单个对象 { message, duration, showClose }，于是对象被当成文案直接渲染，
+     * 界面上出现 `{ "message": "已复制", "duration": 2000, "showClose": true }` 这样的裸 JSON。</p>
+     */
     const toast: ToastApi = {
         success: (content: string, duration: number = 2000): void => {
-            message.success({
-                message: content,
-                duration,
-                showClose: true
-            })
+            message.success(content, { duration })
         },
 
         error: (content: string, duration: number = 3000): void => {
-            message.error({
-                message: content,
-                duration,
-                showClose: true
-            })
+            message.error(content, { duration })
         },
 
         warning: (content: string, duration: number = 2500): void => {
-            message.warning({
-                message: content,
-                duration,
-                showClose: true
-            })
+            message.warning(content, { duration })
         },
 
         info: (content: string, duration: number = 2000): void => {
-            message.info({
-                message: content,
-                duration,
-                showClose: true
-            })
+            message.info(content, { duration })
         },
 
         loading: (content: string, duration: number = 0) => {
@@ -308,10 +300,11 @@ export function usePopup(): UsePopupReturn {
             const messageFn = ElMessage as typeof ElMessage & {
                 loading(opts: Record<string, unknown>): unknown
             };
+            // 同上：ElMessage.loading 接受 { message, duration }，
+            // 但为与 @repo/core 保持一致，这里走原生 ElMessage，文案仍是第一个参数。
             return messageFn.loading({
                 message: content,
-                duration,
-                showClose: true
+                duration
             })
         }
     }

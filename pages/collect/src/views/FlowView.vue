@@ -746,6 +746,7 @@ async function refreshStates(): Promise<void> {
         :load-tables="loadTables"
         :load-columns="loadColumns"
         :placeholder-groups="placeholderGroups"
+        :saved-at="currentFlow?.updateTime ?? null"
         @change="dirty = true"
       />
 

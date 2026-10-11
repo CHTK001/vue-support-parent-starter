@@ -49,10 +49,10 @@
             :clickable="file.fileType === 'image'" @click="handleImageClick(Number(index))"></FileItem>
         </div>
         <!-- 用户操作按钮 -->
-        <MessageActions :is-assistant="false" :is-last="false" :allow-generate="allowGenerate" :content-versions="[]"
-          :current-version-index="0" :time-full="userTime.full" :time-friendly="userTime.firendly"
+        <MessageActions :is-assistant="false" :is-last="false" :allow-generate="allowGenerate"
+          :time-full="userTime.full" :time-friendly="userTime.firendly"
           @copy="emit('copy', turn.user)" @generate="emit('generate', turn.user)" @edit="emit('edit', turn.user)"
-          @delete="emit('delete', turn.user)" />
+          @delete="emit('delete', turn.user)" @fork="emit('fork', turn.user)" />
       </div>
     </div>
 
@@ -95,14 +95,10 @@
             :messages="turn.assistants" />
 
           <!--
-            执行计时徽标（居中）：回合仍在执行的实时信号，按整秒自增（图示 17s 样式）。
-            时长源自 useStreamResponse 的 100ms 计时器（message.totalDurationMs）；
-            流式结束徽标即消失，最终耗时由底部操作区展示。
+            执行计时徽标已并入下方「工作中」状态行的右侧（见本组件流式区块）。
+            原先是内容区居中的独立徽标，与左下角的「工作中」分成两处，
+            同一个数字和状态文字被拆到对角，读起来像两件事。
           -->
-          <div v-if="streamingState.isStreaming && elapsedPillText" class="exec-timer" role="timer"
-            :aria-label="t('chat.turn.working')">
-            <span class="exec-timer__pill">{{ elapsedPillText }}</span>
-          </div>
 
           <!-- 计划批准卡片（plan_exit 人工确认） -->
           <PlanApprovalCard
@@ -161,7 +157,7 @@
               </el-alert>
             </div>
           </template>
-          <!-- 流式期间：三点动画 + 工作中状态 -->
+          <!-- 流式期间：三点动画 + 工作中状态 + 实时耗时（同一行，耗时在状态文字右侧） -->
           <div v-if="streamingState.isStreaming" class="mt-3 flex items-center gap-2 text-xs text-gray-400">
             <!-- 三点动画 -->
             <div class="typing-indicator">
@@ -173,9 +169,11 @@
               <span class="text-amber-500 dark:text-amber-400">{{ assistantMetadata.retryInfo.message }}</span>
             </template>
             <template v-else>
-              <!-- 时长已改由居中的计时徽标承载，这里只留状态文案，避免同一数字出现两处 -->
               <span>{{ t('chat.turn.working') }}</span>
             </template>
+            <!-- 实时耗时：贴在状态文字右侧，与状态同属一行（用户要求整体显示在「工作中」右侧） -->
+            <span v-if="elapsedPillText" class="exec-timer__pill ml-0.5" role="timer"
+              :aria-label="t('chat.turn.working')">{{ elapsedPillText }}</span>
           </div>
 
           <!-- Token 消耗 -->
@@ -208,13 +206,12 @@
 
         <!-- 操作按钮（含版本切换 / 从此处回退 / 从此处分叉） -->
         <MessageActions v-if="!streamingState.isStreaming" :is-assistant="true" :is-last="isLast"
-          :allow-generate="false" :content-versions="siblingVersions" :current-version-index="currentVersionIndex"
+          :allow-generate="false"
           :time-full="assistantTime.full" :time-friendly="assistantTime.firendly" :duration-text="durationText"
           @copy="emit('copy', activeAssistant)" @regenerate="emit('regenerate', activeAssistant)"
-          @switch-version="switchContent" @edit="emit('edit', activeAssistant)"
+          @edit="emit('edit', activeAssistant)"
           @delete="emit('delete', activeAssistant)"
-          @rewind="activeAssistant && emit('rewind', activeAssistant)"
-          @fork="activeAssistant && emit('fork', activeAssistant)" />
+          @rewind="activeAssistant && emit('rewind', activeAssistant)" />
       </div>
     </template>
 
@@ -273,7 +270,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  switch: [message: Message, versionId: string]
   delete: [message: Message]
   edit: [message: Message]
   copy: [message: Message]
@@ -331,41 +327,19 @@ const isGroupExpanded = (groupId: string): boolean => {
 };
 
 // ============================================
-// 版本管理
+// 当前回复
 // ============================================
-const siblingVersions = computed(() =>
-  props.turn.assistants.map((a) => a.id)
-);
-
+/**
+ * 一轮只展示一条回复。历史会话里可能残留同 parentId 的多条 assistant
+ * （多版本时代的数据），currentVersionId 仍能定位到用户当时选中的那条；
+ * 定位不到就退回最后一条，避免渲染空白。
+ */
 const activeAssistant = computed(() => {
   const user = props.turn.user;
   const activeId = user?.currentVersionId;
   if (activeId) return props.turn.assistants.find((a) => a.id === activeId);
   return props.turn.assistants[props.turn.assistants.length - 1];
 });
-
-const currentVersionIndex = computed(() => {
-  if (!activeAssistant.value) return 0;
-  return siblingVersions.value.indexOf(activeAssistant.value.id);
-});
-
-const switchContent = (direction: 'prev' | 'next') => {
-  const currentIndex = currentVersionIndex.value;
-  if (currentIndex === -1) return;
-  let newIndex: number;
-  if (direction === 'prev' && currentIndex > 0) {
-    newIndex = currentIndex - 1;
-  } else if (direction === 'next' && currentIndex < siblingVersions.value.length - 1) {
-    newIndex = currentIndex + 1;
-  } else {
-    return;
-  }
-  const targetId = siblingVersions.value[newIndex];
-  const targetMsg = props.turn.assistants.find((a) => a.id === targetId);
-  if (targetMsg && activeAssistant.value) {
-    emit('switch', activeAssistant.value, targetId);
-  }
-};
 
 // ============================================
 // 展示计算
@@ -666,15 +640,17 @@ const durationText = computed(() => {
 });
 
 /**
- * 居中计时徽标文案：整秒显示（<60s → `17s`，≥60s → `2m 5s`）。
- * 与底部 MessageActions 的最终耗时（带小数）区分——徽标只服务于「还在跑」的实时信号。
+ * 计时徽标文案：精确到小数点后 1 位（<60s → `6.8s`，≥60s → `2m 5.4s`）。
+ * 与底部 MessageActions 的最终耗时区分——徽标只服务于「还在跑」的实时信号。
+ * 原先这里用 Math.floor 取整秒，6.8s 会显示成 6s，看着像卡住不动；
+ * 用户要求 1 位小数，与 formatDuration 的口径保持一致。
  */
 const elapsedPillText = computed(() => {
   const ms = totalDurationMs.value;
   if (ms === null || ms === undefined) return '';
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${s % 60}s`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  return `${Math.floor(s / 60)}m ${(s % 60).toFixed(1)}s`;
 });
 
 const tokenUsage = computed(() => {
@@ -1208,13 +1184,7 @@ const handleClick = (event: MouseEvent) => {
   }
 }
 
-/* ── 居中执行计时徽标（17s 样式）：回合执行期间的实时信号 ── */
-.exec-timer {
-  display: flex;
-  justify-content: center;
-  padding: 6px 0 2px;
-}
-
+/* ── 执行计时徽标：与「工作中」同一行，紧跟状态文字右侧 ── */
 .exec-timer__pill {
   display: inline-flex;
   align-items: center;

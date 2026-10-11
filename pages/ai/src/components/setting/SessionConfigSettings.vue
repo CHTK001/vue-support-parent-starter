@@ -53,8 +53,11 @@
       </SettingsRow>
 
       <p class="session-config-note">
-        提示：这里改的是<b>默认值</b>。每个会话会保留自己当时的取值，之后再改默认值不会回溯改写已有会话；
-        想让某个会话重新跟随默认值，可在会话页把该会话的开关关掉再打开。
+        <span class="session-config-note__icon"><el-icon><InfoFilled /></el-icon></span>
+        <span class="session-config-note__text">
+          提示：这里改的是<b>默认值</b>。每个会话会保留自己当时的取值，之后再改默认值不会回溯改写已有会话；
+          想让某个会话重新跟随默认值，可在会话页把该会话的开关关掉再打开。
+        </span>
       </p>
     </SettingsCard>
   </div>
@@ -67,6 +70,7 @@ import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 const { notify } = usePopup()
@@ -274,10 +278,34 @@ onMounted(load)
   white-space: nowrap;
 }
 
+/* 底部说明：SettingsCard 自身无内边距，里面的 .set-row 各带 15px 18px，
+   这段裸 <p> 直接贴着卡片左右边框与下边缘，看起来像溢出。补齐 18px 左右 +
+   底部留白，并用一条与 .set-row 分隔线同源的细线把「说明」和「配置项」分开。 */
 .session-config-note {
-  margin: 4px 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 18px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
   color: var(--el-text-color-secondary);
   font-size: 12px;
   line-height: 18px;
+}
+
+.session-config-note__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--el-text-color-placeholder);
+}
+
+.session-config-note__text {
+  min-width: 0;
+}
+
+/* <b> 就在本组件模板里，scoped 样式直接命中，无需 :deep */
+.session-config-note b {
+  color: var(--el-text-color-regular);
+  font-weight: 600;
 }
 </style>

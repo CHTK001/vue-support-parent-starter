@@ -81,6 +81,11 @@ export function glueKindLabel(job: JobRuntime): string {
   return kind === "fragment" ? `片段 · ${label}` : `脚本 · ${label}`;
 }
 
+/** 非流程 / 非脚本行的兜底分组标签：collect-flow 固定成中文「采集流程」，其余分组原样 */
+export function groupLabelOf(job: JobRuntime): string {
+  return job.group === COLLECT_FLOW_GROUP ? "采集流程" : (job.group || "");
+}
+
 /** 详情正文标签：片段写方法体、脚本写完整文件，按语言分别说明 */
 export function detailSourceLabel(job: JobRuntime): string {
   const kind = kindOfGlueType(job.glueType);

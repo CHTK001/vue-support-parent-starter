@@ -10,10 +10,18 @@
  *           通过 addRoute("layout", ...) 平铺到 koi 布局下；分组父节点既无 component 又无 redirect，
  *           因此不会被注册为路由，只作为菜单分组容器存在。
  *   - 隐藏路由（showLink:false）保留在顶层：菜单过滤时被剔除，但仍会被注册为可访问路由。
+ *   - 数据源管理页不写在这里：由 @pages/datasource 的 createDatasourceManageRoutes 产出后展开合并。
+ *     路由表与「类型→管理页路径」映射必须同出一处，否则宿主各抄一份必然漏
+ *     （历史上采集调度应用就漏了 /prometheus，表现为「打开管理」只对 Prometheus 报未注册）。
  *
  * 路由模式：hash（routerMode: "hash"）
  */
 import type { RouteConfigsTable } from "@repo/core";
+// 数据源管理页（数据库/Redis/InfluxDB/Neo4j/Nacos/ZooKeeper/etcd/Nginx/Prometheus 及其嵌入页）
+// 由 @pages/datasource 自己收敛声明：路由表与「类型→路径」映射同出一处，宿主只管合并。
+// 这里深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
+// 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
+import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
 
 /** 监控管理平台路由树（分组结构） */
 export const monitorRoutes: RouteConfigsTable[] = [
@@ -279,85 +287,15 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "主机监控详情", icon: "Monitor", showLink: false, activeMenu: "/assets" },
   },
   {
-    path: "/influxdb",
-    name: "InfluxDB",
-    component: () => import("@pages/datasource/src/views/console/InfluxDBManageView.vue"),
-    meta: { title: "InfluxDB 管理", icon: "DataAnalysis", showLink: false, activeMenu: "/datasource" },
-  },
-  {
     // 关系图组件能力验收台：不挂侧边栏，仅供验收脚本访问
     path: "/re-relation-graph-lab",
     name: "ReRelationGraphLab",
     component: () => import("./views/ReRelationGraphLab.vue"),
     meta: { title: "关系图验收台", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
-  {
-    path: "/etcd",
-    name: "Etcd",
-    component: () => import("@pages/datasource/src/views/console/EtcdManageView.vue"),
-    meta: { title: "etcd 管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    path: "/neo4j",
-    name: "Neo4j",
-    component: () => import("@pages/datasource/src/views/console/Neo4jManageView.vue"),
-    meta: { title: "Neo4j 管理", icon: "Share", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    path: "/nacos",
-    name: "Nacos",
-    component: () => import("@pages/datasource/src/views/console/NacosManageView.vue"),
-    meta: { title: "Nacos 管理", icon: "Setting", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    path: "/zookeeper",
-    name: "Zookeeper",
-    component: () => import("@pages/datasource/src/views/console/ZookeeperManageView.vue"),
-    meta: { title: "ZooKeeper 管理", icon: "Share", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    path: "/nginx",
-    name: "Nginx",
-    component: () => import("@pages/datasource/src/views/console/NginxManageView.vue"),
-    meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    // 自定义看板嵌入页：standalone 注册为顶层路由（不套 layout），供其他系统 iframe 嵌入；
-    // 免登录由 route.whiteList 的 /nginx/embed/** 放行。
-    path: "/nginx/embed/:token",
-    name: "NginxEmbed",
-    component: () => import("@pages/datasource/src/views/console/NginxEmbedView.vue"),
-    meta: { title: "Nginx 看板", showLink: false, standalone: true },
-  },
-  {
-    path: "/prometheus",
-    name: "Prometheus",
-    component: () => import("@pages/datasource/src/views/console/PrometheusManageView.vue"),
-    meta: { title: "Prometheus 管理", icon: "DataLine", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    // 自定义看板嵌入页：standalone 注册为顶层路由（不套 layout），供其他系统 iframe 嵌入；
-    // 免登录由 route.whiteList 的 /prometheus/embed/** 放行。
-    path: "/prometheus/embed/:token",
-    name: "PrometheusEmbed",
-    component: () => import("@pages/datasource/src/views/console/PrometheusEmbedView.vue"),
-    meta: { title: "Prometheus 看板", showLink: false, standalone: true },
-  },
-  {
-    path: "/redis-manage",
-    name: "RedisManage",
-    component: () => import("@pages/datasource/src/views/console/RedisManageView.vue"),
-    meta: { title: "Redis 管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    // 数据库管理：由「数据源中心」页面内进入，仅注册路由不进侧边栏。
-    // 放在顶层隐藏区，才能被 getShowStaticAndDynamicMenuList 的顶层 isVisible=0 过滤掉；
-    // 挂在分组 children 下时该过滤不递归、菜单组件也不校验子项 showLink，会被渲染出来。
-    path: "/db-manager",
-    name: "DbManager",
-    component: () => import("@pages/datasource/src/views/console/DatabaseManagerView.vue"),
-    meta: { title: "数据库管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
-  },
+  // 数据源管理页：全部 showLink:false（不进侧边栏），由「数据中心」的「打开管理」进入，
+  // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
+  ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
   {
     path: "/discovery",
     name: "Discovery",

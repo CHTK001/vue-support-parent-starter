@@ -297,6 +297,8 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 <style lang="scss" scoped>
 .koi-dialog-custom-header {
+  position: relative;
+  top: -4px;
   display: flex;
   align-items: center;
   justify-content: space-between;

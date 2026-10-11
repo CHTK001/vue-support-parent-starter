@@ -50,10 +50,35 @@
   color: var(--lib-text-secondary);
 }
 
+/* 「已修复」标签：修复后的图与原始档案是两张不同的脸，
+   需要一眼可辨，否则排查「为什么这张图的识别分这么低」时无从下手 */
+.lib-badge.is-repaired {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #b3701d;
+  background: #fdf3e0;
+}
+
 .lib-head-actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  align-items: center;
+}
+
+/* ── 隐私显示开关（人脸底库）─────────────────────────────
+   人脸属敏感个人信息，底库又常在投屏/录屏演示时打开，
+   故默认隐藏整屏缩略图，开关状态带文字而非只留一个图标，
+   避免看图的人不知道「图是被我藏起来的」。 */
+.lib-privacy-switch {
+  --el-switch-on-color: var(--el-color-primary);
+}
+
+.lib-privacy-hint {
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+  white-space: nowrap;
 }
 
 /* ── 未就绪引导 ───────────────────────────────────────── */

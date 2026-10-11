@@ -63,7 +63,7 @@
         <el-alert
           v-if="hint"
           class="flm-alert"
-          :type="points.length ? 'success' : 'warning'"
+          :type="fellBackToCrop && points.length ? 'warning' : points.length ? 'success' : 'warning'"
           :closable="false"
           show-icon
           :title="hint"
@@ -110,6 +110,14 @@ const natural = ref({ w: 1, h: 1 })
 const signed = ref<boolean | null>(null)
 const hint = ref('')
 const emptyText = ref('')
+/**
+ * 是否退化到了裁剪脸。
+ *
+ * <p>裁剪脸是按检测框裁出并对齐过的，画在它上面的五点**天然是正的**，
+ * 所以「点看着挺准」什么也证明不了。必须让用户知道现在看的是降级图，
+ * 否则会误以为模型没问题。</p>
+ */
+const fellBackToCrop = ref(false)
 
 /** data URL → Blob（本地缩略图兜底路径用） */
 function dataUrlToBlob(dataUrl: string): Blob | null {
@@ -148,6 +156,7 @@ function cleanup() {
   signed.value = null
   hint.value = ''
   emptyText.value = ''
+  fellBackToCrop.value = false
 }
 
 async function load() {
@@ -155,15 +164,25 @@ async function load() {
   loading.value = true
   let objectUrl = ''
   try {
-    let blob = await apiService.faceImageBlob(props.faceId)
-    let source = '服务端登记图'
+    // 优先原图：关键点是原图像素坐标，只有画在原图上，点的偏移才反映真实的
+    // 检测/对齐误差。画在裁剪脸上永远是正的（裁剪时已按框对齐过），
+    // 无论模型准不准都看不出问题，这个功能就等于在自欺欺人。
+    let blob = await apiService.originalImageBlob(props.faceId)
+    let source = '登记原图'
+    if (!blob) {
+      // 改造前登记的老数据只落了裁剪脸，没有原图
+      blob = await apiService.faceImageBlob(props.faceId)
+      source = '登记裁剪脸'
+      fellBackToCrop.value = !!blob
+    }
     if (!blob && props.fallbackThumb) {
       blob = dataUrlToBlob(props.fallbackThumb)
       source = '本机缩略图'
+      fellBackToCrop.value = false
     }
     if (!blob) {
       emptyText.value = '该条没有服务端登记图（改造前登记的老数据），本浏览器也没有缩略图，无法绘制特征点'
-      hint.value = '重新登记一次即可把裁剪脸落存到服务端'
+      hint.value = '重新登记一次即可把原图与裁剪脸一起落存到服务端'
       return
     }
     objectUrl = URL.createObjectURL(blob)
@@ -203,7 +222,10 @@ async function load() {
     box.value = res.box
       ? { x: Number(res.box.x), y: Number(res.box.y), width: Number(res.box.width), height: Number(res.box.height) }
       : null
-    hint.value = `已绘制 ${pts.length} 个特征点（取自${source}）`
+    hint.value = fellBackToCrop.value
+      ? `已绘制 ${pts.length} 个特征点，但当前画的是**裁剪脸**（该条登记于原图留存的改造之前）：` +
+        '裁剪脸已按检测框对齐，点看着是正的，**不能据此判断关键点模型准不准**。重新登记一次即改用原图。'
+      : `已绘制 ${pts.length} 个特征点（取自${source}）`
   } catch (e: any) {
     hint.value = String(e?.message ?? e).slice(0, 120)
   } finally {

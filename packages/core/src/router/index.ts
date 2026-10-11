@@ -99,10 +99,27 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
   const initialLayoutRoutes = layoutRoutes;
 
   const router = createRouter({
-    history: mode === "hash" ? createWebHashHistory() : createWebHistory(import.meta.env.BASE_URL),
+    // hash 模式必须显式传 base。默认 createWebHashHistory() 会把打开时的 pathname
+    // （如 /login）当成 hash base，后续路由就变成 /login#/collect/datasource/list。
+    history:
+      mode === "hash"
+        ? createWebHashHistory(import.meta.env.BASE_URL || "/")
+        : createWebHistory(import.meta.env.BASE_URL),
     routes: [...initialLayoutRoutes, ...businessRoutes, ...fallback] as RouteRecordRaw[],
     scrollBehavior: () => ({ left: 0, top: 0 }),
   });
+
+  // hash 模式启动归一化：把遗留的 pathname（如 /login、/collect/datasource/list）改回 base，
+  // 只保留 # 后面的路由。否则地址栏会长期停留在 /login#/xxx，刷新/分享都会带出不正常路径。
+  if (mode === "hash" && typeof window !== "undefined") {
+    const basePath = new URL(import.meta.env.BASE_URL || "/", window.location.origin).pathname.replace(/\/$/, "");
+    const currentPath = window.location.pathname.replace(/\/$/, "");
+    if (currentPath !== basePath && window.location.hash) {
+      window.history.replaceState(null, "", `${basePath || "/"}${window.location.search || ""}${window.location.hash}`);
+    } else if (currentPath !== basePath && !window.location.hash) {
+      window.history.replaceState(null, "", `${basePath || "/"}${window.location.search || ""}${window.location.hash || "#/"}`);
+    }
+  }
 
   // 基础路由注册就绪标记：业务应用在初始导航前 await（见 waitForBaseRoutes）
   let baseRoutesReady: Promise<void> | undefined = undefined;

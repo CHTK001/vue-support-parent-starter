@@ -7,8 +7,17 @@
     <div class="set-row-body">
       <div class="set-row-text">
         <span class="set-row-label">
-          <slot name="label">{{ label }}</slot>
+          <slot name="label">
+            <span ref="labelEl" class="set-row-label-text">{{ label }}</span>
+          </slot>
+          <el-tooltip v-if="tip" :content="tip" placement="top" :show-after="150"
+            :disabled="!tipOverflows" :open-delay="150">
+            <el-icon class="set-row-tip"><QuestionFilled /></el-icon>
+          </el-tooltip>
           <span v-if="badge" class="set-row-badge">{{ badge }}</span>
+          <el-tooltip v-if="risk" :content="riskTip" placement="top" :show-after="120">
+            <span class="set-row-risk" :class="`is-${risk}`" role="img" :aria-label="riskTip" />
+          </el-tooltip>
         </span>
         <span v-if="description || $slots.description" class="set-row-desc">
           <slot name="description">{{ description }}</slot>
@@ -22,17 +31,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useSlots, watch, nextTick } from 'vue'
+import { QuestionFilled } from '@element-plus/icons-vue'
 
 /**
  * 统一的设置行（现代化扁平设计系统）：左侧标签 + 说明，右侧控件。
  * 同一卡片内相邻行自动出现内凹分隔线；控件右缘对齐；全部走 CSS 变量，自动适配深色。
+ *
+ * tip：标签过长时的兜底。原设计让长标签把左侧文本列撑开，右控件被挤走、
+ * 甚至把整行撑破；这里改为「标签单行省略 + 溢出才显示问号图标」，
+ * 完整文案只在 hover 气泡里出现，布局宽度恒定可控。
  */
 defineOptions({ name: 'SettingsRow' })
 const props = defineProps<{
   label?: string
   description?: string
   badge?: string
+  /** 标签过长时改用 tip 气泡承载完整文案（留空则不启用） */
+  tip?: string
+  /**
+   * 变更风险标记：`high` 红点 / `medium` 黄点，留空不显示。
+   *
+   * <p>用于「这一项改了会让已有数据失效」的设置项。底库已经入库时改特征模型，
+   * 旧向量与新向量不在同一空间，全部人脸从此认不出来——但界面没有任何提示，
+   * 用户只能事后在识别页看到「谁都不匹配」。红点把这件事提前到改之前。</p>
+   */
+  risk?: 'high' | 'medium'
+  /** 风险点的 hover 文案 */
+  riskTip?: string
   /** 控件区宽度（CSS 值，如 220px） */
   controlWidth?: string
   /** 控件区占满剩余宽度 */
@@ -44,6 +70,42 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 defineEmits<{ 'row-click': [evt: MouseEvent] }>()
+
+const slots = useSlots()
+const labelEl = ref<HTMLElement | null>(null)
+/** 标签是否真的被省略号截断——只有截断了才提示，完整可见时不再重复展示气泡 */
+const tipOverflows = ref(false)
+
+/** 重新测量标签是否溢出。用 rAF 合并，避免同一轮渲染里重复读布局 */
+let measureRaf = 0
+function scheduleMeasure() {
+  if (measureRaf) return
+  measureRaf = requestAnimationFrame(() => {
+    measureRaf = 0
+    const el = labelEl.value
+    if (!el) {
+      tipOverflows.value = false
+      return
+    }
+    // scrollWidth 含被省略掉的溢出宽度，故与 clientWidth 比较即可判断截断
+    tipOverflows.value = el.scrollWidth > el.clientWidth + 1
+  })
+}
+
+let resizeObserver: ResizeObserver | null = null
+onMounted(() => {
+  scheduleMeasure()
+  if (labelEl.value && typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(scheduleMeasure)
+    resizeObserver.observe(labelEl.value)
+  }
+})
+onBeforeUnmount(() => {
+  if (measureRaf) cancelAnimationFrame(measureRaf)
+  resizeObserver?.disconnect()
+})
+
+watch(() => [props.label, props.tip, slots.label?.()], () => nextTick(scheduleMeasure), { flush: 'post' })
 
 const controlStyle = computed(() => {
   if (props.controlFlex) return { flex: '0 1 380px', width: '380px', maxWidth: '100%', minWidth: '180px' }
@@ -78,7 +140,37 @@ const controlStyle = computed(() => {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 13.5px; font-weight: 600; line-height: 1.4;
   color: var(--el-text-color-primary);
+  /* 标签列可收缩：过长时在行内省略，完整文案交给 tip 气泡，
+     避免长标题把右控件挤出可视区（原来的布局问题） */
+  min-width: 0; max-width: 100%;
 }
+.set-row-label-text {
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.set-row-tip {
+  font-size: 14px; flex-shrink: 0; cursor: help;
+  color: var(--el-text-color-placeholder);
+}
+.set-row-tip:hover { color: var(--el-color-primary); }
+/* 变更风险点：红=改了会让已有数据彻底失效；黄=会有影响但不至于全废 */
+.set-row-risk {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  cursor: help;
+}
+.set-row-risk.is-high {
+  background: var(--el-color-danger, #f56c6c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger, #f56c6c) 20%, transparent);
+}
+.set-row-risk.is-medium {
+  background: var(--el-color-warning, #e6a23c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-warning, #e6a23c) 20%, transparent);
+}
+/* 无 label prop 但有 label 插槽时，插槽内容自己负责省略 */
+.set-row-label > :deep(*) { min-width: 0; }
 .set-row-badge {
   font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
   color: var(--el-color-primary);

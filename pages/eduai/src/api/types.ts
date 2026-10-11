@@ -89,6 +89,15 @@ export interface QuestionImportResult {
   errors: string[];
 }
 
+/** 老师上传题目结果，对应后端 TeacherQuestionUploadVO */
+export interface TeacherQuestionUploadResult {
+  successCount: number;
+  failedCount: number;
+  errors: string[];
+  /** 是否自动通过（管理员配置「老师上传自动通过」开启时为 true） */
+  autoApproved: boolean;
+}
+
 /** 试卷详情内的题目（后端 QuestionVO 短字段名） */
 export interface PaperQuestionItem {
   id: number;

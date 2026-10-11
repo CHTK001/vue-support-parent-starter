@@ -193,6 +193,19 @@ export interface RelationGraphApi {
   getData: () => RelationGraphData;
   setLayout: (name: RelationLayoutName, options?: Record<string, unknown>) => Promise<void>;
   getLayout: () => string;
+  /**
+   * 展开布局调参面板。
+   *
+   * <p>供 {@code toolbar=false} 的调用方在自己的工具栏上放按钮驱动；
+   * {@code tunable=false} 时为空操作。</p>
+   */
+  openTuning: () => void;
+  /** 收起布局调参面板 */
+  closeTuning: () => void;
+  /** 切换布局调参面板开合 */
+  toggleTuning: () => void;
+  /** 以当前调参值立即重跑一次布局 */
+  applyLayoutTuning: () => Promise<void>;
   fitView: () => Promise<void>;
   zoomIn: () => Promise<void>;
   zoomOut: () => Promise<void>;

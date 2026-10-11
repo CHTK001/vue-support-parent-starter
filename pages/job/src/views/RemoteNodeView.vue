@@ -3,21 +3,22 @@
  * RemoteNodeView —— 远程节点：在线执行器节点看板
  *
  * 数据来自执行器注册上报（GET /v2/scheduler/nodes）：节点标识、角色、长链地址与处理器清单。
- * 这个接口只由调度中心角色（SCHEDULER）持有执行器注册表，单机/执行器角色的注册表恒为空，
- * 所以本页必须打在调度中心节点上（dev 走 vite 代理的 COLLECT_SCHEDULER_TARGET）。
+ * 本页同时读 /summary 与 /executors 拼出本地节点卡与处理器注册表；今日执行作业来自当日日志，
+ * 处理器关联作业数来自台账分页。这些接口失败只降级相应区域，不影响整页渲染。
  *
- * 页面结构（自上而下）：居中大标题 + 右上角刷新胶囊（带下拉：立即刷新 / 自动刷新开关）、
- * 蓝色说明条、红色失败条（带重试）、节点卡片网格或空态大卡。
- * 空态大卡给的是「怎么把执行器接进来」的下一步，而不是干巴巴一句没有数据；
- * 点「查看接入文档」把启动参数摊开，执行器照着起就能上线。
+ * 页面结构：提示条 → 节点卡片网格（远程执行器 / 本地节点 / 接入新执行器）
+ * → 处理器注册表。（无页头/hero，直接进入内容）
  */
-import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref } from "vue";
+import { computed, onActivated, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReIcon from "@repo/ui/re-icon";
+import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
-import { getSummary, listNodes } from "../api/jobApi";
-import type { JobNode } from "../types/job";
+import type { ReTableColumn } from "@repo/ui/re-table";
+import { getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../api/jobApi";
+import type { JobExecutor, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
 import { errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
 import { resolveHostPath } from "../utils/hostPath";
@@ -25,29 +26,120 @@ import { resolveHostPath } from "../utils/hostPath";
 defineOptions({ name: "CollectRemoteNode" });
 
 const router = useRouter();
+
 const nodes = ref<JobNode[]>([]);
+const executors = ref<JobExecutor[]>([]);
+const summary = ref<JobSummary | null>(null);
+const todayLogs = ref<JobLog[]>([]);
+const jobs = ref<JobRuntime[]>([]);
 const loading = ref(false);
 const error = ref("");
-/** 本节点角色：单机/执行器角色不会有节点上报，空态文案按角色提示 */
-const role = ref("");
-
-/** 接入文档弹层显隐 */
+const logError = ref("");
+const jobError = ref("");
+const logTruncated = ref(false);
+const jobTruncated = ref(false);
 const docVisible = ref(false);
+const copied = ref(false);
+let copyTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** 自动刷新间隔（毫秒），0 表示关闭；下拉里切换 */
-const autoRefreshMs = ref(0);
-let autoTimer: ReturnType<typeof setInterval> | null = null;
+const LOG_PAGE_SIZE = 500;
+const LOG_MAX_PAGES = 4;
+const JOB_PAGE_SIZE = 500;
+const JOB_MAX_PAGES = 20;
 
-/**
- * 拉取在线节点与角色。
- */
+interface ProcessorRow {
+  name: string;
+  nodeLabel: string;
+  tone: "remote" | "local";
+  typeLabel: string;
+  jobCount: number;
+  status: "在线" | "空闲";
+}
+
+/** 今日 0 点的时间戳，驱动“今日执行作业”与当日分桶 */
+function todayStart(): number {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function isDispatchLog(log: JobLog): boolean {
+  const code = String(log.executeCode ?? "").toUpperCase();
+  return code === "SUCCESS" || code === "FAILURE";
+}
+
+async function loadTodayLogs(): Promise<JobLog[]> {
+  const all: JobLog[] = [];
+  for (let pageNum = 1; pageNum <= LOG_MAX_PAGES; pageNum++) {
+    const page = await pageJobLogs({ pageNum, pageSize: LOG_PAGE_SIZE, startTime: todayStart() });
+    const rows = Array.isArray(page?.data) ? page.data : [];
+    all.push(...rows);
+    const total = Number(page?.total ?? 0);
+    if (rows.length < LOG_PAGE_SIZE || all.length >= total) {
+      break;
+    }
+    if (pageNum === LOG_MAX_PAGES) {
+      logTruncated.value = true;
+    }
+  }
+  return all;
+}
+
+async function loadJobs(): Promise<JobRuntime[]> {
+  const all: JobRuntime[] = [];
+  for (let pageNum = 1; pageNum <= JOB_MAX_PAGES; pageNum++) {
+    const page = await pageJobs({ pageNum, pageSize: JOB_PAGE_SIZE });
+    const rows = Array.isArray(page?.data) ? page.data : [];
+    all.push(...rows);
+    const total = Number(page?.total ?? 0);
+    if (rows.length < JOB_PAGE_SIZE || all.length >= total) {
+      break;
+    }
+    if (pageNum === JOB_MAX_PAGES) {
+      jobTruncated.value = true;
+    }
+  }
+  return all;
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   error.value = "";
+  logError.value = "";
+  jobError.value = "";
+  logTruncated.value = false;
+  jobTruncated.value = false;
   try {
-    const [list, summary] = await Promise.all([listNodes(), getSummary()]);
-    nodes.value = list ?? [];
-    role.value = summary?.role ?? "";
+    const [sum, nodeList, executorList] = await Promise.all([
+      getSummary().catch((e) => {
+        error.value = errText(e);
+        return null as JobSummary | null;
+      }),
+      listNodes().catch((e) => {
+        error.value = errText(e);
+        return [] as JobNode[];
+      }),
+      listExecutors().catch((e) => {
+        error.value = errText(e);
+        return [] as JobExecutor[];
+      }),
+    ]);
+    summary.value = sum;
+    nodes.value = nodeList;
+    executors.value = executorList;
+
+    const [today, jobList] = await Promise.all([
+      loadTodayLogs().catch(() => {
+        logError.value = "今日执行记录取数失败，计数与趋势按已读数据展示";
+        return [] as JobLog[];
+      }),
+      loadJobs().catch(() => {
+        jobError.value = "处理器关联作业取数失败，关联数显示为 0";
+        return [] as JobRuntime[];
+      }),
+    ]);
+    todayLogs.value = today;
+    jobs.value = jobList;
   } catch (e) {
     error.value = errText(e);
   } finally {
@@ -55,38 +147,170 @@ async function load(): Promise<void> {
   }
 }
 
-/**
- * 重建自动刷新定时器。
- */
-function resetAutoTimer(): void {
-  if (autoTimer) {
-    clearInterval(autoTimer);
-    autoTimer = null;
-  }
-  if (autoRefreshMs.value > 0) {
-    autoTimer = setInterval(() => void load(), autoRefreshMs.value);
-  }
-}
-
-/**
- * 刷新胶囊下拉命令。
- *
- * @param command now 立即刷新 / 5s 开启五秒自动刷新 / off 关闭自动刷新
- */
-function onRefreshCommand(command: string): void {
-  if (command === "now") {
-    void load();
+let firstActivate = true;
+onMounted(load);
+onActivated(() => {
+  if (firstActivate) {
+    firstActivate = false;
     return;
   }
-  autoRefreshMs.value = command === "5s" ? 5000 : 0;
-  resetAutoTimer();
+  void load();
+});
+onBeforeUnmount(() => {
+  if (copyTimer) {
+    clearTimeout(copyTimer);
+  }
+});
+
+/** 在线节点口径：远程执行器 + 当前调度节点 */
+const remoteCount = computed(() => nodes.value.length);
+
+const localHandlers = computed(() => [
+  ...new Set(executors.value.filter((item) => item.source !== "REMOTE").map((item) => item.name)),
+]);
+
+const todayDispatch = computed(() => todayLogs.value.filter(isDispatchLog).length);
+const todayFailure = computed(() =>
+  todayLogs.value.filter((log) => String(log.executeCode ?? "").toUpperCase() === "FAILURE").length,
+);
+
+function processorType(name: string, source: JobExecutor["source"]): string {
+  if (name === "collect.self.check") {
+    return "系统自检";
+  }
+  if (name.startsWith("collect-flow")) {
+    return "流程";
+  }
+  if (/collect|github/i.test(name)) {
+    return "采集";
+  }
+  if (/sync|order/i.test(name)) {
+    return "同步";
+  }
+  if (/log/i.test(name)) {
+    return "日志";
+  }
+  return source === "REMOTE" ? "远程" : "处理器";
 }
 
-/**
- * 建调度作业：跳到调度作业页并带创建参数（处理器可选）。
- *
- * @param handler 目标处理器名（节点上报的执行器）
- */
+function remoteNodeName(node: JobNode): string {
+  return node.nodeId || node.clientId;
+}
+
+/** 处理器注册表：本地处理器 + 远程上报处理器，按远端在前、本机在后排序 */
+const processorRows = computed<ProcessorRow[]>(() => {
+  const jobCounts = new Map<string, number>();
+  for (const job of jobs.value) {
+    const key = job.jobKey ?? "";
+    if (key) {
+      jobCounts.set(key, (jobCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const rows: ProcessorRow[] = [];
+  const seen = new Set<string>();
+  const nodeOf = (name: string) => nodes.value.find((node) => (node.handlers ?? []).includes(name));
+
+  for (const item of executors.value) {
+    if (seen.has(item.name)) {
+      continue;
+    }
+    seen.add(item.name);
+    const node = nodeOf(item.name);
+    const isRemote = item.source === "REMOTE" || Boolean(node);
+    const jobCount = jobCounts.get(item.name) ?? 0;
+    rows.push({
+      name: item.name,
+      nodeLabel: node
+        ? `${remoteNodeName(node)} 远程`
+        : `${summary.value?.nodeId || "本节点"} 本地`,
+      tone: isRemote ? "remote" : "local",
+      typeLabel: processorType(item.name, item.source),
+      jobCount,
+      status: jobCount > 0 ? "在线" : "空闲",
+    });
+  }
+
+  for (const node of nodes.value) {
+    for (const name of node.handlers ?? []) {
+      if (seen.has(name)) {
+        continue;
+      }
+      seen.add(name);
+      const jobCount = jobCounts.get(name) ?? 0;
+      rows.push({
+        name,
+        nodeLabel: `${remoteNodeName(node)} 远程`,
+        tone: "remote",
+        typeLabel: processorType(name, "REMOTE"),
+        jobCount,
+        status: jobCount > 0 ? "在线" : "空闲",
+      });
+    }
+  }
+
+  return rows;
+});
+
+const processorSummary = computed(() => {
+  const idle = processorRows.value.filter((row) => row.status === "空闲").length;
+  return idle > 0 ? `${idle} 个空闲` : "全部在线";
+});
+
+function remoteRowsOf(node: JobNode): { label: string; value: string; mono?: boolean }[] {
+  return [
+    { label: "长链地址", value: node.serverUrl || "—", mono: true },
+    { label: "客户端", value: node.clientId, mono: true },
+    { label: "上线时间", value: fmtMs(node.registeredAt), mono: true },
+    { label: "上报处理器", value: String(node.handlerCount ?? (node.handlers || []).length), mono: true },
+  ];
+}
+
+const localCardRows = computed(() => {
+  const s = summary.value;
+  return [
+    { label: "节点类型", value: "本地节点（内置）" },
+    { label: "分组", value: s?.group || "—" },
+    { label: "扫描节奏", value: s ? `${s.scanIntervalMs} ms · 预读 ${s.preReadMs} ms` : "—" },
+    { label: "今日派发", value: `${todayDispatch.value} 次 · 失败 ${todayFailure.value}` },
+    { label: "本机处理器", value: String(localHandlers.value.length) },
+  ];
+});
+
+const localNodeId = computed(() => summary.value?.nodeId || "本节点");
+const localRoleLabel = computed(() => {
+  const s = summary.value;
+  if (!s) {
+    return "SCHEDULER";
+  }
+  return s.leader ? `${s.role ?? "SCHEDULER"} · Leader` : (s.role ?? "SCHEDULER");
+});
+
+const accessCommand = computed(() => {
+  const server = nodes.value[0]?.serverUrl || "tcp://127.0.0.1:18081";
+  return `dataflow executor \\
+  --server ${server} \\
+  --token dfx_********`;
+});
+
+async function copyExecutorCommand(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(accessCommand.value);
+    copied.value = true;
+    if (copyTimer) {
+      clearTimeout(copyTimer);
+    }
+    copyTimer = setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch {
+    copied.value = false;
+  }
+}
+
+function go(path: string): void {
+  void router.push(resolveHostPath(router, path));
+}
+
 function createJob(handler?: string): void {
   const query: Record<string, string> = { create: "1" };
   if (handler) {
@@ -95,63 +319,56 @@ function createJob(handler?: string): void {
   void router.push({ path: resolveHostPath(router, "/collect/job"), query });
 }
 
-/** 空态描述：按本节点角色说明该由谁上报，别让人以为页面坏了 */
-const emptyTip = computed<string>(() => {
-  if (role.value === "SCHEDULER") {
-    return "执行器以 EXECUTOR 角色启动并连上本调度中心（SyncServer）后，这里会显示它的地址与已注册处理器。";
-  }
-  if (role.value) {
-    return `当前本节点角色是 ${role.value}，它不持有执行器注册表；切到调度中心（SCHEDULER）节点查看在线节点。`;
-  }
-  return "执行器以 EXECUTOR 角色启动并连上调度中心（SyncServer）后，这里会显示它的地址与已注册处理器。";
-});
-
-onMounted(load);
-// keep-alive 页面离开时只是停用、不会卸载：自动刷新必须在这里停掉，
-// 否则切到别的标签页仍在按秒轮询调度中心接口；回来时 onActivated 重新拉数据并续上定时器。
-onActivated(() => {
-  void load();
-  resetAutoTimer();
-});
-onDeactivated(resetAutoTimer);
-onBeforeUnmount(resetAutoTimer);
+const processorColumns: ReTableColumn[] = [
+  { prop: "name", label: "处理器名称", minWidth: 190, slot: "name", showOverflowTooltip: true },
+  { prop: "nodeLabel", label: "所在节点", minWidth: 180, slot: "node", showOverflowTooltip: true },
+  { prop: "typeLabel", label: "类型", width: 100 },
+  { prop: "jobCount", label: "关联作业", width: 100, align: "right" },
+  { prop: "status", label: "状态", width: 90, slot: "status" },
+];
 </script>
 
 <template>
-  <div class="node-page">
-     <div class="node-banner node-banner--info">
-      <span class="node-banner__icon"><el-icon><Bottom /></el-icon></span>
-      <span class="node-banner__text">
-        执行器注册上报的在线节点（{{ nodes.length }} 个），断开即消失；点处理器标签可就地为它建一条调度作业
+  <div v-loading="loading" class="node-page">
+    <!-- 提示条 / 失败条 -->
+    <div class="node-banner node-banner--info">
+      <ReIcon name="Connection" :size="14" class="node-banner__icon" />
+      <span>
+        执行器注册上报的在线节点（远程 {{ remoteCount }} 个），断开即消失；点处理器标签可就地为它建一条调度作业。
       </span>
+      <button v-if="nodes.length" type="button" class="node-banner__more" @click="go('/collect/job')">
+        去调度作业 <ReIcon name="Right" :size="12" />
+      </button>
     </div>
 
     <div v-if="error" class="node-banner node-banner--error">
-      <span class="node-banner__icon"><el-icon><WarningFilled /></el-icon></span>
-      <span class="node-banner__text">{{ error }}</span>
-      <el-button class="node-banner__action" @click="load">重试</el-button>
+      <ReIcon name="WarningFilled" :size="14" class="node-banner__error-icon" />
+      <span>{{ error }}</span>
+      <ReButton class="node-banner__retry" text size="small" @click="load">重试</ReButton>
     </div>
 
-    <div v-if="nodes.length" class="node-grid">
-      <div v-for="node in nodes" :key="node.clientId" class="node-card">
-        <div class="node-card__head">
-          <span class="node-card__title" :title="node.nodeId || node.clientId">
-            {{ node.nodeId || node.clientId }}
-          </span>
-          <ReTag type="success" effect="plain" dot>在线</ReTag>
-          <ReTag type="info" effect="plain">{{ node.role || "EXECUTOR" }}</ReTag>
-        </div>
+    <!-- 节点卡片网格 -->
+    <div class="node-grid">
+      <article v-for="node in nodes" :key="node.clientId" class="node-card node-card--remote">
+        <header class="node-card__head">
+          <div class="node-card__id">
+            <span class="node-card__title" :title="remoteNodeName(node)">{{ remoteNodeName(node) }}</span>
+            <span class="node-card__sub" :title="node.clientId">{{ node.clientId }}</span>
+          </div>
+          <div class="node-card__badges">
+            <ReTag type="success" effect="plain" dot size="small">在线</ReTag>
+            <ReTag type="info" effect="plain" size="small">{{ node.role || "EXECUTOR" }}</ReTag>
+          </div>
+        </header>
 
         <dl class="node-card__meta">
-          <dt>长链地址</dt>
-          <dd class="node-card__mono">{{ node.serverUrl || "—" }}</dd>
-          <dt>客户端</dt>
-          <dd class="node-card__mono" :title="node.clientId">{{ node.clientId }}</dd>
-          <dt>上线时间</dt>
-          <dd class="node-card__mono">{{ fmtMs(node.registeredAt) }}</dd>
+          <template v-for="row in remoteRowsOf(node)" :key="row.label">
+            <dt>{{ row.label }}</dt>
+            <dd :class="{ 'is-mono': row.mono }" :title="row.value">{{ row.value }}</dd>
+          </template>
         </dl>
 
-        <div class="node-card__handlers">
+        <div v-if="(node.handlers || []).length" class="node-card__handlers">
           <ReTag
             v-for="handler in node.handlers"
             :key="handler"
@@ -159,54 +376,145 @@ onBeforeUnmount(resetAutoTimer);
             role="button"
             tabindex="0"
             effect="plain"
+            size="small"
             title="点击创建调度作业"
             @click="createJob(handler)"
             @keydown.enter.space="createJob(handler)"
           >
             {{ handler }}
           </ReTag>
-          <span v-if="!node.handlers.length" class="node-card__none">该节点未上报处理器</span>
         </div>
+        <span v-else class="node-card__none">该节点未上报处理器</span>
 
-        <div class="node-card__foot">
+        <footer class="node-card__foot">
           <ReButton
             type="primary"
             icon="Plus"
-            :disabled="!node.handlers.length"
-            @click="createJob(node.handlers[0])"
+            :disabled="!(node.handlers || []).length"
+            @click="createJob(node.handlers?.[0])"
           >
             创建调度作业
           </ReButton>
+          <ReButton text @click="docVisible = true">接入文档</ReButton>
+        </footer>
+      </article>
+
+      <article v-if="summary" class="node-card node-card--local">
+        <header class="node-card__head">
+          <div class="node-card__id">
+            <span class="node-card__title" :title="localNodeId">{{ localNodeId }}</span>
+            <span class="node-card__sub">{{ localRoleLabel }}</span>
+          </div>
+          <div class="node-card__badges">
+            <ReTag type="success" effect="plain" dot size="small">在线</ReTag>
+            <ReTag type="info" effect="plain" size="small">{{ localRoleLabel }}</ReTag>
+          </div>
+        </header>
+
+        <dl class="node-card__meta">
+          <template v-for="row in localCardRows" :key="row.label">
+            <dt>{{ row.label }}</dt>
+            <dd>{{ row.value }}</dd>
+          </template>
+        </dl>
+
+        <div v-if="localHandlers.length" class="node-card__handlers">
+          <ReTag
+            v-for="handler in localHandlers"
+            :key="handler"
+            class="node-handler"
+            role="button"
+            tabindex="0"
+            effect="plain"
+            size="small"
+            title="点击创建调度作业"
+            @click="createJob(handler)"
+            @keydown.enter.space="createJob(handler)"
+          >
+            {{ handler }}
+          </ReTag>
         </div>
-      </div>
+        <span v-else class="node-card__none">本机暂无已注册处理器</span>
+
+        <footer class="node-card__foot">
+          <ReButton type="success" icon="DataAnalysis" @click="go('/collect/job-overview')">
+            调度总览
+          </ReButton>
+          <ReButton text @click="go('/collect/job')">调度作业</ReButton>
+        </footer>
+      </article>
+
+      <article class="node-card node-card--access">
+        <div class="node-access">
+          <span class="node-access__icon">
+            <ReIcon name="UploadFilled" :size="18" />
+          </span>
+          <h3>接入新执行器</h3>
+          <p>在另一台机器启动 Executor，凭接入令牌通过长链注册，即可远程下发作业。</p>
+          <div class="node-access__code">
+            <pre>{{ accessCommand }}</pre>
+            <ReButton
+              text
+              size="small"
+              type="primary"
+              :icon="copied ? 'CircleCheck' : 'CopyDocument'"
+              @click="copyExecutorCommand"
+            >
+              {{ copied ? "已复制" : "复制" }}
+            </ReButton>
+          </div>
+          <button type="button" class="node-access__link" @click="docVisible = true">
+            查看接入文档 <ReIcon name="Right" :size="12" />
+          </button>
+        </div>
+      </article>
     </div>
 
-    <section v-else class="node-empty">
-      <span class="node-empty__badge">
-        <svg class="node-empty__icon" viewBox="0 0 48 48" aria-hidden="true">
-          <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">
-            <rect x="7" y="5" width="34" height="11" rx="2.6" />
-            <rect x="7" y="18.5" width="34" height="11" rx="2.6" />
-            <rect x="7" y="32" width="34" height="11" rx="2.6" />
-          </g>
-          <g fill="currentColor">
-            <circle cx="13.5" cy="10.5" r="1.6" />
-            <circle cx="13.5" cy="24" r="1.6" />
-            <circle cx="13.5" cy="37.5" r="1.6" />
-          </g>
-        </svg>
-      </span>
-      <h2 class="node-empty__title">暂无在线执行器节点</h2>
-      <p class="node-empty__desc">{{ emptyTip }}</p>
-      <el-button class="node-empty__action" @click="docVisible = true">查看接入文档</el-button>
-      <!--
-        空态也给一次手动重取：节点是执行器心跳上报的，刚起好的执行器可能要等一个
-        上报周期才出现在这里，只给「查看接入文档」等于让人干等。
-        本页没有 ReTable，空态是手写的 .node-empty，不走 ReTable 的 #empty 插槽。
-      -->
-      <ReButton class="node-empty__action" icon="Refresh" @click="load">刷新</ReButton>
+    <!-- 处理器注册表 -->
+    <section class="node-registry">
+      <header class="node-registry__head">
+        <span class="node-registry__title">
+          <ReIcon name="Cpu" :size="15" />
+          <b>处理器注册表</b>
+          <span class="node-registry__count">共 {{ processorRows.length }} 个 · {{ processorSummary }}</span>
+        </span>
+        <button type="button" class="node-registry__link" @click="go('/collect/job-log')">
+          作业日志 <ReIcon name="Right" :size="12" />
+        </button>
+      </header>
+      <div class="node-table">
+        <ReTable
+          :data="processorRows as unknown as Record<string, unknown>[]"
+          :columns="processorColumns"
+          :pagination="false"
+          :toolbar="false"
+          row-key="name"
+          :layout-table="{ minHeight: 0 }"
+          empty-text="没有已注册处理器"
+        >
+          <template #name="{ row }">
+            <span class="node-cell-mono">{{ row.name }}</span>
+          </template>
+          <template #node="{ row }">
+            <span class="node-node-cell">
+              <ReTag :type="row.tone === 'remote' ? 'primary' : 'success'" effect="plain" size="small">
+                {{ row.tone === "remote" ? "远程" : "本地" }}
+              </ReTag>
+              <span>{{ row.nodeLabel }}</span>
+            </span>
+          </template>
+          <template #status="{ row }">
+            <ReTag :type="row.status === '在线' ? 'success' : 'info'" effect="plain" dot size="small">
+              {{ row.status }}
+            </ReTag>
+          </template>
+        </ReTable>
+      </div>
+      <p v-if="logError || jobError" class="node-registry__note">{{ logError || jobError }}</p>
+      <p v-if="jobTruncated" class="node-registry__note">处理器关联作业超过已读台账上限，关联数按已读部分统计。</p>
     </section>
 
+    <!-- 接入文档弹层 -->
     <ReDialog v-model="docVisible" title="执行器接入（job-starter）" width="860px" top="6vh" footer-hidden>
       <div class="node-doc">
         <div class="node-doc__block node-doc__block--dep">
@@ -281,203 +589,176 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 </template>
 
 <style scoped>
-/* 页面底：系统页面底色 + 主色极淡光晕，亮暗都跟着令牌走 */
+/* 页面底：koi 令牌 + 宿主页色的兜底 */
 .node-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--cc-gap, 14px);
   width: 100%;
   min-height: 100%;
-  padding: 20px 24px 32px;
   box-sizing: border-box;
-  background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--el-color-primary) 7%, transparent), transparent 70%),
-    var(--el-bg-color-page);
+  background: var(--el-bg-color-page);
 }
 
-/* ===== 顶部：大标题居中 + 右侧刷新胶囊 ===== */
-.node-page__head {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 12px 0 4px;
-}
-
-.node-page__title {
-  flex: 1;
-  margin: 0;
-  text-align: center;
-  color: var(--el-text-color-primary);
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  line-height: 1.2;
-}
-
-/* 刷新：左半边直接刷新，右半边箭头下拉（自动刷新开关） */
-.node-refresh :deep(.el-button) {
-  height: 44px;
-  padding: 0 20px;
-  border-radius: var(--el-radius-full);
-  border-color: var(--el-border-color-lighter);
-  background: var(--el-bg-color-overlay);
-  color: var(--el-text-color-regular);
-  font-size: 15px;
-  font-family: var(--cc-font-num);
-  box-shadow: none;
-  transition:
-    border-color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1)),
-    color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.node-refresh :deep(.el-button__inner) {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.node-refresh :deep(.el-button:hover) {
-  border-color: var(--el-color-primary-light-7);
-  background: var(--el-bg-color-overlay);
-  color: var(--el-color-primary);
-}
-
-.node-refresh :deep(.el-button:focus-visible) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-/* ===== 提示条 / 失败条 ===== */
+/* ============ 提示条 / 失败条 ============ */
 .node-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 16px;
-  box-sizing: border-box;
-  border-radius: var(--el-radius-lg);
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 8px);
   border: 1px solid transparent;
-}
-
-.node-banner__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--el-radius-full);
-  color: var(--el-color-white);
-  font-size: 18px;
-}
-
-.node-banner__text {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
+  font-size: 12.5px;
   line-height: 1.6;
-  overflow-wrap: anywhere;
+  color: var(--text-secondary, var(--el-text-color-regular));
 }
 
 .node-banner--info {
-  border-color: color-mix(in srgb, var(--el-color-primary) 34%, transparent);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color-overlay));
-  color: var(--el-text-color-primary);
+  background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 8%, var(--bg-container, var(--el-bg-color, #ffffff)));
+  border-color: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 22%, transparent);
 }
 
-.node-banner--info .node-banner__icon {
-  background: var(--el-color-primary);
+.node-banner__icon {
+  flex: none;
+  color: var(--brand-500, var(--el-color-primary));
+}
+
+.node-banner__more {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--brand-500, var(--el-color-primary));
+  white-space: nowrap;
 }
 
 .node-banner--error {
-  border-color: color-mix(in srgb, var(--el-color-danger) 34%, transparent);
-  background: color-mix(in srgb, var(--el-color-danger) 10%, var(--el-bg-color-overlay));
-  color: var(--el-color-danger);
-  font-weight: 600;
+  background: color-mix(in srgb, var(--status-error, var(--el-color-danger)) 8%, var(--bg-container, var(--el-bg-color, #ffffff)));
+  border-color: color-mix(in srgb, var(--status-error, var(--el-color-danger)) 25%, transparent);
+  color: var(--status-error, var(--el-color-danger));
 }
 
-.node-banner--error .node-banner__icon {
-  background: var(--el-color-danger);
+.node-banner__error-icon {
+  flex: none;
 }
 
-.node-banner__action {
-  flex: 0 0 auto;
-  border-radius: var(--el-radius-full);
-  background: var(--el-bg-color-overlay);
-  border-color: var(--el-border-color-lighter);
-  color: var(--el-text-color-primary);
-  font-weight: 600;
+.node-banner__retry {
+  margin-left: auto;
 }
 
-.node-banner__action:hover {
-  border-color: var(--el-color-danger-light-5);
-  color: var(--el-color-danger);
-}
-
-/* ===== 节点卡片 ===== */
+/* ============ 节点卡片网格 ============ */
 .node-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--cc-gap, 12px);
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+@media (max-width: 1180px) {
+  .node-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .node-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .node-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
+  min-width: 0;
   padding: 16px 18px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg);
-  background: var(--el-bg-color-overlay);
-  transition: border-color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1));
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container, var(--el-bg-color, #ffffff));
+  box-shadow: var(--shadow-sm, var(--el-box-shadow-lighter));
 }
 
-.node-card:hover {
-  border-color: var(--el-color-primary-light-7);
+.node-card--remote {
+  border-top: 3px solid var(--brand-500, var(--el-color-primary));
+}
+
+.node-card--local {
+  border-top: 3px solid var(--status-success, var(--el-color-success));
+}
+
+.node-card--access {
+  border: 1px dashed var(--border-default, var(--el-border-color));
+  background: var(--bg-elevated, var(--el-bg-color-overlay));
 }
 
 .node-card__head {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.node-card__id {
   min-width: 0;
 }
 
 .node-card__title {
-  flex: 1;
-  min-width: 0;
-  color: var(--el-text-color-primary);
-  font-size: 15px;
+  display: block;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.node-card__sub {
+  display: block;
+  margin-top: 2px;
+  max-width: 220px;
+  font-size: 11.5px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .node-card__meta {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  gap: 8px 12px;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px 10px;
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .node-card__meta dt {
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
 }
 
 .node-card__meta dd {
   min-width: 0;
   margin: 0;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, var(--el-text-color-primary));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.node-card__mono {
-  font-family: var(--cc-font-num);
+.node-card__meta dd.is-mono {
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
   font-variant-numeric: tabular-nums;
 }
 
@@ -490,100 +771,208 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   padding: 2px 0;
 }
 
-/*
-  处理器芯片是 el-tag 而不是按钮：鼠标能点，键盘进不来。
-  模板里已补 role/tabindex/@keydown，这里补 outline 与焦点环，两边缺一不可。
-*/
 .node-handler {
   cursor: pointer;
   outline: none;
   transition:
-    border-color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1)),
-    color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1));
+    border-color var(--cc-duration, 180ms) var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--cc-duration, 180ms) var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .node-handler:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
+  border-color: var(--brand-500, var(--el-color-primary));
+  color: var(--brand-500, var(--el-color-primary));
 }
 
 .node-handler:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: var(--focus-ring, 0 0 0 3px color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 18%, transparent));
 }
 
 .node-card__none {
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 12.5px;
 }
 
 .node-card__foot {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-/* ===== 空态大卡 ===== */
-.node-empty {
+/* ============ 接入新执行器 ============ */
+.node-access {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 56px 32px 60px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl);
-  background: var(--el-bg-color-overlay);
-  text-align: center;
+  gap: 12px;
 }
 
-.node-empty__badge {
+.node-access__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 160px;
-  height: 160px;
-  border-radius: var(--el-radius-full);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  color: var(--el-color-primary);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md, 8px);
+  color: var(--brand-500, var(--el-color-primary));
+  background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 12%, transparent);
 }
 
-.node-empty__icon {
-  width: 76px;
-  height: 76px;
-}
-
-.node-empty__title {
-  margin: 6px 0 0;
-  color: var(--el-text-color-primary);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.node-empty__desc {
-  max-width: 680px;
+.node-access h3 {
   margin: 0;
-  color: var(--el-text-color-regular);
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary));
 }
 
-.node-empty__action {
-  margin-top: 10px;
-  padding: 0 26px;
-  border-radius: var(--el-radius-full);
-  background: var(--el-bg-color-overlay);
-  border-color: var(--el-border-color-lighter);
-  color: var(--el-text-color-primary);
-  font-size: 15px;
+.node-access p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-secondary, var(--el-text-color-regular));
 }
 
-.node-empty__action:hover {
-  border-color: var(--el-color-primary-light-7);
-  color: var(--el-color-primary);
-  background: var(--el-bg-color-overlay);
+.node-access__code {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--terminal-bg, #0d1117);
+  color: var(--text-inverse, #f2f4f8);
+  overflow: hidden;
 }
 
-/* ===== 接入文档 ===== */
-/* 弹层 body 的左右内边距由 koi ReDialog 统一给（8px 20px），这里不再自己加 */
+.node-access__code pre {
+  width: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.node-access__code :deep(button) {
+  align-self: flex-start;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.node-access__link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--brand-500, var(--el-color-primary));
+  white-space: nowrap;
+}
+
+/* ============ 处理器注册表 ============ */
+.node-registry {
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container, var(--el-bg-color, #ffffff));
+  box-shadow: var(--shadow-sm, var(--el-box-shadow-lighter));
+  overflow: hidden;
+}
+
+.node-registry__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  flex-wrap: wrap;
+}
+
+.node-registry__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary, var(--el-text-color-primary));
+}
+
+.node-registry__title b {
+  font-weight: 600;
+}
+
+.node-registry__count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+}
+
+.node-registry__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--brand-500, var(--el-color-primary));
+  white-space: nowrap;
+}
+
+.node-registry__link:hover {
+  color: var(--brand-600, var(--el-color-primary));
+  text-decoration: underline;
+}
+
+.node-table {
+  padding: 0 12px 10px;
+}
+
+/* ReTable 自带卡片外壳，页面已有一层壳，这里拆掉避免双边框 */
+.node-table :deep(.re-table) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.node-registry__note {
+  margin: 0 16px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+}
+
+.node-cell-mono {
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
+  font-size: 12.5px;
+  color: var(--text-primary, var(--el-text-color-primary));
+}
+
+.node-node-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.node-node-cell > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============ 接入文档 ============ */
 .node-doc {
   display: flex;
   flex-direction: column;
@@ -594,19 +983,18 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 
 .node-doc__h {
   margin: 0;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary, var(--el-text-color-primary));
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
 }
 
-/* 依赖说明：主色左边条，和详情卡片一个识别特征 */
 .node-doc__block--dep {
   padding: 12px 14px 12px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-left: 3px solid var(--el-color-primary);
-  border-radius: var(--el-radius-md);
-  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-left: 3px solid var(--brand-500, var(--el-color-primary));
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-fill, var(--el-fill-color-lighter));
 }
 
 .node-doc__block--dep .node-doc__h {
@@ -615,30 +1003,28 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 
 .node-doc__lead {
   margin: 0;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary, var(--el-text-color-regular));
   font-size: 13.5px;
   line-height: 1.8;
 }
 
-/* 命令行片段：整块等宽，不用逐行 code chip */
 .node-doc__code {
   margin: 0;
   padding: 12px 14px;
-  border-radius: var(--el-radius-md);
-  background: var(--el-text-color-primary);
-  color: var(--el-bg-color);
-  font-family: var(--cc-font-num);
+  border-radius: var(--radius-md, 8px);
+  background: var(--terminal-bg, #0d1117);
+  color: var(--text-inverse, #f2f4f8);
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
   font-size: 12.5px;
   line-height: 1.9;
   overflow-x: auto;
   white-space: pre;
 }
 
-/* 配置项速查表 */
 .node-doc__table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: var(--radius-md, 8px);
 }
 
 .node-doc__table {
@@ -653,19 +1039,19 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   text-align: left;
   vertical-align: top;
   white-space: nowrap;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter));
 }
 
 .node-doc__table th {
   position: sticky;
   top: 0;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
+  background: var(--bg-fill, var(--el-fill-color-light));
+  color: var(--text-primary, var(--el-text-color-primary));
   font-weight: 600;
 }
 
 .node-doc__table td {
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary, var(--el-text-color-regular));
 }
 
 .node-doc__table th:nth-child(1),
@@ -683,9 +1069,8 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   min-width: 240px;
 }
 
-/* 最小必需集：这几行配错本页就是空的 */
 .node-doc__table tr.is-key td {
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 8%, transparent);
 }
 
 .node-doc__table tr:last-child td {
@@ -694,10 +1079,10 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 
 .node-doc__table code {
   padding: 1px 6px;
-  border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color);
-  color: var(--el-text-color-primary);
-  font-family: var(--cc-font-num);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-fill, var(--el-fill-color));
+  color: var(--text-primary, var(--el-text-color-primary));
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
   font-size: 12.5px;
 }
 
@@ -707,56 +1092,22 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   gap: 6px;
   margin: 0;
   padding-left: 20px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary, var(--el-text-color-secondary));
   font-size: 13px;
   line-height: 1.8;
 }
 
 .node-doc__notes code {
   padding: 1px 5px;
-  border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color);
-  color: var(--el-text-color-primary);
-  font-family: var(--cc-font-num);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-fill, var(--el-fill-color));
+  color: var(--text-primary, var(--el-text-color-primary));
+  font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
   font-size: 12px;
-}
-
-@media (max-width: 760px) {
-  .node-page {
-    padding: 12px 14px 24px;
-  }
-
-  .node-page__title {
-    font-size: 24px;
-    letter-spacing: 0;
-  }
-
-  .node-banner {
-    align-items: flex-start;
-  }
-
-  .node-empty {
-    padding: 36px 20px 40px;
-  }
-
-  .node-empty__badge {
-    width: 112px;
-    height: 112px;
-  }
-
-  .node-empty__icon {
-    width: 56px;
-    height: 56px;
-  }
-
-  .node-empty__title {
-    font-size: 20px;
-  }
 }
 
 /* 尊重系统「减少动态效果」偏好：把本页的过渡全部关掉 */
 @media (prefers-reduced-motion: reduce) {
-  .node-refresh :deep(.el-button),
   .node-card,
   .node-handler {
     transition: none;

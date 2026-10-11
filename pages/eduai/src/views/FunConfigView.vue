@@ -101,7 +101,7 @@
           <span class="ml-2 text-xs text-gray-400">小学端会在卡片右上角显示剩余进度</span>
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" :max="100" />
+          <ReInputNumber v-model="formData.sortOrder" :min="0" :max="100" />
         </el-form-item>
         <el-form-item label="配置JSON">
           <el-input v-model="formData.configJson" type="textarea" :rows="3" placeholder='{"url":"..."}' />
@@ -123,6 +123,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
 import type { ReTableSearchConfig } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const configs = ref<FunConfig[]>([]);
 const loading = ref(false);

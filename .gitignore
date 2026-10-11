@@ -244,3 +244,10 @@ prom-embed-probe.mjs
 **/.tmp-*.mjs
 **/tests/e2e/.cache/
 **/scripts/.cache/
+
+# 一次性取证/汇总脚本与开发服务器日志、预览截图
+**/*.tmp.mjs
+**/summarize-274.mjs
+**/debug-preview-*
+**/dev-*.err
+**/acceptance-report.prev.json

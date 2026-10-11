@@ -45,7 +45,7 @@
           <el-input v-model="form.examName" />
         </el-form-item>
         <el-form-item label="试卷ID" required>
-          <el-input-number v-model="form.examPaperId" :min="1" />
+          <ReInputNumber v-model="form.examPaperId" :min="1" />
         </el-form-item>
         <el-form-item label="班级">
           <el-input v-model="form.examClassId" />
@@ -57,7 +57,7 @@
           <el-date-picker v-model="form.examEndTime" type="datetime" style="width: 100%" />
         </el-form-item>
         <el-form-item label="时长(分)">
-          <el-input-number v-model="form.examDuration" :min="10" :max="600" />
+          <ReInputNumber v-model="form.examDuration" :min="10" :max="600" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -77,6 +77,7 @@ import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch 
 import type { Exam } from '../api/types';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const pageNo = ref(1);
 const pageSize = ref(20);

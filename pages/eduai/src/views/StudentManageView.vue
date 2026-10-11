@@ -228,8 +228,23 @@
                 {{ row.teacherStatus === 1 ? "在职" : "离职" }}
               </span>
             </template>
+            <template #col-classCount="{ row }">
+              <span
+                class="tag-pill is-blue"
+                :title="classNamesOf(row as unknown as EduTeacher)"
+              >
+                {{ classesOf(row as unknown as EduTeacher).length }} 个班级
+              </span>
+            </template>
             <template #col-actions="{ row }">
               <!-- .stop：ReTable 绑了 @row-click="openTeacher"，不挡冒泡会顺带打开编辑 -->
+              <ReButton
+                layout="square"
+                type="primary"
+                :icon="OfficeBuilding"
+                tip="配置班级（决定老师端数据范围）"
+                @click.stop="openTeacherClasses(row as unknown as EduTeacher)"
+              />
               <ReButton
                 layout="square"
                 type="primary"
@@ -352,7 +367,14 @@
                   />
                 </el-form-item>
                 <el-form-item label="入学年份">
-                  <el-input-number v-model="stuForm.studentEnrollYear" :min="2000" :max="2100" controls-position="right" style="width: 100%" />
+                  <ReInputNumber
+                    :model-value="stuForm.studentEnrollYear ?? undefined"
+                    :min="2000"
+                    :max="2100"
+                    controls-position="right"
+                    style="width: 100%"
+                    @update:model-value="(v?: number) => (stuForm.studentEnrollYear = v ?? null)"
+                  />
                 </el-form-item>
                 <el-form-item label="状态">
                   <el-radio-group v-model="stuForm.studentStatus">
@@ -533,6 +555,45 @@
         </div>
       </template>
     </ReDialog>
+
+    <!-- ============ 教师班级配置对话框 ============ -->
+    <ReDialog v-model="teaClassVisible" class="q-dialog" width="620" :show-close="false" align-center>
+      <template #header>
+        <div class="dialog-head">
+          <div class="dialog-head__left">
+            <span class="dialog-head__icon"><el-icon :size="18"><OfficeBuilding /></el-icon></span>
+            <div class="dialog-head__text">
+              <div class="dialog-head__title">配置教师班级</div>
+              <div class="dialog-head__sub">{{ teaClassForm.teacherName }} 的老师端数据范围 = 勾选的班级（保存即全量替换）</div>
+            </div>
+          </div>
+          <ReButton layout="square" :icon="Close" tip="关闭" @click="teaClassVisible = false" />
+        </div>
+      </template>
+      <el-checkbox-group v-model="teaClassForm.classIds" class="tea-class-group">
+        <el-checkbox
+          v-for="c in classes"
+          :key="c.classId"
+          :label="c.classId"
+          :value="c.classId"
+        >
+          <span class="tea-class-name">{{ c.className }}</span>
+          <span class="tea-class-meta">{{ levelText(c.classGradeLevel) }}{{ c.classGrade ? ` · ${c.classGrade}` : "" }}</span>
+        </el-checkbox>
+      </el-checkbox-group>
+      <el-alert
+        v-if="!classes.length"
+        type="warning"
+        :closable="false"
+        title="还没有班级，请先在「班级」页签新增"
+      />
+      <template #footer>
+        <div class="dialog-foot">
+          <el-button @click="teaClassVisible = false">取消</el-button>
+          <el-button type="primary" :loading="teaClassSaving" @click="submitTeacherClasses">保存</el-button>
+        </div>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -558,6 +619,7 @@ import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -675,7 +737,8 @@ const teacherColumns: ReTableColumn[] = [
   { prop: "teacherSubjectCode", label: "任教学科", width: 130 },
   { prop: "accountBind", label: "老师端绑定", width: 140, align: "center", slot: "col-accountBind" },
   { prop: "teacherStatus", label: "状态", width: 90, align: "center", slot: "col-teacherStatus" },
-  { prop: "actions", label: "操作", width: 96, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
+  { prop: "classCount", label: "配置班级", width: 120, align: "center", slot: "col-classCount" },
+  { prop: "actions", label: "操作", width: 150, align: "center", fixed: "right", slot: "col-actions", className: "op-col" },
 ];
 
 // ==================== 加载 ====================
@@ -690,6 +753,8 @@ async function loadAll() {
     students.value = stu ?? [];
     classes.value = cls ?? [];
     teachers.value = tea ?? [];
+    // 教师班级配置缓存（列表页「配置班级」列展示用）
+    void loadTeacherClasses();
   } catch (e) {
     message.error(`加载失败：${e instanceof Error ? e.message : String(e)}`);
   } finally {
@@ -1142,6 +1207,82 @@ async function removeTeacher(row: EduTeacher) {
     await loadAll();
   } catch (e) {
     message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+// ==================== 教师班级配置（老师端数据范围） ====================
+/** 教师班级配置弹窗 */
+const teaClassVisible = ref(false);
+const teaClassSaving = ref(false);
+const teaClassForm = reactive<{
+  teacherId: number | null;
+  teacherName: string;
+  classIds: number[];
+}>({ teacherId: null, teacherName: "", classIds: [] });
+/** 教师 → 已配置班级缓存（列表页「配置班级」列展示用） */
+const teacherClassMap = ref<Record<number, EduClass[]>>({});
+
+/** 教师已配置的班级列表（未拉取到时为空数组） */
+function classesOf(teacher: EduTeacher): EduClass[] {
+  return teacherClassMap.value[teacher.teacherId] ?? [];
+}
+
+/** 已配置班级名串联（列悬浮提示展示全名） */
+function classNamesOf(teacher: EduTeacher): string {
+  return classesOf(teacher).map((c) => c.className).join("、") || "未配置班级";
+}
+
+/** 预取每位教师已配置的班级（教师列表通常不大，并发拉取不阻塞首屏） */
+async function loadTeacherClasses() {
+  const map: Record<number, EduClass[]> = {};
+  await Promise.all(
+    teachers.value.map(async (t) => {
+      try {
+        map[t.teacherId] = (await eduaiApi.listTeacherClasses(t.teacherId)) ?? [];
+      } catch {
+        map[t.teacherId] = [];
+      }
+    }),
+  );
+  teacherClassMap.value = map;
+}
+
+/**
+ * 打开教师班级配置：先拉该教师已配置的班级进表单。
+ *
+ * @param teacher 教师行
+ */
+async function openTeacherClasses(teacher: EduTeacher) {
+  teaClassForm.teacherId = teacher.teacherId;
+  teaClassForm.teacherName = teacher.teacherName || teacher.teacherNo;
+  teaClassForm.classIds = [];
+  teaClassVisible.value = true;
+  try {
+    const list = await eduaiApi.listTeacherClasses(teacher.teacherId);
+    teacherClassMap.value[teacher.teacherId] = list ?? [];
+    teaClassForm.classIds = (list ?? []).map((c) => c.classId);
+  } catch (e) {
+    message.error(`已配置班级加载失败：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/** 保存教师班级配置（全量替换）：老师端数据范围即时生效 */
+async function submitTeacherClasses() {
+  if (teaClassForm.teacherId == null) {
+    return;
+  }
+  teaClassSaving.value = true;
+  try {
+    await eduaiApi.saveTeacherClasses(teaClassForm.teacherId, teaClassForm.classIds);
+    message.success("已保存，老师端数据范围即时生效");
+    // 刷新缓存：列表页「配置班级」列随之更新
+    const list = await eduaiApi.listTeacherClasses(teaClassForm.teacherId);
+    teacherClassMap.value[teaClassForm.teacherId] = list ?? [];
+    teaClassVisible.value = false;
+  } catch (e) {
+    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    teaClassSaving.value = false;
   }
 }
 
@@ -1721,5 +1862,24 @@ onMounted(() => {
   .stat-card:hover {
     transform: none;
   }
+}
+
+/* ---------- 教师班级配置：班级勾选列表 ---------- */
+.tea-class-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 6px 4px;
+}
+.tea-class-name {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.tea-class-meta {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

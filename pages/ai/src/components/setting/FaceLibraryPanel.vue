@@ -22,6 +22,17 @@
         <p class="lib-head-sub">当前账号的人脸底库，登记后可用于 1:N 人脸识别与检索</p>
       </div>
       <div class="lib-head-actions">
+        <!--
+          隐私显示开关（默认关闭 = 全部不预览）。
+          人脸属敏感个人信息，且底库常在投屏/录屏演示场景下打开；
+          以前缩略图无条件渲染，只做了身份证脱敏，图是完全敞开的。
+        -->
+        <el-switch v-model="showFaces" inline-prompt active-text="显示" inactive-text="隐藏"
+          class="lib-privacy-switch">
+          <template #active><el-icon><View /></el-icon></template>
+          <template #inactive><el-icon><Hide /></el-icon></template>
+        </el-switch>
+        <span class="lib-privacy-hint">{{ showFaces ? '人脸图已显示' : '人脸图已隐藏' }}</span>
         <el-button :disabled="loading" @click="load(page)">
           <el-icon><Refresh /></el-icon>刷新
         </el-button>
@@ -134,14 +145,19 @@
         <figure v-for="item in visibleItems" :key="item.id" class="lib-cell"
           :class="{ 'is-selected': selected.has(item.id) }">
           <div class="lib-thumb">
-            <img v-if="item.thumb" :src="item.thumb" :alt="item.name" loading="lazy" />
-            <div v-else class="fl-thumb-fallback"><el-icon :size="26"><UserFilled /></el-icon></div>
+            <img v-if="thumbVisible(item)" :src="item.thumb" :alt="item.name" loading="lazy" />
+            <div v-else class="fl-thumb-fallback">
+              <el-icon :size="26"><Hide v-if="!showFaces" /><UserFilled v-else /></el-icon>
+            </div>
 
             <span class="lib-check" @click.stop="toggleSelect(item)">
               <el-icon v-if="selected.has(item.id)"><Select /></el-icon>
             </span>
 
             <span class="lib-badges">
+              <span v-if="item.restored" class="lib-badge is-repaired" title="该条登记图经过修复（超分/去噪）后重新入库，向量来自修复后的图像">
+                <el-icon><MagicStick /></el-icon>已修复
+              </span>
               <span v-if="item.hasImage" class="lib-badge is-ok">有图片</span>
               <span v-else class="lib-badge is-warn">无图片</span>
             </span>
@@ -150,6 +166,10 @@
               <button v-if="landmarkReady" type="button" class="lib-act" title="查看特征点"
                 @click.stop="openLandmark(item)">
                 <el-icon><Aim /></el-icon>
+              </button>
+              <button v-if="restoreReady" type="button" class="lib-act" title="修复人脸并重新入库"
+                :disabled="busy" @click.stop="repairOne(item)">
+                <el-icon><MagicStick /></el-icon>
               </button>
               <button type="button" class="lib-act" title="编辑信息" @click.stop="openEdit(item)">
                 <el-icon><EditPen /></el-icon>
@@ -181,22 +201,29 @@
           <span class="lib-check is-inline" @click.stop="toggleSelect(item)">
             <el-icon v-if="selected.has(item.id)"><Select /></el-icon>
           </span>
-          <img v-if="item.thumb" class="lib-row-thumb" :src="item.thumb" :alt="item.name" loading="lazy"
-            @click="preview(item)" />
-          <div v-else class="lib-row-thumb fl-thumb-fallback" @click="preview(item)">
-            <el-icon><UserFilled /></el-icon>
+          <img v-if="thumbVisible(item)" class="lib-row-thumb" :src="item.thumb" :alt="item.name"
+            loading="lazy" @click="preview(item)" />
+          <div v-else class="lib-row-thumb fl-thumb-fallback" @click="showFaces && preview(item)">
+            <el-icon><Hide v-if="!showFaces" /><UserFilled v-else /></el-icon>
           </div>
           <div class="lib-row-body">
             <span class="lib-name" :title="item.name">{{ item.name || '未命名' }}</span>
             <span class="lib-dim">{{ formatMeta(item) }}</span>
           </div>
           <span class="lib-badges is-inline">
+            <span v-if="item.restored" class="lib-badge is-repaired" title="该条登记图经过修复（超分/去噪）后重新入库，向量来自修复后的图像">
+              <el-icon><MagicStick /></el-icon>已修复
+            </span>
             <span v-if="item.hasImage" class="lib-badge is-ok">有图片</span>
             <span v-else class="lib-badge is-warn">无图片</span>
           </span>
           <button v-if="landmarkReady" type="button" class="lib-act is-onlight" title="查看特征点"
             @click.stop="openLandmark(item)">
             <el-icon><Aim /></el-icon>
+          </button>
+          <button v-if="restoreReady" type="button" class="lib-act is-onlight" title="修复人脸并重新入库"
+            :disabled="busy" @click.stop="repairOne(item)">
+            <el-icon><MagicStick /></el-icon>
           </button>
           <button type="button" class="lib-act is-onlight" title="编辑信息" @click.stop="openEdit(item)">
             <el-icon><EditPen /></el-icon>
@@ -232,9 +259,11 @@
           @selection-change="onTableSelection"
         >
           <template #thumb="{ row }">
-            <img v-if="String(row.id)" class="lt-thumb" :src="thumbFor(String(row.id))" alt=""
+            <img v-if="showFaces && String(row.id)" class="lt-thumb" :src="thumbFor(String(row.id))" alt=""
               loading="lazy" @click="previewById(String(row.id))" />
-            <span v-else class="lt-thumb lt-thumb-empty"><el-icon><UserFilled /></el-icon></span>
+            <span v-else class="lt-thumb lt-thumb-empty">
+              <el-icon><Hide v-if="!showFaces" /><UserFilled v-else /></el-icon>
+            </span>
           </template>
           <template #idCard="{ row }">
             <span class="lt-mono">{{ maskIdCard(String(row.idCard ?? '')) || '—' }}</span>
@@ -307,8 +336,8 @@ import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus';
 import {
-  Aim, CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Tickets, Upload,
-  UploadFilled, UserFilled, Warning, ZoomIn,
+  Aim, CircleCheck, Delete, EditPen, Grid, Hide, MagicStick, Menu, Picture, Postcard, Refresh, Search, Select,
+  Tickets, Upload, UploadFilled, UserFilled, View, Warning, ZoomIn,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
@@ -336,6 +365,10 @@ interface Row {
   localThumb: string
   /** 是否有图可看（服务端 `hasImage` 或本机缩略图）—— 统计与筛选按它算，别按展示地址算 */
   hasImage: boolean
+  /** 登记图是否经过修复（超分/去噪）后重新入库 */
+  restored: boolean
+  /** 登记时的档案字段原样保留：修复后重新入库必须整体回写，否则姓名/身份证会被清空 */
+  meta: Record<string, unknown>
 }
 
 const loading = ref(false)
@@ -371,6 +404,8 @@ const featureModel = ref('')
  * 宁可不给入口，也不显示一个点了必然报「能力未启用」的按钮。</p>
  */
 const landmarkModel = ref('')
+/** 修复模型（`restore_model`）对当前用户的生效值；空 = 未配置，隐藏「修复」入口 */
+const restoreModel = ref('')
 const registry = useFaceRegistry()
 const gridRef = ref<HTMLElement | null>(null)
 /** 表格视图实例：删除/登记后让它重新拉当页、清空它的勾选 */
@@ -384,12 +419,44 @@ let viewer: InstanceType<typeof Viewer> | null = null
  * 与以图搜图 / 图像底库同一条口径（见 {@code utils/authImage}）。</p>
  */
 const authImages = createAuthImageLoader()
+
+/**
+ * 是否显示人脸图。默认 **false**：底库属敏感个人信息，缩略图整屏铺开，
+ * 而这个页面常在投屏/录屏演示时打开。以前是无条件渲染（只脱敏了身份证），
+ * 等于默认敞开。开关本身记在 localStorage，用户主动开一次后保持。
+ */
+const SHOW_FACES_KEY = 'face_library_show_faces'
+const showFaces = ref<boolean>(readShowFacesPref())
+
+function readShowFacesPref(): boolean {
+  try {
+    return localStorage.getItem(SHOW_FACES_KEY) === '1'
+  } catch {
+    // 隐私模式/存储被禁用时保持默认隐藏
+    return false
+  }
+}
+watch(showFaces, (v) => {
+  try {
+    localStorage.setItem(SHOW_FACES_KEY, v ? '1' : '0')
+  } catch { /* 存不了也只是下次不记住，不影响本次会话 */ }
+  // 关闭时把已解析的 blob 全部 revoke，避免人脸图继续留在内存与浏览器缓存里
+  if (!v) authImages.revokeAll()
+})
+
+/** 缩略图是否应展示：隐私开关关闭，或该条本来就无图 */
+function thumbVisible(item: { thumb?: string; localThumb?: string }): boolean {
+  return showFaces.value && !!(item.thumb || item.localThumb)
+}
 /** 特征点弹窗：正在查看的条目 */
 const lmVisible = ref(false)
 const lmItem = ref<Row | null>(null)
 
 /** 关键点模型是否已配置：决定「特征点」按钮是否显示 */
 const landmarkReady = computed(() => String(landmarkModel.value ?? '').trim() !== '')
+
+/** 修复入口是否可用：与关键点按钮同一判据（读用户覆盖优先的合并视图） */
+const restoreReady = computed(() => String(restoreModel.value ?? '').trim() !== '')
 
 /**
  * 服务端条目 → 展示行（网格/列表/表格三视图共用同一映射）。
@@ -418,6 +485,10 @@ function toRow(s: Record<string, unknown>): Row {
     thumb: local?.thumb || authImages.resolve(`/face/${encodeURIComponent(id)}/image`),
     localThumb: local?.thumb ?? '',
     hasImage: !!s.hasImage || !!local?.thumb,
+    // 修复标记存在元数据里（由「修复并重新入库」写入）。元数据会被本机登记簿覆盖，
+    // 所以两侧都认：服务端没写但本机写了也算已修复，避免换浏览器后标签消失。
+    restored: meta.restored === true || meta.restored === 'true' || (local as any)?.restored === true,
+    meta,
   }
 }
 
@@ -462,6 +533,10 @@ function asRow(row: unknown): Row {
  * @param id 人脸标识
  */
 function previewById(id: string) {
+  if (!showFaces.value) {
+    message.info('人脸图当前处于隐藏状态，请先打开页头的显示开关')
+    return
+  }
   const url = thumbFor(id)
   if (!url || url === pendingPlaceholder) {
     message.info('图片加载中或该条没有人脸图（老数据重新登记一次即可）')
@@ -575,7 +650,10 @@ async function load(target = 1) {
       const m: Record<string, unknown> = {}
       if (Array.isArray(mItems)) for (const it of mItems) if (it && it.field) m[it.field] = it.value
       landmarkModel.value = String(m.landmark_model ?? '')
-    } catch { landmarkModel.value = '' }
+      // 修复模型同理：未配置时 /face/restore 会直接回业务错误，
+      // 与其给一个必然失败的按钮，不如不给入口（与关键点按钮同一判据口径）
+      restoreModel.value = String(m.restore_model ?? '')
+    } catch { landmarkModel.value = ''; restoreModel.value = '' }
     await mountViewer()
     // 表格模式下的删除/登记等动作：本函数顺带把表格也重查一遍（stats 以本次为准）
     if (viewMode.value === 'table' && target === page.value) {
@@ -715,6 +793,11 @@ function clearSelection() {
 }
 
 function preview(item: Row) {
+  // 隐私开关关闭时不允许任何预览路径（含 viewerjs），否则「隐藏」形同虚设
+  if (!showFaces.value) {
+    message.info('人脸图当前处于隐藏状态，请先打开页头的显示开关')
+    return
+  }
   if (viewer && item.thumb) {
     const idx = visibleItems.value.findIndex((r) => r.id === item.id)
     if (idx >= 0) viewer.view(idx)
@@ -774,6 +857,46 @@ async function removeSelected() {
     message[okCount === ids.length ? 'success' : 'warning'](`已删除 ${okCount}/${ids.length} 条`)
     clearSelection()
     await load(page.value)
+  } finally {
+    busy.value = false
+  }
+}
+
+/**
+ * 修复人脸并重新入库（5.2）。
+ *
+ * <p>流程：取原图（没有就退裁剪脸）→ {@code POST /face/restore} 超分/去噪 →
+ * 用修复后的图**重新走一遍登记管线**，并把 {@code restored:true} 写进档案。
+ * 最后这步是必须的：特征向量必须来自修复后的图像，否则图变了、向量还是旧的，
+ * 「修复」只是个装饰。</p>
+ *
+ * <p>档案字段必须**整体回写**：登记接口的 metadata 是覆盖语义，只传
+ * {@code restored} 会把姓名/身份证/年龄全清空，等于抹掉这条档案。</p>
+ *
+ * @param item 目标行
+ */
+async function repairOne(item: Row) {
+  const label = item.name || item.id
+  busy.value = true
+  try {
+    // 优先原图：修复模型在原图上的效果与用户当初拍到的那张照片一致；
+    // 只有老数据没有原图时才退裁剪脸
+    const src = (await apiService.originalImageBlob(item.id)) || (await apiService.faceImageBlob(item.id))
+    if (!src) {
+      message.error('该条没有可修复的图片，请重新登记一次')
+      return
+    }
+    const repaired = await apiService.restoreFace(src, 'face.png')
+    if (!repaired) {
+      message.error('修复失败：请确认「系统设置 → 默认模型 → 人脸识别 → 修复模型」已配置')
+      return
+    }
+    const meta = { ...item.meta, restored: true, restoredAt: Date.now() }
+    await apiService.enrollFace(item.id, repaired, meta, 'face-restored.png')
+    message.success(`「${label}」已修复并重新入库`)
+    await load(page.value)
+  } catch (e: any) {
+    message.error('修复失败：' + (e?.message ?? e))
   } finally {
     busy.value = false
   }

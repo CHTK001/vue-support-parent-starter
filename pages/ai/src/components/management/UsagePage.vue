@@ -26,6 +26,24 @@
       </div>
     </div>
 
+    <!--
+      实时用量条（SSE）。
+
+      为什么需要它：页面此前只在「切筛选 / 点刷新」时拉一次快照，一次真实调用在界面上
+      完全看不出来 —— 盯着不动的数字，用户根本判断不了系统到底在不在跑。这里挂一条
+      SSE，由后端按秒**合并**推送重算后的快照（不是增量），前端直接替换即可。
+    -->
+    <div class="live-bar" :class="`is-${liveState}`">
+      <span class="live-dot" :class="{ 'is-pulsing': liveState === 'live' }" />
+      <span class="live-label">{{ liveLabel }}</span>
+      <span class="live-metrics">
+        <span class="live-metric">今日 Token <b>{{ fmtToken(liveTodayTokens) }}</b></span>
+        <span class="live-metric">区间 Token <b>{{ fmtToken(liveRangeTokens) }}</b></span>
+        <span v-if="liveRate > 0" class="live-metric is-rate">速率 <b>{{ fmtToken(liveRate) }}</b>/分</span>
+      </span>
+      <el-switch v-model="liveEnabled" size="small" inline-prompt active-text="实时" inactive-text="暂停" />
+    </div>
+
     <!-- 顶部 KPI 卡片 -->
     <div class="stats-grid">
       <div v-for="s in statCards" :key="s.label" class="kpi-card" :class="`tone-${s.tone}`">
@@ -103,6 +121,72 @@
         </div>
       </ReCard>
     </div>
+
+    <!--
+      Top5 排行：模型 / 应用（数据源）。
+
+      「应用」= 用量来源的应用（opencode / claude-code / mimo / goose…），对应后端的
+      provider 维度；与「分组分布」的 groupName（chat / ocr / rag 这类业务分组）是两回事，
+      之前只有分组没有来源，排查「这周 token 花在哪几个工具上」只能去翻明细表。
+    -->
+    <div class="dist-grid">
+      <ReCard title="模型排行 Top5">
+        <template #extra>
+          <div class="seg-toggle">
+            <button class="seg-btn" :class="{ active: rankMetric === 'token' }" @click="rankMetric = 'token'">按 Token</button>
+            <button class="seg-btn" :class="{ active: rankMetric === 'cost' }" @click="rankMetric = 'cost'">按费用</button>
+          </div>
+        </template>
+        <ol class="rank-list">
+          <li v-for="(r, i) in modelRankTop5" :key="r.name" class="rank-item">
+            <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
+            <span class="rank-name" :title="r.name">{{ r.name }}</span>
+            <span class="rank-bar">
+              <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, modelRankTop5) }" />
+            </span>
+            <span class="rank-value">{{ rankValue(r) }}</span>
+            <span class="rank-pct">{{ rankPct(r, modelRankTop5) }}</span>
+          </li>
+        </ol>
+        <el-empty v-if="modelRankTop5.length === 0" description="暂无模型用量" class="lib-empty" :image-size="60" />
+      </ReCard>
+
+      <ReCard title="应用排行 Top5">
+        <template #extra>
+          <div class="seg-toggle">
+            <button class="seg-btn" :class="{ active: rankMetric === 'token' }" @click="rankMetric = 'token'">按 Token</button>
+            <button class="seg-btn" :class="{ active: rankMetric === 'cost' }" @click="rankMetric = 'cost'">按费用</button>
+          </div>
+        </template>
+        <ol class="rank-list">
+          <li v-for="(r, i) in providerRankTop5" :key="r.name" class="rank-item">
+            <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
+            <span class="rank-name" :title="r.name">{{ providerLabel(r.name) }}</span>
+            <span class="rank-bar">
+              <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, providerRankTop5) }" />
+            </span>
+            <span class="rank-value">{{ rankValue(r) }}</span>
+            <span class="rank-pct">{{ rankPct(r, providerRankTop5) }}</span>
+          </li>
+        </ol>
+        <el-empty v-if="providerRankTop5.length === 0" description="暂无应用用量" class="lib-empty" :image-size="60" />
+      </ReCard>
+    </div>
+
+    <!-- 每日模型用量：一天一个柱，柱内按模型分段（每模型一色，段高按用量占比） -->
+    <ReCard title="每日模型用量">
+      <template #extra>
+        <div class="seg-toggle">
+          <button class="seg-btn" :class="{ active: modelBarMetric === 'token' }" @click="modelBarMetric = 'token'">按 Token</button>
+          <button class="seg-btn" :class="{ active: modelBarMetric === 'cost' }" @click="modelBarMetric = 'cost'">按费用</button>
+        </div>
+      </template>
+      <p class="chart-hint">
+        每根柱代表一天，柱内按模型分段着色；分段高度即该模型当天的用量占比。
+      </p>
+      <ReEcharts v-if="modelBarDates.length > 0" :option="modelBarOption" height="360px" not-merge />
+      <div v-else class="chart-empty">暂无按天模型用量数据</div>
+    </ReCard>
 
     <!-- Token 趋势 -->
     <ReCard title="Token 趋势">
@@ -208,9 +292,10 @@
 </template>
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 
 import ReEcharts from '@repo/ui/re-echarts';
+import { http } from '@repo/utils';
 import type { EChartsOption } from 'echarts';
 import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
@@ -373,6 +458,205 @@ const groupPaged = computed(() =>
   groupDist.value.slice((groupPage.value - 1) * distPageSize, groupPage.value * distPageSize),
 );
 
+// ==================== Top5 排行（模型 / 应用） ====================
+const rankMetric = ref<ChartType>('token');
+const RANK_TOP_N = 5;
+
+/** 按 provider（用量来源应用）roll up：opencode / claude-code / mimo / system… */
+const providerDist = computed<DistRow[]>(() =>
+  rollUp(summaryRows.value, (r) => r.provider || '未知来源'),
+);
+
+/**
+ * 取前 N 条并按当前指标排序。
+ *
+ * <p>{@link rollUp} 恒按 token 降序；切到「按费用」时榜序也必须跟着变，
+ * 否则会出现「第一名 Token 最多但费用最低」这种自相矛盾的榜单。</p>
+ */
+function topBy(rows: DistRow[]): DistRow[] {
+  return [...rows]
+    .sort((a, b) => (rankMetric.value === 'token' ? b.totalTokens - a.totalTokens : b.cost - a.cost))
+    .slice(0, RANK_TOP_N);
+}
+
+const modelRankTop5 = computed(() => topBy(modelDist.value));
+const providerRankTop5 = computed(() => topBy(providerDist.value));
+
+function rankValue(r: DistRow): string {
+  return rankMetric.value === 'token' ? fmtToken(r.totalTokens) : `${currencySymbol.value}${money(r.cost)}`;
+}
+
+/** 相对榜首的条长：以第一名为满格，视觉上直接读出差距 */
+function rankBarWidth(r: DistRow, list: DistRow[]): string {
+  const top = list[0];
+  if (!top) return '0%';
+  const v = rankMetric.value === 'token' ? r.totalTokens : r.cost;
+  const t = rankMetric.value === 'token' ? top.totalTokens : top.cost;
+  if (!t || t <= 0) return '0%';
+  return `${Math.max(2, Math.round((v / t) * 100))}%`;
+}
+
+/** 占**全量**的百分比，而不是占榜首的 —— 占比要回答「这一项吃掉多少」 */
+function rankPct(r: DistRow, list: DistRow[]): string {
+  const total = list.reduce((s, x) => s + (rankMetric.value === 'token' ? x.totalTokens : x.cost), 0);
+  if (!total || total <= 0) return '—';
+  const v = rankMetric.value === 'token' ? r.totalTokens : r.cost;
+  return `${((v / total) * 100).toFixed(1)}%`;
+}
+
+/** provider 原始名多为英文小写标识，补中文名；未收录的原样显示，别藏起来 */
+const PROVIDER_LABELS: Record<string, string> = {
+  system: '本系统',
+  mimo: '小米 MiMo',
+  opencode: 'OpenCode',
+  'claude-code': 'Claude Code',
+  codex: 'Codex CLI',
+  'gemini-cli': 'Gemini CLI',
+  qwen: 'Qwen Code',
+  droid: 'Droid',
+  goose: 'Goose',
+  kilo: 'Kilo Code',
+  'roo-code': 'Roo Code',
+  cline: 'Cline',
+  'copilot-cli': 'Copilot CLI',
+  zed: 'Zed',
+  lmstudio: 'LM Studio',
+  grok: 'Grok',
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+};
+function providerLabel(name: string): string {
+  return PROVIDER_LABELS[name] || name;
+}
+
+// ==================== 实时用量（SSE） ====================
+/** 实时开关：默认开启。关掉必须由用户主动操作，否则用户可能不知道数字在实时跳 */
+const liveEnabled = ref(true);
+/** connecting | live | paused | error */
+const liveState = ref<'connecting' | 'live' | 'paused' | 'error'>('connecting');
+const liveTodayTokens = ref(0);
+const liveRangeTokens = ref(0);
+/** 每分钟 token 速率（滑窗计算）；0 表示当前没有活动 */
+const liveRate = ref(0);
+
+let liveEs: { close: () => void } | null = null;
+/** 上一次收到快照的时刻与区间 token，用于算速率 */
+let lastSample = { at: 0, tokens: 0 };
+/** 速率滑窗样本：保留最近 60 秒的增量 */
+const rateWindow: Array<{ at: number; delta: number }> = [];
+
+const liveLabel = computed(() => {
+  switch (liveState.value) {
+    case 'connecting': return '实时连接中…';
+    case 'live': return '实时';
+    case 'paused': return '已暂停';
+    default: return '连接失败，已退回定时刷新';
+  }
+});
+
+function closeLiveStream() {
+  if (liveEs) {
+    liveEs.close();
+    liveEs = null;
+  }
+}
+
+/**
+ * 速率按 60 秒滑窗算，而不是「上一帧差值」。
+ *
+ * <p>后端是**按秒合并**推送的，单帧差值在两次推送间隔抖动时会剧烈跳动
+ * （这一秒 8k、下一秒 0、下一秒 30k），读数根本没法看。滑窗给出的是
+ * 「最近一分钟大致烧了多少」，这才是人真正想知道的量。</p>
+ */
+function pushRateSample(now: number, total: number) {
+  if (lastSample.at > 0 && total >= lastSample.tokens) {
+    rateWindow.push({ at: now, delta: total - lastSample.tokens });
+  }
+  lastSample = { at: now, tokens: total };
+  const cutoff = now - 60_000;
+  while (rateWindow.length && rateWindow[0].at < cutoff) rateWindow.shift();
+  const sum = rateWindow.reduce((s, x) => s + x.delta, 0);
+  liveRate.value = sum;
+}
+
+function handleLiveFrame(d: any) {
+  if (!d || typeof d !== 'object') return;
+  const today = Number(d.todayTokens);
+  if (Number.isFinite(today)) liveTodayTokens.value = today;
+  const range = Number(d.totalTokens);
+  if (Number.isFinite(range)) {
+    pushRateSample(Date.now(), range);
+    liveRangeTokens.value = range;
+  }
+  liveState.value = 'live';
+}
+
+function openLiveStream() {
+  closeLiveStream();
+  liveState.value = 'connecting';
+  /**
+   * 用共享的 {@code http().sse()} 而不是裸 {@code EventSource}。
+   *
+   * <p>裸 EventSource **不能带自定义 header**，而本项目所有 /v2/** 都靠
+   * {@code x-oauth-token} 鉴权 —— 建连会直接 401，控制台只留一条不显眼的报错，
+   * 页面表现是「实时灯一直闪、数字永远不动」。共享客户端走 fetch-based SSE，
+   * 鉴权头与自动重连都已经在里面。</p>
+   */
+  /**
+   * 必须把当前筛选的时间窗带上：否则实时条的「区间 Token」永远是**全时段**总量，
+   * 选「今天」时它却显示几个月的数 —— 与同页 KPI 卡片自相矛盾，用户无从判断哪个是真的。
+   * 空对象即「全部时间」，与 REST 侧 {@code timeParams} 的口径完全一致。
+   */
+  liveEs = http()
+    .get('/v2/usage/live/stream', { params: { ...timeParams.value } })
+    .sse<unknown>({
+      onOpen: () => {
+        liveState.value = 'live';
+      },
+      onMessage: (ev) => {
+        // 后端事件名：首帧 snapshot、后续 update。两者载荷同构，统一处理。
+        if (ev.event !== 'snapshot' && ev.event !== 'update') return;
+        handleLiveFrame(ev.data);
+      },
+      onError: () => {
+        liveState.value = 'error';
+      },
+      onClose: () => {
+        // 只有主动 close 才是 paused；被动断开走 onError，这里不动状态
+      },
+      // 后端重启/网关抖动后重连；给足次数，避免短暂抖动就永久断流
+      maxReconnectAttempts: 10,
+      reconnectInterval: 3000,
+    });
+}
+
+// 暂停/恢复的 watcher：只有开关真的变了才重连，避免每次渲染都建一条新连接
+watch(liveEnabled, (on) => {
+  if (on) {
+    rateWindow.length = 0;
+    lastSample = { at: 0, tokens: 0 };
+    openLiveStream();
+  } else {
+    closeLiveStream();
+    liveRate.value = 0;
+    liveState.value = 'paused';
+  }
+});
+
+/**
+ * 时间窗变化时重订阅。
+ *
+ * <p>SSE 的时间窗是<b>建连时固化</b>的：不重连的话，切「今天」之后实时条还在推
+ * 全时段的口径，而且速率滑窗会把两个时间窗的增量混在一起算出一个毫无意义的数字。
+ * 这里顺带清空滑窗样本 —— 跨口径的增量不能相加。</p>
+ */
+watch(timeParams, () => {
+  if (!liveEnabled.value) return;
+  rateWindow.length = 0;
+  lastSample = { at: 0, tokens: 0 };
+  openLiveStream();
+}, { deep: true });
+
 // 表面色（用于饼图切片间隔，随主题 / 深色变化）
 const surfaceBg = ref('#ffffff');
 function readSurfaceBg() {
@@ -388,8 +672,18 @@ onMounted(() => {
     attributes: true,
     attributeFilter: ['class', 'style', 'data-theme'],
   });
+  // 实时流与主题无关，但要等首屏数据先落定再连，
+  // 否则订阅建立瞬间的快照会覆盖掉刚拉回来的完整数据
+  void nextTick(() => {
+    if (liveEnabled.value) openLiveStream();
+  });
 });
-onBeforeUnmount(() => themeObserver?.disconnect());
+onBeforeUnmount(() => {
+  themeObserver?.disconnect();
+  // 必须显式断开：EventSource 会一直挂在 window 上，
+  // 离开页面不关的话连接数只增不减，服务端的订阅列表也随之膨胀
+  closeLiveStream();
+});
 
 function pieOption(dist: DistRow[], type: ChartType): EChartsOption {
   const sorted = [...dist].sort((a, b) =>
@@ -451,6 +745,123 @@ function distRowStyle(all: DistRow[], type: ChartType) {
   };
 }
 
+// ==================== 每日模型用量（堆叠柱状图） ====================
+/**
+ * 后端按「天 + 模型」返回多行，这里归并成「一天一根柱、柱内按模型分段」。
+ * 数据形态：{ date -> Map<model, number> }，metric 决定取 Token 还是费用。
+ */
+const modelTrendRows = ref<Array<{ date: string; model: string; provider: string; totalTokens: number; totalCost: number }>>([]);
+const modelBarMetric = ref<ChartType>('token');
+
+/** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标 */
+const MODEL_COLORS = [
+  '#5B8FF9', '#5AD8A6', '#5D7092', '#F6BD16', '#6F5EF9',
+  '#6DC8EC', '#945FB9', '#FF9845', '#1E9493', '#FF99C3',
+  '#269A99', '#8D6DFF', '#E8684A', '#4EA3D1', '#C9A227',
+];
+/** 模型名 -> 颜色。按首次出现顺序占坑，保证跨刷新/跨筛选不跳色 */
+const modelColorMap = new Map<string, string>();
+function colorOfModel(model: string): string {
+  const key = model || '未知模型';
+  let c = modelColorMap.get(key);
+  if (!c) {
+    c = MODEL_COLORS[modelColorMap.size % MODEL_COLORS.length];
+    modelColorMap.set(key, c);
+  }
+  return c;
+}
+
+/** 参与堆叠的模型：按区间内总量取前 N 个，其余并成「其他」，避免几十段互相挤压 */
+const MODEL_BAR_TOP_N = 8;
+
+const modelBarMatrix = computed(() => {
+  const metric = modelBarMetric.value;
+  // 先按模型汇总区间总量，用于挑出 Top N 与计算「其他」
+  const totals = new Map<string, number>();
+  const byDate = new Map<string, Map<string, number>>();
+  for (const r of modelTrendRows.value) {
+    const date = String(r.date || '').slice(0, 10);
+    const model = String(r.model || '').trim() || '未知模型';
+    const v = metric === 'token' ? Number(r.totalTokens) || 0 : Number(r.totalCost) || 0;
+    if (!date) continue;
+    if (v <= 0) continue;
+    totals.set(model, (totals.get(model) || 0) + v);
+    let day = byDate.get(date);
+    if (!day) { day = new Map(); byDate.set(date, day); }
+    day.set(model, (day.get(model) || 0) + v);
+  }
+  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const keep = ranked.slice(0, MODEL_BAR_TOP_N).map(([m]) => m);
+  const keepSet = new Set(keep);
+  const dates = [...byDate.keys()].sort();
+  /** 某一天的「其他」= 当日所有非 Top 模型之和；Top 模型取自身原值，两者不重叠 */
+  const otherOf = (day: Map<string, number>) => {
+    let sum = 0;
+    for (const [m, v] of day) if (!keepSet.has(m)) sum += v;
+    return sum;
+  };
+  const series = keep.map((model) => ({
+    model,
+    data: dates.map((d) => byDate.get(d)!.get(model) || 0),
+  }));
+  if (ranked.length > MODEL_BAR_TOP_N) {
+    series.push({ model: '其他', data: dates.map((d) => otherOf(byDate.get(d)!)) });
+  }
+  return { dates, series };
+});
+
+const modelBarDates = computed(() => modelBarMatrix.value.dates);
+
+const modelBarOption = computed<EChartsOption>(() => {
+  const { dates, series } = modelBarMatrix.value;
+  const metric = modelBarMetric.value;
+  return {
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(0,0,0,0.04)' } },
+      // 堆叠柱按轴触发时默认给每个 series 一行；这里把「当日合计」顶到第一行，
+      // 否则用户要自己加才能知道这根柱的总高
+      valueFormatter: (v: any) => (metric === 'token' ? fmtToken(v) : `${currencySymbol.value}${money(v)}`),
+    },
+    legend: { type: 'scroll', top: 0, icon: 'circle' },
+    grid: { left: 60, right: 24, top: 40, bottom: 40, containLabel: false },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      // 一天一个柱；区间很长时抽稀刻度，避免标签叠字
+      axisLabel: {
+        hideOverlap: true,
+        formatter: (v: string) => (dates.length > 14 ? String(v).slice(5) : v),
+      },
+      axisTick: { alignWithLabel: true },
+    },
+    yAxis: {
+      type: 'value',
+      name: metric === 'token' ? 'Token' : `费用(${currencySymbol.value})`,
+      nameTextStyle: { fontSize: 11, color: 'var(--el-text-color-secondary)' },
+      axisLabel: {
+        formatter: (v: number) => (metric === 'token' ? fmtToken(v) : money(v)),
+      },
+      splitLine: { lineStyle: { type: 'dashed' } },
+    },
+    series: series.map((s) => ({
+      name: s.model,
+      type: 'bar',
+      stack: 'usage',
+      barMaxWidth: 34,
+      // 圆角只加在栈顶，否则每一段都圆角会露出内部缝隙
+      itemStyle: {
+        color: colorOfModel(s.model),
+        borderColor: surfaceBg.value,
+        borderWidth: 1,
+      },
+      emphasis: { focus: 'series' },
+      data: s.data,
+    })),
+  };
+});
+
 const trendOption = computed<EChartsOption>(() => {
   const rows = trendData.value;
   return {
@@ -490,13 +901,21 @@ const trendOption = computed<EChartsOption>(() => {
 
 async function loadData() {
   try {
-    const [statRes, sumRes, trendRes]: any[] = await Promise.all([
+    const [statRes, sumRes, trendRes, modelTrendRes]: any[] = await Promise.all([
       usageApi.statistics(timeParams.value),
       usageApi.list(timeParams.value),
       usageApi.trend(timeParams.value),
+      usageApi.modelTrend(timeParams.value),
     ]);
     Object.assign(stats, statRes.data || {});
     summaryRows.value = sumRes.data || [];
+    modelTrendRows.value = (modelTrendRes?.data || []).map((r: any) => ({
+      date: String(r?.date || '').slice(0, 10),
+      model: r?.model,
+      provider: r?.provider,
+      totalTokens: Number(r?.totalTokens) || 0,
+      totalCost: Number(r?.totalCost) || 0,
+    }));
     const dailyRows: any[] = trendRes.data || [];
     const map = new Map<string, { date: string; input: number; output: number; total: number }>();
     for (const r of dailyRows) {
@@ -943,6 +1362,155 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
   padding: 28px 0;
   font-size: 13px;
+}
+
+/* ==================== 实时用量条 ====================
+   常驻页头下方而非塞进 KPI 卡片：它是一个「状态」而不是一个「统计值」，
+   需要一个能被一眼扫到的位置（连接断开时颜色会变），不能混在数字里。 */
+.live-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 8px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-bg-color);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--el-color-info);
+}
+
+.live-dot.is-pulsing {
+  background: var(--el-color-success);
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent); }
+  50% { opacity: 0.55; box-shadow: 0 0 0 5px transparent; }
+}
+
+/* 连接断开时整条转为警示色：静默失效的「实时」比没有实时更糟，
+   必须让用户一眼看出数字不再更新 */
+.live-bar.is-error {
+  border-color: color-mix(in srgb, var(--el-color-warning) 45%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning) 8%, var(--el-bg-color));
+}
+.live-bar.is-error .live-dot { background: var(--el-color-warning); }
+.live-bar.is-paused { opacity: 0.72; }
+
+.live-label {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.live-metrics {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.live-metric b {
+  margin-left: 4px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-metric.is-rate b { color: var(--el-color-primary); }
+
+/* ==================== Top5 排行 ==================== */
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.rank-no {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+
+.rank-no.is-1 { color: #fff; background: #e6a23c; }
+.rank-no.is-2 { color: #fff; background: #909399; }
+.rank-no.is-3 { color: #fff; background: #b5a08a; }
+
+.rank-name {
+  flex: 0 0 30%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-bar {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--el-fill-color-light);
+  overflow: hidden;
+}
+
+.rank-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+  transition: width 0.25s ease;
+}
+
+.rank-value {
+  flex: 0 0 auto;
+  min-width: 78px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+}
+
+.rank-pct {
+  flex: 0 0 auto;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+
+/* 图表读法说明，压在图上方，避免用户误把堆叠段当成绝对值 */
+.chart-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
 }
 
 .pager-row {

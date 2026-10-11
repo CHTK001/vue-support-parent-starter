@@ -89,6 +89,11 @@ export interface AuthImageLoader {
   isReady: (url: string | null | undefined) => boolean
   /** 立即释放所有 object URL（组件卸载 / 列表整体重建时调用） */
   dispose: () => void
+  /**
+   * 释放已加载的全部图片并允许重新拉取（区别于终态的 dispose）。
+   * 用于「先隐藏、后恢复」的场景，如人脸底库的隐私显示开关。
+   */
+  revokeAll: () => void
   /** 已经发起过加载的图片数量（排障用） */
   readonly requested: number
 }
@@ -217,6 +222,24 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
     }
   }
 
+  /**
+   * 释放已加载的全部图片，并**允许下次重新拉取**。
+   *
+   * <p>与 {@link dispose} 的区别：dispose 是「这个加载器用完了」，之后不会再用；
+   * 本方法服务于「先藏起来、过一会儿再放出来」的场景（如人脸底库的隐私显示开关）。
+   * 只 revoke 不清 {@code settled} 的话，第二次 resolve 会因为地址已 settle 而
+   * 直接返回占位图、永远补不回来 —— 表现为开关打开后图片再也不出现。</p>
+   */
+  function revokeAll(): void {
+    for (const objectUrl of created.splice(0)) {
+      URL.revokeObjectURL(objectUrl)
+    }
+    for (const key of Object.keys(blobUrls)) {
+      delete blobUrls[key]
+      settled.delete(key)
+    }
+  }
+
   // 组件卸载 / effectScope 销毁时自动释放；脱离 scope 调用时 dispose 仍可手动调
   onScopeDispose(dispose)
 
@@ -224,6 +247,7 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
     resolve,
     isReady: (url) => (url ? Boolean(blobUrls[url]) : true),
     dispose,
+    revokeAll,
     get requested() {
       return requested
     },

@@ -146,6 +146,29 @@ export interface FaceApi {
    * @return PNG 二进制；无图时 null
    */
   faceImageBlob(id: string): Promise<Blob | null>;
+  /**
+   * 取一条人脸**登记时的原图**二进制。
+   *
+   * <p>特征点对话框画点必须用它：关键点是原图像素坐标，画在裁剪脸上只会得到
+   * 「已经摆正的五个点」，无论模型准不准都看不出问题。后端对改造前登记的老数据
+   * 没有原图，回 404，这里同样转成 `null`，调用方回退到 {@link faceImageBlob}
+   * 的裁剪图并提示用户。</p>
+   *
+   * @param id 人脸标识
+   * @return 原图二进制；无原图时 null
+   */
+  originalImageBlob(id: string): Promise<Blob | null>;
+  /**
+   * 人脸修复（超分/去噪/去模糊）。
+   *
+   * <p>返回二进制而非 JSON：修复结果是一张新图。后端 {@code restore_model} 未配置时
+   * 回业务错误，这里吞成 `null`，调用方提示「未配置修复模型」。</p>
+   *
+   * @param file     待修复图片（一般用原图，没有原图时用裁剪脸）
+   * @param filename 文件名
+   * @return 修复后的图片二进制；失败时 null
+   */
+  restoreFace(file: File | Blob, filename?: string): Promise<Blob | null>;
   /** 人脸检测：返回框、关键点、裁剪图、活体分数 */
   detectFace(file: File | Blob, filename?: string): Promise<FaceDetectResult>;
   /**
@@ -270,6 +293,54 @@ export const faceApi: FaceApi = {
     try {
       const res = await fetch(url, {
         headers: authHeaders(token, url),
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      });
+      if (!res.ok) {
+        return null;
+      }
+      return await res.blob();
+    } catch {
+      return null;
+    }
+  },
+
+  async originalImageBlob(this: ApiContext, id: string) {
+    // 与 faceImageBlob 同一条口径：令牌走请求头，绝不进 URL
+    const token = currentToken();
+    if (!token || !id) {
+      return null;
+    }
+    const base = (this.baseURL || "").replace(/\/+$/, "");
+    const url = `${base}/face/${encodeURIComponent(id)}/original`;
+    try {
+      const res = await fetch(url, {
+        headers: authHeaders(token, url),
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      });
+      if (!res.ok) {
+        return null;
+      }
+      return await res.blob();
+    } catch {
+      return null;
+    }
+  },
+
+  async restoreFace(this: ApiContext, file: File | Blob, filename = "face.png") {
+    const token = currentToken();
+    if (!token) {
+      return null;
+    }
+    const base = (this.baseURL || "").replace(/\/+$/, "");
+    const url = `${base}/face/restore`;
+    try {
+      // 二进制响应，不能走 JSON 通道；与图片端点同一套认证头
+      const res = await fetch(url, {
+        method: "POST",
+        headers: authHeaders(token, url),
+        body: toForm(file, filename),
         credentials: "omit",
         referrerPolicy: "no-referrer",
       });

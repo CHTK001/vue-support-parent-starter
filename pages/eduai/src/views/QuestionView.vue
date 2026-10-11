@@ -101,6 +101,7 @@
             >
               批量驳回{{ selectedIds.length ? `(${selectedIds.length})` : "" }}
             </el-button>
+            <el-button :icon="Setting" @click="openConfig" text>老师上传配置</el-button>
           </template>
         </div>
         <ReTab
@@ -381,7 +382,7 @@
           </div>
           <div class="form-grid form-grid--2">
             <el-form-item label="总分" required>
-              <el-input-number
+              <ReInputNumber
                 v-model="form.questionScore"
                 :min="1"
                 :max="150"
@@ -661,6 +662,22 @@
         <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
       </template>
     </ReDialog>
+
+    <!-- 老师上传配置对话框（管理员）：老师上传题目是否自动通过 -->
+    <ReDialog v-model="configVisible" title="老师上传配置" width="460">
+      <el-form label-width="130px">
+        <el-form-item label="老师上传自动通过">
+          <el-switch v-model="autoApprove" />
+          <span class="config-hint">
+            开启后老师上传的题目直接入库为「已通过」；关闭则进入待审核队列，需管理员在题库审批
+          </span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="configVisible = false">取消</el-button>
+        <el-button type="primary" :loading="configSaving" @click="saveConfig">保存</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -686,6 +703,7 @@ import {
   Plus,
   RefreshLeft,
   Search,
+  Setting,
   Upload,
   Warning,
 } from "@element-plus/icons-vue";
@@ -696,11 +714,12 @@ import ReRichText from "@repo/ui/re-rich-text";
 import ReTab from "@repo/ui/re-tab";
 import ReButton from "@repo/ui/re-button";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
-import type { ReTableColumn } from "@repo/ui/components/ReTable/types";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import {isAdmin, message} from "@repo/core";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 /** 学段词表：码值与 edu_question 落库值一致 */
 const GRADE_LEVELS = [
@@ -1484,10 +1503,49 @@ const previewGradeText = computed(
   () => `${levelLabel(form.questionGradeLevel)}${form.questionGrade || ""}` || "—",
 );
 
+// ========== 老师上传配置（管理员：老师上传题目是否自动通过） ==========
+const configVisible = ref(false);
+const autoApprove = ref(false);
+const configSaving = ref(false);
+/** 配置键：与后端 EduAppConfigService 的 KEY 一致 */
+const TEACHER_AUTO_APPROVE_KEY = "teacher-question-auto-approve";
+
+/** 读取配置（GET /v2/edu/app-config/{key}；无记录返回 null 按关闭处理） */
+async function loadAutoApprove() {
+  try {
+    const v = await eduaiApi.getAppConfig(TEACHER_AUTO_APPROVE_KEY);
+    autoApprove.value = v === "1" || v === "true";
+  } catch {
+    autoApprove.value = false;
+  }
+}
+
+const openConfig = () => {
+  void loadAutoApprove();
+  configVisible.value = true;
+};
+
+const saveConfig = async () => {
+  configSaving.value = true;
+  try {
+    await eduaiApi.saveAppConfig(TEACHER_AUTO_APPROVE_KEY, autoApprove.value ? "1" : "0");
+    message.success("已保存");
+    configVisible.value = false;
+  } catch (e) {
+    message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    configSaving.value = false;
+  }
+};
+
 onMounted(() => {
   void reloadStats();
   void loadDimensions();
   void loadDimensionMeta();
+  // 管理员：预读老师上传自动通过配置（工具条「老师上传配置」用）
+  if (isAdmin()) {
+    void loadAutoApprove();
+  }
 });
 </script>
 
@@ -1501,6 +1559,14 @@ onMounted(() => {
 /* 批量导入对话框的必填字段提示 */
 .import-hint {
   margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+/* 老师上传配置：开关说明 */
+.config-hint {
+  margin-left: 12px;
   font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);

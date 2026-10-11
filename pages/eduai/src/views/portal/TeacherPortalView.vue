@@ -1,11 +1,11 @@
 <template>
   <!--
     教师工作台（/edu/teacher）
-    独立全屏页面，脱离管理后台外壳。三大能力：
-      1. 我的班级：新建/编辑班级，管理本班学生（增删改 + 重置口令）
-      2. 组卷：查看我的试卷、AI 组卷、手动组卷、发布/下架/归档
-      3. 阅卷：上传答卷 → AI 判分 → 复核确认；并列出我发起过的阅卷任务
-    归属取自登录态：只能看到 / 操作自己创建的班级与自己的试卷与阅卷任务。
+    独立全屏页面，脱离管理后台外壳。能力：
+      1. 我的班级：管理后台配置给我的班级里的学生（增删改 + 重置口令）
+      2. 组卷：查看我的试卷、AI 组卷、手动组卷（门户内嵌弹窗）、上传题目、发布/下架/归档
+      3. 阅卷：上传答卷（独立弹窗，拖拽 + 点击）→ AI 判分 → 复核确认；并列出我发起过的阅卷任务
+    归属取自登录态：只能看到 / 操作配置给我的班级与自己的试卷与阅卷任务。
   -->
   <div class="tp">
     <header class="tp-head">
@@ -70,7 +70,8 @@
             <aside class="tp-class__side">
               <div class="tp-side__head">
                 <span>我的班级</span>
-                <el-button size="small" type="primary" @click="openClassDialog()">新增</el-button>
+                <!-- 班级由管理员统一维护（后台 学生管理 → 教师 → 配置班级），老师端只读 -->
+                <ReTag size="small" type="info">管理员配置</ReTag>
               </div>
               <ul class="tp-class__list">
                 <li
@@ -84,7 +85,7 @@
                     {{ gradeLevelLabel(c.classGradeLevel) }} · {{ c.classGrade || "—" }}
                   </div>
                 </li>
-                <li v-if="!classes.length" class="tp-empty">还没有班级，先新增一个</li>
+                <li v-if="!classes.length" class="tp-empty">还没有班级，请联系管理员在后台「学生管理 → 教师」配置</li>
               </ul>
             </aside>
 
@@ -92,8 +93,7 @@
               <div class="tp-main__head">
                 <span class="tp-main__title">{{ activeClass?.className || "请选择班级" }}</span>
                 <div class="tp-main__act">
-                  <el-button size="small" :disabled="!activeClass" @click="openClassDialog(activeClass)">编辑班级</el-button>
-                  <el-button size="small" type="danger" plain :disabled="!activeClass" @click="removeClass">删除班级</el-button>
+                  <!-- 班级由管理员维护：老师端只在配置给自己的班级内增删改学生 -->
                   <el-button size="small" type="primary" :disabled="!activeClass" @click="openStudentDialog()">新增学生</el-button>
                 </div>
               </div>
@@ -114,7 +114,7 @@
               >
                 <template #col-studentAccount="{ row }">
                   <span v-if="row.studentAccount">{{ row.studentAccount }}</span>
-                  <el-tag v-else size="small" type="info">未绑定</el-tag>
+                  <ReTag v-else size="small" type="info">未绑定</ReTag>
                 </template>
                 <template #col-studentStatus="{ row }">{{ row.studentStatus === 1 ? "在读" : "离校" }}</template>
                 <template #col-studentActions="{ row }">
@@ -144,6 +144,7 @@
               </span>
             </el-tooltip>
             <el-button type="primary" @click="goCompose">手动组卷</el-button>
+            <el-button @click="qUploadVisible = true">上传题目</el-button>
           </div>
 
           <ReTable
@@ -159,10 +160,10 @@
           >
             <template #col-paperGradeLevel="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
             <template #col-paperSource="{ row }">
-              <el-tag size="small" :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
+              <ReTag size="small" :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</ReTag>
             </template>
             <template #col-paperStatus="{ row }">
-              <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
+              <ReTag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</ReTag>
             </template>
             <template #col-paperActions="{ row }">
               <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
@@ -196,9 +197,9 @@
             >
               <template #col-assignGradeLevel="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
               <template #col-assignStatus="{ row }">
-                <el-tag size="small" :type="row.assignStatus === 1 ? 'success' : 'info'">
+                <ReTag size="small" :type="row.assignStatus === 1 ? 'success' : 'info'">
                   {{ row.assignStatus === 1 ? "已布置" : "已撤回" }}
-                </el-tag>
+                </ReTag>
               </template>
               <template #col-assignActions="{ row }">
                 <el-button v-if="row.assignStatus === 1" link type="danger" @click.stop="revokeAssign(row)">撤回</el-button>
@@ -215,45 +216,19 @@
           <div class="tp-mark">
             <div class="tp-mark__form">
               <div class="tp-mark__row">
-                <span class="tp-label">试卷</span>
-                <el-select v-model="markForm.paperId" placeholder="任意卷可不选" clearable size="default" style="width: 260px">
-                  <el-option v-for="p in papers" :key="p.paperId" :label="p.paperName" :value="p.paperId" />
-                </el-select>
-                <span class="tp-label">学生</span>
-                <el-select v-model="markForm.studentId" placeholder="可留空" clearable filterable size="default" style="width: 200px">
-                  <el-option v-for="s in students" :key="s.studentId" :label="`${s.studentName || ''} ${s.studentNo}`" :value="s.studentNo" />
-                </el-select>
-                <span class="tp-label">类型</span>
-                <el-radio-group v-model="markForm.mode" size="default">
-                  <el-radio-button value="SELF">自有卷</el-radio-button>
-                  <el-radio-button value="ANY">任意卷</el-radio-button>
-                </el-radio-group>
-              </div>
-              <div class="tp-mark__row">
-                <span class="tp-label">答卷图片</span>
-                <input ref="fileInput" type="file" accept="image/*" multiple @change="onPickFiles" />
-                <span class="tp-mark__hint">已选 {{ markFiles.length }} 张（可多页）</span>
-                <div class="tp-toolbar__spacer" />
-                <el-button type="primary" :loading="marking" @click="startMarking">开始阅卷</el-button>
+                <!-- 上传答卷：独立弹窗（拖拽 + 点击），阅卷系统共享组件 -->
+                <el-button type="primary" @click="markUploadVisible = true">上传答卷阅卷</el-button>
+                <span class="tp-mark__hint">支持拖拽图片或点击选择；自有卷按题号取分，任意卷手动给总分；学生可留空匿名阅卷</span>
               </div>
             </div>
 
-            <!-- 试卷详情：原始试卷 / 版面解析一体（组件内置切换）；改分在版面解析面板，AI 分保留 -->
-            <div v-if="markResult" class="tp-mark__result">
-              <div class="tp-mark__sum">
-                试卷记录 · 任务 {{ markResult.taskId }} ·
-                状态 {{ markResult.finished ? "已判分" : "判分中" }} ·
-                AI 总分 <b>{{ markAiTotal }}</b> ·
-                老师总分 <b>{{ markFinalTotal }}</b>
-                <el-tag size="small" type="success" class="tp-mark__tag">老师为主</el-tag>
-              </div>
-              <div class="tp-mark__sheet">
-                <SheetStructureView
-                  :key="`${markResult.taskId}:${markSheetKey}`"
-                  :task-id="markResult.taskId"
-                  @saved="onMarkSaved"
-                />
-              </div>
+            <!-- 试卷详情：汇总 + 原始试卷 / 版面解析一体（阅卷系统共享组件）；改分在版面解析面板，AI 分保留 -->
+            <div v-if="markResult" class="tp-mark__sheet">
+              <MarkingResultPanel
+                :result="markResult"
+                :refresh-key="markSheetKey"
+                @saved="onMarkSaved"
+              />
             </div>
 
             <div class="tp-mark__tasks">
@@ -261,56 +236,18 @@
                 <span>我的阅卷记录（试卷）</span>
                 <el-button size="small" @click="loadMarkTasks">刷新</el-button>
               </div>
-              <ReTable
-                :data="markTasks"
-                :columns="markTaskColumns"
-                size="small"
-                class="tp-table"
-                engine="element"
-                :pagination="false"
-                :toolbar="false"
-                :layout-table="{ minHeight: 0 }"
-              >
-                <template #col-markingTaskMode="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
-                <template #col-taskPaper="{ row }">{{ paperNameOf(row) }}</template>
-                <template #col-taskStudent="{ row }">{{ row.markingTaskStudentId || "匿名" }}</template>
-                <template #col-taskStatus="{ row }">
-                  <el-tag size="small" :type="taskStatusType(row.markingTaskStatus)">{{ taskStatusLabel(row.markingTaskStatus) }}</el-tag>
-                </template>
-                <template #col-taskAiScore="{ row }">{{ taskScoreOf(row)?.ai ?? "—" }}</template>
-                <template #col-taskFinalScore="{ row }"><b class="tp-mark__td-final">{{ taskScoreOf(row)?.final ?? "—" }}</b></template>
-                <template #col-taskActions="{ row }">
-                  <el-button link type="primary" @click.stop="loadTaskResult(row)">查看</el-button>
-                </template>
-              </ReTable>
+              <!-- 阅卷任务记录表（阅卷系统共享组件） -->
+              <MarkingTaskTable
+                :tasks="markTasks"
+                :papers="papers"
+                :scores="markTaskScores"
+                @view="loadTaskResult"
+              />
             </div>
           </div>
         </el-tab-pane>
       </el-tabs>
     </section>
-
-    <!-- 班级弹框 -->
-    <ReDialog v-model="classDialog.visible" :title="classDialog.id ? '编辑班级' : '新增班级'" width="420px">
-      <el-form :model="classDialog" label-width="80px">
-        <el-form-item label="班级名称" required>
-          <el-input v-model="classDialog.className" placeholder="如 高一(3)班" />
-        </el-form-item>
-        <el-form-item label="学段">
-          <el-select v-model="classDialog.gradeLevel" placeholder="选择学段" clearable style="width: 100%">
-            <el-option v-for="g in dropdown.gradeLevels" :key="g.value" :label="g.label" :value="g.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="年级">
-          <el-select v-model="classDialog.grade" placeholder="选择年级" clearable style="width: 100%">
-            <el-option v-for="g in gradesFor(classDialog.gradeLevel)" :key="g.gradeName" :label="g.gradeName" :value="g.gradeName" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="classDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitClass">保存</el-button>
-      </template>
-    </ReDialog>
 
     <!-- 学生弹框 -->
     <ReDialog v-model="stuDialog.visible" :title="stuDialog.id ? '编辑学生' : '新增学生'" width="480px">
@@ -322,7 +259,13 @@
           <el-input v-model="stuDialog.phone" placeholder="11 位手机号，可留空" />
         </el-form-item>
         <el-form-item label="入学年份">
-          <el-input-number v-model="stuDialog.enrollYear" :min="2000" :max="2100" controls-position="right" />
+          <ReInputNumber
+            :model-value="stuDialog.enrollYear ?? undefined"
+            :min="2000"
+            :max="2100"
+            controls-position="right"
+            @update:model-value="(v?: number) => (stuDialog.enrollYear = v ?? null)"
+          />
         </el-form-item>
         <el-form-item label="身份证号">
           <el-input v-model="stuDialog.idCard" placeholder="可留空" />
@@ -376,10 +319,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="题数">
-          <el-input-number v-model="aiDialog.questionCount" :min="1" :max="100" controls-position="right" />
+          <ReInputNumber v-model="aiDialog.questionCount" :min="1" :max="100" controls-position="right" />
         </el-form-item>
         <el-form-item label="每题分值">
-          <el-input-number v-model="aiDialog.scorePerQuestion" :min="1" :max="100" controls-position="right" />
+          <ReInputNumber v-model="aiDialog.scorePerQuestion" :min="1" :max="100" controls-position="right" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -418,6 +361,58 @@
         </el-button>
       </template>
     </ReDialog>
+
+    <!-- 手动组卷：门户内嵌弹窗（不再 router.push 跳后台路由；
+         embedded 下初始值走 props、返回 emit('back') 关闭本弹窗） -->
+    <ReDialog v-model="composeVisible" title="手动组卷" fullscreen destroy-on-close>
+      <div class="tp-compose-stage">
+        <PaperComposeView
+          v-if="composeVisible"
+          embedded
+          :init-paper-id="composePaperId ?? undefined"
+          :init-subject="paperFilter.subject || undefined"
+          :init-grade-level="paperFilter.gradeLevel || undefined"
+          @back="composeVisible = false"
+        />
+      </div>
+    </ReDialog>
+
+    <!-- 上传答卷阅卷：独立弹窗，支持拖拽与点击（阅卷系统共享组件） -->
+    <MarkingUploadDialog
+      v-model="markUploadVisible"
+      :papers="papers"
+      :students="students"
+      :submitting="marking"
+      @start="onMarkStart"
+    />
+
+    <!-- 老师上传题目：默认进待审核队列，管理员可配自动通过 -->
+    <ReDialog v-model="qUploadVisible" title="老师上传题目" width="560px" destroy-on-close>
+      <el-form label-width="80px">
+        <el-form-item label="题目 JSON" required>
+          <el-input
+            v-model="qUploadText"
+            type="textarea"
+            :rows="12"
+            placeholder='粘贴题目 JSON 数组，格式与批量导入一致：[{"questionType":"SINGLE_CHOICE","questionSubject":"数学","questionGradeLevel":"PRIMARY","questionStem":"题干…"}]'
+          />
+        </el-form-item>
+        <el-alert
+          type="info"
+          :closable="false"
+          title="上传后默认进入待审核队列，管理员在题库「审核状态」审批；若管理员开启「老师上传自动通过」则直接入库"
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="qUploadVisible = false">取消</el-button>
+        <el-button type="primary" :loading="qUploading" :disabled="!qUploadText.trim()" @click="submitTeacherQuestions">
+          上传
+        </el-button>
+      </template>
+    </ReDialog>
+
+    <!-- 统一确认弹窗（替代 ElMessageBox.confirm：原生消息框层级独立，会破坏老师端全屏布局） -->
+    <ReConfirmDialog ref="confirmDialog" />
   </div>
 </template>
 
@@ -425,9 +420,10 @@
 /**
  * TeacherPortalView —— 教师工作台（/edu/teacher）
  *
- * <p>三大能力：管理我自己的班级学生、组卷、阅卷。归属全部取自登录态：
- * 班级按 {@code class_owner_user_id} 过滤，试卷与阅卷任务由后端按 owner 隔离，
- * 前端不传、也传不了别人的 ID 去越权。</p>
+ * <p>能力：管理后台配置给我的班级学生、组卷（手动组卷为门户内嵌弹窗，
+ * 不跳后台路由）、阅卷（共享组件）、老师上传题目（待审核）。
+ * 归属全部取自登录态：班级范围 = 后台 edu_teacher_class 配置，
+ * 试卷与阅卷任务由后端按 owner 隔离，前端不传、也传不了别人的 ID 去越权。</p>
  *
  * <p>本页与管理端共用后端接口：组卷走 {@code /v2/edu/paper/**}、阅卷走
  * {@code /v2/edu/marking/**}，只有「班级学生」与「字典下拉」走教师中心专用端点
@@ -435,8 +431,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import { eduaiApi } from "../../api/eduaiApi";
 import type {
   DimensionDropdown,
@@ -449,11 +443,18 @@ import type {
   TeacherOverview,
 } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import SheetStructureView from "../../components/marking/SheetStructureView.vue";
+import ReTag from "@repo/ui/re-tag";
+import PaperComposeView from "../PaperComposeView.vue";
+import MarkingUploadDialog from "../../components/marking/MarkingUploadDialog.vue";
+import MarkingResultPanel from "../../components/marking/MarkingResultPanel.vue";
+import MarkingTaskTable from "../../components/marking/MarkingTaskTable.vue";
+import ReConfirmDialog from "../../components/shared/ReConfirmDialog.vue";
 
-const router = useRouter();
+/** 统一确认弹窗实例（删除学生 / 撤回布置 / 归档等二次确认） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 /** 学段码值 → 中文标签（试卷/班级展示共用） */
 const GRADE_LEVEL_OPTIONS: Array<{ value: string; label: string }> = [
@@ -499,7 +500,6 @@ const studentColumns: ReTableColumn[] = [
   { prop: "studentActions", label: "操作", minWidth: 210, slot: "studentActions" },
 ];
 
-const classDialog = reactive({ visible: false, id: null as number | null, className: "", gradeLevel: "", grade: "" });
 const stuDialog = reactive({
   visible: false,
   id: null as number | null,
@@ -612,56 +612,6 @@ async function loadStudents() {
   }
 }
 
-function openClassDialog(clazz?: EduClass | null) {
-  classDialog.id = clazz?.classId ?? null;
-  classDialog.className = clazz?.className ?? "";
-  classDialog.gradeLevel = (clazz?.classGradeLevel as string) ?? "";
-  classDialog.grade = (clazz?.classGrade as string) ?? "";
-  classDialog.visible = true;
-}
-
-async function submitClass() {
-  if (!classDialog.className.trim()) {
-    message.warning("请填写班级名称");
-    return;
-  }
-  saving.value = true;
-  try {
-    await eduaiApi.saveTeacherClass({
-      classId: classDialog.id ?? undefined,
-      className: classDialog.className.trim(),
-      classGradeLevel: classDialog.gradeLevel || undefined,
-      classGrade: classDialog.grade || undefined,
-    });
-    message.success("已保存");
-    classDialog.visible = false;
-    await load();
-  } catch (e) {
-    message.error(`保存失败：${e instanceof Error ? e.message : String(e)}`);
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function removeClass() {
-  if (!activeClass.value) {
-    return;
-  }
-  try {
-    await ElMessageBox.confirm(`确定删除班级「${activeClass.value.className}」吗？`, "删除确认", {
-      type: "warning",
-    });
-    await eduaiApi.deleteTeacherClass(activeClass.value.classId);
-    message.success("已删除");
-    activeClassId.value = null;
-    await load();
-  } catch (e) {
-    if (e !== "cancel" && e !== "close") {
-      message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-}
-
 function openStudentDialog(row?: EduStudent) {
   stuDialog.id = row?.studentId ?? null;
   stuDialog.name = row?.studentName ?? "";
@@ -726,17 +676,20 @@ async function submitReset() {
 }
 
 async function removeStudent(row: EduStudent) {
+  // 统一确认弹窗（ReDialog 实现）：原生 ElMessageBox 的层级与老师端全屏层冲突
+  const ok = await confirmDialog.value?.open(
+    `确定删除学生「${row.studentName || row.studentNo}」吗？`,
+    { title: "删除确认", danger: true },
+  );
+  if (!ok) {
+    return;
+  }
   try {
-    await ElMessageBox.confirm(`确定删除学生「${row.studentName || row.studentNo}」吗？`, "删除确认", {
-      type: "warning",
-    });
     await eduaiApi.deleteTeacherStudent(row.studentId);
     message.success("已删除");
     await Promise.all([loadStudents(), load()]);
   } catch (e) {
-    if (e !== "cancel" && e !== "close") {
-      message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
-    }
+    message.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -875,13 +828,11 @@ async function loadAssigns() {
  * @param row 布置记录
  */
 async function revokeAssign(row: PaperAssignVO) {
-  try {
-    await ElMessageBox.confirm(
-      `撤回后「${row.className || "该班级"}」的学生将看不到《${row.paperName}》，确定吗？`,
-      "撤回布置",
-      { type: "warning" },
-    );
-  } catch {
+  const ok = await confirmDialog.value?.open(
+    `撤回后「${row.className || "该班级"}」的学生将看不到《${row.paperName}》，确定吗？`,
+    { title: "撤回布置", danger: true },
+  );
+  if (!ok) {
     return; // 用户取消
   }
   try {
@@ -940,11 +891,21 @@ async function doGenerate() {
   }
 }
 
+/* ==================== 手动组卷（门户内嵌弹窗） ==================== */
+/** 组卷弹窗可见性：老师端组卷收敛在门户内，不再 router.push 跳后台路由 */
+const composeVisible = ref(false);
+/** 组卷弹窗回读的试卷 ID（点「组卷」编辑已有卷时传入） */
+const composePaperId = ref<number | null>(null);
+
+/**
+ * 打开手动组卷：不带 row = 空白新建；带 row = 回读该卷编辑。
+ * PaperComposeView 以 embedded 挂载，返回时 emit('back') 关闭弹窗。
+ *
+ * @param row 试卷行（可选）
+ */
 function goCompose(row?: Paper) {
-  void router.push({
-    path: "/eduai/paper-compose",
-    query: row ? { paperId: String(row.paperId) } : {},
-  });
+  composePaperId.value = row ? row.paperId : null;
+  composeVisible.value = true;
 }
 
 const paperStatusCode = (row: Paper): number => Number(row.paperStatus ?? 0);
@@ -976,47 +937,34 @@ async function unpublishPaper(row: Paper) {
 }
 
 async function archivePaper(row: Paper) {
+  const ok = await confirmDialog.value?.open(
+    `确定归档「${row.paperName}」吗？归档后只读。`,
+    { title: "归档确认", danger: true },
+  );
+  if (!ok) {
+    return;
+  }
   try {
-    await ElMessageBox.confirm(`确定归档「${row.paperName}」吗？归档后只读。`, "归档确认", { type: "warning" });
     await eduaiApi.archivePaper(row.paperId);
     message.success("已归档");
     await loadPapers();
   } catch (e) {
-    if (e !== "cancel" && e !== "close") {
-      message.error(`归档失败：${e instanceof Error ? e.message : String(e)}`);
-    }
+    message.error(`归档失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
 /* ==================== 阅卷 ==================== */
-const fileInput = ref<HTMLInputElement | null>(null);
-const markFiles = ref<File[]>([]);
 const marking = ref(false);
+/** 上传答卷弹窗可见性（共享组件：拖拽 + 点击） */
+const markUploadVisible = ref(false);
 const markResult = ref<MarkingResultVO | null>(null);
 const markTasks = ref<TeacherMarkingTask[]>([]);
 /** 任务号 → 总分快照（列表展示用，已完成的任务后台补齐） */
 const markTaskScores = ref<Record<string, { ai: number; final: number }>>({});
 /** 结构视图刷新令牌：每次点「查看」或判分完成时递增，强制重挂载拿最新结构 */
 const markSheetKey = ref(0);
-const markForm = reactive({ paperId: null as number | null, studentId: "", mode: "SELF", maxScore: 100 });
-
-/** 阅卷记录表列配置 */
-const markTaskColumns: ReTableColumn[] = [
-  { prop: "markingTaskTaskId", label: "任务号", minWidth: 190, showOverflowTooltip: true },
-  { prop: "markingTaskMode", label: "类型", width: 80, slot: "markingTaskMode" },
-  { prop: "taskPaper", label: "试卷", minWidth: 140, showOverflowTooltip: true, slot: "taskPaper" },
-  { prop: "taskStudent", label: "学生", width: 90, showOverflowTooltip: true, slot: "taskStudent" },
-  { prop: "taskStatus", label: "状态", width: 90, slot: "taskStatus" },
-  { prop: "taskAiScore", label: "AI 总分", width: 80, slot: "taskAiScore" },
-  { prop: "taskFinalScore", label: "老师总分", width: 90, slot: "taskFinalScore" },
-  { prop: "markingTaskStartTime", label: "创建时间", minWidth: 150 },
-  { prop: "taskActions", label: "操作", width: 90, slot: "taskActions" },
-];
 
 /** AI 总分 / 老师总分：老师总分 = Σ(老师分 ?? AI 分)，老师为主（与后端 totalScore 同口径） */
-const markAiTotal = computed(() => scoreOf(markResult.value).ai);
-const markFinalTotal = computed(() => scoreOf(markResult.value).final);
-
 function scoreOf(res: MarkingResultVO | null) {
   let ai = 0;
   let final = 0;
@@ -1027,42 +975,34 @@ function scoreOf(res: MarkingResultVO | null) {
   return { ai, final };
 }
 
-/** 记录列表里的试卷名：SELF 卷按 paperId 反查，ANY 卷标「任意卷」 */
-function paperNameOf(row: TeacherMarkingTask) {
-  if (row.markingTaskPaperId) {
-    const hit = papers.value.find((p) => p.paperId === row.markingTaskPaperId);
-    return hit?.paperName ?? `试卷#${row.markingTaskPaperId}`;
-  }
-  return row.markingTaskMode === "ANY" ? "任意卷" : "—";
-}
-
-const taskScoreOf = (row: TeacherMarkingTask) =>
-  row.markingTaskTaskId ? markTaskScores.value[row.markingTaskTaskId] || null : null;
-
-function onPickFiles(e: Event) {
-  const input = e.target as HTMLInputElement;
-  markFiles.value = input.files ? Array.from(input.files) : [];
-}
-
-async function startMarking() {
-  if (!markFiles.value.length) {
-    message.warning("请选择答卷图片");
-    return;
-  }
+/**
+ * 上传答卷弹窗（共享组件）回调：把弹窗收集的表单与文件组装成
+ * 扫描任务载荷提交；随后轮询结果并刷新任务列表。
+ *
+ * @param payload 弹窗表单（模式 / 试卷 / 学生 / 总分 / 文件）
+ */
+async function onMarkStart(payload: {
+  mode: "SELF" | "ANY";
+  paperId: number | null;
+  studentId: string;
+  maxScore: number;
+  files: File[];
+}) {
   const form = new FormData();
-  markFiles.value.forEach((f) => form.append("file", f));
-  form.append("mode", markForm.mode);
-  if (markForm.paperId != null) {
-    form.append("paperId", String(markForm.paperId));
+  payload.files.forEach((f) => form.append("file", f));
+  form.append("mode", payload.mode);
+  if (payload.paperId != null) {
+    form.append("paperId", String(payload.paperId));
   }
-  if (markForm.studentId) {
-    form.append("studentId", markForm.studentId);
+  if (payload.studentId) {
+    form.append("studentId", payload.studentId);
   }
-  form.append("maxScore", String(markForm.maxScore));
+  form.append("maxScore", String(payload.maxScore));
   marking.value = true;
   try {
     const taskId = await eduaiApi.scanMarking(form);
     message.success("已提交，正在阅卷…");
+    markUploadVisible.value = false;
     await pollResult(taskId);
     await loadMarkTasks();
   } catch (e) {
@@ -1129,12 +1069,55 @@ async function loadMarkTasks() {
   );
 }
 
-const taskStatusLabel = (n?: number) =>
-  ({ 0: "待处理", 1: "处理中", 2: "已完成", 3: "失败" })[Number(n ?? 0)] ?? "待处理";
-const taskStatusType = (n?: number) => {
-  const code = Number(n ?? 0);
-  return code === 2 ? "success" : code === 3 ? "danger" : code === 1 ? "warning" : "info";
-};
+/* ==================== 老师上传题目（待审核） ==================== */
+/** 老师上传题目弹窗可见性 */
+const qUploadVisible = ref(false);
+/** 粘贴的题目 JSON 文本 */
+const qUploadText = ref("");
+const qUploading = ref(false);
+
+/**
+ * 提交老师上传的题目：JSON 数组解析后走教师专用端点。
+ * 来源与审核态由服务端决定（来源=老师上传；审核态按
+ * 「老师上传自动通过」配置），客户端传值一律不采信。
+ */
+async function submitTeacherQuestions() {
+  const text = qUploadText.value.trim();
+  if (!text) {
+    message.warning("请粘贴题目 JSON");
+    return;
+  }
+  let list: unknown;
+  try {
+    list = JSON.parse(text);
+  } catch {
+    message.warning("JSON 格式不正确，请检查后重试");
+    return;
+  }
+  if (!Array.isArray(list) || !list.length) {
+    message.warning("请粘贴非空的 JSON 数组");
+    return;
+  }
+  qUploading.value = true;
+  try {
+    const res = await eduaiApi.teacherQuestionUpload(list);
+    if (res.failedCount > 0) {
+      message.error(
+        `上传完成：成功 ${res.successCount} 条，失败 ${res.failedCount} 条（${res.errors.slice(0, 3).join("；")}）`,
+      );
+    } else if (res.autoApproved) {
+      message.success(`上传成功 ${res.successCount} 条（管理员已配自动通过，直接入库）`);
+    } else {
+      message.success(`上传成功 ${res.successCount} 条，已进入待审核队列`);
+    }
+    qUploadVisible.value = false;
+    qUploadText.value = "";
+  } catch (e) {
+    message.error(`上传失败：${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    qUploading.value = false;
+  }
+}
 
 onMounted(() => {
   void load();
@@ -1459,5 +1442,12 @@ onMounted(() => {
   .tp-class__list li {
     transition: none;
   }
+}
+
+/* 组卷弹窗舞台：全屏弹窗里给画布一个近似视口的可用高度
+   （.compose-page 是 height:100% 的 flex 容器，需要定高父级才能铺满；
+   弹窗头约 54px + 弹窗体上下内边距约 40px） */
+.tp-compose-stage {
+  height: calc(100vh - 100px);
 }
 </style>

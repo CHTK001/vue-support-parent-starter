@@ -132,6 +132,13 @@ const filtered = computed(() => {
   });
 });
 
+/** 启用优先：后端激活的采集器排在前面，停用行靠后 */
+const sortedFlows = computed(() =>
+  [...filtered.value].sort(
+    (a, b) => Number(b.collectFlowStatus === 1) - Number(a.collectFlowStatus === 1),
+  ),
+);
+
 const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFlowName", label: "采集器", minWidth: 200, slot: "name" },
   { prop: "collectFlowCategoryId", label: "分类", width: 110, slot: "category", align: "center" },
@@ -169,6 +176,19 @@ function openPreview(flow: CollectFlow): void {
 /** ReTable 插槽里的行是 DefaultRow，统一在这里收口成 CollectFlow */
 function asFlow(input: unknown): CollectFlow {
   return input as CollectFlow;
+}
+
+/** 行状态类：停用行灰底；启用且最近一次失败红底；停用且失败按停用处理 */
+function collectorRowClassName(data: { row: Record<string, unknown>; rowIndex: number }): string {
+  const flow = asFlow(data.row);
+  if (flow.collectFlowStatus !== 1) {
+    return "collect-row collect-row--disabled";
+  }
+  const latest = latestTaskOf.value.get(flow.collectFlowId);
+  if (latest?.collectTaskStatus === "FAILURE") {
+    return "collect-row collect-row--failed";
+  }
+  return "collect-row";
 }
 
 /**
@@ -299,11 +319,12 @@ function runMore(command: string, flow: CollectFlow): void {
 
     <ReTable
       table-id="collect-collector"
-      :data="filtered"
+      :data="sortedFlows"
       :columns="columns"
       :pagination="false"
       :layout-table="{ fill: true }"
       row-key="collectFlowId"
+      row-class-name="collectorRowClassName"
       empty-text="没有匹配的采集器"
       stripe
     >
@@ -448,5 +469,14 @@ function runMore(command: string, flow: CollectFlow): void {
   align-items: center;
   flex-wrap: wrap;
   gap: 2px;
+}
+
+/* 状态行底色：停用灰底优先；启用且最近一次失败才给浅红 */
+:deep(tr.collect-row--disabled td) {
+  background-color: color-mix(in srgb, var(--bg-fill, var(--el-fill-color-lighter)) 78%, transparent) !important;
+}
+
+:deep(tr.collect-row--failed td) {
+  background-color: color-mix(in srgb, var(--status-error, var(--el-color-danger)) 7%, var(--bg-container, #fff)) !important;
 }
 </style>

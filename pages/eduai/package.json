@@ -21,6 +21,7 @@
     "@tiptap/vue-3": "^3.26.0",
     "axios": "catalog:",
     "element-plus": "catalog:",
+    "html2canvas": "1.4.1",
     "katex": "^0.16.47",
     "mammoth": "^1.12.3",
     "qrcode": "^1.5.4",

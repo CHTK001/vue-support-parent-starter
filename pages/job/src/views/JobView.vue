@@ -102,6 +102,7 @@ import {
   flowIdOf,
   glueEngineLabel,
   glueKindLabel,
+  groupLabelOf,
   isFlowRow,
   isScriptJob,
   kindOfGlueType,
@@ -282,7 +283,23 @@ async function loadJobs({ page, pageSize, params }: ReTableLoadParams): Promise<
     dispatchMode: (params.dispatchMode === "" ? undefined : params.dispatchMode) as string | undefined,
   });
   const rows = Array.isArray(result?.data) ? result.data : [];
+  // 启用优先：同一页内后端激活的行排在前面，停用行靠后，方便一眼看到当前可跑的作业
+  rows.sort((a, b) => Number(b.enabled === true) - Number(a.enabled === true));
   return { total: Number(result?.total ?? 0), data: rows as unknown as Record<string, unknown>[] };
+}
+
+/** 行状态类：停用行灰底；启用且最近执行失败时红底（后端暂未返回该字段时不会误标） */
+function jobRowClassName(data: { row: Record<string, unknown>; rowIndex: number }): string {
+  const job = data.row as unknown as JobRuntime;
+  if (job.enabled !== true) {
+    return "job-row job-row--disabled";
+  }
+  const raw = data.row as Record<string, unknown>;
+  const status = String(raw.lastStatus ?? raw.executeCode ?? "").toUpperCase();
+  if (status === "FAILED" || status === "FAILURE") {
+    return "job-row job-row--failed";
+  }
+  return "job-row";
 }
 
 /** 列表重取：调度是后台线程在动，改完配置要立刻回读才能看到下一拍的口径 */
@@ -1121,6 +1138,7 @@ watch(formVisible, (visible) => {
         :params="query"
         :columns="columns"
         row-key="jobKey"
+        row-class-name="jobRowClassName"
         show-selection
         :layout-switch="false"
         @selection-change="onSelectionChange"
@@ -1138,10 +1156,10 @@ watch(formVisible, (visible) => {
           <ReButton text type="primary" icon="Plus" @click="openCreate">新建任务</ReButton>
           <template v-if="selectedCount">
             <span class="job-toolbar-selected">已选 {{ selectedCount }} 项</span>
-            <el-button text :disabled="Boolean(busyKey)" @click="batchToggle(true)">批量启用</el-button>
-            <el-button text :disabled="Boolean(busyKey)" @click="batchToggle(false)">批量停用</el-button>
-            <ReButton icon="Delete" type="danger" layout="square" tip="批量删除" :disabled="Boolean(busyKey)" @click="batchRemove"/>
-            <el-button text @click="clearSelection">清空选择</el-button>
+            <ReButton text type="success" icon="CircleCheck" :disabled="Boolean(busyKey)" @click="batchToggle(true)">批量启用</ReButton>
+            <ReButton text type="warning" icon="CircleClose" :disabled="Boolean(busyKey)" @click="batchToggle(false)">批量停用</ReButton>
+            <ReButton text type="danger" icon="Delete" :disabled="Boolean(busyKey)" @click="batchRemove">批量删除</ReButton>
+            <ReButton text icon="RefreshLeft" @click="clearSelection">清空选择</ReButton>
           </template>
           <span v-if="remoteIdleHere > 0" class="job-toolbar-hint">
             {{ remoteIdleHere }} 个远程任务由调度中心下发，本机不领取
@@ -1196,7 +1214,14 @@ watch(formVisible, (visible) => {
           >
             {{ glueKindLabel(row as unknown as JobRuntime) }}
           </ReTag>
-          <ReTag v-else-if="row.group"  type="info" effect="plain">{{ row.group }}</ReTag>
+          <ReTag
+            v-else-if="row.group"
+            class="collect-tag-inline"
+            :type="row.group === COLLECT_FLOW_GROUP ? 'primary' : 'info'"
+            effect="plain"
+          >
+            {{ groupLabelOf(row as unknown as JobRuntime) }}
+          </ReTag>
         </div>
       </template>
       <template #schedule="{ row }">
@@ -1622,6 +1647,16 @@ watch(formVisible, (visible) => {
  */
 .job-page .job-table {
   background: transparent;
+}
+
+/* 状态行底色：vxe 默认引擎；element 引擎的兼容分支也一并覆盖。
+   停用优先于失败，避免关闭后的行同时被红/灰两色叠花。 */
+.job-page .job-table :deep(tr.job-row--disabled td) {
+  background-color: color-mix(in srgb, var(--bg-fill, var(--el-fill-color-lighter)) 78%, transparent) !important;
+}
+
+.job-page .job-table :deep(tr.job-row--failed td) {
+  background-color: color-mix(in srgb, var(--status-error, var(--el-color-danger)) 7%, var(--bg-container, #fff)) !important;
 }
 
 .job-toolbar-selected,

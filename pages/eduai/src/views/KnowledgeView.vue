@@ -310,10 +310,10 @@
             <div class="form-group">
               <div class="form-group__label">其他设置</div>
               <el-form-item label="父节点">
-                <el-input-number v-model="cardForm.knowledgePointParentId" :min="0" :controls="true" />
+                <ReInputNumber v-model="cardForm.knowledgePointParentId" :min="0" :controls="true" />
               </el-form-item>
               <el-form-item label="排序">
-                <el-input-number v-model="cardForm.knowledgePointSortOrder" :min="0" :controls="true" />
+                <ReInputNumber v-model="cardForm.knowledgePointSortOrder" :min="0" :controls="true" />
               </el-form-item>
               <el-form-item label="状态">
                 <div class="status-toggle">
@@ -525,6 +525,7 @@ import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import KnowledgeFilePreview from "../components/KnowledgeFilePreview.vue";
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const GRADE_LEVELS = [
   { label: "小学", value: "PRIMARY" },
@@ -1731,11 +1732,11 @@ onMounted(() => {
 .card-form .el-input,
 .card-form .el-select,
 .card-form .el-textarea__inner,
-.card-form .el-input-number {
+.card-form .rm-number {
   /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
   border-radius: var(--el-radius-lg, 12px);
 }
-.card-form .el-input-number {
+.card-form .rm-number {
   width: 160px;
 }
 .card-form .el-textarea__inner {

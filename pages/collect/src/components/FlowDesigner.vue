@@ -107,6 +107,14 @@ const props = defineProps<{
   /** 最近一次任务的逐节点执行状态，用来给画布节点描边 */
   states?: Record<string, CollectTaskLog>;
   /**
+   * 最近一次落库时间（UI 稿底栏「最近保存 15:07」）。
+   *
+   * <p>由持有保存动作的宿主传入（FlowView 拿 {@code CollectFlow.updateTime}），
+   * 设计器自己不发请求也不猜时间；没传就显示占位符。只读宿主（预览图 / 回放）
+   * 不渲染属性面板，这个值用不到。</p>
+   */
+  savedAt?: string | number | Date | null;
+  /**
    * 可插入的占位字段分组（全局变量 / 自定义函数等），透传给文本参数的「插入占位」入口。
    *
    * <p>刻意由宿主注入而不是设计器自己去调接口：设计器不依赖 api 层，只认 props，
@@ -202,6 +210,13 @@ const EXCEPTION_OPTIONS = [
 const graphData = ref<FlowGraphData>({ nodes: [], edges: [] });
 const flow = ref<FlowLevel>(emptyDsl());
 const engine = shallowRef<FlowGraphEngine | null>(null);
+/**
+ * ReFlowGraph 组件实例。
+ *
+ * <p>面板里的「全览流程节点」要经它调 {@code fit()}，而不是直接 engine.fitCenter()：
+ * 外壳那版会同步工具条倍率显示，直接调引擎的话图缩放了、倍率还停在旧值。</p>
+ */
+const graphRef = ref<{ fit?: () => unknown } | null>(null);
 const tab = ref<TabKey>("node");
 const nodeForm = ref<NodeForm | null>(null);
 const edgeForm = ref<EdgeForm | null>(null);
@@ -212,9 +227,38 @@ const TABS = computed<{ name: TabKey; label: string; disabled?: boolean; badge?:
   return [
     { name: "node", label: "节点参数" },
     { name: "edge", label: "连线", badge: edgeCount > 0 ? String(edgeCount) : undefined },
-    { name: "flow", label: "流程设置", disabled: true },
+    { name: "flow", label: "流程设置" },
   ];
 });
+
+/** 底部概览的三格统计：节点数 / 连线数 / 最近保存 */
+const overview = computed(() => ({
+  nodes: graphData.value.nodes?.length ?? 0,
+  edges: graphData.value.edges?.length ?? 0,
+  savedAt: savedLabel.value,
+}));
+
+/** 「最近保存」文案：宿主给服务端保存时间，没给就显示占位符（不编造时间） */
+const savedLabel = computed(() => {
+  const raw = props.savedAt;
+  if (!raw) return "—";
+  const date = raw instanceof Date ? raw : new Date(raw);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toTimeString().slice(0, 5);
+});
+
+/** 底栏右侧状态：有过保存时间才算「已自动保存」 */
+const isSaved = computed(() => !!props.savedAt);
+
+/** 空态主按钮「全览流程节点」：缩放到能装下整张图，让所有节点一次入画 */
+function overviewAll(): void {
+  // 组件实例优先（能同步工具条倍率），拿不到再退回引擎本身
+  if (graphRef.value?.fit) {
+    graphRef.value.fit();
+    return;
+  }
+  engine.value?.fitCenter();
+}
 
 /** 整体灌图后的第一个 change 来自内核 setData，不算用户改动 */
 let pending = true;
@@ -1362,6 +1406,7 @@ defineExpose({ load, getGraph, addNode, startWith });
 <template>
   <div class="collect-flow">
     <ReFlowGraph
+      ref="graphRef"
       :data="graphData"
       :node-types="nodeTypes"
       :properties-title="panelTitle"
@@ -1443,8 +1488,46 @@ defineExpose({ load, getGraph, addNode, startWith });
                 <span class="pane-status-hint">改动实时生效，随流程一起保存</span>
               </div>
             </div>
-            <div v-else class="pane-hint">
-              点击画布中的节点即可编辑参数；双击节点可就地改名
+            <!--
+              空态（UI 稿）：虚线插画 + 两枚按钮 + 快捷键提示。
+              没选中节点时表单无处可放，只留一句灰字太冷，这里给两条能立刻上手的出路：
+              「全览流程节点」把整张图缩放进画布，「打开流程设置」直接跳到流程级参数。
+            -->
+            <div v-else class="pane-empty">
+              <svg class="pane-empty-art" viewBox="0 0 132 96" width="132" height="96" aria-hidden="true">
+                <rect
+                  x="14.5" y="18.5" width="86" height="58" rx="10"
+                  fill="none" stroke="var(--el-color-primary)" stroke-width="1.6"
+                  stroke-dasharray="7 5"
+                />
+                <rect x="38" y="34" width="30" height="6" rx="3" fill="var(--el-color-primary)" opacity=".45" />
+                <rect x="28" y="48" width="56" height="6" rx="3" fill="var(--el-color-primary)" opacity=".22" />
+                <circle cx="14.5" cy="47.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
+                <circle cx="100.5" cy="18.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
+                <circle cx="100.5" cy="76.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
+                <path d="M76 84l0 8 5-2.6 3.4 6.4 4-2.1-3.4-6.4 6.3-.6z" fill="var(--el-color-primary)" opacity=".9" />
+              </svg>
+              <div class="pane-empty-title">还没有选中节点</div>
+              <p class="pane-empty-sub">
+                点击画布中的节点即可编辑参数；<br />
+                双击节点可就地改名
+              </p>
+              <div class="pane-empty-actions">
+                <ReButton type="primary" class="pane-empty-btn" icon="View" @click="overviewAll">
+                  全览流程节点
+                </ReButton>
+                <ReButton class="pane-empty-btn" icon="Setting" @click="tab = 'flow'">
+                  打开流程设置
+                </ReButton>
+              </div>
+              <div class="pane-empty-keys">
+                <kbd>⌘</kbd>
+                <kbd>A</kbd>
+                <span>全选 · 双击改名</span>
+                <i class="pane-empty-sep" />
+                <kbd>Del</kbd>
+                <span>删除</span>
+              </div>
             </div>
           </template>
 
@@ -1560,6 +1643,38 @@ defineExpose({ load, getGraph, addNode, startWith });
           </template>
         </ReTab>
       </template>
+
+      <!--
+        面板底栏（UI 稿「本流程概览」）：常驻在属性停靠区底部，不随表单滚动。
+        节点 / 连线计数取 graphData —— 它由 onGraphChange 跟着内核 change 一起刷新；
+        「最近保存」由宿主传入服务端时间，设计器不自己发请求。
+      -->
+      <template #properties-footer>
+        <div class="overview">
+          <div class="overview-head">
+            <span class="overview-title">本流程概览</span>
+            <span v-if="isSaved" class="overview-saved">
+              <i class="overview-check" />
+              已自动保存
+            </span>
+            <span v-else class="overview-saved is-draft">未保存</span>
+          </div>
+          <div class="overview-stats">
+            <div class="overview-stat">
+              <b>{{ overview.nodes }}</b>
+              <span>流程节点</span>
+            </div>
+            <div class="overview-stat">
+              <b>{{ overview.edges }}</b>
+              <span>连线</span>
+            </div>
+            <div class="overview-stat">
+              <b>{{ overview.savedAt }}</b>
+              <span>最近保存</span>
+            </div>
+          </div>
+        </div>
+      </template>
     </ReFlowGraph>
   </div>
 </template>
@@ -1568,6 +1683,12 @@ defineExpose({ load, getGraph, addNode, startWith });
 .collect-flow {
   display: flex;
   flex: 1 1 auto;
+  /* height 与 min-height 必须同时给：ReFlowGraph 的壳是 `height: 100%`，而百分比只在
+     父级有**确定**高度时才解析。本组件原先只有 min-height（父 height 为 auto），
+     壳回退成 auto → 只剩工具条高度 → .flow-main / .flow-canvas-wrap 塌成 0 →
+     X6 画布没有布局盒，节点全部不可见（状态栏却照常显示「N 节点 / M 连线」）。
+     宿主是弹层时必现：弹层给的是 flex:1 的自动高度，撑不开这条百分比链。 */
+  height: 100%;
   min-height: 520px;
 }
 
@@ -1700,5 +1821,135 @@ defineExpose({ load, getGraph, addNode, startWith });
   /* 原为 #a4abb5：同 field-tip，secondary 为下限 */
   color: var(--el-text-color-secondary);
   text-align: center;
+}
+
+/*
+ * ===== 空态（UI 稿右侧栏「还没有选中节点」） =====
+ * 没选中节点时表单无处可放。这里给插画 + 两条能立刻上手的出路（看全图 / 开流程设置）
+ * + 一行快捷键提示，而不是只丢一句灰字。
+ */
+.pane-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 4px 8px;
+  text-align: center;
+}
+.pane-empty-art {
+  margin-bottom: 18px;
+}
+.pane-empty-title {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.pane-empty-sub {
+  margin: 0 0 22px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--el-text-color-secondary);
+}
+/* 两枚按钮各占满一行：面板最窄 300px，横排放不下两个带图标的按钮 */
+.pane-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.pane-empty-btn {
+  width: 100%;
+  height: 38px;
+  margin: 0;
+}
+.pane-empty-keys {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.pane-empty-keys kbd {
+  min-width: 22px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--el-text-color-regular);
+  text-align: center;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+}
+.pane-empty-sep {
+  width: 1px;
+  height: 12px;
+  margin: 0 4px;
+  background: var(--el-border-color-lighter);
+}
+
+/*
+ * ===== 面板底栏「本流程概览」（UI 稿） =====
+ * 常驻底部：右栏拉到多宽都不至于看不见流程规模与保存状态。
+ */
+.overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.overview-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+.overview-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--el-color-success);
+}
+.overview-saved.is-draft {
+  color: var(--el-text-color-secondary);
+}
+.overview-check {
+  width: 12px;
+  height: 12px;
+  background-color: currentcolor;
+  /* 对勾：用两条边框拼出来，省一个图标字体 */
+  clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 22%, 84% 8%, 38% 68%);
+  border-radius: 2px;
+}
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 8px;
+}
+.overview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  text-align: center;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.overview-stat b {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.overview-stat span {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 </style>

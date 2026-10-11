@@ -62,6 +62,16 @@ export type {
 } from "./api";
 export { ApiError, setUnauthorizedHandler } from "./api/request";
 
+// 路由收敛口：管理页路由与「类型→路径」映射都由本包声明，宿主只做合并。
+// 宿主不要再在自己的 routes.ts 里抄这些视图路径 —— 抄两份就会漏（历史上漏过 /prometheus）。
+export {
+  createDatasourceManageRoutes,
+  managerRouteFor,
+  MANAGER_ROUTE_MAP,
+  MANAGER_ROUTE_PATHS,
+} from "./routes";
+export type { DatasourceManageRoutesOptions } from "./routes";
+
 // 共享组件：他模块直接 import 这几个就能拿到「选数据源 / 选表 / 选字段 / 建表」
 export {
   DatasourceSelect,

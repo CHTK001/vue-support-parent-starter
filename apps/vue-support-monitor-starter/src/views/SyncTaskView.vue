@@ -1993,12 +1993,16 @@ const doPreview = async () => {
     message.success(`源 ${preview.sourceColumns.length} 列 / 目标 ${preview.targetColumns.length} 列，已配对 ${preview.mapping.length} 项`);
   } catch (e) {
     previewWarnings.value = [];
-    const message = (e as Error)?.message || "未知错误";
-    message.error("预览失败：" + message);
+    // 局部名不能叫 message：它会遮蔽顶部 import 的 message 提示器，
+    // 下一行 message.error(...) 直接抛 TypeError，把整个 catch 打断 ——
+    // 用户既看不到失败提示，下面的「表不存在 → 弹设计表」也永远不会执行
+    // （表现为：目标表填错了却毫无反应，设计表向导在这条路径上打不开）。
+    const errText = (e as Error)?.message || "未知错误";
+    message.error("预览失败：" + errText);
     // 「表不存在」不是配置填错，光提示用户也续不上 —— 直接弹设计表，
     // 在缺表的那一侧库建好后回填表名并自动续跑预览。
-    if (isTableMissingError(message)) {
-      void openTableDesigner(message);
+    if (isTableMissingError(errText)) {
+      void openTableDesigner(errText);
     }
   }
 };
@@ -2215,7 +2219,8 @@ const run = async (row: SyncTask) => {
       message.error(`执行失败：${result.message}`);
     }
   } catch (e) {
-    const message = (e as Error)?.message || String(e);
+    // 同上：局部名不能叫 message（会遮蔽 import 进来的提示器，message.error 变 TypeError）
+    const errText = (e as Error)?.message || String(e);
     // 网络 / 网关错误没有 runTime，用触发时刻记录；status 用 ERROR 与业务 FAILED 区分开
     appendLogEntry(row.id, {
       at: new Date().toLocaleString(),
@@ -2223,9 +2228,9 @@ const run = async (row: SyncTask) => {
       read: 0,
       write: 0,
       costMs: 0,
-      message,
+      message: errText,
     });
-    message.error("执行失败：" + message);
+    message.error("执行失败：" + errText);
   } finally {
     runningId.value = null;
     await refresh();

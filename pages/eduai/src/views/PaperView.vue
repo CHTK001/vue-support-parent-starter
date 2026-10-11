@@ -129,13 +129,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="总分">
-          <el-input-number v-model="createForm.totalScore" :min="1" :max="1000" />
+          <ReInputNumber v-model="createForm.totalScore" :min="1" :max="1000" />
         </el-form-item>
         <el-form-item label="难度">
           <el-rate v-model="createForm.difficulty" :max="5" />
         </el-form-item>
         <el-form-item label="考试时长">
-          <el-input-number v-model="createForm.duration" :min="1" :max="600" /> 分钟
+          <ReInputNumber v-model="createForm.duration" :min="1" :max="600" /> 分钟
         </el-form-item>
         <el-form-item label="组卷模板">
           <el-select v-model="createForm.templateId" placeholder="不使用模板" clearable style="width: 100%">
@@ -144,10 +144,10 @@
         </el-form-item>
         <template v-if="composeMode === 'AI'">
           <el-form-item label="题目数量">
-            <el-input-number v-model="aiQuestionCount" :min="1" :max="200" />
+            <ReInputNumber v-model="aiQuestionCount" :min="1" :max="200" />
           </el-form-item>
           <el-form-item label="每题分值">
-            <el-input-number v-model="aiScorePerQuestion" :min="1" :max="100" />
+            <ReInputNumber v-model="aiScorePerQuestion" :min="1" :max="100" />
           </el-form-item>
         </template>
       </el-form>
@@ -176,12 +176,25 @@
           <span>时长 {{ detail.paperDuration }} 分</span>
         </div>
         <PaperPreview
+          ref="detailPreviewRef"
           :header="detailHeader"
           :questions="detailQuestions"
           :fit-width="DETAIL_PREVIEW_WIDTH"
           empty-text="该试卷没有题目，请确认题库中已有匹配学科与年级的题目后重新组卷"
         />
       </div>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+        <el-button
+          type="primary"
+          icon="Picture"
+          :loading="detailExporting"
+          :disabled="!detailQuestions.length"
+          @click="exportDetailPaper"
+        >
+          导出 A4 图片
+        </el-button>
+      </template>
     </ReDialog>
 
     <!-- 编辑：改卷头属性（组卷页只管题目与纸张，卷头属性在这里维护） -->
@@ -211,13 +224,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="总分">
-          <el-input-number v-model="editForm.totalScore" :min="1" :max="1000" />
+          <ReInputNumber v-model="editForm.totalScore" :min="1" :max="1000" />
         </el-form-item>
         <el-form-item label="难度">
           <el-rate v-model="editForm.difficulty" :max="5" />
         </el-form-item>
         <el-form-item label="考试时长">
-          <el-input-number v-model="editForm.duration" :min="1" :max="600" /> 分钟
+          <ReInputNumber v-model="editForm.duration" :min="1" :max="600" /> 分钟
         </el-form-item>
       </el-form>
       <template #footer>
@@ -288,7 +301,7 @@ import { message } from "@repo/core";
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
-import { Printer } from '@element-plus/icons-vue';
+import { Printer, Picture } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
 import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
@@ -298,6 +311,7 @@ import PaperPreview from '../components/paper/PaperPreview.vue';
 import type { PreviewHeader, PreviewQuestion } from '../components/paper/PaperPreview.vue';
 import { usePaperCart, toCartItem, type CartItem } from '../composables/usePaperCart';
 import ReDialog from "@repo/ui/re-dialog";
+import ReInputNumber from "@repo/ui/re-input-number";
 
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -371,6 +385,15 @@ const generating = ref(false);
 
 const detailVisible = ref(false);
 const detail = ref<Paper | null>(null);
+const detailPreviewRef = ref<{
+  exportA4Images: (options?: {
+    mode?: string;
+    answers?: Record<string, string>;
+    filename?: string;
+    scale?: number;
+  }) => Promise<void>;
+} | null>(null);
+const detailExporting = ref(false);
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
   SINGLE_CHOICE: '单选题',
@@ -414,8 +437,29 @@ const detailQuestions = computed(() =>
       options: q.options,
       score: q.score,
       paperQuestionNo: q.questionNo,
+      answer: q.answer,
+      analysis: q.analysis,
     })),
 );
+
+/** 详情弹框导出当前试卷为 A4 PNG */
+const exportDetailPaper = async () => {
+  if (!detailPreviewRef.value || !detail.value) {
+    return;
+  }
+  detailExporting.value = true;
+  try {
+    await detailPreviewRef.value.exportA4Images({
+      mode: 'paper',
+      filename: detail.value.paperName || '试卷',
+    });
+    message.success(`已导出 ${detailQuestions.value.length > 0 ? detailQuestions.value.length : 0} 题试卷图片`);
+  } catch (e) {
+    message.error('导出失败: ' + errorText(e));
+  } finally {
+    detailExporting.value = false;
+  }
+};
 
 /* ---------- 编辑试卷 ---------- */
 

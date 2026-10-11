@@ -55,12 +55,14 @@
                     <Add12Regular class="w-3.5 h-3.5 mr-2 inline-block" />
                     新建会话
                   </DropdownMenuItem>
-                  <DropdownMenuItem command="multi">
-                    <CheckBoxOutlined class="w-4 h-4 mr-2 inline-block" />
-                    多选
-                  </DropdownMenuItem>
                 </template>
               </DropdownMenu>
+              <!-- 批量：与「+」并排的独立按钮，一键进入多选（原先藏在 + 的下拉里，多一层点击） -->
+              <button type="button" class="session-action-trigger p-0.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                :class="{ 'is-multi-active': multiSelectMode }" title="批量" aria-label="批量"
+                @click.stop="toggleMultiSelect">
+                <CheckBoxOutlined class="w-2.5 h-2.5 text-gray-500 dark:text-gray-300" />
+              </button>
             </div>
           </div>
 
@@ -238,8 +240,8 @@
       </el-checkbox>
       <span class="ms-count">已选 {{ selectedSessionIds.length }} 项</span>
       <div class="ms-spacer"></div>
-      <el-button  round @click="exitMultiSelect">取消</el-button>
-      <el-button  type="danger" round :disabled="selectedSessionIds.length === 0"
+      <el-button size="small" round @click="exitMultiSelect">取消</el-button>
+      <el-button size="small" type="danger" round :disabled="selectedSessionIds.length === 0"
         @click="handleBatchDelete">
         删除<template v-if="selectedSessionIds.length"> ({{ selectedSessionIds.length }})</template>
       </el-button>
@@ -407,8 +409,6 @@ import {
   WeatherMoon20Filled,
   Desktop16Regular,
   Settings16Filled,
-  Server20Regular,
-  DataArea20Regular,
   DataBarVertical20Regular,
   PlugConnected20Regular,
   Image20Regular,
@@ -479,7 +479,11 @@ const exitMultiSelect = () => {
 }
 const handleGroupPlusCommand = (cmd: string, group: any) => {
   if (cmd === 'new') openNewSession(group.id)
-  else if (cmd === 'multi') enterMultiSelect()
+}
+// 批量按钮：多选态下再次点击即退出，避免只能靠底部「取消」退出
+const toggleMultiSelect = () => {
+  if (multiSelectMode.value) exitMultiSelect()
+  else enterMultiSelect()
 }
 
 // 当前已加载（可见）的全部会话，用于全选
@@ -657,13 +661,6 @@ const navItems = computed(() => {
       // 未登录仍会被 requireUserId() 拒掉。
     },
     {
-      key: 'ai-providers',
-      label: '提供商管理',
-      icon: Server20Regular,
-      section: 'AI 配置',
-      showKey: 'showModelsMenu'
-    },
-    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -671,16 +668,12 @@ const navItems = computed(() => {
       showKey: 'showModelsMenu'
     },
     {
-      key: 'ai-default-models',
-      label: '默认模型配置',
-      icon: DataArea20Regular,
-      section: 'AI 配置',
-      showKey: 'showModelsMenu'
-    },
-    {
       key: 'usage',
       label: '用量管理',
       icon: DataBarVertical20Regular,
+      // 独立分组：用量统计的是本账号的 token/费用消费，与「AI 配置」下的模型接入
+      // 不是一类事。原先没有 section，会视觉上并进 AI 配置（用户反馈）。
+      section: '用量统计',
       showKey: 'showUsageMenu'
     },
     {
@@ -722,11 +715,8 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Bots') return 'bots'
   if (routeName === 'Tavern') return 'tavern'
   if (routeName === 'SystemSettings') {
-    // 统一 AI 配置菜单：提供商 / 默认模型仍然复用系统设置的原页面，
-    // 只是按 tab 参数高亮对应菜单项。
-    const tabParam = Array.isArray(route.params.tab) ? route.params.tab[0] : route.params.tab
-    if (tabParam === 'providers') return 'ai-providers'
-    if (tabParam === 'default-models') return 'ai-default-models'
+    // 提供商 / 默认模型已从侧栏移除（仍可从「设置」页进入），
+    // 因此这里统一回落到 'setting'，不再为已删除的菜单项保留高亮分支。
     return 'setting'
   }
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
@@ -931,18 +921,15 @@ const loadMoreForGroup = async (groupId: string) => {
     // 用已加载数做 skip：后端按 skip/limit/分组过滤返回下一页，逐页追加。
     const data = await apiService.fetchSessions(currentSessions.length, SIDEBAR_PAGE_SIZE, groupIdParam)
 
-    if (data.items && data.items.length > 0) {
+    // 这一页可能一条都没有（会话刚被删光 / skip 越界）。必须照样把 hasMore 落成 false，
+    // 否则「加载更多」会永远停在那里 —— 原实现把 setHasMore 放在
+    // `data.items.length > 0` 分支里，空页直接跳过了状态更新（实测缺陷）。
+    const received = data.items?.length ?? 0
+    if (received > 0) {
       // 写入统一数据源
       for (const session of data.items) {
         sessionStore.setSession(session)
       }
-      const loaded = currentSessions.length + data.items.length
-      sessionStore.setLoadedCount(groupId, loaded)
-      // 点击后必须真有数据才保留按钮：后端明确说没有（hasMore=false）
-      // 或本页没拿满一页，都说明到底了，直接收起按钮。
-      const serverHasMore = data.hasMore ?? (loaded < (data.total || 0))
-      sessionStore.setHasMore(groupId, serverHasMore && data.items.length >= SIDEBAR_PAGE_SIZE)
-
       // 同步流式状态
       for (const session of data.items) {
         if (session.isStreaming) {
@@ -950,6 +937,12 @@ const loadMoreForGroup = async (groupId: string) => {
         }
       }
     }
+    const loaded = currentSessions.length + received
+    sessionStore.setLoadedCount(groupId, loaded)
+    // 点击后必须真有数据才保留按钮：后端明确说没有（hasMore=false）
+    // 或本页没拿满一页，都说明到底了，直接收起按钮。
+    const serverHasMore = data.hasMore ?? (loaded < (data.total || 0))
+    sessionStore.setHasMore(groupId, serverHasMore && received >= SIDEBAR_PAGE_SIZE)
   } catch (error) {
     console.error(`加载分组 ${groupId} 更多会话失败:`, error)
   } finally {
@@ -1044,10 +1037,6 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'ImageSearch' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
-  } else if (tab === 'ai-providers') {
-    router.replace({ name: 'SystemSettings', params: { tab: 'providers' } })
-  } else if (tab === 'ai-default-models') {
-    router.replace({ name: 'SystemSettings', params: { tab: 'default-models' } })
   } else if (tab === 'app-keys') {
     router.replace({ name: 'AppKeys' })
   } else if (tab === 'manufacturer-keys') {
@@ -1416,6 +1405,12 @@ onUnmounted(() => {
   background-color: var(--el-fill-color-light);
 }
 
+/* 批量按钮的多选激活态：与 nav-item-active 同一套令牌，多选进行中一眼可见 */
+.session-action-trigger.is-multi-active {
+  background-color: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  color: var(--el-color-primary);
+}
+
 /* 空状态 */
 .empty-state-icon {
   display: flex;
@@ -1444,7 +1439,10 @@ onUnmounted(() => {
 .ms-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  /* 不换行：flex-wrap 会先折行、根本不触发收缩，实测会从 50px 涨到 88px 两行。
+     这里改成「计数可压缩 + 按钮恒定」，保证始终单行且不越界：
+     空间不够时由「已选 N 项」省略号收尾，而不是把删除按钮顶出边框。 */
   margin: 0 8px 6px;
   padding: 8px 10px;
   /* 原值 12px → lg 档 */
@@ -1452,8 +1450,18 @@ onUnmounted(() => {
   border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, var(--color-surface-border, transparent));
   background: var(--color-surface, transparent);
 }
-.ms-count { font-size: 12px; color: var(--color-text-gray); white-space: nowrap; }
-.ms-spacer { flex: 1; }
+.ms-count {
+  font-size: 12px;
+  color: var(--color-text-gray);
+  white-space: nowrap;
+  /* 唯一允许被压缩的元素：空间不足时省略号收尾，而不是把按钮顶出边框 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 两个操作按钮不参与压缩，「删除 (N)」再长也不变形 */
+.ms-bar :deep(.el-button) { flex-shrink: 0; }
+.ms-spacer { flex: 1 1 0; min-width: 0; }
 .ms-row-check { pointer-events: none; }
 .ms-row-check :deep(.el-checkbox__label) { display: none; }
 .session-in-check { padding-left: 8px; }

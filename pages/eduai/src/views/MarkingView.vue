@@ -13,12 +13,12 @@
     <!-- 实时进度（SSE）：上传后立即显示识别/解析/判分推进，终态自动收起 -->
     <el-card v-if="progress" shadow="never" class="mt-3 progress-card">
       <div class="flex items-center gap-3 flex-wrap">
-        <el-tag :type="progressTagType" effect="dark">{{ progressTagText }}</el-tag>
+        <ReTag :type="progressTagType" effect="dark">{{ progressTagText }}</ReTag>
         <span class="font-semibold">{{ progress.stage || '处理中' }}</span>
-        <el-tag v-if="progress.total" type="info" size="small">
+        <ReTag v-if="progress.total" type="info" size="small">
           {{ progress.doneCount ?? 0 }} / {{ progress.total }} 题
-        </el-tag>
-        <el-tag :type="streamTagType" size="small" effect="plain">{{ streamTagText }}</el-tag>
+        </ReTag>
+        <ReTag :type="streamTagType" size="small" effect="plain">{{ streamTagText }}</ReTag>
         <span class="progress-task-id">taskId: {{ progress.taskId }}</span>
       </div>
       <el-progress
@@ -47,15 +47,15 @@
         <div class="flex items-center gap-3 flex-wrap">
           <el-icon><Reading /></el-icon>
           <span class="font-semibold">AI 阅卷记录（试卷）</span>
-          <el-tag type="info">{{ totalCount }} 份</el-tag>
-          <el-tag type="success" effect="plain">老师总分为最终成绩</el-tag>
+          <ReTag type="info">{{ totalCount }} 份</ReTag>
+          <ReTag type="success" effect="plain">老师总分为最终成绩</ReTag>
           <div class="flex-1" />
           <ReButton icon="Refresh" :loading="refreshing" @click="reloadList">刷新</ReButton>
         </div>
       </template>
       <ReTable
         ref="markingTable"
-        :load="markingTasksLoader"
+        :loader="markingTasksLoader"
         v-model:total="totalCount"
         row-key="markingTaskId"
         :toolbar="false"
@@ -69,9 +69,9 @@
         </ReTableColumn>
         <ReTableColumn label="类型" width="86">
           <template #default="{ row }">
-            <el-tag size="small" :type="row.markingTaskMode === 'ANY' ? 'warning' : 'primary'">
+            <ReTag size="small" :type="row.markingTaskMode === 'ANY' ? 'warning' : 'primary'">
               {{ modeLabel(row) }}
-            </el-tag>
+            </ReTag>
           </template>
         </ReTableColumn>
         <ReTableColumn label="试卷" min-width="150" show-overflow-tooltip>
@@ -82,9 +82,9 @@
         </ReTableColumn>
         <ReTableColumn label="状态" width="150">
           <template #default="{ row }">
-            <el-tag size="small" :type="taskStatusType(row.markingTaskStatus)">
+            <ReTag size="small" :type="taskStatusType(row.markingTaskStatus)">
               {{ taskStatusLabel(row.markingTaskStatus) }}
-            </el-tag>
+            </ReTag>
             <span v-if="row.markingTaskStage" class="stage-text">{{ row.markingTaskStage }}</span>
           </template>
         </ReTableColumn>
@@ -107,40 +107,27 @@
       </ReTable>
     </el-card>
 
-    <!-- 试卷详情：原始试卷 / 版面解析 + AI 分与老师分（老师为主） -->
+    <!-- 试卷详情：汇总 + 原始试卷 / 版面解析（阅卷系统共享组件）；AI 分与老师分（老师为主） -->
     <el-card v-else shadow="never" class="mt-3 detail-card">
       <template #header>
         <div class="flex items-center gap-2 flex-wrap">
           <el-icon><Reading /></el-icon>
           <span class="font-semibold">阅卷详情</span>
           <span class="detail-id" :title="selectedTaskId">{{ selectedTaskId }}</span>
-          <el-tag v-if="selectedRow" size="small" type="info">{{ modeLabel(selectedRow) }}</el-tag>
+          <ReTag v-if="selectedRow" size="small" type="info">{{ modeLabel(selectedRow) }}</ReTag>
           <span v-if="selectedRow?.markingTaskStudentId" class="detail-meta">
             学生：{{ selectedRow.markingTaskStudentId }}
           </span>
           <span v-if="paperNameOf(selectedRow) !== '—'" class="detail-meta">
             试卷：{{ paperNameOf(selectedRow) }}
           </span>
-          <el-tag v-if="selectedRow" size="small" :type="taskStatusType(selectedRow.markingTaskStatus)">
-            {{ taskStatusLabel(selectedRow.markingTaskStatus) }}
-          </el-tag>
-          <el-tag v-else-if="selectedScores" size="small" :type="selectedScores.finished ? 'success' : 'warning'">
-            {{ selectedScores.finished ? '已完成' : '判分中' }}
-          </el-tag>
-          <div class="flex-1" />
-          <el-tag type="info">AI 总分 {{ selectedScores?.ai ?? '…' }}</el-tag>
-          <el-tag type="success" effect="dark">
-            老师总分 {{ selectedScores?.final ?? '…' }}（老师为主）
-          </el-tag>
         </div>
       </template>
-      <div class="detail-body">
-        <SheetStructureView
-          :key="`${selectedTaskId}:${structureKey}`"
-          :task-id="selectedTaskId"
-          @saved="onSaved"
-        />
-      </div>
+      <MarkingResultPanel
+        :result="detailResult"
+        :refresh-key="structureKey"
+        @saved="onSaved"
+      />
     </el-card>
 
     <!-- 提交答题卡对话框 -->
@@ -188,49 +175,13 @@
       </template>
     </ReDialog>
 
-    <!-- 扫描阅卷对话框：上传试卷/答题卡图片，支持自有卷与任意卷两种模式 -->
-    <!-- destroy-on-close：关闭即销毁内容，否则 el-upload 内部列表跨开合残留，
-         openScan 虽重置 scanForm.files，但下次 on-change 会把旧图同步回来造成串页 -->
-    <ReDialog v-model="scanDialogVisible" title="扫描阅卷" width="680" destroy-on-close>
-      <el-form :model="scanForm" label-width="110">
-        <el-form-item label="试卷类型" required>
-          <el-radio-group v-model="scanForm.mode">
-            <el-radio-button value="SELF">自有卷（题库有记录）</el-radio-button>
-            <el-radio-button value="ANY">任意卷（外来试卷）</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="scanForm.mode === 'SELF'" label="试卷" required>
-          <el-select v-model="scanForm.paperId" placeholder="选择试卷（按题号取准确分值）" style="width: 100%" filterable>
-            <el-option v-for="p in paperOptions" :key="p.paperId" :label="p.paperName" :value="p.paperId" />
-          </el-select>
-        </el-form-item>
-        <el-form-item v-else label="每题满分">
-          <el-input-number v-model="scanForm.maxScore" :min="1" :max="150" />
-          <span class="text-xs text-gray-400 ml-2">任意卷题库无记录，由模型自行判定</span>
-        </el-form-item>
-        <el-form-item label="学生 ID">
-          <el-input v-model="scanForm.studentId" placeholder="留空则记为匿名" />
-        </el-form-item>
-        <el-form-item label="试卷图片（可多张）" required>
-          <el-upload
-            :auto-upload="false"
-            multiple
-            :limit="20"
-            accept="image/*"
-            :on-change="onScanFileChange"
-            :on-remove="onScanFileRemove"
-            list-type="picture"
-          >
-            <el-button icon="Upload">选择图片（可多选）</el-button>
-          </el-upload>
-          <div class="text-xs text-gray-400">一份试卷通常跨多页，请按页序选择，最多 20 张</div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="scanDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="scanning" @click="doScan">开始阅卷</el-button>
-      </template>
-    </ReDialog>
+    <!-- 扫描阅卷：独立上传弹窗，支持拖拽与点击（阅卷系统共享组件） -->
+    <MarkingUploadDialog
+      v-model="scanDialogVisible"
+      :papers="paperOptions"
+      :submitting="scanning"
+      @start="onScanStart"
+    />
   </div>
 </template>
 
@@ -243,9 +194,11 @@ import { http } from '@repo/utils';
 import { eduaiApi } from '../api/eduaiApi';
 import { createPageLoader, pageLoadError } from '../api/pageLoader';
 import { failToast } from '../api/errorText';
-import type { MarkingProgressVO, MarkingResultVO, TeacherMarkingTask } from '../api/types';
+import type { MarkingProgressVO, MarkingResultVO, PageResult, Paper, TeacherMarkingTask } from '../api/types';
 import ReDialog from "@repo/ui/re-dialog";
-import SheetStructureView from '../components/marking/SheetStructureView.vue';
+import ReTag from "@repo/ui/re-tag";
+import MarkingUploadDialog from '../components/marking/MarkingUploadDialog.vue';
+import MarkingResultPanel from '../components/marking/MarkingResultPanel.vue';
 
 const taskId = ref('');
 
@@ -271,9 +224,8 @@ const taskStatusType = (n?: number) => {
   const code = Number(n ?? 0);
   return code === 2 ? 'success' : code === 3 ? 'danger' : code === 1 ? 'warning' : 'info';
 };
-/** 详情页头部的任务元数据：从记录行「查看」时带入；任务号直达无行，置 null（详情有 selectedScores 兜底） */
+/** 详情页头部的任务元数据：从记录行「查看」时带入；任务号直达无行，置 null */
 const selectedRow = ref<TeacherMarkingTask | null>(null);
-const selectedScores = computed(() => scores.value[selectedTaskId.value] || null);
 
 const scoreOfResult = (res: MarkingResultVO | null | undefined) => {
   let ai = 0;
@@ -285,22 +237,55 @@ const scoreOfResult = (res: MarkingResultVO | null | undefined) => {
   return { ai, final, finished: !!res?.finished };
 };
 
+/** 当前详情页的阅卷结果（阅卷系统共享结果面板的输入） */
+const detailResult = ref<MarkingResultVO | null>(null);
+
 /** 拉取单任务结果并回填总分快照；返回结果供调用方判断终态 */
 const fillScore = async (id: string): Promise<MarkingResultVO | null> => {
   if (!id) return null;
   try {
     const res = await eduaiApi.getMarkingResult(id);
     scores.value = { ...scores.value, [id]: scoreOfResult(res) };
+    // 顺带刷新详情结果面板（id 对应当前详情时）
+    if (id === selectedTaskId.value) {
+      detailResult.value = res;
+    }
     return res;
   } catch {
     return null;
   }
 };
 
+/** 分页端点是否可用：旧后端没有 /teacher/marking/tasks/page，探测一次后回落列表端点 */
+let markingTasksPagedSupported = true;
+
 /** 取一页阅卷任务；对当页已完成任务后台补齐总分快照（与旧 loadTasks 同口径，不阻塞首屏） */
-const fetchMarkingPage = async (page: number, pageSize: number) => {
-  const res = await eduaiApi.pageTeacherMarkingTasks({ pageNum: page, pageSize });
-  const rows = (res?.data ?? res?.records ?? []) as TeacherMarkingTask[];
+const fetchMarkingPage = async (page: number, pageSize: number): Promise<PageResult<TeacherMarkingTask>> => {
+  let res: PageResult<TeacherMarkingTask> | null = null;
+  // 线上后端可能还没有分页端点（/teacher/marking/tasks/page 返回 404）：
+  // 探测失败后回落到更早的列表端点（/teacher/marking/tasks）做客户端分页，
+  // 保证「阅卷记录」在旧后端上仍能看到已判完/判分中的任务，而不是永远空表。
+  if (markingTasksPagedSupported) {
+    try {
+      res = await eduaiApi.pageTeacherMarkingTasks({ pageNum: page, pageSize });
+    } catch {
+      markingTasksPagedSupported = false;
+    }
+  }
+  if (!res) {
+    const all = (await eduaiApi.teacherMarkingTasks(100)) as TeacherMarkingTask[];
+    const start = (page - 1) * pageSize;
+    const data = all.slice(start, start + pageSize);
+    res = {
+      pageNo: page,
+      pageSize,
+      total: all.length,
+      totalPages: Math.max(1, Math.ceil(all.length / pageSize)),
+      data,
+      records: data,
+    };
+  }
+  const rows = (res.data ?? res.records ?? []) as TeacherMarkingTask[];
   void Promise.all(
     rows
       .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !scores.value[t.markingTaskTaskId])
@@ -345,6 +330,7 @@ const openDetail = async (id?: string, row?: TeacherMarkingTask) => {
 
 const backToList = () => {
   view.value = 'list';
+  detailResult.value = null;
   void reloadList();
 };
 
@@ -547,20 +533,7 @@ const stopPolling = () => {
 /* ==================== 扫描阅卷 ==================== */
 const scanDialogVisible = ref(false);
 const scanning = ref(false);
-const paperOptions = ref<Array<{ paperId: number; paperName: string }>>([]);
-const scanForm = reactive<{
-  mode: 'SELF' | 'ANY';
-  paperId: number | undefined;
-  studentId: string;
-  maxScore: number;
-  files: File[];
-}>({
-  mode: 'SELF',
-  paperId: undefined,
-  studentId: '',
-  maxScore: 5,
-  files: [],
-});
+const paperOptions = ref<Paper[]>([]);
 
 /** 试卷下拉/记录列表展示共用：分值与试卷名都按试卷回数据库取 */
 const loadPapers = async () => {
@@ -568,7 +541,7 @@ const loadPapers = async () => {
     const page = await eduaiApi.pagePapers({ pageNum: 1, pageSize: 100 });
     // PageResult 的主数组字段是 data（records 为兼容保留），二者取其一
     const rows = page?.data ?? page?.records ?? [];
-    paperOptions.value = rows.map((p) => ({ paperId: p.paperId, paperName: p.paperName }));
+    paperOptions.value = rows as Paper[];
   } catch {
     paperOptions.value = [];
   }
@@ -587,48 +560,38 @@ const scoreOf = (row?: TeacherMarkingTask | null) =>
   row?.markingTaskTaskId ? scores.value[row.markingTaskTaskId] || null : null;
 
 const openScan = async () => {
-  scanForm.mode = 'SELF';
-  scanForm.paperId = undefined;
-  scanForm.studentId = '';
-  scanForm.maxScore = 5;
-  scanForm.files = [];
   scanDialogVisible.value = true;
   // 自有卷需要选择试卷：分值与标准答案都按试卷题号回数据库取
   await loadPapers();
 };
 
-/** el-upload 的 change 回调：保存当前列表的原始 File（多张按页序），提交时再组 FormData */
-const onScanFileChange = (_uploadFile: any, uploadFiles: any[]) => {
-  scanForm.files = (uploadFiles ?? []).map((f) => f?.raw as File).filter(Boolean) as File[];
-};
-
-/** 移除某张图片后同步列表（否则被移除的图片仍会被提交） */
-const onScanFileRemove = (_uploadFile: any, uploadFiles: any[]) => {
-  scanForm.files = (uploadFiles ?? []).map((f) => f?.raw as File).filter(Boolean) as File[];
-};
-
-const doScan = async () => {
-  if (!scanForm.files.length) {
-    message.warning('请先选择试卷图片');
-    return;
-  }
-  if (scanForm.mode === 'SELF' && !scanForm.paperId) {
-    message.warning('自有卷必须选择试卷（用于按题号取准确分值）');
-    return;
-  }
+/**
+ * 上传弹窗（共享组件）回调：组装 FormData 提交扫描任务。
+ * 随后连 SSE 实时进度（连不上时 onError 降级 2s 轮询），
+ * 并直接进入这份试卷的详情。
+ *
+ * @param payload 弹窗表单（模式 / 试卷 / 学生 / 总分 / 文件）
+ */
+const onScanStart = async (payload: {
+  mode: 'SELF' | 'ANY';
+  paperId: number | null;
+  studentId: string;
+  maxScore: number;
+  files: File[];
+}) => {
   scanning.value = true;
   try {
     const form = new FormData();
     // 同名 file 字段重复提交即多张；后端按提交顺序（页序）接收
-    scanForm.files.forEach((f) => form.append('file', f));
-    form.append('mode', scanForm.mode);
-    if (scanForm.mode === 'SELF' && scanForm.paperId) {
-      form.append('paperId', String(scanForm.paperId));
+    payload.files.forEach((f) => form.append('file', f));
+    form.append('mode', payload.mode);
+    if (payload.paperId != null) {
+      form.append('paperId', String(payload.paperId));
     } else {
-      form.append('maxScore', String(scanForm.maxScore));
+      form.append('maxScore', String(payload.maxScore));
     }
-    if (scanForm.studentId) {
-      form.append('studentId', scanForm.studentId);
+    if (payload.studentId) {
+      form.append('studentId', payload.studentId);
     }
     const newTaskId = await eduaiApi.scanMarking(form);
     message.success('已提交，正在识别与判分…');

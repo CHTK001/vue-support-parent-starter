@@ -18,9 +18,17 @@
         <el-input-number v-model="byField('usage_report_interval').value"
           :min="60" :step="60" controls-position="right" />
       </SettingsRow>
-      <SettingsRow label="Provider 白名单" description="逗号分隔数据源，留空 = 全部启用" control-width="240">
-        <el-input v-model="byField('usage_sync_providers').value" placeholder="留空 = 全部" clearable />
+      <SettingsRow label="Provider 白名单"
+        description="选择需要采集的外部数据源，留空 = 全部启用。小米 MiMo（mimo）同时覆盖 MiMo Code 命令行与 MiMo 桌面软件，两者同源，无需分别勾选。"
+        control-flex>
+        <el-select v-model="selectedProviders" multiple collapse-tags collapse-tags-tooltip
+          clearable placeholder="留空 = 全部启用" class="w-full" :loading="parsersLoading">
+          <el-option v-for="p in usageParsers" :key="p.name" :label="parserLabel(p)" :value="p.name" />
+        </el-select>
       </SettingsRow>
+      <div v-if="!parsersLoading && usageParsers.length === 0" class="parsers-empty">
+        未读取到已注册的数据源解析器，白名单将按「全部启用」处理。
+      </div>
     </SettingsCard>
 
     <!-- 单位设置 -->
@@ -122,6 +130,66 @@ const schema = reactive<SettingSchema[]>([
 const switchItems = computed(() => schema.filter((i) => i.type === 'switch' && i.field !== 'usage_currency_auto_convert'));
 function byField(field: string) {
   return schema.find((i) => i.field === field)!;
+}
+
+// ==================== 数据源白名单 ====================
+/**
+ * 白名单从自由文本框换成按 SPI 注册表生成的多选。
+ *
+ * <p>原来是逗号分隔的文本框，用户必须先知道解析器的内部英文名（mimo / opencode /
+ * goose…）才能填，写错一个字母就静默失效且无任何提示。这里直接拉
+ * {@code GET /v2/usage/parsers}（后端把 Spring Bean 与 SPI 两路解析器合并后的目录），
+ * 存的是数组、保存时再 join(',')，对后端契约零改动。</p>
+ */
+const usageParsers = ref<Array<{ name: string; type: string; enabled: boolean }>>([]);
+const parsersLoading = ref(false);
+
+/** 逗号分隔串 <-> 数组双向绑定 */
+const selectedProviders = computed<string[]>({
+  get: () => byField('usage_sync_providers').value
+    ? String(byField('usage_sync_providers').value).split(',').map((s) => s.trim()).filter(Boolean)
+    : [],
+  set: (val) => { byField('usage_sync_providers').value = (val || []).join(','); },
+});
+
+/** 已知解析器补中文名，未知的原样显示英文 SPI 名（不要隐藏，避免用户无从选择） */
+const PARSER_LABELS: Record<string, string> = {
+  system: '本系统',
+  mimo: '小米 MiMo（Code 命令行 + 桌面软件）',
+  opencode: 'OpenCode',
+  'claude-code': 'Claude Code',
+  codex: 'Codex CLI',
+  'gemini-cli': 'Gemini CLI',
+  qwen: 'Qwen Code',
+  droid: 'Droid',
+  goose: 'Goose',
+  kilo: 'Kilo Code',
+  'roo-code': 'Roo Code',
+  cline: 'Cline',
+  'copilot-cli': 'Copilot CLI',
+  zed: 'Zed',
+  lmstudio: 'LM Studio',
+  grok: 'Grok',
+  jaycode: 'JayCode',
+};
+function parserLabel(p: { name: string }) {
+  return PARSER_LABELS[p.name] || p.name;
+}
+
+async function loadParsers() {
+  parsersLoading.value = true;
+  try {
+    const res: any = await usageApi.parsers();
+    const list = res?.data || [];
+    usageParsers.value = Array.isArray(list)
+      ? list.filter((p: any) => p && p.name)
+      : [];
+  } catch (e: any) {
+    usageParsers.value = [];
+    message.warning('读取数据源列表失败，白名单将按「全部启用」处理');
+  } finally {
+    parsersLoading.value = false;
+  }
 }
 
 const saving = ref(false);
@@ -236,12 +304,22 @@ async function handleCancelSyncAll() {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  loadParsers();
+});
 onBeforeUnmount(closeEventSource);
 </script>
 
 <style scoped>
 .usage-intro { margin-bottom: 18px; }
+/* 白名单读取失败/为空时的兜底说明。静默留空会被误解成「没装任何工具」，
+   而真实原因往往是接口失败，用户无从下手。 */
+.parsers-empty {
+  padding: 8px 18px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
 
 .sync-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .sync-actions { display: flex; gap: 12px; }
