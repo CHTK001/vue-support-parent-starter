@@ -61,6 +61,18 @@ export default defineConfig({
   resolve: {
     alias: REPO_ALIAS_ENTRIES,
   },
+  css: {
+    preprocessorOptions: {
+      // koi 主题 SCSS 变量全局注入（与 turbo/vite/createVite.ts 的
+      // scssAdditionalData 同口径）：ReDialog 等共享组件的样式依赖
+      // $aside-header-height 这类变量，缺失时构建直接失败。
+      scss: {
+        additionalData: `@use "${path
+          .join(WORKSPACE_ROOT, "packages/theme/src/themes/koi/styles/variable.scss")
+          .replace(/\\/g, "/")}" as *;`,
+      },
+    },
+  },
   build: {
     outDir: path.resolve(root, "dist"),
     emptyOutDir: true,

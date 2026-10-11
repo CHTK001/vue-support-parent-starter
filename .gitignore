@@ -265,3 +265,5 @@ prom-embed-probe.mjs
 **/clean-default-files.png
 **/dbdoc-export-probe.png
 **/acceptance-report.failed*.json
+**/__*.mjs
+**/__*.mts
