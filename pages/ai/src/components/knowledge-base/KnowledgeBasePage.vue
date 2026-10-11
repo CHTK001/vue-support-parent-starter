@@ -45,218 +45,7 @@
       @remove="handleOverviewDelete"
     />
 
-    <!-- 旧列表视图：已被上面的总览整体取代，分支保留但条件不再命中，待清理 -->
-    <div v-else-if="viewMode === 'list-legacy'" class="flex-1 flex flex-col overflow-hidden">
-      <!-- 标题区（固定不滚动）：左标题+副标题，中搜索，右新建 -->
-      <div class="shrink-0 kb-top w-full">
-        <div class="kb-top__title">
-          <h1>{{ t('knowledge.page.title') }}</h1>
-          <p class="kb-top__subtitle">
-            共 {{ fmtCount(overview.totals?.kb_count) }} 个知识库 ·
-            {{ fmtCount(overview.totals?.file_count) }} 篇文档
-          </p>
-        </div>
-        <el-input
-          v-model="searchKeyword"
-          :placeholder="t('knowledge.page.searchPlaceholder')"
-          clearable
-          class="kb-top__search"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <el-button type="primary" class="kb-top__create" @click="handleOpenCreate">
-          <template #icon><Plus /></template>
-          {{ t('knowledge.page.createKb') }}
-        </el-button>
-      </div>
-
-      <!-- 内容区（独立滚动） -->
-      <div class="flex-1 overflow-auto pb-4" style="scrollbar-gutter: stable both-edges;">
-        <div class="py-3 px-4 w-full">
-          <!-- 顶部统计卡：知识库 / 文档总量 / 实体节点 / 关系连线 -->
-          <div class="kb-stats">
-            <div v-for="s in overviewStats" :key="s.key" class="kb-stat re-surface re-surface--dense">
-              <div class="kb-stat__icon">
-                <el-icon :size="24"><component :is="s.icon" /></el-icon>
-              </div>
-              <div class="kb-stat__body">
-                <b class="kb-stat__value">{{ s.value }}</b>
-                <span class="kb-stat__label">{{ s.label }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="kb-home">
-            <!-- 左：知识库网格（首个库为大卡） -->
-            <div class="kb-home__main">
-              <div class="kb-home__head">
-                <h2>{{ t('knowledge.page.title') }}</h2>
-                <el-button class="kb-viewtoggle" type="primary" plain>
-                  <template #icon><Grid /></template>
-                  列表视图
-                </el-button>
-              </div>
-
-              <div v-if="filteredKnowledgeBases.length > 0" class="kb-grid-cards">
-                <!-- 首个库用宽卡（大卡）：顶部图案带 + 标题 + 描述 + 计数徽标 -->
-                <article
-                  v-for="(kb, idx) in filteredKnowledgeBases"
-                  :key="kb.id"
-                  class="kb-card re-surface kb-home__card"
-                  :class="{ 'is-featured': idx === 0 }"
-                  @click="handleSelectKB(kb)"
-                >
-                  <!-- 大卡：顶部装饰带；小卡：居中文档图标 + 就绪角标 -->
-                  <div v-if="idx === 0" class="kb-card__banner">
-                    <img v-if="kb.cover" class="kb-card__banner-img" :src="kb.cover" :alt="kb.name" />
-                    <div v-else class="kb-card__banner-ph">
-                      <span class="kb-card__banner-initials">{{ initialsOf(kb.name) }}</span>
-                      <span class="kb-card__banner-hint">暂无封面</span>
-                    </div>
-                  </div>
-                  <div v-else class="kb-card__icon-wrap">
-                    <el-icon class="kb-card__icon" :size="46"><Document /></el-icon>
-                    <i class="kb-card__check" />
-                  </div>
-
-                  <div class="kb-card__body">
-                    <h3 class="kb-card__title truncate">{{ kb.name }}</h3>
-
-                    <p class="kb-card__desc line-clamp-2">
-                      {{ kb.description || t('knowledge.page.noDescription') }}
-                    </p>
-
-                    <!-- 小卡的次要信息行：更新时间 / 归属，用真实字段，不编造 -->
-                    <div v-if="idx !== 0" class="kb-card__meta">
-                      <span class="kb-card__meta-item">
-                        <el-icon><Clock /></el-icon>{{ fmtTime(kb.updatedAt || kb.createdAt) }}
-                      </span>
-                      <span class="kb-card__meta-item">
-                        <el-icon><Calendar /></el-icon>{{ fmtTime(kb.createdAt) }}
-                      </span>
-                    </div>
-
-                    <!-- 计数徽标：实体 / 关系 / 文档 / 就绪（来自 /bases/overview，不是前端猜的） -->
-                    <div class="kb-card__metrics">
-                      <span class="kb-metric">
-                        <i class="kb-metric__dot" />{{ countOf(kb.id, 'entity_count') }} 实体
-                      </span>
-                      <span class="kb-metric">{{ countOf(kb.id, 'relation_count') }} 关系</span>
-                      <span v-if="idx === 0" class="kb-metric">
-                        {{ countOf(kb.id, 'file_count') }} 篇文档
-                      </span>
-                      <span class="kb-card__spacer" />
-                      <span class="kb-metric kb-metric--ok">
-                        <i class="kb-metric__dot" />{{ isKbReady(kb) ? '已就绪' : '待索引' }}
-                      </span>
-                    </div>
-
-                    <!-- 操作：常态隐藏，hover / focus 显现，避免卡片视觉噪音 -->
-                    <div class="kb-card__actions">
-                      <template v-if="isOwnerKb(kb)">
-                        <el-button link @click.stop="handleEdit(kb)">{{ t('common.edit') }}</el-button>
-                        <el-button link type="danger" @click.stop="handleDelete(kb)">{{ t('common.delete') }}</el-button>
-                      </template>
-                      <el-button link type="primary" @click.stop="handleSelectKB(kb)">{{ t('knowledge.page.enter') }}</el-button>
-                    </div>
-                  </div>
-                </article>
-              </div>
-
-              <!-- 空状态 -->
-              <div v-else-if="!store.loading" class="re-surface kb-empty">
-                <!-- 搜索无结果：保持轻量提示，不铺引导 -->
-                <template v-if="searchKeyword">
-                  <el-icon size="44" class="kb-empty__icon"><Search /></el-icon>
-                  <p class="kb-empty__title">{{ t('knowledge.page.notFound') }}</p>
-                  <p class="kb-empty__hint">{{ t('knowledge.page.notFoundHint') }}</p>
-                </template>
-
-                <!-- 一个知识库都没有：按设计图给完整创建引导 -->
-                <template v-else>
-                  <div class="kb-empty__top">
-                    <h2 class="kb-empty__lead">开始创建你的第一个知识库</h2>
-                    <a class="kb-empty__help" href="javascript:void(0)" @click="handleOpenCreate">查看帮助文档</a>
-                  </div>
-
-                  <div class="kb-empty__figure">
-                    <img class="kb-empty__illus" :src="heroIllustration" alt="书本与知识节点" />
-                  </div>
-
-                  <h3 class="kb-empty__title">还没有知识库</h3>
-                  <p class="kb-empty__hint">上传文档即可自动提取知识点，生成实体与关系网络</p>
-
-                  <div class="kb-empty__cta">
-                    <button type="button" class="kb-empty__cta-btn kb-empty__cta-btn--primary" @click="handleOpenCreate">
-                      <el-icon :size="26"><UploadFilled /></el-icon>
-                      <span class="kb-empty__cta-text">
-                        <b>空白创建</b>
-                        <i>从上传文档开始</i>
-                      </span>
-                    </button>
-                    <button type="button" class="kb-empty__cta-btn kb-empty__cta-btn--ghost" @click="showTplGallery = true">
-                      <el-icon :size="26"><Files /></el-icon>
-                      <span class="kb-empty__cta-text">
-                        <b>从模板创建</b>
-                        <i>套用预置结构</i>
-                      </span>
-                    </button>
-                  </div>
-
-                  <div class="kb-empty__tpl-head">
-                    <span>教育场景模板</span>
-                    <a class="kb-empty__help" href="javascript:void(0)" @click="handleOpenCreate">全部模板</a>
-                  </div>
-
-                  <div class="kb-empty__tpl-grid">
-                    <article v-for="tpl in kbTemplates" :key="tpl.key" class="kb-tpl">
-                      <div class="kb-tpl__cover" :class="'kb-tpl__cover--' + tpl.key">
-                        <img
-                          v-if="templateCovers[tpl.key]"
-                          class="kb-tpl__cover-img"
-                          :src="templateCovers[tpl.key]"
-                          :alt="tpl.name"
-                        />
-                        <span v-else class="kb-tpl__cover-text">{{ tpl.name }}</span>
-                      </div>
-                      <div class="kb-tpl__body">
-                        <h4 class="kb-tpl__name truncate">{{ tpl.name }}</h4>
-                        <div class="kb-tpl__meta">
-                          <span class="kb-tpl__tag">{{ tpl.tag }}</span>
-                          <el-button size="small" class="kb-tpl__use" @click="showTplGallery = true">使用模板</el-button>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <!-- 右：最近活动 -->
-            <aside class="kb-home__side">
-              <div class="kb-activity re-surface">
-                <h2 class="kb-activity__head">最近活动</h2>
-                <el-empty v-if="activities.length === 0" :image-size="56"
-                  description="暂无活动，进入知识库上传文档或生成图谱后会出现在这里" />
-                <ul v-else class="kb-activity__list">
-                  <li v-for="a in activities" :key="a.key" class="kb-activity__item">
-                    <i class="kb-activity__dot" />
-                    <div class="kb-activity__text">
-                      <div class="kb-activity__title truncate">{{ a.title }}</div>
-                      <div class="kb-activity__meta">{{ a.desc }} · {{ a.time }}</div>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 视图模式：知识库详情 -->
+    <!-- 视图模式：知识库详情（非 list 即详情） -->
     <div v-else class="flex-1 flex flex-col overflow-hidden">
       <!-- 详情页头：左 返回（图标钮）+ 标题/副标题，右 图标动作组。
            全站图标按钮统一「无底色 + 悬浮提示」形态（.kb-btn），不再出现文字按钮 -->
@@ -368,15 +157,22 @@
                 <ReEmpty v-else text="暂无实体" />
               </section>
 
-              <!-- 快捷操作：纯图标动作组 + 悬浮提示 -->
+              <!-- 快捷操作：图标 + 名称 + 说明的可点击行。
+                   之前只有一排纯图标方块，鼠标不悬停时完全看不出功能，
+                   且卡片内容过少、与相邻卡等高时内部大片留白。 -->
               <section class="re-surface re-surface--dense kb-ov-card">
                 <h3 class="kb-ov__title">快捷操作</h3>
-                <div class="kb-actions">
-                  <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="UploadFilled" tip="上传文档" @click="handleMenuSelect('files')" />
-                  <ReSquareButton layout="square" class="kb-btn" :icon="Search" tip="检索内容" @click="handleMenuSelect('search')" />
-                  <ReSquareButton layout="square" class="kb-btn" :icon="Share" tip="查看图谱" @click="handleMenuSelect('graph')" />
-                  <ReSquareButton layout="square" class="kb-btn" :icon="ChatDotRound" tip="智能问答" @click="handleMenuSelect('ask')" />
-                </div>
+                <ul class="kb-ov__acts">
+                  <li v-for="a in quickActions" :key="a.tab" class="kb-ov__act" @click="handleMenuSelect(a.tab)">
+                    <span class="kb-ov__act-icon" :class="{ 'is-primary': a.tab === 'files' }">
+                      <el-icon :size="16"><component :is="a.icon" /></el-icon>
+                    </span>
+                    <span class="kb-ov__act-text">
+                      <b>{{ a.label }}</b>
+                      <i>{{ a.desc }}</i>
+                    </span>
+                  </li>
+                </ul>
                 <p class="kb-ov__hint">
                   统计来自当前知识库的索引与图谱抽取结果；上传文档或重新生成图谱后会同步更新。
                 </p>
@@ -550,8 +346,25 @@
                 class="flat-table"
                 @selection-change="onRelationSelection"
               >
-                <template #col-from="{ row }">{{ nodeNameById(row.from) }}</template>
-                <template #col-to="{ row }">{{ nodeNameById(row.to) }}</template>
+                <template #col-from="{ row }">
+                  <div class="flex items-center gap-2">
+                    <img v-if="nodeImageById(row.from)" :src="nodeImageById(row.from)" alt=""
+                      class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                      @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                    <span class="truncate">{{ nodeNameById(row.from) }}</span>
+                  </div>
+                </template>
+                <template #col-to="{ row }">
+                  <div class="flex items-center gap-2">
+                    <img v-if="nodeImageById(row.to)" :src="nodeImageById(row.to)" alt=""
+                      class="w-6 h-6 rounded object-cover border border-[var(--rm-border)] shrink-0"
+                      @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                    <span class="truncate">{{ nodeNameById(row.to) }}</span>
+                  </div>
+                </template>
+                <template #col-text="{ row }">
+                  <el-tag size="small" :type="relationTagType(row.text)">{{ row.text }}</el-tag>
+                </template>
                 <template #col-actions="{ row }">
                   <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
                 </template>
@@ -600,6 +413,18 @@
 
               <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
                 class="kb-view__search" />
+              <!-- 实体类型过滤：概览页统计了类型分布却无处可用，这里接上多选 -->
+              <el-select v-model="graphTypeFilter" multiple collapse-tags collapse-tags-tooltip
+                :max-collapse-tags="2" clearable placeholder="实体类型" class="kb-view__types">
+                <el-option v-for="s in entityTypeStats" :key="s.type" :label="`${s.label} (${s.count})`"
+                  :value="s.type">
+                  <span class="flex items-center gap-2">
+                    <i class="kb-dot" :style="{ background: s.color }" />
+                    <span>{{ s.label }}</span>
+                    <span class="kb-dot__n">{{ s.count }}</span>
+                  </span>
+                </el-option>
+              </el-select>
               <div class="kb-actions">
                 <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
                 <!-- 占位图时主推「生成」，有数据时也允许重新抽取（原文改了关系可用） -->
@@ -619,6 +444,15 @@
                      edge-label-mode=onHover：387 条边常显标签会糊成一片，改为悬停单条边才显示 -->
                 <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
                   :toolbar="false" edge-label-mode="onHover" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
+
+                <!-- 过滤后无命中：图谱组件 v-if 已卸载，若不给提示画布就是一片空白，
+                     用户会以为是加载失败而不是「筛掉了」 -->
+                <div v-if="!graphLoading && graphView.nodes.length > 0 && graphNodes.length === 0"
+                  class="kb-graph__filtered">
+                  <el-icon :size="26"><Search /></el-icon>
+                  <span>当前过滤条件下没有匹配的实体</span>
+                  <ReButton type="primary" link @click="clearGraphFilters">清空过滤条件</ReButton>
+                </div>
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
                 <div v-if="graphLegend.length > 0" class="kb-graph__legend">
@@ -736,30 +570,38 @@
 
   <!-- 创建/编辑知识库对话框：与「新建知识库」同一套 koi ReDialog 与视觉语言 -->
   <ReDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" :width="560" :close-on-click-modal="false">
-    <div class="flex flex-col gap-4">
-      <div>
-        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">
-          {{ t('knowledge.page.kbName') }}<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i>
-        </label>
+    <!-- 复用本文件已有的 .kb-form / .kb-sec / .kb-field / .kb-visibility 设计系统。
+         之前这里是一套平铺的 Tailwind + 内联 SVG，与样式表里那套成体系的表单样式脱节：
+         字号三档混用（13px / 12px / 11px）、数字框宽度时宽时窄、可见范围用 <br> 硬换行。 -->
+    <div class="kb-form">
+      <div class="kb-field">
+        <span class="kb-label">
+          {{ t('knowledge.page.kbName') }}<i class="kb-req">*</i>
+        </span>
         <el-input v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('common.description') }}</label>
+      <div class="kb-field">
+        <span class="kb-label">{{ t('common.description') }}</span>
         <el-input v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
           maxlength="2000" show-word-limit resize="none" />
       </div>
 
       <!-- 网址采集：填了网址即从该站点抓取正文入库（与手动上传文件等价，可被语义检索） -->
-      <div>
-        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">网址采集</label>
-        <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
-        <div class="flex items-center gap-2 mt-2">
-          <span class="text-xs text-[var(--rm-text-secondary)]">同域采集页数</span>
-          <el-input-number v-model="dialogForm.sourceMaxPages" :min="1" :max="50" :step="1" controls-position="right" size="small" />
+      <div class="kb-sec">
+        <div class="kb-sec__title">网址采集</div>
+        <div class="kb-field">
+          <span class="kb-label">网址</span>
+          <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
+          <p v-if="dialogForm.sourceUrl" class="kb-hint">
+            创建时会立即抓取该网址：只允许 http/https 的公网地址，内网与云元数据地址会被拒绝。
+          </p>
         </div>
-        <div v-if="dialogForm.sourceUrl" class="text-xs text-[var(--rm-text-disabled)] mt-1.5">
-          创建时会立即抓取该网址：1 表示只抓入口页，大于 1 会沿同域链接继续展开；只允许 http/https 的公网地址，内网与云元数据地址会被拒绝。
+        <div class="kb-field">
+          <span class="kb-label">同域采集页数</span>
+          <el-input-number v-model="dialogForm.sourceMaxPages" class="kb-num kb-num--short" :min="1" :max="50" :step="1"
+            controls-position="right" />
+          <p class="kb-hint">1 表示只抓入口页，大于 1 会沿同域链接继续展开。</p>
         </div>
       </div>
 
@@ -767,50 +609,51 @@
            故此处不再放「向量模型」选择器（放了也不生效、还会标成必填误导用户）。 -->
 
       <!-- 分块配置 -->
-      <div>
-        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('knowledge.page.chunkSection') }}</label>
-        <div class="grid grid-cols-3 gap-3">
-          <div>
-            <span class="block text-[11px] text-[var(--rm-text-secondary)] mb-1">{{ t('knowledge.page.chunkMaxSize') }}</span>
-            <el-input-number v-model="dialogForm.chunkMaxSize" :min="100" :max="5000" :step="100" controls-position="right" class="!w-full" />
+      <div class="kb-sec">
+        <div class="kb-sec__title">{{ t('knowledge.page.chunkSection') }}</div>
+        <div class="kb-grid">
+          <div class="kb-field">
+            <span class="kb-label">{{ t('knowledge.page.chunkMaxSize') }}</span>
+            <el-input-number v-model="dialogForm.chunkMaxSize" class="kb-num" :min="100" :max="5000" :step="100"
+              controls-position="right" />
           </div>
-          <div>
-            <span class="block text-[11px] text-[var(--rm-text-secondary)] mb-1">{{ t('knowledge.page.chunkOverlapSize') }}</span>
-            <el-input-number v-model="dialogForm.chunkOverlapSize" :min="0" :max="500" :step="10" controls-position="right" class="!w-full" />
+          <div class="kb-field">
+            <span class="kb-label">{{ t('knowledge.page.chunkOverlapSize') }}</span>
+            <el-input-number v-model="dialogForm.chunkOverlapSize" class="kb-num" :min="0" :max="500" :step="10"
+              controls-position="right" />
           </div>
-          <div>
-            <span class="block text-[11px] text-[var(--rm-text-secondary)] mb-1">{{ t('knowledge.page.chunkMinSize') }}</span>
-            <el-input-number v-model="dialogForm.chunkMinSize" :min="10" :max="500" :step="10" controls-position="right" class="!w-full" />
+          <div class="kb-field">
+            <span class="kb-label">{{ t('knowledge.page.chunkMinSize') }}</span>
+            <el-input-number v-model="dialogForm.chunkMinSize" class="kb-num" :min="10" :max="500" :step="10"
+              controls-position="right" />
           </div>
         </div>
       </div>
 
       <!-- 可见范围：与新建弹框一致，二选一（后端只有 is_public 一列，无「团队」语义） -->
-      <div>
-        <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">{{ t('knowledge.page.visibility') }}</label>
-        <div class="grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            class="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-[var(--rm-radius,10px)] text-xs leading-relaxed cursor-pointer transition border"
-            :class="!dialogForm.isPublic
-              ? 'border-[var(--rm-primary)] text-[var(--rm-primary)] bg-[var(--rm-primary-light-9)]'
-              : 'border-[var(--rm-border)] text-[var(--rm-text-secondary)] bg-transparent'"
-            @click="dialogForm.isPublic = false"
-          >
-            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-            私有<br>仅自己可见
-          </button>
-          <button
-            type="button"
-            class="flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-[var(--rm-radius,10px)] text-xs leading-relaxed cursor-pointer transition border"
-            :class="dialogForm.isPublic
-              ? 'border-[var(--rm-primary)] text-[var(--rm-primary)] bg-[var(--rm-primary-light-9)]'
-              : 'border-[var(--rm-border)] text-[var(--rm-text-secondary)] bg-transparent'"
-            @click="dialogForm.isPublic = true"
-          >
-            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 0 0-18"/></svg>
-            公开<br>所有人可见
-          </button>
+      <div class="kb-sec">
+        <div class="kb-sec__title">{{ t('knowledge.page.visibility') }}</div>
+        <div class="flex flex-col gap-2">
+          <div class="kb-visibility" :class="{ 'is-public': !dialogForm.isPublic }" role="button" tabindex="0"
+            @click="dialogForm.isPublic = false" @keydown.enter.prevent="dialogForm.isPublic = false"
+            @keydown.space.prevent="dialogForm.isPublic = false">
+            <el-icon class="kb-visibility__icon"><Lock /></el-icon>
+            <span class="kb-visibility__text">
+              <span class="kb-visibility__title">私有</span>
+              <span class="kb-visibility__hint">仅自己可见</span>
+            </span>
+            <el-icon v-if="!dialogForm.isPublic" class="kb-visibility__check"><Select /></el-icon>
+          </div>
+          <div class="kb-visibility" :class="{ 'is-public': dialogForm.isPublic }" role="button" tabindex="0"
+            @click="dialogForm.isPublic = true" @keydown.enter.prevent="dialogForm.isPublic = true"
+            @keydown.space.prevent="dialogForm.isPublic = true">
+            <el-icon class="kb-visibility__icon"><Promotion /></el-icon>
+            <span class="kb-visibility__text">
+              <span class="kb-visibility__title">公开</span>
+              <span class="kb-visibility__hint">所有人可见</span>
+            </span>
+            <el-icon v-if="dialogForm.isPublic" class="kb-visibility__check"><Select /></el-icon>
+          </div>
         </div>
       </div>
     </div>
@@ -841,6 +684,8 @@ import {
   Plus, Search, FolderOpened, Document, Share, Connection,
   Grid, Clock, Files, Close, UploadFilled, Calendar, Refresh, Setting,
   Delete, Edit, ChatDotRound, QuestionFilled,
+  // 创建/编辑弹窗「可见范围」二选一
+  Lock, Promotion, Select,
 } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
@@ -902,7 +747,7 @@ const showFileChunksModal = ref(false)  // 文件分块查看弹窗
 const showUploadTaskModal = ref(false)  // 上传任务弹窗
 const selectedFile = ref<KBFile | null>(null)  // 选中的文件
 const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'>('files')  // 当前激活的 Tab
-const viewMode = ref<'list' | 'detail' | 'list-legacy'>('list')  // 视图模式：列表或详情（list-legacy 为保留的旧列表分支）
+const viewMode = ref<'list' | 'detail'>('list')  // 视图模式：列表或详情
 const searchKeyword = ref('')  // 知识库搜索关键词
 const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
 
@@ -910,6 +755,7 @@ const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
 const graphLoading = ref(false)        // 图谱加载中
 const graphError = ref('')             // 图谱加载错误
 const graphKeyword = ref('')           // 实体名过滤关键词
+const graphTypeFilter = ref<string[]>([]) // 实体类型过滤（空 = 不过滤）
 const graphCount = ref(0)              // 图谱元素总数（上传后判断要不要整图刷新）
 const graphView = reactive({           // 后端返回的原始图谱
   nodes: [] as any[],
@@ -1062,10 +908,10 @@ const entityColumns: ReTableColumn[] = [
   { prop: 'actions', label: '操作', width: 140, align: 'right', slot: 'actions' },
 ]
 
-// 关系表列：源 / 关系 / 目标（模板插槽渲染实体名与删除按钮）
+// 关系表列：源 / 关系 / 目标（模板插槽渲染头像+实体名、关系标签、删除按钮）
 const relationColumns: ReTableColumn[] = [
   { prop: 'from', label: '源', minWidth: 150, slot: 'from' },
-  { prop: 'text', label: '关系', width: 140 },
+  { prop: 'text', label: '关系', width: 140, slot: 'text' },
   { prop: 'to', label: '目标', minWidth: 150, slot: 'to' },
   { prop: 'actions', label: '操作', width: 100, align: 'right', slot: 'actions' },
 ]
@@ -1110,6 +956,37 @@ watch(() => graphView.edges, () => {
 function nodeNameById(id: string): string {
   const hit = graphView.nodes.find((n) => n.id === id);
   return hit ? String(hit.text ?? '') : String(id ?? '');
+}
+
+/**
+ * 节点 id → 头像地址（关系表两端要与实体表的「头像 + 名称」一致）。
+ *
+ * @param id 节点 id
+ * @returns 头像 URL，没有图片时返回空串
+ */
+function nodeImageById(id: string): string {
+  const hit = graphView.nodes.find((n) => n.id === id);
+  return hit ? String((hit as Record<string, unknown>).image ?? '') : '';
+}
+
+/**
+ * 关系类型 → 标签配色。
+ *
+ * <p>按类型名做稳定散列，同一类型每次渲染颜色一致，避免每次刷新标签都在变。
+ * 实体类型用的是固定语义映射（人物/事件/地点/组织），关系没有这层语义，
+ * 因此退化为散列配色。</p>
+ *
+ * @param t 关系类型
+ * @returns el-tag 的 type
+ */
+function relationTagType(t: string): 'success' | 'info' | 'warning' | 'danger' | 'primary' {
+  const palette = ['primary', 'success', 'warning', 'info', 'danger'] as const;
+  const s = String(t ?? '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return palette[h % palette.length];
 }
 
 /**
@@ -1596,14 +1473,29 @@ function decorateGraphNode(n: any) {
   }
 }
 
-/** 按关键词过滤后的节点：命中实体及其直接邻居都保留，避免过滤后只剩孤点 */
-const graphNodes = computed(() => {
+/**
+ * 经过「实体类型 + 实体名关键词」两道过滤后的**原始**后端节点。
+ *
+ * <p>先按实体类型收窄候选集，再做关键词命中 + 邻居展开。顺序很关键：
+ * 若先展开邻居再过滤类型，被顺带带出来的邻居会被类型过滤丢掉，关键词命中点反而消失；
+ * 先收窄则两个条件始终同时生效。</p>
+ *
+ * <p>图例也基于这份**未装饰**的节点计算 —— {@link decorateGraphNode} 会把
+ * {@code type} 覆写成 G6 的节点原型（{@code 'image' | 'circle'}），
+ * 实体类型只留在 {@code data.entityType}，从装饰后的节点取不到类型。</p>
+ */
+const graphBaseNodes = computed(() => {
+  const types = new Set(graphTypeFilter.value)
+  const base = types.size
+    ? (graphView.nodes as Array<any>).filter((n) => types.has(String(n?.type ?? 'other')))
+    : graphView.nodes
+
   const kw = graphKeyword.value.trim().toLowerCase()
   if (!kw) {
-    return graphView.nodes.map(decorateGraphNode)
+    return base
   }
   const hit = new Set(
-    graphView.nodes
+    base
       .filter((n) => String(n.text ?? '').toLowerCase().includes(kw))
       .map((n) => n.id),
   )
@@ -1619,8 +1511,11 @@ const graphNodes = computed(() => {
       keep.add(e.from)
     }
   }
-  return graphView.nodes.filter((n) => keep.has(n.id)).map(decorateGraphNode)
+  return base.filter((n) => keep.has(n.id))
 })
+
+/** 按关键词过滤后的节点：命中实体及其直接邻居都保留，避免过滤后只剩孤点 */
+const graphNodes = computed(() => graphBaseNodes.value.map(decorateGraphNode))
 
 /**
  * 只保留两端都可见的连线，并转成 {@code RelationEdge} 契约。
@@ -1724,7 +1619,9 @@ const selectedGraphNode = ref<{ id: string; name: string; type?: string; degree:
  */
 const graphLegend = computed(() => {
   const set = new Set<string>()
-  for (const n of graphView.nodes as Array<any>) {
+  // 走过滤后的节点集：图例要说明「画布上现在有什么」，
+  // 早前直接读 graphView.nodes，实体类型过滤后图例仍显示全部类型，对不上。
+  for (const n of graphBaseNodes.value as Array<any>) {
     const t = String(n?.type ?? '').trim()
     if (t) {
       set.add(t)
@@ -1763,6 +1660,14 @@ const relationTypeStats = computed(() => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8)
 })
+
+/** 概览「快捷操作」清单：图标 + 名称 + 说明，点击切到对应子页。 */
+const quickActions = [
+  { tab: 'files', label: '上传文档', desc: '导入 txt / pdf / md，自动切分并抽取实体', icon: UploadFilled },
+  { tab: 'search', label: '检索内容', desc: '在已索引的文档与图谱中做关键词/语义检索', icon: Search },
+  { tab: 'graph', label: '查看图谱', desc: '以力导向图浏览实体与关系，可悬停查看连线含义', icon: Share },
+  { tab: 'ask', label: '智能问答', desc: '基于本知识库提问，回答自动附带引用来源', icon: ChatDotRound },
+] as const
 
 /** 概览：关联最多的实体（Top 10，按关系数降序） */
 const topEntities = computed(() =>
@@ -2718,6 +2623,17 @@ function getCurrentFiles(): KBFile[] {
 
 
 
+/**
+ * 清空图谱页的两个过滤条件（实体名关键词 + 实体类型）。
+ *
+ * <p>图谱工具栏有这两道过滤，但画布在零命中时是空的，没有统一的「重置」入口；
+ * 用户只能逐个去清，这里给一个一次清完的入口。</p>
+ */
+function clearGraphFilters() {
+  graphKeyword.value = ''
+  graphTypeFilter.value = []
+}
+
 // ========== Lifecycle ==========
 // 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
 // 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
@@ -3069,6 +2985,8 @@ watch(
 .kb-select { width: 100%; }
 .kb-num { width: 100%; }
 .kb-num :deep(.el-input-number) { width: 100%; }
+/* 单独一个数值字段时不必拉满整行（1~50 的页数铺满 470px 反而失衡） */
+.kb-num--short { width: 180px; }
 /* 字段下方的灰色说明文字（网址采集的页数含义、SSRF 提示等） */
 .kb-hint {
   margin-top: 4px;
@@ -3125,6 +3043,12 @@ watch(
 .kb-visibility__hint {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+/* 选中标记：放在行尾，避免只靠底色/边框区分选中态（色觉障碍下也读得出） */
+.kb-visibility__check {
+  flex: 0 0 auto;
+  font-size: 18px;
+  color: var(--el-color-primary);
 }
 .kb-footer {
   display: flex;
@@ -3355,23 +3279,22 @@ watch(
   box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 
-/* 右侧装饰：设计图里每张统计卡右端有一片淡色山形。
-   这里用纯 CSS 拼三角，颜色取主色最浅阶，不引入位图素材。 */
+/* 右下角装饰：一片柔和的主色晕染，完整收在卡片内。
+   之前用两层 linear-gradient 拼山形并配合 right/bottom 负偏移，
+   被 .kb-stat 的 overflow:hidden 裁成一个硬边「V」形缺口，
+   看起来像渲染破损而不是装饰，故改为不越界的径向渐变。 */
 .kb-stat::after {
   content: '';
   position: absolute;
-  right: -6px;
-  bottom: -18px;
-  width: 96px;
-  height: 58px;
-  background:
-    linear-gradient(to top right,
-      transparent 49.5%, var(--el-color-primary-light-9) 50.5%),
-    linear-gradient(to top left,
-      transparent 49.5%, var(--el-fill-color-light) 50.5%);
-  background-position: 0 0, 34px 0;
-  background-size: 62px 58px, 62px 58px;
-  background-repeat: no-repeat;
+  right: 0;
+  bottom: 0;
+  width: 132px;
+  height: 78px;
+  background: radial-gradient(
+    132px 78px at 100% 100%,
+    color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+    transparent 72%
+  );
   pointer-events: none;
 }
 
@@ -3592,8 +3515,44 @@ watch(
   width: 220px;
 }
 
+/* 实体类型多选：比搜索框略宽，要放得下 collapse 后的两个类型标签 */
+.kb-view__types {
+  width: 200px;
+}
+
+/* 下拉选项左侧的类型色点，与图例 / 概览柱状图共用同一套 entityColor */
+.kb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.kb-dot__n {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 过滤后零命中：图谱组件已卸载，画布需要明确说明是被筛掉了而不是加载失败 */
+.kb-graph__filtered {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+.kb-graph__filtered > * {
+  pointer-events: auto;
+}
+
 @media (max-width: 720px) {
-  .kb-view__search {
+  .kb-view__search,
+  .kb-view__types {
     width: 100%;
   }
 }
@@ -3707,10 +3666,14 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
-/* 概览内容网格：两大列，窄屏落单列 */
+/* 概览内容网格：两大列，窄屏落单列。
+   align-items: start —— 同一行的两张卡内容量往往差很多
+   （实体类型 4 条 vs 关系类型 8 条），默认的 stretch 会把矮的那张
+   硬撑到和高的齐平，卡片内部空出大片留白。改为按内容自然高度排布。 */
 .kb-ov-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 16px;
 }
 
@@ -3796,6 +3759,67 @@ watch(
   list-style: none;
   display: flex;
   flex-direction: column;
+}
+
+/* 快捷操作：图标 + 文字的可点击行 */
+.kb-ov__acts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kb-ov__act {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.kb-ov__act:hover {
+  background: var(--el-fill-color-light);
+}
+
+.kb-ov__act-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+}
+
+.kb-ov__act-icon.is-primary {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.kb-ov__act-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kb-ov__act-text b {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.3;
+}
+
+.kb-ov__act-text i {
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
 }
 
 .kb-ov__row {

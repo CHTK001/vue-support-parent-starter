@@ -4,6 +4,7 @@
       <div class="flex items-center gap-3 flex-wrap">
         <ReButton type="primary" icon="Promotion" @click="openSubmit">提交答题卡</ReButton>
         <ReButton type="success" icon="Camera" @click="openScan">扫描阅卷</ReButton>
+        <ReButton icon="TrendCharts" @click="openDistribution">分数分布</ReButton>
         <el-input v-model="taskId" placeholder="任务号直达（可选）" clearable style="width: 260px" />
         <ReButton icon="Search" @click="openDetail()">查询</ReButton>
         <ReButton v-if="view === 'detail'" icon="Back" @click="backToList">返回记录</ReButton>
@@ -182,6 +183,21 @@
       :submitting="scanning"
       @start="onScanStart"
     />
+
+    <!-- 分数分布：已完成任务的得分率区间 + 各卷总分对比 -->
+    <ReDialog v-model="distDialogVisible" title="阅卷分数分布" width="880">
+      <div v-loading="distLoading" class="dist-body">
+        <div class="dist-block">
+          <div class="dist-title">得分率分布（老师分为准，满分取卷面题分合计）</div>
+          <ReEcharts v-if="distRateOption" :option="distRateOption" style="height: 260px" />
+          <el-empty v-else-if="!distLoading" description="暂无已完成任务" :image-size="60" />
+        </div>
+        <div v-if="distScoreOption" class="dist-block">
+          <div class="dist-title">各卷总分对比（老师总分）</div>
+          <ReEcharts :option="distScoreOption" style="height: 280px" />
+        </div>
+      </div>
+    </ReDialog>
   </div>
 </template>
 
@@ -197,6 +213,7 @@ import { failToast } from '../api/errorText';
 import type { MarkingProgressVO, MarkingResultVO, PageResult, Paper, TeacherMarkingTask } from '../api/types';
 import ReDialog from "@repo/ui/re-dialog";
 import ReTag from "@repo/ui/re-tag";
+import ReEcharts from "@repo/ui/re-echarts";
 import MarkingUploadDialog from '../components/marking/MarkingUploadDialog.vue';
 import MarkingResultPanel from '../components/marking/MarkingResultPanel.vue';
 
@@ -611,6 +628,84 @@ const onScanStart = async (payload: {
   }
 };
 
+/* ==================== 分数分布 ==================== */
+const distDialogVisible = ref(false);
+const distLoading = ref(false);
+const distRateOption = ref<Record<string, any> | null>(null);
+const distScoreOption = ref<Record<string, any> | null>(null);
+
+/**
+ * 打开分数分布弹窗：对已完成的任务逐份拉结果，
+ * 算「老师总分 / 卷面满分」得分率做区间直方图，并列出各卷总分对比。
+ * 分 8 个一批并发，避免一次打满 100 个请求。
+ */
+const openDistribution = async () => {
+  distDialogVisible.value = true;
+  distLoading.value = true;
+  distRateOption.value = null;
+  distScoreOption.value = null;
+  try {
+    const tasks = (await eduaiApi.teacherMarkingTasks(100)) as TeacherMarkingTask[];
+    const finished = tasks.filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId);
+    const buckets = [0, 0, 0, 0, 0];
+    const barNames: string[] = [];
+    const barScores: number[] = [];
+    for (let i = 0; i < finished.length; i += 8) {
+      const chunk = finished.slice(i, i + 8);
+      const results = await Promise.all(
+        chunk.map((t) => eduaiApi.getMarkingResult(t.markingTaskTaskId).catch(() => null)),
+      );
+      results.forEach((res, j) => {
+        if (!res?.results?.length) return;
+        let final = 0;
+        let max = 0;
+        for (const r of res.results) {
+          final += Number(r.teacherScore ?? r.score ?? 0);
+          max += Number(r.maxScore ?? 0);
+        }
+        const label = `${paperNameOf(chunk[j])}${chunk[j].markingTaskStudentId ? `·${chunk[j].markingTaskStudentId}` : ''}`;
+        barNames.push(label);
+        barScores.push(final);
+        if (max > 0) {
+          const rate = Math.min(0.999, Math.max(0, final / max));
+          buckets[Math.floor(rate * 5)] += 1;
+        }
+      });
+    }
+    if (barScores.length === 0) {
+      distLoading.value = false;
+      return;
+    }
+    distRateOption.value = {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 44, right: 16, top: 32, bottom: 28 },
+      xAxis: { type: 'category', data: ['0-20%', '20-40%', '40-60%', '60-80%', '80-100%'] },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [{
+        name: '份数', type: 'bar', barWidth: '46%', data: buckets,
+        itemStyle: { color: '#409eff', borderRadius: [4, 4, 0, 0] },
+        label: { show: true, position: 'top' },
+      }],
+    };
+    distScoreOption.value = {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 44, right: 16, top: 32, bottom: 70 },
+      xAxis: { type: 'category', data: barNames, axisLabel: { rotate: 30, overflow: 'truncate' } },
+      yAxis: { type: 'value' },
+      series: [{
+        name: '老师总分', type: 'bar', data: barScores,
+        itemStyle: { color: '#67c23a', borderRadius: [4, 4, 0, 0] },
+        label: { show: barScores.length <= 20, position: 'top' },
+      }],
+    };
+  } catch (e) {
+    failToast('加载分数分布失败', e);
+    distDialogVisible.value = false;
+  } finally {
+    distLoading.value = false;
+  }
+};
+
 /* ==================== 提交答题卡 ==================== */
 /** 题号下拉有值时优先取第一题，避免写死 1 号题（卷上没有 1 号题时后端会 400） */
 const addAnswer = () =>
@@ -707,4 +802,8 @@ onUnmounted(() => {
 .detail-body { height: calc(100vh - 300px); min-height: 440px; }
 .detail-id { font-family: monospace; font-size: 12px; color: var(--el-text-color-secondary); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-meta { font-size: 13px; color: var(--el-text-color-regular); }
+/* 分数分布弹窗 */
+.dist-body { min-height: 240px; }
+.dist-block + .dist-block { margin-top: 12px; }
+.dist-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--el-text-color-primary); }
 </style>

@@ -37,15 +37,20 @@ const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:2961
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
 const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
 
-// 文件存储服务器（FileStorageServerFilter，随监控后端一起启动，非独立系统）。
+// 文件存储服务器（FileStorageServerFilter）。
 //
-// 它是监控后端进程内的一个 HTTP 服务，监听在**后端那台机器**上（198:18082），
-// 不是本机。前端本地跑时浏览器直接打 127.0.0.1:18082 必然 ERR_CONNECTION_REFUSED
-// —— 本机根本没有这个进程。因此 dev 下统一走 Vite 代理转发到后端所在机器：
-//   浏览器 → http://<本机>:8848/localFileStorage?*  →  proxy  →  198:18082
-// 这样前端只管同源请求，不用依赖后端 CORS 白名单，也不受本机无进程影响。
+// 它是后端进程内的一个 HTTP 服务，监听在后端所在机器上，前端本地跑时本机没有这个进程，
+// 因此 dev 下统一走 Vite 代理转发（浏览器 → 本机:8848/<桶前缀>?* → proxy → 远端文件服务器），
+// 前端只发同源请求，不依赖后端 CORS 白名单，也不受本机无进程影响。
 //   显式覆盖：FS_API_TARGET=http://<host>:<port> pnpm dev
-const fileStorageTarget = process.env.FS_API_TARGET ?? "http://192.168.50.198:18082";
+//
+// 默认指向 198:18080（system-api 内置的独立文件存储服务，实测 /local?config=true=200、
+// /local?format=json=200，存储 Bean 名 = local）。原先默认 18082 指向监控后端内嵌的
+// FileStorageServerFilter（Bean 名 localFileStorage），该实例已按「停重复实例」下线，
+// 保留 18082 默认会让 /localFileStorage 探测直接 502。桶名需与目标服务的 Bean 名一致：
+//   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
+// 桶名由 app.yaml otherConfig.filestorage.bucket 决定，两者要配套改。
+const fileStorageTarget = process.env.FS_API_TARGET ?? "http://192.168.50.198:18080";
 
 /**
  * 启动自检：把「代理指错后端」从静默变成可见。

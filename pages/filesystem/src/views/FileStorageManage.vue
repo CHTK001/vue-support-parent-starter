@@ -81,6 +81,10 @@ import {
   putObject,
   setBucketConfig,
   setDefaultBucket,
+  clearBucketOverride,
+  getAppDefaultBucket,
+  hasBucketOverride,
+  isBucketMissingError,
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
@@ -441,6 +445,7 @@ function isFvPanelFile(name: string): boolean {
 }
 
 import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
+import { utf8ToBase64 } from "../utils/previewEntryRenderers";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import { detectModel3dFormat } from "../utils/model3d";
@@ -1176,6 +1181,30 @@ async function loadObjects(): Promise<void> {
     setDefaultBucket(bucket.value);
     loadError.value = "";
   } catch (e) {
+    // ---- 桶名自愈：服务端没有这个桶，且桶名来自 localStorage 覆盖 ----
+    //
+    // 为什么需要这一步：文件服务器按「注册的存储名」路由，桶名写错就是 404/410。
+    // 而桶名优先级是 localStorage ＞ app.yaml，且 setDefaultBucket 只在**加载成功**
+    // 时写回 —— 于是「桶名错 → 列表失败 → 不写回 → 下次还是错」形成死锁，
+    // 用户只能手工清 localStorage，页面则永远只显示「列表查询失败：Not Found」。
+    // 实测：改过 app.yaml 的 bucket 后，浏览器里的旧值会让 /#/files 整个空白。
+    //
+    // 这里只对「桶名不存在」这一类可自愈故障回落：清掉失效覆盖、回落到 app.yaml
+    // 的桶名重试一次。网络故障、鉴权失败等不可自愈的错误仍按原样报错。
+    if (isBucketMissingError(e) && hasBucketOverride()) {
+      const stale = bucket.value;
+      const fallback = getAppDefaultBucket();
+      if (fallback && fallback !== stale) {
+        clearBucketOverride();
+        bucket.value = fallback;
+        loading.value = false;
+        message.warning(
+          `浏览器里残留的存储桶「${stale}」在文件服务器上不存在，已自动切换到配置里的桶「${fallback}」。` +
+            `如需固定使用其他桶，请在「服务器设置」里改。`,
+        );
+        return loadObjects();
+      }
+    }
     message.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
     // 分栏渲染的是 colObjects 这份「每列一份」的缓存：成功分支会写它，失败分支不写的话
@@ -3766,16 +3795,18 @@ function takePreviewFlag(): string {
 }
 
 /**
- * 「预览（新窗口）」：新开一个应用页并自动弹出同一个预览弹框（需求 3 的统一口径）
+ * 「预览（新窗口）」：新开统一预览入口（服务器预览通道）
  *
- * <p>新窗口不再是「服务端整页 HTML / pdf.js viewer 直链」——那条通道没有 Vue 组件，
- * 效果与本页弹框不一致（xls 只能转 PDF、拿不到统计工具条）。改为带上
- * {@code ?preview=<完整 key>} 打开本应用：目标页 onMounted 读到标记后定位到
- * 文件所在目录并调用同一个 {@link openPreview}，office（@file-viewer/vue3 +
- * 统计工具条）、pdf（file-viewer renderer-pdf）、图片/音视频/压缩包等全部与本页一致。</p>
+ * <p>新窗口打开统一入口 {@code preview.html?url=<base64 文件直链>&render=server}：
+ * 入口内 iframe 服务端通道（后端 {@code ?preview=true&render=server} 返回统一
+ * 入口壳 + 注入短时效预览令牌），壳内嵌态拉字节由 file-viewer 渲染——
+ * 与本页弹框一致的 file-viewer 效果，且地址栏直链可分享/收藏。</p>
+ *
+ * <p>私有桶退回「应用页 + 预览弹框」：直链需要访问令牌/票据，standalone 入口
+ * 无登录态，直接 iframe 会 401；本页弹框的票据链路完全可用。</p>
  *
  * <p>地址是当场同步构造的（不换票据），整个调用仍在用户手势内 ——
- * {@code window.open} 不会被浏览器当弹窗拦掉。既有查询参数（{@code ?bucket=} 等）原样保留。</p>
+ * {@code window.open} 不会被浏览器当弹窗拦掉。</p>
  *
  * @param row 目标对象（非目录）
  */
@@ -3783,9 +3814,20 @@ function openPreviewInNewTab(row: StorageObject): void {
   if (row.directory || !guardPreview()) {
     return;
   }
-  const url = new URL(window.location.href);
-  url.searchParams.set("preview", fullKey(row.name));
-  window.open(url.toString(), "_blank");
+  if (bucketConfig.value?.private) {
+    // 私有桶：保留应用页弹框链路（票据签发需要登录态）
+    const url = new URL(window.location.href);
+    url.searchParams.set("preview", fullKey(row.name));
+    window.open(url.toString(), "_blank");
+    return;
+  }
+  // 公共桶：文件直链 base64 后交给统一入口（render=server 服务器预览通道）
+  const base = getServerBase().replace(/\/+$/, "");
+  const direct = `${base}/${encodeURIComponent(bucket.value)}/${fullKey(row.name).split("/").map(encodeURIComponent).join("/")}`;
+  const entry = new URL("preview.html", window.location.origin);
+  entry.searchParams.set("url", utf8ToBase64(direct));
+  entry.searchParams.set("render", "server");
+  window.open(entry.toString(), "_blank");
 }
 
 

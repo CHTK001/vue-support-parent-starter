@@ -114,11 +114,21 @@ const handleSave = async (): Promise<void> => {
             settingPanelRef.value.clearAvatarFile();
         }
 
+        // 非 build 形态的提示词走独立接口，必须等角色拿到 id 才能写。
+        // 失败不阻断角色保存（主体已落库），只提示——否则会出现「角色没存上」的误导。
+        const formPromptFailed = characterId
+            ? await settingPanelRef.value.flushFormPrompt(characterId)
+            : false;
+
         if (character) {
             currentCharacter.value = character;
         }
 
-        toast.success(t('characters.modal.saveSuccess'));
+        if (formPromptFailed) {
+            toast.error('角色已保存，但该形态的提示词保存失败，请重试');
+        } else {
+            toast.success(t('characters.modal.saveSuccess'));
+        }
         emit('saved', currentCharacter.value);
         visible.value = false;
     } catch (error) {

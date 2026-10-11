@@ -70,8 +70,12 @@
                       {{ t('knowledge.search.comprehensive') }} <b class="ml-1">{{ (result.finalScore || 0).toFixed(2) }}</b>
                     </ReTag>
                   </template>
-                  <ReTag v-else type="success" size="small">
-                    {{ t('knowledge.search.similarity') }}: {{ ((result.similarity || 0) * 100).toFixed(1) }}%
+                  <!-- 后端只回单个 score（映射层写入 finalScore），无条件读 similarity 会恒显示 0.0% -->
+                  <ReTag v-else-if="result.similarity != null" type="success" size="small">
+                    {{ t('knowledge.search.similarity') }}: {{ (result.similarity * 100).toFixed(1) }}%
+                  </ReTag>
+                  <ReTag v-else-if="result.finalScore != null" type="success" size="small">
+                    {{ t('knowledge.search.relevance') }}: {{ result.finalScore.toFixed(3) }}
                   </ReTag>
                 </div>
                 <span class="text-xs text-[var(--rm-text-disabled)]">#{{ index + 1 }}</span>
@@ -111,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+import { highlightText } from './searchHighlight'
 /**
  * 知识库检索弹框。
  *
@@ -120,9 +125,7 @@
  * {@code text-gray-*} / {@code dark:border-gray-700} / {@code dark:hover:border-blue-500}
  * 等硬编码类已全部移除（暗色由令牌自动跟随）。</p>
  *
- * <p>顺带修 {@code highlightText}：原实现在「无关键词 / 无文本」分支直接返回未转义文本
- * （{@code return text}）而模板用 {@code v-html} 渲染，是一处 XSS 面；
- * 现改为与主路径一致地先做 HTML 转义。</p>
+ * <p>高亮逻辑见 {@code ./searchHighlight.ts}，与 {@code KBSearchPanel} 共用一份实现。</p>
  */
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -246,45 +249,6 @@ function clearResults() {
   hasSearched.value = false
 }
 
-/**
- * 高亮匹配关键词：先整体 HTML 转义（防 XSS），再对关键词套 `<mark>`。
- *
- * @param text 原文
- * @param query 查询词（按空白切分为多个关键词）
- * @returns 转义并高亮后的 HTML
- */
-function highlightText(text: string, query: string): string {
-  /** 转义 HTML 特殊字符 */
-  const escapeHtml = (str: string) => str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-
-  if (!query || !text) {
-    return escapeHtml(text || '')
-  }
-
-  try {
-    const escapedText = escapeHtml(text)
-    const keywords = query.trim().split(/\s+/).filter(k => k.length > 0)
-    let highlighted = escapedText
-
-    keywords.forEach((keyword) => {
-      // 转义关键词里的正则元字符，避免构造成非法/越界正则
-      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      const regex = new RegExp(`(${escapedKeyword})`, 'gi')
-      // 底色走 koi 令牌，暗色自动跟随（原先是 dark:bg-yellow-700 硬编码）
-      highlighted = highlighted.replace(regex, '<mark class="kb-search-mark">$1</mark>')
-    })
-
-    return highlighted
-  } catch (e) {
-    console.error('高亮处理失败:', e)
-    return escapeHtml(text)
-  }
-}
 
 /**
  * 是否为混合搜索（三个分数齐全）。

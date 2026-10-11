@@ -1,32 +1,28 @@
 <!-- KnowledgeBasePage/KBSearchPanel.vue -->
 <template>
   <div class="flex w-full h-full flex-1 flex-col gap-4 overflow-hidden min-h-0">
-    <!-- 搜索区 -->
+    <!-- 搜索区：查询词是单行语义，回车即搜；原来用 3 行 textarea + Ctrl+Enter，
+     主按钮又只有一个无文字的方形图标，用户看不出这里能提交。 -->
     <div class="re-surface shrink-0">
       <div class="flex flex-col gap-3">
-        <el-input
-          v-model="searchForm.query"
-          type="textarea"
-          :rows="3"
-          :placeholder="t('knowledge.search.contentPlaceholder')"
-          @keyup.enter.ctrl="handleSearch"
-        />
+        <div class="flex items-start gap-2">
+          <el-input
+            v-model="searchForm.query"
+            :placeholder="t('knowledge.search.contentPlaceholder')"
+            clearable
+            class="flex-1 min-w-0"
+            @keyup.enter="handleSearch"
+          />
+          <ReButton type="primary" :icon="Search" :loading="isSearching" :disabled="!canSearch" @click="handleSearch">
+            {{ t('knowledge.search.searchBtn') }}
+          </ReButton>
+        </div>
 
         <div class="flex items-center gap-4 flex-wrap">
           <div class="flex-1 min-w-[220px] flex items-center gap-3">
             <span class="text-sm text-[var(--rm-text-secondary)] shrink-0">{{ t('knowledge.search.resultCount') }}</span>
             <el-slider v-model="searchForm.topK" :min="1" :max="20" :step="1" show-input class="flex-1" />
           </div>
-          <ReSquareButton
-            layout="square"
-            class="kb-btn"
-            type="primary"
-            :icon="Search"
-            :tip="t('knowledge.search.searchBtn')"
-            :loading="isSearching"
-            :disabled="!canSearch"
-            @click="handleSearch"
-          />
         </div>
       </div>
     </div>
@@ -66,8 +62,17 @@
                     {{ t('knowledge.search.comprehensive') }} <b class="ml-1">{{ (result.finalScore || 0).toFixed(2) }}</b>
                   </ReTag>
                 </template>
-                <ReTag v-else type="success" size="small">
-                  {{ t('knowledge.search.similarity') }}: {{ ((result.similarity || 0) * 100).toFixed(1) }}%
+                <!--
+                  后端 /v2/rag/search 只回单个 score，映射层写入 finalScore 而不写 similarity，
+                  所以这里不能无条件读 similarity —— 原来恒为 undefined，卡片上每条都显示
+                  「相似度: 0.0%」，看着像检索失败。改为按实际可用的分数选择展示方式：
+                  有真 similarity 才按百分比，否则按 finalScore 原值显示相关度（不臆造量纲）。
+                -->
+                <ReTag v-else-if="result.similarity != null" type="success" size="small">
+                  {{ t('knowledge.search.similarity') }}: {{ (result.similarity * 100).toFixed(1) }}%
+                </ReTag>
+                <ReTag v-else-if="result.finalScore != null" type="success" size="small">
+                  {{ t('knowledge.search.relevance') }}: {{ result.finalScore.toFixed(3) }}
                 </ReTag>
               </div>
               <span class="text-xs text-[var(--rm-text-disabled)]">#{{ index + 1 }}</span>
@@ -116,8 +121,8 @@
  * 颜色只用 koi 令牌 {@code --rm-*} —— 原先的 {@code dark:bg-gray-800} /
  * {@code dark:border-gray-700} / {@code dark:hover:border-blue-500} 等硬编码暗色类已全部移除。</p>
  *
- * <p>高亮由 {@code highlightText} 生成（先 HTML 转义再套 {@code <mark>}），
- * mark 的底色走 koi 令牌，因此暗色下自动跟随，不写 {@code dark:bg-yellow-700}。</p>
+ * <p>高亮逻辑见 {@code ./searchHighlight.ts}（剥 Markdown → HTML 转义 → 套 {@code <mark>}），
+ * 与 {@code KBSearchDialog} 共用一份实现；mark 的底色走 koi 令牌，因此暗色下自动跟随。</p>
  */
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -125,6 +130,8 @@ import { Search, Loading, Delete } from '@element-plus/icons-vue'
 import type { KnowledgeBase } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
+import { highlightText } from './searchHighlight'
+import ReButton from '@repo/ui/re-button'
 import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
@@ -229,48 +236,6 @@ function clearResults() {
   hasSearched.value = false
 }
 
-/**
- * 高亮匹配关键词：先整体 HTML 转义（防 XSS），再对关键词套 `<mark>`。
- *
- * @param text 原文
- * @param query 查询词（按空白切分为多个关键词）
- * @returns 转义并高亮后的 HTML
- */
-function highlightText(text: string, query: string): string {
-  /** 转义 HTML 特殊字符 */
-  const escapeHtml = (str: string) => str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-
-  if (!query || !text) {
-    return escapeHtml(text || '')
-  }
-
-  try {
-    const escapedText = escapeHtml(text)
-    const keywords = query.trim().split(/\s+/).filter(k => k.length > 0)
-    let highlighted = escapedText
-
-    keywords.forEach((keyword) => {
-      // 转义关键词里的正则元字符，避免构造成非法/越界正则
-      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      const regex = new RegExp(`(${escapedKeyword})`, 'gi')
-      // 底色走 koi 令牌，暗色自动跟随（原先是 dark:bg-yellow-700 硬编码）
-      highlighted = highlighted.replace(
-        regex,
-        '<mark class="kb-search-mark">$1</mark>',
-      )
-    })
-
-    return highlighted
-  } catch (e) {
-    console.error('高亮处理失败:', e)
-    return escapeHtml(text)
-  }
-}
 
 /**
  * 是否为混合搜索（三个分数齐全）。

@@ -251,3 +251,17 @@ prom-embed-probe.mjs
 **/debug-preview-*
 **/dev-*.err
 **/acceptance-report.prev.json
+
+# 一次性诊断/探针/复现脚本与截图（probe- 前缀、diag- 前缀、repro- 前缀）
+**/probe-*.mjs
+**/diag-*.mjs
+**/ds-layout-check.*
+**/pw-edge-patch.mjs
+**/repro-*
+**/shots-*.mjs
+**/shots-evidence/
+**/fv-table.json
+**/fill-audit-274.mjs
+**/clean-default-files.png
+**/dbdoc-export-probe.png
+**/acceptance-report.failed*.json

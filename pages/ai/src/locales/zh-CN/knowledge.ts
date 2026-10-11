@@ -172,6 +172,8 @@ export default {
     keyword: '关键词',
     comprehensive: '综合',
     similarity: '相似度',
+    /** 单分数模式的相关度（后端只回 score 时用，不臆造百分比量纲） */
+    relevance: '相关度',
     unknownFile: '未知文件',
     chunk: '分块',
     notFound: '未找到相关结果',

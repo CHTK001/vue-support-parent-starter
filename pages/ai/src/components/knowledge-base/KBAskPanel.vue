@@ -236,7 +236,26 @@ watch(() => props.kbId, () => clearTurns())
 
     <!-- 问答记录 -->
     <div class="flex-1 min-h-0 overflow-auto px-5 py-4">
-      <ReEmpty v-if="!hasTurns" text="基于本知识库提问，回答会附带引用来源" />
+      <!-- 空态：提示语与快捷提问一起在消息区居中。
+           之前 ReEmpty 贴着顶部、快捷提问单独挂在输入框上沿，
+           中间空出半屏，且按钮视觉上像粘在输入框边框上。 -->
+      <div
+        v-if="!hasTurns"
+        class="h-full min-h-72 flex flex-col items-center justify-center gap-6 pb-20"
+      >
+        <ReEmpty text="基于本知识库提问，回答会附带引用来源" />
+        <div class="flex flex-wrap items-center justify-center gap-2 max-w-2xl">
+          <ReButton
+            v-for="q in quickQuestions"
+            :key="q"
+            size="small"
+            round
+            class="!max-w-full"
+            :icon="q.includes('总结') ? ChatLineSquare : q.includes('时间线') ? Promotion : Search"
+            @click="submit(q)"
+          >{{ q }}</ReButton>
+        </div>
+      </div>
 
       <div
         v-for="turn in turns"
@@ -301,19 +320,6 @@ watch(() => props.kbId, () => clearTurns())
           </template>
         </div>
       </div>
-    </div>
-
-    <!-- 快捷提问 -->
-    <div v-if="!hasTurns" class="shrink-0 flex flex-wrap gap-2 px-5 pb-3">
-      <ReButton
-        v-for="q in quickQuestions"
-        :key="q"
-        size="small"
-        round
-        class="!max-w-full"
-        :icon="q.includes('总结') ? ChatLineSquare : q.includes('时间线') ? Promotion : Search"
-        @click="submit(q)"
-      >{{ q }}</ReButton>
     </div>
 
     <!-- 输入框 -->

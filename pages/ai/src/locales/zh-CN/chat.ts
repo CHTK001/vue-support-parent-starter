@@ -32,6 +32,10 @@ export default {
     // 运行模式徽标短文案（模型按钮右侧，构建/规划双色区分）
     runModeBuildShort: '构建',
     runModePlanShort: '规划',
+    // 提示词形态（角色配置里可自定义，build 恒存）
+    runModeFormBuild: '构建',
+    runModeFormBuildDesc: '直接执行，边做边确认',
+    runModeFormEmpty: '暂无可切换的形态',
 
     // AttachmentPopover.vue
     uploadImage: '上传图片',

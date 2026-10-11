@@ -57,16 +57,17 @@ otherConfig:
     announcement: false
   # 文件资产（pages/filesystem / FileStorageManage）指向的文件服务器。
   #
-  # 它是**监控后端进程内的一个 HTTP 服务**（FileStorageServerFilter，不是独立系统），
-  # 随后端一起启动、监听在后端所在机器（198:18082）。前端本地跑时本机没有这个进程，
-  # 所以**不在这里写死远端地址**：留空让页面回退到 window.location.origin（本机 8848），
-  # 由 vite.config.ts 的 fileStorageTarget 代理把 /localFileStorage 等前缀转发到 198:18082。
+  # 它是**后端进程内的一个 HTTP 服务**（FileStorageServerFilter），监听在后端所在机器。
+  # 前端本地跑时本机没有这个进程，所以**不在这里写死远端地址**：留空让页面回退到
+  # window.location.origin（本机 8848），由 vite.config.ts 的 fileStorageTarget 代理
+  # 把 /local / /localFileStorage 等前缀转发到远端文件服务器（默认 198:18080）。
   # 这样全程同源，不依赖后端 CORS 白名单，也不受本机无进程影响。
   #   需要直连别的文件服务器时：页面「服务器设置」写入 localStorage.filestorage.server，
   #   或部署侧（198 自带的 app.yaml）再显式填远端地址。
-  # 桶名 = FileStorage Bean 名（localFileStorage），与监控文件资产网关同源
+  # 桶名 = 目标文件服务的 FileStorage Bean 名，必须与 FS_API_TARGET 指向的服务一致：
+  #   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
   filestorage:
-    bucket: localFileStorage
+    bucket: local
     quotaGb: 5
 
 # Socket 实时推送（/v2/setting/default 未下发 socket 配置时以本地为准）

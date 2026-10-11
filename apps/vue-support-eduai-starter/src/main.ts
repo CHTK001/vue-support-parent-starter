@@ -15,8 +15,13 @@ import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
 import { getRouter } from "@repo/core";
 
-/** 教育 AI 页面用到的 Re* 组件（ReKit 提供 ReTableColumn 等表格子组件） */
-const EDUAI_RE_COMPONENTS = ["ReButton", "ReCron", "ReInput", "ReSelect", "ReSearch", "ReTable", "ReKit", "ReSwitch", "ReTag"];
+/**
+ * 教育 AI 页面用到的 Re* 组件（ReKit 提供 ReTableColumn 等表格子组件）。
+ *
+ * <p>ReTime 是「采集管理」迁到 @pages/collect 后新增的：采集器列表的「下次执行」
+ * 列用它渲染倒计时。eduai 原先没有这个页面，组件清单里也没有它。</p>
+ */
+const EDUAI_RE_COMPONENTS = ["ReButton", "ReCron", "ReInput", "ReSelect", "ReSearch", "ReTable", "ReKit", "ReSwitch", "ReTag", "ReTime"];
 
 async function installEduAi(app: VueApp): Promise<void> {
   await installKoi(app);

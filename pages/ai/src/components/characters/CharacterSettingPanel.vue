@@ -209,16 +209,68 @@
               <el-form ref="promptFormRef" :model="characterForm" :rules="promptRules" label-position="top"
                 label-width="80px" size="large" class="flex-1 flex flex-col min-h-0">
                 <el-form-item :show-label="false" :show-feedback="false" style="flex-shrink: 0;" class="no-border-item">
-                  <div class="flex items-center w-full justify-between">
+                  <div class="flex items-center w-full justify-between gap-2">
                     <span>{{ t('characters.setting.systemPromptLabel') }}</span>
+                    <div class="flex items-center gap-1.5">
+                      <!-- 形态可自定义，数量不定：少用分段控件，多了下拉，避免一行挤爆 -->
+                      <SegmentedToggle v-if="formOptions.length <= 3" :model-value="promptModeValue"
+                        :options="formOptions" @update:model-value="handleFormChange" size="small" />
+                      <el-select v-else :model-value="promptModeValue" size="small" class="form-select"
+                        @update:model-value="handleFormChange">
+                        <el-option v-for="o in formOptions" :key="o.value" :label="o.label" :value="o.value" />
+                      </el-select>
+                      <el-tooltip :content="t('characters.setting.formManageHint')" placement="top">
+                        <el-button link size="small" @click="formDialogVisible = true">
+                          <el-icon><Settings20Regular /></el-icon>
+                        </el-button>
+                      </el-tooltip>
+                    </div>
                   </div>
                 </el-form-item>
 
-                <!-- 详细设定 -->
-                <el-form-item prop="systemPrompt" :show-label="false"
+                <!-- 形态说明：把「这次生效的是哪一套」讲清楚，避免配了 A 却跑 B -->
+                <el-form-item :show-label="false" :show-feedback="false" style="flex-shrink: 0;" class="no-border-item">
+                  <div class="prompt-mode-hint">
+                    <el-icon size="13" class="prompt-mode-hint-icon shrink-0">
+                      <component :is="activeFormIcon" />
+                    </el-icon>
+                    <el-tag size="small" :type="formPromptFromTable && !isBuildForm ? 'success' : 'info'" effect="plain">
+                      {{ activePromptForm.formKey }}{{ formPromptFromTable && !isBuildForm ? '' : ' · 继承' }}
+                    </el-tag>
+                    <span>{{ activePromptForm.formDescription || t('characters.setting.formNoDesc') }}</span>
+                  </div>
+                </el-form-item>
+
+                <!-- build：编辑角色主提示词（历史列，无需迁移） -->
+                <el-form-item v-if="isBuildForm" prop="systemPrompt" :show-label="false"
                   class="flex-1 min-h-40 prompt-form-item no-border-item">
                   <el-input v-model="characterForm.systemPrompt" type="textarea" :placeholder="t('characters.setting.systemPromptPlaceholder')" resize="none" />
                 </el-form-item>
+
+                <!-- 其余形态：编辑分形态提示词表中该形态的行 -->
+                <template v-else>
+                  <!-- 接口不可用时不要给出可编辑输入框：否则用户填了内容却在保存时被
+                       静默丢弃（后端未部署 / V1.3 未迁移），这是最难排查的一类假成功 -->
+                  <el-alert v-if="!rolePromptsAvailable" type="warning" :closable="false" show-icon
+                    :title="t('characters.setting.formUnavailableTitle')" class="form-prompt-unavailable mb-3">
+                    {{ t('characters.setting.formUnavailableDesc') }}
+                  </el-alert>
+                  <template v-else>
+                    <el-form-item :show-label="false" :show-feedback="false" style="flex-shrink: 0;" class="no-border-item">
+                      <el-switch v-model="formPromptEnabled" active-text="启用" />
+                    </el-form-item>
+                    <el-form-item :show-label="false" :show-feedback="false"
+                      class="flex-1 min-h-40 prompt-form-item no-border-item">
+                      <el-input v-model="formPromptDraft" type="textarea"
+                        :placeholder="t('characters.setting.formPromptPlaceholder')" resize="none" />
+                    </el-form-item>
+                    <el-form-item v-if="formPromptFromTable" :show-label="false" :show-feedback="false" style="flex-shrink: 0;" class="no-border-item">
+                      <el-button link type="warning" :loading="formPromptSaving" @click="handleResetFormPrompt">
+                        {{ t('characters.setting.formClear') }}
+                      </el-button>
+                    </el-form-item>
+                  </template>
+                </template>
 
               </el-form>
             </div>
@@ -444,6 +496,75 @@
         </div>
       </div>
     </div>
+
+    <!-- 形态管理：build 恒存不可删；key 建后不可改（历史会话与角色提示词引用着它） -->
+    <el-dialog v-model="formDialogVisible" :title="t('characters.setting.formManageTitle')" width="560px"
+      :close-on-click-modal="false" append-to-body>
+      <ul class="form-manage-list">
+        <li v-for="f in promptForms" :key="f.formKey" class="form-manage-item">
+          <el-icon size="16" class="text-gray-500 dark:text-gray-400 shrink-0">
+            <component :is="resolvePromptFormIcon(f.formIcon)" />
+          </el-icon>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-medium truncate">{{ f.formName || f.formKey }}</span>
+              <el-tag size="small" effect="plain" type="info">{{ f.formKey }}</el-tag>
+              <el-tag v-if="f.builtin === 1" size="small" effect="plain" type="success">
+                {{ t('characters.setting.formBuiltin') }}
+              </el-tag>
+            </div>
+            <p class="text-xs text-gray-500 truncate">{{ f.formDescription || t('characters.setting.formNoDesc') }}</p>
+          </div>
+          <el-button link size="small" @click="startEditForm(f)">
+            {{ t('common.edit') }}
+          </el-button>
+          <el-button v-if="f.builtin !== 1" link size="small" type="danger" @click="removePromptForm(f)">
+            {{ t('common.delete') }}
+          </el-button>
+        </li>
+      </ul>
+
+      <el-divider />
+
+      <div class="form-manage-editor">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-sm font-medium">{{ formDraft.editingKey ? t('characters.setting.formEditMode') : t('characters.setting.formAddMode') }}</span>
+          <el-button v-if="formDraft.editingKey" link size="small" @click="resetFormDraft">
+            {{ t('characters.setting.formAddMode') }}
+          </el-button>
+        </div>
+        <el-form label-position="top" size="small">
+          <div class="grid grid-cols-2 gap-x-3">
+            <el-form-item :label="t('characters.setting.formKeyLabel')">
+              <el-input v-model="formDraft.formKey" :disabled="!!formDraft.editingKey" placeholder="review" />
+            </el-form-item>
+            <el-form-item :label="t('characters.setting.formNameLabel')">
+              <el-input v-model="formDraft.formName" :placeholder="t('characters.setting.formNamePlaceholder')" />
+            </el-form-item>
+          </div>
+          <el-form-item :label="t('characters.setting.formIconLabel')">
+            <el-select v-model="formDraft.formIcon" class="w-full">
+              <el-option v-for="ic in PROMPT_FORM_ICON_CHOICES" :key="ic.key" :label="ic.label" :value="ic.key">
+                <div class="flex items-center gap-2">
+                  <el-icon size="15"><component :is="resolvePromptFormIcon(ic.key)" /></el-icon>
+                  <span>{{ ic.label }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item :label="t('characters.setting.formDescLabel')">
+            <el-input v-model="formDraft.formDescription" :placeholder="t('characters.setting.formDescPlaceholder')" />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <el-button @click="formDialogVisible = false">{{ t('common.close') }}</el-button>
+        <el-button type="primary" :loading="formSaving" @click="submitFormDraft">
+          {{ formDraft.editingKey ? t('common.save') : t('common.add') }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -451,6 +572,7 @@
 // @ts-nocheck - CharacterSettingPanel 组件复杂度高，临时使用@ts-nocheck
 import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessageBox } from 'element-plus'
 import { getLocale } from '@/locales'
 import {
   ElForm,
@@ -480,7 +602,7 @@ import {
   ThunderboltOutlined
 } from '@vicons/antd'
 
-import { Code24Regular, Bot24Regular, BrainCircuit20Regular, GlobeShield20Regular } from '@vicons/fluent'
+import { Code24Regular, Bot24Regular, BrainCircuit20Regular, GlobeShield20Regular, Settings20Regular } from '@vicons/fluent'
 
 import { apiService } from '../../services/ApiService'
 
@@ -489,6 +611,8 @@ import { usePopup } from '../../composables/usePopup'
 import AvatarPreview from '../ui/AvatarPreview.vue'
 import SegmentedToggle from '../ui/SegmentedToggle.vue'
 import { DEFAULT_SUMMARY_MODE } from '@/constants'
+import type { PromptForm } from '@/services/modules/character.api'
+import { resolvePromptFormIcon, PROMPT_FORM_ICON_CHOICES } from '@/utils/promptFormIcons'
 
 const { toast, notify } = usePopup()
 const { t } = useI18n()
@@ -594,6 +718,242 @@ const sidebarGroups = computed(() => [
     ]
   }
 ])
+
+// ---------- 提示词形态 ----------
+// 形态由角色配置维护（/v2/prompt-forms），可在 build / plan 之外自定义更多。
+// build 恒存，继续编辑 characterForm.systemPrompt（sys_ai_role 历史列），
+// 因此存量角色无需迁移即可工作；其余形态落在 sys_ai_role_prompt 表。
+const FORM_KEY_BUILD = 'build'
+
+/** 内置兜底形态：接口不可用时也要能编辑，别把用户挡在门外 */
+const FALLBACK_FORMS: PromptForm[] = [{
+  formKey: FORM_KEY_BUILD,
+  formName: t('characters.setting.formBuildName'),
+  formIcon: 'flash',
+  formDescription: t('characters.setting.formBuildDesc'),
+  builtin: 1,
+  formSort: 1,
+}]
+
+/** 形态定义列表 */
+const promptForms = ref<PromptForm[]>([...FALLBACK_FORMS])
+/** 当前选中的形态 key */
+const promptModeValue = ref<string>(FORM_KEY_BUILD)
+
+/** 当前选中的形态对象；被删掉的形态回落到 build，避免指向虚空 */
+const activePromptForm = computed<PromptForm>(
+  () => promptForms.value.find(f => f.formKey === promptModeValue.value) || promptForms.value[0] || FALLBACK_FORMS[0]
+)
+
+/** 当前形态是否为 build（决定编辑历史列还是分形态表） */
+const isBuildForm = computed(() => activePromptForm.value.formKey === FORM_KEY_BUILD)
+
+/** 形态切换器选项。形态多了用下拉而不是分段控件，否则一行挤不下 */
+const formOptions = computed(() => promptForms.value.map(f => ({ label: f.formName || f.formKey, value: f.formKey })))
+
+/** 当前形态的正文草稿（仅非 build 形态使用） */
+const formPromptDraft = ref('')
+
+/** 当前形态的图标组件（与会话切换器复用同一份注册表，保证两处观感一致） */
+const activeFormIcon = computed(() => resolvePromptFormIcon(activePromptForm.value.formIcon))
+/** 该角色在当前形态下是否已配置独立行（false = 继承） */
+const formPromptFromTable = ref(false)
+/** 当前形态的行是否启用 */
+const formPromptEnabled = ref(true)
+/** 分形态接口是否可用（后端未部署 / 未迁移时不打扰用户） */
+const rolePromptsAvailable = ref(true)
+const formPromptSaving = ref(false)
+/** 原始正文，用于判断是否变脏 */
+const formPromptOriginal = ref('')
+
+/**
+ * 拉取形态定义。
+ *
+ * <p>失败时保留内置 build 单项：build 恒存，接口挂了也不该让角色提示词整块不可编辑。</p>
+ */
+const loadPromptForms = async () => {
+  try {
+    const list = await apiService.fetchPromptForms()
+    if (Array.isArray(list) && list.length) {
+      promptForms.value = list
+      if (!list.some(f => f.formKey === promptModeValue.value)) {
+        promptModeValue.value = FORM_KEY_BUILD
+      }
+      // 形态列表可能晚于角色数据到达（onMounted 与 props.data watch 是两条异步链），
+      // 此时 loadRolePrompts 看到的只有兜底的 build，需要按完整列表重跑一次回填。
+      if (characterForm.id) {
+        await loadRolePrompts(String(characterForm.id))
+      }
+    }
+  } catch (e: any) {
+    // 形态列表拉不到时保留内置 build：build 恒存，接口异常也不该让整块提示词不可编辑
+    promptForms.value = [...FALLBACK_FORMS]
+  }
+}
+
+/** 切换形态：把上一形态的草稿留档，切回来时不丢 */
+const formDrafts = ref<Record<string, { draft: string; fromTable: boolean; enabled: boolean }>>({})
+
+/**
+ * 各形态「落库时的正文」，用于判断某个形态是否被改脏。
+ *
+ * <p>不能只看当前形态：用户可以在多个形态间来回编辑，保存时必须逐个形态比对，
+ * 否则只有最后停留的那个会被写入，其余形态的改动会静默丢失。</p>
+ */
+const formOriginals = ref<Record<string, string>>({})
+
+/** 把当前形态的编辑态存进草稿表（切换形态、关闭面板、提交前都要做） */
+const stashActiveFormDraft = () => {
+  if (isBuildForm.value) return
+  formDrafts.value[promptModeValue.value] = {
+    draft: formPromptDraft.value,
+    fromTable: formPromptFromTable.value,
+    enabled: formPromptEnabled.value,
+  }
+}
+
+const handleFormChange = (formKey: string) => {
+  stashActiveFormDraft()
+  promptModeValue.value = formKey
+  const cached = formDrafts.value[formKey]
+  formPromptDraft.value = cached?.draft ?? ''
+  formPromptFromTable.value = cached?.fromTable ?? false
+  formPromptEnabled.value = cached?.enabled ?? true
+  formPromptOriginal.value = formOriginals.value[formKey] ?? ''
+}
+
+/** 加载角色的分形态提示词配置（一次取全部形态） */
+const loadRolePrompts = async (roleId: string) => {
+  formDrafts.value = {}
+  formOriginals.value = {}
+  formPromptDraft.value = ''
+  formPromptOriginal.value = ''
+  formPromptFromTable.value = false
+  if (!roleId) return
+  try {
+    const res = await apiService.fetchRolePrompts(String(roleId))
+    if (res?.error) {
+      rolePromptsAvailable.value = false
+      return
+    }
+    const modes = res?.modes || {}
+    rolePromptsAvailable.value = true
+    // 只有 build 走历史列，其余形态落到分形态表——这里统一按形态回填草稿
+    for (const f of promptForms.value) {
+      if (f.formKey === FORM_KEY_BUILD) continue
+      const entry = modes[f.formKey]
+      formDrafts.value[f.formKey] = {
+        draft: entry?.content || '',
+        fromTable: entry?.fromTable === true,
+        enabled: entry?.enabled !== false,
+      }
+      // 记下服务端返回的正文，作为该形态「未改动」的基准
+      formOriginals.value[f.formKey] = entry?.content || ''
+    }
+    // 当前选中形态的草稿立即生效，否则切到该形态时看到的是空
+    const cur = formDrafts.value[promptModeValue.value]
+    if (cur) {
+      formPromptDraft.value = cur.draft
+      formPromptOriginal.value = formOriginals.value[promptModeValue.value] ?? cur.draft
+      formPromptFromTable.value = cur.fromTable
+      formPromptEnabled.value = cur.enabled
+    }
+  } catch (e: any) {
+    // 后端未部署该接口时静默降级：build 形态不受影响，其余形态退回继承。
+    rolePromptsAvailable.value = false
+    formPromptFromTable.value = false
+  }
+}
+
+/**
+ * 某个形态的提示词已落库：更新它的基准正文与草稿。
+ *
+ * @param formKey 形态标识
+ * @param draft   已保存的正文
+ * @param enabled 是否启用
+ */
+const commitFormDraft = (formKey: string, draft: string, enabled: boolean) => {
+  formOriginals.value[formKey] = draft
+  formDrafts.value[formKey] = { draft, fromTable: true, enabled }
+  // 只有当前形态的编辑态需要跟着改，否则会把别的形态的输入框内容顶掉
+  if (formKey === promptModeValue.value) {
+    formPromptOriginal.value = draft
+    formPromptFromTable.value = true
+    formPromptEnabled.value = enabled
+  }
+}
+
+/** 清除当前形态的提示词，回退到继承 */
+const handleResetFormPrompt = async () => {
+  if (!characterForm.id) return
+  formPromptSaving.value = true
+  try {
+    const key = promptModeValue.value;
+    const ok = await apiService.deleteRolePrompt(String(characterForm.id), key)
+    if (ok) {
+      formPromptDraft.value = ''
+      formPromptOriginal.value = ''
+      formPromptFromTable.value = false
+      formPromptEnabled.value = true
+      formOriginals.value[key] = ''
+      formDrafts.value[key] = { draft: '', fromTable: false, enabled: true }
+      toast.success(`已清除「${activePromptForm.value.formName}」提示词，将回退到继承`)
+    } else {
+      toast.error('清除失败')
+    }
+  } catch (e: any) {
+    toast.error('清除失败')
+  } finally {
+    formPromptSaving.value = false
+  }
+}
+
+/** 脏检查：当前形态正文是否被改过且尚未落库 */
+const formPromptDirty = computed(
+  () => !isBuildForm.value && formPromptDraft.value !== formPromptOriginal.value
+)
+
+/**
+ * 是否存在「改过但还没落库」的分形态提示词。
+ *
+ * <p>分形态提示词走独立接口、不在 {@code getFormData} 里，所以只看角色主体数据的话，
+ * 用户在这个输入框里打完字，父组件的「应用全部设置」仍然是禁用的——内容根本存不进去。
+ * 这里把每个形态都跟它自己的基准正文比一遍。</p>
+ */
+const anyFormPromptDirty = computed(() => {
+  // 当前形态以输入框里的实时内容为准——草稿表要等切换形态时才同步，
+  // 只看草稿表会漏掉「正在编辑、还没切走」的那一个
+  if (formPromptDirty.value) return true
+  return Object.keys(formDrafts.value).some(
+    key => key !== FORM_KEY_BUILD && formDrafts.value[key].draft !== (formOriginals.value[key] ?? '')
+  )
+})
+
+/**
+ * 保存指定（非 build）形态的提示词。
+ *
+ * @param roleId  角色主键
+ * @param formKey 形态标识
+ * @param draft   正文
+ * @param enabled 是否启用
+ * @returns 是否保存成功
+ */
+const saveFormPrompt = async (roleId: string, formKey: string, draft: string, enabled: boolean): Promise<boolean> => {
+  if (!rolePromptsAvailable.value) return true
+  if (formKey === FORM_KEY_BUILD) return true
+  try {
+    const ok = await apiService.saveRolePrompt(roleId, formKey, {
+      content: draft,
+      enabled,
+    })
+    if (ok) {
+      commitFormDraft(formKey, draft, enabled)
+    }
+    return ok === true
+  } catch (e: any) {
+    return false
+  }
+}
 
 // 表单数据
 const characterForm = reactive({
@@ -809,6 +1169,9 @@ watch(() => props.data, (newVal, oldVal) => {
   characterForm.assistantName = newVal.settings?.assistantName || '';
   characterForm.assistantIdentity = newVal.settings?.assistantIdentity || '';
   characterForm.systemPrompt = newVal.settings?.systemPrompt || newVal.systemPrompt || '';
+  if (isCharacterSwitch) {
+    loadRolePrompts(characterForm.id);
+  }
   characterForm.memoryType = newVal.settings?.memoryType || 'sliding_window';
 
   // 从 memory 分组加载记忆与压缩配置
@@ -1201,7 +1564,8 @@ watch(allowlistMode, () => {
 
 // 生命周期
 onMounted(async () => {
-  // 首次挂载时，所有异步数据由 props.data watch 统一触发 loadAllData
+  // 形态定义独立于角色，需自行拉取；其余异步数据由 props.data watch 统一触发 loadAllData
+  await loadPromptForms()
 })
 
 onUnmounted(() => {
@@ -1369,16 +1733,165 @@ const clearAvatarFile = () => {
 
 // 检测表单是否有未保存的变更
 const hasChanges = computed(() => {
+  // 分形态提示词不在角色主体数据里，但改过就必须算作「有变更」，
+  // 否则保存按钮一直禁用，用户填的提示词会被静默丢弃
+  if (anyFormPromptDirty.value) return true
   if (!_initialFormData.value) return true
   const current = getFormData()
   return !deepEqual(current, _initialFormData.value)
 })
 
 // 暴露方法给父组件
+/**
+ * 落库本次会话里改脏过的**所有**非 build 形态提示词。
+ *
+ * <p>由 CharacterModal 在角色主体保存成功后调用——分形态提示词走独立接口，
+ * 且新建角色时必须等后端返回 id 才知道往哪张表写，所以不能塞进 getFormData。</p>
+ *
+ * <p>build 形态不在此列：它的正文就是 {@code characterForm.systemPrompt}，
+ * 随角色主体一起保存，无需二次落库。</p>
+ *
+ * @param roleId 角色主键（新建时为刚返回的 id）
+ * @returns 是否需要提示用户失败（无变更或接口不可用时返回 false）
+ */
+const flushFormPrompt = async (roleId?: string | number): Promise<boolean> => {
+  const id = roleId ?? characterForm.id;
+  if (!id || !rolePromptsAvailable.value) return false;
+  // 当前形态的输入先收进草稿表，下面遍历才看得到它
+  stashActiveFormDraft();
+  let failed = false;
+  // 逐形态落库：只存当前选中形态的话，用户在多个形态间来回编辑时，
+  // 其余形态的改动会被静默丢掉（草稿在内存里看着还在，下次打开就没了）。
+  for (const form of promptForms.value) {
+    const key = form.formKey;
+    if (key === FORM_KEY_BUILD) continue;
+    const entry = formDrafts.value[key];
+    if (!entry) continue;
+    if (entry.draft === (formOriginals.value[key] ?? '')) continue;
+    const ok = await saveFormPrompt(String(id), key, entry.draft, entry.enabled);
+    if (!ok) failed = true;
+  }
+  return failed;
+}
+
+// ---------- 形态管理（自定义形态的增删改）----------
+// build 恒存、不可删改 key；plan 及其它内置形态同样锁定 key（历史会话引用着它）。
+const formDialogVisible = ref(false)
+const formSaving = ref(false)
+
+/** 新建/编辑表单；formKey 仅新建时可填 */
+const formDraft = reactive({
+  formKey: '',
+  formName: '',
+  formIcon: 'flash',
+  formDescription: '',
+  editingKey: '' as string,
+})
+
+const resetFormDraft = () => {
+  formDraft.formKey = ''
+  formDraft.formName = ''
+  formDraft.formIcon = 'flash'
+  formDraft.formDescription = ''
+  formDraft.editingKey = ''
+}
+
+/** 进入编辑态并填充已有形态（编辑时 key 只读） */
+const startEditForm = (f: PromptForm) => {
+  formDraft.formKey = f.formKey
+  formDraft.formName = f.formName || ''
+  formDraft.formIcon = f.formIcon || 'flash'
+  formDraft.formDescription = f.formDescription || ''
+  formDraft.editingKey = f.formKey
+}
+
+/**
+ * 提交形态表单。
+ *
+ * <p>key 的合法性在前端先挡一道：key 会进接口路径与会话 runMode，让后端返回
+ * 「创建失败」而不告诉用户哪里写错了是最差的体验。</p>
+ */
+const submitFormDraft = async () => {
+  const isEdit = !!formDraft.editingKey
+  if (!formDraft.formName.trim()) {
+    toast.error('请填写形态名称')
+    return
+  }
+  if (!isEdit && !/^[a-z0-9][a-z0-9-]{0,31}$/.test(formDraft.formKey.trim())) {
+    toast.error('形态标识只能是小写字母、数字或连字符，且以字母数字开头')
+    return
+  }
+  formSaving.value = true
+  try {
+    if (isEdit) {
+      const ok = await apiService.updatePromptForm(formDraft.editingKey, {
+        formName: formDraft.formName.trim(),
+        formIcon: formDraft.formIcon,
+        formDescription: formDraft.formDescription.trim() || undefined,
+      })
+      if (!ok) {
+        toast.error('保存形态失败')
+        return
+      }
+      toast.success('形态已更新')
+    } else {
+      const created = await apiService.createPromptForm({
+        formKey: formDraft.formKey.trim(),
+        formName: formDraft.formName.trim(),
+        formIcon: formDraft.formIcon,
+        formDescription: formDraft.formDescription.trim() || undefined,
+      })
+      if (!created) {
+        toast.error('创建形态失败：标识已存在或不可用')
+        return
+      }
+      toast.success('形态已创建')
+    }
+    resetFormDraft()
+    await loadPromptForms()
+  } catch (e: any) {
+    toast.error(isEdit ? '保存形态失败' : '创建形态失败')
+  } finally {
+    formSaving.value = false
+  }
+}
+
+/** 删除自定义形态；build 与其它内置形态由后端拒绝，这里同步禁用按钮 */
+const removePromptForm = async (f: PromptForm) => {
+  if (f.builtin === 1) return
+  try {
+    await ElMessageBox.confirm(
+      `删除形态「${f.formName || f.formKey}」后，各角色在该形态下已配置的提示词将不再生效。`,
+      '删除形态',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    const ok = await apiService.deletePromptForm(f.formKey)
+    if (!ok) {
+      toast.error('删除形态失败')
+      return
+    }
+    if (promptModeValue.value === f.formKey) {
+      promptModeValue.value = FORM_KEY_BUILD
+    }
+    toast.success('形态已删除')
+    await loadPromptForms()
+    if (characterForm.id) {
+      await loadRolePrompts(String(characterForm.id))
+    }
+  } catch (e: any) {
+    toast.error('删除形态失败')
+  }
+}
+
 defineExpose({
   clearAvatarFile,
   validate,
   getFormData,
+  flushFormPrompt,
   hasChanges
 })
 
@@ -1386,6 +1899,50 @@ defineExpose({
 </script>
 
 <style scoped>
+.prompt-mode-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.prompt-mode-hint :deep(.el-tag) {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.prompt-mode-hint-icon {
+  margin-top: 3px;
+}
+
+/* 形态过多时切换器降级为下拉，宽度收窄以免挤掉标题 */
+.form-select {
+  width: 130px;
+}
+
+/* 形态管理列表 */
+.form-manage-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.form-manage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.form-manage-item:last-child {
+  border-bottom: none;
+}
+.form-manage-editor {
+  padding-top: 4px;
+}
+.form-prompt-unavailable {
+  flex-shrink: 0;
+}
+
 .avatar-upload-container {
   display: flex;
   flex-direction: column;

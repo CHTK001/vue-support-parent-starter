@@ -60,13 +60,6 @@ import type {
   EduClass,
   EduStudent,
   EduTeacher,
-  CollectTask,
-  CollectTaskForm,
-  CollectLog,
-  CollectMeta,
-  CollectTriggerResult,
-  CollectScriptSample,
-  CollectDbTable,
   EduSubject,
   EduGrade,
   GradeLevelOption,
@@ -703,67 +696,6 @@ export const eduaiApi = {
     http()
       .delete(`/v2/edu/insect/delete/${insectId}`)
       .then<boolean>(unwrap),
-
-  // 题库采集 —— 任务 CRUD / 手动触发 / 日志 / 元数据（后端 EduCollectController，调度态落在 sys_job）
-  pageCollectTasks: (params: { pageNum?: number; pageSize?: number; taskName?: string; sourceType?: string; subject?: string; status?: number }) =>
-    http()
-      .get("/v2/edu/collect/task/page")
-      .query(params)
-      .then<PageResult<CollectTask>>(unwrap),
-  saveCollectTask: (data: CollectTaskForm) =>
-    http()
-      .post("/v2/edu/collect/task/save")
-      .data(data as unknown as Record<string, unknown>)
-      .then<number>(unwrap),
-  deleteCollectTask: (id: number) =>
-    http()
-      .delete(`/v2/edu/collect/task/${id}`)
-      .then<boolean>(unwrap),
-  changeCollectTaskStatus: (id: number, status: number) =>
-    http()
-      .put("/v2/edu/collect/task/status")
-      .query({ id, status })
-      .then<boolean>(unwrap),
-  triggerCollectTask: (id: number) =>
-    http()
-      .post(`/v2/edu/collect/task/trigger/${id}`)
-      .timeout(300000)
-      .then<CollectTriggerResult>(unwrap),
-  pageCollectLogs: (params: { taskId?: number; pageNum?: number; pageSize?: number }) =>
-    http()
-      .get("/v2/edu/collect/log/page")
-      .query(params)
-      .then<PageResult<CollectLog>>(unwrap),
-  collectMeta: () =>
-    http()
-      .get("/v2/edu/collect/meta")
-      .then<CollectMeta>(unwrap),
-  collectSourceTypes: () =>
-    http()
-      .get("/v2/edu/collect/source-types")
-      .then<string[]>(unwrap),
-  collectScriptSamples: () =>
-    http()
-      .get("/v2/edu/collect/script-samples")
-      .then<CollectScriptSample[]>(unwrap),
-  /** 数据表入库：可写表元数据（表名/列/建议唯一键） */
-  collectDbTables: () =>
-    http()
-      .get("/v2/edu/collect/db-tables")
-      .then<CollectDbTable[]>(unwrap),
-  /** 数据表入库：三方 JSON 字段预览 */
-  collectDbPreview: (params: { url: string; dataPath?: string; limit?: number }) =>
-    http()
-      .get("/v2/edu/collect/db-preview")
-      .query(params)
-      .then<Record<string, unknown>[]>(unwrap),
-  /** 前置处理器试跑：按 JSONPath/Groovy 输出「一行一个」的行集合（大词库下载较慢，放宽超时） */
-  collectPreviewRows: (params: { url: string; mode?: string; expr?: string; script?: string; mapping?: string; limit?: number }) =>
-    http()
-      .get("/v2/edu/collect/preview-rows")
-      .query(params)
-      .timeout(120000)
-      .then<Record<string, unknown>[]>(unwrap),
 
   // 维度数据（学科 / 学段 / 年级）
   listSubjects: (gradeLevel?: string) =>
