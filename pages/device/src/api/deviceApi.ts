@@ -18,9 +18,31 @@ import { createModuleHttp } from "@repo/core";
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
 const http = createModuleHttp("device");
 
-/** 解包 { code, msg, data } 为 data */
-function unwrap<T>(r: { data?: T }): T {
-  return r.data as T;
+/**
+ * 解包业务负载，兼容「已剥离 / 未剥离 AxiosResponse 外壳」两种层级。
+ *
+ * <p>为什么必须多剥一层：{@link createModuleHttp} 复用框架注入的 axios 实例，
+ * 那些拦截器只负责**加密 / 签名 / 401 / 重试**，并不剥离 AxiosResponse 外壳，
+ * 所以 `.then()` 收到的是 `{ status, data: { code, msg, data } }`。
+ * 原来这里直接 `return r.data`，等于把整个业务信封 `{code,msg,data}` 当成业务负载返回：
+ * `deviceApi.list()` 于是给回一个**对象**而不是数组，视图里
+ * `devices.value.filter(...)` 直接抛
+ * `devices.value.filter is not a function`（设备资产 / 设备通道 / 设备事件三页均复现，
+ * 见交付验收的 click-error 记录）；`deleteChannel` 之类拿到的也是信封而非布尔。</p>
+ *
+ * <p>刻意<b>不</b>改用 {@link unwrapResult}：那个helper 在业务码非成功时会抛错，
+ * 会把本模块 17 处调用点的错误语义从「静默拿到信封」一次性改成 reject，
+ * 风险面远超本次修复。失败路径的行为保持原样，只修正成功路径剥壳。</p>
+ *
+ * @param r 请求返回值（AxiosResponse 或已被拦截器剥壳的业务信封）
+ * @returns 业务负载；剥不出 data 层时按原样返回，不改变既有失败语义
+ */
+function unwrap<T>(r: { data?: { data?: T } | T }): T {
+  // res.data 是 AxiosResponse 的 body（业务信封）；若上游已剥壳则 res 本身就是信封。
+  const body = (r?.data ?? r) as { data?: unknown } | undefined;
+  // 只在「像业务信封」时才取 data 层，避免把业务数据本身是对象的情况误剥一层。
+  const looksLikeEnvelope = !!body && typeof body === "object" && "data" in (body as object);
+  return ((looksLikeEnvelope ? (body as { data?: unknown }).data : body) ?? body) as T;
 }
 
 export const deviceApi = {
