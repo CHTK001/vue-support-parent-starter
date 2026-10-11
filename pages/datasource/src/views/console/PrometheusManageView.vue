@@ -1,7 +1,7 @@
 <template>
   <div class="dsm tel-page">
     <!-- 顶栏 -->
-    <div class="dsm-toolbar">
+    <div class="dsm-toolbar re-surface">
       <div class="dsm-toolbar-left">
         <ReIcon name="DataLine" :size="18" class="dsm-title-icon dsm-prom-icon" />
         <span class="dsm-title">Prometheus 服务管理</span>
@@ -80,6 +80,8 @@
 /**
  * Prometheus 控制台：总览 / 查询 / 监控 / 配置 / 自定义看板。
  */
+// 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
+import "@repo/ui/surface";
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 
@@ -209,8 +211,6 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 16px;
 }
 

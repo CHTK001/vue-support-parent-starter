@@ -6,7 +6,7 @@
          表页签激活时把「统计总数 + 列显示设置 + 恢复默认设置」这簇表视图设置挂到 hero：
          表格工具条第一行因此只放表名 / 显示模式 / 4 个数据动作，第二行分页独占右对齐 ——
          点分页、切统计总数、总位数变化都只动分页器自己的左缘，整页零位移（防抖结构）。 -->
-    <div class="dbm-toolbar">
+    <div class="dbm-toolbar re-surface re-surface--dense">
       <div class="dbm-toolbar-left">
         <span class="dbm-toolbar-hint">右键表 / 库 / 空白处可执行新建、导入导出等操作</span>
       </div>
@@ -885,6 +885,9 @@
           <div class="dbm-context-item" @click="openStructureSync(contextMenu.database)">
             <ReIcon name="Sort" :size="14" />结构同步（与目标库比较）
           </div>
+          <div class="dbm-context-item" @click="openDocumentExport(contextMenu.database)">
+            <ReIcon name="Document" :size="14" />导出数据库文档
+          </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
           </div>
@@ -1003,6 +1006,42 @@
       </div>
       <template #footer>
         <ReButton @click="syncVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 导出数据库文档（表结构 / 主键 / 外键，渲染走后端既有的 DocumentProvider SPI） -->
+    <ReDialog v-model="docExportVisible" title="导出数据库文档" width="520px">
+      <div class="dbm-doc-export">
+        <div class="dbm-doc-row">
+          <span class="dbm-doc-label">目标库</span>
+          <span class="dbm-doc-value">{{ docExportDatabase }}</span>
+        </div>
+        <div class="dbm-doc-row">
+          <span class="dbm-doc-label">文档格式</span>
+          <select v-model="docExportFormat" class="dbm-doc-select">
+            <option v-for="f in docExportFormats" :key="f.format" :value="f.format">
+              {{ DOC_FORMAT_LABELS[f.format] ?? f.format }}
+            </option>
+          </select>
+        </div>
+        <div class="dbm-doc-row">
+          <span class="dbm-doc-label">模板样式</span>
+          <select v-model="docExportTemplate" class="dbm-doc-select">
+            <option v-for="t in docExportTemplates" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </div>
+        <p class="dbm-doc-hint">
+          导出内容为本库全部表与视图的字段、类型、主键与外键（不含数据行）。
+          <br />
+          格式由服务端已装配的渲染器决定；PDF 还需要服务端装有 wkhtmltopdf，否则会明确报错而不是给你一个空文件。
+        </p>
+        <p v-if="docExportFormatsError" class="dbm-doc-error">{{ docExportFormatsError }}</p>
+      </div>
+      <template #footer>
+        <ReButton @click="docExportVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="docExportLoading" :disabled="!docExportFormats.length" @click="doDocumentExport">
+          导出
+        </ReButton>
       </template>
     </ReDialog>
 
@@ -1811,6 +1850,8 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
+// 卡片视觉统一底座（16px 圆角/透明边框/双层投影，--dense 为 12px/10px 内距档）
+import "@repo/ui/surface";
 import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
 import { EditPen, CopyDocument, Delete, RefreshRight } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
@@ -1865,6 +1906,9 @@ import {
   fetchDbAiStatus,
   requestDbText2Sql,
   type DbAiStatus,
+  dbDocumentFormats,
+  downloadDbDocument,
+  type DbDocumentFormat,
 } from "../../api/manageConsoles";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
 import {
@@ -5764,6 +5808,90 @@ function openStructureSync(database = activeDatabase.value) {
   syncVisible.value = true;
 }
 
+// ==================== 导出数据库文档（后端复用 utils 层 DocumentProvider SPI） ====================
+
+const docExportVisible = ref(false);
+const docExportDatabase = ref("");
+const docExportFormat = ref("markdown");
+const docExportTemplate = ref("DEFAULT");
+const docExportFormats = ref<DbDocumentFormat[]>([]);
+const docExportTemplates = ref<string[]>([]);
+const docExportLoading = ref(false);
+const docExportFormatsError = ref("");
+
+/** 格式中文名（渲染器名保持英文，与后端 SPI 名一致，便于对排查） */
+const DOC_FORMAT_LABELS: Record<string, string> = {
+  markdown: "Markdown（.md，纯文本）",
+  html: "HTML（.html，浏览器可预览）",
+  word: "Word（.docx）",
+  pdf: "PDF（.pdf）",
+};
+
+/**
+ * 打开文档导出对话框。
+ *
+ * <p>可选格式来自后端 {@code /document/formats} 的实际探测，不是前端写死四项：
+ * word/pdf 的渲染器分属独立模块，宿主没引就没有，硬编码会给出点了就报
+ * 「未找到文档导出实现」的选择项。</p>
+ *
+ * @param database 目标库
+ */
+async function openDocumentExport(database = activeDatabase.value) {
+  if (!database) {
+    message.warning("请先在左侧选择一个库");
+    return;
+  }
+  docExportDatabase.value = database;
+  docExportFormat.value = "markdown";
+  docExportTemplate.value = "DEFAULT";
+  docExportFormatsError.value = "";
+  docExportVisible.value = true;
+  try {
+    const caps = await dbDocumentFormats();
+    docExportFormats.value = caps?.formats ?? [];
+    docExportTemplates.value = caps?.templates ?? [];
+    if (docExportFormats.value.length === 0) {
+      docExportFormatsError.value = "当前实例未装配任何文档导出渲染器";
+    } else if (!docExportFormats.value.some(f => f.format === docExportFormat.value)) {
+      docExportFormat.value = docExportFormats.value[0].format;
+    }
+  } catch (e) {
+    docExportFormats.value = [];
+    docExportFormatsError.value = `查询导出能力失败：${(e as Error).message}`;
+  }
+}
+
+/**
+ * 执行文档导出并落盘。
+ *
+ * <p>文件名取后端给的（它按文档标题生成），而不是前端拼一个：中文标题经
+ * RFC 5987 编码后由后端给出，前端再拼一次容易出现两套命名。</p>
+ */
+async function doDocumentExport() {
+  if (!docExportDatabase.value || docExportLoading.value) return;
+  docExportLoading.value = true;
+  try {
+    const { blob, filename } = await downloadDbDocument({
+      datasourceId: currentDatasourceId.value,
+      database: docExportDatabase.value,
+      format: docExportFormat.value,
+      template: docExportTemplate.value,
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    docExportVisible.value = false;
+    message.success(`文档已导出：${filename}`);
+  } catch (e) {
+    message.error(`文档导出失败：${(e as Error).message}`);
+  } finally {
+    docExportLoading.value = false;
+  }
+}
+
 /** 比较两个库 */
 async function runStructureDiff(): Promise<void> {
   if (!syncSourceDb.value || !syncTargetDb.value) {
@@ -7121,6 +7249,8 @@ onBeforeUnmount(() => {
   height: calc(100vh - 120px);
   min-height: 560px;
   padding: 4px 4px 8px;
+  /* 浅灰画布：工具条 / 侧栏 / 内容区三张白卡浮在上面，层次来自这里 */
+  background: var(--bg-fill);
 }
 
 /* 内嵌到数据源中心：宿主已经算好了可用高度（页签面板是 flex:1 + min-height:0），
@@ -7161,15 +7291,15 @@ onBeforeUnmount(() => {
 
 /* 工具条：页面级动作只留数据源切换 + 刷新 + 表页签激活时的一簇视图设置，
    因此压到 6px 内边距、取消圆角与阴影，把纵向空间让给主内容区。 */
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 基类统一提供。
+   这里用 --dense 档而不是默认档：DBM 是密集型控制台，工具条与下方
+   .dbm-sidebar / .dbm-content 两张 16px 卡同宽并排，默认档 16px 18px 内距会把
+   工具条撑高一档、左右卡片高度对不齐。scoped 里只留布局，不再自写一套卡片壳。 */
 .dbm-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 6px 12px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base, 4px);
   flex-wrap: nowrap;
 }
 .dbm-toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 0 1 auto; min-width: 0; }
@@ -7429,6 +7559,40 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .dbm-sync-script-wrap { display: flex; flex-direction: column; gap: 6px; }
+.dbm-doc-export { display: flex; flex-direction: column; gap: 12px; }
+.dbm-doc-row { display: flex; align-items: center; gap: 12px; }
+.dbm-doc-label {
+  flex: none;
+  width: 72px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.dbm-doc-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.dbm-doc-select {
+  flex: 1;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+.dbm-doc-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.dbm-doc-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-color-danger);
+}
 .dbm-sync-script-head {
   display: flex;
   align-items: center;
