@@ -3894,6 +3894,15 @@ const effectiveToolbarConfig = computed<ReTableToolbarConfig>(() => {
 
   return {
     ...cfg,
+    // 本地模式（data 传数组）没有可重新拉取的东西：useDataSource 的 reload
+    // 只是把同一个数组再赋值一次，不发请求、不改 DOM —— 按钮点下去
+    // 「什么都不发生」，是一个可见、可点、永远无效的控件。
+    // 实测 2026-10-12 在 etcd 管理页被抓到：ReTable 工具栏的「刷新」
+    // 就是这样一个死按钮（全模块按钮扫描逐个点击时暴露）。
+    //
+    // 远程模式（loader / data 传函数）下 reload 才有意义，保持页面显式配置优先，
+    // 因此只在本地模式下强制关掉，不覆盖页面主动打开的意图。
+    refresh: isRemote.value ? cfg.refresh : false,
     columnSettings: canConfigureColumns ? cfg.columnSettings !== false : false,
   };
 });
