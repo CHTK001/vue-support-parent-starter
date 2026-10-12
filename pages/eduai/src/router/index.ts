@@ -16,6 +16,16 @@
  */
 import type { RouteConfigsTable } from "@repo/core";
 import { loginView } from "@repo/theme/koi/framework";
+// 本路由树直接引 @pages/collect 的 view 文件（如 CollectorView.vue），
+// 走的是「别名 → 具体文件」，不会经过 @pages/collect 包的 index.ts，
+// 那里的副作用 import "./styles/collect.css" 因此从不执行，
+// 表现为顶部工具栏没有任何样式：控件竖着堆、边框圆角背景全无。
+// 与 @pages/job 的处理一致（其 src/index.ts:24 同样显式引这一行）。
+// koi-tech-console.css 是后面新增的皮肤层：采集侧页面的深色科技风外观
+// （令牌、卡片 / 表格 / 工具条 / 状态层）全部在它里面，少引它这几个页面
+// 会「有骨架没颜色」。顺序与 @pages/collect 包的入口保持一致。
+import "@pages/collect/src/styles/koi-tech-console.css";
+import "@pages/collect/src/styles/collect.css";
 
 /** 分组父节点（仅菜单标题，不注册为路由） */
 function group(
