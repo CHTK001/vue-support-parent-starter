@@ -419,8 +419,8 @@
                    力参数救不了，唯一有效的是减少节点数，所以在这里给出明确动作。
                    筛选一旦生效提示即消失，不长期占版面。 -->
               <span v-else-if="graphTooDense" class="text-sm kb-graph__hint">
-                节点较多，按实体类型筛选后结构更清晰。
-                <ReButton type="primary" link class="kb-graph__hint-act" @click="focusGraphTypeFilter">去筛选</ReButton>
+                节点较多，按<ReButton type="primary" link class="kb-graph__hint-act"
+                  @click="focusGraphTypeFilter">「实体类型」</ReButton>筛选后结构更清晰。
               </span>
 
               <div class="flex-1" />
@@ -1586,21 +1586,18 @@ const graphTooDense = computed(
 const graphTypeFilterRef = ref<any>(null)
 
 /**
- * 聚焦并展开实体类型筛选。
+ * 聚焦实体类型筛选。
  *
- * <p>el-select 的 {@code focus()} 只把输入框置焦，未必展开下拉，
- * 且组件实例并未公开 {@code toggleMenu}，所以再补一次真实点击兜底。</p>
+ * <p><b>只聚焦，不展开下拉</b>：el-select 展开由组件内部状态控制，实例未公开
+ * {@code toggleMenu}，实测 {@code $el.click()} / {@code dispatchEvent(mousedown|pointerdown)}
+ * / 合成 keydown 等八种方式全部无效（而 {@code focus()} 能稳定点亮焦点环）。
+ * 与其塞一段注定不生效的「伪展开」，不如老实把焦点送到控件上——
+ * 用户看到焦点环就知道该点哪儿了。</p>
  */
 function focusGraphTypeFilter() {
-  const inst = graphTypeFilterRef.value
-  if (!inst) {
-    return
-  }
   try {
-    inst.focus?.()
-  } catch { /* 实例未挂载，交给下面的点击兜底 */ }
-  const el = inst.$el ?? inst.$refs?.selectRef?.$el
-  el?.click?.()
+    graphTypeFilterRef.value?.focus?.()
+  } catch { /* 视图未挂载时忽略 */ }
 }
 
 /**
