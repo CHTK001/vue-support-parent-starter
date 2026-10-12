@@ -212,7 +212,9 @@ async function handleSubmit() {
 }
 
 /** 树拖拽完成：更新父级与排序 */
-async function allowDrop() { return true; }
+function allowDrop() {
+  return true;
+}
 async function handleDrop(draggingNode: any, dropNode: any, dropType: string) {
   try {
     const dragData = draggingNode.data as SysDept;
@@ -405,7 +407,7 @@ onMounted(loadList);
           node-key="sysDeptId"
           :props="{ label: 'sysDeptName', children: 'children' }"
           :expand-on-click-node="false"
-          :default-expanded-keys="currentDept ? [currentDept.sysDeptId] : []"
+          :default-expanded-keys="currentDept?.sysDeptId != null ? [currentDept.sysDeptId] : []"
           highlight-current
           draggable
           :allow-drop="allowDrop"

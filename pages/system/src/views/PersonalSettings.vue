@@ -352,7 +352,7 @@ onMounted(() => {
               </div>
               <el-switch
                 :model-value="totpEnabled"
-                @change="(v: boolean) => onTotpSwitchChange(v)"
+                @change="(v) => onTotpSwitchChange(v === true)"
               />
             </div>
             <el-tag v-if="totpEnabled" type="success" effect="plain" >已启用</el-tag>

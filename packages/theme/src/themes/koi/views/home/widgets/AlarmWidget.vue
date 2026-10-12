@@ -29,7 +29,7 @@
             <div class="aw__item-countdown">{{ a.enabled ? countdownText(a) : "已停用" }}</div>
           </div>
           <div class="aw__item-actions">
-            <el-switch :model-value="a.enabled" @change="toggle(a.id, $event)" />
+            <el-switch :model-value="a.enabled" @change="toggle(a.id, $event === true)" />
             <button type="button" class="aw__item-del" :title="`删除闹钟 ${a.title}`" :aria-label="`删除闹钟 ${a.title}`" @click="remove(a.id)">
               <el-icon><Close /></el-icon>
             </button>

@@ -809,13 +809,19 @@ const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const contextNode = ref<MenuVM | null>(null);
 
-function onNodeContextmenu(e: MouseEvent, data: MenuVM) {
+/**
+ * el-tree 的 node-contextmenu 事件签名是 (evt: Event, data, node, nodeInstance)，
+ * 处理器第一个参数必须是 Event 的父类型（逆变），写 MouseEvent 会类型不匹配。
+ * 这里按 Event 接收，再在内部收窄成 MouseEvent 取 clientX/clientY。
+ */
+function onNodeContextmenu(e: Event, data: MenuVM) {
   e.preventDefault();
   e.stopPropagation();
   onNodeClick(data);
   contextNode.value = data;
-  contextMenuX.value = e.clientX;
-  contextMenuY.value = e.clientY;
+  const pt = e as MouseEvent;
+  contextMenuX.value = pt.clientX;
+  contextMenuY.value = pt.clientY;
   contextMenuVisible.value = true;
 }
 
