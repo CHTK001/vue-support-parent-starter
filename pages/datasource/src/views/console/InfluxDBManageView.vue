@@ -365,7 +365,6 @@ import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import { extraText } from "../../utils/externalDatasource";
 import {
-  executeInfluxdbQuery,
   fetchInfluxdbBuckets,
   fetchInfluxdbMeasurements,
   testInfluxdbConnection,
@@ -381,8 +380,7 @@ import {
   type InfluxdbOrg,
 } from "../../api/influxdbNginxApi";
 
-/** ReTable 列定义 */
-type Column = { prop: string; label: string; width?: number; minWidth?: number; slot?: string; fixed?: boolean | "left" | "right"; align?: "left" | "center" | "right"; formatter?: (row: any) => string };
+import { useInfluxdbQuery, type Column } from "../../composables/useInfluxdbQuery";
 
 const { datasourceId, source, gap, bind, fail, ready } = useMiddlewareSource();
 
@@ -464,6 +462,16 @@ function onBucketTableMenuSelect(item: { key: string }, ctx: { row: Record<strin
 }
 const measurements = ref<InfluxdbMeasurement[]>([]);
 
+/** 查询能力收口：语句生成 + 执行 + 结果列推导（v2 Flux / v3 SQL 双版本，见 composable 文档） */
+const {
+  runQuery,
+  buildDefaultStatement,
+  buildBrowserStatement,
+  deriveColumns,
+  deriveFieldOptions,
+  resolveSqlColumns,
+} = useInfluxdbQuery({ datasourceId, isV3, activeBucket, measurements });
+
 /**
  * 连接信息（地址/端口/组织/版本）。
  *
@@ -475,15 +483,6 @@ const connectionInfo = { host: "-", port: 0, organization: "-", version: "-" };
 /** 连通状态。同上：脚本内写入，模板暂未读取，保留写入行为 */
 const connected = ref(false);
 const recentData = ref<Record<string, unknown>[]>([]);
-
-/**
- * 由返回行的键推导表格列，避免写死后端字段
- * @param rows 查询返回的行
- * @returns 表格列定义
- */
-function toColumns(rows: Record<string, unknown>[]): Column[] {
-  return (rows.length > 0 ? Object.keys(rows[0]) : []).map(key => ({ prop: key, label: key, minWidth: 140 }));
-}
 
 // 列定义
 const bucketColumns: Column[] = [
@@ -498,7 +497,7 @@ const measurementColumns: Column[] = [
   { prop: "tagCount", label: "标签数", width: 90 },
   { prop: "lastWriteTime", label: "最后写入", minWidth: 170 },
 ];
-const dataColumns = computed<Column[]>(() => toColumns(recentData.value));
+const dataColumns = computed<Column[]>(() => deriveColumns(recentData.value));
 
 // Flux 查询（工作区页签：jdbc「查询 N」式，可多开、各自保留编辑器与结果）
 interface QueryTab {
@@ -723,18 +722,13 @@ async function loadBucketData() {
   }
   dataLoading.value = true;
   try {
-    let statement: string;
-    if (isV3.value) {
-      const table = measurements.value[0]?.name;
-      if (!table) {
-        recentData.value = [];
-        return;
-      }
-      statement = `SELECT * FROM "${table.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`;
-    } else {
-      statement = `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`;
+    const statement = buildDefaultStatement();
+    if (!statement) {
+      // v3 且当前库尚无度量：无数据可取
+      recentData.value = [];
+      return;
     }
-    const { rows } = await runFlux(statement);
+    const { rows } = await runQuery(statement);
     recentData.value = rows;
     ready();
   } catch (e) {
@@ -743,49 +737,6 @@ async function loadBucketData() {
   } finally {
     dataLoading.value = false;
   }
-}
-
-/**
- * 把行内嵌套结构转成 JSON 文本，避免表格里显示成 [object Object]
- * @param rows 查询返回的行
- * @returns 可直读的行
- */
-function displayRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
-  return rows.map(row => {
-    const flat: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(row)) {
-      flat[key] = value !== null && typeof value === "object" ? JSON.stringify(value) : value;
-    }
-    return flat;
-  });
-}
-
-/**
- * 执行查询并返回行数据与耗时/截断信息（v2 走 Flux，v3 走 SQL）
- * @param flux 查询语句
- * @returns 行数据与元信息
- */
-async function runFlux(flux: string): Promise<{ rows: Record<string, unknown>[]; elapsed: number; truncated: boolean; totalRows: number }> {
-  const result = await executeInfluxdbQuery(flux, datasourceId.value, isV3.value ? activeBucket.value : undefined);
-  return {
-    rows: displayRows(result?.rows || []),
-    elapsed: result?.executionTimeMs ?? 0,
-    truncated: !!result?.truncated,
-    totalRows: result?.totalRows ?? (result?.rows?.length || 0),
-  };
-}
-
-/**
- * 查询页签的缺省语句：按当前选中的库生成
- * @returns 缺省查询语句
- */
-function defaultQueryStatement(): string {
-  if (!activeBucket.value) return "";
-  if (isV3.value) {
-    const table = measurements.value[0]?.name;
-    return table ? `SELECT * FROM "${table.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50` : "";
-  }
-  return `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`;
 }
 
 /**
@@ -798,7 +749,7 @@ function openQueryTab(flux?: string): QueryTab {
   const tab: QueryTab = {
     id: `q${seq}`,
     title: `查询 ${seq}`,
-    flux: flux ?? defaultQueryStatement(),
+    flux: flux ?? buildDefaultStatement(),
     executing: false,
     elapsed: 0,
     truncated: false,
@@ -842,11 +793,11 @@ async function executeQuery(tab: QueryTab) {
   }
   tab.executing = true;
   try {
-    const res = await runFlux(tab.flux);
+    const res = await runQuery(tab.flux);
     tab.elapsed = res.elapsed;
     tab.truncated = res.truncated;
     tab.totalRows = res.totalRows;
-    tab.result = { columns: toColumns(res.rows), rows: res.rows };
+    tab.result = { columns: deriveColumns(res.rows), rows: res.rows };
     ready();
   } catch (e) {
     tab.result = { columns: [], rows: [] };
@@ -969,42 +920,15 @@ async function runBrowserQuery() {
   if (!activeBucket.value || !browserMeasurement.value) return;
   browserLoading.value = true;
   try {
-    let statement: string;
-    if (isV3.value) {
-      const table = browserMeasurement.value.replace(/"/g, '""');
-      const m = /^(\d+)([hd])$/.exec(browserRange.value.replace(/^-/, ""));
-      const unit = m?.[2] === "d" ? "DAY" : "HOUR";
-      const amount = m?.[1] ?? "1";
-      statement = `SELECT * FROM "${table}" WHERE time >= now() - INTERVAL '${amount}' ${unit}`;
-      if (browserField.value) {
-        statement += ` AND "${browserField.value.replace(/"/g, '""')}" IS NOT NULL`;
-      }
-      statement += " ORDER BY time DESC LIMIT 500";
-    } else {
-      statement = `from(bucket: "${activeBucket.value}")\n  |> range(start: ${browserRange.value})\n`
-        + `  |> filter(fn: (r) => r._measurement == "${browserMeasurement.value}")`;
-      if (browserField.value) {
-        statement += `\n  |> filter(fn: (r) => r._field == "${browserField.value}")`;
-      }
-      statement += "\n  |> limit(n: 500)";
-    }
-    const result = await executeInfluxdbQuery(statement, datasourceId.value, isV3.value ? activeBucket.value : undefined);
-    const rows = displayRows(result?.rows || []);
+    const statement = buildBrowserStatement(
+      browserMeasurement.value,
+      browserRange.value,
+      browserField.value || undefined,
+    );
+    const { rows } = await runQuery(statement);
     browserRows.value = rows;
-    browserColumns.value = toColumns(rows);
-    // 收集 field 选项：v2 是行里的 _field；v3 的字段即结果列（排除 time）
-    const fields = new Set<string>();
-    if (isV3.value) {
-      for (const key of Object.keys(rows[0] || {})) {
-        if (key !== "time") fields.add(key);
-      }
-    } else {
-      for (const row of rows) {
-        const f = row._field;
-        if (f != null) fields.add(String(f));
-      }
-    }
-    browserFields.value = [...fields];
+    browserColumns.value = deriveColumns(rows);
+    browserFields.value = deriveFieldOptions(rows);
     ready();
   } catch (e) {
     browserRows.value = [];
@@ -1012,23 +936,6 @@ async function runBrowserQuery() {
     fail(e, "/ms/monitor/influxdb/query");
   } finally {
     browserLoading.value = false;
-  }
-}
-
-/**
- * v3 编辑器按需解析度量的字段列（information_schema.columns）
- * @param table 表（度量）名
- * @returns 列名
- */
-async function resolveSqlColumns(table: string): Promise<string[]> {
-  try {
-    const safe = table.replace(/'/g, "''");
-    const { rows } = await runFlux(
-      `SELECT column_name FROM information_schema.columns WHERE table_name = '${safe}'`
-    );
-    return rows.map(r => String(r.column_name ?? "")).filter(Boolean);
-  } catch {
-    return [];
   }
 }
 
