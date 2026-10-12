@@ -249,7 +249,7 @@ function showHelp(): void {
       <template #enabled="{ row }">
         <ReSwitch
           
-          :model-value="row.collectFunctionEnabled"
+          :model-value="row.collectFunctionEnabled ?? 1"
           :active-value="1"
           :inactive-value="0"
           @update:model-value="(v: unknown) => toggleEnabled(row, v)"
