@@ -80,6 +80,9 @@ const CYPHER_KEYWORDS = [
 const FLUX_SET = new Set(FLUX_KEYWORDS);
 const CYPHER_SET = new Set(CYPHER_KEYWORDS);
 
+/** 编辑器等宽字体栈（为什么需要逐元素设置，见 onMounted 内 theme 的注释） */
+const MONO_FONT = "var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace)";
+
 /**
  * 轻量 Flux 流式解析器：管道函数按关键字高亮，覆盖字符串/数字/行注释。
  * token 名沿用 legacy-modes 的通用命名，由 StreamLanguage 映射为高亮样式。
@@ -268,15 +271,29 @@ onMounted(() => {
         },
         ".cm-scroller": {
           maxHeight: "320px",
-          fontFamily: "var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace)",
+          fontFamily: MONO_FONT,
           lineHeight: "1.6",
         },
-        ".cm-content": { padding: "12px 14px", minHeight: "180px", color: "var(--el-text-color-primary)" },
+        ".cm-content": {
+          padding: "12px 14px",
+          minHeight: "180px",
+          color: "var(--el-text-color-primary)",
+          fontFamily: MONO_FONT,
+        },
+        // 主题包有全局 * { font-family: KoiFont… }，直接命中 .cm-line 等元素——
+        // 任何直接命中的规则都胜过继承，仅给 .cm-scroller 设字体时代码文本
+        // 实际渲染成品牌字体（比例字体在 20px 行高下，下行字母 gjpqy 底部被裁）。
+        // 故逐元素钉回等宽字体；注意选择器不可写逗号列表：buildTheme 只给
+        // 整段选择器加一次作用域前缀，逗号后的其余选择器会泄漏成全局规则。
+        ".cm-line": { fontFamily: MONO_FONT },
         ".cm-gutters": {
           backgroundColor: "transparent",
           border: "none",
           color: "var(--el-text-color-placeholder)",
+          fontFamily: MONO_FONT,
         },
+        ".cm-gutterElement": { fontFamily: MONO_FONT },
+        ".cm-placeholder": { fontFamily: MONO_FONT },
         ".cm-activeLine": { backgroundColor: "transparent" },
         ".cm-activeLineGutter": { backgroundColor: "transparent" },
         ".cm-tooltip": {
