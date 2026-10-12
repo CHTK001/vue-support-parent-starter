@@ -58,6 +58,26 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       component: () => import("@pages/collect/src/views/CollectorView.vue"),
       meta: { title: "采集管理", icon: "Download", showLink: true, keepAlive: true, isVisible: "1" },
     },
+    // 采集器列表里的「运行记录」「采集结果」两个按钮要落到页面，
+    // CollectorView 用命名路由 CollectRun / CollectRecord 跳转，宿主注册同名路由即可。
+    //
+    // 为什么必须注册：原先它们写死 /collect/run、/collect/record，
+    // eduai 只挂 /edu/collect，点这两个按钮直接 404（实测）。
+    //
+    // showLink:false —— 不进侧边栏。本次只把「采集管理」收敛过来，
+    // 菜单结构保持 eduai 原样；这两个页面只作为列表按钮的下游落点。
+    {
+      path: "/edu/collect/run",
+      name: "CollectRun",
+      component: () => import("@pages/collect/src/views/TaskView.vue"),
+      meta: { title: "运行记录", icon: "Timer", showLink: false, keepAlive: true, isVisible: "1" },
+    },
+    {
+      path: "/edu/collect/record",
+      name: "CollectRecord",
+      component: () => import("@pages/collect/src/views/RecordView.vue"),
+      meta: { title: "采集结果", icon: "Files", showLink: false, keepAlive: true, isVisible: "1" },
+    },
   ]),
 
   // ==================== 考试流程 ====================
