@@ -15,16 +15,30 @@ import { mount } from "@vue/test-utils";
 vi.mock("element-plus", () => ({
   ElMessage: ep.msg,
   ElMessageBox: ep.box,
+  ElNotification: ep.notify,
 }));
 vi.mock("@element-plus/icons-vue", () => {
   const stub = { name: "IconStub", template: "<i />" };
   return new Proxy({} as Record<string, unknown>, { get: () => stub });
 });
 
-const ep = vi.hoisted(() => ({
-  msg: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  box: { confirm: vi.fn().mockResolvedValue("confirm") },
-}));
+const ep = vi.hoisted(() => {
+  // @repo/core 的 msg.ts 用的是 Element Plus 的**函数式** API：
+  //   ElMessage.closeAll();
+  //   ElMessage({ message, plain, duration, type, ... });
+  // 所以替身必须「本身可调用、且带 closeAll」，不能是一个按类型分方法的对象。
+  // 之前给的是 { success, error, warning, info }，页面里 message.warning(...) 一进去
+  // 就抛 TypeError（既没有 closeAll，也不可调用），断言里的 spy 自然一次都没被调用。
+  const msg = vi.fn();
+  msg.closeAll = vi.fn();
+  const notify = vi.fn();
+  notify.closeAll = vi.fn();
+  return {
+    msg,
+    notify,
+    box: { confirm: vi.fn().mockResolvedValue("confirm"), close: vi.fn() },
+  };
+});
 
 const api = vi.hoisted(() => ({
   pageForPost: vi.fn(),
@@ -137,7 +151,7 @@ describe("PostManage 岗位管理页面", () => {
 
     // 空表单点确定 -> 名称必填提示
     await wrapper.find(".dialog-ok").trigger("click");
-    expect(ep.msg.warning).toHaveBeenCalledWith("请输入岗位名称");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "请输入岗位名称", type: "warning" }));
 
     // 只填名称不填编码 -> 编码必填提示
     (wrapper.vm as unknown as Record<string, unknown>).form = {
@@ -146,7 +160,7 @@ describe("PostManage 岗位管理页面", () => {
     };
     await wrapper.vm.$nextTick();
     await wrapper.find(".dialog-ok").trigger("click");
-    expect(ep.msg.warning).toHaveBeenCalledWith("请输入岗位编码");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "请输入岗位编码", type: "warning" }));
   });
 
   it("saves a new post when form valid", async () => {
@@ -170,7 +184,7 @@ describe("PostManage 岗位管理页面", () => {
     expect(api.savePost).toHaveBeenCalledWith(
       expect.objectContaining({ sysPostName: "产品经理", sysPostCode: "PM" }),
     );
-    expect(ep.msg.success).toHaveBeenCalledWith("新增成功");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "新增成功", type: "success" }));
   });
 
   it("confirms deletion and calls delete api", async () => {
@@ -186,7 +200,7 @@ describe("PostManage 岗位管理页面", () => {
 
     expect(ep.box.confirm).toHaveBeenCalled();
     expect(api.deletePost).toHaveBeenCalledWith(1);
-    expect(ep.msg.success).toHaveBeenCalledWith("删除成功");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "删除成功", type: "success" }));
   });
 
   it("calls query api again when search button clicked", async () => {

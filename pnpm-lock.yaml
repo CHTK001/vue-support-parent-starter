@@ -1308,6 +1308,15 @@ importers:
       '@repo/languages':
         specifier: workspace:*
         version: link:../languages
+      '@repo/pages':
+        specifier: workspace:*
+        version: link:../pages
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../pinia
+      '@repo/theme':
+        specifier: workspace:*
+        version: link:../theme
       '@repo/utils':
         specifier: workspace:*
         version: link:../utils
