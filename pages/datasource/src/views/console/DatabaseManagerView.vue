@@ -154,7 +154,7 @@
                     class="dbm-tree-node dbm-table-node"
                     :class="{ active: activeTable === view.name && activeDatabase === db }"
                     @click="selectTable(view.name, db)"
-                    @contextmenu.prevent="onTableContextMenu($event, view.name, db)"
+                    @contextmenu.prevent="onTableContextMenu($event, view.name, db, true)"
                   >
                     <ReIcon
                       :name="expandedTables.has(db + '.' + view.name) ? 'ArrowDown' : 'ArrowRight'"
@@ -840,16 +840,20 @@
             <ReIcon name="Document" :size="14" />查看建表语句
           </div>
           <div class="dbm-context-divider" />
+          <!-- 视图实测（MariaDB，jdbc_acc）：RENAME TABLE 对视图**是成功的**，
+               所以这项照常露出；唯独「复制表」三条候选（CREATE TABLE LIKE / AS SELECT / SELECT INTO）
+               在视图上全部被内核拒绝，才对视图收起 -->
           <div class="dbm-context-item" @click="renameTable(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="EditPen" :size="14" />重命名表
           </div>
-          <div class="dbm-context-item" @click="duplicateTable(contextMenu.tableName, contextMenu.database)">
+          <div v-if="!contextMenu.isView" class="dbm-context-item" @click="duplicateTable(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制表
           </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.tableName)">
             <ReIcon name="CopyDocument" :size="14" />复制表名
           </div>
           <div class="dbm-context-divider" />
+          <!-- 导入数据对视图也保留：简单视图是可更新的（实测 INSERT 成功） -->
           <div class="dbm-context-item" @click="openImportDataFor(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="Upload" :size="14" />导入数据
           </div>
@@ -860,10 +864,14 @@
             <ReIcon name="Refresh" :size="14" />刷新
           </div>
           <div class="dbm-context-divider" />
-          <div class="dbm-context-item dbm-danger" @click="confirmTruncate(contextMenu.tableName, contextMenu.database)">
+          <!-- 实测：TRUNCATE 对视图必败（'x' doesn't exist），DROP TABLE 同理 -->
+          <div v-if="!contextMenu.isView" class="dbm-context-item dbm-danger" @click="confirmTruncate(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="Delete" :size="14" />清空表
           </div>
-          <div class="dbm-context-item dbm-danger" @click="deleteTable(contextMenu.tableName, contextMenu.database)">
+          <div v-if="contextMenu.isView" class="dbm-context-item dbm-danger" @click="deleteView(contextMenu.tableName, contextMenu.database)">
+            <ReIcon name="Delete" :size="14" />删除视图
+          </div>
+          <div v-else class="dbm-context-item dbm-danger" @click="deleteTable(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="Delete" :size="14" />删除表
           </div>
         </template>
@@ -1890,6 +1898,7 @@ import {
   fetchForeignKeys,
   executeDbSql,
   dropDbTable,
+  dropDbView,
   renameDbTable,
   createDbDatabase,
   dropDbDatabase,
@@ -2656,8 +2665,21 @@ function headerLabel(col: string): string {
   return headerMode.value === "comment" ? comment : `${col}（${comment}）`;
 }
 
+/**
+ * 当前打开的是不是视图。
+ *
+ * <p>视图只能 SELECT：行级的编辑 / 删除 / INSERT / UPDATE / TRUNCATE / DROP TABLE
+ * 打在它上面一律被内核拒绝。与其让用户逐个点出失败，不如按对象类型收菜单。</p>
+ */
+const activeIsView = computed(() => {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return false;
+  const db = tab.database || activeDatabase.value;
+  return (getTablesForDb(db).find(t => t.name === tab.tableName)?.type || "TABLE").toUpperCase() === "VIEW";
+});
+
 /** 网格右键菜单（Navicat 风格：行操作 + 复制为 SQL + 表操作，替代操作列；icon 传组件） */
-const gridMenuItems = [
+const GRID_MENU_TABLE = [
   { key: "edit", label: "编辑该行", icon: EditPen },
   { key: "duplicate", label: "复制该行（插入副本）", icon: CopyDocument },
   { key: "copy-insert", label: "复制为 INSERT 语句", icon: CopyDocument },
@@ -2668,6 +2690,40 @@ const gridMenuItems = [
   { key: "truncate", label: "清空表", icon: Delete, divided: true },
   { key: "drop", label: "删除表", icon: Delete },
 ];
+
+/** 视图只读性实测（MariaDB，jdbc_acc，2026-10-12）：简单视图可 UPDATE/DELETE/INSERT，
+ *  SELECT/SHOW CREATE/DESCRIBE 一律正常；真正会失败的是 TRUNCATE、DROP TABLE，
+ *  以及 duplicateTable 的三条 CREATE TABLE 候选。所以这里只收起那几项，
+ *  不把编辑/删除该行这类对简单视图能用的功能一起砍掉。 */
+const GRID_MENU_VIEW = [
+  { key: "edit", label: "编辑该行", icon: EditPen },
+  { key: "duplicate", label: "复制该行（插入副本）", icon: CopyDocument },
+  { key: "copy-insert", label: "复制为 INSERT 语句", icon: CopyDocument },
+  { key: "copy-update", label: "复制为 UPDATE 语句", icon: CopyDocument },
+  { key: "copy-select", label: "复制为 SELECT 语句", icon: CopyDocument },
+  { key: "copy-json", label: "复制该行 JSON", icon: CopyDocument },
+  { key: "delete", label: "删除该行", icon: Delete, divided: true },
+  { key: "refresh", label: "刷新", icon: RefreshRight, divided: true },
+  { key: "drop", label: "删除视图", icon: Delete },
+];
+
+const gridMenuItems = computed(() => (activeIsView.value ? GRID_MENU_VIEW : GRID_MENU_TABLE));
+
+/**
+ * 生成 SELECT 语句（视图行唯一的复制形态：视图不可写，复制出来只能是查它的语句）
+ * @param row 行数据
+ */
+function rowToSelect(row: Record<string, unknown>): string {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return "";
+  const cols = tableData.columns.length ? tableData.columns : Object.keys(row);
+  const where = cols
+    .filter(c => row[c] !== null && row[c] !== undefined && row[c] !== "")
+    .map(c => `\`${c}\` = ${sqlLiteral(row[c])}`)
+    .join(" AND ");
+  const proj = cols.map(c => `\`${c}\``).join(", ");
+  return where ? `SELECT ${proj} FROM \`${tab.tableName}\` WHERE ${where};` : `SELECT ${proj} FROM \`${tab.tableName}\`;`;
+}
 
 /**
  * 生成 INSERT 语句（Navicat 式复制为 SQL）
@@ -2731,10 +2787,11 @@ function onGridMenuSelect(item: { key: string }, ctx: { row: Record<string, unkn
     case "copy-insert": void copyText(rowToInsert(ctx.row)); break;
     case "copy-update": void copyText(rowToUpdate(ctx.row)); break;
     case "copy-json": void copyText(JSON.stringify(ctx.row, null, 2)); break;
+    case "copy-select": void copyText(rowToSelect(ctx.row)); break;
     case "delete": void deleteRow(ctx.row); break;
     case "refresh": refreshTableData(); break;
     case "truncate": if (tab) void confirmTruncate(tab.tableName, tab.database); break;
-    case "drop": if (tab?.tableName) void deleteTable(tab.tableName, tab.database); break;
+    case "drop": if (tab?.tableName) void (activeIsView.value ? deleteView(tab.tableName, tab.database) : deleteTable(tab.tableName, tab.database)); break;
     default: break;
   }
 }
@@ -5324,7 +5381,7 @@ async function runWithParams(): Promise<void> {
 }
 
 // 右键菜单（tableName=表节点 / database=库节点 / tabId=页签 / 全空=侧栏空白）
-const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "" });
+const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "", tabId: "", isView: false });
 
 // 新建表：表单与 SQL 拼装都在共享组件里，这里只保留「弹窗开关 + 目标库」
 const createTableVisible = ref(false);
@@ -6650,7 +6707,20 @@ function formatSql() {
   }
 }
 
-function onTableContextMenu(e: MouseEvent, tableName: string, database: string) {
+/**
+ * 表 / 视图节点右键。
+ *
+ * <p>视图节点与表节点共用这一个菜单，但两者能做的操作并不相同：视图不能
+ * RENAME、不能 TRUNCATE、不能 INSERT 进去，也不能被 DROP TABLE 删掉 ——
+ * 这些操作打在视图上只会被内核拒绝（「'x' is a view」之类），用户只会看到一个
+ * 必然失败的菜单项。所以这里记下 isView，由菜单决定露出哪几项。</p>
+ *
+ * @param e 右键事件
+ * @param tableName 对象名
+ * @param database 库名
+ * @param isView 是否为视图节点
+ */
+function onTableContextMenu(e: MouseEvent, tableName: string, database: string, isView = false) {
   e.stopPropagation();
   contextMenu.visible = true;
   contextMenu.x = e.clientX;
@@ -6658,6 +6728,7 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string) 
   contextMenu.tableName = tableName;
   contextMenu.database = database;
   contextMenu.tabId = "";
+  contextMenu.isView = isView;
   activeDatabase.value = database;
   void clampContextMenuPosition();
 }
@@ -6675,6 +6746,7 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
   contextMenu.tableName = "";
   contextMenu.database = database;
   contextMenu.tabId = "";
+  contextMenu.isView = false;
   activeDatabase.value = database;
   void clampContextMenuPosition();
 }
@@ -6686,6 +6758,7 @@ function onSidebarContextMenu(e: MouseEvent) {
   contextMenu.tableName = "";
   contextMenu.database = "";
   contextMenu.tabId = "";
+  contextMenu.isView = false;
   void clampContextMenuPosition();
 }
 
@@ -6702,6 +6775,7 @@ function onTabContextMenu(e: MouseEvent, tabId: string) {
   contextMenu.tableName = "";
   contextMenu.database = "";
   contextMenu.tabId = tabId;
+  contextMenu.isView = false;
   void clampContextMenuPosition();
 }
 
@@ -6731,10 +6805,12 @@ function closeContextMenu() {
 
 /** 右键菜单估算高度（项高 32 + 上下内边距 + 按节点类型的分割线） */
 function menuEstimatedHeight(): number {
-  // 项数必须与模板四套菜单实际条目同步：表 13 项/3 分割线、库 8 项/2 分割线、页签 3 项/1 分割线、空白 5 项/1 分割线。
+  // 项数必须与模板四套菜单实际条目同步：表 12 项/3 分割线、**视图 10 项/3 分割线**、
+  // 库 8 项/2 分割线、页签 3 项/1 分割线、空白 5 项/1 分割线。
   // 曾硬编码库 5 项（实际 8 项）→ 低估 96px → 靠近窗口底部时菜单溢出视口，
   // 末项「删除数据库」落在屏幕外永远点不到（普通点击超时、force 点到屏外无响应）
-  const count = contextMenu.tableName ? 13 : contextMenu.database ? 8 : contextMenu.tabId ? 3 : 5;
+  // 视图菜单比表少 2 项（复制表 / 清空表 对视图必败），沿用 12 会高估 64px。
+  const count = contextMenu.tableName ? (contextMenu.isView ? 10 : 12) : contextMenu.database ? 8 : contextMenu.tabId ? 3 : 5;
   const dividers = contextMenu.tableName ? 3 : contextMenu.database ? 2 : 1;
   return count * 32 + dividers * 11 + 10;
 }
@@ -6777,6 +6853,39 @@ function openCreateTable(database?: string) {
     return;
   }
   createTableVisible.value = true;
+}
+
+/**
+ * 删除视图。
+ *
+ * <p>与 {@link deleteTable} 分开：视图必须走 `DROP VIEW`，拿 `DROP TABLE` 去删
+ * 会被内核拒绝成 `'x' is a view`（这正是原先视图删不掉的根因）。</p>
+ *
+ * @param viewName 视图名
+ * @param database 库名
+ */
+async function deleteView(viewName: string, database?: string) {
+  const db = database || contextMenu.database || activeDatabase.value;
+  try {
+    await ElMessageBox.confirm(`确定要删除视图 ${db ? db + "." : ""}${viewName} 吗？此操作不可恢复！`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await dropDbView(viewName, currentDatasourceId.value, db);
+    message.success(`视图 ${viewName} 已删除`);
+    if (db) {
+      await loadTables(db);
+    } else {
+      await refreshTree();
+    }
+    tabs.value = tabs.value.filter(t => !(t.tableName === viewName && (t.database || "") === (db || "")));
+    if (!tabs.value.some(t => t.id === activeTab.value)) {
+      activeTab.value = tabs.value[0]?.id || "";
+    }
+  } catch (e) {
+    message.error(`删除视图失败: ${String((e as Error)?.message ?? e)}`);
+  }
 }
 
 async function deleteTable(tableName: string, database?: string) {

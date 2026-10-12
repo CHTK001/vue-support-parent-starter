@@ -497,6 +497,24 @@ export const dropDbTable = (tableName: string, datasourceId?: number, database?:
     .then(r => unwrap<boolean>(r));
 
 /**
+ * 删除视图
+ *
+ * <p>视图不能走 {@link dropDbTable}：后端那条是 `DROP TABLE`，MySQL 会拒绝成
+ * `'x' is a view`，界面上表现为「删除表」点在视图节点上必然失败。</p>
+ *
+ * @param viewName 视图名
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库名（可选）
+ * @returns 删除结果
+ */
+export const dropDbView = (viewName: string, datasourceId?: number, database?: string) =>
+  http()
+    .delete(`/ms/monitor/db/view/${encodeURIComponent(viewName)}`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<boolean>(r));
+
+/**
  * 新建数据库（后端按内核选择 DATABASE / SCHEMA 语法）
  * @param payload 库名、数据源与可选字符集
  * @returns 创建结果
@@ -715,12 +733,13 @@ export const fetchInfluxdbMeasurements = (datasourceId?: number, bucket?: string
   http().get("/ms/monitor/influxdb/measurements").query({ datasourceId, bucket }).then(r => unwrap<InfluxdbMeasurement[]>(r));
 
 /**
- * 执行 InfluxDB Flux 查询
- * @param flux Flux 查询语句
+ * 执行 InfluxDB 查询
+ * @param flux 查询语句：v2 为 Flux，v3 为 SQL
  * @param datasourceId 数据源 ID（可选）
+ * @param database v3 目标数据库（可选，空由服务端取第一个数据库；v2 忽略）
  */
-export const executeInfluxdbQuery = (flux: string, datasourceId?: number) =>
-  http().post("/ms/monitor/influxdb/query").data({ flux, datasourceId }).then(r => unwrap<InfluxdbQueryResult>(r));
+export const executeInfluxdbQuery = (flux: string, datasourceId?: number, database?: string) =>
+  http().post("/ms/monitor/influxdb/query").data({ flux, datasourceId, database }).then(r => unwrap<InfluxdbQueryResult>(r));
 
 // ---------- Neo4j 图数据库管理 ----------
 
