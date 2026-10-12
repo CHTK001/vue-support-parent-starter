@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@pages/remote": ["./src/index.ts"]
-    }
-  },
+  "//": "原先这里写了 baseUrl + paths: { @pages/remote: ./src/index.ts }，已删除。",
+  "//paths原因": "TypeScript 的 extends 对 compilerOptions 是整体替换而非深合并，子配置只要自己写了 paths，根 tsconfig 的 40 条映射就全部失效。实测后果是 src/main.ts 报 2 个 TS2307：找不到 @repo/ui/re-tabs 与 @repo/ui/re-alert，尽管文件都在 packages/ui/src 下。",
+  "//paths为何可删": "这条别名全仓无人使用 —— 扫过 apps / pages / packages / turbo 下全部 .ts 与 .vue，没有任何文件 import @pages/remote，各宿主 main.ts 也没有把这个页面接进去。删掉不丢任何解析能力，反而恢复根的整张映射表。",
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }
