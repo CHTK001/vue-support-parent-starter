@@ -141,6 +141,52 @@ function getBuiltinConfig(name: string): ToolDisplayConfig | null {
   return { icon, text: defaults.text, aggregate: defaults.aggregate };
 }
 
+/**
+ * 内置工具的动作名。
+ *
+ * 通用文案（common.tool.called = 「调用工具」）看不出这一步到底干了什么，
+ * 一屏工具调用里全是同一句话，等于没有信息。这里按工具名给出可辨认的动作名，
+ * 与 BUILTIN_TOOL_ICONS 同为前端兜底：后端 /v2/plugins/tool-displays 注册了文案时优先用后端的。
+ */
+const BUILTIN_TOOL_LABELS: Record<string, string> = {
+  // 文件读取
+  read_file: '读取文件', file_read: '读取文件', view_file: '读取文件', read: '读取文件',
+  // 文件写入 / 编辑
+  write_file: '写入', file_write: '写入', create_file: '新建文件',
+  edit_file: '编辑', edit: '编辑', apply_patch: '编辑',
+  // 检索
+  grep: '搜索文件内容', search_files: '搜索文件', search: '搜索',
+  glob: '按名匹配文件', list_files: '列出文件', list_directory: '列出目录', ls: '列出目录',
+  web_search: '联网搜索', fetch: '抓取网页',
+  // 终端
+  bash: '运行命令', shell: '运行命令', execute: '运行命令', run_command: '运行命令',
+  // 子智能体
+  agent_send: '派发子智能体', agent_spawn: '创建子智能体', agent_cancel: '中止子智能体',
+  // 其它
+  todo_write: '更新任务清单',
+};
+
+/**
+ * 取工具行要显示的动作名。
+ *
+ * 优先级：后端注册的插件文案 > 内置动作名 > 通用兜底文案。
+ * 执行中/失败态由调用方按行状态追加，不在这里体现。
+ */
+export function getToolActionLabel(tool: ToolCall): string {
+  const name = resolveToolName(tool);
+  const custom = pluginToolDisplays.value[name];
+  if (custom?.text?.completed) return custom.text.completed;
+  const builtin = BUILTIN_TOOL_LABELS[name];
+  if (builtin) return builtin;
+  return getToolConfig(tool).text.completed;
+}
+
+/** 工具是否为终端/命令类：这类行的失败摘要在会话里是醒目的红色 */
+export function isCommandTool(tool: ToolCall): boolean {
+  const name = resolveToolName(tool);
+  return name === 'bash' || name === 'shell' || name === 'execute' || name === 'run_command';
+}
+
 export function getToolConfig(tool: ToolCall): ToolDisplayConfig {
   const name = resolveToolName(tool);
   const custom = pluginToolDisplays.value[name];

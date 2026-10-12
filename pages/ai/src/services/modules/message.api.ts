@@ -3,6 +3,7 @@ import type { ApiContext } from "./api-context";
 // 以该定义为契约，若此处另引 @/types/message 的另一份定义会与之不兼容
 import type { Message } from "@/utils/messageUtils";
 import type { PaginatedResponse } from "@/types/common";
+import type { SessionTrace } from "@/components/chat/trace/traceTypes";
 
 export interface MessageApi {
   fetchSessionMessages(
@@ -30,6 +31,12 @@ export interface MessageApi {
   }>;
   copyMessageFile(messageId: string, fileId: string): Promise<any>;
   webSearch(messageId: string): Promise<any>;
+  /**
+   * 拉取会话的执行轨迹（点事件 + 可配对区间），供会话顶部「轨迹」页签画甘特图。
+   *
+   * 后端映射：GET /v2/sessions/{sessionId}/traces
+   */
+  fetchSessionTraces(sessionId: string): Promise<{ items: SessionTrace[]; total: number }>;
 }
 
 export const messageApi: MessageApi = {
@@ -53,6 +60,13 @@ export const messageApi: MessageApi = {
       : `/sessions/${sessionId}/messages`;
 
     return await this._request(url);
+  },
+
+  async fetchSessionTraces(this: ApiContext, sessionId: string) {
+    return (await this._request(`/sessions/${sessionId}/traces`)) as {
+      items: SessionTrace[];
+      total: number;
+    };
   },
 
   async importMessages(this: ApiContext, sessionId: string, messages: any[]) {
