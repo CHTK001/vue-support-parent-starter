@@ -10,10 +10,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
-const ep = vi.hoisted(() => ({
-  msg: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  box: { confirm: vi.fn().mockResolvedValue("confirm") },
-}));
+const ep = vi.hoisted(() => {
+  // @repo/core 的 msg.ts 用的是 Element Plus 的**函数式** API：
+  //   ElMessage.closeAll();
+  //   ElMessage({ message, plain, duration, type, ... });
+  // 所以替身必须「本身可调用、且带 closeAll」，不能是一个按类型分方法的对象。
+  // 之前给的是 { success, error, warning, info }，页面里 message.success(...) 一进去
+  // 就抛 TypeError（既没有 closeAll，也不可调用），断言里的 spy 自然一次都没被调用。
+  const msg = vi.fn();
+  msg.closeAll = vi.fn();
+  const notify = vi.fn();
+  notify.closeAll = vi.fn();
+  return {
+    msg,
+    notify,
+    box: { confirm: vi.fn().mockResolvedValue("confirm"), close: vi.fn() },
+  };
+});
 
 const api = vi.hoisted(() => ({
   pageForSetting: vi.fn(),
@@ -29,7 +42,7 @@ const api = vi.hoisted(() => ({
   exportSetting: vi.fn(),
 }));
 
-vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box }));
+vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box, ElNotification: ep.notify }));
 vi.mock("@element-plus/icons-vue", () => {
   const stub = { name: "IconStub", template: "<i />" };
   return new Proxy({} as Record<string, unknown>, { get: () => stub, has: () => true });
@@ -163,7 +176,7 @@ describe("SettingManage 系统设置页面（扩展）", () => {
 
     expect(ep.box.confirm).toHaveBeenCalled();
     expect(api.rollbackSettingHistorySingle).toHaveBeenCalledWith(7);
-    expect(ep.msg.success).toHaveBeenCalledWith("回滚成功");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "回滚成功", type: "success" }));
   });
 
   it("masks sensitive value and calls decrypt on reveal", async () => {

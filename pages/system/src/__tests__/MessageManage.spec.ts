@@ -10,10 +10,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
-const ep = vi.hoisted(() => ({
-  msg: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  box: { confirm: vi.fn().mockResolvedValue("confirm") },
-}));
+const ep = vi.hoisted(() => {
+  // @repo/core 的 msg.ts 用的是 Element Plus 的**函数式** API：
+  //   ElMessage.closeAll();
+  //   ElMessage({ message, plain, duration, type, ... });
+  // 所以替身必须「本身可调用、且带 closeAll」，不能是一个按类型分方法的对象。
+  // 之前给的是 { success, error, warning, info }，页面里 message.warning(...) 一进去
+  // 就抛 TypeError（既没有 closeAll，也不可调用），断言里的 spy 自然一次都没被调用。
+  const msg = vi.fn();
+  msg.closeAll = vi.fn();
+  const notify = vi.fn();
+  notify.closeAll = vi.fn();
+  return {
+    msg,
+    notify,
+    box: { confirm: vi.fn().mockResolvedValue("confirm"), close: vi.fn() },
+  };
+});
 
 const api = vi.hoisted(() => ({
   pageForMessageAdmin: vi.fn(),
@@ -57,7 +70,7 @@ const ReTabStub = {
   `,
 };
 
-vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box }));
+vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box, ElNotification: ep.notify }));
 vi.mock("@element-plus/icons-vue", () => {
   const stub = { name: "IconStub", template: "<i />" };
   return new Proxy({} as Record<string, unknown>, { get: () => stub });
@@ -212,6 +225,6 @@ describe("MessageManage 消息管理页面", () => {
 
     expect(ep.box.confirm).toHaveBeenCalled();
     expect(api.recallMessage).toHaveBeenCalledWith(1);
-    expect(ep.msg.success).toHaveBeenCalledWith("已撤回");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "已撤回", type: "success" }));
   });
 });

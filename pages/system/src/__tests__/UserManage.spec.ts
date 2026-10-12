@@ -10,10 +10,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
-const ep = vi.hoisted(() => ({
-  msg: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  box: { confirm: vi.fn().mockResolvedValue("confirm"), prompt: vi.fn().mockResolvedValue({ action: "confirm" }) },
-}));
+const ep = vi.hoisted(() => {
+  // @repo/core 的 msg.ts 用的是 Element Plus 的**函数式** API：
+  //   ElMessage.closeAll();
+  //   ElMessage({ message, plain, duration, type, ... });
+  // 所以替身必须「本身可调用、且带 closeAll」，不能是一个按类型分方法的对象。
+  // 之前给的是 { success, error, warning, info }，页面里 message.success(...) 一进去
+  // 就抛 TypeError（既没有 closeAll，也不可调用），断言里的 spy 自然一次都没被调用。
+  const msg = vi.fn();
+  msg.closeAll = vi.fn();
+  const notify = vi.fn();
+  notify.closeAll = vi.fn();
+  return {
+    msg,
+    notify,
+    box: {
+      confirm: vi.fn().mockResolvedValue("confirm"),
+      prompt: vi.fn().mockResolvedValue({ action: "confirm" }),
+      close: vi.fn(),
+    },
+  };
+});
 
 const api = vi.hoisted(() => ({
   pageForUser: vi.fn(),
@@ -33,7 +50,7 @@ const auth = vi.hoisted(() => ({
   getLoginUserInfo: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box }));
+vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box, ElNotification: ep.notify }));
 vi.mock("@element-plus/icons-vue", () => {
   const stub = { name: "IconStub", template: "<i />" };
   return new Proxy({} as Record<string, unknown>, { get: () => stub, has: () => true });
@@ -45,6 +62,27 @@ vi.mock("@repo/pinia/modules/user", () => ({
 vi.mock("@repo/pinia/modules/auth", () => ({
   default: () => auth,
 }));
+
+/**
+ * 把 @repo/ui/re-dialog 这个模块整体换成桩。
+ *
+ * 为什么必须这样做、而不是靠 mountPage 里的 `stubs: { ReDialog: ReDialogStub }`：
+ * UserManage.vue 第 32 行是 `import ReDialog from "@repo/ui/re-dialog"`，
+ * 在 <script setup> 里**局部引入**；而 VTU 的 global.stubs 是按「注册名」匹配的，
+ * 局部引入的组件名对不上，ReDialogStub 根本没生效。
+ * 于是渲染的是真的 ReDialog —— 它内部依赖 el-dialog，而本文件的
+ * vi.mock("element-plus") 只给了 ElMessage / ElMessageBox / ElNotification，
+ * ElDialog 是 undefined，组件直接渲染成空注释，
+ * 断言 wrapper.find(".re-dialog-stub") 永远返回 false，
+ * 而 dialogVisible 确实已经是 true（直接调 handleEdit、点「编辑」下拉项都验证过）。
+ *
+ * 同一文件里详情抽屉那个用例能过，正是因为 ReDrawer 走的是全局注册，桩生效了。
+ * 所以这里是「局部引入没被 stub 覆盖」，不是页面逻辑问题。
+ */
+vi.mock("@repo/ui/re-dialog", async () => {
+  const { ReDialogStub } = await import("./helpers");
+  return { default: ReDialogStub };
+});
 
 import UserManage from "../views/UserManage.vue";
 import {
@@ -122,8 +160,8 @@ describe("UserManage 用户管理页面（扩展）", () => {
     await vm.handleBatchDeleteRows(rows as unknown as Record<string, unknown>[]);
 
     expect(api.deleteUsers).toHaveBeenCalledWith([2]);
-    expect(ep.msg.success).toHaveBeenCalledWith("已删除 1 个用户");
-    expect(ep.msg.warning).toHaveBeenCalledWith("已自动跳过当前登录账号");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "已删除 1 个用户", type: "success" }));
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "已自动跳过当前登录账号", type: "warning" }));
   });
 
   it("rejects batch delete when only the current account is selected", async () => {
@@ -136,7 +174,7 @@ describe("UserManage 用户管理页面（扩展）", () => {
 
     await expect(vm.handleBatchDeleteRows([rows[0]])).rejects.toThrow("no-valid-delete-target");
     expect(api.deleteUsers).not.toHaveBeenCalled();
-    expect(ep.msg.warning).toHaveBeenCalledWith("不允许删除当前登录账号");
+    expect(ep.msg).toHaveBeenCalledWith(expect.objectContaining({ message: "不允许删除当前登录账号", type: "warning" }));
   });
 
   it("opens detail drawer with basic & security sections", async () => {

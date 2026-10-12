@@ -10,10 +10,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
-const ep = vi.hoisted(() => ({
-  msg: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  box: { confirm: vi.fn().mockResolvedValue("confirm") },
-}));
+const ep = vi.hoisted(() => {
+  // @repo/core 的 msg.ts 用的是 Element Plus 的**函数式** API：
+  //   ElMessage.closeAll();
+  //   ElMessage({ message, plain, duration, type, ... });
+  // 替身必须「本身可调用、且带 closeAll」。早期版本给的是按类型分方法的对象，
+  // 页面里任何一句 message.xxx(...) 都会当场 TypeError —— 本文件目前没断言到它，
+  // 所以一直没暴露，但只要有人加一条断言就会踩坑。
+  const msg = vi.fn();
+  msg.closeAll = vi.fn();
+  const notify = vi.fn();
+  notify.closeAll = vi.fn();
+  return {
+    msg,
+    notify,
+    box: { confirm: vi.fn().mockResolvedValue("confirm"), close: vi.fn() },
+  };
+});
 
 const api = vi.hoisted(() => ({
   pageForRole: vi.fn(),
@@ -30,6 +43,7 @@ const api = vi.hoisted(() => ({
 vi.mock("element-plus", () => ({
   ElMessage: ep.msg,
   ElMessageBox: ep.box,
+  ElNotification: ep.notify,
   ElTree: {},
 }));
 vi.mock("@element-plus/icons-vue", () => {
