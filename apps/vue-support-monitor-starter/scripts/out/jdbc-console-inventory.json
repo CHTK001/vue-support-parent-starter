@@ -1,0 +1,1039 @@
+{
+  "app": "http://127.0.0.1:8860",
+  "ds": 20,
+  "phases": {
+    "default": {
+      "total": 41,
+      "iconOnly": 2,
+      "items": [
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "刷新连接树",
+          "title": "",
+          "testid": "dsm-btn-refresh",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "i",
+          "cls": "el-icon el-select__caret el-select__icon",
+          "text": "",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": true
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-root",
+          "text": "__jdbc-acceptance__",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node active",
+          "text": "jdbc_acc",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmd0g5321_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmd0g5321_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmd0g5321_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_p",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmh5c5774_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmh5c5774_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmh5c5774_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmhuc0501_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmhuc0501_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmhuc0501_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmo0o4583_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmo0o4583_p",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmo0o4583_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmpoc6252_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmpoc6252_p",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmpoc6252_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_items",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_orders",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_users",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erca739_orders",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erca739_users",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwcxw4797",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwk4g0331",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwlwk9328",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwr948591",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "qbr401756233",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "tx895552",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "存储过程 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "函数 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "触发器 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "事件 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_view VIEW",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node",
+          "text": "ngxacc",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "i",
+          "cls": "el-icon dbm-empty-icon",
+          "text": "",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": true
+        }
+      ]
+    },
+    "ctxBlank": {
+      "count": 5,
+      "items": [
+        "新建数据库",
+        "新建表",
+        "新建查询",
+        "导入数据",
+        "刷新"
+      ]
+    },
+    "ctxDb": {
+      "count": 9,
+      "items": [
+        "新建表",
+        "导入数据到本库",
+        "新建查询",
+        "ER 图（表关系）",
+        "结构同步（与目标库比较）",
+        "导出数据库文档",
+        "复制库名",
+        "刷新",
+        "删除数据库"
+      ]
+    },
+    "ctxTable": {
+      "count": 12,
+      "items": [
+        "打开表",
+        "设计表",
+        "查询数据",
+        "查看建表语句",
+        "重命名表",
+        "复制表",
+        "复制表名",
+        "导入数据",
+        "导出数据",
+        "刷新",
+        "清空表",
+        "删除表"
+      ]
+    },
+    "tableActive": {
+      "total": 56,
+      "iconOnly": 1,
+      "items": [
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "刷新连接树",
+          "title": "",
+          "testid": "dsm-btn-refresh",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "label",
+          "cls": "dbm-switch",
+          "text": "是 否 统计总数",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "列显示设置（显示 / 固定列）",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "恢复默认设置（视图偏好与各表筛选条件）",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "i",
+          "cls": "el-icon el-select__caret el-select__icon",
+          "text": "",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": true
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-root",
+          "text": "__jdbc-acceptance__",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node",
+          "text": "jdbc_acc",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node active",
+          "text": "cmd0g5321_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmd0g5321_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmd0g5321_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_p",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmdpg8444_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmh5c5774_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmh5c5774_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmh5c5774_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmhuc0501_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmhuc0501_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmhuc0501_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmo0o4583_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmo0o4583_p",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmo0o4583_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmpoc6252_m",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmpoc6252_p",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "cmpoc6252_t",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_items",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_orders",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_users",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erca739_orders",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erca739_users",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwcxw4797",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwk4g0331",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwlwk9328",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "iwr948591",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "qbr401756233",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "tx895552",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "存储过程 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "函数 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "触发器 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-tree-children",
+          "text": "事件 0",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node dbm-table-node",
+          "text": "erab097_view VIEW",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tree-node",
+          "text": "ngxacc",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-tabs",
+          "text": "jdbc_acc.cmd0g5321_d",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-subtabs",
+          "text": "字段 注释 字段+注释",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "dbm-subtabs",
+          "text": "数据 数据+注释",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--primary rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "新增行",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "导出数据",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "刷新数据",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--danger rs-btn--size-default rs-btn--plain el-",
+          "text": "",
+          "aria": "清空表",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "div",
+          "cls": "el-select__wrapper el-tooltip__trigger el-tooltip__trigger",
+          "text": "50条/页",
+          "aria": "",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "btn-prev",
+          "text": "",
+          "aria": "上一页",
+          "title": "",
+          "testid": "",
+          "disabled": true,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "btn-next is-last",
+          "text": "",
+          "aria": "下一页",
+          "title": "",
+          "testid": "",
+          "disabled": true,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "展开 WHERE 过滤",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "列设置",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        },
+        {
+          "tag": "button",
+          "cls": "rs-btn rs-btn--default rs-btn--size-default el-tooltip__trig",
+          "text": "",
+          "aria": "表格设置",
+          "title": "",
+          "testid": "",
+          "disabled": false,
+          "iconOnly": false
+        }
+      ],
+      "toolbarButtons": 10,
+      "heroButtons": 6
+    },
+    "ctxTab": {
+      "count": 3,
+      "items": [
+        "关闭当前",
+        "关闭其他",
+        "关闭全部"
+      ]
+    }
+  }
+}
