@@ -608,7 +608,11 @@ function openLiveStream() {
    * 空对象即「全部时间」，与 REST 侧 {@code timeParams} 的口径完全一致。
    */
   liveEs = http()
-    .get('/v2/usage/live/stream', { params: { ...timeParams.value } })
+    // 参数走链式的 .query()，sse() 会把 config.params 拼进最终 URL。
+    // get() 只收一个 url 形参，写成 .get(url, { params }) 的第二个实参会被直接丢掉
+    // （TS2554），运行时就是「筛选条件没生效」。
+    .get('/v2/usage/live/stream')
+    .query({ ...timeParams.value })
     .sse<unknown>({
       onOpen: () => {
         liveState.value = 'live';

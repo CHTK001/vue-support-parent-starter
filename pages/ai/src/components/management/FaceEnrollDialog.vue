@@ -320,7 +320,9 @@ async function assertSingleFace(dataUrl: string): Promise<boolean> {
   try {
     const blob = await (await fetch(dataUrl)).blob()
     const res = await apiService.detectFace(blob, 'preview.png')
-    const n = Number(res?.count ?? res?.faceCount ?? 0)
+    // 只读 count：detectFace 的实现已经把返回值收敛成 { count, faces } 两个字段，
+    // faceCount 从来不存在，属于写上去就没生效过的死分支。
+    const n = Number(res?.count ?? 0)
     faceCount.value = Number.isFinite(n) ? n : 0
     if (faceCount.value > 1) {
       message.error(
