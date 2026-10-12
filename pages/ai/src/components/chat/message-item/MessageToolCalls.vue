@@ -33,25 +33,40 @@
               <ChevronRight12Regular />
             </el-icon>
           </span>
-          <div class="ml-1.5 min-w-0 flex-1 flex items-center text-gray-400 dark:text-gray-500 overflow-hidden">
-            <span class="shrink-0"
-              :class="tool.outcome === 'aborted' ? 'text-gray-400 dark:text-gray-500 font-medium' : 'text-gray-700 dark:text-gray-300 font-medium'">{{
-                getActionText(tool, toolIndex) }}</span>
-            <!-- 单工具耗时徽标：后端仅工具响应完成后 metadata 里才有 duration，缺省不渲染 -->
-            <span v-if="rowInfo(toolIndex).durationMs" class="tool-duration shrink-0">{{ formatToolDuration(rowInfo(toolIndex).durationMs) }}</span>
-            <!-- 文件路径外链：write/edit 类工具产出可寻址文件时出现，点击在工作区预览 -->
-            <button v-if="rowInfo(toolIndex).filePath" type="button" class="tool-row__ext shrink-0"
+          <div class="ml-1.5 min-w-0 flex-1 flex items-baseline overflow-hidden">
+            <!-- 动作名：按工具给出可辨认的动词（编辑 / 写入 / 搜索文件内容 / 运行命令 …） -->
+            <span class="tool-row__action shrink-0"
+              :class="rowInfo(toolIndex).failed ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'">{{
+                getToolActionLabel(tool) }}</span>
+            <span v-if="tool.outcome === 'aborted'" class="shrink-0 text-gray-400">{{
+              `（${t('chat.toolCalls.aborted')}）` }}</span>
+
+            <!--
+              目标摘要：文件路径 / 命令 / 检索式，用「·」与动作名分隔。
+              命令类失败时整段标红——一屏工具行里只有失败那几行刺眼，才看得出问题在哪。
+            -->
+            <span v-if="rowInfo(toolIndex).target" class="tool-row__target"
+              :class="rowInfo(toolIndex).isCommand && rowInfo(toolIndex).failed
+                ? 'tool-row__target--failed'
+                : 'text-gray-500 dark:text-gray-400'"
+              :title="rowInfo(toolIndex).target">· {{ rowInfo(toolIndex).target }}</span>
+
+            <!-- 文件路径可点开在工作区预览 -->
+            <button v-if="rowInfo(toolIndex).targetIsPath" type="button" class="tool-row__ext shrink-0"
               :title="t('chat.toolCalls.openFileInWorkspace')"
               :aria-label="t('chat.toolCalls.openFileInWorkspace')"
               @click.stop="previewFile(rowInfo(toolIndex).filePath)">
               <el-icon size="12"><Open16Regular /></el-icon>
             </button>
+
             <!-- write/edit 增删行数：与文件变更条同一 diffLines 口径，绿色加 / 红色减 -->
             <span v-if="rowInfo(toolIndex).diff.added || rowInfo(toolIndex).diff.removed" class="tool-diff shrink-0">
               <span v-if="rowInfo(toolIndex).diff.added" class="tool-diff__added">+{{ rowInfo(toolIndex).diff.added }}</span>
               <span v-if="rowInfo(toolIndex).diff.removed" class="tool-diff__removed">−{{ rowInfo(toolIndex).diff.removed }}</span>
             </span>
-            <span v-if="getArgsText(tool)" class="text-sm ml-2 truncate">{{ getArgsText(tool) }}</span>
+
+            <!-- 单工具耗时徽标：后端仅工具响应完成后 metadata 里才有 duration，缺省不渲染 -->
+            <span v-if="rowInfo(toolIndex).durationMs" class="tool-duration shrink-0">{{ formatToolDuration(rowInfo(toolIndex).durationMs) }}</span>
           </div>
         </div>
 
@@ -128,8 +143,8 @@ import LDialog from '@/components/ui/LDialog.vue';
 import ToolCallDetail from './ToolCallDetail.vue';
 import {
   type ToolCall,
-  resolveToolName, getToolConfig, getToolIcon,
-  getArgsText,
+  resolveToolName, getToolIcon,
+  getArgsText, getToolActionLabel, isCommandTool,
 } from '@/utils/toolDisplay';
 import { diffLines } from 'diff';
 import { previewFile } from '@/utils/workspacePreview';
@@ -193,26 +208,56 @@ interface ToolRowInfo {
   filePath: string;
   diff: { added: number; removed: number };
   durationMs: number;
+  /** 动作名后的目标摘要：文件路径 / 命令 / 检索式 */
+  target: string;
+  /** 目标是否落在 `target` 这个字段里（决定能不能点开文件预览） */
+  targetIsPath: boolean;
+  /** 命令类工具：失败时摘要标红 */
+  isCommand: boolean;
+  /** 该行是否失败（含被拒/中止） */
+  failed: boolean;
+}
+
+/** 从参数里挑一个最有信息量的字段当摘要，按工具语义优先级取 */
+function pickTarget(args: Record<string, any> | null, filePath: string): { text: string; isPath: boolean } {
+  if (!args) return { text: '', isPath: false };
+  if (filePath) return { text: filePath, isPath: true };
+  const cmd = args.command ?? args.cmd ?? args.script;
+  if (cmd) return { text: String(cmd), isPath: false };
+  const pattern = args.pattern ?? args.regex ?? args.query ?? args.q;
+  if (pattern) return { text: String(pattern), isPath: false };
+  const url = args.url ?? args.uri;
+  if (url) return { text: String(url), isPath: false };
+  return { text: '', isPath: false };
 }
 
 /**
- * 按行预计算展示数据。diffStatFor/filePathFor 都要解析 arguments + 跑 diffLines，
+ * 按行预计算展示数据。diffStatFor/pickTarget 都要解析 arguments（file 类还要跑 diffLines），
  * 模板里直接调会重复 5 次/行；这里随 toolCalls 变化算一次，模板只做读取。
  */
 const rowInfos = computed<ToolRowInfo[]>(() =>
   (props.toolCalls || []).map((tool) => {
     const args = parseArgs(tool.arguments);
     const filePath = args ? String(args.file_path || args.path || '') : '';
+    const target = pickTarget(args, filePath);
     return {
       filePath,
       diff: diffStatFor(tool),
       durationMs: durationFor(tool),
+      target: target.text || getArgsText(tool),
+      targetIsPath: target.isPath,
+      isCommand: isCommandTool(tool),
+      failed: tool.outcome === 'error' || tool.outcome === 'rejected' || tool.outcome === 'aborted',
     };
   }),
 );
 
-const rowInfo = (index: number): ToolRowInfo =>
-  rowInfos.value[index] || { filePath: '', diff: { added: 0, removed: 0 }, durationMs: 0 };
+const EMPTY_ROW: ToolRowInfo = {
+  filePath: '', diff: { added: 0, removed: 0 }, durationMs: 0,
+  target: '', targetIsPath: false, isCommand: false, failed: false,
+};
+
+const rowInfo = (index: number): ToolRowInfo => rowInfos.value[index] || EMPTY_ROW;
 
 const props = defineProps<{
   toolCalls: ToolCall[];
@@ -263,15 +308,6 @@ const isToolExecuting = (tool: ToolCall, index: number): boolean => {
 
 // ── 展示文案 ──
 
-const getActionText = (tool: ToolCall, toolIndex: number): string => {
-  const config = getToolConfig(tool);
-  const executing = isToolExecuting(tool, toolIndex);
-  if (tool.outcome === 'aborted') {
-    return `${config.text.completed}（${t('chat.toolCalls.aborted')}）`;
-  }
-  return executing ? config.text.executing : config.text.completed;
-};
-
 const getToolDisplayName = (tool: ToolCall): string => {
   const name = resolveToolName(tool);
   if (tool.name === 'tool_use' && name !== tool.name) {
@@ -315,6 +351,31 @@ const closeDialog = () => {
 /* ── 行首字形：默认工具图标 / 悬停「>」/ 展开「v」 ── */
 .tool-row {
   user-select: none;
+}
+
+/*
+  动作名与目标摘要的排版：
+  动作名（编辑 / 运行命令…）定宽不压缩，摘要吃掉剩余空间并在过长时省略，
+  这样一列工具行的动词能对齐，扫一眼就知道每行做了哪类事。
+*/
+.tool-row__action {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.tool-row__target {
+  margin-left: 6px;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-row__target--failed {
+  color: #f56c6c;
+  font-weight: 500;
 }
 
 /* 单工具耗时徽标（"0.4s"）：比名称更淡一档，等宽数字避免宽度跳动 */
