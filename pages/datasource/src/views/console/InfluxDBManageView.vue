@@ -9,8 +9,8 @@
       <div class="dsm-toolbar-right">
         <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" @click="testConnection" />
         <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" @click="refresh" />
-        <ReButton layout="square" type="primary" tip="Flux 查询" icon="Search" data-testid="dsm-btn-query" @click="openQuery" />
-        <ReButton layout="square" type="primary" tip="新建 Bucket" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket" />
+        <ReButton layout="square" type="primary" :tip="isV3 ? 'SQL 查询' : 'Flux 查询'" icon="Search" data-testid="dsm-btn-query" @click="openQuery" />
+        <ReButton layout="square" type="primary" :tip="isV3 ? '新建数据库' : '新建 Bucket'" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket" />
         <ReButton layout="square" tip="写入数据" icon="EditPen" data-testid="dsm-btn-write" :disabled="!source" :loading="writeSaving" @click="openWritePoint" />
       </div>
     </div>
@@ -31,7 +31,7 @@
             <div class="dsm-tree-node" @click="toggleNode('buckets')">
               <ReIcon :name="expandedNodes.has('buckets') ? 'ArrowDown' : 'ArrowRight'" size="12" />
               <ReIcon name="FolderOpened" size="14" class="dsm-tree-icon" />
-              <span class="dsm-tree-label">存储桶 (Buckets)</span>
+              <span class="dsm-tree-label">{{ isV3 ? "数据库 (Databases)" : "存储桶 (Buckets)" }}</span>
               <span class="dsm-tree-count">{{ buckets.length }}</span>
             </div>
             <div v-if="expandedNodes.has('buckets')" class="dsm-tree-children">
@@ -103,11 +103,11 @@
             <span class="dsm-info-label">连接地址</span>
             <span class="dsm-info-value mono">{{ source ? `${source.host}:${source.port || 8086}` : "—" }}</span>
           </div>
-          <div class="dsm-info-row">
+          <div class="dsm-info-row" v-if="!isV3">
             <span class="dsm-info-label">组织 (Org)</span>
             <span class="dsm-info-value mono">{{ orgInfo.orgName || source?.username || "自动探测" }}</span>
           </div>
-          <div class="dsm-info-row">
+          <div class="dsm-info-row" v-if="!isV3">
             <span class="dsm-info-label">Org ID</span>
             <span class="dsm-info-value mono">{{ orgInfo.orgId || "—" }}</span>
           </div>
@@ -122,14 +122,14 @@
 
         <!-- 存储桶列表 -->
         <div v-if="activeWorkspaceTab === 'overview'" class="dsm-section">
-          <div class="dsm-section-title">存储桶列表</div>
+          <div class="dsm-section-title">{{ isV3 ? "数据库列表" : "存储桶列表" }}</div>
           <ReTable
             :data="buckets"
             :columns="bucketColumns"
             :loading="loading"
             stripe
             border
-            height="300px"
+            :layout-table="{ height: '300px' }"
             :context-menu="bucketTableMenu"
             @context-menu-select="onBucketTableMenuSelect"
           >
@@ -149,7 +149,7 @@
             <ReButton text @click="loadMeasurements">
               <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
             </ReButton>
-            <span class="dsm-section-hint">点击行按该度量生成 Flux 查询</span>
+            <span class="dsm-section-hint">点击行按该度量生成{{ isV3 ? " SQL" : " Flux" }}查询</span>
           </div>
           <ReTable
             :data="measurements"
@@ -157,7 +157,7 @@
             :loading="loading"
             stripe
             border
-            height="220px"
+            :layout-table="{ height: '220px' }"
             @row-click="onMeasurementRowClick"
           />
         </div>
@@ -176,14 +176,14 @@
             :loading="dataLoading"
             stripe
             border
-            height="250px"
+            :layout-table="{ height: '250px' }"
           />
         </div>
 
         <!-- 空状态 -->
         <div v-if="activeWorkspaceTab === 'overview' && !activeBucket && buckets.length === 0" class="dsm-empty">
           <ReIcon name="Collection" size="48" class="dsm-empty-icon" />
-          <p>{{ gap ? "未读取到真实存储桶" : "暂无存储桶，点击「刷新」重新加载" }}</p>
+          <p>{{ gap ? (isV3 ? "未读取到真实数据库" : "未读取到真实存储桶") : (isV3 ? "暂无数据库，点击「刷新」重新加载" : "暂无存储桶，点击「刷新」重新加载") }}</p>
         </div>
 
         <!-- Flux 查询页签内容（对齐 jdbc 查询页：方钮工具栏 + 编辑器 + 结果表；多开、切换保留） -->
@@ -211,12 +211,14 @@
               @click="t.flux = ''"
             />
             <span class="dsm-spacer" />
-            <span class="dsm-query-hint">桶/测量名与 Flux 函数输入即提示</span>
+            <span class="dsm-query-hint">{{ isV3 ? "表/列名与 SQL 关键字输入即提示" : "桶/测量名与 Flux 函数输入即提示" }}</span>
           </div>
           <DbSqlEditor
             v-model="t.flux"
-            language="flux"
-            :keywords="fluxKeywords"
+            :language="isV3 ? 'sql' : 'flux'"
+            :keywords="isV3 ? [] : fluxKeywords"
+            :tables="isV3 ? sqlTables : undefined"
+            :column-resolver="isV3 ? resolveSqlColumns : undefined"
             data-testid="dsm-flux-editor"
             @execute="executeQuery(t)"
           />
@@ -234,7 +236,7 @@
               :columns="t.result.columns"
               stripe
               border
-              height="360px"
+              :layout-table="{ height: '360px' }"
             />
             <ReEmpty v-else description="执行查询后显示结果" />
           </div>
@@ -243,9 +245,9 @@
     </div>
 
     <!-- 新建 / 编辑 Bucket 弹窗 -->
-    <ReDialog v-model="bucketDialogVisible" :title="bucketForm.id ? '编辑保留期' : '新建 Bucket'" width="460px">
+    <ReDialog v-model="bucketDialogVisible" :title="bucketForm.id ? '编辑保留期' : (isV3 ? '新建数据库' : '新建 Bucket')" width="460px">
       <ReForm label-width="110px">
-        <ReFormItem label="Bucket 名称" required>
+        <ReFormItem :label="isV3 ? '数据库名称' : 'Bucket 名称'" required>
           <ReInput v-model="bucketForm.name" :disabled="!!bucketForm.id" placeholder="如 telemetry" />
         </ReFormItem>
         <ReFormItem label="保留时长(小时)">
@@ -287,7 +289,7 @@
         :loading="browserLoading"
         stripe
         border
-        height="360px"
+        :layout-table="{ height: '360px' }"
       />
       <template #footer>
         <ReButton @click="browserVisible = false">关闭</ReButton>
@@ -297,8 +299,8 @@
     <!-- 写入数据弹窗 -->
     <ReDialog v-model="writeVisible" title="写入数据点" width="560px">
       <ReForm label-width="110px">
-        <ReFormItem label="Bucket" required>
-          <ReInput v-model="writeForm.bucket" :disabled="!!activeBucket" placeholder="Bucket 名" />
+        <ReFormItem :label="isV3 ? '数据库' : 'Bucket'" required>
+          <ReInput v-model="writeForm.bucket" :disabled="!!activeBucket" :placeholder="isV3 ? '数据库名' : 'Bucket 名'" />
         </ReFormItem>
         <ReFormItem label="Measurement" required>
           <ReInput v-model="writeForm.measurement" placeholder="如 cpu" />
@@ -396,6 +398,8 @@ const loading = ref(false);
 const dataLoading = ref(false);
 const testing = ref(false);
 const influxVersion = ref("");
+/** 是否 InfluxDB 3.x（v3 为 Rust 重写：SQL/InfluxQL + 数据库模型，已移除 Flux 与组织） */
+const isV3 = computed(() => influxVersion.value.startsWith("3"));
 const buckets = ref<InfluxdbBucket[]>([]);
 
 /** 桶/测量行右键菜单（第九批统一 zk 模板）：侧栏共用一个菜单实例，按 kind 切换条目 */
@@ -403,9 +407,9 @@ const sideMenu = reactive({ visible: false, x: 0, y: 0, kind: "bucket" as "bucke
 const sideMenuItems = computed(() =>
   sideMenu.kind === "bucket"
     ? [
-        { key: "view", label: "查看该桶数据", icon: "Collection" },
-        { key: "copy", label: "复制桶名", icon: "Document" },
-        { key: "delete", label: "删除 Bucket", icon: "Delete", danger: true, divided: true },
+        { key: "view", label: isV3.value ? "查看该库数据" : "查看该桶数据", icon: "Collection" },
+        { key: "copy", label: isV3.value ? "复制数据库名" : "复制桶名", icon: "Document" },
+        { key: "delete", label: isV3.value ? "删除数据库" : "删除 Bucket", icon: "Delete", danger: true, divided: true },
       ]
     : [
         { key: "view", label: "查看该测量", icon: "TrendCharts" },
@@ -413,11 +417,11 @@ const sideMenuItems = computed(() =>
       ],
 );
 /** 存储桶表格行右键（ReTable 内置菜单，图标为组件引用） */
-const bucketTableMenu = [
+const bucketTableMenu = computed(() => [
   { key: "retention", label: "编辑保留期", icon: EditPen },
-  { key: "copy", label: "复制桶名", icon: CopyDocument },
-  { key: "delete", label: "删除 Bucket", icon: Delete, divided: true },
-];
+  { key: "copy", label: isV3.value ? "复制数据库名" : "复制桶名", icon: CopyDocument },
+  { key: "delete", label: isV3.value ? "删除数据库" : "删除 Bucket", icon: Delete, divided: true },
+]);
 /** 打开侧栏桶行右键菜单 */
 function onBucketContextMenu(e: MouseEvent, name: string) {
   Object.assign(sideMenu, { visible: true, x: e.clientX, y: e.clientY, kind: "bucket", key: name });
@@ -438,7 +442,7 @@ function onSideMenuSelect(action: string) {
   const name = sideMenu.key;
   if (!name) return;
   if (action === "copy") {
-    copyMenuText(name, "已复制名称");
+    copyMenuText(name, isV3.value ? "已复制数据库名" : "已复制名称");
     return;
   }
   if (action === "view") {
@@ -455,7 +459,7 @@ function onSideMenuSelect(action: string) {
 function onBucketTableMenuSelect(item: { key: string }, ctx: { row: Record<string, unknown> }) {
   const row = ctx.row as InfluxdbBucket;
   if (item.key === "retention") openEditRetention(row);
-  else if (item.key === "copy") copyMenuText(String(row.name ?? ""), "已复制桶名");
+  else if (item.key === "copy") copyMenuText(String(row.name ?? ""), isV3.value ? "已复制数据库名" : "已复制桶名");
   else if (item.key === "delete") confirmDeleteBucket(row);
 }
 const measurements = ref<InfluxdbMeasurement[]>([]);
@@ -515,6 +519,8 @@ const fluxKeywords = computed(() => [
   ...buckets.value.map(b => b.name),
   ...measurements.value.map(m => m.name),
 ]);
+/** v3 SQL 编辑器的表候选：度量即 SQL 表 */
+const sqlTables = computed(() => measurements.value.map(m => m.name));
 
 // Org 信息
 const orgInfo = ref<InfluxdbOrg>({ orgId: "", orgName: "" });
@@ -615,20 +621,22 @@ function toggleNode(key: string) {
  * 选中 Bucket 后加载度量与最近数据
  * @param name Bucket 名
  */
-function selectBucket(name: string) {
+async function selectBucket(name: string) {
   activeBucket.value = name;
-  loadMeasurements();
+  await loadMeasurements();
   loadBucketData();
 }
 
 /**
- * 选中度量，按该度量新建一个 Flux 查询页签并激活
+ * 选中度量，按该度量新建一个查询页签并激活
  * @param name 度量名
  */
 function selectMeasurement(name: string) {
   openQueryTab(
-    `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n` +
-    `  |> filter(fn: (r) => r._measurement == "${name}")\n  |> limit(n: 50)`
+    isV3.value
+      ? `SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
+      : `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n` +
+        `  |> filter(fn: (r) => r._measurement == "${name}")\n  |> limit(n: 50)`
   );
 }
 
@@ -692,6 +700,10 @@ async function refresh() {
     await loadOrg();
     if (buckets.value.length > 0 && !buckets.value.some(b => b.name === activeBucket.value)) {
       selectBucket(buckets.value[0].name);
+    } else if (activeBucket.value && buckets.value.some(b => b.name === activeBucket.value)) {
+      // 已选中的库仍在列表中：同样级联刷新度量与最近数据（与函数文档一致）
+      await loadMeasurements();
+      loadBucketData();
     }
   } catch (e) {
     buckets.value = [];
@@ -702,7 +714,7 @@ async function refresh() {
 }
 
 /**
- * 用 Flux 查询读取当前 Bucket 的最近数据
+ * 读取当前库的最近数据（v2 用 Flux，v3 用 SQL 取第一个度量的最近数据）
  */
 async function loadBucketData() {
   if (!activeBucket.value) {
@@ -711,9 +723,18 @@ async function loadBucketData() {
   }
   dataLoading.value = true;
   try {
-    const { rows } = await runFlux(
-      `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`
-    );
+    let statement: string;
+    if (isV3.value) {
+      const table = measurements.value[0]?.name;
+      if (!table) {
+        recentData.value = [];
+        return;
+      }
+      statement = `SELECT * FROM "${table.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`;
+    } else {
+      statement = `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`;
+    }
+    const { rows } = await runFlux(statement);
     recentData.value = rows;
     ready();
   } catch (e) {
@@ -740,12 +761,12 @@ function displayRows(rows: Record<string, unknown>[]): Record<string, unknown>[]
 }
 
 /**
- * 执行 Flux 查询并返回行数据与耗时/截断信息
- * @param flux Flux 语句
+ * 执行查询并返回行数据与耗时/截断信息（v2 走 Flux，v3 走 SQL）
+ * @param flux 查询语句
  * @returns 行数据与元信息
  */
 async function runFlux(flux: string): Promise<{ rows: Record<string, unknown>[]; elapsed: number; truncated: boolean; totalRows: number }> {
-  const result = await executeInfluxdbQuery(flux, datasourceId.value);
+  const result = await executeInfluxdbQuery(flux, datasourceId.value, isV3.value ? activeBucket.value : undefined);
   return {
     rows: displayRows(result?.rows || []),
     elapsed: result?.executionTimeMs ?? 0,
@@ -755,8 +776,21 @@ async function runFlux(flux: string): Promise<{ rows: Record<string, unknown>[];
 }
 
 /**
- * 新建一个 Flux 查询页签并激活（jdbc「查询 N」式，可多开）
- * @param flux 预填语句，缺省按当前 Bucket 生成
+ * 查询页签的缺省语句：按当前选中的库生成
+ * @returns 缺省查询语句
+ */
+function defaultQueryStatement(): string {
+  if (!activeBucket.value) return "";
+  if (isV3.value) {
+    const table = measurements.value[0]?.name;
+    return table ? `SELECT * FROM "${table.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50` : "";
+  }
+  return `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`;
+}
+
+/**
+ * 新建一个查询页签并激活（jdbc「查询 N」式，可多开）
+ * @param flux 预填语句，缺省按当前库生成
  * @returns 新页签
  */
 function openQueryTab(flux?: string): QueryTab {
@@ -764,7 +798,7 @@ function openQueryTab(flux?: string): QueryTab {
   const tab: QueryTab = {
     id: `q${seq}`,
     title: `查询 ${seq}`,
-    flux: flux ?? (activeBucket.value ? `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)` : ""),
+    flux: flux ?? defaultQueryStatement(),
     executing: false,
     elapsed: 0,
     truncated: false,
@@ -798,12 +832,12 @@ function openQuery() {
 }
 
 /**
- * 执行指定页签里的 Flux 查询
+ * 执行指定页签里的查询
  * @param tab 查询页签
  */
 async function executeQuery(tab: QueryTab) {
   if (!tab.flux.trim()) {
-    message.warning("请输入 Flux 查询语句");
+    message.warning(isV3.value ? "请输入 SQL 查询语句" : "请输入 Flux 查询语句");
     return;
   }
   tab.executing = true;
@@ -823,10 +857,10 @@ async function executeQuery(tab: QueryTab) {
 }
 
 /**
- * 加载当前数据源 Org 信息
+ * 加载当前数据源 Org 信息（v3 已移除组织概念，无需请求）
  */
 async function loadOrg() {
-  if (!datasourceId.value) return;
+  if (!datasourceId.value || isV3.value) return;
   try {
     orgInfo.value = (await fetchInfluxdbOrg(datasourceId.value)) || { orgId: "", orgName: "" };
   } catch {
@@ -888,13 +922,15 @@ async function submitBucket() {
 }
 
 /**
- * 删除 Bucket（二次确认）
+ * 删除 Bucket / 数据库（二次确认）
  * @param row Bucket 行
  */
 async function confirmDeleteBucket(row: InfluxdbBucket) {
   try {
     await ElMessageBox.confirm(
-      `确认删除 Bucket「${row.name}」？该操作会删除桶内全部数据，不可恢复。`,
+      isV3.value
+        ? `确认删除数据库「${row.name}」？该操作会删除库内全部数据，不可恢复。`
+        : `确认删除 Bucket「${row.name}」？该操作会删除桶内全部数据，不可恢复。`,
       "删除确认",
       { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
     );
@@ -903,7 +939,7 @@ async function confirmDeleteBucket(row: InfluxdbBucket) {
   }
   try {
     await deleteInfluxdbBucket(row.id, datasourceId.value);
-    message.success("Bucket 已删除");
+    message.success(isV3.value ? "数据库已删除" : "Bucket 已删除");
     if (activeBucket.value === row.name) activeBucket.value = "";
     await refresh();
   } catch (e) {
@@ -927,27 +963,46 @@ function openBrowser(measurement: string) {
 }
 
 /**
- * 执行数据浏览 Flux 查询
+ * 执行数据浏览查询（v2 走 Flux，v3 走 SQL）
  */
 async function runBrowserQuery() {
   if (!activeBucket.value || !browserMeasurement.value) return;
   browserLoading.value = true;
   try {
-    let flux = `from(bucket: "${activeBucket.value}")\n  |> range(start: ${browserRange.value})\n`
-      + `  |> filter(fn: (r) => r._measurement == "${browserMeasurement.value}")`;
-    if (browserField.value) {
-      flux += `\n  |> filter(fn: (r) => r._field == "${browserField.value}")`;
+    let statement: string;
+    if (isV3.value) {
+      const table = browserMeasurement.value.replace(/"/g, '""');
+      const m = /^(\d+)([hd])$/.exec(browserRange.value.replace(/^-/, ""));
+      const unit = m?.[2] === "d" ? "DAY" : "HOUR";
+      const amount = m?.[1] ?? "1";
+      statement = `SELECT * FROM "${table}" WHERE time >= now() - INTERVAL '${amount}' ${unit}`;
+      if (browserField.value) {
+        statement += ` AND "${browserField.value.replace(/"/g, '""')}" IS NOT NULL`;
+      }
+      statement += " ORDER BY time DESC LIMIT 500";
+    } else {
+      statement = `from(bucket: "${activeBucket.value}")\n  |> range(start: ${browserRange.value})\n`
+        + `  |> filter(fn: (r) => r._measurement == "${browserMeasurement.value}")`;
+      if (browserField.value) {
+        statement += `\n  |> filter(fn: (r) => r._field == "${browserField.value}")`;
+      }
+      statement += "\n  |> limit(n: 500)";
     }
-    flux += `\n  |> limit(n: 500)`;
-    const result = await executeInfluxdbQuery(flux, datasourceId.value);
+    const result = await executeInfluxdbQuery(statement, datasourceId.value, isV3.value ? activeBucket.value : undefined);
     const rows = displayRows(result?.rows || []);
     browserRows.value = rows;
     browserColumns.value = toColumns(rows);
-    // 收集 field 选项
+    // 收集 field 选项：v2 是行里的 _field；v3 的字段即结果列（排除 time）
     const fields = new Set<string>();
-    for (const row of rows) {
-      const f = row._field;
-      if (f != null) fields.add(String(f));
+    if (isV3.value) {
+      for (const key of Object.keys(rows[0] || {})) {
+        if (key !== "time") fields.add(key);
+      }
+    } else {
+      for (const row of rows) {
+        const f = row._field;
+        if (f != null) fields.add(String(f));
+      }
     }
     browserFields.value = [...fields];
     ready();
@@ -957,6 +1012,23 @@ async function runBrowserQuery() {
     fail(e, "/ms/monitor/influxdb/query");
   } finally {
     browserLoading.value = false;
+  }
+}
+
+/**
+ * v3 编辑器按需解析度量的字段列（information_schema.columns）
+ * @param table 表（度量）名
+ * @returns 列名
+ */
+async function resolveSqlColumns(table: string): Promise<string[]> {
+  try {
+    const safe = table.replace(/'/g, "''");
+    const { rows } = await runFlux(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = '${safe}'`
+    );
+    return rows.map(r => String(r.column_name ?? "")).filter(Boolean);
+  } catch {
+    return [];
   }
 }
 
@@ -1049,7 +1121,8 @@ async function submitWrite() {
     });
     message.success("写入成功");
     writeVisible.value = false;
-    if (activeBucket.value) await loadBucketData();
+    // 写入后级联刷新度量与最近数据：新写入的测量要立刻出现在测量列表里
+    if (activeBucket.value) await selectBucket(activeBucket.value);
   } catch (e) {
     fail(e, "/ms/monitor/influxdb/write");
   } finally {
