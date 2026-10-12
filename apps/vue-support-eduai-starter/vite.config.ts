@@ -14,6 +14,24 @@ import { createVite } from "../../turbo/vite/createVite.ts";
     //   VUE_EDUAI_API_TARGET=http://localhost:19095 pnpm dev
     const apiTarget = process.env.VUE_EDUAI_API_TARGET ?? "http://192.168.50.198:19095";
 
+// 「采集管理」收敛到 @pages/collect 后，本应用需要代理采集平台的多节点后端：
+//   采集业务 18190 / 调度节点 18191 / 数据源中心 hub 8081。
+// 代理前缀即后端 context-path，不做 rewrite：/collect/api/v2/collect/** -> 18190 原始路径。
+// 缺省指向 Kali 远端（本机不起这些后端进程），均可用环境变量覆盖：
+//   VUE_COLLECT_API_TARGET / VUE_COLLECT_SCHEDULER_TARGET / VUE_COLLECT_HUB_TARGET
+const collectApiTarget = process.env.VUE_COLLECT_API_TARGET ?? "http://192.168.50.198:18190";
+const collectSchedulerTarget = process.env.VUE_COLLECT_SCHEDULER_TARGET ?? "http://192.168.50.198:18191";
+const collectHubTarget = process.env.VUE_COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
+const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
+// dev 代理必须在转发前摘掉 Origin/Referer，否则采集后端判跨域 403（changeOrigin 只改 Host，
+// 浏览器 POST 里的 Origin 会原样送到远端）。生产同源部署无此问题，故只改 dev。
+const stripOriginHeaders = (proxyServer: any) => {
+  proxyServer.on("proxyReq", (proxyReq: any) => {
+    proxyReq.removeHeader("origin");
+    proxyReq.removeHeader("referer");
+  });
+};
+
 /**
  * 单例化「Vue 运行时 + 路由 + 状态」。
  *
@@ -118,6 +136,59 @@ export default createVite({
         "/api": {
           target: apiTarget,
           changeOrigin: true,
+        },
+        // 采集平台代理（顺序敏感：前缀更长者排在通用 /collect/api 前面，
+        // 先匹配到的先生效）：
+        //   /collect/api/v2/scheduler -> 调度节点 18191（执行器注册表只在 SCHEDULER 进程里）
+        //   /collect/api/ms/datasource/{ddl,tables,table-infos,table-exists,columns,mapping/resolve}
+        //       -> 采集节点 18190（结构读取与建表、运行期写库同目标）
+        //   /collect/api/ms -> 数据源中心 hub 8081（独立 hub 无 context-path，须剥掉 /collect/api）
+        //   /collect/api -> 采集业务节点 18190（登录 /v2/user/login、采集接口）
+        "/collect/api/v2/scheduler": {
+          target: collectSchedulerTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms/datasource/ddl": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms/datasource/tables": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms/datasource/table-infos": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms/datasource/table-exists": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms/datasource/columns": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms/datasource/mapping/resolve": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
+        },
+        "/collect/api/ms": {
+          target: collectHubTarget,
+          changeOrigin: true,
+          ...(collectHubTarget.includes(":18190") ? {} : { rewrite: stripCollectApiPrefix }),
+          configure: stripOriginHeaders,
+        },
+        "/collect/api": {
+          target: collectApiTarget,
+          changeOrigin: true,
+          configure: stripOriginHeaders,
         },
       },
     },

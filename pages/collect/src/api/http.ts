@@ -84,9 +84,19 @@ function handleSessionExpired(): void {
   }
 }
 
-/** 接口基址：dev 由 vite 代理到 18190，生产为同源反代前缀 */
+/**
+ * 接口基址：dev 由 vite 代理到 18190，生产为同源反代前缀。
+ *
+ * <p>必须用「显式 undefined/null 才回退」而不是 `||`：宿主应用把 baseUrl 配成空串
+ * 表达的是「走相对路径，打到本应用自己的后端」（eduai 就是这么配的——它把采集平台
+ * 作为依赖 spring-api-support-collect-starter 装进自己，接口就在自己的 /v2/collect 下）。
+ * 但空串在 `||` 里是 falsy，会静默回退到 "/collect/api"，于是请求被打到独立采集节点
+ * 18190 / 生产 nginx 的 /collect/api 反代上——eduai 若没配该 location 就整页拿不到数据，
+ * 且没有任何报错提示。baseUrl 为 "/" 的应用去掉尾斜杠后同样是相对路径，行为一致。</p>
+ */
 function base(): string {
-  return (getConfig().http?.baseUrl || "/collect/api").replace(/\/+$/, "");
+  const configured = getConfig().http?.baseUrl;
+  return (configured === undefined || configured === null ? "/collect/api" : configured).replace(/\/+$/, "");
 }
 
 /** 去掉空值，避免把 undefined 序列化成 "undefined" 查询参数 */

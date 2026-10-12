@@ -239,14 +239,22 @@ async function toggleSchedule(flow: CollectFlow, value: unknown): Promise<void> 
   }
 }
 
+/**
+ * 跳「运行记录」/「采集结果」用命名路由，不用硬编码 path。
+ *
+ * 本组件会被多个宿主复用，路径前缀各不相同（采集平台自己挂 /collect/**，
+ * eduai 挂 /edu/collect/**）。写死 path 等于假设「只有采集平台在用这个页面」，
+ * 换宿主就静默 404——实测 eduai 里点「运行记录」直接落到 404 页。
+ * 用命名路由后，宿主只要注册了同名路由即可；没注册会显式报导航失败，不会假装成功。
+ */
 function gotoRuns(flow: CollectFlow): void {
-  void getRouter().push({ path: "/collect/run", query: { flowId: String(flow.collectFlowId) } });
+  void getRouter().push({ name: "CollectRun", query: { flowId: String(flow.collectFlowId) } });
 }
 
 /** 采集结果：按运行ID 过滤优先（这次跑出来的），没有就按采集器看全部 */
 function gotoRecords(flow: CollectFlow, taskId?: number | null): void {
   const query = taskId ? { taskId: String(taskId) } : { flowId: String(flow.collectFlowId) };
-  void getRouter().push({ path: "/collect/record", query });
+  void getRouter().push({ name: "CollectRecord", query });
 }
 
 async function doCopy(flow: CollectFlow): Promise<void> {
