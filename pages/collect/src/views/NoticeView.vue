@@ -281,7 +281,7 @@ function showHelp(): void {
       <template #enabled="{ row }">
         <ReSwitch
           
-          :model-value="row.collectNoticeEnabled"
+          :model-value="row.collectNoticeEnabled ?? 1"
           :active-value="1"
           :inactive-value="0"
           @update:model-value="(v: unknown) => toggleEnabled(row, v)"
