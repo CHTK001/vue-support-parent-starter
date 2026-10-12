@@ -121,7 +121,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
 import { Loading, ChatDotRound } from '@element-plus/icons-vue'

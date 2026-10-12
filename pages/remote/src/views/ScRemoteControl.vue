@@ -174,8 +174,15 @@ function handleTextMessage(msg: any) {
 /**
  * 处理二进制帧（JPEG 画面）
  * @param bytes 帧数据
+ *
+ * 类型写成 Uint8Array<ArrayBuffer> 而不是 Uint8Array：
+ * TypeScript 5.7 起内置的 TypedArray 变成泛型，裸写 Uint8Array 默认是
+ * Uint8Array<ArrayBufferLike>，而 BlobPart 只接受由普通 ArrayBuffer 支撑的视图，
+ * 于是 `new Blob([bytes])` 会报 TS2322。
+ * 这里的数据来自 ws.binaryType = 'arraybuffer' 后的 new Uint8Array(e.data)，
+ * 本来就由普通 ArrayBuffer 支撑，写窄一点既消除报错又不产生任何运行时拷贝。
  */
-function handleBinaryFrame(bytes: Uint8Array) {
+function handleBinaryFrame(bytes: Uint8Array<ArrayBuffer>) {
   if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
     renderJPEG(bytes)
   }
@@ -199,7 +206,7 @@ function appendTerminalOutput(text: string, isError: boolean) {
  * 渲染 JPEG 画面帧到 canvas
  * @param bytes JPEG 数据
  */
-function renderJPEG(bytes: Uint8Array) {
+function renderJPEG(bytes: Uint8Array<ArrayBuffer>) {
   desktopFrame.value = true
   nextTick(() => {
     const canvas = desktopCanvas.value
