@@ -191,6 +191,16 @@ const mainTabs: ReTabItem[] = [
 
 /* ================== 角色列表 ================== */
 const roleOptions = ref<SysRole[]>([]);
+/**
+ * SysRole 的字段全是可选的（sysRoleCode? / sysRoleId? …），
+ * 直接把可选值塞进 el-option 的 value 会类型不匹配，
+ * 渲染出值为 undefined 的选项也毫无意义。这里过滤掉没有编码的角色，
+ * 并用类型谓词把 sysRoleCode 收窄成必填，模板里就无需断言。
+ */
+const selectableRoles = computed(
+  (): (SysRole & { sysRoleCode: string })[] =>
+    roleOptions.value.filter((r): r is SysRole & { sysRoleCode: string } => !!r.sysRoleCode),
+);
 async function loadRoles() {
   try {
     const res = await listForRole();
@@ -555,7 +565,23 @@ const previewLoading = ref(false);
 const previewResult = ref<TemplatePreviewResponse | null>(null);
 const previewRow = ref<SysMessageTemplate | null>(null);
 const previewFields = ref<DynamicField[]>([]);
-const previewParams = ref<Record<string, string>>({});
+/**
+ * 动态字段里 type 为 "number" 的项绑在 el-input-number 上，
+ * 该组件的 model-value 只接受 number | null | undefined，
+ * 而参数字典里存的是 string | number（初始为空串）。
+ * 这里把空串/空值统一转成 undefined，避免 NaN 显示在输入框里。
+ */
+function toNumberInput(v: string | number | null | undefined): number | undefined {
+  if (v === "" || v == null) return undefined;
+  const n = Number(v);
+  return Number.isNaN(n) ? undefined : n;
+}
+
+// 动态字段的 type 有 "text" | "number" | "date" 三种：number 字段绑 el-input-number，
+// 写进去的值是数字。原先声明成 Record<string, string> 与实际用法矛盾，
+// 模板里给 el-input-number 绑 v-model 会直接类型不匹配。
+// 接口侧 TemplatePreviewRequest.params 是 Record<string, unknown>，放宽这里不影响请求。
+const previewParams = ref<Record<string, string | number>>({});
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function handleTplPreview(row: Record<string, unknown>) {
@@ -563,7 +589,7 @@ async function handleTplPreview(row: Record<string, unknown>) {
   previewRow.value = tpl;
   previewResult.value = null;
   previewFields.value = buildDynamicFields(tpl.sysMessageParamSchema);
-  const params: Record<string, string> = {};
+  const params: Record<string, string | number> = {};
   previewFields.value.forEach((f) => {
     if (!f.isBuiltIn) params[f.key] = "";
   });
@@ -601,7 +627,7 @@ const tplSendForm = ref<{
   roleKeys: string[];
   targetText: string;
   subject: string;
-  params: Record<string, string>;
+  params: Record<string, string | number>;
 }>({
   roleKeys: [],
   targetText: "",
@@ -621,7 +647,7 @@ async function handleTplSend(row: Record<string, unknown>) {
     subject: tpl.sysMessageTemplateTitle ?? "",
     params: {},
   };
-  const params: Record<string, string> = {};
+  const params: Record<string, string | number> = {};
   sendFields.value.forEach((f) => {
     if (!f.isBuiltIn) params[f.key] = "";
   });
@@ -1289,10 +1315,11 @@ onMounted(() => {
             <el-form-item v-for="f in previewFields.filter((f) => !f.isBuiltIn)" :key="f.key" :label="f.key" label-position="top">
               <el-input-number
                 v-if="f.type === 'number'"
-                v-model="previewParams[f.key]"
+                :model-value="toNumberInput(previewParams[f.key])"
                 :controls="false"
                 style="width: 100%"
                 :placeholder="`请输入 ${f.key}`"
+                @update:model-value="(v) => (previewParams[f.key] = v ?? '')"
               />
               <el-date-picker
                 v-else-if="f.type === 'date'"
@@ -1359,7 +1386,7 @@ onMounted(() => {
             placeholder="选择角色，将发送给该角色下所有用户"
             style="width: 100%"
           >
-            <el-option v-for="r in roleOptions" :key="r.sysRoleCode" :label="r.sysRoleName" :value="r.sysRoleCode" />
+            <el-option v-for="r in selectableRoles" :key="r.sysRoleCode" :label="r.sysRoleName" :value="r.sysRoleCode" />
           </el-select>
         </el-form-item>
         <el-form-item label="手工接收人（兜底）">
@@ -1379,10 +1406,11 @@ onMounted(() => {
           <el-form-item v-for="f in sendFields.filter((f) => !f.isBuiltIn)" :key="f.key" :label="f.key">
             <el-input-number
               v-if="f.type === 'number'"
-              v-model="tplSendForm.params[f.key]"
+              :model-value="toNumberInput(tplSendForm.params[f.key])"
               :controls="false"
               style="width: 100%"
               :placeholder="`请输入 ${f.key}`"
+              @update:model-value="(v) => (tplSendForm.params[f.key] = v ?? '')"
             />
             <el-date-picker
               v-else-if="f.type === 'date'"

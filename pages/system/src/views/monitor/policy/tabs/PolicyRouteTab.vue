@@ -771,7 +771,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
         <el-form-item :label="t('policy.route.form.action')" required>
           <el-radio-group
             :model-value="rule.action"
-            @update:model-value="(v: ApiRouteAction) => handleActionChange(v)"
+            @update:model-value="(v) => handleActionChange(v as ApiRouteAction)"
           >
             <el-radio v-for="item in actions" :key="item.value" :value="item.value">
               {{ item.label }}

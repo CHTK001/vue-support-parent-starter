@@ -59,6 +59,14 @@ const readStatMap = ref<Record<number, { readCount: number; unreadCount: number 
 
 /** 角色选项（用于「指定角色」定向） */
 const roleOptions = ref<SysRole[]>([]);
+/**
+ * SysRole 字段全为可选，sysRoleId? 直接作为 el-option 的 value 会类型不匹配，
+ * 值为 undefined 的选项也无法回显。这里只保留有 ID 的角色并把 id 收窄为必填。
+ */
+const selectableRoles = computed(
+  (): (SysRole & { sysRoleId: number })[] =>
+    roleOptions.value.filter((r): r is SysRole & { sysRoleId: number } => r.sysRoleId != null),
+);
 /** 编辑表单中选中的目标角色ID列表 */
 const targetRoleIds = ref<number[]>([]);
 
@@ -481,7 +489,7 @@ onMounted(() => {
               style="width: 100%"
             >
               <el-option
-                v-for="r in roleOptions"
+                v-for="r in selectableRoles"
                 :key="r.sysRoleId"
                 :label="r.sysRoleName || r.sysRoleCode"
                 :value="r.sysRoleId"
