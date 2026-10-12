@@ -687,6 +687,10 @@ const tableColumns: ReTableColumn[] = [
  *
  * @param p ReTable 传入的分页与查询参数
  * @return 分页结果（total 为服务端命中数）
+ *
+ * 返回类型保持裸 RePageResult：ReTableLoader 形参类型是非泛型的，
+ * 声明成 RePageResult<Row> 反而赋不过去（TS2322）。
+ * 与全仓其余 26 个 loader 的写法一致，行类型在返回处显式收敛。
  */
 async function tableLoader(p: ReTableLoadParams): Promise<RePageResult> {
   const params = (p.params ?? {}) as Record<string, unknown>
@@ -700,7 +704,12 @@ async function tableLoader(p: ReTableLoadParams): Promise<RePageResult> {
     sortField: String(params.sortField ?? '') || undefined,
     sortOrder: String(params.sortOrder ?? '') || undefined,
   })
-  return { total: data.total, items: data.items.map((s) => toRow(s as Record<string, unknown>)) }
+  return {
+    total: data.total,
+    // Row 是带具体字段的展示行，对 RePageResult 的 Record<string, unknown> 形参做一次显式收敛；
+    // 运行时值没有任何转换，ReTable 也只按列的 prop 取字段，不受这个断言影响。
+    items: data.items.map((s) => toRow(s as Record<string, unknown>)) as unknown as Record<string, unknown>[],
+  }
 }
 
 /**

@@ -739,13 +739,16 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
 
         if (response.type === "user_message") {
           // 后端广播的用户消息。
-          // 【重复行根因，2026-10-08】重新生成走 multi_version 时，后端会**先回放既有
-          // 用户消息**，而补推副本的 id 与真正的用户轮次**不同** —— 只按 id 去重判不掉，
+          // 【重复行根因，2026-10-08】重新生成时后端会**先回放既有用户消息**，
+          // 补推副本的 id 与真正的用户轮次**不同** —— 只按 id 去重判不掉，
           // 于是切会话/重载后多出一行用户消息（用户实测：点一次「重新生成」再切回
-          // 第一个会话，就变成两行记录）。重新生成本身不产生新的用户消息 → 直接忽略回放帧。
-          if (regenerationMode === "multi_version") {
-            continue;
-          }
+          // 第一个会话，就变成两行记录）。
+          //
+          // 这里原来还有一个 `regenerationMode === "multi_version"` 的前置跳过。
+          // 那个模式已经不存在了：重新生成改成「覆盖」语义（ChatPanel.regenerateResponse
+          // 先把该轮已有的 assistant 全删干净，再以 "regenerate" 模式起流），
+          // 全仓没有任何调用方会传 "multi_version"，分支恒不成立（TS2367）。
+          // 回放帧的兜底由下面的 id + 内容双重去重完成，不依赖这个分支。
           const userMsg = response.userMessage;
           if (userMsg?.id) {
             const existing = sessionStore.getMessages(streamingSessionId);
