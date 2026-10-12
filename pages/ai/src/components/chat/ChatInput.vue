@@ -324,6 +324,15 @@ const providers = ref<ModelProvider[]>([]);
  */
 const modelsLoaded = ref(false);
 const modelsLoadFailed = ref(false);
+/**
+ * 最近一次加载模型列表的真实失败原因（字符串）。
+ *
+ * 之前这里只有一个 boolean，失败详情只进了 console.error，
+ * 弹窗只能临时 new Error('GET /api/providers') 编一个 —— 那个对象不是真实失败原因，
+ * 而且类型上也传不进 notify.error（它的 content 形参是 string）。
+ * 存字符串既满足类型，也把真实原因带到提示里。
+ */
+const modelsLoadError = ref("");
 // 弹窗触发按钮引用
 const modelButtonRef = ref<any>(null);
 // Token 上限 popover
@@ -876,7 +885,7 @@ const openModelPanel = async () => {
     if (modelsLoadFailed.value) {
       // 「加载失败」≠「没有模型」：留在原页如实提示，别把用户静默扔到模型管理页，
       // 否则用户会以为自己的模型丢了（2026-10-08 实测缺陷）。
-      notify.error(t('common.error.loadFailed'), new Error('GET /api/providers'));
+      notify.error(t('common.error.loadFailed'), modelsLoadError.value || 'unknown');
       return;
     }
     // 确实一个可用模型都没有：引导去模型管理（原有语义）
@@ -1065,6 +1074,7 @@ const loadModels = async () => {
       });
       modelsLoaded.value = true;
       modelsLoadFailed.value = false;
+      modelsLoadError.value = "";
       if (models.value.length > 0 && !props.config?.modelId) {
         // 如果没有传入 modelId，默认选择第一个
         emit('update:modelId', models.value[0].id);
@@ -1072,6 +1082,8 @@ const loadModels = async () => {
       return;
     } catch (error) {
       console.error(`获取模型列表失败(第 ${attempt}/${MAX_ATTEMPT} 次):`, error);
+      // 留最后一次的真实原因，供弹窗展示（原来只有 console 有，弹窗里只能编一个假的）
+      modelsLoadError.value = error instanceof Error ? error.message : String(error);
       if (attempt < MAX_ATTEMPT) {
         await new Promise(resolve => setTimeout(resolve, attempt * 500));
       }

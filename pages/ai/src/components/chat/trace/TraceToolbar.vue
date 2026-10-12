@@ -71,10 +71,17 @@ const props = defineProps<{
   turnCount: number;
   callCount: number;
   loading: boolean;
-  /** 选中的运行下标，0 = 最近一次 */
-  runIndex?: number;
+  /**
+   * 选中的运行下标，0 = 最近一次。
+   *
+   * 必填而非可选：模板里对它做算术（runIndex + 1 / runCount - runIndex），
+   * 声明成可选会让这两处在严格模式下全部报「可能为 undefined」。
+   * 唯一使用方 TracePanel 一直都有传（:run-index="runIndex"，那是 ref(0)，不会为 undefined），
+   * 所以去掉问号是收窄契约、不改运行时行为，只是把「本来就一定传」这件事写进类型。
+   */
+  runIndex: number;
   /** 该会话共有几次运行 */
-  runCount?: number;
+  runCount: number;
   /** 选中运行的起始墙钟时刻 */
   runTitle?: string;
 }>();

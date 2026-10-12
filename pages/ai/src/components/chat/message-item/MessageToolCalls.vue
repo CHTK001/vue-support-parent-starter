@@ -244,7 +244,10 @@ const rowInfos = computed<ToolRowInfo[]>(() =>
       filePath,
       diff: diffStatFor(tool),
       durationMs: durationFor(tool),
-      target: target.text || getArgsText(tool),
+      // getArgsText 的返回类型是 string | undefined（它对没有可读参数的工具返回 undefined），
+      // 而 ToolRowInfo.target 声明为 string。模板里按字符串用，所以在此收敛成空串，
+      // 与上面 pickTarget 返回空串的分支保持同一口径。
+      target: target.text || getArgsText(tool) || '',
       targetIsPath: target.isPath,
       isCommand: isCommandTool(tool),
       failed: tool.outcome === 'error' || tool.outcome === 'rejected' || tool.outcome === 'aborted',
