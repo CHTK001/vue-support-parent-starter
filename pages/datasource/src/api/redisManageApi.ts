@@ -298,3 +298,35 @@ export const zremRedisMember = (datasourceId: number | undefined, db: number, ke
  */
 export const xaddRedisStream = (datasourceId: number | undefined, db: number, key: string, fields: RedisHashField[]) =>
   http().post("/ms/monitor/redis-manage/key/stream").query({ datasourceId, db, key }).data({ id: "", fields }).then(r => unwrap<string>(r));
+
+/**
+ * 命令执行结果（reply 为归一化 RESP 结构：
+ * 字符串/整数/数组/嵌套对象，nil 为 null）
+ * @author CH
+ * @since 4.0.0.43
+ */
+export interface RedisCommandResult {
+  /** 实际执行的命令（分词后以空格重连） */
+  command: string;
+  /** 归一化后的回复 */
+  reply: unknown;
+}
+
+/**
+ * 通用命令执行入参
+ * @author CH
+ * @since 4.0.0.43
+ */
+export interface RedisCommandPayload {
+  [key: string]: unknown;
+  datasourceId?: number;
+  db?: number;
+  command: string;
+}
+
+/**
+ * 执行任意 Redis 命令（命令控制台通用通道）
+ * @param params 数据源 / 库 / 命令整行（支持引号包裹含空格的参数）
+ */
+export const executeRedisCommand = (params: RedisCommandPayload) =>
+  http().post("/ms/monitor/redis-manage/command").data(params).then(r => unwrap<RedisCommandResult>(r));

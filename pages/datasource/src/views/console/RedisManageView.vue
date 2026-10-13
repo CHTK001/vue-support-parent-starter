@@ -134,6 +134,47 @@
       <div class="dsm-split" :class="{ active: resizing }" title="拖拽调节宽度" @mousedown.prevent="startResize" />
 
       <div class="dsm-content">
+        <!-- 工作区切换：键详情 / 命令控制台（dsm-seg 分段，与字符串视图同一风格） -->
+        <div class="dsm-content-bar">
+          <div class="dsm-seg" data-testid="dsm-console-views" role="group" aria-label="工作区">
+            <button type="button" :class="{ 'is-active': consoleMode === 'detail' }" data-testid="dsm-console-detail" @click="consoleMode = 'detail'">
+              <ReIcon name="Document" size="12" />键详情
+            </button>
+            <button type="button" :class="{ 'is-active': consoleMode === 'command' }" data-testid="dsm-console-command" @click="consoleMode = 'command'">
+              <ReIcon name="Terminal" size="12" />命令控制台
+            </button>
+          </div>
+        </div>
+
+        <!-- 命令控制台：任意 Redis 命令（JSON.GET / TS.RANGE / GEOSEARCH 等模块命令的通用通道） -->
+        <div v-if="consoleMode === 'command'" class="dsm-command-panel" data-testid="dsm-command-panel">
+          <div class="dsm-command-actions">
+            <ReButton type="primary" icon="VideoPlay" tip="执行（Ctrl+Enter）" data-testid="dsm-btn-run-command" :disabled="!source || !commandText.trim()" :loading="commandRunning" @click="runCommand" />
+            <ReButton layout="square" icon="Delete" tip="清空编辑器" data-testid="dsm-btn-clear-command" :disabled="!commandText" @click="clearCommand" />
+            <span class="dsm-command-hint">支持任意命令：JSON.GET / TS.RANGE / GEOSEARCH 等；危险命令由服务端拒绝</span>
+          </div>
+          <DbSqlEditor v-model="commandText" language="redis" data-testid="dsm-redis-editor" @execute="runCommand" />
+          <!-- 服务端拒绝 / 网络错误 -->
+          <div v-if="commandError" class="dsm-command-error" data-testid="dsm-command-error">{{ commandError }}</div>
+          <!-- 结果区：按回复形态渲染（标量 / JSON 美化 / 键值表 / 通用表） -->
+          <div v-if="commandResult" class="dsm-command-result" data-testid="dsm-command-result">
+            <div class="dsm-data-title">
+              执行结果
+              <div class="dsm-section-actions">
+                <ReButton layout="square" icon="CopyDocument" tip="复制结果" data-testid="dsm-btn-copy-result" @click="copyResult" />
+              </div>
+            </div>
+            <pre v-if="resultView.kind === 'scalar'" class="dsm-reply-pre">{{ resultView.text }}</pre>
+            <pre v-else-if="resultView.kind === 'json'" class="dsm-reply-pre" data-testid="dsm-reply-json">{{ resultView.text }}</pre>
+            <div v-else-if="resultView.kind === 'nil'" class="dsm-reply-nil" data-testid="dsm-reply-nil">nil</div>
+            <div v-else class="dsm-table-wrap">
+              <ReTable :data="resultView.rows" :columns="resultView.columns" :pagination="false" stripe border height="240px" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 键详情工作区 -->
+        <template v-else>
         <!-- 卡片视觉（圆角/透明边框/双层投影）走 re-surface 统一底座 -->
         <div class="dsm-info-card re-surface">
           <div class="dsm-info-row"><span class="dsm-info-label">数据源</span><span class="dsm-info-value">{{ source ? source.name : "未选择" }}</span></div>
@@ -324,6 +365,7 @@
           </template>
           <div v-else class="dsm-empty-inline">正在读取…</div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -405,11 +447,13 @@ import ReTag from "@repo/ui/re-tag";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import { testDataSource } from "../../api";
 import {
   createRedisKey,
   deleteRedisKeys,
+  executeRedisCommand,
   expireRedisKey,
   fetchRedisDatabases,
   fetchRedisInfo,
@@ -426,6 +470,7 @@ import {
   xaddRedisStream,
   zaddRedisMember,
   zremRedisMember,
+  type RedisCommandResult,
   type RedisHashField,
   type RedisKeyDetail,
   type RedisKeyItem,
@@ -560,6 +605,244 @@ const infoColumns = [
   { prop: "field", label: "字段", width: 240 },
   { prop: "value", label: "值", minWidth: 360 },
 ];
+
+// ==================== 命令控制台 ====================
+
+/** 工作区视图：键详情 / 命令控制台 */
+const consoleMode = ref<"detail" | "command">("detail");
+/** 命令编辑器文本 */
+const commandText = ref("");
+/** 命令执行中 */
+const commandRunning = ref(false);
+/** 最近一次命令执行结果 */
+const commandResult = ref<RedisCommandResult | null>(null);
+/** 最近一次命令错误（服务端拒绝/网络错误） */
+const commandError = ref("");
+
+/** 命令结果表格列 */
+interface CommandColumn {
+  prop: string;
+  label: string;
+  minWidth?: number;
+  width?: number;
+}
+
+/** 命令结果渲染形态 */
+interface CommandResultView {
+  kind: "nil" | "scalar" | "json" | "rows";
+  text?: string;
+  columns: CommandColumn[];
+  rows: Record<string, unknown>[];
+}
+
+/** 明确只读、执行后无需刷新左侧键列表的命令头 */
+const READ_ONLY_COMMAND_HEADS = new Set([
+  "PING", "ECHO", "GET", "MGET", "STRLEN", "EXISTS", "TYPE", "TTL", "PTTL",
+  "KEYS", "SCAN", "DBSIZE", "INFO", "TIME", "LASTSAVE", "COMMAND", "CONFIG", "CLIENT",
+  "MEMORY", "OBJECT", "DUMP", "RANDOMKEY",
+  "HGET", "HMGET", "HGETALL", "HKEYS", "HVALS", "HLEN", "HEXISTS", "HSTRLEN",
+  "LRANGE", "LINDEX", "LLEN",
+  "SMEMBERS", "SISMEMBER", "SMISMEMBER", "SCARD", "SRANDMEMBER", "SUNION", "SINTER", "SDIFF",
+  "ZRANGE", "ZREVRANGE", "ZRANGEBYSCORE", "ZSCORE", "ZMSCORE", "ZCARD", "ZCOUNT",
+  "ZRANK", "ZREVRANK", "ZRANDMEMBER", "ZUNION", "ZINTER", "ZDIFF",
+  "XRANGE", "XREVRANGE", "XLEN", "XPENDING", "XINFO",
+  "GEODIST", "GEOPOS", "GEOHASH", "GEORADIUS", "GEORADIUSBYMEMBER", "GEOSEARCH",
+  "JSON.GET", "JSON.TYPE", "JSON.OBJKEYS", "JSON.OBJLEN", "JSON.STRLEN",
+  "JSON.ARRLEN", "JSON.ARRINDEX", "JSON.RESP",
+  "TS.GET", "TS.RANGE", "TS.REVRANGE", "TS.INFO", "TS.MGET", "TS.MRANGE", "TS.QUERYINDEX",
+  "FT.SEARCH", "FT.AGGREGATE", "FT.INFO", "FT.SUGGET", "FT.SYNDUMP",
+  "VEMB", "VCARD", "VDIM", "VGETATTR", "VINFO", "VISMEMBER", "VLINKS", "VRANDMEMBER", "VSIM",
+]);
+
+/** 命令头（首词大写） */
+function commandHead(command: string): string {
+  const m = command.trim().match(/^([A-Za-z.]+)/);
+  return m ? m[1].toUpperCase() : "";
+}
+
+/** 单元格标量化：对象/数组转 JSON 文本，其余原样 */
+function cellScalar(value: unknown): unknown {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return value;
+}
+
+/**
+ * 命令回复 → 渲染形态。
+ *
+ * <p>HGETALL 平铺数组配对为 字段/值 行；TS.RANGE/TS.REVRANGE 数组对配对为
+ * 时间戳/值 行；JSON.GET 尝试解析后美化；对象数组按并集列渲染、数组数组按
+ * 通用列渲染、标量数组单列渲染、Map 转键值对、标量直出。</p>
+ */
+const resultView = computed<CommandResultView>(() => {
+  const empty: CommandResultView = { kind: "nil", columns: [], rows: [] };
+  const result = commandResult.value;
+  const reply = result?.reply;
+  if (reply === null || reply === undefined) return empty;
+  const head = result ? commandHead(result.command) : "";
+
+  // HGETALL：RESP2 平铺 [f1,v1,f2,v2...] → 字段/值 行
+  if (head === "HGETALL" && Array.isArray(reply) && reply.length % 2 === 0
+    && reply.every(x => typeof x === "string")) {
+    const rows: Record<string, unknown>[] = [];
+    for (let i = 0; i < reply.length; i += 2) {
+      rows.push({ field: reply[i], value: reply[i + 1] });
+    }
+    return {
+      kind: "rows",
+      columns: [
+        { prop: "field", label: "字段", minWidth: 240 },
+        { prop: "value", label: "值", minWidth: 360 },
+      ],
+      rows,
+    };
+  }
+
+  // TS.RANGE / TS.REVRANGE：[[ts, val], ...] → 时间戳/值 行
+  if ((head === "TS.RANGE" || head === "TS.REVRANGE") && Array.isArray(reply)
+    && reply.every(x => Array.isArray(x) && x.length >= 2)) {
+    const rows = (reply as unknown[][]).map(pair => ({
+      timestamp: cellScalar(pair[0]),
+      value: cellScalar(pair[1]),
+    }));
+    return {
+      kind: "rows",
+      columns: [
+        { prop: "timestamp", label: "时间戳", width: 220 },
+        { prop: "value", label: "值", minWidth: 360 },
+      ],
+      rows,
+    };
+  }
+
+  // JSON.GET：字符串形态的 JSON → 解析美化
+  if (head === "JSON.GET" && typeof reply === "string") {
+    try {
+      return { kind: "json", text: JSON.stringify(JSON.parse(reply), null, 2), columns: [], rows: [] };
+    } catch {
+      return { kind: "scalar", text: reply, columns: [], rows: [] };
+    }
+  }
+
+  if (Array.isArray(reply)) {
+    // 对象数组 → 并集列
+    if (reply.length > 0 && reply.every(x => x !== null && typeof x === "object" && !Array.isArray(x))) {
+      const props: string[] = [];
+      for (const item of reply as Record<string, unknown>[]) {
+        for (const key of Object.keys(item)) {
+          if (!props.includes(key)) props.push(key);
+        }
+      }
+      const columns = props.map(p => ({ prop: p, label: p, minWidth: 180 }));
+      const rows = (reply as Record<string, unknown>[]).map(item => {
+        const row: Record<string, unknown> = {};
+        for (const p of props) row[p] = cellScalar(item[p]);
+        return row;
+      });
+      return { kind: "rows", columns, rows };
+    }
+    // 数组数组 → 通用列（列1..列N）
+    if (reply.length > 0 && reply.every(x => Array.isArray(x))) {
+      const width = Math.max(...(reply as unknown[][]).map(r => r.length));
+      const columns = Array.from({ length: width }, (_, i) => ({ prop: `c${i}`, label: `列${i + 1}`, minWidth: 180 }));
+      const rows = (reply as unknown[][]).map(arr => {
+        const row: Record<string, unknown> = {};
+        for (let i = 0; i < width; i++) row[`c${i}`] = cellScalar(arr[i]);
+        return row;
+      });
+      return { kind: "rows", columns, rows };
+    }
+    // 标量数组（含空数组）→ 单列
+    return {
+      kind: "rows",
+      columns: [{ prop: "value", label: "值", minWidth: 360 }],
+      rows: reply.map(x => ({ value: cellScalar(x) })),
+    };
+  }
+
+  // Map（RESP3）→ 键值对
+  if (typeof reply === "object") {
+    const rows = Object.entries(reply as Record<string, unknown>).map(([field, value]) => ({
+      field,
+      value: cellScalar(value),
+    }));
+    return {
+      kind: "rows",
+      columns: [
+        { prop: "field", label: "字段", minWidth: 240 },
+        { prop: "value", label: "值", minWidth: 360 },
+      ],
+      rows,
+    };
+  }
+
+  // 标量
+  return { kind: "scalar", text: String(reply), columns: [], rows: [] };
+});
+
+/** 执行命令控制台命令 */
+async function runCommand(): Promise<void> {
+  const command = commandText.value.trim();
+  if (!command) {
+    message.warning("请输入命令");
+    return;
+  }
+  commandRunning.value = true;
+  commandError.value = "";
+  commandResult.value = null;
+  try {
+    commandResult.value = await executeRedisCommand({
+      datasourceId: datasourceId.value,
+      db: activeDb.value,
+      command,
+    });
+    // 写命令后同步左侧键列表；明确只读命令跳过，避免每次查询都重扫。
+    // 这里必须 await：refresh() 内部要重新 bind/loadSideData/scanKeys，
+    // 不等会让后续 UI 读到的还是旧快照。
+    if (source.value && !READ_ONLY_COMMAND_HEADS.has(commandHead(command))) {
+      await refresh();
+    }
+  } catch (e) {
+    commandResult.value = null;
+    commandError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    commandRunning.value = false;
+  }
+}
+
+/** 清空命令编辑器与结果 */
+function clearCommand(): void {
+  commandText.value = "";
+  commandResult.value = null;
+  commandError.value = "";
+}
+
+/** 复制结果（表格 → TSV，其余 → 原文本） */
+async function copyResult(): Promise<void> {
+  const view = resultView.value;
+  let text = "";
+  if (view.kind === "rows") {
+    const header = view.columns.map(c => c.label).join("\t");
+    const body = view.rows
+      .map(row => view.columns.map(c => String(row[c.prop] ?? "")).join("\t"))
+      .join("\n");
+    text = `${header}\n${body}`;
+  } else if (view.text !== undefined) {
+    text = view.text;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success("结果已复制");
+  } catch {
+    message.warning("复制失败");
+  }
+}
 
 /** 详情 value → HASH 字段数组（detail.value 是信封 {key,type,ttl,value,size}，字段在嵌套 value 里） */
 const hashFields = computed<RedisHashField[]>(() => {
@@ -1631,6 +1914,17 @@ onBeforeUnmount(stopTtlCountdown);
 .dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsm-load-more { padding: 6px 8px; text-align: center; }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.dsm-content-bar { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+/* 命令控制台面板：编辑器 + 操作行 + 结果区纵向排列，结果区吃掉剩余高度 */
+.dsm-command-panel { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.dsm-command-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dsm-command-actions :deep(.rs-btn) { margin: 0; }
+.dsm-command-hint { margin-left: 2px; font-size: 12px; color: var(--text-tertiary); }
+.dsm-command-error { padding: 10px 14px; font-size: 13px; color: var(--danger, #f56c6c); background: color-mix(in srgb, var(--danger, #f56c6c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger, #f56c6c) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
+.dsm-command-result { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; padding: 12px 14px; }
+.dsm-command-result :deep(.dsm-table-wrap) { flex: 1; min-height: 0; }
+.dsm-reply-pre { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 480px; flex-shrink: 0; }
+.dsm-reply-nil { padding: 12px; color: var(--text-tertiary); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; flex-shrink: 0; }
 /* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
    透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */
 .dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex-shrink: 0; }

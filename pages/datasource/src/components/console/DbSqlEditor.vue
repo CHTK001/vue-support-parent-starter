@@ -30,8 +30,8 @@ import type { StreamParser } from "@codemirror/language";
 const props = defineProps<{
   /** 编辑器文本（v-model） */
   modelValue: string;
-  /** 编辑器语言：sql（默认，表/字段补全）| flux | cypher —— 三种查询统一走本组件 */
-  language?: "sql" | "flux" | "cypher";
+  /** 编辑器语言：sql（默认，表/字段补全）| flux | cypher | redis —— 查询统一走本组件 */
+  language?: "sql" | "flux" | "cypher" | "redis";
   /** 动态补全候选（flux：bucket/测量名；cypher：标签/关系类型），与内置关键字合并去重 */
   keywords?: string[];
   /** 占位提示，缺省按语言给默认文案 */
@@ -77,8 +77,52 @@ const CYPHER_KEYWORDS = [
   "keys", "elementId", "id", "startNode", "endNode",
 ];
 
+/**
+ * Redis 内置命令（高亮 + 补全共用，大写）。
+ *
+ * <p>覆盖核心命令与模块命令（JSON.*、TS.*、GEO*、FT.*），
+ * 不含命令控制台后端拒绝的危险命令（FLUSHALL/SHUTDOWN 等）。</p>
+ */
+const REDIS_KEYWORDS = [
+  "PING", "ECHO", "SELECT", "DBSIZE", "INFO", "CLIENT", "CONFIG", "COMMAND",
+  "TIME", "LASTSAVE", "MEMORY", "TYPE", "KEYS", "SCAN", "EXISTS", "DEL", "UNLINK",
+  "EXPIRE", "PEXPIRE", "EXPIREAT", "TTL", "PTTL", "PERSIST", "RENAME", "RENAMENX",
+  "RANDOMKEY", "DUMP", "RESTORE", "OBJECT", "COPY",
+  "GET", "SET", "SETNX", "GETSET", "GETDEL", "MGET", "MSET", "MSETNX", "APPEND",
+  "STRLEN", "INCR", "DECR", "INCRBY", "DECRBY", "INCRBYFLOAT", "SETRANGE", "GETRANGE",
+  "SETEX", "PSETEX", "GETBIT", "SETBIT", "BITCOUNT", "BITOP", "BITPOS", "LCS",
+  "HSET", "HGET", "HMSET", "HMGET", "HGETALL", "HDEL", "HKEYS", "HVALS", "HLEN",
+  "HEXISTS", "HSCAN", "HINCRBY", "HINCRBYFLOAT", "HSETNX", "HRANDFIELD", "HSTRLEN",
+  "RPUSH", "LPUSH", "RPOP", "LPOP", "LLEN", "LRANGE", "LINDEX", "LSET", "LREM",
+  "LINSERT", "LTRIM", "RPOPLPUSH", "LMOVE", "BLPOP", "BRPOP", "BLMOVE",
+  "SADD", "SREM", "SMEMBERS", "SISMEMBER", "SMISMEMBER", "SCARD", "SPOP",
+  "SRANDMEMBER", "SUNION", "SINTER", "SDIFF", "SSCAN", "SMOVE", "SUNIONSTORE",
+  "SINTERSTORE", "SDIFFSTORE",
+  "ZADD", "ZREM", "ZRANGE", "ZREVRANGE", "ZRANGEBYSCORE", "ZREVRANGEBYSCORE",
+  "ZSCORE", "ZMSCORE", "ZCARD", "ZCOUNT", "ZRANK", "ZREVRANK", "ZINCRBY",
+  "ZPOPMAX", "ZPOPMIN", "ZRANDMEMBER", "ZUNION", "ZINTER", "ZDIFF", "ZSCAN",
+  "ZUNIONSTORE", "ZINTERSTORE", "ZMPOP", "BZPOPMAX", "BZPOPMIN",
+  "XADD", "XLEN", "XRANGE", "XREVRANGE", "XREAD", "XREADGROUP", "XINFO", "XDEL",
+  "XTRIM", "XGROUP", "XACK", "XCLAIM", "XAUTOCLAIM", "XPENDING",
+  "GEOADD", "GEODIST", "GEOPOS", "GEOHASH", "GEORADIUS", "GEORADIUSBYMEMBER",
+  "GEOSEARCH", "GEOSEARCHSTORE",
+  "JSON.SET", "JSON.GET", "JSON.DEL", "JSON.TYPE", "JSON.NUMINCRBY", "JSON.NUMMULTBY",
+  "JSON.ARRAPPEND", "JSON.ARRPOP", "JSON.ARRINDEX", "JSON.ARRINSERT", "JSON.ARRLEN",
+  "JSON.ARRTRIM", "JSON.OBJKEYS", "JSON.OBJLEN", "JSON.STRAPPEND", "JSON.STRLEN",
+  "JSON.RESP", "JSON.FORGET", "JSON.CLEAR", "JSON.TOGGLE", "JSON.DEBUG",
+  "TS.CREATE", "TS.ADD", "TS.DEL", "TS.GET", "TS.RANGE", "TS.REVRANGE", "TS.INFO",
+  "TS.ALTER", "TS.MRANGE", "TS.MGET", "TS.INCRBY", "TS.DECRBY", "TS.CREATERULE",
+  "TS.DELETERULE", "TS.QUERYINDEX",
+  "FT.CREATE", "FT.DROPINDEX", "FT.SEARCH", "FT.AGGREGATE", "FT.INFO", "FT.EXPLAIN",
+  "FT.EXPLAINCLI", "FT.SUGADD", "FT.SUGGET", "FT.SUGDEL", "FT.SUGLEN", "FT.ALIASADD",
+  "FT.ALIASDEL", "FT.ALIASUPDATE", "FT._LIST", "FT.SYNUPDATE", "FT.SYNDUMP",
+  "VADD", "VCARD", "VDIM", "VEMB", "VGETATTR", "VINFO", "VISMEMBER",
+  "VLINKS", "VRANDMEMBER", "VREM", "VSETATTR", "VSIM",
+];
+
 const FLUX_SET = new Set(FLUX_KEYWORDS);
 const CYPHER_SET = new Set(CYPHER_KEYWORDS);
+const REDIS_SET = new Set(REDIS_KEYWORDS);
 
 /** 编辑器等宽字体栈（为什么需要逐元素设置，见 onMounted 内 theme 的注释） */
 const MONO_FONT = "var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace)";
@@ -129,6 +173,25 @@ const cypherStreamParser: StreamParser<object> = {
   languageData: { commentTokens: { line: "//", block: { open: "/*", close: "*/" } } },
 };
 
+/**
+ * 轻量 Redis 流式解析器：命令关键字（含 JSON.*、TS.*、GEO*、FT.* 等模块命令）高亮，
+ * 覆盖引号字符串/数字。Redis 无注释语法，不处理注释。
+ */
+const redisStreamParser: StreamParser<object> = {
+  startState: () => ({}),
+  token(stream) {
+    if (stream.eatSpace()) return null;
+    if (stream.match(/^"(?:[^"\\]|\\.)*"/) || stream.match(/^'(?:[^'\\]|\\.)*'/)) return "string";
+    if (stream.match(/^-?\d+(\.\d+)?([eE][+-]?\d+)?/)) return "number";
+    if (stream.match(/^[A-Za-z_][A-Za-z0-9_.]*/)) {
+      return REDIS_SET.has(stream.current().toUpperCase()) ? "keyword" : "variableName";
+    }
+    stream.next();
+    return "operator";
+  },
+  languageData: {},
+};
+
 const host = ref<HTMLDivElement>();
 const view = shallowRef<EditorView>();
 
@@ -151,22 +214,30 @@ function buildSchema(): Record<string, string[]> {
   return schema;
 }
 
-/** 按语言组装语言扩展：sql 走 lang-sql（含 schema 补全），flux/cypher 走流式解析器 + 关键字补全 */
+/** 按语言组装语言扩展：sql 走 lang-sql（含 schema 补全），flux/cypher/redis 走流式解析器 + 关键字补全 */
 function buildLanguageExt(): Extension {
   const lang = props.language ?? "sql";
-  if (lang === "flux" || lang === "cypher") {
+  if (lang === "flux" || lang === "cypher" || lang === "redis") {
     return [
-      StreamLanguage.define(lang === "flux" ? fluxStreamParser : cypherStreamParser),
+      StreamLanguage.define(
+        lang === "flux" ? fluxStreamParser : lang === "cypher" ? cypherStreamParser : redisStreamParser,
+      ),
       EditorState.languageData.of(() => [{ autocomplete: keywordCompleter() }]),
     ];
   }
   return sql({ schema: buildSchema(), upperCaseKeywords: false });
 }
 
-/** flux/cypher 的补全源：内置关键字/函数 ∪ 调用方传入的动态候选（bucket、标签等） */
+/** flux/cypher/redis 的补全源：内置关键字/命令 ∪ 调用方传入的动态候选（bucket、标签等） */
 function keywordCompleter() {
   const lang = props.language ?? "sql";
-  const base = lang === "flux" ? FLUX_KEYWORDS : lang === "cypher" ? CYPHER_KEYWORDS : [];
+  const base = lang === "flux"
+    ? FLUX_KEYWORDS
+    : lang === "cypher"
+      ? CYPHER_KEYWORDS
+      : lang === "redis"
+        ? REDIS_KEYWORDS
+        : [];
   return (context: CompletionContext) => {
     const word = context.matchBefore(/[\w]*/);
     if (!word || (word.from === word.to && !context.explicit)) return null;
@@ -190,6 +261,9 @@ function defaultPlaceholder(): string {
   }
   if (lang === "cypher") {
     return "输入 Cypher 查询，例如：MATCH (n:Label) RETURN n LIMIT 10（Ctrl+Enter 执行）";
+  }
+  if (lang === "redis") {
+    return "输入 Redis 命令，例如：HGETALL mykey / JSON.GET doc:1（Ctrl+Enter 执行）";
   }
   return "输入 SQL 语句，输入即提示表/字段/关键字（Ctrl+Enter 执行）";
 }
