@@ -334,6 +334,7 @@ function buildHttp(crypto: CryptoModule, config: AppConfig): Http {
     showLoading: config.http.showLoading,
     retryCount: config.http.retryCount,
     retryDelay: config.http.retryDelay,
+    requestCodec: config.http.requestCodec,
   });
   return createHttp({ instance: httpInstance });
 }

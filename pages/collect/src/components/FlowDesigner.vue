@@ -138,7 +138,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (event: "change"): void }>();
 
-type TabKey = "node" | "edge" | "flow";
+type TabKey = "node" | "edge" | "flowBase" | "flowData";
 
 /** 流程级字段：图结构由画布内核持有，这里只管 name/线程数/请求头/Cookie/变量 */
 type FlowLevel = Omit<CollectDsl, "nodes" | "edges">;
@@ -227,7 +227,8 @@ const TABS = computed<{ name: TabKey; label: string; disabled?: boolean; badge?:
   return [
     { name: "node", label: "节点参数" },
     { name: "edge", label: "连线", badge: edgeCount > 0 ? String(edgeCount) : undefined },
-    { name: "flow", label: "流程设置" },
+    { name: "flowBase", label: "流程设置" },
+    { name: "flowData", label: "全局数据" },
   ];
 });
 
@@ -323,7 +324,8 @@ const selectedMeta = computed(() =>
 
 const panelTitle = computed(() => {
   if (nodeForm.value) return "节点参数";
-  return edgeForm.value ? "连线属性" : "流程属性";
+  if (edgeForm.value) return "连线属性";
+  return tab.value === "flowData" ? "全局数据" : "流程属性";
 });
 
 const selectedState = computed(() =>
@@ -834,8 +836,8 @@ function upstreamUrlOf(nodeId: string): string {
  * 某类节点默认对外产出的变量名。
  *
  * <p>只登记执行器里**写死**的默认名（有源码依据），不猜：
- * 开始节点写 {@code urlList} 与首条 {@code url}，SQL 节点默认 {@code rows}。
- * 其余节点若没显式配「输出变量名」，就不列 —— 与其给一个不存在的变量，不如不给。</p>
+ * 开始节点写 {@code url} 列表并别名到 {@code data}，SQL / 录入 / 中间件查询节点默认 {@code rows}。
+ * 其余节点若没显式配「输出名」，就不列 —— 与其给一个不存在的变量，不如不给。</p>
  *
  * @param shape 节点类型
  * @returns 默认变量（变量名 + 用途说明）
@@ -855,12 +857,17 @@ function upstreamUrlOf(nodeId: string): string {
 function defaultOutputsOf(shape: string, declaredOutput = "", setNames: string[] = []): { name: string; desc: string }[] {
   if (shape === "start") {
     return [
-      { name: "urlList", desc: "种子 URL 集合" },
-      { name: "url", desc: "首条种子 URL" },
+      { name: "url", desc: "种子 URL 列表：${url} 整表、${url[0]} 首条、${url.size()} 取条数" },
+      { name: "data", desc: "同 url（上一个节点的产出）" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
     ];
   }
-  if (shape === "sql") {
-    return [{ name: "rows", desc: "查询结果行集合" }];
+  if (shape === "sql" || shape === "entry" || shape === "influxdb-read" || shape === "neo4j-read") {
+    return [
+      { name: "rows", desc: shape === "entry" ? "录入结果行集合" : "查询结果行集合" },
+      { name: "data", desc: "同 rows（上一个节点的产出）" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
+    ];
   }
   if (shape === "request") {
     // 出参变量名默认 resp，另外两个同伴变量都由它派生（见 CollectRequestExecutor）
@@ -869,21 +876,38 @@ function defaultOutputsOf(shape: string, declaredOutput = "", setNames: string[]
       { name: `${out}Json`, desc: "响应体解析成 JSON 的对象（内容像 JSON 时才给出）" },
       { name: `${out}Doc`, desc: "已绑定 base 的 jsoup 文档，供 CSS / XPath 抽取" },
       { name: "url", desc: "本次请求的地址" },
+      { name: "data", desc: "同 resp（上一个节点的产出）" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
     ];
   }
   if (shape === "extract") {
     return [
       { name: "row", desc: "单条模式写出的「一行」（字段名 → 值）" },
       { name: "rows", desc: "列表模式写出的行集合" },
+      { name: "data", desc: "同 rows / row（上一个节点的产出）" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
     ];
   }
   if (shape === "condition") {
-    return [{ name: "conditionResult", desc: "判断结果（真 / 假），出边条件用它分流" }];
+    return [
+      { name: "conditionResult", desc: "判断结果（真 / 假），出边条件用它分流" },
+      { name: "data", desc: "同 conditionResult（上一个节点的产出）" },
+    ];
   }
   if (shape === "link") {
     // 与 CollectLinkExecutor 的 DEFAULT_OUTPUT 一致；用户改过出参名就按改过的来
     const out = declaredOutput.trim() || "linkList";
-    return [{ name: out, desc: "本页抽到的链接集合（可喂给下游循环）" }];
+    return [
+      { name: out, desc: "本页抽到的链接集合（可喂给下游循环）" },
+      { name: "data", desc: "同链接集合（上一个节点的产出）" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
+    ];
+  }
+  if (shape === "exists") {
+    return [
+      { name: "data", desc: "查重结果：{ exists: 已存在键, fresh: 全新行, existsCount, freshCount, total }" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
+    ];
   }
   if (shape === "variable") {
     // 变量节点唯一产出就是它声明的那些变量名 —— 不列出来，用户根本不知道下游能引用什么
@@ -898,7 +922,7 @@ function defaultOutputsOf(shape: string, declaredOutput = "", setNames: string[]
  * 本流程各节点对外产出的变量，作为「插入占位」的分组。
  *
  * <p>原先占位清单只有「全局变量 / 自定义函数」，用户配表达式时看不到本流程里
- * 上游节点产出的东西（如开始节点的 {@code urlList}、接口/抽取节点的输出变量），
+ * 上游节点产出的东西（如开始节点的 {@code url}、接口/抽取节点的输出变量），
  * 只能凭记忆手打 ${}。这里按当前编辑节点的**上游 / 其它**分成两组：
  * 上游在前（沿入边反向可达），并标出来自哪个节点，顺带解决「这变量哪来的」。</p>
  */
@@ -970,6 +994,20 @@ const flowVariableGroups = computed<PlaceholderGroup[]>(() => {
   }
 
   const groups: PlaceholderGroup[] = [];
+  // 内置变量：与具体节点无关、引擎始终注入的那一批。放在最前，
+  // 用户配表达式时第一眼就能看到 ${data} / ${env.xxx} / ${nodes.节点ID.字段}。
+  groups.push({
+    label: "内置变量",
+    items: [
+      { name: "data", description: "上一个节点的产出（所有节点通用）" },
+      { name: "dataJson", description: "data 的 JSON 形态，引擎自动派生" },
+      { name: "index", description: "逐条处理时的轮次（从 0 起）" },
+      { name: "item", description: "逐条处理时当前那条数据" },
+      { name: "url", description: "开始节点的种子 URL 列表（${url[0]} 首条）" },
+      { name: "env.变量名", description: "流程变量（流程设置 → 流程变量里声明的）" },
+      { name: "nodes.节点ID.字段", description: "跨节点 / 跨分支取任意节点的产出" },
+    ],
+  });
   if (near.length) {
     groups.push({ label: "上游节点变量", items: near });
   }
@@ -1516,7 +1554,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 <ReButton type="primary" class="pane-empty-btn" icon="View" @click="overviewAll">
                   全览流程节点
                 </ReButton>
-                <ReButton class="pane-empty-btn" icon="Setting" @click="tab = 'flow'">
+                <ReButton class="pane-empty-btn" icon="Setting" @click="tab = 'flowBase'">
                   打开流程设置
                 </ReButton>
               </div>
@@ -1584,7 +1622,7 @@ defineExpose({ load, getGraph, addNode, startWith });
             </div>
           </template>
 
-          <template #flow>
+          <template #flowBase>
             <div class="pane-grid">
               <div class="field">
                 <div class="field-label">流程名称</div>
@@ -1608,6 +1646,16 @@ defineExpose({ load, getGraph, addNode, startWith });
                   @update:model-value="(v: number | undefined) => patchFlow({ threadCount: v ?? null })"
                 />
               </div>
+              <div class="field field-wide">
+                <div class="field-tip">
+                  图结构（节点 / 连线）在画布上直接编排；本页只改流程级基础信息。
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template #flowData>
+            <div class="pane-grid">
               <div class="field">
                 <div class="field-label">全局请求头</div>
                 <PairsEditor

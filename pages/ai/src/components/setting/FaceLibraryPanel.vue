@@ -312,7 +312,7 @@
 
     <!-- 底栏：把当前生效的识别参数亮出来，排查「搜不到」时先看这两个值 -->
     <div class="lib-foot">
-      人脸检测模型：{{ detectorModel || '未配置' }} · 特征模型：{{ featureModel || '未配置' }}
+      <span class="lib-foot-value">人脸检测模型：{{ detectorModel || '未配置' }} · 特征模型：{{ featureModel || '未配置' }}</span>
     </div>
   </div>
 </template>
@@ -346,6 +346,8 @@ import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re
 import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, ageBucket, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 import { createAuthImageLoader, pendingPlaceholder } from '@/utils/authImage'
+import { configuredValue } from '@/utils/modelConfigStatus'
+import { useModelConfigStore } from '@/stores/modelConfig'
 import FaceEnrollDialog from '../management/FaceEnrollDialog.vue'
 import FaceLandmarkDialog from '../management/FaceLandmarkDialog.vue'
 
@@ -393,6 +395,8 @@ const total = ref(0)
 const stats = ref({ total: 0, withImage: 0, withIdCard: 0 })
 const detectorModel = ref('')
 const featureModel = ref('')
+/** 模型配置门禁：底栏与入口统一用设置中心同源的合并视图，不再读会返回种子默认值的配置口 */
+const modelConfig = useModelConfigStore()
 /**
  * 关键点模型（`landmark_model`）对**当前用户**的生效值；空 = 未配置。
  *
@@ -636,24 +640,13 @@ async function load(target = 1) {
       await load(pageCount.value)
       return
     }
-    // 底栏显示当前生效的模型（读 face 分组配置，失败不阻断列表）
-    try {
-      const s = (await apiService.getFaceSettings()) as Record<string, unknown>
-      detectorModel.value = String(s.detector_model ?? '')
-      featureModel.value = String(s.feature_model ?? '')
-    } catch { /* 配置读不到不影响底库列表 */ }
-    // 特征点按钮的判据取「对当前用户生效」的合并视图（覆盖优先），与后端
-    // isModelConfigured 同口径；读失败按未配置处理（fail-closed，不显示必然报错的按钮）。
-    try {
-      const resp = await apiService.fetchMergedGroupSettings('face')
-      const mItems = (resp as any)?.data ?? resp ?? []
-      const m: Record<string, unknown> = {}
-      if (Array.isArray(mItems)) for (const it of mItems) if (it && it.field) m[it.field] = it.value
-      landmarkModel.value = String(m.landmark_model ?? '')
-      // 修复模型同理：未配置时 /face/restore 会直接回业务错误，
-      // 与其给一个必然失败的按钮，不如不给入口（与关键点按钮同一判据口径）
-      restoreModel.value = String(m.restore_model ?? '')
-    } catch { landmarkModel.value = ''; restoreModel.value = '' }
+    // 底栏与特征点/修复入口统一取设置中心同源的合并视图；
+    // 种子默认值（SYSTEM_DEFAULT）不算已配置，读失败按未配置处理（fail-closed）。
+    await modelConfig.load()
+    detectorModel.value = modelConfig.faceDetectorModel
+    featureModel.value = modelConfig.faceFeatureModel
+    landmarkModel.value = configuredValue(modelConfig.faceMerged, 'landmark_model')
+    restoreModel.value = configuredValue(modelConfig.faceMerged, 'restore_model')
     await mountViewer()
     // 表格模式下的删除/登记等动作：本函数顺带把表格也重查一遍（stats 以本次为准）
     if (viewMode.value === 'table' && target === page.value) {
@@ -807,13 +800,16 @@ function preview(item: Row) {
     message.info('人脸图当前处于隐藏状态，请先打开页头的显示开关')
     return
   }
-  if (viewer && item.thumb) {
-    const idx = visibleItems.value.findIndex((r) => r.id === item.id)
-    if (idx >= 0) viewer.view(idx)
+  if (!item.thumb) {
+    message.info('该条没有人脸图（老数据可能两边都没有，重新登记一次即可）')
     return
   }
-  // 列表视图 / 无图：viewerjs 未挂载时，直接提示
-  if (!item.thumb) message.info('该条没有人脸图（老数据可能两边都没有，重新登记一次即可）')
+  if (viewer) {
+    const idx = visibleItems.value.findIndex((r) => r.id === item.id)
+    if (idx >= 0) { viewer.view(idx); return }
+  }
+  // 列表视图等未挂载 viewerjs 的视图：直接新开页放大（与表格视图同一行为）
+  window.open(item.thumb, '_blank')
 }
 
 /**

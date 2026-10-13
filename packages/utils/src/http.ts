@@ -194,6 +194,11 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
     return this;
   }
 
+  codec(on: boolean): ChainableRequest {
+    this.config.hc = { ...this.config.hc, codec: on };
+    return this;
+  }
+
   retry(on: boolean): ChainableRequest {
     this.config.hc = { ...this.config.hc, retry: on };
     return this;

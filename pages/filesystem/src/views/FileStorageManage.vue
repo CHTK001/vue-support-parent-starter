@@ -92,71 +92,24 @@ import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import PreviewMediaPanel from "../components/PreviewMediaPanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
-import CadPreviewPanel from "../components/CadPreviewPanel.vue";
 /**
- * IFC 预览面板按需加载。
+ * file-viewer 明确不支持、或需要自研增强的兜底面板按需加载。
  *
- * <p>{@link PreviewIfcPanel} 会引入 {@code three} + {@code web-ifc}（含 WASM），
- * 体积明显大于其它面板；文件页本身可能被频繁打开，不该为「几乎不预览的 IFC」
- * 让所有人先背上这份依赖，故用异步组件，仅在真正展示 IFC 时再加载。</p>
+ * <p>TGA / SWF / Sketch 不在 file-viewer formats 清单内；OFF 同样不在
+ * renderer-3d 清单内，保留 {@link PreviewModel3dPanel} 只承接 OFF。已由
+ * file-viewer 覆盖的 IFC / CAD / 3D / DICOM / Geo / BPMN / drawio / Data /
+ * TIFF / HEIC / PSD 等一律走下方 fv/* 面板，不再引入这里的大依赖。</p>
  */
-const PreviewIfcPanel = defineAsyncComponent(() => import("../components/PreviewIfcPanel.vue"));
-/**
- * 前端直渲面板按需加载。
- *
- * <p>这四个面板各自拖一份不轻的解码器（{@code sql.js} 带 WASM、
- * {@code hyparquet}、{@code UTIF.js}、{@code libheif} 的自包含 WASM、
- * {@code ag-psd}），加起来远大于页面自身的体积。文件页被频繁打开，
- * 不该让所有人先背上它们，故一律异步组件：真正要预览这类文件时才加载。
- * 加载失败会退到服务端通道（见 {@link onClientPanelFallback}），不会白屏。</p>
- */
-const DataPreviewPanel = defineAsyncComponent(() => import("../components/DataPreviewPanel.vue"));
-const TiffPreviewPanel = defineAsyncComponent(() => import("../components/TiffPreviewPanel.vue"));
-const HeicPreviewPanel = defineAsyncComponent(() => import("../components/HeicPreviewPanel.vue"));
-const PsdPreviewPanel = defineAsyncComponent(() => import("../components/PsdPreviewPanel.vue"));
-/**
- * GeoJSON 预览面板按需加载。
- *
- * <p>{@link PreviewGeoPanel} 会引入 {@code leaflet}（约 40 KB gzip 的地图引擎
- * + 其样式表），与 IFC 同理：不预览地理数据的人不该为它付费，异步加载。</p>
- */
-const PreviewGeoPanel = defineAsyncComponent(() => import("../components/PreviewGeoPanel.vue"));
-/**
- * BPMN / TGA 预览面板按需加载。
- *
- * <p>{@link PreviewBpmnPanel} 会静态引入 bpmn-js 的字形 CSS 并动态 import 其
- * viewer 本体；{@link PreviewTgaPanel} 只有自带的纯 TS 解码器（无外部依赖）。
- * 与 Geo 面板同理：不预览这类文件的人不该为它们付费，故异步加载。</p>
- */
-const PreviewBpmnPanel = defineAsyncComponent(() => import("../components/PreviewBpmnPanel.vue"));
 const PreviewTgaPanel = defineAsyncComponent(() => import("../components/PreviewTgaPanel.vue"));
-/**
- * OFD / drawio / DICOM / SWF 预览面板按需加载。
- *
- * <p>这四个面板各带一份可观的解码/渲染依赖（@ofdjs/viewer 约 40 KB + fflate、drawio 自托管
- * viewer 约 4.4 MB、cornerstone3D、Ruffle WASM 模拟器），与上面同理：只在
- * 真正预览对应格式时才加载，不给文件页主包增重。</p>
- */
-const PreviewOfdPanel = defineAsyncComponent(() => import("../components/PreviewOfdPanel.vue"));
-const PreviewDrawioPanel = defineAsyncComponent(() => import("../components/PreviewDrawioPanel.vue"));
-const PreviewDicomPanel = defineAsyncComponent(() => import("../components/PreviewDicomPanel.vue"));
 const PreviewSwfPanel = defineAsyncComponent(() => import("../components/PreviewSwfPanel.vue"));
-/**
- * 通用 3D 模型面板按需加载。
- *
- * <p>{@link PreviewModel3dPanel} 覆盖后端没有渲染提供者的 8 类模型
- * （STEP/IGES/BREP 走 occt-import-js 约 7.6 MB WASM、3DM 走 rhino3dm
- * 约 2.7 MB WASM、3DS/PLY/DAE/WRL/3MF/OFF 走 three 加载器），与 IFC 面板
- * 同理按需加载，避免 three 场景常驻主包。</p>
- */
+const SketchPreviewPanel = defineAsyncComponent(() => import("../components/SketchPreviewPanel.vue"));
 const PreviewModel3dPanel = defineAsyncComponent(() => import("../components/PreviewModel3dPanel.vue"));
 
-/* ================== file-viewer 长尾面板（fv/*，按需加载） ================== */
+/* ================== file-viewer 主渲染面板（fv/*，按需加载） ================== */
 /**
- * fv/* 是「替换旧面板」的完整实现但此前从未接线，现用于 file-viewer 支持、
- * 但旧原生面板不覆盖的长尾格式（PDF/Office/TIFF/HEIC/PSD/CAD/DXF/DWG/IFC/
- * 模型3D/图片/音视频/GeoJSON/BPMN/drawio/OFD/DICOM/SWF/压缩包仍由上面的
- * 原生链路优先接管；本表只接管原生没吃掉的那部分）。
+ * fv/* 是 file-viewer 主渲染链路：text / doc / design / data / signature /
+ * binary / eda / chm / typst / drawing / geo / image / dicom / media / 3d /
+ * cad / archive 全部由 @file-viewer/vue3-full 的渲染器承接。
  *
  * <p>全部异步组件：面板内部各自动态 import 渲染器（CHM WASM、Typst WASM、
  * archive-wasm、binary 结构解析器等），不预览的人不该为它们付首屏成本。</p>
@@ -175,6 +128,7 @@ const FvGeoPanel = defineAsyncComponent(() => import("../components/fv/FvGeoPane
 const FvImagePanel = defineAsyncComponent(() => import("../components/fv/FvImagePanel.vue"));
 const FvDicomPanel = defineAsyncComponent(() => import("../components/fv/FvDicomPanel.vue"));
 const FvMediaPanel = defineAsyncComponent(() => import("../components/fv/FvMediaPanel.vue"));
+const VideoPreviewPanel = defineAsyncComponent(() => import("../components/VideoPreviewPanel.vue"));
 const FvModelPanel = defineAsyncComponent(() => import("../components/fv/FvModelPanel.vue"));
 const FvCadPanel = defineAsyncComponent(() => import("../components/fv/FvCadPanel.vue"));
 const FvArchivePanel = defineAsyncComponent(() => import("../components/fv/FvArchivePanel.vue"));
@@ -333,13 +287,15 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   kml: FvGeoPanel,
   gpx: FvGeoPanel,
   shp: FvGeoPanel,
+  // renderer-media：file-viewer 支持的音视频（MP4/WebM/HLS/OGG + 常见音频）
+  // 直渲；flv/m4v 不在 file-viewer formats 清单，仍由 VideoPreviewPanel 自研接管
   mp4: FvMediaPanel,
   webm: FvMediaPanel,
   m3u8: FvMediaPanel,
+  ogg: FvMediaPanel,
   mp3: FvMediaPanel,
   mpeg: FvMediaPanel,
   wav: FvMediaPanel,
-  ogg: FvMediaPanel,
   oga: FvMediaPanel,
   opus: FvMediaPanel,
   m4a: FvMediaPanel,
@@ -444,11 +400,41 @@ function isFvPanelFile(name: string): boolean {
   return !!FV_PANEL_BY_EXT[ext];
 }
 
+/**
+ * 视频面板（{@link VideoPreviewPanel}）接管的扩展名。
+ *
+ * <p>mp4/webm/m4v/ogg 是浏览器原生容器；m3u8 走 video.js
+ * 内置 VHS（Chrome / Firefox 也能播 HLS）；flv 走 flv.js。
+ * 按<b>扩展名</b>判定而非 {@code kindOf}：m3u8 / flv 的
+ * 类型是 unknown，进不了 kindOf === "video" 的旧媒体分发；
+ * m4v 同样不在 IMAGE/VIDEO 扩展名表里。</p>
+ */
+const VIDEO_PANEL_EXTS: ReadonlySet<string> = new Set([
+  // flv 只能走 flv.js；m4v 不在 file-viewer formats 清单，按 MP4 容器自研播放。
+  // mp4/webm/ogg/m3u8 已由 file-viewer renderer-media 接管。
+  "flv", "m4v",
+]);
+
+/** file-viewer 未收录、仍需 PreviewMediaPanel 兜底的媒体容器（含 AIFF 转码） */
+const FALLBACK_MEDIA_EXTS: ReadonlySet<string> = new Set([
+  "aiff", "aif", "mov", "avi", "mkv", "wmv", "3gp",
+]);
+
+/** 名称（顶层或包内条目）是否命中媒体自研兜底 */
+function isFallbackMedia(name: string): boolean {
+  const ext = extensionOf(name).toLowerCase();
+  return FALLBACK_MEDIA_EXTS.has(ext) || VIDEO_PANEL_EXTS.has(ext);
+}
+
+/** 判断某文件名（顶层或压缩包内）是否由图视频面板接管 */
+function isVideoPanelFile(name: string): boolean {
+  return VIDEO_PANEL_EXTS.has(extensionOf(name).toLowerCase());
+}
+
 import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { utf8ToBase64 } from "../utils/previewEntryRenderers";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
-import { detectModel3dFormat } from "../utils/model3d";
 import ReDialog from "@repo/ui/re-dialog";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
@@ -615,8 +601,11 @@ function isPreviewable(name: string): boolean {
   const k = kindOf(name);
   // geo（GeoJSON）不参与缩略图：?preview=true 对它回的是「不支持预览」提示页
   // （HTML 字节喂给 <img> 必然解码失败），地图类文件也没有有意义的像素缩略图，
-  // 走类型图标即可。
-  return !["archive", "unknown", "geo"].includes(k);
+  // 走类型图标即可。mindmap（XMind 脑图）同理：后端无脑图提供者，
+  // 且脑图是结构化文档，没有有意义的像素缩略图。
+  // jxl（JPEG XL）同理：后端 ImageIO 不支持 JXL 编码，?preview=true
+  // 生成不了缩略图，大图标模式会破图。
+  return !["archive", "unknown", "geo", "mindmap", "jxl"].includes(k);
 }
 
 /** 根据扩展名返回 SVG 图标类名 */
@@ -631,7 +620,7 @@ function fileIconClass(name: string, isDir: boolean): string {
     case "office": return "icon-office";
     case "archive": return "icon-archive";
     case "design": return "icon-image";
-    // 代码 / Markdown / CSV / 邮件 / 网页 / 数据等文本类文档统一使用文本色系图标
+    // 代码 / Markdown / CSV / 邮件 / 网页 / 数据 / 脑图等文本类文档统一使用文本色系图标
     case "text":
     case "code":
     case "markdown":
@@ -642,6 +631,7 @@ function fileIconClass(name: string, isDir: boolean): string {
     case "notebook":
     case "webpage":
     case "data":
+    case "mindmap":
       return "icon-text";
     default: return "icon-file";
   }
@@ -3190,12 +3180,37 @@ const previewVisible = ref(false);
 /**
  * 压缩包「第一层」结构弹层（两层拆分，需求：点包内**文件**弹新对话框）。
  *
- * <p>预览压缩包时开的是本弹层（只装 {@link ArchivePreviewPanel}），面板内用面包屑
- * 下钻目录；点文件才叠开第二层内容弹层（{@link previewVisible}，openArchiveEntry）。
- * 第一层在第二层打开期间保持挂载 —— 面包屑与展开状态因此原样保留，
- * 关掉第二层即回到原层级。其余类型不开本弹层，直接开内容弹层。</p>
+ * <p>本弹层现为<b>兜底通道</b>：顶层压缩包默认开 ReDialog 弹框
+ * （{@link archiveDialogVisible}，FvArchivePanel 新插件直渲）；弹框内
+ * 渲染失败（损坏包 / 不支持的压缩算法）时退回本弹层
+ * （{@link onArchivePanelFallback}）。面板内用面包屑下钻目录；点文件才叠开
+ * 第二层内容弹层（{@link previewVisible}，openArchiveEntry）。第一层在第二层
+ * 打开期间保持挂载 —— 面包屑与展开状态因此原样保留，关掉第二层即回到原层级。
+ * 其余类型不开本弹层，直接开内容弹层。</p>
  */
 const archiveVisible = ref(false);
+/**
+ * 压缩包「新插件」预览弹框（FvArchivePanel / file-viewer archive 渲染器）。
+ *
+ * <p>压缩包打开直接开居中弹框（与图片 / 文档等内容预览同形态，
+ * 不再走右侧抽屉）。包内浏览由 file-viewer 的 archive 渲染器在内存中
+ * 接管（嵌套渲染），不再叠弹层。渲染失败时 {@link onArchivePanelFallback}
+ * 关掉弹框、退回旧的两层弹层（{@link ArchivePreviewPanel}）。</p>
+ */
+const archiveDialogVisible = ref(false);
+
+/**
+ * 压缩包新插件渲染失败：关弹框，退回旧面板（ArchivePreviewPanel）兜底。
+ */
+function onArchivePanelFallback(): void {
+  archiveDialogVisible.value = false;
+  archiveVisible.value = true;
+}
+
+/** 压缩包新插件错误明细（界面由面板内 failReason 展示，这里只记录） */
+function onArchivePanelError(msg: string): void {
+  console.warn("[FileStorageManage] 压缩包新插件预览失败", msg);
+}
 const previewLoading = ref(false);
 const previewName = ref("");
 const previewKey = ref("");
@@ -3241,10 +3256,12 @@ async function openPreview(row: StorageObject): Promise<void> {
   officeLoading.value = false;
   iframeLoading.value = true;
   previewLoading.value = false;
-  // 两层拆分（需求：点压缩包内**文件**弹新对话框，关闭回到原层级、面包屑状态保留；
-  // 目录仍同层面包屑进入）：压缩包开第一层结构弹层，其余类型直接开第二层内容弹层。
+  // 压缩包：弹框直渲（FvArchivePanel 新插件，与图片 / 文档等内容预览
+  // 同形态的居中 ReDialog；包内浏览由 file-viewer 内存渲染接管）。
+  // 旧的两层弹层保留为兜底（见 onArchivePanelFallback）。其余类型直接开内容弹层。
   const isArchive = previewIsArchive.value;
-  archiveVisible.value = isArchive;
+  archiveDialogVisible.value = isArchive;
+  archiveVisible.value = false;
   previewVisible.value = !isArchive;
 }
 
@@ -3305,129 +3322,48 @@ const previewIsArchive = computed(() => kindOf(previewName.value) === "archive")
 const showImagePanel = computed(() => kindOf(previewName.value) === "image");
 
 /**
- * 当前文件是否走音视频面板（{@link PreviewMediaPanel}）。
+ * 当前文件是否走音视频兜底面板（{@link PreviewMediaPanel}）。
  *
- * <p>此前音视频靠 iframe + {@code ?preview=true} 回字节、用浏览器默认播放器渲染
- * —— 能播，但播放器脱离主题、没有时长/分辨率上下文。改为面板后与其它预览一致：
- * 读主应用主题（暗色跟随），票据、Range 拖动复用网关既有通道，零服务端改动。</p>
+ * <p>file-viewer renderer-media 已接管的 mp4/webm/m3u8/ogg 与常见音频
+ * （mp3/wav/flac/aac/m4a/midi 等）不再走这里；只保留 file-viewer 未收录的
+ * AIFF 转码与 mov/avi/mkv/wmv/3gp 等容器——后者浏览器通常解不了，
+ * 面板会给出「下载后用 VLC 打开」的明确错误态。</p>
  */
-const previewIsMedia = computed(() => {
-  const k = kindOf(previewName.value);
-  return k === "video" || k === "audio";
-});
+const previewIsMedia = computed(() => isFallbackMedia(previewName.value));
 
-/** 包内条目是否是音视频（此时 previewName 是压缩包名，判型必须用条目名） */
+/** 包内条目是否走音视频兜底面板（此时 previewName 是压缩包名，判型必须用条目名） */
 const innerIsMedia = computed(() => {
-  if (!previewInnerPath.value) {
-    return false;
-  }
-  const k = kindOf(innerEntryName.value);
-  return k === "video" || k === "audio";
+  return previewInnerPath.value !== "" && isFallbackMedia(innerEntryName.value);
 });
 
-/** 是否展示音视频面板（顶层媒体 或 压缩包内媒体下钻） */
+/** 是否展示音视频兜底面板（顶层媒体 或 压缩包内媒体下钻） */
 const showMediaPanel = computed(() => previewIsMedia.value || innerIsMedia.value);
 
-/** 音视频面板的条目路径：顶层为空串，包内为包内路径 */
+/** 音视频兜底面板的条目路径：顶层为空串，包内为包内路径 */
 const mediaInnerPath = computed(() => (innerIsMedia.value ? previewInnerPath.value : ""));
 
 /**
- * 当前文件是否走 GeoJSON 地图面板（{@link PreviewGeoPanel}）。
+ * 当前文件是否走视频面板（{@link VideoPreviewPanel}）。
  *
- * <p>纯前端 Leaflet 渲染：票据取回 JSON 字节，浏览器内画矢量层。
- * 与 CAD / IFC 面板同理不进 iframe —— 那条通道读不到主应用主题，
- * 且后端没有 geojson 提供者，落下去只会命中「不支持预览」提示页。</p>
+ * <p>video.js 播放器接管原生容器 / HLS / FLV（扩展名清单见
+ * {@link VIDEO_PANEL_EXTS}）。与音视频面板不冲突：本组扩展名
+ * 命中后模板里视频面板分支在先；mov/avi/mkv 等浏览器解不了
+ * 的容器仍由 {@link PreviewMediaPanel} 的「无法解码」错误态兜底。</p>
  */
-const previewIsGeo = computed(() => kindOf(previewName.value) === "geo");
-
-/** 包内条目是否是 GeoJSON */
-const innerIsGeo = computed(
-  () => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "geo",
+const previewIsVideoPanel = computed(() =>
+  VIDEO_PANEL_EXTS.has(extensionOf(previewName.value).toLowerCase()),
 );
 
-/** 是否展示 GeoJSON 面板（顶层 或 压缩包内下钻） */
-const showGeoPanel = computed(() => previewIsGeo.value || innerIsGeo.value);
-
-/** GeoJSON 面板的条目路径：顶层为空串，包内为包内路径 */
-const geoInnerPath = computed(() => (innerIsGeo.value ? previewInnerPath.value : ""));
-
-/**
- * 当前文件是否走 BPMN 流程图面板（{@link PreviewBpmnPanel}）。
- *
- * <p>纯前端 bpmn-js 渲染：票据取回 XML 字节，浏览器内画流程图。
- * 与 Geo 面板同理不进 iframe —— 那条通道读不到主应用主题，
- * 且后端没有 bpmn 提供者，落下去只会命中「不支持预览」提示页。</p>
- */
-const previewIsBpmn = computed(() => kindOf(previewName.value) === "bpmn");
-
-/** 包内条目是否是 BPMN（此时 previewName 是压缩包名，判型必须用条目名） */
-const innerIsBpmn = computed(
-  () => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "bpmn",
+/** 包内条目是否走视频面板（判型必须用条目名） */
+const innerIsVideoPanel = computed(
+  () => previewInnerPath.value !== "" && VIDEO_PANEL_EXTS.has(extensionOf(innerEntryName.value).toLowerCase()),
 );
 
-/** 是否展示 BPMN 面板（顶层 或 压缩包内下钻） */
-const showBpmnPanel = computed(() => previewIsBpmn.value || innerIsBpmn.value);
+/** 是否展示视频面板（顶层 或 压缩包内下钻） */
+const showVideoPanel = computed(() => previewIsVideoPanel.value || innerIsVideoPanel.value);
 
-/** BPMN 面板的条目路径：顶层为空串，包内为包内路径 */
-const bpmnInnerPath = computed(() => (innerIsBpmn.value ? previewInnerPath.value : ""));
-
-/**
- * 当前文件是否走 drawio 绘图面板（{@link PreviewDrawioPanel}）。
- *
- * <p>自托管 viewer-static.min.js 离线渲染 mxGraph XML（明文或 base64+deflate
- * 压缩形态都支持）。drawio 文件是文本 XML，与代码/网页类不冲突：后端没有
- * drawio 提供者，进 iframe 只会命中「不支持预览」页，故前端接住。</p>
- */
-const previewIsDrawio = computed(() => kindOf(previewName.value) === "drawio");
-
-/** 包内条目是否是 drawio 绘图（判型用条目名，previewName 此时是压缩包名） */
-const innerIsDrawio = computed(
-  () => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "drawio",
-);
-
-/** 是否展示 drawio 面板（顶层 或 压缩包内下钻） */
-const showDrawioPanel = computed(() => previewIsDrawio.value || innerIsDrawio.value);
-
-/** drawio 面板的条目路径：顶层为空串，包内为包内路径 */
-const drawioInnerPath = computed(() => (innerIsDrawio.value ? previewInnerPath.value : ""));
-
-/**
- * 当前文件是否走 OFD 面板（{@link PreviewOfdPanel}）。
- *
- * <p>OFD 是国产版式文档（电子发票/公文常用），纯前端 @ofdjs/viewer 解析渲染，
- * 后端没有对应提供者。与 PDF 的关系：扩展名互斥，各走各的通道。</p>
- */
-const previewIsOfd = computed(() => kindOf(previewName.value) === "ofd");
-
-/** 包内条目是否是 OFD（判型用条目名） */
-const innerIsOfd = computed(
-  () => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "ofd",
-);
-
-/** 是否展示 OFD 面板（顶层 或 压缩包内下钻） */
-const showOfdPanel = computed(() => previewIsOfd.value || innerIsOfd.value);
-
-/** OFD 面板的条目路径：顶层为空串，包内为包内路径 */
-const ofdInnerPath = computed(() => (innerIsOfd.value ? previewInnerPath.value : ""));
-
-/**
- * 当前文件是否走 DICOM 面板（{@link PreviewDicomPanel}）。
- *
- * <p>医疗影像 .dcm 用 cornerstone3D 前端渲染（拖拽调窗宽窗位、滚轮翻帧），
- * 后端无医疗影像提供者。JPEG2000 等压缩语法面板内点名降级提示。</p>
- */
-const previewIsDicom = computed(() => kindOf(previewName.value) === "dicom");
-
-/** 包内条目是否是 DICOM（判型用条目名） */
-const innerIsDicom = computed(
-  () => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "dicom",
-);
-
-/** 是否展示 DICOM 面板（顶层 或 压缩包内下钻） */
-const showDicomPanel = computed(() => previewIsDicom.value || innerIsDicom.value);
-
-/** DICOM 面板的条目路径：顶层为空串，包内为包内路径 */
-const dicomInnerPath = computed(() => (innerIsDicom.value ? previewInnerPath.value : ""));
+/** 视频面板的条目路径：顶层为空串，包内为包内路径 */
+const videoInnerPath = computed(() => (innerIsVideoPanel.value ? previewInnerPath.value : ""));
 
 /**
  * 当前文件是否走 SWF 面板（{@link PreviewSwfPanel}）。
@@ -3448,19 +3384,31 @@ const showSwfPanel = computed(() => previewIsSwf.value || innerIsSwf.value);
 /** SWF 面板的条目路径：顶层为空串，包内为包内路径 */
 const swfInnerPath = computed(() => (innerIsSwf.value ? previewInnerPath.value : ""));
 
+/**
+ * 当前文件是否走 Sketch 面板（{@link SketchPreviewPanel}）。
+ *
+ * <p>.sketch 是 ZIP 容器，file-viewer 与后端均不支持；
+ * 面板用 jszip 解出页面 / 画板结构，纯前端渲染。</p>
+ */
+const previewIsSketch = computed(() => kindOf(previewName.value) === "sketch");
+
+/** 包内条目是否是 Sketch（判型用条目名） */
+const innerIsSketch = computed(
+  () => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "sketch",
+);
+
+/** 是否展示 Sketch 面板（顶层 或 压缩包内下钻） */
+const showSketchPanel = computed(() => previewIsSketch.value || innerIsSketch.value);
+
+/** Sketch 面板的条目路径：顶层为空串，包内为包内路径 */
+const sketchInnerPath = computed(() => (innerIsSketch.value ? previewInnerPath.value : ""));
+
 /** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
 function onImageSaved(): void {
   void loadObjects();
   message.success("图片已更新");
 }
 
-/**
- * 当前文件是否走 CAD 面板（{@link CadPreviewPanel}）。
- *
- * DXF 可出真实图形，DWG 只有版本信息——两者都归这个面板，
- * 由它按 `renderable` 决定显示画布还是信息卡。
- * 同样不进 iframe：那条通道读不到主应用的 koi 主题变量。
- */
 /**
  * 该文件是否应走服务端「转 PDF」通道预览。
  *
@@ -3474,6 +3422,9 @@ function onImageSaved(): void {
  *       实测转出 23 KB / 7.6 KB / 14.8 KB 的有效 PDF。</li>
  *   <li><b>WPS（wps）</b>：后端 AsposeWord 的源格式里已经有 wps（实测把一份 OLE2
  *       文档改名成 .wps 走 format=pdf 能出真 PDF 19745 B），故接线。</li>
+ *   <li><b>传统二进制 Word（doc）</b>：file-viewer 的 renderer-word 对部分
+ *       97-2003 CFB 样本会抛 sector loop；后端 Aspose 转换可稳定出 PDF，
+ *       且转换结果仍交给 file-viewer 的 renderer-pdf 渲染。</li>
  * </ul>
  *
  * <p>注意：这条通道原本**只有「客户端组件失败后回报 channel:pdf」才会走**；
@@ -3494,28 +3445,8 @@ function needsPdfConvert(name: string): boolean {
   //
   // et / dps 不在此列：三个 Aspose 转换器的源格式里都没有它们，实测接线也只会
   // 得到 convert=unavailable 并退回提示卡，属于白试一次，故不接。
-  return ["ott", "ots", "otp", "wps"].includes(ext);
+  return ["ott", "ots", "otp", "doc", "wps"].includes(ext);
 }
-
-/**
- * 该文件是否交给 CAD 面板（而不是 iframe）。
- *
- * <p>CAD 面板走的是 {@code ?format=cad} 数据通道，而后端该通道**只解析 DXF 与 DWG**；
- * 阶段①其余模型/版图扩展名已由 fv 面板（renderer-3d / renderer-cad / renderer-geo）
- * 接管；只有 dgn / blend 这类 file-viewer 没登记的扩展名才继续走后端信息卡。</p>
- *
- * @param name 文件名
- * @returns true 表示该走 CAD 面板
- */
-function isCadPanelFile(name: string): boolean {
-  if (kindOf(name) !== "model") {
-    return false;
-  }
-  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  return ext === "dxf" || ext === "dwg";
-}
-
-const previewIsCad = computed(() => isCadPanelFile(previewName.value));
 
 /**
  * 压缩包内正在预览的条目路径（空串表示只看包结构）。
@@ -3525,16 +3456,6 @@ const previewIsCad = computed(() => isCadPanelFile(previewName.value));
  * 文件内容渲染仍复用既有通道，避免为每种格式再写一套。
  */
 const previewInnerPath = ref("");
-
-/**
- * 包内条目是否走 CAD 面板（而不是 iframe）。
- *
- * <p>DXF / DWG 留在 iframe 里会被 {@code ThreeModelPreviewProvider} 抢走：它也声明了
- * {@code dxf}，出的是透视相机 + 轨道控制的蓝色线框，没有文字、没有图层、没有图层列表。
- * 于是同一张图在顶层是二维 CAD 面板、在包内变成三维查看器。改为同样走
- * {@code ?format=cad&inner=} 数据通道 + {@link CadPreviewPanel}，两层表现一致。</p>
- */
-const innerIsCad = computed(() => isCadPanelFile(innerEntryName.value));
 
 /** 包内条目文件名（取路径末段，供类型判定用） */
 const innerEntryName = computed(() => {
@@ -3546,65 +3467,8 @@ const innerEntryName = computed(() => {
   return slash >= 0 ? p.slice(slash + 1) : p;
 });
 
-/** 是否展示 CAD 面板（DXF 出图形 / DWG 出头部信息） */
-const showCadPanel = computed(() => previewIsCad.value || innerIsCad.value);
-
-/** CAD 面板解析的条目路径：顶层为空串，包内为包内路径 */
-const cadInnerPath = computed(() => (innerIsCad.value ? previewInnerPath.value : ""));
-
 /**
- * 当前文件是否走 IFC 面板（{@link PreviewIfcPanel}）。
- *
- * IFC 是 BIM 三维模型，three.js 无原生 IFC 加载器，纯前端由 web-ifc 解析、
- * three 渲染。与 CAD 面板一样不进 iframe：那条通道读不到主应用主题变量，
- * 且后端没有 IFC provider（会把请求落到「不支持预览」提示页）。
- *
- * 顶层 .ifc 与压缩包内 .ifc 都归这个面板（包内字节走 ?preview&inner 的
- * inner-raw 通道取回）。
- */
-function isIfcFile(name: string): boolean {
-  if (kindOf(name) !== "model") {
-    return false;
-  }
-  return name.slice(name.lastIndexOf(".") + 1).toLowerCase() === "ifc";
-}
-
-const previewIsIfc = computed(() => isIfcFile(previewName.value));
-const innerIsIfc = computed(() => previewInnerPath.value !== "" && isIfcFile(innerEntryName.value));
-
-/** 是否展示 IFC 面板（顶层 .ifc 或压缩包内 .ifc） */
-const showIfcPanel = computed(() => previewIsIfc.value || innerIsIfc.value);
-
-/** IFC 面板解析的条目路径：顶层为空串，包内为包内路径 */
-const ifcInnerPath = computed(() => (innerIsIfc.value ? previewInnerPath.value : ""));
-
-/**
- * 通用 3D 面板支持的格式（step/stp/iges/igs/brep/3dm/3ds/ply/dae/wrl/3mf/off）。
- *
- * <p>判定复用 {@link detectModel3dFormat}（单一事实来源在 utils/model3d.ts），
- * 刻意不含 glb/gltf/obj/stl/dxf/dwg —— 它们已有后端 Three/CAD 通道，
- * 抢过来反而丢掉现成的服务端渲染。</p>
- */
-function isModel3dFile(name: string): boolean {
-  return detectModel3dFormat(name) !== null;
-}
-
-/** 当前文件是否走通用 3D 面板（PreviewModel3dPanel） */
-const previewIsModel3d = computed(() => isModel3dFile(previewName.value));
-
-/** 包内条目是否走通用 3D 面板（判型用条目名） */
-const innerIsModel3d = computed(
-  () => previewInnerPath.value !== "" && isModel3dFile(innerEntryName.value),
-);
-
-/** 是否展示通用 3D 面板（顶层 或 压缩包内下钻） */
-const showModel3dPanel = computed(() => previewIsModel3d.value || innerIsModel3d.value);
-
-/** 通用 3D 面板的条目路径：顶层为空串，包内为包内路径 */
-const model3dInnerPath = computed(() => (innerIsModel3d.value ? previewInnerPath.value : ""));
-
-/**
- * 该文件是否由「前端直渲面板」接管（自己发请求、自己管加载态）。
+ * 当前文件是否走 TGA / Sketch / SWF 等 file-viewer 不支持或自研增强面板。
  *
  * <p>这些面板都在主应用文档内渲染（iframe 是独立文档，读不到 koi 主题变量），
  * 所以点包内条目时不该再置 iframe 加载态，否则骨架屏会一直挂在面板上。</p>
@@ -3617,7 +3481,7 @@ function isClientPanelFile(name: string): boolean {
   if (
     kind === "tiff" || kind === "heic" || kind === "design" || kind === "tga" ||
     kind === "bpmn" || kind === "ofd" || kind === "drawio" ||
-    kind === "dicom" || kind === "swf"
+    kind === "dicom" || kind === "swf" || kind === "sketch"
   ) {
     return true;
   }
@@ -3625,40 +3489,32 @@ function isClientPanelFile(name: string): boolean {
   return CLIENT_DATA_EXTS.has(ext) || CLIENT_PSD_EXTS.has(ext);
 }
 
-/** 当前文件 / 包内条目分别命中的直渲面板 */
-const previewIsDataPanel = computed(() => CLIENT_DATA_EXTS.has(extensionOf(previewName.value)));
-const previewIsTiff = computed(() => kindOf(previewName.value) === "tiff");
-const previewIsHeic = computed(() => kindOf(previewName.value) === "heic");
-const previewIsPsd = computed(() => CLIENT_PSD_EXTS.has(extensionOf(previewName.value)));
+/** 当前文件 / 包内条目分别命中的自研兜底面板（file-viewer 不支持才走这里） */
 const previewIsTga = computed(() => kindOf(previewName.value) === "tga");
 
-const innerIsDataPanel = computed(() => previewInnerPath.value !== "" && CLIENT_DATA_EXTS.has(extensionOf(innerEntryName.value)));
-const innerIsTiff = computed(() => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "tiff");
-const innerIsHeic = computed(() => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "heic");
-const innerIsPsd = computed(() => previewInnerPath.value !== "" && CLIENT_PSD_EXTS.has(extensionOf(innerEntryName.value)));
 const innerIsTga = computed(() => previewInnerPath.value !== "" && kindOf(innerEntryName.value) === "tga");
 
 /**
- * 各直渲面板的显隐与条目路径
+ * 自研兜底面板的显隐与条目路径
  *
  * <p>均带 {@code !previewForceServer}：面板解码失败会 {@code fallback} 一次，
  * 父组件把 {@code previewForceServer} 置位后这些分支必须全部让开，
  * 否则会「退回服务端」却仍卡在同一个失败面板上（死循环）。</p>
  */
-const showDataPanel = computed(() => (previewIsDataPanel.value || innerIsDataPanel.value) && !previewForceServer.value);
-const showTiffPanel = computed(() => (previewIsTiff.value || innerIsTiff.value) && !previewForceServer.value);
-const showHeicPanel = computed(() => (previewIsHeic.value || innerIsHeic.value) && !previewForceServer.value);
-const showPsdPanel = computed(() => (previewIsPsd.value || innerIsPsd.value) && !previewForceServer.value);
 const showTgaPanel = computed(() => (previewIsTga.value || innerIsTga.value) && !previewForceServer.value);
 
-const dataPanelInnerPath = computed(() => (innerIsDataPanel.value ? previewInnerPath.value : ""));
-const tiffPanelInnerPath = computed(() => (innerIsTiff.value ? previewInnerPath.value : ""));
-const heicPanelInnerPath = computed(() => (innerIsHeic.value ? previewInnerPath.value : ""));
-const psdPanelInnerPath = computed(() => (innerIsPsd.value ? previewInnerPath.value : ""));
 const tgaPanelInnerPath = computed(() => (innerIsTga.value ? previewInnerPath.value : ""));
 
+/** file-viewer renderer-3d 未登记 OFF，保留自研 three 行式解析兜底 */
+const previewIsOff = computed(() => extensionOf(previewName.value).toLowerCase() === "off");
+const innerIsOff = computed(
+  () => previewInnerPath.value !== "" && extensionOf(innerEntryName.value).toLowerCase() === "off",
+);
+const showOffPanel = computed(() => (previewIsOff.value || innerIsOff.value) && !previewForceServer.value);
+const offInnerPath = computed(() => (innerIsOff.value ? previewInnerPath.value : ""));
+
 /** 预览包内条目：叠开第二层内容弹层（第一层结构弹层保持打开，面包屑状态保留）；
- *  CAD / 音视频 / 地理数据与其它前端直渲面板自己发请求，其余切到 iframe 通道 */
+ *  file-viewer 与自研兜底面板自己发请求，其余切到 iframe 通道 */
 function openArchiveEntry(path: string): void {
   previewInnerPath.value = path;
   previewVisible.value = true;
@@ -3671,7 +3527,8 @@ function openArchiveEntry(path: string): void {
   const kind = kindOf(name);
   if (
     kind === "model" || kind === "video" || kind === "audio" || kind === "geo" ||
-    isClientPanelFile(name) || isFvPanelFile(name)
+    kind === "sketch" ||
+    isClientPanelFile(name) || isFvPanelFile(name) || isVideoPanelFile(name)
   ) {
     // 面板自己签票据、自己发请求并维护加载态，iframe 加载态会让骨架屏挂在它上面
     return;
@@ -3822,11 +3679,12 @@ function openPreviewInNewTab(row: StorageObject): void {
     return;
   }
   // 公共桶：文件直链 base64 后交给统一入口（render=server 服务器预览通道）。
-  // 入口页 preview.html 部署在文件服务器 static 下（Spring 静态资源），故以
-  // 文件服务器 origin 为基准解析，而非当前页面 origin（应用内嵌时两者不同）。
+  // 入口页部署为文件服务器 classpath static/preview/index.html（/preview/ 目录
+  // welcome 形式，宿主无关），故以文件服务器 origin 为基准解析，而非当前页面
+  // origin（应用内嵌时两者不同）。
   const base = getServerBase().replace(/\/+$/, "");
   const direct = `${base}/${encodeURIComponent(bucket.value)}/${fullKey(row.name).split("/").map(encodeURIComponent).join("/")}`;
-  const entry = new URL("preview.html", base.endsWith("/") ? base : `${base}/`);
+  const entry = new URL("preview/", base.endsWith("/") ? base : `${base}/`);
   entry.searchParams.set("url", utf8ToBase64(direct));
   entry.searchParams.set("render", "server");
   window.open(entry.toString(), "_blank");
@@ -5281,6 +5139,35 @@ onUnmounted(() => {
       </template>
     </ReDialog>
 
+    <!-- ===== 压缩包预览（新插件：居中弹框） =====
+         压缩包开与图片 / 文档等内容预览同形态的居中 ReDialog
+         （FvArchivePanel），包内浏览由 file-viewer
+         archive 渲染器内存渲染接管，不再叠弹层；失败 @fallback
+         退回下面的旧两层弹层兜底。 -->
+    <ReDialog
+      v-model="archiveDialogVisible"
+      class="fs-preview-dlg fs-archive-dlg"
+      width="min(1200px, 92vw)"
+      top="5px"
+      :title="previewName"
+      :show-close="true"
+      :draggable="true"
+      :append-to-body="true"
+      :close-on-click-modal="true"
+      destroy-on-close
+    >
+      <FvArchivePanel
+        v-if="archiveDialogVisible"
+        :bucket="bucket"
+        :object-key="previewKey"
+        :file-name="previewName"
+        :size="previewSize"
+        @rendered="onOfficeRendered"
+        @fallback="onArchivePanelFallback"
+        @error="onArchivePanelError"
+      />
+    </ReDialog>
+
     <!-- ===== 压缩包结构弹层（第一层，两层拆分） =====
          需求：点包内**文件**弹新对话框（关闭回到原层级、面包屑状态保留），目录仍同层
          面包屑进入。因此结构面板独占本弹层，且在第二层内容弹层打开期间保持挂载 ——
@@ -5319,7 +5206,7 @@ onUnmounted(() => {
       v-model="previewVisible"
       class="fs-preview-dlg fs-content-dlg"
       width="min(1200px, 92vw)"
-      top="10px"
+      top="5px"
       :title="previewTitle"
       :show-close="true"
       :draggable="true"
@@ -5350,84 +5237,23 @@ onUnmounted(() => {
             <span class="fs-preview__inner-path" :title="previewInnerPath">{{ previewInnerPath }}</span>
           </div>
           <!-- 压缩包结构面板（ArchivePreviewPanel）已拆到第一层弹层 fs-archive-dlg：
-               本层只放包内条目 / 普通文件的内容链路，分支从 CAD 起。 -->
-          <CadPreviewPanel
-            v-if="!previewError && showCadPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="cadInnerPath"
-          />
-          <PreviewIfcPanel
-            v-else-if="!previewError && showIfcPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="ifcInnerPath"
-          />
-          <!-- 通用 3D（step/iges/brep/3dm/3ds/ply/dae/wrl/3mf/off）：纯前端
-               OCCT / rhino3dm / three 加载器渲染，后端这批格式没有 provider -->
+               本层只放包内条目 / 普通文件的内容链路，分支从 OFF/自研兜底起。 -->
+          <!-- OFF：file-viewer renderer-3d 未登记，保留通用 3D 面板只接 OFF -->
           <PreviewModel3dPanel
-            v-else-if="!previewError && showModel3dPanel"
+            v-if="!previewError && showOffPanel"
             :bucket="bucket"
             :object-key="previewKey"
             :file-name="previewName"
-            :inner="model3dInnerPath"
+            :inner="offInnerPath"
             :size="previewSize"
           />
-          <!--
-            前端直渲的几类：数据表 / TIFF / HEIC / PSD。
-            分支放在原生图片面板之前是因为 TIFF、HEIC 在浏览器里就是解不开的
-            （落到 PreviewImagePanel 只会得到「图片加载失败」）。
-          -->
-          <DataPreviewPanel
-            v-else-if="showDataPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="dataPanelInnerPath"
-            @fallback="onClientPanelFallback"
-          />
-          <TiffPreviewPanel
-            v-else-if="showTiffPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="tiffPanelInnerPath"
-            @fallback="onClientPanelFallback"
-          />
-          <HeicPreviewPanel
-            v-else-if="showHeicPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="heicPanelInnerPath"
-            @fallback="onClientPanelFallback"
-          />
-          <PsdPreviewPanel
-            v-else-if="showPsdPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="psdPanelInnerPath"
-            @fallback="onClientPanelFallback"
-          />
-          <!-- TGA：纯前端 TS 解码器直渲（无服务端通道，失败在面板内提示） -->
+          <!-- TGA：file-viewer 无 TGA 渲染器，纯前端 TS 解码器直渲 -->
           <PreviewTgaPanel
             v-else-if="!previewError && showTgaPanel"
             :bucket="bucket"
             :object-key="previewKey"
             :file-name="previewName"
             :inner="tgaPanelInnerPath"
-            :size="previewSize"
-          />
-          <!-- DICOM：cornerstone3D 前端渲染（拖拽调窗宽窗位 / 滚轮翻帧） -->
-          <PreviewDicomPanel
-            v-else-if="!previewError && showDicomPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="dicomInnerPath"
             :size="previewSize"
           />
           <!-- SWF：Ruffle WASM 模拟器播放（自托管 public/ruffle 运行时） -->
@@ -5439,6 +5265,17 @@ onUnmounted(() => {
             :inner="swfInnerPath"
             :size="previewSize"
           />
+          <!-- Sketch：file-viewer 不支持，jszip 解结构前端渲染（页面/画板/预览图） -->
+          <SketchPreviewPanel
+            v-else-if="!previewError && showSketchPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="sketchInnerPath"
+            :size="previewSize"
+          />
+          <!-- 图片编辑/保存是 file-viewer 没有的能力，保留原生图片面板；
+               TIFF/HEIC/JXL 等 file-viewer 可直接解码的格式继续落到 fvPanel -->
           <PreviewImagePanel
             v-else-if="!previewError && showImagePanel"
             :bucket="bucket"
@@ -5447,8 +5284,17 @@ onUnmounted(() => {
             :image-path="imageFilterPath"
             @saved="onImageSaved"
           />
-          <!-- 音视频：主应用内 <video>/<audio>，票据直链 + 网关 Range 拖动；
-               包内条目经 ?preview&inner 提取字节（媒体面板内部处理 inner） -->
+          <!-- 视频：flv/m4v 不在 file-viewer formats 清单，仍走 video.js/flv.js -->
+          <VideoPreviewPanel
+            v-else-if="!previewError && showVideoPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            :inner="videoInnerPath"
+            :size="previewSize"
+          />
+          <!-- 音频/视频兜底：仅 aiff/mov/avi/mkv 等 file-viewer 未收录的容器；
+               mp4/webm/m3u8/ogg 与常见音频由上方 file-viewer fvPanel 渲染 -->
           <PreviewMediaPanel
             v-else-if="!previewError && showMediaPanel"
             :bucket="bucket"
@@ -5457,42 +5303,12 @@ onUnmounted(() => {
             :inner="mediaInnerPath"
             :size="previewSize"
           />
-          <!-- GeoJSON：纯前端 Leaflet 矢量渲染（异步加载，见组件导入处） -->
-          <PreviewGeoPanel
-            v-else-if="!previewError && showGeoPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="geoInnerPath"
-            :size="previewSize"
-          />
-          <!-- BPMN 流程图：纯前端 bpmn-js 渲染（异步加载，见组件导入处） -->
-          <PreviewBpmnPanel
-            v-else-if="!previewError && showBpmnPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="bpmnInnerPath"
-            :size="previewSize"
-          />
-          <!-- drawio 绘图：自托管 viewer-static 离线渲染（支持明文 / base64+deflate 压缩形态） -->
-          <PreviewDrawioPanel
-            v-else-if="!previewError && showDrawioPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="drawioInnerPath"
-            :size="previewSize"
-          />
-          <!-- OFD 版式文档：纯前端 @ofdjs/viewer 渲染（异步加载，见组件导入处） -->
-          <PreviewOfdPanel
-            v-else-if="!previewError && showOfdPanel"
-            :bucket="bucket"
-            :object-key="previewKey"
-            :file-name="previewName"
-            :inner="ofdInnerPath"
-            :size="previewSize"
-          />
+          <!--
+            OFD 版式文档：ofd 命中 CLIENT_RENDERABLE_EXTS（previewUsesClient），
+            统一交给下方 PreviewOfficePanel 的 file-viewer renderer-ofd（纯 jszip
+            解析，无 wasm/worker）。原 PreviewOfdPanel（@ofdjs/viewer）对本仓库
+            OFD 样例会抛未捕获异常导致弹框关闭，故改走 file-viewer。
+          -->
           <!--
             PDF 与「服务端转成 PDF 的文档」统一交给 file-viewer 的 renderer-pdf：
             .pdf 命中 previewUsesClient，落到下面的 PreviewOfficePanel；
@@ -5551,7 +5367,6 @@ onUnmounted(() => {
   gap: 14px;
   height: 100%;
   min-height: 0;
-  padding: 12px;
   background: var(--el-bg-color-page, var(--el-fill-color-light));
   color: var(--el-text-color-primary);
   overflow: hidden;

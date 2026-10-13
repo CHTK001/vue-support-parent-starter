@@ -108,11 +108,17 @@ import ReDialog from "../ReDialog";
 
 interface ReTreeProps {
   // -- 数据源双模式 --
-  /** 静态数据（与 url/loader 互斥） */
-  data?: ReTreeItem[];
-  /** 远程数据 url */
+  /**
+   * 静态数据（与 url/loader 互斥）。
+   *
+   * <p>传函数则等价于 {@link loader}，走远程加载（与 ReTable / ReSelect 的
+   * 「data 传函数 = 加载器」约定一致）；根节点以 {@code null} 调用，
+   * 子节点懒加载时以父节点数据调用。两者都传时以 data 的函数形态优先。</p>
+   */
+  data?: ReTreeItem[] | ReTreeLoader;
+  /** 远程数据 url（便捷别名；统一口径为 data（数组｜函数）+ loader，同 ReTable / ReSelect） */
   url?: string;
-  /** 远程数据加载器（与 url 互斥） */
+  /** 远程数据加载器（与 data 传函数等价，url 为便捷别名） */
   loader?: ReTreeLoader;
   /** 远程默认展开的节点 id 列表（即初始展开级，影响懒加载） */
   defaultExpandedKeys?: (string | number)[];
@@ -238,14 +244,24 @@ interface ElTreeMethods {
 const treeRef = ref<ElTreeMethods | null>(null);
 
 // ---- 数据源处理 ----
-const sourceType = computed(() => {
-  if (props.data !== undefined) return "local";
+/**
+ * 数据源类型：data 传数组 = local；data 传函数等价于 loader；url = url；loader = loader。
+ * 优先级 data(函数) &gt; loader &gt; url，与 ReSelect / ReTable 的 data+loader 口径一致。
+ */
+const sourceType = computed<"local" | "url" | "loader">(() => {
+  if (typeof props.data === "function") return "loader";
+  if (Array.isArray(props.data)) return "local";
+  if (typeof props.loader === "function") return "loader";
   if (props.url !== undefined) return "url";
-  if (props.loader !== undefined) return "loader";
   return "local";
 });
 
-const treeData = ref<ReTreeItem[]>(props.data ?? []);
+/** 生效的远程加载器：data 传函数优先，其次 loader */
+const activeLoader = computed<ReTreeLoader | undefined>(() =>
+  typeof props.data === "function" ? props.data : props.loader,
+);
+
+const treeData = ref<ReTreeItem[]>(Array.isArray(props.data) ? props.data : []);
 
 // 远程数据加载（首次加载根节点）——source 恒返回 ReTreeItem[]，避免混合 url 字符串破坏类型
 const { loading: rootLoading, data: rootData, reload: rootReload } = useDataSource<ReTreeItem[]>(
@@ -262,13 +278,13 @@ const { loading: rootLoading, data: rootData, reload: rootReload } = useDataSour
         .catch(() => [] as ReTreeItem[]);
     }
     if (sourceType.value === "loader") {
-      // loader 需要由外部提供根节点数据
-      if (typeof props.loader === "function") {
-        return props.loader(null as unknown as ReTreeItem) ?? [];
+      // loader / data 传函数：需要由外部提供根节点数据，根节点以 null 调用
+      if (typeof activeLoader.value === "function") {
+        return activeLoader.value(null as unknown as ReTreeItem) ?? [];
       }
       return [] as ReTreeItem[];
     }
-    return props.data ?? [];
+    return Array.isArray(props.data) ? props.data : [];
   }
 );
 
@@ -312,8 +328,8 @@ const loadFunction = (node: Node, resolve: (data: ReTreeItem[]) => void) => {
     return;
   }
 
-  if (props.loader && parentId) {
-    Promise.resolve(props.loader(node.data as ReTreeItem))
+  if (activeLoader.value && parentId) {
+    Promise.resolve(activeLoader.value(node.data as ReTreeItem))
       .then(resolve)
       .catch(() => resolve([]));
     return;

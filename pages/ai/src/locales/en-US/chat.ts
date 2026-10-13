@@ -232,6 +232,8 @@
     systemMessage: 'System Message',
     apiError: 'API Request Error',
     requestTimeout: 'Request Timeout',
+    routeTitle: 'Provider that actually served this reply',
+    routeUnknownProvider: 'Unknown provider',
     serverNoResponse: 'The server has not responded with data for a while, please try again later',
     manuallyTerminated: 'Manually Terminated',
     maxIterationsReached: 'Maximum tool call iterations reached',

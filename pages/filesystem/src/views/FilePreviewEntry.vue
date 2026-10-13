@@ -116,6 +116,39 @@ const rendererLoading = ref(false);
 
 const loadingVisible = computed(() => state.value === "loading" || (state.value === "client" && rendererLoading.value));
 
+/**
+ * 透传给 file-viewer 的扩展 options（官方协议字段）：
+ * - search.enabled：文本/代码类显式开启关键词搜索（命中高亮 + 计数 UI 由内置搜索框承担）；
+ * - search.className / activeClassName：命中高亮的 DOM 标记 class（宿主可在
+ *   styleIsolation:'none' 时深度定制样式；'auto'（Shadow DOM）下用内置默认视觉）。
+ */
+const viewerExtra = {
+  search: {
+    enabled: true,
+    className: "fpe-search-hit",
+    activeClassName: "fpe-search-hit--active",
+  },
+};
+
+/**
+ * 代码类扩展：关键词高亮输入框只对这些显示。
+ * 配置/标记类（json/yaml/ini/xml/md…）打开即自带语法高亮显示，无需再搜。
+ */
+const CODE_EXTS = new Set([
+  "js", "mjs", "cjs", "ts", "tsx", "jsx", "vue", "java", "py", "rb", "rs", "go",
+  "php", "c", "cpp", "cc", "h", "hpp", "cs", "kt", "swift", "sql", "sh", "bash",
+  "css", "diff", "patch",
+]);
+
+/**
+ * 地址栏 ?kw=<关键词>：首帧渲染完成后自动对全文做关键词高亮
+ * （走 file-viewer searchDocument 官方 API，命中计数与高亮由内置引擎完成）。
+ */
+const initialKeyword = computed(() => {
+  const qs = new URLSearchParams(window.location.search);
+  return (qs.get("kw") ?? "").trim();
+});
+
 /** 大小格式化（仅展示） */
 function formatSize(bytes: number | null): string {
   if (!bytes || bytes <= 0) return "-";
@@ -160,8 +193,9 @@ function fileNameOfUrl(fileUrl: string): string {
   }
 }
 
-/** 拼接直链参数（文件直链可能已带查询串） */
+/** 拼接直链参数（文件直链可能已带查询串；param 为空串时不拼接） */
 function withParam(u: string, param: string): string {
+  if (!param) return u;
   return `${u}${u.includes("?") ? "&" : "?"}${param}`;
 }
 
@@ -357,12 +391,14 @@ onMounted(async (): Promise<void> => {
   }
   const fileName = (qs.get("name") || "").trim() || fileNameOfUrl(fileUrl);
   const render = (qs.get("render") || "").trim().toLowerCase();
+  const keywordParam = (qs.get("kw") ?? "").trim();
 
   // render=server：入口内直接 iframe 服务端通道（后端把文件转成 HTML 预览页，
-  // 实际返回统一入口壳 → 内嵌态渲染，因此 iframe 内仍是 file-viewer 效果）
+  // 实际返回统一入口壳 → 壳内嵌态渲染，因此 iframe 内仍是 file-viewer 效果）。
+  // kw 随 URL 透传进壳：内嵌态首帧渲染完成后自动触发关键词高亮。
   if (render === "server") {
     channelLabel.value = "top-server";
-    iframeSrc.value = withParam(fileUrl, "preview=true&render=server");
+    iframeSrc.value = withParam(withParam(fileUrl, "preview=true&render=server"), keywordParam ? `kw=${encodeURIComponent(keywordParam)}` : "");
     displayTitle.value = fileName;
     state.value = "iframe";
     return;
@@ -384,7 +420,7 @@ onMounted(async (): Promise<void> => {
   }
   // 未开启下载：退回服务端通道（后端返回入口壳，壳内嵌态经短时效令牌渲染）
   channelLabel.value = "iframe-server";
-  iframeSrc.value = withParam(fileUrl, "preview=true&render=server");
+  iframeSrc.value = withParam(withParam(fileUrl, "preview=true&render=server"), keywordParam ? `kw=${encodeURIComponent(keywordParam)}` : "");
   displayTitle.value = fileName;
   state.value = "iframe";
 });
@@ -392,7 +428,9 @@ onMounted(async (): Promise<void> => {
 
 <template>
   <div class="fpe">
-    <header class="fpe__bar">
+    <!-- iframe（服务端通道）模式下不渲染顶层信息栏：iframe 内的入口壳自带
+         文件名/大小/重试，双层 header 信息重复且浪费纵向空间 -->
+    <header v-if="state !== 'iframe'" class="fpe__bar">
       <span class="fpe__title" :title="displayTitle">{{ displayTitle || "文件预览" }}</span>
       <span v-if="displaySize != null && displaySize > 0" class="fpe__size">{{ formatSize(displaySize) }}</span>
       <span class="fpe__badge" :title="`预览通道：${channelLabel}`">{{ channelLabel }}</span>
@@ -419,6 +457,9 @@ onMounted(async (): Promise<void> => {
         :file="fileRef"
         :renderers="renderers"
         :preset-id="activeSpec?.presetId ?? 'auto'"
+        :viewer-options-extra="viewerExtra"
+        :initial-keyword="initialKeyword"
+        enable-json-beautify
         @rendered="() => {}"
         @error="onClientError"
       />
@@ -430,7 +471,6 @@ onMounted(async (): Promise<void> => {
         class="fpe__panel"
         v-bind="specialProps"
       />
-
       <!-- 服务端通道 -->
       <iframe
         v-else-if="state === 'iframe' && iframeSrc"
@@ -438,7 +478,6 @@ onMounted(async (): Promise<void> => {
         :src="iframeSrc"
         allowfullscreen
       />
-
       <!-- 加载中 -->
       <div v-else-if="loadingVisible" class="fpe__placeholder">
         <span class="fpe__spinner" aria-hidden="true"></span>
@@ -528,8 +567,14 @@ onMounted(async (): Promise<void> => {
   width: 100%;
   height: 100%;
   border: none;
-  display: block;
   background: #fff;
+}
+
+/* iframe 需要 display:block 消除基线缝隙；面板组件（office 的 flex 布局、
+   fv 的块级布局）必须保留自身 display——此前共享 display:block 会把
+   PreviewOfficePanel 的 flex 布局覆盖掉，CSV/表格内容高度塌陷（实测 47px）。 */
+.fpe__frame {
+  display: block;
 }
 
 .fpe__placeholder {

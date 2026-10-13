@@ -91,9 +91,9 @@ export interface SettingItem {
   [key: string]: unknown;
 }
 
-/** 登录 */
+/** 登录（.codec(true)：按后端 codec 协议加密密码；未配置 requestCodec 时自动退化为明文，不影响其它应用） */
 export function login(data: Record<string, unknown>) {
-  return getApiHttp().post(getConfig().url.login).data(data).then<ApiResult<LoginResult>>((r) => r.data);
+  return getApiHttp().post(getConfig().url.login).data(data).codec(true).then<ApiResult<LoginResult>>((r) => r.data);
 }
 
 /** 登出 */

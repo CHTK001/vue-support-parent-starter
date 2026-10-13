@@ -181,6 +181,86 @@ export const RELATION_LAYOUTS: Array<{ value: RelationLayoutName; label: string;
  */
 export type RelationViewMode = "2d" | "3d";
 
+/** 工具栏按钮 key（用于按需显示某个开关） */
+export type RelationToolbarItem =
+  | "layout"
+  | "layoutSettings"
+  | "group"
+  | "minimap"
+  | "highlight"
+  | "hoverFocus"
+  | "fit"
+  | "undo"
+  | "redo"
+  | "connect"
+  | "export"
+  | "mode"
+  | "delete";
+
+/** 工具栏定位：类似地图工具条的四个角 / 顶部居中 */
+export type RelationToolbarPosition =
+  | "top-right"
+  | "top-left"
+  | "bottom-right"
+  | "bottom-left"
+  | "top-center";
+
+/** 右键菜单上下文 */
+export interface RelationContextMenuContext {
+  /** 菜单目标类型 */
+  kind: "node" | "edge" | "canvas";
+  /** 目标元素 id（canvas 时为空串） */
+  id: string;
+  /** 目标节点（kind=node 时可能为 null） */
+  node: RelationNode | null;
+  /** 目标边（kind=edge 时可能为 null） */
+  edge: RelationEdge | null;
+  /** 当前多选中的节点 id */
+  selectedIds: string[];
+  /** 组件实例 API，供自定义菜单项调用 */
+  api: RelationGraphApi;
+}
+
+/** 自定义右键菜单项：支持名字 / 图标 / 回调 */
+export interface RelationContextMenuItem {
+  /** 唯一标识 */
+  key: string;
+  /** 显示名称 */
+  label: string;
+  /** 图标名（ReIcon 支持的名称，如 "Search"/"Expand"），可省略 */
+  icon?: string;
+  /** 是否显示；布尔值或按当前上下文求值 */
+  show?: boolean | ((ctx: RelationContextMenuContext) => boolean);
+  /** 是否禁用；布尔值或按当前上下文求值 */
+  disabled?: boolean | ((ctx: RelationContextMenuContext) => boolean);
+  /** 点击回调，返回 Promise 时组件会等待完成后再收菜单 */
+  handler?: (ctx: RelationContextMenuContext) => void | Promise<void>;
+}
+
+/** 图谱视图偏好（可持久化到后台） */
+export interface RelationGraphSettings {
+  /** 布局名 */
+  layout?: RelationLayoutName;
+  /** 布局参数 */
+  layoutOptions?: Record<string, unknown>;
+  /** 是否显示分组容器 */
+  showGroups?: boolean;
+  /** 是否显示小地图 */
+  minimap?: boolean;
+  /** 悬停高亮模式 */
+  highlight?: RelationHighlightMode;
+  /** 悬停时是否隐藏其它节点 */
+  hoverFocus?: boolean;
+  /** 右键扩线默认深度 */
+  expandDepth?: number;
+  /** 最大加载深度 */
+  maxDepth?: number;
+  /** 是否开启部分加载 */
+  partial?: boolean;
+  /** 业务扩展字段原样透传 */
+  [key: string]: unknown;
+}
+
 /** 图实例最小接口（对外暴露的能力） */
 export interface RelationGraphApi {
   addNode: (node: RelationNode) => Promise<void>;
@@ -258,4 +338,57 @@ export interface RelationGraphApi {
   canRedo: () => boolean;
   /** 清空撤销 / 重做历史 */
   clearHistory: () => void;
+
+  // ===== 2026-10-13 补齐：显示开关 / 扩线 / 最短路径 / 详情 / 偏好持久化 =====
+
+  /** 切换「显示分组容器」 */
+  setShowGroups: (on: boolean) => Promise<void>;
+  /** 当前是否显示分组容器 */
+  getShowGroups: () => boolean;
+  /** 切换小地图（重建图实例生效） */
+  setMinimap: (on: boolean) => Promise<void>;
+  /** 当前小地图开关状态 */
+  getMinimap: () => boolean;
+  /** 切换悬停高亮模式（none/group/adjacent/both，重建图实例生效） */
+  setHighlightMode: (mode: RelationHighlightMode) => Promise<void>;
+  /** 当前悬停高亮模式 */
+  getHighlightMode: () => RelationHighlightMode;
+  /** 切换「悬停隐藏其它节点」 */
+  setHoverFocus: (on: boolean) => Promise<void>;
+  /** 当前是否悬停隐藏其它节点 */
+  getHoverFocus: () => boolean;
+
+  /**
+   * 右键扩线：把某节点的邻居数据合并进当前子图。
+   *
+   * <p>数据来源优先取 {@code loadNeighbors} prop；未配置时返回 false
+   * 并派发 {@code node-expand} 事件，由调用方自行处理。</p>
+   * @param id    目标节点 id
+   * @param depth 本次扩线的深度（默认 1）
+   * @return 是否成功合并
+   */
+  expandNode: (id: string, depth?: number) => Promise<boolean>;
+
+  /**
+   * 显示多选节点之间的最短路径（高亮路径，其它节点置灰/隐藏）。
+   *
+   * @param ids 节点 id 列表；缺省用当前选中集
+   * @return 路径经过的节点 id 列表
+   */
+  showShortestPath: (ids?: string[]) => Promise<string[]>;
+
+  /** 清除最短路径高亮，恢复原图显示 */
+  restorePath: () => Promise<void>;
+
+  /** 打开右侧详情面板（懒加载时异步拉取详情） */
+  openDetail: (id: string) => Promise<void>;
+  /** 关闭右侧详情面板 */
+  closeDetail: () => void;
+
+  /** 收集当前视图偏好 */
+  getSettings: () => RelationGraphSettings;
+  /** 应用一份视图偏好（从后台读出的） */
+  applySettings: (settings: RelationGraphSettings) => Promise<void>;
+  /** 保存当前视图偏好到后台（经 saveSettings prop / settings-change 事件） */
+  saveSettings: () => Promise<void>;
 }

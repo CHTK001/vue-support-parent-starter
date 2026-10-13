@@ -132,7 +132,22 @@ const CAD_SPEC: RendererSpec = {
 
 const ARCHIVE_SPEC: RendererSpec = {
   presetId: "archive",
-  load: async () => [(await import("@file-viewer/renderer-archive")).archiveRenderer as unknown],
+  load: async () => {
+    // 压缩包的**包内条目预览**走 file-viewer 内存嵌套渲染（不回源请求）：
+    // 嵌套渲染复用本实例的 renderer registry——只装 archiveRenderer 时，
+    // 点开包内 md/txt/图片条目会报「尚未装配 renderer」。因此这里同时
+    // 装载 text（md/代码/文本条目）与 image（截图/图片条目）渲染器。
+    const [archive, text, image] = await Promise.all([
+      import("@file-viewer/renderer-archive"),
+      import("@file-viewer/renderer-text"),
+      import("@file-viewer/renderer-image"),
+    ]);
+    return [
+      (archive as { archiveRenderer?: unknown }).archiveRenderer,
+      (text as { textRenderer?: unknown }).textRenderer,
+      (image as { imageRenderer?: unknown }).imageRenderer,
+    ].filter(Boolean);
+  },
 };
 
 /**

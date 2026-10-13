@@ -7,6 +7,7 @@ export * from "./types";
 
 export * from "./modules/random";
 export * from "./modules/aes";
+export * from "./modules/codec";
 export * from "./modules/themeColor";
 export * from "./modules/tree";
 export * from "./modules/fingerprint";
@@ -17,6 +18,7 @@ export * from "./modules/cache";
 export * from "./modules/token";
 export * from "./modules/userDisplay";
 export * from "./modules/costMs";
+export * from "./modules/dexie";
 export { default as errorStatus } from "./modules/errorStatus";
 export { default as mittBus } from "./modules/mitt";
 

@@ -1,5 +1,10 @@
 <template>
-  <div class="h-full w-full flex flex-col min-h-0">
+  <!-- kb-refactor：知识库编辑部设计层作用域（styles/kb-refactor.css）。
+       data-kb-ask 由「设置 → 显示 → 右侧问答栏宽度」驱动（narrow / full）。 -->
+  <div
+    class="kb-refactor h-full w-full flex flex-col min-h-0"
+    :data-kb-ask="askWidth"
+  >
     <PageHeader :title="t('knowledge.page.title')" />
     
     <!-- RAG 未配置：整页只提示，不显示搜索框 / 新建按钮 / 卡片数据 -->
@@ -447,17 +452,18 @@
                   :loading="graphGenerating" @click="handleGenerateGraph" />
                 <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Grid" tip="管理实体" @click="goManage('entity')" />
                 <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Connection" tip="管理关系" @click="goManage('relation')" />
-                <!-- 布局调参：图谱自身 toolbar=false，改由本页工具栏驱动组件暴露的调参面板 -->
-                <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Setting" tip="布局参数" @click="graphCompRef?.toggleTuning?.()" />
               </div>
             </div>
 
             <div class="kb-graph__body">
               <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
-                <!-- toolbar=false：不渲染右上角按钮工具条（缩放走鼠标滚轮，见 G6Graph 的 zoom-canvas 行为）
-                     edge-label-mode=onHover：387 条边常显标签会糊成一片，改为悬停单条边才显示 -->
+                <!-- toolbar=true：组件自带地图式工具栏（布局/分组/高亮/悬停聚焦/小地图），
+                     toolbar-items 只保留图谱需要的按钮；页面右上角仍负责刷新/生成/管理实体等动作 -->
                 <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
-                  :toolbar="false" edge-label-mode="onHover" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
+                  toolbar toolbar-position="top-left" :toolbar-items="graphToolbarItems" show-groups highlight="adjacent"
+                  details lazy-details :load-node-detail="loadGraphEntityDetail" :load-neighbors="loadGraphNeighbors"
+                  :menu-items="graphMenuItems" :load-settings="loadGraphLayoutSettings" :save-settings="saveGraphLayoutSettings"
+                  edge-label-mode="onHover" layout="force-atlas2" height="100%" @ready="handleGraphReady" @node-click="handleGraphNodeClick" />
 
                 <!-- 过滤后无命中：图谱组件 v-if 已卸载，若不给提示画布就是一片空白，
                      用户会以为是加载失败而不是「筛掉了」 -->
@@ -507,7 +513,7 @@
 
                 <div class="kb-gedetail__actions">
                   <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑实体" @click="goManage('entity')" />
-                  <ReSquareButton layout="square" class="kb-btn" size="small" :icon="Document" tip="查看来源文档" @click="goManage('relation')" />
+                  <ReSquareButton layout="square" class="kb-btn" size="small" :icon="Document" tip="查看来源文档" @click="viewSourceDocs" />
                 </div>
               </aside>
             </div>
@@ -520,7 +526,7 @@
 
   <!-- 新增/编辑实体表单（表单弹窗挂在模板根部，不依赖任何视图的显示状态） -->
   <ReDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" :width="460" :close-on-click-modal="false">
-    <div class="flex flex-col gap-4">
+    <div class="kb-refactor flex flex-col gap-4">
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">名称<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
         <el-input v-model="entityForm.name" maxlength="128" />
@@ -553,7 +559,7 @@
 
   <!-- 新增关系表单（同上，挂根部） -->
   <ReDialog v-model="showRelationForm" title="新增关系" :width="460" :close-on-click-modal="false">
-    <div class="flex flex-col gap-4">
+    <div class="kb-refactor flex flex-col gap-4">
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
         <el-select v-model="relationForm.source" filterable allow-create default-first-option
@@ -587,7 +593,7 @@
     <!-- 复用本文件已有的 .kb-form / .kb-sec / .kb-field / .kb-visibility 设计系统。
          之前这里是一套平铺的 Tailwind + 内联 SVG，与样式表里那套成体系的表单样式脱节：
          字号三档混用（13px / 12px / 11px）、数字框宽度时宽时窄、可见范围用 <br> 硬换行。 -->
-    <div class="kb-form">
+    <div class="kb-refactor kb-form">
       <div class="kb-field">
         <span class="kb-label">
           {{ t('knowledge.page.kbName') }}<i class="kb-req">*</i>
@@ -686,6 +692,30 @@
   <!-- 知识点原文预览：Markdown 渲染，非 Markdown 走纯文本 -->
   <KBFilePreview v-model="previewVisible" :kb-id="currentKB?.id || ''" :path="previewPath" />
 
+  <!-- 节点来源文档：按实体名检索，点条目看原文 -->
+  <ReDialog v-model="showSourceDocs" :title="`来源文档 · ${selectedGraphNode?.name || ''}`" :width="560">
+    <div v-if="sourceDocsLoading" class="py-8 text-center text-sm text-[var(--rm-text-secondary)]">
+      正在检索包含「{{ selectedGraphNode?.name }}」的文档…
+    </div>
+    <ReEmpty v-else-if="sourceDocs.length === 0" text="未找到包含该实体的文档" />
+    <div v-else class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
+      <button
+        v-for="doc in sourceDocs"
+        :key="doc.id"
+        type="button"
+        class="re-surface re-surface--dense w-full text-left px-3 py-2.5 cursor-pointer"
+        @click="openFilePreview(undefined, doc.fileId)"
+      >
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-sm font-medium truncate">{{ doc.fileName }}</span>
+          <span class="ml-auto text-[11px] text-[var(--rm-text-disabled)] shrink-0">相关度 {{ doc.finalScore }}</span>
+        </div>
+        <div v-if="doc.heading" class="text-xs text-[var(--rm-text-secondary)] mt-0.5 truncate">{{ doc.heading }}</div>
+        <div v-if="doc.content" class="text-xs text-[var(--rm-text-secondary)] mt-1">{{ doc.content }}</div>
+      </button>
+    </div>
+  </ReDialog>
+
   <!-- 上传任务弹窗 -->
   <UploadTaskModal v-model="showUploadTaskModal" :upload-tasks="uploadTasksList" @retry="handleRetryFile"
     @delete="handleDeleteFile" />
@@ -706,6 +736,8 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { useAuthStore } from '@/stores/auth'
 import { useFileUploadStore } from '@/stores/fileUpload'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
+// 显示偏好：右侧问答栏宽度（设置 → 显示 → 常规用户通用配置）
+import { initKbDisplay, useKbDisplay } from '@/composables/useKbDisplay'
 import type { KnowledgeBase, KBFile } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import { FileChunksViewer, KBFileUploader, KBFileTree, KBMenu, KBSearchPanel, KBTemplateGallery, UploadTaskModal } from './index'
@@ -749,6 +781,8 @@ const { confirm, toast } = usePopup()
 const { t } = useI18n()
 const store = useKnowledgeBaseStore()
 const authStore = useAuthStore()
+// 右侧问答栏宽度（narrow / full）：绑到根节点 data-kb-ask，由 CSS 变量驱动双栏比例
+const { askWidth } = useKbDisplay()
 const uploadStore = useFileUploadStore()
 const route = useRoute()
 const router = useRouter()
@@ -779,6 +813,13 @@ const graphView = reactive({           // 后端返回的原始图谱
   // true = 该范围还没抽取过关系（占位图），false = 抽过但确实没有关系
   placeholder: true,
 })
+
+// ---- 节点来源文档（「查看来源文档」弹窗） ----
+// 图谱节点本身不带来源文档路径（后端 /v2/rag/graph 只返回 id/text/type/degree），
+// 这里按实体名检索，取回包含该实体的文档作为来源文档。
+const showSourceDocs = ref(false)     // 来源文档弹窗显隐
+const sourceDocsLoading = ref(false)  // 检索中
+const sourceDocs = ref<any[]>([])     // 来源文档列表
 
 // ---- 节点尺寸：关系越多节点越大，且必须封顶封底 ----
 // 后端只给「关系条数 degree」，像素尺寸是展示层决策，放在前端便于随时调参
@@ -1474,6 +1515,8 @@ function decorateGraphNode(n: any) {
     type: image ? ('image' as const) : ('circle' as const),
     image: image || undefined,
     size,
+    // 分组容器：同一实体类型包一个浅色背景，页面工具栏可一键开关
+    group: entityType,
     style: {
       fill: image ? undefined : entityColor(entityType),
       stroke: 'rgba(255,255,255,0.85)',
@@ -1563,7 +1606,7 @@ const graphEdges = computed(() => {
  * 用户会以为筛选没生效。</p>
  */
 const isGraphFiltered = computed(
-  () => graphTypeFilter.value.length > 0 || String(graphEntityKeyword.value ?? '').trim() !== '',
+  () => graphTypeFilter.value.length > 0 || String(graphKeyword.value ?? '').trim() !== '',
 )
 
 /**
@@ -1790,9 +1833,11 @@ const selectedNodeRelations = computed(() => {
 
 function handleGraphNodeClick(node: any) {
   const clickId = String(node?.id ?? '')
-  // G6 回传的是模型节点：显示名在 data.__label（组件 toNodeData 写入），
-  // 不再是原始的 text 字段。
-  const name = String(node?.data?.__label ?? node?.data?.name ?? clickId)
+  // G6 回传的是原始 RelationNode（nodeById 优先回 props 里的节点）：
+  // 名字在 node.label / node.text 上，node.data.__label 是 G6 模型节点才有的字段，
+  // 原始节点并不带 —— 原先只读 __label 会一路落到 clickId（哈希），
+  // 导致详情头部、来源文档检索都用的是实体 ID 而非实体名。
+  const name = String(node?.label ?? node?.text ?? node?.data?.__label ?? node?.data?.name ?? clickId)
   const degree = Number(node?.data?.degree)
     || graphEdges.value.filter((e) => e.source === clickId || e.target === clickId).length
   const type = node?.data?.entityType ? String(node.data.entityType) : undefined
@@ -1804,11 +1849,140 @@ function handleGraphNodeClick(node: any) {
   }
 }
 
+/**
+ * 查看选中实体的来源文档。
+ *
+ * <p>图谱节点不带来源文档路径（{@code /v2/rag/graph} 只返回
+ * id/text/type/degree），这里用实体名走 {@code POST /api/knowledge/search}
+ * 取回包含该实体的文档作为来源文档，点条目调 {@link openFilePreview} 看原文。</p>
+ *
+ * <p>原先该按钮错接 {@code goManage('relation')}，文案写「查看来源文档」
+ * 实际却跳到关系管理（关系已在节点详情里内联展示，跳转属重复且名实不符）。</p>
+ */
+async function viewSourceDocs() {
+  const node = selectedGraphNode.value
+  const kbId = currentKB.value?.id
+  if (!node || !kbId) return
+  showSourceDocs.value = true
+  sourceDocsLoading.value = true
+  sourceDocs.value = []
+  try {
+    const { results } = await knowledgeBaseApi.searchKnowledgeBase(kbId, node.name, 20)
+    sourceDocs.value = results ?? []
+  } catch {
+    toast.error('查询来源文档失败')
+  } finally {
+    sourceDocsLoading.value = false
+  }
+}
+
 /** 图谱组件实例（用于首帧后主动重跑一次布局） */
 const graphCompRef = ref<any>(null)
 
 /** 知识图谱布局名：G6 的 force 在这套数据上会退化成 (0,0)，实测 force-atlas2 正常 */
 const GRAPH_LAYOUT = 'force-atlas2'
+
+/** 组件工具栏只放图谱视图相关按钮；页面右上角仍负责刷新/生成/管理实体等动作 */
+const graphToolbarItems = [
+  'layout',
+  'layoutSettings',
+  'group',
+  'highlight',
+  'hoverFocus',
+  'minimap',
+] as const
+
+/**
+ * 右键自定义菜单：在组件内置「详情/扩线/最短路径」之外补一个「查看来源文档」。
+ *
+ * <p>演示 menuItems 的 name/icon/callback 契约；show 只在节点右键时出现。</p>
+ */
+const graphMenuItems = [
+  {
+    key: 'view-source-docs',
+    label: '查看来源文档',
+    icon: 'Search',
+    show: (ctx: { kind: string; node: any }) => ctx.kind === 'node' && !!ctx.node,
+    handler: async (ctx: { kind: string; node: any }) => {
+      const node = ctx.node
+      if (!node) return
+      const clickId = String(node?.id ?? '')
+      const name = String(node?.label ?? node?.text ?? clickId)
+      const degree = Number(node?.data?.degree)
+        || graphEdges.value.filter((e) => e.source === clickId || e.target === clickId).length
+      const type = node?.data?.entityType ? String(node.data.entityType) : undefined
+      selectedGraphNode.value = { id: clickId, name, type, degree }
+      await viewSourceDocs()
+    },
+  },
+]
+
+/**
+ * 右键扩线：后端查询某实体的直接邻居，返回 RelationNode/RelationEdge 契约数据。
+ *
+ * <p>返回后由组件内部合并进 G6 模型（不整图重装，保留布局与选中状态）。</p>
+ */
+async function loadGraphNeighbors(node: any, depth = 1) {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) return null
+  const r = await apiService.fetchGraphNeighbors(kbId, String(node?.id ?? ''))
+  return {
+    nodes: (r.nodes ?? []).map(decorateGraphNode),
+    edges: (r.edges ?? []).map((e: any) => ({
+      id: String(e.id ?? `${e.from}->${e.to}`),
+      from: String(e.from),
+      to: String(e.to),
+      text: String(e.text ?? e.label ?? ''),
+      source: String(e.from),
+      target: String(e.to),
+      label: String(e.text ?? e.label ?? ''),
+      style: { endArrow: true },
+      data: e.data ?? {},
+    })),
+  }
+}
+
+/**
+ * 节点详情懒加载：后端拉取实体属性，返回给组件详情面板。
+ */
+async function loadGraphEntityDetail(node: any) {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) return null
+  const r = await apiService.fetchGraphEntityDetail(kbId, String(node?.id ?? ''))
+  return {
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    degree: r.degree,
+    relationCount: r.relationCount,
+    description: r.description,
+    properties: r.properties,
+  }
+}
+
+/**
+ * 读取后台已存布局设置（按知识库持久化）。
+ */
+async function loadGraphLayoutSettings() {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) return null
+  const r = await apiService.fetchGraphLayoutSettings(kbId)
+  if (!r?.settings) return null
+  try {
+    return JSON.parse(r.settings)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 保存布局设置到后台（按知识库持久化）。
+ */
+async function saveGraphLayoutSettings(settings: any) {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) return
+  await apiService.saveGraphLayoutSettings(kbId, JSON.stringify(settings))
+}
 
 /**
  * 图谱渲染就绪回调。
@@ -2724,6 +2898,8 @@ watch(() => store.activeKnowledgeBaseId, () => {
 })
 
 onMounted(async () => {
+  // 显示偏好与首屏数据无关，并行拉取即可（内部幂等 + 去重）
+  void initKbDisplay()
   fetchRagStatus()
   await store.fetchKnowledgeBases()
   await loadOverview() // 列表页统计卡与卡片计数（须在库列表之后，per_base 才有意义）
@@ -2966,1841 +3142,3 @@ watch(
   }
 )
 </script>
-
-<style scoped>
-/* ===== RAG 未配置拦截页 ===== */
-.rag-gate {
-  max-width: 460px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 36px 28px;
-  /* 原值 18px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  /* 空状态是行内容器，去掉原 0 10px 30px -18px rgba(16,24,40,.22) 装饰投影 */
-}
-.rag-gate__icon {
-  color: var(--el-color-warning);
-}
-.rag-gate__title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-.rag-gate__desc {
-  margin: 0 0 6px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--color-text-gray);
-}
-
-/* ── 创建/编辑知识库弹窗 ── */
-.kb-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.kb-sec {
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原值 14px → lg 档 */
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 14px 16px;
-}
-.kb-sec__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 12px;
-}
-.kb-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.kb-field:last-child { margin-bottom: 0; }
-.kb-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-}
-.kb-req {
-  color: var(--el-color-danger);
-  font-style: normal;
-  margin-left: 2px;
-}
-.kb-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.kb-grid .kb-field { margin-bottom: 0; }
-.kb-select { width: 100%; }
-.kb-num { width: 100%; }
-.kb-num :deep(.el-input-number) { width: 100%; }
-/* 单独一个数值字段时不必拉满整行（1~50 的页数铺满 470px 反而失衡） */
-.kb-num--short { width: 180px; }
-/* 字段下方的灰色说明文字（网址采集的页数含义、SSRF 提示等） */
-.kb-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
-.kb-visibility {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  /* 原值 14px → lg 档 */
-  border-radius: var(--el-radius-lg, 12px);
-  border: 1px solid var(--el-border-color);
-  background: var(--el-bg-color);
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-}
-.kb-visibility:hover { border-color: var(--el-border-color-hover); }
-.kb-visibility.is-public {
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
-}
-.kb-visibility__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-fill-color);
-  color: var(--el-text-color-secondary);
-  font-size: 20px;
-  flex: 0 0 auto;
-}
-.kb-visibility.is-public .kb-visibility__icon {
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-}
-.kb-visibility__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.kb-visibility__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.kb-visibility__hint {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-/* 选中标记：放在行尾，避免只靠底色/边框区分选中态（色觉障碍下也读得出） */
-.kb-visibility__check {
-  flex: 0 0 auto;
-  font-size: 18px;
-  color: var(--el-color-primary);
-}
-.kb-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-/* 动效降级：系统开启「减少动态效果」时，公开/私有行的边框与底色直接到位。
-   只关 .kb-visibility 自己的 transition，不写 `*` / `.kb-visibility *` 通配，
-   避免把里面的 el-switch 开关轨道动画一起掐掉（那是开关状态的功能表达）。
-   .is-public 的选中态是静态声明，停掉过渡后依然成立。 */
-@media (prefers-reduced-motion: reduce) {
-  .kb-visibility {
-    transition: none;
-  }
-}
-
-/* 键盘焦点可见性：知识库卡片与「可见性」行都是带 @click 的 div（不是可聚焦控件），
-   浏览器不给默认焦点环。指针样式沿用模板里已有的 cursor-pointer / CSS 里的 cursor: pointer，
-   不重复声明。环用主色 12% —— 两处底色都是令牌化表面色（re-surface / --el-bg-color），
-   深浅主题下都只是一档主色描边，12% 足够可见。 */
-.kb-card,
-.kb-visibility {
-  outline: none;
-}
-
-.kb-card:focus-visible,
-.kb-visibility:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-/* ── 文件列表 Tab：左「文档」+ 右「智能问答」双栏 ──────────────────────────
-   左栏吃剩余宽度、右栏固定舒适宽（400px 基准），窄屏（< 1180px）退化为上下堆叠——
-   问答面板是主操作，挤到第二行也不该被压到读不了的高度。 */
-.kb-split {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  gap: 16px;
-}
-
-.kb-split__docs {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-card-border-radius, 12px);
-  overflow: hidden;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
-}
-
-/* 右栏问答固定一个舒适宽度，文档列吃剩余空间（避免两栏各半把表格挤扁） */
-.kb-split__ask {
-  display: flex;
-  flex: 0 1 400px;
-  min-width: 300px;
-  min-height: 0;
-}
-
-/* 面板自身已有边框，这里让容器不重复画一层 */
-.kb-split__ask :deep(.kb-ask) {
-  flex: 1;
-  min-width: 0;
-}
-
-.kb-split__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: linear-gradient(180deg, var(--el-fill-color-blank) 0%, transparent 100%);
-}
-
-.kb-split__title {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-
-.kb-split__title h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  /* 标题与篇数徽标不参与压缩，压缩只发生在副标题（知识库名）上，
-     否则窄栏下「文档」会被右侧上传按钮挤成竖排两行 */
-  flex: 0 0 auto;
-  white-space: nowrap;
-  letter-spacing: -0.01em;
-}
-
-.kb-split__title .el-tag {
-  flex: 0 0 auto;
-}
-
-.kb-split__sub {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  /* 唯一允许被压缩的项：空间不足时先省略知识库名，而不是把标题挤换行 */
-  min-width: 0;
-  flex: 0 1 auto;
-}
-
-.kb-split__readonly {
-  margin: 12px 18px 0;
-  padding: 8px 12px;
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-}
-
-.kb-split__filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 16px;
-}
-
-/* 分栏按钮：pills 形，未选中走填充面，选中走主色浅底 + 主色字；计数用内嵌小徽标 */
-.kb-split__filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  font-size: 12.5px;
-  line-height: 1.4;
-  cursor: pointer;
-  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s),
-    border-color var(--el-transition-duration, 0.2s), transform 0.12s ease;
-}
-
-.kb-split__filter-count {
-  font-style: normal;
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  text-align: center;
-  background: color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
-  color: var(--el-text-color-secondary);
-}
-
-.kb-split__filter:hover {
-  background: var(--el-fill-color);
-  transform: translateY(-1px);
-}
-
-.kb-split__filter.is-active {
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  border-color: var(--el-color-primary-light-5);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
-}
-
-.kb-split__filter.is-active .kb-split__filter-count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
-}
-
-.kb-split__filter:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.kb-split__tree {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 0 8px 10px;
-}
-
-@media (max-width: 1180px) {
-  .kb-split {
-    flex-direction: column;
-  }
-
-  .kb-split__ask {
-    min-height: 420px;
-  }
-}
-
-/* ── 列表页：统计卡 + 卡片网格 + 最近活动 ───────────────────────────────
-   颜色全部走 --el-*，暗色由 html.dark 下的 Element 变量自动切换，
-   不再出现 text-gray-900 / dark:text-[#e8e9ed] 这类写死值。 */
-.kb-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-/* 宽屏固定四列，对应参考图「知识库 / 文档总量 / 实体节点 / 关系连线」一排 */
-@media (min-width: 1024px) {
-  .kb-stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.kb-stat {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  min-height: 96px;
-  padding: 20px 22px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-.kb-stat:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
-}
-
-/* 右下角装饰：一片柔和的主色晕染，完整收在卡片内。
-   之前用两层 linear-gradient 拼山形并配合 right/bottom 负偏移，
-   被 .kb-stat 的 overflow:hidden 裁成一个硬边「V」形缺口，
-   看起来像渲染破损而不是装饰，故改为不越界的径向渐变。 */
-.kb-stat::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 132px;
-  height: 78px;
-  background: radial-gradient(
-    132px 78px at 100% 100%,
-    color-mix(in srgb, var(--el-color-primary) 12%, transparent),
-    transparent 72%
-  );
-  pointer-events: none;
-}
-
-/* 内容压在装饰之上 */
-.kb-stat__icon,
-.kb-stat__value,
-.kb-stat__label {
-  position: relative;
-  z-index: 1;
-}
-
-/* 图标按 HTML 原型是 46×46 浅底圆角方块（#e8f8fa → 主题浅阶），内 24px 线框图标 */
-.kb-stat__icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
-  color: var(--el-color-primary);
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
-}
-
-/* 数字 26px/800 在上、标签 13.5px 在下，与 HTML 原型一致 */
-.kb-stat__value {
-  display: block;
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-primary);
-}
-
-.kb-stat__label {
-  display: block;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  margin-top: 2px;
-}
-
-/* 详情页「概览」里的统计块仍是「图标 + 上下堆叠的数字/标签」结构，
-   与列表页的横排不同，所以单独保留这个容器样式（去掉它会导致数字与标签挤成一行） */
-.kb-stat__body {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-/* 详情页：二级功能菜单 + 内容区并排（只做内容区，不含系统一级侧栏与顶栏） */
-.kb-detail__body {
-  display: flex;
-  /* 子视图（图谱/概览等）需要撑满可用高度：flex-start 会让面板只剩内容高度，
-     图谱画布的 flex-1 就塌成 ~120px。顺带把外层滚动容器改成 flex 列，
-     这里用 flex:1 拿到确定高度；内容更高的视图仍旧把滚动条撑出来。 */
-  align-items: stretch;
-  gap: 16px;
-  flex: 1;
-  min-height: 0;
-  padding: 16px 20px 20px;
-  box-sizing: border-box;
-}
-
-/* 详情页头：返回图标钮 + 标题/副标题 + 图标动作组，一行三段垂直居中 */
-.kb-detail__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 60%);
-  position: relative;
-}
-.kb-detail__header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -1px;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--el-color-primary) 0%, transparent 50%);
-  opacity: 0.35;
-}
-
-/* 详情页各 Tab 面板：撑满内容区，统一列布局与块间距 */
-.kb-pane {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  gap: 12px;
-  animation: kb-pane-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes kb-pane-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kb-pane,
-  .kb-stat,
-  .kb-ov-card,
-  .kb-split__filter {
-    animation: none;
-    transition: none;
-  }
-}
-
-/* 概览：内容整体可滚动，块间距更舒展 */
-.kb-pane--scroll {
-  overflow: auto;
-  gap: 16px;
-}
-
-/* 图谱：工具条与画布之间保持默认 12px 节奏 */
-.kb-pane--graph {
-  gap: 12px;
-}
-
-/* 详情页统一「图标动作组」：方形幽灵按钮，无底色无边框，贴合但留一点空隙 */
-.kb-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* 幽灵态覆盖：按钮来自 @repo/ui ReButton(square)，默认是「白底 + 边框」。
-   这里用 :deep + 提高一档特异性（.kb-btn.rs-btn）压过组件内部的 scoped 默认样式 */
-:deep(.kb-btn.rs-btn) {
-  margin: 0;
-  border-color: transparent;
-  background: transparent;
-  color: var(--el-text-color-regular);
-}
-
-:deep(.kb-btn.rs-btn:hover:not(.is-disabled):not(:disabled)) {
-  border-color: transparent;
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-:deep(.kb-btn.rs-btn--primary) {
-  color: var(--el-color-primary);
-}
-
-:deep(.kb-btn.rs-btn--primary:hover:not(.is-disabled):not(:disabled)) {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-}
-
-:deep(.kb-btn.rs-btn--danger) {
-  color: var(--el-color-danger);
-}
-
-:deep(.kb-btn.rs-btn--danger:hover:not(.is-disabled):not(:disabled)) {
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
-}
-
-.kb-detail__titlebox {
-  min-width: 0;
-}
-
-.kb-detail__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kb-detail__subtitle {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.kb-detail__actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* 视图工具条：搜索 + 动作一行，与管理页工具条同节奏 */
-.kb-view__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-/* 工具条里的搜索框：固定宽，窄屏拉满一行 */
-.kb-view__search {
-  width: 220px;
-}
-
-/* 实体类型多选：比搜索框略宽，要放得下 collapse 后的两个类型标签 */
-.kb-view__types {
-  width: 200px;
-}
-
-/* 下拉选项左侧的类型色点，与图例 / 概览柱状图共用同一套 entityColor */
-.kb-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-}
-.kb-dot__n {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-/* 过滤后零命中：图谱组件已卸载，画布需要明确说明是被筛掉了而不是加载失败 */
-.kb-graph__filtered {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  pointer-events: none;
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-}
-.kb-graph__filtered > * {
-  pointer-events: auto;
-}
-
-@media (max-width: 720px) {
-  .kb-view__search,
-  .kb-view__types {
-    width: 100%;
-  }
-}
-
-/* 表格面板：与管理页 panel-card / flat-table / 分页同一套视觉 */
-.panel-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原值 18px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
-  padding: 16px 18px 14px;
-  /* 表格容器是页面区块，不加投影 */
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
-}
-
-.flat-table {
-  --el-table-border-color: var(--el-border-color-lighter);
-}
-
-.flat-table :deep(th.el-table__cell) {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  font-weight: 600;
-}
-
-.flat-table :deep(.el-table__row) {
-  transition: background 0.15s ease;
-}
-
-.flat-table :deep(.el-table__row:hover > td.el-table__cell) {
-  background: var(--el-color-primary-light-9);
-}
-
-.pagination-wrapper {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.kb-overview__stats {
-  margin-bottom: 0;
-  /* 详情页只有 3 张卡：覆盖列表页「宽屏固定四列」的规则 */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-@media (max-width: 900px) {
-  .kb-overview__stats {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-
-  /* 窄屏：二级菜单从左侧竖栏变顶部横排 chip，内容区整宽 */
-  .kb-detail__body {
-    flex-direction: column;
-    padding: 12px 12px 16px;
-  }
-
-  .kb-detail__body :deep(.kb-menu) {
-    position: static;
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .kb-detail__body :deep(.kb-menu__list) {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .kb-detail__body :deep(.kb-menu__divider) {
-    display: none;
-  }
-}
-
-/* 详情概览的统计卡比列表页略矮，信息密度更轻 */
-.kb-overview__stats .kb-stat {
-  min-height: 88px;
-  padding: 16px 18px;
-}
-
-/* 概览三卡各自的主题色：文档=主色 / 实体=警示 / 关系=成功，全部走 Element 变量，
-   color-mix 取淡色叠加，暗色主题下自动适配，不写死 hex */
-.kb-overview__stats .kb-stat:nth-child(1) .kb-stat__icon {
-  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
-  color: var(--el-color-primary);
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
-}
-.kb-overview__stats .kb-stat:nth-child(2) .kb-stat__icon {
-  background: color-mix(in srgb, var(--el-color-warning) 16%, transparent);
-  color: var(--el-color-warning);
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-warning) 40%, transparent);
-}
-.kb-overview__stats .kb-stat:nth-child(3) .kb-stat__icon {
-  background: color-mix(in srgb, var(--el-color-success) 16%, transparent);
-  color: var(--el-color-success);
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--el-color-success) 40%, transparent);
-}
-.kb-overview__stats .kb-stat:nth-child(1) {
-  border-left: 3px solid var(--el-color-primary);
-}
-.kb-overview__stats .kb-stat:nth-child(2) {
-  border-left: 3px solid var(--el-color-warning);
-}
-.kb-overview__stats .kb-stat:nth-child(3) {
-  border-left: 3px solid var(--el-color-success);
-}
-
-.kb-overview__hint {
-  padding: 16px 18px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
-}
-
-/* 概览内容网格：两大列，窄屏落单列。
-   align-items: start —— 同一行的两张卡内容量往往差很多
-   （实体类型 4 条 vs 关系类型 8 条），默认的 stretch 会把矮的那张
-   硬撑到和高的齐平，卡片内部空出大片留白。改为按内容自然高度排布。 */
-.kb-ov-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 16px;
-}
-
-@media (max-width: 1280px) {
-  .kb-ov-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* 概览内容卡：统一内边距与纵向节奏（覆盖 re-surface--dense 的 10px 内距） */
-.kb-ov-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-.kb-ov-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
-}
-
-/* ── 详情页「概览」：实体/关系分布、Top 实体、快捷操作 ─────────────── */
-.kb-ov__title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  letter-spacing: -0.01em;
-}
-.kb-ov__title::before {
-  content: '';
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-5) 100%);
-}
-
-.kb-ov__bar {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 40px;
-  align-items: center;
-  gap: 10px;
-}
-
-.kb-ov__label {
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kb-ov__track {
-  height: 9px;
-  border-radius: 999px;
-  background: var(--el-fill-color-light);
-  overflow: hidden;
-}
-
-.kb-ov__fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.kb-ov__count {
-  font-size: 12px;
-  font-weight: 700;
-  text-align: right;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.kb-ov__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 快捷操作：图标 + 文字的可点击行 */
-.kb-ov__acts {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.kb-ov__act {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.kb-ov__act:hover {
-  background: var(--el-fill-color-light);
-}
-
-.kb-ov__act-icon {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-}
-
-.kb-ov__act-icon.is-primary {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-}
-
-.kb-ov__act-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.kb-ov__act-text b {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  line-height: 1.3;
-}
-
-.kb-ov__act-text i {
-  font-style: normal;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--el-text-color-secondary);
-}
-
-.kb-ov__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
-}
-
-.kb-ov__row:hover {
-  background: var(--el-fill-color-light);
-  transform: translateX(2px);
-}
-
-.kb-ov__rank {
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-}
-
-/* 前三名：金 / 银 / 铜奖牌配色 */
-.kb-ov__rank.is-top {
-  color: #fff;
-}
-.kb-ov__row:nth-child(1) .kb-ov__rank {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  box-shadow: 0 2px 6px -1px rgba(245, 158, 11, 0.5);
-}
-.kb-ov__row:nth-child(2) .kb-ov__rank {
-  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
-  box-shadow: 0 2px 6px -1px rgba(148, 163, 184, 0.5);
-}
-.kb-ov__row:nth-child(3) .kb-ov__rank {
-  background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
-  box-shadow: 0 2px 6px -1px rgba(180, 83, 9, 0.5);
-}
-
-.kb-ov__name {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-}
-
-.kb-ov__degree {
-  flex: 0 0 auto;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.kb-ov__hint {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
-}
-
-/* 独立的「智能问答」视图：整宽铺开，复用文档分栏里同一个面板 */
-.kb-ask-standalone {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-}
-
-.kb-ask-standalone :deep(.kb-ask) {
-  flex: 1;
-  min-width: 0;
-}
-
-/* ── 页头：左标题+副标题，中搜索，右新建 ───────────────────────────────
-   注意不是整页复刻参考图：左侧导航与顶部栏由系统 layout 提供，这里只做内容区。 */
-.kb-top {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 16px 20px;
-}
-
-.kb-top__title {
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.kb-top__title h1 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--el-text-color-primary);
-}
-
-.kb-top__subtitle {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.kb-top__search {
-  flex: 1 1 280px;
-  max-width: 560px;
-  margin: 0 auto;
-}
-
-.kb-top__create {
-  flex: 0 0 auto;
-}
-
-/* 图谱工具条：统计 + 说明气泡 + 搜索 + 图标动作组 */
-.kb-graph__bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-/* 说明气泡触发图标：弱化存在感，悬浮时才亮起 */
-.kb-graph__help {
-  color: var(--el-text-color-placeholder);
-  cursor: help;
-}
-
-.kb-graph__help:hover {
-  color: var(--el-color-primary);
-}
-
-/* 图谱画布 + 实体详情两栏容器 */
-.kb-graph__body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  gap: 12px;
-}
-
-.kb-graph__count {
-  color: var(--el-text-color-secondary);
-}
-
-/* 图谱 Tab 的辅助说明文字与画布底：原先写死 text-gray-400 与 dark:bg-[#232428] */
-.kb-graph__hint {
-  color: var(--el-text-color-placeholder);
-}
-
-/* 引导里的「去筛选」：默认跟正文同色，hover 才点亮，避免整条提示都在喊 */
-.kb-graph__hint-act {
-  padding: 0 2px;
-  font-size: inherit;
-  vertical-align: baseline;
-}
-
-.kb-graph__canvas {
-  background: var(--el-bg-color-overlay);
-}
-
-/* 画布容器：图例绝对定位在左下角；自带描边圆角，画布铺满 */
-.kb-graph__stage {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-  overflow: hidden;
-  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
-}
-
-/* 图例：按实际出现的实体类型生成，颜色统一走主色，不引入图里的自定义色 */
-.kb-graph__legend {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-height: 40%;
-  overflow: auto;
-  padding: 10px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
-  background: var(--el-bg-color-overlay);
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.kb-graph__legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.kb-graph__legend-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--el-color-primary);
-}
-
-/* ── 右栏：实体详情（对应参考图右栏） ─────────────────────────────── */
-.kb-gedetail {
-  flex: 0 0 280px;
-  width: 280px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  padding: 0 0 12px;
-  overflow: auto;
-  box-shadow: 0 2px 8px -4px color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
-}
-
-.kb-gedetail__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 14px 14px 6px;
-}
-
-.kb-gedetail__name {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-gedetail__close {
-  flex: 0 0 auto;
-}
-
-.kb-gedetail__sub {
-  padding: 0 14px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  word-break: break-all;
-}
-
-.kb-gedetail__metrics {
-  padding: 12px 14px 4px;
-}
-
-.kb-gedetail__metric {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--el-border-radius-base);
-  background: var(--el-fill-color-light);
-}
-
-.kb-gedetail__metric-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-gedetail__metric-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.kb-gedetail__section {
-  margin: 0;
-  padding: 12px 14px 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-gedetail__relations {
-  margin: 0;
-  padding: 0 14px;
-  list-style: none;
-}
-
-.kb-gedetail__relation {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 0;
-  font-size: 13px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.kb-gedetail__relation:last-child {
-  border-bottom: none;
-}
-
-.kb-gedetail__relation-type {
-  flex: 0 0 auto;
-  padding: 1px 7px;
-  font-size: 12px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
-  color: var(--el-color-primary);
-  font-weight: 500;
-}
-
-.kb-gedetail__relation-peer {
-  min-width: 0;
-  color: var(--el-text-color-regular);
-}
-
-.kb-gedetail__relation--empty {
-  color: var(--el-text-color-placeholder);
-}
-
-.kb-gedetail__actions {
-  display: flex;
-  gap: 6px;
-  margin-top: auto;
-  padding: 12px 14px 0;
-}
-
-/* 「列表视图」：描边主色的小按钮，对应用途而非纯标签 */
-.kb-viewtoggle {
-  --el-button-text-color: var(--el-color-primary);
-  --el-button-border-color: var(--el-color-primary-light-5);
-  --el-button-hover-bg-color: var(--el-color-primary-light-9);
-}
-
-.kb-home {
-  display: flex;
-  /* 两栏等高：右栏「最近活动」不足时不再比左栏矮，避免参差 */
-  align-items: stretch;
-  gap: 12px;
-}
-
-.kb-home__main {
-  flex: 1;
-  min-width: 0;
-}
-
-.kb-home__side {
-  flex: 0 0 300px;
-  width: 300px;
-}
-
-.kb-home__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 4px 12px;
-}
-
-.kb-home__head h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-grid-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-/* 卡片本体不再留内边距，改由 __body 承担：
-   这样大卡顶部的图案带才能左右贴边（图上大卡顶部是一条通栏装饰带）。 */
-.kb-home__card {
-  padding: 0;
-  overflow: hidden;
-  cursor: pointer;
-  transition: border-color var(--el-transition-duration, 0.2s);
-}
-
-.kb-home__card:hover {
-  border-color: var(--el-color-primary-light-5);
-}
-
-/* 首个库横跨整行当「大卡」，让最有代表性的库有存在感 */
-.kb-home__card.is-featured {
-  grid-column: 1 / -1;
-}
-
-/* 大卡封面位。
-   后端 sys_ai_knowledge_base 没有封面字段，所以「占位」是常态：
-   有 cover 就渲图，没有就渲一个设计过的占位（主色渐变 + 斜纹底 + 名称首字），
-   不允许出现空白块。颜色全部取 Element/koi 变量。 */
-.kb-card__banner {
-  position: relative;
-  height: 96px;
-  overflow: hidden;
-  background: linear-gradient(135deg,
-      var(--el-color-primary-light-8) 0%,
-      var(--el-fill-color-light) 50%,
-      var(--el-color-primary-light-9) 100%);
-}
-
-.kb-card__banner-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.kb-card__banner-ph {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  height: 100%;
-}
-
-/* 占位斜纹底：避免整块纯色显空 */
-.kb-card__banner-ph::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--el-color-primary) 8%, transparent) 0 1px,
-      transparent 1px 10px);
-  pointer-events: none;
-}
-
-.kb-card__banner-initials {
-  position: relative;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: color-mix(in srgb, var(--el-color-primary) 55%, transparent);
-}
-
-.kb-card__banner-hint {
-  position: relative;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-/* 小卡：居中的文档图标 + 右下角「就绪」角标 */
-.kb-card__icon-wrap {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  padding: 22px 0 4px;
-}
-
-.kb-card__icon {
-  color: var(--el-color-primary-light-3);
-}
-
-.kb-card__check {
-  position: absolute;
-  right: calc(50% - 30px);
-  bottom: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--el-color-success);
-  box-shadow: 0 0 0 2px var(--el-bg-color);
-}
-
-.kb-card__check::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 3px;
-  width: 4px;
-  height: 7px;
-  border: solid var(--el-color-white);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
-}
-
-.kb-card__body {
-  padding: 16px 18px;
-}
-
-/* 大卡的正文紧跟在图案带后面，顶部内距略收 */
-.is-featured .kb-card__body {
-  padding-top: 14px;
-}
-
-.kb-card__title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-card__desc {
-  margin: 4px 0 0;
-  min-height: 2.5rem;
-  font-size: 13px;
-  line-height: 1.25rem;
-  color: var(--el-text-color-secondary);
-}
-
-/* 小卡的次要信息行（更新时间 / 文档数），对应图上带图标的那一行 */
-.kb-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.kb-card__meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.kb-card__metrics {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-/* 把「已就绪」推到最右，对应图上徽标与状态的左右分布 */
-.kb-card__spacer {
-  flex: 1 1 auto;
-}
-
-/* 操作按钮：常态隐藏，避免卡片视觉噪音；hover / 键盘聚焦时显现 */
-.kb-card__actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  height: 24px;
-  margin-top: 8px;
-  opacity: 0;
-  transition: opacity var(--el-transition-duration, 0.2s);
-}
-
-.kb-home__card:hover .kb-card__actions,
-.kb-home__card:focus-within .kb-card__actions {
-  opacity: 1;
-}
-
-/* 无 hover 能力的设备（触屏）直接常显，否则按钮永远点不到 */
-@media (hover: none) {
-  .kb-card__actions {
-    opacity: 1;
-  }
-}
-
-.kb-metric {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  font-size: 12px;
-}
-
-.kb-metric__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--el-color-primary);
-}
-
-.kb-metric--ok .kb-metric__dot {
-  background: var(--el-color-success);
-}
-
-/* ── 空状态（按设计图：标题行 + 插画位 + 双入口 + 模板区） ─────────────── */
-.kb-empty {
-  padding: 22px 24px 24px;
-}
-
-.kb-empty__top {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.kb-empty__lead {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-empty__help {
-  font-size: 13px;
-  color: var(--el-color-primary);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.kb-empty__help:hover {
-  text-decoration: underline;
-}
-
-/* 插画位：按设计图用「书本 + 上方节点网络」的示意图形。
-   仓库没有插画素材，这里用内联 SVG 画，颜色全部取 Element 变量，不写死色值。 */
-.kb-empty__figure {
-  display: flex;
-  justify-content: center;
-  padding: 22px 0 4px;
-}
-
-.kb-empty__illus {
-  /* 按 HTML 原型：插画宽 300px、窄屏最多占 70% */
-  width: 300px;
-  max-width: 70%;
-  height: auto;
-  display: block;
-}
-
-.kb-empty__illus-links {
-  stroke: var(--el-border-color);
-}
-
-.kb-empty__illus-node--1 {
-  fill: var(--el-color-primary-light-3);
-}
-
-.kb-empty__illus-node--2 {
-  fill: var(--el-color-primary);
-}
-
-.kb-empty__illus-node--3 {
-  fill: var(--el-color-success-light-3);
-}
-
-.kb-empty__illus-node--4 {
-  fill: var(--el-color-success);
-}
-
-.kb-empty__illus-node--5 {
-  fill: var(--el-color-warning-light-3);
-}
-
-.kb-empty__illus-node--6 {
-  fill: var(--el-color-info-light-3);
-}
-
-.kb-empty__illus-book {
-  fill: var(--el-color-primary-light-8);
-  stroke: var(--el-color-primary-light-5);
-  stroke-width: 1.6;
-}
-
-.kb-empty__illus-spine {
-  stroke: var(--el-color-primary-light-5);
-  stroke-width: 1.6;
-}
-
-.kb-empty__icon {
-  display: block;
-  margin: 8px auto 0;
-  color: var(--el-text-color-placeholder);
-}
-
-.kb-empty__title {
-  margin: 0;
-  font-size: 15px;
-  text-align: center;
-  color: var(--el-text-color-regular);
-}
-
-.kb-empty__hint {
-  margin: 6px 0 0;
-  font-size: 13px;
-  text-align: center;
-  color: var(--el-text-color-secondary);
-}
-
-/* 双入口：主 / 次两个大按钮横向等分 */
-.kb-empty__cta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin: 22px 0 26px;
-}
-
-.kb-empty__cta-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 18px 20px;
-  border-radius: var(--el-border-radius-base);
-  cursor: pointer;
-  transition: background-color var(--el-transition-duration, 0.2s),
-    border-color var(--el-transition-duration, 0.2s);
-}
-
-.kb-empty__cta-btn--primary {
-  border: 1px solid var(--el-color-primary);
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-}
-
-.kb-empty__cta-btn--primary:hover {
-  background: var(--el-color-primary-light-3);
-  border-color: var(--el-color-primary-light-3);
-}
-
-.kb-empty__cta-btn--ghost {
-  border: 1px solid var(--el-color-primary-light-5);
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
-}
-
-.kb-empty__cta-btn--ghost:hover {
-  background: var(--el-color-primary-light-9);
-}
-
-.kb-empty__cta-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.35;
-}
-
-.kb-empty__cta-text b {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.kb-empty__cta-text i {
-  font-size: 12px;
-  font-style: normal;
-  opacity: 0.85;
-}
-
-/* 模板区 */
-.kb-empty__tpl-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-empty__tpl-grid {
-  display: grid;
-  /* 内容区约 680px，minmax 取 150px 才能在宽屏铺满 4 列——
-     之前用 190px 只能放 3 列，第 4 张被挤到下一行，与设计图不符。 */
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 14px;
-}
-
-.kb-tpl {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration, 0.2s);
-}
-
-.kb-tpl:hover {
-  border-color: var(--el-color-primary-light-5);
-}
-
-/* 封面：设计稿是 400/225 的插画；有本地素材就铺图，没有就回退色块 */
-.kb-tpl__cover {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 400 / 225;
-  overflow: hidden;
-}
-
-.kb-tpl__cover-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.kb-tpl__cover--sanguo {
-  background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
-}
-
-.kb-tpl__cover--poem {
-  background: linear-gradient(135deg, var(--el-color-warning-light-8), var(--el-color-warning-light-9));
-}
-
-.kb-tpl__cover--idiom {
-  background: linear-gradient(135deg, var(--el-color-success-light-8), var(--el-color-success-light-9));
-}
-
-.kb-tpl__cover--question {
-  background: linear-gradient(135deg, var(--el-color-info-light-8), var(--el-color-info-light-9));
-}
-
-.kb-tpl__cover-text {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  opacity: 0.72;
-}
-
-.kb-tpl__body {
-  padding: 10px 12px 12px;
-}
-
-.kb-tpl__name {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-tpl__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.kb-tpl__tag {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.kb-tpl__use {
-  flex: 0 0 auto;
-  --el-button-text-color: var(--el-color-primary);
-  --el-button-border-color: var(--el-color-primary-light-5);
-  --el-button-hover-bg-color: var(--el-color-primary-light-9);
-}
-
-/* 最近活动：卡片内自带标题，竖向时间线（圆点 + 连接线） */
-.kb-activity {
-  height: 100%;
-  padding: 0 0 12px;
-}
-
-.kb-activity__head {
-  margin: 0;
-  padding: 16px 16px 10px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.kb-activity__list {
-  margin: 0;
-  padding: 0 16px;
-  list-style: none;
-}
-
-.kb-activity__item {
-  position: relative;
-  display: flex;
-  gap: 10px;
-  padding: 10px 0 10px 2px;
-}
-
-.kb-activity__item:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 22px;
-  bottom: -2px;
-  width: 1px;
-  background: var(--el-border-color-lighter);
-}
-
-.kb-activity__dot {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  width: 10px;
-  height: 10px;
-  margin-top: 5px;
-  border-radius: 50%;
-  background: var(--el-color-primary);
-  box-shadow: 0 0 0 3px var(--el-bg-color);
-}
-
-.kb-activity__text {
-  min-width: 0;
-  flex: 1;
-}
-
-.kb-activity__title {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-}
-
-.kb-activity__meta {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-@media (max-width: 1080px) {
-  .kb-home {
-    flex-direction: column;
-  }
-
-  .kb-home__side {
-    flex: none;
-    width: 100%;
-  }
-}
-</style>

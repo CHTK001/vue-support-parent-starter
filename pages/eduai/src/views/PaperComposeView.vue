@@ -18,7 +18,7 @@
       扫码内容即后端 GET /v2/edu/paper/qr/{paperQuestionNo} 的定位凭据。
     - 接口：统一走 src/api/eduaiApi.ts（不另建请求层）。
     - 购物车：复用并行子 Agent 提供的 usePaperCart(paperId)（本轮契约冻结，按契约 import）。
-    - 题库市场：弹框 QuestionMarketDialog（props modelValue / paperId，emits picked）。
+    - 题库市场：独立菜单页 QuestionMarketView（左侧购物车 / 右侧市场）。
 -->
 <template>
   <div class="compose-page">
@@ -214,7 +214,7 @@
             <span class="panel-head__title">试卷购物车</span>
             <span class="panel-head__actions">
               <ReButton v-if="cartItems.length" type="primary" @click="addAllCartItemsToPaper">全部加入</ReButton>
-              <ReButton layout="square" type="primary" icon="Plus" tip="继续添加题目" @click="openMarket" />
+              <ReButton layout="square" type="primary" icon="Plus" tip="题库市场" @click="openMarket" />
               <ReButton v-if="cartItems.length" layout="square" type="danger" icon="Delete" tip="清空购物车" @click="clearCart" />
             </span>
           </div>
@@ -264,9 +264,6 @@
         <div class="cart-tip">提示：把购物车条目拖到左侧题目清单，或点「加入」一键上卷；上卷后自动从购物车移除。</div>
       </el-card>
     </aside>
-
-    <!-- ==================== 题库市场弹框 ==================== -->
-    <QuestionMarketDialog v-model="marketVisible" :paper-id="paperId" @picked="onMarketPicked" />
 
     <!-- ==================== 设置弹框（左配置 / 右实时预览） ==================== -->
     <ReDialog v-model="settingsVisible" title="试卷设置" width="1080px" top="5vh" append-to-body destroy-on-close class="paper-settings-dialog">
@@ -518,9 +515,8 @@ import ReButton from "@repo/ui/re-button";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReRichText from "@repo/ui/re-rich-text";
 import { eduaiApi } from "../api/eduaiApi";
-import type { EduAiCapability, MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
+import type { EduAiCapability, PaperComposePayload, PaperTemplate } from "../api/types";
 import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaperCart";
-import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
 import PaperPreview, { type PaperExportMode } from "../components/paper/PaperPreview.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
@@ -636,6 +632,7 @@ const QUESTION_TYPES = [
   { value: "JUDGE", label: "判断题" },
   { value: "FILL", label: "填空题" },
   { value: "SHORT_ANSWER", label: "简答题" },
+  { value: "SUBJECTIVE", label: "主观题" },
   { value: "ESSAY", label: "作文" },
 ];
 
@@ -1007,28 +1004,22 @@ const {
   count: cartCount,
 } = usePaperCart(paperId);
 
-/** 题库弹框可见性 */
-const marketVisible = ref(false);
-
+/** 从组卷右栏进入题库市场：带当前论文 ID，市场页会直接读写该试卷的购物车 */
 function openMarket() {
-  marketVisible.value = true;
-}
-
-/** 题库弹框「已选题」回填购物车（MarketQuestion -> CartItem，带去重） */
-function onMarketPicked(list: MarketQuestion[]) {
-  if (!list.length) {
-    return;
+  const query: Record<string, string> = {};
+  if (paperId.value != null) {
+    query.paperId = String(paperId.value);
   }
-  // 统一走共享映射（含分值兜底），避免各处各写一遍、并防止缺分值落成 0 分
-  const mapped: CartItem[] = list.map((q) => toCartItem(q));
-  const fresh = mapped.filter((it) => !cartHas(it.questionId));
-  const skipped = mapped.length - fresh.length;
-  if (fresh.length) {
-    addCartMany(fresh);
-    message.success(`已加入购物车 ${fresh.length} 题${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
-  } else {
-    message.info("所选题目都已在购物车中");
+  if (header.subject) {
+    query.subject = header.subject;
   }
+  if (header.gradeLevel) {
+    query.gradeLevel = header.gradeLevel;
+  }
+  if (header.grade) {
+    query.grade = header.grade;
+  }
+  void router.push({ path: "/edu/market", query });
 }
 
 /* ==================== AI 组卷（能力由后端 spring-support-ai-starter 提供） ==================== */

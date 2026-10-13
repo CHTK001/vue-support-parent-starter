@@ -9,7 +9,7 @@
             <el-icon :size="46" class="fs-drop-icon"><Picture /></el-icon>
             <p class="fs-drop-title">上传一张照片，开始识别人脸</p>
             <p class="fs-drop-desc">点击选择图片，或把照片拖到这里</p>
-            <el-button type="primary" class="fs-drop-btn" @click.stop="pickImage">
+            <el-button type="primary" class="fs-drop-btn" :disabled="!faceReady" @click.stop="pickImage">
               <el-icon><FolderOpened /></el-icon>选择图片
             </el-button>
           </div>
@@ -197,7 +197,7 @@
         </div>
 
         <!-- 主行动 -->
-        <el-button class="fs-cta" :disabled="busy" @click="openEnroll">
+        <el-button class="fs-cta" :disabled="busy || !faceReady" @click="openEnroll">
           <el-icon><Star /></el-icon>人脸登记入库
         </el-button>
         <p class="fs-gallery-hint">
@@ -205,13 +205,28 @@
           <span v-if="registry.records.value.length && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
         </p>
 
-        <!-- 当前模型（只读，取自系统设置） -->
+        <!-- 当前模型（只读，取自系统设置；未配置时明确显示「未配置」而不是种子模型名） -->
         <p class="fs-model">
           <el-icon><Setting /></el-icon>
-          <span>检测模型 <b>{{ models.detector_model || '—' }}</b></span>
+          <span>检测模型 <b>{{ faceDetectorModel || '未配置' }}</b></span>
           <span class="fs-dot">·</span>
-          <span>特征模型 <b>{{ models.feature_model || '—' }}</b></span>
+          <span>特征模型 <b>{{ faceFeatureModel || '未配置' }}</b></span>
         </p>
+
+        <!--
+          模型未配齐 → 本页不可用。
+          与以图搜图的 .is-hint 同一套语言：说清「差哪几项」和「去哪儿配」，
+          而不是让用户上传一张图之后才在后端报「模型未注册」。
+        -->
+        <div v-if="!faceReady" class="fs-gate">
+          <el-icon><Warning /></el-icon>
+          <div>
+            <p class="fs-gate-title">人脸识别未启用</p>
+            <p class="fs-gate-desc">
+              还需配置{{ faceMissingLabels }}。请到「系统设置 → 默认模型 → 人脸识别」中选择模型，保存后立即生效。
+            </p>
+          </div>
+        </div>
       </aside>
 
       <!-- ==================== 右缘悬浮工具条 ==================== -->
@@ -244,6 +259,8 @@ import {
 import { apiService } from '@/services/ApiService'
 import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
 import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
+import { useModelConfigStore } from '@/stores/modelConfig'
+import { configuredValue } from '@/utils/modelConfigStatus'
 import FaceEnrollDialog from './FaceEnrollDialog.vue'
 
 /** 相似度环周长：r=54 → 2πr */
@@ -253,25 +270,56 @@ const previewUrl = ref('')
 const natural = ref({ w: 1, h: 1 })
 const hits = ref<FaceHit[]>([])
 const matches = ref<FaceMatch[]>([])
-const models = ref<Record<string, any>>({})
+
 /**
- * face 分组「对当前用户生效」的合并视图（全局默认 + 本人覆盖）。
+ * 模型门禁 store。
  *
- * <p><b>为什么不用 {@code /face/config}（全局层）做判据：</b>系统设置保存 face 分组
- * 写的是用户覆盖层（face 属 userScoped 组，管理员也只写自己），而
- * {@code GET /v2/face/config} 只回全局层，两者可能不一致。后端
- * {@code FaceClientManager.isModelConfigured} 走 {@code GlobalSettingReader.getStr}
- * —— 覆盖优先、**覆盖为空也算显式清空** —— 与 {@code /settings/face/merged} 完全同口径。</p>
+ * <p><b>为什么改用它。</b>原先这里本地读 {@code GET /v2/face/config}（业务配置口），
+ * 它回的是**数据库原值**，2026-09-30 那批一次性种子行（{@code configuredBy} 全为空）
+ * 也一并返回 —— 于是「从没配过模型」的账号，界面上照样显示
+ * {@code 检测模型 scrfd-face-detector · 特征模型 arc-face}，与设置中心的
+ * 「请选择模型」自相矛盾，用户会以为已经配好了。</p>
+ *
+ * <p>store 的判据是设置中心同源的合并视图（{@code /v2/settings/face/merged}）+
+ * {@code origin !== 'SYSTEM_DEFAULT'}，侧栏徽标与本页门禁因此共用同一口径。</p>
  */
-const faceMerged = ref<Record<string, any>>({})
+const modelConfig = useModelConfigStore()
+
+/** 底栏展示用真实配置名：经 store 合并视图过滤系统种子，未配置时为空串 */
+const faceDetectorModel = computed(() => modelConfig.faceDetectorModel)
+const faceFeatureModel = computed(() => modelConfig.faceFeatureModel)
+
+/** face 分组合并视图（field -> {value, origin}），供关键点等逐字段判据读取 */
+const faceMerged = computed(() => modelConfig.faceMerged)
+
 /**
- * 关键点模型是否已配置（对当前用户生效值非空白）。
+ * 关键点模型是否已配置（对当前用户生效值非空白、且不是系统种子）。
  *
  * <p>未配置时**特征点业务入口不渲染** —— 一个必然回「能力未启用」的按钮不该出现在
  * 界面上；后端那道校验仍然保留（防直连 API）。合并视图读失败时 faceMerged 为空
  * → 隐藏（fail-closed）：宁可暂时不给入口，也不显示一个点了必然报错的按钮。</p>
  */
-const landmarkReady = computed(() => String(faceMerged.value.landmark_model ?? '').trim() !== '')
+const landmarkReady = computed(() => configuredValue(faceMerged.value, 'landmark_model') !== '')
+
+/**
+ * 人脸识别是否可用：检测模型 + 特征模型都已**真正**配置（缺一不可）。
+ *
+ * <p>与后端 {@code FaceClientManager.isModelConfigured} 同口径（留空即该能力未启用），
+ * 外加「种子值不算配置」这一条。未配齐时本页不上传、不识别、不登记，
+ * 只在右栏说明差哪几项、去哪儿配。</p>
+ */
+const faceReady = computed(() => modelConfig.faceReady)
+
+/** 缺失模型字段的中文名（与设置中心的 labelMap 同套文案） */
+const FACE_FIELD_LABELS: Record<string, string> = {
+  detector_model: '人脸检测模型',
+  feature_model: '人脸特征模型',
+}
+
+/** 缺失的必需模型（中文名，用于提示） */
+const faceMissingLabels = computed(() =>
+  modelConfig.faceMissing.map((f) => FACE_FIELD_LABELS[f] ?? f).join('、'),
+)
 const pickedId = ref('')
 const galleryKey = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -484,7 +532,15 @@ const RAIL: RailTool[] = [
     // 关键点模型没配置 → 整个入口不显示（不是置灰：没配置时点了也只会得到业务错误）
     visible: () => landmarkReady.value,
   },
-  { key: 'enroll', title: '人脸登记入库', icon: Star, active: () => enrollVisible.value, toggle: () => { openEnroll() } },
+  {
+    key: 'enroll',
+    title: '人脸登记入库',
+    icon: Star,
+    active: () => enrollVisible.value,
+    toggle: () => { openEnroll() },
+    // 检测/特征模型未配齐时登记必然失败，入口不渲染（与 landmark106 同一口径）
+    visible: () => faceReady.value,
+  },
 ]
 
 /** 右缘工具条：按当前配置过滤（如 landmark 模型未配置就不显示 106 点开关） */
@@ -515,6 +571,12 @@ const foundSub = computed(() => {
 })
 
 function openEnroll() {
+  // 登记同样依赖检测 + 特征模型：未配齐时不打开对话框，
+  // 否则用户填完档案才在第一步（检测）失败。
+  if (!faceReady.value) {
+    message.warning(NOT_READY_MSG)
+    return
+  }
   enrollVisible.value = true
 }
 
@@ -523,25 +585,28 @@ function onEnrolled() {
   matches.value = []
 }
 
+/**
+ * 加载模型门禁状态。
+ *
+ * <p>不再读 {@code /face/config}：那个口回数据库原值，2026-09-30 的一次性种子行
+ * 也在里面，「从没配过」也会返回 {@code scrfd-face-detector} / {@code arc-face}，
+ * 与设置中心的「请选择模型」自相矛盾。判据统一走 store 的合并视图。</p>
+ */
 async function loadModels() {
-  try {
-    models.value = await apiService.getFaceSettings()
-  } catch {
-    models.value = {}
-  }
-  // 特征点开关的判据：取「对当前用户生效」的合并视图（与后端 isModelConfigured 同口径）
-  try {
-    const resp = await apiService.fetchMergedGroupSettings('face')
-    const items = (resp as any)?.data ?? resp ?? []
-    const m: Record<string, any> = {}
-    if (Array.isArray(items)) for (const it of items) if (it && it.field) m[it.field] = it.value
-    faceMerged.value = m
-  } catch {
-    faceMerged.value = {} // fail-closed：读不到生效值就不显示入口
-  }
+  await modelConfig.load()
 }
 
+/** 模型未配齐时的统一提示（ upload / 识别 / 登记 三处共用一句口径） */
+const NOT_READY_MSG =
+  '人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型'
+
 function pickImage() {
+  // 模型未配齐：连文件选择器都不弹（不是选完才拦）——「选择图片」按钮已 disabled，
+  // 空态区点击与拖放同样走这里，一句话说清差哪几项、去哪儿配。
+  if (!faceReady.value) {
+    message.warning(NOT_READY_MSG)
+    return
+  }
   fileInput.value?.click()
 }
 
@@ -553,6 +618,11 @@ function onFilePicked(e: Event) {
 }
 
 async function loadFile(file: File) {
+  // 模型未配齐：不进入识别流程（上传/拖放两条入口都经过这里）
+  if (!faceReady.value) {
+    message.warning(NOT_READY_MSG)
+    return
+  }
   revokePreview()
   previewUrl.value = URL.createObjectURL(file)
   galleryKey.value = ''
@@ -583,6 +653,11 @@ function readNaturalSize(url: string): Promise<{ w: number; h: number }> {
 }
 
 async function runDetect(file: File) {
+  // 双保险：门禁可能在会话中途被改空（设置中心清空了模型），这里再挡一次
+  if (!faceReady.value) {
+    message.warning(NOT_READY_MSG)
+    return
+  }
   detecting.value = true
   try {
     natural.value = await readNaturalSize(previewUrl.value)
@@ -663,6 +738,10 @@ async function runLandmark106() {
 /** 1:N 识别：拿当前照片与向量库比对 */
 async function runIdentify() {
   if (!previewUrl.value) return
+  if (!faceReady.value) {
+    message.warning(NOT_READY_MSG)
+    return
+  }
   identifying.value = true
   try {
     const blob = await (await fetch(previewUrl.value)).blob()
@@ -687,6 +766,10 @@ async function runIdentify() {
 
 /** 裁剪脸部：用检测返回的裁剪图再识别一次，聚焦面部区域 */
 async function recognizeCrop() {
+  if (!faceReady.value) {
+    message.warning(NOT_READY_MSG)
+    return
+  }
   const hit = mainHit.value
   if (!hit?.faceImage) {
     message.warning('没有拿到裁剪图，请重新检测')
@@ -1297,6 +1380,40 @@ onBeforeUnmount(() => {
 
 .fs-model b { color: var(--fs-accent); font-weight: 600; }
 .fs-dot { opacity: 0.5; }
+
+/* 模型未配齐的门禁提示：与以图搜图的 .is-hint 同一套语言（图标 + 标题 + 说明），
+   配色取告警语义色而非品牌橙 —— 这里是「缺配置」的提示，不是人脸检测标记。 */
+.fs-gate {
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--el-color-warning-light-5, #e6a23c);
+  border-radius: var(--fs-radius);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  color: var(--el-text-color-primary);
+}
+
+.fs-gate > .el-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--el-color-warning, #e6a23c);
+}
+
+.fs-gate-title {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fs-gate-desc {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fs-muted);
+}
 
 /* ---------------- 右缘悬浮工具条 ---------------- */
 .fs-rail {

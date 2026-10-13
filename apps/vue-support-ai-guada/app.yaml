@@ -34,6 +34,17 @@ httpConfig:
   showLoading: false
   encrypt: false
   sign: false
+  # 后端 codec 协议请求体加密（对齐服务端 plugin.api.decode）：
+  # 登录等敏感请求按 .codec(true) 走 access-control-origin-key + AES-256-CBC 加密传输。
+  # key 必须与服务端 plugin.api.decode.codec-request-key 一致，type 与 codec-type 对齐
+  # （aes 走 AES-256-CBC/PKCS7；sm4/des 后端仅做 hex 编解码）。
+  # 服务端 plugin.api.decode.codec-request-key 已配置（198 上 sys_setting 表
+  # startup-api 组，EnvironmentPostProcessor 启动期注入；type 同为 aes）。
+  # 2026-10-13 端到端验收：curl 带头 + AES 载荷登录 200，垃圾载荷 400。
+  requestCodec:
+    enable: true
+    key: "e3eccc79fe899fcd06b380126930d61c"
+    type: "aes"
   # 本应用各页面已自行展示后端 msg（ElMessage / toast），关闭框架重复提示；
   # 拦截器仍负责 401/403 跳登录与业务失败 reject。
   toast:

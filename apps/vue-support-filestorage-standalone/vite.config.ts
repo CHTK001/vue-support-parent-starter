@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+﻿import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 import path from "node:path";
@@ -114,9 +114,11 @@ export default defineConfig({
       // （约 27MB，含 17MB 的 ppt 字体）。Windows 下 chokidar 会对这些仍在写入
       // 的大文件建 fs.watch 句柄，触发 EBUSY 并使 dev server 进程直接崩溃。
       // public/vendor 是插件生成的只读资产，监听其变化没有意义，故排除。
+      // public/wasm 同理（CAD LibreDWG 等大 WASM，Windows watch 同样 EBUSY）。
       ignored: [
         (p: string) =>
           /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]wasm([/\\]|$)/.test(p) ||
           /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
       ],
     },

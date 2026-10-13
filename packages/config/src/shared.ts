@@ -193,6 +193,11 @@ export const defaultAppConfig: AppConfig = {
       field: "both",
       skipCodeList: [],
     },
+    requestCodec: {
+      enable: false,
+      key: "",
+      type: "aes",
+    },
   },
   storage: {
     encode: true,

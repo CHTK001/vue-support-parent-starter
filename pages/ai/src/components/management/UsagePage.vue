@@ -247,7 +247,7 @@
         <el-table-column :label="`费用(${currencySymbol})`" align="right" width="90">
           <template #default="{ row }">{{ money(row.sysAiUsageTotalCost) }}</template>
         </el-table-column>
-        <el-table-column label="耗时(ms)" width="90">
+        <el-table-column label="耗时 / 速率" width="110">
           <template #default="{ row }">
             <el-popover trigger="hover" placement="top" :show-arrow="true" :width="220">
               <template #reference>
@@ -259,6 +259,7 @@
                   <div class="latency-times">
                     <span class="latency-time-first" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
                     <span class="latency-time-total" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
+                    <span class="latency-time-speed" :style="{ color: speedColor(row, true) }">{{ formatSpeed(row.sysAiUsageTotalTokensPerSecond) }}</span>
                   </div>
                 </div>
               </template>
@@ -273,7 +274,33 @@
                   <span class="latency-popover-label">总耗时</span>
                   <span class="latency-popover-value" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
                 </div>
-                <div class="latency-popover-hint">绿/橙/红=快/中/慢</div>
+                <div class="latency-popover-row">
+                  <span class="latency-popover-dot" :style="{ background: speedColor(row) }"></span>
+                  <span class="latency-popover-label">解码速率</span>
+                  <span class="latency-popover-value" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+                </div>
+                <div class="latency-popover-row">
+                  <span class="latency-popover-dot" :style="{ background: speedColor(row, true) }"></span>
+                  <span class="latency-popover-label">端到端吞吐</span>
+                  <span class="latency-popover-value" :style="{ color: speedColor(row, true) }">{{ formatSpeed(row.sysAiUsageTotalTokensPerSecond) }}</span>
+                </div>
+                <div class="latency-popover-divider"></div>
+                <div class="latency-popover-row">
+                  <span class="latency-popover-dot" style="background: var(--el-color-success)"></span>
+                  <span class="latency-popover-label">输入 Token</span>
+                  <span class="latency-popover-value">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span>
+                </div>
+                <div class="latency-popover-row">
+                  <span class="latency-popover-dot" style="background: var(--el-color-primary)"></span>
+                  <span class="latency-popover-label">输出 Token</span>
+                  <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span>
+                </div>
+                <div class="latency-popover-row">
+                  <span class="latency-popover-dot" style="background: var(--el-text-color-primary)"></span>
+                  <span class="latency-popover-label">总 Token</span>
+                  <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
+                </div>
+                <div class="latency-popover-hint">绿/橙/红=快/中/慢（耗时与速率）</div>
               </div>
             </el-popover>
           </template>
@@ -984,6 +1011,29 @@ function formatLatency(ms: number | null | undefined): string {
   return h + 'h ' + rm + 'm';
 }
 
+/** 速率格式化：无效或缺失值显示占位符 */
+function formatSpeed(v: number | null | undefined): string {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  return n.toFixed(1) + ' tok/s';
+}
+
+/**
+ * 速率着色（阈值参考实测基线：纯解码约 80~105 tok/s）。
+ *
+ * <p>端到端吞吐含首字延迟，基线低于纯解码速度，阈值相应下调；
+ * ≥阈值上限为快（绿），中间为中（橙），低于下限为慢（红）。</p>
+ */
+function speedColor(row: any, e2e = false): string {
+  const n = Number(row?.[e2e ? 'sysAiUsageTotalTokensPerSecond' : 'sysAiUsageTokensPerSecond']);
+  if (!Number.isFinite(n) || n <= 0) return 'var(--el-text-color-placeholder)';
+  const ok = e2e ? 60 : 80;
+  const warn = e2e ? 30 : 40;
+  if (n >= ok) return 'var(--el-color-success)';
+  if (n >= warn) return 'var(--el-color-warning)';
+  return 'var(--el-color-danger)';
+}
+
 // ---------- 延迟指示器：上下两段 + 阈值变色 ----------
 const FIRST_THRESHOLDS = { ok: 1500, warn: 4000 };
 const TOTAL_THRESHOLDS = { ok: 8000, warn: 25000 };
@@ -1574,12 +1624,12 @@ onMounted(() => {
   align-items: stretch;
   justify-content: space-between;
   width: 46px;
-  height: 26px;
+  height: 39px;
   cursor: default;
 }
 .latency-track {
   width: 5px;
-  height: 26px;
+  height: 39px;
   /* 原值 3px（5px 宽细条，略大于半高即胶囊）→ full 档 */
   border-radius: var(--el-radius-full, 9999px);
   overflow: hidden;
@@ -1594,16 +1644,18 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 26px;
+  height: 39px;
   text-align: right;
 }
 .latency-time-first,
-.latency-time-total {
+.latency-time-total,
+.latency-time-speed {
   font-size: 11px;
   line-height: 13px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.latency-time-speed { font-weight: 600; }
 .latency-popover-content { font-size: 12px; }
 .latency-popover-content .latency-popover-row { display: flex; align-items: center; gap: 8px; height: 22px; }
 /* 原值 50%（正圆）→ full 档 */
@@ -1611,6 +1663,7 @@ onMounted(() => {
 .latency-popover-content .latency-popover-label { color: var(--el-text-color-secondary); }
 .latency-popover-content .latency-popover-value { margin-left: auto; color: var(--el-text-color-primary); font-variant-numeric: tabular-nums; font-weight: 500; }
 .latency-popover-hint { margin-top: 6px; font-size: 11px; color: var(--el-text-color-placeholder); }
+.latency-popover-divider { height: 1px; background: var(--el-border-color-lighter); margin: 4px 0; }
 
 .token-estimated { border-bottom: 1px dashed var(--el-color-warning); cursor: help; }
 

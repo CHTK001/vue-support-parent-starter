@@ -388,11 +388,15 @@ export interface StorageRequestError extends Error {
 /**
  * 构造携带状态码的存储错误
  *
+ * <p>供各查询通道复用：CAD / 压缩包条目等通道拿到 404 时，
+ * 上层面板要靠 {@code status} 区分「对象不存在（可自愈提示）」
+ * 与「网络 / 权限故障」，只报文案会丢掉这个判别依据。</p>
+ *
  * @param action 出错动作（如「列表查询」）
  * @param e      原始异常
  * @returns 带 status 的错误
  */
-function storageError(action: string, e: unknown): StorageRequestError {
+export function storageError(action: string, e: unknown): StorageRequestError {
   const err = new Error(toErrorMessage(e, action)) as StorageRequestError;
   const status = (e as { response?: { status?: number } })?.response?.status;
   if (typeof status === "number") err.status = status;
@@ -923,7 +927,9 @@ export async function getCadInfo(
     }
     return res;
   } catch (e) {
-    throw new Error(toErrorMessage(e, "CAD 图纸查询"));
+    // 保留 HTTP status：面板据此把「对象不存在（404/410）」
+    // 与网络 / 权限故障分开提示，而不是一律显示原始错误正文
+    throw storageError("CAD 图纸查询", e);
   }
 }
 

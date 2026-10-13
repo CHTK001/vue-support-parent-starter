@@ -91,7 +91,7 @@ function isWide(param: CollectParamMeta): boolean {
 const EXTRA_TIPS: Record<string, string> = {
   rows:
     "首行表头、其后每行一条；也支持 JSON 数组 [{\"列\": 值}]。单元格空值落 NULL，纯数字与布尔按值收型，前导零（007）保留文本。文本支持 ${} 拼接。",
-  outputVariable: "本节点产出的集合变量名，默认 rows；下游用 ${rows} 引用整批行。",
+  outputVariable: "本节点产出的集合变量名，默认 data；下游用 ${data} 引用整批行（旧流程留空时仍按 ${rows} 兜底）。",
   datasource: "只给「建表」按钮用：选数据源中心里的 JDBC 数据源；本节点自身不写库。",
   table: "配合「建表」按钮把上方录入列落成实际表；下游数据库节点选同一数据源与表即可写入。",
 };
@@ -109,7 +109,7 @@ function extraTip(name: string): string {
 
 <template>
   <div class="field field-wide node-intro">
-    手工录行：首行表头、每行一条数据，产出集合（默认 ${rows}）供下游数据库 / 采集平台节点整批消费。
+    手工录行：首行表头、每行一条数据，产出集合（默认 ${data}，同 ${rows}）供下游数据库 / 采集平台节点整批消费。
     需要目标表时，先用「建表」按表头列把表落好，再让下游选同一数据源与表写入。
   </div>
 

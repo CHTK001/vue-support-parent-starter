@@ -63,6 +63,15 @@ export interface TavernStreamEvent {
   modelName?: string;
   finishReason?: string;
   error?: string;
+  /** 本轮实际应答的供应商（排查路由错位） */
+  route?: {
+    model?: string;
+    providerId?: string | null;
+    providerName?: string;
+    platform?: string;
+    baseUrl?: string;
+    providerResolved?: boolean;
+  };
   [k: string]: unknown;
 }
 

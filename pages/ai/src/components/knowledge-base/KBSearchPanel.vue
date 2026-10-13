@@ -1,11 +1,11 @@
 <!-- KnowledgeBasePage/KBSearchPanel.vue -->
 <template>
-  <div class="flex w-full h-full flex-1 flex-col gap-4 overflow-hidden min-h-0">
+  <div class="kb-search__panel flex w-full h-full flex-1 flex-col gap-4 overflow-hidden min-h-0">
     <!-- 搜索区：查询词是单行语义，回车即搜；原来用 3 行 textarea + Ctrl+Enter，
      主按钮又只有一个无文字的方形图标，用户看不出这里能提交。 -->
-    <div class="re-surface shrink-0">
+    <div class="kb-search__box shrink-0">
       <div class="flex flex-col gap-3">
-        <div class="flex items-start gap-2">
+        <div class="kb-search__row items-start">
           <el-input
             v-model="searchForm.query"
             :placeholder="t('knowledge.search.contentPlaceholder')"
@@ -41,11 +41,11 @@
             :tip="t('knowledge.search.clearResults')" @click="clearResults" />
         </div>
 
-        <div class="flex-1 overflow-y-auto flex flex-col gap-2">
+        <div class="kb-search__results flex-1 overflow-y-auto flex flex-col gap-2">
           <div
             v-for="(result, index) in searchResults"
             :key="index"
-            class="re-surface re-surface--dense re-surface--hover cursor-pointer flex flex-col gap-2"
+            class="kb-search__result cursor-pointer flex flex-col gap-2"
             @click="handleResultClick(result)"
           >
             <!-- 分数 -->
@@ -266,15 +266,3 @@ watch(() => props.defaultKbId, (newKbId, oldKbId) => {
   }
 })
 </script>
-
-<style scoped>
-/* 关键词高亮：由 v-html 注入，无法用 Tailwind 条件类表达，故留一条作用域规则；
-   底色与前景色均走 koi 令牌，暗色自动跟随。 */
-.kb-search-hl :deep(.kb-search-mark),
-:deep(.kb-search-mark) {
-  background: var(--rm-primary-light-9);
-  color: var(--rm-primary);
-  border-radius: 3px;
-  padding: 0 2px;
-}
-</style>

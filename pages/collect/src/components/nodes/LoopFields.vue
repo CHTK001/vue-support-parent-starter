@@ -62,7 +62,10 @@ function isWide(param: CollectParamMeta): boolean {
 
 <template>
   <div v-if="loopParams.length" class="loop-seg">
-    <SectionHead title="循环迭代" hint="留空单次执行；填数字或 ${集合} 即按项迭代" />
+    <SectionHead
+      title="逐条处理（循环）"
+      hint="上游一批数据（多行/多网址）逐条跑：填 ${data} 或 ${url} 循环，每轮用 ${item} 取当前条、${index} 取第几条；留空只跑一次"
+    />
     <div
       v-for="param in loopParams"
       :key="param.name"

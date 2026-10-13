@@ -871,13 +871,14 @@ function onKeydown(e: KeyboardEvent): void {
   } else if (e.key === "9") {
     zoomFit();
   } else if (e.key === "Escape") {
+    // 只处理面板自身状态（菜单 / 裁剪态）；关闭弹层由父组件
+    // onPreviewKeydown 统一负责。此前这里多发的 emit("saved")
+    // 会被父组件 @saved 当成「图片已保存」弹出「图片已更新」提示。
     if (menuVisible.value) {
       closeMenu();
     } else if (cropMode.value) {
       cropMode.value = false;
       cropClear();
-    } else {
-      emit("saved"); // 借用事件触发父组件关闭
     }
   } else if (e.key === "s" || e.key === "S") {
     if (canSave.value) {

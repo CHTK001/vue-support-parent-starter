@@ -9,7 +9,7 @@
 
       <div class="is-searchbox">
         <span class="is-searchbox-tip">选一张图，检索底库中最相似的图片</span>
-        <button class="is-upload-btn" :disabled="busy" @click="pickImage">
+        <button class="is-upload-btn" :disabled="busy || !available" @click="pickImage">
           <el-icon><Upload /></el-icon>上传图片
         </button>
       </div>
@@ -128,7 +128,7 @@
           <div>
             <p class="is-hint-title">以图搜图未启用</p>
             <p class="is-hint-desc">
-              请到「系统设置 → 默认模型」配置特征模型（如 resnet50-feature / clip-image-feature / cn-clip-rn50-image），保存后立即生效。
+              请到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型（如 resnet50-feature / clip-image-feature / cn-clip-rn50-image），保存后立即生效。
             </p>
           </div>
         </div>
@@ -214,6 +214,7 @@ import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
+import { useModelConfigStore } from '@/stores/modelConfig'
 
 /**
  * 以图搜图页面
@@ -260,6 +261,14 @@ const searched = ref(false)
 
 const available = ref(false)
 const activeModel = ref('')
+/**
+ * 模型门禁 store：以图搜图「特征模型是否真的配过」的唯一判据。
+ *
+ * <p>与后端 {@code /image-search/status} 并用——那个口读数据库原值，
+ * 一次性种子行会让「从没配过」也返回 {@code available=true}。
+ * store 走设置中心同源的合并视图（{@code origin !== 'SYSTEM_DEFAULT'}）。</p>
+ */
+const modelConfig = useModelConfigStore()
 const results = ref<ImageItem[]>([])
 const minScore = ref(0)
 /**
@@ -403,7 +412,16 @@ function formatDims(item: ImageItem): string {
   return item.width && item.height ? `${item.width}×${item.height}` : '尺寸未知'
 }
 
+/** 未配置特征模型时的统一提示（上传/检索/入库共用一句口径） */
+const NOT_READY_MSG =
+  '以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型'
+
 function pickImage() {
+  // 模型未配置时连文件选择器都不弹（不是选完才拦）
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
   fileInput.value?.click()
 }
 
@@ -416,12 +434,20 @@ async function onFilePicked(event: Event) {
 
 async function onDrop(event: DragEvent) {
   dragging.value = false
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
   const file = event.dataTransfer?.files?.[0]
   if (file) await useImage(file)
 }
 
 /** 从剪贴板取图 */
 async function pasteFromClipboard() {
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
   try {
     const items = await navigator.clipboard.read()
     for (const item of items) {
@@ -440,6 +466,10 @@ async function pasteFromClipboard() {
 
 /** 选定图片：转 PNG 预览 + 立即检索 */
 async function useImage(file: File) {
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
   busy.value = true
   try {
     const normalized = await normalizeToPng(file)
@@ -509,6 +539,10 @@ function normalizeToPng(file: File): Promise<File> {
  */
 async function runSearch() {
   if (!previewFile.value) return
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
   searching.value = true
   const startedAt = performance.now()
   try {
@@ -537,6 +571,10 @@ async function runSearch() {
 /** 把当前图加入底库 */
 async function indexCurrent() {
   if (!previewFile.value) return
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
   busy.value = true
   try {
     const form = new FormData()
@@ -564,13 +602,12 @@ function isNotConfigured(error: any): boolean {
 }
 
 async function loadStatus() {
-  try {
-    const data = await apiService._request('/image-search/status')
-    available.value = !!data?.available
-    activeModel.value = data?.model || ''
-  } catch (e) {
-    available.value = false
-  }
+  // 以设置中心同源的合并视图为准，不再依赖 /image-search/status：
+  // 那个口会把系统种子 cn-clip-rn50-image 当作「已配置」，与设置中心的
+  // 「请选择模型」自相矛盾。
+  await modelConfig.load()
+  available.value = modelConfig.imageReady
+  activeModel.value = available.value ? modelConfig.imageFeatureModel : ''
 }
 
 // 查询图换新后要重建查看器，否则 viewerjs 内部仍是上一张图

@@ -37,6 +37,7 @@
     backToList: 'Back to knowledge bases',
     tabFiles: 'Files',
     tabSearch: 'Search',
+    tabAsk: 'Q&A',
     createTitle: 'Create Knowledge Base',
     editTitle: 'Edit Knowledge Base',
     kbName: 'Knowledge Base Name',

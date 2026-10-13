@@ -111,13 +111,14 @@ function optionsOf(param: CollectParamMeta): { value: string; label: string }[] 
   return (param.options ?? []).map(item => ({ value: item, label: optionLabel(param, item) }));
 }
 
-/** textarea / pairs / mapping / table 占满整行，与 FlowDesigner 的 .field-wide 规则一致 */
+/** textarea / pairs / mapping / table 占满整行；出参 outputVariable 单独一行，避免与其他字段挤在一行 */
 const wide = computed(
   () =>
     props.param.type === "textarea" ||
     props.param.type === "pairs" ||
     props.param.type === "mapping" ||
-    props.param.type === "table",
+    props.param.type === "table" ||
+    props.param.name === "outputVariable",
 );
 
 const numberValue = computed<number | undefined>(() =>
@@ -160,6 +161,24 @@ const MAP_PREVIEW = 5;
 /** 预览展开态（仅影响预览；编辑仍在弹框里，两处不互相打架） */
 const mapExpanded = ref(false);
 
+/** 专注模式弹框可见性 */
+const focusVisible = ref(false);
+
+/** 专注模式里的草稿值，打开时从当前值初始化，确认后写回 */
+const focusDraft = ref("");
+
+/** 打开专注模式 */
+function openFocus(): void {
+  focusDraft.value = props.value ?? "";
+  focusVisible.value = true;
+}
+
+/** 确认专注模式编辑 */
+function confirmFocus(): void {
+  emit("update", focusDraft.value);
+  focusVisible.value = false;
+}
+
 /** 预览行：折叠态只露前 5 行 */
 const shownPairs = computed<ParamPair[]>(() => {
   const list = props.pairs ?? [];
@@ -193,14 +212,21 @@ function typeOf(key: string): string {
       />
     </div>
 
-    <ReInput
-      v-if="param.type === 'textarea'"
-      type="textarea"
-      :rows="3"
-      :placeholder="param.tip || ''"
-      :model-value="value"
-      @update:model-value="(v: unknown) => emit('update', v)"
-    />
+    <div v-if="param.type === 'textarea'" class="textarea-wrap">
+      <ReInput
+        type="textarea"
+        :rows="3"
+        :placeholder="param.tip || ''"
+        :model-value="value"
+        @update:model-value="(v: unknown) => emit('update', v)"
+      />
+      <button class="focus-btn" type="button" title="专注模式编辑" @click="openFocus">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </svg>
+      </button>
+    </div>
     <ReInputNumber
       v-else-if="param.type === 'number'"
       :controls="false"
@@ -343,6 +369,35 @@ function typeOf(key: string): string {
     <div v-if="param.tip && param.type !== 'textarea'" class="field-tip">
       {{ param.tip }}
     </div>
+
+    <!-- 专注模式弹框：SQL / 脚本等长文本全屏编辑 -->
+    <ReDialog
+      :model-value="focusVisible"
+      :title="`${param.label} · 专注模式`"
+      width="80vw"
+      top="6vh"
+      append-to-body
+      @update:model-value="(v: boolean) => { if (!v) focusVisible = false; }"
+    >
+      <div class="focus-editor-wrap">
+        <ReInput
+          v-model="focusDraft"
+          type="textarea"
+          :rows="20"
+          :placeholder="param.tip || ''"
+          class="focus-textarea"
+        />
+      </div>
+      <template #footer>
+        <div class="focus-footer">
+          <span class="focus-hint">{{ param.tip || "" }}</span>
+          <div class="focus-actions">
+            <button class="focus-cancel" type="button" @click="focusVisible = false">取消</button>
+            <button class="focus-confirm" type="button" @click="confirmFocus">确认</button>
+          </div>
+        </div>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -354,6 +409,93 @@ function typeOf(key: string): string {
 
 .field-wide {
   grid-column: 1 / -1;
+}
+
+.textarea-wrap {
+  position: relative;
+}
+
+.focus-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.textarea-wrap:hover .focus-btn,
+.focus-btn:focus-visible {
+  opacity: 1;
+}
+
+.focus-btn:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.focus-editor-wrap {
+  min-height: 300px;
+}
+
+.focus-textarea :deep(textarea) {
+  min-height: 50vh;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.focus-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.focus-hint {
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.focus-cancel,
+.focus-confirm {
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.focus-cancel {
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: 1px solid var(--el-border-color);
+}
+
+.focus-confirm {
+  color: #fff;
+  background: var(--el-color-primary);
+  border: 1px solid var(--el-color-primary);
 }
 
 .field-label {

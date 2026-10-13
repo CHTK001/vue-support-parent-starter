@@ -775,12 +775,9 @@ watch(histDialogVisible, (v) => {
 });
 
 // ---------------- 磁盘卡片（Windows 风格驱动器磁片） ----------------
-function diskFree(r: any): number {
-  const t = Number(r.total ?? 0), u = Number(r.used ?? 0);
-  return Math.max(0, t - u);
-}
 function diskCapacityText(r: any): string {
-  return `${fmt(diskFree(r))} 可用 · 共 ${fmt(r.total)}`;
+  // 与进度条同口径显示「已用」，避免条子填满 90% 旁边却写「44 GB 可用」而被读成反了
+  return `已用 ${fmt(r.used)} · 共 ${fmt(r.total)}`;
 }
 /** 容量是否紧张（使用率 ≥90%）→ 进度条红色 */
 function diskLow(r: any): boolean {

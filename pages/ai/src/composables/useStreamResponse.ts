@@ -53,12 +53,28 @@ interface Message {
   [key: string]: any;
 }
 
+/**
+ * 本轮实际应答的路由信息（后端 create 事件下发）。
+ *
+ * <p>供应商 + 模型 + baseUrl。选了哪家模型就一定由哪家应答，出问题时（报了别家的
+ * 配额/订阅错、模型串了）这条信息是最直接的判据，不必再去翻后端日志。</p>
+ */
+export interface StreamRouteInfo {
+  model?: string;
+  providerId?: string | null;
+  providerName?: string;
+  platform?: string;
+  baseUrl?: string;
+  providerResolved?: boolean;
+}
+
 interface StreamResponse {
   type: string;
   messageId?: string;
   turnsId?: string;
   contentId?: string;
   modelName?: string;
+  route?: StreamRouteInfo;
   content?: string;
   reasoningContent?: string;
   toolCalls?: any[];
@@ -182,7 +198,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     response: StreamResponse,
     sessionId: string,
   ): { message: Message; contentIndex: number } {
-    const { messageId, contentId, modelName } = response;
+    const { messageId, contentId, modelName, route } = response;
     const time = new Date().toISOString();
 
     // 创建新内容块
@@ -192,7 +208,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
       content: null,
       reasoningContent: null,
       additionalKwargs: [],
-      metadata: { modelName },
+      metadata: { modelName, route },
       createdAt: time,
       updatedAt: time,
       thinkingStartedAt: null,
@@ -289,6 +305,9 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
       existingMessage.contents.push({
         id: response.contentId,
         content: '',
+        // 补占位时一并带上路由信息：重连场景下 create 事件可能已经错过，
+        // 若此处不带，后面不会再有事件补上，提示就会缺失。
+        metadata: { modelName: response.modelName, route: response.route },
         state: { isStreaming: true, isThinking: false },
       } as unknown as MessageContent);
       existingContentIndex = existingMessage.contents.length - 1;

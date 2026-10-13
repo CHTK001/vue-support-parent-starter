@@ -1089,7 +1089,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
               <div class="drive-info">
                 <b class="drive-name">{{ d.name || d.mount }}<span v-if="d.fsType" class="drive-fs dim"> · {{ d.fsType }}</span></b>
                 <div class="drive-track"><i :class="{ low: driveLow(d) }" :style="{ width: driveUsedPct(d) + '%' }" /></div>
-                <span class="drive-hint dim">{{ fmtNum(d.availGb) }} GB 可用，共 {{ fmtNum(d.totalGb) }} GB</span>
+                <span class="drive-hint dim">已用 {{ fmtNum(d.usedGb) }} GB · 共 {{ fmtNum(d.totalGb) }} GB</span>
               </div>
             </div>
           </div>

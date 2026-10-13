@@ -224,6 +224,7 @@ import { CheckCircleFilled } from "@vicons/material";
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
+import { useModelConfigStore } from '@/stores/modelConfig'
 import LDialog from '@/components/ui/LDialog.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
@@ -248,6 +249,12 @@ import {
 
 const { t } = useI18n()
 const { notify } = usePopup()
+/**
+ * 模型门禁 store：本页保存 face / image_search 后要即时刷新它，
+ * 侧栏菜单的「未配置」徽标与人脸/以图搜图页的门禁才会立刻跟着变
+ * （否则要等下次进页面重新拉合并视图）。
+ */
+const modelConfig = useModelConfigStore()
 
 // 配置分组定义
 const settingGroups = ref([])
@@ -493,7 +500,13 @@ const TASK_TO_TYPE = {
     ocr_recognition: 'ocr',
     face: 'face',
     face_recognition: 'face',
-    layout: 'layout'
+    layout: 'layout',
+    // 图片识别 / 图像特征：后端 ApiProviderController.classifyOnnxTask 的兜底分支
+    // 就归这一类（resnet/clip/dino 等），此前前端没有对应项，
+    // 于是一律落到 'text'，「图像特征模型」字段的弹框里一个 CV 模型都看不到。
+    image_cv: 'image_cv',
+    image_feature: 'image_cv',
+    feature_extraction: 'image_cv',
 }
 // feature 类 capability（属于附加能力，不是主类型）
 const FEATURE_LABELS = {
@@ -529,9 +542,17 @@ const resolveModelMeta = (modelName, capabilities) => {
             if (!features.includes(task)) features.push(task)
         }
     })
-    // 名称强类型优先（修正 capabilities 误标，如 agnes-image 被标为 chat）
+    // 名称强类型纠偏：**仅在 capabilities 没给出任何确定类型时**才生效。
+    //
+    // 原为「名称无条件优先」，本意是修正 capabilities 误标（如 agnes-image 被标成 chat）。
+    // 但它会把 cn-clip-rn50-image、resnet50-feature 这类「名字里带 image 的图像特征模型」
+    // 经 inferTypeByName 的 'image' 分支拽到「文生图」去 —— 而 capabilities 已经明确
+    // 给了 embedding / image_cv。结果：「图像特征模型」字段的弹框里只剩扩散模型，
+    // 真正的特征模型一个都选不到（实测：以图搜图因此永远配不上）。
+    // 现在 capabilities 给出确定类型时以它为准，名称只在「空 / 只有 text」时兜底。
     const nameType = inferTypeByName(modelName)
-    if (nameType !== 'text') {
+    const hasDefinitive = types.some((t) => t !== 'text')
+    if (!hasDefinitive && nameType !== 'text') {
         for (let i = types.length - 1; i >= 0; i--) {
             if (types[i] === 'text') types.splice(i, 1)
         }
@@ -562,6 +583,13 @@ const requiredTypeFor = (group, field) => {
     if (g === 'layout') return 'layout'
     if (g === 'image') return 'image_cv'
     if (g === 'asr') return 'asr'
+    // 以图搜图：分组名 image_search 不在上面的 CV 名单里，而字段名
+    // default_image_feature_model 又含 "image"，会被下面按名称的分支判成「文生图」
+    // —— 弹框里只剩扩散模型，真正的图像特征模型一个都选不到
+    // （实测：以图搜图因此永远配不上，门禁永远不亮）。
+    // runtime 分组的同名兜底项同样处理（后端 ImageSearchStore 会回退读它）。
+    if (g === 'image_search') return 'image_cv'
+    if (f === 'default_image_feature_model') return 'image_cv'
     // RAG / 其它字段按名称判断
     if (f.includes('embedding')) return 'embedding'
     if (f.includes('ocr')) return 'ocr'
@@ -571,6 +599,22 @@ const requiredTypeFor = (group, field) => {
     if (f.includes('image')) return 'image'
     // 其余 LLM（runtime default/compression、bot、optimizer、memory extract、rag llm）→ 对话
     return 'text'
+}
+
+/**
+ * 该字段**可以接受**的模型类型（弹框过滤用，可能多个）。
+ *
+ * <p>与 {@link requiredTypeFor} 分开：后者给标题用「这一类模型」的单数标签，
+ * 前者决定列表里实际出现哪些模型。需要多值的只有一个场景 ——
+ * 图像特征模型：后端 {@code classifyOnnxTask} 把名字里带 clip / dino / feature
+ * 的模型归到 {@code embedding}（嵌入分支在前面截获），纯图片识别类的归
+ * {@code image_cv}，两类都能抽图像特征。只认一类就会有一半模型选不到。</p>
+ */
+const acceptableTypesFor = (group, field) => {
+    if (String(field || '') === 'default_image_feature_model') {
+        return ['image_cv', 'embedding']
+    }
+    return [requiredTypeFor(group, field)]
 }
 
 // 判断是否是模型字段（包含 model 关键词）
@@ -1033,11 +1077,11 @@ const currentTypeLabel = computed(() => {
 const filteredModels = computed(() => {
     let result = models.value
 
-    // 按当前字段需要的模型类型过滤
+    // 按当前字段可接受的模型类型过滤（图像特征模型同时认 image_cv / embedding）
     if (currentDialogGroup.value && currentDialogField.value) {
-        const required = requiredTypeFor(currentDialogGroup.value, currentDialogField.value)
-        if (required) {
-            result = result.filter((model) => model.types?.includes(required))
+        const acceptable = acceptableTypesFor(currentDialogGroup.value, currentDialogField.value)
+        if (acceptable.length) {
+            result = result.filter((model) => (model.types || []).some((t) => acceptable.includes(t)))
         }
     }
 
@@ -1328,6 +1372,11 @@ const saveGroupSettings = async (group) => {
         notify.success('设置已保存')
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)
+        // 这三个分组的模型是人脸识别 / 以图搜图的门禁判据，保存后即时刷新，
+        // 侧栏徽标与两个页面的可用性不用等刷新页面就跟着变
+        if (group === 'face' || group === 'image_search' || group === 'runtime') {
+            await modelConfig.refresh()
+        }
     } catch (error) {
         console.error(`保存 ${group} 分组设置失败:`, error)
         notify.error('保存设置失败', error)

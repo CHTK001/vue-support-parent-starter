@@ -220,6 +220,50 @@ export async function previewUrl(url: string): Promise<void> {
 }
 
 /**
+ * 内置浏览器默认页：一个自包含的代码渲染示例。
+ *
+ * 用 data URL 而非外链/本地路由，保证任何会话、任何工作目录都能打开；
+ * 页面内不依赖网络，打开即可看到代码高亮效果。
+ */
+export function buildCodeRenderUrl(): string {
+  const code = [
+    'function buildRoute(providerId, model) {',
+    '  const provider = resolveDbProviderByModel(model, providerId);',
+    '  return { provider, model };',
+    '}',
+    '',
+    'const route = buildRoute("sensenova", "deepseek-v4-flash");',
+    'streamChat(route);',
+  ].join('\n');
+  const escaped = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>代码渲染预览</title>
+<style>
+  body { margin: 0; background: #f7f8fa; color: #1f2329; font: 14px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .wrap { max-width: 860px; margin: 32px auto; padding: 0 20px; }
+  .head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .badge { padding: 2px 10px; border-radius: 999px; background: #e7f3ff; color: #1677ff; font-size: 12px; font-weight: 600; }
+  pre { margin: 0; padding: 18px 20px; border: 1px solid #e5e6eb; border-radius: 10px; background: #fff; overflow: auto; }
+  code { display: block; font: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><span class="badge">内置浏览器</span><span>默认代码渲染预览</span></div>
+  <pre><code>${escaped}</code></pre>
+</div>
+</body>
+</html>`;
+  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+}
+
+/**
  * 打开链接（根据用户偏好自动选择方式）
  *
  * - internal: 内置浏览器预览

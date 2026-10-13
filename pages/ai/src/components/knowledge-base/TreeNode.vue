@@ -175,26 +175,3 @@ function getStatusText(status: string): string {
     return texts[status] || status
 }
 </script>
-
-<style scoped>
-.tree-node {
-    user-select: none;
-}
-
-.node-content:hover {
-    background-color: color-mix(in srgb, var(--rm-text) 4%, transparent);
-}
-
-/* 键盘焦点可见性：节点行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
-   指针样式沿用模板里已有的 cursor-pointer，不重复声明。
-   环用主色 12% —— 节点行本身透明、落在知识库页表面色上，一档主色描边足够可见。
-   注意：模板里的展开箭头用的是 Tailwind 的 transition-transform，
-   属于「本文件自有动效」但不在本次 reduced-motion 清单内，未在此改动。 */
-.node-content {
-    outline: none;
-}
-
-.node-content:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 12%, transparent);
-}
-</style>

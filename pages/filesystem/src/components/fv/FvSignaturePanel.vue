@@ -73,7 +73,7 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
   if (viewerReady) return true;
   try {
     const [vueMod, cssMod, rendererMod] = await Promise.all([
-      import("@file-viewer/vue3"),
+      import("@file-viewer/vue3-full"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
       import("@file-viewer/renderer-signature") as Promise<{
         signatureRenderer?: unknown;

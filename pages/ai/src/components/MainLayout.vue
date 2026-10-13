@@ -10,7 +10,8 @@
     </template>
     <template #content>
       <div
-        class="relative h-full flex-1 min-w-0 overflow-hidden content-clear-wallpaper border-l border-gray-200 dark:border-[#2f2f2f]">
+        class="relative h-full flex-1 min-w-0 overflow-hidden content-clear-wallpaper border-l border-gray-200 dark:border-[#2f2f2f]"
+        :style="contentMaxWidthVar">
         <RouterView />
       </div>
     </template>
@@ -27,6 +28,7 @@ import { useLayoutStore } from '@/stores/layout'
 import { apiService } from '@/services/ApiService'
 import { getLocale } from '@/locales'
 import { useSessionEvents } from '@/composables/useSessionEvents'
+import { initKbDisplay, useKbDisplay } from '@/composables/useKbDisplay'
 import { setPluginToolDisplays } from '@/utils/toolDisplay'
 import SidebarLayout from './ui/SidebarLayout.vue'
 import GlobalSidebar from './GlobalSidebar.vue'
@@ -40,6 +42,15 @@ const router = useRouter()
 const { init: initSessionEvents, cleanup: cleanupSessionEvents } = useSessionEvents()
 
 const isSettingsRoute = computed(() => route.name === 'SystemSettings')
+
+// 右侧内容区显示宽度（窄屏 = 舒适阅读宽度居中 / 满屏 = 撑满剩余空间）。
+// 走 CSS 自定义属性继承：挂在 RouterView 的外壳上，会话页消息流/输入框列、
+// 设置中心卡片列、知识库问答栏都能通过 var(--content-max-width) 拿到同一宽度，
+// 不必每个页面各自读设置。值只在此处定义一次。
+const { askWidth } = useKbDisplay()
+const contentMaxWidthVar = computed(() => ({
+  '--content-max-width': askWidth.value === 'full' ? 'none' : '820px',
+}))
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
 
@@ -75,6 +86,9 @@ onMounted(() => {
   initSessionEvents()
   // 组件挂载后再加载外观设置，确保 content-clear-wallpaper 元素已存在
   layoutStore.loadAppearanceSettings()
+  // 读取右侧内容区宽度偏好（幂等，知识库页重复调用无副作用），
+  // 拿不到值时回落本地存储，再回落默认 narrow（820px）
+  void initKbDisplay()
 
   loadToolDisplays()
 

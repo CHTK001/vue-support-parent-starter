@@ -38,6 +38,8 @@ import {
 import { ArrowDown, ArrowUp, Setting, Refresh, Search } from "@element-plus/icons-vue";
 import type { ModelValueType, SelectProps } from "element-plus";
 import type { ReFilterItem } from "./types";
+import ReSelect from "../ReSelect/ReSelect.vue";
+import type { ReSelectLoader } from "../ReSelect/types";
 
 defineOptions({ name: "ReFilter", inheritAttrs: true });
 
@@ -95,6 +97,22 @@ function selectModel(prop: string): SelectProps["modelValue"] {
 /** 动态表单值按 ElDatePicker 的 model-value 类型收窄 */
 function dateModel(prop: string): ModelValueType | undefined {
   return formData.value[prop] as ModelValueType | undefined;
+}
+
+/** 筛选项是否声明了远端数据源（dataSource / url / loader） */
+function isRemoteSelect(item: ReFilterItem): boolean {
+  return Boolean(item.url) || typeof item.loader === "function"
+    || typeof item.dataSource === "string" || typeof item.dataSource === "function";
+}
+
+/** 筛选项生效的远端 url：显式 url 优先，dataSource 为字符串时兜底 */
+function filterUrl(item: ReFilterItem): string {
+  return item.url || (typeof item.dataSource === "string" ? item.dataSource : "");
+}
+
+/** 筛选项生效的远端加载器：显式 loader 优先，dataSource 为函数时兜底 */
+function filterLoader(item: ReFilterItem): ReSelectLoader | undefined {
+  return item.loader || (typeof item.dataSource === "function" ? item.dataSource : undefined);
 }
 
 /** 展开状态 */
@@ -243,6 +261,20 @@ defineExpose({
                 @update:model-value="(v: string | number) => onValueChange(item.prop, v)"
               />
 
+              <!-- select 类型：声明 dataSource / url / loader 时走 ReSelect 远端加载 -->
+              <ReSelect
+                v-else-if="item.type === 'select' && isRemoteSelect(item)"
+                :model-value="(selectModel(item.prop) as any)"
+                :data="item.options ?? []"
+                :url="filterUrl(item)"
+                :loader="filterLoader(item)"
+                :placeholder="item.placeholder || `请选择${item.label}`"
+                :clearable="item.clearable !== false"
+                :multiple="item.multiple"
+                :disabled="item.disabled"
+                @update:model-value="(v: unknown) => onValueChange(item.prop, v)"
+              />
+
               <!-- select 类型 -->
               <ElSelect
                 v-else-if="item.type === 'select'"
@@ -371,6 +403,19 @@ defineExpose({
             :clearable="item.clearable !== false"
             :disabled="item.disabled"
             @update:model-value="(v: string | number) => onValueChange(item.prop, v)"
+          />
+          <ReSelect
+            v-else-if="item.type === 'select' && isRemoteSelect(item)"
+            :model-value="(selectModel(item.prop) as any)"
+            :data="item.options ?? []"
+            :url="filterUrl(item)"
+            :loader="filterLoader(item)"
+            :placeholder="item.placeholder || `请选择${item.label}`"
+            :clearable="item.clearable !== false"
+            :multiple="item.multiple"
+            :disabled="item.disabled"
+            style="width: 100%"
+            @update:model-value="(v: unknown) => onValueChange(item.prop, v)"
           />
           <ElSelect
             v-else-if="item.type === 'select'"

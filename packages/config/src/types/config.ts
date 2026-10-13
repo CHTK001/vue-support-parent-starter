@@ -56,6 +56,18 @@ export interface HttpConfig {
   authFailAction: "confirm" | "redirect";
   /** 响应错误提示配置（yaml 可覆盖） */
   toast: HttpToastConfig;
+  /** 后端 codec 协议请求体加密配置（对齐后端 plugin.api.decode：access-control-origin-key + AES/hex） */
+  requestCodec?: HttpRequestCodecConfig;
+}
+
+/** HttpRequestCodecConfig 请求体编解码配置 */
+export interface HttpRequestCodecConfig {
+  /** 是否启用（配置 key 后按需开启；默认 false） */
+  enable: boolean;
+  /** 编解码密钥（与后端 plugin.api.decode.codec-request-key 一致） */
+  key: string;
+  /** 编解码类型（与后端 plugin.api.decode.codec-type 对齐：aes 走 AES-256-CBC，sm4/des 为纯 hex） */
+  type: string;
 }
 
 /** 响应错误提示配置 */

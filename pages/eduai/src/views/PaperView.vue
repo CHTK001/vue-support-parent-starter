@@ -57,6 +57,12 @@
             <el-tag  :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
           </template>
         </ReTableColumn>
+        <!-- 创建人：教师创建的试卷标注「xx老师」，其余按类型展示（管理员/系统/AI） -->
+        <ReTableColumn label="创建人" width="130">
+          <template #default="{ row }">
+            <el-tag :type="creatorTagType(row)" size="small" effect="plain">{{ creatorLabel(row) }}</el-tag>
+          </template>
+        </ReTableColumn>
         <ReTableColumn label="状态" width="100">
           <template #default="{ row }">
             <el-tag  :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
@@ -162,8 +168,7 @@
       </template>
     </ReDialog>
 
-    <!-- 题库市场：勾选题目后加入该试卷的购物车 -->
-    <QuestionMarketDialog v-model="marketVisible" :paper-id="currentPaperId" @picked="onMarketPicked" />
+    <!-- 题库市场：完整页面在菜单「考试流程 / 题库市场」，进入后左侧购物车、右侧市场 -->
 
     <!-- 详情：直接渲染纸张预览，与组卷页中栏同一套排版 -->
     <ReDialog v-model="detailVisible" :title="detail?.paperName" width="900">
@@ -174,6 +179,7 @@
           <span>{{ detail.paperQuestionCount }} 题</span>
           <span>满分 {{ detail.paperTotalScore }} 分</span>
           <span>时长 {{ detail.paperDuration }} 分</span>
+          <span>创建人：{{ creatorLabel(detail) }}</span>
         </div>
         <PaperPreview
           ref="detailPreviewRef"
@@ -303,13 +309,11 @@ import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Printer, Picture } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
-import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
+import type { EduGrade, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
-import QuestionMarketDialog from '../components/paper/QuestionMarketDialog.vue';
 import PaperPreview from '../components/paper/PaperPreview.vue';
 import type { PreviewHeader, PreviewQuestion } from '../components/paper/PaperPreview.vue';
-import { usePaperCart, toCartItem, type CartItem } from '../composables/usePaperCart';
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
 
@@ -401,6 +405,7 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
   JUDGE: '判断题',
   FILL: '填空题',
   SHORT_ANSWER: '解答题',
+  SUBJECTIVE: '主观题',
 };
 
 const questionTypeLabel = (type?: string) => QUESTION_TYPE_LABEL[type || ''] || type || '-';
@@ -820,27 +825,18 @@ const doCreate = async () => {
   }
 };
 
-/* ==================== 题库市场（加入购物车） ==================== */
-
-const marketVisible = ref(false);
-const currentPaperId = ref<number | null>(null);
-/** 购物车按试卷维度：currentPaperId 变化即切换目标试卷 */
-const { addMany } = usePaperCart(currentPaperId);
+/* ==================== 题库市场（独立菜单页，左购物车 / 右市场） ==================== */
 
 const openMarket = (row: Paper) => {
-  currentPaperId.value = row.paperId;
-  marketVisible.value = true;
-};
-
-/**
- * QuestionMarketDialog 的勾选结果：题库市场字段名与购物车条目不同，
- * 这里显式映射后写入购物车。
- */
-const onMarketPicked = (list: MarketQuestion[]) => {
-  // 统一走共享映射（含分值兜底），避免各处各写一遍、并防止缺分值落成 0 分
-  const items: CartItem[] = list.map((q) => toCartItem(q));
-  const added = addMany(items);
-  message.success(`已加入购物车 ${added} 题`);
+  void router.push({
+    path: "/edu/market",
+    query: {
+      paperId: String(row.paperId),
+      subject: row.paperSubject || "",
+      gradeLevel: gradeLevelToCode(row.paperGradeLevel) || "",
+      grade: row.paperGrade || "",
+    },
+  });
 };
 
 const openDetail = async (row: Paper) => {
@@ -856,6 +852,43 @@ const paperStatusType = (n?: number) =>
   ({ 1: 'success', 2: 'info', 0: 'warning' } as Record<number, string>)[n ?? 0] || 'info';
 const paperStatusLabel = (n?: number) =>
   ({ 1: '已发布', 2: '已归档', 0: '草稿' } as Record<number, string>)[n ?? 0] || '-';
+
+/* ==================== 创建人（教师 / 管理员 / 系统 / AI）====================
+   后端返回 paperCreatorName（姓名或兜底标识）与 paperCreatorType（TEACHER/ADMIN/SYSTEM/AI）。
+   教师创建的试卷标注为「xx老师」，其余按类型展示；缺字段时按后端兜底（系统）展示。
+   Paper 类型未声明这两个新字段，此处按行结构读取。 */
+const CREATOR_TYPE_LABELS: Record<string, string> = {
+  TEACHER: '老师',
+  ADMIN: '管理员',
+  SYSTEM: '系统',
+  AI: 'AI 组卷',
+};
+
+const creatorLabel = (row: Paper): string => {
+  const r = row as unknown as Record<string, unknown>;
+  const type = String(r.paperCreatorType ?? 'SYSTEM');
+  const name = typeof r.paperCreatorName === 'string' ? r.paperCreatorName.trim() : '';
+  if (type === 'TEACHER') {
+    // 教师名可能自带「老师」后缀（如「验收老师」），再拼一次会变成「验收老师老师」
+    if (!name) return '老师';
+    return name.endsWith('老师') ? name : `${name}老师`;
+  }
+  const label = CREATOR_TYPE_LABELS[type] ?? CREATOR_TYPE_LABELS.SYSTEM;
+  return name && name !== '系统' ? `${name}（${label}）` : label;
+};
+
+const creatorTagType = (row: Paper): string => {
+  const r = row as unknown as Record<string, unknown>;
+  const type = String(r.paperCreatorType ?? 'SYSTEM');
+  return (
+    {
+      TEACHER: 'warning',
+      ADMIN: 'info',
+      SYSTEM: 'info',
+      AI: 'success',
+    } as Record<string, string>
+  )[type] ?? 'info';
+};
 
 /* ==================== 状态流转（发布 / 下架 / 归档）====================
    业务口径「发布=冻结」：

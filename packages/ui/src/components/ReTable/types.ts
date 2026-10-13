@@ -1,4 +1,5 @@
 import type { ReTableColumnStorage } from "./columnStorage";
+import type { ReSelectLoader } from "../ReSelect/types";
 
 /**
  * 行内编辑 select 可用的选项值类型。
@@ -145,6 +146,9 @@ export type ReTableLayout = "table" | "view" | "card";
  *   （本地数据按 pageSize 逐步放出；远程 loader 按页取数追加）
  */
 export type RePaginationMode = "pager" | "scroll";
+
+/** 列表结果缓存的载体：session（默认，随标签页关闭失效）/ local（跨会话保留） */
+export type ReTableCacheStorage = "local" | "session";
 
 /** 布局切换器里可展示的布局（视图/卡片自带默认模板，调用方无需额外传模板） */
 export type ReTableSwitchLayout = Extract<ReTableLayout, "table" | "view" | "card">;
@@ -411,6 +415,17 @@ export interface ReTableSearchFilter {
   placeholder?: string;
   /** select / treeselect 选项数据 */
   options?: Array<{ label: string; value: string | number; children?: any[] }>;
+  /**
+   * 远端数据源（与 options 二选一）：url 字符串或加载函数，透传给内置 ReSearch 的过滤项。
+   *
+   * <p>提供后该项的 select 改走 ReSelect 远端加载：字符串视为 {@link url}，函数视为 {@link loader}。
+   * 也可分别用 url / loader 显式声明。</p>
+   */
+  dataSource?: string | ReSelectLoader;
+  /** 远端 url（与 options/dataSource 二选一） */
+  url?: string;
+  /** 远端加载函数（与 options/dataSource 二选一，等价于 url） */
+  loader?: ReSelectLoader;
   /** 其他透传给子组件的属性 */
   attrs?: Record<string, unknown>;
 }

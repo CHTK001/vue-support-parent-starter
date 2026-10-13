@@ -306,7 +306,6 @@ watch(() => [props.bucket, props.objectKey, props.inner, props.fileName], () => 
 
     <footer class="data__footer">
       <span>{{ fileName }}</span>
-      <span>{{ isSqlite ? "sql.js 前端解析" : "hyparquet 前端解析" }}</span>
     </footer>
   </section>
 </template>
@@ -315,6 +314,7 @@ watch(() => [props.bucket, props.objectKey, props.inner, props.fileName], () => 
 .data {
   display: flex;
   flex-direction: column;
+  width: 100%;
   min-height: 0;
   height: 100%;
   border: 1px solid var(--el-border-color-lighter);

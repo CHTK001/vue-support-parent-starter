@@ -2,14 +2,14 @@
   开始节点表单：流程入口，声明种子 URL。
 
   开始节点是流程的入口：每行一个种子 URL，流程会以列表里的每个地址各自跑一遍下游。
-  urls 为必填；集合变量名（outputVariable，引擎默认 urlList）按需求不在界面上暴露 ——
+  urls 为必填；输出名（outputVariable，引擎默认 data，同时写入 url 列表）按需求不在界面上暴露 ——
   它由 orderedParams 的末段兜底带出，这里用 HIDDEN_PARAMS 摘掉，数据不动。
   开始节点不是可迭代单元，循环四参数由 NON_LOOP_SHAPES 门控，整节不渲染。
 
   UI 稿形态（颜色全走 koi 体系令牌，不写死色值）：
     · 顶部「开始配置」分节 + 三个分段按钮（种子 URL 列表 / 定时触发 / Webhook 回调）
     · 种子 URL 收在一张描边卡片里，卡片头带「必填」与实时行数，正文用等宽字体
-    · 底部「输出变量」区用虚线框，把下游可引用的 ${urlList} / ${url} 摆出来
+    · 底部「输出变量」区用虚线框，把下游可引用的 ${data} / ${url} 摆出来
 
   三个分段里只有「种子 URL 列表」有后端参数支撑（/designer/metas 的 start 只下发
   urls + 循环四参数 + outputVariable）。另两段是占位：选中后如实说明「后端尚未下发
@@ -92,8 +92,8 @@ function isWide(param: CollectParamMeta): boolean {
 
 /** 不在开始节点界面上暴露的参数。
  *
- * <p>{@code outputVariable} 决定集合变量名，引擎侧有默认值 {@code urlList}（{@code CollectStartExecutor.DEFAULT_OUTPUT}），
- * 而 {@code orderedParams} 的末段兜底会把它带出来。需求是「开始节点只留节点名称 + 种子 URL」，
+ * <p>{@code outputVariable} 决定产出别名，引擎侧默认 {@code data}（{@code CollectStartExecutor.DEFAULT_OUTPUT}），
+ * 同时开始节点固定写入 {@code url} 列表；{@code orderedParams} 的末段兜底会把它带出来。需求是「开始节点只留节点名称 + 种子 URL」，
  * 所以这里只把它从输入控件里摘掉：**不删数据**，已有流程若设过自定义变量名依旧照原样运行。</p>
  */
 const HIDDEN_PARAMS = ["outputVariable"];
@@ -117,13 +117,13 @@ function extraTip(name: string): string {
   return EXTRA_TIPS[name] ?? "";
 }
 
-/** 输出变量：集合名 + 首条别名，供下游 ${} 引用 */
+/** 输出变量：集合名 + 种子 URL 列表别名，供下游 ${} 引用 */
 const outputs = computed(() => {
   const raw = String(valueOf("outputVariable") ?? "").trim();
-  const list = raw || "urlList";
+  const list = raw || "data";
   return [
-    { name: list, type: "array", hint: "首条另存为 url" },
-    { name: "url", type: "string", hint: "" },
+    { name: list, type: "array", hint: "种子 URL 列表；${url[0]} 取首条" },
+    { name: "url", type: "array", hint: "同输出名，始终写入" },
   ];
 });
 </script>
@@ -133,7 +133,7 @@ const outputs = computed(() => {
     <el-icon class="node-intro__icon"><VideoPlay /></el-icon>
     <span>
       流程入口：定义种子 URL 列表（每行一个），流程会以列表里的每个地址各自跑一遍下游；
-      结果写入 <code>urlList</code>（首条另存为 <code>url</code>），供后续节点引用。
+      结果写入 <code>data</code>（同 <code>url</code>，种子 URL 列表），供后续节点引用。
     </span>
   </div>
 

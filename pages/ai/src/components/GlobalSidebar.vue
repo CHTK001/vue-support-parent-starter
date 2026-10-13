@@ -14,6 +14,9 @@
             : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
           <component :is="item.icon" class="w-4.5 h-4.5 shrink-0" />
           <span class="text-sm font-medium flex-1 truncate">{{ item.label }}</span>
+          <!-- 模型未配齐徽标：进菜单前就告知「暂时不可用」，以及为什么（hover 看 tip）。
+               仍允许点击进入 —— 页面里会写清差哪几项、去哪儿配，比一个点不动的菜单更有用。 -->
+          <span v-if="item.badge" class="nav-item-badge" :title="item.badgeTip">{{ item.badge }}</span>
           <span v-if="item.shortcut"
             class="text-[10px] leading-none font-mono text-gray-400 dark:text-gray-500 select-none">
             {{ item.shortcut }}
@@ -373,6 +376,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useSessionStore } from '../stores/session'
 import { useSessionGroupStore } from '../stores/sessionGroup'
+import { useModelConfigStore } from '../stores/modelConfig'
 import { UNGROUPED_ID } from '../stores/session'
 import { useTheme, type ThemeMode } from '../composables/useTheme'
 import { usePopup } from '../composables/usePopup'
@@ -656,6 +660,11 @@ const navItems = computed(() => {
       // 注意：人脸「模型」配置是全局设置，仍只有管理员能改（不受此项影响）。
       // 底库的**管理**（列表/删除/登记）在「系统设置 → 底库 → 人脸底库」，
       // 本页只做识别/检索 —— 与「以图搜图（外侧） + 图像底库（设置内）」同一分工。
+      // 检测/特征模型未配齐 → 菜单打「未配置」徽标（页面内会说明差哪几项、去哪儿配）
+      // 注意：modelConfig 是 Pinia store 实例，getter 经 store 访问已自动解包，
+      // 直接取布尔值即可；写 .value 会恒为 undefined（徽标永不消失）。
+      badge: modelConfig.faceReady ? '' : '未配置',
+      badgeTip: '人脸检测模型 / 人脸特征模型未配置，识别不可用',
     },
     {
       key: 'image-search',
@@ -664,6 +673,9 @@ const navItems = computed(() => {
       // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
       // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
       // 未登录仍会被 requireUserId() 拒掉。
+      // 图像特征模型未配置 → 菜单打「未配置」徽标（同上，store getter 已解包）
+      badge: modelConfig.imageReady ? '' : '未配置',
+      badgeTip: '图像特征模型未配置，以图搜图不可用',
     },
     {
       key: 'models',
@@ -751,6 +763,17 @@ const currentSessionId = computed(() => {
 
 // 窗口隐藏状态（用于侧边栏未读徽标显示逻辑，SSE 事件由 useSessionEvents composable 统一管理）
 const windowHidden = ref(false)
+
+/**
+ * 模型配置门禁（人脸识别 / 以图搜图「模型是否真的配过」）。
+ *
+ * <p>侧栏是这两个菜单的常驻入口，在这里统一加载一次合并视图，
+ * 菜单上按门禁结果打「未配置」徽标 —— 用户点进去之前就知道不可用，
+ * 而不是上传一张图之后才在后端报「模型未注册」。设置中心保存后调
+ * {@link useModelConfigStore.refresh} 会让徽标即时消失。</p>
+ */
+const modelConfig = useModelConfigStore()
+void modelConfig.load()
 
 onMounted(() => {
   document.addEventListener('visibilitychange', () => {
@@ -1028,7 +1051,7 @@ const selectSession = (session: any) => {
 }
 
 // 处理导航点击
-const handleNavClick = (tab: string) => {
+const handleNavClick = async (tab: string) => {
   if (tab === 'chat') {
     router.replace({ name: 'Chat', params: { sessionId: 'new-session' } })
   } else if (tab === 'characters') {
@@ -1048,8 +1071,20 @@ const handleNavClick = (tab: string) => {
   } else if (tab === 'image-generate') {
     router.replace({ name: 'ImageGenerate' })
   } else if (tab === 'face-search') {
+    // 点击菜单时再等一次合并视图，避免侧栏首次加载未完成时误判为未配置
+    await modelConfig.load()
+    if (!modelConfig.faceReady) {
+      toast.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
+      return
+    }
     router.replace({ name: 'FaceSearch' })
   } else if (tab === 'image-search') {
+    // 以图搜图同口径：点击时才拿最新配置，配置后不需要刷新页面
+    await modelConfig.load()
+    if (!modelConfig.imageReady) {
+      toast.warning('以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型')
+      return
+    }
     router.replace({ name: 'ImageSearch' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
@@ -1425,6 +1460,20 @@ onUnmounted(() => {
 .session-action-trigger.is-multi-active {
   background-color: var(--el-color-primary-light-9, var(--el-fill-color-light));
   color: var(--el-color-primary);
+}
+
+/* 菜单「未配置」徽标：人脸识别 / 以图搜图的模型没配齐时打在标签右侧。
+   取告警语义色（而非主色）——它是「此功能暂不可用」的提示，不是选中态；
+   尺寸压到 10px、与标签之间留 4px，不与 shortcut 的等宽字体混在一起。 */
+.nav-item-badge {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--el-color-warning-dark-2, #b88230);
+  background: var(--el-color-warning-light-8, #faecd8);
 }
 
 /* 空状态 */

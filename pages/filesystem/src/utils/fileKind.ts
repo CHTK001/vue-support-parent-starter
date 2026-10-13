@@ -42,6 +42,9 @@ export type PreviewKind =
   | "drawio"
   | "dicom"
   | "swf"
+  | "sketch"
+  | "mindmap"
+  | "jxl"
   | "unknown";
 
 /** 图片扩展名（浏览器原生可解码） */
@@ -53,6 +56,17 @@ const TIFF_EXTS = ["tif", "tiff"];
 /** HEIC 扩展名（浏览器原生不支持，libheif-js 前端解码；avif 原生可播仍归 image） */
 const HEIC_EXTS = ["heic", "heif"];
 
+/**
+ * JPEG XL 扩展名（经 file-viewer renderer-image 按浏览器能力解码）。
+ *
+ * <p>浏览器原生支持不一（Safari 17+ 支持，Chrome / Firefox 不支持
+ * {@code image/jxl}），故不归 {@link IMAGE_EXTS} —— 归进去会被原生
+ * {@code PreviewImagePanel} 接管，在不支持的浏览器里只会得到
+ * 「图片加载失败」。与 TIFF / HEIC 同理拆为独立类型：图标归图片类，
+ * 预览走 {@code FvImagePanel}（FV_PANEL_BY_EXT 已登记 jxl）。</p>
+ */
+const JXL_EXTS = ["jxl"];
+
 /** 纯文本扩展名（前端直接拉取原文展示） */
 const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml"];
 
@@ -60,7 +74,7 @@ const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml"];
 const CODE_EXTS = [
   "js", "mjs", "cjs", "ts", "jsx", "tsx", "vue", "css", "scss", "less",
   "java", "kt", "groovy", "scala", "py", "rb", "go", "rs",
-  "c", "h", "cpp", "hpp", "cs", "php", "swift", "dart", "lua", "pl",
+  "c", "h", "cpp", "hpp", "cc", "cs", "php", "swift", "dart", "lua", "pl",
   "sql", "sh", "bash", "zsh", "bat", "cmd", "ps1",
   "properties", "cfg", "conf", "ini", "env", "toml", "gradle",
   // 文本小格式（与后端 CodePreviewProvider#CODE_EXTS 严格一致）：
@@ -94,7 +108,20 @@ const OFFICE_EXTS = [
   // 实际通道由 isClientRenderable 决定（这几个都命中客户端 Office 面板）。
   "wp", "wp5", "wp6", "xla", "xlam", "dbf",
   "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
-  "rtf", "epub", "xmind",
+  // Office 模板与宏工作簿（2026/10/12 与 preset-office capability 对齐）：
+  // Excel 宏工作簿/模板、Word 模板、PPT 模板/放映，以及 ODF 表格、
+  // 制表符文本表格、Hangul、WordPerfect。语义归 office，
+  // 实际通道仍由 isClientRenderable 决定（本批全部命中客户端 Office 面板）。
+  "xlsm", "xltx", "xltm", "xlt",
+  "docm", "dotm", "dotx", "dot",
+  "pot", "potm", "potx", "ppsm", "ppsx", "pptm",
+  "fods", "tsv", "hwp", "hwpx", "wpd",
+  // FB2 / UMD 电子书：isClientRenderable 不含它们，
+  // 实际由 FvDocPanel 电子书分支前端直渲；归类只为图标 / 文案。
+  "fb2", "umd",
+  // XMind 脑图曾归本表（rtf/epub 邻位），现已拆为 {@link MINDMAP_EXTS}
+  // 独立类型：它是脑图而非 Office 文档，图标 / 类型文案 / 缩略图策略都不同。
+  "rtf", "epub",
   // MOBI 电子书（后端 MobiPreviewProvider：PDB/PalmDOC/HUFF-CDIC 自研解析）
   "mobi", "azw", "azw3", "prc",
   // XPS 固定版式（后端 XpsPreviewProvider：OPC + Glyphs 抽文本）
@@ -143,8 +170,11 @@ const CONTACT_EXTS = ["vcf", "vcard"];
 /** 视频扩展名（仅浏览器原生可播放容器） */
 const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"];
 
-/** 音频扩展名（浏览器原生可播放） */
-const AUDIO_EXTS = ["mp3", "wav", "flac", "m4a", "oga", "opus", "weba"];
+/**
+ * 音频扩展名（浏览器原生可播放；aiff/aif 由 PreviewMediaPanel 转 WAV 后播放）。
+ * aac 由 file-viewer renderer-media 映射为 {@code audio/aac}，浏览器原生可播。
+ */
+const AUDIO_EXTS = ["mp3", "wav", "flac", "m4a", "oga", "opus", "weba", "aiff", "aif", "aac"];
 
 /** 字体扩展名 */
 const FONT_EXTS = ["ttf", "otf", "woff", "woff2", "eot"];
@@ -174,6 +204,25 @@ const DICOM_EXTS = ["dcm", "dicom"];
 
 /** SWF 扩展名（Ruffle WASM 模拟器前端播放，不经后端） */
 const SWF_EXTS = ["swf"];
+
+/**
+ * Sketch 绘图扩展名（纯前端 jszip 解结构：页面 / 画板 / 预览图，不经后端）。
+ *
+ * <p>.sketch 是 ZIP 容器：meta.json 记录页面清单，pages/&lt;UUID&gt;.json
+ * 记录每页图层，previews/ 与 images/ 放位图。后端没有 Sketch 提供者，
+ * 进 iframe 只会命中「不支持预览」页，故前端接住。</p>
+ */
+const SKETCH_EXTS = ["sketch"];
+
+/**
+ * XMind 脑图扩展名（纯前端 @file-viewer/renderer-mindmap 渲染，不经后端）。
+ *
+ * <p>.xmind 是 ZIP 容器（content.json + metadata.json + attachments/），
+ * 由 {@code @ljheee/xmind-parser} 解析成节点树后渲染为可缩放脑图。
+ * 后端无脑图提供者，且脑图是结构化文档而非 Office 文档，
+ * 故从 OFFICE_EXTS 拆出独立归类，匹配其专属图标与「XMind 脑图」文案。</p>
+ */
+const MINDMAP_EXTS = ["xmind"];
 
 /** 压缩包扩展名（走后端条目列表预览） */
 const ARCHIVE_EXTS = [
@@ -240,6 +289,9 @@ export function kindOf(name: string): PreviewKind {
   if (DRAWIO_EXTS.includes(ext)) return "drawio";
   if (DICOM_EXTS.includes(ext)) return "dicom";
   if (SWF_EXTS.includes(ext)) return "swf";
+  if (SKETCH_EXTS.includes(ext)) return "sketch";
+  if (MINDMAP_EXTS.includes(ext)) return "mindmap";
+  if (JXL_EXTS.includes(ext)) return "jxl";
   if (DATA_EXTS.includes(ext)) return "data";
   if (DESIGN_EXTS.includes(ext)) return "design";
   if (MODEL_EXTS.includes(ext)) return "model";
@@ -288,13 +340,15 @@ export function fileSvg(name: string, isDir: boolean): string {
       return icon("font");
     case "office":
       // Excel 表格类 / PPT 演示类 / 电子书 / 其余按 Word 文档
-      if (["xlsx", "xls", "ods", "numbers", "et", "ett", "xla", "xlam", "dbf"].includes(ext)) {
+      if (["xlsx", "xls", "ods", "numbers", "et", "ett", "xla", "xlam", "dbf",
+        "xlsm", "xltx", "xltm", "xlt", "fods", "tsv"].includes(ext)) {
         return icon("excel");
       }
-      if (["pptx", "ppt", "odp", "pps", "key", "dps"].includes(ext)) {
+      if (["pptx", "ppt", "odp", "pps", "key", "dps",
+        "pot", "potm", "potx", "ppsm", "ppsx", "pptm"].includes(ext)) {
         return icon("ppt");
       }
-      if (["epub", "mobi", "azw", "azw3", "xps", "oxps", "djvu", "djv", "pages"].includes(ext)) {
+      if (["epub", "mobi", "azw", "azw3", "xps", "oxps", "djvu", "djv", "pages", "fb2", "umd"].includes(ext)) {
         return icon("epub");
       }
       return icon("word");
@@ -343,6 +397,15 @@ export function fileSvg(name: string, isDir: boolean): string {
     // SWF 动画专属图标（Flash 红色 F 风）
     case "swf":
       return icon("swf");
+    // Sketch 绘图专属图标（蓝紫菱形画布风）
+    case "sketch":
+      return icon("sketch");
+    // XMind 脑图专属图标（绿底白脑图节点风）
+    case "mindmap":
+      return icon("mindmap");
+    // JPEG XL 归图片类（与 TIFF/HEIC 同走 image 图标）
+    case "jxl":
+      return icon("image");
     // HTML 网页 / 数据库 / 设计稿各有专属图标
     case "webpage":
       return icon("webpage");
@@ -363,6 +426,30 @@ export function fileSvg(name: string, isDir: boolean): string {
       }
       return icon("txt");
     default:
+      // file-viewer 支持、但原生面板不接管的格式：图标按大类归，
+      // 预览仍走对应的 fv 面板（FvGeoPanel / FvModelPanel / FvCadPanel /
+      // FvArchivePanel / FvDesignPanel），不会被原生面板误抢。
+      if (["kml", "gpx"].includes(ext)) {
+        return icon("geo");
+      }
+      if (["vtk", "vtp", "xyz", "usd", "usdz", "kmz"].includes(ext)) {
+        return icon("model");
+      }
+      if (["dwf", "dwfx"].includes(ext)) {
+        return icon("cad");
+      }
+      if (["tbz", "bzip2", "gzip", "ar", "cpio", "xar", "lha", "lzh",
+        "lzma", "cab", "iso", "cbr", "cbz"].includes(ext)) {
+        return icon("zip");
+      }
+      if (["pdd", "psdt", "fla", "xfl", "xd", "indd", "ps"].includes(ext)) {
+        return icon("design");
+      }
+      // 视频面板（video.js）接管的流式格式：kindOf 是 unknown，
+      // 这里按视频大类给图标，文案见 fileTypeText 的对应分支
+      if (["m3u8", "flv"].includes(ext)) {
+        return icon("video");
+      }
       return icon("file");
   }
 }
@@ -397,7 +484,11 @@ export function fileTypeText(name: string): string {
     case "markdown": return "Markdown 文档";
     case "csv": return "CSV 表格";
     case "pdf": return "PDF 文档";
-    case "office": return "Office 文档";
+    case "office":
+      // 电子书 / 文本表格单独标注，其余按 Office 文档
+      if (["fb2", "umd"].includes(ext)) return "电子书";
+      if (["tsv", "fods"].includes(ext)) return "表格";
+      return "Office 文档";
     case "email": return "邮件";
     case "calendar": return "日历事件";
     case "contact": return "通讯录名片";
@@ -413,9 +504,28 @@ export function fileTypeText(name: string): string {
     case "drawio": return "drawio 绘图";
     case "dicom": return "DICOM 医疗影像";
     case "swf": return "SWF 动画";
+    case "sketch": return "Sketch 绘图";
+    case "mindmap": return "XMind 脑图";
+    case "jxl": return "JPEG XL 图像";
     case "video": return "视频";
     case "audio": return "音频";
     case "font": return "字体";
-    default: return ext ? `${ext.toUpperCase()} 文件` : "文件";
+    default:
+      // 同 fileSvg 的 default 分支：fv 面板接管的格式按大类标注
+      if (["kml", "gpx"].includes(ext)) return "地理数据";
+      if (["vtk", "vtp", "xyz", "usd", "usdz", "kmz"].includes(ext)) {
+        return "3D / CAD 模型";
+      }
+      if (["dwf", "dwfx"].includes(ext)) return "CAD 图纸";
+      if (["tbz", "bzip2", "gzip", "ar", "cpio", "xar", "lha", "lzh",
+        "lzma", "cab", "iso", "cbr", "cbz"].includes(ext)) {
+        return "压缩文件";
+      }
+      if (["pdd", "psdt", "fla", "xfl", "xd", "indd", "ps"].includes(ext)) {
+        return "设计稿";
+      }
+      if (ext === "m3u8") return "HLS 视频";
+      if (ext === "flv") return "FLV 视频";
+      return ext ? `${ext.toUpperCase()} 文件` : "文件";
   }
 }

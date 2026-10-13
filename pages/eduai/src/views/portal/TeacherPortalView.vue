@@ -162,6 +162,10 @@
             <template #col-paperSource="{ row }">
               <ReTag size="small" :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</ReTag>
             </template>
+            <!-- 创建人：教师创建的试卷标注「xx老师」，其余按类型展示 -->
+            <template #col-paperCreator="{ row }">
+              <ReTag size="small" effect="plain" :type="creatorTagType(row)">{{ creatorLabel(row) }}</ReTag>
+            </template>
             <template #col-paperStatus="{ row }">
               <ReTag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</ReTag>
             </template>
@@ -717,6 +721,7 @@ const paperColumns: ReTableColumn[] = [
   { prop: "paperQuestionCount", label: "题数", width: 70 },
   { prop: "paperTotalScore", label: "总分", width: 70 },
   { prop: "paperSource", label: "来源", width: 80, slot: "paperSource" },
+  { prop: "paperCreator", label: "创建人", width: 130, slot: "paperCreator" },
   { prop: "paperStatus", label: "状态", width: 90, slot: "paperStatus" },
   { prop: "paperActions", label: "操作", minWidth: 300, slot: "paperActions" },
 ];
@@ -914,6 +919,37 @@ const paperStatusLabel = (n?: number) =>
 const paperStatusType = (n?: number) => {
   const code = Number(n ?? 0);
   return code === 1 ? "success" : code === 2 ? "info" : "warning";
+};
+
+/* ==================== 创建人（教师 / 管理员 / 系统 / AI）====================
+   与 PaperView 同一口径：后端返回 paperCreatorName + paperCreatorType，
+   教师创建的试卷标注「xx老师」。Paper 类型未声明这两个新字段，按行结构读取。 */
+const CREATOR_TYPE_LABELS: Record<string, string> = {
+  TEACHER: "老师",
+  ADMIN: "管理员",
+  SYSTEM: "系统",
+  AI: "AI 组卷",
+};
+
+const creatorLabel = (row: Paper): string => {
+  const r = row as unknown as Record<string, unknown>;
+  const type = String(r.paperCreatorType ?? "SYSTEM");
+  const name = typeof r.paperCreatorName === "string" ? r.paperCreatorName.trim() : "";
+  if (type === "TEACHER") {
+    // 教师名可能自带「老师」后缀（如「验收老师」），再拼一次会变成「验收老师老师」
+    if (!name) return "老师";
+    return name.endsWith("老师") ? name : `${name}老师`;
+  }
+  const label = CREATOR_TYPE_LABELS[type] ?? CREATOR_TYPE_LABELS.SYSTEM;
+  return name && name !== "系统" ? `${name}（${label}）` : label;
+};
+
+const creatorTagType = (row: Paper): string => {
+  const r = row as unknown as Record<string, unknown>;
+  const type = String(r.paperCreatorType ?? "SYSTEM");
+  return (
+    { TEACHER: "warning", ADMIN: "info", SYSTEM: "info", AI: "success" } as Record<string, string>
+  )[type] ?? "info";
 };
 
 async function publishPaper(row: Paper) {
