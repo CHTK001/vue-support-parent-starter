@@ -351,6 +351,30 @@ export default defineConfig({
         target: AI_API_TARGET,
         changeOrigin: true,
         ws: true,
+      },
+      // 天气/定位三方数据源代理（与 vue-support-system-starter 同口径）：
+      // packages/core 的 weather.ts 候选表里 /weather-api、/geo-api 等前缀排在直连域名之前，
+      // dev 期配了就走代理（免跨域、可走内网），请求失败自动降级直连；
+      // 不配则组件每次挂载都先 404 一次再降级，控制台长期留噪音。
+      '/weather-api': {
+        target: 'https://api.open-meteo.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/weather-api/, ''),
+      },
+      '/geo-api': {
+        target: 'https://api.bigdatacloud.net',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/geo-api/, ''),
+      },
+      '/freeip-api': {
+        target: 'http://freeipapi.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/freeip-api/, ''),
+      },
+      '/ip-api': {
+        target: 'http://ip-api.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ip-api/, ''),
       }
     }
   }

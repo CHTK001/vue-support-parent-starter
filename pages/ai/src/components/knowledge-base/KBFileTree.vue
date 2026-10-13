@@ -1187,21 +1187,3 @@ onUnmounted(() => {
   stopFileProcessingPolling()
 })
 </script>
-
-<style scoped>
-.node-content:hover {
-  background-color: color-mix(in srgb, var(--rm-text) 4%, transparent);
-}
-
-/* 键盘焦点可见性：文件/文件夹行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
-   指针样式沿用模板里已有的 cursor-pointer，不重复声明。
-   环的透明度提到 45%（而不是常规的 12%）：行本身透明，实际底色来自父容器的
-   dark:bg-[#232428] 写死深底，12% 的主色环落在近黑底上几乎不可见。 */
-.file-row {
-  outline: none;
-}
-
-.file-row:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 45%, transparent);
-}
-</style>

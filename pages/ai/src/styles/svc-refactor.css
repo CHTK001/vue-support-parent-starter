@@ -1,0 +1,674 @@
+/* ============================================================================
+   服务配置 · 调度台账设计层（svc-refactor.css）
+   ----------------------------------------------------------------------------
+   作用域：`.svc`（挂在 ServiceManagementPage 根节点）。目录外零影响。
+   在 pages/ai/src/main.js 中 import，位置紧邻 kb-refactor.css 之后。
+
+   设计语言：编辑部风的运维变体「调度台账」
+     - 等宽数字优先：端口 / 状态码 / 耗时 / token / 时间戳 / 日志行号全 tabular-nums
+     - 发丝线 + 单一强调色；协议不染色，语义色只留给状态与级别
+     - 控制台是全页唯一深色面，明暗两套主题共用同一底色与级别色
+     - 衬线只用在区块标题与实例名（≤15px），不做知识库式大标题
+
+   约束：内网零外网字体依赖；明暗双模（html.dark）；不动任何业务逻辑。
+   ========================================================================== */
+
+/* ############################################################################
+   1. 设计令牌 —— 浅色
+   ############################################################################ */
+.svc {
+  /* 字体三件套：与 kb-refactor 同源，此处 mono 首位放 ui-monospace 兜底 */
+  --svc-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --svc-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  --svc-mono: ui-monospace, "SFMono-Regular", "SF Mono", Consolas,
+    "Liberation Mono", "JetBrains Mono", monospace;
+
+  /* 纸面 / 墨色
+     ⚠️ ink-3 刻意比 kb 的 #8494ad 深一档（#64748b）：kb 里它只做 12px 次要文字，
+        在这张以数字为判断依据的表上必须过 WCAG AA 4.5:1。#64748b on #ffffff = 4.83:1。 */
+  --svc-paper: #f6f8fd;
+  --svc-surface: #ffffff;
+  --svc-surface-2: #fbfcfe;
+  --svc-ink: #101828;      /* on --svc-surface = 16.9:1 */
+  --svc-ink-2: #475569;    /* on --svc-surface =  7.5:1 */
+  --svc-ink-3: #64748b;    /* on --svc-surface =  4.8:1  ← AA */
+  --svc-rule: #e6edf7;
+  --svc-rule-strong: #d5e0ef;
+
+  /* 单一强调色：跟随 app 主色 */
+  --svc-accent: var(--el-color-primary, #2563eb);
+  --svc-accent-hover: var(--el-color-primary-dark-2, #1d4ed8);
+  --svc-accent-soft: var(--el-color-primary-light-9, #eef4ff);
+  --svc-accent-ring: color-mix(in srgb, var(--el-color-primary, #2563eb) 16%, transparent);
+
+  /* 语义色（与 kb 同值：均过 AA on --surface-2） */
+  --svc-success: #15803d;  --svc-success-soft: #ecfdf3;
+  --svc-warning: #b45309;  --svc-warning-soft: #fffaeb;
+  --svc-danger: #dc2626;   --svc-danger-soft: #fef3f2;
+
+  /* 控制台（明暗共用，见文件头说明） */
+  --svc-console-bg: #0f1620;
+  --svc-console-line: #1b2534;
+  --svc-console-rule: #26354a;
+  --svc-console-ink: #c8d4e6;   /* on console-bg = 12.4:1 */
+  --svc-console-dim: #5c6b80;
+  --svc-console-debug: #7d8ba3; /* 5.6:1 */
+  --svc-console-warn: #fbbf24;  /* 9.1:1 */
+  --svc-console-err: #ff9a8b;   /* 8.2:1 */
+
+  /* 阴影三级（与 kb 同档：Y 偏移 2 / 10 / 28） */
+  --svc-shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --svc-shadow-2: 0 10px 28px -14px rgba(16, 24, 40, 0.16);
+  --svc-shadow-3: 0 28px 56px -28px rgba(16, 24, 40, 0.22);
+
+  /* 间距 / 圆角 / 动效（与 kb 同节奏） */
+  --svc-sp-1: 4px;  --svc-sp-2: 8px;  --svc-sp-3: 12px;  --svc-sp-4: 16px;
+  --svc-sp-5: 24px; --svc-sp-6: 32px;
+  --svc-r-sm: 6px;  --svc-r-md: 10px;  --svc-r-lg: 14px;
+  --svc-dur-fast: 160ms; --svc-dur: 280ms;
+  --svc-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 密度：这一页比知识库紧一档 */
+  --svc-row-h: 38px;      /* 表格行高（kb 靠阅读，运维靠扫视） */
+  --svc-tile-h: 64px;     /* 实例瓦片最小高 */
+
+  display: flex; flex-direction: column;
+  gap: var(--svc-sp-4);
+  width: 100%; min-width: 0;
+  font-family: var(--svc-sans);
+  color: var(--svc-ink);
+}
+
+/* ############################################################################
+   2. 设计令牌 —— 深色（墨纸对调；控制台令牌不变）
+   ############################################################################ */
+html.dark .svc {
+  --svc-paper: #0b1220;
+  --svc-surface: #111a2e;
+  --svc-surface-2: #0e1626;
+  --svc-ink: #e8edf6;      /* on --surface = 14.6:1 */
+  --svc-ink-2: #a5b3ca;    /* 7.0:1 */
+  --svc-ink-3: #7d8ba3;    /* 4.6:1  ← AA（kb 的 #64748f 在深色上仅 3.0:1） */
+  --svc-rule: #1e2a44;
+  --svc-rule-strong: #2a3a5c;
+  --svc-accent-soft: color-mix(in srgb, var(--el-color-primary, #3b82f6) 16%, transparent);
+  --svc-success: #4ade80; --svc-success-soft: #0f2b1d;
+  --svc-warning: #fbbf24; --svc-warning-soft: #2b220a;
+  --svc-danger: #f87171;  --svc-danger-soft: #331212;
+  --svc-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --svc-shadow-2: 0 10px 28px -14px rgba(0, 0, 0, 0.5);
+  --svc-shadow-3: 0 28px 56px -28px rgba(0, 0, 0, 0.6);
+}
+
+/* ############################################################################
+   3. 页头 / 状态带 / 区块标题
+   ############################################################################ */
+.svc-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--svc-sp-4); flex-wrap: wrap;
+  padding-bottom: var(--svc-sp-3);
+  border-bottom: 1px solid var(--svc-rule-strong);
+}
+.svc-head__title {
+  margin: 0; font-family: var(--svc-serif); font-size: 21px; font-weight: 700;
+  letter-spacing: -0.01em; line-height: 1.2; color: var(--svc-ink);
+}
+.svc-head__sub { margin: 5px 0 0; font-size: 12.5px; color: var(--svc-ink-2); }
+.svc-head__sub b {
+  font-family: var(--svc-mono); font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink);
+}
+.svc-head__actions { display: flex; align-items: center; gap: var(--svc-sp-2); }
+
+/* 更新时间戳 + 新鲜度圆点 */
+.svc-stamp {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 10px; border-radius: var(--svc-r-sm);
+  border: 1px solid var(--svc-rule); background: var(--svc-surface);
+  font-size: 11.5px; color: var(--svc-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.svc-stamp b { font-family: var(--svc-mono); font-weight: 600; color: var(--svc-ink-2); }
+.svc-stamp__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--svc-rule-strong); flex-shrink: 0;
+}
+.svc-stamp.is-live .svc-stamp__dot {
+  background: var(--svc-accent);
+  animation: svc-pulse 1.2s ease-in-out infinite;
+}
+@keyframes svc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+/* 状态带：发丝线分隔的报头，不用独立卡片（Q1 的唯一答案，必须一眼可读） */
+.svc-band {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  background: var(--svc-surface); box-shadow: var(--svc-shadow-1); overflow: hidden;
+}
+.svc-band__cell {
+  padding: var(--svc-sp-3) var(--svc-sp-4);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.svc-band__cell + .svc-band__cell { border-left: 1px solid var(--svc-rule); }
+.svc-band__num {
+  font-family: var(--svc-mono); font-size: 24px; font-weight: 650;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  line-height: 1.05; color: var(--svc-ink);
+}
+.svc-band__num i { font-style: normal; font-size: 12px; font-weight: 500; color: var(--svc-ink-3); margin-left: 2px; }
+.svc-band__label { font-family: var(--svc-serif); font-size: 12px; color: var(--svc-ink-2); }
+/* 有告警的两格：左侧 3px 语义竖条 + 数字染语义色（竖条与数字双编码，不只靠色） */
+.svc-band__cell.is-warn { box-shadow: inset 3px 0 0 var(--svc-warning); }
+.svc-band__cell.is-warn .svc-band__num { color: var(--svc-warning); }
+.svc-band__cell.is-danger { box-shadow: inset 3px 0 0 var(--svc-danger); }
+.svc-band__cell.is-danger .svc-band__num { color: var(--svc-danger); }
+
+/* 区块标题：等宽序号 + 发丝线（与 kb-sect 同源，密度更紧） */
+.svc-sect__head {
+  display: flex; align-items: center; gap: var(--svc-sp-3);
+  padding-bottom: var(--svc-sp-2); border-bottom: 1px solid var(--svc-rule);
+  margin-bottom: var(--svc-sp-3); flex-wrap: wrap;
+}
+.svc-sect__no {
+  font-family: var(--svc-mono); font-size: 11.5px; font-weight: 600;
+  color: var(--svc-accent); font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.svc-sect__title {
+  margin: 0; font-family: var(--svc-serif); font-size: 14px; font-weight: 700;
+  letter-spacing: 0.01em; color: var(--svc-ink); flex-shrink: 0;
+}
+.svc-sect__extra { margin-left: auto; display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
+.svc-sect__hint { font-size: 11.5px; color: var(--svc-ink-3); white-space: nowrap; }
+
+/* ############################################################################
+   4. 徽标体系（状态 / 协议 / 用量 / HTTP / 级别）
+   —— 全部「符号 + 文字 + 颜色」三重编码，颜色永不是唯一载体
+   ############################################################################ */
+.svc-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 20px; padding: 0 8px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 500; line-height: 1;
+  border: 1px solid transparent; white-space: nowrap; flex-shrink: 0;
+}
+/* 状态点：圆点 + 文字（形状编码，圆点缺失时文字仍够用） */
+.svc-badge i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.svc-badge.is-ok      { color: var(--svc-success); background: var(--svc-success-soft); border-color: color-mix(in srgb, var(--svc-success) 22%, transparent); }
+/* 已停止：方块而非圆点 —— 与「运行中」在无色时也能区分 */
+.svc-badge.is-stopped { color: var(--svc-ink-2); background: color-mix(in srgb, var(--svc-ink-3) 12%, transparent); border-color: color-mix(in srgb, var(--svc-ink-3) 26%, transparent); }
+.svc-badge.is-stopped i { border-radius: 1px; }
+/* 未启动（enabled=1 但 running=false）：三角 + 琥珀，页面唯一的"配置与现实不一致"信号 */
+.svc-badge.is-down    { color: var(--svc-warning); background: var(--svc-warning-soft); border-color: color-mix(in srgb, var(--svc-warning) 28%, transparent); }
+.svc-badge.is-down i {
+  width: 0; height: 0; border-radius: 0; background: transparent;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-bottom: 6px solid currentColor;
+}
+.svc-badge.is-unknown { color: var(--svc-ink-3); background: transparent; border-color: var(--svc-rule-strong); border-style: dashed; }
+.svc-badge.is-unknown i { border-radius: 50%; opacity: 0.5; }
+
+/* 协议 chip：刻意无色。协议不是状态，染色会让人误读严重性 */
+.svc-chip {
+  display: inline-flex; align-items: center;
+  height: 18px; padding: 0 7px; border-radius: var(--svc-r-sm);
+  border: 1px solid var(--svc-rule-strong); background: var(--svc-surface-2);
+  font-family: var(--svc-mono); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.02em; line-height: 1; color: var(--svc-ink-2);
+  white-space: nowrap; flex-shrink: 0;
+}
+.svc-chip.is-empty { font-family: var(--svc-sans); color: var(--svc-ink-3); border-style: dashed; }
+.svc-chip.is-warn { color: var(--svc-warning); background: var(--svc-warning-soft); border-color: color-mix(in srgb, var(--svc-warning) 28%, transparent); font-family: var(--svc-sans); }
+.svc-chip.is-danger { color: var(--svc-danger); background: var(--svc-danger-soft); border-color: color-mix(in srgb, var(--svc-danger) 26%, transparent); font-family: var(--svc-sans); }
+
+/* HTTP 状态：等宽状态码 + 语义文字（两段都不可省） */
+.svc-status { display: inline-flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+.svc-status b { font-family: var(--svc-mono); font-size: 12.5px; font-weight: 650; color: var(--svc-ink); }
+.svc-status i { font-style: normal; font-size: 11px; color: var(--svc-ink-3); }
+.svc-status.is-ok b { color: var(--svc-success); }
+.svc-status.is-warn b { color: var(--svc-warning); }
+.svc-status.is-err b { color: var(--svc-danger); }
+.svc-status.is-err i { color: var(--svc-danger); }
+.svc-status.is-unknown b { color: var(--svc-ink-3); font-weight: 400; }
+
+/* ############################################################################
+   5. 服务实例：瓦片横排
+   ############################################################################ */
+.svc-tiles {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--svc-sp-3);
+}
+.svc-tile {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: var(--svc-sp-3);
+  min-height: var(--svc-tile-h); padding: 10px 12px 10px 14px;
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
+  cursor: pointer; outline: none;
+  transition: border-color var(--svc-dur-fast) ease, background-color var(--svc-dur-fast) ease, box-shadow var(--svc-dur-fast) ease;
+}
+.svc-tile:hover { border-color: var(--svc-rule-strong); background: var(--svc-accent-soft); }
+/* 选中态：竖条实心 + 强调色描边（竖条在灰度下依然可辨） */
+.svc-tile.is-active { border-color: var(--svc-accent); box-shadow: var(--svc-shadow-2); background: var(--svc-surface); }
+.svc-tile:focus-visible { box-shadow: inset 0 0 0 2px var(--svc-accent); }
+/* 左侧状态竖条：宽 3px，圆角 2px，颜色即状态语义 */
+.svc-tile__state {
+  width: 3px; align-self: stretch; min-height: 40px; flex-shrink: 0;
+  border-radius: 2px; background: var(--svc-rule-strong);
+}
+.svc-tile.is-ok .svc-tile__state { background: var(--svc-success); }
+.svc-tile.is-down .svc-tile__state { background: var(--svc-warning); }
+.svc-tile.is-active .svc-tile__state { box-shadow: 0 0 0 2px var(--svc-surface), 0 0 0 3px var(--svc-accent); }
+.svc-tile__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.svc-tile__line { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
+.svc-tile__name {
+  font-family: var(--svc-serif); font-size: 15px; font-weight: 700;
+  color: var(--svc-ink); min-width: 0; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 端口 = 运维认实例的第一锚点，20px 等宽，比名字更醒目 */
+.svc-tile__port {
+  font-family: var(--svc-mono); font-size: 20px; font-weight: 650;
+  letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+  line-height: 1; color: var(--svc-ink); flex-shrink: 0;
+}
+.svc-tile__meta { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
+.svc-tile__protos { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.svc-tile__usage { font-size: 11.5px; color: var(--svc-ink-3); white-space: nowrap; }
+.svc-tile__acts { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+/* 图标按钮：28px 见方，命中区靠 ::before 撑到 44px（见 §6.3） */
+.svc-ico {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  padding: 0; border: 0; border-radius: var(--svc-r-sm);
+  background: transparent; color: var(--svc-ink-2); cursor: pointer;
+  transition: background-color var(--svc-dur-fast) ease, color var(--svc-dur-fast) ease;
+}
+.svc-ico:hover:not(:disabled) { background: var(--svc-accent-soft); color: var(--svc-accent); }
+.svc-ico:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
+.svc-ico--danger:hover:not(:disabled) { background: var(--svc-danger-soft); color: var(--svc-danger); }
+.svc-ico:disabled { opacity: 0.4; cursor: not-allowed; }
+.svc-ico[aria-pressed="true"] { background: var(--svc-accent-soft); color: var(--svc-accent); }
+.svc-ico .el-icon { font-size: 15px; }
+
+/* ############################################################################
+   6. 两栏工作区
+   ############################################################################ */
+.svc-grid {
+  display: grid;
+  /* 访问日志要宽度显示完整端点，运行日志等宽文本窄一点就够 */
+  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
+  gap: var(--svc-sp-4);
+  align-items: start;
+  min-width: 0;
+}
+.svc-panel {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
+  overflow: hidden;
+}
+/* 控件行拥挤时（1180 以下）允许换行，不裁切 */
+.svc-panel .svc-sect__extra { flex-wrap: wrap; justify-content: flex-end; }
+
+/* 焦点模式：实例区 / 状态带 / 访问日志整块退场，控制台吃满。
+   用 display:none 而非透明度 —— 半残的三栏 flex 在实测里极易算出 0 高度。 */
+.svc.is-focus .svc-band,
+.svc.is-focus .svc-inst,
+.svc.is-focus .svc-panel--access { display: none; }
+.svc.is-focus .svc-grid { grid-template-columns: minmax(0, 1fr); }
+.svc.is-focus .svc-panel--console { max-height: none; }
+.svc.is-focus .svc-console { max-height: none; }
+
+/* ############################################################################
+   7. 访问日志表（ReTable engine=element 的 el-table DOM）
+   ############################################################################ */
+.svc-tablewrap {
+  position: relative; min-width: 0;
+  border-top: 1px solid var(--svc-rule);
+  overflow-x: auto;               /* 列被挤时横向滚，不压缩列宽 */
+}
+.svc-tablewrap.is-busy { opacity: 0.55; pointer-events: none; }
+/* 顶部 2px 扫描条：替代 v-loading 遮罩，旧数据保持可读 */
+.svc-scanline {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 3;
+  background: linear-gradient(90deg, transparent, var(--svc-accent), transparent);
+  background-size: 200% 100%;
+  animation: svc-scan 1s linear infinite;
+}
+@keyframes svc-scan { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+.svc-table { --el-table-border-color: var(--svc-rule); width: 100%; }
+.svc-table .el-table {
+  --el-table-border-color: var(--svc-rule);
+  --el-table-text-color: var(--svc-ink);
+  --el-table-header-text-color: var(--svc-ink-2);
+  --el-table-row-hover-bg-color: var(--svc-accent-soft);
+  --el-table-current-row-bg-color: var(--svc-accent-soft);
+  --el-table-header-bg-color: var(--svc-surface-2);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  background: transparent;
+}
+.svc-table .el-table th.el-table__cell {
+  background: var(--svc-surface-2);
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em;
+  color: var(--svc-ink-2); height: 34px; padding: 0;
+}
+.svc-table .el-table td.el-table__cell {
+  height: var(--svc-row-h); padding: 0;
+  font-size: 12.5px; color: var(--svc-ink);
+  border-bottom-color: var(--svc-rule);
+}
+/* 斑马纹压到 3.5% —— 现状默认 10% 在 38px 行高下会显脏 */
+.svc-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: color-mix(in srgb, var(--svc-ink-3) 3.5%, transparent);
+}
+.svc-table .el-table__body tr { transition: background-color var(--svc-dur-fast) ease; }
+.svc-table .el-table__empty-text { color: var(--svc-ink-3); }
+.svc-table .el-table__empty-block { min-height: 160px; display: grid; place-items: center; }
+
+/* 端点：方法 + 尾段；路径尾段才是有信息量的部分 */
+.svc-ep { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
+.svc-ep__method {
+  flex: 0 0 38px; text-align: center;
+  font-family: var(--svc-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.03em; color: var(--svc-ink-3);
+  border-right: 1px solid var(--svc-rule); padding-right: 8px;
+}
+.svc-ep__path {
+  font-family: var(--svc-mono); font-size: 12px; color: var(--svc-ink);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Token：主行总量 + 次行输入/输出，右对齐等宽 */
+.svc-tok { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; line-height: 1.25; }
+.svc-tok b {
+  font-family: var(--svc-mono); font-size: 12.5px; font-weight: 650;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink);
+}
+.svc-tok i {
+  font-style: normal; font-family: var(--svc-mono); font-size: 10.5px;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink-3);
+}
+/* 任何等宽数字列的统一口径 */
+.svc-num {
+  font-family: var(--svc-mono); font-size: 12px;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink-2);
+}
+.svc-count {
+  font-family: var(--svc-mono); font-size: 11.5px;
+  font-variant-numeric: tabular-nums; color: var(--svc-ink-3); white-space: nowrap;
+}
+.svc-count b { font-weight: 650; color: var(--svc-ink-2); }
+
+/* ############################################################################
+   8. 运行日志控制台
+   ############################################################################ */
+/* 作用域提示条：明确「这份进程日志对应哪个实例」，且声明它不按实例过滤 */
+.svc-scope {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 7px var(--svc-sp-4);
+  background: var(--svc-accent-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--svc-accent) 22%, transparent);
+  font-size: 11.5px; color: var(--svc-ink-2);
+}
+.svc-scope__tag {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--svc-accent); border: 1px solid color-mix(in srgb, var(--svc-accent) 34%, transparent);
+  border-radius: var(--svc-r-sm); padding: 1px 6px;
+}
+.svc-scope b { font-family: var(--svc-serif); font-size: 12.5px; font-weight: 700; color: var(--svc-ink); }
+.svc-scope__port { font-family: var(--svc-mono); font-weight: 650; color: var(--svc-ink); }
+.svc-scope__dot { color: var(--svc-rule-strong); }
+.svc-panel__back {
+  display: none; margin: 0; padding: 7px var(--svc-sp-4);
+  font-size: 11.5px; color: var(--svc-accent); cursor: pointer;
+  background: var(--svc-surface-2);
+  border-bottom: 1px solid var(--svc-rule);
+}
+.svc-panel__back:hover { background: var(--svc-accent-soft); }
+.svc.is-focus .svc-panel__back { display: block; }
+
+/* meta 条：路径 + 文件状态 + 新鲜度。路径做 JS 中段截断，不用 direction:rtl */
+.svc-console__meta {
+  display: flex; align-items: center; gap: var(--svc-sp-2); flex-wrap: wrap;
+  padding: 7px var(--svc-sp-4);
+  border-bottom: 1px solid var(--svc-rule);
+  background: var(--svc-surface-2);
+  font-size: 11.5px; color: var(--svc-ink-3);
+}
+.svc-path {
+  font-family: var(--svc-mono); font-size: 11px; color: var(--svc-ink-2);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1 1 140px;
+}
+.svc-meta { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.svc-meta b { font-family: var(--svc-mono); font-weight: 600; color: var(--svc-ink-2); }
+
+/* 深色代码面：明暗两套主题共用同一组令牌（见文件头说明） */
+.svc-console {
+  position: relative;
+  flex: 1 1 auto; min-height: 0;
+  max-height: clamp(320px, 46vh, 720px);
+  overflow: auto;
+  background: var(--svc-console-bg);
+  padding: 8px 0;
+  font-family: var(--svc-mono);
+  font-size: 12px; line-height: 20px;
+  color: var(--svc-console-ink);
+  overscroll-behavior: contain;
+}
+.svc-console:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: -2px; }
+.svc-console.is-busy { opacity: 0.55; }
+/* 日志行：行号槽 | 级别槽 | 正文 */
+.svc-line {
+  display: grid; grid-template-columns: 44px 46px minmax(0, 1fr);
+  align-items: start;
+  padding: 0 var(--svc-sp-4) 0 0;
+}
+/* 行号槽：粘左，底色不透明，否则横向滚动时正文会透过来 */
+.svc-line__no {
+  position: sticky; left: 0; z-index: 1;
+  padding-right: 10px; text-align: right;
+  background: var(--svc-console-bg);
+  font-size: 11px; color: var(--svc-console-dim);
+  font-variant-numeric: tabular-nums; user-select: none;
+}
+.svc-line__lv {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--svc-console-dim); padding-top: 1px;
+}
+.svc-line__lv.is-error { color: var(--svc-console-err); }
+.svc-line__lv.is-warn  { color: var(--svc-console-warn); }
+.svc-line__lv.is-debug { color: var(--svc-console-debug); }
+/* 悬停整行微亮 */
+.svc-line:hover { background: color-mix(in srgb, var(--svc-console-ink) 5%, transparent); }
+.svc-line:hover .svc-line__no { background: #16202c; }  /* 跟 hover 行同步，否则行号槽割裂 */
+/* 正文：pre-wrap 保留缩进层级；overflow-wrap:anywhere 只在超长不可断串处断 */
+.svc-line__raw {
+  font: inherit; color: var(--svc-console-ink);
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal;
+  min-width: 0;
+}
+.svc-line.is-error .svc-line__raw { color: var(--svc-console-err); }
+.svc-line.is-warn  .svc-line__raw { color: var(--svc-console-warn); }
+
+.svc-console::-webkit-scrollbar { width: 10px; height: 10px; }
+.svc-console::-webkit-scrollbar-track { background: transparent; }
+.svc-console::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--svc-console-ink) 22%, transparent);
+  border-radius: 999px; border: 2px solid transparent; background-clip: content-box;
+}
+.svc-console::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--svc-console-ink) 40%, transparent);
+  background-clip: content-box;
+}
+
+/* 未贴底时浮出的「有新日志」药丸 */
+.svc-jump {
+  position: absolute; right: var(--svc-sp-4); bottom: var(--svc-sp-4); z-index: 4;
+  height: 30px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--svc-accent) 45%, transparent);
+  background: var(--svc-accent); color: #fff;
+  font-family: var(--svc-sans); font-size: 11.5px; font-weight: 600;
+  cursor: pointer; box-shadow: var(--svc-shadow-2);
+  animation: svc-rise var(--svc-dur) var(--svc-ease);
+}
+.svc-jump:hover { background: var(--svc-accent-hover); }
+.svc-jump:focus-visible { outline: 2px var(--svc-ink); outline-offset: 2px; }
+@keyframes svc-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.svc-panel--console { position: relative; }
+
+/* ############################################################################
+   9. 空态 / 错误 / 拒绝 / 分段控件 / 表单控件重绘
+   ############################################################################ */
+.svc-empty, .svc-console__empty, .svc-console__denied {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: var(--svc-sp-6) var(--svc-sp-4); text-align: center;
+}
+.svc-empty b, .svc-console__empty b { font-family: var(--svc-serif); font-size: 14px; font-weight: 700; color: var(--svc-ink-2); }
+.svc-empty i, .svc-console__empty i { font-style: normal; font-size: 12px; color: var(--svc-ink-3); }
+.svc-console__empty code {
+  margin-top: 4px; font-family: var(--svc-mono); font-size: 11px;
+  color: var(--svc-console-debug); word-break: break-all;
+}
+.svc-console__empty { color: var(--svc-console-debug); }
+.svc-console__empty b { color: var(--svc-console-ink); }
+/* 无权限：后端返回 HTTP 200 + {ok:false}，必须与「暂无日志」区分开 */
+.svc-console__denied {
+  color: var(--svc-console-err); font-size: 12.5px;
+  border-left: 3px solid var(--svc-console-err); margin: var(--svc-sp-4);
+  padding: var(--svc-sp-4); background: color-mix(in srgb, var(--svc-console-err) 8%, transparent);
+  border-radius: var(--svc-r-sm);
+}
+
+/* 内联错误条：left 3px 语义竖条 + 浅底。旧数据不清空 */
+.svc-alert {
+  display: flex; align-items: center; gap: var(--svc-sp-3); flex-wrap: wrap;
+  padding: 10px var(--svc-sp-4); border-radius: var(--svc-r-sm);
+  font-size: 12.5px; color: var(--svc-ink-2);
+}
+.svc-alert.is-danger { background: var(--svc-danger-soft); border-left: 3px solid var(--svc-danger); }
+.svc-alert__text { flex: 1 1 200px; min-width: 0; }
+.svc-alert__act {
+  flex-shrink: 0; padding: 0; border: 0; background: transparent;
+  color: var(--svc-accent); font-family: var(--svc-sans);
+  font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.svc-alert__act:hover { color: var(--svc-accent-hover); }
+.svc-alert__act:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 2px; border-radius: 2px; }
+
+/* 实例空态：虚线框 + 引导 CTA */
+.svc-inst .svc-empty {
+  border: 1px dashed var(--svc-rule-strong); border-radius: var(--svc-r-md);
+  background: var(--svc-surface-2); padding: var(--svc-sp-5) var(--svc-sp-4);
+}
+
+/* 骨架：一次高亮扫过，1.4s 线性（不用遮罩转圈） */
+.svc-skel {
+  border-radius: var(--svc-r-sm);
+  background: linear-gradient(90deg, var(--svc-surface-2) 25%, var(--svc-rule) 37%, var(--svc-surface-2) 63%);
+  background-size: 400% 100%;
+  animation: svc-shimmer 1.4s linear infinite;
+}
+@keyframes svc-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.svc-tile.is-skeleton { height: var(--svc-tile-h); pointer-events: none; border-style: dashed; }
+
+/* 级别分段控件：与 kb-split__filter 同源，压到 28px 高 */
+.svc-seg {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-sm);
+  background: var(--svc-surface-2);
+}
+.svc-seg__btn {
+  height: 24px; padding: 0 9px; border: 0; border-radius: 4px;
+  background: transparent; color: var(--svc-ink-2);
+  font-family: var(--svc-sans); font-size: 11.5px; font-weight: 500; cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--svc-dur-fast) ease, color var(--svc-dur-fast) ease;
+}
+.svc-seg__btn:hover { background: var(--svc-accent-soft); color: var(--svc-accent); }
+.svc-seg__btn:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
+.svc-seg__btn.is-active {
+  background: var(--svc-accent); color: #fff; font-weight: 600;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--svc-accent) 35%, transparent);
+}
+
+.svc-switch {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: var(--svc-ink-2); white-space: nowrap; cursor: pointer;
+}
+/* 表单控件：与 kb 第 10 节同口径，仅调密度 */
+.svc-select { width: 150px; flex-shrink: 0; }
+.svc-select--fixed { width: 104px; }
+.svc-search { width: 168px; flex-shrink: 0; }
+.svc .el-input__wrapper, .svc .el-select__wrapper {
+  border-radius: var(--svc-r-sm);
+  box-shadow: 0 0 0 1px var(--svc-rule-strong) inset;
+  background: var(--svc-surface-2);
+  transition: box-shadow var(--svc-dur-fast) ease;
+}
+.svc .el-input__wrapper:hover, .svc .el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--svc-accent) 40%, var(--svc-rule-strong)) inset;
+}
+.svc .el-input__wrapper.is-focus, .svc .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 3px var(--svc-accent-ring), 0 0 0 1px var(--svc-accent) inset !important;
+}
+.svc .el-input__inner { font-family: var(--svc-sans); font-size: 12px; color: var(--svc-ink); }
+.svc .el-select__selected-item { font-size: 12px; }
+.svc .el-switch.is-checked .el-switch__core { background: var(--svc-accent); border-color: var(--svc-accent); }
+.svc .el-button { border-radius: var(--svc-r-sm); font-size: 12px; font-weight: 500; }
+.svc .el-button:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
+
+/* ############################################################################
+   10. 动效编排与降级 / 响应式
+   ############################################################################ */
+@media (prefers-reduced-motion: reduce) {
+  .svc-stamp.is-live .svc-stamp__dot,
+  .svc-scanline,
+  .svc-skel,
+  .svc-jump { animation: none; }
+  .svc-skel { background: var(--svc-surface-2); }
+  .svc-table .el-table__body tr,
+  .svc-tile,
+  .svc-seg__btn { transition: none; }
+}
+
+/* ≤1180：两栏工作区 → 单列堆叠；控制台不再需要窄 min */
+@media (max-width: 1180px) {
+  .svc-grid { grid-template-columns: minmax(0, 1fr); }
+  .svc-console { max-height: clamp(280px, 40vh, 520px); }
+  .svc-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .svc-band__cell:nth-child(4) { border-left: 0; }
+  .svc-band__cell:nth-child(n+4) { border-top: 1px solid var(--svc-rule); }
+}
+
+/* ≤900：状态带 2 列；瓦片单列；控件行整宽；命中区 44px；隐藏聚焦入口 */
+@media (max-width: 900px) {
+  .svc-tiles { grid-template-columns: minmax(0, 1fr); }
+  .svc-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .svc-band__cell:nth-child(3) { border-left: 0; }
+  .svc-band__cell:nth-child(n+3) { border-top: 1px solid var(--svc-rule); }
+  .svc-band__cell:nth-child(4) { border-left: 1px solid var(--svc-rule); }
+  .svc-panel .svc-sect__extra { width: 100%; justify-content: flex-start; }
+  .svc-select, .svc-search, .svc-select--fixed { width: 100%; flex: 1 1 140px; }
+  .svc-ico { width: 44px; height: 44px; }        /* 触控目标 */
+  .svc-ico .el-icon { font-size: 17px; }
+  .svc-tile { min-height: 72px; }
+  .svc-seg__btn { height: 32px; padding: 0 12px; }
+  /* focus 模式在单列下失去意义，直接禁用入口 */
+  .svc-panel--console .svc-ico[aria-pressed] { display: none; }
+}
+
+/* ≤720：状态带 2 列；区块标题换行；端口缩回 18px；日志槽收窄 */
+@media (max-width: 720px) {
+  .svc-head { align-items: flex-start; }
+  .svc-head__actions { width: 100%; flex-wrap: wrap; }
+  .svc-stamp { order: 3; }
+  .svc-tile__port { font-size: 18px; }
+  .svc-tile__name { max-width: 160px; font-size: 14px; }
+  .svc-line { grid-template-columns: 32px 40px minmax(0, 1fr); }
+  .svc-line__no { padding-right: 8px; font-size: 10px; }
+}

@@ -9,7 +9,10 @@
   当前没有这个需求。这里要保证的是「所见即所得」，而不是「所见即可改」。
 -->
 <script setup lang="ts">
+import { computed } from "vue";
 import ReIcon from "@repo/ui/re-icon";
+import ReTable from "@repo/ui/re-table";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import { COLLECT_ACTIONS, type CollectActionKey } from "../constants/actionColumns";
 
 defineOptions({ name: "CollectActionConfig" });
@@ -26,39 +29,52 @@ const GROUPS: Array<{ list: string; actions: CollectActionKey[] }> = [
   { list: "变量管理", actions: ["editVariable", "deleteVariable"] },
   { list: "执行通知", actions: ["editNotice", "testNotice", "deleteNotice"] },
 ];
+
+const rows = computed<Array<Record<string, unknown>>>(() =>
+  GROUPS.map(group => ({ ...group })),
+);
+
+const columns = computed<ReTableColumn[]>(() => [
+  { prop: "list", label: "列表", width: 140, slot: "list" },
+  { prop: "actions", label: "操作列（顺序即渲染顺序）", slot: "actions" },
+]);
+
+function groupOf(row: unknown): { list: string; actions: CollectActionKey[] } {
+  return row as { list: string; actions: CollectActionKey[] };
+}
 </script>
 
 <template>
-  <div class="collect-action-config">
+  <div class="collect-page collect-action-config">
     <p class="collect-action-config__hint">
       采集侧全部列表的操作列定义集中在此（唯一来源）。新增或调整动作只需改
       <code>constants/actionColumns.ts</code>，六个列表与本页同步生效。
     </p>
 
-    <table class="collect-action-config__table">
-      <thead>
-        <tr>
-          <th class="collect-action-config__col-list">列表</th>
-          <th>操作列（顺序即渲染顺序）</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="group in GROUPS" :key="group.list">
-          <td class="collect-action-config__list">{{ group.list }}</td>
-          <td>
-            <span
-              v-for="key in group.actions"
-              :key="key"
-              class="collect-action-config__action"
-              :class="`collect-action-config__action--${COLLECT_ACTIONS[key].type ?? 'default'}`"
-            >
-              <ReIcon :name="COLLECT_ACTIONS[key].icon" :size="14" />
-              <span class="collect-action-config__tip">{{ COLLECT_ACTIONS[key].tip }}</span>
-            </span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <ReTable
+      class="collect-card"
+      table-id="collect-action-config"
+      :data="rows"
+      :columns="columns"
+      :pagination="false"
+      stripe
+    >
+      <template #list="{ row }">
+        <span class="collect-action-config__list">{{ groupOf(row).list }}</span>
+      </template>
+
+      <template #actions="{ row }">
+        <span
+          v-for="key in groupOf(row).actions"
+          :key="key"
+          class="collect-action-config__action"
+          :class="`collect-action-config__action--${COLLECT_ACTIONS[key].type ?? 'default'}`"
+        >
+          <ReIcon :name="COLLECT_ACTIONS[key].icon" :size="14" />
+          <span class="collect-action-config__tip">{{ COLLECT_ACTIONS[key].tip }}</span>
+        </span>
+      </template>
+    </ReTable>
   </div>
 </template>
 
@@ -79,30 +95,6 @@ const GROUPS: Array<{ list: string; actions: CollectActionKey[] }> = [
   border-radius: var(--re-surface-radius, 4px);
   background: var(--el-fill-color-light);
   font-size: 12px;
-}
-
-.collect-action-config__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.collect-action-config__table th {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  color: var(--el-text-color-secondary);
-  font-weight: 500;
-  text-align: left;
-}
-
-.collect-action-config__col-list {
-  width: 120px;
-}
-
-.collect-action-config__table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  vertical-align: top;
 }
 
 .collect-action-config__list {

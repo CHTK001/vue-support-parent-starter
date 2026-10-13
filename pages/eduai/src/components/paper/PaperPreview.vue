@@ -221,6 +221,7 @@ const ANSWER_SHEET_LINES_BY_TYPE: Record<string, number> = {
   JUDGE: 2,
   FILL: 3,
   SHORT_ANSWER: 6,
+  SUBJECTIVE: 6,
   ESSAY: 10,
 };
 
@@ -231,6 +232,7 @@ const TYPE_LABEL: Record<string, string> = {
   JUDGE: "判断",
   FILL: "填空",
   SHORT_ANSWER: "简答",
+  SUBJECTIVE: "主观",
   ESSAY: "作文",
 };
 
@@ -298,6 +300,11 @@ function answerSpaceHeight(type?: string): number {
     return 34;
   }
   if (type === "SHORT_ANSWER") {
+    return 60;
+  }
+  // 后端「SUBJECTIVE」是另一套主观题型码（如翻译句子），与 SHORT_ANSWER 同级留白；
+  // 不识别它会导致这类题既没有留白区、又没有选项兜底行，卷面上完全看不到作答区。
+  if (type === "SUBJECTIVE") {
     return 60;
   }
   if (type === "ESSAY") {

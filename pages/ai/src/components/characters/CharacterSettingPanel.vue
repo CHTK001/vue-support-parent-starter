@@ -1382,27 +1382,6 @@ watch(() => characterForm.id, () => {
   }
 })
 
-// 模式切换时同步初始状态
-const handleMcpModeChange = (mode) => {
-  if (mode === 'custom' && characterForm.enabledMcpServers.length === 0) {
-    // 默认全选当前可用服务器
-    characterForm.enabledMcpServers = mcpServers.value
-      .filter(s => s.enabled)
-      .map(s => s.id);
-  }
-};
-
-const handleSkillsModeChange = (mode) => {
-  if (mode === 'custom' && Object.keys(characterForm.enabledSkills).length === 0) {
-    // 默认全选当前可用技能
-    const initial = {};
-    skillsList.value
-      .filter(s => s.enabled !== false)
-      .forEach(s => { initial[s.id] = true; });
-    characterForm.enabledSkills = initial;
-  }
-};
-
 // 全部禁用开关切换处理
 const handleAllDisabledToggle = async (val) => {
   allDisabled.value = val;

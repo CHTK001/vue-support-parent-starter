@@ -34,8 +34,8 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
 );
 
 /**
- * 不在界面上暴露的参数：SQL 查询结果固定写进 rows（CollectSqlExecutor.DEFAULT_OUTPUT），
- * 下游用 ${rows} 引用即可，多数流程不需要改名 —— 常显一个「结果变量名」只会增加噪音。
+ * 不在界面上暴露的参数：SQL 查询结果默认写进 data（同 rows，旧流程留空时按 CollectSqlExecutor.DEFAULT_OUTPUT 兜底），
+ * 下游用 ${data} 引用即可，多数流程不需要改名 —— 常显一个「结果变量名」只会增加噪音。
  * 只摘界面、不删数据：已有流程若改过名字，仍按其值运行。
  */
 const HIDDEN_PARAMS = ["outputVariable"];

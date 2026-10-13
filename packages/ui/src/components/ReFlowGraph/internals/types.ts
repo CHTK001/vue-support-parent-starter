@@ -87,7 +87,14 @@ export type FlowSelection =
   | null;
 
 /** 内置右键菜单动作名 */
-export type FlowMenuAction = "rename" | "locate" | "copy" | "delete";
+export type FlowMenuAction =
+  | "rename"
+  | "locate"
+  | "copy"
+  | "delete"
+  | "delete-edge"
+  | "locate-edge"
+  | "add";
 
 /**
  * 右键菜单项。
@@ -103,13 +110,22 @@ export interface FlowMenuItem {
   /** 内置动作；给了就走内置实现 */
   action?: FlowMenuAction;
   /**
+   * `action: "add"` 时要添加的节点类型。
+   *
+   * 与 nodeTypes 里的 type 对应，落点取右键处坐标。
+   */
+  addType?: string;
+  /**
    * 自定义回调；`action` 缺省时才生效。
    *
-   * `node` 是被右键的那个节点（菜单只在节点上弹，恒非 null）。
+   * `node` 是被右键的那个节点（节点菜单上恒非 null）；`edge` 是被右键的连线
+   * （连线菜单上非 null）。两者随菜单上下文而定。
    */
-  onClick?: (ctx: { node: FlowNode; event: MouseEvent }) => void;
+  onClick?: (ctx: { node: FlowNode | null; edge: FlowEdge | null; event: MouseEvent }) => void;
   /** 危险项（删除），走红色样式 */
   danger?: boolean;
   /** 禁用项：置灰且不触发 */
   disabled?: boolean;
+  /** 分组标题项：渲染成分隔标题，不可点 */
+  header?: string;
 }

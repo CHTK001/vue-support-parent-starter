@@ -47,6 +47,8 @@ const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
   "pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt", "pot",
   // PDF
   "pdf",
+  // OFD 版式文档（renderer-ofd：ofd，纯 jszip 解析，无 wasm/worker）
+  "ofd",
   // iWork（renderer-iwork README：pages/numbers/key）
   "pages", "numbers", "key",
   // WordPerfect（renderer-wordperfect README：wpd/wp/wp5/wp6）+ Hangul（hwp/hwpx）

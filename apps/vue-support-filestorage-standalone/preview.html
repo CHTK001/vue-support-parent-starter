@@ -4,6 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>文件预览</title>
+  <!-- 该页面作为 iframe 内嵌壳时，body 默认 8px margin 会在预览区四周留白 -->
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+  </style>
 </head>
 <body>
   <div id="app"></div>

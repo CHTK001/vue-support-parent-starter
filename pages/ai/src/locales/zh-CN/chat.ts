@@ -232,6 +232,8 @@ export default {
     systemMessage: '系统消息',
     apiError: 'API 请求错误',
     requestTimeout: '请求超时',
+    routeTitle: '本轮实际应答的供应商',
+    routeUnknownProvider: '未知供应商',
     serverNoResponse: '服务器长时间未响应数据，请稍后重试',
     manuallyTerminated: '已手动终止',
     maxIterationsReached: '已达到最大工具调用轮次限制',

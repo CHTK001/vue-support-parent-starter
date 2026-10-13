@@ -5,6 +5,19 @@
     system: 'System',
   },
 
+  display: {
+    askPanelWidth: {
+      title: 'Right Q&A panel width',
+      desc: 'Narrow = fixed comfortable reading width, more room for the document list. Full = the Q&A panel fills the remaining space, great for long answers on wide screens.',
+      narrow: 'Narrow',
+      full: 'Full',
+      preview: 'Layout preview',
+      hintNarrow: 'The Q&A panel keeps a comfortable reading width; the document list gets more room',
+      hintFull: 'The Q&A panel fills the remaining space so long answers fit at a glance',
+      saveFailed: 'Failed to save. Please try again later.',
+    },
+  },
+
   general: {
     login: 'Login',
     language: 'Language',
@@ -23,6 +36,9 @@
     loadFailed: 'Failed to load general settings',
     updated: 'General settings updated',
     agent: 'Agent Settings',
+    agentImpl: 'Agent Engine Implementation',
+    agentImplDesc: 'Selects the backend Agent runtime engine. Default: agentscope.',
+    agentImplWarning: 'The opencode engine is an external autonomous agent and is not capability-equivalent: it supports single-agent only (enabling sub-agent orchestration fails outright), and MCP tools, skills, memory and plan mode are all inert. It also cannot disable the shell tool for regular accounts, so those requests are rejected under the security policy. Use agentscope or langchain4j when you need the full toolchain.',
     maxToolIterations: 'Max Tool Iterations',
     maxToolIterationsDesc: 'Maximum number of consecutive tool-call rounds in a single conversation. When the limit is reached, execution pauses and waits for user confirmation. Default 100.',
     llmRequestTimeout: 'Request Timeout',
@@ -202,6 +218,7 @@
       defaultModels: 'Default Models',
       ocr: 'OCR Settings',
       appearance: 'Appearance',
+      display: 'Display',
       search: 'Search Settings',
       browser: 'Browser',
       about: 'About',

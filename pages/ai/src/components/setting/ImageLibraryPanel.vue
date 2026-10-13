@@ -294,6 +294,7 @@ import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
+import { useModelConfigStore } from '@/stores/modelConfig'
 
 /**
  * 以图搜图图像底库管理面板。
@@ -347,6 +348,8 @@ const progressText = ref('')
 const available = ref<boolean | null>(null)
 const modelName = ref('')
 const minSimilarity = ref<number | null>(null)
+/** 模型配置门禁：可用性与模型名都以「是否真的配置过」为准，种子默认值不算配置 */
+const modelConfig = useModelConfigStore()
 /**
  * 配置的模型是否出现在能力清单里。
  *
@@ -937,14 +940,11 @@ async function syncViewer() {
 }
 
 async function loadStatus() {
-  try {
-    const data = await apiService._request('/image-search/status')
-    available.value = !!data?.available
-    modelName.value = data?.model || ''
-  } catch {
-    available.value = false
-    modelName.value = ''
-  }
+  // 以设置中心同源的合并视图为准：/image-search/status 会把系统种子
+  // cn-clip-rn50-image 当作「已配置」，设置中心却显示未配置。
+  await modelConfig.load()
+  available.value = modelConfig.imageReady
+  modelName.value = modelConfig.imageFeatureModel
   await checkModelRegistered()
 }
 

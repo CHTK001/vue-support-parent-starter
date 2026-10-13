@@ -115,6 +115,8 @@ const emit = defineEmits<{
   (e: "node-click", node: FlowNode, ev: MouseEvent): void;
   (e: "node-dblclick", node: FlowNode, ev: MouseEvent): void;
   (e: "node-contextmenu", node: FlowNode, ev: MouseEvent): void;
+  (e: "edge-contextmenu", edge: FlowEdge, ev: MouseEvent): void;
+  (e: "blank-contextmenu", ev: MouseEvent): void;
   (e: "edge-click", edge: FlowEdge, ev: MouseEvent): void;
   (e: "edge-connected", edge: FlowEdge): void;
   (e: "history-change", state: { canUndo: boolean; canRedo: boolean }): void;
@@ -122,6 +124,7 @@ const emit = defineEmits<{
 
 const canvasRef = ref<HTMLDivElement | null>(null);
 const minimapRef = ref<HTMLDivElement | null>(null);
+const panelRef = ref<HTMLElement | null>(null);
 const engine = shallowRef<FlowGraphEngine | null>(null);
 
 const ui = reactive({
@@ -137,6 +140,11 @@ const ui = reactive({
   propsWidth: 400,
   /** 拖拽调宽过程中为 true：期间关掉宽度过渡，否则面板会「追着鼠标跑」 */
   resizing: false,
+  /** 面板是否浮起（脱离右侧停靠）。浮起后可整体拖动到任意位置 */
+  floated: false,
+  /** 浮起时面板左上角相对外壳的坐标（px） */
+  floatX: 0,
+  floatY: 0,
   scale: 1,
   canUndo: false,
   canRedo: false,
@@ -159,27 +167,113 @@ const selectionBadge = computed(() => {
 });
 const issues = ref<FlowStructureIssue[]>([]);
 const rename = reactive({ visible: false, value: "", id: "", left: 0, top: 0, width: 120 });
-const menu = reactive({ visible: false, x: 0, y: 0, node: null as FlowNode | null, event: null as MouseEvent | null });
+const menu = reactive({
+  visible: false, x: 0, y: 0,
+  node: null as FlowNode | null,
+  edge: null as FlowEdge | null,
+  event: null as MouseEvent | null,
+});
 
 /**
  * 右键菜单实际渲染的项。
  *
- * 缺省给回原来那四项，**行为与重构前完全一致** —— 宿主不传 `menuItems` 时看不出区别，
- * 传了才接管。传空数组即彻底关掉菜单（`v-if` 走 false，`<ul>` 不渲染）。
+ * 按右键对象分流：连线 → 连线菜单（删除连线 / 定位）；节点 → 节点菜单
+ * （重命名 / 定位 / 复制 / 删除）+「添加节点」分组；空白处 → 只有
+ * 「添加节点」分组。宿主传 `menuItems` 则整体接管（行为与重构前一致），
+ * 传空数组即彻底关掉菜单。
  */
-const menuItems = computed<FlowMenuItem[]>(() =>
-  props.menuItems ?? [
-    { key: "rename", label: "重命名", action: "rename" },
-    { key: "locate", label: "定位", action: "locate" },
-    { key: "copy", label: "复制", action: "copy" },
-    { key: "delete", label: "删除", action: "delete", danger: true },
-  ],
-);
+const menuItems = computed<FlowMenuItem[]>(() => {
+  if (props.menuItems) {
+    return props.menuItems;
+  }
+  // 连线右键：删除连线 / 定位
+  if (menu.edge) {
+    return [
+      { key: "edge-delete", label: "删除连线", action: "delete-edge", danger: true },
+      { key: "edge-locate", label: "定位", action: "locate-edge" },
+    ];
+  }
+  const items: FlowMenuItem[] = [];
+  // 节点右键：先列节点自身的四项
+  if (menu.node) {
+    items.push(
+      { key: "rename", label: "重命名", action: "rename" },
+      { key: "locate", label: "定位", action: "locate" },
+      { key: "copy", label: "复制", action: "copy" },
+      { key: "delete", label: "删除", action: "delete", danger: true },
+    );
+  }
+  // 「添加节点」分组：按调色板分组逐项列出，落点取右键处坐标，
+  // 添加后选中并通知宿主打开节点配置（右键 → 添加 → 直接配参数）
+  if (props.nodeTypes.length) {
+    if (items.length) {
+      items.push({ key: "add-sep", label: "", header: "添加节点" });
+    }
+    const groups: { name: string; items: FlowNodeTypeDef[] }[] = [];
+    props.nodeTypes.forEach((t) => {
+      const name = t.group ?? "节点";
+      let bucket = groups.find((g) => g.name === name);
+      if (!bucket) {
+        bucket = { name, items: [] };
+        groups.push(bucket);
+      }
+      bucket.items.push(t);
+    });
+    groups.forEach((g) => {
+      if (groups.length > 1) {
+        items.push({ key: `add-g-${g.name}`, label: g.name, header: g.name });
+      }
+      g.items.forEach((t) => {
+        items.push({
+          key: `add-${t.type}`,
+          label: t.label,
+          action: "add",
+          addType: t.type,
+        });
+      });
+    });
+  }
+  return items;
+});
+
+/**
+ * 右键菜单定位。
+ *
+ * <p>菜单是 fixed 定位、坐标取右键处（clientX/Y）。贴近右 / 下边缘时
+ * 反向展开，避免菜单被视口裁掉一半。高度按项数估算（每项约 30px）。</p>
+ */
+const menuStyle = computed(() => {
+  const W = 188;
+  const h = menuItems.value.length * 30 + 10;
+  let left = menu.x;
+  let top = menu.y;
+  if (left + W > window.innerWidth - 8) {
+    left = Math.max(8, window.innerWidth - W - 8);
+  }
+  if (top + h > window.innerHeight - 8) {
+    top = Math.max(8, window.innerHeight - h - 8);
+  }
+  return { left: `${left}px`, top: `${top}px` };
+});
 
 const shellStyle = computed(() => ({
   height: typeof props.height === "number" ? `${props.height}px` : props.height,
   width: typeof props.width === "number" ? `${props.width}px` : props.width,
 }));
+
+/**
+ * 属性面板样式。
+ *
+ * <p>停靠态只有宽度；浮起态换成 absolute 定位的左上角坐标 + 宽度，
+ * 由 startPanelDrag 写 floatX/floatY、dockPanel 清回停靠。</p>
+ */
+const panelStyle = computed(() => {
+  const width = ui.collapsed ? "40px" : `${ui.propsWidth}px`;
+  if (ui.floated) {
+    return { left: `${ui.floatX}px`, top: `${ui.floatY}px`, width };
+  }
+  return { width };
+});
 
 /** 调色板按 group 分段 */
 const palette = computed(() => {
@@ -273,9 +367,28 @@ onMounted(async () => {
         menu.x = ev.clientX;
         menu.y = ev.clientY;
         menu.node = node;
+        menu.edge = null;
         // 存下原始事件：菜单项被点时是另一个 click 事件，要靠它给 onClick 透传坐标
         menu.event = ev;
         emit("node-contextmenu", node, ev);
+      },
+      onEdgeContextMenu: (edge, ev) => {
+        menu.visible = true;
+        menu.x = ev.clientX;
+        menu.y = ev.clientY;
+        menu.edge = edge;
+        menu.node = null;
+        menu.event = ev;
+        emit("edge-contextmenu", edge, ev);
+      },
+      onBlankContextMenu: (ev) => {
+        menu.visible = true;
+        menu.x = ev.clientX;
+        menu.y = ev.clientY;
+        menu.node = null;
+        menu.edge = null;
+        menu.event = ev;
+        emit("blank-contextmenu", ev);
       },
       onEdgeClick: (edge, ev) => emit("edge-click", edge, ev),
       onEdgeConnected: (edge) => emit("edge-connected", edge),
@@ -442,23 +555,58 @@ function pasteCells() {
 /**
  * 执行一项右键菜单。
  *
- * @param item 被点击的菜单项
+ * 按 `item.action` 分派：节点四项（重命名 / 定位 / 复制 / 删除）、
+ * 连线两项（删除连线 / 定位）、添加节点（落点取右键处坐标，添加后
+ * 选中并通知宿主打开节点配置）。自定义 `onClick` 同时拿到 node 与
+ * edge，随菜单上下文而定。
+ *
+ * @param item  被点击的菜单项
  * @param event 触发点击的原始鼠标事件，透传给自定义 `onClick`
  */
 function menuAction(item: FlowMenuItem, event: MouseEvent) {
   const node = menu.node;
+  const edge = menu.edge;
   menu.visible = false;
-  // 无节点时只剩自定义项可能还能干活（内置四项都要节点），所以不禁用整个流程
+  // 分组标题项：不可点
+  if (item.header) {
+    return;
+  }
   if (item.disabled) {
     return;
   }
   if (!item.action) {
-    if (node) {
-      item.onClick?.({ node, event });
+    item.onClick?.({ node, edge, event });
+    return;
+  }
+  if (!engine.value) return;
+  // 添加节点：右键处落点，选中后通知宿主打开节点配置
+  if (item.action === "add") {
+    if (!item.addType || !menu.event) return;
+    const p = engine.value.toLocalPoint(menu.event.clientX, menu.event.clientY);
+    const created = engine.value.addNode(item.addType, p.x, p.y);
+    if (created) {
+      engine.value.selectNode(created.id);
+      issues.value = [];
+      emit("select", { kind: "node", node: created });
     }
     return;
   }
-  if (!node || !engine.value) return;
+  // 连线菜单
+  if (item.action === "delete-edge") {
+    if (edge) {
+      engine.value.removeEdges([edge.id]);
+      syncStat();
+    }
+    return;
+  }
+  if (item.action === "locate-edge") {
+    if (edge) {
+      engine.value.focusNode(edge.to);
+    }
+    return;
+  }
+  // 节点菜单
+  if (!node) return;
   if (item.action === "rename") startRename(node.id);
   if (item.action === "locate") engine.value.focusNode(node.id);
   if (item.action === "copy") {
@@ -482,19 +630,33 @@ const PROPS_MAX_WIDTH = 640;
  * 头部有标题、徽标、按钮，在上面按下会误伤点击（原来整行 head 都能拖，
  * 按钮周围没有 4px 让位，点按钮容易被当成拖拽起点）。
  *
- * <p>停靠在右侧，向右拖变宽、变窄要把指针往左拖，所以增量取正向差值；
- * 上下限按「画布至少还剩 320px、面板不窄于 300px、不宽于 640px」来卡。</p>
+ * <p>面板停靠在右侧、右缘固定在视口边，所以分隔条<b>往右拖 → 面板变窄</b>
+ * （左缘右移）、往左拖 → 变宽。增量取负向差值；上下限按「画布至少还剩
+ * 320px、面板不窄于 300px、不宽于 640px」来卡。</p>
  */
 function startResize(ev: MouseEvent) {
   ev.preventDefault();
   const startX = ev.clientX;
   const startW = ui.propsWidth;
+  // 浮起态起点：调宽时同步平移 left，保持「抓手跟手、右缘不动」
+  const startFloatX = ui.floatX;
   ui.resizing = true;
   document.body.style.cursor = "col-resize";
   document.body.style.userSelect = "none";
   const move = (e: MouseEvent) => {
     const max = Math.max(PROPS_MIN_WIDTH, Math.min(PROPS_MAX_WIDTH, window.innerWidth - 320));
-    ui.propsWidth = Math.round(Math.min(max, Math.max(PROPS_MIN_WIDTH, startW + (e.clientX - startX))));
+    const delta = e.clientX - startX;
+    const nextW = Math.round(Math.min(max, Math.max(PROPS_MIN_WIDTH, startW - delta)));
+    ui.propsWidth = nextW;
+    // 浮起态：left 是显式坐标，只改 width 会让左缘钉死、右缘反向收缩，
+    // 抓手与鼠标脱节（用户反馈的「拖拽方向相反」）。用同样的 delta 平移 left，
+    // 使左缘跟手、右缘保持不动，与停靠态手感一致。
+    if (ui.floated) {
+      const shell = panelRef.value?.closest(".flow-shell") as HTMLElement | null;
+      const shellW = shell?.getBoundingClientRect().width ?? window.innerWidth;
+      const maxX = Math.max(0, shellW - 120);
+      ui.floatX = Math.round(Math.min(maxX, Math.max(0, startFloatX + delta)));
+    }
   };
   const up = () => {
     ui.resizing = false;
@@ -509,6 +671,66 @@ function startResize(ev: MouseEvent) {
 
 function closeMenu() {
   menu.visible = false;
+}
+
+/**
+ * 面板整体拖动（浮起模式）。
+ *
+ * <p>原来面板只有左边框那条 6px 竖边能拖、且只能改宽，整块面板
+ * 挪不走 —— 需求是「面板没法整体拖动」。这里在标题栏按下即把面板
+ * 从右侧停靠<b>浮起</b>（absolute 定位、脱离 flex 流，画布随之铺满），
+ * 之后整块跟手平移；双击标题栏或点图钉按钮复位回停靠位。</p>
+ *
+ * <p>按在标题栏的按钮上不算拖面板（closest('button') 命中即放行），
+ * 否则点「弹窗 / 收起」会被当成拖拽起点。浮起位置钳在外壳内，
+ * 不会拖出可视区。</p>
+ *
+ * @param ev 标题栏上的 mousemove
+ */
+function startPanelDrag(ev: MouseEvent) {
+  if (ui.collapsed) {
+    return;
+  }
+  // 排除交互元素：按钮、输入框、下拉、链接等不可拖拽
+  const target = ev.target as HTMLElement;
+  if (target.closest("button, input, textarea, select, a, [role='button'], .flow-props-resizer")) {
+    return;
+  }
+  ev.preventDefault();
+  const shell = panelRef.value?.closest(".flow-shell") as HTMLElement | null;
+  const shellRect = shell?.getBoundingClientRect();
+  const panelRect = panelRef.value?.getBoundingClientRect();
+  if (!shellRect || !panelRect) {
+    return;
+  }
+  const startX = ev.clientX;
+  const startY = ev.clientY;
+  const startFX = panelRect.left - shellRect.left;
+  const startFY = panelRect.top - shellRect.top;
+  ui.floated = true;
+  ui.floatX = startFX;
+  ui.floatY = startFY;
+  document.body.style.userSelect = "none";
+  const move = (e: MouseEvent) => {
+    const maxX = Math.max(0, shellRect.width - 120);
+    const maxY = Math.max(0, shellRect.height - 80);
+    ui.floatX = Math.round(Math.min(maxX, Math.max(0, startFX + (e.clientX - startX))));
+    ui.floatY = Math.round(Math.min(maxY, Math.max(0, startFY + (e.clientY - startY))));
+  };
+  const up = () => {
+    document.body.style.userSelect = "";
+    window.removeEventListener("mousemove", move);
+    window.removeEventListener("mouseup", up);
+  };
+  window.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", up);
+}
+
+/** 浮起的面板复位回右侧停靠位。 */
+function dockPanel() {
+  ui.floated = false;
+  ui.floatX = 0;
+  ui.floatY = 0;
 }
 
 onMounted(() => window.addEventListener("click", closeMenu));
@@ -616,9 +838,11 @@ defineExpose({
       <!-- 停靠属性面板：与调色板、画布同处一行，固定在画布右侧；左边框可拖拽调宽 -->
       <section
         v-if="showProperties"
+        ref="panelRef"
         class="flow-props"
-        :class="{ 'is-resizing': ui.resizing, 'is-collapsed': ui.collapsed }"
-        :style="{ width: ui.collapsed ? '40px' : ui.propsWidth + 'px' }"
+        :class="{ 'is-resizing': ui.resizing, 'is-collapsed': ui.collapsed, 'is-floated': ui.floated }"
+        :style="panelStyle"
+        @mousedown="startPanelDrag"
       >
         <!-- 左边框拖拽热区：6px 宽的透明竖条，hover 时亮出主色抓手 -->
         <span
@@ -629,7 +853,12 @@ defineExpose({
           @mousedown="startResize"
         />
 
-        <header class="flow-props-head">
+        <header
+          class="flow-props-head"
+          title="拖动移动面板，双击复位回右侧"
+          @mousedown="startPanelDrag"
+          @dblclick="dockPanel"
+        >
           <span class="flow-props-icon">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -646,6 +875,13 @@ defineExpose({
             </span>
           </span>
           <span class="flow-props-actions">
+            <ReButton
+              v-if="ui.floated"
+              layout="square"
+              icon="Pin"
+              tip="复位回右侧停靠"
+              @click="dockPanel"
+            />
             <ReButton
               layout="square"
               icon="Grid"
@@ -723,17 +959,19 @@ defineExpose({
     <ul
       v-if="menu.visible && menuItems.length"
       class="flow-menu"
-      :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
+      :style="menuStyle"
       @click.stop
     >
-      <li
-        v-for="item in menuItems"
-        :key="item.key"
-        :class="{ danger: item.danger, disabled: item.disabled }"
-        @click="menuAction(item, $event)"
-      >
-        {{ item.label }}
-      </li>
+      <template v-for="item in menuItems" :key="item.key">
+        <li
+          v-if="!item.header"
+          :class="{ danger: item.danger, disabled: item.disabled }"
+          @click="menuAction(item, $event)"
+        >
+          {{ item.label }}
+        </li>
+        <li v-else class="flow-menu-head">{{ item.header }}</li>
+      </template>
     </ul>
   </div>
 </template>
@@ -1041,6 +1279,25 @@ defineExpose({
 /* 禁用项：置灰且不响应 hover 反馈，光靠 onClick 里 return 拦截的话用户看不出为什么点不动 */
 .flow-menu li.disabled { color: #c9cdd4; cursor: not-allowed; }
 .flow-menu li.disabled:hover { background: none; color: #c9cdd4; }
+/* 分组标题：不可点，视觉上把「添加节点」等同名分组隔开 */
+.flow-menu-head {
+  padding: 5px 10px 3px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #a4abb5;
+  user-select: none;
+}
+/* 浮起态：脱离 flex 流、absolute 定位于外壳内，整块可拖动。
+ * 高度取外壳高度 - 上下边距（定值才能让 body 的 flex:1 + overflow 生效，
+ * height:auto 配合 max-height 时 flex 子项不会触发滚动）。 */
+.flow-props.is-floated {
+  position: absolute;
+  z-index: 40;
+  height: calc(100% - 16px);
+  box-shadow: 0 14px 34px rgba(15, 23, 32, 0.22);
+  border-radius: 10px;
+}
+.flow-props.is-floated .flow-props-head { cursor: move; }
 /*
  * 磁吸端口：静止时隐藏、节点 hover 淡入。
  *

@@ -77,7 +77,7 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   try {
     const [vueMod, rendererMod, cssMod] = await Promise.all([
-      import("@file-viewer/vue3"),
+      import("@file-viewer/vue3-full"),
       import("@file-viewer/renderer-cad"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
     ]);

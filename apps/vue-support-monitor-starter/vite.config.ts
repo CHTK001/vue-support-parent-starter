@@ -1,8 +1,119 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
+import type { NextFunction } from "connect";
+import { createReadStream, existsSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { PluginOption } from "vite";
 
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 
 import { createVite } from "../../turbo/vite/createVite.ts";
+
+/**
+ * 在 {@code node_modules/.pnpm} 里定位某个 {@code @file-viewer} 渲染器
+ * {@code dist/} 下的资产文件。
+ *
+ * <p> {@code @file-viewer/vite-plugin} 的 copyAssets 复制清单
+ * （ {@code flyfish-viewer-assets.json} ）只覆盖了
+ * {@code docx / pdf / ppt / pptx / xlsx} 这几组渲染器，
+ * <b>漏掉了 {@code iwork / hangul / wordperfect}</b>。这三个渲染器
+ * 的 worker 由渲染器自身按 {@code document.baseURI + vendor/<渲染器>/<文件>}
+ * 拼出 URL 去请求（见 {@code @file-viewer/core} 的
+ * {@code DEFAULT_FILE_VIEWER_*_WORKER_PATH}），缺了文件就会抛
+ * 「iWork Worker failed to load.」并把面板降级成 iframe。</p>
+ *
+ * <p>这里从 {@code .pnpm} 内容寻址目录按 {@code @file-viewer+renderer-<名>@<版本>}
+ * 前缀扫描，找到就把绝对路径记下来，由 {@link serveFileViewerOfficeWorkers}
+ * 的 dev 中间件按需吐出去。不依赖版本号，升级渲染器也不用改这里。</p>
+ *
+ * @param renderer 渲染器短名（如 {@code iwork} / {@code hangul} / {@code wordperfect}）
+ * @param file 渲染器 {@code dist/} 下的相对文件名
+ * @return 命中文件的绝对路径；未安装或文件缺失时返回 {@code undefined}
+ */
+function findFileViewerRendererAsset(renderer: string, file: string): string | undefined {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 10; i += 1) {
+    const pnpmDir = join(dir, "node_modules", ".pnpm");
+    if (existsSync(pnpmDir)) {
+      const prefix = `@file-viewer+renderer-${renderer}@`;
+      for (const entry of readdirSync(pnpmDir)) {
+        if (!entry.startsWith(prefix)) continue;
+        const candidate = join(
+          pnpmDir,
+          entry,
+          "node_modules",
+          "@file-viewer",
+          `renderer-${renderer}`,
+          "dist",
+          file,
+        );
+        if (existsSync(candidate)) return candidate;
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
+/**
+ * dev 下补齐 copyAssets 漏掉的 office 渲染器 worker/wasm。
+ *
+ * <p>{@code @file-viewer/vite-plugin} 的资源中间件对清单里没有的路径会
+ * {@code next()} 放行，所以这里用 {@code configureServer} 的 post 钩子
+ * （排在自带中间件之后）接管 {@code /vendor/iwork|hangul|wordperfect/*}，
+ * 直接从 {@code node_modules} 把对应文件 stream 出去。渲染器请求的 URL
+ * （ {@code /vendor/<渲染器>/<文件>} ）与 {@code @file-viewer/core} 的
+ * 默认路径完全一致，因此无需改任何组件代码。</p>
+ *
+ * <p>WordPerfect 的 worker 内部会 {@code import('libwpd.mjs')} 并 fetch
+ * {@code libwpd.wasm}（都按 worker URL 相对解析），所以这三个文件要一起
+ * serve；wasm 缺失时渲染器自己会降级成「有限文本预览」，不会报错。</p>
+ */
+function serveFileViewerOfficeWorkers(): PluginOption {
+  const assets: Record<string, string> = {};
+  const register = (renderer: string, file: string, urlPath: string): void => {
+    const abs = findFileViewerRendererAsset(renderer, file);
+    if (abs) {
+      assets[urlPath] = abs;
+    } else {
+      console.warn(`[file-viewer-office-workers] 未找到 ${renderer}/${file}，该格式将退回内联解析`);
+    }
+  };
+  register("iwork", "iwork.worker.js", "/vendor/iwork/iwork.worker.js");
+  register("hangul", "hangul.worker.js", "/vendor/hangul/hangul.worker.js");
+  register("wordperfect", "wordperfect.worker.js", "/vendor/wordperfect/wordperfect.worker.js");
+  register("wordperfect", "libwpd.mjs", "/vendor/wordperfect/libwpd.mjs");
+  register("wordperfect", "libwpd.wasm", "/vendor/wordperfect/libwpd.wasm");
+
+  return {
+    name: "serve-file-viewer-office-workers",
+    apply: "serve",
+    configureServer(server) {
+      // 直接注册（而非 post 钩子）：让本中间件排在 @file-viewer 自带资源
+      // 中间件之后、vite 内部 transform 中间件之前。vite 的 transform 对
+      // 不存在的 .js 路径会直接 404，若放在 post 钩子里就永远轮不到本
+      // 中间件接管 /vendor/iwork|hangul|wordperfect/*。
+      server.middlewares.use(
+        (req: IncomingMessage, res: ServerResponse, next: NextFunction) => {
+          const pathname = (req.url || "").split("?")[0];
+          const hit = assets[pathname];
+          if (hit) {
+            res.statusCode = 200;
+            res.setHeader(
+              "Content-Type",
+              hit.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8",
+            );
+            createReadStream(hit).pipe(res);
+            return;
+          }
+          next();
+        },
+      );
+    },
+  };
+}
 
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
 // 与 vue-support-ai-guada / vue-support-system-starter 同一口径
@@ -170,16 +281,19 @@ export default createVite({
     dropProxyOrigin(),
     dedupeElementPlus(),
     // 文件预览（@file-viewer）资源接入：
-    //   - preset 用 office（已安装 @file-viewer/preset-office）：写 "all" 会要求
-    //     @file-viewer/preset-all，而该包未安装，插件 buildStart 直接抛未捕获异常、
-    //     把 dev server 带崩（manualChunks/copyAssets 都够用 office 这一档）。
-    //     非 office 的 pdf/text/typst/signature 等渲染器由各面板组件自行懒加载
-    //     （inject:false，见 FvPanelBase/PreviewOfficePanel/FvTextPanel…），不依赖此处 preset。
+    //   - 页面已整体切到 @file-viewer/vue3-full（pages/filesystem 已安装
+    //     @file-viewer/preset-all），因此这里 preset 用 "all"，让 copyAssets
+    //     复制全量 worker/wasm/字体，含 archive 的 libarchive worker/wasm。
     //   - copyAssets 把渲染器 worker/wasm/字体复制到 public（本仓库 publicDir 是工作区根
-    //     public，见 createVite sharedPublic）；复制清单按实际安装的包走，与 preset 无关。
-    //   - 渲染器注册由组件显式传入 preset 完成（见 PreviewOfficePanel），
-    //     不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
-    fileViewerRenderers({ inject: false, preset: "office", copyAssets: true }),
+    //     public，见 createVite sharedPublic）；vue3-full 组件已把全资产 base 设为 "/"，
+    //     与实际 public/vendor/... 一致。
+    //   - 渲染器注册由 vue3-full 默认 preset-all 与各面板显式 preset 共同完成
+    //     （见 PreviewOfficePanel），不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
+    fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
+    // copyAssets 复制清单漏了 iwork/hangul/wordperfect 的 worker/wasm，
+    // 这里用 dev 中间件从 node_modules 直接补齐（见上方
+    // serveFileViewerOfficeWorkers 头注）。只对 serve 生效，不影响 build。
+    serveFileViewerOfficeWorkers(),
   ],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。
@@ -198,12 +312,17 @@ export default createVite({
     strictPort: true,
     watch: {
       // 插件每次 dev 启动都会 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体）。
-      // Windows 下 chokidar 对仍在写入的大文件建 fs.watch → EBUSY → dev 进程崩溃，
-      // 而监听这些插件生成的只读资产没有意义，故从 watcher 排除。
+      // Windows 下对仍在写入/被外部进程短暂锁定的大文件建 fs.watch → EBUSY →
+      // dev 进程直接崩溃（exit 1）。public/wasm/cad/libredwg-web.wasm 正是这样崩的。
+      // 这些纯静态资源不参与 HMR，监听无益且有害。
+      // 注意：Vite 8 已换原生 node fs watcher，只认「正则/字符串」ignored，
+      // 函数式回调不会生效；且这里会整体替换 createVite 工厂的 watch，
+      // 必须把 factory 的 vendor/wasm/bcmap 规则一并带回。
       ignored: [
-        (p: string) =>
-          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
-          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+        /[/\\]vendor[/\\]/,
+        /[/\\]wasm[/\\]/,
+        /\.bcmap$/,
+        /[/\\]flyfish-viewer-assets\.json$/,
       ],
     },
     // 启动预编译：预热弹窗相关源码文件，首次点击弹窗不再现场 transform（避免 5s~1min 卡顿）
@@ -321,6 +440,17 @@ export default createVite({
     },
   },
   optimizeDeps: {
+    // @file-viewer/* 必须在这里显式列出，不能靠懒发现。
+    //
+    // 原因：这些渲染器全是 `import()` 动态加载的懒依赖，不在 include 里时
+    // Vite 要等到**某个文件被打开时**才发现它们，于是运行中途触发
+    // 「optimized dependencies changed. reloading」。重优化会重算 chunk 哈希，
+    // 已打开页面里所有 `deps/@file-viewer_vue3.js?v=<旧哈希>` 的请求当场 404，
+    // 于是 FvPanelBase / PreviewOfficePanel / FvTextPanel… 集体报
+    // 「Failed to fetch dynamically imported module」并降级到兜底面板。
+    // 表现就是：同一个 xlsx，第一次能渲染、刷新后变回 iframe/旧面板，
+    // 动画也没了——被误判成「有的格式没接 file-viewer」，实际是依赖被优化掉了。
+    // 显式 include 后启动即预打包，运行期不再变更。
     include: [
       "element-plus",
       "@repo/theme",
@@ -332,6 +462,36 @@ export default createVite({
       "@repo/ui/re-scrollbar",
       "@repo/ui/re-select",
       "@repo/ui/re-tag",
+      // ---- file-viewer 主体与各格式渲染器 ----
+      "@file-viewer/vue3",
+      "@file-viewer/vue3-full",
+      "@file-viewer/preset-office",
+      "@file-viewer/preset-all",
+      "@file-viewer/renderer-3d",
+      "@file-viewer/renderer-archive",
+      "@file-viewer/renderer-binary",
+      "@file-viewer/renderer-cad",
+      "@file-viewer/renderer-chm",
+      "@file-viewer/renderer-data",
+      "@file-viewer/renderer-design",
+      "@file-viewer/renderer-dicom",
+      "@file-viewer/renderer-drawing",
+      "@file-viewer/renderer-eda",
+      "@file-viewer/renderer-email",
+      "@file-viewer/renderer-epub",
+      "@file-viewer/renderer-geo",
+      "@file-viewer/renderer-image",
+      "@file-viewer/renderer-media",
+      "@file-viewer/renderer-mindmap",
+      "@file-viewer/renderer-signature",
+      "@file-viewer/renderer-text",
+      "@file-viewer/renderer-typst",
+      // 各渲染器拖进来的传递依赖（ag-psd / saxes 等）同样会被懒发现，
+      // 一并列出，避免它们成为「压垮骆驼的最后一根稻草」
+      "ag-psd",
+      "saxes",
+      // 表格渲染器底层：file-viewer 与业务侧必须解析到同一物理实例
+      "e-virt-table/dist/index.es.js",
     ],
   },
 });

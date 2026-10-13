@@ -51,6 +51,28 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "教育概览", icon: "HomeFilled", showLink: true, keepAlive: true, isVisible: "1" },
   },
 
+  // ==================== AI 提供商管理（复用 AI 控制台）====================
+  // 组卷 / 阅卷用的 AI 模型、ONNX 等，统一由 AI 控制台（ai-guada，即 @pages/ai 的壳）
+  // 的「提供商 / 模型管理」页配置。该页后端是 AI starter 的 /v2/manufacturer、/v2/models
+  // 等端点，eduai 后端并未注册（实测 404），且 AI 后端跨域直连返回 403，只能访问 AI
+  // 控制台自身。故这里不重做页面，用外链（meta.linkUrl）挂到已运行的 AI 控制台，
+  // 点击新窗口打开其提供商管理页。
+  //
+  // 地址默认取本机 dev 的 AI 控制台（15689），生产部署用 VITE_AI_CONSOLE_URL 覆盖。
+  // 无需 component：菜单点击走 handleMenuRouter 的 linkUrl 分支直接 window.open，
+  // 不会 push 到本路由（与分组父节点同理，registerRoutesUnderLayout 跳过无组件节点）。
+  {
+    path: "/edu/ai-provider",
+    name: "EduAiProvider",
+    meta: {
+      title: "AI 提供商管理",
+      icon: "Cpu",
+      linkUrl: `${import.meta.env.VITE_AI_CONSOLE_URL ?? "http://localhost:15689"}/models`,
+      showLink: true,
+      isVisible: "1",
+    },
+  },
+
   // ==================== 题库资源 ====================
   group("/grp-question", "GroupEduQuestion", "题库资源", "Coin", [
     {
@@ -97,6 +119,12 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       name: "EduPaper",
       component: () => import("../views/PaperView.vue"),
       meta: { title: "AI 组卷", icon: "MagicStick", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
+      path: "/edu/market",
+      name: "EduQuestionMarket",
+      component: () => import("../views/QuestionMarketView.vue"),
+      meta: { title: "题库市场", icon: "ShoppingCart", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
       path: "/edu/exam",

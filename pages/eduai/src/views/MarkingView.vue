@@ -187,6 +187,9 @@
     <!-- 分数分布：已完成任务的得分率区间 + 各卷总分对比 -->
     <ReDialog v-model="distDialogVisible" title="阅卷分数分布" width="880">
       <div v-loading="distLoading" class="dist-body">
+        <div v-if="distExcluded > 0" class="dist-note">
+          已排除 {{ distExcluded }} 份历史脏数据（满分/总分异常或总分超过满分），不参与统计。
+        </div>
         <div class="dist-block">
           <div class="dist-title">得分率分布（老师分为准，满分取卷面题分合计）</div>
           <ReEcharts v-if="distRateOption" :option="distRateOption" style="height: 260px" />
@@ -633,17 +636,25 @@ const distDialogVisible = ref(false);
 const distLoading = ref(false);
 const distRateOption = ref<Record<string, any> | null>(null);
 const distScoreOption = ref<Record<string, any> | null>(null);
+/** 本次统计中被清洗掉的历史脏样本数（满分/总分异常、总分>满分），弹窗内展示 */
+const distExcluded = ref(0);
 
 /**
  * 打开分数分布弹窗：对已完成的任务逐份拉结果，
  * 算「老师总分 / 卷面满分」得分率做区间直方图，并列出各卷总分对比。
  * 分 8 个一批并发，避免一次打满 100 个请求。
+ *
+ * 历史脏数据清洗：早期 ANY 卷任务存在 maxScore 异常（单卷满分上千、
+ * 甚至总分超过满分），会把 y 轴撑爆、拉低得分率分布的可读性。
+ * 这里排除「满分/总分超 1000」与「总分 > 满分」的样本，并在弹窗内
+ * 显示排除数量，老师能看到数据被清洗过。
  */
 const openDistribution = async () => {
   distDialogVisible.value = true;
   distLoading.value = true;
   distRateOption.value = null;
   distScoreOption.value = null;
+  let excluded = 0;
   try {
     const tasks = (await eduaiApi.teacherMarkingTasks(100)) as TeacherMarkingTask[];
     const finished = tasks.filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId);
@@ -663,6 +674,12 @@ const openDistribution = async () => {
           final += Number(r.teacherScore ?? r.score ?? 0);
           max += Number(r.maxScore ?? 0);
         }
+        // 脏样本判定：满分/总分异常大，或总分超过满分（判分早期回退数据）
+        const isDirty = max > 1000 || final > 1000 || (max > 0 && final > max);
+        if (isDirty) {
+          excluded += 1;
+          return;
+        }
         const label = `${paperNameOf(chunk[j])}${chunk[j].markingTaskStudentId ? `·${chunk[j].markingTaskStudentId}` : ''}`;
         barNames.push(label);
         barScores.push(final);
@@ -674,8 +691,10 @@ const openDistribution = async () => {
     }
     if (barScores.length === 0) {
       distLoading.value = false;
+      distExcluded.value = excluded;
       return;
     }
+    distExcluded.value = excluded;
     distRateOption.value = {
       tooltip: { trigger: 'axis' },
       grid: { left: 44, right: 16, top: 32, bottom: 28 },
@@ -806,4 +825,5 @@ onUnmounted(() => {
 .dist-body { min-height: 240px; }
 .dist-block + .dist-block { margin-top: 12px; }
 .dist-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--el-text-color-primary); }
+.dist-note { font-size: 12px; color: var(--el-color-warning); margin-bottom: 8px; }
 </style>

@@ -14,6 +14,10 @@ import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 import "./tailwind.css";
 import "./styles/refactor.css";
+// 知识库 · 编辑部设计层（作用域 .kb-refactor，只影响知识库各页与弹层）
+import "./styles/kb-refactor.css";
+// 服务配置 · 调度台账设计层（作用域 .svc，只影响服务配置页）
+import "./styles/svc-refactor.css";
 import "./styles/markdown-doc.css";
 // @ 风格选择面板：必须全局引入，面板 Teleport 到 body，scoped 样式匹配不上
 import "./styles/generate-style-panel.css";

@@ -15,7 +15,8 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import type { CryptoModule } from "./crypto/types";
-import { getAccessToken, clearAllAuthData } from "@repo/utils";
+import { encodeRequestBody, getAccessToken, clearAllAuthData } from "@repo/utils";
+import type { HttpRequestCodecConfig } from "@repo/config";
 import { getRouter, hasRouter } from "./router/inject";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
@@ -40,6 +41,9 @@ export const ENCRYPT_HEADER = "x-ec";
 export const KEY_HEADER = "x-ck";
 /** 冗余等级头：值为 1/2/3，等级越高密文前后噪声越多 */
 export const NOISE_LEVEL_HEADER = "x-ot";
+
+/** codec 协议请求体加密标记头（后端 ApiRequestDecodeBodyAdvice 只校验非空即触发解密） */
+export const CODEC_KEY_HEADER = "access-control-origin-key";
 
 /** x-sign 相关头名（与后端 NonceUtils 保持一致） */
 export const SIGN_NONCE_HEADER = "x-nonce";
@@ -79,12 +83,16 @@ export interface HttpCryptoOptions {
   retryCount?: number;
   /** 重试间隔基数（毫秒），指数退避：base * 2^attempt（attempt 从 0 开始） */
   retryDelay?: number;
+  /** 后端 codec 协议请求体加密配置（access-control-origin-key + AES/hex，对齐后端 plugin.api.decode） */
+  requestCodec?: HttpRequestCodecConfig;
 }
 
 /** 单个请求的加密标记（由 axios 链式调用注入） */
 export interface HttpCryptoConfig {
-  /** 是否加密该请求体（覆盖全局 encrypt） */
+  /** 是否加密该请求体（覆盖全局 encrypt，x-ec/x-ck 协议） */
   encrypt?: boolean;
+  /** 是否按后端 codec 协议加密该请求体（access-control-origin-key；覆盖 requestCodec 开关，需配置 key） */
+  codec?: boolean;
   /** 是否显示 loading（覆盖全局 showLoading） */
   showLoading?: boolean;
   /** 是否允许失败重试（覆盖方法白名单；POST/PATCH 等非幂等方法按需显式开启） */
@@ -353,8 +361,34 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       config.headers.set(SIGN_HEADER, sign);
     }
 
-    // ── 请求体加密（算法在 wasm 内） ──
-    if (!isRetry && encrypt && isEncryptable(config.data)) {
+    // ── 后端 codec 协议请求体加密（access-control-origin-key） ──
+    // 与 x-ec 互斥：后端 ApiRequestDecodeBodyAdvice 见到 access-control-origin-key
+    // 即整包解密，两条协议同时开会让 body 被双重编码而解码失败。
+    // 生效条件：app.yaml 配置 requestCodec.enable=true + key，且该请求链式 .codec(true)。
+    const rc = options.requestCodec;
+    const useCodec =
+      !isRetry &&
+      rc?.enable === true &&
+      !!rc.key &&
+      hc?.codec === true &&
+      isEncryptable(config.data);
+
+    if (useCodec) {
+      const bodyText = typeof config.data === "string"
+        ? config.data
+        : JSON.stringify(config.data);
+      config.data = encodeRequestBody(bodyText, { type: rc!.type, key: rc!.key });
+      // hex 串已是最终请求体：axios 默认 transformRequest 见到 Content-Type 为
+      // application/json 会对 string 再 JSON.stringify 套引号，后端
+      // extractEncryptedPayload 拿带引号的串当 hex 解必然失败，故覆盖为直通。
+      config.transformRequest = [(data: unknown) => data];
+      config.headers.set(CODEC_KEY_HEADER, "1");
+      // 后端解密后按 JSON 反序列化 body，Content-Type 必须保持 application/json
+      // （x-ec 路径改 octet-stream 是因为后端不认 x-ec，这里解密后就是原 JSON）。
+      if (!config.headers.has("Content-Type")) {
+        config.headers.set("Content-Type", "application/json");
+      }
+    } else if (!isRetry && encrypt && isEncryptable(config.data)) {
       const bodyText = typeof config.data === "string"
         ? config.data
         : JSON.stringify(config.data);

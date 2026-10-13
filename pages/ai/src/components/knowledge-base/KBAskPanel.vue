@@ -10,7 +10,7 @@
  * 不额外请求后端——图谱本来就已在前端缓存里（{@code /v2/rag/graph}）。</p>
  *
  * <p><b>风格</b>：与系统一致 —— 布局用 Tailwind 工具类，容器与气泡表面用组件库基线
- * {@code re-surface}，标签/按钮/空态用 {@code @/components/re/*}（ReTag / ReButton / ReEmpty）；
+ * 标签/按钮用 {@code @/components/re/*}（ReTag / ReButton）；容器与气泡表面走设计层 kb-ask 系列；
  * 颜色只用 koi 令牌 {@code --rm-*}。原先 {@code .kb-ask__*} 一整套手写 BEM 已移除。</p>
  *
  * <p><b>顺带修</b>：原模板用了 {@code <Document />} 图标但 import 里没有它
@@ -25,7 +25,6 @@ import KBFilePreview from './KBFilePreview.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReSquareButton from '@repo/ui/re-button'
 import ReTag from '@/components/re/ReTag.vue'
-import ReEmpty from '@/components/re/ReEmpty.vue'
 
 // 关系图用 G6 内核的 ReRelationGraph（@repo/ui 提供）。
 // 必须显式引入：本应用没有全局注册它（vite 的 Components() 只扫本应用 src/components，
@@ -221,30 +220,31 @@ watch(() => props.kbId, () => clearTurns())
 </script>
 
 <template>
-  <div class="kb-ask re-surface h-full min-h-0 flex flex-col !p-0 overflow-hidden">
+  <div class="kb-ask h-full min-h-0 flex flex-col overflow-hidden">
     <!-- 标题栏 -->
-    <div class="shrink-0 flex items-center justify-between gap-2 px-5 pt-4 pb-3 border-b border-[var(--rm-border-light)]">
+    <div class="kb-ask__head">
       <div class="flex items-baseline gap-2.5 min-w-0">
-        <h2 class="m-0 text-base font-semibold">智能问答</h2>
-        <span class="inline-flex items-center gap-1.5 text-xs text-[var(--rm-text-secondary)]">
-          <i class="w-1.5 h-1.5 rounded-full bg-[var(--rm-success)]" />已接入{{ kbName || '本知识库' }}
-        </span>
+        <h2 class="kb-ask__title"><i class="dot" />智能问答</h2>
+        <p class="kb-ask__sub">已接入{{ kbName || '本知识库' }}</p>
       </div>
       <ReSquareButton v-if="hasTurns" layout="square" size="small" class="kb-btn" :icon="Delete" tip="清空对话"
         @click="clearTurns" />
     </div>
 
     <!-- 问答记录 -->
-    <div class="flex-1 min-h-0 overflow-auto px-5 py-4">
+    <div class="kb-ask__log">
       <!-- 空态：提示语与快捷提问一起在消息区居中。
            之前 ReEmpty 贴着顶部、快捷提问单独挂在输入框上沿，
            中间空出半屏，且按钮视觉上像粘在输入框边框上。 -->
       <div
         v-if="!hasTurns"
-        class="h-full min-h-72 flex flex-col items-center justify-center gap-6 pb-20"
+        class="kb-ask__empty"
       >
-        <ReEmpty text="基于本知识库提问，回答会附带引用来源" />
-        <div class="flex flex-wrap items-center justify-center gap-2 max-w-2xl">
+        <div>
+          <p class="kb-ask__quote">基于本知识库提问，<br />回答会<span>附带引用来源</span></p>
+          <p class="kb-ask__hint">检索命中的文档分片将作为引用展示，可点击查看原文</p>
+        </div>
+        <div class="kb-ask__quick">
           <ReButton
             v-for="q in quickQuestions"
             :key="q"
@@ -263,27 +263,25 @@ watch(() => props.kbId, () => clearTurns())
         class="[&+&]:mt-5 [&+&]:pt-5 [&+&]:border-t [&+&]:border-dashed [&+&]:border-[var(--rm-border-light)]"
       >
         <!-- 提问 -->
-        <div class="inline-block max-w-[86%] ml-auto px-3.5 py-2.5 rounded-[var(--rm-radius-lg,12px)] bg-[var(--rm-primary-light-9)] text-sm leading-relaxed break-words">
-          {{ turn.question }}
-        </div>
+        <div class="kb-ask__q">{{ turn.question }}</div>
 
         <!-- 回答 -->
         <div class="mt-3">
           <el-skeleton v-if="turn.loading" :rows="3" animated />
           <template v-else>
             <div
-              class="re-surface re-surface--dense flex flex-col"
+              class="kb-ask__a"
               :class="turn.error ? 'kb-ask__error' : ''"
             >
               <p class="m-0 text-sm leading-relaxed whitespace-pre-wrap break-words flex items-start gap-2">
-                <el-icon v-if="turn.error" class="mt-0.5 shrink-0 text-[var(--rm-danger)]"><WarningFilled /></el-icon>
+                <el-icon v-if="turn.error" class="mt-0.5 shrink-0 text-[var(--kb-danger)]"><WarningFilled /></el-icon>
                 <span>{{ turn.answer }}</span>
               </p>
 
               <!-- 引用来源 -->
               <div
                 v-if="turn.citations.length"
-                class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[var(--rm-border-light)]"
+                class="kb-ask__cites"
               >
                 <ReButton
                   v-for="c in turn.citations"
@@ -323,7 +321,7 @@ watch(() => props.kbId, () => clearTurns())
     </div>
 
     <!-- 输入框 -->
-    <div class="relative shrink-0 px-5 pt-3 pb-4 border-t border-[var(--rm-border-light)]">
+    <div class="kb-ask__input">
       <el-input
         v-model="question"
         type="textarea"
@@ -340,7 +338,7 @@ watch(() => props.kbId, () => clearTurns())
         :loading="asking"
         :disabled="!question.trim()"
         aria-label="提问"
-        class="!absolute !right-[30px] !bottom-[26px]"
+        class="kb-ask__send !absolute !right-[30px] !bottom-[26px]"
         @click="submit()"
       />
     </div>
@@ -349,12 +347,3 @@ watch(() => props.kbId, () => clearTurns())
     <KBFilePreview v-model="previewVisible" :kb-id="kbId" :path="previewPath" />
   </div>
 </template>
-
-<style scoped>
-/* 失败态：整块气泡描边与浅底转危险色，和正常答复一眼区分 */
-.kb-ask__error {
-  border: 1px solid color-mix(in srgb, var(--rm-danger) 35%, transparent);
-  background: color-mix(in srgb, var(--rm-danger) 6%, transparent);
-  color: var(--rm-text-regular);
-}
-</style>

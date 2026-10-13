@@ -2,17 +2,16 @@
   通用回落节点表单：shape 没有专门表单文件时使用。
 
   与拆分前的通用渲染等价——按 meta.params 的顺序逐个渲染，并保留 fieldEditor 的抽取字段块。
+  通用渲染（ParamField 循环 + LoopFields + FieldTable + 公共样式）已全部收敛到 NodeParamForm，
+  这里只是无说明、无专属参数顺序的极简回落。
 -->
 <script setup lang="ts">
-import FieldTable from "../FieldTable.vue";
-import ParamField from "./ParamField.vue";
-import LoopFields from "./LoopFields.vue";
-import { useShapeFieldList } from "./paramContext";
+import NodeParamForm from "./NodeParamForm.vue";
 import type { NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
 
-const props = defineProps<{
+defineProps<{
   /** 当前节点的表单镜像 */
   node: NodeForm;
   /** 该 shape 的参数元数据 */
@@ -25,61 +24,14 @@ const emit = defineEmits<{
   (e: "set-param", param: CollectParamMeta, value: unknown): void;
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
-
-/** names 传空：orderedParams 按必填前置输出 meta 里的其余参数（循环四参数已剥离，走 LoopFields 分节） */
-const { fields, valueOf, pairsOfParam } = useShapeFieldList(
-  () => props.node,
-  () => props.meta,
-  [],
-);
 </script>
 
 <template>
-  <ParamField
-    v-for="param in fields"
-    :key="param.name"
-    :param="param"
-    :value="valueOf(param.name)"
-    :pairs="pairsOfParam(param.name)"
-    :node-id="node.id"
-    :ctx="ctx"
-    @update="(value: unknown) => emit('set-param', param, value)"
-    @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
-  />
-
-  <!-- 循环迭代分节：留空单次执行；start / end / comment 由 NON_LOOP_SHAPES 门控不渲染 -->
-  <LoopFields
+  <NodeParamForm
     :node="node"
     :meta="meta"
     :ctx="ctx"
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
     @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
   />
-
-  <div v-if="meta.fieldEditor" class="field field-wide">
-    <div class="field-label">抽取字段</div>
-    <FieldTable
-      :model-value="node.fields"
-      :placeholder-groups="ctx.placeholderGroups"
-      @update:model-value="ctx.writeFields"
-    />
-  </div>
 </template>
-
-<style scoped>
-/* 字段容器样式与 ParamField 保持一致（通用表单同样可能带抽取字段块） */
-.field {
-  min-width: 0;
-}
-
-.field-wide {
-  grid-column: 1 / -1;
-}
-
-.field-label {
-  margin-bottom: 3px;
-  font-size: 12px;
-  /* 写死的 #86909c 不跟随主题；改用 koi 体系令牌 */
-  color: var(--el-text-color-secondary);
-}
-</style>

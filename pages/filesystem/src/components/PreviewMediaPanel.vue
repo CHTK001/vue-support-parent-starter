@@ -16,10 +16,12 @@
  * @author Buffy
  * @since 2026/10/07
  */
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Download, Refresh } from "@element-plus/icons-vue";
 import { resolveObjectUrl } from "../api/filestorageApi";
 import { kindOf } from "../utils/fileKind";
+import { extensionOf } from "../utils/officeRenderer";
+import { aiffToWavBlob } from "../utils/aiff";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -61,6 +63,8 @@ const extLabel = computed(() => {
 
 /** 播放地址（票据直链；解析完成前为空串，媒体元素不发起请求） */
 const src = ref("");
+/** AIFF 转码产物（WAV）的对象地址：卸载 / 重载时释放，避免泄漏 */
+let aiffObjectUrl = "";
 /** 元数据加载中 */
 const loading = ref(true);
 /** 错误文案（空串表示无错） */
@@ -124,6 +128,10 @@ async function load(): Promise<void> {
   errorText.value = "";
   loading.value = true;
   src.value = "";
+  if (aiffObjectUrl) {
+    URL.revokeObjectURL(aiffObjectUrl);
+    aiffObjectUrl = "";
+  }
   try {
     const params: Record<string, string> = {};
     if (props.inner) {
@@ -136,12 +144,34 @@ async function load(): Promise<void> {
       errorText.value = "获取播放地址失败";
       return;
     }
+    // AIFF：浏览器原生 <audio> 解不了 —— 取回字节，前端转 WAV 后播放
+    if (["aiff", "aif"].includes(extensionOf(effectiveName.value).toLowerCase())) {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`读取文件失败：HTTP ${res.status}`);
+      }
+      const buf = await res.arrayBuffer();
+      aiffObjectUrl = URL.createObjectURL(
+        aiffToWavBlob(new Uint8Array(buf), effectiveName.value),
+      );
+      src.value = aiffObjectUrl;
+      return;
+    }
     src.value = url;
-  } catch {
+  } catch (e) {
     loading.value = false;
-    errorText.value = "获取播放地址失败";
+    errorText.value =
+      (e as Error)?.message ?? "获取播放地址失败";
   }
 }
+
+/** 卸载时释放 AIFF 转码产物的对象地址 */
+onBeforeUnmount(() => {
+  if (aiffObjectUrl) {
+    URL.revokeObjectURL(aiffObjectUrl);
+    aiffObjectUrl = "";
+  }
+});
 
 /**
  * 初始加载 + 变更重载。

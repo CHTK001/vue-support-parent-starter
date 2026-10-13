@@ -19,6 +19,7 @@ import { ref, watch, computed, useSlots, defineAsyncComponent, onMounted, onBefo
 import { ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
 import ReButton from "../../../ReButton/ReButton.vue";
 import ReSelect from "../../../ReSelect/ReSelect.vue";
+import type { ReSelectLoader } from "../../../ReSelect/types";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 import "../../shared/research-vars.css";
 
@@ -41,6 +42,17 @@ export interface SearchFilter {
   placeholder?: string;
   /** select / treeselect 选项数据 */
   options?: Array<{ label: string; value: string | number; children?: any[] }>;
+  /**
+   * 远端数据源（与 options 二选一）：url 字符串或加载函数。
+   *
+   * <p>提供后 select 改走 ReSelect 远端加载（同 ReTable / ReSelect 约定）：
+   * 字符串视为 {@link url}，函数视为 {@link loader}。也可分别用 url / loader 显式声明。</p>
+   */
+  dataSource?: string | ReSelectLoader;
+  /** 远端 url（与 options/dataSource 二选一） */
+  url?: string;
+  /** 远端加载函数（与 options/dataSource 二选一，等价于 url） */
+  loader?: ReSelectLoader;
   /** 其他透传给子组件的属性 */
   attrs?: Record<string, unknown>;
 }
@@ -335,6 +347,22 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
 function ariaOf(filter: { label?: string; placeholder?: string }): string | undefined {
   return filter.label || filter.placeholder || undefined;
 }
+
+/** 过滤项是否声明了远端数据源（dataSource / url / loader） */
+function isRemoteSelectFilter(filter: SearchFilter): boolean {
+  return Boolean(filter.url) || typeof filter.loader === "function"
+    || typeof filter.dataSource === "string" || typeof filter.dataSource === "function";
+}
+
+/** 过滤项生效的远端 url：显式 url 优先，dataSource 为字符串时兜底 */
+function filterUrl(filter: SearchFilter): string {
+  return filter.url || (typeof filter.dataSource === "string" ? filter.dataSource : "");
+}
+
+/** 过滤项生效的远端加载器：显式 loader 优先，dataSource 为函数时兜底 */
+function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
+  return filter.loader || (typeof filter.dataSource === "function" ? filter.dataSource : undefined);
+}
 </script>
 
 <template>
@@ -422,6 +450,19 @@ function ariaOf(filter: { label?: string; placeholder?: string }): string | unde
                 v-bind="filter.attrs || {}"
                 @input="(val: string) => onFilterInput(filter.key, val)"
                 @keyup.enter="emit('search')"
+              />
+              <!-- 远端 select：声明了 dataSource / url / loader 时走 ReSelect 远端加载 -->
+              <ReSelect
+                v-else-if="filter.type === 'select' && isRemoteSelectFilter(filter)"
+                :model-value="(filterValues[filter.key] as any)"
+                :data="filter.options || []"
+                :url="filterUrl(filter)"
+                :loader="filterLoader(filter)"
+                :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择' : filter.label || '请选择')"
+                :aria-label="ariaOf(filter)"
+                clearable
+                v-bind="filter.attrs || {}"
+                @update:model-value="(val: any) => onFilterInput(filter.key, val)"
               />
               <ElSelect
                 v-else-if="filter.type === 'select'"

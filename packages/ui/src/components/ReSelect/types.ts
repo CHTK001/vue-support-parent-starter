@@ -25,6 +25,21 @@ export interface ReOption {
   [key: string]: unknown;
 }
 
+/**
+ * ReSelect 远程加载器签名。
+ *
+ * <p>用于 {@code data} 传函数或 {@code loader} 传函数两种等价写法（与 ReTable 的
+ * {@code data} / {@code loader} 同一约定）：接收「合并了 keyword 与 params 的查询参数」，
+ * 返回选项数组，可同步或异步。</p>
+ *
+ * <p>远程请求的防抖 / 重试 / 竞态丢弃由组件内部的 useDataSource 统一处理，
+ * 这里只管把参数交给使用方。</p>
+ */
+export type ReSelectLoader = (params?: Record<string, unknown>) => ReOption[] | Promise<ReOption[]>;
+
+/** ReSelect 远程结果缓存的载体：session（默认，随标签页关闭失效）/ local（跨会话保留） */
+export type ReSelectCacheStorage = "local" | "session";
+
 /** ReSelect 布局模式（card-dropdown 为 card 的历史别名，行为相同） */
 export type ReSelectLayout = "default" | "modern" | "card" | "table" | "square" | "tree" | "card-dropdown";
 

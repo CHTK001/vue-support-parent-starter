@@ -15,6 +15,11 @@
         <span class="ss-dot ss-wrong"></span>错误
         <span class="ss-tip">点击题号标记可定位到右侧题目</span>
       </div>
+      <!-- 卷面识别到的学生（ANY 链路扫描时从卷头「姓名/学号」栏抽取）：与任务学生标识互补 -->
+      <div v-if="recognizedStudent" class="ss-student">
+        卷面识别：<b>{{ recognizedStudent.name || '（姓名未识别）' }}</b>
+        <span v-if="recognizedStudent.no">· 学号 {{ recognizedStudent.no }}</span>
+      </div>
     </div>
 
     <div class="ss-body" :class="{ 'ss-body--original': mode === 'original' }">
@@ -33,14 +38,14 @@
               <span class="ss-layout-label">{{ b.label }}</span>
             </div>
             <div
-              v-for="a in currentAnchors"
-              :key="'anchor-' + a.no"
+              v-for="a in boundAnchors"
+              :key="'anchor-' + a.page + '-' + a.no + '-' + a.x + '-' + a.y"
               class="ss-anchor"
-              :class="[anchorClass(String(a.no)), { 'ss-anchor-selected': String(a.no) === selectedNo }]"
+              :class="[anchorClass(a), { 'ss-anchor-selected': isAnchorSelected(a) }]"
               :style="boxStyle(a)"
-              @click="selectQuestion(String(a.no))"
+              @click="selectAnchor(a)"
             >
-              <span class="ss-badge">{{ anchorText(String(a.no)) }}</span>
+              <span class="ss-badge">{{ anchorText(a) }}</span>
             </div>
           </div>
           <el-empty v-else-if="!imageUrl" description="未取到答卷图片" :image-size="80" />
@@ -61,10 +66,10 @@
           :toolbar="false"
           :layout-table="{ height: '100%' }"
           :settings="{ border: false }"
-          @row-click="(row: any) => selectQuestion(String(row.no))"
+          @row-click="(row: any) => selectRow(row)"
         >
           <template #col-no="{ row }">
-            <span :class="{ 'ss-row-active': String(row.no) === selectedNo }">{{ row.no || '-' }}</span>
+            <span :class="{ 'ss-row-active': Number(row.resultId) === selectedId }">{{ row.no || '-' }}</span>
           </template>
           <template #col-score="{ row }">
             <span class="ss-ai-score">{{ row.score ?? '-' }}</span>
@@ -81,16 +86,20 @@
           </template>
           <template #col-studentAnswer="{ row }">{{ row.studentAnswer || '—' }}</template>
           <template #col-comment="{ row }">{{ row.comment || '—' }}</template>
+          <!-- 老师评语：窄表格列里只放「文本 + 图标」，点图标开专注模式大框编辑，
+               避免原来的内联多行 textarea 把每行撑高、挤占版面 -->
           <template #col-editComment="{ row }">
-            <ReInput
-              v-model="row.editComment"
-              size="small"
-              type="textarea"
-              :rows="2"
-              maxlength="200"
-              placeholder="老师评语（可留空）"
-              @update:model-value="onCommentChange(row)"
-            />
+            <div class="ss-comment-cell">
+              <span class="ss-comment-text" :title="row.editComment || ''">{{ row.editComment || '—' }}</span>
+              <el-icon
+                class="ss-comment-edit"
+                :class="{ 'ss-comment-edit--filled': !!row.editComment }"
+                :title="row.editComment ? '编辑老师评语' : '添加老师评语'"
+                @click.stop="openCommentEditor(row)"
+              >
+                <EditPen />
+              </el-icon>
+            </div>
           </template>
           <template #col-knowledgePoints="{ row }">
             <template v-if="kpList(row).length">
@@ -104,11 +113,14 @@
             </template>
             <span v-else class="ss-muted">无</span>
           </template>
+          <template #col-toBank="{ row }">
+            <el-button size="small" type="primary" link @click.stop="openToBank(row)">入题库</el-button>
+          </template>
         </ReTable>
         <div class="ss-actions">
           <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存老师分</el-button>
           <span class="ss-hint">AI 分保留不动，老师分为最终成绩</span>
-          <span v-if="selectedNo" class="ss-sel">已选中第 {{ selectedNo }} 题</span>
+          <span v-if="selectedQuestion" class="ss-sel">已选中第 {{ selectedQuestion.no }} 题</span>
         </div>
       </div>
     </div>
@@ -126,6 +138,84 @@
         </ul>
       </template>
     </ReDrawer>
+
+    <!-- 老师评语专注模式：点表格里的图标弹出独立大框编辑（可留空 = 清空）。
+         弹框内只是草稿，点「确定」写回该行，仍随「保存老师分」一起提交，避免误触即时落库。 -->
+    <ReDialog v-model="commentEditor.visible" :title="commentEditorTitle" width="560px" top="10vh">
+      <ReInput
+        ref="commentInputRef"
+        v-model="commentEditor.draft"
+        type="textarea"
+        :rows="9"
+        maxlength="200"
+        show-word-limit
+        placeholder="写给学生/存档的老师评语（可留空）"
+      />
+      <div class="ss-comment-dialog-tip">
+        AI 评语：{{ commentEditor.row?.comment || '—' }}
+      </div>
+      <template #footer>
+        <el-button @click="commentEditor.visible = false">取消</el-button>
+        <el-button type="primary" @click="confirmCommentEditor">确定</el-button>
+      </template>
+    </ReDialog>
+
+    <!-- 入题库：把扫描解析出的题目预填进编辑框，老师修正后保存（题干/答案来自 OCR，务必核对） -->
+    <ReDialog v-model="bankDialog.visible" title="解析题目加入题库" width="640" top="6vh">
+      <el-form label-width="72px" size="small" class="ss-bank-form">
+        <div class="ss-bank-row">
+          <el-form-item label="题型">
+            <el-select v-model="bankDialog.form.questionType" style="width: 100%">
+              <el-option label="单选题" value="SINGLE_CHOICE" />
+              <el-option label="多选题" value="MULTIPLE_CHOICE" />
+              <el-option label="判断题" value="JUDGE" />
+              <el-option label="填空题" value="FILL" />
+              <el-option label="简答题" value="SHORT_ANSWER" />
+              <el-option label="主观题" value="SUBJECTIVE" />
+              <el-option label="作文" value="ESSAY" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="分值">
+            <ReInputNumber v-model="bankDialog.form.questionScore" :min="1" :max="100" style="width: 100%" />
+          </el-form-item>
+        </div>
+        <div class="ss-bank-row">
+          <el-form-item label="学科">
+            <ReInput v-model="bankDialog.form.questionSubject" placeholder="如：数学" />
+          </el-form-item>
+          <el-form-item label="学段/年级">
+            <div class="ss-bank-grade">
+              <el-select v-model="bankDialog.form.questionGradeLevel" style="width: 45%">
+                <el-option label="小学" value="小学" />
+                <el-option label="初中" value="初中" />
+                <el-option label="高中" value="高中" />
+              </el-select>
+              <ReInput v-model="bankDialog.form.questionGrade" placeholder="年级" />
+            </div>
+          </el-form-item>
+        </div>
+        <el-form-item label="题干" required>
+          <ReInput v-model="bankDialog.form.questionStem" type="textarea" :rows="4" placeholder="解析出的题干（OCR 识别，请核对错字）" />
+        </el-form-item>
+        <el-form-item label="选项" v-if="bankDialog.form.questionType === 'SINGLE_CHOICE' || bankDialog.form.questionType === 'MULTIPLE_CHOICE'">
+          <ReInput v-model="bankDialog.form.questionOptions" type="textarea" :rows="3" placeholder="每行一个选项，如：A. -2" />
+        </el-form-item>
+        <el-form-item label="标准答案" required>
+          <ReInput v-model="bankDialog.form.questionAnswer" type="textarea" :rows="2" placeholder="标准答案（扫描解析给的是「学生作答」，标准答案请老师补写）" />
+        </el-form-item>
+        <el-form-item label="解析">
+          <ReInput v-model="bankDialog.form.questionAnalysis" type="textarea" :rows="2" placeholder="解题思路（可选）" />
+        </el-form-item>
+        <div v-if="bankDialog.studentAnswer" class="ss-bank-hint">
+          学生作答（仅供参考，不入库）：{{ bankDialog.studentAnswer }}
+        </div>
+        <div class="ss-bank-hint">保存后进入题库（管理员可在题库管理中审核、完善）。</div>
+      </el-form>
+      <template #footer>
+        <el-button @click="bankDialog.visible = false">取消</el-button>
+        <el-button type="primary" :loading="bankDialog.saving" @click="saveToBank">保存入题库</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -141,6 +231,8 @@ import ReInputNumber from "@repo/ui/re-input-number";
 import ReInput from "@repo/ui/re-input";
 import ReDrawer from "@repo/ui/re-drawer";
 import ReTag from "@repo/ui/re-tag";
+import ReDialog from "@repo/ui/re-dialog";
+import { EditPen } from '@element-plus/icons-vue';
 
 const props = defineProps<{ taskId: string }>();
 /** 老师分保存成功后广播：父级（阅卷记录详情 / 教师端）据此刷新总分 */
@@ -152,7 +244,12 @@ const page = ref(1);
 const mode = ref<'layout' | 'original'>('layout');
 const imageUrl = ref('');
 const activeLayout = ref(-1);
-const selectedNo = ref('');
+/**
+ * 当前选中题（按 resultId 精确到单题，不用题号）：
+ * 同一卷面里「填空 2 / 判断 2 / 选择 2」题号都会是「2.」，
+ * 按题号选中会让同号锚点全部点亮、定位歧义，因此锚点与行都以 resultId 关联。
+ */
+const selectedId = ref<number | null>(null);
 const dirty = ref(false);
 const saving = ref(false);
 const questions = ref<any[]>([]);
@@ -168,6 +265,7 @@ const questionColumns: ReTableColumn[] = [
   { prop: 'comment', label: 'AI 评语', minWidth: 130, showOverflowTooltip: true, slot: 'comment' },
   { prop: 'editComment', label: '老师评语', minWidth: 170, slot: 'editComment' },
   { prop: 'knowledgePoints', label: '知识点', minWidth: 130, slot: 'knowledgePoints' },
+  { prop: 'toBank', label: '操作', width: 84, slot: 'toBank' },
 ];
 
 const kpDrawer = ref(false);
@@ -185,6 +283,28 @@ const currentAnchors = computed(() =>
   (structure.value?.questionAnchors || []).filter((a: any) => Number(a.page) === page.value),
 );
 
+/**
+ * 锚点 ↔ 题目按下标绑定：同号题（「一、二、三」各节都会从 1. 重新编号）不能按题号找题，
+ * 否则锚点颜色/徽章永远只反映第一个同号题。同号锚点组内按 y 坐标（卷面从上到下）排序后，
+ * 与同号题目序列（判分结果顺序即卷面顺序）一一对应；锚点多于题数时多出的锚点不绑定。
+ */
+const boundAnchors = computed(() =>
+  currentAnchors.value.map((a: any) => {
+    const same = currentAnchors.value
+      .filter((x: any) => String(x.no) === String(a.no))
+      .sort((p: any, q: any) => Number(p.y) - Number(q.y));
+    const qs = questions.value.filter((q) => String(q.no) === String(a.no));
+    const idx = same.indexOf(a);
+    return { ...a, bound: idx >= 0 ? (qs[idx] ?? null) : null };
+  }),
+);
+const selectedQuestion = computed(() =>
+  selectedId.value == null ? null : questions.value.find((q) => Number(q.resultId) === selectedId.value) ?? null,
+);
+
+/** 卷面识别到的学生（ANY 链路：模型/正则从卷头「姓名/学号」栏抽取） */
+const recognizedStudent = computed(() => (structure.value?.recognizedStudent ?? null) as { name?: string; no?: string } | null);
+
 /** 归一化坐标 → 百分比定位；版面区域与题号锚点共用 */
 const boxStyle = (b: any) => ({
   left: `${(Number(b.x) || 0) * 100}%`,
@@ -193,7 +313,6 @@ const boxStyle = (b: any) => ({
   height: `${(Number(b.height) || 0) * 100}%`,
 });
 
-const questionOf = (no: string) => questions.value.find((q) => String(q.no) === no);
 const scoreClass = (row: any) => {
   const s = Number(row.editScore ?? 0);
   const m = Number(row.maxScore ?? 0);
@@ -201,15 +320,18 @@ const scoreClass = (row: any) => {
   if (s <= 0) return 'ss-score-wrong';
   return 'ss-score-partial';
 };
-const anchorClass = (no: string) => {
-  const q = questionOf(no);
+/** 锚点外观跟随「绑定题」的得分状态，无绑定题才退回 unknown */
+const anchorClass = (a: any) => {
+  const q = a.bound;
   if (!q) return 'ss-anchor-unknown';
   return scoreClass(q).replace('ss-score-', 'ss-anchor-');
 };
-const anchorText = (no: string) => {
-  const q = questionOf(no);
+const anchorText = (a: any) => {
+  const q = a.bound;
   return q ? `${q.editScore}` : '?';
 };
+const isAnchorSelected = (a: any) =>
+  a.bound != null && selectedId.value != null && Number(a.bound.resultId) === selectedId.value;
 
 const kpList = (row: any): Array<{ id: any; name: string; description?: string }> => {
   // 后端已把知识点 id 解析成 {id,name,description}，直接渲染名称、点开即出描述。
@@ -222,17 +344,26 @@ const kpList = (row: any): Array<{ id: any; name: string; description?: string }
   return arr.filter(Boolean).map((x) => ({ id: x, name: String(x) }));
 };
 
-const selectQuestion = (no: string) => {
-  selectedNo.value = no;
-  // 双向联动：无论从图上锚点还是表格行发起，都把对应表格行滚进可视区
-  void scrollToQuestion(no);
+const selectRow = (row: any) => {
+  if (!row) return;
+  selectedId.value = Number(row.resultId) || null;
+  // 双向联动：把对应表格行滚进可视区
+  void scrollToRow(selectedId.value);
 };
 
-/** 把选中题号对应的表格行滚动到可视区（el-table 内部滚动容器） */
-const scrollToQuestion = async (no: string) => {
-  if (!no) return;
+/** 锚点点击：优先选中绑定题；锚点没绑定到题（版面多识别）时退化选第一个同号题 */
+const selectAnchor = (a: any) => {
+  const q = a.bound ?? questions.value.find((x) => String(x.no) === String(a.no));
+  if (!q) return;
+  selectedId.value = Number(q.resultId) || null;
+  void scrollToRow(selectedId.value);
+};
+
+/** 把选中题对应的表格行滚动到可视区（el-table 内部滚动容器） */
+const scrollToRow = async (id: number | null) => {
+  if (id == null) return;
   await nextTick();
-  const index = questions.value.findIndex((q) => String(q.no) === no);
+  const index = questions.value.findIndex((q) => Number(q.resultId) === id);
   if (index < 0) return;
   const root = (questionTable.value as any)?.$el as HTMLElement | undefined;
   const rows = root?.querySelectorAll('.el-table__body tbody tr');
@@ -253,12 +384,130 @@ const onCommentChange = (row: any) => {
   dirty.value = questions.value.some((q) => q.dirty);
 };
 
+/**
+ * 老师评语专注模式编辑：表格列只展示文本 + 图标，点图标弹出独立大框。
+ * 弹框里是草稿（draft），点「确定」才写回该行；写回后只标脏、不落库，
+ * 与老师分一起走「保存老师分」提交。
+ */
+const commentEditor = ref<{ visible: boolean; row: any; draft: string }>({ visible: false, row: null, draft: '' });
+const commentInputRef = ref();
+const commentEditorTitle = computed(() =>
+  commentEditor.value.row ? `老师评语 · 第 ${commentEditor.value.row.no ?? '-'} 题` : '老师评语',
+);
+
+const openCommentEditor = async (row: any) => {
+  commentEditor.value = { visible: true, row, draft: String(row.editComment ?? '') };
+  await nextTick();
+  (commentInputRef.value?.$el as HTMLElement | undefined)?.querySelector('textarea')?.focus();
+};
+
+/** 确定：草稿写回行 → 标脏；清空（空串）同样写回，保存时后端按「显式空串」清空评语 */
+const confirmCommentEditor = () => {
+  const { row, draft } = commentEditor.value;
+  if (row) {
+    row.editComment = draft;
+    onCommentChange(row);
+  }
+  commentEditor.value.visible = false;
+};
+
 const openKp = (kp: any) => {
   // 名称与描述已随结构返回，无需再按 id 反查（按 id 搜关键字搜不到，点开会是空的）
   kpKeyword.value = kp?.name || '';
   kpDetail.value = kp ? [kp] : [];
   kpDrawer.value = true;
   kpLoading.value = false;
+};
+
+/* ==================== 解析题目入题库 ==================== */
+const bankDialog = ref({
+  visible: false,
+  saving: false,
+  /** 来源题的作答（只展示提醒核对，不入库——入库的是「标准答案」栏） */
+  studentAnswer: '',
+  form: {
+    questionType: 'FILL',
+    questionSubject: '',
+    questionGradeLevel: '初中',
+    questionGrade: '',
+    questionDifficulty: 3,
+    questionScore: 5,
+    questionStem: '',
+    questionOptions: '',
+    questionAnswer: '',
+    questionAnalysis: '',
+  } as Record<string, any>,
+});
+
+/** 按解析出的题干粗猜题型：有 A./B. 选项→单选，√/× →判断，其余→填空 */
+const guessType = (stem: string): string => {
+  if (/[A-DＡ-Ｄ][.、．]/.test(stem) && /[BＢ][.、．]/.test(stem)) return 'SINGLE_CHOICE';
+  if (/[√✓×✗]/.test(stem) || /判断/.test(stem)) return 'JUDGE';
+  return 'FILL';
+};
+
+/** 从选项行拼 questionOptions（每行一个），题干里剥掉选项尾巴避免重复 */
+const splitOptions = (stem: string): { stem: string; options: string } => {
+  const lines = stem.split(/[\n；;]+/).map((s) => s.trim()).filter(Boolean);
+  const optLines = lines.filter((s) => /^[A-DＡ-Ｄ][.、．]/.test(s));
+  if (optLines.length < 2) return { stem, options: '' };
+  const kept = lines.filter((s) => !/^[A-DＡ-Ｄ][.、．]/.test(s)).join('\n');
+  return { stem: kept || stem, options: optLines.join('\n') };
+};
+
+/** 打开入题库弹框：预填解析结果，标准答案留空由老师补（学生作答不是标准答案） */
+const openToBank = (row: any) => {
+  const stem = String(row.stem ?? '').trim();
+  const split = guessType(stem) === 'SINGLE_CHOICE' ? splitOptions(stem) : { stem, options: '' };
+  bankDialog.value.form = {
+    questionType: guessType(stem),
+    questionSubject: '',
+    questionGradeLevel: '初中',
+    questionGrade: '',
+    questionDifficulty: 3,
+    questionScore: Number(row.maxScore) > 0 ? Number(row.maxScore) : 5,
+    questionStem: split.stem,
+    questionOptions: split.options,
+    questionAnswer: '',
+    questionAnalysis: '',
+  };
+  bankDialog.value.studentAnswer = String(row.studentAnswer ?? '').trim();
+  bankDialog.value.visible = true;
+};
+
+/** 保存入题库：走题库正常新增（questionSource 标记「扫描识别」便于溯源） */
+const saveToBank = async () => {
+  const f = bankDialog.value.form;
+  if (!String(f.questionStem ?? '').trim()) {
+    message.warning('题干为空，无法入库');
+    return;
+  }
+  if (!String(f.questionAnswer ?? '').trim()) {
+    message.warning('请补写标准答案（学生作答不能当标准答案）');
+    return;
+  }
+  bankDialog.value.saving = true;
+  try {
+    await eduaiApi.saveQuestion({
+      questionType: f.questionType,
+      questionSubject: String(f.questionSubject || '未分类'),
+      questionGradeLevel: String(f.questionGradeLevel || '初中'),
+      questionGrade: String(f.questionGrade || ''),
+      questionDifficulty: Number(f.questionDifficulty) || 3,
+      questionScore: Number(f.questionScore) || 5,
+      questionStem: String(f.questionStem),
+      questionOptions: String(f.questionOptions || ''),
+      questionAnswer: String(f.questionAnswer),
+      questionAnalysis: String(f.questionAnalysis || ''),
+      questionSource: '扫描识别',
+    } as any);
+    message.success('已加入题库（可在题库管理中继续完善）');
+    bankDialog.value.visible = false;
+  } catch (e) {
+    failToast('入题库失败', e);
+  } finally {
+    bankDialog.value.saving = false;
+  }
 };
 
 const loadImage = async (taskId: string, p: number) => {
@@ -279,7 +528,7 @@ const loadImage = async (taskId: string, p: number) => {
 const load = async (taskId: string) => {
   structure.value = null;
   questions.value = [];
-  selectedNo.value = '';
+  selectedId.value = null;
   dirty.value = false;
   activeLayout.value = -1;
   page.value = 1;
@@ -392,6 +641,26 @@ onUnmounted(() => {
 .ss-partial { background: var(--el-color-warning); }
 .ss-wrong { background: var(--el-color-danger); }
 .ss-tip { margin-left: 8px; }
+/* 卷面识别学生提示（工具栏右侧） */
+.ss-student {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.ss-student b { color: var(--el-color-primary); }
+/* 入题库弹框 */
+.ss-bank-row { display: flex; gap: 12px; }
+.ss-bank-row .el-form-item { flex: 1; }
+.ss-bank-grade { display: flex; gap: 8px; width: 100%; }
+.ss-bank-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0;
+}
 
 .ss-body {
   flex: 1;

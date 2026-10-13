@@ -142,6 +142,8 @@ export interface FlowEngineHandlers {
   onNodeDblClick?: (node: FlowNode, e: MouseEvent) => void;
   onNodeContextMenu?: (node: FlowNode, e: MouseEvent) => void;
   onEdgeClick?: (edge: FlowEdge, e: MouseEvent) => void;
+  onEdgeContextMenu?: (edge: FlowEdge, e: MouseEvent) => void;
+  onBlankContextMenu?: (e: MouseEvent) => void;
   onEdgeConnected?: (edge: FlowEdge) => void;
   onHistoryChange?: (state: { canUndo: boolean; canRedo: boolean }) => void;
 }
@@ -415,6 +417,16 @@ export class FlowGraphEngine {
       const ev = nativeEvent(e);
       ev.preventDefault?.();
       h.onNodeContextMenu?.(readFlowNode(node), ev);
+    });
+    this.graph.on("edge:contextmenu", ({ edge, e }) => {
+      const ev = nativeEvent(e);
+      ev.preventDefault?.();
+      h.onEdgeContextMenu?.(readFlowEdge(edge), ev);
+    });
+    this.graph.on("blank:contextmenu", ({ e }) => {
+      const ev = nativeEvent(e);
+      ev.preventDefault?.();
+      h.onBlankContextMenu?.(ev);
     });
     this.graph.on("edge:click", ({ edge, e }) => {
       h.onEdgeClick?.(readFlowEdge(edge), nativeEvent(e));

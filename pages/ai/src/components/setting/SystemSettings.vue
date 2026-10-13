@@ -81,6 +81,9 @@
                         <template v-else-if="currentTabValue === 'appearance'">
                             <AppearanceSettings />
                         </template>
+                        <template v-else-if="currentTabValue === 'display'">
+                            <DisplaySettings />
+                        </template>
                         <template v-else-if="currentTabValue === 'search'">
                             <SearchSettings />
                         </template>
@@ -206,6 +209,7 @@ import {
     ScanText24Regular,
     Info24Regular,
     Image24Regular,
+    Desktop24Regular,
     Search16Regular,
     Globe24Regular,
     Folder20Regular,
@@ -222,6 +226,7 @@ import {
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
 
 import SessionConfigSettings from './SessionConfigSettings.vue'
+import DisplaySettings from './DisplaySettings.vue'
 import { useAuthStore } from '../../stores/auth'
 import PageHeader from '@/components/PageHeader.vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -244,6 +249,9 @@ const groupMap = computed<Record<string, string>>(() => ({
     browser: t('settings.system.groups.general'),
     connections: t('settings.system.groups.general'),
     appearance: t('settings.system.groups.personalization'),
+    // 显示配置归「常规」：与「会话配置」同属个人行为偏好（纯布局，无凭据/路径），
+    // 所有登录用户可改自己的值，故不进 personalization 也不设 adminOnly。
+    display: t('settings.system.groups.general'),
     search: t('settings.system.groups.personalization'),
     about: t('settings.system.groups.system'),
     community: t('settings.system.groups.system'),
@@ -299,6 +307,15 @@ const sidebarItems = computed(() => [
         label: t('settings.system.tabs.appearance'),
         path: 'appearance',
         icon: Image24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 常规用户的通用配置：当前只有「右侧问答栏宽度」一项（知识库详情页）。
+        // 不标 adminOnly —— 组内是纯布局偏好，普通用户管自己的值即可
+        // （持久化走 appearance 分组按用户覆盖层，见 useKbDisplay.ts）。
+        label: t('settings.system.tabs.display'),
+        path: 'display',
+        icon: Desktop24Regular,
         roles: ['primary'],
     },
     {

@@ -12,7 +12,7 @@
   采集器数量一多就明显卡。
 -->
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { ElDropdown, ElDropdownItem, ElDropdownMenu } from "element-plus";
 import { getRouter, msgError, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
@@ -24,7 +24,7 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
-import type { ReTableColumn } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableToolbarConfig } from "@repo/ui/re-table";
 import FlowDesignDialog from "../components/FlowDesignDialog.vue";
 import FlowEditDialog from "../components/FlowEditDialog.vue";
 import FlowPreviewDialog from "../components/FlowPreviewDialog.vue";
@@ -50,9 +50,16 @@ const categories = ref<CollectOption[]>([]);
 const recentTasks = ref<CollectTask[]>([]);
 const runningIds = ref<Record<number, boolean>>({});
 
-/** 前端过滤：采集器数量不大，搜索/分类直接过滤列表，省掉分页与草稿查询那一套 */
+/** 前端过滤：搜索/分类直接过滤列表；分页由 ReTable 按 page/pageSize 本地切片 */
 const keyword = ref("");
 const categoryFilter = ref("");
+
+/** 分页页码/每页条数：v-model 给 ReTable；筛选变化时回到第 1 页，避免停在越界的空页 */
+const page = ref(1);
+const pageSize = ref(10);
+watch([keyword, categoryFilter], () => {
+  page.value = 1;
+});
 
 const designVisible = ref(false);
 const designFlowId = ref<number | null>(null);
@@ -154,6 +161,22 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "lastRun", label: "最近运行", minWidth: 210, slot: "lastRun" },
   { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right" },
 ]);
+
+/**
+ * ReTable 内置批量：勾选列（batchSelect）+ 批量删除按钮（batchDelete）。
+ * 确认由工具栏的 ElPopconfirm 承担（confirmMessage），handler 里不再二次确认；
+ * 本地数组模式下刷新按钮会被 ReTable 自动关掉，避免和页面顶部刷新重复。
+ */
+const collectorToolbarConfig = computed<ReTableToolbarConfig>(() => ({
+  position: "top",
+  batchSelect: { enabled: true, tip: "批量选择" },
+  batchDelete: {
+    enabled: true,
+    tip: "批量删除",
+    confirmMessage: "确认删除选中的采集器？运行记录与采集结果会保留。",
+    handler: batchDeleteFlows,
+  },
+}));
 
 /* ------------------------------- 行内操作 ------------------------------- */
 
@@ -283,6 +306,38 @@ async function doDelete(flow: CollectFlow): Promise<void> {
   }
 }
 
+/**
+ * 批量删除：ReTable 内置批量删除经工具栏 ElPopconfirm 确认后回调。
+ * 后端没有批量删除流程的接口，逐条复用 deleteFlow；单条失败不中断，尽量删掉能删的。
+ * 完成后回到第 1 页再刷新：条数变少后当前页可能越界成空页。
+ */
+async function batchDeleteFlows(rows: Record<string, unknown>[]): Promise<void> {
+  const ids = rows
+    .map(row => Number((row as CollectFlow).collectFlowId))
+    .filter(id => Number.isFinite(id) && id > 0);
+  if (!ids.length) {
+    return;
+  }
+  let ok = 0;
+  const failed: number[] = [];
+  for (const id of ids) {
+    try {
+      await deleteFlow(id);
+      ok += 1;
+    } catch {
+      failed.push(id);
+    }
+  }
+  if (ok) {
+    msgSuccess(`已删除 ${ok} 个采集器`);
+  }
+  if (failed.length) {
+    msgError(`${failed.length} 个采集器删除失败`);
+  }
+  page.value = 1;
+  await reload();
+}
+
 /** 更多菜单：只留采集器自身的复制与删除，配置类入口一律在页面顶部 */
 function runMore(command: string, flow: CollectFlow): void {
   if (command === "copy") {
@@ -329,7 +384,12 @@ function runMore(command: string, flow: CollectFlow): void {
       table-id="collect-collector"
       :data="sortedFlows"
       :columns="columns"
-      :pagination="false"
+      :pagination="true"
+      :page-sizes="[10, 20, 50, 100]"
+      v-model:page="page"
+      v-model:page-size="pageSize"
+      :toolbar="true"
+      :toolbar-config="collectorToolbarConfig"
       :layout-table="{ fill: true }"
       row-key="collectFlowId"
       row-class-name="collectorRowClassName"

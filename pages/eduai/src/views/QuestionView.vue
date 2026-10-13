@@ -736,6 +736,7 @@ const QUESTION_TYPES = [
   { value: "JUDGE", label: "判断题" },
   { value: "FILL", label: "填空题" },
   { value: "SHORT_ANSWER", label: "简答题" },
+  { value: "SUBJECTIVE", label: "主观题" },
   { value: "ESSAY", label: "作文" },
 ];
 
@@ -1326,7 +1327,7 @@ const save = async (auditOnSave = false) => {
     message.warning("请填写标准答案");
     return;
   }
-  if (!plainAnswer && (form.questionType === "SHORT_ANSWER" || form.questionType === "ESSAY")) {
+  if (!plainAnswer && (form.questionType === "SHORT_ANSWER" || form.questionType === "ESSAY" || form.questionType === "SUBJECTIVE")) {
     message.warning("请填写标准答案");
     return;
   }
@@ -1496,7 +1497,7 @@ const previewAnswerLetters = computed(() => {
 });
 const previewAnswerTextHtml = computed(() => {
   const t = form.questionType;
-  if (t === "SHORT_ANSWER" || t === "ESSAY") return renderRichWithMath(answerRich.value) || "";
+  if (t === "SHORT_ANSWER" || t === "ESSAY" || t === "SUBJECTIVE") return renderRichWithMath(answerRich.value) || "";
   return renderMixedText(String(form.questionAnswer || ""));
 });
 const previewGradeText = computed(

@@ -2,10 +2,11 @@
 /**
  * ReTable —— 表格组件
  *
- * 两种数据源（只用这两个，url 形态已移除）：
- *   1) 静态数组：:data="[...]" —— 前端分页，组件按 page / pageSize 切片，total 取数组长度
- *   2) 远程加载：:loader="fetchUsers"（等价 :data="fetchUsers"）—— 后端分页，
- *      组件只发 page / pageSize + :params，条数与 total 由接口给
+ * 两种数据源（只用这两个，url 形态已移除），语义已原子化：
+ *   1) 本地数组：:data="[...]" —— 前端分页，组件按 page / pageSize 切片，total 取数组长度。
+ *      data 只收数组，传函数是类型错误（远程请用 loader）。
+ *   2) 远程加载：:loader="fetchUsers" —— 后端分页，组件只发 page / pageSize + :params，
+ *      条数与 total 由接口给。是否远程只取决于「loader 是否为函数」。
  *
  * params：两种模式都支持，自定义键值随便加，但 page / pageSize 必定由组件注入且以组件为准
  *   （页面自己往 params 里塞 page/pageSize 无效，见 internalParamsKey 的说明）。
@@ -14,6 +15,7 @@
  *   - reload()  重新加载（带 resetPage 选项）
  *   - goto(p?, s?)  跳转页 / 每页条数（参数缺省保持原值）
  *   - resetColumns()  重置列配置（清除持久化）
+ *   - clearCache()  清空本表全部列表结果缓存条目
  *   - clearAllSelection()  清空所有选中行
  *   - toggleBatchSelect()  切换批量选择模式
  *   - getSelectedRows()  获取所有选中行
@@ -85,6 +87,10 @@ import RePagination from "../RePagination/RePagination.vue";
 import "./shared/table-vars.css";
 import Sortable from "sortablejs";
 import { useRoute } from "vue-router";
+// 列表结果缓存：TTL 走 @repo/utils 的 StorageWrapper（set 第三参即过期毫秒数），
+// key 前缀走 @repo/config 的 getStorageKey —— 与 columnStorage 同一套应用前缀约定
+import { getStorageKey } from "@repo/config";
+import { createStorage, browserLocalStorage, browserSessionStorage, type StorageWrapper } from "@repo/utils";
 /**
  * vxe 的两个组件用具名导入。
  *
@@ -119,6 +125,7 @@ import type {
   RePaginationMode,
   ReTableColumn,
   ReTableColumnState,
+  ReTableCacheStorage,
   ReTableFullState,
   ReTableLayout,
   ReTableSwitchLayout,
@@ -163,18 +170,19 @@ const RE_TABLE_STORAGE_KEY = Symbol("ReTableStorage") as unknown as import("vue"
 const props = withDefaults(
   defineProps<{
     /**
-     * 行数据。两种形态，自动分派：
-     * - 数组 → **前端分页**（组件按 page / pageSize 切片，total 取数组长度）
-     * - 函数 → **后端分页**（签名见 ReTableLoader，收到 page / pageSize / params，
-     *   需返回 { total, data|records|rows|... }）
+     * 行数据（**只收数组** = 前端分页）。
      *
-     * <p>与 {@link loader} 二选一；两者都传时以本项（函数形态）优先。</p>
+     * <p>组件按 page / pageSize 切片，total 取数组长度（或被 {@link total} 覆盖）。</p>
+     *
+     * <p><b>不接收函数</b>：远程加载请用 {@link loader}。给本项传函数是类型错误 ——
+     * 运行时若检测到会 dev 警告并忽略，表格按空数组渲染（不会偷偷变成远程请求）。</p>
      */
-    data?: Array<Record<string, unknown>> | ReTableLoader;
+    data?: Array<Record<string, unknown>>;
     /**
      * 远程加载器（后端分页），签名见 types.ts 的 {@link ReTableLoader}。
      *
-     * <p>与 {@link data} 传函数等价，写哪个都行；{@link data} 传数组时本项不参与。</p>
+     * <p><b>是否远程模式只取决于本项</b>：传了函数即远程，data 忽略；
+     * 不传即本地（走 {@link data} 数组 + 前端分页）。两者职责互斥、不再互相探测。</p>
      */
     loader?: ReTableLoader;
     /**
@@ -187,8 +195,10 @@ const props = withDefaults(
      * 页面自己塞进 params 的同名字段会被覆盖 —— 分页真值只能来自组件的内部状态，
      * 否则翻页会出现「页码变了但查询没变」或反之。</p>
      *
-     * <p>数组形态下没有加载器可消费它，此时本项只影响「params 变化是否回到第 1 页」这一行为
-     * （见 internalParamsKey），不影响切片结果 —— 数组就是唯一数据源。</p>
+     * <p><b>本地数组（前端分页）下本项完全无效</b>：没有加载器可消费它，
+     * 消费 {@link internalParamsKey} 的那个 watch 在非远程（{@code !loader}）时第一行就返回，
+     * 所以改 params 既不触发重载、也不会回到第 1 页 —— 数组就是唯一数据源，
+     * 筛选 / 排序需要页面在传给 {@code data} 之前自己做完。</p>
      */
     params?: Record<string, unknown>;
     /** 列定义 */
@@ -488,6 +498,51 @@ const props = withDefaults(
     searchModel?: Record<string, unknown>;
     /** 内置自动刷新：工具栏纯图标入口 + 浮层选间隔，轮询定时器由表格持有（不传则无该能力） */
     autoRefresh?: ReTableAutoRefresh;
+    /**
+     * 列表结果缓存（默认 false，仅远程模式生效）。
+     *
+     * <p>开启后，同一「查询条件 + 页码 + 每页条数」在 {@link cacheTtl} 内再次出现时
+     * 直接命中存档、不再请求 {@link loader}。典型场景是「列表页 → 详情页 → 返回」：
+     * 返回时同一页的数据还在，省掉一次请求与一次 loading 闪烁。</p>
+     *
+     * <p><b>命中与正常取数行为完全一致</b>：{@code load} / {@code update:total} 照常触发，
+     * 行数据与 total 都来自存档 —— 监听 {@code @load} 做汇总的页面无需任何改动。</p>
+     *
+     * <p><b>显式刷新必定绕过缓存</b>：{@code reload()}（工具栏刷新、批量删除后）、
+     * {@code goto()} 与自动刷新轮询都强制走网络，拿到响应后<b>顺手写回存档</b> ——
+     * 一次刷新同时完成「取新数据 + 更新缓存」。翻页 / 改查询条件 / 滚动追加则正常命中。</p>
+     *
+     * <p><b>前提</b>：能定位到命名空间 —— 即传了 {@link tableId}，或当前处于路由环境
+     * （缺省用路由 path）。两者都没有时缓存不生效，dev 下告警一次。</p>
+     *
+     * <p><b>注意</b>：存档是 loader 原始返回的 JSON 快照，Date 等非 JSON 类型会
+     * 退化成字符串；需要强新鲜度时用 {@link cacheTtl} 收紧有效期，
+     * 或在增删改后调 {@code clearCache()}。</p>
+     */
+    cache?: boolean;
+    /**
+     * 缓存有效期（毫秒），默认 300000（5 分钟）。
+     *
+     * <p>从写入时刻起算，到期条目在下次读取时自动清除。传 0 表示不过期 ——
+     * 只适合「这份数据几乎不变」的表。</p>
+     */
+    cacheTtl?: number;
+    /**
+     * 缓存命名空间；缺省用 {@link tableId}，再无则用当前路由 path。
+     *
+     * <p>同一路由上放多张表（各自独立的数据源）时必须用它区分，否则两份缓存
+     * 会共用同一批条目、互相覆盖成对方的数据。切换 loader 实现（换接口 /
+     * 改返回结构）时也建议同步换一个值，避免命中上一个接口留下的存档。</p>
+     */
+    cacheKey?: string;
+    /**
+     * 缓存载体：session（默认，关标签页即失效）/ local（跨会话保留）。
+     *
+     * <p>列表数据通常不需要跨会话，故默认 session —— 至少不会在第二天打开时
+     * 先闪一屏昨天的旧数据。传 local 适合「希望刷新页面后仍能秒开」的页面，
+     * 此时务必配一个不太长的 {@link cacheTtl}。</p>
+     */
+    cacheStorage?: ReTableCacheStorage;
   }>(),
   {
     data: () => [],
@@ -554,6 +609,10 @@ const props = withDefaults(
     search: false,
     searchGap: 16,
     searchModel: undefined,
+    cache: false,
+    cacheTtl: 300000,
+    cacheKey: "",
+    cacheStorage: "session",
   },
 );
 
@@ -935,6 +994,10 @@ async function onBatchSave(): Promise<void> {
     await handler(rows);
     batchEditing.value = false;
     clearAllSelection();
+    // 保存成功即编辑会话结束：清草稿缓存（vxe 显示态是草稿优先，不清会一直显示已保存的旧草稿），
+    // 并关掉可能仍激活的单元格（不清激活态的话编辑器里会显示回退后的行原值）
+    clearEditCache();
+    await closeVxeEdit();
   } finally {
     batchProcessing.value = false;
   }
@@ -1740,6 +1803,24 @@ function clearEditCache(): void {
 }
 
 /**
+ * 关闭 vxe 原生编辑的激活态（saveEdits / onBatchSave 收尾用）。
+ *
+ * <p>{@code clearEdit} 是 vxe 编辑模块的实例方法（源码 tableEditMethodKeys 里有），
+ * 但不在公开类型 {@code TableInstanceHandle} 上 —— 与本文件其它 vxe 内部方法
+ * （{@code recalculate} / {@code handleCellDragMousedownEvent}）同样按断言调用。</p>
+ *
+ * <p>为何要关：保存后 edit-cache 已清，若某格仍处于 vxe 激活态，#edit 插槽的受控
+ * 输入框会显示 {@code getEditValue} 的回退值（行原值），用户看到"刚保存的值被
+ * 改回去了"。关掉激活态后 #default 渲染 displayCellText，值与行数据一致。</p>
+ */
+async function closeVxeEdit(): Promise<void> {
+  const inst = vxeTableRef.value as unknown as { clearEdit?: () => Promise<void> } | null;
+  if (inst?.clearEdit) {
+    await inst.clearEdit();
+  }
+}
+
+/**
  * 有编辑改动的行：以行原值为底，套上缓存里**当前可见列**的改动。
  *
  * <p>列被隐藏后其缓存值不再进入结果，避免把已隐藏列的中间态提交给后端。</p>
@@ -1787,6 +1868,8 @@ async function saveEdits(): Promise<void> {
     } else {
       emit("edit-save", rows);
     }
+    // 关闭可能仍激活的编辑单元格：清缓存后若编辑器还开着，里面显示的是回退后的行原值
+    await closeVxeEdit();
   } finally {
     batchProcessing.value = false;
   }
@@ -1892,6 +1975,38 @@ const vxeSortConfig = computed(() => {
 const vxeMenuConfig = computed(() =>
   props.contextMenu && props.contextMenu.length > 0 ? { enabled: true } : undefined,
 );
+
+/**
+ * 编辑配置：vxe 原生单元格编辑（APITable 式「点哪格编辑哪格」）。
+ *
+ * <p><b>与 element 引擎的自研编辑分属两套实现</b>：element 侧是 {@code editing}
+ * 态整列渲染输入框；vxe 侧由 vxe 的 {@code editStore.actived} 驱动——点击可编辑列
+ * 的单元格即激活该格，渲染列上的 {@code #edit} 插槽内容，点击别处自动关闭。</p>
+ *
+ * <p>列级开关仍是 {@link ReTableColumn.editable}（经 {@code beforeEditMethod}
+ * 翻译成 vxe 的列判定）；批量修改（{@code toolbarConfig.batchEdit}）进入
+ * {@code batchEditing} 后整列输入框改由 ReTable 自己的 #default 插槽渲染，
+ * 并临时关掉 vxe 的激活（{@code beforeEditMethod} 返 false），退出时复位。</p>
+ *
+ * <p>受控语义不变：#edit 插槽里的输入控件仍是 {@code getEditValue} /
+ * {@code setEditValue} 读写 edit-cache，不动行数据（vxe 的 keep-source 脏跟踪
+ * 不参与，关闭编辑不触发任何写行）。</p>
+ */
+const vxeEditConfig = computed(() => {
+  if (!props.editable && !batchEditing.value) return undefined;
+  return {
+    trigger: "click" as const,
+    mode: "cell" as const,
+    showIcon: false,
+    autoFocus: true,
+    // 只有 editable 列可进 vxe 编辑态；批量模式整列输入框由 #default 渲染，不占 vxe 激活
+    beforeEditMethod: ({ column }: { column: { field?: string } }) => {
+      if (batchEditing.value || !props.editable) return false;
+      const col = props.columns.find((c) => c.prop === column.field);
+      return col?.editable ?? false;
+    },
+  };
+});
 
 /**
  * 树形配置：把 element-plus 的 tree-props 语义翻译成 vxe 的 tree-config。
@@ -2043,14 +2158,12 @@ function restoreSelection(): void {
 /**
  * 是否使用远程（后端分页）模式。
  *
- * <p>两个入口：{@link loader}，以及 {@code data} 传函数（与 loader 等价）。
- * {@code data} 传数组 = 前端分页，total 由数组长度决定，不请求后端。</p>
+ * <p>原子语义后只取决于 {@link loader} 是否为函数 —— 不再探测 {@code data}（它恒为数组）。
+ * {@code loader} 传函数 = 远程，total 由接口返回；否则 = 本地，走 data 数组 + 前端分页。</p>
  */
-const isRemote = computed<boolean>(
-  () => typeof props.loader === "function" || typeof props.data === "function",
-);
+const isRemote = computed<boolean>(() => typeof props.loader === "function");
 
-/** data 传数组 → 本地；传函数 → 远程 */
+/** data 恒为数组（类型已收窄）；非数组时兜底成空表，绝不当加载器误用 */
 const localRows = computed<Array<Record<string, unknown>>>(() =>
   Array.isArray(props.data) ? props.data : [],
 );
@@ -2442,6 +2555,112 @@ function resetColumns(): void {
  */
 const vxeColumnKey = computed<string>(() => columnState.value.order.join("|"));
 
+/* ========== 列表结果缓存（仅远程模式） ========== */
+
+/** loader 返回里可能承载数据数组的字段名（按优先级）。extractRecords 与缓存校验共用一份，避免两处列表漂移 */
+const RECORD_KEYS = ["records", "rows", "list", "items", "content", "data"] as const;
+
+/**
+ * 缓存命名空间：显式 {@code cacheKey} 优先，缺省回落到 {@link activeTableId}
+ * （tableId / 路由 path）—— 与列配置、批量选择同一套「同一张表 = 同一个 id」的约定。
+ *
+ * <p>空串 = 不缓存：既没传 tableId 又不在路由环境时无法定位这份缓存属于谁，
+ * 硬存只会让不同表格互相覆盖。此时 dev 下由下面的 onMounted 告警一次。</p>
+ */
+const cacheNamespace = computed<string>(() => {
+  if (!props.cache) return "";
+  return props.cacheKey || activeTableId.value;
+});
+
+/**
+ * 缓存载体：按 {@code cacheStorage} 选 session / local，并以命名空间为前缀建独立实例。
+ *
+ * <p>用带前缀的独立实例而不是裸的 localStore / sessionStore，是为了
+ * {@link clearCache} 的 {@code clear()} 只清本表这一份 —— 裸实例前缀为空，
+ * clear 会把同 storage 里的列配置、token 一起端掉。</p>
+ */
+const cacheStore = computed<StorageWrapper | null>(() => {
+  const ns = cacheNamespace.value;
+  if (!ns) return null;
+  return createStorage(props.cacheStorage === "local" ? browserLocalStorage : browserSessionStorage, {
+    prefix: getStorageKey(`re-table-cache:${ns}`),
+  });
+});
+
+/**
+ * 下一次取数强制走网络（reload / goto / 自动刷新用）。
+ *
+ * <p>「显式刷新」的语义就是「我要最新的」：绕过读缓存，拿到响应后照常写回，
+ * 这一次刷新同时完成了缓存更新。标志在 {@link callLoader} 里读一次即清零 ——
+ * 只影响紧接着的这一次取数，不会连带把后面的滚动追加也变成强制刷新。</p>
+ */
+let bypassCacheOnce = false;
+
+/** 条目 key = 页码 + 每页条数 + 查询指纹（三者任一不同都是不同的一页） */
+function buildCacheEntryKey(paramObj: Record<string, unknown>, page: number, size: number): string {
+  const query = { ...paramObj };
+  delete query.page;
+  delete query.pageSize;
+  return `${page}:${size}:${JSON.stringify(query)}`;
+}
+
+/**
+ * 校验存档形状，不合格一律当作未命中。
+ *
+ * <p>存的是 loader 的原始返回，理论上只有我们自己写过；但手改 storage、跨版本改字段、
+ * 前缀撞车都可能塞进别的东西。此时若照单全收，{@link extractRecords} 会解出空数组、
+ * total 算成 0 —— 表现为「表格莫名空了」，比重新请求一次难查得多。</p>
+ */
+function isCachedResult(value: unknown): value is RePageResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const obj = value as Record<string, unknown>;
+  if (obj.total !== undefined) return true;
+  return RECORD_KEYS.some((key) => Array.isArray(obj[key]));
+}
+
+/** 读缓存：命中返回与 {@link callLoader} 同构的结果，未命中 / 形状不对返回 null */
+function readCachedResult(
+  entryKey: string,
+): { result: RePageResult; records: Array<Record<string, unknown>>; total: number } | null {
+  const store = cacheStore.value;
+  if (!store) return null;
+  const cached = store.get<unknown>(entryKey);
+  if (!isCachedResult(cached)) return null;
+  return {
+    result: cached,
+    records: extractRecords(cached),
+    total: Number(cached.total ?? 0),
+  };
+}
+
+/** 写缓存；失败（隐私模式 / 配额满）由 StorageWrapper 内部吞掉，不影响本次取数 */
+function writeCachedResult(entryKey: string, result: RePageResult): void {
+  const store = cacheStore.value;
+  if (!store) return;
+  // 0 / 负数 / NaN 一律按不过期处理（StorageWrapper 对 falsy 的 expires 即不写过期元数据）
+  const ttl = Number(props.cacheTtl);
+  store.set(entryKey, result, Number.isFinite(ttl) && ttl > 0 ? Math.round(ttl) : 0);
+}
+
+/** 清空本表全部缓存条目（所有页码 / 所有查询条件），供页面在增删改后主动失效 */
+function clearCache(): void {
+  cacheStore.value?.clear();
+}
+
+/**
+ * 缓存是否生效：开关打开 + 命名空间定位得到。
+ *
+ * <p>作为 {@link callLoader} 的闸门：不生效时连 key 都不组装 ——
+ * 指纹要对 params 做 JSON.stringify，默认（关缓存）路径上没必要付这个成本。</p>
+ */
+const cacheEnabled = computed<boolean>(() => cacheStore.value !== null);
+
+onMounted(() => {
+  if (props.cache && !cacheNamespace.value && import.meta.env.DEV) {
+    console.warn("[ReTable] cache 已开启但既未传 tableId 也不在路由环境，无法定位缓存，本次不生效。");
+  }
+});
+
 /**
  * 远程 loader 的最小调用封装：合并 params + page/pageSize → 调 fn → 解出记录与 total。
  *
@@ -2449,6 +2668,11 @@ const vxeColumnKey = computed<string>(() => columnState.value.order.join("|"));
  * 两处都走同样的合并/解包逻辑——复制一份就会出现「翻页合并规则改了改一处、滚动又漏了」
  * 这类难查的分叉。emits 放在外面做：首发走 load/update:total，追加走 load-more，
  * 二者共享纯数据逻辑。</p>
+ *
+ * <p><b>列表结果缓存也挂在这一层</b>：首批与滚动追加都过这里，一份实现两处受益。
+ * 指纹取自<b>实际发给 loader 的那份参数</b>（{@code searchModel} + {@code params}），
+ * 而不是 {@link internalParamsKey} —— 后者只看 props.params，内置搜索改了搜索词而
+ * params 没动时会算出同一个 key，命中就把上一个搜索词的结果当成本次的，属于静默错数据。</p>
  */
 async function callLoader(
   page: number,
@@ -2461,10 +2685,26 @@ async function callLoader(
     pageSize: size,
     params: { ...paramObj, page, pageSize: size },
   };
-  const fn = typeof props.data === "function" ? props.data : props.loader;
-  if (typeof fn !== "function") throw new Error("未提供 loader（或 data 传函数）");
-  const result = await fn(loadParams);
+  // data 传函数与 loader 等价，且 data 的函数形态优先 —— 与 ReSelect / ReTree 同一口径：
+  // 三者都是「data（数组｜函数）+ loader」，data 传函数即后端加载器。
+  const dataFn = typeof props.data === "function" ? (props.data as unknown as ReTableLoader) : undefined;
+  const loader = dataFn ?? props.loader;
+  if (typeof loader !== "function") throw new Error("未提供 loader（或 data 传函数）");
+
+  /* 先取标志再清零 —— 顺序反了会在命中提前 return 时把标志漏给下一次取数 */
+  const bypass = bypassCacheOnce;
+  bypassCacheOnce = false;
+  const entryKey = cacheEnabled.value ? buildCacheEntryKey(paramObj, page, size) : "";
+  if (entryKey && !bypass) {
+    const cached = readCachedResult(entryKey);
+    if (cached) return cached;
+  }
+
+  const result = await loader(loadParams);
   if (!result) throw new Error("未获取到分页数据");
+  // 写回存档：reload / goto / 自动刷新是绕过读缓存走过来的，照常写回，
+  // 于是「显式刷新」既拿到新数据也顺手把缓存更新了
+  if (entryKey) writeCachedResult(entryKey, result);
   return {
     result,
     records: extractRecords(result),
@@ -2473,7 +2713,7 @@ async function callLoader(
 }
 
 function extractRecords(result: RePageResult): Array<Record<string, unknown>> {
-  for (const key of ["records", "rows", "list", "items", "content", "data"] as const) {
+  for (const key of RECORD_KEYS) {
     if (Array.isArray(result[key])) return result[key] as Array<Record<string, unknown>>;
   }
   return [];
@@ -2634,6 +2874,24 @@ function formatCell(row: Record<string, unknown>, column: ReTableColumn): string
   return String(value);
 }
 
+/**
+ * 单元格显示文本（vxe 引擎显示态用）：**编辑草稿优先**，其余与 {@link formatCell} 一致。
+ *
+ * <p>vxe 单格编辑关闭后，#default 插槽渲染的就是本函数的结果。若仍按行原值渲染，
+ * 用户刚敲进 edit-cache 的值会随输入框卸载而“消失”（数据还在缓存里、只是看不见），
+ * 观感像编辑丢失。草稿优先后：编辑即所见，保存生效（edit-save/handler 拿合并行），
+ * 刷新丢弃（reload 清缓存）。element 引擎不走这条路（编辑态整列常显输入框），
+ * 仍用 {@link formatCell}。</p>
+ */
+function displayCellText(row: Record<string, unknown>, column: ReTableColumn): string {
+  const value = getEditValue(row, column);
+  if (column.formatter) {
+    return column.formatter(row, column, value);
+  }
+  if (value == null) return "-";
+  return String(value);
+}
+
 function onPageChange(p: number): void {
   (window as any).__onPageChange = p;
   internalPage.value = p;
@@ -2664,6 +2922,8 @@ function onSizeChange(s: number): void {
 }
 
 async function reload(): Promise<void> {
+  // 显式刷新 = 强制走网络（拿到响应后照常写回存档），缓存只在条件/页码自然变化时命中
+  bypassCacheOnce = true;
   // 滚动分页的刷新 = 回第 1 批重新来（追加的批次随旧条件作废）。
   // 本地模式 dsReload 可能不换数组引用（watch dataList 不触发），这里显式重置兜底。
   resetScrollPaging();
@@ -2763,6 +3023,8 @@ function startAutoRefresh(): void {
     // 上一拍还在飞就跳过这一拍，慢接口下不堆请求；跳过不重置倒计时，下一拍继续
     if (!dataLoading.value) {
       autoRefreshCountdown.value = Math.max(1, Math.round(autoRefreshMs.value / 1000));
+      // 轮询的目的就是拿最新数据：绕过缓存，否则整个 TTL 内都只是在读同一份存档
+      bypassCacheOnce = true;
       void dsReload();
     }
   }, autoRefreshMs.value);
@@ -2784,6 +3046,8 @@ onDeactivated(stopAutoRefresh);
  * 使用 nextTick 确保 page/pageSize props 更新后再 reload。
  */
 async function goto(page?: number, size?: number): Promise<void> {
+  // 与 reload 同属「显式定位」：绕过缓存强制取数，避免增删改后跳到旧档
+  bypassCacheOnce = true;
   // 滚动模式不提供页码跳转：程序化 goto 统一回到第 1 批（size 仍可调整批大小）。
   const targetPage = isScrollPaging.value ? 1 : page;
   if (typeof targetPage === "number" && targetPage > 0) {
@@ -3817,6 +4081,7 @@ defineExpose({
   reload,
   goto,
   resetColumns,
+  clearCache,
   clearAllSelection,
   toggleBatchSelect,
   getSelectedRows: () => allSelectedRows.value,
@@ -4381,6 +4646,7 @@ const iconSelect = Select;
       :checkbox-config="vxeCheckboxConfig"
       :sort-config="vxeSortConfig"
       :menu-config="vxeMenuConfig"
+      :edit-config="vxeEditConfig"
       :tree-config="vxeTreeConfig"
       :seq-config="vxeSeqConfig"
       :virtual-y-config="vxeVirtualYConfig"
@@ -4442,6 +4708,7 @@ const iconSelect = Select;
         :align="col.align"
         :sortable="Boolean(col.sortable)"
         :show-overflow="vxeShowOverflow(col)"
+        :edit-render="col.editable ? { enabled: true } : undefined"
       >
         <template v-if="hasColSlot(col)" #default="{ row }">
           <span
@@ -4497,10 +4764,44 @@ const iconSelect = Select;
           <span
             v-else
             :class="{ 're-table__cell-ellipsis': col.showOverflowTooltip }"
-            :title="String(row[col.prop] ?? '')"
+            :title="displayCellText(row, col)"
           >
-            {{ formatCell(row, col) }}
+            {{ displayCellText(row, col) }}
           </span>
+        </template>
+        <!-- 单格编辑（vxe 原生激活）：点击可编辑列的单元格，vxe 把该格切进编辑态，
+             渲染本插槽（受控组件 + edit-cache，与批量模式的输入框同源）。
+             编辑态单元格挂 vxe 的 .col--active 类，整格视觉见样式区 col--active 段。 -->
+        <template #edit="{ row }">
+          <ElInput
+            v-if="col.editType === 'text' || !col.editType"
+            :model-value="String(getEditValue(row, col) ?? '')"
+            @input="(v: string) => setEditValue(row, col, v)"
+          />
+          <ElInput
+            v-else-if="col.editType === 'number'"
+            type="number"
+            :model-value="String(getEditValue(row, col) ?? '')"
+            @input="(v: string) => setEditValue(row, col, Number(v))"
+          />
+          <el-select
+            v-else-if="col.editType === 'select'"
+            :model-value="getEditValue(row, col) as string | number"
+            @change="(v: unknown) => setEditValue(row, col, v)"
+          >
+            <el-option
+              v-for="opt in (col.editOptions ?? [])"
+              :key="String(opt.value)"
+              :label="opt.label"
+              :value="opt.value as string | number"
+            />
+          </el-select>
+          <ElInput
+            v-else-if="col.editType === 'date'"
+            type="date"
+            :model-value="String(getEditValue(row, col) ?? '')"
+            @input="(v: string) => setEditValue(row, col, v)"
+          />
         </template>
       </VxeColumn>
       <!-- 加载态：vxe 的 table.js 里有这段判断 ——
@@ -5025,6 +5326,39 @@ const iconSelect = Select;
 .re-table .vxe-header--column .vxe-cell {
   padding: 0 12px;
   line-height: 20px;
+}
+/* vxe 原生单格编辑（APITable 式整格编辑）：编辑态单元格自身即编辑面。
+   ⚠ 锚点是 .col--active（当前激活的编辑格）而不是 .col--edit ——
+     后者 vxe 挂在「列带 edit-render」的**所有**单元格上（body.ts 的 isEdit 判定），
+     挂 .col--edit 会把整列都改成无内边距。.col--active 才是 actived 命中的那一格。
+   三层「边距」来源：.vxe-cell 的 12px 横向 padding + el-input__wrapper 自身的
+   内边距/边框/固定高度。这里把前两层抹平：cell 无 padding，输入控件透明无边框
+   撑满（文字边距下沉进 wrapper），焦点高亮改由单元格整体描边给出——
+   输入控件自己的框整条不出现，视觉即「整个单元格就是输入框」。 */
+.re-table .vxe-body--column.col--active > .vxe-cell {
+  padding: 0;
+}
+.re-table .vxe-body--column.col--active .el-input,
+.re-table .vxe-body--column.col--active .el-select {
+  width: 100%;
+  display: block;
+}
+.re-table .vxe-body--column.col--active .el-input__wrapper,
+.re-table .vxe-body--column.col--active .el-select__wrapper {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0 12px;
+  height: 100%;
+}
+.re-table .vxe-body--column.col--active .el-input__inner,
+.re-table .vxe-body--column.col--active .el-select__placeholder {
+  color: var(--rt-text);
+}
+/* 焦点：整格 2px 主色描边（内描边，不撑开布局） */
+.re-table .vxe-body--column.col--active:has(.el-input__wrapper.is-focus) {
+  box-shadow: inset 0 0 0 2px var(--el-color-primary);
 }
 /* 行高对齐 element（两处覆盖，都在这里集中说明）
    ⚠ vxe 用 --vxe-ui-table-row-height-medium（medium 档 44px）给单元格内部定高，

@@ -71,6 +71,19 @@
               <span v-if="currentModelName && currentModelName !== 'unknown' && currentModelName !== displayName" class="text-[1em] text-gray-400 mt-0.5">{{
                 currentModelName }}</span>
             </div>
+            <!--
+              实际应答供应商提示。modelName 只说明「选了哪个模型」，不说明「请求发给了谁」——
+              两者在同名模型下会分叉（选了 A 家的模型，命中 B 家的接口），
+              而上游的配额/订阅类报错（周卡、套餐过期）就是这么冒出来的。
+              把 provider / model / baseUrl 显示出来，一眼就能判断是不是走错了家。
+            -->
+            <div v-if="routeTip" class="turn-route-tip" :class="{ 'turn-route-tip--unresolved': !routeTip.resolved }"
+              :title="routeTip.title">
+              <el-icon class="turn-route-tip__icon">
+                <InfoFilled />
+              </el-icon>
+              <span>{{ routeTip.text }}</span>
+            </div>
           </div>
         </div>
         <div class="message-item__card message-item--hover" :title="assistantTime.full">
@@ -591,6 +604,36 @@ const assistantMetadata = computed<Record<string, any> | null>(() => {
   };
 });
 
+/**
+ * 「实际由哪家供应商应答」的提示文案。
+ *
+ * <p>数据来自后端下发的 route（流式期在 create 事件里，刷新后从消息历史还原），
+ * 与后端日志里那条路由日志同源，因此提示和日志不会互相矛盾。</p>
+ *
+ * <p>刻意做成**常驻**而非出错时才出现：路由走错时不会报错，而是安静地换一家供应商
+ * 应答，只有对照提示才看得出来。若只在失败时提示，成功的错配就永远查不到。</p>
+ */
+const routeTip = computed<{ text: string; title: string; resolved: boolean } | null>(() => {
+  const route = assistantMetadata.value?.route;
+  if (!route || typeof route !== 'object') return null;
+  const providerLabel =
+    route.providerName || route.platform || route.providerId || t('chat.turn.routeUnknownProvider');
+  const modelLabel = route.model || currentModelName.value;
+  if (!modelLabel || modelLabel === 'unknown') return null;
+  if (!route.providerResolved && !route.providerId) return null;
+  const parts = [`${providerLabel} · ${modelLabel}`];
+  if (route.platform && route.providerName && route.platform !== route.providerName) {
+    parts.push(`(${route.platform})`);
+  }
+  return {
+    text: parts.join(' '),
+    title: route.baseUrl
+      ? `${t('chat.turn.routeTitle')}\n${providerLabel} — ${route.baseUrl}`
+      : t('chat.turn.routeTitle'),
+    resolved: route.providerResolved !== false,
+  };
+});
+
 const streamingState = computed(() => ({
   isStreaming: activeAssistant.value?.state?.isStreaming ?? false,
 }));
@@ -864,6 +907,44 @@ const handleClick = (event: MouseEvent) => {
 
 .assistant-section .message-item__card strong {
   color: var(--color-bubble-assitant-text-strong);
+}
+
+/* 实际应答供应商提示。弱化为一行可悬停的小字：它是排查用的信息而非正文，
+   常态不该和回复内容抢注意力；但又必须一直可见——路由走错时不报错，
+   只在出错时才提示的话，成功的错配就永远查不到。
+   颜色取中性灰，hover 才抬到正文色；不加投影，靠底色+圆角+字号表达层次。 */
+.turn-route-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--color-bubble-assitant-bg);
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: default;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.turn-route-tip:hover {
+  color: var(--el-text-color-regular);
+}
+
+/* 供应商没解析出来时给一点警示色：说明这轮压根没落到具体供应商上，
+   多半是供应商已停用或配置缺失，需要人工看一眼。 */
+.turn-route-tip--unresolved {
+  color: var(--el-color-warning);
+}
+
+.turn-route-tip__icon {
+  flex-shrink: 0;
+  font-size: 12px;
 }
 
 .assistant-section .message-item__wrapper {

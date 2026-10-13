@@ -38,6 +38,17 @@ const emit = defineEmits<{
 
 void props.size; // 仅声明以兼容调用点透传，纯预览不需要体积
 
+/**
+ * 文本/代码渲染选项。
+ *
+ * <p>语法高亮由 renderer-text 内置的 highlight.js 承担（core +
+ * 按语言懒加载，扩展名自动选语言，无需额外接线）；这里只开
+ * 行号与长行换行，提升代码/日志类文件的可读性。</p>
+ */
+const TEXT_VIEWER_OPTIONS = {
+  text: { lineNumbers: true, wrapLongLines: true },
+};
+
 /** 数据加载中（v-model:loading 兼容） */
 const loading = defineModel<boolean>("loading", { default: false });
 
@@ -172,6 +183,7 @@ function onBaseError(err: unknown): void {
       v-model:loading="loading"
       :file="fileRef"
       :renderers="renderers"
+      :viewer-options-extra="TEXT_VIEWER_OPTIONS"
       preset-id="text"
       @rendered="onRendered"
       @error="onBaseError"

@@ -31,6 +31,20 @@
 
     <!-- Agent 设置 -->
     <SettingsCard :title="t('settings.general.agent')">
+      <SettingsRow :label="t('settings.general.agentImpl')" :description="t('settings.general.agentImplDesc')" control-width="208px">
+        <el-select v-model="agentImpl">
+          <el-option label="AgentScope" value="agentscope" />
+          <el-option label="OpenCode" value="opencode" />
+          <el-option label="LangChain4J" value="langchain4j" />
+        </el-select>
+      </SettingsRow>
+      <!-- 引擎能力不对等：切到 opencode 会静默丢掉 MCP / 技能 / 记忆 / 规划，
+           且非管理员会话会被安全闸门直接拒绝。管理员在这里就能看到代价，
+           而不是切完之后排查"为什么工具不生效"。 -->
+      <div v-if="agentImpl === 'opencode'" class="agent-impl-warning" role="note">
+        <el-icon><WarningFilled /></el-icon>
+        <span>{{ t('settings.general.agentImplWarning') }}</span>
+      </div>
       <SettingsRow :label="t('settings.general.maxToolIterations')" :description="t('settings.general.maxToolIterationsDesc')" control-width="128px">
         <el-select v-model="settingsForm.maxToolIterations">
           <el-option label="10" :value="10" />
@@ -159,6 +173,7 @@ import { message } from "@repo/core";
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
+import { WarningFilled } from '@element-plus/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
@@ -172,6 +187,10 @@ const { notify } = usePopup()
 const { t } = useI18n()
 const { locale: currentLocale, setLanguage } = useLanguage()
 const selectedLanguage = ref(currentLocale.value)
+
+// Agent 引擎实现：管理员在「Agent 设置」里切换，保存到 runtime.agent_impl
+const agentImpl = ref('agentscope')
+const agentRuntimeLoaded = ref(false)
 
 function handleLanguageChange(val: string) {
   setLanguage(val as 'zh-CN' | 'en-US')
@@ -217,6 +236,19 @@ const debouncedSave = useDebounceFn(async () => {
   if (!hasChanges.value) return
   await handleSave()
 }, 300)
+
+// Agent 引擎切换独立保存到 runtime 分组，避免混进 system 分组自动保存
+watch(agentImpl, async (value, previous) => {
+  if (!agentRuntimeLoaded.value || value === previous) return
+  try {
+    await apiService.updateGroupSettings('runtime', { agent_impl: value })
+    notify.success(t('common.saveSuccess'), t('settings.general.updated'))
+  } catch (error: any) {
+    console.error('保存 Agent 引擎配置失败:', error)
+    notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
+    agentImpl.value = previous
+  }
+}, { flush: 'sync' })
 
 // 监听设置变化自动保存
 watch(() => ({
@@ -284,6 +316,20 @@ const loadSettings = async () => {
   } catch (error: any) {
     console.error('获取通用设置失败:', error)
     notify.error(t('settings.general.loadFailed'), error.message || t('common.error.unknown'))
+  }
+
+  // 加载 Agent 引擎实现（runtime 分组）
+  try {
+    const runtimeResponse = await apiService.fetchGroupSettings('runtime')
+    const runtimeData = runtimeResponse?.data || runtimeResponse
+    const configuredAgentImpl = String(runtimeData?.agent_impl || '').trim().toLowerCase()
+    agentImpl.value = ['agentscope', 'opencode', 'langchain4j'].includes(configuredAgentImpl)
+      ? configuredAgentImpl
+      : 'agentscope'
+  } catch (error: any) {
+    console.error('获取 Agent 引擎配置失败:', error)
+  } finally {
+    agentRuntimeLoaded.value = true
   }
 }
 
@@ -377,3 +423,26 @@ onMounted(() => {
   loadSettings()
 })
 </script>
+
+<style scoped>
+/* 引擎能力不对等的提示条：走 Element Plus 的告警色变量，跟随主题与暗色，
+   不写死橙色——暗色下写死的橙底会显得刺眼且对比不足。 */
+.agent-impl-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 16px 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: var(--el-border-radius-base, 6px);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.agent-impl-warning .el-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+</style>

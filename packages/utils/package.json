@@ -35,6 +35,10 @@
       "types": "./src/modules/tree.ts",
       "default": "./src/modules/tree.ts"
     },
+    "./modules/dexie": {
+      "types": "./src/modules/dexie.ts",
+      "default": "./src/modules/dexie.ts"
+    },
     "./types": {
       "types": "./src/types/index.ts",
       "default": "./src/types/index.ts"
@@ -61,16 +65,18 @@
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@repo/config": "workspace:*",
+    "@vueuse/core": "catalog:",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
-    "mitt": "^3.0.1",
-    "@repo/config": "workspace:*",
-    "@vueuse/core": "catalog:"
+    "dexie": "^4.4.6",
+    "mitt": "^3.0.1"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
-    "typescript": "catalog:",
+    "fake-indexeddb": "^6.2.5",
     "rimraf": "catalog:",
+    "typescript": "catalog:",
     "vitest": "^1.6.0"
   }
 }

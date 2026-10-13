@@ -1,7 +1,9 @@
 <!--
   FvArchivePanel.vue — 压缩包 file-viewer 渲染面板（自包含接线，未收敛到 FvPanelBase）。
   替换旧面板：src/components/ArchivePreviewPanel.vue（旧面板自建目录树 + 条目表 + open-entry 下钻；
-  新组件不需要目录树 UI，由 file-viewer 的 archive 渲染器接管，只渲染压缩包本体）。
+  新组件不需要目录树 UI，由 file-viewer 的 archive 渲染器接管，只渲染压缩包本体。
+  渲染底座用 @file-viewer/vue3-full：默认 preset-all 全量渲染器，包内条目由 archive
+  渲染器按扩展名嵌套渲染，无需手工注册 office / image / text / media。
 -->
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from "vue";
@@ -17,7 +19,7 @@ const props = defineProps<{
   fileName: string;
   /** 直接可取的字节地址（兼容透传的票据 URL；为空时按 bucket/objectKey 签票据） */
   src?: string;
-  /** 压缩包内条目路径（file-viewer archive 渲染器接管目录树，本面板只渲染包本体；保留仅为兼容旧调用方，未使用） */
+  /** 压缩包内条目路径（file-viewer archive 渲染器接管目录树与嵌套渲染，本面板只渲染包本体；保留仅为兼容旧调用方，未使用） */
   inner?: string;
   /** 文件大小（字节；保留仅为兼容旧调用方，未使用） */
   size?: number;
@@ -32,9 +34,10 @@ const emit = defineEmits<{
   rendered: [];
 }>();
 
-/** TODO(inner)：props.inner 暂未使用——file-viewer 的 archive 渲染器接管包内浏览后，
- *  不再需要按 inner 下钻取单一条目；若后续要在包外单独渲染某条目，再按
- *  preview=true&inner= 拼接票据取字节。 */
+/** TODO(inner)：props.inner 暂未使用——file-viewer 的 archive 渲染器接管包内浏览
+ *  与嵌套渲染（点包内条目直接在本面板内按扩展名嵌套渲染，渲染能力见
+ *  ensureFileViewerLoaded 注入的 office / image / text / media）；
+ *  若后续要在包外单独渲染某条目，再按 preview=true&inner= 拼接票据取字节。 */
 
 /** 加载中 */
 const loading = ref(true);
@@ -47,32 +50,32 @@ const fileRef = shallowRef<File | null>(null);
  * file-viewer 组件（懒加载，照抄 PreviewOfficePanel.vue 106-166 行模式）。
  */
 const viewerComp = shallowRef<Component | null>(null);
-/** archive 渲染器 preset（rendererMode:'replace' 时唯一 registry 来源） */
-let archivePreset: unknown = null;
 /** file-viewer 依赖是否已加载成功（幂等门闩；失败不置位，下次可重试） */
 let fileViewerReady = false;
 
-/** 懒加载 file-viewer 全套依赖（并行拉取组件 + archive 渲染器 + 样式） */
+/**
+ * 懒加载 file-viewer 全套依赖（vue3-full 组件 + 样式）。
+ *
+ * <p>vue3-full 的 FileViewer 默认用 {@code @file-viewer/preset-all} 全量渲染器，
+ * 并给 archive 等渲染器装配全量资产 URL（libarchive worker/wasm）。
+ * file-viewer 的 archive 渲染器接管包内浏览，点包内条目会按条目扩展名在
+ * preset-all 里找渲染器嵌套渲染（csv / png / txt / mp4 / pdf … 全覆盖）。</p>
+ */
 async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   try {
-    const [vueMod, rendererMod, cssMod] = await Promise.all([
-      import("@file-viewer/vue3"),
-      import("@file-viewer/renderer-archive"),
+    const [vueMod, cssMod] = await Promise.all([
+      import("@file-viewer/vue3-full"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
     ]);
     void cssMod; // 样式副作用导入
-    const renderer = (rendererMod as { archiveRenderer?: unknown }).archiveRenderer;
-    archivePreset = {
-      id: "file-viewer-preset-archive",
-      label: "Flyfish File Viewer archive renderer preset",
-      renderers: [renderer],
-    };
+    (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
+      .setDefaultFullAssetBaseUrl?.("/");
     viewerComp.value =
       (vueMod as { FileViewer?: Component; default?: Component }).FileViewer
       ?? (vueMod as { default?: Component }).default
       ?? null;
-    fileViewerReady = !!viewerComp.value && !!archivePreset && !!renderer;
+    fileViewerReady = !!viewerComp.value;
     return fileViewerReady;
   } catch (e) {
     console.warn("[FvArchivePanel] file-viewer 依赖加载失败", e);
@@ -80,10 +83,14 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
   }
 }
 
-/** 传给 file-viewer 的 options（preset + replace 模式 + 主题 + 工具条位置） */
+/**
+ * 传给 file-viewer 的 options（主题 + 工具条位置）。
+ *
+ * <p>preset / rendererMode 不显式传，由 vue3-full 默认装配 preset-all：
+ * 顶层 registry 含 archive 渲染器（渲染压缩包本体），包内条目同样按
+ * preset-all 里的渲染器嵌套渲染（见 {@link ensureFileViewerLoaded}）。</p>
+ */
 const viewerOptions = computed(() => ({
-  preset: archivePreset,
-  rendererMode: "replace" as const,
   theme: "light" as const,
   toolbar: { position: "bottom-right" as const },
 }));

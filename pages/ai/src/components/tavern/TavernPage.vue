@@ -94,7 +94,13 @@
             <div class="tv-msg-col">
               <div v-if="m.speakerType !== 'user'" class="tv-msg-meta">
                 <span class="tv-msg-name">{{ m.speakerName }}</span>
-                <span v-if="m.modelName" class="tv-msg-model">{{ displayModel(m.modelName) }}</span>
+                <span v-if="m.modelName" class="tv-msg-model" :title="m.modelName">{{ displayModel(m.modelName) }}</span>
+                <span
+                  v-if="m.route"
+                  class="tv-msg-route"
+                  :class="{ 'is-unknown': !m.route.providerResolved }"
+                  :title="routeTitle(m.route)"
+                >{{ routeLabel(m.route) }}</span>
               </div>
               <div class="tv-bubble" :class="m.speakerType === 'user' ? 'b-self' : 'b-other'">
                 <MarkdownContent v-if="m.speakerType !== 'user'" class="markdown-text" :content="m.content" />
@@ -365,14 +371,21 @@
       </template>
     </LDialog>
 
-    <!-- ============ 批量配置角色（view 模式：一行一个角色，逐个选模型，用户需求 3） ============ -->
-    <LDialog v-model="bulkModelVisible" width="560" append-to-body class="tv-dialog tv-bulk-dialog">
+    <!-- ============ 批量配置角色（view 模式：一行一个角色，逐个选模型 + 主动发言，用户需求 3） ============ -->
+    <LDialog v-model="bulkModelVisible" width="680" append-to-body class="tv-dialog tv-bulk-dialog">
       <template #header>
         <span class="tv-dlg-title">批量配置角色（{{ bulkRows.length }} 名）</span>
       </template>
-      <p class="tv-bulk-hint">一行一个角色，选择各自要使用的模型；「跟随默认」表示使用系统默认对话模型。</p>
+      <p class="tv-bulk-hint">一行一个角色，可设置各自使用的模型与主动发言；「跟随默认」表示使用系统默认对话模型。</p>
+      <el-input
+        v-model="bulkKeyword"
+        placeholder="检索角色名"
+        clearable
+        size="small"
+        class="tv-bulk-search"
+      />
       <div class="tv-bulk-list">
-        <div v-for="row in bulkRows" :key="row.id" class="tv-bulk-row">
+        <div v-for="row in filteredBulkRows" :key="row.id" class="tv-bulk-row">
           <CardAvatar :src="row.roleAvatar" :name="row.roleName || 'AI'" size="md" class="tv-bulk-avatar" />
           <span class="tv-bulk-name" :title="row.roleName">{{ row.roleName }}</span>
           <el-select v-model="row.model" placeholder="选择模型" filterable size="small" class="tv-bulk-model">
@@ -381,8 +394,21 @@
               <el-option v-for="opt in g.options" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-option-group>
           </el-select>
+          <div class="tv-bulk-random">
+            <el-switch v-model="row.randomReplyEnabled" size="small" />
+            <span class="tv-bulk-random-label">主动发言</span>
+            <el-input-number
+              v-model="row.randomProbability"
+              :min="0"
+              :max="100"
+              :disabled="!row.randomReplyEnabled"
+              size="small"
+              controls-position="right"
+            />
+            <span class="tv-bulk-prob-unit">%</span>
+          </div>
         </div>
-        <div v-if="!bulkRows.length" class="tv-bulk-empty">群里还没有角色，先去群设置添加</div>
+        <div v-if="!filteredBulkRows.length" class="tv-bulk-empty">群里还没有角色，先去群设置添加</div>
       </div>
       <template #footer>
         <el-button @click="bulkModelVisible = false">取消</el-button>
@@ -405,6 +431,16 @@ import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import type { TaverGroup, TaverMember, TaverMessage } from '@/services/modules/tavern.api'
 
+/** 一轮回复的实际路由信息（后端 create 事件携带，便于排查路由错位） */
+interface TavernRouteTip {
+  model?: string
+  providerId?: string | null
+  providerName?: string
+  platform?: string
+  baseUrl?: string
+  providerResolved?: boolean
+}
+
 interface UIMessage {
   _key: number
   speakerType: 'user' | 'ai'
@@ -412,6 +448,8 @@ interface UIMessage {
   speakerName?: string
   content: string
   modelName?: string
+  /** 本轮实际应答的供应商；历史消息从 modelName 限定名还原 */
+  route?: TavernRouteTip | null
   streaming?: boolean
 }
 
@@ -494,9 +532,10 @@ async function loadModelOptions(force = false) {
       const looksCv = cvHints.some((h) => lname.includes(h))
       if (isChat || (!looksCv && !/onnx/i.test(provider.provider_id || ''))) {
         out.push({
-          // 存裸模型名：后端按模型名查 ChatClient，带 providerId 前缀会让「模型管理里查无此模型」而整段失败。
-          // 展示侧按需用 normalizeModelOverride 兼容历史「providerId:模型名」写法。
-          value: m.model,
+          // 存限定名「providerId:模型名」落库：后端 prepare/resolveChatClient
+          // 会按 (供应商, 模型) 精确路由，同名模型（多家都叫 dpv4）不再走错家。
+          // 展示侧用 displayModel 剥前缀。
+          value: provider.provider_id ? `${provider.provider_id}:${m.model}` : m.model,
           label: m.model,
           providerId: provider.provider_id,
           providerName: provider.name,
@@ -508,23 +547,36 @@ async function loadModelOptions(force = false) {
 }
 
 /**
- * 归一化成员的模型覆盖值。
+ * 剥掉「已知供应商前缀」，用于显示；非限定写法原样返回。
  *
- * <p>模型选项一律用「裸模型名」落库；但历史数据里可能是「providerId:模型名」或
- * 「provider名:模型名」。这里在「前缀确实是某个已知供应商」且「冒号后确实是某个已知模型」时
- * 才剥掉前缀，避免误伤本身带冒号的模型名（如 nvidia/xxx:free）。</p>
+ * <p>只在前缀确实是某个已知供应商、且冒号后是已知模型名时才剥，
+ * 避免误伤本身带冒号的模型名（如 nvidia/xxx:free）。</p>
  */
-function normalizeModelOverride(v?: string | null): string {
+function stripKnownPrefix(s: string): string {
+  const i = s.indexOf(':')
+  if (i <= 0) return s
+  const prefix = s.slice(0, i)
+  const after = s.slice(i + 1)
+  const knownPrefix = modelOptions.value.some((o) => o.providerId === prefix)
+  if (knownPrefix && modelOptions.value.some((o) => o.label === after)) return after
+  return s
+}
+
+/**
+ * 把成员的模型引用映射到选择器的选项值（限定名）。
+ *
+ * <p>成员覆盖历史上有三种写法：裸模型名、「providerId:模型名」、
+ * 「provider名:模型名」。选择器选项值是「providerId:模型名」，
+ * 这里尽量归一：已是选项值就直接用；裸名在选项里唯一匹配时映射到
+ * 该限定名；都匹配不上就原样保留（用户可重新选择）。</p>
+ */
+function toPickerValue(v?: string | null): string {
   const s = String(v ?? '').trim()
   if (!s) return ''
   if (modelOptions.value.some((o) => o.value === s)) return s
-  const i = s.indexOf(':')
-  if (i > 0) {
-    const prefix = s.slice(0, i)
-    const after = s.slice(i + 1)
-    const knownPrefix = modelOptions.value.some((o) => o.providerId === prefix)
-    if (knownPrefix && modelOptions.value.some((o) => o.value === after)) return after
-  }
+  const bare = stripKnownPrefix(s)
+  const matched = modelOptions.value.filter((o) => o.label === bare)
+  if (matched.length === 1) return matched[0].value
   return s
 }
 
@@ -546,14 +598,59 @@ function modelLabel(mb: TaverMember) {
   return displayModel(v)
 }
 
+// 酒馆消息旁的供应商标记：与主对话链路的 route 提示同口径，
+// 常驻显示实际应答的供应商，悬停看 baseUrl，方便排查「选的 A 家、回的 B 家」。
+function routeLabel(r?: TavernRouteTip | null): string {
+  if (!r) return ''
+  const name = r.providerName || r.providerId || ''
+  return name ? name : '供应商未解析'
+}
+
+function routeTitle(r?: TavernRouteTip | null): string {
+  if (!r) return ''
+  const parts: string[] = []
+  if (r.model) parts.push(`模型: ${r.model}`)
+  if (r.providerName) parts.push(`供应商: ${r.providerName}`)
+  if (r.providerId) parts.push(`providerId: ${r.providerId}`)
+  if (r.platform) parts.push(`平台: ${r.platform}`)
+  if (r.baseUrl) parts.push(`baseUrl: ${r.baseUrl}`)
+  if (!r.providerResolved) {
+    parts.push('模型标识里没解析出供应商，后端按模型名反查；同名模型多家都有时可能走错家')
+  }
+  return parts.join('\n')
+}
+
 /**
- * 展示用的模型名：去掉历史遗留的「providerId:」前缀。
- * 模型选项未加载时按首个冒号兜底（后端修复后 SSE 里本就是裸模型名）。
+ * 历史消息没有 route 字段：后端把「providerId:模型名」落进
+ * sys_ai_tavern_message.model_name，这里从限定名还原供应商标记，
+ * 刷新后仍能对上一轮是不是走对了家。
+ */
+function parseRouteFromModelName(v?: string | null): TavernRouteTip | null {
+  const s = String(v ?? '').trim()
+  if (!s) return null
+  const i = s.indexOf(':')
+  if (i <= 0) {
+    return { model: s, providerId: null, providerResolved: false }
+  }
+  const prefix = s.slice(0, i)
+  const after = s.slice(i + 1)
+  const opt = modelOptions.value.find((o) => o.providerId === prefix)
+  return {
+    model: after,
+    providerId: prefix,
+    providerName: opt ? opt.providerName : undefined,
+    providerResolved: true,
+  }
+}
+
+/**
+ * 展示用的模型名：限定写法「providerId:模型名」剥掉前缀只显模型名。
+ * 模型选项未加载时按首个冒号兜底。
  */
 function displayModel(v?: string | null): string {
   const s = String(v ?? '').trim()
   if (!s) return ''
-  if (modelOptions.value.length) return normalizeModelOverride(s)
+  if (modelOptions.value.length) return stripKnownPrefix(s)
   const i = s.indexOf(':')
   return i >= 0 ? s.slice(i + 1) : s
 }
@@ -578,6 +675,9 @@ async function selectGroup(g: TaverGroup) {
   currentGroup.value = g
   pendingAt.value = null
   atMenuVisible.value = false
+  // 先加载模型选项：历史消息的 modelName 是「providerId:模型名」限定名，
+  // 解析供应商标记需要选项里的 providerId → 供应商名映射
+  await loadModelOptions()
   await Promise.all([loadMembers(), loadMessages()])
   cfg.defaultMemberId = g.defaultMemberId ?? null
   cfg.autoRouteBool = (g.autoRoute ?? 1) === 1
@@ -586,37 +686,6 @@ async function selectGroup(g: TaverGroup) {
 async function loadMembers() {
   if (!currentGroupId.value) return
   members.value = await apiService.fetchTavernMembers(currentGroupId.value)
-  await migrateCompositeModelOverrides()
-}
-
-/**
- * 历史数据迁移（幂等）：早期批量配置把模型覆盖存成「providerId:模型名」，
- * 后端按裸模型名查 ChatClient，这些角色一发言就整段失败（用户报障 3.1）。
- * 加载成员时把仍是「已知供应商前缀 + 已知模型」的覆盖值改写成裸模型名，其余保持不动。
- */
-async function migrateCompositeModelOverrides() {
-  const need = members.value.filter((mb) => mb.modelOverride && mb.modelOverride.includes(':'))
-  if (!need.length) return
-  if (!modelOptions.value.length) {
-    try {
-      await loadModelOptions()
-    } catch {
-      return
-    }
-  }
-  for (const mb of need) {
-    const raw = mb.modelOverride as string
-    const bare = normalizeModelOverride(raw)
-    if (!bare || bare === raw) continue
-    if (!modelOptions.value.some((o) => o.value === bare)) continue
-    try {
-      await apiService.updateTavernMember(mb.id, { modelOverride: bare })
-      mb.modelOverride = bare
-      console.info('[Tavern] 已迁移模型覆盖:', raw, '→', bare)
-    } catch (e) {
-      console.warn('[Tavern] 迁移模型覆盖失败:', mb.id, e)
-    }
-  }
 }
 
 async function loadMessages() {
@@ -634,6 +703,7 @@ async function loadMessages() {
       speakerName: m.speakerName,
       content: m.content || '',
       modelName: m.modelName,
+      route: parseRouteFromModelName(m.modelName),
       streaming: false,
     }))
   scrollBottom()
@@ -729,6 +799,7 @@ async function send() {
               speakerName: ev.speakerName || atName || 'AI',
               content: '',
               modelName: ev.modelName,
+              route: (ev.route as TavernRouteTip) || null,
               streaming: true,
             }
             messages.value.push(created)
@@ -789,7 +860,7 @@ function onToggleRandom(mb: TaverMember) {
 async function openModelPicker(mb: TaverMember) {
   modelPickerTarget.value = mb
   await loadModelOptions()
-  modelPickerValue.value = normalizeModelOverride(mb.modelOverride || mb.roleModel)
+  modelPickerValue.value = toPickerValue(mb.modelOverride || mb.roleModel)
   modelPickerVisible.value = true
 }
 
@@ -804,18 +875,35 @@ async function confirmModelPicker() {
   message.success('模型已更新')
 }
 
-/* ── 批量配置：view 模式，一行一个角色，逐个选模型（图标按钮在头部右侧，用户需求 3） ── */
+/* ── 批量配置：view 模式，一行一个角色，逐个选模型 + 主动发言（图标按钮在头部右侧，用户需求 3） ── */
 const bulkModelVisible = ref(false)
-const bulkRows = ref<Array<{ id: number; roleName: string; roleAvatar?: string | null; model: string }>>([])
+const bulkKeyword = ref('')
+const bulkRows = ref<Array<{
+  id: number;
+  roleName: string;
+  roleAvatar?: string | null;
+  model: string;
+  randomReplyEnabled: boolean;
+  randomProbability: number;
+}>>([])
+
+const filteredBulkRows = computed(() => {
+  const k = bulkKeyword.value.trim().toLowerCase()
+  if (!k) return bulkRows.value
+  return bulkRows.value.filter((r) => r.roleName.toLowerCase().includes(k))
+})
 
 async function openBulkModel() {
   bulkModelVisible.value = true
+  bulkKeyword.value = ''
   await loadModelOptions()
   bulkRows.value = members.value.map((mb) => ({
     id: mb.id,
     roleName: mb.roleName || 'AI',
     roleAvatar: mb.roleAvatar,
-    model: normalizeModelOverride(mb.modelOverride || mb.roleModel),
+    model: mb.modelOverride || mb.roleModel || '',
+    randomReplyEnabled: !!mb.randomReplyEnabled,
+    randomProbability: Number(mb.randomProbability) || 0,
   }))
 }
 
@@ -827,16 +915,27 @@ async function confirmBulkModel() {
   }
   let ok = 0
   for (const row of rows) {
-    const before = normalizeModelOverride(
-      members.value.find((m) => m.id === row.id)?.modelOverride,
-    )
-    if (row.model === before) {
+    const mb = members.value.find((m) => m.id === row.id)
+    const beforeModel = mb?.modelOverride || ''
+    const beforeRandom = !!mb?.randomReplyEnabled
+    const beforeProb = Number(mb?.randomProbability) || 0
+    const sameModel = row.model === beforeModel
+    const sameRandom = row.randomReplyEnabled === beforeRandom
+        && row.randomProbability === beforeProb
+    if (sameModel && sameRandom) {
       ok++
       continue
     }
     try {
-      // 与单个配置同语义：清空时发空字符串，而不是 null（请求封装会剥掉 null）
-      await apiService.updateTavernMember(row.id, { modelOverride: row.model })
+      // 与单个配置同语义：模型清空时发空字符串，而不是 null（请求封装会剥掉 null）
+      const patch: { modelOverride?: string; randomReplyEnabled?: boolean; randomProbability?: number } = {}
+      if (!sameModel) patch.modelOverride = row.model
+      if (!sameRandom) {
+        patch.randomReplyEnabled = row.randomReplyEnabled
+        // 关闭时概率保持原值，避免把已配好的概率清掉
+        patch.randomProbability = row.randomReplyEnabled ? row.randomProbability : beforeProb
+      }
+      await apiService.updateTavernMember(row.id, patch)
       ok++
     } catch (e) {
       console.error('[Tavern] 批量配置某角色失败:', row.id, e)
@@ -844,7 +943,7 @@ async function confirmBulkModel() {
   }
   bulkModelVisible.value = false
   await loadMembers()
-  message.success(`已更新 ${ok}/${rows.length} 个角色的模型`)
+  message.success(`已更新 ${ok}/${rows.length} 名角色的配置`)
 }
 
 async function onMemberCmd(cmd: string, mb: TaverMember) {
@@ -1092,6 +1191,7 @@ onMounted(loadGroups)
 
 /* 批量配置弹窗：一行一个角色 */
 .tv-bulk-hint { margin: 0 0 10px; font-size: 12px; color: var(--el-text-color-secondary); }
+.tv-bulk-search { margin-bottom: 10px; width: 220px; }
 .tv-bulk-list { max-height: 52vh; overflow-y: auto; }
 .tv-bulk-row {
   display: flex;
@@ -1111,7 +1211,10 @@ onMounted(loadGroups)
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tv-bulk-model { width: 240px; flex-shrink: 0; }
+.tv-bulk-model { width: 220px; flex-shrink: 0; }
+.tv-bulk-random { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.tv-bulk-random-label { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.tv-bulk-prob-unit { font-size: 12px; color: var(--el-text-color-secondary); }
 .tv-bulk-empty { padding: 24px 0; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
 
 /* 消息区 */
@@ -1133,6 +1236,7 @@ onMounted(loadGroups)
   align-items: center;
   gap: 7px;
   margin: 0 0 5px 2px;
+  flex-wrap: wrap;
 }
 .tv-msg-name { font-size: 12px; color: var(--el-text-color-secondary); }
 .tv-msg-model {
@@ -1142,10 +1246,27 @@ onMounted(loadGroups)
   padding: 1px 7px;
   /* 原值 6px → sm 档 */
   border-radius: var(--el-radius-sm, 6px);
-  max-width: 180px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 本轮实际应答的供应商：常驻标记，未解析时用警示色 */
+.tv-msg-route {
+  font-size: 10.5px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, #f0f6ff);
+  padding: 1px 7px;
+  border-radius: var(--el-radius-sm, 6px);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+.tv-msg-route.is-unknown {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, #fdf6ec);
 }
 
 /* 气泡 */

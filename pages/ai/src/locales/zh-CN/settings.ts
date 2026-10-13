@@ -5,6 +5,19 @@ export default {
     system: '系统',
   },
 
+  display: {
+    askPanelWidth: {
+      title: '右侧问答栏宽度',
+      desc: '窄屏 = 固定舒适阅读宽度，文档列获得更多空间；满屏 = 问答栏撑满剩余空间，适合宽屏阅读长回答。',
+      narrow: '窄屏',
+      full: '满屏',
+      preview: '布局预览',
+      hintNarrow: '问答栏保持舒适阅读宽度，文档列更宽',
+      hintFull: '问答栏撑满剩余空间，长回答一次看全',
+      saveFailed: '保存失败，请稍后重试',
+    },
+  },
+
   general: {
     login: '登录',
     language: '语言',
@@ -23,6 +36,9 @@ export default {
     loadFailed: '获取通用设置失败',
     updated: '通用设置已更新',
     agent: 'Agent 设置',
+    agentImpl: 'Agent 引擎实现',
+    agentImplDesc: '选择后端 Agent 运行时引擎，默认 agentscope。',
+    agentImplWarning: 'opencode 引擎是外部自治 Agent，能力与其它引擎不对等：仅支持单 Agent（开启子 Agent 编排会直接报错），MCP 工具、技能、记忆与规划模式均不生效，且无法为普通账号关闭 shell 工具（会按安全策略拒绝运行）。需要完整工具链时请使用 agentscope 或 langchain4j。',
     maxToolIterations: '最大工具调用轮次',
     maxToolIterationsDesc: 'AI 在单次对话中连续调用工具的最大轮次。达到上限后将暂停并等待用户确认。默认 100。',
     llmRequestTimeout: '请求超时',
@@ -204,6 +220,7 @@ export default {
       defaultModels: '默认模型',
       ocr: 'OCR 设置',
       appearance: '外观',
+      display: '显示',
       search: '搜索设置',
       browser: '浏览器',
       about: '关于',

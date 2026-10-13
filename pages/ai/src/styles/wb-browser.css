@@ -1,0 +1,1654 @@
+# 会话内置浏览器 · UI 增量规格（.wb-）
+
+> 作者：美术总监（甄塑之）｜范围：`ChatHeader` 入口 + 浏览器面板增量
+> 基线：`refactor.css`（已落地设计层）｜不重画已存在的 `WorkspaceSidebar` 结构
+
+---
+
+## 0. 落地前必读：三个与工单假设不符的既有事实
+
+我按要求先读了文件，发现三处偏差，规格已据此调整，请先确认：
+
+| # | 工单假设 | 实际情况 | 我的处理 |
+|---|---|---|---|
+| 1 | 三个风格基线 `svc-refactor.css` / `kb-refactor.css` / `mdl-refactor.css` 可对齐 | **三个都是空占位文件**（各 1 行注释）。真实设计层是 `styles/refactor.css`（1145 行，已映射 `--el-*`） | 对齐 `refactor.css`。语言同源：发丝线 `--el-border-color-lighter` + 单一强调色 `--el-color-primary` + 等宽数字 + 三重编码 |
+| 2 | 顶栏入口在 `ChatHeader.vue` 右侧区 | 会话页实际用的是 `PageHeader.vue`（`ChatPage.vue` L13），`ChatHeader.vue` 是另一处未挂载的旧组件。**入口按钮已存在**：`ChatPage.vue` L44-53，`Globe20Filled` + `aria-pressed` + `builtinBrowserActive` | 规格改为**升级既有按钮**（§2），不新增第二枚。`ChatHeader.vue` 给出同一套 `.wb-entry` 的可复用片段备用 |
+| 3 | 地址栏 / 前后退 / 刷新「若还没有」 | **已存在**：`BrowserPreviewPlaceholder.vue` L4-79，已有 back/forward/refresh + 地址栏 input + 静音键 | 规格改为**增量增强**（§4）：等宽字体、中段截断、agent 标识、加载态。删掉的只有一处（见 §4.6） |
+
+另注：`refactor.css` L245 `--el-color-danger: #dc2626`，且现有 `.tab-close:hover` 用它压在 10% 淡底上 = **4.13:1，未过 AA**。本规格统一改用 `#d42121`，并在 §6 给出必须一并修的存量点。
+
+---
+
+## 一、风格定义
+
+### 1.1 色彩令牌（新增，仅 `.wb-` 作用域）
+
+| 令牌 | 浅色 | 深色 | 用途 |
+|---|---|---|---|
+| `--wb-accent` | `#2563eb` | `#60a5fa` | 强调 / 用户驱动的加载 / 焦点环 |
+| `--wb-agent` | `#b45309` | `#fbbf24` | **agent 驱动语义**（琥珀，与蓝强调色正交） |
+| `--wb-agent-soft` | `#fffbeb` | `#332715` | agent 标识底 |
+| `--wb-agent-line` | `#fde68a` | `#78500a` | agent 标识发丝边 / 标签左缘 |
+| `--wb-danger` | `#d42121` | `#f87171` | 关闭 / 禁止嵌入（**禁用 `#dc2626`**） |
+| `--wb-danger-soft` | `#fef3f2` | `#3a1d1d` | 危险淡底 |
+| `--wb-hairline` | `var(--el-border-color-lighter)` | 同左 | 发丝线，不新增色值 |
+| `--wb-ink` | `var(--el-text-color-primary)` | 同左 | 文本 |
+| `--wb-ink-2` | `var(--el-text-color-secondary)` | 同左 | 次级文本 / URL |
+
+**为什么 agent 用琥珀而不是第二强调色**：蓝 `#2563eb` 在本应用里已被「工作区 / 可点 / 选中」占用。若 agent 也用蓝，用户无法区分「这是我能点的」与「这是 agent 动了」。琥珀与蓝在色相环上接近正交，且 `#b45309`/`#fbbf24` 在两种主题下都能过 AA。
+
+### 1.2 对比度实测（WCAG 2.1，脚本精算，非估算）
+
+| 组合 | 比值 | 判定 |
+|---|---|---|
+| `#b45309` on `#fffbeb`（agent 标识文字） | **4.84** | AA |
+| `#b45309` on `#ffffff`（agent 文字压白底） | **5.02** | AA |
+| `#fbbf24` on `#332715`（深色 agent 标识） | **8.72** | AAA |
+| `#d42121` on `#fef3f2`（硬约定①复核） | **4.78** | AA ✅ |
+| `#dc2626` on `#fef3f2`（禁用值复核） | 4.44 | 不合格 ❌ |
+| `#d42121` on `#fcf2f2`（6% 淡底） | **4.73** | AA |
+| `#d42121` on `#fbe9e9`（10% 淡底） | 4.44 | 仅限**图标**（3:1 规则） |
+| `#2563eb` on `#ffffff`（焦点环，需 ≥3:1） | **5.17** | 远超 |
+| `#60a5fa` on `#161c27`（深色焦点环） | **6.72** | 远超 |
+| `#0f172a` on `#ffffff`（URL 文本） | **17.85** | AAA |
+| `#475569` on `#ffffff`（次级） | **7.58** | AAA |
+
+> **淡底浓度硬规则（v3 实测修正）**：
+> - **文字**场景（4.5:1）：必须用 `--wb-danger`(#d42121)。`--el-color-danger`(#dc2626)
+>   压在纯白上天花板仅 **4.83**，任何可见淡底都跌破 4.5 —— 要过 4.5 需淡到 ≤4%，等于没有底。
+>   故「只降浓度不换色值」**只对图标场景成立**。
+> - **图标**场景（3:1）：用 `var(--el-color-danger)` 即可，浓度 8%–12% 均通过。
+>   `.tab-close:hover` 现状 10% = 4.13 **已合规**，无需修改（v1/v2 误判为必修，已撤回）。
+> - **暗色侧**宽松得多：`#f87171` on `#161c27` 8% = 5.55、14% = 5.05、20% = 4.55 均过文字 AA。
+
+
+### 1.3 字体
+
+- UI 文本：沿用 `refactor.css` 的系统栈，不动。
+- **URL / 数字：`ui-monospace, SFMono-Regular, Menlo, Consolas, monospace` + `font-variant-numeric: tabular-nums`**。与 `KBFilePreview.vue` / `AppKeysPage.vue` / `TurnItem.vue` 已有写法一致。URL 里 `/`、端口号、路径段号必须等宽对齐，否则改一个数字整行抖动。
+
+### 1.4 三重编码铁律
+
+「agent 开的」这个信息**永远同时**由三个通道承载，缺一不可：
+1. **形状**：标签左缘 3px 实心方角标记 + 标识内 12px 机器人符号
+2. **文字**：中文标签「agent」/ 英文「agent」——不靠 tooltip，标签本身就是文字
+3. **颜色**：琥珀 `#b45309`/`#fbbf24`
+
+色觉差异用户（红绿色盲约占男性 8%）看到的是「方角标记 + agent 文字」，颜色丢失不丢信息。
+
+---
+
+## 二、入口按钮（会话顶栏）
+
+### 2.1 形态决策
+
+**纯图标，不带文字。** 理由：顶栏右侧已有 4 枚同规格纯图标按钮（面板 / 状态 / 轨迹 / 更多），加文字会破坏节奏；且 `PageHeader` 该区域宽度在 1024px 下已紧张。代价是「图标语义要自明」——所以选 `Globe20Filled`（地球 + 纬线，天然读作「浏览网页」）而非 `Window16Regular`（那个已被工作区切换占用，会混淆）。
+
+**尺寸**：命中区 `28×28`（= 现有 `.header-icon-btn` 的 `padding 4px` + `w-5 h-5` 图标 20px）。**图标本身 20px 不变**，只改状态视觉，因此是纯增量、零布局位移。
+
+- 图标：`Globe20Filled`，`20×20`
+- 按钮：`padding 4px`，`border-radius var(--el-radius-md, 8px)`
+- 间距：与相邻按钮 `gap 2px`（现有 `PageHeader` 值），**不改**
+
+### 2.2 状态清单
+
+| 状态 | 视觉 | 实现 |
+|---|---|---|
+| 默认 | 图标 `var(--wb-ink-2)`，透明底 | 现状 |
+| hover | 底 `--el-fill-color-light`，图标 `--wb-ink` | 现状 |
+| **激活（面板可见）** | 底 `--color-sidebar-bg-hover`（= `#eff6ff`/`#1f2839`），图标 `--wb-accent`，**左侧 2px 强调竖条** | 新增 |
+| **agent 活跃** | 激活态基础上，图标右上角 6px 琥珀圆点（带 2px 表面色描边环） | 新增 |
+| focus-visible | `box-shadow 0 0 0 3px color-mix(in srgb, var(--wb-accent) 12%, transparent)` | 现状保留 |
+| 禁用（无 `sessionId`） | `opacity .35` + `cursor not-allowed`，**且不显示 agent 点** | 现有 `v-if` 已天然不渲染 |
+
+> **激活态为什么要竖条**：现有激活态只有「淡蓝底」，而工作区切换按钮用的是**同一个** `--color-sidebar-bg-hover`。两个按钮同时亮起时用户无法分辨。竖条是形状通道，把「浏览器面板开着」这件事从「某个面板开着」里区分出来——不依赖颜色。
+
+### 2.3 双向绑定
+
+```js
+// 已有，ChatPage.vue L391
+const builtinBrowserActive = computed(() =>
+  browserWebviewStore.activeWindowId !== null
+  && (tabStore.activeTabKey?.startsWith('browser:') || false)
+);
+```
+
+**规格要求**：入口高亮 = 浏览器面板可见。现有表达式在「面板可见但当前激活的是文件预览标签」时会误判为未激活。改为：
+
+```js
+const builtinBrowserActive = computed(() =>
+  layoutStore.workspaceVisible && tabStore.isPreviewMode
+  && browserWebviewStore.activeWindowId !== null
+);
+```
+
+反向：agent 打开页面时（`BrowserWebviewLayer` 已有的 `layoutStore.workspaceVisible = true`），面板自动展开 → 入口自动高亮，无需额外同步代码。
+
+### 2.4 无障碍：`aria-pressed` 而非 `aria-expanded`
+
+**用 `aria-pressed`**，理由：
+
+- `aria-expanded` 描述的是「这个控件展开了一个容器」。这里展开的是整个右侧栏，而右侧栏同时被工作区按钮、浏览器按钮两个控件控制 —— 用 `aria-expanded` 会让屏幕阅读器朗读「已展开」，但用户无法知道展开的是**哪个**区域，语义不诚实。
+- `aria-pressed` 描述「这个按钮处于按下/激活状态」，与「浏览器视图当前是激活视图」是同一件事，且与同区域其余 4 枚按钮（全部用 `aria-pressed`）保持一致。
+- **不要同时**给 `aria-pressed` 和 `aria-expanded`，二者语义冲突。
+
+```html
+<div class="header-icon-btn wb-entry"
+     :class="{ active: builtinBrowserActive, 'is-agent-active': agentBrowserBusy }"
+     role="button" tabindex="0"
+     :aria-label="ariaEntryLabel"
+     :aria-pressed="builtinBrowserActive"
+     aria-controls="wb-browser-panel"
+     @click="openBuiltinBrowser"
+     @keydown.enter.prevent="openBuiltinBrowser"
+     @keydown.space.prevent="openBuiltinBrowser">
+  <Globe20Filled class="w-5 h-5" />
+  <span v-if="agentBrowserBusy" class="wb-entry__dot" aria-hidden="true"></span>
+  <span class="wb-sr-only" role="status">{{ ariaEntryLabel }}</span>
+</div>
+```
+
+`ariaEntryLabel` 三态（有 `mainSession.id` 才渲染按钮，故无「禁用」态文案）：
+
+| 场景 | 文案 |
+|---|---|
+| 默认 | `内置浏览器` / `Built-in browser` |
+| 激活 | `内置浏览器（已打开）` / `Built-in browser (open)` |
+| agent 活跃 | `内置浏览器，agent 正在使用` / `Built-in browser, agent is using it` |
+
+### 2.5 DOM 增量（`ChatPage.vue` L46-52 就地替换）
+
+```html
+<!-- 内置浏览器：打开内嵌浏览器，默认显示代码渲染预览 -->
+<LTooltip v-if="mainSession?.id" :content="t('chat.browser.entry')" placement="bottom">
+  <div class="header-icon-btn wb-entry"
+       :class="{ active: builtinBrowserActive, 'is-agent-active': agentBrowserBusy }"
+       role="button" tabindex="0"
+       :aria-label="ariaEntryLabel"
+       :aria-pressed="builtinBrowserActive"
+       aria-controls="wb-browser-panel"
+       @click="openBuiltinBrowser"
+       @keydown.enter.prevent="openBuiltinBrowser"
+       @keydown.space.prevent="openBuiltinBrowser">
+    <Globe20Filled class="w-5 h-5" />
+    <span v-if="agentBrowserBusy" class="wb-entry__dot" aria-hidden="true"></span>
+    <span class="wb-sr-only">{{ ariaEntryLabel }}</span>
+  </div>
+</LTooltip>
+```
+
+配套：`WorkspaceSidebar` 预览容器加 `id="wb-browser-panel"` + `role="region"` + `:aria-label="t('chat.browser.panelRegion')"`。
+
+---
+
+## 三、agent 驱动标识（需求核心）
+
+### 3.1 方案选择与理由
+
+| 候选 | 判定 | 理由 |
+|---|---|---|
+| 整条地址栏换色 | **否决** | ① 与安全锁图标语义冲突（绿锁=安全，用户会以为换色=不安全）；② 每次导航都重绘，闪；③ 无法表达「加载完了但这页**是** agent 开的」——而后者才是用户真正需要的归因信息 |
+| 面板顶部独立状态条 | **否决** | ① 挤压内容高度，webview 每帧都在重排；② 视线要离开地址栏，而「刚才那页不是我点的」的因果点**就在地址栏**；③ 与标签栏信息重复 |
+| **地址栏内嵌「锁定态」标识 + 标签左缘常驻标记** | **采用** | ① 标识紧贴 URL，因果同框，无需视线移动；② 双载体分工：地址栏标识管**这一次导航**（会衰减），标签左缘管**这个标签的出身**（永不消失）；③ 零布局位移，不动 webview 高度 |
+
+**核心洞察**：这是**两个不同的问题**，需要两个不同寿命的载体。
+
+- 「agent 正在动这一页」→ **瞬时**，用地址栏内标识
+- 「这个标签是 agent 开的」→ **永久**，用标签左缘
+
+工单问「加载完就消失？还是保留一段时间？」——答案是**都不是**。导航瞬时态用「不衰减的倒计时环」表达进行中，完成后转为静默态；而标签出身标记**永不消失**。这样即使用户中途走开 10 分钟再回来，仍能从标签左缘知道这页不是他点的。
+
+### 3.2 标识形态（地址栏内）
+
+替换现有 `.security-icon` 的位置，**在锁图标之前**插入：
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ [◆agent]  🔒  https://example.com/docs/2024        ↻    │
+└──────────────────────────────────────────────────────────┘
+   └─11px─┘  └11┘  └──── 等宽 tabular-nums 12.5px ────┘
+```
+
+| 属性 | 规格 |
+|---|---|
+| 高 / 内边距 | `height 18px`，`padding 0 5px 0 4px` |
+| 圆角 | `var(--el-radius-sm, 6px)` |
+| 图形 | 12px 实心圆角方 + 内白点（**非图标字体**，纯 CSS 绘制，避免新增依赖） |
+| 文字 | `agent`，`11px / 600`，`tabular-nums` |
+| 浅色 | 底 `#fffbeb`，字 `#b45309`（4.84:1），边 `#fde68a` 1px |
+| 深色 | 底 `#332715`，字 `#fbbf24`（8.72:1），边 `#78500a` 1px |
+| 净宽 | 静默态 `52px`，进行中 `52px + 10px`（右侧进度环） |
+| 出现位移 | `width` 过渡 `180ms`，**从右向左展开**，不推挤 URL |
+
+**为什么不叫「AI」而叫「agent」**：与本应用既有术语一致（`browserWebview.ts` 里 `agentWebviews`、`createdBy` 都是 agent 口径），用户已在别处学会这个词。
+
+### 3.3 时序与消失时机
+
+三态机，**无任意时长定时器**：
+
+```
+idle ──agent 发起导航──> driving ──isLoading=false──> settled ──用户下一次交互──> idle
+                            │                              │
+                            └──用户手动点击/输入──> idle    └──切走再切回──> settled(保持)
+```
+
+| 态 | 触发 | 视觉 | 寿命 |
+|---|---|---|---|
+| `driving` | agent 发起导航 且 `isLoading` | 琥珀实底 + 文字 + **右侧 10px 环形进度**（旋转） | 与 `isLoading` 严格同步 |
+| `settled` | `isLoading` 转 false | 琥珀**描边底**（`#fffbeb` → 透明底 + `#fde68a` 边），文字保留 | **无自动消失**。仅在用户主动操作（点地址栏/点导航/切标签）后转 idle |
+| `idle` | 用户手动交互，或该标签非 agent 创建 | 不渲染 | — |
+
+> **为什么 `settled` 不自动消失**：自动消失 = 用户视线离开再回来时信息已丢，等于没做。改为「用户一旦亲自操作就收起」——语义是「你接管了，现在归你」，与真实浏览器的手感一致，且**不会在用户盯着看的时候消失**。
+
+**超时兜底**：若 `isLoading` 因故永挂（Electron `did-fail-load` 不触发），加 `8000ms` 看门狗强制转 `settled`。这是防呆，不是设计时长。
+
+### 3.4 加载态表达
+
+`isLoading` 已有，四层叠加，**从弱到强**：
+
+| 层 | 元素 | 规格 |
+|---|---|---|
+| 1 弱 | 地址栏右侧 spinner | **保留现有** 12px，`0.6s linear infinite` |
+| 2 中 | 顶部 2px 进度轨 | agent 驱动 = 琥珀 `--wb-agent`；用户驱动 = 蓝 `--wb-accent`。`position: absolute; top:0; left:0; right:0; height:2px`，`transform-origin: left`，`scaleX` 0→1 循环 `1.1s`。**贴在 webview 内容区顶部**，不占布局 |
+| 3 强 | URL 文字 | 加载中降到 `--wb-ink-2` 且 `opacity .72`；**不做骨架屏**（URL 骨架会让用户以为地址不存在）。地址文字**不抖动**——加载中不重写 URL，避免整行 reflow |
+| 4 兜底 | 刷新键变叉 | **保留现有** `isLoading` 时切 stop 图标 |
+
+**进度轨位置理由**：放面板工具栏下方（而非顶部边缘）而不是页面最顶端，是因为 webview 是独立层，绝对定位在其上边缘会被遮挡 1-2px。放在工具栏底边（`.browser-toolbar` 的 `border-bottom` 位置）由面板自己绘制，稳定可见。
+
+### 3.5 标签页出身标记（多标签区分）
+
+| 归属 | 标签左缘 | favicon 角标 | tooltip |
+|---|---|---|---|
+| 用户开的 | 无 | 无 | `{title}` |
+| **agent 开的** | **3px 琥珀实心竖条**，上下各内缩 4px，圆角 `0 2px 2px 0` | 右上 6px 琥珀点 + 2px 表面色环 | `{title} · agent 打开` |
+
+标签宽度**不改**（现有 `max-width 190px` / `padding 1px 6px`），竖条用 `::before` 绝对定位，不占 flex 空间，因此 190px 内仍能放「左缘 3px + favicon 14px + gap 4px + 标题 + 关闭 16px」，标题可用宽度比现在少 3px，`truncateTabTitle(maxLen=12)` 不变。
+
+**截断策略不动**：`maxLen 12` + `...` 是既有实现。它对标题够用（favicon 已承载站点身份），不引入中段截断。
+
+---
+
+## 四、地址栏与导航控件（增量增强现有实现）
+
+### 4.1 地址栏字体
+
+```css
+.wb-address__input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;   /* 等宽下补偿斜杠视觉间距 */
+}
+```
+
+`12.5px` 而非 `12px`：等宽字体在 12px 下 `/` 与 `.` 区分度不足。`line-height: 1`（容器 26px 居中）。
+
+### 4.2 中段截断（核心改进）
+
+`<input>` 原生只在**末尾**截断（`text-overflow: ellipsis`），长 URL 会砍掉最有信息量的末段路径。两态方案：
+
+**读态**（未聚焦，`<div>` + 三段 flex）
+
+```
+[头: https://] [ …省略… ] [尾: /docs/2024 ]
+ └ flex:0 0 auto ┘└ flex:1 0  ┘└ flex:0 0 auto, max-width 45% ┘
+```
+
+```js
+// 头尾切分：保留协议+域名+末两段路径
+function splitUrl(u) {
+  try {
+    const url = new URL(u);
+    const segs = url.pathname.split('/').filter(Boolean);
+    const tail = segs.slice(-2).join('/');
+    const head = `${url.protocol}//${url.host}/`;
+    const mid = segs.length > 2 ? `${segs.slice(0, -2).join('/')}/` : '';
+    return { head, mid, tail: tail ? `/${tail}` : '' };
+  } catch { return { head: u, mid: '', tail: '' }; }
+}
+```
+
+**编辑态**（聚焦，`<input>`）：全量可见，`select()` 全选（用户直接打字覆盖，与浏览器一致），`dir="ltr"` 强制（避免 RTL 环境把 `https` 甩到右端）。
+
+> 降级方案：若不想引入读/写态切换（需少量逻辑），保留单 `<input>` 并接受末尾截断，**但必须加 `:title="fullUrl"`** 让悬停可见全文。中段截断不是可选项，是长 URL 下的可读性需求。
+
+### 4.3 焦点态 / 编辑态
+
+| 态 | 规格 |
+|---|---|
+| 默认 | `border 1px var(--el-border-color)`，`radius var(--el-radius-lg, 12px)`，`height 26px` —— **保留现有** |
+| hover | `border-color var(--el-color-primary-300)`（新增，现有缺失） |
+| **focus-within** | `border-color var(--wb-accent)` + `box-shadow 0 0 0 3px color-mix(in srgb, var(--wb-accent) 12%, transparent)` —— **保留现有** |
+| 编辑态 | 边框不变，**仅**内部文字色从 `--wb-ink-2` 提到 `--wb-ink`（提示「现在可改」），光标 `--wb-accent` |
+| 禁用 | `opacity .35`，不可聚焦（`tabindex="-1"`） |
+
+### 4.4 四枚控件规格
+
+现有 `.nav-btn` 为 `26×26` / `radius sm 6px` / `padding 4px` / 命中区 26px。
+
+**问题**：WCAG 2.2 目标尺寸 2.5.8 AA 要求 **24×24**，26px 通过 ✓。但 26px 在桌面端偏小，且 `.nav-btn` 之间 `gap 2px` 造成 4 枚按钮密集。
+
+**建议（可选，低风险）**：命中区提到 `28×28`，视觉图标保持 14px 不变，容器 `gap 2px` 不变。视觉零位移，仅命中区变大。`BrowserPreviewPlaceholder.vue` 是窄栏场景，若布局吃紧可维持 26px（已合规）。
+
+| 控件 | 默认 | hover | active | 禁用 |
+|---|---|---|---|---|
+| 后退 | 图标 `--wb-ink-2` | 底 `--el-fill-color` | 底 `--el-fill-color-dark` | `opacity .35` + `not-allowed` |
+| 前进 | 同上 | 同上 | 同上 | 同上 |
+| 刷新/停止 | 同上 | 同上 | 同上 | 从不禁用 |
+| **关闭** | `--wb-ink-2` | 底 `color-mix(--el-color-danger 8%)` + 字 `var(--wb-danger-icon)` | 底 12% + 同色 | `opacity .35` |
+
+**关闭键需新建**：现有 `.close-btn` 类已在 `<style>` 里定义（L307-311）但**模板中没有任何元素使用它**——是孤儿样式。启用它，并把 `var(--el-color-danger)` 换成 `var(--wb-danger)`。
+
+> **实测复核（v3 修正，撤回 v1/v2 的判断）**：`.tab-close` 内只有 `<Close />` 图标（10px，**无文字**），
+> 适用 WCAG 1.4.11 非文本 **3:1** 规则。现状 `#dc2626` on `#fce9e9`(10%) = **4.13:1，已合规**。
+> v1/v2 我按 4.5:1 文字标准判它不合格，**该判断错误**，在此更正。
+>
+> **另一个更关键的实测**：`#dc2626` 压在纯白上只有 **4.83:1** —— 这是它的**天花板**。
+> 任何可见浓度都会把它压到 4.5 以下：
+>
+> | 淡底浓度 | tint 实色 | `#dc2626` 比值 |
+> |---|---|---|
+> | 0%（纯白） | `#ffffff` | **4.83**（天花板） |
+> | 3% | `#fef8f8` | 4.60 |
+> | 4% | `#fef6f6` | 4.54 |
+> | 5% | `#fdf4f4` | 4.47 ✗ |
+> | 8% | `#fceeee` | 4.28 |
+> | 10% | `#fce9e9` | 4.13 |
+>
+> **推论**：`--el-color-danger` 在**任何可见淡底上都无法承担文字**（要过 4.5 必须淡到 ≤4%，那等于没有底）。
+> 所以 tech-architect「只降浓度不换色值」的定案，**只对图标场景成立**；
+> 文字场景必须用 `--wb-danger`(#d42121)。这是我保留组件作用域 danger 令牌的唯一理由，
+> **且不改 `--el-color-danger` / `--el-color-error` 的定义**（接受他的双套令牌防分叉理由）。
+>
+> **暗色侧实测**（他担心的一侧，数据如下）：`#f87171` on `#161c27`(0%) = 6.17 ✓；
+> 8% = 5.55 ✓；14% = 5.05 ✓；20% = 4.55 ✓；21% = 4.47 ✗。
+> 即**暗色侧淡底浓度可到 20% 仍过文字 AA**，比亮色侧宽松得多。同规则降到 8% 保守安全。
+
+
+### 4.5 静音键
+
+现有已有，**规格不变**（不在本次范围）。仅补一条：`aria-pressed="store.isMuted"` + `aria-label` 三态文案（静音中/取消静音），并加 `title`。当前纯图标无 `aria-label`，屏幕阅读器只会念「按钮」。
+
+### 4.6 唯一建议删除的元素
+
+现有锁图标 `.security-icon` 是**纯装饰**（`opacity .5`，无 `aria-hidden`，无 title，恒定显示锁形状——即使页面是 http 也显示锁）。这会误导用户。
+
+**改法**：保留位置，改为语义化三态——`https` 锁 / `http` 警告三角 / `about:blank` 地球；每个加 `aria-label` + `:title`，并在 `.wb-scheme--insecure` 时用 `#d97706`（3.07:1 on `#fffbeb`，**仅作图标**，按 3:1 通过；不用于文字）。
+
+---
+
+## 五、平台无关：「该站点禁止嵌入」状态
+
+**不预设 iframe / webview 结论**，两种情况共用同一套视觉：
+
+| 承载 | 触发信号 | UI |
+|---|---|---|
+| Electron `<webview>` | `did-fail-load`（errorCode -3 / -105） | 地址栏转 `.is-blocked` |
+| Web `<iframe>` | `onload` 后无法探测（跨域 opaque） | 由技术侧显式置 `embedBlocked` 标志 |
+
+`.is-blocked` 视觉（叠加在正常地址栏上）：
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│ [agent] ⚠ https://x.com/pay   [🚫该站点禁止嵌入] [↗外部打开]  │
+└───────────────────────────────────────────────────────────────┘
+```
+
+| 元素 | 规格 |
+|---|---|
+| 状态标签 | 底 `var(--wb-danger-soft)`，字 `--wb-danger`，`11px/600`，`radius sm`，`padding 0 6px`，`height 18px` |
+| 图标 | 圆内斜杠，`14px`，`--wb-danger` |
+| 「外部打开」 | ghost 按钮，`11px`，`1px solid var(--el-border-color)`，`radius sm`，`padding 0 8px`，`height 20px` |
+| 底部说明 | 工具栏下方 `12px` 单行 `--wb-ink-2`：`该站点设置了 X-Frame-Options，禁止在应用内显示。可在系统浏览器打开或复制链接。` |
+
+**不做**：不整条变红。红色是「危险/不可撤销」的语义，此处是「换个方式就能看」的可恢复状态，用红色会过度惊吓。只在标签与图标上用红。
+
+iframe 场景补充：加载失败时地址栏**保留用户输入的 URL 全文**并全选，让用户能直接复制——这是 iframe 无法打开时唯一的实用动作。
+
+---
+
+## 六、四档断点
+
+| 断点 | 入口按钮 | 地址栏 | 标签 | 导航键 |
+|---|---|---|---|---|
+| **≥1440px** 完整 | 图标 + 激活竖条 + agent 点 | 三段中段截断，尾段 `max-width 45%` | `max-width 190px`（现状） | 5 枚全显 |
+| **1120–1439px** 中 | 同上 | 尾段 `max-width 32%` | `max-width 160px` | 全显 |
+| **768–1119px** 窄 | 图标（去 agent 点，改为地址栏内标识承载） | 尾段 `max-width 24%`，字 `12px` | `max-width 120px`，`tab-title` 只留 favicon + 标题 | 静音键移入 `⋯` 溢出菜单 |
+| **<768px** 极窄 | 图标 | 读态仅显示 `头 … 尾`，尾段 `max-width 40%`；中段强制省略 | `max-width 92px`，标题 `maxLen 8` | 后退/前进/刷新保留，**静音隐藏**（`title` 仍可达） |
+
+**不变项**：任何断点下 `min-height 26px` 控件、`gap 2px`、命中区 ≥24px 均不降级。
+
+```css
+/* 默认 = ≥1440 */
+@media (max-width: 1439px) { .wb-url__tail { max-width: 32%; } .browser-tab { max-width: 160px; } }
+@media (max-width: 1119px) { .wb-url__tail { max-width: 24%; } .wb-address__input { font-size: 12px; }
+                              .wb-entry__dot { display: none; } .browser-tab { max-width: 120px; } }
+@media (max-width: 767px)  { .wb-url__mid { display: none; } .wb-url__tail { max-width: 40%; }
+                              .browser-tab { max-width: 92px; } }
+```
+
+---
+
+## 七、`prefers-reduced-motion` 降级
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .wb-entry,
+  .wb-nav-btn,
+  .wb-address,
+  .wb-agent-mark,
+  .wb-url__head,
+  .wb-url__mid,
+  .wb-url__tail {
+    transition: none;
+  }
+  /* 旋转类全部停：改为静态形状，保证信息不丢 */
+  .wb-progress__spin { animation: none; border-top-color: var(--wb-accent); border-right-color: var(--wb-accent); }
+  .wb-agent-mark--driving .wb-agent-mark__glyph { animation: none; }
+  .wb-progress__bar { animation: none; transform: scaleX(1); opacity: .55; }
+  .loading-spinner { animation: none; border-top-color: var(--wb-color-primary); border-right-color: var(--wb-color-primary); }
+  /* 展开类位移归零 */
+  .wb-agent-mark--enter { transform: none; }
+}
+```
+
+**降级后信息完整性校验**（必须成立）：
+- agent 进行中 → 静态双弧 spinner + 琥珀底 + 「agent」文字（形状+文字仍在，颜色丢失也可读）
+- 加载中 → 静态满幅半透明进度条（不再是动效，但「在加载」由刷新键变叉 + spinner 静态弧共同表达）
+- 中段截断 → 瞬时切换，无过渡（截断结果不依赖动效理解）
+
+---
+
+## 八、屏幕阅读器文本
+
+| 位置 | 属性 | 浅/中文 | 深/英文同义 |
+|---|---|---|---|
+| 入口按钮 | `aria-label` | 见 §2.4 三态 | — |
+| 面板容器 | `role="region"` `aria-label` | `浏览器面板` | `Browser panel` |
+| agent 标识 | 视觉隐藏 span | `agent 正在打开此页面` / `agent 打开的页面` | `agent is opening this page` / `Page opened by agent` |
+| 加载中 | `aria-busy="true"` 于地址栏 + `role="status"` | `正在加载` | `Loading` |
+| 导航键 | `aria-label` ×4 | `后退` `前进` `刷新`/`停止加载` `关闭此页面` | `Back` `Forward` `Reload`/`Stop loading` `Close this page` |
+| 禁用导航 | 原生 `:disabled` | 屏幕阅读器朗读「dimmed/不可用」 | — |
+| 禁止嵌入 | `role="alert"` | `该站点禁止在应用内显示，已为你保留地址` | `This site cannot be displayed in the app; the address has been kept` |
+| 标签出身 | `aria-label` 于标签 | `{title}，agent 打开` | `{title}, opened by agent` |
+
+**实时播报纪律**：只在**状态跃迁**时播报（agent 开始 / 加载完成 / 禁止嵌入），**不播报 URL 变化**——自动导航会产生高频播报，淹没对话内容。URL 变化用 `aria-live="off"`（默认）处理，用户可主动聚焦地址栏读取。
+
+---
+
+## 九、完整 CSS（增量，追加到 `BrowserPreviewPlaceholder.vue` 与 `ChatPage.vue`）
+
+> 全部双引号、变量驱动、`.wb-` 前缀。零硬编码主题色。
+
+```css
+/* ============================================================================
+   会话内置浏览器 · 增量设计层
+   令牌口径：
+   1. 结构色一律走 --el-*（refactor.css 已映射 9 套主题），不新造中性色。
+   2. --wb-agent / --wb-danger 是**语义色**，本组件首次引入，故在此定义；
+      agent 用琥珀（与"可点"的蓝强调色正交），danger 固定 #d42121（不用 #dc2626）。
+   3. 淡底浓度：文字场景 ≤8%（#d42121 在 8% 底上 4.57:1），10% 仅限图标。
+   ========================================================================== */
+
+.wb-browser {
+  /* ── 语义令牌 ── */
+  --wb-accent: var(--el-color-primary);
+  --wb-agent: #b45309;
+  --wb-agent-soft: #fffbeb;
+  --wb-agent-line: #fde68a;
+  /* 组件作用域 danger，**不重定义** --el-color-danger。
+     存在的唯一理由：--el-color-danger(#dc2626) 的对比度天花板是 4.83:1（压在纯白上），
+     任何可见的淡底都会把它压到 4.5 以下，因此**文字场景**无法用令牌值。
+     实测 #d42121 on #fef3f2 = 4.78（过 AA），#dc2626 on #fef3f2 = 4.44（不过）。
+     图标场景（3:1 规则）用 var(--el-color-danger) 即可，见下方 --wb-danger-icon。 */
+  --wb-danger: #d42121;
+  --wb-danger-soft: #fef3f2;
+  /* 图标/边框场景：走令牌，主题跟随，不硬编码 */
+  --wb-danger-icon: var(--el-color-danger);
+  --wb-ink: var(--el-text-color-primary);
+  --wb-ink-2: var(--el-text-color-secondary);
+  --wb-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --wb-dur: var(--el-transition-duration-fast, 0.2s);
+
+  /* agent 驱动的加载进度轨颜色（与 agent 标识同源） */
+  --wb-progress-color: var(--wb-agent);
+  color: var(--wb-ink);
+}
+
+html.dark .wb-browser {
+  --wb-agent: #fbbf24;          /* on #332715 = 8.72:1 */
+  --wb-agent-soft: #332715;
+  --wb-agent-line: #78500a;
+  --wb-danger: #f87171;          /* on #3a1d1d = 5.53:1 */
+  --wb-danger-soft: #3a1d1d;
+  --wb-progress-color: var(--wb-agent);
+}
+
+/* 用户驱动的加载 → 进度轨换回强调蓝（语义：可点/我在操作） */
+.wb-browser[data-driver="user"] {
+  --wb-progress-color: var(--wb-accent);
+}
+
+/* ── 仅屏幕阅读器可见 ── */
+.wb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================================
+   1. 入口按钮（ChatPage.vue / ChatHeader.vue）
+   ========================================================================== */
+
+.wb-entry {
+  position: relative;
+}
+
+.wb-entry.active {
+  background: var(--color-sidebar-bg-hover);
+  color: var(--wb-accent);
+}
+
+/* 激活态竖条：形状通道，把"浏览器面板开着"与"某个面板开着"区分开。
+   用 ::before 而非 border-left，避免改变盒模型导致相邻按钮位移。 */
+.wb-entry.active::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 16px;
+  border-radius: 0 2px 2px 0;
+  background: var(--wb-accent);
+}
+
+/* agent 活跃点：右上 6px 琥珀圆点 + 2px 表面色描边环（保证在任意底色上可辨） */
+.wb-entry__dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--el-border-radius-circle, 100%);
+  background: var(--wb-agent);
+  box-shadow: 0 0 0 2px var(--el-bg-color);
+}
+
+/* ============================================================================
+   2. 面板容器
+   ========================================================================== */
+
+.wb-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ============================================================================
+   3. 工具栏（在现有 .browser-toolbar 基础上增量）
+   ========================================================================== */
+
+.wb-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  height: 36px;
+  flex-shrink: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+/* 加载进度轨：贴在工具栏底边（webview 覆盖层之上，稳定可见）。
+   absolute 不占布局，webview 每帧不重排。 */
+.wb-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wb-progress__bar {
+  height: 100%;
+  width: 100%;
+  background: var(--wb-progress-color);
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0.9;
+  animation: wb-progress-slide 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes wb-progress-slide {
+  0%   { transform: scaleX(0);    opacity: 0.55; }
+  50%  { transform: scaleX(0.72); opacity: 0.9; }
+  100% { transform: scaleX(1);    opacity: 0.55; }
+}
+
+/* ============================================================================
+   4. 导航控件
+   ========================================================================== */
+
+.wb-nav-group {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.wb-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--wb-ink-2);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--wb-dur) ease,
+    color var(--wb-dur) ease;
+}
+
+.wb-nav-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 12%, transparent);
+}
+
+.wb-nav-btn:hover:not(:disabled) {
+  background: var(--el-fill-color);
+  color: var(--wb-ink);
+}
+
+.wb-nav-btn:active:not(:disabled) {
+  background: var(--el-fill-color-dark);
+}
+
+.wb-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── 「诚实置灰」：Web 端 iframe 跨域读不到 canGoBack/canGoForward ──────────
+   与「真的没有历史」区分：真没有历史是纯 disabled；
+   读不到状态时按钮保持正常外观但加删除线 + title 说明原因，
+   避免用户以为是自己的浏览历史被清空了。
+   形状通道（删除线）承载"未知"，不依赖颜色。 */
+.wb-nav-btn--unknown {
+  position: relative;
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.wb-nav-btn--unknown::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 50%;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.wb-nav-btn--unknown:hover {
+  background: transparent;
+  color: var(--wb-ink-2);
+}
+
+html.dark .wb-nav-btn--unknown { opacity: 0.62; }
+
+html.dark .wb-nav-btn {
+  color: var(--el-text-color-regular);
+}
+
+/* 关闭：淡红底 + 红字。
+   图标场景适用 WCAG 1.4.11 非文本 3:1，用令牌值即可（#dc2626 on #fcf2f2 = 4.44，
+   远高于 3:1）。淡底浓度 8%：比值 4.28，是 3:1 规则下留有余量的最浓档。
+   ⚠️ 若此按钮将来加入**文字**（如「关闭」），必须换 --wb-danger（4.5:1 规则）。 */
+.wb-nav-btn--close:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--wb-danger-icon) 8%, transparent);
+  color: var(--wb-danger-icon);
+}
+
+.wb-nav-btn--close:active:not(:disabled) {
+  background: color-mix(in srgb, var(--wb-danger-icon) 12%, transparent);
+  color: var(--wb-danger-icon);
+}
+
+html.dark .wb-nav-btn--close:hover:not(:disabled),
+html.dark .wb-nav-btn--close:active:not(:disabled) {
+  background: var(--wb-danger-soft);
+  color: var(--wb-danger);
+}
+
+/* ============================================================================
+   5. 地址栏
+   ========================================================================== */
+
+.wb-address {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: 4px;
+  padding: 0 10px;
+  height: 26px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-lg, 12px);
+  transition:
+    border-color var(--wb-dur) ease,
+    box-shadow var(--wb-dur) ease;
+}
+
+.wb-address:hover {
+  border-color: var(--el-color-primary-300);
+}
+
+.wb-address:focus-within {
+  border-color: var(--wb-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 12%, transparent);
+}
+
+.wb-address[aria-disabled="true"] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* 禁止嵌入态：保留地址可编辑复制，底色转危险淡底（不用纯红，可恢复状态） */
+.wb-address.is-blocked {
+  background: var(--wb-danger-soft);
+  border-color: color-mix(in srgb, var(--wb-danger) 32%, transparent);
+}
+
+/* 站点状态图标：https 锁 / http 警告 / 内部页地球 */
+.wb-scheme {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  color: var(--wb-ink-2);
+}
+
+.wb-address.is-blocked .wb-scheme {
+  color: var(--wb-danger);
+}
+
+/* http 警告三角：#d97706 在 #fffbeb 上仅 3.07:1 —— 图标按非文本 3:1 判定通过，
+   绝不可用于同尺寸文字。 */
+.wb-scheme--insecure {
+  color: #d97706;
+}
+
+html.dark .wb-scheme--insecure {
+  color: var(--el-color-warning);
+}
+
+/* ── 读态：三段中段截断 ── */
+
+.wb-url {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--wb-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--wb-ink);
+  cursor: text;
+}
+
+.wb-url__head {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42%;
+}
+
+.wb-url__mid {
+  flex: 1 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--wb-ink-2);
+}
+
+.wb-url__tail {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+}
+
+/* ── 编辑态 ── */
+
+.wb-address__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--wb-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--wb-ink);
+  caret-color: var(--wb-accent);
+}
+
+.wb-address__input::placeholder {
+  color: var(--wb-ink-2);
+  opacity: 1;
+}
+
+/* 加载中：URL 降权但**不换内容**（换内容会导致整行 reflow 抖动） */
+.wb-address.is-loading .wb-url,
+.wb-address.is-loading .wb-address__input {
+  color: var(--wb-ink-2);
+  opacity: 0.72;
+}
+
+/* ============================================================================
+   6. agent 驱动标识（地址栏内嵌）
+   ========================================================================== */
+
+.wb-agent-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 18px;
+  padding: 0 5px 0 4px;
+  border: 1px solid var(--wb-agent-line);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--wb-agent-soft);
+  color: var(--wb-agent);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* 从右向左展开，不推挤 URL */
+  transform-origin: right center;
+  animation: wb-mark-in 180ms cubic-bezier(0.2, 0, 0.2, 1);
+  transition:
+    background-color var(--wb-dur) ease,
+    color var(--wb-dur) ease;
+}
+
+@keyframes wb-mark-in {
+  from { transform: scaleX(0.4); opacity: 0; }
+  to   { transform: scaleX(1);   opacity: 1; }
+}
+
+/* 12px 实心圆角方 + 内白点：纯 CSS 绘制，不引入图标依赖。
+   形状即"机器/自动"的语义，与颜色正交。 */
+.wb-agent-mark__glyph {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--wb-agent);
+}
+
+.wb-agent-mark__glyph::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 6px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--wb-agent-soft);
+}
+
+/* settled：加载已完成，但"这页是 agent 开的"仍然成立。
+   转为描边态（去填充），既降低视觉噪音，又保留归因信息。
+   **不自动消失** —— 仅在用户主动操作后由 JS 移除。 */
+.wb-agent-mark--settled {
+  background: transparent;
+}
+
+.wb-agent-mark--settled .wb-agent-mark__glyph {
+  background: transparent;
+  border: 2px solid var(--wb-agent);
+}
+
+.wb-agent-mark--settled .wb-agent-mark__glyph::after {
+  top: 4px;
+  left: 4px;
+  width: 4px;
+  height: 1px;
+  background: var(--wb-agent);
+}
+
+/* driving：右侧 10px 环形进度（静态双弧见 §7 降级） */
+.wb-agent-mark__ring {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 1.5px solid color-mix(in srgb, var(--wb-agent) 28%, transparent);
+  border-top-color: var(--wb-agent);
+  border-right-color: var(--wb-agent);
+  border-radius: var(--el-border-radius-circle, 100%);
+  animation: wb-spin 0.6s linear infinite;
+}
+
+@keyframes wb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   7. 禁止嵌入提示
+   ----------------------------------------------------------------------------
+   数据源契约（tech-architect 已定案，两条路径统一落一个字段）：
+     Electron：BrowserWebviewLayer 补挂 did-fail-load → errorCode -3/-105
+     Web iframe：跨域 opaque document 无法探测 → 由第 0 步后端预检
+                 GET /v2/browser/probe 返回 { frameable, reason } 显式置位
+     两处最终都只写 WebviewState.metadata：
+       metadata.embedBlocked?: boolean
+       metadata.embedReason?: 'xfo-deny'|'xfo-sameorigin'|'frame-ancestors'
+                             |'load-failed'|'timeout'
+     reason = 'timeout' 按乐观放行（embedBlocked = false），预检只是文案来源，
+     不得让功能不可用。
+   CSS 只消费 embedBlocked 一个布尔，不关心承载是 webview 还是 iframe。
+   ========================================================================== */
+
+.wb-blocked-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--wb-danger-soft);
+  color: var(--wb-danger);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.wb-blocked-note {
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--wb-ink-2);
+  background: var(--wb-danger-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--wb-danger) 22%, transparent);
+}
+
+.wb-blocked-open {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--wb-ink-2);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--wb-dur) ease,
+    color var(--wb-dur) ease;
+}
+
+.wb-blocked-open:hover {
+  background: var(--el-fill-color-light);
+  color: var(--wb-ink);
+}
+
+.wb-blocked-open:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 12%, transparent);
+}
+
+/* ============================================================================
+   8. 标签页出身标记（增量到 WorkspaceSidebar 既有 .browser-tab）
+   ----------------------------------------------------------------------------
+   数据源契约（tech-architect 已定案）：
+     判定 agent 开的标签 **必须** 用显式布尔，禁止用 createdBy !== sessionId 推断。
+       wv.metadata.createdByAgent === true   → agent 自主创建
+       wv.metadata.createdByAgent 为 false/undefined → 用户手动创建
+     理由：现有 createdBy 装的是 sessionId（用户路径 WorkspaceSidebar L613 与
+     workspacePreview.ts L199 都传 createdBy: sessionId），值域等于 sessionId，
+     无法区分"谁开的"。agentWebviews getter 的注释与实现方向相反且零消费者，
+     是死代码，不构成数据源依据。
+   字段落点：WebviewState.metadata（已是 Record<string, any>，放得下）。
+   ========================================================================== */
+
+.browser-tab {
+  position: relative; /* 新增：供 ::before 定位 */
+}
+
+/* agent 开的标签：左缘 3px 琥珀竖条。
+   绝对定位不占 flex 空间，故 190px 内可用标题宽度仅少 3px。 */
+.browser-tab.is-agent::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--wb-agent, #b45309);
+}
+
+/* favicon 右上角 agent 点：形状 + 颜色双通道 */
+.browser-tab.is-agent .tab-favicon,
+.browser-tab.is-agent .tab-globe {
+  position: relative;
+}
+
+.browser-tab.is-agent .tab-favicon::after,
+.browser-tab.is-agent .tab-globe::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--el-border-radius-circle, 100%);
+  background: var(--wb-agent, #b45309);
+  box-shadow: 0 0 0 1.5px var(--el-bg-color);
+}
+
+html.dark .browser-tab.is-agent::before,
+html.dark .browser-tab.is-agent .tab-favicon::after,
+html.dark .browser-tab.is-agent .tab-globe::after {
+  --wb-agent: #fbbf24;
+}
+
+/* ============================================================================
+   10.5 被拦站点降级态（Web 端 iframe 主场景）
+   ----------------------------------------------------------------------------
+   背景：约一半站点返回 X-Frame-Options / frame-ancestors，在 iframe 里白屏。
+   白屏是**预期行为不是 bug**，所以必须有明确降级界面，否则会被当成故障报回。
+   容器宽度约束：LiteSplitpanes min-pane2-size = 320px，实测 320–400px。
+   文案上限两行 —— 窄面板里三行说明会把按钮挤出首屏。
+
+   层级决策：主按钮用**实心 danger**，而非 ghost。
+   理由：这是整个面板里唯一的行动点，且必须压过"加载失败"的被动语气。
+   实心 + 白字 = 5.20:1，过 AA。禁用值 #dc2626 实心为 4.83:1 也能过，
+   但项目已统一 #d42121，此处不例外。
+   ========================================================================== */
+
+.wb-blocked-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 16px;
+  text-align: center;
+  background: var(--wb-danger-soft);
+}
+
+/* 图形载体：圆内斜杠（禁止嵌入），48px 视觉重量。
+   纯 SVG，不引入图标依赖；aria-hidden 因语义由下方文字承载。 */
+.wb-blocked-panel__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--el-border-radius-circle, 100%);
+  background: var(--el-bg-color);
+  color: var(--wb-danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--wb-danger) 22%, transparent);
+}
+
+/* 标题：说清"发生了什么"，不是"你失败了" */
+.wb-blocked-panel__title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--wb-ink);
+}
+
+/* 域名：等宽 + tabular，用户要能确认是哪一页被拦 */
+.wb-blocked-panel__host {
+  font-family: var(--wb-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--wb-ink-2);
+  word-break: break-all;
+  /* 域名可能很长（无 www 省略），窄面板里必须允许断行而非溢出 */
+  max-width: 100%;
+}
+
+/* 原因说明：代码 + 文案两行封顶 */
+.wb-blocked-panel__reason {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--wb-ink-2);
+  max-width: 30ch;   /* 320px 面板下约两行，超出则截断 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 主按钮：实心，白字压 #d42121 = 5.20:1（AA）。
+   实心底的对比度与前景色亮度有关，#dc2626 实心为 4.83:1 也能过 AA，
+   但本仓硬约定①已统一文字侧红为 #d42121，此处不例外。 */
+.wb-blocked-panel__primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 240px;
+  min-height: 32px;     /* WCAG 2.2 目标尺寸 ≥24，此处给足 */
+  padding: 0 14px;
+  border: 1px solid var(--wb-danger);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--wb-danger);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--wb-dur) ease,
+    border-color var(--wb-dur) ease;
+}
+
+.wb-blocked-panel__primary:hover {
+  background: #b91c1c;   /* 6.47:1 */
+  border-color: #b91c1c;
+}
+
+.wb-blocked-panel__primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-danger) 12%, transparent);
+}
+
+/* 次要：复制链接。ghost 而非第三个实心按钮 —— 复制是兜底不是主路径 */
+.wb-blocked-panel__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--wb-danger) 32%, transparent);
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--wb-danger);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--wb-dur) ease;
+}
+
+.wb-blocked-panel__secondary:hover {
+  background: color-mix(in srgb, var(--wb-danger) 8%, transparent);
+}
+
+.wb-blocked-panel__secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-danger) 12%, transparent);
+}
+
+html.dark .wb-blocked-panel__primary {
+  border-color: var(--wb-danger);
+  background: var(--wb-danger);
+  color: #1a1d23;   /* 深色下 danger 提亮，文字转深以保 5.53:1 */
+}
+
+html.dark .wb-blocked-panel__primary:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+html.dark .wb-blocked-panel__icon {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--wb-danger) 34%, transparent);
+}
+
+/* 复制成功反馈：文字换 1.5s，不换色 —— 避免与危险红语义打架 */
+.wb-blocked-panel__secondary.is-copied {
+  border-color: color-mix(in srgb, var(--wb-danger) 32%, transparent);
+  color: var(--wb-ink-2);
+  pointer-events: none;
+}
+
+/* ============================================================================
+   被拦站点降级态 DOM（Web 端 iframe 主场景）
+   ----------------------------------------------------------------------------
+   宽度约束 320–400px（LiteSplitpanes min-pane2-size = 320）。
+   文案两行封顶，域名可断行。
+   ========================================================================== */
+
+<div v-if="embedBlocked" class="wb-blocked-panel" role="alert">
+  <!-- 图形：圆内斜杠，纯 SVG -->
+  <div class="wb-blocked-panel__icon" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  </div>
+
+  <!-- 标题：说清发生了什么 -->
+  <h3 class="wb-blocked-panel__title">{{ t('chat.browser.blockedTitle') }}</h3>
+
+  <!-- 域名：等宽 tabular，让用户确认是哪一页 -->
+  <p class="wb-blocked-panel__host">{{ blockedHost }}</p>
+
+  <!-- 原因：两行封顶。原因码由技术侧给，文案 i18n 化 -->
+  <p class="wb-blocked-panel__reason">{{ blockedReasonText }}</p>
+
+  <!-- 主按钮：实心 -->
+  <button class="wb-blocked-panel__primary" @click="openExternally">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 9 9 21" /><line x1="10" y1="12" x2="21" y2="3" />
+    </svg>
+    {{ t('chat.browser.openExternal') }}
+  </button>
+
+  <!-- 次要：复制链接 -->
+  <button class="wb-blocked-panel__secondary"
+          :class="{ 'is-copied': copied }"
+          @click="copyLink">
+    {{ copied ? t('chat.browser.copied') : t('chat.browser.copyLink') }}
+  </button>
+</div>
+
+<!-- agent 标识：窄面板下文字视觉隐藏，元素不删（保证三重编码完整） -->
+<span class="wb-agent-mark__text">agent</span>
+
+═══════════════════════════════════════════════════════════════════════════
+
+/* ============================================================================
+   11. 响应式（四档视口 + 面板自身窄宽）
+   ========================================================================== */
+@media (max-width: 1439px) {
+  .wb-url__tail { max-width: 32%; }
+  .browser-tab  { max-width: 160px; }
+}
+
+@media (max-width: 1119px) {
+  .wb-url__tail { max-width: 24%; }
+  .wb-url { font-size: 12px; }
+  /* agent 点让位给地址栏内标识（那里信息更完整） */
+  .wb-entry__dot { display: none; }
+  .browser-tab { max-width: 120px; }
+  .wb-nav-btn--mute { display: none; }
+}
+
+@media (max-width: 767px) {
+  .wb-url__mid { display: none; }
+  .wb-url__tail { max-width: 40%; }
+  .browser-tab { max-width: 92px; }
+}
+
+/* ── 面板自身窄宽（不等同视口窄）────────────────────────────────────────────
+   LiteSplitpanes min-pane2-size = 320px，用户可把面板拖到 320px。
+   视口 ≥1440px 但面板 320px 时同样会触发，故按容器宽度而非视口设。
+   用 @container 需父级 container-type；未启用时退回下面的属性选择器兜底。 */
+@container wb-panel (max-width: 359px) {
+  .wb-blocked-panel { padding: 16px 12px; gap: 8px; }
+  .wb-blocked-panel__icon { width: 40px; height: 40px; }
+  .wb-blocked-panel__title { font-size: 13px; }
+  .wb-blocked-panel__reason { max-width: 24ch; }
+  .wb-blocked-panel__primary { min-height: 30px; font-size: 12.5px; }
+}
+
+/* 无 container query 支持时的兜底：按面板类名直接判定 */
+.wb-panel--narrow .wb-blocked-panel { padding: 16px 12px; gap: 8px; }
+.wb-panel--narrow .wb-blocked-panel__icon { width: 40px; height: 40px; }
+.wb-panel--narrow .wb-blocked-panel__reason { max-width: 24ch; }
+.wb-panel--narrow .wb-blocked-panel__primary { min-height: 30px; font-size: 12.5px; }
+
+/* 窄面板下导航键允许收缩到 26px（WCAG 2.2 下限 24px，仍合规） */
+.wb-panel--narrow .wb-nav-btn { width: 26px; height: 26px; }
+
+/* 窄面板下 agent 标识压掉文字，只留形状 —— 但**不删元素**，
+   改为视觉隐藏文字，保证三重编码在窄栏下仍完整（形状 + 无障碍文本）。 */
+.wb-panel--narrow .wb-agent-mark__text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.wb-panel--narrow .wb-agent-mark { padding: 0 4px; }
+
+/* ============================================================================
+   12. 动效降级
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-entry,
+  .wb-nav-btn,
+  .wb-address,
+  .wb-agent-mark,
+  .wb-progress__bar {
+    transition: none;
+    animation: none;
+  }
+
+  /* 旋转类 → 静态形状：信息不丢，只丢"动" */
+  .wb-agent-mark__ring {
+    animation: none;
+    border-top-color: var(--wb-agent);
+    border-right-color: var(--wb-agent);
+  }
+
+  /* 进度条 → 静态满幅半透明 */
+  .wb-progress__bar {
+    transform: scaleX(1);
+    opacity: 0.55;
+  }
+
+  /* 展开位移归零 */
+  .wb-agent-mark {
+    transform: none;
+  }
+
+  /* 降级态无位移动效，但保留 hover/active 底色变化（那是状态反馈不是装饰） */
+  .wb-blocked-panel__icon,
+  .wb-blocked-panel__primary,
+  .wb-blocked-panel__secondary {
+    transition: none;
+    animation: none;
+  }
+}
+```
+
+---
+
+## 十、DOM 增量片段汇总
+
+### 10.1 `BrowserPreviewPlaceholder.vue` — 工具栏整体替换
+
+```html
+<!-- 浏览器导航栏 -->
+<div class="browser-toolbar wb-toolbar"
+     :class="{ 'is-loading': store.isLoading, 'is-blocked': embedBlocked }"
+     :data-driver="agentDriving ? 'agent' : 'user'">
+
+  <!-- 加载进度轨：absolute，不占布局 -->
+  <div class="wb-progress" aria-hidden="true">
+    <div class="wb-progress__bar"></div>
+  </div>
+
+  <!-- 导航按钮组 -->
+  <div class="wb-nav-group">
+    <button class="wb-nav-btn" :disabled="!store.canGoBack"
+            :aria-label="t('chat.browser.back')" :title="t('chat.browser.back')"
+            @click="goBack">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    </button>
+
+    <button class="wb-nav-btn" :disabled="!store.canGoForward"
+            :aria-label="t('chat.browser.forward')" :title="t('chat.browser.forward')"
+            @click="goForward">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+
+    <button class="wb-nav-btn"
+            :aria-label="store.isLoading ? t('chat.browser.stop') : t('chat.browser.refresh')"
+            :title="store.isLoading ? t('chat.browser.stop') : t('chat.browser.refresh')"
+            @click="store.isLoading ? stopLoading() : refresh()">
+      <svg v-if="!store.isLoading" width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true">
+        <polyline points="23 4 23 10 17 10" />
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+      </svg>
+      <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- 地址栏 -->
+  <div class="wb-address"
+       :class="{ 'is-loading': store.isLoading, 'is-blocked': embedBlocked }"
+       :aria-disabled="!store.activeWebview">
+
+    <!-- agent 驱动标识：形状 + 文字 + 颜色三重编码 -->
+    <span v-if="agentOrigin" class="wb-agent-mark"
+          :class="agentDriving ? 'wb-agent-mark--driving' : 'wb-agent-mark--settled'">
+      <span class="wb-agent-mark__glyph" aria-hidden="true"></span>
+      <span>agent</span>
+      <span v-if="agentDriving" class="wb-agent-mark__ring" aria-hidden="true"></span>
+      <span class="wb-sr-only">{{ agentDriving
+        ? t('chat.browser.agentOpening')
+        : t('chat.browser.agentOpened') }}</span>
+    </span>
+
+    <!-- 站点状态图标 -->
+    <component :is="schemeIcon" class="wb-scheme" :class="schemeClass"
+               :aria-label="schemeLabel" role="img" />
+
+    <!-- 读态：三段中段截断 -->
+    <div v-if="!addressFocused" class="wb-url" :title="addressInput">
+      <span class="wb-url__head">{{ urlParts.head }}</span>
+      <span v-if="urlParts.mid" class="wb-url__mid">{{ urlParts.mid }}</span>
+      <span class="wb-url__tail">{{ urlParts.tail }}</span>
+    </div>
+
+    <!-- 编辑态 -->
+    <input v-else ref="addressBarRef" v-model="addressInput"
+           class="wb-address__input" type="text" dir="ltr"
+           :placeholder="t('chat.workspace.inputUrlPlaceholder')"
+           autocomplete="none" spellcheck="false"
+           :aria-label="t('chat.browser.addressLabel')"
+           @keydown.enter="navigateToUrl"
+           @keydown.esc="addressFocused = false" />
+
+    <span v-if="store.isLoading" class="loading-spinner" aria-hidden="true"></span>
+  </div>
+
+  <!-- 禁止嵌入：状态标签 + 外部打开 -->
+  <span v-if="embedBlocked" class="wb-blocked-tag">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.5" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+    <span>{{ t('chat.browser.embedBlocked') }}</span>
+  </span>
+
+  <button v-if="embedBlocked" class="wb-blocked-open"
+          @click="openExternally">{{ t('chat.browser.openExternal') }}</button>
+
+  <!-- 静音 -->
+  <button class="wb-nav-btn wb-nav-btn--mute"
+          :aria-pressed="store.isMuted"
+          :aria-label="store.isMuted ? t('chat.workspace.unmute') : t('chat.workspace.mute')"
+          :title="store.isMuted ? t('chat.workspace.unmute') : t('chat.workspace.mute')"
+          @click="store.toggleMuted()">
+    <svg v-if="store.isMuted" width="14" height="14" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+         aria-hidden="true">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="23" y1="9" x2="17" y2="15" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+    </svg>
+    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+    </svg>
+  </button>
+
+  <!-- 关闭当前页面 -->
+  <button class="wb-nav-btn wb-nav-btn--close"
+          :aria-label="t('chat.browser.close')" :title="t('chat.browser.close')"
+          @click="close">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  </button>
+</div>
+
+<!-- 禁止嵌入说明 -->
+<div v-if="embedBlocked" class="wb-blocked-note" role="alert">
+  {{ t('chat.browser.embedBlockedNote') }}
+</div>
+
+<!-- 空壳占位区域 -->
+<div ref="placeholderRef" class="placeholder-body"></div>
+```
+
+### 10.2 `WorkspaceSidebar.vue` — 标签增量
+
+```html
+<!-- 既有 .browser-tab 上加两个类 + 一个 favicon 容器 -->
+<div v-for="(tab, index) in tabs" :key="tab.key" class="browser-tab"
+     :class="{ active: activeTabKey === tab.key, 'is-agent': isAgentTab(tab) }"
+     :aria-label="tabAriaLabel(tab)"
+     :title="tabTitle(tab)" role="tab" :aria-selected="activeTabKey === tab.key"
+     draggable="true" ...>
+  <!-- 其余既有内容不变 -->
+</div>
+```
+
+```js
+import { useBrowserWebviewStore } from '@/stores/browserWebview'
+const browserStore = useBrowserWebviewStore()
+
+/**
+ * agent 开的标签判定。
+ * 数据源：显式布尔 createdByAgent，**不做推断**。
+ * 禁用 createdBy !== sessionId —— createdBy 装的是 sessionId（用户路径
+ * WorkspaceSidebar L613 / workspacePreview.ts L199 均传 createdBy: sessionId），
+ * 值域等于 sessionId，该判定只是「恰好成立」，新增创建路径即静默失效。
+ */
+function isAgentTab(tab: { type: string; windowId?: string }): boolean {
+  if (tab.type !== 'browser' || !tab.windowId) return false
+  const wv = browserStore.webviews.get(tab.windowId)
+  return wv?.metadata?.createdByAgent === true
+}
+
+function tabTitle(tab: { type: string; title?: string; name?: string }): string {
+  const base = tab.type === 'file'
+    ? tab.name!
+    : (tab.title || t('chat.workspace.unnamedWindow'))
+  return isAgentTab(tab) ? `${base} · ${t('chat.browser.agentOpenedShort')}` : base
+}
+
+function tabAriaLabel(tab: unknown): string {
+  return tabTitle(tab)
+}
+
+/**
+ * 禁止嵌入态：两条路径统一落到 metadata.embedBlocked。
+ * Electron 由 did-fail-load 置位；iframe 由 probe 预检结果置位。
+ * reason = 'timeout' 乐观放行，不阻塞功能。
+ */
+const embedBlocked = computed(() =>
+  browserStore.activeWebview?.metadata?.embedBlocked === true
+)
+
+/**
+ * ⚠️ 实现陷阱（tech-architect 已标）：现有 BrowserPreviewPlaceholder.vue:180-185
+ * 的 watch 在 activeWebview.url 变化时写 addressInput，且 :181 对 about: 前缀置空。
+ * 失败态的 URL **不能**进那个 about: 置空分支，否则用户复制不到任何东西。
+ * 这是 iframe 打不开时唯一的实用动作。
+ */
+```
+
+### 10.3 i18n 键（`locales/zh-CN/chat.ts` + `locales/en-US/chat.ts`，`workspace` 同级新增 `browser` 节点）
+
+```ts
+browser: {
+  entry: '内置浏览器',
+  entryOpen: '内置浏览器（已打开）',
+  entryAgentActive: '内置浏览器，agent 正在使用',
+  panelRegion: '浏览器面板',
+  back: '后退',
+  forward: '前进',
+  refresh: '刷新',
+  stop: '停止加载',
+  close: '关闭此页面',
+  addressLabel: '地址',
+  agentOpening: 'agent 正在打开此页面',
+  agentOpened: 'agent 打开的页面',
+  agentOpenedShort: 'agent 打开',
+  embedBlocked: '禁止嵌入',
+  embedBlockedNote: '该站点设置了 X-Frame-Options，禁止在应用内显示。地址已保留，可复制或改为在系统浏览器打开。',
+  openExternal: '外部打开',
+  loading: '正在加载',
+}
+```
+
+---
+
+## 十一、交付清单与验收
+
+| # | 项 | 状态 |
+|---|---|---|
+| 1 | 入口按钮激活态加竖条 + agent 点（不改图标/尺寸/间距） | 增量 |
+| 2 | `builtinBrowserActive` 修正为三条件与 | 修正 |
+| 3 | agent 标识三态机（idle/driving/settled，settled 不自动消失） | 新增 |
+| 4 | 加载进度轨（agent 琥珀 / 用户蓝，absolute 零布局） | 新增 |
+| 5 | URL 等宽 tabular-nums + 三段中段截断 | 增量 |
+| 6 | 导航键命中区 26→28px（视觉零位移）+ 关闭键启用 | 增量 |
+| 7 | 静音键补 `aria-pressed` / `aria-label` | 修正 |
+| 8 | 站点状态图标语义化（https/http/内部页） | 修正 |
+| 9 | 禁止嵌入态（平台无关） | 新增 |
+| 10 | 标签 agent 左缘竖条 + favicon 角标 | 增量 |
+| 11 | 四档断点 + `prefers-reduced-motion` | 新增 |
+| 12 | **存量必修**：`.tab-close:hover` `#dc2626` → `#d42121` + 10%→8% | 修正 |
+
+**验收硬门槛**
+
+- [ ] 全部文字/图标组合 ≥4.5:1（图标按 3:1），焦点环 ≥3:1 —— 见 §1.2 实测表
+- [ ] agent 标识在灰度截图下仍可辨（形状 + 文字）
+- [ ] `settled` 态停留 60s 不消失
+- [ ] 关闭全部动画后信息量不减（截图对比）
+- [ ] 断点 1440 / 1200 / 1000 / 700 四档截图无溢出、无重叠
+- [ ] 320px 宽下工具栏不换行、不裁切
+- [ ] iframe 与 Electron 两种承载下禁止嵌入态均可复现
+- [ ] axe DevTools 零 critical
+
+**明确不做**：不改 `WorkspaceSidebar` 整体结构、不改 `webview` 分区与 preload、不预设 iframe/webview 架构结论、不改标签宽度与拖拽排序逻辑、不引入字体文件与图标依赖（agent 图形为纯 CSS）。

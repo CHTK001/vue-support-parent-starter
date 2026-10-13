@@ -32,6 +32,25 @@
                     <DataUsage20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
+                  <!-- 会话执行轨迹 -->
+                  <LTooltip v-if="mainSession?.id" content="执行轨迹" placement="bottom">
+                  <div class="header-icon-btn" :class="{ active: showTracePanel }" title="执行轨迹"
+                    role="button" tabindex="0" aria-label="执行轨迹" :aria-pressed="showTracePanel"
+                    @click="toggleTracePanel"
+                    @keydown.enter.prevent="toggleTracePanel">
+                    <Timeline20Filled class="w-5 h-5" />
+                  </div>
+                  </LTooltip>
+                  <!-- 内置浏览器：打开内嵌浏览器，默认显示代码渲染预览 -->
+                  <LTooltip v-if="mainSession?.id" content="内置浏览器" placement="bottom">
+                  <div class="header-icon-btn" :class="{ active: builtinBrowserActive }" title="内置浏览器"
+                    role="button" tabindex="0" aria-label="内置浏览器" :aria-pressed="builtinBrowserActive"
+                    @click="openBuiltinBrowser"
+                    @keydown.enter.prevent="openBuiltinBrowser"
+                    @keydown.space.prevent="openBuiltinBrowser">
+                    <Globe20Filled class="w-5 h-5" />
+                  </div>
+                  </LTooltip>
                   <!-- 更多操作下拉菜单 -->
                   <DropdownMenu @command="handleMoreSelect">
                     <div class="header-icon-btn" role="button" tabindex="0"
@@ -55,25 +74,30 @@
               <div class="chat-content-wrapper" style="flex: 1; display: flex; overflow: hidden;">
                 <!-- 会话面板容器 -->
                 <div class="chat-panel-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
-                  <!-- 会话面板：主会话和子 Agent 共用同一个 ChatPanel，通过 session 切换 -->
-                  <!-- 全屏模式下 ChatPanel 通过 Teleport 搬至浮动容器 -->
-                  <Teleport :disabled="teleportDisabled" to="#floating-chat">
-                    <ChatPanel ref="chatPanelRef" :session="panelSession" :readonly="activeTabId !== 'main'"
-                      :hide-header="activeTabId !== 'main'" :agent-tabs="agentTabs" :active-tab-id="activeTabId"
-                      @switch-agent="switchTab"
-                      @save-settings="handleSaveSessionSettings"
-                      @open-session="handleOpenSession"
-                      @select-character="handleSelectCharacter" />
-                  </Teleport>
+                  <!-- 执行轨迹：与对话互斥，占满主区域 -->
+                  <TracePanel v-if="showTracePanel && mainSession" :session-id="mainSession.id" />
 
-                  <!-- 右侧大纲导航 -->
-                  <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
-                    :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
+                  <template v-else>
+                    <!-- 会话面板：主会话和子 Agent 共用同一个 ChatPanel，通过 session 切换 -->
+                    <!-- 全屏模式下 ChatPanel 通过 Teleport 搬至浮动容器 -->
+                    <Teleport :disabled="teleportDisabled" to="#floating-chat">
+                      <ChatPanel ref="chatPanelRef" :session="panelSession" :readonly="activeTabId !== 'main'"
+                        :hide-header="activeTabId !== 'main'" :agent-tabs="agentTabs" :active-tab-id="activeTabId"
+                        @switch-agent="switchTab"
+                        @save-settings="handleSaveSessionSettings"
+                        @open-session="handleOpenSession"
+                        @select-character="handleSelectCharacter" />
+                    </Teleport>
+
+                    <!-- 右侧大纲导航 -->
+                    <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
+                      :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
+                  </template>
                 </div>
 
                 <!-- 会话工作状态面板 -->
                 <SessionStatusPanel
-                  v-if="showStatusPanel && mainSession"
+                  v-if="showStatusPanel && mainSession && !showTracePanel"
                   :session-id="mainSession.id"
                   :messages="chatPanelRef?.activeMessages || []"
                   @close="showStatusPanel = false"
@@ -141,12 +165,26 @@ import {
   // FileDownloadOutlined,
   // FileUploadOutlined
 } from "@vicons/material";
-import { PanelRightExpand20Filled, DataUsage20Filled } from "@vicons/fluent";
+import { PanelRightExpand20Filled, DataUsage20Filled, Timeline20Filled, Globe20Filled } from "@vicons/fluent";
+import { previewUrl, buildCodeRenderUrl } from '@/utils/workspacePreview';
 
 
 const ChatOutline = defineAsyncComponent(() => import("./ChatOutline.vue"));
 const WorkspaceSidebar = defineAsyncComponent(() => import("./workspace/WorkspaceSidebar.vue"));
 const SessionStatusPanel = defineAsyncComponent(() => import("./SessionStatusPanel.vue"));
+const TracePanel = defineAsyncComponent(() => import("./trace/TracePanel.vue"));
+
+// 轨迹页签：与「对话」互斥切换主区域。
+// 不像工作状态面板那样按会话记忆——轨迹是每次运行后才有意义的内容，
+// 记住上次的开合只会让人切回旧会话时莫名其妙看到一个空面板。
+const showTracePanel = ref(false);
+
+/**
+ * 会话执行轨迹面板显隐
+ */
+function toggleTracePanel() {
+  showTracePanel.value = !showTracePanel.value;
+}
 
 // 会话工作状态面板显示状态
 // 显隐按会话记忆：写在后台会话 settings.statusPanelVisible（PUT /v2/sessions/{id}），
@@ -348,6 +386,30 @@ async function switchTab(tabId: string) {
 }
 
 /**
+ * 内置浏览器按钮激活态：当前工作区正显示浏览器窗口
+ */
+const builtinBrowserActive = computed(() => {
+  return browserWebviewStore.activeWindowId !== null
+    && (tabStore.activeTabKey?.startsWith('browser:') || false);
+});
+
+/**
+ * 打开内置浏览器，默认加载代码渲染预览页
+ */
+async function openBuiltinBrowser(): Promise<void> {
+  if (!mainSession.value) {
+    toast.warning(t('chat.panel.noActiveSession'));
+    return;
+  }
+  try {
+    await previewUrl(buildCodeRenderUrl());
+  } catch (error) {
+    console.error('[ChatPage] 打开内置浏览器失败:', error);
+    toast.error(t('common.error.operationFailed'));
+  }
+}
+
+/**
  * 关闭子 Agent Tab
  */
 function closeSubAgentTab(tabId: string) {
@@ -433,6 +495,8 @@ const fetchSession = async (sessionId: string) => {
     const session = await apiService.fetchSession(sessionId);
     mainSession.value = session;
     restoreStatusPanel(session);
+    // 切会话时回到对话视图：轨迹页签不做记忆，避免切回旧会话直接看到一个空面板
+    showTracePanel.value = false;
 
     // 恢复子会话 Tab：只认旧的 session.subSessions 字段。
     // 原先还会先打一次 /api/sessions/{id}/sub-sessions，但后端从未实现该端点

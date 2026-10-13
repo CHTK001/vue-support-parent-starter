@@ -7,7 +7,7 @@
     :close-on-click-modal="false"
   >
     <!-- 搜索区 -->
-    <div class="flex flex-col gap-4">
+    <div class="kb-refactor flex flex-col gap-4">
       <el-form :model="searchForm" label-width="80px">
         <el-form-item :label="t('knowledge.search.kbLabel')">
           <el-select v-model="searchForm.kbId" :placeholder="t('knowledge.search.kbPlaceholder')" class="w-full" @change="handleKBChange">

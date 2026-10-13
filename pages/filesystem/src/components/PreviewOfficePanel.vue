@@ -142,7 +142,7 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
     const [bridgeOk, fillOk, vueMod, presetMod, cssMod] = await Promise.all([
       installEVirtTableSelectionBridge(),
       installEVirtTableFillerColumns(),
-      import("@file-viewer/vue3"),
+      import("@file-viewer/vue3-full"),
       import("@file-viewer/preset-office"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
     ]);
@@ -151,6 +151,8 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
       console.warn("[PreviewOfficePanel] e-virt-table 窄表格补列补丁未生效");
     }
     void cssMod; // 样式副作用导入（shadow 模式下组件也会自注入，此处冗余但无害）
+    (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
+      .setDefaultFullAssetBaseUrl?.("/");
     officePreset =
       (presetMod as { default?: unknown; officeRenderers?: unknown }).default
       ?? (presetMod as { officeRenderers?: unknown }).officeRenderers;
@@ -172,6 +174,13 @@ const viewerOptions = computed(() => ({
   rendererMode: "replace" as const,
   theme: "light" as const,
   toolbar: { position: "bottom-right" as const },
+  presentation: {
+    workerUrl: "/vendor/pptx/pptx.worker.js",
+    pptModuleUrl: "/vendor/ppt/index.mjs",
+    pptWorkerUrl: "/vendor/ppt/worker.mjs",
+    pptWasmUrl: "/vendor/ppt/ppt-native.wasm",
+    pptFontUrl: "/vendor/ppt/ppt-font-cjk.otf",
+  },
 }));
 
 /** 加载失败信息（渲染错误时展示，便于定位） */
@@ -734,6 +743,10 @@ defineExpose({ wrapRef });
   position: relative;
   width: 100%;
   flex: 1;
+  /* height:100% 兜底：宿主把根元素 display 覆盖成 block（如统一预览入口）
+     时 flex:1 失效，wrap 会塌成内容高度（实测 CSV 47px）——显式高度保证
+     表格/文档渲染容器始终吃满面板。 */
+  height: 100%;
   min-height: 0;
   /* 唯一滚动容器：Office 组件内容超出时在这里滚，而不是撑高弹框 */
   overflow: auto;
@@ -742,6 +755,10 @@ defineExpose({ wrapRef });
 
 .preview-office-panel__body {
   width: 100%;
+  /* 吃满 wrap 高度：内部 file-viewer（shadow host）的 :host 是 display:block
+     且 Univer 表格容器按容器高度初始化——缺这条时空表格只有内容高度
+     （实测 CSV 47px），在统一预览入口的全高容器里表现为「高度不够」。 */
+  height: 100%;
   min-height: 0;
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color-page);
@@ -753,6 +770,11 @@ defineExpose({ wrapRef });
   justify-content: center;
   min-height: 0;
   flex: 1;
+  /* 显式高度：__wrap 是普通 block 容器（非 flex），
+     flex:1 在 block 容器里不生效，遮罩会塌成文字行高
+     （实测 CSV 加载态 18px vs 容器 468px，「加载中…」
+     贴在顶部而非居中铺满）；height:100% 保证吃满。 */
+  height: 100%;
 }
 
 .preview-office-panel__mask-text {

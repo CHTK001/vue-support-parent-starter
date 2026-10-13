@@ -19,8 +19,10 @@ export type RequestBody = Record<string, unknown> | unknown[] | FormData | strin
 
 /** 单请求加密/loading 标记（供加密拦截器读取） */
 export interface HttpMetaConfig {
-  /** 是否加密该请求体（覆盖全局 encrypt） */
+  /** 是否加密该请求体（覆盖全局 encrypt，x-ec/x-ck 协议） */
   encrypt?: boolean;
+  /** 是否按后端 codec 协议加密该请求体（access-control-origin-key，覆盖 requestCodec 配置） */
+  codec?: boolean;
   /** 是否显示 loading（覆盖全局 showLoading） */
   showLoading?: boolean;
   /** 是否允许失败重试（覆盖方法白名单；POST/PATCH 等非幂等方法按需显式开启） */
@@ -38,8 +40,10 @@ export interface ChainableRequest {
   timeout(ms: number): ChainableRequest;
   /** 单请求 loading 开关（默认走全局 showLoading） */
   loading(show: boolean): ChainableRequest;
-  /** 单请求加密开关（默认走全局 encrypt） */
+  /** 单请求加密开关（默认走全局 encrypt，x-ec/x-ck 协议） */
   encrypt(on: boolean): ChainableRequest;
+  /** 单请求 codec 加密开关（后端 access-control-origin-key 协议；需 requestCodec 配置 key） */
+  codec(on: boolean): ChainableRequest;
   /** 单请求重试开关（默认走方法白名单：仅幂等方法自动重试；POST/PATCH 按需显式开启） */
   retry(on: boolean): ChainableRequest;
   /** 静默失败提示（禁用统一 toast，仍 reject；默认 false） */

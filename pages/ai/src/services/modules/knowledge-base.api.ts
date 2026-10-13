@@ -83,6 +83,17 @@ export interface KnowledgeBaseApi {
   ): Promise<{ files: number; entityCount: number; relationCount: number; elapsedMs: number }>;
   /** 关系图谱计数：GET /v2/rag/graph/count */
   fetchKnowledgeGraphCount(kbId: string): Promise<{ entityCount: number; relationCount: number }>;
+  /** 扩线：GET /v2/rag/graph/neighbors，返回直接邻居子图 */
+  fetchGraphNeighbors(
+    kbId: string,
+    uid: string,
+  ): Promise<{ nodes: any[]; edges: any[]; entityCount: number; relationCount: number; placeholder: boolean }>;
+  /** 实体详情：GET /v2/rag/graph/entity/detail，返回属性/描述/关系数 */
+  fetchGraphEntityDetail(kbId: string, uid: string): Promise<any>;
+  /** 读取图谱布局设置：GET /v2/rag/graph/settings，返回 settings JSON 字符串 */
+  fetchGraphLayoutSettings(kbId: string): Promise<{ settings: string }>;
+  /** 保存图谱布局设置：POST /v2/rag/graph/settings */
+  saveGraphLayoutSettings(kbId: string, settings: string): Promise<any>;
   /** 关系抽取开关是否启用：GET /v2/rag/graph/enabled */
   fetchRelationExtractEnabled(): Promise<boolean>;
   /** 列表页统计（汇总 + 每库计数） */
@@ -766,6 +777,52 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
       entityCount: toNumber(data.entity_count),
       relationCount: toNumber(data.relation_count),
     };
+  },
+
+  /** 扩线：GET /v2/rag/graph/neighbors?knowledge_base_id=&uid= */
+  async fetchGraphNeighbors(kbId: string, uid: string) {
+    const route = "GET /v2/rag/graph/neighbors";
+    const env = await apiHttp.get("/v2/rag/graph/neighbors", {
+      params: { knowledge_base_id: kbId, uid },
+    });
+    const data = unwrapData<any>(env, route) ?? { nodes: [], edges: [] };
+    return {
+      nodes: Array.isArray(data.nodes) ? data.nodes : [],
+      edges: Array.isArray(data.edges) ? data.edges : [],
+      entityCount: toNumber(data.entityCount),
+      relationCount: toNumber(data.relationCount),
+      placeholder: Boolean(data.placeholder),
+    };
+  },
+
+  /** 实体详情：GET /v2/rag/graph/entity/detail?knowledge_base_id=&uid= */
+  async fetchGraphEntityDetail(kbId: string, uid: string) {
+    const route = "GET /v2/rag/graph/entity/detail";
+    const env = await apiHttp.get("/v2/rag/graph/entity/detail", {
+      params: { knowledge_base_id: kbId, uid },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** 图谱布局设置读取：GET /v2/rag/graph/settings?knowledge_base_id= */
+  async fetchGraphLayoutSettings(kbId: string) {
+    const route = "GET /v2/rag/graph/settings";
+    const env = await apiHttp.get("/v2/rag/graph/settings", {
+      params: { knowledge_base_id: kbId },
+    });
+    const data = unwrapData<any>(env, route) ?? {};
+    return {
+      settings: typeof data.settings === "string" ? data.settings : "",
+    };
+  },
+
+  /** 图谱布局设置保存：POST /v2/rag/graph/settings?knowledge_base_id=&settings= */
+  async saveGraphLayoutSettings(kbId: string, settings: string) {
+    const route = "POST /v2/rag/graph/settings";
+    const env = await apiHttp.post("/v2/rag/graph/settings", {}, {
+      params: { knowledge_base_id: kbId, settings },
+    });
+    return unwrapData<any>(env, route) ?? {};
   },
 
   /** 关系提取开关状态：GET /v2/rag/graph/enabled */

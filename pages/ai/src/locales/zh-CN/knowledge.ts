@@ -39,6 +39,7 @@ export default {
     backToList: '返回知识库列表',
     tabFiles: '文件列表',
     tabSearch: '搜索',
+    tabAsk: '智能问答',
     // 创建/编辑对话框
     createTitle: '创建知识库',
     editTitle: '编辑知识库',

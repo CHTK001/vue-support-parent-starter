@@ -11,21 +11,30 @@
  *
  * 尺寸：type="small | default | large" 对五种布局统一生效（size 为旧名，兼容保留）。
  *
- * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
- *   1) data   —— 静态数组（也可用 options 别名）
+ * 数据源（语义清晰，遵循 data=静态/函数、url=远程地址、loader=函数 三分原则）：
+ *   1) data   —— 静态数组（也可用 options 别名）；**传函数则等价于 loader**，见下
  *   2) url    —— 远程接口地址，自动请求 + 防抖 + 重试（getApiHttp）
  *   3) loader —— 自定义加载函数 (params) => Promise<ReOption[]>，用于复杂场景
+ *
+ * 其中「传函数走远程」与 ReTable 的约定一致：:data 传函数即后端加载器，
+ * 与 :loader 二选一；两者都传时以 data 的函数形态优先（同 ReTable）。
  *
  * 用法：
  *   <ReSelect :data="[{label:'男',value:1}]" />
  *   <ReSelect url="/api/roles" v-model="id" />
+ *   <ReSelect :data="(p) => fetchRoles(p)" v-model="id" />
  *   <ReSelect :loader="(p) => fetchRoles(p)" v-model="id" />
+ *
+ * 远程结果缓存（cache=true 时生效，与 ReTable 同一套 cache / cacheTtl / cacheKey / cacheStorage）：
+ *   同一「查询条件（params + keyword）」在 cacheTtl 内再次出现时直接读存档，不再请求；
+ *   显式 reload() 绕过缓存一次并顺手写回，暴露 clearCache() 供增删改后主动失效。
  */
-import { computed, defineAsyncComponent, ref, useAttrs, watch } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref, useAttrs, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
-import type { ReOption, ReSelectLayout, ReSelectSize } from "./types";
-import { debounce } from "@repo/utils";
+import type { ReOption, ReSelectCacheStorage, ReSelectLayout, ReSelectLoader, ReSelectSize } from "./types";
+import { debounce, createStorage, browserLocalStorage, browserSessionStorage, type StorageWrapper } from "@repo/utils";
+import { getStorageKey } from "@repo/config";
 import "../shared/modern-vars.css";
 
 /** 卡片下拉布局组件（按需异步加载） */
@@ -41,16 +50,42 @@ const model = defineModel<string | number | (string | number)[] | null>({ defaul
 
 const props = withDefaults(
   defineProps<{
-    /** 静态选项数组（与 url/loader 三选一） */
-    data?: ReOption[];
-    /** 静态选项别名（与 data 等价，语义更明确） */
+    /** 静态选项数组；传函数则等价于 loader，走远程加载（与 ReTree / ReTable 同一口径） */
+    data?: ReOption[] | ReSelectLoader;
+    /** 静态选项别名（与 data 传数组等价） */
     options?: ReOption[];
-    /** 远程 url（与 data/loader 三选一）；自动 GET + 防抖 + 重试 */
+    /**
+     * 远程 url。
+     *
+     * <p>统一口径为 {@link data}（数组｜函数）+ {@link loader}（函数）；本项是等价的便捷别名，
+     * 内部与 loader 同一条远程加载路径（自动 GET + 防抖 + 重试）。</p>
+     */
     url?: string;
-    /** 自定义加载器（与 data/url 三选一），签名 (params: {keyword?:string}) => ReOption[] | Promise<ReOption[]> */
-    loader?: (params?: Record<string, unknown>) => ReOption[] | Promise<ReOption[]>;
+    /** 远程加载器（与 data 传函数等价），签名 (params: {keyword?:string}) => ReOption[] | Promise<ReOption[]> */
+    loader?: ReSelectLoader;
     /** 远程/loader 查询参数 */
     params?: Record<string, unknown>;
+    /**
+     * 远程结果缓存（默认 false，仅远程模式生效），语义与 ReTable 的 cache 一致。
+     *
+     * <p>开启后，同一「查询条件（params + filterable 关键词）」在 {@link cacheTtl} 内
+     * 再次出现时直接读存档、不再请求 data / loader / url。典型场景是「打开下拉 → 关闭 →
+     * 再打开」或同一选项在多处复用，省掉重复请求与 loading 闪烁。</p>
+     *
+     * <p>显式 {@code reload()}（含外部调用与工具栏刷新）必定绕过缓存并顺手写回存档；
+     * 增删改后可用暴露的 {@code clearCache()} 主动失效。</p>
+     *
+     * <p><b>前提</b>：能定位到缓存命名空间 —— 传了 {@link cacheKey}，或使用了 {@link url}
+     * （缺省用 url 作命名空间）。仅用 loader 函数时务必显式传 {@link cacheKey}，
+     * 否则缓存不生效，dev 下告警一次。</p>
+     */
+    cache?: boolean;
+    /** 缓存有效期（毫秒），默认 300000（5 分钟）；传 0 表示不过期 */
+    cacheTtl?: number;
+    /** 缓存命名空间；缺省用 url。同一 url 被多个下拉共用且需各自独立缓存时必须显式区分 */
+    cacheKey?: string;
+    /** 缓存载体：session（默认，关标签页即失效）/ local（跨会话保留） */
+    cacheStorage?: ReSelectCacheStorage;
     /** 布局模式：default / card / table / square */
     layout?: ReSelectLayout;
     /** placeholder */
@@ -113,6 +148,10 @@ const props = withDefaults(
     url: "",
     loader: undefined,
     params: () => ({}),
+    cache: false,
+    cacheTtl: 300000,
+    cacheKey: "",
+    cacheStorage: "session",
     layout: "default",
     placeholder: "请选择",
     clearable: false,
@@ -136,8 +175,10 @@ const props = withDefaults(
   },
 );
 
-/** 是否为远程模式（url / loader） */
-const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.loader === "function");
+/** 是否为远程模式（url / loader / data 传函数） */
+const isRemote = computed<boolean>(
+  () => Boolean(props.url) || typeof props.loader === "function" || typeof props.data === "function",
+);
 
 /**
  * 最终生效的尺寸档位：type 优先，size 作为兼容别名兜底。
@@ -147,8 +188,10 @@ const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.load
  */
 const controlSize = computed<ReSelectSize>(() => props.type ?? props.size ?? "default");
 
-/** 静态模式下的最终数据（data 优先，否则 options） */
-const staticData = computed<ReOption[]>(() => props.data ?? props.options ?? []);
+/** 静态模式下的最终数据（data 传数组优先，否则 options） */
+const staticData = computed<ReOption[]>(() =>
+  Array.isArray(props.data) ? props.data : (props.options ?? []),
+);
 
 /** 远程搜索关键词（当 filterable 时自动收集） */
 const keyword = ref("");
@@ -162,9 +205,119 @@ const remoteParams = computed(() => {
   return base;
 });
 
+/* ========== 远程结果缓存（仅远程模式，语义对齐 ReTable） ========== */
+
 /**
- * 远程加载函数：url 模式用 getApiHttp（拦截器含加密/签名/重试），
- * loader 模式直接调用用户函数。
+ * 缓存命名空间：显式 {@code cacheKey} 优先，缺省回落到 {@link url}。
+ *
+ * <p>空串 = 不缓存：既没传 cacheKey 又不是 url 模式（即仅有 loader 函数）时，
+ * 无法定位这份缓存属于谁，硬存只会让不同下拉互相覆盖。此时 dev 下告警一次。</p>
+ */
+const cacheNamespace = computed<string>(() => {
+  if (!props.cache) return "";
+  return props.cacheKey || props.url || "";
+});
+
+/**
+ * 缓存载体：按 {@code cacheStorage} 选 session / local，并以命名空间为前缀建独立实例。
+ *
+ * <p>用带前缀的独立实例而不是裸的 localStore / sessionStore，是为了 {@link clearCache}
+ * 的 {@code clear()} 只清本下拉这一份 —— 裸实例前缀为空，clear 会把同 storage 里的
+ * 列配置、token 一起端掉。</p>
+ */
+const cacheStore = computed<StorageWrapper | null>(() => {
+  const ns = cacheNamespace.value;
+  if (!ns) return null;
+  return createStorage(props.cacheStorage === "local" ? browserLocalStorage : browserSessionStorage, {
+    prefix: getStorageKey(`re-select-cache:${ns}`),
+  });
+});
+
+/** 缓存是否生效：开关打开 + 命名空间定位得到 */
+const cacheEnabled = computed<boolean>(() => cacheStore.value !== null);
+
+/**
+ * 下一次取数强制走网络（显式 reload 用）。
+ *
+ * <p>「显式刷新」的语义就是「我要最新的」：绕过读缓存，拿到响应后照常写回。
+ * 标志在 {@link buildRemoteSource} 的 run 里读一次即清零 —— 只影响紧接着的这一次取数。</p>
+ */
+let bypassCacheOnce = false;
+
+/** 条目 key = 查询指纹（params + keyword 全量参与，任一不同即另一批选项） */
+function buildCacheEntryKey(paramObj: Record<string, unknown>): string {
+  return JSON.stringify(paramObj);
+}
+
+/** 读缓存：命中且形状是数组才返回，否则一律当作未命中 */
+function readCachedOptions(entryKey: string): ReOption[] | null {
+  const store = cacheStore.value;
+  if (!store) return null;
+  const cached = store.get<unknown>(entryKey);
+  return Array.isArray(cached) ? (cached as ReOption[]) : null;
+}
+
+/** 写缓存；失败（隐私模式 / 配额满）由 StorageWrapper 内部吞掉，不影响本次取数 */
+function writeCachedOptions(entryKey: string, options: ReOption[]): void {
+  const store = cacheStore.value;
+  if (!store) return;
+  // 0 / 负数 / NaN 一律按不过期处理（StorageWrapper 对 falsy 的 expires 即不写过期元数据）
+  const ttl = Number(props.cacheTtl);
+  store.set(entryKey, options, Number.isFinite(ttl) && ttl > 0 ? Math.round(ttl) : 0);
+}
+
+/** 清空本下拉全部缓存条目（所有查询条件），供页面在增删改后主动失效 */
+function clearCache(): void {
+  cacheStore.value?.clear();
+}
+
+onMounted(() => {
+  if (props.cache && !cacheNamespace.value && import.meta.env.DEV) {
+    console.warn(
+      "[ReSelect] cache 已开启但既未传 cacheKey 也无 url，无法定位缓存命名空间，本次不生效。仅用 loader 时请显式传 cacheKey。",
+    );
+  }
+});
+
+/**
+ * 真正取数：data 传函数 / loader 模式直接调用用户函数，
+ * url 模式用 getApiHttp（拦截器含加密/签名/重试）。
+ */
+async function fetchRemoteOptions(paramObj: Record<string, unknown>): Promise<ReOption[]> {
+  // data 传函数与 loader 等价，且 data 优先（同 ReTable 约定）
+  if (typeof props.data === "function") {
+    return await props.data(paramObj);
+  }
+  if (typeof props.loader === "function") {
+    return await props.loader(paramObj);
+  }
+  // url 模式
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(paramObj)) {
+    if (v === undefined || v === null || v === "") continue;
+    qs.set(k, String(v));
+  }
+  const sep = props.url.includes("?") ? "&" : "?";
+  const fullUrl = `${props.url}${qs.toString() ? sep + qs.toString() : ""}`;
+  const res = await getApiHttp()
+    .get(fullUrl)
+    .then((r) => r.data as ReOption[] | { data: ReOption[]; records?: ReOption[]; rows?: ReOption[]; list?: ReOption[]; items?: ReOption[] });
+  const body = res;
+  if (Array.isArray(body)) return body;
+  if (body && typeof body === "object") {
+    const obj = body as Record<string, unknown>;
+    for (const key of ["records", "rows", "list", "items", "content", "data"]) {
+      if (Array.isArray(obj[key])) return obj[key] as ReOption[];
+    }
+  }
+  return [];
+}
+
+/**
+ * 远程加载函数（useDataSource 的 source）。
+ *
+ * <p>列表结果缓存也挂在这一层：先按查询指纹读档（显式 reload 的这次跳过），
+ * 未命中才真正取数并写回。</p>
  */
 function buildRemoteSource(): ReDataSource<ReOption[]> {
   const run = async (): Promise<ReOption[]> => {
@@ -172,30 +325,21 @@ function buildRemoteSource(): ReDataSource<ReOption[]> {
     if (props.filterable && keyword.value) {
       paramObj.keyword = keyword.value;
     }
+
+    /* 先取标志再清零 —— 顺序反了会在命中提前 return 时把标志漏给下一次取数 */
+    const bypass = bypassCacheOnce;
+    bypassCacheOnce = false;
+    const entryKey = cacheEnabled.value ? buildCacheEntryKey(paramObj) : "";
+    if (entryKey && !bypass) {
+      const cached = readCachedOptions(entryKey);
+      if (cached) return cached;
+    }
+
     try {
-      if (typeof props.loader === "function") {
-        return await props.loader(paramObj);
-      }
-      // url 模式
-      const qs = new URLSearchParams();
-      for (const [k, v] of Object.entries(paramObj)) {
-        if (v === undefined || v === null || v === "") continue;
-        qs.set(k, String(v));
-      }
-      const sep = props.url.includes("?") ? "&" : "?";
-      const fullUrl = `${props.url}${qs.toString() ? sep + qs.toString() : ""}`;
-      const res = await getApiHttp()
-        .get(fullUrl)
-        .then((r) => r.data as ReOption[] | { data: ReOption[]; records?: ReOption[]; rows?: ReOption[]; list?: ReOption[]; items?: ReOption[] });
-      const body = res;
-      if (Array.isArray(body)) return body;
-      if (body && typeof body === "object") {
-        const obj = body as Record<string, unknown>;
-        for (const key of ["records", "rows", "list", "items", "content", "data"]) {
-          if (Array.isArray(obj[key])) return obj[key] as ReOption[];
-        }
-      }
-      return [];
+      const options = await fetchRemoteOptions(paramObj);
+      // 写回存档：reload 是绕过读缓存走过来的，照常写回，于是「显式刷新」既拿到新数据也顺手更新缓存
+      if (entryKey) writeCachedOptions(entryKey, options);
+      return options;
     } catch (e) {
       console.error("[ReSelect] 数据加载失败", e);
       return [];
@@ -313,10 +457,25 @@ const modernProps = computed(() => {
 const attrs = useAttrs();
 const modernBind = computed(() => ({ ...modernProps.value, ...attrs }));
 
+/**
+ * 显式重新加载：绕过缓存一次（拿到最新数据），拿到响应后照常写回存档。
+ *
+ * <p>与 ReTable 的 {@code reload()} 同一语义：默认的 params / keyword 变化重载仍走缓存，
+ * 只有这里的显式刷新强制走网络。</p>
+ */
+function reload(): Promise<void> {
+  bypassCacheOnce = isRemote.value;
+  return dsReload();
+}
+
 defineExpose({
-  reload: dsReload,
+  reload,
+  clearCache,
   get loading(): boolean {
     return dataLoading.value;
+  },
+  get cacheEnabled(): boolean {
+    return cacheEnabled.value;
   },
   get data(): ReOption[] | null {
     return dataList.value;

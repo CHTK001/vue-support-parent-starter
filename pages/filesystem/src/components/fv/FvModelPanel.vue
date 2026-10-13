@@ -72,7 +72,7 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   try {
     const [vueMod, cssMod] = await Promise.all([
-      import("@file-viewer/vue3"),
+      import("@file-viewer/vue3-full"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
     ]);
     void cssMod; // 样式副作用导入
