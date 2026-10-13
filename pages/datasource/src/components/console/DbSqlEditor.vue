@@ -274,9 +274,16 @@ function buildLanguageExt(): Extension {
         : lang === "redis"
           ? redisStreamParser
           : mongoStreamParser;
+    // 补全源必须随**语言本身**提供：StreamLanguage 会用自己的 languageData 覆盖
+    // 另挂在顶层的 EditorState.languageData.of(...)，autocompletion() 因此取不到源，
+    // 表现为「输入任何内容都不弹提示」（实测 DOM 里连 .cm-tooltip 都没有，
+    // 连内置关键字 fi 也弹不出）。
+    const parserWithAc = {
+      ...parser,
+      languageData: { ...(parser.languageData ?? {}), autocomplete: keywordCompleter() },
+    };
     return [
-      StreamLanguage.define(parser),
-      EditorState.languageData.of(() => [{ autocomplete: keywordCompleter() }]),
+      StreamLanguage.define(parserWithAc),
     ];
   }
   return sql({ schema: buildSchema(), upperCaseKeywords: false });
@@ -295,16 +302,25 @@ function keywordCompleter() {
           ? MONGO_KEYWORDS
           : [];
   return (context: CompletionContext) => {
-    const word = context.matchBefore(/[\w]*/);
+    // 光标前的 token 要按「点分路径的最后一段」取，而不是整段 db.xxx_or：
+    // Mongo Shell 里写的是 db.<集合>.find()，用户在 db.ngxacc_o 后面继续输入时，
+    // 若拿整段（含 db. 前缀）去匹配集合名，候选一个都命中不了，补全就永远弹不出来。
+    // 同理不能只取 \w+（会拿到 or），要取到路径最后一段的起点。
+    const word = context.matchBefore(/[A-Za-z_$][\w$]*$/);
     if (!word || (word.from === word.to && !context.explicit)) return null;
+    const typed = context.state.sliceDoc(word.from, word.to).toLowerCase();
     const baseSet = new Set(base);
     const seen = new Set<string>();
     const options: { label: string; type: string }[] = [];
     for (const w of [...base, ...(props.keywords ?? [])]) {
       if (!w || seen.has(w)) continue;
+      // 只有以已输入片段开头的候选才有意义，否则 CodeMirror 会把它们全过滤掉、
+      // 表现为「补全完全弹不出来」
+      if (typed && !w.toLowerCase().startsWith(typed)) continue;
       seen.add(w);
       options.push({ label: w, type: baseSet.has(w) ? "keyword" : "variable" });
     }
+    if (options.length === 0) return null;
     return { from: word.from, options };
   };
 }
