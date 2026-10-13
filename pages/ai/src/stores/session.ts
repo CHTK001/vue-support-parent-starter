@@ -53,6 +53,36 @@ export const useSessionStore = defineStore('session', () => {
     const workingStartAt: Ref<Map<string, number>> = ref(new Map())
 
     /**
+     * 各会话最近一次完成的运行耗时（毫秒）。
+     * 流式结束（会话完成）时结算并记录到浏览器 localStorage，停止后灰显。
+     */
+    const lastRunMs: Ref<Map<string, number>> = ref(new Map())
+
+    /** localStorage 键：最近运行耗时（浏览器持久化） */
+    const RUN_DURATION_KEY = 'ai-session.last-run-ms'
+
+    const loadRunDurations = (): void => {
+        try {
+            const raw = window.localStorage.getItem(RUN_DURATION_KEY)
+            if (!raw) return
+            const parsed = JSON.parse(raw) as Record<string, unknown>
+            for (const [id, ms] of Object.entries(parsed)) {
+                if (typeof ms === 'number' && ms >= 0) lastRunMs.value.set(id, ms)
+            }
+        } catch { /* 本地数据损坏时忽略，下次写入会覆盖 */ }
+    }
+
+    const saveRunDurations = (): void => {
+        try {
+            const obj: Record<string, number> = {}
+            for (const [id, ms] of lastRunMs.value.entries()) obj[id] = ms
+            window.localStorage.setItem(RUN_DURATION_KEY, JSON.stringify(obj))
+        } catch { /* 隐私模式/存储满：静默降级为仅内存态 */ }
+    }
+
+    loadRunDurations()
+
+    /**
      * 获取或初始化会话状态
      * @param sessionId - 会话 ID
      */
@@ -295,12 +325,35 @@ export const useSessionStore = defineStore('session', () => {
     }
 
     /**
-     * 设置会话流式状态
+     * 结算一次运行：按运行起点算出耗时，记入 lastRunMs 并持久化到浏览器。
+     * 没有起点（从未开始或已结算）时是空操作。
+     * @param sessionId - 会话 ID
+     */
+    const settleRun = (sessionId: string): void => {
+        const start = workingStartAt.value.get(sessionId)
+        if (start == null) return
+        const ms = Math.max(0, Date.now() - start)
+        lastRunMs.value.set(sessionId, ms)
+        saveRunDurations()
+        workingStartAt.value.delete(sessionId)
+    }
+
+    /**
+     * 设置会话流式状态，同时驱动运行计时：
+     * 开始（点击发送）时起点重写为当前时刻——重新开启；
+     * 结束时结算耗时并记录，停止后侧边栏灰显最近一次执行时间。
      * @param sessionId - 会话 ID
      * @param isStreaming - 是否正在流式响应
      */
     const setSessionIsStreaming = (sessionId: string, isStreaming: boolean): void => {
         getSessionState(sessionId).isStreaming = isStreaming
+        if (isStreaming) {
+            workingStartAt.value.set(sessionId, Date.now())
+            setWorking(sessionId, true)
+        } else {
+            settleRun(sessionId)
+            setWorking(sessionId, false)
+        }
     }
 
     // === 消息队列操作 ===
@@ -546,6 +599,14 @@ export const useSessionStore = defineStore('session', () => {
     }
 
     /**
+     * 取最近一次完成的运行耗时（毫秒）；未记录时返回 null。
+     * @param sessionId - 会话 ID
+     */
+    const getLastRunMs = (sessionId: string): number | null => {
+        return lastRunMs.value.get(sessionId) ?? null
+    }
+
+    /**
      * 清理侧边栏状态（删除会话时调用）
      * @param sessionId - 会话 ID
      */
@@ -563,6 +624,8 @@ export const useSessionStore = defineStore('session', () => {
     const clearSessionState = (sessionId: string): void => {
         sessions.value.delete(sessionId)
         sessionsMap.value.delete(sessionId)
+        lastRunMs.value.delete(sessionId)
+        saveRunDurations()
         clearSidebarState(sessionId)
     }
 
@@ -643,6 +706,7 @@ export const useSessionStore = defineStore('session', () => {
         syncStreamingState,
         setWorking,
         getWorkingStartAt,
+        getLastRunMs,
         clearSidebarState,
     }
 })

@@ -119,7 +119,12 @@
                     class="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-500 whitespace-nowrap">
                     {{ formatWorkingElapsed(session.id) }}
                   </span>
-                  <!-- 最后活跃时间（非当前会话、非运行时显示，hover 时隐藏，右对齐悬浮） -->
+                  <!-- 最近一次执行耗时（非运行时灰显，当前会话也显示——完成即记录；hover 时隐藏，右对齐悬浮） -->
+                  <span v-else-if="formatLastRun(session.id)"
+                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
+                    {{ formatLastRun(session.id) }}
+                  </span>
+                  <!-- 最后活跃时间（无执行记录时回退，hover 时隐藏，右对齐悬浮） -->
                   <span v-else-if="session.id !== currentSessionId"
                     class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
                     {{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
@@ -960,17 +965,28 @@ let tickTimer: ReturnType<typeof setInterval> | null = null
  * 起点是 session store 里记录的运行开始时间（working 置 true 的那一刻），
  * 刷新页面后同步到后端流式态时会按同步时刻重建起点（近似值）。
  */
-const formatWorkingElapsed = (sessionId: string): string => {
-  // 读取 tick 让 Vue 将其视为响应式依赖，实现每秒刷新
-  void updateTick.value
-  const start = sessionStore.getWorkingStartAt(sessionId)
-  const seconds = start == null ? 0 : Math.max(0, Math.floor((Date.now() - start) / 1000))
+/** 耗时格式化：不足 1 小时为 M:SS，超过为 H:MM:SS */
+const formatElapsedSeconds = (seconds: number): string => {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = seconds % 60
   const mm = h > 0 ? String(m).padStart(2, '0') : String(m)
   const ss = String(s).padStart(2, '0')
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
+}
+
+const formatWorkingElapsed = (sessionId: string): string => {
+  // 读取 tick 让 Vue 将其视为响应式依赖，实现每秒刷新
+  void updateTick.value
+  const start = sessionStore.getWorkingStartAt(sessionId)
+  const seconds = start == null ? 0 : Math.max(0, Math.floor((Date.now() - start) / 1000))
+  return formatElapsedSeconds(seconds)
+}
+
+/** 最近一次完成的执行耗时（无记录返回空串） */
+const formatLastRun = (sessionId: string): string => {
+  const ms = sessionStore.getLastRunMs(sessionId)
+  return ms == null ? '' : formatElapsedSeconds(Math.floor(ms / 1000))
 }
 
 const formatLastActive = (dateStr: string | null | undefined): string => {
