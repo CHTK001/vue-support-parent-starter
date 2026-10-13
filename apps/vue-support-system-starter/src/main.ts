@@ -34,6 +34,10 @@ import { getActiveAnnouncements, markAnnouncementRead } from "@pages/system/api/
 import "@pages/filesystem";
 import "@pages/job";
 import "@pages/task";
+// AI 提供商管理（= pages/ai 的模型管理页）以内部普通页面菜单嵌入宿主。
+// 深导入 /menu 而非包根：包根 index.ts 会 re-export main.js（ai-guada 启动壳入口），
+// 那会同步加载 App.vue 壳与 element-plus/tailwind/refactor 等全局样式，污染本应用。
+import "@pages/ai/menu";
 
 // 主题层不反向依赖 pages/*：由应用把公告接口实现注入 @repo/theme 的注册表，
 // AnnouncementBar 通过 getAnnouncementApi 取用；不注入则静默不请求。
