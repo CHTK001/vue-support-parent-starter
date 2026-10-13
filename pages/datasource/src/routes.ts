@@ -39,6 +39,7 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   nginx: "/nginx",
   etcd: "/etcd",
   prometheus: "/prometheus",
+  mongodb: "/mongodb",
 };
 
 /**
@@ -148,6 +149,12 @@ export function createDatasourceManageRoutes(
       name: "Prometheus",
       component: () => import("./views/console/PrometheusManageView.vue"),
       meta: { title: "Prometheus 管理", icon: "DataLine", ...common },
+    },
+    {
+      path: "/mongodb",
+      name: "MongoDB",
+      component: () => import("./views/console/MongoManageView.vue"),
+      meta: { title: "MongoDB 管理", icon: "Coin", ...common },
     },
     {
       path: "/prometheus/embed/:token",

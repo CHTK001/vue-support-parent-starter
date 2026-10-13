@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * 查询编辑器（CodeMirror 6 三方组件封装）—— SQL / Flux / Cypher 统一入口。
+ * 查询编辑器（CodeMirror 6 三方组件封装）—— SQL / Flux / Cypher / Redis / Mongo Shell 统一入口。
  *
  * <p>能力全部由三方组件提供：</p>
  * <ul>
  *   <li>sql：{@code @codemirror/lang-sql} 语法高亮 + 关键字/表/字段补全；</li>
- *   <li>flux / cypher：{@code StreamLanguage} 流式高亮 + 关键字补全
- *       （内置管道函数/查询关键字，叠加调用方传入的 bucket、标签等动态候选）；</li>
+ *   <li>flux / cypher / redis / mongo：{@code StreamLanguage} 流式高亮 + 关键字补全
+ *       （内置管道函数/查询关键字/命令/shell 方法，叠加调用方传入的 bucket、集合名等动态候选）；</li>
  *   <li>{@code @codemirror/autocomplete}：补全下拉（输入即弹、Enter/Tab 采纳）；</li>
  *   <li>{@code @codemirror/commands}：历史/默认按键；额外绑定 Ctrl+Enter 执行。</li>
  * </ul>
@@ -30,8 +30,8 @@ import type { StreamParser } from "@codemirror/language";
 const props = defineProps<{
   /** 编辑器文本（v-model） */
   modelValue: string;
-  /** 编辑器语言：sql（默认，表/字段补全）| flux | cypher | redis —— 查询统一走本组件 */
-  language?: "sql" | "flux" | "cypher" | "redis";
+  /** 编辑器语言：sql（默认，表/字段补全）| flux | cypher | redis | mongo —— 查询统一走本组件 */
+  language?: "sql" | "flux" | "cypher" | "redis" | "mongo";
   /** 动态补全候选（flux：bucket/测量名；cypher：标签/关系类型），与内置关键字合并去重 */
   keywords?: string[];
   /** 占位提示，缺省按语言给默认文案 */
@@ -120,9 +120,31 @@ const REDIS_KEYWORDS = [
   "VLINKS", "VRANDMEMBER", "VREM", "VSETATTR", "VSIM",
 ];
 
+/**
+ * MongoDB Shell 内置关键字（高亮 + 补全共用）。
+ *
+ * <p>口径与后端 {@code MongoShell} 的只读白名单一致：只列 shell 方法（db、
+ * find/findOne/count/countDocuments/aggregate 与链式修饰符）、查询/更新运算符
+ * 前缀与类型构造器。写方法（insert、update、delete、drop 等）刻意不入表，
+ * 免得补全把后端会拒绝的语句推给用户。</p>
+ */
+const MONGO_KEYWORDS = [
+  "db", "find", "findOne", "count", "countDocuments", "aggregate", "limit", "skip", "sort",
+  "$eq", "$ne", "$gt", "$gte", "$lt", "$lte", "$in", "$nin", "$and", "$or", "$not", "$nor",
+  "$exists", "$type", "$regex", "$mod", "$all", "$elemMatch", "$size", "$expr",
+  "$sum", "$avg", "$min", "$max", "$first", "$last", "$push", "$addToSet", "$group",
+  "$match", "$project", "$sort", "$limit", "$skip", "$unwind", "$lookup", "$group",
+  "$addFields", "$set", "$unset", "$replaceRoot", "$replaceWith", "$facet", "$count",
+  "$sortByCount", "$bucket", "$graphLookup", "$sample", "$mergeObjects", "$dateToString",
+  "$year", "$month", "$dayOfMonth", "$concat", "$substr", "$toUpper", "$toLower", "$split",
+  "ObjectId", "ISODate", "NumberLong", "NumberInt", "NumberDecimal", "UUID", "BinData",
+  "null", "true", "false",
+];
+
 const FLUX_SET = new Set(FLUX_KEYWORDS);
 const CYPHER_SET = new Set(CYPHER_KEYWORDS);
 const REDIS_SET = new Set(REDIS_KEYWORDS);
+const MONGO_SET = new Set(MONGO_KEYWORDS);
 
 /** 编辑器等宽字体栈（为什么需要逐元素设置，见 onMounted 内 theme 的注释） */
 const MONO_FONT = "var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace)";
@@ -192,6 +214,33 @@ const redisStreamParser: StreamParser<object> = {
   languageData: {},
 };
 
+/**
+ * 轻量 Mongo Shell 流式解析器：shell 方法与链式修饰符高亮，{@code ObjectId}/{@code ISODate}
+ * 等构造器与 {@code $-}运算符按原子处理，覆盖注释/字符串/数字。
+ *
+ * <p>大小写敏感：Mongo Shell 的方法名（{@code findOne}、{@code countDocuments}）
+ * 与 {@code $-}运算符都区分大小写，与真实 shell 行为一致。</p>
+ */
+const mongoStreamParser: StreamParser<object> = {
+  startState: () => ({}),
+  token(stream) {
+    if (stream.eatSpace()) return null;
+    if (stream.match("//")) {
+      stream.skipToEnd();
+      return "comment";
+    }
+    if (stream.match(/^"(?:[^"\\]|\\.)*"/) || stream.match(/^'(?:[^'\\]|\\.)*'/)) return "string";
+    if (stream.match(/^-?\d+(\.\d+)?([eE][+-]?\d+)?/)) return "number";
+    if (stream.match(/^\$[A-Za-z]+/)) return "atom";
+    if (stream.match(/^[A-Za-z_$][A-Za-z0-9_$]*/)) {
+      return MONGO_SET.has(stream.current()) ? "keyword" : "variableName";
+    }
+    stream.next();
+    return "operator";
+  },
+  languageData: { commentTokens: { line: "//" } },
+};
+
 const host = ref<HTMLDivElement>();
 const view = shallowRef<EditorView>();
 
@@ -214,21 +263,26 @@ function buildSchema(): Record<string, string[]> {
   return schema;
 }
 
-/** 按语言组装语言扩展：sql 走 lang-sql（含 schema 补全），flux/cypher/redis 走流式解析器 + 关键字补全 */
+/** 按语言组装语言扩展：sql 走 lang-sql（含 schema 补全），flux/cypher/redis/mongo 走流式解析器 + 关键字补全 */
 function buildLanguageExt(): Extension {
   const lang = props.language ?? "sql";
-  if (lang === "flux" || lang === "cypher" || lang === "redis") {
+  if (lang === "flux" || lang === "cypher" || lang === "redis" || lang === "mongo") {
+    const parser = lang === "flux"
+      ? fluxStreamParser
+      : lang === "cypher"
+        ? cypherStreamParser
+        : lang === "redis"
+          ? redisStreamParser
+          : mongoStreamParser;
     return [
-      StreamLanguage.define(
-        lang === "flux" ? fluxStreamParser : lang === "cypher" ? cypherStreamParser : redisStreamParser,
-      ),
+      StreamLanguage.define(parser),
       EditorState.languageData.of(() => [{ autocomplete: keywordCompleter() }]),
     ];
   }
   return sql({ schema: buildSchema(), upperCaseKeywords: false });
 }
 
-/** flux/cypher/redis 的补全源：内置关键字/命令 ∪ 调用方传入的动态候选（bucket、标签等） */
+/** flux/cypher/redis/mongo 的补全源：内置关键字/命令 ∪ 调用方传入的动态候选（bucket、集合名等） */
 function keywordCompleter() {
   const lang = props.language ?? "sql";
   const base = lang === "flux"
@@ -237,7 +291,9 @@ function keywordCompleter() {
       ? CYPHER_KEYWORDS
       : lang === "redis"
         ? REDIS_KEYWORDS
-        : [];
+        : lang === "mongo"
+          ? MONGO_KEYWORDS
+          : [];
   return (context: CompletionContext) => {
     const word = context.matchBefore(/[\w]*/);
     if (!word || (word.from === word.to && !context.explicit)) return null;
@@ -264,6 +320,9 @@ function defaultPlaceholder(): string {
   }
   if (lang === "redis") {
     return "输入 Redis 命令，例如：HGETALL mykey / JSON.GET doc:1（Ctrl+Enter 执行）";
+  }
+  if (lang === "mongo") {
+    return "输入 Mongo Shell 查询，例如：db.orders.find({status: \"PAID\"}).limit(20)（Ctrl+Enter 执行）";
   }
   return "输入 SQL 语句，输入即提示表/字段/关键字（Ctrl+Enter 执行）";
 }
