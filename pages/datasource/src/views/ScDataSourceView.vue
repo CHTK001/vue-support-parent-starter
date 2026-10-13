@@ -452,6 +452,7 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
   nginx: { icon: "Connection", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
   etcd: { icon: "Coin", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
   prometheus: { icon: "DataLine", color: "#e6522c", label: "Prometheus" },
+  mongodb: { icon: "Coin", color: "#4DB33D", label: "MongoDB" },
 };
 
 const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
@@ -492,6 +493,7 @@ const typeDesc = (type: string): string => {
     nginx: "连接 Nginx 服务器，可查看状态并控制进程启停",
     etcd: "连接 etcd 配置中心，用于键值存储",
     prometheus: "连接 Prometheus 监控服务，用于指标查询",
+    mongodb: "连接 MongoDB 文档数据库，用于集合查询与文档查看",
   };
   return desc[type] ?? "填写连接信息以接入该类型的数据源";
 };
@@ -885,6 +887,7 @@ const defaultPort = (type: string): number => {
     nginx: 80,
     etcd: 2379,
     prometheus: 9090,
+    mongodb: 27017,
   };
   return ports[type] ?? 3306;
 };
