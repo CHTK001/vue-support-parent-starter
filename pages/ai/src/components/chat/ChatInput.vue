@@ -118,17 +118,17 @@
                 <el-icon size="16"><GlobeShield20Regular /></el-icon>
               </button>
             </LTooltip>
-            <!-- 输入优化按钮（图标+tip） -->
-            <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
-              <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
-                :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
-                <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
-                <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
-              </button>
-            </LTooltip>
         </div>
         <div class="right-actions flex items-center gap-1">
           <slot name="right-actions-before" />
+          <!-- 输入优化按钮（图标+tip）：右侧、思考等级左侧（用户需求） -->
+          <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
+            <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
+              :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
+              <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
+              <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
+            </button>
+          </LTooltip>
           <!-- 思考等级：排在模型按钮**左侧**的独立胶囊，图标 + 当前档位短文案（用户需求） -->
           <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
             <button ref="thinkingLevelButtonRef" class="thinking-chip" :class="{ 'is-on': thinkingEnabled }"
