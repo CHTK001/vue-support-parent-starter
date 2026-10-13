@@ -356,6 +356,23 @@ const sourceRef = computed<ReDataSource<ReOption[]>>(() => {
 
 const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource<ReOption[]>(sourceRef);
 
+/**
+ * 实际渲染给下拉的选项。
+ *
+ * <p>为什么需要：模板给 {@code ElSelect} 绑了 {@code :filter-method="onInput"}，
+ * 而 Element Plus 的语义是「一旦提供 filter-method，内置过滤就不再生效，过滤完全交给该方法」。
+ * 原先 {@code onInput} 只把关键词存进 {@code keyword}（那是给远程模式拼 keyword 参数用的），
+ * 于是**本地静态选项的搜索框输入任何内容都不做过滤**——filterable 形同虚设。
+ * 这里在本地模式下由组件自己按关键词过滤；远程模式维持原样（关键词交给数据源重新请求）。</p>
+ */
+const visibleList = computed<ReOption[]>(() => {
+  const list = dataList.value ?? [];
+  if (isRemote.value) return list;
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) return list;
+  return list.filter(o => String(o.label ?? o.value ?? "").toLowerCase().includes(kw));
+});
+
 // 自动重新加载：当 params 或 keyword 变化时（防抖 300ms，替代原 fetch 版 GET 防抖）
 const debouncedReload = debounce(() => {
   if (isRemote.value) dsReload();
@@ -496,7 +513,7 @@ defineExpose({
     v-if="layout === 'card' || layout === 'card-dropdown'"
     :model-value="model"
     @update:model-value="(v: any) => model = v"
-    :options="(dataList ?? []) as any"
+    :options="(visibleList ?? []) as any"
     :multiple="multiple"
     :disabled="disabled"
     :loading="loading || dataLoading"
@@ -520,7 +537,7 @@ defineExpose({
     v-else-if="layout === 'square'"
     :model-value="(model ?? '') as string | number | (string | number)[]"
     @update:model-value="(v: any) => model = v"
-    :options="(dataList ?? []) as any"
+    :options="(visibleList ?? []) as any"
     :multiple="multiple"
     :disabled="disabled"
     :icon-only="iconOnly"
@@ -564,7 +581,7 @@ defineExpose({
     <template v-if="layout === 'default'">
       <slot />
       <ElOption
-        v-for="opt in dataList ?? []"
+        v-for="opt in visibleList ?? []"
         :key="String(opt.value)"
         :label="opt.label"
         :value="opt.value"
@@ -587,7 +604,7 @@ defineExpose({
         <span v-if="multiple" class="re-select__table-check">{{ '已选' }}</span>
       </div>
       <ElOption
-        v-for="opt in dataList ?? []"
+        v-for="opt in visibleList ?? []"
         :key="String(opt.value)"
         :label="opt.label"
         :value="opt.value"
