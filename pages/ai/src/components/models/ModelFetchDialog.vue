@@ -490,7 +490,7 @@ const handleImportAll = async () => {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
-.fetch-feature { color: var(--color-text-gray); cursor: pointer; transition: color 0.15s ease; }
+.fetch-feature { color: var(--color-text-gray); transition: color 0.15s ease; }
 .fetch-feature:hover { color: var(--color-primary); }
 .fetch-empty { text-align: center; padding: 48px 0; font-size: 13px; color: var(--color-text-disabled); }
 .fetch-error {
