@@ -472,21 +472,9 @@ onBeforeUnmount(() => {
   padding: 8px;
 }
 
-.alert-tabs :deep(.el-tabs__item) {
-  color: var(--apm-muted);
-}
-
-.alert-tabs :deep(.el-tabs__item.is-active) {
-  color: var(--apm-fg);
-}
-
-.alert-tabs :deep(.el-tabs__active-bar) {
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-5));
-}
-
-.alert-tabs :deep(.el-tabs__nav-wrap::after) {
-  background: var(--apm-border);
-}
+/* ReTab 默认已是 capsule（主题配置顶部页签同款），不再渲染 el-tabs 的
+   .el-tabs__item / __active-bar / __nav-wrap DOM，原先那几条覆写全部成为死规则，故移除；
+   若日后该页显式传 variant="element"，需把这几条配色覆写一并恢复。 */
 
 .table-panel :deep(.el-table) {
   --el-table-bg-color: transparent;

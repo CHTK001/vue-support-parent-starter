@@ -137,6 +137,11 @@ function onFilterReset(): void {
   filterState.value = { keyword: "", status: "", group: "", tag: "" };
 }
 
+/** 空态卡片里的「重置筛选」按钮：复用同一套重置逻辑，不再另写一份 */
+function resetFilters(): void {
+  onFilterReset();
+}
+
 /** ReFilter 筛选项配置（"标签"项仅在存在标签数据时显示，避免空的筛选项） */
 const filterItems = computed<ReFilterItem[]>(() => {
   const items: ReFilterItem[] = [
@@ -406,6 +411,48 @@ const filtered = computed(() => {
   }
   return list;
 });
+
+/**
+ * 注解数据：每张 KPI 卡的统计口径。
+ *
+ * <p>KPI 卡的 {@code desc} 只有四五个字（「离线或采集异常」），读者并不知道
+ * 「离线」是心跳超时还是 Agent 掉线、「需关注」到底合并了哪几类。
+ * 这里把口径写全，与 {@link hostKpis} 同 key 对应，改卡片时不会漏改注解。</p>
+ */
+const hostKpiNotes = computed<Array<{ key: string; title: string; note: string; color: string }>>(() => [
+  {
+    key: "total",
+    title: "可远控目标",
+    note: "台账中登记的全部主机，含离线与停用采集的；右键可编辑、删除、绑定身份。",
+    color: "var(--brand-500, var(--el-color-primary))",
+  },
+  {
+    key: "online",
+    title: "可连接资产",
+    note: "分子为当前在线（近一次心跳 / 探测正常），分母为台账总数；网络不可达时计数不增长。",
+    color: "var(--el-color-success)",
+  },
+  {
+    key: "offline",
+    title: "需关注处理",
+    note: "合并三类：心跳超时、采集通道异常、远端凭证失效。任一类命中即计入，需要逐台排查。",
+    color: "var(--el-text-color-placeholder)",
+  },
+  {
+    key: "remote",
+    title: "支持远程连接",
+    note: "已开启 SSH / RDP / VNC 之一且填写了协议端口的主机；未开启的不出现在远控入口。",
+    color: "var(--metric-cpu, var(--el-color-primary))",
+  },
+]);
+
+/**
+ * 是否存在主机（与筛选结果无关）。
+ *
+ * <p>用于区分空态的两种情况：库里一台都没有 vs. 筛选把结果清空了。
+ * 这两种情况给同一个「暂无主机」文案，用户会以为系统坏了而不是自己筛得太严。</p>
+ */
+const hasHosts = computed(() => hosts.value.length > 0);
 
 /** ReTable 列定义 */
 const tableColumns = computed(() => [
@@ -926,6 +973,22 @@ function osTileClass(h: Host): string {
       />
     </section>
 
+    <!-- 注解数据：统计口径说明。四张 KPI 卡的 desc 只有几个字，
+         写清「在线怎么判 / 需关注包含哪些 / 可远控以什么为准」，
+         免得用户对着「需关注处理 3」猜这是哪三类。 -->
+    <ElCard class="as-notes" shadow="never">
+      <template #header>
+        <span class="as-notes__title">口径说明</span>
+      </template>
+      <ul class="as-notes__list">
+        <li v-for="n in hostKpiNotes" :key="n.key">
+          <i class="as-notes__dot" :style="{ background: n.color }" />
+          <b>{{ n.title }}</b>
+          <span>{{ n.note }}</span>
+        </li>
+      </ul>
+    </ElCard>
+
     <!-- 筛选条（对齐 UI 稿：独立白色圆角面板） -->
     <div class="as-panel as-filter">
       <div class="filter">
@@ -971,9 +1034,11 @@ function osTileClass(h: Host): string {
       </div>
     </div>
 
-      <!-- 卡片视图（默认）：吃满一行，显示详细指标 -->
+        <!-- 卡片视图（默认）：吃满一行，显示详细指标
+             用 el-card 而非 ReCard：el-card 支持 header / footer 插槽，结构与页面一致；
+             底下把它的页面级装饰复位成扁平容器，视觉与页面其余面板统一。 -->
       <div v-if="viewMode === 'card'" class="host-card-grid">
-        <ReCard
+        <ElCard
           v-for="h in filtered"
           :key="h.id"
           :body-style="{ paddingTop: '10px', paddingBottom: '10px' }"
@@ -1103,8 +1168,20 @@ function osTileClass(h: Host): string {
               </ElDropdown>
             </div>
           </template>
-        </ReCard>
-        <div v-if="filtered.length === 0" class="hc-empty">暂无主机</div>
+        </ElCard>
+        <!-- 空态：外层套一个独立 el-card，与主机卡片同规格（同一套边框/圆角/阴影），
+             避免 ElEmpty 裸放在 grid 里时和卡片容器风格不一致。
+             空态分两种情况：一台主机都没有 vs. 筛选用完没匹配上 ——
+             文案和主操作都不同，否则筛选后看到「暂无主机」用户会以为系统坏了。 -->
+        <ElCard v-if="filtered.length === 0" class="hc-empty-card" shadow="never">
+          <ElEmpty
+            :description="hasHosts ? '当前筛选条件下没有匹配的主机' : '暂无主机'"
+            :image-size="120"
+          >
+            <ReButton v-if="hasHosts" icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
+            <ReButton v-else type="primary" icon="Plus" :show-text="true" @click="openAdd">新增主机</ReButton>
+          </ElEmpty>
+        </ElCard>
       </div>
 
       <!-- 表格视图 -->
@@ -1333,6 +1410,64 @@ function osTileClass(h: Host): string {
 }
 
 /* ============================================================
+   注解数据（KPI 口径说明）：独立 el-card，扁平容器
+   ============================================================ */
+.as-notes { margin-top: 12px; }
+/* el-card 自带页面级装饰（深色块背景 / 头部分隔线），复位成扁平容器，
+   与 .as-panel、主机卡片同一套视觉：边框 + 圆角 + 轻阴影 */
+.as-notes {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+.as-notes :deep(.el-card__header) {
+  padding: 12px 16px 0;
+  border-bottom: 0;
+  background: transparent;
+}
+.as-notes :deep(.el-card__body) {
+  padding: 8px 16px 14px;
+}
+.as-notes__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+/* 四条口径纵向排列：色点对应 KPI 卡图标色，扫一眼能对上 */
+.as-notes__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.as-notes__list li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.as-notes__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  /* 与 KPI 图标基线对齐 */
+  transform: translateY(1px);
+}
+.as-notes__list b {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.as-notes__list span {
+  color: var(--el-text-color-secondary);
+}
+
+/* ============================================================
    筛选面板（对齐 UI 稿：独立白色圆角条）
    ============================================================ */
 .as-panel {
@@ -1477,7 +1612,10 @@ function osTileClass(h: Host): string {
 @media (max-width: 1100px) {
   .host-card-grid { grid-template-columns: 1fr; }
 }
-.host-card-grid :deep(.koi-card) {
+/* el-card 自带页面级样式（koi 主题装饰、深色块背景、按钮点击态），
+   这里显式复位成扁平容器，只保留边框/圆角/阴影三种视觉，
+   与页面其余面板（ds-panel / ReCard）保持一致。 */
+.host-card-grid :deep(.el-card) {
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -1487,7 +1625,16 @@ function osTileClass(h: Host): string {
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
-.host-card-grid :deep(.koi-card:hover) {
+/* 去掉 el-card 自带的头部底色和分隔线：卡片头部区域由 .hc-head 自己排版 */
+.host-card-grid :deep(.el-card__header) {
+  padding: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+.host-card-grid :deep(.el-card__body) {
+  padding: 10px 0;
+}
+.host-card-grid :deep(.el-card:hover) {
   transform: translateY(-3px);
   box-shadow: var(--el-box-shadow, var(--shadow-2));
   border-color: var(--el-color-primary-light-7, var(--el-border-color));
@@ -1605,8 +1752,18 @@ function osTileClass(h: Host): string {
   padding: 14px 20px;
   border-top: 1px solid var(--el-border-color-lighter);
 }
-.hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--el-text-color-placeholder); font-size: 13px; }
-/* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
+/* 空态卡：与主机卡片同规格（独立 el-card + 扁平容器），
+   占满 grid 整行，不让 ElEmpty 裸奔在网格里 */
+.hc-empty-card {
+  grid-column: 1 / -1;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+.hc-empty-card :deep(.el-card__body) {
+  padding: 40px 16px;
+}/* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
 .op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
 </style>
 

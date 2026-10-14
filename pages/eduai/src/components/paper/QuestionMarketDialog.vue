@@ -1,19 +1,22 @@
 <!--
-  QuestionMarketDialog —— 题库市场弹框
+  QuestionMarketDialog —— 题库市场弹框（组卷页内嵌弹出，非独立菜单页）
 
   交互：
-    - 检索（关键词 / 学科 / 学段 / 年级 / 难度 / 题型）+ 本地分页；
-    - 勾选多题后点「加入购物车」，先播飞入动画（选中复选框 → 弹框右上角购物车图标），
-      动画结束再 emit('picked', 选中题目) 并关闭弹框。
+    - 右侧市场：检索（关键词 / 学科 / 学段 / 年级 / 难度 / 题型）+ 本地分页 + 复选框多选；
+      勾选后点「加入购物车」，先播飞入动画（选中行 → 左侧购物车面板），
+      再 emit('picked')，**弹窗不关闭**，可继续挑题（离开组卷页前的连续挑选场景）。
+    - 左侧购物车：与组卷页右栏同一份数据（usePaperCart 按 paperId 持久化），
+      这里只读展示 + 改分值 / 移除 / 清空，全部经 emit 交回组卷页落库，
+      不在弹窗内复制一份购物车状态（避免两个实例互相覆盖）。
 
-  数据来源统一走 eduaiApi.pageQuestions（与 PaperComposeView 的市场逻辑一致）。
+  数据来源走 eduaiApi.pageQuestions。
   动画为纯 CSS transition + requestAnimationFrame，不引入新依赖。
 -->
 <template>
   <ReDialog
     :model-value="props.modelValue"
-    width="880px"
-    top="6vh"
+    width="1180px"
+    top="5vh"
     append-to-body
     destroy-on-close
     class="question-market-dialog"
@@ -23,94 +26,150 @@
     <template #header>
       <div class="qmd-head">
         <span class="qmd-head__title">
-          <span ref="cartIconRef" class="qmd-head__cart" title="购物车">
-            <el-icon><ShoppingCart /></el-icon>
-            <span v-if="selectedIds.length" class="qmd-head__badge">{{ selectedIds.length }}</span>
-          </span>
+          <el-icon class="qmd-head__icon"><ShoppingCart /></el-icon>
           题库市场
         </span>
-     
+        <span class="qmd-head__sub">
+          <el-tag v-if="paperId" type="primary" effect="light" size="small">试卷 #{{ paperId }}</el-tag>
+          <el-tag v-else type="info" effect="light" size="small">临时购物车</el-tag>
+          <span class="qmd-head__hint">右侧挑题加入左侧购物车；关闭后回到组卷页继续组卷</span>
+        </span>
       </div>
     </template>
 
-    <!-- 检索条件 -->
-    <div class="qmd-filters">
-      <el-input
-        v-model="filters.keyword"
-        clearable
-        placeholder="关键词（题干 / 学科）"
-        :prefix-icon="Search"
-        @keyup.enter="runSearch"
-        @clear="runSearch"
-      />
-      <div class="qmd-filters__grid">
-        <el-select v-model="filters.subject" clearable filterable placeholder="学科" @change="runSearch">
-          <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
-        </el-select>
-        <el-select v-model="filters.gradeLevel" clearable placeholder="学段" @change="onGradeLevelChange">
-          <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
-        </el-select>
-        <el-select v-model="filters.grade" clearable placeholder="年级" @change="runSearch">
-          <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
-        </el-select>
-        <el-select v-model="filters.difficulty" clearable placeholder="难度" @change="runSearch">
-          <el-option v-for="d in DIFFICULTIES" :key="d.value" :label="d.label" :value="d.value" />
-        </el-select>
-        <el-select v-model="filters.type" clearable placeholder="题型" @change="runSearch">
-          <el-option v-for="t in QUESTION_TYPES" :key="t.value" :label="t.label" :value="t.value" />
-        </el-select>
-        <div class="qmd-filters__actions">
-          <ReButton type="primary" icon="Search" @click="runSearch">检索</ReButton>
-          <ReButton icon="RefreshLeft" @click="resetSearch">重置</ReButton>
-        </div>
-      </div>
-    </div>
+    <!-- ==================== 主体：左购物车 / 右市场 ==================== -->
+    <div class="qmd-body">
+      <!-- 左：组卷购物车（只读展示 + 改分值/移除/清空，写操作全部 emit 回组卷页） -->
+      <section ref="cartPanelRef" class="qmd-cart">
+        <header class="qmd-cart__head">
+          <span class="qmd-cart__title">
+            组卷购物车
+            <span class="qmd-cart__count">{{ cartItems.length }}</span>
+          </span>
+          <el-button link type="danger" size="small" :disabled="!cartItems.length" @click="emit('clearCart')">
+            清空
+          </el-button>
+        </header>
 
-    <!-- 题目列表（左侧复选框多选） -->
-    <div ref="listRef" v-loading="loading" class="qmd-list">
-      <div v-for="q in rows" :key="q.questionId" class="qmd-row">
-        <span :ref="(el) => setRowRef(q.questionId, el)" class="qmd-row__check">
-          <el-checkbox :model-value="selectedIds.includes(q.questionId)" @change="toggleSelect(q.questionId)" />
-        </span>
-        <div class="qmd-row__body">
-          <div class="qmd-row__head">
-            <el-tag  type="info">{{ typeLabel(q.questionType) }}</el-tag>
-            <span class="qmd-diff" :class="diffClass(q.questionDifficulty)">{{ diffLabel(q.questionDifficulty) }}</span>
-            <span class="qmd-row__subject">{{ q.questionSubject || "未标学科" }}</span>
-            <span v-if="q.questionGrade" class="qmd-row__grade">{{ q.questionGrade }}</span>
-          </div>
-          <div class="qmd-row__stem" v-html="renderMathSummary(q.questionStem, 72) || '（题干为空）'" />
+        <div v-if="!cartItems.length" class="qmd-cart__empty">
+          <el-empty :image-size="64" description="购物车为空，去右侧市场挑题" />
         </div>
-      </div>
-      <el-empty v-if="!loading && !rows.length" :image-size="72" description="没有匹配的题目" />
+
+        <div v-else class="qmd-cart__list">
+          <div v-for="item in cartItems" :key="item.questionId" class="qmd-cart__row">
+            <div class="qmd-cart__row-head">
+              <el-tag type="info" size="small">{{ typeLabel(item.type) }}</el-tag>
+              <el-button link type="danger" size="small" @click="emit('removeFromCart', item.questionId)">
+                移除
+              </el-button>
+            </div>
+            <div class="qmd-cart__row-stem" v-html="renderMathSummary(item.stem, 56) || '（题干为空）'" />
+            <div class="qmd-cart__row-foot">
+              <span class="qmd-cart__row-label">分值</span>
+              <ReInputNumber
+                :model-value="item.score"
+                :min="1"
+                :max="100"
+                size="small"
+                controls-position="right"
+                @update:model-value="(v: number | undefined) => emit('setCartScore', item.questionId, Number(v) || 1)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <footer v-if="cartItems.length" class="qmd-cart__foot">合计 {{ cartItems.length }} 题 / {{ cartTotalScore }} 分</footer>
+      </section>
+
+      <!-- 右：市场（检索 / 多选 / 加入购物车） -->
+      <section class="qmd-market">
+        <!-- 检索条件 -->
+        <div class="qmd-filters">
+          <el-input
+            v-model="filters.keyword"
+            clearable
+            placeholder="关键词（题干 / 学科）"
+            :prefix-icon="Search"
+            @keyup.enter="runSearch"
+            @clear="runSearch"
+          />
+          <div class="qmd-filters__grid">
+            <el-select v-model="filters.subject" clearable filterable placeholder="学科" @change="runSearch">
+              <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
+            </el-select>
+            <el-select v-model="filters.gradeLevel" clearable placeholder="学段" @change="onGradeLevelChange">
+              <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
+            </el-select>
+            <el-select v-model="filters.grade" clearable placeholder="年级" @change="runSearch">
+              <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
+            </el-select>
+            <el-select v-model="filters.difficulty" clearable placeholder="难度" @change="runSearch">
+              <el-option v-for="d in DIFFICULTIES" :key="d.value" :label="d.label" :value="d.value" />
+            </el-select>
+            <el-select v-model="filters.type" clearable placeholder="题型" @change="runSearch">
+              <el-option v-for="t in QUESTION_TYPES" :key="t.value" :label="t.label" :value="t.value" />
+            </el-select>
+            <div class="qmd-filters__actions">
+              <ReButton type="primary" icon="Search" @click="runSearch">检索</ReButton>
+              <ReButton icon="RefreshLeft" @click="resetSearch">重置</ReButton>
+            </div>
+          </div>
+        </div>
+
+        <!-- 题目列表（复选框多选） -->
+        <div ref="listRef" v-loading="loading" class="qmd-list">
+          <div v-for="q in rows" :key="q.questionId" class="qmd-row">
+            <span :ref="(el) => setRowRef(q.questionId, el)" class="qmd-row__check">
+              <el-checkbox :model-value="selectedIds.includes(q.questionId)" @change="toggleSelect(q.questionId)" />
+            </span>
+            <div class="qmd-row__body">
+              <div class="qmd-row__head">
+                <el-tag type="info">{{ typeLabel(q.questionType) }}</el-tag>
+                <span class="qmd-diff" :class="diffClass(q.questionDifficulty)">{{ diffLabel(q.questionDifficulty) }}</span>
+                <span class="qmd-row__subject">{{ q.questionSubject || "未标学科" }}</span>
+                <span v-if="q.questionGrade" class="qmd-row__grade">{{ q.questionGrade }}</span>
+                <el-tag v-if="inCart(q.questionId)" type="success" size="small" effect="plain">已在购物车</el-tag>
+              </div>
+              <div class="qmd-row__stem" v-html="renderMathSummary(q.questionStem, 72) || '（题干为空）'" />
+            </div>
+          </div>
+          <el-empty v-if="!loading && !rows.length" :image-size="72" description="没有匹配的题目" />
+        </div>
+
+        <!-- 市场底部：选择统计 + 分页 + 加入购物车 -->
+        <div class="qmd-market__foot">
+          <div class="qmd-market__foot-left">
+            <span class="qmd-foot__selected">已选 {{ selectedIds.length }} 题</span>
+            <el-button link :disabled="!selectedIds.length" @click="clearSelection">清空选择</el-button>
+          </div>
+          <div class="qmd-market__foot-right">
+            <el-pagination
+              v-model:current-page="page"
+              v-model:page-size="pageSize"
+              :total="total"
+              :page-sizes="[10, 20, 50]"
+              layout="sizes, prev, pager, next"
+              small
+              background
+            />
+            <ReButton
+              type="primary"
+              icon="ShoppingCart"
+              :loading="flying"
+              :disabled="!selectedIds.length"
+              @click="addToCart"
+            >
+              加入购物车
+            </ReButton>
+          </div>
+        </div>
+      </section>
     </div>
 
     <template #footer>
-      <div class="qmd-foot">
-        <div class="qmd-foot__left">
-          <span class="qmd-foot__selected">已选 {{ selectedIds.length }} 题</span>
-          <el-button link :disabled="!selectedIds.length" @click="clearSelection">清空选择</el-button>
-        </div>
-        <div class="qmd-foot__right">
-          <el-pagination
-            v-model:current-page="page"
-            v-model:page-size="pageSize"
-            :total="total"
-            :page-sizes="[10, 20, 50]"
-            layout="sizes, prev, pager, next"
-            small
-            background
-          />
-          <ReButton
-            type="primary"
-            icon="ShoppingCart"
-            :loading="flying"
-            :disabled="!selectedIds.length"
-            @click="addToCart"
-          >
-            加入购物车
-          </ReButton>
-        </div>
+      <div class="qmd-dialog-foot">
+        <span class="qmd-dialog-foot__tip">购物车与组卷页右栏实时同步（按试卷持久化），挑完点右侧关闭继续组卷</span>
+        <ReButton type="primary" @click="closeDialog">完成，返回组卷</ReButton>
       </div>
     </template>
   </ReDialog>
@@ -118,20 +177,24 @@
 
 <script setup lang="ts">
 /**
- * QuestionMarketDialog —— 题库市场弹框
+ * QuestionMarketDialog —— 题库市场弹框。
  *
- * 选中题目后点「加入购物车」：先播飞入动画，动画结束再抛出 picked 事件，
- * 由调用方（组卷页）决定如何写入购物车 / 试卷。
+ * 选中题目后点「加入购物车」：先播飞入动画，动画结束抛出 picked 事件，
+ * 由调用方（组卷页）写入购物车；弹窗保持打开，支持连续挑题。
+ * 购物车数据归组卷页所有（usePaperCart 单实例），本组件只读展示 + emit 写操作，
+ * 避免同页两份购物车实例互相覆盖（localStorage 后写覆盖先写）。
  */
 import { message } from "@repo/core";
 import { computed, reactive, ref, watch } from "vue";
 
 import { Search, ShoppingCart } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
+import ReInputNumber from "@repo/ui/re-input-number";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { MarketQuestion } from "../../api/types";
 import { renderMathSummary } from "../../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
+import type { CartItem } from "../../composables/usePaperCart";
 
 defineOptions({ name: "QuestionMarketDialog" });
 
@@ -141,13 +204,24 @@ const props = withDefaults(
     modelValue: boolean;
     /** 目标试卷标识；为空表示临时购物车 */
     paperId?: number | null;
+    /** 组卷页购物车条目（只读展示；写操作走 emit，不在弹窗内复制状态） */
+    cartItems: CartItem[];
+    /** 打开时预填的检索学科（来自组卷页卷头） */
+    initialSubject?: string;
+    /** 打开时预填的检索学段（中文标签或码值均可，由后端口径过滤） */
+    initialGradeLevel?: string;
+    /** 打开时预填的检索年级 */
+    initialGrade?: string;
   }>(),
-  { paperId: null },
+  { paperId: null, initialSubject: "", initialGradeLevel: "", initialGrade: "" },
 );
 
 const emit = defineEmits<{
   (e: "update:modelValue", v: boolean): void;
   (e: "picked", list: MarketQuestion[]): void;
+  (e: "removeFromCart", questionId: number): void;
+  (e: "setCartScore", questionId: number, score: number): void;
+  (e: "clearCart"): void;
 }>();
 
 /* ==================== 常量（与 PaperComposeView 题库市场一致） ==================== */
@@ -194,6 +268,9 @@ const filters = reactive({
   type: "",
 });
 
+/** 用户是否动过检索条件；动过之后再次打开不再用组卷页卷头预填覆盖 */
+const filtersTouched = ref(false);
+
 const loading = ref(false);
 const flying = ref(false);
 const marketAll = ref<MarketQuestion[]>([]);
@@ -203,7 +280,7 @@ const pageSize = ref(10);
 const subjectOptions = ref<{ label: string; value: string }[]>([]);
 const gradeMeta = ref<{ gradeName?: string; gradeLevel?: string | null }[]>([]);
 
-const cartIconRef = ref<HTMLElement | null>(null);
+const cartPanelRef = ref<HTMLElement | null>(null);
 const listRef = ref<HTMLElement | null>(null);
 /** 当前页各题复选框容器：questionId → 元素（仅用于飞入动画取起点） */
 const rowRefs = new Map<number, HTMLElement>();
@@ -245,6 +322,12 @@ const rows = computed(() => {
   const start = (page.value - 1) * pageSize.value;
   return filtered.value.slice(start, start + pageSize.value);
 });
+
+/** 购物车合计分值（展示用，真正的购物车状态在组卷页） */
+const cartTotalScore = computed(() => props.cartItems.reduce((sum, item) => sum + (item.score || 0), 0));
+
+/** 某题是否已在购物车（市场行角标，避免重复挑题） */
+const inCart = (questionId: number): boolean => props.cartItems.some((item) => item.questionId === questionId);
 
 /* ==================== 展示小工具 ==================== */
 
@@ -323,6 +406,7 @@ async function loadMarket(): Promise<void> {
 }
 
 function runSearch(): void {
+  filtersTouched.value = true;
   page.value = 1;
   rowRefs.clear();
   void loadMarket();
@@ -356,7 +440,7 @@ function toggleSelect(id: number): void {
 
 function clearSelection(): void {
   selectedIds.value = [];
-}
+};
 
 /** 分页切换时清理旧的复选框引用，避免动画取到已卸载的节点 */
 watch(page, () => {
@@ -385,12 +469,12 @@ function createFlyDot(x: number, y: number): HTMLElement {
 }
 
 /**
- * 播放入场动画：从选中复选框位置飞向右上角购物车图标。
+ * 播放入场动画：从选中复选框位置飞向左侧购物车面板。
  *
  * @returns 动画结束（或被跳过）后 resolve
  */
 function playFlyAnimation(): Promise<void> {
-  const targetRect = cartIconRef.value?.getBoundingClientRect();
+  const targetRect = cartPanelRef.value?.getBoundingClientRect();
   const sources: { x: number; y: number }[] = [];
 
   for (const id of selectedIds.value) {
@@ -416,7 +500,7 @@ function playFlyAnimation(): Promise<void> {
   }
 
   const tx = targetRect.left + targetRect.width / 2;
-  const ty = targetRect.top + targetRect.height / 2;
+  const ty = targetRect.top + Math.min(targetRect.height / 2, 80);
   const dots = sources.map((s) => createFlyDot(s.x, s.y));
 
   return new Promise<void>((resolve) => {
@@ -441,6 +525,13 @@ function playFlyAnimation(): Promise<void> {
 
 /* ==================== 交互 ==================== */
 
+/**
+ * 加入购物车：播飞入动画 → emit picked（组卷页落库）→ 清空勾选。
+ *
+ * <p>与旧版的区别：不再关闭弹窗。市场改成组卷页内嵌弹窗后，
+ * 「关弹窗」意味着挑选中断，这里改为连续挑题模式，
+ * 真正的关闭走页脚「完成，返回组卷」或右上角关闭。</p>
+ */
 async function addToCart(): Promise<void> {
   if (flying.value) {
     return;
@@ -454,12 +545,15 @@ async function addToCart(): Promise<void> {
   try {
     await playFlyAnimation();
     emit("picked", picked);
-    emit("update:modelValue", false);
     selectedIds.value = [];
-    page.value = 1;
   } finally {
     flying.value = false;
   }
+}
+
+/** 页脚「完成，返回组卷」：关闭弹窗，回组卷页继续操作 */
+function closeDialog(): void {
+  emit("update:modelValue", false);
 }
 
 function onVisibleChange(visible: boolean): void {
@@ -473,66 +567,159 @@ function onClosed(): void {
   rowRefs.clear();
 }
 
-// 打开弹框时加载维度与题库
+// 打开弹框时：按组卷页卷头预填检索条件（用户动过之后不覆盖）+ 加载维度与题库
 watch(
   () => props.modelValue,
   (visible) => {
-    if (visible) {
-      void ensureDimensions();
-      void loadMarket();
+    if (!visible) {
+      return;
     }
+    if (!filtersTouched.value) {
+      filters.subject = props.initialSubject || "";
+      // 卷头的学段是中文标签（初中），下拉绑的是码值（JUNIOR）；已是码值时查表落空原样传入
+      filters.gradeLevel = GRADE_LEVEL_LABEL_TO_CODE[props.initialGradeLevel] ?? props.initialGradeLevel;
+      filters.grade = props.initialGrade || "";
+    }
+    void ensureDimensions();
+    void loadMarket();
   },
 );
 </script>
 
 <style scoped>
+/* ==================== 头部 ==================== */
 .qmd-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding-right: 28px;
 }
 .qmd-head__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
-.qmd-head__cart {
-  position: relative;
+.qmd-head__icon {
+  color: var(--el-color-primary);
+}
+.qmd-head__sub {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  /* 购物车圆形底用圆形令牌 */
-  border-radius: var(--el-border-radius-circle, 50%);
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  font-size: 18px;
+  gap: 8px;
 }
-.qmd-head__badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+.qmd-head__hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ==================== 主体两栏：左购物车 / 右市场 ==================== */
+.qmd-body {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* ---------- 左：购物车 ---------- */
+.qmd-cart {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
-  background: var(--el-color-danger);
-  color: var(--el-color-white);
-  font-size: 11px;
-  line-height: 16px;
+  background: var(--el-bg-color);
+  /* 列表区内部滚动；整体高度随右栏市场区，不无限拉高弹窗 */
+  max-height: 56vh;
+}
+.qmd-cart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.qmd-cart__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.qmd-cart__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 12px;
+  line-height: 18px;
   text-align: center;
+}
+.qmd-cart__empty {
+  padding: 24px 0;
+}
+.qmd-cart__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px;
+}
+.qmd-cart__row {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}
+.qmd-cart__row:last-child {
+  border-bottom: none;
+}
+.qmd-cart__row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.qmd-cart__row-stem {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.qmd-cart__row-stem :deep(.katex) {
+  font-size: 1em;
+}
+.qmd-cart__row-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qmd-cart__row-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.qmd-cart__foot {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* ---------- 右：市场 ---------- */
+.qmd-market {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .qmd-filters {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 12px;
 }
 .qmd-filters__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 .qmd-filters__actions {
@@ -541,10 +728,10 @@ watch(
   gap: 8px;
 }
 .qmd-list {
-  min-height: 240px;
-  /* 列表区内部滚动，footer 常驻可见：52vh 只是列表高度上限，弹框整体不再随行数增长。
-     组合弹框宽度 880px 在 1440px 视口下居中，footer 实测落在 900px 视口内。 */
-  max-height: 46vh;
+  flex: 1;
+  min-height: 200px;
+  /* 列表区内部滚动，footer 常驻可见；56vh 与左栏购物车对齐 */
+  max-height: 40vh;
   overflow-y: auto;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
@@ -612,14 +799,15 @@ watch(
   color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
 }
-.qmd-foot {
+.qmd-market__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
-.qmd-foot__left,
-.qmd-foot__right {
+.qmd-market__foot-left,
+.qmd-market__foot-right {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -629,12 +817,24 @@ watch(
   color: var(--el-text-color-secondary);
 }
 
+/* ==================== 弹窗页脚 ==================== */
+.qmd-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.qmd-dialog-foot__tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 /* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
    本组件唯一的动效是 .qmd-fly-dot（飞入圆点），已在下面的全局 style 块里降级处理，
    它的元素由 document.createElement 创建、不带 scoped 属性，故规则不能放在这里。 */
 @media (prefers-reduced-motion: reduce) {
-  .qmd-head__badge,
-  .qmd-row {
+  .qmd-row,
+  .qmd-cart__row {
     transition: none;
   }
 }
