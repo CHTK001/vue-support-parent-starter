@@ -76,6 +76,16 @@ export default createVite({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/v2/, "/system/api/v2"),
       },
+      // pages/ai 模型管理页的 adminApi（rootHttp，baseURL 为空）直接调 `/api/providers`
+      // 等管理端点（见 pages/ai/src/services/modules/model.api.ts），这些端点在 ai-starter
+      // 的 manage/api 控制器下（@RequestMapping("/api")）。内嵌到系统后端后它们落在
+      // /system/api/api/** 下，故 /api 代理到系统后端并补 context-path 与 /api 前缀。
+      // 仅 pages/ai 子树用 /api；本应用自身走 /system/api 与 /v2，前缀不重叠。
+      "/api": {
+        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, "/system/api/api"),
+      },
       // 天气：Open-Meteo 免费天气 API（无需 key）
       "/weather-api": {
         target: "https://api.open-meteo.com",

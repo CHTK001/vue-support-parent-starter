@@ -38,6 +38,11 @@ import "@pages/task";
 // 深导入 /menu 而非包根：包根 index.ts 会 re-export main.js（ai-guada 启动壳入口），
 // 那会同步加载 App.vue 壳与 element-plus/tailwind/refactor 等全局样式，污染本应用。
 import "@pages/ai/menu";
+// 内嵌装配：/embed 在 import 时就把 pages/ai 语言包合并进本应用 i18n
+// （settings.models.* 等键，否则页面文案显示原始 key）；mount 后再显式采用
+// 本应用框架上下文。深导入 /embed 而非包根，理由同 /menu。
+import "@pages/ai/embed";
+import { adoptHostFramework } from "@pages/ai/embed";
 
 // 主题层不反向依赖 pages/*：由应用把公告接口实现注入 @repo/theme 的注册表，
 // AnnouncementBar 通过 getAnnouncementApi 取用；不注入则静默不请求。
@@ -137,9 +142,14 @@ createContextApp({
     ReIpTextInstall,
   ])
   .mount("#app")
-  .then(() => {
+  .then((app) => {
     booted = true;
     clearTimeout(bootTimer);
+    // 「AI 提供商管理」页（pages/ai 内嵌）显式采用本应用框架上下文：请求管线
+    // 本就可经宿主管线回退拿到（见 pages/ai/framework/context.ts 的
+    // resolveHttpInstance），此处保证 pages/ai 后续直接读 context 的能力也一致；
+    // 语言包已在 import "@pages/ai/embed" 时合并进本应用 i18n。
+    adoptHostFramework(app.context);
   })
   .catch((error: unknown) => {
     clearTimeout(bootTimer);
