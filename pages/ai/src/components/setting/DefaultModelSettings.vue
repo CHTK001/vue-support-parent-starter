@@ -45,7 +45,7 @@
         <el-input-number v-else-if="item.valueType === 'NUMBER'"
           :model-value="Number(getFieldValue(group.group, item.field))"
           @change="(val) => updateFieldValue(group.group, item.field, val)"
-          :step="0.1" :precision="numberPrecision(group.group, item.field)" class="w-full" />
+          :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
         <!-- BOOLEAN -->
         <el-switch v-else-if="item.valueType === 'BOOLEAN'"
           :model-value="getFieldValue(group.group, item.field) === 'true'"
@@ -159,7 +159,7 @@
             <el-input-number v-else-if="item.valueType === 'NUMBER'"
               :model-value="Number(getFieldValue(group.group, item.field))"
               @change="(val) => updateFieldValue(group.group, item.field, val)"
-              :step="0.1" :precision="numberPrecision(group.group, item.field)" class="w-full" />
+              :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
             <!-- BOOLEAN -->
             <el-switch v-else-if="item.valueType === 'BOOLEAN'"
               :model-value="getFieldValue(group.group, item.field) === 'true'"
@@ -233,6 +233,8 @@ import SettingsRow from './SettingsRow.vue'
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 import { isAdmin } from '@repo/core'
 import { getModelAvatarPath } from '@/utils/modelUtils'
+import { MODEL_SUBTYPE_LABELS } from '@/components/models/model.constants'
+import { inferSubType } from '@/components/models/model.utils'
 
 // Element Plus 组件导入
 import {
@@ -463,7 +465,8 @@ const TYPE_LABELS = {
     ocr: 'OCR识别',
     face: '人脸识别',
     layout: '布局识别',
-    image_cv: '图片识别'
+    image_cv: '图片识别',
+    detection: '检测'
 }
 // 规范类型 → ReTag 配色
 const TYPE_TAG_TYPE = {
@@ -477,7 +480,8 @@ const TYPE_TAG_TYPE = {
     ocr: 'info',
     face: 'info',
     layout: 'info',
-    image_cv: 'info'
+    image_cv: 'info',
+    detection: 'info'
 }
 // 后端 capability.task → 规范类型
 const TASK_TO_TYPE = {
@@ -507,6 +511,9 @@ const TASK_TO_TYPE = {
     image_cv: 'image_cv',
     image_feature: 'image_cv',
     feature_extraction: 'image_cv',
+    detection: 'detection',
+    detect: 'detection',
+    object_detection: 'detection',
 }
 // feature 类 capability（属于附加能力，不是主类型）
 const FEATURE_LABELS = {
@@ -523,6 +530,8 @@ const inferTypeByName = (modelName) => {
     if (l.includes('rerank')) return 'rerank'
     if (l.includes('tts') || l.includes('speech-synthesis') || l.includes('speech_synthesis')) return 'tts'
     if (l.includes('whisper') || l.includes('asr') || l.includes('speech-recognition')) return 'asr'
+    if (l.includes('detect') || l.includes('-det-') || l.includes('yolo')
+        || l.includes('scrfd') || l.includes('nms')) return 'detection'
     if (l.includes('dall-e') || l.includes('image-gen') || l.includes('cogview') || l.includes('flux') || l.includes('image')) return 'image'
     if (l.includes('cogvideo') || l.includes('video-gen') || l.includes('video')) return 'video'
     return 'text'
@@ -532,6 +541,7 @@ const inferTypeByName = (modelName) => {
 const resolveModelMeta = (modelName, capabilities) => {
     const types = []
     const features = []
+    const subTypes = []
     ;(capabilities || []).forEach((cap) => {
         const task = cap?.task
         if (!task) return
@@ -540,6 +550,10 @@ const resolveModelMeta = (modelName, capabilities) => {
             if (!types.includes(t)) types.push(t)
         } else if (FEATURE_LABELS[task]) {
             if (!features.includes(task)) features.push(task)
+        }
+        const sub = cap?.subtype ?? cap?.subType
+        if (sub && MODEL_SUBTYPE_LABELS[String(sub)] && !subTypes.includes(String(sub))) {
+            subTypes.push(String(sub))
         }
     })
     // 名称强类型纠偏：**仅在 capabilities 没给出任何确定类型时**才生效。
@@ -561,16 +575,25 @@ const resolveModelMeta = (modelName, capabilities) => {
     if (types.length === 0) types.push(nameType)
 
     const primaryType = types[0]
+    const inferredSubType = inferSubType({ model: modelName, capabilities }, primaryType)
+    if (inferredSubType && !subTypes.includes(inferredSubType)) {
+        subTypes.push(inferredSubType)
+    }
     const displayTags = [
         { value: `type:${primaryType}`, label: TYPE_LABELS[primaryType] || primaryType, tagType: TYPE_TAG_TYPE[primaryType] || 'info' }
     ]
+    subTypes.forEach((sub) => displayTags.push({
+        value: `sub:${sub}`,
+        label: MODEL_SUBTYPE_LABELS[sub] || sub,
+        tagType: 'info'
+    }))
     // thinking / web-search / tools 等特性仅对话模型有意义
     if (primaryType === 'text') {
         features.slice(0, 2).forEach((f) =>
             displayTags.push({ value: `feat:${f}`, label: FEATURE_LABELS[f], tagType: 'info' })
         )
     }
-    return { types, features, primaryType, displayTags }
+    return { types, features, primaryType, displayTags, subTypes }
 }
 
 // 根据配置分组与字段，确定该字段需要的规范模型类型
@@ -581,6 +604,8 @@ const requiredTypeFor = (group, field) => {
     if (g === 'face') return 'face'
     if (g === 'ocr') return 'ocr'
     if (g === 'layout') return 'layout'
+    // 图片识别组里的检测模型是独立类型，分类/分割等仍归 image_cv
+    if (g === 'image' && f === 'detect_model') return 'detection'
     if (g === 'image') return 'image_cv'
     if (g === 'asr') return 'asr'
     // 以图搜图：分组名 image_search 不在上面的 CV 名单里，而字段名
@@ -615,6 +640,33 @@ const acceptableTypesFor = (group, field) => {
         return ['image_cv', 'embedding']
     }
     return [requiredTypeFor(group, field)]
+}
+
+/**
+ * 设置字段要求的具体细分类型。
+ *
+ * <p>OCR 与人脸分组的每个独立模型槽位（detector_model、recognizer_model、
+ * corrector_model、anime_detector_model 等）必须有细分类型才不会被错误模型占位；
+ * 没有对应细分滤条件的字段不限制。</p>
+ */
+const SUBTYPE_FOR_FIELD = {
+    'ocr.detector_model': ['ocr_detection'],
+    'ocr.recognizer_model': ['ocr_recognition'],
+    'ocr.corrector_model': ['ocr_correction'],
+    'ocr.direction_model': ['ocr_direction'],
+    'ocr.restorer_model': ['ocr_restore'],
+    'face.detector_model': ['face_detection'],
+    'face.feature_model': ['face_feature'],
+    'face.landmark_model': ['face_landmark'],
+    'face.liveness_model': ['face_liveness'],
+    'face.anime_detector_model': ['anime_face_detection'],
+    'face.restore_model': ['face_restore', 'face_enhance'],
+    'face.attribute_model': ['face_attribute'],
+    'face.emotion_model': ['face_emotion'],
+    'face.deepfake_model': ['face_deepfake'],
+    'face.recognizer_model': ['face_recognition'],
+    'face.pose_model': ['face_pose'],
+    'image.detect_model': ['object_detection', 'defect_detection'],
 }
 
 // 判断是否是模型字段（包含 model 关键词）
@@ -985,6 +1037,23 @@ const numberPrecision = (group, field) => {
     return Math.min(6, raw.length - dot - 1)
 }
 
+/**
+ * 数值字段的步长。
+ *
+ * <p>必须和 {@link numberPrecision} 同源，否则步进按钮会**彻底失效**。
+ * 之前模板把 :step 写死成 0.1：整数字段（分块大小、向量维度、TopK）精度是 0，
+ * 点「增加数值」时 Element Plus 走 ensurePrecision(1000 + 0.1)，
+ * 精度 0 下即 Math.round(1000.1) === 1000 —— 新值等于旧值，
+ * setCurrentValue 里 `if (oldVal === newVal && value) return` 直接提前返回，
+ * 界面一动不动，按钮成了死的（实测点击扫描报 6 条 no-effect 正是这 3 个输入框）。
+ * 这里按小数位反推步长：精度 0 → 1，精度 1 → 0.1，精度 2 → 0.01。</p>
+ *
+ * @param group 配置分组名
+ * @param field 字段名
+ * @return 步长（至少 1e-6）
+ */
+const numberStep = (group, field) => Math.max(1e-6, 10 ** -numberPrecision(group, field))
+
 // 模型字段的展示文本。
 //
 // 合并视图里的 value 已经是「生效值」，所以还要看 overridden：
@@ -1068,9 +1137,15 @@ const clearModelField = () => {
 }
 
 // 当前字段需要的类型中文标签
+const currentSubtypeLabel = computed(() => {
+    const subTypes = SUBTYPE_FOR_FIELD[`${currentDialogGroup.value}.${currentDialogField.value}`] || []
+    return subTypes.length ? MODEL_SUBTYPE_LABELS[subTypes[0]] || subTypes[0] : ''
+})
 const currentTypeLabel = computed(() => {
     const t = requiredTypeFor(currentDialogGroup.value, currentDialogField.value)
-    return TYPE_LABELS[t] || t
+    const base = TYPE_LABELS[t] || t
+    const sub = currentSubtypeLabel.value
+    return sub ? `${base} · ${sub}` : base
 })
 
 // 过滤后的模型列表
@@ -1082,6 +1157,12 @@ const filteredModels = computed(() => {
         const acceptable = acceptableTypesFor(currentDialogGroup.value, currentDialogField.value)
         if (acceptable.length) {
             result = result.filter((model) => (model.types || []).some((t) => acceptable.includes(t)))
+        }
+        const requiredSubTypes = SUBTYPE_FOR_FIELD[`${currentDialogGroup.value}.${currentDialogField.value}`] || []
+        if (requiredSubTypes.length) {
+            result = result.filter((model) =>
+                requiredSubTypes.some((subType) => (model.subTypes || []).includes(subType)),
+            )
         }
     }
 

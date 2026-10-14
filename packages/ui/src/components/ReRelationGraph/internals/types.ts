@@ -243,6 +243,8 @@ export interface RelationGraphSettings {
   layout?: RelationLayoutName;
   /** 布局参数 */
   layoutOptions?: Record<string, unknown>;
+  /** 各布局的调参值（按布局名索引） */
+  layoutSettingsByLayout?: Record<string, Record<string, number | string>>;
   /** 是否显示分组容器 */
   showGroups?: boolean;
   /** 是否显示小地图 */
@@ -271,7 +273,15 @@ export interface RelationGraphApi {
   removeEdge: (id: string) => Promise<void>;
   setData: (data: RelationGraphData) => Promise<void>;
   getData: () => RelationGraphData;
-  setLayout: (name: RelationLayoutName, options?: Record<string, unknown>) => Promise<void>;
+  /**
+   * 切换（或重跑）布局。
+   *
+   * @param name 布局名
+   * @param options 布局参数覆盖
+   * @param force 忽略「模型与参数均未变」的指纹跳过，强制重排一次
+   *        （典型场景：调用方检测到首帧布局退化——节点全堆在原点——需要重跑）
+   */
+  setLayout: (name: RelationLayoutName, options?: Record<string, unknown>, force?: boolean) => Promise<void>;
   getLayout: () => string;
   /**
    * 展开布局调参面板。

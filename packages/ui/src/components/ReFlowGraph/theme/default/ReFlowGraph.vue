@@ -1188,6 +1188,9 @@ defineExpose({
   flex: 1;
   min-height: 0;
   overflow: auto;
+  /* 始终预留滚动条槽位：点选表单控件触发滚动时，滚动条出没会造成
+     整栏宽度 8px 级抖动（「点一下参数会移动一点」的根因） */
+  scrollbar-gutter: stable;
   padding: 14px;
 }
 /* 底部概览：与滚动表单区分离的一条，上边框分隔，常驻可见 */

@@ -210,10 +210,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 // 此处不再维护任何 logo 映射配置。
 
 // 模型类型选项（与系统配置「默认模型」选择器的类型体系保持一致）
-// 注意：后端 capability.task 只有 task 一层（见 ApiProviderController.batchModelInput
-// 与 inferTasks），traits 只放 input:/output:/streaming 之类；上游 /models 目录
-// 本来就不返回「模型是干什么的」语义 —— 三态（检测/识别/矫正）只能在前端行内描述层
-// 用 taskHintForName 做「关键词提示」，不要给 capabilities 加 task=detection 之类的新值。
+// 注意：检测已是明确的规范类型，表单/保存/回显三处会同步；识别/矫正仍只在行内提示层，
+// 不新增 capability.task，避免影响已有分组。
 export const MODEL_TYPE_OPTIONS = [
   { value: 'text', label: '对话', icon: TextT24Regular },
   { value: 'embedding', label: '嵌入', icon: Group24Regular },
@@ -221,6 +219,7 @@ export const MODEL_TYPE_OPTIONS = [
   { value: 'image', label: '文生图', icon: Image24Regular },
   { value: 'video', label: '文生视频', icon: Video24Regular },
   { value: 'image_cv', label: '图片识别', icon: Scan24Regular },
+  { value: 'detection', label: '检测', icon: Scan24Regular },
   { value: 'ocr', label: 'OCR识别', icon: DocumentText24Regular },
   { value: 'face', label: '人脸识别', icon: PersonCircle24Regular },
   { value: 'layout', label: '布局识别', icon: Grid24Regular },
@@ -236,6 +235,7 @@ export const TYPE_TO_TASK: Record<string, string> = {
   image: 'image_generation',
   video: 'video_generation',
   image_cv: 'image_cv',
+  detection: 'detection',
   ocr: 'ocr',
   face: 'face_recognition',
   layout: 'layout',
@@ -246,10 +246,9 @@ export const TYPE_TO_TASK: Record<string, string> = {
 /**
  * 行内三态提示：模型名里带这些关键词时，在弹窗行内直接标出它的管线角色。
  *
- * <p>为什么是关键词匹配而不是类型：上游 /models 与本体都不返回这层语义，
- * capabilites.task 之后会直接回写 sys_ai_provider_model 并参与全部选择器的
- * 类型分组 —— 加 detection/recognition/correction 三个新 task 会让分组逻辑
- * 跟着分叉。行内提示只影响这一行的显示，不动任何分组。</p>
+ * <p>为什么是关键词匹配而不是类型：上游 /models 与本体都可能不返回这层语义，
+ * 识别/矫正两个 task 会造成分组分叉，检测虽已是规范类型，行内提示仍保留，
+ * 用于覆盖没有 capabilities 的本地目录行。</p>
  *
  * @param name 模型名
  * @returns 提示文本；无命中时返回空串
@@ -286,9 +285,59 @@ export const TASK_TO_TYPE: Record<string, string> = {
   'text-to-video': 'video',
   video: 'video',
   image_cv: 'image_cv',
+  detection: 'detection',
+  detect: 'detection',
+  object_detection: 'detection',
   ocr: 'ocr',
   ocr_recognition: 'ocr',
   face: 'face',
   face_recognition: 'face',
   layout: 'layout',
 }
+
+/**
+ * 模型细分类型：同一个规范类型下不同管线角色使用。
+ *
+ * <p>OCR/人脸都是组合管线，只标「OCR 识别 / 人脸识别」无法区分
+ * detector、recognizer、corrector、restore_model、anime_detector_model
+ * 这些独立模型槽位。细分类型跟随 capabilities[].subtype 保存，
+ * 模型卡片和默认模型选择器都据此显示/过滤。</p>
+ */
+export const MODEL_SUBTYPE_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
+  ocr: [
+    { value: 'ocr_detection', label: '文字检测' },
+    { value: 'ocr_recognition', label: '文字识别' },
+    { value: 'ocr_correction', label: '文字校正' },
+    { value: 'ocr_direction', label: '方向矫正' },
+    { value: 'ocr_restore', label: '文字超分修复' },
+  ],
+  face: [
+    { value: 'face_detection', label: '人脸检测' },
+    { value: 'face_recognition', label: '人脸识别' },
+    { value: 'face_feature', label: '人脸特征提取' },
+    { value: 'face_landmark', label: '人脸关键点' },
+    { value: 'face_liveness', label: '活体检测' },
+    { value: 'face_restore', label: '人脸修复' },
+    { value: 'face_enhance', label: '人脸增强' },
+    { value: 'anime_face_detection', label: '动漫人脸检测' },
+    { value: 'face_attribute', label: '人脸属性' },
+    { value: 'face_emotion', label: '人脸表情' },
+    { value: 'face_deepfake', label: '换脸检测' },
+    { value: 'face_pose', label: '人脸姿态' },
+    { value: 'face_compare', label: '人脸比对' },
+    { value: 'face_search', label: '人脸搜索' },
+  ],
+  detection: [
+    { value: 'object_detection', label: '目标检测' },
+    { value: 'defect_detection', label: '缺陷检测' },
+    { value: 'image_classification', label: '图像分类' },
+  ],
+  image_cv: [
+    { value: 'image_classification', label: '图像分类' },
+    { value: 'object_detection', label: '目标检测' },
+  ],
+}
+
+export const MODEL_SUBTYPE_LABELS: Record<string, string> = Object.fromEntries(
+  Object.values(MODEL_SUBTYPE_OPTIONS).flatMap((opts) => opts.map((o) => [o.value, o.label])),
+) as Record<string, string>

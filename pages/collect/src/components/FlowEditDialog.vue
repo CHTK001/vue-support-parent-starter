@@ -150,7 +150,7 @@ async function save(): Promise<void> {
     title="编辑采集器"
     :width="620"
     :close-on-click-modal="false"
-    v-loading="loading"
+    :loading="loading"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="collect-form">

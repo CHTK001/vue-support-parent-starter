@@ -236,8 +236,10 @@ defineExpose({ scrollToBottom })
   background: var(--el-border-color-darker);
 }
 
+/* 右侧内容区宽度：满屏时由 MainLayout 注入 --content-max-width: none（见 useKbDisplay），
+   窄屏保持舒适阅读宽度 820px 居中 */
 .stream-inner {
-  max-width: 820px;
+  max-width: var(--content-max-width, 820px);
   margin: 0 auto;
   padding: 22px 24px 12px;
 }

@@ -47,6 +47,16 @@ const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.
 const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 
+// 本地验收专用（2026-10-14）：远端 hub（198:8081）失联期间，
+// 控制台（/ms/monitor/db/**）与数据源注册表（/ms/datasource/list
+// 等 save/test）打到本机 8081（.local-run/start-backend-monitordb.cmd
+// 起的 monitordb 口径，ds=2 = root/ai_test 服务器）。两条都比通用
+// /collect/api/ms 条目长、排在它前面先匹配；比上方 ddl/tables/
+// table-infos/table-exists/columns/mapping-resolve 短，那些更长
+// 条目仍先匹配、继续打采集节点（18190）不受影响。198:8081 恢复后
+// 删掉这两条即回原路由。
+const localHubTarget = "http://127.0.0.1:8081";
+
 // dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。
 // 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 192.168.50.198:18190；
 // 而后端自 393306437（2026-10-02「收紧 CORS 任意 Origin 反射」）起只放行显式
@@ -166,14 +176,21 @@ export default createVite({
   server: {
     port: 19096,
     strictPort: false,
-    // Windows 上 public/vendor/ppt/ppt-font-cjk.otf 会被其它进程短暂占用，
-    // 文件监视触发 EBUSY 直接让 Vite 整个进程退出（19096 就是这样掉线的）。
-    // 这些大字体/静态资源不改就永远不该触发 HMR，直接不 watch，避免反复崩溃。
+    // Windows 文件监视 + public 静态资源 = 反复 EBUSY 崩溃，别再逐个文件打补丁。
+    // public/ 下的二进制资源（wasm / ttf / otf / woff ...）一旦被浏览器内存映射加载
+    // 或被其它进程短暂占用，fs.watch 立刻 EBUSY，而 FSWatcher 未处理的 'error' 事件
+    // 会直接崩掉整个 Vite 进程。已实测掉过线的：
+    //   public/vendor/ppt/ppt-font-cjk.otf
+    //   public/wasm/cad/0.8.2/libredwg-web.wasm
+    //   public/wasm/typst/fonts/DejaVuSansMono-Bold.ttf
+    // public 资源既不进构建产物、也不该触发 HMR，整个目录一律不 watch；
+    // 兜底再把任意位置的字体 / wasm 也排掉。
     watch: {
       ignored: (p: string) =>
+        /[\\/]public[\\/]/i.test(p) ||
         /[\\/]pp[-\w\s]*(\.otf|\.ttf|\.woff2?)$/i.test(p) ||
         p.includes("ppt-font-cjk") ||
-        /[\\/]public[\\/]vendor[\\/]/i.test(p),
+        /\.(wasm|ttf|otf|woff2?)$/i.test(p),
     },
     proxy: {
       // 顺序敏感：前缀更长的条目必须排在通用 /collect/api 前面，先匹配到的先生效。
@@ -228,6 +245,21 @@ export default createVite({
       "/collect/api/ms/datasource/mapping/resolve": {
         target: apiTarget,
         changeOrigin: true,
+        configure: stripOriginHeaders,
+      },
+      // 本地验收条目（见 localHubTarget 注释）：控制台与
+      // 注册表打本机 8081。顺序敏感：比 /collect/api/ms 长，
+      // 排在它前面先匹配。
+      "/collect/api/ms/monitor": {
+        target: localHubTarget,
+        changeOrigin: true,
+        rewrite: stripCollectApiPrefix,
+        configure: stripOriginHeaders,
+      },
+      "/collect/api/ms/datasource": {
+        target: localHubTarget,
+        changeOrigin: true,
+        rewrite: stripCollectApiPrefix,
         configure: stripOriginHeaders,
       },
       // 数据源中心（列表 + 控制台）-> hub。

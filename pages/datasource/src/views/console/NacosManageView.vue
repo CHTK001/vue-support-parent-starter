@@ -416,11 +416,21 @@ const nsForm = reactive({ namespaceId: "", namespaceName: "", namespaceDesc: "" 
 
 /** 命名空间行右键菜单（第九批统一 zk 模板） */
 const nsMenu = reactive({ visible: false, x: 0, y: 0, key: "" });
-const nsMenuItems = [
+const nsMenuItems = computed(() => [
   { key: "copy", label: "复制命名空间 ID", icon: "Document" },
   { key: "edit", label: "编辑命名空间", icon: "Edit" },
-  { key: "delete", label: "删除命名空间", icon: "Delete", danger: true, divided: true },
-];
+  // public 命名空间受保护：removeNamespace 对它静默 return（不弹确认框也不给提示）。
+  // 与工具栏「删除命名空间」按钮的 :disabled="!canEditNamespace" 保持一致，右键菜单也置灰，
+  // 避免留下「点了没反应」的死项。
+  {
+    key: "delete",
+    label: "删除命名空间",
+    icon: "Delete",
+    danger: true,
+    divided: true,
+    disabled: !nsMenu.key || nsMenu.key === "public",
+  },
+]);
 /** 打开命名空间行右键菜单 */
 function onNsContextMenu(e: MouseEvent, id: string) {
   Object.assign(nsMenu, { visible: true, x: e.clientX, y: e.clientY, key: id });

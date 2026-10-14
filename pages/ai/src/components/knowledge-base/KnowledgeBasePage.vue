@@ -225,6 +225,7 @@
                 <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
                   :status-filter="fileStatusFilter"
                   @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
+                  @chunks="handleViewChunks"
                   @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
               </div>
             </section>
@@ -243,7 +244,8 @@
 
           <!-- 搜索 Tab -->
           <div v-show="activeTab === 'search'" class="kb-pane">
-            <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId" />
+            <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId"
+              @result-click="handleSearchResultClick" />
           </div>
 
           <!-- 智能问答 Tab -->
@@ -794,7 +796,13 @@ const showUploadModal = ref(false)
 const showFileChunksModal = ref(false)  // 文件分块查看弹窗
 const showUploadTaskModal = ref(false)  // 上传任务弹窗
 const selectedFile = ref<KBFile | null>(null)  // 选中的文件
-const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'>('files')  // 当前激活的 Tab
+const KB_VIEW_KEYS = ['overview', 'files', 'search', 'graph', 'ask', 'entities', 'relations'] as const
+type KBViewKey = typeof KB_VIEW_KEYS[number]
+const kbViewKeyFromQuery = (value: unknown): KBViewKey | null =>
+  typeof value === 'string' && (KB_VIEW_KEYS as readonly string[]).includes(value)
+    ? value as KBViewKey
+    : null
+const activeTab = ref<KBViewKey>('files')  // 当前激活的 Tab
 const viewMode = ref<'list' | 'detail'>('list')  // 视图模式：列表或详情
 const searchKeyword = ref('')  // 知识库搜索关键词
 const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
@@ -1271,7 +1279,8 @@ async function materializeTemplate(kbId: string, kbName: string) {
  * @param key 目标视图 key（overview / files / search / graph / ask / entities / relations）
  */
 function handleMenuSelect(key: string) {
-  activeTab.value = key as 'overview' | 'files' | 'search' | 'graph' | 'ask' | 'entities' | 'relations'
+  const next = kbViewKeyFromQuery(key)
+  if (next) activeTab.value = next
 }
 
 /**
@@ -1672,10 +1681,15 @@ async function loadGraph() {
     graphCount.value = view.entityCount + view.relationCount
   } catch (e: any) {
     graphError.value = e?.message || '关系图谱加载失败'
-    graphView.nodes = []
-    graphView.edges = []
-    graphView.placeholder = true
-    graphCount.value = 0
+    // 拉取失败（后端间歇性 5xx 等）时保留现有数据：
+    // graphNodes 是 graphView 的派生计算，图谱组件挂载条件是 graphNodes.length > 0，
+    // 清空后组件会直接卸载——用户视角是「图谱突然整块消失」，连缩放/选中态一起丢。
+    // 只有本来就没有数据（首次加载就失败）时才落成占位空态。
+    if (graphView.nodes.length === 0) {
+      graphView.edges = []
+      graphView.placeholder = true
+      graphCount.value = 0
+    }
   } finally {
     graphLoading.value = false
   }
@@ -1989,16 +2003,29 @@ async function saveGraphLayoutSettings(settings: any) {
  *
  * <p>G6 首次装载若发生在容器尺寸确定之前，会把所有节点留在 (0,0)，
  * 表现为整图缩放到一个点（放大 6 倍只看到一个大圆）。此时容器尺寸已确定，
- * 这里主动重跑一次同名布局让节点真正散开，随后由组件 autoFit 重新适配视口。</p>
+ * 重跑一次同名布局让节点真正散开，随后由组件 autoFit 重新适配视口。</p>
+ *
+ * <p>但「重跑一次全量布局」在 248 节点的大图上要阻塞主线程约 2s（force-atlas2
+ * 同步迭代），而组件自身的装载流程已经跑过一次布局——正常情况下节点早已散开，
+ * 这次重跑纯属重复劳动。这里先采样节点坐标做退化判定：只有节点确实全堆在
+ * 原点附近才 force 重排，否则直接跳过。</p>
  */
 function handleGraphReady() {
   nextTick(() => {
     window.setTimeout(async () => {
-      if (!graphCompRef.value?.setLayout) {
+      const comp = graphCompRef.value as {
+        setLayout?: (name: string, options?: unknown, force?: boolean) => Promise<void>
+        getInstance?: () => unknown
+        fitView?: () => Promise<void>
+      } | null
+      if (!comp?.setLayout) {
+        return
+      }
+      if (!graphLooksDegenerate(comp)) {
         return
       }
       try {
-        await graphCompRef.value.setLayout(GRAPH_LAYOUT)
+        await comp.setLayout(GRAPH_LAYOUT, undefined, true)
       } catch {
         // 布局失败不阻断：至少保留组件自身的首帧适配
       }
@@ -2010,6 +2037,49 @@ function handleGraphReady() {
       }, 700)
     }, 120)
   })
+}
+
+/**
+ * 判断图谱当前布局是否退化：采样若干节点坐标，若全部落在 40px 半径内
+ * （即堆在图原点），判定为「首帧容器无尺寸导致的布局失败」，需要重排。
+ *
+ * @param comp 图谱组件实例
+ * @return 是否退化
+ */
+function graphLooksDegenerate(comp: { getInstance?: () => unknown }): boolean {
+  try {
+    const inst = comp.getInstance?.() as {
+      getNodeData?: () => Array<{ id: string }>
+      getElementPosition?: (id: string) => number[] | { x: number; y: number } | null
+    } | undefined
+    const nodes = inst?.getNodeData?.() ?? []
+    if (nodes.length < 2) {
+      return false
+    }
+    const pts: Array<[number, number]> = []
+    const sample = Math.min(nodes.length, 12)
+    for (let i = 0; i < sample; i++) {
+      const p = inst?.getElementPosition?.(nodes[i].id)
+      if (!p) {
+        continue
+      }
+      const x = Array.isArray(p) ? p[0] : p.x
+      const y = Array.isArray(p) ? p[1] : p.y
+      if (typeof x === 'number' && typeof y === 'number') {
+        pts.push([x, y])
+      }
+    }
+    if (pts.length < 2) {
+      return false
+    }
+    let maxDist = 0
+    for (const [x, y] of pts) {
+      maxDist = Math.max(maxDist, Math.hypot(x - pts[0][0], y - pts[0][1]))
+    }
+    return maxDist < 40
+  } catch {
+    return false
+  }
 }
 
 
@@ -2508,11 +2578,39 @@ async function handleRetryFile(file: KBFile) {
 }
 
 /**
+ * 搜索结果项点击 → 打开命中文件的原文预览。
+ *
+ * <p>{@code KBSearchPanel} 一直 {@code emit('resultClick')}，但页面从未监听这个事件，
+ * 事件发出去就断了——点搜索结果卡片得不到任何反馈，等于「搜到了却看不了原文」的死链路。
+ * 这里把它接上，复用 {@link openFilePreview} 这条既有通路（与点文件树里的文档完全一致，
+ * 走 {@code GET /bases/{id}/file} 拿原文），不再另造一套预览。</p>
+ *
+ * @param result 被点击的检索结果；相对路径取 {@code metadata.relPath}
+ */
+function handleSearchResultClick(result: { fileName?: string; metadata?: Record<string, any> }) {
+  const relPath = String(result?.metadata?.relPath ?? result?.metadata?.fileId ?? '').trim()
+  if (!relPath) {
+    toast.warning('该结果没有可预览的文档路径')
+    return
+  }
+  openFilePreview(undefined, relPath)
+}
+
+/**
  * 查看文件详情
  */
 function handleViewFile(file: KBFile) {
   // 点文件 = 看原文。分块详情另有入口（FileChunksViewer），不再占用「查看」这个动作
   openFilePreview(file)
+}
+
+/**
+ * 文件树右键菜单「查看分块」：只打开 FileChunksViewer，不改变原文预览状态。
+ */
+function handleViewChunks(file: KBFile) {
+  if (!file || file.isDirectory) return
+  selectedFile.value = file
+  showFileChunksModal.value = true
 }
 
 /**
@@ -2868,6 +2966,12 @@ function clearGraphFilters() {
 }
 
 // ========== Lifecycle ==========
+// 详情页支持 ?tab= 深链：外部/验收可直接打开指定视图，路由查询变化时同步切换
+watch(() => route.query.tab, (tab) => {
+  const next = kbViewKeyFromQuery(tab)
+  if (next) activeTab.value = next
+})
+
 // 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
 // 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
 watch(activeTab, (tab) => {
@@ -2912,6 +3016,8 @@ onMounted(async () => {
     const kb = store.knowledgeBases.find(k => k.id === kbIdFromRoute)
     if (kb) {
       await handleSelectKB(kb)
+      const tabFromQuery = kbViewKeyFromQuery(route.query.tab)
+      if (tabFromQuery) activeTab.value = tabFromQuery
       // refreshFileList 已在 handleSelectKB 中调用,无需重复
     } else {
       // 如果 ID 无效,显示列表视图
@@ -3120,6 +3226,8 @@ watch(() => route.params.id, async (newKbId: string | string[] | undefined) => {
     const kb = store.knowledgeBases.find(k => k.id === kbId)
     if (kb && store.activeKnowledgeBaseId !== kb.id) {
       await handleSelectKB(kb)
+      const tabFromQuery = kbViewKeyFromQuery(route.query.tab)
+      if (tabFromQuery) activeTab.value = tabFromQuery
     }
   } else {
     // 如果没有 ID，返回列表视图

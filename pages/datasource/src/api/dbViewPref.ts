@@ -37,7 +37,7 @@ const TABLE_KEY = "dbm-table-pref";
 const SCHEMA_VERSION = 1;
 
 /** 允许的表头模式 */
-const HEADER_MODES = ["name", "comment", "both"] as const;
+const HEADER_MODES = ["name", "comment", "both", "type"] as const;
 /** 允许的行显示模式 */
 const ROW_MODES = ["data", "data-comment"] as const;
 /** 允许的每页行数（与界面分页选项一致） */

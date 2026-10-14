@@ -191,6 +191,7 @@
     noFileSelected: 'No file or knowledge base selected',
     fileNotReady: 'File has not been processed yet, cannot view chunks',
     loadFailed: 'Failed to load file chunks',
+    view: 'View chunks',
   },
 
   treeNode: {

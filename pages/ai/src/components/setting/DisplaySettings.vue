@@ -21,12 +21,8 @@
         :class="{ 'is-full': askWidth === 'full' }"
         aria-hidden="true"
       >
-        <div class="display-preview__docs">
-          <i /><i /><i /><i /><i /><i />
-        </div>
-        <div class="display-preview__ask">
-          <i class="display-preview__ask-dot" />
-          <i /><i /><i />
+        <div class="display-preview__content">
+          <i /><i /><i /><i /><i />
         </div>
       </div>
       <p class="display-preview__hint">{{ previewHint }}</p>
@@ -38,12 +34,13 @@
 /**
  * 显示设置面板（常规组，所有登录用户可用）。
  *
- * <p><b>当前唯一配置项</b>：知识库详情页右侧问答栏宽度。
- * narrow = 舒适阅读宽度（约 400px）；full = 问答栏撑满剩余空间。
+ * <p><b>当前唯一配置项</b>：右侧内容区显示宽度（MainLayout 注入
+ * {@code --content-max-width} 驱动）。作用于会话页消息流/输入框列、设置中心卡片列、
+ * 知识库详情页问答栏。narrow = 舒适阅读宽度（约 820px）居中；full = 撑满剩余空间。
  *
- * <p><b>持久化</b>：走 appearance 分组的按用户覆盖层（origin=USER），
- * 零后端改动、跨设备同步。读失败一律回落 narrow —— 与重构前的默认行为一致，
- * 不因为配置读不到就改变用户的既有观感。
+ * <p><b>持久化</b>：走 appearance 分组的按用户覆盖层（origin=USER），字段名
+ * {@code kbAskPanelWidth} 与后端种子字段逐字一致，跨设备同步。读失败一律回落
+ * narrow —— 与重构前的默认行为一致，不因为配置读不到就改变用户的既有观感。
  *
  * <p><b>视觉</b>：表单外壳由 kb-refactor.css 的 kb-form 系列统一；
  * 本组件只负责布局预览那一小块自有样式。
@@ -101,85 +98,40 @@ async function onAskWidthChange(v: 'narrow' | 'full') {
 
 .display-preview__stage {
   display: flex;
-  gap: 10px;
+  justify-content: center;
   height: 92px;
-  transition: gap 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 文档列：窄屏时占大部分，满屏时被压缩 —— 两态差别一眼可见 */
-.display-preview__docs {
-  flex: 1 1 56%;
-  min-width: 0;
+/* 内容列：窄屏时居中定宽（模拟舒适阅读列），满屏时撑满舞台 —— 两态差别一眼可见 */
+.display-preview__content {
+  width: 55%;
+  height: 100%;
   border: 1px solid var(--kb-rule, #e6edf7);
   border-radius: 8px;
   background: var(--kb-surface, #fff);
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  transition: flex-basis 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 8px;
+  transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.display-preview__docs i {
+.display-preview__content i {
   display: block;
   height: 7px;
   border-radius: 3px;
   background: color-mix(in srgb, var(--kb-ink-3, #8494ad) 18%, transparent);
 }
 
-.display-preview__docs i:nth-child(2) { width: 82%; }
-.display-preview__docs i:nth-child(3) { width: 91%; }
-.display-preview__docs i:nth-child(4) { width: 68%; }
-.display-preview__docs i:nth-child(5) { width: 86%; }
-.display-preview__docs i:nth-child(6) { width: 55%; }
+.display-preview__content i:nth-child(2) { width: 82%; }
+.display-preview__content i:nth-child(3) { width: 91%; }
+.display-preview__content i:nth-child(4) { width: 68%; }
+.display-preview__content i:nth-child(5) { width: 86%; }
 
-/* 问答栏：窄屏固定窄条，满屏吃掉剩余宽度 */
-.display-preview__ask {
-  flex: 0 0 34%;
-  min-width: 0;
-  border: 1px solid var(--kb-rule, #e6edf7);
-  border-radius: 8px;
-  background: var(--kb-surface, #fff);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  position: relative;
-  transition: flex-basis 280ms cubic-bezier(0.16, 1, 0.3, 1);
+.display-preview__stage.is-full .display-preview__content {
+  width: 100%;
 }
 
-.display-preview__ask i {
-  display: block;
-  height: 7px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--kb-ink-3, #8494ad) 14%, transparent);
-}
-
-.display-preview__ask i:nth-child(2) { width: 74%; }
-.display-preview__ask i:nth-child(3) { width: 58%; }
-
-/* 强调色圆点：标记这一列是「问答栏」，两态都在同一位置 */
-.display-preview__ask-dot {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--kb-accent, var(--el-color-primary, #2563eb));
-}
-
-.display-preview__stage.is-full {
-  gap: 8px;
-}
-
-.display-preview__stage.is-full .display-preview__docs {
-  flex: 1 1 40%;
-}
-
-.display-preview__stage.is-full .display-preview__ask {
-  flex: 1 1 60%;
-}
 
 .display-preview__hint {
   margin: 10px 0 0;
@@ -190,8 +142,7 @@ async function onAskWidthChange(v: 'narrow' | 'full') {
 
 @media (prefers-reduced-motion: reduce) {
   .display-preview__stage,
-  .display-preview__docs,
-  .display-preview__ask {
+  .display-preview__content {
     transition: none;
   }
 }

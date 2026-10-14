@@ -15,6 +15,11 @@ export interface CharacterApi {
   createCharacter(characterData: any): Promise<Character>;
   updateCharacter(characterId: string, characterData: any): Promise<Character>;
   deleteCharacter(characterId: string): Promise<{ success: boolean }>;
+  /**
+   * 通用助手 logo：产品自带静态资源路径，不走头像上传链路。
+   * 通用助手头像由产品统一维护，不允许用户替换。
+   */
+  genericAssistantLogo(): string;
   importCharacters(files: { content: string; filename: string }[]): Promise<{ filename: string; status: string; characterId?: string; error?: string }[]>;
   fetchBuiltinCharacterCatalog(): Promise<CharacterCatalogItem[]>;
   fetchBuiltinCharacterDetail(id: string): Promise<CharacterCatalogDetail>;
@@ -152,7 +157,16 @@ export const characterApi: CharacterApi = {
     const raw = await this._request(`/roles${params}`);
     // 后端返回数组，映射字段名到前端期望格式
     const list = Array.isArray(raw) ? raw : (raw?.items || []);
-    const items = list.map((item: any) => mapRoleItem(item));
+    // 通用助手（id=1）头像：产品自带 logo，不走上传链路 —— 后端 avatar 字段
+    // 存的是接口路径且 1.svg 只是首字占位图，这里统一换成产品 logo。
+    const logo = characterApi.genericAssistantLogo();
+    const items = list.map((item: any) => {
+      const mapped = mapRoleItem(item);
+      if (String(mapped.id) === '1' || mapped.code === 'general-assistant') {
+        mapped.avatarUrl = logo;
+      }
+      return mapped;
+    });
     return {
       items,
       total: items.length,
@@ -185,8 +199,12 @@ export const characterApi: CharacterApi = {
 
   async fetchCharacter(this: ApiContext, characterId: string) {
     const raw = await this._request(`/roles/${characterId}`);
-    // 后端字段名映射到前端期望格式
-    return mapRoleItem(raw);
+    // 后端字段名映射到前端期望格式；通用助手头像同样换产品 logo（与列表同口径）
+    const mapped = mapRoleItem(raw);
+    if (String(mapped.id) === '1' || mapped.code === 'general-assistant') {
+      mapped.avatarUrl = characterApi.genericAssistantLogo();
+    }
+    return mapped;
   },
 
   async createCharacter(this: ApiContext, characterData: any) {
@@ -210,6 +228,13 @@ export const characterApi: CharacterApi = {
   },
 
   async updateCharacter(this: ApiContext, characterId: string, characterData: any) {
+    // 通用助手头像锁死产品 logo：即使设置面板传了 avatarUrl/avatarFile 也忽略，
+    // 防止用户替换（产品统一维护）。其它字段正常更新。
+    // 注意 backendData 原本就不含 avatar/avatarUrl 字段（头像走独立上传接口），
+    // 这里只需把回显用的 characterData 锁死，uploadAvatar 调用方同样会看到 null 而跳过。
+    if (String(characterId) === '1') {
+      characterData = { ...characterData, avatarUrl: characterApi.genericAssistantLogo(), avatarFile: null };
+    }
     const settings = normalizeSettings(characterData.settings);
     const backendData = {
       name: characterData.title || characterData.name,
@@ -226,9 +251,22 @@ export const characterApi: CharacterApi = {
   },
 
   async deleteCharacter(this: ApiContext, characterId: string) {
+    // 通用助手（id=1）系统内置不可删除：前端隐藏按钮是第一道，后端接口同样拒绝，
+    // 这里提前拦截，省一次失败请求，错误信息与后端口径对齐。
+    if (String(characterId) === '1') {
+      throw new Error('通用助手为系统内置，不允许删除');
+    }
     return await this._request(`/roles/${characterId}`, {
       method: "DELETE",
     });
+  },
+
+  /**
+   * 通用助手 logo：产品自带静态资源（public/images/guada_logo.png），
+   * 不走角色头像上传链路 —— 通用助手头像由产品统一维护，不允许用户替换。
+   */
+  genericAssistantLogo(): string {
+    return 'images/guada_logo.png';
   },
 
   async importCharacters(this: ApiContext, files: { content: string; filename: string }[]) {

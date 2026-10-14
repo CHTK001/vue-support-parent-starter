@@ -17,13 +17,10 @@ import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReFlowGraph from "@repo/ui/re-flow-graph";
 import ReInput from "@repo/ui/re-input";
-import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
-import ReTab from "@repo/ui/re-tab";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
-import PairsEditor from "./PairsEditor.vue";
 import commentForm from "./nodes/commentForm.vue";
 import conditionForm from "./nodes/conditionForm.vue";
 import dataEntryForm from "./nodes/dataEntryForm.vue";
@@ -41,7 +38,6 @@ import scriptForm from "./nodes/scriptForm.vue";
 import sleepForm from "./nodes/sleepForm.vue";
 import sqlForm from "./nodes/sqlForm.vue";
 import startForm from "./nodes/startForm.vue";
-import variableForm from "./nodes/variableForm.vue";
 import SectionHead from "./nodes/SectionHead.vue";
 import {
   createNode,
@@ -138,8 +134,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (event: "change"): void }>();
 
-type TabKey = "node" | "edge" | "flowBase" | "flowData";
-
 /** 流程级字段：图结构由画布内核持有，这里只管 name/线程数/请求头/Cookie/变量 */
 type FlowLevel = Omit<CollectDsl, "nodes" | "edges">;
 
@@ -208,6 +202,15 @@ const EXCEPTION_OPTIONS = [
  */
 
 const graphData = ref<FlowGraphData>({ nodes: [], edges: [] });
+/**
+ * 图结构版本号：onGraphChange 每次回抛 +1。
+ *
+ * <p>引擎的 change 不回写 graphData —— prop 只在载入时灌，
+ * 回写会触发 ReFlowGraph 的 prop 同步重放，有重入风险；
+ * 但「删节点后未注册红标 / 警报即时解除」这类计算必须跟编辑走，
+ * 于是用版本号驱动重算，数据本体直接读引擎实时数据。</p>
+ */
+const graphVersion = ref(0);
 const flow = ref<FlowLevel>(emptyDsl());
 const engine = shallowRef<FlowGraphEngine | null>(null);
 /**
@@ -217,27 +220,21 @@ const engine = shallowRef<FlowGraphEngine | null>(null);
  * 外壳那版会同步工具条倍率显示，直接调引擎的话图缩放了、倍率还停在旧值。</p>
  */
 const graphRef = ref<{ fit?: () => unknown } | null>(null);
-const tab = ref<TabKey>("node");
 const nodeForm = ref<NodeForm | null>(null);
 const edgeForm = ref<EdgeForm | null>(null);
 
-/** 连线数 badge：「连线」页签的计数来源；图变化由 onGraphChange 写回 graphData 驱动重算 */
-const TABS = computed<{ name: TabKey; label: string; disabled?: boolean; badge?: string }[]>(() => {
-  const edgeCount = graphData.value.edges?.length ?? 0;
-  return [
-    { name: "node", label: "节点参数" },
-    { name: "edge", label: "连线", badge: edgeCount > 0 ? String(edgeCount) : undefined },
-    { name: "flowBase", label: "流程设置" },
-    { name: "flowData", label: "全局数据" },
-  ];
-});
-
 /** 底部概览的三格统计：节点数 / 连线数 / 最近保存 */
-const overview = computed(() => ({
-  nodes: graphData.value.nodes?.length ?? 0,
-  edges: graphData.value.edges?.length ?? 0,
-  savedAt: savedLabel.value,
-}));
+const overview = computed(() => {
+  // 版本号参与依赖追踪：编辑（onGraphChange +1）与
+  // 载入（load 写 graphData）都驱动重算；计数取引擎实时数据
+  graphVersion.value;
+  const data = engine.value?.getData() ?? graphData.value;
+  return {
+    nodes: data.nodes?.length ?? 0,
+    edges: data.edges?.length ?? 0,
+    savedAt: savedLabel.value,
+  };
+});
 
 /** 「最近保存」文案：宿主给服务端保存时间，没给就显示占位符（不编造时间） */
 const savedLabel = computed(() => {
@@ -280,6 +277,23 @@ function signatureOf(data: FlowGraphData): string {
 let applying = false;
 
 const metaMap = computed(() => indexMetas(props.metas));
+
+/**
+ * 类型未注册的节点：后端执行器没启用时（如 script 开关关闭），
+ * 已保存的 DSL 里仍可能有这种 shape 的节点 — 设计器读得出来，
+ * 但一执行就报「节点 X 的类型未注册」。这里在设计期标出：
+ * 画布描边标红、面板顶部出警报，保存 / 运行由宿主（FlowView.graphOf）拦下。
+ *
+ * <p>读引擎实时数据：删掉未注册节点后引擎立刻更新，
+ * 警报与保存拦截随之解除（graphData prop 不回写，由 graphVersion 驱动重算）。</p>
+ */
+const shapeIssues = computed(() => {
+  graphVersion.value;
+  const data = engine.value?.getData() ?? graphData.value;
+  return data.nodes
+    .filter(node => !metaMap.value[node.type])
+    .map(node => ({ id: node.id, name: node.label, shape: node.type }));
+});
 
 /** 开始节点类型标识，与 ReFlowGraph 的 start-type / 后端 CollectGraph.checkStartEnd() 口径一致 */
 const START_TYPE = "start";
@@ -325,7 +339,7 @@ const selectedMeta = computed(() =>
 const panelTitle = computed(() => {
   if (nodeForm.value) return "节点参数";
   if (edgeForm.value) return "连线属性";
-  return tab.value === "flowData" ? "全局数据" : "流程属性";
+  return "流程属性";
 });
 
 const selectedState = computed(() =>
@@ -778,7 +792,6 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   request: requestForm,
   extract: extractForm,
   link: linkForm,
-  variable: variableForm,
   database: databaseForm,
   output: outputForm,
   sql: sqlForm,
@@ -908,10 +921,6 @@ function defaultOutputsOf(shape: string, declaredOutput = "", setNames: string[]
       { name: "data", desc: "查重结果：{ exists: 已存在键, fresh: 全新行, existsCount, freshCount, total }" },
       { name: "dataJson", desc: "data 的 JSON 形态" },
     ];
-  }
-  if (shape === "variable") {
-    // 变量节点唯一产出就是它声明的那些变量名 —— 不列出来，用户根本不知道下游能引用什么
-    return setNames.map(name => ({ name, desc: "变量节点赋的值" }));
   }
   // 其余 shape 的变量要么不存在（sleep / comment / end / output 明确无出参），
   // 要么是内部暂存（database 的 _written/_cleared、dedup 的判重主键），故意不列 —— 列出只会变成噪音。
@@ -1080,22 +1089,6 @@ function removeSelectedEdge(): void {
   edgeForm.value = null;
 }
 
-function listPairs(field: "headers" | "cookies" | "variables"): ParamPair[] {
-  return (flow.value[field] ?? []).map(item => ({ key: item.name, value: item.value ?? "" }));
-}
-
-function writeListPairs(field: "headers" | "cookies" | "variables", pairs: ParamPair[]): void {
-  flow.value[field] = pairs
-    .filter(pair => pair.key.trim() !== "")
-    .map(pair => ({ name: pair.key.trim(), value: pair.value ?? "", description: null }));
-  emit("change");
-}
-
-function patchFlow(changes: Partial<FlowLevel>): void {
-  flow.value = { ...flow.value, ...changes };
-  emit("change");
-}
-
 /* -------------------------------- 画布事件 -------------------------------- */
 
 function nameOf(nodeId: string): string {
@@ -1180,6 +1173,8 @@ function rejectExtraStart(data: FlowGraphData): boolean {
 
 function onGraphChange(data: FlowGraphData): void {
   if (applying) return;
+  // 结构版本 +1：驱动 shapeIssues / overview 重算（引擎不回写 graphData prop）
+  graphVersion.value += 1;
   if (!engine.value) {
     pending = false;
     return;
@@ -1210,13 +1205,12 @@ function onGraphChange(data: FlowGraphData): void {
 
 function onSelect(selection: FlowSelection): void {
   if (!selection) return;
+  // 属性面板只有一块：选中节点显示节点参数，选中连线显示连线属性
+  // （判断节点的真假分流条件在连线属性里编），不再有页签切换
   if (selection.kind === "node") {
     readNodeForm(selection.node);
-    tab.value = "node";
   } else {
-    // 切到「连线」页签：流转条件（真假分流）就在这里编辑，判断节点的出边依赖它
     readEdgeForm(selection.edge);
-    tab.value = "edge";
   }
 }
 
@@ -1241,7 +1235,6 @@ function onEdgeConnected(edge: FlowEdge): void {
     data: { condition: "", exceptionFlow: "0" },
   });
   readEdgeForm({ ...edge, kind: "normal", label: "", transfer: true, data: {} });
-  tab.value = "edge";
 }
 
 function onReady(instance: FlowGraphEngine): void {
@@ -1336,7 +1329,7 @@ function stateText(nodeId: string): string {
   return `${label}${iteration == null ? "" : ` ×${Number(iteration) + 1}`}${costText}`;
 }
 
-/** 描边只改 attrs 并临时关掉历史记录，避免轮询状态污染撤销栈 */
+/** 回放/校验状态只改节点边框数据并临时关掉历史记录，避免轮询状态污染撤销栈 */
 function applyStates(): void {
   const eng = engine.value;
   if (!eng) return;
@@ -1345,14 +1338,15 @@ function applyStates(): void {
     eng.graph.disableHistory();
     eng.getData().nodes.forEach(node => {
       const status = props.states?.[node.id]?.collectTaskLogStatus;
-      eng.graph.getCellById(node.id)?.setAttrs(
-        {
-          badge: {
-            stroke: (status && STATE_RING[status]) || "#ffffff",
-            strokeWidth: status ? 3 : 1.5,
-          },
-        } as never,
-      );
+      // 执行前校验：类型未注册的节点标红（回放状态优先于校验标红）
+      const unregistered = !status && !metaMap.value[node.type];
+      if (status && STATE_RING[status]) {
+        eng.updateNode(node.id, { strokeColor: STATE_RING[status], strokeWidth: 3 });
+      } else if (unregistered) {
+        eng.updateNode(node.id, { strokeColor: "#f53f3f", strokeWidth: 3 });
+      } else {
+        eng.updateNode(node.id, { strokeColor: "", strokeWidth: 1.5 });
+      }
     });
     eng.graph.enableHistory();
   } finally {
@@ -1361,6 +1355,8 @@ function applyStates(): void {
 }
 
 watch(() => props.states, applyStates, { deep: true });
+// 后端执行器注册表变化（如重启后启用了 script）时重描边，未注册红标跟着刷新
+watch(() => props.metas, applyStates, { deep: true });
 
 /* --------------------------------- 对外接口 -------------------------------- */
 
@@ -1376,8 +1372,6 @@ function load(dsl: CollectDsl | null | undefined): void {
   };
   nodeForm.value = null;
   edgeForm.value = null;
-  // 「流程设置」页签已停用，载入后停在「节点参数」页签
-  tab.value = "node";
   const data = toGraphData(source);
   // 两个分支都要写 graphData：ReFlowGraph 的「N 节点 / M 连线」统计只在 data prop
   // 变化时刷新（内部 syncStat），只调 engine.setData 会让画布有图而计数仍是 0（实测）。
@@ -1438,7 +1432,7 @@ function startWith(name: string): void {
   load(dsl);
 }
 
-defineExpose({ load, getGraph, addNode, startWith });
+defineExpose({ load, getGraph, addNode, startWith, shapeIssues });
 </script>
 
 <template>
@@ -1462,9 +1456,22 @@ defineExpose({ load, getGraph, addNode, startWith });
       </template>
 
       <template #properties>
-        <ReTab v-model="tab" :tabs="TABS" variant="underline">
-          <template #node>
-            <div v-if="nodeForm && selectedMeta" class="pane-grid">
+        <!--
+          执行前校验警报：后端执行器未启用的节点类型在此列出。
+          画布上对应节点同时标红；保存 / 运行由宿主（FlowView.graphOf）拦下，
+          不让「设计器能编、执行才炸」的事再发生。
+        -->
+        <div v-if="shapeIssues.length" class="pane-alert">
+          <b>以下节点类型未注册</b>（后端执行器未启用），删除或替换后才能保存执行：
+          <ul>
+            <li v-for="it in shapeIssues" :key="it.id">
+              「{{ it.name }}」· {{ it.shape }}
+            </li>
+          </ul>
+        </div>
+
+        <!-- 节点参数：属性面板唯一常驻内容，选中节点即显示 -->
+        <div v-if="nodeForm && selectedMeta" class="pane-grid">
               <!-- 分节头（UI 稿）：基础信息 = 名称 / ID / 最近执行；其余表单归「类型配置」节 -->
               <SectionHead title="基础信息" />
               <div class="field">
@@ -1526,51 +1533,9 @@ defineExpose({ load, getGraph, addNode, startWith });
                 <span class="pane-status-hint">改动实时生效，随流程一起保存</span>
               </div>
             </div>
-            <!--
-              空态（UI 稿）：虚线插画 + 两枚按钮 + 快捷键提示。
-              没选中节点时表单无处可放，只留一句灰字太冷，这里给两条能立刻上手的出路：
-              「全览流程节点」把整张图缩放进画布，「打开流程设置」直接跳到流程级参数。
-            -->
-            <div v-else class="pane-empty">
-              <svg class="pane-empty-art" viewBox="0 0 132 96" width="132" height="96" aria-hidden="true">
-                <rect
-                  x="14.5" y="18.5" width="86" height="58" rx="10"
-                  fill="none" stroke="var(--el-color-primary)" stroke-width="1.6"
-                  stroke-dasharray="7 5"
-                />
-                <rect x="38" y="34" width="30" height="6" rx="3" fill="var(--el-color-primary)" opacity=".45" />
-                <rect x="28" y="48" width="56" height="6" rx="3" fill="var(--el-color-primary)" opacity=".22" />
-                <circle cx="14.5" cy="47.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
-                <circle cx="100.5" cy="18.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
-                <circle cx="100.5" cy="76.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
-                <path d="M76 84l0 8 5-2.6 3.4 6.4 4-2.1-3.4-6.4 6.3-.6z" fill="var(--el-color-primary)" opacity=".9" />
-              </svg>
-              <div class="pane-empty-title">还没有选中节点</div>
-              <p class="pane-empty-sub">
-                点击画布中的节点即可编辑参数；<br />
-                双击节点可就地改名
-              </p>
-              <div class="pane-empty-actions">
-                <ReButton type="primary" class="pane-empty-btn" icon="View" @click="overviewAll">
-                  全览流程节点
-                </ReButton>
-                <ReButton class="pane-empty-btn" icon="Setting" @click="tab = 'flowBase'">
-                  打开流程设置
-                </ReButton>
-              </div>
-              <div class="pane-empty-keys">
-                <kbd>⌘</kbd>
-                <kbd>A</kbd>
-                <span>全选 · 双击改名</span>
-                <i class="pane-empty-sep" />
-                <kbd>Del</kbd>
-                <span>删除</span>
-              </div>
-            </div>
-          </template>
 
-          <template #edge>
-            <div v-if="edgeForm" class="pane-grid">
+            <!-- 连线属性：选中连线即显示（判断节点的真假分流条件在这里编） -->
+            <div v-else-if="edgeForm" class="pane-grid">
               <div class="field">
                 <div class="field-label">流转方向</div>
                 <ReInput  disabled :model-value="edgeFlowText"/>
@@ -1578,7 +1543,7 @@ defineExpose({ load, getGraph, addNode, startWith });
               <div class="field" data-edge="exceptionFlow">
                 <div class="field-label">触发时机</div>
                 <ReSelect
-                  
+
                   class="pane-fill"
                   :model-value="edgeForm.exceptionFlow"
                   :options="EXCEPTION_OPTIONS"
@@ -1617,79 +1582,54 @@ defineExpose({ load, getGraph, addNode, startWith });
                 </ReButton>
               </div>
             </div>
-            <div v-else class="pane-hint">
-              点击画布中的连线即可编辑条件；按住节点边缘的圆点拖到另一个节点即可连线
-            </div>
-          </template>
 
-          <template #flowBase>
-            <div class="pane-grid">
-              <div class="field">
-                <div class="field-label">流程名称</div>
-                <ReInput
-                  
-                  maxlength="128"
-                  placeholder="随 DSL 一起保存"
-                  :model-value="flow.name ?? ''"
-                  @update:model-value="(v: unknown) => patchFlow({ name: text(v) })"
-                />
-              </div>
-              <div class="field">
-                <div class="field-label">流程线程数</div>
-                <ReInputNumber
-                  :controls="false"
-                  
-                  :min="1"
-                  :max="64"
-                  placeholder="留空用全局默认"
-                  :model-value="flow.threadCount ?? undefined"
-                  @update:model-value="(v: number | undefined) => patchFlow({ threadCount: v ?? null })"
-                />
-              </div>
-              <div class="field field-wide">
-                <div class="field-tip">
-                  图结构（节点 / 连线）在画布上直接编排；本页只改流程级基础信息。
-                </div>
-              </div>
+            <!--
+              选中了节点、但它的类型在后端没注册（执行器未启用）：没有参数
+              定义可渲染，表单无处可放。明确告知原因与出路，不再误显示成
+              「还没有选中节点」空态。
+            -->
+            <div v-else-if="nodeForm" class="pane-hint pane-hint--warn">
+              该节点类型未注册（后端执行器未启用），参数无法编辑；删除或替换该节点后才能保存执行。
             </div>
-          </template>
 
-          <template #flowData>
-            <div class="pane-grid">
-              <div class="field">
-                <div class="field-label">全局请求头</div>
-                <PairsEditor
-                  :model-value="listPairs('headers')"
-                  key-placeholder="Header 名"
-                  @update:model-value="(v: ParamPair[]) => writeListPairs('headers', v)"
+            <!--
+              空态（UI 稿）：虚线插画 + 主按钮 + 快捷键提示。
+              没选中节点时表单无处可放，只留一句灰字太冷，这里给一条能立刻上手的出路：
+              「全览流程节点」把整张图缩放进画布。
+            -->
+            <div v-else class="pane-empty">
+              <svg class="pane-empty-art" viewBox="0 0 132 96" width="132" height="96" aria-hidden="true">
+                <rect
+                  x="14.5" y="18.5" width="86" height="58" rx="10"
+                  fill="none" stroke="var(--el-color-primary)" stroke-width="1.6"
+                  stroke-dasharray="7 5"
                 />
+                <rect x="38" y="34" width="30" height="6" rx="3" fill="var(--el-color-primary)" opacity=".45" />
+                <rect x="28" y="48" width="56" height="6" rx="3" fill="var(--el-color-primary)" opacity=".22" />
+                <circle cx="14.5" cy="47.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
+                <circle cx="100.5" cy="18.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
+                <circle cx="100.5" cy="76.5" r="4.5" fill="var(--el-bg-color)" stroke="var(--el-color-primary)" stroke-width="1.6" />
+                <path d="M76 84l0 8 5-2.6 3.4 6.4 4-2.1-3.4-6.4 6.3-.6z" fill="var(--el-color-primary)" opacity=".9" />
+              </svg>
+              <div class="pane-empty-title">还没有选中节点</div>
+              <p class="pane-empty-sub">
+                点击画布中的节点即可编辑参数；双击节点可就地改名；<br />
+                点击连线可编辑流转条件，按住节点边缘的圆点拖到另一节点即可连线
+              </p>
+              <div class="pane-empty-actions">
+                <ReButton type="primary" class="pane-empty-btn" icon="View" @click="overviewAll">
+                  全览流程节点
+                </ReButton>
               </div>
-              <div class="field">
-                <div class="field-label">全局 Cookie</div>
-                <PairsEditor
-                  :model-value="listPairs('cookies')"
-                  key-placeholder="Cookie 名"
-                  @update:model-value="(v: ParamPair[]) => writeListPairs('cookies', v)"
-                />
-              </div>
-              <div class="field field-wide">
-                <div class="field-label">流程变量</div>
-                <PairsEditor
-                  :model-value="listPairs('variables')"
-                  key-placeholder="变量名"
-                  value-placeholder="值 / ${表达式}"
-                  @update:model-value="(v: ParamPair[]) => writeListPairs('variables', v)"
-                />
-                <div class="field-tip">
-                  变量名需匹配 [A-Za-z_][A-Za-z0-9_]{0,63}，下游节点用 <code>${变量名}</code> 引用。
-                  表达式三种写法：<code>${md5(x)}</code>、宿主在前面的 <code>${resp.selector('a').attr('href')}</code>、
-                  带命名空间的 <code>${string.substring(s, 1, 4)}</code>，都解析到同一张内置函数表。
-                  读取详情时这里含全局变量，不必覆盖的条目请删掉再保存，否则会被固化为本流程变量。
-                </div>
+              <div class="pane-empty-keys">
+                <kbd>⌘</kbd>
+                <kbd>A</kbd>
+                <span>全选 · 双击改名</span>
+                <i class="pane-empty-sep" />
+                <kbd>Del</kbd>
+                <span>删除</span>
               </div>
             </div>
-          </template>
-        </ReTab>
       </template>
 
       <!--
@@ -1783,7 +1723,30 @@ defineExpose({ load, getGraph, addNode, startWith });
 
 .pane-status-hint {
   flex: none;
+  /* 长提示必须能换行，否则撑出横向滚动条 */
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--el-text-color-secondary);
+}
+
+/* 执行前校验警报：类型未注册的节点（后端执行器未启用） */
+.pane-alert {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border: 1px solid var(--el-color-danger-light-7);
+  border-radius: 4px;
+}
+
+.pane-alert ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
 }
 
 .field {
@@ -1815,6 +1778,9 @@ defineExpose({ load, getGraph, addNode, startWith });
   margin-top: 3px;
   font-size: 11px;
   line-height: 1.5;
+  /* 长说明 / 长表达式必须换行，否则撑出横向滚动条 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   /* 原为 #a3abb6：比任何主题令牌都浅，暗色下几乎不可读；secondary 是可访问性下限 */
   color: var(--el-text-color-secondary);
 }
@@ -1834,6 +1800,9 @@ defineExpose({ load, getGraph, addNode, startWith });
   align-items: center;
   padding: 2px 8px;
   font-size: 12px;
+  /* 失败信息可能很长，必须换行 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   /* 原为 #4e5969 / #f5f7fa：改用令牌 */
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
@@ -1869,6 +1838,19 @@ defineExpose({ load, getGraph, addNode, startWith });
   /* 原为 #a4abb5：同 field-tip，secondary 为下限 */
   color: var(--el-text-color-secondary);
   text-align: center;
+}
+
+/* 未注册节点选中态：与顶部警报同因（执行器未启用），用警告色提示 */
+.pane-hint--warn {
+  padding: 12px 10px;
+  /* secondary 太弱；同因警示信息提到 warning 令牌，与 .pane-alert 的 danger 区分层级 */
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-7);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: left;
 }
 
 /*

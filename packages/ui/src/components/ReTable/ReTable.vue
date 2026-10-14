@@ -117,6 +117,20 @@ import { createStorage, browserLocalStorage, browserSessionStorage, type Storage
  */
 import { VxeTable, VxeColumn } from "vxe-table";
 import "vxe-table/lib/style.css";
+/**
+ * vxe-table 的表头/单元格 tooltip 在 setup 时通过
+ * {@code VxeUI.getComponent("VxeTooltip")} 从全局注册表取组件，
+ * 取不到则静默不渲染（tooltip 功能整体失效，控制台仅 errLog）。
+ * vxe-pc-ui 的 tooltip 模块（{@code es/tooltip/index.js}）在
+ * import 时自注册进该注册表；但纯具名导入的绑定若未被使用，
+ * 会被 esbuild 的 TS 未用导入消除规则整条剥掉（注册副作用
+ * 随之消失——实测 tooltip 依旧不渲染），故这里显式调用注册，
+ * 两个绑定均被使用，导入稳定存活。
+ */
+import { VxeUI } from "@vxe-ui/core";
+import { VxeTooltip } from "vxe-pc-ui";
+
+VxeUI.component(VxeTooltip);
 import type {
   ReCardLayoutProps,
   ReViewLayoutProps,
@@ -466,6 +480,15 @@ const props = withDefaults(
      */
     editable?: boolean;
     /**
+     * 表头单元格是否显示溢出提示（默认 false）。
+     *
+     * <p>element 引擎走 `#header` 插槽 + CSS 省略（`.re-table__header-ellipsis`），
+     * 提示由自定义渲染的 `title` 属性承载；vxe 引擎走全局 `show-header-overflow="tooltip"`，
+     * 子列不再逐个挂 `show-overflow`（否则子列设置会覆盖全局档）。
+     * 打开后列名被截断也悬停可见全称 —— 长列名不再只能靠拖宽猜。</p>
+     */
+    headerShowOverflowTooltip?: boolean;
+    /**
      * 编辑值缓存（{@code v-model:edit-cache}）。
      *
      * <p>结构为 {@code { [rowKey]: { [prop]: value } }}。不传时组件内部维护；
@@ -601,6 +624,7 @@ const props = withDefaults(
     areaClip: true,
     columnDraggable: false,
     editable: false,
+    headerShowOverflowTooltip: false,
     showSearch: false,
     searchVisible: undefined,
     showSearchToggle: true,
@@ -3977,19 +4001,31 @@ function applyColumnOrder(newVisibleOrder: string[]): void {
 
 /**
  * vxe 列拖拽结束：vxe 已先行重排内部列，这里从实例读回权威顺序再落状态。
+ *
+ * <p>时序坑：vxe 在 dragend 处理器里<b>同步</b>分发 column-dragend，
+ * 此刻内部 collectColumn 虽已 splice，但 {@code getColumns()} 的数据源
+ * {@code internalData.visibleColumn} 要等随后的 nextTick 链
+ * （handleColDragSwapColumn → 渲染）才更新——事件回调里直接读拿到的
+ * 是旧序，applyColumnOrder 的守卫会 early-return，等于永远不落盘
+ * （实测：拖拽后 DOM 已换位、localStorage 却无记录）。故延后到宏任务，
+ * 等 vxe 的重排与渲染全部落地再读权威顺序。</p>
  */
 function onVxeColumnDragEnd(): void {
-  const inst = vxeTableRef.value as unknown as
-    | { getColumns?: () => Array<{ field?: string }> }
-    | null;
-  const cols = inst?.getColumns?.();
-  if (!cols || !cols.length) {
-    return;
-  }
-  const newVisible = cols
-    .map((c) => c.field)
-    .filter((f): f is string => typeof f === "string" && f.length > 0);
-  applyColumnOrder(newVisible);
+  setTimeout(() => {
+    void nextTick().then(() => {
+      const inst = vxeTableRef.value as unknown as
+        | { getColumns?: () => Array<{ field?: string }> }
+        | null;
+      const cols = inst?.getColumns?.();
+      if (!cols || !cols.length) {
+        return;
+      }
+      const newVisible = cols
+        .map((c) => c.field)
+        .filter((f): f is string => typeof f === "string" && f.length > 0);
+      applyColumnOrder(newVisible);
+    });
+  }, 0);
 }
 
 /** element 表头排序实例 */
@@ -4696,6 +4732,10 @@ const iconSelect = Select;
            手柄的 mousedown 由 onVxeDragHandleMousedown 手工完成 vxe 需要的那两步
            （reactData.dragRow = 行、该 tr 的 draggable = true）。
            行级 dragstart/dragover/dragend 仍由 vxe 提供（只依赖 rowConfig.drag，不依赖列）。 -->
+      <!-- 表头溢出提示：DBM 的「字段/注释/字段+注释/类型」四档切的是 col.label 文本，
+           长列名被截断时悬停要能看全称。开关 headerShowOverflowTooltip 打开后，
+           每个数据列都挂 show-header-overflow="tooltip" —— vxe 只在真实溢出
+           时才弹，不吵。 -->
       <VxeColumn
         v-for="(col, colIdx) in visibleColumns"
         :key="col.prop || col.label"
@@ -4709,6 +4749,7 @@ const iconSelect = Select;
         :sortable="Boolean(col.sortable)"
         :show-overflow="vxeShowOverflow(col)"
         :edit-render="col.editable ? { enabled: true } : undefined"
+        :show-header-overflow="headerShowOverflowTooltip ? 'tooltip' : undefined"
       >
         <template v-if="hasColSlot(col)" #default="{ row }">
           <span

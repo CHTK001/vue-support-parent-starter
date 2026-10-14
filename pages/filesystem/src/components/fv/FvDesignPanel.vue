@@ -94,12 +94,49 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
   }
 }
 
-/** 传给 file-viewer 的 options（preset + replace 模式 + 主题 + 工具条位置） */
+/**
+ * design 渲染器的资产 URL（worker / wasm），全部指向前端同源。
+ *
+ * <p><b>为什么必须显式写死</b>：{@code @file-viewer/preset-all} 的
+ * {@code createFullAssetOptions} 只给 archive/chm/cad/data/docx/drawing/
+ * model/pdf/presentation/spreadsheet/typst 装配 workerUrl，**没有 design 段**。
+ * design 的 worker 由 {@code @file-viewer/core} 的
+ * {@code resolveFileViewerDesignContainerWorkerUrl(options, document)} 解析，
+ * 而 core 的 assetBaseUrl 处于 automatic 模式（vue3-full 的
+ * {@code setDefaultFullAssetBaseUrl("/")} 只设 full 层，没设 core 层）。
+ * automatic 会按页面里的 script src 反推 base：预览弹窗里文件字节来自
+ * 存储域（{@code http://<storage>:18080/ot/...}），推断结果就变成存储域，
+ * 于是 worker 请求打到 {@code http://<storage>:18080/ot/vendor/design/*.worker.js}
+ * ——跨域，浏览器直接拒绝（实测报 "Photoshop Worker failed to load"）。</p>
+ *
+ * <p>这些文件由 {@code @file-viewer/vite-plugin} 的 copyAssets 落到
+ * {@code public/vendor/design/}，前端同源即可加载，与文件字节的域无关。</p>
+ */
+const DESIGN_ASSET_BASE = "/vendor/design/";
+
+/** 传给 file-viewer 的 options（preset + replace 模式 + 主题 + 工具条位置 + design 资产） */
 const viewerOptions = computed(() => ({
   preset: { id: "design", label: "设计稿", renderers: [designPlugin] },
   rendererMode: "replace" as const,
   theme: "light" as const,
   toolbar: { position: "bottom-right" as const },
+  design: {
+    // Photoshop / PSB / PDD / PSDT
+    workerUrl: DESIGN_ASSET_BASE + "photoshop.worker.js",
+    // AI / AIT 原生 PGF 链路
+    illustratorWorkerUrl: DESIGN_ASSET_BASE + "illustrator-pgf.worker.js",
+    // XD / INDD / INDT / ASE / ACO / ICML / IDMS / INX / FLA / XFL 共用容器 worker
+    containerWorkerUrl: DESIGN_ASSET_BASE + "adobe-container.worker.js",
+    // ABR / CSH / PAT / GRD / ASL 资源 worker
+    adobeResourceWorkerUrl: DESIGN_ASSET_BASE + "adobe-resource.worker.js",
+    // IDML
+    idmlWorkerUrl: DESIGN_ASSET_BASE + "idml.worker.js",
+    // EPS / PS
+    postscriptWorkerUrl: DESIGN_ASSET_BASE + "postscript.worker.js",
+    // wasm（IDML 用 introspect、EPS/PS 用 stet）
+    idmlWasmUrl: DESIGN_ASSET_BASE + "paged_introspect_wasm_bg.wasm",
+    postscriptWasmUrl: DESIGN_ASSET_BASE + "stet_wasm_bg.wasm",
+  },
 }));
 
 /**

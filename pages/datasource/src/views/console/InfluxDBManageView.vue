@@ -1045,9 +1045,17 @@ onMounted(async () => {
 });
 
 // 数据源变化（含首次进入）时整体刷新
+//
+// 触发源只能是 datasourceId，绝不能带上 gap：refresh() 内部的失败路径会调 fail()
+// 改写 gap（每条文案还各带端点名：org 404 / measurements 403 / query 403 互不相同），
+// 而 gap 一旦在监听源里，就等于让 refresh 自己触发下一次 refresh——一次 refresh
+// 改 3~4 次 gap → 触发 3~4 次 refresh → 指数放大。实测该页在远端为 v1.11.8
+// （Flux 403 + /api/v2/orgs 404）时 15 秒打了 1148 个请求（约 76 请求/秒），
+// 页面主线程响应从 1ms 劣化到 548ms，浏览器被压崩、后端 OOM 死亡都是这一条引起的。
+// 缺数据源的提示改为回调里直接读 gap.value：展示需要它，但不让它当触发器。
 watch(
-  [datasourceId, gap],
-  async ([id, err]) => {
+  datasourceId,
+  async (id) => {
     applyConnectionInfo();
     if (!id) {
       buckets.value = [];
@@ -1056,7 +1064,7 @@ watch(
       activeBucket.value = "";
       connected.value = false;
       connectionInfo.version = "-";
-      if (err) message.warning(err);
+      if (gap.value) message.warning(gap.value);
       return;
     }
     await refresh();

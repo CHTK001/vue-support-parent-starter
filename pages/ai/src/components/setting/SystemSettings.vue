@@ -48,7 +48,7 @@
                     <span class="text-sm font-semibold text-gray-800 dark:text-[#e8e9ed]">{{ currentTabLabel }}</span>
                 </template>
             </PageHeader>
-            <div class="flex-1 overflow-hidden flex flex-col w-full" :class="contentMaxWidthClass">
+            <div class="flex-1 overflow-hidden flex flex-col w-full" :style="contentMaxWidthStyle">
                 <div class="flex-1 overflow-hidden py-3 min-w-0">
                     <ScrollContainer class="h-full p-4">
                         <!--
@@ -519,11 +519,15 @@ const loadProviderPanel = async () => {
 // 面板卡片的增删改/一键添加实际落在模型管理页，这里只做入口跳转
 const gotoModels = () => router.push({ name: 'Models' })
 
-// 宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
-// 这些页签放开 max-w 限制；其余窄内容页签保持居中定宽，避免长行难读。
+// 右侧内容区宽度：宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
+// 这些页签放开 max-w 限制；其余页签跟随「设置 → 显示」的窄屏/满屏设置
+// （MainLayout 仅在满屏时注入 --content-max-width: none），窄屏保持原
+// md:max-w-220（55rem）居中阅读列，满屏撑满剩余空间。
 const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
-const contentMaxWidthClass = computed(() =>
-    WIDE_TABS.includes(currentTabValue.value) ? '' : 'md:max-w-220 md:mx-auto',
+const contentMaxWidthStyle = computed(() =>
+    WIDE_TABS.includes(currentTabValue.value)
+        ? {}
+        : { maxWidth: 'var(--content-max-width, 55rem)', marginLeft: 'auto', marginRight: 'auto' },
 )
 
 // Teleport 目标就绪标志：确保 #settings-sidebar-portal 已挂载到 DOM

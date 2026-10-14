@@ -52,7 +52,9 @@ export type Model3dFormat =
   | "dae"
   | "wrl"
   | "3mf"
-  | "off";
+  | "off"
+  | "fbx"
+  | "vtk";
 
 /** 扩展名 → 内部格式（键全小写；不含 glb/gltf/obj/stl/dxf/dwg —— 它们有既有通道） */
 const EXT_TO_FORMAT: Record<string, Model3dFormat> = {
@@ -68,6 +70,8 @@ const EXT_TO_FORMAT: Record<string, Model3dFormat> = {
   wrl: "wrl",
   "3mf": "3mf",
   off: "off",
+  fbx: "fbx",
+  vtk: "vtk",
 };
 
 /**
@@ -96,6 +100,8 @@ export const FORMAT_LABEL: Record<Model3dFormat, string> = {
   wrl: "VRML",
   "3mf": "3MF",
   off: "OFF",
+  fbx: "FBX",
+  vtk: "VTK",
 };
 
 /** 解析引擎分类（wasm 引擎有下载体积，给「正在加载 3D 引擎」提示用） */
@@ -113,6 +119,8 @@ export const FORMAT_ENGINE: Record<Model3dFormat, { engine: Model3dEngine; engin
   wrl: { engine: "three" },
   "3mf": { engine: "three" },
   off: { engine: "three" },
+  fbx: { engine: "three" },
+  vtk: { engine: "three" },
 };
 
 /* ==================== 解析结果契约 ==================== */
@@ -677,6 +685,28 @@ async function parseRhino(bytes: ArrayBuffer, callbacks: ParseCallbacks): Promis
  * @param callbacks 进度回调
  * @return 解析产物
  */
+/**
+ * 把 ArrayBuffer 补齐到至少 min 字节（不足部分补 0x0A 换行）。
+ *
+ * <p>绕三方加载器的「硬取前 N 字节做嗅探」写法：three 的 VTKLoader 用
+ * {@code new Uint8Array(data, 0, 250)} 取头部，短于 250 字节的文件会直接抛
+ * {@code RangeError}。补换行对按行解析（ASCII VTK）与按计数解析（二进制 VTK）
+ * 都不引入语义变化。</p>
+ *
+ * @param bytes 原始字节
+ * @param min   最小长度
+ * @return 原缓冲（已够长）或补齐后的新缓冲
+ */
+function padToAtLeast(bytes: ArrayBuffer, min: number): ArrayBuffer {
+  if (bytes.byteLength >= min) {
+    return bytes;
+  }
+  const out = new Uint8Array(min);
+  out.set(new Uint8Array(bytes), 0);
+  out.fill(0x0a, bytes.byteLength);
+  return out.buffer;
+}
+
 async function parseWithThreeLoader(
   format: Model3dFormat,
   bytes: ArrayBuffer,
@@ -724,6 +754,39 @@ async function parseWithThreeLoader(
       const { ThreeMFLoader } = await import("three/addons/loaders/3MFLoader.js");
       const object = new ThreeMFLoader().parse(bytes);
       return countObject(object);
+    }
+    case "fbx": {
+      const { FBXLoader } = await import("three/addons/loaders/FBXLoader.js");
+      // FBX 有二进制与 ASCII 两种：二进制以 "Kaydara FBX Binary" 开头，喂
+      // ArrayBuffer；ASCII 喂字符串。喂错不会报错但会得到空场景，故按魔数分流。
+      const head = decoder.decode(new Uint8Array(bytes.slice(0, 20)));
+      const object = head.startsWith("Kaydara FBX Binary")
+        ? new FBXLoader().parse(bytes, "")
+        : new FBXLoader().parse(decoder.decode(bytes), "");
+      return countObject(object);
+    }
+    case "vtk": {
+      const { VTKLoader } = await import("three/addons/loaders/VTKLoader.js");
+      // three 的 VTKLoader.parse 内部用 `new Uint8Array(data, 0, 250)` 硬取
+      // 前 250 字节做「ASCII 还是二进制」嗅探（源码注释：取前 5 行找 binary
+      // 关键字）。**文件短于 250 字节时该行直接抛
+      // RangeError: Invalid typed array length: 250** —— 实测样本 sample.vtk
+      // 只有 238 字节，正好踩中，这就是此前 vtk 失败的根因。
+      // 修法：不足 250 字节先补齐（补 0x0A 换行；ASCII 解析器按行读、
+      // 二进制解析器按计数读，尾部补白都无副作用）。
+      const padded = padToAtLeast(bytes, 250);
+      const geometry = new VTKLoader().parse(padded);
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshStandardMaterial({
+        color: DEFAULT_MESH_COLOR,
+        roughness: 0.75,
+        metalness: 0.1,
+        vertexColors: !!geometry.attributes.color,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      const group = new THREE.Group();
+      group.add(mesh);
+      return countObject(group);
     }
     default:
       throw new Error(`暂不支持该格式：${FORMAT_LABEL[format]}`);

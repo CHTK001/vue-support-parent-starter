@@ -313,7 +313,7 @@ async function doDelete(flow: CollectFlow): Promise<void> {
  */
 async function batchDeleteFlows(rows: Record<string, unknown>[]): Promise<void> {
   const ids = rows
-    .map(row => Number((row as CollectFlow).collectFlowId))
+    .map(row => Number((row as unknown as CollectFlow).collectFlowId))
     .filter(id => Number.isFinite(id) && id > 0);
   if (!ids.length) {
     return;

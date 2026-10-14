@@ -1,9 +1,10 @@
 /**
- * ReFilePicker —— 文件选择器
+ * ReFilePicker —— 文件/目录选择器
  *
- * 支持树形浏览、搜索、多选、文件类型过滤
- * 适配后端文件存储服务
- *   <ReFilePicker v-model="show" @select="onSelect" />
+ * filesystem 主页面同款「路径栏 + 左树 + 右表明细」。
+ * 数据必须由宿主通过 loader（远端 filesystem 接口）或 data（本地 JSON）提供，
+ * 组件不再提供内置 mock 兜底。
+ *   <ReFilePicker v-model="show" :loader="loadDir" @select="onSelect" />
  */
 import type { App, Plugin } from "vue";
 import ReFilePicker from "./index.vue";
@@ -16,4 +17,4 @@ const plugin: Plugin = {
 
 export { plugin as install };
 export default ReFilePicker;
-export type { FilePickerItem, FilePickerListResult } from "./types";
+export type { FilePickerData, FilePickerItem, FilePickerListResult, FilePickerLoader } from "./types";

@@ -44,7 +44,7 @@ function writeStored(v: KbAskWidth): void {
 }
 
 /**
- * 初始化：读取 appearance 分组中「右侧问答栏宽度」对当前用户生效的值。
+ * 初始化：读取 appearance 分组中「右侧内容区显示宽度」对当前用户生效的值。
  *
  * <p>幂等，可重复调用。读取失败时回落到本地存储，再回落到默认 {@code full}。</p>
  */
@@ -77,12 +77,12 @@ export async function initKbDisplay(): Promise<void> {
   if (stored) askWidth.value = stored
 }
 
-/** 在 setup 中调用，返回问答栏宽度响应式值及其设置器。 */
+/** 在 setup 中调用，返回内容区宽度响应式值及其设置器。 */
 export function useKbDisplay() {
   /**
-   * 切换问答栏宽度。
+   * 切换右侧内容区显示宽度。
    *
-   * <p>本地先生效（ref 是单例，知识库页通过 data-kb-ask 立刻响应），
+   * <p>本地先生效（ref 是单例，各页面通过 CSS 变量 / data-kb-ask 立刻响应），
    * 落库失败不阻塞 UI：用户已看到效果，为一次网络抖动回滚反而更糟。
    * 返回 false 仅表示持久化失败，由调用方提示一次（见 DisplaySettings 注释）。
    */
@@ -93,7 +93,7 @@ export function useKbDisplay() {
       await apiService.updateUserGroupOverrides(APPEARANCE_GROUP, { [ASK_WIDTH_FIELD]: v })
       return true
     } catch (e) {
-      console.warn('[useKbDisplay] 持久化问答栏宽度失败', e)
+      console.warn('[useKbDisplay] 持久化内容区宽度失败', e)
       return false
     }
   }

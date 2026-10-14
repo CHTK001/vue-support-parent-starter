@@ -39,9 +39,12 @@ defineProps<{
 }
 
 .section-hint {
+  /* 长说明（如口径提示）必须能换行：nowrap 会把整行撑出横向滚动条 */
   font-size: 11px;
   color: var(--el-text-color-secondary);
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* 标题后延伸的细线：视觉上把分节头铺满整行，与 UI 稿一致 */

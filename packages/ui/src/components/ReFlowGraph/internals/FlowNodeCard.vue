@@ -15,7 +15,7 @@
  * 所以 `updateNode()` 改了 label / 颜色 / 图标后，必须靠这里的订阅把新值读进 state，
  * 否则画布上的名字不会跟着变。
  */
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { Graph, Node } from "@antv/x6";
 
 /** vue-shape 注入的 X6 节点实例 */
@@ -35,9 +35,22 @@ interface CardState {
   icon: string;
   /** 节点图片 URL；非空时优先于 icon 渲染 <img> */
   image: string;
+  /** 回放/校验描边色；空串表示不启用状态描边 */
+  strokeColor: string;
+  /** 回放/校验描边粗细（px） */
+  strokeWidth: number;
 }
 
-const state = ref<CardState>({ type: "", label: "", typeLabel: "", color: "#4f7cff", icon: "", image: "" });
+const state = ref<CardState>({
+  type: "",
+  label: "",
+  typeLabel: "",
+  color: "#4f7cff",
+  icon: "",
+  image: "",
+  strokeColor: "",
+  strokeWidth: 1.5,
+});
 
 /** 从节点 data 读出卡片状态 */
 function read(): CardState {
@@ -48,6 +61,8 @@ function read(): CardState {
     flowColor?: string;
     flowIcon?: string;
     flowImage?: string;
+    flowStrokeColor?: string;
+    flowStrokeWidth?: number;
   };
   return {
     type: data.flowType ?? "default",
@@ -56,8 +71,23 @@ function read(): CardState {
     color: data.flowColor || "#4f7cff",
     icon: data.flowIcon || "",
     image: data.flowImage || "",
+    strokeColor: data.flowStrokeColor ?? "",
+    strokeWidth: data.flowStrokeWidth ?? 1.5,
   };
 }
+
+/** 状态描边只加粗高亮边框，不改变节点白底和图标底色 */
+const cardStyle = computed(() => {
+  const style: Record<string, string> = {};
+  if (state.value.strokeColor) {
+    style.borderColor = state.value.strokeColor;
+    style.borderWidth = `${state.value.strokeWidth}px`;
+    style.boxShadow = `0 0 0 1px ${state.value.strokeColor} inset, 0 2px 5px 1px rgba(0, 0, 0, 0.06)`;
+  } else {
+    style.borderLeftColor = state.value.color;
+  }
+  return style;
+});
 
 state.value = read();
 
@@ -108,7 +138,7 @@ watch(() => props.node, sync);
     官方 CSS 是 `.node`；这里用 `flow-node-card` 以免与宿主页面样式串味。
     宽度/高度必须写死成 100%：foreignObject 内的根元素要铺满 X6 给的 180×36 盒子。
   -->
-  <div class="flow-node-card" :style="{ borderLeftColor: state.color }">
+  <div class="flow-node-card" :style="cardStyle">
     <span class="flow-node-icon" :style="{ background: state.color }">
       <!--
         图片优先于 SVG path：内部业务图（应用/处理器图标）用 <img> 比硬凑 24×24

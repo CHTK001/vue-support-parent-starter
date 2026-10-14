@@ -123,11 +123,10 @@
     </div>
 
     <!--
-      Top5 排行：模型 / 应用（数据源）。
+      Top5 排行：模型 / 应用（使用模型的软件）。
 
-      「应用」= 用量来源的应用（opencode / claude-code / mimo / goose…），对应后端的
-      provider 维度；与「分组分布」的 groupName（chat / ocr / rag 这类业务分组）是两回事，
-      之前只有分组没有来源，排查「这周 token 花在哪几个工具上」只能去翻明细表。
+      「应用」= 消耗模型的软件：opencode / claude-code / codex 这类三方工具，
+      以及本控制台自己（对话 + 机器人合并）。口径见下方 appDist 注释。
     -->
     <div class="dist-grid">
       <ReCard title="模型排行 Top5">
@@ -159,17 +158,17 @@
           </div>
         </template>
         <ol class="rank-list">
-          <li v-for="(r, i) in providerRankTop5" :key="r.name" class="rank-item">
+          <li v-for="(r, i) in appRankTop5" :key="r.name" class="rank-item">
             <span class="rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
-            <span class="rank-name" :title="r.name">{{ providerLabel(r.name) }}</span>
+            <span class="rank-name" :title="r.name">{{ appLabel(r.name) }}</span>
             <span class="rank-bar">
-              <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, providerRankTop5) }" />
+              <span class="rank-bar-fill" :style="{ width: rankBarWidth(r, appRankTop5) }" />
             </span>
             <span class="rank-value">{{ rankValue(r) }}</span>
-            <span class="rank-pct">{{ rankPct(r, providerRankTop5) }}</span>
+            <span class="rank-pct">{{ rankPct(r, appRankTop5) }}</span>
           </li>
         </ol>
-        <el-empty v-if="providerRankTop5.length === 0" description="暂无应用用量" class="lib-empty" :image-size="60" />
+        <el-empty v-if="appRankTop5.length === 0" description="暂无应用用量" class="lib-empty" :image-size="60" />
       </ReCard>
     </div>
 
@@ -198,13 +197,70 @@
     <ReCard title="用量明细">
       <template #extra>
         <el-input v-model="detailModelFilter" placeholder="按模型筛选" clearable class="filter-input" @keyup.enter="reloadDetails" @clear="reloadDetails" />
+        <!-- 敏感数据（费用）显示开关：默认隐藏，点眼睛才露出金额 -->
+        <el-button link type="primary" class="cost-toggle" @click="costVisible = !costVisible"
+          :title="costVisible ? '隐藏费用等敏感数据' : '显示费用等敏感数据'">
+          <el-icon><Eye24Regular v-if="costVisible" /><EyeOff24Regular v-else /></el-icon>
+          {{ costVisible ? '隐藏费用' : '显示费用' }}
+        </el-button>
       </template>
       <ReTable :data="detailRecords" :loading="detailLoading" :show-index="false" class="detail-table" row-key="sysAiUsageId">
         <el-table-column label="时间" width="160">
           <template #default="{ row }"><span class="time-cell">{{ formatTime(row.sysAiUsageCallTime) }}</span></template>
         </el-table-column>
         <el-table-column label="模型" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.sysAiUsageModel || '-' }}</template>
+          <template #default="{ row }">
+            <div class="model-cell">
+              <span class="model-name" :title="row.sysAiUsageModel || '-'">{{ row.sysAiUsageModel || '-' }}</span>
+              <!-- 解码速率：hover 弹完整阶段明细（首字/解码窗口/总耗 + Token 明细 + 速率）。
+                   为什么用 popover 而不是 title：title 无法换行也放不下多阶段信息，
+                   且 3109.9 这类异常值需要就地解释（批量推送口径假象 + 总耗时近似值）。 -->
+              <el-popover trigger="hover" placement="top" :show-arrow="true" :width="265">
+                <template #reference>
+                  <span class="model-sub is-speed" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+                </template>
+                <div class="speed-popover-content">
+                  <div class="speed-popover-title">速率阶段明细</div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">首字耗时</span>
+                    <span class="sp-val" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
+                  </div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">解码窗口</span>
+                    <span class="sp-val" :style="{ color: decodeWindowColor(row) }">{{ formatLatency(decodeWindowMs(row)) }}</span>
+                  </div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">总耗时</span>
+                    <span class="sp-val" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
+                  </div>
+                  <div class="speed-popover-divider"></div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">输入 Token</span>
+                    <span class="sp-val">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span>
+                  </div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">输出 Token</span>
+                    <span class="sp-val">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span>
+                  </div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">缓存读取</span>
+                    <span class="sp-val">{{ formatNumber(row.sysAiUsageCachedTokens) }}</span>
+                  </div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">总 Token</span>
+                    <span class="sp-val">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
+                  </div>
+                  <div class="speed-popover-divider"></div>
+                  <div class="speed-popover-row">
+                    <span class="sp-label">解码速率</span>
+                    <span class="sp-val" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+                  </div>
+                  <div v-if="isSuspiciousSpeed(row)" class="speed-popover-note">{{ speedTitle(row) }}</div>
+                  <div class="speed-popover-hint">绿/橙/红 = 快/中/慢；解码窗口或总耗时不足 1s 标灰（批量推送假象/疑似缓存回放）</div>
+                </div>
+              </el-popover>
+            </div>
+          </template>
         </el-table-column>
         <el-table-column label="分组" width="140" show-overflow-tooltip>
           <template #default="{ row }">{{ row.sysAiUsageGroupName }}</template>
@@ -215,19 +271,42 @@
           </template>
         </el-table-column>
         <el-table-column label="服务商" width="100">
-          <template #default="{ row }">{{ row.sysAiUsageProvider || '-' }}</template>
+          <template #default="{ row }"><span :title="row.sysAiUsageProvider || ''">{{ providerDisplay(row.sysAiUsageProvider) }}</span></template>
+        </el-table-column>
+        <el-table-column label="端点" width="185" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="endpoint-cell">{{ endpointDisplay(row) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="强度" width="90">
+          <template #default="{ row }">
+            <ReTag v-if="row.sysAiUsageInferenceStrength && row.sysAiUsageInferenceStrength !== '默认'"
+              type="info">{{ row.sysAiUsageInferenceStrength }}</ReTag>
+            <span v-else class="cell-muted">默认</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="请求 IP" width="130" show-overflow-tooltip>
+          <template #default="{ row }">
+            <ReIpText v-if="row.sysAiUsageIp" :ip="row.sysAiUsageIp" :address="row.sysAiUsageLocation" />
+            <span v-else class="cell-muted">—</span>
+          </template>
         </el-table-column>
         <el-table-column label="Token" align="right" width="170">
           <template #default="{ row }">
             <el-popover trigger="hover" placement="top" :show-arrow="true" :width="200">
               <template #reference>
                 <div class="token-cell" :class="{ 'token-estimated': row.sysAiUsageEstimatedTokens === 1 }">
-                  <span class="token-inline">
-                    <span class="tk tk-in">
-                      <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8.2M4.6 7.3 8 10.8l3.4-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsagePromptTokens) }}
+                  <span class="token-col">
+                    <span class="token-inline">
+                      <span class="tk tk-in">
+                        <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8.2M4.6 7.3 8 10.8l3.4-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsagePromptTokens) }}
+                      </span>
+                      <span class="tk tk-out">
+                        <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.5V5.3M4.6 8.7 8 5.2l3.4 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCompletionTokens) }}
+                      </span>
                     </span>
-                    <span class="tk tk-out">
-                      <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.5V5.3M4.6 8.7 8 5.2l3.4 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCompletionTokens) }}
+                    <span v-if="Number(row.sysAiUsageCachedTokens) > 0" class="tk tk-cache-line" :title="'缓存读取 ' + formatNumber(row.sysAiUsageCachedTokens)">
+                      <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5h10v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6ZM3 5.5 8 3l5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCachedTokens) }} 缓存
                     </span>
                   </span>
                 </div>
@@ -245,21 +324,21 @@
           </template>
         </el-table-column>
         <el-table-column :label="`费用(${currencySymbol})`" align="right" width="90">
-          <template #default="{ row }">{{ money(row.sysAiUsageTotalCost) }}</template>
+          <template #default="{ row }">
+            <!-- 敏感数据：默认只给眼睛图标，由「用量明细」头部的显示费用开关统一控制 -->
+            <span v-if="costVisible" class="cost-val">{{ money(row.sysAiUsageTotalCost) }}</span>
+            <el-icon v-else class="cost-eye" title="费用已隐藏，点击上方「显示费用」查看"><EyeOff24Regular /></el-icon>
+          </template>
         </el-table-column>
-        <el-table-column label="耗时 / 速率" width="110">
+        <el-table-column label="耗时" width="150">
           <template #default="{ row }">
             <el-popover trigger="hover" placement="top" :show-arrow="true" :width="220">
               <template #reference>
-                <div class="latency-indicator">
-                  <div class="latency-track">
-                    <div class="latency-seg-first" :style="{ height: getFirstSegHeight(row) + '%', backgroundColor: getFirstColor(row) }"></div>
-                    <div class="latency-seg-rest" :style="{ height: getRestSegHeight(row) + '%', backgroundColor: getTotalColor(row) }"></div>
-                  </div>
-                  <div class="latency-times">
-                    <span class="latency-time-first" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
-                    <span class="latency-time-total" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
-                    <span class="latency-time-speed" :style="{ color: speedColor(row, true) }">{{ formatSpeed(row.sysAiUsageTotalTokensPerSecond) }}</span>
+                <div class="latency-inline">
+                  <span class="latency-vbar" :style="{ backgroundColor: getTotalColor(row) }"></span>
+                  <div class="latency-lines">
+                    <div class="latency-line"><span class="latency-k">首字</span><span class="latency-v" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
+                    <div class="latency-line"><span class="latency-k">总耗</span><span class="latency-v" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span></div>
                   </div>
                 </div>
               </template>
@@ -279,11 +358,6 @@
                   <span class="latency-popover-label">解码速率</span>
                   <span class="latency-popover-value" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
                 </div>
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" :style="{ background: speedColor(row, true) }"></span>
-                  <span class="latency-popover-label">端到端吞吐</span>
-                  <span class="latency-popover-value" :style="{ color: speedColor(row, true) }">{{ formatSpeed(row.sysAiUsageTotalTokensPerSecond) }}</span>
-                </div>
                 <div class="latency-popover-divider"></div>
                 <div class="latency-popover-row">
                   <span class="latency-popover-dot" style="background: var(--el-color-success)"></span>
@@ -300,6 +374,7 @@
                   <span class="latency-popover-label">总 Token</span>
                   <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
                 </div>
+                <div v-if="isSuspiciousSpeed(row)" class="latency-popover-note">{{ speedTitle(row) }}</div>
                 <div class="latency-popover-hint">绿/橙/红=快/中/慢（耗时与速率）</div>
               </div>
             </el-popover>
@@ -308,6 +383,11 @@
         <el-table-column label="类型" width="130">
           <template #default="{ row }">
             <ReTag :type="typeTagType(row.sysAiUsageType)" >{{ formatTypeLabel(row.sysAiUsageType) }}</ReTag>
+          </template>
+        </el-table-column>
+        <el-table-column label="调用类型" width="95">
+          <template #default="{ row }">
+            <ReTag :type="callModeTag(row)" >{{ callModeLabel(row) }}</ReTag>
           </template>
         </el-table-column>
       </ReTable>
@@ -328,6 +408,8 @@ import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
 import ReTag from '@/components/re/ReTag.vue';
 import ReButton from '@/components/re/ReButton.vue';
+import ReIpText from '@repo/ui/re-ip-text';
+import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
 import { usageApi } from '@/services/javaApi';
 
 type ChartType = 'token' | 'cost';
@@ -394,7 +476,63 @@ const detailTotal = ref(0);
 const detailPage = ref(1);
 const detailPageSize = 20;
 const detailModelFilter = ref('');
+/**
+ * 费用等敏感数据是否可见（默认隐藏）。
+ *
+ * <p>明细表里费用默认只渲染眼睛图标，点「用量明细」头部的
+ * 显示费用开关才露出金额 —— 截屏/分享场景不泄露账单数据。</p>
+ */
+const costVisible = ref(false);
 const detailUserFilter = ref('');
+
+/** 服务商 id → 中文名。后端 GET /v2/providers 列表回填，未命中兜底原样显示 */
+const providerNameMap = ref<Record<string, string>>({});
+let providerNameLoaded = false;
+function providerDisplay(p: string | null | undefined): string {
+  if (!p) return '-';
+  // 后端 GET /v2/usage/providers 未上线时兜底：1791352877398=gavinchen（2026-10-14 库实测）。
+  const FALLBACK_PROVIDERS: Record<string, string> = {
+    '1791352877398': 'gavinchen',
+  };
+  return providerNameMap.value[p] || FALLBACK_PROVIDERS[p] || p;
+}
+
+/** 推理强度缩写：强度列 Tag 过长时用，完整值放 title（当前强度列直接显示全名，暂留备用） */
+function shortStrength(s: string): string {
+  if (!s) return '';
+  const lower = s.toLowerCase();
+  if (lower.includes('ultra')) return 'Ultra';
+  if (lower.includes('high')) return 'High';
+  if (lower.includes('medium') || lower.includes('med')) return 'Med';
+  if (lower.includes('low')) return 'Low';
+  if (lower.includes('minimal') || lower.includes('min')) return 'Min';
+  if (lower.includes('none') || lower === 'off') return '关';
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+/** 解码速率灰显阈值：超过即物理不可信（见 AiUsage.tokensPerSecond 窗口保护），标灰不误读 */
+const SPEED_SUSPICIOUS = 1000;
+
+/**
+ * 总耗时极短阈值：<1s 的整请求视为「秒回」——缓存命中、代理回放等场景，
+ * 即使输出÷总耗时的物理结果也够快，仍不能代表模型解码能力，单独标灰提示。
+ */
+const TOTAL_LATENCY_SUSPICIOUS = 1000;
+
+/** 整请求总耗时是否 <1s（秒回/疑似缓存或回放） */
+function isShortTotalLatency(row: any): boolean {
+  const total = Number(row?.sysAiUsageTotalLatency);
+  return Number.isFinite(total) && total > 0 && total < TOTAL_LATENCY_SUSPICIOUS;
+}
+
+/**
+ * 是否判定为不可信速率：命中「解码窗口窄窗口假象」（>1000）
+ * 或「整请求秒回」（总耗时<1s）都标灰，不再按快/中/慢着色。
+ */
+function isSuspiciousSpeed(row: any): boolean {
+  const n = Number(row?.sysAiUsageTokensPerSecond);
+  return Number.isFinite(n) && n > 0 && (n > SPEED_SUSPICIOUS || isShortTotalLatency(row));
+}
 
 // 时间筛选
 const activeFilter = ref('today');
@@ -489,9 +627,28 @@ const groupPaged = computed(() =>
 const rankMetric = ref<ChartType>('token');
 const RANK_TOP_N = 5;
 
-/** 按 provider（用量来源应用）roll up：opencode / claude-code / mimo / system… */
-const providerDist = computed<DistRow[]>(() =>
-  rollUp(summaryRows.value, (r) => r.provider || '未知来源'),
+/**
+ * 应用排行口径：按「使用模型的软件」roll up。
+ *
+ * 三方工具（opencode / claude-code / codex 等）同步进来的记录，groupName 就是软件名
+ * （后端同步任务用解析器名当分组）；本控制台的 chat（对话）与 bot（机器人）是同一个
+ * 软件的两个功能，合并成「本控制台」。其余分组名原样保留。
+ *
+ * 不按 provider 排：provider 记的是模型服务商，本控制台自己的记录该字段大量为空，
+ * 排出来是一堆「未知来源」，回答不了「token 花在哪几个软件上」。
+ */
+const APP_GROUP_ALIAS: Record<string, string> = {
+  chat: 'self-console',
+  bot: 'self-console',
+};
+/** 应用标识：分组为空说明数据异常，显式兜底而不是从榜上悄悄消失 */
+function appKeyOf(r: any): string {
+  const g = r.group;
+  if (!g) return 'unknown-app';
+  return APP_GROUP_ALIAS[g] || g;
+}
+const appDist = computed<DistRow[]>(() =>
+  rollUp(summaryRows.value, appKeyOf),
 );
 
 /**
@@ -507,7 +664,7 @@ function topBy(rows: DistRow[]): DistRow[] {
 }
 
 const modelRankTop5 = computed(() => topBy(modelDist.value));
-const providerRankTop5 = computed(() => topBy(providerDist.value));
+const appRankTop5 = computed(() => topBy(appDist.value));
 
 function rankValue(r: DistRow): string {
   return rankMetric.value === 'token' ? fmtToken(r.totalTokens) : `${currencySymbol.value}${money(r.cost)}`;
@@ -531,10 +688,11 @@ function rankPct(r: DistRow, list: DistRow[]): string {
   return `${((v / total) * 100).toFixed(1)}%`;
 }
 
-/** provider 原始名多为英文小写标识，补中文名；未收录的原样显示，别藏起来 */
-const PROVIDER_LABELS: Record<string, string> = {
-  system: '本系统',
-  mimo: '小米 MiMo',
+/** 应用标识多为英文小写，补中文名；未收录的软件名原样显示，别藏起来 */
+const APP_LABELS: Record<string, string> = {
+  'self-console': '本控制台',
+  local: '本地工具',
+  'unknown-app': '未知应用',
   opencode: 'OpenCode',
   'claude-code': 'Claude Code',
   codex: 'Codex CLI',
@@ -548,12 +706,9 @@ const PROVIDER_LABELS: Record<string, string> = {
   'copilot-cli': 'Copilot CLI',
   zed: 'Zed',
   lmstudio: 'LM Studio',
-  grok: 'Grok',
-  anthropic: 'Anthropic',
-  openai: 'OpenAI',
 };
-function providerLabel(name: string): string {
-  return PROVIDER_LABELS[name] || name;
+function appLabel(name: string): string {
+  return APP_LABELS[name] || name;
 }
 
 // ==================== 实时用量（SSE） ====================
@@ -756,7 +911,7 @@ const modelPieOption = computed(() => pieOption(modelDist.value, modelChartType.
 const groupPieOption = computed(() => pieOption(groupDist.value, groupChartType.value));
 
 function percentNum(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): number {
-  const total = all.reduce((s, x) => (type === 'token' ? x.totalTokens : x.cost), 0);
+  const total = all.reduce((s, x) => s + (type === 'token' ? x.totalTokens : x.cost), 0);
   if (total <= 0) return 0;
   const v = (type === 'token' ? row.totalTokens : row.cost) ?? 0;
   return (v / total) * 100;
@@ -932,6 +1087,23 @@ const trendOption = computed<EChartsOption>(() => {
 
 async function loadData() {
   try {
+    // 服务商名称映射与用量快照并行：映射失败不阻断表格（providerDisplay 兜底显示原始 id）。
+    // 注意：http.get 会拼 /v2 前缀（v2Http），AiProviderController 挂在 /v2/providers 下，
+    // 不要写全路径或 /api 前缀。
+    if (!providerNameLoaded) {
+      providerNameLoaded = true;
+      // 新接口未部署时会 404：映射失败静默，服务商列显示原始 id，不弹错
+      usageApi.usageProviders().then((res: any) => {
+        // unwrap:false 的 client 返回的是整包 {code, data, msg, ...}（见 context.createClient），
+        // AiProviderController.list 本体直接返回 List（无 data 壳），所以取 res.data 即数组。
+        const list: any[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        for (const p of list) {
+          const id = p?.id ?? p?.provider_id;
+          const name = p?.name;
+          if (id && name) providerNameMap.value[String(id)] = String(name);
+        }
+      }).catch(() => { /* 兜底显示原始 id，不弹错 */ });
+    }
     const [statRes, sumRes, trendRes, modelTrendRes]: any[] = await Promise.all([
       usageApi.statistics(timeParams.value),
       usageApi.list(timeParams.value),
@@ -1002,7 +1174,7 @@ function formatLatency(ms: number | null | undefined): string {
   if (ms == null || ms === 0) return '—';
   if (ms < 1000) return Math.round(ms) + 'ms';
   const s = ms / 1000;
-  if (s < 60) return Math.round(s) + 's';
+  if (s < 60) return (Math.round(s * 100) / 100) + 's';
   const m = Math.floor(s / 60);
   const rs = Math.round(s % 60);
   if (m < 60) return m + 'm ' + rs + 's';
@@ -1019,18 +1191,70 @@ function formatSpeed(v: number | null | undefined): string {
 }
 
 /**
- * 速率着色（阈值参考实测基线：纯解码约 80~105 tok/s）。
+ * 速率着色：解码速率阈值参考实测基线（约 80~105 tok/s）。
  *
- * <p>端到端吞吐含首字延迟，基线低于纯解码速度，阈值相应下调；
- * ≥阈值上限为快（绿），中间为中（橙），低于下限为慢（红）。</p>
+ * <p>≥阈值上限为快（绿），中间为中（橙），低于下限为慢（红）。
+ * 解码缺失时读不到速率的场景（非流式）显示占位符，不猜速度。</p>
  */
-function speedColor(row: any, e2e = false): string {
-  const n = Number(row?.[e2e ? 'sysAiUsageTotalTokensPerSecond' : 'sysAiUsageTokensPerSecond']);
+function speedColor(row: any): string {
+  const n = Number(row?.sysAiUsageTokensPerSecond);
   if (!Number.isFinite(n) || n <= 0) return 'var(--el-text-color-placeholder)';
-  const ok = e2e ? 60 : 80;
-  const warn = e2e ? 30 : 40;
+  // 口径假象保护：解码窗口被批量块压到 1s 内时，存储值是总耗时口径近似值
+  // （见 AiUsage.tokensPerSecond 窗口保护注释），>1000 的标灰不参与快慢着色。
+  // 2026-10-14：历史脏数据（如 3109.9）同样命中此分支，标灰即提示"不可信"。
+  // 2026-10-14 扩展：整请求总耗时<1s（秒回/缓存/回放）同样标灰，不误读成模型快。
+  if (isSuspiciousSpeed(row)) return 'var(--el-text-color-placeholder)';
+  const ok = 80;
+  const warn = 40;
   if (n >= ok) return 'var(--el-color-success)';
   if (n >= warn) return 'var(--el-color-warning)';
+  return 'var(--el-color-danger)';
+}
+
+/**
+ * 速率悬浮提示：标灰的不可信速率给出原因与总耗时口径近似值。
+ *
+ * <p>3109.9 这类值来自批量推送的窄窗口（总耗时−首字耗时<1s），
+ * 悬浮时直接展示 按输出÷总耗时 的保守近似（如 32.7 tok/s），
+ * 用户不必靠猜或除以魔法数字。</p>
+ */
+function speedTitle(row: any): string {
+  if (!isSuspiciousSpeed(row)) return '';
+  const out = Number(row?.sysAiUsageCompletionTokens);
+  const total = Number(row?.sysAiUsageTotalLatency);
+  let extra = '';
+  if (Number.isFinite(out) && out > 0 && Number.isFinite(total) && total > 0) {
+    extra = `；按总耗时口径约 ${(out / (total / 1000)).toFixed(1)} tok/s`;
+  }
+  const n = Number(row?.sysAiUsageTokensPerSecond);
+  const shortTotal = isShortTotalLatency(row);
+  if (n > SPEED_SUSPICIOUS && shortTotal) {
+    return `解码窗口不足 1s（服务商批量推送的口径假象），且总耗时不足 1s（疑似缓存命中或回放），此速率不可信${extra}`;
+  }
+  if (n > SPEED_SUSPICIOUS) {
+    return `解码窗口不足 1s（服务商批量推送的口径假象），此速率不可信${extra}`;
+  }
+  return `总耗时不足 1s，疑似缓存命中或回放，不能作为模型解码能力参考${extra}`;
+}
+
+/**
+ * 解码窗口 = 总耗时 − 首字耗时；任一缺失或首字≥总耗时时退化为总耗时。
+ */
+function decodeWindowMs(row: any): number | null {
+  const total = Number(row?.sysAiUsageTotalLatency);
+  const ttft = Number(row?.sysAiUsageFirstTokenLatency);
+  if (!Number.isFinite(total) || total <= 0) return null;
+  if (Number.isFinite(ttft) && ttft > 0 && ttft < total) return total - ttft;
+  return total;
+}
+
+/** 解码窗口着色：<1s 多为批量推送假象，标灰（与速率标灰同口径） */
+function decodeWindowColor(row: any): string {
+  const ms = decodeWindowMs(row);
+  if (ms == null || ms <= 0) return 'var(--el-text-color-placeholder)';
+  if (ms < 1000) return 'var(--el-text-color-placeholder)';
+  if (ms < 2000) return 'var(--el-color-success)';
+  if (ms < 6000) return 'var(--el-color-warning)';
   return 'var(--el-color-danger)';
 }
 
@@ -1050,24 +1274,19 @@ function getFirstColor(row: any): string {
 function getTotalColor(row: any): string {
   return latencyColor(row?.sysAiUsageTotalLatency, TOTAL_THRESHOLDS);
 }
-function getFirstSegHeight(row: any): number {
-  const total = Number(row?.sysAiUsageTotalLatency) || 0;
-  const first = Number(row?.sysAiUsageFirstTokenLatency) || 0;
-  if (total <= 0) return 0;
-  return Math.max(0, Math.min(100, (Math.min(first, total) / total) * 100));
-}
-function getRestSegHeight(row: any): number {
-  const total = Number(row?.sysAiUsageTotalLatency) || 0;
-  const first = Number(row?.sysAiUsageFirstTokenLatency) || 0;
-  if (total <= 0) return 0;
-  const f = first > 0 ? Math.min(first, total) : 0;
-  return Math.max(0, Math.min(100, ((total - f) / total) * 100));
-}
 
 // ---------- 来源类型中文标签 ----------
+/**
+ * 2026-10-14 补齐漏网取值：chat_stream（流式会话）、memory-extract
+ * （记忆提取）。库里 memory-extract 用的是**连字符**，查找前统一把
+ * 连字符归一成下划线并转小写，否则该类型会裸显英文（用户反馈
+ * 「类型没有翻译」即此）。
+ */
 const TYPE_LABEL_MAP: Record<string, string> = {
   chat: '会话',
+  chat_stream: '流式会话',
   bot: '连接器',
+  memory_extract: '记忆提取',
   optimize: '优化',
   optimization: '优化',
   external: '三方',
@@ -1076,7 +1295,38 @@ const TYPE_LABEL_MAP: Record<string, string> = {
 };
 function formatTypeLabel(t: string | null | undefined): string {
   if (t == null || t === '') return '—';
-  return TYPE_LABEL_MAP[t] || t;
+  const key = String(t).trim().replace(/-/g, '_').toLowerCase();
+  return TYPE_LABEL_MAP[key] || t;
+}
+
+/**
+ * 调用类型（流式口径）。
+ *
+ * <p>库里的 call_type 由调用方声明（chat / chat_stream / bot /
+ * memory-extract），DDL 原意是 sync/async，但实际落库与 type 同值，
+ * 无法直接区分同步/异步。这里按「是否流式」展示：类型含 stream
+ * 标记即流式，未声明或无法识别时默认流式（控制台对话默认走
+ * SSE 流式）。</p>
+ */
+function callModeLabel(row: any): string {
+  const t = String(row?.sysAiUsageType || row?.sysAiUsageCallType || '').toLowerCase();
+  if (t.includes('non_stream') || t.includes('nostream') || t.includes('nonstream')) return '非流式';
+  return '流式';
+}
+
+function callModeTag(row: any): 'success' | 'info' {
+  return callModeLabel(row) === '流式' ? 'success' : 'info';
+}
+
+/**
+ * 端点展示：统一加「入站:」前缀；缺失时兜底控制台默认对话端点。
+ *
+ * <p>存量 333 行全是 /v1/chat/completions（控制台与三方工具共用
+ * 的入站对话端点），缺省值与之一致，避免空单元格误读为「无端点」。</p>
+ */
+function endpointDisplay(row: any): string {
+  const ep = String(row?.sysAiUsageEndpoint || '').trim();
+  return '入站:' + (ep || '/v1/chat/completions');
 }
 
 function typeTagType(t: string | null | undefined): 'primary' | 'info' | 'warning' | 'success' {
@@ -1585,8 +1835,20 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 }
-.latency-cell { position: relative; display: inline-block; cursor: default; }
-.latency-inline { display: inline-flex; align-items: center; gap: 6px; }
+/* 耗时列（截图口径）：竖条 + 右侧两行 首字/总耗，着色沿用首字/总耗时阈值 */
+.latency-inline { display: inline-flex; align-items: stretch; gap: 8px; cursor: default; }
+.latency-vbar { width: 4px; border-radius: var(--el-radius-full, 9999px); background: var(--el-color-danger); flex-shrink: 0; }
+.latency-lines { display: flex; flex-direction: column; gap: 2px; }
+.latency-line { display: flex; align-items: baseline; gap: 6px; }
+.latency-k { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
+.latency-v { font-size: 12px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* 模型列：名 + 解码速率 subtitle（速率着色沿用 speedColor，快慢一眼可辨） */
+.model-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.model-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-sub { font-size: 11px; line-height: 14px; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Token 列第二行：缓存 */
+.tk-cache-line { color: var(--el-color-info); }
+.cell-muted { color: var(--el-text-color-placeholder); }
 /* 原值 2px（4px 宽细条的一半，视觉上就是胶囊）→ full 档 */
 .latency-bar { width: 4px; height: 14px; border-radius: var(--el-radius-full, 9999px); background: var(--el-color-danger); flex-shrink: 0; }
 .latency-value { color: var(--el-text-color-primary); }
@@ -1664,12 +1926,32 @@ onMounted(() => {
 .latency-popover-content .latency-popover-value { margin-left: auto; color: var(--el-text-color-primary); font-variant-numeric: tabular-nums; font-weight: 500; }
 .latency-popover-hint { margin-top: 6px; font-size: 11px; color: var(--el-text-color-placeholder); }
 .latency-popover-divider { height: 1px; background: var(--el-border-color-lighter); margin: 4px 0; }
+/* 耗时 popover 内的异常速率说明（批量推送口径假象） */
+.latency-popover-note { margin-top: 6px; font-size: 11px; color: var(--el-color-warning); line-height: 1.5; }
+/* 速率 popover（模型列解码速率 hover）：阶段明细 + Token 明细 + 异常说明 */
+.speed-popover-content { font-size: 12px; }
+.speed-popover-title { font-weight: 600; margin-bottom: 6px; }
+.speed-popover-row { display: flex; align-items: center; gap: 8px; height: 22px; }
+.speed-popover-content .sp-label { color: var(--el-text-color-secondary); font-size: 12px; }
+.speed-popover-content .sp-val { margin-left: auto; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.speed-popover-divider { height: 1px; background: var(--el-border-color-lighter); margin: 4px 0; }
+.speed-popover-note { margin-top: 6px; font-size: 11px; color: var(--el-color-warning); line-height: 1.5; }
+.speed-popover-hint { margin-top: 6px; font-size: 11px; color: var(--el-text-color-placeholder); }
+/* 端点列 */
+.endpoint-cell { font-size: 12px; font-variant-numeric: tabular-nums; }
+/* 费用敏感数据：隐藏态眼睛图标 / 开关按钮 / 金额 */
+.cost-toggle { margin-left: 8px; }
+.cost-eye { color: var(--el-text-color-placeholder); }
+.cost-val { font-variant-numeric: tabular-nums; }
+/* 模型列速率 subtitle：hover 弹阶段明细 */
+.model-sub.is-speed { cursor: default; }
 
 .token-estimated { border-bottom: 1px dashed var(--el-color-warning); cursor: help; }
 
-/* 合并后的 Token 列 */
+/* 合并后的 Token 列：第一行输入/输出，第二行缓存（有缓存才渲染） */
 .token-cell { position: relative; display: inline-flex; align-items: center; justify-content: flex-end; cursor: default; }
 .token-cell.token-estimated { cursor: help; }
+.token-col { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .token-inline { display: inline-flex; align-items: center; gap: 10px; }
 .token-cell .tk { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-variant-numeric: tabular-nums; }
 .tk-ic { width: 13px; height: 13px; flex-shrink: 0; }

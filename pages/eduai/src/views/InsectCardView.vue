@@ -9,10 +9,10 @@
  * 数据来源：游戏页把本次两块所属的物种写入 sessionStorage['eduai-insect-learn'] 后打开本页；
  * 也支持 ?names=帝王蝶,西方蜜蜂 直接访问（用 ?ids= 再补齐学名/简介/所属目）。
  *
- * 路由 meta.remind = true：只注册路由、不进菜单，也不受菜单导航控制，作为独立弹窗页使用。
- * 与成语学习卡片（IdiomCardView）是同一套约定。
+ * 路由 meta.remind = true：由 registerRoutesUnderLayout 注册为顶层路由，
+ * 根 router-view 直接渲染组件，不进菜单、不套布局壳。
  */
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { ref } from "vue";
 import { useRoute } from "vue-router";
 import { eduaiApi } from "../api/eduaiApi";
 import InsectLearnCards, { type LearnCard } from "../components/InsectLearnCards.vue";
@@ -112,15 +112,5 @@ function close() {
   window.location.href = "/edu/fun";
 }
 
-onMounted(() => {
-  // 作为弹窗打开时隐藏框架外壳（复用 koi 的 main-maximize 约定），只留卡片内容
-  if (window.opener) {
-    document.documentElement.classList.add("main-maximize");
-  }
-  loadCards();
-});
-
-onBeforeUnmount(() => {
-  document.documentElement.classList.remove("main-maximize");
-});
+loadCards();
 </script>

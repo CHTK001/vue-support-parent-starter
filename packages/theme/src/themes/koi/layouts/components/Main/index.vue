@@ -37,27 +37,27 @@ import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 
-// 璺敱鍔ㄧ敾
+// 璺敱鍔ㄧ敾
 const { transition } = storeToRefs(globalStore);
 // 鏃犲姩鐢伙紙transition 涓虹┖鎴?"none"锛?
 const isNoneTransition = computed(() => !transition.value || transition.value === "none");
 const keepAliveStore = useKeepAliveStore();
 
-// 鍒锋柊褰撳墠璺敱椤甸潰缂撳瓨鏂规硶
+// 鍒锋柊褰撳墠璺敱椤甸潰缂撳瓨鏂规硶
 const isRouterShow = ref(true);
 
 const refreshCurrentPage = (val: boolean) => (isRouterShow.value = val);
 
 provide("refresh", refreshCurrentPage);
 
-/** 鐩戝惉褰撳墠椤甸潰鏄惁鏈€澶у寲锛屽姩鎬佹坊鍔?class */
+/** 鐩戝惉褰撳墠椤甸潰鏄惁鏈€澶у寲锛屽姩鎬佹坊鍔?class */
 watch(
   () => globalStore.maximize,
   () => {
     const app = document.getElementById("app") as HTMLElement;
     if (globalStore.maximize) app.classList.add("main-maximize");
     else app.classList.remove("main-maximize");
-    // 娴忚鍣ㄦ病鏈夊疄闄呭彉鍖栫殑鎯呭喌涓嬶紝瑙﹀彂涓€娆℃祻瑙堝櫒灏哄鍙樺寲鐨勯€昏緫銆備繚璇佸叏灞忓垏鎹㈢殑鏃跺€欙紝琛ㄦ牸闃斾互杩涜鑷€傚簲銆?
+    // 娴忚鍣ㄦ病鏈夊疄闄呭彉鍖栫殑鎯呭喌涓嬶紝瑙﹀彂涓€娆℃祻瑙堝櫒灏哄彉鍖栫殑閫昏緫銆備繚璇佸叏灞忓垏鎹㈢殑鏃跺€欙紝琛ㄦ牸闃斾互杩涜鑷€傚簲銆?
     const event = new Event("resize");
     window.dispatchEvent(event);
   },
@@ -86,11 +86,11 @@ onBeforeUnmount(() => {
 @use "../../../styles/transition.scss";
 
 .main-wrapper {
-  // 鏈€灏忓寲鏍峰紡锛屽彧璁剧疆蹇呰鐨勫竷灞€灞炴€?
+  // 鏈€灏忓寲鏍峰紡锛屽彧璁剧疆蹇呰鐨勫竷灞€灞炴€?
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0; // 闃叉楂樺害婧㈠嚭
+  min-height: 0; // 闃叉楂樺害婧㈠嚭
 }
 
 .main-content {

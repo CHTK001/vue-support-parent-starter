@@ -92,6 +92,7 @@ import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import PreviewMediaPanel from "../components/PreviewMediaPanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
+import InlineRenameLabel from "../components/InlineRenameLabel.vue";
 /**
  * file-viewer 明确不支持、或需要自研增强的兜底面板按需加载。
  *
@@ -104,6 +105,7 @@ const PreviewTgaPanel = defineAsyncComponent(() => import("../components/Preview
 const PreviewSwfPanel = defineAsyncComponent(() => import("../components/PreviewSwfPanel.vue"));
 const SketchPreviewPanel = defineAsyncComponent(() => import("../components/SketchPreviewPanel.vue"));
 const PreviewModel3dPanel = defineAsyncComponent(() => import("../components/PreviewModel3dPanel.vue"));
+const PreviewIfcPanel = defineAsyncComponent(() => import("../components/PreviewIfcPanel.vue"));
 
 /* ================== file-viewer 主渲染面板（fv/*，按需加载） ================== */
 /**
@@ -326,29 +328,35 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   gltf: FvModelPanel,
   obj: FvModelPanel,
   stl: FvModelPanel,
-  ply: FvModelPanel,
-  fbx: FvModelPanel,
-  dae: FvModelPanel,
-  "3ds": FvModelPanel,
-  "3mf": FvModelPanel,
   amf: FvModelPanel,
   usd: FvModelPanel,
   usda: FvModelPanel,
   usdc: FvModelPanel,
   usdz: FvModelPanel,
   kmz: FvModelPanel,
-  step: FvModelPanel,
-  stp: FvModelPanel,
-  iges: FvModelPanel,
-  igs: FvModelPanel,
-  ifc: FvModelPanel,
-  "3dm": FvModelPanel,
-  brep: FvModelPanel,
+  // step/stp/iges/igs/brep 走 occt-import-js、3dm 走 rhino3dm、
+  // 3ds/ply/dae/wrl/vrml/3mf/off 由 three 原生加载器解析：
+  // 这些格式在 FvModelPanel（@file-viewer/renderer-3d）侧要么只有信息卡、
+  // 要么明确拒绝（3dm 报"需要独立 rhino3dm 内核"），而 PreviewModel3dPanel
+  // 已内置两套 WASM 引擎 + three 渲染器，改派到这里才能真出图形。
+  step: PreviewModel3dPanel,
+  stp: PreviewModel3dPanel,
+  iges: PreviewModel3dPanel,
+  igs: PreviewModel3dPanel,
+  brep: PreviewModel3dPanel,
+  "3dm": PreviewModel3dPanel,
+  "3ds": PreviewModel3dPanel,
+  ply: PreviewModel3dPanel,
+  dae: PreviewModel3dPanel,
+  ifc: PreviewIfcPanel,
   pcd: FvModelPanel,
-  wrl: FvModelPanel,
-  vrml: FvModelPanel,
+  wrl: PreviewModel3dPanel,
+  vrml: PreviewModel3dPanel,
+  "3mf": PreviewModel3dPanel,
+  off: PreviewModel3dPanel,
+  fbx: PreviewModel3dPanel,
+  vtk: PreviewModel3dPanel,
   xyz: FvModelPanel,
-  vtk: FvModelPanel,
   vtp: FvModelPanel,
   dxf: FvCadPanel,
   dwg: FvCadPanel,
@@ -432,7 +440,6 @@ function isVideoPanelFile(name: string): boolean {
 }
 
 import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
-import { utf8ToBase64 } from "../utils/previewEntryRenderers";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import ReDialog from "@repo/ui/re-dialog";
@@ -478,6 +485,19 @@ const bucket = ref(resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET);
 const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
+/**
+ * 列表加载请求序号：目录连点/历史快进时旧响应直接丢弃，避免"后发先至"把列表
+ * 闪回旧目录；同时 loading 只在请求超过阈值未完成时才置 true（见 scheduleLoadingShow），
+ * 300ms 内的快速请求全程不触达 v-loading，列表区零闪烁。刷新图标的旋转由
+ * {@link navLoading}（面包屑旁小 spinner）承担。
+ */
+let loadSeq = 0;
+/** 当前生效的列表请求序号（>= 它才允许写 objects） */
+let activeLoadSeq = 0;
+/** 延迟显示 loading 的定时器（快速请求内完成则取消） */
+let loadShowTimer: number | undefined;
+/** 目录导航加载中（延迟 300ms 显示，只驱动面包屑小 spinner，不罩住列表） */
+const navLoading = ref(false);
 /** 当前目录加载失败的原因（空串表示无错误）；列表区据此显示真实原因而不是「当前目录为空」 */
 const loadError = ref("");
 /** 视图模式：columns=分栏（默认，macOS Finder 风格）/ largeIcons / mediumIcons / smallIcons / details */
@@ -1161,9 +1181,24 @@ function cardMeta(item: StorageObject): string {
 /* ================== 目录导航 ================== */
 
 async function loadObjects(): Promise<void> {
-  loading.value = true;
+  const seq = ++loadSeq;
+  activeLoadSeq = seq;
+  // 延迟显示：300ms 内完成不闪 v-loading；超过才显示导航 spinner
+  if (loadShowTimer !== undefined) {
+    window.clearTimeout(loadShowTimer);
+    loadShowTimer = undefined;
+  }
+  loadShowTimer = window.setTimeout(() => {
+    if (activeLoadSeq === seq) {
+      loading.value = true;
+      navLoading.value = true;
+    }
+    loadShowTimer = undefined;
+  }, 300);
   try {
     const list = await listObjects(bucket.value, currentPath.value);
+    // 旧请求（目录已切走）：直接丢弃，不碰列表、不报错
+    if (activeLoadSeq !== seq) return;
     // 回收站为桶内隐藏目录，常规列表不展示
     objects.value = list.filter((o) => o.name !== RECYCLE_DIR);
     // 同步分栏缓存（当前列）
@@ -1188,6 +1223,7 @@ async function loadObjects(): Promise<void> {
         clearBucketOverride();
         bucket.value = fallback;
         loading.value = false;
+        navLoading.value = false;
         message.warning(
           `浏览器里残留的存储桶「${stale}」在文件服务器上不存在，已自动切换到配置里的桶「${fallback}」。` +
             `如需固定使用其他桶，请在「服务器设置」里改。`,
@@ -1195,6 +1231,8 @@ async function loadObjects(): Promise<void> {
         return loadObjects();
       }
     }
+    // 旧请求的失败同样丢弃（目录已切走时不报错、不清列表）
+    if (activeLoadSeq !== seq) return;
     message.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
     // 分栏渲染的是 colObjects 这份「每列一份」的缓存：成功分支会写它，失败分支不写的话
@@ -1215,7 +1253,14 @@ async function loadObjects(): Promise<void> {
       recordHistory("");
     }
   } finally {
-    loading.value = false;
+    if (activeLoadSeq === seq) {
+      if (loadShowTimer !== undefined) {
+        window.clearTimeout(loadShowTimer);
+        loadShowTimer = undefined;
+      }
+      loading.value = false;
+      navLoading.value = false;
+    }
   }
 }
 
@@ -1369,9 +1414,22 @@ const actionRunning = ref(false);
 /** 拖拽悬停的目标目录键（高亮用） */
 const dragOverDir = ref("");
 
-/** 当前选中对象的完整键列表 */
+/** 当前选中对象的完整键列表（普通视图取当前目录；分栏视图中祖先列选中项也纳入） */
 function selectedKeys(): string[] {
-  return objects.value.filter((o) => selected.value.has(o.name)).map((o) => fullKey(o.name));
+  const out: string[] = [];
+  const push = (key: string): void => {
+    if (!out.includes(key)) out.push(key);
+  };
+  for (const o of objects.value) {
+    if (selected.value.has(o.name)) push(fullKey(o.name));
+  }
+  if (out.length) return out;
+  for (const [path, list] of Object.entries(colObjects.value)) {
+    for (const o of list) {
+      if (selected.value.has(o.name)) push(joinKey(path, o.name));
+    }
+  }
+  return out;
 }
 
 /** 名称输入弹窗（取消返回 null） */
@@ -1434,12 +1492,92 @@ function singleTarget(row?: StorageObject | null): StorageObject | null {
   const keys = selectedKeys();
   if (keys.length === 1) {
     const name = keys[0].slice(keys[0].lastIndexOf("/") + 1);
-    return objects.value.find((o) => o.name === name) ?? null;
+    return objects.value.find((o) => o.name === name)
+      ?? selectedColumnObject(name);
   }
   return null;
 }
 
-/** 重命名单个对象 */
+/** 分栏视图内按名称查找选中的对象（当前目录没有时，祖先列也可能有选中项） */
+function selectedColumnObject(name: string): StorageObject | null {
+  for (const path of segmentPaths.value) {
+    const hit = colObjects.value[path]?.find((o) => o.name === name);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/** 行内重命名：当前编辑名称 / 草稿 / 目标对象 */
+const renaming = ref<string | null>(null);
+const renameDraft = ref("");
+let renameTarget: StorageObject | null = null;
+
+/** 启动行内重命名（右键「重命名」和 F2 共用） */
+async function startInlineRename(row?: StorageObject | null): Promise<void> {
+  const target = singleTarget(row);
+  if (!target) {
+    message.warning("请选择一个对象进行重命名");
+    return;
+  }
+  if (actionRunning.value) {
+    message.warning("请等待当前操作完成");
+    return;
+  }
+  selected.value = new Set([target.name]);
+  lastSelectedIndex = -1;
+  renameTarget = target;
+  renameDraft.value = target.name;
+  renaming.value = target.name;
+  await nextTick();
+}
+
+/** 提交行内重命名（Enter 或失焦触发，同一编辑只执行一次） */
+async function commitInlineRename(): Promise<void> {
+  const target = renameTarget;
+  const current = renaming.value;
+  const draft = renameDraft.value.trim();
+  renaming.value = null;
+  renameTarget = null;
+  if (!target || !current || !draft || draft === target.name) return;
+  actionRunning.value = true;
+  try {
+    await renameObject(bucket.value, currentPath.value, target.name, draft);
+    message.success("重命名成功");
+    await refreshAfterAction();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "重命名失败");
+  } finally {
+    actionRunning.value = false;
+  }
+}
+
+/** 取消行内重命名（Esc） */
+function cancelInlineRename(): void {
+  renaming.value = null;
+  renameTarget = null;
+}
+
+/** 属性弹窗内容 */
+const propsVisible = ref(false);
+const propsTarget = ref<StorageObject | null>(null);
+const propsLoading = ref(false);
+
+/** 打开对象属性：列表字段 + 服务端 ?config 活动配置 */
+function openProperties(row?: StorageObject | null): void {
+  const target = singleTarget(row);
+  if (!target) {
+    message.warning("请选择一个对象查看属性");
+    return;
+  }
+  propsTarget.value = target;
+  propsVisible.value = true;
+  propsLoading.value = true;
+  loadBucketConfig().finally(() => {
+    propsLoading.value = false;
+  });
+}
+
+/** 重命名单个对象（对话框版，右键菜单「重命名（对话框）…」） */
 async function onRename(row?: StorageObject | null): Promise<void> {
   const target = singleTarget(row);
   if (!target) {
@@ -1536,7 +1674,7 @@ async function smartDownload(keys: string[]): Promise<void> {
       const url = await resolveObjectUrl(bucket.value, only, {
         params: { download: "true" },
       });
-      window.open(url, "_blank");
+      triggerDirectDownload(url, onlyObj.name);
       return;
     }
   }
@@ -2701,7 +2839,13 @@ function ctxAction(action: string) {
       if (row && row.directory) toggleFavorite(fullKey(row.name));
       break;
     case "rename":
+      void startInlineRename(row);
+      break;
+    case "renameDialog":
       void onRename(row);
+      break;
+    case "properties":
+      openProperties(row);
       break;
     case "copy":
       onCopySelected();
@@ -3445,7 +3589,11 @@ function needsPdfConvert(name: string): boolean {
   //
   // et / dps 不在此列：三个 Aspose 转换器的源格式里都没有它们，实测接线也只会
   // 得到 convert=unavailable 并退回提示卡，属于白试一次，故不接。
-  return ["ott", "ots", "otp", "doc", "wps"].includes(ext);
+  // ppt / pot：老式二进制 PowerPoint（OLE2）。file-viewer 的 preset-office 只认
+  // OOXML，直接交给它只会得到空白面板（实测 .ppt/.pot 预览面板无内容、仅工具栏），
+  // 故与 doc 同走服务端 aspose-ppt 转 PDF 通道（FileStorageServerFilter 的
+  // ?format=pdf 分支；aspose-ppt 覆盖 ppt/pptx，转不了时后端标记 convert=unavailable）。
+  return ["ott", "ots", "otp", "doc", "ppt", "pot", "wps"].includes(ext);
 }
 
 /**
@@ -3652,18 +3800,12 @@ function takePreviewFlag(): string {
 }
 
 /**
- * 「预览（新窗口）」：新开统一预览入口（服务器预览通道）
+ * 「预览（新窗口）」：复用应用页自身的自动预览链路
  *
- * <p>新窗口打开统一入口 {@code preview.html?url=<base64 文件直链>&render=server}：
- * 入口内 iframe 服务端通道（后端 {@code ?preview=true&render=server} 返回统一
- * 入口壳 + 注入短时效预览令牌），壳内嵌态拉字节由 file-viewer 渲染——
- * 与本页弹框一致的 file-viewer 效果，且地址栏直链可分享/收藏。</p>
- *
- * <p>私有桶退回「应用页 + 预览弹框」：直链需要访问令牌/票据，standalone 入口
- * 无登录态，直接 iframe 会 401；本页弹框的票据链路完全可用。</p>
- *
- * <p>地址是当场同步构造的（不换票据），整个调用仍在用户手势内 ——
- * {@code window.open} 不会被浏览器当弹窗拦掉。</p>
+ * <p>新窗口打开「当前应用地址 + {@code ?preview=<完整 key>}」，由
+ * {@link onMounted} 中 {@link takePreviewFlag} 一次性消费后自动弹出与弹框
+ * 相同的预览面板。不再依赖文件服务器上的 standalone preview.html —— 该静态
+ * 入口未随当前后端部署，公共/私有桶直链都可能在独立窗口打不开。</p>
  *
  * @param row 目标对象（非目录）
  */
@@ -3671,23 +3813,9 @@ function openPreviewInNewTab(row: StorageObject): void {
   if (row.directory || !guardPreview()) {
     return;
   }
-  if (bucketConfig.value?.private) {
-    // 私有桶：保留应用页弹框链路（票据签发需要登录态）
-    const url = new URL(window.location.href);
-    url.searchParams.set("preview", fullKey(row.name));
-    window.open(url.toString(), "_blank");
-    return;
-  }
-  // 公共桶：文件直链 base64 后交给统一入口（render=server 服务器预览通道）。
-  // 入口页部署为文件服务器 classpath static/preview/index.html（/preview/ 目录
-  // welcome 形式，宿主无关），故以文件服务器 origin 为基准解析，而非当前页面
-  // origin（应用内嵌时两者不同）。
-  const base = getServerBase().replace(/\/+$/, "");
-  const direct = `${base}/${encodeURIComponent(bucket.value)}/${fullKey(row.name).split("/").map(encodeURIComponent).join("/")}`;
-  const entry = new URL("preview/", base.endsWith("/") ? base : `${base}/`);
-  entry.searchParams.set("url", utf8ToBase64(direct));
-  entry.searchParams.set("render", "server");
-  window.open(entry.toString(), "_blank");
+  const url = new URL(window.location.href);
+  url.searchParams.set("preview", fullKey(row.name));
+  window.open(url.toString(), "_blank");
 }
 
 
@@ -3763,7 +3891,75 @@ function onPreviewKeydown(e: KeyboardEvent): void {
 watch(previewVisible, (v) => { v ? document.addEventListener("keydown", onPreviewKeydown) : document.removeEventListener("keydown", onPreviewKeydown); });
 onUnmounted(() => { document.removeEventListener("keydown", onPreviewKeydown); });
 
+/**
+ * 文件列表快捷键：F2 行内重命名，Ctrl/Cmd+C/X/V 复制/剪切/粘贴。
+ *
+ * <p>输入框、文本域、下拉框、内容可编辑元素以及 Element Plus 弹层打开时
+ * 一律放行，避免把用户正在输入的按键当成文件操作。</p>
+ */
+/**
+ * 是否已有“真正打开”的 Element Plus 遮罩层。
+ *
+ * <p>不能只看 {@code document.querySelector(".el-overlay")}：监控壳/主题组件会在
+ * 页面里保留多个 {@code display:none} 的隐藏遮罩节点，若按存在性判断，
+ * F2 / Ctrl+C / Ctrl+X 会永远被当成“弹层打开”直接放行。</p>
+ */
+function hasOpenOverlay(): boolean {
+  return [...document.querySelectorAll(".el-overlay")].some((el) => {
+    if (!(el instanceof HTMLElement)) return false;
+    const style = getComputedStyle(el);
+    return (
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      style.pointerEvents !== "none" &&
+      Number(style.opacity) > 0 &&
+      el.getClientRects().length > 0
+    );
+  });
+}
+
+function onFileKeydown(e: KeyboardEvent): void {
+  const target = e.target as HTMLElement | null;
+  if (
+    target &&
+    (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)
+  ) {
+    return;
+  }
+  if (hasOpenOverlay()) return;
+  if (nav.value !== "all") return;
+  if (e.key === "F2") {
+    e.preventDefault();
+    void startInlineRename();
+    return;
+  }
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const key = e.key.toLowerCase();
+  if (key === "c") {
+    e.preventDefault();
+    onCopySelected();
+  } else if (key === "x") {
+    e.preventDefault();
+    onCutSelected();
+  } else if (key === "v") {
+    e.preventDefault();
+    void onPaste();
+  }
+}
+
 /* ================== 下载 / 检查 / 删除 ================== */
+
+/** 通过隐藏锚点触发浏览器下载，避免 window.open 新标签页闪烁/抖动 */
+function triggerDirectDownload(url: string, name: string): void {
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
 
 /** 下载单个对象：用短时一次性票据直连，令牌不落 URL */
 async function handleDownload(row: StorageObject): Promise<void> {
@@ -3773,7 +3969,7 @@ async function handleDownload(row: StorageObject): Promise<void> {
   const url = await resolveObjectUrl(bucket.value, fullKey(row.name), {
     params: { download: "true" },
   });
-  window.open(url, "_blank");
+  triggerDirectDownload(url, row.name);
 }
 
 async function handleExist(row: StorageObject): Promise<void> {
@@ -3917,6 +4113,7 @@ function copyOneTimeLink(): void {
 }
 
 onMounted(() => {
+  document.addEventListener("keydown", onFileKeydown);
   // 「预览（新窗口）」标记：先读并剥掉（一次性，两处地址都剥），否则刷新后又会自动打开
   const autoPreviewKey = takePreviewFlag();
   // 必须排在最前：视图/目录/排序都从这里恢复，后面所有播种都基于恢复后的值
@@ -3982,6 +4179,7 @@ watch([sortedObjects, configStamp, viewMode], () => {
 onUnmounted(() => {
   unbindDragEvents();
   document.removeEventListener("click", closeContextMenu);
+  document.removeEventListener("keydown", onFileKeydown);
 });
 </script>
 
@@ -4087,6 +4285,9 @@ onUnmounted(() => {
               </template>
             </template>
           </div>
+          <span v-if="navLoading" class="fs-nav-loading" aria-label="加载中">
+            <el-icon :size="14" class="is-spin"><RefreshRight /></el-icon>
+          </span>
           <span v-if="bucketPrivate" class="fs-main__lock">
             <el-icon :size="12"><Lock /></el-icon>私有
           </span>
@@ -4138,7 +4339,6 @@ onUnmounted(() => {
         <div
           v-if="viewMode === 'columns'"
           class="fs-files fs-files--columns"
-          v-loading="loading"
           @contextmenu="openBlankContextMenu"
         >
           <div v-for="(colPath, ci) in segmentPaths" :key="colPath || 'root'" class="fs-col">
@@ -4174,7 +4374,15 @@ onUnmounted(() => {
                 @drop="onColumnDrop($event, colPath, item)"
               >
                 <span class="fs-typeicon fs-col__icon" v-html="fileSvg(item.name, item.directory)" aria-hidden="true" />
-                <span class="fs-col__name" :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+                <InlineRenameLabel
+                  :name="item.name"
+                  :active="renaming === item.name"
+                  v-model:draft="renameDraft"
+                  :directory="item.directory"
+                  className="fs-col__name"
+                  @commit="commitInlineRename"
+                  @cancel="cancelInlineRename"
+                />
               </div>
             </div>
           </div>
@@ -4185,7 +4393,6 @@ onUnmounted(() => {
           v-else-if="viewMode === 'details'"
           class="fs-files fs-files--details"
           :class="{ 'fs-details--no-format': !showFormatCol, 'fs-details--no-size': !showSizeCol, 'fs-details--no-time': !showTimeCol }"
-          v-loading="loading"
           @contextmenu="openBlankContextMenu"
         >
           <div class="fs-details-head">
@@ -4230,7 +4437,14 @@ onUnmounted(() => {
                 v-html="fileSvg(item.name, item.directory)"
                 aria-hidden="true"
               />
-              <span :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+              <InlineRenameLabel
+                :name="item.name"
+                :active="renaming === item.name"
+                v-model:draft="renameDraft"
+                :directory="item.directory"
+                @commit="commitInlineRename"
+                @cancel="cancelInlineRename"
+              />
             </span>
             <span v-if="showFormatCol" class="fs-details-row__type">{{ item.directory ? '文件夹' : fileTypeText(item.name) }}</span>
             <span v-if="showSizeCol" class="fs-details-row__size">{{ item.directory ? '-' : formatSize(item.size) }}</span>
@@ -4239,7 +4453,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 大图标（Large Icons）- 使用 ?preview 渲染缩略图 -->
-        <div v-else-if="viewMode === 'largeIcons'" class="fs-files fs-files--large" v-loading="loading" @contextmenu="openBlankContextMenu">
+        <div v-else-if="viewMode === 'largeIcons'" class="fs-files fs-files--large" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>{{ loadError || "当前目录为空" }}</span>
@@ -4280,12 +4494,21 @@ onUnmounted(() => {
                 aria-hidden="true"
               />
             </div>
-            <div class="fs-lg-card__label" :title="item.name">{{ item.name }}</div>
+            <InlineRenameLabel
+              :name="item.name"
+              :active="renaming === item.name"
+              v-model:draft="renameDraft"
+              :directory="item.directory"
+              className="fs-lg-card__label"
+              :title="item.name"
+              @commit="commitInlineRename"
+              @cancel="cancelInlineRename"
+            />
           </div>
         </div>
 
         <!-- 中图标（Medium Icons） -->
-        <div v-else-if="viewMode === 'mediumIcons'" class="fs-files fs-files--medium" v-loading="loading" @contextmenu="openBlankContextMenu">
+        <div v-else-if="viewMode === 'mediumIcons'" class="fs-files fs-files--medium" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>{{ loadError || "当前目录为空" }}</span>
@@ -4318,12 +4541,21 @@ onUnmounted(() => {
                 aria-hidden="true"
               />
             </div>
-            <div class="fs-md-card__label" :title="item.name">{{ item.name }}</div>
+            <InlineRenameLabel
+              :name="item.name"
+              :active="renaming === item.name"
+              v-model:draft="renameDraft"
+              :directory="item.directory"
+              className="fs-md-card__label"
+              :title="item.name"
+              @commit="commitInlineRename"
+              @cancel="cancelInlineRename"
+            />
           </div>
         </div>
 
         <!-- 小图标（Small Icons） -->
-        <div v-else class="fs-files fs-files--small" v-loading="loading" @contextmenu="openBlankContextMenu">
+        <div v-else class="fs-files fs-files--small" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>{{ loadError || "当前目录为空" }}</span>
@@ -4354,7 +4586,15 @@ onUnmounted(() => {
                 v-html="fileSvg(item.name, item.directory)"
                 aria-hidden="true"
               />
-              <span class="fs-sm-row__name" :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+              <InlineRenameLabel
+                :name="item.name"
+                :active="renaming === item.name"
+                v-model:draft="renameDraft"
+                :directory="item.directory"
+                className="fs-sm-row__name"
+                @commit="commitInlineRename"
+                @cancel="cancelInlineRename"
+              />
             </div>
           </div>
         </div>
@@ -4524,15 +4764,26 @@ onUnmounted(() => {
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('rename')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><EditPen /></el-icon>
-            重命名
+            <span class="fs-ctx__label">重命名</span>
+            <kbd class="fs-ctx__kbd">F2</kbd>
+          </button>
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('renameDialog')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><EditPen /></el-icon>
+            <span class="fs-ctx__label">重命名（对话框）…</span>
           </button>
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('copy')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><CopyDocument /></el-icon>
-            复制
+            <span class="fs-ctx__label">复制</span>
+            <kbd class="fs-ctx__kbd">Ctrl+C</kbd>
           </button>
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('cut')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Scissor /></el-icon>
-            剪切
+            <span class="fs-ctx__label">剪切</span>
+            <kbd class="fs-ctx__kbd">Ctrl+X</kbd>
+          </button>
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('properties')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><InfoFilled /></el-icon>
+            <span class="fs-ctx__label">属性</span>
           </button>
           <button
             v-if="allowDownload"
@@ -4576,7 +4827,8 @@ onUnmounted(() => {
             @click="ctxAction('paste')"
           >
             <el-icon class="fs-ctx__icon" aria-hidden="true"><DocumentCopy /></el-icon>
-            粘贴到此处
+            <span class="fs-ctx__label">粘贴到此处</span>
+            <kbd class="fs-ctx__kbd">Ctrl+V</kbd>
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('selectAll')">
@@ -5136,6 +5388,42 @@ onUnmounted(() => {
         <el-button v-if="quickExpiryResult" :icon="Document" @click="copyQuickExpiryLink">复制链接</el-button>
         <el-button v-else type="primary" :loading="quickExpiryBusy" :icon="Document" @click="generateQuickExpiryLink">生成</el-button>
         <el-button @click="quickExpiryVisible = false">关闭</el-button>
+      </template>
+    </ReDialog>
+
+    <!-- ===== 对象属性 =====
+         数据来源：列表项元数据 + 存储桶公开配置（?format=config）。
+         配置字段不包含私密令牌，适合直接展示活动开关。 -->
+    <ReDialog
+      v-model="propsVisible"
+      class="fs-props-dialog"
+      width="520px"
+      :title="`属性 — ${propsTarget?.name ?? ''}`"
+      :show-close="true"
+      :append-to-body="true"
+      destroy-on-close
+    >
+      <template v-if="propsTarget">
+        <dl class="fs-props">
+          <div class="fs-props__row"><dt>名称</dt><dd>{{ propsTarget.name }}</dd></div>
+          <div class="fs-props__row"><dt>类型</dt><dd>{{ propsTarget.directory ? '文件夹' : fileTypeText(propsTarget.name) }}</dd></div>
+          <div class="fs-props__row"><dt>完整路径</dt><dd>{{ fullKey(propsTarget.name) }}</dd></div>
+          <div v-if="!propsTarget.directory" class="fs-props__row"><dt>大小</dt><dd>{{ formatSize(propsTarget.size) }}</dd></div>
+          <div class="fs-props__row"><dt>修改时间</dt><dd>{{ propsTarget.lastModified ? formatTime(propsTarget.lastModified) : '-' }}</dd></div>
+          <div class="fs-props__sep" aria-hidden="true" />
+          <div class="fs-props__row"><dt>存储桶</dt><dd>{{ bucketConfig?.bucket || bucket }}<el-icon :size="13" class="fs-props__loading" v-if="propsLoading"><RefreshRight /></el-icon></dd></div>
+          <div class="fs-props__row"><dt>存储实现</dt><dd>{{ bucketConfig?.storage || '-' }}</dd></div>
+          <div class="fs-props__row"><dt>允许预览</dt><dd>{{ bucketConfig ? (bucketConfig.openPreview ? '是' : '否') : '-' }}</dd></div>
+          <div class="fs-props__row"><dt>允许下载</dt><dd>{{ bucketConfig ? (bucketConfig.openDownload ? '是' : '否') : '-' }}</dd></div>
+          <div class="fs-props__row"><dt>允许分段</dt><dd>{{ bucketConfig ? (bucketConfig.openRange ? '是' : '否') : '-' }}</dd></div>
+          <div class="fs-props__row"><dt>路径防护</dt><dd>{{ bucketConfig ? (bucketConfig.openPathGuard ? '是' : '否') : '-' }}</dd></div>
+          <div class="fs-props__row"><dt>私有桶</dt><dd>{{ bucketConfig ? (bucketConfig.private ? '是' : '否') : '-' }}</dd></div>
+          <div class="fs-props__row"><dt>三方预览</dt><dd>{{ bucketConfig?.thirdUrlPreview || '-' }}</dd></div>
+          <div class="fs-props__row"><dt>水印</dt><dd>{{ bucketConfig?.watermark || '无' }}</dd></div>
+        </dl>
+      </template>
+      <template #footer>
+        <el-button @click="propsVisible = false">关闭</el-button>
       </template>
     </ReDialog>
 
@@ -8024,6 +8312,108 @@ button.fs-stat:hover {
 .fs-expiry-unit {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 面包屑旁轻量加载指示：目录切换超过 300ms 才出现，不再罩住文件列表 */
+.fs-nav-loading {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  color: var(--el-text-color-secondary);
+  line-height: 1;
+}
+
+/* 右键菜单快捷键标注 */
+.fs-ctx__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.fs-ctx__kbd {
+  margin-left: auto;
+  padding: 2px 5px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 行内重命名：把名称 span 切成编辑框，各视图用原有 className 保持布局 */
+.fs-inline-rename {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fs-inline-rename.fs-col__name,
+.fs-inline-rename.fs-sm-row__name {
+  flex: 1;
+}
+
+.fs-inline-rename__input {
+  flex: 1;
+  min-width: 80px;
+  max-width: 320px;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 2px 8px;
+  border: 1px solid var(--el-color-primary);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary);
+  font: inherit;
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
+/* 属性弹窗 */
+.fs-props-dialog .el-dialog__body {
+  padding: 18px 22px;
+}
+
+.fs-props {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.fs-props__row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-props__row dt {
+  width: 92px;
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+  font-weight: 500;
+}
+
+.fs-props__row dd {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--el-text-color-primary);
+  overflow-wrap: anywhere;
+}
+
+.fs-props__loading {
+  margin-left: 6px;
+  vertical-align: -2px;
+}
+
+.fs-props__sep {
+  height: 1px;
+  margin: 10px 0;
+  background: var(--el-border-color-extra-light, var(--el-border-color-lighter));
 }
 
 /* 尊重系统「减少动态效果」偏好 */

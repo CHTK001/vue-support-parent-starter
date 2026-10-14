@@ -164,6 +164,7 @@
             <el-option label="人脸检测(face-detect)" value="face-detect" />
             <el-option label="人脸识别(face)" value="face" />
             <el-option label="图像识别(image)" value="image" />
+            <el-option label="检测(detection)" value="detection" />
             <el-option label="超分辨率(super-resolution)" value="super-resolution" />
             <el-option label="动漫化(anime)" value="anime" />
             <el-option label="嵌入(embedding)" value="embedding" />
@@ -196,6 +197,7 @@
             <el-option label="布局分析" value="layout" />
             <el-option label="人脸识别" value="face" />
             <el-option label="图片识别" value="image-recognition" />
+            <el-option label="检测" value="detection" />
           </el-select>
         </el-form-item>
         <el-form-item label="非必填管线">
@@ -206,6 +208,7 @@
             <el-option label="布局分析" value="layout" />
             <el-option label="人脸识别" value="face" />
             <el-option label="图片识别" value="image-recognition" />
+            <el-option label="检测" value="detection" />
           </el-select>
         </el-form-item>
         <el-form-item label="模型描述">

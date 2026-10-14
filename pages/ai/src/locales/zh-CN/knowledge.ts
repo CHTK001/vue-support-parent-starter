@@ -210,6 +210,7 @@ export default {
     noFileSelected: '未选择文件或知识库',
     fileNotReady: '文件尚未处理完成，无法查看分块内容',
     loadFailed: '获取文件分块失败',
+    view: '查看分块',
   },
 
   // ── 树节点 (TreeNode.vue) ──

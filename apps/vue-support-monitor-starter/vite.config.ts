@@ -390,9 +390,10 @@ export default createVite({
         changeOrigin: true,
       },
       // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port）
+      // 注意：不要加 ws:true。app.yaml 走 polling-only，加 ws:true 会让 vite 挂 WS 升级
+      // 处理器干扰 HTTP 轮询代理；且 WS 升级会被 netty(SO_LINGER=0 硬关)重置。
       "/socket.io": {
         target: socketTarget,
-        ws: true,
         changeOrigin: true,
       },
       // APM 观测后端（/api/apm 与 /agent 共用）。
@@ -490,8 +491,44 @@ export default createVite({
       // 一并列出，避免它们成为「压垮骆驼的最后一根稻草」
       "ag-psd",
       "saxes",
+      // heic2any: CJS-only dep of @file-viewer/renderer-image. Its renderHeic
+      // does `import('heic2any')` and takes the default export; without an
+      // explicit include the lazy-discovered bundle has no default interop,
+      // so the destructured value is undefined and HEIC/HEIF preview dies with
+      // "heic2any is not a function". Listing it here makes the pre-bundle
+      // emit a proper default export.
+      "heic2any",
       // 表格渲染器底层：file-viewer 与业务侧必须解析到同一物理实例
       "e-virt-table/dist/index.es.js",
+      // ---- CodeMirror（数据源中心的 SQL 编辑器）----
+      // 与上面的 @file-viewer/* 同一个病，且后果一样严重：
+      // DbSqlEditor.vue 静态 import @codemirror/*，但它自己只被
+      // DatabaseManagerView.vue 动态引用，而后者又只被路由的 () => import() 加载。
+      // 整条链上没有一处静态入口，优化器的 entries 扫描发现不到，
+      // 于是 deps 缓存里永远没有 @codemirror_*.js（实测 401 个产物里一个都没有）。
+      // 首次访问数据源管理页时浏览器去要 /deps/@codemirror_state.js，Vite 直接
+      // 504（空响应体，2~6ms 内返回），动态导入失败 ——
+      // 表现是「数据库管理 / Redis 管理 / InfluxDB / Neo4j / MongoDB … 全部打不开」，
+      // 路由只留一句 Vue Router warn，页面一片空白。
+      // 显式列出后启动即预打包，运行期不再变。
+      "@codemirror/state",
+      "@codemirror/view",
+      "@codemirror/commands",
+      "@codemirror/autocomplete",
+      "@codemirror/language",
+      "@codemirror/lang-sql",
+      // ---- @novnc/novnc（远程控制台的 VNC 客户端）----
+      // 与 @codemirror/* 同一条链：路由 () => import('TerminalView.vue')
+      // → TerminalView → ScVncDirectViewer.vue，而后者**静态** import RFB。
+      // 整条链没有一处静态入口，优化器的 entries 扫描发现不到 @novnc/novnc，
+      // deps 缓存里就没有 @novnc_novnc.js。
+      // 首次加载 TerminalView 时浏览器去要 /deps/@novnc_novnc.js?v=<哈希>，
+      // Vite 返回 504（Outdated Optimize Dep），动态导入随之失败 ——
+      // 表现是控制台页白屏 + pageerror
+      // 「Failed to fetch dynamically imported module: .../TerminalView.vue」。
+      // 而且同一趟里还会连带两次：console 那条 504 与 requestfailed 的 ERR_ABORTED，
+      // 一条故障报成三条。显式列出后启动即预打包，运行期不再变。
+      "@novnc/novnc",
     ],
   },
 });

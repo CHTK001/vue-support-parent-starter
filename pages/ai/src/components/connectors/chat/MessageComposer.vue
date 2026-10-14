@@ -96,8 +96,10 @@ function handleKeydown(e: Event | KeyboardEvent) {
   padding: 10px 24px 20px;
   background: var(--color-bg);
 }
+/* 右侧内容区宽度：与消息流同源（MainLayout 注入 --content-max-width，
+   满屏 = none，窄屏 = 820px 居中），保证对话列视觉对齐 */
 .composer-card {
-  max-width: 820px;
+  max-width: var(--content-max-width, 820px);
   margin: 0 auto;
   padding: 13px 15px 11px;
   border: 1px solid var(--el-border-color-lighter);

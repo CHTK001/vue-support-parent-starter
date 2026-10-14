@@ -43,14 +43,15 @@ const { init: initSessionEvents, cleanup: cleanupSessionEvents } = useSessionEve
 
 const isSettingsRoute = computed(() => route.name === 'SystemSettings')
 
-// 右侧内容区显示宽度（窄屏 = 舒适阅读宽度居中 / 满屏 = 撑满剩余空间）。
-// 走 CSS 自定义属性继承：挂在 RouterView 的外壳上，会话页消息流/输入框列、
-// 设置中心卡片列、知识库问答栏都能通过 var(--content-max-width) 拿到同一宽度，
-// 不必每个页面各自读设置。值只在此处定义一次。
+// 右侧内容区显示宽度（窄屏 = 各页面自己的舒适阅读宽度居中 / 满屏 = 撑满剩余空间）。
+// 走 CSS 自定义属性继承：挂在 RouterView 的外壳上，会话页消息列、设置中心卡片列、
+// 连接器聊天内容列都能通过 var(--content-max-width) 响应设置，不必每个页面各自读设置。
+// 关键口径：窄屏时不下发变量（各消费方用各自回退值 = 现状宽度，零视觉回归），
+// 只有满屏时下发 none 撤掉限宽。知识库问答栏另有 data-kb-ask 驱动（--kb-ask-w）。
 const { askWidth } = useKbDisplay()
-const contentMaxWidthVar = computed(() => ({
-  '--content-max-width': askWidth.value === 'full' ? 'none' : '820px',
-}))
+const contentMaxWidthVar = computed(() =>
+  askWidth.value === 'full' ? { '--content-max-width': 'none' } : {},
+)
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
 

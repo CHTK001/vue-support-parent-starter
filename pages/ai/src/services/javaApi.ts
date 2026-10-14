@@ -220,6 +220,13 @@ export const usageApi = {
   modelTrend: (params?: any) => http.get('/usage/model-trend', { params }),
   syncLogs: (params?: any) => http.get('/usage/sync-logs', { params }),
   parsers: (params?: any) => http.get('/usage/parsers', { params }),
+  /**
+   * 服务商 id→名称映射（后端 /v2/usage/providers，需登录态，与用量请求同鉴权）。
+   *
+   * 2026-10-14 新增接口尚未部署到 198 时会 404：调用方必须 .catch 兜底，
+   * 映射失败时服务商列显示原始值，不弹错。
+   */
+  usageProviders: () => http.get('/usage/providers'),
   taskStatus: (params?: any) => http.get('/usage/task-status', { params }),
   /** 手动触发一次同步 + 当天聚合 */
   sync: () => http.post('/usage/trigger'),

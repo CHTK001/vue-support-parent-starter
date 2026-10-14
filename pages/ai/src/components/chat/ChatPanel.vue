@@ -4,10 +4,10 @@
     <ScrollContainer ref="scrollContainerRef" class="h-full chat-scroll-container transition-opacity duration-300 px-5"
       :auto-scroll="needScrollToBottom" :aria-label="t('chat.messages')" @scroll="handleScroll">
       <!-- 初始加载时的骨架屏：仅在消息为空时显示 -->
-      <div class="chat-messages max-w-186 w-full mx-auto pt-5 flex-1">
+      <div class="chat-messages w-full mx-auto pt-5 flex-1" :style="contentMaxWidthStyle">
         <template v-if="showSkeleton">
           <div class="absolute inset-0 z-1 overflow-hidden">
-            <div class="px-5 max-w-186 mx-auto h-full flex flex-col py-10 ">
+            <div class="px-5 mx-auto h-full flex flex-col py-10 " :style="contentMaxWidthStyle">
               <MessageSkeleton :count="2" />
             </div>
           </div>
@@ -62,11 +62,14 @@
           </template>
         </template>
       </div>
-      <!-- 输入区域 - sticky 底部 -->
-      <div class="chat-input-area sticky bottom-0 left-0 right-0 z-30 pb-2">
+      <!-- 输入区域 - sticky 底部。
+           注意：外壳只负责满屏撑满（left/right 贴滚动区边缘），内部输入框容器仍吃
+           contentMaxWidthStyle（窄屏 46.5rem 居中、满屏撑满），与上方消息列同宽。
+           外壳 w-full + 内层 maxWidth 的分层，是消息/输入同宽且输入框"置底"的关键。 -->
+      <div class="chat-input-area sticky bottom-0 left-0 right-0 z-30 pb-2 w-full">
         <!-- 底部渐变遮罩：撑满滚动区域宽度，位于输入框上方，被输入框遮挡 -->
-        <div v-if="!hasWallpaper" class="chat-bottom-fade max-w-186 mx-auto left-0 right-0 bottom-0"></div>
-        <div class="max-w-186 mx-auto flex flex-col items-start relative" style="z-index: 1;">
+        <div v-if="!hasWallpaper" class="chat-bottom-fade mx-auto left-0 right-0 bottom-0" :style="contentMaxWidthStyle"></div>
+        <div class="mx-auto flex flex-col items-start relative" :style="contentMaxWidthStyle" style="z-index: 1;">
 
           <!-- 排队消息抽屉：比输入框窄，避开圆角，微透明毛玻璃 -->
           <Transition name="queue-drawer">
@@ -159,6 +162,14 @@ import { Edit20Regular, Dismiss20Regular } from '@vicons/fluent'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
 import LDialog from '@/components/ui/LDialog.vue'
+
+
+// 消息列 / 输入区宽度：跟随「设置 → 显示」的窄屏/满屏（MainLayout 仅在满屏时
+// 注入 --content-max-width: none）。窄屏不下发变量，此处回退 46.5rem = 原
+// max-w-186 设计值，保持现状；满屏时 none 撤掉限宽，内容列撑满剩余空间。
+const contentMaxWidthStyle = computed(() => ({
+  maxWidth: 'var(--content-max-width, 46.5rem)',
+}))
 
 
 // 弹出层工具

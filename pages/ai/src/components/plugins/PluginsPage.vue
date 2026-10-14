@@ -2,7 +2,8 @@
     <div class="h-full overflow-hidden flex flex-col">
         <PageHeader :title="t('plugins.page.title')" />
         <div class="flex-1 flex flex-col overflow-hidden">
-            <div class="shrink-0 px-4 w-full md:max-w-260 md:mx-auto">
+            <!-- 页签栏：跟随「设置 → 显示」窄屏/满屏，满屏时 MainLayout 注入 --content-max-width: none 撑满 -->
+            <div class="shrink-0 px-4 w-full mx-auto" :style="{ maxWidth: 'var(--content-max-width, 65rem)' }">
                 <el-tabs v-model="currentTabValue" @tab-change="handleTabChange" class="plugins-settings-tabs">
                     <el-tab-pane v-for="item in tabItems" :key="item.path" :label="item.label" :name="item.path">
                         <template #label>
@@ -15,7 +16,8 @@
                 </el-tabs>
             </div>
             <div class="flex-1 overflow-auto pb-4" style="scrollbar-gutter: stable both-edges;">
-                <div class="py-3 px-4 w-full md:max-w-260 md:mx-auto">
+                <!-- 内容区：与页签栏同宽（满屏撑满 / 窄屏 65rem 居中） -->
+                <div class="py-3 px-4 w-full mx-auto" :style="{ maxWidth: 'var(--content-max-width, 65rem)' }">
                     <template v-if="currentTabValue === 'characters'">
                         <CharacterMarket />
                     </template>

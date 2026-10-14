@@ -7,7 +7,7 @@
  * @since 4.0.0
  */
 import { computed, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { getHost } from "@pages/server/src/api";
 import ScGuacViewer from "@pages/server/src/components/ScGuacViewer.vue";
 import ScSshDirectViewer from "@pages/server/src/components/ScSshDirectViewer.vue";
@@ -25,6 +25,7 @@ interface StandHost {
 }
 
 const route = useRoute();
+const router = useRouter();
 const host = ref<StandHost | null>(null);
 const loading = ref(true);
 const error = ref("");
@@ -96,12 +97,19 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+function goBack(): void {
+  router.replace("/terminal");
+}
 </script>
 
 <template>
   <div class="stand-term">
     <div v-if="loading" class="st-mask">正在建立连接…</div>
-    <div v-else-if="error" class="st-mask st-err">{{ error }}</div>
+    <div v-else-if="error" class="st-mask st-err-col">
+      <span>{{ error }}</span>
+      <button type="button" class="st-back" @click="goBack">返回远程控制</button>
+    </div>
     <template v-else-if="connection">
       <ScSshDirectViewer
         v-if="connection.protocol === 'ssh'"
@@ -115,7 +123,10 @@ onMounted(async () => {
       />
       <ScGuacViewer v-else :connection="connection" inline @close="disconnected = true" />
     </template>
-    <div v-else class="st-mask">连接已关闭 · 可关闭此窗口</div>
+    <div v-else class="st-mask">
+      <span>连接已关闭 · 可关闭此窗口</span>
+      <button type="button" class="st-back" @click="goBack">返回远程控制</button>
+    </div>
   </div>
 </template>
 
@@ -130,13 +141,46 @@ onMounted(async () => {
 }
 .st-mask {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   width: 100%;
   height: 100%;
   color: #d7dbe3;
   font-size: 14px;
   background: #111418;
 }
-.st-err { color: #f59c97; }
+.st-err {
+  color: #f59c97;
+}
+.st-err-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #f59c97;
+}
+.st-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  height: 36px;
+  padding: 0 16px;
+  color: #111418;
+  font: inherit;
+  line-height: 1;
+  border: 0;
+  border-radius: 4px;
+  background: #d7dbe3;
+  cursor: pointer;
+}
+.st-back:hover,
+.st-back:focus-visible {
+  background: #fff;
+  outline: 2px solid #4c8dff;
+  outline-offset: 2px;
+}
 </style>

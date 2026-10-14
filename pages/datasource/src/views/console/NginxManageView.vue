@@ -87,7 +87,9 @@
       </template>
     </ReAlert>
 
-    <MiddlewareGap v-if="gap" :text="gap" />
+    <!-- 重试要重新 bind + 重取总览：只 reloadOverview 的话，数据源类型不匹配
+         这类 gap 永远清不掉，按钮就是死的（与 etcd/neo4j/nacos/zk/redis/influx 对齐） -->
+    <MiddlewareGap v-if="gap" :text="gap" @retry="onGapRetry" />
 
     <div v-else class="dsm-body">
       <!-- 左侧菜单（统一皮肤：对齐 Redis/etcd 侧栏列表样式） -->
@@ -284,6 +286,13 @@ async function onEditSite(site: NginxSite) {
 async function onSwitchSource(id: number) {
   datasourceId.value = id;
   overview.value = null;
+  await bind("nginx");
+  if (datasourceId.value) {
+    await reloadOverview();
+  }
+}
+
+async function onGapRetry() {
   await bind("nginx");
   if (datasourceId.value) {
     await reloadOverview();

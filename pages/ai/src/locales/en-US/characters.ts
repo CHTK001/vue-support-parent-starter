@@ -40,6 +40,7 @@ export default {
     importSuccess: 'Successfully imported {count} assistants',
     importPartial: '{count} files failed to import',
     importFailed: 'Import failed',
+    genericProtectedHint: 'The generic assistant is built-in and cannot be deleted',
   },
 
   // ── 角色弹窗 (CharacterModal.vue) ──
@@ -67,6 +68,7 @@ export default {
     avatarTitle: 'Character Avatar',
     avatarOptional: '(Optional)',
     avatarHint: 'Click the avatar to upload a new image',
+    avatarLockedHint: 'The general assistant is built-in and its avatar cannot be replaced',
     titleLabel: 'Character Title',
     titleHint: 'Display name of the assistant, shown in the conversation list',
     titlePlaceholder: 'Enter character title',
@@ -110,12 +112,16 @@ export default {
     // Prompt forms (user-definable in role settings; build always exists)
     formBuildName: 'Build',
     formBuildDesc: 'Execute directly, confirm as you go',
+    formPlanName: 'Plan',
+    formPlanDesc: 'Propose a plan first, execute after approval',
     formNoDesc: 'No description',
     formManageHint: 'Manage prompt forms',
     formManageTitle: 'Prompt Form Management',
     formBuiltin: 'Built-in',
     formEditMode: 'Edit form',
     formAddMode: 'Add form',
+    formAddLabel: 'Add form',
+    formSaveLabel: 'Save form',
     formKeyLabel: 'Form key',
     formNameLabel: 'Display name',
     formNamePlaceholder: 'e.g. Review',

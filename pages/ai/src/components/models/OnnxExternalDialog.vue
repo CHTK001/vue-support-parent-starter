@@ -125,7 +125,7 @@ const dirLoader = async (path) => {
   const rows = Array.isArray(payload) ? payload : payload.items || []
   return rows
     .filter((r) => r.isDirectory !== false)
-    .map((r) => ({ key: r.path, name: r.name, isDir: true }))
+    .map((r) => ({ key: r.path, name: r.name, isDir: true, updatedAt: r.updatedAt }))
 }
 
 const onDirPicked = (items) => {

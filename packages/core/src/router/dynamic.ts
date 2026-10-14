@@ -70,7 +70,11 @@ export function registerDynamicRoutes(
       );
       return;
     }
-    router.addRoute(layoutName, item as never);
+    if (item.meta?.standalone || item.meta?.remind) {
+      router.addRoute(item as never);
+    } else {
+      router.addRoute(layoutName, item as never);
+    }
     addedCount += 1;
   });
   return addedCount;

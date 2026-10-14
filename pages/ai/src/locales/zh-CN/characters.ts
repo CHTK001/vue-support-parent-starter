@@ -40,6 +40,7 @@ export default {
     importSuccess: '成功导入 {count} 个助手',
     importPartial: '{count} 个文件导入失败',
     importFailed: '导入失败',
+    genericProtectedHint: '通用助手为系统内置，不允许删除',
   },
 
   // ── 角色弹窗 (CharacterModal.vue) ──
@@ -67,6 +68,7 @@ export default {
     avatarTitle: '角色头像',
     avatarOptional: '(可选)',
     avatarHint: '点击头像可以更换新的头像，支持上传图片文件',
+    avatarLockedHint: '通用助手为系统内置角色，头像不允许更换',
     titleLabel: '角色标题',
     titleHint: '助手的显示名称，在对话列表中展示',
     titlePlaceholder: '请输入角色标题',
@@ -110,12 +112,16 @@ export default {
     // 提示词形态（角色配置里可自定义；build 恒存）
     formBuildName: '构建',
     formBuildDesc: '直接执行，边做边确认',
+    formPlanName: '规划',
+    formPlanDesc: '先出方案再动手，批准后才执行',
     formNoDesc: '暂无说明',
     formManageHint: '管理提示词形态',
     formManageTitle: '提示词形态管理',
     formBuiltin: '内置',
     formEditMode: '编辑形态',
     formAddMode: '新增形态',
+    formAddLabel: '新增形态',
+    formSaveLabel: '保存形态',
     formKeyLabel: '形态标识',
     formNameLabel: '显示名称',
     formNamePlaceholder: '如：评审',

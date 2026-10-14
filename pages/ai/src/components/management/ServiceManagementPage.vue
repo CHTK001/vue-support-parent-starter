@@ -14,8 +14,14 @@
         <span class="svc-stamp" :class="{ 'is-live': runtimeLoading }">
           <i class="svc-stamp__dot" aria-hidden="true"></i>更新于 <b>{{ lastSyncText }}</b>
         </span>
-        <el-button class="svc-btn" @click="loadAll" :loading="instLoading">全部刷新</el-button>
-        <el-button type="primary" @click="showCreateDialog = true">新建服务实例</el-button>
+        <el-button class="svc-btn" @click="loadAll" :loading="instLoading">
+          <el-icon v-if="!instLoading" class="svc-btn__icon" aria-hidden="true"><RefreshIcon /></el-icon>
+          全部刷新
+        </el-button>
+        <el-button type="primary" @click="showCreateDialog = true">
+          <el-icon class="svc-btn__icon" aria-hidden="true"><AddIcon /></el-icon>
+          新建服务实例
+        </el-button>
       </div>
     </header>
 
@@ -75,10 +81,14 @@
 
       <!-- 空态：虚线框 + 引导 CTA -->
       <div class="svc-empty" v-else-if="!instances.length">
+        <span class="svc-empty__mark" aria-hidden="true"></span>
         <b>还没有服务实例</b>
         <i>创建后即可对外提供 OpenAI / Claude / Gemini 兼容接口</i>
         <el-button type="primary" class="svc-btn" style="margin-top: 6px"
-                   @click="showCreateDialog = true">新建服务实例</el-button>
+                   @click="showCreateDialog = true">
+            <el-icon class="svc-btn__icon" aria-hidden="true"><AddIcon /></el-icon>
+            新建服务实例
+          </el-button>
       </div>
 
       <ul class="svc-tiles" v-else>
@@ -217,6 +227,7 @@
             </template>
             <template #empty>
               <div class="svc-empty">
+                <span class="svc-empty__mark" aria-hidden="true"></span>
                 <b>{{ emptyAccessText }}</b>
                 <i>{{ emptyAccessHint }}</i>
               </div>
@@ -295,11 +306,13 @@
           <!-- R4：后端非管理员返 200 + {ok:false}，必须与「暂无日志」区分 -->
           <div class="svc-console__denied" v-if="runtimeDenied">{{ runtimeDenied }}</div>
           <div class="svc-console__empty" v-else-if="!runtimeLogLines.length">
+            <span class="svc-empty__mark" aria-hidden="true"></span>
             <b>{{ runtimeLoaded && runtimeExists === false ? '日志文件尚未生成' : '暂无日志输出' }}</b>
             <i>{{ runtimeLoaded && runtimeExists === false ? '检查服务启动配置是否写入了日志路径' : '该文件存在但没有可用内容' }}</i>
             <code v-if="runtimePath">{{ runtimePath }}</code>
           </div>
           <div class="svc-empty" v-else-if="!filteredRuntimeLines.length">
+            <span class="svc-empty__mark" aria-hidden="true"></span>
             <b>无匹配行</b><i>共 {{ runtimeLogLines.length }} 行中 0 行命中</i>
             <button class="svc-alert__act" @click="clearRuntimeFilter">清除过滤</button>
           </div>
@@ -357,6 +370,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,
   ArrowMaximize20Regular, ArrowMinimize20Regular,
+  ArrowClockwise20Regular, Add24Regular,
 } from '@vicons/fluent'
 
 const http = createClient(v2Http, { unwrap: false })
@@ -368,6 +382,8 @@ const KeyIcon = Key20Regular
 const DeleteIcon = Delete20Regular
 const FullscreenIcon = ArrowMaximize20Regular
 const MinimizeIcon = ArrowMinimize20Regular
+const RefreshIcon = ArrowClockwise20Regular
+const AddIcon = Add24Regular
 
 // ============================================================================
 // §4.3 六个纯函数（无副作用、不碰接口字段、可独立单测）

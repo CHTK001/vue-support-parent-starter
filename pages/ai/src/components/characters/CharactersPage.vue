@@ -2,7 +2,9 @@
   <div class="h-full w-full flex flex-col min-h-0">
     <PageHeader :title="t('characters.page.title')" />
     <div class="flex flex-1 overflow-scroll w-full">
-      <div class="flex-1 flex flex-col w-full md:max-w-260 md:mx-auto">
+      <!-- 与会话/设置中心/插件市场同口径：满屏撑满、窄屏回退 65rem（原 md:max-w-260）。
+           助手列表是卡片流，满屏时自动多排；mx-auto 保证窄屏居中。 -->
+      <div class="flex-1 flex flex-col w-full md:mx-auto" :style="{ maxWidth: 'var(--content-max-width, 65rem)' }">
         <div class="flex-1 px-4 py-2 md:py-2">
           <CharacterListTab :characters="characters" :groups="groups" :currentGroupId="currentGroupId"
             :loading="loading" @create-character="createCharacter" @edit-character="editCharacter"
