@@ -57,7 +57,7 @@
               </div>
               <div v-if="!isEditMode && matchedPreset" class="preset-hint" @click="applyPreset(matchedPreset)">
                 <el-icon class="mr-1"><AutoFixHighOutlined /></el-icon>
-                {{ t('settings.providerDetail.presetDetected', { label: matchedPreset.label }) }}
+                {{ t('settings.providerDetail.presetDetected', { label: matchedPreset.label || matchedPreset.name || matchedPreset.model }) }}
               </div>
             </el-form-item>
             <el-form-item label="模型别名" prop="alias">
@@ -373,7 +373,7 @@ import {
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
 import { MODEL_TYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
-import { createDefaultModelConfig } from './model.utils'
+import { createDefaultModelConfig, inferModelType, deriveModelTraits } from './model.utils'
 
 const props = defineProps<{
   provider: any
@@ -428,13 +428,37 @@ const matchedPreset = computed(() => {
   if (!form.value.modelName) return null
   const lower = form.value.modelName.toLowerCase()
   return (
-    props.modelPresets.find((p: any) =>
-      Array.isArray(p.patterns) && p.patterns.some((src: string) => new RegExp(src).test(lower)),
-    ) || null
+    props.modelPresets.find((p: any) => {
+      // 旧版预设 schema（ai-guada 自带后端）：{ label, patterns, modeType, config }
+      if (
+        Array.isArray(p.patterns) &&
+        p.patterns.some((src: string) => new RegExp(src).test(lower))
+      ) {
+        return true
+      }
+      // 系统后端 schema（AiModelPresetController）：预设库 = 已启用的供应商模型，
+      // 条目为 { model, name, capabilities, description }，无 patterns。
+      // 按模型名精确匹配——用户输入已配置过的模型名时给出一键回填提示。
+      return !!p.model && String(p.model).toLowerCase() === lower
+    }) || null
   )
 })
 
 const applyPreset = (preset: any) => {
+  // 系统后端预设（{ model, name, capabilities }）：
+  // capabilities 结构与 sys_ai_provider_model 行一致（task / traits / …），
+  // 复用 inferModelType / deriveModelTraits 推导类型、模态与能力。
+  if (!preset.config && Array.isArray(preset.capabilities)) {
+    const modelType = inferModelType(preset)
+    const traits = deriveModelTraits(preset, modelType)
+    form.value.modelType = modelType
+    form.value.config = createDefaultModelConfig({
+      inputCapabilities: traits.inputCapabilities,
+      outputCapabilities: traits.outputCapabilities,
+      features: traits.features,
+    })
+    return
+  }
   form.value.modelType = preset.modeType
   form.value.config = createDefaultModelConfig({
     inputCapabilities: preset.config.inputCapabilities,
