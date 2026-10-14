@@ -135,12 +135,6 @@ const routes = [
         component: () => import("./components/models/ModelsPage.vue"),
       },
       {
-        path: "models/embed",
-        name: "ModelsEmbed",
-        meta: { title: "模型管理", requiresAuth: true, embed: true },
-        component: () => import("./components/models/ModelsEmbedPage.vue"),
-      },
-      {
         path: "image-generate",
         name: "ImageGenerate",
         meta: { title: "图像生成", requiresAuth: true },
@@ -225,6 +219,13 @@ const routes = [
         component: () => import("./components/management/CapabilityPage.vue"),
       },
     ],
+  },
+  {
+    path: "/models/embed",
+    name: "ModelsEmbed",
+    meta: { title: "模型管理", requiresAuth: true, embed: true },
+    // 独立顶层路由：iframe 嵌入时不带 MainLayout / GlobalSidebar / FloatingChatPanel
+    component: () => import("./components/models/ModelsEmbedPage.vue"),
   },
   {
     path: "/login",
