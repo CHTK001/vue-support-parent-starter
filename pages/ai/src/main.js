@@ -135,6 +135,12 @@ const routes = [
         component: () => import("./components/models/ModelsPage.vue"),
       },
       {
+        path: "models/embed",
+        name: "ModelsEmbed",
+        meta: { title: "模型管理", requiresAuth: true, embed: true },
+        component: () => import("./components/models/ModelsEmbedPage.vue"),
+      },
+      {
         path: "image-generate",
         name: "ImageGenerate",
         meta: { title: "图像生成", requiresAuth: true },

@@ -1,5 +1,21 @@
 // 模型管理：数据映射与工具函数
-import { TASK_TO_TYPE } from './model.constants'
+import { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForName } from './model.constants'
+
+/**
+ * 转发 model.constants 里的这几个符号。
+ *
+ * <p>必须显式再导出，不能只 import 进来：ESM 下「import 进来」不等于「再导出」，
+ * ModelFetchDialog.vue 一直是 `import { taskHintForName } from './model.utils'`，
+ * 于是运行期报</p>
+ *
+ * <pre>The requested module '.../model.utils.ts' does not provide an export
+ * named 'taskHintForName'</pre>
+ *
+ * <p>这个错直接让整个 Bots 路由白屏（2026-10-14 全量点击扫描实测：Bots 0 可点、
+ * 加载期 pageerror 1 条）。import 未使用的 TASK_TO_TYPE 等同样转发，避免以后再有人
+ * 从 utils 取它们时踩同一个坑。</p>
+ */
+export { TASK_TO_TYPE, LOCAL_PROVIDER_IDS, PROVIDER_SOURCE_LABEL, taskHintForName }
 
 export interface ModelConfig {
   inputCapabilities: string[]
@@ -384,6 +400,52 @@ export function inferModelType(m: any): string {
     }
   }
   return inferTypeByName(m?.model || m?.modelName)
+}
+
+/**
+ * 行内描述：弹窗「从供应商获取模型」每行模型名下的一行小字，说明模型作用。
+ *
+ * <p>优先级：后端 description（ONNX 本地行有「ONNX 本地模型 · OCR 识别」这类
+ * 真实描述）> 按 capabilities.task 推的类型说明 > 空。</p>
+ *
+ * @param m 上游条目（已 map 的行也可，读 modelName/model/description/task）
+ * @returns 描述文本；无可用信息时返回空串
+ */
+export function describeFetchRow(m: any): string {
+  const direct = String(m?.description ?? '').trim()
+  if (direct) return direct
+  const rawCaps = Array.isArray(m?.capabilities) ? m.capabilities : []
+  const tasks: string[] = []
+  for (const c of rawCaps) {
+    const t = typeof c === 'string' ? c : c?.task
+    if (t && typeof t === 'string' && !tasks.includes(t)) tasks.push(t)
+  }
+  const t0 = String(m?.task ?? '').trim()
+  if (t0 && !tasks.includes(t0)) tasks.unshift(t0)
+  const ups = Array.isArray(m?.tasks) ? m.tasks.filter((t: any) => typeof t === 'string') : []
+  for (const t of ups) {
+    if (!tasks.includes(t)) tasks.push(t)
+  }
+  if (!tasks.length) return ''
+  const names = tasks.map((t) => TASK_TO_TYPE[t] || t)
+  return names.join(' / ')
+}
+
+/**
+ * 行内来源徽标：区分本地推理与云 API。
+ *
+ * <p>判定只看供应商标识（onnx / ollama 即本地），不看模型行 —— 上游 /models
+ * 与本地门面都不返回来源语义，行里没有可靠依据。</p>
+ *
+ * @param providerId 当前供应商标识
+ * @returns { label, kind }；label 供显示，kind 供样式（local/cloud）
+ */
+export function sourceBadgeFor(providerId: any): { label: string; kind: 'local' | 'cloud' } {
+  const id = String(providerId || '').toLowerCase()
+  if (LOCAL_PROVIDER_IDS.has(id)) {
+    return { label: PROVIDER_SOURCE_LABEL.local, kind: 'local' }
+  }
+  return { label: PROVIDER_SOURCE_LABEL.cloud, kind: 'cloud' }
 }
 
 /** 模型的「模态」（输入/输出种类）与「能力」（附加特性） */

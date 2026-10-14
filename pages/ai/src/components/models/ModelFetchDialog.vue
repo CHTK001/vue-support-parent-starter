@@ -45,23 +45,54 @@
         <div v-if="filtered.length > 0">
           <ul class="fetch-list">
             <li v-for="model in filtered" :key="model.modelName" class="fetch-row">
-              <div class="fetch-id">
-                <span class="fetch-name">{{ model.modelName }}</span>
-                <span
-                  v-if="model.modelType !== 'text'"
-                  class="fetch-badge"
-                >
-                  {{ t('settings.providerDetail.embeddingBadge') }}
-                </span>
-                <template v-for="feature in model.config?.features || []" :key="feature">
-                  <LTooltip :content="getLableName(feature)" placement="top">
-                    <el-icon class="fetch-feature" :size="14">
-                      <WrenchScrewdriver24Regular v-if="feature === 'tools'" />
-                      <LightbulbFilament24Regular v-else-if="feature === 'thinking'" />
-                      <ScienceOutlined v-else />
-                    </el-icon>
-                  </LTooltip>
-                </template>
+              <div class="fetch-main">
+                <div class="fetch-id">
+                  <span class="fetch-name">{{ model.modelName }}</span>
+                  <!--
+                    类型徽标：原来只认「非 text 即嵌入」这一个硬判断。
+                    上游模型行没有 modelType（那是逐条录入时才落库的字段），
+                    于是云端拉回来的全部行都满足 modelType !== 'text'，
+                    对话模型也被打上「嵌入」—— 必须经过推断后再显示。
+                  -->
+                  <span
+                    v-if="fetchTypeBadge(model)"
+                    class="fetch-badge"
+                    :class="'badge-' + fetchTypeBadge(model).kind"
+                  >
+                    {{ fetchTypeBadge(model).label }}
+                  </span>
+                  <!--
+                    来源徽标：本地推理（ONNX / Ollama）与云 API 必须一眼分开。
+                    只看供应商标识，行里没有可靠依据。
+                  -->
+                  <span class="fetch-badge" :class="'src-' + fetchSourceBadge.kind">
+                    {{ fetchSourceBadge.label }}
+                  </span>
+                  <!--
+                    三态提示：模型名关键词标出管线角色（检测 / 识别 / 矫正），
+                    与类型徽标并列。只影响显示，不动任何分组。
+                  -->
+                  <span
+                    v-if="taskHintForName(model.modelName)"
+                    class="fetch-badge badge-hint"
+                  >
+                    {{ taskHintForName(model.modelName) }}
+                  </span>
+                  <template v-for="feature in model.config?.features || []" :key="feature">
+                    <LTooltip :content="getLableName(feature)" placement="top">
+                      <el-icon class="fetch-feature" :size="14">
+                        <WrenchScrewdriver24Regular v-if="feature === 'tools'" />
+                        <LightbulbFilament24Regular v-else-if="feature === 'thinking'" />
+                        <ScienceOutlined v-else />
+                      </el-icon>
+                    </LTooltip>
+                  </template>
+                </div>
+                <!-- 行内小字描述：后端 description 优先（ONNX 本地行自带真实描述），
+                     云端上游目录不带描述时按 task 推类型说明，都没有则不渲染 -->
+                <div v-if="describeFetchRow(model)" class="fetch-desc">
+                  {{ describeFetchRow(model) }}
+                </div>
               </div>
               <el-button link type="primary" @click="handleSelect(model)">
                 {{ t('settings.providerDetail.select') }}
@@ -97,6 +128,7 @@ import { useI18n } from 'vue-i18n'
 import type { Model } from '@/types/api'
 import LDialog from '@/components/ui/LDialog.vue'
 import LTooltip from '../ui/LTooltip.vue'
+import { describeFetchRow, sourceBadgeFor, taskHintForName } from './model.utils'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import { WrenchScrewdriver24Regular, LightbulbFilament24Regular } from '@vicons/fluent'
 import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
@@ -241,6 +273,72 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
   }
 }
 
+/**
+ * 上游 task → 中文标签（与 TYPE_META / DefaultModelSettings 的 TYPE_LABELS 同义，
+ * 这里只为弹窗服务，不动那两处）。
+ */
+const FETCH_TASK_LABELS: Record<string, string> = {
+  embedding: '嵌入',
+  rerank: '重排序',
+  image_generation: '文生图',
+  image_edit: '文生图',
+  video_generation: '文生视频',
+  speech_recognition: '语音识别',
+  speech_synthesis: '语音合成',
+  asr: '语音识别',
+  tts: '语音合成',
+  image: '文生图',
+  video: '文生视频',
+  image_cv: '图片识别',
+  ocr: 'OCR识别',
+  ocr_recognition: 'OCR识别',
+  face: '人脸识别',
+  face_recognition: '人脸识别',
+  layout: '布局识别',
+}
+const typeLabelFor = (t: any): string => {
+  const tl = String(t || '').toLowerCase()
+  if (FETCH_TASK_LABELS[tl]) return FETCH_TASK_LABELS[tl]
+  return String(t || '')
+}
+
+/**
+ * 类型徽标（修复 Q3 报告的误标）。
+ *
+ * <p>云端上游条目没有 modelType（落库时才有），原模板 `modelType !== 'text'` 恒真，
+ * 对话模型也被打上「嵌入」。这里走 capabilities.task / task / tasks 的真实信息
+ * 推断：chat/realtime_conversation 这类不显示徽标，其它类型显示中文。</p>
+ *
+ * @param m 上游条目
+ * @returns { label, kind }；不该显示时返回 null
+ */
+const fetchTypeBadge = (m: any): { label: string; kind: string } | null => {
+  const direct = String(m?.modelType ?? '').trim()
+  if (direct) {
+    if (direct === 'text') return null
+    return { label: typeLabelFor(direct) || direct, kind: direct }
+  }
+  const tasks: string[] = []
+  const push = (t: any) => {
+    if (typeof t === 'string' && t.trim() && !tasks.includes(t.trim())) tasks.push(t.trim())
+  }
+  const one = (m?.task ?? m?.model_type ?? m?.type)
+  if (typeof one === 'string') push(one)
+  if (Array.isArray(m?.tasks)) m.tasks.forEach(push)
+  if (Array.isArray(m?.capabilities)) {
+    m.capabilities.forEach((c: any) => push(typeof c === 'string' ? c : c?.task))
+  }
+  for (const t of tasks) {
+    const tl = t.toLowerCase()
+    if (tl === 'chat' || tl === 'realtime_conversation' || tl === 'text' || tl === 'text_generation') continue
+    return { label: typeLabelFor(t) || t, kind: tl }
+  }
+  return null
+}
+
+/** 来源徽标：整场弹窗同一个供应商，算一次即可 */
+const fetchSourceBadge = computed(() => sourceBadgeFor(providerId.value))
+
 const close = () => { visible.value = false }
 /** 点击「手动添加」：先关掉 fetchDialog，让表单-dialog 露出来。
  * 表单-dialog 在「添加模型」时就已打开，这里不能调 openAdd 重置用户内容。 */
@@ -354,6 +452,26 @@ const handleImportAll = async () => {
 }
 .fetch-row:last-child { border-bottom: none; }
 .fetch-row:hover { background: var(--el-fill-color-light); }
+.fetch-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; margin-right: 16px; }
+.fetch-desc {
+  font-size: 12px;
+  color: var(--color-text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fetch-badge.src-local {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 10%, transparent);
+}
+.fetch-badge.src-cloud {
+  color: var(--el-color-info);
+  background: color-mix(in srgb, var(--el-color-info) 10%, transparent);
+}
+.fetch-badge.badge-hint {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+}
 .fetch-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-right: 16px; }
 .fetch-name {
   font-size: 13px;
