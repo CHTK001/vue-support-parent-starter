@@ -24,7 +24,7 @@
         @update:model-value="onKeyword"
       />
 
-      <ReSwitch :model-value="auto" @change="onToggleAuto" />
+      <ReSwitch :model-value="auto" aria-label="自动刷新" @change="onToggleAuto" />
       <span class="ngl-label">自动刷新</span>
 
       <ReSelect :model-value="String(intervalMs)" style="width: 110px" @change="onPickInterval">
@@ -34,7 +34,7 @@
         <ReOption value="30000" label="30 秒" />
       </ReSelect>
 
-      <ReSwitch v-model="wrap" />
+      <ReSwitch v-model="wrap" aria-label="自动换行" />
       <span class="ngl-label">自动换行</span>
 
       <div class="ngl-status">

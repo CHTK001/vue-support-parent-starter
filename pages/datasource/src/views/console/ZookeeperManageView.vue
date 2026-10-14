@@ -220,7 +220,7 @@
         </div>
         <div v-if="!editing" class="dsm-form-item">
           <label>节点类型</label>
-          <ReSwitch v-model="nodeForm.ephemeral" active-text="临时节点" inactive-text="持久节点" />
+          <ReSwitch v-model="nodeForm.ephemeral" :aria-label="nodeForm.ephemeral ? '节点类型：临时节点' : '节点类型：持久节点'" active-text="临时节点" inactive-text="持久节点" />
           <span v-if="nodeForm.ephemeral" class="dsm-form-hint">
             临时节点只在管理端复用的那条 ZooKeeper 会话内存活，页面空闲约五分钟后会话回收，节点会随之消失。
           </span>
