@@ -1525,6 +1525,7 @@ onMounted(load);
                         :inactive-value="0"
                         active-text="启用"
                         inactive-text="停用"
+                        aria-label="启用隧道"
                       />
                     </ReFormItem>
                     <ReFormItem label="隧道名称" class="is-full">

@@ -99,7 +99,7 @@
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
         <template v-if="activeTabObj && activeTabObj.type === 'table'">
           <label class="dbm-switch">
-            <ReSwitch v-model="showTotal" />
+            <ReSwitch v-model="showTotal" aria-label="统计总数" />
             <span>统计总数</span>
           </label>
           <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
@@ -458,7 +458,7 @@
                 <ReInput v-model="row.name" class="dbm-mono" @dblclick="openColumnDialog('edit', row)" />
                 <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
                 <ReInputNumber :model-value="row.size ?? undefined" @update:model-value="row.size = $event ?? null" :min="1" :max="65535" controls-position="right" style="width: 100%" />
-                <ReSwitch v-model="row.nullable" size="small" />
+                <ReSwitch v-model="row.nullable" size="small" aria-label="允许为空" />
                 <span class="dbm-dgrid-pk"><ReIcon v-if="row.isPrimaryKey" name="Key" :size="13" /></span>
                 <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
                 <ReInput v-model="row.comment" placeholder="注释" />
@@ -532,7 +532,7 @@
               <!-- 事务开关：关着时一切照旧（各自独立自动提交），
                    开着时执行会挂进一个未提交的事务，由「提交/回滚」收尾 -->
               <label class="dbm-switch dbm-tx-switch" :class="{ on: txWanted || !!txId }">
-                <ReSwitch v-model="txWanted" />
+                <ReSwitch v-model="txWanted" aria-label="事务" />
                 <span>事务</span>
               </label>
               <template v-if="txId">
@@ -1140,7 +1140,7 @@
           >{{ BLOB_MODE_LABELS[m] }}</button>
           <span class="dbm-spacer" />
           <label class="dbm-switch">
-            <ReSwitch v-model="blobEditing" />
+            <ReSwitch v-model="blobEditing" aria-label="编辑二进制内容" />
             <span>编辑</span>
           </label>
         </div>
@@ -1314,7 +1314,7 @@
           </div>
           <div class="dbm-form-item">
             <label>首行是表头</label>
-            <ReSwitch v-model="importHasHeader" @change="runImportPreview" />
+            <ReSwitch v-model="importHasHeader" aria-label="首行是表头" @change="runImportPreview" />
           </div>
           <div class="dbm-form-item">
             <label>字符集</label>
@@ -1353,7 +1353,7 @@
           </div>
           <div class="dbm-form-item">
             <label>导入前清空表</label>
-            <ReSwitch v-model="importTruncate" />
+            <ReSwitch v-model="importTruncate" aria-label="导入前清空表" />
             <span v-if="importTruncate" class="dbm-danger-hint">会删除目标表全部现有数据</span>
           </div>
         </div>
@@ -1566,14 +1566,14 @@
       </div>
       <div v-if="columnAllowsUnsigned" class="dbm-form-item">
         <label>无符号</label>
-        <ReSwitch v-model="columnForm.unsigned" />
+        <ReSwitch v-model="columnForm.unsigned" aria-label="无符号" />
       </div>
       <div
         v-if="columnForm.unsigned && columnForm.type !== 'FLOAT' && columnForm.type !== 'DOUBLE'"
         class="dbm-form-item"
       >
         <label>补零</label>
-        <ReSwitch v-model="columnForm.zerofill" />
+        <ReSwitch v-model="columnForm.zerofill" aria-label="补零" />
       </div>
       <div v-if="columnIsEnum" class="dbm-form-item">
         <label>{{ columnForm.type === "SET" ? "集合取值" : "枚举取值" }}</label>
@@ -1609,11 +1609,11 @@
       </template>
       <div class="dbm-form-item">
         <label>可空</label>
-        <ReSwitch v-model="columnForm.nullable" />
+        <ReSwitch v-model="columnForm.nullable" aria-label="可空" />
       </div>
       <div v-if="columnAllowsUnsigned" class="dbm-form-item">
         <label>自动递增</label>
-        <ReSwitch v-model="columnForm.autoIncrement" />
+        <ReSwitch v-model="columnForm.autoIncrement" aria-label="自动递增" />
       </div>
       <div class="dbm-form-item">
         <label>默认值</label>
@@ -1702,11 +1702,11 @@
       </div>
       <div v-if="!indexForm.primary" class="dbm-form-item">
         <label>唯一索引</label>
-        <ReSwitch v-model="indexForm.unique" />
+        <ReSwitch v-model="indexForm.unique" aria-label="唯一索引" />
       </div>
       <div class="dbm-form-item">
         <label>设为主键</label>
-        <ReSwitch v-model="indexForm.primary" />
+        <ReSwitch v-model="indexForm.primary" aria-label="设为主键" />
       </div>
     </div>
       <template #footer>

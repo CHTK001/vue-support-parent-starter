@@ -15,7 +15,7 @@
  *
  * 布局组件位于 layouts/ 目录，按需异步加载，不会一次性全部打包。
  */
-import { shallowRef, watch, type Component } from "vue";
+import { computed, shallowRef, useAttrs, watch, type Component } from "vue";
 
 defineOptions({ name: "ReSwitch", inheritAttrs: true });
 
@@ -60,6 +60,12 @@ const props = withDefaults(
 
 const modelValue = defineModel<boolean | string | number>({ default: false });
 
+const attrs = useAttrs();
+const ariaLabel = computed(() => {
+  const raw = attrs["aria-label"] ?? attrs.ariaLabel ?? attrs.title ?? props.title ?? "";
+  return typeof raw === "string" ? raw.trim() || undefined : props.title || undefined;
+});
+
 const layoutComp = shallowRef<Component | null>(null);
 
 watch(
@@ -98,6 +104,7 @@ watch(
     :is="layoutComp"
     v-bind="$attrs"
     :title="title"
+    :aria-label="ariaLabel"
     :sub="sub"
     :tip="tip"
     :description="description"

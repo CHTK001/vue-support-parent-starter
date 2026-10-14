@@ -102,11 +102,11 @@
         <!-- 底部操作条 -->
         <div class="ngc-foot">
           <div class="ngc-opts">
-            <ReSwitch v-model="optBackup" />
+            <ReSwitch v-model="optBackup" aria-label="保存前备份" />
             <span class="ngc-opt-label">保存前备份</span>
-            <ReSwitch v-model="optValidate" />
+            <ReSwitch v-model="optValidate" aria-label="保存后自动校验" />
             <span class="ngc-opt-label">保存后自动校验</span>
-            <ReSwitch v-model="optReload" />
+            <ReSwitch v-model="optReload" aria-label="校验通过后自动重载" />
             <span class="ngc-opt-label">校验通过后自动重载</span>
           </div>
           <div class="ngc-ops">

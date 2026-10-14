@@ -12,7 +12,7 @@
         <ReOption value="http" label="仅 HTTP" />
         <ReOption value="https" label="仅 HTTPS" />
       </ReSelect>
-      <ReSwitch :model-value="onlyWarned" @change="onOnlyWarned" />
+      <ReSwitch :model-value="onlyWarned" aria-label="只看有提示的" @change="onOnlyWarned" />
       <span class="ngs-label">只看有提示的</span>
       <span class="ngs-count">
         共 {{ sites.length }} 个站点<template v-if="filtered.length !== sites.length">，当前显示 {{ filtered.length }} 个</template>

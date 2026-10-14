@@ -87,15 +87,15 @@
               </ReSelect>
             </ReFormItem>
             <ReFormItem label="保存前备份">
-              <ReSwitch v-model="optBackup" />
+              <ReSwitch v-model="optBackup" aria-label="保存前备份" />
               <span class="ngw-hint">强烈建议开启。配置写错了可以从「备份」页回退。</span>
             </ReFormItem>
             <ReFormItem label="保存后校验">
-              <ReSwitch v-model="optValidate" />
+              <ReSwitch v-model="optValidate" aria-label="保存后校验" />
               <span class="ngw-hint">用 nginx -t 检查语法，不通过就不会生效。</span>
             </ReFormItem>
             <ReFormItem label="校验通过后重载">
-              <ReSwitch v-model="optReload" />
+              <ReSwitch v-model="optReload" aria-label="校验通过后重载" />
               <span class="ngw-hint">勾上后一步到位；建议先只校验，确认无误再手动重载。</span>
             </ReFormItem>
           </ReForm>
