@@ -111,6 +111,14 @@ export function deriveAuthMode(
 }
 
 // 供应商模板
+// 模型来源徽标：
+//   - 本地（ONNX / Ollama）：本地推理，无需外发请求
+//   - 云 API：走供应商 base_url 的远端模型
+export const LOCAL_PROVIDER_IDS = new Set(['onnx', 'ollama'])
+export const PROVIDER_SOURCE_LABEL: Record<string, string> = {
+  local: '本地',
+  cloud: '云 API',
+}
 export interface ProviderTemplate {
   id: string
   name: string
@@ -202,6 +210,10 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 // 此处不再维护任何 logo 映射配置。
 
 // 模型类型选项（与系统配置「默认模型」选择器的类型体系保持一致）
+// 注意：后端 capability.task 只有 task 一层（见 ApiProviderController.batchModelInput
+// 与 inferTasks），traits 只放 input:/output:/streaming 之类；上游 /models 目录
+// 本来就不返回「模型是干什么的」语义 —— 三态（检测/识别/矫正）只能在前端行内描述层
+// 用 taskHintForName 做「关键词提示」，不要给 capabilities 加 task=detection 之类的新值。
 export const MODEL_TYPE_OPTIONS = [
   { value: 'text', label: '对话', icon: TextT24Regular },
   { value: 'embedding', label: '嵌入', icon: Group24Regular },
@@ -229,6 +241,31 @@ export const TYPE_TO_TASK: Record<string, string> = {
   layout: 'layout',
   asr: 'speech_recognition',
   tts: 'speech_synthesis',
+}
+
+/**
+ * 行内三态提示：模型名里带这些关键词时，在弹窗行内直接标出它的管线角色。
+ *
+ * <p>为什么是关键词匹配而不是类型：上游 /models 与本体都不返回这层语义，
+ * capabilites.task 之后会直接回写 sys_ai_provider_model 并参与全部选择器的
+ * 类型分组 —— 加 detection/recognition/correction 三个新 task 会让分组逻辑
+ * 跟着分叉。行内提示只影响这一行的显示，不动任何分组。</p>
+ *
+ * @param name 模型名
+ * @returns 提示文本；无命中时返回空串
+ */
+export function taskHintForName(name: any): string {
+  const l = String(name || '').toLowerCase()
+  if (!l) return ''
+  // 矫正：先判，macbert 里没有 det/rec 字样不会误伤，下面可放心
+  if (l.includes('orientation') || l.includes('direction')
+    || l.includes('rotat') || l.includes('deskew') || l.includes('dewarp')
+    || l.includes('macbert') || l.includes('csc') || l.includes('corrector')
+    || l.includes('text-bsr') || l.includes('restor')) return '矫正'
+  if (l.includes('det') || l.includes('detect') || l.includes('localiz')) return '检测'
+  if (l.includes('rec') || l.includes('recogn') || l.includes('extract')
+    || l.includes('svtr')) return '识别'
+  return ''
 }
 
 // 后端 capability.task → 规范类型（读取模型时从 capabilities 推导），与系统配置对齐
