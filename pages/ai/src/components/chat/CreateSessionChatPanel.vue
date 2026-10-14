@@ -1,7 +1,13 @@
 ﻿<template>
 
-  <!-- 输入区域 -->
-  <div class="px-5 pb-2.5 w-full flex-1 flex flex-col items-center justify-center mb-20">
+  <!-- 输入区域。
+       满屏时输入块贴底（justify-end，底部留 pb-6 呼吸感），上方标题/打字机自然顶上去；
+       窄屏保持原居中欢迎态（justify-center + mb-20）。
+       为什么用纯 CSS 切换而不用 v-if 两套 DOM：输入框是同一 ChatInput 实例，
+       切布局不能丢已输入内容与焦点；data-full 属性由底部的 computed 驱动，
+       与 MainLayout 的 --content-max-width 同源（同读 useKbDisplay），不会打架。 -->
+  <div class="px-5 pb-2.5 w-full flex-1 flex flex-col items-center" :data-full="isFull ? '' : null"
+    :class="isFull ? 'justify-end pb-6' : 'justify-center mb-20'">
     <div class="w-full flex items-center justify-center mb-20">
       <div class="banner w-20 mb-4">
         <img :src="bannerPath" alt=""></img>
@@ -12,7 +18,8 @@
       </h1>
     </div>
     <!-- 已选角色 + 抽屉切换 -->
-    <div class="w-full max-w-192 flex flex-col items-start mx-auto relative">
+    <!-- 满屏时跟随 MainLayout 注入的 --content-max-width: none 撑满；窄屏回落 48rem = 原 max-w-192 -->
+    <div class="w-full flex flex-col items-start mx-auto relative" :style="{ maxWidth: 'var(--content-max-width, 48rem)' }">
       <!-- 角色选择行 -->
       <div class="flex items-center justify-center gap-1.5 mb-4 text-sm text-(--color-text-gray) ml-4">
         <span>{{ t('chat.welcome.use') }}</span>
@@ -71,6 +78,7 @@ import { resolveBrandLogoLarge } from '@/utils/branding'
 import { useWorkspaceStore } from '@/stores/workspace';
 import { usePrefillInput } from '@/composables/usePrefillInput';
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter';
+import { useKbDisplay } from '@/composables/useKbDisplay';
 // 组件导入
 import { ChatInput, Avatar } from "../ui";
 import ChatInputToolbar from "./chat-input/ChatInputToolbar.vue";
@@ -86,6 +94,12 @@ const breakpoints = useBreakpoints(breakpointsTailwind)
 const { notify } = usePopup();
 const router = useRouter();
 const route = useRoute();
+
+// 满屏判定：与 MainLayout 同源（useKbDisplay 单例）。满屏时欢迎屏输入块贴底，
+// 窄屏保持居中欢迎态。注意不能读 CSS 变量 --content-max-width —— 窄屏时它根本
+// 不下发（回退值在各消费方），读变量分不清"窄屏"和"变量未初始化"。
+const { askWidth } = useKbDisplay();
+const isFull = computed(() => askWidth.value === 'full');
 
 // 响应式数据 - 类型化
 const title = useTitle();

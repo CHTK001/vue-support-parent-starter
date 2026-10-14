@@ -181,7 +181,7 @@ const retry = () => {
 const dirLoader = async (path) => {
   const res = await adminApi.get('/v2/file/dir/list', { params: { path: path || '' } })
   const rows = Array.isArray(res) ? res : res?.data || []
-  return rows.map((r) => ({ key: r.path, name: r.name, isDir: true }))
+  return rows.map((r) => ({ key: r.path, name: r.name, isDir: true, updatedAt: r.updatedAt }))
 }
 
 const onDirPicked = (items) => {

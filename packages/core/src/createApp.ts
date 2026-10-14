@@ -177,11 +177,36 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     await loadDefaultSetting();
   }
   setSocketTokenProvider(() => token.getAccessToken());
+  /** 当前生效的 socket 连接配置签名：仅配置真正变化时才重建连接 */
+  const socketConfigSignature = (): string => {
+    try {
+      const resolved = getGlobalSocketConfig();
+      const s = getConfig().socket || {};
+      return JSON.stringify({
+        enable: s.enable,
+        protocol: resolved.protocol,
+        urls: resolved.urls,
+        context: resolved.context,
+        path: s.path,
+        transports: s.transports,
+      });
+    } catch {
+      return "";
+    }
+  };
+  let lastSocketSignature = socketConfigSignature();
   const disposeSocket = initGlobalSocket(() => config.socket.enable);
   const disposeHotReload = onConfigHotReload(() => {
     refreshAntiDebug();
     applyGlobalWatermark();
-    // 后端 Setting 变更 socket 字段后重建连接（enable/protocol/urls 变化均生效）
+    // 后端 Setting 变更 socket 字段后重建连接（enable/protocol/urls 变化均生效）。
+    // 登录等配置热重载会连续触发多次而 socket 字段并未变化——若无条件重建，
+    // 旧实例被 close 后视图侧的订阅全部失效，新实例还要重连，期间实时数据断流。
+    const signature = socketConfigSignature();
+    if (signature === lastSocketSignature) {
+      return;
+    }
+    lastSocketSignature = signature;
     initGlobalSocket(() => config.socket.enable);
   });
 

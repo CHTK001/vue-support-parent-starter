@@ -35,7 +35,9 @@
       </div>
     </div>
 
-    <MiddlewareGap v-if="gap" :text="gap" />
+    <!-- 重试要重新 bind + 重取总览：只 reloadOverview 的话，数据源类型不匹配
+         这类 gap 永远清不掉，按钮就是死的（与 etcd/neo4j/nacos/zk/redis/influx 对齐） -->
+    <MiddlewareGap v-if="gap" :text="gap" @retry="onGapRetry" />
 
     <div v-else class="dsm-body">
       <!-- 左侧菜单 -->
@@ -153,6 +155,13 @@ const metaText = computed(() => {
 
 function goTab(name: (typeof tabs)[number]["name"]): void {
   activeTab.value = name;
+}
+
+async function onGapRetry(): Promise<void> {
+  await bind("prometheus");
+  if (datasourceId.value) {
+    await reloadOverview();
+  }
 }
 
 async function reloadOverview(): Promise<void> {

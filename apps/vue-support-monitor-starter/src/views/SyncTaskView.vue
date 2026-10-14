@@ -789,7 +789,8 @@
     />
 
     <!-- 本机文件/目录选择器：数据同步的文件与文件夹源都指向后端所在机器，
-         由 monitor 的 /ms/monitor/local-files/list 列举；FILE 模式同时列出数据文件。
+         由配置的 loader 调用远端接口列举；FILE 模式同时列出数据文件。
+         主入口为 filesystem-starter 的目录浏览能力（宿主后端按需包装），
          initial-path 用文件系统根：先前写死 Windows 的 C 盘路径，而部署机是 Linux，
          结果打开就是目录不存在，一个条目都列不出来（实测根能列出 21 个目录）。 -->
     <ReFilePicker
@@ -987,7 +988,8 @@ const openPathPicker = (mode: "FILE" | "DIR") => {
 };
 
 /**
- * ReFilePicker 的 loader：列后端所在机器的目录
+ * ReFilePicker 的 loader：列后端所在机器的目录。
+ * loader 必须由宿主配置为远端接口形状（FilePickerItem[]），不得回退到组件内置 mock。
  * @param path 当前目录（留空列文件系统根）
  */
 const localFileLoader = async (path: string): Promise<FilePickerItem[]> => {

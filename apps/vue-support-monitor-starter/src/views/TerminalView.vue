@@ -530,7 +530,9 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
   display: flex;
   position: relative;
   width: 100%;
-  height: calc(100vh - 56px); /* 顶栏 56px */
+  /* 高度交给全局 .tel-page 的 height:100%（外层 .main 才是滚动容器）。
+     不能写 calc(100vh - 56px)：外壳实际由 56px 顶栏 + 42px 标签条 + .main 的 20px
+     上内边距叠成，硬编码 56px 会让整个工作区比可视范围多出约 51px、底部被裁掉。 */
   min-height: 0;
 }
 .rail {

@@ -1,13 +1,60 @@
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 import { createVite, SHARED_PUBLIC_DIR } from "../../turbo/vite/createVite.ts";
+import type { PluginOption } from "vite";
 
 const sharedPublicDir = SHARED_PUBLIC_DIR.replace(/\\/g, "/").replace(/\/+$/, "");
+
+/**
+ * 第一方豁免标记（与 packages/utils/src/http.ts 的 FIRST_PARTY_MARKER 保持一致）。
+ *
+ * 后端 ApiRequestDecodeBodyAdvice 会把 HeadlessChrome / 自动化 UA 判为爬虫并回 403
+ * 「检测到爬虫或自动化客户端访问」，豁免条件是 X-Trace-Id 与 X-Requested-With
+ * 两个字段的取值都以该标记结尾（见 UserAgent.isSpider 的判定口径）。
+ * dev 代理在此补齐这两个头，令被代理请求与真实浏览器发起的请求等价。
+ * 仅 dev 生效，生产不经此代理。
+ */
+const FIRST_PARTY_MARKER = "-7f3a";
+
+/**
+ * dev 代理出口补齐第一方豁免头，并剥掉 Origin。
+ *
+ * 两件事必须一起做，缺一不可：
+ *
+ * 1) 剥掉 Origin —— 后端 plugin.oauth.cors.allowed-origins 是白名单（只含 8848 系地址）。
+ *    浏览器同源 POST 会带 `Origin: http://<本机端口>`，本应用 dev 端口 8096 不在白名单里，
+ *    Spring 直接回 403 `Invalid CORS request`（GET 不带 Origin 不受影响，于是表现为
+ *    「读全绿、登录进不去」）。dev 下页面与代理同源，浏览器根本不校验 ACAO 响应头，
+ *    所以在 proxyReq 前把 Origin 摘掉即可。这与 monitor 应用 dropProxyOrigin 插件同口径。
+ *
+ * 2) 补第一方标记 —— 无头浏览器无法改写 UA（Fetch 规范把 User-Agent 列为 forbidden
+ *    header，JS 写入被静默丢弃），而 /v2/setting/default 这类登录前的配置拉取不走
+ *    带第一方头的 http 封装，于是被 UA 规则判成爬虫回 403。
+ */
+function systemProxyHeaders(): PluginOption {
+  return {
+    name: "system-api-proxy-headers",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url?.startsWith("/system/api") || req.url?.startsWith("/v2")) {
+          delete req.headers.origin;
+          delete req.headers.referer;
+          req.headers["x-trace-id"] = `e2e-${Date.now().toString(16)}${FIRST_PARTY_MARKER}`;
+          req.headers["x-requested-with"] = `XMLHttpRequest${FIRST_PARTY_MARKER}`;
+        }
+        next();
+      });
+    },
+  };
+}
 
 export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
   publicDir: "../../public",
   plugins: [
+    // dev 代理补第一方豁免头 + 剥 Origin（仅 serve 生效，见上方 systemProxyHeaders 注释）
+    systemProxyHeaders(),
     // 文件预览（@file-viewer）资源接入：与 monitor / standalone / ai-guada 一致。
     //   - copyAssets 把渲染器 worker/wasm/字体复制到工作区根 public（本应用 publicDir 指向它）；
     //   - 渲染器注册由 PreviewOfficePanel 显式传 preset 完成，inject:false 不注入虚拟模块。

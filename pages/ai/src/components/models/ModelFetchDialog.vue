@@ -57,9 +57,9 @@
                   <span
                     v-if="fetchTypeBadge(model)"
                     class="fetch-badge"
-                    :class="'badge-' + fetchTypeBadge(model).kind"
+                    :class="'badge-' + (fetchTypeBadge(model)?.kind || '')"
                   >
-                    {{ fetchTypeBadge(model).label }}
+                    {{ fetchTypeBadge(model)?.label }}
                   </span>
                   <!--
                     来源徽标：本地推理（ONNX / Ollama）与云 API 必须一眼分开。
@@ -129,6 +129,7 @@ import type { Model } from '@/types/api'
 import LDialog from '@/components/ui/LDialog.vue'
 import LTooltip from '../ui/LTooltip.vue'
 import { describeFetchRow, sourceBadgeFor, taskHintForName } from './model.utils'
+import { MODEL_SUBTYPE_LABELS } from './model.constants'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import { WrenchScrewdriver24Regular, LightbulbFilament24Regular } from '@vicons/fluent'
 import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
@@ -290,6 +291,9 @@ const FETCH_TASK_LABELS: Record<string, string> = {
   image: '文生图',
   video: '文生视频',
   image_cv: '图片识别',
+  detection: '检测',
+  detect: '检测',
+  object_detection: '检测',
   ocr: 'OCR识别',
   ocr_recognition: 'OCR识别',
   face: '人脸识别',
@@ -300,6 +304,18 @@ const typeLabelFor = (t: any): string => {
   const tl = String(t || '').toLowerCase()
   if (FETCH_TASK_LABELS[tl]) return FETCH_TASK_LABELS[tl]
   return String(t || '')
+}
+
+const subTypeFor = (m: any): string => {
+  const direct = m?.subtype ?? m?.subType ?? m?.modelSubType ?? m?.config?.subType ?? m?.config?.modelSubType
+  if (direct) return String(direct).trim()
+  if (Array.isArray(m?.capabilities)) {
+    for (const c of m.capabilities) {
+      const sub = typeof c === 'object' ? (c?.subtype ?? c?.subType) : undefined
+      if (sub) return String(sub).trim()
+    }
+  }
+  return ''
 }
 
 /**
@@ -316,7 +332,10 @@ const fetchTypeBadge = (m: any): { label: string; kind: string } | null => {
   const direct = String(m?.modelType ?? '').trim()
   if (direct) {
     if (direct === 'text') return null
-    return { label: typeLabelFor(direct) || direct, kind: direct }
+    const label = typeLabelFor(direct) || direct
+    const sub = subTypeFor(m)
+    const subLabel = sub ? MODEL_SUBTYPE_LABELS[sub] || sub : ''
+    return { label: subLabel ? `${label} · ${subLabel}` : label, kind: direct }
   }
   const tasks: string[] = []
   const push = (t: any) => {
@@ -331,7 +350,10 @@ const fetchTypeBadge = (m: any): { label: string; kind: string } | null => {
   for (const t of tasks) {
     const tl = t.toLowerCase()
     if (tl === 'chat' || tl === 'realtime_conversation' || tl === 'text' || tl === 'text_generation') continue
-    return { label: typeLabelFor(t) || t, kind: tl }
+    const label = typeLabelFor(t) || t
+    const sub = subTypeFor(m)
+    const subLabel = sub ? MODEL_SUBTYPE_LABELS[sub] || sub : ''
+    return { label: subLabel ? `${label} · ${subLabel}` : label, kind: tl }
   }
   return null
 }

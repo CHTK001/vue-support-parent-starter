@@ -2,9 +2,17 @@
 /**
  * 库内智能问答面板。
  *
- * <p>只在本知识库范围内提问：后端 {@code POST /bases/{id}/ask} 走向量检索取回分片、
- * 交大模型作答并返回引用，本组件负责把引用渲染成可点击的角标与来源卡片，
- * 点来源直接调起原文预览。</p>
+ * <p>只在本知识库范围内提问：后端 {@code POST /bases/{id}/ask} 当前只提供一次性
+ * 问答形态（实测 A/B/C 三种调法都返回整包 JSON，远端无该接口的 SSE 流式形态；
+ * 日后再出流式，后端事件名以 {@code ChatStreamService} 为准，前端届时把
+ * {@link submit} 改成队列消费即可，渲染层不用动）。</p>
+ *
+ * <p>本组件负责把引用渲染成可点击的角标与来源卡片，点来源直接调起原文预览。
+ * 答案正文走会话同款 {@code MarkdownContent} 组件
+ * （{@code @/components/ui/MarkdownContent.vue}，含代码高亮 + KaTeX +
+ * 原始 HTML 转义防注入 + rAF 合并渲染），引用角标 {@code [n]} 在进组件前
+ * 先换成带 {@code data-cite} 的徽标 span，保证「角标可读、点击可达原文」——
+ * 角标序号直接对应后端 {@code citations[index]}，与来源卡片同源。</p>
  *
  * <p>答案里的迷你关系图取自已有的图谱数据：把「引用文件里出现过的实体名」筛成子图，
  * 不额外请求后端——图谱本来就已在前端缓存里（{@code /v2/rag/graph}）。</p>
@@ -21,6 +29,7 @@ import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { Promotion, Search, Position, ChatLineSquare, Document, Delete, WarningFilled } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
+import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import KBFilePreview from './KBFilePreview.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReSquareButton from '@repo/ui/re-button'
@@ -165,6 +174,11 @@ const activeCitationNames = computed(() => {
 /**
  * 提交提问。
  *
+ * <p>当前远端只有一次性问答形态（无该接口的 SSE 实现，A/B/C 实测均为整包 JSON），
+ * 所以这里是「整包回来再渲染」——不是没做流式，是后端没给流。流式形态一旦落地，
+ * 只需把这里改成逐事件往 {@code turn.answer} 后追加（渲染层
+ * {@code MarkdownContent} 自带 rAF 合并逐帧渲染，天然支持流式追加，不用动）。</p>
+ *
  * @param q 提问内容；缺省用输入框的值
  */
 async function submit(q?: string) {
@@ -208,6 +222,59 @@ function openCitation(path: string) {
   }
   previewPath.value = path
   previewVisible.value = true
+}
+
+/**
+ * 答案正文渲染：Markdown 管线 + 引用角标着色。
+ *
+ * <p>后端 answer 里的 {@code [n]} 是引用角标，序号对应
+ * {@code citations[index]}。这里只负责把角标换成徽标 span
+ * （{@code data-cite} 留给样式与点击），真正的 Markdown 解析
+ * 交给会话同款 {@code MarkdownContent} 组件
+ * （{@code @/components/ui/MarkdownContent.vue}：会话气泡、
+ * 思考区、时间线都在用它，含代码高亮 + KaTeX + 原始 HTML
+ * 转义 + rAF 合并渲染）。顺序不能反：先着色后解析，
+ * 否则徽标 span 会被转义成文本。</p>
+ *
+ * <p>角标与来源卡片同源（都按 {@code citations[index]}），
+ * 点角标直接 {@link openCitation} 打开同一份原文——
+ * 角标可读、点击可达，不再是摆设。</p>
+ *
+ * @param turn 目标问答轮次
+ */
+function citableAnswer(turn: Turn): string {
+  const raw = String(turn?.answer || '')
+  if (!raw) {
+    return ''
+  }
+  const byIndex = new Map<number, number>()
+  ;(turn?.citations || []).forEach((c, i) => {
+    const n = Number(c?.index)
+    if (Number.isFinite(n)) byIndex.set(n, i)
+  })
+  // 只着色「真实存在」的角标：文本里的 [981] 若 citations 里没有 index=981，
+  // 就原样保留为文本，不臆造链接（后端角标与 citations 对不齐是已知现象）。
+  return raw.replace(/\[(\d+)\]/g, (m, d) => {
+    const n = Number(d)
+    if (!byIndex.has(n)) return m
+    const ci = byIndex.get(n)!
+    const c = turn.citations[ci] || {}
+    const name = String(c.file_name || c.doc_path || `引用 ${n}`)
+    const path = String(c.doc_path || '')
+    return `<span class="kb-cite" data-cite="${ci}" data-path="${path.replace(/"/g, '&quot;')}" title="${name.replace(/"/g, '&quot;')}">${n}</span>`
+  })
+}
+
+/**
+ * 引用角标点击（事件委托：答案是 v-html 渲染的，徽标在解析后的 DOM 里）。
+ *
+ * @param e 点击事件；只处理带 {@code data-cite} 的徽标
+ */
+function onAnswerClick(e: MouseEvent) {
+  const el = (e.target as HTMLElement)?.closest?.('[data-cite]') as HTMLElement | null
+  if (!el) return
+  const path = el.getAttribute('data-path') || ''
+  if (path) openCitation(path)
 }
 
 /** 清空问答记录 */
@@ -275,7 +342,10 @@ watch(() => props.kbId, () => clearTurns())
             >
               <p class="m-0 text-sm leading-relaxed whitespace-pre-wrap break-words flex items-start gap-2">
                 <el-icon v-if="turn.error" class="mt-0.5 shrink-0 text-[var(--kb-danger)]"><WarningFilled /></el-icon>
-                <span>{{ turn.answer }}</span>
+                <!-- 答案渲染走会话同款 MarkdownContent（代码高亮 + KaTeX + HTML 转义 + rAF 合并）；
+                     引用角标先由 citableAnswer 着色成徽标，再进组件解析；徽标点击走 onAnswerClick 事件委托 -->
+                <span v-if="turn.error">{{ turn.answer }}</span>
+                <span v-else class="kb-ask__md flex-1 min-w-0" @click="onAnswerClick"><MarkdownContent :content="citableAnswer(turn)" /></span>
               </p>
 
               <!-- 引用来源 -->
@@ -347,3 +417,29 @@ watch(() => props.kbId, () => clearTurns())
     <KBFilePreview v-model="previewVisible" :kb-id="kbId" :path="previewPath" />
   </div>
 </template>
+
+<style scoped>
+/* 答案区排版：MarkdownContent 吐出来的节点在本组件作用域下只做两件事——
+   段落间距收紧、引用角标着色。其余（代码高亮/KaTeX/表格）沿用会话全局样式，不重复造。*/
+.kb-ask__md :deep(p) { margin: 0 0 0.5em; }
+.kb-ask__md :deep(p:last-child) { margin-bottom: 0; }
+/* 引用角标：小徽标，可点，直达原文 */
+.kb-ask__md :deep(.kb-cite) {
+  display: inline-block;
+  min-width: 1.4em;
+  margin: 0 0.15em;
+  padding: 0 0.3em;
+  border-radius: 999px;
+  background: var(--rm-primary-soft, var(--rm-bg-subtle));
+  color: var(--rm-primary);
+  font-size: 0.8em;
+  line-height: 1.6;
+  text-align: center;
+  cursor: pointer;
+  vertical-align: 0.1em;
+}
+.kb-ask__md :deep(.kb-cite:hover) {
+  background: var(--rm-primary);
+  color: #fff;
+}
+</style>

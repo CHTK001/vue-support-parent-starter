@@ -1,6 +1,7 @@
 /**
  * ReFilePicker 类型定义
  */
+
 export interface FilePickerItem {
   /** 全路径/Key */
   key: string;
@@ -27,8 +28,12 @@ export interface FilePickerListResult {
   items: FilePickerItem[];
 }
 
+export type FilePickerData = FilePickerItem[] | FilePickerListResult;
+
+export type FilePickerLoader = (path: string) => Promise<FilePickerItem[]>;
+
 /**
- * ReFilePicker 默认目录树（mock 用）
+ * ReFilePicker 默认目录树（仅作本地 JSON 示例/兼容导出，不再作为无 loader 时的兜底 mock）。
  */
 export const DEFAULT_MOCK_TREE: FilePickerItem[] = [
   { key: "/", name: "/", isDir: true },

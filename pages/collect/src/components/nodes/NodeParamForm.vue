@@ -127,6 +127,10 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   margin-top: 3px;
   font-size: 11px;
   line-height: 1.45;
+  /* 长说明 / 长表达式（如 ${resp.selector('a').attr('href')}）必须换行，
+     否则会撑出横向滚动条 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--el-text-color-secondary);
 }
 
@@ -135,6 +139,9 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   padding: 8px 10px;
   font-size: 12px;
   line-height: 1.45;
+  /* 同 .field-tip：节点级说明也很长，必须换行防横向滚动条 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);

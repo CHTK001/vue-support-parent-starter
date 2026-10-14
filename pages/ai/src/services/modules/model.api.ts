@@ -88,7 +88,9 @@ function buildProviderModelBody(data: any) {
   // 后端 GenerateConfigSupport 只从该节点读取，SysAiProviderModel 也没有顶层 generate 字段——
   // 之前放在 model.generate 顶层会被直接丢弃，导致模型表单里的生成参数存不下去。
   const gen = config.generate;
+  const subType = String(data.subType || data.modelSubType || config.subType || config.modelSubType || '').trim();
   const mainCap: Record<string, any> = { task: mainTask, traits };
+  if (subType) mainCap.subtype = subType;
   if (gen && (mainTask === "image_generation" || mainTask === "video_generation")) {
     mainCap.generate = {
       referenceImage: !!gen.referenceImage,

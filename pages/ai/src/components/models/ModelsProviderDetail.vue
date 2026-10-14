@@ -80,6 +80,9 @@
                 <span class="mc-type" :class="typeMeta(model.modelType).cls">
                   {{ typeMeta(model.modelType).label }}
                 </span>
+                <span v-if="model.subType && subTypeLabel(model.subType)" class="mc-type sub">
+                  {{ subTypeLabel(model.subType) }}
+                </span>
               </div>
             </div>
 
@@ -134,6 +137,14 @@
                 @change="handleToggle(model)"
               />
               <div class="mc-foot-btns">
+                <button
+                  class="mc-btn"
+                  :title="model.hasNativeId === false ? '该模型无原生记录，暂无法测试' : '测试延迟'"
+                  :disabled="model.testing || model.hasNativeId === false"
+                  @click="testLatency(model)"
+                >
+                  <el-icon :size="16"><Timer /></el-icon>
+                </button>
                 <button class="mc-btn" :title="t('common.edit')" @click="handleEdit(model)">
                   <el-icon :size="16"><SettingsOutlined /></el-icon>
                 </button>
@@ -184,7 +195,9 @@ import {
   WrenchScrewdriver24Regular, LightbulbFilament24Regular, Box16Regular,
   Speaker224Regular, Video24Regular, Group24Regular,
 } from '@vicons/fluent'
+import { Timer } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
+import { modelApi } from '@/services/javaApi'
 import { usePopup } from '../../composables/usePopup'
 import {
   getModelDisplayName, getModelAvatarPath,
@@ -193,6 +206,7 @@ import {
 import ProviderLogo from './ProviderLogo.vue'
 import ModelFormDialog from './ModelFormDialog.vue'
 import ModelFetchDialog from './ModelFetchDialog.vue'
+import { MODEL_SUBTYPE_LABELS } from './model.constants'
 
 const props = defineProps<{
   provider: any
@@ -379,10 +393,12 @@ const TYPE_META: Record<string, { label: string; cls: string }> = {
   ocr: { label: 'OCR识别', cls: 'info' },
   face: { label: '人脸识别', cls: 'info' },
   layout: { label: '布局识别', cls: 'info' },
+  detection: { label: '检测', cls: 'info' },
   asr: { label: '语音识别', cls: 'info' },
   tts: { label: '语音合成', cls: 'info' },
 }
 const typeMeta = (type: string) => TYPE_META[type] || TYPE_META.text
+const subTypeLabel = (subType: any) => MODEL_SUBTYPE_LABELS[String(subType || '')] || String(subType || '')
 
 // 能力种类 → 图标（输入/输出流可视化）
 const KIND_ICONS: Record<string, any> = {
@@ -404,6 +420,29 @@ const handleManualAdd = () => {
   formRef.value?.show?.()
 }
 const handleEdit = (model: any) => formRef.value.openEdit(model)
+
+const testLatency = async (model: any) => {
+  const modelId = model?.modelId ?? model?.model_id ?? model?.id
+  if (!modelId || model.testing || model.hasNativeId === false) return
+  model.testing = true
+  try {
+    const res: any = await modelApi.testLatency(modelId)
+    const raw = res?.data?.latency ?? res?.latency ?? res?.data
+    const latency = raw != null && Number.isFinite(Number(raw)) ? Number(raw) : null
+    model.modelLastLatency = latency
+    model.modelLastTestTime = new Date().toISOString()
+    notify.success(
+      t('common.operationSuccess'),
+      latency != null ? `测试延迟：${latency}ms` : '延迟测试完成',
+      { duration: 2500 },
+    )
+  } catch (error: any) {
+    console.error('测试模型延迟失败:', error)
+    notify.error(t('common.operationFailed'), '延迟测试失败', { duration: 2500 })
+  } finally {
+    model.testing = false
+  }
+}
 
 const handleDelete = async (model: any) => {
   const ok = await confirm(
@@ -585,6 +624,11 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .mc-type.img { color: var(--el-color-warning); background: color-mix(in srgb, var(--el-color-warning) 14%, transparent); }
 .mc-type.vid { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 13%, transparent); }
 .mc-type.info { color: var(--el-color-info); background: color-mix(in srgb, var(--el-color-info) 14%, transparent); }
+.mc-type.sub {
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--el-border-color);
+}
 
 .mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 24px; }
 .mc-cap-group { display: inline-flex; align-items: center; gap: 2px; color: var(--color-primary); }
@@ -652,6 +696,8 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   transition: color 0.15s ease, background 0.15s ease;
 }
 .mc-btn:hover { color: var(--color-primary); background: var(--color-surface-border); }
+.mc-btn:disabled { cursor: not-allowed; opacity: .45; }
+.mc-btn:disabled:hover { color: var(--color-text-gray); background: transparent; }
 .mc-btn.danger:hover { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 12%, transparent); }
 
 /* 动效降级：系统开启「减少动态效果」时，模型卡的描边/底色与卡片按钮的颜色直接到位。

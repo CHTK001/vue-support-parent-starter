@@ -3,16 +3,99 @@
     <!-- 顶部工具栏
          页面级动作只留数据源切换与一个刷新：新建查询 / 新建库表 / 导入数据已下沉到右键菜单
          （表 / 库 / 空白 三套），与 Navicat 的操作面一致。
-         表页签激活时把「统计总数 + 列显示设置 + 恢复默认设置」这簇表视图设置挂到 hero：
-         表格工具条第一行因此只放表名 / 显示模式 / 4 个数据动作，第二行分页独占右对齐 ——
-         点分页、切统计总数、总位数变化都只动分页器自己的左缘，整页零位移（防抖结构）。 -->
+         表页签激活时把表名 / 模式 / 动作 / 分页全部挂到 hero：
+         左侧吃下表名 + 字段-注释-类型 + 数据模式 + 新增/导出/刷新/清空，
+         右侧在刷新树之后跟上分页条 —— 网格上方不再单独占行，数据区多出一整行。 -->
     <div class="dbm-toolbar re-surface re-surface--dense">
-      <div class="dbm-toolbar-left">
-        <span class="dbm-toolbar-hint">右键表 / 库 / 空白处可执行新建、导入导出等操作</span>
-      </div>
+      <!-- 表数据视图的名字 / 模式 / 动作已上迁到这里：网格上方不再单独占一整行工具条，
+            数据区因此多出一整行。标记 dbm-table-toolbar 锚类是为了让验收套件
+            （.dbm-table-toolbar 下的按钮选择器）继续命中这簇控件；分页器在
+            右侧簇的 .dbm-pager-bar 里，套件按其自身作用域选择，不走本锚类。 -->
+      <template v-if="activeTabObj && activeTabObj.type === 'table'">
+        <div class="dbm-toolbar-left dbm-table-toolbar">
+          <span class="dbm-table-name">{{ qualified(activeTabObj) }}</span>
+          <!-- 表头显示模式：字段 / 注释 / 字段+注释 / 类型 -->
+          <div class="dbm-subtabs">
+            <span
+              v-for="m in HEADER_MODES"
+              :key="m.value"
+              class="dbm-subtab"
+              :class="{ active: headerMode === m.value }"
+              @click="headerMode = m.value"
+            >{{ m.label }}</span>
+          </div>
+          <!-- 行显示模式：数据 / 数据+注释 -->
+          <div class="dbm-subtabs">
+            <span
+              v-for="m in ROW_MODES"
+              :key="m.value"
+              class="dbm-subtab"
+              :class="{ active: rowMode === m.value }"
+              @click="rowMode = m.value"
+            >{{ m.label }}</span>
+          </div>
+          <span class="dbm-spacer" />
+          <ReButton layout="square" type="primary" icon="Plus" tip="新增行" @click="openAddRowDialog" />
+          <ReButton
+            layout="square"
+            icon="Download"
+            tip="导出数据"
+            @click="openExportDialog(activeTabObj.tableName, activeTabObj.database)"
+          />
+          <ReButton layout="square" icon="Refresh" tip="刷新数据" @click="refreshTableData" />
+          <ReButton
+            layout="square"
+            type="danger"
+            plain
+            icon="Delete"
+            tip="清空表"
+            @click="confirmTruncate(activeTabObj.tableName, activeTabObj.database)"
+          />
+        </div>
+      </template>
+      <template v-else>
+        <div class="dbm-toolbar-left">
+          <span class="dbm-toolbar-hint">右键表 / 库 / 空白处可执行新建、导入导出等操作</span>
+        </div>
+      </template>
       <div class="dbm-toolbar-right">
         <!-- 刷新连接树必须保持 DOM 第一位：套件用 .dbm-toolbar-right .rs-btn :first 命中它 -->
         <ReButton layout="square" icon="Refresh" tip="刷新连接树" data-testid="dsm-btn-refresh" @click="refreshTree" />
+        <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现。
+             表名/模式/动作那簇已上迁到左侧（.dbm-table-toolbar 锚类），
+             分页（统计总数/上一页下一页）也跟上来 —— 网格上方不再留任何工具条。 -->
+        <template v-if="activeTabObj && activeTabObj.type === 'table'">
+          <div class="dbm-pager-bar">
+            <RePagination
+              v-if="showTotal"
+              v-model:current-page="tableData.page"
+              :total="tableData.total"
+              :page-size="tableData.pageSize"
+              :page-sizes="[20, 50, 100, 200, 500]"
+              pagination-layout="total, sizes, prev, pager, next"
+              @current-change="onPageChange"
+              @update:page-size="onPageSizeChange"
+            />
+            <span v-else class="dbm-simple-pager">
+              <ReButton
+                layout="square"
+                icon="ArrowLeft"
+                tip="上一页"
+                :disabled="tableData.page <= 1"
+                @click="onPageChange(tableData.page - 1)"
+              />
+              <span class="dbm-hint">第 {{ tableData.page }} 页（未统计总数）</span>
+              <ReButton
+                layout="square"
+                icon="ArrowRight"
+                tip="下一页"
+                :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize"
+                @click="onPageChange(tableData.page + 1)"
+              />
+            </span>
+          </div>
+        </template>
+        <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
         <template v-if="activeTabObj && activeTabObj.type === 'table'">
           <label class="dbm-switch">
@@ -203,82 +286,9 @@
           </div>
         </div>
 
-        <!-- 表数据视图 -->
+        <!-- 表数据视图：表名/模式/动作/分页已全部上迁到顶部工具条（要求 1），
+              网格上方不再单独占行。这里只剩折叠的过滤条 + 表格本身。 -->
         <div v-if="activeTabObj && activeTabObj.type === 'table'" class="dbm-table-view">
-          <div class="dbm-table-toolbar">
-            <span class="dbm-table-name">{{ qualified(activeTabObj) }}</span>
-            <!-- 表头显示模式：字段 / 注释 / 字段+注释 -->
-            <div class="dbm-subtabs">
-              <span
-                v-for="m in HEADER_MODES"
-                :key="m.value"
-                class="dbm-subtab"
-                :class="{ active: headerMode === m.value }"
-                @click="headerMode = m.value"
-              >{{ m.label }}</span>
-            </div>
-            <!-- 行显示模式：数据 / 数据+注释（三档的表头模式在上面的 HEADER_MODES） -->
-            <div class="dbm-subtabs">
-              <span
-                v-for="m in ROW_MODES"
-                :key="m.value"
-                class="dbm-subtab"
-                :class="{ active: rowMode === m.value }"
-                @click="rowMode = m.value"
-              >{{ m.label }}</span>
-            </div>
-            <span class="dbm-spacer" />
-            <!-- 4 个数据动作留在表页签本地（套件 .dbm-table-toolbar 按钮计数/导出入口依赖这里）；
-                 「统计总数 + 列显示 + 恢复默认」已迁到 hero。 -->
-            <ReButton layout="square" type="primary" icon="Plus" tip="新增行" @click="openAddRowDialog" />
-            <ReButton
-              layout="square"
-              icon="Download"
-              tip="导出数据"
-              @click="openExportDialog(activeTabObj.tableName, activeTabObj.database)"
-            />
-            <ReButton layout="square" icon="Refresh" tip="刷新数据" @click="refreshTableData" />
-            <ReButton
-              layout="square"
-              type="danger"
-              plain
-              icon="Delete"
-              tip="清空表"
-              @click="confirmTruncate(activeTabObj.tableName, activeTabObj.database)"
-            />
-            <!-- 分页独占一整行（flex-basis:100%）且右对齐：分页器宽度随页码数/总位数/
-                 统计总数开关变化时，只有它自己的左缘在动，第一行内容与工具条高度
-                 恒定 —— 这是「点分页不抖动」的结构保证。 -->
-            <div class="dbm-pager-row">
-              <RePagination
-                v-if="showTotal"
-                v-model:current-page="tableData.page"
-                :total="tableData.total"
-                :page-size="tableData.pageSize"
-                :page-sizes="[20, 50, 100, 200, 500]"
-                pagination-layout="total, sizes, prev, pager, next"
-                @current-change="onPageChange"
-                @update:page-size="onPageSizeChange"
-              />
-              <span v-else class="dbm-simple-pager">
-                <ReButton
-                  layout="square"
-                  icon="ArrowLeft"
-                  tip="上一页"
-                  :disabled="tableData.page <= 1"
-                  @click="onPageChange(tableData.page - 1)"
-                />
-                <span class="dbm-hint">第 {{ tableData.page }} 页（未统计总数）</span>
-                <ReButton
-                  layout="square"
-                  icon="ArrowRight"
-                  tip="下一页"
-                  :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize"
-                  @click="onPageChange(tableData.page + 1)"
-                />
-              </span>
-            </div>
-          </div>
           <!-- 过滤条（Navicat 式 WHERE 条件 + 快捷筛选）：默认折叠，展开后才有 WHERE 输入行 -->
           <div class="dbm-filter-bar">
             <ReButton
@@ -337,9 +347,11 @@
             :pagination="false"
             :border="true"
             column-draggable
+            :table-id="tableGridId"
+            :header-show-overflow-tooltip="true"
             show-selection
             stripe
-            height="calc(100% - 100px)"
+            height="calc(100% - 56px)"
             :context-menu="gridMenuItems"
             @selection-change="onSelectionChange"
             @sort-change="onSortChange"
@@ -2378,8 +2390,9 @@ const HEADER_MODES = [
   { label: "字段", value: "name" as const },
   { label: "注释", value: "comment" as const },
   { label: "字段+注释", value: "both" as const },
+  { label: "类型", value: "type" as const },
 ];
-const headerMode = ref<"name" | "comment" | "both">(viewPref.headerMode);
+const headerMode = ref<"name" | "comment" | "both" | "type">(viewPref.headerMode);
 
 /**
  * 行显示模式。
@@ -2656,10 +2669,18 @@ function columnComment(col: string): string {
 }
 
 /**
- * 表头文案（按显示模式）
+ * 表头文案（按显示模式）。
+ *
+ * <p>「类型」档展示列数据库类型而非列名：宽表看类型分布、
+ * 排查「为什么这列排不了序 / 存不进值」时一眼可辨。类型取自跟随
+ * 数据一起加载的 {@link columnTypes}（loadPkInfo 写入），没拿到时退回列名。</p>
+ *
  * @param col 列名
  */
 function headerLabel(col: string): string {
+  if (headerMode.value === "type") {
+    return columnTypes.value.get(col) || col;
+  }
   const comment = columnComment(col);
   if (headerMode.value === "name" || !comment) return col;
   return headerMode.value === "comment" ? comment : `${col}（${comment}）`;
@@ -4162,9 +4183,24 @@ const columnTypes = ref(new Map<string, string>());
 const longTextColumns = ref(new Set<string>());
 
 /**
- * ReTable 多选聚合键。
+ * 数据网格的 ReTable 持久化键：同一个 tableId 的列配置落在同一份存档里。
  *
- * <p>ReTable 按 rowKey 字段聚合选中行，默认值是 id；被管理的库表未必有 id 列
+ * <p>必须按「库.表」分键：DBM 是单 ReTable 实例复用、切表只换 props.columns；
+ * 不传 tableId 时组件回落到路由 path（db-manager 路由），所有表的列序共用
+ * 同一个存档 —— A 表拖完的顺序会把 B 表的覆盖掉，刷新就串。以前「表头列
+ * 一动就丢失」的真因不是没落盘，是存档被别的表反复覆盖了。</p>
+ *
+ * @returns 数据源.库.表 三段键；切表时自动换键，组件的 tableId/columns
+ * watcher 会重载对应存档（仅当季数据，无意义的顺序也被过滤）。
+ */
+const tableGridId = computed(() => {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return "";
+  return `dbm-grid:${currentDatasourceId.value}.${tab.database || activeDatabase.value}.${tab.tableName}`;
+});
+
+/**
+ * ReTable 多选聚合键。 按 rowKey 字段聚合选中行，默认值是 id；被管理的库表未必有 id 列
  * （例如 MySQL 任意业务表），rowKey 取不到值时选中行会被聚合成空数组，
  * 表现为勾选框可选但「已选 N 行 / 删除选中」不出现。这里优先用真实主键列，
  * 无主键表退回首列，仍无列时回退组件默认值。</p>
@@ -4509,8 +4545,7 @@ async function saveCell(row: Record<string, any>, col: string) {
     }
     message.success(`已更新 ${col}`);
     row[col] = newValue;
-    loadPkInfo(tab);
-    refreshTableData();
+    void silentRefreshTableData(tab);
   } catch (e) {
     message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
     refreshTableData();
@@ -5632,6 +5667,8 @@ function openTableData(tableName: string, database = activeDatabase.value) {
   // 但不能只清不恢复 —— 用户为这张表配好的条件会白配。
   restoreTablePref(tab);
   tableData.page = 1;
+  // 后端看 count 参数：关闭统计总数（showTotal=false）时跳过 COUNT(*) ——
+  // COUNT 是全表扫描，关掉后翻页请求只剩 SELECT+LIMIT/OFFSET（DbConsoleController.getTableData）。
   loadTableData(tab);
 }
 
@@ -6249,6 +6286,8 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
     }
     Object.assign(tableData, result);
     if (!showTotal.value) {
+      // 后端已经按 count 参数跳过 COUNT(*)（count=false 时 total 回 -1）：
+      // COUNT 是全表扫描，大表关掉后翻页请求只剩 SELECT+LIMIT/OFFSET。
       tableData.total = -1;
     }
     void loadColumnComments(tab);
@@ -6291,6 +6330,8 @@ function onPageChange(page: number) {
 function onPageSizeChange(size: number) {
   tableData.pageSize = size;
   tableData.page = 1;
+  // 后端看 count 参数：关闭统计总数（showTotal=false）时跳过 COUNT(*) ——
+  // COUNT 是全表扫描，关掉后翻页请求只剩 SELECT+LIMIT/OFFSET（DbConsoleController.getTableData）。
   loadTableData(activeTabObj.value, 1);
 }
 
@@ -6301,6 +6342,95 @@ function refreshTableData() {
   const tab = activeTabObj.value;
   if (tab?.tableName) {
     loadTableData(tab);
+  }
+}
+
+/**
+ * 静默刷新的写回：保持 rows / columns 两个数组的引用不变。
+ *
+ * <p>vxe-table 对 data prop 的换引用与长度变化各管一个 watch
+ * （vxe-table es table.js 14185-14198），命中即走内部
+ * loadTableData —— 期间 reactData.isRowLoading 为 true，
+ * 整表 loading 遮罩会亮数帧（3796 置位、3894 经三轮
+ * nextTick 才复位）；columns prop 换引用同样会触发列重建
+ * （isColLoading）。遮罩一闪正是「静默刷新」要消灭的闪烁，
+ * 故同行数时逐行写回字段、列名列表内容不变时保留原数组，
+ * 让 prop 引用纹丝不动，vxe 的两个 watch 都不触发。</p>
+ *
+ * @param cur 当前表数据（被原地写回）
+ * @param next 接口返回的新数据
+ */
+function writeBackSilently(cur: DbTableDataResult, next: DbTableDataResult): void {
+  const rows = cur.rows;
+  if (next.rows.length === rows.length) {
+    // 同行数：逐行写回字段，数组与行对象引用都不变
+    for (let i = 0; i < rows.length; i++) {
+      Object.assign(rows[i], next.rows[i]);
+    }
+  } else {
+    // 行数变了（他人并发增删）：真实数据变化，换数组走正常重载
+    cur.rows = next.rows;
+  }
+  // 列名列表：内容不变就不换引用 —— tableColumns 依赖它，
+  // 换引用会重算并换掉 ReTable 的 columns prop
+  if (
+    next.columns.length !== cur.columns.length ||
+    next.columns.some((c, i) => c !== cur.columns[i])
+  ) {
+    cur.columns = next.columns;
+  }
+  cur.total = next.total;
+  cur.page = next.page;
+  cur.pageSize = next.pageSize;
+}
+
+/**
+ * 静默刷新当前表数据（单元格编辑保存后用）：与 {@link refreshTableData} 同一条
+ * 数据链路，区别是**不打开 tableLoading 遮罩** —— 整页刷新那下闪烁太明显，
+ * 用户会以为页面重载了一次。实现上直接调 fetchTableData 并写回 tableData，
+ * 不经过 loadTableData（它第一件事就是把 loading 顶成 true）。
+ *
+ * <p>写回走 {@link writeBackSilently} 原地写回：不换 rows / columns
+ * 数组引用，否则 vxe 检测到 prop 换引用会走内部重载、亮起整表
+ * loading 遮罩数帧（isRowLoading / isColLoading），那一下闪烁
+ * 正是本函数要避免的。</p>
+ *
+ * <p>列注释 / 类型 / 主键不随单元格保存变化，这里不再
+ * loadColumnComments / loadPkInfo —— 它们会重算 tableColumns
+ * 换掉 columns prop，同样触发 vxe 列重建遮罩；首次开表时
+ * loadTableData 已载好。</p>
+ *
+ * <p>切表/换页签的竞态照抄 loadTableData 的序号守卫：静默刷新飞在路上时
+ * 用户切了表，过期响应直接丢弃。</p>
+ *
+ * @param tab 当前表页签
+ */
+async function silentRefreshTableData(tab: Tab | undefined) {
+  if (!tab?.tableName) return;
+  const seq = ++tableDataReqSeq.value;
+  try {
+    const result = await fetchTableData(
+      tab.tableName,
+      tableData.page,
+      tableData.pageSize,
+      sortState.prop || undefined,
+      sortState.order || undefined,
+      currentDatasourceId.value,
+      tab.database,
+      showTotal.value,
+      filterWhere.value || undefined,
+      activeFilters.value.length > 0 ? activeFilters.value : undefined,
+    );
+    if (seq !== tableDataReqSeq.value || activeTab.value !== tab.id) {
+      return;
+    }
+    writeBackSilently(tableData, result);
+    if (!showTotal.value) {
+      tableData.total = -1;
+    }
+  } catch {
+    // 静默刷新的失败不打断主流程：单元格的值已经乐观写进去了，
+    // 刷不出来顶多是过期数据，下一次切页/排序/显式刷新会自然对齐。
   }
 }
 
@@ -7406,15 +7536,22 @@ onBeforeUnmount(() => {
    工具条撑高一档、左右卡片高度对不齐。scoped 里只留布局，不再自写一套卡片壳。 */
 .dbm-toolbar {
   display: flex;
-  align-items: center;
+  /* 右侧簇换行落分页条时，左侧簇贴主行顶部 —— 两大簇不因分页换行而错位 */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: nowrap;
 }
 .dbm-toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 0 1 auto; min-width: 0; }
 .dbm-toolbar-hint { font-size: 12px; color: var(--el-text-color-placeholder); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* 右侧：数据源下拉与刷新按钮之间不留多余间距 */
-.dbm-toolbar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: nowrap; }
+/* 右侧：数据源下拉与刷新按钮之间不留多余间距；
+    表页签激活时这里还要吃下「分页条」，允许整体换行（.dbm-pager-bar），
+    换行只发生在右侧簇内部 —— 左侧簇与右侧簇的主行对齐不受影响。 */
+.dbm-toolbar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+/* 分页条：表页签激活时跟在右侧簇末尾（要求 1.2 的 COUNT 跟随分页形态走，
+    与 .dbm-simple-pager 共用 52px 高，避免统计总数开关切换时工具条抖动）。 */
+.dbm-pager-bar { display: flex; align-items: center; justify-content: flex-end; height: 52px; flex: none; }
+.dbm-pager-bar .dbm-simple-pager { height: 52px; }
 /* 统计总数开关（ConsoleSwitch 的 radio 胶囊）：ep-radio-group 是换行 flex，
    一旦被压窄就会把「是 / 否」竖着叠成两行，连带把整个工具条顶高 ——
    钉死不缩，胶囊恒定单行，工具条高度才不随页签切换抖动。 */
@@ -7522,13 +7659,16 @@ onBeforeUnmount(() => {
   gap: 10px;
   flex-wrap: wrap;
 }
+/* 顶层工具条里的表名/模式/动作行（要求 1 上迁）：锚类 .dbm-table-toolbar 只是
+    为了让验收套件的选择器继续命中，布局复用左侧簇 —— 不缩不换的钉死规则
+    只在网格那一层需要，上迁后由 .dbm-toolbar-left 的 wrap 自然换行。 */
 /* 设计视图：动作条跟在同一行，右侧对齐；不再单独占一行 */
 .dbm-design-toolbar .dbm-col-actions { margin-left: auto; }
 /* 表名过长时用省略号收住，否则会把第一行内容顶到第二行 */
-.dbm-table-toolbar .dbm-table-name {
+.dbm-table-name {
   flex: 0 1 auto;
   min-width: 60px;
-  max-width: 300px;
+  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7536,17 +7676,8 @@ onBeforeUnmount(() => {
 /* 工具条第一行：模式分段与动作按钮都是固定宽度，不缩不换 */
 .dbm-table-toolbar .dbm-subtabs { flex: none; }
 .dbm-table-toolbar .re-button__tip-wrap { flex: none; }
-/* 分页独占一整行（flex-basis 100%）且右对齐：页码数 / 总位数 / 统计总数开关
-   变化时只动分页器自己的左缘，第一行内容与工具条总高恒定 —— 点分页零位移的关键。
-   52px = el-pagination 的自然高度（实测），与简易分页形态共用这个高度，
-   切「统计总数」开关时两种形态高度一致，工具条总高不变。 */
-.dbm-pager-row {
-  flex: 1 0 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 52px;
-}
+/* 分页条已整体上迁到顶层工具条右侧（.dbm-pager-bar）：网格内的独占整行
+    .dbm-pager-row 结构作废，分页 52px 等高规则见 .dbm-pager-bar 段。 */
 .dbm-table-name { font-weight: 700; font-size: 14px; color: var(--el-text-color-primary); }
 /* 动作条下方的说明行：合并工具条后单独一行，占位极小 */
 .dbm-col-hint { font-size: 12px; color: var(--el-text-color-placeholder); padding: 2px 0; }
@@ -8168,10 +8299,31 @@ onBeforeUnmount(() => {
 .dbm-cell-value:hover { background: var(--el-color-primary-light-9); }
 .dbm-cell-pk { color: var(--el-text-color-placeholder); cursor: not-allowed; }
 .dbm-cell-edit {
-  margin: -4px -8px;
-  padding: 4px 8px;
+  margin: 0;
+  padding: 0;
   background: var(--el-color-primary-light-9);
+  /* 编辑框吃满整个格：ReInput 根是 display:contents（无盒），
+     el-input 会自动铺到父盒宽度；左右 -4/-8 的负 margin 以前是
+     想「出血」盖住格边框，实测反而留了一圈缝 —— 归零后贴边。 */
 }
+/* 吃满「整个」cell：vxe 单元格自带左右内边距（实测 12/16px），
+   只归零 .dbm-cell-edit 自身仍比格窄一圈。编辑态把格链 padding
+   一起清零，编辑框才真正贴满格边界（行高由 vxe 内联 height 决定，
+   清 padding 不影响行高）。:has 只命中正在编辑的那一列。 */
+:deep(.vxe-body--column):has(.dbm-cell-edit) {
+  padding: 0 !important;
+}
+/* vxe 在省略列（show-overflow）还给 .vxe-cell 设内联
+   width = renderWidth - cellOffsetWidth（border 表的滚动条补偿，
+   实测 4px）——只清 padding 右缘仍差这 4px。编辑态覆盖为 auto，
+   编辑框才真正吃满整个 td（.vxe-cell 是块级 flex，auto 即铺满
+   td 内容盒）；:has 只命中正在编辑的那一列，不动其他列的补偿。 */
+:deep(.vxe-body--column):has(.dbm-cell-edit) > .vxe-cell {
+  padding: 0 !important;
+  width: auto !important;
+}
+.dbm-cell-edit :deep(.el-input),
+.dbm-cell-edit :deep(textarea) { width: 100%; }
 .dbm-cell-edit :deep(.el-input__inner),
 .dbm-cell-edit :deep(textarea) { background: transparent; }
 

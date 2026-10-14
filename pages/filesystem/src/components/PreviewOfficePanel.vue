@@ -139,20 +139,26 @@ let fileViewerReady = false;
 async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   try {
-    const [bridgeOk, fillOk, vueMod, presetMod, cssMod] = await Promise.all([
+    const [bridgeOk, fillOk, vueMod, presetMod, cssMod, coreMod] = await Promise.all([
       installEVirtTableSelectionBridge(),
       installEVirtTableFillerColumns(),
       import("@file-viewer/vue3-full"),
       import("@file-viewer/preset-office"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
+      import("@file-viewer/core"),
     ]);
     if (!fillOk) {
       // 非门闩：补列失败仅右侧留白（原状），不影响预览与统计
       console.warn("[PreviewOfficePanel] e-virt-table 窄表格补列补丁未生效");
     }
     void cssMod; // 样式副作用导入（shadow 模式下组件也会自注入，此处冗余但无害）
+    // full 层 + core 层都要显式指到前端同源：core 层不设时会走 automatic
+    // 推断，把 file-viewer 运行期 chunk 拼到存储域（文件字节的来源），
+    // 于是 /assets/*.js 请求失败、渲染器整体崩掉。详见 FvPanelBase 的注释。
     (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
       .setDefaultFullAssetBaseUrl?.("/");
+    (coreMod as { setDefaultFileViewerAssetBaseUrl?: (base?: string | URL | null) => void })
+      .setDefaultFileViewerAssetBaseUrl?.("/");
     officePreset =
       (presetMod as { default?: unknown; officeRenderers?: unknown }).default
       ?? (presetMod as { officeRenderers?: unknown }).officeRenderers;

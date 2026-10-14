@@ -6,7 +6,7 @@
   cron 用 ReCron：面板生成 + 合法性 + 未来触发时间都在页面上算，与服务端同一套 6 字段方言。
 -->
 <script setup lang="ts">
-  import { computed, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, withDefaults } from "vue";
+  import { computed, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref } from "vue";
 import { msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReCron from "@repo/ui/re-cron";
@@ -21,6 +21,7 @@ import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import CategoryDialog from "../components/CategoryDialog.vue";
 import FlowDesigner from "../components/FlowDesigner.vue";
+import PairsEditor from "../components/PairsEditor.vue";
 import {
   aiGenerateFlow,
   copyFlow,
@@ -56,12 +57,14 @@ import { confirmAction, errText, useCollectView } from "../composables/useCollec
     CollectFlow,
     CollectFlowSave,
     CollectOption,
+    CollectParam,
     CollectRuntime,
     CollectShapeMeta,
     CollectTask,
     CollectTaskLog,
   } from "../types/collect";
   import type { PlaceholderGroup } from "../components/nodes/paramContext";
+  import type { ParamPair } from "../utils/dsl";
 
 defineOptions({ name: "CollectDesign" });
 
@@ -372,6 +375,7 @@ function applyFlow(flow: CollectFlow): void {
   form.remark = flow.collectFlowRemark ?? "";
   cronBroken.value = false;
   designer.value?.load(flow.dsl);
+  applyGlobalPairs(flow.dsl);
   states.value = {};
   dirty.value = false;
 }
@@ -424,6 +428,7 @@ function resetToNewFlow(): void {
   form.remark = "";
   cronBroken.value = false;
   designer.value?.startWith(form.name);
+  applyGlobalPairs(null);
   dirty.value = true;
   propsVisible.value = true;
 }
@@ -437,6 +442,45 @@ async function newFlow(): Promise<void> {
 
 /* -------------------------------- 保存与执行 ------------------------------- */
 
+/**
+ * 流程级全局数据（请求头 / Cookie / 变量）。
+ *
+ * <p>原设计器「全局数据」页签的内容，按要求收敛进「流程属性」弹窗编辑；
+ * 设计器属性面板只留「节点参数」。DSL 里的 headers / cookies / variables
+ * 是 ${var} 表达式的唯一来源（CollectExpression 解析 variables map），
+ * 保存 / 提交前由 graphOf 并回 DSL。</p>
+ */
+const globalPairs = ref<{
+  headers: ParamPair[];
+  cookies: ParamPair[];
+  variables: ParamPair[];
+}>({ headers: [], cookies: [], variables: [] });
+
+function pairsOf(params: CollectParam[] | null | undefined): ParamPair[] {
+  return (params ?? []).map(item => ({ key: item.name, value: item.value ?? "" }));
+}
+
+/** 从 DSL 装载全局数据（流程装载 / AI 生成后同步） */
+function applyGlobalPairs(dsl: CollectDsl | null | undefined): void {
+  globalPairs.value = {
+    headers: pairsOf(dsl?.headers),
+    cookies: pairsOf(dsl?.cookies),
+    variables: pairsOf(dsl?.variables),
+  };
+}
+
+function toCollectParams(pairs: ParamPair[]): CollectParam[] {
+  return pairs
+    .filter(pair => pair.key.trim() !== "")
+    .map(pair => ({ name: pair.key.trim(), value: pair.value ?? "", description: null }));
+}
+
+/** 弹窗里改完全局数据：写回并标记脏（自动保存依赖它） */
+function setGlobalPairs(field: "headers" | "cookies" | "variables", pairs: ParamPair[]): void {
+  globalPairs.value[field] = pairs;
+  dirty.value = true;
+}
+
 function graphOf(): CollectDsl | null {
   const dsl = designer.value?.getGraph();
   if (!dsl) {
@@ -447,7 +491,20 @@ function graphOf(): CollectDsl | null {
     msgWarning("流程图还没有节点");
     return null;
   }
+  // 执行前校验：类型未注册的节点（后端执行器未启用）一律拦下，
+  // 不让「设计器能编、执行才炸」的事再发生
+  const issues = designer.value?.shapeIssues ?? [];
+  if (issues.length) {
+    msgError(
+      `节点类型未注册：${issues.map(item => `「${item.name}」(${item.shape})`).join("、")}。请删除或替换这些节点`,
+    );
+    return null;
+  }
   dsl.name = form.name || dsl.name;
+  // 全局数据在「流程属性」弹窗里编辑，提交前并回 DSL
+  dsl.headers = toCollectParams(globalPairs.value.headers);
+  dsl.cookies = toCollectParams(globalPairs.value.cookies);
+  dsl.variables = toCollectParams(globalPairs.value.variables);
   return dsl;
 }
 
@@ -521,6 +578,7 @@ async function aiGenerate(): Promise<void> {
   try {
     const dsl = await aiGenerateFlow(input);
     designer.value?.load(dsl);
+    applyGlobalPairs(dsl);
     if (dsl?.name && !form.name) {
       form.name = dsl.name;
     }
@@ -814,6 +872,34 @@ async function refreshStates(): Promise<void> {
           <span class="collect-form__label">线程数</span>
           <ReInputNumber v-model="form.threadCount"  :min="1" :max="64" controls-position="right"/>
           <span class="collect-hint collect-hint--muted">流程内节点并行执行线程数</span>
+        </div>
+        <div class="collect-form__item collect-form__item--stack">
+          <span class="collect-form__label">全局请求头</span>
+          <PairsEditor
+            :model-value="globalPairs.headers"
+            key-placeholder="Header 名"
+            @update:model-value="(v: ParamPair[]) => setGlobalPairs('headers', v)"
+          />
+          <span class="collect-hint collect-hint--muted">所有节点的请求都会带上这些 Header</span>
+        </div>
+        <div class="collect-form__item collect-form__item--stack">
+          <span class="collect-form__label">全局 Cookie</span>
+          <PairsEditor
+            :model-value="globalPairs.cookies"
+            key-placeholder="Cookie 名"
+            @update:model-value="(v: ParamPair[]) => setGlobalPairs('cookies', v)"
+          />
+          <span class="collect-hint collect-hint--muted">所有节点的请求都会带上这些 Cookie</span>
+        </div>
+        <div class="collect-form__item collect-form__item--stack">
+          <span class="collect-form__label">流程变量</span>
+          <PairsEditor
+            :model-value="globalPairs.variables"
+            key-placeholder="变量名"
+            value-placeholder="值 / ${表达式}"
+            @update:model-value="(v: ParamPair[]) => setGlobalPairs('variables', v)"
+          />
+          <span class="collect-hint collect-hint--muted">下游节点用 ${变量名} 引用；值支持 ${表达式}</span>
         </div>
         <div class="collect-form__item collect-form__item--stack">
           <span class="collect-form__label">备注</span>

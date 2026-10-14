@@ -252,7 +252,7 @@ prom-embed-probe.mjs
 **/dev-*.err
 **/acceptance-report.prev.json
 
-# һ�������/̽��/���ֽű����ͼ��probe- ǰ׺��diag- ǰ׺��repro- ǰ׺��
+# һ�������/̽��/���ֽű����ͼ��probe- ǰ׺��diag- ǰ׺��repro- ǰ׺��
 **/probe-*.mjs
 **/diag-*.mjs
 **/ds-layout-check.*
@@ -268,3 +268,14 @@ prom-embed-probe.mjs
 **/__*.mjs
 **/__*.mts
 crud-ui-test.mjs
+
+# UI 点击扫掠批次/运行产物（按批次与日期命名的扫掠快照，非源码）
+**/.ui-click-sweep-*/
+**/.e2e-preview/
+**/playwright-report-accept/
+**/playwright-repicker-report/
+**/accept-vite-*.config.mts
+**/func-spot*
+**/func-restore.mjs
+**/sweep-analyze.cjs
+**/sweep-disabled.cjs

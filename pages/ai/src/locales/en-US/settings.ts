@@ -7,13 +7,13 @@
 
   display: {
     askPanelWidth: {
-      title: 'Right Q&A panel width',
-      desc: 'Narrow = fixed comfortable reading width, more room for the document list. Full = the Q&A panel fills the remaining space, great for long answers on wide screens.',
+      title: 'Right-side display width',
+      desc: 'Narrow = the content column keeps a comfortable reading width and stays centered; Full = the content area fills the remaining space. Applies to the main content area of pages such as sessions, the settings center and the knowledge base.',
       narrow: 'Narrow',
       full: 'Full',
       preview: 'Layout preview',
-      hintNarrow: 'The Q&A panel keeps a comfortable reading width; the document list gets more room',
-      hintFull: 'The Q&A panel fills the remaining space so long answers fit at a glance',
+      hintNarrow: 'The content column keeps a comfortable reading width and stays centered',
+      hintFull: 'The content area fills the remaining space so long content fits at a glance',
       saveFailed: 'Failed to save. Please try again later.',
     },
   },

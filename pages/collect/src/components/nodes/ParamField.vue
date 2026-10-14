@@ -716,6 +716,9 @@ function typeOf(key: string): string {
   margin-top: 4px;
   font-size: 11px;
   line-height: 1.45;
+  /* 长说明 / 长表达式必须换行，否则撑出横向滚动条 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   /* 原为 #a3abb6：比任何主题令牌都浅，暗色下几乎不可读（对比度不足 4.5:1）。
      说明文字最浅只到 secondary，这是可访问性下限，不要再往回改。 */
   color: var(--el-text-color-secondary);

@@ -36,6 +36,28 @@ export interface SocketIOConfig {
 }
 
 /**
+ * 清除服务端握手响应（Set-Cookie）种下的陈旧会话 cookie。
+ *
+ * netty-socketio 的 AuthorizeHandler 在 randomSession=false（默认）时会直接取
+ * 请求里的 io cookie 值作为新会话 id。浏览器把上一次握手的 io=<sid> 存在源上，
+ * 之后任何新建的 socket.io 客户端握手都会带着它「复用」该会话。旧实例被
+ * disconnect 后，netty 侧会话与通道仍是僵尸态（releasePollingChannel 只解绑
+ * channel、不删 ClientHead，pingTimeout 到期前会话一直可查），新实例复用僵尸
+ * 会话后 CONNECT_ACK 永远投递不到，表现为 connect 事件永不触发、全部订阅静默
+ * ——监控页数值冻结的根因。每次新建连接前清掉该 cookie，强制服务端签发全新会话。
+ */
+function clearSocketSessionCookie(): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const expired = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  // Set-Cookie 未带 Path 时默认路径为请求 URI 目录（/socket.io），多写几个路径兜底
+  for (const path of ["/socket.io", "/socket.io/", "/"]) {
+    document.cookie = `io=; path=${path}; ${expired}`;
+  }
+}
+
+/**
  * 创建 Socket.IO 服务
  *
  * @param config 配置
@@ -80,6 +102,11 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       return;
     }
 
+    // 新建连接前清掉陈旧会话 cookie：netty 会用 io cookie 复用上一个已被
+    // disconnect 的僵尸会话，导致新实例永远收不到 CONNECT_ACK（详见
+    // clearSocketSessionCookie 注释）
+    clearSocketSessionCookie();
+
     socketInstance = io(url, {
       path: config.context || "/socket.io",
       transports,
@@ -89,8 +116,18 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       reconnectionDelay: config.reconnectionDelay ?? 1000,
       reconnectionDelayMax: 5000,
       timeout: 8000,
-      query: {
+      // token 走消息头，不再拼进 URL query：accessToken 是长 JWT，放进 query 会让
+      // 握手 URL 变得很长，还会泄进访问日志 / 浏览器历史 / 代理访问记录。
+      //
+      // 传输限制（务必知情）：extraHeaders 只在 **polling** 传输的 HTTP 握手里以
+      // x-oauth-token 头发送；纯 websocket 传输下浏览器 WebSocket 握手不允许自定义头，
+      // 该头不发送。当前 socket 服务端不校验 token（无 AuthorizationListener，连接即收），
+      // 故不发送也不影响连接；若将来后端启用了 socket 鉴权，必须保留 polling 作为初始
+      // 传输（代码默认 ["polling","websocket"] 正是为此，只有 app.yaml 强制 websocket-only）。
+      extraHeaders: {
         "x-oauth-token": token || "",
+      },
+      query: {
         ...config.query,
       },
     });
@@ -215,6 +252,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       isConnected.value = false;
       downSince = 0;
     }
+    // 主动拆除时同步清掉会话 cookie，避免后续新建连接复用僵尸会话
+    clearSocketSessionCookie();
   };
 
   const on = (

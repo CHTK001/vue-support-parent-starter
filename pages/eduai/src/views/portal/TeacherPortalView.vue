@@ -216,39 +216,10 @@
         </el-tab-pane>
 
         <!-- ==================== 阅卷 ==================== -->
+        <!-- 整套阅卷（工具栏 / 记录列表 / 详情 / 上传 / 分布）收敛到 MarkingWorkbench，
+             与管理端共用同一套 UI 与样式；mode=teacher 只保留老师可用的操作 -->
         <el-tab-pane label="阅卷" name="mark">
-          <div class="tp-mark">
-            <div class="tp-mark__form">
-              <div class="tp-mark__row">
-                <!-- 上传答卷：独立弹窗（拖拽 + 点击），阅卷系统共享组件 -->
-                <el-button type="primary" @click="markUploadVisible = true">上传答卷阅卷</el-button>
-                <span class="tp-mark__hint">支持拖拽图片或点击选择；自有卷按题号取分，任意卷手动给总分；学生可留空匿名阅卷</span>
-              </div>
-            </div>
-
-            <!-- 试卷详情：汇总 + 原始试卷 / 版面解析一体（阅卷系统共享组件）；改分在版面解析面板，AI 分保留 -->
-            <div v-if="markResult" class="tp-mark__sheet">
-              <MarkingResultPanel
-                :result="markResult"
-                :refresh-key="markSheetKey"
-                @saved="onMarkSaved"
-              />
-            </div>
-
-            <div class="tp-mark__tasks">
-              <div class="tp-side__head">
-                <span>我的阅卷记录（试卷）</span>
-                <el-button size="small" @click="loadMarkTasks">刷新</el-button>
-              </div>
-              <!-- 阅卷任务记录表（阅卷系统共享组件） -->
-              <MarkingTaskTable
-                :tasks="markTasks"
-                :papers="papers"
-                :scores="markTaskScores"
-                @view="loadTaskResult"
-              />
-            </div>
-          </div>
+          <MarkingWorkbench mode="teacher" :students="students" />
         </el-tab-pane>
       </el-tabs>
     </section>
@@ -381,15 +352,6 @@
       </div>
     </ReDialog>
 
-    <!-- 上传答卷阅卷：独立弹窗，支持拖拽与点击（阅卷系统共享组件） -->
-    <MarkingUploadDialog
-      v-model="markUploadVisible"
-      :papers="papers"
-      :students="students"
-      :submitting="marking"
-      @start="onMarkStart"
-    />
-
     <!-- 老师上传题目：默认进待审核队列，管理员可配自动通过 -->
     <ReDialog v-model="qUploadVisible" title="老师上传题目" width="560px" destroy-on-close>
       <el-form label-width="80px">
@@ -440,10 +402,8 @@ import type {
   DimensionDropdown,
   EduClass,
   EduStudent,
-  MarkingResultVO,
   Paper,
   PaperAssignVO,
-  TeacherMarkingTask,
   TeacherOverview,
 } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -452,9 +412,7 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import PaperComposeView from "../PaperComposeView.vue";
-import MarkingUploadDialog from "../../components/marking/MarkingUploadDialog.vue";
-import MarkingResultPanel from "../../components/marking/MarkingResultPanel.vue";
-import MarkingTaskTable from "../../components/marking/MarkingTaskTable.vue";
+import MarkingWorkbench from "../../components/marking/MarkingWorkbench.vue";
 import ReConfirmDialog from "../../components/shared/ReConfirmDialog.vue";
 
 /** 统一确认弹窗实例（删除学生 / 撤回布置 / 归档等二次确认） */
@@ -989,122 +947,6 @@ async function archivePaper(row: Paper) {
   }
 }
 
-/* ==================== 阅卷 ==================== */
-const marking = ref(false);
-/** 上传答卷弹窗可见性（共享组件：拖拽 + 点击） */
-const markUploadVisible = ref(false);
-const markResult = ref<MarkingResultVO | null>(null);
-const markTasks = ref<TeacherMarkingTask[]>([]);
-/** 任务号 → 总分快照（列表展示用，已完成的任务后台补齐） */
-const markTaskScores = ref<Record<string, { ai: number; final: number }>>({});
-/** 结构视图刷新令牌：每次点「查看」或判分完成时递增，强制重挂载拿最新结构 */
-const markSheetKey = ref(0);
-
-/** AI 总分 / 老师总分：老师总分 = Σ(老师分 ?? AI 分)，老师为主（与后端 totalScore 同口径） */
-function scoreOf(res: MarkingResultVO | null) {
-  let ai = 0;
-  let final = 0;
-  for (const r of res?.results ?? []) {
-    ai += Number(r.score ?? 0);
-    final += Number(r.teacherScore ?? r.score ?? 0);
-  }
-  return { ai, final };
-}
-
-/**
- * 上传答卷弹窗（共享组件）回调：把弹窗收集的表单与文件组装成
- * 扫描任务载荷提交；随后轮询结果并刷新任务列表。
- *
- * @param payload 弹窗表单（模式 / 试卷 / 学生 / 总分 / 文件）
- */
-async function onMarkStart(payload: {
-  mode: "SELF" | "ANY";
-  paperId: number | null;
-  studentId: string;
-  maxScore: number;
-  files: File[];
-}) {
-  const form = new FormData();
-  payload.files.forEach((f) => form.append("file", f));
-  form.append("mode", payload.mode);
-  if (payload.paperId != null) {
-    form.append("paperId", String(payload.paperId));
-  }
-  if (payload.studentId) {
-    form.append("studentId", payload.studentId);
-  }
-  form.append("maxScore", String(payload.maxScore));
-  marking.value = true;
-  try {
-    const taskId = await eduaiApi.scanMarking(form);
-    message.success("已提交，正在阅卷…");
-    markUploadVisible.value = false;
-    await pollResult(taskId);
-    await loadMarkTasks();
-  } catch (e) {
-    message.error(`阅卷失败：${e instanceof Error ? e.message : String(e)}`);
-  } finally {
-    marking.value = false;
-  }
-}
-
-/** 轮询阅卷结果（最长约 2 分钟） */
-async function pollResult(taskId: string) {
-  for (let i = 0; i < 60; i++) {
-    const res = await eduaiApi.getMarkingResult(taskId);
-    markResult.value = res;
-    if (res?.finished) {
-      // 判分终态：重挂结构视图，把判分期间新增的题目/分数刷出来
-      markSheetKey.value += 1;
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-}
-
-async function loadTaskResult(row: TeacherMarkingTask) {
-  try {
-    // 每次点「查看」都重挂结构视图：避免复用旧缓存，看到别次改动前的分数
-    markSheetKey.value += 1;
-    markResult.value = await eduaiApi.getMarkingResult(row.markingTaskTaskId);
-  } catch (e) {
-    message.error(`结果加载失败：${e instanceof Error ? e.message : String(e)}`);
-  }
-}
-
-/** 老师分保存成功：刷新汇总与记录列表（结构视图自身已重载） */
-async function onMarkSaved() {
-  if (!markResult.value) return;
-  try {
-    markResult.value = await eduaiApi.getMarkingResult(markResult.value.taskId);
-  } catch {
-    // 刷新失败保留旧值，保存动作本身已成功
-  }
-  void loadMarkTasks();
-}
-
-async function loadMarkTasks() {
-  try {
-    const rows = await eduaiApi.teacherMarkingTasks(30);
-    markTasks.value = [...rows].sort((a, b) => (b.markingTaskId ?? 0) - (a.markingTaskId ?? 0));
-  } catch {
-    markTasks.value = [];
-  }
-  // 已完成的任务后台补齐 AI / 老师总分，不阻塞列表首屏
-  void Promise.all(
-    markTasks.value
-      .filter((t) => Number(t.markingTaskStatus) === 2 && t.markingTaskTaskId && !markTaskScores.value[t.markingTaskTaskId])
-      .map(async (t) => {
-        try {
-          const res = await eduaiApi.getMarkingResult(t.markingTaskTaskId);
-          markTaskScores.value[t.markingTaskTaskId] = scoreOf(res);
-        } catch {
-          // 单条失败不影响列表其余行
-        }
-      })
-  );
-}
-
 /* ==================== 老师上传题目（待审核） ==================== */
 /** 老师上传题目弹窗可见性 */
 const qUploadVisible = ref(false);
@@ -1160,7 +1002,6 @@ onMounted(() => {
   void loadPapers();
   void loadAssigns();
   void loadAiCapability();
-  void loadMarkTasks();
 });
 </script>
 
@@ -1398,61 +1239,6 @@ onMounted(() => {
   color: var(--el-color-danger);
 }
 
-/* ----- 阅卷 ----- */
-.tp-mark__form {
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-}
-.tp-mark__row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.tp-mark__row:last-child {
-  margin-bottom: 0;
-}
-.tp-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--el-text-color-regular);
-}
-.tp-mark__hint {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.tp-mark__sum {
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: var(--el-text-color-regular);
-}
-.tp-mark__sum b {
-  color: var(--el-color-primary);
-  font-size: 18px;
-}
-.tp-mark__tag {
-  margin-left: 8px;
-}
-.tp-mark__td-final {
-  color: var(--el-color-success);
-  font-weight: 700;
-}
-.tp-mark__sheet {
-  height: 560px;
-  padding: 4px 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  overflow: hidden;
-}
-.tp-mark__tasks {
-  margin-top: 20px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  overflow: hidden;
-}
 .tp-tip {
   margin: 0;
   font-size: 12px;

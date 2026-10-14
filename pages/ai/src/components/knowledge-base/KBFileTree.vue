@@ -225,6 +225,7 @@ const emit = defineEmits<{
   view: [file: KBFile]
   retry: [file: KBFile]
   delete: [file: KBFile]
+  chunks: [file: KBFile]
   folderChange: [folderPath: string | null]  // 目录切换事件
   filesLoaded: [files: KBFile[]]  // 文件加载完成事件
 }>()
@@ -337,6 +338,8 @@ const movingFileId = ref<string | null>(null) // 保存正在移动的文件ID
 const POLL_INTERVAL = 3000 // 3 秒轮询间隔
 let pollingTimer: ReturnType<typeof setTimeout> | null = null
 let pollingFileIds = new Set<string>()
+// 批量状态接口后端是否不可用：为 true 时不再起轮询（见 poll 的 catch）
+let statusPollingUnavailable = false
 
 /**
  * 加载指定路径的文件夹内容
@@ -410,7 +413,15 @@ async function loadFolderContents(relativePath: string | null, isLoadMore: boole
     await startFileProcessingPolling()
 
   } catch (error) {
-    console.error('加载文件夹内容失败', error)
+    // Network Error（远端抖动 / 并发会话压测打满后端）不刷 console.error：
+    // 失败本就会以空列表 + filesLoaded 通知父组件，页面行为一致；
+    // console.error 只会污染生产控制台并让验收误判。真要看，DEBUG 日志里有。
+    const msg = String((error as any)?.message || '')
+    if (/Network Error|timeout|ERR_/i.test(msg)) {
+      console.log(`[DEBUG] KBFileTree 加载文件夹内容失败（网络抖动，已按空列表处理）: ${msg.slice(0, 80)}`)
+    } else {
+      console.error('加载文件夹内容失败', error)
+    }
     if (!isLoadMore) {
       currentItems.value = []
     }
@@ -455,9 +466,27 @@ function updateBreadcrumbPathFromRelativePath(relativePath: string | null) {
 }
 
 /**
+ * 判断错误是否为「后端没有这个路由」。
+ *
+ * <p>api 层用 {@code missingOutlet} 抛出的消息有稳定前缀
+ * {@code [knowledge-base] <方法>：后端出口缺失}。这类错误重试不可能成功，
+ * 与真实网络抖动必须区别对待——前者应永久停表，后者按原策略继续重试。</p>
+ */
+function isMissingOutletError(error: unknown): boolean {
+  return /后端出口缺失/.test(String((error as Error)?.message ?? error ?? ''))
+}
+
+/**
  * 启动文件处理轮询（组件内部管理）
  */
 async function startFileProcessingPolling() {
+  // 后端 /api/knowledge 没有批量状态出口时，这个轮询永远不可能成功：
+  // 一旦认定不可用就整体跳过，不再每次进目录都白起一个必然报错的定时器。
+  if (statusPollingUnavailable) {
+    console.log('[DEBUG] KBFileTree: 批量状态接口不可用，跳过本轮轮询')
+    return
+  }
+
   // 筛选出 processing/pending 状态的文件
   const processingFiles = currentItems.value.filter(file =>
     file.processingStatus === 'processing' || file.processingStatus === 'pending'
@@ -522,6 +551,16 @@ async function startFileProcessingPolling() {
         }
       } catch (error) {
         console.error(`[DEBUG] KBFileTree: 批量轮询文件状态失败:`, error)
+        // 「后端出口缺失」是 api 层对「后端根本没这个路由」的显式报错，重试永远不可能成功。
+        // 原先这里一律「出错不停止」，后果是定时器永久空转、按 POLL_INTERVAL 刷一屏错误日志，
+        // 而清理 pollingFileIds / 停表的逻辑都写在 try 里，于是永远执行不到 → 定时器泄漏。
+        // 只有这种情况才永久停表；真实网络抖动仍按原策略继续重试。
+        if (isMissingOutletError(error)) {
+          statusPollingUnavailable = true
+          console.warn('[DEBUG] KBFileTree: 批量文件状态接口后端未提供，停止状态轮询（文件状态改由上传流程自身推进）')
+          stopFileProcessingPolling()
+          return
+        }
         // 出错时不停止轮询，继续尝试
       }
     }
@@ -529,8 +568,12 @@ async function startFileProcessingPolling() {
     // 立即执行一次
     await poll()
 
-    // 定时轮询
-    pollingTimer = setInterval(poll, POLL_INTERVAL)
+    // 定时轮询。首次执行若已判定「后端没这个出口」，就不能再起表 ——
+    // 否则 poll() 内部刚 stopFileProcessingPolling()，这里又 setInterval 把表建回来，
+    // 只会多空转一轮再停，白刷一轮错误日志。
+    if (!statusPollingUnavailable && !pollingTimer) {
+      pollingTimer = setInterval(poll, POLL_INTERVAL)
+    }
   } else {
     console.log(`[DEBUG] KBFileTree: 轮询已在运行,当前监控 ${pollingFileIds.size} 个文件`)
   }
@@ -1154,6 +1197,16 @@ async function confirmMove() {
 function handleRetryFromMenu() {
   if (contextMenu.value.item) {
     emit('retry', contextMenu.value.item)
+  }
+  closeContextMenu()
+}
+
+/**
+ * 从菜单查看文件分块。
+ */
+function handleChunksFromMenu() {
+  if (contextMenu.value.item) {
+    emit('chunks', contextMenu.value.item)
   }
   closeContextMenu()
 }

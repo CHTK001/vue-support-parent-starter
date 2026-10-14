@@ -42,6 +42,7 @@ import {
   DEFAULT_NODE_COLOR,
   FLOW_EDGE_SHAPE,
   FLOW_NODE_SHAPE,
+  FLOW_DIAMOND_SHAPE,
   NODE_HEIGHT,
   NODE_WIDTH,
   TIDY_GAP_X,
@@ -868,6 +869,8 @@ export class FlowGraphEngine {
       color?: string;
       iconPath?: string;
       image?: string;
+      strokeColor?: string;
+      strokeWidth?: number;
     },
   ) {
     const cell = this.graph.getCellById(id);
@@ -882,6 +885,8 @@ export class FlowGraphEngine {
       flowColor?: string;
       flowIcon?: string;
       flowImage?: string;
+      flowStrokeColor?: string;
+      flowStrokeWidth?: number;
       flowData?: Record<string, unknown>;
     };
     // 一次 setData 收齐所有字段：卡片组件订阅的是 change:data，
@@ -900,8 +905,23 @@ export class FlowGraphEngine {
     if (patch.image != null) {
       next.flowImage = patch.image;
     }
+    if (patch.strokeColor != null) {
+      next.flowStrokeColor = patch.strokeColor;
+    }
+    if (patch.strokeWidth != null) {
+      next.flowStrokeWidth = patch.strokeWidth;
+    }
     if (patch.data) {
       next.flowData = patch.data;
+    }
+    // 菱形是原生 SVG，不走 FlowNodeCard；状态加粗直接镜像到 body attrs。
+    if (node.shape === FLOW_DIAMOND_SHAPE) {
+      const body: Record<string, unknown> = {};
+      if (patch.strokeColor != null) body.stroke = patch.strokeColor;
+      if (patch.strokeWidth != null) body.strokeWidth = patch.strokeWidth;
+      if (Object.keys(body).length) {
+        node.setAttrs({ body } as never);
+      }
     }
     node.setData(next);
   }

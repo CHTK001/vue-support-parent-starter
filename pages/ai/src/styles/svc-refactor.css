@@ -142,8 +142,9 @@ html.dark .svc {
 
 /* 状态带：发丝线分隔的报头，不用独立卡片（Q1 的唯一答案，必须一眼可读） */
 .svc-band {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
-  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  border: 1px solid var(--svc-rule); border-top: 2px solid color-mix(in srgb, var(--svc-accent) 52%, var(--svc-rule));
+  border-radius: var(--svc-r-md);
   background: var(--svc-surface); box-shadow: var(--svc-shadow-1); overflow: hidden;
 }
 .svc-band__cell {
@@ -151,6 +152,8 @@ html.dark .svc {
   display: flex; flex-direction: column; gap: 3px;
 }
 .svc-band__cell + .svc-band__cell { border-left: 1px solid var(--svc-rule); }
+.svc-band__cell:first-child { background: color-mix(in srgb, var(--svc-accent) 6%, var(--svc-surface)); }
+.svc-band__cell:first-child .svc-band__num { color: var(--svc-accent); }
 .svc-band__num {
   font-family: var(--svc-mono); font-size: 24px; font-weight: 650;
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
@@ -181,6 +184,13 @@ html.dark .svc {
 }
 .svc-sect__extra { margin-left: auto; display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
 .svc-sect__hint { font-size: 11.5px; color: var(--svc-ink-3); white-space: nowrap; }
+
+/* 面板内的区块头：与面板同宽铺开，控件不贴边、不悬空 */
+.svc-panel .svc-sect__head {
+  padding: 12px 16px;
+  margin-bottom: 0;
+  background: var(--svc-surface-2);
+}
 
 /* ############################################################################
    4. 徽标体系（状态 / 协议 / 用量 / HTTP / 级别）
@@ -246,11 +256,12 @@ html.dark .svc {
   border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
   background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
   cursor: pointer; outline: none;
-  transition: border-color var(--svc-dur-fast) ease, background-color var(--svc-dur-fast) ease, box-shadow var(--svc-dur-fast) ease;
+  transition: border-color var(--svc-dur-fast) ease, background-color var(--svc-dur-fast) ease, box-shadow var(--svc-dur-fast) ease, transform var(--svc-dur-fast) ease;
 }
-.svc-tile:hover { border-color: var(--svc-rule-strong); background: var(--svc-accent-soft); }
+.svc-tile:hover { border-color: var(--svc-rule-strong); background: var(--svc-accent-soft); box-shadow: var(--svc-shadow-2); transform: translateY(-1px); }
 /* 选中态：竖条实心 + 强调色描边（竖条在灰度下依然可辨） */
 .svc-tile.is-active { border-color: var(--svc-accent); box-shadow: var(--svc-shadow-2); background: var(--svc-surface); }
+.svc-tile.is-active:hover { transform: none; }
 .svc-tile:focus-visible { box-shadow: inset 0 0 0 2px var(--svc-accent); }
 /* 左侧状态竖条：宽 3px，圆角 2px，颜色即状态语义 */
 .svc-tile__state {
@@ -527,6 +538,11 @@ html.dark .svc {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; padding: var(--svc-sp-6) var(--svc-sp-4); text-align: center;
 }
+.svc-empty__mark {
+  width: 34px; height: 3px; margin-bottom: 3px; border-radius: 999px;
+  background: var(--svc-rule-strong); flex-shrink: 0;
+}
+.svc-console__empty .svc-empty__mark { background: var(--svc-console-rule); }
 .svc-empty b, .svc-console__empty b { font-family: var(--svc-serif); font-size: 14px; font-weight: 700; color: var(--svc-ink-2); }
 .svc-empty i, .svc-console__empty i { font-style: normal; font-size: 12px; color: var(--svc-ink-3); }
 .svc-console__empty code {
@@ -534,6 +550,13 @@ html.dark .svc {
   color: var(--svc-console-debug); word-break: break-all;
 }
 .svc-console__empty { color: var(--svc-console-debug); }
+.svc-console__empty {
+  min-height: 210px;
+  margin: var(--svc-sp-4);
+  border: 1px dashed var(--svc-console-rule);
+  border-radius: var(--svc-r-md);
+  background: color-mix(in srgb, var(--svc-console-rule) 6%, transparent);
+}
 .svc-console__empty b { color: var(--svc-console-ink); }
 /* 无权限：后端返回 HTTP 200 + {ok:false}，必须与「暂无日志」区分开 */
 .svc-console__denied {
@@ -621,6 +644,7 @@ html.dark .svc {
 .svc .el-switch.is-checked .el-switch__core { background: var(--svc-accent); border-color: var(--svc-accent); }
 .svc .el-button { border-radius: var(--svc-r-sm); font-size: 12px; font-weight: 500; }
 .svc .el-button:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
+.svc-btn__icon { margin-right: 4px; font-size: 14px; }
 
 /* ############################################################################
    10. 动效编排与降级 / 响应式
@@ -634,6 +658,7 @@ html.dark .svc {
   .svc-table .el-table__body tr,
   .svc-tile,
   .svc-seg__btn { transition: none; }
+  .svc-tile { transform: none; }
 }
 
 /* ≤1180：两栏工作区 → 单列堆叠；控制台不再需要窄 min */

@@ -33,10 +33,10 @@
                   <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
                     <div class="flex flex-col gap-1 w-1/2">
                       <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.avatarTitle') }} <span class="text-xs text-gray-400">{{ t('characters.setting.avatarOptional') }}</span></span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.avatarHint') }}</span>
+                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ isGenericAssistant ? t('characters.setting.avatarLockedHint') : t('characters.setting.avatarHint') }}</span>
                     </div>
                     <AvatarPreview :src="characterForm.avatarUrl" type="assistant" class="w-10"
-                      :name="characterForm.title" @avatar-changed="handleAvatarChanged" />
+                      :name="characterForm.title" :disabled="isGenericAssistant" @avatar-changed="handleAvatarChanged" />
                   </div>
                 </el-form-item>
                 <!-- 角色标题 -->
@@ -220,7 +220,7 @@
                         <el-option v-for="o in formOptions" :key="o.value" :label="o.label" :value="o.value" />
                       </el-select>
                       <el-tooltip :content="t('characters.setting.formManageHint')" placement="top">
-                        <el-button link size="small" @click="formDialogVisible = true">
+                        <el-button link size="small" aria-label="管理提示词形态" @click="formDialogVisible = true">
                           <el-icon><Settings20Regular /></el-icon>
                         </el-button>
                       </el-tooltip>
@@ -560,7 +560,7 @@
 
       <template #footer>
         <el-button @click="formDialogVisible = false">{{ t('common.close') }}</el-button>
-        <el-button type="primary" :loading="formSaving" @click="submitFormDraft">
+        <el-button type="primary" :loading="formSaving" :aria-label="formDraft.editingKey ? t('characters.setting.formSaveLabel') : t('characters.setting.formAddLabel')" @click="submitFormDraft">
           {{ formDraft.editingKey ? t('common.save') : t('common.add') }}
         </el-button>
       </template>
@@ -665,6 +665,9 @@ const emit = defineEmits(['update:data', 'update:tab', 'saved'])
 
 // 响应式数据
 const isSimpleStyle = computed(() => props.simple)
+const isGenericAssistant = computed(() =>
+  String(characterForm.id) === '1' || props.data?.code === 'general-assistant' || props.data?.sysAiRoleCode === 'general-assistant'
+)
 const pageLoading = ref(false)
 
 // 模型数据
@@ -724,8 +727,11 @@ const sidebarGroups = computed(() => [
 // build 恒存，继续编辑 characterForm.systemPrompt（sys_ai_role 历史列），
 // 因此存量角色无需迁移即可工作；其余形态落在 sys_ai_role_prompt 表。
 const FORM_KEY_BUILD = 'build'
+const FORM_KEY_PLAN = 'plan'
 
-/** 内置兜底形态：接口不可用时也要能编辑，别把用户挡在门外 */
+/** 内置兜底形态：接口不可用时也要能编辑，别把用户挡在门外。
+ *  通用助手（id=1）固定提供 build + plan（用户原话），与后端种子同口径：
+ *  V4.0.0.49 build/构建/flash/直接执行 + plan/规划/clipboard/先出方案。 */
 const FALLBACK_FORMS: PromptForm[] = [{
   formKey: FORM_KEY_BUILD,
   formName: t('characters.setting.formBuildName'),
@@ -733,6 +739,13 @@ const FALLBACK_FORMS: PromptForm[] = [{
   formDescription: t('characters.setting.formBuildDesc'),
   builtin: 1,
   formSort: 1,
+}, {
+  formKey: FORM_KEY_PLAN,
+  formName: t('characters.setting.formPlanName'),
+  formIcon: 'clipboard',
+  formDescription: t('characters.setting.formPlanDesc'),
+  builtin: 1,
+  formSort: 2,
 }]
 
 /** 形态定义列表 */
@@ -774,9 +787,14 @@ const formPromptOriginal = ref('')
 const loadPromptForms = async () => {
   try {
     const list = await apiService.fetchPromptForms()
-    if (Array.isArray(list) && list.length) {
-      promptForms.value = list
-      if (!list.some(f => f.formKey === promptModeValue.value)) {
+    const forms = Array.isArray(list) ? list : []
+    if (forms.length || isGenericAssistant.value) {
+      // 通用助手固定提供 build/plan：后端形态表只回 build 时也不能丢掉 plan。
+      const ensured = isGenericAssistant.value
+        ? [...forms, ...FALLBACK_FORMS.filter(f => !forms.some(x => x.formKey === f.formKey))]
+        : forms
+      promptForms.value = ensured
+      if (!ensured.some(f => f.formKey === promptModeValue.value)) {
         promptModeValue.value = FORM_KEY_BUILD
       }
       // 形态列表可能晚于角色数据到达（onMounted 与 props.data watch 是两条异步链），
@@ -1700,7 +1718,7 @@ const validate = async () => {
     }
     return true;
   } catch (errors) {
-    console.error('Validation error:', errors);
+    console.warn('Validation incomplete:', errors);
     return false;
   }
 }

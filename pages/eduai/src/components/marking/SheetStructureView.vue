@@ -391,9 +391,10 @@ const onCommentChange = (row: any) => {
  */
 const commentEditor = ref<{ visible: boolean; row: any; draft: string }>({ visible: false, row: null, draft: '' });
 const commentInputRef = ref();
-const commentEditorTitle = computed(() =>
-  commentEditor.value.row ? `老师评语 · 第 ${commentEditor.value.row.no ?? '-'} 题` : '老师评语',
-);
+const commentEditorTitle = computed(() => {
+  const no = String(commentEditor.value.row?.no ?? '').replace(/[.、．]\s*$/, '').trim();
+  return no ? `老师评语 · 第 ${no} 题` : '老师评语';
+});
 
 const openCommentEditor = async (row: any) => {
   commentEditor.value = { visible: true, row, draft: String(row.editComment ?? '') };
@@ -774,6 +775,51 @@ onUnmounted(() => {
 .ss-row-active { color: var(--el-color-primary); font-weight: 600; }
 .ss-kp { margin-right: 4px; cursor: pointer; }
 .ss-muted { color: var(--el-text-color-placeholder); font-size: 12px; }
+/* 老师评语列：文本 + 专注编辑图标（窄列不再放多行输入框，行高更稳） */
+.ss-comment-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ss-comment-text {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.ss-comment-edit {
+  flex: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+  border-radius: 4px;
+  color: var(--el-text-color-placeholder);
+  transition: color 0.15s, background-color 0.15s;
+}
+.ss-comment-edit:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.ss-comment-edit--filled {
+  color: var(--el-color-primary);
+}
+/* 专注编辑弹框里的 AI 评语参考 */
+.ss-comment-dialog-tip {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  word-break: break-word;
+}
 .ss-kp-key { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px; }
 .ss-kp-list { list-style: none; padding: 0; margin: 0; }
 .ss-kp-list li { padding: 8px 0; border-bottom: 1px solid var(--el-border-color-lighter); }

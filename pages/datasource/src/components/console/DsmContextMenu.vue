@@ -15,6 +15,8 @@ export interface DsmMenuItem {
   warning?: boolean;
   /** 与上一项之间画分隔线 */
   divided?: boolean;
+  /** 禁用态（置灰、不响应点击、不触发 select；用于受保护目标，如 public 命名空间） */
+  disabled?: boolean;
 }
 </script>
 
@@ -95,8 +97,18 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocumentClick, tru
           <div v-if="it.divided && idx > 0" class="dsm-cm__divider" />
           <div
             class="dsm-cm__item"
-            :class="{ 'dsm-cm__item--danger': it.danger, 'dsm-cm__item--warning': it.warning }"
-            @click.stop="emit('select', it.key); emit('update:visible', false)"
+            :class="{
+              'dsm-cm__item--danger': it.danger,
+              'dsm-cm__item--warning': it.warning,
+              'is-disabled': it.disabled,
+            }"
+            :aria-disabled="it.disabled ? 'true' : undefined"
+            @click.stop="
+              if (!it.disabled) {
+                emit('select', it.key);
+                emit('update:visible', false);
+              }
+            "
           >
             <ReIcon :name="it.icon" size="14" />
             <span class="dsm-cm__label">{{ it.label }}</span>
@@ -134,6 +146,13 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocumentClick, tru
 .dsm-cm__item--danger:hover { background: rgba(239, 68, 68, 0.1); }
 .dsm-cm__item--warning { color: #f59e0b; }
 .dsm-cm__item--warning:hover { background: rgba(245, 158, 11, 0.1); }
+.dsm-cm__item.is-disabled,
+.dsm-cm__item.is-disabled.dsm-cm__item--danger,
+.dsm-cm__item.is-disabled.dsm-cm__item--warning {
+  color: var(--text-disabled, #cbd5e1);
+  cursor: not-allowed;
+}
+.dsm-cm__item.is-disabled:hover { background: transparent; }
 .dsm-cm__label { flex: 1; white-space: nowrap; }
 .dsm-cm__divider { height: 1px; margin: 4px 8px; background: var(--border-subtle, rgba(148, 163, 184, 0.2)); }
 .dsm-cm-fade-enter-active,

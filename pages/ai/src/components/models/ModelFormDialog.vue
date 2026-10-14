@@ -17,7 +17,7 @@
             :key="type.value"
             class="me-rail-item"
             :class="{ active: form.modelType === type.value }"
-            @click="form.modelType = type.value"
+            @click="selectModelType(type)"
           >
             <span class="me-rail-ico"><el-icon :size="16"><component :is="type.icon" /></el-icon></span>
             <span class="me-rail-name">{{ type.label }}</span>
@@ -62,6 +62,14 @@
             </el-form-item>
             <el-form-item label="模型别名" prop="alias">
               <el-input v-model="form.alias" placeholder="可选，业务展示用名称（如：我的模型）" clearable />
+            </el-form-item>
+            <el-form-item v-if="subTypeOptions.length" label="细分类型" prop="subType">
+              <el-select v-model="form.subType" class="w-full" clearable placeholder="选择该模型在管线里的具体用途">
+                <el-option v-for="opt in subTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+              <div class="field-hint mt-1">
+                OCR 可区分文字检测/识别/校正；人脸可区分检测/特征/修复/动漫等人脸组合模型。
+              </div>
             </el-form-item>
           </section>
 
@@ -178,6 +186,21 @@
               <el-radio-group v-model="form.config.cvMode">
                 <el-radio-button value="classify">图像分类</el-radio-button>
                 <el-radio-button value="detect">目标检测</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="置信度阈值">
+              <el-input-number v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
+                placeholder="如 0.5" controls-position="right" class="num-input" />
+            </el-form-item>
+          </div>
+
+          <!-- 检测 -->
+          <div v-else-if="form.modelType === 'detection'" class="me-group">
+            <el-form-item label="检测类型">
+              <el-radio-group v-model="form.config.cvMode">
+                <el-radio-button value="object">目标检测</el-radio-button>
+                <el-radio-button value="classify">图像分类</el-radio-button>
+                <el-radio-button value="defect">缺陷检测</el-radio-button>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="置信度阈值">
@@ -372,8 +395,8 @@ import {
 } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
-import { MODEL_TYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
-import { createDefaultModelConfig } from './model.utils'
+import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
+import { createDefaultModelConfig, inferSubType } from './model.utils'
 
 const props = defineProps<{
   provider: any
@@ -397,6 +420,7 @@ const isEditMode = ref(false)
 const editingId = ref<string | null>(null)
 const formRef = ref<any>(null)
 const modelTypeOptions = MODEL_TYPE_OPTIONS
+const subTypeOptions = computed(() => MODEL_SUBTYPE_OPTIONS[form.value.modelType] || [])
 const currentType = computed(() => modelTypeOptions.find((o) => o.value === form.value.modelType))
 const currentTypeIcon = computed(() => currentType.value?.icon)
 const currentTypeLabel = computed(() => currentType.value?.label || '')
@@ -404,6 +428,7 @@ const currentTypeLabel = computed(() => currentType.value?.label || '')
 const form = ref<any>({
   modelName: '',
   modelType: 'text',
+  subType: '',
   config: createDefaultModelConfig(),
 })
 
@@ -436,6 +461,9 @@ const matchedPreset = computed(() => {
 
 const applyPreset = (preset: any) => {
   form.value.modelType = preset.modeType
+  if (!MODEL_SUBTYPE_OPTIONS[form.value.modelType]?.some((opt) => opt.value === form.value.subType)) {
+    form.value.subType = ''
+  }
   form.value.config = createDefaultModelConfig({
     inputCapabilities: preset.config.inputCapabilities,
     outputCapabilities: preset.config.outputCapabilities,
@@ -460,10 +488,17 @@ const rules = computed(() => ({
   },
 }))
 
+const selectModelType = (type: any) => {
+  form.value.modelType = type.value
+  if (!subTypeOptions.value.some((opt) => opt.value === form.value.subType)) {
+    form.value.subType = ''
+  }
+}
+
 const openAdd = () => {
   isEditMode.value = false
   editingId.value = null
-  form.value = { modelName: '', modelType: 'text', config: createDefaultModelConfig() }
+  form.value = { modelName: '', modelType: 'text', subType: '', config: createDefaultModelConfig() }
   formRef.value?.clearValidate?.()
   visible.value = true
 }
@@ -475,6 +510,7 @@ const openEdit = (model: any) => {
     modelName: model.modelName || '',
     alias: model.alias || '',
     modelType: model.modelType || 'text',
+    subType: model.subType || model.modelSubType || model.config?.modelSubType || inferSubType(model, model.modelType || 'text'),
     // generate 节点后端已回传（toProviderModelResponse），这里带回生成参数
     config: createDefaultModelConfig({
       ...model.config,
@@ -491,6 +527,7 @@ const prefillFromFetch = (model: any) => {
   form.value = {
     modelName: model.modelName || '',
     modelType: model.modelType || 'text',
+    subType: model.subType || model.modelSubType || model.config?.modelSubType || inferSubType(model, model.modelType || 'text'),
     config: createDefaultModelConfig(model.config),
   }
   visible.value = true

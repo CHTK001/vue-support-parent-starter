@@ -21,7 +21,7 @@
           </template>
           {{ t('characters.list.market') }}
         </el-button>
-        <input ref="fileInputRef" type="file" accept=".md,.markdown" multiple class="hidden" @change="handleFileSelect" />
+        <input ref="fileInputRef" type="file" accept=".json,.md,.markdown" multiple class="hidden" @change="handleFileSelect" />
       </div>
     </div>
 
@@ -81,8 +81,9 @@
                 <div class="flex items-start justify-between">
                   <div class="font-medium text-base text-gray-900 dark:text-[#e8e9ed] truncate" :title="character.title">
                     {{ character.title }}
+                    <span v-if="isGenericAssistant(character)" class="generic-badge" :title="t('characters.list.genericProtectedHint')">通用</span>
                   </div>
-                  <el-button link type="danger"
+                  <el-button link type="danger" v-if="!isGenericAssistant(character)"
                     class="opacity-0 group-hover:opacity-100 transition-all duration-200 delete-btn"
                     @click.stop="$emit('deleteCharacter', character)">
                     <el-icon :size="18">
@@ -169,14 +170,41 @@ const triggerImport = () => {
   fileInputRef.value?.click()
 }
 
+/**
+ * 把导入文件内容归一成后端能解析的 JSON 字符串。
+ *
+ * <p>为什么必须在前端转换：后端 `POST /v2/roles/import` 只认 JSON
+ * （单角色对象 / 角色数组 / {characters:[...]}），而文件框一直允许
+ * `.md/.markdown`，用户选 Markdown 时直接把原文 POST 过去，
+ * 后端 `readTree` 报 `Unexpected character ('#')` -> 导入恒失败
+ * （2026-10-14 实测：markdown 一律「解析失败」，JSON 才能导入成功）。</p>
+ *
+ * <p>规则：`.json` 原样透传（后端支持三种形状）；Markdown 取首个一级标题
+ * 作为角色名（没有就用文件名去扩展名），整篇正文作为 systemPrompt，
+ * 这样「选一个 .md 就能导入一个角色」符合按钮与文件框给出的承诺。</p>
+ *
+ * @param raw  文件原文
+ * @param name 文件名（含扩展名）
+ * @return 可直接作为 content 发送的 JSON 字符串
+ */
+const markdownToRoleJson = (raw: string, name: string): string => {
+  const text = (raw ?? '').trim()
+  if (!text) return text
+  // 已是 JSON（对象 / 数组 / {characters:[...]}）就原样交给后端
+  if (text.startsWith('{') || text.startsWith('[')) return text
+  const heading = text.match(/^#{1,6}\s+(.+)$/m)
+  const roleName = (heading?.[1] || name.replace(/\.(md|markdown|json)$/i, '') || '导入角色').trim()
+  return JSON.stringify({ name: roleName, systemPrompt: text })
+}
+
 const handleFileSelect = async (event: Event) => {
   const input = event.target as HTMLInputElement
   if (!input.files || input.files.length === 0) return
 
   const files: { content: string; filename: string }[] = []
   for (const file of Array.from(input.files)) {
-    const content = await file.text()
-    files.push({ content, filename: file.name })
+    const raw = await file.text()
+    files.push({ content: markdownToRoleJson(raw, file.name), filename: file.name })
   }
 
   try {
@@ -196,6 +224,17 @@ const handleFileSelect = async (event: Event) => {
 
   // 重置 input 以便重复选择同一文件
   input.value = ''
+}
+
+/**
+ * 通用助手判定：id=1（code=general-assistant）系统内置，不可删除。
+ *
+ * id 可能数字/字符串，后端 code 同样可作为第二判据（mapRoleItem 原样透传 code），
+ * 任一命中即保护 —— 新建/导入流程万一复用 id=1 也不会漏网。
+ */
+function isGenericAssistant(character: any): boolean {
+  if (!character) return false
+  return String(character.id) === '1' || character.code === 'general-assistant'
 }
 </script>
 
@@ -235,6 +274,20 @@ const handleFileSelect = async (event: Event) => {
 .char-group-tag__del:hover {
   opacity: 1 !important;
   color: var(--el-color-danger);
+}
+
+/* 通用助手徽标：系统内置不可删的视觉标记，与删除按钮隐藏配合 */
+.generic-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 400;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  border-radius: var(--el-radius-xs, 4px);
+  vertical-align: 1px;
 }
 
 /* 动效降级：系统开启「减少动态效果」时，删除 × 的显隐改为瞬间切换。

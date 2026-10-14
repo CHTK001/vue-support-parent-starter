@@ -1,7 +1,7 @@
 <template>
     <div class="avatar-upload-container flex flex-col items-center justify-center">
-        <LTooltip content="点击可更换头像" placement="top">
-            <Avatar class="avatar-preview w-20 h-20 cursor-pointer hover:opacity-80 transition-opacity"
+        <LTooltip :content="disabled ? '系统内置角色头像不允许更换' : '点击可更换头像'" placement="top">
+            <Avatar class="avatar-preview w-20 h-20" :class="{ 'cursor-pointer hover:opacity-80 transition-opacity': !disabled }"
                 @click="triggerAvatarUpload" :src="previewUrl" :type="type" :name="name"></Avatar>
         </LTooltip>
         <input ref="avatarInput" type="file" accept="image/*" style="display: none" @change="handleAvatarChanged">
@@ -56,11 +56,12 @@ const emits = defineEmits<{
 }>()
 
 // Props 类型化
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     src?: string;
     type?: 'user' | 'assistant';
     name?: string;  // 用于生成首字头像的名称
-}>()
+    disabled?: boolean;
+}>(), { disabled: false })
 
 // 监听 src 变化 - 类型化
 watch(() => props.src, (newValue: string | undefined) => {
@@ -72,6 +73,7 @@ watch(() => props.src, (newValue: string | undefined) => {
 
 // 触发头像上传 - 类型化
 const triggerAvatarUpload = (): void => {
+    if (props.disabled) return
     avatarInput.value?.click?.()
 }
 

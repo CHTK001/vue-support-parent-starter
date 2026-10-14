@@ -70,24 +70,52 @@ otherConfig:
     bucket: local
     quotaGb: 5
 
+# 站内消息（顶栏铃铛）
+#
+# 本部署关闭 HTTP 查询。三个接口 /v2/message/sys-message/page、/unread-count、/read
+# 由 spring-support-message-starter 提供，而监控后端 spring-support-monitor-starter 的
+# pom 里没有这个依赖、部署的 jar 内也搜不到任何 message 相关类 —— 三个接口实测全部
+# 404（S0503C0000 资源不存在）。
+#
+# message.query 缺省时跟随 app.openAuth（本应用是 true）自动开启，于是每次启动都在
+# 控制台留三条 404 + 一条 "Failed to load resource"。置 false 后只保留 Socket 实时推送，
+# 而 socketConfig.enable 已是 false，等于整块静默降级 —— 与 avatarFrame /
+# toolbar.announcement 同一套口径：后端没实现的功能，前端就别发请求。
+# 后端将来纳入 message-starter，把这里删掉（或改 true）即可恢复。
+messageConfig:
+  query: false
+
 # Socket 实时推送（/v2/setting/default 未下发 socket 配置时以本地为准）
 #
-# 本部署关闭：192.168.50.198 的后端没有启用 socket 服务，
-# 每次握手都被拒（403）。这不是「少了个角标」的问题——vite 把 /socket.io 代理成 ws 后，
-# 每次失败的握手都会在 vite 侧抛一次 `ws proxy socket error: write ECONNABORTED`，
-# 异常持续累积直到把 dev server 进程带崩（实测一轮验收里刷出 117 次重连后前端就取不到数据了）。
-# createApp.initGlobalSocket 在 enable=false 时会调 closeGlobalSocketService() 主动断开，
-# 不是「不创建而已」，所以关得干净。
+# 2026-10-14 复核后重新开启。此前误判为「198 后端没有启用 socket 服务」而关闭，
+# 实测打脸：http://192.168.50.198:29612/socket.io 握手返回 200 + 合法 sid，
+# socket.io 服务一直是活的（后端 --plugin.socket.room[0].port=29612）。当时的 403
+# 是请求打到了 8112（API 口、有 AuthFilter），不是 29612；vite 代理 /socket.io 本就
+# 正确指向 29612。socket 服务端也不校验 token（无 AuthorizationListener，连接即收）。
+#
+# 关闭它的真实代价：主机延迟/在线/CPU/内存/磁盘的实时推送、以及 agent 安装的进度与
+# 失败原因全部收不到（后者导致安装失败了前端也看不到、弹窗卡在「准备中...」）。
+#
+# transports 保留 polling 打头：token 已改走 extraHeaders 消息头（见 socketio.ts），
+# 而浏览器 WebSocket 握手设不了自定义头，只有 polling 的 HTTP 握手能带上 x-oauth-token；
+# 连上后 socket.io 会自动升级到 websocket。若改回纯 websocket，该头不发送（服务端
+# 不校验 token，连接不受影响，但头就形同虚设）。
 #
 # nginx 指标的实时推送与本项无关，走的是 SSE（/ms/monitor/nginx/metric/stream）。
-# 后端将来启用了 socket 服务，把这里改回 true 即可恢复告警徽标的实时性；
-# 届时 refreshBadge 的 REST 补偿仍然保留，两者不冲突。
+# refreshBadge 的 REST 补偿仍然保留，与 socket 推送不冲突。
+#
+# 地址：不配 urls，回退 window.location.origin(=8848)，socket.io 请求经 vite /socket.io
+# 代理转发到 198:29612。**不要改成直连 198:29612**：浏览器到 198:29612 是跨源请求，
+# extraHeaders 里的 x-oauth-token 会触发 OPTIONS 预检（netty-socketio 不处理预检 → 连接失败），
+# 且本机系统代理(127.0.0.1:7897)对 198 不 bypass。同源走 vite 代理两者都规避，token 头也干净生效。
 socketConfig:
-  enable: false
+  enable: true
   protocol: socketio
   context: "/socket.io"
+  # 仅 polling：经 vite 代理时 WS 升级会被 netty(SO_LINGER=0 硬关)重置、拖垮 polling 长连接，
+  # 导致收不到广播。polling-only 绕开 WS 升级；且 token 走 extraHeaders 只在 polling 头发送，正好满足。
   transports:
-    - websocket
+    - polling
 
 # 菜单配置：单子节点也渲染为可折叠子菜单（而非压平为单项）
 # 置 true 才会走 el-sub-menu 的二级分组；置 false 会把只有一个子项的分组压平，

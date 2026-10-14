@@ -62,13 +62,37 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   loading.value = true;
   try {
-    const [vueMod, cssMod] = await Promise.all([
+    const [vueMod, cssMod, coreMod] = await Promise.all([
       import("@file-viewer/vue3-full"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
+      import("@file-viewer/core"),
     ]);
     void cssMod; // 样式副作用导入
+    // 两层 assetBaseUrl 都必须显式指到前端同源，缺一层都不行：
+    //
+    // 1) full 层（preset-all 的 createFullAssetOptions）只覆盖
+    //    archive/chm/cad/data/docx/drawing/model/pdf/presentation/
+    //    spreadsheet/typst 的 workerUrl，**没有 design 段**；
+    // 2) core 层（resolveFileViewerDesignContainerWorkerUrl 等，以及
+    //    file-viewer 运行期按需拉的 assets/*.js chunk）在未显式配置时
+    //    走 automatic 推断：按页面里 script 的 src 反推 base。
+    //
+    // 预览弹窗里文件字节来自存储域（http://<storage>:18080/ot/...），
+    // automatic 据此把 base 推成存储域，于是：
+    //   - design 的 worker 请求变成
+    //     http://<storage>:18080/ot/vendor/design/*.worker.js
+    //     → 跨域，Worker 拒绝加载（实测 "Photoshop Worker failed to load"）
+    //   - file-viewer 运行期 chunk 变成
+    //     http://<storage>:18080/assets/checkbox-*.js
+    //     → 存储域没有这些产物，请求失败后渲染器整体崩掉
+    //      （实测 vtk 报 RangeError，根因就是 chunk 没加载到）
+    //
+    // 这些资产（public/vendor/**）由 @file-viewer/vite-plugin 的 copyAssets
+    // 落到前端 public，前端同源即可加载，与文件字节的域无关。
     (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
       .setDefaultFullAssetBaseUrl?.("/");
+    (coreMod as { setDefaultFileViewerAssetBaseUrl?: (base?: string | URL | null) => void })
+      .setDefaultFileViewerAssetBaseUrl?.("/");
     viewerComp.value =
       (vueMod as { FileViewer?: Component; default?: Component }).FileViewer ??
       (vueMod as { default?: Component }).default ??

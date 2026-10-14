@@ -64,6 +64,10 @@ const ZH: MsgTree = {
     hoverFocus: "悬停聚焦",
     hoverFocusOn: "悬停时隐藏其它节点",
     hoverFocusOff: "悬停时淡出其它节点",
+    collapse: "收缩",
+    expand: "展开",
+    collapseTip: "收起工具栏",
+    expandTip: "展开工具栏",
   },
   canvas: {
     aria: "关系图画布，Ctrl+加号放大、Ctrl+减号缩小、Ctrl+Z 撤销、Ctrl+Y 重做、Ctrl+F 搜索、Esc 取消",
@@ -152,6 +156,10 @@ const EN: MsgTree = {
     hoverFocus: "Hover focus",
     hoverFocusOn: "Hide other nodes on hover",
     hoverFocusOff: "Dim other nodes on hover",
+    collapse: "Collapse",
+    expand: "Expand",
+    collapseTip: "Collapse toolbar",
+    expandTip: "Expand toolbar",
   },
   canvas: {
     aria: "Relation graph canvas. Ctrl+Plus zoom in, Ctrl+Minus zoom out, Ctrl+Z undo, Ctrl+Y redo, Ctrl+F search, Esc cancel",

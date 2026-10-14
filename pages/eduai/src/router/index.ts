@@ -210,6 +210,16 @@ export const eduaiRoutes: RouteConfigsTable[] = [
 
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
   {
+    // 阅卷详情：入口在阅卷记录行「查看」（/edu/marking），专注查看一份试卷的判分明细。
+    // remind=true 由 registerRoutesUnderLayout 注册为顶层路由（不套 layout），
+    // 根 router-view 直接渲染组件，不受侧边栏 / 顶栏 / 标签栏控制。
+    // query: taskId（任务号，必填）
+    path: "/edu/marking/detail",
+    name: "EduMarkingDetail",
+    component: () => import("../views/MarkingDetailView.vue"),
+    meta: { title: "阅卷详情", icon: "Reading", showLink: false, remind: true, isVisible: "0", keepAlive: false },
+  },
+  {
     // 手动组卷：入口在 PaperView 列表工具栏（带当前检索的学科/学段跳转），不进侧边栏菜单
     path: "/eduai/paper-compose",
     name: "EduaiPaperCompose",
@@ -303,14 +313,14 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "老师端", icon: "Reading", position: "top", showLink: false, isVisible: "0", keepAlive: false },
   },
   {
-    // 昆虫图鉴卡片：昆虫识图配对错误时弹出（remind=true 只注册路由、不进菜单，也不被菜单导航控制）
+    // 昆虫图鉴卡片：昆虫识图配对错误时弹出（remind=true 注册为顶层路由，不进菜单、不套布局壳）
     path: "/edu/fun/insect-card",
     name: "EduFunInsectCard",
     component: () => import("../views/InsectCardView.vue"),
     meta: { title: "昆虫图鉴卡片", icon: "Reading", remind: true, showLink: false, isVisible: "0", keepAlive: false },
   },
   {
-    // 成语学习卡片：消消乐配对错误时弹出（remind=true 只注册路由、不进菜单，也不被菜单导航控制）
+    // 成语学习卡片：消消乐配对错误时弹出（remind=true 注册为顶层路由，不进菜单、不套布局壳）
     path: "/edu/fun/idiom-card",
     name: "EduFunIdiomCard",
     component: () => import("../views/IdiomCardView.vue"),

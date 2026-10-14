@@ -64,13 +64,20 @@ let fileViewerReady = false;
 async function ensureFileViewerLoaded(): Promise<boolean> {
   if (fileViewerReady) return true;
   try {
-    const [vueMod, cssMod] = await Promise.all([
+    const [vueMod, cssMod, coreMod] = await Promise.all([
       import("@file-viewer/vue3-full"),
       import("@file-viewer/vue3/dist/file-viewer3.css"),
+      import("@file-viewer/core"),
     ]);
     void cssMod; // 样式副作用导入
+    // full 层 + core 层都显式指到前端同源：core 层不设时走 automatic 推断，
+    // 会把 file-viewer 运行期 chunk / design worker 拼到存储域（文件字节来源），
+    // 造成 /assets/*.js 与 /ot/vendor/design/*.worker.js 跨域失败。
+    // 详见 FvPanelBase.vue 中同处的注释。
     (vueMod as { setDefaultFullAssetBaseUrl?: (base?: string | URL | null) => void })
       .setDefaultFullAssetBaseUrl?.("/");
+    (coreMod as { setDefaultFileViewerAssetBaseUrl?: (base?: string | URL | null) => void })
+      .setDefaultFileViewerAssetBaseUrl?.("/");
     viewerComp.value =
       (vueMod as { FileViewer?: Component; default?: Component }).FileViewer
       ?? (vueMod as { default?: Component }).default

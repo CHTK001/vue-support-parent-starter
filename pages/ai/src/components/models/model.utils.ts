@@ -35,7 +35,7 @@ export interface ModelConfig {
   // Rerank 重排序
   rerankTopN: number | null
   rerankMaxLength: number | null
-  // 图片识别（图像分类 / 目标检测）
+  // 图片识别（图像分类 / 目标检测）与检测类型
   cvMode: string
   cvConfidence: number | null
   /** 生成参数（仅 image / video 类型）：随模型走 capabilities[].generate 节点 */
@@ -357,6 +357,8 @@ function inferTypeByName(name: any): string {
   if (l.includes('rerank')) return 'rerank'
   if (l.includes('tts') || l.includes('speech-synthesis') || l.includes('speech_synthesis')) return 'tts'
   if (l.includes('whisper') || l.includes('asr') || l.includes('speech-recognition')) return 'asr'
+  if (l.includes('detect') || l.includes('-det-') || l.includes('yolo')
+    || l.includes('scrfd') || l.includes('nms')) return 'detection'
   if (l.includes('dall-e') || l.includes('image-gen') || l.includes('cogview') || l.includes('flux') || l.includes('image')) return 'image'
   if (l.includes('cogvideo') || l.includes('video-gen') || l.includes('video')) return 'video'
   return 'text'
@@ -364,6 +366,54 @@ function inferTypeByName(name: any): string {
 
 // 附加特性任务（属于 features，不是主类型）
 const FEATURE_TASKS = new Set(['thinking', 'web-search', 'tools', 'tool_calls'])
+
+/**
+ * 推导模型细分类型：优先 capabilities 里的 subtype，其次取行字段，最后按模型名兜底。
+ *
+ * <p>OCR/人脸组合管线需要用细分类型区分 detector、recognizer、corrector、
+ * restore、anime 等模型槽位；细分类型随 capabilities[].subtype 保存。</p>
+ */
+export function inferSubType(m: any, modelType: string): string {
+  const rawCaps = Array.isArray(m?.capabilities) ? m.capabilities : []
+  for (const c of rawCaps) {
+    const sub = typeof c === 'object' ? c?.subtype ?? c?.subType : undefined
+    if (sub && String(sub).trim()) return String(sub).trim()
+  }
+  const direct = m?.subType ?? m?.subtype ?? m?.model_subtype ?? m?.modelSubType
+  if (direct && String(direct).trim()) return String(direct).trim()
+
+  const name = String(m?.model || m?.modelName || '').toLowerCase()
+  if (!name) return ''
+  if (modelType === 'ocr') {
+    if (name.includes('检测') || name.includes('detect') || name.includes('dbnet') || name.includes('pse')) return 'ocr_detection'
+    if (name.includes('校正') || name.includes('矫正') || name.includes('correct') || name.includes('macbert') || name.includes('csc') || name.includes('corrector')) return 'ocr_correction'
+    if (name.includes('识别') || name.includes('recogn') || name.includes('svtr') || name.includes('crnn')) return 'ocr_recognition'
+    if (name.includes('方向') || name.includes('旋转') || name.includes('direction') || name.includes('rotat') || name.includes('deskew')) return 'ocr_direction'
+    if (name.includes('修复') || name.includes('超分') || name.includes('restor') || name.includes('super') || name.includes('upscale')) return 'ocr_restore'
+    return ''
+  }
+  if (modelType === 'face') {
+    if (name.includes('动漫') || name.includes('anime') || name.includes('cartoon')) return 'anime_face_detection'
+    if (name.includes('检测') || name.includes('detect') || name.includes('scrfd')) return 'face_detection'
+    if (name.includes('特征') || name.includes('feature') || name.includes('arcface') || name.includes('embedding')) return 'face_feature'
+    if (name.includes('关键点') || name.includes('landmark') || name.includes('keypoint')) return 'face_landmark'
+    if (name.includes('活体') || name.includes('liveness')) return 'face_liveness'
+    if (name.includes('修复') || name.includes('增强') || name.includes('超分') || name.includes('restore') || name.includes('enhance') || name.includes('gan')) return 'face_restore'
+    if (name.includes('属性') || name.includes('attribute')) return 'face_attribute'
+    if (name.includes('表情') || name.includes('emotion')) return 'face_emotion'
+    if (name.includes('换脸') || name.includes('deepfake')) return 'face_deepfake'
+    if (name.includes('姿态') || name.includes('pose')) return 'face_pose'
+    if (name.includes('识别') || name.includes('比对') || name.includes('搜索') || name.includes('recogn') || name.includes('verif')) return 'face_recognition'
+    return ''
+  }
+  if (modelType === 'detection' || modelType === 'image_cv') {
+    if (name.includes('缺陷') || name.includes('defect') || name.includes('flaw')) return 'defect_detection'
+    if (name.includes('分类') || name.includes('classif') || name.includes('resnet') || name.includes('vit')) return 'image_classification'
+    if (name.includes('检测') || name.includes('detect') || name.includes('yolo')) return 'object_detection'
+    return ''
+  }
+  return ''
+}
 
 // 各类型的「输入种类 → 输出种类」
 const FLOW_BY_TYPE: Record<string, [string, string]> = {
@@ -373,6 +423,7 @@ const FLOW_BY_TYPE: Record<string, [string, string]> = {
   image: ['text', 'image'],
   video: ['text', 'video'],
   image_cv: ['image', 'text'],
+  detection: ['image', 'text'],
   ocr: ['image', 'text'],
   face: ['image', 'text'],
   layout: ['image', 'text'],
@@ -510,6 +561,7 @@ export function deriveModelTraits(m: any, modelType?: string): ModelTraits {
 // 后端模型对象 -> 前端模型对象
 export function mapModel(m: any, providerId: string): any {
   const modelType = inferModelType(m)
+  const subType = inferSubType(m, modelType)
   const traits = deriveModelTraits(m, modelType)
   // 后端模型行**自带 id**（如 "agnes:agnes-2.0-flash"）⇒ 该行来自 sys_ai_provider_model，
   // 启停/删除/收藏这几个 {compositeId} 端点都能解析到它。
@@ -535,11 +587,14 @@ export function mapModel(m: any, providerId: string): any {
     model: m.model,
     modelName: m.model,
     modelType,
+    subType,
+    modelSubType: subType,
     isActive: m.enabled !== false,
     config: {
       inputCapabilities: traits.inputCapabilities,
       outputCapabilities: traits.outputCapabilities,
       features: traits.features,
+      modelSubType: subType,
       // 手填值（后端 sys_ai_provider_model 同名列）；null 表示未指定，
       // 模型卡片会回退到指标表 sys_ai_model_metrics 的官方值
       contextWindow: m.context_window ?? m.contextWindow ?? null,
