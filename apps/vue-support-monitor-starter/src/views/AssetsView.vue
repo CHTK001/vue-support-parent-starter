@@ -454,6 +454,18 @@ const hostKpiNotes = computed<Array<{ key: string; title: string; note: string; 
  */
 const hasHosts = computed(() => hosts.value.length > 0);
 
+/**
+ * 空态文案。
+ *
+ * <p>三种情况刻意分开，不能压缩成两种：加载失败时 {@code hosts} 也是空数组，
+ * 若只按「有没有主机」判，就会把「没读到」显示成「暂无主机」——
+ * 用户照着提示去点「新增主机」，增完刷新还是空的，完全被带偏。</p>
+ */
+const emptyDescription = computed(() => {
+  if (loadError.value) return "数据加载失败，请重试";
+  return hasHosts.value ? "当前筛选条件下没有匹配的主机" : "暂无主机";
+});
+
 /** ReTable 列定义 */
 const tableColumns = computed(() => [
   { prop: "serverHostName", label: "名称", minWidth: 150, slot: "name" },
@@ -1171,14 +1183,17 @@ function osTileClass(h: Host): string {
         </ElCard>
         <!-- 空态：外层套一个独立 el-card，与主机卡片同规格（同一套边框/圆角/阴影），
              避免 ElEmpty 裸放在 grid 里时和卡片容器风格不一致。
-             空态分两种情况：一台主机都没有 vs. 筛选用完没匹配上 ——
-             文案和主操作都不同，否则筛选后看到「暂无主机」用户会以为系统坏了。 -->
+             空态分三种：加载失败 / 一台都没有 / 筛选用完没匹配上。
+             加载失败单列一种是有意的：此时 hosts 是空数组，按前两种判都会说成
+             「暂无主机」或「没有匹配」，把「没读到」说成「没有」是误导 ——
+             虽然顶部已有红条，但空态卡本身也该自解释。 -->
         <ElCard v-if="filtered.length === 0" class="hc-empty-card" shadow="never">
           <ElEmpty
-            :description="hasHosts ? '当前筛选条件下没有匹配的主机' : '暂无主机'"
+            :description="emptyDescription"
             :image-size="120"
           >
-            <ReButton v-if="hasHosts" icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
+            <ReButton v-if="loadError" icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
+            <ReButton v-else-if="hasHosts" icon="Refresh" :show-text="true" @click="resetFilters">重置筛选</ReButton>
             <ReButton v-else type="primary" icon="Plus" :show-text="true" @click="openAdd">新增主机</ReButton>
           </ElEmpty>
         </ElCard>

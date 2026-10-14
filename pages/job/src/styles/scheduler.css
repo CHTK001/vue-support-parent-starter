@@ -201,23 +201,3 @@
 .sched-center .re-search {
   border: none;
 }
-
-/* ---------------- 远程节点卡片 ---------------- */
-
-.sched-center .node-board {
-  padding: 20px 22px;
-}
-
-.sched-center .node-card {
-  padding: 18px 20px;
-  border: none;
-  border-radius: var(--el-radius-lg);
-  background: var(--el-bg-color-overlay, var(--el-bg-color));
-  box-shadow: var(--el-box-shadow-lighter);
-  transition: box-shadow var(--cc-duration, 180ms) var(--cc-ease, ease), transform var(--cc-duration, 180ms) var(--cc-ease, ease);
-}
-
-.sched-center .node-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow-light);
-}
