@@ -101,13 +101,14 @@ import ProviderFormDialog from './ProviderFormDialog.vue'
 import TemplateCatalogDialog from './TemplateCatalogDialog.vue'
 import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
+import { message } from '@repo/core'
 import { usePopup } from '../../composables/usePopup'
 import { PROVIDER_TEMPLATES } from './model.constants'
 import ProviderLogo from './ProviderLogo.vue'
 import { mapProvider, mapModel } from './model.utils'
 
 const { t } = useI18n()
-const { notify, confirm } = usePopup()
+const { confirm } = usePopup()
 
 const providers = ref<any[]>([])
 const models = ref<any[]>([])
@@ -183,12 +184,12 @@ const handleDeleteProvider = async (p: any) => {
   if (!ok) return
   try {
     await adminApi.delete(`/api/providers/${p.id}`)
-    notify.success('删除成功', `供应商「${p.name}」已删除`)
+    message.success(`供应商「${p.name}」已删除`)
     if (currentProviderId.value === p.id) currentProviderId.value = null
     await reload()
   } catch (e: any) {
     console.error('删除供应商失败:', e)
-    notify.error('删除失败', e?.message || '请稍后重试')
+    message.error(e?.message || '请稍后重试')
   }
 }
 const handleTemplateClick = (template: any) => formRef.value.openFromTemplate(template)

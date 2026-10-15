@@ -327,6 +327,7 @@ import ReRelationGraph from "@repo/ui/re-relation-graph";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   createZkNode,
@@ -962,10 +963,7 @@ function menuSelect(action: "detail" | "copy" | "edit" | "child" | "export" | "d
     return;
   }
   if (action === "copy") {
-    navigator.clipboard
-      .writeText(path)
-      .then(() => message.success("已复制路径"))
-      .catch(() => message.error("复制失败"));
+    void copyToClipboard(path).then(ok => ok ? message.success("已复制路径") : message.error("复制失败"));
     return;
   }
   if (action === "edit") {
@@ -1057,7 +1055,7 @@ onMounted(async () => {
 .dsm-info-row { display: flex; flex-direction: column; gap: 4px; }
 .dsm-info-label { font-size: 12px; color: var(--text-tertiary); }
 .dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
-.dsm-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; }
+.dsm-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; }
 .dsm-section-title { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
 .dsm-section-actions { display: flex; gap: 4px; }
 .dsm-node-detail { padding: 14px 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; border-bottom: 1px solid var(--border-subtle); }

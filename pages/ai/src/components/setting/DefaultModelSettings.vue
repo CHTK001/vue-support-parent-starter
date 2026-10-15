@@ -412,8 +412,9 @@ const modelFields = (group) =>
  * 那会走「模型选择器」那一支（只读输入框 + 弹模型对话框），语义完全不同。</p>
  */
 const isPlainVisibleField = (group, field) =>
-    group === 'generate'
-    && (String(field || '').startsWith('media_') || String(field || '') === 'task_timeout_minutes')
+    (group === 'generate'
+    && (String(field || '').startsWith('media_') || String(field || '') === 'task_timeout_minutes'))
+    || (group === 'image_search' && String(field || '') === 'keyword_extractor')
 
 /** 始终显示且不是选模型的字段 */
 const plainVisibleFields = (group) =>
@@ -613,6 +614,9 @@ const requiredTypeFor = (group, field) => {
     // —— 弹框里只剩扩散模型，真正的图像特征模型一个都选不到
     // （实测：以图搜图因此永远配不上，门禁永远不亮）。
     // runtime 分组的同名兜底项同样处理（后端 ImageSearchStore 会回退读它）。
+    // keyword_model 是关键词提取用的多模态模型，走模型管理里的 vLLM / OpenAI
+    // 兼容对话模型，必须放行 text 类型，不能跟特征模型一样被锁在 image_cv。
+    if (g === 'image_search' && f === 'keyword_model') return 'text'
     if (g === 'image_search') return 'image_cv'
     if (f === 'default_image_feature_model') return 'image_cv'
     // RAG / 其它字段按名称判断
@@ -638,6 +642,9 @@ const requiredTypeFor = (group, field) => {
 const acceptableTypesFor = (group, field) => {
     if (String(field || '') === 'default_image_feature_model') {
         return ['image_cv', 'embedding']
+    }
+    if (String(group || '') === 'image_search' && String(field || '') === 'keyword_model') {
+        return ['text']
     }
     return [requiredTypeFor(group, field)]
 }
@@ -817,7 +824,10 @@ const getFieldLabel = (item) => {
             'default_image_feature_model': '图像特征模型',
             'vector_storage_engine': '向量存储实现',
             'search_top_k': '返回条数上限',
-            'min_similarity': '相似度下限'
+            'min_similarity': '相似度下限',
+            'keyword_extractor': '关键词提取方式',
+            'keyword_model': '图片信息提取模型',
+            'keyword_prompt': '关键词提取提示词'
         }
         // 1) 优先用人工维护的短标签（精确、跨分组统一）
         if (labelMap[item.field]) {

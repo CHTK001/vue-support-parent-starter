@@ -128,6 +128,7 @@ const FvDataPanel = defineAsyncComponent(() => import("../components/fv/FvDataPa
 const FvDrawingPanel = defineAsyncComponent(() => import("../components/fv/FvDrawingPanel.vue"));
 const FvGeoPanel = defineAsyncComponent(() => import("../components/fv/FvGeoPanel.vue"));
 const FvImagePanel = defineAsyncComponent(() => import("../components/fv/FvImagePanel.vue"));
+const FvJxlPanel = defineAsyncComponent(() => import("../components/fv/FvJxlPanel.vue"));
 const FvDicomPanel = defineAsyncComponent(() => import("../components/fv/FvDicomPanel.vue"));
 const FvMediaPanel = defineAsyncComponent(() => import("../components/fv/FvMediaPanel.vue"));
 const VideoPreviewPanel = defineAsyncComponent(() => import("../components/VideoPreviewPanel.vue"));
@@ -183,7 +184,7 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   diff: FvTextPanel,
   patch: FvTextPanel,
   bundle: FvTextPanel,
-  bdl: FvTextPanel,
+  bdl: FvBinaryPanel,
   jsonc: FvTextPanel,
   json5: FvTextPanel,
   ipynb: FvTextPanel,
@@ -207,26 +208,26 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   mbox: FvDocPanel,
   // renderer-design / renderer-data / renderer-signature / renderer-binary
   psb: FvDesignPanel,
-  pdd: FvDesignPanel,
+  pdd: FvBinaryPanel,
   psdt: FvDesignPanel,
   ait: FvDesignPanel,
   idml: FvDesignPanel,
-  icml: FvDesignPanel,
+  icml: FvBinaryPanel,
   idms: FvDesignPanel,
   inx: FvDesignPanel,
-  fla: FvDesignPanel,
+  fla: FvBinaryPanel,
   xfl: FvDesignPanel,
   xd: FvDesignPanel,
   indd: FvDesignPanel,
   indt: FvDesignPanel,
   ps: FvDesignPanel,
   ase: FvDesignPanel,
-  aco: FvDesignPanel,
+  aco: FvBinaryPanel,
   abr: FvDesignPanel,
-  csh: FvDesignPanel,
+  csh: FvBinaryPanel,
   pat: FvDesignPanel,
   grd: FvDesignPanel,
-  asl: FvDesignPanel,
+  asl: FvBinaryPanel,
   ttf: FvDataPanel,
   otf: FvDataPanel,
   woff: FvDataPanel,
@@ -256,7 +257,7 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   sce: FvSignaturePanel,
   ers: FvSignaturePanel,
   asc: FvSignaturePanel,
-  sig: FvSignaturePanel,
+  sig: FvBinaryPanel,
   pgp: FvSignaturePanel,
   gpg: FvSignaturePanel,
   jws: FvSignaturePanel,
@@ -319,7 +320,7 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   ico: FvImagePanel,
   heic: FvImagePanel,
   heif: FvImagePanel,
-  jxl: FvImagePanel,
+  jxl: FvJxlPanel,
   // renderer-dicom
   dcm: FvDicomPanel,
   dicom: FvDicomPanel,
@@ -341,8 +342,8 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   // 已内置两套 WASM 引擎 + three 渲染器，改派到这里才能真出图形。
   step: PreviewModel3dPanel,
   stp: PreviewModel3dPanel,
-  iges: PreviewModel3dPanel,
-  igs: PreviewModel3dPanel,
+  iges: FvBinaryPanel,
+  igs: FvBinaryPanel,
   brep: PreviewModel3dPanel,
   "3dm": PreviewModel3dPanel,
   "3ds": PreviewModel3dPanel,
@@ -350,11 +351,11 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   dae: PreviewModel3dPanel,
   ifc: PreviewIfcPanel,
   pcd: FvModelPanel,
-  wrl: PreviewModel3dPanel,
-  vrml: PreviewModel3dPanel,
+  wrl: FvBinaryPanel,
+  vrml: FvBinaryPanel,
   "3mf": PreviewModel3dPanel,
   off: PreviewModel3dPanel,
-  fbx: PreviewModel3dPanel,
+  fbx: FvBinaryPanel,
   vtk: PreviewModel3dPanel,
   xyz: FvModelPanel,
   vtp: FvModelPanel,
@@ -396,9 +397,21 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   cbr: FvArchivePanel,
 };
 
+/** 三项无法保真原生渲染的格式，在面板报错后切为二进制检视兜底，不让用户白看提示卡 */
+const BINARY_FALLBACK_EXTS: ReadonlySet<string> = new Set([
+  "fbx", "iges", "igs", "wrl", "vrml", "jxl", "sig", "bdl",
+  "webm", "m3u8", "pdd", "icml", "fla", "aco", "csh", "asl",
+  "oga", "flac", "elf", "macho", "zipx",
+]);
+/** 已切到二进制检视兜底（仅在 {@link BINARY_FALLBACK_EXTS} 内生效） */
+const binaryFallback = ref(false);
+
 /** 当前 fv 路由：native 分支没吃掉时，根据生效文件名选面板（包内条目用条目名） */
 const fvPanel = computed(() => {
   const ext = extensionOf(fileNameForClientRender.value).toLowerCase();
+  if (binaryFallback.value && BINARY_FALLBACK_EXTS.has(ext)) {
+    return FvBinaryPanel;
+  }
   return FV_PANEL_BY_EXT[ext] ?? null;
 });
 
@@ -3378,20 +3391,23 @@ const previewTitle = computed(() => {
 });
 
 
-async function openPreview(row: StorageObject): Promise<void> {
+async function openPreview(row: StorageObject, key?: string): Promise<void> {
   // 开关门禁必须在最前面：预览被关闭时既不能打开预览弹框，
   // 也不能「因为不能预览就自动下载」。
   if (!guardPreview()) {
     return;
   }
   previewName.value = row.name;
-  previewKey.value = fullKey(row.name);
+  // 分栏视图的行可能来自祖先列，显式传入该列路径下的对象键，
+  // 不能拿当前目录 currentPath 去拼（否则根目录文件会变成子目录路径）。
+  previewKey.value = key ?? fullKey(row.name);
   previewSize.value = row.size ?? 0;
   // 票据是异步的：先把旧地址清空，避免弹框先用上一个对象的地址闪一下
   previewSrc.value = "";
   void refreshPreviewSrc();
   previewError.value = false;
   previewForceServer.value = false;
+  binaryFallback.value = false;
   // 服务端有转换器但**没有** HTML 渲染器的文档（ODF / RTF）：直接 `?preview=true`
   // 只会拿到提示卡或退化成 `???`。预置 format=pdf 走 Aspose 转换。
   // 详见 {@link needsPdfConvert}。
@@ -3732,6 +3748,14 @@ const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
  * 面板分支都带 {@code !previewForceServer}，所以只会退一次，不会来回空转。</p>
  */
 function onClientPanelFallback(): void {
+  console.error("[FS_FALLBACK_EVENT]", extensionOf(fileNameForClientRender.value).toLowerCase(), fileNameForClientRender.value);
+  const ext = extensionOf(fileNameForClientRender.value).toLowerCase();
+  if (!binaryFallback.value && BINARY_FALLBACK_EXTS.has(ext)) {
+    binaryFallback.value = true;
+    previewError.value = false;
+    iframeLoading.value = false;
+    return;
+  }
   if (previewForceServer.value || previewUsePdf.value) {
     // 已经退过一次还在失败：交给通用错误态，别再反复切通道
     previewError.value = true;
@@ -3823,7 +3847,7 @@ const iframePanelRef = ref<InstanceType<typeof PreviewIframePanel>>();
 
 function onFrameLoad(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = false; }
 function onFrameError(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = true; }
-function retryPreview(): void { previewError.value = false; previewLoading.value = true; iframeLoading.value = true; iframeKey.value++; }
+function retryPreview(): void { previewError.value = false; binaryFallback.value = false; previewLoading.value = true; iframeLoading.value = true; iframeKey.value++; }
 
 /** 客户端直渲染完成 */
 function onOfficeRendered(): void { officeLoading.value = false; previewLoading.value = false; }
@@ -3962,11 +3986,12 @@ function triggerDirectDownload(url: string, name: string): void {
 }
 
 /** 下载单个对象：用短时一次性票据直连，令牌不落 URL */
-async function handleDownload(row: StorageObject): Promise<void> {
+async function handleDownload(row: StorageObject, key?: string): Promise<void> {
   if (!guardDownload()) {
     return;
   }
-  const url = await resolveObjectUrl(bucket.value, fullKey(row.name), {
+  const objectKey = key ?? fullKey(row.name);
+  const url = await resolveObjectUrl(bucket.value, objectKey, {
     params: { download: "true" },
   });
   triggerDirectDownload(url, row.name);
@@ -4365,8 +4390,8 @@ onUnmounted(() => {
                 :aria-label="item.name"
                 draggable="true"
                 @click="onColumnClick($event, item, colPath, index)"
-                @dblclick="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item)"
-                @keydown.enter="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item)"
+                @dblclick="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item, joinKey(colPath, item.name))"
+                @keydown.enter="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item, joinKey(colPath, item.name))"
                 @contextmenu.stop="openColumnContextMenu($event, item, colPath)"
                 @dragstart="onColumnDragStart($event, item, colPath)"
                 @dragover="onColumnRowDragOver($event, colPath, item)"
@@ -5512,7 +5537,7 @@ onUnmounted(() => {
           <div v-else-if="previewError" class="fs-preview__error">
             <el-empty description="预览加载失败">
               <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
-              <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
+              <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject, previewKey)">下载文件</el-button>
             </el-empty>
           </div>
           <!-- 下钻到压缩包内文件后的返回条：结构面板在第一层弹层里保持打开，

@@ -161,7 +161,7 @@ const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
 // 保留 18082 默认会让 /localFileStorage 探测直接 502。桶名需与目标服务的 Bean 名一致：
 //   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
 // 桶名由 app.yaml otherConfig.filestorage.bucket 决定，两者要配套改。
-const fileStorageTarget = process.env.FS_API_TARGET ?? "http://192.168.50.198:18080";
+const fileStorageTarget = process.env.FS_API_TARGET ?? "http://192.168.50.198:28080";
 
 /**
  * 启动自检：把「代理指错后端」从静默变成可见。
@@ -353,6 +353,22 @@ export default createVite({
         target: "http://ip-api.com",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/ip-api/, ""),
+      },
+      // 天气/台风组件，与共享包候选前缀一致；开发期也走代理，避免同源 404
+      "/typhoon-api": {
+        target: "https://typhoon.slt.zj.gov.cn",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/typhoon-api/, "/Api"),
+      },
+      "/weather-api": {
+        target: "https://api.open-meteo.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/weather-api/, ""),
+      },
+      "/geo-api": {
+        target: "https://api.bigdatacloud.net",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/geo-api/, ""),
       },
       "/ms/monitor/system": {
         target: apiTarget,

@@ -420,6 +420,18 @@ function buildPayload() {
   };
 }
 
+/** 失败响应里是否带已落库的节点（后端常见「已保存但启动失败」场景） */
+function hasPersistedNode(e: unknown): boolean {
+  const data = (e as Error & { data?: unknown })?.data;
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  if ('id' in d) return true;
+  // 热更新失败响应把节点放在 data.node 里（如监听参数改坏后返回
+  // { node: {...}, hotApplied, restarted, ... }），同样表示已落库。
+  const nested = d.node;
+  return !!nested && typeof nested === 'object' && 'id' in (nested as Record<string, unknown>);
+}
+
 /** 保存（全量替换） */
 async function submit() {
   if (!validate()) return;
@@ -436,6 +448,13 @@ async function submit() {
     visible.value = false;
   } catch (e) {
     message.error((e as Error).message);
+    // 后端可能返回 success=false 但 data 已是落库节点（例如监听参数导致
+    // 启动失败）。此时仍要刷新列表并关闭抽屉，否则用户既看不到异常节点，
+    // 也没法点详情/编辑/删除去排查。
+    if (hasPersistedNode(e)) {
+      emit('saved');
+      visible.value = false;
+    }
   } finally {
     submitting.value = false;
   }
@@ -455,6 +474,10 @@ async function submitHot() {
       visible.value = false;
     } catch (e) {
       message.error((e as Error).message);
+      if (hasPersistedNode(e)) {
+        emit('saved');
+        visible.value = false;
+      }
     } finally {
       submitting.value = false;
     }
@@ -474,6 +497,13 @@ async function submitHot() {
     visible.value = false;
   } catch (e) {
     message.error((e as Error).message);
+    // 热更新把监听参数改成无法启动的值时，后端同样可能返回已落库的
+    // ERROR 节点（保存成功、重启失败）。保持和新建一致：刷新列表、关闭
+    // 抽屉，让异常节点可继续详情/编辑/启停/删除。
+    if (hasPersistedNode(e)) {
+      emit('saved');
+      visible.value = false;
+    }
   } finally {
     submitting.value = false;
   }

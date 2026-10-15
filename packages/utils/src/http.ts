@@ -552,12 +552,20 @@ export function unwrapResult<T>(res: unknown, successCode: string = "00000"): T 
   const err = new Error(msg || "请求失败") as Error & {
     status?: number;
     code?: string | number;
+    data?: unknown;
   };
   if (httpStatus !== undefined) {
     err.status = httpStatus;
   }
   if (bizCode !== undefined) {
     err.code = bizCode;
+  }
+  // 后端失败响应里可能仍带完整业务数据，例如服务管理建节点返回
+  // success=false 但 data 是已落库的 ERROR 节点。不能只丢 msg 给页面——
+  // 否则用户会看到「保存失败」而列表里其实已有这个节点，刷新都无从点起。
+  const savedData = (body as { data?: unknown }).data;
+  if (savedData !== undefined) {
+    err.data = savedData;
   }
   throw err;
 }

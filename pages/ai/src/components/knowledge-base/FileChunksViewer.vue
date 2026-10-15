@@ -128,8 +128,9 @@ async function loadChunks() {
     return
   }
 
-  // 已完成或处理失败的文件均可查看分块内容
-  if (props.selectedFile.processingStatus !== 'completed' && props.selectedFile.processingStatus !== 'failed') {
+  // 上传完成（api 层可能长期停在 uploaded）、已完成或处理失败的文件均可查看分块内容
+  const readyStatus = ['uploaded', 'completed', 'failed']
+  if (!readyStatus.includes(props.selectedFile.processingStatus)) {
     toast.warning(t('knowledge.chunks.fileNotReady'))
     return
   }

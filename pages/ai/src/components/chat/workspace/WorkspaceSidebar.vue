@@ -142,8 +142,8 @@
             </div>
         </div>
 
-        <!-- 浏览器窗口预览占位（webview 实际在 MainLayout 层，此处仅空壳坐标） -->
-        <BrowserPreviewPlaceholder v-if="isElectron" v-show="isPreviewMode && !!browserStore.activeWindowId" />
+        <!-- 浏览器窗口预览占位（webview / web iframe 实际在 MainLayout 层，此处仅空壳坐标） -->
+        <BrowserPreviewPlaceholder v-if="!!browserStore.activeWindowId" v-show="isPreviewMode && !!browserStore.activeWindowId" />
 
         <!-- 文件预览面板（visibility:hidden 持久化，DOM 不销毁且保留滚动位置，含跨域 iframe） -->
         <template v-if="sessionId">

@@ -80,8 +80,7 @@ function read(): CardState {
 const cardStyle = computed(() => {
   const style: Record<string, string> = {};
   if (state.value.strokeColor) {
-    style.borderColor = state.value.strokeColor;
-    style.borderWidth = `${state.value.strokeWidth}px`;
+    style.border = `${state.value.strokeWidth}px solid ${state.value.strokeColor}`;
     style.boxShadow = `0 0 0 1px ${state.value.strokeColor} inset, 0 2px 5px 1px rgba(0, 0, 0, 0.06)`;
   } else {
     style.borderLeftColor = state.value.color;

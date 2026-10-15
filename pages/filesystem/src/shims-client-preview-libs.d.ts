@@ -85,3 +85,14 @@ declare module "e-virt-table/dist/index.es.js" {
   const EVirtTable: { prototype?: Record<string, unknown> };
   export default EVirtTable;
 }
+
+/**
+ * @cornerstonejs/codec-libjxl 的 WASM 子路径没有类型声明。
+ *
+ * <p>FvJxlPanel 只用默认导出的异步工厂，这里声明最小形状即可。</p>
+ */
+declare module "@cornerstonejs/codec-libjxl/decodewasmjs" {
+  /** 创建 JXL WASM 解码器工厂 */
+  const createDecoder: (opts?: Record<string, unknown>) => Promise<unknown>;
+  export default createDecoder;
+}

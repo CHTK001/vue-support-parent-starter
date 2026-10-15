@@ -36,8 +36,10 @@
           </span>
         </div>
         <p class="fe-tip">
-          仅支持<strong>单人脸</strong>登记：多脸照片会被拒绝，请先裁剪到只含目标人脸。
-          照片需 <strong>≤ 10 MB</strong> 且短边 <strong>≥ 100px</strong>；正面清晰无遮挡效果最好。
+          <span class="fe-tip-text">
+            仅支持<strong>单人脸</strong>登记：多脸照片会被拒绝，请先裁剪到只含目标人脸。
+            照片需 <strong>≤ 10 MB</strong> 且短边 <strong>≥ 100px</strong>；正面清晰无遮挡效果最好。
+          </span>
         </p>
       </el-form-item>
 
@@ -51,35 +53,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="年龄" prop="age">
-            <!-- 换 ReInputNumber：el-input-number 在本主题下（:controls="false"）没有可见边框，
-                 与同排的 el-input 观感不一致；ReInputNumber 是系统统一的数字输入控件。
-                 model 与 update 分开绑：表单里 age 的既有语义是 number | null
-                 （FaceRecord.age 就是可空），而 ReInputNumber 的 model 是 number | undefined，
-                 这里显式做一次映射，不为了迁就控件去改 age 的对外语义。 -->
-            <ReInputNumber
-              :model-value="form.age ?? undefined"
-              :min="0"
-              :max="120"
-              placeholder="0-120"
-              style="width: 100%"
-              @update:model-value="form.age = $event ?? null"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="性别" prop="gender">
-            <el-radio-group v-model="form.gender">
-              <el-radio value="男">男</el-radio>
-              <el-radio value="女">女</el-radio>
-              <el-radio value="未知">未知</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="发型" prop="hair">
             <el-select v-model="form.hair" placeholder="选择发型" clearable filterable allow-create style="width: 100%">
               <el-option v-for="h in HAIR_OPTIONS" :key="h" :label="h" :value="h" />
@@ -88,11 +61,26 @@
         </el-col>
       </el-row>
 
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="现居住地" prop="residence">
+            <el-input v-model="form.residence" placeholder="当前居住地，选填" maxlength="80" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="手机号" prop="phone">
+            <el-input v-model="form.phone" placeholder="11 位手机号，选填" maxlength="11" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <el-form-item label="身份证号" prop="idCard">
         <el-input v-model="form.idCard" placeholder="18 位身份证号" maxlength="18" />
         <p class="fe-tip">
-          <el-icon><Warning /></el-icon>
-          属敏感个人信息，页面展示一律脱敏（{{ maskedIdCard || '—' }}）；请确认所在地法律允许留存
+          <el-icon class="fe-tip-icon"><Warning /></el-icon>
+          <span class="fe-tip-text">
+            属敏感个人信息，页面展示一律脱敏（{{ maskedIdCard || '—' }}）；请确认所在地法律允许留存
+          </span>
         </p>
       </el-form-item>
 
@@ -120,10 +108,8 @@ import { message } from "@repo/core";
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { type FormInstance, type FormRules } from 'element-plus';
 import { Close, UploadFilled, Warning } from '@element-plus/icons-vue'
-// 系统统一的数字输入控件（自带边框，与 el-input 观感一致）
-import ReInputNumber from '@repo/ui/re-input-number'
 import { apiService } from '@/services/ApiService'
-import { useFaceRegistry, isValidIdCard, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
+import { useFaceRegistry, isValidIdCard, isValidPhone, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 
 
 import ReDialog from '@repo/ui/re-dialog';const props = defineProps<{ modelValue: boolean; record?: FaceRecord | null }>()

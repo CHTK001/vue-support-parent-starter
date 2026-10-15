@@ -32,10 +32,22 @@
       <section class="ngc-main">
         <div class="ngc-bar">
           <span class="ngc-path mono" :title="currentPath">{{ currentPath || "请选择左侧配置文件" }}</span>
-          <ReRadioGroup v-model="mode" >
-            <ReRadioButton value="FILE">文件模式</ReRadioButton>
-            <ReRadioButton value="MODEL">表单模式</ReRadioButton>
-          </ReRadioGroup>
+          <div class="ngc-seg" role="group" aria-label="配置模式">
+            <button
+              type="button"
+              :class="{ 'is-active': mode === 'FILE' }"
+              @click="mode = 'FILE'"
+            >
+              文件模式
+            </button>
+            <button
+              type="button"
+              :class="{ 'is-active': mode === 'MODEL' }"
+              @click="mode = 'MODEL'"
+            >
+              表单模式
+            </button>
+          </div>
         </div>
 
         <ReAlert
@@ -160,21 +172,28 @@
           </ReSelect>
         </ReFormItem>
         <ReFormItem v-else label="指令名">
-          <ReSelect
+          <ElSelect
             v-model="addName"
+            class="ngc-directive-select"
             filterable
             allow-create
             default-first-option
             placeholder="选择或直接输入指令名"
+            popper-class="ngc-directive-popper"
             @change="syncAddMeta"
           >
             <ReOption
               v-for="m in addCandidates"
               :key="m.name"
               :value="m.name"
-              :label="`${m.name}${m.example ? '  例：' + m.example : ''}`"
-            />
-          </ReSelect>
+              :label="m.name"
+              class="ngc-directive-option"
+            >
+              <span class="ngc-directive-option__name">{{ m.name }}</span>
+              <span v-if="m.desc" class="ngc-directive-option__desc">{{ m.desc }}</span>
+              <span v-if="m.example" class="ngc-directive-option__example">例：{{ m.example }}</span>
+            </ReOption>
+          </ElSelect>
           <div v-if="addMeta" class="ngc-addmeta">
             <div class="ngc-addmeta-desc">{{ addMeta.desc }}</div>
             <div v-if="addMeta.example" class="ngc-addmeta-eg">示例：{{ addMeta.example }}</div>
@@ -241,6 +260,7 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { computed, nextTick, reactive, ref, watch } from "vue";
+import { ElSelect } from "element-plus";
 
 import DsmContextMenu from "./DsmContextMenu.vue";
 import ReButton from "@repo/ui/re-button";
@@ -253,8 +273,9 @@ import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTag from "@repo/ui/re-tag";
-import { ReAlert, ReFormItem, ReOption, ReRadioButton, ReRadioGroup } from "@repo/ui/re-kit";
+import { ReAlert, ReFormItem, ReOption } from "@repo/ui/re-kit";
 import NginxModelForm from "./NginxModelForm.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import {
   applyNginxConfig,
   fetchNginxConfig,
@@ -309,10 +330,7 @@ function onFileMenuSelect(action: string) {
   if (!path) return;
   if (action === "open") openFile(path);
   else if (action === "copy") {
-    navigator.clipboard
-      .writeText(path)
-      .then(() => message.success("已复制路径"))
-      .catch(() => message.error("复制失败"));
+    void copyToClipboard(path).then(ok => ok ? message.success("已复制路径") : message.error("复制失败"));
   }
 }
 const content = ref("");
@@ -839,6 +857,46 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   white-space: nowrap;
 }
 
+/* 文件/表单模式切换：与 Nginx 控制台「标准/新人」同款分段控件 */
+.ngc-seg {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.ngc-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ngc-seg button:last-child {
+  border-right: none;
+}
+
+.ngc-seg button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ngc-seg button.is-active {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
 .ngc-alert {
   margin: 10px 0 0;
 }
@@ -1035,5 +1093,53 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 .ngc-addmeta-eg {
   color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+</style>
+
+<style>
+/* 指令下拉使用原生 ElSelect：弹层由 Element Plus teleport 到 body，
+   scoped 样式无法直接命中，这里单独给 popper-class 提供稳定排版。 */
+.ngc-directive-popper .el-select-dropdown__item {
+  height: auto;
+  min-height: 40px;
+  padding: 6px 10px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.ngc-directive-popper .ngc-directive-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ngc-directive-popper .ngc-directive-option__name {
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+
+.ngc-directive-popper .ngc-directive-option__desc {
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--text-secondary, #5c6270);
+  white-space: normal;
+}
+
+.ngc-directive-popper .ngc-directive-option__example {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary, #8a90a0);
 }
 </style>

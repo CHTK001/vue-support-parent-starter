@@ -447,6 +447,7 @@ import ReTag from "@repo/ui/re-tag";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import { testDataSource } from "../../api";
@@ -836,12 +837,8 @@ async function copyResult(): Promise<void> {
   } else if (view.text !== undefined) {
     text = view.text;
   }
-  try {
-    await navigator.clipboard.writeText(text);
-    message.success("结果已复制");
-  } catch {
-    message.warning("复制失败");
-  }
+  if (await copyToClipboard(text)) message.success("结果已复制");
+  else message.warning("复制失败");
 }
 
 /** 详情 value → HASH 字段数组（detail.value 是信封 {key,type,ttl,value,size}，字段在嵌套 value 里） */
@@ -1464,12 +1461,8 @@ async function confirmDeleteKey(key: string) {
  * @param key 键名
  */
 async function copyKeyName(key: string) {
-  try {
-    await navigator.clipboard.writeText(key);
-    message.success("键名已复制");
-  } catch {
-    message.warning("复制失败，浏览器拒绝了剪贴板访问");
-  }
+  if (await copyToClipboard(key)) message.success("键名已复制");
+  else message.warning("复制失败，浏览器拒绝了剪贴板访问");
 }
 
 /**

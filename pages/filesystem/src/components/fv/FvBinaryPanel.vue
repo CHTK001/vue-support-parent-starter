@@ -67,6 +67,13 @@ const effectiveName = computed(() => {
   return slash >= 0 ? p.slice(slash + 1) : p;
 });
 
+/** binary 渲染器原生支持的扩展名；其余格式用 .bin 规避其他 renderer 按扩展名抢路由 */
+const BINARY_RENDERER_EXTS = new Set(["bin", "hex", "elf", "exe", "dll", "class", "macho"]);
+const viewerFileName = computed(() => {
+  const ext = effectiveName.value.split(".").pop()?.toLowerCase() || "";
+  return BINARY_RENDERER_EXTS.has(ext) ? effectiveName.value : "file.bin";
+});
+
 /**
  * 懒加载 file-viewer 全套依赖（vue3 组件 + 样式 + binaryRenderer）。
  *
@@ -156,7 +163,7 @@ async function load(): Promise<void> {
     if (!ready) {
       throw new Error("二进制检视依赖加载失败");
     }
-    fileRef.value = new File([buf], effectiveName.value);
+    fileRef.value = new File([buf], viewerFileName.value);
   } catch (e) {
     if (disposed) {
       return;

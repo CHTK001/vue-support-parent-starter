@@ -41,7 +41,7 @@
                     <Timeline20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
-                  <!-- 内置浏览器：打开内嵌浏览器，默认显示代码渲染预览 -->
+                  <!-- 内置浏览器：打开内嵌浏览器，默认显示「鹈鹕骑车」动画预览 -->
                   <LTooltip v-if="mainSession?.id" content="内置浏览器" placement="bottom">
                   <div class="header-icon-btn" :class="{ active: builtinBrowserActive }" title="内置浏览器"
                     role="button" tabindex="0" aria-label="内置浏览器" :aria-pressed="builtinBrowserActive"
@@ -166,7 +166,7 @@ import {
   // FileUploadOutlined
 } from "@vicons/material";
 import { PanelRightExpand20Filled, DataUsage20Filled, Timeline20Filled, Globe20Filled } from "@vicons/fluent";
-import { previewUrl, buildCodeRenderUrl } from '@/utils/workspacePreview';
+import { previewUrl, buildPelicanBikeUrl } from '@/utils/workspacePreview';
 
 
 const ChatOutline = defineAsyncComponent(() => import("./ChatOutline.vue"));
@@ -394,7 +394,7 @@ const builtinBrowserActive = computed(() => {
 });
 
 /**
- * 打开内置浏览器，默认加载代码渲染预览页
+ * 打开内置浏览器，默认加载「鹈鹕骑车」动画预览
  */
 async function openBuiltinBrowser(): Promise<void> {
   if (!mainSession.value) {
@@ -402,7 +402,7 @@ async function openBuiltinBrowser(): Promise<void> {
     return;
   }
   try {
-    await previewUrl(buildCodeRenderUrl());
+    await previewUrl(buildPelicanBikeUrl());
   } catch (error) {
     console.error('[ChatPage] 打开内置浏览器失败:', error);
     toast.error(t('common.error.operationFailed'));

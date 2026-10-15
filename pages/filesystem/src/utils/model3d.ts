@@ -775,7 +775,7 @@ async function parseWithThreeLoader(
       // 修法：不足 250 字节先补齐（补 0x0A 换行；ASCII 解析器按行读、
       // 二进制解析器按计数读，尾部补白都无副作用）。
       const padded = padToAtLeast(bytes, 250);
-      const geometry = new VTKLoader().parse(padded);
+      const geometry = new VTKLoader().parse(padded, "");
       geometry.computeVertexNormals();
       const material = new THREE.MeshStandardMaterial({
         color: DEFAULT_MESH_COLOR,

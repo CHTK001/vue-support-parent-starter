@@ -8,15 +8,41 @@
       </div>
 
       <div class="is-searchbox">
-        <span class="is-searchbox-tip">选一张图，检索底库中最相似的图片</span>
-        <button class="is-upload-btn" :disabled="busy || !available" @click="pickImage">
-          <el-icon><Upload /></el-icon>上传图片
-        </button>
+        <div class="is-mode-switch">
+          <button type="button" class="is-mode-btn" :class="{ active: searchMode === 'image' }"
+            :disabled="searching" @click="setSearchMode('image')">
+            以图
+          </button>
+          <button type="button" class="is-mode-btn" :class="{ active: searchMode === 'keyword' }"
+            :disabled="searching" @click="setSearchMode('keyword')">
+            关键词
+          </button>
+        </div>
+
+        <template v-if="searchMode === 'keyword'">
+          <el-input ref="keywordInput" v-model="keyword" class="is-keyword-input"
+            placeholder="输入名称或关键词检索图像底库" clearable @keyup.enter="runKeywordSearch"
+            @clear="runKeywordSearch">
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <button class="is-upload-btn" :disabled="busy || searching || !available" @click="runKeywordSearch">
+            <el-icon><Search /></el-icon>检索
+          </button>
+        </template>
+
+        <template v-else>
+          <span class="is-searchbox-tip">选一张图，检索底库中最相似的图片</span>
+          <button class="is-upload-btn" :disabled="busy || !available" @click="pickImage">
+            <el-icon><Upload /></el-icon>上传图片
+          </button>
+        </template>
       </div>
 
       <div class="is-topbar-right">
         <span class="is-badge" :class="available ? 'is-ok' : 'is-off'">
-          {{ available ? '以图搜图已启用' : '未配置特征模型' }}
+          {{ available
+            ? (searchMode === 'keyword' ? '关键词检索已启用' : '以图搜图已启用')
+            : '未配置特征模型' }}
         </span>
       </div>
     </header>
@@ -26,8 +52,15 @@
       <section class="is-stage">
         <div class="is-stage-inner" :class="{ 'is-drag': dragging }" @dragover.prevent="dragging = true"
           @dragleave.prevent="dragging = false" @drop.prevent="onDrop">
+          <!-- 关键词模式：不需要查询图，直接复用同一底库关键词检索 -->
+          <div v-if="searchMode === 'keyword'" class="is-drop is-keyword-drop" @click="focusKeyword">
+            <el-icon :size="42" class="is-drop-icon"><Search /></el-icon>
+            <p class="is-drop-title">输入关键词检索底库图片</p>
+            <p class="is-drop-desc">支持名称与 OCR / 多模态模型提取的关键词</p>
+          </div>
+
           <!-- 空态 -->
-          <div v-if="!previewUrl" class="is-drop" @click="pickImage">
+          <div v-else-if="!previewUrl" class="is-drop" @click="pickImage">
             <el-icon :size="46" class="is-drop-icon"><Picture /></el-icon>
             <p class="is-drop-title">拖拽图片到此处即可搜索</p>
             <p class="is-drop-desc">或点击选择图片，支持 PNG / JPG</p>
@@ -119,7 +152,7 @@
       <!-- ============ 右：结果面板 ============ -->
       <aside class="is-side">
         <div class="is-tabs">
-          <button class="is-tab active">相似图片</button>
+          <button class="is-tab active">{{ searchMode === 'keyword' ? '关键词结果' : '相似图片' }}</button>
         </div>
 
         <!-- 未启用提示 -->
@@ -134,7 +167,7 @@
         </div>
 
         <template v-else>
-          <div class="is-chips">
+          <div class="is-chips" v-if="searchMode !== 'keyword'">
             <button v-for="c in scoreFilters" :key="c.value" class="is-chip"
               :class="{ active: minScore === c.value }" @click="minScore = c.value">
               {{ c.label }}
@@ -151,7 +184,7 @@
                 </span>
               </div>
               <div class="is-card-body">
-                <p class="is-card-name">{{ item.name || '未命名' }}<span class="is-card-tagname">匹配度</span></p>
+                <p class="is-card-name">{{ item.name || '未命名' }}<span class="is-card-tagname">{{ searchMode === 'keyword' ? '关键词命中' : '匹配度' }}</span></p>
                 <p class="is-card-meta">
                   <span class="is-card-dim">{{ formatDims(item) }}</span>
                   <span v-for="tag in (item.tags || []).slice(0, 1)" :key="tag" class="is-card-tag">{{ tag }}</span>
@@ -170,9 +203,11 @@
                 {{ searched ? '底库里没有相似图片' : '选一张图开始搜索' }}
               </p>
               <p class="is-empty-desc">
-                {{ searched
-                  ? '可由管理员到「系统设置 → 图像底库」补充底图，或放宽上方相似度筛选'
-                  : '支持拖拽、点击选择与粘贴，检索结果会显示在这里' }}
+                {{ searchMode === 'keyword'
+                  ? '名称或关键词都没有命中，可换一个词再试'
+                  : searched
+                    ? '可由管理员到「系统设置 → 图像底库」补充底图，或放宽上方相似度筛选'
+                    : '支持拖拽、点击选择与粘贴，检索结果会显示在这里' }}
               </p>
             </div>
           </div>
@@ -187,9 +222,9 @@
         <div v-if="available" class="is-footbar">
           <span class="is-footbar-title">检索统计</span>
           <div class="is-footbar-items">
-            <span class="is-footbar-item">命中：{{ scoreStats ? scoreStats.count : '—' }}</span>
-            <span class="is-footbar-item">最高：{{ scoreStats ? `${(scoreStats.top * 100).toFixed(0)}%` : '—' }}</span>
-            <span class="is-footbar-item">均值：{{ scoreStats ? `${(scoreStats.avg * 100).toFixed(0)}%` : '—' }}</span>
+            <span class="is-footbar-item">命中：{{ searchMode === 'keyword' ? results.length : (scoreStats ? scoreStats.count : '—') }}</span>
+            <span v-if="searchMode !== 'keyword'" class="is-footbar-item">最高：{{ scoreStats ? `${(scoreStats.top * 100).toFixed(0)}%` : '—' }}</span>
+            <span v-if="searchMode !== 'keyword'" class="is-footbar-item">均值：{{ scoreStats ? `${(scoreStats.avg * 100).toFixed(0)}%` : '—' }}</span>
             <span class="is-footbar-item is-footbar-cost">
               耗时：{{ elapsedMs == null ? '—' : `${elapsedMs} ms` }}
             </span>
@@ -205,7 +240,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // 图标按实际使用裁剪：Search/Clock/Delete 随图像底库迁往系统设置后已无用，
 // 留着会让人以为本页还有搜索框与删除入口
 import {
-  Camera, Upload, Picture, FolderOpened, Link,
+  Camera, Upload, Picture, FolderOpened, Link, Search,
   Plus, Warning, Loading, ArrowDown, CircleCheckFilled,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
@@ -246,6 +281,10 @@ const MAX_UPLOAD_EDGE = 1600
 const { toast, confirm } = usePopup()
 
 const fileInput = ref<HTMLInputElement | null>(null)
+const keywordInput = ref<{ focus: () => void } | null>(null)
+/** 检索模式：以图搜图 / 关键词检索（关键词模式不需要查询图） */
+const searchMode = ref<'image' | 'keyword'>('image')
+const keyword = ref('')
 /** 查询图画布容器：viewerjs 挂在这里，点查询图可放大查看细节 */
 const queryCanvasRef = ref<HTMLElement | null>(null)
 /** 结果网格容器：viewerjs 挂在这里，结果图可放大并左右切换 */
@@ -288,6 +327,27 @@ const scoreFilters = [
 const filteredResults = computed(() =>
   results.value.filter((item) => (item.score ?? 1) >= minScore.value),
 )
+
+/** 关键词模式：只跑底库 list 的 name+tags 检索，不参与相似度统计 */
+const keywordMode = computed(() => searchMode.value === 'keyword')
+
+function focusKeyword() {
+  nextTick(() => keywordInput.value?.focus())
+}
+
+function setSearchMode(mode: 'image' | 'keyword') {
+  if (searchMode.value === mode || searching.value) return
+  searchMode.value = mode
+  results.value = []
+  searched.value = false
+  elapsedMs.value = null
+  minScore.value = 0
+  if (mode === 'keyword') {
+    previewUrl.value = ''
+    previewFile.value = null
+    queryMeta.value = null
+  }
+}
 
 /**
  * 是否已进入「结果优先」版面。
@@ -417,6 +477,11 @@ const NOT_READY_MSG =
   '以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型'
 
 function pickImage() {
+  // 关键词模式不需要选图；点击左栏/顶栏仍回到关键词输入，不弹文件选择器
+  if (searchMode.value === 'keyword') {
+    focusKeyword()
+    return
+  }
   // 模型未配置时连文件选择器都不弹（不是选完才拦）
   if (!available.value) {
     toast.warning(NOT_READY_MSG)
@@ -563,6 +628,38 @@ async function runSearch() {
     elapsedMs.value = Math.round(performance.now() - startedAt)
     if (isNotConfigured(e)) available.value = false
     toast.error(e?.message || '检索失败')
+  } finally {
+    searching.value = false
+  }
+}
+
+/**
+ * 关键词检索底库。
+ *
+ * <p>复用 {@code GET /image-search/list} 的同一口径（name + tags），与设置中心
+ * 图像底库面板保持一致；结果不生成相似度，只展示命中条目。</p>
+ */
+async function runKeywordSearch() {
+  if (searchMode.value !== 'keyword') return
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
+  searching.value = true
+  const startedAt = performance.now()
+  const kw = keyword.value.trim()
+  try {
+    const data = await apiService._request('/image-search/list', {
+      params: { page: 1, size: 100, keyword: kw || undefined },
+    })
+    const list = Array.isArray(data) ? data : data?.items ?? []
+    results.value = list.map((item: ImageItem) => ({ ...item, score: null }))
+    searched.value = true
+    elapsedMs.value = Math.round(performance.now() - startedAt)
+  } catch (e: any) {
+    elapsedMs.value = Math.round(performance.now() - startedAt)
+    if (isNotConfigured(e)) available.value = false
+    toast.error(e?.message || '关键词检索失败')
   } finally {
     searching.value = false
   }
@@ -751,8 +848,7 @@ onBeforeUnmount(() => {
   border-color: var(--is-primary);
 }
 
-/* 原来的关键词输入框随图像底库一起迁走了（这里搜的是库内条目），
-   位置留一句说明，避免顶栏右侧空一大块看着像控件坏了 */
+/* 以图搜图模式仍是引导；关键词模式由 .is-mode-switch / .is-keyword-input 接管 */
 .is-searchbox-tip {
   flex: 1;
   min-width: 0;
@@ -882,6 +978,11 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 13px;
   color: var(--is-muted);
+}
+
+/* 关键词模式空态的点击落点：聚焦输入框，不触发文件选择器 */
+.is-keyword-drop {
+  cursor: text;
 }
 
 .is-drop-btn {

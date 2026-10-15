@@ -52,7 +52,7 @@
         :empty-text="`暂无${title}数据`"
       >
         <template
-          v-for="col in columns"
+          v-for="col in contentColumns"
           :key="col.prop"
           #[`col-${col.prop}`]="scope"
         >
@@ -223,9 +223,11 @@ const tableColumns = computed<ReTableColumn[]>(() =>
     width: col.width,
     minWidth: col.minWidth || 120,
     formatter: col.formatter,
-    slot: col.prop,
+    slot: `col-${col.prop}`,
   }))
 );
+
+const contentColumns = computed(() => props.columns.filter((col) => col.prop !== 'actions'));
 
 const loading = ref(false);
 const saving = ref(false);

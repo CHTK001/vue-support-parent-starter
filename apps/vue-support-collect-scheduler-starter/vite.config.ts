@@ -47,16 +47,6 @@ const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.
 const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 
-// 本地验收专用（2026-10-14）：远端 hub（198:8081）失联期间，
-// 控制台（/ms/monitor/db/**）与数据源注册表（/ms/datasource/list
-// 等 save/test）打到本机 8081（.local-run/start-backend-monitordb.cmd
-// 起的 monitordb 口径，ds=2 = root/ai_test 服务器）。两条都比通用
-// /collect/api/ms 条目长、排在它前面先匹配；比上方 ddl/tables/
-// table-infos/table-exists/columns/mapping-resolve 短，那些更长
-// 条目仍先匹配、继续打采集节点（18190）不受影响。198:8081 恢复后
-// 删掉这两条即回原路由。
-const localHubTarget = "http://127.0.0.1:8081";
-
 // dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。
 // 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 192.168.50.198:18190；
 // 而后端自 393306437（2026-10-02「收紧 CORS 任意 Origin 反射」）起只放行显式
@@ -245,21 +235,6 @@ export default createVite({
       "/collect/api/ms/datasource/mapping/resolve": {
         target: apiTarget,
         changeOrigin: true,
-        configure: stripOriginHeaders,
-      },
-      // 本地验收条目（见 localHubTarget 注释）：控制台与
-      // 注册表打本机 8081。顺序敏感：比 /collect/api/ms 长，
-      // 排在它前面先匹配。
-      "/collect/api/ms/monitor": {
-        target: localHubTarget,
-        changeOrigin: true,
-        rewrite: stripCollectApiPrefix,
-        configure: stripOriginHeaders,
-      },
-      "/collect/api/ms/datasource": {
-        target: localHubTarget,
-        changeOrigin: true,
-        rewrite: stripCollectApiPrefix,
         configure: stripOriginHeaders,
       },
       // 数据源中心（列表 + 控制台）-> hub。

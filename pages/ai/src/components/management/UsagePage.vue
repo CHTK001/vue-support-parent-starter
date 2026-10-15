@@ -69,22 +69,12 @@
           </div>
         </template>
         <ReEcharts :option="modelPieOption" height="260px" not-merge />
-        <ReTable :data="modelPaged" :show-index="false" :stripe="false" class="dist-table" :row-style="distRowStyle(modelDist, modelChartType)">
-          <el-table-column prop="name" label="模型" show-overflow-tooltip>
-            <template #default="{ row }"><span class="model-name">{{ row.name }}</span></template>
-          </el-table-column>
-          <el-table-column label="请求" align="right" width="90">
-            <template #default="{ row }">{{ formatNumber(row.requests) }}</template>
-          </el-table-column>
-          <el-table-column label="Token" align="right" width="110">
-            <template #default="{ row }">{{ fmtToken(row.totalTokens) }}</template>
-          </el-table-column>
-          <el-table-column :label="`费用(${currencySymbol})`" align="right" width="100">
-            <template #default="{ row }">{{ money(row.cost) }}</template>
-          </el-table-column>
-          <el-table-column label="占比" align="right" width="90">
-            <template #default="{ row }">{{ percent(row, modelDist, modelChartType) }}</template>
-          </el-table-column>
+        <ReTable :data="modelPaged" :columns="modelDistColumns" :show-index="false" :stripe="false" class="dist-table" :row-style="distRowStyle(modelDist, modelChartType)">
+          <template #col-name="{ row }"><span class="model-name">{{ row.name }}</span></template>
+          <template #col-requests="{ row }">{{ formatNumber(row.requests) }}</template>
+          <template #col-totalTokens="{ row }">{{ fmtToken(row.totalTokens) }}</template>
+          <template #col-cost="{ row }">{{ money(row.cost) }}</template>
+          <template #col-percent="{ row }">{{ percent(row, modelDist, modelChartType) }}</template>
         </ReTable>
         <div class="pager-row" v-if="modelDist.length > distPageSize">
           <el-pagination background small layout="prev, pager, next" :total="modelDist.length" :page-size="distPageSize" v-model:current-page="modelPage" />
@@ -99,22 +89,12 @@
           </div>
         </template>
         <ReEcharts :option="groupPieOption" height="260px" not-merge />
-        <ReTable :data="groupPaged" :show-index="false" :stripe="false" class="dist-table" :row-style="distRowStyle(groupDist, groupChartType)">
-          <el-table-column prop="name" label="分组" show-overflow-tooltip>
-            <template #default="{ row }"><span class="model-name">{{ row.name }}</span></template>
-          </el-table-column>
-          <el-table-column label="请求" align="right" width="90">
-            <template #default="{ row }">{{ formatNumber(row.requests) }}</template>
-          </el-table-column>
-          <el-table-column label="Token" align="right" width="110">
-            <template #default="{ row }">{{ fmtToken(row.totalTokens) }}</template>
-          </el-table-column>
-          <el-table-column :label="`费用(${currencySymbol})`" align="right" width="100">
-            <template #default="{ row }">{{ money(row.cost) }}</template>
-          </el-table-column>
-          <el-table-column label="占比" align="right" width="90">
-            <template #default="{ row }">{{ percent(row, groupDist, groupChartType) }}</template>
-          </el-table-column>
+        <ReTable :data="groupPaged" :columns="groupDistColumns" :show-index="false" :stripe="false" class="dist-table" :row-style="distRowStyle(groupDist, groupChartType)">
+          <template #col-name="{ row }"><span class="model-name">{{ row.name }}</span></template>
+          <template #col-requests="{ row }">{{ formatNumber(row.requests) }}</template>
+          <template #col-totalTokens="{ row }">{{ fmtToken(row.totalTokens) }}</template>
+          <template #col-cost="{ row }">{{ money(row.cost) }}</template>
+          <template #col-percent="{ row }">{{ percent(row, groupDist, groupChartType) }}</template>
         </ReTable>
         <div class="pager-row" v-if="groupDist.length > distPageSize">
           <el-pagination background small layout="prev, pager, next" :total="groupDist.length" :page-size="distPageSize" v-model:current-page="groupPage" />
@@ -406,6 +386,7 @@ import { http } from '@repo/utils';
 import type { EChartsOption } from 'echarts';
 import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import ReTag from '@/components/re/ReTag.vue';
 import ReButton from '@/components/re/ReButton.vue';
 import ReIpText from '@repo/ui/re-ip-text';
@@ -1356,6 +1337,41 @@ const rateEur = ref(7.8);
 const tokenScale = ref<'auto' | 'raw'>('auto');
 const fmtToken = (v: number | null | undefined): string =>
   tokenScale.value === 'raw' ? formatNumber(v) : formatCompact(v);
+
+// ---------- ReTable 列配置（统一走 :columns + #col-* 插槽） ----------
+function distColumnDefs(nameLabel: string): ReTableColumn[] {
+  return [
+    {
+      prop: 'name',
+      label: nameLabel,
+      minWidth: 140,
+      showOverflowTooltip: true,
+      slot: 'name',
+    },
+    { prop: 'requests', label: '请求', width: 90, align: 'right', slot: 'requests' },
+    { prop: 'totalTokens', label: 'Token', width: 110, align: 'right', slot: 'totalTokens' },
+    { prop: 'cost', label: `费用(${currencySymbol.value})`, width: 100, align: 'right', slot: 'cost' },
+    { prop: 'percent', label: '占比', width: 90, align: 'right', slot: 'percent' },
+  ];
+}
+const modelDistColumns = computed<ReTableColumn[]>(() => distColumnDefs('模型'));
+const groupDistColumns = computed<ReTableColumn[]>(() => distColumnDefs('分组'));
+
+const detailColumns = computed<ReTableColumn[]>(() => [
+  { prop: 'time', label: '时间', width: 160, slot: 'time' },
+  { prop: 'model', label: '模型', minWidth: 180, showOverflowTooltip: true, slot: 'model' },
+  { prop: 'group', label: '分组', width: 140, showOverflowTooltip: true, slot: 'group' },
+  { prop: 'user', label: '账号', width: 90, slot: 'user' },
+  { prop: 'provider', label: '服务商', width: 100, slot: 'provider' },
+  { prop: 'endpoint', label: '端点', width: 185, showOverflowTooltip: true, slot: 'endpoint' },
+  { prop: 'strength', label: '强度', width: 90, slot: 'strength' },
+  { prop: 'ip', label: '请求 IP', width: 130, showOverflowTooltip: true, slot: 'ip' },
+  { prop: 'tokens', label: 'Token', width: 170, align: 'right', slot: 'tokens' },
+  { prop: 'cost', label: `费用(${currencySymbol.value})`, width: 90, align: 'right', slot: 'cost' },
+  { prop: 'latency', label: '耗时', width: 150, slot: 'latency' },
+  { prop: 'type', label: '类型', width: 130, slot: 'type' },
+  { prop: 'callType', label: '调用类型', width: 95, slot: 'callType' },
+]);
 
 // 费用以人民币（元 CNY）入库；按当前货币与汇率换算显示
 function convertCost(v: number | null | undefined): number {

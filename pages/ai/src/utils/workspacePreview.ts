@@ -17,6 +17,9 @@ import { useLayoutStore } from '@/stores/layout'
 import { useTabStore } from '@/stores/tab'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import { t } from '@/locales'
+import { buildPelicanBikeUrl } from './pelicanBikePreview'
+
+export { buildPelicanBikeUrl }
 
 // ── 链接打开方式偏好管理 ──
 
@@ -174,6 +177,31 @@ export async function previewFile(filePath: string): Promise<void> {
 }
 
 /**
+ * Web 形态的内置浏览器：不依赖 Electron webview，把 URL 放入系统内嵌 iframe。
+ */
+async function previewUrlInWeb(url: string): Promise<void> {
+    const browserStore = useBrowserWebviewStore()
+    const sessionStore = useSessionStore()
+    const layoutStore = useLayoutStore()
+    const tabStore = useTabStore()
+    const sessionId = sessionStore.activeSessionId || undefined
+    const windowId = `web-${Date.now()}`
+    browserStore.addWebview({
+      windowId,
+      url,
+      title: '内置浏览器',
+      partition: 'persist:web',
+      preloadUrl: '',
+      isVisible: false,
+      metadata: { sessionId },
+    })
+    layoutStore.workspaceVisible = true
+    await nextTick()
+    tabStore.enterPreviewMode()
+    tabStore.selectTab(`browser:${windowId}`)
+}
+
+/**
  * 预览 URL（在内置浏览器中打开）
  *
  * 创建浏览器窗口，setActive 后 tabStore 的 watch 自动同步标签。
@@ -181,7 +209,7 @@ export async function previewFile(filePath: string): Promise<void> {
 export async function previewUrl(url: string): Promise<void> {
     const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
     if (!isElectron || !window.electronAPI?.createBrowserWindow) {
-        window.open(url, '_blank', 'noopener,noreferrer')
+        await previewUrlInWeb(url)
         return
     }
 

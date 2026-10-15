@@ -67,8 +67,8 @@
         <div class="flex items-center min-w-0">
           <template v-if="!item.isDirectory">
             <!-- 处理中或等待处理时显示进度百分比 -->
-            <LTooltip v-if="(item.processingStatus === 'processing' || item.processingStatus === 'pending') && item.currentStep" 
-              :content="item.currentStep" 
+            <LTooltip v-if="(item.processingStatus === 'processing' || item.processingStatus === 'pending') && item.currentStep"
+              :content="item.currentStep"
               placement="top">
               <el-tag :type="getStatusType(item.processingStatus)" class="truncate max-w-full">
                 {{ getStatusDisplayText(item) }}
@@ -288,6 +288,16 @@ const contextMenu = ref({
 })
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
+  const file = contextMenu.value.item;
+  const canViewChunks = !!file && !file.isDirectory
+    && (file.processingStatus === 'uploaded' || file.processingStatus === 'completed' || file.processingStatus === 'failed');
+  if (props.readonly) {
+    return canViewChunks ? [{
+      label: t('knowledge.chunks.view'),
+      icon: View,
+      onClick: handleChunksFromMenu,
+    }] : [];
+  }
   const items: ContextMenuItem[] = [
     {
       label: t('knowledge.tree.rename'),
@@ -300,7 +310,14 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       onClick: handleMoveFromMenu,
     },
   ];
-  if (contextMenu.value.item && !contextMenu.value.item.isDirectory) {
+  if (file && !file.isDirectory) {
+    if (canViewChunks) {
+      items.push({
+        label: t('knowledge.chunks.view'),
+        icon: View,
+        onClick: handleChunksFromMenu,
+      });
+    }
     items.push({
       label: t('knowledge.tree.retry'),
       icon: RefreshRight,
@@ -927,11 +944,11 @@ function getStatusType(status: string): 'primary' | 'success' | 'info' | 'warnin
  */
 function getStatusDisplayText(item: KBFile): string {
   // 如果正在处理或等待处理且有进度百分比，显示百分比
-  if ((item.processingStatus === 'processing' || item.processingStatus === 'pending') && 
+  if ((item.processingStatus === 'processing' || item.processingStatus === 'pending') &&
       item.progressPercentage !== undefined && item.progressPercentage !== null) {
     return `${item.progressPercentage}%`
   }
-  
+
   // 否则返回基本状态文本
   return getStatusText(item.processingStatus)
 }
@@ -973,8 +990,19 @@ function formatDate(dateString: string | null): string {
  */
 function handleContextMenu(event: MouseEvent, item: KBFile) {
   event.preventDefault()
-  // 只读公开库：不提供重命名/移动/重试/删除等写操作菜单
+  const isCompletedOrFailed = !item.isDirectory
+    && (item.processingStatus === 'uploaded' || item.processingStatus === 'completed' || item.processingStatus === 'failed')
+  // 只读公开库：不提供重命名/移动/重试/删除等写操作菜单；分块查看是只读能力，仍保留。
   if (props.readonly) {
+    if (!isCompletedOrFailed) {
+      return
+    }
+    contextMenu.value = {
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      item
+    }
     return
   }
   contextMenu.value = {

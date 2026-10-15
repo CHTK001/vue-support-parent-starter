@@ -21,7 +21,7 @@
       </template>
       <ReTableColumn prop="examId" label="ID" width="80" />
       <ReTableColumn prop="examName" label="考试名" min-width="220" />
-      <ReTableColumn prop="examPaperId" label="试卷ID" width="100" />
+      <ReTableColumn prop="examPaperId" label="试卷" width="100" />
       <ReTableColumn prop="examClassId" label="班级" width="120" />
       <ReTableColumn prop="examStartTime" label="开始时间" width="180" />
       <ReTableColumn prop="examEndTime" label="结束时间" width="180" />
@@ -42,22 +42,36 @@
     <ReDialog v-model="dialogVisible" :title="form.examId ? '编辑考试' : '新建考试'" width="560">
       <el-form :model="form" label-width="100">
         <el-form-item label="考试名" required>
-          <el-input v-model="form.examName" />
+          <el-input v-model="form.examName" placeholder="请输入考试名称" />
         </el-form-item>
-        <el-form-item label="试卷ID" required>
-          <ReInputNumber v-model="form.examPaperId" :min="1" />
+        <el-form-item label="试卷" required>
+          <el-select v-model="form.examPaperId" filterable placeholder="请选择试卷" style="width: 100%">
+            <el-option
+              v-for="p in paperOptions"
+              :key="p.paperId"
+              :label="p.paperName"
+              :value="p.paperId"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="班级">
-          <el-input v-model="form.examClassId" />
+          <el-select v-model="form.examClassId" clearable filterable placeholder="请选择班级" style="width: 100%">
+            <el-option
+              v-for="c in classOptions"
+              :key="c.classId"
+              :label="classLabel(c)"
+              :value="String(c.classId)"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="form.examStartTime" type="datetime" style="width: 100%" />
+          <el-date-picker v-model="form.examStartTime" type="datetime" placeholder="请选择开始时间" style="width: 100%" />
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-date-picker v-model="form.examEndTime" type="datetime" style="width: 100%" />
+          <el-date-picker v-model="form.examEndTime" type="datetime" placeholder="请选择结束时间" style="width: 100%" />
         </el-form-item>
         <el-form-item label="时长(分)">
-          <ReInputNumber v-model="form.examDuration" :min="10" :max="600" />
+          <ReInputNumber v-model="form.examDuration" :min="10" :max="600" placeholder="请输入考试时长" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -74,7 +88,7 @@ import { reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { eduaiApi } from '../api/eduaiApi';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
-import type { Exam } from '../api/types';
+import type { EduClass, Exam, Paper } from '../api/types';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
@@ -82,6 +96,8 @@ import ReInputNumber from "@repo/ui/re-input-number";
 const pageNo = ref(1);
 const pageSize = ref(20);
 const tableRef = ref();
+const paperOptions = ref<Paper[]>([]);
+const classOptions = ref<EduClass[]>([]);
 
 const EXAM_STATUS_OPTIONS = [
   { label: '未开始', value: 0 },
@@ -141,7 +157,7 @@ const resetForm = () => {
   Object.assign(form, {
     examId: undefined,
     examName: '',
-    examPaperId: 1,
+    examPaperId: undefined,
     examClassId: '',
     examStartTime: '',
     examEndTime: '',
@@ -150,19 +166,40 @@ const resetForm = () => {
   });
 };
 
+function classLabel(c: EduClass): string {
+  return c.classCode ? `${c.classCode} ${c.className}` : c.className;
+}
+
+/** 试卷/班级下拉候选；加载失败只留空候选，不阻塞考试表单本身 */
+const loadExamOptions = async () => {
+  try {
+    const res = await eduaiApi.pagePapers({ pageNum: 1, pageSize: 1000 });
+    paperOptions.value = res?.data ?? res?.records ?? [];
+  } catch {
+    paperOptions.value = [];
+  }
+  try {
+    classOptions.value = await eduaiApi.listClasses();
+  } catch {
+    classOptions.value = [];
+  }
+};
+
 const openCreate = () => {
   resetForm();
+  void loadExamOptions();
   dialogVisible.value = true;
 };
 
 const openEdit = (row: Exam) => {
   Object.assign(form, row);
+  void loadExamOptions();
   dialogVisible.value = true;
 };
 
 const save = async () => {
   if (!form.examName || !form.examPaperId) {
-    message.warning('请填写考试名与试卷ID');
+    message.warning('请填写考试名与试卷');
     return;
   }
   saving.value = true;

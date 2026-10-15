@@ -107,6 +107,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTag from "@repo/ui/re-tag";
 import { ReAlert, ReOption } from "@repo/ui/re-kit";
 import { fetchNginxSites, type NginxSite } from "../../api/nginx/api";
+import { copyToClipboard } from "../../utils/clipboard";
 
 const props = defineProps<{
   /** 数据源 ID */
@@ -225,10 +226,7 @@ function copyUrl(s: NginxSite) {
   }
   const omitPort = (schemeName === "http" && port === 80) || (schemeName === "https" && port === 443);
   const url = `${schemeName}://${host}${omitPort || !port ? "" : `:${port}`}`;
-  navigator.clipboard
-    ?.writeText(url)
-    .then(() => message.success(`已复制 ${url}`))
-    .catch(() => message.warning(`复制失败，请手动复制：${url}`));
+  void copyToClipboard(url).then(ok => ok ? message.success(`已复制 ${url}`) : message.warning(`复制失败，请手动复制：${url}`));
 }
 
 watch(() => props.datasourceId, load, { immediate: true });

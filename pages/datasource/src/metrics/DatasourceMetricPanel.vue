@@ -24,7 +24,7 @@
     <p v-if="hint" class="ds-metrics__hint">{{ hint }}</p>
 
     <div v-if="points.length" class="ds-metrics__chart">
-      <DatasourceMetricChart :points="points" :height="chartHeight" />
+      <DatasourceMetricChart :points="points" :fill="embedded" />
       <p v-if="!embedded" class="ds-metrics__foot">
         共 {{ points.length }} 个采样点<span v-if="intervalSec">
           · 采样间隔约 {{ Math.round(intervalSec) }}s</span
@@ -76,8 +76,13 @@ const props = defineProps<{
   embedded?: boolean;
 }>();
 
-/** 嵌入模式的画布略矮：概览面板高度有限，留出标题与内边距 */
-const chartHeight = computed(() => (props.embedded ? 200 : 220));
+const emit = defineEmits<{
+  /**
+   * 最新采样点（含服务器指标）。随趋势首屏或 SSE 窗口更新而发出，
+   * 供概览页的趋势下方「其它信息」面板消费同一个数据源。
+   */
+  (e: "latest", point: DatasourceMetricPoint | null): void;
+}>();
 
 const points = ref<DatasourceMetricPoint[]>([]);
 /** 后端给的说明文案；无数据时说明原因，有数据时为 null */
@@ -143,6 +148,9 @@ watch(idRef, () => {
   intervalSec.value = null;
   void loadTrend();
 });
+
+// 最新点给概览页的「其它信息」面板；切数据源/清空时补发 null，避免残留上一家指标
+watch(points, (v) => emit("latest", v.length ? v[v.length - 1] : null));
 
 onMounted(loadTrend);
 
@@ -299,6 +307,14 @@ defineExpose({ close });
 
 .ds-metrics__chart {
   margin-top: 8px;
+  min-height: 0;
+}
+
+/* 嵌入模式：图占满面板剩余高度，而不是固定 200px 后底下留白 */
+.ds-metrics.is-embedded .ds-metrics__chart {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
 /* 图表脚注：点数/间隔/最新时刻。写清楚是必要的 —— 后端抽稀后返回的点不是原始

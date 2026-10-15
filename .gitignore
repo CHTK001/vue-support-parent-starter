@@ -279,3 +279,13 @@ crud-ui-test.mjs
 **/func-restore.mjs
 **/sweep-analyze.cjs
 **/sweep-disabled.cjs
+
+# 验收运行产物目录（含被进程占用暂时无法删除的目录）
+**/artifacts-*/
+**/latest-*/
+**/test-results-*/
+**/upload2-*/
+**/trace-out/
+**/trace-actions.mjs
+**/debug-*.mjs
+**/debug-*.log

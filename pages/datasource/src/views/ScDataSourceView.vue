@@ -42,6 +42,7 @@ import { costMs } from "@repo/utils";
 import DsmContextMenu from "../components/console/DsmContextMenu.vue";
 import DatasourceMetricPanel from "../metrics/DatasourceMetricPanel.vue";
 import DatasourceOperLogPanel from "../metrics/DatasourceOperLogPanel.vue";
+import DatasourceServerStatsPanel from "../metrics/DatasourceServerStatsPanel.vue";
 import {
   fetchDataSources,
   createDataSource,
@@ -53,6 +54,7 @@ import {
   type CollectTable,
   type DataSourceInfo,
   type DataSourceTestResult,
+  type DatasourceMetricPoint,
 } from "../api";
 // 表 / 字段选择与取数走共享件：这里不再自己拉表拉列，
 // 顺带把「表有注释显示中文、副标题给表名」这条口径也一起接过来
@@ -440,6 +442,8 @@ const statusKey = ref<StatusFilterKey>("all");
 const activeTab = ref("overview");
 /** 当前选中的数据源 ID；未选中时详情回落到列表第一条 */
 const currentId = ref<number | null>(null);
+/** 概览趋势里的最新采样点，供趋势下方「其它信息」面板展示服务器指标 */
+const latestMetric = ref<DatasourceMetricPoint | null>(null);
 
 /** 数据源类型图标和语义色（统一走 koi 变量） */
 const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
@@ -1450,21 +1454,32 @@ onMounted(load);
                 </div>
 
                 <div class="ds-overview-grid">
-                  <!-- 左：连接延迟趋势（首屏历史走 trend 接口，增量走指标 SSE；
-                       embedded 模式只渲染图表本体，当前值由上方统计卡承担） -->
-                  <section class="ds-panel ds-panel--trend">
-                    <header class="ds-panel__head">
-                      <h3 class="ds-panel__title">连接延迟趋势</h3>
-                      <div class="ds-panel__legend">
-                        <span class="ds-legend"><i class="ds-legend__dot" />连接延迟</span>
-                        <span class="ds-legend ds-legend--count"><i class="ds-legend__dot ds-legend__dot--dashed" />连接数</span>
-                        <span class="ds-legend ds-legend--muted"><i class="ds-legend__dot" />平均 {{ latencyLegendText }}</span>
+                  <!-- 左列：趋势图占满剩余高度，下方固定一块“其它信息”服务器指标 -->
+                  <div class="ds-overview-left">
+                    <section class="ds-panel ds-panel--trend">
+                      <header class="ds-panel__head">
+                        <h3 class="ds-panel__title">连接延迟趋势</h3>
+                        <div class="ds-panel__legend">
+                          <span class="ds-legend"><i class="ds-legend__dot" />连接延迟</span>
+                          <span class="ds-legend ds-legend--count"><i class="ds-legend__dot ds-legend__dot--dashed" />连接数</span>
+                          <span class="ds-legend ds-legend--muted"><i class="ds-legend__dot" />平均 {{ latencyLegendText }}</span>
+                        </div>
+                      </header>
+                      <div class="ds-trend">
+                        <DatasourceMetricPanel :datasource-id="current?.id" embedded @latest="latestMetric = $event" />
                       </div>
-                    </header>
-                    <div class="ds-trend">
-                      <DatasourceMetricPanel :datasource-id="current?.id" embedded />
-                    </div>
-                  </section>
+                    </section>
+
+                    <section class="ds-panel ds-panel--server-stats">
+                      <DatasourceServerStatsPanel
+                        :datasource-id="current?.id"
+                        :type="current.type"
+                        :url="current.database"
+                        :driver-class-name="current.driverClassName"
+                        :latest="latestMetric"
+                      />
+                    </section>
+                  </div>
 
                   <!-- 右：连接配置 + 常用动作 -->
                   <section class="ds-panel">
@@ -2380,6 +2395,15 @@ onMounted(load);
   }
 }
 
+/* 左列内部：趋势面板吃剩余高度，“其它信息”按内容高度贴在下边 */
+.ds-overview-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* ---------------- 面板 / 键值表 ---------------- */
 .ds-panel {
   padding: 16px;
@@ -2464,6 +2488,10 @@ onMounted(load);
 .ds-trend :deep(.ds-metrics) {
   flex: 1 1 auto;
   min-height: 0;
+}
+/* “其它信息”面板按内容高度，不让它抢趋势的伸缩空间 */
+.ds-panel--server-stats {
+  flex: 0 1 auto;
 }
 /* 面板底部动作：主按钮整行，下方三个次级动作纵向排布 */
 .ds-panel__actions {
