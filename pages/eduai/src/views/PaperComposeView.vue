@@ -18,7 +18,9 @@
       扫码内容即后端 GET /v2/edu/paper/qr/{paperQuestionNo} 的定位凭据。
     - 接口：统一走 src/api/eduaiApi.ts（不另建请求层）。
     - 购物车：复用并行子 Agent 提供的 usePaperCart(paperId)（本轮契约冻结，按契约 import）。
-    - 题库市场：独立菜单页 QuestionMarketView（左侧购物车 / 右侧市场）。
+    - 题库市场：组卷页右栏「题库」按钮弹出的对话框（QuestionMarketDialog：
+      左购物车 / 右市场列表），购物车与右栏同源（同一个 usePaperCart 实例，
+      按 paperId 持久化），不再有独立菜单页 / 独立路由。
 -->
 <template>
   <div class="compose-page">
@@ -434,18 +436,18 @@
 
       <el-form label-width="82px" class="ai-dlg__form">
         <el-form-item label="学科">
-          <el-select v-model="aiForm.subject" filterable clearable placeholder="请选择学科" style="width: 100%">
+          <el-select v-model="aiForm.subject" clearable filterable placeholder="选择学科" style="width: 100%">
             <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="学段">
-          <el-select v-model="aiForm.gradeLevel" placeholder="选择学段" style="width: 100%">
+          <el-select v-model="aiForm.gradeLevel" placeholder="选择学段" style="width: 100%" @change="aiForm.grade = ''">
             <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
           </el-select>
         </el-form-item>
         <el-form-item label="年级">
           <el-select v-model="aiForm.grade" placeholder="选择年级" style="width: 100%">
-            <el-option v-for="g in gradeOptions" :key="g.gradeName" :label="g.gradeName" :value="g.gradeName" />
+            <el-option v-for="g in aiGradeOptions" :key="g" :label="g" :value="g" />
           </el-select>
         </el-form-item>
         <el-form-item label="题目数量">
@@ -495,6 +497,23 @@
         <el-button type="primary" @click="applyEditQuestion">保存到试卷</el-button>
       </template>
     </ReDialog>
+
+    <!-- ==================== 题库市场弹框（左购物车 / 右市场） ====================
+         购物车与右栏同源：cartItems / cartTotalScore 由本页 usePaperCart 提供，
+         弹窗内只读展示，写操作（加入/移除/改分值/清空）经 emit 回本页处理，
+         避免出现两个 usePaperCart 实例互相覆盖 localStorage。 -->
+    <QuestionMarketDialog
+      v-model="marketVisible"
+      :paper-id="paperId"
+      :cart-items="cartItems"
+      :initial-subject="header.subject"
+      :initial-grade-level="header.gradeLevel"
+      :initial-grade="header.grade"
+      @picked="onMarketPicked"
+      @remove-from-cart="removeFromCart"
+      @set-cart-score="onMarketSetScore"
+      @clear-cart="clearCart"
+    />
   </div>
 </template>
 
@@ -517,9 +536,10 @@ import ReButton from "@repo/ui/re-button";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReRichText from "@repo/ui/re-rich-text";
 import { eduaiApi } from "../api/eduaiApi";
-import type { EduAiCapability, PaperComposePayload, PaperTemplate } from "../api/types";
+import type { EduAiCapability, MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
 import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaperCart";
 import PaperPreview, { type PaperExportMode } from "../components/paper/PaperPreview.vue";
+import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
 
@@ -628,6 +648,11 @@ const GRADE_LEVELS = [
   { code: "OTHER", label: "其他" },
 ];
 
+/** 学段中文标签 → 码值（年级行 gradeLevel 与卷头回传都是中文标签，下拉绑的是码值） */
+const GRADE_LEVEL_LABEL_TO_CODE: Record<string, string> = Object.fromEntries(
+  GRADE_LEVELS.map((lv) => [lv.label, lv.code]),
+);
+
 const QUESTION_TYPES = [
   { value: "SINGLE_CHOICE", label: "单选题" },
   { value: "MULTIPLE_CHOICE", label: "多选题" },
@@ -663,6 +688,9 @@ const SETTINGS_PREVIEW_WIDTH = 440;
 /* ==================== 展示小工具 ==================== */
 
 const levelLabel = (code?: string) => GRADE_LEVELS.find((lv) => lv.code === code)?.label ?? "";
+
+/** 学段中文标签 → 码值（levelLabel 的反向；卷头与后端回传的是中文标签，弹框下拉绑码值） */
+const levelCodeOf = (label?: string) => GRADE_LEVELS.find((lv) => lv.label === label)?.code ?? "";
 const typeLabel = (t?: string) => QUESTION_TYPES.find((x) => x.value === t)?.label ?? t ?? "-";
 const optionLetter = (i: number) => String.fromCharCode(65 + i);
 
@@ -1006,22 +1034,54 @@ const {
   count: cartCount,
 } = usePaperCart(paperId);
 
-/** 从组卷右栏进入题库市场：带当前论文 ID，市场页会直接读写该试卷的购物车 */
+/**
+ * 题库市场弹框显隐。
+ *
+ * <p>组卷页右栏「题库」按钮点击弹出；不是独立菜单页 / 独立路由。</p>
+ */
+const marketVisible = ref(false);
+
+/**
+ * 从试卷列表「题库」按钮带 `?market=1` 进入时，自动弹出市场弹框。
+ *
+ * <p>弹出后立刻洗掉 query 参数（replace 而非 push，不污染历史记录），
+ * 避免刷新页面 / 前进后退时市场又被弹出来。</p>
+ */
+watch(
+  () => route.query.market,
+  (v) => {
+    if (v === "1") {
+      marketVisible.value = true;
+      void router.replace({ query: { ...route.query, market: undefined } });
+    }
+  },
+  { immediate: true },
+);
+
+/**
+ * 打开题库市场弹框。
+ *
+ * <p>弹窗左栏直接展示本页购物车（cartItems 同一 usePaperCart 实例），
+ * 右栏市场挑题后 emit picked 回到这里落库；检索条件用卷头的
+ * 学科/学段/年级预填，省去用户每次重选。</p>
+ */
 function openMarket() {
-  const query: Record<string, string> = {};
-  if (paperId.value != null) {
-    query.paperId = String(paperId.value);
+  marketVisible.value = true;
+}
+
+/** 市场弹框「加入购物车」回调：映射为购物车条目并去重加入 */
+function onMarketPicked(list: MarketQuestion[]) {
+  const added = addCartMany(list.map((q) => toCartItem(q)));
+  if (added > 0) {
+    message.success(`已加入购物车 ${added} 题`);
+  } else {
+    message.info("所选题目已在购物车中");
   }
-  if (header.subject) {
-    query.subject = header.subject;
-  }
-  if (header.gradeLevel) {
-    query.gradeLevel = header.gradeLevel;
-  }
-  if (header.grade) {
-    query.grade = header.grade;
-  }
-  void router.push({ path: "/edu/market", query });
+}
+
+/** 市场弹框内修改购物车条目分值（复用卷内同款的 clampScore 夹取） */
+function onMarketSetScore(questionId: number, score: number) {
+  setCartScore(questionId, clampScore(score));
 }
 
 /* ==================== AI 组卷（能力由后端 spring-support-ai-starter 提供） ==================== */
@@ -1073,6 +1133,30 @@ const canRunAi = computed(
 );
 
 /**
+ * AI 弹框年级候选项：跟随**弹框内**学段联动。
+ *
+ * <p>不能直接用工具栏的 gradeOptions —— 那个跟卷头学段绑死；
+ * 用户在弹框里换了学段，年级候选还停留在卷头学段的，选出的组合后端用不了。</p>
+ */
+const aiGradeOptions = computed(() => {
+  const level = aiForm.gradeLevel;
+  return gradeMeta.value
+    .filter((g) => {
+      if (!g.gradeName) {
+        return false;
+      }
+      if (!level) {
+        return true;
+      }
+      if (!g.gradeLevel) {
+        return true;
+      }
+      return (GRADE_LEVEL_LABEL_TO_CODE[g.gradeLevel] ?? g.gradeLevel) === level;
+    })
+    .map((g) => g.gradeName as string);
+});
+
+/**
  * 探测后端 AI 能力。
  *
  * <p>AI 组卷依赖 spring-support-ai-starter 提供的对话客户端；没引入该 starter、
@@ -1094,7 +1178,8 @@ async function loadAiCapability(): Promise<void> {
 /** 打开 AI 组卷弹框：以当前试卷的学科/学段/年级为默认值，省掉重复选择 */
 function openAiCompose(): void {
   aiForm.subject = header.subject || "";
-  aiForm.gradeLevel = header.gradeLevel || "";
+  // 卷头学段是中文标签（如「初中」），弹框下拉绑码值，预填时转码，否则下拉显示不出来
+  aiForm.gradeLevel = levelCodeOf(header.gradeLevel) || "";
   aiForm.grade = header.grade || "";
   aiForm.count = aiForm.count > 0 ? aiForm.count : 10;
   aiForm.score = aiForm.score > 0 ? aiForm.score : 5;
