@@ -175,7 +175,8 @@
       </template>
     </ReDialog>
 
-    <!-- 题库市场：完整页面在菜单「考试流程 / 题库市场」，进入后左侧购物车、右侧市场 -->
+    <!-- 题库市场：已并入组卷页（右栏「题库」按钮弹出，左购物车 / 右市场），不再是独立菜单页；
+         列表行「题库」按钮带 market=1 进组卷页并自动弹出 -->
 
     <!-- 详情：直接渲染纸张预览，与组卷页中栏同一套排版 -->
     <ReDialog v-model="detailVisible" :title="detail?.paperName" width="900">
@@ -860,17 +861,13 @@ const doCreate = async () => {
   }
 };
 
-/* ==================== 题库市场（独立菜单页，左购物车 / 右市场） ==================== */
-
+/* ==================== 题库市场（组卷页内嵌弹框，左购物车 / 右市场） ====================
+   市场不再是独立菜单页：这里带 market=1 跳到组卷页，由组卷页自动弹出市场弹框，
+   购物车与组卷页右栏同源（按 paperId 持久化）。 */
 const openMarket = (row: Paper) => {
   void router.push({
-    path: "/edu/market",
-    query: {
-      paperId: String(row.paperId),
-      subject: row.paperSubject || "",
-      gradeLevel: gradeLevelToCode(row.paperGradeLevel) || "",
-      grade: row.paperGrade || "",
-    },
+    path: '/eduai/paper-compose',
+    query: { paperId: String(row.paperId), market: '1' },
   });
 };
 

@@ -266,41 +266,50 @@ const kpis = computed<Kpi[]>(() => {
   ];
 });
 
-/* ============ 状态条 ============ */
+/* ============ 状态卡 ============ */
 
-const strip = computed<{ tone: "ok" | "warn"; items: string[] }>(() => {
+/**
+ * 概览事实：拆成「标签 + 值」的小卡片，而不是挤在一条横杠里。
+ *
+ * <p>原先是一条绿底横条、四段文字用竖线分隔（"本节点 Leader | 扫描节奏 1000ms |
+ * 已注册处理器 3 个 | 在线执行器 0 个"），与上方 KPI 卡、下方面板卡片不是一个
+ * 视觉语汇，看着像后来贴上去的一条。拆成小卡片后与全页统一，且每项的值可以
+ * 单独对齐、单独强调（正常 / 0 个这类值一眼能扫到）。</p>
+ */
+const facts = computed<{ label: string; value: string }[]>(() => {
   const s = summary.value;
   if (!s) {
-    return { tone: "warn", items: ["未取到调度概览，说明 job-starter 治理接口在当前后端未启用"] };
+    return [];
   }
-  const online = s.onlineExecutors.length;
-  const facts = [
-    `扫描节奏 ${s.scanIntervalMs}ms`,
-    `已注册处理器 ${s.registeredHandlers} 个`,
-    `在线执行器 ${online} 个`,
+  return [
+    { label: "节点角色", value: `${s.role ?? "—"}${s.leader ? " · Leader" : " · Follower"}` },
+    { label: "扫描节奏", value: `${s.scanIntervalMs}ms` },
+    { label: "已注册处理器", value: `${s.registeredHandlers} 个` },
+    { label: "在线执行器", value: `${s.onlineExecutors.length} 个` },
   ];
+});
+
+/**
+ * 异常提醒：只在真有问题时出现，正常时整条不渲染。
+ *
+ * <p>原先把提醒和事实混在同一个数组里（提醒排在第一段），于是正常时也得占着
+ * 一整条横杠。拆出来后正常态只剩四张事实卡，异常时才多出一行警示。</p>
+ */
+const stripAlert = computed<string>(() => {
+  const s = summary.value;
+  if (!s) {
+    return "未取到调度概览，说明 job-starter 治理接口在当前后端未启用";
+  }
   if (!s.leader) {
-    return {
-      tone: "warn",
-      items: [`${s.role ?? "—"} 角色 · 本节点不是 Leader，到点任务不会被派发`, ...facts],
-    };
+    return `${s.role ?? "—"} 角色 · 本节点不是 Leader，到点任务不会被派发`;
   }
   if (s.unregisteredJobs > 0) {
-    return {
-      tone: "warn",
-      items: [`${s.unregisteredJobs} 个启用任务没有同名处理器，每一拍都会被跳过`, ...facts],
-    };
+    return `${s.unregisteredJobs} 个启用任务没有同名处理器，每一拍都会被跳过`;
   }
   if (s.unclaimedRemoteJobs > 0) {
-    return {
-      tone: "warn",
-      items: [
-        `${s.unclaimedRemoteJobs} 个启用的远程任务本节点不领取，只由调度中心节点下发`,
-        ...facts,
-      ],
-    };
+    return `${s.unclaimedRemoteJobs} 个启用的远程任务本节点不领取，只由调度中心节点下发`;
   }
-  return { tone: "ok", items: ["本节点 Leader", ...facts] };
+  return "";
 });
 
 /* ============ 即将触发 ============ */
@@ -652,10 +661,14 @@ function go(path: string): void {
       </button>
     </div>
 
-    <!-- 状态条 -->
-    <div class="ov-strip" :class="`is-${strip.tone}`">
-      <span v-for="item in strip.items" :key="item" class="ov-strip__item">{{ item }}</span>
+    <!-- 状态卡：事实项用小卡片，异常时另起一行警示 -->
+    <div v-if="facts.length" class="ov-facts">
+      <div v-for="fact in facts" :key="fact.label" class="ov-fact">
+        <span class="ov-fact__label">{{ fact.label }}</span>
+        <span class="ov-fact__value">{{ fact.value }}</span>
+      </div>
     </div>
+    <p v-if="stripAlert" class="ov-alert">{{ stripAlert }}</p>
 
     <!-- 主区：趋势 + 右栏 -->
     <div class="ov-main">
@@ -677,7 +690,8 @@ function go(path: string): void {
           </button>
         </header>
         <div class="ov-chart">
-          <ReEcharts :option="trendOption" height="240px"/>
+          <!-- 高度交给容器（见 .ov-chart）：写死 240px 会让这一块比同排面板矮一截 -->
+          <ReEcharts :option="trendOption" height="100%"/>
         </div>
         <p v-if="logTruncated" class="ov-panel__note">
           近 24 小时日志超过 {{ LOG_MAX_PAGES * LOG_PAGE_SIZE }} 条，曲线与计数只统计已读到的这一批（下限值）。
@@ -1054,57 +1068,84 @@ function go(path: string): void {
   background: var(--bg-fill);
 }
 
-/* ============ 状态条 ============ */
-.ov-strip {
+/* ============ 状态卡 ============ */
+/*
+ * 事实卡：外壳沿用面板那一套令牌（--bg-container / --border-subtle / --radius-lg /
+ * --shadow-sm），只是内距更小、字号更轻 —— 与全页卡片同一套语汇，只是信息密度更低。
+ * 四张等宽平铺：标签在上、值在下，值左对齐等宽，扫一眼就能横向比大小。
+ */
+.ov-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cc-gap, 12px);
+}
+
+.ov-fact {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  font-size: 12.5px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 14px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.ov-strip.is-ok {
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--status-success) 8%, var(--bg-container));
-  border-color: color-mix(in srgb, var(--status-success) 26%, transparent);
+.ov-fact__label {
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 
-.ov-strip.is-warn {
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--status-warning) 10%, var(--bg-container));
-  border-color: color-mix(in srgb, var(--status-warning) 30%, transparent);
-}
-
-.ov-strip__item {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 14px;
+/* 值不换行也不截断：这几项都是短值（Leader / 1000ms / 3 个），换行反而把卡片撑散 */
+.ov-fact__value {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ov-strip__item:first-child {
-  padding-left: 0;
+/* 异常提醒：正常时整行不渲染，出问题时是一句独立警示，不与事实卡混排 */
+.ov-alert {
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--status-warning) 30%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--status-warning) 10%, var(--bg-container));
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
-.ov-strip__item + .ov-strip__item {
-  border-left: 1px solid var(--border-default);
+/* 窄屏：四张卡横向会被压扁（"已注册处理器" 这种六字标签放不下），退成两列 */
+@media (max-width: 900px) {
+  .ov-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ============ 面板 ============ */
+/*
+ * align-items 用 stretch（默认）而不是 start：同一排的面板必须等高。
+ * start 下各卡片按自身内容收缩，实测「近 24 小时调度趋势」(285px) 与右栏
+ * (168+130=310px)、「即将触发」(191px) 与「最近派发记录」(184px) 顶底都对不齐，
+ * 一眼看过去就是"两块牌子不在一条线上"。拉伸后多出来的高度交给内部
+ * 弹性内容（图表 / 表格，见 .ov-chart / .ov-table）吃掉，卡片内不留空档。
+ */
 .ov-main {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--cc-gap, 12px);
-  align-items: start;
 }
 
 .ov-bottom {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: var(--cc-gap, 12px);
-  align-items: start;
 }
 
 @media (max-width: 1280px) {
@@ -1114,11 +1155,19 @@ function go(path: string): void {
   }
 }
 
+/*
+ * 右栏随左栏一起被拉高，两个面板按内容比例分摊多余高度（flex: 1），
+ * 否则栅格拉伸只作用到 .ov-rail 本身，它内部两块仍然各自贴顶、底下留白。
+ */
 .ov-rail {
   display: flex;
   flex-direction: column;
   gap: var(--cc-gap, 12px);
   min-width: 0;
+}
+
+.ov-rail > .ov-panel {
+  flex: 1 1 auto;
 }
 
 .ov-panel {
@@ -1227,8 +1276,26 @@ function go(path: string): void {
 }
 
 /* ============ 图表与表格 ============ */
+/*
+ * 图表容器跟着面板一起长高：面板被栅格拉伸后，多出来的高度如果没人吃，
+ * 卡片底部会空出一块。与其写死 240px（那正是两排对不齐的根源），
+ * 不如给它一个下限高度、再让它吃满剩余空间。
+ */
 .ov-chart {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 240px;
   padding: 0 6px 6px;
+}
+
+.ov-chart :deep(.re-echarts) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 表格同理：面板撑高后表格区跟着长高，行多时填满而不是留白 */
+.ov-table {
+  flex: 1 1 auto;
 }
 
 /* ReTable 自带卡片外壳（描边/圆角/投影），本面板已有一层壳，这里把内层壳拆掉避免双边框 */

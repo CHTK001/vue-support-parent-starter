@@ -121,12 +121,6 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       meta: { title: "AI 组卷", icon: "MagicStick", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
-      path: "/edu/market",
-      name: "EduQuestionMarket",
-      component: () => import("../views/QuestionMarketView.vue"),
-      meta: { title: "题库市场", icon: "ShoppingCart", showLink: true, keepAlive: true, isVisible: "1" },
-    },
-    {
       path: "/edu/exam",
       name: "EduExam",
       component: () => import("../views/ExamView.vue"),

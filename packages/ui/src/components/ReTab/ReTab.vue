@@ -2,10 +2,14 @@
 /**
  * ReTab —— 标签页组件
  *
- * 封装 el-tabs，增加 tab 项 icon 支持：
+ * 默认布局 capsule（胶囊式分段选项卡）——即主题配置抽屉顶部那一套页签：
+ * 浅灰白底盘 + 白底激活项 + 图标文字均分，亮暗色自动适配。写法与旧默认一致：
  *   <ReTab :tabs="[{ name: 'appearance', label: '外观', icon: 'Brush' }]">
  *     <template #appearance>...</template>
  *   </ReTab>
+ *
+ * 需要 element-plus 原生 el-tabs 样式时显式传 variant="element"
+ * （历史写法 variant="default" 仍按原生 el-tabs 兼容，见下方模板末尾分支）。
  */
 import { computed } from "vue";
 import { ElTabs, ElTabPane } from "element-plus";
@@ -20,30 +24,32 @@ const props = withDefaults(
     tabs?: ReTabItem[];
     /** 当前激活 name（v-model） */
     modelValue?: string;
-    /** el-tabs 类型 */
+    /** el-tabs 类型（仅 variant="element" 时生效） */
     type?: "card" | "border-card" | "";
-    /** 是否可关闭 */
+    /** 是否可关闭（仅 variant="element" 时生效） */
     closable?: boolean;
     /**
      * 是否拉伸填充：内容面板吃满父容器的剩余高度。
      *
      * 四个变体均已实现：
-     * - default：透传给 el-tabs 的 stretch
-     * - capsule / koi / icon：根节点转纵向 flex，面板吃掉剩余高度（见样式块 stretch 段）
+     * - element：透传给 el-tabs 的 stretch
+     * - capsule / koi / icon / underline：根节点转纵向 flex，面板吃掉剩余高度（见样式块 stretch 段）
      *
      * 前置条件：父容器需为纵向 flex 或有确定高度，否则高度无从解析。
      */
     stretch?: boolean;
     /**
-     * 布局变体：
-     *   - "default"：element-plus el-tabs 原生样式
-     *   - "capsule"：胶囊式分段选项卡（浅灰白底盘 + 白底激活项 + 图标文字均分）
+     * 布局变体（默认 capsule）：
+     *   - "capsule"：胶囊式分段选项卡（浅灰白底盘 + 白底激活项 + 图标文字均分），
+     *     与主题配置抽屉顶部页签一致，为不传该属性时的默认样式
+     *   - "element"：element-plus el-tabs 原生样式（旧默认，需显式指定才会走）
+     *   - "default"：历史别名，等价于 "element"，仅为兼容旧调用保留
      *   - "koi"：卡片页签（激活项浅主色块 + 白色大圆角内容卡片，支持 tabPosition 四个方向）
      *   - "icon"：图标磁贴页签（图标 + 文字，支持 tabPosition 四个方向，可收起）
      *   - "underline"：下划线页签（激活项主色文字 + 底部延伸下划线，可带计数 badge），
      *     用于属性停靠区等与 UI 稿对齐的轻页签
      */
-    variant?: "default" | "capsule" | "koi" | "icon" | "underline";
+    variant?: "capsule" | "element" | "koi" | "icon" | "underline" | "default";
     /** koi / icon 布局的页签方向（默认 top） */
     tabPosition?: "top" | "right" | "bottom" | "left";
     /** icon 布局：是否收起（收起后仅显示当前激活项） */
@@ -62,7 +68,7 @@ const props = withDefaults(
     type: "",
     closable: false,
     stretch: false,
-    variant: "default",
+    variant: "capsule",
     tabPosition: "top",
     collapsed: false,
     collapsible: false,
@@ -114,7 +120,11 @@ function toggleCollapsed(): void {
 </script>
 
 <template>
-  <!-- capsule 胶囊式分段布局：浅灰白底盘 + 白底激活项 + 图标文字均分 -->
+  <!--
+    默认布局（capsule 胶囊式分段）：浅灰白底盘 + 白底激活项 + 图标文字均分。
+    与主题配置抽屉顶部页签（ThemeConfig 里的 configTabs）同一套样式，
+    不传 variant 时走这里。
+  -->
   <div
     v-if="variant === 'capsule'"
     class="re-tab re-tab--capsule"
@@ -234,7 +244,11 @@ function toggleCollapsed(): void {
     </div>
   </div>
 
-  <!-- default 布局：element-plus el-tabs 原样 -->
+  <!--
+    element 布局：element-plus el-tabs 原生样式。
+    variant="element"（或历史别名 variant="default"）时走这里；
+    这也是 type / closable 两个属性唯一生效的分支。
+  -->
   <ElTabs
     v-else
     v-bind="$attrs"

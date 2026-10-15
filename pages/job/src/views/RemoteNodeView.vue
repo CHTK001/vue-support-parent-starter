@@ -6,7 +6,8 @@
  * 本页同时读 /summary 与 /executors 拼出本地节点卡与处理器注册表；今日执行作业来自当日日志，
  * 处理器关联作业数来自台账分页。这些接口失败只降级相应区域，不影响整页渲染。
  *
- * 页面结构：提示条 → 节点卡片网格（远程执行器 / 本地节点 / 接入新执行器）
+ * 页面结构：页首事实卡 + 说明注脚（取数失败时另出一条失败条）→ 节点卡片网格
+ * （远程执行器 / 本地节点）→ 接入新执行器条带
  * → 处理器注册表。（无页头/hero，直接进入内容）
  */
 import { computed, onActivated, onBeforeUnmount, onMounted, ref } from "vue";
@@ -174,6 +175,19 @@ const todayFailure = computed(() =>
   todayLogs.value.filter((log) => String(log.executeCode ?? "").toUpperCase() === "FAILURE").length,
 );
 
+/**
+ * 页首事实项：原先写在一条横条的句子里（「……在线节点（远程 0 个），断开即消失……」），
+ * 数值被说明文字夹在中间，扫一眼抓不到。拆成「标签 + 值」的小卡后，
+ * 三个值横向等宽对齐，一眼能比大小。
+ *
+ * <p>「处理器注册」不列：下方注册表表头已经写了「共 N 个」，重复一遍只会让人怀疑两处口径不一致。</p>
+ */
+const nodeFacts = computed<{ label: string; value: string }[]>(() => [
+  { label: "远程节点", value: `${remoteCount.value} 个` },
+  { label: "本机处理器", value: `${localHandlers.value.length} 个` },
+  { label: "今日派发", value: `${todayDispatch.value} 次` },
+]);
+
 function processorType(name: string, source: JobExecutor["source"]): string {
   if (name === "collect.self.check") {
     return "系统自检";
@@ -330,16 +344,25 @@ const processorColumns: ReTableColumn[] = [
 
 <template>
   <div v-loading="loading" class="node-page">
-    <!-- 提示条 / 失败条 -->
-    <div class="node-banner node-banner--info">
-      <ReIcon name="Connection" :size="14" class="node-banner__icon" />
-      <span>
-        执行器注册上报的在线节点（远程 {{ remoteCount }} 个），断开即消失；点处理器标签可就地为它建一条调度作业。
-      </span>
-      <button v-if="nodes.length" type="button" class="node-banner__more" @click="go('/collect/job')">
+    <!--
+      概览事实：小卡片。原先是一条蓝底横条，把「远程 0 个」这个事实和
+      「断开即消失 / 点标签建作业」这段说明挤在同一行里，事实反而最不显眼。
+      现在数值单独成卡，说明降级为一行无底色注脚 —— 页面第一眼是数据，不是横幅。
+    -->
+    <div class="node-facts">
+      <div v-for="fact in nodeFacts" :key="fact.label" class="node-fact">
+        <span class="node-fact__label">{{ fact.label }}</span>
+        <span class="node-fact__value">{{ fact.value }}</span>
+      </div>
+    </div>
+
+    <p class="node-hint">
+      <ReIcon name="Connection" :size="13" class="node-hint__icon" />
+      <span>节点由执行器注册上报，断开即消失；点处理器标签可就地为它建一条调度作业。</span>
+      <button v-if="nodes.length" type="button" class="node-hint__more" @click="go('/collect/job')">
         去调度作业 <ReIcon name="Right" :size="12" />
       </button>
-    </div>
+    </p>
 
     <div v-if="error" class="node-banner node-banner--error">
       <ReIcon name="WarningFilled" :size="14" class="node-banner__error-icon" />
@@ -443,32 +466,38 @@ const processorColumns: ReTableColumn[] = [
           <ReButton text @click="go('/collect/job')">调度作业</ReButton>
         </footer>
       </article>
-
-      <article class="node-card node-card--access">
-        <div class="node-access">
-          <span class="node-access__icon">
-            <ReIcon name="UploadFilled" :size="18" />
-          </span>
-          <h3>接入新执行器</h3>
-          <p>在另一台机器启动 Executor，凭接入令牌通过长链注册，即可远程下发作业。</p>
-          <div class="node-access__code">
-            <pre>{{ accessCommand }}</pre>
-            <ReButton
-              text
-              size="small"
-              type="primary"
-              :icon="copied ? 'CircleCheck' : 'CopyDocument'"
-              @click="copyExecutorCommand"
-            >
-              {{ copied ? "已复制" : "复制" }}
-            </ReButton>
-          </div>
-          <button type="button" class="node-access__link" @click="docVisible = true">
-            查看接入文档 <ReIcon name="Right" :size="12" />
-          </button>
-        </div>
-      </article>
     </div>
+
+    <!--
+      接入新执行器：横向条带，独立于上方节点网格。
+      原来它是网格里的一张卡，与节点卡同排（align-items: stretch），
+      于是它那 34px 图标 + 三行说明 + 命令块撑出的高度被摊到同排节点卡上，
+      节点卡底部空出一大片。现在移出网格，节点卡只跟同构的节点卡比高度。
+    -->
+    <section class="node-access">
+      <span class="node-access__icon">
+        <ReIcon name="UploadFilled" :size="18" />
+      </span>
+      <div class="node-access__lead">
+        <h3>接入新执行器</h3>
+        <p>在另一台机器启动 Executor，凭接入令牌通过长链注册，即可远程下发作业。</p>
+        <button type="button" class="node-access__link" @click="docVisible = true">
+          查看接入文档 <ReIcon name="Right" :size="12" />
+        </button>
+      </div>
+      <div class="node-access__code">
+        <pre>{{ accessCommand }}</pre>
+        <ReButton
+          text
+          size="small"
+          type="primary"
+          :icon="copied ? 'CircleCheck' : 'CopyDocument'"
+          @click="copyExecutorCommand"
+        >
+          {{ copied ? "已复制" : "复制" }}
+        </ReButton>
+      </div>
+    </section>
 
     <!-- 处理器注册表 -->
     <section class="node-registry">
@@ -600,7 +629,89 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   background: var(--el-bg-color-page);
 }
 
-/* ============ 提示条 / 失败条 ============ */
+/* ============ 页首事实卡 ============ */
+/*
+ * 与节点卡同一套外壳令牌（--bg-container / --border-subtle / --radius-lg / --shadow-sm），
+ * 只是内距更小、信息密度更低，与调度概览页的「状态卡」也是同一套语汇。
+ * auto-fill 而非 auto-fit：卡片数固定三项，auto-fit 会把三张平分整行拉到近 390px，
+ * 两个短词撑不满；auto-fill 保留空轨道，卡宽稳定在 200~290px。
+ */
+.node-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--cc-gap, 12px);
+}
+
+.node-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 14px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container, var(--el-bg-color, #ffffff));
+  box-shadow: var(--shadow-sm, var(--el-box-shadow-lighter));
+}
+
+.node-fact__label {
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* 值都是「N 个 / N 次」这类短值，不换行：换行会把卡片撑散、破坏横向对齐 */
+.node-fact__value {
+  overflow: hidden;
+  color: var(--text-primary, var(--el-text-color-primary));
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 说明注脚：刻意不给底色、不给边框。横幅已经拆成事实卡，
+   这句只是补充读法，做成一行灰字就够了，再加个容器又变回原来那条横杠 */
+.node-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 2px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.node-hint__icon {
+  flex: none;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+}
+
+.node-hint__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--brand-500, var(--el-color-primary));
+  white-space: nowrap;
+}
+
+.node-hint__more:hover {
+  color: var(--brand-600, var(--el-color-primary));
+  text-decoration: underline;
+}
+
+/* ============ 失败条 ============ */
+/* 只剩失败态在用：取数失败要显眼，必须有底色，与上面刻意无底的说明注脚正好相反 */
 .node-banner {
   display: flex;
   align-items: center;
@@ -611,28 +722,6 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--text-secondary, var(--el-text-color-regular));
-}
-
-.node-banner--info {
-  background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 8%, var(--bg-container, var(--el-bg-color, #ffffff)));
-  border-color: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 22%, transparent);
-}
-
-.node-banner__icon {
-  flex: none;
-  color: var(--brand-500, var(--el-color-primary));
-}
-
-.node-banner__more {
-  margin-left: auto;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  color: var(--brand-500, var(--el-color-primary));
-  white-space: nowrap;
 }
 
 .node-banner--error {
@@ -650,12 +739,17 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 }
 
 /* ============ 节点卡片网格 ============ */
+/*
+ * auto-fill 而不是 auto-fit：节点数量是运行时决定的（本机 SINGLE 档恒为 1 个本地节点，
+ * 远程执行器常常一个都没有）。auto-fit 会把空轨道折叠掉，剩下的卡片平分整行 —— 只有
+ * 两张卡时每张能撑到 580px 上下，卡片里只有两行标签加几个小标签，稀疏得像块广告牌。
+ * auto-fill 保留空轨道，卡宽稳定在 240~290px，节点多了自然往右排。
+ */
 .node-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--cc-gap, 12px);
   align-items: stretch;
-  grid-auto-rows: 1fr;
 }
 
 @media (max-width: 1180px) {
@@ -673,10 +767,10 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 .node-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   height: 100%;
   min-width: 0;
-  padding: 16px 18px;
+  padding: 12px 14px;
   border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
   border-radius: var(--radius-lg, 12px);
   background: var(--bg-container, var(--el-bg-color, #ffffff));
@@ -689,11 +783,6 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 
 .node-card--local {
   border-top: 3px solid var(--status-success, var(--el-color-success));
-}
-
-.node-card--access {
-  border: 1px dashed var(--border-default, var(--el-border-color));
-  background: var(--bg-elevated, var(--el-bg-color-overlay));
 }
 
 .node-card__head {
@@ -736,10 +825,12 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   justify-content: flex-end;
 }
 
+/* 标签列压到 72px：四项都是四字标签（长链地址 / 客户端 / 上线时间 / 上报处理器），
+   原先 92px 白占掉近三分之一卡宽，把值挤到右边一小条 */
 .node-card__meta {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 6px 10px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 5px 8px;
   margin: 0;
   font-size: 12.5px;
 }
@@ -766,7 +857,7 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: 92px;
+  max-height: 84px;
   overflow: auto;
   padding: 2px 0;
 }
@@ -801,16 +892,22 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 }
 
 /* ============ 接入新执行器 ============ */
+/* 横向条带：图标 + 文案在左，命令块在右，整体压到一行高，不与节点卡争版面 */
 .node-access {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px dashed var(--border-default, var(--el-border-color));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-elevated, var(--el-bg-color-overlay));
 }
 
 .node-access__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: none;
   width: 34px;
   height: 34px;
   border-radius: var(--radius-md, 8px);
@@ -818,26 +915,35 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 12%, transparent);
 }
 
+.node-access__lead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .node-access h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-primary, var(--el-text-color-primary));
 }
 
 .node-access p {
   margin: 0;
-  font-size: 12.5px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.6;
   color: var(--text-secondary, var(--el-text-color-regular));
 }
 
 .node-access__code {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  width: min(440px, 42%);
+  padding: 8px 10px;
   border-radius: var(--radius-md, 8px);
   background: var(--terminal-bg, #0d1117);
   color: var(--text-inverse, #f2f4f8);
@@ -845,19 +951,14 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 }
 
 .node-access__code pre {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: var(--cc-font-num, ui-monospace, "Cascadia Mono", Consolas, monospace);
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.node-access__code :deep(button) {
-  align-self: flex-start;
-  width: auto;
-  flex: 0 0 auto;
+  font-size: 11.5px;
+  line-height: 1.6;
 }
 
 .node-access__link {
@@ -865,14 +966,25 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 0;
+  padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--brand-500, var(--el-color-primary));
   white-space: nowrap;
+}
+
+/* 窄屏：命令块换行到下一行占满宽度，否则 440px 挤掉左侧文案 */
+@media (max-width: 900px) {
+  .node-access {
+    flex-wrap: wrap;
+  }
+
+  .node-access__code {
+    width: 100%;
+  }
 }
 
 /* ============ 处理器注册表 ============ */

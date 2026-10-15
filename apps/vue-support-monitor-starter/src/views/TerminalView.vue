@@ -506,7 +506,13 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         @files="sftpVisible = true"
       />
       <ScVncDirectViewer v-else-if="connection && connection.protocol === 'vnc' && connection.mode === 'DIRECT'" ref="vncViewerRef" :connection="connection" hide-close @close="disconnected = true" />
-      <ScGuacViewer v-else ref="guacViewerRef" :connection="connection" inline @close="disconnected = true" />
+      <!-- 必须有 connection 守卫，不能写成 v-else 兜底：
+           ScGuacViewer 的 inline 根容器 .guac-wrap--inline 是 height:100% + min-height:400px，
+           与连接无关。写成 v-else 后，未选主机时它照样渲染并占满整个显示区，
+           把下方那句「从左侧选择一台主机开始控制」顶到 745px 之下、被 .tw 的
+           overflow-y:auto 裁掉 —— 表现为右侧整块空白，而 DOM 里提示文字其实在
+           （快照能抓到两份）。加上守卫后两处都不渲染，只留 .remote-empty。 -->
+      <ScGuacViewer v-else-if="connection" ref="guacViewerRef" :connection="connection" inline @close="disconnected = true" />
       <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
 
       <ReDrawer
