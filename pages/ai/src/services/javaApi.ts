@@ -32,6 +32,10 @@ export const modelApi = {
   update: (id: string, data: any) => http.put(`/models/${id}`, data),
   delete: (id: string) => http.delete(`/models/${id}`),
   testLatency: (id: string) => http.post(`/models/${id}/test-latency`),
+  // 模型管理卡片的延迟测试走 provider 复合标识：旧 /models/{modelId} 是
+  // sys_ai_model 数字主键，不适用于 /api/providers 返回的 providerId:modelName 行。
+  testProviderModelLatency: (providerId: string, modelName: string) =>
+    apiHttp.post(`/api/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelName)}/test-latency`),
   pipelines: () => http.get('/models/pipelines'),
   get: (id: string) => http.get(`/models/${id}`),
 };

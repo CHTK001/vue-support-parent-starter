@@ -103,64 +103,63 @@
       </template>
 
       <div class="table-scroll">
-        <table class="metrics-table">
-          <thead>
-            <tr>
-              <th class="model-col">模型</th>
-              <th v-for="col in columns" :key="col.snake" class="num-col">
-                <span>{{ col.label }}</span>
-                <span v-if="col.unit" class="th-unit">{{ col.unit }}</span>
-              </th>
-              <th class="op-col">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="row.key">
-              <td>
-                <div class="model-cell">
-                  <img v-if="row.icon" :src="row.icon" class="model-icon" alt=""
-                    @error="onImgError" />
-                  <span v-else class="model-icon model-icon--ph">
-                    {{ (row.modelName || '?').charAt(0).toUpperCase() }}
-                  </span>
-                  <div class="model-meta">
-                    <div class="model-name">{{ row.modelName }}</div>
-                    <div class="model-provider">{{ row.sub }}</div>
-                  </div>
-                </div>
-              </td>
-              <td v-for="col in columns" :key="col.snake" class="num-col">
-                <div class="metric-cell" :class="{ 'is-locked': isLocked(row, col.snake) }">
-                  <el-input v-if="isLocked(row, col.snake)" v-model.number="row.values[col.snake]"
-                    type="number" class="metric-input" @input="markDirty(row)" />
-                  <span v-else class="metric-val">{{ fmtVal(row, col) }}</span>
-                  <button type="button" class="lock-btn" :class="{ 'is-on': isLocked(row, col.snake) }"
-                    :title="isLocked(row, col.snake) ? '已锁定，点击解锁恢复指标源值' : '手动改值并锁定（同步不再覆盖）'"
-                    @click="toggleLock(row, col)">
-                    <svg v-if="isLocked(row, col.snake)" viewBox="0 0 24 24" fill="currentColor">
-                      <path fill-rule="evenodd" clip-rule="evenodd"
-                        d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z" />
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M8 10.5V6.75a4 4 0 1 1 8 0M5.25 10.5h10.5a2.25 2.25 0 0 1 2.25 2.25v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18.75v-6a2.25 2.25 0 0 1 2.25-2.25z" />
-                    </svg>
-                  </button>
-                </div>
-              </td>
-              <td class="op-col">
-                <div class="op-cell">
-                  <el-button type="primary" :disabled="!row.dirty" :loading="row.saving"
-                    @click="saveRow(row)">保存</el-button>
-                  <el-button :disabled="!row.dirty" @click="discardRow(row)">还原</el-button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!loadingRows && rows.length === 0">
-              <td :colspan="columns.length + 2" class="empty-row">暂无模型指标数据</td>
-            </tr>
-          </tbody>
-        </table>
+        <ReTable
+          :data="rows"
+          :columns="tableColumns"
+          :loading="loadingRows"
+          engine="element"
+          :pagination="false"
+          :toolbar="false"
+          :settings="{ border: false }"
+          :layout-table="{ minHeight: 0 }"
+          row-key="key"
+          empty-text="暂无模型指标数据"
+          style="width: 100%"
+        >
+          <template #col-model="{ row }">
+            <div class="model-cell">
+              <img v-if="row.icon" :src="row.icon" class="model-icon" alt=""
+                @error="onImgError" />
+              <span v-else class="model-icon model-icon--ph">
+                {{ (row.modelName || '?').charAt(0).toUpperCase() }}
+              </span>
+              <div class="model-meta">
+                <div class="model-name">{{ row.modelName }}</div>
+                <div class="model-provider">{{ row.sub }}</div>
+              </div>
+            </div>
+          </template>
+          <template
+            v-for="col in columns"
+            :key="col.snake"
+            #[`col-metric-${col.snake}`]="{ row }"
+          >
+            <div class="metric-cell" :class="{ 'is-locked': isLocked(row, col.snake) }">
+              <el-input v-if="isLocked(row, col.snake)" v-model.number="row.values[col.snake]"
+                type="number" class="metric-input" @input="markDirty(row)" />
+              <span v-else class="metric-val">{{ fmtVal(row, col) }}</span>
+              <button type="button" class="lock-btn" :class="{ 'is-on': isLocked(row, col.snake) }"
+                :title="isLocked(row, col.snake) ? '已锁定，点击解锁恢复指标源值' : '手动改值并锁定（同步不再覆盖）'"
+                @click="toggleLock(row, col)">
+                <svg v-if="isLocked(row, col.snake)" viewBox="0 0 24 24" fill="currentColor">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M8 10.5V6.75a4 4 0 1 1 8 0M5.25 10.5h10.5a2.25 2.25 0 0 1 2.25 2.25v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18.75v-6a2.25 2.25 0 0 1 2.25-2.25z" />
+                </svg>
+              </button>
+            </div>
+          </template>
+          <template #col-actions="{ row }">
+            <div class="op-cell">
+              <el-button type="primary" :disabled="!row.dirty" :loading="row.saving"
+                @click="saveRow(row)">保存</el-button>
+              <el-button :disabled="!row.dirty" @click="discardRow(row)">还原</el-button>
+            </div>
+          </template>
+        </ReTable>
       </div>
 
       <template #footer>
@@ -179,6 +178,8 @@ import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue'
 
 import ReEcharts from '@repo/ui/re-echarts'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
 import type { EChartsOption } from 'echarts'
 
 import { Search } from '@element-plus/icons-vue'
@@ -305,6 +306,32 @@ const columns: Column[] = [
   { snake: 'latency_first_token_seconds', camel: 'latencyFirstTokenSeconds', label: '首Token', unit: 's' },
   { snake: 'context_window_tokens', camel: 'contextWindowTokens', label: '上下文窗口' },
 ]
+
+const tableColumns = computed<ReTableColumn[]>(() => [
+  {
+    prop: 'model',
+    label: '模型',
+    minWidth: 190,
+    slot: 'model',
+    className: 'model-col',
+  },
+  ...columns.map((c) => ({
+    prop: c.snake,
+    label: c.unit ? `${c.label} ${c.unit}` : c.label,
+    minWidth: 110,
+    align: 'center',
+    className: 'num-col',
+    slot: `metric-${c.snake}`,
+  })),
+  {
+    prop: 'actions',
+    label: '操作',
+    width: 130,
+    align: 'center',
+    className: 'op-col',
+    slot: 'actions',
+  },
+])
 
 interface RowState {
   key: string
@@ -917,24 +944,23 @@ onMounted(() => {
 .metrics-search { width: 220px; }
 
 .table-scroll { overflow-x: auto; }
-.metrics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.metrics-table { width: 100%; font-size: 13px; }
 
-.metrics-table th {
+.metrics-table :deep(.el-table__header th) {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   font-weight: 600; text-align: left;
   padding: 10px 12px; white-space: nowrap;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.metrics-table th.num-col, .metrics-table td.num-col { text-align: center; }
-.th-unit { margin-left: 3px; font-weight: 400; font-size: 11px; color: var(--el-text-color-placeholder); }
+.metrics-table :deep(.num-col) { text-align: center; }
 
-.metrics-table td {
+.metrics-table :deep(.el-table__cell) {
   padding: 9px 12px; vertical-align: middle;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.metrics-table tr:last-child td { border-bottom: none; }
-.metrics-table td.op-col { text-align: center; }
+.metrics-table :deep(.el-table__row:last-child) .el-table__cell { border-bottom: none; }
+.metrics-table :deep(.op-col) { text-align: center; }
 
 .model-col { min-width: 190px; }
 .model-cell { display: flex; align-items: center; gap: 10px; }
@@ -980,7 +1006,6 @@ onMounted(() => {
 .lock-btn.is-on { color: var(--el-color-warning); }
 
 .op-cell { display: inline-flex; gap: 6px; }
-.empty-row { text-align: center; color: var(--el-text-color-secondary); padding: 28px 12px; }
 
 .metrics-foot { display: flex; justify-content: flex-end; }
 

@@ -268,6 +268,7 @@ import { ReOption } from "@repo/ui/re-kit";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
@@ -440,12 +441,8 @@ async function onNsMenuSelect(key: string) {
   const id = nsMenu.key;
   if (!id) return;
   if (key === "copy") {
-    try {
-      await navigator.clipboard.writeText(id);
-      message.success("已复制命名空间 ID");
-    } catch {
-      message.error("复制失败");
-    }
+    if (await copyToClipboard(id)) message.success("已复制命名空间 ID");
+    else message.error("复制失败");
     return;
   }
   // 编辑/删除依赖 activeNs 指向该命名空间（右键不等同于选中）

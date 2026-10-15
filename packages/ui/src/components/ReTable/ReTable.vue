@@ -5427,6 +5427,10 @@ const iconSelect = Select;
   text-overflow: ellipsis;
 }
 
+.re-table__main {
+  padding: 16px;
+}
+
 /* ============ element 引擎（兼容回退）的表格视觉 ============
    与上面 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、
    44/36 行高、更淡的斑马纹、hover 混主色、首列主色条。
@@ -5458,7 +5462,7 @@ const iconSelect = Select;
 .re-table--separated > .re-table__main {
   background: var(--rt-bg);
   border-radius: var(--rt-radius);
-  padding: var(--rt-padding, 12px);
+  padding: 16px;
   border: 1px solid var(--el-border-color-lighter);
   /* 表格浮层（vxe 固定列、空态）在主体卡上收口（根容器已改为 visible） */
   overflow: hidden;

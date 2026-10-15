@@ -138,6 +138,7 @@
               />
               <div class="mc-foot-btns">
                 <button
+                  v-if="!isLocalProvider"
                   class="mc-btn"
                   :title="model.hasNativeId === false ? '该模型无原生记录，暂无法测试' : '测试延迟'"
                   :disabled="model.testing || model.hasNativeId === false"
@@ -184,6 +185,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { message } from '@repo/core'
 import Avatar from '../ui/Avatar.vue'
 import CardAvatar from '../ui/CardAvatar.vue'
 import {
@@ -206,7 +208,7 @@ import {
 import ProviderLogo from './ProviderLogo.vue'
 import ModelFormDialog from './ModelFormDialog.vue'
 import ModelFetchDialog from './ModelFetchDialog.vue'
-import { MODEL_SUBTYPE_LABELS } from './model.constants'
+import { LOCAL_PROVIDER_IDS, MODEL_SUBTYPE_LABELS } from './model.constants'
 
 const props = defineProps<{
   provider: any
@@ -222,7 +224,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { notify, confirm } = usePopup()
+const { confirm } = usePopup()
 
 const formRef = ref<any>(null)
 const fetchRef = ref<any>(null)
@@ -257,6 +259,17 @@ const filteredModels = computed(() =>
 const isOnnx = computed(
   () => props.provider?.id === 'onnx' || props.provider?.provider_id === 'onnx',
 )
+
+/**
+ * 是否为本地推理供应商。
+ *
+ * <p>本地模型不走远端 HTTP 延迟测试，行内不展示「测试延迟」按钮，
+ * 避免点击后由不存在的远端服务报错。</p>
+ */
+const isLocalProvider = computed(() => {
+  const id = String(props.provider?.id ?? props.provider?.provider_id ?? '').toLowerCase()
+  return LOCAL_PROVIDER_IDS.has(id)
+})
 
 /**
  * 「删除供应商」按钮是否可删。
@@ -344,6 +357,17 @@ const cardMeta = (model: any) => {
     items.push({ label: '输出', value: fmtNum(out), title: `输出最大 token：${out.toLocaleString()}（手动填写）` })
   }
 
+  const latency = numOrNull(model.modelLastLatency ?? mt.probe_latency_ms ?? mt.latency_ms)
+  if (latency != null) {
+    items.push({
+      label: '延迟',
+      value: `${Math.round(latency)}ms`,
+      title: model.modelLastLatency != null
+        ? `最近一次延迟测试：${Math.round(latency)}ms`
+        : `实测延迟：${Math.round(latency)}ms`,
+    })
+  }
+
   const pIn = numOrNull(mt.price_input_per_musd)
   const pOut = numOrNull(mt.price_output_per_musd)
   if (pIn != null || pOut != null) {
@@ -422,23 +446,31 @@ const handleManualAdd = () => {
 const handleEdit = (model: any) => formRef.value.openEdit(model)
 
 const testLatency = async (model: any) => {
-  const modelId = model?.modelId ?? model?.model_id ?? model?.id
-  if (!modelId || model.testing || model.hasNativeId === false) return
+  const providerId = model?.providerId ?? props.provider?.id ?? props.provider?.provider_id
+  const modelName = model?.model ?? model?.modelName ?? model?.name
+  if (!providerId || !modelName || model.testing || model.hasNativeId === false) return
   model.testing = true
   try {
-    const res: any = await modelApi.testLatency(modelId)
-    const raw = res?.data?.latency ?? res?.latency ?? res?.data
+    const res: any = await modelApi.testProviderModelLatency(providerId, modelName)
+    const body = res?.data ?? res
+    if (body?.success === false) throw new Error(body?.message || '延迟测试失败')
+    const raw = body?.latency ?? res?.latency ?? res?.data?.latency
     const latency = raw != null && Number.isFinite(Number(raw)) ? Number(raw) : null
-    model.modelLastLatency = latency
-    model.modelLastTestTime = new Date().toISOString()
-    notify.success(
-      t('common.operationSuccess'),
-      latency != null ? `测试延迟：${latency}ms` : '延迟测试完成',
-      { duration: 2500 },
-    )
+    if (latency != null) {
+      model.modelLastLatency = latency
+      model.metrics = {
+        ...(model.metrics || {}),
+        probe_latency_ms: latency,
+        latency_ms: latency,
+      }
+    }
+    message.success(latency != null ? `测试延迟：${latency}ms` : '延迟测试完成', { duration: 2500 })
   } catch (error: any) {
-    console.error('测试模型延迟失败:', error)
-    notify.error(t('common.operationFailed'), '延迟测试失败', { duration: 2500 })
+    const detail = error?.response?.data?.message
+      || error?.response?.data?.msg
+      || error?.message
+      || '延迟测试失败'
+    message.error(String(detail), { duration: 2500 })
   } finally {
     model.testing = false
   }
@@ -451,7 +483,7 @@ const handleDelete = async (model: any) => {
   )
   if (!ok) return
   await apiService.deleteModel(model.id)
-  notify.success(t('common.deleteSuccess'), t('settings.providerDetail.modelDeleted'))
+  message.success(t('settings.providerDetail.modelDeleted'))
   emit('changed')
 }
 
@@ -459,15 +491,17 @@ const handleToggle = async (model: any) => {
   try {
     const result = await apiService.toggleModelActive(model.id)
     model.isActive = result.isActive
-    notify.success(
-      t('common.operationSuccess'),
+    message.success(
       result.isActive ? t('settings.providerDetail.modelEnabled') : t('settings.providerDetail.modelDisabled'),
       { duration: 2000 },
     )
     emit('changed')
   } catch (error) {
-    console.error('切换模型状态失败:', error)
-    notify.error(t('common.operationFailed'), t('settings.providerDetail.toggleModelError'), { duration: 2000 })
+    const detail = error?.response?.data?.message
+      || error?.response?.data?.msg
+      || error?.message
+      || t('settings.providerDetail.toggleModelError')
+    message.error(String(detail), { duration: 2000 })
     model.isActive = !model.isActive
   }
 }

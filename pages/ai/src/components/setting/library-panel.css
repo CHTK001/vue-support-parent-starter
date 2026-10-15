@@ -568,6 +568,38 @@
   color: var(--lib-text-secondary);
 }
 
+/* 关键词来自 OCR / 多模态模型的 tags 列；三枚以内常显，超出折叠成计数 */
+.lib-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.lib-tag {
+  max-width: 96px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 24%, var(--lib-border));
+  border-radius: var(--el-radius-xs, 4px);
+  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
+  color: var(--el-color-primary);
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-tag.is-more {
+  border-color: transparent;
+  background: var(--lib-surface-subtle);
+  color: var(--lib-text-secondary);
+}
+
+.lib-muted {
+  color: var(--lib-text-secondary);
+}
+
 .lib-empty {
   grid-column: 1 / -1;
 }

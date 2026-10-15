@@ -394,7 +394,7 @@ import {
   Checkmark24Regular, Info24Regular,
 } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
-import { usePopup } from '../../composables/usePopup'
+import { message } from '@repo/core'
 import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
 import { createDefaultModelConfig, inferSubType } from './model.utils'
 
@@ -412,7 +412,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { notify } = usePopup()
 
 const visible = ref(false)
 const saving = ref(false)
@@ -561,16 +560,15 @@ const handleSave = async () => {
     }
     if (isEditMode.value) {
       if (editingId.value) await apiService.updateModel(editingId.value, payload)
-      notify.success(t('common.saveSuccess'), t('settings.providerDetail.modelUpdated'))
+      message.success(t('settings.providerDetail.modelUpdated'))
     } else {
       await apiService.createModel(payload)
-      notify.success(t('common.createSuccess'), t('settings.providerDetail.modelAdded'))
+      message.success(t('settings.providerDetail.modelAdded'))
     }
     visible.value = false
     emit('saved')
   } catch (error: any) {
-    console.error('保存模型失败:', error)
-    notify.error('保存失败', error?.message || '模型信息保存失败')
+    message.error(error?.message || '模型信息保存失败')
   } finally {
     saving.value = false
   }

@@ -327,6 +327,7 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
@@ -430,10 +431,7 @@ function onSideMenuSelect(action: string) {
     if (sideMenu.kind === "label") selectLabel(key);
     else selectRel(key);
   } else if (action === "copy") {
-    navigator.clipboard
-      .writeText(key)
-      .then(() => message.success("已复制"))
-      .catch(() => message.error("复制失败"));
+    void copyToClipboard(key).then(ok => ok ? message.success("已复制") : message.error("复制失败"));
   }
 }
 /** 节点表格菜单分发 */
@@ -441,10 +439,7 @@ function onNodeTableMenuSelect(item: { key: string }, ctx: { row: Record<string,
   if (item.key === "view") {
     onNodeClick(ctx.row);
   } else if (item.key === "copy") {
-    navigator.clipboard
-      .writeText(String(ctx.row.id ?? ""))
-      .then(() => message.success("已复制 elementId"))
-      .catch(() => message.error("复制失败"));
+    void copyToClipboard(String(ctx.row.id ?? "")).then(ok => ok ? message.success("已复制 elementId") : message.error("复制失败"));
   }
 }
 const nodeColumns = ref<Column[]>([]);

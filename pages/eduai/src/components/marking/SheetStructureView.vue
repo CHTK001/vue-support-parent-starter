@@ -23,9 +23,25 @@
     </div>
 
     <div class="ss-body" :class="{ 'ss-body--original': mode === 'original' }">
-      <div class="ss-stage-wrap">
+      <div class="ss-stage-wrap" ref="stageWrapRef">
+        <button
+          v-if="pageCount > 1 && page > 1"
+          class="ss-nav ss-nav--stage ss-nav--prev"
+          title="上一页"
+          @click="changePage(page - 1)"
+        >
+          <el-icon><ArrowLeft /></el-icon>
+        </button>
+        <button
+          v-if="pageCount > 1 && page < pageCount"
+          class="ss-nav ss-nav--stage ss-nav--next"
+          title="下一页"
+          @click="changePage(page + 1)"
+        >
+          <el-icon><ArrowRight /></el-icon>
+        </button>
         <div class="ss-stage">
-          <img v-if="imageUrl" :src="imageUrl" class="ss-image" alt="答卷" />
+          <img v-if="imageUrl" ref="imageRef" :src="imageUrl" class="ss-image" alt="答卷" />
           <div v-if="imageUrl && mode === 'layout'" class="ss-overlay">
             <div
               v-for="(b, i) in currentLayout"
@@ -53,13 +69,29 @@
       </div>
 
       <div v-if="mode === 'layout'" class="ss-panel">
+        <button
+          v-if="pageCount > 1 && page > 1"
+          class="ss-nav ss-nav--panel ss-nav--prev"
+          title="上一页"
+          @click="changePage(page - 1)"
+        >
+          <el-icon><ArrowLeft /></el-icon>
+        </button>
+        <button
+          v-if="pageCount > 1 && page < pageCount"
+          class="ss-nav ss-nav--panel ss-nav--next"
+          title="下一页"
+          @click="changePage(page + 1)"
+        >
+          <el-icon><ArrowRight /></el-icon>
+        </button>
         <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
              原表 height="100%" → :layout-table="{ height: '100%' }"（带 height 即走固定高度分支，
              按规格无需再补 minHeight）；原表没有 border → :settings="{ border: false }"；
              分页/工具栏关闭（原表没有）。 -->
         <ReTable
           ref="questionTable"
-          :data="questions"
+          :data="currentQuestions"
           :columns="questionColumns"
           engine="element"
           :pagination="false"
@@ -79,6 +111,7 @@
               v-model="row.editScore"
               :min="0"
               :max="row.maxScore ?? 100"
+              :disabled="isVirtual(row)"
               controls-position="right"
               size="small"
               @update:model-value="onScoreChange(row)"
@@ -302,6 +335,9 @@ const selectedQuestion = computed(() =>
   selectedId.value == null ? null : questions.value.find((q) => Number(q.resultId) === selectedId.value) ?? null,
 );
 
+/** 历史聚合任务的只读拆分行：负数 resultId 不落库，仅用于展示逐题结构 */
+const isVirtual = (row: any) => row?.virtual === true;
+
 /** 卷面识别到的学生（ANY 链路：模型/正则从卷头「姓名/学号」栏抽取） */
 const recognizedStudent = computed(() => (structure.value?.recognizedStudent ?? null) as { name?: string; no?: string } | null);
 
@@ -397,6 +433,10 @@ const commentEditorTitle = computed(() => {
 });
 
 const openCommentEditor = async (row: any) => {
+  if (isVirtual(row)) {
+    message.warning('历史聚合题已按版面拆分展示，暂不能单独写评语');
+    return;
+  }
   commentEditor.value = { visible: true, row, draft: String(row.editComment ?? '') };
   await nextTick();
   (commentInputRef.value?.$el as HTMLElement | undefined)?.querySelector('textarea')?.focus();
@@ -458,6 +498,10 @@ const splitOptions = (stem: string): { stem: string; options: string } => {
 
 /** 打开入题库弹框：预填解析结果，标准答案留空由老师补（学生作答不是标准答案） */
 const openToBank = (row: any) => {
+  if (isVirtual(row)) {
+    message.warning('历史聚合题已按版面拆分展示，暂不能直接入库');
+    return;
+  }
   const stem = String(row.stem ?? '').trim();
   const split = guessType(stem) === 'SINGLE_CHOICE' ? splitOptions(stem) : { stem, options: '' };
   bankDialog.value.form = {

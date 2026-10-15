@@ -1,5 +1,5 @@
 <template>
-  <div ref="el" class="ds-metric-echart" :style="{ height: `${height}px` }" />
+  <div ref="el" class="ds-metric-echart" :style="{ height: fill ? '100%' : `${height}px` }" />
 </template>
 
 <script setup lang="ts">
@@ -24,6 +24,11 @@
  * {@code connectNulls: false} 让延迟曲线在那一刻断开 ——
  * 「没测出来」画成一条穿过空洞的斜线，等于凭空捏造了一段延迟数据。</p>
  *
+ * <p><strong>高宽策略</strong>：非嵌入模式给固定像素高（表格页高度本来就由
+ * 内容决定）；嵌入模式走 {@code fill}，由外层 flex 布局把剩余高度分给画布，
+ * 整张图用百分比栅格缩放，窗口高矮变化时不再出现「面板很高、图只有一小截」
+ * 或「图被裁掉」的错位。</p>
+ *
  * @author CH
  * @since 4.0.0.43
  */
@@ -42,10 +47,19 @@ const props = withDefaults(
   defineProps<{
     /** 采样点（已按时间升序） */
     points: DatasourceMetricPoint[];
-    /** 画布高度（px） */
+    /** 画布高度（px）；fill 为 true 时忽略 */
     height?: number;
+    /**
+     * 吃满外层容器高度（外层需是 flex 列布局且给到明确高度）。
+     *
+     * <p>用独立布尔而不是「height 传 undefined」：Vue 的 withDefaults 会把显式
+     * undefined 也当成「用了默认值」，传 undefined 根本进不了组件内部。
+     * 嵌入模式之所以需要 fill，而不是给一个足够大的定值——概览面板高度会随
+     * 浏览器窗口变化，定值必有一端对不上。</p>
+     */
+    fill?: boolean;
   }>(),
-  { height: 220 },
+  { height: 220, fill: false },
 );
 
 const el = ref<HTMLElement | null>(null);
@@ -92,7 +106,13 @@ const build = (): EChartsOption => {
     }
   }
 
-  const LATENCY_H = 62;
+  // 百分比栅格：fill 模式下画布高度随外层变化，固定像素的栅格会在高画布里
+  // 变成「图小、底下空一块」。按原 200px 设计稿的比例换算：
+  // 延迟图 55%（含轴标签）、状态条 23%，剩下上下边距与间距。
+  const GRID_TOP = "6%";
+  const LATENCY_H = "55%";
+  const HEALTH_TOP = "69%";
+  const HEALTH_H = "23%";
 
   // 显式标注成 EChartsOption["series"]：不标的话数组元素会被推成各自的字面量
   // 联合类型（line 的 showSymbol 与 bar 的 barWidth 互不相容），
@@ -161,8 +181,8 @@ const build = (): EChartsOption => {
   return {
     animation: false,
     grid: [
-      { left: "3%", right: "8%", top: 18, height: LATENCY_H, containLabel: true },
-      { left: "3%", right: "8%", top: 18 + LATENCY_H + 34, height: 34, containLabel: true },
+      { left: "3%", right: "8%", top: GRID_TOP, height: LATENCY_H, containLabel: true },
+      { left: "3%", right: "8%", top: HEALTH_TOP, height: HEALTH_H, containLabel: true },
     ],
     tooltip: {
       trigger: "axis",
@@ -268,7 +288,7 @@ const { render } = useEchart(elRef, build);
 // SSE 每轮追加一个点 / 首屏趋势到达 / 切换数据源后重绘。
 // 必须 deep：points 传进来的是数组，每轮是整个替换成新数组，
 // 浅 watch 能触发；但同一批点被就地改写时只有 deep 能看见。
-watch(() => [props.points, props.height], render, { deep: true });
+watch(() => [props.points, props.height, props.fill], render, { deep: true });
 </script>
 
 <style scoped>

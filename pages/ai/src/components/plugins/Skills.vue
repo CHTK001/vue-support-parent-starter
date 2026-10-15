@@ -268,14 +268,23 @@
             <div v-else>
                 <!-- 元信息表格 -->
                 <div v-if="parsedMeta.length > 0" class="skill-meta-table mb-6">
-                    <table>
-                        <tbody>
-                            <tr v-for="item in parsedMeta" :key="item.key">
-                                <td class="meta-key">{{ item.key }}</td>
-                                <td class="meta-value">{{ item.value }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <ReTable
+                        :data="parsedMeta"
+                        :columns="metaColumns"
+                        engine="element"
+                        :pagination="false"
+                        :toolbar="false"
+                        :settings="{ border: false }"
+                        :layout-table="{ minHeight: 0 }"
+                        style="width: 100%"
+                    >
+                        <template #col-key="{ row }">
+                            <span class="meta-key">{{ row.key }}</span>
+                        </template>
+                        <template #col-value="{ row }">
+                            <span class="meta-value">{{ row.value }}</span>
+                        </template>
+                    </ReTable>
                 </div>
                 <!-- 正文内容 -->
                 <div class="markdown-doc prose dark:prose-invert max-w-none" v-html="parsedDocumentation">
@@ -519,6 +528,8 @@ import { openInExternalBrowser } from '@/utils/browserUtils'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReTable from '@repo/ui/re-table'
+import type { ReTableColumn } from '@repo/ui/re-table'
 import SkillDetailDialog from './SkillDetailDialog.vue'
 
 interface SkillManifest {
@@ -657,6 +668,11 @@ const parsedMeta = computed((): SkillMeta[] => {
 
     return result
 })
+
+const metaColumns: ReTableColumn[] = [
+    { prop: 'key', label: 'Key', width: 120, slot: 'key' },
+    { prop: 'value', label: 'Value', minWidth: 220, slot: 'value' },
+]
 
 // 提取正文（去掉 frontmatter）
 const bodyContent = computed(() => {
@@ -1541,25 +1557,27 @@ onMounted(async () => {
     border-radius: var(--el-radius-md, 8px);
     overflow: hidden;
     border: 1px solid var(--el-border-color-lighter);
-}
-
-.skill-meta-table table {
-    width: 100%;
-    border-collapse: collapse;
     font-size: 0.9em;
 }
 
-.skill-meta-table td {
+.skill-meta-table :deep(.el-table__header th) {
+    background: var(--el-fill-color-light);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+}
+
+.skill-meta-table :deep(.el-table__cell) {
     padding: 10px 14px;
     border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.skill-meta-table tr:last-child td {
+.skill-meta-table :deep(.el-table__row:last-child) .el-table__cell {
     border-bottom: none;
 }
 
 .skill-meta-table .meta-key {
-    width: 100px;
     background-color: var(--el-fill-color-light);
     font-weight: 600;
     color: var(--el-text-color-regular);

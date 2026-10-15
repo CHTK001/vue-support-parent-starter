@@ -63,8 +63,8 @@ export const monitorRoutes: RouteConfigsTable[] = [
         path: "/datasource",
         name: "DataSource",
         // 数据源已抽为独立包 @pages/datasource（后端 spring-support-datasource-hub-starter）。
-        // 本宿主用 ScDataCenterView 包一层：在共享页基础上注入「数据表」页签，
-        // 把数据库管理器并进来；共享页本身不认识宿主组件，采集台继续直接用它。
+        // 本宿主直接用共享页 ScDataSourceView，不再注入「数据表」页签；
+        // /db-manager 独立页保留，供书签 / 外部深链直达。
         component: () => import("./views/ScDataCenterView.vue"),
         meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 1 },
       },

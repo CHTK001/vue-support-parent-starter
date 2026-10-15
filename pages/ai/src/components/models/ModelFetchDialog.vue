@@ -134,7 +134,7 @@ import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import { WrenchScrewdriver24Regular, LightbulbFilament24Regular } from '@vicons/fluent'
 import { Loading, CircleCloseFilled, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
-import { usePopup } from '../../composables/usePopup'
+import { message } from '@repo/core'
 
 const emit = defineEmits<{
   /** 逐条挑一个模型 → 预填表单 */
@@ -146,7 +146,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { notify } = usePopup()
 
 const visible = ref(false)
 const fetching = ref(false)
@@ -208,8 +207,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
       (provider.apiKeyList && provider.apiKeyList.length > 0) ||
       (provider.api_keys && provider.api_keys.length > 0)
     if (!provider.apiUrl || !hasApiKey) {
-      notify.error(
-        t('settings.providerDetail.configError'),
+      message.error(
         t('settings.providerDetail.configApiError'),
         { duration: 2000 },
       )
@@ -255,8 +253,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
       return { ...apiModel, config: apiModel.config || { features: [] } }
     })
     fetched.value = enriched
-    notify.success(
-      t('common.operationSuccess'),
+    message.success(
       t('settings.providerDetail.fetchSuccess', { n: enriched.length }),
       { duration: 2000 },
     )
@@ -392,8 +389,7 @@ const handleImportAll = async () => {
     const total = Number(res?.total ?? imported + skipped)
     if (total === 0) {
       // 上游一个模型都没返回：不是故障，但必须说清楚，否则用户以为卡住
-      notify.warning(
-        t('settings.providerDetail.fetchModelsTitle'),
+      message.warning(
         t('settings.providerDetail.fetchSuccess', { n: 0 }),
         { duration: 3000 },
       )
@@ -412,26 +408,26 @@ const handleImportAll = async () => {
     if (processed < expected && missingLocally > 0) {
       // 上游网关在快速重复调用时会返回不完整目录（实测同一密钥连打会回短列表/401）。
       // 这时若照常关弹窗，用户会以为录全了 —— 明确告知缺口、保留弹窗让他续点补录。
-      notify.warning(
-        t('settings.providerDetail.importPartial', { got: processed, expected }),
+      message.warning(
         t('settings.providerDetail.importPartialDesc', { got: processed, expected, imported, skipped }),
         { duration: 6000 },
       )
       emit('imported') // 已录进去的部分照样要让父组件刷新
       return
     }
-    notify.success(
-      t('common.operationSuccess'),
+    message.success(
       t('settings.providerDetail.importDone', { imported, skipped }),
       { duration: 3000 },
     )
     emit('imported')
     visible.value = false
   } catch (error: any) {
-    console.error('批量录入失败:', error)
-    notify.error(
-      t('settings.providerDetail.importFailed'),
-      error?.data?.error || error?.message || String(error),
+    message.error(
+      error?.response?.data?.message
+        || error?.response?.data?.msg
+        || error?.data?.error
+        || error?.message
+        || String(error),
       { duration: 5000 },
     )
   } finally {

@@ -107,7 +107,7 @@
           <span class="lib-panel-count">共 {{ total }} 张</span>
         </div>
 
-        <el-input v-model="keyword" placeholder="按名称检索" clearable class="lib-search"
+        <el-input v-model="keyword" placeholder="按名称/关键词检索" clearable class="lib-search"
           @keyup.enter="applyKeyword" @clear="applyKeyword">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
@@ -170,6 +170,10 @@
           <figcaption class="lib-meta">
             <span class="lib-name" :title="item.name">{{ item.name || '未命名' }}</span>
             <span class="lib-dim">{{ formatMeta(item) }}</span>
+            <div v-if="item.tags && item.tags.length" class="lib-tags">
+              <span v-for="tag in item.tags.slice(0, 3)" :key="tag" class="lib-tag" :title="tag">{{ tag }}</span>
+              <span v-if="item.tags.length > 3" class="lib-tag is-more">+{{ item.tags.length - 3 }}</span>
+            </div>
           </figcaption>
         </figure>
 
@@ -189,6 +193,10 @@
           <div class="lib-row-body">
             <span class="lib-name" :title="item.name">{{ item.name || '未命名' }}</span>
             <span class="lib-dim">{{ formatMeta(item) }}</span>
+            <div v-if="item.tags && item.tags.length" class="lib-tags">
+              <span v-for="tag in item.tags.slice(0, 3)" :key="tag" class="lib-tag" :title="tag">{{ tag }}</span>
+              <span v-if="item.tags.length > 3" class="lib-tag is-more">+{{ item.tags.length - 3 }}</span>
+            </div>
           </div>
           <span class="lib-badges is-inline">
             <span v-if="isDuplicate(item)" class="lib-badge is-dup">重复</span>
@@ -228,6 +236,13 @@
           </template>
           <template #name="{ row }">
             <span class="lib-name" :title="String(row.name ?? '')">{{ row.name || '未命名' }}</span>
+          </template>
+          <template #tags="{ row }">
+            <div v-if="row.tags && row.tags.length" class="lib-tags">
+              <span v-for="tag in (row.tags || []).slice(0, 3)" :key="tag" class="lib-tag" :title="tag">{{ tag }}</span>
+              <span v-if="(row.tags || []).length > 3" class="lib-tag is-more">+{{ (row.tags || []).length - 3 }}</span>
+            </div>
+            <span v-else class="lib-muted">—</span>
           </template>
           <template #state="{ row }">
             <span class="lib-badges is-inline">
@@ -576,6 +591,7 @@ const tableColumns: ReTableColumn[] = [
     align: 'right',
     formatter: (_row, _col, cell) => (typeof cell === 'number' ? formatSize(cell) : '—'),
   },
+  { prop: 'tags', label: '关键词', minWidth: 220, slot: 'tags' },
   { prop: 'state', label: '状态', width: 190, slot: 'state' },
   { prop: 'actions', label: '操作', width: 110, slot: 'actions', fixed: 'right', align: 'center' },
 ]

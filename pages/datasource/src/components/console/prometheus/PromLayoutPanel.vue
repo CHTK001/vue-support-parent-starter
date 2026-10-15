@@ -106,6 +106,7 @@ import {
   newCardId,
 } from "./promTypes";
 import type { PromCardKind, PromLayoutState, PromWidgetItem } from "./promTypes";
+import { copyToClipboard } from "../../../utils/clipboard";
 import {
   createConsoleContext,
   fetchPrometheusDashboard,
@@ -361,13 +362,8 @@ async function copyText(text: string, label: string): Promise<void> {
     message.warning("暂无可复制的链接");
     return;
   }
-  try {
-    await navigator.clipboard.writeText(text);
-    message.success(`${label}已复制`);
-  } catch {
-    // 剪贴板不可用（非安全上下文）时退化为选中输入框内容
-    message.warning("复制失败，请手动选中复制");
-  }
+  if (await copyToClipboard(text)) message.success(`${label}已复制`);
+  else message.warning("复制失败，请手动选中复制");
 }
 
 // ==================== 生命周期 ====================

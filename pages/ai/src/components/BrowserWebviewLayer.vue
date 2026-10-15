@@ -3,7 +3,16 @@
   <div class="browser-webview-layer">
     <div v-for="wv in store.allWebviews" :key="wv.windowId" class="webview-wrapper"
       :style="getWebviewStyle(wv.windowId)">
+      <iframe
+        v-if="!isElectron"
+        :ref="(el: Element | ComponentPublicInstance | null) => setWebviewRef(wv.windowId, el as HTMLElement | null)"
+        class="webview-iframe"
+        :src="wv.url"
+        allow="autoplay; clipboard-write; fullscreen"
+        referrerpolicy="no-referrer"
+      />
       <webview
+        v-else
         :ref="(el: Element | ComponentPublicInstance | null) => setWebviewRef(wv.windowId, el as HTMLElement | null)"
         :partition="wv.partition" :preload="wv.preloadUrl" autosize="on" allowpopups
         @did-navigate="onNavigate($event, wv.windowId)" @did-navigate-in-page="onNavigateInPage($event, wv.windowId)"
@@ -25,6 +34,8 @@ import { t } from '@/locales'
 
 const store = useBrowserWebviewStore()
 
+const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
+
 /** webview DOM 元素引用 Map（windowId → HTMLElement） */
 const webviewEls = new Map<string, HTMLElement>()
 
@@ -41,6 +52,17 @@ function setWebviewRef(windowId: string, el: HTMLElement | null): void {
     if (!wv.hasAttribute('src')) {
       const initialUrl = store.webviews.get(windowId)?.url
       if (initialUrl) wv.setAttribute('src', initialUrl)
+    }
+
+    // Web 形态下 iframe 补齐导航能力，供占位导航栏复用
+    if (!isElectron && el instanceof HTMLIFrameElement) {
+      const frame = el
+      ;(el as any).goBack = () => frame.contentWindow?.history.back()
+      ;(el as any).goForward = () => frame.contentWindow?.history.forward()
+      ;(el as any).reload = () => { frame.src = frame.src }
+      ;(el as any).stop = () => frame.contentWindow?.stop?.()
+      ;(el as any).canGoBack = false
+      ;(el as any).canGoForward = false
     }
 
     // dom-ready 后才能调用 setAudioMuted 等方法
@@ -315,12 +337,14 @@ onUnmounted(() => {
   /* 无 transition：切换标签时从 0,0 放大到目标尺寸会产生闪屏 */
 }
 
-.webview-wrapper webview {
+.webview-wrapper webview,
+.webview-wrapper .webview-iframe {
   width: 100%;
   height: 100%;
   border: none;
   display: flex;
   pointer-events: auto;
+  background: #fff;
 }
 
 /* 拖拽遮罩层：覆盖在 webview 上方，阻止 webview 截获鼠标事件 */

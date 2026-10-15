@@ -6,7 +6,7 @@
     :data-kb-ask="askWidth"
   >
     <PageHeader :title="t('knowledge.page.title')" />
-    
+
     <!-- RAG 未配置：整页只提示，不显示搜索框 / 新建按钮 / 卡片数据 -->
     <div v-if="!ragReady" class="flex-1 flex flex-col min-h-0">
       <div class="flex-1 flex items-center justify-center px-4 py-10">
@@ -461,7 +461,7 @@
               <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage">
                 <!-- toolbar=true：组件自带地图式工具栏（布局/分组/高亮/悬停聚焦/小地图），
                      toolbar-items 只保留图谱需要的按钮；页面右上角仍负责刷新/生成/管理实体等动作 -->
-                <ReRelationGraph v-if="graphNodes.length > 0 && activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
+                <ReRelationGraph v-if="graphEverMounted || (graphNodes.length > 0 && activeTab === 'graph')" v-show="activeTab === 'graph'" ref="graphCompRef" :nodes="graphNodes" :edges="graphEdges"
                   toolbar toolbar-position="top-left" :toolbar-items="graphToolbarItems" show-groups highlight="adjacent"
                   details lazy-details :load-node-detail="loadGraphEntityDetail" :load-neighbors="loadGraphNeighbors"
                   :menu-items="graphMenuItems" :load-settings="loadGraphLayoutSettings" :save-settings="saveGraphLayoutSettings"
@@ -1280,7 +1280,12 @@ async function materializeTemplate(kbId: string, kbName: string) {
  */
 function handleMenuSelect(key: string) {
   const next = kbViewKeyFromQuery(key)
-  if (next) activeTab.value = next
+  if (next) {
+    if (next === 'graph' && graphView.nodes.length > 0) {
+      graphEverMounted.value = true
+    }
+    activeTab.value = next
+  }
 }
 
 /**
@@ -1893,6 +1898,14 @@ async function viewSourceDocs() {
 /** 图谱组件实例（用于首帧后主动重跑一次布局） */
 const graphCompRef = ref<any>(null)
 
+/**
+ * 图谱首次真实挂载后保持挂载，切页只用隐藏代替销毁。
+ * ReRelationGraph 内部 minimap 的 debounce 销毁竞态会产生未捕获的
+ * `Cannot read properties of undefined (reading 'getData')`，本页面不接管共享组件，
+ * 因此用保留实例的方式隔离切页竞态。
+ */
+const graphEverMounted = ref(false)
+
 /** 知识图谱布局名：G6 的 force 在这套数据上会退化成 (0,0)，实测 force-atlas2 正常 */
 const GRAPH_LAYOUT = 'force-atlas2'
 
@@ -2011,6 +2024,7 @@ async function saveGraphLayoutSettings(settings: any) {
  * 原点附近才 force 重排，否则直接跳过。</p>
  */
 function handleGraphReady() {
+  graphEverMounted.value = true
   nextTick(() => {
     window.setTimeout(async () => {
       const comp = graphCompRef.value as {
@@ -2975,6 +2989,9 @@ watch(() => route.query.tab, (tab) => {
 // 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
 // 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
 watch(activeTab, (tab) => {
+  if (tab === 'graph' && graphView.nodes.length > 0) {
+    graphEverMounted.value = true
+  }
   if (tab === 'graph' || tab === 'overview') {
     // 概览页也要展示实体/关系分布，所以和图谱页一样拉整张图
     void loadGraph()

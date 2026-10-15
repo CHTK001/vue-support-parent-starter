@@ -107,14 +107,11 @@
     </div>
 
     <div class="st-body">
-      <!-- 表格统一 ReTable（替换裸 el-table）：列收敛为 columns 配置 + #col-* 插槽。
-           engine="element" 显式指定：本页 UI 图契约（.st-foot 自带页脚 + el-pagination）
-           与既有 e2e / 可点元素普查的 DOM 口径（.el-table__body tbody tr 等）都按
-           el-table 写死，vxe 引擎会换掉整棵表格 DOM；pagination=false 表示分页由页脚
-           自管（pageTasks 切片与原实现逐行一致），toolbar=false 保持本页按钮清单不变。 -->
+      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径），
+           分页由页脚自管（pageTasks 切片与原实现逐行一致），toolbar=false 保持本页按钮清单不变。 -->
       <ReTable
         :data="pageTasks" :columns="taskColumns" :loading="loading"
-        engine="element" :pagination="false" :toolbar="false"
+        :pagination="false" :toolbar="false"
         table-id="monitor-sync-tasks" stripe
         empty-text="没有符合条件的同步任务"
       >
@@ -562,7 +559,6 @@
             <ReTable
               :data="form.mapping"
               :columns="mappingColumns"
-              engine="element"
               :pagination="false"
               :toolbar="false"
               :layout-table="{ minHeight: 0 }"

@@ -21,6 +21,7 @@
   "dependencies": {
     "@ant-design/x-markdown": "2.9.0",
     "@cornerstonejs/core": "^5.11.6",
+    "@cornerstonejs/codec-libjxl": "^1.1.1",
     "@cornerstonejs/dicom-image-loader": "^5.11.6",
     "@element-plus/icons-vue": "catalog:",
     "@file-viewer/assets-iwork": "3.1.2",

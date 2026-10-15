@@ -26,6 +26,7 @@ const columns = [
     formatter: (row: any) => row.enabled ? '启用' : '禁用',
   },
   { prop: 'createTime', label: '创建时间', width: 180 },
+  { prop: 'actions', label: '操作', width: 160 },
 ];
 
 const formFields = [

@@ -1533,7 +1533,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
         </header>
 
         <!-- 日历模式：仍保留整块月历（它本身就是一个整体选择器，不存在"某一段"） -->
-        <ReCronCalendarPanel v-if="panelMode === 'calendar'" :expression="model" @apply="applyCalendar" />
+        <ReCronCalendarPanel ref="calPanelRef" v-if="panelMode === 'calendar'" :expression="model" @apply="applyCalendar" />
 
         <template v-else>
           <!-- 当前字段：匹配方式 + 取值控件 -->

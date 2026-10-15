@@ -282,6 +282,7 @@ import ReTag from "@repo/ui/re-tag";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
@@ -440,10 +441,7 @@ function onKeyContextMenu(e: MouseEvent, key: string) {
 }
 /** 复制文本到剪贴板（菜单动作共用） */
 function copyKeyText(key: string) {
-  navigator.clipboard
-    .writeText(key)
-    .then(() => message.success("已复制键名"))
-    .catch(() => message.error("复制失败"));
+  void copyToClipboard(key).then(ok => ok ? message.success("已复制键名") : message.error("复制失败"));
 }
 /** 侧栏菜单分发 */
 function onKeyMenuSelect(action: string) {

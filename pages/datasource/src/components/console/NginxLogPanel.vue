@@ -24,6 +24,9 @@
         @update:model-value="onKeyword"
       />
 
+      <ReSwitch data-testid="ngl-switch-follow" :model-value="followTail" aria-label="自动滚动" @change="onToggleFollow" />
+      <span class="ngl-label">自动滚动</span>
+
       <ReSwitch :model-value="auto" aria-label="自动刷新" @change="onToggleAuto" />
       <span class="ngl-label">自动刷新</span>
 
@@ -50,12 +53,12 @@
 
     <ReAlert v-if="logFilesError" type="warning" :title="logFilesError" class="ngl-alert" />
 
-    <div class="ngl-body" ref="bodyRef">
+    <div class="ngl-body" ref="bodyRef" @scroll="onBodyScroll">
       <!-- 首次读取用骨架屏占位。骨架按真实日志的等宽行高做，
            数据到达时不会因为行数变化而跳动。
            注意别把 loading 条件写成 v-if="!displayLines.length" 那类——
            那样「已暂停」和「已停止」也会被骨架盖住，状态就看不见了。 -->
-      <div v-if="loading && !loaded" class="ngl-skel" aria-busy="true" aria-label="日志加载中">
+      <div v-if="displayLoading" class="ngl-skel" aria-busy="true" aria-label="日志加载中">
         <ReSkeleton loading animated :rows="14" />
       </div>
       <pre v-else-if="!displayLines.length" class="ngl-empty">暂无日志。确认路径正确、nginx 有写权限，或点「立即刷新」重试。</pre>
@@ -78,7 +81,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
@@ -110,6 +113,8 @@ const rotated = ref(false);
 const keyword = ref("");
 const wrap = ref(true);
 const auto = ref(false);
+/** 是否跟随最新日志；用户手动上滚或主动关闭后，刷新不再拉回底部 */
+const followTail = ref(true);
 const intervalMs = ref(5000);
 const loading = ref(false);
 /**
@@ -136,6 +141,8 @@ const displayLines = computed(() => {
 
 const lineCount = computed(() => lines.value.length);
 
+const displayLoading = computed(() => loading.value && !loaded.value);
+
 async function loadFiles() {
   if (!props.datasourceId) {
     return;
@@ -157,11 +164,27 @@ async function onKeyword(val: unknown) {
   keyword.value = val === null || val === undefined ? "" : String(val);
 }
 
+function onToggleFollow(on: boolean) {
+  followTail.value = on;
+  if (on) {
+    scrollToBottom();
+  }
+}
+
+function onBodyScroll() {
+  const el = bodyRef.value;
+  if (!el || el.scrollHeight - el.scrollTop - el.clientHeight < 24) {
+    return;
+  }
+  followTail.value = false;
+}
+
 async function onPickFile(path: string) {
   currentPath.value = path;
   lines.value = [];
   cursor.value = null;
   rotated.value = false;
+  followTail.value = true;
   await refresh(true);
 }
 
@@ -172,7 +195,7 @@ function onPickInterval(v: string | number) {
   }
 }
 
-function onToggleAuto(on: boolean) {
+async function onToggleAuto(on: boolean) {
   auto.value = on;
   paused.value = false;
   failures = 0;
@@ -180,6 +203,10 @@ function onToggleAuto(on: boolean) {
     schedule();
   } else {
     stopTimer();
+  }
+  await nextTick();
+  if (followTail.value) {
+    scrollToBottom();
   }
 }
 
@@ -257,6 +284,9 @@ function clear() {
 }
 
 function scrollToBottom() {
+  if (!followTail.value) {
+    return;
+  }
   const el = bodyRef.value;
   if (el) {
     el.scrollTop = el.scrollHeight;
@@ -310,6 +340,7 @@ watch(
   async id => {
     stopTimer();
     auto.value = false;
+    followTail.value = true;
     lines.value = [];
     files.value = [];
     currentPath.value = "";

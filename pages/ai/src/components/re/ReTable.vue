@@ -12,6 +12,7 @@
     -->
     <ReTableBase
       :data="data"
+      :columns="columns"
       :stripe="stripe"
       :settings="{ border: border, compact: size === 'small' }"
       :loading="loading"
@@ -27,6 +28,9 @@
       @row-click="$emit('row-click', $event)"
     >
       <slot />
+      <template v-for="name in forwardedSlotNames" :key="name" #[name]="slotProps">
+        <slot :name="name" v-bind="slotProps" />
+      </template>
       <template #empty>{{ emptyText }}</template>
     </ReTableBase>
     <div v-if="pagination" class="re-table-pagination">
@@ -45,7 +49,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useSlots } from 'vue'
 import type { PropType } from 'vue'
 import type { ComponentSize } from 'element-plus'
 import ReTableBase from '@repo/ui/re-table'
@@ -53,6 +58,7 @@ import type { ReTableColumn } from '@repo/ui/re-table'
 
 const props = defineProps({
   data: { type: Array as PropType<Record<string, any>[]>, default: () => [] },
+  columns: { type: Array as PropType<ReTableColumn[]>, default: () => [] },
   stripe: { type: Boolean, default: true },
   border: { type: Boolean, default: false },
   size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
@@ -82,6 +88,11 @@ const emit = defineEmits([
   'selection-change', 'row-click', 'size-change', 'current-change',
   'update:current-page', 'update:page-size'
 ])
+
+const slots = useSlots()
+const forwardedSlotNames = computed(() =>
+  Object.keys(slots).filter((name) => name !== 'default' && name !== 'empty'),
+)
 
 const currentPage = ref(1)
 const pageSize = ref(50)

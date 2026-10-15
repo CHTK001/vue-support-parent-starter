@@ -107,7 +107,14 @@
           <el-input v-model="createForm.name" placeholder="请输入试卷名称" />
         </el-form-item>
         <el-form-item label="学科" required>
-          <el-input v-model="createForm.subject" placeholder="请输入学科，如 数学" />
+          <el-select
+            v-model="createForm.subject"
+            filterable
+            placeholder="请选择学科"
+            style="width: 100%"
+          >
+            <el-option v-for="s in createSubjectOptions" :key="s" :label="s" :value="s" />
+          </el-select>
         </el-form-item>
         <!--
           学段/年级在 edu_paper 上是 NOT NULL 且无默认值，后端会前置校验。
@@ -210,7 +217,14 @@
           <el-input v-model="editForm.name" placeholder="请输入试卷名称" />
         </el-form-item>
         <el-form-item label="学科" required>
-          <el-input v-model="editForm.subject" placeholder="请输入学科，如 数学" />
+          <el-select
+            v-model="editForm.subject"
+            filterable
+            placeholder="请选择学科"
+            style="width: 100%"
+          >
+            <el-option v-for="s in editSubjectOptions" :key="s" :label="s" :value="s" />
+          </el-select>
         </el-form-item>
         <el-form-item label="学段" required>
           <el-select v-model="editForm.gradeLevel" placeholder="请选择学段" style="width: 100%"
@@ -557,6 +571,7 @@ const editGradeOptions = computed(() => {
 
 /** 编辑弹框自用的年级维度数据（与新建弹框各自持有，互不依赖） */
 const editGrades = ref<EduGrade[]>([]);
+const editSubjectOptions = ref<string[]>([]);
 
 /** 为编辑弹框加载年级候选；已有数据则直接复用，避免重复请求 */
 const loadEditGrades = async () => {
@@ -569,6 +584,21 @@ const loadEditGrades = async () => {
   } catch (e) {
     editGrades.value = [];
     message.error('加载年级候选失败: ' + errorText(e));
+  }
+};
+
+/** 为编辑弹框加载学科候选；失败时保留空数组，由表单必填校验兜底 */
+const loadEditSubjects = async () => {
+  if (editSubjectOptions.value.length) {
+    return;
+  }
+  try {
+    const drop = await eduaiApi.dimensionDropdown();
+    editSubjectOptions.value = Array.isArray(drop?.subjects)
+      ? drop.subjects.map((s) => s.subjectName).filter((s): s is string => Boolean(s))
+      : [];
+  } catch {
+    editSubjectOptions.value = [];
   }
 };
 
@@ -590,7 +620,7 @@ const openEdit = async (row: Paper) => {
   editForm.difficulty = row.paperDifficulty ?? 3;
   editForm.duration = row.paperDuration ?? 60;
   // 先把候选拉到，再开弹框：否则 el-select 首次渲染时没有 option，会闪一下原始值
-  await loadEditGrades();
+  await Promise.all([loadEditGrades(), loadEditSubjects()]);
   editVisible.value = true;
 };
 
@@ -725,6 +755,7 @@ const composeMode = ref<'MANUAL' | 'AI'>('MANUAL');
 const aiQuestionCount = ref(20);
 const aiScorePerQuestion = ref(5);
 const createGrades = ref<EduGrade[]>([]);
+const createSubjectOptions = ref<string[]>([]);
 const templateOptions = ref<PaperTemplate[]>([]);
 const createForm = reactive({
   name: '',
@@ -751,13 +782,17 @@ const onCreateGradeLevelChange = () => {
   createForm.grade = '';
 };
 
-/** 打开新建弹框时拉取年级与启用中的模板 */
+/** 打开新建弹框时拉取年级、学科与启用中的模板 */
 const loadCreateOptions = async () => {
   try {
     const drop = await eduaiApi.dimensionDropdown();
     createGrades.value = Array.isArray(drop?.grades) ? drop.grades : [];
+    createSubjectOptions.value = Array.isArray(drop?.subjects)
+      ? drop.subjects.map((s) => s.subjectName).filter((s): s is string => Boolean(s))
+      : [];
   } catch {
     createGrades.value = [];
+    createSubjectOptions.value = [];
   }
   try {
     const res = await eduaiApi.getPaperTemplatePage({ pageNum: 1, pageSize: 100 });

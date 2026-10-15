@@ -9,8 +9,11 @@
  * 版面解析一体），与 MarkingWorkbench 内嵌的详情是同一个组件，
  * 两端（管理端 / 老师端）看到的是同一套版式。</p>
  */
-import { computed, onMounted, ref } from 'vue';
+import { message } from '@repo/core';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import ReDialog from '@repo/ui/re-dialog';
+import ReSelect from '@repo/ui/re-select';
 import { eduaiApi } from '../api/eduaiApi';
 import { failToast } from '../api/errorText';
 import type { MarkingResultVO } from '../api/types';
@@ -36,6 +39,81 @@ const studentText = computed(() => {
   if (name && no) return `${name}（${no}）`;
   return name || no || '';
 });
+
+/** 顶部 AI 总体评语：优先取结构接口返回的总体评语，旧接口回落单题 AI 评语 */
+const overallComment = computed(() => {
+  const fromStructure = structure.value?.overallComment;
+  if (typeof fromStructure === 'string' && fromStructure.trim()) {
+    return fromStructure.trim();
+  }
+  return result.value?.results?.[0]?.comment?.trim() ?? '';
+});
+
+const studentDialogVisible = ref(false);
+const studentSaving = ref(false);
+const studentForm = reactive({ selection: '', name: '', no: '' });
+const studentOptions = ref<Array<{ label: string; value: string; name: string; no: string }>>([]);
+
+const loadStudentOptions = async (params: { keyword?: string } = {}) => {
+  let students: any[] = [];
+  try {
+    students = await eduaiApi.listStudents();
+  } catch {
+    const classes = await eduaiApi.teacherClasses();
+    const lists = await Promise.all(
+      classes.map((item: any) => eduaiApi.teacherClassStudents(Number(item.classId))),
+    );
+    students = lists.flat();
+  }
+  const keyword = String(params?.keyword ?? '').trim().toLowerCase();
+  const options = students
+    .filter((s) => {
+      const haystack = `${s.studentName ?? ''}${s.studentNo ?? ''}`.toLowerCase();
+      return !keyword || haystack.includes(keyword);
+    })
+    .map((s) => ({
+      label: [s.studentName, s.studentNo ? `（${s.studentNo}）` : ''].filter(Boolean).join(' '),
+      value: String(s.studentNo || ''),
+      name: String(s.studentName ?? ''),
+      no: String(s.studentNo ?? ''),
+    }));
+  studentOptions.value = options;
+  return options;
+};
+
+const onStudentChange = (value: unknown) => {
+  const selected = studentOptions.value.find((o) => o.value === String(value ?? ''));
+  studentForm.name = selected?.name ?? '';
+  studentForm.no = selected?.no ?? '';
+};
+
+const openStudentEdit = () => {
+  studentForm.selection = recognized.value?.no ?? '';
+  studentForm.name = recognized.value?.name ?? '';
+  studentForm.no = recognized.value?.no ?? '';
+  studentDialogVisible.value = true;
+};
+
+/** 保存人工纠正的学生信息：管理员或任务归属老师都走同一写权限校验 */
+const saveStudent = async () => {
+  if (!taskId.value) return;
+  studentSaving.value = true;
+  try {
+    await eduaiApi.confirmMarking({
+      taskId: taskId.value,
+      adjustments: [],
+      studentName: studentForm.name.trim(),
+      studentNo: studentForm.no.trim(),
+    } as any);
+    message.success('学生信息已修改');
+    studentDialogVisible.value = false;
+    await load();
+  } catch (e) {
+    failToast('保存学生信息失败', e);
+  } finally {
+    studentSaving.value = false;
+  }
+};
 
 const load = async () => {
   if (!taskId.value) {
@@ -86,9 +164,40 @@ onMounted(() => {
       <el-tag v-if="structure?.mode" size="small" type="info">
         {{ structure.mode === 'ANY' ? '任意卷' : '自有卷' }}
       </el-tag>
-      <span v-if="studentText" class="md-meta">卷面识别：{{ studentText }}</span>
     </div>
+
+    <div v-if="overallComment" class="md-comment">
+      <span class="md-comment-label">AI 总体评语</span>
+      <span class="md-comment-text">{{ overallComment }}</span>
+    </div>
+
+    <div class="md-student">
+      <span class="md-student-label">学生</span>
+      <span class="md-student-text">{{ studentText || '未识别' }}</span>
+      <el-button size="small" link type="primary" :disabled="loading" @click="openStudentEdit">
+        修改学生
+      </el-button>
+    </div>
+
     <MarkingResultPanel :result="result" :refresh-key="refreshKey" @saved="onSaved" />
+
+    <ReDialog v-model="studentDialogVisible" title="修改学生信息" width="420px">
+      <div class="md-student-form">
+        <ReSelect
+          v-model="studentForm.selection"
+          :loader="loadStudentOptions"
+          filterable
+          clearable
+          placeholder="从学生档案下拉选择"
+          style="width: 100%"
+          @change="onStudentChange"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="studentDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="studentSaving" @click="saveStudent">保存</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -98,13 +207,17 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 16px;
+  gap: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .md-bar {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding-bottom: 10px;
+  flex: none;
 }
 .md-title {
   font-weight: 600;
@@ -118,8 +231,52 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.md-meta {
+.md-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+}
+.md-comment-label {
+  flex: none;
+  margin-top: 1px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: 4px;
+}
+.md-comment-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.md-student {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 0 2px;
+}
+.md-student-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.md-student-text {
   font-size: 13px;
   color: var(--el-text-color-regular);
+}
+.md-student-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>

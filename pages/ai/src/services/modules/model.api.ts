@@ -69,6 +69,7 @@ export interface ModelApi {
  *   - 输入/输出能力 → traits 里的 `input:image` / `output:image`
  *   - 高级特性     → 追加一条 capability，task 取 tools / thinking / web-search
  *     （与 model.utils 的 FEATURE_TASKS 约定一致，读取时按 task 还原）
+ *   - 模型细分类型 → capabilities[0].subtype（OCR/人脸组合模型按管线角色过滤）
  * 窗口与采样参数直接映射到 sys_ai_provider_model 的同名列；null 表示「未指定」，
  * 模型卡片会回退到指标表（sys_ai_model_metrics）的官方值。
  */

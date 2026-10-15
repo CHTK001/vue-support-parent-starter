@@ -193,6 +193,40 @@ function isSilentError(data: ApiResponseBody): boolean {
   return skip.includes(data.code ?? "");
 }
 
+/**
+ * 构造统一失败 Error。
+ *
+ * <p>失败响应里仍可能带业务数据，例如服务管理建节点/热更新返回
+ * success=false 但 data 是已落库的 ERROR 节点。拦截器丢掉 data 会让
+ * 所有失败分支只能拿到「保存失败」文案，无法刷新列表、也无法让用户
+ * 继续点详情/编辑/删除去排查。</p>
+ */
+export function createApiFailureError(
+  data: ApiResponseBody,
+  fallbackMsg: string,
+): Error & {
+  code?: unknown;
+  msg?: string;
+  success?: boolean;
+  ok?: boolean;
+  data?: unknown;
+} {
+  const rawMsg = data.msg || data.message;
+  const err = new Error(rawMsg || fallbackMsg) as Error & {
+    code?: unknown;
+    msg?: string;
+    success?: boolean;
+    ok?: boolean;
+    data?: unknown;
+  };
+  err.code = data.code;
+  err.msg = rawMsg;
+  err.success = data.success;
+  err.ok = data.ok;
+  err.data = data.data;
+  return err;
+}
+
 /** 相同错误文案的合并窗口（毫秒） */
 const RECENT_ERROR_MS = 1500;
 const recentErrorToast = new Map<string, number>();
@@ -233,18 +267,10 @@ function checkApiResponse(
     // 都拿到 `String(Object)` = "[object Object]"，把后端提示整段吞掉：
     // 实测学生登录页密码框下方那行红字就是它，而接口其实返回的是
     // 「学号或家长手机号不存在，还剩 N 次尝试机会」。
-    // 用 Object.assign 把原有字段挂回 Error 实例，`err.code / err.msg / err.success / err.ok`
-    // 的既有调用方无需改动；同时 `e.message` 也有了可读文案。
-    const err = new Error(rawMsg || i18n.global.t("msg.requestFailed")) as Error & {
-      code?: unknown;
-      msg?: string;
-      success?: boolean;
-      ok?: boolean;
-    };
-    err.code = data.code;
-    err.msg = rawMsg;
-    err.success = data.success;
-    err.ok = data.ok;
+    // 用 createApiFailureError 把原有字段挂回 Error 实例，`err.code / err.msg / err.success / err.ok`
+    // 的既有调用方无需改动；同时 `e.message` 也有了可读文案，且失败业务数据
+    // 保留在 `err.data` 上。
+    const err = createApiFailureError(data, i18n.global.t("msg.requestFailed"));
     return Promise.reject(err);
   }
   // 解内层业务包装：后端分页接口返回 {code:"00000", data:{code:0, data:{total,data}}}，

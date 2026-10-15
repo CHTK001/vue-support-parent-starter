@@ -360,6 +360,7 @@ defineExpose({ expression, emitApply });
               'is-picked': isPicked(cell),
               'is-today': isToday(cell),
             }"
+            :disabled="!cell.inMonth"
             :aria-pressed="isPicked(cell)"
             :aria-label="`${cell.date} 日 周${WEEK_NAMES[cell.weekday]}`"
             @click="toggleDay(cell)"

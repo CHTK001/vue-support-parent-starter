@@ -338,6 +338,25 @@ export function deleteDatasourceTunnel(id: number): Promise<boolean> {
  * 传 0 会让 ECharts 把它当连续量连线，失败点被画成「0.5 通」这种
  * 不存在的状态；传 `null` 让曲线断开更诚实。</p>
  */
+/**
+ * MySQL/MariaDB 服务器运行指标（随探活顺路采集，取不到为 null）。
+ *
+ * <p>MySQL 协议不暴露宿主机 CPU 使用率，因此没有 CPU 字段；
+ * {@code threadsRunning} 是 SQL 侧负载最接近的公开口径。</p>
+ */
+export interface DatasourceServerStats {
+  /** 累计慢查询数 */
+  slowQueries: number | null;
+  /** 正在执行的线程数（负载近似指标） */
+  threadsRunning: number | null;
+  /** 累计提问次数 */
+  questions: number | null;
+  /** 服务器已运行秒数 */
+  uptimeSeconds: number | null;
+  /** 历史峰值客户端连接数 */
+  maxUsedConnections: number | null;
+}
+
 export interface DatasourceMetricPoint {
   /** 采样时刻（ISO 字符串） */
   time: string;
@@ -351,6 +370,8 @@ export interface DatasourceMetricPoint {
   tunneled: boolean | null;
   /** 采样时刻目标服务上的客户端连接数；类型不支持时为 null（图上缺格） */
   connectionCount: number | null;
+  /** 采样时刻服务器运行指标；类型不支持时为 null */
+  serverStats: DatasourceServerStats | null;
   /** 失败原因 */
   errorMessage: string | null;
 }
@@ -377,6 +398,8 @@ export interface DatasourceMetricPush {
   tunneled: boolean | null;
   /** 本次采样时刻客户端连接数，取不到为 null */
   connectionCount: number | null;
+  /** 本次采样时刻服务器运行指标，取不到为 null */
+  serverStats: DatasourceServerStats | null;
   /** 最近窗口。采集失败时为 null（此时只有本次结果，没有窗口） */
   points: DatasourceMetricTrend | null;
 }

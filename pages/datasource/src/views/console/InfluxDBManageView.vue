@@ -360,6 +360,7 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem, ReOption } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
@@ -429,11 +430,9 @@ function onMeasurementContextMenu(e: MouseEvent, name: string) {
   Object.assign(sideMenu, { visible: true, x: e.clientX, y: e.clientY, kind: "measurement", key: name });
 }
 /** 复制文本（菜单动作共用） */
-function copyMenuText(text: string, okMsg: string) {
-  navigator.clipboard
-    .writeText(text)
-    .then(() => message.success(okMsg))
-    .catch(() => message.error("复制失败"));
+async function copyMenuText(text: string, okMsg: string) {
+  if (await copyToClipboard(text)) message.success(okMsg);
+  else message.error("复制失败");
 }
 /** 侧栏菜单分发 */
 function onSideMenuSelect(action: string) {
@@ -1261,6 +1260,7 @@ watch(source, applyConnectionInfo);
   border-radius: 8px;
   background: var(--bg-container);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dsm-section-title {

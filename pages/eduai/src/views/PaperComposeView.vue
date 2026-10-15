@@ -434,7 +434,9 @@
 
       <el-form label-width="82px" class="ai-dlg__form">
         <el-form-item label="学科">
-          <el-input v-model="aiForm.subject" placeholder="如 语文" />
+          <el-select v-model="aiForm.subject" filterable clearable placeholder="请选择学科" style="width: 100%">
+            <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="学段">
           <el-select v-model="aiForm.gradeLevel" placeholder="选择学段" style="width: 100%">
