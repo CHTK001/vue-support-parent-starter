@@ -594,13 +594,20 @@ function formatTime(value: unknown): string {
 }
 
 /**
- * 回填连接信息（地址、组织）
+ * 回填连接信息（地址、组织、已登记版本）
+ *
+ * <p>新增/编辑时登记的 version 只是快速区分 v2/v3 的提示，进入管理页直接生效；
+ * {@code testConnection()} 仍会请求服务端实测版本并覆盖，避免登记值与实际不符。</p>
  */
 function applyConnectionInfo() {
   const info = source.value;
   connectionInfo.host = info?.host ?? "-";
   connectionInfo.port = info?.port ?? 0;
   connectionInfo.organization = extraText(info, ["organization", "org"], info?.database ?? "-");
+  if (info?.type === "influxdb" && (info.version === "2" || info.version === "3")) {
+    influxVersion.value = info.version;
+  }
+  connectionInfo.version = info?.version || "-";
 }
 
 /**
