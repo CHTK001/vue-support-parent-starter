@@ -525,7 +525,7 @@ const {
   deriveColumns,
   deriveFieldOptions,
   resolveSqlColumns,
-} = useInfluxdbQuery({ datasourceId, isV3, useSql, activeBucket, measurements });
+} = useInfluxdbQuery({ datasourceId, useSql, activeBucket, measurements });
 
 /**
  * 连接信息（地址/端口/组织/版本）。
@@ -718,9 +718,7 @@ async function selectBucket(name: string) {
 function selectMeasurement(name: string) {
   openQueryTab(
     useSql.value
-      ? isV3.value
-        ? `SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
-        : `SELECT * FROM "${activeBucket.value.replace(/"/g, '""')}"."${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
+      ? `SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
       : `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n` +
         `  |> filter(fn: (r) => r._measurement == "${name}")\n  |> limit(n: 50)`
   );

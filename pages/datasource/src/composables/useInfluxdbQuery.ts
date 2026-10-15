@@ -18,31 +18,34 @@ export interface InfluxdbQueryResult {
  * <p>服务端模型（v2 组织/桶、v3 数据库）与查询方言（Flux / SQL+InfluxQL）是
  * <b>两件事</b>：InfluxDB 2.x 的 Flux 是可选组件（{@code flux-enabled=false} 时
  * 只认 InfluxQL），所以「v2 实例 + SQL 方言」必须能用。因此这里同时接收
- * {@code isV3}（服务端模型：决定表名要不要带桶前缀、要不要传 database）
- * 与 {@code useSql}（方言：决定生成哪种语句、结果怎么取列）。</p>
+ * {@code useSql}（方言：决定生成哪种语句、结果怎么取列）；库/桶一律在执行时随请求
+ * 带上，语句里不拼限定名（InfluxQL 的两段名是保留策略.度量，见 {@code sqlTable}）。</p>
  *
  * @author CH
  * @since 4.0.0.42
  */
 export function useInfluxdbQuery(options: {
   datasourceId: Ref<number | undefined>;
-  /** 服务端是否为 v3（数据库模型） */
-  isV3: Ref<boolean>;
   /** 查询方言是否为 SQL / InfluxQL */
   useSql: Ref<boolean>;
   activeBucket: Ref<string>;
   measurements: Ref<InfluxdbMeasurement[]>;
 }) {
-  const { datasourceId, isV3, useSql, activeBucket, measurements } = options;
+  const { datasourceId, useSql, activeBucket, measurements } = options;
 
   /**
-   * SQL 模式下的表名：v3 是库内表名，v2 的 InfluxQL 必须写成「桶.度量」
+   * SQL 模式下的表名。
+   *
+   * <p>只给度量名，<b>不要</b>拼「库.度量」：InfluxQL 的两段限定名是
+   * {@code 保留策略.度量}（三段才是 {@code 库.保留策略.度量}），把库当第一段会报
+   * {@code retention policy not found}。库/桶一律由执行时随请求带上
+   * （v3 是 database，v2/v1 是 bucket/db 参数），语句里不需要也不该出现。</p>
+   *
    * @param measurement 度量名
    * @returns 限定后的表名
    */
   function sqlTable(measurement: string): string {
-    const safe = measurement.replace(/"/g, '""');
-    return isV3.value ? `"${safe}"` : `"${activeBucket.value.replace(/"/g, '""')}"."${safe}"`;
+    return `"${measurement.replace(/"/g, '""')}"`;
   }
 
   /**
