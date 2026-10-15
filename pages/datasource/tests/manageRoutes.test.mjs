@@ -50,7 +50,7 @@ test("MANAGER_ROUTE_PATHS 与映射同源，不会各写一份", () => {
 });
 
 test("未知类型取不到路径，交给调用方提示「开发中」而不是硬凑一个", () => {
-  assert.equal(managerRouteFor("kafka"), undefined);
+  assert.equal(managerRouteFor("mssql"), undefined);
   assert.equal(managerRouteFor("jdbc"), "/db-manager");
 });
 

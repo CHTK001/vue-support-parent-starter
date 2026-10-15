@@ -453,6 +453,7 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
   neo4j: { icon: "Coin", color: "var(--metric-mem, var(--el-color-primary))", label: "Neo4j 图数据库" },
   nacos: { icon: "Coin", color: "var(--metric-disk, var(--el-color-warning))", label: "Nacos 配置中心" },
   zookeeper: { icon: "Coin", color: "var(--el-color-warning)", label: "ZooKeeper" },
+  kafka: { icon: "Coin", color: "#333333", label: "Kafka" },
   nginx: { icon: "Connection", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
   etcd: { icon: "Coin", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
   prometheus: { icon: "DataLine", color: "#e6522c", label: "Prometheus" },
@@ -460,6 +461,31 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
 };
 
 const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
+
+/** InfluxDB 新增/编辑表单里的版本选项；v2 与 v3 查询语法不通用 */
+const INFLUX_VERSION_OPTIONS = [
+  { label: "2.x（Flux / Bucket / Organization）", value: "2" },
+  { label: "3.x（SQL / InfluxQL / Database）", value: "3" },
+];
+
+/** InfluxDB 版本短标签，用于卡片/详情头 */
+const influxVersionShort = (version?: string | null): string =>
+  version === "2" ? "v2" : version === "3" ? "v3" : "";
+
+/** InfluxDB 版本完整标签，用于连接配置详情 */
+const influxVersionLabel = (version?: string | null): string =>
+  version === "2"
+    ? "2.x（Flux / Bucket）"
+    : version === "3"
+      ? "3.x（SQL / InfluxQL / Database）"
+      : version || "未设置";
+
+/** 数据源类型徽标：InfluxDB 额外显示 v2/v3，避免新增后分不清查询语法 */
+const sourceTypeChip = (item: DataSourceInfo): string => {
+  const base = item.type.toUpperCase();
+  const ver = item.type === "influxdb" ? influxVersionShort(item.version) : "";
+  return ver ? `${base} · ${ver}` : base;
+};
 
 /** 新增/编辑弹窗左侧类型搜索关键词 */
 const typeKeyword = ref("");
@@ -490,10 +516,11 @@ const typeDesc = (type: string): string => {
   const desc: Record<string, string> = {
     jdbc: "通过 JDBC 驱动连接关系型数据库（MySQL / PostgreSQL / Oracle / SQL Server / H2 / SQLite 等）",
     redis: "连接 Redis 缓存服务，用于键值读写与监控",
-    influxdb: "连接 InfluxDB 时序数据库，用于指标存储",
+    influxdb: "连接 InfluxDB 时序数据库，新增时选择 v2 或 v3：v2 用 Flux/Bucket，v3 用 SQL/InfluxQL/Database，语法不通用",
     neo4j: "连接 Neo4j 图数据库（HTTP 接口），用于图查询",
     nacos: "连接 Nacos 配置中心，用于配置与服务发现",
     zookeeper: "连接 ZooKeeper 协调服务，用于节点与配置管理",
+    kafka: "连接 Kafka 消息队列（Bootstrap 地址），用于 Topic/Partition 与只读查询",
     nginx: "连接 Nginx 服务器，可查看状态并控制进程启停",
     etcd: "连接 etcd 配置中心，用于键值存储",
     prometheus: "连接 Prometheus 监控服务，用于指标查询",
@@ -559,7 +586,7 @@ const load = async () => {
   try {
     const [data, typeList] = await Promise.all([fetchDataSources(), fetchDataSourceTypes()]);
     list.value = data ?? [];
-    types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper"];
+    types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper", "kafka"];
   } catch (e) {
     message.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -581,6 +608,7 @@ const openCreate = () => {
     password: "",
     database: "",
     remark: "",
+    version: "",
     controlMode: "",
     controlTarget: ""
   };
@@ -618,6 +646,10 @@ const save = async () => {
   }
   if (!form.value.type) {
     message.warning("请选择数据源类型");
+    return;
+  }
+  if (form.value.type === "influxdb" && !editing.value && !form.value.version) {
+    message.warning("请选择 InfluxDB 版本（2.x Flux / 3.x SQL）");
     return;
   }
   if (!applyJdbcExtraParams()) return;
@@ -888,6 +920,7 @@ const defaultPort = (type: string): number => {
     neo4j: 7474,
     nacos: 8848,
     zookeeper: 2181,
+    kafka: 9092,
     nginx: 80,
     etcd: 2379,
     prometheus: 9090,
@@ -1046,6 +1079,7 @@ const configRows = computed(() => {
   }
   return [
     { label: "地址", value: formatAddress(item), mono: true },
+    { label: "版本", value: item.type === "influxdb" ? influxVersionLabel(item.version) : "—", mono: false },
     { label: "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "备注", value: item.remark || "—", mono: false },
@@ -1062,6 +1096,7 @@ const connectionRows = computed(() => {
   return [
     { label: "数据源 ID", value: item.id != null ? String(item.id) : "—", mono: true },
     { label: "地址", value: formatAddress(item), mono: true },
+    { label: "版本", value: item.type === "influxdb" ? influxVersionLabel(item.version) : "—", mono: false },
     { label: "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "驱动类", value: item.driverClassName || "—", mono: true },
@@ -1336,7 +1371,7 @@ onMounted(load);
                 <span class="ds-item__body">
                   <span class="ds-item__row">
                     <b class="ds-item__name" :title="item.name">{{ item.name }}</b>
-                    <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ item.type.toUpperCase() }}</span>
+                    <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ sourceTypeChip(item) }}</span>
                   </span>
                   <span class="ds-item__addr mono">{{ item.host }}:{{ item.port }}</span>
                 </span>
@@ -1394,7 +1429,7 @@ onMounted(load);
                 <h2 class="ds-detail__name" :title="current?.name">{{ current?.name ?? "数据源中心" }}</h2>
                 <template v-if="current">
                   <span class="ds-detail__chip" :style="{ '--tile': typeMeta(current.type).color }">
-                    {{ current.type.toUpperCase() }}
+                    {{ sourceTypeChip(current) }}
                   </span>
                   <span class="ds-detail__badge" :class="detailBadgeClass">
                     <span class="ds-detail__badge-dot" />
@@ -1734,8 +1769,20 @@ onMounted(load);
             <ReFormItem :label="form.type === 'neo4j' ? '图数据库名' : '数据库/库名'" class="is-full">
               <ReInput
                 v-model="form.database"
-                :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号'"
+                :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号 / Kafka 可选上下文'"
               />
+            </ReFormItem>
+            <!-- InfluxDB v2/v3 查询语法不通用，新增时必须明确版本 -->
+            <ReFormItem v-if="form.type === 'influxdb'" label="InfluxDB 版本" required class="is-full" data-testid="ds-influx-version-field">
+              <ReSelect
+                v-model="form.version"
+                :options="INFLUX_VERSION_OPTIONS"
+                placeholder="选择服务端版本"
+                data-testid="ds-influx-version"
+              />
+              <div class="ds-form-hint">
+                v2 使用 Flux 与 Bucket；v3 使用 SQL/InfluxQL 与 Database，两者语法不通用。
+              </div>
             </ReFormItem>
             <!-- JDBC 驱动：本机不可能备齐所有数据库的驱动包（ojdbc / mssql-jdbc /
                  各类国产库驱动体积都在数 MB、许可各异），所以允许按数据源上传 jar。

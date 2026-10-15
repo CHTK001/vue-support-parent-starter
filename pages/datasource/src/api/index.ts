@@ -98,6 +98,8 @@ export interface DataSourceInfo {
   id?: number;
   name: string;
   type: string;
+  /** 服务端大版本（当前 influxdb 使用：2=Flux/Bucket，3=SQL/InfluxQL/Database） */
+  version?: string | null;
   host?: string;
   port?: number | null;
   /** jdbc 类型时这里存完整 JDBC URL */
