@@ -7,10 +7,34 @@
         <span class="dsm-title">InfluxDB 时序数据库管理</span>
       </div>
       <div class="dsm-toolbar-right">
+        <!-- 查询方言：与「服务端是不是 v3」无关，可按实例实际支持情况就地切换 -->
+        <div class="dsm-dialect" data-testid="dsm-dialect-switch">
+          <button
+            type="button"
+            class="dsm-dialect-btn"
+            :class="{ 'is-active': !useSql }"
+            :disabled="isV3 || isV1"
+            :title="isV3 || isV1 ? (isV1 ? 'v1 只有 InfluxQL，没有 Flux' : 'v3 已移除 Flux，只能用 SQL') : '按 Flux 语法查询（需服务端 flux-enabled=true）'"
+            data-testid="dsm-dialect-flux"
+            @click="switchDialect('flux')"
+          >
+            Flux
+          </button>
+          <button
+            type="button"
+            class="dsm-dialect-btn"
+            :class="{ 'is-active': useSql }"
+            title="按 SQL / InfluxQL 语法查询"
+            data-testid="dsm-dialect-sql"
+            @click="switchDialect('sql')"
+          >
+            SQL
+          </button>
+        </div>
         <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" @click="testConnection" />
         <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" @click="refresh" />
-        <ReButton layout="square" type="primary" :tip="isV3 ? 'SQL 查询' : 'Flux 查询'" icon="Search" data-testid="dsm-btn-query" @click="openQuery" />
-        <ReButton layout="square" type="primary" :tip="isV3 ? '新建数据库' : '新建 Bucket'" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket" />
+        <ReButton layout="square" type="primary" :tip="useSql ? 'SQL 查询' : 'Flux 查询'" icon="Search" data-testid="dsm-btn-query" @click="openQuery" />
+        <ReButton layout="square" type="primary" :tip="databaseModel ? '新建数据库' : '新建 Bucket'" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket" />
         <ReButton layout="square" tip="写入数据" icon="EditPen" data-testid="dsm-btn-write" :disabled="!source" :loading="writeSaving" @click="openWritePoint" />
       </div>
     </div>
@@ -31,7 +55,7 @@
             <div class="dsm-tree-node" @click="toggleNode('buckets')">
               <ReIcon :name="expandedNodes.has('buckets') ? 'ArrowDown' : 'ArrowRight'" size="12" />
               <ReIcon name="FolderOpened" size="14" class="dsm-tree-icon" />
-              <span class="dsm-tree-label">{{ isV3 ? "数据库 (Databases)" : "存储桶 (Buckets)" }}</span>
+              <span class="dsm-tree-label">{{ databaseModel ? "数据库 (Databases)" : "存储桶 (Buckets)" }}</span>
               <span class="dsm-tree-count">{{ buckets.length }}</span>
             </div>
             <div v-if="expandedNodes.has('buckets')" class="dsm-tree-children">
@@ -103,11 +127,11 @@
             <span class="dsm-info-label">连接地址</span>
             <span class="dsm-info-value mono">{{ source ? `${source.host}:${source.port || 8086}` : "—" }}</span>
           </div>
-          <div class="dsm-info-row" v-if="!isV3">
+          <div class="dsm-info-row" v-if="!isV3 && !isV1">
             <span class="dsm-info-label">组织 (Org)</span>
             <span class="dsm-info-value mono">{{ orgInfo.orgName || source?.username || "自动探测" }}</span>
           </div>
-          <div class="dsm-info-row" v-if="!isV3">
+          <div class="dsm-info-row" v-if="!isV3 && !isV1">
             <span class="dsm-info-label">Org ID</span>
             <span class="dsm-info-value mono">{{ orgInfo.orgId || "—" }}</span>
           </div>
@@ -122,7 +146,7 @@
 
         <!-- 存储桶列表 -->
         <div v-if="activeWorkspaceTab === 'overview'" class="dsm-section">
-          <div class="dsm-section-title">{{ isV3 ? "数据库列表" : "存储桶列表" }}</div>
+          <div class="dsm-section-title">{{ databaseModel ? "数据库列表" : "存储桶列表" }}</div>
           <ReTable
             :data="buckets"
             :columns="bucketColumns"
@@ -149,7 +173,7 @@
             <ReButton text @click="loadMeasurements">
               <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
             </ReButton>
-            <span class="dsm-section-hint">点击行按该度量生成{{ isV3 ? " SQL" : " Flux" }}查询</span>
+            <span class="dsm-section-hint">点击行按该度量生成{{ useSql ? " SQL" : " Flux" }}查询</span>
           </div>
           <ReTable
             :data="measurements"
@@ -183,7 +207,7 @@
         <!-- 空状态 -->
         <div v-if="activeWorkspaceTab === 'overview' && !activeBucket && buckets.length === 0" class="dsm-empty">
           <ReIcon name="Collection" size="48" class="dsm-empty-icon" />
-          <p>{{ gap ? (isV3 ? "未读取到真实数据库" : "未读取到真实存储桶") : (isV3 ? "暂无数据库，点击「刷新」重新加载" : "暂无存储桶，点击「刷新」重新加载") }}</p>
+          <p>{{ gap ? (databaseModel ? "未读取到真实数据库" : "未读取到真实存储桶") : (databaseModel ? "暂无数据库，点击「刷新」重新加载" : "暂无存储桶，点击「刷新」重新加载") }}</p>
         </div>
 
         <!-- Flux 查询页签内容（对齐 jdbc 查询页：方钮工具栏 + 编辑器 + 结果表；多开、切换保留） -->
@@ -211,14 +235,14 @@
               @click="t.flux = ''"
             />
             <span class="dsm-spacer" />
-            <span class="dsm-query-hint">{{ isV3 ? "表/列名与 SQL 关键字输入即提示" : "桶/测量名与 Flux 函数输入即提示" }}</span>
+            <span class="dsm-query-hint">{{ useSql ? (isV3 ? "表/列名与 SQL 关键字输入即提示" : "InfluxQL 语句，目标桶由当前选中的桶带入") : "桶/测量名与 Flux 函数输入即提示" }}</span>
           </div>
           <DbSqlEditor
             v-model="t.flux"
-            :language="isV3 ? 'sql' : 'flux'"
-            :keywords="isV3 ? [] : fluxKeywords"
-            :tables="isV3 ? sqlTables : undefined"
-            :column-resolver="isV3 ? resolveSqlColumns : undefined"
+            :language="useSql ? 'sql' : 'flux'"
+            :keywords="useSql ? [] : fluxKeywords"
+            :tables="isV3 && useSql ? sqlTables : undefined"
+            :column-resolver="isV3 && useSql ? resolveSqlColumns : undefined"
             data-testid="dsm-flux-editor"
             @execute="executeQuery(t)"
           />
@@ -247,7 +271,7 @@
     <!-- 新建 / 编辑 Bucket 弹窗 -->
     <ReDialog v-model="bucketDialogVisible" :title="bucketForm.id ? '编辑保留期' : (isV3 ? '新建数据库' : '新建 Bucket')" width="460px">
       <ReForm label-width="110px">
-        <ReFormItem :label="isV3 ? '数据库名称' : 'Bucket 名称'" required>
+        <ReFormItem :label="databaseModel ? '数据库名称' : 'Bucket 名称'" required>
           <ReInput v-model="bucketForm.name" :disabled="!!bucketForm.id" placeholder="如 telemetry" />
         </ReFormItem>
         <ReFormItem label="保留时长(小时)">
@@ -299,8 +323,8 @@
     <!-- 写入数据弹窗 -->
     <ReDialog v-model="writeVisible" title="写入数据点" width="560px">
       <ReForm label-width="110px">
-        <ReFormItem :label="isV3 ? '数据库' : 'Bucket'" required>
-          <ReInput v-model="writeForm.bucket" :disabled="!!activeBucket" :placeholder="isV3 ? '数据库名' : 'Bucket 名'" />
+        <ReFormItem :label="databaseModel ? '数据库' : 'Bucket'" required>
+          <ReInput v-model="writeForm.bucket" :disabled="!!activeBucket" :placeholder="databaseModel ? '数据库名' : 'Bucket 名'" />
         </ReFormItem>
         <ReFormItem label="Measurement" required>
           <ReInput v-model="writeForm.measurement" placeholder="如 cpu" />
@@ -397,8 +421,40 @@ const loading = ref(false);
 const dataLoading = ref(false);
 const testing = ref(false);
 const influxVersion = ref("");
+/**
+ * 服务端大版本号（去掉 `v` 前缀后的首位）。
+ *
+ * <p>三个版本都要认：v1 的 `/ping` 给的是 `v1.11.8`（**带 v 前缀**），
+ * 不剥掉就会被当成 v2。</p>
+ */
+const serverMajor = computed(() => influxVersion.value.trim().replace(/^v/i, "").split(".")[0] ?? "");
 /** 是否 InfluxDB 3.x（v3 为 Rust 重写：SQL/InfluxQL + 数据库模型，已移除 Flux 与组织） */
-const isV3 = computed(() => influxVersion.value.startsWith("3"));
+const isV3 = computed(() => serverMajor.value === "3");
+/** 是否 InfluxDB 1.x（只有 InfluxQL，容器是 database，无 Flux、无组织） */
+const isV1 = computed(() => serverMajor.value === "1");
+/**
+ * 容器是否叫「数据库」。
+ *
+ * <p>v1 的 database 对应 v2 的 bucket、v3 的 database；只有 v2 侧才叫「存储桶」。
+ * 决定文案用，真正调哪个接口由后端按探测到的版本自行分发。</p>
+ */
+const databaseModel = computed(() => isV3.value || isV1.value);
+/**
+ * 查询方言（Flux / SQL+InfluxQL）。
+ *
+ * <p>与 `isV3` 正交：`isV3` 说的是<b>服务端是什么</b>（组织/桶 还是 数据库），
+ * 方言说的是<b>语句怎么写</b>。两者必须分开，因为 InfluxDB 2.x 的 Flux 是可选组件
+ * （`flux-enabled=false` 时只认 InfluxQL）——「2.x 实例 + SQL 方言」是真实存在的组合，
+ * 用大版本去推方言会让这种实例完全没法查。</p>
+ */
+const dialect = ref<"flux" | "sql">("flux");
+/**
+ * 当前是否按 SQL / InfluxQL 方言工作。
+ *
+ * <p>用户选择之外还要按服务端能力兜底：v1 压根没有 Flux、v3 已移除 Flux，
+ * 这两种实例上即便登记了「v2」，也必须走 InfluxQL——否则只会拿到一串 403。</p>
+ */
+const useSql = computed(() => dialect.value === "sql" || isV3.value || isV1.value);
 const buckets = ref<InfluxdbBucket[]>([]);
 
 /** 桶/测量行右键菜单（第九批统一 zk 模板）：侧栏共用一个菜单实例，按 kind 切换条目 */
@@ -406,9 +462,9 @@ const sideMenu = reactive({ visible: false, x: 0, y: 0, kind: "bucket" as "bucke
 const sideMenuItems = computed(() =>
   sideMenu.kind === "bucket"
     ? [
-        { key: "view", label: isV3.value ? "查看该库数据" : "查看该桶数据", icon: "Collection" },
-        { key: "copy", label: isV3.value ? "复制数据库名" : "复制桶名", icon: "Document" },
-        { key: "delete", label: isV3.value ? "删除数据库" : "删除 Bucket", icon: "Delete", danger: true, divided: true },
+        { key: "view", label: databaseModel.value ? "查看该库数据" : "查看该桶数据", icon: "Collection" },
+        { key: "copy", label: databaseModel.value ? "复制数据库名" : "复制桶名", icon: "Document" },
+        { key: "delete", label: databaseModel.value ? "删除数据库" : "删除 Bucket", icon: "Delete", danger: true, divided: true },
       ]
     : [
         { key: "view", label: "查看该测量", icon: "TrendCharts" },
@@ -418,8 +474,8 @@ const sideMenuItems = computed(() =>
 /** 存储桶表格行右键（ReTable 内置菜单，图标为组件引用） */
 const bucketTableMenu = computed(() => [
   { key: "retention", label: "编辑保留期", icon: EditPen },
-  { key: "copy", label: isV3.value ? "复制数据库名" : "复制桶名", icon: CopyDocument },
-  { key: "delete", label: isV3.value ? "删除数据库" : "删除 Bucket", icon: Delete, divided: true },
+  { key: "copy", label: databaseModel.value ? "复制数据库名" : "复制桶名", icon: CopyDocument },
+  { key: "delete", label: databaseModel.value ? "删除数据库" : "删除 Bucket", icon: Delete, divided: true },
 ]);
 /** 打开侧栏桶行右键菜单 */
 function onBucketContextMenu(e: MouseEvent, name: string) {
@@ -469,7 +525,7 @@ const {
   deriveColumns,
   deriveFieldOptions,
   resolveSqlColumns,
-} = useInfluxdbQuery({ datasourceId, isV3, activeBucket, measurements });
+} = useInfluxdbQuery({ datasourceId, isV3, useSql, activeBucket, measurements });
 
 /**
  * 连接信息（地址/端口/组织/版本）。
@@ -594,10 +650,12 @@ function formatTime(value: unknown): string {
 }
 
 /**
- * 回填连接信息（地址、组织、已登记版本）
+ * 回填连接信息（地址、组织、已登记方言）
  *
- * <p>新增/编辑时登记的 version 只是快速区分 v2/v3 的提示，进入管理页直接生效；
- * {@code testConnection()} 仍会请求服务端实测版本并覆盖，避免登记值与实际不符。</p>
+ * <p>登记的 version 是<b>查询方言</b>的用户选择，这里只用来定默认方言；
+ * <b>不再</b>拿它去推服务端模型——那会让「2.x 实例选了 SQL」被误当成 v3，
+ * 从而把控制台切到数据库/组织那套根本不存在的 v3 接口上。服务端模型以实测
+ * 版本号为准（进入页面时探测，见 {@code probeServerVersion()}）。</p>
  */
 function applyConnectionInfo() {
   const info = source.value;
@@ -605,9 +663,30 @@ function applyConnectionInfo() {
   connectionInfo.port = info?.port ?? 0;
   connectionInfo.organization = extraText(info, ["organization", "org"], info?.database ?? "-");
   if (info?.type === "influxdb" && (info.version === "2" || info.version === "3")) {
-    influxVersion.value = info.version;
+    dialect.value = info.version === "3" ? "sql" : "flux";
   }
   connectionInfo.version = info?.version || "-";
+}
+
+/**
+ * 探测服务端真实版本，驱动「组织/桶 还是 数据库」这套服务端模型。
+ *
+ * <p>只读、不抛错：探不到时保持 v2 侧栏（更保守，v3 专有接口不会被打出去）。</p>
+ */
+async function probeServerVersion() {
+  if (!datasourceId.value) return;
+  try {
+    const result = await testInfluxdbConnection({ datasourceId: datasourceId.value });
+    if (result?.version) {
+      influxVersion.value = result.version;
+      // v1 无 Flux、v3 已移除 Flux：探测到这两种就把方言钉在 SQL（Flux 按钮也会禁用）
+      if (isV3.value || isV1.value) {
+        dialect.value = "sql";
+      }
+    }
+  } catch {
+    // 探测失败不阻断页面，沿用登记信息渲染
+  }
 }
 
 /**
@@ -638,8 +717,10 @@ async function selectBucket(name: string) {
  */
 function selectMeasurement(name: string) {
   openQueryTab(
-    isV3.value
-      ? `SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
+    useSql.value
+      ? isV3.value
+        ? `SELECT * FROM "${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
+        : `SELECT * FROM "${activeBucket.value.replace(/"/g, '""')}"."${name.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50`
       : `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n` +
         `  |> filter(fn: (r) => r._measurement == "${name}")\n  |> limit(n: 50)`
   );
@@ -789,12 +870,29 @@ function openQuery() {
 }
 
 /**
+ * 切换查询方言。
+ *
+ * <p>方言与服务端版本无关，所以切方言只影响语句生成与编辑器语言，不重新拉桶/度量。
+ * 当前页签若还空着，就按新方言补一条缺省语句，免得用户面对上一种语言的残留。</p>
+ *
+ * @param next 目标方言
+ */
+function switchDialect(next: "flux" | "sql") {
+  if (next === dialect.value) return;
+  dialect.value = next;
+  const tab = queryTabs.value.find(item => item.id === activeWorkspaceTab.value);
+  if (tab && !tab.flux.trim()) {
+    tab.flux = buildDefaultStatement();
+  }
+}
+
+/**
  * 执行指定页签里的查询
  * @param tab 查询页签
  */
 async function executeQuery(tab: QueryTab) {
   if (!tab.flux.trim()) {
-    message.warning(isV3.value ? "请输入 SQL 查询语句" : "请输入 Flux 查询语句");
+    message.warning(useSql.value ? "请输入 SQL 查询语句" : "请输入 Flux 查询语句");
     return;
   }
   tab.executing = true;
@@ -817,7 +915,7 @@ async function executeQuery(tab: QueryTab) {
  * 加载当前数据源 Org 信息（v3 已移除组织概念，无需请求）
  */
 async function loadOrg() {
-  if (!datasourceId.value || isV3.value) return;
+  if (!datasourceId.value || isV3.value || isV1.value) return;
   try {
     orgInfo.value = (await fetchInfluxdbOrg(datasourceId.value)) || { orgId: "", orgName: "" };
   } catch {
@@ -896,7 +994,7 @@ async function confirmDeleteBucket(row: InfluxdbBucket) {
   }
   try {
     await deleteInfluxdbBucket(row.id, datasourceId.value);
-    message.success(isV3.value ? "数据库已删除" : "Bucket 已删除");
+    message.success(databaseModel.value ? "数据库已删除" : "Bucket 已删除");
     if (activeBucket.value === row.name) activeBucket.value = "";
     await refresh();
   } catch (e) {
@@ -1070,9 +1168,13 @@ watch(
       activeBucket.value = "";
       connected.value = false;
       connectionInfo.version = "-";
+      influxVersion.value = "";
       if (gap.value) message.warning(gap.value);
       return;
     }
+    // 先探服务端真实版本，再拉桶/组织：服务端模型（组织/桶 还是 数据库）
+    // 必须由服务端决定，登记的 version 只定查询方言。
+    await probeServerVersion();
     await refresh();
   },
   { immediate: true }
@@ -1117,6 +1219,46 @@ watch(source, applyConnectionInfo);
 .dsm-toolbar-right {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+/* 查询方言切换：两组按钮长得像一体，但它们表达的是「语句怎么写」，
+   与服务端大版本无关，故独立于上方工具条成一组，避免被误读成版本开关。 */
+.dsm-dialect {
+  display: inline-flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dsm-dialect-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  background: var(--bg-container);
+  border: 0;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dsm-dialect-btn + .dsm-dialect-btn {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.dsm-dialect-btn:hover:not(:disabled):not(.is-active) {
+  color: var(--text-primary);
+}
+
+.dsm-dialect-btn.is-active {
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  font-weight: 600;
+}
+
+.dsm-dialect-btn:disabled {
+  color: var(--text-disabled, #c0c4cc);
+  cursor: not-allowed;
 }
 
 .dsm-body {

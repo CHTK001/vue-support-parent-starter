@@ -15,34 +15,52 @@ export interface InfluxdbQueryResult {
 /**
  * InfluxDB 查询 composable：语句生成 + 执行 + 结果列推导。
  *
- * <p>v2 控制台查询语言是 Flux（{@code POST /api/v2/query}），v3 是 SQL
- * （{@code POST /api/v3/query_sql}），执行统一经 {@code executeInfluxdbQuery}
- * 按版本分发。本 composable 把三件事收口，供控制台各功能复用：</p>
- * <ul>
- *   <li>语句生成：查询页签缺省语句、数据浏览语句（按版本生成 SQL/Flux）；</li>
- *   <li>执行：带数据源与当前库执行查询，并把嵌套行转成可直读文本；</li>
- *   <li>结果推导：由返回行的键推导表格列、收集 field 选项，
- *       以及按 information_schema 解析度量的字段列（v3 编辑器补全用）。</li>
- * </ul>
+ * <p>服务端模型（v2 组织/桶、v3 数据库）与查询方言（Flux / SQL+InfluxQL）是
+ * <b>两件事</b>：InfluxDB 2.x 的 Flux 是可选组件（{@code flux-enabled=false} 时
+ * 只认 InfluxQL），所以「v2 实例 + SQL 方言」必须能用。因此这里同时接收
+ * {@code isV3}（服务端模型：决定表名要不要带桶前缀、要不要传 database）
+ * 与 {@code useSql}（方言：决定生成哪种语句、结果怎么取列）。</p>
  *
  * @author CH
  * @since 4.0.0.42
  */
 export function useInfluxdbQuery(options: {
   datasourceId: Ref<number | undefined>;
+  /** 服务端是否为 v3（数据库模型） */
   isV3: Ref<boolean>;
+  /** 查询方言是否为 SQL / InfluxQL */
+  useSql: Ref<boolean>;
   activeBucket: Ref<string>;
   measurements: Ref<InfluxdbMeasurement[]>;
 }) {
-  const { datasourceId, isV3, activeBucket, measurements } = options;
+  const { datasourceId, isV3, useSql, activeBucket, measurements } = options;
 
   /**
-   * 执行查询并返回行数据与耗时/截断信息（v2 走 Flux，v3 走 SQL）
+   * SQL 模式下的表名：v3 是库内表名，v2 的 InfluxQL 必须写成「桶.度量」
+   * @param measurement 度量名
+   * @returns 限定后的表名
+   */
+  function sqlTable(measurement: string): string {
+    const safe = measurement.replace(/"/g, '""');
+    return isV3.value ? `"${safe}"` : `"${activeBucket.value.replace(/"/g, '""')}"."${safe}"`;
+  }
+
+  /**
+   * 执行查询并返回行数据与耗时/截断信息
+   *
+   * <p>SQL 方言（无论 v2 还是 v3）都要把目标库/桶带上：v3 是 database，
+   * v2 是 InfluxQL 缺省的 bucket——InfluxQL 语句里没有 {@code from(bucket:...)}
+   * 可以兜底，不带就会落回服务端默认桶、查到空数据。</p>
+   *
    * @param statement 查询语句
    * @returns 行数据与元信息
    */
   async function runQuery(statement: string): Promise<InfluxdbQueryResult> {
-    const result = await executeInfluxdbQuery(statement, datasourceId.value, isV3.value ? activeBucket.value : undefined);
+    const result = await executeInfluxdbQuery(
+      statement,
+      datasourceId.value,
+      useSql.value ? activeBucket.value : undefined,
+    );
     return {
       rows: displayRows(result?.rows || []),
       elapsed: result?.executionTimeMs ?? 0,
@@ -68,31 +86,31 @@ export function useInfluxdbQuery(options: {
 
   /**
    * 查询页签的缺省语句：按当前选中的库生成
-   * @returns 缺省查询语句；v3 且当前库尚无度量时返回空串
+   * @returns 缺省查询语句；SQL 方言且当前库尚无度量时返回空串
    */
   function buildDefaultStatement(): string {
     if (!activeBucket.value) return "";
-    if (isV3.value) {
+    if (useSql.value) {
       const table = measurements.value[0]?.name;
-      return table ? `SELECT * FROM "${table.replace(/"/g, '""')}" ORDER BY time DESC LIMIT 50` : "";
+      return table ? `SELECT * FROM ${sqlTable(table)} ORDER BY time DESC LIMIT 50` : "";
     }
     return `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> limit(n: 50)`;
   }
 
   /**
-   * 数据浏览查询语句（v3 生成 SQL，v2 生成 Flux）
+   * 数据浏览查询语句（SQL 方言生成 SQL/InfluxQL，Flux 方言生成 Flux）
    * @param measurement 度量名
    * @param range 时间范围（如 {@code -1h} / {@code -7d}）
    * @param field 字段过滤（可选）
    * @returns 查询语句
    */
   function buildBrowserStatement(measurement: string, range: string, field?: string): string {
-    if (isV3.value) {
-      const table = measurement.replace(/"/g, '""');
+    if (useSql.value) {
+      const table = sqlTable(measurement);
       const m = /^(\d+)([hd])$/.exec(range.replace(/^-/, ""));
       const unit = m?.[2] === "d" ? "DAY" : "HOUR";
       const amount = m?.[1] ?? "1";
-      let statement = `SELECT * FROM "${table}" WHERE time >= now() - INTERVAL '${amount}' ${unit}`;
+      let statement = `SELECT * FROM ${table} WHERE time >= now() - INTERVAL '${amount}' ${unit}`;
       if (field) {
         statement += ` AND "${field.replace(/"/g, '""')}" IS NOT NULL`;
       }
@@ -116,13 +134,14 @@ export function useInfluxdbQuery(options: {
   }
 
   /**
-   * 由查询结果收集 field 选项：v2 取行里的 {@code _field}；v3 的字段即结果列（排除 time）
+   * 由查询结果收集 field 选项：Flux 取行里的 {@code _field}；
+   * SQL / InfluxQL 的字段即结果列（排除 time 与 tag 列）
    * @param rows 查询返回的行
    * @returns field 选项列表
    */
   function deriveFieldOptions(rows: Record<string, unknown>[]): string[] {
     const fields = new Set<string>();
-    if (isV3.value) {
+    if (useSql.value) {
       for (const key of Object.keys(rows[0] || {})) {
         if (key !== "time") fields.add(key);
       }
