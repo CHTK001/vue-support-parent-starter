@@ -343,8 +343,17 @@ async function removeGroup(node: GroupNode) {
 .group-layout {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 16px;
+  gap: 12px;
   height: calc(100vh - 115px);
+}
+
+/* ReCard（koi 主题）自带 margin: 5px 6px，那是给「页面里散放卡片」留的呼吸位。
+   这两张卡是 grid 紧邻排布的，间距已由 gap 负责，再叠一层 margin 会把卡片之间
+   的实际间隔撑到 16 + 6 + 6 = 28px —— 比页面自身节奏（.sc-page 的 gap: 12px）
+   宽出一倍多，看上去就像左右被推开。所以 margin 归零，间距只听 gap 的。 */
+.tree-card,
+.detail-card {
+  margin: 0;
 }
 
 /* ---- 左侧树 ---- */
