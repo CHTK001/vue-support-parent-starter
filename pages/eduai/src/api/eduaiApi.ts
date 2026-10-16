@@ -747,10 +747,26 @@ export const eduaiApi = {
   studentLogin: async (data: { username: string; password: string }) => {
     const res = await http()
       .post("/v2/user/login")
-      // authType 决定 OAuth 服务端用哪个认证实现：STUDENT 对应其
-      // StudentLoginService（查 edu_student）。accountType 仍一并传，
-      // 供不区分 authType 的链路（如 static）识别账号来源。
+      // 决定用哪个认证实现的是 accountType：后端把 LoginHandler 的扩展名组合成
+      // loginType-accountType（null 段跳过），这里组合出的名字是 "student"，
+      // 由业务侧注册的 STUDENT 处理器（复用 StudentCredentialProvider 查 edu_student）接住。
+      // authType 只作链路归因的附带字段，LoginData 并不解析它——不要依赖它选实现。
       .data({ ...data, authType: "STUDENT", accountType: "student" } as unknown as Record<string, unknown>)
+      .then<{ accessToken?: string; [k: string]: unknown } | undefined>(unwrap);
+    if (res?.accessToken) {
+      setAccessToken(res.accessToken);
+    }
+    return res;
+  },
+
+  teacherLogin: async (data: { username: string; password: string }) => {
+    const res = await http()
+      .post("/v2/user/login")
+      // 与 studentLogin 同形：accountType=teacher 组合出查找名 "teacher"，
+      // 由业务侧注册的 TEACHER 处理器接住（校验口径复用 TeacherCredentialProvider，查 edu_teacher）。
+      // 注册名写大写的 TEACHER 也能命中，是因为 SPI 的注册与查找两侧都会做大小写归一。
+      // 后端返回未认证（如「工号不存在」）时原样抛出，由调用方决定是否回落到系统账号登录。
+      .data({ ...data, authType: "TEACHER", accountType: "teacher" } as unknown as Record<string, unknown>)
       .then<{ accessToken?: string; [k: string]: unknown } | undefined>(unwrap);
     if (res?.accessToken) {
       setAccessToken(res.accessToken);
@@ -875,6 +891,17 @@ export const eduaiApi = {
     http()
       .get("/v2/edu/teacher/dropdown")
       .then<DimensionDropdown>(unwrap),
+  /**
+   * 我的试卷（本人分页，教师端组卷 / 阅卷下拉共用）
+   *
+   * <p>不走通用 pagePapers：通用分页对管理员会放行全量，
+   * 老师端要求「新增 / 查看都只能是自己的卷」。</p>
+   */
+  teacherPapers: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; status?: number } = {}) =>
+    http()
+      .get("/v2/edu/teacher/papers")
+      .query(params)
+      .then<PageResult<Paper>>(unwrap),
   /** 老师上传题目（待审核，管理员可配自动通过；与批量导入同格式的 JSON 数组） */
   teacherQuestionUpload: (list: unknown[]) =>
     http()
@@ -994,6 +1021,11 @@ export const eduaiApi = {
     http()
       .post("/v2/edu/dimension/students/reset-password")
       .data({ studentId, newPassword } as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  resetTeacherPassword: (teacherId: number, newPassword: string) =>
+    http()
+      .post("/v2/edu/dimension/teachers/reset-password")
+      .data({ teacherId, newPassword } as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
   /**
    * 学生自助修改登录口令。

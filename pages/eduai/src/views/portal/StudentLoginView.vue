@@ -273,9 +273,23 @@ async function submit() {
   try {
     const { eduaiApi } = await import("../../api/eduaiApi");
     const isStudent = looksLikeStudent(account);
-    const res = isStudent
-      ? await eduaiApi.studentLogin({ username: account, password: form.password })
-      : await eduaiApi.userLogin({ username: account, password: form.password });
+    let res;
+    if (isStudent) {
+      res = await eduaiApi.studentLogin({ username: account, password: form.password });
+    } else {
+      // 非学生分支的**本意**就是「老师凭据」（见 looksLikeStudent 的注释），此前却调的是
+      // userLogin（走 sys_user 默认链）。教师没有系统账号，工号在这条链上必然登不进去——
+      // 而本页账号框的提示本来就写着「请输入学号 / 工号 / 手机号」。
+      // 先试教师凭据；教师凭据不认（工号不存在等）再回落系统账号，保留管理员也能用本页登录。
+      try {
+        res = await eduaiApi.teacherLogin({ username: account, password: form.password });
+      } catch (teacherErr) {
+        res = await eduaiApi.userLogin({ username: account, password: form.password }).catch(() => {
+          // 两次都失败时抛教师那次的错误：它的提示（工号不存在 / 口令错误）比系统的更贴近本页用途
+          throw teacherErr;
+        });
+      }
+    }
     // 身份判定：优先看令牌里的角色，其次看账号形状
     const roles = ((res as { roles?: string[] } | undefined)?.roles ?? []).map((r) => String(r).toUpperCase());
     const ext = (res as { user?: { ext?: { accountType?: string } } } | undefined)?.user?.ext;
