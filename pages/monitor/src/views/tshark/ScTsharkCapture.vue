@@ -14,7 +14,7 @@
 
       <div class="toolbar-right">
         <ReSelect v-model="iface" placeholder="选择网卡" clearable filterable class="iface-select"
-          :data="interfaces.map(i => ({ label: i, value: i }))" />
+          :data="ifaceOptions" />
         <ReInput v-model="filter" placeholder="BPF 过滤，如 tcp port 8080" clearable class="filter-input" />
         <ReInputNumber v-model="count" :min="0" :max="1000000" placeholder="包数" class="count-input" />
         <ReInputNumber v-model="timeout" :min="0" :max="86400" placeholder="时长/s" class="count-input" />
@@ -197,7 +197,24 @@ import {
 } from '../../api'
 
 const tsharkOk = ref(false)
-const interfaces = ref<string[]>([])
+/** 网卡：{ name(设备名/抓包要用) , description(友好名) , ipv4[], local(是否本机出口) } */
+const interfaces = ref<any[]>([])
+
+/**
+ * 网卡下拉选项。
+ *
+ * <p>Windows 上 tshark 给的设备名是 `\Device\NPF_{GUID}`，直接展示会是一串读不懂的
+ * GUID，用户根本挑不出哪张是自己在用的网卡。这里改显友好名（「以太网 3」）+ IPv4，
+ * 并把承载默认出口的那张标「本机」排在最前。</p>
+ */
+const ifaceOptions = computed(() => interfaces.value.map((i: any) => {
+  const desc = i.description || i.name
+  const ip = (i.ipv4 && i.ipv4.length) ? i.ipv4.join(', ') : '无 IPv4'
+  return {
+    label: i.local ? `${desc} · ${ip} · 本机出口` : `${desc} · ${ip}`,
+    value: i.name,
+  }
+}))
 const iface = ref('')
 const filter = ref('')
 const count = ref(500)
