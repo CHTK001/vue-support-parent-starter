@@ -51,26 +51,23 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "教育概览", icon: "HomeFilled", showLink: true, keepAlive: true, isVisible: "1" },
   },
 
-  // ==================== AI 提供商管理（复用 AI 控制台）====================
-  // 组卷 / 阅卷用的 AI 模型、ONNX 等，统一由 AI 控制台（ai-guada，即 @pages/ai 的壳）
-  // 的「提供商 / 模型管理」页配置。该页后端是 AI starter 的 /v2/manufacturer、/v2/models
-  // 等端点，eduai 后端并未注册（实测 404），且 AI 后端跨域直连返回 403，只能访问 AI
-  // 控制台自身。故这里不重做页面，用外链（meta.linkUrl）挂到已运行的 AI 控制台，
-  // 点击新窗口打开其提供商管理页。
+  // ==================== AI 提供商管理（内嵌 AI 控制台）====================
+  // 组卷 / 阅卷用的 AI 模型、ONNX 等，统一由 AI 控制台（pages/ai）维护：其
+  // 「提供商 / 模型」后端是 AI starter 的 /v2/manufacturer、/v2/models 等端点，
+  // eduai 后端并未注册（实测 404），所以本页不重做业务。
   //
-  // 地址默认取本机 dev 的 AI 控制台（15689），生产部署用 VITE_AI_CONSOLE_URL 覆盖。
-  // 无需 component：菜单点击走 handleMenuRouter 的 linkUrl 分支直接 window.open，
-  // 不会 push 到本路由（与分组父节点同理，registerRoutesUnderLayout 跳过无组件节点）。
+  // 但**不能**用 meta.linkUrl 外链：外链分支是 window.open，点菜单会弹出一个
+  // 属于 AI 控制台自己的地址窗口，用户直接离开本工作台 —— 而 pages/ai 明明已经
+  // 是本应用的集成依赖。AI 控制台为此提供了独立顶层嵌入路由 /models/embed
+  // （ModelsEmbedPage：不带 MainLayout / 侧栏 / 页头，自带供应商选择与新增/模板库），
+  // 因此这里给一个真实组件，把该页以 iframe 内嵌在 eduai 路由内。
+  //
+  // 地址取本机 dev 的 AI 控制台（15689），生产部署用 VITE_AI_CONSOLE_URL 覆盖。
   {
     path: "/edu/ai-provider",
     name: "EduAiProvider",
-    meta: {
-      title: "AI 提供商管理",
-      icon: "Cpu",
-      linkUrl: `${import.meta.env.VITE_AI_CONSOLE_URL ?? "http://localhost:15689"}/models`,
-      showLink: true,
-      isVisible: "1",
-    },
+    component: () => import("../views/AiProviderView.vue"),
+    meta: { title: "AI 提供商管理", icon: "Cpu", showLink: true, isVisible: "1" },
   },
 
   // ==================== 题库资源 ====================
