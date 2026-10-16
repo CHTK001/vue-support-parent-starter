@@ -148,7 +148,9 @@ function select(opt: ReOption) {
   min-width: 0;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  /* 圆角统一走 koi 圆角令牌（--el-radius-*，见 @repo/theme/koi/styles/radius.scss），
+     不再用 10px 这类游离值，也不用 --rm-*（那是 Modern 控件族的私有令牌）。 */
+  border-radius: var(--el-radius-md, 8px);
 }
 .re-select-square--compact .re-select-square__check {
   width: 14px;
@@ -167,7 +169,7 @@ function select(opt: ReOption) {
   width: auto;
   height: 32px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
 }
 .re-select-square--compact.re-select-square--text .re-select-square__fallback,
 .re-select-square--compact.re-select-square--text .re-select-square__check {
@@ -186,25 +188,44 @@ function select(opt: ReOption) {
   padding: 12px 14px;
   min-width: 80px;
   border: 1.5px solid var(--el-border-color, #dcdfe6);
-  border-radius: 10px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color, #fff);
+  /* 未选中态就是「灰」：中性边框 + 灰字，主色只留给已选中项表达选中，
+     不参与未选中的任何状态（见下方 hover 说明）。 */
   color: var(--el-text-color-secondary, #909399);
   cursor: pointer;
-  transition: all 0.25s ease;
+  /* 只过渡会变的视觉属性。原先是 `transition: all`，把 padding / border-width
+     也带进来 —— 选中态边框 1.5px→2px、内边距 12/14px→11/13px（为抵消边框增宽
+     而反向抵消），会随过渡一起动，整排方块的文字每次都平移一格。这里按需列举。 */
+  transition:
+    color 0.25s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
   user-select: none;
 
-  &:hover {
-    border-color: var(--el-color-primary-light-3, #a0cfff);
-    color: var(--el-color-primary, #409eff);
-    background: var(--el-color-primary-light-9, #ecf5ff);
+  /* 未选中项 hover：只走灰阶（深灰边 + 深灰字 + 浅灰底），不染主色。
+     square 布局本质是单选组 —— 若 hover 就变蓝，鼠标扫过一排时每个都像已选中，
+     真正选中的那个反而没有独占的主色信号。 */
+  &:hover:not(&--active) {
+    border-color: var(--el-border-color-dark, #cdd0d6);
+    color: var(--el-text-color-regular, #606266);
+    background: var(--el-fill-color-light, #f5f7fa);
   }
 
   &--active {
     border: 2px solid var(--el-color-primary, #409eff);
     padding: 11px 13px;
     color: var(--el-color-primary, #409eff);
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
+    background: var(--el-bg-color, #fff);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+
+    /* 已选中项 hover：维持主色，仅加深提示可点 */
+    &:hover {
+      border-color: var(--el-color-primary-light-3, #a0cfff);
+      background: var(--el-color-primary-light-9, #ecf5ff);
+      color: var(--el-color-primary, #409eff);
+    }
   }
 }
 
@@ -247,10 +268,14 @@ function select(opt: ReOption) {
   justify-content: center;
   width: 16px;
   height: 16px;
-  background: var(--el-color-primary, #409eff);
-  border-radius: 50%;
-  color: #fff;
-  box-shadow: 0 1px 4px rgba(64, 158, 255, 0.4);
+  /* 与按钮组同一口径：白对勾压主色只有 2.78:1，低于 WCAG 对「非文本图形」的 3:1，
+     所以底色同样压深（72% 主色 + 系统黑令牌）。 */
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 72%, var(--el-color-black, #000));
+  border-radius: var(--el-border-radius-circle, 50%);
+  color: var(--el-color-white, #fff);
+  /* 阴影跟着主题主色走：用 color-mix 取主色的低透明度，
+     不写死 rgba(64,158,255,…) —— 那是 Element 默认蓝，换主题后阴影会与对勾脱色。 */
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-primary, #409eff) 40%, transparent);
 }
 
 .re-select-square__check svg {
@@ -277,7 +302,9 @@ function select(opt: ReOption) {
   gap: 10px;
   justify-content: flex-start;
   border: 1px solid transparent;
-  border-radius: var(--el-radius-base, 4px);
+  /* koi 圆角令牌：xs=4px（--el-radius-base 是失效名，Element 只有
+     --el-border-radius-base，写它等于永远走兜底） */
+  border-radius: var(--el-radius-xs, 4px);
   background: transparent;
 }
 .re-select-square--vertical .re-select-square__body {
@@ -309,7 +336,7 @@ function select(opt: ReOption) {
   flex: none;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-fill-color-light, #f5f7fa);
   color: var(--el-text-color-secondary, #909399);
 }
@@ -352,8 +379,8 @@ function select(opt: ReOption) {
 .re-select-square--small.re-select-square--compact .re-select-square__item {
   width: 32px;
   height: 32px;
-  /* Modern 控件族用 --rm-* 令牌（= 8px），不要写死值 */
-  border-radius: var(--rm-radius);
+  /* 统一走 koi 圆角令牌（sm = 6px），与 Modern 族的 --rm-radius 同值但属公共令牌 */
+  border-radius: var(--el-radius-sm, 6px);
 }
 .re-select-square--small.re-select-square--compact.re-select-square--text .re-select-square__item {
   height: 26px;
@@ -366,8 +393,8 @@ function select(opt: ReOption) {
 .re-select-square--large.re-select-square--compact .re-select-square__item {
   width: 46px;
   height: 46px;
-  /* Modern 控件族用 --rm-* 令牌（= 12px），不要写死值 */
-  border-radius: var(--rm-radius-lg);
+  /* koi 圆角令牌（lg = 12px） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 .re-select-square--large.re-select-square--compact.re-select-square--text .re-select-square__item {
   height: 38px;

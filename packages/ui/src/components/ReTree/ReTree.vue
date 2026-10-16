@@ -74,7 +74,7 @@
     <ReDialog v-model="dialogVisible" :title="dialogTitle" width="400px">
       <el-form :model="formData" label-width="80px">
         <el-form-item label="名称">
-          <el-input v-model="(formData[labelKey] as string)" />
+          <el-input v-model="labelInput" />
         </el-form-item>
         <slot name="dialog-form" :form="formData" :node="editingNodeData" />
       </el-form>
@@ -344,6 +344,30 @@ const options = computed(() => props.props || { children: "children", label: "la
 
 /** 当前 label 字段名（供表单 v-model 使用） */
 const labelKey = computed(() => getLabelKey());
+
+/**
+ * 弹窗「名称」输入框的绑定值。
+ *
+ * <p>原来这里写的是 {@code v-model="(formData[labelKey] as string)"} —— 用 `as` 把类型
+ * 直接糊过去。本仓对同一处问题（`ReTree/index.vue`）采用的是可写 computed 收口，
+ * 这里与之一致：读时把非字符串按显示需要转成字符串，写时只改 {@link labelKey} 这一个字段，
+ * 读写落在同一处，运行时行为和原先完全一致，同时不再靠 `as` 绕过类型检查。</p>
+ *
+ * <p>与 `CytoscapeGraph.vue` 里「宁可删掉调了不存在 API 的那行、也不用 `as any` 糊」
+ * 是同一口径：`as` 只让检查闭嘴，不会让代码变对。</p>
+ */
+const labelInput = computed<string>({
+  get() {
+    const v = formData.value[labelKey.value];
+    if (typeof v === "string") return v;
+    return v === undefined || v === null ? "" : String(v);
+  },
+  set(v: string) {
+    /* 用整体替换而不是就地写字段：formData 是 ref，替换同样触发响应式刷新，
+       且不会与 `formData.value = { ...data }`（编辑时整体复制节点）那套写法冲突。 */
+    formData.value = { ...formData.value, [labelKey.value]: v };
+  },
+});
 
 const resolvedProps = computed(() => ({
   children: options.value.children || "children",

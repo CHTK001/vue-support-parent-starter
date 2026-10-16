@@ -350,7 +350,7 @@
     "./*": "./src/*"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "vue-tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx,.vue",
     "clean": "rimraf dist",
     "icons:sync": "node scripts/sync-animated-icons.mjs",
@@ -433,6 +433,7 @@
     "@types/three": "^0.185.4",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vue": "catalog:"
+    "vue": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }
