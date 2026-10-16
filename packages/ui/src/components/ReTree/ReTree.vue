@@ -481,17 +481,37 @@ function handleEdit(node: Node, data: ReTreeItem): void {
   dialogVisible.value = true;
 }
 
+/**
+ * 删除一个节点。
+ *
+ * <p>踩过的坑：不能只用 {@code node.parent} 判断「有没有父节点」。el-tree 会给
+ * **根层节点**也挂一个 parent —— 那是它内部的**虚拟根**，`level` 为 0，且它的 `data`
+ * 是**整棵树的数组**而不是某个节点对象（见 element-plus `model/node.mjs` 里
+ * `if (this.level === 0 && isArray(this.data)) children = this.data`）。
+ * 于是 `parent.data[childrenKey]` 会算出 `undefined`，紧接着 `siblings.indexOf(data)`
+ * 抛 `TypeError: Cannot read properties of undefined (reading 'indexOf')`；
+ * 该异常被 Vue 的事件错误处理吞进 console，外层只表现为「点删除毫无反应」。
+ *
+ * <p>所以真正的判别式是 **{@code parent.level === 0}**（虚拟根），而不是 parent 是否存在：
+ * 根层节点要落到 {@code treeData} 上删，其余节点删它真实的同级列表。
+ */
 function handleRemove(node: Node, data: ReTreeItem): void {
   const parent = node.parent;
   const childrenKey = options.value.children || "children";
-  if (parent) {
-    const siblings = (parent.data as Record<string, unknown>)[childrenKey] as ReTreeItem[];
+
+  /* level 为 0 的是内部虚拟根：它的 data 是整棵树的数组，必须回到 treeData 上定位。
+     另外 `siblings` 可能不是数组（自定义 children 键、或懒加载未展开），
+     必须判类型后再 indexOf —— 否则同样会抛错并静默失败。 */
+  const rawSiblings =
+    parent && parent.level > 0
+      ? ((parent.data as Record<string, unknown>)[childrenKey] as ReTreeItem[] | undefined)
+      : treeData.value;
+  const siblings = Array.isArray(rawSiblings) ? rawSiblings : undefined;
+  if (siblings) {
     const idx = siblings.indexOf(data);
     if (idx > -1) siblings.splice(idx, 1);
-  } else {
-    const idx = treeData.value.indexOf(data);
-    if (idx > -1) treeData.value.splice(idx, 1);
   }
+
   treeData.value = [...treeData.value];
   emit("re-remove", { item: data, tree: treeData.value });
   emit("update:data", treeData.value);
