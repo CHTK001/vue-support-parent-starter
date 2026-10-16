@@ -51,6 +51,7 @@
                     {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
                   </ReTag>
                   <div class="action-btns">
+                    <ReButton icon="Download" layout="square" tip="下载原始 pcap（用 Wireshark 打开）" @click.stop="downloadPcap(s.id, s.sessionName || s.captureInterface)" />
                     <ReButton v-if="s.captureStatus === 1" icon="VideoPause" layout="square" tip="停止抓包" @click.stop="stopSession(s.id)" />
                     <ReButton icon="Delete" layout="square" type="danger" tip="删除会话" @click.stop="deleteSession(s.id)" />
                   </div>
@@ -94,6 +95,20 @@
           <template #title>
             <span class="panel-title"><ReIcon name="List" :size="13" /> 数据包明细</span>
           </template>
+          <!-- 关键字过滤走后端（库里筛），不是前端筛当前页：否则翻到第 3 页搜一个只
+               出现在第 1 页的包会「搜不到」。导出同理导的是当前查询结果。 -->
+          <div class="packet-tools">
+            <ReInput
+              v-model="packetKeyword"
+              class="packet-filter"
+              placeholder="过滤：协议 / IP / 端口 / 摘要"
+              clearable
+              @input="onKeywordChange"
+            >
+              <template #prefix><ReIcon name="Search" :size="13" /></template>
+            </ReInput>
+            <ReButton icon="Download" :disabled="packets.length === 0" tip="把当前查询结果导出为 CSV" @click="exportCsv">导出 CSV</ReButton>
+          </div>
           <ReTable :data="packets" :loading="loadingPackets" border stripe :pagination="false" :toolbar="false">
             <ReTableColumn prop="packetTime" label="时间" width="170" align="center">
               <template #default="{ row }"><span class="mono dim">{{ row.packetTime || '' }}</span></template>
@@ -178,7 +193,7 @@ import { message, useSocketService } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
-  getTsharkProtocolStats, getTsharkTopFlows,
+  getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl,
 } from '../../api'
 
 const tsharkOk = ref(false)
@@ -201,6 +216,9 @@ const loadingPackets = ref(false)
 const packets = ref<any[]>([])
 const packetPage = ref(1)
 const packetTotal = ref(0)
+/** 数据包关键字过滤（协议 / IP / 端口 / 摘要），由后端在库里过滤而不是前端筛当前页 */
+const packetKeyword = ref('')
+let keywordTimer: ReturnType<typeof setTimeout> | null = null
 
 const protoStats = ref<any[]>([])
 const topFlows = ref<any[]>([])
@@ -270,7 +288,7 @@ async function loadPackets(page = packetPage.value) {
   if (activeSessionId.value == null) return
   loadingPackets.value = true
   try {
-    const r = await getTsharkPackets(activeSessionId.value, page, 20)
+    const r = await getTsharkPackets(activeSessionId.value, page, 20, packetKeyword.value.trim())
     packets.value = r?.records ?? r?.data ?? []
     packetTotal.value = r?.total ?? packets.value.length
     packetPage.value = page
@@ -279,6 +297,61 @@ async function loadPackets(page = packetPage.value) {
   } finally {
     loadingPackets.value = false
   }
+}
+
+/** 关键字变化：防抖 300ms 后回第一页重查（换关键字后页码不再有意义） */
+function onKeywordChange() {
+  if (keywordTimer) clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => loadPackets(1), 300)
+}
+
+/** 清空关键字 */
+function clearKeyword() {
+  packetKeyword.value = ''
+  loadPackets(1)
+}
+
+/**
+ * 导出当前会话数据包为 CSV。
+ *
+ * <p>导的是**当前查询结果**，不是整会话全量 —— 翻到第几页导哪几页，
+ * 否则一次导出几十万行会把浏览器拖死。字段顺序与表格列一致，便于对照。</p>
+ */
+function exportCsv() {
+  if (activeSessionId.value == null || packets.value.length === 0) {
+    message.warning('当前没有可导出的数据包')
+    return
+  }
+  const head = ['时间', '协议', '源IP', '源端口', '目的IP', '目的端口', '长度(字节)', '摘要']
+  const esc = (v: any) => {
+    const s = v === null || v === undefined ? '' : String(v)
+    // CSV 里以 = + - @ 开头的值会被 Excel 当公式执行，前置单引号 neutralize
+    const safe = /^[=+\-@]/.test(s) ? "'" + s : s
+    return /[",\n\r]/.test(safe) ? '"' + safe.replace(/"/g, '""') + '"' : safe
+  }
+  const lines = [head.join(',')]
+  for (const p of packets.value) {
+    lines.push([
+      p.packetTime, p.protocol || 'OTHER', p.sourceIp, p.sourcePort,
+      p.destIp, p.destPort, p.packetLength ?? 0, p.packetInfo || p.restoredText || '',
+    ].map(esc).join(','))
+  }
+  // BOM：没有它 Excel 打开中文表头会乱码
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `tshark-session-${activeSessionId.value}-page${packetPage.value}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+  message.success(`已导出本页 ${packets.value.length} 条`)
+}
+
+/** 下载原始 pcap：拿回 Wireshark 打开做深度分析 */
+function downloadPcap(id: number, name?: string) {
+  const a = document.createElement('a')
+  a.href = tsharkPcapUrl(id)
+  a.download = name || `capture-${id}.pcap`
+  a.click()
 }
 
 async function loadStats() {
@@ -441,6 +514,9 @@ if (socket) {
     const sid = String(msg?.dataId ?? (packet as any)?.sessionId)
     if (sid !== String(activeSessionId.value)) return
     if (packets.value.some((p: any) => p.id === (packet as any).id)) return
+    // 关键字过滤生效时不追加新包：列表是「库里按关键字筛出来的子集」，
+    // 往里塞不匹配的行会让总数与页码对不上。清空关键字后 loadPackets 会重新拉全量。
+    if (packetKeyword.value.trim()) return
     packets.value.unshift(packet as any)
     if (packets.value.length > 500) packets.value.length = 500
     packetTotal.value++
@@ -489,6 +565,17 @@ function resizeCharts() {
   gap: 14px;
   height: 100%;
   padding: 4px;
+}
+
+/* ==================== 数据包明细卡：过滤 + 导出 ==================== */
+.packet-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+.packet-filter {
+  width: 260px;
 }
 
 /* ==================== 顶部工具条 ==================== */

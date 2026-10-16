@@ -484,8 +484,11 @@ export const delTsharkSession = (id: number) =>
   http().delete(`${B}/tshark/sessions/${id}`).then(r => unwrap<any>(r));
 export const getTsharkSessions = (page = 1, size = 10) =>
   http().get(`${B}/tshark/sessions?page=${page}&size=${size}`).then(r => unwrap<any>(r));
-export const getTsharkPackets = (sessionId: number, page = 1, size = 20) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}`).then(r => unwrap<any>(r));
+export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}` +
+    (keyword ? `&keyword=${encodeURIComponent(keyword)}` : '')).then(r => unwrap<any>(r));
+/** 原始 pcap 下载地址：页面上的摘要只是 tshark 的解析结果，要深挖得拿原件去 Wireshark 打开 */
+export const tsharkPcapUrl = (sessionId: number) => `${B}/tshark/sessions/${sessionId}/pcap`;
 export const getTsharkPacketDetail = (id: number) =>
   http().get(`${B}/tshark/packets/${id}`).then(r => unwrap<any>(r));
 export const getTsharkProtocolStats = (sessionId: number) =>

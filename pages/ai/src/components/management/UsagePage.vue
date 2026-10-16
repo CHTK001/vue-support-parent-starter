@@ -184,192 +184,173 @@
           {{ costVisible ? '隐藏费用' : '显示费用' }}
         </el-button>
       </template>
-      <ReTable :data="detailRecords" :loading="detailLoading" :show-index="false" class="detail-table" row-key="sysAiUsageId">
-        <el-table-column label="时间" width="160">
-          <template #default="{ row }"><span class="time-cell">{{ formatTime(row.sysAiUsageCallTime) }}</span></template>
-        </el-table-column>
-        <el-table-column label="模型" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="model-cell">
-              <span class="model-name" :title="row.sysAiUsageModel || '-'">{{ row.sysAiUsageModel || '-' }}</span>
-              <!-- 解码速率：hover 弹完整阶段明细（首字/解码窗口/总耗 + Token 明细 + 速率）。
-                   为什么用 popover 而不是 title：title 无法换行也放不下多阶段信息，
-                   且 3109.9 这类异常值需要就地解释（批量推送口径假象 + 总耗时近似值）。 -->
-              <el-popover trigger="hover" placement="top" :show-arrow="true" :width="265">
-                <template #reference>
-                  <span class="model-sub is-speed" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
-                </template>
-                <div class="speed-popover-content">
-                  <div class="speed-popover-title">速率阶段明细</div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">首字耗时</span>
-                    <span class="sp-val" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
-                  </div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">解码窗口</span>
-                    <span class="sp-val" :style="{ color: decodeWindowColor(row) }">{{ formatLatency(decodeWindowMs(row)) }}</span>
-                  </div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">总耗时</span>
-                    <span class="sp-val" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
-                  </div>
-                  <div class="speed-popover-divider"></div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">输入 Token</span>
-                    <span class="sp-val">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span>
-                  </div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">输出 Token</span>
-                    <span class="sp-val">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span>
-                  </div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">缓存读取</span>
-                    <span class="sp-val">{{ formatNumber(row.sysAiUsageCachedTokens) }}</span>
-                  </div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">总 Token</span>
-                    <span class="sp-val">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
-                  </div>
-                  <div class="speed-popover-divider"></div>
-                  <div class="speed-popover-row">
-                    <span class="sp-label">解码速率</span>
-                    <span class="sp-val" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
-                  </div>
-                  <div v-if="isSuspiciousSpeed(row)" class="speed-popover-note">{{ speedTitle(row) }}</div>
-                  <div class="speed-popover-hint">绿/橙/红 = 快/中/慢；解码窗口或总耗时不足 1s 标灰（批量推送假象/疑似缓存回放）</div>
-                </div>
-              </el-popover>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="分组" width="140" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.sysAiUsageGroupName }}</template>
-        </el-table-column>
-        <el-table-column label="账号" width="90">
-          <template #default="{ row }">
-            <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'" >{{ row.sysAiUsageUserId || '三方' }}</ReTag>
-          </template>
-        </el-table-column>
-        <el-table-column label="服务商" width="100">
-          <template #default="{ row }"><span :title="row.sysAiUsageProvider || ''">{{ providerDisplay(row.sysAiUsageProvider) }}</span></template>
-        </el-table-column>
-        <el-table-column label="端点" width="185" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="endpoint-cell">{{ endpointDisplay(row) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="强度" width="90">
-          <template #default="{ row }">
-            <ReTag v-if="row.sysAiUsageInferenceStrength && row.sysAiUsageInferenceStrength !== '默认'"
-              type="info">{{ row.sysAiUsageInferenceStrength }}</ReTag>
-            <span v-else class="cell-muted">默认</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="请求 IP" width="130" show-overflow-tooltip>
-          <template #default="{ row }">
-            <ReIpText v-if="row.sysAiUsageIp" :ip="row.sysAiUsageIp" :address="row.sysAiUsageLocation" />
-            <span v-else class="cell-muted">—</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Token" align="right" width="170">
-          <template #default="{ row }">
-            <el-popover trigger="hover" placement="top" :show-arrow="true" :width="200">
+      <ReTable :data="detailRecords" :loading="detailLoading" :columns="detailColumns" :show-index="false" class="detail-table" row-key="sysAiUsageId">
+        <template #col-time="{ row }"><span class="time-cell">{{ formatTime(row.sysAiUsageCallTime) }}</span></template>
+        <template #col-model="{ row }">
+          <div class="model-cell">
+            <span class="model-name" :title="row.sysAiUsageModel || '-'">{{ row.sysAiUsageModel || '-' }}</span>
+            <!-- 解码速率：hover 弹完整阶段明细（首字/解码窗口/总耗 + Token 明细 + 速率）。
+                 为什么用 popover 而不是 title：title 无法换行也放不下多阶段信息，
+                 且 3109.9 这类异常值需要就地解释（批量推送口径假象 + 总耗时近似值）。 -->
+            <el-popover trigger="hover" placement="top" :show-arrow="true" :width="265">
               <template #reference>
-                <div class="token-cell" :class="{ 'token-estimated': row.sysAiUsageEstimatedTokens === 1 }">
-                  <span class="token-col">
-                    <span class="token-inline">
-                      <span class="tk tk-in">
-                        <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8.2M4.6 7.3 8 10.8l3.4-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsagePromptTokens) }}
-                      </span>
-                      <span class="tk tk-out">
-                        <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.5V5.3M4.6 8.7 8 5.2l3.4 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCompletionTokens) }}
-                      </span>
+                <span class="model-sub is-speed" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+              </template>
+              <div class="speed-popover-content">
+                <div class="speed-popover-title">速率阶段明细</div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">首字耗时</span>
+                  <span class="sp-val" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
+                </div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">解码窗口</span>
+                  <span class="sp-val" :style="{ color: decodeWindowColor(row) }">{{ formatLatency(decodeWindowMs(row)) }}</span>
+                </div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">总耗时</span>
+                  <span class="sp-val" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
+                </div>
+                <div class="speed-popover-divider"></div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">输入 Token</span>
+                  <span class="sp-val">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span>
+                </div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">输出 Token</span>
+                  <span class="sp-val">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span>
+                </div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">缓存读取</span>
+                  <span class="sp-val">{{ formatNumber(row.sysAiUsageCachedTokens) }}</span>
+                </div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">总 Token</span>
+                  <span class="sp-val">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
+                </div>
+                <div class="speed-popover-divider"></div>
+                <div class="speed-popover-row">
+                  <span class="sp-label">解码速率</span>
+                  <span class="sp-val" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+                </div>
+                <div v-if="isSuspiciousSpeed(row)" class="speed-popover-note">{{ speedTitle(row) }}</div>
+                <div class="speed-popover-hint">绿/橙/红 = 快/中/慢；解码窗口或总耗时不足 1s 标灰（批量推送假象/疑似缓存回放）</div>
+              </div>
+            </el-popover>
+          </div>
+        </template>
+        <template #col-group="{ row }">{{ row.sysAiUsageGroupName }}</template>
+        <template #col-user="{ row }">
+          <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'" >{{ row.sysAiUsageUserId || '三方' }}</ReTag>
+        </template>
+        <template #col-provider="{ row }"><span :title="row.sysAiUsageProvider || ''">{{ providerDisplay(row.sysAiUsageProvider) }}</span></template>
+        <template #col-endpoint="{ row }">
+          <span class="endpoint-cell">{{ endpointDisplay(row) }}</span>
+        </template>
+        <template #col-strength="{ row }">
+          <ReTag v-if="row.sysAiUsageInferenceStrength && row.sysAiUsageInferenceStrength !== '默认'"
+            type="info">{{ row.sysAiUsageInferenceStrength }}</ReTag>
+          <span v-else class="cell-muted">默认</span>
+        </template>
+        <template #col-ip="{ row }">
+          <ReIpText v-if="row.sysAiUsageIp" :ip="row.sysAiUsageIp" :address="row.sysAiUsageLocation" />
+          <span v-else class="cell-muted">—</span>
+        </template>
+        <template #col-tokens="{ row }">
+          <el-popover trigger="hover" placement="top" :show-arrow="true" :width="200">
+            <template #reference>
+              <div class="token-cell" :class="{ 'token-estimated': row.sysAiUsageEstimatedTokens === 1 }">
+                <span class="token-col">
+                  <span class="token-inline">
+                    <span class="tk tk-in">
+                      <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8.2M4.6 7.3 8 10.8l3.4-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsagePromptTokens) }}
                     </span>
-                    <span v-if="Number(row.sysAiUsageCachedTokens) > 0" class="tk tk-cache-line" :title="'缓存读取 ' + formatNumber(row.sysAiUsageCachedTokens)">
-                      <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5h10v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6ZM3 5.5 8 3l5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCachedTokens) }} 缓存
+                    <span class="tk tk-out">
+                      <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.5V5.3M4.6 8.7 8 5.2l3.4 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCompletionTokens) }}
                     </span>
                   </span>
-                </div>
-              </template>
-              <div class="token-detail-pop">
-                <div class="token-detail-title">Token 明细</div>
-                <div class="token-detail-row"><span class="td-label">输入 Token</span><span class="td-val tk-in">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span></div>
-                <div class="token-detail-row"><span class="td-label">输出 Token</span><span class="td-val tk-out">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span></div>
-                <div class="token-detail-row"><span class="td-label">缓存读取 Token</span><span class="td-val tk-cache">{{ formatNumber(row.sysAiUsageCachedTokens) }}</span></div>
-                <div class="token-detail-divider"></div>
-                <div class="token-detail-row td-total"><span class="td-label">总 Token</span><span class="td-val">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span></div>
-                <div v-if="row.sysAiUsageEstimatedTokens === 1" class="td-est-note">Token 为估算值（Qoder 按积分计费，未上报真实 token）</div>
+                  <span v-if="Number(row.sysAiUsageCachedTokens) > 0" class="tk tk-cache-line" :title="'缓存读取 ' + formatNumber(row.sysAiUsageCachedTokens)">
+                    <svg class="tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5h10v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6ZM3 5.5 8 3l5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ fmtToken(row.sysAiUsageCachedTokens) }}
+                  </span>
+                </span>
               </div>
-            </el-popover>
-          </template>
-        </el-table-column>
-        <el-table-column :label="`费用(${currencySymbol})`" align="right" width="90">
-          <template #default="{ row }">
-            <!-- 敏感数据：默认只给眼睛图标，由「用量明细」头部的显示费用开关统一控制 -->
-            <span v-if="costVisible" class="cost-val">{{ money(row.sysAiUsageTotalCost) }}</span>
-            <el-icon v-else class="cost-eye" title="费用已隐藏，点击上方「显示费用」查看"><EyeOff24Regular /></el-icon>
-          </template>
-        </el-table-column>
-        <el-table-column label="耗时" width="150">
-          <template #default="{ row }">
-            <el-popover trigger="hover" placement="top" :show-arrow="true" :width="220">
-              <template #reference>
-                <div class="latency-inline">
-                  <span class="latency-vbar" :style="{ backgroundColor: getTotalColor(row) }"></span>
-                  <div class="latency-lines">
-                    <div class="latency-line"><span class="latency-k">首字</span><span class="latency-v" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
-                    <div class="latency-line"><span class="latency-k">总耗</span><span class="latency-v" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span></div>
-                  </div>
-                </div>
-              </template>
-              <div class="latency-popover-content">
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" :style="{ background: getFirstColor(row) }"></span>
-                  <span class="latency-popover-label">首字</span>
-                  <span class="latency-popover-value" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
-                </div>
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" :style="{ background: getTotalColor(row) }"></span>
-                  <span class="latency-popover-label">总耗时</span>
-                  <span class="latency-popover-value" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
-                </div>
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" :style="{ background: speedColor(row) }"></span>
-                  <span class="latency-popover-label">解码速率</span>
-                  <span class="latency-popover-value" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
-                </div>
-                <div class="latency-popover-divider"></div>
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" style="background: var(--el-color-success)"></span>
-                  <span class="latency-popover-label">输入 Token</span>
-                  <span class="latency-popover-value">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span>
-                </div>
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" style="background: var(--el-color-primary)"></span>
-                  <span class="latency-popover-label">输出 Token</span>
-                  <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span>
-                </div>
-                <div class="latency-popover-row">
-                  <span class="latency-popover-dot" style="background: var(--el-text-color-primary)"></span>
-                  <span class="latency-popover-label">总 Token</span>
-                  <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
-                </div>
-                <div v-if="isSuspiciousSpeed(row)" class="latency-popover-note">{{ speedTitle(row) }}</div>
-                <div class="latency-popover-hint">绿/橙/红=快/中/慢（耗时与速率）</div>
+            </template>
+            <div class="token-detail-pop">
+              <div class="token-detail-title"><i class="td-dot" />Token 明细</div>
+              <div class="token-detail-row"><span class="td-label">输入</span><span class="td-val tk-in">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span></div>
+              <div class="token-detail-row"><span class="td-label">输出</span><span class="td-val tk-out">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span></div>
+              <div class="token-detail-row"><span class="td-label">缓存读取</span><span class="td-val tk-cache">{{ formatNumber(row.sysAiUsageCachedTokens) }}</span></div>
+              <div class="token-detail-divider"></div>
+              <div class="token-detail-row td-total"><span class="td-label">总计</span><span class="td-val">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span></div>
+              <div class="token-detail-row td-rate">
+                <span class="td-label">缓存率</span>
+                <span class="td-rate-body">
+                  <span class="td-rate-bar"><i :style="{ width: cacheRatePct(row) + '%' }" /></span>
+                  <span class="td-val">{{ cacheRateText(row) }}</span>
+                </span>
               </div>
-            </el-popover>
-          </template>
-        </el-table-column>
-        <el-table-column label="类型" width="130">
-          <template #default="{ row }">
-            <ReTag :type="typeTagType(row.sysAiUsageType)" >{{ formatTypeLabel(row.sysAiUsageType) }}</ReTag>
-          </template>
-        </el-table-column>
-        <el-table-column label="调用类型" width="95">
-          <template #default="{ row }">
-            <ReTag :type="callModeTag(row)" >{{ callModeLabel(row) }}</ReTag>
-          </template>
-        </el-table-column>
+              <div v-if="row.sysAiUsageEstimatedTokens === 1" class="td-est-note">Token 为估算值（Qoder 按积分计费，未上报真实 token）</div>
+            </div>
+          </el-popover>
+        </template>
+        <template #col-cost="{ row }">
+          <!-- 敏感数据：默认只给眼睛图标，由「用量明细」头部的显示费用开关统一控制 -->
+          <span v-if="costVisible" class="cost-val">{{ money(row.sysAiUsageTotalCost) }}</span>
+          <el-icon v-else class="cost-eye" title="费用已隐藏，点击上方「显示费用」查看"><EyeOff24Regular /></el-icon>
+        </template>
+        <template #col-latency="{ row }">
+          <el-popover trigger="hover" placement="top" :show-arrow="true" :width="220">
+            <template #reference>
+              <div class="latency-inline">
+                <span class="latency-vbar" :style="{ backgroundColor: getTotalColor(row) }"></span>
+                <div class="latency-lines">
+                  <div class="latency-line"><span class="latency-k">首字</span><span class="latency-v" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
+                  <div class="latency-line"><span class="latency-k">总耗</span><span class="latency-v" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span></div>
+                </div>
+              </div>
+            </template>
+            <div class="latency-popover-content">
+              <div class="latency-popover-row">
+                <span class="latency-popover-dot" :style="{ background: getFirstColor(row) }"></span>
+                <span class="latency-popover-label">首字</span>
+                <span class="latency-popover-value" :style="{ color: getFirstColor(row) }">{{ formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
+              </div>
+              <div class="latency-popover-row">
+                <span class="latency-popover-dot" :style="{ background: getTotalColor(row) }"></span>
+                <span class="latency-popover-label">总耗时</span>
+                <span class="latency-popover-value" :style="{ color: getTotalColor(row) }">{{ formatLatency(row.sysAiUsageTotalLatency) }}</span>
+              </div>
+              <div class="latency-popover-row">
+                <span class="latency-popover-dot" :style="{ background: speedColor(row) }"></span>
+                <span class="latency-popover-label">解码速率</span>
+                <span class="latency-popover-value" :style="{ color: speedColor(row) }">{{ formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+              </div>
+              <div class="latency-popover-divider"></div>
+              <div class="latency-popover-row">
+                <span class="latency-popover-dot" style="background: var(--el-color-success)"></span>
+                <span class="latency-popover-label">输入 Token</span>
+                <span class="latency-popover-value">{{ formatNumber(row.sysAiUsagePromptTokens) }}</span>
+              </div>
+              <div class="latency-popover-row">
+                <span class="latency-popover-dot" style="background: var(--el-color-primary)"></span>
+                <span class="latency-popover-label">输出 Token</span>
+                <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageCompletionTokens) }}</span>
+              </div>
+              <div class="latency-popover-row">
+                <span class="latency-popover-dot" style="background: var(--el-text-color-primary)"></span>
+                <span class="latency-popover-label">总 Token</span>
+                <span class="latency-popover-value">{{ formatNumber(row.sysAiUsageTotalTokens) }}</span>
+              </div>
+              <div v-if="isSuspiciousSpeed(row)" class="latency-popover-note">{{ speedTitle(row) }}</div>
+              <div class="latency-popover-hint">绿/橙/红=快/中/慢（耗时与速率）</div>
+            </div>
+          </el-popover>
+        </template>
+        <template #col-type="{ row }">
+          <ReTag :type="typeTagType(row.sysAiUsageType)" >{{ formatTypeLabel(row.sysAiUsageType) }}</ReTag>
+        </template>
+        <template #col-callType="{ row }">
+          <ReTag :type="callModeTag(row)" >{{ callModeLabel(row) }}</ReTag>
+        </template>
       </ReTable>
       <div class="pager-row">
         <el-pagination background layout="total, prev, pager, next, jumper" :total="detailTotal" :page-size="detailPageSize" v-model:current-page="detailPage" @current-change="reloadDetails" />
@@ -1149,6 +1130,34 @@ function money(v: number | null | undefined): string {
 function formatNumber(v: number | null | undefined): string {
   const n = Number(v) || 0;
   return n.toLocaleString('en-US');
+}
+
+/**
+ * 缓存读取占总 Token 的比例（百分数，未夹取），不可算时返回 -1。
+ *
+ * <p>「不可算」指的是总 Token 缺失或非正——这和「真的是 0%」是两回事：
+ * 缓存类模型上报的 totalTokens 有时不含缓存部分，甚至干脆不报，
+ * 此时算出来的比例要么越界、要么除零，所以统一用 -1 把两种情况分开，
+ * 由 {@link cacheRatePct} / {@link cacheRateText} 分别决定
+ * 「进度条画多宽」和「文案写什么」。</p>
+ */
+function cacheRateNum(row: { sysAiUsageTotalTokens?: number | null; sysAiUsageCachedTokens?: number | null }): number {
+  const total = Number(row?.sysAiUsageTotalTokens) || 0;
+  if (!(total > 0)) return -1;
+  const cached = Number(row?.sysAiUsageCachedTokens) || 0;
+  return Math.min(100, Math.max(0, (cached / total) * 100));
+}
+
+/** 缓存率进度条宽度（0–100）；不可算时画 0 宽，但文案会显示「—」。 */
+function cacheRatePct(row: { sysAiUsageTotalTokens?: number | null; sysAiUsageCachedTokens?: number | null }): number {
+  const v = cacheRateNum(row);
+  return v < 0 ? 0 : v;
+}
+
+/** 缓存率文案，一位小数；不可算时显示「—」而不是 0.0%。 */
+function cacheRateText(row: { sysAiUsageTotalTokens?: number | null; sysAiUsageCachedTokens?: number | null }): string {
+  const v = cacheRateNum(row);
+  return v < 0 ? '—' : v.toFixed(1) + '%';
 }
 
 function formatLatency(ms: number | null | undefined): string {
@@ -1982,13 +1991,26 @@ onMounted(() => {
   z-index: 100; font-size: 12px;
 }
 .token-cell:hover .token-detail { display: block; }
-.token-detail-title { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 6px; }
+.token-detail-title { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 6px; display: flex; align-items: center; }
+/* 标题前的色块：与下方缓存率/缓存读数同色，一眼看出「这一坨都是缓存相关」 */
+.td-dot { width: 6px; height: 6px; margin-right: 6px; border-radius: 1px; background: var(--el-color-info); flex-shrink: 0; }
 .token-detail-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; height: 22px; }
 .td-label { color: var(--el-text-color-secondary); }
 .td-val { font-variant-numeric: tabular-nums; font-weight: 500; }
 .td-total .td-label { color: var(--el-text-color-primary); font-weight: 600; }
 .td-total .td-val { color: var(--el-text-color-primary); font-weight: 700; }
 .token-detail-divider { height: 1px; background: var(--el-border-color-lighter); margin: 4px 0; }
+/* 缓存率：进度条 + 百分比。底槽与填充都用竖向条纹（2px 实 / 2px 空），
+   比纯色条更能看出「几乎打满」还是「才一半」，也不必再配文字说明。 */
+.td-rate-body { display: flex; align-items: center; gap: 8px; }
+.td-rate-bar {
+  width: 72px; height: 8px; border-radius: 2px; overflow: hidden; flex-shrink: 0;
+  background: repeating-linear-gradient(90deg, var(--el-fill-color) 0 2px, transparent 2px 4px);
+}
+.td-rate-bar > i {
+  display: block; height: 100%; border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--el-color-info) 0 2px, transparent 2px 4px);
+}
 .td-est-note { margin-top: 6px; font-size: 11px; line-height: 1.4; color: var(--el-color-warning); }
 
 /* 尊重系统「减少动态效果」偏好。

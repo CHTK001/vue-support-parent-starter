@@ -7,7 +7,7 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover } from "element-plus";
+import { ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover, ElTooltip } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
@@ -418,33 +418,44 @@ const filtered = computed(() => {
  * <p>KPI 卡的 {@code desc} 只有四五个字（「离线或采集异常」），读者并不知道
  * 「离线」是心跳超时还是 Agent 掉线、「需关注」到底合并了哪几类。
  * 这里把口径写全，与 {@link hostKpis} 同 key 对应，改卡片时不会漏改注解。</p>
+ *
+ * <p>呈现方式：挂在各卡标题旁的 tip（见模板里的 #title 插槽）。
+ * 早先是页面底部一张常驻的 ElCard，四行说明固定占掉约 120px 高度 ——
+ * 而这四条注解绝大多数人一辈子不会点开，纯属白占版面。改成按需浮层后零占位，
+ * 且注解紧贴它所属的那张卡，不用上下对照。</p>
  */
-const hostKpiNotes = computed<Array<{ key: string; title: string; note: string; color: string }>>(() => [
+const hostKpiNotes = computed<Array<{ key: string; title: string; note: string }>>(() => [
   {
     key: "total",
     title: "可远控目标",
     note: "台账中登记的全部主机，含离线与停用采集的；右键可编辑、删除、绑定身份。",
-    color: "var(--brand-500, var(--el-color-primary))",
   },
   {
     key: "online",
     title: "可连接资产",
     note: "分子为当前在线（近一次心跳 / 探测正常），分母为台账总数；网络不可达时计数不增长。",
-    color: "var(--el-color-success)",
   },
   {
     key: "offline",
     title: "需关注处理",
     note: "合并三类：心跳超时、采集通道异常、远端凭证失效。任一类命中即计入，需要逐台排查。",
-    color: "var(--el-text-color-placeholder)",
   },
   {
     key: "remote",
     title: "支持远程连接",
     note: "已开启 SSH / RDP / VNC 之一且填写了协议端口的主机；未开启的不出现在远控入口。",
-    color: "var(--metric-cpu, var(--el-color-primary))",
   },
 ]);
+
+/**
+ * 按 key 取该 KPI 卡的口径说明，供标题旁的 tip 使用。
+ *
+ * @param key 与 {@link hostKpis} 对应的卡标识
+ * @return 说明文本；该卡没有注解时返回空串（此时不渲染 tip 图标）
+ */
+function noteOf(key: string): string {
+  return hostKpiNotes.value.find((n) => n.key === key)?.note ?? "";
+}
 
 /**
  * 是否存在主机（与筛选结果无关）。
@@ -982,24 +993,26 @@ function osTileClass(h: Host): string {
         :desc="k.desc"
         :icon="k.icon"
         :icon-color="k.iconColor"
-      />
+      >
+        <!-- 口径说明挂在标题旁：按需浮层，不占版面。
+             注解与卡同 key 绑定，改卡片时不会漏改注解。 -->
+        <template #title>
+          <span class="kpi-title">
+            <span class="kpi-title__text">{{ k.title }}</span>
+            <ElTooltip
+              v-if="noteOf(k.key)"
+              :content="noteOf(k.key)"
+              placement="top"
+              :show-after="200"
+            >
+              <span class="kpi-title__tip" @click.stop>
+                <ReIcon name="QuestionFilled" :size="12" />
+              </span>
+            </ElTooltip>
+          </span>
+        </template>
+      </ReStatCard>
     </section>
-
-    <!-- 注解数据：统计口径说明。四张 KPI 卡的 desc 只有几个字，
-         写清「在线怎么判 / 需关注包含哪些 / 可远控以什么为准」，
-         免得用户对着「需关注处理 3」猜这是哪三类。 -->
-    <ElCard class="as-notes" shadow="never">
-      <template #header>
-        <span class="as-notes__title">口径说明</span>
-      </template>
-      <ul class="as-notes__list">
-        <li v-for="n in hostKpiNotes" :key="n.key">
-          <i class="as-notes__dot" :style="{ background: n.color }" />
-          <b>{{ n.title }}</b>
-          <span>{{ n.note }}</span>
-        </li>
-      </ul>
-    </ElCard>
 
     <!-- 筛选条（对齐 UI 稿：独立白色圆角面板） -->
     <div class="as-panel as-filter">
@@ -1049,7 +1062,11 @@ function osTileClass(h: Host): string {
         <!-- 卡片视图（默认）：吃满一行，显示详细指标
              用 el-card 而非 ReCard：el-card 支持 header / footer 插槽，结构与页面一致；
              底下把它的页面级装饰复位成扁平容器，视觉与页面其余面板统一。 -->
-      <div v-if="viewMode === 'card'" class="host-card-grid">
+      <div
+        v-if="viewMode === 'card'"
+        class="host-card-grid"
+        :class="{ 'host-card-grid--empty': filtered.length === 0 }"
+      >
         <ElCard
           v-for="h in filtered"
           :key="h.id"
@@ -1407,9 +1424,22 @@ function osTileClass(h: Host): string {
 </template>
 
 <style scoped lang="scss">
-/* 页面容器：直接铺在布局灰底上（白卡片浮于其上，对齐 UI 稿） */
+/* 页面容器：直接铺在布局灰底上（白卡片浮于其上，对齐 UI 稿）
+   纵向 flex + 吃满高度：上方 KPI 与筛选条是定高区块，高度全给下方主机区。
+   不这样做的话，主机少时内容撑不满视口，底部会留一大片灰 —— 去掉口径说明卡后
+   这块空白更明显了。父级 el-main 是 flex:1 的滚动容器，height:100% 有确定值可解析。 */
 .as {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
   padding: 4px 4px 24px;
+}
+/* 定高区块不参与纵向压缩：视口变矮时该由主机区（min-height:0）让位，
+   而不是把 KPI 卡和筛选条一起压扁。 */
+.as > .host-kpis,
+.as > .as-filter {
+  flex-shrink: 0;
 }
 
 /* ============================================================
@@ -1425,61 +1455,32 @@ function osTileClass(h: Host): string {
 }
 
 /* ============================================================
-   注解数据（KPI 口径说明）：独立 el-card，扁平容器
+   KPI 标题内的口径 tip：文字 + 问号图标
    ============================================================ */
-.as-notes { margin-top: 12px; }
-/* el-card 自带页面级装饰（深色块背景 / 头部分隔线），复位成扁平容器，
-   与 .as-panel、主机卡片同一套视觉：边框 + 圆角 + 轻阴影 */
-.as-notes {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+.kpi-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  min-width: 0;
 }
-.as-notes :deep(.el-card__header) {
-  padding: 12px 16px 0;
-  border-bottom: 0;
-  background: transparent;
-}
-.as-notes :deep(.el-card__body) {
-  padding: 8px 16px 14px;
-}
-.as-notes__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-/* 四条口径纵向排列：色点对应 KPI 卡图标色，扫一眼能对上 */
-.as-notes__list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.as-notes__list li {
-  display: grid;
-  grid-template-columns: 8px minmax(0, auto) minmax(0, 1fr);
-  align-items: baseline;
-  gap: 8px;
-  font-size: 12.5px;
-  line-height: 1.6;
-}
-.as-notes__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  /* 与 KPI 图标基线对齐 */
-  transform: translateY(1px);
-}
-.as-notes__list b {
-  color: var(--el-text-color-primary);
-  font-weight: 600;
+/* ReStatCard 的标题自带 nowrap + ellipsis，但省略号只作用在插槽内容这一层，
+   里面再嵌了行内 flex 就落不到文字上了 —— 文字这层要自己声明。 */
+.kpi-title__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.as-notes__list span {
-  color: var(--el-text-color-secondary);
+.kpi-title__tip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: help;
+  color: var(--el-text-color-placeholder);
+  transition: color 0.15s ease;
+}
+.kpi-title__tip:hover {
+  color: var(--el-color-primary);
 }
 
 /* ============================================================
@@ -1619,10 +1620,21 @@ function osTileClass(h: Host): string {
    主机卡片（对齐 UI 稿：OS 图标 + 名称/地址 + 属性胶囊 + 指标条 + 操作）
    ============================================================ */
 .host-card-grid {
+  /* 吃掉上方定高区块之外的全部高度；min-height:0 是 flex 子项能被压到内容以下的前提 */
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  /* 有卡片时按自然高度排布、不把卡片拉高（卡片高度由自身内容决定）；
+     剩余空间宁可留在网格下方，也不要把每张主机卡撑成同一个死板的高度。 */
+  align-content: start;
   gap: 16px;
   padding: 0 0 8px;
+}
+/* 空态例外：网格里只有一张空态卡，让它吃满 —— 否则卡片只有一条内容高，
+   底下又是一大片灰，比「没撑满」更显眼。 */
+.host-card-grid--empty {
+  align-content: stretch;
 }
 @media (max-width: 1100px) {
   .host-card-grid { grid-template-columns: 1fr; }
@@ -1777,7 +1789,12 @@ function osTileClass(h: Host): string {
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 .hc-empty-card :deep(.el-card__body) {
-  padding: 40px 16px;
+  /* 空态卡被网格拉到满高，body 居中让 ElEmpty 落在视觉中心，
+     而不是顶部 —— 满高卡片里内容顶在上面的观感更像是「没加载完」。 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
 }/* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
 .op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
 </style>
