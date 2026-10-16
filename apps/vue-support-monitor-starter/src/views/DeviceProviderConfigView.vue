@@ -1,186 +1,310 @@
 <script setup lang="ts">
 /**
- * 提供商配置 —— 各厂商的离线检测阈值。
+ * 提供商配置 —— 厂商自定义的 AK/SK 等接入参数。
  *
- * 数据来自 device-starter 的 `GET /api/device/provider-config`，返回
- * `Map<vendor, threshold>`（阈值为秒）；`PUT /api/device/provider-config/{vendor}`
- * 按厂商更新，经 monitor 应用承载。
+ * 数据来自 device-starter 的 `/api/device/provider-credential/*`，落库表
+ * `device_provider_credential`。同一 (厂商, 平台类型) 可登记**多套**凭据
+ * （如多个海康账号分属不同区域），每厂商至多一套标记为默认，
+ * 厂商级离线阈值取默认套的阈值。
  *
- * 后端只有「按厂商整体设一个阈值」的粒度，没有单设备级配置
- * （单设备是 `PUT /api/device/{id}/offline-threshold`），本页只做厂商级。
+ * 可选平台类型直接对应后台 SPI 的实现：
+ *   - hikvision：cloud-yao 云耀 / cloud-eye 云眸 / secure-platform 安防平台（另有 SDK 局域网直连）
+ *   - dahua   ：dahua-cloud 云睿 / lechange 乐橙（另有 SDK 局域网直连）
+ * SDK 直连走 IP+账号密码，不需要 AK/SK，故平台类型留空。
  *
  * 视觉与布局对齐「代理管理」（ProxyView）：无顶部 hero、4 张紧凑 ReStatCard、
- * 筛选与操作合并成一行、行内保存/还原用图标按钮、统一 --el-* 变量。
+ * 筛选与操作合并成一行、表格卡吃满剩余高度、行内操作用 square 图标按钮、
+ * 统一 --el-* 变量。
  *
  * @author CH
  * @since 4.0.0.42
  */
-import { message } from "@repo/core";
-import { computed, onMounted, ref } from "vue";
-
-import { Bell, Clock, Grid, Operation } from "@element-plus/icons-vue";
+import { computed, onMounted, reactive, ref } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { Bell, CircleCheck, Grid, Share } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 import deviceApi from "@pages/device/src/api/deviceApi";
+import type { ProviderCredential } from "@pages/device/src/types/device";
 
-/** 厂商码 → 中文名（与设备资产页的 VENDOR_LABELS 保持一致口径） */
+/** 厂商码 → 中文名 */
 const VENDOR_LABELS: Record<string, string> = {
   hikvision: "海康威视",
   dahua: "大华",
 };
 
-interface VendorRow {
-  vendor: string;
-  label: string;
-  /** 当前生效阈值（秒） */
-  threshold: number;
-  /** 编辑中的阈值 */
-  draft: number;
-  saving: boolean;
-  dirty: boolean;
-}
+/** 各厂商支持的平台类型（取自后台 SPI：HikvisionProvider / DahuaProvider 的 connect 分支） */
+const VENDOR_PLATFORMS: Record<string, { value: string; label: string }[]> = {
+  hikvision: [
+    { value: "cloud-yao", label: "云耀" },
+    { value: "cloud-eye", label: "云眸" },
+    { value: "secure-platform", label: "安防平台" },
+  ],
+  dahua: [
+    { value: "dahua-cloud", label: "云睿" },
+    { value: "lechange", label: "乐橙" },
+  ],
+};
 
-const rows = ref<VendorRow[]>([]);
+/** 平台类型留空 = SDK 局域网直连（IP + 账号密码，不需要 AK/SK） */
+const SDK_PLATFORM = { value: "", label: "SDK 直连" };
+
+const rows = ref<ProviderCredential[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 
-/** 关键字过滤（厂商名或厂商码） */
-const keyword = ref("");
+/** 筛选 */
+const filters = reactive({ vendor: "", platform: "", keyword: "" });
 
-/** 未做厂商名映射时直接展示原码，不隐藏数据 */
-function vendorLabel(vendor: string): string {
-  return VENDOR_LABELS[vendor] ? `${VENDOR_LABELS[vendor]}（${vendor}）` : vendor;
-}
+/** 已展开明文的 SK 行 id 集合 */
+const revealed = ref<Set<string>>(new Set());
+
+/** 新增/编辑弹窗 */
+const dialogVisible = ref(false);
+const dialogSaving = ref(false);
+const editingId = ref<string | null>(null);
+const form = reactive({
+  deviceCredentialVendor: "hikvision",
+  deviceCredentialPlatformType: "cloud-yao",
+  deviceCredentialName: "",
+  deviceCredentialAppKey: "",
+  deviceCredentialAppSecret: "",
+  deviceCredentialBaseUrl: "",
+  deviceCredentialOfflineThreshold: 60,
+  deviceCredentialIsDefault: false,
+  deviceCredentialEnabled: true,
+  deviceCredentialRemark: "",
+});
+
+const vendorOptions = Object.entries(VENDOR_LABELS).map(([value, label]) => ({ value, label }));
+
+/** 当前所选厂商支持的平台类型 */
+const platformOptions = computed(() => VENDOR_PLATFORMS[form.deviceCredentialVendor] ?? []);
+
+/** 凭据名称必填；平台模式下 AK/SK 必填 */
+const nameInvalid = computed(() => !form.deviceCredentialName.trim());
+const isPlatformMode = computed(() => !!form.deviceCredentialPlatformType);
+const akSkInvalid = computed(
+  () => isPlatformMode.value && (!form.deviceCredentialAppKey.trim() || !form.deviceCredentialAppSecret.trim())
+);
+const formInvalid = computed(() => nameInvalid.value || akSkInvalid.value || form.deviceCredentialOfflineThreshold <= 0);
 
 const filteredRows = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return rows.value;
-  return rows.value.filter(
-    (r) => r.vendor.toLowerCase().includes(kw) || r.label.toLowerCase().includes(kw)
-  );
+  const kw = filters.keyword.trim().toLowerCase();
+  return rows.value.filter((r) => {
+    if (filters.vendor && r.deviceCredentialVendor !== filters.vendor) return false;
+    if (filters.platform && (r.deviceCredentialPlatformType || "") !== filters.platform) return false;
+    if (!kw) return true;
+    return [r.deviceCredentialName, r.deviceCredentialAppKey, r.deviceCredentialRemark]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(kw));
+  });
 });
 
-const dirtyCount = computed(() => rows.value.filter((r) => r.dirty).length);
-
-const avgThreshold = computed(() => {
-  if (!rows.value.length) return 0;
-  return Math.round(rows.value.reduce((s, r) => s + r.threshold, 0) / rows.value.length);
-});
-
-const thresholdRange = computed(() => {
-  if (!rows.value.length) return "—";
-  const list = rows.value.map((r) => r.threshold);
-  return `${Math.min(...list)} ~ ${Math.max(...list)}`;
-});
+const enabledCount = computed(() => rows.value.filter((r) => r.deviceCredentialEnabled).length);
+const defaultCount = computed(() => rows.value.filter((r) => r.deviceCredentialIsDefault).length);
 
 const kpis = computed(() => [
   {
     key: "vendors",
     title: "接入厂商",
-    value: rows.value.length,
-    desc: `当前筛选 ${filteredRows.value.length} 个`,
-    icon: Grid,
+    value: new Set(rows.value.map((r) => r.deviceCredentialVendor)).size,
+    desc: `当前筛选 ${filteredRows.value.length} 套`,
+    icon: Share,
     iconColor: "var(--el-color-primary)",
   },
   {
-    key: "dirty",
-    title: "待保存",
-    value: dirtyCount.value,
-    desc: dirtyCount.value ? "有未保存的阈值改动" : "配置均已保存",
-    icon: Bell,
-    iconColor: dirtyCount.value ? "var(--el-color-warning)" : "var(--el-color-success)",
-  },
-  {
-    key: "avg",
-    title: "平均阈值",
-    value: avgThreshold.value,
-    desc: "单位：秒",
-    icon: Operation,
+    key: "total",
+    title: "凭据套数",
+    value: rows.value.length,
+    desc: "同厂商可登记多套",
+    icon: Grid,
     iconColor: "var(--el-color-info)",
   },
   {
-    key: "range",
-    title: "阈值区间",
-    value: thresholdRange.value,
-    desc: "最小 ~ 最大（秒）",
-    icon: Clock,
+    key: "enabled",
+    title: "已启用",
+    value: enabledCount.value,
+    desc: "停用的套不参与建连",
+    icon: CircleCheck,
+    iconColor: "var(--el-color-success)",
+  },
+  {
+    key: "default",
+    title: "默认套",
+    value: defaultCount.value,
+    desc: "每厂商至多一套，离线阈值取自它",
+    icon: Bell,
     iconColor: "var(--metric-disk, var(--el-color-warning))",
   },
 ]);
 
-/** 阈值合理性提示：过小会频繁误报，过大则离线发现滞后 */
-function thresholdHint(t: number): string {
-  if (!Number.isFinite(t) || t <= 0) return "必须大于 0";
-  if (t < 30) return "偏小，网络抖动易误判离线";
-  if (t > 3600) return "偏大，离线发现会明显滞后";
-  return "";
+function vendorLabel(vendor?: string): string {
+  if (!vendor) return "—";
+  return VENDOR_LABELS[vendor] ? `${VENDOR_LABELS[vendor]}（${vendor}）` : vendor;
 }
 
-async function fetchConfig(): Promise<void> {
+function platformLabel(platform?: string): string {
+  if (!platform) return "SDK 直连";
+  const hit = Object.values(VENDOR_PLATFORMS)
+    .flat()
+    .find((p) => p.value === platform);
+  return hit ? `${hit.label}（${platform}）` : platform;
+}
+
+/** SK 默认掩码展示，点一下明文/掩码切换 */
+function secretOf(row: ProviderCredential): string {
+  const id = row.deviceCredentialId || "";
+  const raw = row.deviceCredentialAppSecret || "";
+  if (!raw) return "—";
+  if (revealed.value.has(id)) return raw;
+  return `${raw.slice(0, 2)}${"*".repeat(Math.max(4, Math.min(10, raw.length - 2)))}${raw.slice(-2)}`;
+}
+
+function toggleSecret(row: ProviderCredential): void {
+  const id = row.deviceCredentialId || "";
+  const next = new Set(revealed.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  revealed.value = next;
+}
+
+async function fetchList(): Promise<void> {
   loading.value = true;
   loadError.value = "";
   try {
-    const map = (await deviceApi.listProviderConfigs()) || {};
-    rows.value = Object.entries(map).map(([vendor, threshold]) => ({
-      vendor,
-      label: vendorLabel(vendor),
-      threshold: Number(threshold),
-      draft: Number(threshold),
-      saving: false,
-      dirty: false,
-    }));
+    rows.value = (await deviceApi.listCredentials()) || [];
   } catch (e: unknown) {
     rows.value = [];
     loadError.value = (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e));
-    message.error(`提供商配置加载失败：${loadError.value}`);
+    ElMessage.error(`凭据加载失败：${loadError.value}`);
   } finally {
     loading.value = false;
   }
 }
 
-async function onSave(r: VendorRow): Promise<void> {
-  if (!Number.isFinite(r.draft) || r.draft <= 0) {
-    message.warning("阈值必须大于 0");
-    return;
-  }
-  r.saving = true;
-  try {
-    await deviceApi.updateProviderConfig(r.vendor, r.draft);
-    r.threshold = r.draft;
-    r.dirty = false;
-    message.success(`${r.label} 的离线阈值已更新为 ${r.draft} 秒`);
-  } catch (e: unknown) {
-    message.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
-  } finally {
-    r.saving = false;
-  }
-}
-
-function onReset(r: VendorRow): void {
-  r.draft = r.threshold;
-}
-
-/** 一键保存全部已改动项 */
-async function onSaveAll(): Promise<void> {
-  const dirty = rows.value.filter((r) => r.dirty && Number.isFinite(r.draft) && r.draft > 0);
-  if (!dirty.length) {
-    message.info("没有待保存的改动");
-    return;
-  }
-  for (const r of dirty) await onSave(r);
-}
-
-function onResetAll(): void {
-  rows.value.forEach((r) => {
-    r.draft = r.threshold;
+function openCreate(): void {
+  editingId.value = null;
+  Object.assign(form, {
+    deviceCredentialVendor: "hikvision",
+    deviceCredentialPlatformType: "cloud-yao",
+    deviceCredentialName: "",
+    deviceCredentialAppKey: "",
+    deviceCredentialAppSecret: "",
+    deviceCredentialBaseUrl: "",
+    deviceCredentialOfflineThreshold: 60,
+    deviceCredentialIsDefault: false,
+    deviceCredentialEnabled: true,
+    deviceCredentialRemark: "",
   });
+  dialogVisible.value = true;
 }
 
-onMounted(fetchConfig);
+function openEdit(row: ProviderCredential): void {
+  editingId.value = row.deviceCredentialId ?? null;
+  Object.assign(form, {
+    deviceCredentialVendor: row.deviceCredentialVendor,
+    deviceCredentialPlatformType: row.deviceCredentialPlatformType || "",
+    deviceCredentialName: row.deviceCredentialName || "",
+    deviceCredentialAppKey: row.deviceCredentialAppKey || "",
+    deviceCredentialAppSecret: row.deviceCredentialAppSecret || "",
+    deviceCredentialBaseUrl: row.deviceCredentialBaseUrl || "",
+    deviceCredentialOfflineThreshold: row.deviceCredentialOfflineThreshold ?? 60,
+    deviceCredentialIsDefault: !!row.deviceCredentialIsDefault,
+    deviceCredentialEnabled: row.deviceCredentialEnabled ?? true,
+    deviceCredentialRemark: row.deviceCredentialRemark || "",
+  });
+  dialogVisible.value = true;
+}
+
+/** 切换厂商时把平台类型重置为该厂商的首个平台，避免留下不匹配的组合 */
+function onVendorChange(): void {
+  const opts = VENDOR_PLATFORMS[form.deviceCredentialVendor] ?? [];
+  const stillValid = opts.some((o) => o.value === form.deviceCredentialPlatformType);
+  if (!stillValid) form.deviceCredentialPlatformType = opts[0]?.value ?? "";
+}
+
+async function onSubmit(): Promise<void> {
+  if (formInvalid.value) {
+    ElMessage.warning("请补全凭据名称、AK/SK 与合法阈值");
+    return;
+  }
+  dialogSaving.value = true;
+  try {
+    const payload: ProviderCredential = { ...form };
+    if (editingId.value) {
+      await deviceApi.updateCredential(editingId.value, payload);
+      ElMessage.success("凭据已更新");
+    } else {
+      await deviceApi.createCredential(payload);
+      ElMessage.success("凭据已新增");
+    }
+    dialogVisible.value = false;
+    await fetchList();
+  } catch (e: unknown) {
+    ElMessage.error(`保存失败：${(e as { msg?: string })?.msg || e}`);
+  } finally {
+    dialogSaving.value = false;
+  }
+}
+
+async function onDelete(row: ProviderCredential): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除凭据「${row.deviceCredentialName}」？删除后该套不再参与建连。`,
+      "删除确认",
+      { type: "warning" }
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deviceApi.deleteCredential(row.deviceCredentialId!);
+    ElMessage.success("凭据已删除");
+    await fetchList();
+  } catch (e: unknown) {
+    ElMessage.error(`删除失败：${(e as { msg?: string })?.msg || e}`);
+  }
+}
+
+/** 设为/取消默认套 */
+async function onToggleDefault(row: ProviderCredential): Promise<void> {
+  try {
+    await deviceApi.updateCredential(row.deviceCredentialId!, {
+      ...row,
+      deviceCredentialIsDefault: !row.deviceCredentialIsDefault,
+    });
+    ElMessage.success(row.deviceCredentialIsDefault ? "已取消默认" : "已设为该厂商默认套");
+    await fetchList();
+  } catch (e: unknown) {
+    ElMessage.error(`操作失败：${(e as { msg?: string })?.msg || e}`);
+  }
+}
+
+/** 启用/停用 */
+async function onToggleEnabled(row: ProviderCredential): Promise<void> {
+  try {
+    await deviceApi.updateCredential(row.deviceCredentialId!, {
+      ...row,
+      deviceCredentialEnabled: !row.deviceCredentialEnabled,
+    });
+    await fetchList();
+  } catch (e: unknown) {
+    ElMessage.error(`操作失败：${(e as { msg?: string })?.msg || e}`);
+  }
+}
+
+function onResetFilters(): void {
+  filters.vendor = "";
+  filters.platform = "";
+  filters.keyword = "";
+}
+
+onMounted(fetchList);
 </script>
 
 <template>
   <div class="dpc">
-    <!-- KPI 卡：接入厂商 / 待保存 / 平均阈值 / 阈值区间 -->
+    <!-- KPI 卡：接入厂商 / 凭据套数 / 已启用 / 默认套 -->
     <section class="dpc-kpis">
       <ReStatCard
         v-for="k in kpis"
@@ -194,92 +318,188 @@ onMounted(fetchConfig);
       />
     </section>
 
-    <!-- 筛选与操作合并成一行：厂商搜索 + 查询 + 图标操作组（全部保存/全部还原/刷新） -->
+    <!-- 筛选与操作合并成一行：厂商 / 平台 / 关键字 + 查询 + 图标操作组（新增/刷新/重置） -->
     <section class="dpc-panel dpc-filter">
-      <div class="dpc-field dpc-field--search">
-        <ReInput v-model="keyword" placeholder="搜索厂商名称或厂商码..." clearable prefix-icon="Search" />
+      <div class="dpc-field dpc-field--vendor">
+        <ReSelect v-model="filters.vendor" placeholder="全部厂商" clearable :options="vendorOptions" />
       </div>
-      <span class="dpc-filter__meta">{{ filteredRows.length }} / {{ rows.length }} 个厂商</span>
-      <ReButton icon="Search" :show-text="true" type="primary" :loading="loading" @click="fetchConfig">
+      <div class="dpc-field">
+        <ReSelect
+          v-model="filters.platform"
+          placeholder="全部平台"
+          clearable
+          :options="[...Object.values(VENDOR_PLATFORMS).flat(), SDK_PLATFORM]"
+        />
+      </div>
+      <div class="dpc-field dpc-field--search">
+        <ReInput v-model="filters.keyword" placeholder="搜索名称 / AK / 备注..." clearable prefix-icon="Search" />
+      </div>
+      <span class="dpc-filter__meta">{{ filteredRows.length }} / {{ rows.length }} 套</span>
+      <ReButton icon="Search" :show-text="true" type="primary" :loading="loading" @click="fetchList">
         查询
       </ReButton>
       <div class="dpc-toolbar-ops">
-        <ReButton
-          icon="Check"
-          layout="square"
-          type="primary"
-          tip="保存全部改动"
-          :disabled="!dirtyCount"
-          @click="onSaveAll"
-        />
-        <ReButton icon="RefreshLeft" layout="square" tip="还原全部改动" :disabled="!dirtyCount" @click="onResetAll" />
-        <ReButton icon="RefreshRight" layout="square" tip="重新加载" :loading="loading" @click="fetchConfig" />
+        <ReButton icon="Plus" layout="square" type="primary" tip="新增凭据套" @click="openCreate" />
+        <ReButton icon="RefreshRight" layout="square" tip="重新加载" :loading="loading" @click="fetchList" />
+        <ReButton icon="Delete" layout="square" tip="重置筛选条件" @click="onResetFilters" />
       </div>
     </section>
 
     <div v-if="loadError" class="dpc-error">
       <span>{{ loadError }}</span>
-      <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchConfig" />
+      <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchList" />
     </div>
 
     <!-- 表格卡：flex:1 + min-height:0 吃满剩余高度 -->
     <section class="dpc-panel dpc-table-card">
       <div v-if="!loading && !filteredRows.length" class="dpc-empty">
-        <ReEmpty description="暂无提供商配置" :image-size="80" />
+        <ReEmpty description="暂无凭据，点击「新增凭据套」登记厂商的 AK/SK" :image-size="80" />
       </div>
       <ReTable
         v-else
         :data="filteredRows"
         :loading="loading"
         :columns="[
-          { prop: 'label', label: '厂商', minWidth: 200 },
-          { prop: 'vendor', label: '厂商码', width: 160, slot: 'vendor' },
-          { prop: 'draft', label: '离线阈值（秒）', width: 200, slot: 'threshold' },
-          { prop: 'hint', label: '提示', minWidth: 220, slot: 'hint' },
-          { prop: 'actions', label: '操作', width: 110, slot: 'actions', align: 'right' },
+          { prop: 'deviceCredentialVendor', label: '厂商', width: 150, slot: 'vendor' },
+          { prop: 'deviceCredentialPlatformType', label: '平台', width: 170, slot: 'platform' },
+          { prop: 'deviceCredentialName', label: '凭据名称', minWidth: 160 },
+          { prop: 'deviceCredentialAppKey', label: 'AppKey (AK)', width: 190, slot: 'ak' },
+          { prop: 'deviceCredentialAppSecret', label: 'AppSecret (SK)', width: 210, slot: 'sk' },
+          { prop: 'deviceCredentialOfflineThreshold', label: '离线阈值', width: 110, align: 'center' },
+          { prop: 'deviceCredentialIsDefault', label: '默认', width: 90, align: 'center', slot: 'isDefault' },
+          { prop: 'deviceCredentialEnabled', label: '启用', width: 90, align: 'center', slot: 'enabled' },
+          { prop: 'actions', label: '操作', width: 170, slot: 'actions' },
         ]"
         size="default"
         :border="false"
         :stripe="false"
-        table-id="device-provider-list"
-        class="device-provider-table"
+        table-id="device-credential-list"
+        class="device-credential-table"
       >
-        <template #col-vendor="{ row }">
-          <span class="mono">{{ row.vendor }}</span>
+        <template #col-vendor="{ row }">{{ vendorLabel(row.deviceCredentialVendor) }}</template>
+        <template #col-platform="{ row }">
+          <ReTag :type="row.deviceCredentialPlatformType ? 'primary' : 'info'" size="small">
+            {{ platformLabel(row.deviceCredentialPlatformType) }}
+          </ReTag>
         </template>
-        <template #col-threshold="{ row }">
-          <div class="dpc-th">
-            <ReInputNumber
-              v-model="row.draft"
-              :min="1"
-              :max="86400"
-              :disabled="row.saving"
-              style="width: 130px"
-              @change="row.dirty = row.draft !== row.threshold"
+        <template #col-ak="{ row }">
+          <span class="mono">{{ row.deviceCredentialAppKey || "—" }}</span>
+        </template>
+        <template #col-sk="{ row }">
+          <span class="dpc-sk">
+            <span class="mono">{{ secretOf(row) }}</span>
+            <ReButton
+              v-if="row.deviceCredentialAppSecret"
+              :icon="revealed.has(row.deviceCredentialId || '') ? 'Hide' : 'View'"
+              layout="square"
+              :title="revealed.has(row.deviceCredentialId || '') ? '隐藏' : '显示'"
+              @click="toggleSecret(row)"
             />
-            <span v-if="row.dirty" class="dpc-dirty">已改</span>
-          </div>
-        </template>
-        <template #col-hint="{ row }">
-          <span :class="{ 'is-warn': !!thresholdHint(row.draft) }">
-            {{ thresholdHint(row.draft) || "—" }}
           </span>
+        </template>
+        <template #col-isDefault="{ row }">
+          <ReTag v-if="row.deviceCredentialIsDefault" type="warning" size="small">默认</ReTag>
+          <span v-else class="dpc-dash">—</span>
+        </template>
+        <template #col-enabled="{ row }">
+          <ReTag :type="row.deviceCredentialEnabled ? 'success' : 'info'" size="small">
+            {{ row.deviceCredentialEnabled ? "启用" : "停用" }}
+          </ReTag>
         </template>
         <template #col-actions="{ row }">
           <div class="dpc-ops">
+            <ReButton icon="EditPen" layout="square" title="编辑" @click="openEdit(row)" />
             <ReButton
-              icon="Check"
+              :icon="row.deviceCredentialIsDefault ? 'StarFilled' : 'Star'"
               layout="square"
-              title="保存"
-              :disabled="!row.dirty || row.draft <= 0"
-              :loading="row.saving"
-              @click="onSave(row)"
+              :title="row.deviceCredentialIsDefault ? '取消默认' : '设为该厂商默认套'"
+              @click="onToggleDefault(row)"
             />
-            <ReButton icon="RefreshLeft" layout="square" title="还原" :disabled="!row.dirty" @click="onReset(row)" />
+            <ReButton
+              :icon="row.deviceCredentialEnabled ? 'VideoPause' : 'VideoPlay'"
+              layout="square"
+              :title="row.deviceCredentialEnabled ? '停用' : '启用'"
+              @click="onToggleEnabled(row)"
+            />
+            <ReButton icon="Delete" layout="square" title="删除" @click="onDelete(row)" />
           </div>
         </template>
       </ReTable>
     </section>
+
+    <ReDialog
+      v-model="dialogVisible"
+      :title="editingId ? '编辑凭据套' : '新增凭据套'"
+      width="560px"
+      :close-on-click-modal="false"
+    >
+      <div class="dpc-form">
+        <ReFormItem label="厂商" required>
+          <ReSelect
+            v-model="form.deviceCredentialVendor"
+            :options="vendorOptions"
+            style="width: 100%"
+            :disabled="!!editingId"
+            @change="onVendorChange"
+          />
+        </ReFormItem>
+        <ReFormItem label="平台类型" required>
+          <ReSelect
+            v-model="form.deviceCredentialPlatformType"
+            :options="[...platformOptions, SDK_PLATFORM]"
+            style="width: 100%"
+            :disabled="!!editingId"
+          />
+        </ReFormItem>
+        <ReFormItem label="凭据名称" required>
+          <ReInput v-model="form.deviceCredentialName" placeholder="如「华东区账号」" />
+        </ReFormItem>
+        <template v-if="isPlatformMode">
+          <ReFormItem label="AppKey (AK)" required>
+            <ReInput v-model="form.deviceCredentialAppKey" placeholder="厂商开放平台分配的 AppKey" />
+          </ReFormItem>
+          <ReFormItem label="AppSecret (SK)" required>
+            <ReInput
+              v-model="form.deviceCredentialAppSecret"
+              type="password"
+              show-password
+              placeholder="厂商开放平台分配的 AppSecret"
+            />
+          </ReFormItem>
+        </template>
+        <ReFormItem v-else label="说明">
+          <span class="dpc-hint">SDK 局域网直连使用设备自身的 IP + 账号密码，无需 AK/SK</span>
+        </ReFormItem>
+        <ReFormItem label="Endpoint">
+          <ReInput v-model="form.deviceCredentialBaseUrl" placeholder="留空使用内置默认地址" />
+        </ReFormItem>
+        <ReFormItem label="离线阈值" required>
+          <ReInputNumber
+            v-model="form.deviceCredentialOfflineThreshold"
+            :min="1"
+            :max="86400"
+            style="width: 100%"
+          />
+          <span class="dpc-hint">单位：秒；厂商级阈值取默认套的值</span>
+        </ReFormItem>
+        <ReFormItem label="默认套">
+          <ReSwitch v-model="form.deviceCredentialIsDefault" />
+          <span class="dpc-hint">每厂商至多一套，建连与阈值都优先取它</span>
+        </ReFormItem>
+        <ReFormItem label="启用">
+          <ReSwitch v-model="form.deviceCredentialEnabled" />
+        </ReFormItem>
+        <ReFormItem label="备注">
+          <ReInput v-model="form.deviceCredentialRemark" placeholder="选填" />
+        </ReFormItem>
+      </div>
+      <template #footer>
+        <ReButton @click="dialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="dialogSaving" :disabled="formInvalid" @click="onSubmit">
+          保存
+        </ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -323,10 +543,17 @@ onMounted(fetchConfig);
   padding-left: 10px;
   border-left: 1px solid var(--el-border-color-lighter);
 }
-.dpc-field--search {
-  width: 280px;
+.dpc-field {
+  width: 170px;
 }
-.dpc-field--search :deep(.el-input) {
+.dpc-field--vendor {
+  width: 200px;
+}
+.dpc-field--search {
+  width: 240px;
+}
+.dpc-field :deep(.el-input),
+.dpc-field :deep(.el-select) {
   width: 100%;
 }
 .dpc-filter__meta {
@@ -335,6 +562,8 @@ onMounted(fetchConfig);
   color: var(--el-text-color-secondary);
 }
 @media (max-width: 900px) {
+  .dpc-field,
+  .dpc-field--vendor,
   .dpc-field--search {
     width: 100%;
   }
@@ -398,23 +627,23 @@ onMounted(fetchConfig);
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-variant-numeric: tabular-nums;
 }
-
-.dpc-th {
-  display: flex;
+.dpc-sk {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.dpc-dirty {
-  font-size: 12px;
-  color: var(--el-color-warning);
-}
-.is-warn {
-  color: var(--el-color-warning);
+.dpc-dash {
+  color: var(--el-text-color-placeholder);
 }
 .dpc-ops {
   display: flex;
   align-items: center;
   gap: 6px;
   justify-content: flex-end;
+}
+.dpc-hint {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

@@ -81,3 +81,28 @@ export interface DeviceEvent {
   deviceEventRecordDetail?: string
   deviceEventRecordOccurredAt?: string
 }
+
+/**
+ * 提供商接入凭据（厂商自定义的 AK/SK 等）。
+ *
+ * 同一 (厂商, 平台类型) 可登记多套，如多个海康账号分属不同区域；
+ * 每厂商至多一套 isDefault，厂商级离线阈值取默认套的阈值。
+ */
+export interface ProviderCredential {
+  deviceCredentialId?: string
+  deviceCredentialVendor: string
+  /** 平台类型；SDK 直连为空串 */
+  deviceCredentialPlatformType?: string
+  /** 凭据名称，同厂商同平台下唯一 */
+  deviceCredentialName: string
+  deviceCredentialAppKey?: string
+  deviceCredentialAppSecret?: string
+  /** 平台 endpoint 覆盖，留空用内置默认 */
+  deviceCredentialBaseUrl?: string
+  deviceCredentialOfflineThreshold?: number
+  deviceCredentialIsDefault?: boolean
+  deviceCredentialEnabled?: boolean
+  deviceCredentialRemark?: string
+  deviceCredentialCreatedAt?: string
+  deviceCredentialUpdatedAt?: string
+}
