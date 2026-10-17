@@ -43,11 +43,26 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/AlarmsView.vue"),
         meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
       },
+    ],
+  },
+
+  // ==================== 抓包分析 ====================
+  // 从「监控管理」子项提升为独立顶层分组（rank 6，排在数据中心之后、资产管理之前）。
+  //
+  // 为什么要独立：抓包是一套独立能力 —— 起会话、管 BPF 过滤、看协议分布与 Top 流、
+  // 逐包下钻，和「告警 / 概览」这种看一眼就走的监控视图不是一类东西。此前它挂在
+  // 监控管理分组里，入口要多点一次才能看到；提为顶层后与「服务管理」「发布管理」
+  // 这类单子项顶层组保持同一套做法。
+  {
+    path: "/grp-capture",
+    name: "GroupCapture",
+    meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 6 },
+    children: [
       {
         path: "/tshark",
         name: "Tshark",
         component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"),
-        meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 4 },
+        meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 1 },
       },
     ],
   },

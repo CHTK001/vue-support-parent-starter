@@ -572,8 +572,18 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
   background: var(--border-subtle);
   border-radius: 9px;
 }
-.rail-search {
-  padding: 0 12px 8px;
+/* 搜索框内边距必须挂在 .el-input 上，不能挂在这个类自己身上：
+   ReInput 的包裹层是 .re-input { display: contents }（见 ReInput.vue，
+   刻意不产生盒子以免影响既有布局），写在 display:contents 元素上的 padding
+   永远不渲染 —— 实测输入框宽 287px，正好等于 .rail-inner 的 287px，
+   左右两侧贴死资源条边框，和上方 16px 内缩的标题行、下方 12px 内缩的主机
+   列表全部错位。改挂到真正生成盒子的 .el-input 上，取 12px 与列表对齐。 */
+.rail-search :deep(.el-input) {
+  /* width:auto 是必需的：el-input 自带 width:100%，会顶着外边距继续撑满 287px
+     并溢出右边界（实测 margin 生效后盒子仍宽 287，右缘到 548 > 容器 536）。
+     置回 auto 后它才按「容器宽 − 左右 margin」收缩。 */
+  width: auto;
+  margin: 0 12px 8px;
 }
 .rail-list {
   flex: 1;

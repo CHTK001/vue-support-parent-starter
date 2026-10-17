@@ -82,17 +82,27 @@ async function onAskWidthChange(v: 'narrow' | 'full') {
 </script>
 
 <style scoped>
+/*
+ * 预览区配色一律用 --el-* 令牌，**不要**用 --kb-*。
+ *
+ * <p>--kb-* 令牌的作用域被限定在 kb-refactor.css 的 `.kb-refactor` 类上
+ * （深色态写作 `html.dark .kb-refactor`）。设置页不在这个类里，变量取不到，
+ * 之前于是全靠写死的浅色兜底值（`var(--kb-surface, #fff)` 等）撑着 ——
+ * 结果深色模式下卡片里嵌出一个纯白面板。
+ * --el-* 由 element-plus 的 dark/css-vars.css 提供，随 `html.dark` 自动翻转，
+ * 也正是设置中心其余面板（SettingsCard / AppearanceSettings）在用的那套。</p>
+ */
 .display-preview {
   margin-top: 4px;
   padding: 14px 16px;
-  border: 1px solid var(--kb-rule, #e6edf7);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 10px;
-  background: var(--kb-surface-2, #fbfcfe);
+  background: var(--el-fill-color-lighter);
 }
 
 .display-preview__label {
   font-size: 12px;
-  color: var(--kb-ink-3, #8494ad);
+  color: var(--el-text-color-secondary);
   margin-bottom: 10px;
 }
 
@@ -102,13 +112,14 @@ async function onAskWidthChange(v: 'narrow' | 'full') {
   height: 92px;
 }
 
-/* 内容列：窄屏时居中定宽（模拟舒适阅读列），满屏时撑满舞台 —— 两态差别一眼可见 */
+/* 内容列：窄屏时居中定宽（模拟舒适阅读列），满屏时撑满舞台 —— 两态差别一眼可见。
+   overlay 比外层面板再亮一档，两层边框在明暗两态下都分得开。 */
 .display-preview__content {
   width: 55%;
   height: 100%;
-  border: 1px solid var(--kb-rule, #e6edf7);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
-  background: var(--kb-surface, #fff);
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -116,11 +127,12 @@ async function onAskWidthChange(v: 'narrow' | 'full') {
   transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* 假文字条：跟着前景色走，明暗两态都有足够对比，又不会抢过真实文字 */
 .display-preview__content i {
   display: block;
   height: 7px;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--kb-ink-3, #8494ad) 18%, transparent);
+  background: color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
 }
 
 .display-preview__content i:nth-child(2) { width: 82%; }
@@ -137,7 +149,7 @@ async function onAskWidthChange(v: 'narrow' | 'full') {
   margin: 10px 0 0;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--kb-ink-2, #475569);
+  color: var(--el-text-color-regular);
 }
 
 @media (prefers-reduced-motion: reduce) {
