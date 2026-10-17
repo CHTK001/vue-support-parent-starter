@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "accept:animated-icons": "node scripts/re-animated-icons-acceptance.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
