@@ -1819,6 +1819,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
 
   packages/ui/re-map:
     dependencies:
