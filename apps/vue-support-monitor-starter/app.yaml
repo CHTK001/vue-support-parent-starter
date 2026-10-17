@@ -30,6 +30,14 @@ httpConfig:
   # 长查询场景（如 select ... limit 大表）建议 ≥ 30000，否则会看到
   # axios「timeout of 10000ms exceeded」。
   timeout: 30000
+  # 关掉「请求期间顶部 nprogress 进度条 + 右侧 spinner」。
+  # 框架默认 showLoading: true（packages/config/src/shared.ts），每个请求都
+  # start/done 一次（httpCrypto 的请求/响应拦截器），于是页面切页、筛选、刷新时
+  # 顶部一直有动画在跑，视觉噪音很大；且首次进入依赖多的页面时进度条会被拉满再回跳。
+  # 这里置 false 后 HTTP 不再驱动进度条，路由跳转进度条不受影响
+  # （走的是 hooks.onBeforeEach/onAfterEach，与本项是两条独立通路）。
+  # 需要临时给某个请求加进度条时，仍然可以 http().get(...).loading(true)。
+  showLoading: false
   # 各业务模块后端前缀（createModuleHttp 读取，未配置则回退 baseUrl）。
   # device 用 device-starter 的原生前缀 /api/device——该模块未纳入 /ms/* 体系，
   # 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
@@ -66,8 +74,12 @@ otherConfig:
   #   或部署侧（198 自带的 app.yaml）再显式填远端地址。
   # 桶名 = 目标文件服务的 FileStorage Bean 名，必须与 FS_API_TARGET 指向的服务一致：
   #   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
+  # 本应用（monitor）的「打开文件管理器」深度入口直开的是**监控内嵌**文件服务
+  # （FileStorageServerFilter，Bean 名 localFileStorage，随节点监听在 28080 等端口），
+  # 故主桶名必须是 localFileStorage。此前写死 local，点开即落到不存在的桶（实测 404），
+  # service-types-live F1 用例据此断言深度入口 pathname 必须为 /localFileStorage。
   filestorage:
-    bucket: local
+    bucket: localFileStorage
     quotaGb: 5
 
 # 站内消息（顶栏铃铛）
