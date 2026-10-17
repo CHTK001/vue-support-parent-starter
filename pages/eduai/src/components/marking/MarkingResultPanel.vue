@@ -50,8 +50,29 @@ const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 const finishing = ref(false);
 /** 老师是否已点过完成 */
 const teacherFinished = computed(() => !!props.result?.teacherFinished);
-/** 判分未结束（还在判分/失败）时不允许完成 */
-const canFinish = computed(() => !!props.result?.finished && !teacherFinished.value);
+/**
+ * 判分失败（taskStatus=3）。
+ *
+ * <p>后端的 {@code finished} 对失败任务也返回 true（「判分结束」的口径），
+ * 所以不能只看 finished，否则失败的卷子会显示成「已判分」，老师还能点「完成」。</p>
+ */
+const taskFailed = computed(() => Number(props.result?.taskStatus) === 3);
+/** 本卷是否有逐题结果；失败任务的结果行是空的 */
+const hasResults = computed(() => (props.result?.results?.length ?? 0) > 0);
+/** 判分未结束/失败，或没有逐题结果时不允许完成 */
+const canFinish = computed(() => !!props.result?.finished && hasResults.value && !taskFailed.value && !teacherFinished.value);
+/** 汇总行状态文案：失败要如实说失败，不能混成「已判分」 */
+const statusText = computed(() => {
+  if (taskFailed.value) return '判分失败';
+  return props.result?.finished ? '已判分' : '判分中';
+});
+/** 按钮禁用原因（悬停提示，避免老师以为界面坏了） */
+const finishHint = computed(() => {
+  if (taskFailed.value) return '本卷判分失败，没有可归入错题的结果';
+  if (!hasResults.value) return '本卷还没有逐题结果，无法完成';
+  if (!props.result?.finished) return '判分还没结束，请稍候';
+  return '把本卷判为错的题按最终成绩归入该学生的错题库';
+});
 
 /**
  * 阅卷完成：把本卷判为错的题按最终分归入该学生的错题库。
@@ -92,22 +113,26 @@ async function finish(): Promise<void> {
   <div v-if="result" class="mr-panel">
     <div class="mr-sum">
       试卷记录 · 任务 {{ result.taskId }} ·
-      状态 {{ result.finished ? '已判分' : '判分中' }} ·
+      状态 {{ statusText }} ·
       AI 总分 <b>{{ totals.ai }}</b> ·
       老师总分 <b>{{ totals.final }}</b>
       <ReTag size="small" type="success">老师分为最终成绩</ReTag>
+      <ReTag v-if="taskFailed" size="small" type="danger">判分失败</ReTag>
       <span class="mr-spacer" />
       <ReTag v-if="teacherFinished" size="small" type="info">已完成</ReTag>
-      <el-button
-        v-else
-        size="small"
-        type="primary"
-        :loading="finishing"
-        :disabled="!canFinish"
-        @click="finish"
-      >
-        完成
-      </el-button>
+      <el-tooltip v-else :content="finishHint" placement="top">
+        <span class="mr-finish-wrap">
+          <el-button
+            size="small"
+            type="primary"
+            :loading="finishing"
+            :disabled="!canFinish"
+            @click="finish"
+          >
+            完成
+          </el-button>
+        </span>
+      </el-tooltip>
     </div>
     <SheetStructureView
       :key="`${result.taskId}:${refreshKey}`"
@@ -154,5 +179,9 @@ async function finish(): Promise<void> {
 .mr-panel .sheet-structure {
   flex: 1;
   min-height: 0;
+}
+/* 禁用状态的 button 不派发鼠标事件，tooltip 必须挂在外层包裹上 */
+.mr-finish-wrap {
+  display: inline-block;
 }
 </style>
