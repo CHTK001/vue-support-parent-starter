@@ -60,10 +60,14 @@ const loadStudentOptions = async (params: { keyword?: string } = {}) => {
     students = await eduaiApi.listStudents();
   } catch {
     const classes = await eduaiApi.teacherClasses();
-    const lists = await Promise.all(
-      classes.map((item: any) => eduaiApi.teacherClassStudents(Number(item.classId))),
+    // 单班学生接口失败不应该拖空整个下拉：一个班挂了，其他班照样可选
+    const lists = await Promise.allSettled(
+      classes
+        .map((item: any) => Number(item?.classId))
+        .filter((classId) => Number.isFinite(classId) && classId > 0)
+        .map((classId) => eduaiApi.teacherClassStudents(classId)),
     );
-    students = lists.flat();
+    students = lists.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
   }
   const keyword = String(params?.keyword ?? '').trim().toLowerCase();
   const options = students
@@ -73,7 +77,7 @@ const loadStudentOptions = async (params: { keyword?: string } = {}) => {
     })
     .map((s) => ({
       label: [s.studentName, s.studentNo ? `（${s.studentNo}）` : ''].filter(Boolean).join(' '),
-      value: String(s.studentNo || ''),
+      value: String(s.studentNo || s.studentId || s.studentName || s.studentAccount || ''),
       name: String(s.studentName ?? ''),
       no: String(s.studentNo ?? ''),
     }));
@@ -166,10 +170,17 @@ onMounted(() => {
       </el-tag>
     </div>
 
-    <div v-if="overallComment" class="md-comment">
-      <span class="md-comment-label">AI 总体评语</span>
-      <span class="md-comment-text">{{ overallComment }}</span>
-    </div>
+    <!-- AI 总体评语只做悬浮 tip：正文可能很长，常驻会把版面视图往下挤，
+         而且它只是参考信息，不该占掉一整行。这里不设任何权限判断，拿到就显示。 -->
+    <el-tooltip v-if="overallComment" placement="top" :show-after="120">
+      <template #content>
+        <div class="md-comment-tip">{{ overallComment }}</div>
+      </template>
+      <span class="md-comment-label">
+        <el-icon class="md-comment-icon"><InfoFilled /></el-icon>
+        AI 总体评语
+      </span>
+    </el-tooltip>
 
     <div class="md-student">
       <span class="md-student-label">学生</span>
@@ -179,7 +190,7 @@ onMounted(() => {
       </el-button>
     </div>
 
-    <MarkingResultPanel :result="result" :refresh-key="refreshKey" @saved="onSaved" />
+    <MarkingResultPanel :result="result" :refresh-key="refreshKey" @saved="onSaved" @finished="onSaved" />
 
     <ReDialog v-model="studentDialogVisible" title="修改学生信息" width="420px">
       <div class="md-student-form">
@@ -231,17 +242,12 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.md-comment {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex: none;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: var(--el-fill-color-light);
-}
+/* 触发区：只有标签 + 提示图标，正文在 tip 里 */
 .md-comment-label {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 1px;
   padding: 2px 6px;
   font-size: 12px;
@@ -249,13 +255,18 @@ onMounted(() => {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border-radius: 4px;
+  cursor: help;
 }
-.md-comment-text {
-  flex: 1;
-  min-width: 0;
+.md-comment-icon {
+  font-size: 13px;
+}
+/* tip 内容：默认 tooltip 宽度有限，评语要能整段读完 */
+.md-comment-tip {
+  max-width: 480px;
+  max-height: 320px;
+  overflow-y: auto;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--el-text-color-regular);
   white-space: pre-wrap;
   word-break: break-word;
 }
