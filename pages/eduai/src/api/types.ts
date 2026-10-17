@@ -55,10 +55,10 @@ export interface Question {
 }
 
 /**
- * 题库市场列表项
+ * 题库广场列表项
  *
  * 与既有 {@link Question} 中市场列表实际使用的字段一致（edu_question 实体字段），
- * 供题库市场弹框（QuestionMarketDialog）与购物车（usePaperCart）共用。
+ * 供题库广场页面（QuestionMarketBoard）与购物车（usePaperCart）共用。
  */
 export interface MarketQuestion {
   questionId: number;
@@ -283,6 +283,8 @@ export interface MarkingResultVO {
   totalScore: number;
   total: number;
   finished: boolean;
+  /** 老师是否已点「阅卷完成」（错题已按最终分归到对应学生） */
+  teacherFinished?: boolean;
   results: Array<{
     resultId: number;
     questionId: number;
@@ -292,6 +294,19 @@ export interface MarkingResultVO {
     teacherScore?: number;
     teacherComment?: string;
   }>;
+}
+
+/** 阅卷完成结果（错题归位） */
+export interface MarkingFinishResult {
+  taskId: string;
+  /** 错题归属学生（卷面识别 / 人工纠正后的学号） */
+  studentId?: string;
+  /** 错题归属试卷 */
+  paperId?: number | null;
+  /** 本次登记为错题的题目数 */
+  wrongCount?: number;
+  /** 是否此前已完成（重复点击不会重复累加） */
+  alreadyFinished?: boolean;
 }
 
 /** 阅卷确认 */
@@ -1197,6 +1212,14 @@ export interface EduTeacher {
   teacherSubjectCode?: string | null;
   /** 0-离职 1-在职 */
   teacherStatus?: number | null;
+  /**
+   * 表单提交的登录口令明文（只出不入）。
+   *
+   * <p>教师用「工号 + 口令」登录老师端（等价于学生的「学号 + 口令」）。
+   * 留空表示不修改；新增时留空则服务端以工号作为初始口令。
+   * 服务端会把它转成摘要加盐，因此本字段不会出现在任何响应里。</p>
+   */
+  teacherPwdInput?: string;
   createTime?: string;
   updateTime?: string;
 }

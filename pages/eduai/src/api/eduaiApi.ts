@@ -22,6 +22,7 @@ import type {
   MarkingSubmitRequest,
   MarkingResultVO,
   MarkingAdjust,
+  MarkingFinishResult,
   KnowledgePoint,
   KnowledgePointUploadResult,
   KnowledgeCard,
@@ -289,6 +290,21 @@ export const eduaiApi = {
       .put("/v2/edu/marking/confirm")
       .data(data as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
+
+  /**
+   * 阅卷完成：把该卷错题按最终分归入对应学生的错题库。
+   *
+   * <p>老师复核收口动作。学生取卷面识别 / 人工纠正后的学号，
+   * 未识别到学生时后端拒绝（错题必须落到「对应学生」）。
+   * 幂等：重复调用不会重复累加错题次数。</p>
+   *
+   * @param taskId 任务标识
+   * @returns 完成结果（学生 / 试卷 / 本次错题数）
+   */
+  finishMarking: (taskId: string) =>
+    http()
+      .post(`/v2/edu/marking/${taskId}/finish`)
+      .then<MarkingFinishResult>(unwrap),
 
   /**
    * 获取「与图片同版式」的结构化解析结果。
