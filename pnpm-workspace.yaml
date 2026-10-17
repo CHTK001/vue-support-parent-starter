@@ -11,6 +11,14 @@ packages:
   # 恢复时需同时还原 apps/vue-support-spider-starter 目录并删掉下面这行。
   - "!apps/vue-support-spider-starter"
 
+# icons-animated（ln-dev7/icons-animated）的动画引擎锁版。
+# 上游要求四包严格同版，混版会改变 SVG spring 插值；升版必须四包一起动并重跑动画验收。
+overrides:
+  motion: 13.1.1
+  framer-motion: 13.1.1
+  motion-dom: 13.1.1
+  motion-utils: 13.0.0
+
 catalog:
   typescript: ^5.7.3
   "@vitejs/plugin-react": ^5.0.0
@@ -66,6 +74,14 @@ catalog:
   # 抓包分析页的 TCP 握手时序图：mermaid 原生支持 sequenceDiagram 语法，
   # 不用自己排 SVG 箭头。时间/耗时用 Note 标注。
   mermaid: ^11.17.2
+  # icons-animated（ln-dev7/icons-animated）的 SVG 动画引擎。
+  # 上游要求四包严格同版：混版会改变 SVG spring 插值（见其 README
+  # 「For direct copy, install the pinned animation engine」）。升版必须四包一起动，
+  # 并重跑 ReIcon / ReIconSelect 的动画验收。
+  motion: 13.1.1
+  framer-motion: 13.1.1
+  motion-dom: 13.1.1
+  motion-utils: 13.0.0
   "vue-echarts": ^7.0.3
   cropperjs: ^1.6.2
   vue3-compare-image: ^1.0.5

@@ -15,6 +15,7 @@
 import { computed, ref, watch } from "vue";
 import { ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElButton, ElScrollbar, ElEmpty } from "element-plus";
 import { defaultIconSets, defaultIconTabs, type IconSelectTab } from "../../../ReIcon/iconData";
+import { ANIMATED_ICON_PREFIX } from "../../../ReIcon/animated/registry";
 import ReIcon from "../../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReIconSelect", inheritAttrs: true });
@@ -91,7 +92,7 @@ const filteredTotal = computed<number>(() => {
 
 /** 选中样式 */
 function iconItemStyle(name: string): Record<string, string> | undefined {
-  if (model.value === currentPrefix.value + name) {
+  if (model.value === resolveIconName(name)) {
     return {
       borderColor: "var(--el-color-primary)",
       color: "var(--el-color-primary)",
@@ -100,8 +101,17 @@ function iconItemStyle(name: string): Record<string, string> | undefined {
   return undefined;
 }
 
+/**
+ * 把列表项还原成完整图标名。
+ * 动画图标（`anim:` 前缀）的列表项本身就是完整名（`anim:<lib>:<icon>`），
+ * 其它前缀仍是 `prefix + 短名`。
+ */
+function resolveIconName(name: string): string {
+  return currentPrefix.value === ANIMATED_ICON_PREFIX ? name : currentPrefix.value + name;
+}
+
 function onChangeIcon(name: string): void {
-  model.value = currentPrefix.value + name;
+  model.value = resolveIconName(name);
 }
 
 function onClear(): void {
@@ -195,7 +205,7 @@ watch(filterValue, () => {
                   @click="onChangeIcon(name)"
                 >
                   <ReIcon
-                    :name="currentPrefix + name"
+                    :name="resolveIconName(name)"
                     :size="20"
                   />
                 </li>

@@ -138,6 +138,9 @@ catalogs:
     flv.js:
       specifier: ^1.6.2
       version: 1.6.2
+    framer-motion:
+      specifier: 13.1.1
+      version: 13.1.1
     gcoord:
       specifier: ^0.3.1
       version: 0.3.2
@@ -189,6 +192,15 @@ catalogs:
     mermaid:
       specifier: ^11.17.2
       version: 11.17.2
+    motion:
+      specifier: 13.1.1
+      version: 13.1.1
+    motion-dom:
+      specifier: 13.1.1
+      version: 13.1.1
+    motion-utils:
+      specifier: 13.0.0
+      version: 13.0.0
     ngeohash:
       specifier: ^0.6.3
       version: 0.6.4
@@ -1740,9 +1752,21 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      framer-motion:
+        specifier: 'catalog:'
+        version: 13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       katex:
         specifier: ^0.16.47
         version: 0.16.47
+      motion:
+        specifier: 'catalog:'
+        version: 13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      motion-dom:
+        specifier: 'catalog:'
+        version: 13.1.1
+      motion-utils:
+        specifier: 'catalog:'
+        version: 13.0.0
       sortablejs:
         specifier: 1.15.6
         version: 1.15.6
@@ -7308,6 +7332,17 @@ packages:
   fraction.js@5.3.4:
     resolution: {integrity: sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==}
 
+  framer-motion@13.1.1:
+    resolution: {integrity: sha512-B/xn2TPS4f61cEBLFjiYlQFnBZUW1YVj/LM+C+N4OP8Rs95VLEI2ot/RlfBg111la/EiyECFaJJi/A3FWA8MUA==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
@@ -8285,6 +8320,23 @@ packages:
 
   moddle@8.2.1:
     resolution: {integrity: sha512-20qzO/ZpMGO9j9gdQgXk9bfGxb9wA3JKnGth/21YZKODLrZE4RW/uVMIL5pTskYm34Z61DucBEPkq93qByNsBQ==}
+
+  motion-dom@13.1.1:
+    resolution: {integrity: sha512-XSf8VYWSB6G/0IY3rWVbyLcxWXtAVHkN1PQE2agTaCv3u8RGvbwu56TyyR/MNzBqqNavEBTZzErcxI1TxBrjcA==}
+
+  motion-utils@13.0.0:
+    resolution: {integrity: sha512-7DnN7TmbLcYXcG4RVadXIihWlyuM9afoUww8Y5Agg431kGKiuL2/OMyP4mJ5wLz+pvN3t5ySClLOaVXJ+wekRQ==}
+
+  motion@13.1.1:
+    resolution: {integrity: sha512-WNZoK6xiF+kkTqkZ5K7FDDh6A8BG4i5Hc7KXtW8gtTxkpJFds+hIOrDaQGKjQj/AE/i4hJqAaUHEqp/Qo02y6Q==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   mousetrap@1.6.5:
     resolution: {integrity: sha512-QNo4kEepaIBwiT8CDhP98umTetp+JNfQYBWvC1pc6/OAibuXtRcxZ58Qz8skvEHYvURne/7R8T5VoOI7rDsEUA==}
@@ -15746,6 +15798,15 @@ snapshots:
 
   fraction.js@5.3.4: {}
 
+  framer-motion@13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      motion-dom: 13.1.1
+      motion-utils: 13.0.0
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
   fs.realpath@1.0.0: {}
 
   fsevents@2.3.2:
@@ -16807,6 +16868,20 @@ snapshots:
   moddle@8.2.1:
     dependencies:
       min-dash: 5.1.0
+
+  motion-dom@13.1.1:
+    dependencies:
+      motion-utils: 13.0.0
+
+  motion-utils@13.0.0: {}
+
+  motion@13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      framer-motion: 13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   mousetrap@1.6.5: {}
 
