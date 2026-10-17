@@ -16,6 +16,9 @@
   Slots:
     - value: 自定义主数值渲染（如 ReTag）
     - icon: 自定义右侧图标
+    - title: 自定义标题渲染（如在标题旁挂口径说明的 tip 图标）。
+             标题自带 nowrap + ellipsis：插槽内容是行内多元素（文字 + 图标）时，
+             省略号不会自动落到内层，文字那层要自己声明 ellipsis。
 -->
 <template>
   <!-- re-surface 基类提供圆角/边框/投影/悬停（见 components/shared/re-surface.css） -->
@@ -40,7 +43,7 @@
       <div class="re-stat-card__value">
         <slot name="value">{{ value }}</slot>
       </div>
-      <span class="re-stat-card__title">{{ title }}</span>
+      <span class="re-stat-card__title"><slot name="title">{{ title }}</slot></span>
       <div v-if="desc" class="re-stat-card__desc">{{ desc }}</div>
     </div>
   </div>

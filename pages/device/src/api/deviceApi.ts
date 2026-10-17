@@ -110,10 +110,21 @@ export const deviceApi = {
   toggleChannelStatus: (id: string, status: string) =>
     http.put(`/channel/${id}/status?status=${status}`).then(unwrap),
 
-  // —— 提供商配置 ——
+  // —— 提供商配置（离线阈值，已落库 device_provider_credential） ——
   listProviderConfigs: () => http.get("/provider-config").then(unwrap),
   updateProviderConfig: (vendor: string, threshold: number) =>
     http.put(`/provider-config/${vendor}?threshold=${threshold}`).then(unwrap),
+
+  // —— 提供商凭据（厂商自定义的 AK/SK 等接入参数） ——
+  // 同一 (厂商, 平台类型) 可登记多套，如多个海康账号分属不同区域。
+  listCredentials: (vendor?: string) =>
+    http.get("/provider-credential/list").query({ vendor }).then(unwrap),
+  getCredential: (id: string) => http.get(`/provider-credential/${id}`).then(unwrap),
+  createCredential: (credential: any) =>
+    http.post("/provider-credential").data(credential).then(unwrap),
+  updateCredential: (id: string, credential: any) =>
+    http.put(`/provider-credential/${id}`).data(credential).then(unwrap),
+  deleteCredential: (id: string) => http.delete(`/provider-credential/${id}`).then(unwrap),
 
   // —— 设备离线阈值 ——
   updateOfflineThreshold: (deviceId: string, threshold: number) =>

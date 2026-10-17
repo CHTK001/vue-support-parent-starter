@@ -866,6 +866,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
     { label: "主机版本", value: show(p.serverHostOsVersion ?? i.osVersion) },
     { label: "架构", value: show(p.serverHostOsArch ?? i.arch) },
     { label: "CPU 核数", value: show(p.serverHostCpuCores ?? i.cpuCores) },
+    { label: "显卡", value: show(i.gpu) },
     { label: "内存", value: p.serverHostMemoryMb ? `${fmtNum(p.serverHostMemoryMb)} MB` : (i.memoryMb ? `${fmtNum(i.memoryMb)} MB` : "—") },
     { label: "磁盘总量", value: p.serverHostDiskGb ? `${fmtNum(p.serverHostDiskGb)} GB` : (i.diskTotalGb ? `${fmtNum(i.diskTotalGb)} GB` : "—") },
     { label: "内网 IP", value: show(p.serverHostPrivateIp ?? i.privateIp), mono: true },

@@ -186,6 +186,9 @@ catalogs:
     mapv:
       specifier: ^2.0.0
       version: 2.0.62
+    mermaid:
+      specifier: ^11.17.2
+      version: 11.17.2
     ngeohash:
       specifier: ^0.6.3
       version: 0.6.4
@@ -991,6 +994,9 @@ importers:
       js-yaml:
         specifier: 'catalog:'
         version: 4.3.0
+      mermaid:
+        specifier: 'catalog:'
+        version: 11.17.2
       pinia:
         specifier: 'catalog:'
         version: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
