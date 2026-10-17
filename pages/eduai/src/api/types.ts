@@ -283,6 +283,17 @@ export interface MarkingResultVO {
   totalScore: number;
   total: number;
   finished: boolean;
+  /**
+   * 任务状态：0-待处理 1-处理中 2-已完成 3-失败。
+   *
+   * <p>注意 `finished` 对失败任务也是 true（后端「判分结束」的口径），
+   * 判断「能不能点完成」必须同时看它和 results 是否为空。</p>
+   */
+  taskStatus?: number;
+  /** 当前阶段描述（识别中/判分中/已完成/失败） */
+  stage?: string;
+  /** 失败原因（taskStatus=3 时） */
+  error?: string;
   /** 老师是否已点「阅卷完成」（错题已按最终分归到对应学生） */
   teacherFinished?: boolean;
   results: Array<{
