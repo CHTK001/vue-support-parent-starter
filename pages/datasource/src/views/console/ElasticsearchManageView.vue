@@ -421,19 +421,36 @@
     </ReDialog>
 
     <!-- ============ 字段抽屉 ============ -->
+    <!--
+      koi 主题的 ReDrawer 页脚是内置的「确定 / 取消」，不接 #footer 插槽（只有 default 主题接）。
+      所以这里用 footer-hidden 关掉内置页脚，把「管理字段」入口放进抽屉体内：
+      既避免出现语义不通的「确定 / 取消」，也与全页的方形按钮语言保持一致。
+    -->
     <ReDrawer
       v-model="fieldDrawerVisible"
       :title="fieldDrawerTitle"
       size="680px"
+      footer-hidden
       data-testid="es-field-drawer"
     >
       <div v-loading="fieldDrawerLoading" class="dsm-field-drawer">
-        <div v-if="fieldDetail" class="dsm-divider-row">
-          <ReTag :type="healthTag(fieldDetail.health)">{{ fieldDetail.health || "—" }}</ReTag>
-          <span class="dsm-muted">状态 {{ fieldDetail.status || "—" }}</span>
-          <span class="dsm-muted">分片 {{ fieldDetail.shards ?? "—" }} / 副本 {{ fieldDetail.replicas ?? "—" }}</span>
-          <span class="dsm-muted">文档 {{ fieldDetail.docs ?? "—" }}</span>
-          <span class="dsm-muted">存储 {{ fieldDetail.storeSize || "—" }}</span>
+        <div class="dsm-drawer-bar">
+          <div v-if="fieldDetail" class="dsm-divider-row">
+            <ReTag :type="healthTag(fieldDetail.health)">{{ fieldDetail.health || "—" }}</ReTag>
+            <span class="dsm-muted">状态 {{ fieldDetail.status || "—" }}</span>
+            <span class="dsm-muted">分片 {{ fieldDetail.shards ?? "—" }} / 副本 {{ fieldDetail.replicas ?? "—" }}</span>
+            <span class="dsm-muted">文档 {{ fieldDetail.docs ?? "—" }}</span>
+            <span class="dsm-muted">存储 {{ fieldDetail.storeSize || "—" }}</span>
+          </div>
+          <span v-else class="dsm-muted">加载中…</span>
+          <ReButton
+            layout="square"
+            icon="Edit"
+            tip="管理字段（增 / 删 / 改）"
+            data-testid="es-drawer-fieldsmgr"
+            :disabled="!fieldDetail"
+            @click="openFieldManager(fieldDetail?.name)"
+          />
         </div>
         <ReTable
           :data="fieldDetail?.fields || []"
@@ -451,17 +468,6 @@
           </template>
         </ReTable>
       </div>
-      <template #footer>
-        <ReButton
-          type="primary"
-          icon="Edit"
-          :disabled="!fieldDetail"
-          @click="openFieldManager(fieldDetail?.name)"
-        >
-          管理字段（增 / 删 / 改）
-        </ReButton>
-        <ReButton @click="fieldDrawerVisible = false">关闭</ReButton>
-      </template>
     </ReDrawer>
 
     <!-- ============ 新建索引（设计表）/ 字段管理（增 / 删 / 改） ============ -->
@@ -1513,6 +1519,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* 抽屉顶部条：左侧索引概况，右侧「管理字段」方形按钮 */
+.dsm-drawer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .dsm-divider-row {
