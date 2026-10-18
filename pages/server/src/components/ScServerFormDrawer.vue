@@ -154,6 +154,25 @@ const filterGroups = computed(() => {
 /** 左侧搜索 */
 const pickerKeyword = ref('');
 
+/**
+ * 自定义 ServerFilter 全限定类名。
+ *
+ * <p>元数据里 group=custom 那条是「任意 ServerFilter 实现」的入口，它的
+ * {@code type} 只是一句说明（"ServerFilter 全限定类名"），直接当类型下发后端
+ * 会构造失败。必须由用户填真实 FQCN，再以它作为 type/name。</p>
+ */
+const customFilterType = ref('');
+
+/** 是否为「自定义实现」入口 */
+function isCustomPickerItem(meta: FilterTypeMeta) {
+  return meta.group === 'custom' || meta.type === 'ServerFilter 全限定类名';
+}
+
+/** 粗校验 Java 全限定类名（至少两段、每段是合法标识符） */
+function isQualifiedClassName(value: string) {
+  return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)+$/.test(value.trim());
+}
+
 /** 过滤后的左侧插件 */
 function groupItems(items: FilterTypeMeta[]) {
   const kw = pickerKeyword.value.trim().toLowerCase();
@@ -239,7 +258,20 @@ function uniqueName(base: string) {
 
 /** 新增一个过滤器实例（支持重复添加同一实现） */
 function addFilter(meta: FilterTypeMeta) {
-  const base = meta.type.includes('.') ? meta.type.split('.').pop() || meta.type : meta.type;
+  // 自定义实现入口：类型取用户填写的 FQCN，而不是元数据里那句说明
+  const custom = isCustomPickerItem(meta);
+  const resolvedType = custom ? customFilterType.value.trim() : meta.type;
+  if (custom) {
+    if (!isQualifiedClassName(resolvedType)) {
+      message.warning('请先填写 ServerFilter 的全限定类名（如 com.chua.xxx.MyFilter）');
+      return;
+    }
+    if (form.value.filters.some(f => f.type === resolvedType)) {
+      message.warning(`该实现已在链上：${resolvedType}`);
+      return;
+    }
+  }
+  const base = resolvedType.includes('.') ? resolvedType.split('.').pop() || resolvedType : resolvedType;
   const name = uniqueName(base);
   const params: Record<string, string> = {};
   (meta.params || []).forEach(p => {
@@ -252,11 +284,14 @@ function addFilter(meta: FilterTypeMeta) {
     : 100;
   form.value.filters.push({
     name,
-    type: meta.type,
+    type: resolvedType,
     order: nextOrder,
     enabled: true,
     params,
   });
+  if (custom) {
+    customFilterType.value = '';
+  }
   message.success(`已添加插件 ${name}`);
 }
 
@@ -622,6 +657,15 @@ async function toggleLive(index: number, enabled: boolean) {
                     <div class="pi-main">
                       <span class="pi-type">{{ item.type }}</span>
                       <span class="pi-desc">{{ item.desc }}</span>
+                      <!-- 自定义实现：必须由用户填真实 FQCN，否则后端拿到的是一句说明文字 -->
+                      <div v-if="isCustomPickerItem(item)" class="pi-custom" @click.stop @keydown.stop>
+                        <ReInput
+                          v-model="customFilterType"
+                          placeholder="com.example.MyServerFilter"
+                          clearable
+                          style="width: 100%"
+                        />
+                      </div>
                     </div>
                     <ReTag :type="item.spi ? 'success' : 'primary'">{{ item.spi ? 'SPI' : '预设' }}</ReTag>
                     <Plus class="pi-add" />
