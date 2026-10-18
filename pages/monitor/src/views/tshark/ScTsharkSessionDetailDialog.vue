@@ -131,9 +131,9 @@ function onTabChange(name: string) {
   display: flex;
   flex-direction: column;
 }
-.detail-tabs :deep(.el-tabs__content) {
-  flex: 1 1 auto;
+.detail-tabs :deep(.re-tab-underline__panel) {
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 </style>

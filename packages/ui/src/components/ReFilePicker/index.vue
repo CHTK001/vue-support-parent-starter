@@ -280,8 +280,14 @@ const {
 
 /* ---------- 交互 ---------- */
 
-/** 行单击：记录键盘高亮位，再按模式选中（Ctrl/⌘ 加减选、Shift 连选，见 selectItem） */
+/**
+ * 行单击：记录键盘高亮位，再按模式选中（Ctrl/⌘ 加减选、Shift 连选，见 selectItem）。
+ *
+ * <p>双击的第二颗 click 不再改选：浏览器按 click → click → dblclick 派发，
+ * 第二颗若在新列表上命中另一行，会把选择 / 高亮带偏；目录进入统一交给 dblclick。</p>
+ */
 const onActivate = (item: FilePickerItem, index: number, event?: MouseEvent): void => {
+  if (event && event.detail > 1) return;
   activeIndex.value = index;
   selectItem(item, event);
 };
