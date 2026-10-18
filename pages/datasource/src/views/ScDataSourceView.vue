@@ -458,6 +458,7 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
   etcd: { icon: "Coin", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
   prometheus: { icon: "DataLine", color: "#e6522c", label: "Prometheus" },
   mongodb: { icon: "Coin", color: "#4DB33D", label: "MongoDB" },
+  elasticsearch: { icon: "Coin", color: "#00bfb3", label: "Elasticsearch" },
 };
 
 const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
@@ -525,6 +526,7 @@ const typeDesc = (type: string): string => {
     etcd: "连接 etcd 配置中心，用于键值存储",
     prometheus: "连接 Prometheus 监控服务，用于指标查询",
     mongodb: "连接 MongoDB 文档数据库，用于集合查询与文档查看",
+    elasticsearch: "连接 Elasticsearch 集群（HTTP 接口），用于索引/字段浏览与只读查询",
   };
   return desc[type] ?? "填写连接信息以接入该类型的数据源";
 };
@@ -586,7 +588,7 @@ const load = async () => {
   try {
     const [data, typeList] = await Promise.all([fetchDataSources(), fetchDataSourceTypes()]);
     list.value = data ?? [];
-    types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper", "kafka"];
+    types.value = typeList ?? ["jdbc", "redis", "influxdb", "neo4j", "nacos", "zookeeper", "kafka", "elasticsearch"];
   } catch (e) {
     message.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -925,6 +927,7 @@ const defaultPort = (type: string): number => {
     etcd: 2379,
     prometheus: 9090,
     mongodb: 27017,
+    elasticsearch: 9200,
   };
   return ports[type] ?? 3306;
 };
