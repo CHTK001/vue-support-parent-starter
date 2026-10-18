@@ -550,9 +550,7 @@ const isCloudYao = computed(
 const cloudYaoInvalid = computed(
   () => isCloudYao.value && (!form.deviceCredentialProductCode.trim() || !form.deviceCredentialProjectId.trim()),
 )
-const formInvalid = computed(
-  () => nameInvalid.value || akSkInvalid.value || cloudYaoInvalid.value || form.deviceCredentialOfflineThreshold <= 0,
-)
+
 
 const filteredRows = computed(() => {
   const kw = filters.keyword.trim().toLowerCase()

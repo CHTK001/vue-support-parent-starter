@@ -1251,6 +1251,10 @@ function fetchDevices() {
     .list()
     .then((res: unknown) => {
       devices.value = (res as DeviceInfo[]) || []
+      // /page 未上线或首屏分页请求先于列表返回时，用本机分页兜底
+      if (pageMode === 'client' || (pageRows.value.length === 0 && pageTotal.value === 0 && !hasActiveFilters())) {
+        applyClientPage()
+      }
     })
     .catch((err: unknown) => {
       message.error('加载设备列表失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
@@ -1261,8 +1265,44 @@ function fetchDevices() {
     })
 }
 
-/** 服务端分页：只拉当前页，筛选条件交给后端 */
+/**
+ * 分页模式：优先走后端 /page；老后端没有该接口时自动退回本机分页。
+ *
+ * <p>现场后端可能还没升级到带 /page 的版本；如果这里只认 /page，左侧能同步到设备，
+ * 右侧卡片却一片空白。退回本机分页后，/list 拿到的数据照样能分页展示。</p>
+ */
+let pageMode: 'server' | 'client' = 'server'
+
+function hasActiveFilters(): boolean {
+  return !!deviceKeyword.value.trim() || !!categoryFilter.value || statusFilter.value !== 'all'
+}
+
+/** 本机分页：按当前筛选条件过滤后切片 */
+function applyClientPage(): void {
+  const kw = deviceKeyword.value.trim().toLowerCase()
+  const list = devices.value.filter((d) => {
+    if (categoryFilter.value && d.deviceInfoCategory !== categoryFilter.value) return false
+    if (statusFilter.value === 'online' && !d.deviceInfoOnline) return false
+    if (statusFilter.value === 'offline' && d.deviceInfoOnline) return false
+    if (!kw) return true
+    return [d.deviceInfoName, d.deviceInfoIp, d.deviceInfoSerial, d.deviceInfoAddress]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(kw))
+  })
+  const total = list.length
+  const maxPage = Math.max(1, Math.ceil(total / pageSize.value))
+  if (pageNo.value > maxPage) pageNo.value = maxPage
+  const start = (pageNo.value - 1) * pageSize.value
+  pageRows.value = list.slice(start, start + pageSize.value)
+  pageTotal.value = total
+}
+
+/** 分页查询：服务端优先，失败 / 空数据时退回本机分页 */
 function fetchPage() {
+  if (pageMode === 'client') {
+    applyClientPage()
+    return
+  }
   pageLoading.value = true
   deviceApi
     .pageDevices({
@@ -1274,13 +1314,19 @@ function fetchPage() {
     })
     .then((res: unknown) => {
       const page = res as PageResult<DeviceInfo>
+      // 后端没有分页数据但 /list 明明有设备：说明 /page 还没上线，切回本机分页
+      if (Number(page?.total || 0) === 0 && devices.value.length > 0 && !hasActiveFilters()) {
+        pageMode = 'client'
+        applyClientPage()
+        return
+      }
       pageRows.value = page?.records || []
       pageTotal.value = Number(page?.total) || 0
     })
-    .catch((err: unknown) => {
-      message.error(`分页加载设备失败: ${(err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'}`)
-      pageRows.value = []
-      pageTotal.value = 0
+    .catch(() => {
+      // 老后端没有 /page：静默退回本机分页，不弹「分页失败」打断现场使用
+      pageMode = 'client'
+      applyClientPage()
     })
     .finally(() => {
       pageLoading.value = false
