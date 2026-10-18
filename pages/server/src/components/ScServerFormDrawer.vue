@@ -28,6 +28,11 @@ import {
 } from '../api';
 import ScFilterConfigPanel from './ScFilterConfigPanel.vue';
 import { resolveFilterDetail } from '../utils/filterDetail';
+import {
+  buildServerNodePayload,
+  validateServerNodeForm,
+  type ServerNodeFormModel,
+} from '../utils/serverNodeForm';
 
 const props = defineProps<{
   /** 当前编辑的节点；null 表示新增 */
@@ -404,55 +409,21 @@ function openFilterDetailPage() {
 }
 
 // ===== 提交 =====
-/** 表单校验 */
+/** 表单校验（规则集中在 utils/serverNodeForm，便于单测） */
 function validate() {
-  if (!form.value.name.trim()) {
-    message.warning('请填写服务名称');
-    return false;
-  }
-  if (!form.value.protocol) {
-    message.warning('请选择协议类型');
-    return false;
-  }
-  if (!form.value.port) {
-    message.warning('请填写监听端口');
-    return false;
-  }
-  if (isProxy.value) {
-    const host = configValue('backendHost');
-    const port = configValue('backendPort');
-    if (!host || !port) {
-      message.warning('代理类服务必须填写后端地址与后端端口');
-      return false;
-    }
-  }
-  const names = form.value.filters.map(f => f.name);
-  if (new Set(names).size !== names.length) {
-    message.warning('过滤器名称存在重复，请调整后再保存');
+  const result = validateServerNodeForm(form.value as ServerNodeFormModel, {
+    requiresBackend: isProxy.value,
+  });
+  if (!result.ok) {
+    message.warning(result.message || '表单校验未通过');
     return false;
   }
   return true;
 }
 
-/** 组装请求体 */
+/** 组装请求体（规则集中在 utils/serverNodeForm，便于单测） */
 function buildPayload() {
-  return {
-    name: form.value.name.trim(),
-    protocol: form.value.protocol,
-    engine: form.value.engine,
-    host: form.value.host || '0.0.0.0',
-    port: form.value.port,
-    enabled: form.value.enabled,
-    remark: form.value.remark,
-    config: form.value.config || {},
-    filters: form.value.filters.map(f => ({
-      name: f.name,
-      type: f.type,
-      order: f.order,
-      enabled: f.enabled !== false,
-      params: f.params || {},
-    })),
-  };
+  return buildServerNodePayload(form.value as ServerNodeFormModel);
 }
 
 /** 失败响应里是否带已落库的节点（后端常见「已保存但启动失败」场景） */
