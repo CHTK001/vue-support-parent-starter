@@ -31,6 +31,7 @@ import type { RouteConfigsTable } from "@repo/core";
  */
 export const MANAGER_ROUTE_MAP: Record<string, string> = {
   kafka: "/kafka",
+  elasticsearch: "/elasticsearch",
   jdbc: "/db-manager",
   redis: "/redis-manage",
   influxdb: "/influxdb",
@@ -93,6 +94,12 @@ export function createDatasourceManageRoutes(
       name: "Kafka",
       component: () => import("./views/console/KafkaManageView.vue"),
       meta: { title: "Kafka 管理", icon: "Coin", ...common },
+    },
+    {
+      path: "/elasticsearch",
+      name: "Elasticsearch",
+      component: () => import("./views/console/ElasticsearchManageView.vue"),
+      meta: { title: "Elasticsearch 管理", icon: "Coin", ...common },
     },
     {
       // 数据库管理：数据源中心里点进去的全功能控制台（右键菜单、DDL、文档导出都在里面）

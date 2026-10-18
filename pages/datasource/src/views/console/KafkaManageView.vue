@@ -116,7 +116,12 @@
               <span class="mono">{{ (row as KafkaTreeNode).label }}</span>
             </template>
             <template #col-actions="{ row }">
-              <ReButton text type="primary" @click="selectTopic(row)">
+              <!--
+                .stop 必须加：表格上挂了 @row-click="selectTopic"，按钮的 click
+                会继续冒泡到行，于是「分区」与行点击同时触发 selectTopic，
+                同一个 Topic 发两次 /children（与 ES 页同源缺陷）。
+              -->
+              <ReButton text type="primary" @click.stop="selectTopic(row)">
                 <template #icon><ReIcon name="FolderOpened" size="12" /></template>分区
               </ReButton>
             </template>
