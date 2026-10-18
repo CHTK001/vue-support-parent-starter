@@ -57,6 +57,7 @@
             @update:keyword="setPacketKeyword"
             @page-change="loadPackets"
             @open-detail="openPacketDetail"
+            @open-lifecycle="openLifecycle"
             @export="exportCsv"
           />
           <div v-else class="tshark-panel__empty">
@@ -123,6 +124,11 @@
     </div>
 
     <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" />
+    <ScTsharkLifecycleDialog
+      v-model="lifecycleVisible"
+      :packet="lifecyclePacket"
+      @open-detail="openPacketDetailById"
+    />
   </div>
 </template>
 
@@ -135,7 +141,8 @@ import ScTsharkPacketPanel from './ScTsharkPacketPanel.vue'
 import ScTsharkStatsPanel from './ScTsharkStatsPanel.vue'
 import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
-import type { TsharkTabKey } from './types'
+import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
+import type { TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
 
 const {
@@ -148,9 +155,19 @@ const {
   init, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
   clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol, refresh,
   exportCsv, downloadPcap, startCapture, stopSession, deleteSession, openPacketDetail,
+  openPacketDetailById,
 } = useTshark({ source: 'live' })
 
 const activeTab = ref<TsharkTabKey>('packet')
+
+/** 生命周期弹层：右键报文触发，弹层自己按 packet.id 去后端还原整条流 */
+const lifecycleVisible = ref(false)
+const lifecyclePacket = ref<TsharkPacket | null>(null)
+
+function openLifecycle(row: TsharkPacket) {
+  lifecyclePacket.value = row
+  lifecycleVisible.value = true
+}
 
 const tabs = computed(() => [
   { name: 'packet', label: '报文', icon: 'Tickets', badge: packetTotal.value || null },

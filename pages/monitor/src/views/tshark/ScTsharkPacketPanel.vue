@@ -19,6 +19,7 @@
         <template #prefix><ReIcon name="Search" :size="13" /></template>
       </ReInput>
       <span v-if="keyword" class="tshark-dim packet-hint">后端在库中按「{{ keyword }}」筛选</span>
+      <span class="tshark-dim packet-hint">右键报文可查看 TCP 生命周期</span>
 
       <span class="tshark-panel__spacer"></span>
       <span class="tshark-dim packet-count">共 {{ total }} 条</span>
@@ -42,7 +43,9 @@
         row-key="id"
         :pagination="false"
         :toolbar="false"
+        :context-menu="packetMenu"
         :empty-text="emptyText"
+        @context-menu-select="onPacketMenuSelect"
       >
         <ReTableColumn prop="packetTime" label="时间" width="176" align="center">
           <template #default="{ row }">
@@ -98,6 +101,8 @@
 </template>
 
 <script setup lang="ts">
+import { Connection, Document } from '@element-plus/icons-vue'
+import type { ReTableContextMenuContext, ReTableContextMenuItem } from '@repo/ui/re-table'
 import type { TsharkPacket } from './types'
 
 defineProps<{
@@ -114,8 +119,32 @@ const emit = defineEmits<{
   (e: 'update:keyword', v: string): void
   (e: 'page-change', page: number): void
   (e: 'open-detail', row: TsharkPacket): void
+  (e: 'open-lifecycle', row: TsharkPacket): void
   (e: 'export'): void
 }>()
+
+/**
+ * 报文右键菜单。
+ *
+ * <p>「查看生命周期」调后端 `/packets/{id}/handshake`：按四元组还原整条 TCP 流，
+ * 给出三次/四次握手判定与按时间排好的报文序列（HTTP / TLS 等 TCP 上的协议同样支持），
+ * 页面据此画时序图。UDP / ICMP / ARP 没有握手，弹层里会明确提示不支持。</p>
+ */
+const packetMenu: ReTableContextMenuItem[] = [
+  { key: 'detail', label: '查看报文详情', icon: Document },
+  { key: 'lifecycle', label: '查看生命周期', icon: Connection, divided: true },
+]
+
+function onPacketMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext) {
+  const row = ctx.row as unknown as TsharkPacket
+  if (item.key === 'detail') {
+    emit('open-detail', row)
+    return
+  }
+  if (item.key === 'lifecycle') {
+    emit('open-lifecycle', row)
+  }
+}
 
 function onKeyword(v: unknown) {
   emit('update:keyword', v === null || v === undefined ? '' : String(v))

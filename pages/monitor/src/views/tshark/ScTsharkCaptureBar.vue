@@ -57,7 +57,8 @@
         :model-value="count"
         :min="0"
         :max="1000000"
-        placeholder="包数"
+        placeholder="包数(0=不限)"
+        title="留空或 0 表示一直抓到手动停止；填正数才在抓到该包数时自动结束"
         @update:model-value="onCount"
       />
       <ReInputNumber
@@ -65,7 +66,8 @@
         :model-value="timeout"
         :min="0"
         :max="86400"
-        placeholder="时长/s"
+        placeholder="时长/s(0=不限)"
+        title="留空或 0 表示不限时长；填秒数到点自动停止"
         @update:model-value="onTimeout"
       />
       <ReButton

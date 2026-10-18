@@ -51,6 +51,52 @@ export interface TsharkPacket {
   rawData?: string | null
 }
 
+/**
+ * 一条 TCP 流的握手 / 关闭生命周期（`GET /tshark/packets/{id}/handshake`）。
+ *
+ * <p>HTTP / TLS / SSH 等跑在 TCP 上的协议也能取到：后端按四元组匹配整条流，
+ * 握手与挥手帧不会因为协议列不同被过滤掉。</p>
+ */
+export interface TsharkHandshake {
+  sessionId: number
+  /** 主动发起方（发第一个 SYN 的一侧） */
+  clientIp?: string | null
+  clientPort?: number | null
+  serverIp?: string | null
+  serverPort?: number | null
+  handshake: {
+    /** THREE_WAY / FOUR_WAY / NONE */
+    kind: string
+    /** 中文标签，直接展示 */
+    label: string
+    /** 补充说明（如为什么判定为四次） */
+    detail?: string | null
+    /** 是否已完成握手 */
+    completed: boolean
+    /** 是否已双向 FIN 关闭 */
+    closed: boolean
+  }
+  /** 按时间排好的报文序列 */
+  steps: TsharkStep[]
+}
+
+/** 生命周期时序里的一步 */
+export interface TsharkStep {
+  packetId: number
+  /** HH:mm:ss.SSS */
+  time?: string | null
+  /** true = 主动方 → 被动方 */
+  fromClient: boolean
+  /** 解析出的 TCP 标志位，如 `SYN,ACK`；HTTP 数据帧为空 */
+  flags?: string | null
+  seq?: string | null
+  ack?: string | null
+  length?: number | null
+  info?: string | null
+  /** 相对本流第一个包的耗时（毫秒） */
+  relativeMs: number
+}
+
 /** 协议分布的一项 */
 export interface TsharkProtocolStat {
   protocol: string
