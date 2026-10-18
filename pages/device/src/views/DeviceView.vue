@@ -720,8 +720,10 @@ const pageTotal = ref(0)
 /** 页签懒加载：只有点到某个页签才拉该页签的数据 */
 const tabLoaded = ref({ video: false, ptz: false, access: false, events: false })
 
-/** 下拉里只展示启用中的凭据，停用的套不参与建连 */
-const enabledCredentials = computed(() => credentials.value.filter((c) => c.deviceCredentialEnabled !== false))
+/** 下拉里只展示启用中的平台凭据：SDK 直连凭据没有平台类型，不应出现在平台接入里 */
+const enabledCredentials = computed(() =>
+  credentials.value.filter((c) => c.deviceCredentialEnabled !== false && !!c.deviceCredentialPlatformType),
+)
 
 const credentialOptions = computed(() =>
   enabledCredentials.value.map((c) => ({
