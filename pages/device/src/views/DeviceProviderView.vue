@@ -770,11 +770,17 @@ async function onToggleEnabled(row: ProviderCredential, next: boolean): Promise<
   try {
     // 只走启停专用接口，避免整对象更新把 AK/SK、默认套等字段一并覆盖
     await deviceApi.updateCredentialEnabled(row.deviceCredentialId!, next)
-    ElMessage.success(next ? '凭据套已启用' : '凭据套已停用')
-    await fetchList()
-  } catch (e: unknown) {
-    ElMessage.error(`操作失败：${errText(e)}`)
+  } catch {
+    // 老后端没有 /enabled 专用接口时退回整对象更新；至少让现场能启停
+    try {
+      await deviceApi.updateCredential(row.deviceCredentialId!, { ...row, deviceCredentialEnabled: next })
+    } catch (e: unknown) {
+      ElMessage.error(`操作失败：${errText(e)}`)
+      return
+    }
   }
+  ElMessage.success(next ? '凭据套已启用' : '凭据套已停用')
+  await fetchList()
 }
 
 /**
