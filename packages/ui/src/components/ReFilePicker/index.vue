@@ -45,6 +45,7 @@
           :active-index="activeIndex"
           :is-selected="isSelected"
           :can-select="canSelect"
+          :view-mode="viewMode"
           @sort="toggleSort"
           @activate="onActivate"
           @open="onOpen"
@@ -122,15 +123,19 @@
  * `data`（本地 JSON）。逻辑在 {@link useFilePicker}，纯函数在 utils.ts，
  * 视图拆成 toolbar / sidebar / list 三个子组件。</p>
  */
-import { computed, nextTick, ref, useSlots, watch } from "vue";
+import { computed, nextTick, ref, useSlots, watch, type Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Delete,
   Download,
   EditPen,
   FolderAdd,
+  Grid,
   InfoFilled,
+  List,
+  Menu,
   Refresh,
+  Tickets,
   Upload as UploadIcon,
   View,
 } from "@element-plus/icons-vue";
@@ -140,6 +145,7 @@ import type {
   FilePickerContextMenuOptions,
   FilePickerItem,
   FilePickerLoader,
+  FilePickerViewMode,
 } from "./types";
 import { FILE_PICKER_COLUMNS, toNativeAccept } from "./utils";
 import { useFilePicker } from "./composables/useFilePicker";
@@ -226,6 +232,15 @@ const dialogVisible = computed({
 const dialogTitle = computed(() => props.title);
 const isDirectoryMode = computed(() => props.directoryMode);
 const columns = FILE_PICKER_COLUMNS;
+
+/** 视图模式：默认详细列表，可切到大/中/小图标（参考 pages/filesystem 的状态栏切换） */
+const viewMode = ref<FilePickerViewMode>("details");
+const viewModeOptions: Array<{ key: FilePickerViewMode; label: string; icon: Component }> = [
+  { key: "details", label: "详细信息", icon: List },
+  { key: "largeIcons", label: "大图标", icon: Grid },
+  { key: "mediumIcons", label: "中图标", icon: Menu },
+  { key: "smallIcons", label: "小图标", icon: Tickets },
+];
 
 const rootRef = ref<HTMLElement | null>(null);
 
