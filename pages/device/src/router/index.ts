@@ -11,7 +11,7 @@
  *
  * 分组口径与监控管理平台的「设备管理」保持一致（设备资产 / 设备组织 / 通道管理 / 设备日志 /
  * 提供商配置），另加两页设备侧专属入口：
- *   - 设备预览    多路实时画面墙（摄像机设备）；
+ *   - 设备预览    多路实时画面墙（摄像机设备），另有 /device/preview/standalone 独立窗口形态；
  *   - 门禁记录    通行记录查询 + 远程开门（门禁/门口机设备）。
  * 分组名用「设备管理」而非「设备资产」：组内已不止资产台账。
  *
@@ -118,5 +118,20 @@ export const deviceRoutes: RouteConfigsTable[] = [
         }
       }
     ]
+  },
+  // ==================== 独立全屏路由（不套 layout，不进菜单） ====================
+  // 设备预览「新窗口打开」：只留左侧设备 + 右侧画面，由 registerRoutesUnderLayout
+  // 按 meta.standalone 注册到顶层；props 把 standalone 形态注入同一个视图组件。
+  // 墙面状态不写地址栏（改了 query 会触发路由重渲染），两个窗口读同一份本机缓存。
+  {
+    path: '/device/preview/standalone',
+    name: 'DevicePreviewStandalone',
+    component: () => import('../views/DevicePreviewView.vue'),
+    props: { standalone: true },
+    meta: {
+      title: '设备预览（独立窗口）',
+      showLink: false,
+      standalone: true
+    }
   }
 ]

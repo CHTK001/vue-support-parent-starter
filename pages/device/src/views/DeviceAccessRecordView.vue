@@ -34,12 +34,8 @@
       <div class="dar-field">
         <ReSelect v-model="filters.eventType" placeholder="全部事件" clearable :options="eventTypeOptions" />
       </div>
-      <div class="dar-field dar-field--direction">
-        <ReSelect v-model="filters.direction" placeholder="全部方向" clearable :options="DIRECTION_OPTIONS" />
-      </div>
-      <div class="dar-field">
-        <ReSelect v-model="filters.verdict" placeholder="全部结果" clearable :options="VERDICT_OPTIONS" />
-      </div>
+      <el-segmented v-model="filters.direction" :options="directionSegments" class="dar-seg" />
+      <el-segmented v-model="filters.verdict" :options="verdictSegments" class="dar-seg" />
       <div class="dar-field dar-field--search">
         <ReInput v-model="filters.keyword" placeholder="搜索人员 / 卡号 / 门..." clearable prefix-icon="Search" />
       </div>
@@ -236,7 +232,7 @@ import ReTag from '@repo/ui/re-tag'
 import deviceApi from '@/api/deviceApi'
 import type { DeviceCategory, DeviceDoor, DeviceInfo } from '@/types/device'
 import type { DirectionKey } from '@/utils/accessDirection'
-import { DIRECTION_OPTIONS, directionOf, rawDirection } from '@/utils/accessDirection'
+import { directionOf, rawDirection } from '@/utils/accessDirection'
 
 /** 门禁相关设备类别：门禁一体机 / 门口机 */
 const ACCESS_CATEGORIES: DeviceCategory[] = ['accessControl', 'intercom']
@@ -255,12 +251,6 @@ const ABNORMAL_KEYWORDS = [
   'fail',
   'forced',
   'alarm',
-]
-
-/** 结果筛选档位 */
-const VERDICT_OPTIONS = [
-  { value: 'ok', label: '正常通行' },
-  { value: 'bad', label: '异常' },
 ]
 
 /**
@@ -334,8 +324,8 @@ const filters = reactive<{
   deviceId: '',
   range: null,
   eventType: '',
-  verdict: '',
-  direction: '',
+  verdict: 'all',
+  direction: 'all',
   keyword: '',
 })
 
@@ -366,18 +356,53 @@ const eventTypeOptions = computed(() => {
   return [...set].sort().map((t) => ({ value: t, label: t }))
 })
 
-const filteredRows = computed(() => {
+/**
+ * 分段计数口径：先套上除「方向 / 结果」以外的筛选，
+ * 这样两排分片的计数只看其它条件，不会自己把自己筛没。
+ */
+const baseRows = computed(() => {
   const kw = filters.keyword.trim().toLowerCase()
   return rows.value.filter((r) => {
     if (filters.eventType && r.eventType !== filters.eventType) return false
-    if (filters.direction && r.direction !== filters.direction) return false
-    if (filters.verdict === 'ok' && r.abnormal) return false
-    if (filters.verdict === 'bad' && !r.abnormal) return false
     if (!kw) return true
     return [r.userName, r.cardNo, r.doorName, r.deviceName, r.eventType]
       .filter(Boolean)
       .some((v) => String(v).toLowerCase().includes(kw))
   })
+})
+
+const filteredRows = computed(() =>
+  baseRows.value.filter((r) => {
+    if (filters.direction !== 'all' && r.direction !== filters.direction) return false
+    if (filters.verdict === 'ok' && r.abnormal) return false
+    if (filters.verdict === 'bad' && !r.abnormal) return false
+    return true
+  }),
+)
+
+/** 方向分片（带计数）：全部 / 进 / 出 / 未标注 */
+const directionSegments = computed(() => {
+  const base = baseRows.value
+  return [
+    { label: `全部 ${base.length}`, value: 'all' },
+    { label: `进 ${base.filter((r) => r.direction === 'in').length}`, value: 'in' },
+    { label: `出 ${base.filter((r) => r.direction === 'out').length}`, value: 'out' },
+    {
+      label: `未标注 ${base.filter((r) => r.direction !== 'in' && r.direction !== 'out').length}`,
+      value: 'unknown',
+    },
+  ]
+})
+
+/** 结果分片（带计数）：全部 / 正常 / 异常 */
+const verdictSegments = computed(() => {
+  const base = baseRows.value
+  const bad = base.filter((r) => r.abnormal).length
+  return [
+    { label: `全部 ${base.length}`, value: 'all' },
+    { label: `正常 ${base.length - bad}`, value: 'ok' },
+    { label: `异常 ${bad}`, value: 'bad' },
+  ]
 })
 
 const okCount = computed(() => filteredRows.value.filter((r) => !r.abnormal).length)
@@ -642,8 +667,8 @@ function resetFilters(): void {
   filters.deviceId = ''
   filters.range = null
   filters.eventType = ''
-  filters.verdict = ''
-  filters.direction = ''
+  filters.verdict = 'all'
+  filters.direction = 'all'
   filters.keyword = ''
 }
 
@@ -667,7 +692,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 10px 12px 12px;
+  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
+  padding: 10px 0 12px;
   /* 高度够就吃满剩余空间（表格内滚、筛选常驻），不够就自然撑开让主区滚动 */
   min-height: 100%;
   color: var(--el-text-color-primary);
@@ -695,8 +721,8 @@ onMounted(async () => {
 .dar-field {
   width: 160px;
 }
-.dar-field--direction {
-  width: 120px;
+.dar-seg {
+  flex: none;
 }
 .dar-field--device {
   width: 210px;
@@ -727,7 +753,6 @@ onMounted(async () => {
   .dar-field,
   .dar-field--device,
   .dar-field--range,
-  .dar-field--direction,
   .dar-field--search {
     width: 100%;
   }

@@ -35,6 +35,16 @@ export type FilePickerLoader = (path: string) => Promise<FilePickerItem[]>;
 /** 可排序列 */
 export type FilePickerSortKey = "name" | "type" | "size" | "updatedAt";
 
+/**
+ * 行单击的修饰键 —— 多选语义对齐资源管理器：
+ * 普通单击<b>改选</b>，Ctrl/⌘ 单击加/减选，Shift 单击从锚点连选。
+ */
+export interface FilePickerSelectModifiers {
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  shiftKey?: boolean;
+}
+
 /** 列表列定义（表头与网格宽度同源，避免四段重复模板） */
 export interface FilePickerColumn {
   key: FilePickerSortKey;

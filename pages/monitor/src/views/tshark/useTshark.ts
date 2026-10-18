@@ -41,7 +41,7 @@ const SESSION_FETCH_SIZE = 200
  */
 const LIVE_ROW_CAP = 500
 
-export function useTshark(options: { source?: string } = {}) {
+export function useTshark(options: { source?: string; autoSelectFirst?: boolean } = {}) {
   /**
    * 会话来源过滤：抓包分析页传 {@code 'live'}、PCAP 分析页传 {@code 'import'}。
    *
@@ -50,6 +50,15 @@ export function useTshark(options: { source?: string } = {}) {
    * 也省掉「拉 200 条再丢掉一半」的浪费。</p>
    */
   const sessionSource = options.source ?? ''
+
+  /**
+   * 列表加载完是否自动选中第一条。
+   *
+   * <p>抓包分析页要（那份会话就是它当前的工作对象，进页面就该有数据可看）；
+   * PCAP 分析页不要 —— 那一页的形态是「目录（导入记录）→ 点进去看某个文件的报文」，
+   * 自动选中会让页面一进来就跳过目录、直接停在某个文件的报文上，用户反而找不到自己刚导入的那条。</p>
+   */
+  const autoSelectFirst = options.autoSelectFirst ?? true
 
   // ===== TShark 环境 =====
   const tsharkOk = ref(false)
@@ -181,7 +190,8 @@ export function useTshark(options: { source?: string } = {}) {
       }
       // 有会话可选、且「刚才选的那个没了」或「本来就没选（首次进入）」时才自动选中；
       // resetActive=false 的推送刷新不会把用户正看着的会话换掉。
-      if (list.length > 0 && (currentGone || (resetActive && activeSessionId.value == null))) {
+      // autoSelectFirst=false 时这一步整个跳过（PCAP 分析页：目录页不替用户挑一条）。
+      if (autoSelectFirst && list.length > 0 && (currentGone || (resetActive && activeSessionId.value == null))) {
         selectSession(list[0].id)
       }
       clampSessionPage()
@@ -361,23 +371,24 @@ export function useTshark(options: { source?: string } = {}) {
   /**
    * 导入 pcap 文件（PCAP 分析）。
    *
-   * <p>上传成功后后端先把会话落库、再在后台整份解析，所以这里要显式选中刚建的那条：
-   * 用户点完「导入」马上就想看到包在往里进，不该再让他去列表里找。
-   * 解析进度靠会话推送刷新（包数在长），不需要前端轮询。</p>
+   * <p>上传成功后后端先把会话落库、再在后台整份解析，会话是「立刻可见、包数陆续长」的。</p>
    *
-   * @param file 选中的 pcap 文件
-   * @param name 会话名（可空，后端回退用原始文件名）
+   * @param file      选中的 pcap 文件
+   * @param name      会话名（可空，后端回退用原始文件名）
+   * @param autoSelect 是否在上传成功后直接跳进这条记录的详情。
+   *   PCAP 分析页传 false：它的列表本身就是「目录页」，导入完停在这里看包数往上涨，
+   *   比直接跳到还空着的报文页更符合预期（合作方要看的是「传上去了没、解出来了没」）。
    * @returns 是否上传成功；失败已弹提示，页面据此决定要不要清空已选文件
    */
-  async function importPcap(file: File, name = ''): Promise<boolean> {
+  async function importPcap(file: File, name = '', autoSelect = true): Promise<boolean> {
     importing.value = true
     try {
       const created = await importTsharkPcap(file, name.trim())
       message.success('pcap 已上传，后台开始解析 —— 报文数会陆续增长')
-      // resetActive=false：不抢用户当前的选中项；紧接着再显式选中新建的那条
+      // resetActive=false：不抢用户当前的选中项；紧接着再按 autoSelect 决定要不要选中新建的那条
       await loadSessions(false)
       const id = created?.id ?? null
-      if (id != null) selectSession(id)
+      if (autoSelect && id != null) selectSession(id)
       return true
     } catch (e: any) {
       message.error('导入失败: ' + (e?.message || e))

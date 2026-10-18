@@ -82,8 +82,9 @@ export const deviceApi = {
     client().get("/export").query({ orgId }).responseType("blob").then(unwrap),
 
   // —— 视频 ——
-  getVideoStream: (deviceId: string, channel: number, protocol = 'hls') =>
-    client().get("/video/stream").query({ deviceId, channel, protocol }).then(unwrap),
+  // streamType: main=主码流 / sub=副码流（后端按需下发给设备；不认的设备走默认主码流）
+  getVideoStream: (deviceId: string, channel: number, protocol = 'hls', streamType = 'main') =>
+    client().get("/video/stream").query({ deviceId, channel, protocol, streamType }).then(unwrap),
   getPlaybackUrl: (deviceId: string, channel: number, start: string, end: string) =>
     client().get("/video/playback").query({ deviceId, channel, start, end }).then(unwrap),
   queryVideoRecords: (deviceId: string, channel: number, start: string, end: string) =>

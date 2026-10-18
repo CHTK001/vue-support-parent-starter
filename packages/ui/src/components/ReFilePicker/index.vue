@@ -260,6 +260,7 @@ const {
   openItem,
   clearSelection,
   toggleSort,
+  toggleSelect,
   isSelected,
   isParentEntry,
   moveActive,
@@ -277,10 +278,10 @@ const {
 
 /* ---------- 交互 ---------- */
 
-/** 行单击：记录键盘高亮位，再按模式选中 */
-const onActivate = (item: FilePickerItem, index: number): void => {
+/** 行单击：记录键盘高亮位，再按模式选中（Ctrl/⌘ 加减选、Shift 连选，见 selectItem） */
+const onActivate = (item: FilePickerItem, index: number, event?: MouseEvent): void => {
   activeIndex.value = index;
-  selectItem(item);
+  selectItem(item, event);
 };
 
 /** 行双击 / 回车：目录进入；单选文件即确认；多选文件且有预览通道时打开预览 */
@@ -405,7 +406,11 @@ const onContextMenu = (event: MouseEvent): void => {
   event.preventDefault();
   if (target) {
     activeIndex.value = index;
-    if (!isSelected(target)) selectOnly(target);
+    // 资源管理器口径：右键已选中项保留整批选择；未选中项则改选（Ctrl/⌘ 为加选）
+    if (!isSelected(target)) {
+      if (event.ctrlKey || event.metaKey) toggleSelect(target);
+      else selectOnly(target);
+    }
   }
   menuItem.value = target;
   menuX.value = event.clientX;

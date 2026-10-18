@@ -10,6 +10,7 @@ import type {
   FilePickerItem,
   FilePickerListResult,
   FilePickerLoader,
+  FilePickerSelectModifiers,
   FilePickerSortKey,
   FilePickerTreeNode,
 } from "../types";
@@ -80,9 +81,11 @@ export interface UseFilePickerReturn {
   reset: (path: string) => Promise<void>;
   navigateTo: (path: string) => void;
   goBack: () => void;
-  selectItem: (item: FilePickerItem) => void;
+  selectItem: (item: FilePickerItem, modifiers?: FilePickerSelectModifiers) => void;
   /** 只选中该项（右键唤起菜单时用，资源管理器语义：右键即改选） */
   selectOnly: (item: FilePickerItem) => void;
+  /** 加/减选一项（Ctrl 多选用） */
+  toggleSelect: (item: FilePickerItem) => void;
   /** 双击/回车；返回 true 表示单选模式下选中了文件、调用方应立刻确认 */
   openItem: (item: FilePickerItem) => boolean;
   clearSelection: () => void;
@@ -111,6 +114,8 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
   const activeIndex = ref(-1);
   /** 到达选择上限的瞬时提示（空串 = 不显示） */
   const limitHint = ref("");
+  /** Shift 连选的锚点（最近一次单击改选的条目） */
+  const anchorKey = ref("");
   let limitHintTimer: ReturnType<typeof setTimeout> | null = null;
 
   onBeforeUnmount(() => {
@@ -221,6 +226,7 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     sortAsc.value = true;
     activeIndex.value = -1;
     limitHint.value = "";
+    anchorKey.value = "";
     await load(path);
   };
 
@@ -347,24 +353,63 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
 
   const clearSelection = (): void => {
     selectedItems.value = [];
+    anchorKey.value = "";
     limitHint.value = "";
   };
 
-  /** 单击：目录在文件模式下不选中（进目录靠双击/回车）；「..」直接跳转 */
-  const selectItem = (item: FilePickerItem): void => {
+  /** Shift 连选：锚点 → 目标之间的行；目录不可选时跳过，超上限截断并提示 */
+  const selectRangeTo = (item: FilePickerItem): void => {
+    const list = rows.value;
+    const toIndex = list.findIndex((row) => row.key === item.key);
+    const fromIndex = list.findIndex((row) => row.key === anchorKey.value);
+    if (toIndex < 0) return;
+    if (fromIndex < 0) {
+      selectOnly(item);
+      return;
+    }
+    const [start, end] = fromIndex <= toIndex ? [fromIndex, toIndex] : [toIndex, fromIndex];
+    let range = list.slice(start, end + 1).filter((row) => canSelect(row));
+    if (limit.value > 0 && range.length > limit.value) {
+      range = range.slice(0, limit.value);
+      showLimitHint();
+    }
+    selectedItems.value = range;
+    activeIndex.value = toIndex;
+  };
+
+  /**
+   * 单击：目录在文件模式下不选中（进目录靠双击/回车）；「..」直接跳转。
+   *
+   * <p>多选对齐资源管理器：<b>普通单击 = 改选</b>（不会越点越多），
+   * Ctrl/⌘ + 单击 = 加/减选，Shift + 单击 = 从锚点连选。</p>
+   */
+  const selectItem = (item: FilePickerItem, modifiers?: FilePickerSelectModifiers): void => {
     if (isParentEntry(item)) {
       navigateTo(item.key);
       return;
     }
     if (!canSelect(item)) return;
-    if (options.multiple()) toggleSelect(item);
-    else selectedItems.value = [item];
+    if (!options.multiple()) {
+      selectOnly(item);
+      return;
+    }
+    if (modifiers?.shiftKey) {
+      selectRangeTo(item);
+      return;
+    }
+    if (modifiers?.ctrlKey || modifiers?.metaKey) {
+      toggleSelect(item);
+      anchorKey.value = item.key;
+      return;
+    }
+    selectOnly(item);
   };
 
-  /** 只选中这一项（右键唤起菜单时用：资源管理器右键即改选） */
+  /** 只选中这一项（右键唤起菜单 / 普通单击时用：资源管理器口径） */
   const selectOnly = (item: FilePickerItem): void => {
     if (!canSelect(item)) return;
     selectedItems.value = [item];
+    anchorKey.value = item.key;
     limitHint.value = "";
   };
 
@@ -462,6 +507,7 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     goBack,
     selectItem,
     selectOnly,
+    toggleSelect,
     openItem,
     clearSelection,
     toggleSort,

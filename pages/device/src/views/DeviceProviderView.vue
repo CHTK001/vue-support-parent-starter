@@ -837,7 +837,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 10px 12px 12px;
+  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
+  padding: 10px 0 12px;
   height: 100%;
   min-height: 0;
   color: var(--el-text-color-primary);

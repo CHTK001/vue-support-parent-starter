@@ -36,7 +36,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "sort", key: FilePickerSortKey): void;
-  (e: "activate", item: FilePickerItem, index: number): void;
+  (e: "activate", item: FilePickerItem, index: number, event?: MouseEvent): void;
   (e: "open", item: FilePickerItem): void;
   (e: "navigate", path: string): void;
 }>();
@@ -115,7 +115,7 @@ watch(
           :data-row-index="i"
           :title="item.key"
           :aria-label="item.name"
-          @click="emit('activate', item, i)"
+          @click="emit('activate', item, i, $event)"
           @dblclick="emit('open', item)"
         >
           <span class="rfp-details__name">

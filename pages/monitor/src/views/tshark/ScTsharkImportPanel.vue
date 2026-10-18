@@ -10,6 +10,10 @@
 
   分页、搜索都在父级（useTshark）算好再传进来 —— 搜索必须在「已拉取的全量」上做，
   只搜当前页会「搜不到」（见 useTshark 的 SESSION_FETCH_SIZE 说明）。
+
+  整行可点（row-click → select）：这张表就是 PCAP 分析页的目录页，
+  「看这个文件的报文」是绝对主操作，让它必须瞄准右边那个「查看」小字是不合理的；
+  「查看」按钮仍保留，因为按钮是「这里能点」最直白的信号。
 -->
 <template>
   <div class="tshark-panel">
@@ -39,6 +43,7 @@
         :pagination="false"
         :toolbar="false"
         :empty-text="emptyText"
+        @row-click="onRowClick"
       >
         <ReTableColumn label="文件 / 会话名" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
@@ -106,6 +111,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { sessionName, statusOf, timeRange, fmtDuration } from './tsharkFormat'
 import type { TsharkSession } from './types'
 
 const props = defineProps<{
@@ -152,50 +158,9 @@ function onKeyword(v: unknown) {
   emit('update:keyword', v === null || v === undefined ? '' : String(v))
 }
 
-function sessionName(s: TsharkSession): string {
-  return s.sessionName || `导入 ${s.id}`
-}
-
-/**
- * 解析状态。
- *
- * <p>三态而不是两态：报文数为 0 的「已解析」多半是文件本身不含报文（或格式不对），
- * 和正常解析完的文件混在一起会让人以为数据丢了，所以单独标成「无报文」。</p>
- */
-function statusOf(s: TsharkSession): { type: 'warning' | 'info' | 'success'; text: string } {
-  if (s.captureStatus === 1) return { type: 'warning', text: '解析中' }
-  if ((s.packetCount ?? 0) === 0) return { type: 'info', text: '无报文' }
-  return { type: 'success', text: '已解析' }
-}
-
-/** 报文的首末时间。解析中时后端还没回填结束时间，就只显示起点 + 「解析中」 */
-function timeRange(s: TsharkSession): string {
-  const from = fmtTime(s.startTime)
-  if (!from) return '—'
-  const to = fmtTime(s.endTime)
-  if (!to) return `${from} → 解析中`
-  return `${from} → ${to}`
-}
-
-/** 后端给的是「2026-10-18T13:36:38」或「2026-10-18 13:36:38」两种形态，都要吃得下 */
-function fmtTime(t?: string | null): string {
-  if (!t) return ''
-  const d = t.includes('T') ? new Date(t) : new Date(t.replace(/-/g, '/'))
-  if (isNaN(d.getTime())) return t
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
-}
-
-/** 把「秒」说成人话；小于 1 秒的抓包很常见，直接显示 0s 会显得像没抓到东西 */
-function fmtDuration(sec?: number | null): string {
-  if (sec === null || sec === undefined) return '—'
-  if (sec <= 0) return '<1s'
-  if (sec < 60) return `${sec}s`
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  if (m < 60) return s ? `${m}m${s}s` : `${m}m`
-  const h = Math.floor(m / 60)
-  return `${h}h${m % 60}m`
+/** 整行点击 = 「查看这个文件」；ReTable 的 row-click 会多带列与事件两个参数，这里只取行 */
+function onRowClick(row: TsharkSession) {
+  emit('select', row.id)
 }
 </script>
 
@@ -203,5 +168,10 @@ function fmtDuration(sec?: number | null): string {
 .import-summary {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+/* 整行是按钮：指针形态告诉用户「这行能点」，否则只有右边那个小字像链接 */
+.tshark-table :deep(.el-table__row) {
+  cursor: pointer;
 }
 </style>

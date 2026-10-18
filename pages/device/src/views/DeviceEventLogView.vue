@@ -26,9 +26,7 @@
           @change="query"
         />
       </div>
-      <div class="del-field">
-        <ReSelect v-model="filters.type" placeholder="全部类型" clearable :options="EVENT_TYPES" />
-      </div>
+      <el-segmented v-model="filters.type" :options="typeSegments" class="del-seg" @change="query" />
       <div class="del-field del-field--range">
         <el-date-picker
           v-model="filters.range"
@@ -147,6 +145,9 @@ const EVENT_TYPES = [
   { value: 'OTHER', label: '其他' },
 ]
 
+/** 类型分片：事件类型是闭集，用分片挑；类型过滤在后端做，所以不带计数 */
+const typeSegments = [{ label: '全部', value: 'all' }, ...EVENT_TYPES]
+
 const EVENT_TYPE_MAP = new Map<string, { label: string; tag: 'primary' | 'success' | 'warning' | 'danger' | 'info' }>()
 EVENT_TYPE_MAP.set('MOTION', { label: '移动侦测', tag: 'primary' })
 EVENT_TYPE_MAP.set('IO_ALARM', { label: 'IO 报警', tag: 'danger' })
@@ -183,7 +184,7 @@ const filters = reactive<{
   range: [string, string] | null
 }>({
   deviceId: '',
-  type: '',
+  type: 'all',
   range: null,
 })
 
@@ -295,7 +296,7 @@ async function query(): Promise<void> {
     const params: { deviceId: string; type?: string; start?: string; end?: string } = {
       deviceId: filters.deviceId,
     }
-    if (filters.type) params.type = filters.type
+    if (filters.type && filters.type !== 'all') params.type = filters.type
     if (filters.range?.[0]) params.start = filters.range[0]
     if (filters.range?.[1]) params.end = filters.range[1]
     events.value = ((await deviceApi.queryEvents(params)) as DeviceEvent[]) || []
@@ -343,7 +344,8 @@ onMounted(fetchDevices)
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 10px 12px 12px;
+  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
+  padding: 10px 0 12px;
   /* 高度够就吃满剩余空间（表格内滚、筛选常驻），不够就自然撑开让主区滚动 */
   min-height: 100%;
   color: var(--el-text-color-primary);
@@ -370,6 +372,9 @@ onMounted(fetchDevices)
 }
 .del-field {
   width: 160px;
+}
+.del-seg {
+  flex: none;
 }
 .del-field--device {
   width: 230px;
