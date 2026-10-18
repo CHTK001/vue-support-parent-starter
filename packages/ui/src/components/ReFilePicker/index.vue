@@ -74,6 +74,22 @@
         >
           清除
         </el-button>
+        <div class="rfp__views" role="group" aria-label="查看方式">
+          <button
+            v-for="mode in viewModeOptions"
+            :key="mode.key"
+            type="button"
+            class="rfp-view-btn"
+            :class="{ 'is-active': viewMode === mode.key }"
+            :data-view="mode.key"
+            :title="mode.label"
+            :aria-label="mode.label"
+            :aria-pressed="viewMode === mode.key"
+            @click="viewMode = mode.key"
+          >
+            <el-icon :size="15"><component :is="mode.icon" /></el-icon>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -761,6 +777,46 @@ watch(
   white-space: nowrap;
   color: var(--rfp-accent);
   font-weight: 600;
+}
+
+/* 视图切换（状态栏右侧）：详细信息 / 大图标 / 中图标 / 小图标 */
+.rfp__views {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--rfp-border);
+}
+
+.rfp-view-btn {
+  width: 26px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--rfp-radius);
+  background: transparent;
+  color: var(--rfp-text-weak);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.rfp-view-btn:hover {
+  background: var(--rfp-hover);
+  color: var(--rfp-accent);
+}
+
+.rfp-view-btn.is-active {
+  background: var(--rfp-select-bg);
+  color: var(--rfp-accent);
+}
+
+.rfp-view-btn:focus-visible {
+  outline: 2px solid var(--rfp-accent);
+  outline-offset: -2px;
 }
 
 /* 数量上限：常态灰字，到达上限变警示色 */
