@@ -73,44 +73,96 @@ watch(
       </div>
     </div>
 
-    <template v-else-if="rows.length">
-      <div class="rfp-details__head" role="row">
-        <button
-          v-for="col in columns"
-          :key="col.key"
-          type="button"
-          class="rfp-details__head-cell"
-          :class="[col.className, { 'is-sorted': sortKey === col.key }]"
-          :aria-label="`排序：${col.label}`"
-          @click="emit('sort', col.key)"
-        >
-          {{ col.label }}
-          <span class="rfp-sort-arrow">{{ sortArrow(col.key) }}</span>
-        </button>
-      </div>
+    <template v-else-if="rows.length || parentEntry">
+      <!-- 详细信息 -->
+      <template v-if="viewMode === 'details'">
+        <div class="rfp-details__head" role="row">
+          <button
+            v-for="col in columns"
+            :key="col.key"
+            type="button"
+            class="rfp-details__head-cell"
+            :class="[col.className, { 'is-sorted': sortKey === col.key }]"
+            :aria-label="`排序：${col.label}`"
+            @click="emit('sort', col.key)"
+          >
+            {{ col.label }}
+            <span class="rfp-sort-arrow">{{ sortArrow(col.key) }}</span>
+          </button>
+        </div>
 
-      <div ref="detailsRef" class="rfp-details">
+        <div ref="detailsRef" class="rfp-details">
+          <button
+            v-if="parentEntry"
+            type="button"
+            class="rfp-details__row rfp-details__row--parent rfp-parent"
+            title="返回上级目录"
+            @click="emit('navigate', parentEntry.key)"
+          >
+            <span class="rfp-details__name">
+              <el-icon :size="16" class="rfp-file-icon rfp-file-icon--dir"><FolderOpened /></el-icon>
+              <span>..</span>
+            </span>
+            <span class="rfp-details__time">-</span>
+            <span class="rfp-details__type">上级目录</span>
+            <span class="rfp-details__size">-</span>
+          </button>
+
+          <button
+            v-for="(item, i) in rows"
+            :key="item.key"
+            type="button"
+            class="rfp-details__row re-file-picker__item"
+            :class="{
+              'is-selected': isSelected(item),
+              'is-active': i === activeIndex,
+              'is-dir': item.isDir,
+              'is-disabled': !item.isDir && !canSelect(item),
+            }"
+            :data-row-index="i"
+            :title="item.key"
+            :aria-label="item.name"
+            @click="emit('activate', item, i, $event)"
+            @dblclick="emit('open', item)"
+          >
+            <span class="rfp-details__name">
+              <img v-if="!item.isDir && item.thumbnail" :src="item.thumbnail" class="rfp-details__thumb" alt="" />
+              <el-icon v-else-if="item.isDir" :size="16" class="rfp-file-icon rfp-file-icon--dir"><Folder /></el-icon>
+              <el-icon v-else-if="fileKindOf(item) === 'image'" :size="16" class="rfp-file-icon rfp-file-icon--image"><Picture /></el-icon>
+              <el-icon v-else-if="fileKindOf(item) === 'video'" :size="16" class="rfp-file-icon rfp-file-icon--video"><VideoPlay /></el-icon>
+              <el-icon v-else-if="fileKindOf(item) === 'audio'" :size="16" class="rfp-file-icon rfp-file-icon--audio"><Headset /></el-icon>
+              <el-icon v-else-if="fileKindOf(item) === 'pdf'" :size="16" class="rfp-file-icon rfp-file-icon--pdf"><Document /></el-icon>
+              <el-icon v-else :size="16" class="rfp-file-icon"><Files /></el-icon>
+              <span class="rfp-details__name-text" :class="{ 'is-dir': item.isDir }">{{ item.name }}</span>
+            </span>
+            <span class="rfp-details__time">{{ formatTime(item.updatedAt) }}</span>
+            <span class="rfp-details__type">{{ item.isDir ? "文件夹" : fileTypeText(item.name) }}</span>
+            <span class="rfp-details__size">{{ item.isDir ? "-" : formatSize(item.size) }}</span>
+          </button>
+        </div>
+      </template>
+
+      <!-- 大 / 中 / 小图标 -->
+      <div v-else ref="detailsRef" class="rfp-grid" :class="`rfp-grid--${viewMode}`">
         <button
           v-if="parentEntry"
           type="button"
-          class="rfp-details__row rfp-details__row--parent rfp-parent"
+          class="rfp-grid__cell rfp-grid__cell--parent"
           title="返回上级目录"
           @click="emit('navigate', parentEntry.key)"
         >
-          <span class="rfp-details__name">
-            <el-icon :size="16" class="rfp-file-icon rfp-file-icon--dir"><FolderOpened /></el-icon>
-            <span>..</span>
+          <span class="rfp-grid__thumb">
+            <el-icon class="rfp-grid__icon rfp-file-icon rfp-file-icon--dir"><FolderOpened /></el-icon>
           </span>
-          <span class="rfp-details__time">-</span>
-          <span class="rfp-details__type">上级目录</span>
-          <span class="rfp-details__size">-</span>
+          <span class="rfp-grid__name">..</span>
+          <span v-if="viewMode !== 'smallIcons'" class="rfp-grid__meta">上级目录</span>
         </button>
 
         <button
           v-for="(item, i) in rows"
           :key="item.key"
           type="button"
-          class="rfp-details__row re-file-picker__item"
+          class="rfp-grid__cell re-file-picker__item"
           :class="{
             'is-selected': isSelected(item),
             'is-active': i === activeIndex,
@@ -123,19 +175,24 @@ watch(
           @click="emit('activate', item, i, $event)"
           @dblclick="emit('open', item)"
         >
-          <span class="rfp-details__name">
-            <img v-if="!item.isDir && item.thumbnail" :src="item.thumbnail" class="rfp-details__thumb" alt="" />
-            <el-icon v-else-if="item.isDir" :size="16" class="rfp-file-icon rfp-file-icon--dir"><Folder /></el-icon>
-            <el-icon v-else-if="fileKindOf(item) === 'image'" :size="16" class="rfp-file-icon rfp-file-icon--image"><Picture /></el-icon>
-            <el-icon v-else-if="fileKindOf(item) === 'video'" :size="16" class="rfp-file-icon rfp-file-icon--video"><VideoPlay /></el-icon>
-            <el-icon v-else-if="fileKindOf(item) === 'audio'" :size="16" class="rfp-file-icon rfp-file-icon--audio"><Headset /></el-icon>
-            <el-icon v-else-if="fileKindOf(item) === 'pdf'" :size="16" class="rfp-file-icon rfp-file-icon--pdf"><Document /></el-icon>
-            <el-icon v-else :size="16" class="rfp-file-icon"><Files /></el-icon>
-            <span class="rfp-details__name-text" :class="{ 'is-dir': item.isDir }">{{ item.name }}</span>
+          <span class="rfp-grid__thumb">
+            <img
+              v-if="!item.isDir && item.thumbnail && viewMode !== 'smallIcons'"
+              :src="item.thumbnail"
+              class="rfp-grid__thumb-img rfp-details__thumb"
+              alt=""
+            />
+            <el-icon v-else-if="item.isDir" class="rfp-grid__icon rfp-file-icon rfp-file-icon--dir"><Folder /></el-icon>
+            <el-icon v-else-if="fileKindOf(item) === 'image'" class="rfp-grid__icon rfp-file-icon rfp-file-icon--image"><Picture /></el-icon>
+            <el-icon v-else-if="fileKindOf(item) === 'video'" class="rfp-grid__icon rfp-file-icon rfp-file-icon--video"><VideoPlay /></el-icon>
+            <el-icon v-else-if="fileKindOf(item) === 'audio'" class="rfp-grid__icon rfp-file-icon rfp-file-icon--audio"><Headset /></el-icon>
+            <el-icon v-else-if="fileKindOf(item) === 'pdf'" class="rfp-grid__icon rfp-file-icon rfp-file-icon--pdf"><Document /></el-icon>
+            <el-icon v-else class="rfp-grid__icon rfp-file-icon"><Files /></el-icon>
           </span>
-          <span class="rfp-details__time">{{ formatTime(item.updatedAt) }}</span>
-          <span class="rfp-details__type">{{ item.isDir ? "文件夹" : fileTypeText(item.name) }}</span>
-          <span class="rfp-details__size">{{ item.isDir ? "-" : formatSize(item.size) }}</span>
+          <span class="rfp-grid__name" :class="{ 'is-dir': item.isDir }">{{ item.name }}</span>
+          <span v-if="viewMode !== 'smallIcons'" class="rfp-grid__meta">
+            {{ item.isDir ? "文件夹" : formatSize(item.size) }}
+          </span>
         </button>
       </div>
     </template>
