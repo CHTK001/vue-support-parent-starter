@@ -22,7 +22,7 @@ import type {
 } from './types'
 
 /** 会话列表每页条数（前端分页） */
-const SESSION_PAGE_SIZE = 10
+const DEFAULT_SESSION_PAGE_SIZE = 10
 /** 报文列表每页条数（后端分页） */
 const PACKET_PAGE_SIZE = 20
 /**
@@ -91,6 +91,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   const sessionKeyword = ref('')
   const sessionFilter = ref<TsharkSessionFilter>('all')
   const sessionPage = ref(1)
+  /** 每页条数做成 ref：列表页的 ReTable 可以改页大小，内部 pagedSessions 也跟着一致 */
+  const sessionPageSize = ref(DEFAULT_SESSION_PAGE_SIZE)
   const activeSessionId = ref<number | null>(null)
 
   // ===== 报文 =====
@@ -241,8 +243,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   })
 
   const pagedSessions = computed(() => {
-    const start = (sessionPage.value - 1) * SESSION_PAGE_SIZE
-    return filteredSessions.value.slice(start, start + SESSION_PAGE_SIZE)
+    const start = (sessionPage.value - 1) * sessionPageSize.value
+    return filteredSessions.value.slice(start, start + sessionPageSize.value)
   })
 
   const runningCount = computed(() => sessions.value.filter(s => s.captureStatus === 1).length)
@@ -301,7 +303,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
 
   /** 筛选条件变化后页码可能越界（只剩 1 页时还停在第 3 页会是空列表） */
   function clampSessionPage() {
-    const max = Math.max(1, Math.ceil(filteredSessions.value.length / SESSION_PAGE_SIZE))
+    const max = Math.max(1, Math.ceil(filteredSessions.value.length / sessionPageSize.value))
     if (sessionPage.value > max) sessionPage.value = max
     if (sessionPage.value < 1) sessionPage.value = 1
   }
@@ -580,7 +582,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 会话
     loadingSessions, sessions, sessionBackendTotal, sessionKeyword, sessionFilter,
     sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
-    runningCount, sessionPageSize: SESSION_PAGE_SIZE,
+    runningCount, sessionPageSize,
     // 报文
     loadingPackets, packets, packetPage, packetTotal, packetKeyword, packetPageSize: PACKET_PAGE_SIZE,
     // 统计
