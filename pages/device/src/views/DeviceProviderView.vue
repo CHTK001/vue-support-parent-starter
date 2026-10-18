@@ -425,8 +425,8 @@ import ReSkeleton from '@repo/ui/re-skeleton'
 import ReStatCard from '@repo/ui/re-stat-card'
 import ReSwitch from '@repo/ui/re-switch'
 
-import deviceApi from '@/api/deviceApi'
-import type { DeviceInfo, ProviderCredential } from '@/types/device'
+import deviceApi from '../api/deviceApi'
+import type { DeviceInfo, ProviderCredential } from '../types/device'
 
 /** 厂商码 → 中文名 */
 const VENDOR_LABELS: Record<string, string> = {

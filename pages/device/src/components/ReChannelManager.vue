@@ -96,8 +96,8 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 
-import { deviceApi } from '@/api/deviceApi'
-import type { DeviceChannel } from '@/types/device'
+import { deviceApi } from '../api/deviceApi'
+import type { DeviceChannel } from '../types/device'
 
 /** 通道类型下拉项（与后端 deviceChannelType 取值对齐） */
 const CHANNEL_TYPE_OPTIONS = [

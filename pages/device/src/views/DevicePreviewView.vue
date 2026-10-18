@@ -1,5 +1,11 @@
 <template>
-  <div class="dpv" :class="{ 'dpv--standalone': standalone }">
+  <div
+    class="dpv"
+    :class="{ 'dpv--standalone': standalone }"
+    @dragenter="preventNativeDrop"
+    @dragover="preventNativeDrop"
+    @drop="preventNativeDrop"
+  >
     <!-- 独立窗口：只保留一条细工具条（没有外壳的侧栏/顶栏/标签栏） -->
     <header v-if="standalone" class="dpv-std">
       <span class="dpv-std__dot" />
@@ -55,8 +61,8 @@
             :class="{ 'is-on': isOnWall(d.deviceInfoId) }"
             draggable="true"
             @dragstart="onDeviceDragStart($event, d)"
-            @dragend="resetDrag"
-            @click="addToWall(d)"
+            @dragend="endDrag"
+            @click="onDeviceClick(d)"
           >
             <span class="dpv-dev__grip"><el-icon><Rank /></el-icon></span>
             <span class="dpv-dev__icon"><el-icon><VideoCamera /></el-icon></span>
@@ -136,7 +142,7 @@
             }"
             draggable="true"
             @dragstart="onTileDragStart($event, i)"
-            @dragend="resetDrag"
+            @dragend="endDrag"
             @dragover.prevent="onTileDragOver($event, i)"
             @drop.prevent="onTileDrop($event, i)"
           >
@@ -298,9 +304,9 @@ import { ReFormItem } from '@repo/ui/re-kit'
 import ReStatCard from '@repo/ui/re-stat-card'
 import ReTag from '@repo/ui/re-tag'
 
-import ReVideo from '@/components/ReVideo.vue'
-import deviceApi from '@/api/deviceApi'
-import type { DeviceChannel, DeviceInfo } from '@/types/device'
+import ReVideo from '../components/ReVideo.vue'
+import deviceApi from '../api/deviceApi'
+import type { DeviceChannel, DeviceInfo } from '../types/device'
 
 /** 独立窗口形态：路由 props 注入（/device/preview/standalone） */
 const props = defineProps<{ standalone?: boolean }>()
@@ -483,8 +489,9 @@ async function reloadAll(): Promise<void> {
   }
 }
 
-/** 切换协议：墙上按新协议重新取流 */
+/** 切换协议：先落缓存，再按新协议重新取流 */
 function onProtocolChange(): void {
+  persistWall()
   void reloadAll()
 }
 
@@ -521,19 +528,27 @@ function addDeviceAt(d: DeviceInfo, index: number): void {
   const tile = makeTile(d)
   const next = [...wall.value]
   const at = index >= 0 && index <= next.length ? index : next.length
-  next.splice(at, 0, tile)
-  if (next.length > layoutSize.value) next.length = layoutSize.value
+  if (next.length >= layoutSize.value) {
+    // 满墙：替换落点那一格（落到空白处则替换最后一格），而不是把新画面直接截掉
+    next.splice(Math.min(at, layoutSize.value - 1), 1, tile)
+  } else {
+    next.splice(at, 0, tile)
+  }
   wall.value = next
+  // 结构变化立刻落本机缓存：不经过地址栏，也不等 watch 的下一拍
+  persistWall()
   void loadStream(tile)
   void ensureChannelNos(d.deviceInfoId)
 }
 
 function removeTile(key: string): void {
   wall.value = wall.value.filter((t) => t.key !== key)
+  persistWall()
 }
 
 function clearWall(): void {
   wall.value = []
+  persistWall()
 }
 
 /** 每路切主/副码流 */
@@ -541,6 +556,7 @@ function setTileStream(tile: Tile, stream: string): void {
   const next: StreamKey = stream === 'sub' ? 'sub' : 'main'
   if (tile.stream === next) return
   tile.stream = next
+  persistWall()
   void loadStream(tile)
 }
 
@@ -548,6 +564,7 @@ function setTileStream(tile: Tile, stream: string): void {
 function setTileChannel(tile: Tile, channel: number): void {
   if (!channel || tile.channel === channel) return
   tile.channel = channel
+  persistWall()
   void loadStream(tile)
 }
 
@@ -578,6 +595,16 @@ async function ensureChannelNos(deviceId: string): Promise<void> {
 
 /* ============================ 拖拽 ============================ */
 
+/**
+ * 拖拽负载用自定义 MIME，不写 text/plain。
+ *
+ * <p>把设备 id / 序号写进 text/plain 时，落点一旦没被处理，浏览器会把它当成
+ * 「拖入的文本或 URL」自己接管：轻则整页刷新，重则地址栏跳到 device:xxx。
+ * 自定义类型不会被浏览器当作导航内容，落点仍由本页的 drop 处理器接管。</p>
+ */
+const DRAG_DEVICE_MIME = 'application/x-device-preview-device'
+const DRAG_TILE_MIME = 'application/x-device-preview-tile'
+
 const dragState = reactive<{ kind: 'tile' | 'device' | 'none'; index: number; deviceId: string }>({
   kind: 'none',
   index: -1,
@@ -585,22 +612,41 @@ const dragState = reactive<{ kind: 'tile' | 'device' | 'none'; index: number; de
 })
 const dropIndex = ref(-1)
 
+/** 拖拽刚结束时部分浏览器还会补一次 click；短暂屏蔽，避免同一台设备被加两次 */
+const suppressClick = ref(false)
+let suppressTimer: ReturnType<typeof setTimeout> | null = null
+
 const dragActive = computed(() => dragState.kind !== 'none')
+
+function markDragged(): void {
+  suppressClick.value = true
+  if (suppressTimer) clearTimeout(suppressTimer)
+  suppressTimer = setTimeout(() => {
+    suppressClick.value = false
+    suppressTimer = null
+  }, 260)
+}
 
 function onDeviceDragStart(e: DragEvent, d: DeviceInfo): void {
   dragState.kind = 'device'
   dragState.deviceId = d.deviceInfoId
   dragState.index = -1
-  e.dataTransfer?.setData('text/plain', `device:${d.deviceInfoId}`)
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'
+  markDragged()
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData(DRAG_DEVICE_MIME, d.deviceInfoId)
+  }
 }
 
 function onTileDragStart(e: DragEvent, i: number): void {
   dragState.kind = 'tile'
   dragState.index = i
   dragState.deviceId = ''
-  e.dataTransfer?.setData('text/plain', `tile:${i}`)
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+  markDragged()
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData(DRAG_TILE_MIME, String(i))
+  }
 }
 
 function resetDrag(): void {
@@ -610,13 +656,30 @@ function resetDrag(): void {
   dropIndex.value = -1
 }
 
-function onTileDragOver(_e: DragEvent, i: number): void {
+/** dragend：清掉拖拽状态；click 抑制交给 markDragged 的定时器自然结束 */
+function endDrag(): void {
+  resetDrag()
+}
+
+/** 左侧清单点击：拖拽松手后的补发 click 直接忽略 */
+function onDeviceClick(d: DeviceInfo): void {
+  if (suppressClick.value) return
+  addToWall(d)
+}
+
+function setDropEffect(e: DragEvent): void {
+  if (e.dataTransfer) e.dataTransfer.dropEffect = dragState.kind === 'tile' ? 'move' : 'copy'
+}
+
+function onTileDragOver(e: DragEvent, i: number): void {
   if (!dragActive.value) return
+  setDropEffect(e)
   dropIndex.value = i
 }
 
-function onGridDragOver(): void {
+function onGridDragOver(e: DragEvent): void {
   if (!dragActive.value) return
+  setDropEffect(e)
   dropIndex.value = -1
 }
 
@@ -630,24 +693,25 @@ function onTileDrop(e: DragEvent, i: number): void {
 
 /** 落点统一处理：墙内换位 / 从清单拖入 */
 function applyDrop(e: DragEvent, index: number): void {
-  const payload = e.dataTransfer?.getData('text/plain') || ''
-  const kind = dragState.kind === 'none' ? (payload.startsWith('device:') ? 'device' : payload.startsWith('tile:') ? 'tile' : 'none') : dragState.kind
-  if (kind === 'tile') {
-    const from = dragState.kind === 'tile' ? dragState.index : Number(payload.slice(5))
-    if (index < 0) {
+  // 优先读响应式状态；状态因 dragend 提前清掉时再回退到自定义 MIME
+  const deviceId =
+    dragState.kind === 'device' ? dragState.deviceId : (e.dataTransfer?.getData(DRAG_DEVICE_MIME) || '')
+  const tileIndexRaw =
+    dragState.kind === 'tile' ? String(dragState.index) : (e.dataTransfer?.getData(DRAG_TILE_MIME) || '')
+  const from = Number(tileIndexRaw)
+
+  if (!deviceId && Number.isInteger(from) && from >= 0) {
+    if (index < 0 || index >= wall.value.length) {
       // 落到空白处：移到最后一格
       moveTile(from, wall.value.length - 1)
-    } else if (index < wall.value.length) {
-      moveTile(from, index)
     } else {
-      moveTile(from, wall.value.length - 1)
+      moveTile(from, index)
     }
-  } else if (kind === 'device') {
-    const deviceId = dragState.kind === 'device' ? dragState.deviceId : payload.slice(7)
+  } else if (deviceId) {
     const d = devices.value.find((x) => x.deviceInfoId === deviceId)
     if (d) addDeviceAt(d, index < 0 || index >= wall.value.length ? -1 : index)
   }
-  resetDrag()
+  endDrag()
 }
 
 function moveTile(from: number, to: number): void {
@@ -656,6 +720,7 @@ function moveTile(from: number, to: number): void {
   const [tile] = next.splice(from, 1)
   next.splice(Math.min(to, next.length), 0, tile)
   wall.value = next
+  persistWall()
 }
 
 /* ============================ 墙面持久化（本机缓存） ============================ */
@@ -860,16 +925,28 @@ async function bootstrap(): Promise<void> {
 }
 
 /**
- * 拖拽松手时拦掉浏览器的默认行为。
+ * 拖拽根节点的兜底。
  *
- * <p>不拦的话，拖到画面墙以外（顶栏 / 侧栏 / 面板留白）会落到浏览器自己的「拖入内容」处理上，
- * 有时直接当成导航把整页刷了；墙内落点由模板上的 drop 处理。</p>
+ * <p>墙内落点由 grid / tile 的 drop 处理器先处理；这一层只负责把默认行为拦掉，
+ * 避免松手落在标题、留白或面板边缘时被浏览器当成「打开拖入内容」而整页刷新。
+ * 不再改地址栏，所有墙面状态直接写 localStorage。</p>
+ */
+function preventNativeDrop(e: DragEvent): void {
+  if (dragActive.value || e.defaultPrevented) e.preventDefault()
+}
+
+/**
+ * 拖到页面其他区域（顶栏 / 侧栏 / 外壳留白）时的最后一道拦截。
+ *
+ * <p>这里用 {@code dragState.kind} 而不是 computed：drop 冒泡到 document 时，
+ * 元素上的处理器可能已经把 kind 清成 none，只看 computed 会漏拦。</p>
  */
 function blockNativeDrop(e: DragEvent): void {
-  if (dragActive.value) e.preventDefault()
+  if (dragState.kind !== 'none' || e.defaultPrevented) e.preventDefault()
 }
 
 onMounted(() => {
+  document.addEventListener('dragenter', blockNativeDrop)
   document.addEventListener('dragover', blockNativeDrop)
   document.addEventListener('drop', blockNativeDrop)
   void bootstrap()
@@ -891,8 +968,13 @@ onActivated(() => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('dragenter', blockNativeDrop)
   document.removeEventListener('dragover', blockNativeDrop)
   document.removeEventListener('drop', blockNativeDrop)
+  if (suppressTimer) clearTimeout(suppressTimer)
+  suppressTimer = null
+  // 先停写缓存再清空画面，避免卸载瞬间把空墙覆盖到本机缓存
+  ready.value = false
   wall.value = []
 })
 

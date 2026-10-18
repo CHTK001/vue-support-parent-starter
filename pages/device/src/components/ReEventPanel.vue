@@ -77,7 +77,7 @@ import ReSelect from '@repo/ui/re-select'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
-import type { DeviceEvent } from '@/types/device'
+import type { DeviceEvent } from '../types/device'
 
 /** 事件类型筛选项（与后端 EventType 枚举对齐） */
 const EVENT_TYPES = [

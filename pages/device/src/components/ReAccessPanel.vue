@@ -99,8 +99,8 @@ import ReEmpty from '@repo/ui/re-empty'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
-import type { DeviceDoor, AccessEvent } from '@/types/device'
-import { directionOf } from '@/utils/accessDirection'
+import type { DeviceDoor, AccessEvent } from '../types/device'
+import { directionOf } from '../utils/accessDirection'
 
 /**
  * 列配置：原模板 4 个 el-table-column 收敛到数组。
