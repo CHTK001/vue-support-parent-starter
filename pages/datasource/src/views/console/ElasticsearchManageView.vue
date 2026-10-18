@@ -206,6 +206,136 @@
             </div>
           </template>
 
+          <!-- ============ 集群纳管：生成每个节点要贴的 elasticsearch.yml ============ -->
+          <template #clusterCfg>
+            <div class="dsm-section">
+              <div class="dsm-section-title">
+                <span>集群纳管（生成各节点 elasticsearch.yml）</span>
+                <div class="dsm-section-actions">
+                  <ReButton
+                    layout="square"
+                    icon="Refresh"
+                    tip="用当前连接的集群名回填"
+                    data-testid="es-cluster-prefill"
+                    @click="prefillClusterForm"
+                  />
+                </div>
+              </div>
+              <ReAlert
+                type="info"
+                :closable="false"
+                title="ES 组集群是节点级「静态设置」：只能改每台机器的 elasticsearch.yml 再重启，REST 的 _cluster/settings 不接受（ES 会报 not dynamic）。所以这里只生成配置片段，不远程改配置。"
+              />
+
+              <div class="dsm-cluster-form">
+                <div class="dsm-form-item dsm-form-item--wide">
+                  <label>集群名 cluster.name（各节点必须完全一致）</label>
+                  <ReInput
+                    v-model="clusterForm.clusterName"
+                    placeholder="如 my-es-cluster"
+                    data-testid="es-cluster-name"
+                  />
+                </div>
+                <label class="dsm-bootstrap">
+                  <ReSwitch v-model="clusterForm.bootstrap" data-testid="es-cluster-bootstrap" />
+                  <span>首次启动写入 cluster.initial_master_nodes（集群形成后必须删掉这一行再重启）</span>
+                </label>
+              </div>
+
+              <div class="dsm-field-head">
+                <span class="dsm-sub-title">节点（{{ clusterForm.nodes.length }}）</span>
+                <ReButton
+                  layout="square"
+                  icon="Plus"
+                  tip="添加节点"
+                  data-testid="es-cluster-add-node"
+                  @click="addClusterNode"
+                />
+              </div>
+              <div class="dsm-node-grid">
+                <div class="dsm-node-grid-head">
+                  <span>节点名</span>
+                  <span>主机</span>
+                  <span>HTTP 端口</span>
+                  <span>传输端口</span>
+                  <span>角色</span>
+                  <span>操作</span>
+                </div>
+                <div v-for="(n, idx) in clusterForm.nodes" :key="idx" class="dsm-node-grid-row">
+                  <ReInput v-model="n.name" placeholder="node-1" :data-testid="`es-cluster-node-name-${idx}`" />
+                  <ReInput v-model="n.host" placeholder="10.0.0.11" :data-testid="`es-cluster-node-host-${idx}`" />
+                  <ReInputNumber
+                    v-model="n.httpPort"
+                    :min="1"
+                    :max="65535"
+                    :data-testid="`es-cluster-node-http-${idx}`"
+                  />
+                  <ReInputNumber
+                    v-model="n.transportPort"
+                    :min="1"
+                    :max="65535"
+                    :data-testid="`es-cluster-node-transport-${idx}`"
+                  />
+                  <ReSelect
+                    v-model="n.roles"
+                    multiple
+                    collapse-tags
+                    :data="ROLE_OPTIONS"
+                    :data-testid="`es-cluster-node-roles-${idx}`"
+                  />
+                  <ReButton
+                    layout="square"
+                    size="small"
+                    type="danger"
+                    icon="Delete"
+                    tip="删除节点"
+                    :data-testid="`es-cluster-node-remove-${idx}`"
+                    @click="removeClusterNode(idx)"
+                  />
+                </div>
+                <div v-if="clusterForm.nodes.length === 0" class="dsm-field-empty">
+                  还没有节点，点右上角「+」添加；至少两台才能组成集群
+                </div>
+              </div>
+
+              <div class="dsm-section-actions">
+                <ReButton
+                  type="primary"
+                  icon="MagicStick"
+                  data-testid="es-cluster-gen"
+                  @click="buildClusterSnippets"
+                >
+                  生成配置
+                </ReButton>
+                <ReButton
+                  icon="CopyDocument"
+                  :disabled="clusterSnippets.length === 0"
+                  data-testid="es-cluster-copy-all"
+                  @click="copyAllClusterSnippets"
+                >
+                  复制全部
+                </ReButton>
+              </div>
+
+              <div v-if="clusterSnippets.length" class="dsm-snippets">
+                <div v-for="(s, idx) in clusterSnippets" :key="idx" class="dsm-snippet re-surface">
+                  <div class="dsm-snippet-head">
+                    <span class="mono">{{ s.title }}</span>
+                    <ReButton
+                      layout="square"
+                      size="small"
+                      icon="CopyDocument"
+                      tip="复制该节点配置"
+                      :data-testid="`es-cluster-copy-${idx}`"
+                      @click="copyText(s.yaml, s.title)"
+                    />
+                  </div>
+                  <pre class="dsm-snippet-body" :data-testid="`es-cluster-snippet-${idx}`">{{ s.yaml }}</pre>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <!-- ============ 关系图谱 ============ -->
           <template #graph>
             <div class="dsm-section">
@@ -408,6 +538,9 @@
           >
             保存
           </ReButton>
+        </div>
+        <div v-if="settingKeyStaticReason" class="dsm-setting-block" data-testid="es-setting-static">
+          {{ settingKeyStaticReason }}
         </div>
         <ReTable
           :data="filteredSettings"
@@ -627,10 +760,11 @@ defineOptions({ name: "ElasticsearchManageView" });
 
 const { datasourceId, source, gap, bind, ready } = useMiddlewareSource();
 
-/** 标签页：索引概览 / 节点列表 / 关系图谱 / 查询检索 */
+/** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 */
 const tabs = [
   { name: "overview", label: "索引概览", icon: "Collection" },
   { name: "nodes", label: "节点列表", icon: "Monitor" },
+  { name: "clusterCfg", label: "集群纳管", icon: "Connection" },
   { name: "graph", label: "关系图谱", icon: "Share" },
   { name: "query", label: "查询检索", icon: "Search" },
 ];
@@ -652,6 +786,191 @@ const nodesLoading = ref(false);
 
 // ---- 关系图谱（集群 → 节点拓扑，zk 式）----
 const graphLoading = ref(false);
+
+// ---- 集群纳管（生成各节点 elasticsearch.yml；不远程改配置）----
+type ClusterNodeForm = {
+  name: string;
+  host: string;
+  httpPort: number;
+  transportPort: number;
+  roles: string[];
+};
+
+const clusterForm = reactive<{ clusterName: string; bootstrap: boolean; nodes: ClusterNodeForm[] }>({
+  clusterName: "",
+  bootstrap: true,
+  nodes: [],
+});
+
+const clusterSnippets = ref<{ title: string; yaml: string }[]>([]);
+
+/** 节点角色可选项（ES node.roles 的常用取值） */
+const ROLE_OPTIONS = [
+  { label: "master（候选主节点）", value: "master" },
+  { label: "data（数据节点）", value: "data" },
+  { label: "ingest（预处理）", value: "ingest" },
+  { label: "ml（机器学习）", value: "ml" },
+  { label: "remote_cluster_client（跨集群检索）", value: "remote_cluster_client" },
+];
+
+/**
+ * 静态设置的 key：ES 的 {@code _cluster/settings} <b>只接受动态设置</b>，
+ * 这些写进去会被 ES 以 {@code unknown setting} / {@code not dynamic} 拒掉，
+ * 必须在各节点的 elasticsearch.yml 里改并重启。
+ */
+const STATIC_SETTING_KEYS = ["cluster.name", "cluster.initial_master_nodes"];
+
+/** 静态设置的前缀（node.* 角色/属性、discovery.*、路径、网络、端口等都是节点级静态项） */
+const STATIC_SETTING_PREFIXES = [
+  "node.",
+  "discovery.",
+  "path.",
+  "bootstrap.",
+  "plugin.",
+  "network.",
+  "http.",
+  "transport.",
+  "thread_pool.",
+];
+
+/**
+ * 判断某个集群设置是不是静态设置（不可通过 REST 动态改）。
+ *
+ * @param key 设置项 key
+ * @returns 命中时返回给用户看的原因，否则空串
+ */
+function staticSettingReason(key: string): string {
+  const k = (key || "").trim();
+  if (!k) return "";
+  const hit = STATIC_SETTING_KEYS.includes(k) || STATIC_SETTING_PREFIXES.some(p => k.startsWith(p));
+  if (!hit) return "";
+  return `「${k}」是静态设置：_cluster/settings 只接受动态设置（ES 会报 not dynamic / unknown setting），只能写进各节点的 elasticsearch.yml 并重启。要生成配置请切到「集群纳管」页签。`;
+}
+
+/** 当前所选设置项若是静态设置，给出拦截原因（模板里就地提示） */
+const settingKeyStaticReason = computed(() => staticSettingReason(settingKey.value));
+
+function addClusterNode() {
+  clusterForm.nodes.push({
+    name: `node-${clusterForm.nodes.length + 1}`,
+    host: "",
+    httpPort: 9200,
+    transportPort: 9300,
+    roles: ["master", "data"],
+  });
+}
+
+function removeClusterNode(idx: number) {
+  clusterForm.nodes.splice(idx, 1);
+}
+
+/**
+ * 按当前表单生成「每个节点一份」的 elasticsearch.yml 片段。
+ *
+ * <p>各节点只有 node.name / node.roles / 端口不同，cluster.name 与 discovery 种子列表必须一致；
+ * 首次引导才需要 cluster.initial_master_nodes，故做成可关的开关并在注释里写明何时该删。</p>
+ */
+function buildClusterSnippets() {
+  const clusterName = clusterForm.clusterName.trim();
+  if (!clusterName) {
+    message.warning("请先填写集群名 cluster.name");
+    return;
+  }
+  const nodes = clusterForm.nodes;
+  if (nodes.length === 0) {
+    message.warning("至少添加一个节点");
+    return;
+  }
+  if (nodes.some(n => !n.name.trim() || !n.host.trim())) {
+    message.warning("每个节点都要填「节点名」和「主机」");
+    return;
+  }
+  const names = nodes.map(n => n.name.trim());
+  if (new Set(names).size !== names.length) {
+    message.warning("节点名不能重复（node.name 必须唯一）");
+    return;
+  }
+  const seeds = nodes.map(n => `${n.host.trim()}:${n.transportPort || 9300}`);
+  const masters = nodes.filter(n => n.roles.includes("master")).map(n => n.name.trim());
+  clusterSnippets.value = nodes.map(n => {
+    const lines = [
+      `# ===== ${n.name.trim()}（${n.host.trim()}）—— 把该机器的 elasticsearch.yml 改成下面内容后重启 =====`,
+      `cluster.name: ${clusterName}`,
+      `node.name: ${n.name.trim()}`,
+      `node.roles: [ ${n.roles.length > 0 ? n.roles.join(", ") : "data"} ]`,
+      "network.host: 0.0.0.0",
+      `http.port: ${n.httpPort || 9200}`,
+      `transport.port: ${n.transportPort || 9300}`,
+      `discovery.seed_hosts: [${seeds.map(s => `"${s}"`).join(", ")}]`,
+    ];
+    if (clusterForm.bootstrap) {
+      lines.push(
+        "# 仅首次启动、且该节点数据目录为空时才保留下面这行；集群形成后必须删掉再重启：",
+        `cluster.initial_master_nodes: [${masters.map(m => `"${m}"`).join(", ")}]`,
+      );
+    }
+    lines.push(
+      "# ES 8 默认开启安全：所有节点要共用同一份证书与口令（xpack.security.*），否则无法组成同一集群",
+    );
+    return { title: `${n.name.trim()}（${n.host.trim()}）`, yaml: lines.join("\n") };
+  });
+  message.success(`已生成 ${clusterSnippets.value.length} 个节点的配置片段`);
+}
+
+/**
+ * 复制文本：优先 Clipboard API，失败（无权限 / 非安全上下文）回落 textarea + execCommand。
+ *
+ * @param text  要复制的内容
+ * @param label 成功提示里显示的来源名
+ */
+async function copyText(text: string, label: string) {
+  let ok = false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch {
+    ok = false;
+  }
+  if (!ok) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch {
+      ok = false;
+    }
+  }
+  if (ok) message.success(`${label} 已复制`);
+  else message.warning("浏览器拒绝访问剪贴板，请手动全选复制");
+}
+
+async function copyAllClusterSnippets() {
+  if (clusterSnippets.value.length === 0) return;
+  await copyText(
+    clusterSnippets.value.map(s => s.yaml).join("\n\n"),
+    `全部 ${clusterSnippets.value.length} 个节点`,
+  );
+}
+
+/** 用当前连接的集群名回填（省得手抄），没读到就提示手填 */
+async function prefillClusterForm() {
+  if (!cluster.value) await loadNodesTab();
+  const name = cluster.value?.clusterName || "";
+  if (name) {
+    clusterForm.clusterName = name;
+    message.success(`已回填集群名 ${name}`);
+  } else {
+    message.warning("没读到集群名，请手动填写");
+  }
+  if (clusterForm.nodes.length === 0) addClusterNode();
+}
 
 // ---- 查询检索 ----
 const queryIndex = ref("");
@@ -1227,6 +1546,13 @@ async function saveClusterSetting() {
     message.warning("请选择要修改的设置项");
     return;
   }
+  // 静态设置拦在这里：发出去只会被 ES 拒（not dynamic / unknown setting），
+  // 与其让用户对着英文报错猜，不如直接告诉他该去改 elasticsearch.yml。
+  const blocked = staticSettingReason(key);
+  if (blocked) {
+    message.warning(blocked);
+    return;
+  }
   settingSaving.value = true;
   try {
     cluster.value = await updateEsClusterSettings({
@@ -1255,6 +1581,14 @@ watch(activeTab, async tab => {
   if (tab === "nodes" && !cluster.value) await loadNodesTab();
   if (tab === "graph" && !cluster.value) await loadGraphTab();
   if (tab === "overview" && indices.value.length === 0) await loadIndices();
+  if (tab === "clusterCfg") {
+    // 集群名优先用当前连接的集群回填，省得手抄（读不到就留空让用户自己填）
+    if (!clusterForm.clusterName) {
+      if (!cluster.value) await loadNodesTab();
+      clusterForm.clusterName = cluster.value?.clusterName || "";
+    }
+    if (clusterForm.nodes.length === 0) addClusterNode();
+  }
 });
 
 onMounted(async () => {
@@ -1512,6 +1846,97 @@ onMounted(async () => {
   flex: 1;
   min-width: 0;
   max-width: 260px;
+}
+
+/* 静态设置就地拦截提示（只能改 elasticsearch.yml 的那类 key） */
+.dsm-setting-block {
+  margin: -2px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-color-warning-light-5, var(--status-warning));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ---- 集群纳管（生成各节点 elasticsearch.yml） ---- */
+.dsm-cluster-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dsm-form-item--wide {
+  max-width: 560px;
+}
+
+.dsm-bootstrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dsm-node-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.dsm-node-grid-head,
+.dsm-node-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 0.7fr 0.7fr 1.6fr 0.5fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.dsm-node-grid-head {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.dsm-snippets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dsm-snippet {
+  padding: 10px 12px;
+}
+
+.dsm-snippet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dsm-snippet-body {
+  margin: 0;
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
+  color: var(--text-primary);
 }
 
 /* ---- 字段抽屉 ---- */

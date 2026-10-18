@@ -630,7 +630,7 @@ async function onImportFile(file: File | undefined) {
       <ReTableColumn label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <span @click.stop>
-          <ReButton show-text icon="View" type="primary" @click="openDetail(row)">详情</ReButton>
+          <ReButton show-text icon="View" type="primary" @click.stop="openDetail(row)">详情</ReButton>
           <ReButton show-text icon="Connection" type="primary" @click="onOpenConnect(row)">远控</ReButton>
           <ReButton show-text icon="FolderOpened" type="primary" @click="onOpenSftp(row)">文件</ReButton>
           <ReButton show-text icon="Aim" @click="onTestConnect(row)">测连</ReButton>
