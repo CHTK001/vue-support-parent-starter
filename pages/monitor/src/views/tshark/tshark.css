@@ -1,0 +1,212 @@
+/* ============================================================================
+ * 抓包（TShark）工作台：跨组件共享的骨架与原子
+ *
+ * 布局契约（自上而下一条确定的 flex 高度链，ReTable 的 fill 模式依赖它）：
+ *   .tshark-page (height:100%, 纵向 flex)
+ *     ├─ .tshark-bar            抓包条，flex:none
+ *     └─ .tshark-work   flex:1 + min-height:0
+ *          └─ ReTab stretch → .re-tab-underline__panel (flex column, min-height:0)
+ *               └─ .tshark-panel (flex column)
+ *                    ├─ .tshark-panel__tools  flex:none
+ *                    └─ .tshark-panel__body   flex:1 + min-height:0  ← 表格吃这一块
+ *
+ * 只放「多个组件都要用」的东西；单个组件的私有观感留在各自 <style scoped> 里，
+ * 避免这里长成第二个全局样式表。
+ *
+ * 取色一律走 EP 语义令牌（--el-*）：原实现用的是 pages/monitor 私有令牌
+ * （--bg-* / --text-* / --border-subtle），那份 tokens.css 只有 :root、没有暗色变体，
+ * 暗色模式下会整片停在亮色。--metric-* 是「各网络/中间件域各自的固定色相」，
+ * 需要彼此可区分，保留不换成 EP 语义色。
+ * ========================================================================== */
+
+.tshark-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ==================== 顶部抓包条 ==================== */
+.tshark-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.tshark-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+/* 把右侧的抓包参数推到条尾；窄屏换行后它自然落成第二行 */
+.tshark-bar__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tshark-bar__sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 2px;
+  background: var(--el-border-color-lighter);
+}
+@media (max-width: 900px) {
+  /* 窄屏分隔线会变成悬空的一根竖线，去掉 */
+  .tshark-bar__sep { display: none; }
+}
+
+.tshark-bar__iface { width: 156px; }
+.tshark-bar__session { width: 236px; }
+.tshark-bar__bpf { width: 208px; }
+.tshark-bar__num { width: 108px; }
+
+/* TShark 是否可用的信号灯 */
+.tshark-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  /* 显式列出真实会变的属性：写 all 会把布局属性也纳入过渡 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.tshark-status--ok {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+.tshark-status--bad {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+.tshark-status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: tshark-pulse 2s ease-in-out infinite;
+}
+@keyframes tshark-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ==================== 工作区（标签页外壳） ==================== */
+.tshark-work {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 14px 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+/* ReTab 的 underline + stretch：根节点已是 flex:1，这里只保证面板本身也整块吃满。
+   纯 CSS 文件里不能用 :deep()（那是 SFC 的编译期语法），直接写后代选择器即可。 */
+.tshark-work .re-tab-underline__panel {
+  padding-top: 12px;
+}
+
+/* ==================== 面板通用骨架 ==================== */
+.tshark-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tshark-panel__tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tshark-panel__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* 表格 / 图表吃满剩余高度的那一层；ReTable 的 fill 判定以它的高度为准。
+   overflow:auto 是兜底：fill 判定没通过（父链量不出可用高度）时内容不会顶出面板，
+   而是就地滚动；fill 生效时表格自己就占满了这一层，滚动条不会出现。 */
+.tshark-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.tshark-panel__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+}
+.tshark-panel__empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 0;
+  color: var(--el-text-color-secondary);
+}
+.tshark-panel__empty-icon {
+  color: color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+.tshark-filter { width: 268px; }
+.tshark-sessions-filter { width: 200px; }
+
+/* ==================== 文本原子 ==================== */
+.tshark-mono {
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.tshark-dim { color: var(--el-text-color-secondary); }
+.tshark-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 协议配色 ====================
+   报文列表的协议标签与统计面板的协议色共用一套 class，保证「饼图那一块」
+   和「表格那一行」颜色对得上。canvas 侧（ECharts）另由 chartTheme.ts 解析真实色值。 */
+.tshark-proto { font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace; }
+.tshark-proto--tcp { color: var(--metric-cpu); }
+.tshark-proto--udp { color: var(--el-color-success); }
+.tshark-proto--http { color: var(--metric-disk); }
+.tshark-proto--tls { color: var(--el-text-color-placeholder); }
+.tshark-proto--dns { color: var(--el-color-danger); }
+.tshark-proto--icmp { color: var(--metric-jvm); }
+.tshark-proto--arp { color: var(--metric-disk); }
+.tshark-proto--ssh { color: var(--metric-net); }
+.tshark-proto--quic { color: var(--el-text-color-regular); }
+
+/* ==================== 无障碍 ==================== */
+@media (prefers-reduced-motion: reduce) {
+  /* 状态点的呼吸动画只是附加动效：底色（成功绿 / 危险红）已经表达了状态，可以安全停掉 */
+  .tshark-status__dot { animation: none; }
+  .tshark-status { transition: none; }
+}
