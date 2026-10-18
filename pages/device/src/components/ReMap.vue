@@ -1,56 +1,46 @@
 <template>
-  <div class="sc-map rounded-xl border border-el-border overflow-hidden bg-el-bg">
-    <div class="map-canvas relative h-96">
-      <svg class="w-full h-full" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
-        <g class="map-grid" stroke="var(--el-border-color)" stroke-width="1">
+  <section class="rmap">
+    <header class="rmap__head">
+      <div class="rmap__title">
+        <span class="rmap__bar" />
+        <span>设备分布</span>
+      </div>
+      <div class="rmap__legend">
+        <span class="rmap__legend-item">
+          <i class="rmap__legend-dot rmap__legend-dot--on" />在线
+        </span>
+        <span class="rmap__legend-item">
+          <i class="rmap__legend-dot rmap__legend-dot--off" />离线
+        </span>
+        <span class="rmap__total">共 {{ positionedDevices.length }} 台</span>
+      </div>
+    </header>
+
+    <div class="rmap__canvas">
+      <svg class="rmap__svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+        <g class="rmap__grid">
           <line v-for="i in 8" :key="'v' + i" :x1="i * 100" y1="0" :x2="i * 100" y2="400" />
           <line v-for="i in 4" :key="'h' + i" x1="0" :y1="i * 100" x2="800" :y2="i * 100" />
         </g>
-        <g class="map-road" stroke="var(--el-border-color-lighter)" stroke-width="14" fill="none">
+        <g class="rmap__road">
           <line x1="0" y1="200" x2="800" y2="200" />
           <line x1="400" y1="0" x2="400" y2="400" />
         </g>
+
         <g
           v-for="(dev, idx) in positionedDevices"
           :key="dev.deviceInfoId"
-          class="cursor-pointer"
+          class="rmap__node"
           @click="emit('select', dev)"
         >
-          <circle
-            :cx="dev._x"
-            :cy="dev._y"
-            r="10"
-            :fill="dev.deviceInfoOnline ? 'var(--el-color-success)' : 'var(--el-color-info)'"
-            opacity="0.85"
-          />
-          <circle :cx="dev._x" :cy="dev._y" r="16" fill="transparent" stroke="var(--el-color-primary)" stroke-width="1" opacity="0.4" />
-          <text
-            :x="dev._x"
-            :y="dev._y - 16"
-            text-anchor="middle"
-            class="fill-el-text"
-            style="font-size: 12px"
-          >{{ dev.deviceInfoName }}</text>
-          <text
-            :x="dev._x"
-            :y="dev._y + 4"
-            text-anchor="middle"
-            style="font-size: 9px"
-            class="fill-white"
-          >{{ idx + 1 }}</text>
+          <circle :cx="dev._x" :cy="dev._y" r="18" class="rmap__halo" :class="dev.deviceInfoOnline ? 'is-on' : 'is-off'" />
+          <circle :cx="dev._x" :cy="dev._y" r="9" :fill="dev.deviceInfoOnline ? 'var(--el-color-success)' : 'var(--el-color-info)'" />
+          <text :x="dev._x" :y="dev._y + 3.5" text-anchor="middle" class="rmap__index">{{ idx + 1 }}</text>
+          <text :x="dev._x" :y="dev._y - 18" text-anchor="middle" class="rmap__label">{{ dev.deviceInfoName }}</text>
         </g>
       </svg>
     </div>
-    <div class="flex items-center gap-6 px-4 py-2 border-t border-el-border text-xs text-el-text-secondary">
-      <span class="flex items-center gap-1">
-        <span class="w-2.5 h-2.5 rounded-full" style="background: var(--el-color-success)" />在线
-      </span>
-      <span class="flex items-center gap-1">
-        <span class="w-2.5 h-2.5 rounded-full" style="background: var(--el-color-info)" />离线
-      </span>
-      <span class="ml-auto">共 {{ positionedDevices.length }} 台设备</span>
-    </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -92,12 +82,110 @@ const positionedDevices = computed(() => {
 </script>
 
 <style scoped>
-.fill-el-text {
-  fill: var(--el-text-color-primary);
+.rmap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
-/* 序号文字压在在线/离线彩色圆点上，用 EP 常量白而非 --el-text-color-primary：
-   暗色模式下后者是近黑字，压在彩色圆点上会读不出（EP 的 --el-color-white 亮暗不变） */
-.fill-white {
+.rmap__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.rmap__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.rmap__bar {
+  width: 6px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+}
+.rmap__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.rmap__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rmap__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.rmap__legend-dot--on {
+  background: var(--el-color-success);
+}
+.rmap__legend-dot--off {
+  background: var(--el-color-info);
+}
+.rmap__total {
+  padding-left: 12px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.rmap__canvas {
+  position: relative;
+  height: 380px;
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--el-color-primary) 6%, transparent), transparent 55%),
+    var(--el-fill-color-blank, var(--el-bg-color));
+}
+.rmap__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rmap__grid line {
+  stroke: var(--el-border-color-lighter);
+  stroke-width: 1;
+}
+.rmap__road line {
+  stroke: color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+.rmap__node {
+  cursor: pointer;
+}
+.rmap__node:hover .rmap__halo {
+  opacity: 1;
+}
+.rmap__halo {
+  fill: transparent;
+  stroke-width: 1.5;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+.rmap__halo.is-on {
+  stroke: var(--el-color-success);
+}
+.rmap__halo.is-off {
+  stroke: var(--el-color-info);
+}
+.rmap__index {
+  font-size: 9px;
+  font-weight: 700;
   fill: var(--el-color-white);
+}
+.rmap__label {
+  font-size: 11.5px;
+  fill: var(--el-text-color-regular);
 }
 </style>
