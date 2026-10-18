@@ -135,6 +135,9 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
   let lastDirOpenAt = 0;
   const DIR_OPEN_GUARD_MS = 400;
 
+  /** 正在加载的目标目录：同一目标在途时不再重复发请求（双击父级/侧栏时常见） */
+  let pendingPath = "";
+
   /* ---------- 数据源解析 ---------- */
 
   const dataArray = computed<FilePickerItem[]>(() => {
@@ -241,6 +244,7 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
    */
   const switchTo = async (path: string, historyAction: "push" | "back" | "none"): Promise<void> => {
     const seq = ++loadSeq;
+    pendingPath = path;
     loading.value = true;
     loadError.value = "";
     try {
@@ -260,7 +264,10 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
       // 目标目录加载失败：停在原目录，把错误交给列表就地渲染
       loadError.value = err instanceof Error ? err.message : String(err);
     } finally {
-      if (seq === loadSeq) loading.value = false;
+      if (seq === loadSeq) {
+        loading.value = false;
+        pendingPath = "";
+      }
     }
   };
 
@@ -341,12 +348,14 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
 
   const navigateTo = (path: string): void => {
     if (samePath(path, currentPath.value)) return;
+    if (loading.value && samePath(path, pendingPath)) return;
     void switchTo(path, "push");
   };
 
   const goBack = (): void => {
     const previous = history.value[history.value.length - 1];
     if (previous === undefined) return;
+    if (loading.value && samePath(previous, pendingPath)) return;
     // 数据加载成功后再弹栈，失败时历史不丢
     void switchTo(previous, "back");
   };
