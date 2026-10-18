@@ -265,7 +265,7 @@
       </el-form>
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="dialogSaving" :disabled="formInvalid" @click="onSubmit">保存</ReButton>
+        <ReButton type="primary" :loading="dialogSaving" @click="onSubmit">保存</ReButton>
       </template>
     </ReDialog>
 
@@ -713,12 +713,20 @@ function onVendorChange(): void {
 }
 
 async function onSubmit(): Promise<void> {
-  if (formInvalid.value) {
-    ElMessage.warning(
-      isCloudYao.value
-        ? '请补全凭据名称、AK/SK、ProductCode、ProjectID 与合法阈值'
-        : '请补全凭据名称、AK/SK 与合法阈值',
-    )
+  if (nameInvalid.value) {
+    ElMessage.warning('请填写凭据名称')
+    return
+  }
+  if (akSkInvalid.value) {
+    ElMessage.warning('平台接入需要填写 AppKey / AppSecret')
+    return
+  }
+  if (cloudYaoInvalid.value) {
+    ElMessage.warning('云曜平台还需要填写 ProductCode / ProjectID')
+    return
+  }
+  if (form.deviceCredentialOfflineThreshold <= 0) {
+    ElMessage.warning('离线阈值需大于 0 秒')
     return
   }
   dialogSaving.value = true

@@ -62,6 +62,15 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   const iface = ref('')
   const filter = ref('')
   /**
+   * 过滤语法：auto / bpf / display。
+   *
+   * <p>「http」这类词只有显示过滤认，塞给捕获过滤（-f）会让 tshark 立刻退出，
+   * 页面表现为「新增会话后马上停止」；auto 由后端按文本判断，用户也可以显式指定。</p>
+   */
+  const filterType = ref('auto')
+  /** 会话名（可空，后端按网卡与时间生成） */
+  const captureName = ref('')
+  /**
    * 包数上限。0 = 不限 —— 默认必须是不限。
    *
    * <p>此前缺省 500，抓满 500 个包 tshark 就带 `-c 500` 自己退出，页面上表现为
@@ -435,24 +444,28 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   // ==================== 抓包控制 ====================
-  async function startCapture() {
+  async function startCapture(): Promise<boolean> {
     if (!iface.value) {
       message.warning('请选择网卡')
-      return
+      return false
     }
     starting.value = true
     try {
       await startTsharkCapture({
-        name: `${iface.value} 抓包 ${new Date().toLocaleTimeString()}`,
+        name: captureName.value.trim() || undefined,
         captureInterface: iface.value,
-        captureFilter: filter.value || undefined,
+        captureFilter: filter.value.trim() || undefined,
+        filterType: filterType.value,
         count: count.value > 0 ? count.value : undefined,
         timeout: timeout.value > 0 ? timeout.value : undefined,
       })
       message.success('抓包已启动')
+      captureName.value = ''
       await loadSessions()
+      return true
     } catch (e: any) {
       message.error('启动抓包失败: ' + (e?.message || e))
+      return false
     } finally {
       starting.value = false
     }
