@@ -90,8 +90,8 @@ import ReInput from '@repo/ui/re-input'
 import ReSelect from '@repo/ui/re-select'
 import ReStatusIndicator from '@repo/ui/re-status-indicator'
 import ReTag from '@repo/ui/re-tag'
-import { getCategoryLabel } from '@/utils/deviceCategory'
-import type { DeviceInfo, OrgNode } from '@/types/device'
+import { getCategoryLabel } from '../utils/deviceCategory'
+import type { DeviceInfo, OrgNode } from '../types/device'
 
 /** 大类筛选项（与后端 DeviceCategory 对齐） */
 const CATEGORY_FILTER_OPTIONS = [

@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import ReButton from '@repo/ui/re-button'
 import ReEmpty from '@repo/ui/re-empty'
-import type { TimelineItem } from '@/types/device'
+import type { TimelineItem } from '../types/device'
 
 defineProps<{
   title?: string

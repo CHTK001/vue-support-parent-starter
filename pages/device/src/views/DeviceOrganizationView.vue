@@ -176,8 +176,8 @@ import ReSelect from '@repo/ui/re-select'
 import ReStatCard from '@repo/ui/re-stat-card'
 import ReTag from '@repo/ui/re-tag'
 
-import deviceApi from '@/api/deviceApi'
-import type { DeviceCategory, DeviceInfo } from '@/types/device'
+import deviceApi from '../api/deviceApi'
+import type { DeviceCategory, DeviceInfo } from '../types/device'
 
 /** 组织节点（厂商侧下发，扁平结构） */
 interface DeviceOrganization {

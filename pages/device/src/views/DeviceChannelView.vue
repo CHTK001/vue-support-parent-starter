@@ -172,8 +172,8 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 
-import deviceApi from '@/api/deviceApi'
-import type { DeviceChannel, DeviceInfo } from '@/types/device'
+import deviceApi from '../api/deviceApi'
+import type { DeviceChannel, DeviceInfo } from '../types/device'
 
 /** 表单里的状态分片（启用 / 禁用） */
 const STATUS_SEGMENTS = [

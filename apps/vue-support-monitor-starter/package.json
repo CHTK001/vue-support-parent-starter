@@ -19,6 +19,7 @@
     "@codemirror/view": "^6.43.11",
     "@element-plus/icons-vue": "catalog:",
     "@pages/datasource": "workspace:*",
+    "@pages/device": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",

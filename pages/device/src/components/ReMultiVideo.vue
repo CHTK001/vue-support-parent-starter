@@ -54,7 +54,7 @@
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import ReVideo from './ReVideo.vue'
-import type { DeviceChannel } from '@/types/device'
+import type { DeviceChannel } from '../types/device'
 
 defineProps<{
   modelValue: boolean

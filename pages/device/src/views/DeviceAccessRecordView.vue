@@ -229,10 +229,10 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 
-import deviceApi from '@/api/deviceApi'
-import type { DeviceCategory, DeviceDoor, DeviceInfo } from '@/types/device'
-import type { DirectionKey } from '@/utils/accessDirection'
-import { directionOf, rawDirection } from '@/utils/accessDirection'
+import deviceApi from '../api/deviceApi'
+import type { DeviceCategory, DeviceDoor, DeviceInfo } from '../types/device'
+import type { DirectionKey } from '../utils/accessDirection'
+import { directionOf, rawDirection } from '../utils/accessDirection'
 
 /** 门禁相关设备类别：门禁一体机 / 门口机 */
 const ACCESS_CATEGORIES: DeviceCategory[] = ['accessControl', 'intercom']

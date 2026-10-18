@@ -82,6 +82,9 @@
                   <em>{{ item.label }}</em>{{ item.value }}
                 </span>
               </div>
+              <div v-else class="dv-hero__extra dv-hero__extra--reserve">
+                <span class="dv-hero__reserve">＋ 预留信息位</span>
+              </div>
             </div>
 
             <div class="dv-hero__ops">
@@ -93,7 +96,7 @@
 
           <!-- 详情页签 -->
           <section class="dv-tabpanel">
-            <ReTab v-model="activeTab" :tabs="DEVICE_TABS">
+            <ReTab v-model="activeTab" :tabs="deviceTabs">
               <template #overview>
                 <div class="dv-overview">
                   <div class="dv-info-grid">
@@ -358,7 +361,7 @@
 
 <script setup lang="ts">
 import { message } from '@repo/core'
-import { computed, markRaw, onMounted, onUnmounted, ref } from 'vue'
+import { computed, markRaw, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 
 import {
@@ -394,31 +397,32 @@ import ReTab from '@repo/ui/re-tab'
 import type { ReTabItem } from '@repo/ui/re-tab'
 import ReTag from '@repo/ui/re-tag'
 
-import ReVideo from '@/components/ReVideo.vue'
-import ReDeviceTree from '@/components/ReDeviceTree.vue'
-import ReTimeline from '@/components/ReTimeline.vue'
-import RePtzControl from '@/components/RePtzControl.vue'
-import ReMultiVideo from '@/components/ReMultiVideo.vue'
-import ReAccessPanel from '@/components/ReAccessPanel.vue'
-import ReEventPanel from '@/components/ReEventPanel.vue'
-import ReMap from '@/components/ReMap.vue'
-import ReChannelManager from '@/components/ReChannelManager.vue'
+import ReVideo from '../components/ReVideo.vue'
+import ReDeviceTree from '../components/ReDeviceTree.vue'
+import ReTimeline from '../components/ReTimeline.vue'
+import RePtzControl from '../components/RePtzControl.vue'
+import ReMultiVideo from '../components/ReMultiVideo.vue'
+import ReAccessPanel from '../components/ReAccessPanel.vue'
+import ReEventPanel from '../components/ReEventPanel.vue'
+import ReMap from '../components/ReMap.vue'
+import ReChannelManager from '../components/ReChannelManager.vue'
 
-import { deviceApi } from '@/api/deviceApi'
-import { getCategoryLabel, getSubCategoryOptions } from '@/utils/deviceCategory'
-import { rawDirection } from '@/utils/accessDirection'
-import type { AccessEvent, DeviceEvent, DeviceInfo, OrgNode, Preset, TimelineItem } from '@/types/device'
+import { deviceApi } from '../api/deviceApi'
+import { getCategoryLabel, getSubCategoryOptions } from '../utils/deviceCategory'
+import { rawDirection } from '../utils/accessDirection'
+import type { AccessEvent, DeviceEvent, DeviceInfo, OrgNode, Preset, TimelineItem } from '../types/device'
 
 /** 详情页签（图标用 Element Plus 图标名，由 ReTab → ReIcon 解析） */
-const DEVICE_TABS: ReTabItem[] = [
-  { name: 'overview', label: '概览', icon: 'DataBoard' },
-  { name: 'map', label: '地图', icon: 'Location' },
-  { name: 'channel', label: '通道', icon: 'Grid' },
-  { name: 'video', label: '视频', icon: 'VideoCamera' },
-  { name: 'ptz', label: '云台', icon: 'Aim' },
-  { name: 'access', label: '门禁', icon: 'Lock' },
-  { name: 'events', label: '事件', icon: 'Bell' },
-]
+const TAB_OVERVIEW: ReTabItem = { name: 'overview', label: '概览', icon: 'DataBoard' }
+const TAB_MAP: ReTabItem = { name: 'map', label: '地图', icon: 'Location' }
+const TAB_CHANNEL: ReTabItem = { name: 'channel', label: '通道', icon: 'Grid' }
+const TAB_VIDEO: ReTabItem = { name: 'video', label: '视频', icon: 'VideoCamera' }
+const TAB_PTZ: ReTabItem = { name: 'ptz', label: '云台', icon: 'Aim' }
+const TAB_ACCESS: ReTabItem = { name: 'access', label: '门禁', icon: 'Lock' }
+const TAB_EVENTS: ReTabItem = { name: 'events', label: '事件', icon: 'Bell' }
+
+/** 支持云台的摄像机小类：球机 / 云台；枪机、半球固定安装，不出云台页签 */
+const PTZ_SUB_CATEGORIES = new Set(['dome', 'ptz'])
 
 const CATEGORY_OPTIONS = [
   { label: '摄像头', value: 'camera' },
@@ -461,6 +465,64 @@ const devices = ref<DeviceInfo[]>([])
 const devicesLoading = ref(false)
 const selectedDevice = ref<DeviceInfo | null>(null)
 const activeTab = ref('overview')
+
+/* ==================== 设备能力 → 详情页签 ==================== */
+
+/**
+ * 页签跟着设备能力走，而不是所有设备都摊同一排。
+ *
+ * <p>摄像机：通道 / 视频 /（球机、云台才有）云台 / 事件；
+ * 门禁与对讲：通道 / 视频 / 门禁 / 事件，不出现云台；
+ * 报警器：只保留概览 / 地图 / 事件，不出现通道、视频、云台、门禁。</p>
+ */
+function hasPtzCapability(d: DeviceInfo): boolean {
+  if (d.deviceInfoCategory !== 'camera') return false
+  const sub = (d.deviceInfoSubCategory || '').toLowerCase()
+  return PTZ_SUB_CATEGORIES.has(sub) || sub.includes('ptz')
+}
+
+function hasVideoCapability(d: DeviceInfo): boolean {
+  if (d.deviceInfoCategory === 'camera' || d.deviceInfoCategory === 'intercom') return true
+  // 人脸 / 可视门禁一体机通常带摄像头：有通道才给视频页签
+  if (d.deviceInfoCategory === 'accessControl') {
+    return (d.deviceInfoChannelCount ?? 0) > 0 || (d.channels?.length ?? 0) > 0
+  }
+  return false
+}
+
+function hasChannelCapability(d: DeviceInfo): boolean {
+  return (
+    d.deviceInfoCategory === 'camera' ||
+    d.deviceInfoCategory === 'accessControl' ||
+    d.deviceInfoCategory === 'intercom'
+  )
+}
+
+function hasAccessCapability(d: DeviceInfo): boolean {
+  return (
+    d.deviceInfoCategory === 'accessControl' ||
+    d.deviceInfoCategory === 'intercom' ||
+    (d.doors?.length ?? 0) > 0
+  )
+}
+
+const deviceTabs = computed<ReTabItem[]>(() => {
+  const d = selectedDevice.value
+  if (!d) return []
+  const tabs: ReTabItem[] = [TAB_OVERVIEW, TAB_MAP]
+  if (hasChannelCapability(d)) tabs.push(TAB_CHANNEL)
+  if (hasVideoCapability(d)) tabs.push(TAB_VIDEO)
+  if (hasPtzCapability(d)) tabs.push(TAB_PTZ)
+  if (hasAccessCapability(d)) tabs.push(TAB_ACCESS)
+  tabs.push(TAB_EVENTS)
+  return tabs
+})
+
+// 换了设备后原页签可能已不存在（例如从摄像机切到报警器），落回概览
+watch(deviceTabs, (tabs) => {
+  if (!tabs.some((t) => t.name === activeTab.value)) activeTab.value = 'overview'
+})
+
 const timeline = ref<TimelineItem[]>([])
 const currentChannel = ref(1)
 const videoUrl = ref('')
@@ -609,13 +671,18 @@ const channelOptions = computed(() =>
 
 function selectDevice(dev: DeviceInfo) {
   selectedDevice.value = dev
+  activeTab.value = 'overview'
   if (dev.channels && dev.channels.length) {
     currentChannel.value = dev.channels[0].deviceChannelNo
   }
-  reloadStream()
+  // 只按能力取数：报警器没有视频 / 云台 / 门禁，不再无谓请求
+  if (hasVideoCapability(dev)) reloadStream()
+  else videoUrl.value = ''
   fetchTimeline()
-  loadPresets(dev.deviceInfoId)
-  fetchAccessEvents()
+  if (hasPtzCapability(dev)) loadPresets(dev.deviceInfoId)
+  else presets.value = []
+  if (hasAccessCapability(dev)) fetchAccessEvents()
+  else accessEvents.value = []
   fetchEvents()
 }
 
@@ -1068,6 +1135,16 @@ onUnmounted(() => {
   margin-top: 2px;
   padding-top: 10px;
   border-top: 1px dashed var(--el-border-color-lighter);
+}
+.dv-hero__extra--reserve {
+  padding-top: 8px;
+}
+.dv-hero__reserve {
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  border: 1px dashed var(--el-border-color);
+  border-radius: 999px;
 }
 .dv-hero__ops {
   display: flex;

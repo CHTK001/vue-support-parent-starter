@@ -195,31 +195,34 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/device-assets",
         name: "DeviceAssets",
-        component: () => import("./views/DeviceAssetsView.vue"),
+        // 与设备应用共用一套工作台：左侧组织树 + 右侧主机卡牌 / 设备总览，
+        // 避免 monitor 自己再维护一份表格版设备资产页，两处 UI 越走越远。
+        component: () => import("@pages/device/src/views/DeviceView.vue"),
         meta: { title: "设备资产", icon: "Monitor", showLink: true, rank: 11 },
       },
       {
         path: "/device-orgs",
         name: "DeviceOrgs",
-        component: () => import("./views/DeviceOrganizationView.vue"),
+        component: () => import("@pages/device/src/views/DeviceOrganizationView.vue"),
         meta: { title: "设备组织", icon: "FolderOpened", showLink: true, rank: 12 },
       },
       {
         path: "/device-channels",
         name: "DeviceChannels",
-        component: () => import("./views/DeviceChannelView.vue"),
+        component: () => import("@pages/device/src/views/DeviceChannelView.vue"),
         meta: { title: "通道管理", icon: "Connection", showLink: true, rank: 13 },
       },
       {
         path: "/device-events",
         name: "DeviceEvents",
-        component: () => import("./views/DeviceEventLogView.vue"),
+        component: () => import("@pages/device/src/views/DeviceEventLogView.vue"),
         meta: { title: "设备日志", icon: "Tickets", showLink: true, rank: 14 },
       },
       {
         path: "/device-providers",
         name: "DeviceProviders",
-        component: () => import("./views/DeviceProviderConfigView.vue"),
+        // 提供商配置同样用卡牌（每套凭据一张卡，扩展信息位预留在卡底），不再用表格。
+        component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
       },
     ],

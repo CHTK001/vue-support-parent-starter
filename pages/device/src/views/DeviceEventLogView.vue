@@ -132,8 +132,8 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 
-import deviceApi from '@/api/deviceApi'
-import type { DeviceEvent, DeviceInfo } from '@/types/device'
+import deviceApi from '../api/deviceApi'
+import type { DeviceEvent, DeviceInfo } from '../types/device'
 
 /** 事件类型（后端 SPI 的取值口径） */
 const EVENT_TYPES = [

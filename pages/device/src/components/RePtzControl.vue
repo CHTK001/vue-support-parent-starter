@@ -111,7 +111,7 @@
 import { Back, Bottom, Top, Right } from '@element-plus/icons-vue'
 import ReButton from '@repo/ui/re-button'
 import ReEmpty from '@repo/ui/re-empty'
-import type { Preset } from '@/types/device'
+import type { Preset } from '../types/device'
 
 defineProps<{
   presets: Preset[]
