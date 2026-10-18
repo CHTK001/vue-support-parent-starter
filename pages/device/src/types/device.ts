@@ -101,6 +101,10 @@ export interface ProviderCredential {
   deviceCredentialName: string
   deviceCredentialAppKey?: string
   deviceCredentialAppSecret?: string
+  /** 云曜产品编码（ProductCode），云曜平台必填 */
+  deviceCredentialProductCode?: string
+  /** 云曜项目 ID（ProjectID），云曜平台必填 */
+  deviceCredentialProjectId?: string
   /** 平台 endpoint 覆盖，留空用内置默认 */
   deviceCredentialBaseUrl?: string
   deviceCredentialOfflineThreshold?: number
@@ -111,3 +115,13 @@ export interface ProviderCredential {
   deviceCredentialCreatedAt?: string
   deviceCredentialUpdatedAt?: string
 }
+
+/** 后端分页结果（spring-support-mybatis 的 PageResult） */
+export interface PageResult<T> {
+  pageNo: number
+  pageSize: number
+  total: number
+  totalPage: number
+  records: T[]
+}
+

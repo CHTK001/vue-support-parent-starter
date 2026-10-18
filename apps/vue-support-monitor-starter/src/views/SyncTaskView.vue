@@ -836,7 +836,6 @@ import {
   previewSyncMapping,
   runSyncTask,
   updateSyncTask,
-  type LocalFileEntry,
   type SyncColumn,
   type SyncFieldMapping,
   type SyncTask,
@@ -987,37 +986,26 @@ const openPathPicker = (mode: "FILE" | "DIR") => {
 };
 
 /**
- * ReFilePicker 的 loader：列后端所在机器的目录。
+ * ReFilePicker 的 loader：列后端所在机器的目录（filesystem-starter 的目录浏览接口）。
  * loader 必须由宿主配置为远端接口形状（FilePickerItem[]），不得回退到组件内置 mock。
  *
- * <p>「文件系统根」两边表达不同：组件用虚拟根 `/`，接口约定「path 留空 = 列文件系统根」。
- * Linux 后端上 `/` 就是根，两者等价；Windows 后端用 Paths 判绝对路径，`/` 属驱动器相对，
- * 会回「必须使用绝对路径: /」—— 所以先按组件语义请求，仅在根目录被拒时退化为留空请求
- * （Windows 拿到的是 `C:\`、`D:\` …，Linux 走不到这条分支）。</p>
+ * <p>「文件系统根」两边表达不同：组件用虚拟根 `/`。filesystem-starter 已按同一语义
+ * 处理（Windows 返回盘符列表，类 Unix 直接列 `/`），所以这里不再做根目录重试。</p>
+ *
+ * <p>选择文件夹时也要求返回文件：最后一层目录里有什么文件，是用户确认「进对目录」的
+ * 唯一依据；文件在目录模式下只展示、不可选。</p>
  *
  * @param path 当前目录（组件虚拟根为 `/`）
  */
 const localFileLoader = async (path: string): Promise<FilePickerItem[]> => {
-  const toItems = (rows: LocalFileEntry[] | null | undefined): FilePickerItem[] =>
-    (rows ?? []).map(item => ({
-      key: item.key,
-      name: item.name,
-      isDir: item.isDir,
-      size: item.size ?? undefined,
-      updatedAt: item.updatedAt ?? undefined,
-    }));
-
-  try {
-    return toItems(await fetchLocalFiles(path || "", filePickerMode.value === "FILE"));
-  } catch (err) {
-    if (path !== "/") throw err;
-    try {
-      return toItems(await fetchLocalFiles("", filePickerMode.value === "FILE"));
-    } catch {
-      // 退化请求也失败：抛原始错误（更接近真正的原因，例如服务未启动）
-      throw err;
-    }
-  }
+  const rows = await fetchLocalFiles(path || "", true);
+  return (rows ?? []).map(item => ({
+    key: item.key,
+    name: item.name,
+    isDir: item.isDir,
+    size: item.size ?? undefined,
+    updatedAt: item.updatedAt ?? undefined,
+  }));
 };
 
 /** 选中文件/目录 */

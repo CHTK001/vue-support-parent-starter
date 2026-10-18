@@ -106,6 +106,14 @@
               />
             </dd>
           </div>
+          <div v-if="row.deviceCredentialProductCode" class="pcard__row">
+            <dt>ProductCode</dt>
+            <dd class="pcard__mono">{{ row.deviceCredentialProductCode }}</dd>
+          </div>
+          <div v-if="row.deviceCredentialProjectId" class="pcard__row">
+            <dt>ProjectID</dt>
+            <dd class="pcard__mono">{{ row.deviceCredentialProjectId }}</dd>
+          </div>
           <div class="pcard__row">
             <dt>Endpoint</dt>
             <dd class="pcard__mono">{{ row.deviceCredentialBaseUrl || '内置默认地址' }}</dd>
@@ -223,6 +231,15 @@
               placeholder="厂商开放平台分配的 AppSecret"
             />
           </ReFormItem>
+          <template v-if="form.deviceCredentialPlatformType === 'cloud-yao'">
+            <ReFormItem label="产品编码 ProductCode" required>
+              <ReInput v-model="form.deviceCredentialProductCode" placeholder="例如 1685925205802552" />
+              <span class="dpv-hint">云曜按产品维度隔离设备，取流 / 云台 / 门禁接口都会带上</span>
+            </ReFormItem>
+            <ReFormItem label="项目 ID ProjectID" required>
+              <ReInput v-model="form.deviceCredentialProjectId" placeholder="例如 422328139543160" />
+            </ReFormItem>
+          </template>
         </template>
         <ReFormItem v-else label="说明">
           <span class="dpv-hint">SDK 局域网直连使用设备自身的 IP + 账号密码，无需 AK/SK</span>
@@ -499,6 +516,8 @@ const form = reactive({
   deviceCredentialName: '',
   deviceCredentialAppKey: '',
   deviceCredentialAppSecret: '',
+  deviceCredentialProductCode: '',
+  deviceCredentialProjectId: '',
   deviceCredentialBaseUrl: '',
   deviceCredentialOfflineThreshold: 60,
   deviceCredentialEnabled: true,
@@ -524,8 +543,15 @@ const isPlatformMode = computed(() => !!form.deviceCredentialPlatformType)
 const akSkInvalid = computed(
   () => isPlatformMode.value && (!form.deviceCredentialAppKey.trim() || !form.deviceCredentialAppSecret.trim()),
 )
+/** 云曜除 AK/SK 外还需要产品编码 + 项目 ID */
+const isCloudYao = computed(
+  () => form.deviceCredentialVendor === 'hikvision' && form.deviceCredentialPlatformType === 'cloud-yao',
+)
+const cloudYaoInvalid = computed(
+  () => isCloudYao.value && (!form.deviceCredentialProductCode.trim() || !form.deviceCredentialProjectId.trim()),
+)
 const formInvalid = computed(
-  () => nameInvalid.value || akSkInvalid.value || form.deviceCredentialOfflineThreshold <= 0,
+  () => nameInvalid.value || akSkInvalid.value || cloudYaoInvalid.value || form.deviceCredentialOfflineThreshold <= 0,
 )
 
 const filteredRows = computed(() => {
@@ -651,6 +677,8 @@ function openCreate(): void {
     deviceCredentialName: '',
     deviceCredentialAppKey: '',
     deviceCredentialAppSecret: '',
+    deviceCredentialProductCode: '',
+    deviceCredentialProjectId: '',
     deviceCredentialBaseUrl: '',
     deviceCredentialOfflineThreshold: 60,
     deviceCredentialEnabled: true,
@@ -667,6 +695,8 @@ function openEdit(row: ProviderCredential): void {
     deviceCredentialName: row.deviceCredentialName || '',
     deviceCredentialAppKey: row.deviceCredentialAppKey || '',
     deviceCredentialAppSecret: row.deviceCredentialAppSecret || '',
+    deviceCredentialProductCode: row.deviceCredentialProductCode || '',
+    deviceCredentialProjectId: row.deviceCredentialProjectId || '',
     deviceCredentialBaseUrl: row.deviceCredentialBaseUrl || '',
     deviceCredentialOfflineThreshold: row.deviceCredentialOfflineThreshold ?? 60,
     deviceCredentialEnabled: row.deviceCredentialEnabled ?? true,
@@ -684,7 +714,11 @@ function onVendorChange(): void {
 
 async function onSubmit(): Promise<void> {
   if (formInvalid.value) {
-    ElMessage.warning('请补全凭据名称、AK/SK 与合法阈值')
+    ElMessage.warning(
+      isCloudYao.value
+        ? '请补全凭据名称、AK/SK、ProductCode、ProjectID 与合法阈值'
+        : '请补全凭据名称、AK/SK 与合法阈值',
+    )
     return
   }
   dialogSaving.value = true
@@ -728,7 +762,8 @@ async function onDelete(row: ProviderCredential): Promise<void> {
 /** 启用/停用（方形开关与右键菜单共用） */
 async function onToggleEnabled(row: ProviderCredential, next: boolean): Promise<void> {
   try {
-    await deviceApi.updateCredential(row.deviceCredentialId!, { ...row, deviceCredentialEnabled: next })
+    // 只走启停专用接口，避免整对象更新把 AK/SK、默认套等字段一并覆盖
+    await deviceApi.updateCredentialEnabled(row.deviceCredentialId!, next)
     ElMessage.success(next ? '凭据套已启用' : '凭据套已停用')
     await fetchList()
   } catch (e: unknown) {

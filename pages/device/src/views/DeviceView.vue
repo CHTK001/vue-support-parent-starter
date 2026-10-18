@@ -268,64 +268,111 @@
     <ReDialog v-model="addDialogVisible" title="添加设备" width="580px" append-to-body :close-on-click-modal="false">
       <el-form label-position="top" class="dv-form">
         <ReFormItem label="设备名称" required>
-          <ReInput v-model="addForm.deviceInfoName" placeholder="例如 大厅球机" />
+          <ReInput v-model="addForm.deviceInfoName" placeholder="例如 大厅球机 / 3F 门禁一体机" />
         </ReFormItem>
         <ReFormItem label="接入方式" required>
           <el-segmented v-model="addForm.authType" :options="AUTH_TYPE_SEGMENTS" />
         </ReFormItem>
-        <ReFormItem label="厂商" required>
-          <ReSelect v-model="addForm.vendor" :options="VENDOR_OPTIONS" style="width: 100%" />
+        <ReFormItem label="设备大类" required>
+          <ReSelect v-model="addForm.deviceInfoCategory" :options="CATEGORY_OPTIONS" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="设备小类" required>
+          <ReSelect
+            v-model="addForm.deviceInfoSubCategory"
+            :options="getSubCategoryOptions(addForm.deviceInfoCategory)"
+            style="width: 100%"
+          />
         </ReFormItem>
 
         <template v-if="addForm.authType === 'PLATFORM'">
-          <ReFormItem label="平台类型" required>
-            <el-select v-model="addForm.platformType" style="width: 100%">
-              <el-option-group label="海康">
-                <el-option label="海康云耀" value="cloud-yao" />
-                <el-option label="海康云眸" value="cloud-eye" />
-                <el-option label="海康安防平台" value="secure-platform" />
-              </el-option-group>
-              <el-option-group label="大华">
-                <el-option label="大华云睿" value="dahua-cloud" />
-                <el-option label="大华乐橙" value="lechange" />
-              </el-option-group>
-            </el-select>
+          <ReFormItem label="提供商凭据" required>
+            <ReSelect
+              v-model="addForm.credentialId"
+              :options="credentialOptions"
+              filterable
+              clearable
+              :loading="credentialsLoading"
+              placeholder="选择已登记的提供商 AK/SK"
+              style="width: 100%"
+              @change="onCredentialChange"
+            />
+            <span v-if="!credentialsLoading && !credentialOptions.length" class="dv-hint">
+              还没有启用的提供商凭据，请先到「提供商配置」登记 AK/SK（云曜还需 ProductCode / ProjectID）
+            </span>
+            <span v-else class="dv-hint">
+              厂商、平台与 AK/SK 由所选凭据带出；设备表单不再保存密钥
+            </span>
           </ReFormItem>
-          <ReFormItem label="AppKey">
-            <ReInput v-model="addForm.appKey" placeholder="厂商开放平台分配的 AppKey" />
-          </ReFormItem>
-          <ReFormItem label="AppSecret">
-            <ReInput v-model="addForm.appSecret" type="password" show-password placeholder="厂商开放平台分配的 AppSecret" />
-          </ReFormItem>
-          <ReFormItem label="设备序列号">
-            <ReInput v-model="addForm.deviceSerial" placeholder="平台侧的设备序列号" />
+          <div v-if="selectedCredential" class="dv-provider">
+            <div class="dv-provider__head">
+              <span class="dv-panel__bar" />
+              <span>{{ selectedCredential.deviceCredentialName }}</span>
+            </div>
+            <div class="dv-provider__hint">
+              {{ vendorLabelOf(selectedCredential.deviceCredentialVendor) }} ·
+              {{ platformLabelOf(selectedCredential.deviceCredentialPlatformType) }} · AK
+              {{ selectedCredential.deviceCredentialAppKey || '—' }}
+            </div>
+          </div>
+          <ReFormItem label="设备序列号" required>
+            <ReInput v-model="addForm.deviceSerial" placeholder="平台侧设备序列号，例如 DS-2DE7A425IW..." />
           </ReFormItem>
         </template>
 
         <template v-else>
-          <ReFormItem label="大类" required>
-            <ReSelect v-model="addForm.deviceInfoCategory" :options="CATEGORY_OPTIONS" style="width: 100%" />
-          </ReFormItem>
-          <ReFormItem label="小类" required>
-            <ReSelect
-              v-model="addForm.deviceInfoSubCategory"
-              :options="getSubCategoryOptions(addForm.deviceInfoCategory)"
-              style="width: 100%"
-            />
+          <ReFormItem label="厂商" required>
+            <ReSelect v-model="addForm.vendor" :options="VENDOR_OPTIONS" style="width: 100%" />
           </ReFormItem>
           <ReFormItem label="IP 地址" required>
             <ReInput v-model="addForm.deviceInfoIp" placeholder="例如 192.168.1.64" />
           </ReFormItem>
           <ReFormItem label="端口">
-            <ReInputNumber v-model="addForm.deviceInfoPort" :min="1" :max="65535" style="width: 100%" />
+            <ReInputNumber
+              v-model="addForm.deviceInfoPort"
+              :min="1"
+              :max="65535"
+              placeholder="默认 8000"
+              style="width: 100%"
+            />
           </ReFormItem>
           <ReFormItem label="用户名">
-            <ReInput v-model="addForm.deviceInfoUsername" />
+            <ReInput v-model="addForm.deviceInfoUsername" placeholder="设备登录账号，例如 admin" />
           </ReFormItem>
           <ReFormItem label="密码">
-            <ReInput v-model="addForm.deviceInfoPassword" type="password" show-password />
+            <ReInput
+              v-model="addForm.deviceInfoPassword"
+              type="password"
+              show-password
+              placeholder="设备登录密码"
+            />
           </ReFormItem>
         </template>
+
+        <ReFormItem label="安装位置">
+          <ReInput v-model="addForm.deviceInfoAddress" placeholder="例如 A 栋 1F 大厅 / 园区南门" />
+        </ReFormItem>
+        <div class="dv-form__row">
+          <ReFormItem label="纬度">
+            <ReInputNumber
+              v-model="addForm.deviceInfoLatitude"
+              :precision="6"
+              :step="0.000001"
+              :controls="false"
+              placeholder="例如 30.274100"
+              style="width: 100%"
+            />
+          </ReFormItem>
+          <ReFormItem label="经度">
+            <ReInputNumber
+              v-model="addForm.deviceInfoLongitude"
+              :precision="6"
+              :step="0.000001"
+              :controls="false"
+              placeholder="例如 120.155100"
+              style="width: 100%"
+            />
+          </ReFormItem>
+        </div>
       </el-form>
       <template #footer>
         <ReButton @click="addDialogVisible = false">取消</ReButton>
@@ -373,6 +420,7 @@ import {
   Connection,
   Download,
   Grid,
+  Location,
   Lock,
   Monitor,
   Plus,
@@ -410,7 +458,16 @@ import ReChannelManager from '../components/ReChannelManager.vue'
 import { deviceApi } from '../api/deviceApi'
 import { getCategoryLabel, getSubCategoryOptions } from '../utils/deviceCategory'
 import { rawDirection } from '../utils/accessDirection'
-import type { AccessEvent, DeviceEvent, DeviceInfo, OrgNode, Preset, TimelineItem } from '../types/device'
+import type {
+  AccessEvent,
+  DeviceEvent,
+  DeviceInfo,
+  OrgNode,
+  PageResult,
+  Preset,
+  ProviderCredential,
+  TimelineItem,
+} from '../types/device'
 
 /** 详情页签（图标用 Element Plus 图标名，由 ReTab → ReIcon 解析） */
 const TAB_OVERVIEW: ReTabItem = { name: 'overview', label: '概览', icon: 'DataBoard' }
@@ -441,6 +498,27 @@ const VENDOR_OPTIONS = [
   { label: '海康威视', value: 'hikvision' },
   { label: '大华', value: 'dahua' },
 ]
+
+const VENDOR_LABELS: Record<string, string> = {
+  hikvision: '海康威视',
+  dahua: '大华',
+}
+
+const PLATFORM_LABELS: Record<string, string> = {
+  'cloud-yao': '云曜',
+  'cloud-eye': '云眸',
+  'secure-platform': '安防平台',
+  'dahua-cloud': '云睿',
+  lechange: '乐橙',
+}
+
+function vendorLabelOf(vendor?: string): string {
+  return vendor ? VENDOR_LABELS[vendor] || vendor : '未知厂商'
+}
+
+function platformLabelOf(platform?: string): string {
+  return platform ? PLATFORM_LABELS[platform] || platform : 'SDK 直连'
+}
 
 const PROTOCOL_OPTIONS = [
   { label: 'HLS', value: 'hls' },
@@ -553,9 +631,8 @@ const addForm = ref({
   deviceInfoName: '',
   vendor: 'hikvision',
   authType: 'PLATFORM',
-  platformType: 'cloud-eye',
-  appKey: '',
-  appSecret: '',
+  credentialId: '',
+  platformType: '',
   deviceSerial: '',
   deviceInfoCategory: 'camera',
   deviceInfoSubCategory: 'bullet',
@@ -563,7 +640,47 @@ const addForm = ref({
   deviceInfoPort: 8000,
   deviceInfoUsername: 'admin',
   deviceInfoPassword: '',
+  deviceInfoLatitude: undefined as number | undefined,
+  deviceInfoLongitude: undefined as number | undefined,
+  deviceInfoAddress: '',
 })
+
+/** 已登记的提供商凭据：设备表单只选凭据，不再手填 AK/SK */
+const credentials = ref<ProviderCredential[]>([])
+const credentialsLoading = ref(false)
+
+/** 设备卡片网格：服务端分页 */
+const pageRows = ref<DeviceInfo[]>([])
+const pageLoading = ref(false)
+const pageNo = ref(1)
+const pageSize = ref(12)
+const pageTotal = ref(0)
+
+/** 页签懒加载：只有点到某个页签才拉该页签的数据 */
+const tabLoaded = ref({ video: false, ptz: false, access: false, events: false })
+
+/** 下拉里只展示启用中的凭据，停用的套不参与建连 */
+const enabledCredentials = computed(() => credentials.value.filter((c) => c.deviceCredentialEnabled !== false))
+
+const credentialOptions = computed(() =>
+  enabledCredentials.value.map((c) => ({
+    value: c.deviceCredentialId || '',
+    label: `${c.deviceCredentialName || '未命名凭据'} · ${vendorLabelOf(c.deviceCredentialVendor)} · ${platformLabelOf(
+      c.deviceCredentialPlatformType,
+    )}`,
+  })),
+)
+
+const selectedCredential = computed(
+  () => enabledCredentials.value.find((c) => c.deviceCredentialId === addForm.value.credentialId) || null,
+)
+
+function onCredentialChange(id: string): void {
+  const credential = enabledCredentials.value.find((c) => c.deviceCredentialId === id)
+  if (!credential) return
+  addForm.value.vendor = credential.deviceCredentialVendor
+  addForm.value.platformType = credential.deviceCredentialPlatformType || ''
+}
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -673,18 +790,45 @@ const channelOptions = computed(() =>
 function selectDevice(dev: DeviceInfo) {
   selectedDevice.value = dev
   activeTab.value = 'overview'
+  tabLoaded.value = { video: false, ptz: false, access: false, events: false }
   if (dev.channels && dev.channels.length) {
     currentChannel.value = dev.channels[0].deviceChannelNo
   }
-  // 只按能力取数：报警器没有视频 / 云台 / 门禁，不再无谓请求
-  if (hasVideoCapability(dev)) reloadStream()
-  else videoUrl.value = ''
+  // 首屏只展示概览；视频 / 云台 / 门禁 / 事件在点开对应页签时再取
+  videoUrl.value = ''
+  presets.value = []
+  accessEvents.value = []
+  events.value = []
   fetchTimeline()
-  if (hasPtzCapability(dev)) loadPresets(dev.deviceInfoId)
-  else presets.value = []
-  if (hasAccessCapability(dev)) fetchAccessEvents()
-  else accessEvents.value = []
-  fetchEvents()
+}
+
+/**
+ * 页签懒加载：点到哪个页签才拉哪个页签的数据，避免选设备时一次性打满接口。
+ */
+function ensureTabData(tab: string): void {
+  const dev = selectedDevice.value
+  if (!dev) return
+  if (tab === 'video' && hasVideoCapability(dev) && !tabLoaded.value.video) {
+    tabLoaded.value.video = true
+    reloadStream()
+  } else if (tab === 'ptz' && hasPtzCapability(dev) && !tabLoaded.value.ptz) {
+    tabLoaded.value.ptz = true
+    loadPresets(dev.deviceInfoId)
+  } else if (tab === 'access' && hasAccessCapability(dev) && !tabLoaded.value.access) {
+    tabLoaded.value.access = true
+    fetchAccessEvents()
+  } else if (tab === 'events' && !tabLoaded.value.events) {
+    tabLoaded.value.events = true
+    fetchEvents()
+  }
+}
+
+watch(activeTab, (tab) => ensureTabData(tab))
+
+/** 卡片上的地图标志：选中设备并直接切到地图页签 */
+function openDeviceMap(dev: DeviceInfo): void {
+  selectDevice(dev)
+  activeTab.value = 'map'
 }
 
 function reloadStream() {
@@ -922,7 +1066,25 @@ function onEventRealtimeChange(v: boolean) {
 /* ==================== 弹窗 ==================== */
 
 function showAddDialog() {
+  Object.assign(addForm.value, {
+    deviceInfoName: '',
+    vendor: 'hikvision',
+    authType: 'PLATFORM',
+    credentialId: '',
+    platformType: '',
+    deviceSerial: '',
+    deviceInfoCategory: 'camera',
+    deviceInfoSubCategory: 'bullet',
+    deviceInfoIp: '',
+    deviceInfoPort: 8000,
+    deviceInfoUsername: 'admin',
+    deviceInfoPassword: '',
+    deviceInfoLatitude: undefined,
+    deviceInfoLongitude: undefined,
+    deviceInfoAddress: '',
+  })
   addDialogVisible.value = true
+  void fetchCredentials(true)
 }
 
 function showThresholdDialog() {
@@ -970,22 +1132,51 @@ function exportDevices() {
 }
 
 function submitAdd() {
-  if (!addForm.value.deviceInfoName.trim()) {
+  const form = addForm.value
+  if (!form.deviceInfoName.trim()) {
     message.warning('请填写设备名称')
     return
   }
+  if (form.authType === 'PLATFORM' && !selectedCredential.value) {
+    message.warning('请选择提供商凭据')
+    return
+  }
+  if (form.authType === 'PLATFORM' && !form.deviceSerial.trim()) {
+    message.warning('请填写平台侧设备序列号')
+    return
+  }
+  if (form.authType === 'SDK' && !form.deviceInfoIp.trim()) {
+    message.warning('请填写设备 IP 地址')
+    return
+  }
   addSaving.value = true
+  const payload = {
+    vendor: form.vendor,
+    authType: form.authType,
+    platformType: selectedCredential.value?.deviceCredentialPlatformType || undefined,
+    deviceSerial: form.deviceSerial.trim() || undefined,
+    ip: form.deviceInfoIp.trim() || undefined,
+    port: form.deviceInfoPort,
+    username: form.deviceInfoUsername,
+    password: form.deviceInfoPassword,
+    extra: {
+      credentialId: form.credentialId || undefined,
+      deviceInfoName: form.deviceInfoName.trim(),
+      deviceInfoCategory: form.deviceInfoCategory,
+      deviceInfoSubCategory: form.deviceInfoSubCategory,
+      deviceInfoSerial: form.deviceSerial.trim() || undefined,
+      deviceInfoLatitude: form.deviceInfoLatitude,
+      deviceInfoLongitude: form.deviceInfoLongitude,
+      deviceInfoAddress: form.deviceInfoAddress || undefined,
+    },
+  }
   deviceApi
-    .add(addForm.value)
-    .then((res: unknown) => {
-      const added = res as DeviceInfo | undefined
-      if (added && added.deviceInfoId) {
-        devices.value.push(added)
-      } else {
-        fetchDevices()
-      }
+    .add(payload)
+    .then(() => {
       message.success('设备添加成功')
       addDialogVisible.value = false
+      fetchDevices()
+      fetchPage()
     })
     .catch((err: unknown) =>
       message.error('设备添加失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')),
@@ -1010,6 +1201,53 @@ function fetchDevices() {
     })
     .finally(() => {
       devicesLoading.value = false
+    })
+}
+
+/** 服务端分页：只拉当前页，筛选条件交给后端 */
+function fetchPage() {
+  pageLoading.value = true
+  deviceApi
+    .pageDevices({
+      pageNo: pageNo.value,
+      pageSize: pageSize.value,
+      keyword: deviceKeyword.value.trim() || undefined,
+      category: categoryFilter.value || undefined,
+      online: statusFilter.value === 'online' ? true : statusFilter.value === 'offline' ? false : undefined,
+    })
+    .then((res: unknown) => {
+      const page = res as PageResult<DeviceInfo>
+      pageRows.value = page?.records || []
+      pageTotal.value = Number(page?.total) || 0
+    })
+    .catch((err: unknown) => {
+      message.error(`分页加载设备失败: ${(err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'}`)
+      pageRows.value = []
+      pageTotal.value = 0
+    })
+    .finally(() => {
+      pageLoading.value = false
+    })
+}
+
+function resetPageAndFetch(): void {
+  pageNo.value = 1
+  fetchPage()
+}
+
+/** 提供商凭据：设备表单从这里选，而不是手填 AK/SK */
+function fetchCredentials(): void {
+  credentialsLoading.value = true
+  deviceApi
+    .listCredentials()
+    .then((res: unknown) => {
+      credentials.value = ((res as ProviderCredential[]) || []).filter((c) => c.deviceCredentialEnabled !== false)
+    })
+    .catch(() => {
+      credentials.value = []
+    })
+    .finally(() => {
+      credentialsLoading.value = false
     })
 }
 

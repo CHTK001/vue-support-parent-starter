@@ -44,6 +44,7 @@
           :sort-asc="sortAsc"
           :active-index="activeIndex"
           :is-selected="isSelected"
+          :can-select="canSelect"
           @sort="toggleSort"
           @activate="onActivate"
           @open="onOpen"
@@ -249,6 +250,7 @@ const {
   selectedCount,
   limit,
   limitHint,
+  canSelect,
   isLimitReached,
   load,
   refresh,

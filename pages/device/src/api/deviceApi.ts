@@ -60,6 +60,14 @@ export const deviceApi = {
   // —— 设备 ——
   list: (orgId?: string) =>
     client().get("/list").query({ orgId }).then(unwrap),
+  pageDevices: (params: {
+    pageNo: number;
+    pageSize: number;
+    orgId?: string;
+    keyword?: string;
+    category?: string;
+    online?: boolean;
+  }) => client().get("/page").query(params).then(unwrap),
   listByCategory: (category: string) =>
     client().get(`/category/${category}`).then(unwrap),
   get: (id: string) => client().get(`/${id}`).then(unwrap),
@@ -136,6 +144,8 @@ export const deviceApi = {
     client().post("/provider-credential").data(credential).then(unwrap),
   updateCredential: (id: string, credential: any) =>
     client().put(`/provider-credential/${id}`).data(credential).then(unwrap),
+  updateCredentialEnabled: (id: string, enabled: boolean) =>
+    client().put(`/provider-credential/${id}/enabled?enabled=${enabled}`).then(unwrap),
   deleteCredential: (id: string) => client().delete(`/provider-credential/${id}`).then(unwrap),
 
   // —— 设备离线阈值 ——

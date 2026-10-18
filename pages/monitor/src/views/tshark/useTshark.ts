@@ -194,7 +194,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 这两种情况都不插行，避免总数/页码对不上。
     if (packetKeyword.value.trim()) return
     if (packetPage.value !== 1) return
-    // 不再按 LIVE_ROW_CAP 截断：历史数据都在库里，页面这一页只承载实时新增，
+    // 不再截断实时行：历史数据都在库里，页面这一页只承载实时新增，
     // 真到几十万行时用户会翻页 / 过滤，而不是靠偷偷丢弃最新行来省 DOM。
     packets.value.unshift(packet)
   }
