@@ -14,6 +14,7 @@ import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
   getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
+  openTsharkPacketStream,
 } from '../../api'
 import type {
   TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
@@ -33,13 +34,6 @@ const PACKET_PAGE_SIZE = 20
  * 报文列表不能这么做（可能几十万条），那边仍旧走后端过滤。</p>
  */
 const SESSION_FETCH_SIZE = 200
-/**
- * 实时推送往列表里追加的上限。
- *
- * <p>长跑会话每秒可能几十条，无上限追加会把 DOM 和滚动位置拖垮；
- * 到顶后只刷新统计数字，不再新增行 —— 用户需要更早的包时翻页即可。</p>
- */
-const LIVE_ROW_CAP = 500
 
 export function useTshark(options: { source?: string; autoSelectFirst?: boolean } = {}) {
   /**
@@ -67,7 +61,14 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   // ===== 抓包参数 =====
   const iface = ref('')
   const filter = ref('')
-  const count = ref(500)
+  /**
+   * 包数上限。0 = 不限 —— 默认必须是不限。
+   *
+   * <p>此前缺省 500，抓满 500 个包 tshark 就带 `-c 500` 自己退出，页面上表现为
+   * 「刚抓到数据就结束了」：HTTP 这类流量几百个包几秒就满，用户点开页面时抓包
+   * 已经停了。现在只有用户显式填了正数才加 `-c`；要停就点会话上的「停止抓包」。</p>
+   */
+  const count = ref(0)
   const timeout = ref(0)
   const starting = ref(false)
   /** 导入 pcap 的上传中标志：几百 MB 的文件要传几秒，按钮得转圈，否则用户会重复点 */
@@ -110,6 +111,93 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   // ===== 实时推送 =====
   const liveCount = ref(0)
   const liveConnected = ref(false)
+  /** 当前会话的 SSE 连接：切会话 / 清空选中 / 卸载时必须断开，否则服务端会一直推旧会话 */
+  let packetStream: { close: () => void } | null = null
+
+  /**
+   * 关掉当前报文流。
+   *
+   * <p>单独抽出来是因为「切会话」「清空选中」「组件卸载」三个出口都要做同一件事，
+   * 漏掉任意一个都会留下一条后台长连接。</p>
+   */
+  function closePacketStream() {
+    packetStream?.close()
+    packetStream = null
+    liveConnected.value = false
+  }
+
+  /**
+   * 打开某个会话的报文 SSE。
+   *
+   * <p>后端从 4.0.0.42 起把逐包推送从 socket.io 全量广播改成按会话分组的 SSE
+   * （`/sessions/{id}/packets/stream`）。前端原本只订阅 socket.io 的
+   * `monitor/tshark-packet`，在新后端上要么收不到、要么被其他会话的数据干扰；
+   * 这里按会话建连，服务端只推当前在看的这一条。</p>
+   *
+   * @param sessionId 抓包会话 id
+   */
+  function openPacketStream(sessionId: number) {
+    closePacketStream()
+    packetStream = openTsharkPacketStream(sessionId, {
+      onOpen: () => {
+        liveConnected.value = true
+      },
+      onError: () => {
+        liveConnected.value = false
+      },
+      onClose: () => {
+        liveConnected.value = false
+      },
+      onMessage: (event: { event?: string; data?: any }) => {
+        if (event.event === 'packet') {
+          applyLivePacket(event.data as TsharkPacket)
+          return
+        }
+        if (event.event === 'session') {
+          // 会话状态变化（停止 / 解析完成）：刷新列表与统计，页数停在第一页时顺手对账
+          void loadSessions(false)
+          const phase = event.data?.phase
+          if (phase === 'parsed' || phase === 'finished') {
+            void loadStats()
+            if (packetPage.value === 1 && !packetKeyword.value.trim()) {
+              void loadPackets(1)
+            }
+          }
+        }
+      },
+    })
+  }
+
+  /**
+   * 实时包入库到页面状态。
+   *
+   * <p>去重按报文 id：SSE 断线重连时后端可能重复推最近的包（`Last-Event-ID` 未启用），
+   * 不去重会出现两行一模一样的数据。</p>
+   *
+   * @param packet 后端推来的精简报文
+   */
+  function applyLivePacket(packet: TsharkPacket) {
+    const sid = activeSessionId.value
+    if (sid == null || packet == null || packet.id == null) return
+    if (packet.sessionId != null && String(packet.sessionId) !== String(sid)) return
+    if (packets.value.some(p => p.id === packet.id)) return
+
+    liveCount.value++
+    packetTotal.value++
+    const proto = packet.protocol || 'OTHER'
+    const hit = protoStats.value.find(s => s.protocol === proto)
+    if (hit) hit.count++
+    else protoStats.value.push({ protocol: proto, count: 1 })
+    statsVersion.value++
+
+    // 关键字生效时列表是「库里筛出来的子集」，翻在第 2 页及以后时新包属于第 1 页，
+    // 这两种情况都不插行，避免总数/页码对不上。
+    if (packetKeyword.value.trim()) return
+    if (packetPage.value !== 1) return
+    // 不再按 LIVE_ROW_CAP 截断：历史数据都在库里，页面这一页只承载实时新增，
+    // 真到几十万行时用户会翻页 / 过滤，而不是靠偷偷丢弃最新行来省 DOM。
+    packets.value.unshift(packet)
+  }
 
   /**
    * 网卡下拉选项。
@@ -220,6 +308,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   function clearActiveSession() {
+    closePacketStream()
     activeSessionId.value = null
     packets.value = []
     packetTotal.value = 0
@@ -232,6 +321,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   function selectSession(id: number) {
     activeSessionId.value = id
     liveCount.value = 0
+    openPacketStream(id)
     loadPackets(1)
     loadStats()
   }
@@ -431,56 +521,41 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   }
 
   async function openPacketDetail(row: TsharkPacket) {
+    await openPacketDetailById(row.id)
+  }
+
+  /**
+   * 按报文 id 打开详情。
+   *
+   * <p>生命周期时序图里只有 packetId，没有完整行数据，单独给一个入口，
+   * 避免调用方为了凑一个 TsharkPacket 去造空对象。</p>
+   *
+   * @param id 报文 id
+   */
+  async function openPacketDetailById(id: number) {
     try {
-      packetDetail.value = await getTsharkPacketDetail(row.id) as TsharkPacket
+      packetDetail.value = await getTsharkPacketDetail(id) as TsharkPacket
       detailOpen.value = true
     } catch (e: any) {
       message.error('加载详情失败: ' + (e?.message || e))
     }
   }
 
-  // ==================== socket.io 实时推送 ====================
-  // 后端 MonitorPushService 协议：module=monitor，event=tshark-packet / tshark-session，
-  // dataId=sessionId；当前会话匹配时新包去重追加，统计与图表增量刷新。
+  // ==================== socket.io 会话推送 ====================
+  // 报文改走上面的按会话 SSE；socket.io 只保留 `tshark-session` 这一路，
+  // 用于「别的会话被启动/停止/删除」时刷新列表 —— SSE 只覆盖当前选中的会话。
   const socket = useSocketService()
   const socketUnsubs: Array<() => void> = []
 
   if (socket) {
-    socketUnsubs.push(socket.subscribe('monitor', 'tshark-packet', (msg: any) => {
-      const packet = msg?.data ?? msg
-      if (activeSessionId.value == null || packet == null) return
-      const sid = String(msg?.dataId ?? packet?.sessionId)
-      if (sid !== String(activeSessionId.value)) return
-      if (packets.value.some(p => p.id === packet?.id)) return
-
-      liveCount.value++
-      packetTotal.value++
-      // 协议分布是整会话口径，任何一页都该跟着涨
-      const proto = packet?.protocol || 'OTHER'
-      const hit = protoStats.value.find(s => s.protocol === proto)
-      if (hit) hit.count++
-      else protoStats.value.push({ protocol: proto, count: 1 })
-      statsVersion.value++
-
-      // 只在第一页、且没有关键字过滤时往列表里插行：
-      //  - 关键字生效时列表是「库里按关键字筛出来的子集」，塞不匹配的行会让总数与页码对不上；
-      //  - 翻在第 2 页及以后时，新包属于第 1 页，插进来是错位的。
-      if (packetKeyword.value.trim()) return
-      if (packetPage.value !== 1) return
-      packets.value.unshift(packet as TsharkPacket)
-      if (packets.value.length > LIVE_ROW_CAP) packets.value.length = LIVE_ROW_CAP
-    }))
     socketUnsubs.push(socket.subscribe('monitor', 'tshark-session', () => {
-      // 会话增删改由后端推送：刷新列表但不抢用户的选中项
       loadSessions(false)
     }))
-    // socket 自身没有 connected 事件，用轮询把它映射成一个可响应的标志
-    const tick = setInterval(() => { liveConnected.value = !!socket.isConnected }, 2000)
-    socketUnsubs.push(() => clearInterval(tick))
   }
 
   onBeforeUnmount(() => {
     socketUnsubs.forEach(fn => fn?.())
+    closePacketStream()
     if (keywordTimer) clearTimeout(keywordTimer)
   })
 
@@ -505,6 +580,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     init, loadInterfaces, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
     clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol, refresh, exportCsv,
     downloadPcap, loadStats, startCapture, stopSession, deleteSession, openPacketDetail,
+    openPacketDetailById,
     importPcap,
   }
 }

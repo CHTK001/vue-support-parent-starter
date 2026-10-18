@@ -149,6 +149,7 @@
               @update:keyword="setPacketKeyword"
               @page-change="loadPackets"
               @open-detail="openPacketDetail"
+              @open-lifecycle="openLifecycle"
               @export="exportCsv"
             />
           </template>
@@ -177,6 +178,11 @@
     </template>
 
     <ScTsharkPacketDetail v-model="detailOpen" :packet="packetDetail" />
+    <ScTsharkLifecycleDialog
+      v-model="lifecycleVisible"
+      :packet="lifecyclePacket"
+      @open-detail="openPacketDetailById"
+    />
   </div>
 </template>
 
@@ -189,8 +195,9 @@ import ScTsharkPacketPanel from './ScTsharkPacketPanel.vue'
 import ScTsharkStatsPanel from './ScTsharkStatsPanel.vue'
 import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
+import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
 import { sessionName, statusOf, timeRange, fmtDuration, fmtSize } from './tsharkFormat'
-import type { TsharkTabKey } from './types'
+import type { TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
 
 /**
@@ -216,8 +223,17 @@ const {
   detailOpen, packetDetail,
   init, loadSessions, selectSession, setSessionKeyword,
   clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol,
-  exportCsv, downloadPcap, deleteSession, openPacketDetail, importPcap,
+  exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap,
 } = useTshark({ source: 'import', autoSelectFirst: false })
+
+/** 生命周期弹层：右键报文触发，与「抓包分析」页同一套组件 */
+const lifecycleVisible = ref(false)
+const lifecyclePacket = ref<TsharkPacket | null>(null)
+
+function openLifecycle(row: TsharkPacket) {
+  lifecyclePacket.value = row
+  lifecycleVisible.value = true
+}
 
 /**
  * 详情里当前停在哪个标签。
