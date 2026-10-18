@@ -183,6 +183,11 @@ watch(
   animation: rfp-progress 1.1s ease-in-out infinite;
 }
 
+/* 加载期间旧列表只作为占位，不接受点击：避免在过渡窗口里又点进另一层目录 */
+.rfp-main.is-loading .rfp-details {
+  pointer-events: none;
+}
+
 @keyframes rfp-progress {
   0% {
     background-position: -40% 0;

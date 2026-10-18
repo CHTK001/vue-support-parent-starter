@@ -93,8 +93,14 @@ import ReInput from '@repo/ui/re-input'
 import ReSelect from '@repo/ui/re-select'
 import ReStatusIndicator from '@repo/ui/re-status-indicator'
 import ReTag from '@repo/ui/re-tag'
+import { Location } from '@element-plus/icons-vue'
 import { getCategoryLabel } from '../utils/deviceCategory'
 import type { DeviceInfo, OrgNode } from '../types/device'
+
+/** 有经纬度的设备在清单里加地图标志 */
+function hasGeo(d: DeviceInfo): boolean {
+  return d.deviceInfoLatitude != null && d.deviceInfoLongitude != null
+}
 
 /** 大类筛选项（与后端 DeviceCategory 对齐） */
 const CATEGORY_FILTER_OPTIONS = [
@@ -280,10 +286,17 @@ function filterOrg(value: string, data: OrgNode) {
   gap: 8px;
 }
 .dt-item__meta {
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.dt-item__geo {
+  flex: none;
+  font-size: 14px;
+  color: var(--el-color-primary);
 }
 </style>

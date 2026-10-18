@@ -112,7 +112,7 @@
     <!-- 会话详情：报文 / 统计 / 会话流 -->
     <ScTsharkSessionDetailDialog
       v-model="detailVisible"
-      :session="detailSession"
+      :session="activeSession"
       :initial-tab="detailTab"
       :live-connected="liveConnected"
       :live-count="liveCount"
@@ -200,7 +200,7 @@ import './tshark.css'
 const {
   tsharkOk, ifaceOptions, iface, filter, filterType, captureName, count, timeout, starting,
   loadingSessions, filteredSessions, runningCount,
-  sessionPage, sessionPageSize, activeSessionId,
+  sessionPage, sessionPageSize, activeSessionId, activeSession,
   loadingPackets, packets, packetPage, packetTotal, packetKeyword, packetPageSize,
   protoStats, topFlows, statsVersion, liveConnected, liveCount,
   detailOpen, packetDetail,
@@ -211,7 +211,6 @@ const {
 
 const createVisible = ref(false)
 const detailVisible = ref(false)
-const detailSession = ref<TsharkSession | null>(null)
 const detailTab = ref<TsharkTabKey>('packet')
 
 const lifecycleVisible = ref(false)
@@ -241,7 +240,6 @@ async function onCreate() {
 
 /** 打开某会话的详情，并默认停在用户点的那一页 */
 function openDetail(row: TsharkSession, tab: TsharkTabKey) {
-  detailSession.value = row
   detailTab.value = tab
   detailVisible.value = true
   selectSession(row.id)
