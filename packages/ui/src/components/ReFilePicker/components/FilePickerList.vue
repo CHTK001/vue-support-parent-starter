@@ -481,8 +481,154 @@ watch(
   font-variant-numeric: tabular-nums;
 }
 
+/* ==================== 图标视图（大 / 中 / 小） ==================== */
+
+.rfp-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px 16px;
+  align-content: start;
+}
+
+.rfp-grid--largeIcons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.rfp-grid--mediumIcons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 6px;
+}
+
+.rfp-grid--smallIcons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 2px;
+}
+
+.rfp-grid__cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--rfp-radius);
+  background: transparent;
+  color: var(--rfp-text);
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.rfp-grid__cell:hover,
+.rfp-grid__cell.is-active {
+  background: var(--rfp-hover);
+}
+
+.rfp-grid__cell.is-selected {
+  border-color: var(--rfp-select-border);
+  background: var(--rfp-select-bg);
+}
+
+.rfp-grid__cell.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.rfp-grid__cell.is-disabled:hover {
+  background: transparent;
+}
+
+.rfp-grid__cell:focus-visible {
+  outline: 2px solid var(--rfp-accent);
+  outline-offset: -2px;
+}
+
+.rfp-grid__thumb {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rfp-grid__thumb-img {
+  width: 100%;
+  height: 100%;
+}
+
+.rfp-grid__icon {
+  color: var(--el-text-color-secondary);
+}
+
+.rfp-grid--largeIcons .rfp-grid__icon {
+  font-size: 54px;
+}
+
+.rfp-grid--mediumIcons .rfp-grid__thumb {
+  width: 40px;
+  height: 40px;
+}
+
+.rfp-grid--mediumIcons .rfp-grid__icon {
+  font-size: 34px;
+}
+
+.rfp-grid__name {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.rfp-grid__name.is-dir {
+  font-weight: 600;
+}
+
+.rfp-grid__meta {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--rfp-text-weak);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 小图标：紧凑横向行 */
+.rfp-grid--smallIcons .rfp-grid__cell {
+  min-height: 30px;
+  flex-direction: row;
+  gap: 8px;
+  padding: 0 8px;
+  text-align: left;
+}
+
+.rfp-grid--smallIcons .rfp-grid__thumb {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.rfp-grid--smallIcons .rfp-grid__icon {
+  font-size: 16px;
+}
+
+.rfp-grid--smallIcons .rfp-grid__name {
+  width: auto;
+  flex: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rfp-details__row,
+  .rfp-grid__cell,
   .rfp-main__progress {
     transition: none;
     animation: none;
