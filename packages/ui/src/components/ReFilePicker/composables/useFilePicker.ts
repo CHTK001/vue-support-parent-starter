@@ -236,17 +236,21 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
    * 右侧列表还停留在旧目录，等 loader 回来才换内容，视觉上就像「双击触发了两次」。
    * 数据回来后再整体切换，进度条只表示一次加载。</p>
    *
-   * @param path        目标目录
-   * @param pushHistory 是否把当前目录压入后退栈（goBack 不压）
+   * @param path          目标目录
+   * @param historyAction 后退栈操作：push=进入；back=后退；none=仅切换
    */
-  const switchTo = async (path: string, pushHistory: boolean): Promise<void> => {
+  const switchTo = async (path: string, historyAction: "push" | "back" | "none"): Promise<void> => {
     const seq = ++loadSeq;
     loading.value = true;
     loadError.value = "";
     try {
       const next = await fetchItems(path);
       if (seq !== loadSeq) return;
-      if (pushHistory) history.value.push(currentPath.value);
+      if (historyAction === "push") {
+        history.value.push(currentPath.value);
+      } else if (historyAction === "back") {
+        history.value.pop();
+      }
       currentPath.value = path;
       items.value = dedupeItems(next);
       selectedItems.value = [];
@@ -265,6 +269,8 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
   /** 打开弹窗/换起始目录时的整体复位 */
   const reset = async (path: string): Promise<void> => {
     currentPath.value = path;
+    // 上一次打开留下的行不能带进新弹窗（否则会先闪一帧旧目录）
+    items.value = [];
     selectedItems.value = [];
     history.value = [];
     searchText.value = "";
@@ -335,20 +341,14 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
 
   const navigateTo = (path: string): void => {
     if (samePath(path, currentPath.value)) return;
-    history.value.push(currentPath.value);
-    currentPath.value = path;
-    selectedItems.value = [];
-    activeIndex.value = -1;
-    void load(path);
+    void switchTo(path, "push");
   };
 
   const goBack = (): void => {
-    const previous = history.value.pop();
+    const previous = history.value[history.value.length - 1];
     if (previous === undefined) return;
-    currentPath.value = previous;
-    selectedItems.value = [];
-    activeIndex.value = -1;
-    void load(previous);
+    // 数据加载成功后再弹栈，失败时历史不丢
+    void switchTo(previous, "back");
   };
 
   /* ---------- 选中 ---------- */
