@@ -185,8 +185,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 不必先进资产管理再找。rank 取 11，紧邻资产管理（10）且早于服务管理（15）。
   //
   // 组名用「设备管理」而非「设备资产」：组内已不止资产台账，还含组织/通道/日志/提供商配置。
-  // 四个子页都走 device-starter 原生前缀 /api/device（见 app.yaml 的 moduleBaseUrl.device），
-  // 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
+  // 五个子页都走 device-starter 原生前缀 /api/device（见 app.yaml 的 moduleBaseUrl.device），
+  // 后端由 spring-support-monitor-starter 依赖 device-starter 承载。页面直接复用
+  // @pages/device 的工作台 / 卡牌视图，monitor 不再维护一套表格版拷贝。
   {
     path: "/grp-device",
     name: "GroupDevice",
