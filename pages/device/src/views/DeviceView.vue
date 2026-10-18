@@ -827,6 +827,7 @@ const detailFields = computed(() => {
     { label: '序列号 / 固件', value: `${d.deviceInfoSerial || '-'} / ${d.deviceInfoFirmware || '-'}` },
     { label: '通道数', value: String(d.deviceInfoChannelCount ?? 0) },
     { label: '安装位置', value: d.deviceInfoAddress || '未配置' },
+    { label: '经纬度', value: hasGeo(d) ? fmtCoord(d) : '未配置' },
     { label: '离线阈值', value: d.deviceInfoOfflineThreshold ? `${d.deviceInfoOfflineThreshold} 秒` : '厂商默认' },
   ]
 })
