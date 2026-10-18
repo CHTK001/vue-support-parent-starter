@@ -41,4 +41,5 @@ export type {
   FilePickerSelectModifiers,
   FilePickerSortKey,
   FilePickerTreeNode,
+  FilePickerViewMode,
 } from "./types";

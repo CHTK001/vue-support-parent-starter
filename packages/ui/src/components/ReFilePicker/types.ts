@@ -36,6 +36,14 @@ export type FilePickerLoader = (path: string) => Promise<FilePickerItem[]>;
 export type FilePickerSortKey = "name" | "type" | "size" | "updatedAt";
 
 /**
+ * 列表视图模式（参考 pages/filesystem 的查看方式）。
+ *
+ * <p>ReFilePicker 是单目录选择器，不做 macOS Finder 那种「分栏」逐级并列视图；
+ * 这里提供详细信息与三档图标视图，覆盖文件对话框最常见的浏览习惯。</p>
+ */
+export type FilePickerViewMode = "details" | "largeIcons" | "mediumIcons" | "smallIcons";
+
+/**
  * 行单击的修饰键 —— 多选语义对齐资源管理器：
  * 普通单击<b>改选</b>，Ctrl/⌘ 单击加/减选，Shift 单击从锚点连选。
  */

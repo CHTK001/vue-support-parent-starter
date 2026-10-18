@@ -126,8 +126,8 @@ const emit = defineEmits<{
 
 const FILTER_TYPES = [
   { label: '自动识别（推荐）', value: 'auto' },
-  { label: '捕获过滤（BPF，-f）', value: 'bpf' },
-  { label: '显示过滤（-Y）', value: 'display' },
+  { label: '捕获过滤（BPF）', value: 'bpf' },
+  { label: '显示过滤（自动转 BPF）', value: 'display' },
 ]
 
 const filterPlaceholder = computed(() => {
@@ -141,9 +141,9 @@ const filterHint = computed(() => {
     return '捕获过滤只认 tcp / udp / port / host 这类语法；直接写 http 会启动失败。'
   }
   if (props.filterType === 'display') {
-    return '显示过滤支持 http / dns / tls 等协议名和 http.request.method == "GET" 这类字段表达式。'
+    return '实时抓包本身不支持显示过滤（tshark 抓包写文件时不能用 -Y），这里会尽量翻译成等价 BPF：http → tcp 80/8080/8000/8888，dns → port 53。翻译不了的表达式会被拒绝。'
   }
-  return '自动识别：协议名（http / dns / tls）与带 ==、字段点号的表达式按显示过滤；tcp port 8080 这类按捕获过滤。'
+  return '自动识别：协议名（http / dns / tls）与带 ==、字段点号的表达式按显示过滤处理并翻译成 BPF；tcp port 8080 这类直接按捕获过滤执行。'
 })
 
 function onOpenChange(v: unknown) {
