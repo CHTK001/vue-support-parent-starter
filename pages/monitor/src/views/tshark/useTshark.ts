@@ -13,7 +13,7 @@ import { message, useSocketService } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
-  getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl,
+  getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
 } from '../../api'
 import type {
   TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
@@ -41,7 +41,16 @@ const SESSION_FETCH_SIZE = 200
  */
 const LIVE_ROW_CAP = 500
 
-export function useTshark() {
+export function useTshark(options: { source?: string } = {}) {
+  /**
+   * 会话来源过滤：抓包分析页传 {@code 'live'}、PCAP 分析页传 {@code 'import'}。
+   *
+   * <p>过滤放后端（sessions 接口的 source 参数）而不是前端：两类会话共用一张表，
+   * 只拉回自己那一类才不会让「已加载 N/M」的总数被对方的数据撑大，
+   * 也省掉「拉 200 条再丢掉一半」的浪费。</p>
+   */
+  const sessionSource = options.source ?? ''
+
   // ===== TShark 环境 =====
   const tsharkOk = ref(false)
   const interfaces = ref<TsharkInterface[]>([])
@@ -52,6 +61,8 @@ export function useTshark() {
   const count = ref(500)
   const timeout = ref(0)
   const starting = ref(false)
+  /** 导入 pcap 的上传中标志：几百 MB 的文件要传几秒，按钮得转圈，否则用户会重复点 */
+  const importing = ref(false)
 
   // ===== 会话 =====
   const loadingSessions = ref(false)
@@ -157,7 +168,7 @@ export function useTshark() {
   async function loadSessions(resetActive = true) {
     loadingSessions.value = true
     try {
-      const r = await getTsharkSessions(1, SESSION_FETCH_SIZE)
+      const r = await getTsharkSessions(1, SESSION_FETCH_SIZE, sessionSource)
       const list = (r?.records ?? r?.data ?? []) as TsharkSession[]
       sessions.value = list
       sessionBackendTotal.value = r?.total ?? list.length
@@ -347,6 +358,35 @@ export function useTshark() {
     }
   }
 
+  /**
+   * 导入 pcap 文件（PCAP 分析）。
+   *
+   * <p>上传成功后后端先把会话落库、再在后台整份解析，所以这里要显式选中刚建的那条：
+   * 用户点完「导入」马上就想看到包在往里进，不该再让他去列表里找。
+   * 解析进度靠会话推送刷新（包数在长），不需要前端轮询。</p>
+   *
+   * @param file 选中的 pcap 文件
+   * @param name 会话名（可空，后端回退用原始文件名）
+   * @returns 是否上传成功；失败已弹提示，页面据此决定要不要清空已选文件
+   */
+  async function importPcap(file: File, name = ''): Promise<boolean> {
+    importing.value = true
+    try {
+      const created = await importTsharkPcap(file, name.trim())
+      message.success('pcap 已上传，后台开始解析 —— 报文数会陆续增长')
+      // resetActive=false：不抢用户当前的选中项；紧接着再显式选中新建的那条
+      await loadSessions(false)
+      const id = created?.id ?? null
+      if (id != null) selectSession(id)
+      return true
+    } catch (e: any) {
+      message.error('导入失败: ' + (e?.message || e))
+      return false
+    } finally {
+      importing.value = false
+    }
+  }
+
   async function stopSession(id: number) {
     try {
       await stopTsharkCapture(id)
@@ -437,7 +477,7 @@ export function useTshark() {
     // 环境
     tsharkOk, interfaces, ifaceOptions,
     // 抓包参数
-    iface, filter, count, timeout, starting,
+    iface, filter, count, timeout, starting, importing,
     // 会话
     loadingSessions, sessions, sessionBackendTotal, sessionKeyword, sessionFilter,
     sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
@@ -454,5 +494,6 @@ export function useTshark() {
     init, loadInterfaces, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
     clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol, refresh, exportCsv,
     downloadPcap, loadStats, startCapture, stopSession, deleteSession, openPacketDetail,
+    importPcap,
   }
 }

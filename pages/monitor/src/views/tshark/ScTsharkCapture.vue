@@ -148,7 +148,7 @@ const {
   init, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
   clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol, refresh,
   exportCsv, downloadPcap, startCapture, stopSession, deleteSession, openPacketDetail,
-} = useTshark()
+} = useTshark({ source: 'live' })
 
 const activeTab = ref<TsharkTabKey>('packet')
 

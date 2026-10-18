@@ -482,8 +482,29 @@ export const stopTsharkCapture = (id: number) =>
   http().post(`${B}/tshark/capture/${id}/stop`).then(r => unwrap<any>(r));
 export const delTsharkSession = (id: number) =>
   http().delete(`${B}/tshark/sessions/${id}`).then(r => unwrap<any>(r));
-export const getTsharkSessions = (page = 1, size = 10) =>
-  http().get(`${B}/tshark/sessions?page=${page}&size=${size}`).then(r => unwrap<any>(r));
+/**
+ * 抓包会话分页列表。
+ *
+ * @param source 来源过滤（live=实时抓包 / import=导入 pcap）；不传则不过滤
+ */
+export const getTsharkSessions = (page = 1, size = 10, source = '') =>
+  http().get(`${B}/tshark/sessions?page=${page}&size=${size}${source ? `&source=${encodeURIComponent(source)}` : ''}`).then(r => unwrap<any>(r));
+
+/**
+ * 导入 pcap 文件（PCAP 分析）。
+ *
+ * <p>走 multipart 而不是 JSON：pcap 动辄几十上百 MB，base64 进 JSON 要平白胖三分之一，
+ * 后端还得再解码一次。交给 FormData + axios 自动带 boundary —— 手写 Content-Type
+ * 反而会漏掉 boundary，后端直接解析不出文件。</p>
+ *
+ * <p>返回的是「刚落库的会话」：解析在后台跑，包数会陆续增长，前端靠会话推送看进度。</p>
+ */
+export const importTsharkPcap = (file: File, name = '') => {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  if (name) form.append('name', name);
+  return http().post(`${B}/tshark/pcap/import`).data(form).then(r => unwrap<any>(r));
+};
 export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}` +
     (keyword ? `&keyword=${encodeURIComponent(keyword)}` : '')).then(r => unwrap<any>(r));

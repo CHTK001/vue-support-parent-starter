@@ -304,11 +304,11 @@
           <template v-else-if="form.sourceType === 'FILE'">
             <div class="st-form-item">
               <label>服务器本地文件</label>
-              <div class="st-inline">
+              <div class="st-inline st-path-field">
                 <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/order.csv" class="mono st-path-input">
                   <template #prefix><ReIcon name="Document" :size="14" /></template>
                 </el-input>
-                <ReButton layout="square" icon="FolderOpened" @click="openPathPicker('FILE')">浏览…</ReButton>
+                <ReButton icon="FolderOpened" @click="openPathPicker('FILE')">浏览…</ReButton>
               </div>
               <div class="st-form-hint st-hint-dot">路径是<b>后端服务所在机器</b>的路径，不是浏览器所在机器。</div>
             </div>
@@ -342,9 +342,11 @@
           <template v-else-if="form.sourceType === 'DIR'">
             <div class="st-form-item">
               <label>服务器本地文件夹</label>
-              <div class="st-inline">
-                <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/incoming" class="mono" />
-                <ReButton layout="square" icon="Folder" @click="openPathPicker('DIR')">浏览…</ReButton>
+              <div class="st-inline st-path-field">
+                <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/incoming" class="mono st-path-input">
+                  <template #prefix><ReIcon name="FolderOpened" :size="14" /></template>
+                </el-input>
+                <ReButton icon="Folder" @click="openPathPicker('DIR')">浏览…</ReButton>
               </div>
               <div class="st-form-hint">启用后自动监听该目录，新文件落盘即实时录入。</div>
             </div>
@@ -834,6 +836,7 @@ import {
   previewSyncMapping,
   runSyncTask,
   updateSyncTask,
+  type LocalFileEntry,
   type SyncColumn,
   type SyncFieldMapping,
   type SyncTask,
@@ -986,17 +989,35 @@ const openPathPicker = (mode: "FILE" | "DIR") => {
 /**
  * ReFilePicker 的 loader：列后端所在机器的目录。
  * loader 必须由宿主配置为远端接口形状（FilePickerItem[]），不得回退到组件内置 mock。
- * @param path 当前目录（留空列文件系统根）
+ *
+ * <p>「文件系统根」两边表达不同：组件用虚拟根 `/`，接口约定「path 留空 = 列文件系统根」。
+ * Linux 后端上 `/` 就是根，两者等价；Windows 后端用 Paths 判绝对路径，`/` 属驱动器相对，
+ * 会回「必须使用绝对路径: /」—— 所以先按组件语义请求，仅在根目录被拒时退化为留空请求
+ * （Windows 拿到的是 `C:\`、`D:\` …，Linux 走不到这条分支）。</p>
+ *
+ * @param path 当前目录（组件虚拟根为 `/`）
  */
 const localFileLoader = async (path: string): Promise<FilePickerItem[]> => {
-  const rows = await fetchLocalFiles(path || "", filePickerMode.value === "FILE");
-  return (rows ?? []).map(item => ({
-    key: item.key,
-    name: item.name,
-    isDir: item.isDir,
-    size: item.size ?? undefined,
-    updatedAt: item.updatedAt ?? undefined,
-  }));
+  const toItems = (rows: LocalFileEntry[] | null | undefined): FilePickerItem[] =>
+    (rows ?? []).map(item => ({
+      key: item.key,
+      name: item.name,
+      isDir: item.isDir,
+      size: item.size ?? undefined,
+      updatedAt: item.updatedAt ?? undefined,
+    }));
+
+  try {
+    return toItems(await fetchLocalFiles(path || "", filePickerMode.value === "FILE"));
+  } catch (err) {
+    if (path !== "/") throw err;
+    try {
+      return toItems(await fetchLocalFiles("", filePickerMode.value === "FILE"));
+    } catch {
+      // 退化请求也失败：抛原始错误（更接近真正的原因，例如服务未启动）
+      throw err;
+    }
+  }
 };
 
 /** 选中文件/目录 */
@@ -2975,10 +2996,23 @@ onUnmounted(() => {
 .st-dlg-status.is-bad { color: var(--el-color-warning); }
 .st-dlg-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 
-/* ---------- 本机路径行：输入框占满 + 方形「浏览」按钮 ---------- */
+/* ---------- 本机路径行：输入框 +「浏览…」拼成一个控件（资源管理器地址栏观感） ----------
+   两段共用中缝：输入框只留左圆角、按钮只留右圆角并左移 1px 压掉重叠的那条边框，
+   所以看起来是「一个输入框 + 一个带底色的浏览段」，而不是悬空的一根方图标。 */
 .st-path-input { flex: 1; min-width: 0; }
 .st-path-input :deep(.el-input__wrapper) { padding-left: 10px; }
 .st-path-input :deep(.el-input__prefix) { color: var(--text-tertiary); }
+.st-path-field { gap: 0; }
+.st-path-field .st-path-input :deep(.el-input__wrapper) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.st-path-field :deep(.el-button) {
+  flex: none;
+  margin: 0 0 0 -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
 .st-hint-dot::before { content: "●"; margin-right: 6px; font-size: 8px; color: var(--text-tertiary); vertical-align: 1px; }
 
 /* ---------- 调试日志弹窗：摘要条 + 服务端逐步日志（降级时为本机记录，全走 EP 变量，亮暗自适应） ---------- */

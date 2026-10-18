@@ -247,7 +247,10 @@ export interface LocalFileEntry {
  * @param files 是否同时返回数据文件（选择文件时传 true）
  */
 export const fetchLocalFiles = (path?: string | null, files = false) =>
-  http().get("/ms/monitor/local-files/list").query({ path, files }).then(r => unwrap<LocalFileEntry[]>(r));
+  // noToast：列目录的失败由选择器自己就地渲染（「目录加载失败: …」），
+  // 再飘一条全局错误条只会重复；而且组件虚拟根 `/` 在 Windows 后端属预期失败
+  // （会改用留空重试），不该闪一条红条。
+  http().get("/ms/monitor/local-files/list").query({ path, files }).noToast(true).then(r => unwrap<LocalFileEntry[]>(r));
 
 /**
  * 写入模式字典

@@ -8,246 +8,95 @@
     destroy-on-close
     class="re-file-picker"
   >
-    <div class="rfp">
-      <div class="rfp__toolbar re-file-picker__toolbar">
-        <div class="rfp__nav-btns">
-          <button
-            type="button"
-            class="rfp-icon-btn"
-            title="后退"
-            aria-label="后退"
-            :disabled="!history.length"
-            @click="goBack"
-          >
-            <el-icon :size="15"><ArrowLeft /></el-icon>
-          </button>
-          <button
-            type="button"
-            class="rfp-icon-btn"
-            title="刷新"
-            aria-label="刷新"
-            :disabled="loading"
-            @click="() => loadItems()"
-          >
-            <el-icon :size="15" :class="{ 'is-spin': loading }"><Refresh /></el-icon>
-          </button>
-        </div>
-
-        <div class="re-file-picker__bread rfp__crumbs">
-          <span
-            v-for="(seg, i) in breadcrumb"
-            :key="seg.path || 'root'"
-            class="re-file-picker__bread-item rfp__crumb"
-            :class="{ 'is-active': i === breadcrumb.length - 1 }"
-            role="button"
-            tabindex="0"
-            :title="seg.path"
-            @click="handleBreadcrumbClick(seg.path)"
-            @keydown.enter="handleBreadcrumbClick(seg.path)"
-          >
-            {{ seg.name }}
-            <span v-if="i < breadcrumb.length - 1" class="rfp__crumb-sep" aria-hidden="true">
-              {{ pathSeparator }}
-            </span>
-          </span>
-        </div>
-
-        <div class="rfp__search">
-          <el-input
-            v-model="searchText"
-            size="small"
-            placeholder="搜索文件或目录"
-            clearable
-            aria-label="搜索文件或目录"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </div>
-      </div>
+    <div
+      ref="rootRef"
+      class="rfp"
+      tabindex="-1"
+      @keydown="onKeydown"
+      @contextmenu="onContextMenu"
+    >
+      <FilePickerToolbar
+        v-model="searchText"
+        :breadcrumb="breadcrumb"
+        :loading="loading"
+        :can-back="history.length > 0"
+        @back="goBack"
+        @refresh="refresh"
+        @navigate="navigateTo"
+      />
 
       <div class="rfp__body">
-        <aside class="rfp-nav">
-          <div class="rfp-nav__title">位置</div>
-          <button
-            v-for="node in treeNodes"
-            :key="node.key"
-            type="button"
-            class="rfp-nav__item"
-            :class="{ 'is-active': isCurrentPath(node.key) }"
-            :style="{ '--rfp-tree-depth': node.depth }"
-            :title="node.key"
-            @click="navigateTo(node.key)"
-          >
-            <el-icon :size="15" class="rfp-nav__icon"><Folder /></el-icon>
-            <span class="rfp-nav__label">{{ node.name }}</span>
-          </button>
+        <FilePickerSidebar
+          :nodes="treeNodes"
+          :dirs="treeDirs"
+          :current-path="currentPath"
+          @navigate="navigateTo"
+        />
 
-          <template v-if="treeDirs.length">
-            <div class="rfp-nav__title rfp-nav__title--sub">当前目录</div>
-            <button
-              v-for="dir in treeDirs"
-              :key="dir.key"
-              type="button"
-              class="rfp-nav__item rfp-nav__item--child"
-              :class="{ 'is-active': isCurrentPath(dir.key) }"
-              :title="dir.key"
-              @click="navigateTo(dir.key)"
-            >
-              <span class="rfp-nav__blank" aria-hidden="true" />
-              <el-icon :size="15" class="rfp-nav__icon"><FolderOpened /></el-icon>
-              <span class="rfp-nav__label">{{ dir.name }}</span>
-            </button>
+        <FilePickerList
+          :rows="rows"
+          :columns="columns"
+          :parent-entry="parentEntry"
+          :loading="loading"
+          :load-error="loadError"
+          :searching="searching"
+          :sort-key="sortKey"
+          :sort-asc="sortAsc"
+          :active-index="activeIndex"
+          :is-selected="isSelected"
+          @sort="toggleSort"
+          @activate="onActivate"
+          @open="onOpen"
+          @navigate="navigateTo"
+        >
+          <template v-if="$slots.empty" #empty>
+            <slot name="empty" />
           </template>
-        </aside>
-
-        <main class="rfp-main">
-          <div v-if="loading" class="rfp-main__state">
-            <el-icon class="is-spin"><Loading /></el-icon>
-            <span>加载中…</span>
-          </div>
-
-          <div v-else-if="loadError" class="rfp-main__state rfp-main__state--error">
-            <el-icon><WarningFilled /></el-icon>
-            <div>
-              <b>目录加载失败</b>
-              <span>{{ loadError }}</span>
-            </div>
-          </div>
-
-          <div v-else-if="rows.length === 0" class="rfp-main__state">
-            <slot name="empty">
-              <span>当前目录为空</span>
-            </slot>
-          </div>
-
-          <template v-else>
-            <div class="rfp-details__head">
-              <span
-                class="rfp-details__head-cell"
-                :class="{ 'is-sorted': sortKey === 'name' }"
-                role="button"
-                tabindex="0"
-                aria-label="排序：名称"
-                :aria-sort="sortKey === 'name' ? (sortAsc ? 'ascending' : 'descending') : 'none'"
-                @click="toggleSort('name')"
-                @keydown.enter.prevent="toggleSort('name')"
-                @keydown.space.prevent="toggleSort('name')"
-              >
-                名称 <span class="rfp-sort-arrow">{{ sortArrow('name') }}</span>
-              </span>
-              <span
-                class="rfp-details__head-cell"
-                :class="{ 'is-sorted': sortKey === 'type' }"
-                role="button"
-                tabindex="0"
-                aria-label="排序：类型"
-                :aria-sort="sortKey === 'type' ? (sortAsc ? 'ascending' : 'descending') : 'none'"
-                @click="toggleSort('type')"
-                @keydown.enter.prevent="toggleSort('type')"
-                @keydown.space.prevent="toggleSort('type')"
-              >
-                类型 <span class="rfp-sort-arrow">{{ sortArrow('type') }}</span>
-              </span>
-              <span
-                class="rfp-details__head-cell rfp-details__size"
-                :class="{ 'is-sorted': sortKey === 'size' }"
-                role="button"
-                tabindex="0"
-                aria-label="排序：大小"
-                :aria-sort="sortKey === 'size' ? (sortAsc ? 'ascending' : 'descending') : 'none'"
-                @click="toggleSort('size')"
-                @keydown.enter.prevent="toggleSort('size')"
-                @keydown.space.prevent="toggleSort('size')"
-              >
-                大小 <span class="rfp-sort-arrow">{{ sortArrow('size') }}</span>
-              </span>
-              <span
-                class="rfp-details__head-cell"
-                :class="{ 'is-sorted': sortKey === 'updatedAt' }"
-                role="button"
-                tabindex="0"
-                aria-label="排序：修改时间"
-                :aria-sort="sortKey === 'updatedAt' ? (sortAsc ? 'ascending' : 'descending') : 'none'"
-                @click="toggleSort('updatedAt')"
-                @keydown.enter.prevent="toggleSort('updatedAt')"
-                @keydown.space.prevent="toggleSort('updatedAt')"
-              >
-                修改时间 <span class="rfp-sort-arrow">{{ sortArrow('updatedAt') }}</span>
-              </span>
-            </div>
-
-            <div class="rfp-details">
-              <button
-                v-if="parentEntry && !isRootPath(currentPath)"
-                type="button"
-                class="rfp-details__row rfp-details__row--parent rfp-parent"
-                title="返回上级目录"
-                @click="navigateTo(parentEntry.key)"
-              >
-                <span class="rfp-details__name">
-                  <el-icon :size="16" class="rfp-file-icon"><FolderOpened /></el-icon>
-                  <span>..</span>
-                </span>
-                <span class="rfp-details__type">上级目录</span>
-                <span class="rfp-details__size">-</span>
-                <span class="rfp-details__time">-</span>
-              </button>
-
-              <button
-                v-for="item in rows"
-                :key="item.key"
-                type="button"
-                class="rfp-details__row re-file-picker__item"
-                :class="{
-                  'is-selected': isSelected(item),
-                  'is-dir': item.isDir,
-                  'is-active-dir': isCurrentPath(item.key),
-                }"
-                :title="item.key"
-                :aria-label="item.name"
-                @click="handleItemClick(item)"
-                @dblclick="handleItemDblClick(item)"
-              >
-                <span class="rfp-details__name">
-                  <img
-                    v-if="!item.isDir && item.thumbnail"
-                    :src="item.thumbnail"
-                    class="rfp-details__thumb"
-                    alt=""
-                  />
-                  <el-icon v-else-if="item.isDir" :size="16" class="rfp-file-icon"><Folder /></el-icon>
-                  <el-icon v-else-if="isImage(item)" :size="16" class="rfp-file-icon"><Picture /></el-icon>
-                  <el-icon v-else-if="isVideo(item)" :size="16" class="rfp-file-icon"><VideoPlay /></el-icon>
-                  <el-icon v-else-if="isAudio(item)" :size="16" class="rfp-file-icon"><Headset /></el-icon>
-                  <el-icon v-else-if="isPdf(item)" :size="16" class="rfp-file-icon"><Document /></el-icon>
-                  <el-icon v-else :size="16" class="rfp-file-icon"><Files /></el-icon>
-                  <span class="rfp-details__name-text" :class="{ 'is-dir': item.isDir }">{{ item.name }}</span>
-                </span>
-                <span class="rfp-details__type">{{ item.isDir ? "文件夹" : fileTypeText(item.name) }}</span>
-                <span class="rfp-details__size">{{ item.isDir ? "-" : formatSize(item.size || 0) }}</span>
-                <span class="rfp-details__time">{{ formatTime(item.updatedAt) }}</span>
-              </button>
-            </div>
-          </template>
-        </main>
+        </FilePickerList>
       </div>
 
       <div class="rfp__selected">
+        <span class="rfp__status-count">{{ rows.length }} 个项目</span>
         <span class="rfp__selected-label">当前选择</span>
         <span class="rfp__selected-value" :title="selectedSummary">{{ selectedSummary }}</span>
+        <span v-if="limit > 0" class="rfp__status-limit" :class="{ 'is-full': isLimitReached }">
+          {{ selectedCount }} / {{ limit }}
+        </span>
+        <span v-if="limitHint" class="rfp__status-hint" role="status">{{ limitHint }}</span>
         <el-button
           v-if="selectedItems.length"
           size="small"
           text
           type="primary"
-          @click="selectedItems = []"
+          @click="clearSelection"
         >
           清除
         </el-button>
       </div>
     </div>
+
+    <!-- 右键菜单 / 属性 / 预览：都只在使用时进 DOM，关着时页面上没有多余可点元素 -->
+    <FilePickerContextMenu
+      v-model:visible="menuVisible"
+      :items="menuItems"
+      :x="menuX"
+      :y="menuY"
+      @select="onMenuSelect"
+    />
+
+    <FilePickerPropertiesDialog v-model="propsVisible" :item="menuItem" :path="currentPath" />
+
+    <FilePickerPreviewDialog
+      v-model="previewVisible"
+      :item="previewItem"
+      :src="previewSrc"
+      :loading="previewLoading"
+      :error="previewError"
+    >
+      <template v-if="$slots.preview" #default="previewSlotProps">
+        <slot name="preview" v-bind="previewSlotProps" />
+      </template>
+    </FilePickerPreviewDialog>
 
     <template #footer>
       <div class="rfp__footer">
@@ -262,34 +111,43 @@
 
 <script setup lang="ts">
 /**
- * ReFilePicker —— 文件 / 目录选择器
+ * ReFilePicker —— 文件 / 目录选择器。
  *
- * 完全走 filesystem 主页面同款的「路径栏 + 左树 + 右表明细」布局。
- * 数据来源二选一：
- *  - `loader`：必须由宿主配置，返回远端接口（filesystem-starter / 宿主后端）的 FilePickerItem[]
- *  - `data`：本地 JSON 结构，支持 FilePickerItem[] 或 { current, items }，不再内置 mock 兜底
+ * <p>交互与外观对齐 Windows 资源管理器的文件对话框：顶栏（后退 / 刷新 /
+ * 地址栏 / 搜索）、左侧导航窗格、右侧「详细信息」列表（名称 / 修改时间 /
+ * 类型 / 大小，可点表头排序）、底部状态栏，以及键盘上下选行 + 回车打开。</p>
+ *
+ * <p>数据来源二选一：`loader`（宿主远端接口，返回 FilePickerItem[]）或
+ * `data`（本地 JSON）。逻辑在 {@link useFilePicker}，纯函数在 utils.ts，
+ * 视图拆成 toolbar / sidebar / list 三个子组件。</p>
  */
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, useSlots, watch } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  ArrowLeft,
-  Document,
-  Files,
-  Folder,
-  FolderOpened,
-  Headset,
-  Loading,
-  Picture,
+  Delete,
+  Download,
+  EditPen,
+  FolderAdd,
+  InfoFilled,
   Refresh,
-  Search,
-  VideoPlay,
-  WarningFilled,
+  Upload as UploadIcon,
+  View,
 } from "@element-plus/icons-vue";
-import {
-  type FilePickerData,
-  type FilePickerItem,
-  type FilePickerListResult,
-  type FilePickerLoader,
+import type {
+  FilePickerContextMenuAction,
+  FilePickerContextMenuItem,
+  FilePickerContextMenuOptions,
+  FilePickerItem,
+  FilePickerLoader,
 } from "./types";
+import { FILE_PICKER_COLUMNS, toNativeAccept } from "./utils";
+import { useFilePicker } from "./composables/useFilePicker";
+import FilePickerToolbar from "./components/FilePickerToolbar.vue";
+import FilePickerSidebar from "./components/FilePickerSidebar.vue";
+import FilePickerList from "./components/FilePickerList.vue";
+import FilePickerContextMenu from "./components/FilePickerContextMenu.vue";
+import FilePickerPropertiesDialog from "./components/FilePickerPropertiesDialog.vue";
+import FilePickerPreviewDialog from "./components/FilePickerPreviewDialog.vue";
 import ReDialog from "../ReDialog";
 
 interface Props {
@@ -300,30 +158,61 @@ interface Props {
   /** 远端 loader：路径 → 文件/目录列表；filesystem-starter 的目录条目也需由宿主 map 成该形状 */
   loader?: FilePickerLoader;
   /** 本地 JSON 数据：FilePickerItem[] 或 { current, parent, items } */
-  data?: FilePickerData;
+  data?: import("./types").FilePickerData;
   /** 多选 */
   multiple?: boolean;
-  /** 文件类型过滤（如 'image/*'、'.png,.jpg'） */
+  /** 最多可选数量（0 = 不限）；为 1 时按单选语义「改选」 */
+  limit?: number;
+  /** 文件类型过滤（如 'image/*'、'.png,.jpg'、'dir,.zip'；含 `dir` 表示目录也可选） */
   accept?: string;
   /** 起始目录 */
   initialPath?: string;
   /** 目录选择模式：点击目录即选中该目录（无需进入），选择结果返回目录路径 */
   directoryMode?: boolean;
+  /**
+   * 右键菜单：`true`（默认）= 用默认开关（刷新 / 属性 / 预览开，其余关），
+   * `false` = 关闭，对象 = 逐项开关。
+   */
+  contextMenu?: boolean | FilePickerContextMenuOptions;
+  /** 预览地址（如 FileStorageServerFilter 的 `?preview=true` 票据通道）；给了才有「预览」 */
+  previewUrl?: (item: FilePickerItem) => string | Promise<string>;
+  /** 新建文件夹（宿主负责落盘；给了才有该菜单项） */
+  createDir?: (dir: string, name: string) => unknown | Promise<unknown>;
+  /** 重命名（宿主负责落盘；给了才有该菜单项） */
+  renameItem?: (item: FilePickerItem, newName: string) => unknown | Promise<unknown>;
+  /** 删除（多选时为批量；给了才有该菜单项） */
+  removeItems?: (items: FilePickerItem[]) => unknown | Promise<unknown>;
+  /** 上传文件到当前目录（给了才有该菜单项） */
+  uploadFiles?: (dir: string, files: File[]) => unknown | Promise<unknown>;
+  /** 下载（给了才有该菜单项） */
+  downloadItems?: (items: FilePickerItem[]) => unknown | Promise<unknown>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   title: "选择文件",
   multiple: false,
+  limit: 0,
   accept: "",
   initialPath: "/",
   directoryMode: false,
+  contextMenu: true,
+  previewUrl: undefined,
+  createDir: undefined,
+  renameItem: undefined,
+  removeItems: undefined,
+  uploadFiles: undefined,
+  downloadItems: undefined,
 });
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: boolean): void;
   (e: "select", items: FilePickerItem[]): void;
   (e: "cancel"): void;
+  /** 请求预览某条目（宿主也可只用 previewUrl 或 #preview 插槽） */
+  (e: "preview", item: FilePickerItem): void;
 }>();
+
+const slots = useSlots();
 
 const dialogVisible = computed({
   get: () => props.modelValue,
@@ -335,815 +224,482 @@ const dialogVisible = computed({
 
 const dialogTitle = computed(() => props.title);
 const isDirectoryMode = computed(() => props.directoryMode);
+const columns = FILE_PICKER_COLUMNS;
 
-const currentPath = ref(props.initialPath);
-const items = ref<FilePickerItem[]>([]);
-const loading = ref(false);
-const loadError = ref("");
-const searchText = ref("");
-const selectedItems = ref<FilePickerItem[]>([]);
-const history = ref<string[]>([]);
-const sortKey = ref<"name" | "type" | "size" | "updatedAt">("name");
-const sortAsc = ref(true);
-let loadSeq = 0;
+const rootRef = ref<HTMLElement | null>(null);
 
-/* ---------- 路径工具 ---------- */
-
-const normalizePath = (value: string): string => {
-  const text = String(value || "");
-  if (!text || text === "/" || text === "\\") return text === "" ? "" : "/";
-  const trimmed = text.replace(/[\\/]+$/, "");
-  return trimmed || "/";
-};
-
-const samePath = (a: string, b: string): boolean => {
-  const na = normalizePath(a);
-  const nb = normalizePath(b);
-  return na === nb || (na === "" && nb === "/") || (na === "/" && nb === "");
-};
-
-const pathSeparator = computed(() => (currentPath.value.includes("\\") ? "\\" : "/"));
-
-const isRootPath = (path: string): boolean => {
-  const p = normalizePath(path);
-  return p === "" || p === "/" || /^[A-Za-z]:$/.test(p);
-};
-
-const joinPath = (base: string, name: string): string => {
-  const root = normalizePath(base);
-  const sep = base.includes("\\") ? "\\" : "/";
-  if (!root || root === "/" || /^[A-Za-z]:$/.test(root)) {
-    return root === "/" ? `/${name}` : name ? `${root}${sep}${name}` : `/${name}`;
-  }
-  return `${root}${sep}${name}`;
-};
-
-const parentPathOf = (path: string): string => {
-  const current = normalizePath(path);
-  if (!current || current === "/" || /^[A-Za-z]:$/.test(current)) return "/";
-  const sep = current.includes("\\") ? "\\" : "/";
-  const idx = Math.max(current.lastIndexOf("/"), current.lastIndexOf("\\"));
-  if (idx <= 0) return "/";
-  const parent = current.slice(0, idx);
-  return parent || "/";
-};
-
-const pathSegments = (path: string): string[] => normalizePath(path).split(/[\\/]+/).filter(Boolean);
-
-const breadcrumb = computed<Array<{ name: string; path: string }>>(() => {
-  const p = normalizePath(currentPath.value);
-  if (!p || p === "/") return [{ name: "根目录", path: "/" }];
-  const segs = pathSegments(p);
-  const crumbs: Array<{ name: string; path: string }> = [];
-  let current = "";
-  const firstDrive = /^[A-Za-z]:$/.test(segs[0] || "");
-  if (firstDrive) {
-    current = segs[0];
-    crumbs.push({ name: current, path: current });
-  } else {
-    crumbs.push({ name: "根目录", path: "/" });
-  }
-  const offset = firstDrive ? 1 : 0;
-  for (const seg of segs.slice(offset)) {
-    current = joinPath(current || (firstDrive ? segs[0] : ""), seg);
-    crumbs.push({ name: seg, path: current });
-  }
-  return crumbs;
-});
-
-/* ---------- 数据解析 ---------- */
-
-const dataArray = computed(() => {
-  const raw = props.data;
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  return raw.items ?? [];
-});
-
-const dataCurrent = computed(() => (!Array.isArray(props.data) ? props.data?.current ?? "" : ""));
-
-const hasStaticData = computed(() => props.data !== undefined && props.data !== null);
-
-const staticChildren = (all: FilePickerItem[], path: string): FilePickerItem[] => {
-  const baseSegs = pathSegments(path);
-  const seen = new Map<string, FilePickerItem>();
-  const result: FilePickerItem[] = [];
-  for (const origin of all) {
-    const key = String(origin.key || origin.name);
-    if (samePath(key, path) || isRootPath(key) && isRootPath(path)) continue;
-    const keySegs = pathSegments(key);
-    if (keySegs.length <= baseSegs.length) continue;
-    const rest = keySegs.slice(baseSegs.length);
-    if (rest.length === 1) {
-      if (!seen.has(key)) {
-        seen.set(key, origin);
-        result.push(origin);
-      }
-      continue;
-    }
-    const first = rest[0];
-    const dirKey = joinPath(path, first);
-    if (!seen.has(dirKey)) {
-      const child: FilePickerItem = { key: dirKey, name: first, isDir: true };
-      seen.set(dirKey, child);
-      result.push(child);
-    }
-  }
-  return result;
-};
-
-const resolveStaticData = (path: string): FilePickerItem[] => {
-  if (dataCurrent.value && samePath(dataCurrent.value, path)) return [...dataArray.value];
-  return staticChildren(dataArray.value, path);
-};
-
-const normalizeLoadedResult = (result: unknown): FilePickerItem[] => {
-  if (Array.isArray(result)) return result;
-  if (result && typeof result === "object") {
-    const list = (result as FilePickerListResult | { items?: unknown }).items;
-    if (Array.isArray(list)) return list;
-  }
-  return [];
-};
-
-const loadItems = async (path = currentPath.value) => {
-  const seq = ++loadSeq;
-  loading.value = true;
-  loadError.value = "";
-  try {
-    let next: FilePickerItem[] = [];
-    if (hasStaticData.value) {
-      next = resolveStaticData(path);
-    } else if (props.loader) {
-      next = normalizeLoadedResult(await props.loader(path));
-    } else {
-      throw new Error("ReFilePicker 必须配置 loader（filesystem-starter/宿主远端接口）或 data（本地 JSON）");
-    }
-    if (seq !== loadSeq) return;
-    items.value = next;
-  } catch (err) {
-    if (seq !== loadSeq) return;
-    items.value = [];
-    loadError.value = err instanceof Error ? err.message : String(err);
-  } finally {
-    if (seq === loadSeq) loading.value = false;
-  }
-};
-
-/* ---------- 展示与排序 ---------- */
-
-interface TreeNode {
-  key: string;
-  name: string;
-  depth: number;
-}
-
-const treeNodes = computed<TreeNode[]>(() => {
-  const nodes: TreeNode[] = [{ key: "/", name: "根目录", depth: 0 }];
-  breadcrumb.value.slice(1).forEach((crumb, i) => {
-    nodes.push({ key: crumb.path, name: crumb.name, depth: i + 1 });
-  });
-  return nodes;
-});
-
-const treeDirs = computed(() =>
-  items.value
-    .filter((item) => item.isDir && item.name !== ".." && !samePath(item.key, parentPathOf(currentPath.value)))
-    .slice(0, 30),
-);
-
-const isCurrentPath = (path: string): boolean => samePath(path, currentPath.value);
-
-const parentEntry = computed<FilePickerItem | null>(() => {
-  if (isRootPath(currentPath.value)) return null;
-  const remoteParent = items.value.find((item) => item.name === ".." && item.isDir);
-  return remoteParent ?? { key: parentPathOf(currentPath.value), name: "..", isDir: true };
-});
-
-const matchesAccept = (item: FilePickerItem, token: string): boolean => {
-  if (token === "*/*") return true;
-  if (token.startsWith("image/")) return !!item.mimeType?.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg|avif|bmp)$/i.test(item.name);
-  if (token.startsWith("video/")) return !!item.mimeType?.startsWith("video/") || /\.(mp4|webm|ogg|mov|avi)$/i.test(item.name);
-  if (token.startsWith("audio/")) return !!item.mimeType?.startsWith("audio/") || /\.(mp3|wav|ogg|flac|m4a)$/i.test(item.name);
-  if (token.startsWith("text/")) return !!item.mimeType?.startsWith("text/") || /\.(txt|md|json|xml|csv|log)$/i.test(item.name);
-  if (token.startsWith(".")) return item.name.toLowerCase().endsWith(token.toLowerCase());
-  return true;
-};
-
-const filteredItems = computed(() => {
-  let list = items.value.filter((item) => item.name !== ".." && !samePath(item.key, parentPathOf(currentPath.value)));
-  if (props.accept) {
-    const accepted = props.accept.split(",").map((token) => token.trim().toLowerCase()).filter(Boolean);
-    list = list.filter((item) => {
-      if (item.isDir) return true;
-      return accepted.some((token) => matchesAccept(item, token));
-    });
-  }
-  const q = searchText.value.trim().toLowerCase();
-  if (q) list = list.filter((item) => item.name.toLowerCase().includes(q));
-  return list;
-});
-
-const rows = computed(() => [...filteredItems.value].sort((a, b) => {
-  const dirOrder = Number(b.isDir) - Number(a.isDir);
-  if (dirOrder !== 0) return dirOrder;
-  let left: string | number = "";
-  let right: string | number = "";
-  if (sortKey.value === "name") {
-    left = a.name.toLowerCase();
-    right = b.name.toLowerCase();
-  } else if (sortKey.value === "type") {
-    left = (a.isDir ? "文件夹" : fileTypeText(a.name)).toLowerCase();
-    right = (b.isDir ? "文件夹" : fileTypeText(b.name)).toLowerCase();
-  } else if (sortKey.value === "size") {
-    left = a.isDir ? -1 : a.size ?? 0;
-    right = b.isDir ? -1 : b.size ?? 0;
-  } else {
-    left = a.updatedAt ?? 0;
-    right = b.updatedAt ?? 0;
-  }
-  const cmp = left < right ? -1 : left > right ? 1 : 0;
-  return sortAsc.value ? cmp : -cmp;
-}));
-
-const toggleSort = (key: "name" | "type" | "size" | "updatedAt") => {
-  if (sortKey.value === key) {
-    sortAsc.value = !sortAsc.value;
-  } else {
-    sortKey.value = key;
-    sortAsc.value = true;
-  }
-};
-
-const sortArrow = (key: "name" | "type" | "size" | "updatedAt") =>
-  sortKey.value === key ? (sortAsc.value ? "↑" : "↓") : "";
-
-const isSelected = (item: FilePickerItem): boolean =>
-  selectedItems.value.some((selected) => selected.key === item.key);
-
-const canConfirm = computed(() => {
-  if (props.multiple) return selectedItems.value.length > 0;
-  return selectedItems.value.length === 1;
-});
-
-const selectedSummary = computed(() => {
-  if (!selectedItems.value.length) return "尚未选择";
-  if (props.multiple) {
-    const first = selectedItems.value[0]?.key ?? "";
-    return selectedItems.value.length > 1
-      ? `${selectedItems.value.length} 项 · ${first}`
-      : first;
-  }
-  return selectedItems.value[0]?.key || selectedItems.value[0]?.name || "";
+const {
+  currentPath,
+  loading,
+  loadError,
+  searchText,
+  selectedItems,
+  history,
+  sortKey,
+  sortAsc,
+  activeIndex,
+  breadcrumb,
+  treeNodes,
+  treeDirs,
+  parentEntry,
+  rows,
+  searching,
+  canConfirm,
+  selectedSummary,
+  selectedCount,
+  limit,
+  limitHint,
+  isLimitReached,
+  load,
+  refresh,
+  reset,
+  navigateTo,
+  goBack,
+  selectItem,
+  selectOnly,
+  openItem,
+  clearSelection,
+  toggleSort,
+  isSelected,
+  isParentEntry,
+  moveActive,
+  activateActive,
+  takeSelection,
+} = useFilePicker({
+  loader: () => props.loader,
+  data: () => props.data,
+  accept: () => props.accept,
+  initialPath: () => props.initialPath,
+  directoryMode: () => props.directoryMode,
+  multiple: () => props.multiple,
+  limit: () => props.limit,
 });
 
 /* ---------- 交互 ---------- */
 
-const navigateTo = (path: string) => {
-  if (samePath(path, currentPath.value)) return;
-  history.value.push(currentPath.value);
-  currentPath.value = path;
-  selectedItems.value = [];
-  void loadItems(path);
+/** 行单击：记录键盘高亮位，再按模式选中 */
+const onActivate = (item: FilePickerItem, index: number): void => {
+  activeIndex.value = index;
+  selectItem(item);
 };
 
-const goBack = () => {
-  const previous = history.value.pop();
-  if (previous === undefined) return;
-  currentPath.value = previous;
-  selectedItems.value = [];
-  void loadItems(previous);
-};
-
-const handleBreadcrumbClick = (path: string) => navigateTo(path);
-
-const handleItemClick = (item: FilePickerItem) => {
-  if (item.name === ".." || samePath(item.key, parentPathOf(currentPath.value))) {
-    navigateTo(item.key);
-    return;
-  }
-  if (item.isDir) {
-    if (!props.directoryMode) return;
-    if (props.multiple) {
-      const idx = selectedItems.value.findIndex((selected) => selected.key === item.key);
-      if (idx >= 0) {
-        selectedItems.value.splice(idx, 1);
-      } else {
-        selectedItems.value.push(item);
-      }
-    } else {
-      selectedItems.value = [item];
-    }
-    return;
-  }
-  if (props.multiple) {
-    const idx = selectedItems.value.findIndex((selected) => selected.key === item.key);
-    if (idx >= 0) {
-      selectedItems.value.splice(idx, 1);
-    } else {
-      selectedItems.value.push(item);
-    }
-  } else {
-    selectedItems.value = [item];
-  }
-};
-
-const handleItemDblClick = (item: FilePickerItem) => {
-  if (item.name === ".." || samePath(item.key, parentPathOf(currentPath.value))) {
-    navigateTo(item.key);
-    return;
-  }
-  if (item.isDir) {
-    navigateTo(item.key);
-    return;
-  }
-  if (!props.multiple) {
-    selectedItems.value = [item];
+/** 行双击 / 回车：目录进入；单选文件即确认；多选文件且有预览通道时打开预览 */
+const onOpen = (item: FilePickerItem): void => {
+  if (openItem(item)) {
     handleConfirm();
+    return;
   }
+  if (!item.isDir && hasPreview.value) void openPreview(item);
 };
 
-const handleConfirm = () => {
+const handleConfirm = (): void => {
   if (!canConfirm.value) return;
-  emit("select", [...selectedItems.value]);
-  selectedItems.value = [];
+  emit("select", takeSelection());
   emit("update:modelValue", false);
 };
 
-/* ---------- 展示工具 ---------- */
+/* ---------- 右键菜单 ---------- */
 
-const fileTypeText = (name: string): string => {
-  const ext = name.includes(".") ? name.split(".").pop()?.toLowerCase() || "" : "";
-  const map: Record<string, string> = {
-    csv: "CSV",
-    xls: "Excel",
-    xlsx: "Excel",
-    doc: "Word",
-    docx: "Word",
-    pdf: "PDF",
-    json: "JSON",
-    xml: "XML",
-    txt: "文本",
-    md: "Markdown",
-    jpg: "图片",
-    jpeg: "图片",
-    png: "图片",
-    gif: "图片",
-    webp: "图片",
-    svg: "图片",
-    avif: "图片",
-    bmp: "图片",
-    mp4: "视频",
-    webm: "视频",
-    mov: "视频",
-    avi: "视频",
-    mp3: "音频",
-    wav: "音频",
-    flac: "音频",
-    m4a: "音频",
-    zip: "压缩包",
-    rar: "压缩包",
-    tar: "压缩包",
-    gz: "压缩包",
-    jar: "JAR",
-    war: "WAR",
+/**
+ * 菜单项默认开关。
+ *
+ * <p>默认只开「刷新 / 属性」（不动真实文件）；新建文件夹、重命名、删除、上传、
+ * 下载要落盘，默认关，由宿主显式打开并且必须同时给对应回调。</p>
+ */
+const DEFAULT_MENU_ACTIONS: Record<FilePickerContextMenuAction, boolean> = {
+  refresh: true,
+  properties: true,
+  preview: true,
+  newFolder: false,
+  rename: false,
+  remove: false,
+  upload: false,
+  download: false,
+};
+
+const menuVisible = ref(false);
+const menuX = ref(0);
+const menuY = ref(0);
+/** 右键目标条目；null = 当前目录空白处（作用于当前目录） */
+const menuItem = ref<FilePickerItem | null>(null);
+
+const propsVisible = ref(false);
+const previewVisible = ref(false);
+const previewItem = ref<FilePickerItem | null>(null);
+const previewSrc = ref("");
+const previewLoading = ref(false);
+const previewError = ref("");
+
+const menuEnabled = computed(() => props.contextMenu !== false);
+
+/** 开关：默认值 + 宿主覆盖（非布尔值忽略） */
+const menuActions = computed<Record<FilePickerContextMenuAction, boolean>>(() => {
+  const raw = props.contextMenu;
+  const overrides = raw && typeof raw === "object" ? raw : {};
+  const next = { ...DEFAULT_MENU_ACTIONS };
+  (Object.keys(overrides) as FilePickerContextMenuAction[]).forEach((key) => {
+    const value = overrides[key];
+    if (typeof value === "boolean") next[key] = value;
+  });
+  return next;
+});
+
+/** 预览通道：地址构造器或 `#preview` 插槽任一存在即可用 */
+const hasPreview = computed(() => !!props.previewUrl || !!slots.preview);
+
+/**
+ * 按目标拼菜单项：开关打开 <b>且</b> 宿主给了对应回调（或组件自带实现）才出现，
+ * 免得菜单里挂一堆点了没反应的项。
+ */
+const buildMenuItems = (target: FilePickerItem | null): FilePickerContextMenuItem[] => {
+  const actions = menuActions.value;
+  const dirTarget = !target || target.isDir;
+  const list: FilePickerContextMenuItem[] = [];
+  let lastGroup = -1;
+  const push = (group: number, entry: FilePickerContextMenuItem): void => {
+    list.push({ ...entry, divided: group > lastGroup && lastGroup >= 0 });
+    lastGroup = group;
   };
-  return map[ext] || (ext ? `${ext.toUpperCase()} 文件` : "文件");
+
+  if (actions.refresh) push(0, { key: "refresh", label: "刷新", icon: Refresh });
+  if (actions.preview && target && !target.isDir && hasPreview.value) {
+    push(0, { key: "preview", label: "预览", icon: View });
+  }
+  if (actions.properties) push(0, { key: "properties", label: "属性", icon: InfoFilled });
+
+  if (actions.newFolder && dirTarget && props.createDir) {
+    push(1, { key: "newFolder", label: "新建文件夹", icon: FolderAdd });
+  }
+  if (actions.upload && dirTarget && props.uploadFiles) {
+    push(1, { key: "upload", label: "上传文件", icon: UploadIcon });
+  }
+
+  if (actions.rename && target && props.renameItem) {
+    push(2, { key: "rename", label: "重命名", icon: EditPen });
+  }
+  if (actions.remove && target && props.removeItems) {
+    push(2, { key: "remove", label: "删除", icon: Delete });
+  }
+  if (actions.download && target && !target.isDir && props.downloadItems) {
+    push(2, { key: "download", label: "下载", icon: Download });
+  }
+  return list;
 };
 
-const isImage = (item: FilePickerItem): boolean =>
-  !!item.mimeType?.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg|avif|bmp)$/i.test(item.name);
+const menuItems = computed(() => buildMenuItems(menuItem.value));
 
-const isVideo = (item: FilePickerItem): boolean =>
-  !!item.mimeType?.startsWith("video/") || /\.(mp4|webm|ogg|mov|avi)$/i.test(item.name);
+/**
+ * 右键：只在菜单确实有项时才接管原生菜单。
+ *
+ * <p>落在条目行上时同时改选该行（资源管理器语义）；多选下右键已选中项保留整批选择，
+ * 于是删除/下载天然作用于整批。空白处右键 = 以当前目录为对象。</p>
+ */
+const onContextMenu = (event: MouseEvent): void => {
+  if (!menuEnabled.value) return;
+  const rowEl = (event.target as HTMLElement | null)?.closest<HTMLElement>(".re-file-picker__item");
+  const index = rowEl ? Number(rowEl.dataset.rowIndex ?? -1) : -1;
+  const hovered = index >= 0 ? rows.value[index] ?? null : null;
+  const target = hovered && !isParentEntry(hovered) ? hovered : null;
+  if (!buildMenuItems(target).length) return;
 
-const isAudio = (item: FilePickerItem): boolean =>
-  !!item.mimeType?.startsWith("audio/") || /\.(mp3|wav|ogg|flac|m4a)$/i.test(item.name);
-
-const isPdf = (item: FilePickerItem): boolean =>
-  item.mimeType === "application/pdf" || /\.pdf$/i.test(item.name);
-
-const formatSize = (bytes: number): string => {
-  if (!bytes || bytes <= 0) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
+  event.preventDefault();
+  if (target) {
+    activeIndex.value = index;
+    if (!isSelected(target)) selectOnly(target);
+  }
+  menuItem.value = target;
+  menuX.value = event.clientX;
+  menuY.value = event.clientY;
+  menuVisible.value = true;
 };
 
-const formatTime = (value?: number): string => {
-  if (!value || Number.isNaN(value)) return "-";
-  const date = new Date(value);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+/** 宿主文件操作：失败提示原文，成功后刷新当前目录 */
+const runFileTask = async (task: () => unknown | Promise<unknown>, reload = true): Promise<void> => {
+  try {
+    await task();
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : String(err));
+    return;
+  }
+  if (reload) await refresh();
 };
+
+/** 非法文件名字符（Windows 口径，与后端落盘规则一致） */
+const NAME_PATTERN = /^(?!\s*$)[^\\/:*?"<>|]+$/;
+const NAME_MESSAGE = '名称不能为空，且不能包含 \\ / : * ? " < > |';
+
+/** ElMessageBox 输入框：取消返回 null（不把取消当异常抛给调用方） */
+const askText = async (
+  title: string,
+  message: string,
+  value = "",
+): Promise<string | null> => {
+  try {
+    const result = await ElMessageBox.prompt(message, title, {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      inputValue: value,
+      inputPattern: NAME_PATTERN,
+      inputErrorMessage: NAME_MESSAGE,
+      autofocus: true,
+    });
+    return String((result as { value?: string } | undefined)?.value ?? "").trim();
+  } catch {
+    return null;
+  }
+};
+
+/** 操作对象：右键项已在多选里就作用整批，否则只作用它自己 */
+const targetsOf = (item: FilePickerItem): FilePickerItem[] =>
+  isSelected(item) && selectedItems.value.length > 1 ? [...selectedItems.value] : [item];
+
+/** 目录级操作的落点：右键目录 = 那个目录，其余 = 当前目录 */
+const dirTargetOf = (): string => (menuItem.value?.isDir ? menuItem.value.key : currentPath.value);
+
+const onNewFolder = async (): Promise<void> => {
+  const create = props.createDir;
+  if (!create) return;
+  const name = await askText("新建文件夹", "请输入文件夹名称");
+  if (!name) return;
+  const dir = dirTargetOf();
+  await runFileTask(() => create(dir, name));
+};
+
+const onRename = async (item: FilePickerItem): Promise<void> => {
+  const rename = props.renameItem;
+  if (!rename) return;
+  const name = await askText("重命名", "请输入新名称", item.name);
+  if (!name || name === item.name) return;
+  await runFileTask(() => rename(item, name));
+};
+
+const onRemove = async (item: FilePickerItem): Promise<void> => {
+  const remove = props.removeItems;
+  if (!remove) return;
+  const targets = targetsOf(item);
+  try {
+    await ElMessageBox.confirm(
+      targets.length > 1 ? `确定删除选中的 ${targets.length} 个条目？` : `确定删除「${item.name}」？`,
+      "删除确认",
+      {
+        type: "warning",
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+        confirmButtonClass: "el-button--danger",
+      },
+    );
+  } catch {
+    return;
+  }
+  await runFileTask(() => remove(targets));
+};
+
+/**
+ * 上传：临时建一个 input[type=file]（原生选择框无法用页面元素替代）。
+ *
+ * <p>只在点了菜单项的那一刻出现、选完/取消即移除 —— 页面上不留常驻可点元素，
+ * 也不会被界面普查（clickable census）当成未分类控件。</p>
+ */
+const onUpload = (): void => {
+  const upload = props.uploadFiles;
+  if (!upload) return;
+  const dir = dirTargetOf();
+  const input = document.createElement("input");
+  input.type = "file";
+  input.multiple = true;
+  const native = toNativeAccept(props.accept);
+  if (native) input.accept = native;
+  input.style.display = "none";
+  input.onchange = () => {
+    const files = Array.from(input.files ?? []);
+    input.remove();
+    if (files.length) void runFileTask(() => upload(dir, files));
+  };
+  input.oncancel = () => input.remove();
+  document.body.appendChild(input);
+  input.click();
+};
+
+/** 预览：地址来自宿主（如 FileStorageServerFilter 的 ?preview=true 票据通道） */
+const openPreview = async (item: FilePickerItem): Promise<void> => {
+  previewItem.value = item;
+  previewSrc.value = "";
+  previewError.value = "";
+  previewLoading.value = !!props.previewUrl;
+  previewVisible.value = true;
+  emit("preview", item);
+
+  const buildUrl = props.previewUrl;
+  if (!buildUrl) return; // 只有 #preview 插槽：地址交给宿主自己解析
+  try {
+    const url = await buildUrl(item);
+    previewSrc.value = typeof url === "string" ? url : "";
+    if (!previewSrc.value && !slots.preview) previewError.value = "没有可用的预览地址";
+  } catch (err) {
+    previewError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    previewLoading.value = false;
+  }
+};
+
+const onMenuSelect = (key: FilePickerContextMenuAction): void => {
+  const item = menuItem.value;
+  switch (key) {
+    case "refresh":
+      void refresh();
+      return;
+    case "properties":
+      propsVisible.value = true;
+      return;
+    case "preview":
+      if (item) void openPreview(item);
+      return;
+    case "newFolder":
+      void onNewFolder();
+      return;
+    case "upload":
+      onUpload();
+      return;
+    case "rename":
+      if (item) void onRename(item);
+      return;
+    case "remove":
+      if (item) void onRemove(item);
+      return;
+    case "download": {
+      const download = props.downloadItems;
+      if (item && download) void runFileTask(() => download(targetsOf(item)), false);
+      return;
+    }
+  }
+};
+
+/**
+ * 键盘：↑/↓ 移动高亮行（列表会随之聚焦该行），回车打开、退格返回上一级。
+ *
+ * <p>回车必须在这里统一处理：行按钮上的原生回车会触发 click，而单击目录在
+ * FILE 模式下「不进入」是刻意约定，键盘用户就永远进不去目录。所以对行按钮
+ * 先 preventDefault 掐掉原生 click，再按「回车 = 双击」重建语义：目录进入、
+ * 文件选中（单选直接确认）。</p>
+ */
+const onKeydown = (event: KeyboardEvent): void => {
+  const target = event.target as HTMLElement | null;
+  const inField = !!target?.closest("input, textarea, [contenteditable='true']");
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    moveActive(1);
+    return;
+  }
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    moveActive(-1);
+    return;
+  }
+  if (inField) return;
+  if (event.key === "Enter") {
+    const rowEl = target?.closest<HTMLElement>(".re-file-picker__item");
+    if (rowEl) {
+      event.preventDefault();
+      const index = Number(rowEl.dataset.rowIndex ?? -1);
+      const item = rows.value[index];
+      if (!item) return;
+      if (item.isDir) {
+        onOpen(item);
+      } else {
+        onActivate(item, index);
+        if (!props.multiple) handleConfirm();
+      }
+      return;
+    }
+    // 焦点在别的按钮/链接上时由原生 click 负责；只有焦点在根/导航/列表空白处才手动激活
+    if (target?.closest("button, a")) return;
+    event.preventDefault();
+    if (activateActive()) handleConfirm();
+    return;
+  }
+  if (event.key === "Backspace") {
+    event.preventDefault();
+    goBack();
+  }
+};
+
+/* ---------- 生命周期 ---------- */
 
 watch(
   () => props.modelValue,
-  (visible) => {
+  async (visible) => {
     if (!visible) return;
-    currentPath.value = props.initialPath;
-    selectedItems.value = [];
-    history.value = [];
-    searchText.value = "";
-    sortKey.value = "name";
-    sortAsc.value = true;
-    void loadItems(props.initialPath);
+    await reset(props.initialPath);
+    activeIndex.value = -1;
+    await nextTick();
+    rootRef.value?.focus();
   },
+  // immediate：宿主若以 modelValue=true 挂载（不受控/预置弹窗），首帧也要加载，
+  // 否则列表永远停在空态（原实现只在 false→true 变化时才加载）。
+  { immediate: true },
 );
 
 watch(
   () => props.data,
   () => {
-    if (props.modelValue) void loadItems();
+    if (props.modelValue) void load();
   },
   { deep: true },
 );
 
 watch(
   () => props.initialPath,
-  () => {
-    if (props.modelValue) {
-      currentPath.value = props.initialPath;
-      selectedItems.value = [];
-      history.value = [];
-      void loadItems(props.initialPath);
-    }
+  (path) => {
+    if (props.modelValue) void reset(path);
   },
 );
 </script>
 
 <style scoped>
+/**
+ * Windows 资源管理器风格皮肤。
+ *
+ * <p>颜色仍走 Element Plus 令牌（换主题自动跟随），只在结构上模拟资源管理器：
+ * 窗口底色 / 白色内容区 / 小圆角 / 浅蓝选中。整套 --rfp-* 令牌定义在这里，
+ * 子组件通过自定义属性继承，避免各写一份颜色。</p>
+ */
 .rfp {
-  min-height: 520px;
+  --rfp-radius: 4px;
+  --rfp-chrome: var(--el-fill-color-lighter, #f5f5f5);
+  --rfp-surface: var(--el-bg-color, #fff);
+  --rfp-head: var(--el-fill-color-light, #f5f7fa);
+  --rfp-border: var(--el-border-color-lighter, #e4e4e4);
+  --rfp-text: var(--el-text-color-regular, #303133);
+  --rfp-text-weak: var(--el-text-color-secondary, #606266);
+  --rfp-accent: var(--el-color-primary);
+  --rfp-hover: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  --rfp-select-bg: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+  --rfp-select-border: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  --rfp-folder: #f7b500;
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.rfp__toolbar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--el-bg-color, #fff);
-}
-
-.rfp__nav-btns {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.rfp-icon-btn {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
+  height: clamp(360px, 62vh, 560px);
+  border: 1px solid var(--rfp-border);
   border-radius: 6px;
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-family: inherit;
-  cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
-}
-
-.rfp-icon-btn:hover:not(:disabled) {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
-}
-
-.rfp-icon-btn:disabled {
-  color: var(--el-text-color-placeholder);
-  cursor: not-allowed;
-}
-
-.rfp__crumbs {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  background: var(--rfp-surface);
   overflow: hidden;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  outline: none;
 }
 
-.rfp__crumb {
-  flex-shrink: 0;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--el-text-color-secondary);
-  font-weight: 500;
-  cursor: pointer;
-  padding: 3px 6px;
-  border-radius: 6px;
-  transition: color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
-}
-
-.rfp__crumb:hover:not(.is-active) {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light);
-}
-
-.rfp__crumb.is-active {
-  color: var(--el-text-color-primary);
-  font-weight: 700;
-  cursor: default;
-}
-
-.rfp__crumb-sep {
-  margin: 0 3px;
-  color: var(--el-text-color-placeholder);
-  font-weight: 400;
-}
-
-.rfp__search {
-  flex-shrink: 0;
-  width: 220px;
+.rfp:focus-visible {
+  border-color: var(--rfp-accent);
+  box-shadow: 0 0 0 2px var(--rfp-select-bg);
 }
 
 .rfp__body {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 12px;
 }
 
-.rfp-nav {
-  flex-shrink: 0;
-  width: 208px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--el-bg-color, #fff);
-  overflow-y: auto;
-  max-height: 440px;
-}
-
-.rfp-nav__title {
-  padding: 6px 8px 4px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.rfp-nav__title--sub {
-  margin-top: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.rfp-nav__item {
-  --rfp-tree-depth: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-  max-width: 100%;
-  min-height: 34px;
-  padding: 0 8px;
-  padding-left: calc(8px + var(--rfp-tree-depth) * 14px);
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
-}
-
-.rfp-nav__item:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-}
-
-.rfp-nav__item.is-active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: 600;
-}
-
-.rfp-nav__icon {
-  flex-shrink: 0;
-  color: var(--el-text-color-secondary);
-}
-
-.rfp-nav__item.is-active .rfp-nav__icon {
-  color: var(--el-color-primary);
-}
-
-.rfp-nav__label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rfp-nav__blank {
-  flex-shrink: 0;
-  width: 14px;
-}
-
-.rfp-main {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--el-bg-color, #fff);
-  overflow: hidden;
-}
-
-.rfp-main__state {
-  flex: 1;
-  min-height: 360px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-}
-
-.rfp-main__state.is-spin,
-.rfp-main__state .is-spin {
-  animation: rfp-spin 0.8s linear infinite;
-}
-
-.rfp-main__state--error {
-  flex-direction: column;
-  color: var(--el-color-danger);
-  text-align: center;
-  padding: 24px;
-}
-
-.rfp-main__state--error div {
-  max-width: 440px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rfp-main__state--error span {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  word-break: break-all;
-}
-
-@keyframes rfp-spin {
-  to { transform: rotate(360deg); }
-}
-
-.rfp-details__head,
-.rfp-details__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 88px 150px;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  font-size: 13px;
-}
-
-.rfp-details__head {
-  flex-shrink: 0;
-  height: 38px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-}
-
-.rfp-details__head-cell {
-  cursor: pointer;
-  user-select: none;
-  padding: 2px 4px;
-  border-radius: 4px;
-}
-
-.rfp-details__head-cell:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 1px;
-}
-
-.rfp-details__head-cell:hover,
-.rfp-details__head-cell.is-sorted {
-  color: var(--el-color-primary);
-}
-
-.rfp-sort-arrow {
-  color: var(--el-color-primary);
-  font-weight: 700;
-}
-
-.rfp-details {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 4px 0 6px;
-}
-
-.rfp-details__row {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
-}
-
-.rfp-details__row:hover {
-  background: var(--el-fill-color-light);
-}
-
-.rfp-details__row.is-selected {
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-
-.rfp-details__row--parent {
-  color: var(--el-text-color-secondary);
-}
-
-.rfp-details__name {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-}
-
-.rfp-file-icon {
-  flex-shrink: 0;
-  color: var(--el-text-color-secondary);
-}
-
-.rfp-details__row.is-selected .rfp-file-icon,
-.rfp-details__row.is-dir:hover .rfp-file-icon {
-  color: var(--el-color-primary);
-}
-
-.rfp-details__name-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rfp-details__name-text.is-dir {
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-}
-
-.rfp-details__thumb {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 4px;
-  background: var(--el-fill-color-light);
-}
-
-.rfp-details__type,
-.rfp-details__time {
-  color: var(--el-text-color-secondary);
-}
-
-.rfp-details__size {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.rfp-details__time {
-  font-variant-numeric: tabular-nums;
-}
-
+/* 状态栏：左侧项目数，右侧当前选择（对齐资源管理器底部状态栏） */
 .rfp__selected {
   flex-shrink: 0;
   min-height: 34px;
@@ -1151,17 +707,22 @@ watch(
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
+  border-top: 1px solid var(--rfp-border);
+  background: var(--rfp-chrome);
+  color: var(--rfp-text-weak);
   font-size: 12px;
+}
+
+.rfp__status-count {
+  flex-shrink: 0;
 }
 
 .rfp__selected-label {
   flex-shrink: 0;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
+  margin-left: 8px;
+  padding-left: 10px;
+  border-left: 1px solid var(--rfp-border);
+  color: var(--rfp-text-weak);
 }
 
 .rfp__selected-value {
@@ -1170,21 +731,31 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--el-color-primary);
+  color: var(--rfp-accent);
   font-weight: 600;
+}
+
+/* 数量上限：常态灰字，到达上限变警示色 */
+.rfp__status-limit {
+  flex-shrink: 0;
+  color: var(--rfp-text-weak);
+  font-variant-numeric: tabular-nums;
+}
+
+.rfp__status-limit.is-full {
+  color: var(--el-color-warning);
+  font-weight: 600;
+}
+
+/* 到上限的瞬时提示（2.4s 自动消失） */
+.rfp__status-hint {
+  flex-shrink: 0;
+  color: var(--el-color-warning);
 }
 
 .rfp__footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rfp-icon-btn,
-  .rfp-nav__item,
-  .rfp-details__row {
-    transition: none;
-  }
 }
 </style>
