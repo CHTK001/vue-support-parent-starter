@@ -97,21 +97,15 @@
     <!-- 新增会话 -->
     <ScTsharkCreateDialog
       v-model="createVisible"
+      v-model:iface="iface"
+      v-model:filter="filter"
+      v-model:filter-type="filterType"
+      v-model:capture-name="captureName"
+      v-model:count="count"
+      v-model:timeout="timeout"
       :tshark-ok="tsharkOk"
       :iface-options="ifaceOptions"
-      :iface="iface"
-      :filter="filter"
-      :filter-type="filterType"
-      :capture-name="captureName"
-      :count="count"
-      :timeout="timeout"
       :starting="starting"
-      @update:iface="v => (iface = v)"
-      @update:filter="v => (filter = v)"
-      @update:filter-type="v => (filterType = v)"
-      @update:capture-name="v => (captureName = v)"
-      @update:count="v => (count = v)"
-      @update:timeout="v => (timeout = v)"
       @start="onCreate"
     />
 
@@ -205,8 +199,8 @@ import './tshark.css'
  */
 const {
   tsharkOk, ifaceOptions, iface, filter, filterType, captureName, count, timeout, starting,
-  loadingSessions, sessions, filteredSessions, runningCount,
-  sessionPage, sessionPageSize, activeSessionId, activeSession,
+  loadingSessions, filteredSessions, runningCount,
+  sessionPage, sessionPageSize, activeSessionId,
   loadingPackets, packets, packetPage, packetTotal, packetKeyword, packetPageSize,
   protoStats, topFlows, statsVersion, liveConnected, liveCount,
   detailOpen, packetDetail,

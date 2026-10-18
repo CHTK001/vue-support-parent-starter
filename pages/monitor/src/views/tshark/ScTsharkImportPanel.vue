@@ -81,9 +81,11 @@
           </template>
         </ReTableColumn>
 
-        <ReTableColumn label="操作" width="150" align="center" fixed="right">
+        <ReTableColumn label="操作" width="248" align="center" fixed="right">
           <template #default="{ row }">
-            <ReButton link type="primary" @click="emit('select', row.id)">查看</ReButton>
+            <ReButton link type="primary" @click="emit('open', row.id, 'packet')">报文</ReButton>
+            <ReButton link type="primary" @click="emit('open', row.id, 'stats')">统计</ReButton>
+            <ReButton link type="primary" @click="emit('open', row.id, 'flow')">会话流</ReButton>
             <ReButton
               link
               :disabled="(row.packetCount ?? 0) === 0"
@@ -135,7 +137,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:keyword', v: string): void
   (e: 'page-change', page: number): void
-  (e: 'select', id: number): void
+  (e: 'open', id: number, tab: 'packet' | 'stats' | 'flow'): void
   (e: 'download', id: number, name: string): void
   (e: 'remove', id: number): void
   (e: 'refresh'): void
@@ -158,9 +160,9 @@ function onKeyword(v: unknown) {
   emit('update:keyword', v === null || v === undefined ? '' : String(v))
 }
 
-/** 整行点击 = 「查看这个文件」；ReTable 的 row-click 会多带列与事件两个参数，这里只取行 */
+/** 整行点击 = 「看这个文件的报文」；ReTable 的 row-click 会多带列与事件两个参数，这里只取行 */
 function onRowClick(row: TsharkSession) {
-  emit('select', row.id)
+  emit('open', row.id, 'packet')
 }
 </script>
 

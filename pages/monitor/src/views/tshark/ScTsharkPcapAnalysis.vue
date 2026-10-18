@@ -84,7 +84,7 @@
           :active-id="activeSessionId"
           @update:keyword="setSessionKeyword"
           @page-change="setSessionPage"
-          @select="openSession"
+          @open="openSessionTab"
           @download="downloadPcap"
           @remove="deleteSession"
           @refresh="loadSessions(false)"
@@ -322,9 +322,9 @@ async function onImport() {
   importName.value = ''
 }
 
-/** 进详情：目录里点某一行（或那一行的「查看」），一律从「报文」开始 */
-function openSession(id: number) {
-  activeTab.value = 'packet'
+/** 进详情：目录里点某一行（或那一行的操作）时，默认停在用户点的那一页 */
+function openSessionTab(id: number, tab: TsharkTabKey) {
+  activeTab.value = tab
   selectSession(id)
 }
 

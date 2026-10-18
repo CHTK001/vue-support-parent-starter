@@ -125,6 +125,16 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
   /** 请求序号：晚到的响应不许覆盖新目录（快速点目录/刷新时的竞态） */
   let loadSeq = 0;
 
+  /**
+   * 目录打开防抖时间戳。
+   *
+   * <p>双击在浏览器里是「click + click + dblclick」：若两次 click 里有一次落在
+   * 已重新渲染的新行上，或某些设备重复派发 dblclick，就会连续进入两级目录。
+   * 一次双击只允许触发一次「进入目录」，时间窗内后续 open 直接丢弃。</p>
+   */
+  let lastDirOpenAt = 0;
+  const DIR_OPEN_GUARD_MS = 400;
+
   /* ---------- 数据源解析 ---------- */
 
   const dataArray = computed<FilePickerItem[]>(() => {
@@ -429,6 +439,12 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
       return false;
     }
     if (item.isDir) {
+      // 一次双击只进一级：第二颗 click / 重复 dblclick 在时间窗内直接丢弃
+      const now = Date.now();
+      if (now - lastDirOpenAt < DIR_OPEN_GUARD_MS) {
+        return false;
+      }
+      lastDirOpenAt = now;
       navigateTo(item.key);
       return false;
     }
