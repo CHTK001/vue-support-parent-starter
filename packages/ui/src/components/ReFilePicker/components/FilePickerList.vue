@@ -18,7 +18,7 @@ import {
   VideoPlay,
   WarningFilled,
 } from "@element-plus/icons-vue";
-import type { FilePickerColumn, FilePickerItem, FilePickerSortKey } from "../types";
+import type { FilePickerColumn, FilePickerItem, FilePickerSortKey, FilePickerViewMode } from "../types";
 import { fileKindOf, fileTypeText, formatSize, formatTime } from "../utils";
 
 const props = defineProps<{
@@ -34,6 +34,8 @@ const props = defineProps<{
   isSelected: (item: FilePickerItem) => boolean;
   /** 该条目当前是否可选（目录模式下文件仅展示） */
   canSelect: (item: FilePickerItem) => boolean;
+  /** 视图模式：详细信息 / 大图标 / 中图标 / 小图标 */
+  viewMode: FilePickerViewMode;
 }>();
 
 const emit = defineEmits<{
