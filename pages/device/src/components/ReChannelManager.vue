@@ -58,7 +58,7 @@
     </ReTable>
 
     <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑通道' : '添加通道'" width="460px" append-to-body>
-      <div class="chm-form">
+      <el-form label-position="top" class="chm-form">
         <ReFormItem label="通道号">
           <ReInputNumber v-model="form.deviceChannelNo" :min="1" :max="999" style="width: 100%" />
         </ReFormItem>
@@ -71,7 +71,7 @@
         <ReFormItem label="排序">
           <ReInputNumber v-model="form.deviceChannelSort" :min="0" :max="999" style="width: 100%" />
         </ReFormItem>
-      </div>
+      </el-form>
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
         <ReButton type="primary" @click="submit">确定</ReButton>

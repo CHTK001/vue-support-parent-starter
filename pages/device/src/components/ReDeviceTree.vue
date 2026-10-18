@@ -18,7 +18,9 @@
         class="dt-search"
       />
       <div class="dt-tree">
+        <!-- 有数据才渲染 el-tree：否则它会自带的「暂无数据」与下方 ReEmpty 重叠成两个空态 -->
         <el-tree
+          v-if="orgTree.length"
           ref="treeRef"
           :data="orgTree"
           :props="{ label: 'deviceOrganizationName', children: 'children' }"

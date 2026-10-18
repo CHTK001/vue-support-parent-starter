@@ -1,0 +1,3 @@
+# 临时：仅用于本机 UI 走查（关闭登录守卫），看完即删
+appConfig:
+  openAuth: false

@@ -265,7 +265,7 @@
 
     <!-- 添加设备 -->
     <ReDialog v-model="addDialogVisible" title="添加设备" width="580px" append-to-body :close-on-click-modal="false">
-      <div class="dv-form">
+      <el-form label-position="top" class="dv-form">
         <ReFormItem label="设备名称" required>
           <ReInput v-model="addForm.deviceInfoName" placeholder="例如 大厅球机" />
         </ReFormItem>
@@ -328,17 +328,17 @@
             <ReInput v-model="addForm.deviceInfoPassword" type="password" show-password />
           </ReFormItem>
         </template>
-      </div>
+      </el-form>
       <template #footer>
         <ReButton @click="addDialogVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="addSaving" @click="submitAdd">确定</ReButton>
       </template>
     </ReDialog>
 
-    <!-- 离线检测 -->
-    <ReDialog v-model="thresholdDialogVisible" title="离线检测设置" width="500px" :close-on-click-modal="false">
-      <div class="dv-form">
-        <ReFormItem label="设备阈值" required>
+    <!-- 离线检测（单台设备阈值；厂商级阈值与自动同步已收进「提供商配置 → 凭据卡右键 → 高级设置」） -->
+    <ReDialog v-model="thresholdDialogVisible" title="离线检测设置" width="460px" :close-on-click-modal="false">
+      <el-form label-position="top" class="dv-form">
+        <ReFormItem label="设备离线阈值" required>
           <ReInputNumber v-model="deviceThreshold" :min="5" :max="86400" :step="5" style="width: 100%" />
           <span class="dv-hint">超过该秒数未收到心跳即判定离线；留空表示沿用厂商默认值</span>
         </ReFormItem>
@@ -347,24 +347,12 @@
           <div class="dv-provider__head">
             <span class="dv-panel__bar" />
             <span>厂商默认阈值</span>
-            <span class="dv-provider__hint">按厂商统一生效，随改随存</span>
           </div>
-          <div v-if="providerConfigsLoaded" class="dv-provider__grid">
-            <div v-for="(val, vendor) in providerConfigs" :key="vendor" class="dv-provider__item">
-              <span class="dv-provider__name">{{ vendorLabel(String(vendor)) }}</span>
-              <ReInputNumber
-                v-model="providerConfigs[vendor]"
-                :min="5"
-                :max="86400"
-                :step="5"
-                style="width: 130px"
-                @change="saveProviderConfig(String(vendor))"
-              />
-            </div>
+          <div class="dv-provider__hint">
+            按厂商统一生效的阈值已移到「提供商配置 → 凭据卡右键 → 高级设置」，避免两处各存一份。
           </div>
-          <div v-else class="dv-provider__loading">加载中…</div>
         </div>
-      </div>
+      </el-form>
       <template #footer>
         <ReButton @click="thresholdDialogVisible = false">取消</ReButton>
         <ReButton type="primary" @click="saveDeviceThreshold">保存</ReButton>
@@ -423,6 +411,7 @@ import ReChannelManager from '@/components/ReChannelManager.vue'
 
 import { deviceApi } from '@/api/deviceApi'
 import { getCategoryLabel, getSubCategoryOptions } from '@/utils/deviceCategory'
+import { rawDirection } from '@/utils/accessDirection'
 import type { AccessEvent, DeviceEvent, DeviceInfo, OrgNode, Preset, TimelineItem } from '@/types/device'
 
 /** 详情页签（图标用 Element Plus 图标名，由 ReTab → ReIcon 解析） */
@@ -495,8 +484,6 @@ const addDialogVisible = ref(false)
 const addSaving = ref(false)
 const thresholdDialogVisible = ref(false)
 const deviceThreshold = ref<number>()
-const providerConfigs = ref<Record<string, number>>({})
-const providerConfigsLoaded = ref(false)
 
 /** 总览筛选 */
 const deviceKeyword = ref('')
@@ -821,6 +808,8 @@ function fetchAccessEvents() {
         eventType: r.eventType || '',
         cardNo: r.cardNo || '',
         userName: r.userName || '',
+        photoUrl: r.photoUrl || r.pictureURL || r.pictureUrl || r.imageUrl || '',
+        direction: String(rawDirection(r) ?? ''),
       }))
     })
     .catch(() => {
@@ -856,23 +845,7 @@ function showAddDialog() {
 
 function showThresholdDialog() {
   deviceThreshold.value = selectedDevice.value?.deviceInfoOfflineThreshold
-  loadProviderConfigs()
   thresholdDialogVisible.value = true
-}
-
-function loadProviderConfigs() {
-  providerConfigsLoaded.value = false
-  deviceApi
-    .listProviderConfigs()
-    .then((res: unknown) => {
-      providerConfigs.value = (res as Record<string, number>) || {}
-    })
-    .catch(() => {
-      providerConfigs.value = {}
-    })
-    .finally(() => {
-      providerConfigsLoaded.value = true
-    })
 }
 
 function saveDeviceThreshold() {
@@ -892,30 +865,6 @@ function saveDeviceThreshold() {
     .catch((err: unknown) =>
       message.error('保存失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')),
     )
-}
-
-function saveProviderConfig(vendor: string) {
-  const threshold = providerConfigs.value[vendor]
-  if (!threshold || threshold <= 0) return
-  deviceApi
-    .updateProviderConfig(vendor, threshold)
-    .then(() => message.success(`${vendorLabel(vendor)} 阈值已更新`))
-    .catch((err: unknown) =>
-      message.error('更新失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')),
-    )
-}
-
-function vendorLabel(vendor: string): string {
-  const map: Record<string, string> = {
-    hikvision: '海康',
-    dahua: '大华',
-    'cloud-yao': '海康云耀',
-    'cloud-eye': '海康云眸',
-    'secure-platform': '海康安防',
-    'dahua-cloud': '大华云睿',
-    lechange: '大华乐橙',
-  }
-  return map[vendor] || vendor
 }
 
 function exportDevices() {
@@ -1378,30 +1327,7 @@ onUnmounted(() => {
 }
 .dv-provider__hint {
   font-size: 12px;
-  font-weight: 400;
-  color: var(--el-text-color-secondary);
-}
-.dv-provider__grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.dv-provider__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: var(--el-radius-base, 10px);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-}
-.dv-provider__name {
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-}
-.dv-provider__loading {
-  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--el-text-color-secondary);
 }
 

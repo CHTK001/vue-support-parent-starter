@@ -45,7 +45,7 @@
 
       <ReTable
         v-if="events.length"
-        :data="events as unknown as Record<string, unknown>[]"
+        :data="eventRows as unknown as Record<string, unknown>[]"
         :columns="accessEventColumns"
         engine="element"
         :pagination="false"
@@ -54,8 +54,33 @@
         :settings="{ border: false }"
         style="width: 100%"
       >
+        <template #col-photo="{ row }">
+          <el-image
+            v-if="row.photoUrl"
+            :src="String(row.photoUrl)"
+            :preview-src-list="[String(row.photoUrl)]"
+            :preview-teleported="true"
+            :hide-on-click-modal="true"
+            fit="cover"
+            class="acc-photo"
+          >
+            <template #error>
+              <span class="acc-photo__none" title="抓拍加载失败"><el-icon><Picture /></el-icon></span>
+            </template>
+          </el-image>
+          <span v-else class="acc-photo__none" title="厂商未回传抓拍"><el-icon><Picture /></el-icon></span>
+        </template>
         <template #col-time="{ row }">
           <span class="acc-mono">{{ row.time }}</span>
+        </template>
+        <template #col-direction="{ row }">
+          <ReTag
+            :type="row.directionKey === 'in' ? 'primary' : row.directionKey === 'out' ? 'warning' : 'info'"
+            size="small"
+            effect="plain"
+          >
+            {{ row.directionLabel }}
+          </ReTag>
         </template>
         <template #col-eventType="{ row }">
           <ReTag type="primary" size="small">{{ row.eventType || '—' }}</ReTag>
@@ -67,29 +92,45 @@
 </template>
 
 <script setup lang="ts">
-import { Lock } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { Lock, Picture } from '@element-plus/icons-vue'
 import ReButton from '@repo/ui/re-button'
 import ReEmpty from '@repo/ui/re-empty'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 import type { DeviceDoor, AccessEvent } from '@/types/device'
+import { directionOf } from '@/utils/accessDirection'
 
 /**
  * 列配置：原模板 4 个 el-table-column 收敛到数组。
  * 标题是静态文案（无 t()），普通常量即可。
  */
 const accessEventColumns: ReTableColumn[] = [
+  { prop: 'photoUrl', label: '抓拍', width: 76, slot: 'photo', align: 'center' },
   { prop: 'time', label: '时间', width: 190, slot: 'time' },
   { prop: 'doorName', label: '门', minWidth: 120 },
+  { prop: 'directionLabel', label: '方向', width: 88, slot: 'direction', align: 'center' },
   { prop: 'eventType', label: '事件类型', width: 150, slot: 'eventType' },
   { prop: 'cardNo', label: '卡号', minWidth: 140 },
 ]
 
-defineProps<{
+const props = defineProps<{
   doors: DeviceDoor[]
   events: AccessEvent[]
 }>()
+
+/**
+ * 事件表行：方向归一后展示。
+ *
+ * 归一口径与门禁记录页共用 @/utils/accessDirection，避免同一份记录两处显示不一致。
+ */
+const eventRows = computed(() =>
+  props.events.map((e) => {
+    const dir = directionOf(e.direction)
+    return { ...e, directionKey: dir.key, directionLabel: dir.label }
+  }),
+)
 
 const emit = defineEmits<{
   (e: 'unlock', doorId: number): void
@@ -203,6 +244,29 @@ function doorStatusType(status?: string): 'success' | 'warning' | 'danger' | 'in
 .acc-mono {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12.5px;
+}
+/* 抓拍缩略图：点开看大图 */
+.acc-photo {
+  display: block;
+  width: 48px;
+  height: 36px;
+  margin: 0 auto;
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
+  cursor: zoom-in;
+}
+.acc-photo__none {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 36px;
+  margin: 0 auto;
+  border-radius: 6px;
+  border: 1px dashed var(--el-border-color);
+  color: var(--el-text-color-placeholder);
+  font-size: 15px;
 }
 .acc-panel :deep(.el-table th.el-table__cell) {
   background: transparent !important;
