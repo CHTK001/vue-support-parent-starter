@@ -73,6 +73,9 @@
           </div>
           <div class="dt-item__bottom">
             <span class="dt-item__meta">{{ dev.deviceInfoVendor || '—' }} · {{ dev.deviceInfoIp || '未配置 IP' }}</span>
+            <el-icon v-if="hasGeo(dev)" class="dt-item__geo" title="已配置经纬度，可在地图上查看">
+              <Location />
+            </el-icon>
             <ReTag size="small" effect="plain">{{ getCategoryLabel(dev.deviceInfoCategory) }}</ReTag>
           </div>
         </article>
