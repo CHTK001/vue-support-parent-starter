@@ -128,6 +128,11 @@ function koiConfirm() {
 
 function koiCancel() {
   emit("cancel");
+  // 与 koi ReDialog 一致：取消同时关闭抽屉。
+  // 此前只 emit cancel、不改 visible（假定调用方自己关），业务没接 @cancel 时
+  // 「取消」点了没有任何反应 —— 看起来就是「按钮点不动」。
+  visible.value = false;
+  clearMinimized();
 }
 
 function koiOpen() {
@@ -189,10 +194,23 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         </slot>
       </div>
       <div class="footer" v-if="!footerHidden">
-        <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
-          {{ confirmText || "确定" }}
-        </el-button>
-        <el-button class="koi-btn-borderless" type="danger" @click="koiCancel">{{ cancelText || "取消" }}</el-button>
+        <!--
+          业务 #footer 插槽优先，未提供时才用内置「确定/取消」。
+
+          这里必须把插槽画出来：ES 字段抽屉的「追加字段/关闭」、建表抽屉的「取消/创建」、
+          各类详情抽屉的底栏按钮写的都是 #footer。此前 koi 只画内置按钮、把插槽整块丢掉，
+          于是业务底栏按钮永远不显示（看起来「ReDrawer 底部按钮默认不显示」）。
+          default 主题一直是渲染插槽的，这条对齐后两套主题对同一套写法行为一致。
+        -->
+        <div v-if="$slots.footer" class="koi-drawer-footer">
+          <slot name="footer" :confirm="koiConfirm" :cancel="koiCancel" :loading="confirmLoading" />
+        </div>
+        <template v-else>
+          <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
+            {{ confirmText || "确定" }}
+          </el-button>
+          <el-button class="koi-btn-borderless" type="danger" @click="koiCancel">{{ cancelText || "取消" }}</el-button>
+        </template>
       </div>
     </div>
   </ElDrawer>
@@ -265,6 +283,16 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     align-items: center;
     height: 50px;
     margin-top: auto;
+  }
+
+  /* 业务 #footer 插槽的容器：占满底栏并靠右排列（与 default 主题 el-drawer 底栏一致）。
+     内置「确定/取消」走原样式，不受影响。 */
+  .koi-drawer-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
   }
 }
 

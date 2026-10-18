@@ -459,7 +459,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
               :loading="actingId === row.id"
               @click="onStop(row)"
             />
-            <ReButton icon="View" layout="square" type="primary" tip="详情" @click="openDetail(row)" />
+            <ReButton icon="View" layout="square" type="primary" tip="详情" @click.stop="openDetail(row)" />
             <ReButton icon="Edit" layout="square" tip="编辑" @click="openEdit(row)" />
             <ReButton
               icon="Delete"
