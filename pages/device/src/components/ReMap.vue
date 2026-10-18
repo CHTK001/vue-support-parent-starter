@@ -31,6 +31,7 @@
           v-for="(dev, idx) in positionedDevices"
           :key="dev.deviceInfoId"
           class="rmap__node"
+          :class="{ 'is-selected': selectedId === dev.deviceInfoId }"
           @click="emit('select', dev)"
         >
           <circle :cx="dev._x" :cy="dev._y" r="18" class="rmap__halo" :class="dev.deviceInfoOnline ? 'is-on' : 'is-off'" />
@@ -39,16 +40,24 @@
           <text :x="dev._x" :y="dev._y - 18" text-anchor="middle" class="rmap__label">{{ dev.deviceInfoName }}</text>
         </g>
       </svg>
+      <div v-if="!positionedDevices.length" class="rmap__empty">
+        <el-icon :size="26"><Location /></el-icon>
+        <span>暂无已配置经纬度的设备</span>
+        <span class="rmap__empty-hint">在设备表单中填写纬度 / 经度后，这里才会出现地图标志</span>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Location } from '@element-plus/icons-vue'
 import type { DeviceInfo } from '../types/device'
 
 const props = defineProps<{
   devices: DeviceInfo[]
+  /** 当前选中的设备：在地图上加一圈高亮 */
+  selectedId?: string
 }>()
 
 const emit = defineEmits<{
@@ -58,26 +67,25 @@ const emit = defineEmits<{
 const MAP_WIDTH = 800
 const MAP_HEIGHT = 400
 
+/**
+ * 只画真正有经纬度的设备。
+ *
+ * <p>没有坐标的设备以前会被铺到一张“假网格”上，看起来像有位置，实际是随机摆放。
+ * 现在宁可不画，也不误导；空态里提示去设备表单补经纬度。</p>
+ */
 const positionedDevices = computed(() => {
   const list = props.devices || []
-  const total = list.length
-  return list.map((dev, idx) => {
-    let x: number
-    let y: number
-    const lat = dev.deviceInfoLatitude
-    const lng = dev.deviceInfoLongitude
-    if (lat != null && lng != null) {
-      x = ((lng + 180) / 360) * MAP_WIDTH
-      y = ((90 - lat) / 180) * MAP_HEIGHT
-    } else {
-      const cols = Math.ceil(Math.sqrt(total || 1))
-      const col = idx % cols
-      const row = Math.floor(idx / cols)
-      x = 80 + col * ((MAP_WIDTH - 160) / (cols || 1))
-      y = 60 + row * 80
-    }
-    return { ...dev, _x: Math.max(24, Math.min(MAP_WIDTH - 24, x)), _y: Math.max(24, Math.min(MAP_HEIGHT - 24, y)) }
-  })
+  return list
+    .filter((dev) => dev.deviceInfoLatitude != null && dev.deviceInfoLongitude != null)
+    .map((dev) => {
+      const x = ((Number(dev.deviceInfoLongitude) + 180) / 360) * MAP_WIDTH
+      const y = ((90 - Number(dev.deviceInfoLatitude)) / 180) * MAP_HEIGHT
+      return {
+        ...dev,
+        _x: Math.max(24, Math.min(MAP_WIDTH - 24, x)),
+        _y: Math.max(24, Math.min(MAP_HEIGHT - 24, y)),
+      }
+    })
 })
 </script>
 
@@ -151,6 +159,26 @@ const positionedDevices = computed(() => {
   width: 100%;
   height: 100%;
   display: block;
+}
+.rmap__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--el-bg-color) 70%, transparent);
+}
+.rmap__empty-hint {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.rmap__node.is-selected .rmap__halo {
+  opacity: 1;
+  stroke-width: 3;
 }
 .rmap__grid line {
   stroke: var(--el-border-color-lighter);

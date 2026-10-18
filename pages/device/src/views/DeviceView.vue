@@ -67,6 +67,18 @@
                 <span class="dv-chip">
                   <em>位置</em>{{ selectedDevice.deviceInfoAddress || '未配置' }}
                 </span>
+                <span v-if="hasGeo(selectedDevice)" class="dv-chip">
+                  <em>经纬度</em>{{ fmtCoord(selectedDevice) }}
+                </span>
+                <button
+                  v-if="hasGeo(selectedDevice)"
+                  type="button"
+                  class="dv-chip dv-chip--action"
+                  @click="activeTab = 'map'"
+                >
+                  <el-icon><Location /></el-icon>
+                  地图
+                </button>
                 <span class="dv-chip">
                   <em>离线阈值</em>{{ selectedDevice.deviceInfoOfflineThreshold ?? '厂商默认' }}
                   <template v-if="selectedDevice.deviceInfoOfflineThreshold"> 秒</template>
@@ -110,7 +122,7 @@
               </template>
 
               <template #map>
-                <ReMap :devices="devices" @select="selectDevice" />
+                <ReMap :devices="devices" :selected-id="selectedDevice?.deviceInfoId" @select="openDeviceMap" />
               </template>
 
               <template #channel>
@@ -192,21 +204,25 @@
             <div class="dv-field">
               <ReSelect v-model="categoryFilter" placeholder="全部大类" clearable :options="CATEGORY_OPTIONS" />
             </div>
-            <span class="dv-filter__meta">{{ filteredDevices.length }} / {{ devices.length }} 台</span>
-            <ReButton icon="Search" :show-text="true" type="primary" :loading="devicesLoading" @click="fetchDevices">
+            <span class="dv-filter__meta">{{ pageTotal }} 台</span>
+            <ReButton icon="Search" :show-text="true" type="primary" :loading="pageLoading" @click="onQuery">
               查询
             </ReButton>
             <div class="dv-toolbar-ops">
               <ReButton icon="Plus" layout="square" type="primary" tip="添加设备" @click="showAddDialog" />
               <ReButton icon="Download" layout="square" tip="导出 Excel" @click="exportDevices" />
               <ReButton icon="Share" layout="square" tip="同步厂商组织" @click="syncOrg" />
-              <ReButton icon="RefreshRight" layout="square" tip="刷新设备列表" :loading="devicesLoading" @click="fetchDevices" />
+              <ReButton icon="RefreshRight" layout="square" tip="刷新设备列表" :loading="pageLoading" @click="onQuery" />
             </div>
           </section>
 
-          <div class="dv-grid" :class="{ 'is-empty': !filteredDevices.length }">
+          <div
+            v-loading="pageLoading"
+            class="dv-grid"
+            :class="{ 'is-empty': !pageLoading && !pageRows.length }"
+          >
             <article
-              v-for="dev in filteredDevices"
+              v-for="dev in pageRows"
               :key="dev.deviceInfoId"
               class="dcard"
               :class="{ 'is-off': !dev.deviceInfoOnline }"
@@ -233,10 +249,23 @@
                 <span class="dv-chip dv-chip--soft">
                   <em>通道</em>{{ dev.deviceInfoChannelCount ?? 0 }}
                 </span>
+                <span v-if="hasGeo(dev)" class="dv-chip dv-chip--soft">
+                  <em>经纬度</em>{{ fmtCoord(dev) }}
+                </span>
               </div>
 
               <footer class="dcard__foot">
                 <span class="dcard__addr">{{ dev.deviceInfoAddress || '未配置位置' }}</span>
+                <button
+                  v-if="hasGeo(dev)"
+                  type="button"
+                  class="dcard__geo"
+                  title="在地图上查看"
+                  @click.stop="openDeviceMap(dev)"
+                >
+                  <el-icon><Location /></el-icon>
+                  地图
+                </button>
                 <span class="dcard__link">
                   进入设备
                   <el-icon><ArrowRight /></el-icon>
@@ -245,9 +274,23 @@
             </article>
 
             <ReEmpty
-              v-if="!filteredDevices.length"
+              v-if="!pageLoading && !pageRows.length"
               description="暂无设备，点击右上角「添加设备」接入厂商平台或 SDK 直连"
               :image-size="90"
+            />
+          </div>
+
+          <div v-if="pageTotal > 0" class="dv-pager">
+            <span class="dv-pager__total">共 {{ pageTotal }} 台</span>
+            <el-pagination
+              v-model:current-page="pageNo"
+              v-model:page-size="pageSize"
+              :total="pageTotal"
+              :page-sizes="[8, 12, 24, 48]"
+              layout="sizes, prev, pager, next"
+              background
+              @current-change="fetchPage"
+              @size-change="resetPageAndFetch"
             />
           </div>
         </template>
@@ -538,6 +581,24 @@ function categoryIcon(category?: string): unknown {
   return (category && CATEGORY_ICONS[category]) || markRaw(Monitor)
 }
 
+/** 是否配置了经纬度：有坐标才显示地图标志 / 地图页签内容 */
+function hasGeo(d?: DeviceInfo | null): boolean {
+  return d?.deviceInfoLatitude != null && d?.deviceInfoLongitude != null
+}
+
+function fmtCoord(d: DeviceInfo): string {
+  const lat = Number(d.deviceInfoLatitude)
+  const lng = Number(d.deviceInfoLongitude)
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return '—'
+  return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+}
+
+/** 顶部查询：同时刷新左侧树 / KPI 与右侧分页卡片 */
+function onQuery(): void {
+  fetchDevices()
+  resetPageAndFetch()
+}
+
 const orgTree = ref<OrgNode[]>([])
 const devices = ref<DeviceInfo[]>([])
 const devicesLoading = ref(false)
@@ -744,14 +805,6 @@ const statusSegments = computed(() => {
   ]
 })
 
-const filteredDevices = computed(() =>
-  baseDevices.value.filter((d) => {
-    if (statusFilter.value === 'online' && !d.deviceInfoOnline) return false
-    if (statusFilter.value === 'offline' && d.deviceInfoOnline) return false
-    return true
-  }),
-)
-
 /** 卡牌上的「预留扩展信息位」内容：后续新字段往这里补即可 */
 const heroExtra = computed(() => {
   const d = selectedDevice.value
@@ -854,6 +907,7 @@ function refreshDeviceStatus() {
     .then(() => {
       message.success('设备状态已刷新')
       fetchDevices()
+      fetchPage()
     })
     .catch((err: unknown) =>
       message.error('刷新状态失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')),
@@ -992,6 +1046,8 @@ function syncOrg() {
     .then(() => {
       message.success('组织树同步成功')
       fetchOrgTree()
+      fetchDevices()
+      fetchPage()
     })
     .catch((err: unknown) =>
       message.error('组织树同步失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')),
@@ -1236,19 +1292,23 @@ function resetPageAndFetch(): void {
 }
 
 /** 提供商凭据：设备表单从这里选，而不是手填 AK/SK */
-function fetchCredentials(): void {
+async function fetchCredentials(selectFirst = false): Promise<void> {
   credentialsLoading.value = true
-  deviceApi
-    .listCredentials()
-    .then((res: unknown) => {
-      credentials.value = ((res as ProviderCredential[]) || []).filter((c) => c.deviceCredentialEnabled !== false)
-    })
-    .catch(() => {
-      credentials.value = []
-    })
-    .finally(() => {
-      credentialsLoading.value = false
-    })
+  try {
+    const res = (await deviceApi.listCredentials()) as ProviderCredential[]
+    credentials.value = (res || []).filter((c) => c.deviceCredentialEnabled !== false)
+    if (selectFirst && !addForm.value.credentialId) {
+      const first = credentials.value[0]
+      if (first?.deviceCredentialId) {
+        addForm.value.credentialId = first.deviceCredentialId
+        onCredentialChange(first.deviceCredentialId)
+      }
+    }
+  } catch {
+    credentials.value = []
+  } finally {
+    credentialsLoading.value = false
+  }
 }
 
 function fetchOrgTree() {
@@ -1263,9 +1323,22 @@ function fetchOrgTree() {
     })
 }
 
+let filterTimer: ReturnType<typeof setTimeout> | null = null
+
+// 筛选条件变化 → 回到第一页重新查；250ms 防抖，避免输入时每敲一下打一次接口
+watch([deviceKeyword, statusFilter, categoryFilter], () => {
+  if (filterTimer) clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => {
+    filterTimer = null
+    resetPageAndFetch()
+  }, 250)
+})
+
 onMounted(() => {
   fetchDevices()
+  fetchPage()
   fetchOrgTree()
+  fetchCredentials()
   // 事件实时模式：选中设备时按 5s 轮询刷新事件列表
   pollTimer = setInterval(() => {
     if (eventRealtime.value && selectedDevice.value && activeTab.value === 'events') {
@@ -1276,6 +1349,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
+  if (filterTimer) clearTimeout(filterTimer)
 })
 </script>
 
@@ -1409,6 +1483,16 @@ onUnmounted(() => {
 }
 .dv-chip--soft {
   background: color-mix(in srgb, var(--el-text-color-primary) 3%, transparent);
+}
+.dv-chip--action {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.dv-chip--action:hover {
+  background: var(--el-color-primary-light-8);
 }
 
 /* ==================== 页签面板 ==================== */
@@ -1613,11 +1697,29 @@ onUnmounted(() => {
   border-top: 1px solid var(--el-border-color-lighter);
 }
 .dcard__addr {
+  flex: 1;
+  min-width: 0;
   font-size: 12.5px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.dcard__geo {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--el-color-primary);
+}
+.dcard__geo:hover {
+  text-decoration: underline;
 }
 .dcard__link {
   display: inline-flex;
@@ -1629,10 +1731,34 @@ onUnmounted(() => {
   color: var(--el-color-primary);
 }
 
+/* ==================== 分页 ==================== */
+.dv-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 2px 2px 6px;
+}
+.dv-pager__total {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+
 /* ==================== 表单 / 弹窗 ==================== */
 .dv-form {
   display: flex;
   flex-direction: column;
+}
+.dv-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .dv-form__row {
+    grid-template-columns: 1fr;
+  }
 }
 .dv-hint {
   display: block;
