@@ -576,7 +576,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     // 环境
     tsharkOk, interfaces, ifaceOptions,
     // 抓包参数
-    iface, filter, count, timeout, starting, importing,
+    iface, filter, filterType, captureName, count, timeout, starting, importing,
     // 会话
     loadingSessions, sessions, sessionBackendTotal, sessionKeyword, sessionFilter,
     sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
