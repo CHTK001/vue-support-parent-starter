@@ -491,11 +491,12 @@ function hasVideoCapability(d: DeviceInfo): boolean {
 }
 
 function hasChannelCapability(d: DeviceInfo): boolean {
-  return (
-    d.deviceInfoCategory === 'camera' ||
-    d.deviceInfoCategory === 'accessControl' ||
-    d.deviceInfoCategory === 'intercom'
-  )
+  if (d.deviceInfoCategory === 'camera') return true
+  // 门禁 / 对讲只有在登记了通道时才给通道与视频页签（读卡器等纯门禁设备没有通道）
+  if (d.deviceInfoCategory === 'accessControl' || d.deviceInfoCategory === 'intercom') {
+    return (d.deviceInfoChannelCount ?? 0) > 0 || (d.channels?.length ?? 0) > 0
+  }
+  return false
 }
 
 function hasAccessCapability(d: DeviceInfo): boolean {
