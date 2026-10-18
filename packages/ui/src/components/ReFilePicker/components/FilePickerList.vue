@@ -32,6 +32,8 @@ const props = defineProps<{
   sortAsc: boolean;
   activeIndex: number;
   isSelected: (item: FilePickerItem) => boolean;
+  /** 该条目当前是否可选（目录模式下文件仅展示） */
+  canSelect: (item: FilePickerItem) => boolean;
 }>();
 
 const emit = defineEmits<{
@@ -111,6 +113,7 @@ watch(
             'is-selected': isSelected(item),
             'is-active': i === activeIndex,
             'is-dir': item.isDir,
+            'is-disabled': !item.isDir && !canSelect(item),
           }"
           :data-row-index="i"
           :title="item.key"
@@ -315,6 +318,16 @@ watch(
 
 .rfp-details__row:hover {
   background: var(--rfp-hover);
+}
+
+/* 目录模式下的文件：仅用于确认「目标目录里有什么」，不可选 */
+.rfp-details__row.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.rfp-details__row.is-disabled:hover {
+  background: transparent;
 }
 
 .rfp-details__row.is-active {

@@ -313,8 +313,14 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
   /** 选择数量上限（0 = 不限） */
   const limit = computed(() => Math.max(0, Math.floor(Number(options.limit?.() ?? 0) || 0)));
 
-  /** 该条目是否可选中（目录默认只能进不能选） */
-  const canSelect = (item: FilePickerItem): boolean => !item.isDir || dirSelectable.value;
+  /**
+   * 该条目是否可选中。
+   *
+   * <p>目录默认只能进不能选；目录模式下文件只作为「目标目录里有什么」的参考展示，
+   * 不允许被选中，否则会出现「选文件夹」却确认了一个文件的情况。</p>
+   */
+  const canSelect = (item: FilePickerItem): boolean =>
+    item.isDir ? dirSelectable.value : !options.directoryMode();
 
   const isLimitReached = computed(() => limit.value > 0 && selectedItems.value.length >= limit.value);
 
@@ -424,6 +430,10 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     }
     if (item.isDir) {
       navigateTo(item.key);
+      return false;
+    }
+    // 目录模式下文件只展示、不可选：双击/回车不产生选择，也不触发确认
+    if (options.directoryMode()) {
       return false;
     }
     if (!options.multiple()) {

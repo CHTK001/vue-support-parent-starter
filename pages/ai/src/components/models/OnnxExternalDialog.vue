@@ -118,14 +118,19 @@ const loadTemplates = () => {
 }
 
 // ONNX 的 appkey 就是本地模型目录，目录浏览必须走 ONNX 专用接口：
-// 它被钉在模型根之下并带禁入规则；通用文件目录接口无边界，能一路浏览到 /etc、/root/.ssh
+// 它被钉在模型根之下并带禁入规则；通用文件目录接口无边界，能一路浏览到 /etc、/root/.ssh。
+// showFiles=true：最后一层目录里的 model.onnx 等文件要能看见，否则目标目录永远像空的；
+// 目录模式下 ReFilePicker 只把这些文件当定位参考，不允许选中。
 const dirLoader = async (path) => {
-  const res = await adminApi.get('/api/onnx/external/browse', { params: { path: path || '' } })
+  const res = await adminApi.get('/api/onnx/external/browse', { params: { path: path || '', showFiles: true } })
   const payload = res?.data || res || {}
   const rows = Array.isArray(payload) ? payload : payload.items || []
-  return rows
-    .filter((r) => r.isDirectory !== false)
-    .map((r) => ({ key: r.path, name: r.name, isDir: true, updatedAt: r.updatedAt }))
+  return rows.map((r) => ({
+    key: r.path,
+    name: r.name,
+    isDir: r.isDirectory !== false,
+    updatedAt: r.updatedAt ?? undefined,
+  }))
 }
 
 const onDirPicked = (items) => {
