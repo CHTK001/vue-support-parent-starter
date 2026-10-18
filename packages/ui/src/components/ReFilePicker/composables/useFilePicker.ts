@@ -199,25 +199,61 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
 
   /* ---------- 加载 ---------- */
 
+  /** 取某个目录的条目（不改动当前路径 / 历史） */
+  const fetchItems = async (path: string): Promise<FilePickerItem[]> => {
+    if (hasStaticData.value) {
+      return resolveStaticData(path);
+    }
+    if (options.loader()) {
+      return normalizeLoadedResult(await options.loader()!(path));
+    }
+    throw new Error("ReFilePicker 必须配置 loader（filesystem-starter/宿主远端接口）或 data（本地 JSON）");
+  };
+
+  /** 刷新当前目录：保留旧列表直到新数据到达，避免闪烁 */
   const load = async (path = currentPath.value): Promise<void> => {
     const seq = ++loadSeq;
     loading.value = true;
     loadError.value = "";
     try {
-      let next: FilePickerItem[] = [];
-      if (hasStaticData.value) {
-        next = resolveStaticData(path);
-      } else if (options.loader()) {
-        next = normalizeLoadedResult(await options.loader()!(path));
-      } else {
-        throw new Error("ReFilePicker 必须配置 loader（filesystem-starter/宿主远端接口）或 data（本地 JSON）");
-      }
+      const next = await fetchItems(path);
       if (seq !== loadSeq) return;
       items.value = dedupeItems(next);
       activeIndex.value = -1;
     } catch (err) {
       if (seq !== loadSeq) return;
       items.value = [];
+      loadError.value = err instanceof Error ? err.message : String(err);
+    } finally {
+      if (seq === loadSeq) loading.value = false;
+    }
+  };
+
+  /**
+   * 切换到目标目录：**先取数据，再一次性更新路径 / 历史 / 列表 / 选中**。
+   *
+   * <p>不能先改 currentPath 再异步 load：那样面包屑、左侧目录树会先变成新路径，
+   * 右侧列表还停留在旧目录，等 loader 回来才换内容，视觉上就像「双击触发了两次」。
+   * 数据回来后再整体切换，进度条只表示一次加载。</p>
+   *
+   * @param path        目标目录
+   * @param pushHistory 是否把当前目录压入后退栈（goBack 不压）
+   */
+  const switchTo = async (path: string, pushHistory: boolean): Promise<void> => {
+    const seq = ++loadSeq;
+    loading.value = true;
+    loadError.value = "";
+    try {
+      const next = await fetchItems(path);
+      if (seq !== loadSeq) return;
+      if (pushHistory) history.value.push(currentPath.value);
+      currentPath.value = path;
+      items.value = dedupeItems(next);
+      selectedItems.value = [];
+      activeIndex.value = -1;
+    } catch (err) {
+      if (seq !== loadSeq) return;
+      // 目标目录加载失败：停在原目录，把错误交给列表就地渲染
       loadError.value = err instanceof Error ? err.message : String(err);
     } finally {
       if (seq === loadSeq) loading.value = false;
