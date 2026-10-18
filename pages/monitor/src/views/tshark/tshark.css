@@ -230,8 +230,49 @@
 
 .import-num { font-variant-numeric: tabular-nums; }
 
+/* 目录页状态灯旁的一句「这行能点」：整行可点这件事没有视觉先例，需要一句话教一次 */
+.pcap-page__hint { font-size: 12px; }
+
+/* ==================== PCAP 分析：详情头部条 ====================
+   点进某一份导入文件后，顶部那条从「导入控件」换成「这是哪一份 + 解到哪了 + 下载原件」。
+   沿用 .tshark-bar 的壳（同一张卡片、同一条基线高度），只补块内排布；
+   高度与目录页那条一致，来回切换时下面的内容不会跳。 */
+.pcap-back { flex: none; }
+
+.pcap-detail__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/* 文件名可能很长（带时间戳、带路径），给上限并省略，完整名字走 title 提示 */
+.pcap-detail__name {
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.pcap-detail__parsing { font-size: 12px; }
+
+/* 报文数 / 时间范围 / 时长：一组等宽数字的只读元信息，弱化到与表格里的辅助文字同级 */
+.pcap-detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pcap-detail__dot { color: var(--el-text-color-placeholder); }
+
 @media (max-width: 1024px) {
   .pcap-file-hint { max-width: 132px; }
+  /* 窄屏三块（返回 / 标题 / 元信息）会折成三行，标题不再受 vw 限制，改为整行省略 */
+  .pcap-detail__name { max-width: 100%; }
 }
 
 /* ==================== 无障碍 ==================== */

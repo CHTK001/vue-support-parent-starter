@@ -14,6 +14,13 @@
         <button data-lab="open-full" @click="open.full = true">打开选择器</button>
         <button data-lab="ctx-first" @click="rightClickFirstRow">在第一行触发右键</button>
       </div>
+      <div class="picker-lab__row picker-lab__row--float">
+        <button data-lab="multi-check" @click="runMultiSelectCheck">多选语义自检（改选 / Ctrl / Shift）</button>
+        <button data-lab="click-1" @click="clickRow(1, {})">单击第 2 行（改选）</button>
+        <button data-lab="click-2" @click="clickRow(2, {})">单击第 3 行（改选）</button>
+        <button data-lab="click-2-ctrl" @click="clickRow(2, { ctrl: true })">Ctrl+单击第 3 行（加选 / 再按减选）</button>
+        <button data-lab="click-4-shift" @click="clickRow(4, { shift: true })">Shift+单击第 5 行（连选）</button>
+      </div>
       <ReFilePicker
         v-model="open.full"
         title="完整右键菜单"
@@ -59,7 +66,7 @@
  * 临时验证页：不接后端，文件系统与文件操作都在内存里演一遍，
  * 只为把「右键菜单 / 属性 / 预览 / 数量与类型限制 / 落盘回调」在真实浏览器里跑一遍。
  */
-import { reactive, ref } from "vue";
+import { nextTick, reactive, ref, watch } from "vue";
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type {
   FilePickerContextMenuOptions,
@@ -198,6 +205,94 @@ const rightClickFirstRow = (): void => {
   );
   push(`已派发 contextmenu: ${row.textContent?.trim().slice(0, 40)}`);
 };
+
+/** 派发一次带修饰键的单击（多选语义：普通单击改选 / Ctrl 加选 / Shift 连选） */
+const clickRow = (index: number, modifiers: { ctrl?: boolean; shift?: boolean }): void => {
+  const row = document.querySelectorAll<HTMLElement>(".re-file-picker__item")[index];
+  if (!row) {
+    push(`第 ${index + 1} 行不存在`);
+    return;
+  }
+  row.dispatchEvent(
+    new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: !!modifiers.ctrl,
+      shiftKey: !!modifiers.shift,
+    }),
+  );
+  push(
+    `${modifiers.ctrl ? "Ctrl+" : ""}${modifiers.shift ? "Shift+" : ""}单击第 ${index + 1} 行: ${
+      row.textContent?.trim().slice(0, 30) || ""
+    }`,
+  );
+};
+
+/**
+ * 选择器一打开就跑一次多选自检（浏览器面板点不到弹窗底下的按钮，所以不靠点击触发）。
+ */
+watch(
+  () => open.full,
+  async (visible) => {
+    if (!visible) return;
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    await runMultiSelectCheck();
+  },
+);
+
+/** 状态栏文本（当前选择 + 数量/上限），用于断言多选语义 */
+const readStatus = (): string =>
+  document.querySelector(".rfp__selected")?.textContent?.replace(/\s+/g, " ").trim() ?? "(没找到状态栏)";
+
+const dispatchClick = (index: number, modifiers: MouseEventInit = {}): void => {
+  document
+    .querySelectorAll<HTMLElement>(".re-file-picker__item")
+    [index]?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ...modifiers }));
+};
+
+/**
+ * 一次跑完多选语义：普通单击改选（不再累加）、Ctrl 加/减选、Shift 从锚点连选。
+ *
+ * <p>浏览器面板没有 Ctrl+点击能力，所以由页面直接派发带修饰键的真实事件。</p>
+ */
+const runMultiSelectCheck = async (): Promise<void> => {
+  if (document.querySelectorAll(".re-file-picker__item").length < 5) {
+    const entry = Array.from(document.querySelectorAll<HTMLElement>(".re-file-picker__item")).find(
+      (row) => row.getAttribute("aria-label") === "data",
+    );
+    if (!entry) {
+      push("先把选择器打开并停在根目录");
+      return;
+    }
+    entry.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  if (document.querySelectorAll(".re-file-picker__item").length < 5) {
+    push("进入 data 失败，行数不足");
+    return;
+  }
+  push(`多选自检开始（当前 ${document.querySelectorAll(".re-file-picker__item").length} 行）`);
+  dispatchClick(1);
+  await nextTick();
+  push(`1 普通单击第 2 行 → ${readStatus()}`);
+  dispatchClick(2);
+  await nextTick();
+  push(`2 再普通单击第 3 行 → ${readStatus()}`);
+  dispatchClick(2, { ctrlKey: true });
+  await nextTick();
+  push(`3 Ctrl+单击第 3 行 → ${readStatus()}`);
+  dispatchClick(4, { ctrlKey: true });
+  await nextTick();
+  push(`4 Ctrl+单击第 5 行 → ${readStatus()}`);
+  dispatchClick(4, { ctrlKey: true });
+  await nextTick();
+  push(`5 再 Ctrl+单击第 5 行（减选） → ${readStatus()}`);
+  dispatchClick(1);
+  await nextTick();
+  dispatchClick(4, { shiftKey: true });
+  await nextTick();
+  push(`6 单击第 2 行后 Shift+单击第 5 行 → ${readStatus()}`);
+};
 </script>
 
 <style scoped>
@@ -229,6 +324,19 @@ const rightClickFirstRow = (): void => {
 .picker-lab__row button {
   padding: 4px 12px;
   cursor: pointer;
+}
+
+/* 选择器弹窗打开时，这排按钮要浮在最上层，面板的合成点击才落在按钮自己身上 */
+.picker-lab__row--float {
+  position: fixed;
+  top: 6px;
+  left: 6px;
+  z-index: 99999;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--el-bg-color, #fff);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 25%);
 }
 
 .picker-lab__log {

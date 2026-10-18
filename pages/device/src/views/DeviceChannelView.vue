@@ -26,9 +26,7 @@
           @change="fetchChannels"
         />
       </div>
-      <div class="dcv-field">
-        <ReSelect v-model="filters.status" placeholder="全部状态" clearable :options="STATUS_FILTERS" />
-      </div>
+      <el-segmented v-model="filters.status" :options="statusSegments" class="dcv-seg" />
       <div class="dcv-field dcv-field--search">
         <ReInput v-model="filters.keyword" placeholder="搜索通道名称 / 通道号" clearable prefix-icon="Search" />
       </div>
@@ -132,7 +130,7 @@
           <ReInputNumber v-model="form.deviceChannelSort" :min="0" :max="9999" style="width: 100%" />
         </ReFormItem>
         <ReFormItem label="状态">
-          <ReSwitch v-model="statusEnabled" layout="radio" radio-on-label="启用" radio-off-label="禁用" />
+          <el-segmented v-model="form.deviceChannelStatus" :options="STATUS_SEGMENTS" />
         </ReFormItem>
       </el-form>
       <template #footer>
@@ -170,7 +168,6 @@ import ReInputNumber from '@repo/ui/re-input-number'
 import { ReFormItem } from '@repo/ui/re-kit'
 import ReSelect from '@repo/ui/re-select'
 import ReStatCard from '@repo/ui/re-stat-card'
-import ReSwitch from '@repo/ui/re-switch'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
@@ -178,10 +175,10 @@ import ReTag from '@repo/ui/re-tag'
 import deviceApi from '@/api/deviceApi'
 import type { DeviceChannel, DeviceInfo } from '@/types/device'
 
-/** 状态筛选项 */
-const STATUS_FILTERS = [
-  { value: 'enabled', label: '启用' },
-  { value: 'disabled', label: '禁用' },
+/** 表单里的状态分片（启用 / 禁用） */
+const STATUS_SEGMENTS = [
+  { label: '启用', value: 'enabled' },
+  { label: '禁用', value: 'disabled' },
 ]
 
 const devices = ref<DeviceInfo[]>([])
@@ -189,7 +186,7 @@ const channels = ref<DeviceChannel[]>([])
 const loading = ref(false)
 const loadError = ref('')
 
-const filters = reactive({ deviceId: '', status: '', keyword: '' })
+const filters = reactive({ deviceId: '', status: 'all', keyword: '' })
 
 const dialogVisible = ref(false)
 const dialogSaving = ref(false)
@@ -224,10 +221,17 @@ const currentDeviceName = computed(
 
 const enabledCount = computed(() => channels.value.filter((c) => c.deviceChannelStatus === 'enabled').length)
 
+/** 状态筛选：分片（带计数） */
+const statusSegments = computed(() => [
+  { label: `全部 ${channels.value.length}`, value: 'all' },
+  { label: `启用 ${enabledCount.value}`, value: 'enabled' },
+  { label: `禁用 ${channels.value.length - enabledCount.value}`, value: 'disabled' },
+])
+
 const filteredChannels = computed(() => {
   const kw = filters.keyword.trim().toLowerCase()
   return channels.value.filter((c) => {
-    if (filters.status && c.deviceChannelStatus !== filters.status) return false
+    if (filters.status !== 'all' && c.deviceChannelStatus !== filters.status) return false
     if (!kw) return true
     return `${c.deviceChannelName || ''} ${c.deviceChannelNo}`.toLowerCase().includes(kw)
   })
@@ -240,14 +244,6 @@ const usedNos = computed(
 
 const noInvalid = computed(() => !form.deviceChannelNo || usedNos.value.has(form.deviceChannelNo))
 const formInvalid = computed(() => noInvalid.value || !form.deviceChannelName.trim())
-
-/** ReSwitch 只认布尔：在表单里把 enabled/disabled 折成开关两态 */
-const statusEnabled = computed({
-  get: () => form.deviceChannelStatus === 'enabled',
-  set: (v: boolean) => {
-    form.deviceChannelStatus = v ? 'enabled' : 'disabled'
-  },
-})
 
 const kpis = computed(() => [
   {
@@ -400,7 +396,8 @@ onMounted(fetchDevices)
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 10px 12px 12px;
+  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
+  padding: 10px 0 12px;
   /* 高度够就吃满剩余空间（表格内滚、筛选常驻），不够就自然撑开让主区滚动 */
   min-height: 100%;
   color: var(--el-text-color-primary);
@@ -427,6 +424,9 @@ onMounted(fetchDevices)
 }
 .dcv-field {
   width: 160px;
+}
+.dcv-seg {
+  flex: none;
 }
 .dcv-field--device {
   width: 230px;

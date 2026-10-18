@@ -38,6 +38,7 @@ export type {
   FilePickerItem,
   FilePickerListResult,
   FilePickerLoader,
+  FilePickerSelectModifiers,
   FilePickerSortKey,
   FilePickerTreeNode,
 } from "./types";

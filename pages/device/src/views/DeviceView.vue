@@ -132,7 +132,7 @@
                       class="dv-video__select"
                     />
                     <span class="dv-video__label">协议</span>
-                    <ReSelect v-model="videoProtocol" :options="PROTOCOL_OPTIONS" class="dv-video__select dv-video__select--sm" />
+                    <el-segmented v-model="videoProtocol" :options="PROTOCOL_OPTIONS" size="small" />
                     <div class="dv-video__ops">
                       <ReButton icon="Refresh" :show-text="true" type="primary" @click="reloadStream">刷新拉流</ReButton>
                       <ReButton icon="Connection" :show-text="true" @click="reconnectDevice">重连</ReButton>
@@ -185,9 +185,7 @@
             <div class="dv-field dv-field--search">
               <ReInput v-model="deviceKeyword" placeholder="搜索设备名称 / IP" clearable prefix-icon="Search" />
             </div>
-            <div class="dv-field">
-              <ReSelect v-model="statusFilter" placeholder="全部状态" clearable :options="STATUS_OPTIONS" />
-            </div>
+            <el-segmented v-model="statusFilter" :options="statusSegments" class="dv-seg" />
             <div class="dv-field">
               <ReSelect v-model="categoryFilter" placeholder="全部大类" clearable :options="CATEGORY_OPTIONS" />
             </div>
@@ -270,10 +268,7 @@
           <ReInput v-model="addForm.deviceInfoName" placeholder="例如 大厅球机" />
         </ReFormItem>
         <ReFormItem label="接入方式" required>
-          <el-radio-group v-model="addForm.authType">
-            <el-radio-button value="PLATFORM">平台接入</el-radio-button>
-            <el-radio-button value="SDK">SDK 直连</el-radio-button>
-          </el-radio-group>
+          <el-segmented v-model="addForm.authType" :options="AUTH_TYPE_SEGMENTS" />
         </ReFormItem>
         <ReFormItem label="厂商" required>
           <ReSelect v-model="addForm.vendor" :options="VENDOR_OPTIONS" style="width: 100%" />
@@ -432,9 +427,10 @@ const CATEGORY_OPTIONS = [
   { label: '对讲', value: 'intercom' },
 ]
 
-const STATUS_OPTIONS = [
-  { label: '在线', value: 'online' },
-  { label: '离线', value: 'offline' },
+/** 接入方式（表单分片） */
+const AUTH_TYPE_SEGMENTS = [
+  { label: '平台接入', value: 'PLATFORM' },
+  { label: 'SDK 直连', value: 'SDK' },
 ]
 
 const VENDOR_OPTIONS = [
@@ -547,16 +543,34 @@ const kpis = computed(() => [
   },
 ])
 
-const filteredDevices = computed(() => {
+/** 分段计数口径：先套上搜索与大类，避开「状态」自己筛自己 */
+const baseDevices = computed(() => {
   const kw = deviceKeyword.value.trim().toLowerCase()
   return devices.value.filter((d) => {
-    if (statusFilter.value === 'online' && !d.deviceInfoOnline) return false
-    if (statusFilter.value === 'offline' && d.deviceInfoOnline) return false
     if (categoryFilter.value && d.deviceInfoCategory !== categoryFilter.value) return false
     if (!kw) return true
     return (d.deviceInfoName || '').toLowerCase().includes(kw) || (d.deviceInfoIp || '').toLowerCase().includes(kw)
   })
 })
+
+/** 状态分片（带计数）：全部 / 在线 / 离线 */
+const statusSegments = computed(() => {
+  const base = baseDevices.value
+  const online = base.filter((d) => d.deviceInfoOnline).length
+  return [
+    { label: `全部 ${base.length}`, value: 'all' },
+    { label: `在线 ${online}`, value: 'online' },
+    { label: `离线 ${base.length - online}`, value: 'offline' },
+  ]
+})
+
+const filteredDevices = computed(() =>
+  baseDevices.value.filter((d) => {
+    if (statusFilter.value === 'online' && !d.deviceInfoOnline) return false
+    if (statusFilter.value === 'offline' && d.deviceInfoOnline) return false
+    return true
+  }),
+)
 
 /** 卡牌上的「预留扩展信息位」内容：后续新字段往这里补即可 */
 const heroExtra = computed(() => {
@@ -964,7 +978,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 10px 12px 12px;
+  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
+  padding: 10px 0 12px;
   height: 100%;
   min-height: 0;
   color: var(--el-text-color-primary);
@@ -1145,6 +1160,10 @@ onUnmounted(() => {
 }
 .dv-video__select--sm {
   width: 110px;
+}
+/* 状态筛选分片：不再由 .dv-field 定宽 */
+.dv-seg {
+  flex: none;
 }
 .dv-video__ops {
   display: inline-flex;
