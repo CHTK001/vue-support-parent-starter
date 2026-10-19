@@ -8,8 +8,8 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { getStats, getAlerts } from "../api/apmApi";
-import type { ApmStats, ApmAlert } from "../api/apmApi";
+import { getStats, getAlerts, getHealth, getAgentConfig } from "../api/apmApi";
+import type { ApmStats, ApmAlert, ApmHealth, AgentConfig } from "../api/apmApi";
 
 /** 全局筛选条件缓存 */
 export interface SavedFilter {
@@ -33,6 +33,16 @@ export const useApmStore = defineStore("apm", () => {
   /* ---- Agent 状态 ---- */
   const agentActive = ref(false);
   const agentEnabled = ref(false);
+
+  /* ---- Agent 配置（后端不可用时保持 null，页面降级展示） ---- */
+  const agentConfig = ref<AgentConfig | null>(null);
+  const agentConfigLoading = ref(false);
+
+  /* ---- 健康状态详情 ---- */
+  const health = ref<ApmHealth | null>(null);
+
+  /** 最近一次 stats 轮询延迟（ms），用于 Agent 状态监控 */
+  const lastLatencyMs = ref(0);
 
   /* ---- 实时统计快照 ---- */
   const stats = ref<ApmStats>({
@@ -138,19 +148,45 @@ export const useApmStore = defineStore("apm", () => {
 
   /* ---- 数据拉取 ---- */
   async function pollStatus() {
+    const startedAt = Date.now();
     try {
       const s = await getStats();
       stats.value = s;
       agentActive.value = s.agentActive;
       agentEnabled.value = s.agentEnabled;
+      lastLatencyMs.value = Date.now() - startedAt;
     } catch {
       agentActive.value = false;
+      lastLatencyMs.value = -1;
     }
     try {
       alerts.value = (await getAlerts(100)) || [];
     } catch {
       alerts.value = [];
     }
+  }
+
+  /** 拉取健康状态（不参与主轮询，页面进入时手动调用） */
+  async function loadHealth() {
+    try {
+      health.value = await getHealth();
+    } catch {
+      health.value = null;
+    }
+    return health.value;
+  }
+
+  /** 拉取 Agent 配置；后端 404 时返回 null 并保持前端无错误提示（契约就绪） */
+  async function loadAgentConfig() {
+    agentConfigLoading.value = true;
+    try {
+      agentConfig.value = await getAgentConfig();
+    } catch {
+      agentConfig.value = null;
+    } finally {
+      agentConfigLoading.value = false;
+    }
+    return agentConfig.value;
   }
 
   /* ---- 初始化 ---- */
@@ -163,6 +199,10 @@ export const useApmStore = defineStore("apm", () => {
     // 状态
     agentActive,
     agentEnabled,
+    agentConfig,
+    agentConfigLoading,
+    health,
+    lastLatencyMs,
     stats,
     alerts,
     activeAlertCount,
@@ -172,6 +212,8 @@ export const useApmStore = defineStore("apm", () => {
     notificationChannels,
     // 方法
     pollStatus,
+    loadHealth,
+    loadAgentConfig,
     saveFilter,
     deleteSavedFilter,
     saveNotificationChannel,

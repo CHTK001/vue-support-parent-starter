@@ -15,6 +15,7 @@ import Jvm from "./views/Jvm.vue";
 import Topology from "./views/Topology.vue";
 import Alerts from "./views/Alerts.vue";
 import Injector from "./views/Injector.vue";
+import AgentCenter from "./views/AgentCenter.vue";
 import Services from "./views/Services.vue";
 import ServiceDetail from "./views/ServiceDetail.vue";
 import Errors from "./views/Errors.vue";
@@ -71,6 +72,12 @@ export const routes: RouteRecordRaw[] = [
     name: "HotsportInjector",
     component: Injector,
     meta: { title: "数据注入器" },
+  },
+  {
+    path: "/agent",
+    name: "HotsportAgent",
+    component: AgentCenter,
+    meta: { title: "Agent 中心" },
   },
   {
     path: "/alerts",
