@@ -89,6 +89,23 @@ describe('validateServerNodeForm', () => {
     expect(r.ok).toBe(false);
     expect(r.message).toContain('custom');
   });
+
+  it('端口超范围拦下（1 以下 / 65535 以上）', () => {
+    expect(validateServerNodeForm(form({ port: 0 }), HTTP).message).toBe('端口必须在 1-65535 范围内');
+    expect(validateServerNodeForm(form({ port: -1 }), HTTP).message).toBe('端口必须在 1-65535 范围内');
+    expect(validateServerNodeForm(form({ port: 65536 }), HTTP).message).toBe('端口必须在 1-65535 范围内');
+  });
+
+  it('名称与列表中已存在节点冲突时拦下（编辑态排除自身 / 新增态全量校验）', () => {
+    // 传入 existingNames 时同名即拦
+    const r = validateServerNodeForm(form({ name: 'svc-1' }), HTTP, ['svc-1', 'svc-2']);
+    expect(r.ok).toBe(false);
+    expect(r.message).toContain('已存在');
+    // 不传 existingNames 则不校验名称冲突
+    expect(validateServerNodeForm(form({ name: 'svc-1' }), HTTP).ok).toBe(true);
+    // 传入空数组也不校验
+    expect(validateServerNodeForm(form({ name: 'svc-1' }), HTTP, []).ok).toBe(true);
+  });
 });
 
 describe('buildServerNodePayload', () => {

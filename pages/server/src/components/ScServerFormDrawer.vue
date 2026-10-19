@@ -35,18 +35,37 @@ import {
 } from '../utils/serverNodeForm';
 
 const props = defineProps<{
-  /** 当前编辑的节点；null 表示新增 */
+  /** 当前编辑的节点；null 表示新增（cloneSource 也为空） */
   node: ServerNodeView | null;
+  /** 克隆源（node 为 null 且 cloneSource 有值时走克隆路径） */
+  cloneSource?: ServerNodeView | null;
   /** 协议元数据 */
   protocols: ProtocolMeta[];
   /** 插件元数据 */
   filterTypes: FilterTypeMeta[];
+  /** 列表中已存在的其他节点名称（用于名称重复校验）；传入空则跳过 */
+  existingNames?: string[];
 }>();
 
 const emit = defineEmits<{ (e: 'saved'): void }>();
 
 const router = useRouter();
 const visible = defineModel<boolean>({ default: false });
+
+/** 是否新建（含克隆）—— node 为空或 node.id 为 0（克隆场景 id 被置零） */
+const isCreating = computed(() => !props.node || props.node.id === 0);
+/** 是否克隆模式 */
+const isClone = computed(() => !props.node && !!props.cloneSource);
+
+/** 抽屉标题（编辑/克隆/插件配置三态） */
+const drawerTitle = computed(() => {
+  if (view.value !== 'edit') {
+    return `插件配置 - ${form.value.filters[activeIndex.value]?.name || ''}`;
+  }
+  if (isClone.value) return `克隆服务 - ${props.cloneSource?.name || ''}`;
+  if (!isCreating.value) return `编辑服务 - ${props.node?.name || ''}`;
+  return '新增服务';
+});
 
 /** 视图：编辑 / 单个插件配置页 */
 const view = ref<'edit' | 'filter'>('edit');
@@ -110,12 +129,25 @@ const isProxy = computed(() => !!currentProtocol.value?.requiresBackend);
 /** 是否 SIP 协议 */
 const isSip = computed(() => form.value.protocol === 'sip');
 
-/** 协议专属字段集合 */
+/** 协议专属字段集合（按协议类型动态过滤，不再对所有协议展示全部 11 项通用字段） */
 const protocolFields = computed(() => {
   const fields: Array<{ name: string; label: string; type: string; placeholder?: string }> = [];
+  const alias = form.value.protocol;
+  const meta = currentProtocol.value;
   if (isProxy.value) fields.push(...PROXY_FIELDS);
   if (isSip.value) fields.push(...SIP_FIELDS);
-  fields.push(...COMMON_FIELDS);
+  // HTTP 类协议展示通用传输配置
+  if (alias === 'http' || alias === 'https' || alias === 'http2') {
+    fields.push(...COMMON_FIELDS);
+  }
+  // 后端下发了 params schema 时追加协议自定义扩展字段
+  if (meta?.params?.length) {
+    for (const p of meta.params) {
+      if (!fields.some(f => f.name === p.name)) {
+        fields.push({ name: p.name, label: p.name, type: p.type ?? 'string', placeholder: p.desc });
+      }
+    }
+  }
   return fields;
 });
 
@@ -193,7 +225,7 @@ watch(visible, open => {
   if (!open) return;
   view.value = 'edit';
   pickerKeyword.value = '';
-  const n = props.node;
+  const n = props.node ?? props.cloneSource;
   if (n) {
     form.value = {
       name: n.name,
@@ -206,6 +238,10 @@ watch(visible, open => {
       config: { ...(n.config || {}) },
       filters: (n.filters || []).map(f => ({ ...f, params: { ...(f.params || {}) } })),
     };
+    // 克隆时给名称加后缀引导用户改名
+    if (isClone.value) {
+      form.value.name = `${n.name}-clone`;
+    }
   } else {
     const first = props.protocols[0];
     form.value = {
@@ -413,7 +449,7 @@ function openFilterDetailPage() {
 function validate() {
   const result = validateServerNodeForm(form.value as ServerNodeFormModel, {
     requiresBackend: isProxy.value,
-  });
+  }, props.existingNames);
   if (!result.ok) {
     message.warning(result.message || '表单校验未通过');
     return false;
@@ -443,8 +479,8 @@ async function submit() {
   if (!validate()) return;
   submitting.value = true;
   try {
-    if (props.node) {
-      await updateServerNode(props.node.id, buildPayload());
+    if (!isCreating.value) {
+      await updateServerNode(props.node!.id, buildPayload());
       message.success('已保存，运行中的实例已按新配置重启');
     } else {
       await createServerNode(buildPayload());
@@ -470,8 +506,8 @@ async function submit() {
 async function submitHot() {
   if (!validate()) return;
   const payload = buildPayload();
-  if (!props.node) {
-    // 未创建时无热更新语义，退化为创建
+  // 克隆或未保存节点：无热更新语义，退化为创建
+  if (isCreating.value) {
     submitting.value = true;
     try {
       await createServerNode(payload);
@@ -491,7 +527,7 @@ async function submitHot() {
   }
   submitting.value = true;
   try {
-    const result = await hotUpdateServerNode(props.node.id, payload);
+    const result = await hotUpdateServerNode(props.node!.id, payload);
     if (result?.restarted) {
       message.warning(result.message || '监听参数变更，已自动重启节点');
     } else if (result?.hotApplied) {
@@ -532,7 +568,7 @@ async function toggleLive(index: number, enabled: boolean) {
 <template>
   <ReDrawer
     v-model="visible"
-    :title="view === 'edit' ? (node ? `编辑服务 - ${node.name}` : '新增服务') : `插件配置 - ${form.filters[activeIndex]?.name || ''}`"
+    :title="drawerTitle"
     :size="view === 'edit' ? 1000 : 760"
     direction="rtl"
     close-only
@@ -711,7 +747,7 @@ async function toggleLive(index: number, enabled: boolean) {
         <div class="form-actions">
           <ReButton show-text icon="Check" type="primary" :loading="submitting" @click="submit">保存</ReButton>
           <ReButton show-text icon="Lightning" :loading="submitting" @click="submitHot">
-            {{ node ? '保存并热更新' : '创建并启动' }}
+            {{ isCreating ? '创建并启动' : '保存并热更新' }}
           </ReButton>
           <ReButton show-text icon="Close" @click="visible = false">取消</ReButton>
           <span class="dim">热更新会就地替换过滤器链，服务不中断；仅监听地址/端口/引擎变更时才重启</span>
