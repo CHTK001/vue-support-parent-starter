@@ -205,6 +205,7 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageLogs, exportLogsCsv, injectLog, getLogStats, getTraceDetail } from "../api/apmApi";
 import type { LogRecord, LogLevelStat } from "../api/apmApi";
+import { useRealtimeLog } from "../composables/useRealtime";
 
 const router = useRouter();
 const route = useRoute();
@@ -389,40 +390,28 @@ function toggleLevel(level: string) {
   filterLevel.value = filterLevel.value === level ? "" : level;
 }
 
-// ---- 实时日志流（SSE log 事件）----
-const liveStream = ref(false);
-const liveItems = ref<LogRecord[]>([]);
-let logEventSource: EventSource | null = null;
+// ---- 实时日志流（统一走 useRealtime composable，不再自建 EventSource）----
+const {
+  active: liveStream,
+  items: liveItems,
+  start: startLiveStream,
+  stop: stopLiveStream,
+  clear: clearLiveStream,
+} = useRealtimeLog({ maxItems: 50 });
 
 function toggleLiveStream(on: boolean) {
   if (on) {
-    // 实时流本身就持续推送，关掉轮询避免两路同时刷新
+    // 实时流走全站单例通道，关掉轮询避免两路同时刷新
     autoRefresh.value = false;
-    liveItems.value = [];
-    logEventSource = new EventSource("/api/apm/stream?intervalMs=3000");
-    logEventSource.addEventListener("log", (ev: MessageEvent) => {
-      try {
-        const raw = JSON.parse(ev.data as string);
-        const rec: LogRecord = (raw && typeof raw === "object" && "items" in raw)
-          ? (raw.items[0] as LogRecord)
-          : (raw as LogRecord);
-        if (rec && (rec.level || rec.message)) {
-          liveItems.value.unshift(rec);
-          if (liveItems.value.length > 50) liveItems.value.pop();
-        }
-      } catch {
-        /* 忽略畸形帧 */
-      }
-    });
+    clearLiveStream();
+    startLiveStream();
   } else {
-    logEventSource?.close();
-    logEventSource = null;
+    stopLiveStream();
   }
 }
 
 onBeforeUnmount(() => {
-  logEventSource?.close();
-  logEventSource = null;
+  stopLiveStream();
   if (autoTimer) {
     window.clearInterval(autoTimer);
     autoTimer = undefined;
@@ -430,7 +419,7 @@ onBeforeUnmount(() => {
 });
 
 /** 级别 → 语义色档位（ERROR/WARN/INFO/DEBUG 四档，其余按 DEBUG 处理） */
-function levelClass(level: string): string {
+function levelClass(level: string | undefined): string {
   switch ((level || "").toUpperCase()) {
     case "ERROR":
     case "FATAL":
