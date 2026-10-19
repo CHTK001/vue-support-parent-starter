@@ -304,11 +304,11 @@
           <template v-else-if="form.sourceType === 'FILE'">
             <div class="st-form-item">
               <label>服务器本地文件</label>
-              <div class="st-inline">
+              <div class="st-inline st-path-field">
                 <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/order.csv" class="mono st-path-input">
                   <template #prefix><ReIcon name="Document" :size="14" /></template>
                 </el-input>
-                <ReButton layout="square" icon="FolderOpened" @click="openPathPicker('FILE')">浏览…</ReButton>
+                <ReButton icon="FolderOpened" @click="openPathPicker('FILE')">浏览…</ReButton>
               </div>
               <div class="st-form-hint st-hint-dot">路径是<b>后端服务所在机器</b>的路径，不是浏览器所在机器。</div>
             </div>
@@ -342,9 +342,11 @@
           <template v-else-if="form.sourceType === 'DIR'">
             <div class="st-form-item">
               <label>服务器本地文件夹</label>
-              <div class="st-inline">
-                <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/incoming" class="mono" />
-                <ReButton layout="square" icon="Folder" @click="openPathPicker('DIR')">浏览…</ReButton>
+              <div class="st-inline st-path-field">
+                <el-input v-model="form.sourcePath" placeholder="服务器本地绝对路径，如 /data/incoming" class="mono st-path-input">
+                  <template #prefix><ReIcon name="FolderOpened" :size="14" /></template>
+                </el-input>
+                <ReButton icon="Folder" @click="openPathPicker('DIR')">浏览…</ReButton>
               </div>
               <div class="st-form-hint">启用后自动监听该目录，新文件落盘即实时录入。</div>
             </div>
@@ -984,12 +986,19 @@ const openPathPicker = (mode: "FILE" | "DIR") => {
 };
 
 /**
- * ReFilePicker 的 loader：列后端所在机器的目录。
+ * ReFilePicker 的 loader：列后端所在机器的目录（filesystem-starter 的目录浏览接口）。
  * loader 必须由宿主配置为远端接口形状（FilePickerItem[]），不得回退到组件内置 mock。
- * @param path 当前目录（留空列文件系统根）
+ *
+ * <p>「文件系统根」两边表达不同：组件用虚拟根 `/`。filesystem-starter 已按同一语义
+ * 处理（Windows 返回盘符列表，类 Unix 直接列 `/`），所以这里不再做根目录重试。</p>
+ *
+ * <p>选择文件夹时也要求返回文件：最后一层目录里有什么文件，是用户确认「进对目录」的
+ * 唯一依据；文件在目录模式下只展示、不可选。</p>
+ *
+ * @param path 当前目录（组件虚拟根为 `/`）
  */
 const localFileLoader = async (path: string): Promise<FilePickerItem[]> => {
-  const rows = await fetchLocalFiles(path || "", filePickerMode.value === "FILE");
+  const rows = await fetchLocalFiles(path || "", true);
   return (rows ?? []).map(item => ({
     key: item.key,
     name: item.name,
@@ -2975,10 +2984,23 @@ onUnmounted(() => {
 .st-dlg-status.is-bad { color: var(--el-color-warning); }
 .st-dlg-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 
-/* ---------- 本机路径行：输入框占满 + 方形「浏览」按钮 ---------- */
+/* ---------- 本机路径行：输入框 +「浏览…」拼成一个控件（资源管理器地址栏观感） ----------
+   两段共用中缝：输入框只留左圆角、按钮只留右圆角并左移 1px 压掉重叠的那条边框，
+   所以看起来是「一个输入框 + 一个带底色的浏览段」，而不是悬空的一根方图标。 */
 .st-path-input { flex: 1; min-width: 0; }
 .st-path-input :deep(.el-input__wrapper) { padding-left: 10px; }
 .st-path-input :deep(.el-input__prefix) { color: var(--text-tertiary); }
+.st-path-field { gap: 0; }
+.st-path-field .st-path-input :deep(.el-input__wrapper) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.st-path-field :deep(.el-button) {
+  flex: none;
+  margin: 0 0 0 -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
 .st-hint-dot::before { content: "●"; margin-right: 6px; font-size: 8px; color: var(--text-tertiary); vertical-align: 1px; }
 
 /* ---------- 调试日志弹窗：摘要条 + 服务端逐步日志（降级时为本机记录，全走 EP 变量，亮暗自适应） ---------- */

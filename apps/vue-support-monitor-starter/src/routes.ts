@@ -46,23 +46,31 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 抓包分析 ====================
-  // 从「监控管理」子项提升为独立顶层分组（rank 6，排在数据中心之后、资产管理之前）。
+  // ==================== 分析管理 ====================
+  // 这个分组的两个子页是同一套抓包分析能力的两条入口：
+  //   「抓包分析」= 网卡实时抓包（起会话、管 BPF、边抓边看）
+  //   「PCAP 分析」= 导入既有 pcap（上传、解析入库、原件下载）
+  // 两者共用报文分页 / 协议分布 / Top 流 / 详情抽屉，所以归在一个分组下。
   //
-  // 为什么要独立：抓包是一套独立能力 —— 起会话、管 BPF 过滤、看协议分布与 Top 流、
-  // 逐包下钻，和「告警 / 概览」这种看一眼就走的监控视图不是一类东西。此前它挂在
-  // 监控管理分组里，入口要多点一次才能看到；提为顶层后与「服务管理」「发布管理」
-  // 这类单子项顶层组保持同一套做法。
+  // 分组名从「抓包分析」改成「分析管理」：加了导入这一路之后，「抓包分析」既当分组名
+  // 又当子页名（菜单上会出现两条一模一样的「抓包分析」），且盖不住「导入文件」这种
+  // 不算抓包的场景。改叫「分析管理」后，子页各叫各的。
   {
     path: "/grp-capture",
     name: "GroupCapture",
-    meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 6 },
+    meta: { title: "分析管理", icon: "DataAnalysis", showLink: true, rank: 6 },
     children: [
       {
         path: "/tshark",
         name: "Tshark",
         component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"),
         meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 1 },
+      },
+      {
+        path: "/tshark-pcap",
+        name: "TsharkPcap",
+        component: () => import("@pages/monitor/src/views/tshark/ScTsharkPcapAnalysis.vue"),
+        meta: { title: "PCAP 分析", icon: "Files", showLink: true, rank: 2 },
       },
     ],
   },
@@ -90,6 +98,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
         // 执行由后端复用 datasync 引擎完成（源读取 / 字段映射转换 / Sink 契约）。
         component: () => import("./views/SyncTaskView.vue"),
         meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
+      },
+      {
+        // 临时验证页（验证完删除）：ReFilePicker 新增能力（右键菜单 / 预览 / 数量与类型限制）。
+        path: "/tmp-picker-lab",
+        name: "TmpPickerLab",
+        component: () => import("./views/TmpPickerLab.vue"),
+        meta: { title: "临时选择器验证", showLink: false, rank: 99 },
       },
     ],
   },
@@ -170,8 +185,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 不必先进资产管理再找。rank 取 11，紧邻资产管理（10）且早于服务管理（15）。
   //
   // 组名用「设备管理」而非「设备资产」：组内已不止资产台账，还含组织/通道/日志/提供商配置。
-  // 四个子页都走 device-starter 原生前缀 /api/device（见 app.yaml 的 moduleBaseUrl.device），
-  // 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
+  // 五个子页都走 device-starter 原生前缀 /api/device（见 app.yaml 的 moduleBaseUrl.device），
+  // 后端由 spring-support-monitor-starter 依赖 device-starter 承载。页面直接复用
+  // @pages/device 的工作台 / 卡牌视图，monitor 不再维护一套表格版拷贝。
   {
     path: "/grp-device",
     name: "GroupDevice",
@@ -180,31 +196,34 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/device-assets",
         name: "DeviceAssets",
-        component: () => import("./views/DeviceAssetsView.vue"),
+        // 与设备应用共用一套工作台：左侧组织树 + 右侧主机卡牌 / 设备总览，
+        // 避免 monitor 自己再维护一份表格版设备资产页，两处 UI 越走越远。
+        component: () => import("@pages/device/src/views/DeviceView.vue"),
         meta: { title: "设备资产", icon: "Monitor", showLink: true, rank: 11 },
       },
       {
         path: "/device-orgs",
         name: "DeviceOrgs",
-        component: () => import("./views/DeviceOrganizationView.vue"),
+        component: () => import("@pages/device/src/views/DeviceOrganizationView.vue"),
         meta: { title: "设备组织", icon: "FolderOpened", showLink: true, rank: 12 },
       },
       {
         path: "/device-channels",
         name: "DeviceChannels",
-        component: () => import("./views/DeviceChannelView.vue"),
+        component: () => import("@pages/device/src/views/DeviceChannelView.vue"),
         meta: { title: "通道管理", icon: "Connection", showLink: true, rank: 13 },
       },
       {
         path: "/device-events",
         name: "DeviceEvents",
-        component: () => import("./views/DeviceEventLogView.vue"),
+        component: () => import("@pages/device/src/views/DeviceEventLogView.vue"),
         meta: { title: "设备日志", icon: "Tickets", showLink: true, rank: 14 },
       },
       {
         path: "/device-providers",
         name: "DeviceProviders",
-        component: () => import("./views/DeviceProviderConfigView.vue"),
+        // 提供商配置同样用卡牌（每套凭据一张卡，扩展信息位预留在卡底），不再用表格。
+        component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
       },
     ],
