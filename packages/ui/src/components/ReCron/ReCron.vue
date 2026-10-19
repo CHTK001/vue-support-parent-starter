@@ -162,6 +162,11 @@ const state = reactive<Record<string, FieldState>>({
 /** 表达式与面板对不上时置为 true：只信表达式，不再回写面板 */
 const rawMode = ref(false);
 const rawExpression = ref("");
+/**
+ * 清空（model 变空）时面板会复位成六段全 `*`，由此派生出的表达式记在这里。
+ * {@link watch}(expression) 遇到它就不回写 model —— 否则「清空」会立刻被填回 `* * * * * *`。
+ */
+let blankExpression = "";
 const tab = ref("sec");
 const open = ref(false);
 
@@ -487,6 +492,16 @@ function syncFromModel(value: string): void {
   if (!value.trim() || tokens.length !== 6) {
     rawMode.value = !!value.trim();
     rawExpression.value = value.trim();
+    /* 空值/段数不对时面板没有可对应的字段，这里必须复位成「不限制」：
+       否则点了清空/改坏表达式后，六段胶囊还停在旧值，看起来像没清掉。 */
+    for (const k of FIELD_KEYS) {
+      delete rawTokens[k];
+      delete panelParsed[k];
+      Object.assign(state[k], blank());
+    }
+    nameNormalized.value = false;
+    /* 复位会派生出一条六段全 * 表达式；记下来好让 watch(expression) 不回写 model */
+    if (!value.trim()) blankExpression = expression.value;
     return;
   }
     const keys = [...FIELD_KEYS];
@@ -495,11 +510,6 @@ function syncFromModel(value: string): void {
     delete panelParsed[k];
   }
   nameNormalized.value = false;
-  if (!value.trim() || tokens.length !== 6) {
-    rawMode.value = !!value.trim();
-    rawExpression.value = value.trim();
-    return;
-  }
   let sawName = false;
   const claimed = keys.map((k, i) => {
     const raw = tokens[i];
@@ -571,6 +581,8 @@ watch(expression, (v) => {
   if (rawMode.value || nameNormalized.value || props.disabled) return;
   /* 输入派生的 expression 不回写，否则输入框每敲一键就被改写（见 syncingFromModel）。 */
   if (syncingFromModel) return;
+  /* 清空引起的面板复位（六段全 *）不回写 model，否则「清空」等于没清。 */
+  if (!(model.value || "").trim() && v === blankExpression) return;
   if (v !== model.value) model.value = v;
 });
 

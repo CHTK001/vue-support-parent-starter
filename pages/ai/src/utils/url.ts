@@ -25,8 +25,11 @@ export function fixFrontendAssetUrl(url: string): string {
     return url.substring(1)
   }
   
-  // Web 环境：保持原样（带 / 的绝对路径）
-  return url
+  // Web 环境：拼上应用 base。内嵌宿主（如挂在 /eduai/ 下）时 public 资源经
+  // /eduai/** 服务，裸绝对路径 /images/** 必然 404。import.meta.env.BASE_URL 由
+  // 各应用 vite 注入：独立运行 '/'（结果不变）、内嵌时随之变化。
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '')
+  return `${base}${url}`
 }
 
 /**

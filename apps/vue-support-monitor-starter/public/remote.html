@@ -29,13 +29,16 @@
     const protocol = params.get('protocol') || 'ssh';
     const identityId = params.get('identityId') || '';
     const targetPort = params.get('targetPort') || '';
+    // 外层组件把登录令牌带进来；WS 握手不能加请求头，后端只认查询参数 x-oauth-token
+    const token = params.get('token') || '';
 
     const wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsHost = location.host;
     const wsUrl = wsProto + wsHost + '/ws/ms/server/terminal?hostId=' + hostId +
       '&protocol=' + protocol +
       (identityId ? '&identityId=' + identityId : '') +
-      (targetPort ? '&targetPort=' + targetPort : '');
+      (targetPort ? '&targetPort=' + targetPort : '') +
+      (token ? '&x-oauth-token=' + encodeURIComponent(token) : '');
 
     console.log('[remote] connecting tunnel:', wsUrl);
     const tunnel = new Guacamole.WebSocketTunnel(wsUrl);

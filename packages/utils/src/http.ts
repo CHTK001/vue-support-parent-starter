@@ -115,9 +115,24 @@ function firstPartyHeaders(): Record<string, string> {
  */
 let defaultInstance: typeof axios = axios;
 
+/** setDefaultHttpInstance 是否已被调用（区分「裸 axios」与「宿主注入的管线」） */
+let defaultInjected = false;
+
 /** 注入全局默认 axios 实例（createApp 构建 HTTP 客户端后调用） */
 export function setDefaultHttpInstance(instance: AxiosInstance): void {
   defaultInstance = (instance ?? axios) as typeof axios;
+  defaultInjected = true;
+}
+
+/**
+ * 读取全局默认 axios 实例；宿主尚未注入时返回 null。
+ *
+ * <p>内嵌场景（如把 pages/ai 的页面嵌进其它应用）用：宿主 createApp 装配期间
+ * 即完成注入，早于任何路由渲染，故内嵌页的请求出口不必等宿主显式 adopt
+ * 框架上下文即可拿到带拦截器的实例（Bearer / 第一方头 / 401 / 统一提示）。</p>
+ */
+export function getDefaultHttpInstance(): AxiosInstance | null {
+  return defaultInjected ? (defaultInstance as unknown as AxiosInstance) : null;
 }
 
 type MetaRequestConfig = AxiosRequestConfig & { hc?: HttpMetaConfig };
@@ -571,7 +586,7 @@ export function unwrapResult<T>(res: unknown, successCode: string = "00000"): T 
 }
 
 export { AxiosError };
-export type { AxiosResponse, AxiosRequestConfig, InternalAxiosRequestConfig };
+export type { AxiosResponse, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosInstance };
 
 /** 快捷别名：http() === createHttp() */
 export const http = createHttp;

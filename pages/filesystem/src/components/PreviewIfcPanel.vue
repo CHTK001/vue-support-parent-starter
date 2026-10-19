@@ -170,6 +170,9 @@ function disposeAll(): void {
   disposeScene();
   if (renderer) {
     renderer.domElement.remove();
+    // 同 PreviewModel3dPanel：dispose() 不归还 WebGL 上下文，连续预览会把上下文
+    // 累积到上限，导致后续 3D 预览报「Error creating WebGL context」。
+    renderer.forceContextLoss();
     renderer.dispose();
     renderer = null;
   }

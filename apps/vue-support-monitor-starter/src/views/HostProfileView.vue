@@ -11,13 +11,15 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
   closeNetProcess,
   deleteHostEnvVar,
   fetchHostProfile,
   fetchHostProfileSection,
+  fetchProcessChildren,
+  fetchProcessThreads,
   killProcess,
   restartHostProcess,
   restartService,
@@ -33,6 +35,7 @@ import HostFileManager from "../components/HostFileManager.vue";
 import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 import type { Host, Group } from "./AssetsView.vue";
 import ReDialog from "@repo/ui/re-dialog";
+import type { ReTableColumn, ReTableContextMenuContext, ReTableContextMenuItem, ReTableLoader } from "@repo/ui/re-table";
 
 interface Props {
   hosts: Host[];
@@ -91,7 +94,7 @@ const COLUMNS: Record<SectionKey, Array<{ key: string; label: string; width?: st
     { key: "pid", label: "PID", width: "88px" },
     { key: "name", label: "进程名", width: "220px" },
     { key: "cpu", label: "CPU%", width: "88px" },
-    { key: "memory", label: "内存(MB)", width: "110px" },
+    { key: "memory", label: "内存", width: "110px" },
     { key: "threads", label: "线程", width: "88px" },
     { key: "command", label: "命令行" },
   ],
@@ -126,9 +129,6 @@ const COLUMNS: Record<SectionKey, Array<{ key: string; label: string; width?: st
   ],
 };
 
-/** 自动刷新周期（毫秒） */
-const AUTO_REFRESH_MILLIS = 10000;
-
 /** 左侧选中的主机 id */
 const selectedId = ref<number | null>(null);
 /** 左侧视图：主机列表 / 选中主机的概要 */
@@ -146,6 +146,181 @@ const pageSize = ref(10);
 /** 进程/服务的检索关键字：后端跨页匹配 PID/名称/用户/命令行 */
 const sectionKeyword = ref("");
 
+/**
+ * 内存自动换算单位（后端进程内存口径为 MB）。
+ *
+ * <p>表头不再写死 MB：小于 1MB 显 KB、1~1024 显 MB、超过 1GB 显 GB，
+ * 避免「0.1 MB」「20480 MB」这类难读的原始值。</p>
+ *
+ * @param mb 内存兆字节数
+ * @returns 带单位的可读文本；无效值回 —
+ */
+function fmtMemMb(mb: unknown): string {
+  const n = Number(mb);
+  if (!Number.isFinite(n) || n < 0) return "—";
+  if (n > 0 && n < 1) return `${Math.round(n * 1024)} KB`;
+  if (n < 1024) return `${n >= 100 ? Math.round(n) : n.toFixed(1)} MB`;
+  return `${(n / 1024).toFixed(2)} GB`;
+}
+
+/** 当前分区内存合计（微数据：跟在「共 N 条」后面，只在进程分区出现） */
+const sectionMemTotal = computed(() => {
+  if (active.value !== "processes") return "";
+  const sum = sectionAll.value.reduce((acc, r) => acc + (Number(r.memory) || 0), 0);
+  return sum > 0 ? fmtMemMb(sum) : "";
+});
+
+/* ================== ReTable 数据源 ================== */
+
+/**
+ * 已提交的检索词。ReTable 监听 params 变化后自动回第 1 页重取，
+ * 所以「搜索」只需要把输入框的值提交到这里。
+ */
+const appliedKeyword = ref("");
+/** 进程树展开版本：展开/收起后自增，触发 ReTable 重取（子进程已在 procTree 里缓存） */
+const treeVersion = ref(0);
+/** 分区全量行（分页前的整份数据）：矩形树图、条数、内存合计都读它 */
+const sectionAll = ref<Record<string, any>[]>([]);
+
+/** 传给 ReTable 的查询参数；任一键变化都会触发重载并回到第 1 页 */
+const tableParams = computed(() => ({
+  // 分区与主机必须进参数：ReTable 只在 params 变化时重取，
+  // 不放进来切分区会沿用上一个分区的行、按新列名渲染（全是 —）。
+  section: active.value,
+  host: selectedId.value ?? 0,
+  keyword: appliedKeyword.value,
+  sort: `${sortState.value?.key ?? ""}:${sortState.value?.dir ?? ""}`,
+  tree: treeVersion.value,
+}));
+
+/**
+ * ReTable 列定义。
+ *
+ * <p>进程内存列不再在表头写死 MB，改由 {@link fmtMemMb} 按量级换算；
+ * 状态列走图标插槽，名称/命令行走省略号插槽，其余列直接渲染。</p>
+ */
+const tableColumns = computed<ReTableColumn[]>(() => {
+  const out: ReTableColumn[] = [];
+  if (active.value === "processes" || active.value === "services") {
+    out.push({
+      prop: "__lead", label: "", width: active.value === "processes" ? 96 : 46, slot: "lead",
+    });
+  }
+  for (const c of columns.value) {
+    const col: ReTableColumn = {
+      prop: c.key,
+      label: c.label,
+      width: c.width,
+      sortable: isSortable(c.key) ? "custom" : false,
+      showOverflowTooltip: c.key !== "state" && c.key !== "name" && c.key !== "command",
+    };
+    if (c.key === "state" || c.key === "name" || c.key === "command") col.slot = c.key;
+    if (active.value === "processes" && c.key === "memory") {
+      col.label = "内存";
+      col.align = "right";
+      col.formatter = (_row, _col, v) => fmtMemMb(v);
+    }
+    out.push(col);
+  }
+  return out;
+});
+
+/** 排序：与表头契约一致，只对进程/服务的数值列生效 */
+function sortRows(list: Record<string, any>[]): Record<string, any>[] {
+  const s = sortState.value;
+  if (!s || (active.value !== "processes" && active.value !== "services")) return list;
+  const key = s.key;
+  const dir = s.dir === "desc" ? -1 : 1;
+  return [...list].sort((a, b) => {
+    const na = Number(a?.[key]);
+    const nb = Number(b?.[key]);
+    return ((Number.isFinite(na) ? na : 0) - (Number.isFinite(nb) ? nb : 0)) * dir;
+  });
+}
+
+/** 进程树铺平：已展开 pid 的子进程插在父行后，并标记深度供缩进 */
+function flattenTree(list: Record<string, any>[]): Array<Record<string, any>> {
+  if (active.value !== "processes") return list;
+  const out: Array<Record<string, any>> = [];
+  const walk = (rowsIn: Record<string, any>[], depth: number): void => {
+    for (const r of rowsIn) {
+      out.push({ ...r, __depth: depth });
+      const pid = Number(r?.pid);
+      const st = procTree.value[pid];
+      if (st?.open && st.children.length) walk(st.children, depth + 1);
+    }
+  };
+  walk(list, 0);
+  return out;
+}
+
+/**
+ * ReTable 数据源（远程模式）。
+ *
+ * <p>后端分区端点只回「当前页」，没有 total；这里改成一次取全量（后端上限
+ * 500 条），在本地排序 / 铺平进程树后再切片。好处是 total 是真实条数、
+ * 翻页不必再打接口，且 ReTable 自带的刷新 / 自动刷新确实会重新取数。</p>
+ */
+const tableLoader: ReTableLoader = async ({ page: p, pageSize: ps, params }) => {
+  const host = selectedHost.value;
+  const sec = active.value;
+  if (!host) return { data: [], total: 0 };
+  const kw = String(params?.keyword ?? "");
+  loadingSection.value = true;
+  sectionError.value = "";
+  try {
+    const all = ((await fetchHostProfileSection(host.id, sec, 1, 500, kw || undefined)) ?? []) as Record<string, any>[];
+    // 期间已切主机 / 分区：丢弃迟到响应
+    if (active.value !== sec || selectedId.value !== host.id) return { data: [], total: 0 };
+    sectionAll.value = all;
+    rows.value = all;
+    const flat = flattenTree(sortRows(all));
+    const start = (p - 1) * ps;
+    return { data: flat.slice(start, start + ps), total: flat.length };
+  } catch (e) {
+    sectionError.value = String((e as Error)?.message ?? e);
+    return { data: [], total: 0 };
+  } finally {
+    loadingSection.value = false;
+  }
+};
+
+/** ReTable 右键菜单项：与既有行动作一一对应，键名沿用 rowMenuCommand 的命令 */
+const rowMenuItems = computed<ReTableContextMenuItem[]>(() => {
+  if (!rowHasActions.value) return [];
+  if (active.value === "processes") {
+    return [
+      { key: "tree", label: "展开 / 收起子进程" },
+      { key: "threads", label: "查看线程" },
+      { key: "path", label: "显示文件路径" },
+      { key: "restart", label: "重启进程", divided: true },
+      { key: "kill", label: "结束进程" },
+    ];
+  }
+  if (active.value === "services") {
+    return [
+      { key: "svc-start", label: "启动服务" },
+      { key: "svc-restart", label: "重启服务" },
+      { key: "svc-stop", label: "停止服务" },
+    ];
+  }
+  if (active.value === "ports") return [{ key: "close-port", label: "结束占用进程" }];
+  return [{ key: "env-del", label: "删除变量" }];
+});
+
+/** 右键菜单选中：复用既有命令分发（rowMenuCommand 读 rowMenu.row） */
+function onRowMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
+  rowMenu.row = ctx.row as Record<string, any>;
+  rowMenuCommand(item.key);
+}
+
+/** 表头排序 → 写回 sortState（params 变化带动重载） */
+function onTableSort(payload: { prop: string; order: "ascending" | "descending" | null }): void {
+  sortState.value = payload.order
+    ? { key: payload.prop, dir: payload.order === "descending" ? "desc" : "asc" }
+    : null;
+}
+
 /** 进程/服务表头排序状态（key=列名，dir=asc/desc，null=不排序） */
 const sortState = ref<{ key: string; dir: "asc" | "desc" } | null>(null);
 
@@ -153,13 +328,15 @@ const sortState = ref<{ key: string; dir: "asc" | "desc" } | null>(null);
 function resetPager(): void {
   page.value = 1;
   sectionKeyword.value = "";
+  appliedKeyword.value = "";
   sortState.value = null;
+  treeVersion.value = 0;
+  sectionAll.value = [];
 }
 
-/** 提交一次检索：回到第一页重新拉取 */
+/** 提交一次检索：ReTable 监听 params 变化后自动回第 1 页重取 */
 function applyKeyword(): void {
-  page.value = 1;
-  loadSection();
+  appliedKeyword.value = sectionKeyword.value.trim();
 }
 
 const info = ref<Record<string, any>>({});
@@ -175,12 +352,17 @@ const agentPort = ref(0);
 const osMismatch = ref("");
 const rows = ref<Record<string, any>[]>([]);
 
+/**
+ * 进程树展开状态：pid → { open, loading, children }。
+ *
+ * <p>子进程按需向后端拉取（后端按 ppid 过滤全量进程表）；切换主机 / 分区时清空，避免串台。</p>
+ */
+const procTree = ref<Record<number, { open: boolean; loading: boolean; children: Record<string, any>[] }>>({});
+
 const loadingProfile = ref(false);
 const loadingSection = ref(false);
 const profileError = ref("");
 const sectionError = ref("");
-const autoRefresh = ref(false);
-let timer: number | undefined;
 /** 异步加载请求代次：切换主机 / 分区 / 重开时 +1，迟到的旧响应据此丢弃，避免慢通道覆盖新数据 */
 let profileReq = 0;
 let sectionReq = 0;
@@ -194,10 +376,10 @@ const isAgentMode = computed(() =>
   String(selectedHost.value?.serverHostCollectMode ?? "").toUpperCase() === "AGENT");
 /** 当前分区的列定义 */
 const columns = computed(() => COLUMNS[active.value] ?? []);
-/** 监听端口 / 进程 / 服务 / 环境变量 分区带写动作 */
-const hasActions = computed(() =>
-  active.value === "ports" || active.value === "processes" || active.value === "services"
-  || active.value === "env");
+/** 监听端口 / 进程 / 服务 / 环境变量 分区带写动作：行动作统一收敛到右键菜单，不再占操作列 */
+const rowHasActions = computed(() =>
+  active.value === "ports" || active.value === "processes"
+  || active.value === "services" || active.value === "env");
 /** 进程 / 服务 / 监听端口 均由后端分页（后台只返回当前页） */
 const pagedSection = computed(() =>
   active.value === "processes" || active.value === "services"
@@ -274,6 +456,7 @@ function selectHost(id: number): void {
   selectedId.value = id;
   railView.value = "summary";
   rows.value = [];
+  procTree.value = {};
   sectionError.value = "";
   resetPager();
   // 切机属于「进入」：只读台账快照，不触发实时采集
@@ -287,6 +470,7 @@ function pickSection(name: SectionKey): void {
   sortState.value = null;
   // 切换分区先清空旧行，避免新分区拉取期间仍展示上一个分区的行
   rows.value = [];
+  procTree.value = {};
   loadSection();
 }
 
@@ -315,10 +499,10 @@ function focusRequested(): void {
   active.value = target;
   resetPager();
   rows.value = [];
+  procTree.value = {};
   sectionError.value = "";
   loadProfile();
   loadSection();
-  if (autoRefresh.value && !timer) restartTimer();
 }
 
 /** 兼容旧入口传来的分区名（原「系统管理」那套 key） */
@@ -635,25 +819,192 @@ onBeforeUnmount(() => {
   if (treemap) treemap.dispose();
 });
 
-/* ================== 自动刷新 ================== */
+/* ================== 进程树 / 右键菜单 / 线程 / 文件路径 ================== */
 
-function restartTimer(): void {
-  if (timer) {
-    window.clearInterval(timer);
-    timer = undefined;
+/** 表体渲染行：进程分区按已展开的树铺平（带深度），其余分区平铺 */
+const displayRows = computed<Array<{ r: Record<string, any>; depth: number }>>(() => {
+  if (active.value !== "processes") {
+    return tableRows.value.map(r => ({ r, depth: 0 }));
   }
-  if (!autoRefresh.value) return;
-  timer = window.setInterval(() => {
-    if (!selectedHost.value || document.hidden) return;
-    loadProfile();
-    loadSection();
-  }, AUTO_REFRESH_MILLIS);
-}
-watch(autoRefresh, restartTimer);
-watch(selectedId, () => { if (autoRefresh.value && !timer) restartTimer(); });
-onBeforeUnmount(() => {
-  if (timer) window.clearInterval(timer);
+  const out: Array<{ r: Record<string, any>; depth: number }> = [];
+  const walk = (list: Record<string, any>[], depth: number): void => {
+    for (const r of list) {
+      out.push({ r, depth });
+      const pid = Number(r?.pid);
+      const st = procTree.value[pid];
+      if (st?.open && st.children.length) {
+        walk(st.children, depth + 1);
+      }
+    }
+  };
+  walk(tableRows.value, 0);
+  return out;
 });
+
+/** 某进程的子进程是否已展开 */
+function procOpen(pid: number): boolean {
+  return !!procTree.value[pid]?.open;
+}
+/** 某进程子进程是否正在拉取 */
+function procLoading(pid: number): boolean {
+  return !!procTree.value[pid]?.loading;
+}
+
+/** 展开/收起子进程：首次展开按 PID 拉取（后端按 ppid 过滤全量进程），失败回空不阻塞 */
+async function toggleProcTree(row: Record<string, any>): Promise<void> {
+  const pid = Number(row?.pid);
+  if (!Number.isFinite(pid) || pid <= 0) return;
+  const cur = procTree.value[pid];
+  if (cur?.open) {
+    procTree.value = { ...procTree.value, [pid]: { ...cur, open: false } };
+    return;
+  }
+  if (cur && cur.children.length) {
+    procTree.value = { ...procTree.value, [pid]: { ...cur, open: true } };
+    return;
+  }
+  procTree.value = { ...procTree.value, [pid]: { open: true, loading: true, children: [] } };
+  try {
+    const kids = (await fetchProcessChildren(pid, actionHostId())) ?? [];
+    procTree.value = { ...procTree.value, [pid]: { open: true, loading: false, children: kids as Record<string, any>[] } };
+  } catch {
+    procTree.value = { ...procTree.value, [pid]: { open: true, loading: false, children: [] } };
+  }
+}
+
+/** 行右键菜单状态（进程 / 服务 / 监听端口 / 环境变量 共用） */
+const rowMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<string, any> | null }>({
+  visible: false, x: 0, y: 0, row: null,
+});
+/** 菜单估算尺寸，用于边缘翻转避免超出视口 */
+const ROW_MENU_W = 200;
+const ROW_MENU_H = 240;
+
+/** 打开行右键菜单（仅对带写动作的分区生效；行内不再放操作按钮） */
+function openRowMenu(event: MouseEvent, row: Record<string, any>): void {
+  if (!rowHasActions.value) return;
+  event.preventDefault();
+  let x = event.clientX;
+  let y = event.clientY;
+  if (x + ROW_MENU_W > window.innerWidth - 8) x = window.innerWidth - ROW_MENU_W - 8;
+  if (y + ROW_MENU_H > window.innerHeight - 8) y = window.innerHeight - ROW_MENU_H - 8;
+  rowMenu.row = row;
+  rowMenu.x = Math.max(8, x);
+  rowMenu.y = Math.max(8, y);
+  rowMenu.visible = true;
+}
+/** 关闭行右键菜单 */
+function closeRowMenu(): void {
+  rowMenu.visible = false;
+  rowMenu.row = null;
+}
+/** 行右键菜单命令分发：进程/服务/监听端口/环境变量 的行动作唯一入口 */
+function rowMenuCommand(cmd: string): void {
+  const row = rowMenu.row;
+  closeRowMenu();
+  if (!row) return;
+  switch (cmd) {
+    case "tree": void toggleProcTree(row); break;
+    case "threads": void openThreads(row); break;
+    case "path": openProcPath(row); break;
+    case "restart": void onRestartProcess(row); break;
+    case "kill": void onKillProcess(row); break;
+    case "svc-start": void onServiceAction(row, "start"); break;
+    case "svc-restart": void onServiceAction(row, "restart"); break;
+    case "svc-stop": void onServiceAction(row, "stop"); break;
+    case "close-port": void onClosePortProcess(row); break;
+    case "env-del": void onDeleteEnv(row); break;
+    default: break;
+  }
+}
+
+/** 线程弹窗列定义 */
+const THREAD_COLUMNS: Array<{ key: string; label: string; width?: string }> = [
+  { key: "tid", label: "TID", width: "110px" },
+  { key: "cpu", label: "CPU%", width: "90px" },
+  { key: "memory", label: "内存%", width: "90px" },
+  { key: "state", label: "状态", width: "110px" },
+  { key: "priority", label: "优先级", width: "110px" },
+  { key: "name", label: "线程名", width: "180px" },
+  { key: "waitReason", label: "等待原因" },
+  { key: "cpuTime", label: "CPU 时间", width: "120px" },
+];
+
+const threadsVisible = ref(false);
+const threadsProc = ref<Record<string, any> | null>(null);
+const threadsRows = ref<Record<string, any>[]>([]);
+const threadsLoading = ref(false);
+const threadsError = ref("");
+const threadSortState = ref<{ key: string; dir: "asc" | "desc" } | null>({ key: "cpu", dir: "desc" });
+
+/** 线程表可排序列（数值列） */
+function threadSortable(key: string): boolean {
+  return key === "tid" || key === "cpu" || key === "memory";
+}
+/** 线程表头排序：未排→降序→升序→取消 */
+function onThreadSort(key: string): void {
+  const cur = threadSortState.value;
+  if (!cur || cur.key !== key) {
+    threadSortState.value = { key, dir: "desc" };
+  } else if (cur.dir === "desc") {
+    threadSortState.value = { key, dir: "asc" };
+  } else {
+    threadSortState.value = null;
+  }
+}
+/** 线程表按当前排序状态展示 */
+const threadsView = computed(() => {
+  const s = threadSortState.value;
+  const base = threadsRows.value;
+  if (!s) return base;
+  const arr = [...base].sort((a, b) => {
+    const va = Number(a?.[s.key]);
+    const vb = Number(b?.[s.key]);
+    const na = Number.isFinite(va) ? va : 0;
+    const nb = Number.isFinite(vb) ? vb : 0;
+    return na - nb;
+  });
+  return s.dir === "desc" ? arr.reverse() : arr;
+});
+
+/** 打开某进程的线程列表弹窗并拉取线程 */
+async function openThreads(row: Record<string, any>): Promise<void> {
+  const pid = Number(row?.pid);
+  threadsProc.value = row;
+  threadsRows.value = [];
+  threadsError.value = "";
+  threadSortState.value = { key: "cpu", dir: "desc" };
+  threadsVisible.value = true;
+  if (!Number.isFinite(pid) || pid <= 0) return;
+  threadsLoading.value = true;
+  try {
+    threadsRows.value = ((await fetchProcessThreads(pid, actionHostId())) ?? []) as Record<string, any>[];
+  } catch (e) {
+    threadsError.value = String((e as Error)?.message ?? e);
+  } finally {
+    threadsLoading.value = false;
+  }
+}
+
+const pathVisible = ref(false);
+const pathProc = ref<Record<string, any> | null>(null);
+
+/** 打开某进程的可执行文件路径弹窗 */
+function openProcPath(row: Record<string, any>): void {
+  pathProc.value = row;
+  pathVisible.value = true;
+}
+/** 复制进程文件路径到剪贴板 */
+async function copyProcPath(): Promise<void> {
+  const text = String(pathProc.value?.path ?? "").trim();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success("路径已复制");
+  } catch {
+    message.warning("复制失败，浏览器拒绝了剪贴板访问");
+  }
+}
 
 /* ================== 展示辅助 ================== */
 
@@ -855,6 +1206,12 @@ function openFileManager(d: any): void {
 const hasMetrics = computed(() => !profileError.value &&
   (Number(metrics.value.memoryTotalMb ?? 0) > 0 || Number(metrics.value.diskTotalGb ?? 0) > 0));
 
+/** 句柄数展示：取不到（-1 / 缺省）时为「—」，不冒充 0 */
+const handleCountText = computed(() => {
+  const v = Number(metrics.value.handleCount);
+  return Number.isFinite(v) && v >= 0 ? String(v) : "—";
+});
+
 const overviewRows = computed<Array<{ label: string; value: string; mono?: boolean }>>(() => {
   const i = info.value;
   const h = selectedHost.value;
@@ -873,6 +1230,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
     { label: "公网 IP", value: show(p.serverHostPublicIp ?? i.publicIp), mono: true },
     { label: "网卡 MAC", value: show(p.serverHostMac ?? i.mac), mono: true },
     { label: "运行时长", value: humanUptime(upSec) },
+    { label: "句柄数", value: handleCountText.value, mono: true },
     { label: "Java 版本", value: show(p.serverHostJavaVersion ?? i.javaVersion) },
     { label: "主机编码", value: show(h?.serverHostCode ?? p.serverHostCode), mono: true },
     { label: "最后采集", value: show(p.serverHostLastCollectTime) },
@@ -977,10 +1335,6 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             <ReButton icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
             <ReButton icon="TrendCharts" layout="square" @click="emit('detail', selectedHost)">监控详情</ReButton>
             <ReButton icon="EditPen" layout="square" @click="emit('edit', selectedHost)">编辑</ReButton>
-            <label class="auto-switch">
-              <ReSwitch v-model="autoRefresh" />
-              <span>10s 自动刷新</span>
-            </label>
           </div>
         </div>
 
@@ -1017,35 +1371,24 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         </div>
 
         <div class="seg-body">
-          <div v-if="active !== 'network'" class="sec-bar">
-            <span class="dim">
-              {{ sectionKeyword.trim() ? `命中 ${visibleRows.length} 条` : (active === 'disks' ? `共 ${visibleRows.length} 个驱动器` : `共 ${visibleRows.length} 条`) }}
-              <template v-if="pagedSection && page > 1">（第 {{ page }} 页）</template>
-            </span>
+          <!-- 磁盘是磁贴布局，不是 ReTable：保留自己的条数与检索条 -->
+          <div v-if="active === 'disks'" class="sec-bar">
+            <span class="dim">共 {{ visibleRows.length }} 个驱动器</span>
             <div class="sec-pager">
               <ReInput
                 v-model="sectionKeyword"
-
                 class="sec-search"
-                :placeholder="keywordPlaceholder"
+                placeholder="盘符 / 卷标 / 文件系统"
                 clearable
-                @keyup.enter="pagedSection && applyKeyword()"
-                @clear="pagedSection && applyKeyword()"
+                @keyup.enter="loadSection"
+                @clear="loadSection"
               />
-              <template v-if="pagedSection">
-                <ReButton :disabled="loadingSection" @click="applyKeyword">搜索</ReButton>
-                <ReButton :disabled="page <= 1 || loadingSection" @click="changePage(-1)">上一页</ReButton>
-                <span class="mono page-no">{{ page }}</span>
-                <ReButton :disabled="loadingSection || rows.length < pageSize" @click="changePage(1)">下一页</ReButton>
-              </template>
               <ReButton type="primary" layout="square" icon="Refresh" :loading="loadingSection" @click="loadSection">刷新</ReButton>
-              <ReButton v-if="active === 'processes'" layout="square" icon="DataAnalysis" :type="analyzeVisible ? 'primary' : ''"
-                @click="toggleAnalyze">{{ analyzeVisible ? '收起分析' : '分析' }}</ReButton>
             </div>
           </div>
           <div v-if="sectionError" class="alert alert-error">{{ sectionError }}</div>
-          <div v-else-if="loadingSection && !rows.length" class="dim sec-loading">正在拉取…</div>
-          <div v-else-if="!visibleRows.length" class="dim sec-loading">
+          <div v-else-if="active === 'disks' && loadingSection && !rows.length" class="dim sec-loading">正在拉取…</div>
+          <div v-else-if="active === 'disks' && !visibleRows.length" class="dim sec-loading">
             {{ sectionKeyword.trim() ? "关键字未命中任何一行" : "该分区无数据" }}
           </div>
           <!-- 磁盘：Windows「此电脑」驱动器样式 -->
@@ -1103,154 +1446,89 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
               @applied="onNetworkApplied"
             />
           </div>
-          <!-- 其余分区：通用表格（进程分析时左右分栏） -->
+          <!-- 其余分区：统一 ReTable（行数据/分页/刷新/自动刷新都由组件承担） -->
           <div v-else :class="['tbl-wrap', { 'analyze-split': showAnalyze }]">
-            <!-- 环境变量：新增工具条 -->
-            <div v-if="active === 'env'" class="tbl-toolbar">
-              <ReButton type="primary" layout="square" icon="Plus" @click="openEnvDialog()">
-                新增变量
-              </ReButton>
-            </div>
-            <div class="tbl-scroll">
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th
-                    v-if="active === 'processes' || active === 'services'"
-                    class="th-lead" style="width: 46px"
-                  ></th>
-                  <th
-                    v-for="col in columns" :key="col.key"
-                    :style="col.width ? { width: col.width } : {}"
-                    :class="{ sortable: isSortable(col.key), 'sort-on': sortState?.key === col.key }"
-                    @click="isSortable(col.key) && onHeaderSort(col.key)"
+            <ReTable
+              :columns="tableColumns"
+              :loader="tableLoader"
+              :params="tableParams"
+              :pagination="pagedSection"
+              :page-size="pageSize"
+              :context-menu="rowMenuItems"
+              :auto-refresh="true"
+              :table-id="`host-profile-${active}`"
+              :empty-text="sectionKeyword.trim() ? '关键字未命中任何一行' : '该分区无数据'"
+              stripe
+              @context-menu-select="onRowMenuSelect"
+              @sort-change="onTableSort"
+            >
+              <!-- 检索框固定在工具栏左侧（ReTable 的 #toolbar 槽） -->
+              <template #toolbar>
+                <span class="dim">
+                  {{ sectionKeyword.trim() ? `命中 ${sectionAll.length} 条` : `共 ${sectionAll.length} 条` }}
+                  <template v-if="sectionMemTotal"> · 内存合计 <b class="mono">{{ sectionMemTotal }}</b></template>
+                </span>
+                <span v-if="rowHasActions" class="dim proc-hint">
+                  {{ active === 'processes' ? '右键行：展开子进程 / 查看线程 / 文件路径 / 结束进程'
+                    : active === 'services' ? '右键行：启动 / 重启 / 停止服务'
+                    : active === 'ports' ? '右键行：结束占用进程'
+                    : '右键行：删除变量' }}
+                </span>
+                <ReInput
+                  v-model="sectionKeyword" class="sec-search"
+                  :placeholder="keywordPlaceholder" clearable
+                  @keyup.enter="applyKeyword" @clear="applyKeyword"
+                />
+                <ReButton :disabled="loadingSection" @click="applyKeyword">搜索</ReButton>
+                <ReButton v-if="active === 'env'" type="primary" icon="Plus" :show-text="true" @click="openEnvDialog()">新增变量</ReButton>
+                <ReButton v-if="active === 'processes'" layout="square" icon="DataAnalysis" :type="analyzeVisible ? 'primary' : ''"
+                  @click="toggleAnalyze">{{ analyzeVisible ? '收起分析' : '分析' }}</ReButton>
+              </template>
+
+              <!-- 前置图标列：进程树箭头 + 品牌图标 -->
+              <template #col-lead="{ row }">
+                <div class="lead-cell" :style="{ paddingLeft: (Number(row.__depth) || 0) * 16 + 'px' }">
+                  <button
+                    v-if="active === 'processes'"
+                    class="tree-caret"
+                    :class="{ open: procOpen(Number(row.pid)) }"
+                    :title="procOpen(Number(row.pid)) ? '收起子进程' : '展开子进程'"
+                    @click.stop="toggleProcTree(row)"
                   >
-                    <span class="th-label">{{ col.label }}</span>
-                    <span v-if="isSortable(col.key)" class="th-sort">
-                      <span v-if="sortState?.key === col.key" class="sort-arrow">{{ sortState.dir === 'desc' ? '▼' : '▲' }}</span>
-                      <span v-else class="sort-idle">⇅</span>
-                    </span>
-                  </th>
-                  <th v-if="hasActions" class="th-act">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(r, idx) in tableRows" :key="idx"
-                  :class="active === 'processes' ? procLevel(r) : ''"
-                >
-                  <!-- 前置图标列：进程/服务的可识别图标（最左侧） -->
-                  <td
-                    v-if="active === 'processes' || active === 'services'"
-                    class="td-lead"
+                    <span v-if="procLoading(Number(row.pid))" class="caret-loading">…</span>
+                    <template v-else>▸</template>
+                  </button>
+                  <span
+                    v-if="leadTile(active, row).brand"
+                    class="cell-brand cell-brand--lead"
+                    v-html="leadTile(active, row).brand"
+                  ></span>
+                  <span
+                    v-else
+                    class="cell-logo cell-logo--lead"
+                    :style="{ background: leadTile(active, row).bg }"
                   >
-                    <!-- 命中官方品牌：白色圆角块衬彩色 Logo -->
-                    <span
-                      v-if="leadTile(active, r).brand"
-                      class="cell-brand cell-brand--lead"
-                      v-html="leadTile(active, r).brand"
-                    ></span>
-                    <!-- 未命中：品牌色块 + 单色图形 / 首字母 -->
-                    <span
-                      v-else
-                      class="cell-logo cell-logo--lead"
-                      :style="{ background: leadTile(active, r).bg }"
-                    >
-                      <span
-                        v-if="leadTile(active, r).glyph"
-                        class="lead-glyph" v-html="leadTile(active, r).glyph"
-                      ></span>
-                      <template v-else>{{ leadTile(active, r).letter }}</template>
-                    </span>
-                  </td>
-                  <td v-for="col in columns" :key="col.key">
-                    <!-- 名称列：单行省略 + tip -->
-                    <template v-if="col.key === 'name'">
-                      <el-tooltip :content="String(r.name ?? '')" placement="top" :show-after="200">
-                        <span class="cell-ellipsis">{{ r.name }}</span>
-                      </el-tooltip>
-                    </template>
-                    <!-- 命令行：单行省略 + tip -->
-                    <template v-else-if="col.key === 'command'">
-                      <el-tooltip
-                        v-if="String(r.command ?? '').trim()"
-                        :content="String(r.command)" placement="top-start"
-                        :show-after="200" popper-class="cmd-tip"
-                      >
-                        <span class="cell-ellipsis">{{ r.command }}</span>
-                      </el-tooltip>
-                      <span v-else class="dim">—</span>
-                    </template>
-                    <!-- 状态列：状态图标 + tip -->
-                    <template v-else-if="col.key === 'state'">
-                      <el-tooltip :content="stateMeta(r.state).tip" placement="top" :show-after="150">
-                        <span class="state-ico" v-html="stateMeta(r.state).svg"></span>
-                      </el-tooltip>
-                    </template>
-                    <!-- 其余列：一律单行省略 + tip -->
-                    <template v-else>
-                      <el-tooltip
-                        v-if="String(r[col.key] ?? '').trim()"
-                        :content="String(r[col.key])" placement="top" :show-after="200"
-                      >
-                        <span class="cell-ellipsis">{{ show(r[col.key], '') }}</span>
-                      </el-tooltip>
-                      <span v-else class="dim">—</span>
-                    </template>
-                  </td>
-                  <td v-if="hasActions" class="td-act"><div class="td-act-in">
-                    <template v-if="active === 'processes'">
-                      <ReButton
- layout="square" icon="RefreshRight"
-                        :loading="busyRow === `restart-${r.pid}`"
-                        :disabled="!Number(r.pid) || !String(r.command ?? '').trim()"
-                        :title="String(r.command ?? '').trim() ? '' : '该进程读不到命令行，无法按原样重启'"
-                        @click="onRestartProcess(r)"
-                      >重启</ReButton>
-                      <ReButton
- type="danger" layout="square" icon="CircleClose"
-                        :loading="busyRow === `kill-${r.pid}`"
-                        :disabled="!Number(r.pid)" @click="onKillProcess(r)"
-                      >结束</ReButton>
-                    </template>
-                    <template v-else-if="active === 'services'">
-                      <ReButton
-                        v-if="isStoppedService(r)" type="primary" layout="square" icon="VideoPlay"
-                        :loading="busyRow === `service-start-${r.name}`"
-                        @click="onServiceAction(r, 'start')"
-                      >启动</ReButton>
-                      <ReButton
-                        v-else layout="square" icon="RefreshRight"
-                        :loading="busyRow === `service-restart-${r.name}`"
-                        @click="onServiceAction(r, 'restart')"
-                      >重启</ReButton>
-                      <ReButton
-                        v-if="!isStoppedService(r)" type="danger" layout="square" icon="VideoPause"
-                        :loading="busyRow === `service-stop-${r.name}`"
-                        @click="onServiceAction(r, 'stop')"
-                      >停止</ReButton>
-                    </template>
-                    <template v-else-if="active === 'env'">
-                      <ReButton
- type="danger" layout="square" icon="Delete"
-                        :loading="busyRow === `env-del-${r.name}`"
-                        @click="onDeleteEnv(r)"
-                      >删除</ReButton>
-                    </template>
-                    <template v-else>
-                      <ReButton
- type="danger" layout="square" icon="CircleClose"
-                        :loading="busyRow === `netproc-${r.pid}-${r.port}`"
-                        :disabled="!Number(r.pid)"
-                        :title="Number(r.pid) ? '' : '该端口无归属进程，无法结束'"
-                        @click="onClosePortProcess(r)"
-                      >结束</ReButton>
-                    </template>
-                  </div></td>
-                </tr>
-              </tbody>
-            </table>
-            </div>
+                    <span v-if="leadTile(active, row).glyph" class="lead-glyph" v-html="leadTile(active, row).glyph"></span>
+                    <template v-else>{{ leadTile(active, row).letter }}</template>
+                  </span>
+                </div>
+              </template>
+
+              <template #col-name="{ row }">
+                <span class="cell-ellipsis" :title="String(row.name ?? '')">{{ row.name }}</span>
+              </template>
+
+              <template #col-command="{ row }">
+                <span v-if="String(row.command ?? '').trim()" class="cell-ellipsis" :title="String(row.command)">{{ row.command }}</span>
+                <span v-else class="dim">—</span>
+              </template>
+
+              <template #col-state="{ row }">
+                <el-tooltip :content="stateMeta(String(row.state ?? '')).tip" placement="top" :show-after="150">
+                  <span class="state-ico" v-html="stateMeta(String(row.state ?? '')).svg"></span>
+                </el-tooltip>
+              </template>
+            </ReTable>
             <!-- 进程内存分析：矩形树图 -->
             <div v-if="showAnalyze" class="analyze-pane">
               <div class="analyze-head">
@@ -1301,6 +1579,126 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         <ReButton type="primary" :loading="busyRow.startsWith('env-set')" @click="submitEnv">保存</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 进程线程弹窗（表头可排序） -->
+    <ReDialog
+      v-model="threadsVisible"
+      :title="`进程线程 - ${threadsProc?.name || ''}（PID ${threadsProc?.pid ?? '—'}）`"
+      width="72%" top="8vh" append-to-body destroy-on-close
+      class="host-sub-dialog"
+    >
+      <div class="threads-wrap">
+        <div v-if="threadsError" class="alert alert-error">{{ threadsError }}</div>
+        <div v-else-if="threadsLoading && !threadsRows.length" class="dim sec-loading">正在拉取线程…</div>
+        <div v-else-if="!threadsRows.length" class="dim sec-loading">该进程没有可读线程（或通道不支持）</div>
+        <div v-else class="tbl-scroll threads-scroll">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th
+                  v-for="c in THREAD_COLUMNS" :key="c.key"
+                  :style="c.width ? { width: c.width } : {}"
+                  :class="{ sortable: threadSortable(c.key), 'sort-on': threadSortState?.key === c.key }"
+                  @click="threadSortable(c.key) && onThreadSort(c.key)"
+                >
+                  <span class="th-label">{{ c.label }}</span>
+                  <span v-if="threadSortable(c.key)" class="th-sort">
+                    <span v-if="threadSortState?.key === c.key" class="sort-arrow">{{ threadSortState.dir === 'desc' ? '▼' : '▲' }}</span>
+                    <span v-else class="sort-idle">⇅</span>
+                  </span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(t, i) in threadsView" :key="i">
+                <td v-for="c in THREAD_COLUMNS" :key="c.key">
+                  <el-tooltip
+                    v-if="String(t[c.key] ?? '').trim()"
+                    :content="String(t[c.key])" placement="top" :show-after="200"
+                  >
+                    <span class="cell-ellipsis">{{ show(t[c.key], '') }}</span>
+                  </el-tooltip>
+                  <span v-else class="dim">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- 进程文件路径弹窗（支持复制） -->
+    <ReDialog v-model="pathVisible" title="进程文件路径" width="560px" append-to-body class="host-sub-dialog">
+      <div class="path-body">
+        <div class="path-label dim">进程：{{ pathProc?.name || '—' }}（PID {{ pathProc?.pid ?? '—' }}）</div>
+        <div class="path-box">
+          <code class="path-text mono">{{ String(pathProc?.path ?? '').trim() || '（该进程读不到可执行文件路径）' }}</code>
+        </div>
+        <div class="path-actions">
+          <ReButton
+            type="primary" icon="CopyDocument" :show-text="true"
+            :disabled="!String(pathProc?.path ?? '').trim()"
+            @click="copyProcPath"
+          >复制路径</ReButton>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- 行右键菜单（进程/服务/监听端口/环境变量 共用；teleport 到 body，点击外侧关闭） -->
+    <Teleport to="body">
+      <div
+        v-if="rowMenu.visible"
+        class="row-ctx-backdrop"
+        @click="closeRowMenu"
+        @contextmenu.prevent="closeRowMenu"
+      />
+      <div
+        v-if="rowMenu.visible"
+        class="row-ctx-menu"
+        :style="{ left: rowMenu.x + 'px', top: rowMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <div class="rc-head">
+          <template v-if="active === 'processes'">
+            {{ rowMenu.row?.name || '进程' }}
+            <span class="dim">PID {{ rowMenu.row?.pid ?? '—' }}</span>
+          </template>
+          <template v-else-if="active === 'services'">
+            {{ rowMenu.row?.displayName || rowMenu.row?.name || '服务' }}
+          </template>
+          <template v-else-if="active === 'ports'">
+            端口 {{ rowMenu.row?.port ?? '—' }}
+            <span class="dim">PID {{ rowMenu.row?.pid ?? '—' }}</span>
+          </template>
+          <template v-else>{{ rowMenu.row?.name || '变量' }}</template>
+        </div>
+
+        <template v-if="active === 'processes'">
+          <div class="rc-item" @click="rowMenuCommand('tree')">
+            {{ rowMenu.row && procOpen(Number(rowMenu.row.pid)) ? '收起子进程' : '展开子进程' }}
+          </div>
+          <div class="rc-item" @click="rowMenuCommand('threads')">查看线程</div>
+          <div class="rc-item" @click="rowMenuCommand('path')">显示文件路径</div>
+          <div class="rc-sep" />
+          <div class="rc-item" @click="rowMenuCommand('restart')">重启进程</div>
+          <div class="rc-item danger" @click="rowMenuCommand('kill')">结束进程（删除）</div>
+        </template>
+
+        <template v-else-if="active === 'services'">
+          <div v-if="rowMenu.row && isStoppedService(rowMenu.row)" class="rc-item" @click="rowMenuCommand('svc-start')">启动服务</div>
+          <div v-else class="rc-item" @click="rowMenuCommand('svc-restart')">重启服务</div>
+          <div v-if="rowMenu.row && !isStoppedService(rowMenu.row)" class="rc-item danger" @click="rowMenuCommand('svc-stop')">停止服务</div>
+        </template>
+
+        <template v-else-if="active === 'ports'">
+          <div class="rc-item danger" @click="rowMenuCommand('close-port')">结束占用进程（删除）</div>
+        </template>
+
+        <template v-else-if="active === 'env'">
+          <div class="rc-item danger" @click="rowMenuCommand('env-del')">删除变量（删除）</div>
+        </template>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1459,6 +1857,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 /* 前置图标列：居中、无右边距，图标略大 */
 .th-lead { padding: 0; }
 .td-lead { text-align: center; padding-left: 10px; padding-right: 6px; }
+/* ReTable 前置图标列：树箭头与品牌图标同一行，子进程靠 __depth 缩进 */
+.lead-cell { display: flex; align-items: center; gap: 6px; }
 .cell-logo--lead { width: 28px; height: 28px; margin-right: 0; border-radius: 8px; }
 /* 官方品牌彩色 Logo：中性白块衬底 + 细边框 */
 .cell-brand {
@@ -1546,6 +1946,53 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 .rs-val.mono { font-family: var(--font-mono, monospace); }
 .rs-val.dim { color: var(--text-tertiary); }
 .rs-gone { padding: 30px 20px; text-align: center; font-size: 13px; color: var(--text-tertiary); }
+
+/* 进程分区：子进程展开箭头 + 提示 */
+.proc-hint { margin-left: 4px; margin-right: auto; font-size: 12px; }
+.tree-caret {
+  width: 16px; height: 16px; margin-right: 4px; padding: 0; border: 0; background: transparent;
+  color: var(--text-tertiary, #a0a4b0); font-size: 11px; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  transition: transform .12s, color .12s;
+  &:hover { color: var(--brand-600, #6d5ce7); }
+  &.open { transform: rotate(90deg); }
+}
+.tree-caret .caret-loading { font-size: 12px; color: var(--brand-500, #6d5ce7); }
+
+/* 进程线程把表格放进弹窗：限定滚动高度 */
+.threads-scroll { max-height: 66vh; }
+.threads-wrap { min-height: 120px; }
+
+/* 进程文件路径弹窗 */
+.path-body { display: flex; flex-direction: column; gap: 10px; }
+.path-label { font-size: 12.5px; }
+.path-box {
+  padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px;
+  background: var(--bg-fill, #f8f9fc); word-break: break-all;
+}
+.path-text { font-size: 12.5px; }
+.path-actions { display: flex; justify-content: flex-end; }
+
+/* 行右键菜单（teleport 到 body） */
+.row-ctx-backdrop { position: fixed; inset: 0; z-index: 3000; }
+.row-ctx-menu {
+  position: fixed; z-index: 3001; min-width: 172px; padding: 6px;
+  background: var(--el-bg-color, #fff); border: 1px solid var(--border-subtle);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(20, 24, 40, .16);
+}
+.rc-head {
+  padding: 6px 10px 7px; margin-bottom: 4px; font-size: 12px; font-weight: 600;
+  border-bottom: 1px solid var(--border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc-head .dim { font-weight: 400; margin-left: 4px; }
+.rc-item {
+  padding: 7px 10px; font-size: 13px; border-radius: 6px; cursor: pointer;
+  color: var(--text-primary, #222); white-space: nowrap;
+  &:hover { background: var(--brand-50, #f3f1ff); color: var(--brand-600, #6d5ce7); }
+  &.danger { color: var(--el-color-danger, #e5534b); }
+  &.danger:hover { background: var(--el-color-danger-light-9, #fef0f0); color: var(--el-color-danger, #e5534b); }
+}
+.rc-sep { height: 1px; margin: 4px 6px; background: var(--border-subtle); }
 </style>
 
 <style lang="scss">

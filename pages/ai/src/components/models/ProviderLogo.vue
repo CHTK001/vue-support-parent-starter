@@ -15,6 +15,18 @@ const currentSrc = ref<string | null>(null)
 const triedSvg = ref(false)
 
 /**
+ * 静态资源 URL：拼上应用 base。
+ *
+ * <p>内嵌宿主时 base 可能不是 '/'（public 资源经 {@code /<base>/images/**} 服务），
+ * 绝对路径 {@code /images/providers/*} 必然 404。{@code import.meta.env.BASE_URL}
+ * 由各应用 vite 注入：独立运行 '/'，内嵌时随之变化。</p>
+ */
+function assetUrl(rel: string): string {
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '')
+  return `${base}/${rel.replace(/^\/+/, '')}`
+}
+
+/**
  * 只有 .svg、没有 .png 的品牌 id（对应 public/images/providers 下的实际文件）。
  *
  * 实测：这类 id 先试 .png 必然 404（如 openai/anthropic/deepseek/google/onnx 共 22 个），
@@ -34,11 +46,11 @@ watch(() => props.pid, (pid) => {
   // （2026-10-08 import-all gate 实测 agent.png/agent.svg 双 404），与 custom 同款走首字头像
   if (!id || id === 'custom' || id === 'agent') { currentSrc.value = null; triedSvg.value = false; return }
   if (SVG_ONLY_IDS.has(id)) {
-    currentSrc.value = `/images/providers/${id}.svg`
+    currentSrc.value = assetUrl(`images/providers/${id}.svg`)
     triedSvg.value = true // 已是 svg，onError 不再重试
     return
   }
-  currentSrc.value = `/images/providers/${id}.png`
+  currentSrc.value = assetUrl(`images/providers/${id}.png`)
   triedSvg.value = false
 }, { immediate: true })
 
@@ -46,7 +58,7 @@ const onError = () => {
   if (triedSvg.value) return // png 和 svg 都失败了，不再重试
   const id = String(props.pid || '').toLowerCase()
   if (!id || id === 'custom') return
-  currentSrc.value = `/images/providers/${id}.svg`
+  currentSrc.value = assetUrl(`images/providers/${id}.svg`)
   triedSvg.value = true
 }
 </script>

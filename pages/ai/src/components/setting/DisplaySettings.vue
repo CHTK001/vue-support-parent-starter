@@ -7,7 +7,7 @@
       <SegmentedToggle
         :model-value="askWidth"
         :options="widthOptions"
-        @update:model-value="onAskWidthChange"
+        @update:model-value="onAskWidthChange($event as 'narrow' | 'full')"
       />
     </SettingsRow>
 
@@ -73,8 +73,8 @@ const previewHint = computed(() =>
  * <p>本地先生效（store 是单例，页面通过 data-kb-ask 立刻响应），落库失败不阻塞 UI：
  * 用户已经看到效果了，为一次网络抖动回滚反而更糟。此时只提示一次。
  */
-async function onAskWidthChange(v: 'narrow' | 'full') {
-  const ok = await setKbAskWidth(v)
+async function onAskWidthChange(v: 'narrow' | 'full' | string) {
+  const ok = await setKbAskWidth(v as 'narrow' | 'full')
   if (!ok) {
     ElMessage.warning(t('settings.display.askPanelWidth.saveFailed'))
   }

@@ -62,7 +62,8 @@
     <div class="flex-1 overflow-y-auto pt-4">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
         <div v-for="character in characters" :key="character.id"
-          class="provider-card group relative bg-white dark:bg-[#232428] border border-gray-200 dark:border-[#232428] rounded-lg p-4 cursor-default hover:border-(--color-primary) transition-all duration-200 overflow-hidden">
+          class="provider-card group relative bg-white dark:bg-[#232428] border border-gray-200 dark:border-[#232428] rounded-lg p-4 cursor-default hover:border-(--color-primary) transition-all duration-200 overflow-hidden"
+          tabindex="0">
           <!-- 毛玻璃背景层 -->
           <div v-if="character.avatarUrl" class="absolute inset-0 z-0" :style="{
             backgroundImage: `url(${character.avatarUrl})`,
@@ -101,13 +102,13 @@
             </div>
           </div>
 
-          <!-- 悬停按钮 -->
-          <div class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white dark:from-[#232428] via-white/90 dark:via-[#232428]/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-b-lg"></div>
-          <div class="absolute inset-x-2 bottom-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto z-20">
-            <el-button type="primary" class="flex-1 shadow-sm" @click.stop="$emit('startNewChat', character)">
+          <!-- 悬停按钮（Tab 焦点时同样显示） -->
+          <div class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white dark:from-[#232428] via-white/90 dark:via-[#232428]/90 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none rounded-b-lg"></div>
+          <div class="absolute inset-x-2 bottom-2 flex gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-auto z-20">
+            <el-button type="primary" size="small" class="flex-1 shadow-sm" @click.stop="$emit('startNewChat', character)">
               {{ t('characters.list.useCharacter') }}
             </el-button>
-            <el-button class="flex-1 shadow-sm" @click.stop="$emit('editCharacter', character)">
+            <el-button size="small" class="flex-1 shadow-sm" @click.stop="$emit('editCharacter', character)">
               {{ t('characters.list.characterSettings') }}
             </el-button>
           </div>

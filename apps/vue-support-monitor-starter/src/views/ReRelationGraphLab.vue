@@ -33,6 +33,20 @@ const EDGE_TYPES = ["line", "polyline", "quadratic", "cubic", "cubic-horizontal"
 const LAYOUTS = ["force", "d3-force", "fruchterman", "mds", "circular", "concentric", "radial", "grid", "random", "dagre", "antv-dagre", "snake"];
 
 const scenario = ref<Scenario>("prototype");
+
+const engine = ref<"g6" | "cytoscape" | "cosmograph">("g6");
+const ENGINES = [
+  { key: "g6", label: "G6" },
+  { key: "cytoscape", label: "Cytoscape" },
+  { key: "cosmograph", label: "Cosmograph" },
+] as const;
+const cycleEngine = () => {
+  const idx = ENGINES.findIndex((e) => e.key === engine.value);
+  const next = ENGINES[(idx + 1) % ENGINES.length].key;
+  engine.value = next;
+  say(`engine ${next}`);
+};
+
 const layout = ref<string>("circular");
 const minimise = ref(false);
 const highlight = ref<"none" | "group" | "adjacent" | "both">("both");
@@ -200,20 +214,17 @@ const removeSelected = async () => {
 };
 const fixedCount = ref(0);
 const pinSelected = async () => {
-  // 固定 = 拖拽后位置不被布局重置；这里把选中节点标 fixed 并重跑布局验证坐标保留
+  // 固定 = 拖拽/布局重跑后位置不被重置。走组件公开 API updateNode(fixed:true)，
+  // 三个引擎各自映射（G6 __fixed / Cytoscape locked / Cosmograph setPinnedPoints）。
+  // 早期这里直接戳 G6 实例 updateNodeData，engine=cytoscape/cosmograph 时必然报
+  // updateNodeData is not a function —— 那是验收台自身的问题，不是组件能力差异。
   const ids = selection.value.length ? selection.value : graph.value.nodes.slice(0, 1).map((n: any) => n.id);
-  const inst = graphRef.value?.getInstance?.();
-  if (!inst) {
-    return;
-  }
-  for (const id of ids) {
-    try {
-      inst.updateNodeData([{ id, data: { __fixed: true }, style: { pinned: true } }]);
-    } catch (e) {
-      say(`pin 失败 ${id}: ${String((e as Error).message).slice(0, 60)}`);
+  const set = new Set(ids);
+  for (const n of graph.value.nodes as any[]) {
+    if (set.has(n.id)) {
+      await graphRef.value?.updateNode?.({ ...n, fixed: true });
     }
   }
-  await inst.draw?.();
   fixedCount.value += ids.length;
   say(`已固定 [${ids.join(",")}]`);
 };
@@ -311,8 +322,13 @@ onMounted(() => {
     /** 连线模式开关 */
     setConnectMode: (on: boolean) => graphRef.value?.setConnectMode?.(on),
     getConnectMode: () => graphRef.value?.getConnectMode?.() ?? false,
-    /** 节点内容插槽容器数量（DOM 里的 .rrg__node-content） */
-    nodeSlotCount: () => document.querySelectorAll(".rrg__node-content").length,
+    /**
+     * 节点内容插槽容器数量。
+     *
+     * <p>G6 用 {@code .rrg__node-content}，Cytoscape/Cosmograph 用
+     * {@code .rrg__html-node}，这里两类都数，保证引擎切换时口径一致。</p>
+     */
+    nodeSlotCount: () => document.querySelectorAll(".rrg__node-content, .rrg__html-node").length,
     /** 切换应用语言（验证组件文案随共享 i18n 切换） */
     setLang: (l: string) => { (i18n.global.locale as any).value = l; },
     getLang: () => (i18n.global.locale as any).value,
@@ -387,6 +403,7 @@ onMounted(() => {
         <span class="rrglab__label">视图</span>
         <div class="rrglab__btns">
           <button class="rrglab__btn" data-testid="act-layout" @click="cycleLayout">切换布局</button>
+          <button class="rrglab__btn" data-testid="act-engine" @click="cycleEngine">引擎:{{ engine }}</button>
           <button class="rrglab__btn" data-testid="act-zoom-in" @click="zoomIn">放大</button>
           <button class="rrglab__btn" data-testid="act-zoom-out" @click="zoomOut">缩小</button>
           <button class="rrglab__btn" data-testid="act-fit" @click="fit">适配</button>
@@ -434,6 +451,7 @@ onMounted(() => {
       <ReRelationGraph
         ref="graphRef"
         :key="scenario"
+        :engine="engine"
         :nodes="graph.nodes"
         :edges="graph.edges"
         :layout="layout"

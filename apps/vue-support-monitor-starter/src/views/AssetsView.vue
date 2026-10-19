@@ -535,6 +535,20 @@ function openDetail(h: Host): void {
   router.push(`/host/${h.id}`);
 }
 
+/** 从主机资产发起 ACME 申请：带主机信息跳转 ACME 页并自动弹出申请框 */
+function openAcmeApply(h: Host): void {
+  router.push({
+    path: "/acme",
+    query: {
+      hostId: String(h.id),
+      hostName: h.serverHostName || "",
+      domain: h.serverHostAddress || "",
+      port: String(h.serverHostPort || ""),
+      autoApply: "1",
+    },
+  });
+}
+
 /** 认证方式/采集方式选项已随弹窗拆入 HostFormDialog 子组件 */
 
 // ---- 新增/编辑表单 ----
@@ -760,6 +774,7 @@ function runRowCommand(cmd: string, h: Host): void {
     case "scan": scanHostPorts(h); break;
     case "profile": openSysMgr("disk", h); break;
     case "edit": openEdit(h); break;
+    case "acme": openAcmeApply(h); break;
     case "agent-install": openDeploy(h, "install"); break;
     case "agent-reinstall": openDeploy(h, "reinstall"); break;
     case "agent-upgrade": openDeploy(h, "upgrade"); break;
@@ -1184,6 +1199,7 @@ function osTileClass(h: Host): string {
                 <template #dropdown>
                   <ElDropdownMenu>
                     <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
+                    <ElDropdownItem command="acme"><ReIcon name="Key" />ACME 申请</ElDropdownItem>
                     <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑主机</ElDropdownItem>
                     <ElDropdownItem v-if="isAgentMode(h) && !isAgentInstalled(h)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
                     <template v-else-if="isAgentMode(h)">
@@ -1294,6 +1310,7 @@ function osTileClass(h: Host): string {
                   <ElDropdownItem command="detail"><ReIcon name="TrendCharts" />监控</ElDropdownItem>
                   <ElDropdownItem command="scan"><ReIcon name="Search" />端口扫描</ElDropdownItem>
                   <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
+                  <ElDropdownItem command="acme"><ReIcon name="Key" />ACME 申请</ElDropdownItem>
                   <ElDropdownItem v-if="isAgentMode(row) && !isAgentInstalled(row)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
                   <template v-else-if="isAgentMode(row)">
                     <ElDropdownItem command="agent-reinstall" divided><ReIcon name="RefreshRight" />重装 Agent</ElDropdownItem>

@@ -68,7 +68,7 @@ const HEIC_EXTS = ["heic", "heif"];
 const JXL_EXTS = ["jxl"];
 
 /** 纯文本扩展名（前端直接拉取原文展示） */
-const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml"];
+const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml", "mf"];
 
 /** 源代码 / 配置文件扩展名（走后端语法高亮预览） */
 const CODE_EXTS = [
@@ -115,7 +115,7 @@ const OFFICE_EXTS = [
   "xlsm", "xltx", "xltm", "xlt",
   "docm", "dotm", "dotx", "dot",
   "pot", "potm", "potx", "ppsm", "ppsx", "pptm",
-  "fods", "tsv", "hwp", "hwpx", "wpd",
+  "fods", "fodt", "tsv", "hwp", "hwpx", "wpd",
   // FB2 / UMD 电子书：isClientRenderable 不含它们，
   // 实际由 FvDocPanel 电子书分支前端直渲；归类只为图标 / 文案。
   "fb2", "umd",
@@ -150,7 +150,12 @@ const DESIGN_EXTS = ["psd", "psb"];
  * 后端只有信息卡或外部转换，归 CAD 面板由它按 renderable 决定展示形态。
  */
 const MODEL_EXTS = [
-  "glb", "gltf", "obj", "stl", "dxf", "dwg", "blend", "fbx",
+  "glb", "gltf", "obj", "stl", "dxf", "dwg", "dwt", "blend", "fbx",
+  // wmf/emf：Windows 图元文件（矢量绘图），归到 model 只为图标/文案，
+  // 实际由 FvMetafilePanel 前端解析成 SVG。
+  "wmf", "emf",
+  // fcstd：FreeCAD 文档（ZIP + 内嵌 *.brp），由 FvFcstdPanel 解包后交给 BREP 内核渲染
+  "fcstd",
   "step", "stp", "iges", "igs", "brep", "shp", "dgn",
   // IFC（Industry Foundation Classes，BIM 模型，STEP/ISO 10303-21 文本）
   "ifc",
@@ -222,7 +227,7 @@ const SKETCH_EXTS = ["sketch"];
  * 后端无脑图提供者，且脑图是结构化文档而非 Office 文档，
  * 故从 OFFICE_EXTS 拆出独立归类，匹配其专属图标与「XMind 脑图」文案。</p>
  */
-const MINDMAP_EXTS = ["xmind"];
+const MINDMAP_EXTS = ["xmind", "mm", "opml"];
 
 /** 压缩包扩展名（走后端条目列表预览） */
 const ARCHIVE_EXTS = [
@@ -272,7 +277,7 @@ export function kindOf(name: string): PreviewKind {
   if (TIFF_EXTS.includes(ext)) return "tiff";
   if (HEIC_EXTS.includes(ext)) return "heic";
   if (CODE_EXTS.includes(ext)) return "code";
-  if (ext === "md" || ext === "markdown") return "markdown";
+  if (ext === "md" || ext === "markdown" || ext === "markmap") return "markdown";
   if (ext === "csv") return "csv";
   if (PLAIN_TEXT_EXTS.includes(ext)) return "text";
   if (ext === "pdf") return "pdf";
@@ -375,7 +380,7 @@ export function fileSvg(name: string, isDir: boolean): string {
       return icon("notebook");
     // CAD / 3D 模型：dwg/dxf/dgn/shp 走 CAD 图纸图标，其余 3D 用立方体图标
     case "model":
-      if (["dwg", "dxf", "dgn", "shp"].includes(ext)) {
+      if (["dwg", "dwt", "dxf", "dgn", "shp", "wmf", "emf"].includes(ext)) {
         return icon("cad");
       }
       return icon("model");
@@ -435,7 +440,7 @@ export function fileSvg(name: string, isDir: boolean): string {
       if (["vtk", "vtp", "xyz", "usd", "usdz", "kmz"].includes(ext)) {
         return icon("model");
       }
-      if (["dwf", "dwfx"].includes(ext)) {
+      if (["dwf", "dwfx", "plt"].includes(ext)) {
         return icon("cad");
       }
       if (["tbz", "bzip2", "gzip", "ar", "cpio", "xar", "lha", "lzh",
@@ -516,7 +521,7 @@ export function fileTypeText(name: string): string {
       if (["vtk", "vtp", "xyz", "usd", "usdz", "kmz"].includes(ext)) {
         return "3D / CAD 模型";
       }
-      if (["dwf", "dwfx"].includes(ext)) return "CAD 图纸";
+      if (["dwf", "dwfx", "plt"].includes(ext)) return "CAD 图纸";
       if (["tbz", "bzip2", "gzip", "ar", "cpio", "xar", "lha", "lzh",
         "lzma", "cab", "iso", "cbr", "cbz"].includes(ext)) {
         return "压缩文件";

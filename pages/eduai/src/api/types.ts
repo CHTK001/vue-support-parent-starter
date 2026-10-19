@@ -1150,6 +1150,27 @@ export interface EduAiCapability {
   model?: string | null;
 }
 
+/**
+ * AI 连通性测试结果（对应后端 EduAiProbeVO）
+ *
+ * <p>与 {@link EduAiCapability} 的区别：能力探测无副作用、只判断「能否解析出客户端」；
+ * 本结果来自一次真实的最小对话请求，用于在「AI 配置」页确认密钥 / 网关 / 模型名是否可用。</p>
+ */
+export interface EduAiProbe {
+  /** 是否连通 */
+  ok: boolean;
+  /** 结论说明；失败时是具体原因 */
+  message: string;
+  /** 本次调用使用的提供商，可能为空 */
+  provider?: string | null;
+  /** 本次调用使用的模型，可能为空 */
+  model?: string | null;
+  /** 本次调用耗时（毫秒） */
+  costMillis: number;
+  /** 模型返回内容片段；失败时为空 */
+  sample?: string | null;
+}
+
 /** AI 选题请求（对应后端 QuestionAiSelectDTO） */
 export interface QuestionAiSelectPayload {
   subject?: string;

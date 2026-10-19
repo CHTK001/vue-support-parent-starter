@@ -15,9 +15,13 @@
  * 钉到 {@code 1.4.15}（与 renderer-spreadsheet 的内部依赖严格同版本），
  * 否则 pnpm 会装出两个实例、补丁打不到渲染器实际使用的那张表。</p>
  *
- * <p>坐标口径（已 spike 验证）：e-virt-table 的 colIndex 直接对应 xlsx
- * 列序号（0=A），行 yArr[0] 0 基 = 第 1 行；<b>无偏移</b>。
- * 拖选 B3:D3 → {@code xArr=[1,3], yArr=[2,2]} → sum=53 / count=3。</p>
+ * <p><b>坐标口径：列有偏移、行无偏移</b>。file-viewer 的 spreadsheet 渲染器在最左侧
+ * 固定了一列**行号列**（{@code {key:'__index', type:'index', fixed:'left'}}），
+ * 故 e-virt 的 colIndex = sheet 列号 + 1（表格第 0 列 = 行号列，第 1 列 = sheet A 列）。
+ * 桥接在派发前用 {@link toSheetColumns} 扣掉这一列，事件里给出的是 **sheet 坐标**
+ * （0=A）—— 早期版本直接透传表格列号，导致「选 B 列统计到 A 列」。
+ * 行 yArr[0] 0 基 = 第 1 行，无偏移。
+ * 拖选 B3:D3（表格列 2..4）→ 事件 {@code xArr=[1,3], yArr=[2,2]}。</p>
  *
  * @author CH
  * @since 2026/10/09
@@ -230,6 +234,27 @@ type EVirtLike = { selector?: EVirtSelLike };
 let installed = false;
 
 /**
+ * 表格列 0 是**行号列**（file-viewer `buildColumns` 里 `{key:'__index', type:'index',
+ * fixed:'left'}`），因此 e-virt 的列坐标整体右移一列：sheet 的 A 列 = 表格第 1 列。
+ *
+ * <p><b>这里必须换算</b>：事件里报的是**表格列号**，直接拿去当 sheet 列号用会让
+ * 「选 B 列」统计到 A 列的值（用户侧表现为「卡片数值对应到别的区域」）。</p>
+ */
+const INDEX_COL_OFFSET = 1;
+
+/**
+ * 把表格列坐标换算为 sheet 列坐标（扣掉行号列；拖到行号列时夹到 0 = A 列）。
+ *
+ * @param xArr 表格列号 [起, 止]
+ * @returns sheet 列号 [起, 止]
+ */
+export function toSheetColumns(xArr: readonly number[]): [number, number] {
+  const a = Math.max(0, (xArr[0] ?? 0) - INDEX_COL_OFFSET);
+  const b = Math.max(0, (xArr[1] ?? 0) - INDEX_COL_OFFSET);
+  return [Math.min(a, b), Math.max(a, b)];
+}
+
+/**
  * 把当前选区以 CustomEvent 派发到容器元素。
  *
  * @param eiSelf Ei 实例（this）
@@ -245,7 +270,11 @@ function dispatchFvSelection(eiSelf: EVirtSelLike, clear = false): void {
     Array.isArray(st?.yArr) &&
     (st?.xArr as number[])[0] >= 0;
   const detail = hasSel
-    ? { xArr: [...(st?.xArr as number[])], yArr: [...(st?.yArr as number[])] }
+    ? {
+        // xArr 是**表格列号**，扣掉行号列才是 sheet 列号（行号列在表格中占第 0 列）
+        xArr: toSheetColumns(st!.xArr as number[]),
+        yArr: [...(st!.yArr as number[])],
+      }
     : null;
   if (!container) return;
   container.dispatchEvent(

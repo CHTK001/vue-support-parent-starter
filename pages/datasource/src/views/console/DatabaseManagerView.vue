@@ -107,18 +107,7 @@
         </template>
         <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
              再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
-        <template v-if="!embedded">
-          <!-- 共享数据源选择器（外部选项模式）：本页的候选是「默认主数据源」+ 台账，
-               且 id 在本页是 number（要喂给各 API），所以由本页出选项、组件只管渲染。
-               用 watch 而非 @change：ReSelect 不发 change 事件 -->
-          <DatasourceSelect
-            class="dbm-ds-select"
-            placeholder="选择数据源"
-            :model-value="String(currentDatasourceId)"
-            :options="datasourceOptions"
-            @update:model-value="onDatasourcePick"
-          />
-        </template>
+        
         <span v-else class="dbm-ds-chip">
           <ReIcon name="Coin" :size="13" />
           {{ currentDatasourceName }}

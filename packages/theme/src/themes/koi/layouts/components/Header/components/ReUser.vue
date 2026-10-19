@@ -178,7 +178,7 @@ const handleClearCache = async () => {
     if (current.name && !router.hasRoute(current.name)) {
       await router.replace(getConfig().route.homePath || "/home");
     }
-    message.success("缓存已清理，菜单已刷新");
+    message.success("缓存已清理");
   } catch (e) {
     message.error((e as Error)?.message ?? "缓存清理失败，请重试");
   } finally {

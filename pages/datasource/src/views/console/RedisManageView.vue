@@ -149,7 +149,7 @@
         <!-- 命令控制台：任意 Redis 命令（JSON.GET / TS.RANGE / GEOSEARCH 等模块命令的通用通道） -->
         <div v-if="consoleMode === 'command'" class="dsm-command-panel" data-testid="dsm-command-panel">
           <div class="dsm-command-actions">
-            <ReButton type="primary" icon="VideoPlay" tip="执行（Ctrl+Enter）" data-testid="dsm-btn-run-command" :disabled="!source || !commandText.trim()" :loading="commandRunning" @click="runCommand" />
+            <ReButton layout="square" type="primary" icon="VideoPlay" tip="执行（Ctrl+Enter）" data-testid="dsm-btn-run-command" :disabled="!source || !commandText.trim()" :loading="commandRunning" @click="runCommand" />
             <ReButton layout="square" icon="Delete" tip="清空编辑器" data-testid="dsm-btn-clear-command" :disabled="!commandText" @click="clearCommand" />
             <span class="dsm-command-hint">支持任意命令：JSON.GET / TS.RANGE / GEOSEARCH 等；危险命令由服务端拒绝</span>
           </div>
@@ -230,7 +230,7 @@
                   </div>
                   <!-- 保存：字符串 / JSON 可保存，HEX 为只读字节视图不可保存。本轮补 tip：
                        与工具栏/行内 square 按钮同一契约（aria-label=保存值） -->
-                  <ReButton layout="square" icon="Check" tip="保存值" v-if="stringView !== 'hex'" type="primary" :loading="saving" data-testid="dsm-btn-save" @click="saveStringValue" />
+                  <ReButton layout="square" icon="Save" tip="保存值" v-if="stringView !== 'hex'" type="primary" :loading="saving" data-testid="dsm-btn-save" @click="saveStringValue" />
                 </div>
               </div>
               <textarea

@@ -25,6 +25,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import RFB from '@novnc/novnc';
+import { getSocketToken } from '@repo/core';
 import { getVncCredential } from '../api';
 import type { SpecialKeyStep } from './specialKeys';
 
@@ -55,6 +56,10 @@ function buildWsUrl(hostId: number, identityId?: number | null): string {
   if (identityId != null) {
     qs.set('identityId', String(identityId));
   }
+  // 浏览器 WebSocket 握手不能带自定义头，后端 OAuth 过滤器支持从查询参数
+  // 取 x-oauth-token；不带时 /ws/ms/server/terminal/vnc 一律 403。
+  const token = getSocketToken();
+  if (token) qs.set('x-oauth-token', token);
   return `${proto}//${location.host}/ws/ms/server/terminal/vnc?${qs.toString()}`;
 }
 

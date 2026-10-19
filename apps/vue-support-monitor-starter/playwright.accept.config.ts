@@ -29,6 +29,17 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const BASE_URL = process.env.MS_E2E_BASE_URL ?? 'http://127.0.0.1:8851';
 
+/**
+ * 浏览器通道。
+ *
+ * <p>默认用 Playwright 自带的 chromium，<b>不再钉死 {@code channel:'msedge'}</b>：
+ * 本机（以及很多 CI）根本没装 Edge，Playwright 会报
+ * {@code Chromium distribution 'msedge' is not found}，global-setup 直接起不来浏览器，
+ * 整套用例会在浏览器启动阶段整片红掉 —— 那是环境问题，不是被测页面的问题。
+ * 需要真机 Edge 时用 {@code MS_E2E_BROWSER_CHANNEL=msedge} 覆盖即可。</p>
+ */
+const BROWSER_CHANNEL = process.env.MS_E2E_BROWSER_CHANNEL?.trim() || undefined;
+
 export default defineConfig({
   testDir: './tests/e2e',
   globalSetup: './tests/e2e/global-setup.ts',
@@ -58,18 +69,19 @@ export default defineConfig({
     baseURL: BASE_URL,
     storageState: './tests/e2e/.auth/user.json',
     headless: true,
-    channel: 'msedge',
     viewport: { width: 1500, height: 950 },
     locale: 'zh-CN',
     screenshot: 'only-on-failure',
     video: 'off',
     trace: 'retain-on-failure',
     ...devices['Desktop Edge'],
+    // 放在 devices 之后，才能覆盖掉 devices['Desktop Edge'] 自带的 channel:'msedge'
+    channel: BROWSER_CHANNEL,
   },
   projects: [
     {
-      name: 'msedge',
-      use: { channel: 'msedge', viewport: { width: 1500, height: 950 } },
+      name: BROWSER_CHANNEL ?? 'chromium',
+      use: { channel: BROWSER_CHANNEL, viewport: { width: 1500, height: 950 } },
     },
   ],
 });

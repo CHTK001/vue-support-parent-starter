@@ -815,7 +815,7 @@
  * @since 4.0.0.43
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, watchEffect, type Component } from "vue";
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
@@ -1800,13 +1800,42 @@ const validateStep = (index: number): boolean => {
 /** 当前步骤的实时校验结论（页脚状态条用；随表单输入即时更新） */
 const stepIssueNow = computed(() => stepIssue(step.value));
 
+let _prevStep = -1;
+/** Auto-preview: watch step 0->1 transition to trigger doPreview */
+watch(step, (newStep, oldStep) => {
+  if (newStep === 1 && oldStep === 0) {
+    console.log("[AP] watch: step 0->1 detected");
+    let retries = 0;
+    const tryPreview = () => {
+      const srcDs = form.sourceDatasourceId;
+      const tgtDs = form.targetDatasourceId;
+      const tgt = form.targetTable;
+      const sql = form.sourceSql;
+      console.log("[AP] tryPreview srcDs=" + srcDs + " tgt=" + tgt + " sqlLen=" + (sql ? sql.length : 0));
+      if (!srcDs || !sql || !sql.trim() || !tgtDs || !tgt || !tgt.trim()) {
+        retries++;
+        if (retries < 15) { setTimeout(tryPreview, 400); return; }
+        console.log("[AP] give up after 15 retries");
+        return;
+      }
+      if (previewSourceColumns.value.length > 0 || previewLoading.value) {
+        console.log("[AP] already previewed or loading, skip");
+        return;
+      }
+      console.log("[AP] calling doPreview...");
+      previewLoading.value = true;
+      doPreview().finally(() => { previewLoading.value = false; });
+    };
+    setTimeout(tryPreview, 800); // wait for loadTables
+  }
+  _prevStep = oldStep;
+});
+
 /** 下一步 */
 const nextStep = () => {
-  if (!validateStep(step.value)) {
-    return;
-  }
+  if (!validateStep(step.value)) return;
   step.value = Math.min(2, step.value + 1);
-};
+};;
 
 /** 上一步 */
 const prevStep = () => {
@@ -2382,9 +2411,36 @@ const fetchLogRuns = async (): Promise<void> => {
 const triggerLabel = (trigger: string): string =>
   trigger === "SCHEDULED" ? "定时" : trigger === "REALTIME" ? "实时" : "手动";
 
+/**
+ * 进入第 2 步时：条件就绪则自动触发一次预览（减少用户操作步骤）。
+ * 仅在尚未预览过（previewSourceColumns.length === 0）时才自动触发，
+ * 避免覆盖用户手动点「预览 / 自动配对」后的结果。
+ */
+watch(step, async (newStep) => {
+  if (newStep === 1) {
+    // 等待目标表清单异步加载完成（loadTables 是 void，故用 setTimeout 轮询）
+    for (let i = 0; i < 20; i++) {
+      if (targetTables.value.length > 0 || form.targetTable.trim()) break;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    const canAutoPreview =
+      form.sourceDatasourceId != null &&
+      form.sourceSql.trim() &&
+      form.targetDatasourceId != null &&
+      form.targetTable.trim() &&
+      !previewLoading.value &&
+      previewSourceColumns.value.length === 0;
+    if (canAutoPreview) {
+      await doPreview();
+    }
+  }
+});
+
 /** 执行状态展示名 */
 const statusLabel = (status: string): string =>
   status === "RUNNING" ? "执行中" : status === "SUCCESS" ? "成功" : "失败";
+
+
 
 /** 弹窗可见性联动：打开即拉一次并启动轮询（进行中的执行实时追加），关闭即停 */
 watch(logVisible, async visible => {

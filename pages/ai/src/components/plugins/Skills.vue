@@ -269,7 +269,7 @@
                 <!-- 元信息表格 -->
                 <div v-if="parsedMeta.length > 0" class="skill-meta-table mb-6">
                     <ReTable
-                        :data="parsedMeta"
+                        :data="(parsedMeta as unknown as Record<string, unknown>[])"
                         :columns="metaColumns"
                         engine="element"
                         :pagination="false"

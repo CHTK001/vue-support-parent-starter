@@ -15,7 +15,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import {useSocketService, message} from "@repo/core";
@@ -27,12 +27,57 @@ import {
   getAllConfig, saveConfig,
   type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
-import { getHost } from "@pages/server/src/api";
-import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../monitorApi";
+import { getHost, getIdentities, listBoundIdentities } from "@pages/server/src/api";
+import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, fetchProcessChildren, fetchProcessThreads, type HostProfile } from "../monitorApi";
 import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
+import type { ReTableColumn, ReTableContextMenuContext, ReTableContextMenuItem, ReTableLoader } from "@repo/ui/re-table";
 
 const route = useRoute();
 const router = useRouter();
+
+// ---------------- 连接远控（先选登录身份） ----------------
+/**
+ * 连接远控前先选登录身份，与「主机资产」页入口保持一致。
+ *
+ * <p>此前本入口直接 {@code router.push('/terminal')}，只用主机默认凭据发起 SSH；
+ * 当主机默认凭据不可用（如无 Provider/未绑定可用身份）时后端会 403，
+ * /ws/ms/server/terminal/ssh 握手失败并抛出未处理错误，页面上看不到任何原因。
+ * 现在先弹「连接」对话框让用户选择/确认身份，再跳转远控台。</p>
+ */
+const connectVisible = ref(false);
+const connectIdentityId = ref<number | null>(null);
+const connectIdentities = ref<any[]>([]);
+const connectBoundIds = ref<number[]>([]);
+
+/** 打开「连接」弹窗：拉全量身份 + 本主机已绑定身份 */
+async function openConnect(): Promise<void> {
+  connectIdentityId.value = null;
+  try {
+    const [all, bound] = await Promise.all([
+      getIdentities(),
+      listBoundIdentities(hostId.value),
+    ]);
+    connectIdentities.value = all ?? [];
+    connectBoundIds.value = (bound as number[]) ?? [];
+  } catch {
+    connectIdentities.value = [];
+    connectBoundIds.value = [];
+  }
+  connectVisible.value = true;
+}
+
+/** 选定身份后跳转远控台（留空 = 使用主机默认凭据） */
+function doConnect(): void {
+  const identityId = connectIdentityId.value;
+  connectVisible.value = false;
+  router.push({
+    path: "/terminal",
+    query: {
+      hostId: String(hostId.value),
+      ...(identityId != null ? { identityId: String(identityId) } : {}),
+    },
+  });
+}
 
 /** 路由参数是主机台账标识（AssetsView 用 /host/${h.id} 跳转），不是监控项标识 */
 const hostId = ref<number>(Number(route.params.id) || 0);
@@ -1008,7 +1053,7 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "pid", label: "PID" },
     { key: "name", label: "进程名" },
     { key: "cpu", label: "CPU%" },
-    { key: "memory", label: "内存(MB)" },
+    { key: "memory", label: "内存" },
     { key: "threads", label: "线程" },
     { key: "command", label: "命令行" },
   ],
@@ -1058,6 +1103,8 @@ const profilePageSize = ref(10);
 /** 检索关键字：分页分区走后端跨页匹配，非分页分区走前端过滤 */
 const profileKeyword = ref("");
 const profileRows = ref<Record<string, any>[]>([]);
+/** 画像进程树展开状态：pid → { open, loading, children }（切分区清空，避免串台） */
+const profileProcTree = ref<Record<number, { open: boolean; loading: boolean; children: Record<string, any>[] }>>({});
 const profileLoading = ref(false);
 const profileError = ref("");
 let profileReq = 0;
@@ -1076,6 +1123,8 @@ const profileVisibleRows = computed(() => {
 function resetProfilePager(): void {
   profilePage.value = 1;
   profileKeyword.value = "";
+  profileAppliedKeyword.value = "";
+  profileSectionAll.value = [];
 }
 /** 拉取当前分区 */
 async function loadProfileSection(): Promise<void> {
@@ -1103,17 +1152,155 @@ function pickProfileTab(name: ProfileSection): void {
   profileTab.value = name;
   resetProfilePager();
   profileRows.value = [];
+  profileProcTree.value = {};
   void loadProfileSection();
 }
 function applyProfileKeyword(): void {
-  profilePage.value = 1;
-  void loadProfileSection();
+  profileAppliedKeyword.value = profileKeyword.value.trim();
 }
 function changeProfilePage(delta: number): void {
   const next = profilePage.value + delta;
   if (next < 1) return;
   profilePage.value = next;
   void loadProfileSection();
+}
+
+/* ---------------- 画像分区：ReTable 数据源（与「主机画像」抽屉同口径） ---------------- */
+
+/** 已提交的检索词：ReTable 监听 params 变化后回第 1 页重取 */
+const profileAppliedKeyword = ref("");
+/** 重取令牌：树展开/收起、远端写动作完成后自增，驱动 ReTable 重新取数 */
+const profileReloadToken = ref(0);
+/** 分区全量行（分页前）：条数与内存合计读它 */
+const profileSectionAll = ref<Record<string, any>[]>([]);
+
+/**
+ * 内存自动换算单位（后端进程内存口径为 MB）。
+ *
+ * @param mb 内存兆字节数
+ * @returns 带单位的可读文本；无效值回 —
+ */
+function fmtMemMb(mb: unknown): string {
+  const n = Number(mb);
+  if (!Number.isFinite(n) || n < 0) return "—";
+  if (n > 0 && n < 1) return `${Math.round(n * 1024)} KB`;
+  if (n < 1024) return `${n >= 100 ? Math.round(n) : n.toFixed(1)} MB`;
+  return `${(n / 1024).toFixed(2)} GB`;
+}
+
+/** 进程分区内存合计（微数据：跟在条数后面） */
+const profileMemTotal = computed(() => {
+  if (profileTab.value !== "processes") return "";
+  const sum = profileSectionAll.value.reduce((acc, r) => acc + (Number(r.memory) || 0), 0);
+  return sum > 0 ? fmtMemMb(sum) : "";
+});
+
+/** ReTable 查询参数：分区/主机/关键字/树版本任一变化都会重载并回第 1 页 */
+const profileTableParams = computed(() => ({
+  section: profileTab.value,
+  host: hostId.value ?? 0,
+  keyword: profileAppliedKeyword.value,
+  tree: profileReloadToken.value,
+}));
+
+/** 列定义：进程内存按量级换算，其余空值统一显示 — */
+const profileTableColumns = computed<ReTableColumn[]>(() =>
+  (PROFILE_COLUMNS[profileTab.value] ?? []).map((c) => {
+    if (profileTab.value === "processes" && c.key === "memory") {
+      return {
+        prop: c.key,
+        label: c.label,
+        align: "right" as const,
+        formatter: (_row: Record<string, unknown>, _col: ReTableColumn, v: unknown) => fmtMemMb(v),
+      };
+    }
+    return {
+      prop: c.key,
+      label: c.label,
+      showOverflowTooltip: true,
+      formatter: (_row: Record<string, unknown>, _col: ReTableColumn, v: unknown) =>
+        (v === null || v === undefined || String(v).trim() === "" ? "—" : String(v)),
+    };
+  }),
+);
+
+/** 进程树铺平：已展开 pid 的子进程插在父行后并标记深度 */
+function profileFlattenTree(list: Record<string, any>[]): Array<Record<string, any>> {
+  if (profileTab.value !== "processes") return list;
+  const out: Array<Record<string, any>> = [];
+  const walk = (rowsIn: Record<string, any>[], depth: number): void => {
+    for (const r of rowsIn) {
+      out.push({ ...r, __depth: depth });
+      const st = profileProcTree.value[Number(r?.pid)];
+      if (st?.open && st.children.length) walk(st.children, depth + 1);
+    }
+  };
+  walk(list, 0);
+  return out;
+}
+
+/**
+ * ReTable 数据源（远程模式）。
+ *
+ * <p>后端分区端点只回当前页、没有 total；这里一次取全量（后端上限 500）后
+ * 本地铺平进程树再切片，换来真实条数，并让 ReTable 自带的刷新 / 自动刷新
+ * 确实重新取数。</p>
+ */
+const profileTableLoader: ReTableLoader = async ({ page: p, pageSize: ps, params }) => {
+  const hid = hostId.value;
+  const sec = profileTab.value;
+  if (!hid) return { data: [], total: 0 };
+  const kw = String(params?.keyword ?? "");
+  profileLoading.value = true;
+  profileError.value = "";
+  try {
+    const all = ((await fetchHostProfileSection(hid, sec, 1, 500, kw || undefined)) ?? []) as Record<string, any>[];
+    if (hostId.value !== hid || profileTab.value !== sec) return { data: [], total: 0 };
+    // 非分页分区（磁盘/环境变量）后端不认 keyword，这里补一次前端过滤
+    const filtered = kw && !profilePaged.value
+      ? all.filter(r => Object.values(r).some(v =>
+          v !== null && v !== undefined && String(v).toLowerCase().includes(kw.toLowerCase())))
+      : all;
+    profileSectionAll.value = filtered;
+    profileRows.value = all;
+    const flat = profileFlattenTree(filtered);
+    const start = (p - 1) * ps;
+    return { data: flat.slice(start, start + ps), total: flat.length };
+  } catch (e) {
+    profileError.value = String((e as Error)?.message ?? e);
+    return { data: [], total: 0 };
+  } finally {
+    profileLoading.value = false;
+  }
+};
+
+/** 右键菜单项：键名沿用 profileRowMenuCommand 的命令 */
+const profileRowMenuItems = computed<ReTableContextMenuItem[]>(() => {
+  if (!profileRowHasActions.value) return [];
+  if (profileTab.value === "processes") {
+    return [
+      { key: "tree", label: "展开 / 收起子进程" },
+      { key: "threads", label: "查看线程" },
+      { key: "path", label: "显示文件路径" },
+      { key: "restart", label: "重启进程", divided: true },
+      { key: "kill", label: "结束进程" },
+    ];
+  }
+  if (profileTab.value === "services") {
+    return [
+      { key: "svc-start", label: "启动服务" },
+      { key: "svc-restart", label: "重启服务" },
+      { key: "svc-stop", label: "停止服务" },
+    ];
+  }
+  if (profileTab.value === "ports") return [{ key: "close-port", label: "结束占用进程" }];
+  return [{ key: "env-del", label: "删除变量" }];
+});
+
+/** 右键菜单选中：复用既有命令分发（它读 profileRowMenu.row） */
+function onProfileMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void {
+  profileRowMenu.row = ctx.row as Record<string, any>;
+  profileRowMenuCommand(item.key);
 }
 
 /** 正在执行动作的行键（同一时刻只允许一个远端写操作） */
@@ -1127,7 +1314,8 @@ async function runProfileAction(key: string, task: Promise<string>): Promise<boo
   try {
     const msg = await task;
     message.success(String(msg || "操作已完成"));
-    await loadProfileSection();
+    // 动作完成后让表格重取（ReTable 只在 params 变化时 reload）
+    profileReloadToken.value += 1;
     return true;
   } catch {
     return false;
@@ -1157,6 +1345,207 @@ async function submitProfileEnv(): Promise<void> {
     setHostEnvVar(hostId.value, name, profileEnvForm.value.value));
   if (ok) { profileEnvDialog.value = false; profileEnvForm.value = { name: "", value: "" }; }
 }
+
+/* ---------------- 画像进程：子进程树 / 行右键菜单 / 线程 / 文件路径（与 HostProfileView 同口径） ---------------- */
+
+/** 画像表体渲染行：进程分区按已展开的树铺平（带深度），其余分区平铺 */
+const profileDisplayRows = computed<Array<{ r: Record<string, any>; depth: number }>>(() => {
+  if (profileTab.value !== "processes") {
+    return profileVisibleRows.value.map(r => ({ r, depth: 0 }));
+  }
+  const out: Array<{ r: Record<string, any>; depth: number }> = [];
+  const walk = (list: Record<string, any>[], depth: number): void => {
+    for (const r of list) {
+      out.push({ r, depth });
+      const pid = Number(r?.pid);
+      const st = profileProcTree.value[pid];
+      if (st?.open && st.children.length) walk(st.children, depth + 1);
+    }
+  };
+  walk(profileVisibleRows.value, 0);
+  return out;
+});
+
+/** 某进程子进程是否已展开 */
+function profileProcOpen(pid: number): boolean { return !!profileProcTree.value[pid]?.open; }
+
+/** 展开/收起子进程：首次展开按 PID 拉取，失败回空不阻塞 */
+async function toggleProfileProcTree(row: Record<string, any>): Promise<void> {
+  const pid = Number(row?.pid);
+  if (!Number.isFinite(pid) || pid <= 0) return;
+  const cur = profileProcTree.value[pid];
+  if (cur?.open) {
+    profileProcTree.value = { ...profileProcTree.value, [pid]: { ...cur, open: false } };
+    return;
+  }
+  if (cur && cur.children.length) {
+    profileProcTree.value = { ...profileProcTree.value, [pid]: { ...cur, open: true } };
+    return;
+  }
+  profileProcTree.value = { ...profileProcTree.value, [pid]: { open: true, loading: true, children: [] } };
+  try {
+    const kids = (await fetchProcessChildren(pid, hostId.value)) ?? [];
+    profileProcTree.value = { ...profileProcTree.value, [pid]: { open: true, loading: false, children: kids as Record<string, any>[] } };
+  } catch {
+    profileProcTree.value = { ...profileProcTree.value, [pid]: { open: true, loading: false, children: [] } };
+  }
+}
+
+/** 画像分区是否有行右键动作 */
+const profileRowHasActions = computed(() =>
+  profileTab.value === "ports" || profileTab.value === "processes"
+  || profileTab.value === "services" || profileTab.value === "env");
+
+/** 画像行右键菜单状态 */
+const profileRowMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<string, any> | null }>({
+  visible: false, x: 0, y: 0, row: null,
+});
+const PROFILE_MENU_W = 200;
+const PROFILE_MENU_H = 240;
+
+/** 打开画像行右键菜单（仅对带写动作的分区生效） */
+function openProfileRowMenu(event: MouseEvent, row: Record<string, any>): void {
+  if (!profileRowHasActions.value) return;
+  event.preventDefault();
+  let x = event.clientX;
+  let y = event.clientY;
+  if (x + PROFILE_MENU_W > window.innerWidth - 8) x = window.innerWidth - PROFILE_MENU_W - 8;
+  if (y + PROFILE_MENU_H > window.innerHeight - 8) y = window.innerHeight - PROFILE_MENU_H - 8;
+  profileRowMenu.row = row;
+  profileRowMenu.x = Math.max(8, x);
+  profileRowMenu.y = Math.max(8, y);
+  profileRowMenu.visible = true;
+}
+/** 关闭画像行右键菜单 */
+function closeProfileRowMenu(): void {
+  profileRowMenu.visible = false;
+  profileRowMenu.row = null;
+}
+/** 服务是否未运行（决定「启动」还是「重启/停止」） */
+function profileStopped(row: Record<string, any>): boolean {
+  const s = String(row?.state ?? "").trim().toLowerCase();
+  return !s || s === "stopped" || s === "inactive" || s === "failed" || s === "unknown";
+}
+/** 画像行右键命令分发：各分区行动作的唯一入口 */
+function profileRowMenuCommand(cmd: string): void {
+  const row = profileRowMenu.row;
+  closeProfileRowMenu();
+  if (!row) return;
+  const hid = hostId.value;
+  switch (cmd) {
+    case "tree": void toggleProfileProcTree(row); break;
+    case "threads": void openProfileThreads(row); break;
+    case "path": openProfilePath(row); break;
+    case "restart":
+      void confirmProfileAction(`确定重启进程 ${row.name ?? ""}（PID ${row.pid}）？`)
+        .then(ok => ok && runProfileAction(`restart-${row.pid}`, restartHostProcess(Number(row.pid), hid)));
+      break;
+    case "kill":
+      void confirmProfileAction(`确定结束进程 ${row.name ?? ""}（PID ${row.pid}）？该操作不可恢复。`)
+        .then(ok => ok && runProfileAction(`kill-${row.pid}`, killProcess(Number(row.pid), hid)));
+      break;
+    case "svc-start":
+      void runProfileAction(`service-start-${row.name}`, startService(String(row.name), hid));
+      break;
+    case "svc-stop":
+      void confirmProfileAction(`确定停止服务 ${row.displayName || row.name}？`)
+        .then(ok => ok && runProfileAction(`service-stop-${row.name}`, stopService(String(row.name), hid)));
+      break;
+    case "svc-restart":
+      void confirmProfileAction(`确定重启服务 ${row.displayName || row.name}？`)
+        .then(ok => ok && runProfileAction(`service-restart-${row.name}`, restartService(String(row.name), hid)));
+      break;
+    case "close-port":
+      void confirmProfileAction(`确定结束 PID ${row.pid}？它正占用 ${row.protocol ?? ""} ${row.port}。`)
+        .then(ok => ok && runProfileAction(`netproc-${row.pid}-${row.port}`,
+          closeNetProcess(Number(row.pid), Number(row.port) || undefined, hid)));
+      break;
+    case "env-del":
+      void confirmProfileAction(`确定删除系统级环境变量 ${row.name}？`)
+        .then(ok => ok && runProfileAction(`env-del-${row.name}`, deleteHostEnvVar(hid, String(row.name))));
+      break;
+    default: break;
+  }
+}
+
+/** 画像线程弹窗 */
+const profileThreadsVisible = ref(false);
+const profileThreadsProc = ref<Record<string, any> | null>(null);
+const profileThreadsRows = ref<Record<string, any>[]>([]);
+const profileThreadsLoading = ref(false);
+const profileThreadsError = ref("");
+const profileThreadColumns: Array<{ key: string; label: string }> = [
+  { key: "tid", label: "TID" },
+  { key: "cpu", label: "CPU%" },
+  { key: "memory", label: "内存%" },
+  { key: "state", label: "状态" },
+  { key: "priority", label: "优先级" },
+  { key: "name", label: "线程名" },
+  { key: "waitReason", label: "等待原因" },
+  { key: "cpuTime", label: "CPU 时间" },
+];
+const profileThreadSort = ref<{ key: string; dir: "asc" | "desc" } | null>({ key: "cpu", dir: "desc" });
+function profileThreadSortable(key: string): boolean {
+  return key === "tid" || key === "cpu" || key === "memory";
+}
+function onProfileThreadSort(key: string): void {
+  const cur = profileThreadSort.value;
+  if (!cur || cur.key !== key) {
+    profileThreadSort.value = { key, dir: "desc" };
+  } else if (cur.dir === "desc") {
+    profileThreadSort.value = { key, dir: "asc" };
+  } else {
+    profileThreadSort.value = null;
+  }
+}
+const profileThreadsView = computed(() => {
+  const s = profileThreadSort.value;
+  const base = profileThreadsRows.value;
+  if (!s) return base;
+  const arr = [...base].sort((a, b) => {
+    const va = Number(a?.[s.key]);
+    const vb = Number(b?.[s.key]);
+    return (Number.isFinite(va) ? va : 0) - (Number.isFinite(vb) ? vb : 0);
+  });
+  return s.dir === "desc" ? arr.reverse() : arr;
+});
+/** 打开某进程的线程列表弹窗并拉取线程 */
+async function openProfileThreads(row: Record<string, any>): Promise<void> {
+  const pid = Number(row?.pid);
+  profileThreadsProc.value = row;
+  profileThreadsRows.value = [];
+  profileThreadsError.value = "";
+  profileThreadSort.value = { key: "cpu", dir: "desc" };
+  profileThreadsVisible.value = true;
+  if (!Number.isFinite(pid) || pid <= 0) return;
+  profileThreadsLoading.value = true;
+  try {
+    profileThreadsRows.value = ((await fetchProcessThreads(pid, hostId.value)) ?? []) as Record<string, any>[];
+  } catch (e) {
+    profileThreadsError.value = String((e as Error)?.message ?? e);
+  } finally {
+    profileThreadsLoading.value = false;
+  }
+}
+
+/** 画像文件路径弹窗 */
+const profilePathVisible = ref(false);
+const profilePathProc = ref<Record<string, any> | null>(null);
+function openProfilePath(row: Record<string, any>): void {
+  profilePathProc.value = row;
+  profilePathVisible.value = true;
+}
+/** 复制进程文件路径到剪贴板 */
+async function copyProfilePath(): Promise<void> {
+  const text = String(profilePathProc.value?.path ?? "").trim();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success("路径已复制");
+  } catch {
+    message.warning("复制失败，浏览器拒绝了剪贴板访问");
+  }
+}
 </script>
 
 <template>
@@ -1172,7 +1561,7 @@ async function submitProfileEnv(): Promise<void> {
           :title="aiDisabled ? '未配置 AI 模型，请先在系统配置中接入' : '按主机指标调用大模型分析'"
           @click="runAiAnalysis"
         >AI 分析</ReButton>
-        <ReButton icon="Connection" :show-text="true" type="primary" @click="router.push({ path: '/terminal', query: { hostId: String(hostId) } })">连接远控</ReButton>
+        <ReButton icon="Connection" :show-text="true" type="primary" @click="openConnect()">连接远控</ReButton>
       </template>
     </ReSectionHead>
 
@@ -1499,21 +1888,6 @@ async function submitProfileEnv(): Promise<void> {
             >{{ s.label }}</button>
           </div>
         </div>
-        <div class="pp-bar">
-          <span v-if="profileTab !== 'network'" class="dim">{{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}</span>
-          <span v-else class="dim">Windows 网络连接视图</span>
-          <div class="pp-pager">
-            <ReInput v-if="profileTab !== 'network'" v-model="profileKeyword" class="pp-search" placeholder="关键字过滤" clearable @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword" />
-            <template v-if="profilePaged">
-              <ReButton @click="applyProfileKeyword">搜索</ReButton>
-              <ReButton :disabled="profilePage <= 1 || profileLoading" @click="changeProfilePage(-1)">上一页</ReButton>
-              <span class="mono page-no">{{ profilePage }}</span>
-              <ReButton :disabled="profileLoading || profileRows.length < profilePageSize" @click="changeProfilePage(1)">下一页</ReButton>
-            </template>
-            <ReButton v-if="profileTab === 'env'" type="primary" icon="Plus" @click="profileEnvDialog = true">新增变量</ReButton>
-            <ReButton type="primary" icon="Refresh" :loading="profileLoading" @click="loadProfileSection">刷新</ReButton>
-          </div>
-        </div>
         <div v-if="profileError" class="pp-error">{{ profileError }}</div>
         <div v-else-if="profileTab === 'network'" class="pp-net">
           <HostNetworkAdapters
@@ -1523,38 +1897,41 @@ async function submitProfileEnv(): Promise<void> {
             @applied="loadProfileSection"
           />
         </div>
-        <div v-else-if="profileLoading && !profileRows.length" class="dim pp-loading">正在拉取…</div>
-        <div v-else-if="!profileVisibleRows.length" class="dim pp-loading">{{ profileKeyword.trim() ? "关键字未命中任何一行" : "该分区无数据" }}</div>
-        <div v-else class="pp-scroll">
-          <table class="pp-table">
-            <thead>
-              <tr>
-                <th v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key">{{ col.label }}</th>
-                <th v-if="profileTab === 'ports' || profileTab === 'processes' || profileTab === 'services' || profileTab === 'env'">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, idx) in profileVisibleRows" :key="idx">
-                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" class="mono">{{ r[col.key] ?? "—" }}</td>
-                <td v-if="profileTab === 'processes'">
-                  <ReButton icon="RefreshRight" :loading="profileBusyRow === `restart-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定重启进程 ${r.name ?? ''}（PID ${r.pid}）？`).then(ok => ok && runProfileAction(`restart-${r.pid}`, restartHostProcess(Number(r.pid), hostId)))">重启</ReButton>
-                  <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `kill-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束进程 ${r.name ?? ''}（PID ${r.pid}）？该操作不可恢复。`).then(ok => ok && runProfileAction(`kill-${r.pid}`, killProcess(Number(r.pid), hostId)))">结束</ReButton>
-                </td>
-                <td v-else-if="profileTab === 'services'">
-                  <ReButton icon="VideoPlay" type="primary" :loading="profileBusyRow === `service-start-${r.name}`" @click="runProfileAction(`service-start-${r.name}`, startService(String(r.name), hostId))">启动</ReButton>
-                  <ReButton icon="VideoPause" type="danger" :loading="profileBusyRow === `service-stop-${r.name}`" @click="confirmProfileAction(`确定停止服务 ${r.displayName || r.name}？`).then(ok => ok && runProfileAction(`service-stop-${r.name}`, stopService(String(r.name), hostId)))">停止</ReButton>
-                  <ReButton icon="RefreshRight" :loading="profileBusyRow === `service-restart-${r.name}`" @click="confirmProfileAction(`确定重启服务 ${r.displayName || r.name}？`).then(ok => ok && runProfileAction(`service-restart-${r.name}`, restartService(String(r.name), hostId)))">重启</ReButton>
-                </td>
-                <td v-else-if="profileTab === 'ports'">
-                  <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `netproc-${r.pid}-${r.port}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束 PID ${r.pid}？它正占用 ${r.protocol ?? ''} ${r.port}。`).then(ok => ok && runProfileAction(`netproc-${r.pid}-${r.port}`, closeNetProcess(Number(r.pid), Number(r.port) || undefined, hostId)))">结束</ReButton>
-                </td>
-                <td v-else-if="profileTab === 'env'">
-                  <ReButton icon="Delete" type="danger" :loading="profileBusyRow === `env-del-${r.name}`" @click="confirmProfileAction(`确定删除系统级环境变量 ${r.name}？`).then(ok => ok && runProfileAction(`env-del-${r.name}`, deleteHostEnvVar(hostId, String(r.name))))">删除</ReButton>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- 其余分区：统一 ReTable（分页/刷新/自动刷新由组件承担） -->
+        <ReTable
+          v-else
+          :columns="profileTableColumns"
+          :loader="profileTableLoader"
+          :params="profileTableParams"
+          :pagination="profilePaged"
+          :context-menu="profileRowMenuItems"
+          :auto-refresh="true"
+          :table-id="`host-profile-detail-${profileTab}`"
+          :empty-text="profileKeyword.trim() ? '关键字未命中任何一行' : '该分区无数据'"
+          stripe
+          @context-menu-select="onProfileMenuSelect"
+        >
+          <!-- 检索框固定在工具栏左侧（ReTable 的 #toolbar 槽） -->
+          <template #toolbar>
+            <span class="dim pp-count">
+              {{ profileKeyword.trim() ? `命中 ${profileSectionAll.length} 条` : `共 ${profileSectionAll.length} 条` }}
+              <template v-if="profileMemTotal"> · 内存合计 <b class="mono">{{ profileMemTotal }}</b></template>
+            </span>
+            <span v-if="profileRowHasActions" class="dim pp-row-hint">
+              {{ profileTab === 'processes' ? '右键行：展开子进程 / 查看线程 / 文件路径 / 重启 / 结束进程'
+                : profileTab === 'services' ? '右键行：启动 / 重启 / 停止服务'
+                : profileTab === 'ports' ? '右键行：结束占用进程'
+                : '右键行：删除变量' }}
+            </span>
+            <ReInput
+              v-model="profileKeyword" class="pp-search"
+              placeholder="关键字过滤" clearable
+              @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword"
+            />
+            <ReButton :disabled="profileLoading" @click="applyProfileKeyword">搜索</ReButton>
+            <ReButton v-if="profileTab === 'env'" type="primary" icon="Plus" :show-text="true" @click="profileEnvDialog = true">新增变量</ReButton>
+          </template>
+        </ReTable>
       </section>
 
       <!-- 磁盘（Windows「此电脑」风格驱动器磁片，响应式自适应） -->
@@ -1697,6 +2074,127 @@ async function submitProfileEnv(): Promise<void> {
         <ReButton type="primary" :loading="profileBusyRow.startsWith('env-set')" @click="submitProfileEnv">保存</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 连接远控：先选登录身份（与主机资产页入口一致，避免只用默认凭据直接 403） -->
+    <ReDialog v-model="connectVisible" :title="`连接 ${hostName || `主机 #${hostId}`}`" width="460px">
+      <p class="muted" style="margin-top:0">请选择登录身份（账号密码 / 私钥）；留空则使用主机默认凭据。</p>
+      <ReSelect
+        v-model="connectIdentityId"
+        placeholder="使用默认凭据"
+        clearable
+        style="width:100%"
+        :options="[
+          ...connectBoundIds.map(b => ({ label: `${connectIdentities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${connectIdentities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
+          ...connectIdentities.filter(x => !connectBoundIds.includes(x.id)).map(i => ({ label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）`, value: i.id, group: '全部身份' })),
+        ]"
+      />
+      <template #footer>
+        <ReButton @click="connectVisible = false">取消</ReButton>
+        <ReButton type="primary" icon="Connection" :show-text="true" @click="doConnect">{{ connectIdentityId ? '以此身份连接' : '默认凭据连接' }}</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 画像：进程线程弹窗（表头可排序） -->
+    <ReDialog
+      v-model="profileThreadsVisible"
+      :title="`进程线程 - ${profileThreadsProc?.name || ''}（PID ${profileThreadsProc?.pid ?? '—'}）`"
+      width="72%" top="8vh"
+    >
+      <div class="ptd-wrap">
+        <div v-if="profileThreadsError" class="pp-error">{{ profileThreadsError }}</div>
+        <div v-else-if="profileThreadsLoading && !profileThreadsRows.length" class="dim pp-loading">正在拉取线程…</div>
+        <div v-else-if="!profileThreadsRows.length" class="dim pp-loading">该进程没有可读线程（或通道不支持）</div>
+        <div v-else class="pp-scroll ptd-scroll">
+          <table class="pp-table">
+            <thead>
+              <tr>
+                <th
+                  v-for="c in profileThreadColumns" :key="c.key"
+                  :class="{ sortable: profileThreadSortable(c.key), 'sort-on': profileThreadSort?.key === c.key }"
+                  @click="profileThreadSortable(c.key) && onProfileThreadSort(c.key)"
+                >
+                  {{ c.label }}
+                  <span v-if="profileThreadSortable(c.key)" class="th-sort">
+                    <span v-if="profileThreadSort?.key === c.key">{{ profileThreadSort.dir === 'desc' ? '▼' : '▲' }}</span>
+                    <span v-else class="sort-idle">⇅</span>
+                  </span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(t, i) in profileThreadsView" :key="i">
+                <td v-for="c in profileThreadColumns" :key="c.key" class="mono">{{ t[c.key] ?? "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- 画像：进程文件路径弹窗（支持复制） -->
+    <ReDialog v-model="profilePathVisible" title="进程文件路径" width="560px">
+      <div class="ppath-body">
+        <div class="dim">进程：{{ profilePathProc?.name || '—' }}（PID {{ profilePathProc?.pid ?? '—' }}）</div>
+        <div class="ppath-box">
+          <code class="mono">{{ String(profilePathProc?.path ?? '').trim() || '（该进程读不到可执行文件路径）' }}</code>
+        </div>
+        <div class="ppath-actions">
+          <ReButton type="primary" icon="CopyDocument" :show-text="true"
+            :disabled="!String(profilePathProc?.path ?? '').trim()" @click="copyProfilePath">复制路径</ReButton>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- 画像：行右键菜单（进程/服务/监听端口/环境变量 共用；teleport 到 body，点击外侧关闭） -->
+    <Teleport to="body">
+      <div v-if="profileRowMenu.visible" class="row-ctx-backdrop" @click="closeProfileRowMenu" @contextmenu.prevent="closeProfileRowMenu" />
+      <div
+        v-if="profileRowMenu.visible"
+        class="row-ctx-menu"
+        :style="{ left: profileRowMenu.x + 'px', top: profileRowMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <div class="rc-head">
+          <template v-if="profileTab === 'processes'">
+            {{ profileRowMenu.row?.name || '进程' }}
+            <span class="dim">PID {{ profileRowMenu.row?.pid ?? '—' }}</span>
+          </template>
+          <template v-else-if="profileTab === 'services'">
+            {{ profileRowMenu.row?.displayName || profileRowMenu.row?.name || '服务' }}
+          </template>
+          <template v-else-if="profileTab === 'ports'">
+            端口 {{ profileRowMenu.row?.port ?? '—' }}
+            <span class="dim">PID {{ profileRowMenu.row?.pid ?? '—' }}</span>
+          </template>
+          <template v-else>{{ profileRowMenu.row?.name || '变量' }}</template>
+        </div>
+
+        <template v-if="profileTab === 'processes'">
+          <div class="rc-item" @click="profileRowMenuCommand('tree')">
+            {{ profileRowMenu.row && profileProcOpen(Number(profileRowMenu.row.pid)) ? '收起子进程' : '展开子进程' }}
+          </div>
+          <div class="rc-item" @click="profileRowMenuCommand('threads')">查看线程</div>
+          <div class="rc-item" @click="profileRowMenuCommand('path')">显示文件路径</div>
+          <div class="rc-sep" />
+          <div class="rc-item" @click="profileRowMenuCommand('restart')">重启进程</div>
+          <div class="rc-item danger" @click="profileRowMenuCommand('kill')">结束进程（删除）</div>
+        </template>
+
+        <template v-else-if="profileTab === 'services'">
+          <div v-if="profileRowMenu.row && profileStopped(profileRowMenu.row)" class="rc-item" @click="profileRowMenuCommand('svc-start')">启动服务</div>
+          <div v-else class="rc-item" @click="profileRowMenuCommand('svc-restart')">重启服务</div>
+          <div v-if="profileRowMenu.row && !profileStopped(profileRowMenu.row)" class="rc-item danger" @click="profileRowMenuCommand('svc-stop')">停止服务</div>
+        </template>
+
+        <template v-else-if="profileTab === 'ports'">
+          <div class="rc-item danger" @click="profileRowMenuCommand('close-port')">结束占用进程（删除）</div>
+        </template>
+
+        <template v-else-if="profileTab === 'env'">
+          <div class="rc-item danger" @click="profileRowMenuCommand('env-del')">删除变量（删除）</div>
+        </template>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -2142,6 +2640,8 @@ async function submitProfileEnv(): Promise<void> {
   padding: 10px 14px;
 }
 .pp-pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 行动作提示：紧贴左侧计数，把右侧留给分页/检索 */
+.pp-row-hint { margin-right: auto; font-size: 11.5px; }
 .pp-search { width: 200px; }
 .page-no { font-size: 12px; color: var(--p-text-2); }
 .pp-error { margin: 0 14px 12px; padding: 9px 12px; font-size: 12.5px; color: var(--status-error-text); background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px; }
@@ -2255,6 +2755,51 @@ async function submitProfileEnv(): Promise<void> {
   height: 380px; font-size: 13px; color: var(--p-text-2);
 }
 .hist-canvas { width: 100%; height: 380px; }
+
+/* ---------- 画像行右键菜单 / 进程树 / 线程 / 文件路径 ---------- */
+.pp-hint { margin-left: 6px; margin-right: auto; font-size: 11.5px; }
+.tree-caret {
+  width: 16px; height: 16px; margin-right: 4px; padding: 0; border: 0; background: transparent;
+  color: var(--p-text-3, #94a3b8); font-size: 11px; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  transition: transform .12s, color .12s;
+  &:hover { color: var(--el-color-primary, #6d5dfc); }
+  &.open { transform: rotate(90deg); }
+}
+.tree-caret .caret-loading { font-size: 12px; color: var(--el-color-primary, #6d5dfc); }
+.pp-table th.sortable { cursor: pointer; user-select: none; }
+.pp-table th.sortable:hover, .pp-table th.sort-on { color: var(--el-color-primary, #6d5dfc); }
+.th-sort { margin-left: 4px; display: inline-flex; vertical-align: middle; }
+.th-sort .sort-idle { opacity: .45; }
+
+.ptd-wrap { min-height: 120px; }
+.ptd-scroll { max-height: 66vh; }
+
+.ppath-body { display: flex; flex-direction: column; gap: 10px; }
+.ppath-box {
+  padding: 10px 12px; border: 1px solid var(--p-line, #e6e8ee); border-radius: 8px;
+  background: var(--p-bg, #f8fafc); word-break: break-all; font-size: 12.5px;
+}
+.ppath-actions { display: flex; justify-content: flex-end; }
+
+.row-ctx-backdrop { position: fixed; inset: 0; z-index: 3000; }
+.row-ctx-menu {
+  position: fixed; z-index: 3001; min-width: 172px; padding: 6px;
+  background: var(--el-bg-color, #fff); border: 1px solid var(--p-line, #e6e8ee);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(20, 24, 40, .16);
+}
+.rc-head {
+  padding: 6px 10px 7px; margin-bottom: 4px; font-size: 12px; font-weight: 600;
+  border-bottom: 1px solid var(--p-line, #e6e8ee); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc-head .dim { font-weight: 400; margin-left: 4px; }
+.rc-item {
+  padding: 7px 10px; font-size: 13px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  &:hover { background: var(--el-color-primary-light-9, #f3f1ff); color: var(--el-color-primary, #6d5dfc); }
+  &.danger { color: var(--el-color-danger, #e5534b); }
+  &.danger:hover { background: var(--el-color-danger-light-9, #fef0f0); color: var(--el-color-danger, #e5534b); }
+}
+.rc-sep { height: 1px; margin: 4px 6px; background: var(--p-line, #e6e8ee); }
 
 /* ---------- 响应式 ---------- */
 @media (prefers-reduced-motion: reduce) {

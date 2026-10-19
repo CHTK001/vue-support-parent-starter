@@ -49,11 +49,15 @@ const effectiveName = computed(() => {
  */
 const viewerFileName = computed(() => {
   const eff = effectiveName.value;
+  // dwt（AutoCAD 图样模板）与 dwg 是**同一二进制容器**，仅头部标记不同；
+  // file-viewer 的 cad registry 只登记 dwg/dxf/dwf/dwfx/xps，故以 .dwg 名义
+  // 交给它 —— 解析内核仍是同一个 DWG 解析器，图层/实体照出。
+  if (/\.dwt$/i.test(eff)) return eff.replace(/\.dwt$/i, ".dwg");
   if (/\.(dwg|dxf)$/i.test(eff)) return eff;
   const dot = props.fileName.lastIndexOf(".");
   const ext = dot >= 0 ? props.fileName.slice(dot) : ".dxf";
   const base = eff.includes(".") ? eff.slice(0, eff.lastIndexOf(".")) : eff;
-  return `${base}${ext}`;
+  return `${base}${/^\.dwt$/i.test(ext) ? ".dwg" : ext}`;
 });
 
 /** 加载中 */

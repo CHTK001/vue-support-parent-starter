@@ -9,6 +9,7 @@ import type {
   PageResult,
   Question,
   EduAiCapability,
+  EduAiProbe,
   QuestionAiSelectPayload,
   QuestionGradeDimension,
   QuestionImportResult,
@@ -150,6 +151,18 @@ export const eduaiApi = {
     http()
       .get("/v2/edu/ai/capability")
       .then<EduAiCapability>(unwrap),
+
+  /**
+   * 测试 AI 连通性：让后端用当前生效的客户端真实发一条最小对话请求。
+   *
+   * <p>与 `aiCapability()` 的区别：后者无副作用，只判断「能不能解析出客户端」；
+   * 密钥过期、网关不可达、模型名写错时它仍然报可用，只有真正调用才会失败。
+   * 该接口只在用户点击「测试连通」时调用。</p>
+   */
+  aiProbe: () =>
+    http()
+      .post("/v2/edu/ai/probe")
+      .then<EduAiProbe>(unwrap),
 
   /**
    * AI 选题：按条件向 AI 要一批题目，用于往**已存在的试卷**里补题

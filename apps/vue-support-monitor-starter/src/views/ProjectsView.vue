@@ -425,7 +425,7 @@ import { ElMessageBox } from 'element-plus';
 import {getGlobalSocketService, message} from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import { fillTemplate, listTemplates } from '@repo/ui/components/ReCommand/templates';
-import { trackTask } from '../utils/processTasks';
+import { getProcessTasks, trackTask } from '../utils/processTasks';
 
 const BASE = '/ms/server/release';
 
@@ -471,6 +471,9 @@ const releaseId = ref(Number(route.query.releaseId) || 0);
 const activeTab = ref('basic');
 
 const hostOs = ref<'linux' | 'windows'>('linux');
+
+/** 当前发布绑定的主机ID：生成脚本时交给服务端据此选择 OS 模板 */
+const hostId = ref<number>(0);
 
 // 运行时长：前端每秒 tick 实时计算（不轮询后端），基准为项目 runningSince
 const nowTs = ref(Date.now());
@@ -616,6 +619,7 @@ async function loadHostOs() {
     if (!rel?.hostId) {
       return;
     }
+    hostId.value = rel.hostId;
     const hostRes = await http().get('/ms/server/host');
     const hosts = unwrapResult<any[]>(hostRes) || [];
     const host = hosts.find((h) => h.id === rel.hostId);
@@ -760,12 +764,54 @@ const anyScriptEmpty = computed(() =>
 const autogenLoading = ref(false);
 
 /**
+ * 取服务端权威脚本（与执行期同源）。
+ *
+ * <p>后端 `ProjectScripts` 是 Windows/Linux 模板的唯一权威来源：孤儿回收、
+ * 计划任务回退、进程树解析等修复只在这里演进。前端仍保留本地模板作为
+ * 离线兜底，但在线时必须优先用服务端结果，避免两侧漂移。</p>
+ *
+ * @returns 四段脚本；后端不可用或未关联主机时返回 null
+ */
+async function fetchServerScripts(): Promise<{ start: string; stop: string; restart: string; status: string } | null> {
+  if (!hostId.value || !form.value.projectType) {
+    return null;
+  }
+  try {
+    const res = await http().get(`${BASE}/script/template`).query({
+      hostId: hostId.value,
+      projectType: form.value.projectType,
+      mainEntry: form.value.mainEntry || '',
+      projectPath: form.value.projectPath || '',
+      logPath: form.value.logPath || '',
+      appName: form.value.projectName || '',
+      envVars: JSON.stringify(form.value.envVars || []),
+      jvmArgs: JSON.stringify(form.value.jvmArgs || []),
+      cmdArgs: JSON.stringify(form.value.cmdArgs || []),
+    });
+    const data = unwrapResult<Record<string, string>>(res);
+    if (data?.startScript) {
+      return {
+        start: data.startScript,
+        stop: data.stopScript || '',
+        restart: data.restartScript || '',
+        status: data.statusScript || '',
+      };
+    }
+  } catch {
+    // 网络/后端异常：回落到本地模板，保证离线可用
+  }
+  return null;
+}
+
+/**
  * 用内置模板补齐为空的脚本（已手写的不覆盖）
+ *
+ * <p>优先取服务端权威模板；后端不可用时回落到本地模板。</p>
  *
  * @param silent 静默模式：保存前自动补全时不弹校验/成功提示
  * @returns 是否成功套用模板
  */
-function fillScriptsFromTemplate(silent = false): boolean {
+async function fillScriptsFromTemplate(silent = false): Promise<boolean> {
   if (!form.value.projectType) {
     if (!silent) {
       message.error('请先在「基础信息」选择项目类型');
@@ -779,6 +825,16 @@ function fillScriptsFromTemplate(silent = false): boolean {
       activeTab.value = 'basic';
     }
     return false;
+  }
+  const server = await fetchServerScripts();
+  if (server) {
+    // 仅填充为空的脚本，已手写的不覆盖
+    if (!form.value.startScript) form.value.startScript = server.start;
+    if (!form.value.stopScript) form.value.stopScript = server.stop;
+    if (!form.value.restartScript) form.value.restartScript = server.restart;
+    if (!form.value.statusScript) form.value.statusScript = server.status;
+    if (!silent) message.success('已根据基础配置生成脚本');
+    return true;
   }
   const templates = listTemplates(hostOs.value, form.value.projectType);
   // 优先精确匹配类型，其次取第一个可用模板
@@ -809,8 +865,8 @@ function fillScriptsFromTemplate(silent = false): boolean {
 }
 
 /**
- * 一键生成四个脚本：按「OS + 项目类型」内置模板 + 项目字段展开，
- * 覆盖 启动/停止/重启/状态，并立即展开 __JVMARGS__/__ARGS__ 为可直接执行的命令。
+ * 一键生成四个脚本：优先取服务端权威模板（与执行期同源），
+ * 后端不可用时回落到本地「OS + 项目类型」模板，覆盖 启动/停止/重启/状态。
  */
 async function autoGenerateScripts() {
   if (!form.value.projectType) {
@@ -823,9 +879,11 @@ async function autoGenerateScripts() {
     activeTab.value = 'basic';
     return;
   }
+  const server = await fetchServerScripts();
+  // 本地模板只在后端不可用时才需要（同时用于判断是否有可用模板）
   const templates = listTemplates(hostOs.value, form.value.projectType);
   const tpl = templates.find((t) => t.types.includes(form.value.projectType)) || templates[0];
-  if (!tpl) {
+  if (!server && !tpl) {
     message.error('当前类型暂无内置模板');
     return;
   }
@@ -840,17 +898,24 @@ async function autoGenerateScripts() {
   }
   autogenLoading.value = true;
   try {
-    const filled = fillTemplate(tpl, {
-      entry: form.value.mainEntry,
-      log: form.value.logPath,
-      path: form.value.projectPath,
-      appName: form.value.projectName,
-      logOp: form.value.logMode === 'truncate' ? '>' : '>>',
-    });
-    form.value.startScript = filled.start;
-    form.value.stopScript = filled.stop;
-    form.value.restartScript = filled.restart;
-    form.value.statusScript = filled.status || '';
+    if (server) {
+      form.value.startScript = server.start;
+      form.value.stopScript = server.stop;
+      form.value.restartScript = server.restart;
+      form.value.statusScript = server.status;
+    } else {
+      const filled = fillTemplate(tpl!, {
+        entry: form.value.mainEntry,
+        log: form.value.logPath,
+        path: form.value.projectPath,
+        appName: form.value.projectName,
+        logOp: form.value.logMode === 'truncate' ? '>' : '>>',
+      });
+      form.value.startScript = filled.start;
+      form.value.stopScript = filled.stop;
+      form.value.restartScript = filled.restart;
+      form.value.statusScript = filled.status || '';
+    }
     // 展开 __JVMARGS__/__ARGS__ 为 $JVM_ARGS/$APP_ARGS（或 PS 变量）并注入变量块，保证生成即可用
     materializeVars();
     message.success('已生成 启动·停止·重启·状态 四个脚本');
@@ -889,8 +954,8 @@ async function handleSave() {
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/(^-|-$)/g, '');
   try {
-    // 保存前自动补齐未填写的脚本（内置模板 + 占位符展开），用户无需手写
-    fillScriptsFromTemplate(true);
+    // 保存前自动补齐未填写的脚本（服务端权威模板 + 占位符展开），用户无需手写
+    await fillScriptsFromTemplate(true);
     materializeVars();
     const payload = {
       ...form.value,
@@ -1533,6 +1598,20 @@ const socket = getGlobalSocketService();
 const unsubTaskRefresh = socket?.subscribe('project', 'task', (msg: any) => {
   const data = msg?.data ?? msg;
   if (data && (data.phase === 'COMPLETE' || data.phase === 'ERROR')) {
+    loadList();
+  }
+});
+
+/**
+ * 任务终态兜底刷新：socket 终帧可能丢失，此时上方的订阅不会触发，
+ * 卡片会一直显示旧 PID 且运行时长继续累加。这里直接观察任务跟踪状态
+ * （processTasks 内部已按固定间隔与服务端对账），任一任务进入终态即重载列表。
+ */
+const taskSignature = computed(() =>
+  getProcessTasks().map(t => `${t.taskId}:${t.finished}:${t.success}`).join('|'),
+);
+watch(taskSignature, (next, prev) => {
+  if (next !== prev) {
     loadList();
   }
 });

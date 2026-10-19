@@ -57,6 +57,18 @@ const CARDS: ConfigCard[] = [
       { key: "prometheus.package.path", label: "Prometheus 包路径", type: "text", placeholder: "prometheus/prometheus.tar.gz", hint: "Prometheus 二进制部署包路径" },
     ],
   },
+  {
+    key: "ssh",
+    title: "SSH 超时",
+    desc: "远程执行与主机探测的连接/读取超时",
+    icon: "Timer",
+    consumer: "WindowsSshShell / ConnectionManager / 主机探测动态读取 · 保存后对新连接立即生效",
+    items: [
+      { key: "ssh.connect.timeout", label: "连接超时（秒）", type: "number", placeholder: "15", hint: "TCP 连接与握手；跨地域或链路抖动大时可调大" },
+      { key: "ssh.session.timeout", label: "会话超时（秒）", type: "number", placeholder: "30", hint: "SSH 认证/会话建立；目标机高负载时 15 秒易误判超时，建议 30 以上" },
+      { key: "ssh.read.timeout", label: "读取超时（秒）", type: "number", placeholder: "60", hint: "单条命令执行与输出读取；卸载/升级等长静默脚本需覆盖其静默时长" },
+    ],
+  },
 ];
 
 const KEYS = CARDS.flatMap(c => c.items.map(i => i.key));
@@ -67,6 +79,9 @@ const FALLBACK: Record<string, string> = {
   "guacd.client.host": "127.0.0.1:8848",
   "agent.package.path": "monitor-agent/monitor-agent.tar.gz",
   "prometheus.package.path": "prometheus/prometheus.tar.gz",
+  "ssh.connect.timeout": "15",
+  "ssh.session.timeout": "30",
+  "ssh.read.timeout": "60",
 };
 
 const values = ref<Record<string, string>>({});

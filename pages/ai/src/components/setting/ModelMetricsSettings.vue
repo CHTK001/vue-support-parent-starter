@@ -307,7 +307,7 @@ const columns: Column[] = [
   { snake: 'context_window_tokens', camel: 'contextWindowTokens', label: '上下文窗口' },
 ]
 
-const tableColumns = computed<ReTableColumn[]>(() => [
+const tableColumns = computed(() => [
   {
     prop: 'model',
     label: '模型',
@@ -331,7 +331,7 @@ const tableColumns = computed<ReTableColumn[]>(() => [
     className: 'op-col',
     slot: 'actions',
   },
-])
+] as ReTableColumn[])
 
 interface RowState {
   key: string

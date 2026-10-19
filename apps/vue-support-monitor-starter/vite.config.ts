@@ -1,6 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { NextFunction } from "connect";
-import { createReadStream, existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { PluginOption } from "vite";
@@ -8,112 +6,10 @@ import type { PluginOption } from "vite";
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 
 import { createVite } from "../../turbo/vite/createVite.ts";
-
-/**
- * 在 {@code node_modules/.pnpm} 里定位某个 {@code @file-viewer} 渲染器
- * {@code dist/} 下的资产文件。
- *
- * <p> {@code @file-viewer/vite-plugin} 的 copyAssets 复制清单
- * （ {@code flyfish-viewer-assets.json} ）只覆盖了
- * {@code docx / pdf / ppt / pptx / xlsx} 这几组渲染器，
- * <b>漏掉了 {@code iwork / hangul / wordperfect}</b>。这三个渲染器
- * 的 worker 由渲染器自身按 {@code document.baseURI + vendor/<渲染器>/<文件>}
- * 拼出 URL 去请求（见 {@code @file-viewer/core} 的
- * {@code DEFAULT_FILE_VIEWER_*_WORKER_PATH}），缺了文件就会抛
- * 「iWork Worker failed to load.」并把面板降级成 iframe。</p>
- *
- * <p>这里从 {@code .pnpm} 内容寻址目录按 {@code @file-viewer+renderer-<名>@<版本>}
- * 前缀扫描，找到就把绝对路径记下来，由 {@link serveFileViewerOfficeWorkers}
- * 的 dev 中间件按需吐出去。不依赖版本号，升级渲染器也不用改这里。</p>
- *
- * @param renderer 渲染器短名（如 {@code iwork} / {@code hangul} / {@code wordperfect}）
- * @param file 渲染器 {@code dist/} 下的相对文件名
- * @return 命中文件的绝对路径；未安装或文件缺失时返回 {@code undefined}
- */
-function findFileViewerRendererAsset(renderer: string, file: string): string | undefined {
-  let dir = dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 10; i += 1) {
-    const pnpmDir = join(dir, "node_modules", ".pnpm");
-    if (existsSync(pnpmDir)) {
-      const prefix = `@file-viewer+renderer-${renderer}@`;
-      for (const entry of readdirSync(pnpmDir)) {
-        if (!entry.startsWith(prefix)) continue;
-        const candidate = join(
-          pnpmDir,
-          entry,
-          "node_modules",
-          "@file-viewer",
-          `renderer-${renderer}`,
-          "dist",
-          file,
-        );
-        if (existsSync(candidate)) return candidate;
-      }
-    }
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return undefined;
-}
-
-/**
- * dev 下补齐 copyAssets 漏掉的 office 渲染器 worker/wasm。
- *
- * <p>{@code @file-viewer/vite-plugin} 的资源中间件对清单里没有的路径会
- * {@code next()} 放行，所以这里用 {@code configureServer} 的 post 钩子
- * （排在自带中间件之后）接管 {@code /vendor/iwork|hangul|wordperfect/*}，
- * 直接从 {@code node_modules} 把对应文件 stream 出去。渲染器请求的 URL
- * （ {@code /vendor/<渲染器>/<文件>} ）与 {@code @file-viewer/core} 的
- * 默认路径完全一致，因此无需改任何组件代码。</p>
- *
- * <p>WordPerfect 的 worker 内部会 {@code import('libwpd.mjs')} 并 fetch
- * {@code libwpd.wasm}（都按 worker URL 相对解析），所以这三个文件要一起
- * serve；wasm 缺失时渲染器自己会降级成「有限文本预览」，不会报错。</p>
- */
-function serveFileViewerOfficeWorkers(): PluginOption {
-  const assets: Record<string, string> = {};
-  const register = (renderer: string, file: string, urlPath: string): void => {
-    const abs = findFileViewerRendererAsset(renderer, file);
-    if (abs) {
-      assets[urlPath] = abs;
-    } else {
-      console.warn(`[file-viewer-office-workers] 未找到 ${renderer}/${file}，该格式将退回内联解析`);
-    }
-  };
-  register("iwork", "iwork.worker.js", "/vendor/iwork/iwork.worker.js");
-  register("hangul", "hangul.worker.js", "/vendor/hangul/hangul.worker.js");
-  register("wordperfect", "wordperfect.worker.js", "/vendor/wordperfect/wordperfect.worker.js");
-  register("wordperfect", "libwpd.mjs", "/vendor/wordperfect/libwpd.mjs");
-  register("wordperfect", "libwpd.wasm", "/vendor/wordperfect/libwpd.wasm");
-
-  return {
-    name: "serve-file-viewer-office-workers",
-    apply: "serve",
-    configureServer(server) {
-      // 直接注册（而非 post 钩子）：让本中间件排在 @file-viewer 自带资源
-      // 中间件之后、vite 内部 transform 中间件之前。vite 的 transform 对
-      // 不存在的 .js 路径会直接 404，若放在 post 钩子里就永远轮不到本
-      // 中间件接管 /vendor/iwork|hangul|wordperfect/*。
-      server.middlewares.use(
-        (req: IncomingMessage, res: ServerResponse, next: NextFunction) => {
-          const pathname = (req.url || "").split("?")[0];
-          const hit = assets[pathname];
-          if (hit) {
-            res.statusCode = 200;
-            res.setHeader(
-              "Content-Type",
-              hit.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8",
-            );
-            createReadStream(hit).pipe(res);
-            return;
-          }
-          next();
-        },
-      );
-    },
-  };
-}
+import {
+  fileViewerCjsEsmAliasMap,
+  fileViewerOfficeWorkers,
+} from "../../turbo/vite/file-viewer-support.ts";
 
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
 // 与 vue-support-ai-guada / vue-support-system-starter 同一口径
@@ -237,6 +133,7 @@ function dropProxyOrigin(): PluginOption {
         if (
           url.startsWith("/ms/") ||
           url.startsWith("/v2/") ||
+          url.startsWith("/monitor/api") ||
           url.startsWith("/api/device") ||
           /^\/(localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
@@ -273,6 +170,147 @@ function dedupeElementPlus(): PluginOption {
   };
 }
 
+/**
+ * 在 {@code node_modules/.pnpm} 里把「本 app 不直接依赖、从 app 根不可解析」的
+ * CJS 包解析成绝对入口路径。
+ *
+ * <p>为什么需要它：{@code @file-viewer/renderer-image}（HEIC/HEIF）会
+ * {@code import('heic2any')} 并取默认导出；{@code renderer-tiff} / {@code renderer-email}
+ * 同理经 {@code utif} / {@code @kenjiuno/msgreader}。这三个包只出现在渲染器的依赖树里，
+ * 没被提升到 app 的 {@code node_modules}，于是 Vite 按裸名解析失败；即便侥幸解析到，
+ * 懒发现的预打包产物没有 CJS default interop，解构出来的值是 {@code undefined}，
+ * 预览会以「heic2any is not a function」之类的错误挂掉。</p>
+ *
+ * <p>做法：扫 {@code .pnpm} 内容寻址目录，按 {@code <name 里的 / 换 +>@<版本>} 前缀定位
+ * 包目录，读它的 {@code package.json} 取 {@code module → main → index.js}，
+ * 返回 {@code 裸名 → 绝对入口} 的映射。不写死版本号，升级依赖不用改这里。
+ * 解析不到的包直接跳过（宁可维持原状，也不要写一个指不到的 alias）。</p>
+ *
+ * @param packages 需要互操作 alias 的裸包名
+ * @return 裸包名 → 绝对入口文件路径
+ */
+/** package.json 入口字段名（见 resolvePackageEntry 的 prefer 参数） */
+type EntryField = "main" | "browser" | "module";
+
+/**
+ * 在 {@code node_modules/.pnpm} 里定位某个裸包，并按 {@code prefer} 给定的
+ * package.json 入口字段顺序解析出**真实存在的文件**（补扩展名 / index 兜底）。
+ *
+ * <p><b>为什么需要它</b>：本仓库有一批「main-only / UMD」或「browser 字段指向 UMD」的
+ * 包，Vite 8(Rolldown) 解析出来的那一份没有 ESM 导出 —— 构建期报
+ * {@code MISSING_EXPORT}、dev 期报优化器不兼容。把它们 alias 到正确的入口文件即可
+ * （调用点见 {@code fileViewerCjsEsmAliases} / {@code cjsInteropAliases} / {@code GL_BENCH_ESM}）。</p>
+ *
+ * <p><b>目录游标不能跨包复用</b>：每个包都必须从 app 目录重新向上找。前一个包把游标
+ * 走到仓库根（pnpm store 所在地）之后，后一个包就再也回不去了 —— 于是除第一个包外
+ * 全部解析失败（实测 {@code utif} / {@code @kenjiuno/msgreader} 就是这样漏的）。</p>
+ *
+ * @param name 裸包名（如 {@code utif} / {@code @kenjiuno/msgreader} / {@code gl-bench}）
+ * @param prefer 入口字段优先级；缺省 main → browser → module（CJS 互操作场景用缺省值）
+ * @return 命中文件的绝对路径；未安装或入口文件缺失时返回 {@code undefined}
+ */
+function resolvePackageEntry(name: string, prefer: EntryField[] = ["main", "browser", "module"]): string | undefined {
+  const startDir = dirname(fileURLToPath(import.meta.url));
+
+  /** 把入口字段值解析成真实存在的文件（补扩展名 / index 兜底） */
+  const resolveEntry = (pkgDir: string, entryFile: string): string | undefined => {
+    const candidates = [
+      entryFile,
+      `${entryFile}.js`,
+      `${entryFile}.cjs`,
+      `${entryFile}.mjs`,
+      join(entryFile, "index.js"),
+      "index.js",
+      "dist/index.js",
+      "lib/index.js",
+      "UTIF.js",
+    ];
+    for (const c of candidates) {
+      const p = join(pkgDir, c);
+      if (existsSync(p) && statSync(p).isFile()) return p;
+    }
+    return undefined;
+  };
+
+  let dir = startDir;
+  for (let i = 0; i < 10; i += 1) {
+    const pnpmDir = join(dir, "node_modules", ".pnpm");
+    if (existsSync(pnpmDir)) {
+      const prefix = `${name.replace("/", "+")}@`;
+      for (const entry of readdirSync(pnpmDir)) {
+        if (!entry.startsWith(prefix)) continue;
+        const pkgDir = join(pnpmDir, entry, "node_modules", name);
+        const pkgJson = join(pkgDir, "package.json");
+        if (!existsSync(pkgJson)) continue;
+        const fields: Record<EntryField, string> = { main: "", browser: "", module: "" };
+        try {
+          const meta = JSON.parse(readFileSync(pkgJson, "utf8")) as {
+            module?: string;
+            main?: string;
+            browser?: string | Record<string, string>;
+          };
+          fields.main = meta.main ?? "";
+          fields.browser = meta.browser && typeof meta.browser === "string" ? meta.browser : "";
+          fields.module = meta.module ?? "";
+        } catch {
+          /* 读不动就只走兜底候选 */
+        }
+        // CJS 互操作要的是能被 esbuild 预打包并产出 default 的那份，
+        // 因此默认 main 优先，其次 browser/module（utif 的 main 是 "UTIF"，靠补扩展名兜住）。
+        for (const field of prefer) {
+          if (!fields[field]) continue;
+          const resolved = resolveEntry(pkgDir, fields[field]);
+          if (resolved) return resolved;
+        }
+        // 偏好字段全落空时退到兜底候选（等价于原实现的 entryField="" 分支）
+        const fallback = resolveEntry(pkgDir, "");
+        if (fallback) return fallback;
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
+function resolveCjsInteropAliases(packages: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const name of packages) {
+    const hit = resolvePackageEntry(name);
+    if (hit) out[name] = hit;
+  }
+  return out;
+}
+
+/** CJS 互操作 alias：HEIC / TIFF / MSG 三条预览链路的底层依赖（详见上方注释） */
+const cjsInteropAliases = resolveCjsInteropAliases([
+  "heic2any",
+  "utif",
+  "@kenjiuno/msgreader",
+]);
+
+/**
+ * {@code gl-bench} → 它自带的 ESM 产物（{@code dist/gl-bench.module.js}）。
+ *
+ * <p><b>不修则生产构建直接失败</b>：gl-bench 的 package.json 同时给了
+ * {@code module: "./dist/gl-bench.module.js"}（真 ESM）和
+ * {@code browser: "./dist/gl-bench.min.js"}（UMD IIFE，{@code 'use strict';var GLBench=…}
+ * —— <b>没有任何 ESM 导出</b>）。Vite 解析浏览器条件时优先取 {@code browser} 字段，
+ * 于是 Rolldown 在 {@code @cosmograph/cosmos} 的
+ * {@code import GLBench from "gl-bench"} 上报
+ * {@code MISSING_EXPORT: "default" is not exported by gl-bench}，
+ * **整个 vite build 失败**（实测："Build failed with 1 error … gl-bench"）。
+ * dev 之所以没事，是因为下面的 {@code optimizeDeps.exclude} 把它挡在预打包之外 ——
+ * 那条排除只救 dev，救不了 build。</p>
+ *
+ * <p>直接把裸名指到它自己的 ESM 产物即可，无需像 utif/heic2any 那样再造 shim。</p>
+ */
+const GL_BENCH_ESM: Record<string, string> = (() => {
+  const hit = resolvePackageEntry("gl-bench", ["module"]);
+  return hit ? { "gl-bench": hit } : {};
+})();
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
@@ -291,9 +329,8 @@ export default createVite({
     //     （见 PreviewOfficePanel），不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
     fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
     // copyAssets 复制清单漏了 iwork/hangul/wordperfect 的 worker/wasm，
-    // 这里用 dev 中间件从 node_modules 直接补齐（见上方
-    // serveFileViewerOfficeWorkers 头注）。只对 serve 生效，不影响 build。
-    serveFileViewerOfficeWorkers(),
+    // 这里用共享模块补齐（见 turbo/vite/file-viewer-support.ts 头注）。
+    fileViewerOfficeWorkers(),
   ],
   // @pages/server、@pages/monitor 未收录在 createVite 共享 REPO_ALIAS，这里按 monorepo 惯例
   // （见 createVite: alias 值相对 WORKSPACE_ROOT 解析）应用本地补全。
@@ -306,6 +343,17 @@ export default createVite({
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
     "@pages/device": "pages/device",
+    // utif / heic2any → 预转 ESM 产物（见 turbo/vite/file-viewer-support.ts 头注）
+    ...fileViewerCjsEsmAliasMap(),
+    // gl-bench → 自带 ESM 产物（见 GL_BENCH_ESM 头注；缺了它生产构建 MISSIING_EXPORT 直接失败）
+    ...GL_BENCH_ESM,
+  },
+  // 依赖优化排除项。
+  //   ol-echarts：工厂原本就排除，这里带回（工厂会在 options.config 之后合并 include/exclude）。
+  config: {
+    optimizeDeps: {
+      exclude: ["ol-echarts"],
+    },
   },
   server: {
     port: 8848,
@@ -323,6 +371,17 @@ export default createVite({
         /[/\\]wasm[/\\]/,
         /\.bcmap$/,
         /[/\\]flyfish-viewer-assets\.json$/,
+        // 验收/测试运行会在工作区里写 Playwright 产物目录
+        // （artifacts-*/、.playwright-artifacts-*/ 等，含 trace/*.trace）。
+        // 这些文件常被写入进程短暂独占，Windows 下对它们建 fs.watch 会 EBUSY
+        // 并让 dev 进程直接退出（本次 8848 崩溃根因就是
+        // apps/vue-support-monitor-starter/artifacts-19080-right5/trace/0-trace.trace）。
+        // 它们是纯运行产物，不参与 HMR，必须整体忽略。
+        /[/\\]artifacts-/,
+        /\.playwright-artifacts/,
+        /[/\\]trace[/\\]/,
+        /\.trace$/,
+        /\.trace\.zip$/,
       ],
     },
     // 启动预编译：预热弹窗相关源码文件，首次点击弹窗不再现场 transform（避免 5s~1min 卡顿）
@@ -433,7 +492,9 @@ export default createVite({
         changeOrigin: true,
       },
       "/monitor/api": {
-        target: "http://127.0.0.1:19180",
+        // 独立 ACME 服务（spring-api-support-monitor-starter）部署在 101.200.205.64:19170，
+        // context-path=/monitor/api。换实例时用 ACME_API_TARGET 覆盖。
+        target: process.env.ACME_API_TARGET ?? "http://101.200.205.64:19170",
         changeOrigin: true,
       },
       "/api/account": {
@@ -514,6 +575,10 @@ export default createVite({
       // "heic2any is not a function". Listing it here makes the pre-bundle
       // emit a proper default export.
       "heic2any",
+      // 同类 CJS 互操作：utif（tif）/ @kenjiuno/msgreader（msg）。
+      // 它们不是本 app 直接依赖、从根不可解析，故先经 resolveCjsInteropAliases
+      // 加绝对路径 alias，再在此纳入预打包。（heic2any 虽能解析，但为一致性也走 alias）
+      ...Object.keys(cjsInteropAliases),
       // 表格渲染器底层：file-viewer 与业务侧必须解析到同一物理实例
       "e-virt-table/dist/index.es.js",
       // ---- CodeMirror（数据源中心的 SQL 编辑器）----

@@ -55,6 +55,14 @@ const props = defineProps<{
   inner?: string;
   /** 文件大小（字节），列表行传入；为 0 / 包内条目时统计条显示 - */
   size?: number;
+  /**
+   * 直接可取的字节地址（可选）：给了就用它，不再按 bucket/objectKey 签票据。
+   *
+   * <p>用于「必须先就地解包、再把内层几何拿来渲染」的容器格式，例如
+   * {@code .fcstd}（FreeCAD 文档 = ZIP + {@code *.brp}）：解包面板把 {@code .brp}
+   * 字节做成 blob URL 交给本面板渲染，几何内核与直接打开 {@code .brep} 完全一致。</p>
+   */
+  src?: string;
 }>();
 
 /* ==================== 常量 ==================== */
@@ -192,6 +200,14 @@ function themeColor(name: string, fallback: string): string {
  * @return 文件字节缓冲
  */
 async function fetchBytes(): Promise<ArrayBuffer> {
+  // src 优先：调用方已备好字节（如 fcstd 解包出来的 .brp blob URL），无需再签票据
+  if (props.src) {
+    const r = await fetch(props.src);
+    if (!r.ok) {
+      throw new Error(`读取文件失败：HTTP ${r.status}`);
+    }
+    return r.arrayBuffer();
+  }
   const base = objectUrl(props.bucket, props.objectKey);
   // 顶层：直取原始字节；包内：走 ?preview&inner= 的 inner-raw 通道
   const url = props.inner
@@ -237,6 +253,11 @@ function disposeAll(): void {
   disposeScene();
   if (renderer) {
     renderer.domElement.remove();
+    // three 的 dispose() 只放 GPU 资源，**不归还 WebGL 上下文**。同一页面里连续预览
+    // 多个 3D 文件时上下文会一路累积到浏览器上限，之后 new THREE.WebGLRenderer()
+    // 直接报「Error creating WebGL context」——面板就变成「无法预览该 3D 模型」。
+    // 关预览时必须显式 forceContextLoss() 把上下文还给浏览器。
+    renderer.forceContextLoss();
     renderer.dispose();
     renderer = null;
   }
@@ -453,13 +474,15 @@ function disposeObject3d(object: THREE.Object3D): void {
 
 /** 下载本体（包内条目打开压缩包本体，与 CAD / IFC 面板一致的口径） */
 async function downloadSelf(): Promise<void> {
+  // src 模式（如 fcstd 解包）没有可下载的对象本身，按钮在模板里也不展示
+  if (!props.bucket || !props.objectKey) return;
   const url = await resolveObjectUrl(props.bucket, props.objectKey, { params: { download: "true" } });
   window.open(url, "_blank");
 }
 
 onMounted(load);
 // 同一面板复用：切换对象 / 切换包内条目时必须重新加载
-watch(() => [props.bucket, props.objectKey, props.inner], load);
+watch(() => [props.bucket, props.objectKey, props.inner, props.src], load);
 // 线框开关即时生效（重建场景后由 buildScene 重新套用当前值）
 watch(wireframe, (on) => applyWireframe(on));
 onBeforeUnmount(() => {
@@ -510,7 +533,7 @@ onBeforeUnmount(() => {
         @click="fitView"
       />
       <el-button :icon="Refresh" :loading="loading" title="刷新" aria-label="刷新" @click="load" />
-      <el-button :icon="Download" title="下载原文件" @click="downloadSelf">下载</el-button>
+      <el-button v-if="bucket && objectKey" :icon="Download" title="下载原文件" @click="downloadSelf">下载</el-button>
     </div>
 
     <!-- ===== 主体 ===== -->
@@ -530,7 +553,7 @@ onBeforeUnmount(() => {
         <p class="m3d__error-text">{{ errorMsg }}</p>
         <div class="m3d__error-actions">
           <el-button type="primary" :icon="Refresh" @click="load">重试</el-button>
-          <el-button :icon="Download" @click="downloadSelf">下载文件</el-button>
+          <el-button v-if="bucket && objectKey" :icon="Download" @click="downloadSelf">下载文件</el-button>
         </div>
       </div>
     </div>

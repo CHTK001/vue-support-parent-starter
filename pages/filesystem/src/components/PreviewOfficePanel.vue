@@ -33,6 +33,9 @@ import {
   colIndexToLetter,
   computeRangeStats,
   type ParsedXlsx,
+  parseDelimitedBytes,
+  parseFodsWorkbook,
+  parseOdsWorkbook,
   parseXlsxWorkbook,
   type RangeSelection,
   type RangeStats,
@@ -45,13 +48,21 @@ import {
 } from "../utils/eVirtTableSelectionBridge";
 
 /**
- * 可做选区统计的表格扩展名（xlsxSelectStats 能解析，或 xls 经 WASM 转换后可解析）。
+ * 可做选区统计的表格扩展名。
  *
- * <p>非 OOXML 表格（csv / tsv / ods / fods / xlsb）无法用 JSZip 解析，
- * 工具条不显示；file-viewer 仍正常渲染它们，只是不带统计。</p>
+ * <p>覆盖三类解析器（见 {@link ensureExcelParsed}）：</p>
+ * <ul>
+ *   <li>OOXML 家族（xlsx/xlsm/xltx/xltm）——JSZip 解析；</li>
+ *   <li>传统 BIFF（xls/xlt）——浏览器内 WASM 转 xlsx 后再解析；</li>
+ *   <li>分隔文本与 OpenDocument（csv/tsv/ods/fods）——纯文本 / ZIP + XML 解析。</li>
+ * </ul>
+ *
+ * <p>仍不支持的表格（xlsb 二进制、dbf 等）不显示工具条；file-viewer 照常渲染，
+ * 只是不带选区统计。</p>
  */
 const STATS_EXTS: ReadonlySet<string> = new Set([
   "xlsx", "xlsm", "xltx", "xltm", "xls", "xlt",
+  "csv", "tsv", "ods", "fods",
 ]);
 
 /** 数据加载中状态（v-model，由本组件在拉取字节期间置位） */
@@ -208,6 +219,71 @@ const excelParsed = shallowRef<ParsedXlsx | null>(null);
 const excelStats = ref<RangeStats | null>(null);
 const excelStatsError = ref(false);
 
+/**
+ * 选区统计浮动卡片的显隐（右下角开关控制）。
+ *
+ * <p>原先统计贴在面板顶部、占一整条横向工具条；按产品要求改为**浮动卡片**，
+ * 开关放在右下角。默认展开：选中即出卡；未选中时卡里给一句引导文案。</p>
+ */
+const statsCardVisible = ref(true);
+
+/**
+ * 支持「下载 PDF」的扩展名（Word 系与通用文字处理）。
+ *
+ * <p>服务端 Aspose 已有 Word→PDF 转换器，预览通道 {@code ?format=pdf} 就是它
+ * （见 {@link probeFallback}）。这里复用同一条通道取回 PDF 字节再用浏览器另存，
+ * **后端零改动**、保真度沿用 Aspose。</p>
+ */
+const PDF_DOWNLOAD_EXTS: ReadonlySet<string> = new Set([
+  "doc", "docx", "docm", "dotx", "dotm", "odt", "ott", "rtf", "wps",
+]);
+
+/** 是否展示「下载 PDF」按钮（仅 Word 系） */
+const canDownloadPdf = computed(() => PDF_DOWNLOAD_EXTS.has(extensionOf(props.fileName)));
+
+/** 转换/下载进行中（防重入） */
+const pdfBusy = ref(false);
+
+/**
+ * 下载当前文档为 PDF。
+ *
+ * <p>doc/docx → PDF 的保真度依赖服务端 Aspose，前端做不到；这里只是把
+ * {@code ?format=pdf} 的响应当文件存下来。转换器缺失时后端回
+ * {@code X-FileStorage-Convert: unavailable}，此处给出中文提示而不是存一个坏文件。</p>
+ */
+async function downloadPdf(): Promise<void> {
+  if (!props.src) {
+    message.error("缺少文件地址，无法转换 PDF");
+    return;
+  }
+  if (pdfBusy.value) return;
+  pdfBusy.value = true;
+  try {
+    const sep = props.src.includes("?") ? "&" : "?";
+    const res = await fetch(`${props.src}${sep}format=pdf`, { method: "GET" });
+    const ct = res.headers.get("content-type") ?? "";
+    const conv = res.headers.get("X-FileStorage-Convert");
+    if (!res.ok || !(conv === "pdf" || ct.startsWith("application/pdf"))) {
+      throw new Error(conv === "unavailable" ? "服务端没有可用的转换器" : `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${props.fileName.replace(/\.[^.]+$/, "") || "document"}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    message.success("已开始下载 PDF");
+  } catch (e) {
+    console.warn("[PreviewOfficePanel] 下载 PDF 失败", e);
+    message.error(`下载 PDF 失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    pdfBusy.value = false;
+  }
+}
+
 /** 防竞态令牌：每次重新解析递增，只采信最后一次的结果 */
 let excelParseToken = 0;
 
@@ -227,9 +303,14 @@ function resetExcelStats(): void {
 /**
  * 懒解析当前表格为稀疏单元格索引（首次选区事件时触发）
  *
- * <p>ZIP 容器（xlsx 家族）直接解析；非 ZIP（传统 .xls BIFF）先经浏览器内
- * WASM 转成 xlsx 再解析 —— 这样 <b>.xls 与 .xlsx 共用同一套统计</b>。
- * 转换器失败或非已知表格结构时置 {@link excelStatsError}，工具条提示「不可用」。</p>
+ * <p>按扩展名分派解析器：</p>
+ * <ul>
+ *   <li>ZIP 容器（xlsx 家族 / ods）直接 JSZip 解析；</li>
+ *   <li>传统 .xls（BIFF）先经浏览器内 WASM 转成 xlsx 再解析；</li>
+ *   <li>csv / tsv 为纯分隔文本（自动嗅探分隔符）；</li>
+ *   <li>fods 为单文件扁平 XML。</li>
+ * </ul>
+ * 解析失败或非已知表格结构时置 {@link excelStatsError}，工具条提示「不可用」。
  */
 async function ensureExcelParsed(): Promise<void> {
   if (excelParsed.value || excelStatsError.value) return;
@@ -238,12 +319,21 @@ async function ensureExcelParsed(): Promise<void> {
   const token = ++excelParseToken;
   try {
     const u8 = new Uint8Array(bytes);
-    // ZIP 容器直接解析；否则按 .xls 的 BIFF 走 WASM 转换再解析
-    const isZip =
-      u8.length > 3 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
-    const parsed = isZip
-      ? await parseXlsxWorkbook(bytes)
-      : await parseXlsBytesForStats(u8);
+    const ext = extensionOf(props.fileName);
+    let parsed: ParsedXlsx;
+    if (ext === "csv" || ext === "tsv") {
+      parsed = parseDelimitedBytes(u8);
+    } else if (ext === "fods") {
+      // fods 是单文件扁平 XML，不是 ZIP
+      parsed = parseFodsWorkbook(new TextDecoder().decode(u8));
+    } else if (ext === "ods") {
+      parsed = await parseOdsWorkbook(bytes);
+    } else {
+      // ZIP 容器（xlsx 家族）直接解析；否则按 .xls 的 BIFF 走 WASM 转换再解析
+      const isZip =
+        u8.length > 3 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
+      parsed = isZip ? await parseXlsxWorkbook(bytes) : await parseXlsBytesForStats(u8);
+    }
     if (token === excelParseToken) excelParsed.value = parsed;
   } catch (e) {
     console.warn("[PreviewOfficePanel] 表格统计解析失败", e);
@@ -317,9 +407,9 @@ function onSelectionChange(e: Event): void {
   });
 }
 
-/** 格式化统计数值显示 */
+/** 格式化统计数值显示（非数字显示为 —） */
 function formatStat(n: number): string {
-  if (!Number.isFinite(n)) return "-";
+  if (!Number.isFinite(n)) return "—";
   if (Number.isInteger(n)) return n.toLocaleString("zh-CN");
   return n.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
 }
@@ -376,6 +466,48 @@ async function copyExcelSelection(): Promise<void> {
       message.success("已复制选区内容");
     } catch {
       message.error("复制失败，请手动选择内容");
+    }
+  }
+}
+
+/**
+ * 复制当前选区统计结果到系统剪贴板（"求和\t…\n平均值\t…" 形式，便于粘贴留档）
+ */
+async function copyExcelStats(): Promise<void> {
+  const stats = excelStats.value;
+  if (!stats) return;
+  const rows: string[] = [];
+  const push = (label: string, value: string): void => {
+    rows.push(`${label}\t${value}`);
+  };
+  if (stats.count > 0) {
+    push("求和", formatStat(stats.sum));
+    push("平均值", formatStat(stats.avg));
+    push("中位数", formatStat(stats.median));
+    push("最小", formatStat(stats.min));
+    push("最大", formatStat(stats.max));
+    push("标准差", formatStat(stats.stdev));
+  }
+  push("计数", String(stats.count));
+  push("非空", String(stats.nonEmpty));
+  push("去重", String(stats.distinct));
+  push("选区", excelRangeLabel.value);
+  const text = rows.join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success("已复制统计结果");
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      message.success("已复制统计结果");
+    } catch {
+      message.error("复制失败，请手动记录");
     }
   }
 }
@@ -685,18 +817,45 @@ defineExpose({ wrapRef });
 
 <template>
   <div class="preview-office-panel">
-    <!-- Excel 选区统计工具条（求和 / 平均值 / 计数 / 最值 + 复制选区） -->
-    <div v-if="showStatsBar" class="preview-office-panel__toolbar">
+    <!-- Word 系：下载 PDF（复用服务端已有的 ?format=pdf 转换通道） -->
+    <button
+      v-if="canDownloadPdf && !failReason"
+      type="button"
+      class="preview-office-panel__pdf-btn"
+      :disabled="pdfBusy"
+      @click="downloadPdf"
+    >
+      {{ pdfBusy ? "转换中…" : "下载 PDF" }}
+    </button>
+    <!-- Excel 选区统计：右下角浮动卡片（显隐由卡片下方的圆钮开关控制） -->
+    <div v-if="showStatsBar && statsCardVisible" class="preview-office-panel__stats-card">
       <template v-if="excelSelection">
         <span class="preview-office-panel__toolbar-range">{{ excelRangeLabel }}</span>
-        <template v-if="excelStats">
-          <span class="preview-office-panel__stat">求和 <b>{{ formatStat(excelStats.sum) }}</b></span>
-          <span class="preview-office-panel__stat">平均值 <b>{{ formatStat(excelStats.avg) }}</b></span>
-          <span class="preview-office-panel__stat">计数 <b>{{ excelStats.count }}</b></span>
-          <span class="preview-office-panel__stat">最小值 <b>{{ formatStat(excelStats.min) }}</b></span>
-          <span class="preview-office-panel__stat">最大值 <b>{{ formatStat(excelStats.max) }}</b></span>
-        </template>
-        <span v-else class="preview-office-panel__toolbar-hint">{{ excelStatsError ? "统计不可用（表格结构异常）" : "所选区域没有数值" }}</span>
+        <div v-if="excelStats && excelStats.count > 0" class="preview-office-panel__stats">
+          <span class="preview-office-panel__stat"><i>求和</i><b>{{ formatStat(excelStats.sum) }}</b></span>
+          <span class="preview-office-panel__stat"><i>平均值</i><b>{{ formatStat(excelStats.avg) }}</b></span>
+          <span class="preview-office-panel__stat"><i>中位数</i><b>{{ formatStat(excelStats.median) }}</b></span>
+          <span class="preview-office-panel__stat"><i>计数</i><b>{{ excelStats.count }}</b></span>
+          <span class="preview-office-panel__stat"><i>最小</i><b>{{ formatStat(excelStats.min) }}</b></span>
+          <span class="preview-office-panel__stat"><i>最大</i><b>{{ formatStat(excelStats.max) }}</b></span>
+          <span class="preview-office-panel__stat"><i>标准差</i><b>{{ formatStat(excelStats.stdev) }}</b></span>
+          <span class="preview-office-panel__stat"><i>去重</i><b>{{ excelStats.distinct }}</b></span>
+        </div>
+        <span v-else-if="excelStatsError" class="preview-office-panel__toolbar-hint">
+          统计不可用（表格结构异常）
+        </span>
+        <span v-else-if="excelStats" class="preview-office-panel__toolbar-hint">
+          所选区域没有数值（非空 {{ excelStats.nonEmpty }} · 去重 {{ excelStats.distinct }}）
+        </span>
+        <span v-else class="preview-office-panel__toolbar-hint">计算中…</span>
+        <button
+          v-if="excelStats"
+          type="button"
+          class="preview-office-panel__copy-btn preview-office-panel__copy-btn--ghost"
+          @click="copyExcelStats"
+        >
+          复制统计
+        </button>
         <button
           type="button"
           class="preview-office-panel__copy-btn"
@@ -706,8 +865,22 @@ defineExpose({ wrapRef });
           复制选区
         </button>
       </template>
-      <span v-else class="preview-office-panel__toolbar-hint">选择单元格可查看求和 / 平均值 / 计数等统计</span>
+      <span v-else class="preview-office-panel__toolbar-hint">
+        选择单元格可查看求和 / 平均值 / 中位数 / 计数 / 最值 / 标准差 等统计
+      </span>
     </div>
+    <!-- 右下角开关：控制浮动统计卡片的显隐 -->
+    <button
+      v-if="showStatsBar"
+      type="button"
+      class="preview-office-panel__stats-toggle"
+      :class="{ 'is-on': statsCardVisible }"
+      :title="statsCardVisible ? '隐藏选区统计' : '显示选区统计'"
+      @click="statsCardVisible = !statsCardVisible"
+    >
+      <span class="preview-office-panel__stats-toggle-icon">Σ</span>
+      <span class="preview-office-panel__stats-toggle-label">统计</span>
+    </button>
     <!-- 不再对 wrap 做 transform: scale()：那会连同遮罩与边框一起缩放，
          表现为「缩放时整个弹框都在动」。缩放工具条已按产品要求移除。 -->
     <div ref="wrapRef" class="preview-office-panel__wrap">
@@ -736,6 +909,7 @@ defineExpose({ wrapRef });
 
 <style scoped>
 .preview-office-panel {
+  position: relative;
   width: 100%;
   /* 吃满父容器并允许内部滚动：此前只有 width + min-height:65vh，
      内容比容器高时（实测 docx 内容 1158px > 可用 881px）会直接顶出弹框。 */
@@ -788,38 +962,133 @@ defineExpose({ wrapRef });
   font-size: 13px;
 }
 
-/* ---- Excel 选区统计工具条 ---- */
-.preview-office-panel__toolbar {
+/* ---- Excel 选区统计：右下角浮动卡片 + 开关 ---- */
+.preview-office-panel__stats-card {
+  position: absolute;
+  right: 12px;
+  /* 让出右下角开关的位置，卡片浮在开关上方 */
+  bottom: 58px;
+  /* file-viewer 自带工具条也在右下角，且可能是 fixed + 高 z-index；
+     这里必须压过它，否则开关点不到（实测 Playwright click 超时）。 */
+  z-index: 2000;
+  max-width: min(560px, calc(100% - 24px));
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  flex: none;
-  padding: 6px 10px;
-  margin-bottom: 8px;
+  padding: 7px 12px;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-fill-color-light, #fafafa);
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    var(--el-fill-color-blank, #ffffff),
+    var(--el-fill-color-light, #fafafa)
+  );
   color: var(--el-text-color-regular, #606266);
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.5;
+  /* 浮在内容之上，需要比原先的贴顶工具条更明确的投影 */
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* 右下角统计开关：与 file-viewer 自身的右下角工具条同侧 */
+.preview-office-panel__stats-toggle {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  /* 同卡片：必须压过 file-viewer 自带的右下角工具条，否则点击被它拦截 */
+  z-index: 2000;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 16px;
+  background: var(--el-bg-color, #ffffff);
+  color: var(--el-text-color-regular, #606266);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.preview-office-panel__stats-toggle:hover {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+.preview-office-panel__stats-toggle.is-on {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.1));
+  color: var(--el-color-primary, #409eff);
+}
+.preview-office-panel__stats-toggle-icon {
+  font-weight: 700;
+}
+
+/* 下载 PDF（Word 系）：右上角悬浮，不占文档布局 */
+.preview-office-panel__pdf-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2000;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 15px;
+  background: var(--el-bg-color, #ffffff);
+  color: var(--el-text-color-regular, #606266);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.preview-office-panel__pdf-btn:hover:not(:disabled) {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+.preview-office-panel__pdf-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .preview-office-panel__toolbar-range {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.1));
   color: var(--el-color-primary, #409eff);
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-weight: 600;
-  margin-right: 4px;
+  letter-spacing: 0.2px;
+}
+
+.preview-office-panel__stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .preview-office-panel__stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 6px;
+  background: var(--el-fill-color-blank, #ffffff);
+  color: var(--el-text-color-secondary, #909399);
   white-space: nowrap;
+}
+.preview-office-panel__stat i {
+  font-style: normal;
   color: var(--el-text-color-secondary, #909399);
 }
 .preview-office-panel__stat b {
   color: var(--el-text-color-primary, #303133);
   font-weight: 600;
-  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
 .preview-office-panel__toolbar-hint {
@@ -830,19 +1099,29 @@ defineExpose({ wrapRef });
 .preview-office-panel__copy-btn {
   all: unset;
   cursor: pointer;
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 6px;
   font-size: 12px;
   color: var(--el-color-primary, #409eff);
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: var(--el-radius-sm, 4px);
-  transition: background 0.15s;
+  border: 1px solid var(--el-color-primary-light-5, #a0cfff);
+  transition: background 0.15s, border-color 0.15s;
 }
 .preview-office-panel__copy-btn:hover:not(:disabled) {
   background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.08));
 }
 .preview-office-panel__copy-btn:disabled {
   color: var(--el-text-color-placeholder, #c0c4cc);
+  border-color: var(--el-border-color-lighter, #ebeef5);
   cursor: default;
+}
+.preview-office-panel__copy-btn--ghost {
+  color: var(--el-text-color-regular, #606266);
+  border-color: var(--el-border-color, #dcdfe6);
+}
+.preview-office-panel__copy-btn--ghost:hover:not(:disabled) {
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-color: var(--el-border-color-dark, #d4d7de);
 }
 
 /* 尊重系统「减少动态效果」偏好 */

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { getSocketToken } from '@repo/core';
 import type { SpecialKeyStep } from './specialKeys';
 
 /**
@@ -44,6 +45,9 @@ const iframeSrc = computed(() => {
   });
   if (c.identityId != null) params.set('identityId', String(c.identityId));
   if (c.targetPort != null) params.set('targetPort', String(c.targetPort));
+  // 同上：WS 握手无法带请求头，令牌交给 remote.html 拼进查询参数。
+  const token = getSocketToken();
+  if (token) params.set('token', token);
   return `/remote.html?${params.toString()}`;
 });
 

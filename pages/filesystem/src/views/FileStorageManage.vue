@@ -118,6 +118,7 @@ const PreviewIfcPanel = defineAsyncComponent(() => import("../components/Preview
  */
 const FvTextPanel = defineAsyncComponent(() => import("../components/fv/FvTextPanel.vue"));
 const FvDocPanel = defineAsyncComponent(() => import("../components/fv/FvDocPanel.vue"));
+const FvOutlinePanel = defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue"));
 const FvDesignPanel = defineAsyncComponent(() => import("../components/fv/FvDesignPanel.vue"));
 const FvSignaturePanel = defineAsyncComponent(() => import("../components/fv/FvSignaturePanel.vue"));
 const FvBinaryPanel = defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue"));
@@ -134,7 +135,17 @@ const FvMediaPanel = defineAsyncComponent(() => import("../components/fv/FvMedia
 const VideoPreviewPanel = defineAsyncComponent(() => import("../components/VideoPreviewPanel.vue"));
 const FvModelPanel = defineAsyncComponent(() => import("../components/fv/FvModelPanel.vue"));
 const FvCadPanel = defineAsyncComponent(() => import("../components/fv/FvCadPanel.vue"));
+const FvPltPanel = defineAsyncComponent(() => import("../components/fv/FvPltPanel.vue"));
+const FvManifestPanel = defineAsyncComponent(() => import("../components/fv/FvManifestPanel.vue"));
+const FvFcstdPanel = defineAsyncComponent(() => import("../components/fv/FvFcstdPanel.vue"));
+const FvFodtPanel = defineAsyncComponent(() => import("../components/fv/FvFodtPanel.vue"));
+const FvMetafilePanel = defineAsyncComponent(() => import("../components/fv/FvMetafilePanel.vue"));
+const FvRasterPanel = defineAsyncComponent(() => import("../components/fv/FvRasterPanel.vue"));
+const FvClassPanel = defineAsyncComponent(() => import("../components/fv/FvClassPanel.vue"));
 const FvArchivePanel = defineAsyncComponent(() => import("../components/fv/FvArchivePanel.vue"));
+/* .http/.rest 接口文件：不再当普通代码文本，改走 Postman 式交互面板
+   （可改方法/URL/查询参数/请求头/请求体并直接发送，右侧看响应）。 */
+const FvHttpPanel = defineAsyncComponent(() => import("../components/fv/FvHttpPanel.vue"));
 
 /**
  * file-viewer 注册表权威扩展名（47 定义 / formats.generated.js）→ 承接面板。
@@ -151,6 +162,23 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   md: FvTextPanel,
   markdown: FvTextPanel,
   txt: FvTextPanel,
+  // mf：Java MANIFEST（META-INF/MANIFEST.MF）。file-viewer 的 text registry 不认
+  // .mf，交给它会得到「暂不支持在线预览」，故用自研结构化面板直渲键值段。
+  mf: FvManifestPanel,
+  // fodt：扁平 ODF 文字（单 XML）。Aspose 与 file-viewer office registry 都不认，
+  // 由自研面板抽正文段落/标题直渲。
+  fodt: FvFodtPanel,
+  // wmf/emf：Windows 图元文件（记录流）。浏览器与 file-viewer 都不解码，自研解析成 SVG。
+  wmf: FvMetafilePanel,
+  emf: FvMetafilePanel,
+  // 长尾栅格：Netpbm / Radiance HDR / DDS 纹理。浏览器都不解码，自研面板画到 canvas。
+  pbm: FvRasterPanel,
+  pgm: FvRasterPanel,
+  ppm: FvRasterPanel,
+  pnm: FvRasterPanel,
+  hdr: FvRasterPanel,
+  rgbe: FvRasterPanel,
+  dds: FvRasterPanel,
   json: FvTextPanel,
   js: FvTextPanel,
   mjs: FvTextPanel,
@@ -193,7 +221,9 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   hcl: FvTextPanel,
   tex: FvTextPanel,
   gv: FvTextPanel,
-  http: FvTextPanel,
+  http: FvHttpPanel,
+  /* JetBrains HTTP Client 的另一种扩展名，语法同 .http */
+  rest: FvHttpPanel,
   react: FvTextPanel,
   rb: FvTextPanel,
   swift: FvTextPanel,
@@ -206,6 +236,11 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   eml: FvDocPanel,
   msg: FvDocPanel,
   mbox: FvDocPanel,
+  // 大纲 / 脑图（非 XMind）：FreeMind .mm、OPML .opml（前端解析成树）
+  mm: FvOutlinePanel,
+  opml: FvOutlinePanel,
+  // .markmap 是 Markdown 语法（标题即脑图层级），按 markdown 渲染
+  markmap: FvTextPanel,
   // renderer-design / renderer-data / renderer-signature / renderer-binary
   psb: FvDesignPanel,
   pdd: FvBinaryPanel,
@@ -266,7 +301,9 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   elf: FvBinaryPanel,
   exe: FvBinaryPanel,
   dll: FvBinaryPanel,
-  class: FvBinaryPanel,
+  // class：Java 字节码 → 源码。用 @run-slicer/cfr（CFR 的 JS/WASM 移植，MIT）在浏览器内反编译，
+  // 失败时 emit fallback 由父组件退回 FvBinaryPanel 的十六进制视图。
+  class: FvClassPanel,
   macho: FvBinaryPanel,
   // renderer-chm / renderer-eda / renderer-typst
   chm: FvChmPanel,
@@ -357,13 +394,19 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   off: PreviewModel3dPanel,
   fbx: FvBinaryPanel,
   vtk: PreviewModel3dPanel,
+  // fcstd：FreeCAD 文档 = ZIP + 内嵌 *.brp，解包后交给 BREP 内核渲染
+  fcstd: FvFcstdPanel,
   xyz: FvModelPanel,
   vtp: FvModelPanel,
   dxf: FvCadPanel,
   dwg: FvCadPanel,
+  // dwt：AutoCAD 图样模板，与 dwg 同一二进制容器（面板内以 .dwg 名义交给渲染器）
+  dwt: FvCadPanel,
   dwf: FvCadPanel,
   dwfx: FvCadPanel,
   xps: FvCadPanel,
+  // plt：HP-GL/HP-GL(2) 绘图仪文件，浏览器无解码器，由自研纯 TS 解析器出 SVG
+  plt: FvPltPanel,
   // renderer-archive（原生 ARCHIVE_EXTS 由 ArchivePreviewPanel 先接管，长尾落 fv）
   zip: FvArchivePanel,
   zipx: FvArchivePanel,
@@ -402,6 +445,8 @@ const BINARY_FALLBACK_EXTS: ReadonlySet<string> = new Set([
   "fbx", "iges", "igs", "wrl", "vrml", "jxl", "sig", "bdl",
   "webm", "m3u8", "pdd", "icml", "fla", "aco", "csh", "asl",
   "oga", "flac", "elf", "macho", "zipx",
+  // class：前端反编译失败时退到十六进制视图（原行为），不让用户只看到报错
+  "class",
 ]);
 /** 已切到二进制检视兜底（仅在 {@link BINARY_FALLBACK_EXTS} 内生效） */
 const binaryFallback = ref(false);
@@ -961,6 +1006,28 @@ const recycleLoading = ref(false);
 const recycleCount = computed(() => recycleItems.value.length);
 
 /**
+ * 回收站内当前浏览的子路径（相对 {@link RECYCLE_DIR}，空表示回收站根）。
+ *
+ * <p>回收站<b>保留原目录结构</b>：删除 {@code a/b/c.txt} 时对象落到
+ * {@code .recycle/a/b/c.txt}。否则「还原」只能回到桶根，
+ * 用户在子目录里删掉的文件会被丢到顶层，目录层级丢失。</p>
+ */
+const recyclePath = ref("");
+
+/** 回收站面包屑分段（不含根「回收站」本身） */
+const recycleSegments = computed(() => (recyclePath.value ? recyclePath.value.split("/") : []));
+
+/** 拼接回收站内某个相对路径前缀（空 name 表示目录本身） */
+function recyclePrefix(relPath: string, name = ""): string {
+  return [RECYCLE_DIR, relPath, name].filter(Boolean).join("/");
+}
+
+/** 回收站面包屑：第 i 段对应的相对路径 */
+function recycleSegmentPath(i: number): string {
+  return recycleSegments.value.slice(0, i + 1).join("/");
+}
+
+/**
  * 存储配额（字节）。
  *
  * <p>优先级：localStorage 覆盖 ＞ app.yaml {@code otherConfig.filestorage.quotaGb} ＞ 默认 5GB，
@@ -1079,7 +1146,7 @@ function enterPath(path: string): void {
 async function loadRecycle(): Promise<void> {
   recycleLoading.value = true;
   try {
-    recycleItems.value = await listObjects(bucket.value, RECYCLE_DIR);
+    recycleItems.value = await listObjects(bucket.value, recyclePrefix(recyclePath.value));
   } catch {
     recycleItems.value = [];
   } finally {
@@ -1087,29 +1154,46 @@ async function loadRecycle(): Promise<void> {
   }
 }
 
-/** 确保回收站目录存在（已存在时忽略） */
-async function ensureRecycleDir(): Promise<void> {
-  try {
-    await createDirectory(bucket.value, "", RECYCLE_DIR);
-  } catch { /* 已存在忽略 */ }
+/** 进入回收站的某个子目录（'' 为回收站根） */
+function openRecycleDir(relPath: string): void {
+  recyclePath.value = relPath;
+  void loadRecycle();
+}
+
+/**
+ * 确保回收站内的某个相对目录存在（逐级创建，已存在忽略）
+ *
+ * @param relPath 相对回收站根的目录（空表示只需回收站根）
+ */
+async function ensureRecycleDir(relPath = ""): Promise<void> {
+  const parts = [RECYCLE_DIR, ...(relPath ? relPath.split("/") : [])];
+  let acc = "";
+  for (const part of parts) {
+    await createDirectory(bucket.value, acc, part).catch(() => { /* 已存在忽略 */ });
+    acc = acc ? `${acc}/${part}` : part;
+  }
 }
 
 /**
  * 将对象移入回收站（删除语义：先入回收站，可还原/彻底删除）
  *
+ * <p>按对象所在目录在回收站内建同名目录后移入，保留原层级，
+ * 使「还原」能精确回到删除前的位置。</p>
+ *
  * @param targets 待删除对象
  */
 async function moveToRecycle(targets: StorageObject[]): Promise<void> {
   if (!targets.length) return;
-  await ensureRecycleDir();
-  await moveObjects(bucket.value, targets.map((t) => fullKey(t.name)), RECYCLE_DIR);
+  const rel = currentPath.value;
+  await ensureRecycleDir(rel);
+  await moveObjects(bucket.value, targets.map((t) => fullKey(t.name)), recyclePrefix(rel));
 }
 
-/** 从回收站还原对象 */
+/** 从回收站还原对象（回到删除前所在目录） */
 async function restoreRecycleItem(item: StorageObject): Promise<void> {
   actionRunning.value = true;
   try {
-    await moveObjects(bucket.value, [`${RECYCLE_DIR}/${item.name}`], "");
+    await moveObjects(bucket.value, [recyclePrefix(recyclePath.value, item.name)], recyclePath.value);
     message.success(`已还原「${item.name}」`);
     await Promise.all([loadRecycle(), loadObjects()]);
   } catch (e) {
@@ -1126,7 +1210,7 @@ async function purgeRecycleItem(item: StorageObject): Promise<void> {
   } catch { return; }
   actionRunning.value = true;
   try {
-    await deleteObject(bucket.value, `${RECYCLE_DIR}/${item.name}`);
+    await deleteObject(bucket.value, recyclePrefix(recyclePath.value, item.name));
     message.success("已彻底删除");
     await loadRecycle();
   } catch (e) {
@@ -1171,7 +1255,11 @@ function switchNav(key: NavKey): void {
     recordHistory("");
     void loadObjects();
   }
-  if (key === "recycle") void loadRecycle();
+  if (key === "recycle") {
+    // 每次进入回收站都从根开始，避免停在上次的子目录
+    recyclePath.value = "";
+    void loadRecycle();
+  }
 }
 
 /** 视图下拉切换 */
@@ -4628,6 +4716,25 @@ onUnmounted(() => {
         <!-- ===== 回收站 ===== -->
         <div v-else-if="nav === 'recycle'" class="fs-files fs-files--large" v-loading="recycleLoading">
           <div class="fs-recycle-head">
+            <nav class="fs-recycle-path" aria-label="回收站路径">
+              <button
+                type="button"
+                class="fs-recycle-crumb"
+                :class="{ 'is-current': recyclePath === '' }"
+                aria-current="location"
+                @click="openRecycleDir('')"
+              >回收站</button>
+              <template v-for="(seg, i) in recycleSegments" :key="seg">
+                <span class="fs-recycle-sep" aria-hidden="true">/</span>
+                <button
+                  type="button"
+                  class="fs-recycle-crumb"
+                  :class="{ 'is-current': i === recycleSegments.length - 1 }"
+                  :aria-current="i === recycleSegments.length - 1 ? 'location' : undefined"
+                  @click="openRecycleDir(recycleSegmentPath(i))"
+                >{{ seg }}</button>
+              </template>
+            </nav>
             <span>{{ recycleCount }} 项 · 删除的对象会先进入回收站</span>
             <button type="button" class="fs-pill-btn fs-pill-btn--danger" :disabled="actionRunning || recycleCount === 0" @click="emptyRecycle">
               <el-icon :size="14"><Delete /></el-icon>清空回收站
@@ -4644,6 +4751,13 @@ onUnmounted(() => {
             <div class="fs-lg-card__label" :title="item.name">{{ item.name }}</div>
             <div class="fs-lg-card__meta">{{ cardMeta(item) }}</div>
             <div class="fs-lg-card__ops">
+              <button
+                v-if="item.directory"
+                type="button"
+                class="fs-mini-btn"
+                :disabled="actionRunning"
+                @click="openRecycleDir(recyclePath ? `${recyclePath}/${item.name}` : item.name)"
+              >打开</button>
               <button type="button" class="fs-mini-btn" :disabled="actionRunning" @click="restoreRecycleItem(item)">还原</button>
               <button type="button" class="fs-mini-btn fs-mini-btn--danger" :disabled="actionRunning" @click="purgeRecycleItem(item)">彻底删除</button>
             </div>
@@ -4934,7 +5048,7 @@ onUnmounted(() => {
                   <span class="fs-admin__label">{{ t.label }}</span>
                   <span class="fs-admin__desc">{{ t.desc }}</span>
                 </span>
-                <el-switch v-model="adminForm[t.key]" />
+                <el-switch v-model="adminForm[t.key]" :aria-label="t.label" />
               </div>
             </div>
 
@@ -4982,7 +5096,7 @@ onUnmounted(() => {
                     <i /><i /><i />
                   </span>
                   <span class="fs-admin__layoutname">资源管理器</span>
-                  <span class="fs-admin__check" aria-hidden="true">
+                  <span v-if="adminForm.layoutType === 'SYSTEM'" class="fs-admin__check" aria-hidden="true">
                     <el-icon :size="13"><CircleCheck /></el-icon>
                   </span>
                 </button>
@@ -4997,7 +5111,7 @@ onUnmounted(() => {
                     <i /><i /><i />
                   </span>
                   <span class="fs-admin__layoutname">简单列表</span>
-                  <span class="fs-admin__check" aria-hidden="true">
+                  <span v-if="adminForm.layoutType === 'SIMPLE'" class="fs-admin__check" aria-hidden="true">
                     <el-icon :size="13"><CircleCheck /></el-icon>
                   </span>
                 </button>
@@ -5099,7 +5213,7 @@ onUnmounted(() => {
             <div v-if="admHitAny(ADMIN_IMAGE_ITEM_TERMS.chain)" class="fs-admin__field fs-admin__field--wide">
               <span class="fs-admin__label fs-admin__label--field">全局滤镜链</span>
               <div class="fs-admin__chainhead">
-                <el-switch v-model="adminForm.imageFilterEnabled" />
+                <el-switch v-model="adminForm.imageFilterEnabled" aria-label="全局滤镜链启用" />
                 <span class="fs-admin__chainstate">
                   {{ adminForm.imageFilterEnabled ? "已启用：每次图片请求按链顺序强制处理" : "未启用" }}
                 </span>
@@ -5153,7 +5267,7 @@ onUnmounted(() => {
             <div v-if="admHitAny(ADMIN_SECURITY_ITEM_TERMS.pathGuard)" class="fs-admin__field">
               <span class="fs-admin__label fs-admin__label--field">路径穿透防护</span>
               <div class="fs-admin__chainhead">
-                <el-switch v-model="adminForm.openPathGuard" />
+                <el-switch v-model="adminForm.openPathGuard" aria-label="路径穿透防护" />
                 <span class="fs-admin__chainstate">{{ adminForm.openPathGuard ? "已开启（默认）" : "已关闭" }}</span>
               </div>
               <p class="fs-admin__hint">
@@ -6699,6 +6813,46 @@ button.fs-stat:hover {
   padding-bottom: 12px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 回收站路径面包屑：与主面包屑同观感但独立类名，避免与页头面包屑混淆 */
+.fs-recycle-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fs-recycle-crumb {
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: var(--el-radius-xs, 4px);
+  font: inherit;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-recycle-crumb:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-recycle-crumb.is-current {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  cursor: default;
+}
+
+.fs-recycle-sep {
+  color: var(--el-text-color-placeholder);
 }
 
 /* ===== 拖拽放置目标高亮（四种视图通用） ===== */

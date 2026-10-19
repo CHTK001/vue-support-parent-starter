@@ -48,6 +48,7 @@
   "devDependencies": {
     "@file-viewer/preset-all": "catalog:",
     "@file-viewer/vite-plugin": "catalog:",
+    "@playwright/test": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

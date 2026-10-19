@@ -14,6 +14,15 @@ import { installUi } from "@repo/ui";
 import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
 import { getRouter } from "@repo/core";
+// 「AI 配置」页 = pages/ai 的就地嵌入（厂商/模型 + 默认模型与运行参数），
+// 不再用 iframe 指向独立的 AI 控制台：iframe 依赖另一个端口/域名，跨站 Cookie、
+// X-Frame-Options、主题与语言不一致，任意一条不满足就是一块白屏（实测 15689 未启动时整页空白）。
+//
+// 深导入 /embed 而非包根 index.ts：包根会 re-export main.js（AI 控制台启动壳入口），
+// 同步加载 App.vue 壳与 element-plus/tailwind 等全局样式，污染本应用。
+// import 的副作用即把 pages/ai 的语言包合并进本应用 i18n。
+import "@pages/ai/embed";
+import { adoptHostFramework } from "@pages/ai/embed";
 
 /**
  * 教育 AI 页面用到的 Re* 组件（ReKit 提供 ReTableColumn 等表格子组件）。
@@ -37,6 +46,14 @@ const instance = await createContextApp({
 })
   .routes(eduaiRoutes as never)
   .mount("#app");
+
+/**
+ * 采用宿主（本应用）已装配的框架上下文。
+ * <p>pages/ai 的请求出口在 context 缺失时会回退到宿主注入的全局 axios 实例
+ * （见 pages/ai/framework/context.ts 的 resolveHttpInstance），这里再显式接管一次，
+ * 让 pages/ai 内部直接读 context 的逻辑也拿到同一条管线。</p>
+ */
+adoptHostFramework(instance.context);
 
 /**
  * 静态菜单灌入 store 的时机：既没有登录流程（openAuth=false），也没有 initAuthRouter

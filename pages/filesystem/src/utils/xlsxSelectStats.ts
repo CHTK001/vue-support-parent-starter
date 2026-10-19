@@ -199,6 +199,158 @@ export async function parseXlsxWorkbook(bytes: ArrayBuffer): Promise<ParsedXlsx>
 }
 
 /* ------------------------------------------------------------------ */
+/*  Delimited text (csv / tsv)                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 分隔文本单元格 → 统计值。
+ *
+ * <p>只把「纯数字」与 true/false 归一为原生类型；`001`、`1-2`、日期串等
+ * 会被 {@code Number()} 误判的值保持字符串，避免选区统计把编号当数值求和。</p>
+ */
+function coerceDelimitedValue(raw: string): CellValue {
+  const s = raw.trim()
+  if (s === '') return ''
+  if (/^(true|false)$/i.test(s)) return s.toLowerCase() === 'true'
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(s)) {
+    const n = Number(s)
+    return Number.isFinite(n) ? n : raw
+  }
+  return raw
+}
+
+/** 按 RFC 4180 口径切分（支持引号包裹、双引号转义、字段内换行） */
+function splitDelimitedText(text: string, delimiter: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let quoted = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (quoted) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++ } else { quoted = false }
+      } else {
+        field += ch
+      }
+      continue
+    }
+    if (ch === '"') { quoted = true; continue }
+    if (ch === delimiter) { row.push(field); field = ''; continue }
+    if (ch === '\r') continue
+    if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; continue }
+    field += ch
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row) }
+  return rows
+}
+
+/**
+ * 解析 csv / tsv 字节为稀疏单元格索引。
+ *
+ * <p>分隔符按首个非空行自动嗅探（制表符优先，其次逗号、分号），
+ * 与 {@link parseXlsxWorkbook} 共用 {@link SheetGrid} 稀疏模型。</p>
+ */
+export function parseDelimitedBytes(bytes: Uint8Array, sheetName = 'Sheet1'): ParsedXlsx {
+  let text = new TextDecoder('utf-8').decode(bytes)
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
+  if (!text.trim()) throw new Error('空的分隔文本')
+  const nl = text.search(/\r?\n/)
+  const firstLine = nl >= 0 ? text.slice(0, nl) : text
+  const count = (ch: string) => firstLine.split(ch).length - 1
+  const tabs = count('\t')
+  const commas = count(',')
+  const semis = count(';')
+  const delimiter = tabs >= commas && tabs >= semis ? '\t' : commas >= semis ? ',' : ';'
+  const rows = splitDelimitedText(text, delimiter)
+  const cells = new Map<string, CellValue>()
+  rows.forEach((cols, r) => {
+    cols.forEach((raw, c) => {
+      if (raw === '') return
+      cells.set(cellKey(r, c), coerceDelimitedValue(raw))
+    })
+  })
+  return { sheets: [{ name: sheetName, cells }] }
+}
+
+/* ------------------------------------------------------------------ */
+/*  OpenDocument (fods / ods)                                          */
+/* ------------------------------------------------------------------ */
+
+/** 单个 table:table-cell 的值：office:value-type 优先，其次 text:p 文本 */
+function odsCellValueFromXml(attrs: string, inner: string): CellValue | null {
+  const valueType = /\boffice:value-type="([^"]*)"/.exec(attrs)?.[1] ?? ''
+  if (valueType === 'float' || valueType === 'percentage' || valueType === 'currency') {
+    const v = /\boffice:value="([^"]*)"/.exec(attrs)?.[1]
+    if (v != null && v !== '') {
+      const n = Number(v)
+      if (Number.isFinite(n)) return n
+    }
+  }
+  if (valueType === 'boolean') {
+    const v = /\boffice:boolean-value="([^"]*)"/.exec(attrs)?.[1]
+    if (v != null) return v === 'true'
+  }
+  const paragraphs = [...inner.matchAll(/<text:p\b[^>]*>([\s\S]*?)<\/text:p>/g)].map((m) => extractTexts(m[1]))
+  const text = paragraphs.length ? paragraphs.join('\n') : extractTexts(inner)
+  return text.trim() === '' ? null : text
+}
+
+/**
+ * 解析扁平 OpenDocument 表格（.fods）文本。
+ *
+ * <p>按 `table:table` → `table:table-row` → `table:table-cell` 逐层展开；
+ * `number-rows-repeated` / `number-columns-repeated` 会按声明复制（上限 1000，
+ * 防止畸形文件里的极大重复值把内存打爆）。</p>
+ */
+export function parseFodsWorkbook(xml: string): ParsedXlsx {
+  const sheets: SheetGrid[] = []
+  const tableRe = /<table:table\b([^>]*)>([\s\S]*?)<\/table:table>/g
+  let tm: RegExpExecArray | null
+  while ((tm = tableRe.exec(xml))) {
+    const name = decodeXml(/\btable:name="([^"]*)"/.exec(tm[1])?.[1] ?? '') || `Sheet${sheets.length + 1}`
+    const cells = new Map<string, CellValue>()
+    let r = 0
+    const rowRe = /<table:table-row\b([^>]*)>([\s\S]*?)<\/table:table-row>/g
+    let rm: RegExpExecArray | null
+    while ((rm = rowRe.exec(tm[2]))) {
+      const rowRepeat = Math.min(1000, Math.max(1, Number(/\btable:number-rows-repeated="(\d+)"/.exec(rm[1])?.[1] ?? 1)))
+      const cellRe = /<table:table-cell\b([^>]*?)(?:\/>|>([\s\S]*?)<\/table:table-cell>)/g
+      let cm: RegExpExecArray | null
+      let c = 0
+      const rowCells: { col: number; value: CellValue | null; repeat: number }[] = []
+      while ((cm = cellRe.exec(rm[2]))) {
+        const attrs = cm[1]
+        const inner = cm[2] ?? ''
+        const repeat = Math.min(1000, Math.max(1, Number(/\btable:number-columns-repeated="(\d+)"/.exec(attrs)?.[1] ?? 1)))
+        rowCells.push({ col: c, value: odsCellValueFromXml(attrs, inner), repeat })
+        c += repeat
+      }
+      for (let k = 0; k < rowRepeat; k++) {
+        for (const rc of rowCells) {
+          if (rc.value === null) continue
+          for (let q = 0; q < rc.repeat; q++) cells.set(cellKey(r + k, rc.col + q), rc.value)
+        }
+      }
+      r += rowRepeat
+    }
+    sheets.push({ name, cells })
+  }
+  if (!sheets.length) throw new Error('未找到工作表')
+  return { sheets }
+}
+
+/** 解析 ODS（ZIP 容器）：取 content.xml 后复用 {@link parseFodsWorkbook} */
+export async function parseOdsWorkbook(bytes: ArrayBuffer | Uint8Array): Promise<ParsedXlsx> {
+  const mod = await import('jszip')
+  const JSZip = mod.default as unknown as typeof import('jszip')
+  const zip = await JSZip.loadAsync(bytes as ArrayBuffer)
+  const content = zip.file('content.xml')
+  if (!content) throw new Error('不是 ODS 容器（缺少 content.xml）')
+  return parseFodsWorkbook(await content.async('string'))
+}
+
+/* ------------------------------------------------------------------ */
 /*  Calculations                                                       */
 /* ------------------------------------------------------------------ */
 

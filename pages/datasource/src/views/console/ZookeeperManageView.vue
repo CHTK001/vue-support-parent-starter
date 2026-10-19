@@ -53,7 +53,7 @@
               @contextmenu.prevent="onNodeContextMenu($event, node.path)"
             >
               <ReIcon
-                :name="node.childCount > 0 ? (node.expanded ? 'ArrowDown' : 'ArrowRight') : 'MoreFilled'"
+                :name="node.childCount > 0 ? (node.expanded ? 'ArrowDown' : 'ArrowRight') : 'Key'"
                 size="12"
                 @click.stop="toggleNode(node)"
               />
@@ -102,9 +102,9 @@
           <div class="dsm-section-title">
             节点详情 - {{ activePath }}
             <div class="dsm-section-actions">
-              <ReButton text @click="loadNodeDetail"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
-              <ReButton text type="primary" :disabled="!nodeDetail" @click="editNode"><template #icon><ReIcon name="Edit" size="12" /></template>编辑数据</ReButton>
-              <ReButton text type="danger" :disabled="!nodeDetail" @click="deleteNode()"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
+              <ReButton text @click="loadNodeDetail"><template #icon><ReIcon name="Refresh" size="12" /></template></ReButton>
+              <ReButton text type="primary" :disabled="!nodeDetail" @click="editNode"><template #icon><ReIcon name="Edit" size="12" /></template></ReButton>
+              <ReButton text type="danger" :disabled="!nodeDetail" @click="deleteNode()"><template #icon><ReIcon name="Delete" size="12" /></template></ReButton>
             </div>
           </div>
 

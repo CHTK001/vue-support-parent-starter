@@ -85,6 +85,19 @@
   border: none;
 }
 
+/* Element Plus small 尺寸不应用全局 height/padding，由组件自带口径接管 */
+.el-button--small {
+  height: 28px;
+  padding: 0 13px;
+  font-size: 12px;
+  border-radius: var(--re-radius-sm);
+}
+
+.el-button--small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .el-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

@@ -161,7 +161,11 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   // ---- renderer-text：Markdown / 代码 / 纯文本 / 结构化文本 ----
   md: TEXT_SPEC,
   markdown: TEXT_SPEC,
+  // .markmap 是 Markdown 语法，按 markdown 渲染
+  markmap: TEXT_SPEC,
   txt: TEXT_SPEC,
+  // mf：Java MANIFEST，纯文本
+  mf: TEXT_SPEC,
   json: TEXT_SPEC,
   js: TEXT_SPEC,
   mjs: TEXT_SPEC,
@@ -372,6 +376,8 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   // ---- renderer-cad：CAD 图纸 ----
   dxf: CAD_SPEC,
   dwg: CAD_SPEC,
+  // dwt（AutoCAD 图样模板）与 dwg 同一二进制容器，走同一 CAD 渲染器
+  dwt: CAD_SPEC,
   dwf: CAD_SPEC,
   dwfx: CAD_SPEC,
   xps: CAD_SPEC,

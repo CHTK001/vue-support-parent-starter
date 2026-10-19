@@ -6,6 +6,7 @@
  * 平台自研的 /ws/ms/server/terminal/ssh 端点（MINA SSHD PTY 桥接）。
  */
 import { computed } from 'vue';
+import { getSocketToken } from '@repo/core';
 
 const props = defineProps<{
   connection: {
@@ -30,6 +31,12 @@ const iframeSrc = computed(() => {
   if (!c) return '';
   const params = new URLSearchParams({ hostId: String(c.hostId) });
   if (c.identityId != null) params.set('identityId', String(c.identityId));
+  // 鉴权：浏览器 WebSocket 握手不允许自定义请求头，后端 OAuth 过滤器
+  // 支持从查询参数取 x-oauth-token，故把令牌交给 iframe 内的静态页拼接。
+  // 不传这一项时 /ws/ms/server/terminal/ssh 一律 403「用户信息不存在，请重新登录」，
+  // 终端只会停在「正在建立 SSH 连接…」。
+  const token = getSocketToken();
+  if (token) params.set('token', token);
   return `/ssh-direct.html?${params.toString()}`;
 });
 </script>

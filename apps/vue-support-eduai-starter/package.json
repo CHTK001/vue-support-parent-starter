@@ -10,30 +10,32 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:",
-    "pinia": "catalog:",
-    "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
-    "@repo/app": "workspace:*",
-    "@repo/core": "workspace:*",
-    "@pages/eduai": "workspace:*",
+    "@pages/ai": "workspace:*",
     "@pages/collect": "workspace:*",
+    "@pages/eduai": "workspace:*",
+    "@repo/app": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/pinia": "workspace:*",
+    "@repo/theme": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/theme": "workspace:*",
-    "@repo/config": "workspace:*",
-    "@repo/pinia": "workspace:*",
     "@tiptap/extension-image": "^3.26.0",
     "@tiptap/extension-placeholder": "^3.26.0",
     "@tiptap/extension-text-align": "^3.26.0",
     "@tiptap/starter-kit": "^3.26.0",
-    "@tiptap/vue-3": "^3.26.0"
+    "@tiptap/vue-3": "^3.26.0",
+    "element-plus": "catalog:",
+    "motion": "^14.3.0",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
+    "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vue-tsc": "catalog:",
-    "rimraf": "catalog:"
+    "vue-tsc": "catalog:"
   }
 }

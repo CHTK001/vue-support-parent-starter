@@ -181,8 +181,11 @@ export const modelApi: ModelApi = {
 
   async deleteModel(this: ApiContext, modelId: string) {
     // 后端接口格式：DELETE /api/provider-models?provider_id=xxx&model=xxx
-    // modelId格式：providerId:modelName
-    const [providerId, modelName] = modelId.split(':');
+    // modelId格式：providerId:modelName。模型名本身可含冒号（如 qwen2.5:7b），
+    // split(':') 会把模型名截断成 qwen2.5 导致后端 404，故只在第一个冒号处拆分
+    const idx = modelId.indexOf(':');
+    const providerId = idx > -1 ? modelId.slice(0, idx) : '';
+    const modelName = idx > -1 ? modelId.slice(idx + 1) : modelId;
     return await rawApi.delete('/api/provider-models', {
       params: { provider_id: providerId, model: modelName },
     });

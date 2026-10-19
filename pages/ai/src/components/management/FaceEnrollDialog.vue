@@ -149,6 +149,8 @@ const form = reactive({
   idCard: '',
   photogenic: 3,
   note: '',
+  residence: '',
+  phone: '',
 })
 
 const maskedIdCard = computed(() => maskIdCard(form.idCard))

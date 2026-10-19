@@ -7,7 +7,7 @@
  * @since 4.0.0
  */
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/core";
 import {
   getDiscoveryStatus, queryDiscoveryInstances, listDiscoveryProtocols,
   type DiscoveryStatus, type DiscoveryInstance,
@@ -18,7 +18,7 @@ const status = ref<DiscoveryStatus | null>(null);
 /** 服务实例列表 */
 const instances = ref<DiscoveryInstance[]>([]);
 /** 实例查询说明文案（未启用 / 查询失败时由后端返回） */
-const message = ref("");
+const discoveryMessage = ref("");
 /** 可用的发现协议选项 */
 const protocolOptions = ref<string[]>([]);
 /** 查询条件：协议（可选） */
@@ -45,7 +45,7 @@ async function loadStatus() {
       listDiscoveryProtocols().catch(() => []),
     ]);
   } catch (e: any) {
-    ElMessage.error(`加载失败：${e?.message ?? e}`);
+    message.error(`加载失败：${e?.message ?? e}`);
   } finally {
     loading.value = false;
   }
@@ -56,17 +56,17 @@ async function loadStatus() {
  */
 async function loadServices() {
   loading.value = true;
-  message.value = "";
+  discoveryMessage.value = "";
   try {
     const result = await queryDiscoveryInstances(
       queryProtocol.value || undefined,
       queryUriSpec.value || undefined,
     );
     instances.value = result?.instances ?? [];
-    message.value = result?.message && result.message !== "ok" ? result.message : "";
+    discoveryMessage.value = result?.message && result.message !== "ok" ? result.message : "";
   } catch (e: any) {
     instances.value = [];
-    message.value = `查询失败：${e?.message ?? e}`;
+    discoveryMessage.value = `查询失败：${e?.message ?? e}`;
   } finally {
     loading.value = false;
   }
@@ -129,7 +129,7 @@ onMounted(refresh);
         <ReButton icon="Search" type="primary" :loading="loading" @click="loadServices">查询</ReButton>
         <span class="count">共 {{ instances.length }} 条</span>
       </div>
-      <ReEmpty v-if="message" :description="message" :image-size="70" style="padding: 16px 0" />
+      <ReEmpty v-if="discoveryMessage" :description="discoveryMessage" :image-size="70" style="padding: 16px 0" />
       <ReEmpty v-else-if="!instances.length" description="暂无服务实例" :image-size="70" style="padding: 16px 0" />
       <ReTable
         v-else

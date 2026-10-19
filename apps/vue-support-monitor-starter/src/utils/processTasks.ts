@@ -98,6 +98,7 @@ function bindSocket(): void {
         clearCatchUp(task);
       } else {
         scheduleCatchUp(task);
+        ensureReconcile();
       }
     }
   });
@@ -141,6 +142,42 @@ function scheduleCatchUp(task: ProcessTask): void {
 
 /** 一次性兜底等待（毫秒）：略大于远端单步常见间隔 */
 const CATCH_UP_DELAY_MS = 1500;
+
+/**
+ * 未完成任务的对账间隔（毫秒）。
+ *
+ * <p>socket 帧可能整段丢失（网关重连、订阅前已结束、终帧恰好在断线窗口内），
+ * 而一次性兜底只在「收到某帧」后才安排。实测：回滚任务服务端已成功，
+ * 页面却永久停在 25%、卡片 PID 停在旧值并一直累加运行时长 —— 因为没有终帧，
+ * 前端再也不会主动对齐。这里在存在未完成任务时按固定间隔拉快照，
+ * 任务全部结束后自动停表。</p>
+ */
+const RECONCILE_INTERVAL_MS = 8000;
+
+/** 对账定时器句柄（全局仅一个） */
+let reconcileTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * 确保对账定时器在跑（有未完成任务时）
+ */
+function ensureReconcile(): void {
+  if (reconcileTimer !== null) {
+    return;
+  }
+  reconcileTimer = setInterval(() => {
+    const pending = tasks.filter(t => !t.finished);
+    if (pending.length === 0) {
+      if (reconcileTimer !== null) {
+        clearInterval(reconcileTimer);
+        reconcileTimer = null;
+      }
+      return;
+    }
+    pending.forEach(t => {
+      void fetchSnapshot(t);
+    });
+  }, RECONCILE_INTERVAL_MS);
+}
 
 /** 任务一次性兜底定时器句柄 */
 const catchUpTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -254,6 +291,7 @@ export function trackTask(taskId: string, title: string, operation: string): Pro
   void fetchSnapshot(task);
   // 覆盖「任务在订阅就绪前已跑完」的快速任务：首帧事件尚未到达也能兜底补齐
   scheduleCatchUp(task);
+  ensureReconcile();
   return task;
 }
 

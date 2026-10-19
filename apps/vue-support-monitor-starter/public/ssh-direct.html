@@ -41,6 +41,8 @@
       var params = new URLSearchParams(location.search);
       var hostId = params.get('hostId') || '';
       var identityId = params.get('identityId') || '';
+      // 外层组件把登录令牌带进来；WS 握手不能加请求头，后端只认查询参数 x-oauth-token
+      var token = params.get('token') || '';
 
       var term = new Terminal({
         cursorBlink: true,
@@ -57,7 +59,8 @@
       var wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
       var wsUrl = wsProto + location.host + '/ws/ms/server/terminal/ssh?hostId=' + encodeURIComponent(hostId)
         + '&cols=' + term.cols + '&rows=' + term.rows
-        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '');
+        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '')
+        + (token ? '&x-oauth-token=' + encodeURIComponent(token) : '');
       var ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
       var encoder = new TextEncoder();
