@@ -327,6 +327,7 @@
                 <ReButton
                   icon="CopyDocument"
                   :disabled="clusterSnippets.length === 0"
+                  :tip="clusterSnippets.length === 0 ? '暂无节点配置，请先生成' : '复制全部节点配置'"
                   data-testid="es-cluster-copy-all"
                   @click="copyAllClusterSnippets"
                 >
@@ -1519,12 +1520,18 @@ async function loadCluster() {
   }
 }
 
+/** 通用集群加载：只在未缓存时请求，tabs 共用一份缓存 */
+async function loadClusterIfNeeded(): Promise<void> {
+  if (!datasourceId.value || cluster.value) return;
+  cluster.value = await fetchEsCluster(datasourceId.value);
+}
+
 // ---- 节点列表 ----
 async function loadNodesTab() {
   if (!datasourceId.value) return;
   nodesLoading.value = true;
   try {
-    cluster.value = await fetchEsCluster(datasourceId.value);
+    await loadClusterIfNeeded();
   } catch (e) {
     showError(e, "/ms/monitor/elasticsearch/cluster");
   } finally {
@@ -1537,7 +1544,7 @@ async function loadGraphTab() {
   if (!datasourceId.value) return;
   graphLoading.value = true;
   try {
-    cluster.value = await fetchEsCluster(datasourceId.value);
+    await loadClusterIfNeeded();
   } catch (e) {
     showError(e, "/ms/monitor/elasticsearch/cluster");
   } finally {
@@ -1629,7 +1636,7 @@ watch(activeTab, async tab => {
   if (tab === "clusterCfg") {
     // 集群名优先用当前连接的集群回填，省得手抄（读不到就留空让用户自己填）
     if (!clusterForm.clusterName) {
-      if (!cluster.value) await loadNodesTab();
+      await loadClusterIfNeeded();
       clusterForm.clusterName = cluster.value?.clusterName || "";
     }
     if (clusterForm.nodes.length === 0) addClusterNode();
