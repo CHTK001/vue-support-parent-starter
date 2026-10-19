@@ -1,8 +1,8 @@
 <template>
-  <div ref="containerRef" class="re-video relative w-full h-full bg-black rounded-xl overflow-hidden">
+  <div ref="containerRef" class="re-video">
     <video
       ref="videoRef"
-      class="w-full h-full object-contain bg-black"
+      class="re-video__el"
       :poster="poster"
       :muted="muted"
       :autoplay="autoplay"
@@ -12,18 +12,22 @@
       @loadedmetadata="onLoaded"
     ></video>
 
-    <div
-      v-if="!url || error"
-      class="absolute inset-0 flex flex-col items-center justify-center text-el-text-secondary gap-2 pointer-events-none"
-    >
-      <el-icon :size="32"><VideoCamera /></el-icon>
-      <span class="text-xs">{{ error || '暂无视频' }}</span>
-      <span v-if="protocol" class="text-[10px] opacity-70">协议: {{ protocol }}</span>
+    <!-- 无流 / 出错：居中占位（不拦截鼠标，避免挡住原生控件） -->
+    <div v-if="!url || error" class="re-video__mask">
+      <span class="re-video__tile">
+        <el-icon :size="26"><VideoCamera /></el-icon>
+      </span>
+      <span class="re-video__title">{{ error || '暂无视频流' }}</span>
+      <span v-if="protocol" class="re-video__sub">协议 · {{ protocol.toUpperCase() }}</span>
     </div>
 
-    <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-      <span class="text-xs text-white">加载中...</span>
+    <div v-if="loading" class="re-video__loading">
+      <span class="re-video__spinner" />
+      <span class="re-video__sub">正在拉流…</span>
     </div>
+
+    <!-- 通道角标：贴左上，随多路联播复用 -->
+    <span v-if="channel && url && !error" class="re-video__badge">CH{{ channel }}</span>
   </div>
 </template>
 
@@ -206,8 +210,81 @@ onBeforeUnmount(destroy)
 </script>
 
 <style scoped>
-.re-video :deep(video) {
+.re-video {
+  position: relative;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  border-radius: var(--el-radius-lg, 12px);
+  background: #05070c;
+}
+.re-video__el {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #05070c;
+  display: block;
+}
+
+/* 占位层 */
+.re-video__mask,
+.re-video__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  text-align: center;
+  padding: 12px;
+}
+.re-video__loading {
+  background: color-mix(in srgb, #05070c 55%, transparent);
+}
+.re-video__tile {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  color: var(--el-text-color-secondary);
+  background: color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-text-color-primary) 16%, transparent);
+}
+.re-video__title {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.re-video__sub {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.re-video__spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+  border-top-color: var(--el-color-primary);
+  animation: re-video-spin 0.8s linear infinite;
+}
+.re-video__badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: color-mix(in srgb, #000 45%, transparent);
+  backdrop-filter: blur(4px);
+}
+@keyframes re-video-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

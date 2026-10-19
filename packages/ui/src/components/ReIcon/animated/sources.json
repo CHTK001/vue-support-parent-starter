@@ -1,0 +1,57 @@
+{
+  "upstream": {
+    "repo": "ln-dev7/icons-animated",
+    "ref": "3561aea87c239ade543a6388e69ea2f2edaa6ac6",
+    "license": "MIT"
+  },
+  "files": {
+    "heroicons/bell.vue": {
+      "sha256": "0986a0e2509294568c9794223c01f30a15244e281f1707fac5e65c462e249bca"
+    },
+    "heroicons/heart.vue": {
+      "sha256": "4c6d47da665b11fcac8fc0abdf036ec5592bad7c8cd3d2740769d99c96820fe7"
+    },
+    "heroicons/plus.vue": {
+      "sha256": "b78723d8a2f6562e2c4110ac359be604b5f0d72e6995d73ce6411e1fa77426ad"
+    },
+    "heroicons/trash.vue": {
+      "sha256": "035bf3310dd04b3515236a81be66b8814dc213cc0b754fc35763f8c7ebdf980b"
+    },
+    "hugeicons/bell.vue": {
+      "sha256": "ca8492cb675f7fbeef87af2c0a610f34e0ffec4fbb3ec4aa0530748b3f3fde84"
+    },
+    "hugeicons/heart.vue": {
+      "sha256": "071bcae8b342496176b47736499d68d12027855dc299755de634e636f930fcc5"
+    },
+    "hugeicons/plus.vue": {
+      "sha256": "2efc2443308b3ba61f8e4f1a4ba3bb7e9efa9c50a24457cbe5c4bca18965032f"
+    },
+    "hugeicons/trash.vue": {
+      "sha256": "8c4faf2fa61d119563134333ed5a6c26ad5a95a661d0647889c7a1209a9d25d1"
+    },
+    "phosphor/bell.vue": {
+      "sha256": "34843c98ec467bbd9588ebd4acf115f22f1aa196f91f45b2eb0040de59aae2b3"
+    },
+    "phosphor/heart.vue": {
+      "sha256": "e2820524bbb0f1f1f558366a505145ea1351c5ebe1422ad30e5a4a6be6c91078"
+    },
+    "phosphor/plus.vue": {
+      "sha256": "196ff35747a29661c5515180cea3ae1877ea52ef2215954a01272d1c15e7c932"
+    },
+    "phosphor/trash.vue": {
+      "sha256": "9a7bf4d5876f9225067d8251f150b995bc988b2598be754581a7c734c779a723"
+    },
+    "tabler/bell.vue": {
+      "sha256": "0dca66b63e224c6cb6de62028cff75983199e52fbd74534984908b425b71d751"
+    },
+    "tabler/heart.vue": {
+      "sha256": "885f6c44c011637f2d88aaf98a64d9af484b2ce995f86d969a4b506d59d2c5f0"
+    },
+    "tabler/plus.vue": {
+      "sha256": "761b44f58702713c0a62701aee448c99a69fd2377225b2eb9d8e0f259b292c49"
+    },
+    "tabler/trash.vue": {
+      "sha256": "2d79e371df08701cb82f8ae14e29d5f86d617d8c144e3adb827776493d508a20"
+    }
+  }
+}

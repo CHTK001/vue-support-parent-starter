@@ -8,7 +8,7 @@
     <div class="re-tree__list" ref="listRef">
       <div
         v-for="(node, index) in flatList"
-        :key="node[keyField]"
+        :key="nodeKeyOf(node, index)"
         class="re-tree__node"
         :class="{
           're-tree__node--dragover': dragOverKey === node[keyField],
@@ -24,7 +24,7 @@
         @dragend="onDragEnd"
         @click="onNodeClick(node)"
       >
-        <div class="re-tree__node-indent" :style="{ width: `${node.__depth * indent}px` }" />
+        <div class="re-tree__node-indent" :style="{ width: `${(node.__depth ?? 0) * indent}px` }" />
         <span class="re-tree__node-toggle" v-if="node.children?.length" @click.stop="handleToggle(node)">
           <svg :class="{ 're-tree__node-toggle--expanded': node.__expanded }" width="10" height="10" viewBox="0 0 10 10">
             <path d="M3,1 L7,5 L3,9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
@@ -53,7 +53,7 @@
     <ReDialog v-model="dialogVisible" :title="dialogTitle" width="400px">
       <el-form :model="formData" label-width="80px">
         <el-form-item label="名称">
-          <el-input v-model="formData[labelField]" />
+          <el-input v-model="labelInput" />
         </el-form-item>
         <slot name="dialog-form" :form="formData" :node="editingNode" />
       </el-form>
@@ -136,6 +136,41 @@ const editingParent = ref<ReTreeNode | null>(null);
 const isEditing = ref(false);
 
 const formData = ref<Record<string, unknown>>({});
+
+/**
+ * 弹窗「名称」输入框的绑定值。
+ *
+ * <p>{@code formData} 是 `Record<string, unknown>` —— 编辑节点时是整个节点复制进来的
+ * （`formData.value = { ...node }`），里面既有 `children` / `style` 这类非字符串字段，
+ * 也有任意扩展字段，所以不能简单收窄成 `Record<string, string>`（那样会与
+ * `handleEdit` 的赋值冲突，实测就是这么把 6 个错误修成 6 个的）。
+ * 这里用可写 computed 只把**标签字段**收口给 el-input：读时非字符串按显示需要转成字符串，
+ * 写时只改这一个字段，读写落在同一处，运行时与原先一致。</p>
+ */
+const labelInput = computed<string>({
+  get() {
+    const v = formData.value[props.labelField];
+    if (typeof v === "string") return v;
+    return v === undefined || v === null ? "" : String(v);
+  },
+  set(v: string) {
+    formData.value = { ...formData.value, [props.labelField]: v };
+  },
+});
+
+/**
+ * 取节点在 `:key` 上用的值。
+ *
+ * <p>{@code keyField} 是动态字段名，而 {@code ReTreeNode} 带 `[key: string]: unknown`
+ * 索引签名，直接写 {@code :key="node[keyField]"} 推出来的是 `unknown`，
+ * 与 `:key` 要求的 {@code PropertyKey | undefined} 不符（vue-tsc 报 TS2322）。
+ * 这里把索引结果收敛成字符串；取不到时退回行下标，保证 key 始终有值。
+ * 纯取值、无副作用，运行时与原先读同一个字段。</p>
+ */
+const nodeKeyOf = (node: ReTreeNode, index: number): string => {
+  const raw = node[props.keyField];
+  return raw === undefined || raw === null ? `__idx_${index}` : String(raw);
+};
 
 const treeData = ref<ReTreeNode[]>(props.data);
 

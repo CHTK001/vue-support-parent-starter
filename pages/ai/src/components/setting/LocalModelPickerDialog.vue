@@ -177,11 +177,18 @@ const retry = () => {
   return loadLocal()
 }
 
-// ReFilePicker loader：调用目录浏览接口，映射为 FilePickerItem
+// ReFilePicker loader：调用 filesystem-starter 的目录浏览接口，映射为 FilePickerItem。
+// 接口会同时返回目录与文件：目录模式下文件只展示、不可选，用户才能确认进对了目录。
 const dirLoader = async (path) => {
-  const res = await adminApi.get('/v2/file/dir/list', { params: { path: path || '' } })
+  const res = await adminApi.get('/v2/file/dir/list', { params: { path: path || '', files: true } })
   const rows = Array.isArray(res) ? res : res?.data || []
-  return rows.map((r) => ({ key: r.path, name: r.name, isDir: true, updatedAt: r.updatedAt }))
+  return rows.map((r) => ({
+    key: r.path,
+    name: r.name,
+    isDir: r.isDir !== false,
+    size: r.size ?? undefined,
+    updatedAt: r.updatedAt ?? undefined,
+  }))
 }
 
 const onDirPicked = (items) => {

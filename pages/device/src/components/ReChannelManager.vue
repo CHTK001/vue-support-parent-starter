@@ -1,11 +1,14 @@
 <template>
-  <div class="channel-manager space-y-4">
-    <div class="flex items-center justify-between">
-      <span class="text-sm font-medium text-el-text">通道列表（{{ channels.length }}）</span>
-      <el-button type="primary" @click="openAdd">
-        <el-icon class="mr-1"><Plus /></el-icon>添加通道
-      </el-button>
-    </div>
+  <section class="chm">
+    <header class="chm__head">
+      <span class="chm__bar" />
+      <span>通道列表</span>
+      <span class="chm__count">{{ channels.length }}</span>
+      <div class="chm__ops">
+        <ReButton icon="RefreshRight" layout="square" tip="重新加载通道" :loading="loading" @click="load" />
+        <ReButton icon="Plus" :show-text="true" type="primary" @click="openAdd">添加通道</ReButton>
+      </div>
+    </header>
 
     <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
          pagination/toolbar 关闭，不新增页码控件与工具栏按钮；
@@ -24,67 +27,85 @@
       :settings="{ border: false }"
       style="width: 100%"
     >
+      <template #col-deviceChannelNo="{ row }">
+        <span class="chm__chip">CH{{ row.deviceChannelNo }}</span>
+      </template>
+      <template #col-deviceChannelName="{ row }">
+        <span class="chm__name">{{ row.deviceChannelName || '未命名通道' }}</span>
+      </template>
       <template #col-deviceChannelType="{ row }">
-        <el-tag effect="plain">{{ channelTypeLabel(channelOf(row).deviceChannelType) }}</el-tag>
+        <ReTag :type="channelTypeColor(channelOf(row).deviceChannelType)" size="small">
+          {{ channelTypeLabel(channelOf(row).deviceChannelType) }}
+        </ReTag>
       </template>
       <template #col-status="{ row }">
         <el-switch
           :model-value="channelOf(row).deviceChannelStatus === 'enabled'"
           active-text="启用"
           inactive-text="禁用"
-
           @change="(val: any) => toggleStatus(channelOf(row), val)"
         />
       </template>
       <template #col-actions="{ row }">
-        <el-button link type="primary" @click="openEdit(channelOf(row))">编辑</el-button>
-        <el-button link type="danger" @click="removeChannel(channelOf(row))">删除</el-button>
+        <div class="chm__row-ops">
+          <ReButton icon="EditPen" layout="square" tip="编辑通道" @click="openEdit(channelOf(row))" />
+          <ReButton icon="Delete" layout="square" tip="删除通道" @click="removeChannel(channelOf(row))" />
+        </div>
       </template>
       <template #empty>
-        <el-empty description="暂无通道" :image-size="50" />
+        <ReEmpty description="暂无通道，点击「添加通道」登记" :image-size="70" />
       </template>
     </ReTable>
 
-    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑通道' : '添加通道'" width="460" append-to-body>
-      <el-form :model="form" label-width="90">
-        <el-form-item label="通道号">
-          <el-input-number v-model="form.deviceChannelNo" :min="1" :max="999" />
-        </el-form-item>
-        <el-form-item label="通道名称">
-          <el-input v-model="form.deviceChannelName" placeholder="例如 大厅球机" />
-        </el-form-item>
-        <el-form-item label="通道类型">
-          <el-select v-model="form.deviceChannelType" class="w-full">
-            <el-option label="视频" value="video" />
-            <el-option label="门禁" value="door" />
-            <el-option label="报警" value="alarm" />
-            <el-option label="对讲" value="intercom" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.deviceChannelSort" :min="0" :max="999" />
-        </el-form-item>
+    <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑通道' : '添加通道'" width="460px" append-to-body>
+      <el-form label-position="top" class="chm-form">
+        <ReFormItem label="通道号">
+          <ReInputNumber v-model="form.deviceChannelNo" :min="1" :max="999" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="通道名称">
+          <ReInput v-model="form.deviceChannelName" placeholder="例如 大厅球机" />
+        </ReFormItem>
+        <ReFormItem label="通道类型">
+          <ReSelect v-model="form.deviceChannelType" :options="CHANNEL_TYPE_OPTIONS" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="排序">
+          <ReInputNumber v-model="form.deviceChannelSort" :min="0" :max="999" style="width: 100%" />
+        </ReFormItem>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
+        <ReButton @click="dialogVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="submit">确定</ReButton>
       </template>
     </ReDialog>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
+import { message } from '@repo/core'
 import { ref, watch, onMounted } from 'vue'
-import { ElMessageBox } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue'
-import { deviceApi } from '@/api/deviceApi'
-import type { DeviceChannel } from '@/types/device'
+import { ElMessageBox } from 'element-plus'
 
-
-import ReDialog from "@repo/ui/re-dialog";
+import ReButton from '@repo/ui/re-button'
+import ReDialog from '@repo/ui/re-dialog'
+import ReEmpty from '@repo/ui/re-empty'
+import ReInput from '@repo/ui/re-input'
+import ReInputNumber from '@repo/ui/re-input-number'
+import { ReFormItem } from '@repo/ui/re-kit'
+import ReSelect from '@repo/ui/re-select'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
+import ReTag from '@repo/ui/re-tag'
+
+import { deviceApi } from '../api/deviceApi'
+import type { DeviceChannel } from '../types/device'
+
+/** 通道类型下拉项（与后端 deviceChannelType 取值对齐） */
+const CHANNEL_TYPE_OPTIONS = [
+  { label: '视频', value: 'video' },
+  { label: '门禁', value: 'door' },
+  { label: '报警', value: 'alarm' },
+  { label: '对讲', value: 'intercom' },
+]
 
 /**
  * 列配置：原模板 6 个 el-table-column 收敛到数组。
@@ -92,12 +113,12 @@ import type { ReTableColumn } from '@repo/ui/re-table'
  * 「状态」「操作」两列原本就没有 prop（纯模板列），按规格造合成 prop status / actions。
  */
 const channelColumns: ReTableColumn[] = [
-  { prop: 'deviceChannelNo', label: '通道号', width: 90 },
-  { prop: 'deviceChannelName', label: '通道名称', minWidth: 140 },
-  { prop: 'deviceChannelType', label: '类型', width: 100, slot: 'deviceChannelType' },
-  { prop: 'deviceChannelSort', label: '排序', width: 80 },
-  { prop: 'status', label: '状态', width: 100, slot: 'status' },
-  { prop: 'actions', label: '操作', width: 140, slot: 'actions' },
+  { prop: 'deviceChannelNo', label: '通道号', width: 100, slot: 'deviceChannelNo' },
+  { prop: 'deviceChannelName', label: '通道名称', minWidth: 160, slot: 'deviceChannelName' },
+  { prop: 'deviceChannelType', label: '类型', width: 110, slot: 'deviceChannelType' },
+  { prop: 'deviceChannelSort', label: '排序', width: 80, align: 'center' },
+  { prop: 'status', label: '状态', width: 120, slot: 'status' },
+  { prop: 'actions', label: '操作', width: 130, align: 'right', slot: 'actions' },
 ]
 
 /**
@@ -122,7 +143,7 @@ const form = ref({
   deviceChannelNo: 1,
   deviceChannelName: '',
   deviceChannelType: 'video',
-  deviceChannelSort: 0
+  deviceChannelSort: 0,
 })
 
 function load() {
@@ -155,7 +176,7 @@ function openEdit(row: DeviceChannel) {
     deviceChannelNo: row.deviceChannelNo,
     deviceChannelName: row.deviceChannelName,
     deviceChannelType: row.deviceChannelType,
-    deviceChannelSort: row.deviceChannelSort
+    deviceChannelSort: row.deviceChannelSort,
   }
   dialogVisible.value = true
 }
@@ -164,7 +185,7 @@ function submit() {
   const payload = {
     ...form.value,
     deviceChannelDeviceId: props.deviceId,
-    deviceChannelStatus: 'enabled'
+    deviceChannelStatus: 'enabled',
   }
   const req = isEdit.value ? deviceApi.updateChannel(editingId.value, payload) : deviceApi.addChannel(payload)
   req
@@ -202,6 +223,81 @@ function channelTypeLabel(type: string): string {
   return map[type] || type || '-'
 }
 
+/** 通道类型 → 标签色 */
+function channelTypeColor(type: string): 'primary' | 'success' | 'warning' | 'danger' | 'info' {
+  const map: Record<string, 'primary' | 'success' | 'warning' | 'danger'> = {
+    video: 'primary',
+    door: 'success',
+    alarm: 'danger',
+    intercom: 'warning',
+  }
+  return map[type] || 'info'
+}
+
 onMounted(load)
 watch(() => props.deviceId, load)
 </script>
+
+<style scoped>
+.chm {
+  padding: 14px 16px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+.chm__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.chm__bar {
+  width: 6px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+}
+.chm__count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+}
+.chm__ops {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.chm__chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  color: var(--el-text-color-regular);
+  background: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
+}
+.chm__name {
+  font-size: 13.5px;
+  color: var(--el-text-color-primary);
+}
+.chm__row-ops {
+  display: inline-flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.chm :deep(.el-table th.el-table__cell) {
+  background: transparent !important;
+  color: var(--el-text-color-secondary);
+  font-weight: 600;
+}
+
+.chm-form {
+  display: flex;
+  flex-direction: column;
+}
+</style>

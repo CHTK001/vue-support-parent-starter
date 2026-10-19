@@ -74,7 +74,7 @@
     <ReDialog v-model="dialogVisible" :title="dialogTitle" width="400px">
       <el-form :model="formData" label-width="80px">
         <el-form-item label="名称">
-          <el-input v-model="(formData[labelKey] as string)" />
+          <el-input v-model="labelInput" />
         </el-form-item>
         <slot name="dialog-form" :form="formData" :node="editingNodeData" />
       </el-form>
@@ -345,6 +345,30 @@ const options = computed(() => props.props || { children: "children", label: "la
 /** 当前 label 字段名（供表单 v-model 使用） */
 const labelKey = computed(() => getLabelKey());
 
+/**
+ * 弹窗「名称」输入框的绑定值。
+ *
+ * <p>原来这里写的是 {@code v-model="(formData[labelKey] as string)"} —— 用 `as` 把类型
+ * 直接糊过去。本仓对同一处问题（`ReTree/index.vue`）采用的是可写 computed 收口，
+ * 这里与之一致：读时把非字符串按显示需要转成字符串，写时只改 {@link labelKey} 这一个字段，
+ * 读写落在同一处，运行时行为和原先完全一致，同时不再靠 `as` 绕过类型检查。</p>
+ *
+ * <p>与 `CytoscapeGraph.vue` 里「宁可删掉调了不存在 API 的那行、也不用 `as any` 糊」
+ * 是同一口径：`as` 只让检查闭嘴，不会让代码变对。</p>
+ */
+const labelInput = computed<string>({
+  get() {
+    const v = formData.value[labelKey.value];
+    if (typeof v === "string") return v;
+    return v === undefined || v === null ? "" : String(v);
+  },
+  set(v: string) {
+    /* 用整体替换而不是就地写字段：formData 是 ref，替换同样触发响应式刷新，
+       且不会与 `formData.value = { ...data }`（编辑时整体复制节点）那套写法冲突。 */
+    formData.value = { ...formData.value, [labelKey.value]: v };
+  },
+});
+
 const resolvedProps = computed(() => ({
   children: options.value.children || "children",
   label: options.value.label || "label",
@@ -457,17 +481,37 @@ function handleEdit(node: Node, data: ReTreeItem): void {
   dialogVisible.value = true;
 }
 
+/**
+ * 删除一个节点。
+ *
+ * <p>踩过的坑：不能只用 {@code node.parent} 判断「有没有父节点」。el-tree 会给
+ * **根层节点**也挂一个 parent —— 那是它内部的**虚拟根**，`level` 为 0，且它的 `data`
+ * 是**整棵树的数组**而不是某个节点对象（见 element-plus `model/node.mjs` 里
+ * `if (this.level === 0 && isArray(this.data)) children = this.data`）。
+ * 于是 `parent.data[childrenKey]` 会算出 `undefined`，紧接着 `siblings.indexOf(data)`
+ * 抛 `TypeError: Cannot read properties of undefined (reading 'indexOf')`；
+ * 该异常被 Vue 的事件错误处理吞进 console，外层只表现为「点删除毫无反应」。
+ *
+ * <p>所以真正的判别式是 **{@code parent.level === 0}**（虚拟根），而不是 parent 是否存在：
+ * 根层节点要落到 {@code treeData} 上删，其余节点删它真实的同级列表。
+ */
 function handleRemove(node: Node, data: ReTreeItem): void {
   const parent = node.parent;
   const childrenKey = options.value.children || "children";
-  if (parent) {
-    const siblings = (parent.data as Record<string, unknown>)[childrenKey] as ReTreeItem[];
+
+  /* level 为 0 的是内部虚拟根：它的 data 是整棵树的数组，必须回到 treeData 上定位。
+     另外 `siblings` 可能不是数组（自定义 children 键、或懒加载未展开），
+     必须判类型后再 indexOf —— 否则同样会抛错并静默失败。 */
+  const rawSiblings =
+    parent && parent.level > 0
+      ? ((parent.data as Record<string, unknown>)[childrenKey] as ReTreeItem[] | undefined)
+      : treeData.value;
+  const siblings = Array.isArray(rawSiblings) ? rawSiblings : undefined;
+  if (siblings) {
     const idx = siblings.indexOf(data);
     if (idx > -1) siblings.splice(idx, 1);
-  } else {
-    const idx = treeData.value.indexOf(data);
-    if (idx > -1) treeData.value.splice(idx, 1);
   }
+
   treeData.value = [...treeData.value];
   emit("re-remove", { item: data, tree: treeData.value });
   emit("update:data", treeData.value);
