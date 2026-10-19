@@ -99,13 +99,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/SyncTaskView.vue"),
         meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
       },
-      {
-        // 临时验证页（验证完删除）：ReFilePicker 新增能力（右键菜单 / 预览 / 数量与类型限制）。
-        path: "/tmp-picker-lab",
-        name: "TmpPickerLab",
-        component: () => import("./views/TmpPickerLab.vue"),
-        meta: { title: "临时选择器验证", showLink: false, rank: 99 },
-      },
     ],
   },
 
@@ -120,6 +113,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "Assets",
         component: () => import("./views/AssetsView.vue"),
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
+      },
+      {
+        path: "/acme",
+        name: "AcmeCert",
+        component: () => import("./views/acme/index.vue"),
+        meta: { title: "ACME 证书", icon: "Key", showLink: true, rank: 11 },
       },
       {
         path: "/terminal",
@@ -225,6 +224,24 @@ export const monitorRoutes: RouteConfigsTable[] = [
         // 提供商配置同样用卡牌（每套凭据一张卡，扩展信息位预留在卡底），不再用表格。
         component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
+      },
+    ],
+  },
+
+  // ==================== 节点管理 ====================
+  // report 客户端（spring-support-report-client-starter）注册到 monitor 的节点入口：
+  // 数据来自 sync 服务端的 sync/client/register + monitor/app/report；
+  // 同时作为 /ms/monitor/discovery 内部发现接口的可视化入口。
+  {
+    path: "/grp-node",
+    name: "GroupNode",
+    meta: { title: "节点管理", icon: "Share", showLink: true, rank: 13 },
+    children: [
+      {
+        path: "/nodes",
+        name: "OnlineNodes",
+        component: () => import("./views/NodesView.vue"),
+        meta: { title: "在线节点", icon: "Connection", showLink: true, rank: 1 },
       },
     ],
   },

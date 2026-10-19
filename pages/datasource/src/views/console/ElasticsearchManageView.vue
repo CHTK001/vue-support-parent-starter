@@ -441,6 +441,138 @@
               </div>
             </div>
           </template>
+
+          <!-- ============ Dev Tools（类 Kibana Console） ============ -->
+          <template #devtools>
+            <div class="dsm-devtools">
+              <!-- 左侧：历史记录 -->
+              <aside class="dsm-devtools-history">
+                <div class="dsm-devtools-history-head">
+                  <span>历史记录</span>
+                  <ReButton
+                    v-if="devToolHistory.length > 0"
+                    size="small"
+                    type="danger"
+                    icon="Delete"
+                    tip="清空历史"
+                    layout="square"
+                    @click="devToolHistory.splice(0)"
+                  />
+                </div>
+                <div v-if="devToolHistory.length === 0" class="dsm-devtools-history-empty">
+                  暂无历史
+                </div>
+                <div
+                  v-for="(h, i) in devToolHistory"
+                  :key="i"
+                  class="dsm-devtools-history-item"
+                  :title="h.dsl"
+                  @click="applyDevToolHistory(h)"
+                >
+                  <span class="dsm-devtools-history-cmd">{{ h.cmd }}</span>
+                  <span class="dsm-devtools-history-idx">{{ h.index || "*" }}</span>
+                </div>
+              </aside>
+
+              <!-- 右侧：编辑器 + 结果 -->
+              <div class="dsm-devtools-main">
+                <!-- 工具栏 -->
+                <div class="dsm-devtools-toolbar">
+                  <ReSelect
+                    v-model="devToolCmd"
+                    :data="devToolCmdOptions"
+                    placeholder="命令"
+                    class="dsm-devtools-cmd"
+                    data-testid="es-devtools-cmd"
+                  />
+                  <ReSelect
+                    v-model="devToolIndex"
+                    :data="indexOptions"
+                    filterable
+                    allow-create
+                    placeholder="索引名（* 表示所有）"
+                    class="dsm-devtools-idx"
+                    data-testid="es-devtools-idx"
+                  />
+                  <ReButton
+                    type="primary"
+                    icon="VideoPlay"
+                    :loading="devToolLoading"
+                    data-testid="es-devtools-run"
+                    @click="runDevTool"
+                  >
+                    运行
+                  </ReButton>
+                  <ReButton
+                    icon="Delete"
+                    tip="清空"
+                    layout="square"
+                    @click="devToolDsl = ''; devToolResult = null; devToolTime = 0"
+                  />
+                </div>
+
+                <!-- DSL 编辑器（多行 textarea） -->
+                <div class="dsm-devtools-editor-wrap">
+                  <div class="dsm-devtools-editor-hint">
+                    {{ devToolPlaceholder }}
+                  </div>
+                  <textarea
+                    v-model="devToolDsl"
+                    class="dsm-devtools-editor"
+                    :placeholder="devToolPlaceholder"
+                    spellcheck="false"
+                    data-testid="es-devtools-dsl"
+                    @keydown.tab.prevent="insertTab"
+                  />
+                </div>
+
+                <!-- 快捷模板 -->
+                <div class="dsm-devtools-templates">
+                  <span class="dsm-devtools-templates-label">快捷模板：</span>
+                  <ReButton
+                    v-for="t in devToolTemplates"
+                    :key="t.label"
+                    size="small"
+                    :tip="t.label"
+                    layout="square"
+                    @click="applyTemplate(t)"
+                  >
+                    {{ t.label }}
+                  </ReButton>
+                </div>
+
+                <!-- 结果区 -->
+                <div v-if="devToolResult || devToolError" class="dsm-devtools-result">
+                  <div class="dsm-devtools-result-head">
+                    <span>响应</span>
+                    <span class="dsm-devtools-result-meta">
+                      {{ devToolTime }} ms
+                      <ReButton
+                        v-if="devToolResult"
+                        size="small"
+                        icon="DocumentCopy"
+                        tip="复制 JSON"
+                        layout="square"
+                        @click="copyText(JSON.stringify(devToolResult, null, 2), 'Dev Tools 响应')"
+                      />
+                      <ReButton
+                        v-if="devToolResult"
+                        size="small"
+                        icon="FullScreen"
+                        tip="全屏"
+                        layout="square"
+                        @click="devToolFullscreen = !devToolFullscreen"
+                      />
+                    </span>
+                  </div>
+                  <div v-if="devToolError" class="dsm-devtools-error">
+                    {{ devToolError }}
+                  </div>
+                  <pre v-else class="dsm-devtools-json">{{ JSON.stringify(devToolResult, null, 2) }}</pre>
+                </div>
+              </div>
+            </div>
+          </template>
         </ReTab>
       </div>
     </div>
@@ -713,7 +845,7 @@
  */
 import { message } from "@repo/core";
 import { ElMessageBox } from "element-plus";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReDrawer from "@repo/ui/re-drawer";
@@ -741,6 +873,7 @@ import {
   fetchEsCluster,
   fetchEsIndexDetail,
   fetchEsIndices,
+  fetchEsRawQuery,
   fetchEsShards,
   queryEs,
   rebuildEsIndex,
@@ -760,13 +893,14 @@ defineOptions({ name: "ElasticsearchManageView" });
 
 const { datasourceId, source, gap, bind, ready } = useMiddlewareSource();
 
-/** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 */
+/** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 / Dev Tools */
 const tabs = [
   { name: "overview", label: "索引概览", icon: "Collection" },
   { name: "nodes", label: "节点列表", icon: "Monitor" },
   { name: "clusterCfg", label: "集群纳管", icon: "Connection" },
   { name: "graph", label: "关系图谱", icon: "Share" },
   { name: "query", label: "查询检索", icon: "Search" },
+  { name: "devtools", label: "Dev Tools", icon: "Cpu" },
 ];
 
 const activeTab = ref<string>("overview");
@@ -831,6 +965,13 @@ const STATIC_SETTING_PREFIXES = [
   "http.",
   "transport.",
   "thread_pool.",
+  // 常见未列前缀（补全防止误 PUT 导致 ES 拒绝）
+  "action.",
+  "indices.",
+  "search.",
+  "repositories.",
+  "xpack.",
+  "logger.",
 ];
 
 /**
@@ -977,6 +1118,113 @@ const queryIndex = ref("");
 const queryKeyword = ref("");
 const queryLoading = ref(false);
 const queryResult = ref<EsQueryResult | null>(null);
+
+// ---- Dev Tools（类 Kibana Console） ----
+/** DevTools 命令类型 */
+type DevToolCmd = "GET" | "POST" | "PUT" | "DELETE";
+
+interface DevToolHistory {
+  cmd: DevToolCmd;
+  index: string;
+  dsl: string;
+}
+
+const devToolCmd = ref<DevToolCmd>("GET");
+const devToolIndex = ref("");
+const devToolDsl = ref("");
+const devToolResult = ref<unknown>(null);
+const devToolError = ref("");
+const devToolLoading = ref(false);
+const devToolTime = ref(0);
+const devToolHistory = ref<DevToolHistory[]>([]);
+const devToolFullscreen = ref(false);
+
+const devToolCmdOptions = [
+  { label: "GET", value: "GET" },
+  { label: "POST", value: "POST" },
+  { label: "PUT", value: "PUT" },
+  { label: "DELETE", value: "DELETE" },
+] as const;
+
+const devToolPlaceholder = computed(() => {
+  const cmd = devToolCmd.value;
+  const idx = devToolIndex.value || "<index>";
+  const examples: Record<DevToolCmd, string> = {
+    GET: `GET ${idx}/_search\n{\n  "query": { "match_all": {} }\n}`,
+    POST: `POST ${idx}/_doc\n{\n  "field": "value"\n}`,
+    PUT: `PUT ${idx}/_settings\n{\n  "index": { "number_of_replicas": 1 }\n}`,
+    DELETE: `DELETE ${idx}/_doc/<_id>`,
+  };
+  return examples[cmd];
+});
+
+/** 快捷模板 */
+const devToolTemplates = [
+  { label: "match_all", cmd: "GET", dsl: '{\n  "query": { "match_all": {} }\n}' },
+  { label: "term 查询", cmd: "GET", dsl: '{\n  "query": { "term": { "<field>": "<value>" } }\n}' },
+  { label: "multi_match", cmd: "GET", dsl: '{\n  "query": { "multi_match": { "query": "", "fields": [] } }\n}' },
+  { label: "bool-must", cmd: "GET", dsl: '{\n  "query": { "bool": { "must": [] } }\n}' },
+  { label: "aggs-sum", cmd: "GET", dsl: '{\n  "aggs": { "my_sum": { "sum": { "field": "<field>" } } }\n}' },
+  { label: "aggs-date_histogram", cmd: "GET", dsl: '{\n  "aggs": { "over_time": { "date_histogram": { "field": "@timestamp", "calendar_interval": "day" } } }\n}' },
+  { label: "scroll", cmd: "GET", dsl: '{\n  "query": { "match_all": {} },\n  "sort": ["_doc"]\n}' },
+  { label: "bulk", cmd: "POST", dsl: '{ "index": { "_index": "", "_id": "" } }\n{ "field": "value" }' },
+];
+
+async function runDevTool() {
+  const dsl = devToolDsl.value.trim();
+  if (!dsl) {
+    message.warning("请输入 DSL 语句");
+    return;
+  }
+  const cmd = devToolCmd.value;
+  const idx = devToolIndex.value;
+  devToolLoading.value = true;
+  devToolResult.value = null;
+  devToolError.value = "";
+  const t0 = Date.now();
+  try {
+    const res = await fetchEsRawQuery(cmd, idx || "_search", dsl, datasourceId.value ?? 0);
+    // 优先按 JSON 解析，失败（纯文本错误 / 非 JSON 响应）直接显示原始正文
+    try {
+      devToolResult.value = JSON.parse(res);
+    } catch {
+      devToolResult.value = res;
+    }
+    devToolTime.value = Date.now() - t0;
+    // 记录历史（最多 50 条，去重）
+    const entry: DevToolHistory = { cmd, index: idx, dsl };
+    const prev = devToolHistory.value.findIndex(h => h.dsl === dsl);
+    if (prev >= 0) devToolHistory.value.splice(prev, 1);
+    devToolHistory.value.unshift(entry);
+    if (devToolHistory.value.length > 50) devToolHistory.value.pop();
+  } catch (e: unknown) {
+    devToolError.value = e instanceof Error ? e.message : String(e);
+    devToolTime.value = Date.now() - t0;
+  } finally {
+    devToolLoading.value = false;
+  }
+}
+
+function applyDevToolHistory(h: DevToolHistory) {
+  devToolCmd.value = h.cmd;
+  devToolIndex.value = h.index;
+  devToolDsl.value = h.dsl;
+}
+
+function applyTemplate(t: (typeof devToolTemplates)[number]) {
+  devToolCmd.value = t.cmd as DevToolCmd;
+  devToolDsl.value = t.dsl;
+}
+
+function insertTab(e: KeyboardEvent) {
+  const el = e.target as HTMLTextAreaElement;
+  const s = el.selectionStart;
+  const e2 = el.selectionEnd;
+  devToolDsl.value = devToolDsl.value.slice(0, s) + "  " + devToolDsl.value.slice(e2);
+  nextTick(() => {
+    el.selectionStart = el.selectionEnd = s + 2;
+  });
+}
 
 // ---- 集群信息 ----
 const clusterVisible = ref(false);
@@ -1355,6 +1603,28 @@ function isOriginalField(name: string): boolean {
   return originalFields.value.some(f => f.name === name);
 }
 
+/** 判断两个 EsField 是否有实质性差异（任意一项不同都视为改动，需重建索引） */
+function fieldChanged(orig: EsField, cur: EsField): boolean {
+  const ov = (v?: unknown) => (v == null ? "" : String(v));
+  return (
+    ov(orig.type) !== ov(cur.type) ||
+    ov(orig.analyzer) !== ov(cur.analyzer) ||
+    ov(orig.format) !== ov(cur.format) ||
+    (orig.index !== false) !== (cur.index !== false) ||
+    ov(orig.copyTo) !== ov(cur.copyTo) ||
+    ov(orig.normalizer) !== ov(cur.normalizer) ||
+    (orig.docValues ?? true) !== (cur.docValues ?? true) ||
+    (orig.sparse ?? false) !== (cur.sparse ?? false) ||
+    (orig.dimension) !== (cur.dimension) ||
+    (orig.eagerGlobalOrdinals ?? false) !== (cur.eagerGlobalOrdinals ?? false) ||
+    ov(orig.script) !== ov(cur.script) ||
+    ov(orig.similarity) !== ov(cur.similarity) ||
+    ov(orig.termVector) !== ov(cur.termVector) ||
+    (orig.ignoreAbove ?? 2147483647) !== (cur.ignoreAbove ?? 2147483647)
+    // multi-fields(fields) 暂不在此比较，其变动需手动触发重建
+  );
+}
+
 /**
  * 打开字段管理：先加载索引现有字段，再在其基础上增 / 删 / 改
  *
@@ -1408,12 +1678,7 @@ async function saveIndex() {
     const modified = fields.filter(f => {
       const orig = origByName.get(f.name);
       if (!orig) return false;
-      return (
-        (orig.type || "") !== (f.type || "") ||
-        (orig.analyzer || "") !== (f.analyzer || "") ||
-        (orig.format || "") !== (f.format || "") ||
-        (orig.index !== false) !== (f.index !== false)
-      );
+      return fieldChanged(orig, f);
     });
     if (removed.length > 0 || modified.length > 0) {
       target = "rebuild";
@@ -2103,5 +2368,193 @@ onMounted(async () => {
 
 .dsm-query-warn {
   color: var(--status-warning);
+}
+
+/* ---- Dev Tools ---- */
+.dsm-devtools {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  min-height: 520px;
+}
+
+.dsm-devtools-history {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  padding-right: 10px;
+  overflow-y: auto;
+}
+
+.dsm-devtools-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dsm-devtools-history-empty {
+  font-size: 12px;
+  color: var(--text-quaternary);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.dsm-devtools-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--bg-active);
+  }
+}
+
+.dsm-devtools-history-cmd {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--status-info);
+}
+
+.dsm-devtools-history-idx {
+  font-size: 11px;
+  color: var(--text-quaternary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsm-devtools-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dsm-devtools-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dsm-devtools-cmd {
+  width: 90px;
+}
+
+.dsm-devtools-idx {
+  flex: 1;
+  min-width: 160px;
+}
+
+.dsm-devtools-editor-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+}
+
+.dsm-devtools-editor-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  font-size: 11px;
+  color: var(--text-quaternary);
+  padding: 4px 8px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dsm-devtools-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  padding: 28px 10px 10px;
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  resize: vertical;
+  outline: none;
+  tab-size: 2;
+
+  &:focus {
+    border-color: var(--primary);
+  }
+
+  &::placeholder {
+    color: var(--text-quaternary);
+    font-family: sans-serif;
+    font-size: 12px;
+  }
+}
+
+.dsm-devtools-templates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dsm-devtools-templates-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dsm-devtools-result {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dsm-devtools-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dsm-devtools-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-quaternary);
+  font-size: 11px;
+}
+
+.dsm-devtools-error {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--status-danger);
+  font-family: monospace;
+}
+
+.dsm-devtools-json {
+  margin: 0;
+  padding: 12px;
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow: auto;
+  max-height: 320px;
+  background: var(--bg-base);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>
