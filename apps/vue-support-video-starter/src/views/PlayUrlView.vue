@@ -221,9 +221,11 @@ onMounted(() => {
   background: var(--vd-border-2);
 }
 
-/* ── 播放区（600px 高黑底） ─────────────── */
+/* ── 播放区（参照站 600px 高的播放区，16:9 不裁切） ── */
 .vdp-stage {
+  width: min(100%, calc(var(--vd-player-h) * 16 / 9));
   height: var(--vd-player-h);
+  margin: 0 auto;
   background: #000;
   border-radius: var(--vd-radius);
   overflow: hidden;

@@ -133,8 +133,10 @@ a:hover {
   box-sizing: border-box;
 }
 
+/* 窄页（表单类）：限宽但左对齐，保证与页头内容左边缘对齐 */
 .vd-page--narrow {
   max-width: calc(var(--vd-page-narrow) + var(--vd-pad) * 2);
+  margin-left: 0;
 }
 
 /* ── 页头（列表页标题） ── */

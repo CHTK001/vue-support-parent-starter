@@ -622,8 +622,9 @@ watch(
 }
 
 .vdw-player {
+  width: min(100%, calc(var(--vd-player-h) * 16 / 9));
   aspect-ratio: 16 / 9;
-  max-height: var(--vd-player-h);
+  margin: 0 auto;
   background: #000;
   border-radius: var(--vd-radius);
   overflow: hidden;
