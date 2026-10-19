@@ -247,6 +247,12 @@
                 border
                 height="420px"
               >
+                <template #col-name="{ row }">
+                  <span class="dsm-node-name-cell">
+                    <span class="dsm-node-status-dot" :class="(row as EsNodeRow).statusTone" />
+                    <span class="dsm-node-name-text">{{ (row as EsNodeRow).name }}</span>
+                  </span>
+                </template>
                 <template #col-master="{ row }">
                   <ReTag v-if="(row as EsClusterNode).master === '*'" type="warning">master</ReTag>
                   <span v-else class="dsm-muted">—</span>
@@ -615,6 +621,12 @@
           border
           height="220px"
         >
+          <template #col-name="{ row }">
+            <span class="dsm-node-name-cell">
+              <span class="dsm-node-status-dot" :class="(row as EsNodeRow).statusTone" />
+              <span class="dsm-node-name-text">{{ (row as EsNodeRow).name }}</span>
+            </span>
+          </template>
           <template #col-master="{ row }">
             <ReTag v-if="(row as EsClusterNode).master === '*'" type="warning">master</ReTag>
             <span v-else class="dsm-muted">—</span>
@@ -1378,7 +1390,7 @@ const indexColumns = [
 ];
 
 const nodeColumns = [
-  { prop: "name", label: "节点名", minWidth: 180 },
+  { prop: "name", label: "节点名", minWidth: 180, slot: "col-name" },
   { prop: "ip", label: "地址", minWidth: 150 },
   { prop: "roles", label: "角色", minWidth: 140 },
   { prop: "master", label: "Master", width: 100, slot: "col-master" },
@@ -1430,14 +1442,24 @@ const clusterNodes = computed<EsClusterNode[]>(() => cluster.value?.nodes || [])
  * <p>后端 CPU 取自 ES {@code _cat/nodes} 的 cpu 列，是「整数百分比字符串」
  * （"3" 即 3%），不是分数，故按 0-100 直接当百分比用。</p>
  */
-type EsNodeRow = EsClusterNode & { cpuPct: number | null; cpuTone: EsCpuTone };
+type EsNodeRow = EsClusterNode & { cpuPct: number | null; cpuTone: EsCpuTone; statusTone: string };
 
 const nodeRows = computed<EsNodeRow[]>(() =>
-  clusterNodes.value.map(node => ({
-    ...node,
-    cpuPct: cpuPercent(node.cpu),
-    cpuTone: cpuTone(node.cpu),
-  })),
+  clusterNodes.value.map(node => {
+    const heap = Number(node.heapPercent);
+    let statusTone = "is-grey";
+    if (!isNaN(heap)) {
+      if (heap >= 85) statusTone = "is-red";
+      else if (heap >= 70) statusTone = "is-yellow";
+      else statusTone = "is-green";
+    }
+    return {
+      ...node,
+      cpuPct: cpuPercent(node.cpu),
+      cpuTone: cpuTone(node.cpu),
+      statusTone,
+    };
+  }),
 );
 
 const indexOptions = computed(() => indices.value.map(i => ({ label: i.name, value: i.name })));
@@ -2753,10 +2775,365 @@ onMounted(async () => {
   word-break: break-all;
 }
 
-.dsm-doc-empty {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 160px;
+/* ============================================================
+   ES 管理页 · 科技化增强（Cyberpunk Terminal 风格）
+   ============================================================ */
+
+/* ---- 科技风格 CSS 变量扩展 ---- */
+.dsm {
+  /* 背景：深色网格纹理（data URI = 20px 点阵） */
+  --es-grid-color: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
+  --es-glow-primary: color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+  --es-glow-success: color-mix(in srgb, var(--el-color-success) 40%, transparent);
+  --es-glow-warning: color-mix(in srgb, var(--el-color-warning) 40%, transparent);
+  --es-glow-danger:  color-mix(in srgb, var(--el-color-danger)  50%, transparent);
+  --es-card-glow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+                  0 4px 20px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  --es-radius: 14px;
+  --es-radius-sm: 8px;
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--el-color-primary) 3%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--el-color-success)  3%, transparent) 0%, transparent 50%),
+    var(--bg-fill);
 }
+
+/* ---- 工具栏毛玻璃 + 发光底边 ---- */
+.dsm-toolbar.re-surface {
+  position: relative;
+  background: color-mix(in srgb, var(--el-bg-color) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+  box-shadow:
+    var(--es-card-glow),
+    0 2px 12px rgb(0 0 0 / 6%);
+}
+.dsm-toolbar.re-surface::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--es-glow-primary) 30%,
+    var(--el-color-primary) 50%,
+    var(--es-glow-primary) 70%,
+    transparent
+  );
+  border-radius: 999px;
+}
+
+/* ---- 标题图标发光 ---- */
+.dsm-es-icon {
+  filter: drop-shadow(0 0 6px var(--el-color-primary));
+  animation: es-icon-pulse 3s ease-in-out infinite;
+}
+@keyframes es-icon-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--el-color-primary)); }
+  50%       { filter: drop-shadow(0 0 10px var(--el-color-primary)); }
+}
+
+/* ---- 集群 Red 告警Banner 科技增强 ---- */
+.es-red-banner.re-surface {
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 50%, transparent);
+  border-radius: var(--es-radius);
+  box-shadow: 0 0 16px var(--es-glow-danger), inset 0 0 12px color-mix(in srgb, var(--el-color-danger) 5%, transparent);
+  animation: es-red-pulse 2s ease-in-out infinite;
+}
+.es-red-icon {
+  animation: es-red-blink 1s step-start infinite;
+}
+@keyframes es-red-pulse {
+  0%, 100% { box-shadow: 0 0 16px var(--es-glow-danger); }
+  50%       { box-shadow: 0 0 28px var(--es-glow-danger), 0 0 48px color-mix(in srgb, var(--el-color-danger) 20%, transparent); }
+}
+@keyframes es-red-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ---- 信息卡科技化 ---- */
+.dsm-info-card.re-surface {
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+  background: color-mix(in srgb, var(--el-bg-color) 70%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--es-card-glow);
+}
+
+.dsm-info-label {
+  color: color-mix(in srgb, var(--el-color-primary) 70%, var(--text-tertiary));
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.dsm-info-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--el-color-primary) 90%, var(--text-primary));
+}
+
+/* ---- 集群统计数字 ---- */
+.dsm-cluster-stats {
+  padding: 12px;
+  background: color-mix(in srgb, var(--el-fill-color-light) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+}
+.dsm-stat-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--el-color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.dsm-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+/* ---- 进度条科技增强 ---- */
+.dsm-meter__track {
+  height: 6px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-fill-color, #ebeef5));
+  border-radius: 999px;
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 10%);
+}
+.dsm-meter__fill {
+  background: linear-gradient(90deg,
+    var(--el-color-success) 0%,
+    color-mix(in srgb, var(--el-color-success) 80%, var(--el-color-primary)) 100%
+  );
+  box-shadow: 0 0 8px var(--es-glow-success);
+  border-radius: inherit;
+}
+.dsm-meter__fill.is-warn {
+  background: linear-gradient(90deg, var(--el-color-warning), color-mix(in srgb, var(--el-color-warning) 70%, #f56c6c) 100%);
+  box-shadow: 0 0 8px var(--es-glow-warning);
+}
+.dsm-meter__fill.is-danger {
+  background: linear-gradient(90deg, var(--el-color-danger), color-mix(in srgb, var(--el-color-danger) 60%, #f56c6c) 100%);
+  box-shadow: 0 0 10px var(--es-glow-danger);
+  animation: meter-danger-glow 1.5s ease-in-out infinite;
+}
+@keyframes meter-danger-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--es-glow-danger); }
+  50%       { box-shadow: 0 0 18px var(--es-glow-danger), 0 0 32px color-mix(in srgb, var(--el-color-danger) 30%, transparent); }
+}
+.dsm-meter__text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---- 节点列表网格科技增强 ---- */
+.dsm-node-grid-head {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  padding: 0 8px;
+}
+.dsm-node-grid-row {
+  padding: 10px 8px;
+  border-radius: var(--es-radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+.dsm-node-grid-row:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+
+/* ---- 拓扑图科技增强 ---- */
+.dsm-graph-wrap {
+  position: relative;
+  padding: 12px;
+  border-radius: var(--es-radius);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  background:
+    linear-gradient(rgba(var(--el-color-primary-rgb, 0, 191, 179), 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--el-color-primary-rgb, 0, 191, 179), 0.03) 1px, transparent 1px),
+    var(--el-bg-color, #fff);
+  background-size: 24px 24px, 24px 24px, auto;
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--el-color-primary) 3%, transparent);
+}
+
+/* ---- 集群统计 ---- */
+.dsm-cluster-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 16px;
+  padding-bottom: 4px;
+}
+
+/* ---- 集群信息（抽屉内）---- */
+.dsm-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---- 节点状态指示灯 ---- */
+.dsm-node-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dsm-node-name-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--el-color-primary) 85%, var(--text-primary));
+}
+.dsm-node-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+.dsm-node-status-dot.is-green  { background: var(--el-color-success); color: var(--el-color-success); animation: status-pulse-green 2s ease-in-out infinite; }
+.dsm-node-status-dot.is-yellow { background: var(--el-color-warning); color: var(--el-color-warning); animation: status-pulse-yellow 1.5s ease-in-out infinite; }
+.dsm-node-status-dot.is-red    { background: var(--el-color-danger);  color: var(--el-color-danger);  animation: status-pulse-red 0.8s ease-in-out infinite; }
+.dsm-node-status-dot.is-grey   { background: var(--el-color-info);    color: var(--el-color-info); }
+
+@keyframes status-pulse-green {
+  0%, 100% { box-shadow: 0 0 4px var(--el-color-success); }
+  50%       { box-shadow: 0 0 12px var(--el-color-success), 0 0 20px color-mix(in srgb, var(--el-color-success) 40%, transparent); }
+}
+@keyframes status-pulse-yellow {
+  0%, 100% { box-shadow: 0 0 4px var(--el-color-warning); }
+  50%       { box-shadow: 0 0 10px var(--el-color-warning), 0 0 18px color-mix(in srgb, var(--el-color-warning) 40%, transparent); }
+}
+@keyframes status-pulse-red {
+  0%, 100% { box-shadow: 0 0 6px var(--el-color-danger); }
+  50%       { box-shadow: 0 0 14px var(--el-color-danger), 0 0 24px color-mix(in srgb, var(--el-color-danger) 50%, transparent); }
+}
+
+/* ---- 字段 Diff 科技增强 ---- */
+.dsm-field-added {
+  border-left: 3px solid var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--el-color-success) 4%, transparent);
+  border-radius: 0 var(--es-radius-sm) var(--es-radius-sm) 0;
+}
+.dsm-field-removed {
+  border-left: 3px solid var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--el-color-danger) 4%, transparent);
+  opacity: 0.85;
+  border-radius: 0 var(--es-radius-sm) var(--es-radius-sm) 0;
+}
+.dsm-field-modified {
+  border-left: 3px solid var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 8%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--el-color-warning) 4%, transparent);
+  border-radius: 0 var(--es-radius-sm) var(--es-radius-sm) 0;
+}
+
+/* ---- 代码片段科技增强 ---- */
+.dsm-snippet.re-surface {
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+  background: color-mix(in srgb, var(--el-bg-color) 60%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--es-card-glow);
+}
+.dsm-snippet-body {
+  background: color-mix(in srgb, var(--el-fill-color-deep) 50%, color-mix(in srgb, var(--el-color-primary) 3%, transparent));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius-sm);
+  color: color-mix(in srgb, var(--el-color-primary) 60%, var(--text-primary));
+}
+
+/* ---- 索引列表区域 ---- */
+.dsm-index-section.re-surface {
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+  box-shadow: var(--es-card-glow);
+}
+
+/* ---- 设置区域科技增强 ---- */
+.dsm-setting-block {
+  background: color-mix(in srgb, var(--status-warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-warning) 35%, transparent);
+  border-radius: var(--es-radius-sm);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--status-warning) 15%, transparent);
+}
+
+/* ---- 字段网格标题行 ---- */
+.dsm-field-grid-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  padding: 0 4px;
+}
+
+/* ---- Tab 标签页增强 ---- */
+:deep(.re-tabs__header) {
+  border-bottom: 2px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+}
+:deep(.re-tabs__item.is-active) {
+  color: var(--el-color-primary);
+  font-weight: 700;
+}
+:deep(.re-tabs__active-bar) {
+  background: linear-gradient(90deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 60%, var(--el-color-success)));
+  box-shadow: 0 0 10px var(--es-glow-primary);
+}
+
+/* ---- 文档详情增强 ---- */
+.dsm-doc-row {
+  border-radius: var(--es-radius-sm);
+  transition: background 0.15s;
+}
+.dsm-doc-row:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent) !important;
+}
+.dsm-doc-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  opacity: 0.7;
+}
+
+/* ---- 空状态增强 ---- */
+.dsm-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--text-tertiary);
+}
+.dsm-empty-icon {
+  font-size: 40px;
+  opacity: 0.3;
+  filter: drop-shadow(0 0 8px var(--el-color-primary));
+}
+.dsm-empty-text {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* ============================================================
+   End ES 科技化增强
+   ============================================================ */
 </style>
