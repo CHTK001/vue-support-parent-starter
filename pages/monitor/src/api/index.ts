@@ -516,8 +516,8 @@ export const getTsharkPacketDetail = (id: number) =>
 /**
  * 某报文所属 TCP 流的握手 / 关闭生命周期。
  *
- * <p>该接口直接返回 VO（不是 ReturnResult 信封），所以取 r.data；404 表示协议
- * 不跑在 TCP 上（UDP / ICMP / ARP），调用方按「不支持」提示。</p>
+ * <p>接口是 ReturnResult 信封，业务对象在 r.data.data；404 表示协议不跑在 TCP 上
+ * （UDP / ICMP / ARP），调用方按「不支持」提示。</p>
  */
 export const getTsharkHandshake = (packetId: number, limit = 600) =>
   http().get(`${B}/tshark/packets/${packetId}/handshake?limit=${limit}`).then(r => r.data.data as any);
@@ -537,3 +537,23 @@ export const getTsharkProtocolStats = (sessionId: number, displayFilter = '') =>
 export const getTsharkTopFlows = (sessionId: number, limit = 10, displayFilter = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}` +
     (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+
+/**
+ * 流量时间轴。
+ *
+ * <p>后端按 bucketSeconds 聚合「桶起点 → 报文数 / 字节数」，同一份显示过滤
+ * 也会一起带过去：图上看到的高峰点，切到报文页用同一条过滤能对上。</p>
+ */
+export const getTsharkTimeline = (sessionId: number, bucketSeconds = 10, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/timeline?bucketSeconds=${bucketSeconds}` +
+    (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+
+/**
+ * 异常诊断统计。
+ *
+ * <p>返回当前过滤命中的报文里，各类异常的条数；`filter` 是等价的显示过滤表达式，
+ * 点击后回填过滤条即可筛出对应报文。</p>
+ */
+export const getTsharkAnomalies = (sessionId: number, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/anomalies` +
+    (displayFilter ? `?displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));

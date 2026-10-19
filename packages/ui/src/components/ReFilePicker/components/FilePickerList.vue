@@ -431,12 +431,16 @@ defineExpose({ moveActive });
   font-size: 13px;
 }
 
-/* 表头：浅灰底、细下边线，列可点排序 */
+/* 表头：淡主色渐变 + 下沿主色发丝线，列可点排序 */
 .rfp-details__head {
   flex-shrink: 0;
   height: 32px;
-  border-bottom: 1px solid var(--rfp-border);
-  background: var(--rfp-head);
+  border-bottom: 1px solid color-mix(in srgb, var(--rfp-accent) 16%, var(--rfp-border));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--rfp-accent) 4%, var(--rfp-head)),
+    var(--rfp-head)
+  );
   font-size: 12px;
   font-weight: 600;
   color: var(--rfp-text-weak);
@@ -485,8 +489,9 @@ defineExpose({ moveActive });
   padding: 2px 0 6px;
 }
 
-/* 行：紧凑行高 + 悬停/选中浅蓝（资源管理器观感） */
+/* 行：紧凑行高 + 悬停/选中淡主色（资源管理器观感） */
 .rfp-details__row {
+  position: relative;
   width: 100%;
   min-height: 32px;
   border: 1px solid transparent;
@@ -496,7 +501,8 @@ defineExpose({ moveActive });
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--el-transition-duration, 0.12s), border-color var(--el-transition-duration, 0.12s);
+  transition: background var(--el-transition-duration, 0.12s), border-color var(--el-transition-duration, 0.12s),
+    box-shadow var(--el-transition-duration, 0.12s);
 }
 
 .rfp-details__row:hover {
@@ -517,9 +523,27 @@ defineExpose({ moveActive });
   background: var(--rfp-hover);
 }
 
+/* 选中：主色淡底 + 细环 + 轻投影，左缘一条主色竖条 */
 .rfp-details__row.is-selected {
   border-color: var(--rfp-select-border);
-  background: var(--rfp-select-bg);
+  background: linear-gradient(
+    to right,
+    var(--rfp-select-bg),
+    color-mix(in srgb, var(--rfp-accent) 7%, transparent)
+  );
+  box-shadow: 0 1px 5px color-mix(in srgb, var(--rfp-accent) 13%, transparent);
+}
+
+.rfp-details__row.is-selected::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--rfp-accent);
+  box-shadow: 0 0 6px var(--rfp-glow);
 }
 
 .rfp-details__row:focus-visible {
@@ -593,10 +617,12 @@ defineExpose({ moveActive });
 
 .rfp-details__size {
   text-align: right;
+  font-family: var(--rfp-mono);
   font-variant-numeric: tabular-nums;
 }
 
 .rfp-details__time {
+  font-family: var(--rfp-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -636,13 +662,13 @@ defineExpose({ moveActive });
   gap: 4px;
   padding: 12px 8px 10px;
   border: 1px solid transparent;
-  border-radius: var(--rfp-radius);
+  border-radius: var(--rfp-radius-lg, 8px);
   background: transparent;
   color: var(--rfp-text);
   font-family: inherit;
   text-align: center;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 
 .rfp-grid__cell:hover,
@@ -650,9 +676,11 @@ defineExpose({ moveActive });
   background: var(--rfp-hover);
 }
 
+/* 选中格：细环 + 主色柔光，与详细信息行同一套语言 */
 .rfp-grid__cell.is-selected {
   border-color: var(--rfp-select-border);
   background: var(--rfp-select-bg);
+  box-shadow: 0 0 0 1px var(--rfp-hair), 0 2px 8px color-mix(in srgb, var(--rfp-accent) 16%, transparent);
 }
 
 .rfp-grid__cell.is-disabled {

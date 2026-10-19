@@ -12,6 +12,8 @@
 <template>
   <div class="tshark-filterbar">
     <div class="tshark-filterbar__row">
+      <span class="tshark-filterbar__prompt" aria-hidden="true">▸</span>
+      <span class="tshark-filterbar__label">显示过滤</span>
       <ReInput
         class="tshark-filterbar__input"
         :model-value="draft"
@@ -20,11 +22,11 @@
         @update:model-value="onInput"
         @keyup.enter="apply"
       />
-      <ReButton type="primary" :disabled="starting" @click="apply">应用过滤</ReButton>
+      <ReButton type="primary" :disabled="starting" @click="apply">应用</ReButton>
       <ReButton :disabled="!applied && !draft.trim()" @click="clear">清除</ReButton>
       <span v-if="applied" class="tshark-filterbar__on">过滤已生效</span>
       <span class="tshark-panel__spacer" />
-      <span class="tshark-dim tshark-filterbar__tip" :title="syntaxTip">支持常用字段子集，点此查看</span>
+      <span class="tshark-dim tshark-filterbar__tip" :title="syntaxTip">语法</span>
     </div>
     <div v-if="error" class="tshark-filterbar__error">{{ error }}</div>
     <div v-else-if="applied" class="tshark-filterbar__hint">报文、统计与会话流都按「{{ applied }}」筛选</div>
@@ -107,10 +109,38 @@ function clear() {
   gap: 8px;
   min-width: 0;
   flex-wrap: wrap;
+  /* 终端式过滤条：整行一个浅底盒子，提示符在前，输入框在里 */
+  padding: 6px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+}
+.tshark-filterbar__prompt {
+  flex: none;
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--el-color-primary);
+}
+.tshark-filterbar__label {
+  flex: none;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
 }
 .tshark-filterbar__input {
-  flex: 1 1 320px;
-  min-width: 220px;
+  flex: 1 1 300px;
+  min-width: 200px;
+}
+.tshark-filterbar__input :deep(.el-input__wrapper) {
+  background: var(--el-bg-color);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+}
+.tshark-filterbar__input :deep(.el-input__inner) {
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 12px;
 }
 .tshark-filterbar__on {
   flex: none;

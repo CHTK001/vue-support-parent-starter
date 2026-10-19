@@ -124,7 +124,15 @@ export interface BucketConfig {
   /** 详情视图是否显示"修改时间"列 */
   showTime: boolean;
   /** 图片滤镜（ImageFilter SPI 扩展名，NONE 表示原图） */
-  imageFilter: string;  /** 是否启用路径穿透防护（默认开启） */
+  imageFilter: string;
+  /**
+   * URL 参数能力实现（FileStorageFileSetting SPI 扩展名，默认 jdk）
+   *
+   * <p>决定 ?size=100x100&format=webp 这类文件级参数由哪个后台 SPI 解析；
+   * 可选值来自能力接口的 fileSettingCapabilities，前端不硬编码。</p>
+   */
+  fileSettingKey?: string;
+  /** 是否启用路径穿透防护（默认开启） */
   openPathGuard: boolean;
   /** 是否启用全局图片滤镜链（默认关闭） */
   imageFilterEnabled: boolean;
@@ -546,8 +554,12 @@ export interface SpiUrlPreviewer {
  * SPI 能力分组（某一 SPI 接口的能力列表）
  */
 export interface SpiCapabilityGroup {
-  /** SPI 实现名 */
+  /** SPI 实现名（写入配置） */
   spi: string;
+  /** 展示名（来自后台 SPI，如「JDK 内置」；缺失时回退到 spi） */
+  label?: string;
+  /** 实现说明（下拉选项描述） */
+  description?: string;
   /** 支持的能力标识列表 */
   capabilities: string[];
 }

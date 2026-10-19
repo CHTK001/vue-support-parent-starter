@@ -164,7 +164,10 @@
               :top-flows="topFlows"
               :packet-total="packetTotal"
               :version="statsVersion"
+              :timeline="timeline"
+              :bucket="timelineBucket"
               @pick-protocol="onPickProtocol"
+              @timeline-bucket="loadTimeline"
             />
           </template>
 
@@ -175,6 +178,16 @@
               :packet-total="packetTotal"
               :version="statsVersion"
               @pick-flow="onPickFlow"
+            />
+          </template>
+
+          <!-- 异常诊断 -->
+          <template #insight>
+            <ScTsharkInsightsPanel
+              :anomalies="anomalies"
+              :filtered="!!packetFilter.trim()"
+              :loading="loadingStats"
+              @pick-anomaly="onPickAnomaly"
             />
           </template>
         </ReTab>
@@ -199,6 +212,7 @@ import ScTsharkFilterBar from './ScTsharkFilterBar.vue'
 import ScTsharkPacketPanel from './ScTsharkPacketPanel.vue'
 import ScTsharkStatsPanel from './ScTsharkStatsPanel.vue'
 import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
+import ScTsharkInsightsPanel from './ScTsharkInsightsPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
 import { sessionName, statusOf, timeRange, fmtDuration, fmtSize } from './tsharkFormat'
@@ -224,10 +238,12 @@ const {
   sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
   runningCount: parsingCount, sessionPageSize,
   loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
-  packetPageSize, protoStats, topFlows, statsVersion,
+  packetPageSize, protoStats, topFlows, statsVersion, loadingStats,
+  timeline, timelineBucket, anomalies,
   detailOpen, packetDetail,
   init, loadSessions, selectSession, setSessionKeyword,
   clearActiveSession, loadPackets, applyPacketFilter, filterByProtocol, filterByFlow,
+  loadTimeline,
   exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap,
 } = useTshark({ source: 'import', autoSelectFirst: false })
 
@@ -256,6 +272,7 @@ const detailTabs = computed(() => [
   { name: 'packet', label: '报文', icon: 'Tickets', badge: packetTotal.value || null },
   { name: 'stats', label: '统计', icon: 'PieChart' },
   { name: 'flow', label: '会话流', icon: 'TrendCharts' },
+  { name: 'insight', label: '诊断', icon: 'FirstAidKit' },
 ])
 
 // ==================== 详情头部条 ====================
@@ -367,6 +384,12 @@ function onPickProtocol(protocol: string) {
 /** 会话流面板点某条流：按该流过滤并切回报文页 */
 function onPickFlow(flow: TsharkFlow) {
   filterByFlow(flow)
+  activeTab.value = 'packet'
+}
+
+/** 诊断面板点某个异常：回填后端给的等价过滤并切回报文页 */
+function onPickAnomaly(filterText: string) {
+  applyPacketFilter(filterText)
   activeTab.value = 'packet'
 }
 

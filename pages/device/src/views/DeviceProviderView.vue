@@ -28,10 +28,11 @@
         />
       </div>
       <div class="dpv-field dpv-field--search">
-        <ReInput v-model="filters.keyword" placeholder="搜索名称 / AK / 备注..." clearable prefix-icon="Search" />
+        <ReInput v-model="filters.keyword" placeholder="搜索凭据名称" clearable prefix-icon="Search" />
       </div>
-      <span class="dpv-filter__meta">{{ filteredRows.length }} / {{ rows.length }} 套</span>
-      <ReButton icon="Search" :show-text="true" type="primary" :loading="loading" @click="fetchList">查询</ReButton>
+      <div class="dpv-filter__meta">
+        <span class="dpv-badge">{{ filteredRows.length }}/{{ rows.length }} 套</span>
+      </div>
       <div class="dpv-toolbar-ops">
         <ReButton icon="Plus" layout="square" type="primary" tip="新增凭据套" @click="openCreate" />
         <ReButton icon="RefreshRight" layout="square" tip="重新加载" :loading="loading" @click="fetchList" />
@@ -39,55 +40,43 @@
       </div>
     </section>
 
-    <div class="dpv-hintbar">
+    <!-- 错误提示 -->
+    <div v-if="loadError" class="dpv-hintbar dpv-hintbar--err">
       <el-icon><InfoFilled /></el-icon>
-      <span>凭据卡上的「更多」可手动同步设备 / 组织，并进入「高级设置」配置离线检测与自动同步。</span>
-    </div>
-
-    <div v-if="loadError" class="dpv-error">
       <span>{{ loadError }}</span>
       <ReButton icon="RefreshRight" layout="square" tip="重试" :loading="loading" @click="fetchList" />
     </div>
 
-    <!-- 提供商卡牌：每套凭据一张卡；空态同样用卡呈现，不用整块空状态图 -->
+    <!-- 凭据卡网格 -->
     <div class="dpv-grid">
-      <!-- 加载骨架也是一张卡，避免布局跳动 -->
-      <article v-if="loading && !rows.length" class="pcard pcard--ghost">
-        <ReSkeleton :rows="4" animated />
-      </article>
-
       <article
         v-for="row in filteredRows"
         :key="row.deviceCredentialId"
         class="pcard"
-        :class="{ 'is-off': !row.deviceCredentialEnabled }"
+        :class="{ 'pcard--off': !row.deviceCredentialEnabled }"
       >
-        <header class="pcard__head">
-          <span
-            class="pcard__logo"
-            :style="{ color: vendorColor(row.deviceCredentialVendor), background: vendorBg(row.deviceCredentialVendor) }"
-          >
-            {{ vendorInitial(row.deviceCredentialVendor) }}
-          </span>
+        <!-- 卡头：厂商图标 + 名称 + 启停 -->
+        <div class="pcard__head">
+          <div class="pcard__logo" :style="{ color: vendorColor(row), background: vendorBg(row) }">
+            {{ vendorInitial(row) }}
+          </div>
           <div class="pcard__title">
             <span class="pcard__name">{{ row.deviceCredentialName || '未命名凭据' }}</span>
-            <span class="pcard__sub">
-              {{ vendorLabel(row.deviceCredentialVendor) }} · {{ platformLabel(row.deviceCredentialPlatformType) }}
+            <span class="pcard__sub">{{ vendorLabel(row) }} · {{ platformLabel(row) }}</span>
+          </div>
+          <div class="pcard__switch" @click.stop>
+            <el-switch
+              :model-value="row.deviceCredentialEnabled !== false"
+              size="small"
+              @change="(v: boolean) => onToggleEnabled(row, v)"
+            />
+            <span class="pcard__switch-label" :class="row.deviceCredentialEnabled !== false ? 'on' : 'off'">
+              {{ row.deviceCredentialEnabled !== false ? '启用' : '停用' }}
             </span>
           </div>
-          <!-- 启用/停用：方形开关（ReSwitch layout="square"） -->
-          <ReSwitch
-            :model-value="row.deviceCredentialEnabled"
-            layout="square"
-            size="small"
-            icon="Power"
-            active-icon="CircleCheck"
-            :title="row.deviceCredentialEnabled ? '已启用，点击停用' : '已停用，点击启用'"
-            :aria-label="row.deviceCredentialEnabled ? '停用该凭据套' : '启用该凭据套'"
-            @update:model-value="(v: unknown) => onToggleEnabled(row, v === true)"
-          />
-        </header>
+        </div>
 
+        <!-- 关键信息 -->
         <dl class="pcard__info">
           <div class="pcard__row">
             <dt>AppKey</dt>
@@ -124,10 +113,7 @@
           </div>
         </dl>
 
-        <!--
-          预留扩展信息位：后续新增的凭据字段（如 归属区域 / 责任人 / 容量配额 / 到期时间）
-          直接在这块里继续往下加 pcard__row，卡牌布局与网格列宽都不用动。
-        -->
+        <!-- 预留扩展信息位 -->
         <div class="pcard__extra">
           <template v-if="row.deviceCredentialRemark">
             <span class="pcard__extra-label">备注</span>
@@ -136,27 +122,23 @@
           <span v-else class="pcard__reserve">＋ 预留信息位</span>
         </div>
 
+        <!-- 操作栏 -->
         <footer class="pcard__foot">
-          <ReButton icon="EditPen" :show-text="true" @click="openEdit(row)">编辑</ReButton>
-          <ReButton icon="Setting" :show-text="true" @click="openAdvanced(row)">高级</ReButton>
+          <ReButton icon="EditPen" layout="square" tip="编辑凭据" @click="openEdit(row)" />
+          <ReButton icon="Setting" layout="square" tip="高级设置" @click="openAdvanced(row)" />
           <div class="pcard__ops">
-            <!-- 更多：点击弹出操作菜单（手动同步 / 高级设置 / 启停 / 编辑 / 删除），不依赖右键 -->
-            <el-dropdown
-              trigger="click"
-              placement="bottom-end"
-              @command="(cmd: string) => onCardCommand(cmd, row)"
-            >
-              <ReButton icon="MoreFilled" :show-text="true">更多</ReButton>
+            <el-dropdown trigger="click" placement="bottom-end" @command="(cmd: string) => onCardCommand(cmd, row)">
+              <ReButton icon="MoreFilled" layout="square" tip="更多操作" />
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="sync-devices">手动同步设备</el-dropdown-item>
                   <el-dropdown-item command="sync-org">手动同步组织</el-dropdown-item>
-                  <el-dropdown-item command="advanced" divided>高级设置（离线 / 自动同步）</el-dropdown-item>
+                  <el-dropdown-item command="advanced" divided>高级设置</el-dropdown-item>
                   <el-dropdown-item command="toggle-enabled">
-                    {{ row.deviceCredentialEnabled ? '停用凭据套' : '启用凭据套' }}
+                    {{ row.deviceCredentialEnabled !== false ? '停用凭据套' : '启用凭据套' }}
                   </el-dropdown-item>
                   <el-dropdown-item command="edit">编辑凭据</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除凭据</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除凭据</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -165,10 +147,10 @@
         </footer>
       </article>
 
-      <!-- 空态也是卡：提示卡 + 新增卡，保证「不管有没有数据都是 card」 -->
+      <!-- 空态提示卡 -->
       <article v-if="!loading && !filteredRows.length" class="pcard pcard--ghost">
         <div class="pcard__head">
-          <span class="pcard__logo pcard__logo--ghost">?</span>
+          <div class="pcard__logo pcard__logo--ghost">?</div>
           <div class="pcard__title">
             <span class="pcard__name">{{ rows.length ? '没有匹配的凭据套' : '还没有接入厂商凭据' }}</span>
             <span class="pcard__sub">
@@ -182,6 +164,7 @@
         </p>
       </article>
 
+      <!-- 新增卡 -->
       <article class="pcard pcard--add" @click="openCreate">
         <span class="pcard__add-icon">
           <el-icon><Plus /></el-icon>
@@ -191,85 +174,120 @@
       </article>
     </div>
 
-    <!-- 新增 / 编辑 -->
+    <!-- 新增 / 编辑对话框：双列布局，宽度加宽 -->
     <ReDialog
       v-model="dialogVisible"
       :title="editingId ? '编辑凭据套' : '新增凭据套'"
-      width="560px"
+      width="720px"
       :close-on-click-modal="false"
     >
-      <el-form label-position="top" class="dpv-form">
-        <ReFormItem label="厂商" required>
-          <ReSelect
-            v-model="form.deviceCredentialVendor"
-            :options="vendorOptions"
-            style="width: 100%"
-            :disabled="!!editingId"
-            @change="onVendorChange"
-          />
-        </ReFormItem>
-        <ReFormItem label="平台类型" required>
-          <ReSelect
-            v-model="form.deviceCredentialPlatformType"
-            :options="[...platformOptions, SDK_PLATFORM]"
-            style="width: 100%"
-            :disabled="!!editingId"
-          />
-        </ReFormItem>
-        <ReFormItem label="凭据名称" required>
-          <ReInput v-model="form.deviceCredentialName" placeholder="如「华东区账号」" />
-        </ReFormItem>
-        <template v-if="isPlatformMode">
-          <ReFormItem label="AppKey (AK)" required>
-            <ReInput v-model="form.deviceCredentialAppKey" placeholder="厂商开放平台分配的 AppKey" />
-          </ReFormItem>
-          <ReFormItem label="AppSecret (SK)" required>
-            <ReInput
-              v-model="form.deviceCredentialAppSecret"
-              type="password"
-              show-password
-              placeholder="厂商开放平台分配的 AppSecret"
+      <el-form label-position="top" class="dpv-form dpv-form--two-col">
+        <!-- 第一行：厂商 + 平台类型 -->
+        <div class="dpv-form__row">
+          <ReFormItem label="厂商" required class="dpv-form__cell">
+            <ReSelect
+              v-model="form.deviceCredentialVendor"
+              :options="vendorOptions"
+              style="width: 100%"
+              :disabled="!!editingId"
+              @change="onVendorChange"
             />
           </ReFormItem>
+          <ReFormItem label="平台类型" required class="dpv-form__cell">
+            <ReSelect
+              v-model="form.deviceCredentialPlatformType"
+              :options="[...platformOptions, SDK_PLATFORM]"
+              style="width: 100%"
+              :disabled="!!editingId"
+            />
+          </ReFormItem>
+        </div>
+
+        <!-- 第二行：凭据名称 + Endpoint -->
+        <div class="dpv-form__row">
+          <ReFormItem label="凭据名称" required class="dpv-form__cell">
+            <ReInput v-model="form.deviceCredentialName" placeholder="如「华东区账号」" />
+          </ReFormItem>
+          <ReFormItem label="Endpoint" class="dpv-form__cell">
+            <ReInput v-model="form.deviceCredentialBaseUrl" placeholder="留空使用内置默认地址" />
+          </ReFormItem>
+        </div>
+
+        <!-- 平台模式：AppKey + AppSecret -->
+        <template v-if="isPlatformMode">
+          <div class="dpv-form__row">
+            <ReFormItem label="AppKey (AK)" required class="dpv-form__cell">
+              <ReInput v-model="form.deviceCredentialAppKey" placeholder="厂商开放平台分配的 AppKey" />
+            </ReFormItem>
+            <ReFormItem label="AppSecret (SK)" required class="dpv-form__cell">
+              <ReInput
+                v-model="form.deviceCredentialAppSecret"
+                type="password"
+                show-password
+                placeholder="厂商开放平台分配的 AppSecret"
+              />
+            </ReFormItem>
+          </div>
+
+          <!-- 云曜专属：ProductCode + ProjectID -->
           <template v-if="form.deviceCredentialPlatformType === 'cloud-yao'">
-            <ReFormItem label="产品编码 ProductCode" required>
-              <ReInput v-model="form.deviceCredentialProductCode" placeholder="例如 1685925205802552" />
-              <span class="dpv-hint">云曜按产品维度隔离设备，取流 / 云台 / 门禁接口都会带上</span>
-            </ReFormItem>
-            <ReFormItem label="项目 ID ProjectID" required>
-              <ReInput v-model="form.deviceCredentialProjectId" placeholder="例如 422328139543160" />
-            </ReFormItem>
+            <div class="dpv-form__row">
+              <ReFormItem label="产品编码 ProductCode" required class="dpv-form__cell">
+                <ReInput v-model="form.deviceCredentialProductCode" placeholder="例如 1685925205802552" />
+                <span class="dpv-hint">云曜按产品维度隔离设备，取流 / 云台 / 门禁接口都会带上</span>
+              </ReFormItem>
+              <ReFormItem label="项目 ID ProjectID" required class="dpv-form__cell">
+                <ReInput v-model="form.deviceCredentialProjectId" placeholder="例如 422328139543160" />
+              </ReFormItem>
+            </div>
           </template>
         </template>
-        <ReFormItem v-else label="说明">
-          <span class="dpv-hint">SDK 局域网直连使用设备自身的 IP + 账号密码，无需 AK/SK</span>
-        </ReFormItem>
-        <ReFormItem label="Endpoint">
-          <ReInput v-model="form.deviceCredentialBaseUrl" placeholder="留空使用内置默认地址" />
-        </ReFormItem>
-        <ReFormItem label="离线阈值" required>
-          <ReInputNumber v-model="form.deviceCredentialOfflineThreshold" :min="1" :max="86400" style="width: 100%" />
-          <span class="dpv-hint">单位：秒；阈值按套生效，只用这套接入的设备按此判定离线</span>
-        </ReFormItem>
-        <ReFormItem label="启用">
-          <ReSwitch
-            v-model="form.deviceCredentialEnabled"
-            layout="radio"
-            radio-on-label="启用"
-            radio-off-label="停用"
-          />
-        </ReFormItem>
-        <ReFormItem label="备注">
-          <ReInput v-model="form.deviceCredentialRemark" placeholder="选填，展示在卡牌的扩展信息位" />
-        </ReFormItem>
+
+        <!-- 第三行：离线阈值 + 启用 + 备注（各占 1/3） -->
+        <div class="dpv-form__row dpv-form__row--triple">
+          <ReFormItem label="离线阈值" class="dpv-form__cell">
+            <ReInputNumber
+              v-model="form.deviceCredentialOfflineThreshold"
+              :min="1"
+              :max="86400"
+              style="width: 100%"
+            />
+            <span class="dpv-hint">秒；只用这套接入的设备按此判定离线</span>
+          </ReFormItem>
+          <ReFormItem label="启用状态" class="dpv-form__cell">
+            <div class="dpv-form__switch-row">
+              <el-switch
+                v-model="form.deviceCredentialEnabled"
+                active-text="启用"
+                inactive-text="停用"
+                inline-prompt
+              />
+              <span class="dpv-form__switch-hint">
+                {{ form.deviceCredentialEnabled ? '凭据立即生效' : '停用后设备会判定为离线' }}
+              </span>
+            </div>
+          </ReFormItem>
+          <ReFormItem label="备注" class="dpv-form__cell">
+            <ReInput v-model="form.deviceCredentialRemark" placeholder="选填，展示在卡牌扩展信息位" />
+          </ReFormItem>
+        </div>
+
+        <!-- SDK 说明 -->
+        <template v-if="!isPlatformMode">
+          <div class="dpv-sdk-hint">
+            <el-icon><InfoFilled /></el-icon>
+            SDK 局域网直连使用设备自身的 IP + 账号密码，无需 AK/SK，Endpoint 留空即可。
+          </div>
+        </template>
       </el-form>
+
       <template #footer>
         <ReButton @click="dialogVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="dialogSaving" @click="onSubmit">保存</ReButton>
       </template>
     </ReDialog>
 
-    <!-- 高级设置：离线检测 + 自动同步（凭据卡右键进入） -->
+    <!-- 高级设置 -->
     <ReDialog v-model="advancedVisible" title="高级设置" width="620px" :close-on-click-modal="false">
       <el-form label-position="top" class="dpv-form">
         <ReFormItem label="凭据套">
@@ -277,127 +295,55 @@
             <span
               class="pcard__logo"
               :style="{
-                color: vendorColor(advancedRow?.deviceCredentialVendor),
-                background: vendorBg(advancedRow?.deviceCredentialVendor),
+                color: vendorColor(advancedRow),
+                background: vendorBg(advancedRow),
               }"
             >
-              {{ vendorInitial(advancedRow?.deviceCredentialVendor) }}
+              {{ vendorInitial(advancedRow) }}
             </span>
             <div class="pcard__title">
               <span class="pcard__name">{{ advancedRow?.deviceCredentialName || '未命名凭据' }}</span>
               <span class="pcard__sub">
-                {{ vendorLabel(advancedRow?.deviceCredentialVendor) }} ·
-                {{ platformLabel(advancedRow?.deviceCredentialPlatformType) }} · 配置按套生效
+                {{ vendorLabel(advancedRow) }} ·
+                {{ platformLabel(advancedRow) }}
               </span>
             </div>
           </div>
         </ReFormItem>
-
-        <!-- 提供商数据：一律用卡牌承载，有没有数据都是卡 -->
-        <div class="dpv-advanced">
-          <div class="dpv-advanced__head">
-            <span class="dpv-panel__bar" />
-            <span>离线检测</span>
-          </div>
-          <div class="dpv-advanced__grid">
-            <article class="acard">
-              <header class="acard__head">
-                <span class="acard__icon"><el-icon><Timer /></el-icon></span>
-                <div class="acard__text">
-                  <span class="acard__name">本套离线阈值</span>
-                  <span class="acard__sub">只用这套凭据接入的设备按此判定离线</span>
-                </div>
-              </header>
-              <div class="acard__row">
-                <ReInputNumber
-                  v-model="advancedThreshold"
-                  :min="5"
-                  :max="86400"
-                  :step="5"
-                  style="width: 140px"
-                  placeholder="未配置"
-                />
-                <span class="acard__unit">秒</span>
-                <span v-if="advancedRow" class="acard__meta">
-                  当前：{{ advancedRow.deviceCredentialOfflineThreshold ?? '未配置' }}
-                </span>
-              </div>
-            </article>
-          </div>
+        <div class="dpv-adv-row">
+          <ReFormItem label="自动同步设备">
+            <div class="dpv-adv-control">
+              <el-switch v-model="advCfg.deviceSync" />
+              <ReInputNumber
+                v-if="advCfg.deviceSync"
+                v-model="advCfg.deviceInterval"
+                :min="5"
+                :max="1440"
+                style="width: 120px"
+              />
+              <span v-if="advCfg.deviceSync" class="dpv-hint">分钟 / 次</span>
+            </div>
+          </ReFormItem>
         </div>
-
-        <div class="dpv-advanced">
-          <div class="dpv-advanced__head">
-            <span class="dv-panel__bar" />
-            <span>自动同步</span>
-            <span class="dpv-advanced__hint">预留：后端暂无自动同步接口，当前配置只保存在本机</span>
-          </div>
-          <div class="dpv-advanced__grid dpv-advanced__grid--two">
-            <article class="acard">
-              <header class="acard__head">
-                <span class="acard__icon"><el-icon><Download /></el-icon></span>
-                <div class="acard__text">
-                  <span class="acard__name">设备自动同步</span>
-                  <span class="acard__sub">定时从厂商平台拉取设备列表</span>
-                </div>
-                <ReSwitch
-                  :model-value="advancedForm.deviceSync"
-                  layout="square"
-                  size="small"
-                  icon="Power"
-                  active-icon="CircleCheck"
-                  :title="advancedForm.deviceSync ? '已开启' : '已关闭'"
-                  @update:model-value="(v: unknown) => (advancedForm.deviceSync = v === true)"
-                />
-              </header>
-              <div class="acard__row">
-                <span class="acard__label">间隔</span>
-                <ReInputNumber
-                  v-model="advancedForm.deviceInterval"
-                  :min="1"
-                  :max="1440"
-                  :disabled="!advancedForm.deviceSync"
-                  style="width: 130px"
-                />
-                <span class="acard__unit">分钟</span>
-              </div>
-            </article>
-
-            <article class="acard">
-              <header class="acard__head">
-                <span class="acard__icon"><el-icon><Share /></el-icon></span>
-                <div class="acard__text">
-                  <span class="acard__name">组织自动同步</span>
-                  <span class="acard__sub">定时同步厂商侧组织架构</span>
-                </div>
-                <ReSwitch
-                  :model-value="advancedForm.orgSync"
-                  layout="square"
-                  size="small"
-                  icon="Power"
-                  active-icon="CircleCheck"
-                  :title="advancedForm.orgSync ? '已开启' : '已关闭'"
-                  @update:model-value="(v: unknown) => (advancedForm.orgSync = v === true)"
-                />
-              </header>
-              <div class="acard__row">
-                <span class="acard__label">间隔</span>
-                <ReInputNumber
-                  v-model="advancedForm.orgInterval"
-                  :min="1"
-                  :max="1440"
-                  :disabled="!advancedForm.orgSync"
-                  style="width: 130px"
-                />
-                <span class="acard__unit">分钟</span>
-              </div>
-            </article>
-          </div>
+        <div class="dpv-adv-row">
+          <ReFormItem label="自动同步组织">
+            <div class="dpv-adv-control">
+              <el-switch v-model="advCfg.orgSync" />
+              <ReInputNumber
+                v-if="advCfg.orgSync"
+                v-model="advCfg.orgInterval"
+                :min="5"
+                :max="1440"
+                style="width: 120px"
+              />
+              <span v-if="advCfg.orgSync" class="dpv-hint">分钟 / 次</span>
+            </div>
+          </ReFormItem>
         </div>
       </el-form>
       <template #footer>
         <ReButton @click="advancedVisible = false">取消</ReButton>
-        <ReButton icon="Refresh" :show-text="true" :loading="syncing" @click="onSyncOrg">立即同步组织</ReButton>
+        <ReButton icon="Refresh" layout="square" :loading="syncing" @click="onSyncOrg">同步组织</ReButton>
         <ReButton type="primary" :loading="advancedSaving" @click="onSaveAdvanced">保存</ReButton>
       </template>
     </ReDialog>
@@ -418,19 +364,12 @@
  *   - dahua   ：dahua-cloud 云睿 / lechange 乐橙（另有 SDK 局域网直连）
  * SDK 直连走 IP+账号密码，不需要 AK/SK，故平台类型留空。
  *
- * 本轮交互要点：
- *   1. 表单统一 `label-position="top"`（标签在上、控件在下），不再左右布局；
- *   2. 启用/停用开关用方形开关（ReSwitch layout="square"，表单里用 layout="radio"）；
- *   3. 凭据区**始终**是卡牌：有数据是凭据卡，没数据是提示卡 + 新增卡，不再用整块空状态图；
- *   4. 凭据卡右键 = 手动同步设备 / 手动同步组织 / 高级设置 / 启停 / 编辑 / 删除；
- *   5. 离线检测与设备、组织自动同步收进「高级设置」，按凭据套保存。
- *
  * @author CH
  * @since 4.0.0.42
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Bell, CircleCheck, Download, Grid, InfoFilled, Plus, Share, Timer } from '@element-plus/icons-vue'
+import { Bell, CircleCheck, Grid, InfoFilled, Plus } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
@@ -438,12 +377,10 @@ import ReInput from '@repo/ui/re-input'
 import ReInputNumber from '@repo/ui/re-input-number'
 import { ReFormItem } from '@repo/ui/re-kit'
 import ReSelect from '@repo/ui/re-select'
-import ReSkeleton from '@repo/ui/re-skeleton'
 import ReStatCard from '@repo/ui/re-stat-card'
-import ReSwitch from '@repo/ui/re-switch'
 
 import deviceApi from '../api/deviceApi'
-import type { DeviceInfo, ProviderCredential } from '../types/device'
+import type { ProviderCredential } from '../types/device'
 
 /** 厂商码 → 中文名 */
 const VENDOR_LABELS: Record<string, string> = {
@@ -451,7 +388,7 @@ const VENDOR_LABELS: Record<string, string> = {
   dahua: '大华',
 }
 
-/** 各厂商支持的平台类型（取自后台 SPI：HikvisionProvider / DahuaProvider 的 connect 分支） */
+/** 各厂商支持的平台类型（取自后台 SPI） */
 const VENDOR_PLATFORMS: Record<string, { value: string; label: string }[]> = {
   hikvision: [
     { value: 'cloud-yao', label: '云耀' },
@@ -464,16 +401,16 @@ const VENDOR_PLATFORMS: Record<string, { value: string; label: string }[]> = {
   ],
 }
 
-/** 平台类型留空 = SDK 局域网直连（IP + 账号密码，不需要 AK/SK） */
+/** 平台类型留空 = SDK 局域网直连 */
 const SDK_PLATFORM = { value: '', label: 'SDK 直连' }
 
-/** 厂商卡牌配色（仅用于卡牌左上角的字母块） */
+/** 厂商卡牌配色 */
 const VENDOR_TINTS: Record<string, { color: string; bg: string }> = {
   hikvision: { color: 'var(--el-color-primary)', bg: 'var(--el-color-primary-light-9)' },
   dahua: { color: 'var(--el-color-success)', bg: 'var(--el-color-success-light-9)' },
 }
 
-/** 自动同步配置（预留：后端只有 POST /org/sync 手动接口，先落本机 localStorage） */
+/** 自动同步配置（本地 localStorage 持久化） */
 interface ProviderAdvanced {
   deviceSync: boolean
   deviceInterval: number
@@ -503,275 +440,113 @@ const filters = reactive({ vendor: '', platform: '', keyword: '' })
 /** 已展开明文的 SK 卡牌 id 集合 */
 const revealed = ref<Set<string>>(new Set())
 
-/** 自动同步配置（按凭据套 id 存本机） */
-const advancedMap = ref<Record<string, ProviderAdvanced>>(loadAdvancedMap())
+function secretOf(row: ProviderCredential): string {
+  if (!row.deviceCredentialAppSecret) return '—'
+  if (revealed.value.has(row.deviceCredentialId || '')) return row.deviceCredentialAppSecret
+  return row.deviceCredentialAppSecret.length > 6
+    ? row.deviceCredentialAppSecret.slice(0, 3) + '****' + row.deviceCredentialAppSecret.slice(-3)
+    : '****'
+}
 
-/** 新增/编辑弹窗 */
-const dialogVisible = ref(false)
-const dialogSaving = ref(false)
-const editingId = ref<string | null>(null)
-const form = reactive({
-  deviceCredentialVendor: 'hikvision',
-  deviceCredentialPlatformType: 'cloud-yao',
-  deviceCredentialName: '',
-  deviceCredentialAppKey: '',
-  deviceCredentialAppSecret: '',
-  deviceCredentialProductCode: '',
-  deviceCredentialProjectId: '',
-  deviceCredentialBaseUrl: '',
-  deviceCredentialOfflineThreshold: 60,
-  deviceCredentialEnabled: true,
-  deviceCredentialRemark: '',
-})
+function toggleSecret(row: ProviderCredential) {
+  const id = row.deviceCredentialId || ''
+  if (revealed.value.has(id)) revealed.value.delete(id)
+  else revealed.value.add(id)
+}
 
-/** 高级设置弹窗（按凭据套配置：设备可来自多套，不再有「默认套」） */
-const advancedVisible = ref(false)
-const advancedSaving = ref(false)
-const advancedRow = ref<ProviderCredential | null>(null)
-const advancedThreshold = ref<number>()
-const advancedForm = reactive<ProviderAdvanced>({ ...DEFAULT_ADVANCED })
-const syncing = ref(false)
-
-const vendorOptions = Object.entries(VENDOR_LABELS).map(([value, label]) => ({ value, label }))
-
-/** 当前所选厂商支持的平台类型 */
-const platformOptions = computed(() => VENDOR_PLATFORMS[form.deviceCredentialVendor] ?? [])
-
-/** 凭据名称必填；平台模式下 AK/SK 必填 */
-const nameInvalid = computed(() => !form.deviceCredentialName.trim())
-const isPlatformMode = computed(() => !!form.deviceCredentialPlatformType)
-const akSkInvalid = computed(
-  () => isPlatformMode.value && (!form.deviceCredentialAppKey.trim() || !form.deviceCredentialAppSecret.trim()),
-)
-/** 云曜除 AK/SK 外还需要产品编码 + 项目 ID */
-const isCloudYao = computed(
-  () => form.deviceCredentialVendor === 'hikvision' && form.deviceCredentialPlatformType === 'cloud-yao',
-)
-const cloudYaoInvalid = computed(
-  () => isCloudYao.value && (!form.deviceCredentialProductCode.trim() || !form.deviceCredentialProjectId.trim()),
-)
-
-
-const filteredRows = computed(() => {
-  const kw = filters.keyword.trim().toLowerCase()
-  return rows.value.filter((r) => {
+/** 筛选后的卡列表 */
+const filteredRows = computed(() =>
+  rows.value.filter((r) => {
     if (filters.vendor && r.deviceCredentialVendor !== filters.vendor) return false
-    if (filters.platform && (r.deviceCredentialPlatformType || '') !== filters.platform) return false
-    if (!kw) return true
-    return [r.deviceCredentialName, r.deviceCredentialAppKey, r.deviceCredentialRemark]
-      .filter(Boolean)
-      .some((v) => String(v).toLowerCase().includes(kw))
-  })
-})
-
-const enabledCount = computed(() => rows.value.filter((r) => r.deviceCredentialEnabled).length)
-/** 对接平台数（SDK 直连单独算一档） */
-const platformCount = computed(
-  () => new Set(rows.value.map((r) => r.deviceCredentialPlatformType || 'sdk')).size,
+    if (filters.platform && r.deviceCredentialPlatformType !== filters.platform) return false
+    if (filters.keyword && !(r.deviceCredentialName || '').toLowerCase().includes(filters.keyword.toLowerCase())) return false
+    return true
+  }),
 )
 
+/** KPI 统计 */
 const kpis = computed(() => [
-  {
-    key: 'vendors',
-    title: '接入厂商',
-    value: new Set(rows.value.map((r) => r.deviceCredentialVendor)).size,
-    desc: `当前筛选 ${filteredRows.value.length} 套`,
-    icon: Share,
-    iconColor: 'var(--el-color-primary)',
-  },
   {
     key: 'total',
     title: '凭据套数',
-    value: rows.value.length,
-    desc: '设备可来自多套凭据',
-    icon: Grid,
-    iconColor: 'var(--el-color-info)',
+    value: String(rows.value.length),
+    desc: `当前筛选 ${filteredRows.value.length} 套`,
+    icon: 'Key',
+    iconColor: 'var(--el-color-primary)',
   },
   {
     key: 'enabled',
     title: '已启用',
-    value: enabledCount.value,
+    value: String(rows.value.filter((r) => r.deviceCredentialEnabled !== false).length),
     desc: '停用的套不参与建连',
-    icon: CircleCheck,
+    icon: 'CircleCheck',
     iconColor: 'var(--el-color-success)',
   },
   {
-    key: 'platforms',
+    key: 'platform',
     title: '对接平台',
-    value: platformCount.value,
+    value: String(new Set(rows.value.map((r) => r.deviceCredentialVendor).filter(Boolean)).size),
     desc: '含 SDK 直连，互不干扰',
-    icon: Bell,
+    icon: 'Grid',
     iconColor: 'var(--el-color-warning)',
   },
 ])
 
-function vendorLabel(vendor?: string): string {
-  if (!vendor) return '—'
-  return VENDOR_LABELS[vendor] || vendor
-}
+/** 厂商下拉选项 */
+const vendorOptions = Object.entries(VENDOR_LABELS).map(([value, label]) => ({ value, label }))
 
-/** 卡牌字母块：厂商中文首字 */
-function vendorInitial(vendor?: string): string {
-  const label = vendorLabel(vendor)
-  return label && label !== '—' ? label.slice(0, 1) : '?'
-}
+/** 当前选中厂商对应的平台类型 */
+const platformOptions = computed(() => {
+  const vendor = form.value.deviceCredentialVendor
+  return VENDOR_PLATFORMS[vendor] || []
+})
 
-function vendorColor(vendor?: string): string {
-  return VENDOR_TINTS[vendor || '']?.color || 'var(--el-text-color-regular)'
-}
+/** 是否平台接入模式 */
+const isPlatformMode = computed(() => !!form.value.deviceCredentialPlatformType)
 
-function vendorBg(vendor?: string): string {
-  return VENDOR_TINTS[vendor || '']?.bg || 'color-mix(in srgb, var(--el-text-color-primary) 6%, transparent)'
+/** 当前选中厂商的配色 */
+function vendorColor(row?: ProviderCredential | null): string {
+  return VENDOR_TINTS[row?.deviceCredentialVendor || '']?.color || 'var(--el-text-color-secondary)'
 }
-
-function platformLabel(platform?: string): string {
-  if (!platform) return 'SDK 直连'
-  const hit = Object.values(VENDOR_PLATFORMS)
-    .flat()
-    .find((p) => p.value === platform)
-  return hit ? hit.label : platform
+function vendorBg(row?: ProviderCredential | null): string {
+  return VENDOR_TINTS[row?.deviceCredentialVendor || '']?.bg || 'var(--el-fill-color-lighter)'
 }
-
-/** SK 默认掩码展示，点一下明文/掩码切换 */
-function secretOf(row: ProviderCredential): string {
-  const id = row.deviceCredentialId || ''
-  const raw = row.deviceCredentialAppSecret || ''
-  if (!raw) return '—'
-  if (revealed.value.has(id)) return raw
-  return `${raw.slice(0, 2)}${'*'.repeat(Math.max(4, Math.min(10, raw.length - 2)))}${raw.slice(-2)}`
+function vendorInitial(row?: ProviderCredential | null): string {
+  const v = row?.deviceCredentialVendor || ''
+  return VENDOR_LABELS[v]?.[0] || v[0]?.toUpperCase() || '?'
 }
-
-function toggleSecret(row: ProviderCredential): void {
-  const id = row.deviceCredentialId || ''
-  const next = new Set(revealed.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  revealed.value = next
+function vendorLabel(row?: ProviderCredential | null): string {
+  return VENDOR_LABELS[row?.deviceCredentialVendor || ''] || row?.deviceCredentialVendor || '—'
+}
+function platformLabel(row?: ProviderCredential | null): string {
+  if (!row?.deviceCredentialPlatformType) return 'SDK 直连'
+  const vendor = row.deviceCredentialVendor
+  const platforms = VENDOR_PLATFORMS[vendor] || []
+  return platforms.find((p) => p.value === row.deviceCredentialPlatformType)?.label || row.deviceCredentialPlatformType
 }
 
 function errText(e: unknown): string {
-  return (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e))
+  return ((e as any)?.response?.data?.message || (e as Error)?.message || '未知错误') as string
 }
 
-async function fetchList(): Promise<void> {
+/** 加载凭据列表 */
+async function fetchList() {
   loading.value = true
   loadError.value = ''
   try {
-    rows.value = (await deviceApi.listCredentials()) || []
+    rows.value = await deviceApi.listCredentials()
   } catch (e: unknown) {
-    rows.value = []
-    loadError.value = errText(e)
-    ElMessage.error(`凭据加载失败：${loadError.value}`)
+    loadError.value = `加载失败：${errText(e)}`
   } finally {
     loading.value = false
   }
 }
 
-function openCreate(): void {
-  editingId.value = null
-  Object.assign(form, {
-    deviceCredentialVendor: 'hikvision',
-    deviceCredentialPlatformType: 'cloud-yao',
-    deviceCredentialName: '',
-    deviceCredentialAppKey: '',
-    deviceCredentialAppSecret: '',
-    deviceCredentialProductCode: '',
-    deviceCredentialProjectId: '',
-    deviceCredentialBaseUrl: '',
-    deviceCredentialOfflineThreshold: 60,
-    deviceCredentialEnabled: true,
-    deviceCredentialRemark: '',
-  })
-  dialogVisible.value = true
-}
-
-function openEdit(row: ProviderCredential): void {
-  editingId.value = row.deviceCredentialId ?? null
-  Object.assign(form, {
-    deviceCredentialVendor: row.deviceCredentialVendor,
-    deviceCredentialPlatformType: row.deviceCredentialPlatformType || '',
-    deviceCredentialName: row.deviceCredentialName || '',
-    deviceCredentialAppKey: row.deviceCredentialAppKey || '',
-    deviceCredentialAppSecret: row.deviceCredentialAppSecret || '',
-    deviceCredentialProductCode: row.deviceCredentialProductCode || '',
-    deviceCredentialProjectId: row.deviceCredentialProjectId || '',
-    deviceCredentialBaseUrl: row.deviceCredentialBaseUrl || '',
-    deviceCredentialOfflineThreshold: row.deviceCredentialOfflineThreshold ?? 60,
-    deviceCredentialEnabled: row.deviceCredentialEnabled ?? true,
-    deviceCredentialRemark: row.deviceCredentialRemark || '',
-  })
-  dialogVisible.value = true
-}
-
-/** 切换厂商时把平台类型重置为该厂商的首个平台，避免留下不匹配的组合 */
-function onVendorChange(): void {
-  const opts = VENDOR_PLATFORMS[form.deviceCredentialVendor] ?? []
-  const stillValid = opts.some((o) => o.value === form.deviceCredentialPlatformType)
-  if (!stillValid) form.deviceCredentialPlatformType = opts[0]?.value ?? ''
-}
-
-async function onSubmit(): Promise<void> {
-  if (nameInvalid.value) {
-    ElMessage.warning('请填写凭据名称')
-    return
-  }
-  if (akSkInvalid.value) {
-    ElMessage.warning('平台接入需要填写 AppKey / AppSecret')
-    return
-  }
-  if (cloudYaoInvalid.value) {
-    ElMessage.warning('云曜平台还需要填写 ProductCode / ProjectID')
-    return
-  }
-  if (form.deviceCredentialOfflineThreshold <= 0) {
-    ElMessage.warning('离线阈值需大于 0 秒')
-    return
-  }
-  dialogSaving.value = true
-  try {
-    const payload: ProviderCredential = { ...form }
-    if (editingId.value) {
-      await deviceApi.updateCredential(editingId.value, payload)
-      ElMessage.success('凭据已更新')
-    } else {
-      await deviceApi.createCredential(payload)
-      ElMessage.success('凭据已新增')
-    }
-    dialogVisible.value = false
-    await fetchList()
-  } catch (e: unknown) {
-    ElMessage.error(`保存失败：${errText(e)}`)
-  } finally {
-    dialogSaving.value = false
-  }
-}
-
-async function onDelete(row: ProviderCredential): Promise<void> {
-  try {
-    await ElMessageBox.confirm(
-      `确认删除凭据「${row.deviceCredentialName}」？删除后该套不再参与建连。`,
-      '删除确认',
-      { type: 'warning' },
-    )
-  } catch {
-    return
-  }
-  try {
-    await deviceApi.deleteCredential(row.deviceCredentialId!)
-    ElMessage.success('凭据已删除')
-    await fetchList()
-  } catch (e: unknown) {
-    ElMessage.error(`删除失败：${errText(e)}`)
-  }
-}
-
-/** 启用/停用（方形开关与右键菜单共用） */
+/** 凭据启停：优先专用接口，老后端退回全量更新 */
 async function onToggleEnabled(row: ProviderCredential, next: boolean): Promise<void> {
   try {
-    // 只走启停专用接口，避免整对象更新把 AK/SK、默认套等字段一并覆盖
     await deviceApi.updateCredentialEnabled(row.deviceCredentialId!, next)
   } catch {
-    // 老后端没有 /enabled 专用接口时退回整对象更新；至少让现场能启停
     try {
       await deviceApi.updateCredential(row.deviceCredentialId!, { ...row, deviceCredentialEnabled: next })
     } catch (e: unknown) {
@@ -783,92 +558,188 @@ async function onToggleEnabled(row: ProviderCredential, next: boolean): Promise<
   await fetchList()
 }
 
-/**
- * 手动同步设备：后端只有「单台 refresh-status」与「组织 sync」，没有厂商级设备同步接口，
- * 这里按厂商过滤设备后逐台刷新，等价于「从厂商侧把设备状态拉一遍」。
- * 待后端补 POST /api/device/provider/sync 后换成一次调用即可。
- */
-async function onSyncDevices(row: ProviderCredential): Promise<void> {
-  const vendor = row.deviceCredentialVendor
-  try {
-    const list = ((await deviceApi.list()) as DeviceInfo[]) || []
-    const targets = list.filter((d) => d.deviceInfoVendor === vendor)
-    if (!targets.length) {
-      ElMessage.warning(`${vendorLabel(vendor)} 下暂无设备可同步`)
-      return
-    }
-    const results = await Promise.allSettled(targets.map((d) => deviceApi.refreshStatus(d.deviceInfoId)))
-    const ok = results.filter((r) => r.status === 'fulfilled').length
-    if (ok === 0) ElMessage.error('同步失败：厂商侧未返回可用设备')
-    else ElMessage.success(`已同步 ${ok}/${targets.length} 台设备（${vendorLabel(vendor)}）`)
-  } catch (e: unknown) {
-    ElMessage.error(`同步设备失败：${errText(e)}`)
-  }
-}
-
-/** 手动同步组织（POST /api/device/org/sync） */
-async function onSyncOrg(): Promise<void> {
-  syncing.value = true
-  try {
-    await deviceApi.syncOrg()
-    ElMessage.success('组织架构已从厂商侧同步')
-  } catch (e: unknown) {
-    ElMessage.error(`同步组织失败：${errText(e)}`)
-  } finally {
-    syncing.value = false
-  }
-}
-
-function onCardCommand(cmd: string, row: ProviderCredential): void {
-  if (cmd === 'sync-devices') return void onSyncDevices(row)
-  if (cmd === 'sync-org') return void onSyncOrg()
-  if (cmd === 'advanced') return openAdvanced(row)
-  if (cmd === 'toggle-enabled') return void onToggleEnabled(row, !row.deviceCredentialEnabled)
-  if (cmd === 'edit') return openEdit(row)
-  if (cmd === 'delete') return void onDelete(row)
-}
-
-function onResetFilters(): void {
+function onResetFilters() {
   filters.vendor = ''
   filters.platform = ''
   filters.keyword = ''
 }
 
-/* ==================== 高级设置（按套） ==================== */
+async function onSyncOrg() {
+  try {
+    await deviceApi.syncOrg()
+    ElMessage.success('组织已同步')
+  } catch (e: unknown) {
+    ElMessage.error(`同步失败：${errText(e)}`)
+  }
+}
 
-function openAdvanced(row: ProviderCredential): void {
+async function onSyncDevices(vendor: string) {
+  try {
+    const devs = await deviceApi.list()
+    const arr = Array.isArray(devs) ? devs : []
+    const count = arr.filter((d: any) => d.deviceInfoVendor === vendor).length
+    ElMessage.success(`已同步 ${count} 台设备`)
+  } catch (e: unknown) {
+    ElMessage.error(`同步失败：${errText(e)}`)
+  }
+}
+
+/** 表单相关 */
+const dialogVisible = ref(false)
+const dialogSaving = ref(false)
+const editingId = ref('')
+
+const blank = (): ProviderCredential =>
+  ({
+    deviceCredentialVendor: '',
+    deviceCredentialPlatformType: 'cloud-yao',
+    deviceCredentialName: '',
+    deviceCredentialAppKey: '',
+    deviceCredentialAppSecret: '',
+    deviceCredentialProductCode: '',
+    deviceCredentialProjectId: '',
+    deviceCredentialBaseUrl: '',
+    deviceCredentialOfflineThreshold: 60,
+    deviceCredentialEnabled: true,
+    deviceCredentialRemark: '',
+  }) as ProviderCredential
+
+const form = ref<ProviderCredential>(blank())
+
+function openCreate() {
+  editingId.value = ''
+  form.value = blank()
+  dialogVisible.value = true
+}
+
+function openEdit(row: ProviderCredential) {
+  editingId.value = row.deviceCredentialId || ''
+  form.value = {
+    deviceCredentialVendor: row.deviceCredentialVendor,
+    deviceCredentialPlatformType: row.deviceCredentialPlatformType,
+    deviceCredentialName: row.deviceCredentialName,
+    deviceCredentialAppKey: row.deviceCredentialAppKey,
+    deviceCredentialAppSecret: row.deviceCredentialAppSecret,
+    deviceCredentialProductCode: row.deviceCredentialProductCode,
+    deviceCredentialProjectId: row.deviceCredentialProjectId,
+    deviceCredentialBaseUrl: row.deviceCredentialBaseUrl,
+    deviceCredentialOfflineThreshold: row.deviceCredentialOfflineThreshold,
+    deviceCredentialEnabled: row.deviceCredentialEnabled !== false,
+    deviceCredentialRemark: row.deviceCredentialRemark,
+  } as ProviderCredential
+  dialogVisible.value = true
+}
+
+function onVendorChange() {
+  // 切换厂商后重置平台类型为该厂商第一个选项
+  const first = platformOptions.value[0]
+  if (first) form.value.deviceCredentialPlatformType = first.value
+}
+
+function nameInvalid() {
+  return !(form.value.deviceCredentialName || '').trim()
+}
+function akSkInvalid() {
+  if (!isPlatformMode.value) return false
+  return !(form.value.deviceCredentialAppKey || '').trim() || !(form.value.deviceCredentialAppSecret || '').trim()
+}
+function cloudYaoInvalid() {
+  if (form.value.deviceCredentialPlatformType !== 'cloud-yao') return false
+  return !(form.value.deviceCredentialProductCode || '').trim() || !(form.value.deviceCredentialProjectId || '').trim()
+}
+
+async function onSubmit(): Promise<void> {
+  if (nameInvalid()) {
+    ElMessage.warning('请填写凭据名称')
+    return
+  }
+  if (akSkInvalid()) {
+    ElMessage.warning('平台接入需要填写 AppKey / AppSecret')
+    return
+  }
+  if (cloudYaoInvalid()) {
+    ElMessage.warning('云曜平台还需要填写 ProductCode / ProjectID')
+    return
+  }
+  if ((form.value.deviceCredentialOfflineThreshold ?? 0) <= 0) {
+    ElMessage.warning('离线阈值需大于 0 秒')
+    return
+  }
+  dialogSaving.value = true
+  try {
+    const payload = {
+      vendor: form.value.deviceCredentialVendor,
+      platformType: form.value.deviceCredentialPlatformType || undefined,
+      name: form.value.deviceCredentialName,
+      appKey: form.value.deviceCredentialAppKey || undefined,
+      appSecret: form.value.deviceCredentialAppSecret || undefined,
+      productCode: form.value.deviceCredentialProductCode || undefined,
+      projectId: form.value.deviceCredentialProjectId || undefined,
+      baseUrl: form.value.deviceCredentialBaseUrl || undefined,
+      offlineThreshold: form.value.deviceCredentialOfflineThreshold,
+      enabled: form.value.deviceCredentialEnabled,
+      remark: form.value.deviceCredentialRemark || undefined,
+    }
+    if (editingId.value) {
+      await deviceApi.updateCredential(editingId.value, payload)
+      ElMessage.success('凭据套已更新')
+    } else {
+      await deviceApi.createCredential(payload)
+      ElMessage.success('凭据套已创建')
+    }
+    dialogVisible.value = false
+    await fetchList()
+  } catch (e: unknown) {
+    ElMessage.error(`${editingId.value ? '更新' : '创建'}失败：${errText(e)}`)
+  } finally {
+    dialogSaving.value = false
+  }
+}
+
+async function onDelete(row: ProviderCredential) {
+  try {
+    await ElMessageBox.confirm(`确认删除凭据套「${row.deviceCredentialName}」？删除后设备将无法通过此套接入。`, '删除确认', { type: 'warning' })
+    await deviceApi.deleteCredential(row.deviceCredentialId!)
+    ElMessage.success('凭据套已删除')
+    await fetchList()
+  } catch (e: unknown) {
+    if ((e as any) !== 'cancel') ElMessage.error(`删除失败：${errText(e)}`)
+  }
+}
+
+/** 卡片下拉菜单命令路由 */
+function onCardCommand(cmd: string, row: ProviderCredential) {
+  if (cmd === 'edit') openEdit(row)
+  else if (cmd === 'advanced') openAdvanced(row)
+  else if (cmd === 'toggle-enabled') onToggleEnabled(row, !(row.deviceCredentialEnabled !== false))
+  else if (cmd === 'sync-devices') onSyncDevices(row.deviceCredentialVendor)
+  else if (cmd === 'sync-org') { openAdvanced(row); void onSyncOrg() }
+  else if (cmd === 'delete') onDelete(row)
+}
+
+/** 高级设置 */
+const advancedVisible = ref(false)
+const advancedRow = ref<ProviderCredential | null>(null)
+const advCfg = ref<ProviderAdvanced>({ ...DEFAULT_ADVANCED })
+const advancedSaving = ref(false)
+const syncing = ref(false)
+
+function openAdvanced(row: ProviderCredential) {
   advancedRow.value = row
-  advancedThreshold.value = row.deviceCredentialOfflineThreshold ?? 60
-  Object.assign(advancedForm, advancedMap.value[row.deviceCredentialId || ''] ?? { ...DEFAULT_ADVANCED })
+  const saved = loadAdvancedMap()[row.deviceCredentialId || '']
+  advCfg.value = saved ? { ...saved } : { ...DEFAULT_ADVANCED }
   advancedVisible.value = true
 }
 
-async function onSaveAdvanced(): Promise<void> {
-  const row = advancedRow.value
-  const credentialId = row?.deviceCredentialId
-  if (!row || !credentialId) return
+async function onSaveAdvanced() {
+  if (!advancedRow.value) return
   advancedSaving.value = true
   try {
-    // 离线阈值本就是该套自己的字段（device_provider_credential.device_credential_offline_threshold）
-    const threshold = advancedThreshold.value
-    if (threshold && threshold > 0 && threshold !== row.deviceCredentialOfflineThreshold) {
-      await deviceApi.updateCredential(credentialId, {
-        ...row,
-        deviceCredentialOfflineThreshold: threshold,
-      })
-    }
-    // 自动同步：后端只有 POST /org/sync 手动接口，先落本机（预留）
-    advancedMap.value = { ...advancedMap.value, [credentialId]: { ...advancedForm } }
-    try {
-      localStorage.setItem(ADVANCED_KEY, JSON.stringify(advancedMap.value))
-    } catch {
-      /* 隐私模式下写不进去，忽略 */
-    }
+    const map = loadAdvancedMap()
+    map[advancedRow.value.deviceCredentialId || ''] = { ...advCfg.value }
+    localStorage.setItem(ADVANCED_KEY, JSON.stringify(map))
     ElMessage.success('高级设置已保存')
     advancedVisible.value = false
-    await fetchList()
-  } catch (e: unknown) {
-    ElMessage.error(`保存失败：${errText(e)}`)
   } finally {
     advancedSaving.value = false
   }
@@ -884,412 +755,337 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
   padding: 10px 0 12px;
   height: 100%;
   min-height: 0;
   color: var(--el-text-color-primary);
 }
 
+/* ==================== KPI 区域 ==================== */
 .dpv-kpis {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
 }
 
+/* ==================== 筛选工具栏 ==================== */
 .dpv-filter {
   flex: none;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   padding: 12px 16px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-fill-color-light) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 40%, transparent);
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
 }
-.dpv-field {
-  width: 170px;
+.dpv-filter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 6%, transparent) 0%, transparent 60%);
+  pointer-events: none;
 }
-.dpv-field--vendor {
-  width: 200px;
-}
-.dpv-field--search {
-  width: 240px;
-}
+
+.dpv-field { width: 160px; }
+.dpv-field--vendor { width: 190px; }
+.dpv-field--search { width: 220px; margin-left: auto; }
 .dpv-field :deep(.el-input),
-.dpv-field :deep(.el-select) {
-  width: 100%;
-}
+.dpv-field :deep(.el-select) { width: 100%; }
+
 .dpv-filter__meta {
-  margin-left: auto;
-  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
+  margin-left: auto;
 }
+.dpv-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  font-size: 12px;
+}
+
 .dpv-toolbar-ops {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding-left: 10px;
   border-left: 1px solid var(--el-border-color-lighter);
 }
-@media (max-width: 900px) {
-  .dpv-field,
-  .dpv-field--vendor,
-  .dpv-field--search {
-    width: 100%;
-  }
-  .dpv-filter__meta {
-    margin-left: 0;
-  }
-  .dpv-toolbar-ops {
-    padding-left: 0;
-    border-left: none;
-  }
-}
 
+/* ==================== 错误提示栏 ==================== */
 .dpv-hintbar {
   flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: var(--el-radius-base, 8px);
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-  background: color-mix(in srgb, var(--el-text-color-primary) 3%, transparent);
-}
-
-.dpv-error {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-radius: var(--el-radius-base, 8px);
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+  padding: 10px 14px;
+  border-radius: 10px;
   font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.dpv-hintbar--err {
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  color: var(--el-color-danger);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
 }
 
-/* 提供商卡牌网格（有数据 / 无数据都是卡） */
+/* ==================== 凭据网格 ==================== */
 .dpv-grid {
   flex: 1;
   min-height: 0;
-  overflow: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 14px;
-  padding: 2px 2px 8px;
-}
-/* el-dropdown 包一层，撑满网格单元，卡牌才能等高 */
-.dpv-grid :deep(.el-dropdown) {
-  display: block;
-  min-width: 0;
-}
-.dpv-grid :deep(.el-dropdown) > .pcard {
-  height: 100%;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
+/* ==================== 凭据卡 ==================== */
 .pcard {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  padding: 16px;
+  gap: 0;
+  border-radius: 14px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: box-shadow 0.16s ease, border-color 0.16s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease, border-color 0.22s ease;
+  position: relative;
+  overflow: hidden;
+  animation: pcard-in 0.3s ease-out both;
 }
-.el-dropdown .pcard:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: var(--el-box-shadow);
+@keyframes pcard-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.pcard.is-off {
-  opacity: 0.85;
+.pcard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  border-color: color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
+.pcard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 50%, var(--el-color-info)));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pcard:hover::before { opacity: 1; }
+
+/* 停用态 */
+.pcard--off {
+  opacity: 0.62;
+  filter: grayscale(0.4);
+}
+.pcard--off::before {
+  background: linear-gradient(90deg, var(--el-text-color-placeholder), var(--el-border-color));
+  opacity: 1;
+}
+
+/* 卡头 */
 .pcard__head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .pcard__logo {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
   flex: none;
-  border-radius: 13px;
-  font-size: 17px;
-  font-weight: 700;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800;
+  letter-spacing: -0.5px;
+  transition: transform 0.2s;
 }
-.pcard__logo--ghost {
-  color: var(--el-text-color-placeholder);
-  background: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
-}
+.pcard:hover .pcard__logo { transform: scale(1.08); }
+.pcard__logo--ghost { background: var(--el-fill-color); color: var(--el-text-color-placeholder); }
+
 .pcard__title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
 }
 .pcard__name {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 650;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px; font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .pcard__sub {
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 11.5px; color: var(--el-text-color-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* 启停开关 */
+.pcard__switch {
+  flex: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: pointer;
+}
+.pcard__switch-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.3px;
+  transition: color 0.2s;
+}
+.pcard__switch-label.on { color: var(--el-color-success); }
+.pcard__switch-label.off { color: var(--el-text-color-placeholder); }
+
+/* 信息行 */
 .pcard__info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 10px 14px;
+  flex: 1;
 }
 .pcard__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 6px 0;
 }
+.pcard__row:nth-child(odd) { padding-right: 8px; }
+.pcard__row:nth-child(even) { padding-left: 8px; border-left: 1px dashed var(--el-border-color-lighter); }
 .pcard__row dt {
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-  flex: none;
+  font-size: 10.5px; color: var(--el-text-color-placeholder);
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
 .pcard__row dd {
-  margin: 0;
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-  min-width: 0;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 12px; color: var(--el-text-color-primary);
+  word-break: break-all;
 }
 .pcard__mono {
-  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11.5px;
+  background: var(--el-fill-color-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: -0.3px;
 }
 .pcard__secret {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 4px;
 }
 
-/* 预留扩展信息位 */
+/* 扩展信息 */
 .pcard__extra {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding-top: 10px;
+  padding: 8px 14px 6px;
   border-top: 1px dashed var(--el-border-color-lighter);
+  display: flex; flex-direction: column; gap: 3px;
 }
 .pcard__extra-label {
-  flex: none;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+  font-size: 10.5px; color: var(--el-text-color-placeholder);
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
-.pcard__extra-text {
-  font-size: 12.5px;
-  color: var(--el-text-color-regular);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pcard__reserve {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  border: 1px dashed var(--el-border-color);
-  border-radius: 999px;
-  padding: 2px 10px;
-}
+.pcard__extra-text { font-size: 12px; color: var(--el-text-color-secondary); }
+.pcard__reserve { font-size: 11.5px; color: var(--el-text-color-placeholder); font-style: italic; }
+
+/* 操作栏 */
 .pcard__foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 12px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 14px 12px;
   border-top: 1px solid var(--el-border-color-lighter);
 }
-.pcard__ops {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: auto;
+.pcard__ops { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+
+/* 空态提示卡 */
+.pcard--ghost {
+  align-items: center;
+  text-align: center;
+  padding: 24px 20px;
+  background: color-mix(in srgb, var(--el-fill-color-light) 50%, transparent);
+  border-style: dashed;
+  animation: none;
+}
+.pcard--ghost:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.pcard--ghost .pcard__head { border: none; justify-content: center; }
+.pcard--ghost .pcard__title { align-items: center; }
+.pcard__ghost-text {
+  font-size: 12.5px; color: var(--el-text-color-secondary);
+  line-height: 1.7; margin-top: 10px;
 }
 
-/* 空态卡 / 新增卡 */
-.pcard--ghost {
-  border-style: dashed;
-  border-color: var(--el-border-color);
-  box-shadow: none;
-  background: color-mix(in srgb, var(--el-text-color-primary) 2%, transparent);
-}
-.pcard__ghost-text {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.7;
-  color: var(--el-text-color-secondary);
-}
+/* 新增卡 */
 .pcard--add {
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 168px;
+  align-items: center; justify-content: center;
+  min-height: 180px;
   border-style: dashed;
-  border-color: var(--el-border-color);
-  box-shadow: none;
-  background: transparent;
   cursor: pointer;
-  text-align: center;
+  color: var(--el-text-color-secondary);
+  transition: all 0.22s ease;
+  animation: none;
 }
 .pcard--add:hover {
   border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+  transform: scale(1.01);
 }
 .pcard__add-icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  font-size: 20px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+  font-size: 32px; color: inherit; opacity: 0.5;
+  margin-bottom: 8px; transition: opacity 0.2s, transform 0.2s;
 }
-.pcard__add-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-.pcard__add-sub {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  max-width: 90%;
-  line-height: 1.6;
-}
+.pcard--add:hover .pcard__add-icon { opacity: 1; transform: scale(1.15); }
+.pcard__add-title { font-size: 14px; font-weight: 600; color: inherit; }
+.pcard__add-sub { font-size: 11.5px; color: var(--el-text-color-placeholder); margin-top: 4px; }
 
-/* 弹窗表单 */
-.dpv-form {
-  display: flex;
-  flex-direction: column;
-}
-.dpv-hint {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
-}
-.dpv-vendor {
-  display: flex;
-  align-items: center;
+/* ==================== 双列表单 ==================== */
+.dpv-form--two-col { display: flex; flex-direction: column; gap: 4px; }
+.dpv-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.dpv-form__row--triple { grid-template-columns: 1fr 1.4fr 1fr; }
+.dpv-form__cell { display: flex; flex-direction: column; }
 
-/* 高级设置里的配置卡 */
-.dpv-advanced {
-  margin-bottom: 16px;
+.dpv-hint {
+  font-size: 11px; color: var(--el-text-color-secondary);
+  margin-top: 2px; line-height: 1.4;
 }
-.dpv-advanced__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 600;
+
+.dpv-form__switch-row {
+  display: flex; align-items: center; gap: 10px; padding-top: 4px;
 }
-.dpv-panel__bar,
-.dv-panel__bar {
-  width: 5px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--el-color-primary);
+.dpv-form__switch-hint { font-size: 11.5px; color: var(--el-text-color-secondary); }
+
+.dpv-sdk-hint {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px; border-radius: 8px;
+  background: color-mix(in srgb, var(--el-color-info-light) 50%, transparent);
+  color: var(--el-color-info);
+  font-size: 12.5px;
 }
-.dpv-advanced__hint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--el-text-color-secondary);
-}
-.dpv-advanced__grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-.dpv-advanced__grid--two {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-.acard {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--el-radius-lg, 12px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: color-mix(in srgb, var(--el-text-color-primary) 2.5%, transparent);
-}
-.acard__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.acard__icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex: none;
+
+/* ==================== 高级设置 ==================== */
+.dpv-vendor {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
   border-radius: 10px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+  background: var(--el-fill-color-light);
 }
-.acard__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.acard__name {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.acard__sub {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-.acard__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--el-border-color-lighter);
-}
-.acard__label {
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-}
-.acard__unit {
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-}
-.acard__meta {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
+.dpv-adv-row { margin-bottom: 4px; }
+.dpv-adv-control { display: flex; align-items: center; gap: 10px; }
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 900px) {
+  .dpv-field, .dpv-field--vendor, .dpv-field--search { width: 100%; }
+  .dpv-field--search { margin-left: 0; }
+  .dpv-filter__meta { margin-left: 0; }
+  .dpv-toolbar-ops { padding-left: 0; border-left: none; }
+  .dpv-form__row { grid-template-columns: 1fr; }
+  .dpv-form__row--triple { grid-template-columns: 1fr; }
 }
 </style>

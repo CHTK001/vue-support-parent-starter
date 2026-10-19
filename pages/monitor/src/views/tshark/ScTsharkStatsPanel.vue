@@ -55,6 +55,33 @@
           </ul>
         </ReCard>
       </div>
+
+      <!-- 流量时间轴：报文量（柱）与字节数（线）叠在一条时间线上，
+           和上面两张卡共用同一份显示过滤，切桶只重取这一张图 -->
+      <ReCard layout="simple" :radius="14" :padding="14" shadow="never" header="流量时间轴" class="stats-card timeline-card">
+        <template #header>
+          <span class="panel-title">流量时间轴<em class="panel-title__hint">报文量 / 字节数随时间变化</em></span>
+        </template>
+        <div class="timeline-head">
+          <span class="tshark-dim">按 {{ bucket }} 秒聚合</span>
+          <span class="tshark-panel__spacer" />
+          <span class="bucket-switch" role="group" aria-label="时间轴聚合粒度">
+            <button
+              v-for="b in BUCKETS"
+              :key="b"
+              type="button"
+              class="bucket-switch__item"
+              :class="{ 'is-on': b === bucket }"
+              :aria-pressed="b === bucket"
+              @click="emit('timeline-bucket', b)"
+            >{{ b }}s</button>
+          </span>
+        </div>
+        <div v-if="timeline.length === 0" class="timeline-empty">
+          <ReEmpty description="当前会话还没有时间轴数据" layout="modern" />
+        </div>
+        <div v-else ref="timelineRef" class="timeline-box" />
+      </ReCard>
     </div>
   </div>
 </template>
@@ -63,8 +90,12 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { Collection, DataLine, TrendCharts } from '@element-plus/icons-vue'
 import { buildProtoColors, readChartTheme } from './chartTheme'
+import { fmtSize } from './tsharkFormat'
 import { useEchart } from './useEchart'
-import type { TsharkFlow, TsharkProtocolStat } from './types'
+import type { TsharkFlow, TsharkProtocolStat, TsharkTimelinePoint } from './types'
+
+/** 时间轴聚合粒度（秒）：1 秒看突发，30 秒看整体走势 */
+const BUCKETS = [1, 5, 10, 30]
 
 const props = defineProps<{
   protoStats: TsharkProtocolStat[]
@@ -72,9 +103,16 @@ const props = defineProps<{
   packetTotal: number
   /** 统计版本号：实时推送到包时会自增，用来触发图表重绘（数组是原地 push 的，引用不变） */
   version: number
+  /** 流量时间轴（桶 = 秒） */
+  timeline: TsharkTimelinePoint[]
+  /** 当前时间轴桶大小（秒） */
+  bucket: number
 }>()
 
-const emit = defineEmits<{ (e: 'pick-protocol', protocol: string): void }>()
+const emit = defineEmits<{
+  (e: 'pick-protocol', protocol: string): void
+  (e: 'timeline-bucket', bucket: number): void
+}>()
 
 /** 饼图与占比条的分母：用协议统计自己的合计，而不是报文总数（后者可能含未归类报文） */
 const protoTotal = computed(() => props.protoStats.reduce((sum, r) => sum + (r.count || 0), 0))
@@ -140,6 +178,80 @@ const { render } = useEchart(pieRef, (chart) => {
 
 // 数据或实时推送计数变化后重绘；nextTick 等容器尺寸落定再画
 watch(() => props.version, () => nextTick(render))
+
+// ==================== 流量时间轴 ====================
+const timelineRef = ref<HTMLElement | null>(null)
+
+const { render: renderTimeline } = useEchart(timelineRef, (chart) => {
+  const t = readChartTheme()
+  const rows = props.timeline
+  // 只显示 HH:mm:ss：日期对同一次抓包没有信息量，横轴紧凑才放得下更多点
+  const labels = rows.map(r => (r.t || '').slice(11) || r.t)
+  chart.setOption({
+    animationDuration: 260,
+    grid: { left: 6, right: 6, top: 26, bottom: 4, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      borderWidth: 0,
+      textStyle: { fontSize: 11, fontFamily: t.font },
+      axisPointer: { type: 'shadow' },
+    },
+    legend: {
+      right: 0,
+      top: 0,
+      icon: 'roundRect',
+      itemWidth: 9,
+      itemHeight: 9,
+      textStyle: { fontSize: 10, color: t.secondary, fontFamily: t.font },
+    },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      boundaryGap: true,
+      axisLine: { lineStyle: { color: t.tertiary } },
+      axisTick: { show: false },
+      axisLabel: { color: t.secondary, fontSize: 10, hideOverlap: true },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '报文',
+        nameTextStyle: { color: t.secondary, fontSize: 10 },
+        splitLine: { lineStyle: { color: t.tertiary, opacity: 0.18 } },
+        axisLabel: { color: t.secondary, fontSize: 10 },
+      },
+      {
+        type: 'value',
+        name: '字节',
+        nameTextStyle: { color: t.secondary, fontSize: 10 },
+        splitLine: { show: false },
+        axisLabel: { color: t.secondary, fontSize: 10, formatter: (v: number) => fmtSize(v) },
+      },
+    ],
+    series: [
+      {
+        name: '报文数',
+        type: 'bar',
+        barMaxWidth: 16,
+        itemStyle: { color: t.primary, opacity: 0.7, borderRadius: [2, 2, 0, 0] },
+        data: rows.map(r => r.packets),
+      },
+      {
+        name: '字节数',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.5, color: t.net },
+        areaStyle: { color: t.net, opacity: 0.08 },
+        data: rows.map(r => r.bytes),
+      },
+    ],
+  })
+})
+
+// 时间轴数据是整批替换的（loadTimeline 会赋新数组），引用变化即重画
+watch(() => [props.version, props.timeline], () => nextTick(renderTimeline))
 </script>
 
 <style scoped>
@@ -183,6 +295,49 @@ watch(() => props.version, () => nextTick(render))
   color: var(--el-text-color-placeholder);
 }
 .chart-box { height: 240px; width: 100%; }
+
+/* 时间轴卡片横跨面板整宽，和上面两列卡片留出同一档间距 */
+.timeline-card { margin-top: 12px; }
+.timeline-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.timeline-box { height: 220px; width: 100%; }
+.timeline-empty { padding: 18px 0; }
+
+/* 聚合粒度切换：分段控件，选中的那格浮起一层底 */
+.bucket-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--el-fill-color-light);
+}
+.bucket-switch__item {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.bucket-switch__item:hover { color: var(--el-text-color-primary); }
+.bucket-switch__item.is-on {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+.bucket-switch__item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+  outline-offset: 1px;
+}
 
 .proto-empty { padding: 24px 0; }
 
@@ -243,6 +398,6 @@ watch(() => props.version, () => nextTick(render))
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .proto-row, .proto-row__bar-fill { transition: none; }
+  .proto-row, .proto-row__bar-fill, .bucket-switch__item { transition: none; }
 }
 </style>

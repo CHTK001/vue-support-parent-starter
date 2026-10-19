@@ -1,62 +1,58 @@
 <template>
-  <section class="rmap">
-    <header class="rmap__head">
-      <div class="rmap__title">
-        <span class="rmap__bar" />
+  <section class="emap">
+    <header class="emap__head">
+      <div class="emap__title">
+        <span class="emap__bar" />
         <span>设备分布</span>
       </div>
-      <div class="rmap__legend">
-        <span class="rmap__legend-item">
-          <i class="rmap__legend-dot rmap__legend-dot--on" />在线
+      <div class="emap__legend">
+        <span class="emap__legend-item">
+          <i class="emap__legend-dot emap__legend-dot--on" />在线
         </span>
-        <span class="rmap__legend-item">
-          <i class="rmap__legend-dot rmap__legend-dot--off" />离线
+        <span class="emap__legend-item">
+          <i class="emap__legend-dot emap__legend-dot--off" />离线
         </span>
-        <span class="rmap__total">共 {{ positionedDevices.length }} 台</span>
+        <span class="emap__total">共 {{ positionedDevices.length }} 台</span>
       </div>
     </header>
 
-    <div class="rmap__canvas">
-      <svg class="rmap__svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
-        <g class="rmap__grid">
-          <line v-for="i in 8" :key="'v' + i" :x1="i * 100" y1="0" :x2="i * 100" y2="400" />
-          <line v-for="i in 4" :key="'h' + i" x1="0" :y1="i * 100" x2="800" :y2="i * 100" />
-        </g>
-        <g class="rmap__road">
-          <line x1="0" y1="200" x2="800" y2="200" />
-          <line x1="400" y1="0" x2="400" y2="400" />
-        </g>
+    <!-- 地图层：瓦片（绝对定位） -->
+    <div ref="tileRef" class="emap__tiles" />
 
-        <g
-          v-for="(dev, idx) in positionedDevices"
-          :key="dev.deviceInfoId"
-          class="rmap__node"
-          :class="{ 'is-selected': selectedId === dev.deviceInfoId }"
-          @click="emit('select', dev)"
-        >
-          <circle :cx="dev._x" :cy="dev._y" r="18" class="rmap__halo" :class="dev.deviceInfoOnline ? 'is-on' : 'is-off'" />
-          <circle :cx="dev._x" :cy="dev._y" r="9" :fill="dev.deviceInfoOnline ? 'var(--el-color-success)' : 'var(--el-color-info)'" />
-          <text :x="dev._x" :y="dev._y + 3.5" text-anchor="middle" class="rmap__index">{{ idx + 1 }}</text>
-          <text :x="dev._x" :y="dev._y - 18" text-anchor="middle" class="rmap__label">{{ dev.deviceInfoName }}</text>
-        </g>
-      </svg>
-      <div v-if="!positionedDevices.length" class="rmap__empty">
-        <el-icon :size="26"><Location /></el-icon>
+    <!-- 标记层：设备标记（独立于瓦片层） -->
+    <div ref="mapRef" class="emap__canvas">
+      <div
+        v-for="(dev, idx) in positionedDevices"
+        :key="dev.deviceInfoId"
+        class="emap__node"
+        :class="{ 'is-selected': selectedId === dev.deviceInfoId }"
+        :style="markerStyle(dev)"
+        @click.stop="emit('select', dev)"
+        :title="dev.deviceInfoName"
+      >
+        <div class="emap__marker" :class="dev.deviceInfoOnline ? 'is-on' : 'is-off'">
+          <span class="emap__marker-num">{{ idx + 1 }}</span>
+        </div>
+        <div class="emap__label">{{ dev.deviceInfoName }}</div>
+      </div>
+
+      <!-- 空态 -->
+      <div v-if="!positionedDevices.length" class="emap__empty">
+        <el-icon :size="32"><Location /></el-icon>
         <span>暂无已配置经纬度的设备</span>
-        <span class="rmap__empty-hint">在设备表单中填写纬度 / 经度后，这里才会出现地图标志</span>
+        <span class="emap__empty-hint">在设备表单中填写纬度 / 经度后，这里会出现地图标记</span>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { Location } from '@element-plus/icons-vue'
 import type { DeviceInfo } from '../types/device'
 
 const props = defineProps<{
   devices: DeviceInfo[]
-  /** 当前选中的设备：在地图上加一圈高亮 */
   selectedId?: string
 }>()
 
@@ -64,33 +60,118 @@ const emit = defineEmits<{
   (e: 'select', dev: DeviceInfo): void
 }>()
 
-const MAP_WIDTH = 800
-const MAP_HEIGHT = 400
+const tileRef = ref<HTMLElement | null>(null)
+const mapRef = ref<HTMLElement | null>(null)
 
-/**
- * 只画真正有经纬度的设备。
- *
- * <p>没有坐标的设备以前会被铺到一张“假网格”上，看起来像有位置，实际是随机摆放。
- * 现在宁可不画，也不误导；空态里提示去设备表单补经纬度。</p>
- */
-const positionedDevices = computed(() => {
-  const list = props.devices || []
-  return list
-    .filter((dev) => dev.deviceInfoLatitude != null && dev.deviceInfoLongitude != null)
-    .map((dev) => {
-      const x = ((Number(dev.deviceInfoLongitude) + 180) / 360) * MAP_WIDTH
-      const y = ((90 - Number(dev.deviceInfoLatitude)) / 180) * MAP_HEIGHT
-      return {
-        ...dev,
-        _x: Math.max(24, Math.min(MAP_WIDTH - 24, x)),
-        _y: Math.max(24, Math.min(MAP_HEIGHT - 24, y)),
-      }
-    })
+// OpenStreetMap 瓦片配置
+const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+const MIN_ZOOM = 3
+const MAX_ZOOM = 18
+const DEFAULT_ZOOM = 13
+
+const center = ref({ lat: 30.27, lng: 120.15, zoom: DEFAULT_ZOOM })
+
+const tileCache = new Map<string, HTMLImageElement>()
+
+onMounted(() => {
+  if (!tileRef.value) return
+  renderTiles()
+
+  const el = tileRef.value.parentElement!
+  el.addEventListener('mousedown', onMouseDown)
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
+  el.addEventListener('wheel', onWheel, { passive: false })
+
+  const ro = new ResizeObserver(() => renderTiles())
+  ro.observe(el)
 })
+
+const drag = { active: false, startX: 0, startY: 0, startLng: 0, startLat: 0 }
+
+function onMouseDown(e: MouseEvent) {
+  drag.active = true
+  drag.startX = e.clientX
+  drag.startY = e.clientY
+  drag.startLng = center.value.lng
+  drag.startLat = center.value.lat
+}
+function onMouseMove(e: MouseEvent) {
+  if (!drag.active) return
+  const zoom = center.value.zoom
+  const n = Math.pow(2, zoom)
+  const dLng = -((e.clientX - drag.startX) / 256) * 360 / n
+  const dLat = ((e.clientY - drag.startY) / 256) * 360 / n
+  center.value = { ...center.value, lng: drag.startLng + dLng, lat: drag.startLat - dLat }
+  renderTiles()
+}
+function onMouseUp() { drag.active = false }
+
+function onWheel(e: WheelEvent) {
+  e.preventDefault()
+  const delta = e.deltaY > 0 ? -1 : 1
+  const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, center.value.zoom + delta))
+  if (newZoom !== center.value.zoom) {
+    center.value = { ...center.value, zoom: newZoom }
+    renderTiles()
+  }
+}
+
+function renderTiles() {
+  if (!tileRef.value || !mapRef.value) return
+  const { width: W, height: H } = tileRef.value.parentElement!.getBoundingClientRect()
+  const zoom = Math.floor(center.value.zoom)
+  const n = Math.pow(2, zoom)
+  const centerTX = Math.floor(((center.value.lng + 180) / 360) * n)
+  const centerTY = Math.floor((0.5 - Math.log(Math.tan(center.value.lat * Math.PI / 180) + 1 / Math.cos(center.value.lat * Math.PI / 180)) / (2 * Math.PI)) * n)
+  const centerWX = ((center.value.lng + 180) / 360) * 256 * n
+  const centerWY = (0.5 - Math.log(Math.tan(center.value.lat * Math.PI / 180) + 1 / Math.cos(center.value.lat * Math.PI / 180)) / (2 * Math.PI)) * 256 * n
+
+  tileRef.value.innerHTML = ''
+  const tilesX = Math.ceil(W / 256) + 2
+  const tilesY = Math.ceil(H / 256) + 2
+
+  for (let dx = -1; dx <= tilesX; dx++) {
+    for (let dy = -1; dy <= tilesY; dy++) {
+      const tx = centerTX + dx
+      const ty = centerTY + dy
+      if (tx < 0 || tx >= n || ty < 0 || ty >= n) continue
+      const key = `${zoom}/${tx}/${ty}`
+      if (!tileCache.has(key)) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.referrerPolicy = 'no-referrer'
+        img.src = TILE_URL.replace('{x}', String(tx)).replace('{y}', String(ty)).replace('{z}', String(zoom))
+        tileCache.set(key, img)
+      }
+      const img = tileCache.get(key)!
+      img.style.cssText = `position:absolute;width:256px;height:256px;left:${tx * 256 - centerWX + W / 2}px;top:${ty * 256 - centerWY + H / 2}px;pointer-events:none`
+      tileRef.value!.appendChild(img)
+    }
+  }
+}
+
+watch(() => props.devices, () => nextTick(() => renderTiles()), { deep: true })
+
+const positionedDevices = computed(() =>
+  (props.devices || []).filter((d) => d.deviceInfoLatitude != null && d.deviceInfoLongitude != null),
+)
+
+function markerStyle(dev: DeviceInfo) {
+  if (!mapRef.value) return {}
+  const { width: W, height: H } = mapRef.value.getBoundingClientRect()
+  const zoom = center.value.zoom
+  const n = Math.pow(2, zoom)
+  const centerWX = ((center.value.lng + 180) / 360) * 256 * n
+  const centerWY = (0.5 - Math.log(Math.tan(center.value.lat * Math.PI / 180) + 1 / Math.cos(center.value.lat * Math.PI / 180)) / (2 * Math.PI)) * 256 * n
+  const devWX = ((dev.deviceInfoLongitude! + 180) / 360) * 256 * n
+  const devWY = (0.5 - Math.log(Math.tan(dev.deviceInfoLatitude! * Math.PI / 180) + 1 / Math.cos(dev.deviceInfoLatitude! * Math.PI / 180)) / (2 * Math.PI)) * 256 * n
+  return { left: `${devWX - centerWX + W / 2}px`, top: `${devWY - centerWY + H / 2}px` }
+}
 </script>
 
 <style scoped>
-.rmap {
+.emap {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -99,15 +180,17 @@ const positionedDevices = computed(() => {
   border-radius: var(--el-radius-xl, 16px);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
-.rmap__head {
+
+.emap__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  z-index: 2;
 }
-.rmap__title {
+.emap__title {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -115,105 +198,87 @@ const positionedDevices = computed(() => {
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
-.rmap__bar {
-  width: 6px;
-  height: 16px;
+.emap__bar {
+  width: 6px; height: 16px;
   border-radius: 999px;
   background: var(--el-color-primary);
 }
-.rmap__legend {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+.emap__legend {
+  display: inline-flex; align-items: center; gap: 14px;
+  font-size: 12.5px; color: var(--el-text-color-secondary);
 }
-.rmap__legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.rmap__legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.rmap__legend-dot--on {
-  background: var(--el-color-success);
-}
-.rmap__legend-dot--off {
-  background: var(--el-color-info);
-}
-.rmap__total {
-  padding-left: 12px;
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-.rmap__canvas {
-  position: relative;
-  height: 380px;
-  background:
-    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--el-color-primary) 6%, transparent), transparent 55%),
-    var(--el-fill-color-blank, var(--el-bg-color));
-}
-.rmap__svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.rmap__empty {
+.emap__legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.emap__legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.emap__legend-dot--on { background: var(--el-color-success); }
+.emap__legend-dot--off { background: var(--el-color-info); }
+.emap__total { padding-left: 12px; border-left: 1px solid var(--el-border-color-lighter); }
+
+/* 瓦片层 */
+.emap__tiles {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 标记层 */
+.emap__canvas {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+  overflow: hidden;
+  cursor: grab;
+  z-index: 1;
+}
+.emap__canvas:active { cursor: grabbing; }
+
+.emap__node {
+  position: absolute;
+  transform: translate(-50%, -120%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-  background: color-mix(in srgb, var(--el-bg-color) 70%, transparent);
-}
-.rmap__empty-hint {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-.rmap__node.is-selected .rmap__halo {
-  opacity: 1;
-  stroke-width: 3;
-}
-.rmap__grid line {
-  stroke: var(--el-border-color-lighter);
-  stroke-width: 1;
-}
-.rmap__road line {
-  stroke: color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  stroke-width: 14;
-  stroke-linecap: round;
-}
-.rmap__node {
+  gap: 3px;
   cursor: pointer;
+  z-index: 10;
+  animation: emap-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.rmap__node:hover .rmap__halo {
-  opacity: 1;
+@keyframes emap-pop {
+  from { opacity: 0; transform: translate(-50%, -100%) scale(0.6); }
+  to   { opacity: 1; transform: translate(-50%, -120%) scale(1); }
 }
-.rmap__halo {
-  fill: transparent;
-  stroke-width: 1.5;
-  opacity: 0.45;
-  transition: opacity 0.16s ease;
+.emap__marker {
+  width: 26px; height: 26px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.rmap__halo.is-on {
-  stroke: var(--el-color-success);
+.emap__marker:hover { transform: rotate(-45deg) scale(1.2); }
+.emap__marker.is-on { background: var(--el-color-success); }
+.emap__marker.is-off { background: var(--el-color-info); }
+.emap__marker-num {
+  transform: rotate(45deg);
+  font-size: 10px; font-weight: 800; color: #fff; line-height: 1;
 }
-.rmap__halo.is-off {
-  stroke: var(--el-color-info);
+.emap__label {
+  font-size: 11px; font-weight: 600;
+  color: var(--el-text-color-primary);
+  background: rgba(255,255,255,0.92);
+  padding: 2px 6px; border-radius: 4px;
+  white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12); pointer-events: none;
 }
-.rmap__index {
-  font-size: 9px;
-  font-weight: 700;
-  fill: var(--el-color-white);
+.emap__node.is-selected .emap__marker { transform: rotate(-45deg) scale(1.3); }
+.emap__node.is-selected .emap__label { background: var(--el-color-primary); color: #fff; }
+
+.emap__empty {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  color: var(--el-text-color-secondary); font-size: 13px;
+  background: rgba(240,242,245,0.85); backdrop-filter: blur(4px);
 }
-.rmap__label {
-  font-size: 11.5px;
-  fill: var(--el-text-color-regular);
-}
+.emap__empty-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
 </style>

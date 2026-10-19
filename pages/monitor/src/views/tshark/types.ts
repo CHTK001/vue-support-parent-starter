@@ -130,6 +130,35 @@ export interface TsharkProtocolStat {
   count: number
 }
 
+/**
+ * 流量时间轴的一桶（`GET /tshark/sessions/{id}/stats/timeline`）。
+ *
+ * <p>后端按 `bucketSeconds` 聚合成「某个时间点 → 报文数 / 字节数」，
+ * 前端据此画报文量与流量曲线。</p>
+ */
+export interface TsharkTimelinePoint {
+  /** `yyyy-MM-dd HH:mm:ss`（桶起点） */
+  t: string
+  packets: number
+  bytes: number
+}
+
+/**
+ * 异常诊断的一项（`GET /tshark/sessions/{id}/stats/anomalies`）。
+ *
+ * <p>`filter` 是后端给的等价显示过滤表达式，点这一行就能筛到对应报文。</p>
+ */
+export interface TsharkAnomaly {
+  /** 稳定标识：reset / unreachable / retransmission … */
+  key: string
+  label: string
+  /** danger / warning / info */
+  severity: string
+  count: number
+  /** 可回填到显示过滤条的表达式 */
+  filter?: string | null
+}
+
 /** Top 会话流的一项 */
 export interface TsharkFlow {
   /** 「源 → 目的」形式的流标识 */
@@ -168,7 +197,7 @@ export interface TsharkInterface {
  * 两个页面共用同一套标签骨架，只是把「列表」那一页换成各自的面板，其余（报文 / 统计 /
  * 会话流）完全一致，所以枚举放一处、共用一套 key。</p>
  */
-export type TsharkTabKey = 'packet' | 'session' | 'import' | 'stats' | 'flow'
+export type TsharkTabKey = 'packet' | 'session' | 'import' | 'stats' | 'flow' | 'insight'
 
 /** 会话列表的状态筛选（前端做，见 useTshark 的说明） */
 export type TsharkSessionFilter = 'all' | 'running' | 'stopped' | 'error'

@@ -99,13 +99,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/SyncTaskView.vue"),
         meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
       },
-      {
-        // 临时验证页（验证完删除）：ReFilePicker 新增能力（右键菜单 / 预览 / 数量与类型限制）。
-        path: "/tmp-picker-lab",
-        name: "TmpPickerLab",
-        component: () => import("./views/TmpPickerLab.vue"),
-        meta: { title: "临时选择器验证", showLink: false, rank: 99 },
-      },
     ],
   },
 

@@ -76,6 +76,11 @@ export interface UseFilePickerReturn {
   /** 是否已达选择上限 */
   isLimitReached: ComputedRef<boolean>;
 
+  /** 拉取某目录的原始条目（分栏视图按列懒加载时复用，不改当前路径 / 历史） */
+  fetchItems: (path: string) => Promise<FilePickerItem[]>;
+  /** 对任意条目列表套用 accept 过滤 + 搜索 + 排序（分栏视图逐列复用） */
+  prepareItems: (list: FilePickerItem[]) => FilePickerItem[];
+
   load: (path?: string) => Promise<void>;
   refresh: () => Promise<void>;
   reset: (path: string) => Promise<void>;
@@ -319,14 +324,24 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
       .slice(0, 30),
   );
 
-  /** 过滤后的行（不含「..」/上级目录、按 accept + 搜索词筛） */
-  const rows = computed<FilePickerItem[]>(() => {
+  /**
+   * 对任意条目列表套用 accept 过滤 + 搜索 + 排序。
+   *
+   * <p>从 {@code rows} 抽出来，供 macOS 式分栏视图逐列复用：每一列的原始数据
+   * 走同一个过滤/排序口径，搜索词变化时各列一起收窄。</p>
+   */
+  const prepareItems = (list: FilePickerItem[]): FilePickerItem[] => {
     const acceptFilter = buildAcceptFilter(options.accept());
-    let list = items.value.filter((item) => !isParentEntry(item) && acceptFilter(item));
+    let out = list.filter((item) => acceptFilter(item));
     const q = searchText.value.trim().toLowerCase();
-    if (q) list = list.filter((item) => item.name.toLowerCase().includes(q));
-    return [...list].sort((a, b) => compareItems(a, b, sortKey.value, sortAsc.value));
-  });
+    if (q) out = out.filter((item) => item.name.toLowerCase().includes(q));
+    return [...out].sort((a, b) => compareItems(a, b, sortKey.value, sortAsc.value));
+  };
+
+  /** 过滤后的行（不含「..」/上级目录、按 accept + 搜索词筛） */
+  const rows = computed<FilePickerItem[]>(() =>
+    prepareItems(items.value.filter((item) => !isParentEntry(item))),
+  );
 
   const searching = computed(() => searchText.value.trim().length > 0);
   const selectedCount = computed(() => selectedItems.value.length);
@@ -563,6 +578,8 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     limitHint,
     canSelect,
     isLimitReached,
+    fetchItems,
+    prepareItems,
     load,
     refresh,
     reset,

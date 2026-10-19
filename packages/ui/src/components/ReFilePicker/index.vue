@@ -21,7 +21,7 @@
         :loading="loading"
         :can-back="history.length > 0"
         @back="goBack"
-        @refresh="refresh"
+        @refresh="refreshAll"
         @navigate="navigateTo"
       />
 
@@ -33,7 +33,21 @@
           @navigate="navigateTo"
         />
 
+        <FilePickerColumns
+          v-if="viewMode === 'columns'"
+          ref="columnsRef"
+          :base-path="currentPath"
+          :reload-key="columnsReloadKey"
+          :fetch-items="fetchItems"
+          :prepare-items="prepareItems"
+          :is-selected="isSelected"
+          :can-select="canSelect"
+          @pick="onColumnPick"
+          @open="onOpen"
+        />
+
         <FilePickerList
+          v-else
           ref="listRef"
           :rows="rows"
           :columns="columns"
@@ -180,6 +194,7 @@ import {
   InfoFilled,
   List,
   Menu,
+  Operation,
   Refresh,
   Sort,
   Tickets,
@@ -200,6 +215,7 @@ import { useFilePicker } from "./composables/useFilePicker";
 import FilePickerToolbar from "./components/FilePickerToolbar.vue";
 import FilePickerSidebar from "./components/FilePickerSidebar.vue";
 import FilePickerList from "./components/FilePickerList.vue";
+import FilePickerColumns from "./components/FilePickerColumns.vue";
 import FilePickerContextMenu from "./components/FilePickerContextMenu.vue";
 import FilePickerPropertiesDialog from "./components/FilePickerPropertiesDialog.vue";
 import FilePickerPreviewDialog from "./components/FilePickerPreviewDialog.vue";
@@ -295,6 +311,7 @@ const viewModeOptions: Array<{ key: FilePickerViewMode; label: string; icon: Com
   { key: "largeIcons", label: "大图标", icon: Grid },
   { key: "mediumIcons", label: "中图标", icon: Menu },
   { key: "smallIcons", label: "小图标", icon: Tickets },
+  { key: "columns", label: "分栏", icon: Operation },
 ];
 
 /** 切换视图：内部先改，再通知宿主（宿主可 v-model:view 持久化） */
@@ -319,6 +336,10 @@ const onSortCommand = (key: FilePickerSortKey): void => {
 const rootRef = ref<HTMLElement | null>(null);
 /** 列表组件实例：键盘二维导航 + DOM 焦点同步由它负责 */
 const listRef = ref<{ moveActive: (direction: "up" | "down" | "left" | "right", focus?: boolean) => void } | null>(null);
+/** 分栏组件实例：分栏模式下键盘导航交给它（列栈在组件内部） */
+const columnsRef = ref<{ handleKey: (event: KeyboardEvent, focus?: boolean) => boolean } | null>(null);
+/** 分栏栈的重载信号：刷新 / 重新打开时 +1，让分栏组件整栈重取 */
+const columnsReloadKey = ref(0);
 
 const {
   currentPath,
@@ -343,6 +364,8 @@ const {
   limitHint,
   canSelect,
   isLimitReached,
+  fetchItems,
+  prepareItems,
   load,
   refresh,
   reset,
@@ -373,6 +396,22 @@ const {
 /** 列表组件的键盘导航回传高亮位（二维寻路在列表里按真实布局算） */
 const onMoveActive = (index: number): void => {
   activeIndex.value = index;
+};
+
+/** 工具栏刷新：重载当前目录，同时让分栏栈整栈重取 */
+const refreshAll = (): void => {
+  columnsReloadKey.value += 1;
+  refresh();
+};
+
+/**
+ * 分栏视图点选：目录（可选中时）与文件统一走 selectItem。
+ *
+ * <p>不传 Shift —— 区间连选以「当前目录」为锚点，跨列不成立；
+ * Ctrl/⌘ 加减选照常保留。</p>
+ */
+const onColumnPick = (item: FilePickerItem, event?: MouseEvent): void => {
+  selectItem(item, event ? { ctrlKey: event.ctrlKey, metaKey: event.metaKey } : undefined);
 };
 
 /**
@@ -695,6 +734,27 @@ const onKeydown = (event: KeyboardEvent): void => {
   const target = event.target as HTMLElement | null;
   const inField = !!target?.closest("input, textarea, [contenteditable='true']");
 
+  // 分栏模式：列栈在组件内部，←/→ 跨列、↑/↓ 列内、回车进入/打开都交给它；
+  // 退格仍是返回上一级，由这里兜底。
+  if (viewMode.value === "columns") {
+    if (inField) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        columnsRef.value?.handleKey(event, false);
+      }
+      return;
+    }
+    if (columnsRef.value?.handleKey(event, true)) {
+      event.preventDefault();
+      return;
+    }
+    if (event.key === "Backspace") {
+      event.preventDefault();
+      goBack();
+    }
+    return;
+  }
+
   if (event.key === "ArrowDown") {
     event.preventDefault();
     listRef.value?.moveActive("down", !inField);
@@ -783,6 +843,7 @@ watch(
  */
 .rfp {
   --rfp-radius: 4px;
+  --rfp-radius-lg: 8px;
   --rfp-chrome: var(--el-fill-color-lighter, #f5f5f5);
   --rfp-surface: var(--el-bg-color, #fff);
   --rfp-head: var(--el-fill-color-light, #f5f7fa);
@@ -794,12 +855,17 @@ watch(
   --rfp-select-bg: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
   --rfp-select-border: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
   --rfp-folder: #f7b500;
+  /* 轻科技派生令牌：都从主色 mix 出来，换主题色自动跟随，不写死蓝 */
+  --rfp-hair: color-mix(in srgb, var(--rfp-accent) 18%, transparent);
+  --rfp-glow: color-mix(in srgb, var(--rfp-accent) 22%, transparent);
+  --rfp-accent-soft: color-mix(in srgb, var(--rfp-accent) 9%, transparent);
+  --rfp-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   display: flex;
   flex-direction: column;
   height: clamp(360px, 62vh, 560px);
-  border: 1px solid var(--rfp-border);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--rfp-accent) 12%, var(--rfp-border));
+  border-radius: var(--rfp-radius-lg);
   background: var(--rfp-surface);
   overflow: hidden;
   outline: none;
@@ -824,14 +890,25 @@ watch(
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  border-top: 1px solid var(--rfp-border);
-  background: var(--rfp-chrome);
+  border-top: 1px solid color-mix(in srgb, var(--rfp-accent) 14%, var(--rfp-border));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--rfp-accent) 3%, var(--rfp-chrome)),
+    var(--rfp-chrome)
+  );
   color: var(--rfp-text-weak);
   font-size: 12px;
 }
 
 .rfp__status-count {
   flex-shrink: 0;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--rfp-accent-soft);
+  color: var(--rfp-accent);
+  font-family: var(--rfp-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .rfp__selected-label {
@@ -852,29 +929,32 @@ watch(
   font-weight: 600;
 }
 
-/* 视图切换（状态栏右侧）：详细信息 / 大图标 / 中图标 / 小图标 */
+/* 视图切换（状态栏右侧）：详细信息 / 大图标 / 中图标 / 小图标 / 分栏 */
 .rfp__views {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-left: 4px;
-  padding-left: 8px;
+  margin-left: 8px;
+  padding: 2px;
   border-left: 1px solid var(--rfp-border);
+  padding-left: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rfp-text) 6%, transparent);
 }
 
 .rfp-view-btn {
   width: 26px;
-  height: 24px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--rfp-radius);
+  border-radius: 999px;
   background: transparent;
   color: var(--rfp-text-weak);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
 .rfp-view-btn:hover {
@@ -883,8 +963,9 @@ watch(
 }
 
 .rfp-view-btn.is-active {
-  background: var(--rfp-select-bg);
+  background: var(--rfp-surface);
   color: var(--rfp-accent);
+  box-shadow: 0 0 0 1px var(--rfp-hair), 0 1px 3px color-mix(in srgb, var(--rfp-accent) 18%, transparent);
 }
 
 .rfp-view-btn:focus-visible {
@@ -907,19 +988,20 @@ watch(
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
-  border: none;
-  border-radius: var(--rfp-radius);
-  background: transparent;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--rfp-accent) 16%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rfp-accent) 5%, transparent);
   color: var(--rfp-text-weak);
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .rfp-sort-btn:hover {
-  background: var(--rfp-hover);
+  background: var(--rfp-accent-soft);
+  border-color: var(--rfp-hair);
   color: var(--rfp-accent);
 }
 
@@ -963,5 +1045,30 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+</style>
+
+<!--
+  轻科技·留白：弹窗外壳。
+  非 scoped，但选择器都锚在 .re-file-picker 上，只影响本选择器自己的弹窗，
+  不碰其它 el-dialog；头部加主色发丝线，底部主按钮给一点轻投影。
+-->
+<style>
+.re-file-picker .el-dialog__header,
+.el-dialog.re-file-picker .el-dialog__header {
+  margin-right: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+}
+
+.re-file-picker .el-dialog__title,
+.el-dialog.re-file-picker .el-dialog__title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.re-file-picker .el-dialog__footer .el-button--primary,
+.el-dialog.re-file-picker .el-dialog__footer .el-button--primary {
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
 }
 </style>

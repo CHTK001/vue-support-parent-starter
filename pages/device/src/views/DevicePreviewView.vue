@@ -106,14 +106,9 @@
           <div class="dpv-panel__ops">
             <el-segmented v-model="protocol" :options="protocolSegments" size="small" @change="onProtocolChange" />
             <el-segmented v-model="layout" :options="layoutSegments" size="small" />
+            <ReButton icon="RefreshRight" layout="square" tip="重载全部画面" :disabled="!wall.length" :loading="reloading" @click="reloadAll" />
+            <el-segmented v-model="viewMode" :options="viewModeSegments" size="small" />
             <ReButton
-              icon="RefreshRight"
-              layout="square"
-              tip="重载全部画面"
-              :disabled="!wall.length"
-              :loading="reloading"
-              @click="reloadAll"
-            />
             <ReButton
               v-if="!standalone"
               icon="TopRight"
@@ -125,7 +120,16 @@
           </div>
         </header>
 
+        <!-- 3D 机柜视图 -->
+        <ReMachineRoom
+          v-if="viewMode === 'room'"
+          :tiles="wall"
+          @select="onRoomSelect"
+        />
+
+        <!-- 网格视图 -->
         <div
+          v-else
           class="dpv-grid"
           :class="{ 'is-dragging': dragActive }"
           :style="gridStyle"
@@ -305,6 +309,7 @@ import ReStatCard from '@repo/ui/re-stat-card'
 import ReTag from '@repo/ui/re-tag'
 
 import ReVideo from '../components/ReVideo.vue'
+import ReMachineRoom from '../components/ReMachineRoom.vue'
 import deviceApi from '../api/deviceApi'
 import type { DeviceChannel, DeviceInfo } from '../types/device'
 
@@ -323,6 +328,11 @@ const protocolSegments = [
   { label: 'HLS', value: 'hls' },
   { label: 'FLV', value: 'flv' },
   { label: 'RTSP', value: 'rtsp' },
+]
+
+const viewModeSegments = [
+  { label: '网格', value: 'grid' },
+  { label: '机柜', value: 'room' },
 ]
 
 const layoutSegments = [
@@ -356,10 +366,13 @@ interface RepairCfg {
 
 const devices = ref<DeviceInfo[]>([])
 const wall = ref<Tile[]>([])
+const selectedDevice = ref<DeviceInfo | null>(null)
+const activeTab = ref('overview')
 const keyword = ref('')
 const filters = reactive({ online: 'all' })
 const protocol = ref('hls')
 const layout = ref('4')
+const viewMode = ref<'grid' | 'room'>('grid')
 const reloading = ref(false)
 /** 左侧：完整清单 / 折叠导轨 / 完全隐藏 */
 const sideMode = ref<'full' | 'mini' | 'hidden'>('full')
@@ -496,6 +509,25 @@ function onProtocolChange(): void {
 }
 
 /* ============================ 画面 ============================ */
+
+function onRoomSelect(tile: { deviceId: string }): void {
+  const d = devices.value.find((x) => x.deviceInfoId === tile.deviceId)
+  if (d) selectDevice(d)
+}
+
+function selectDevice(dev: DeviceInfo) {
+  selectedDevice.value = dev
+  activeTab.value = 'overview'
+  void fetchChannelList(dev.deviceInfoId)
+}
+
+async function fetchChannelList(deviceId: string) {
+  // 选设备时预拉通道（不在这里阻塞，异步拉）
+  try {
+    const chs = ((await deviceApi.listChannels(deviceId)) as DeviceChannel[]) || []
+    channelNos.value = { ...channelNos.value, [deviceId]: chs.map((c) => c.deviceChannelNo) }
+  } catch { /* ignore */ }
+}
 
 function isOnWall(deviceId: string): boolean {
   return wall.value.some((t) => t.deviceId === deviceId)
@@ -1230,13 +1262,13 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   gap: 2px;
 }
 .dpv-dev__name {
-  font-size: 13.5px;
+  font-size: 12.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .dpv-dev__meta {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--el-text-color-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1286,7 +1318,8 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   opacity: 0.6;
 }
 .dpv-tile__blank-text {
-  font-size: 12px;
+  font-size: 11px;
+  opacity: 0.75;
 }
 .dpv-tile__head {
   position: absolute;
@@ -1295,11 +1328,19 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   right: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  font-size: 12px;
-  color: #fff;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+  gap: 5px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.92);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.dpv-tile:hover .dpv-tile__head,
+.dpv-tile__head:has(~ *:hover) {
+  opacity: 1;
 }
 .dpv-tile__dot {
   flex: none;
@@ -1314,13 +1355,16 @@ watch([wall, layout, protocol], persistWall, { deep: true })
 .dpv-tile__name {
   flex: 1;
   min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .dpv-tile__ch {
   flex: none;
-  opacity: 0.75;
+  font-size: 10.5px;
+  opacity: 0.8;
 }
 .dpv-tile__op {
   flex: none;
@@ -1337,10 +1381,15 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   bottom: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  gap: 5px;
+  padding: 5px 8px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 2;
 }
+.dpv-tile:hover .dpv-tile__foot { opacity: 1; }
 .dpv-tile__chsel {
   width: 84px;
   flex: none;

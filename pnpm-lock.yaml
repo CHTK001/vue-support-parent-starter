@@ -653,6 +653,9 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@types/leaflet':
+        specifier: ^1.9.22
+        version: 1.9.22
       axios:
         specifier: 'catalog:'
         version: 1.19.0
@@ -665,9 +668,15 @@ importers:
       hls.js:
         specifier: 'catalog:'
         version: 1.6.16
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       pinia:
         specifier: 'catalog:'
         version: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
+      three:
+        specifier: ^0.185.1
+        version: 0.185.1
       vue:
         specifier: 'catalog:'
         version: 3.5.40(typescript@5.9.3)
@@ -952,6 +961,9 @@ importers:
       '@pages/datasource':
         specifier: workspace:*
         version: link:../../pages/datasource
+      '@pages/device':
+        specifier: workspace:*
+        version: link:../../pages/device
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../../pages/filesystem

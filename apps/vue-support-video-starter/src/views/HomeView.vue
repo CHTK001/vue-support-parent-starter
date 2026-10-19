@@ -1,17 +1,17 @@
 <script setup lang="ts">
 /**
- * 主页 —— 信息流首页（第二版）
+ * 主页（第三版 · 参照站复刻）
  *
- * 结构：热播 Hero（大图轮播焦点区）+ 分类内容区（电影/剧集/动漫/综艺
- *       各一行横向海报墙）+ 评分角标卡片。
- * 交互：Hero 轮播自动切换、分类区横向滚动、卡片悬停上浮。
+ * 参照站首页结构：`.slideBox`（左大图轮播 + 右缩略列表）+ 若干 `.wrap`
+ * （h2 区块标题 + 6 列海报栅格）。
+ *
  * 数据：datasearch-starter 多源 Provider 同步的库内数据。
  */
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { CaretRight } from "@element-plus/icons-vue";
 import { fetchVideoList } from "@/api/videoApi";
 import type { VideoInfo } from "@/types/video";
+import VideoCard from "@/components/VideoCard.vue";
 
 const router = useRouter();
 
@@ -22,9 +22,10 @@ const heroList = ref<VideoInfo[]>([]);
 const sections = ref<{ key: string; label: string; type: string; list: VideoInfo[] }[]>([]);
 const heroIndex = ref(0);
 
+/** 首页分类区（每区 12 部 = 6 列 × 2 行） */
 const SECTIONS = [
-  { key: "movie", label: "热门电影", type: "movie" },
-  { key: "tv", label: "热门剧集", type: "tv" },
+  { key: "movie", label: "最近更新的电影", type: "movie" },
+  { key: "tv", label: "最近更新的剧集", type: "tv" },
   { key: "anime", label: "人气动漫", type: "anime" },
   { key: "variety", label: "综艺娱乐", type: "variety" },
 ] as const;
@@ -32,16 +33,26 @@ const SECTIONS = [
 let heroTimer: ReturnType<typeof setInterval> | null = null;
 
 /** 当前 Hero 影片 */
-const hero = computed(() => heroList.value[heroIndex.value]);
+const hero = computed(() => heroList.value[heroIndex.value] ?? null);
+
+/** Hero 副标题（年份 · 地区 · 类型） */
+const heroSub = computed(() => {
+  const h = hero.value;
+  if (!h) return "";
+  return [h.year, h.district, ...(h.tags ?? []).slice(0, 2)].filter(Boolean).join(" · ");
+});
 
 /* ── 数据加载 ─────────────────────────────── */
 async function load() {
   loading.value = true;
   error.value = "";
   try {
-    // 热播：取评分最高的前 5 部作为焦点区
-    const hot = await fetchVideoList({ page: 1, pageSize: 5 });
-    heroList.value = [...(hot.list ?? [])].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
+    // 焦点区：取评分最高的前 3 部（参照站右侧列表正好 3 项）
+    const hot = await fetchVideoList({ page: 1, pageSize: 12 });
+    heroList.value = [...(hot.list ?? [])]
+      .filter((v) => v.cover)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 3);
     // 分类区：每类取 12 部
     sections.value = await Promise.all(
       SECTIONS.map(async (s) => {
@@ -79,6 +90,10 @@ function selectHero(i: number) {
   startHeroLoop();
 }
 
+function heroMeta(item: VideoInfo) {
+  return [item.year, item.district, ...(item.tags ?? []).slice(0, 3)].filter(Boolean).join(" / ");
+}
+
 function goWatch(item: VideoInfo) {
   void router.push({ name: "watch", params: { id: item.id } });
 }
@@ -94,298 +109,317 @@ onUnmounted(stopHeroLoop);
 <template>
   <div class="vd-page vd-home">
     <!-- 加载失败 -->
-    <div v-if="error && !loading" class="vds-load-error">
+    <div v-if="error && !loading" class="vd-empty">
       <el-empty :description="error">
         <el-button type="primary" @click="load">重试</el-button>
       </el-empty>
     </div>
 
-    <!-- ── 热播 Hero ─────────────────────────── -->
-    <section v-else-if="hero" :key="hero.id" class="vds-hero" aria-label="热播推荐">
-      <div
-        class="vds-hero-bg"
-        :style="hero.cover ? { backgroundImage: `url(${hero.cover})` } : {}"
-        aria-hidden="true"
-      />
-      <div class="vds-hero-mask" aria-hidden="true" />
-      <div class="vds-hero-content">
-        <span class="vds-hero-badge">热播推荐</span>
-        <h2 class="vds-hero-title">{{ hero.name }}</h2>
-        <p class="vds-hero-meta">
-          <span v-if="hero.score" class="vds-hero-score">{{ hero.score.toFixed(1) }}</span>
-          <span v-if="hero.year">{{ hero.year }}</span>
-          <span v-if="hero.district">{{ hero.district }}</span>
-          <span v-for="tag in hero.tags?.slice(0, 2)" :key="tag">{{ tag }}</span>
-        </p>
-        <p v-if="hero.remark" class="vds-hero-remark">{{ hero.remark }}</p>
-        <div class="vds-hero-actions">
-          <el-button type="primary" size="large" round @click="goWatch(hero)">
-            <el-icon class="vds-hero-play"><CaretRight /></el-icon>
-            立即播放
-          </el-button>
-          <el-button size="large" round class="vds-hero-more" @click="goChannel(hero.videoType ?? 'movie')">
-            查看同类
-          </el-button>
+    <template v-else>
+      <!-- ── 焦点区：大图轮播 + 右侧缩略列表 ────── -->
+      <section v-if="hero" class="vd-hero" aria-label="热播推荐">
+        <div class="vd-hero-main">
+          <div class="vd-hero-slide">
+            <img class="vd-hero-img" :src="hero.cover" :alt="hero.name" />
+            <div class="vd-hero-detail">
+              <h2 class="vd-hero-title">
+                <router-link :to="{ name: 'watch', params: { id: hero.id } }">
+                  {{ hero.name }}
+                </router-link>
+              </h2>
+              <div v-if="heroSub" class="vd-hero-name">{{ heroSub }}</div>
+              <p v-if="hero.remark" class="vd-hero-info">{{ hero.remark }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="vd-hero-aside">
+          <ul>
+            <li
+              v-for="(item, i) in heroList"
+              :key="item.id"
+              :class="{ on: i === heroIndex }"
+              @mouseenter="selectHero(i)"
+            >
+              <a href="#" @click.prevent="selectHero(i)">
+                <div class="img">
+                  <img v-if="item.cover" :src="item.cover" :alt="item.name" loading="lazy" />
+                </div>
+                <div class="detail">
+                  <div class="title">{{ item.name }}</div>
+                  <div class="info">{{ heroMeta(item) }}</div>
+                  <div class="info">{{ item.continueInfo || item.remark }}</div>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ── 分类内容区 ───────────────────────── -->
+      <section v-for="sec in sections" :key="sec.key" class="vd-section">
+        <div class="vd-section-head">
+          <h2 class="vd-section-title">{{ sec.label }}</h2>
+          <a class="vd-section-more" href="#" @click.prevent="goChannel(sec.type)">更多 ❯</a>
+        </div>
+
+        <div v-if="sec.list.length" class="vd-grid">
+          <VideoCard v-for="item in sec.list" :key="item.id" :item="item" />
+        </div>
+        <el-empty v-else description="暂无内容" :image-size="90" />
+      </section>
+
+      <!-- 骨架 -->
+      <div v-if="loading" class="vd-grid vd-home-skeleton" aria-hidden="true">
+        <div v-for="i in 6" :key="i" class="vd-skeleton-col">
+          <div class="vd-poster-skeleton" />
         </div>
       </div>
 
-      <!-- 轮播指示 -->
-      <div v-if="heroList.length > 1" class="vds-hero-dots" role="tablist" aria-label="热播切换">
-        <button
-          v-for="(h, i) in heroList"
-          :key="h.id"
-          type="button"
-          role="tab"
-          class="vds-hero-dot"
-          :class="{ 'is-active': heroIndex === i }"
-          :aria-selected="heroIndex === i"
-          :aria-label="h.name"
-          @click="selectHero(i)"
-        />
+      <div v-if="!loading && !heroList.length && !error" class="vd-empty">
+        <el-empty description="暂无影片数据" />
       </div>
-    </section>
-
-    <!-- 骨架 -->
-    <div v-if="loading" class="vds-hero vd-poster-skeleton" aria-busy="true" />
-
-    <!-- ── 分类内容区 ────────────────────────── -->
-    <section v-for="s in sections" :key="s.key" class="vd-section" :aria-label="s.label">
-      <div class="vd-section-head">
-        <h3 class="vd-section-title">
-          <span class="vd-section-bar" aria-hidden="true" />
-          {{ s.label }}
-        </h3>
-        <router-link :to="{ name: 'channel', params: { type: s.type } }" class="vd-section-more">
-          更多 ›
-        </router-link>
-      </div>
-
-      <div class="vd-rail">
-        <article
-          v-for="item in s.list"
-          :key="item.id"
-          class="vd-card"
-          tabindex="0"
-          role="button"
-          :aria-label="`播放 ${item.name}`"
-          @click="goWatch(item)"
-          @keydown.enter="goWatch(item)"
-        >
-          <div class="vd-poster">
-            <img v-if="item.cover" :src="item.cover" :alt="`${item.name} 封面`" loading="lazy" />
-            <div v-else class="vd-poster-fallback" aria-hidden="true">
-              <span class="vds-fallback-name">{{ item.name.slice(0, 4) }}</span>
-            </div>
-            <span v-if="item.score" class="vd-score">{{ item.score.toFixed(1) }}</span>
-            <span v-if="item.year" class="vd-year">{{ item.year }}</span>
-          </div>
-          <div class="vd-card-body">
-            <h4 class="vd-name" :title="item.name">{{ item.name }}</h4>
-            <p class="vd-meta"><span v-if="item.district">{{ item.district }}</span></p>
-          </div>
-        </article>
-      </div>
-    </section>
+    </template>
   </div>
 </template>
 
 <style scoped>
-/* ── Hero 焦点区 ─────────────────────────── */
-.vds-hero {
+/* ═══════════════════════════════════════════
+   焦点区（对齐参照站 .slideBox：1385×475）
+   ═══════════════════════════════════════════ */
+.vd-hero {
   position: relative;
-  border-radius: var(--vd-radius-xl);
+  height: 475px;
+  margin-top: 0;
+}
+
+.vd-hero-main {
+  position: absolute;
+  inset: 0 435px 0 0;
+  border-radius: 5px;
   overflow: hidden;
-  min-height: 460px;
-  display: flex;
-  align-items: flex-end;
-  box-shadow: var(--vd-shadow-lg);
-  margin-bottom: 40px;
-  border: 1px solid var(--vd-border);
-  animation: vds-hero-fade 0.5s var(--vd-ease);
+  background: var(--vd-surface);
 }
 
-@keyframes vds-hero-fade {
-  from {
-    opacity: 0.6;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.vds-hero-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center 22%;
-  background-color: var(--vd-bg-deep);
-  transform: scale(1.03);
-  transition: transform 7s ease;
-}
-
-.vds-hero:hover .vds-hero-bg {
-  transform: scale(1.08);
-}
-
-.vds-hero-mask {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--vd-bg-deep) 94%, transparent) 0%,
-      color-mix(in srgb, var(--vd-bg-deep) 62%, transparent) 46%,
-      transparent 78%
-    ),
-    linear-gradient(
-      180deg,
-      transparent 42%,
-      color-mix(in srgb, var(--vd-bg-deep) 88%, transparent) 100%
-    );
-}
-
-.vds-hero-content {
+.vd-hero-slide {
   position: relative;
-  padding: 44px 48px 46px;
-  max-width: 660px;
+  width: 100%;
+  height: 100%;
 }
 
-.vds-hero-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, var(--vd-primary-strong), var(--vd-secondary));
-  color: #1a1206;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 3px;
-  padding: 5px 14px;
-  border-radius: 999px;
-  margin-bottom: 16px;
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--vd-primary) 40%, transparent);
+.vd-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.vds-hero-title {
-  margin: 0 0 12px;
-  font-size: 38px;
-  font-weight: 800;
-  color: var(--vd-text);
-  line-height: 1.16;
-  letter-spacing: 0.5px;
-  text-shadow: 0 2px 24px color-mix(in srgb, var(--vd-bg-deep) 70%, transparent);
+/* 底部压暗，保证白字可读 */
+.vd-hero-main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 85%) 0%,
+    rgb(0 0 0 / 45%) 32%,
+    rgb(0 0 0 / 0%) 68%
+  );
+  pointer-events: none;
 }
 
-.vds-hero-meta {
+.vd-hero-detail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 20px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 12px;
-  color: color-mix(in srgb, var(--vd-text) 85%, transparent);
-  font-size: 13px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
 }
 
-.vds-hero-score {
-  color: var(--vd-gold);
-  font-weight: 800;
+.vd-hero-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 36px;
+}
+
+.vd-hero-title a {
+  color: #fff;
+}
+
+.vd-hero-title a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.vd-hero-name {
   font-size: 16px;
+  line-height: 24px;
+  color: #e6e6e6;
 }
 
-.vds-hero-remark {
-  margin: 0 0 22px;
-  color: color-mix(in srgb, var(--vd-text) 72%, transparent);
-  font-size: 13.5px;
-  line-height: 1.8;
+.vd-hero-info {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: #e6e6e6;
+  overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  max-width: 540px;
+}
+
+/* ── 右侧缩略列表（416 宽，每项 145 高） ── */
+.vd-hero-aside {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 416px;
+}
+
+.vd-hero-aside ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vd-hero-aside li {
+  flex: 1;
+  min-height: 0;
+}
+
+.vd-hero-aside li > a {
+  display: flex;
+  height: 100%;
+  color: inherit;
+}
+
+.vd-hero-aside .img {
+  flex-shrink: 0;
+  width: 97px;
+  background: var(--vd-surface);
+  border-radius: 5px 0 0 5px;
   overflow: hidden;
 }
 
-.vds-hero-actions {
+.vd-hero-aside .img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vd-hero-aside .detail {
+  flex: 1;
+  min-width: 0;
+  background: var(--vd-surface);
+  border-radius: 0 5px 5px 0;
+  padding: 20px;
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
 }
 
-.vds-hero-play {
-  margin-right: 6px;
+.vd-hero-aside .title {
+  font-size: 16px;
+  line-height: 24px;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.vds-hero-more {
-  background: color-mix(in srgb, var(--vd-text) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--vd-text) 24%, transparent);
-  color: var(--vd-text);
-  backdrop-filter: blur(8px);
+.vd-hero-aside .info {
+  font-size: 13px;
+  line-height: 19.5px;
+  color: var(--vd-text-2);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.vds-hero-more:hover {
-  background: color-mix(in srgb, var(--vd-text) 14%, transparent);
-  border-color: color-mix(in srgb, var(--vd-text) 44%, transparent);
-  color: var(--vd-text);
+/* 选中态：浅蓝底（参照站 --ebg） */
+.vd-hero-aside li.on .img,
+.vd-hero-aside li.on .detail {
+  background: var(--vd-primary-soft);
 }
 
-/* 轮播指示点 */
-.vds-hero-dots {
-  position: absolute;
-  right: 36px;
-  bottom: 36px;
-  display: flex;
-  gap: 8px;
+.vd-hero-aside a:hover .title {
+  color: var(--vd-primary);
 }
 
-.vds-hero-dot {
-  width: 22px;
-  height: 4px;
-  border: none;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--vd-text) 32%, transparent);
-  cursor: pointer;
-  padding: 0;
-  transition: all var(--vd-fast) var(--vd-ease);
+/* ═══════════════════════════════════════════
+   骨架
+   ═══════════════════════════════════════════ */
+.vd-home-skeleton {
+  margin-top: 20px;
 }
 
-.vds-hero-dot:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+.vd-skeleton-col .vd-poster-skeleton {
+  aspect-ratio: 2 / 3;
 }
 
-.vds-hero-dot.is-active {
-  background: linear-gradient(90deg, var(--vd-primary-strong), var(--vd-secondary));
-  width: 40px;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 60%, transparent);
-}
-
-.vds-fallback-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--vd-primary-strong);
-  text-align: center;
-  padding: 0 8px;
-}
-
-@media (max-width: 640px) {
-  .vds-hero {
-    min-height: 340px;
+/* ═══════════════════════════════════════════
+   响应式
+   ═══════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .vd-hero {
+    height: 400px;
   }
-  .vds-hero-content {
-    padding: 24px 22px 26px;
+  .vd-hero-aside {
+    width: 320px;
   }
-  .vds-hero-title {
-    font-size: 25px;
-  }
-  .vds-hero-dots {
-    right: 20px;
-    bottom: 20px;
+  .vd-hero-main {
+    inset: 0 340px 0 0;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .vds-hero,
-  .vds-hero-bg,
-  .vds-hero:hover .vds-hero-bg,
-  .vds-hero-dot {
-    transition: none;
-    animation: none;
-    transform: none;
+@media (max-width: 760px) {
+  .vd-hero {
+    height: auto;
+  }
+  .vd-hero-main {
+    position: relative;
+    inset: auto;
+    height: 300px;
+  }
+  .vd-hero-aside {
+    position: static;
+    width: auto;
+    margin-top: 12px;
+  }
+  .vd-hero-aside ul {
+    gap: 10px;
+  }
+  .vd-hero-aside li {
+    min-height: 96px;
+  }
+  .vd-hero-title {
+    font-size: 19px;
+    line-height: 28px;
+  }
+  .vd-hero-info {
+    font-size: 14px;
+    -webkit-line-clamp: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .vd-hero-aside .img {
+    width: 70px;
+  }
+  .vd-hero-aside .detail {
+    padding: 12px;
   }
 }
 </style>

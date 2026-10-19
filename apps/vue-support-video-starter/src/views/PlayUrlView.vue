@@ -1,18 +1,22 @@
 <script setup lang="ts">
 /**
- * 直链播放页 —— 输入/粘贴 URL 即时播放（第二版）
+ * 直链播放页（第三版 · 参照站复刻）
+ *
+ * 参照站「解析」页结构：`.hdfgh`（解析接口下拉）+ `.searchs > .from`
+ * （地址输入 + 按钮）+ `#ckplays`（600px 高的播放区）+ `.tips` 说明。
+ *
+ * 差异说明：本项目直接播放直链（VdPlayer + hls.js），不经过第三方解析
+ * 接口，因此不提供接口下拉，其余版式保持一致。
  *
  * 能力：
  *   - 支持 mp4/webm/ogg/mov 直链与 HLS(m3u8)（VdPlayer 内置 hls.js）
  *   - 历史记录（localStorage，最近 10 条，可回填/删除）
  *   - 站内跳转：支持 /watch/:id 内部地址
- * 交互：回车/按钮播放、加载状态、错误提示。
  */
 import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { VideoCamera, Delete, Link } from "@element-plus/icons-vue";
 import VdPlayer from "@/components/VdPlayer.vue";
 
 const route = useRoute();
@@ -67,6 +71,12 @@ function play(target?: string) {
   saveHistory(u);
 }
 
+/** 清空地址并回到引导态 */
+function clearUrl() {
+  url.value = "";
+  playing.value = false;
+}
+
 function onPlayerError(msg: string) {
   message.error(msg || "地址无法播放，请检查链接有效性、跨域限制或编码格式");
 }
@@ -82,59 +92,55 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="vd-page vd-page--narrow">
-    <header class="vd-header">
-      <div>
-        <h1>直链播放</h1>
-        <p class="vd-subtitle">粘贴视频地址（mp4 / m3u8），回车即时播放</p>
-      </div>
-    </header>
+  <div class="vd-page">
+    <h2 class="vdp-h2">直链解析播放</h2>
 
-    <!-- 地址输入 -->
-    <div class="vd-panel vdp-url-bar">
-      <el-input
+    <!-- 地址输入（参照站 .searchs > .from） -->
+    <div class="vdp-from">
+      <input
         v-model="url"
-        class="vdp-url-input"
-        placeholder="https://example.com/video.mp4"
-        clearable
-        size="large"
+        class="vdp-input"
+        type="text"
+        placeholder="粘贴视频地址，如：https://example.com/video.mp4"
+        autocomplete="off"
         aria-label="视频地址"
         @keyup.enter="play()"
-      >
-        <template #prefix>
-          <el-icon><Link /></el-icon>
-        </template>
-      </el-input>
-      <el-button type="primary" size="large" :disabled="!url.trim()" @click="play()">
-        播放
-      </el-button>
+      />
+      <button type="button" class="vdp-button" @click="play()">开始播放</button>
+      <button type="button" class="vdp-button2" @click="clearUrl">清空</button>
     </div>
 
-    <!-- 播放器 -->
-    <section v-if="playing" class="vd-theater" aria-label="直链播放器">
-      <VdPlayer :url="url" :autoplay="true" @error="onPlayerError" />
-    </section>
-
-    <!-- 未播放时的引导 -->
-    <section v-else class="vdp-guide">
-      <div class="vdp-guide-icon" aria-hidden="true">
-        <el-icon :size="38"><VideoCamera /></el-icon>
+    <!-- 播放区（参照站 #ckplays，高 600px） -->
+    <div class="vdp-stage">
+      <VdPlayer v-if="playing" :url="url" :autoplay="true" @error="onPlayerError" />
+      <div v-else class="vdp-placeholder">
+        <p class="vdp-placeholder-title">支持 mp4 / webm / m3u8(HLS) 直链</p>
+        <p class="vdp-placeholder-sub">
+          粘贴地址到上方输入框并回车即可播放；也可粘贴站内播放页地址，直达详情。
+        </p>
       </div>
-      <p class="vdp-guide-title">支持 mp4 / webm / m3u8(HLS) 直链</p>
-      <p class="vdp-guide-sub">
-        粘贴地址到上方输入框，或从下方历史记录快速回填；也可以粘贴站内播放页地址直达。
-      </p>
-    </section>
+    </div>
+
+    <p class="vdp-tips">
+      说明：浏览器可能因跨域或编码格式限制无法播放部分地址；若长时间无画面，请尝试更换源地址。
+    </p>
 
     <!-- 播放历史 -->
     <section v-if="history.length" class="vdp-history">
-      <h3>最近播放</h3>
+      <h2 class="vdp-h2">最近播放</h2>
       <ul class="vdp-history-list">
         <li v-for="h in history" :key="h" class="vdp-history-item">
           <button type="button" class="vdp-history-link" :title="h" @click="play(h)">
             {{ h }}
           </button>
-          <el-button :icon="Delete" text aria-label="删除记录" @click="removeHistory(h)" />
+          <button
+            type="button"
+            class="vdp-history-del"
+            aria-label="删除记录"
+            @click="removeHistory(h)"
+          >
+            ×
+          </button>
         </li>
       </ul>
     </section>
@@ -142,108 +148,133 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ── 地址输入条 ─────────────────────────── */
-.vdp-url-bar {
+.vdp-h2 {
+  margin: 20px 0;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--vd-text);
+}
+
+/* ── 输入行（参照站 .from） ─────────────── */
+.vdp-from {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  padding: 14px 16px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-.vdp-url-input {
+.vdp-input {
   flex: 1;
+  min-width: 240px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--vd-border-input);
+  border-radius: var(--vd-radius);
+  background: var(--vd-bg);
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--vd-text);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--vd-fast) var(--vd-ease);
 }
 
-.vdp-url-input :deep(.el-input__wrapper) {
-  border-radius: var(--vd-radius-md);
-  background: color-mix(in srgb, var(--vd-text) 6%, transparent);
-  box-shadow: 0 0 0 1px var(--vd-border) inset;
+.vdp-input:focus {
+  border-color: var(--vd-primary);
 }
 
-.vdp-url-input :deep(.el-input__wrapper.is-focus) {
-  box-shadow:
-    0 0 0 1px var(--vd-primary) inset,
-    0 0 18px color-mix(in srgb, var(--vd-primary) 20%, transparent);
+.vdp-input::placeholder {
+  color: var(--vd-text-3);
 }
 
-/* ── 引导占位 ───────────────────────────── */
-.vdp-guide {
+.vdp-button,
+.vdp-button2 {
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--vd-radius);
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--vd-fast) var(--vd-ease);
+}
+
+.vdp-button {
+  background: var(--vd-primary);
+  color: #fff;
+}
+
+.vdp-button:hover {
+  background: var(--vd-primary-dark);
+}
+
+.vdp-button2 {
+  background: var(--vd-chip);
+  color: var(--vd-text);
+}
+
+.vdp-button2:hover {
+  background: var(--vd-border-2);
+}
+
+/* ── 播放区（600px 高黑底） ─────────────── */
+.vdp-stage {
+  height: var(--vd-player-h);
+  background: #000;
+  border-radius: var(--vd-radius);
+  overflow: hidden;
+}
+
+.vdp-placeholder {
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 72px 20px;
-  background: var(--vd-surface-card);
-  border: 1px dashed var(--vd-border-strong);
-  border-radius: var(--vd-radius-lg);
-}
-
-.vdp-guide-icon {
-  width: 76px;
-  height: 76px;
-  border-radius: var(--vd-radius-lg);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  color: var(--vd-primary-strong);
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--vd-primary) 20%, transparent),
-    color-mix(in srgb, var(--vd-secondary) 14%, transparent)
-  );
-  margin-bottom: 8px;
+  gap: 8px;
+  padding: 0 20px;
+  text-align: center;
 }
 
-.vdp-guide-title {
+.vdp-placeholder-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
-  color: var(--vd-text);
+  font-weight: 500;
+  color: rgb(255 255 255 / 85%);
 }
 
-.vdp-guide-sub {
+.vdp-placeholder-sub {
   margin: 0;
-  font-size: 13px;
-  color: var(--vd-text-secondary);
-  text-align: center;
-  max-width: 440px;
-  line-height: 1.75;
+  font-size: 14px;
+  line-height: 24px;
+  color: rgb(255 255 255 / 55%);
+  max-width: 520px;
+}
+
+.vdp-tips {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--vd-text-2);
 }
 
 /* ── 历史 ───────────────────────────────── */
-.vdp-history {
-  margin-top: 28px;
-}
-
-.vdp-history h3 {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--vd-text);
-}
-
 .vdp-history-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  border-top: 1px solid var(--vd-border);
 }
 
 .vdp-history-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: var(--vd-surface-card);
-  border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-sm);
-  padding: 4px 8px 4px 14px;
-  transition: border-color var(--vd-fast) var(--vd-ease);
-}
-
-.vdp-history-item:hover {
-  border-color: color-mix(in srgb, var(--vd-primary) 50%, transparent);
+  gap: 8px;
+  border-bottom: 1px solid var(--vd-border);
 }
 
 .vdp-history-link {
@@ -253,34 +284,48 @@ onMounted(() => {
   background: transparent;
   text-align: left;
   font-family: inherit;
-  font-size: 13px;
-  color: var(--vd-text);
+  font-size: 14px;
+  color: var(--vd-link);
   cursor: pointer;
-  padding: 7px 0;
+  padding: 10px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .vdp-history-link:hover {
-  color: var(--vd-primary-strong);
+  color: var(--vd-primary);
 }
 
-.vdp-history-link:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+.vdp-history-del {
+  border: none;
+  background: transparent;
+  color: var(--vd-text-2);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.vdp-history-del:hover {
+  color: var(--vd-primary);
 }
 
 @media (max-width: 640px) {
-  .vdp-url-bar {
-    flex-direction: column;
-    padding: 12px;
+  .vdp-input {
+    min-width: 0;
+    width: 100%;
+    flex: none;
+  }
+  .vdp-stage {
+    height: 260px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vdp-history-item,
-  .vdp-history-link {
+  .vdp-input,
+  .vdp-button,
+  .vdp-button2 {
     transition: none;
   }
 }

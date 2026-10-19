@@ -64,15 +64,21 @@ const isCurrent = (path: string): boolean => samePath(path, props.currentPath);
   gap: 1px;
   padding: 8px 6px;
   border-right: 1px solid var(--rfp-border);
-  background: var(--rfp-chrome);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--rfp-accent) 3%, var(--rfp-chrome)),
+    var(--rfp-chrome)
+  );
   overflow-y: auto;
 }
 
 .rfp-nav__title {
   padding: 8px 8px 4px;
   color: var(--rfp-text-weak);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
 }
 
 .rfp-nav__title--sub {
@@ -108,10 +114,15 @@ const isCurrent = (path: string): boolean => samePath(path, props.currentPath);
   background: var(--rfp-hover);
 }
 
-/* 选中：浅蓝底 + 左侧主色竖条（资源管理器选中态） */
+/* 选中：主色淡底 + 左侧主色竖条 + 一层很轻的主色投影 */
 .rfp-nav__item.is-active {
-  background: var(--rfp-select-bg);
+  background: linear-gradient(
+    to right,
+    var(--rfp-select-bg),
+    color-mix(in srgb, var(--rfp-accent) 6%, transparent)
+  );
   border-color: var(--rfp-select-border);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--rfp-accent) 12%, transparent);
   font-weight: 600;
 }
 
@@ -119,11 +130,12 @@ const isCurrent = (path: string): boolean => samePath(path, props.currentPath);
   content: "";
   position: absolute;
   left: calc(2px + var(--rfp-tree-depth) * 14px);
-  top: 6px;
-  bottom: 6px;
+  top: 5px;
+  bottom: 5px;
   width: 3px;
   border-radius: 2px;
   background: var(--rfp-accent);
+  box-shadow: 0 0 6px var(--rfp-glow);
 }
 
 .rfp-nav__icon {

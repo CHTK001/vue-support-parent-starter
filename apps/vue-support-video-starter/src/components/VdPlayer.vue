@@ -239,15 +239,17 @@ onBeforeUnmount(destroy);
 .vd-player-wrap {
   position: relative;
   width: 100%;
-  /* 画布留边用深色主题最深一层（视觉上等同纯黑），不再写死 #000 */
-  background: var(--vd-bg-deep);
+  /* 播放器始终是深色画布：用固定的最深一层黑，不随站点主题变浅 */
+  --vp-ink: #0b0b0d;
+  --vp-fg: #f2f2f2;
+  background: var(--vp-ink);
 }
 
 .vd-player-el {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: var(--vd-bg-deep);
+  background: var(--vp-ink);
 }
 
 /* ── 覆盖层 ─────────────────────────────── */
@@ -259,20 +261,19 @@ onBeforeUnmount(destroy);
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: color-mix(in srgb, var(--vd-bg) 92%, transparent);
-  color: var(--vd-text);
+  background: color-mix(in srgb, var(--vp-ink) 92%, transparent);
+  color: var(--vp-fg);
   pointer-events: none;
 }
 
 .vd-player-loading {
-  background: color-mix(in srgb, var(--vd-bg) 55%, transparent);
+  background: color-mix(in srgb, var(--vp-ink) 55%, transparent);
 }
 
 .vd-player-error {
   pointer-events: auto;
-  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
-     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
-  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
+  /* 深底上的浅红，保证与画布的对比度 */
+  color: #fca5a5;
 }
 
 .vd-player-hint-text {
@@ -289,7 +290,7 @@ onBeforeUnmount(destroy);
   width: 38px;
   height: 38px;
   border: 3px solid color-mix(in srgb, var(--vd-primary) 22%, transparent);
-  border-top-color: var(--vd-primary-strong);
+  border-top-color: var(--vd-primary);
   /* 50% 是几何形状（正圆）而非魔法像素，保留 */
   border-radius: 50%;
   animation: vd-spin 0.8s linear infinite;
@@ -312,7 +313,7 @@ onBeforeUnmount(destroy);
   border: none;
   border-radius: 50%;
   background: color-mix(in srgb, var(--vd-primary) 92%, transparent);
-  color: #1a1206;
+  color: #fff;
   font-size: 26px;
   cursor: pointer;
   display: flex;
@@ -332,7 +333,7 @@ onBeforeUnmount(destroy);
 .vd-player-bigplay:focus-visible {
   outline: none;
   /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary) 45%, transparent);
 }
 
 /* 尊重系统「减少动态效果」偏好 */
@@ -344,7 +345,7 @@ onBeforeUnmount(destroy);
      静息环；覆盖层上仍有「加载中…」文案，视觉反馈不会丢 */
   .vd-player-spinner {
     animation: none;
-    border-color: color-mix(in srgb, var(--vd-secondary) 70%, transparent);
+    border-color: color-mix(in srgb, var(--vd-primary) 70%, transparent);
   }
 }
 </style>

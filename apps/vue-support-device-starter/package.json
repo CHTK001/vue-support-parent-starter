@@ -10,26 +10,29 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:",
-    "pinia": "catalog:",
-    "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
-    "axios": "catalog:",
-    "hls.js": "catalog:",
-    "flv.js": "catalog:",
-    "@repo/app": "workspace:*",
-    "@repo/core": "workspace:*",
     "@pages/device": "workspace:*",
+    "@repo/app": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/pinia": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/config": "workspace:*",
-    "@repo/pinia": "workspace:*"
+    "@types/leaflet": "^1.9.22",
+    "axios": "catalog:",
+    "element-plus": "catalog:",
+    "flv.js": "catalog:",
+    "hls.js": "catalog:",
+    "leaflet": "^1.9.4",
+    "pinia": "catalog:",
+    "three": "^0.185.1",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
+    "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vue-tsc": "catalog:",
-    "rimraf": "catalog:"
+    "vue-tsc": "catalog:"
   }
 }

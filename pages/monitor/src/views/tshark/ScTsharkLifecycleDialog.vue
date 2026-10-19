@@ -80,7 +80,11 @@
             :key="step.packetId"
             type="button"
             class="lc-step"
-            :class="[step.fromClient ? 'is-request' : 'is-response', phaseClass(step)]"
+            :class="[
+              step.fromClient ? 'is-request' : 'is-response',
+              phaseClass(step),
+              { 'is-retrans': step.retransmission, 'is-reset': step.reset },
+            ]"
             :style="{ top: 10 + i * STEP_H + 'px' }"
             :title="`${step.info || ''}（点击查看报文详情）`"
             @click="emit('open-detail', step.packetId)"
@@ -317,9 +321,13 @@ function formatMs(ms: number): string {
 }
 
 .lc-metric {
-  font-size: 12px;
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 11px;
   font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
   color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
   font-variant-numeric: tabular-nums;
 }
 .lc-tools {
@@ -344,11 +352,11 @@ function formatMs(ms: number): string {
   background: var(--el-text-color-placeholder);
   flex: none;
 }
-.lc-dot.phase-tcp { background: var(--el-color-primary); }
-.lc-dot.phase-tls { background: var(--el-color-warning); }
+.lc-dot.phase-tcp { background: var(--ts-run); }
+.lc-dot.phase-tls { background: var(--el-color-primary); }
 .lc-dot.phase-http { background: var(--el-color-success); }
-.lc-dot.phase-data { background: var(--el-text-color-secondary); }
-.lc-dot.phase-close { background: var(--el-color-danger); }
+.lc-dot.phase-data { background: var(--metric-jvm, #14b8a6); }
+.lc-dot.phase-close { background: var(--metric-disk, #f59e0b); }
 .lc-phase {
   display: inline-flex;
   align-items: center;
@@ -373,6 +381,7 @@ function formatMs(ms: number): string {
   padding: 10px 14px 0;
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
   max-height: 400px;
   overflow: auto;
 }
@@ -386,7 +395,9 @@ function formatMs(ms: number): string {
   background: inherit;
 }
 .lc-lane-label {
-  font-size: 12px;
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   font-weight: 600;
   padding: 2px 10px;
   border-radius: 999px;
@@ -394,7 +405,7 @@ function formatMs(ms: number): string {
   border: 1px solid var(--el-border-color-lighter);
 }
 .lc-lane-label.is-client { color: var(--el-color-primary); }
-.lc-lane-label.is-server { color: var(--el-color-success); }
+.lc-lane-label.is-server { color: var(--ts-run); }
 
 .lc-seq {
   position: relative;
@@ -410,7 +421,8 @@ function formatMs(ms: number): string {
 .lc-lifeline.is-client { left: 18%; }
 .lc-lifeline.is-server { right: 18%; }
 
-/* 每一步是一整行按钮：箭头是视觉，命中区是整行，鼠标不用瞄准细线 */
+/* 每一步是一整行按钮：箭头是视觉，命中区是整行，鼠标不用瞄准细线。
+   线/箭头颜色跟着「阶段」走（--lc-c），方向交给箭头落在哪一侧表达。 */
 .lc-step {
   position: absolute;
   left: 0;
@@ -422,12 +434,24 @@ function formatMs(ms: number): string {
   cursor: pointer;
   color: inherit;
   text-align: center;
+  --lc-c: var(--el-text-color-secondary);
 }
+.lc-step.phase-tcp { --lc-c: var(--ts-run); }
+.lc-step.phase-tls { --lc-c: var(--el-color-primary); }
+.lc-step.phase-http { --lc-c: var(--el-color-success); }
+.lc-step.phase-data { --lc-c: var(--metric-jvm, #14b8a6); }
+.lc-step.phase-close { --lc-c: var(--metric-disk, #f59e0b); }
+.lc-step.is-retrans { --lc-c: var(--metric-disk, #f59e0b); }
+.lc-step.is-reset { --lc-c: var(--el-color-danger); }
 .lc-step__line {
   position: absolute;
   top: 16px;
   height: 1px;
-  background: color-mix(in srgb, var(--el-color-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--lc-c) 62%, transparent);
+}
+/* 重传 / 乱序：虚线，与「正常一次往返」在视觉上分开 */
+.lc-step.is-retrans .lc-step__line {
+  background: repeating-linear-gradient(90deg, var(--lc-c) 0 7px, transparent 7px 12px);
 }
 .lc-step.is-request .lc-step__line { left: 18%; right: 18%; }
 .lc-step.is-response .lc-step__line { left: 18%; right: 18%; }
@@ -441,14 +465,11 @@ function formatMs(ms: number): string {
 }
 .lc-step.is-request .lc-step__arrow {
   right: 18%;
-  border-left: 7px solid var(--el-color-primary);
+  border-left: 7px solid var(--lc-c);
 }
 .lc-step.is-response .lc-step__arrow {
   left: 18%;
-  border-right: 7px solid var(--el-color-success);
-}
-.lc-step.is-response .lc-step__line {
-  background: color-mix(in srgb, var(--el-color-success) 55%, transparent);
+  border-right: 7px solid var(--lc-c);
 }
 .lc-step__label {
   position: relative;
@@ -474,7 +495,7 @@ function formatMs(ms: number): string {
   font-family: var(--el-font-family-mono, monospace);
 }
 .lc-step:hover .lc-step__label {
-  background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+  background: color-mix(in srgb, var(--lc-c) 14%, var(--el-bg-color));
 }
 .lc-step:focus-visible {
   outline: 2px solid var(--el-color-primary);
@@ -486,6 +507,6 @@ function formatMs(ms: number): string {
 .lc-table { box-shadow: none; }
 .lc-dir { font-size: 12px; }
 .lc-dir.is-request { color: var(--el-color-primary); }
-.lc-dir.is-response { color: var(--el-color-success); }
+.lc-dir.is-response { color: var(--ts-run); }
 .lc-muted { color: var(--el-text-color-placeholder); font-size: 12px; }
 </style>

@@ -14,11 +14,12 @@ import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
   getTsharkProtocolStats, getTsharkTopFlows, tsharkPcapUrl, importTsharkPcap,
+  getTsharkTimeline, getTsharkAnomalies,
   openTsharkPacketStream,
 } from '../../api'
 import type {
-  TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
-  TsharkSession, TsharkSessionFilter,
+  TsharkAnomaly, TsharkFlow, TsharkInterface, TsharkPacket, TsharkProtocolStat,
+  TsharkSession, TsharkSessionFilter, TsharkTimelinePoint,
 } from './types'
 
 /** 会话列表每页条数（前端分页） */
@@ -34,6 +35,17 @@ const PACKET_PAGE_SIZE = 20
  * 报文列表不能这么做（可能几十万条），那边仍旧走后端过滤。</p>
  */
 const SESSION_FETCH_SIZE = 200
+
+/**
+ * 从异常里取可读文案。
+ *
+ * <p>接口层正常走信封抛错时 message 就是后端 msg；但 5xx 会被 axios 拦截器直接拒掉，
+ * 这时 message 只有 "AxiosError"，用户看到等于没看到。所以优先取响应体里的 msg。</p>
+ */
+function errorText(e: unknown): string {
+  const err = e as { response?: { data?: { msg?: string } }, message?: string } | null | undefined
+  return err?.response?.data?.msg || err?.message || String(e)
+}
 
 export function useTshark(options: { source?: string; autoSelectFirst?: boolean } = {}) {
   /**
@@ -123,6 +135,11 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   const loadingStats = ref(false)
   const protoStats = ref<TsharkProtocolStat[]>([])
   const topFlows = ref<TsharkFlow[]>([])
+  /** 流量时间轴（桶 = 秒）；桶大小改变由时间轴卡片自己发起重取 */
+  const timeline = ref<TsharkTimelinePoint[]>([])
+  const timelineBucket = ref(10)
+  /** 异常诊断：当前过滤命中的报文里各类故障的条数 */
+  const anomalies = ref<TsharkAnomaly[]>([])
   /**
    * 统计版本号。
    *
@@ -365,6 +382,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     filterError.value = ''
     protoStats.value = []
     topFlows.value = []
+    timeline.value = []
+    anomalies.value = []
     liveCount.value = 0
   }
 
@@ -402,7 +421,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
       if (activeFilter === packetFilter.value.trim()) filterError.value = ''
     } catch (e: any) {
       if (sid !== activeSessionId.value) return
-      const msg = e?.message || String(e)
+      const msg = errorText(e)
       // 过滤表达式的问题展示在过滤条下方，比再弹一个 toast 更好定位
       if (packetFilter.value.trim()) filterError.value = msg
       else message.error('加载数据包失败: ' + msg)
@@ -512,29 +531,65 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     if (sid == null) {
       protoStats.value = []
       topFlows.value = []
+      timeline.value = []
+      anomalies.value = []
       return
     }
     loadingStats.value = true
     const activeFilter = packetFilter.value.trim()
     try {
-      // 两个统计接口互不依赖，并行发；任一失败只清空自己那一份，不影响另一张图
-      const [p, f] = await Promise.allSettled([
+      // 三个统计接口互不依赖，并行发；任一失败只清空自己那一份，不影响其它卡片
+      const [p, f, a] = await Promise.allSettled([
         getTsharkProtocolStats(sid, activeFilter),
         getTsharkTopFlows(sid, 10, activeFilter),
+        getTsharkAnomalies(sid, activeFilter),
       ])
       if (sid !== activeSessionId.value) return
       protoStats.value = p.status === 'fulfilled' ? (p.value as TsharkProtocolStat[]) : []
       topFlows.value = f.status === 'fulfilled' ? (f.value as TsharkFlow[]) : []
+      anomalies.value = a.status === 'fulfilled' ? (a.value as TsharkAnomaly[]) : []
+      // 时间轴按当前桶大小单独取：切桶只重画图，不连带刷新协议 / Top 流
+      void loadTimeline()
       // 过滤命中量超上限时后端返回明确错误，展示给用户而不是静默清空
-      if (activeFilter && (p.status === 'rejected' || f.status === 'rejected')) {
-        const rejected = p.status === 'rejected' ? p.reason : (f as PromiseRejectedResult).reason
+      if (activeFilter && (p.status === 'rejected' || f.status === 'rejected' || a.status === 'rejected')) {
+        const rejected = p.status === 'rejected'
+          ? p.reason
+          : f.status === 'rejected'
+            ? f.reason
+            : (a as PromiseRejectedResult).reason
         if (activeFilter === packetFilter.value.trim()) {
-          filterError.value = rejected?.message || String(rejected)
+          filterError.value = errorText(rejected)
         }
       }
       statsVersion.value++
     } finally {
       loadingStats.value = false
+    }
+  }
+
+  /**
+   * 重取流量时间轴。
+   *
+   * <p>桶大小是可变参数（1 / 5 / 10 / 30 秒），所以不塞进 loadStats 的并行批次：
+   * 用户在图上切一次桶，不该把协议分布和 Top 流也重算一遍。</p>
+   *
+   * @param bucket 桶大小（秒）
+   */
+  async function loadTimeline(bucket = timelineBucket.value) {
+    const sid = activeSessionId.value
+    timelineBucket.value = bucket
+    if (sid == null) {
+      timeline.value = []
+      return
+    }
+    const activeFilter = packetFilter.value.trim()
+    try {
+      const rows = await getTsharkTimeline(sid, bucket, activeFilter)
+      // 竞态丢弃：慢请求回来时可能已切会话或又换了桶
+      if (sid !== activeSessionId.value || bucket !== timelineBucket.value) return
+      timeline.value = (rows ?? []) as TsharkTimelinePoint[]
+    } catch {
+      if (sid === activeSessionId.value && bucket === timelineBucket.value) timeline.value = []
     }
   }
 
@@ -682,7 +737,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
     packetPageSize: PACKET_PAGE_SIZE,
     // 统计
-    loadingStats, protoStats, topFlows, statsVersion,
+    loadingStats, protoStats, topFlows, statsVersion, timeline, timelineBucket, anomalies,
     // 详情
     detailOpen, packetDetail,
     // 实时
@@ -691,7 +746,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     init, loadInterfaces, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
     clearActiveSession, loadPackets, applyPacketFilter, clearPacketFilter,
     filterByProtocol, filterByFlow, refresh, exportCsv,
-    downloadPcap, loadStats, startCapture, stopSession, deleteSession, openPacketDetail,
+    downloadPcap, loadStats, loadTimeline, startCapture, stopSession, deleteSession, openPacketDetail,
     openPacketDetailById,
     importPcap,
   }
