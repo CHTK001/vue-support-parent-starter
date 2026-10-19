@@ -55,7 +55,7 @@
     <MiddlewareGap :text="gap" @retry="refresh" />
 
     <!-- ES 集群 Red 状态全局告警 -->
-    <div v-if="!gap && cluster?.health === 'red'" class="es-red-banner re-surface">
+    <div v-if="!gap && cluster?.status === 'red'" class="es-red-banner re-surface">
       <ReIcon name="WarningFilled" class="es-red-icon" />
       <span class="es-red-text">
         集群状态为 <strong>RED</strong>，存在未分配分片，索引数据存在丢失风险，请尽快处理！
@@ -780,6 +780,20 @@
         </ReButton>
       </template>
     </ReDialog>
+
+    <!-- 添加别名弹框 -->
+    <ReDialog
+      v-model="aliasDialogVisible"
+      title="添加别名"
+      width="460px"
+    >
+      <AliasFormDialog
+        v-if="aliasDialogVisible"
+        :index-options="indices.map(i => ({ label: i.name, value: i.name }))"
+        @submit="onAliasDialogSubmit"
+        @cancel="aliasDialogVisible = false"
+      />
+    </ReDialog>
   </div>
 </template>
 
@@ -815,6 +829,7 @@ import { ReAlert } from "@repo/ui/re-kit";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import AliasFormDialog from "../../components/console/AliasFormDialog.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   addEsAlias,
@@ -1216,6 +1231,10 @@ const queryEmptyText = computed(() =>
 /** 别名管理状态 */
 const aliases = ref<EsAliasRow[]>([]);
 const aliasesLoading = ref(false);
+
+/** 添加别名弹框 */
+const aliasDialogVisible = ref(false);
+const aliasDialogIndex = ref("");
 
 /** 别名表格列 */
 const aliasColumns = [
@@ -1683,42 +1702,18 @@ async function loadAliases() {
 }
 
 async function openAddAlias() {
-  const rows = indices.value;
-  if (rows.length === 0) {
-    message.warning("请先确保已有索引");
+  if (indices.value.length === 0) {
+    message.warning("请先选择一个已有索引");
     return;
   }
-  const indexOptions = rows.map(r => ({ label: r.name, value: r.name }));
-  let aliasName = "";
-  let targetIndex = indexOptions[0]?.value || "";
-  const { value: form } = await ElMessageBox({
-    title: "添加别名",
-    message: h("div", {}, [
-      h("p", { style: "margin-bottom:8px;color:var(--el-text-color-regular)" }, "别名名称"),
-      h(ReInput, {
-        modelValue: aliasName,
-        "onUpdate:modelValue": (v: string) => { aliasName = v; },
-        placeholder: "请输入别名",
-      }),
-      h("p", { style: "margin:12px 0 8px;color:var(--el-text-color-regular)" }, "指向索引"),
-      h(ReSelect, {
-        modelValue: targetIndex,
-        "onUpdate:modelValue": (v: string) => { targetIndex = v; },
-        options: indexOptions,
-        placeholder: "选择一个索引",
-        style: "width:100%",
-      }),
-    ]),
-    confirmButtonText: "添加",
-    cancelButtonText: "取消",
-  }).catch(() => null);
-  if (!form) return;
-  if (!aliasName.trim()) {
-    message.warning("请输入别名名称");
-    return;
-  }
+  aliasDialogIndex.value = indices.value[0].name;
+  aliasDialogVisible.value = true;
+}
+
+async function onAliasDialogSubmit(alias: string, index: string) {
+  aliasDialogVisible.value = false;
   try {
-    await addEsAlias({ alias: aliasName.trim(), index: targetIndex, datasourceId: datasourceId.value });
+    await addEsAlias({ alias, index, datasourceId: datasourceId.value });
     message.success("别名添加成功");
     await loadAliases();
   } catch (e) {
