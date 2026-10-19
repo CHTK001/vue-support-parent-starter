@@ -27,7 +27,7 @@
         :value="items.length"
         :desc="`${totalCalls.toLocaleString()} 次调用`"
         :icon="DataLine"
-        icon-color="#3b82f6"
+        icon-color="var(--apm-accent)"
       />
       <ReStatCard
         size="compact"
@@ -35,7 +35,7 @@
         :value="avgP95 + ' ms'"
         :desc="`P99 ${avgP99} ms · Max ${maxMsAll} ms`"
         :icon="Timer"
-        icon-color="#8b5cf6"
+        icon-color="var(--apm-accent-alt)"
       />
       <ReStatCard
         size="compact"
@@ -43,7 +43,7 @@
         :value="errorEndpoints.length"
         :desc="errorEndpoints.length ? errorEndpoints.join(' · ') : '全部健康'"
         :icon="Warning"
-        :icon-color="errorEndpoints.length ? '#ef4444' : '#22c55e'"
+        :icon-color="errorEndpoints.length ? 'var(--apm-danger)' : 'var(--apm-success)'"
       />
       <ReStatCard
         size="compact"
@@ -51,7 +51,7 @@
         :value="maxErrorRate + ' %'"
         :desc="maxErrorRateEndpoint ? `端点 ${maxErrorRateEndpoint}` : '—'"
         :icon="Warning"
-        :icon-color="maxErrorRate > 5 ? '#ef4444' : maxErrorRate > 1 ? '#f59e0b' : '#22c55e'"
+        :icon-color="maxErrorRate > 5 ? 'var(--apm-danger)' : maxErrorRate > 1 ? 'var(--apm-warning)' : 'var(--apm-success)'"
       />
     </div>
 
@@ -148,9 +148,24 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 import type { EChartsOption } from "echarts";
 import { getEndpoints, getEndpointStats } from "../api/apmApi";
 import type { ApmEndpoint, EndpointStatPoint } from "../api/apmApi";
+import {
+  areaGradient,
+  axisTextColor,
+  baseGrid,
+  baseTooltip,
+  categoryAxis,
+  chartCanvas,
+  chartColor,
+  dangerColor,
+  splitLineColor,
+  tooltipStyle,
+  valueAxis,
+  warningColor,
+} from "../styles/chartTheme";
 
 const items = ref<ApmEndpoint[]>([]);
 const loading = ref(false);
+const trendLoading = ref(false); // 趋势图独立加载状态
 const keyword = ref("");
 const selected = ref<ApmEndpoint | null>(null);
 
@@ -224,6 +239,13 @@ async function load() {
 // ---- 端点调用量趋势（/endpoint-stats 分钟桶）----
 const endpointStats = ref<EndpointStatPoint[]>([]);
 
+/** 时间戳 → HH:MM（趋势图 X 轴） */
+function hm(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /** 趋势图目标端点：选中优先，否则 Top1（调用量最大） */
 function targetEndpoint(): string {
   if (selected.value?.endpoint) return selected.value.endpoint;
@@ -238,10 +260,13 @@ const trendEndpointLabel = computed(() => {
 });
 
 async function loadEndpointTrend() {
+  trendLoading.value = true;
   try {
     endpointStats.value = (await getEndpointStats("", 60, 60)) || [];
   } catch {
     endpointStats.value = [];
+  } finally {
+    trendLoading.value = false;
   }
 }
 
@@ -251,22 +276,30 @@ const endpointTrendOption = computed<EChartsOption>(() => {
   const rows = endpointStats.value
     .filter((p) => p.endpoint === ep)
     .sort((a, b) => a.ts - b.ts);
-  if (!rows.length) return { backgroundColor: "transparent", title: { text: "暂无趋势数据", left: "center", top: "center", textStyle: { color: "rgba(230,237,247,0.4)", fontSize: 12 } } };
-  const hm = (ms: number) => {
-    const d = new Date(ms);
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
+  if (!rows.length) {
+    return {
+      ...chartCanvas(),
+      title: {
+        text: "暂无趋势数据",
+        left: "center",
+        top: "center",
+        textStyle: { color: axisTextColor(), fontSize: 12, fontWeight: 400 },
+      },
+    };
+  }
   return {
-    backgroundColor: "transparent",
-    grid: { left: 44, right: 44, top: 30, bottom: 24 },
-    tooltip: { trigger: "axis" },
-    legend: { data: ["调用量", "平均耗时 ms"], textStyle: { color: "#e6edf7" }, top: 0 },
-    xAxis: { type: "category", boundaryGap: false, data: rows.map((p) => hm(p.ts)), axisLabel: { color: "#e6edf7" } },
-    yAxis: [
-      { type: "value", minInterval: 1, axisLabel: { color: "#e6edf7" } },
-      { type: "value", name: "ms", axisLabel: { color: "#e6edf7" } },
-    ],
+    ...chartCanvas(),
+    grid: baseGrid({ left: 44, right: 44, top: 34 }),
+    tooltip: baseTooltip(),
+    legend: {
+      top: 0,
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 4,
+      textStyle: { color: axisTextColor(), fontSize: 11 },
+    },
+    xAxis: categoryAxis(rows.map((p) => hm(p.ts))),
+    yAxis: [valueAxis({ minInterval: 1 }), valueAxis({ name: "ms" })],
     series: [
       {
         name: "调用量",
@@ -274,8 +307,8 @@ const endpointTrendOption = computed<EChartsOption>(() => {
         smooth: true,
         symbol: "none",
         data: rows.map((p) => p.callCount),
-        lineStyle: { color: "#3b82f6", width: 2 },
-        areaStyle: { color: "rgba(59,130,246,0.2)" },
+        lineStyle: { color: chartColor(0), width: 2 },
+        areaStyle: { color: areaGradient(chartColor(0)) },
       },
       {
         name: "平均耗时 ms",
@@ -284,10 +317,10 @@ const endpointTrendOption = computed<EChartsOption>(() => {
         symbol: "none",
         yAxisIndex: 1,
         data: rows.map((p) => Number(p.avgMs.toFixed(1))),
-        lineStyle: { color: "#f59e0b", width: 2 },
+        lineStyle: { color: warningColor(), width: 2 },
       },
     ],
-  } as EChartsOption;
+  };
 });
 
 let trendTimer: number | undefined;
@@ -296,15 +329,17 @@ function onRowClick(row: Record<string, unknown>) {
   selected.value = row as unknown as ApmEndpoint;
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  // 复用现有 15s 轮询节奏，趋势数据随 load 追加刷新
+  trendTimer = window.setInterval(loadEndpointTrend, 15000);
+});
 
 onBeforeUnmount(() => {
   if (trendTimer) window.clearInterval(trendTimer);
 });
 
-// 耗时分布图（4 柱：avg / p95 / p99 / max）
-const DURATION_COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"];
-
+/** 耗时分布图（4 柱：avg / p95 / p99 / max）—— 颜色走 chartTheme，不硬编码 hex */
 const durationOption = computed<EChartsOption>(() => {
   const ep = selected.value;
   if (!ep) return {};
@@ -313,29 +348,27 @@ const durationOption = computed<EChartsOption>(() => {
   const values = [ep.avgMs, ep.p95Ms, ep.p99Ms, ep.maxMs];
 
   return {
-    backgroundColor: "transparent",
+    ...chartCanvas(),
     grid: { left: 60, right: 30, top: 30, bottom: 40 },
     tooltip: {
       trigger: "item",
-      backgroundColor: "rgba(19,26,43,0.95)",
-      borderColor: "rgba(255,255,255,0.1)",
-      textStyle: { color: "#e6edf7", fontSize: 12 },
+      ...tooltipStyle(),
       formatter: (p: { dataIndex: number; value: number }) =>
         `${ep.endpoint}<br/>${labels[p.dataIndex]}：<b>${(p.value ?? 0).toFixed(1)} ms</b>`,
     },
     xAxis: {
       type: "category",
       data: labels,
-      axisLabel: { color: "rgba(230,237,247,0.55)", fontSize: 11 },
-      axisLine: { lineStyle: { color: "rgba(255,255,255,0.08)" } },
+      axisLabel: { color: axisTextColor(), fontSize: 11 },
+      axisLine: { lineStyle: { color: splitLineColor() } },
       axisTick: { show: false },
     },
     yAxis: {
       type: "value",
       name: "ms",
-      nameTextStyle: { color: "rgba(230,237,247,0.5)", fontSize: 11 },
-      axisLabel: { color: "rgba(230,237,247,0.55)", fontSize: 11 },
-      splitLine: { lineStyle: { color: "rgba(255,255,255,0.06)" } },
+      nameTextStyle: { color: axisTextColor(), fontSize: 11 },
+      axisLabel: { color: axisTextColor(), fontSize: 11 },
+      splitLine: { lineStyle: { color: splitLineColor(), type: "dashed" as const } },
       axisLine: { show: false },
     },
     series: [
@@ -343,7 +376,10 @@ const durationOption = computed<EChartsOption>(() => {
         type: "bar",
         data: labels.map((_, i) => ({
           value: values[i],
-          itemStyle: { color: DURATION_COLORS[i], borderRadius: [6, 6, 0, 0] },
+          itemStyle: {
+            color: chartColor(i),
+            borderRadius: [6, 6, 0, 0],
+          },
         })),
         barWidth: 36,
       },
@@ -363,140 +399,29 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 600;
-}
+/* 骨架、.stat-row、.panel、.panel-head、.panel-sub 由 styles/layout.css 提供 */
 
 .filter-input {
   width: 260px;
 }
 
-.match-hint {
-  font-size: 12px;
-  color: var(--apm-muted);
-  white-space: nowrap;
-}
-
-/* 统计卡片行 */
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-
-.stat-row :deep(.re-stat-card) {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-}
-
-.stat-row :deep(.re-stat-card .re-stat-card__title) {
-  color: var(--apm-muted);
-}
-
-.stat-row :deep(.re-stat-card .re-stat-card__value) {
-  color: var(--apm-fg);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-row :deep(.re-stat-card .re-stat-card__desc) {
-  color: var(--apm-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 表格面板 */
 .table-panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
-  padding: 8px;
-}
-
-.table-panel :deep(.el-table) {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: var(--el-fill-color-light);
-  --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-text-color: var(--apm-fg);
-  --el-table-header-text-color: var(--apm-muted);
+  overflow: hidden;
 }
 
 /* 选中行：主色淡底，与 hover 底色区分开 */
 .table-panel :deep(.el-table__row.selected td) {
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
+  background: var(--apm-accent-subtle) !important;
+}
+
+/* 端点表整表可点选，光标提示可交互 */
+.table-panel :deep(.el-table__row) {
+  cursor: pointer;
 }
 
 .endpoint-text {
   color: var(--apm-fg);
-}
-
-.mono {
-  font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 12px;
-}
-
-.muted {
-  color: var(--apm-muted);
-}
-
-.err-text {
-  color: var(--apm-danger);
-}
-
-.warn-text {
-  color: var(--apm-warning);
-}
-
-/* 耗时分布面板 */
-.panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
-  padding: 16px;
-}
-
-.panel-head {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  color: var(--apm-fg);
-}
-
-.panel-sub {
-  font-size: 12px;
-  color: var(--apm-muted);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .duration-chart {
@@ -505,25 +430,25 @@ onBeforeUnmount(() => {
 
 /* 调用量占比条 */
 .call-share-row {
-  margin-top: 14px;
+  margin-top: var(--apm-space-3);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--apm-space-3);
 }
 
 .call-share-bar {
   flex: 1;
   height: 6px;
-  background: var(--el-fill-color);
-  border-radius: var(--el-radius-xs, 4px); /* 原 3px，取最近档 xs */
+  background: var(--apm-border-soft);
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .call-share-fill {
   height: 100%;
-  border-radius: var(--el-radius-xs, 4px); /* 原 3px */
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-5));
-  transition: width var(--el-transition-duration-fast, 0.2s) ease;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--apm-accent), var(--apm-accent-hover));
+  transition: width var(--apm-t-base);
 }
 
 .call-share-label {
@@ -534,19 +459,6 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 
-@media (max-width: 1100px) {
-  .stat-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .stat-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   .call-share-fill {
     transition: none;

@@ -3,56 +3,103 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">资源泄漏</span>
-        <el-select v-model="filterType" placeholder="类型" clearable class="filter-select">
+        <span class="match-hint">
+          <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
+          <template v-else>加载中…</template>
+        </span>
+      </div>
+      <div class="toolbar-right">
+        <el-button round @click="exportCsvFull">
+          <el-icon class="btn-icon"><Download /></el-icon>导出 CSV
+        </el-button>
+        <el-button type="primary" round :loading="injecting" @click="doInjectLeak">
+          <el-icon class="btn-icon"><Plus /></el-icon>制造一条泄漏
+        </el-button>
+        <el-button round :loading="loading" @click="load">
+          <el-icon class="btn-icon"><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 概览：把"现在有多少活跃泄漏"直接摊在顶部 -->
+    <div class="stat-row">
+      <ReStatCard
+        size="compact"
+        title="当前页泄漏"
+        :value="items.length"
+        :desc="`共 ${total.toLocaleString()} 条记录`"
+        :icon="Warning"
+        icon-color="var(--apm-warning)"
+      />
+      <ReStatCard
+        size="compact"
+        title="活跃未关闭"
+        :value="activeCount"
+        :desc="activeCount ? '存在未释放资源' : '当前页均已关闭'"
+        :icon="CircleClose"
+        :icon-color="activeCount ? 'var(--apm-danger)' : 'var(--apm-success)'"
+      />
+      <ReStatCard
+        size="compact"
+        title="最久存活"
+        :value="`${(maxAgeMs / 1000).toFixed(1)} s`"
+        desc="当前页最长未释放时长"
+        :icon="Timer"
+        :icon-color="maxAgeMs > 30000 ? 'var(--apm-danger)' : 'var(--apm-accent)'"
+      />
+      <ReStatCard
+        size="compact"
+        title="主要类型"
+        :value="dominantType"
+        desc="当前页出现最多的泄漏类型"
+        :icon="Files"
+        icon-color="var(--apm-accent-alt)"
+      />
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label class="filter-label">类型</label>
+        <el-select v-model="filterType" placeholder="全部" clearable>
           <el-option label="File" value="File" />
           <el-option label="Socket" value="Socket" />
           <el-option label="Connection" value="Connection" />
           <el-option label="Thread" value="Thread" />
         </el-select>
-        <el-input
-          v-model="resourceNameSearch"
-          placeholder="搜索资源名…"
-          clearable
+      </div>
 
-          class="filter-input"
-        />
-        <el-input
-          v-model="threadSearch"
-          placeholder="搜索线程…"
-          clearable
+      <div class="filter-field">
+        <label class="filter-label" for="leak-res">资源名</label>
+        <el-input id="leak-res" v-model="resourceNameSearch" placeholder="搜索资源名" clearable />
+      </div>
 
-          class="filter-input"
-        />
-        <el-checkbox v-model="activeOnly" >仅看活跃</el-checkbox>
+      <div class="filter-field">
+        <label class="filter-label" for="leak-thread">线程</label>
+        <el-input id="leak-thread" v-model="threadSearch" placeholder="搜索线程" clearable />
+      </div>
+
+      <div class="filter-field time-field">
+        <label class="filter-label">检测时间</label>
         <el-date-picker
           v-model="range"
           type="datetimerange"
           range-separator="~"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-
-          style="width: 320px"
+          start-placeholder="开始"
+          end-placeholder="结束"
         />
       </div>
-      <div class="toolbar-right">
-        <el-button round @click="exportCsvFull">
-          <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
-        </el-button>
-        <el-button type="primary" round :loading="injecting" @click="doInjectLeak">
-          <el-icon class="mr-1"><Plus /></el-icon>制造一条泄漏
-        </el-button>
-        <el-button round :loading="loading" @click="load">
-          <el-icon class="mr-1"><Refresh /></el-icon>刷新
-        </el-button>
+
+      <div class="filter-field check-field">
+        <label class="filter-label">状态</label>
+        <el-checkbox v-model="activeOnly">仅看活跃</el-checkbox>
+      </div>
+
+      <div class="filter-actions">
+        <el-button text @click="resetFilters">重置</el-button>
       </div>
     </div>
 
     <div class="table-panel">
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
-           .apm-table 变量覆盖与 e2e 的 .el-table__body 选择器不失效；
-           pagination=false —— 分页仍由下方 el-pagination 自管；toolbar=false 不新增工具栏；
-           原 el-table 没写 border → settings.border=false 抑制默认边框；
-           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。 -->
       <ReTable
         :data="items as unknown as Record<string, unknown>[]"
         :columns="leakColumns"
@@ -66,7 +113,7 @@
         empty-text="暂无泄漏记录"
       >
         <template #col-resourceType="{ row }">
-          <el-tag :type="typeTagOf(row)" round>
+          <el-tag :type="typeTagOf(row)" round size="small">
             {{ row.resourceType }}
           </el-tag>
         </template>
@@ -77,14 +124,20 @@
           <span class="mono muted">{{ row.thread || "—" }}</span>
         </template>
         <template #col-ageMs="{ row }">
-          <el-progress
-            :percentage="agePercent(ageMsOf(row))"
-            :color="ageColor(ageMsOf(row))"
-            :stroke-width="6"
-          />
+          <div class="age-cell">
+            <span class="age-bar">
+              <i
+                :class="ageClass(ageMsOf(row))"
+                :style="{ width: agePercent(ageMsOf(row)) + '%' }"
+              />
+            </span>
+            <span class="mono age-num" :class="ageClass(ageMsOf(row))">
+              {{ (ageMsOf(row) / 1000).toFixed(1) }}s
+            </span>
+          </div>
         </template>
         <template #col-active="{ row }">
-          <el-tag :type="row.active ? 'danger' : 'info'" effect="dark">
+          <el-tag :type="row.active ? 'danger' : 'info'" effect="plain" size="small">
             {{ row.active ? "活跃" : "已关闭" }}
           </el-tag>
         </template>
@@ -94,7 +147,7 @@
         <template #col-stackTrace="{ row }">
           <el-popover v-if="row.stackTrace" trigger="hover" width="420" placement="left">
             <template #reference>
-              <el-button text type="primary">展开</el-button>
+              <el-button text type="primary" size="small">展开</el-button>
             </template>
             <pre class="stack">{{ row.stackTrace }}</pre>
           </el-popover>
@@ -119,10 +172,19 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
-import { Refresh, Download, Plus } from "@element-plus/icons-vue";
+import {
+  CircleClose,
+  Download,
+  Files,
+  Plus,
+  Refresh,
+  Timer,
+  Warning,
+} from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
+import ReStatCard from "@repo/ui/re-stat-card";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageLeaks, exportLeaksCsv, injectLeak } from "../api/apmApi";
 import type { LeakRecord, LeakQuery } from "../api/apmApi";
@@ -138,24 +200,40 @@ const threadSearch = ref("");
 const activeOnly = ref(false);
 const range = ref<[Date, Date] | null>(null);
 
-/**
- * 列配置：原来散在模板里的 7 个 el-table-column 收敛到这里。
- *
- * <p>标题都是写死文案（没有 t()），用普通常量即可。七列原 el-table-column
- * 都没有 prop（纯自定义单元格），这里补稳定合成 prop（直接取行字段名，
- * stackTrace 列取调用栈字段），模板里一一对应 #col-&lt;prop&gt; 插槽。</p>
- */
+/** 顶部概览：全部基于当前页数据，不额外打接口 */
+const activeCount = computed(() => items.value.filter((r) => r.active).length);
+const maxAgeMs = computed(() =>
+  items.value.reduce((max, r) => Math.max(max, Number(r.ageMs ?? 0)), 0),
+);
+const dominantType = computed(() => {
+  if (!items.value.length) return "—";
+  const tally = new Map<string, number>();
+  for (const r of items.value) {
+    const k = String(r.resourceType || "未知");
+    tally.set(k, (tally.get(k) ?? 0) + 1);
+  }
+  let best = "—";
+  let bestN = -1;
+  for (const [k, n] of tally) {
+    if (n > bestN) {
+      best = k;
+      bestN = n;
+    }
+  }
+  return best;
+});
+
 const leakColumns: ReTableColumn[] = [
   { prop: "resourceType", label: "类型", width: 120, slot: "resourceType" },
   { prop: "resourceName", label: "资源", minWidth: 200, slot: "resourceName" },
   { prop: "thread", label: "线程", minWidth: 140, slot: "thread" },
-  { prop: "ageMs", label: "存活", width: 100, align: "center", slot: "ageMs" },
+  { prop: "ageMs", label: "存活", width: 150, align: "right", slot: "ageMs", sortable: true },
   { prop: "active", label: "状态", width: 80, align: "center", slot: "active" },
   { prop: "detectedAt", label: "检测时间", width: 160, slot: "detectedAt" },
   { prop: "stackTrace", label: "调用栈", width: 90, align: "center", slot: "stackTrace" },
 ];
 
-/** 插槽里的 row 是宽类型（unknown）：类型取色前先收窄成 string（原 typeTag(row.resourceType) 同义） */
+/** 插槽里的 row 是宽类型（unknown）：类型取色前先收窄成 string */
 function typeTagOf(row: Record<string, unknown>) {
   return typeTag(String(row.resourceType ?? ""));
 }
@@ -165,20 +243,24 @@ function ageMsOf(row: Record<string, unknown>): number {
   return Number(row.ageMs ?? 0);
 }
 
+/** 组装查询条件：load 与 CSV 导出共用，避免两处筛选逻辑漂移（原来导出漏了 activeOnly） */
+function buildQuery(): LeakQuery {
+  return {
+    page: page.value,
+    size: size.value,
+    resourceType: filterType.value || undefined,
+    resourceName: resourceNameSearch.value.trim() || undefined,
+    thread: threadSearch.value.trim() || undefined,
+    activeOnly: activeOnly.value || undefined,
+    startTime: range.value?.[0] ? new Date(range.value[0]).getTime() : undefined,
+    endTime: range.value?.[1] ? new Date(range.value[1]).getTime() : undefined,
+  };
+}
+
 async function load() {
   loading.value = true;
   try {
-    const q: LeakQuery = {
-      page: page.value,
-      size: size.value,
-      resourceType: filterType.value || undefined,
-      resourceName: resourceNameSearch.value.trim() || undefined,
-      thread: threadSearch.value.trim() || undefined,
-      activeOnly: activeOnly.value || undefined,
-      startTime: range.value?.[0] ? new Date(range.value[0]).getTime() : undefined,
-      endTime: range.value?.[1] ? new Date(range.value[1]).getTime() : undefined,
-    };
-    const res = await pageLeaks(q);
+    const res = await pageLeaks(buildQuery());
     items.value = res.items;
     total.value = res.total;
   } catch {
@@ -208,10 +290,20 @@ function agePercent(ageMs: number) {
   return Math.min(100, Math.round((ageMs / 60000) * 100));
 }
 
-function ageColor(ageMs: number) {
-  if (ageMs > 30000) return "#ef4444";
-  if (ageMs > 10000) return "#f59e0b";
-  return "#22c55e";
+/** 存活三档：>30s 危险、>10s 警告，其余正常（阈值沿用原口径，改为令牌色） */
+function ageClass(ageMs: number): string {
+  if (ageMs > 30000) return "danger";
+  if (ageMs > 10000) return "warning";
+  return "ok";
+}
+
+/** 重置全部筛选 */
+function resetFilters() {
+  filterType.value = "";
+  resourceNameSearch.value = "";
+  threadSearch.value = "";
+  activeOnly.value = false;
+  range.value = null;
 }
 
 onMounted(load);
@@ -244,89 +336,84 @@ async function doInjectLeak() {
   }
 }
 
-/** 后端全量 CSV 导出（带当前筛选条件） */
+/** 后端全量 CSV 导出（带当前全部筛选条件） */
 function exportCsvFull() {
-  exportLeaksCsv({
-    resourceType: filterType.value || undefined,
-    resourceName: resourceNameSearch.value.trim() || undefined,
-    thread: threadSearch.value.trim() || undefined,
-    startTime: range.value?.[0] ? new Date(range.value[0]).getTime() : undefined,
-    endTime: range.value?.[1] ? new Date(range.value[1]).getTime() : undefined,
-  });
+  const q: LeakQuery = { ...buildQuery() };
+  delete q.page;
+  delete q.size;
+  exportLeaksCsv(q);
 }
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+/* 骨架与 .filter-bar/.filter-field/.pager 由 styles/layout.css 提供 */
 
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.mr-1 {
+.btn-icon {
   margin-right: 4px;
   vertical-align: -2px;
 }
 
-.filter-select {
-  width: 140px;
+.filter-field {
+  width: 150px;
 }
-
-.filter-input {
-  width: 160px;
+.time-field {
+  width: 320px;
+}
+.check-field {
+  width: auto;
 }
 
 .table-panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-  padding: 8px;
+  overflow: hidden;
 }
 
-.apm-table {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: var(--el-fill-color-light);
-  --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-text-color: var(--apm-fg);
-  --el-table-header-text-color: var(--apm-muted);
+/* 存活时长：数值 + 进度条，超阈值变色 */
+.age-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--apm-space-2);
 }
 
-.mono {
-  font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 12px;
+.age-bar {
+  position: relative;
+  width: 60px;
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--apm-border-soft);
+  overflow: hidden;
 }
 
-.muted {
-  color: var(--apm-muted);
+.age-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width var(--apm-t-base);
 }
+
+.age-bar > i.ok {
+  background: var(--apm-success);
+}
+.age-bar > i.warning {
+  background: var(--apm-warning);
+}
+.age-bar > i.danger {
+  background: var(--apm-danger);
+}
+
+.age-num {
+  min-width: 52px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.age-num.ok { color: var(--apm-fg-regular); }
+.age-num.warning { color: var(--apm-warning); }
+.age-num.danger { color: var(--apm-danger); font-weight: 600; }
 
 .stack {
-  font-family: "JetBrains Mono", Consolas, monospace;
+  font-family: var(--apm-font-mono);
   font-size: 11px;
   white-space: pre-wrap;
   word-break: break-all;
@@ -336,15 +423,10 @@ function exportCsvFull() {
   color: var(--apm-fg);
 }
 
-.pager {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 8px 4px;
-}
-
-/* 尊重系统「减少动态效果」偏好：
-   本页自身无 transition/animation，需关掉的是 loading 与分页的旋转动画 */
 @media (prefers-reduced-motion: reduce) {
+  .age-bar > i {
+    transition: none;
+  }
   .view :deep(.el-skeleton__item),
   .view :deep(.el-loading-spinner) {
     animation: none;

@@ -1,97 +1,130 @@
 <template>
   <div class="view">
+    <!-- 工具栏：标题 + 记录数 + 全局动作 -->
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">日志</span>
-        <el-select v-model="filterLevel" placeholder="级别" clearable class="filter-select">
+        <span class="match-hint">
+          <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
+          <template v-else>加载中…</template>
+        </span>
+      </div>
+      <div class="toolbar-right">
+        <el-switch
+          v-model="autoRefresh"
+          class="auto-switch"
+          active-text="自动刷新"
+          :disabled="liveStream"
+        />
+        <el-button round @click="exportCsvFull">
+          <el-icon class="btn-icon"><Download /></el-icon>导出 CSV（全量）
+        </el-button>
+        <el-button type="primary" round :loading="injecting" @click="doInjectLog">
+          <el-icon class="btn-icon"><Plus /></el-icon>写入一条日志
+        </el-button>
+        <el-button round :loading="loading" @click="doServerSearch">
+          <el-icon class="btn-icon"><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 筛选栏：查询条件与动作分离，窄屏自然换行 -->
+    <div class="filter-bar">
+      <div class="filter-field level-field">
+        <label class="filter-label" for="log-level">级别</label>
+        <el-select id="log-level" v-model="filterLevel" placeholder="全部级别" clearable>
           <el-option label="ERROR" value="ERROR" />
           <el-option label="WARN" value="WARN" />
           <el-option label="INFO" value="INFO" />
           <el-option label="DEBUG" value="DEBUG" />
         </el-select>
-        <el-input
-          v-model="keyword"
-          placeholder="服务端搜索：消息 / Logger / 类名"
-          clearable
+      </div>
 
-          class="filter-input"
+      <div class="filter-field keyword-field">
+        <label class="filter-label" for="log-keyword">关键词</label>
+        <el-input
+          id="log-keyword"
+          v-model="keyword"
+          placeholder="消息 / Logger / 类名"
+          clearable
           :prefix-icon="Search"
           @keyup.enter="doServerSearch"
         />
+      </div>
+
+      <div class="filter-field trace-field">
+        <label class="filter-label" for="log-trace">Trace ID</label>
         <el-input
+          id="log-trace"
           v-model="traceIdSearch"
           placeholder="按 traceId 精确过滤"
           clearable
-
-          class="filter-input trace-filter"
           @keyup.enter="doServerSearch"
         />
+      </div>
+
+      <div class="filter-field time-field">
+        <label class="filter-label">时间范围</label>
         <el-date-picker
           v-model="filters.range"
           type="datetimerange"
           range-separator="~"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
-
-          style="width: 320px"
         />
-        <el-button round :loading="loading" @click="doServerSearch">搜索</el-button>
-        <span class="match-hint" v-if="keyword || traceIdSearch">服务端命中 {{ total }} 条</span>
       </div>
-      <div class="toolbar-right">
-        <el-switch
-          v-model="liveStream"
-          active-text="实时日志流"
-          class="live-switch"
-          @change="toggleLiveStream"
-        />
-        <el-button round @click="exportCsvFull">
-          <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
-        </el-button>
-        <el-button type="primary" round :loading="injecting" @click="doInjectLog">
-          <el-icon class="mr-1"><Plus /></el-icon>写入一条日志
-        </el-button>
-        <el-button round :loading="loading" @click="load">
-          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+
+      <div class="filter-actions">
+        <span class="match-hint">
+          {{ keyword || traceIdSearch || filterLevel ? `服务端命中 ${total} 条` : `共 ${total} 条` }}
+        </span>
+        <el-button text @click="resetFilters">重置</el-button>
+        <el-button type="primary" round :loading="loading" @click="doServerSearch">
+          <el-icon class="btn-icon"><Search /></el-icon>查询
         </el-button>
       </div>
     </div>
 
-    <!-- 级别分布条 -->
+    <!-- 级别分布：点级别卡片即按该级别过滤 -->
     <div class="level-bar" v-if="logStats.length">
       <span class="section-label">级别分布</span>
       <div class="level-cards">
-        <div v-for="s in logStats" :key="s.level" class="level-card">
-          <el-tag :type="levelTag(s.level)" round>{{ s.level }}</el-tag>
+        <button
+          v-for="s in logStats"
+          :key="s.level"
+          type="button"
+          class="level-card"
+          :aria-pressed="filterLevel === s.level"
+          @click="toggleLevel(s.level)"
+        >
+          <span class="lvl" :class="levelClass(s.level)">{{ s.level }}</span>
           <span class="mono level-count">{{ s.count }}</span>
           <span class="mono muted level-pct">{{ s.percent.toFixed(1) }}%</span>
-        </div>
+        </button>
       </div>
+      <span class="match-hint level-tip">点级别可快速过滤</span>
     </div>
 
-    <!-- 实时日志流（SSE log 事件，仅保留最近 50 条） -->
+    <!-- 实时日志流（SSE log 事件，仅保留最近 50 条，最新在上） -->
     <div class="live-panel" v-if="liveStream">
-      <div class="panel-head-row">
+      <div class="live-head">
         <span class="section-label">实时日志流</span>
-        <span class="muted hint-text">最近 {{ liveItems.length }} 条 · 自动滚动</span>
+        <span class="live-dot">推流中</span>
+        <span class="match-hint">最近 {{ liveItems.length }} 条 · 最新在上</span>
       </div>
       <div class="live-list">
-        <div v-for="(r, i) in liveItems" :key="i" class="live-row">
-          <el-tag :type="levelTag(r.level)" round>{{ r.level }}</el-tag>
+        <div v-for="(r, i) in liveItems" :key="`${r.timestamp}-${i}`" class="live-row">
+          <span class="lvl" :class="levelClass(r.level)">{{ r.level }}</span>
           <span class="muted mono live-time">{{ r.timestamp }}</span>
           <span class="mono live-logger">{{ r.logger }}</span>
-          <span :class="{ 'err-text': r.level === 'ERROR' }" class="live-msg">{{ r.message }}</span>
+          <span class="live-msg">{{ r.message }}</span>
         </div>
-        <div v-if="!liveItems.length" class="muted live-empty">等待实时日志…</div>
+        <div v-if="!liveItems.length" class="panel-empty live-empty">等待实时日志…</div>
       </div>
     </div>
 
     <div class="table-panel">
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
-           .apm-table 变量覆盖与 e2e 的 .el-table__body 选择器不失效；
-           pagination=false —— 分页仍由下方 el-pagination 自管；toolbar=false 不新增工具栏；
-           原 el-table 没写 border → settings.border=false 抑制默认边框；
-           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。 -->
+      <!-- 表格统一 ReTable（engine="element" 沿用原 el-table 的 DOM）；分页由下方 el-pagination 自管 -->
       <ReTable
         :data="items as unknown as Record<string, unknown>[]"
         :columns="logColumns"
@@ -101,16 +134,17 @@
         :toolbar="false"
         :settings="{ border: false }"
         :layout-table="{ minHeight: 0 }"
-        class="apm-table"
-        empty-text="暂无日志记录"
+        :row-class-name="logRowClass"
+        class="apm-table log-table"
+        empty-text="暂无日志记录，试试放宽筛选条件"
       >
         <template #col-timestamp="{ row }">
           <span class="muted mono">{{ row.timestamp }}</span>
         </template>
         <template #col-level="{ row }">
-          <el-tag :type="levelTagOf(row)" round>
-            {{ row.level }}
-          </el-tag>
+          <span class="lvl" :class="levelClass(String(row.level ?? ''))">
+            {{ row.level || "—" }}
+          </span>
         </template>
         <template #col-logger="{ row }">
           <span class="mono">{{ row.logger }}</span>
@@ -119,12 +153,29 @@
           <span class="mono muted">{{ row.className ? row.className + "." : "" }}{{ row.methodName }}</span>
         </template>
         <template #col-message="{ row }">
-          <span :class="{ 'err-text': row.level === 'ERROR' }">{{ row.message }}</span>
+          <span class="msg-text">
+            <template v-for="(p, i) in highlightParts(row.message)" :key="i">
+              <mark v-if="p.hit" class="kw-hit">{{ p.text }}</mark>
+              <template v-else>{{ p.text }}</template>
+            </template>
+          </span>
         </template>
         <template #col-traceId="{ row }">
-          <a v-if="row.traceId" class="trace-link" @click="openTrace(traceIdOf(row))">
+          <button
+            v-if="row.traceId"
+            type="button"
+            class="trace-link"
+            :title="`查看 ${traceIdOf(row)} 的调用链路`"
+            @click="openTrace(traceIdOf(row))"
+          >
             <code class="mono">{{ shortId(traceIdOf(row)) }}</code>
-          </a>
+          </button>
+          <span v-else class="muted">—</span>
+        </template>
+        <template #col-spanCount="{ row }">
+          <span v-if="row.traceId" class="mono span-count-badge">
+            {{ spanCountOf(row) }}
+          </span>
           <span v-else class="muted">—</span>
         </template>
       </ReTable>
@@ -136,8 +187,8 @@
           :total="total"
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
-          @size-change="load"
-          @current-change="load"
+          @size-change="() => load()"
+          @current-change="() => load()"
         />
       </div>
     </div>
@@ -152,7 +203,7 @@ import { useRouter, useRoute } from "vue-router";
 import { Refresh, Download, Search, Plus } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { pageLogs, exportLogsCsv, injectLog, getLogStats } from "../api/apmApi";
+import { pageLogs, exportLogsCsv, injectLog, getLogStats, getTraceDetail } from "../api/apmApi";
 import type { LogRecord, LogLevelStat } from "../api/apmApi";
 
 const router = useRouter();
@@ -182,21 +233,53 @@ const filters = reactive({ range: null as [Date, Date] | null });
  */
 const logColumns: ReTableColumn[] = [
   { prop: "timestamp", label: "时间", width: 160, slot: "timestamp" },
-  { prop: "level", label: "级别", width: 90, slot: "level" },
+  { prop: "level", label: "级别", width: 96, slot: "level" },
   { prop: "logger", label: "Logger", minWidth: 180, slot: "logger" },
   { prop: "method", label: "方法", minWidth: 160, slot: "method" },
   { prop: "message", label: "消息", minWidth: 280, slot: "message" },
   { prop: "traceId", label: "Trace", width: 160, slot: "traceId" },
+  { prop: "spanCount", label: "关联 Span", width: 96, align: "center", slot: "spanCount" },
 ];
-
-/** 插槽里的 row 是宽类型（unknown）：级别取色前先收窄成 string（原 levelTag(row.level) 同义） */
-function levelTagOf(row: Record<string, unknown>) {
-  return levelTag(String(row.level ?? ""));
-}
 
 /** 插槽里的 row 是宽类型（unknown）：traceId 收窄成 string 再传给 openTrace / shortId */
 function traceIdOf(row: Record<string, unknown>): string {
   return String(row.traceId ?? "");
+}
+
+/** 按 traceId 缓存 span 数量，避免重复请求 */
+const spanCountCache = new Map<string, { count: number; expire: number }>();
+
+/** 查某 traceId 的关联 span 数（5s 缓存） */
+async function getSpanCount(row: Record<string, unknown>): Promise<number> {
+  const tid = traceIdOf(row);
+  if (!tid) return 0;
+  const cached = spanCountCache.get(tid);
+  if (cached && cached.expire > Date.now()) return cached.count;
+  try {
+    const spans = await getTraceDetail(tid);
+    const count = Array.isArray(spans) ? spans.length : 0;
+    spanCountCache.set(tid, { count, expire: Date.now() + 5000 });
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+/** 异步填充 spanCount 缓存（不阻塞渲染） */
+function prefetchSpanCounts() {
+  items.value.forEach((item) => {
+    const row = item as unknown as Record<string, unknown>;
+    if (row.traceId) {
+      getSpanCount(row);
+    }
+  });
+}
+
+/** 同步取缓存值（渲染时用，加载中显示 "…"） */
+function spanCountOf(row: Record<string, unknown>): number | string {
+  const tid = traceIdOf(row);
+  if (!tid) return 0;
+  return spanCountCache.get(tid)?.count ?? "…";
 }
 
 /** 服务端搜索：把关键字/traceId/时间范围传给后端 /logs 过滤 */
@@ -205,8 +288,12 @@ function doServerSearch() {
   load();
 }
 
-async function load() {
-  loading.value = true;
+/**
+ * 拉取日志列表。
+ * @param silent 自动刷新/轮询时置 true：不显示加载遮罩、不弹错误提示，避免每 5s 闪一下。
+ */
+async function load(silent = false) {
+  if (!silent) loading.value = true;
   try {
     const res = await pageLogs({
       page: page.value,
@@ -220,10 +307,11 @@ async function load() {
     items.value = res.items;
     total.value = res.total;
     loadLogStats();
+    prefetchSpanCounts(); // 异步预取 spanCount
   } catch {
-    message.error("加载日志失败");
+    if (!silent) message.error("加载日志失败");
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 }
 
@@ -257,6 +345,34 @@ function exportCsvFull() {
   });
 }
 
+/** 清空所有筛选并回到第一页（级别由 watch 触发重查，这里只重置不重复请求） */
+function resetFilters() {
+  keyword.value = "";
+  traceIdSearch.value = "";
+  filters.range = null;
+  page.value = 1;
+  if (filterLevel.value) {
+    filterLevel.value = "";
+  } else {
+    load();
+  }
+}
+
+// ---- 自动刷新（默认关闭） ----
+const autoRefresh = ref(false);
+let autoTimer: number | undefined;
+
+/** 开关切换：开启后每 5s 静默拉取一次，关闭立即停表 */
+watch(autoRefresh, (on) => {
+  if (autoTimer) {
+    window.clearInterval(autoTimer);
+    autoTimer = undefined;
+  }
+  if (on) {
+    autoTimer = window.setInterval(() => load(true), 5000);
+  }
+});
+
 // ---- 级别分布 ----
 const logStats = ref<LogLevelStat[]>([]);
 
@@ -268,6 +384,11 @@ async function loadLogStats() {
   }
 }
 
+/** 点级别卡片切换过滤：再次点击已选级别即取消 */
+function toggleLevel(level: string) {
+  filterLevel.value = filterLevel.value === level ? "" : level;
+}
+
 // ---- 实时日志流（SSE log 事件）----
 const liveStream = ref(false);
 const liveItems = ref<LogRecord[]>([]);
@@ -275,6 +396,8 @@ let logEventSource: EventSource | null = null;
 
 function toggleLiveStream(on: boolean) {
   if (on) {
+    // 实时流本身就持续推送，关掉轮询避免两路同时刷新
+    autoRefresh.value = false;
     liveItems.value = [];
     logEventSource = new EventSource("/api/apm/stream?intervalMs=3000");
     logEventSource.addEventListener("log", (ev: MessageEvent) => {
@@ -300,19 +423,59 @@ function toggleLiveStream(on: boolean) {
 onBeforeUnmount(() => {
   logEventSource?.close();
   logEventSource = null;
+  if (autoTimer) {
+    window.clearInterval(autoTimer);
+    autoTimer = undefined;
+  }
 });
 
-function levelTag(level: string) {
+/** 级别 → 语义色档位（ERROR/WARN/INFO/DEBUG 四档，其余按 DEBUG 处理） */
+function levelClass(level: string): string {
   switch ((level || "").toUpperCase()) {
     case "ERROR":
-      return "danger";
+    case "FATAL":
+      return "lvl-error";
     case "WARN":
-      return "warning";
-    case "DEBUG":
-      return "info";
+    case "WARNING":
+      return "lvl-warn";
+    case "INFO":
+      return "lvl-info";
     default:
-      return "success";
+      return "lvl-debug";
   }
+}
+
+/** 错误行整行淡红底，扫读时优先被看到 */
+function logRowClass({ row }: { row: Record<string, unknown> }): string {
+  return String(row.level ?? "").toUpperCase() === "ERROR" ? "row-error" : "";
+}
+
+/** 关键词高亮分段结果（命中段标记 hit，模板用 <mark> 渲染，不经 v-html） */
+interface HighlightPart {
+  text: string;
+  hit: boolean;
+}
+
+/** 按当前关键词切分文本：大小写不敏感，保留原文大小写 */
+function highlightParts(text: unknown): HighlightPart[] {
+  const raw = String(text ?? "");
+  const kw = keyword.value.trim();
+  if (!kw || !raw) return [{ text: raw, hit: false }];
+
+  const needle = kw.toLowerCase();
+  const lower = raw.toLowerCase();
+  const parts: HighlightPart[] = [];
+  let from = 0;
+  let idx = lower.indexOf(needle);
+
+  while (idx !== -1) {
+    if (idx > from) parts.push({ text: raw.slice(from, idx), hit: false });
+    parts.push({ text: raw.slice(idx, idx + kw.length), hit: true });
+    from = idx + kw.length;
+    idx = lower.indexOf(needle, from);
+  }
+  if (from < raw.length) parts.push({ text: raw.slice(from), hit: false });
+  return parts;
 }
 
 function shortId(id: string) {
@@ -334,180 +497,224 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+/* 骨架与 .view/.view-toolbar/.filter-bar/.pager/.table-panel/.mono/.muted 等
+   通用类统一由 styles/layout.css 提供，本文件只保留本页独有样式。 */
 
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.mr-1 {
+.btn-icon {
   margin-right: 4px;
   vertical-align: -2px;
 }
 
-.live-switch {
-  margin-right: 4px;
+.auto-switch {
+  margin-right: var(--apm-space-2);
 }
 
-.filter-select {
-  width: 120px;
+/* 筛选字段宽度：关键词最宽，时间范围独占一档 */
+.level-field {
+  width: 130px;
+}
+.keyword-field {
+  width: 240px;
+}
+.trace-field {
+  width: 200px;
+}
+.time-field {
+  width: 320px;
 }
 
-.filter-input {
-  width: 220px;
+/* 表头与消息列 */
+.msg-text {
+  color: var(--apm-fg-regular);
+  word-break: break-word;
 }
 
-.match-hint {
-  font-size: 12px;
-  color: var(--apm-muted);
+/* 关键词命中：琥珀底 + 主文本色，深色底上比浏览器默认黄色可读 */
+.kw-hit {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--apm-warning) 26%, transparent);
+  color: var(--apm-fg);
+}
+
+/* 级别徽标：色点 + 等宽文字，四级语义色（错误/警告/正常/调试） */
+.lvl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-family: var(--apm-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 18px;
   white-space: nowrap;
 }
 
-.table-panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-  padding: 8px;
+.lvl::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: currentColor;
 }
 
-.apm-table {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: var(--el-fill-color-light);
-  --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-text-color: var(--apm-fg);
-  --el-table-header-text-color: var(--apm-muted);
+.lvl-error {
+  color: var(--apm-danger);
+  background: var(--apm-danger-bg);
 }
 
-.mono {
-  font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 12px;
+.lvl-warn {
+  color: var(--apm-warning);
+  background: var(--apm-warning-bg);
 }
 
-/* <a> 承载点击跳转：可点元素必须有手型光标与键盘焦点环 */
-.trace-link {
-  cursor: pointer;
-  outline: none;
-  text-decoration: none;
+.lvl-info {
   color: var(--apm-accent);
-  transition: color var(--el-transition-duration-fast, 0.2s) ease;
+  background: var(--apm-accent-subtle);
+}
+
+.lvl-debug {
+  color: var(--apm-muted);
+  background: var(--apm-neutral-bg);
+}
+
+/* ERROR 行整体淡红底，行内文字仍按令牌取色 */
+.log-table :deep(.row-error) {
+  background: var(--apm-danger-bg);
+}
+
+/* ---- trace 跳转 ---- */
+.trace-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--apm-accent);
+  transition: color var(--apm-t-fast);
 }
 
 .trace-link:hover {
-  color: var(--el-color-primary-light-3);
+  color: var(--apm-accent-hover);
 }
 
 .trace-link:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--apm-accent-subtle);
+  border-radius: var(--apm-radius-sm);
 }
 
-.muted {
-  color: var(--apm-muted);
+/* 关联 Span 徽标 */
+.span-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--apm-accent-subtle);
+  color: var(--apm-accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.err-text {
-  color: var(--apm-danger);
-}
-
-.pager {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 8px 4px;
-}
-
-/* 级别分布条 */
+/* ---- 级别分布条 ---- */
 .level-bar {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-3) var(--apm-space-4);
   background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 10px 14px;
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
 }
 
 .level-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--apm-space-2);
 }
 
+/* 可点筛选卡：选中态用主色描边+淡底，与普通标签区分 */
 .level-card {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--apm-space-2);
+  padding: 4px 10px;
+  border: 1px solid var(--apm-border-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--apm-fg-regular);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--apm-t-fast), border-color var(--apm-t-fast);
+}
+
+.level-card:hover {
+  background: var(--apm-panel-active);
+}
+
+.level-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--apm-accent-subtle);
+}
+
+.level-card[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--apm-accent) 46%, transparent);
+  background: var(--apm-accent-subtle);
 }
 
 .level-count {
-  font-size: 14px;
-  font-weight: 700;
   color: var(--apm-fg);
+  font-weight: 700;
 }
 
 .level-pct {
   font-size: 11px;
 }
 
-/* 实时日志流 */
+.level-tip {
+  margin-left: auto;
+}
+
+/* ---- 实时日志流 ---- */
 .live-panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-4) var(--apm-space-5);
+  background: var(--apm-panel);
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
 }
 
-.panel-head-row {
+.live-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.hint-text {
-  font-size: 11px;
+  flex-wrap: wrap;
+  gap: var(--apm-space-3);
 }
 
 .live-list {
-  max-height: 220px;
+  max-height: 260px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--apm-space-1);
 }
 
 .live-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: var(--el-radius-sm, 6px);
-  background: var(--el-fill-color-lighter);
+  gap: var(--apm-space-2);
+  padding: 4px 8px;
+  border-radius: var(--apm-radius-sm);
+  background: var(--apm-panel-raised);
 }
 
 .live-time {
@@ -526,25 +733,27 @@ onMounted(() => {
 
 .live-msg {
   font-size: 12px;
+  color: var(--apm-fg-regular);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
 }
 
+/* 空态沿用 layout.css 的 .panel-empty，只压掉默认 140px 撑高 */
 .live-empty {
-  font-size: 12px;
-  padding: 12px 0;
-  text-align: center;
+  min-height: 96px;
 }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .trace-link {
+  .trace-link,
+  .level-card {
     transition: none;
   }
   .view :deep(.el-skeleton__item),
-  .view :deep(.el-loading-spinner) {
+  .view :deep(.el-loading-spinner),
+  .live-dot::before {
     animation: none;
     transition: none;
   }
