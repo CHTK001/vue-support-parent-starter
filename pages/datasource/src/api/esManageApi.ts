@@ -331,3 +331,11 @@ export const deleteEsAlias = (alias: string, datasourceId?: number) =>
     .query({ alias, datasourceId })
     .noToast(true)
     .then(r => unwrap<boolean>(r));
+
+/** 更新索引副本设置 */
+export const updateEsIndexSettings = (index: string, replicas: number, datasourceId?: number) =>
+  http()
+    .put(`${ES_BASE}/index/settings`)
+    .data({ index, replicas, datasourceId })
+    .noToast(true)
+    .then(r => unwrap<boolean>(r));

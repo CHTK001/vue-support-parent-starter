@@ -1,5 +1,5 @@
 <template>
-  <div class="dsm tel-page">
+  <div class="dsm tel-page" @keydown="handleKeydown">
     <div class="dsm-toolbar re-surface">
       <div class="dsm-toolbar-left">
         <ReIcon name="Coin" :size="18" class="dsm-title-icon dsm-es-icon" />
@@ -126,10 +126,34 @@
                     :disabled="!source"
                     @click="openCreateIndex"
                   />
+                  <ReButton
+                    layout="square"
+                    icon="Select"
+                    :tip="allSelected ? '取消全选' : '全选'"
+                    data-testid="es-index-selectall"
+                    @click="selectAllIndices"
+                  />
+                  <ReButton
+                    layout="square"
+                    type="danger"
+                    icon="Delete"
+                    tip="批量删除"
+                    data-testid="es-index-batch-delete"
+                    :disabled="indexSelection.size === 0"
+                    @click="batchDeleteIndices"
+                  />
+                  <ReButton
+                    layout="square"
+                    icon="Setting"
+                    tip="批量修改副本"
+                    data-testid="es-index-batch-replicas"
+                    :disabled="indexSelection.size === 0"
+                    @click="batchUpdateReplicas"
+                  />
                 </div>
               </div>
               <ReTable
-                :data="filteredIndices"
+                :data="paginatedIndices"
                 :columns="indexColumns"
                 :loading="loading"
                 :pagination="false"
@@ -137,6 +161,12 @@
                 border
                 height="420px"
               >
+                <template #col-sel="{ row }">
+                  <ElCheckbox
+                    :model-value="indexSelection.has((row as EsIndexRow).name)"
+                    @change="toggleIndexSelect((row as EsIndexRow).name)"
+                  />
+                </template>
                 <template #col-health="{ row }">
                   <ReTag :type="healthTag((row as EsIndexRow).health)">{{ (row as EsIndexRow).health || "—" }}</ReTag>
                 </template>
@@ -162,6 +192,14 @@
                     <ReButton
                       layout="square"
                       size="small"
+                      icon="Document"
+                      tip="文档详情"
+                      data-testid="es-row-docdetail"
+                      @click="openDocDetail(row as EsIndexRow)"
+                    />
+                    <ReButton
+                      layout="square"
+                      size="small"
                       type="danger"
                       icon="Delete"
                       tip="删除索引（删表）"
@@ -171,7 +209,13 @@
                   </span>
                 </template>
               </ReTable>
-              <ReEmpty v-if="!loading && indices.length === 0" description="未读取到索引，可点右上角「新建索引」创建" />
+              <RePagination
+                v-model:page="indexPage"
+                v-model:page-size="indexPageSize"
+                :total="filteredIndices.length"
+                layout="sizes,prev,pager,next"
+              />
+              <ReEmpty v-if="!loading && indices.length === 0" description="暂无索引，试试「新建索引」创建一个" />
             </div>
           </template>
 
@@ -191,10 +235,13 @@
                   />
                 </div>
               </div>
+              <div v-if="nodesLoading" class="dsm-loading-row">
+                <ReLoading />
+              </div>
               <ReTable
-                :data="nodeRows"
+                v-else
+                :data="paginatedNodes"
                 :columns="nodeColumns"
-                :loading="nodesLoading"
                 :pagination="false"
                 stripe
                 border
@@ -219,7 +266,14 @@
                   </div>
                 </template>
               </ReTable>
-              <ReEmpty v-if="!nodesLoading && clusterNodes.length === 0" description="未读取到节点，点「节点列表」右侧刷新重试" />
+              <RePagination
+                v-if="clusterNodes.length > nodePageSize"
+                v-model:page="nodePage"
+                v-model:page-size="nodePageSize"
+                :total="clusterNodes.length"
+                layout="sizes,prev,pager,next"
+              />
+              <ReEmpty v-if="!nodesLoading && clusterNodes.length === 0" description="暂无节点信息，请检查连接" />
             </div>
           </template>
 
@@ -488,7 +542,7 @@
 
               <!-- 别名列表 -->
               <div v-if="aliasesLoading" class="dsm-loading-row">
-                <ReSpin />
+                <ReLoading />
               </div>
               <ReTable
                 v-else-if="aliases.length"
@@ -736,11 +790,9 @@
             <span>建索引</span>
             <span>操作</span>
           </div>
-          <div v-for="(field, idx) in indexForm.fields" :key="idx" class="dsm-field-grid-row">
+          <div v-for="(field, idx) in indexForm.fields" :key="idx" class="dsm-field-grid-row" :class="{ 'dsm-field-added': isAdded(field.name), 'dsm-field-removed': isRemoved(field.name), 'dsm-field-modified': isModified(field.name) }">
             <div class="dsm-field-name">
               <ReInput v-model="field.name" placeholder="字段名，支持 a.b" :data-testid="`es-field-name-${idx}`" />
-              <ReTag v-if="isOriginalField(field.name)" type="info">已有</ReTag>
-              <ReTag v-else type="success">新增</ReTag>
             </div>
             <ReSelect v-model="field.type" :data="fieldTypeOptions" :data-testid="`es-field-type-${idx}`" />
             <ReInput
@@ -794,6 +846,26 @@
         @cancel="aliasDialogVisible = false"
       />
     </ReDialog>
+
+    <!-- 文档详情弹框 -->
+    <ReDialog
+      v-model="docDetailVisible"
+      :title="`文档详情 - ${docDetailIndex}`"
+      width="680px"
+    >
+      <div v-if="docDetailLoading" class="dsm-loading-row">
+        <ReLoading />
+      </div>
+      <div v-else-if="docDetailData" class="dsm-doc-detail">
+        <div v-for="(value, key) in docDetailData" :key="String(key)" class="dsm-doc-row">
+          <span class="dsm-doc-key mono">{{ key }}</span>
+          <span class="dsm-doc-val mono">{{ formatDocValue(value) }}</span>
+        </div>
+      </div>
+      <div v-else class="dsm-doc-empty">
+        <ReEmpty description="未找到文档或文档已被删除" />
+      </div>
+    </ReDialog>
   </div>
 </template>
 
@@ -812,6 +884,7 @@ import { message } from "@repo/core";
 import { ElMessageBox } from "element-plus";
 import { computed, h, onMounted, reactive, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
+
 import ReDialog from "@repo/ui/re-dialog";
 import ReDrawer from "@repo/ui/re-drawer";
 import ReEmpty from "@repo/ui/re-empty";
@@ -823,6 +896,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTab from "@repo/ui/re-tab";
 import ReTag from "@repo/ui/re-tag";
+import RePagination from "@repo/ui/re-pagination";
 import ReRelationGraph from "@repo/ui/re-relation-graph";
 // 信息提示条（查询检索的用法说明）走 re-kit 聚合入口
 import { ReAlert } from "@repo/ui/re-kit";
@@ -847,6 +921,7 @@ import {
   rebuildEsIndex,
   testEsConnection,
   updateEsClusterSettings,
+  updateEsIndexSettings,
   type EsAliasRow,
   type EsCapability,
   type EsCluster,
@@ -882,10 +957,161 @@ const testResult = ref<{ version: string; detail: string }>({ version: "", detai
 // ---- 索引概览 ----
 const indices = ref<EsIndexRow[]>([]);
 const indexFilter = ref("");
+/** 索引多选集合（存索引名） */
+const indexSelection = ref<Set<string>>(new Set());
+/** 索引分页状态 */
+const indexPage = ref(1);
+const indexPageSize = ref(20);
+/** 是否全选（所有索引都被选中的计算属性） */
+const allSelected = computed(
+  () => indices.value.length > 0 && indices.value.every(r => indexSelection.value.has(r.name)),
+);
+
+/** 字段 diff 状态映射 */
+type FieldDiffStatus = "added" | "removed" | "modified" | "unchanged";
+
+/** 字段 diff 映射表（只在字段管理模式下有效） */
+const fieldDiffMap = computed(() => {
+  const map = new Map<string, FieldDiffStatus>();
+  if (indexDialogMode.value !== "fields") return map;
+  const origByName = new Map(originalFields.value.map(f => [f.name, f]));
+  const curByName = new Map(indexForm.fields.map(f => [f.name, f]));
+  // 标记新增
+  indexForm.fields.forEach(f => {
+    if (!origByName.has(f.name)) map.set(f.name, "added");
+  });
+  // 标记删除和修改
+  originalFields.value.forEach(orig => {
+    const cur = curByName.get(orig.name);
+    if (!cur) {
+      map.set(orig.name, "removed");
+    } else {
+      const changed =
+        (orig.type || "") !== (cur.type || "") ||
+        (orig.analyzer || "") !== (cur.analyzer || "") ||
+        (orig.format || "") !== (cur.format || "") ||
+        (orig.index !== false) !== (cur.index !== false);
+      if (changed) map.set(orig.name, "modified");
+      else map.set(orig.name, "unchanged");
+    }
+  });
+  return map;
+});
+
+/** 判断字段是否为新增 */
+function isAdded(name: string): boolean {
+  return fieldDiffMap.value.get(name) === "added";
+}
+
+/** 判断字段是否为删除 */
+function isRemoved(name: string): boolean {
+  return fieldDiffMap.value.get(name) === "removed";
+}
+
+/** 判断字段是否被修改 */
+function isModified(name: string): boolean {
+  return fieldDiffMap.value.get(name) === "modified";
+}
+
+/** 切换单个索引选中状态 */
+function toggleIndexSelect(name: string) {
+  if (indexSelection.value.has(name)) {
+    indexSelection.value.delete(name);
+  } else {
+    indexSelection.value.add(name);
+  }
+  // 触发响应式更新
+  indexSelection.value = new Set(indexSelection.value);
+}
+
+/** 全选 / 取消全选所有索引 */
+function selectAllIndices() {
+  if (allSelected.value) {
+    indexSelection.value = new Set();
+  } else {
+    indexSelection.value = new Set(indices.value.map(i => i.name));
+  }
+}
+
+/** 批量删除选中的索引 */
+async function batchDeleteIndices() {
+  const names = Array.from(indexSelection.value);
+  if (names.length === 0) return;
+  try {
+    await ElMessageBox.confirm(
+      `确认批量删除 ${names.length} 个索引？\n${names.join("\n")}\n\n该操作不可恢复！`,
+      "批量删除索引",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  let success = 0;
+  let failed = 0;
+  for (const name of names) {
+    try {
+      await deleteEsIndex(name, datasourceId.value);
+      success++;
+    } catch {
+      failed++;
+    }
+  }
+  indexSelection.value = new Set();
+  await loadIndices();
+  if (failed === 0) message.success(`已删除 ${success} 个索引`);
+  else message.warning(`删除完成：成功 ${success} 个，失败 ${failed} 个`);
+}
+
+/** 批量修改选中索引的副本数 */
+async function batchUpdateReplicas() {
+  const names = Array.from(indexSelection.value);
+  if (names.length === 0) return;
+  try {
+    const { value: countStr } = await ElMessageBox.prompt(
+      `输入新副本数（0-64）：\n\n将修改 ${names.length} 个索引：\n${names.join("\n")}`,
+      "批量修改副本数",
+      {
+        confirmButtonText: "确认",
+        cancelButtonText: "取消",
+        inputPlaceholder: "输入副本数，如 1",
+      },
+    );
+    const count = parseInt(countStr, 10);
+    if (isNaN(count) || count < 0 || count > 64) {
+      message.warning("副本数必须在 0-64 之间");
+      return;
+    }
+    let success = 0;
+    let failed = 0;
+    for (const name of names) {
+      try {
+        await updateEsIndexSettings(name, count, datasourceId.value);
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+    indexSelection.value = new Set();
+    await loadIndices();
+    if (failed === 0) message.success(`副本数已更新为 ${count}`);
+    else message.warning(`更新完成：成功 ${success} 个，失败 ${failed} 个`);
+  } catch {
+    // 用户取消
+  }
+}
 
 // ---- 节点列表 ----
 const cluster = ref<EsCluster | null>(null);
 const nodesLoading = ref(false);
+/** 节点分页状态 */
+const nodePage = ref(1);
+const nodePageSize = ref(20);
+
+/** 分页后的节点列表 */
+const paginatedNodes = computed(() => {
+  const start = (nodePage.value - 1) * nodePageSize.value;
+  return nodeRows.value.slice(start, start + nodePageSize.value);
+});
 
 // ---- 关系图谱（集群 → 节点拓扑，zk 式）----
 const graphLoading = ref(false);
@@ -1142,12 +1368,13 @@ const capabilityText = computed(() => {
 });
 
 const indexColumns = [
+  { prop: "_sel", label: "", width: 40, slot: "col-sel" },
   { prop: "name", label: "索引名", minWidth: 220 },
   { prop: "health", label: "健康度", width: 110, slot: "col-health" },
   { prop: "status", label: "状态", width: 100 },
   { prop: "docs", label: "文档数", width: 110 },
   { prop: "storeSize", label: "存储", width: 110 },
-  { prop: "actions", label: "操作", width: 150, fixed: "right" as const, slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 190, fixed: "right" as const, slot: "col-actions" },
 ];
 
 const nodeColumns = [
@@ -1187,6 +1414,12 @@ const settingColumns = [
 const filteredIndices = computed(() => {
   const kw = indexFilter.value.trim().toLowerCase();
   return kw ? indices.value.filter(i => String(i.name || "").toLowerCase().includes(kw)) : indices.value;
+});
+
+/** 分页后的索引列表 */
+const paginatedIndices = computed(() => {
+  const start = (indexPage.value - 1) * indexPageSize.value;
+  return filteredIndices.value.slice(start, start + indexPageSize.value);
 });
 
 const clusterNodes = computed<EsClusterNode[]>(() => cluster.value?.nodes || []);
@@ -1231,6 +1464,12 @@ const queryEmptyText = computed(() =>
 /** 别名管理状态 */
 const aliases = ref<EsAliasRow[]>([]);
 const aliasesLoading = ref(false);
+
+/** 文档详情状态 */
+const docDetailVisible = ref(false);
+const docDetailLoading = ref(false);
+const docDetailData = ref<Record<string, unknown> | null>(null);
+const docDetailIndex = ref("");
 
 /** 添加别名弹框 */
 const aliasDialogVisible = ref(false);
@@ -1740,6 +1979,76 @@ async function removeAlias(row: EsAliasRow) {
   }
 }
 
+// ---- 文档详情 ----
+async function openDocDetail(row: EsIndexRow) {
+  docDetailIndex.value = row.name;
+  docDetailData.value = null;
+  docDetailVisible.value = true;
+  docDetailLoading.value = true;
+  try {
+    // 先让用户输入文档 ID
+    const { value: docId } = await ElMessageBox.prompt(
+      `请输入「${row.name}」的文档 ID（_id）`,
+      "文档详情",
+      {
+        confirmButtonText: "查询",
+        cancelButtonText: "取消",
+        inputPlaceholder: "输入文档 ID",
+      },
+    );
+    if (!docId?.trim()) return;
+    const res = await queryEs(`get ${row.name} ${docId.trim()}`, datasourceId.value);
+    if (res.rows && res.rows.length > 0) {
+      docDetailData.value = res.rows[0];
+    } else {
+      docDetailData.value = null;
+      message.warning("文档不存在");
+    }
+  } catch {
+    // 用户取消或错误
+  } finally {
+    docDetailLoading.value = false;
+  }
+}
+
+/** 格式化文档字段值为显示字符串 */
+function formatDocValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+/** 键盘快捷键处理 */
+function handleKeydown(e: KeyboardEvent) {
+  const ctrl = e.ctrlKey || e.metaKey;
+  // Ctrl+R 全局刷新
+  if (ctrl && e.key === "r") {
+    e.preventDefault();
+    refresh();
+    return;
+  }
+  // Ctrl+N 或 Ctrl+Enter 在索引对话框打开时：触发保存
+  if (indexDialogVisible.value) {
+    if ((ctrl && e.key === "n") || (ctrl && e.key === "Enter")) {
+      e.preventDefault();
+      saveIndex();
+      return;
+    }
+    // Escape 关闭索引对话框
+    if (e.key === "Escape") {
+      indexDialogVisible.value = false;
+      return;
+    }
+  }
+  // Escape 关闭其他对话框
+  if (e.key === "Escape") {
+    if (clusterVisible.value) clusterVisible.value = false;
+    if (fieldDrawerVisible.value) fieldDrawerVisible.value = false;
+    if (aliasDialogVisible.value) aliasDialogVisible.value = false;
+    if (docDetailVisible.value) docDetailVisible.value = false;
+  }
+}
+
 // ---- 集群信息 ----
 async function openCluster() {
   clusterVisible.value = true;
@@ -1793,6 +2102,13 @@ async function refresh() {
   else if (activeTab.value === "nodes") await loadNodesTab();
   else if (activeTab.value === "graph") await loadGraphTab();
 }
+
+watch(
+  () => indexFilter.value,
+  () => {
+    indexPage.value = 1;
+  },
+);
 
 watch(activeTab, async tab => {
   if (!datasourceId.value) return;
@@ -2321,6 +2637,28 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+/* ---- 字段 Diff 高亮 ---- */
+.dsm-field-added {
+  border-left: 3px solid var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 6%, transparent);
+}
+
+.dsm-field-removed {
+  border-left: 3px solid var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 6%, transparent);
+  opacity: 0.7;
+}
+
+.dsm-field-removed .dsm-field-name input {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.dsm-field-modified {
+  border-left: 3px solid var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 6%, transparent);
+}
+
 /* ---- 查询检索 ---- */
 .dsm-query-area {
   display: flex;
@@ -2371,5 +2709,54 @@ onMounted(async () => {
 
 .dsm-query-warn {
   color: var(--status-warning);
+}
+
+/* ---- 文档详情 ---- */
+.dsm-loading-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+}
+
+.dsm-doc-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.dsm-doc-row {
+  display: flex;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  align-items: baseline;
+}
+
+.dsm-doc-row:nth-child(odd) {
+  background: color-mix(in srgb, var(--el-fill-color-light) 50%, transparent);
+}
+
+.dsm-doc-key {
+  flex: 0 0 160px;
+  color: var(--el-color-info);
+  word-break: break-all;
+}
+
+.dsm-doc-val {
+  flex: 1;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.dsm-doc-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 160px;
 }
 </style>
