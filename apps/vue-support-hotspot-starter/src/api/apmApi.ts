@@ -258,6 +258,42 @@ export function getTraceDetail(traceId: string): Promise<TransmissionRecord[]> {
 
 // ---- Agent 实时数据（/agent/*）----
 
+/** Agent 配置快照（契约就绪；后端未实现时前端返回 null 降级） */
+export interface AgentConfig {
+  samplingRate: number;
+  slowThresholdMs: number;
+  logLevel: "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
+  enabled: boolean;
+  injectMode: "DISABLED" | "MONITOR" | "SIMULATE";
+  updatedAt?: number;
+}
+
+/** Agent 运行状态详情 */
+export interface AgentStatusDetail {
+  agentActive: boolean;
+  agentEnabled: boolean;
+  version?: string;
+  startedAt?: number;
+  lastHeartbeat?: number;
+  heartbeatLostMs?: number;
+  config?: AgentConfig;
+}
+
+/** 查询 Agent 配置 */
+export function getAgentConfig(): Promise<AgentConfig | null> {
+  return unwrap(instance.get<AgentConfig | null>("/agent/config"));
+}
+
+/** 更新 Agent 配置 */
+export function updateAgentConfig(params: Partial<AgentConfig>): Promise<AgentConfig> {
+  return unwrap(instance.post<AgentConfig>("/agent/config", null, { params }));
+}
+
+/** Agent 启停 */
+export function setAgentEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+  return unwrap(instance.post<{ enabled: boolean }>("/agent/enabled", null, { params: { enabled } }));
+}
+
 /** 链路树（trace → span 两级，ReTree 数据源） */
 export function getTracesTree(limit = 50): Promise<TraceTreeItem[]> {
   return unwrap(instance.get<TraceTreeItem[]>("/agent/traces/tree", { params: { limit } }));
@@ -750,4 +786,26 @@ export function injectLeak(resourceType?: string, resourceName?: string): Promis
 
 export function injectLog(level?: string, message?: string): Promise<Record<string, unknown>> {
   return unwrap(instance.post<Record<string, unknown>>("/inject/log", null, { params: { level, message } }));
+}
+
+/** 注入慢调用（指定耗时 ms，后端按慢调用阈值判断） */
+export function injectSlowCall(
+  params: { source?: string; target?: string; protocol?: string; durationMs?: number; error?: boolean },
+): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/slow", null, { params }));
+}
+
+/** 注入自定义 Span 树（一条 trace 多个 span，验证瀑布图） */
+export function injectSpanTree(params: {
+  traceId?: string;
+  spans?: number;
+  depth?: number;
+  errorSpan?: boolean;
+}): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/span-tree", null, { params }));
+}
+
+/** 注入 JVM 压力（模拟线程 / CPU 压力，制造 JVM 指标变化） */
+export function injectJvmPressure(params: { threads?: number; cpuPercent?: number; durationMs?: number }): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/jvm-pressure", null, { params }));
 }

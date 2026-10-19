@@ -161,9 +161,10 @@ import {
   CircleCloseFilled,
   DataLine,
   QuestionFilled,
+  Monitor,
 } from "@element-plus/icons-vue";
 import type { Component } from "vue";
-import { getStats, getAlerts } from "./api/apmApi";
+import { useApmStore } from "./stores/apmStore";
 import ShortcutsPanel from "./components/ShortcutsPanel.vue";
 import { currentLang, setLang } from "./i18n";
 import { realtimeService } from "./services/realtimeService";
@@ -171,11 +172,13 @@ import { realtimeService } from "./services/realtimeService";
 const route = useRoute();
 const router = useRouter();
 
-/** Agent 是否已注入（决定数据是实时还是降级） */
-const agentActive = ref(false);
+const apmStore = useApmStore();
 
-/** 未处置的告警数（导航红点） */
-const activeAlerts = ref(0);
+/** Agent 是否已注入（统一从 apmStore 读取，Agent 中心操作后侧栏即时同步） */
+const agentActive = computed(() => apmStore.agentActive);
+
+/** 未处置的告警数（导航红点，统一从 apmStore 读取） */
+const activeAlerts = computed(() => apmStore.activeAlertCount);
 
 /** 侧栏折叠 */
 const collapsed = ref(false);
@@ -235,6 +238,7 @@ const navGroups: NavGroup[] = [
     title: "运维",
     items: [
       { path: "/alerts", label: "告警中心", icon: Bell },
+      { path: "/agent", label: "Agent 中心", icon: Monitor },
       { path: "/injector", label: "数据注入器", icon: DataLine },
     ],
   },
@@ -323,20 +327,9 @@ function toggleLang() {
   setLang(currentLang.value === "zh" ? "en" : "zh");
 }
 
-/** 拉 Agent 状态 + 未处置告警数（15s 一次，Dashboard 自身有 3s SSE 快照） */
+/** 统一拉 Agent 状态 + 未处置告警数（复用 apmStore.pollStatus，15s 一次） */
 async function pollStatus() {
-  try {
-    const s = await getStats();
-    agentActive.value = s.agentActive;
-  } catch {
-    agentActive.value = false;
-  }
-  try {
-    const alerts = await getAlerts(100);
-    activeAlerts.value = (alerts || []).filter((a) => a.status === "OPEN").length;
-  } catch {
-    activeAlerts.value = 0;
-  }
+  await apmStore.pollStatus();
 }
 
 onMounted(async () => {

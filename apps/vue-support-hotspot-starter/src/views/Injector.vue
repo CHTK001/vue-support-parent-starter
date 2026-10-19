@@ -225,6 +225,115 @@
       </div>
     </div>
 
+    <!-- 压测增强：慢调用 / Span 树 / JVM 压力 -->
+    <div class="panel-row">
+      <div class="panel">
+        <div class="panel-head">
+          <span>注入慢调用</span>
+          <span class="panel-sub">POST /inject/slow · 验证慢调用排行</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-slow-duration">耗时（ms）</label>
+            <el-input-number
+              id="inj-slow-duration"
+              v-model="slowDurationMs"
+              :min="100"
+              :max="30000"
+              :step="100"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-slow-target">目标端（可选）</label>
+            <ReInput id="inj-slow-target" v-model="slowTarget" placeholder="order-service:8080" clearable />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <ReButton type="warning" :icon="Timer" show-text :loading="injectingSlow" @click="doInjectSlow">
+            注入慢调用
+          </ReButton>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>注入 Span 树</span>
+          <span class="panel-sub">POST /inject/span-tree · 验证链路瀑布</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-span-count">Span 数量</label>
+            <el-input-number
+              id="inj-span-count"
+              v-model="spanCount"
+              :min="2"
+              :max="100"
+              :step="1"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-span-depth">深度</label>
+            <el-input-number
+              id="inj-span-depth"
+              v-model="spanDepth"
+              :min="1"
+              :max="10"
+              :step="1"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <ReButton type="primary" plain :icon="DataLine" show-text :loading="injectingSpanTree" @click="doInjectSpanTree">
+            生成 1 棵
+          </ReButton>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>注入 JVM 压力</span>
+          <span class="panel-sub">POST /inject/jvm-pressure · 造线程/CPU 变化</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-jvm-threads">线程数</label>
+            <el-input-number
+              id="inj-jvm-threads"
+              v-model="jvmThreads"
+              :min="1"
+              :max="200"
+              :step="1"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-jvm-cpu">CPU 目标（%）</label>
+            <el-input-number
+              id="inj-jvm-cpu"
+              v-model="jvmCpuPercent"
+              :min="5"
+              :max="90"
+              :step="5"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <ReButton type="danger" plain :icon="Loading" show-text :loading="injectingJvm" @click="doInjectJvm">
+            制造压力
+          </ReButton>
+        </div>
+      </div>
+    </div>
+
     <!-- 注入历史（本会话内操作记录） -->
     <div class="panel">
       <div class="panel-head">
@@ -254,7 +363,7 @@
 import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
-import { Connection, Close, Histogram, DocumentAdd, Plus, Refresh, Share, Warning } from "@element-plus/icons-vue";
+import { Connection, Close, Histogram, DocumentAdd, Plus, Refresh, Share, Warning, Timer, Loading, DataLine } from "@element-plus/icons-vue";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReButton from "@repo/ui/re-button";
@@ -263,7 +372,7 @@ import ReTag from "@repo/ui/re-tag";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";
 import type { ReOption } from "@repo/ui/re-select";
-import { getStats, injectTransmission, injectBatch, injectLeak, injectLog, watchStats } from "../api/apmApi";
+import { getStats, injectTransmission, injectBatch, injectLeak, injectLog, injectSlowCall, injectSpanTree, injectJvmPressure, watchStats } from "../api/apmApi";
 import type { ApmStats } from "../api/apmApi";
 
 const stats = ref<ApmStats>({
@@ -418,7 +527,14 @@ const actionHint = computed(() => {
 });
 
 const injectingAny = computed(
-  () => injectingTransmission.value || injectingBatch.value || injectingLeak.value || injectingLog.value,
+  () =>
+    injectingTransmission.value ||
+    injectingBatch.value ||
+    injectingLeak.value ||
+    injectingLog.value ||
+    injectingSlow.value ||
+    injectingSpanTree.value ||
+    injectingJvm.value,
 );
 
 const injectingLabel = computed(() => {
@@ -426,6 +542,9 @@ const injectingLabel = computed(() => {
   if (injectingBatch.value) return "正在批量注入";
   if (injectingLeak.value) return "正在制造资源泄漏";
   if (injectingLog.value) return "正在写入日志";
+  if (injectingSlow.value) return "正在注入慢调用";
+  if (injectingSpanTree.value) return "正在生成 Span 树";
+  if (injectingJvm.value) return "正在制造 JVM 压力";
   return "";
 });
 
@@ -550,6 +669,85 @@ async function doInjectLog() {
   }
 }
 
+// ---- 卡片3：慢调用注入 ----
+const slowDurationMs = ref(1000);
+const slowTarget = ref("");
+const injectingSlow = ref(false);
+
+async function doInjectSlow() {
+  injectingSlow.value = true;
+  try {
+    await injectSlowCall({
+      source: source.value.trim() || undefined,
+      target: slowTarget.value.trim() || target.value.trim() || undefined,
+      protocol: protocol.value || undefined,
+      durationMs: slowDurationMs.value,
+    });
+    message.success(`已注入慢调用 ${slowDurationMs.value}ms`);
+    recordHistory(true, `慢调用 ${slowDurationMs.value}ms → ${slowTarget.value || target.value || "auto"}`);
+    lastResult.value = { label: `慢调用 ${slowDurationMs.value}ms`, ok: 1, failed: 0 };
+    refreshAfterInject();
+  } catch {
+    recordHistory(false, "注入慢调用失败");
+    lastResult.value = { label: `慢调用 ${slowDurationMs.value}ms`, ok: 0, failed: 1 };
+    message.error("注入慢调用失败");
+  } finally {
+    injectingSlow.value = false;
+  }
+}
+
+// ---- 卡片4：Span 树注入 ----
+const spanCount = ref(8);
+const spanDepth = ref(3);
+const injectingSpanTree = ref(false);
+
+async function doInjectSpanTree() {
+  injectingSpanTree.value = true;
+  try {
+    await injectSpanTree({
+      spans: spanCount.value,
+      depth: spanDepth.value,
+      errorSpan: injectedError.value || undefined,
+    });
+    message.success(`已生成 ${spanCount.value} span 链路`);
+    recordHistory(true, `Span 树 ${spanCount.value} spans · 深度 ${spanDepth.value}`);
+    lastResult.value = { label: `Span 树 ${spanCount.value} spans`, ok: 1, failed: 0 };
+    refreshAfterInject();
+  } catch {
+    recordHistory(false, "生成 Span 树失败");
+    lastResult.value = { label: `Span 树 ${spanCount.value} spans`, ok: 0, failed: 1 };
+    message.error("生成 Span 树失败");
+  } finally {
+    injectingSpanTree.value = false;
+  }
+}
+
+// ---- 卡片5：JVM 压力注入 ----
+const jvmThreads = ref(20);
+const jvmCpuPercent = ref(30);
+const injectingJvm = ref(false);
+
+async function doInjectJvm() {
+  injectingJvm.value = true;
+  try {
+    await injectJvmPressure({
+      threads: jvmThreads.value,
+      cpuPercent: jvmCpuPercent.value,
+      durationMs: 15000,
+    });
+    message.success(`已制造 JVM 压力（${jvmThreads.value} 线程 / ${jvmCpuPercent.value}% CPU）`);
+    recordHistory(true, `JVM 压力 ${jvmThreads.value} 线程 · ${jvmCpuPercent.value}% CPU`);
+    lastResult.value = { label: `JVM 压力 ${jvmThreads.value} 线程`, ok: 1, failed: 0 };
+    refreshAfterInject();
+  } catch {
+    recordHistory(false, "制造 JVM 压力失败");
+    lastResult.value = { label: `JVM 压力 ${jvmThreads.value} 线程`, ok: 0, failed: 1 };
+    message.error("制造 JVM 压力失败");
+  } finally {
+    injectingJvm.value = false;
+  }
+}
+
 onMounted(() => {
   loadStats();
   startSse();
@@ -594,6 +792,10 @@ onBeforeUnmount(() => {
 
 .count-input {
   width: 100px;
+}
+
+.full-input {
+  width: 100%;
 }
 
 .field-grid {
