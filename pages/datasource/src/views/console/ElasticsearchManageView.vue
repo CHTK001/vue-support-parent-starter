@@ -111,6 +111,14 @@
                   />
                   <ReButton
                     layout="square"
+                    :type="unhealthyOnly ? 'warning' : ''"
+                    icon="Warning"
+                    :tip="unhealthyOnly ? '取消只看异常' : '只看异常索引'"
+                    data-testid="es-index-unhealthy"
+                    @click="unhealthyOnly = !unhealthyOnly"
+                  />
+                  <ReButton
+                    layout="square"
                     icon="Refresh"
                     tip="刷新索引"
                     data-testid="es-index-refresh"
@@ -160,6 +168,7 @@
                 stripe
                 border
                 height="420px"
+                @row-hover="onIndexRowHover"
               >
                 <template #col-sel="{ row }">
                   <ElCheckbox
@@ -168,7 +177,19 @@
                   />
                 </template>
                 <template #col-health="{ row }">
-                  <ReTag :type="healthTag((row as EsIndexRow).health)">{{ (row as EsIndexRow).health || "—" }}</ReTag>
+                  <span class="dsm-health-cell">
+                    <span
+                      class="dsm-health-dot"
+                      :class="`is-${healthDotClass((row as EsIndexRow).health)}`"
+                    />
+                    <ReTag :type="healthTag((row as EsIndexRow).health)">{{ (row as EsIndexRow).health || "—" }}</ReTag>
+                  </span>
+                </template>
+                <template #col-name="{ row }">
+                  <span
+                    class="dsm-index-name"
+                    :title="(row as EsIndexRow).name"
+                  >{{ (row as EsIndexRow).name }}</span>
                 </template>
                 <template #col-actions="{ row }">
                   <span class="dsm-row-actions" @click.stop>
@@ -192,6 +213,14 @@
                     <ReButton
                       layout="square"
                       size="small"
+                      icon="Download"
+                      tip="导出结构"
+                      data-testid="es-row-export"
+                      @click="openExportDialog((row as EsIndexRow).name)"
+                    />
+                    <ReButton
+                      layout="square"
+                      size="small"
                       icon="Document"
                       tip="文档详情"
                       data-testid="es-row-docdetail"
@@ -209,6 +238,21 @@
                   </span>
                 </template>
               </ReTable>
+              <!-- 索引悬浮信息卡 -->
+              <Teleport to="body">
+                <div
+                  v-if="hoveredIndex"
+                  class="dsm-index-hover-card"
+                  :style="hoverCardStyle"
+                  @click.stop
+                >
+                  <div class="dsm-hover-title">{{ hoveredIndex.name }}</div>
+                  <div class="dsm-hover-row"><span class="dsm-hover-label">健康</span><ReTag size="small" :type="healthTag(hoveredIndex.health)">{{ hoveredIndex.health || "—" }}</ReTag></div>
+                  <div class="dsm-hover-row"><span class="dsm-hover-label">状态</span><span class="dsm-hover-value">{{ hoveredIndex.status || "—" }}</span></div>
+                  <div class="dsm-hover-row"><span class="dsm-hover-label">文档数</span><span class="dsm-hover-value mono">{{ hoveredIndex.docs || "—" }}</span></div>
+                  <div class="dsm-hover-row"><span class="dsm-hover-label">存储</span><span class="dsm-hover-value mono">{{ hoveredIndex.storeSize || "—" }}</span></div>
+                </div>
+              </Teleport>
               <RePagination
                 v-model:page="indexPage"
                 v-model:page-size="indexPageSize"
@@ -222,9 +266,25 @@
           <!-- ============ 节点列表（异步加载） ============ -->
           <template #nodes>
             <div class="dsm-section">
+              <!-- 集群健康趋势图 -->
+              <div class="dsm-cluster-chart-wrap">
+                <div class="dsm-chart-label">
+                  <ReIcon name="TrendCharts" class="dsm-chart-label-icon" />
+                  <span>集群健康趋势（最近 {{ clusterChartSnapshots }} 次刷新）</span>
+                </div>
+                <EsClusterChart ref="clusterChartRef" :cluster="cluster" />
+              </div>
               <div class="dsm-section-title">
                 <span>节点列表（{{ clusterNodes.length }}）</span>
                 <div class="dsm-section-actions">
+                  <ReButton
+                    layout="square"
+                    icon="TrendCharts"
+                    tip="分片热力图"
+                    data-testid="es-shard-heatmap"
+                    :loading="shardHeatmapLoading"
+                    @click="openShardHeatmap"
+                  />
                   <ReButton
                     layout="square"
                     icon="Refresh"
@@ -248,7 +308,7 @@
                 height="420px"
               >
                 <template #col-name="{ row }">
-                  <span class="dsm-node-name-cell">
+                  <span class="dsm-node-name-cell" @click="openNodeDetail(row as EsClusterNode)">
                     <span class="dsm-node-status-dot" :class="(row as EsNodeRow).statusTone" />
                     <span class="dsm-node-name-text">{{ (row as EsNodeRow).name }}</span>
                   </span>
@@ -256,6 +316,18 @@
                 <template #col-master="{ row }">
                   <ReTag v-if="(row as EsClusterNode).master === '*'" type="warning">master</ReTag>
                   <span v-else class="dsm-muted">—</span>
+                </template>
+                <template #col-heap="{ row }">
+                  <div class="dsm-meter" :title="`堆使用 ${row.heapPercent}%`">
+                    <span class="dsm-meter__track">
+                      <span
+                        class="dsm-meter__fill"
+                        :class="(row as EsNodeRow).statusTone === 'is-red' ? 'is-danger' : (row as EsNodeRow).statusTone === 'is-yellow' ? 'is-warn' : ''"
+                        :style="{ width: `${row.heapPercent || 0}%` }"
+                      />
+                    </span>
+                    <span class="dsm-meter__text">{{ row.heapPercent || "—" }}%</span>
+                  </div>
                 </template>
                 <template #col-cpu="{ row }">
                   <div class="dsm-meter" title="CPU 使用率">
@@ -462,11 +534,20 @@
             </div>
           </template>
 
-          <!-- ============ 查询检索（类 JDBC 结果集） ============ -->
+          <!-- ============ 查询检索（DSL 编辑器 + 历史记录） ============ -->
           <template #query>
             <div class="dsm-query-area">
+              <!-- 模式切换 + 历史记录 -->
               <div class="dsm-query-toolbar">
                 <ReSelect
+                  v-model="queryMode"
+                  :data="[{ label: '简单模式', value: 'simple' }, { label: 'DSL 模式', value: 'dsl' }]"
+                  placeholder="查询模式"
+                  class="dsm-query-mode"
+                  data-testid="es-query-mode"
+                />
+                <ReSelect
+                  v-if="queryMode === 'simple'"
                   v-model="queryIndex"
                   :data="indexOptions"
                   placeholder="选择索引（可留空走原始表达式）"
@@ -474,11 +555,29 @@
                   data-testid="es-query-index"
                 />
                 <ReInput
+                  v-if="queryMode === 'simple'"
                   v-model="queryKeyword"
                   :placeholder="queryPlaceholder"
                   class="dsm-query-input"
                   data-testid="es-query-keyword"
                   @keyup.enter="runQuery"
+                />
+                <div v-if="queryMode === 'dsl'" class="dsm-query-dsl-wrap">
+                  <EsQueryEditor
+                    v-model="queryDslText"
+                    :keywords="indexOptions.map(o => o.label)"
+                    :placeholder="queryDslPlaceholder"
+                    min-height="160px"
+                    max-height="280px"
+                  />
+                </div>
+                <ReButton
+                  v-if="queryHistory.length > 0"
+                  layout="square"
+                  icon="Clock"
+                  :tip="`历史记录（${queryHistory.length} 条）`"
+                  data-testid="es-query-history-toggle"
+                  @click="showQueryHistory = !showQueryHistory"
                 />
                 <ReButton
                   type="primary"
@@ -490,6 +589,26 @@
                   检索
                 </ReButton>
               </div>
+
+              <!-- 历史记录下拉 -->
+              <div v-if="showQueryHistory && queryHistory.length > 0" class="dsm-query-history re-surface">
+                <div class="dsm-history-header">
+                  <span class="dsm-history-title">历史记录</span>
+                  <ReButton layout="square" size="small" icon="Delete" tip="清空历史" @click="clearQueryHistory" />
+                </div>
+                <div class="dsm-history-list">
+                  <div
+                    v-for="(item, idx) in queryHistory"
+                    :key="idx"
+                    class="dsm-history-item"
+                    @click="restoreFromHistory(item)"
+                  >
+                    <span class="dsm-history-text mono">{{ item.text.slice(0, 80) }}{{ item.text.length > 80 ? '…' : '' }}</span>
+                    <span class="dsm-history-meta">{{ item.mode }} · {{ formatTime(item.time) }}</span>
+                  </div>
+                </div>
+              </div>
+
               <ReAlert
                 v-if="capability?.queryDescription"
                 type="info"
@@ -859,6 +978,117 @@
       />
     </ReDialog>
 
+    <!-- 节点详情弹框 -->
+    <ReDialog
+      v-model="nodeDetailVisible"
+      :title="`节点详情 - ${nodeDetailNode?.name || ''}`"
+      width="560px"
+    >
+      <div v-if="nodeDetailNode" class="dsm-node-detail">
+        <div class="dsm-node-detail-grid">
+          <div class="dsm-node-detail-item"><span class="dsm-node-detail-label">节点名</span><span class="dsm-node-detail-value mono">{{ nodeDetailNode.name }}</span></div>
+          <div class="dsm-node-detail-item"><span class="dsm-node-detail-label">地址</span><span class="dsm-node-detail-value mono">{{ nodeDetailNode.ip }}</span></div>
+          <div class="dsm-node-detail-item"><span class="dsm-node-detail-label">角色</span><span class="dsm-node-detail-value">{{ nodeDetailNode.roles }}</span></div>
+          <div class="dsm-node-detail-item"><span class="dsm-node-detail-label">Master</span><span class="dsm-node-detail-value"><ReTag v-if="nodeDetailNode.master === '*'" type="warning">master</ReTag><span v-else>—</span></span></div>
+          <div class="dsm-node-detail-item">
+            <span class="dsm-node-detail-label">堆内存</span>
+            <div class="dsm-node-detail-value">
+              <div class="dsm-meter" style="max-width: 200px">
+                <span class="dsm-meter__track">
+                  <span
+                    class="dsm-meter__fill"
+                    :class="nodeDetailHeapTone"
+                    :style="{ width: `${Number(nodeDetailNode.heapPercent) || 0}%` }"
+                  />
+                </span>
+                <span class="dsm-meter__text">{{ nodeDetailNode.heapPercent }}%</span>
+              </div>
+            </div>
+          </div>
+          <div class="dsm-node-detail-item">
+            <span class="dsm-node-detail-label">CPU</span>
+            <div class="dsm-node-detail-value">
+              <div class="dsm-meter" style="max-width: 200px">
+                <span class="dsm-meter__track">
+                  <span
+                    class="dsm-meter__fill"
+                    :class="`is-${nodeDetailCpuTone}`"
+                    :style="{ width: `${Number(nodeDetailNode.cpu) || 0}%` }"
+                  />
+                </span>
+                <span class="dsm-meter__text">{{ nodeDetailNode.cpu || "—" }}%</span>
+              </div>
+            </div>
+          </div>
+          <div class="dsm-node-detail-item"><span class="dsm-node-detail-label">负载</span><span class="dsm-node-detail-value mono">{{ nodeDetailNode.load || "—" }}</span></div>
+          <div class="dsm-node-detail-item"><span class="dsm-node-detail-label">版本</span><span class="dsm-node-detail-value mono">{{ nodeDetailNode.version || "—" }}</span></div>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- 分片热力图弹框 -->
+    <ReDialog
+      v-model="shardHeatmapVisible"
+      title="分片分配热力图"
+      width="900px"
+    >
+      <div v-if="shardHeatmapLoading" class="dsm-loading-row">
+        <ReLoading />
+      </div>
+      <div v-else-if="Object.keys(shardHeatmapData).length > 0" class="dsm-shard-heatmap">
+        <div class="dsm-heatmap-header">
+          <span class="dsm-heatmap-label" />
+          <span v-for="node in shardHeatmapNodes" :key="node" class="dsm-heatmap-node-label">{{ node }}</span>
+        </div>
+        <div v-for="idx in shardHeatmapIndices" :key="idx" class="dsm-heatmap-row">
+          <span class="dsm-heatmap-index-label mono" :title="idx">{{ idx.length > 16 ? idx.slice(0, 16) + '…' : idx }}</span>
+          <span
+            v-for="node in shardHeatmapNodes"
+            :key="node"
+            class="dsm-heatmap-cell"
+            :class="getShardCellClass(idx, node)"
+            :title="getShardCellTitle(idx, node)"
+          >
+            {{ getShardCellText(idx, node) }}
+          </span>
+        </div>
+      </div>
+      <ReEmpty v-else description="暂无分片数据，请先加载" />
+    </ReDialog>
+
+    <!-- 导出索引结构弹框 -->
+    <ReDialog
+      v-model="exportDialogVisible"
+      :title="`导出索引结构 - ${exportIndexName}`"
+      width="700px"
+    >
+      <div class="dsm-export-area">
+        <div class="dsm-export-toolbar">
+          <ReSelect
+            v-model="exportFormat"
+            :data="[{ label: 'Mapping JSON', value: 'mapping' }, { label: 'cURL 命令', value: 'curl' }]"
+            placeholder="导出格式"
+            class="dsm-export-format"
+          />
+          <ReButton
+            layout="square"
+            icon="CopyDocument"
+            tip="复制"
+            data-testid="es-export-copy"
+            @click="copyExportContent"
+          />
+          <ReButton
+            layout="square"
+            icon="Download"
+            tip="下载文件"
+            data-testid="es-export-download"
+            @click="downloadExport"
+          />
+        </div>
+        <pre class="dsm-export-content">{{ exportContent }}</pre>
+      </div>
+    </ReDialog>
+
     <!-- 文档详情弹框 -->
     <ReDialog
       v-model="docDetailVisible"
@@ -916,6 +1146,8 @@ import { ReAlert } from "@repo/ui/re-kit";
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import AliasFormDialog from "../../components/console/AliasFormDialog.vue";
+import EsQueryEditor from "../../components/console/EsQueryEditor.vue";
+import EsClusterChart from "../../components/console/charts/EsClusterChart.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   addEsAlias,
@@ -969,6 +1201,12 @@ const testResult = ref<{ version: string; detail: string }>({ version: "", detai
 // ---- 索引概览 ----
 const indices = ref<EsIndexRow[]>([]);
 const indexFilter = ref("");
+/** 只显示异常索引（health !== green） */
+const unhealthyOnly = ref(false);
+/** 悬浮索引行时显示的信息卡 */
+const hoveredIndex = ref<EsIndexRow | null>(null);
+/** 悬浮卡位置（跟随鼠标） */
+const hoverCardStyle = ref<Record<string, string>>({});
 /** 索引多选集合（存索引名） */
 const indexSelection = ref<Set<string>>(new Set());
 /** 索引分页状态 */
@@ -1023,6 +1261,29 @@ function isRemoved(name: string): boolean {
 /** 判断字段是否被修改 */
 function isModified(name: string): boolean {
   return fieldDiffMap.value.get(name) === "modified";
+}
+
+/** 悬浮索引行时显示快速信息卡 */
+function onIndexRowHover(row: EsIndexRow | null, event?: MouseEvent) {
+  hoveredIndex.value = row;
+  if (row && event) {
+    const x = event.clientX + 16;
+    const y = event.clientY + 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    hoverCardStyle.value = {
+      left: `${Math.min(x, vw - 240)}px`,
+      top: `${Math.min(y, vh - 160)}px`,
+    };
+  }
+}
+
+/** 健康度对应圆点样式类 */
+function healthDotClass(health: string | null | undefined): string {
+  if (health === "green") return "green";
+  if (health === "yellow") return "yellow";
+  if (health === "red") return "red";
+  return "grey";
 }
 
 /** 切换单个索引选中状态 */
@@ -1118,6 +1379,124 @@ const nodesLoading = ref(false);
 /** 节点分页状态 */
 const nodePage = ref(1);
 const nodePageSize = ref(20);
+/** 集群监控图组件 ref */
+const clusterChartRef = ref<InstanceType<typeof EsClusterChart> | null>(null);
+/** 图表快照计数（响应式更新） */
+const clusterChartSnapshots = ref(0);
+
+/** 节点详情弹框 */
+const nodeDetailVisible = ref(false);
+const nodeDetailNode = ref<EsClusterNode | null>(null);
+const nodeDetailCpuTone = computed(() => cpuTone(nodeDetailNode.value?.cpu ?? null));
+const nodeDetailHeapTone = computed(() => {
+  const heap = Number(nodeDetailNode.value?.heapPercent ?? "0");
+  if (heap >= 85) return "is-danger";
+  if (heap >= 70) return "is-warn";
+  return "";
+});
+function openNodeDetail(node: EsClusterNode) {
+  nodeDetailNode.value = node;
+  nodeDetailVisible.value = true;
+}
+
+/** 分片热力图 */
+const shardHeatmapVisible = ref(false);
+const shardHeatmapLoading = ref(false);
+type ShardHeatmapCell = { count: number; primary: number; replica: number; state: string };
+const shardHeatmapData = ref<Record<string, Record<string, ShardHeatmapCell>>>({});
+const shardHeatmapNodes = ref<string[]>([]);
+const shardHeatmapIndices = ref<string[]>([]);
+async function openShardHeatmap() {
+  shardHeatmapVisible.value = true;
+  if (Object.keys(shardHeatmapData.value).length > 0) return; // 已有数据
+  shardHeatmapLoading.value = true;
+  try {
+    const data = await fetchEsShards(datasourceId.value);
+    const idxMap: Record<string, Record<string, ShardHeatmapCell>> = {};
+    const nodeSet = new Set<string>();
+    for (const s of data) {
+      const nodeKey = s.node || "(未分配)";
+      nodeSet.add(nodeKey);
+      if (!idxMap[s.index]) idxMap[s.index] = {};
+      if (!idxMap[s.index][nodeKey]) idxMap[s.index][nodeKey] = { count: 0, primary: 0, replica: 0, state: "" };
+      const cell = idxMap[s.index][nodeKey];
+      cell.count++;
+      if (s.prirep === "p") cell.primary++;
+      else if (s.prirep === "r") cell.replica++;
+      if (!cell.state || cell.state === "STARTED") cell.state = s.state;
+    }
+    shardHeatmapData.value = idxMap;
+    shardHeatmapNodes.value = [...nodeSet].sort();
+    shardHeatmapIndices.value = Object.keys(idxMap).sort();
+  } catch (e) {
+    showError(e, "加载分片");
+  } finally {
+    shardHeatmapLoading.value = false;
+  }
+}
+function getShardCellClass(idx: string, node: string): string {
+  const cell = shardHeatmapData.value[idx]?.[node];
+  if (!cell) return "dsm-heatmap-cell--empty";
+  if (cell.state === "UNASSIGNED") return "dsm-heatmap-cell--danger";
+  if (cell.primary > 0) return "dsm-heatmap-cell--primary";
+  return "dsm-heatmap-cell--replica";
+}
+function getShardCellText(idx: string, node: string): string {
+  const cell = shardHeatmapData.value[idx]?.[node];
+  return cell ? String(cell.count) : "";
+}
+function getShardCellTitle(idx: string, node: string): string {
+  const cell = shardHeatmapData.value[idx]?.[node];
+  if (!cell) return `${idx} 在 ${node} 上无分片`;
+  return `${idx} @ ${node}：${cell.count} 个（主 ${cell.primary} / 副 ${cell.replica}，状态 ${cell.state}）`;
+}
+
+/** 导出索引结构 */
+const exportDialogVisible = ref(false);
+const exportIndexName = ref("");
+const exportFormat = ref<"mapping" | "curl">("mapping");
+const exportContent = computed(() => {
+  const idx = indices.value.find(i => i.name === exportIndexName.value);
+  if (!idx) return "";
+  if (exportFormat.value === "curl") {
+    return `curl -X PUT "${source.value?.host || "http://localhost:9200"}/${exportIndexName.value}" -H "Content-Type: application/json" -d @mapping.json`;
+  }
+  // mapping JSON：构造一个最小可用的 mapping
+  return JSON.stringify({ mappings: { properties: {} } }, null, 2);
+});
+async function openExportDialog(indexName: string) {
+  exportIndexName.value = indexName;
+  exportFormat.value = "mapping";
+  exportDialogVisible.value = true;
+  // 拉取实际 mapping
+  try {
+    const detail = await fetchEsIndexDetail(indexName, datasourceId.value);
+    const mappingJson = JSON.stringify({ settings: detail.settings, mappings: { properties: detail.fields.reduce((m: Record<string, unknown>, f) => { m[f.name] = { type: f.type || "keyword" }; return m; }, {}) } }, null, 2);
+    // 替换 computed 里的值——通过一个临时 ref
+    exportRawContent.value = mappingJson;
+  } catch {
+    exportRawContent.value = JSON.stringify({ mappings: { properties: {} } }, null, 2);
+  }
+}
+const exportRawContent = ref("{}");
+const exportContentFinal = computed(() => {
+  if (exportFormat.value === "mapping") return exportRawContent.value;
+  return `curl -X PUT "${source.value?.host || "http://localhost:9200"}/${exportIndexName.value}" -H "Content-Type: application/json" -d '${exportRawContent.value}'`;
+});
+function copyExportContent() {
+  copyText(exportContentFinal.value, exportFormat.value === "mapping" ? "Mapping JSON" : "cURL");
+  message.success("已复制到剪贴板");
+}
+function downloadExport() {
+  const ext = exportFormat.value === "mapping" ? "json" : "sh";
+  const blob = new Blob([exportContentFinal.value], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${exportIndexName.value}.${ext}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /** 分页后的节点列表 */
 const paginatedNodes = computed(() => {
@@ -1314,10 +1693,65 @@ async function prefillClusterForm() {
 }
 
 // ---- 查询检索 ----
+const queryMode = ref<"simple" | "dsl">("simple");
 const queryIndex = ref("");
 const queryKeyword = ref("");
+const queryDslText = ref("");
 const queryLoading = ref(false);
 const queryResult = ref<EsQueryResult | null>(null);
+const showQueryHistory = ref(false);
+
+/** 查询历史（localStorage 持久化，最多 20 条） */
+const HISTORY_KEY = "es-query-history";
+type QueryHistoryItem = { text: string; mode: string; time: number; index?: string };
+function loadHistory(): QueryHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function saveHistory(list: QueryHistoryItem[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 20))); } catch {}
+}
+const queryHistory = ref<QueryHistoryItem[]>(loadHistory());
+
+function clearQueryHistory() {
+  queryHistory.value = [];
+  saveHistory([]);
+  showQueryHistory.value = false;
+  message.success("历史记录已清空");
+}
+
+function restoreFromHistory(item: QueryHistoryItem) {
+  if (item.mode === "dsl") {
+    queryMode.value = "dsl";
+    queryDslText.value = item.text;
+  } else {
+    queryMode.value = "simple";
+    queryKeyword.value = item.text;
+    queryIndex.value = item.index || "";
+  }
+  showQueryHistory.value = false;
+}
+
+function formatTime(ts: number): string {
+  const d = new Date(ts);
+  const h = d.getHours().toString().padStart(2, "0");
+  const m = d.getMinutes().toString().padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+const queryDslPlaceholder = computed(() =>
+  "输入 ES Query DSL，例如：\n{\"query\":{\"match\":{\"_all\":\"关键字\"}},\"from\":0,\"size\":20}",
+);
+
+function pushHistory(text: string, mode: string, index?: string) {
+  if (!text.trim()) return;
+  const list = queryHistory.value.filter(h => h.text !== text);
+  list.unshift({ text, mode, time: Date.now(), index });
+  queryHistory.value = list.slice(0, 20);
+  saveHistory(queryHistory.value);
+}
 
 // ---- 集群信息 ----
 const clusterVisible = ref(false);
@@ -1381,11 +1815,11 @@ const capabilityText = computed(() => {
 
 const indexColumns = [
   { prop: "_sel", label: "", width: 40, slot: "col-sel" },
-  { prop: "name", label: "索引名", minWidth: 220 },
-  { prop: "health", label: "健康度", width: 110, slot: "col-health" },
+  { prop: "name", label: "索引名", minWidth: 220, slot: "col-name" },
+  { prop: "health", label: "健康度", width: 120, slot: "col-health" },
   { prop: "status", label: "状态", width: 100 },
-  { prop: "docs", label: "文档数", width: 110 },
-  { prop: "storeSize", label: "存储", width: 110 },
+  { prop: "docs", label: "文档数", width: 120, sortable: true },
+  { prop: "storeSize", label: "存储", width: 120, sortable: true },
   { prop: "actions", label: "操作", width: 190, fixed: "right" as const, slot: "col-actions" },
 ];
 
@@ -1394,7 +1828,7 @@ const nodeColumns = [
   { prop: "ip", label: "地址", minWidth: 150 },
   { prop: "roles", label: "角色", minWidth: 140 },
   { prop: "master", label: "Master", width: 100, slot: "col-master" },
-  { prop: "heapPercent", label: "堆使用", width: 90 },
+  { prop: "heapPercent", label: "堆使用", width: 110, slot: "col-heap" },
   { prop: "cpu", label: "CPU", width: 150, slot: "col-cpu" },
   { prop: "load", label: "负载", width: 90 },
   { prop: "version", label: "版本", width: 100 },
@@ -1425,7 +1859,10 @@ const settingColumns = [
 
 const filteredIndices = computed(() => {
   const kw = indexFilter.value.trim().toLowerCase();
-  return kw ? indices.value.filter(i => String(i.name || "").toLowerCase().includes(kw)) : indices.value;
+  let list = indices.value;
+  if (kw) list = list.filter(i => String(i.name || "").toLowerCase().includes(kw));
+  if (unhealthyOnly.value) list = list.filter(i => i.health && i.health !== "green");
+  return list;
 });
 
 /** 分页后的索引列表 */
@@ -1888,6 +2325,8 @@ async function loadCluster() {
   clusterLoading.value = true;
   try {
     cluster.value = await fetchEsCluster(datasourceId.value);
+    clusterChartRef.value?.snapshot();
+    clusterChartSnapshots.value = clusterChartRef.value?.snapshotCount ?? 0;
   } catch (e) {
     showError(e, "加载集群信息");
   } finally {
@@ -1929,23 +2368,38 @@ async function loadGraphTab() {
 
 // ---- 查询检索 ----
 async function runQuery() {
-  const index = queryIndex.value;
-  const keyword = queryKeyword.value.trim();
-  const expression = index ? `search ${index} ${keyword}`.trim() : keyword;
-  if (!expression) {
-    message.warning("请输入检索内容");
-    return;
-  }
-  if (!datasourceId.value) return;
-  queryLoading.value = true;
-  try {
-    const res = await queryEs(expression, datasourceId.value);
-    queryResult.value = res;
-    if (res.message) message.error(res.message);
-  } catch (e) {
-    showError(e, "/ms/monitor/middleware/query");
-  } finally {
-    queryLoading.value = false;
+  if (queryMode.value === "dsl") {
+    const text = queryDslText.value.trim();
+    if (!text) { message.warning("请输入 DSL 语句"); return; }
+    if (!datasourceId.value) return;
+    queryLoading.value = true;
+    try {
+      const res = await queryEs(text, datasourceId.value);
+      queryResult.value = res;
+      if (res.message) message.error(res.message);
+      pushHistory(text, "dsl");
+    } catch (e) {
+      showError(e, "/ms/monitor/middleware/query");
+    } finally {
+      queryLoading.value = false;
+    }
+  } else {
+    const index = queryIndex.value;
+    const keyword = queryKeyword.value.trim();
+    const expression = index ? `search ${index} ${keyword}`.trim() : keyword;
+    if (!expression) { message.warning("请输入检索内容"); return; }
+    if (!datasourceId.value) return;
+    queryLoading.value = true;
+    try {
+      const res = await queryEs(expression, datasourceId.value);
+      queryResult.value = res;
+      if (res.message) message.error(res.message);
+      pushHistory(expression, "simple", index);
+    } catch (e) {
+      showError(e, "/ms/monitor/middleware/query");
+    } finally {
+      queryLoading.value = false;
+    }
   }
 }
 
@@ -2681,7 +3135,7 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--el-color-warning) 6%, transparent);
 }
 
-/* ---- 查询检索 ---- */
+/* ---- 查询区域 ---- */
 .dsm-query-area {
   display: flex;
   flex-direction: column;
@@ -2690,8 +3144,14 @@ onMounted(async () => {
 
 .dsm-query-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dsm-query-mode {
+  width: 120px;
+  flex: none;
 }
 
 .dsm-query-index {
@@ -2702,6 +3162,222 @@ onMounted(async () => {
 .dsm-query-input {
   flex: 1;
   max-width: 760px;
+}
+
+.dsm-query-dsl-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- 查询历史记录 ---- */
+.dsm-query-history.re-surface {
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+  box-shadow: var(--es-card-glow);
+  max-height: 220px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dsm-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+}
+.dsm-history-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.dsm-history-list {
+  overflow-y: auto;
+  flex: 1;
+}
+.dsm-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+}
+.dsm-history-item:last-child { border-bottom: none; }
+.dsm-history-item:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+}
+.dsm-history-text {
+  font-size: 11px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsm-history-meta {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* ---- 集群监控图表区域 ---- */
+.dsm-cluster-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.dsm-chart-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dsm-chart-label-icon {
+  color: var(--el-color-primary);
+  filter: drop-shadow(0 0 4px var(--el-color-primary));
+}
+
+/* ---- 节点详情弹框 ---- */
+.dsm-node-detail {
+  padding: 4px 0;
+}
+.dsm-node-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+.dsm-node-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dsm-node-detail-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.dsm-node-detail-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+.dsm-node-detail-value.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ---- 分片热力图 ---- */
+.dsm-shard-heatmap {
+  overflow: auto;
+  max-height: 480px;
+}
+.dsm-heatmap-header,
+.dsm-heatmap-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.dsm-heatmap-label {
+  flex: 0 0 140px;
+  font-size: 11px;
+}
+.dsm-heatmap-node-label {
+  flex: 0 0 60px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsm-heatmap-index-label {
+  flex: 0 0 140px;
+  font-size: 11px;
+  color: var(--text-primary);
+  padding: 4px 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsm-heatmap-cell {
+  flex: 0 0 60px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: default;
+  transition: opacity 0.15s;
+}
+.dsm-heatmap-cell:hover { opacity: 0.75; }
+.dsm-heatmap-cell--empty  { background: transparent; color: var(--text-tertiary); }
+.dsm-heatmap-cell--primary { background: color-mix(in srgb, var(--el-color-success) 20%, transparent); color: var(--el-color-success); box-shadow: inset 0 0 8px color-mix(in srgb, var(--el-color-success) 10%, transparent); }
+.dsm-heatmap-cell--replica { background: color-mix(in srgb, var(--el-color-primary) 15%, transparent); color: var(--el-color-primary); }
+.dsm-heatmap-cell--danger  { background: color-mix(in srgb, var(--el-color-danger) 20%, transparent); color: var(--el-color-danger); box-shadow: inset 0 0 8px color-mix(in srgb, var(--el-color-danger) 15%, transparent); animation: es-dot-pulse-red 1s ease-in-out infinite; }
+
+/* ---- 导出弹框 ---- */
+.dsm-export-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dsm-export-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dsm-export-format {
+  width: 140px;
+}
+.dsm-export-content {
+  padding: 12px 14px;
+  max-height: 400px;
+  overflow: auto;
+  background: color-mix(in srgb, var(--el-fill-color-light) 50%, color-mix(in srgb, var(--el-color-primary) 3%, transparent));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--el-color-primary) 70%, var(--text-primary));
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.7;
+}
+
+/* ---- 节点名单元格（可点击） ---- */
+.dsm-node-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.dsm-node-name-cell:hover .dsm-node-name-text {
+  color: var(--el-color-primary);
+  text-decoration: underline;
+}
+.dsm-node-name-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--el-color-primary) 85%, var(--text-primary));
+  transition: color 0.15s;
+}
+.dsm-node-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
 }
 
 .dsm-query-hint {
@@ -3131,6 +3807,92 @@ onMounted(async () => {
 .dsm-empty-text {
   font-size: 13px;
   opacity: 0.6;
+}
+
+/* ---- 健康度圆点（脉冲灯）---- */
+.dsm-health-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dsm-health-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 5px currentColor;
+}
+.dsm-health-dot.is-green  { background: var(--el-color-success); color: var(--el-color-success); animation: es-dot-pulse-green 2s ease-in-out infinite; }
+.dsm-health-dot.is-yellow { background: var(--el-color-warning); color: var(--el-color-warning); animation: es-dot-pulse-yellow 1.5s ease-in-out infinite; }
+.dsm-health-dot.is-red    { background: var(--el-color-danger);  color: var(--el-color-danger);  animation: es-dot-pulse-red 1s ease-in-out infinite; }
+.dsm-health-dot.is-grey   { background: var(--el-color-info);    color: var(--el-color-info); }
+
+@keyframes es-dot-pulse-green {
+  0%, 100% { box-shadow: 0 0 4px var(--el-color-success); }
+  50%       { box-shadow: 0 0 10px var(--el-color-success), 0 0 18px color-mix(in srgb, var(--el-color-success) 40%, transparent); }
+}
+@keyframes es-dot-pulse-yellow {
+  0%, 100% { box-shadow: 0 0 4px var(--el-color-warning); }
+  50%       { box-shadow: 0 0 9px var(--el-color-warning), 0 0 16px color-mix(in srgb, var(--el-color-warning) 40%, transparent); }
+}
+@keyframes es-dot-pulse-red {
+  0%, 100% { box-shadow: 0 0 6px var(--el-color-danger); }
+  50%       { box-shadow: 0 0 12px var(--el-color-danger), 0 0 22px color-mix(in srgb, var(--el-color-danger) 50%, transparent); }
+}
+
+/* ---- 索引名单元格 ---- */
+.dsm-index-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--el-color-primary) 85%, var(--text-primary));
+  cursor: default;
+}
+
+/* ---- 索引悬浮信息卡 ---- */
+.dsm-index-hover-card {
+  position: fixed;
+  z-index: 99999;
+  min-width: 200px;
+  padding: 12px 14px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, var(--border-color, #e4e7ed));
+  border-radius: var(--es-radius);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--el-color-primary) 10%, transparent),
+    0 8px 32px rgb(0 0 0 / 14%);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dsm-hover-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+.dsm-hover-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.dsm-hover-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  min-width: 40px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dsm-hover-value {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.dsm-hover-value.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* ============================================================
