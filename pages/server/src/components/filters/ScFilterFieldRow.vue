@@ -90,6 +90,14 @@ const changed = computed(() => {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--el-radius-sm);
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 3%, transparent);
+  }
 }
 .fc-label {
   display: flex;
