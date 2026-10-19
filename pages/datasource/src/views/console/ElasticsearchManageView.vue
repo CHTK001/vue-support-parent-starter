@@ -54,6 +54,23 @@
 
     <MiddlewareGap :text="gap" @retry="refresh" />
 
+    <!-- ES 集群 Red 状态全局告警 -->
+    <div v-if="!gap && cluster?.health === 'red'" class="es-red-banner re-surface">
+      <ReIcon name="WarningFilled" class="es-red-icon" />
+      <span class="es-red-text">
+        集群状态为 <strong>RED</strong>，存在未分配分片，索引数据存在丢失风险，请尽快处理！
+      </span>
+      <ReButton
+        layout="square"
+        icon="Refresh"
+        tip="刷新集群状态"
+        size="small"
+        :loading="clusterLoading"
+        data-testid="es-red-refresh"
+        @click="loadCluster"
+      />
+    </div>
+
     <div v-if="!gap" class="dsm-body">
       <div class="dsm-content">
         <div class="dsm-info-card re-surface">
@@ -1392,9 +1409,24 @@ async function saveIndex() {
     message.warning("请输入索引名");
     return;
   }
+  // 索引名格式校验：ES 规范：全小写，可含字母/数字/下划线/连字符，首字符必须是字母或下划线
+  if (!/^[a-z_][a-z0-9_-]{0,254}$/.test(name)) {
+    message.warning(
+      "索引名不合法。规则：全小写、首字符为字母或下划线、可含字母/数字/下划线/连字符、最长 255 字符",
+    );
+    return;
+  }
   const fields = indexForm.fields.filter(f => f.name.trim());
   if (fields.length === 0) {
     message.warning("至少填写一个字段");
+    return;
+  }
+  // 字段名格式校验：字母或下划线开头，可含字母/数字/下划线
+  const invalidField = fields.find(f => !/^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/.test(f.name.trim()));
+  if (invalidField) {
+    message.warning(
+      `字段名「${invalidField.name}」不合法。规则：首字符为字母或下划线，可含字母/数字/下划线，最长 255 字符`,
+    );
     return;
   }
 
@@ -1420,11 +1452,11 @@ async function saveIndex() {
       try {
         await ElMessageBox.confirm(
           `索引「${name}」：将删除 ${removed.length} 个字段、改动 ${modified.length} 个字段。` +
-            `ES 无法原地删除字段或修改已存在字段的类型，必须重建索引` +
-            `（建临时索引 → 搬运数据 → 换回同名索引），重建期间原索引短暂不可用，` +
-            `耗时与数据量成正比。确定继续？`,
+            `ES 无法原地删除字段或修改已存在字段的类型，底层执行三步：` +
+            `(1) 建临时索引 → (2) 复制数据到临时索引 → (3) 删除原索引并重建同名。` +
+            `操作耗时与数据量成正比，过程中原索引短暂不可用。确定继续？`,
           "需要重建索引",
-          { type: "warning", confirmButtonText: "重建并生效", cancelButtonText: "再想想" },
+          { type: "warning", confirmButtonText: "重建并生效（约数秒~数分钟）", cancelButtonText: "再想想" },
         );
       } catch {
         return; // 用户放弃重建
@@ -1471,6 +1503,19 @@ async function saveIndex() {
     showError(e, "/ms/monitor/elasticsearch/index");
   } finally {
     indexSaving.value = false;
+  }
+}
+
+// ---- 刷新集群状态（Red 告警条 / 工具栏按钮复用） ----
+async function loadCluster() {
+  if (!datasourceId.value) return;
+  clusterLoading.value = true;
+  try {
+    cluster.value = await fetchEsCluster(datasourceId.value);
+  } catch (e) {
+    showError(e, "加载集群信息");
+  } finally {
+    clusterLoading.value = false;
   }
 }
 
@@ -1632,6 +1677,19 @@ onMounted(async () => {
   color: var(--text-primary);
   white-space: nowrap;
 }
+
+.es-red-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 40%, transparent);
+  border-radius: var(--re-surface-radius, 16px);
+}
+.es-red-icon { color: var(--el-color-danger); flex-shrink: 0; font-size: 18px; }
+.es-red-text { flex: 1; font-size: 13px; color: var(--el-color-danger); }
 
 .dsm-es-icon {
   color: #00bfb3;
