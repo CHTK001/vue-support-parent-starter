@@ -274,7 +274,10 @@ export const defaultAppConfig: AppConfig = {
     allowPrefixes: [],
     // /prometheus/embed/**：Prometheus 自定义看板的免登录嵌入页（其他系统 iframe 使用）
     // /nginx/embed/**：Nginx 自定义看板的免登录嵌入页（其他系统 iframe 使用）
-    whiteList: ["/login", "/403", "/404", "/500", "/prometheus/embed/**", "/nginx/embed/**"],
+    // /edu/student-login：教育 AI 工作台的统一登录页（学号 / 工号 / 家长手机号）。
+    //   它必须进默认白名单：各 app 的 app.yaml 合并若没生效（配置未下发、模板缺失），
+    //   守卫会退回这里的默认值，未登录访问会被推回 /login —— 学生和老师都进不了自己的登录页。
+    whiteList: ["/login", "/403", "/404", "/500", "/prometheus/embed/**", "/nginx/embed/**", "/edu/student-login"],
     loginPath: "/login",
     homePath: "/home",
     // 与其它 route 路径一致：这是 router 路径，不含 vite base（base=/system 时浏览器地址是 /system/personage）。
