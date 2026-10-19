@@ -710,6 +710,17 @@
           </div>
         </div>
 
+        <!-- 索引设置（只读展示，已加载自 fetchEsIndexDetail） -->
+        <div v-if="indexDialogMode === 'fields' && indexSettingsEntries.length" class="dsm-settings-section">
+          <div class="dsm-sub-title">索引设置</div>
+          <div class="dsm-settings-grid">
+            <div v-for="s in indexSettingsEntries" :key="s.key" class="dsm-settings-item">
+              <span class="dsm-settings-key mono">{{ s.key }}</span>
+              <span class="dsm-settings-val mono">{{ s.value }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="dsm-field-head">
           <span class="dsm-sub-title">
             {{ indexDialogMode === "create" ? "字段设计" : "字段管理（增 / 删 / 改）" }}
@@ -1076,6 +1087,9 @@ const indexSaving = ref(false);
 const originalFields = ref<EsField[]>([]);
 /** 字段管理模式打开时的加载态（要先拉一次现有字段） */
 const indexDialogLoading = ref(false);
+
+/** 索引详情中的 settings（打开索引对话框时从 fetchEsIndexDetail 拿到） */
+const indexSettings = ref<Record<string, unknown>>({});
 const indexForm = reactive<{ name: string; shards: number; replicas: number; fields: EsField[] }>({
   name: "",
   shards: 1,
@@ -1188,6 +1202,11 @@ const queryPlaceholder = computed(
 
 const queryColumns = computed(() =>
   (queryResult.value?.columns || []).map(c => ({ prop: c, label: c, minWidth: 140 })),
+);
+
+/** 从 fetchEsIndexDetail 拿到的 settings，转换为可展示的 key-value 列表（最多 20 条） */
+const indexSettingsEntries = computed(() =>
+  Object.entries(indexSettings.value).map(([k, v]) => ({ key: k, value: String(v) })).slice(0, 20),
 );
 
 const queryEmptyText = computed(() =>
@@ -1436,6 +1455,7 @@ function openCreateIndex() {
   indexForm.shards = 1;
   indexForm.replicas = 0;
   indexForm.fields = [];
+  indexSettings.value = {};
   addFieldRow();
   indexDialogVisible.value = true;
 }
@@ -1469,6 +1489,7 @@ async function openFieldManager(name?: string) {
     indexForm.fields = (detail.fields ?? []).map(f => ({ ...f }));
     indexForm.shards = detail.shards ?? 1;
     indexForm.replicas = detail.replicas ?? 0;
+    indexSettings.value = detail.settings ?? {};
   } catch (e) {
     showError(e, "/ms/monitor/elasticsearch/index");
     indexDialogVisible.value = false;
@@ -1569,6 +1590,7 @@ async function saveIndex() {
     }
     indexDialogVisible.value = false;
     originalFields.value = [];
+    indexSettings.value = {};
     await loadIndices();
     if (fieldDrawerVisible.value && fieldDetail.value?.name === name) {
       fieldDetail.value = await fetchEsIndexDetail(name, datasourceId.value);
@@ -2206,6 +2228,42 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+/* 索引设置展示（对话框内，只读） */
+.dsm-settings-section {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--el-fill-color-light) 50%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.dsm-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 16px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.dsm-settings-item {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  align-items: baseline;
+}
+.dsm-settings-key {
+  color: var(--el-color-info);
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsm-settings-key::after { content: ":"; margin-right: 4px; }
+.dsm-settings-val {
+  color: var(--text-primary);
+  word-break: break-all;
+  font-size: 12px;
 }
 
 .dsm-field-grid {
