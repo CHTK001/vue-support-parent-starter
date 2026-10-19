@@ -4,7 +4,7 @@
  * <p><b>为什么单独抽出来</b>：这两段逻辑原先内嵌在
  * {@code ScServerFormDrawer.vue} 的 {@code validate()} / {@code buildPayload()} 里，
  * 只能靠挂载整个抽屉（含 Element Plus 表单）才能测到。它们恰恰是最容易出错、
- * 也最需要回归保护的部分：</p>
+ * 也最需要回归保护的部分：
  * <ul>
  *   <li>代理类协议缺 {@code backendHost/backendPort} 时，后端虽然会快速失败，
  *       但用户看到的是"建出来就是 ERROR"；前端先拦一次体验更好；</li>
@@ -51,20 +51,27 @@ export interface ValidationResult {
  *
  * @param form  表单模型
  * @param facts 协议元数据事实
+ * @param existingNames 列表中已存在的其他节点名称（用于名称重复校验）；传入空数组则跳过
  * @returns 校验结果；{@code ok=false} 时 {@code message} 可直接提示给用户
  */
 export function validateServerNodeForm(
   form: ServerNodeFormModel,
   facts: ServerNodeFormFacts,
+  existingNames?: string[],
 ): ValidationResult {
-  if (!String(form.name ?? '').trim()) {
+  const name = String(form.name ?? '').trim();
+  if (!name) {
     return { ok: false, message: '请填写服务名称' };
   }
   if (!form.protocol) {
     return { ok: false, message: '请选择协议类型' };
   }
-  if (!form.port) {
+  // 用 == null 判断：port=0 是合法值但 !port===true，不能用 ! 判空
+  if (form.port == null) {
     return { ok: false, message: '请填写监听端口' };
+  }
+  if (form.port < 1 || form.port > 65535) {
+    return { ok: false, message: '端口必须在 1-65535 范围内' };
   }
   if (facts.requiresBackend) {
     const host = form.config?.backendHost;
@@ -80,6 +87,10 @@ export function validateServerNodeForm(
   const emptyType = form.filters.find(f => !String(f.type ?? '').trim());
   if (emptyType) {
     return { ok: false, message: `插件 ${emptyType.name} 缺少类型，请重新添加` };
+  }
+  // 名称重复校验：传入 existingNames 时同名即拦
+  if (existingNames?.length && existingNames.includes(name)) {
+    return { ok: false, message: `服务名称「${name}」已存在，请换一个` };
   }
   return { ok: true };
 }
