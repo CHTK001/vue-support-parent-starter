@@ -125,3 +125,22 @@ export interface PageResult<T> {
   records: T[]
 }
 
+/** 设备分组树节点 */
+export interface DeviceGroupNode {
+  groupId: string
+  groupName: string
+  groupParent?: string
+  groupOrder?: number
+  groupRemark?: string
+  deviceCount: number
+  children?: DeviceGroupNode[]
+}
+
+/** 设备分组请求 */
+export interface DeviceGroupRequest {
+  groupName: string
+  groupParent?: string
+  groupOrder?: number
+  groupRemark?: string
+}
+

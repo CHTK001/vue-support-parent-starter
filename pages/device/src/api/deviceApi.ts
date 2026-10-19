@@ -150,7 +150,17 @@ export const deviceApi = {
 
   // —— 设备离线阈值 ——
   updateOfflineThreshold: (deviceId: string, threshold: number) =>
-    client().put(`/${deviceId}/offline-threshold?threshold=${threshold}`).then(unwrap)
+    client().put(`/${deviceId}/offline-threshold?threshold=${threshold}`).then(unwrap),
+
+  // —— 设备分组 ——
+  groupTree: () => client().get('/group/tree').then(unwrap),
+  createGroup: (req: any) => client().post('/group').data(req).then(unwrap),
+  updateGroup: (groupId: string, req: any) => client().put(`/group/${groupId}`).data(req).then(unwrap),
+  deleteGroup: (groupId: string) => client().delete(`/group/${groupId}`).then(unwrap),
+  groupDevices: (groupId: string) => client().get(`/group/${groupId}/devices`).then(unwrap),
+  assignGroupDevices: (groupId: string, deviceIds: string[]) =>
+    client().put(`/group/${groupId}/devices`).data(deviceIds).then(unwrap),
+  deviceGroups: (deviceId: string) => client().get(`/group/device/${deviceId}/groups`).then(unwrap)
 }
 
 export default deviceApi

@@ -15,6 +15,7 @@
  *   - DeviceEventLogView：设备日志（移动侦测 / IO 报警 / 门禁 / 温度 / 网络事件）
  *   - DevicePreviewView：设备预览（多路实时画面墙）
  *   - DeviceProviderView：提供商配置（厂商 AK/SK 凭据，卡牌式）
+ *   - DeviceGroupView：设备分组（树形分组 + 设备分配）
  *   - DeviceAccessRecordView：门禁记录（通行记录查询 + 远程开门）
  */
 export { default as DeviceView } from './views/DeviceView.vue'
@@ -23,6 +24,7 @@ export { default as DeviceChannelView } from './views/DeviceChannelView.vue'
 export { default as DeviceEventLogView } from './views/DeviceEventLogView.vue'
 export { default as DevicePreviewView } from './views/DevicePreviewView.vue'
 export { default as DeviceProviderView } from './views/DeviceProviderView.vue'
+export { default as DeviceGroupView } from './views/DeviceGroupView.vue'
 export { default as DeviceAccessRecordView } from './views/DeviceAccessRecordView.vue'
 export { deviceRoutes } from './router'
 export { deviceApi } from './api/deviceApi'

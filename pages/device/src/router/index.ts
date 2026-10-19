@@ -106,6 +106,18 @@ export const deviceRoutes: RouteConfigsTable[] = [
         }
       },
       {
+        path: '/device/groups',
+        name: 'DeviceGroups',
+        component: () => import('../views/DeviceGroupView.vue'),
+        meta: {
+          title: '设备分组',
+          icon: 'FolderOpened',
+          showLink: true,
+          keepAlive: true,
+          isVisible: '1'
+        }
+      },
+      {
         path: '/device/access',
         name: 'DeviceAccess',
         component: () => import('../views/DeviceAccessRecordView.vue'),
