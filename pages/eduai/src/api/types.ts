@@ -318,6 +318,18 @@ export interface MarkingFinishResult {
   wrongCount?: number;
   /** 是否此前已完成（重复点击不会重复累加） */
   alreadyFinished?: boolean;
+  /** 错题登记失败的题目数（网络 / 重复等原因）；>0 时显示 warning 提示 */
+  failedCount?: number;
+}
+
+/** 撤销完成结果 */
+export interface MarkingUndoResult {
+  taskId: string;
+  studentId: string;
+  /** 本次移除的错题记录数 */
+  removed: number;
+  /** 撤销前是否已完成 */
+  wasFinished: boolean;
 }
 
 /** 阅卷确认 */
@@ -1048,6 +1060,9 @@ export interface TeacherMarkingTask {  markingTaskId: number;
   markingTaskError?: string | null;
   markingTaskStartTime?: string | null;
   markingTaskFinishTime?: string | null;
+  /** 老师是否已完成本次阅卷（用于筛选「待完成」/「已完成」） */
+  markingTaskTeacherFinished?: number | null;
+  markingTaskTeacherFinishTime?: string | null;
 }
 
 /** 学生端错题卡（带题干/选项/答案，GET /v2/edu/student/wrongbook） */

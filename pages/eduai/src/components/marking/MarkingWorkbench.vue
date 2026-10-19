@@ -100,7 +100,11 @@ const fetchMarkingPage = async (pageNo: number, pageSizeNo: number): Promise<Pag
   let total = 0;
   if (markingTasksPagedSupported) {
     try {
-      const res = await eduaiApi.pageTeacherMarkingTasks({ pageNum: pageNo, pageSize: pageSizeNo });
+      const res = await eduaiApi.pageTeacherMarkingTasks({
+        pageNum: pageNo,
+        pageSize: pageSizeNo,
+        teacherFinished: finishFilter.value,
+      });
       rows = (res.data ?? res.records ?? []) as TeacherMarkingTask[];
       total = Number(res.total ?? rows.length);
     } catch {
@@ -124,6 +128,14 @@ const fetchMarkingPage = async (pageNo: number, pageSizeNo: number): Promise<Pag
 
 /** ReTable 远端分页 loader（createPageLoader 负责合并重复请求、映射 total/data） */
 const markingTasksLoader = createPageLoader<TeacherMarkingTask>(fetchMarkingPage);
+
+/** 阅卷列表「完成状态」筛选（0=待完成, 1=已完成） */
+const finishFilter = ref<0 | 1 | undefined>(undefined);
+
+/** 切换完成状态筛选后刷新列表 */
+const onFinishFilterChange = () => {
+  void markingTaskTableRef.value?.reload();
+};
 
 /** MarkingTaskTable 实例：任务终态 / 新任务提交后主动刷新，ReTable 自己管分页和刷新按钮 */
 const markingTaskTableRef = ref<{ reload: () => Promise<void> } | null>(null);
@@ -597,6 +609,17 @@ onUnmounted(() => {
           <span class="mw-strong">AI 阅卷记录（试卷）</span>
           <ReTag type="info">{{ totalCount }} 份</ReTag>
           <ReTag type="success" effect="plain">老师总分为最终成绩</ReTag>
+          <span class="mw-spacer" />
+          <el-select
+            v-model="finishFilter"
+            size="small"
+            style="width: 120px"
+            @change="onFinishFilterChange"
+          >
+            <el-option :value="undefined" label="全部" />
+            <el-option :value="0" label="待完成" />
+            <el-option :value="1" label="已完成" />
+          </el-select>
         </div>
       </template>
       <MarkingTaskTable
