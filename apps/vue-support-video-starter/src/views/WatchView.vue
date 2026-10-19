@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
- * 视频播放页
+ * 视频播放页（第二版）
  *
  * 结构：剧场模式播放器（VdPlayer，hls.js 支持 m3u8 + 原生 mp4）+
  *       线路切换 + 选集列表 + 详情信息（评分/标签/简介/下载）。
- * 交互：集数高亮、线路切换重置选集、加载骨架、错误空态、返回浏览页。
- * 数据：videoApi.fetchVideoDetail；后端未启动时降级演示数据。
+ * 交互：集数高亮、线路切换重置选集、加载骨架、错误空态、返回。
+ * 数据：videoApi.fetchVideoDetail。
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, Download } from "@element-plus/icons-vue";
+import { ArrowLeft, Download, CaretRight } from "@element-plus/icons-vue";
 
 import { fetchVideoDetail } from "@/api/videoApi";
 import type { VideoDetail } from "@/types/video";
@@ -76,10 +76,10 @@ onMounted(() => void load());
 </script>
 
 <template>
-  <div class="vd-page vd-watch-page">
+  <div class="vd-page vd-page--narrow vd-watch-page">
     <!-- 返回 -->
     <div class="vd-watch-topbar">
-      <el-button :icon="ArrowLeft" text bg aria-label="返回浏览页" @click="goBack">返回</el-button>
+      <el-button :icon="ArrowLeft" text bg aria-label="返回上一页" @click="goBack">返回</el-button>
     </div>
 
     <!-- 加载骨架 -->
@@ -95,21 +95,15 @@ onMounted(() => void load());
     <template v-else>
       <!-- 剧场模式播放器 -->
       <section class="vd-theater" aria-label="视频播放器">
-        <VdPlayer
-          :url="currentUrl"
-          :poster="detail.cover"
-          :autoplay="true"
-          @error="onPlayerError"
-        />
+        <VdPlayer :url="currentUrl" :poster="detail.cover" :autoplay="true" @error="onPlayerError" />
       </section>
 
       <!-- 信息区 -->
       <section class="vd-detail">
-        <!-- 标题行 -->
         <div class="vd-detail-head">
           <div class="vd-detail-title">
             <h2>{{ detail.name }}</h2>
-            <span v-if="detail.score" class="vd-score-lg">{{ detail.score.toFixed(1) }} 分</span>
+            <span v-if="detail.score" class="vd-score-lg">{{ detail.score.toFixed(1) }}</span>
             <span v-if="detail.continueInfo" class="vd-continue-pill">{{ detail.continueInfo }}</span>
           </div>
           <p class="vd-detail-meta">
@@ -127,13 +121,13 @@ onMounted(() => void load());
         <div v-if="episodes.length" class="vd-episodes">
           <div class="vd-episodes-head">
             <h3>选集</h3>
-            <div v-if="(detail.playLines?.length ?? 0) > 1" class="vd-lines" role="tablist" aria-label="播放线路">
+            <div v-if="(detail.playLines?.length ?? 0) > 1" class="vd-pills" role="tablist" aria-label="播放线路">
               <button
                 v-for="(line, li) in detail.playLines"
                 :key="line.line"
                 type="button"
                 role="tab"
-                class="vd-line-btn"
+                class="vd-pill"
                 :class="{ 'is-active': activeLine === li }"
                 :aria-selected="activeLine === li"
                 @click="activeLine = li"
@@ -172,20 +166,25 @@ onMounted(() => void load());
           </ul>
         </div>
       </section>
+
+      <!-- 播放提示 -->
+      <p class="vd-watch-tip">
+        <el-icon aria-hidden="true"><CaretRight /></el-icon>
+        若未自动播放，请点击播放器上的播放按钮。
+      </p>
     </template>
   </div>
 </template>
 
 <style scoped>
 .vd-watch-page {
-  max-width: 1120px;
+  max-width: var(--vd-page-narrow);
 }
 
 .vd-watch-topbar {
   margin-bottom: 14px;
 }
 
-/* ── 剧场播放器 ─────────────────────────── */
 .vd-theater {
   position: relative;
 }
@@ -196,9 +195,7 @@ onMounted(() => void load());
   background: var(--vd-surface-card);
   border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-lg);
-  padding: 22px 24px;
-  /* 深色影院主题用投影表达层次，与全局 .vd-card 保持一致，故保留令牌投影 */
-  box-shadow: var(--vd-shadow-sm);
+  padding: 24px 26px;
 }
 
 .vd-detail-title {
@@ -210,18 +207,18 @@ onMounted(() => void load());
 
 .vd-detail-title h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--vd-text);
 }
 
 .vd-score-lg {
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: var(--vd-text);
-  font-weight: 700;
+  background: linear-gradient(135deg, var(--vd-primary-strong), var(--vd-secondary));
+  color: #1a1206;
+  font-weight: 800;
   font-size: 13px;
-  padding: 2px 10px;
-  border-radius: var(--el-radius-full, 9999px);
+  padding: 2px 11px;
+  border-radius: 999px;
 }
 
 .vd-continue-pill {
@@ -229,12 +226,12 @@ onMounted(() => void load());
   color: var(--vd-primary-strong);
   background: color-mix(in srgb, var(--vd-primary) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--vd-primary) 30%, transparent);
-  border-radius: var(--el-radius-full, 9999px);
+  border-radius: 999px;
   padding: 2px 10px;
 }
 
 .vd-detail-meta {
-  margin: 8px 0 10px;
+  margin: 10px 0 10px;
   font-size: 13px;
   color: var(--vd-text-secondary);
   display: flex;
@@ -243,15 +240,17 @@ onMounted(() => void load());
 }
 
 .vd-remark {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.85;
   color: var(--vd-text);
 }
 
 /* ── 选集 ───────────────────────────────── */
 .vd-episodes {
-  margin-top: 22px;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--vd-border);
 }
 
 .vd-episodes-head {
@@ -260,7 +259,7 @@ onMounted(() => void load());
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .vd-episodes-head h3,
@@ -274,95 +273,58 @@ onMounted(() => void load());
   gap: 6px;
 }
 
-.vd-lines {
-  display: flex;
-  gap: 4px;
-  background: var(--vd-surface);
-  border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-md);
-  padding: 4px;
-}
-
-.vd-line-btn {
-  border: none;
-  background: transparent;
-  color: var(--vd-text-secondary);
-  font-size: 13px;
-  padding: 5px 14px;
-  border-radius: var(--vd-radius-sm);
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
-  font-weight: 500;
-}
-
-.vd-line-btn:hover {
-  color: var(--vd-text);
-  /* #94a3b8 正是 --vd-text-secondary */
-  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
-}
-
-.vd-line-btn:focus-visible {
-  outline: none;
-  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
-}
-
-.vd-line-btn.is-active {
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: var(--vd-text);
-  font-weight: 600;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
-}
-
 .vd-episode-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(98px, 1fr));
   gap: 8px;
 }
 
 .vd-episode {
   border: 1px solid var(--vd-border);
-  background: var(--vd-surface-card);
+  background: var(--vd-surface);
   color: var(--vd-text);
+  font-family: inherit;
   font-size: 13px;
-  padding: 8px 6px;
+  padding: 9px 6px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition:
+    border-color var(--vd-fast) var(--vd-ease),
+    color var(--vd-fast) var(--vd-ease),
+    background var(--vd-fast) var(--vd-ease);
 }
 
 .vd-episode:hover {
-  border-color: var(--vd-secondary);
+  border-color: color-mix(in srgb, var(--vd-primary) 60%, transparent);
   color: var(--vd-primary-strong);
-  transform: translateY(-1px);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 20%, transparent);
+  background: var(--vd-surface-hover);
 }
 
 .vd-episode.is-active {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
   border-color: transparent;
-  color: var(--vd-text);
-  font-weight: 600;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
+  color: #1a1206;
+  font-weight: 700;
 }
 
-/* 焦点轮廓已由下方 :focus-visible 的 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
 .vd-episode:focus-visible {
-  outline: 2px solid var(--vd-primary);
+  outline: 2px solid var(--vd-primary-strong);
   outline-offset: 1px;
 }
 
 /* ── 下载 ───────────────────────────────── */
 .vd-downloads {
-  margin-top: 22px;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--vd-border);
 }
 
 .vd-download-list {
   list-style: none;
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -374,7 +336,7 @@ onMounted(() => void load());
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  padding: 10px 12px;
+  padding: 11px 13px;
   background: var(--vd-surface);
   border-radius: var(--vd-radius-sm);
 }
@@ -382,18 +344,18 @@ onMounted(() => void load());
 .vd-download-type {
   flex-shrink: 0;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--vd-text);
-  border-radius: var(--el-radius-xs, 4px);
+  font-weight: 700;
+  border-radius: var(--vd-radius-xs);
   padding: 2px 8px;
 }
 
 .vd-download-type.is-pan {
-  /* 网盘入口用告警语义色，与直链的主色区分 */
-  background: var(--el-color-warning);
+  color: #1a1206;
+  background: var(--vd-primary-strong);
 }
 
 .vd-download-type.is-cl {
+  color: #1a1206;
   background: var(--vd-primary);
 }
 
@@ -411,22 +373,28 @@ onMounted(() => void load());
   font-size: 12px;
 }
 
+/* ── 播放提示 ───────────────────────────── */
+.vd-watch-tip {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  color: var(--vd-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 @media (max-width: 640px) {
   .vd-detail {
     padding: 16px;
   }
   .vd-episode-grid {
-    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .vd-line-btn,
-  .vd-episode,
-  .vd-episode:hover {
+  .vd-episode {
     transition: none;
-    transform: none;
   }
 }
 </style>

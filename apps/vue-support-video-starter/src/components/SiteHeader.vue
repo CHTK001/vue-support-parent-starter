@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 顶部导航 —— 与市面视频网站一致的站点头
+ * 顶部导航 —— 站点头（第二版）
  *
- * 结构：Logo + 主导航（主页/电影/电视剧/动漫/综艺）+ 直链播放入口 + 搜索框。
- * 交互：路由高亮、搜索回车跳转浏览页、吸顶毛玻璃。
+ * 结构：Logo + 主导航药丸 + 直链播放入口 + 搜索框。
+ * 交互：路由高亮（金色下划线）、搜索回车跳转浏览页、吸顶毛玻璃。
  */
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -51,13 +51,12 @@ function goPlayUrl() {
 <template>
   <header class="vds-header">
     <div class="vds-header-inner">
-      <a class="vds-logo" href="#/" aria-label="回到主页">
-        <!-- 用图标组件代替 ▶ 字符：emoji/几何字符作图标在不同字体下渲染不一致 -->
+      <router-link class="vds-logo" to="/" aria-label="回到主页">
         <span class="vds-logo-mark" aria-hidden="true">
-          <ReIcon name="VideoPlay" :size="14" />
+          <ReIcon name="VideoPlay" :size="15" />
         </span>
         <span class="vds-logo-text">视频资源中心</span>
-      </a>
+      </router-link>
 
       <nav class="vds-nav" aria-label="主导航">
         <router-link
@@ -72,15 +71,17 @@ function goPlayUrl() {
       </nav>
 
       <div class="vds-header-actions">
-        <el-button class="vds-play-url-btn" :icon="Link" round size="large" @click="goPlayUrl">
-          直链播放
-        </el-button>
+        <button type="button" class="vds-play-url-btn" @click="goPlayUrl">
+          <el-icon aria-hidden="true"><Link /></el-icon>
+          <span class="vds-play-url-label">直链播放</span>
+        </button>
         <el-input
           v-model="keyword"
           class="vds-search"
           :prefix-icon="Search"
           placeholder="搜索影片…"
           clearable
+          aria-label="搜索影片"
           @keyup.enter="onSearch"
         />
       </div>
@@ -93,117 +94,116 @@ function goPlayUrl() {
   position: sticky;
   top: 0;
   z-index: 100;
-  /* #0b0e14 正是 --vd-bg，毛玻璃底色改用 color-mix 取 alpha */
-  background: color-mix(in srgb, var(--vd-bg) 82%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--vd-bg) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-bottom: 1px solid var(--vd-border);
 }
 
 .vds-header-inner {
-  max-width: 1440px;
+  max-width: var(--vd-page-max);
   margin: 0 auto;
   padding: 0 32px;
-  height: 62px;
+  height: var(--vd-header-h);
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 26px;
 }
 
-/* Logo */
+/* ── Logo ── */
 .vds-logo {
   display: flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
+  border-radius: var(--vd-radius-sm);
 }
 
 .vds-logo-mark {
-  width: 32px;
-  height: 32px;
-  /* 原 10px，取最近档 md(8px) */
-  border-radius: var(--el-radius-md, 8px);
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: var(--vd-text);
-  font-size: 13px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--vd-primary-strong), var(--vd-secondary));
+  color: #1a1206;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 50%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--vd-primary) 45%, transparent);
 }
 
 .vds-logo-text {
   font-size: 17px;
   font-weight: 800;
-  color: var(--vd-text);
   letter-spacing: 0.5px;
   white-space: nowrap;
-  background: linear-gradient(120deg, var(--vd-text), var(--vd-primary-strong));
+  background: linear-gradient(120deg, var(--vd-text) 20%, var(--vd-primary-strong));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Logo 是 <a href>，键盘可达，补实心焦点环 */
 .vds-logo:focus-visible {
   outline: none;
-  border-radius: var(--el-radius-md, 8px);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
-/* 主导航 */
+/* ── 主导航 ── */
 .vds-nav {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vds-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .vds-nav-link {
   position: relative;
   text-decoration: none;
   color: var(--vd-text-secondary);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
-  padding: 9px 16px;
+  padding: 9px 14px;
   border-radius: var(--vd-radius-sm);
-  transition:
-    color var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
-    background var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   white-space: nowrap;
+  transition:
+    color var(--vd-fast) var(--vd-ease),
+    background var(--vd-fast) var(--vd-ease);
 }
 
 .vds-nav-link:hover {
   color: var(--vd-text);
-  /* #94a3b8 正是 --vd-text-secondary */
-  background: color-mix(in srgb, var(--vd-text-secondary) 10%, transparent);
+  background: color-mix(in srgb, var(--vd-text) 7%, transparent);
 }
 
-.vds-nav-link.is-active {
-  color: var(--vd-text);
-  font-weight: 700;
-}
-
-/* router-link 渲染出的 <a>：补实心焦点环 */
 .vds-nav-link:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
+.vds-nav-link.is-active {
+  color: var(--vd-primary-strong);
+  font-weight: 700;
+}
+
 .vds-nav-link.is-active::after {
   content: "";
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 4px;
-  height: 3px;
-  /* 原 2px（3px 高的下划条上即圆头），取胶囊档，渲染结果一致 */
-  border-radius: var(--el-radius-full, 9999px);
-  background: linear-gradient(90deg, var(--vd-primary), var(--vd-secondary));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 60%, transparent);
+  left: 14px;
+  right: 14px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vd-primary-strong), var(--vd-secondary));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 70%, transparent);
 }
 
-/* 右侧动作区 */
+/* ── 右侧动作区 ── */
 .vds-header-actions {
   display: flex;
   align-items: center;
@@ -212,36 +212,54 @@ function goPlayUrl() {
 }
 
 .vds-play-url-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--vd-primary-strong);
-  border-color: color-mix(in srgb, var(--vd-primary) 45%, transparent);
   background: color-mix(in srgb, var(--vd-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vd-primary) 40%, transparent);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition:
+    background var(--vd-fast) var(--vd-ease),
+    border-color var(--vd-fast) var(--vd-ease),
+    color var(--vd-fast) var(--vd-ease);
 }
 
 .vds-play-url-btn:hover {
-  background: color-mix(in srgb, var(--vd-primary) 22%, transparent);
+  background: color-mix(in srgb, var(--vd-primary) 20%, transparent);
   border-color: var(--vd-primary-strong);
   color: var(--vd-text);
 }
 
-/* 搜索框暗色适配 */
+.vds-play-url-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+}
+
+/* ── 搜索框 ── */
 .vds-search {
   width: 220px;
 }
 
 .vds-search :deep(.el-input__wrapper) {
-  border-radius: var(--el-radius-full, 9999px);
-  background: color-mix(in srgb, var(--vd-text-secondary) 10%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vd-text) 7%, transparent);
   box-shadow: 0 0 0 1px var(--vd-border) inset;
   transition:
-    box-shadow var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
-    background var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
+    box-shadow var(--vd-fast) var(--vd-ease),
+    background var(--vd-fast) var(--vd-ease);
 }
 
 .vds-search :deep(.el-input__wrapper.is-focus) {
   box-shadow:
     0 0 0 1px var(--vd-primary) inset,
-    0 0 16px color-mix(in srgb, var(--vd-primary) 20%, transparent);
-  background: color-mix(in srgb, var(--vd-text-secondary) 14%, transparent);
+    0 0 18px color-mix(in srgb, var(--vd-primary) 22%, transparent);
+  background: color-mix(in srgb, var(--vd-text) 10%, transparent);
 }
 
 .vds-search :deep(.el-input__inner) {
@@ -252,6 +270,12 @@ function goPlayUrl() {
   color: var(--vd-text-muted);
 }
 
+@media (max-width: 1080px) {
+  .vds-logo-text {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .vds-header-inner {
     padding: 0 16px;
@@ -259,19 +283,23 @@ function goPlayUrl() {
   }
   .vds-nav-link {
     padding: 8px 10px;
-    font-size: 14px;
+    font-size: 13.5px;
+  }
+  .vds-nav-link.is-active::after {
+    left: 10px;
+    right: 10px;
+  }
+  .vds-play-url-label {
+    display: none;
   }
   .vds-search {
-    width: 140px;
-  }
-  .vds-logo-text {
-    display: none;
+    width: 150px;
   }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   .vds-nav-link,
+  .vds-play-url-btn,
   .vds-search :deep(.el-input__wrapper) {
     transition: none;
   }

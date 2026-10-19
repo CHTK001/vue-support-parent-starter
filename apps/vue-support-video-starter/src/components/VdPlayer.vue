@@ -288,8 +288,8 @@ onBeforeUnmount(destroy);
 .vd-player-spinner {
   width: 38px;
   height: 38px;
-  border: 3px solid color-mix(in srgb, var(--vd-secondary) 25%, transparent);
-  border-top-color: var(--vd-secondary);
+  border: 3px solid color-mix(in srgb, var(--vd-primary) 22%, transparent);
+  border-top-color: var(--vd-primary-strong);
   /* 50% 是几何形状（正圆）而非魔法像素，保留 */
   border-radius: 50%;
   animation: vd-spin 0.8s linear infinite;
@@ -311,8 +311,8 @@ onBeforeUnmount(destroy);
   height: 72px;
   border: none;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--vd-primary) 90%, transparent);
-  color: var(--vd-text);
+  background: color-mix(in srgb, var(--vd-primary) 92%, transparent);
+  color: #1a1206;
   font-size: 26px;
   cursor: pointer;
   display: flex;

@@ -129,6 +129,11 @@
       </div>
 
       <div class="tshark-work">
+        <ScTsharkFilterBar
+          :model-value="packetFilter"
+          :error="filterError"
+          @apply="applyPacketFilter"
+        />
         <ReTab
           variant="underline"
           :tabs="detailTabs"
@@ -144,9 +149,7 @@
               :page="packetPage"
               :page-size="packetPageSize"
               :total="packetTotal"
-              :keyword="packetKeyword"
               :empty-text="packetEmptyText"
-              @update:keyword="setPacketKeyword"
               @page-change="loadPackets"
               @open-detail="openPacketDetail"
               @open-lifecycle="openLifecycle"
@@ -171,6 +174,7 @@
               :top-flows="topFlows"
               :packet-total="packetTotal"
               :version="statsVersion"
+              @pick-flow="onPickFlow"
             />
           </template>
         </ReTab>
@@ -191,13 +195,14 @@ import { computed, onMounted, ref } from 'vue'
 import { message } from '@repo/core'
 import { useTshark } from './useTshark'
 import ScTsharkImportPanel from './ScTsharkImportPanel.vue'
+import ScTsharkFilterBar from './ScTsharkFilterBar.vue'
 import ScTsharkPacketPanel from './ScTsharkPacketPanel.vue'
 import ScTsharkStatsPanel from './ScTsharkStatsPanel.vue'
 import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
 import { sessionName, statusOf, timeRange, fmtDuration, fmtSize } from './tsharkFormat'
-import type { TsharkPacket, TsharkTabKey } from './types'
+import type { TsharkFlow, TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
 
 /**
@@ -218,11 +223,11 @@ const {
   loadingSessions, sessions, sessionBackendTotal, sessionKeyword,
   sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
   runningCount: parsingCount, sessionPageSize,
-  loadingPackets, packets, packetPage, packetTotal, packetKeyword,
+  loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
   packetPageSize, protoStats, topFlows, statsVersion,
   detailOpen, packetDetail,
   init, loadSessions, selectSession, setSessionKeyword,
-  clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol,
+  clearActiveSession, loadPackets, applyPacketFilter, filterByProtocol, filterByFlow,
   exportCsv, downloadPcap, deleteSession, openPacketDetail, openPacketDetailById, importPcap,
 } = useTshark({ source: 'import', autoSelectFirst: false })
 
@@ -266,7 +271,7 @@ const detailDuration = computed(() => fmtDuration(activeSession.value?.captureDu
 const parsing = computed(() => activeSession.value?.captureStatus === 1)
 
 const packetEmptyText = computed(() =>
-  packetKeyword.value.trim() ? '没有匹配的报文，试试清空关键字' : '这条导入记录还没有解析出报文')
+  packetFilter.value.trim() ? '没有匹配的报文，试试清除或修改过滤' : '这条导入记录还没有解析出报文')
 
 const fileText = computed(() =>
   file.value ? `${file.value.name}（${fmtSize(file.value.size)}）` : '未选择文件，也可直接拖入')
@@ -356,6 +361,12 @@ function setSessionPage(p: number) {
 /** 统计面板点协议：填进报文关键字并切过去，省掉「记住协议名 → 回头手打」那一步 */
 function onPickProtocol(protocol: string) {
   filterByProtocol(protocol)
+  activeTab.value = 'packet'
+}
+
+/** 会话流面板点某条流：按该流过滤并切回报文页 */
+function onPickFlow(flow: TsharkFlow) {
+  filterByFlow(flow)
   activeTab.value = 'packet'
 }
 

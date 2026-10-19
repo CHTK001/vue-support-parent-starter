@@ -1,13 +1,12 @@
 <script setup lang="ts">
 /**
- * 直链播放页 —— 输入/粘贴 URL 即时播放
+ * 直链播放页 —— 输入/粘贴 URL 即时播放（第二版）
  *
  * 能力：
- *   - 支持 mp4/webm/ogg/mov 直链与 HLS(m3u8)（VdPlayer 内置 hls.js，
- *     Chrome/Edge/Firefox 均可播放 m3u8，不再依赖 Safari）
+ *   - 支持 mp4/webm/ogg/mov 直链与 HLS(m3u8)（VdPlayer 内置 hls.js）
  *   - 历史记录（localStorage，最近 10 条，可回填/删除）
- *   - 站内跳转：支持 /watch/:id 内部地址，直接路由到播放页
- * 交互：回车/按钮播放、加载状态、错误提示、默认示例链接。
+ *   - 站内跳转：支持 /watch/:id 内部地址
+ * 交互：回车/按钮播放、加载状态、错误提示。
  */
 import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
@@ -83,7 +82,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="vd-page vd-play-page">
+  <div class="vd-page vd-page--narrow">
     <header class="vd-header">
       <div>
         <h1>直链播放</h1>
@@ -92,10 +91,10 @@ onMounted(() => {
     </header>
 
     <!-- 地址输入 -->
-    <div class="vds-url-bar">
+    <div class="vd-panel vdp-url-bar">
       <el-input
         v-model="url"
-        class="vds-url-input"
+        class="vdp-url-input"
         placeholder="https://example.com/video.mp4"
         clearable
         size="large"
@@ -112,36 +111,30 @@ onMounted(() => {
     </div>
 
     <!-- 播放器 -->
-    <section v-if="playing" class="vds-theater" aria-label="直链播放器">
+    <section v-if="playing" class="vd-theater" aria-label="直链播放器">
       <VdPlayer :url="url" :autoplay="true" @error="onPlayerError" />
     </section>
 
     <!-- 未播放时的引导 -->
-    <section v-else class="vds-url-guide">
-      <div class="vds-guide-icon" aria-hidden="true">
-        <el-icon :size="40"><VideoCamera /></el-icon>
+    <section v-else class="vdp-guide">
+      <div class="vdp-guide-icon" aria-hidden="true">
+        <el-icon :size="38"><VideoCamera /></el-icon>
       </div>
-      <p class="vds-guide-title">支持 mp4 / webm / m3u8(HLS) 直链</p>
-      <p class="vds-guide-sub">
+      <p class="vdp-guide-title">支持 mp4 / webm / m3u8(HLS) 直链</p>
+      <p class="vdp-guide-sub">
         粘贴地址到上方输入框，或从下方历史记录快速回填；也可以粘贴站内播放页地址直达。
       </p>
     </section>
 
     <!-- 播放历史 -->
-    <section v-if="history.length" class="vds-history">
+    <section v-if="history.length" class="vdp-history">
       <h3>最近播放</h3>
-      <ul class="vds-history-list">
-        <li v-for="h in history" :key="h" class="vds-history-item">
-          <button type="button" class="vds-history-link" :title="h" @click="play(h)">
+      <ul class="vdp-history-list">
+        <li v-for="h in history" :key="h" class="vdp-history-item">
+          <button type="button" class="vdp-history-link" :title="h" @click="play(h)">
             {{ h }}
           </button>
-          <el-button
-            :icon="Delete"
-            text
-
-            aria-label="删除记录"
-            @click="removeHistory(h)"
-          />
+          <el-button :icon="Delete" text aria-label="删除记录" @click="removeHistory(h)" />
         </li>
       </ul>
     </section>
@@ -149,42 +142,46 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.vd-play-page {
-  max-width: 1120px;
-}
-
 /* ── 地址输入条 ─────────────────────────── */
-.vds-url-bar {
+.vdp-url-bar {
   display: flex;
   gap: 12px;
   margin-bottom: 24px;
+  padding: 14px 16px;
 }
 
-.vds-url-input {
+.vdp-url-input {
   flex: 1;
 }
 
-.vds-url-input :deep(.el-input__wrapper) {
+.vdp-url-input :deep(.el-input__wrapper) {
   border-radius: var(--vd-radius-md);
+  background: color-mix(in srgb, var(--vd-text) 6%, transparent);
+  box-shadow: 0 0 0 1px var(--vd-border) inset;
+}
+
+.vdp-url-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow:
+    0 0 0 1px var(--vd-primary) inset,
+    0 0 18px color-mix(in srgb, var(--vd-primary) 20%, transparent);
 }
 
 /* ── 引导占位 ───────────────────────────── */
-.vds-url-guide {
+.vdp-guide {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 70px 20px;
+  padding: 72px 20px;
   background: var(--vd-surface-card);
-  border: 1px dashed var(--vd-border);
+  border: 1px dashed var(--vd-border-strong);
   border-radius: var(--vd-radius-lg);
 }
 
-.vds-guide-icon {
-  width: 72px;
-  height: 72px;
-  /* 原 20px，取最近档 xl(16px) */
-  border-radius: var(--el-radius-xl, 16px);
+.vdp-guide-icon {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--vd-radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,48 +189,40 @@ onMounted(() => {
   background: linear-gradient(
     160deg,
     color-mix(in srgb, var(--vd-primary) 20%, transparent),
-    color-mix(in srgb, var(--vd-secondary) 12%, transparent)
+    color-mix(in srgb, var(--vd-secondary) 14%, transparent)
   );
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
-.vds-guide-title {
+.vdp-guide-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--vd-text);
 }
 
-.vds-guide-sub {
+.vdp-guide-sub {
   margin: 0;
   font-size: 13px;
   color: var(--vd-text-secondary);
   text-align: center;
-  max-width: 420px;
-  line-height: 1.7;
-}
-
-/* ── 播放器 ─────────────────────────────── */
-.vds-theater {
-  border-radius: var(--vd-radius-lg);
-  overflow: hidden;
-  /* 深色影院主题用投影表达层次，与全局 .vd-theater 保持一致，故保留令牌投影 */
-  box-shadow: var(--vd-shadow-lg);
+  max-width: 440px;
+  line-height: 1.75;
 }
 
 /* ── 历史 ───────────────────────────────── */
-.vds-history {
-  margin-top: 26px;
+.vdp-history {
+  margin-top: 28px;
 }
 
-.vds-history h3 {
-  margin: 0 0 10px;
+.vdp-history h3 {
+  margin: 0 0 12px;
   font-size: 15px;
   font-weight: 600;
   color: var(--vd-text);
 }
 
-.vds-history-list {
+.vdp-history-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -242,56 +231,56 @@ onMounted(() => {
   gap: 6px;
 }
 
-.vds-history-item {
+.vdp-history-item {
   display: flex;
   align-items: center;
   gap: 6px;
   background: var(--vd-surface-card);
   border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-sm);
-  padding: 4px 8px 4px 12px;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
+  padding: 4px 8px 4px 14px;
+  transition: border-color var(--vd-fast) var(--vd-ease);
 }
 
-.vds-history-item:hover {
-  border-color: var(--vd-secondary);
+.vdp-history-item:hover {
+  border-color: color-mix(in srgb, var(--vd-primary) 50%, transparent);
 }
 
-.vds-history-link {
+.vdp-history-link {
   flex: 1;
   min-width: 0;
   border: none;
   background: transparent;
   text-align: left;
+  font-family: inherit;
   font-size: 13px;
   color: var(--vd-text);
   cursor: pointer;
-  padding: 6px 0;
+  padding: 7px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.vds-history-link:hover {
+.vdp-history-link:hover {
   color: var(--vd-primary-strong);
 }
 
-.vds-history-link:focus-visible {
+.vdp-history-link:focus-visible {
   outline: none;
-  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 @media (max-width: 640px) {
-  .vds-url-bar {
+  .vdp-url-bar {
     flex-direction: column;
+    padding: 12px;
   }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .vds-history-item,
-  .vds-history-link {
+  .vdp-history-item,
+  .vdp-history-link {
     transition: none;
   }
 }

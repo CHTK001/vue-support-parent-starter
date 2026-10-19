@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 配置管理页 —— 在页面上维护视频/直播配置（不再改配置文件）
+ * 配置管理页 —— 在页面上维护视频/直播配置（第二版）
  *
  * 结构：存储状态 + 基础配置 + 分类关键词 + 直播目录（JSON 编辑/校验）+ 操作区。
  * 数据：configApi（GET /config、/config/export；POST /import、/reload、/sync）。
@@ -43,7 +43,9 @@ const parsedCatalog = computed<LiveCatalog | null>(() => {
 });
 
 /** 频道数量 */
-const channelCount = computed(() => parsedCatalog.value?.channels?.length ?? overview.value?.liveChannelCount ?? 0);
+const channelCount = computed(
+  () => parsedCatalog.value?.channels?.length ?? overview.value?.liveChannelCount ?? 0,
+);
 
 /* ── 加载 ─────────────────────────────────── */
 async function load() {
@@ -165,7 +167,7 @@ onMounted(() => void load());
 </script>
 
 <template>
-  <div class="vd-page vd-config-page">
+  <div class="vd-page vd-page--narrow">
     <header class="vd-header">
       <div>
         <h1>配置管理</h1>
@@ -266,10 +268,6 @@ onMounted(() => void load());
 </template>
 
 <style scoped>
-.vd-config-page {
-  max-width: 1120px;
-}
-
 .vdc-alert {
   margin-bottom: 18px;
 }
@@ -279,10 +277,16 @@ onMounted(() => void load());
   background: var(--vd-surface-card);
   border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-lg);
+  --el-card-bg-color: var(--vd-surface-card);
 }
 
 .vdc-card :deep(.el-card__header) {
   border-bottom: 1px solid var(--vd-border);
+  padding: 16px 20px;
+}
+
+.vdc-card :deep(.el-card__body) {
+  padding: 20px;
 }
 
 .vdc-card-head {
@@ -339,17 +343,15 @@ onMounted(() => void load());
   font-family: "JetBrains Mono", Consolas, Monaco, monospace;
   font-size: 12.5px;
   line-height: 1.6;
-  /* 代码编辑区沿用深色影院主题的面层令牌，避免另起一套写死色 */
-  background: var(--vd-surface);
+  background: var(--vd-bg-deep);
   color: var(--vd-text);
+  box-shadow: 0 0 0 1px var(--vd-border) inset;
 }
 
 .vdc-json-error {
   margin: 8px 0 0;
   font-size: 13px;
-  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
-     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
-  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
+  color: color-mix(in srgb, var(--vd-live) 62%, var(--vd-text));
 }
 
 .vdc-channels {
@@ -371,9 +373,6 @@ onMounted(() => void load());
   margin-top: 4px;
 }
 
-/* 尊重系统「减少动态效果」偏好：本页样式未声明 transition / animation
-   （动效都在 el-card / el-alert / el-input 内部），这里做显式归零兜底，
-   防止后续新增动效漏配。 */
 @media (prefers-reduced-motion: reduce) {
   .vdc-card,
   .vdc-row,

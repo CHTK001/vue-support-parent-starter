@@ -1,54 +1,128 @@
 /**
- * 视频资源中心 —— 全局设计令牌与基础样式
+ * 视频资源中心 —— 全局设计令牌与基础样式（第二版 · 全部重做）
  *
- * Night Cinematic 深色影院主题（UI/UX Pro Max 规范）：
- *   - 背景 #0b0e14 ~ #111827 深色渐变，接近 Netflix/iQIYI 的沉浸式观感
- *   - 主色 Indigo #6366f1 → Sky #38bdf8（品牌渐变）
- *   - 卡片 hover 发光 + 上浮，Hero 全屏渐变遮罩
+ * "Golden Reel" 主题：近黑影院底色 + 暖金强调色。
+ *   - 底色贴近纯黑（#0c0c10 ~ #050507），让海报成为唯一亮点
+ *   - 主色金 #d8a13f → 铜 #b8763a 渐变，用于强调、选中态与 CTA
+ *   - 卡片 hover 金边 + 上浮；Hero 全宽渐变遮罩
+ *   - 同步覆盖 Element Plus 暗色变量，使 el-* 组件与主题一致
  *   - 尊重 prefers-reduced-motion
  */
+
+/* ═══════════════════════════════════════════
+   设计令牌
+   ═══════════════════════════════════════════ */
 :root {
-  /* ── 品牌色 ── */
-  --vd-primary: #6366f1;
-  --vd-primary-strong: #818cf8;
-  --vd-secondary: #38bdf8;
-  --vd-accent: #7dd3fc;
+  /* ── 品牌色（暖金 / 铜） ── */
+  --vd-primary: #d8a13f;
+  --vd-primary-strong: #f2c869;
+  --vd-secondary: #b8763a;
+  --vd-accent: #f2c869;
 
   /* ── 中性色（深色） ── */
-  --vd-bg: #0b0e14;
-  --vd-bg-deep: #070a10;
-  --vd-surface: #111827;
-  --vd-surface-card: #1a2233;
-  --vd-surface-hover: #212b40;
-  --vd-border: rgba(148, 163, 184, 0.14);
-  --vd-border-strong: rgba(148, 163, 184, 0.28);
+  --vd-bg: #0c0c10;
+  --vd-bg-deep: #050507;
+  --vd-surface: #14141a;
+  --vd-surface-card: #1a1a22;
+  --vd-surface-hover: #23232e;
+  --vd-border: rgba(255, 255, 255, 0.09);
+  --vd-border-strong: rgba(255, 255, 255, 0.2);
 
-  --vd-text: #f8fafc;
-  --vd-text-secondary: #94a3b8;
-  --vd-text-muted: #64748b;
+  --vd-text: #f4f1e9;
+  --vd-text-secondary: #a09d94;
+  --vd-text-muted: #6d6a63;
 
   /* ── 评分 / 状态色 ── */
-  --vd-gold: #fbbf24;
+  --vd-gold: #f2c869;
+  --vd-live: #ff4d4f;
 
   /* ── 圆角 / 阴影 ── */
+  --vd-radius-xs: 6px;
   --vd-radius-sm: 8px;
   --vd-radius-md: 12px;
   --vd-radius-lg: 18px;
+  --vd-radius-xl: 24px;
 
-  --vd-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --vd-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --vd-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
-  --vd-glow: 0 0 0 1px rgba(99, 102, 241, 0.4), 0 4px 24px rgba(99, 102, 241, 0.25);
+  --vd-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --vd-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --vd-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.65);
+  --vd-glow: 0 0 0 1px color-mix(in srgb, var(--vd-primary) 45%, transparent),
+    0 18px 44px rgba(0, 0, 0, 0.6);
+
+  /* ── 布局 ── */
+  --vd-page-max: 1440px;
+  --vd-page-narrow: 1120px;
+  --vd-header-h: 64px;
 
   --vd-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --vd-fast: var(--el-transition-duration-fast, 0.2s);
 }
 
+/* ── Element Plus 暗色变量对齐主题 ─────────── */
+html.dark {
+  --el-color-primary: #d8a13f;
+  --el-color-primary-light-3: #e0b463;
+  --el-color-primary-light-5: #e8c68a;
+  --el-color-primary-light-7: #f0d8b1;
+  --el-color-primary-light-8: #f4e2c4;
+  --el-color-primary-light-9: #f8edd8;
+  --el-color-primary-dark-2: #ad8132;
+
+  --el-bg-color: #14141a;
+  --el-bg-color-page: #0c0c10;
+  --el-bg-color-overlay: #1a1a22;
+
+  --el-text-color-primary: #f4f1e9;
+  --el-text-color-regular: #a09d94;
+  --el-text-color-secondary: #a09d94;
+  --el-text-color-placeholder: #6d6a63;
+  --el-text-color-disabled: #4d4b46;
+
+  --el-border-color: rgba(255, 255, 255, 0.12);
+  --el-border-color-light: rgba(255, 255, 255, 0.09);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.06);
+  --el-border-color-extra-light: rgba(255, 255, 255, 0.04);
+
+  --el-fill-color: #1a1a22;
+  --el-fill-color-light: #1a1a22;
+  --el-fill-color-lighter: #14141a;
+  --el-fill-color-blank: #14141a;
+
+  --el-mask-color: rgba(5, 5, 7, 0.85);
+}
+
+/* ── Element Plus 组件微调（金字深底对比度） ── */
+html.dark .el-button--primary {
+  --el-button-text-color: #1a1206;
+  --el-button-hover-text-color: #1a1206;
+  --el-button-active-text-color: #1a1206;
+  --el-button-bg-color: var(--vd-primary);
+  --el-button-border-color: var(--vd-primary);
+  --el-button-hover-bg-color: var(--vd-primary-strong);
+  --el-button-hover-border-color: var(--vd-primary-strong);
+}
+
+html.dark .el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--vd-primary);
+  color: #1a1206;
+}
+
+html.dark .el-pagination.is-background .el-pager li:hover:not(.is-active) {
+  color: var(--vd-primary-strong);
+}
+
+/* ═══════════════════════════════════════════
+   基础
+   ═══════════════════════════════════════════ */
 html,
 body,
 #app {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+}
+
+body {
   background: var(--vd-bg);
   color: var(--vd-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -56,24 +130,32 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
-/* 全局背景氛围光斑 */
-#app::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
+#app {
+  display: flex;
+  flex-direction: column;
+  /* 全局背景氛围光斑（暖金 / 铜） */
   background:
-    radial-gradient(680px 480px at 12% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
-    radial-gradient(720px 520px at 88% -6%, rgba(56, 189, 248, 0.12), transparent 62%),
+    radial-gradient(680px 460px at 8% -12%, color-mix(in srgb, var(--vd-primary) 10%, transparent), transparent 62%),
+    radial-gradient(720px 480px at 96% -8%, color-mix(in srgb, var(--vd-secondary) 9%, transparent), transparent 64%),
     linear-gradient(180deg, var(--vd-bg) 0%, var(--vd-bg-deep) 100%);
-  pointer-events: none;
+  background-attachment: fixed;
+}
+
+.vd-main {
+  flex: 1;
 }
 
 /* ── 页面容器 ── */
 .vd-page {
-  max-width: 1440px;
+  max-width: var(--vd-page-max);
   margin: 0 auto;
-  padding: 28px 32px 56px;
+  padding: 30px 32px 56px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.vd-page--narrow {
+  max-width: var(--vd-page-narrow);
 }
 
 /* ── 页头 ── */
@@ -82,43 +164,123 @@ body,
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
 .vd-header h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  background: linear-gradient(120deg, var(--vd-text), var(--vd-primary-strong) 70%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.4px;
+  color: var(--vd-text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vd-header h1::before {
+  content: "";
+  width: 5px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--vd-primary-strong), var(--vd-secondary));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--vd-primary) 55%, transparent);
 }
 
 .vd-header .vd-subtitle {
-  margin: 6px 0 0;
+  margin: 8px 0 0 17px;
   font-size: 13px;
   color: var(--vd-text-secondary);
 }
 
-/* ── 视频卡片 ── */
+/* ═══════════════════════════════════════════
+   面板 / 工具条 / 药丸控件
+   ═══════════════════════════════════════════ */
+.vd-panel {
+  background: var(--vd-surface-card);
+  border: 1px solid var(--vd-border);
+  border-radius: var(--vd-radius-lg);
+  padding: 22px 24px;
+}
+
+.vd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+/* 药丸分组（排序 / 类型 / 线路 / 直播分组共用） */
+.vd-pills {
+  display: flex;
+  gap: 4px;
+  background: var(--vd-surface-card);
+  border: 1px solid var(--vd-border);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.vd-pill {
+  border: none;
+  background: transparent;
+  color: var(--vd-text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--vd-fast) var(--vd-ease),
+    background var(--vd-fast) var(--vd-ease);
+}
+
+.vd-pill:hover {
+  color: var(--vd-text);
+  background: color-mix(in srgb, var(--vd-text) 8%, transparent);
+}
+
+.vd-pill:focus-visible {
+  outline: 2px solid var(--vd-primary-strong);
+  outline-offset: 1px;
+}
+
+.vd-pill.is-active {
+  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
+  color: #1a1206;
+  font-weight: 700;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 35%, transparent);
+}
+
+.vd-pill-count {
+  opacity: 0.7;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+/* ═══════════════════════════════════════════
+   视频卡片
+   ═══════════════════════════════════════════ */
 .vd-card {
   position: relative;
   background: var(--vd-surface-card);
   border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-lg);
+  border-radius: var(--vd-radius-md);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.28s var(--vd-ease), box-shadow 0.28s var(--vd-ease),
-    border-color 0.28s var(--vd-ease);
   box-shadow: var(--vd-shadow-sm);
+  transition:
+    transform 0.28s var(--vd-ease),
+    box-shadow 0.28s var(--vd-ease),
+    border-color 0.28s var(--vd-ease);
 }
 
 .vd-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--vd-border-strong);
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--vd-primary) 55%, transparent);
   box-shadow: var(--vd-glow);
 }
 
@@ -127,11 +289,11 @@ body,
   outline-offset: 2px;
 }
 
-/* ── 共享卡片子元素（Home/Channel/Browse 复用） ── */
+/* ── 海报 ── */
 .vd-poster {
   position: relative;
   aspect-ratio: 2 / 3;
-  background: linear-gradient(160deg, #1a2b44, #111827);
+  background: linear-gradient(160deg, #241d12, var(--vd-surface));
   overflow: hidden;
 }
 
@@ -140,11 +302,30 @@ body,
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.35s var(--vd-ease);
+  transition: transform 0.4s var(--vd-ease);
 }
 
 .vd-card:hover .vd-poster img {
-  transform: scale(1.06);
+  transform: scale(1.07);
+}
+
+/* hover 时压暗海报底部，让角标与播放意图更清晰 */
+.vd-poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 50%,
+    color-mix(in srgb, var(--vd-bg-deep) 80%, transparent) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.28s var(--vd-ease);
+  pointer-events: none;
+}
+
+.vd-card:hover .vd-poster::after {
+  opacity: 1;
 }
 
 .vd-poster-fallback {
@@ -154,21 +335,36 @@ body,
   align-items: center;
   justify-content: center;
   color: var(--vd-primary-strong);
-  background: linear-gradient(160deg, #1a2233, #111827);
+  background: linear-gradient(160deg, #241d12, var(--vd-surface));
 }
 
 .vd-score {
   position: absolute;
   top: 8px;
   left: 8px;
-  background: rgba(7, 10, 16, 0.82);
+  z-index: 1;
+  background: color-mix(in srgb, var(--vd-bg-deep) 78%, transparent);
   color: var(--vd-gold);
   font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: var(--vd-radius-sm);
+  border-radius: var(--vd-radius-xs);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  border: 1px solid color-mix(in srgb, var(--vd-gold) 30%, transparent);
+}
+
+/* 海报右下角年份角标 */
+.vd-year {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
+  font-size: 11px;
+  color: var(--vd-text);
+  background: color-mix(in srgb, var(--vd-bg-deep) 72%, transparent);
+  padding: 2px 7px;
+  border-radius: var(--vd-radius-xs);
+  backdrop-filter: blur(6px);
 }
 
 .vd-continue {
@@ -176,11 +372,12 @@ body,
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(7, 10, 16, 0.92));
-  color: #e2f3ff;
+  z-index: 1;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--vd-bg-deep) 94%, transparent));
+  color: var(--vd-primary-strong);
   font-size: 12px;
   text-align: center;
-  padding: 18px 8px 8px;
+  padding: 20px 8px 8px;
 }
 
 .vd-card-body {
@@ -188,13 +385,17 @@ body,
 }
 
 .vd-name {
-  margin: 0 0 5px;
+  margin: 0 0 6px;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--vd-text);
+}
+
+.vd-card:hover .vd-name {
+  color: var(--vd-primary-strong);
 }
 
 .vd-meta {
@@ -214,34 +415,103 @@ body,
 .vd-tag {
   font-size: 11px;
   color: var(--vd-primary-strong);
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: color-mix(in srgb, var(--vd-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vd-primary) 26%, transparent);
   border-radius: 999px;
   padding: 1px 8px;
 }
 
-/* ── 空态 ── */
-.vd-empty {
-  padding: 60px 0;
+/* ═══════════════════════════════════════════
+   网格 / 横向轨道 / 分区
+   ═══════════════════════════════════════════ */
+.vd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 20px;
 }
 
-/* ── 加载失败 ── */
+.vd-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 172px;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.vd-rail > * {
+  scroll-snap-align: start;
+}
+
+.vd-section {
+  margin-bottom: 40px;
+}
+
+.vd-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 12px;
+}
+
+.vd-section-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--vd-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vd-section-bar {
+  width: 4px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--vd-primary-strong), var(--vd-secondary));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vd-primary) 55%, transparent);
+}
+
+.vd-section-more {
+  font-size: 13px;
+  color: var(--vd-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--vd-radius-xs);
+  transition: color var(--vd-fast) var(--vd-ease);
+}
+
+.vd-section-more:hover {
+  color: var(--vd-primary-strong);
+}
+
+.vd-section-more:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+}
+
+/* ═══════════════════════════════════════════
+   空态 / 分页 / 骨架
+   ═══════════════════════════════════════════ */
+.vd-empty,
 .vds-load-error {
   padding: 60px 0;
 }
 
-/* ── 分页居中 ── */
 .vd-pagination {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: 34px;
 }
 
-/* ── 海报占位（加载中/无封面） ── */
 .vd-poster-skeleton {
-  background: linear-gradient(100deg, #1e2636 30%, #263145 50%, #1e2636 70%);
+  background: linear-gradient(100deg, #1c1a16 30%, #2a261e 50%, #1c1a16 70%);
   background-size: 200% 100%;
   animation: vd-skeleton 1.5s infinite;
+  border-radius: var(--vd-radius-md);
 }
 
 @keyframes vd-skeleton {
@@ -253,26 +523,64 @@ body,
   }
 }
 
-/* ── 播放器剧场 ── */
+/* ═══════════════════════════════════════════
+   播放器剧场
+   ═══════════════════════════════════════════ */
 .vd-theater {
-  background: #05070a;
+  background: #000;
   border-radius: var(--vd-radius-lg);
   overflow: hidden;
-  box-shadow: var(--vd-shadow-lg);
   border: 1px solid var(--vd-border);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--vd-primary) 12%, transparent),
+    var(--vd-shadow-lg);
 }
 
-/* ── 微交互过渡 ── */
+/* ═══════════════════════════════════════════
+   页脚
+   ═══════════════════════════════════════════ */
+.vd-footer {
+  border-top: 1px solid var(--vd-border);
+  background: color-mix(in srgb, var(--vd-bg-deep) 60%, transparent);
+}
+
+.vd-footer-inner {
+  max-width: var(--vd-page-max);
+  margin: 0 auto;
+  padding: 22px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--vd-text-muted);
+}
+
+.vd-footer-brand {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  background: linear-gradient(120deg, var(--vd-primary-strong), var(--vd-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ═══════════════════════════════════════════
+   路由过渡
+   ═══════════════════════════════════════════ */
 .vd-fade-enter-active,
 .vd-fade-leave-active {
-  transition: opacity 0.25s var(--vd-ease);
+  transition: opacity 0.22s var(--vd-ease);
 }
 .vd-fade-enter-from,
 .vd-fade-leave-to {
   opacity: 0;
 }
 
-/* ── 滚动条 ── */
+/* ═══════════════════════════════════════════
+   滚动条
+   ═══════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -281,16 +589,48 @@ body,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: color-mix(in srgb, var(--vd-primary) 55%, rgba(255, 255, 255, 0.2));
 }
 
+/* ═══════════════════════════════════════════
+   响应式
+   ═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .vd-page {
+    padding: 20px 16px 44px;
+  }
+  .vd-header h1 {
+    font-size: 21px;
+  }
+  .vd-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .vd-rail {
+    grid-auto-columns: 138px;
+  }
+  .vd-panel {
+    padding: 16px;
+  }
+  .vd-footer-inner {
+    padding: 18px 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   尊重系统「减少动态效果」偏好
+   ═══════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   .vd-card,
-  .vd-card:hover {
+  .vd-card:hover,
+  .vd-pill,
+  .vd-section-more,
+  .vd-poster img,
+  .vd-card:hover .vd-poster img {
     transition: none;
     transform: none;
   }

@@ -94,7 +94,6 @@ export interface UseFilePickerReturn {
   isSelected: (item: FilePickerItem) => boolean;
   isCurrentPath: (path: string) => boolean;
   isParentEntry: (item: FilePickerItem) => boolean;
-  moveActive: (delta: number) => void;
   /** 回车激活当前行；返回 true 表示已选中单个文件、视图层应立刻确认 */
   activateActive: () => boolean;
   /** 取出并清空当前选中（确认时用） */
@@ -130,9 +129,11 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
    *
    * <p>双击在浏览器里是「click + click + dblclick」：若两次 click 里有一次落在
    * 已重新渲染的新行上，或某些设备重复派发 dblclick，就会连续进入两级目录。
-   * 一次双击只允许触发一次「进入目录」，时间窗内后续 open 直接丢弃。</p>
+   * 一次双击只允许触发一次「进入目录」，时间窗内对<b>同一目标</b>的后续 open 直接丢弃。
+   * 只按时间不看目标会把「先双击 A、再很快双击 B」里的 B 误伤，所以还要比对路径。</p>
    */
   let lastDirOpenAt = 0;
+  let lastDirOpenKey = "";
   const DIR_OPEN_GUARD_MS = 400;
 
   /** 正在加载的目标目录：同一目标在途时不再重复发请求（双击父级/侧栏时常见） */
@@ -484,12 +485,13 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
       return false;
     }
     if (item.isDir) {
-      // 一次双击只进一级：第二颗 click / 重复 dblclick 在时间窗内直接丢弃
+      // 一次双击只进一级：同一目录在时间窗内重复 open 直接丢弃；换目录则不拦
       const now = Date.now();
-      if (now - lastDirOpenAt < DIR_OPEN_GUARD_MS) {
+      if (samePath(item.key, lastDirOpenKey) && now - lastDirOpenAt < DIR_OPEN_GUARD_MS) {
         return false;
       }
       lastDirOpenAt = now;
+      lastDirOpenKey = item.key;
       navigateTo(item.key);
       return false;
     }
@@ -525,16 +527,6 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     sortKey.value === key ? (sortAsc.value ? "↑" : "↓") : "";
 
   /* ---------- 键盘导航 ---------- */
-
-  const moveActive = (delta: number): void => {
-    const list = rows.value;
-    if (!list.length) return;
-    if (activeIndex.value < 0) {
-      activeIndex.value = delta > 0 ? 0 : list.length - 1;
-      return;
-    }
-    activeIndex.value = Math.min(list.length - 1, Math.max(0, activeIndex.value + delta));
-  };
 
   const activateActive = (): boolean => {
     const item = rows.value[activeIndex.value];
@@ -586,7 +578,6 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     isSelected,
     isCurrentPath,
     isParentEntry,
-    moveActive,
     activateActive,
     takeSelection,
   };

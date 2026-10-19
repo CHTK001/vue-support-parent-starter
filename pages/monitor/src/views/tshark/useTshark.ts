@@ -79,6 +79,13 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
    */
   const count = ref(0)
   const timeout = ref(0)
+  /**
+   * 会话大小上限（MB）。0 = 不限。
+   *
+   * <p>实时抓包会转成 tshark 的 {@code -a filesize:<KB>}，达到后自动停止；
+   * 后端启动前还会按这个值检查磁盘余量，避免抓一半把盘写满。</p>
+   */
+  const maxSizeMb = ref(0)
   const starting = ref(false)
   /** 导入 pcap 的上传中标志：几百 MB 的文件要传几秒，按钮得转圈，否则用户会重复点 */
   const importing = ref(false)
@@ -100,8 +107,17 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   const packets = ref<TsharkPacket[]>([])
   const packetPage = ref(1)
   const packetTotal = ref(0)
-  const packetKeyword = ref('')
-  let keywordTimer: ReturnType<typeof setTimeout> | null = null
+  /**
+   * 显示过滤（报文 / 统计 / 会话流三个标签共用）。
+   *
+   * <p>同一份表达式同时作用在三个视图上，统计与流才会与报文表对得上；
+   * 空串表示不过滤。纯关键字也走这里，由后端退化成模糊匹配。</p>
+   */
+  const packetFilter = ref('')
+  /** 过滤表达式被后端拒绝时的提示（如不支持的字段 / 语法错误） */
+  const filterError = ref('')
+  /** 过滤生效时实时包不会直接插表，攒一会儿再统一重拉，避免每个包都打一次接口 */
+  let liveRefreshTimer: ReturnType<typeof setTimeout> | null = null
 
   // ===== 统计 =====
   const loadingStats = ref(false)
@@ -170,7 +186,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
           const phase = event.data?.phase
           if (phase === 'parsed' || phase === 'finished') {
             void loadStats()
-            if (packetPage.value === 1 && !packetKeyword.value.trim()) {
+            if (packetPage.value === 1 && !packetFilter.value.trim()) {
               void loadPackets(1)
             }
           }
@@ -194,6 +210,12 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     if (packets.value.some(p => p.id === packet.id)) return
 
     liveCount.value++
+    // 过滤生效时新包未必命中过滤，不能盲目把总数 +1（会与过滤后的分页对不上），
+    // 也不逐包插表；攒一小会儿统一重拉第一页与统计。
+    if (packetFilter.value.trim()) {
+      scheduleFilteredRefresh()
+      return
+    }
     packetTotal.value++
     const proto = packet.protocol || 'OTHER'
     const hit = protoStats.value.find(s => s.protocol === proto)
@@ -201,13 +223,27 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     else protoStats.value.push({ protocol: proto, count: 1 })
     statsVersion.value++
 
-    // 关键字生效时列表是「库里筛出来的子集」，翻在第 2 页及以后时新包属于第 1 页，
-    // 这两种情况都不插行，避免总数/页码对不上。
-    if (packetKeyword.value.trim()) return
+    // 翻在第 2 页及以后时新包属于第 1 页，不插行，避免总数/页码对不上。
     if (packetPage.value !== 1) return
     // 不再截断实时行：历史数据都在库里，页面这一页只承载实时新增，
     // 真到几十万行时用户会翻页 / 过滤，而不是靠偷偷丢弃最新行来省 DOM。
     packets.value.unshift(packet)
+  }
+
+  /**
+   * 过滤生效时的实时刷新：合并 1.5 秒内的多个新包，只打一次报文 + 统计接口。
+   *
+   * <p>不能像无过滤时那样原地插表，因为前端不知道新包是否命中后端那套表达式；
+   * 也不能每个包都重拉，抓包高峰会把接口打爆。</p>
+   */
+  function scheduleFilteredRefresh() {
+    if (liveRefreshTimer) return
+    liveRefreshTimer = setTimeout(() => {
+      liveRefreshTimer = null
+      if (activeSessionId.value == null || !packetFilter.value.trim()) return
+      if (packetPage.value === 1) void loadPackets(1)
+      void loadStats()
+    }, 1500)
   }
 
   /**
@@ -237,6 +273,7 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     return sessions.value.filter((s) => {
       if (sessionFilter.value === 'running' && s.captureStatus !== 1) return false
       if (sessionFilter.value === 'stopped' && s.captureStatus === 1) return false
+      if (sessionFilter.value === 'error' && s.captureStatus !== 2) return false
       if (!kw) return true
       return `${s.sessionName ?? ''} ${s.captureInterface ?? ''}`.toLowerCase().includes(kw)
     })
@@ -324,14 +361,25 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     packets.value = []
     packetTotal.value = 0
     packetPage.value = 1
+    packetFilter.value = ''
+    filterError.value = ''
     protoStats.value = []
     topFlows.value = []
     liveCount.value = 0
   }
 
   function selectSession(id: number) {
+    const changed = activeSessionId.value !== id
     activeSessionId.value = id
     liveCount.value = 0
+    if (changed) {
+      // 换会话时清掉上一条的过滤：表达式里的 IP / 端口是上一条的，留着只会把新会话筛空
+      packetFilter.value = ''
+      filterError.value = ''
+      packetPage.value = 1
+      packets.value = []
+      packetTotal.value = 0
+    }
     openPacketStream(id)
     loadPackets(1)
     loadStats()
@@ -343,31 +391,68 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     if (sid == null) return
     loadingPackets.value = true
     try {
-      const r = await getTsharkPackets(sid, page, PACKET_PAGE_SIZE, packetKeyword.value.trim())
+      const activeFilter = packetFilter.value.trim()
+      const r = await getTsharkPackets(sid, page, PACKET_PAGE_SIZE, activeFilter)
       // 竞态丢弃：慢请求回来时用户可能已经切到别的会话，写进去会串数据
       if (sid !== activeSessionId.value) return
       packets.value = (r?.records ?? r?.data ?? []) as TsharkPacket[]
       packetTotal.value = r?.total ?? packets.value.length
       packetPage.value = page
+      // 成功即清掉上一次的错误，但仅当过滤条件没在请求期间被改掉
+      if (activeFilter === packetFilter.value.trim()) filterError.value = ''
     } catch (e: any) {
-      message.error('加载数据包失败: ' + (e?.message || e))
+      if (sid !== activeSessionId.value) return
+      const msg = e?.message || String(e)
+      // 过滤表达式的问题展示在过滤条下方，比再弹一个 toast 更好定位
+      if (packetFilter.value.trim()) filterError.value = msg
+      else message.error('加载数据包失败: ' + msg)
     } finally {
       loadingPackets.value = false
     }
   }
 
-  /** 关键字变化：防抖 300ms 后回第一页重查（换关键字后页码不再有意义） */
-  function setPacketKeyword(v: string) {
-    packetKeyword.value = v
-    if (keywordTimer) clearTimeout(keywordTimer)
-    keywordTimer = setTimeout(() => loadPackets(1), 300)
+  /**
+   * 应用显示过滤：报文 / 统计 / 会话流同时重查，并回到第一页。
+   *
+   * @param value 过滤表达式；空串表示清除
+   */
+  function applyPacketFilter(value: string) {
+    packetFilter.value = (value || '').trim()
+    filterError.value = ''
+    packetPage.value = 1
+    void loadPackets(1)
+    void loadStats()
   }
 
-  /** 从统计面板点某个协议跳到报文：直接用它当关键字 */
+  function clearPacketFilter() {
+    applyPacketFilter('')
+  }
+
+  /** 从统计面板点某个协议跳到报文：直接用它当过滤表达式 */
   function filterByProtocol(protocol: string) {
-    if (keywordTimer) clearTimeout(keywordTimer)
-    packetKeyword.value = protocol
-    loadPackets(1)
+    applyPacketFilter(protocol)
+  }
+
+  /**
+   * 从会话流点某条流筛到报文。
+   *
+   * <p>用双向 IP 对 + 两端端口生成表达式，比直接把 `a:1 -> b:2` 当关键字更精确：
+   * 后者会被拆成几个词做 AND，端口数字还可能误命中长度等字段。</p>
+   *
+   * @param flow 会话流
+   */
+  function filterByFlow(flow: TsharkFlow) {
+    const { sourceIp, sourcePort, destIp, destPort } = flow
+    if (!sourceIp || !destIp) {
+      applyPacketFilter(flow.flow)
+      return
+    }
+    let expr = `((ip.src == ${sourceIp} and ip.dst == ${destIp})`
+      + ` or (ip.src == ${destIp} and ip.dst == ${sourceIp}))`
+    if (sourcePort != null && destPort != null) {
+      expr += ` and (port == ${sourcePort} or port == ${destPort})`
+    }
+    applyPacketFilter(expr)
   }
 
   function refresh() {
@@ -430,15 +515,23 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
       return
     }
     loadingStats.value = true
+    const activeFilter = packetFilter.value.trim()
     try {
       // 两个统计接口互不依赖，并行发；任一失败只清空自己那一份，不影响另一张图
       const [p, f] = await Promise.allSettled([
-        getTsharkProtocolStats(sid),
-        getTsharkTopFlows(sid, 10),
+        getTsharkProtocolStats(sid, activeFilter),
+        getTsharkTopFlows(sid, 10, activeFilter),
       ])
       if (sid !== activeSessionId.value) return
       protoStats.value = p.status === 'fulfilled' ? (p.value as TsharkProtocolStat[]) : []
       topFlows.value = f.status === 'fulfilled' ? (f.value as TsharkFlow[]) : []
+      // 过滤命中量超上限时后端返回明确错误，展示给用户而不是静默清空
+      if (activeFilter && (p.status === 'rejected' || f.status === 'rejected')) {
+        const rejected = p.status === 'rejected' ? p.reason : (f as PromiseRejectedResult).reason
+        if (activeFilter === packetFilter.value.trim()) {
+          filterError.value = rejected?.message || String(rejected)
+        }
+      }
       statsVersion.value++
     } finally {
       loadingStats.value = false
@@ -460,9 +553,11 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
         filterType: filterType.value,
         count: count.value > 0 ? count.value : undefined,
         timeout: timeout.value > 0 ? timeout.value : undefined,
+        maxSizeMb: maxSizeMb.value > 0 ? maxSizeMb.value : undefined,
       })
       message.success('抓包已启动')
       captureName.value = ''
+      maxSizeMb.value = 0
       await loadSessions()
       return true
     } catch (e: any) {
@@ -571,20 +666,21 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
   onBeforeUnmount(() => {
     socketUnsubs.forEach(fn => fn?.())
     closePacketStream()
-    if (keywordTimer) clearTimeout(keywordTimer)
+    if (liveRefreshTimer) clearTimeout(liveRefreshTimer)
   })
 
   return {
     // 环境
     tsharkOk, interfaces, ifaceOptions,
     // 抓包参数
-    iface, filter, filterType, captureName, count, timeout, starting, importing,
+    iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting, importing,
     // 会话
     loadingSessions, sessions, sessionBackendTotal, sessionKeyword, sessionFilter,
     sessionPage, activeSessionId, activeSession, filteredSessions, pagedSessions,
     runningCount, sessionPageSize,
     // 报文
-    loadingPackets, packets, packetPage, packetTotal, packetKeyword, packetPageSize: PACKET_PAGE_SIZE,
+    loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError,
+    packetPageSize: PACKET_PAGE_SIZE,
     // 统计
     loadingStats, protoStats, topFlows, statsVersion,
     // 详情
@@ -593,7 +689,8 @@ export function useTshark(options: { source?: string; autoSelectFirst?: boolean 
     liveCount, liveConnected,
     // 动作
     init, loadInterfaces, loadSessions, selectSession, setSessionKeyword, setSessionFilter,
-    clearActiveSession, loadPackets, setPacketKeyword, filterByProtocol, refresh, exportCsv,
+    clearActiveSession, loadPackets, applyPacketFilter, clearPacketFilter,
+    filterByProtocol, filterByFlow, refresh, exportCsv,
     downloadPcap, loadStats, startCapture, stopSession, deleteSession, openPacketDetail,
     openPacketDetailById,
     importPcap,

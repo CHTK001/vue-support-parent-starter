@@ -7,7 +7,7 @@
 <template>
   <div class="tshark-panel">
     <div class="tshark-panel__tools">
-      <span class="tshark-dim flow-hint">按包数排序，最多展示 10 条会话流</span>
+      <span class="tshark-dim flow-hint">按包数排序，最多展示 10 条会话流；点某条流可筛出它的报文</span>
       <span class="tshark-panel__spacer"></span>
       <span class="tshark-dim flow-total">本会话共 {{ packetTotal }} 包</span>
     </div>
@@ -29,7 +29,13 @@
             <ReEmpty description="暂无数据" layout="modern" />
           </div>
           <ul v-else class="flow-list">
-            <li v-for="(row, i) in topFlows" :key="row.flow + '-' + i" class="flow-row">
+            <li
+              v-for="(row, i) in topFlows"
+              :key="row.flow + '-' + i"
+              class="flow-row is-clickable"
+              :title="`点此筛出「${row.flow}」的报文`"
+              @click="emit('pick-flow', row)"
+            >
               <span class="flow-row__rank tshark-mono">{{ i + 1 }}</span>
               <span class="flow-row__name tshark-mono" :title="row.flow">{{ row.flow }}</span>
               <span class="flow-row__pct tshark-mono">{{ shareOf(row.count) }}%</span>
@@ -53,6 +59,10 @@ const props = defineProps<{
   packetTotal: number
   /** 统计版本号，见 ScTsharkStatsPanel 的同名说明 */
   version: number
+}>()
+
+const emit = defineEmits<{
+  (e: 'pick-flow', flow: TsharkFlow): void
 }>()
 
 const flowTotal = computed(() => props.topFlows.reduce((sum, r) => sum + (r.count || 0), 0))
@@ -155,6 +165,8 @@ watch(() => props.version, () => nextTick(render))
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .flow-row:last-child { border-bottom: 0; }
+.flow-row.is-clickable { cursor: pointer; }
+.flow-row.is-clickable:hover { background: var(--el-fill-color-light); }
 .flow-row__rank {
   color: var(--el-text-color-placeholder);
   text-align: right;

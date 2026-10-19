@@ -34,6 +34,7 @@
         />
 
         <FilePickerList
+          ref="listRef"
           :rows="rows"
           :columns="columns"
           :parent-entry="parentEntry"
@@ -50,6 +51,7 @@
           @activate="onActivate"
           @open="onOpen"
           @navigate="navigateTo"
+          @move-active="onMoveActive"
         >
           <template v-if="$slots.empty" #empty>
             <slot name="empty" />
@@ -74,6 +76,34 @@
         >
           清除
         </el-button>
+        <el-dropdown
+          v-if="viewMode !== 'details'"
+          class="rfp__sort"
+          trigger="click"
+          @command="onSortCommand"
+        >
+          <button
+            type="button"
+            class="rfp-sort-btn"
+            :title="`排序：${sortLabel}`"
+            :aria-label="`排序：${sortLabel}`"
+          >
+            <el-icon :size="13"><Sort /></el-icon>
+            <span class="rfp-sort-btn__label">{{ sortLabel }}</span>
+            <span class="rfp-sort-btn__arrow">{{ sortAsc ? "↑" : "↓" }}</span>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-for="col in columns"
+                :key="col.key"
+                :command="col.key"
+              >
+                {{ col.label }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <div class="rfp__views" role="group" aria-label="查看方式">
           <button
             v-for="mode in viewModeOptions"
@@ -85,7 +115,7 @@
             :title="mode.label"
             :aria-label="mode.label"
             :aria-pressed="viewMode === mode.key"
-            @click="viewMode = mode.key"
+            @click="setViewMode(mode.key)"
           >
             <el-icon :size="15"><component :is="mode.icon" /></el-icon>
           </button>
@@ -151,6 +181,7 @@ import {
   List,
   Menu,
   Refresh,
+  Sort,
   Tickets,
   Upload as UploadIcon,
   View,
@@ -161,6 +192,7 @@ import type {
   FilePickerContextMenuOptions,
   FilePickerItem,
   FilePickerLoader,
+  FilePickerSortKey,
   FilePickerViewMode,
 } from "./types";
 import { FILE_PICKER_COLUMNS, toNativeAccept } from "./utils";
@@ -209,6 +241,11 @@ interface Props {
   uploadFiles?: (dir: string, files: File[]) => unknown | Promise<unknown>;
   /** 下载（给了才有该菜单项） */
   downloadItems?: (items: FilePickerItem[]) => unknown | Promise<unknown>;
+  /**
+   * 初始视图：`details`（默认）/ `largeIcons` / `mediumIcons` / `smallIcons`。
+   * 宿主可用 `v-model:view` 双向绑定并自行持久化；不传则组件内部记住本次打开的选择。
+   */
+  view?: FilePickerViewMode;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -225,6 +262,7 @@ const props = withDefaults(defineProps<Props>(), {
   removeItems: undefined,
   uploadFiles: undefined,
   downloadItems: undefined,
+  view: undefined,
 });
 
 const emit = defineEmits<{
@@ -233,6 +271,7 @@ const emit = defineEmits<{
   (e: "cancel"): void;
   /** 请求预览某条目（宿主也可只用 previewUrl 或 #preview 插槽） */
   (e: "preview", item: FilePickerItem): void;
+  (e: "update:view", value: FilePickerViewMode): void;
 }>();
 
 const slots = useSlots();
@@ -250,7 +289,7 @@ const isDirectoryMode = computed(() => props.directoryMode);
 const columns = FILE_PICKER_COLUMNS;
 
 /** 视图模式：默认详细列表，可切到大/中/小图标（参考 pages/filesystem 的状态栏切换） */
-const viewMode = ref<FilePickerViewMode>("details");
+const viewMode = ref<FilePickerViewMode>(props.view ?? "details");
 const viewModeOptions: Array<{ key: FilePickerViewMode; label: string; icon: Component }> = [
   { key: "details", label: "详细信息", icon: List },
   { key: "largeIcons", label: "大图标", icon: Grid },
@@ -258,7 +297,28 @@ const viewModeOptions: Array<{ key: FilePickerViewMode; label: string; icon: Com
   { key: "smallIcons", label: "小图标", icon: Tickets },
 ];
 
+/** 切换视图：内部先改，再通知宿主（宿主可 v-model:view 持久化） */
+const setViewMode = (mode: FilePickerViewMode): void => {
+  viewMode.value = mode;
+  emit("update:view", mode);
+};
+
+watch(
+  () => props.view,
+  (value) => {
+    if (value) viewMode.value = value;
+  },
+);
+
+/** 图标视图的排序入口：没有表头时用紧凑下拉显示当前列与升降序 */
+const sortLabel = computed(() => columns.find((col) => col.key === sortKey.value)?.label ?? "名称");
+const onSortCommand = (key: FilePickerSortKey): void => {
+  toggleSort(key);
+};
+
 const rootRef = ref<HTMLElement | null>(null);
+/** 列表组件实例：键盘二维导航 + DOM 焦点同步由它负责 */
+const listRef = ref<{ moveActive: (direction: "up" | "down" | "left" | "right", focus?: boolean) => void } | null>(null);
 
 const {
   currentPath,
@@ -296,7 +356,6 @@ const {
   toggleSelect,
   isSelected,
   isParentEntry,
-  moveActive,
   activateActive,
   takeSelection,
 } = useFilePicker({
@@ -310,6 +369,11 @@ const {
 });
 
 /* ---------- 交互 ---------- */
+
+/** 列表组件的键盘导航回传高亮位（二维寻路在列表里按真实布局算） */
+const onMoveActive = (index: number): void => {
+  activeIndex.value = index;
+};
 
 /**
  * 行单击：记录键盘高亮位，再按模式选中（Ctrl/⌘ 加减选、Shift 连选，见 selectItem）。
@@ -619,7 +683,8 @@ const onMenuSelect = (key: FilePickerContextMenuAction): void => {
 };
 
 /**
- * 键盘：↑/↓ 移动高亮行（列表会随之聚焦该行），回车打开、退格返回上一级。
+ * 键盘：↑/↓/←/→ 移动高亮项（图标视图按二维方向移动，列表组件负责把焦点同步到高亮项），
+ * 回车打开、退格返回上一级。
  *
  * <p>回车必须在这里统一处理：行按钮上的原生回车会触发 click，而单击目录在
  * FILE 模式下「不进入」是刻意约定，键盘用户就永远进不去目录。所以对行按钮
@@ -632,15 +697,21 @@ const onKeydown = (event: KeyboardEvent): void => {
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    moveActive(1);
+    listRef.value?.moveActive("down", !inField);
     return;
   }
   if (event.key === "ArrowUp") {
     event.preventDefault();
-    moveActive(-1);
+    listRef.value?.moveActive("up", !inField);
     return;
   }
   if (inField) return;
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    if (viewMode.value === "details") return;
+    event.preventDefault();
+    listRef.value?.moveActive(event.key === "ArrowLeft" ? "left" : "right", true);
+    return;
+  }
   if (event.key === "Enter") {
     const rowEl = target?.closest<HTMLElement>(".re-file-picker__item");
     if (rowEl) {
@@ -651,6 +722,8 @@ const onKeydown = (event: KeyboardEvent): void => {
       if (item.isDir) {
         onOpen(item);
       } else {
+        // 目录模式下文件不可选：回车不能借道 handleConfirm 把之前选中的目录确认掉
+        if (!canSelect(item)) return;
         onActivate(item, index);
         if (!props.multiple) handleConfirm();
       }
@@ -817,6 +890,55 @@ watch(
 .rfp-view-btn:focus-visible {
   outline: 2px solid var(--rfp-accent);
   outline-offset: -2px;
+}
+
+/* 图标视图的排序入口：没有表头时补一个紧凑下拉（当前列 + 升降序） */
+.rfp__sort {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--rfp-border);
+}
+
+.rfp-sort-btn {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--rfp-radius);
+  background: transparent;
+  color: var(--rfp-text-weak);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.rfp-sort-btn:hover {
+  background: var(--rfp-hover);
+  color: var(--rfp-accent);
+}
+
+.rfp-sort-btn:focus-visible {
+  outline: 2px solid var(--rfp-accent);
+  outline-offset: -2px;
+}
+
+.rfp-sort-btn__arrow {
+  color: var(--rfp-accent);
+  font-weight: 700;
+}
+
+/* 窄弹窗优先保住项目数和视图按钮，收起次要文字 */
+@media (max-width: 760px) {
+  .rfp__selected-label,
+  .rfp-sort-btn__label {
+    display: none;
+  }
 }
 
 /* 数量上限：常态灰字，到达上限变警示色 */

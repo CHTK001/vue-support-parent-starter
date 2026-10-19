@@ -20,14 +20,24 @@
         <ReTag :type="session?.captureStatus === 1 ? 'success' : 'info'" effect="plain">
           {{ session?.captureStatus === 1 ? '抓包中' : '已停止' }}
         </ReTag>
-        <span class="detail-meta">{{ session?.captureInterface || '—' }}</span>
+        <span class="detail-meta">{{ ifaceLabel || session?.captureInterface || '—' }}</span>
         <span class="detail-meta">{{ session?.packetCount ?? 0 }} 包</span>
         <span class="detail-meta">{{ session?.startTime || '—' }}</span>
         <span class="detail-spacer" />
-        <span class="detail-live" :class="{ 'is-on': liveConnected }">
-          {{ liveConnected ? `实时推送 +${liveCount}` : '推送未连接' }}
+        <span class="detail-live" :class="{ 'is-on': session?.captureStatus === 1 && liveConnected }">
+          {{
+            session?.captureStatus === 1
+              ? (liveConnected ? `实时推送 +${liveCount}` : '推送连接中…')
+              : '历史会话'
+          }}
         </span>
       </div>
+
+      <ScTsharkFilterBar
+        :model-value="packetFilter || ''"
+        :error="filterError"
+        @apply="v => emit('apply-filter', v)"
+      />
 
       <ReTab
         class="detail-tabs"
@@ -50,18 +60,27 @@ import { computed, ref, watch } from 'vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReTab from '@repo/ui/re-tab'
 import ReTag from '@repo/ui/re-tag'
+import ScTsharkFilterBar from './ScTsharkFilterBar.vue'
 import type { TsharkSession, TsharkTabKey } from './types'
 
 const props = defineProps<{
   modelValue: boolean
   session: TsharkSession | null
+  /** 网卡的友好显示名（Ethernet / WLAN）；父级已按 tshark -D 映射过 */
+  ifaceLabel?: string
   initialTab: TsharkTabKey
   liveConnected: boolean
   liveCount: number
+  /** 已生效的显示过滤（报文 / 统计 / 会话流共用） */
+  packetFilter?: string
+  /** 过滤表达式被后端拒绝时的提示 */
+  filterError?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
+  (e: 'update:packetFilter', v: string): void
+  (e: 'apply-filter', v: string): void
 }>()
 
 const tab = ref<TsharkTabKey>('packet')

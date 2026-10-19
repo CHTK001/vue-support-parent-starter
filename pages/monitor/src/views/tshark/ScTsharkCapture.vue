@@ -35,62 +35,93 @@
       <ReTable
         class="tshark-table capture-table"
         :data="filteredSessions"
-        :columns="columns"
         :loading="loadingSessions"
         :pagination="true"
         :page-sizes="[10, 20, 50]"
         v-model:page="sessionPage"
         v-model:page-size="sessionPageSize"
         :toolbar="false"
+        size="small"
         row-key="id"
         stripe
         empty-text="还没有抓包会话，点右上角「新增会话」选择网卡开始"
       >
-        <template #name="{ row }">
-          <div class="session-name">
-            <span class="session-name__dot" :class="row.captureStatus === 1 ? 'is-run' : 'is-stop'" />
-            <span class="session-name__text" :title="row.sessionName">{{ row.sessionName || `会话 ${row.id}` }}</span>
-          </div>
-        </template>
+        <ReTableColumn prop="sessionName" label="会话" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div class="session-name">
+              <span class="session-name__dot" :class="row.captureStatus === 1 ? 'is-run' : 'is-stop'" />
+              <span class="session-name__text" :title="row.sessionName">{{ row.sessionName || `会话 ${row.id}` }}</span>
+            </div>
+          </template>
+        </ReTableColumn>
 
-        <template #status="{ row }">
-          <ReTag :type="row.captureStatus === 1 ? 'success' : 'info'" effect="plain">
-            {{ row.captureStatus === 1 ? '抓包中' : '已停止' }}
-          </ReTag>
-        </template>
+        <ReTableColumn label="网卡" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span :title="row.captureInterface">{{ ifaceLabel(row.captureInterface) }}</span>
+          </template>
+        </ReTableColumn>
 
-        <template #duration="{ row }">
-          <span class="tshark-mono">{{ fmtDuration(row.captureDuration) }}</span>
-        </template>
+        <ReTableColumn label="状态" width="96" align="center">
+          <template #default="{ row }">
+            <span v-if="row.captureStatus === 2" :title="row.lastError || '抓包 / 解析异常'">
+              <ReTag type="danger" effect="plain">异常</ReTag>
+            </span>
+            <ReTag v-else :type="row.captureStatus === 1 ? 'success' : 'info'" effect="plain">
+              {{ row.captureStatus === 1 ? '抓包中' : '已停止' }}
+            </ReTag>
+          </template>
+        </ReTableColumn>
 
-        <template #action="{ row }">
-          <div class="capture-ops">
-            <ReButton link type="primary" @click="openDetail(row, 'packet')">报文</ReButton>
-            <ReButton link type="primary" @click="openDetail(row, 'stats')">统计</ReButton>
-            <ReButton link type="primary" @click="openDetail(row, 'flow')">会话流</ReButton>
-            <span class="capture-ops__sep" />
-            <ReButton
-              v-if="row.captureStatus === 1"
-              icon="VideoPause"
-              layout="square"
-              tip="停止抓包"
-              @click="stopSession(row.id)"
-            />
-            <ReButton
-              icon="Download"
-              layout="square"
-              tip="下载原始 pcap（用 Wireshark 打开）"
-              @click="downloadPcap(row.id, row.sessionName)"
-            />
-            <ReButton
-              icon="Delete"
-              type="danger"
-              layout="square"
-              tip="删除会话及其报文"
-              @click="deleteSession(row.id)"
-            />
-          </div>
-        </template>
+        <ReTableColumn prop="packetCount" label="报文数" width="90" align="right">
+          <template #default="{ row }">{{ row.packetCount ?? 0 }}</template>
+        </ReTableColumn>
+
+        <ReTableColumn label="大小" width="96" align="right">
+          <template #default="{ row }">
+            <span class="tshark-mono" :title="sizeTitle(row)">{{ fileSizeText(row.fileSize) }}</span>
+          </template>
+        </ReTableColumn>
+
+        <ReTableColumn prop="startTime" label="开始时间" width="170">
+          <template #default="{ row }">{{ row.startTime || '—' }}</template>
+        </ReTableColumn>
+
+        <ReTableColumn label="时长" width="80" align="right">
+          <template #default="{ row }">
+            <span class="tshark-mono">{{ durationText(row) }}</span>
+          </template>
+        </ReTableColumn>
+
+        <ReTableColumn label="操作" width="330" align="center" fixed="right">
+          <template #default="{ row }">
+            <div class="capture-ops">
+              <ReButton link type="primary" @click="openDetail(row, 'packet')">报文</ReButton>
+              <ReButton link type="primary" @click="openDetail(row, 'stats')">统计</ReButton>
+              <ReButton link type="primary" @click="openDetail(row, 'flow')">会话流</ReButton>
+              <span class="capture-ops__sep" />
+              <ReButton
+                v-if="row.captureStatus === 1"
+                icon="VideoPause"
+                layout="square"
+                tip="停止抓包"
+                @click="stopSession(row.id)"
+              />
+              <ReButton
+                icon="Download"
+                layout="square"
+                tip="下载原始 pcap（用 Wireshark 打开）"
+                @click="downloadPcap(row.id, row.sessionName)"
+              />
+              <ReButton
+                icon="Delete"
+                type="danger"
+                layout="square"
+                tip="删除会话及其报文"
+                @click="deleteSession(row.id)"
+              />
+            </div>
+          </template>
+        </ReTableColumn>
       </ReTable>
     </div>
 
@@ -103,6 +134,7 @@
       v-model:capture-name="captureName"
       v-model:count="count"
       v-model:timeout="timeout"
+      v-model:max-size-mb="maxSizeMb"
       :tshark-ok="tsharkOk"
       :iface-options="ifaceOptions"
       :starting="starting"
@@ -113,9 +145,13 @@
     <ScTsharkSessionDetailDialog
       v-model="detailVisible"
       :session="activeSession"
+      :iface-label="ifaceLabel(activeSession?.captureInterface)"
       :initial-tab="detailTab"
       :live-connected="liveConnected"
       :live-count="liveCount"
+      :packet-filter="packetFilter"
+      :filter-error="filterError"
+      @apply-filter="applyPacketFilter"
     >
       <template #packet>
         <ScTsharkPacketPanel
@@ -125,9 +161,7 @@
           :page="packetPage"
           :page-size="packetPageSize"
           :total="packetTotal"
-          :keyword="packetKeyword"
           :empty-text="packetEmptyText"
-          @update:keyword="setPacketKeyword"
           @page-change="loadPackets"
           @open-detail="openPacketDetail"
           @open-lifecycle="openLifecycle"
@@ -158,6 +192,7 @@
           :top-flows="topFlows"
           :packet-total="packetTotal"
           :version="statsVersion"
+          @pick-flow="onPickFlow"
         />
         <div v-else class="tshark-panel__empty">
           <ReEmpty description="选择一个抓包会话后查看会话流" layout="modern" />
@@ -189,8 +224,7 @@ import ScTsharkStatsPanel from './ScTsharkStatsPanel.vue'
 import ScTsharkFlowPanel from './ScTsharkFlowPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
-import type { ReTableColumn } from '@repo/ui/re-table'
-import type { TsharkPacket, TsharkSession, TsharkTabKey } from './types'
+import type { TsharkFlow, TsharkPacket, TsharkSession, TsharkTabKey } from './types'
 import './tshark.css'
 
 /**
@@ -198,14 +232,14 @@ import './tshark.css'
  * 自动选中会让 SSE 在没人看的时候也一直连着。
  */
 const {
-  tsharkOk, ifaceOptions, iface, filter, filterType, captureName, count, timeout, starting,
+  tsharkOk, ifaceOptions, iface, filter, filterType, captureName, count, timeout, maxSizeMb, starting,
   loadingSessions, filteredSessions, runningCount,
   sessionPage, sessionPageSize, activeSessionId, activeSession,
-  loadingPackets, packets, packetPage, packetTotal, packetKeyword, packetPageSize,
+  loadingPackets, packets, packetPage, packetTotal, packetFilter, filterError, packetPageSize,
   protoStats, topFlows, statsVersion, liveConnected, liveCount,
   detailOpen, packetDetail,
-  init, loadSessions, selectSession, clearActiveSession, loadPackets, setPacketKeyword,
-  filterByProtocol, refresh, exportCsv, downloadPcap, startCapture, stopSession, deleteSession,
+  init, loadSessions, selectSession, clearActiveSession, loadPackets, applyPacketFilter,
+  filterByProtocol, filterByFlow, refresh, exportCsv, downloadPcap, startCapture, stopSession, deleteSession,
   openPacketDetail, openPacketDetailById,
 } = useTshark({ source: 'live', autoSelectFirst: false })
 
@@ -217,18 +251,51 @@ const lifecycleVisible = ref(false)
 const lifecyclePacket = ref<TsharkPacket | null>(null)
 
 const packetEmptyText = computed(() =>
-  packetKeyword.value.trim() ? '没有匹配的数据包，试试清空关键字' : '该会话还没有抓到的数据包')
+  packetFilter.value.trim() ? '没有匹配的数据包，试试清除或修改过滤' : '该会话还没有抓到的数据包')
 
-const columns = computed<ReTableColumn[]>(() => [
-  { prop: 'sessionName', label: '会话', minWidth: 200, slot: 'name', showOverflowTooltip: true },
-  { prop: 'captureInterface', label: '网卡', minWidth: 160, showOverflowTooltip: true },
-  { prop: 'captureStatus', label: '状态', width: 96, slot: 'status', align: 'center' },
-  { prop: 'packetCount', label: '报文数', width: 96, align: 'right' },
-  { prop: 'startTime', label: '开始时间', width: 176 },
-  { prop: 'endTime', label: '结束时间', width: 176 },
-  { prop: 'captureDuration', label: '时长', width: 96, slot: 'duration', align: 'right' },
-  { prop: 'action', label: '操作', width: 330, slot: 'action', fixed: 'right' },
-])
+/** 字节数转可读大小；空 / 0 显示 — */
+function fileSizeText(bytes?: number | null): string {
+  const n = Number(bytes)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** 大小列的悬停说明：带出配置的大小上限 */
+function sizeTitle(row: TsharkSession): string {
+  const used = fileSizeText(row.fileSize)
+  const max = Number(row.maxSizeMb)
+  return Number.isFinite(max) && max > 0 ? `已写入 ${used}，上限 ${max} MB` : `已写入 ${used}，未设上限`
+}
+
+/**
+ * 网卡显示名：表格里不直接铺 \Device\NPF_{GUID}（又长又没法读）。
+ * 优先用 tshark -D 返回的友好名（Ethernet / WLAN），找不到再退回去掉前缀的 GUID。
+ */
+function ifaceLabel(value?: string | null): string {
+  if (!value) return '—'
+  const hit = ifaceOptions.value.find(o => o.value === value)
+  if (hit) return hit.label
+  return value.replace(/^\\Device\\NPF_/, '').replace(/[{}]/g, '') || value
+}
+
+/** 后端没回填 captureDuration 时（停止后只落 start/end），用起止时间补一个时长 */
+function durationText(row: TsharkSession): string {
+  const start = parseTime(row.startTime)
+  const end = parseTime(row.endTime)
+  if (start !== null && end !== null && end >= start) {
+    return fmtDuration(Math.round((end - start) / 1000))
+  }
+  const seconds = Number(row.captureDuration)
+  return Number.isFinite(seconds) && seconds > 0 ? fmtDuration(seconds) : '—'
+}
+
+function parseTime(t?: string | null): number | null {
+  if (!t) return null
+  const d = t.includes('T') ? new Date(t) : new Date(t.replace(/-/g, '/'))
+  return isNaN(d.getTime()) ? null : d.getTime()
+}
 
 /**
  * 新增会话：启动成功才关弹层；失败（过滤器语法错等）留在弹层里改参数。
@@ -259,6 +326,12 @@ watch(detailVisible, visible => {
 /** 统计页点协议：切回报文页并按协议过滤 */
 function onPickProtocol(protocol: string) {
   filterByProtocol(protocol)
+  detailTab.value = 'packet'
+}
+
+/** 会话流页点某条流：切回报文页并按该流过滤 */
+function onPickFlow(flow: TsharkFlow) {
+  filterByFlow(flow)
   detailTab.value = 'packet'
 }
 

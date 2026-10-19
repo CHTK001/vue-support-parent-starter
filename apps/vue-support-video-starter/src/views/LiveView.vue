@@ -1,10 +1,9 @@
 <script setup lang="ts">
 /**
- * 直播页 —— 央视 / 卫视 / 特色频道在线直播
+ * 直播页 —— 央视 / 卫视 / 特色频道在线直播（第二版）
  *
- * 结构：分组切换 + 剧场播放器 + 频道选台列表。
- * 交互：分组过滤、选台即播、候选源自动回退（某路源失败自动切换下一路）、
- *       加载骨架、错误空态与重试。
+ * 结构：分组切换药丸 + 剧场播放器 + 频道选台列表。
+ * 交互：分组过滤、选台即播、候选源自动回退、加载骨架、错误空态与重试。
  * 数据：liveApi（后端 LiveChannelController，HLS 经后端代理）。
  *
  * 路由：/live 直播全部；/live/cctv 仅央视（cctvOnly）。
@@ -34,9 +33,7 @@ const visibleChannels = computed(() =>
 );
 
 /** 当前播放地址（经后端代理） */
-const playUrl = computed(() =>
-  selected.value ? livePlayUrl(selected.value.id, srcIndex.value) : "",
-);
+const playUrl = computed(() => (selected.value ? livePlayUrl(selected.value.id, srcIndex.value) : ""));
 
 /** 候选源展示文案 */
 const sourceLabel = computed(() => {
@@ -102,7 +99,7 @@ onMounted(() => void load());
 </script>
 
 <template>
-  <div class="vd-page vd-live-page">
+  <div class="vd-page vdl-page">
     <!-- 页头 -->
     <header class="vd-header">
       <div>
@@ -123,26 +120,31 @@ onMounted(() => void load());
 
     <template v-else>
       <!-- 分组切换 -->
-      <div v-if="groups.length" class="vdl-groups" role="tablist" aria-label="直播分组">
+      <div v-if="groups.length" class="vd-pills vdl-groups" role="tablist" aria-label="直播分组">
         <button
           v-for="g in groups"
           :key="g.id"
           type="button"
           role="tab"
-          class="vdl-group-btn"
+          class="vd-pill"
           :class="{ 'is-active': activeGroup === g.id }"
           :aria-selected="activeGroup === g.id"
           @click="activeGroup = g.id"
         >
           {{ g.label }}
-          <span class="vdl-group-count">{{ g.count }}</span>
+          <span class="vd-pill-count">{{ g.count }}</span>
         </button>
       </div>
 
       <div class="vdl-layout">
         <!-- 播放器 -->
         <section class="vdl-player-col" aria-label="直播播放器">
-          <div v-if="loading" class="vd-theater vd-poster-skeleton" style="aspect-ratio: 16/9" aria-busy="true" />
+          <div
+            v-if="loading"
+            class="vd-theater vd-poster-skeleton"
+            style="aspect-ratio: 16/9"
+            aria-busy="true"
+          />
           <div v-else-if="!selected" class="vd-empty">
             <el-empty description="该分组暂无可用频道" />
           </div>
@@ -152,6 +154,7 @@ onMounted(() => void load());
             </div>
             <div class="vdl-now-playing">
               <span class="vdl-live-dot" aria-hidden="true" />
+              <span class="vdl-live-label">直播中</span>
               <span class="vdl-channel-name">{{ selected.name }}</span>
               <span v-if="sourceLabel" class="vdl-source">{{ sourceLabel }}</span>
             </div>
@@ -186,57 +189,21 @@ onMounted(() => void load());
 </template>
 
 <style scoped>
-/* ── 分组切换 ───────────────────────────── */
+.vdl-page {
+  /* 直播页用更宽的播放区 */
+  max-width: var(--vd-page-max);
+}
+
 .vdl-groups {
-  display: flex;
+  margin-bottom: 22px;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.vdl-group-btn {
-  border: 1px solid var(--vd-border);
-  background: var(--vd-surface-card);
-  color: var(--vd-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  padding: 7px 16px;
-  border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.vdl-group-btn:hover {
-  color: var(--vd-text);
-  border-color: var(--vd-border-strong);
-}
-
-.vdl-group-btn:focus-visible {
-  outline: none;
-  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
-}
-
-.vdl-group-btn.is-active {
-  color: var(--vd-text);
-  border-color: transparent;
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
-}
-
-.vdl-group-count {
-  font-size: 11px;
-  opacity: 0.8;
 }
 
 /* ── 布局 ───────────────────────────────── */
 .vdl-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 22px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -248,7 +215,7 @@ onMounted(() => void load());
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 14px;
   font-size: 15px;
   font-weight: 600;
   color: var(--vd-text);
@@ -257,11 +224,9 @@ onMounted(() => void load());
 .vdl-live-dot {
   width: 8px;
   height: 8px;
-  /* 50% 是几何形状（圆点）而非魔法像素，保留 */
   border-radius: 50%;
-  /* 直播红是危险/告警语义色，取 Element Plus 语义令牌 */
-  background: var(--el-color-danger);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-danger) 80%, transparent);
+  background: var(--vd-live);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vd-live) 80%, transparent);
   animation: vdl-pulse 1.4s ease-in-out infinite;
 }
 
@@ -272,9 +237,19 @@ onMounted(() => void load());
     transform: scale(1);
   }
   50% {
-    opacity: 0.5;
-    transform: scale(0.8);
+    opacity: 0.45;
+    transform: scale(0.78);
   }
+}
+
+.vdl-live-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--vd-live);
+  border: 1px solid color-mix(in srgb, var(--vd-live) 45%, transparent);
+  border-radius: var(--vd-radius-xs);
+  padding: 1px 6px;
 }
 
 .vdl-source {
@@ -286,17 +261,33 @@ onMounted(() => void load());
 .vdl-player-error {
   margin: 10px 0 0;
   font-size: 13px;
-  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
-     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
-  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
+  color: color-mix(in srgb, var(--vd-live) 62%, var(--vd-text));
 }
 
 /* ── 选台列表 ───────────────────────────── */
+.vdl-channel-col {
+  background: var(--vd-surface-card);
+  border: 1px solid var(--vd-border);
+  border-radius: var(--vd-radius-lg);
+  padding: 18px;
+}
+
 .vdl-channel-title {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-size: 15px;
   font-weight: 600;
   color: var(--vd-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vdl-channel-title::before {
+  content: "";
+  width: 4px;
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--vd-primary-strong), var(--vd-secondary));
 }
 
 .vdl-channel-grid {
@@ -311,50 +302,50 @@ onMounted(() => void load());
 .vdl-channel {
   position: relative;
   border: 1px solid var(--vd-border);
-  background: var(--vd-surface-card);
+  background: var(--vd-surface);
   color: var(--vd-text);
+  font-family: inherit;
   font-size: 13px;
-  padding: 12px 10px;
+  padding: 14px 10px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   text-align: center;
   overflow: hidden;
+  transition:
+    border-color var(--vd-fast) var(--vd-ease),
+    background var(--vd-fast) var(--vd-ease),
+    color var(--vd-fast) var(--vd-ease);
 }
 
 .vdl-channel:hover {
-  border-color: var(--vd-secondary);
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 20%, transparent);
+  border-color: color-mix(in srgb, var(--vd-primary) 60%, transparent);
+  background: var(--vd-surface-hover);
 }
 
 .vdl-channel:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+  outline: 2px solid var(--vd-primary-strong);
+  outline-offset: 1px;
 }
 
 .vdl-channel.is-active {
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--vd-primary) 70%, transparent);
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--vd-primary) 90%, transparent),
-    color-mix(in srgb, var(--vd-secondary) 80%, transparent)
+    color-mix(in srgb, var(--vd-primary) 24%, transparent),
+    color-mix(in srgb, var(--vd-secondary) 18%, transparent)
   );
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
+  color: var(--vd-primary-strong);
+  font-weight: 600;
 }
 
 .vdl-channel-badge {
   position: absolute;
   top: 4px;
-  left: 4px;
+  left: 6px;
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.5px;
-  color: var(--el-color-danger);
-}
-
-.vdl-channel.is-active .vdl-channel-badge {
-  color: var(--vd-text);
+  color: var(--vd-live);
 }
 
 .vdl-channel-label {
@@ -372,13 +363,13 @@ onMounted(() => void load());
 }
 
 .vdl-skeleton-item {
-  height: 44px;
+  height: 46px;
   border-radius: var(--vd-radius-sm);
   background: linear-gradient(
     100deg,
-    var(--vd-surface-card) 30%,
+    var(--vd-surface) 30%,
     var(--vd-surface-hover) 50%,
-    var(--vd-surface-card) 70%
+    var(--vd-surface) 70%
   );
   background-size: 200% 100%;
   animation: vd-skeleton 1.5s infinite;
@@ -393,19 +384,12 @@ onMounted(() => void load());
   }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .vdl-group-btn,
   .vdl-channel,
-  .vdl-channel:hover {
-    transition: none;
-    transform: none;
-  }
   .vdl-live-dot {
+    transition: none;
     animation: none;
   }
-  /* 骨架屏的微光是唯一的「加载中」视觉提示，关掉动画前先补一个静态底色，
-     保证占位仍然可读（容器上还有 aria-busy 语义） */
   .vdl-skeleton-item {
     animation: none;
     background: var(--vd-surface-hover);

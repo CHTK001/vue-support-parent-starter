@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * 频道页 —— 电影/电视剧/动漫/综艺等分类浏览
+ * 频道页 —— 电影/电视剧/动漫/综艺等分类浏览（第二版）
  *
- * 结构：频道标题 + 排序筛选 + 海报墙网格 + 分页（复用 vd-card 卡片体系）。
+ * 结构：频道标题 + 排序药丸 + 海报墙网格 + 分页（复用全局 vd-card 体系）。
  * 交互：路由参数驱动（/channel/:type）、排序切换、分页、滚动到顶部。
- * 数据：videoApi.fetchVideoList；未接后端时降级演示数据。
+ * 数据：videoApi.fetchVideoList。
  */
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -52,7 +52,6 @@ async function load() {
       videoType: channelType.value,
       page: page.value,
       pageSize,
-      // sort 由后端可选支持；当前版本前端兜底排序
     });
     let list = result.list ?? [];
     if (sort.value === "score") {
@@ -103,13 +102,13 @@ onMounted(() => void load());
         <h1>{{ channel.label }}</h1>
         <p class="vd-subtitle">{{ channel.desc }} · 共 {{ total }} 部</p>
       </div>
-      <div class="vds-sort" role="radiogroup" aria-label="排序方式">
+      <div class="vd-pills" role="radiogroup" aria-label="排序方式">
         <button
           v-for="opt in SORT_OPTIONS"
           :key="opt.value"
           type="button"
           role="radio"
-          class="vds-sort-btn"
+          class="vd-pill"
           :class="{ 'is-active': sort === opt.value }"
           :aria-checked="sort === opt.value"
           @click="sort = opt.value"
@@ -127,12 +126,12 @@ onMounted(() => void load());
     </div>
 
     <!-- 海报墙 -->
-    <div v-else-if="loading" class="vds-channel-grid" aria-busy="true">
-      <div v-for="i in 12" :key="i" class="vd-card vd-poster-skeleton" style="aspect-ratio: 2/3" />
+    <div v-else-if="loading" class="vd-grid" aria-busy="true">
+      <div v-for="i in 12" :key="i" class="vd-poster-skeleton" style="aspect-ratio: 2/3" />
     </div>
 
     <template v-else>
-      <div v-if="videos.length" class="vds-channel-grid">
+      <div v-if="videos.length" class="vd-grid">
         <article
           v-for="item in videos"
           :key="item.id"
@@ -149,13 +148,14 @@ onMounted(() => void load());
               <span class="vds-fallback-name">{{ item.name.slice(0, 4) }}</span>
             </div>
             <span v-if="item.score" class="vd-score">{{ item.score.toFixed(1) }}</span>
+            <span v-if="item.year && !item.continueInfo" class="vd-year">{{ item.year }}</span>
             <span v-if="item.continueInfo" class="vd-continue">{{ item.continueInfo }}</span>
           </div>
           <div class="vd-card-body">
             <h3 class="vd-name" :title="item.name">{{ item.name }}</h3>
             <p class="vd-meta">
-              <span v-if="item.year">{{ item.year }}</span>
               <span v-if="item.district">{{ item.district }}</span>
+              <span v-if="item.year">{{ item.year }}</span>
             </p>
             <div v-if="item.tags?.length" class="vd-tags">
               <span v-for="tag in item.tags.slice(0, 3)" :key="tag" class="vd-tag">{{ tag }}</span>
@@ -182,65 +182,11 @@ onMounted(() => void load());
 </template>
 
 <style scoped>
-/* ── 排序 ─────────────────────────────────── */
-.vds-sort {
-  display: flex;
-  gap: 4px;
-  background: var(--vd-surface-card);
-  border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-md);
-  padding: 4px;
-}
-
-.vds-sort-btn {
-  border: none;
-  background: transparent;
-  color: var(--vd-text-secondary);
-  font-size: 13px;
-  padding: 7px 16px;
-  border-radius: var(--vd-radius-sm);
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
-  font-weight: 500;
-}
-
-.vds-sort-btn:hover {
-  color: var(--vd-text);
-  /* #94a3b8 正是 --vd-text-secondary */
-  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
-}
-
-.vds-sort-btn.is-active {
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: var(--vd-text);
+.vds-fallback-name {
+  font-size: 15px;
   font-weight: 600;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 45%, transparent);
-}
-
-/* 焦点轮廓已由 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
-.vds-sort-btn:focus-visible {
-  outline: 2px solid var(--vd-primary);
-  outline-offset: 1px;
-}
-
-/* ── 频道海报墙 ───── */
-.vds-channel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
-  gap: 20px;
-}
-
-@media (max-width: 640px) {
-  .vds-channel-grid {
-    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-    gap: 12px;
-  }
-}
-
-/* 尊重系统「减少动态效果」偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .vds-sort-btn {
-    transition: none;
-  }
+  color: var(--vd-primary-strong);
+  text-align: center;
+  padding: 0 8px;
 }
 </style>

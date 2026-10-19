@@ -505,9 +505,9 @@ export const importTsharkPcap = (file: File, name = '') => {
   if (name) form.append('name', name);
   return http().post(`${B}/tshark/pcap/import`).data(form).then(r => unwrap<any>(r));
 };
-export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword = '') =>
+export const getTsharkPackets = (sessionId: number, page = 1, size = 20, displayFilter = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}` +
-    (keyword ? `&keyword=${encodeURIComponent(keyword)}` : '')).then(r => unwrap<any>(r));
+    (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any>(r));
 /** 原始 pcap 下载地址：页面上的摘要只是 tshark 的解析结果，要深挖得拿原件去 Wireshark 打开 */
 export const tsharkPcapUrl = (sessionId: number) => `${B}/tshark/sessions/${sessionId}/pcap`;
 export const getTsharkPacketDetail = (id: number) =>
@@ -519,8 +519,8 @@ export const getTsharkPacketDetail = (id: number) =>
  * <p>该接口直接返回 VO（不是 ReturnResult 信封），所以取 r.data；404 表示协议
  * 不跑在 TCP 上（UDP / ICMP / ARP），调用方按「不支持」提示。</p>
  */
-export const getTsharkHandshake = (packetId: number) =>
-  http().get(`${B}/tshark/packets/${packetId}/handshake`).then(r => r.data as any);
+export const getTsharkHandshake = (packetId: number, limit = 600) =>
+  http().get(`${B}/tshark/packets/${packetId}/handshake?limit=${limit}`).then(r => r.data.data as any);
 
 /**
  * 抓包会话的报文实时流（SSE）。
@@ -531,7 +531,9 @@ export const getTsharkHandshake = (packetId: number) =>
  */
 export const openTsharkPacketStream = (sessionId: number, options: Record<string, any> = {}) =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets/stream`).sse<any>({ reconnect: true, ...options });
-export const getTsharkProtocolStats = (sessionId: number) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol`).then(r => unwrap<any[]>(r));
-export const getTsharkTopFlows = (sessionId: number, limit = 10) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}`).then(r => unwrap<any[]>(r));
+export const getTsharkProtocolStats = (sessionId: number, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol` +
+    (displayFilter ? `?displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+export const getTsharkTopFlows = (sessionId: number, limit = 10, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}` +
+    (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));

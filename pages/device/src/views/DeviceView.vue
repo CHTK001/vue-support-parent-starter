@@ -59,7 +59,7 @@
                   <em>型号</em>{{ selectedDevice.deviceInfoModel || '—' }}
                 </span>
                 <span class="dv-chip">
-                  <em>通道</em>{{ selectedDevice.deviceInfoChannelCount ?? 0 }}
+                  <em>通道</em>{{ selectedDevice?.channels?.length ?? selectedDevice?.deviceInfoChannelCount ?? 0 }}
                 </span>
                 <span class="dv-chip">
                   <em>序列号</em>{{ selectedDevice.deviceInfoSerial || '—' }}
@@ -205,21 +205,21 @@
               <ReSelect v-model="categoryFilter" placeholder="全部大类" clearable :options="CATEGORY_OPTIONS" />
             </div>
             <span class="dv-filter__meta">{{ pageTotal }} 台</span>
-            <ReButton icon="Search" :show-text="true" type="primary" :loading="pageLoading" @click="onQuery">
+            <ReButton icon="Search" :show-text="true" type="primary" :loading="devicesLoading" @click="onQuery">
               查询
             </ReButton>
             <div class="dv-toolbar-ops">
               <ReButton icon="Plus" layout="square" type="primary" tip="添加设备" @click="showAddDialog" />
               <ReButton icon="Download" layout="square" tip="导出 Excel" @click="exportDevices" />
               <ReButton icon="Share" layout="square" tip="同步厂商组织" @click="syncOrg" />
-              <ReButton icon="RefreshRight" layout="square" tip="刷新设备列表" :loading="pageLoading" @click="onQuery" />
+              <ReButton icon="RefreshRight" layout="square" tip="刷新设备列表" :loading="devicesLoading" @click="onQuery" />
             </div>
           </section>
 
           <div
-            v-loading="pageLoading"
+            v-loading="devicesLoading"
             class="dv-grid"
-            :class="{ 'is-empty': !pageLoading && !pageRows.length }"
+            :class="{ 'is-empty': !pageRows.length }"
           >
             <article
               v-for="dev in pageRows"
@@ -247,7 +247,7 @@
                   <em>大类</em>{{ getCategoryLabel(dev.deviceInfoCategory) }}
                 </span>
                 <span class="dv-chip dv-chip--soft">
-                  <em>通道</em>{{ dev.deviceInfoChannelCount ?? 0 }}
+                  <em>通道</em>{{ dev.channels?.length ?? dev.deviceInfoChannelCount ?? 0 }}
                 </span>
                 <span v-if="hasGeo(dev)" class="dv-chip dv-chip--soft">
                   <em>经纬度</em>{{ fmtCoord(dev) }}
@@ -274,7 +274,7 @@
             </article>
 
             <ReEmpty
-              v-if="!pageLoading && !pageRows.length"
+              v-if="!pageRows.length"
               description="暂无设备，点击右上角「添加设备」接入厂商平台或 SDK 直连"
               :image-size="90"
             />
@@ -503,10 +503,11 @@ import { getCategoryLabel, getSubCategoryOptions } from '../utils/deviceCategory
 import { rawDirection } from '../utils/accessDirection'
 import type {
   AccessEvent,
+  DeviceChannel,
   DeviceEvent,
   DeviceInfo,
   OrgNode,
-  PageResult,
+
   Preset,
   ProviderCredential,
   TimelineItem,
@@ -712,7 +713,6 @@ const credentialsLoading = ref(false)
 
 /** 设备卡片网格：服务端分页 */
 const pageRows = ref<DeviceInfo[]>([])
-const pageLoading = ref(false)
 const pageNo = ref(1)
 const pageSize = ref(12)
 const pageTotal = ref(0)
@@ -847,9 +847,16 @@ function selectDevice(dev: DeviceInfo) {
   selectedDevice.value = dev
   activeTab.value = 'overview'
   tabLoaded.value = { video: false, ptz: false, access: false, events: false }
-  if (dev.channels && dev.channels.length) {
-    currentChannel.value = dev.channels[0].deviceChannelNo
-  }
+  // 实时拉取通道列表（不走表单录入的 deviceInfoChannelCount 快照）
+  deviceApi
+    .listChannels(dev.deviceInfoId)
+    .then((chs: unknown) => {
+      dev.channels = chs as DeviceChannel[]
+      if (chs && (chs as DeviceChannel[]).length) {
+        currentChannel.value = (chs as DeviceChannel[])[0].deviceChannelNo
+      }
+    })
+    .catch((_e: unknown) => { /* 通道接口不存在时静默忽略，概览仍显示快照 */ })
   // 首屏只展示概览；视频 / 云台 / 门禁 / 事件在点开对应页签时再取
   videoUrl.value = ''
   presets.value = []
@@ -1253,10 +1260,8 @@ function fetchDevices() {
     .list()
     .then((res: unknown) => {
       devices.value = (res as DeviceInfo[]) || []
-      // /page 未上线或首屏分页请求先于列表返回时，用本机分页兜底
-      if (pageMode === 'client' || (pageRows.value.length === 0 && pageTotal.value === 0 && !hasActiveFilters())) {
-        applyClientPage()
-      }
+      // 本机分页：每次列表刷新后重新过滤切片
+      applyClientPage()
     })
     .catch((err: unknown) => {
       message.error('加载设备列表失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
