@@ -12,6 +12,7 @@ import { ArrowRight, Document, Download, Refresh, Search, Stamp } from "@element
 import { pageForSysLog, exportSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
+import ReSelect from "@repo/ui/re-select";
 import { costMs } from "@repo/utils";
 /** ReIpText 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
 const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default));
@@ -25,6 +26,9 @@ const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sys
   pageSize: 20,
 });
 
+/** 日志级别筛选 */
+const levelFilter = ref("");
+
 const searchFilters = computed(() => [
   { key: 'sysLogUsername', label: '操作人', type: 'input' as const, placeholder: '请输入' },
   { key: 'sysLogFrom', label: '模块', type: 'input' as const, placeholder: '请输入' },
@@ -33,6 +37,16 @@ const searchFilters = computed(() => [
     options: [
       { label: '成功', value: 1 },
       { label: '失败', value: 0 },
+    ],
+  },
+  {
+    key: 'level', label: '日志级别', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '全部', value: '' },
+      { label: 'INFO', value: 'INFO' },
+      { label: 'WARN', value: 'WARN' },
+      { label: 'ERROR', value: 'ERROR' },
+      { label: 'DEBUG', value: 'DEBUG' },
     ],
   },
 ]);
@@ -145,8 +159,13 @@ async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<
     sysLogUsername: (params.sysLogUsername as string) || undefined,
     sysLogFrom: (params.sysLogFrom as string) || undefined,
     sysLogStatus: params.sysLogStatus === "" ? undefined : (params.sysLogStatus as number),
+    level: (params.level as string) || undefined,
   });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  let list = (res?.data?.data ?? []) as Record<string, unknown>[];
+  // 客户端兜底过滤（后端未返回 level 时）
+  const lv = levelFilter.value || (params.level as string) || "";
+  if (lv) list = list.filter((r: any) => (r.level || "") === lv);
+  return { total: res?.data?.total ?? 0, data: list };
 }
 
 const tableRef = ref();
@@ -166,6 +185,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysLogUsername", label: "操作人", width: 110 },
   { prop: "sysLogFrom", label: "模块", width: 120 },
   { prop: "sysLogContent", label: "操作内容", minWidth: 220, slot: "content" },
+  { prop: "level", label: "级别", width: 80, slot: "level", align: "center" },
   { prop: "sysLogUrl", label: "请求地址", minWidth: 180 },
   { prop: "sysLogIp", label: "IP / 归属地", minWidth: 140, slot: "ip" },
   { prop: "sysLogBrowser", label: "浏览器/系统", minWidth: 140, slot: "info" },
@@ -221,6 +241,11 @@ const columns: ReTableColumn[] = [
             @click="openDetail(row)"
             @keydown.enter.space="openDetail(row)"
           >{{ row.sysLogContent ?? '-' }}</span>
+        </template>
+        <template #level="{ row }">
+          <span :class="['log-level-badge', `is-${(row.level || 'info').toLowerCase()}`]">
+            {{ row.level || 'INFO' }}
+          </span>
         </template>
         <template #status="{ row }">
           <ReTag :type="row.sysLogStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
@@ -714,6 +739,39 @@ const columns: ReTableColumn[] = [
   .log-content-link {
     transition: none;
   }
+}
+
+/* 日志级别徽章 */
+.log-level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.log-level-badge.is-info,
+.log-level-badge.is-i {
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  color: #3b82f6;
+}
+.log-level-badge.is-warn,
+.log-level-badge.is-w,
+.log-level-badge.is-warning {
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: #f59e0b;
+}
+.log-level-badge.is-error,
+.log-level-badge.is-e {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+.log-level-badge.is-debug,
+.log-level-badge.is-d {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-placeholder);
 }
 </style>
 

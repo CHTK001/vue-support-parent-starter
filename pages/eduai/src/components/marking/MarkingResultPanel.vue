@@ -48,6 +48,8 @@ const totals = computed(() => {
 const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 /** 完成请求进行中 */
 const finishing = ref(false);
+/** 撤销请求进行中 */
+const undoing = ref(false);
 /** 老师是否已点过完成 */
 const teacherFinished = computed(() => !!props.result?.teacherFinished);
 /**
@@ -99,12 +101,36 @@ async function finish(): Promise<void> {
       message.info('该卷此前已完成过，本次未重复登记错题');
     } else {
       message.success(`阅卷完成：已归入学生错题库 ${res?.wrongCount ?? 0} 题`);
+      if (res?.failedCount > 0) {
+        message.warning(`有 ${res.failedCount} 道题登记失败，请稍后在错题库页面查看`);
+      }
     }
     emit('finished');
   } catch (e) {
     failToast('完成失败', e);
   } finally {
     finishing.value = false;
+  }
+}
+
+/** 撤销完成：删除本任务的错题记录，复位完成状态 */
+async function undoFinish(): Promise<void> {
+  const taskId = props.result?.taskId;
+  if (!taskId) return;
+  const ok = await confirmDialog.value?.open(
+    '撤销完成后，该任务的错题记录将被全部移除，确定撤销吗？',
+    { title: '撤销完成', danger: true },
+  );
+  if (!ok) return;
+  undoing.value = true;
+  try {
+    const res = await eduaiApi.unfinishMarking(taskId);
+    message.success(`已撤销完成：移出错题库 ${res?.removed ?? 0} 题`);
+    emit('finished');
+  } catch (e) {
+    failToast('撤销失败', e);
+  } finally {
+    undoing.value = false;
   }
 }
 </script>
@@ -120,6 +146,11 @@ async function finish(): Promise<void> {
       <ReTag v-if="taskFailed" size="small" type="danger">判分失败</ReTag>
       <span class="mr-spacer" />
       <ReTag v-if="teacherFinished" size="small" type="info">已完成</ReTag>
+      <el-tooltip v-if="teacherFinished" content="撤销后错题记录将被移除" placement="top">
+        <el-button size="small" type="warning" :loading="undoing" @click="undoFinish">
+          撤销完成
+        </el-button>
+      </el-tooltip>
       <el-tooltip v-else :content="finishHint" placement="top">
         <span class="mr-finish-wrap">
           <el-button

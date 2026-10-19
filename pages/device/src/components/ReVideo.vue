@@ -2,6 +2,7 @@
   <div ref="containerRef" class="re-video">
     <video
       ref="videoRef"
+      v-show="!rawMode"
       class="re-video__el"
       :poster="poster"
       :muted="muted"
@@ -11,6 +12,9 @@
       @error="onVideoError"
       @loadedmetadata="onLoaded"
     ></video>
+
+    <!-- 裸流（H.264/H.265）由 WebCodecs 解码后画到 canvas，不走 <video> -->
+    <canvas v-show="rawMode" ref="canvasRef" class="re-video__el"></canvas>
 
     <!-- 无流 / 出错：居中占位（不拦截鼠标，避免挡住原生控件） -->
     <div v-if="!url || error" class="re-video__mask">
@@ -37,6 +41,8 @@ import { VideoCamera } from '@element-plus/icons-vue'
 import Hls from 'hls.js'
 // @ts-ignore flv.js 无 d.ts
 import flvjs from 'flv.js'
+import { planStream } from '../utils/streamProtocol'
+import { ElementaryStreamPlayer } from '../utils/elementaryPlayer'
 
 const props = defineProps<{
   url: string
@@ -46,6 +52,11 @@ const props = defineProps<{
   autoplay?: boolean
   controls?: boolean
   poster?: string
+  /**
+   * RTSP 网关配置（可选）。浏览器无法直连 rtsp://，需服务端转流；
+   * 配了模板后这里会自动改写地址并走对应播放器。
+   */
+  gateway?: { template: string; protocol: 'flv' | 'hls' | 'mp4' }
 }>()
 
 const emit = defineEmits<{
@@ -54,25 +65,28 @@ const emit = defineEmits<{
 }>()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 const error = ref<string>('')
 const loading = ref(false)
+/** 当前是否走裸流（WebCodecs → canvas）通道 */
+const rawMode = ref(false)
 
 let hls: Hls | null = null
 // @ts-ignore flv.js 无 d.ts
 let flvPlayer: any = null
-
-function detectProtocol(url: string, hint?: string): string {
-  if (hint) return hint.toLowerCase()
-  const u = url.toLowerCase()
-  if (u.endsWith('.m3u8') || u.includes('.m3u8?')) return 'hls'
-  if (u.endsWith('.flv') || u.includes('.flv?')) return 'flv'
-  if (u.endsWith('.mp4') || u.includes('.mp4?')) return 'mp4'
-  if (u.startsWith('ws://') || u.startsWith('wss://')) return 'ws'
-  return 'mp4'
-}
+let rawPlayer: ElementaryStreamPlayer | null = null
 
 function destroy() {
+  if (rawPlayer) {
+    try {
+      rawPlayer.stop()
+    } catch (e) {
+      // ignore
+    }
+    rawPlayer = null
+  }
+  rawMode.value = false
   if (hls) {
     try {
       hls.destroy()
@@ -170,13 +184,43 @@ function load() {
     return
   }
   try {
-    const proto = detectProtocol(props.url, props.protocol)
-    if (proto === 'hls') {
-      playHls(props.url)
-    } else if (proto === 'flv') {
-      playFlv(props.url)
+    const plan = planStream(props.url, props.protocol, { gateway: props.gateway })
+    if (plan.strategy === 'hls') {
+      playHls(plan.url)
+    } else if (plan.strategy === 'flv') {
+      playFlv(plan.url)
+    } else if (plan.strategy === 'native') {
+      playNative(plan.url)
+    } else if (plan.strategy === 'raw-h264' || plan.strategy === 'raw-h265') {
+      // 裸流：Annex B 切帧 → WebCodecs → canvas（不支持时给可读提示）
+      const canvas = canvasRef.value
+      if (!canvas) throw new Error('画布未就绪')
+      rawMode.value = true
+      rawPlayer = new ElementaryStreamPlayer(canvas, {
+        family: plan.strategy === 'raw-h265' ? 'h265' : 'h264',
+        hooks: {
+          onFirstFrame: () => {
+            error.value = ''
+            emit('loaded')
+          },
+          onError: (e: Error) => {
+            error.value = `裸流解码失败：${e.message}`
+            emit('error', e)
+          },
+        },
+      })
+      if (plan.url.startsWith('ws://') || plan.url.startsWith('wss://')) {
+        rawPlayer.startWs(plan.url)
+      } else {
+        void rawPlayer.startHttp(plan.url)
+      }
+    } else if (plan.strategy === 'rtsp-gateway') {
+      // 浏览器无 TCP，rtsp:// 无法直连：如实告知，而不是让 <video> 静默失败
+      error.value = plan.note || 'RTSP 需要服务端转流'
+      emit('error', new Error(error.value))
     } else {
-      playNative(props.url)
+      error.value = plan.note || '无法识别的流地址'
+      emit('error', new Error(error.value))
     }
     if (props.autoplay) {
       videoRef.value?.play().catch((e: unknown) => {

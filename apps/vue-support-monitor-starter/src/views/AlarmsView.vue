@@ -5,7 +5,7 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "../monitorApi";
 import { useDialogPrerender } from "../utils/dialogPrerender";
@@ -14,6 +14,19 @@ const loading = ref(false);
 const loadError = ref("");
 const events = ref<AlarmEvent[]>([]);
 const LEVELS = ["P0", "P1", "P2", "P3", "P4"] as const;
+
+/** 实时时钟 */
+const liveTime = ref("");
+let timer: ReturnType<typeof setInterval> | null = null;
+function updateTime() {
+  const now = new Date();
+  liveTime.value = now.toTimeString().slice(0, 8);
+}
+onMounted(() => {
+  updateTime();
+  timer = setInterval(updateTime, 1000);
+});
+onUnmounted(() => { if (timer) clearInterval(timer); });
 const LEVEL_LABELS: Record<string, string> = { P0: "严重", P1: "高", P2: "中", P3: "低", P4: "信息" };
 const filterLevel = ref("");
 const filterStatus = ref("");
@@ -101,6 +114,16 @@ function timeText(e: AlarmEvent): string { return (e.msMonitorAlarmEventTriggerT
  * @param e 告警事件
  */
 function valueText(e: AlarmEvent): string { return `${e.msMonitorAlarmEventAlarmValue} / ${e.msMonitorAlarmEventThreshold}`; }
+/**
+ * 告警行样式类：级别色条 + P0/P1 高亮背景
+ */
+function rowClass(e: AlarmEvent): Record<string, boolean> {
+  const lv = alarmLevel(e);
+  return {
+    [`level-bar-${lv.toLowerCase()}`]: true,
+    "row-critical": lv === "P0" || lv === "P1",
+  };
+}
 
 async function fetchAll(): Promise<void> {
   loading.value = true;
@@ -147,7 +170,10 @@ onMounted(fetchAll);
     <div class="page-header">
       <div>
         <h1 class="page-title">告警中心</h1>
-        <p class="page-desc">事件流 · 按级别响应 · 24h 触发 <b>{{ totalAlarms }}</b> 次 · 未处理 <b>{{ unhandledCount }}</b></p>
+        <p class="page-desc">
+          事件流 · 按级别响应 · 24h 触发 <b>{{ totalAlarms }}</b> 次 · 未处理 <b>{{ unhandledCount }}</b>
+          <span class="live-clock"><span class="pulse-dot"></span>{{ liveTime }}</span>
+        </p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true"  :loading="loading" @click="fetchAll">刷新</ReButton>
@@ -196,13 +222,14 @@ onMounted(fetchAll);
         :layout-switch="true"
         empty-text="暂无告警事件"
         table-id="monitor-alarms"
+        :row-class="rowClass"
       >
         <template #col-time="{ row }"><span class="mono">{{ timeText(row) }}</span></template>
         <template #col-level="{ row }">
-          <ReTag :type="(alarmLevel(row)==='P0'||alarmLevel(row)==='P1')?'danger':alarmLevel(row)==='P2'?'warning':'success'" effect="dark" >{{ alarmLevel(row) }}</ReTag>
+          <div :class="`level-indicator level-${alarmLevel(row).toLowerCase()}`">{{ alarmLevel(row) }}</div>
         </template>
         <template #col-value="{ row }"><span class="mono">{{ valueText(row) }}</span></template>
-        <template #col-status="{ row }"><ReTag :type="statusType(row)">{{ statusLabel(row) }}</ReTag></template>
+        <template #col-status="{ row }"><span :class="['status-tag', { 'is-unhandled': statusLabel(row) === '未处理' }]">{{ statusLabel(row) }}</span></template>
         <template #col-op="{ row }">
           <ReButton v-if="isUnhandled(row)" icon="Check" layout="square"  type="primary" @click="openHandle(row)" title="处理" />
           <span v-else class="dim">—</span>
@@ -260,5 +287,100 @@ onMounted(fetchAll);
   border: 1px solid var(--tel-border, #e2e8f0);
   border-radius: 0 0 12px 12px;
   border-top: none;
+}
+
+/* 实时时钟 */
+.live-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 13px;
+  color: var(--el-color-success);
+  font-weight: 600;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  animation: pulse-green 1.5s ease-in-out infinite;
+}
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(10, 207, 107, 0.5); }
+  50% { opacity: 0.7; transform: scale(1.1); box-shadow: 0 0 0 6px rgba(10, 207, 107, 0); }
+}
+
+/* 告警行样式 */
+:deep(.el-table__row) {
+  transition: background-color 0.15s ease;
+}
+:deep(.el-table__row:hover) {
+  background-color: var(--bg-fill) !important;
+}
+:deep(.el-table__row.row-critical) {
+  background-color: color-mix(in srgb, var(--el-color-danger) 5%, transparent) !important;
+}
+:deep(.el-table__row.row-critical:hover) {
+  background-color: color-mix(in srgb, var(--el-color-danger) 8%, var(--bg-fill)) !important;
+}
+
+/* 级别色条指示器 */
+.level-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  position: relative;
+}
+.level-indicator::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  margin-right: 6px;
+}
+.level-p0 { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 10%, transparent); }
+.level-p0::before { background: var(--el-color-danger); }
+.level-p1 { color: #e6a23c; background: color-mix(in srgb, #e6a23c 10%, transparent); }
+.level-p1::before { background: #e6a23c; }
+.level-p2 { color: #e6a23c; background: color-mix(in srgb, #e6a23c 8%, transparent); }
+.level-p2::before { background: #e6a23c; }
+.level-p3 { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 8%, transparent); }
+.level-p3::before { background: var(--el-color-success); }
+.level-p4 { color: var(--text-tertiary); background: var(--bg-fill); }
+.level-p4::before { background: var(--text-tertiary); }
+
+/* 未处理状态脉冲 */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.status-tag.is-unhandled {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  position: relative;
+}
+.status-tag.is-unhandled::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-danger);
+  animation: pulse-red 1.2s ease-in-out infinite;
+}
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 </style>

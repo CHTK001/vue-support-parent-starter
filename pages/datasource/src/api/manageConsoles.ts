@@ -632,6 +632,38 @@ export async function downloadDbDocument(params: {
     ),
   };
 }
+
+/**
+ * 文档预览：调用与 downloadDbDocument 相同的后端端点，返回文本内容而非文件
+ *
+ * @param params 同 downloadDbDocument
+ * @returns 文档文本，可直接用于 <pre> 或 Markdown 渲染
+ * @since 4.0.0.44
+ */
+export async function previewDbDocument(params: {
+  datasourceId: number;
+  database?: string;
+  format?: string;
+  template?: string;
+  tables?: string;
+}): Promise<string> {
+  const query = new URLSearchParams();
+  query.set("datasourceId", String(params.datasourceId));
+  if (params.database) query.set("database", params.database);
+  if (params.format) query.set("format", params.format);
+  if (params.template) query.set("template", params.template);
+  if (params.tables) query.set("tables", params.tables);
+
+  const token = getAccessToken();
+  const response = await fetch(`/ms/monitor/db/document/export?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error((await response.text()) || `预览失败（HTTP ${response.status}）`);
+  }
+  return response.text();
+}
+
 // ==================== 外部服务管理（InfluxDB / Neo4j / Nacos / ZooKeeper） ====================
 
 /**

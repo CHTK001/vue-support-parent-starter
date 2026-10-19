@@ -995,21 +995,21 @@ const PROFILE_SECTIONS: Array<{ name: ProfileSection; label: string }> = [
   { name: "firewall", label: "防火墙" },
 ];
 /** 各分区的列定义（与 HostProfileView.COLUMNS 同口径，防火墙按后端 FirewallRuleRowVO 补列） */
-const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string }>> = {
+const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string; sortable?: boolean; align?: 'left' | 'center' | 'right' }>> = {
   ports: [
     { key: "protocol", label: "协议" },
     { key: "local", label: "监听地址" },
-    { key: "port", label: "端口" },
+    { key: "port", label: "端口", sortable: true, align: "right" },
     { key: "state", label: "状态" },
-    { key: "pid", label: "PID" },
+    { key: "pid", label: "PID", sortable: true, align: "right" },
     { key: "process", label: "进程" },
   ],
   processes: [
-    { key: "pid", label: "PID" },
+    { key: "pid", label: "PID", sortable: true, align: "right" },
     { key: "name", label: "进程名" },
-    { key: "cpu", label: "CPU%" },
-    { key: "memory", label: "内存(MB)" },
-    { key: "threads", label: "线程" },
+    { key: "cpu", label: "CPU%", sortable: true, align: "right" },
+    { key: "memory", label: "内存", sortable: true, align: "right" },
+    { key: "threads", label: "线程", sortable: true, align: "right" },
     { key: "command", label: "命令行" },
   ],
   services: [
@@ -1017,16 +1017,16 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "displayName", label: "显示名" },
     { key: "state", label: "状态" },
     { key: "startType", label: "启动类型" },
-    { key: "pid", label: "PID" },
+    { key: "pid", label: "PID", sortable: true, align: "right" },
   ],
   disks: [
     { key: "mount", label: "挂载点" },
     { key: "name", label: "名称" },
     { key: "fsType", label: "类型" },
-    { key: "totalGb", label: "容量(GB)" },
-    { key: "usedGb", label: "已用(GB)" },
-    { key: "availGb", label: "可用(GB)" },
-    { key: "usage", label: "使用率%" },
+    { key: "totalGb", label: "容量(GB)", sortable: true, align: "right" },
+    { key: "usedGb", label: "已用(GB)", sortable: true, align: "right" },
+    { key: "availGb", label: "可用(GB)", sortable: true, align: "right" },
+    { key: "usage", label: "使用率%", sortable: true, align: "right" },
   ],
   network: [
     { key: "name", label: "网卡" },
@@ -1034,7 +1034,7 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "mac", label: "MAC" },
     { key: "ipv4", label: "IPv4" },
     { key: "ipv6", label: "IPv6" },
-    { key: "mtu", label: "MTU" },
+    { key: "mtu", label: "MTU", sortable: true, align: "right" },
     { key: "speed", label: "速率" },
   ],
   env: [
@@ -1042,11 +1042,11 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "value", label: "值" },
   ],
   firewall: [
-    { key: "name", label: "规则名" },
-    { key: "direction", label: "方向" },
-    { key: "action", label: "动作" },
-    { key: "protocol", label: "协议" },
-    { key: "localPort", label: "端口" },
+    { key: "name", label: "规则名", sortable: true },
+    { key: "direction", label: "方向", sortable: true },
+    { key: "action", label: "动作", sortable: true },
+    { key: "protocol", label: "协议", sortable: true },
+    { key: "localPort", label: "端口", sortable: true, align: "right" },
     { key: "program", label: "程序" },
   ],
 };
@@ -1068,14 +1068,42 @@ const profilePaged = computed(() =>
 /** 后端不分页的分区在前端过滤：任一字段命中关键字即保留 */
 const profileVisibleRows = computed(() => {
   const kw = profileKeyword.value.trim().toLowerCase();
-  if (!kw || profilePaged.value) return profileRows.value;
-  return profileRows.value.filter(r => Object.values(r).some(v =>
-    v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
+  const rows = (!kw || profilePaged.value ? profileRows.value
+    : profileRows.value.filter(r => Object.values(r).some(v =>
+      v !== null && v !== undefined && String(v).toLowerCase().includes(kw))));
+  // 关键字过滤后前端排序（仅非分页分区有效；分页分区由后端返回已排好序）
+  if (profilePaged.value || !profileSortKey.value) return rows;
+  const k = profileSortKey.value!;
+  const dir = profileSortDir.value === "asc" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const av = a[k], bv = b[k];
+    if (av == null || av === "") return dir;
+    if (bv == null || bv === "") return -dir;
+    const an = Number(av), bn = Number(bv);
+    if (!isNaN(an) && !isNaN(bn)) return (an - bn) * dir;
+    return String(av).localeCompare(String(bv)) * dir;
+  });
 });
+
+/** 排序列名（为空表示未排序） */
+const profileSortKey = ref("");
+/** 排序方向：asc | desc */
+const profileSortDir = ref<"asc" | "desc">("asc");
+/** 点击表头切换排序：未排→降序→升序→取消 */
+function toggleProfileSort(key: string): void {
+  if (profileSortKey.value === key) {
+    if (profileSortDir.value === "desc") { profileSortKey.value = ""; profileSortDir.value = "asc"; }
+    else profileSortDir.value = "desc";
+  } else { profileSortKey.value = key; profileSortDir.value = "desc"; }
+  profilePage.value = 1;
+  void loadProfileSection();
+}
 /** 切分区先归零页码与关键字，避免上一分区的检索污染下一分区 */
 function resetProfilePager(): void {
   profilePage.value = 1;
   profileKeyword.value = "";
+  profileSortKey.value = "";
+  profileSortDir.value = "asc";
 }
 /** 拉取当前分区 */
 async function loadProfileSection(): Promise<void> {
@@ -1086,12 +1114,12 @@ async function loadProfileSection(): Promise<void> {
   profileError.value = "";
   try {
     const sec = profileTab.value;
-    const next = await fetchHostProfileSection(hid, sec,
+    const res = await fetchHostProfileSection(hid, sec,
       profilePaged.value ? profilePage.value : undefined,
       profilePaged.value ? profilePageSize.value : undefined,
       profilePaged.value ? profileKeyword.value.trim() || undefined : undefined);
     if (req !== profileReq || hid !== hostId.value) return;
-    profileRows.value = next ?? [];
+    profileRows.value = res.rows ?? [];
   } catch (e) {
     if (req !== profileReq) return;
     profileError.value = String((e as Error)?.message ?? e);
@@ -1214,7 +1242,10 @@ async function submitProfileEnv(): Promise<void> {
             <span class="stat-k">最后</span>
             <b class="stat-v mono">{{ lastPushText }}</b>
           </div>
-          <span class="sock" :class="{ ok: sockOn }">{{ sockOn ? "● 实时已连接" : "○ 实时未连接" }}</span>
+          <span class="sock" :class="{ ok: sockOn }">
+            <span class="sock-dot" />
+            {{ sockOn ? "实时已连接" : "实时未连接" }}
+          </span>
           <button class="btn-refresh" :disabled="loading" @click="refreshNow()">
             <i class="ico" :class="{ spin: loading }"></i>刷新
           </button>
@@ -1529,7 +1560,11 @@ async function submitProfileEnv(): Promise<void> {
           <table class="pp-table">
             <thead>
               <tr>
-                <th v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key">{{ col.label }}</th>
+                <th
+                  v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key"
+                  :class="{ sortable: col.sortable, 'sort-on': profileSortKey === col.key }"
+                  @click="col.sortable && toggleProfileSort(col.key)"
+                >{{ col.label }}</th>
                 <th v-if="profileTab === 'ports' || profileTab === 'processes' || profileTab === 'services' || profileTab === 'env'">操作</th>
               </tr>
             </thead>
@@ -1838,8 +1873,24 @@ async function submitProfileEnv(): Promise<void> {
 .stat-sep { width: 1px; height: 10px; background: var(--p-line); margin: 0 3px; }
 .mono { font-family: var(--p-mono); }
 
-.sock { font-size: 11.5px; color: var(--p-text-3); }
+.sock { font-size: 11.5px; color: var(--p-text-3); display: inline-flex; align-items: center; gap: 5px; }
 .sock.ok { color: var(--el-color-success, #4ade80); }
+.sock-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--p-text-3);
+  flex-shrink: 0;
+}
+.sock.ok .sock-dot {
+  background: var(--el-color-success, #4ade80);
+  animation: sock-pulse 2s ease-out infinite;
+}
+@keyframes sock-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
 .btn-refresh {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 12px;
@@ -2151,6 +2202,8 @@ async function submitProfileEnv(): Promise<void> {
 .pp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .pp-table th, .pp-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--p-line-2); white-space: nowrap; }
 .pp-table th { font-size: 11px; font-weight: 600; color: var(--p-text-2); background: var(--p-bg); position: sticky; top: 0; }
+.pp-table th.sortable { cursor: pointer; user-select: none; }
+.pp-table th.sortable:hover, .pp-table th.sort-on { color: var(--el-color-primary); }
 .sub-label { font-size: 12px; color: var(--el-text-color-secondary); margin: 8px 0 4px; }
 
 /* ---------- 磁盘 ---------- */

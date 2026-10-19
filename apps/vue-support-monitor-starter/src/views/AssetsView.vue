@@ -22,7 +22,7 @@ import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
 import { submitAgentAction } from "../monitorApi";
 import type { Component } from "vue";
-import { CircleCheck, DocumentChecked, Download, Tickets } from "@element-plus/icons-vue";
+import { CircleCheck, DocumentChecked, Download, Tickets, Monitor, Connection, CloseBold, Cpu, Box } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
 
 export interface Host {
@@ -358,7 +358,7 @@ const hostKpis = computed<HostKpi[]>(() => [
     title: "可远控目标",
     value: hosts.value.length,
     desc: "共注册可远控目标",
-    icon: DocumentChecked,
+    icon: Monitor,
     iconColor: "var(--brand-500, var(--el-color-primary))",
   },
   {
@@ -366,7 +366,7 @@ const hostKpis = computed<HostKpi[]>(() => [
     title: "可连接资产",
     value: `${onlineCount.value} / ${hosts.value.length}`,
     desc: "当前在线可连接",
-    icon: CircleCheck,
+    icon: Connection,
     iconColor: "var(--el-color-success)",
   },
   {
@@ -374,8 +374,8 @@ const hostKpis = computed<HostKpi[]>(() => [
     title: "需关注处理",
     value: offlineCount.value,
     desc: "离线或采集异常",
-    icon: Tickets,
-    iconColor: "var(--el-text-color-placeholder)",
+    icon: CloseBold,
+    iconColor: "var(--el-color-danger)",
   },
   {
     key: "remote",
@@ -386,6 +386,21 @@ const hostKpis = computed<HostKpi[]>(() => [
     iconColor: "var(--metric-cpu, var(--el-color-primary))",
   },
 ]);
+
+/** CPU/Mem/Disk 平均利用率（用于健康度展示） */
+const avgMetrics = computed(() => {
+  const active = hosts.value.filter(h => h.serverHostCpuUsage != null);
+  const avgCpu = active.length ? active.reduce((s, h) => s + (h.serverHostCpuUsage ?? 0), 0) / active.length : 0;
+  const avgMem = active.length ? active.reduce((s, h) => s + (h.serverHostMemUsage ?? 0), 0) / active.length : 0;
+  const avgDisk = active.length ? active.reduce((s, h) => s + (h.serverHostDiskUsage ?? 0), 0) / active.length : 0;
+  return { cpu: Math.round(avgCpu), mem: Math.round(avgMem), disk: Math.round(avgDisk) };
+});
+function metricColor(v?: number | null): string {
+  const n = Number(v) || 0;
+  if (n >= 80) return "var(--el-color-danger)";
+  if (n >= 60) return "var(--el-color-warning)";
+  return "var(--el-color-success)";
+}
 
 const filtered = computed(() => {
   const fs = filterState.value;
@@ -1012,6 +1027,33 @@ function osTileClass(h: Host): string {
           </span>
         </template>
       </ReStatCard>
+      <!-- 系统健康度摘要（CPU/内存/磁盘全局均值） -->
+      <div class="health-strip">
+        <div class="health-strip__title">
+          <ReIcon name="DataBoard" :size="13" />
+          全局健康度
+        </div>
+        <div class="health-strip__items">
+          <div class="health-metric">
+            <Cpu class="health-metric__ico" />
+            <span class="health-metric__label">CPU</span>
+            <div class="health-metric__bar"><div class="health-metric__fill" :style="{ width: avgMetrics.cpu + '%', background: metricColor(avgMetrics.cpu) }" /></div>
+            <span class="health-metric__val" :style="{ color: metricColor(avgMetrics.cpu) }">{{ avgMetrics.cpu }}%</span>
+          </div>
+          <div class="health-metric">
+            <Cpu class="health-metric__ico" />
+            <span class="health-metric__label">内存</span>
+            <div class="health-metric__bar"><div class="health-metric__fill" :style="{ width: avgMetrics.mem + '%', background: metricColor(avgMetrics.mem) }" /></div>
+            <span class="health-metric__val" :style="{ color: metricColor(avgMetrics.mem) }">{{ avgMetrics.mem }}%</span>
+          </div>
+          <div class="health-metric">
+            <Box class="health-metric__ico" />
+            <span class="health-metric__label">磁盘</span>
+            <div class="health-metric__bar"><div class="health-metric__fill" :style="{ width: avgMetrics.disk + '%', background: metricColor(avgMetrics.disk) }" /></div>
+            <span class="health-metric__val" :style="{ color: metricColor(avgMetrics.disk) }">{{ avgMetrics.disk }}%</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 筛选条（对齐 UI 稿：独立白色圆角面板） -->
@@ -1612,6 +1654,23 @@ function osTileClass(h: Host): string {
 .h-os :deep(svg) { display: block; }
 .kpi-ico { position: absolute; top: 12px; right: 12px; opacity: 0.14; pointer-events: none; }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+/* 在线状态脉冲点 */
+.st-cell .re-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+/* 在线 = 绿色呼吸灯 */
+.st-cell .re-status-indicator[aria-label="在线"] {
+  background: var(--el-color-success);
+  animation: online-pulse 2s ease-out infinite;
+}
+@keyframes online-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
 .delay-live { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-secondary, #8b90a0); }
 .delay-live.bad { color: var(--danger, #f56c6c); font-weight: 600; }
 .color-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary,#8b90a0); }
@@ -1797,6 +1856,71 @@ function osTileClass(h: Host): string {
   padding: 24px 16px;
 }/* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
 .op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+
+/* 全局健康度条 */
+.health-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.health-strip__title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.health-strip__items {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.health-metric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+}
+.health-metric__ico {
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.health-metric__label {
+  color: var(--text-tertiary);
+  min-width: 24px;
+}
+.health-metric__bar {
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+.health-metric__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease, background 0.3s;
+}
+.health-metric__val {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
 </style>
 
 <style lang="scss">

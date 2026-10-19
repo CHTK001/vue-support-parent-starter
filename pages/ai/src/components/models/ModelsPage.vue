@@ -41,7 +41,7 @@
               </span>
             </li>
             <li v-if="providers.length === 0" class="mw-list-empty">
-              暂无供应商，请从模板库添加
+              {{ loading ? '正在加载供应商…' : (loadError ? '加载失败' : '暂无供应商，请从模板库添加') }}
             </li>
           </ul>
 
@@ -54,8 +54,15 @@
 
         <!-- 右侧：工作区 -->
         <main class="mw-main">
+          <!-- 接口失败时优先显示失败原因与重试：空工作区会让用户以为「本来就没有供应商」 -->
+          <LoadFailure
+            v-if="loadError"
+            title="供应商列表加载失败"
+            :message="loadError"
+            @retry="reload"
+          />
           <ModelsProviderDetail
-            v-if="currentProviderId && currentProvider"
+            v-else-if="currentProviderId && currentProvider"
             :provider="currentProvider"
             :models="currentModels"
             :model-presets="modelPresets"
@@ -96,6 +103,7 @@ import { useI18n } from 'vue-i18n'
 import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined } from '@vicons/material'
 import PageHeader from '@/components/PageHeader.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
+import LoadFailure from '@/components/ui/LoadFailure.vue'
 import ModelsProviderDetail from './ModelsProviderDetail.vue'
 import ProviderFormDialog from './ProviderFormDialog.vue'
 import TemplateCatalogDialog from './TemplateCatalogDialog.vue'
@@ -116,6 +124,10 @@ const modelPresets = ref<any[]>([])
 const currentProviderId = ref<string | null>(null)
 const formRef = ref<any>(null)
 const catalogRef = ref<any>(null)
+/** 加载态：用于把「正在加载」与「确实没有供应商」区分开 */
+const loading = ref(false)
+/** 加载失败原因：非空时工作区显示失败占位与重试 */
+const loadError = ref('')
 
 const getProviderIcon = (item: any) => item.provider || item.id
 
@@ -124,6 +136,8 @@ const enabledOf = (p: any) =>
 
 // 加载供应商与模型
 const reload = async () => {
+  loading.value = true
+  loadError.value = ''
   try {
     const body = await adminApi.get('/api/providers')
     const rawList = Array.isArray(body) ? body : body?.data || []
@@ -144,8 +158,12 @@ const reload = async () => {
     } else if (currentProviderId.value && !list.some((p: any) => p.id === currentProviderId.value)) {
       currentProviderId.value = list.length > 0 ? list[0].id : null
     }
-  } catch (e) {
+  } catch (e: any) {
+    // 必须让失败可见：只打 console 的话，接口挂了页面和「没配过供应商」一模一样
+    loadError.value = e?.response?.data?.message || e?.msg || e?.message || '加载供应商列表失败，请稍后重试'
     console.warn('加载供应商列表失败:', e)
+  } finally {
+    loading.value = false
   }
 }
 

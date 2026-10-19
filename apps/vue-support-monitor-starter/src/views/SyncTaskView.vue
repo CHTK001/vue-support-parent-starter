@@ -16,6 +16,9 @@
         <ReButton type="primary" @click="openCreate">
           <template #icon><ReIcon name="Plus" /></template>新建任务
         </ReButton>
+        <ReButton @click="bulkImportVisible = true">
+          <template #icon><ReIcon name="Upload" /></template>批量导入
+        </ReButton>
       </div>
     </div>
 
@@ -798,6 +801,7 @@
       initial-path="/"
       :loader="localFileLoader"
       @select="onPathPicked" />
+    <BulkImportDialog v-model="bulkImportVisible" />
   </div>
 </template>
 
@@ -821,6 +825,7 @@ import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as Upload
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
 import { fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
 import CreateTableDialog from "@pages/datasource/src/components/console/CreateTableDialog.vue";
+import BulkImportDialog from "../components/BulkImportDialog.vue";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
@@ -867,6 +872,8 @@ const targetTables = ref<string[]>([]);
 const pickedSourceTable = ref<string | null>(null);
 /** 弹窗可见 */
 const dialogVisible = ref(false);
+/** 批量导入弹窗可见 */
+const bulkImportVisible = ref(false);
 /** 保存中 */
 const saving = ref(false);
 /** 正在编辑的任务 ID，空表示新建 */

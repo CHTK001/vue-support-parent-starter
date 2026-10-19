@@ -460,8 +460,13 @@ onMounted(() => {
   font-size: 15px;
   transition: background 0.15s, color 0.15s;
 }
-.mini-ico:hover { color: var(--brand-600); background: #fff; }
-.mini-ico.danger:hover { color: var(--el-color-danger); }
+.mini-ico:hover {
+  color: var(--brand-600);
+  background: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.mini-ico.danger:hover { color: var(--el-color-danger); transform: scale(1.08); }
 
 /* 右侧详情 */
 .card-content {

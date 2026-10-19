@@ -51,8 +51,11 @@
         <!-- 用户操作按钮 -->
         <MessageActions :is-assistant="false" :is-last="false" :allow-generate="allowGenerate"
           :time-full="userTime.full" :time-friendly="userTime.firendly"
+          :message-id="turn.user?.id" :raw-content="turn.user?.content"
           @copy="emit('copy', turn.user)" @generate="emit('generate', turn.user)" @edit="emit('edit', turn.user)"
-          @delete="emit('delete', turn.user)" @fork="emit('fork', turn.user)" />
+          @delete="emit('delete', turn.user)" @fork="emit('fork', turn.user)"
+          @quote="(p) => emit('quote', p)" @reaction="(p) => emit('reaction', p)"
+          @view-source="(p) => emit('view-source', p)" @export-md="(p) => emit('export-md', p)" />
       </div>
     </div>
 
@@ -221,10 +224,13 @@
         <MessageActions v-if="!streamingState.isStreaming" :is-assistant="true" :is-last="isLast"
           :allow-generate="false"
           :time-full="assistantTime.full" :time-friendly="assistantTime.firendly" :duration-text="durationText"
+          :message-id="activeAssistant?.id" :raw-content="activeAssistant?.content"
           @copy="emit('copy', activeAssistant)" @regenerate="emit('regenerate', activeAssistant)"
           @edit="emit('edit', activeAssistant)"
           @delete="emit('delete', activeAssistant)"
-          @rewind="activeAssistant && emit('rewind', activeAssistant)" />
+          @rewind="activeAssistant && emit('rewind', activeAssistant)"
+          @quote="(id) => emit('quote', id)" @reaction="(id, t) => emit('reaction', id, t)"
+          @view-source="(id, c) => emit('view-source', id, c)" @export-md="(id, c) => emit('export-md', id, c)" />
       </div>
     </template>
 
@@ -294,6 +300,10 @@ const emit = defineEmits<{
   /** 从此处分叉：把截至本轮的消息复制成新会话 */
   fork: [message: Message]
   resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }]
+  quote: [payload: { messageId: string; content?: string }]
+  reaction: [payload: { messageId: string; type: 'up' | 'down' }]
+  'view-source': [payload: { messageId: string; rawContent: string }]
+  'export-md': [payload: { messageId: string; rawContent: string }]
 }>();
 
 // ============================================

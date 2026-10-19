@@ -18,7 +18,10 @@
     <!-- ── 页头 ───────────────────────────────────────────── -->
     <header class="lib-head">
       <div class="lib-head-text">
-        <h2 class="lib-head-title">人脸底库</h2>
+        <h2 class="lib-head-title">
+          <span class="lib-title-dot"></span>
+          人脸底库
+        </h2>
         <p class="lib-head-sub">当前账号的人脸底库，登记后可用于 1:N 人脸识别与检索</p>
       </div>
       <div class="lib-head-actions">
@@ -47,7 +50,7 @@
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-primary"><UserFilled /></el-icon>
         <span class="lib-stat-label">已登记</span>
-        <strong class="lib-stat-value">{{ stats.total }}</strong>
+        <strong class="lib-stat-value" :class="{ 'is-flash': statsFlash }">{{ stats.total }}</strong>
       </div>
       <div class="lib-stat">
         <el-icon class="lib-stat-icon is-success"><Picture /></el-icon>
@@ -393,6 +396,18 @@ const serverItems = ref<Array<Record<string, unknown>>>([])
 /** 命中总数（受 keyword/status 影响）与全库统计（不受影响）——都以服务端为准 */
 const total = ref(0)
 const stats = ref({ total: 0, withImage: 0, withIdCard: 0 })
+/** 统计数字变化时的短暂高亮动画 */
+const statsFlash = ref(false)
+/** 监听总数变化：增删后数字闪烁提示 */
+watch(
+  () => stats.value.total,
+  (next, prev) => {
+    if (prev !== 0 && next !== prev) {
+      statsFlash.value = true
+      setTimeout(() => { statsFlash.value = false }, 800)
+    }
+  },
+)
 const detectorModel = ref('')
 const featureModel = ref('')
 /** 模型配置门禁：底栏与入口统一用设置中心同源的合并视图，不再读会返回种子默认值的配置口 */

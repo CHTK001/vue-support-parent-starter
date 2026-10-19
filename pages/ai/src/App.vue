@@ -16,10 +16,13 @@
         onClick: item.action || (() => { }),
     }))" @close="globalMenuVisible = false" />
 
+    <!-- 全局命令面板：Ctrl+K 唤起 -->
+    <CommandPalette v-model:visible="commandPaletteVisible" />
+
 </template>
 
 <script setup>
-import { ref, provide, onMounted, watch, computed } from 'vue'
+import { ref, provide, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, RouterView } from 'vue-router'
 import { ElConfigProvider } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
@@ -31,6 +34,7 @@ import { i18n, getLocale } from './locales'
 import { useLanguage } from './composables/useLanguage'
 import MockControlPanel from './components/dev/MockControlPanel.vue'
 import ContextMenuManager from './utils/ContextMenuManager'
+import CommandPalette from './components/global/CommandPalette.vue'
 
 const router = useRouter()
 const title = useTitle()
@@ -38,6 +42,20 @@ const theme = useTheme() //不要删除，这里会执行dark模式设置
 useTrayStats() // 托盘悬浮窗统计推送（仅 Electron 生效）
 const isDev = import.meta.env.DEV
 const { initLanguage } = useLanguage()
+const commandPaletteVisible = ref(false)
+
+// Ctrl+K 全局快捷键：打开命令面板
+function handleGlobalKeydown(e) {
+  if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault()
+    commandPaletteVisible.value = !commandPaletteVisible.value
+  }
+  // Ctrl+N 新建会话
+  if (e.key === 'n' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault()
+    router.push('/chat')
+  }
+}
 
 // Element Plus 组件内置文案随语言切换
 const elLocale = computed(() => (getLocale() === 'en-US' ? en : zhCn))
@@ -78,6 +96,7 @@ const globalMenuItems = ref([])
 // 初始化全局右键菜单管理器 (Electron 环境下)
 onMounted(() => {
     initLanguage()
+    document.addEventListener('keydown', handleGlobalKeydown)
     const mgr = ContextMenuManager.getInstance()
     mgr.setShowMenuFn((x, y, items) => {
         globalMenuX.value = x
@@ -86,6 +105,10 @@ onMounted(() => {
         globalMenuVisible.value = true
     })
     mgr.init()
+})
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 // 新手引导已下线（原 SetupGuide 全局挂载已移除），不再提供 openGuide

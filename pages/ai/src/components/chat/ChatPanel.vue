@@ -15,7 +15,13 @@
         <template v-else>
           <template v-if="currentSessionId && activeMessages.length === 0 && currentSession?.character">
             <!-- 欢迎页 -->
-            <WelcomeScreen :session="currentSession" class="flex-1" />
+            <WelcomeScreen
+              :session="currentSession"
+              :recent-sessions="recentSessions"
+              class="flex-1"
+              @quick-action="handleQuickAction"
+              @open-session="handleOpenSession"
+            />
           </template>
           <template v-else>
             <!-- 加载更多历史消息指示器 -->
@@ -42,10 +48,13 @@
               :character-name="currentSession?.character?.title"
               :character-avatar="currentSession?.character?.avatarUrl" :is-last="index === visibleTurns.length - 1"
               :allow-generate="!isStreaming && index === lastUserMessageIndex"
-              :animate-in="animateIds.includes(turn.user.id)" @delete="deleteMessage" @edit="editMessage"
+              :animate-in="animateIds.includes(turn.user.id)"
+              @delete="deleteMessage" @edit="editMessage"
               @copy="copyMessage" @generate="generateResponse" @regenerate="regenerateResponse"
               @continue="continueResponse"
               @rewind="rewindFromHere" @fork="forkFromHere"
+              @quote="handleQuote" @reaction="handleReaction"
+              @view-source="handleViewSource" @export-md="handleExportMd"
               @resume-confirmation="resumeConfirmation" />
             <!-- <div class="min-h-60"></div> -->
 
@@ -138,6 +147,7 @@ import { apiService } from "../../services/ApiService";
 import { usePopup } from "@/composables/usePopup";
 import { useDebounceFn } from "@vueuse/core";
 import { useSessionStore } from "../../stores/session";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
 import { getCurrentTurns } from "@/utils/messageUtils"
@@ -176,6 +186,7 @@ const contentMaxWidthStyle = computed(() => ({
 const { confirm, editText, toast, notify } = usePopup();
 const authStore = useAuthStore()
 const sessionStore = useSessionStore();
+const router = useRouter();
 const layoutStore = useLayoutStore();
 
 // 有壁纸时隐藏底部渐变遮罩（壁纸已有视觉层次，不透明遮罩会像补丁）
@@ -254,6 +265,67 @@ const lockScrollAnchor = () => {
 };
 provide('lockScrollAnchor', lockScrollAnchor);
 
+// ===== 新增 8 项功能 handler =====
+
+/** #1 引用/回复消息：插入引用标记到输入框并聚焦 */
+function handleQuote(messageId: string) {
+  chatInputRef.value?.insertText(`@${messageId} `)
+  nextTick(() => {
+    const el = document.querySelector('.message-editor .ProseMirror') as HTMLElement
+    el?.focus()
+  })
+}
+
+/** #6 Reactions：本地切换状态，TODO 持久化到后端 */
+const reactionState = ref<Record<string, { up?: boolean; down?: boolean }>>({})
+function handleReaction(messageId: string, type: 'up' | 'down') {
+  if (!currentSessionId.value) return
+  const state = reactionState.value[messageId] || {}
+  if (type === 'up') {
+    state.up = !state.up
+    if (state.up) state.down = false
+  } else {
+    state.down = !state.down
+    if (state.down) state.up = false
+  }
+  reactionState.value = { ...reactionState.value, [messageId]: state }
+}
+
+/** #3 Markdown 源码查看弹窗 */
+const sourceDialog = ref({ visible: false, content: '', messageId: '' })
+function handleViewSource(_messageId: string, rawContent: string) {
+  sourceDialog.value = { visible: true, content: rawContent || '', messageId: _messageId }
+}
+function copySourceContent() {
+  const text = sourceDialog.value.content
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.top = '-9999px'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+  })
+  toast.success(t('common.copySuccess'))
+}
+
+/** #10 导出单条消息为 Markdown 文件 */
+function handleExportMd(_messageId: string, rawContent: string) {
+  if (!rawContent) return
+  const blob = new Blob([rawContent], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `message-${(_messageId || 'export').slice(-8)}.md`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** #1 Auto-scroll 锁定：用户向上滚动时暂停 auto-scroll，到底自动恢复 */
+const scrollLockRef = ref(false)
+
 // 消息分页加载相关状态
 const INITIAL_PAGE_SIZE = 30 // 首次加载消息数量
 const MESSAGES_PAGE_SIZE = 15 // 后续每次加载消息数量
@@ -267,6 +339,29 @@ let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 let skeletonMinDisplayTimer: ReturnType<typeof setTimeout> | null = null
 let skeletonShowTime: number = 0 // 记录骨架屏开始显示的时间戳
 const SKELETON_MIN_DISPLAY = 500 // 骨架屏最少显示毫秒数
+
+/** 最近的会话列表（用于欢迎页快捷入口，同角色） */
+const recentSessions = computed(() =>
+  sessionStore.sessionsMap
+    ? Array.from((sessionStore as any).sessionsMap.values() || [])
+        .filter((s: any) => s.id !== props.sessionId && s.character?.id === props.session?.character?.id)
+        .slice(0, 3)
+    : [],
+)
+
+/** 欢迎页快捷操作：填入输入框并聚焦 */
+function handleQuickAction(label: string) {
+  chatInputRef.value?.insertText(label)
+  nextTick(() => {
+    const editorEl = document.querySelector('.message-editor .ProseMirror') as HTMLElement
+    editorEl?.focus()
+  })
+}
+
+/** 欢迎页打开最近会话 */
+function handleOpenSession(sessionId: string) {
+  router.push(`/chat/${sessionId}`)
+}
 
 // 会话切换并发守卫：每次 handleSessionChange 递增，await 后检查是否已被新调用取代
 let sessionChangeToken = 0

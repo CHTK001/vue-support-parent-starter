@@ -12,7 +12,7 @@
           <input v-model="scanPattern" placeholder="例如：user:*" class="ctrl-input" @keyup.enter="doScan" />
         </div>
         <div class="ctrl-actions">
-          <ReButton show-text icon="Search" @click="doScan">扫描</ReButton>
+          <ReButton show-text icon="Search" :loading="scanLoading" @click="doScan">扫描</ReButton>
         </div>
       </div>
     </ReCard>
@@ -31,11 +31,16 @@
           </div>
         </template>
         <div v-else class="key-list">
-          <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()">
-            <span class="key-text">{{ k }}</span>
-            <ReButton link type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
+          <div v-if="filteredKeys.length === 0" class="empty-state">
+            <ReIcon name="Search" class="empty-icon" :size="48" />
+            <p class="empty-text">暂无数据，请先扫描</p>
           </div>
-          <ReEmpty v-if="filteredKeys.length === 0" description="暂无数据，请先扫描" :image-size="60" />
+          <div v-else>
+            <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()" :title="k">
+              <span class="key-text">{{ k }}</span>
+              <ReButton link type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
+            </div>
+          </div>
         </div>
       </ReCard>
 
@@ -263,17 +268,27 @@ onMounted(loadMonitors)
   cursor: pointer;
   word-break: break-all;
   border: 1px solid transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  border-left: 2px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, border-left-color 0.2s ease;
 }
 .key-item:hover {
   background: color-mix(in srgb, var(--brand-500) 6%, transparent);
+  border-left-color: var(--brand-500);
   transform: translateX(2px);
 }
 .key-item.active {
   background: color-mix(in srgb, var(--metric-cpu) 8%, transparent);
-  border-color: var(--metric-cpu);
+  border: 1px solid var(--metric-cpu);
+  border-left: 2px solid var(--brand-500);
   color: var(--text-primary);
   font-weight: 500;
+}
+.key-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
 }
 .del-btn {
   font-size: 16px;
@@ -326,6 +341,24 @@ onMounted(loadMonitors)
   outline: none;
   box-shadow: var(--focus-ring);
   border-radius: var(--border-radius-sm);
+}
+/* 空态增强 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+}
+.empty-icon {
+  color: var(--text-quaternary, var(--text-tertiary));
+  opacity: 0.5;
+}
+.empty-text {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0;
 }
 .ctrl-input {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;

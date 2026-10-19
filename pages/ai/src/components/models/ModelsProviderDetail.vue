@@ -51,25 +51,86 @@
       <!-- 模型卡片网格 -->
       <template v-else>
         <div class="d-section-head">
-          <span class="d-section-title">模型</span>
-          <span class="d-section-count" :title="t('common.contextSize.title')">
-            {{ filteredModels.length }}/{{ models.length }}
-          </span>
-          <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
-          <div class="ctx-filter">
-            <span class="ctx-filter-title">{{ t('common.contextSize.title') }}</span>
-            <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
-              :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
-              @click="toggleCtxTag(tag.key)">
-              {{ t(`common.contextSize.${tag.key}`) }}
+          <!-- 第一行：标题 + 计数 + 搜索 -->
+          <div class="d-head-row">
+            <span class="d-section-title">模型</span>
+            <span class="d-section-count">
+              {{ filteredModels.length }}/{{ models.length }}
             </span>
+            <!-- 搜索框：支持模型名 / 类型 / 子类型 / 能力关键词 -->
+            <el-input
+              v-model="modelSearch"
+              size="small"
+              placeholder="搜索名称 / 类型 / 能力…"
+              clearable
+              class="model-search-input"
+            >
+              <template #prefix>
+                <el-icon :size="13"><SearchOutlined /></el-icon>
+              </template>
+            </el-input>
+
+            <!-- 批量操作工具栏：有选中时才出现 -->
+            <div v-if="selected.length > 0" class="batch-toolbar">
+              <span class="batch-count">已选 {{ selected.length }} 个</span>
+              <el-button size="small" type="success" @click="batchEnable">
+                启用
+              </el-button>
+              <el-button size="small" type="warning" @click="batchDisable">
+                停用
+              </el-button>
+              <el-button size="small" @click="selected = []">取消</el-button>
+            </div>
+          </div>
+
+          <!-- 第二行：上下文大小标签 -->
+          <div class="d-head-filters">
+            <!-- 状态筛选 -->
+            <div class="filter-group">
+              <el-radio-group v-model="statusFilter" size="small">
+                <el-radio-button value="">全部</el-radio-button>
+                <el-radio-button value="active">已启用</el-radio-button>
+                <el-radio-button value="inactive">已停用</el-radio-button>
+              </el-radio-group>
+            </div>
+            <!-- 类型筛选 -->
+            <div class="filter-group">
+              <el-select v-model="typeFilter" placeholder="按类型" clearable size="small" class="type-select">
+                <el-option value="chat" label="对话" />
+                <el-option value="embedding" label="嵌入" />
+                <el-option value="ocr" label="OCR" />
+                <el-option value="vision" label="视觉" />
+                <el-option value="rerank" label="重排序" />
+                <el-option value="tts" label="语音合成" />
+                <el-option value="stt" label="语音识别" />
+                <el-option value="face" label="人脸" />
+                <el-option value="image" label="图像生成" />
+              </el-select>
+            </div>
+            <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
+            <div class="ctx-filter">
+              <span class="ctx-filter-title">{{ t('common.contextSize.title') }}</span>
+              <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
+                :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
+                @click="toggleCtxTag(tag.key)">
+                {{ t(`common.contextSize.${tag.key}`) }}
+              </span>
+            </div>
           </div>
         </div>
         <div v-if="filteredModels.length === 0" class="ctx-no-match">
           {{ t('common.contextSize.noMatch') }}
         </div>
         <div v-else class="model-grid">
-          <article v-for="model in filteredModels" :key="model.id" class="mc">
+          <article v-for="model in filteredModels" :key="model.id" class="mc"
+            :class="{ 'is-selected': selected.includes(getModelId(model)) }">
+            <!-- 批量选择 checkbox -->
+            <div class="mc-check">
+              <el-checkbox
+                :model-value="selected.includes(getModelId(model))"
+                @change="toggleSelect(model)"
+              />
+            </div>
             <div class="mc-head">
               <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
@@ -191,6 +252,7 @@ import CardAvatar from '../ui/CardAvatar.vue'
 import {
   SettingsOutlined, RemoveCircleOutlineRound, ScienceOutlined,
   PlusOutlined, LinkOutlined, EditOutlined, DeleteOutlined,
+  SearchOutlined,
 } from '@vicons/material'
 import {
   TextT24Regular, Image24Regular, ArrowRight24Regular,
@@ -229,7 +291,16 @@ const { confirm } = usePopup()
 const formRef = ref<any>(null)
 const fetchRef = ref<any>(null)
 
-/* ==================== 上下文大小过滤（与模型选择卡片共用同一套标签） ==================== */
+/* ==================== 上下文大小过滤 ==================== */
+
+/** 关键字搜索 */
+const modelSearch = ref('')
+
+/** 状态筛选：active / inactive / '' */
+const statusFilter = ref('')
+
+/** 类型筛选：modelType 值 */
+const typeFilter = ref('')
 
 /** 选中的档位 key 集合（多选 = 并集；空 = 不过滤） */
 const ctxFilter = ref<string[]>([])
@@ -246,9 +317,86 @@ const toggleCtxTag = (key: string) => {
 }
 
 /** 命中档位标签的模型（过滤只影响展示；增删改仍走全量 props.models） */
-const filteredModels = computed(() =>
-  props.models.filter((m: any) => matchesContextTags(m, ctxFilter.value)),
-)
+const filteredModels = computed(() => {
+  const kw = modelSearch.value.trim().toLowerCase()
+  return props.models.filter((m: any) => {
+    if (!matchesContextTags(m, ctxFilter.value)) return false
+    // 状态筛选
+    if (statusFilter.value === 'active' && !m.isActive) return false
+    if (statusFilter.value === 'inactive' && m.isActive) return false
+    // 类型筛选
+    if (typeFilter.value && m.modelType !== typeFilter.value) return false
+    // 关键字搜索：名称 / 类型标签 / 子类型 / 能力
+    if (!kw) return true
+    const displayName = getModelDisplayName(m.modelName).toLowerCase()
+    const typeLabel = typeMeta(m.modelType).label.toLowerCase()
+    const subLabel = (subTypeLabel(m.subType) || '').toLowerCase()
+    const features = (m.config?.features || []).join(' ').toLowerCase()
+    const tasks = (m.config?.inputCapabilities || []).concat(m.config?.outputCapabilities || []).join(' ').toLowerCase()
+    return (
+      displayName.includes(kw) ||
+      typeLabel.includes(kw) ||
+      subLabel.includes(kw) ||
+      features.includes(kw) ||
+      tasks.includes(kw) ||
+      // 能力关键词别名：「嵌入」→ embedding，「人脸」→ face，「视觉」→ vision
+      ABILITY_ALIASES[kw]?.some((a: string) =>
+        features.includes(a) || tasks.includes(a) || displayName.includes(a),
+      )
+    )
+  })
+})
+
+/** 能力关键词别名映射（让用户搜「嵌入」能找到 embedding 模型） */
+const ABILITY_ALIASES: Record<string, string[]> = {
+  '嵌入': ['embedding', 'embed'],
+  '人脸': ['face', 'face_recognition'],
+  '视觉': ['vision', 'image'],
+  'ocr': ['ocr'],
+  '重排': ['rerank'],
+  '语音': ['tts', 'stt', 'speech'],
+  '工具': ['tools'],
+  '思考': ['thinking'],
+}
+
+/** 获取模型唯一标识 */
+const getModelId = (m: any) => m.id || m.modelName
+
+/** 选中态 */
+const selected = ref<string[]>([])
+const toggleSelect = (m: any) => {
+  const id = getModelId(m)
+  const idx = selected.value.indexOf(id)
+  if (idx >= 0) selected.value.splice(idx, 1)
+  else selected.value.push(id)
+}
+const selectAll = (val: boolean) => {
+  if (val) selected.value = filteredModels.value.map(getModelId)
+  else selected.value = []
+}
+
+/** 批量启用 */
+const batchEnable = async () => {
+  const ids = selected.value
+  selected.value = []
+  await Promise.allSettled(ids.map((id) => handleToggle(findModel(id))))
+}
+
+/** 批量停用 */
+const batchDisable = async () => {
+  const models = selected.value.map(findModel).filter(Boolean)
+  selected.value = []
+  // 逐个设为 false
+  await Promise.allSettled(
+    models.map((m: any) => {
+      m.isActive = false
+      return handleToggle(m)
+    }),
+  )
+}
+
+/** 通过 id 找到模型 */
+const findModel = (id: string) => props.models.find((m: any) => getModelId(m) === id)
 
 /**
  * 是否为 ONNX 本地推理供应商。
@@ -482,9 +630,21 @@ const handleDelete = async (model: any) => {
     t('settings.providerDetail.deleteModelConfirm'),
   )
   if (!ok) return
-  await apiService.deleteModel(model.id)
-  message.success(t('settings.providerDetail.modelDeleted'))
-  emit('changed')
+  try {
+    await apiService.deleteModel(model.id)
+    message.success(t('settings.providerDetail.modelDeleted'))
+    emit('changed')
+  } catch (error: any) {
+    // 删除失败必须回显：以前这里直接 await，接口 500 时既没有提示，
+    // 还会在控制台留下一个没人处理的 Promise rejection。
+    message.error(
+      error?.response?.data?.message
+      || error?.msg
+      || error?.message
+      || '删除模型失败',
+      { duration: 3000 },
+    )
+  }
 }
 
 const handleToggle = async (model: any) => {
@@ -575,21 +735,44 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .d-empty-desc { margin: 6px 0 0; font-size: 13px; color: var(--color-text-disabled); }
 
 /* 区块标题 */
-.d-section-head { display: flex; align-items: center; gap: 8px; margin: 22px 2px 12px; }
+.d-section-head { display: flex; flex-direction: column; gap: 8px; margin: 22px 2px 12px; }
+.d-head-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.d-head-filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
 .d-section-title { font-size: 13px; font-weight: 700; color: var(--color-text); }
 .d-section-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 19px; height: 18px; padding: 0 6px;
-  /* 原值 9px，18px 高的计数胶囊；用 full 令牌表达同一种形状 */
   border-radius: var(--el-radius-full, 9999px);
   font-size: 11px; font-weight: 600;
   color: var(--el-text-color-secondary);
   background: var(--el-border-color-lighter);
 }
 
-/* 上下文大小过滤（与模型选择卡片共用同一套标签） */
+/* 模型搜索框 */
+.model-search-input { width: 210px; }
+
+/* 状态/类型筛选 */
+.filter-group { display: flex; align-items: center; }
+.type-select { width: 100px; }
+
+/* 批量操作工具栏 */
+.batch-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: var(--el-radius-base);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.batch-count { font-size: 12px; color: var(--el-text-color-secondary); }
+
+/* 上下文大小过滤 */
 .ctx-filter {
   margin-left: auto;
   display: flex;
@@ -637,6 +820,17 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .mc:hover {
   border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-surface-border));
   background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
+}
+/* 批量选中态 */
+.mc.is-selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+/* 批量选择 checkbox */
+.mc-check {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
 }
 .mc-head { display: flex; align-items: center; margin-bottom: 12px; }
 .mc-head-text { display: flex; flex-direction: column; min-width: 0; }

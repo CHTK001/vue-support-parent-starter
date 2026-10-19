@@ -17,12 +17,12 @@
     "office-wordperfect",
     "office-hangul"
   ],
-  "copiedAt": "2026-10-16T12:35:00.115Z",
+  "copiedAt": "2026-10-19T13:30:52.943Z",
   "assets": [
     {
       "rendererId": "pdf",
       "id": "pdf-worker",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\pdf.worker.mjs",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\pdf.worker.mjs",
       "copied": true,
       "sourcePackage": "pdfjs-dist",
       "sourceVersion": "5.4.624"
@@ -30,7 +30,7 @@
     {
       "rendererId": "pdf",
       "id": "pdf-cmaps",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\cmaps",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\cmaps",
       "copied": true,
       "sourcePackage": "pdfjs-dist",
       "sourceVersion": "5.4.624"
@@ -38,7 +38,7 @@
     {
       "rendererId": "pdf",
       "id": "pdf-wasm",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\wasm",
       "copied": true,
       "sourcePackage": "pdfjs-dist",
       "sourceVersion": "5.4.624"
@@ -46,7 +46,7 @@
     {
       "rendererId": "pdf",
       "id": "pdf-standard-fonts",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\standard_fonts",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\standard_fonts",
       "copied": true,
       "sourcePackage": "pdfjs-dist",
       "sourceVersion": "5.4.624"
@@ -54,20 +54,20 @@
     {
       "rendererId": "pdf",
       "id": "pdf-cjk-font-fallback",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\fonts",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pdf\\fonts",
       "copied": true,
       "required": true
     },
     {
       "rendererId": "office-presentation",
       "id": "pptx-worker",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pptx\\pptx.worker.js",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\pptx\\pptx.worker.js",
       "copied": true
     },
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-module",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\index.mjs",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\index.mjs",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -75,7 +75,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-worker",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\worker.mjs",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\worker.mjs",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -83,7 +83,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-frame-cache",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\frame-cache.mjs",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\frame-cache.mjs",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -91,7 +91,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-wasm",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\ppt-native.wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\ppt-native.wasm",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -99,7 +99,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-cjk-font",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\ppt-font-cjk.otf",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\ppt-font-cjk.otf",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -107,7 +107,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-manifest",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\manifest.json",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\manifest.json",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -115,7 +115,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-package",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\package.json",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\package.json",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -123,7 +123,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-license",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\LICENSE",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\LICENSE",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -131,7 +131,7 @@
     {
       "rendererId": "office-presentation-binary",
       "id": "ppt-notice",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\NOTICE",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\ppt\\NOTICE",
       "copied": true,
       "sourcePackage": "@file-viewer/ppt",
       "sourceVersion": "0.3.4"
@@ -139,19 +139,19 @@
     {
       "rendererId": "office-word-openxml",
       "id": "docx-worker",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\docx\\docx.worker.js",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\docx\\docx.worker.js",
       "copied": true
     },
     {
       "rendererId": "office-word-openxml",
       "id": "docx-worker-jszip",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\docx\\jszip.min.js",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\docx\\jszip.min.js",
       "copied": true
     },
     {
       "rendererId": "spreadsheet-openxml",
       "id": "spreadsheet-worker",
-      "to": "G:\\work\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\xlsx\\sheet.worker.js",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\vendor\\xlsx\\sheet.worker.js",
       "copied": true,
       "sourcePackage": "@file-viewer/renderer-spreadsheet",
       "sourceVersion": "3.1.2"

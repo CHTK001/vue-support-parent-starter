@@ -13,6 +13,7 @@
           <ReSelect v-model="selectedMonitorId" placeholder="选择 Redis 实例" class="redis-select" filterable @change="onRedisChange"
             :data="redisInstances.map(m => ({ label: `${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`, value: m.id }))" />
           <span class="refresh-time">最后更新: {{ lastRefresh }}</span>
+          <span class="live-pulse"></span>
           <ReButton show-text icon="RefreshLeft" plain @click="loadRedisMetric">刷新</ReButton>
         </div>
       </div>
@@ -20,7 +21,7 @@
 
     <section class="overview-cards">
     <ReCard v-for="card in overviewCards" :key="card.key" layout="simple" :radius="12" :padding="14" shadow="never" class="ov-card">
-      <div class="ov-inner" :style="{ borderColor: card.color + '25' }">
+      <div class="ov-inner" :style="{ borderLeft: '2px solid ' + card.color + '40' }">
         <ReIcon class="ov-icon" :name="card.icon" :size="20" :style="{ color: card.color }" />
         <div class="ov-body">
           <span class="ov-label">{{ card.label }}</span>
@@ -34,7 +35,7 @@
     <section class="detail-section">
       <div class="section-head">
         <h2 class="section-title">基本信息</h2>
-        <ReTag :class="['mode-tag', modeColor]" effect="light">
+        <ReTag :class="['mode-tag', modeColor, { 'mode-pulse': mode === '单机模式' || mode === 'cluster' }]" effect="light">
           <span class="mode-dot"></span>
           {{ mode }}
         </ReTag>
@@ -54,21 +55,33 @@
           <span class="panel-subtitle">来自最近一次 INFO 采集</span>
         </div>
         <div class="stat-grid">
-          <div class="stat-item">
+          <div class="stat-item" :class="{ 'stat-warn': getStatWarn('commandsPerSec') }">
             <span class="stat-label">瞬时 OPS</span>
             <span class="stat-value">{{ stats.commandsPerSec }}</span>
+            <div class="stat-bar">
+              <div class="stat-bar-fill" :style="{ width: getStatPercent('commandsPerSec') + '%', background: getStatWarn('commandsPerSec') ? 'var(--el-color-danger)' : 'var(--el-color-primary)' }"></div>
+            </div>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" :class="{ 'stat-warn': getStatWarn('hitRate') }">
             <span class="stat-label">命中率</span>
             <span class="stat-value">{{ stats.hitRate }}</span>
+            <div class="stat-bar">
+              <div class="stat-bar-fill" :style="{ width: getStatPercent('hitRate') + '%', background: getStatWarn('hitRate') ? 'var(--el-color-danger)' : 'var(--el-color-success)' }"></div>
+            </div>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" :class="{ 'stat-warn': getStatWarn('expiredKeys') }">
             <span class="stat-label">过期键</span>
             <span class="stat-value">{{ stats.expiredKeys }}</span>
+            <div class="stat-bar">
+              <div class="stat-bar-fill" :style="{ width: getStatPercent('expiredKeys') + '%', background: getStatWarn('expiredKeys') ? 'var(--el-color-danger)' : 'var(--el-color-warning)' }"></div>
+            </div>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" :class="{ 'stat-warn': getStatWarn('evictedKeys') }">
             <span class="stat-label">驱逐键</span>
             <span class="stat-value">{{ stats.evictedKeys }}</span>
+            <div class="stat-bar">
+              <div class="stat-bar-fill" :style="{ width: getStatPercent('evictedKeys') + '%', background: getStatWarn('evictedKeys') ? 'var(--el-color-danger)' : 'var(--el-color-info)' }"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -148,8 +161,35 @@ const stats = computed(() => {
     hitRate: pct(s['redis_hit_rate']),
     expiredKeys: fmt(s['redis_expired_keys']),
     evictedKeys: fmt(s['redis_evicted_keys']),
+    // 原始数值用于进度条
+    _commandsPerSec: s['redis_instaneous_ops'] ?? 0,
+    _hitRate: s['redis_hit_rate'] ?? 0,
+    _expiredKeys: s['redis_expired_keys'] ?? 0,
+    _evictedKeys: s['redis_evicted_keys'] ?? 0,
   }
 })
+
+/** 进度条百分比（OPS 假设上限 50000，键数假设上限 10000） */
+const statMaxMap: Record<string, number> = {
+  commandsPerSec: 50000,
+  hitRate: 100,
+  expiredKeys: 10000,
+  evictedKeys: 10000,
+}
+const getStatPercent = (key: string): number => {
+  const raw = stats.value['_' + key] as number
+  if (!raw) return 0
+  const max = statMaxMap[key] || 100
+  return Math.min(100, Math.round((raw / max) * 100))
+}
+/** 告警判断：OPS > 80%上限，命中率 < 60%，过期/驱逐键 > 80%上限 */
+const getStatWarn = (key: string): boolean => {
+  const raw = stats.value['_' + key] as number
+  if (!raw) return false
+  if (key === 'hitRate') return raw < 60
+  if (key === 'commandsPerSec') return raw > 40000
+  return raw > 8000
+}
 
 /** 内存数据（真实值，无数据时显示 —） */
 const memUsed = ref<number | null>(null)
@@ -540,6 +580,22 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
   font-family: 'SF Mono', monospace;
 }
+.stat-bar {
+  height: 4px;
+  background: var(--el-fill-color);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.stat-warn {
+  border-color: var(--el-color-danger) !important;
+  background: color-mix(in srgb, var(--el-color-danger) 5%, var(--el-fill-color-lighter)) !important;
+}
 
 .gauge-wrap {
   display: flex;
@@ -577,5 +633,27 @@ onBeforeUnmount(() => {
   .refresh-btn {
     transition: none;
   }
+  .live-pulse,
+  .mode-pulse .mode-dot {
+    animation: none;
+  }
+}
+
+/* 实时脉冲点 */
+.live-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  animation: livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(10, 191, 83, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 5px rgba(10, 191, 83, 0); }
+}
+
+/* mode-tag 脉冲点 */
+.mode-pulse .mode-dot {
+  animation: livePulse 2s ease-in-out infinite;
 }
 </style>

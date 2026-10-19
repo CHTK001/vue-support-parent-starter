@@ -186,6 +186,16 @@
             </button>
           </LTooltip>
         </div>
+
+        <!-- 流式输出状态条（仅流式期间显示） -->
+        <Transition name="fade-slide">
+          <div v-if="streaming" class="streaming-status-bar">
+            <div class="streaming-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span class="streaming-status-text">AI 正在输入...</span>
+          </div>
+        </Transition>
       </div>
 
       <!-- 模型选择器弹窗 -->
@@ -2410,6 +2420,47 @@ defineExpose({ insertText, insertBadge });
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
   color: var(--el-text-color-primary);
 }
+
+/* 流式输出状态条 */
+.streaming-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-top: 6px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+}
+
+.streaming-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.streaming-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  animation: streaming-pulse 1.2s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+.streaming-dots span:nth-child(2) { animation-delay: 0.2s; }
+.streaming-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes streaming-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active { transition: all 0.25s ease; }
+.fade-slide-enter-from,
+.fade-slide-leave-to { opacity: 0; transform: translateY(-6px); }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {

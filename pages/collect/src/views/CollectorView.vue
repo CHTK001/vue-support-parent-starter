@@ -146,6 +146,33 @@ const sortedFlows = computed(() =>
   ),
 );
 
+/* ------------------------------- 仪表盘 KPI ------------------------------- */
+
+/** 全局聚合指标 */
+const kpiStats = computed(() => {
+  const all = flows.value;
+  const total = all.length;
+  const active = all.filter(f => f.collectFlowStatus === 1).length;
+  const running = all.filter(f => f.running).length;
+  const totalRecords = all.reduce((sum, f) => sum + (Number(f.collectFlowRecordCount) || 0), 0);
+  const totalRuns = all.reduce((sum, f) => sum + (Number(f.collectFlowExecCount) || 0), 0);
+  const hasRun = all.filter(f => (Number(f.collectFlowExecCount) || 0) > 0).length;
+  const allSuccess = all.filter(f => {
+    const t = latestTaskOf.value.get(f.collectFlowId);
+    return t?.collectTaskStatus === "SUCCESS";
+  }).length;
+  const failRate = hasRun > 0 ? Math.max(0, hasRun - allSuccess) : 0;
+  return { total, active, running, totalRecords, totalRuns, failRate };
+});
+
+/** 格式化大数字：1万以上显示 X.X万 */
+function fmtKpi(n: number): string {
+  if (n >= 10_000) return (n / 10_000).toFixed(1) + "万";
+  return n.toLocaleString("zh-CN");
+}
+
+/* ------------------------------- 列定义 ------------------------------- */
+
 const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFlowName", label: "采集器", minWidth: 200, slot: "name" },
   { prop: "collectFlowCategoryId", label: "分类", width: 110, slot: "category", align: "center" },
@@ -158,6 +185,8 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "nodeCount", label: "节点/连线", width: 96, align: "center" },
   { prop: "collectFlowCron", label: "自动调度", width: 200, slot: "cron" },
   { prop: "collectFlowNextExecTime", label: "下次执行", width: 176, slot: "next" },
+  { prop: "collectFlowRecordCount", label: "总采集数量", width: 128, slot: "recordCount", align: "right" },
+  { prop: "collectFlowExecCount", label: "总采集次数", width: 116, slot: "execCount", align: "center" },
   { prop: "lastRun", label: "最近运行", minWidth: 210, slot: "lastRun" },
   { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right" },
 ]);
@@ -201,7 +230,15 @@ function asFlow(input: unknown): CollectFlow {
   return input as CollectFlow;
 }
 
-/** 行状态类：停用行灰底；启用且最近一次失败红底；停用且失败按停用处理 */
+/* ------------------------------- 工具函数 ------------------------------- */
+
+/** 格式化计数：空值显示 0，大数显示千分位 */
+function formatCount(val: unknown): string {
+  const n = Number(val) || 0;
+  return n === 0 ? "0" : n.toLocaleString("zh-CN");
+}
+
+/** 状态行类：停用行灰底；启用且最近一次失败红底；停用且失败按停用处理 */
 function collectorRowClassName(data: { row: Record<string, unknown>; rowIndex: number }): string {
   const flow = asFlow(data.row);
   if (flow.collectFlowStatus !== 1) {
@@ -350,6 +387,71 @@ function runMore(command: string, flow: CollectFlow): void {
 
 <template>
   <div v-loading="loading" class="collect-page">
+
+    <!-- ========== 数据仪表盘 KPI 指标栏 ========== -->
+    <div class="kpi-bar">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--total">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ kpiStats.total }}</div>
+          <div class="kpi-label">采集器总数</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--active">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ kpiStats.active }}<span class="kpi-sub">/{{ kpiStats.total }}</span></div>
+          <div class="kpi-label">已启用</div>
+        </div>
+      </div>
+
+      <div v-if="kpiStats.running > 0" class="kpi-card kpi-card--running">
+        <div class="kpi-icon kpi-icon--running">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value kpi-value--running">{{ kpiStats.running }}</div>
+          <div class="kpi-label">运行中</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--records">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ fmtKpi(kpiStats.totalRecords) }}</div>
+          <div class="kpi-label">累计采集</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon--runs">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ fmtKpi(kpiStats.totalRuns) }}</div>
+          <div class="kpi-label">累计执行</div>
+        </div>
+      </div>
+
+      <div v-if="kpiStats.failRate > 0" class="kpi-card kpi-card--warn">
+        <div class="kpi-icon kpi-icon--warn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value kpi-value--warn">{{ kpiStats.failRate }}</div>
+          <div class="kpi-label">失败流程</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 工具栏 ========== -->
     <div class="collect-toolbar">
       <ReInput
         v-model="keyword"
@@ -380,6 +482,7 @@ function runMore(command: string, flow: CollectFlow): void {
       <ReButton text icon="Refresh" @click="reload"></ReButton>
     </div>
 
+    <!-- ========== 数据表格 ========== -->
     <ReTable
       table-id="collect-collector"
       :data="sortedFlows"
@@ -401,7 +504,9 @@ function runMore(command: string, flow: CollectFlow): void {
           <span class="name-text">{{ row.collectFlowName }}</span>
           <span v-if="row.collectFlowCode" class="name-code">{{ row.collectFlowCode }}</span>
         </div>
-        <div v-if="row.running" class="cell-running">运行中</div>
+        <div v-if="row.running" class="cell-running">
+          <span class="running-dot"></span>运行中
+        </div>
       </template>
 
       <template #category="{ row }">
@@ -409,9 +514,10 @@ function runMore(command: string, flow: CollectFlow): void {
       </template>
 
       <template #status="{ row }">
-        <ReTag  :type="row.collectFlowStatus === 1 ? 'success' : 'info'" effect="plain">
+        <div class="status-indicator" :class="row.collectFlowStatus === 1 ? 'status-indicator--active' : 'status-indicator--inactive'">
+          <span class="status-dot"></span>
           {{ row.collectFlowStatus === 1 ? "已启用" : "已停用" }}
-        </ReTag>
+        </div>
       </template>
 
       <template #switch="{ row }">
@@ -432,6 +538,18 @@ function runMore(command: string, flow: CollectFlow): void {
         <span v-else class="muted">—</span>
       </template>
 
+      <template #recordCount="{ row }">
+        <div class="count-cell">
+          <span class="count-value">{{ formatCount(row.collectFlowRecordCount) }}</span>
+        </div>
+      </template>
+
+      <template #execCount="{ row }">
+        <div class="count-cell count-cell--center">
+          <span class="count-badge">{{ formatCount(row.collectFlowExecCount) }}</span>
+        </div>
+      </template>
+
       <template #lastRun="{ row }">
         <template v-if="latestTaskOf.get(row.collectFlowId)">
           <div class="run-line">
@@ -442,13 +560,12 @@ function runMore(command: string, flow: CollectFlow): void {
             <span class="muted">{{ triggerText(latestTaskOf.get(row.collectFlowId)!.collectTaskTriggerType) }}</span>
           </div>
           <div class="run-sub">
-            耗时
-            <ReTime
-              :value="costMs(latestTaskOf.get(row.collectFlowId)!.collectTaskCost)"
-              format="duration"
-              placeholder="—"
-            />
-            · 产出 {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条 ·
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {{ costMs(latestTaskOf.get(row.collectFlowId)!.collectTaskCost) }}
+            <span class="run-sep">·</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条
+            <span class="run-sep">·</span>
             {{ latestTaskOf.get(row.collectFlowId)!.collectTaskBeginTime || "—" }}
           </div>
         </template>
@@ -498,6 +615,85 @@ function runMore(command: string, flow: CollectFlow): void {
 </template>
 
 <style scoped>
+/* ========== 数据仪表盘 KPI ========== */
+.kpi-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  flex: 1;
+  min-width: 140px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+}
+.kpi-card--running { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
+.kpi-card--running::before { background: #3b82f6; }
+.kpi-card--warn { background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%); }
+.kpi-card--warn::before { background: #f97316; }
+
+.kpi-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-icon--total { background: #f1f5f9; color: #64748b; }
+.kpi-icon--active { background: #ecfdf5; color: #10b981; }
+.kpi-icon--running { background: #dbeafe; color: #3b82f6; }
+.kpi-icon--records { background: #fdf4ff; color: #a855f7; }
+.kpi-icon--runs { background: #fff7ed; color: #f97316; }
+.kpi-icon--warn { background: #fef2f2; color: #ef4444; }
+
+.kpi-body { min-width: 0; }
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+.kpi-value--running { color: #2563eb; }
+.kpi-value--warn { color: #dc2626; }
+.kpi-sub { font-size: 13px; font-weight: 400; color: #94a3b8; margin-left: 2px; }
+.kpi-label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ========== 工具栏 ========== */
+.collect-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  flex-wrap: wrap;
+}
+.tb-label { font-size: 13px; color: #64748b; }
+
+/* ========== 表格单元格 ========== */
 .cell-name {
   display: flex;
   align-items: center;
@@ -505,33 +701,103 @@ function runMore(command: string, flow: CollectFlow): void {
 }
 .name-text {
   font-weight: 600;
+  color: #1e293b;
 }
 .name-code {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: var(--el-font-family);
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
+
 .cell-running {
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 12px;
-  color: var(--el-color-success);
+  color: #3b82f6;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.muted {
-  color: var(--el-text-color-placeholder);
+.running-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: pulse-dot 1.5s ease-in-out infinite;
 }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+.muted { color: var(--el-text-color-placeholder); font-size: 13px; }
+
+/* 状态指示器（左侧小圆点） */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-indicator--active { color: #059669; }
+.status-indicator--active .status-dot { background: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.2); }
+.status-indicator--inactive { color: #94a3b8; }
+.status-indicator--inactive .status-dot { background: #cbd5e1; }
+
+/* 计数单元格 */
+.count-cell {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.count-cell--center { justify-content: center; }
+.count-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
+}
+.count-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 运行行 */
 .run-line {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .run-no {
-  font-family: var(--rm-font-mono, monospace);
+  font-family: var(--rm-font-mono, 'SF Mono', Consolas, monospace);
   font-size: 12px;
+  color: #3b82f6;
 }
 .run-sub {
   margin-top: 2px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
 }
+.run-sep { color: #cbd5e1; margin: 0 2px; }
+
 .ops {
   display: flex;
   align-items: center;
@@ -539,12 +805,34 @@ function runMore(command: string, flow: CollectFlow): void {
   gap: 2px;
 }
 
-/* 状态行底色：停用灰底优先；启用且最近一次失败才给浅红 */
+/* ========== 行状态底色 ========== */
 :deep(tr.collect-row--disabled td) {
-  background-color: color-mix(in srgb, var(--bg-fill, var(--el-fill-color-lighter)) 78%, transparent) !important;
+  background-color: color-mix(in srgb, var(--el-fill-color-light) 85%, transparent) !important;
+  opacity: 0.7;
 }
-
 :deep(tr.collect-row--failed td) {
-  background-color: color-mix(in srgb, var(--status-error, var(--el-color-danger)) 7%, var(--bg-container, #fff)) !important;
+  background-color: color-mix(in srgb, var(--el-color-danger-light) 8%, #fff) !important;
+}
+/* 左侧状态指示条 */
+:deep(tr.collect-row--failed td:first-child)::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--el-color-danger);
+}
+:deep(tr.collect-row) { position: relative; }
+:deep(tr.collect-row td:first-child) {
+  position: relative;
+  transition: background-color 0.2s;
+}
+:deep(tr.collect-row:hover td:first-child) {
+  box-shadow: inset 3px 0 0 #3b82f6;
+}
+:deep(tr.collect-row--failed:hover td:first-child) {
+  box-shadow: inset 3px 0 0 var(--el-color-danger) !important;
+}
+:deep(tr.collect-row--disabled:hover td:first-child) {
+  box-shadow: none !important;
 }
 </style>

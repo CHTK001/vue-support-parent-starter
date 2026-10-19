@@ -33,7 +33,7 @@
         <!-- STRING：枚举下拉 -->
         <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
           :model-value="getFieldValue(group.group, item.field)"
-          @update:model-value="updateFieldValue(group.group, item.field, $event)"
+          @update:model-value="updateFieldValue(group.group, item.field, $event, true)"
           class="w-full">
           <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
         </el-select>
@@ -44,12 +44,12 @@
         <!-- NUMBER -->
         <el-input-number v-else-if="item.valueType === 'NUMBER'"
           :model-value="Number(getFieldValue(group.group, item.field))"
-          @change="(val) => updateFieldValue(group.group, item.field, val)"
+          @change="(val) => updateFieldValue(group.group, item.field, val, true)"
           :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
         <!-- BOOLEAN -->
         <el-switch v-else-if="item.valueType === 'BOOLEAN'"
           :model-value="getFieldValue(group.group, item.field) === 'true'"
-          @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+          @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false', true)" />
       </SettingsRow>
 
       <!-- 向量库配置：仅 RAG 组 + 管理员（描述器驱动的动态表单，保存到全局层）。
@@ -135,7 +135,7 @@
             <!-- usage_sync_providers 多选 -->
             <el-select v-if="item.field === 'usage_sync_providers'"
               :model-value="getFieldValue(group.group, item.field) ? getFieldValue(group.group, item.field).split(',') : []"
-              @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','))"
+              @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','), true)"
               multiple clearable placeholder="留空=全部启用" class="w-full">
               <el-option v-for="parser in usageParsers" :key="parser.name" :label="parser.name" :value="parser.name" />
             </el-select>
@@ -147,7 +147,7 @@
             <!-- 枚举下拉 -->
             <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
               :model-value="getFieldValue(group.group, item.field)"
-              @update:model-value="updateFieldValue(group.group, item.field, $event)"
+              @update:model-value="updateFieldValue(group.group, item.field, $event, true)"
               class="w-full">
               <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
             </el-select>
@@ -158,12 +158,12 @@
             <!-- NUMBER -->
             <el-input-number v-else-if="item.valueType === 'NUMBER'"
               :model-value="Number(getFieldValue(group.group, item.field))"
-              @change="(val) => updateFieldValue(group.group, item.field, val)"
+              @change="(val) => updateFieldValue(group.group, item.field, val, true)"
               :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
             <!-- BOOLEAN -->
             <el-switch v-else-if="item.valueType === 'BOOLEAN'"
               :model-value="getFieldValue(group.group, item.field) === 'true'"
-              @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+              @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false', true)" />
           </SettingsRow>
         </el-collapse-item>
       </el-collapse>
@@ -1093,8 +1093,57 @@ const getFieldModelLogo = (group, field) => {
 // 取弹框模型行的提供商 logo
 const getModelRowLogo = (model) => getModelAvatarPath(model?.model || '')
 
-// 更新字段值
-const updateFieldValue = (group, field, value) => {
+/* ==================== 自动保存：防抖 + 串行 + 提示去重 ====================
+ *
+ * 这些字段没有「保存」按钮，改完即存。原实现每敲一个字符就发一次 PUT，
+ * 成功后又弹一次提示并整组重拉：打字快时既刷接口，又会被重拉结果覆盖掉后几个字符。
+ * 现在文本输入停顿 600ms 才写；同一分组永远串行；请求期间的新改动不会被旧快照覆盖。
+ */
+
+/** 每个分组待触发的防抖定时器 */
+const saveTimers = {}
+/** 每个分组一条保存链：保证同一分组的 PUT 按发起顺序串行执行 */
+const saveChains = {}
+/** 上一次「设置已保存」的时间：连续输入时不要连弹提示 */
+let lastSavedAt = 0
+
+/** 把一次保存排进分组队列 */
+const enqueueGroupSave = (group) => {
+    saveChains[group] = (saveChains[group] || Promise.resolve())
+        .then(() => saveGroupSettings(group))
+        // 失败已在 saveGroupSettings 内提示，这里只防止链条中断
+        .catch(() => {})
+}
+
+/** 离散选择（下拉/开关/数字/模型选择）：立刻写，不必等停顿 */
+const flushGroupSave = (group) => {
+    if (saveTimers[group]) {
+        clearTimeout(saveTimers[group])
+        saveTimers[group] = null
+    }
+    enqueueGroupSave(group)
+}
+
+/** 连续输入：停顿 600ms 再写一次 */
+const scheduleGroupSave = (group) => {
+    if (saveTimers[group]) {
+        clearTimeout(saveTimers[group])
+    }
+    saveTimers[group] = setTimeout(() => {
+        saveTimers[group] = null
+        enqueueGroupSave(group)
+    }, 600)
+}
+
+/**
+ * 更新字段值并安排自动保存。
+ *
+ * @param group 配置分组
+ * @param field 字段名
+ * @param value 新值
+ * @param immediate 是否立即保存（离散选择传 true，文本输入走防抖）
+ */
+const updateFieldValue = (group, field, value, immediate = false) => {
     if (!groupValues[group]) {
         groupValues[group] = {}
     }
@@ -1108,8 +1157,8 @@ const updateFieldValue = (group, field, value) => {
         dirtyFields[group] = new Set()
     }
     dirtyFields[group].add(field)
-    // 自动保存
-    saveGroupSettings(group)
+    if (immediate) flushGroupSave(group)
+    else scheduleGroupSave(group)
 }
 
 // 打开模型对话框
@@ -1129,7 +1178,7 @@ const openModelDialog = async (group, field) => {
 // 选择模型
 const selectModel = (modelId) => {
     if (!modelId) return
-    updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId)
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId, true)
     modelDialogVisible.value = false
 }
 
@@ -1142,7 +1191,7 @@ const selectModel = (modelId) => {
  */
 const clearModelField = () => {
     if (!currentDialogGroup.value || !currentDialogField.value) return
-    updateFieldValue(currentDialogGroup.value, currentDialogField.value, '')
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, '', true)
     modelDialogVisible.value = false
 }
 
@@ -1402,6 +1451,8 @@ const mergeValueOnlyModelFields = (group, values) => {
 
 // 加载某个分组对当前用户生效的值（全局默认 + 本人覆盖）
 const loadGroupValues = async (group) => {
+    // 快照当前界面值：请求期间用户可能继续输入，回来时不能拿服务端的旧值盖掉
+    const valueSnapshot = { ...(groupValues[group] || {}) }
     try {
         const response = await apiService.fetchMergedGroupSettings(group)
         const items = response?.data ?? response ?? []
@@ -1435,9 +1486,15 @@ const loadGroupValues = async (group) => {
                 }
             })
         }
+        // 请求期间仍有待保存改动的字段：保留用户输入与 dirty 标记，
+        // 否则一次「保存后重拉」就会把用户刚敲的字和待提交状态一起清掉。
+        const pending = dirtyFields[group] instanceof Set ? dirtyFields[group] : new Set()
+        pending.forEach((field) => {
+            if (field in valueSnapshot) values[field] = valueSnapshot[field]
+        })
         groupValues[group] = values
         fieldMeta[group] = meta
-        dirtyFields[group] = new Set()
+        dirtyFields[group] = pending
         // 定义滞后兜底（幂等：字段已在定义中时不重复 push）
         mergeValueOnlyModelFields(group, values)
     } catch (error) {
@@ -1452,15 +1509,34 @@ const saveGroupSettings = async (group) => {
         return
     }
     const payload = {}
+    // 快照本次提交的值：请求期间用户继续输入时，要能分辨哪些字段已经变了
+    const sentValues = {}
     for (const field of dirty) {
         const value = groupValues[group]?.[field]
+        sentValues[field] = value
         // 空值 = 重置：值传 null，由后端撤销本人覆盖（回落到继承值），
         // 而不是把空串写进全局层 —— 那正是以前「重置不成空」的原因
         payload[field] = value === '' || value === null || value === undefined ? null : value
     }
     try {
         await apiService.updateUserGroupOverrides(group, payload)
-        notify.success('设置已保存')
+        // 只清掉「值没再变过」的字段；请求期间的新输入留在 dirty 里，稍后续存
+        for (const field of Object.keys(sentValues)) {
+            if (groupValues[group]?.[field] === sentValues[field]) {
+                dirty.delete(field)
+            }
+        }
+        // 连续输入时每次成功都弹提示会很吵：1.5 秒内只提示一次
+        const now = Date.now()
+        if (now - lastSavedAt > 1500) {
+            notify.success('设置已保存')
+            lastSavedAt = now
+        }
+        if (dirty.size > 0) {
+            // 请求期间又有改动：立刻续存，不必再等一次防抖
+            enqueueGroupSave(group)
+            return
+        }
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)
         // 这三个分组的模型是人脸识别 / 以图搜图的门禁判据，保存后即时刷新，
