@@ -25,6 +25,7 @@ import {
   listServerNodes,
   startServerNode,
   stopServerNode,
+  restartServerNode,
   deleteServerNode,
   listProtocols,
   listFilterTypes,
@@ -85,6 +86,13 @@ const visibleNodes = computed(() =>
 
 /** 协议下拉选项（内置 + SPI 动态，SPI 项加后缀标识） */
 const protocolOptions = computed(() => buildProtocolOptions(protocols.value));
+
+/** 传给抽屉的名称列表（编辑时排除自身，克隆时排除克隆源） */
+const existingNamesForDrawer = computed(() => {
+  return nodes.value
+    .filter(n => n.id !== editingNode.value?.id)
+    .map(n => n.name);
+});
 
 /**
  * 把任意异常压成一句可展示的短文本。
@@ -204,6 +212,20 @@ function openDetail(row: ServerNodeView) {
   detailVisible.value = true;
 }
 
+/** 克隆节点：复制全部字段，名称自动加 -clone 后缀，列表校验时排除自身 */
+function openClone(row: ServerNodeView) {
+  editingNode.value = {
+    ...row,
+    id: 0,
+    name: `${row.name}-clone`,
+    status: 'STOPPED',
+    error: undefined,
+    serverUrl: undefined,
+    enabled: row.enabled ?? 0,
+  };
+  formVisible.value = true;
+}
+
 async function onStart(row: ServerNodeView) {
   actingId.value = row.id;
   try {
@@ -222,6 +244,19 @@ async function onStop(row: ServerNodeView) {
   try {
     await stopServerNode(row.id);
     message.success(`服务「${row.name}」已停止`);
+    await refresh();
+  } catch (e) {
+    message.error(reasonText(e));
+  } finally {
+    actingId.value = null;
+  }
+}
+
+async function onRestart(row: ServerNodeView) {
+  actingId.value = row.id;
+  try {
+    await restartServerNode(row.id);
+    message.success(`服务「${row.name}」已重启`);
     await refresh();
   } catch (e) {
     message.error(reasonText(e));
@@ -368,6 +403,20 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </div>
     </div>
 
+    <!-- 空状态引导：绝对覆盖在表格上方，表格始终渲染 -->
+    <div style="position: relative; min-height: 0; flex: 1 1 0;">
+      <div v-if="!loading && !visibleNodes.length && !keyword && !filterProtocol" class="empty-guide">
+        <div class="eg-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="12" fill="var(--el-color-primary-light-9)" />
+            <path d="M24 14v20M14 24h20" stroke="var(--el-color-primary)" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="eg-title">暂无服务</div>
+        <div class="eg-desc">点击下方按钮创建第一个 Server 节点</div>
+        <ReButton show-text icon="Plus" type="primary" @click="openCreate">新增服务</ReButton>
+      </div>
+
     <ReTable
       :data="visibleNodes"
       :loading="loading"
@@ -434,15 +483,22 @@ function openDetailPage(row: ServerNodeView, index: number) {
           <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
         </template>
       </ReTableColumn>
-      <!-- 操作列：统一 ReButton layout="square" 纯图标 + tip。
-           原先 5 枚 show-text 带字按钮把列撑到 410px（实测 330/380 均折行），
-           在宽表里既挤占横向空间又让「值列」被迫压缩；改纯图标后 5×32+4×8=192，
-           列宽收到 220 仍留余量，语义靠 tip 承载。 -->
-      <ReTableColumn label="操作" width="220" fixed="right" align="right">
+      <!-- 操作列：ERROR 重启 + 启停 + 详情 + 编辑 + 克隆 + 删除 -->
+      <ReTableColumn label="操作" width="280" fixed="right" align="right">
         <template #default="{ row }">
           <span class="ops" @click.stop>
+            <!-- ERROR 节点：重启优先 -->
             <ReButton
-              v-if="row.status !== 'RUNNING'"
+              v-if="row.status === 'ERROR'"
+              icon="Refresh"
+              layout="square"
+              type="warning"
+              tip="重启"
+              :loading="actingId === row.id"
+              @click="onRestart(row)"
+            />
+            <ReButton
+              v-else-if="row.status !== 'RUNNING'"
               icon="VideoPlay"
               layout="square"
               type="success"
@@ -461,6 +517,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
             />
             <ReButton icon="View" layout="square" type="primary" tip="详情" @click="openDetail(row)" />
             <ReButton icon="Edit" layout="square" tip="编辑" @click="openEdit(row)" />
+            <ReButton icon="Copy" layout="square" tip="克隆" @click="openClone(row)" />
             <ReButton
               icon="Delete"
               layout="square"
@@ -473,12 +530,15 @@ function openDetailPage(row: ServerNodeView, index: number) {
         </template>
       </ReTableColumn>
     </ReTable>
+    </div>
 
     <ScServerFormDrawer
       v-model="formVisible"
       :node="editingNode"
       :protocols="protocols"
       :filter-types="filterTypes"
+      :existing-names="existingNamesForDrawer"
+      :clone-source="editingNode?.id === 0 ? editingNode : null"
       @saved="refresh"
     />
 
@@ -590,6 +650,26 @@ function openDetailPage(row: ServerNodeView, index: number) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.empty-guide {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  text-align: center;
+  pointer-events: none;
+}
+.empty-guide > * { pointer-events: auto; }
+.eg-icon svg { width: 56px; height: 56px; }
+.eg-title { font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); }
+.eg-desc { font-size: 13px; color: var(--el-text-color-secondary); margin-bottom: 4px; }
 
 .load-notice {
   margin: 0;
