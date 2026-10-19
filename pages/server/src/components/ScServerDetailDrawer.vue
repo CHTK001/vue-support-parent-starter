@@ -434,26 +434,24 @@ async function applyParams() {
   flex-direction: column;
   gap: 8px;
 }
+/* 详情抽屉过滤器行科技感：毛玻璃 + 霓虹序号圆 */
 .filter-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
-  /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
-     且 0.18s 不是任何标准档。显式列出真正会变的三个属性并取 0.2s 档 */
   transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .filter-row:hover {
-  border-color: var(--el-color-primary-light-5);
-  /* 允许的两处投影之一：悬浮抬升反馈；静止态不加投影，边界由边框承载 */
-  box-shadow: var(--el-box-shadow-lighter);
+  border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color-lighter));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 3%, var(--el-bg-color));
 }
 .filter-row.is-off {
   opacity: 0.62;
@@ -461,9 +459,12 @@ async function applyParams() {
 .fr-order {
   width: 22px;
   height: 22px;
-  /* 22px 正圆：50% 与 full 档(9999px) 等价，统一到令牌 */
   border-radius: var(--el-radius-full, 9999px);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  /* 霓虹光晕序号圆 */
+  background: radial-gradient(circle at 30% 30%,
+    color-mix(in srgb, var(--el-color-primary) 30%, transparent) 0%,
+    color-mix(in srgb, var(--el-color-primary) 8%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 40%, transparent);
   color: var(--el-color-primary);
   font-size: 11px;
   display: flex;
@@ -471,6 +472,7 @@ async function applyParams() {
   justify-content: center;
   flex-shrink: 0;
   margin-top: 2px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 .fr-main {
   flex: 1;
@@ -510,7 +512,23 @@ async function applyParams() {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  /* 顶部科技感渐变光带 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--el-color-primary-light-5) 30%,
+      var(--el-color-primary) 50%,
+      var(--el-color-primary-light-5) 70%,
+      transparent 100%);
+    opacity: 0.55;
+  }
 }
 
 .url-cell {

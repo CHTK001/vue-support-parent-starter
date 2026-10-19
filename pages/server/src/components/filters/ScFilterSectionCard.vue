@@ -44,9 +44,14 @@ defineProps<{
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
   padding: 14px 16px 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  &:hover {
+    border-color: color-mix(in srgb, var(--el-color-primary) 25%, var(--el-border-color-lighter));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  }
 }
 
-/* 标题条：左侧 3px 语义色条 + 标题 + 计数徽标，替代原先三处复制的 border-left 写法 */
+/* 标题条：左侧 3px 语义色条 + 标题 + 计数徽标 */
 .fsc-head {
   display: flex;
   align-items: flex-start;
@@ -57,8 +62,11 @@ defineProps<{
   width: 3px;
   align-self: stretch;
   border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-primary);
+  background: linear-gradient(to bottom,
+    var(--el-color-primary) 0%,
+    color-mix(in srgb, var(--el-color-primary) 50%, transparent) 100%);
   flex-shrink: 0;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--el-color-primary) 50%, transparent);
 }
 .fsc-titles {
   min-width: 0;

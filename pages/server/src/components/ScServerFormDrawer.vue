@@ -784,6 +784,16 @@ async function toggleLive(index: number, enabled: boolean) {
   flex-direction: column;
   gap: 14px;
 }
+
+/* 抽屉内表单科技感：字段行悬浮高亮 */
+.server-form :deep(.el-form-item) {
+  border-radius: var(--el-radius-md);
+  padding: 4px 8px;
+  transition: background-color 0.2s ease;
+  &:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 3%, transparent);
+  }
+}
 .form-hint {
   font-size: 11px;
   color: var(--el-text-color-secondary);
@@ -864,23 +874,22 @@ async function toggleLive(index: number, enabled: boolean) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  /* 原生可点 div：去掉默认轮廓，改用自绘焦点环（模板已补 role/tabindex，焦点环现可生效） */
   outline: none;
-  /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
-     0.18s 不是任何标准档。显式列出真正会变的四个属性并取 0.2s 档 */
-  transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease,
-    transform var(--el-transition-duration-fast, 0.2s) ease;
   background: var(--el-bg-color);
-}
-.picker-item:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.picker-item:hover {
-  border-color: var(--el-color-primary-light-5);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  transform: translateX(2px);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  }
+  &:hover {
+    border-color: var(--el-color-primary);
+    background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+    transform: translateX(3px);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  }
 }
 .pi-main {
   flex: 1;
@@ -922,21 +931,21 @@ async function toggleLive(index: number, enabled: boolean) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
-  /* 整行都是「打开该插件配置页」的触发区，因此整行给可点手势与焦点环 */
   cursor: pointer;
   outline: none;
   transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.selected-item:hover {
-  border-color: var(--el-color-primary-light-5);
-  /* 允许的两处投影之一：悬浮抬升反馈 */
-  box-shadow: var(--el-box-shadow-lighter);
-}
-.selected-item:focus-visible {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
+  }
+  &:focus-visible {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  }
 }
 .selected-item.is-off {
   opacity: 0.62;
@@ -1012,7 +1021,23 @@ async function toggleLive(index: number, enabled: boolean) {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  /* 顶部科技感渐变光带 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--el-color-primary-light-5) 30%,
+      var(--el-color-primary) 50%,
+      var(--el-color-primary-light-5) 70%,
+      transparent 100%);
+    opacity: 0.6;
+  }
 }
 
 /* 尊重系统「减少动态效果」偏好 */
