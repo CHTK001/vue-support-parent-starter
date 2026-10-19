@@ -12,6 +12,7 @@
         <ReSelect v-model="severityFilter" :options="severityOptions" placeholder="严重级别" clearable class="sev-filter" />
         <ReSelect v-model="statusFilter" :options="statusOptions" placeholder="状态" clearable class="sev-filter" />
         <ReButton icon="SetUp" show-text round @click="openRules">规则管理</ReButton>
+        <ReButton icon="BellFilled" show-text round @click="openChannels">通知渠道</ReButton>
         <ReButton icon="Refresh" show-text round :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -23,7 +24,7 @@
         :value="items.length"
         :desc="`最近 ${windowLabel} 事件`"
         :icon="Bell"
-        icon-color="#3b82f6"
+        icon-color="var(--apm-accent)"
       />
       <ReStatCard
         size="compact"
@@ -31,7 +32,7 @@
         :value="criticalCount"
         :desc="criticalCount ? '存在严重告警' : '无严重告警'"
         :icon="Warning"
-        :icon-color="criticalCount ? '#ef4444' : '#22c55e'"
+        :icon-color="criticalCount ? 'var(--apm-danger)' : 'var(--apm-success)'"
       />
       <ReStatCard
         size="compact"
@@ -39,7 +40,7 @@
         :value="warningCount"
         :desc="warningCount ? '存在预警事件' : '无预警事件'"
         :icon="Warning"
-        :icon-color="warningCount ? '#f59e0b' : '#22c55e'"
+        :icon-color="warningCount ? 'var(--apm-warning)' : 'var(--apm-success)'"
       />
     </div>
 
@@ -154,13 +155,48 @@
         <ReEmpty v-if="!rules.length" description="暂无自定义规则" />
       </div>
     </ReDrawer>
+
+    <!-- 通知渠道抽屉 -->
+    <ReDrawer v-model="channelsVisible" title="通知渠道配置" size="560px" direction="rtl">
+      <div class="channel-form">
+        <div class="channel-type-row">
+          <ReSelect v-model="newChannel.type" placeholder="渠道类型" class="type-select">
+            <el-option label="邮件 (Email)" value="email" />
+            <el-option label="钉钉 (DingTalk)" value="dingtalk" />
+            <el-option label="飞书 (Feishu)" value="feishu" />
+            <el-option label="自定义 Webhook" value="webhook" />
+          </ReSelect>
+          <ReInput v-model="newChannel.name" placeholder="渠道名称，如：值班群" class="grow" />
+        </div>
+        <ReInput v-model="newChannel.webhookUrl" placeholder="Webhook URL 或邮箱地址" class="grow" />
+        <el-button type="primary" :icon="Plus" show-text @click="addChannel" text>添加渠道</el-button>
+      </div>
+      <div class="channel-list">
+        <div v-for="ch in channels" :key="ch.id" class="channel-item">
+          <div class="channel-info">
+            <div class="channel-name">
+              <el-tag size="small" round>{{ ch.type }}</el-tag>
+              <span class="mono">{{ ch.name }}</span>
+            </div>
+            <div class="channel-url muted">{{ ch.webhookUrl || ch.config?.url || "—" }}</div>
+          </div>
+          <div class="rule-actions">
+            <ReButton text size="small" @click="toggleChannel(ch)">
+              {{ ch.enabled ? "停用" : "启用" }}
+            </ReButton>
+            <ReButton text type="danger" size="small" @click="deleteChannel(ch)">删除</ReButton>
+          </div>
+        </div>
+        <ReEmpty v-if="!channels.length" description="暂无配置的通知渠道" />
+      </div>
+    </ReDrawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { Bell, Warning, Plus } from "@element-plus/icons-vue";
+import { Bell, BellFilled, Warning, Plus } from "@element-plus/icons-vue";
 
 import ReButton from "@repo/ui/re-button";
 import ReTag from "@repo/ui/re-tag";
@@ -364,6 +400,76 @@ async function deleteRule(r: AlertRule) {
   }
 }
 
+// ---- 通知渠道 ----
+
+interface NotificationChannel {
+  id: string;
+  type: "email" | "dingtalk" | "feishu" | "webhook";
+  name: string;
+  enabled: boolean;
+  webhookUrl?: string;
+  config?: Record<string, string>;
+}
+
+const channelsVisible = ref(false);
+const channels = ref<NotificationChannel[]>([]);
+const newChannel = ref<{ type: string; name: string; webhookUrl: string }>({
+  type: "dingtalk",
+  name: "",
+  webhookUrl: "",
+});
+
+/** 打开渠道抽屉并加载 */
+function openChannels() {
+  channelsVisible.value = true;
+  loadChannels();
+}
+
+function loadChannels() {
+  try {
+    const raw = localStorage.getItem("apm-notification-channels");
+    channels.value = raw ? JSON.parse(raw) : [];
+  } catch {
+    channels.value = [];
+  }
+}
+
+function saveChannels() {
+  try {
+    localStorage.setItem("apm-notification-channels", JSON.stringify(channels.value));
+  } catch { /* 忽略 */ }
+}
+
+function addChannel() {
+  const name = newChannel.value.name.trim();
+  if (!name) { message.warning("请输入渠道名称"); return; }
+  const webhookUrl = newChannel.value.webhookUrl.trim();
+  if (!webhookUrl) { message.warning("请输入 URL 或地址"); return; }
+  const ch: NotificationChannel = {
+    id: `ch-${Date.now()}`,
+    type: newChannel.value.type as NotificationChannel["type"],
+    name,
+    enabled: true,
+    webhookUrl,
+  };
+  channels.value.push(ch);
+  saveChannels();
+  newChannel.value.name = "";
+  newChannel.value.webhookUrl = "";
+  message.success(`已添加渠道「${name}」`);
+}
+
+function toggleChannel(ch: NotificationChannel) {
+  ch.enabled = !ch.enabled;
+  saveChannels();
+}
+
+function deleteChannel(ch: NotificationChannel) {
+  channels.value = channels.value.filter((x) => x.id !== ch.id);
+  saveChannels();
+  message.success(`已删除渠道「${ch.name}」`);
+}
+
 // ---- 事件处置 ----
 
 /** 处置告警：确认 / 静默 / 忽略 */
@@ -395,112 +501,33 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.match-hint {
-  font-size: 12px;
-  color: var(--apm-muted);
-  white-space: nowrap;
-}
+/* 骨架与 .stat-row/.table-panel/.mono/.muted 由 styles/layout.css 提供 */
 
 /* 严重级别筛选 */
 .sev-filter {
   width: 130px;
 }
 
-/* 统计卡片行 */
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-.stat-row :deep(.re-stat-card) {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg（同详情卡档位） */
-}
-
-.stat-row :deep(.re-stat-card .re-stat-card__title) {
-  color: var(--apm-muted);
-}
-
-.stat-row :deep(.re-stat-card .re-stat-card__value) {
-  color: var(--apm-fg);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-row :deep(.re-stat-card .re-stat-card__desc) {
-  color: var(--apm-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 表格面板 */
 .table-panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
-  padding: 8px;
-}
-
-/* ReTab 默认已是 capsule（主题配置顶部页签同款），不再渲染 el-tabs 的
-   .el-tabs__item / __active-bar / __nav-wrap DOM，原先那几条覆写全部成为死规则，故移除；
-   若日后该页显式传 variant="element"，需把这几条配色覆写一并恢复。 */
-
-.table-panel :deep(.el-table) {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: var(--el-fill-color-light);
-  --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-text-color: var(--apm-fg);
-  --el-table-header-text-color: var(--apm-muted);
+  overflow: hidden;
 }
 
 .metric-text {
   color: var(--apm-fg);
+  font-weight: 500;
 }
 
 .critical-flag {
-  margin-left: 8px;
+  margin-left: var(--apm-space-2);
 }
 
 .msg-text {
-  color: var(--apm-fg);
+  color: var(--apm-fg-regular);
 }
 
-/* 时间线视图（跟随 APM 主题令牌） */
+/* 时间线视图 */
 .timeline-wrap {
-  padding: 12px;
+  padding: var(--apm-space-3);
 }
 
 .timeline-wrap :deep(.re-timeline__title) {
@@ -523,40 +550,31 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
-.mono {
-  font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 12px;
-}
-
-.muted {
-  color: var(--apm-muted);
-}
-
 /* ---- 规则管理抽屉 ---- */
 .rule-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-bottom: 16px;
+  gap: var(--apm-space-3);
+  padding-bottom: var(--apm-space-4);
   border-bottom: 1px solid var(--apm-border);
-  margin-bottom: 16px;
+  margin-bottom: var(--apm-space-4);
 }
 
 .rule-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--apm-space-3);
 }
 
 .rule-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 10px，取最近档 lg */
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-3) var(--apm-space-4);
+  background: var(--apm-panel-raised);
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
 }
 
 .rule-info {
@@ -574,7 +592,7 @@ onBeforeUnmount(() => {
 .rule-threshold {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--apm-space-2);
 }
 
 .rule-actions {
@@ -584,20 +602,66 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-@media (max-width: 1100px) {
-  .stat-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* ---- 通知渠道抽屉 ---- */
+.channel-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-3);
+  padding-bottom: var(--apm-space-4);
+  border-bottom: 1px solid var(--apm-border);
+  margin-bottom: var(--apm-space-4);
 }
 
-@media (max-width: 640px) {
-  .stat-row {
-    grid-template-columns: 1fr;
-  }
+.channel-type-row {
+  display: flex;
+  gap: var(--apm-space-2);
 }
 
-/* 尊重系统「减少动态效果」偏好：
-   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画（第三方组件根节点拿不到 scoped 属性，须走 :deep） */
+.type-select {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-3);
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-3) var(--apm-space-4);
+  background: var(--apm-panel-raised);
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
+}
+
+.channel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.channel-name {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--apm-fg);
+}
+
+.channel-url {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .view :deep(.el-skeleton__item),
   .view :deep(.el-loading-spinner) {

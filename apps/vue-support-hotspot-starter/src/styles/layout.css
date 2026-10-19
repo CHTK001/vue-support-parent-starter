@@ -1,0 +1,309 @@
+/* ============================================================
+ * layout.css —— 页面骨架与通用语义类（14 个视图共用）
+ *
+ * 解决的问题：原先 .view / .view-toolbar / .toolbar-left / .panel /
+ * .table-panel / .mono / .muted / .err-text … 这 16 个类名在 14 个视图里
+ * 各写一遍，合计 2200+ 行复制粘贴，改一处要改 14 处。
+ *
+ * 现在收敛到本文件，视图的 <style> 只保留该页独有的部分。
+ *
+ * 用法（视图根节点加 .view，其余按需）：
+ *   <div class="view">
+ *     <div class="view-toolbar">
+ *       <div class="toolbar-left">…</div>
+ *       <div class="toolbar-right">…</div>
+ *     </div>
+ *     <div class="panel">
+ *       <div class="panel-head"><span>标题</span><span class="panel-sub">副标</span></div>
+ *       …
+ *     </div>
+ *   </div>
+ * ============================================================ */
+
+/* ---------- 页级骨架 ---------- */
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-4);
+  min-width: 0;
+}
+
+/* 工具栏：左标题组 / 右操作组 */
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apm-space-3);
+  flex-wrap: wrap;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  min-width: 0;
+}
+
+/* 区块标题（工具栏左侧的文字标签） */
+.section-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--apm-fg);
+}
+
+/* 辅助提示（命中数 / 刷新频率说明） */
+.match-hint {
+  font-size: 12px;
+  color: var(--apm-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 面板容器 ----------
+   无实色边框：1px 透明描边 + 主色着色的弥散投影，深色底上更透气 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-3);
+  min-width: 0;
+  padding: var(--apm-space-4) var(--apm-space-5);
+  background: var(--apm-panel);
+  border: 1px solid transparent;
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
+}
+
+/* 面板头：标题 + 副标题竖排 */
+.panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.panel-head > span:first-child {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--apm-fg);
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: var(--apm-muted);
+  line-height: 1.5;
+}
+
+/* ---------- 统计卡/表格的响应式网格 ---------- */
+.stat-grid,
+.stat-row {
+  display: grid;
+  gap: var(--apm-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.rank-grid {
+  display: grid;
+  gap: var(--apm-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.chart-grid {
+  display: grid;
+  gap: var(--apm-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+}
+
+/* 双栏面板行（Jvm / Topology / TraceWaterfall 原先各写一份 1fr 1fr
+   + 各自的 @media(max-width:900px) 降级）。auto-fit 自动在窄屏折行，
+   不再需要 media query。 */
+.panel-row {
+  display: grid;
+  gap: var(--apm-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* ---------- 筛选栏 ----------
+   列表页（Traces/Logs/Errors/Endpoints/Services/Alerts/Leaks）的统一筛选区。
+   与工具栏分离：工具栏是"标题 + 操作"，筛选栏是"查询条件"，两者职责不同，
+   混在一行会让窄屏下的按钮换行顺序变得不可控。 */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-3) var(--apm-space-4);
+  background: var(--apm-panel);
+  border: 1px solid transparent;
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--apm-muted);
+}
+
+/* 筛选动作靠右，窄屏自然换到下一行 */
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  margin-left: auto;
+}
+
+/* ---------- 分页条 ---------- */
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--apm-space-3) var(--apm-space-2) var(--apm-space-1);
+}
+
+/* ---------- 表格面板 ----------
+   表格自己有行分隔线，故内距用 8px 一档，避免卡片感过重 */
+.table-panel {
+  background: var(--apm-panel);
+  border: 1px solid transparent;
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
+  padding: var(--apm-space-2);
+  min-width: 0;
+}
+
+/* Element 表格变量统一注入（ReTable engine="element" 渲染的就是 el-table） */
+.table-panel,
+.apm-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--apm-panel-active);
+  --el-table-border-color: var(--apm-border-soft);
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--apm-muted);
+  --el-table-text-color: var(--apm-fg);
+  --el-table-fixed-bg-color: var(--apm-panel);
+}
+
+/* 表头：加深色下划线区分数据行，替代整块底色（深色底上底色对比度不足） */
+.table-panel :deep(.el-table__header th.el-table__cell),
+.apm-table :deep(.el-table__header th.el-table__cell) {
+  background: transparent;
+  border-bottom: 1px solid var(--apm-border);
+}
+
+/* ---------- 数值文本 ----------
+   数据一律等宽：数值列纵向对齐、traceId/耗时可扫读 */
+.mono,
+.mono * {
+  font-family: var(--apm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+/* 表格内的大数值（统计卡 / 瀑布时长） */
+.mono-lg {
+  font-family: var(--apm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+
+/* ---------- 状态语义文本 ---------- */
+.muted {
+  color: var(--apm-muted);
+}
+
+.ok-text,
+.ok {
+  color: var(--apm-success);
+}
+
+.warn-text,
+.warn {
+  color: var(--apm-warning);
+}
+
+.err-text,
+.err {
+  color: var(--apm-danger);
+}
+
+.info-text {
+  color: var(--apm-info);
+}
+
+/* ---------- 空态 ----------
+   图表 / 表格没有数据时居中提示。必须显式渲染，不能靠图表组件自己画：
+   ECharts 对 pie 的空 data 会画一个 lightgray 占位环（实测 fill="lightgray"），
+   深色底上是一块刺眼的灰白圈。 */
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--apm-space-2);
+  min-height: 140px;
+  flex: 1;
+  color: var(--apm-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.panel-empty::before {
+  content: "";
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px dashed var(--apm-border);
+}
+
+/* ---------- 通用小组件 ---------- */
+/* 实时指示器：脉冲点 + 文案 */
+.live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--apm-success);
+}
+
+.live-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--apm-success);
+  animation: apm-live-pulse 2s var(--apm-ease) infinite;
+}
+
+@keyframes apm-live-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 无障碍：关掉动效时保留实色点，「实时」信号不丢失 */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot::before {
+    animation: none;
+  }
+}
