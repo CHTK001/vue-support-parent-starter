@@ -459,6 +459,60 @@
               </div>
             </div>
           </template>
+
+          <!-- ============ 别名管理 ============ -->
+          <template #aliases>
+            <div class="dsm-section">
+              <div class="dsm-section-title">
+                <span>别名管理（{{ aliases.length }}）</span>
+                <div class="dsm-section-actions">
+                  <ReButton
+                    type="primary"
+                    icon="Plus"
+                    data-testid="es-alias-add"
+                    :disabled="!source"
+                    @click="openAddAlias"
+                  >
+                    添加别名
+                  </ReButton>
+                  <ReButton
+                    layout="square"
+                    icon="Refresh"
+                    tip="刷新"
+                    data-testid="es-alias-refresh"
+                    :loading="aliasesLoading"
+                    @click="loadAliases"
+                  />
+                </div>
+              </div>
+
+              <!-- 别名列表 -->
+              <div v-if="aliasesLoading" class="dsm-loading-row">
+                <ReSpin />
+              </div>
+              <ReTable
+                v-else-if="aliases.length"
+                :data="aliases"
+                :columns="aliasColumns"
+                :loading="aliasesLoading"
+                stripe
+                border
+                height="460px"
+              >
+                <template #col-actions="{ row }">
+                  <ReButton
+                    layout="square"
+                    icon="Delete"
+                    type="danger"
+                    data-testid="es-alias-del"
+                    tip="删除别名"
+                    @click="removeAlias(row)"
+                  />
+                </template>
+              </ReTable>
+              <ReEmpty v-else description="暂无别名，点「添加别名」创建一个" />
+            </div>
+          </template>
         </ReTab>
       </div>
     </div>
@@ -752,9 +806,12 @@ import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
+  addEsAlias,
   addEsMapping,
   createEsIndex,
+  deleteEsAlias,
   deleteEsIndex,
+  fetchEsAliases,
   fetchEsCapability,
   fetchEsCluster,
   fetchEsIndexDetail,
@@ -764,6 +821,7 @@ import {
   rebuildEsIndex,
   testEsConnection,
   updateEsClusterSettings,
+  type EsAliasRow,
   type EsCapability,
   type EsCluster,
   type EsClusterNode,
@@ -778,13 +836,14 @@ defineOptions({ name: "ElasticsearchManageView" });
 
 const { datasourceId, source, gap, bind, ready } = useMiddlewareSource();
 
-/** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 */
+/** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 / 别名管理 */
 const tabs = [
   { name: "overview", label: "索引概览", icon: "Collection" },
   { name: "nodes", label: "节点列表", icon: "Monitor" },
   { name: "clusterCfg", label: "集群纳管", icon: "Connection" },
   { name: "graph", label: "关系图谱", icon: "Share" },
   { name: "query", label: "查询检索", icon: "Search" },
+  { name: "aliases", label: "别名管理", icon: "Link" },
 ];
 
 const activeTab = ref<string>("overview");
@@ -1134,6 +1193,20 @@ const queryColumns = computed(() =>
 const queryEmptyText = computed(() =>
   queryResult.value?.message ? `检索未返回数据：${queryResult.value.message}` : "执行检索后显示结果",
 );
+
+/** 别名管理状态 */
+const aliases = ref<EsAliasRow[]>([]);
+const aliasesLoading = ref(false);
+
+/** 别名表格列 */
+const aliasColumns = [
+  { prop: "alias", label: "别名", minWidth: 160 },
+  { prop: "index", label: "指向索引", minWidth: 180 },
+  { prop: "filter", label: "过滤条件", minWidth: 200 },
+  { prop: "searchRouting", label: "搜索路由", width: 110 },
+  { prop: "indexRouting", label: "写入路由", width: 110 },
+  { prop: "actions", label: "操作", width: 80, fixed: "right" as const, slot: "col-actions" },
+];
 
 const fieldDrawerTitle = computed(() => `索引字段 - ${fieldDetail.value?.name || ""}`);
 
@@ -1574,6 +1647,82 @@ async function runQuery() {
   }
 }
 
+// ---- 别名管理 ----
+async function loadAliases() {
+  if (!datasourceId.value) return;
+  aliasesLoading.value = true;
+  try {
+    aliases.value = await fetchEsAliases(datasourceId.value);
+  } catch (e) {
+    showError(e, "/ms/monitor/elasticsearch/aliases");
+  } finally {
+    aliasesLoading.value = false;
+  }
+}
+
+async function openAddAlias() {
+  const rows = indices.value;
+  if (rows.length === 0) {
+    message.warning("请先确保已有索引");
+    return;
+  }
+  const indexOptions = rows.map(r => ({ label: r.name, value: r.name }));
+  let aliasName = "";
+  let targetIndex = indexOptions[0]?.value || "";
+  const { value: form } = await ElMessageBox({
+    title: "添加别名",
+    message: h("div", {}, [
+      h("p", { style: "margin-bottom:8px;color:var(--el-text-color-regular)" }, "别名名称"),
+      h(ReInput, {
+        modelValue: aliasName,
+        "onUpdate:modelValue": (v: string) => { aliasName = v; },
+        placeholder: "请输入别名",
+      }),
+      h("p", { style: "margin:12px 0 8px;color:var(--el-text-color-regular)" }, "指向索引"),
+      h(ReSelect, {
+        modelValue: targetIndex,
+        "onUpdate:modelValue": (v: string) => { targetIndex = v; },
+        options: indexOptions,
+        placeholder: "选择一个索引",
+        style: "width:100%",
+      }),
+    ]),
+    confirmButtonText: "添加",
+    cancelButtonText: "取消",
+  }).catch(() => null);
+  if (!form) return;
+  if (!aliasName.trim()) {
+    message.warning("请输入别名名称");
+    return;
+  }
+  try {
+    await addEsAlias({ alias: aliasName.trim(), index: targetIndex, datasourceId: datasourceId.value });
+    message.success("别名添加成功");
+    await loadAliases();
+  } catch (e) {
+    showError(e, "/ms/monitor/elasticsearch/alias");
+  }
+}
+
+async function removeAlias(row: EsAliasRow) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除别名「${row.alias}」指向「${row.index}」吗？删除别名不影响索引本身。`,
+      "删除别名",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deleteEsAlias(row.alias, datasourceId.value);
+    message.success("别名已删除");
+    await loadAliases();
+  } catch (e) {
+    showError(e, "/ms/monitor/elasticsearch/alias");
+  }
+}
+
 // ---- 集群信息 ----
 async function openCluster() {
   clusterVisible.value = true;
@@ -1641,6 +1790,7 @@ watch(activeTab, async tab => {
     }
     if (clusterForm.nodes.length === 0) addClusterNode();
   }
+  if (tab === "aliases") await loadAliases();
 });
 
 onMounted(async () => {
