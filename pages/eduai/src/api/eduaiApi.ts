@@ -931,11 +931,16 @@ export const eduaiApi = {
       .query({ limit })
       .then<TeacherMarkingTask[]>(unwrap),
   /** 我发起的阅卷任务（分页，按创建时间倒序） */
-  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number } = {}) =>
+  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number; teacherFinished?: 0 | 1 } = {}) =>
     http()
       .get("/v2/edu/teacher/marking/tasks/page")
-      .query(params)
+      .query(params as unknown as Record<string, unknown>)
       .then<PageResult<TeacherMarkingTask>>(unwrap),
+  /** 撤销阅卷完成：删除任务的错题记录并复位完成状态 */
+  unfinishMarking: (taskId: string) =>
+    http()
+      .post(`/v2/edu/marking/${taskId}/unfinish`)
+      .then<import("./types").MarkingUndoResult>(unwrap),
 
   // ==================== 班级试卷布置（老师给班级组卷 -> 班内学生可见） ====================
   /** 老师把一张试卷布置给自己的某个班级（重复布置同一班同一卷走「复活」，不重复建行） */

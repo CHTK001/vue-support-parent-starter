@@ -57,6 +57,7 @@ const columns: ReTableColumn[] = [
   { prop: 'markingTaskStatus', label: '状态', width: 90, slot: 'status' },
   { prop: 'taskAiScore', label: 'AI 总分', width: 80, slot: 'aiScore' },
   { prop: 'taskFinalScore', label: '老师总分', width: 90, slot: 'finalScore' },
+  { prop: 'teacherFinished', label: '完成', width: 90, slot: 'teacherFinished' },
   { prop: 'markingTaskStartTime', label: '创建时间', minWidth: 150 },
   { prop: 'taskActions', label: '操作', width: 64, slot: 'actions' },
 ];
@@ -153,6 +154,14 @@ const scoreOf = (task: TeacherMarkingTask) =>
     <template #col-aiScore="{ row }">{{ scoreOf(row as TeacherMarkingTask)?.ai ?? '—' }}</template>
     <template #col-finalScore="{ row }">
       <b class="mt-final">{{ scoreOf(row as TeacherMarkingTask)?.final ?? '—' }}</b>
+    </template>
+    <template #col-teacherFinished="{ row }">
+      <template v-if="(row as TeacherMarkingTask).markingTaskTeacherFinished">
+        <ReTag size="small" type="info">已完成</ReTag>
+      </template>
+      <template v-else>
+        <ReTag size="small" type="info" plain>待完成</ReTag>
+      </template>
     </template>
     <template #col-actions="{ row }">
       <ReButton
