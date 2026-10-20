@@ -1320,12 +1320,10 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-.is-spin {
-  animation: is-rot 1s linear infinite;
-}
-
-@keyframes is-rot {
-  to { transform: rotate(360deg); }
+/* 蒙版上的说明文字。深色底上是固定白字，见 .is-mask 注释 */
+.is-mask-text {
+  font-size: 14px;
+  color: var(--el-color-white, #fff);
 }
 
 .is-result-tip {

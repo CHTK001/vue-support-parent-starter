@@ -541,7 +541,7 @@ importers:
       rollup-plugin-visualizer:
         specifier: ^6.0.5
         version: 6.0.11(rolldown@1.2.1)(rollup@4.62.3)
-      sass-embedded:
+      sass:
         specifier: ^1.98.0
         version: 1.104.1
       tailwindcss:
@@ -955,6 +955,9 @@ importers:
       '@pages/datasource':
         specifier: workspace:*
         version: link:../../pages/datasource
+      '@pages/device':
+        specifier: workspace:*
+        version: link:../../pages/device
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../../pages/filesystem
@@ -2183,7 +2186,7 @@ importers:
       rollup-plugin-visualizer:
         specifier: ^6.0.5
         version: 6.0.11(rolldown@1.2.1)(rollup@4.62.3)
-      sass-embedded:
+      sass:
         specifier: ^1.98.0
         version: 1.104.1
       tailwindcss:
@@ -10760,7 +10763,8 @@ snapshots:
 
   '@braintree/sanitize-url@7.1.2': {}
 
-  '@bufbuild/protobuf@2.15.0': {}
+  '@bufbuild/protobuf@2.15.0':
+    optional: true
 
   '@chevrotain/types@11.1.2': {}
 
@@ -14879,7 +14883,8 @@ snapshots:
 
   colorette@2.0.20: {}
 
-  colorjs.io@0.7.1: {}
+  colorjs.io@0.7.1:
+    optional: true
 
   combined-stream@1.0.8:
     dependencies:
@@ -17675,6 +17680,7 @@ snapshots:
   rxjs@7.8.2:
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   sade@1.8.1:
     dependencies:
@@ -17770,6 +17776,7 @@ snapshots:
       sass-embedded-unknown-all: 1.104.1
       sass-embedded-win32-arm64: 1.104.1
       sass-embedded-win32-x64: 1.104.1
+    optional: true
 
   sass@1.102.0:
     dependencies:
@@ -17981,6 +17988,7 @@ snapshots:
   supports-color@8.1.1:
     dependencies:
       has-flag: 4.0.0
+    optional: true
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
@@ -17995,8 +18003,10 @@ snapshots:
   sync-child-process@1.0.2:
     dependencies:
       sync-message-port: 1.2.0
+    optional: true
 
-  sync-message-port@1.2.0: {}
+  sync-message-port@1.2.0:
+    optional: true
 
   tailwindcss@3.4.19:
     dependencies:
@@ -18351,7 +18361,8 @@ snapshots:
       viewerjs: 1.15.0
       vue: 3.5.40(typescript@6.0.3)
 
-  varint@6.0.0: {}
+  varint@6.0.0:
+    optional: true
 
   verkit@0.3.2:
     optional: true
