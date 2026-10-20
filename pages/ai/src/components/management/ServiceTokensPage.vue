@@ -88,11 +88,11 @@
           />
         </el-form-item>
         <el-form-item label="最大请求次数">
-          <el-input-number v-model="form.maxRequests" :min="0" :step="100" />
+          <ReNumberInput v-model="form.maxRequests" :min="0" :step="100" />
           <span class="hint">0 表示不限</span>
         </el-form-item>
         <el-form-item label="最大 Token 数">
-          <el-input-number v-model="form.maxTokens" :min="0" :step="10000" />
+          <ReNumberInput v-model="form.maxTokens" :min="0" :step="10000" />
           <span class="hint">0 表示不限</span>
         </el-form-item>
       </el-form>
@@ -119,7 +119,9 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 
 
-import ReDialog from '@repo/ui/re-dialog';const http = createClient(v2Http, { unwrap: false })
+import ReDialog from '@repo/ui/re-dialog';
+import ReNumberInput from '@/components/re/ReNumberInput.vue';
+const http = createClient(v2Http, { unwrap: false })
 
 /**
  * 列配置：原模板里的 9 个 el-table-column 收敛为数组。

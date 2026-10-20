@@ -176,19 +176,19 @@
         </el-form-item>
         <el-form-item label="必填管线">
         <el-form-item label="上下文窗口">
-          <el-input-number v-model="form.contextWindow" :min="0" :step="1024" placeholder="如 128000" style="width: 100%" />
+          <ReNumberInput v-model="form.contextWindow" :min="0" :step="1024" placeholder="如 128000" />
         </el-form-item>
         <el-form-item label="最大输出长度">
-          <el-input-number v-model="form.maxTokens" :min="1" :step="128" placeholder="如 4096" style="width: 100%" />
+          <ReNumberInput v-model="form.maxTokens" :min="1" :step="128" placeholder="如 4096" />
         </el-form-item>
         <el-form-item label="温度">
-          <el-input-number v-model="form.temperature" :min="0" :max="2" :step="0.1" :precision="1" placeholder="如 0.7" style="width: 100%" />
+          <ReNumberInput v-model="form.temperature" :min="0" :max="2" :step="0.1" :precision="1" placeholder="如 0.7" />
         </el-form-item>
         <el-form-item label="Top P">
-          <el-input-number v-model="form.topP" :min="0" :max="1" :step="0.1" :precision="1" placeholder="如 0.9" style="width: 100%" />
+          <ReNumberInput v-model="form.topP" :min="0" :max="1" :step="0.1" :precision="1" placeholder="如 0.9" />
         </el-form-item>
         <el-form-item label="频率惩罚">
-          <el-input-number v-model="form.frequencyPenalty" :min="-2" :max="2" :step="0.1" :precision="1" placeholder="如 0.0" style="width: 100%" />
+          <ReNumberInput v-model="form.frequencyPenalty" :min="-2" :max="2" :step="0.1" :precision="1" placeholder="如 0.0" />
         </el-form-item>
           <el-select v-model="form.requiredPipelinesList" multiple placeholder="选择必填管线" style="width: 100%">
             <el-option label="文生图" value="text-to-image" />
@@ -215,7 +215,7 @@
           <el-input v-model="form.modelDescription" type="textarea" :rows="2" placeholder="请输入模型描述" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="form.modelSort" :min="0" :max="9999" />
+          <ReNumberInput v-model="form.modelSort" :min="0" :max="9999" />
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.modelEnabled" />

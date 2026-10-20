@@ -339,7 +339,7 @@
           <el-input v-model="newInstance.name" placeholder="如：我的AGNES服务" />
         </el-form-item>
         <el-form-item label="端口">
-          <el-input-number v-model="newInstance.port" :min="8000" :max="9999" />
+          <ReNumberInput v-model="newInstance.port" :min="8000" :max="9999" />
         </el-form-item>
         <el-form-item label="协议开关">
           <el-checkbox v-model="newInstance.enableGpt">GPT (OpenAI兼容)</el-checkbox>
@@ -367,6 +367,7 @@ import { createClient, v2Http } from '@/framework/context'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,
   ArrowMaximize20Regular, ArrowMinimize20Regular,

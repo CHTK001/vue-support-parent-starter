@@ -72,8 +72,7 @@
               </div>
               <div style="width: 110px;">
                 <label class="f-label">Port</label>
-                <el-input-number v-model="editConfig.port" :min="1" :max="65535" controls-position="right"
-                  style="width: 110px;" />
+                <ReNumberInput v-model="editConfig.port" :min="1" :max="65535" controls-position="right" />
               </div>
             </div>
 
@@ -222,6 +221,7 @@ import LDialog from '@/components/ui/LDialog.vue'
 import SegmentedToggle from '../ui/SegmentedToggle.vue'
 import SettingsCard from './SettingsCard.vue'
 import { apiService } from '@/services/ApiService'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 const { t } = useI18n()
 

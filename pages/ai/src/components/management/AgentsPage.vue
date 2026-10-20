@@ -209,7 +209,7 @@
           <el-input v-model="subAgentForm.role" placeholder="如：分析、总结、翻译" />
         </el-form-item>
         <el-form-item label="执行顺序">
-          <el-input-number v-model="subAgentForm.order" :min="1" :max="100" />
+          <ReNumberInput v-model="subAgentForm.order" :min="1" :max="100" />
         </el-form-item>
         <el-form-item label="系统提示词">
           <el-input v-model="subAgentForm.systemPrompt" type="textarea" :rows="3" />
@@ -284,6 +284,7 @@ import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { agentApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+import ReNumberInput from '@/components/re/ReNumberInput.vue';
 
 // ==================== 四张表的列配置（原模板里的 el-table-column 收敛为数组） ====================
 /** Agent 列表：类型 / 状态 / 操作原本无 prop 或带默认插槽 → slot。 */

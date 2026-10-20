@@ -110,7 +110,7 @@
           />
         </el-form-item>
         <el-form-item label="权重">
-          <el-input-number v-model="form.weight" :min="0" :max="1000" />
+          <ReNumberInput v-model="form.weight" :min="0" :max="1000" />
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.enabled" />
@@ -136,6 +136,7 @@ import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { manufacturerApi, manufacturerKeyApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+import ReNumberInput from '@/components/re/ReNumberInput.vue';
 
 /**
  * 列配置：原模板里的 9 个 el-table-column 收敛为数组。

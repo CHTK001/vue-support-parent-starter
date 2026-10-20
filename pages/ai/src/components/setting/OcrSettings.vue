@@ -32,7 +32,7 @@
                 <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.ocr.servicePort') }}</span>
                 <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.servicePortDesc') }}</span>
               </div>
-              <el-input-number v-model="settingsForm.umiPort" :min="1" :max="65535" placeholder="1224" class="shrink-0" />
+              <ReNumberInput v-model="settingsForm.umiPort" :min="1" :max="65535" placeholder="1224" class="shrink-0" />
             </div>
           </template>
 
@@ -81,6 +81,7 @@ import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import { useI18n } from 'vue-i18n'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 const { t } = useI18n()
 const { notify } = usePopup()

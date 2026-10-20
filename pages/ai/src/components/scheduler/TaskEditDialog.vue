@@ -42,8 +42,8 @@
             <!-- 固定间隔：schedule.kind = every + every_ms -->
             <div v-else-if="timeMode === 'every'" class="schedule-panel flex items-center gap-2">
               <span class="text-xs text-gray-500">{{ t('scheduler.edit.every') }}</span>
-              <el-input-number v-model="everyConfig.value" :min="1" :max="9999" controls-position="right"
-                style="width: 120px" />
+              <ReNumberInput v-model="everyConfig.value" :min="1" :max="9999" controls-position="right"
+                class="w-[120px]" />
               <el-select v-model="everyConfig.unit" style="width: 100px">
                 <el-option :label="t('scheduler.edit.unitMinute')" value="minute" />
                 <el-option :label="t('scheduler.edit.unitHour')" value="hour" />
@@ -123,8 +123,8 @@
 
         <!-- state.max_retries：后端仅此一个重试字段，无重试间隔与最大执行次数 -->
         <el-form-item :label="t('scheduler.edit.retryCount')">
-          <el-input-number v-model="form.maxRetries" :min="0" :max="10" controls-position="right"
-            style="width: 120px" />
+          <ReNumberInput v-model="form.maxRetries" :min="0" :max="10" controls-position="right"
+            class="w-[120px]" />
         </el-form-item>
 
         <el-form-item :label="t('scheduler.edit.enabledLabel')">
@@ -146,13 +146,14 @@
 import { message } from "@repo/core";
 import { ref, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadioButton, ElSwitch, ElInputNumber, ElDivider, ElIcon, ElButton, ElSelect, ElOption } from 'element-plus';
+import { ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadioButton, ElSwitch, ElDivider, ElIcon, ElButton, ElSelect, ElOption } from 'element-plus';
 import { AddCircleOutlineRound, LogInRound } from '@vicons/material'
 import type { ScheduledTask, ScheduledTaskForm, CronSchedule } from '../../types/scheduler'
 import type { Model, ModelProvider } from '../../types/api'
 import { apiService } from '../../services/ApiService'
 import { agentApi } from '@/services/javaApi'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 const { t } = useI18n()
 /** 三种调度输入模式，全部落到后端 schedule 的两种 kind 上 */

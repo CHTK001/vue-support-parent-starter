@@ -168,7 +168,7 @@
         </el-form-item>
         <template v-if="editForm.randomReplyEnabled">
           <el-form-item label="携带上下文条数">
-            <el-input-number v-model="editForm.randomContextCount" :min="1" :max="100" :step="1" controls-position="right" />
+            <ReNumberInput v-model="editForm.randomContextCount" :min="1" :max="100" :step="1" controls-position="right" />
           </el-form-item>
           <el-form-item label="触发概率">
             <div class="w-full flex items-center gap-3">
@@ -200,7 +200,10 @@ import WecomBindForm from './bind-forms/WecomBindForm.vue'
 import QqBindForm from './bind-forms/QqBindForm.vue'
 
 
-import ReDialog from '@repo/ui/re-dialog';// 数据
+import ReDialog from '@repo/ui/re-dialog';
+import ReNumberInput from '@/components/re/ReNumberInput.vue';
+
+// 数据
 const boundConnectors = ref<any[]>([])
 const availableConnectors = ref<any[]>([])
 const models = ref<string[]>([])

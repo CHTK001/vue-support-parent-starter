@@ -313,9 +313,12 @@ const hasStartNode = ref(false);
  */
 const startPositions = new Map<string, { x: number; y: number }>();
 
+/** 已下线的节点 shape：即使远端后端旧 jar 没下发 hidden，前端也不允许再进调色板 */
+const DEPRECATED_SHAPES = new Set(["script", "exists", "output"]);
+
 const nodeTypes = computed<FlowNodeTypeDef[]>(() =>
   props.metas
-    .filter(meta => !meta.hidden)
+    .filter(meta => !meta.hidden && !DEPRECATED_SHAPES.has(meta.shape))
     .filter(meta => !(meta.shape === START_TYPE && hasStartNode.value))
     .map(meta => ({
       type: meta.shape,

@@ -5,6 +5,14 @@ node_modules/
 # 构建产物
 dist/
 dist-ssr/
+# node 服务端打包产物与验收快照目录（dist-node / dist-node2 / dist-verify2）。
+# 这三个目录此前没被忽略，导致 git 每次 status/merge 都要遍历它们；
+# 其中 vendor/ 与 wasm/ 子目录曾因权限问题报 "cannot stat ... Permission denied"，
+# 直接把 merge / add 整个打断。它们只是构建输出，一律不入库。
+dist-node*/
+dist-verify2/
+# Playwright 批量验收报告输出目录（同样是产物，且曾被 ACL 锁住打断 git 遍历）
+playwright-bulk-report/
 # 交付部署目录（rsync/发布产物，20MB+，不入库）
 dist-deploy/
 .turbo/
