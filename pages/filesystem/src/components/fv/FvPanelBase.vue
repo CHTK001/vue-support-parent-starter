@@ -24,8 +24,13 @@ const props = defineProps<{
   viewerOptionsExtra?: Record<string, unknown>;
   /** 首帧渲染完成后自动高亮的关键词（走 searchDocument 官方 API；空串不触发） */
   initialKeyword?: string;
-  /** 在工具条 start 区显示 JSON 美化按钮（json/jsonc/json5/ipynb 有意义） */
-  enableJsonBeautify?: boolean;
+  /**
+   * 在工具条 start 区显示「美化」按钮。
+   *
+   * <p>可美化的扩展名见 {@link BEAUTIFY_EXTS}（JSON/YAML/XML 及 Prettier 收录的代码类），
+   * 不在其中的语言（java/py/go/rs/c…）只高亮、不显示按钮。</p>
+   */
+  enableBeautify?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -109,6 +114,12 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
 }
 
 /**
+ * 是否已开启美化（打开后由 renderer-text 在渲染时按 Prettier 格式化）。
+ * 需在 {@link viewerOptions} 之前声明：viewerOptions 的 getter 会读取它。
+ */
+const prettyPrint = ref(false);
+
+/**
  * 传给 file-viewer 的 options（preset + replace 模式 + 主题 + 工具条位置 + 宿主扩展）。
  *
  * preset 为数组形态：手装渲染器在前（优先命中），viewerOptionsExtra.preset
@@ -117,18 +128,25 @@ async function ensureFileViewerLoaded(): Promise<boolean> {
  */
 const viewerOptions = computed(() => {
   const extra = props.viewerOptionsExtra ?? {};
-  const { preset: extraPreset, ...restExtra } = extra as { preset?: unknown };
+  const { preset: extraPreset, text: extraText, ...restExtra } = extra as {
+    preset?: unknown;
+    text?: Record<string, unknown>;
+  };
   const presetInput: unknown[] = [
     { id: props.presetId, label: props.presetId, renderers: [...props.renderers, iworkRenderer] },
   ];
   if (extraPreset) {
     presetInput.push(extraPreset);
   }
+  // 美化按钮点开后在 text options 里打开 prettyPrint：由 renderer-text 内置的 Prettier
+  // 在渲染时格式化（不预先改文件内容）。未开启时不注入该字段，保持渲染器默认。
+  const text = { ...(extraText ?? {}), ...(prettyPrint.value ? { prettyPrint: true } : {}) };
   return {
     preset: presetInput,
     rendererMode: "replace" as const,
     theme: "light" as const,
     toolbar: { position: "bottom-right" as const },
+    ...(Object.keys(text).length > 0 ? { text } : {}),
     ...restExtra,
   };
 });
@@ -141,31 +159,64 @@ const extLabel = computed(() => {
   return ext.toUpperCase().slice(0, 6);
 });
 
-/** 当前扩展名是否属于 JSON 家族（美化按钮的显示条件） */
-const isJsonFamily = computed(() => {
+/** 当前文件扩展名（小写；无扩展名则空串） */
+const extOfFile = computed(() => {
   const name = props.file?.name ?? "";
   const dot = name.lastIndexOf(".");
-  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
-  return ["json", "jsonc", "json5", "ipynb"].includes(ext);
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
 });
+
+/**
+ * 可「美化」的扩展名：与 {@code @file-viewer/renderer-text} 内置 Prettier 的语言表对齐
+ * （见其 {@code prettyPrint.js} 的 {@code prettierLanguages}）。
+ *
+ * <p>覆盖两类：①配置类 json/jsonc/json5/ipynb/yaml/yml/xml；②代码类
+ * js/jsx/mjs/cjs/react/ts/tsx/vue/css/md/html/htm/graphql。
+ * <b>不在表内的语言（java / py / go / rs / c / cpp / rb…）只能高亮、没有美化</b> ——
+ * Prettier 不支持这些语言，强行按钮只会点了没反应。</p>
+ */
+const BEAUTIFY_EXTS = new Set([
+  "json", "jsonc", "json5", "ipynb",
+  "yaml", "yml", "xml",
+  "js", "jsx", "mjs", "cjs", "react",
+  "ts", "tsx", "vue",
+  "css", "md", "markdown", "html", "htm",
+  "graphql", "gql",
+]);
+
+/** 是否展示「美化」按钮 */
+const canBeautify = computed(() => BEAUTIFY_EXTS.has(extOfFile.value));
+
+/** Prettier 处理上限，与 renderer-text 的 DEFAULT_PRETTY_PRINT_MAX_BYTES 对齐 */
+const PRETTY_PRINT_MAX_BYTES = 512 * 1024;
 
 /** file-viewer 组件实例（公开 API 门面：searchDocument / zoom / print …） */
 const viewerRef = ref<FileViewerExpose | null>(null);
 
-/** JSON 美化：解析当前文件 → 两空格缩进重排 → 以新 File 重渲染（原文件不变） */
-async function beautifyJson(): Promise<void> {
+/**
+ * 美化：打开 {@code text.prettyPrint} 并用一个同内容的新 {@link File} 触发重渲染。
+ *
+ * <p><b>不预先改写文件内容</b>（也不改文件名）——格式化由 renderer-text 内置的
+ * Prettier 在渲染时完成，口径与其自动美化完全一致，避免前端再维护一套格式化规则
+ * 而与渲染器产生分歧。</p>
+ *
+ * <p>换 File 实例而非只改 options：渲染器的格式化逻辑跑在渲染阶段，
+ * 换文件能保证一定重跑一次渲染（只改 options 是否触发重渲染依赖渲染器实现）。</p>
+ */
+async function beautify(): Promise<void> {
   const file = props.file;
   if (!file) return;
+  if (file.size > PRETTY_PRINT_MAX_BYTES) {
+    message.warning(`文件超过 ${Math.round(PRETTY_PRINT_MAX_BYTES / 1024)}KB，已跳过美化`);
+    return;
+  }
+  prettyPrint.value = true;
   try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    const pretty = JSON.stringify(parsed, null, 2) + "\n";
-    const dot = file.name.lastIndexOf(".");
-    const prettyName = dot > 0 ? `${file.name.slice(0, dot)}.pretty${file.name.slice(dot)}` : `pretty-${file.name}`;
-    // 换 File 触发 watch → 遮罩重盖 → 重渲染（扩展名不变，渲染器不变）
-    fileRef.value = new File([pretty], prettyName, { type: "application/json" });
+    const buf = await file.arrayBuffer();
+    fileRef.value = new File([buf], file.name, { type: file.type });
   } catch (e) {
-    console.warn("[FvPanelBase] JSON 美化失败（内容可能不是合法 JSON）", e);
+    console.warn("[FvPanelBase] 美化失败（内容可能无法解析）", e);
+    message.error("美化失败：内容无法解析");
   }
 }
 
@@ -222,45 +273,67 @@ async function copyFileContent(): Promise<void> {
 }
 
 /**
- * 复制按钮悬停态。
+ * 工具条按钮悬停态（复制 / 美化共用）。
  *
- * <p>工具条按钮由 file-viewer 渲染进 shadow DOM（插槽内容被
- * 手工挂进 shadow 树），文档样式表（含本组件 scoped 样式）
- * 触达不到 slotted 元素——此前 {@code .fv-panel-base__copy}
- * 的 scoped 规则从未生效，按钮一直吃浏览器 UA 默认样式
- * （灰底 / 方角 / 2px 边框，与内置 pill 按钮不一致）。
- * 故样式走内联 + JS 悬停态。</p>
+ * <p>工具条按钮由 file-viewer 渲染进 shadow DOM（插槽内容被手工挂进 shadow 树），
+ * 文档样式表（含本组件 scoped 样式）触达不到 slotted 元素——此前
+ * {@code .fv-panel-base__copy} / {@code .fv-panel-base__beautify} 的 scoped 规则
+ * 从未生效，按钮一直吃浏览器 UA 默认样式（灰底 / 方角 / 2px 边框，与内置 pill
+ * 按钮不一致）。故样式一律走内联 + JS 悬停态。</p>
  */
 const copyHover = ref(false);
+const beautifyHover = ref(false);
+/** 键盘聚焦态（与悬停区分：只用 :focus 无法在内联样式里表达，这里用事件跟踪） */
+const copyFocus = ref(false);
+const beautifyFocus = ref(false);
 
-/** 复制按钮内联样式：对齐内置「下载」按钮（floating 变体） */
-const copyButtonStyle = computed<CSSProperties>(() => ({
-  height: "32px",
-  minWidth: "48px",
-  padding: "0 10px",
-  border: "0",
-  borderRadius: "999px",
-  background: copyHover.value
-    ? "var(--file-viewer-button-hover-bg, rgba(33,163,102,.1))"
-    : "transparent",
-  color: copyHover.value
-    ? "var(--file-viewer-button-hover-color, #16774c)"
-    : "var(--file-viewer-button-color, #40546a)",
-  fontSize: "12px",
-  fontWeight: "800",
-  lineHeight: "32px",
-  fontFamily: "inherit",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  appearance: "none",
-  WebkitAppearance: "none",
-  boxSizing: "border-box",
-  margin: "0",
-  outline: "none",
-}));
+/** 工具条内联按钮样式：对齐 file-viewer 内置「下载」按钮（floating 变体） */
+function toolbarPillStyle(hover: boolean, focus = false): CSSProperties {
+  const isHover = hover || focus;
+  return {
+    height: "32px",
+    minWidth: "48px",
+    padding: "0 10px",
+    border: isHover ? "1px solid rgba(33,163,102,.45)" : "1px solid transparent",
+    borderRadius: "999px",
+    background: isHover
+      ? "rgba(33,163,102,.09)"
+      : "transparent",
+    color: isHover
+      ? "#16774c"
+      : "var(--file-viewer-button-color, #40546a)",
+    fontSize: "12px",
+    fontWeight: "800",
+    lineHeight: "32px",
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    appearance: "none",
+    WebkitAppearance: "none",
+    boxSizing: "border-box",
+    margin: "0 0 0 4px",
+    outline: "none",
+    boxShadow: focus
+      ? "0 0 0 2px rgba(33,163,102,.3), 0 0 12px rgba(33,163,102,.22)"
+      : hover
+        ? "0 0 10px rgba(33,163,102,.25)"
+        : "none",
+    transition: "background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease",
+    WebkitTapHighlightColor: "transparent",
+    userSelect: "none",
+  };
+}
+
+/** 复制按钮内联样式 */
+const copyButtonStyle = computed<CSSProperties>(() => toolbarPillStyle(copyHover.value, copyFocus.value));
+
+/** 美化按钮内联样式（与复制按钮同一套，保证工具条内视觉一致） */
+const beautifyButtonStyle = computed<CSSProperties>(() =>
+  toolbarPillStyle(beautifyHover.value, beautifyFocus.value),
+);
 
 /** 首帧渲染完成后按 initialKeyword 自动触发关键词高亮（官方 searchDocument API） */
 function applyInitialKeyword(): void {
@@ -286,6 +359,8 @@ watch(
     fileRef.value = f;
     // 换文件 = 重新进入渲染期，遮罩重新盖上直到新的 load-complete
     coverLoading.value = true;
+    // 美化是「当前文件」的操作，换文件即复位（新文件默认按原样渲染）
+    prettyPrint.value = false;
     if (!fileViewerReady && !disposed) void ensureFileViewerLoaded();
   },
 );
@@ -323,14 +398,20 @@ function onViewerError(err: unknown): void {
       @load-complete="onLoadComplete"
       @error="onViewerError"
     >
-      <!-- 工具条 start 区（搜索框旁）：JSON 美化按钮。样式对齐内置文本按钮
-           （无边框透明底），避免撑破浮动工具条。 -->
-      <template v-if="enableJsonBeautify && isJsonFamily" #toolbar-start>
+      <!-- 工具条 start 区（搜索框旁）：美化按钮。
+           样式与复制按钮同源（内联 pill，见 toolbarPillStyle）——
+           slotted 内容在 shadow 树内，scoped 样式触达不到。 -->
+      <template v-if="enableBeautify && canBeautify" #toolbar-start>
         <button
           type="button"
           class="fv-panel-base__beautify"
-          title="JSON 美化（两空格缩进重排）"
-          @click="beautifyJson"
+          title="美化（按 Prettier 格式化当前文件）"
+          :style="beautifyButtonStyle"
+          @click="beautify"
+          @mouseenter="beautifyHover = true"
+          @mouseleave="beautifyHover = false"
+          @focus="beautifyFocus = true"
+          @blur="beautifyFocus = false"
         >
           美化
         </button>
@@ -348,6 +429,8 @@ function onViewerError(err: unknown): void {
           @click="copyFileContent"
           @mouseenter="copyHover = true"
           @mouseleave="copyHover = false"
+          @focus="copyFocus = true"
+          @blur="copyFocus = false"
         >
           复制
         </button>
@@ -403,7 +486,7 @@ function onViewerError(err: unknown): void {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  background: #fff;
+  background: var(--el-bg-color, #fff);
 }
 
 .fv-panel-base__cover-card {
@@ -417,8 +500,13 @@ function onViewerError(err: unknown): void {
   min-width: 64px;
   padding: 10px 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #eef3ff 0%, #e8f7f3 100%);
-  color: #33556e;
+  border: 1px solid var(--el-color-primary-light-8, #d9ecff);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9, #eef3ff) 0%,
+    var(--el-color-success-light-9, #e8f7f3) 100%
+  );
+  color: var(--el-text-color-primary, #33556e);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -436,7 +524,7 @@ function onViewerError(err: unknown): void {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #7ba3c9;
+  background: var(--el-color-primary, #7ba3c9);
   animation: fv-cover-bounce 1.1s ease-in-out infinite;
 }
 
@@ -461,7 +549,7 @@ function onViewerError(err: unknown): void {
 }
 
 .fv-panel-base__cover-text {
-  color: #64748b;
+  color: var(--el-text-color-secondary, #64748b);
   font-size: 13px;
 }
 
@@ -470,19 +558,25 @@ function onViewerError(err: unknown): void {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 3px;
+  height: 2px;
   overflow: hidden;
-  background: rgba(148, 163, 184, 0.18);
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
 }
-
 .fv-panel-base__cover-bar i {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 38%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #4f7ef7, #38bdf8, #34d399);
-  animation: fv-cover-sweep 1.6s ease-in-out infinite;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--el-color-primary, #409eff) 40%,
+    var(--el-color-success, #67c23a) 70%,
+    transparent 100%
+  );
+  box-shadow: 0 0 8px var(--el-color-primary, #409eff);
+  animation: fv-cover-sweep 1.4s ease-in-out infinite;
 }
 
 @keyframes fv-cover-sweep {
@@ -491,6 +585,17 @@ function onViewerError(err: unknown): void {
   }
   100% {
     left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-panel-base__cover-dots i,
+  .fv-panel-base__cover-bar i {
+    animation: none;
+  }
+  .fv-cover-enter-active,
+  .fv-cover-leave-active {
+    transition: none;
   }
 }
 
@@ -504,7 +609,7 @@ function onViewerError(err: unknown): void {
   opacity: 0;
 }
 
-/* ---- 工具条扩展：关键词输入框 / JSON 美化按钮（对齐内置文本按钮视觉） ---- */
+/* ---- 工具条扩展：关键词输入框（样式内联见 toolbarPillStyle） ---- */
 .fv-panel-base__keyword {
   width: 150px;
   height: 26px;
@@ -521,25 +626,6 @@ function onViewerError(err: unknown): void {
 .fv-panel-base__keyword:focus {
   border-color: #4f7ef7;
   box-shadow: 0 0 0 2px rgba(79, 126, 247, 0.15);
-}
-
-.fv-panel-base__beautify {
-  height: 26px;
-  margin-left: 4px;
-  padding: 0 8px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: #444c56;
-  font-size: 12px;
-  line-height: 26px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-.fv-panel-base__beautify:hover {
-  background: rgba(148, 163, 184, 0.18);
 }
 
 /* ---- 工具条排序（::part 穿透 file-viewer shadow DOM） ----
@@ -568,4 +654,31 @@ function onViewerError(err: unknown): void {
 .fv-panel-base__body::part(theme-button) {
   order: 5;
 }
+/* ---- 选中颜色（跟随主题主色） ---- */
+.fv-panel-base ::selection,
+.fv-panel-base *::selection {
+  background: var(--el-color-primary-light-8, rgba(64, 158, 255, 0.18));
+  color: var(--el-text-color-primary, #303133);
+}
+
+/* ---- 细滚动条（全局） ---- */
+.fv-panel-base__body::-webkit-scrollbar,
+.fv-panel-base::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.fv-panel-base__body::-webkit-scrollbar-track,
+.fv-panel-base::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fv-panel-base__body::-webkit-scrollbar-thumb,
+.fv-panel-base::-webkit-scrollbar-thumb {
+  background: var(--el-border-color, #dcdfe6);
+  border-radius: 999px;
+}
+.fv-panel-base__body::-webkit-scrollbar-thumb:hover,
+.fv-panel-base::-webkit-scrollbar-thumb:hover {
+  background: var(--el-border-color-darker, #c4c7ce);
+}
+
 </style>

@@ -66,8 +66,10 @@ otherConfig:
   #   或部署侧（198 自带的 app.yaml）再显式填远端地址。
   # 桶名 = 目标文件服务的 FileStorage Bean 名，必须与 FS_API_TARGET 指向的服务一致：
   #   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
+  # monitor 部署的深度入口直开监控内嵌文件服务（Bean 名 localFileStorage），
+  # 主桶名否则点开即 404（与 origin/master 的修复对齐）。
   filestorage:
-    bucket: local
+    bucket: localFileStorage
     quotaGb: 5
 
 # 站内消息（顶栏铃铛）

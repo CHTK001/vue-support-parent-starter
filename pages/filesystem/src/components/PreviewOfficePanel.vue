@@ -33,6 +33,9 @@ import {
   colIndexToLetter,
   computeRangeStats,
   type ParsedXlsx,
+  parseDelimitedBytes,
+  parseFodsWorkbook,
+  parseOdsWorkbook,
   parseXlsxWorkbook,
   type RangeSelection,
   type RangeStats,
@@ -45,14 +48,23 @@ import {
 } from "../utils/eVirtTableSelectionBridge";
 
 /**
- * 可做选区统计的表格扩展名（xlsxSelectStats 能解析，或 xls 经 WASM 转换后可解析）。
+ * 可做选区统计的表格扩展名。
  *
- * <p>非 OOXML 表格（csv / tsv / ods / fods / xlsb）无法用 JSZip 解析，
- * 工具条不显示；file-viewer 仍正常渲染它们，只是不带统计。</p>
+ * <p>四类容器各有解析器：OOXML（xlsx/xlsm/xltx/xltm）、传统 BIFF（xls/xlt，
+ * 浏览器内 WASM 转 xlsx 后复用 OOXML 解析器）、纯文本分隔（csv/tsv）、
+ * OpenDocument（ods 压缩包 / fods 扁平 XML）。</p>
  */
 const STATS_EXTS: ReadonlySet<string> = new Set([
   "xlsx", "xlsm", "xltx", "xltm", "xls", "xlt",
+  "csv", "tsv", "ods", "fods",
 ]);
+
+/** 去掉扩展名，作为 CSV / TSV 的工作表名 */
+function stripExt(name: string): string {
+  const i = name.lastIndexOf(".");
+  const base = i > 0 ? name.slice(0, i) : name;
+  return base || "Sheet1";
+}
 
 /** 数据加载中状态（v-model，由本组件在拉取字节期间置位） */
 const loading = defineModel<boolean>("loading", { default: false });
@@ -238,12 +250,23 @@ async function ensureExcelParsed(): Promise<void> {
   const token = ++excelParseToken;
   try {
     const u8 = new Uint8Array(bytes);
-    // ZIP 容器直接解析；否则按 .xls 的 BIFF 走 WASM 转换再解析
-    const isZip =
-      u8.length > 3 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
-    const parsed = isZip
-      ? await parseXlsxWorkbook(bytes)
-      : await parseXlsBytesForStats(u8);
+    const ext = extensionOf(props.fileName);
+    let parsed: ParsedXlsx;
+    if (ext === "csv" || ext === "tsv") {
+      // 纯文本分隔：自动去 BOM + 嗅探分隔符（逗号 / 分号 / 制表符 / 竖线）
+      parsed = parseDelimitedBytes(u8, stripExt(props.fileName));
+    } else if (ext === "fods") {
+      // 扁平 ODS：单文件 XML，不算 ZIP
+      parsed = parseFodsWorkbook(new TextDecoder("utf-8").decode(u8));
+    } else if (ext === "ods") {
+      // ODS 压缩包：读 content.xml（不必是 xl/workbook.xml）
+      parsed = await parseOdsWorkbook(bytes);
+    } else {
+      // ZIP 容器直接解析；否则按 .xls 的 BIFF 走 WASM 转换再解析
+      const isZip =
+        u8.length > 3 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
+      parsed = isZip ? await parseXlsxWorkbook(bytes) : await parseXlsBytesForStats(u8);
+    }
     if (token === excelParseToken) excelParsed.value = parsed;
   } catch (e) {
     console.warn("[PreviewOfficePanel] 表格统计解析失败", e);
@@ -384,6 +407,48 @@ async function copyExcelSelection(): Promise<void> {
 const showStatsBar = computed(
   () => STATS_EXTS.has(extensionOf(props.fileName)) && !failReason.value && !!fileRef.value,
 );
+
+/**
+ * 把当前选区的统计结果复制到剪贴板（纯文本，一行一项）。
+ *
+ * <p>与「复制选区」区分：后者复制单元格内容（TSV，可直接粘回表格），
+ * 这里只复制统计口径，便于贴进邮件 / 记录。</p>
+ */
+async function copyExcelStats(): Promise<void> {
+  const st = excelStats.value;
+  if (!st) return;
+  const lines = [
+    `选区：${excelRangeLabel.value}`,
+    `求和：${formatStat(st.sum)}`,
+    `平均值：${formatStat(st.avg)}`,
+    `计数：${st.count}`,
+    `最小值：${formatStat(st.min)}`,
+    `最大值：${formatStat(st.max)}`,
+    `中位数：${formatStat(st.median)}`,
+    `标准差：${formatStat(st.stdev)}`,
+    `非空：${st.nonEmpty}`,
+    `去重：${st.distinct}`,
+    `单元格总数：${st.total}`,
+  ];
+  const text = lines.join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success("已复制统计结果");
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      message.success("已复制统计结果");
+    } catch {
+      message.error("复制失败");
+    }
+  }
+}
 
 /**
  * 取原始字节用于嗅探（不带 preview/render 参数）
@@ -693,13 +758,35 @@ defineExpose({ wrapRef });
           <span class="preview-office-panel__stat">求和 <b>{{ formatStat(excelStats.sum) }}</b></span>
           <span class="preview-office-panel__stat">平均值 <b>{{ formatStat(excelStats.avg) }}</b></span>
           <span class="preview-office-panel__stat">计数 <b>{{ excelStats.count }}</b></span>
+          <span class="preview-office-panel__stat">中位数 <b>{{ formatStat(excelStats.median) }}</b></span>
+          <span class="preview-office-panel__stat">标准差 <b>{{ formatStat(excelStats.stdev) }}</b></span>
           <span class="preview-office-panel__stat">最小值 <b>{{ formatStat(excelStats.min) }}</b></span>
           <span class="preview-office-panel__stat">最大值 <b>{{ formatStat(excelStats.max) }}</b></span>
+          <span class="preview-office-panel__stat">非空 <b>{{ excelStats.nonEmpty }}</b></span>
+          <span class="preview-office-panel__stat">去重 <b>{{ excelStats.distinct }}</b></span>
+          <span class="preview-office-panel__stat">单元格 <b>{{ excelStats.total }}</b></span>
         </template>
-        <span v-else class="preview-office-panel__toolbar-hint">{{ excelStatsError ? "统计不可用（表格结构异常）" : "所选区域没有数值" }}</span>
+        <span v-else class="preview-office-panel__toolbar-hint">
+          <svg class="preview-office-panel__hint-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <line x1="8" y1="6.5" x2="8" y2="11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="8" cy="4.5" r="0.7" fill="currentColor"/>
+          </svg>
+          {{ excelStatsError ? "统计不可用（表格结构异常）" : "拖选单元格即可查看统计" }}
+        </span>
+        <button
+          v-if="excelStats"
+          type="button"
+          class="preview-office-panel__copy-btn"
+          title="复制当前选区的统计结果"
+          @click="copyExcelStats"
+        >
+          复制统计
+        </button>
         <button
           type="button"
           class="preview-office-panel__copy-btn"
+          title="将选中的单元格内容以 TSV 格式复制到剪贴板（可直接粘回 Excel）"
           :disabled="!excelParsed || excelStatsError"
           @click="copyExcelSelection"
         >
@@ -792,34 +879,71 @@ defineExpose({ wrapRef });
 .preview-office-panel__toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   flex: none;
-  padding: 6px 10px;
+  padding: 8px 12px;
   margin-bottom: 8px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border: 1px solid transparent;
   border-radius: var(--el-radius-md, 8px);
-  background: var(--el-fill-color-light, #fafafa);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-primary, #409eff) 7%, var(--el-bg-color, #fff)) 0%,
+      color-mix(in srgb, var(--el-color-success, #67c23a) 4%, var(--el-bg-color, #fff)) 100%
+    );
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--el-color-primary, #409eff) 25%, var(--el-border-color-lighter, #ebeef5)),
+    0 4px 16px color-mix(in srgb, var(--el-color-primary, #409eff) 10%, transparent);
   color: var(--el-text-color-regular, #606266);
   font-size: 12px;
   line-height: 1.6;
 }
 
 .preview-office-panel__toolbar-range {
-  color: var(--el-color-primary, #409eff);
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary, #409eff) 0%,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 55%, var(--el-color-info, #909399)) 100%
+  );
+  color: #fff;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 18px;
   margin-right: 4px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary, #409eff) 35%, transparent);
 }
 
 .preview-office-panel__stat {
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary, #409eff) 20%, var(--el-border-color-lighter, #ebeef5));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 5%, var(--el-bg-color, #fff));
   color: var(--el-text-color-secondary, #909399);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+.preview-office-panel__stat:hover {
+  border-color: var(--el-color-primary, #409eff);
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 10%, var(--el-bg-color, #fff));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-primary, #409eff) 28%, transparent);
 }
 .preview-office-panel__stat b {
   color: var(--el-text-color-primary, #303133);
-  font-weight: 600;
+  font-weight: 700;
   margin-left: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
 .preview-office-panel__toolbar-hint {
@@ -831,18 +955,42 @@ defineExpose({ wrapRef });
   all: unset;
   cursor: pointer;
   font-size: 12px;
-  color: var(--el-color-primary, #409eff);
+  color: var(--el-color-success, #67c23a);
   margin-left: auto;
-  padding: 2px 8px;
-  border-radius: var(--el-radius-sm, 4px);
-  transition: background 0.15s;
+  padding: 2px 12px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--el-color-success, #67c23a) 40%, transparent);
+  background: color-mix(in srgb, var(--el-color-success, #67c23a) 8%, transparent);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.1s ease;
+}
+/* 第二个按钮贴在前一个右侧，不再各自吃掉剩余空间 */
+.preview-office-panel__copy-btn ~ .preview-office-panel__copy-btn {
+  margin-left: 0;
 }
 .preview-office-panel__copy-btn:hover:not(:disabled) {
-  background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.08));
+  background: color-mix(in srgb, var(--el-color-success, #67c23a) 16%, transparent);
+  border-color: var(--el-color-success, #67c23a);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-success, #67c23a) 35%, transparent);
+}
+.preview-office-panel__copy-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.preview-office-panel__copy-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-success, #67c23a) 60%, transparent);
+  outline-offset: 2px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-success, #67c23a) 30%, transparent);
 }
 .preview-office-panel__copy-btn:disabled {
   color: var(--el-text-color-placeholder, #c0c4cc);
   cursor: default;
+  border-color: var(--el-border-color-lighter, #ebeef5);
+  background: transparent;
+  box-shadow: none;
 }
 
 /* 尊重系统「减少动态效果」偏好 */
@@ -850,5 +998,38 @@ defineExpose({ wrapRef });
   .preview-office-panel__wrap {
     transition: none;
   }
+}
+.preview-office-panel__toolbar-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  font-size: 12px;
+}
+.preview-office-panel__hint-icon {
+  flex: none;
+  color: var(--el-text-color-placeholder, #b1b3b8);
+}
+
+/* ---- 选中颜色 + 细滚动条 ---- */
+.preview-office-panel ::selection,
+.preview-office-panel *::selection {
+  background: var(--el-color-primary-light-8, rgba(64, 158, 255, 0.18));
+  color: var(--el-text-color-primary, #303133);
+}
+
+.preview-office-panel__wrap::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.preview-office-panel__wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.preview-office-panel__wrap::-webkit-scrollbar-thumb {
+  background: var(--el-border-color, #dcdfe6);
+  border-radius: 999px;
+}
+.preview-office-panel__wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--el-border-color-darker, #c4c7ce);
 }
 </style>

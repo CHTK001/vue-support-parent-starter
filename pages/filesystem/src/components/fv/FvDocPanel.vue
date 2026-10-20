@@ -10,7 +10,7 @@
   失败时 emit('fallback') + emit('error', msg)，由父组件切回 iframe 服务端通道。
 -->
 <script setup lang="ts">
-import { computed, onBeforeUnmount, shallowRef, watch } from "vue";
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { authHeaders, objectUrl } from "../../api/filestorageApi";
 import { extensionOf } from "../../utils/officeRenderer";
@@ -59,6 +59,31 @@ let fileViewerReady = false;
 let disposed = false;
 /** 防竞态令牌：props 变化触发重拉，只采信最后一次 */
 let loadToken = 0;
+
+/** 面板内可读的失败文案（非空时盖住渲染区，例如「XMind 已加密」） */
+const failReason = ref("");
+
+/**
+ * XMind 容器校验：不是 ZIP，或 ZIP 内既无 content.json 也无 content.xml 时，
+ * 给出**可执行的中文提示**，而不是把解析器抛出的原始异常
+ * （如 {@code Cannot parse .xmind file: neither content.json nor content.xml found}）
+ * 或 iframe 报错页直接甩给用户。
+ *
+ * @param buf 文件字节
+ * @return 失败文案；校验通过返回 {@code null}
+ */
+function validateXmind(buf: ArrayBuffer): string | null {
+  const u8 = new Uint8Array(buf);
+  if (u8.length < 4 || u8[0] !== 0x50 || u8[1] !== 0x4b) {
+    return "该文件不是有效的 XMind 压缩包（可能已损坏或已加密），无法预览";
+  }
+  // ZIP 条目名以 ASCII 存于本地文件头/中央目录，直接按字节搜索即可判断条目是否存在
+  const text = new TextDecoder("latin1").decode(u8);
+  if (!text.includes("content.json") && !text.includes("content.xml")) {
+    return "XMind 文件缺少 content.json / content.xml（可能已加密或版本不受支持），无法预览";
+  }
+  return null;
+}
 
 /**
  * 懒加载 file-viewer 全套依赖（照抄 PreviewOfficePanel.vue 第 106-166 行模式）。
@@ -195,6 +220,7 @@ async function load(): Promise<void> {
   disposed = false;
   loading.value = true;
   fileRef.value = null;
+  failReason.value = "";
   try {
     const name = resolveViewerFileName();
     const kind = kindOf(name);
@@ -205,6 +231,16 @@ async function load(): Promise<void> {
     renderers.value = [renderer];
     const buf = await fetchBytes();
     if (disposed || token !== loadToken) return;
+    if (kind === "mindmap") {
+      const bad = validateXmind(buf);
+      if (bad) {
+        // 明确的容器问题（损坏/加密/非 XMind）：面板内提示，不再切 iframe
+        // （服务端同样解析不了，切过去只会再失败一次）
+        failReason.value = bad;
+        emit("error", bad);
+        return;
+      }
+    }
     fileRef.value = new File([new Uint8Array(buf)], name, { type: mimeOf(name, kind) });
   } catch (e) {
     if (disposed || token !== loadToken) return;
@@ -245,7 +281,17 @@ function onRenderError(err: unknown): void {
 
 <template>
   <div class="fv-doc-panel">
-    <div v-if="loading && !fileRef" class="fv-doc-panel__mask">加载中…</div>
+    <div v-if="loading && !fileRef" class="fv-doc-panel__mask">
+      <span class="fv-doc-panel__spinner" aria-hidden="true"></span>
+      <span>正在准备预览…</span>
+    </div>
+    <div v-else-if="failReason" class="fv-doc-panel__mask fv-doc-panel__mask--error">
+      <div class="fv-doc-panel__card">
+        <span class="fv-doc-panel__icon" aria-hidden="true">!</span>
+        <span class="fv-doc-panel__title">无法预览该文件</span>
+        <span class="fv-doc-panel__desc">{{ failReason }}</span>
+      </div>
+    </div>
     <component
       :is="viewerComp"
       v-else-if="viewerComp && fileRef && renderers.length"
@@ -276,9 +322,107 @@ function onRenderError(err: unknown): void {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   width: 100%;
   height: 100%;
+  padding: 24px;
   color: var(--el-text-color-secondary, #909399);
   font-size: 13px;
+  text-align: center;
+}
+
+.fv-doc-panel__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--el-border-color-lighter, #ebeef5);
+  border-top-color: var(--el-color-primary, #409eff);
+  animation: fv-doc-spin 0.8s linear infinite;
+}
+
+@keyframes fv-doc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 失败态：赛博风说明卡片 */
+.fv-doc-panel__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 46ch;
+  padding: 24px 28px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-color-warning, #e6a23c) 8%, var(--el-fill-color-lighter, #fafafa)) 0%,
+      color-mix(in srgb, var(--el-color-danger, #f56c6c) 4%, var(--el-fill-color-lighter, #fafafa)) 100%
+    );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--el-color-warning, #e6a23c) 20%, transparent),
+    0 8px 32px color-mix(in srgb, var(--el-color-warning, #e6a23c) 14%, transparent);
+}
+
+.fv-doc-panel__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-warning-light-9, #fdf6ec) 0%,
+    color-mix(in srgb, var(--el-color-warning, #e6a23c) 20%, var(--el-color-warning-light-9, #fdf6ec)) 100%
+  );
+  color: var(--el-color-warning, #e6a23c);
+  font-size: 18px;
+  font-weight: 700;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--el-color-warning, #e6a23c) 40%, transparent);
+}
+
+.fv-doc-panel__title {
+  color: var(--el-text-color-primary, #303133);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fv-doc-panel__desc {
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-doc-panel__spinner {
+    animation: none;
+  }
+}
+
+/* ---- 选中颜色 + 细滚动条 ---- */
+.fv-doc-panel ::selection,
+.fv-doc-panel *::selection {
+  background: var(--el-color-primary-light-8, rgba(64, 158, 255, 0.18));
+  color: var(--el-text-color-primary, #303133);
+}
+
+.fv-doc-panel::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.fv-doc-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fv-doc-panel::-webkit-scrollbar-thumb {
+  background: var(--el-border-color, #dcdfe6);
+  border-radius: 999px;
+}
+.fv-doc-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--el-border-color-darker, #c4c7ce);
 }
 </style>
