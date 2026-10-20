@@ -68,7 +68,7 @@
 .collect-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--cc-gap);
+  gap: 8px;
 }
 
 /* 控制台要在一屏里看完，卡片比默认更紧 */

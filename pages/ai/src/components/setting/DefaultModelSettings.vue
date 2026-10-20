@@ -1065,10 +1065,17 @@ const shouldShowField = (group, field) => {
     if (ENGINE_FIELDS.includes(field)) {
         return false
     }
-    // 图像上色配置走「系统设置 → 默认模型 → 图像上色配置」独立菜单，
-    // 避免在默认模型页再次渲染同组 colorize_*，两处同时编辑会互相覆盖。
-    if (group === 'image' && String(field || '').startsWith('colorize_')) {
-        return false
+    // 图像上色配置走「系统设置 → 默认模型 → 图像上色配置」独立菜单，与图片识别其它
+    // 字段分属两个入口：独立菜单（groups 含 image）只渲染 colorize_*，默认模型整页
+    // （未传 groups）反过来隐藏 colorize_*，避免同一批字段两处都能配、各自保存打架。
+    if (group === 'image') {
+        const colorizeField = String(field || '').startsWith('colorize_')
+        if (props?.groups?.includes('image')) {
+            return colorizeField
+        }
+        if (colorizeField) {
+            return false
+        }
     }
     // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），
     // 这里隐藏通用行，避免出现双入口（下拉值与动态表单各自保存会互相打架）
@@ -1630,9 +1637,9 @@ const saveGroupSettings = async (group) => {
         }
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)
-        // 这三个分组的模型是人脸识别 / 以图搜图的门禁判据，保存后即时刷新，
-        // 侧栏徽标与两个页面的可用性不用等刷新页面就跟着变
-        if (group === 'face' || group === 'image_search' || group === 'runtime') {
+        // 这几个分组的模型是人脸识别 / 以图搜图 / 图像上色的门禁判据，保存后即时刷新，
+        // 侧栏徽标与各页面的可用性不用等刷新页面就跟着变
+        if (group === 'face' || group === 'image_search' || group === 'image' || group === 'runtime') {
             await modelConfig.refresh()
         }
     } catch (error) {
@@ -1664,6 +1671,64 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 图像上色配置快捷入口：从默认模型页跳到独立配置菜单，不重复渲染色块 */
+.settings-quick {
+  display: flex;
+}
+.settings-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular, #606266);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s, background 0.18s;
+}
+.settings-quick-item:hover {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+}
+.settings-quick-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+.settings-quick-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.settings-quick-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+.settings-quick-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-quick-arrow {
+  color: var(--el-text-color-secondary, #909399);
+  flex-shrink: 0;
+}
+
 /* 以图搜图图像底库：挂在本分组的字段列表之下，作为一块独立管理区 */
 .lib-slot {
   margin-top: 16px;

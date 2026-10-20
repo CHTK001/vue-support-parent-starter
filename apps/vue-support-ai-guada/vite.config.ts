@@ -325,6 +325,7 @@ export default defineConfig({
         // 这些是插件生成的只读资产，监听无意义，故排除。
         (p: string) =>
           /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
+          /(^|[/\\])public[/\\]file-viewer([/\\]|$)/.test(p) ||
           /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p) ||
           /(^|[/\\])public[/\\]wasm([/\\]|$)/.test(p),
       ],

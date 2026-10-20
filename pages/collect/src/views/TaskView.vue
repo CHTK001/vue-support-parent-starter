@@ -10,7 +10,7 @@
   节点日志（原始表格，排查时看细节）。
 -->
 <script setup lang="ts">
-import { computed, onActivated, ref } from "vue";
+import { computed, onActivated, onBeforeUnmount, onMounted, ref } from "vue";
 import { getRouter, msgError, msgInfo, msgSuccess } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -339,6 +339,31 @@ onActivated(() => {
   tableRef.value?.reload();
 });
 
+/* 运行中任务的实时耗时：前端每 1s 用开始时间滚动刷新，不需要等后端刷新 */
+const clock = ref(Date.now());
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  clockTimer = setInterval(() => {
+    clock.value = Date.now();
+  }, 1000);
+});
+onBeforeUnmount(() => {
+  if (clockTimer) {
+    clearInterval(clockTimer);
+    clockTimer = null;
+  }
+});
+
+function displayCost(row: CollectTask): number | null {
+  if (row.running || row.collectTaskStatus === "RUNNING") {
+    const begin = row.collectTaskBeginTime ? new Date(row.collectTaskBeginTime.replace(/-/g, "/")).getTime() : 0;
+    if (begin) {
+      return Math.max(0, clock.value - begin);
+    }
+  }
+  return row.collectTaskCost ?? null;
+}
+
 </script>
 
 <template>
@@ -393,7 +418,7 @@ onActivated(() => {
       </template>
       <template #trigger="{ row }">{{ triggerText(row.collectTaskTriggerType) }}</template>
       <template #cost="{ row }">
-        <ReCostText :cost="costMs(row.collectTaskCost)" />
+        <ReCostText :cost="displayCost(row)" />
       </template>
       <template #counts="{ row }">
         {{ row.collectTaskNodeCount ?? 0 }} / {{ row.collectTaskRequestCount ?? 0 }} /
@@ -420,7 +445,9 @@ onActivated(() => {
         :loading="logsLoading"
         :data="logs"
         :columns="logColumns"
-        :pagination="false"
+        :pagination="true"
+        pagination-mode="scroll"
+        :page-size="50"
         :layout-table="{ maxHeight: 460 }"
         row-key="collectTaskLogId"
         empty-text="该任务暂无节点日志"

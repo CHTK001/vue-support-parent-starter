@@ -292,3 +292,58 @@ export const fetchLocalFiles = async (path?: string | null, _files = true): Prom
  */
 export const fetchSyncWriteModes = () =>
   http().get("/ms/monitor/datasync/write-modes").then(r => unwrap<SyncWriteMode[]>(r));
+
+/** 批量导入：单条 CSV 列 → 目标列映射 */
+export interface BulkImportMapping {
+  source: string;
+  target: string;
+}
+
+/** 批量导入：一个输出目标（同一个 CSV 可并行写入多个目标） */
+export interface BulkImportOutput {
+  targetDatasourceId: number;
+  targetTable: string;
+  columnMapping: BulkImportMapping[];
+}
+
+/** 批量导入请求：后端对 outputs 逐个复用原有单目标 bulk load 方法即可 */
+export interface BulkImportPayload {
+  /** 任务名称（可空，后端可自动生成） */
+  taskName?: string;
+  filePath: string;
+  delimiter: string;
+  encoding: string;
+  hasHeader: boolean;
+  outputs: BulkImportOutput[];
+}
+
+/** 批量导入：单个输出目标的结果 */
+export interface BulkImportResultOutput {
+  targetDatasourceId: number;
+  targetTable: string;
+  status: "SUCCESS" | "FAILED";
+  readCount: number;
+  writeCount: number;
+  costMs: number;
+  message?: string;
+}
+
+/** 批量导入：汇总结果 + 每个输出目标的结果 */
+export interface BulkImportResult {
+  status: "SUCCESS" | "FAILED";
+  readCount: number;
+  writeCount: number;
+  costMs: number;
+  message?: string;
+  outputs: BulkImportResultOutput[];
+}
+
+/**
+ * 批量导入 CSV
+ *
+ * <p>请求体带 {@code outputs[]}。后端建议把原有单目标 bulk load 方法包一层，
+ * 用 {@code Executors.newVirtualThreadPerTaskExecutor()} 循环提交每个 output，
+ * 等待全部完成后按目标汇总返回。</p>
+ */
+export const bulkImportCsv = (data: BulkImportPayload) =>
+  http().post("/ms/monitor/bulkimport").data(data).noToast(true).then(r => unwrap<BulkImportResult>(r));
