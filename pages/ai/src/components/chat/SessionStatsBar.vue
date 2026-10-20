@@ -80,7 +80,13 @@
     </el-popover>
 
     <!-- 累计 Token / 缓存命中：悬停看 Token 用量明细 -->
-    <el-popover v-else trigger="hover" placement="top-start" :width="272" :show-arrow="true">
+    <!--
+      注意这里**不是** v-else：本组件有三个并列的 popover（轮次/速度、Token/缓存、
+      上下文占用），只有第一个是「pending 骨架态」的 v-else，后两个与第一个平级。
+      写成 v-else 会让 Vue 报「v-else/v-else-if has no adjacent v-if or v-else-if」
+      —— 这是编译期错误，整个包都构建不出来。
+    -->
+    <el-popover trigger="hover" placement="top-start" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--shrink stats-cluster--hoverable">
           <el-icon class="stats-icon"><DataLine20Regular /></el-icon>
@@ -118,7 +124,8 @@
     </el-popover>
 
     <!-- 上下文占用：环形 + 百分比。悬停看已用/窗口与 token 构成 -->
-    <el-popover v-else trigger="hover" placement="top-end" :width="272" :show-arrow="true">
+    <!-- 与上面两个 popover 平级，不是 v-else（原因见上一处注释） -->
+    <el-popover trigger="hover" placement="top-end" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--right stats-cluster--hoverable">
           <span class="stats-ring" :style="ringStyle" role="img" :aria-label="contextHint"></span>

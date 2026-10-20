@@ -15,7 +15,7 @@ import { createContextApp } from "@repo/app";
 import "./styles/pages.css";
 import "./styles/telemetry.css";
 import ProcessHost from "./components/ProcessHost.vue";
-import monitorRoutes from "./routes";
+import monitorRoutes from "./router";
 import { registerMonitorDatasourceSchema } from "@pages/datasource";
 
 /** 本页可能用到的 Re* 组件。
