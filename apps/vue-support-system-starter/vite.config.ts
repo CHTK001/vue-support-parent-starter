@@ -80,6 +80,10 @@ export default createVite({
   // 别漏：漏 @pages/datasource 会让 collect 的 routes 桶文件 transform 500，
   // 连带 pages/collect 整包加载失败，调度管理页白屏并渲染成 [object Promise]。
   alias: {
+    // pages/ai 的页面（ModelsPage 等）用 `@/` 指向 pages/ai/src（其自身约定，见 ai-guada
+    // vite 的 `@ -> pages/ai/src`）。本应用自身走相对路径 + @repo/*，不用 `@/`，故 `@`
+    // 仅服务 pages/ai 子树；`@` 只匹配 `@/…`，不影响 @repo/*、@pages/*。
+    "@": "pages/ai/src",
     "@pages/collect": "pages/collect",
     "@pages/job": "pages/job",
     "@pages/datasource": "pages/datasource",
@@ -108,6 +112,26 @@ export default createVite({
       "/system/api": {
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
+      },
+      // AI 提供商管理（pages/ai 的模型管理页）内嵌后，其 apiService 以 `/v2` 为基址
+      // （web 模式见 pages/ai/src/services/ApiService.ts）。系统后端 context-path 为
+      // /system/api，ai-starter 的 /v2/** 端点落在 /system/api/v2/** 下，故把 /v2 代理到
+      // 系统后端并补上 context-path。仅 pages/ai 子树用 /v2；本应用自身走 /system/api，
+      // 两者前缀不重叠。/v2 与 /system/api 都指向同一 SYSTEM_API_TARGET。
+      "/v2": {
+        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/v2/, "/system/api/v2"),
+      },
+      // pages/ai 模型管理页的 adminApi（rootHttp，baseURL 为空）直接调 `/api/providers`
+      // 等管理端点（见 pages/ai/src/services/modules/model.api.ts），这些端点在 ai-starter
+      // 的 manage/api 控制器下（@RequestMapping("/api")）。内嵌到系统后端后它们落在
+      // /system/api/api/** 下，故 /api 代理到系统后端并补 context-path 与 /api 前缀。
+      // 仅 pages/ai 子树用 /api；本应用自身走 /system/api 与 /v2，前缀不重叠。
+      "/api": {
+        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, "/system/api/api"),
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）
       "/weather-api": {

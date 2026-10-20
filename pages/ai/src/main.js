@@ -153,6 +153,12 @@ const routes = [
         component: () => import("./components/search/ImageSearchPage.vue"),
       },
       {
+        path: "image-colorize",
+        name: "ImageColorize",
+        meta: { title: "图像上色", requiresAuth: true },
+        component: () => import("./components/generate/ImageColorizePage.vue"),
+      },
+      {
         path: "app-keys",
         name: "AppKeys",
         meta: { title: "AppKey管理", requiresAuth: true },

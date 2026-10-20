@@ -49,6 +49,7 @@ import { generateApi, type GenerateApi } from "./modules/generate.api";
 import { inputApi, type InputApi } from "./modules/input.api";
 import { goalApi, type GoalApi } from "./modules/goal.api";
 import { faceApi, type FaceApi } from "./modules/face.api";
+import { colorizeApi, type ColorizeApi } from "./modules/colorize.api";
 import {
   sessionNextTaskApi,
   type SessionNextTaskApi,
@@ -79,6 +80,7 @@ interface ApiService
     TavernApi,
     GenerateApi,
     FaceApi,
+    ColorizeApi,
     InputApi,
     GoalApi,
     SessionNextTaskApi {}
@@ -347,6 +349,7 @@ Object.assign(
   tavernApi,
   generateApi,
   faceApi,
+  colorizeApi,
   inputApi,
   goalApi,
   sessionNextTaskApi,

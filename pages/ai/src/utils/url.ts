@@ -25,8 +25,12 @@ export function fixFrontendAssetUrl(url: string): string {
     return url.substring(1)
   }
   
-  // Web 环境：保持原样（带 / 的绝对路径）
-  return url
+  // Web 环境：拼上应用 base。内嵌宿主（如系统平台挂在 /system/ 下）时 public
+  // 资源经 /system/** 服务，裸绝对路径 /images/** 必然 404（2026-10-14 实测：
+  // ElImage 默认错误槽渲染「加载失败」）。import.meta.env.BASE_URL 由各应用
+  // vite 注入：独立运行 '/'（结果不变）、内嵌 '/system/'。
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '')
+  return `${base}${url}`
 }
 
 /**
