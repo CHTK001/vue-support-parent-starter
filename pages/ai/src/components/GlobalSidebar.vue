@@ -7,7 +7,40 @@
           class="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-normal text-gray-400 dark:text-gray-500 select-none">
           {{ item.section }}
         </div>
-        <div @click="handleNavClick(item.key)" role="button" :aria-label="item.label" :aria-current="currentActiveTab === item.key ? 'page' : undefined"
+
+        <!-- 有 children 的父级菜单：可折叠 -->
+        <template v-if="item.children?.length">
+          <div @click="handleNavClick(item.key)" role="button" :aria-label="item.label"
+            :aria-expanded="expandedImageMgmt"
+            class="nav-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
+            :class="currentActiveTab === item.key
+              ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
+              : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
+            <component :is="item.icon" class="w-4.5 h-4.5 shrink-0" />
+            <span class="text-sm font-medium flex-1 truncate">{{ item.label }}</span>
+            <!-- 子项任一未配置 → 父项打「!」徽标（子项内仍有具体说明） -->
+            <span v-if="item.children.some((c: any) => c.badge)" class="nav-item-badge" title="部分子功能未配置">!</span>
+            <ChevronDown12Regular class="w-3 h-3 shrink-0 transition-transform duration-200"
+              :class="expandedImageMgmt ? '' : '-rotate-90'" />
+          </div>
+
+          <div v-show="expandedImageMgmt" class="space-y-0.5">
+            <div v-for="child in item.children" :key="child.key"
+              @click="handleNavClick(child.key)" role="button" :aria-label="child.label"
+              :aria-current="currentActiveTab === child.key ? 'page' : undefined"
+              class="nav-item flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
+              :class="currentActiveTab === child.key
+                ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
+                : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
+              <component :is="child.icon" class="w-4 h-4 shrink-0 opacity-80" />
+              <span class="text-sm font-medium flex-1 truncate">{{ child.label }}</span>
+              <span v-if="child.badge" class="nav-item-badge" :title="child.badgeTip">{{ child.badge }}</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- 无 children 的普通菜单项 -->
+        <div v-else @click="handleNavClick(item.key)" role="button" :aria-label="item.label" :aria-current="currentActiveTab === item.key ? 'page' : undefined"
           class="nav-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
           :class="currentActiveTab === item.key
             ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
@@ -145,8 +178,10 @@
                 </div>
                 <!-- ml-auto：把这一栏顶到最右边缘。缺了它时该块紧跟在标题后面，
                      时间既不在最右、hover 出来的工具也无处可站。
-                     h-4 而不是 h-full：h-full 的高度由父容器决定，而父容器高度又由本栏最高子元素决定，
-                     会形成回环 —— hover 时换成更高的工具块（24px）就把整行从 32px 撑到 36px，整列往下跳。 -->
+                     h-4 而不是 h-full：h-full 是「父容器多高我就多高」，而父容器的高度
+                     又由这一栏里最高的子元素决定 —— 形成回环，于是 hover 时换成更高的
+                     工具块（24px）会把整行从 32px 撑到 36px，鼠标每划过一行整列都往下跳。
+                     把高度钉成与静止态时间行盒等高的 16px，行高就与显示哪个配件无关。 -->
                 <div v-if="!multiSelectMode" class="session-actions ml-auto shrink-0 h-4 flex items-center gap-1">
                   <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
                   <span v-if="getSessionWorking(session.id)"
@@ -487,6 +522,8 @@ import {
   Image20Regular,
   Person20Regular,
   ImageSearch20Regular,
+  DocumentText20Regular,
+  ImageMultiple20Regular,
   Key20Regular,
   ChatMultiple24Regular,
   DesktopSpeaker24Regular,
@@ -887,49 +924,68 @@ const navItems = computed(() => {
       showKey: 'showPluginsMenu'
     },
     {
-      key: 'image-generate',
-      label: '图像生成',
-      icon: Image20Regular,
-      section: '图像',
-      alwaysShow: true
-    },
-    {
-      key: 'face-search',
-      label: '人脸识别',
-      icon: Person20Regular,
-      section: '图像',
-      // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
-      // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
-      // 未登录仍会被 requireUserId() 拒掉。
-      // 注意：人脸「模型」配置是全局设置，仍只有管理员能改（不受此项影响）。
-      // 底库的**管理**（列表/删除/登记）在「系统设置 → 底库 → 人脸底库」，
-      // 本页只做识别/检索 —— 与「以图搜图（外侧） + 图像底库（设置内）」同一分工。
-      // 检测/特征模型未配齐 → 菜单打「未配置」徽标（页面内会说明差哪几项、去哪儿配）
-      // 注意：modelConfig 是 Pinia store 实例，getter 经 store 访问已自动解包，
-      // 直接取布尔值即可；写 .value 会恒为 undefined（徽标永不消失）。
-      badge: modelConfig.faceReady ? '' : '未配置',
-      badgeTip: '人脸检测模型 / 人脸特征模型未配置，识别不可用',
-    },
-    {
-      key: 'image-search',
-      label: '以图搜图',
-      icon: ImageSearch20Regular,
-      section: '图像',
-      // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
-      // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
-      // 未登录仍会被 requireUserId() 拒掉。
-      // 图像特征模型未配置 → 菜单打「未配置」徽标（同上，store getter 已解包）
-      badge: modelConfig.imageReady ? '' : '未配置',
-      badgeTip: '图像特征模型未配置，以图搜图不可用',
-    },
-    {
-      key: 'image-colorize',
-      label: '图像上色',
-      icon: Image20Regular,
-      section: '图像',
-      // 上色模型未配置 → 菜单打「未配置」徽标，页面内给出与以图搜图同口径的配置提示
-      badge: modelConfig.colorizeReady ? '' : '未配置',
-      badgeTip: '上色模型未配置，图像上色不可用',
+      key: 'image-management',
+      // 分组名就叫「图像」，不再叫「图像管理」：它本身就是一个可折叠分组，
+      // 再叫「管理」既与「模型管理」混淆，又和它下面四个功能菜单不是一个层级。
+      label: '图像',
+      icon: ImageMultiple20Regular,
+      children: [
+        {
+          key: 'image-generate',
+          label: '图像生成',
+          icon: Image20Regular,
+        },
+        {
+          key: 'face-search',
+          label: '人脸识别',
+          icon: Person20Regular,
+          // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
+          // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
+          // 未登录仍会被 requireUserId() 拒掉。
+          // 注意：人脸「模型」配置是全局设置，仍只有管理员能改（不受此项影响）。
+          // 底库的**管理**（列表/删除/登记）在「系统设置 → 底库 → 人脸底库」，
+          // 本页只做识别/检索 —— 与「以图搜图（外侧） + 图像底库（设置内）」同一分工。
+          // 检测/特征模型未配齐 → 菜单打「未配置」徽标（页面内会说明差哪几项、去哪儿配）
+          // 已配置但模型从注册清单消失 → 打「未注册」徽标，避免用户进入后才发现登记/识别必失败
+          // 注意：modelConfig 是 Pinia store 实例，getter 经 store 访问已自动解包，
+          // 直接取布尔值即可；写 .value 会恒为 undefined（徽标永不消失）。
+          badge: modelConfig.unregisteredConfigured.length ? '未注册'
+            : modelConfig.faceReady ? '' : '未配置',
+          badgeTip: modelConfig.unregisteredConfigured.length
+            ? '人脸检测/特征模型已配置但未在后端注册，识别与登记不可用'
+            : '人脸检测模型 / 人脸特征模型未配置，识别不可用',
+        },
+        {
+          key: 'image-search',
+          label: '以图搜图',
+          icon: ImageSearch20Regular,
+          // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
+          // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
+          // 未登录仍会被 requireUserId() 拒掉。
+          // 图像特征模型未配置 → 菜单打「未配置」徽标（同上，store getter 已解包）
+          badge: modelConfig.imageReady ? '' : '未配置',
+          badgeTip: '图像特征模型未配置，以图搜图不可用',
+        },
+        {
+          key: 'image-colorize',
+          label: '图像上色',
+          icon: Image20Regular,
+          badge: modelConfig.colorizeReady ? '' : '未配置',
+          badgeTip: '上色模型未配置，图像上色不可用',
+        },
+        {
+          key: 'ocr',
+          label: 'OCR 识别',
+          icon: DocumentText20Regular,
+          // 后端 OcrController 的 recognize / annotate / models 三个接口都还是
+          // @Permission("admin")，非管理员进去只会 403，所以在菜单层就按管理员收敛。
+          // （人脸识别 / 以图搜图当初是把后端注解去掉、开放给各账号自己的底库；
+          //   OCR 没有「各账号自己的库」这层概念，要不要同样开放由产品决定。）
+          adminOnly: true,
+          // 不打「未配置」徽标：OCR 是「检测 + 识别」多模型管线，缺哪一环由页面内的
+          // 后端错误原文说明（不同缺失组合提示不同），侧栏一句徽标反而说不清。
+        },
+      ],
     },
     {
       key: 'audio-recognition',
@@ -988,12 +1044,23 @@ const navItems = computed(() => {
   // 从 localStorage 读取菜单显示配置（默认全部显示）
   const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
   
-  return allItems.filter(item => {
-    if (item.alwaysShow) return true
-    if (item.adminOnly && !isAdmin()) return false
-    if (!item.showKey) return true
-    return menuSettings[item.showKey] !== false
-  })
+  return allItems
+    .filter(item => {
+      if (item.alwaysShow) return true
+      if (item.adminOnly && !isAdmin()) return false
+      if (!item.showKey) return true
+      return menuSettings[item.showKey] !== false
+    })
+    .map(item => {
+      // 子项也要过同一道管理员闸。顶层这层 filter 只看得到 item.adminOnly，
+      // 管不到 children：子项背后的接口可能本身就是 @Permission("admin")
+      // （如 OCR 的 recognize/annotate/models 三个都是），不拦下来就会变成
+      // 「菜单点得进去、进去每个请求都 403」，比一开始就不显示更难排查。
+      if (!item.children?.length) return item
+      const children = item.children.filter((c: any) => !c.adminOnly || isAdmin())
+      return children.length ? { ...item, children } : null
+    })
+    .filter(Boolean)
 })
 
 // 当前激活的 tab（根据路由）
@@ -1016,10 +1083,11 @@ const currentActiveTab = computed(() => {
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
-  if (routeName === 'ImageGenerate') return 'image-generate'
-  if (routeName === 'FaceSearch') return 'face-search'
-  if (routeName === 'ImageSearch') return 'image-search'
-  if (routeName === 'ImageColorize') return 'image-colorize'
+  if (routeName === 'ImageGenerate') return 'image-management'
+  if (routeName === 'FaceSearch') return 'image-management'
+  if (routeName === 'ImageSearch') return 'image-management'
+  if (routeName === 'ImageColorize') return 'image-management'
+  if (routeName === 'Ocr') return 'image-management'
   if (routeName === 'AudioRecognition') return 'audio-recognition'
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
@@ -1040,6 +1108,13 @@ const currentSessionId = computed(() => {
   const sessionId = route.params.sessionId
   return Array.isArray(sessionId) ? sessionId[0] : sessionId
 })
+
+// 图像分组（含子项时的父级）折叠状态。
+//
+// 默认必须是 true（展开）：此前默认 false，一旦「图像生成 / 人脸识别 / 以图搜图 /
+// 图像上色」被收进可折叠父项后整组不可见，侧栏只剩一个父项，用户直接反馈
+// 「图像菜单没了」。默认展开可保证任何子项都不会一进来就藏起来。
+const expandedImageMgmt = ref(true)
 
 // 窗口隐藏状态（用于侧边栏未读徽标显示逻辑，SSE 事件由 useSessionEvents composable 统一管理）
 const windowHidden = ref(false)
@@ -1355,18 +1430,31 @@ const handleNavClick = async (tab: string) => {
     router.replace({ name: 'Plugins' })
   } else if (tab === 'scheduler') {
     router.replace({ name: 'Scheduler' })
+  } else if (tab === 'image-management') {
+    // 图像管理父项：点击折叠/展开，不承载路由（子项各自导航）
+    expandedImageMgmt.value = !expandedImageMgmt.value
   } else if (tab === 'image-generate') {
+    expandedImageMgmt.value = true
     router.replace({ name: 'ImageGenerate' })
   } else if (tab === 'face-search') {
-    // 点击菜单时再等一次合并视图，避免侧栏首次加载未完成时误判为未配置
+    // 点击菜单时再等一次合并视图与注册清单，避免侧栏首次加载未完成时误判
+    expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.faceReady) {
       toast.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
       return
     }
+    if (modelConfig.unregisteredConfigured.length) {
+      toast.warning(
+        '人脸识别模型当前不可用：已配置的检测/特征模型未在后端注册。' +
+        '请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型',
+      )
+      return
+    }
     router.replace({ name: 'FaceSearch' })
   } else if (tab === 'image-search') {
     // 以图搜图同口径：点击时才拿最新配置，配置后不需要刷新页面
+    expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.imageReady) {
       toast.warning('以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型')
@@ -1375,12 +1463,18 @@ const handleNavClick = async (tab: string) => {
     router.replace({ name: 'ImageSearch' })
   } else if (tab === 'image-colorize') {
     // 同口径：点击时才拿最新配置，配置后不需要刷新页面
+    expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.colorizeReady) {
       toast.warning('图像上色未启用：请先到「系统设置 → 默认模型 → 图片识别」配置上色模型')
       return
     }
     router.replace({ name: 'ImageColorize' })
+  } else if (tab === 'ocr') {
+    // OCR 不做前置门禁：它依赖「检测 + 识别」多个模型，缺哪一环页面会照后端的
+    // 原文提示出来，比在侧栏拦住入口更好排查。这里只负责展开分组并导航。
+    expandedImageMgmt.value = true
+    router.replace({ name: 'Ocr' })
   } else if (tab === 'audio-recognition') {
     // 音频识别同口径：点击时才拿最新配置，配置后不需要刷新页面
     await modelConfig.load()

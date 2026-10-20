@@ -167,11 +167,24 @@
       <div v-else class="chart-empty">暂无按天模型用量数据</div>
     </ReCard>
 
-    <!-- Token 趋势 -->
-    <ReCard title="Token 趋势">
-      <ReEcharts :option="trendOption" height="320px" not-merge v-if="trendData.length > 0" />
-      <div v-else class="chart-empty">暂无趋势数据</div>
-    </ReCard>
+    <!-- Token 趋势 + 模型延迟：两列并排；窄屏自动堆叠（见 .trend-row 的媒体查询） -->
+    <div class="trend-row">
+      <ReCard title="Token 趋势">
+        <p class="chart-hint">
+          缓存读取是「输入 Token 中命中缓存的部分」，属于输入的子集，不与输入/输出相加。
+        </p>
+        <ReEcharts :option="trendOption" height="320px" not-merge v-if="trendData.length > 0" />
+        <div v-else class="chart-empty">暂无趋势数据</div>
+      </ReCard>
+
+      <ReCard title="模型延迟">
+        <p class="chart-hint">
+          按天展示各模型平均首字延迟（多久开始响应，与生成长度无关）；缺测的日期断线，不补 0。
+        </p>
+        <ReEcharts :option="latencyOption" height="320px" not-merge v-if="latencyDates.length && latencyModelCount > 0" />
+        <div v-else class="chart-empty">暂无延迟数据</div>
+      </ReCard>
+    </div>
 
     <!-- 用量明细 -->
     <ReCard title="用量明细">
@@ -424,7 +437,7 @@ const rangeLabel = computed(() => {
 });
 
 const summaryRows = ref<any[]>([]);
-const trendData = ref<Array<{ date: string; input: number; output: number; total: number }>>([]);
+const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number }>>([]);
 
 const modelChartType = ref<ChartType>('token');
 const groupChartType = ref<ChartType>('token');
@@ -898,7 +911,15 @@ function distRowStyle(all: DistRow[], type: ChartType) {
  * 后端按「天 + 模型」返回多行，这里归并成「一天一根柱、柱内按模型分段」。
  * 数据形态：{ date -> Map<model, number> }，metric 决定取 Token 还是费用。
  */
-const modelTrendRows = ref<Array<{ date: string; model: string; provider: string; totalTokens: number; totalCost: number }>>([]);
+/**
+ * 延迟字段保留 null 语义：后端 AVG 在没有实测样本时返回 null，
+ * 这里不要 `Number(x) || 0` 兜成 0 —— 0ms 会被画成「延迟极低」的假象。
+ */
+const modelTrendRows = ref<Array<{
+  date: string; model: string; provider: string;
+  totalTokens: number; totalCost: number;
+  avgFirstTokenLatency: number | null; avgTotalLatency: number | null;
+}>>([]);
 const modelBarMetric = ref<ChartType>('token');
 
 /** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标 */
@@ -1019,7 +1040,7 @@ const trendOption = computed<EChartsOption>(() => {
       axisPointer: { type: 'line', lineStyle: { type: 'dashed' } },
       valueFormatter: (v: any) => fmtToken(v),
     },
-    legend: { data: ['输入 Token', '输出 Token'], top: 0 },
+    legend: { data: ['输入 Token', '输出 Token', '缓存读取'], top: 0 },
     grid: { left: 56, right: 24, top: 40, bottom: 32 },
     xAxis: { type: 'category', boundaryGap: false, data: rows.map((r) => r.date.length > 10 ? r.date.slice(11, 16) : r.date) },
     yAxis: {
@@ -1043,7 +1064,90 @@ const trendOption = computed<EChartsOption>(() => {
         data: rows.map((r) => r.output),
         areaStyle: { opacity: 0.12 },
       },
+      {
+        // 缓存读取是「输入 Token 里命中缓存的那部分」，属于输入的子集，
+        // 不是额外叠加的量。所以用虚线单独画、不堆叠 —— 堆叠会让人以为
+        // 总量 = 输入 + 输出 + 缓存，凭空多算一笔。
+        name: '缓存读取',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: rows.map((r) => r.cached),
+        lineStyle: { type: 'dashed', width: 2 },
+        areaStyle: { opacity: 0.06 },
+      },
     ],
+  };
+});
+
+/**
+ * 模型延迟图：一天一个点、一个模型一条线，纵轴为「平均首字延迟（ms）」。
+ *
+ * 为什么画首字延迟而不是总耗时：总耗时随输出长度线性增长，同一个模型写得长一点
+ * 就会显得「更慢」，跨模型比较没有意义；首字延迟衡量的是「多久开始响应」，
+ * 与生成长度无关，才是用户真正感知到的那个「卡不卡」。
+ *
+ * 缺测的格子返回 null 而不是 0：ECharts 遇 null 会断线，正好表达「这天没测到」；
+ * 填 0 会画出一条贴着底部的假线。
+ */
+const MODEL_LATENCY_TOP_N = 6;
+
+const latencyMatrix = computed(() => {
+  /** 模型 -> 区间内 Token 总量，只用来挑「画哪几条线」 */
+  const weight = new Map<string, number>();
+  /** 日期 -> 模型 -> 平均首字延迟（ms） */
+  const cell = new Map<string, Map<string, number>>();
+  for (const r of modelTrendRows.value) {
+    const date = String(r.date || '').slice(0, 10);
+    const model = String(r.model || '').trim() || '未知模型';
+    if (!date) continue;
+    weight.set(model, (weight.get(model) || 0) + (Number(r.totalTokens) || 0));
+    const v = r.avgFirstTokenLatency;
+    if (v == null || !Number.isFinite(v) || v <= 0) continue;
+    let day = cell.get(date);
+    if (!day) { day = new Map(); cell.set(date, day); }
+    day.set(model, Math.round(v));
+  }
+  const keep = [...weight.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MODEL_LATENCY_TOP_N)
+    .map(([m]) => m);
+  const dates = [...cell.keys()].sort();
+  const series = keep.map((model) => ({
+    model,
+    data: dates.map((d) => cell.get(d)?.get(model) ?? null),
+  }));
+  return { dates, series };
+});
+
+const latencyDates = computed(() => latencyMatrix.value.dates);
+/** 有延迟样本的模型数（用来区分「没数据」与「有数据但都没测到延迟」） */
+const latencyModelCount = computed(() => latencyMatrix.value.series.length);
+
+const latencyOption = computed<EChartsOption>(() => {
+  const { dates, series } = latencyMatrix.value;
+  return {
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      valueFormatter: (v: any) => (v == null ? '—' : formatLatency(v)),
+    },
+    // 模型名可能很长，用 scroll 图例避免挤成两行把图压扁
+    legend: { top: 0, type: 'scroll' },
+    grid: { left: 56, right: 24, top: 40, bottom: 32 },
+    xAxis: { type: 'category', boundaryGap: false, data: dates.map((d) => (d.length > 10 ? d.slice(11, 16) : d)) },
+    yAxis: { type: 'value', name: 'ms', axisLabel: { formatter: (v: number) => `${v}` } },
+    series: series.map((s) => ({
+      name: s.model,
+      type: 'line',
+      smooth: true,
+      showSymbol: true,
+      symbolSize: 5,
+      // 断点保留：中间缺测不要用直线连过去，那会掩盖「这段没数据」
+      connectNulls: false,
+      data: s.data,
+      color: colorOfModel(s.model),
+    })),
   };
 });
 
@@ -1080,16 +1184,21 @@ async function loadData() {
       provider: r?.provider,
       totalTokens: Number(r?.totalTokens) || 0,
       totalCost: Number(r?.totalCost) || 0,
+      // null 保持 null（而不是 0）：没实测样本时延迟图应断点，不能画成 0ms
+      avgFirstTokenLatency: r?.avgFirstTokenLatency == null ? null : Number(r.avgFirstTokenLatency),
+      avgTotalLatency: r?.avgTotalLatency == null ? null : Number(r.avgTotalLatency),
     }));
     const dailyRows: any[] = trendRes.data || [];
-    const map = new Map<string, { date: string; input: number; output: number; total: number }>();
+    const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number }>();
     for (const r of dailyRows) {
       const raw = String(r.date || ''); const d = raw.length > 10 && raw.includes(':') ? raw.slice(0, 13) : raw.slice(0, 10);
       if (!d) continue;
-      if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, total: 0 });
+      if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, cached: 0, total: 0 });
       const a = map.get(d)!;
       a.input += Number(r.promptTokens) || 0;
       a.output += Number(r.completionTokens) || 0;
+      // cachedTokens 后端 /usage/trend 早就返回了，只是之前没接进图里
+      a.cached += Number(r.cachedTokens) || 0;
       a.total += Number(r.totalTokens) || 0;
     }
     trendData.value = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -1840,6 +1949,22 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   line-height: 1.6;
+}
+
+/* Token 趋势 + 模型延迟两列并排。
+   用 minmax(0, 1fr) 而不是 1fr：flex/grid 子项默认 min-width:auto，
+   ECharts 的 canvas 撑出来的宽度会让两列互相挤压、右侧被裁掉。 */
+.trend-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  /* 窄屏堆叠：两列并排时每侧不到 400px，坐标轴标签会挤成一团 */
+  .trend-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .pager-row {

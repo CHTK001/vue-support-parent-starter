@@ -165,6 +165,13 @@ const routes = [
         component: () => import("./components/search/ImageSearchPage.vue"),
       },
       {
+        // OCR 与「以图搜图 / 人脸识别」同属图像类，放在同一段路由里便于对照
+        path: "ocr",
+        name: "Ocr",
+        meta: { title: "OCR 识别", requiresAuth: true },
+        component: () => import("./components/management/OcrPage.vue"),
+      },
+      {
         path: "image-colorize",
         name: "ImageColorize",
         meta: { title: "图像上色", requiresAuth: true },
