@@ -301,10 +301,50 @@ export const eduaiApi = {
    * @param taskId 任务标识
    * @returns 完成结果（学生 / 试卷 / 本次错题数）
    */
-  finishMarking: (taskId: string) =>
+  finishMarking: (taskId: string, excludeQuestionIds?: number[]) =>
     http()
       .post(`/v2/edu/marking/${taskId}/finish`)
+      .data({ excludeQuestionIds: excludeQuestionIds && excludeQuestionIds.length ? excludeQuestionIds : undefined } as unknown as Record<string, unknown>)
       .then<MarkingFinishResult>(unwrap),
+
+  /**
+   * 阅卷完成预览：按当前判错阈值算出将登记的题目清单。
+   *
+   * <p>老师点「完成」前先拉预览，弹窗列出题目与得分率，勾选剔除后再调用
+   * {@code finishMarking}。预览不做任何数据变更。</p>
+   *
+   * @param taskId 任务标识
+   * @returns 预览结果（学生 / 将登记题数 / 题目清单）
+   */
+  previewFinishMarking: (taskId: string) =>
+    http()
+      .get(`/v2/edu/marking/finish-preview/${taskId}`)
+      .then<MarkingFinishPreview>(unwrap),
+
+  /**
+   * 批量阅卷完成。
+   *
+   * @param taskIds 任务标识列表
+   * @param excludeQuestionIdsByTask 任务 → 剔除题目列表（可选）
+   * @returns 逐任务完成结果
+   */
+  batchFinishMarking: (taskIds: string[], excludeQuestionIdsByTask?: Record<string, number[]>) =>
+    http()
+      .post("/v2/edu/marking/batch-finish")
+      .data({ taskIds, excludeQuestionIdsByTask } as unknown as Record<string, unknown>)
+      .then<BatchMarkingResult[]>(unwrap),
+
+  /**
+   * 批量撤销阅卷完成。
+   *
+   * @param taskIds 任务标识列表
+   * @returns 逐任务撤销结果
+   */
+  batchUnfinishMarking: (taskIds: string[]) =>
+    http()
+      .post("/v2/edu/marking/batch-unfinish")
+      .data({ taskIds } as unknown as Record<string, unknown>)
+      .then<BatchMarkingResult[]>(unwrap),
 
   /**
    * 获取「与图片同版式」的结构化解析结果。
@@ -467,6 +507,14 @@ export const eduaiApi = {
       .put("/v2/edu/wrongbook/mastery")
       .query({ wrongId, masteryLevel })
       .then<boolean>(unwrap),
+  markCorrected: (wrongId: number) =>
+    http()
+      .put(`/v2/edu/wrongbook/correct/${wrongId}`)
+      .then<boolean>(unwrap),
+  wrongSources: (wrongId: number) =>
+    http()
+      .get(`/v2/edu/wrongbook/sources/${wrongId}`)
+      .then<WrongSource[]>(unwrap),
 
   // 考试
   pageExams: (params: { page?: number; pageSize?: number; examName?: string; examClassId?: string; examStatus?: number } = {}) =>
@@ -821,6 +869,11 @@ export const eduaiApi = {
       .put("/v2/edu/student/wrongbook/mastery")
       .query({ wrongId, masteryLevel })
       .then<boolean>(unwrap),
+  /** 一键订正我的错题（重新作答后的客观标记，老师端可见订正率） */
+  updateStudentWrongCorrected: (wrongId: number) =>
+    http()
+      .put(`/v2/edu/student/wrongbook/correct/${wrongId}`)
+      .then<boolean>(unwrap),
   /** 我的答题/阅卷记录 */
   studentMarkingTasks: (limit = 20) =>
     http()
@@ -931,11 +984,21 @@ export const eduaiApi = {
       .query({ limit })
       .then<TeacherMarkingTask[]>(unwrap),
   /** 我发起的阅卷任务（分页，按创建时间倒序） */
-  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number } = {}) =>
+  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number; teacherFinished?: 0 | 1 } = {}) =>
     http()
       .get("/v2/edu/teacher/marking/tasks/page")
-      .query(params)
+      .query(params as unknown as Record<string, unknown>)
       .then<PageResult<TeacherMarkingTask>>(unwrap),
+  /** 撤销阅卷完成：删除任务的错题记录并复位完成状态 */
+  unfinishMarking: (taskId: string) =>
+    http()
+      .post(`/v2/edu/marking/${taskId}/unfinish`)
+      .then<import("./types").MarkingUndoResult>(unwrap),
+  /** 阅卷总览统计（当前账号归属范围内：任务状态 / 得分率分布 / 错题 TOP / 订正率） */
+  markingDashboardStats: () =>
+    http()
+      .get("/v2/edu/teacher/marking/dashboard-stats")
+      .then<MarkingDashboardStats>(unwrap),
 
   // ==================== 班级试卷布置（老师给班级组卷 -> 班内学生可见） ====================
   /** 老师把一张试卷布置给自己的某个班级（重复布置同一班同一卷走「复活」，不重复建行） */
