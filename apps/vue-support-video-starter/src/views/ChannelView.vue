@@ -1,18 +1,20 @@
 <script setup lang="ts">
 /**
- * 频道页 —— 电影/电视剧/动漫/综艺等分类浏览
+ * 频道页（第三版 · 参照站复刻）
  *
- * 结构：频道标题 + 排序筛选 + 海报墙网格 + 分页（复用 vd-card 卡片体系）。
- * 交互：路由参数驱动（/channel/:type）、排序切换、分页、滚动到顶部。
- * 数据：videoApi.fetchVideoList；未接后端时降级演示数据。
+ * 参照站列表页结构：`.list-box > dl`（每行 48px 标签 + 换行标签组）
+ * → `.sort`（左排序 / 右统计）→ `.wrap > ul.content-list`（6 列栅格）。
+ *
+ * 筛选与排序都在已取回的列表上完成（后端 /video/list 只接受
+ * keyword/videoType/page/pageSize 等参数），因此分页也在本地切片。
  */
 import { computed, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { fetchVideoList } from "@/api/videoApi";
 import type { VideoInfo } from "@/types/video";
+import VideoCard from "@/components/VideoCard.vue";
 
 const route = useRoute();
-const router = useRouter();
 
 /* ── 频道定义 ─────────────────────────────── */
 const CHANNELS: Record<string, { label: string; desc: string }> = {
@@ -32,16 +34,20 @@ const channel = computed(
 const loading = ref(true);
 const error = ref("");
 const videos = ref<VideoInfo[]>([]);
-const total = ref(0);
 const page = ref(1);
-const sort = ref("update");
-const pageSize = 30;
+const pageSize = 48;
+
+/** 筛选条件（"" 表示全部） */
+const filterDistrict = ref("");
+const filterYear = ref("");
+const filterTag = ref("");
 
 const SORT_OPTIONS = [
   { value: "update", label: "最近更新" },
   { value: "score", label: "评分最高" },
   { value: "year", label: "年份最新" },
 ] as const;
+const sort = ref<string>("update");
 
 /* ── 数据加载 ─────────────────────────────── */
 async function load() {
@@ -50,129 +56,184 @@ async function load() {
   try {
     const result = await fetchVideoList({
       videoType: channelType.value,
-      page: page.value,
-      pageSize,
-      // sort 由后端可选支持；当前版本前端兜底排序
+      page: 1,
+      pageSize: 200,
     });
-    let list = result.list ?? [];
-    if (sort.value === "score") {
-      list = [...list].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    } else if (sort.value === "year") {
-      list = [...list].sort((a, b) => (b.year ?? "").localeCompare(a.year ?? ""));
-    }
-    videos.value = list;
-    total.value = result.total ?? list.length;
+    videos.value = result.list ?? [];
   } catch (e) {
     error.value = e instanceof Error ? e.message : "数据加载失败，请确认后端服务已启动";
     videos.value = [];
-    total.value = 0;
   } finally {
     loading.value = false;
   }
 }
 
-// 频道切换：重置分页并滚回顶部
-watch(channelType, () => {
+/** 筛选行取值来源：当前列表里实际出现的地区 / 年份 / 标签 */
+const districts = computed(() =>
+  [...new Set(videos.value.map((v) => v.district).filter(Boolean))].slice(0, 20) as string[],
+);
+const years = computed(() =>
+  [...new Set(videos.value.map((v) => v.year).filter(Boolean))]
+    .sort((a, b) => Number(b) - Number(a))
+    .slice(0, 15) as string[],
+);
+const tags = computed(() => {
+  const counter = new Map<string, number>();
+  videos.value.forEach((v) => v.tags?.forEach((t) => counter.set(t, (counter.get(t) ?? 0) + 1)));
+  return [...counter.entries()].sort((a, b) => b[1] - a[1]).slice(0, 18).map(([t]) => t);
+});
+
+/** 过滤 + 排序后的结果 */
+const filtered = computed(() => {
+  const list = videos.value.filter(
+    (v) =>
+      (!filterDistrict.value || v.district === filterDistrict.value) &&
+      (!filterYear.value || v.year === filterYear.value) &&
+      (!filterTag.value || v.tags?.includes(filterTag.value)),
+  );
+  if (sort.value === "score") return [...list].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  if (sort.value === "year") return [...list].sort((a, b) => Number(b.year ?? 0) - Number(a.year ?? 0));
+  return list;
+});
+
+/** 当前页数据 */
+const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize));
+
+/** 清空筛选 */
+function resetFilters() {
+  filterDistrict.value = "";
+  filterYear.value = "";
+  filterTag.value = "";
   page.value = 1;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  void load();
-});
-
-watch(sort, () => {
-  page.value = 1;
-  void load();
-});
-
-watch(page, () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  void load();
-});
-
-function goWatch(item: VideoInfo) {
-  void router.push({ name: "watch", params: { id: item.id } });
 }
+
+// 任一筛选条件变化都回到第 1 页
+watch([filterDistrict, filterYear, filterTag, sort], () => {
+  page.value = 1;
+});
+
+// 频道切换：重置筛选并滚回顶部
+watch(channelType, () => {
+  resetFilters();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  void load();
+});
+
+watch(page, () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
 onMounted(() => void load());
 </script>
 
 <template>
   <div class="vd-page">
-    <!-- 频道头 -->
-    <header class="vd-header">
-      <div>
-        <h1>{{ channel.label }}</h1>
-        <p class="vd-subtitle">{{ channel.desc }} · 共 {{ total }} 部</p>
+    <!-- ── 筛选行（参照站 dl.c0 / c1 / c2） ───── -->
+    <div class="vd-filter-rows">
+      <div class="vd-filter-row">
+        <span class="vd-filter-label">地区 :</span>
+        <div class="vd-filter-values">
+          <button type="button" class="vd-chip" :class="{ 'is-active': !filterDistrict }" @click="filterDistrict = ''">
+            全部
+          </button>
+          <button
+            v-for="d in districts"
+            :key="d"
+            type="button"
+            class="vd-chip"
+            :class="{ 'is-active': filterDistrict === d }"
+            @click="filterDistrict = d"
+          >
+            {{ d }}
+          </button>
+        </div>
       </div>
-      <div class="vds-sort" role="radiogroup" aria-label="排序方式">
-        <button
-          v-for="opt in SORT_OPTIONS"
-          :key="opt.value"
-          type="button"
-          role="radio"
-          class="vds-sort-btn"
-          :class="{ 'is-active': sort === opt.value }"
-          :aria-checked="sort === opt.value"
-          @click="sort = opt.value"
-        >
-          {{ opt.label }}
-        </button>
+
+      <div class="vd-filter-row">
+        <span class="vd-filter-label">年份 :</span>
+        <div class="vd-filter-values">
+          <button type="button" class="vd-chip" :class="{ 'is-active': !filterYear }" @click="filterYear = ''">
+            全部
+          </button>
+          <button
+            v-for="y in years"
+            :key="y"
+            type="button"
+            class="vd-chip"
+            :class="{ 'is-active': filterYear === y }"
+            @click="filterYear = y"
+          >
+            {{ y }}
+          </button>
+        </div>
       </div>
-    </header>
+
+      <div class="vd-filter-row">
+        <span class="vd-filter-label">标签 :</span>
+        <div class="vd-filter-values">
+          <button type="button" class="vd-chip" :class="{ 'is-active': !filterTag }" @click="filterTag = ''">
+            全部
+          </button>
+          <button
+            v-for="t in tags"
+            :key="t"
+            type="button"
+            class="vd-chip"
+            :class="{ 'is-active': filterTag === t }"
+            @click="filterTag = t"
+          >
+            {{ t }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 排序 / 统计条（参照站 .sort） ─────── -->
+    <div class="vd-sort">
+      <div class="vd-sort-left">
+        <div class="vd-sort-group">
+          <span class="vd-sort-label">排序 :</span>
+          <button
+            v-for="opt in SORT_OPTIONS"
+            :key="opt.value"
+            type="button"
+            class="vd-chip"
+            :class="{ 'is-active': sort === opt.value }"
+            @click="sort = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+      <div class="vd-sort-right">{{ channel.label }} · 共 {{ filtered.length }} 部</div>
+    </div>
 
     <!-- 加载失败 -->
-    <div v-if="error && !loading" class="vds-load-error">
+    <div v-if="error && !loading" class="vd-empty">
       <el-empty :description="error">
         <el-button type="primary" @click="load">重试</el-button>
       </el-empty>
     </div>
 
-    <!-- 海报墙 -->
-    <div v-else-if="loading" class="vds-channel-grid" aria-busy="true">
-      <div v-for="i in 12" :key="i" class="vd-card vd-poster-skeleton" style="aspect-ratio: 2/3" />
+    <!-- 骨架 -->
+    <div v-else-if="loading" class="vd-grid" aria-busy="true">
+      <div v-for="i in 12" :key="i" class="vd-poster-skeleton" style="aspect-ratio: 2 / 3" />
     </div>
 
     <template v-else>
-      <div v-if="videos.length" class="vds-channel-grid">
-        <article
-          v-for="item in videos"
-          :key="item.id"
-          class="vd-card"
-          tabindex="0"
-          role="button"
-          :aria-label="`播放 ${item.name}`"
-          @click="goWatch(item)"
-          @keydown.enter="goWatch(item)"
-        >
-          <div class="vd-poster">
-            <img v-if="item.cover" :src="item.cover" :alt="`${item.name} 封面`" loading="lazy" />
-            <div v-else class="vd-poster-fallback" aria-hidden="true">
-              <span class="vds-fallback-name">{{ item.name.slice(0, 4) }}</span>
-            </div>
-            <span v-if="item.score" class="vd-score">{{ item.score.toFixed(1) }}</span>
-            <span v-if="item.continueInfo" class="vd-continue">{{ item.continueInfo }}</span>
-          </div>
-          <div class="vd-card-body">
-            <h3 class="vd-name" :title="item.name">{{ item.name }}</h3>
-            <p class="vd-meta">
-              <span v-if="item.year">{{ item.year }}</span>
-              <span v-if="item.district">{{ item.district }}</span>
-            </p>
-            <div v-if="item.tags?.length" class="vd-tags">
-              <span v-for="tag in item.tags.slice(0, 3)" :key="tag" class="vd-tag">{{ tag }}</span>
-            </div>
-          </div>
-        </article>
+      <div v-if="paged.length" class="vd-grid">
+        <VideoCard v-for="item in paged" :key="item.id" :item="item" />
       </div>
 
       <div v-else class="vd-empty">
-        <el-empty description="该频道暂无内容" />
+        <el-empty :description="videos.length ? '没有符合筛选条件的影片' : '该频道暂无内容'">
+          <el-button v-if="videos.length" type="primary" @click="resetFilters">清空筛选</el-button>
+        </el-empty>
       </div>
 
-      <div v-if="total > pageSize" class="vd-pagination">
+      <div v-if="filtered.length > pageSize" class="vd-pagination">
         <el-pagination
           v-model:current-page="page"
           :page-size="pageSize"
-          :total="total"
+          :total="filtered.length"
           layout="prev, pager, next, jumper, total"
           background
         />
@@ -180,67 +241,3 @@ onMounted(() => void load());
     </template>
   </div>
 </template>
-
-<style scoped>
-/* ── 排序 ─────────────────────────────────── */
-.vds-sort {
-  display: flex;
-  gap: 4px;
-  background: var(--vd-surface-card);
-  border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-md);
-  padding: 4px;
-}
-
-.vds-sort-btn {
-  border: none;
-  background: transparent;
-  color: var(--vd-text-secondary);
-  font-size: 13px;
-  padding: 7px 16px;
-  border-radius: var(--vd-radius-sm);
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
-  font-weight: 500;
-}
-
-.vds-sort-btn:hover {
-  color: var(--vd-text);
-  /* #94a3b8 正是 --vd-text-secondary */
-  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
-}
-
-.vds-sort-btn.is-active {
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: var(--vd-text);
-  font-weight: 600;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 45%, transparent);
-}
-
-/* 焦点轮廓已由 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
-.vds-sort-btn:focus-visible {
-  outline: 2px solid var(--vd-primary);
-  outline-offset: 1px;
-}
-
-/* ── 频道海报墙 ───── */
-.vds-channel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
-  gap: 20px;
-}
-
-@media (max-width: 640px) {
-  .vds-channel-grid {
-    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-    gap: 12px;
-  }
-}
-
-/* 尊重系统「减少动态效果」偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .vds-sort-btn {
-    transition: none;
-  }
-}
-</style>

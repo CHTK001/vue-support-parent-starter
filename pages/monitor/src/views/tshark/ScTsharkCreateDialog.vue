@@ -78,6 +78,18 @@
         />
       </div>
 
+      <div class="create-row">
+        <span class="create-label">大小上限</span>
+        <ReInputNumber
+          :model-value="maxSizeMb"
+          :min="0"
+          :max="102400"
+          placeholder="MB，0 = 不限"
+          @update:model-value="onMaxSize"
+        />
+      </div>
+      <p class="create-hint">达到大小上限后 tshark 会自动停止并照常解析已抓内容；启动前服务端还会检查磁盘余量，避免把盘写满。</p>
+
       <p v-if="!tsharkOk" class="create-warn">
         tshark 未就绪（未安装或不在 PATH 中），暂时无法抓包。
       </p>
@@ -110,6 +122,7 @@ const props = defineProps<{
   captureName: string
   count: number
   timeout: number
+  maxSizeMb: number
   starting: boolean
 }>()
 
@@ -121,6 +134,7 @@ const emit = defineEmits<{
   (e: 'update:captureName', v: string): void
   (e: 'update:count', v: number): void
   (e: 'update:timeout', v: number): void
+  (e: 'update:maxSizeMb', v: number): void
   (e: 'start'): void
 }>()
 
@@ -166,6 +180,9 @@ function onCount(v: unknown) {
 }
 function onTimeout(v: unknown) {
   emit('update:timeout', v == null || v === '' ? 0 : Number(v))
+}
+function onMaxSize(v: unknown) {
+  emit('update:maxSizeMb', v == null || v === '' ? 0 : Number(v))
 }
 </script>
 

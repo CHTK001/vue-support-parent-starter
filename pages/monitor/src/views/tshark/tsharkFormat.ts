@@ -19,7 +19,10 @@ export function sessionName(s: TsharkSession): string {
  * <p>三态而不是两态：报文数为 0 的「已解析」多半是文件本身不含报文（或格式不对），
  * 和正常解析完的文件混在一起会让人以为数据丢了，所以单独标成「无报文」。</p>
  */
-export function statusOf(s: TsharkSession): { type: 'warning' | 'info' | 'success'; text: string } {
+export function statusOf(s: TsharkSession): { type: 'warning' | 'info' | 'success' | 'danger'; text: string } {
+  // 异常优先：进程崩溃 / 解析失败 / 磁盘或大小上限相关的停止说明都在 lastError 里，
+  // 不能与正常的「已解析」混为一谈，否则用户不知道这批数据其实不完整
+  if (s.captureStatus === 2) return { type: 'danger', text: '异常' }
   if (s.captureStatus === 1) return { type: 'warning', text: '解析中' }
   if ((s.packetCount ?? 0) === 0) return { type: 'info', text: '无报文' }
   return { type: 'success', text: '已解析' }

@@ -57,7 +57,9 @@
 
         <ReTableColumn label="状态" width="100" align="center">
           <template #default="{ row }">
-            <ReTag :type="statusOf(row).type" effect="plain">{{ statusOf(row).text }}</ReTag>
+            <span :title="row.captureStatus === 2 ? (row.lastError || '解析异常') : ''">
+              <ReTag :type="statusOf(row).type" effect="plain">{{ statusOf(row).text }}</ReTag>
+            </span>
           </template>
         </ReTableColumn>
 

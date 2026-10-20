@@ -13,7 +13,7 @@ export interface TsharkSession {
   sessionName?: string | null
   /** 抓包网卡（Windows 上是 `\Device\NPF_{GUID}` 形态的设备名） */
   captureInterface?: string | null
-  /** 1 = 正在抓包，其它值 = 已停止 */
+  /** 1 = 正在抓包/解析中，0 = 已停止，2 = 异常 */
   captureStatus?: number | null
   /** 已入库的报文条数 */
   packetCount?: number | null
@@ -28,12 +28,25 @@ export interface TsharkSession {
   source?: string | null
   /** 持续时长（秒）。实时抓包是预设时长，导入会话由首末报文时间算出 */
   captureDuration?: number | null
+  /**
+   * 异常原因 / 停止说明。
+   *
+   * <p>进程异常退出、服务重启中断、达到大小上限自动停止等都会落在这里，正常结束为空。
+   * 页面在状态标签上用 tooltip 展示，或在详情里给一行提示。</p>
+   */
+  lastError?: string | null
+  /** pcap 文件大小（字节） */
+  fileSize?: number | null
+  /** 会话大小上限（MB），0 或空表示不限 */
+  maxSizeMb?: number | null
 }
 
 /** 一条已入库的报文 */
 export interface TsharkPacket {
   id: number
   sessionId?: number
+  /** tshark 帧号（frame.number） */
+  frameNo?: number | null
   /** 抓包时间戳，格式由后端决定（详情与列表同一份数据） */
   packetTime?: string | null
   /** 最高层协议名，如 TCP / HTTP / DNS */
@@ -76,8 +89,16 @@ export interface TsharkHandshake {
     /** 是否已双向 FIN 关闭 */
     closed: boolean
   }
-  /** 按时间排好的报文序列 */
+  /** 按时间排好的报文序列（步骤过多时被截断，只保留首尾与锚点包） */
   steps: TsharkStep[]
+  /** 截断前的完整步骤数 */
+  totalSteps?: number
+  /** 步骤是否被截断 */
+  truncated?: boolean
+  /** TCP 建连 RTT（SYN → SYN-ACK）毫秒；抓不到为 null */
+  rttMs?: number | null
+  /** 首字节时间（首个 HTTP 请求 → 首个 HTTP 响应）毫秒；无 HTTP 为 null */
+  ttfbMs?: number | null
 }
 
 /** 生命周期时序里的一步 */
@@ -95,12 +116,47 @@ export interface TsharkStep {
   info?: string | null
   /** 相对本流第一个包的耗时（毫秒） */
   relativeMs: number
+  /** 阶段：TCP / TLS / HTTP / DATA / CLOSE */
+  phase?: string | null
+  /** 是否为重传 / 乱序 / 重复 ACK */
+  retransmission?: boolean
+  /** 是否带 RST */
+  reset?: boolean
 }
 
 /** 协议分布的一项 */
 export interface TsharkProtocolStat {
   protocol: string
   count: number
+}
+
+/**
+ * 流量时间轴的一桶（`GET /tshark/sessions/{id}/stats/timeline`）。
+ *
+ * <p>后端按 `bucketSeconds` 聚合成「某个时间点 → 报文数 / 字节数」，
+ * 前端据此画报文量与流量曲线。</p>
+ */
+export interface TsharkTimelinePoint {
+  /** `yyyy-MM-dd HH:mm:ss`（桶起点） */
+  t: string
+  packets: number
+  bytes: number
+}
+
+/**
+ * 异常诊断的一项（`GET /tshark/sessions/{id}/stats/anomalies`）。
+ *
+ * <p>`filter` 是后端给的等价显示过滤表达式，点这一行就能筛到对应报文。</p>
+ */
+export interface TsharkAnomaly {
+  /** 稳定标识：reset / unreachable / retransmission … */
+  key: string
+  label: string
+  /** danger / warning / info */
+  severity: string
+  count: number
+  /** 可回填到显示过滤条的表达式 */
+  filter?: string | null
 }
 
 /** Top 会话流的一项 */
@@ -110,6 +166,11 @@ export interface TsharkFlow {
   count: number
   /** 字节数，部分实现不返回 */
   bytes?: number
+  /** 源 / 目的地址与端口，用于点击后生成精确的显示过滤 */
+  sourceIp?: string | null
+  sourcePort?: number | null
+  destIp?: string | null
+  destPort?: number | null
 }
 
 /**
@@ -136,7 +197,7 @@ export interface TsharkInterface {
  * 两个页面共用同一套标签骨架，只是把「列表」那一页换成各自的面板，其余（报文 / 统计 /
  * 会话流）完全一致，所以枚举放一处、共用一套 key。</p>
  */
-export type TsharkTabKey = 'packet' | 'session' | 'import' | 'stats' | 'flow'
+export type TsharkTabKey = 'packet' | 'session' | 'import' | 'stats' | 'flow' | 'insight'
 
 /** 会话列表的状态筛选（前端做，见 useTshark 的说明） */
-export type TsharkSessionFilter = 'all' | 'running' | 'stopped'
+export type TsharkSessionFilter = 'all' | 'running' | 'stopped' | 'error'

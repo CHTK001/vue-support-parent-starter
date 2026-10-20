@@ -1,48 +1,37 @@
 <script setup lang="ts">
 /**
- * 视频资源浏览页
+ * 检索结果页（第三版 · 参照站复刻）
  *
- * 结构：渐变页头 + 筛选工具条 + 海报墙（网格卡片）+ 分页。
- * 交互：搜索防抖、类型筛选、卡片悬停上浮、加载骨架、空态。
- * 数据：videoApi.fetchVideoList（真实接口，失败时展示错误与重试）。
+ * 参照站 /search 结构：`.search_head`（灰底圆角条：左侧类型标签、
+ * 右侧辅助信息）+ `.sr_lists`（每行 = 140×200 海报 + 多行文字，
+ * 标题 18px/700 蓝色，下面依次是 类型/地区/标签、简介、评分、导演、主演）。
  */
 import { computed, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { Search, VideoCamera, Refresh } from "@element-plus/icons-vue";
+import { useRoute } from "vue-router";
 import { fetchVideoList } from "@/api/videoApi";
 import type { VideoInfo, VideoQuery } from "@/types/video";
 
-const router = useRouter();
+const route = useRoute();
 
 /* ── 状态 ─────────────────────────────────── */
 const loading = ref(false);
 const error = ref("");
 const videos = ref<VideoInfo[]>([]);
 const total = ref(0);
-const keyword = ref("");
 const activeType = ref("");
-const page = ref(1);
-const pageSize = 24;
 
-/** 清空筛选条件（关键词 + 类型） */
-function clearFilters() {
-  keyword.value = "";
-  activeType.value = "";
-}
+/** 关键词跟随路由（顶部搜索框跳转到本页时带 keyword） */
+const keyword = computed(() => String(route.query.keyword ?? ""));
 
-/** 类型筛选项 */
+/** 类型标签（参照站 .l 区） */
 const TYPE_OPTIONS = [
   { value: "", label: "全部" },
   { value: "movie", label: "电影" },
   { value: "tv", label: "剧集" },
+  { value: "anime", label: "动漫" },
   { value: "variety", label: "综艺" },
-  { value: "anime", label: "动画" },
   { value: "documentary", label: "纪录片" },
 ] as const;
-
-const typeLabel = computed(
-  () => TYPE_OPTIONS.find((t) => t.value === activeType.value)?.label ?? "视频",
-);
 
 /* ── 数据加载 ─────────────────────────────── */
 async function load() {
@@ -51,13 +40,13 @@ async function load() {
   const query: VideoQuery = {
     keyword: keyword.value.trim() || undefined,
     videoType: activeType.value || undefined,
-    page: page.value,
-    pageSize,
+    page: 1,
+    pageSize: 100,
   };
   try {
     const result = await fetchVideoList(query);
     videos.value = result.list ?? [];
-    total.value = result.total ?? 0;
+    total.value = result.total ?? videos.value.length;
   } catch (e) {
     error.value = e instanceof Error ? e.message : "数据加载失败，请确认后端服务已启动";
     videos.value = [];
@@ -67,249 +56,285 @@ async function load() {
   }
 }
 
-/** 搜索防抖 */
-let searchTimer: ReturnType<typeof setTimeout> | null = null;
+/** 每行的第二行文字：类型 / 地区 / 年份 / 标签 */
+function lineMeta(item: VideoInfo) {
+  const typeLabel =
+    TYPE_OPTIONS.find((t) => t.value === item.videoType)?.label ?? item.videoType ?? "";
+  return [typeLabel, item.district, item.year, ...(item.tags ?? [])].filter(Boolean).join(" / ");
+}
+
 watch(keyword, () => {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    page.value = 1;
-    void load();
-  }, 350);
-});
-
-watch(activeType, () => {
-  page.value = 1;
+  activeType.value = "";
   void load();
 });
 
-watch(page, () => void load());
-
-function onRetry() {
-  void load();
-}
-
-function openVideo(item: VideoInfo) {
-  void router.push({ name: "watch", params: { id: item.id } });
-}
-
-function coverUrl(item: VideoInfo): string {
-  return item.cover || "";
-}
+watch(activeType, () => void load());
 
 onMounted(() => void load());
 </script>
 
 <template>
   <div class="vd-page">
-    <!-- 页头 -->
-    <header class="vd-header">
-      <div>
-        <h1>视频资源中心</h1>
-        <p class="vd-subtitle">共 {{ total }} 部{{ typeLabel }} · 数据来自多源同步</p>
-      </div>
-      <el-button :icon="Refresh" circle aria-label="刷新列表" @click="onRetry" />
-    </header>
-
-    <!-- 筛选工具条 -->
-    <div class="vd-toolbar">
-      <el-input
-        v-model="keyword"
-        class="vd-search"
-        :prefix-icon="Search"
-        placeholder="搜索影片名称…"
-        clearable
-        size="large"
-        aria-label="搜索影片"
-      />
-      <div class="vd-type-tabs" role="tablist" aria-label="视频类型筛选">
+    <!-- ── 检索头（参照站 .search_head） ─────── -->
+    <div class="vdsr-head">
+      <div class="vdsr-head-l">
         <button
           v-for="t in TYPE_OPTIONS"
           :key="t.value"
           type="button"
-          role="tab"
-          class="vd-type-tab"
+          class="vdsr-tab"
           :class="{ 'is-active': activeType === t.value }"
-          :aria-selected="activeType === t.value"
           @click="activeType = t.value"
         >
           {{ t.label }}
         </button>
       </div>
+
+      <div class="vdsr-head-r">
+        <span class="vdsr-tip">
+          <template v-if="keyword">「{{ keyword }}」</template>
+          <template v-else>全部资源</template>
+          共 {{ total }} 条
+        </span>
+      </div>
     </div>
 
     <!-- 加载失败 -->
-    <div v-if="error && !loading" class="vds-load-error">
+    <div v-if="error && !loading" class="vd-empty">
       <el-empty :description="error">
-        <el-button type="primary" @click="onRetry">重试</el-button>
+        <el-button type="primary" @click="load">重试</el-button>
       </el-empty>
     </div>
 
-    <!-- 海报墙 -->
-    <div v-else-if="loading" class="vd-grid" aria-busy="true">
-      <div v-for="i in 12" :key="i" class="vd-card vd-poster-skeleton" style="aspect-ratio: 2/3" />
+    <!-- 骨架 -->
+    <div v-else-if="loading" class="vdsr-lists" aria-busy="true">
+      <div v-for="i in 6" :key="i" class="vdsr-row">
+        <div class="vdsr-img vd-poster-skeleton" />
+        <div class="vdsr-text">
+          <div class="vd-poster-skeleton vdsr-sk-line" style="width: 40%" />
+          <div class="vd-poster-skeleton vdsr-sk-line" style="width: 80%" />
+          <div class="vd-poster-skeleton vdsr-sk-line" style="width: 65%" />
+        </div>
+      </div>
     </div>
 
     <template v-else>
-      <div v-if="videos.length" class="vd-grid">
-        <article
-          v-for="item in videos"
-          :key="item.id"
-          class="vd-card"
-          tabindex="0"
-          role="button"
-          :aria-label="`播放 ${item.name}`"
-          @click="openVideo(item)"
-          @keydown.enter="openVideo(item)"
-        >
-          <div class="vd-poster">
-            <img
-              v-if="coverUrl(item)"
-              :src="coverUrl(item)"
-              :alt="`${item.name} 封面`"
-              loading="lazy"
-            />
-            <div v-else class="vd-poster-fallback" aria-hidden="true">
-              <el-icon :size="42"><VideoCamera /></el-icon>
-            </div>
-            <span v-if="item.score" class="vd-score">{{ item.score.toFixed(1) }}</span>
-            <span v-if="item.continueInfo" class="vd-continue">{{ item.continueInfo }}</span>
+      <!-- ── 结果列表（参照站 .sr_lists > .v5d） ── -->
+      <div v-if="videos.length" class="vdsr-lists">
+        <div v-for="item in videos" :key="item.id" class="vdsr-row">
+          <div class="vdsr-img">
+            <router-link :to="{ name: 'watch', params: { id: item.id } }">
+              <img v-if="item.cover" :src="item.cover" :alt="item.name" loading="lazy" />
+              <div v-else class="vdsr-img-fallback">暂无封面</div>
+            </router-link>
           </div>
-          <div class="vd-card-body">
-            <h3 class="vd-name" :title="item.name">{{ item.name }}</h3>
-            <p class="vd-meta">
-              <span v-if="item.year">{{ item.year }}</span>
-              <span v-if="item.district">{{ item.district }}</span>
-            </p>
-            <div v-if="item.tags?.length" class="vd-tags">
-              <span v-for="tag in item.tags.slice(0, 3)" :key="tag" class="vd-tag">{{ tag }}</span>
-            </div>
+
+          <div class="vdsr-text">
+            <h3 class="vdsr-title">
+              <router-link :to="{ name: 'watch', params: { id: item.id } }">
+                {{ item.name }}<template v-if="item.year"> ({{ item.year }})</template>
+              </router-link>
+            </h3>
+            <p v-if="lineMeta(item)" class="vdsr-line">{{ lineMeta(item) }}</p>
+            <p v-if="item.remark" class="vdsr-line">{{ item.remark }}</p>
+            <p v-if="item.score" class="vdsr-line">评分： {{ item.score.toFixed(1) }}</p>
+            <p v-if="item.director" class="vdsr-line">导演： {{ item.director }}</p>
+            <p v-if="item.continueInfo" class="vdsr-line">状态： {{ item.continueInfo }}</p>
           </div>
-        </article>
+        </div>
       </div>
 
       <div v-else class="vd-empty">
-        <el-empty description="没有找到匹配的影片，换个关键词试试">
-          <el-button type="primary" @click="clearFilters">清空筛选</el-button>
-        </el-empty>
-      </div>
-
-      <div v-if="total > pageSize" class="vd-pagination">
-        <el-pagination
-          v-model:current-page="page"
-          :page-size="pageSize"
-          :total="total"
-          layout="prev, pager, next, jumper, total"
-          background
-        />
+        <el-empty :description="keyword ? `没有找到「${keyword}」相关的影片` : '暂无影片数据'" />
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-/* ── 工具条 ─────────────────────────────── */
-.vd-toolbar {
+/* ═══════════════════════════════════════════
+   检索头（灰底圆角条）
+   ═══════════════════════════════════════════ */
+.vdsr-head {
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  background: var(--vd-surface);
+  border: 1px solid var(--vd-border);
+  border-radius: 8px;
   flex-wrap: wrap;
 }
 
-.vd-search {
-  width: 320px;
-  max-width: 100%;
-}
-
-.vd-search :deep(.el-input__wrapper) {
-  border-radius: var(--vd-radius-md);
-  /* #94a3b8 正是 --vd-text-secondary，alpha 统一走 color-mix */
-  background: color-mix(in srgb, var(--vd-text-secondary) 8%, transparent);
-  box-shadow: 0 0 0 1px var(--vd-border) inset;
-  transition:
-    box-shadow var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
-    background var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
-}
-
-.vd-search :deep(.el-input__wrapper.is-focus) {
-  box-shadow:
-    0 0 0 1px var(--vd-primary) inset,
-    0 0 16px color-mix(in srgb, var(--vd-primary) 18%, transparent);
-  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
-}
-
-.vd-search :deep(.el-input__inner) {
-  color: var(--vd-text);
-}
-
-.vd-search :deep(.el-input__inner::placeholder) {
-  color: var(--vd-text-muted);
-}
-
-/* 类型页签 */
-.vd-type-tabs {
+.vdsr-head-l {
   display: flex;
+  flex-direction: row;
   gap: 4px;
-  background: var(--vd-surface-card);
-  border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-md);
-  padding: 4px;
+  flex-wrap: wrap;
 }
 
-.vd-type-tab {
+.vdsr-tab {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
   border: none;
-  background: transparent;
-  color: var(--vd-text-secondary);
-  font-size: 13px;
-  padding: 7px 15px;
-  border-radius: var(--vd-radius-sm);
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
+  background: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 500;
-}
-
-.vd-type-tab:hover {
+  line-height: 24px;
   color: var(--vd-text);
-  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
+  cursor: pointer;
+  transition:
+    background var(--vd-fast) var(--vd-ease),
+    color var(--vd-fast) var(--vd-ease);
 }
 
-.vd-type-tab.is-active {
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: var(--vd-text);
-  font-weight: 600;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 45%, transparent);
+.vdsr-tab:hover {
+  color: var(--vd-primary);
 }
 
-/* 焦点轮廓已由 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
-.vd-type-tab:focus-visible {
+.vdsr-tab:focus-visible {
   outline: 2px solid var(--vd-primary);
   outline-offset: 1px;
 }
 
-/* ── 海报墙 ─────────────────────────────── */
-.vd-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 20px;
+.vdsr-tab.is-active {
+  background: var(--vd-primary);
+  color: #fff;
+  font-weight: 600;
 }
 
-@media (max-width: 640px) {
-  .vd-page {
-    padding: 16px;
+.vdsr-head-r {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding-left: 16px;
+  margin-left: 16px;
+  border-left: 1px solid var(--vd-border);
+}
+
+.vdsr-tip {
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--vd-text-2);
+}
+
+/* ═══════════════════════════════════════════
+   结果列表
+   ═══════════════════════════════════════════ */
+.vdsr-lists {
+  padding: 20px 0 0;
+}
+
+.vdsr-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  margin: 0 0 20px;
+}
+
+.vdsr-img {
+  width: 140px;
+  height: 200px;
+  flex-shrink: 0;
+  margin-right: 20px;
+  background: var(--vd-surface);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.vdsr-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vdsr-img-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--vd-text-2);
+  background: var(--vd-surface);
+}
+
+.vdsr-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.vdsr-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 27px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vdsr-title a {
+  color: var(--vd-link);
+}
+
+.vdsr-title a:hover {
+  color: var(--vd-primary);
+}
+
+.vdsr-line {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--vd-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── 骨架 ── */
+.vdsr-sk-line {
+  height: 18px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+}
+
+@media (max-width: 760px) {
+  .vdsr-head-r {
+    padding-left: 0;
+    margin-left: 0;
+    border-left: none;
   }
-  .vd-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+  .vdsr-img {
+    width: 100px;
+    height: 143px;
+    margin-right: 12px;
   }
-  .vd-search {
-    width: 100%;
+  .vdsr-title {
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .vdsr-line {
+    font-size: 14px;
+    line-height: 21px;
+    margin-top: 6px;
+    -webkit-line-clamp: 1;
   }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .vd-search :deep(.el-input__wrapper),
-  .vd-type-tab {
+  .vdsr-tab {
     transition: none;
   }
 }

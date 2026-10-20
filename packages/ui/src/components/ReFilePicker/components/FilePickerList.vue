@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * ReFilePicker 详细信息视图 —— 对齐资源管理器「详细信息」列表：
- * 灰色表头 + 列排序、文件夹/文件图标、浅蓝悬停与选中、底部加载进度。
+ * ReFilePicker 内容区 —— 详细信息列表 + 大/中/小图标视图：
+ * 详细信息对齐资源管理器（灰色表头 + 列排序），图标视图按单元格平铺。
  *
  * <p>「..」由父级传入（参与排序/过滤之外），行点击/双击分别对外抛
  * activate/open，键盘高亮行由 activeIndex 驱动并自动滚入可视区。</p>
@@ -43,6 +43,8 @@ const emit = defineEmits<{
   (e: "activate", item: FilePickerItem, index: number, event?: MouseEvent): void;
   (e: "open", item: FilePickerItem): void;
   (e: "navigate", path: string): void;
+  /** 键盘二维导航回传高亮位 */
+  (e: "move-active", index: number): void;
 }>();
 
 const detailsRef = ref<HTMLElement | null>(null);
@@ -50,7 +52,7 @@ const detailsRef = ref<HTMLElement | null>(null);
 const sortArrow = (key: FilePickerSortKey): string =>
   props.sortKey === key ? (props.sortAsc ? "↑" : "↓") : "";
 
-/** 键盘高亮行变化时滚入可视区 */
+/** 键盘高亮行变化时滚入可视区（焦点同步由 moveActive 负责） */
 watch(
   () => props.activeIndex,
   async (index) => {
@@ -59,10 +61,110 @@ watch(
     detailsRef.value?.querySelector<HTMLElement>(`[data-row-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
   },
 );
+
+type MoveDirection = "up" | "down" | "left" | "right";
+
+/**
+ * 按方向找下一个高亮项。
+ *
+ * <p>详细信息视图是单列，↑/↓ 按 DOM 顺序线性移动，←/→ 不动作；
+ * 图标视图按单元格矩形做二维寻路：←/→ 走同一行，↑/↓ 走相邻行，
+ * 边缘没有候选时返回 null（不越界回绕），列数由布局自己决定，
+ * 不依赖固定列数。</p>
+ */
+const findNextIndex = (direction: MoveDirection): number | null => {
+  const container = detailsRef.value;
+  if (!container) return null;
+  const cells = Array.from(container.querySelectorAll<HTMLElement>(".re-file-picker__item"));
+  if (!cells.length) return null;
+
+  // 高亮位优先；activeIndex 为 -1（Tab 进来 / 程序聚焦）时退回当前 DOM 焦点所在格
+  const focused = document.activeElement as HTMLElement | null;
+  const focusedCell =
+    focused && focused.classList.contains("re-file-picker__item") && container.contains(focused) ? focused : null;
+  const current =
+    props.activeIndex >= 0
+      ? cells.find((el) => Number(el.dataset.rowIndex) === props.activeIndex) ?? focusedCell
+      : focusedCell;
+
+  // 还没有高亮项：↓/→ 落到第一项，↑/← 落到最后一项
+  if (!current) {
+    const fallback = direction === "up" || direction === "left" ? cells[cells.length - 1] : cells[0];
+    return Number(fallback.dataset.rowIndex);
+  }
+
+  if (props.viewMode === "details") {
+    if (direction === "left" || direction === "right") return null;
+    const currentIndex = cells.indexOf(current);
+    const nextIndex = direction === "down" ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0 || nextIndex >= cells.length) return null;
+    return Number(cells[nextIndex].dataset.rowIndex);
+  }
+
+  const currentRect = current.getBoundingClientRect();
+  const cx = currentRect.left + currentRect.width / 2;
+  const cy = currentRect.top + currentRect.height / 2;
+  let best: HTMLElement | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const cell of cells) {
+    if (cell === current) continue;
+    const rect = cell.getBoundingClientRect();
+    const dx = rect.left + rect.width / 2 - cx;
+    const dy = rect.top + rect.height / 2 - cy;
+    let primary: number;
+    let secondary: number;
+    if (direction === "up") {
+      if (dy >= -1) continue;
+      primary = -dy;
+      secondary = Math.abs(dx);
+    } else if (direction === "down") {
+      if (dy <= 1) continue;
+      primary = dy;
+      secondary = Math.abs(dx);
+    } else if (direction === "left") {
+      if (dx >= -1) continue;
+      primary = -dx;
+      secondary = Math.abs(dy);
+    } else {
+      if (dx <= 1) continue;
+      primary = dx;
+      secondary = Math.abs(dy);
+    }
+    // 主轴距离为主、横向错位加权重：相邻单元格总是比斜对角更近
+    const score = primary + secondary * 4;
+    if (score < bestScore) {
+      bestScore = score;
+      best = cell;
+    }
+  }
+
+  return best ? Number(best.dataset.rowIndex) : null;
+};
+
+/**
+ * 键盘导航入口，由父组件调用。
+ *
+ * <p>focus=false 时只移动高亮、不抢输入框焦点（搜索框里边输入边看结果）；
+ * focus=true 时把 DOM 焦点同步到高亮项，回车才会作用在正确的那一行。</p>
+ */
+const moveActive = (direction: MoveDirection, focus = true): void => {
+  const next = findNextIndex(direction);
+  if (next == null) return;
+  emit("move-active", next);
+  if (!focus) return;
+  void nextTick(() => {
+    const el = detailsRef.value?.querySelector<HTMLElement>(`[data-row-index="${next}"]`);
+    el?.focus({ preventScroll: true });
+    el?.scrollIntoView({ block: "nearest" });
+  });
+};
+
+defineExpose({ moveActive });
 </script>
 
 <template>
-  <main class="rfp-main" :class="{ 'is-loading': loading }">
+  <main class="rfp-main" :class="{ 'is-loading': loading }" :aria-busy="loading">
     <div v-if="loading" class="rfp-main__progress" aria-hidden="true" />
 
     <div v-if="loadError" class="rfp-main__state rfp-main__state--error">
@@ -73,7 +175,7 @@ watch(
       </div>
     </div>
 
-    <template v-else-if="rows.length || parentEntry">
+    <template v-else-if="rows.length || (parentEntry && !searching)">
       <!-- 详细信息 -->
       <template v-if="viewMode === 'details'">
         <div class="rfp-details__head" role="row">
@@ -122,6 +224,8 @@ watch(
             :data-row-index="i"
             :title="item.key"
             :aria-label="item.name"
+            :aria-pressed="isSelected(item)"
+            :aria-disabled="!item.isDir && !canSelect(item)"
             @click="emit('activate', item, i, $event)"
             @dblclick="emit('open', item)"
           >
@@ -154,7 +258,7 @@ watch(
           <span class="rfp-grid__thumb">
             <el-icon class="rfp-grid__icon rfp-file-icon rfp-file-icon--dir"><FolderOpened /></el-icon>
           </span>
-          <span class="rfp-grid__name">..</span>
+          <span class="rfp-grid__name is-dir">..</span>
           <span v-if="viewMode !== 'smallIcons'" class="rfp-grid__meta">上级目录</span>
         </button>
 
@@ -172,6 +276,8 @@ watch(
           :data-row-index="i"
           :title="item.key"
           :aria-label="item.name"
+          :aria-pressed="isSelected(item)"
+          :aria-disabled="!item.isDir && !canSelect(item)"
           @click="emit('activate', item, i, $event)"
           @dblclick="emit('open', item)"
         >
@@ -191,10 +297,12 @@ watch(
           </span>
           <span class="rfp-grid__name" :class="{ 'is-dir': item.isDir }">{{ item.name }}</span>
           <span v-if="viewMode !== 'smallIcons'" class="rfp-grid__meta">
-            {{ item.isDir ? "文件夹" : formatSize(item.size) }}
+            {{ item.isDir ? "" : formatSize(item.size) }}
           </span>
         </button>
       </div>
+
+      <div v-if="!rows.length && !searching" class="rfp-main__hint">当前目录为空</div>
     </template>
 
     <div v-else-if="!loading" class="rfp-main__state">
@@ -243,8 +351,10 @@ watch(
 }
 
 /* 加载期间旧列表只作为占位，不接受点击：避免在过渡窗口里又点进另一层目录 */
-.rfp-main.is-loading .rfp-details {
+.rfp-main.is-loading .rfp-details,
+.rfp-main.is-loading .rfp-grid {
   pointer-events: none;
+  opacity: 0.65;
 }
 
 @keyframes rfp-progress {
@@ -295,6 +405,15 @@ watch(
   word-break: break-all;
 }
 
+/* 空目录：保留「..」入口的同时给一行提示，别让用户以为列表没渲染 */
+.rfp-main__hint {
+  flex-shrink: 0;
+  padding: 14px 16px 18px;
+  text-align: center;
+  color: var(--rfp-text-weak);
+  font-size: 12px;
+}
+
 @keyframes rfp-spin {
   to {
     transform: rotate(360deg);
@@ -312,12 +431,16 @@ watch(
   font-size: 13px;
 }
 
-/* 表头：浅灰底、细下边线，列可点排序 */
+/* 表头：淡主色渐变 + 下沿主色发丝线，列可点排序 */
 .rfp-details__head {
   flex-shrink: 0;
   height: 32px;
-  border-bottom: 1px solid var(--rfp-border);
-  background: var(--rfp-head);
+  border-bottom: 1px solid color-mix(in srgb, var(--rfp-accent) 16%, var(--rfp-border));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--rfp-accent) 4%, var(--rfp-head)),
+    var(--rfp-head)
+  );
   font-size: 12px;
   font-weight: 600;
   color: var(--rfp-text-weak);
@@ -366,8 +489,9 @@ watch(
   padding: 2px 0 6px;
 }
 
-/* 行：紧凑行高 + 悬停/选中浅蓝（资源管理器观感） */
+/* 行：紧凑行高 + 悬停/选中淡主色（资源管理器观感） */
 .rfp-details__row {
+  position: relative;
   width: 100%;
   min-height: 32px;
   border: 1px solid transparent;
@@ -377,7 +501,8 @@ watch(
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--el-transition-duration, 0.12s), border-color var(--el-transition-duration, 0.12s);
+  transition: background var(--el-transition-duration, 0.12s), border-color var(--el-transition-duration, 0.12s),
+    box-shadow var(--el-transition-duration, 0.12s);
 }
 
 .rfp-details__row:hover {
@@ -398,9 +523,27 @@ watch(
   background: var(--rfp-hover);
 }
 
+/* 选中：主色淡底 + 细环 + 轻投影，左缘一条主色竖条 */
 .rfp-details__row.is-selected {
   border-color: var(--rfp-select-border);
-  background: var(--rfp-select-bg);
+  background: linear-gradient(
+    to right,
+    var(--rfp-select-bg),
+    color-mix(in srgb, var(--rfp-accent) 7%, transparent)
+  );
+  box-shadow: 0 1px 5px color-mix(in srgb, var(--rfp-accent) 13%, transparent);
+}
+
+.rfp-details__row.is-selected::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--rfp-accent);
+  box-shadow: 0 0 6px var(--rfp-glow);
 }
 
 .rfp-details__row:focus-visible {
@@ -474,10 +617,12 @@ watch(
 
 .rfp-details__size {
   text-align: right;
+  font-family: var(--rfp-mono);
   font-variant-numeric: tabular-nums;
 }
 
 .rfp-details__time {
+  font-family: var(--rfp-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -493,13 +638,13 @@ watch(
 
 .rfp-grid--largeIcons {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 }
 
 .rfp-grid--mediumIcons {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 6px;
 }
 
@@ -517,13 +662,13 @@ watch(
   gap: 4px;
   padding: 12px 8px 10px;
   border: 1px solid transparent;
-  border-radius: var(--rfp-radius);
+  border-radius: var(--rfp-radius-lg, 8px);
   background: transparent;
   color: var(--rfp-text);
   font-family: inherit;
   text-align: center;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 
 .rfp-grid__cell:hover,
@@ -531,9 +676,11 @@ watch(
   background: var(--rfp-hover);
 }
 
+/* 选中格：细环 + 主色柔光，与详细信息行同一套语言 */
 .rfp-grid__cell.is-selected {
   border-color: var(--rfp-select-border);
   background: var(--rfp-select-bg);
+  box-shadow: 0 0 0 1px var(--rfp-hair), 0 2px 8px color-mix(in srgb, var(--rfp-accent) 16%, transparent);
 }
 
 .rfp-grid__cell.is-disabled {
@@ -551,8 +698,8 @@ watch(
 }
 
 .rfp-grid__thumb {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -564,20 +711,20 @@ watch(
 }
 
 .rfp-grid__icon {
-  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
 }
 
 .rfp-grid--largeIcons .rfp-grid__icon {
-  font-size: 54px;
+  font-size: 68px;
 }
 
 .rfp-grid--mediumIcons .rfp-grid__thumb {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
 }
 
 .rfp-grid--mediumIcons .rfp-grid__icon {
-  font-size: 34px;
+  font-size: 42px;
 }
 
 .rfp-grid__name {
@@ -594,6 +741,8 @@ watch(
 
 .rfp-grid__meta {
   width: 100%;
+  min-height: 15px;
+  line-height: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -604,7 +753,7 @@ watch(
 
 /* 小图标：紧凑横向行 */
 .rfp-grid--smallIcons .rfp-grid__cell {
-  min-height: 30px;
+  min-height: 36px;
   flex-direction: row;
   gap: 8px;
   padding: 0 8px;

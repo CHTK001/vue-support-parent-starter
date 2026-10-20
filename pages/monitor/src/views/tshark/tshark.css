@@ -275,9 +275,150 @@
   .pcap-detail__name { max-width: 100%; }
 }
 
+/* ============================================================================
+ * 分析控制台（科技化外壳，方案 A · 冰蓝）
+ *
+ * 抓包页与详情弹层统一成一台「网络分析控制台」的观感：遥测条 + 等宽数字 +
+ * 状态信号灯 + 终端式过滤条。只在既有骨架上加观感，不动布局契约。
+ *
+ * 取色仍然只走 --el-* 语义令牌与既有 --metric-*，不引入新色板：
+ * 主题切换（浅色 / html.dark）时整体跟着走，深色下不会停在亮色。
+ * ========================================================================== */
+:root {
+  /* 运行中会话的信号色：刻意不用 --el-color-success，
+     和「已停止」的灰拉开量级，也避免与成功态的绿混在一起 */
+  --ts-run: #0aa2c0;
+  --ts-run-soft: color-mix(in srgb, var(--ts-run) 12%, transparent);
+  --ts-run-line: color-mix(in srgb, var(--ts-run) 32%, transparent);
+  --ts-run-glow: color-mix(in srgb, var(--ts-run) 40%, transparent);
+  /* 遥测条的网格底纹：极淡，只在大面积浅底上才看得见 */
+  --ts-grid: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
+}
+html.dark {
+  --ts-run: #22d3ee;
+  --ts-run-soft: color-mix(in srgb, var(--ts-run) 16%, transparent);
+  --ts-grid: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
+/* ---------- 遥测条：会话表上方的一排只读指标 ---------- */
+.ts-tele {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+/* 网格底纹：pointer-events:none，纯装饰，不参与命中 */
+.ts-tele::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ts-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ts-grid) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.ts-tele__cell {
+  position: relative;
+  flex: 1 1 96px;
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 14px;
+}
+.ts-tele__cell + .ts-tele__cell { border-left: 1px solid var(--el-border-color-lighter); }
+.ts-tele__value {
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  /* 数字逐位对齐：刷新时不会左右抖动 */
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+}
+.ts-tele__cell.is-hot .ts-tele__value {
+  color: var(--ts-run);
+  text-shadow: 0 0 12px var(--ts-run-glow);
+}
+.ts-tele__label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---------- 状态信号灯：带呼吸点的小胶囊 ---------- */
+.ts-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.ts-pill__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ts-pill--run {
+  color: var(--ts-run);
+  background: var(--ts-run-soft);
+  border-color: var(--ts-run-line);
+}
+.ts-pill--run .ts-pill__dot {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ts-run) 22%, transparent);
+  animation: ts-pulse 1.6s ease-in-out infinite;
+}
+.ts-pill--stop {
+  color: var(--el-text-color-secondary);
+  background: color-mix(in srgb, var(--el-text-color-secondary) 10%, transparent);
+}
+.ts-pill--err {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+}
+@keyframes ts-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ---------- 等宽数字：报表数 / 大小 / 时长列 ---------- */
+.ts-num {
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 运行中的会话：整行左侧一条信号亮条 ----------
+   element 引擎下行为 .el-table__row；is-run 由表头的 :row-class-name 打上 */
+.tshark-table .el-table__row.is-run > td:first-child {
+  box-shadow: inset 3px 0 0 var(--ts-run);
+}
+.tshark-table .el-table__row.is-run > td {
+  background: color-mix(in srgb, var(--ts-run) 5%, transparent);
+}
+.tshark-table .el-table__row.is-run:hover > td {
+  background: color-mix(in srgb, var(--ts-run) 10%, transparent);
+}
+
 /* ==================== 无障碍 ==================== */
 @media (prefers-reduced-motion: reduce) {
   /* 状态点的呼吸动画只是附加动效：底色（成功绿 / 危险红）已经表达了状态，可以安全停掉 */
   .tshark-status__dot { animation: none; }
   .tshark-status { transition: none; }
+  /* 同上：运行中信号灯的呼吸只是附加动效，颜色本身已经表达了「在抓」 */
+  .ts-pill--run .ts-pill__dot { animation: none; }
 }

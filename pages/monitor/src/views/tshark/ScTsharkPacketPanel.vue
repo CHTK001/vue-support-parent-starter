@@ -7,18 +7,8 @@
 <template>
   <div class="tshark-panel">
     <div class="tshark-panel__tools">
-      <!-- 关键字走后端（库里筛），不是前端筛当前页：否则翻到第 3 页搜一个只出现在
-           第 1 页的包会「搜不到」。导出同理，导的是当前页结果。 -->
-      <ReInput
-        class="tshark-filter"
-        :model-value="keyword"
-        placeholder="过滤：协议 / IP / 端口 / 摘要"
-        clearable
-        @update:model-value="onKeyword"
-      >
-        <template #prefix><ReIcon name="Search" :size="13" /></template>
-      </ReInput>
-      <span v-if="keyword" class="tshark-dim packet-hint">后端在库中按「{{ keyword }}」筛选</span>
+      <!-- 过滤在上方的统一过滤条里做（报文 / 统计 / 会话流共用一份表达式）。
+           这里只保留与当前页相关的操作。 -->
       <span class="tshark-dim packet-hint">右键报文可查看 TCP 生命周期</span>
 
       <span class="tshark-panel__spacer"></span>
@@ -40,6 +30,7 @@
         :loading="loading"
         border
         stripe
+        size="small"
         row-key="id"
         :pagination="false"
         :toolbar="false"
@@ -79,7 +70,7 @@
             <span class="tshark-ellipsis" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="150" align="center">
+        <ReTableColumn label="操作" width="176" align="center">
           <template #default="{ row }">
             <ReButton link type="primary" @click="emit('open-detail', row)">详情</ReButton>
             <ReButton link type="primary" @click="emit('open-lifecycle', row)">生命周期</ReButton>
@@ -112,12 +103,10 @@ defineProps<{
   page: number
   pageSize: number
   total: number
-  keyword: string
   emptyText: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:keyword', v: string): void
   (e: 'page-change', page: number): void
   (e: 'open-detail', row: TsharkPacket): void
   (e: 'open-lifecycle', row: TsharkPacket): void
@@ -145,10 +134,6 @@ function onPacketMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMen
   if (item.key === 'lifecycle') {
     emit('open-lifecycle', row)
   }
-}
-
-function onKeyword(v: unknown) {
-  emit('update:keyword', v === null || v === undefined ? '' : String(v))
 }
 
 /** 「IP:端口」；端口缺失（ARP / ICMP 这类）时只留 IP，不要拖一个孤零零的冒号 */

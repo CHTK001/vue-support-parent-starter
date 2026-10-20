@@ -76,6 +76,11 @@ export interface UseFilePickerReturn {
   /** 是否已达选择上限 */
   isLimitReached: ComputedRef<boolean>;
 
+  /** 拉取某目录的原始条目（分栏视图按列懒加载时复用，不改当前路径 / 历史） */
+  fetchItems: (path: string) => Promise<FilePickerItem[]>;
+  /** 对任意条目列表套用 accept 过滤 + 搜索 + 排序（分栏视图逐列复用） */
+  prepareItems: (list: FilePickerItem[]) => FilePickerItem[];
+
   load: (path?: string) => Promise<void>;
   refresh: () => Promise<void>;
   reset: (path: string) => Promise<void>;
@@ -94,7 +99,6 @@ export interface UseFilePickerReturn {
   isSelected: (item: FilePickerItem) => boolean;
   isCurrentPath: (path: string) => boolean;
   isParentEntry: (item: FilePickerItem) => boolean;
-  moveActive: (delta: number) => void;
   /** 回车激活当前行；返回 true 表示已选中单个文件、视图层应立刻确认 */
   activateActive: () => boolean;
   /** 取出并清空当前选中（确认时用） */
@@ -130,9 +134,11 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
    *
    * <p>双击在浏览器里是「click + click + dblclick」：若两次 click 里有一次落在
    * 已重新渲染的新行上，或某些设备重复派发 dblclick，就会连续进入两级目录。
-   * 一次双击只允许触发一次「进入目录」，时间窗内后续 open 直接丢弃。</p>
+   * 一次双击只允许触发一次「进入目录」，时间窗内对<b>同一目标</b>的后续 open 直接丢弃。
+   * 只按时间不看目标会把「先双击 A、再很快双击 B」里的 B 误伤，所以还要比对路径。</p>
    */
   let lastDirOpenAt = 0;
+  let lastDirOpenKey = "";
   const DIR_OPEN_GUARD_MS = 400;
 
   /** 正在加载的目标目录：同一目标在途时不再重复发请求（双击父级/侧栏时常见） */
@@ -318,14 +324,24 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
       .slice(0, 30),
   );
 
-  /** 过滤后的行（不含「..」/上级目录、按 accept + 搜索词筛） */
-  const rows = computed<FilePickerItem[]>(() => {
+  /**
+   * 对任意条目列表套用 accept 过滤 + 搜索 + 排序。
+   *
+   * <p>从 {@code rows} 抽出来，供 macOS 式分栏视图逐列复用：每一列的原始数据
+   * 走同一个过滤/排序口径，搜索词变化时各列一起收窄。</p>
+   */
+  const prepareItems = (list: FilePickerItem[]): FilePickerItem[] => {
     const acceptFilter = buildAcceptFilter(options.accept());
-    let list = items.value.filter((item) => !isParentEntry(item) && acceptFilter(item));
+    let out = list.filter((item) => acceptFilter(item));
     const q = searchText.value.trim().toLowerCase();
-    if (q) list = list.filter((item) => item.name.toLowerCase().includes(q));
-    return [...list].sort((a, b) => compareItems(a, b, sortKey.value, sortAsc.value));
-  });
+    if (q) out = out.filter((item) => item.name.toLowerCase().includes(q));
+    return [...out].sort((a, b) => compareItems(a, b, sortKey.value, sortAsc.value));
+  };
+
+  /** 过滤后的行（不含「..」/上级目录、按 accept + 搜索词筛） */
+  const rows = computed<FilePickerItem[]>(() =>
+    prepareItems(items.value.filter((item) => !isParentEntry(item))),
+  );
 
   const searching = computed(() => searchText.value.trim().length > 0);
   const selectedCount = computed(() => selectedItems.value.length);
@@ -484,12 +500,13 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
       return false;
     }
     if (item.isDir) {
-      // 一次双击只进一级：第二颗 click / 重复 dblclick 在时间窗内直接丢弃
+      // 一次双击只进一级：同一目录在时间窗内重复 open 直接丢弃；换目录则不拦
       const now = Date.now();
-      if (now - lastDirOpenAt < DIR_OPEN_GUARD_MS) {
+      if (samePath(item.key, lastDirOpenKey) && now - lastDirOpenAt < DIR_OPEN_GUARD_MS) {
         return false;
       }
       lastDirOpenAt = now;
+      lastDirOpenKey = item.key;
       navigateTo(item.key);
       return false;
     }
@@ -526,16 +543,6 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
 
   /* ---------- 键盘导航 ---------- */
 
-  const moveActive = (delta: number): void => {
-    const list = rows.value;
-    if (!list.length) return;
-    if (activeIndex.value < 0) {
-      activeIndex.value = delta > 0 ? 0 : list.length - 1;
-      return;
-    }
-    activeIndex.value = Math.min(list.length - 1, Math.max(0, activeIndex.value + delta));
-  };
-
   const activateActive = (): boolean => {
     const item = rows.value[activeIndex.value];
     if (!item) return false;
@@ -571,6 +578,8 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     limitHint,
     canSelect,
     isLimitReached,
+    fetchItems,
+    prepareItems,
     load,
     refresh,
     reset,
@@ -586,7 +595,6 @@ export function useFilePicker(options: UseFilePickerOptions): UseFilePickerRetur
     isSelected,
     isCurrentPath,
     isParentEntry,
-    moveActive,
     activateActive,
     takeSelection,
   };

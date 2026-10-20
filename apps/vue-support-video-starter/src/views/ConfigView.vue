@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 配置管理页 —— 在页面上维护视频/直播配置（不再改配置文件）
+ * 配置管理页 —— 在页面上维护视频/直播配置（第二版）
  *
  * 结构：存储状态 + 基础配置 + 分类关键词 + 直播目录（JSON 编辑/校验）+ 操作区。
  * 数据：configApi（GET /config、/config/export；POST /import、/reload、/sync）。
@@ -43,7 +43,9 @@ const parsedCatalog = computed<LiveCatalog | null>(() => {
 });
 
 /** 频道数量 */
-const channelCount = computed(() => parsedCatalog.value?.channels?.length ?? overview.value?.liveChannelCount ?? 0);
+const channelCount = computed(
+  () => parsedCatalog.value?.channels?.length ?? overview.value?.liveChannelCount ?? 0,
+);
 
 /* ── 加载 ─────────────────────────────────── */
 async function load() {
@@ -165,16 +167,14 @@ onMounted(() => void load());
 </script>
 
 <template>
-  <div class="vd-page vd-config-page">
-    <header class="vd-header">
-      <div>
-        <h1>配置管理</h1>
-        <p class="vd-subtitle">在页面上维护视频检索与电视直播配置，保存后立即热加载</p>
-      </div>
-      <el-tag :type="overview?.storage === 'db' ? 'success' : 'warning'" effect="dark" round>
+  <div class="vd-page vd-page--narrow">
+    <div class="vdc-head">
+      <h1 class="vdc-h1">配置管理</h1>
+      <span class="vdc-storage" :class="overview?.storage === 'db' ? 'is-ok' : 'is-warn'">
         存储：{{ overview?.storage === "db" ? "配置库 sys_setting" : "本地 JSON（未落库）" }}
-      </el-tag>
-    </header>
+      </span>
+    </div>
+    <p class="vdc-sub">在页面上维护视频检索与电视直播配置，保存后立即热加载</p>
 
     <el-alert
       v-if="!loading && overview?.storage !== 'db'"
@@ -266,8 +266,48 @@ onMounted(() => void load());
 </template>
 
 <style scoped>
-.vd-config-page {
-  max-width: 1120px;
+/* ── 页头 ───────────────────────────────── */
+.vdc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 6px;
+  flex-wrap: wrap;
+}
+
+.vdc-h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--vd-text);
+}
+
+.vdc-sub {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--vd-text-2);
+}
+
+.vdc-storage {
+  font-size: 13px;
+  line-height: 20px;
+  padding: 2px 10px;
+  border-radius: var(--vd-radius);
+  background: var(--vd-surface);
+  color: var(--vd-text-2);
+}
+
+.vdc-storage.is-ok {
+  background: var(--vd-primary-soft);
+  color: var(--vd-primary-dark);
+}
+
+.vdc-storage.is-warn {
+  background: #fff5e6;
+  color: #b45309;
 }
 
 .vdc-alert {
@@ -276,13 +316,19 @@ onMounted(() => void load());
 
 .vdc-card {
   margin-bottom: 18px;
-  background: var(--vd-surface-card);
+  background: var(--vd-bg);
   border: 1px solid var(--vd-border);
-  border-radius: var(--vd-radius-lg);
+  border-radius: var(--vd-radius);
+  --el-card-bg-color: var(--vd-bg);
 }
 
 .vdc-card :deep(.el-card__header) {
   border-bottom: 1px solid var(--vd-border);
+  padding: 14px 20px;
+}
+
+.vdc-card :deep(.el-card__body) {
+  padding: 20px;
 }
 
 .vdc-card-head {
@@ -300,15 +346,15 @@ onMounted(() => void load());
 }
 
 .vdc-card-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--vd-text);
 }
 
 .vdc-hint {
   margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--vd-text-secondary);
+  font-size: 14px;
+  color: var(--vd-text-2);
 }
 
 .vdc-rows {
@@ -332,24 +378,22 @@ onMounted(() => void load());
 }
 
 .vdc-row-arrow {
-  color: var(--vd-text-muted);
+  color: var(--vd-text-2);
 }
 
 .vdc-json :deep(.el-textarea__inner) {
-  font-family: "JetBrains Mono", Consolas, Monaco, monospace;
-  font-size: 12.5px;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 13px;
   line-height: 1.6;
-  /* 代码编辑区沿用深色影院主题的面层令牌，避免另起一套写死色 */
   background: var(--vd-surface);
   color: var(--vd-text);
+  box-shadow: 0 0 0 1px var(--vd-border) inset;
 }
 
 .vdc-json-error {
   margin: 8px 0 0;
-  font-size: 13px;
-  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
-     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
-  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
+  font-size: 14px;
+  color: #ef4444;
 }
 
 .vdc-channels {
@@ -369,11 +413,9 @@ onMounted(() => void load());
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 4px;
+  padding-bottom: 20px;
 }
 
-/* 尊重系统「减少动态效果」偏好：本页样式未声明 transition / animation
-   （动效都在 el-card / el-alert / el-input 内部），这里做显式归零兜底，
-   防止后续新增动效漏配。 */
 @media (prefers-reduced-motion: reduce) {
   .vdc-card,
   .vdc-row,

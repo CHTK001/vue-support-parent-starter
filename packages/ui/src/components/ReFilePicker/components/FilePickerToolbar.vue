@@ -82,7 +82,7 @@ const search = defineModel<string>({ default: "" });
 </template>
 
 <style scoped>
-/* 工具条 = 资源管理器的地址栏行：窗口底色 + 白色地址栏 + 右侧搜索 */
+/* 工具条 = 资源管理器的地址栏行：顶部淡主色渐变 + 下沿主色发丝线 */
 .rfp__toolbar {
   flex-shrink: 0;
   display: flex;
@@ -90,8 +90,12 @@ const search = defineModel<string>({ default: "" });
   gap: 8px;
   min-width: 0;
   padding: 8px 10px;
-  border-bottom: 1px solid var(--rfp-border);
-  background: var(--rfp-chrome);
+  border-bottom: 1px solid color-mix(in srgb, var(--rfp-accent) 18%, var(--rfp-border));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--rfp-accent) 5%, var(--rfp-chrome)),
+    var(--rfp-chrome)
+  );
 }
 
 .rfp__nav-btns {
@@ -170,18 +174,20 @@ const search = defineModel<string>({ default: "" });
   color: var(--rfp-folder);
 }
 
-/* 面包屑段：悬停浅蓝底，当前段加粗 */
+/* 面包屑段：悬停浅主色底，当前段用主色胶囊 + 细环强调 */
 .rfp__crumb {
   flex-shrink: 0;
   max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 3px 6px;
-  border-radius: 3px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
   color: var(--rfp-text-weak);
   font-weight: 400;
   cursor: pointer;
-  transition: background var(--el-transition-duration, 0.15s), color var(--el-transition-duration, 0.15s);
+  transition: background var(--el-transition-duration, 0.15s), color var(--el-transition-duration, 0.15s),
+    border-color var(--el-transition-duration, 0.15s);
 }
 
 .rfp__crumb:hover:not(.is-active) {
@@ -190,9 +196,16 @@ const search = defineModel<string>({ default: "" });
 }
 
 .rfp__crumb.is-active {
-  color: var(--rfp-text);
+  border-color: var(--rfp-hair);
+  background: var(--rfp-accent-soft);
+  color: var(--rfp-accent);
   font-weight: 600;
   cursor: default;
+}
+
+.rfp__crumb:focus-visible {
+  outline: 2px solid var(--rfp-accent);
+  outline-offset: 1px;
 }
 
 .rfp__crumb-sep {
