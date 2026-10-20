@@ -42,7 +42,6 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   etcd: "/etcd",
   prometheus: "/prometheus",
   mongodb: "/mongodb",
-  elasticsearch: "/elasticsearch",
 };
 
 /**

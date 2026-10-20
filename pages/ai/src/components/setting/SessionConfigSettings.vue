@@ -60,6 +60,63 @@
         </span>
       </p>
     </SettingsCard>
+
+    <!--
+      对话路由（runtime 分组）：默认对话模型、标题总结、历史压缩、翻译模型。
+      原先与默认模型页的模型选择混在一起，语义上却全属「会话」——挪到这里后，
+      「会话用什么模型」在一页内一次配完。
+    -->
+    <SettingsCard title="对话路由" subtitle="会话使用的默认模型（按用户隔离，只影响你自己的会话）">
+      <SettingsRow
+        v-for="item in modelFields"
+        :key="item.field"
+        :label="item.label"
+        :description="item.description"
+      >
+        <el-input
+          :model-value="displayValue(item.field)"
+          readonly
+          class="cursor-pointer"
+          @click="openModelDialog(item.field)"
+        >
+          <template #prefix>
+            <img v-if="modelLogo(item.field)" :src="modelLogo(item.field) ?? undefined" alt="" class="w-4 h-4 object-contain" />
+            <OpenAI v-else class="w-4 h-4" />
+          </template>
+          <template #suffix>
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </template>
+        </el-input>
+      </SettingsRow>
+    </SettingsCard>
+
+    <LDialog v-model="modelDialogVisible" title="选择模型" width="600px">
+      <div class="md-body">
+        <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <div class="md-list">
+          <div v-for="provider in filteredProviders" :key="provider.id">
+            <div class="md-provider">{{ provider.name }}</div>
+            <div v-for="model in provider.models" :key="model.id" class="md-row" @click="selectModel(model.id)">
+              <div class="md-row-left">
+                <span class="md-name">{{ model.model }}</span>
+              </div>
+              <el-icon v-if="tempModelId === model.id" class="md-check" :size="18"><CheckCircleFilled /></el-icon>
+            </div>
+          </div>
+          <div v-if="filteredProviders.length === 0" class="md-empty">
+            <div class="md-empty-main">没有匹配「对话」类型的模型</div>
+            <div class="md-empty-sub">请先在「模型管理」中添加对应类型的模型</div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
+      </template>
+    </LDialog>
   </div>
 </template>
 
@@ -71,6 +128,13 @@ import { usePopup } from '../../composables/usePopup'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 import { InfoFilled } from '@element-plus/icons-vue'
+import { adminApi } from '@/framework/context'
+import { Search, ArrowDown } from '@element-plus/icons-vue'
+import { CheckCircleFilled } from '@vicons/material'
+import { OpenAI } from '@/components/icons'
+import LDialog from '@/components/ui/LDialog.vue'
+import ReButton from '@/components/re/ReButton.vue'
+import { getModelAvatarPath } from '@/utils/modelUtils'
 
 const { t } = useI18n()
 const { notify } = usePopup()
@@ -97,6 +161,181 @@ const IDLE_TIMEOUT_OPTIONS = [0, 5, 10, 15, 30, 45, 60, 120]
 
 /** 联想条数的可选档位 */
 const MAX_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10]
+
+// ===================== 对话路由（runtime 分组的模型选择） =====================
+
+/** 对话路由分组：与后端 RuntimeGlobalSettingProvider.GROUP 一致 */
+const RUNTIME_GROUP = 'runtime'
+
+/**
+ * 会话相关的模型字段。
+ *
+ * <p>原先这些字段在「默认模型」页里与图片识别/人脸/OCR 等模型并列，语义上却全属
+ * 「会话用哪个模型」；挪到这里后一次配完。字段名与后端 runtime 分组定义一致。</p>
+ */
+const MODEL_FIELDS = [
+  { field: 'default_model', label: '默认对话模型', description: '会话默认使用的对话模型' },
+  { field: 'default_title_summary_model', label: '标题总结模型', description: '生成会话标题用的模型' },
+  { field: 'default_history_compression_model', label: '历史压缩模型', description: '压缩长会话历史记录用的模型' },
+  { field: 'default_translation_model', label: '翻译模型', description: '跨语言对话用的翻译模型' },
+]
+
+/** runtime 分组合并值：field -> { value, overridden, origin } */
+const runtimeValues = ref<Record<string, any>>({})
+
+/** 模型弹框状态 */
+const modelDialogVisible = ref(false)
+const modelSearchText = ref('')
+const currentField = ref('')
+const tempModelId = ref('')
+
+/** 模型数据源（与 DefaultModelSettings 同源：/api/providers） */
+const models = ref<any[]>([])
+const providers = ref<any[]>([])
+let modelsLoadPromise: Promise<void> | null = null
+
+/**
+ * 加载模型列表（in-flight 去重，避免 onMounted 与弹框并发触发双份请求）。
+ */
+const loadModels = () => {
+  if (modelsLoadPromise) return modelsLoadPromise
+  modelsLoadPromise = (async () => {
+    try {
+      const body = await adminApi.get('/api/providers')
+      const data = Array.isArray(body) ? body : body?.data || []
+      const all: any[] = []
+      const provs: any[] = []
+      for (const p of data) {
+        const list = (p.models || []).filter((m: any) => m.enabled !== false).map((m: any) => ({
+          id: `${p.provider_id}:${m.model}`,
+          model: m.model,
+          providerId: p.provider_id,
+          providerName: p.name,
+        }))
+        if (list.length) {
+          all.push(...list)
+          provs.push({ id: p.provider_id, name: p.name, models: list })
+        }
+      }
+      models.value = all
+      providers.value = provs
+    } catch (e) {
+      console.error('获取模型列表失败:', e)
+    } finally {
+      modelsLoadPromise = null
+    }
+  })()
+  return modelsLoadPromise
+}
+
+/** 过滤后的模型列表：模板里引用了未声明的 computed，先用 computed 包一层保持响应式 */
+const filteredProviders = computed(() => {
+  const kw = modelSearchText.value.trim().toLowerCase()
+  if (!kw) return providers.value
+  return providers.value
+    .map((p) => ({ ...p, models: p.models.filter((m: any) => m.model.toLowerCase().includes(kw)) }))
+    .filter((p) => p.models.length > 0)
+})
+
+/**
+ * runtime 分组合并视图里取字段值。
+ *
+ * @param field 字段名
+ * @returns 合并项；未取到时返回 undefined
+ */
+const runtimeItem = (field: string) => runtimeValues.value[field]
+
+/**
+ * 模型字段的展示文本：未配置/系统种子显示「请选择模型」，已覆盖显示具体模型名。
+ *
+ * @param field 字段名
+ */
+const displayValue = (field: string): string => {
+  const item = runtimeItem(field)
+  if (!item || !item.value || item.origin === 'SYSTEM_DEFAULT') return '请选择模型'
+  return item.overridden === false ? `继承全局：${item.value}` : item.value
+}
+
+/**
+ * 模型字段的 logo（值形如 providerId:model，剥前缀后取本地图标）。
+ *
+ * @param field 字段名
+ */
+const modelLogo = (field: string): string | null => {
+  const v = String(runtimeItem(field)?.value ?? '')
+  if (!v) return null
+  const name = v.includes(':') ? v.split(':').slice(1).join(':') : v
+  return getModelAvatarPath(name)
+}
+
+/**
+ * 打开模型选择弹框。
+ *
+ * @param field 目标字段名
+ */
+const openModelDialog = async (field: string) => {
+  currentField.value = field
+  tempModelId.value = String(runtimeItem(field)?.value ?? '')
+  modelDialogVisible.value = true
+  if (models.value.length === 0) await loadModels()
+}
+
+/**
+ * 选择模型：写 runtime 分组的本人覆盖层。
+ *
+ * @param modelId providerId:model
+ */
+const selectModel = (modelId: string) => {
+  if (!modelId || !currentField.value) return
+  saveRuntimeField(currentField.value, modelId)
+  modelDialogVisible.value = false
+}
+
+/**
+ * 清空字段：写空值覆盖，使其回到「未配置」。
+ */
+const clearModelField = () => {
+  if (!currentField.value) return
+  saveRuntimeField(currentField.value, '')
+  modelDialogVisible.value = false
+}
+
+/**
+ * 写入单个 runtime 字段的用户覆盖并刷新。
+ *
+ * @param field 字段名
+ * @param value 值；空串表示撤销（回落继承值）
+ */
+const saveRuntimeField = async (field: string, value: string) => {
+  try {
+    await apiService.updateUserGroupOverrides(RUNTIME_GROUP, { [field]: value === '' ? null : value })
+    await loadRuntime()
+  } catch (error) {
+    console.error(`保存 runtime.${field} 失败:`, error)
+    notify.error('保存设置失败', error)
+  }
+}
+
+/**
+ * 加载 runtime 分组合并视图到本地映射。
+ */
+const loadRuntime = async () => {
+  try {
+    const response = await apiService.fetchMergedGroupSettings(RUNTIME_GROUP)
+    const first = response?.data ?? response
+    const items = Array.isArray(first) ? first : Array.isArray(first?.data) ? first.data : []
+    const map: Record<string, any> = {}
+    for (const item of items) {
+      if (item?.field) map[item.field] = item
+    }
+    runtimeValues.value = map
+  } catch (error) {
+    console.error('获取 runtime 分组设置失败:', error)
+  }
+}
+
+/** 模板用的模型字段清单 */
+const modelFields = MODEL_FIELDS
 
 const loading = ref(false)
 const saving = ref(false)
@@ -256,7 +495,10 @@ const onIdleTimeoutChange = (value: number | undefined) => {
   saveOverrides({ [FIELD_IDLE_TIMEOUT]: idleTimeout.value })
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadRuntime()
+})
 </script>
 
 <style scoped>
@@ -307,5 +549,58 @@ onMounted(load)
 .session-config-note b {
   color: var(--el-text-color-regular);
   font-weight: 600;
+}
+
+/* 模型选择弹框：与 DefaultModelSettings 同一套结构，样式就近维护 */
+.md-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.md-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.md-provider {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  padding: 6px 4px;
+}
+.md-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+}
+.md-row:hover {
+  background: var(--el-fill-color-light);
+}
+.md-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.md-name {
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+.md-check {
+  color: var(--el-color-primary);
+}
+.md-empty {
+  text-align: center;
+  padding: 24px 0;
+}
+.md-empty-main {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.md-empty-sub {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
 }
 </style>

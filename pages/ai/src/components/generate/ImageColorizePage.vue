@@ -14,7 +14,7 @@
         <div>
           <p class="colorize-hint-title">图像上色未启用</p>
           <p class="colorize-hint-desc">
-            请到「系统设置 → 默认模型 → 图像上色配置」配置上色模型，保存后立即生效。
+            请到「系统设置 → 默认模型 → 图片识别」中配置上色模型，保存后立即生效。
           </p>
           <ReButton type="primary" @click="goConfig">去配置模型</ReButton>
         </div>
@@ -83,7 +83,7 @@ import { message } from '@repo/core'
 /**
  * 图像上色：调用后端默认上色模型，不再走本地 Canvas 演示。
  *
- * <p>模型来自 {@code image} 分组的 {@code colorize_model}（默认模型页 → 图像上色配置）；
+ * <p>模型来自 {@code image} 分组的 {@code colorize_model}（默认模型页 → 图片识别卡片内）；
  * 未配置时沿用「以图搜图」的门禁提示，上传入口不渲染。</p>
  */
 const router = useRouter()
@@ -123,7 +123,7 @@ function revokeUrls() {
 }
 
 function goConfig() {
-  router.push('/setting/colorize-config')
+  router.push('/setting/default-models')
 }
 
 /**
@@ -166,7 +166,7 @@ async function colorizeImage() {
     if (!blob) {
       resultError.value = modelReady.value
         ? '上色失败，请检查模型是否可用后重试'
-        : '图像上色模型未配置，请先到「系统设置 → 默认模型 → 图像上色配置」配置模型'
+        : '图像上色模型未配置，请先到「系统设置 → 默认模型 → 图片识别」配置上色模型'
       return
     }
     revokeResultUrl()
