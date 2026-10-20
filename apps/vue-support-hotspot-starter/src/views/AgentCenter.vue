@@ -258,6 +258,132 @@
         </div>
       </div>
     </div>
+
+    <!-- JVM 内存诊断：对象内存池 + 手动 GC + 类加载 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>JVM 内存诊断</span>
+        <span class="panel-sub">对象内存池 / 手动 GC / 类加载统计</span>
+        <ReButton text size="small" :loading="memoryLoading" @click="loadMemoryDiagnostics">刷新</ReButton>
+      </div>
+      <div v-if="memoryLoading" class="panel-empty">正在读取内存诊断…</div>
+      <div v-else-if="!memorySnapshot" class="panel-empty">尚未获取内存数据，请刷新。</div>
+      <div v-else class="memory-actions">
+        <div class="memory-summary">
+          <span class="memory-summary-label muted">堆使用率</span>
+          <b class="memory-summary-value mono">{{ memorySnapshot.heap.usedPercent }}%</b>
+          <span class="memory-summary-desc muted">
+            {{ formatBytes(memorySnapshot.heap.used) }} / {{ formatBytes(memorySnapshot.heap.max) }}
+          </span>
+        </div>
+        <ReButton
+          type="danger"
+          :icon="Delete"
+          show-text
+          :loading="gcRunning"
+          @click="runGc"
+        >手动 GC</ReButton>
+      </div>
+      <div v-if="lastGcResult" class="gc-result">
+        <span class="muted">上次 GC 释放</span>
+        <b class="mono gc-freed">{{ formatBytes(lastGcResult.freedBytes) }}</b>
+        <span class="muted">耗时 {{ lastGcResult.elapsedMs }}ms</span>
+      </div>
+      <div v-if="memorySnapshot?.pools.length" class="memory-pool-list">
+        <div v-for="pool in memorySnapshot.pools" :key="pool.name" class="memory-pool-row">
+          <div class="memory-pool-head">
+            <span class="mono">{{ pool.name }}</span>
+            <ReTag size="small" :type="pool.type === 'HEAP' ? 'warning' : 'info'" round>{{ pool.type }}</ReTag>
+            <span class="mono muted memory-pool-used">{{ formatBytes(pool.used) }}</span>
+          </div>
+          <div class="memory-pool-bar">
+            <i :style="{ width: Math.min(100, pool.usedPercent) + '%' }" />
+          </div>
+        </div>
+      </div>
+      <div v-if="classLoadingInfo" class="class-loading">
+        <span class="muted">已加载类</span>
+        <b class="mono">{{ classLoadingInfo.loadedClassCount }}</b>
+        <span class="muted">累计加载</span>
+        <b class="mono">{{ classLoadingInfo.totalLoadedClassCount }}</b>
+        <span class="muted">卸载</span>
+        <b class="mono">{{ classLoadingInfo.unloadedClassCount }}</b>
+      </div>
+    </div>
+
+    <!-- 线程 Dump：全量线程栈定位死锁 / 阻塞 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>线程 Dump</span>
+        <span class="panel-sub">全量线程栈 / 锁状态 / 死锁排查</span>
+        <ReButton text size="small" :loading="threadDumpLoading" @click="loadThreadDump">刷新</ReButton>
+      </div>
+      <div v-if="threadDumpLoading" class="panel-empty">正在抓取线程 Dump…</div>
+      <div v-else-if="!threadDumpEntries.length" class="panel-empty">暂无线程信息。</div>
+      <div v-else class="thread-dump-summary">
+        <span class="muted">线程总数</span>
+        <b class="mono">{{ threadDumpEntries.length }}</b>
+        <span class="muted">DAEMON</span>
+        <b class="mono">{{ daemonCount }}</b>
+        <span class="muted">BLOCKED</span>
+        <b class="mono">{{ blockedCount }}</b>
+      </div>
+      <div class="thread-dump-list">
+        <details v-for="t in threadDumpEntries" :key="t.threadId" class="thread-dump-item">
+          <summary>
+            <span class="mono thread-dump-name">{{ t.name }}</span>
+            <ReTag size="small" :type="threadStateTagType(t.state)" round>{{ t.state }}</ReTag>
+            <span class="mono muted">#{{ t.threadId }}</span>
+          </summary>
+          <div class="thread-dump-body">
+            <div v-if="t.lockName" class="thread-dump-lock muted">锁: {{ t.lockName }} / owner: {{ t.lockOwnerName || "—" }}</div>
+            <pre class="thread-dump-stack mono">{{ t.stackTrace.slice(0, 20).join("\n") }}</pre>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- 链路分析：方法热点 / 阶段耗时 / SkyWalking 兼容导出 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>链路分析</span>
+        <span class="panel-sub">方法热点 / 阶段耗时 / SkyWalking Segment</span>
+        <ReButton text size="small" :loading="traceLoading" @click="loadTraceAnalysis">刷新</ReButton>
+      </div>
+      <div v-if="traceLoading" class="panel-empty">正在聚合链路数据…</div>
+      <div v-else-if="!traceHotspots.length && !tracePhases.length && !skywalkingSegments.length" class="panel-empty">
+        暂无链路 Span 数据，可到数据注入器产生调用后再查看。
+      </div>
+      <div v-else class="trace-analysis">
+        <div v-if="tracePhases.length" class="phase-grid">
+          <div v-for="p in tracePhases" :key="p.phase" class="phase-stat" :class="'phase-' + p.phase">
+            <span class="phase-label">{{ p.phase }}</span>
+            <b class="phase-value mono">{{ p.avgMs.toFixed(1) }}ms</b>
+            <span class="phase-count muted">×{{ p.count }} · max {{ p.maxMs }}ms</span>
+          </div>
+        </div>
+        <div v-if="traceHotspots.length" class="hotspot-list">
+          <div v-for="h in traceHotspots.slice(0, 10)" :key="h.className + '.' + h.methodName + h.phase" class="hotspot-row">
+            <span class="hotspot-name mono" :title="h.className + '.' + h.methodName">{{ shortText(h.className + "." + h.methodName, 42) }}</span>
+            <ReTag size="small" round>{{ h.phase }}</ReTag>
+            <span class="hotspot-bar-wrap"><i class="hotspot-bar" :style="{ width: hotspotWidth(h) + '%' }" /></span>
+            <span class="hotspot-avg mono">{{ h.avgMs.toFixed(1) }}ms</span>
+            <span class="hotspot-count muted mono">×{{ h.count }}</span>
+          </div>
+        </div>
+        <div v-if="skywalkingSegments.length" class="sw-section">
+          <div class="sw-head muted">SkyWalking 兼容 Segment（{{ skywalkingSegments.length }}）</div>
+          <div class="sw-list">
+            <div v-for="seg in skywalkingSegments.slice(0, 6)" :key="seg.traceId" class="sw-row">
+              <span class="sw-trace mono">{{ shortText(seg.traceId, 18) }}</span>
+              <span class="sw-count mono">{{ seg.spanCount }} spans</span>
+              <ReTag v-if="seg.spans.some((s) => s.isError)" size="small" type="danger" round>异常</ReTag>
+              <ReTag v-else size="small" type="success" round>正常</ReTag>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -272,6 +398,7 @@ import {
   Check,
   CircleClose,
   CircleCheck,
+  Delete,
 } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReTag from "@repo/ui/re-tag";
@@ -281,8 +408,31 @@ import ReSwitch from "@repo/ui/re-switch";
 import type { ReOption } from "@repo/ui/re-select";
 import { message } from "@repo/core";
 import { useApmStore } from "../stores/apmStore";
-import { updateAgentConfig, setAgentEnabled, getHandleInventory, getSystemOut } from "../api/apmApi";
-import type { AgentConfig, HandleInventorySnapshot, SystemOutEntry } from "../api/apmApi";
+import {
+  updateAgentConfig,
+  setAgentEnabled,
+  getHandleInventory,
+  getSystemOut,
+  getMemoryPools,
+  triggerGc,
+  getClassLoading,
+  getThreadDump,
+  getTraceHotspots,
+  getTracePhases,
+  getSkywalkingExport,
+} from "../api/apmApi";
+import type {
+  AgentConfig,
+  HandleInventorySnapshot,
+  SystemOutEntry,
+  MemoryPoolsSnapshot,
+  GcResult,
+  ClassLoadingInfo,
+  ThreadDumpInfo,
+  TraceHotspot,
+  TracePhaseStat,
+  SkywalkingSegment,
+} from "../api/apmApi";
 import { useRealtimeStatus } from "../composables/useRealtime";
 
 const store = useApmStore();
@@ -409,7 +559,97 @@ async function loadSysOut() {
   }
 }
 
+/* ---- JVM 内存诊断 ---- */
+const memoryLoading = ref(false);
+const memorySnapshot = ref<MemoryPoolsSnapshot | null>(null);
+const gcRunning = ref(false);
+const lastGcResult = ref<GcResult | null>(null);
+const classLoadingInfo = ref<ClassLoadingInfo | null>(null);
+
+async function loadMemoryDiagnostics() {
+  memoryLoading.value = true;
+  try {
+    const [pools, cl] = await Promise.all([getMemoryPools(), getClassLoading()]);
+    memorySnapshot.value = pools;
+    classLoadingInfo.value = cl;
+  } catch {
+    memorySnapshot.value = null;
+    classLoadingInfo.value = null;
+  } finally {
+    memoryLoading.value = false;
+  }
+}
+
+async function runGc() {
+  gcRunning.value = true;
+  try {
+    lastGcResult.value = await triggerGc();
+    await loadMemoryDiagnostics();
+    message.success(`手动 GC 完成，释放 ${formatBytes(lastGcResult.value.freedBytes)}`);
+  } catch {
+    message.error("手动 GC 失败");
+  } finally {
+    gcRunning.value = false;
+  }
+}
+
+/* ---- 线程 Dump ---- */
+const threadDumpLoading = ref(false);
+const threadDumpEntries = ref<ThreadDumpInfo[]>([]);
+
+const daemonCount = computed(() => threadDumpEntries.value.filter((t) => t.isDaemon).length);
+const blockedCount = computed(() => threadDumpEntries.value.filter((t) => t.state === "BLOCKED").length);
+
+function threadStateTagType(state: string): "success" | "warning" | "danger" | "info" {
+  if (state === "RUNNABLE") return "success";
+  if (state === "BLOCKED" || state === "WAITING" || state === "TIMED_WAITING") return "danger";
+  return "info";
+}
+
+async function loadThreadDump() {
+  threadDumpLoading.value = true;
+  try {
+    threadDumpEntries.value = await getThreadDump();
+  } catch {
+    threadDumpEntries.value = [];
+  } finally {
+    threadDumpLoading.value = false;
+  }
+}
+
+/* ---- 链路分析：方法热点 / 阶段耗时 / SkyWalking 导出 ---- */
+const traceLoading = ref(false);
+const traceHotspots = ref<TraceHotspot[]>([]);
+const tracePhases = ref<TracePhaseStat[]>([]);
+const skywalkingSegments = ref<SkywalkingSegment[]>([]);
+
+async function loadTraceAnalysis() {
+  traceLoading.value = true;
+  try {
+    const [hot, phases, sw] = await Promise.all([
+      getTraceHotspots(20),
+      getTracePhases(),
+      getSkywalkingExport(),
+    ]);
+    traceHotspots.value = hot;
+    tracePhases.value = phases;
+    skywalkingSegments.value = sw;
+  } catch {
+    traceHotspots.value = [];
+    tracePhases.value = [];
+    skywalkingSegments.value = [];
+  } finally {
+    traceLoading.value = false;
+  }
+}
+
 /* ---- 工具 ---- */
+function formatBytes(n: number | undefined | null): string {
+  if (n === undefined || n === null || Number.isNaN(n)) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
 function formatTime(ts: number): string {
   if (!ts) return "—";
   const d = new Date(ts);
@@ -426,6 +666,12 @@ function formatAge(ms: number): string {
 function shortText(s: string, max: number): string {
   if (!s) return "";
   return s.length <= max ? s : s.slice(0, max - 1) + "…";
+}
+
+function hotspotWidth(h: TraceHotspot): number {
+  if (!traceHotspots.value.length) return 0;
+  const maxTotal = Math.max(...traceHotspots.value.map((x) => x.totalMs), 1);
+  return Math.max(4, Math.round((h.totalMs / maxTotal) * 100));
 }
 
 async function loadAgentConfig() {
@@ -489,7 +735,7 @@ let pollTimer: number | undefined;
 
 onMounted(async () => {
   await refreshAll();
-  await Promise.all([loadHandles(), loadSysOut()]);
+  await Promise.all([loadHandles(), loadSysOut(), loadMemoryDiagnostics(), loadThreadDump(), loadTraceAnalysis()]);
   pollTimer = window.setInterval(() => {
     store.pollStatus();
   }, 15000);
@@ -712,6 +958,272 @@ onBeforeUnmount(() => {
   flex: 1;
   word-break: break-all;
   color: var(--apm-fg-regular);
+}
+
+/* ---- JVM 内存诊断 ---- */
+.memory-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apm-space-4);
+  padding-bottom: var(--apm-space-3);
+  border-bottom: 1px solid var(--apm-border-soft);
+  margin-bottom: var(--apm-space-3);
+}
+
+.memory-summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--apm-space-2);
+}
+
+.memory-summary-value {
+  font-size: 20px;
+  color: var(--apm-fg);
+}
+
+.memory-summary-desc {
+  font-size: 12px;
+}
+
+.gc-result {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  padding: var(--apm-space-2) 0;
+  font-size: 12px;
+}
+
+.gc-freed {
+  color: var(--apm-success);
+}
+
+.memory-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-3);
+}
+
+.memory-pool-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memory-pool-head {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  font-size: 12px;
+}
+
+.memory-pool-used {
+  margin-left: auto;
+}
+
+.memory-pool-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--apm-panel-raised);
+  overflow: hidden;
+}
+
+.memory-pool-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--apm-accent);
+  border-radius: 999px;
+  transition: width var(--apm-t-fast);
+}
+
+.class-loading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--apm-space-2);
+  padding-top: var(--apm-space-3);
+  border-top: 1px solid var(--apm-border-soft);
+  font-size: 12px;
+  margin-top: var(--apm-space-3);
+}
+
+/* ---- 线程 Dump ---- */
+.thread-dump-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  padding: var(--apm-space-2) 0 var(--apm-space-3);
+  font-size: 12px;
+}
+
+.thread-dump-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-2);
+}
+
+.thread-dump-item {
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
+  background: var(--apm-panel-raised);
+}
+
+.thread-dump-item summary {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.thread-dump-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.thread-dump-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--apm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-dump-body {
+  padding: 0 12px 10px;
+}
+
+.thread-dump-lock {
+  font-size: 12px;
+  padding-bottom: 6px;
+}
+
+.thread-dump-stack {
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--apm-fg-regular);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---- 链路分析 ---- */
+.phase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--apm-space-2);
+  margin-bottom: var(--apm-space-4);
+}
+
+.phase-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--apm-space-3);
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
+  background: var(--apm-panel-raised);
+}
+
+.phase-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--apm-muted);
+}
+
+.phase-value {
+  font-size: 18px;
+  color: var(--apm-fg);
+}
+
+.phase-count {
+  font-size: 11px;
+}
+
+.hotspot-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-2);
+}
+
+.hotspot-row {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  font-size: 12px;
+}
+
+.hotspot-name {
+  width: 240px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--apm-fg);
+}
+
+.hotspot-bar-wrap {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--apm-panel-raised);
+  overflow: hidden;
+}
+
+.hotspot-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--apm-danger);
+  transition: width var(--apm-t-fast);
+}
+
+.hotspot-avg {
+  min-width: 64px;
+  text-align: right;
+  color: var(--apm-fg);
+}
+
+.hotspot-count {
+  min-width: 44px;
+  text-align: right;
+}
+
+.sw-section {
+  margin-top: var(--apm-space-4);
+  border-top: 1px solid var(--apm-border-soft);
+  padding-top: var(--apm-space-3);
+}
+
+.sw-head {
+  font-size: 12px;
+  margin-bottom: var(--apm-space-2);
+}
+
+.sw-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-2);
+}
+
+.sw-row {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-2);
+  font-size: 12px;
+}
+
+.sw-trace {
+  min-width: 120px;
+  color: var(--apm-fg);
+}
+
+.sw-count {
+  color: var(--apm-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

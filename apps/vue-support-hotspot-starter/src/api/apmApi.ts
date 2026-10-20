@@ -772,6 +772,137 @@ export function getSystemOut(limit = 200): Promise<SystemOutEntry[]> {
   return unwrap(instance.get<SystemOutEntry[]>("/agent/system-out", { params: { limit } }));
 }
 
+// ---- JVM 内存诊断（对象内存 / 手动 GC / 类加载）----
+
+export interface MemoryPoolInfo {
+  name: string;
+  type: "HEAP" | "NON_HEAP";
+  used: number;
+  committed: number;
+  max: number;
+  usedPercent: number;
+  peakUsed?: number;
+  objectEstimate: number;
+}
+
+export interface MemoryPoolsSnapshot {
+  ts: number;
+  heap: { name: string; used: number; committed: number; max: number; usedPercent: number };
+  nonHeap: { name: string; used: number; committed: number; max: number; usedPercent: number };
+  pools: MemoryPoolInfo[];
+}
+
+export interface GcResult {
+  triggered: boolean;
+  beforeBytes: number;
+  afterBytes: number;
+  freedBytes: number;
+  freedMb: number;
+  gcCountBefore: number;
+  gcCountAfter: number;
+  gcDelta: number;
+  elapsedMs: number;
+}
+
+export interface ClassLoadingInfo {
+  loadedClassCount: number;
+  totalLoadedClassCount: number;
+  unloadedClassCount: number;
+  verbose: boolean;
+  ts: number;
+}
+
+/** JVM 内存池对象明细 */
+export function getMemoryPools(): Promise<MemoryPoolsSnapshot> {
+  return unwrap(instance.get<MemoryPoolsSnapshot>("/jvm/memory/pools"));
+}
+
+/** 手动触发 GC 并返回释放量 */
+export function triggerGc(): Promise<GcResult> {
+  return unwrap(instance.post<GcResult>("/jvm/gc"));
+}
+
+/** 类加载统计 */
+export function getClassLoading(): Promise<ClassLoadingInfo> {
+  return unwrap(instance.get<ClassLoadingInfo>("/jvm/class-loading"));
+}
+
+export interface ThreadDumpInfo {
+  threadId: number;
+  name: string;
+  state: string;
+  blockedTime: number;
+  blockedCount: number;
+  waitedTime: number;
+  waitedCount: number;
+  lockName?: string | null;
+  lockOwnerName?: string | null;
+  isDaemon: boolean;
+  isInNative: boolean;
+  suspended: boolean;
+  stackTrace: string[];
+}
+
+/** 全量线程 Dump 快照 */
+export function getThreadDump(): Promise<ThreadDumpInfo[]> {
+  return unwrap(instance.get<ThreadDumpInfo[]>("/jvm/thread-dump"));
+}
+
+export interface TraceHotspot {
+  className: string;
+  methodName: string;
+  phase: string;
+  count: number;
+  totalMs: number;
+  maxMs: number;
+  errorCount: number;
+  selfTimeMs: number;
+  avgMs: number;
+}
+
+export interface TracePhaseStat {
+  phase: string;
+  count: number;
+  totalMs: number;
+  maxMs: number;
+  selfTimeMs: number;
+  avgMs: number;
+}
+
+export interface SkywalkingSpan {
+  spanId: string;
+  parentSpanId?: string | null;
+  operationName: string;
+  spanType: string;
+  spanLayer: string;
+  startTime: number;
+  endTime: number;
+  isError: boolean;
+  logs?: string | null;
+  peer?: string | null;
+}
+
+export interface SkywalkingSegment {
+  traceId: string;
+  spanCount: number;
+  spans: SkywalkingSpan[];
+}
+
+/** 方法热点排行（按 Span 聚合耗时/错误） */
+export function getTraceHotspots(limit = 20): Promise<TraceHotspot[]> {
+  return unwrap(instance.get<TraceHotspot[]>("/agent/trace-hotspots", { params: { limit } }));
+}
+
+/** 链路阶段耗时汇总 */
+export function getTracePhases(): Promise<TracePhaseStat[]> {
+  return unwrap(instance.get<TracePhaseStat[]>("/agent/trace-phases"));
+}
+
+/** SkyWalking 兼容 Segment 导出 */
+export function getSkywalkingExport(): Promise<SkywalkingSegment[]> {
+  return unwrap(instance.get<SkywalkingSegment[]>("/agent/skywalking/export"));
+}
+
 export default {
   getStats,
   pageTransmissions,
@@ -789,6 +920,13 @@ export default {
   getAlerts,
   getHandleInventory,
   getSystemOut,
+  getMemoryPools,
+  triggerGc,
+  getClassLoading,
+  getThreadDump,
+  getTraceHotspots,
+  getTracePhases,
+  getSkywalkingExport,
   getTracesTree,
   getAgentTraces,
   getAgentDependencies,
