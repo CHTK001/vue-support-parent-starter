@@ -94,6 +94,31 @@ export type EsField = {
   format?: string;
   /** 是否建索引，缺省 true（false 表示只存储不检索） */
   index?: boolean;
+<<<<<<< HEAD
+=======
+  /** 多字段 copy 到哪（ES 6+ 推荐用 copy_to 而非 multi-fields） */
+  copyTo?: string;
+  /** 仅 keyword 的 normalizer（归一化器，与 analyzer 相对应） */
+  normalizer?: string;
+  /** 是否写入 doc_values，缺省 true（关闭可省空间但不可排序/聚合/脚本） */
+  docValues?: boolean;
+  /** 是否稀疏字段，缺省 false（稀疏可省磁盘） */
+  sparse?: boolean;
+  /** 是否向量维度字段（dense_vector / indexed 的 vector） */
+  dimension?: number;
+  /** 是否 eager_global_ordinals，缺省 false（预加载避免首次查询延迟） */
+  eagerGlobalOrdinals?: boolean;
+  /** 脚本字段（ Painless 脚本表达式） */
+  script?: string;
+  /** 相似度算法，仅 text 有意义（BM25 / classic / boolean / ...） */
+  similarity?: string;
+  /** term_vector，仅 text 有意义（no / yes / with_positions / with_offsets / with_positions_offsets） */
+  termVector?: string;
+  /** ignore_above，仅 keyword 有意义（超过该长度不分词，缺省 2147483647） */
+  ignoreAbove?: number;
+  /** 子字段定义（multi-fields，如 keyword 的 .raw 子字段） */
+  fields?: Record<string, EsField>;
+>>>>>>> feat/device-stream
 };
 
 /** 索引列表行（_cat/indices 口径） */
@@ -285,3 +310,22 @@ export const fetchEsGraph = (datasourceId?: number) =>
     .query({ datasourceId })
     .noToast(true)
     .then(r => unwrap<EsGraph>(r));
+<<<<<<< HEAD
+=======
+
+/**
+ * Dev Tools 原始查询：透传任意 ES REST 调用
+ *
+ * @param method       HTTP 方法（GET / POST / PUT / DELETE / PATCH）
+ * @param path         ES 端点（如 _search、_settings，等）
+ * @param body         请求体（可为空）
+ * @param datasourceId 数据源 ID
+ */
+export const fetchEsRawQuery = (method: string, path: string, body: string, datasourceId: number) =>
+  http()
+    .post(`${ES_BASE}/raw`)
+    .query({ method, path, datasourceId })
+    .data(body || "")
+    .noToast(true)
+    .then(r => unwrap<string>(r));
+>>>>>>> feat/device-stream

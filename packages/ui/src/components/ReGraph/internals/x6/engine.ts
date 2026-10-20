@@ -247,7 +247,22 @@ export class X6GraphEngine {
     // 兼容旧数据：lines 作为 edges 的别名
     const data: ReGraphData = {
       rootId: raw.rootId,
-      nodes: raw.nodes ?? [],
+      /*
+       * 节点必须**复制**，不能沿用调用方的那批对象引用。
+       *
+       * 下面会按 mode 把算出的坐标写进 n.x / n.y；若写在调用方的对象上，
+       * 改动会回灌到它的数据源 —— 而外层 X6Graph.vue 正用 `deep: true` 监听同一份数据
+       * 并回调本方法，于是形成「写回 → watcher 触发 → setData → 再写回」的重入死循环。
+       *
+       * 为什么此前只有力导向页出问题：forceLayout 用 Math.random() 播种初始位置，
+       * 每次重算坐标都不同 → deep watcher 每次都判定「变了」→ 回路永不收敛
+       * （实测主线程被占死、页面外壳永不挂载；14 个节点的数据被渲染成 295 个 x6 节点）。
+       * circle / center / tree / fixed 是确定性布局，两次算出的坐标相同 → watcher 不再触发
+       * → 回路侥幸自终止，所以这些页面看起来一直是好的。
+       *
+       * 复制一份的代价极低，且顺带修掉「组件擅自修改调用方数据」这个副作用。
+       */
+      nodes: (raw.nodes ?? []).map((n) => ({ ...n })),
       edges: raw.edges ?? raw.lines ?? [],
     };
     this.lastData = data;

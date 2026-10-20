@@ -176,6 +176,12 @@ export const startServerNode = (id: number) =>
 export const stopServerNode = (id: number) =>
   http().post(`${B}/${id}/stop`).then(r => unwrapResult<ServerNodeView>(r));
 
+/** 先停再启，用于 ERROR 节点排障 */
+export const restartServerNode = async (id: number) => {
+  await http().post(`${B}/${id}/stop`).then(r => unwrapResult<ServerNodeView>(r));
+  return http().post(`${B}/${id}/start`).then(r => unwrapResult<ServerNodeView>(r));
+};
+
 // ===== 过滤器热操作 =====
 export const toggleServerFilter = (id: number, index: number, enabled: boolean) =>
   http().post(`${B}/${id}/filters/${index}/toggle?enabled=${enabled}`).then(r => unwrapResult<ServerNodeView>(r));

@@ -24,6 +24,33 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    /*
+     * 按钮组 / square 图标选择器的对照组页。
+     *
+     * <p>供 `scripts/re-controls-acceptance.mjs` 做「每个可点按钮与图标」普查：
+     * 这一页把所有形态都摆出来，状态确定、无后端依赖，离线即可跑。
+     * 不放进 `/debug/:name` 是因为调试页靠参数面板驱动、每次进页面状态不同，
+     * 而验收需要可重复的初始状态。</p>
+     */
+    path: "/lab/re-controls",
+    name: "lab-re-controls",
+    component: () => import("./views/ReControlsLab.vue"),
+    meta: { title: "Re 按钮组对照组" },
+  },
+  {
+    /*
+     * ReTree「弹窗编辑路径」对照组页。
+     *
+     * <p>供 `scripts/re-controls-acceptance.mjs` 第 7 节（弹窗编排）使用：
+     * ReTree 的增删改都要开模态弹窗，模态一开就盖住整页，
+     * 因此**不能**并进 `/lab/re-controls` 的「逐个点」遍历（会被遮罩吞成假死按钮）。</p>
+     */
+    path: "/lab/re-tree",
+    name: "lab-re-tree",
+    component: () => import("./views/ReTreeLab.vue"),
+    meta: { title: "ReTree 弹窗对照组" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/home",
   },

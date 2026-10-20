@@ -13,6 +13,8 @@ import {
   getServerNode,
   startServerNode,
   stopServerNode,
+  restartServerNode,
+  hotUpdateServerNode,
   toggleServerFilter,
   updateServerFilterParams,
   type FilterTypeMeta,
@@ -58,6 +60,78 @@ const statusType: Record<string, 'success' | 'info' | 'danger'> = {
 
 /** 是否运行中 */
 const isLive = computed(() => node.value?.status === 'RUNNING');
+
+/** 访问地址一键复制 */
+async function copyServerUrl() {
+  const url = node.value?.serverUrl;
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    message.success('已复制到剪贴板');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    message.success('已复制到剪贴板');
+  }
+}
+
+/** 重启（先停再启，用于 ERROR 节点排障） */
+async function onRestart() {
+  if (!node.value) return;
+  acting.value = true;
+  try {
+    await restartServerNode(node.value.id);
+    message.success('服务已重启');
+    await load();
+    emit('changed');
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    acting.value = false;
+  }
+}
+
+/**
+ * 从过滤器链上移除指定下标的过滤器（热更新实现，详情抽屉内直接操作）。
+ */
+async function removeFilter(index: number) {
+  if (!node.value) return;
+  const target = node.value.filters?.[index];
+  if (!target) return;
+  const remaining = (node.value.filters || []).filter((_, i) => i !== index);
+  acting.value = true;
+  try {
+    await hotUpdateServerNode(node.value.id, {
+      name: node.value.name,
+      protocol: node.value.protocol,
+      engine: node.value.engine,
+      host: node.value.host,
+      port: node.value.port,
+      enabled: node.value.enabled,
+      remark: node.value.remark,
+      config: node.value.config || {},
+      filters: remaining.map((f, i) => ({
+        name: f.name,
+        type: f.type,
+        order: 100 + i * 10,
+        enabled: f.enabled,
+        params: f.params || {},
+      })),
+    });
+    message.success(`已移除插件「${target.name}」`);
+    await load();
+    emit('changed');
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    acting.value = false;
+  }
+}
 
 /** 当前配置的插件类型 */
 const activeFilterType = computed(() => {
@@ -196,7 +270,10 @@ async function applyParams() {
         <ReSkeleton :loading="loading" :rows="6" :count="1" animated>
           <template v-if="node">
             <ReDescriptions :column="2" border >
-              <ReDescriptionsItem label="服务名称">{{ node.name }}</ReDescriptionsItem>
+              <ReDescriptionsItem label="服务名称">
+                {{ node.name }}
+                <ReText v-if="node.id" type="secondary" style="margin-left: 8px; font-size: 11px">#{{ node.id }}</ReText>
+              </ReDescriptionsItem>
               <ReDescriptionsItem label="运行状态">
                 <span class="status-cell">
                   <ReStatusIndicator
@@ -215,8 +292,11 @@ async function applyParams() {
                 <span class="mono">{{ node.host || '0.0.0.0' }}:{{ node.port ?? '-' }}</span>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="访问地址">
-                <ReText v-if="node.serverUrl" type="primary">{{ node.serverUrl }}</ReText>
-                <span v-else class="dim">未运行</span>
+                <div v-if="node.serverUrl" class="url-cell">
+                  <ReText type="primary">{{ node.serverUrl }}</ReText>
+                  <ReButton icon="Copy" layout="square" tip="复制地址" @click="copyServerUrl" />
+                </div>
+                <span v-else class="dim">{{ node.status === 'ERROR' ? '服务启动失败，修复后可用' : '未运行' }}</span>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="自动启用">
                 <ReTag :type="node.enabled === 1 ? 'success' : 'info'">{{ node.enabled === 1 ? '是' : '否' }}</ReTag>
@@ -226,7 +306,7 @@ async function applyParams() {
               </ReDescriptionsItem>
               <ReDescriptionsItem label="备注" :span="2">{{ node.remark || '-' }}</ReDescriptionsItem>
               <ReDescriptionsItem v-if="node.error" label="最近错误" :span="2">
-                <ReTag type="danger">{{ node.error }}</ReTag>
+                <span class="error-text" :title="node.error">{{ node.error }}</span>
               </ReDescriptionsItem>
             </ReDescriptions>
 
@@ -273,34 +353,38 @@ async function applyParams() {
                 <div class="fr-ops">
                   <ReSwitch
                     :model-value="f.enabled !== false"
-
                     :disabled="!isLive"
                     @change="(v: any) => onToggleFilter(index, !!v)"
                   />
                   <ReButton link type="primary" @click="openConfig(index)">配置</ReButton>
                   <ReButton
                     v-if="hasDetail(index)"
-                    link
-
+                    icon="TopRight"
+                    layout="square"
                     type="success"
-                    @click="emit('open-detail-page', node, index)"
-                  >{{ metaOf(index)?.detailLabel || '查看详情' }}</ReButton>
+                    :tip="metaOf(index)?.detailLabel || '查看详情'"
+                    @click="node && emit('open-detail-page', node, index)"
+                  />
+                  <ReButton icon="Delete" layout="square" type="danger" tip="从链上移除" @click="removeFilter(index)" />
                 </div>
               </div>
             </div>
 
             <div class="detail-actions">
-              <ReButton
-                v-if="node.status !== 'RUNNING'"
-                show-text
-                icon="VideoPlay"
-                type="success"
-                :loading="acting"
-                @click="onStart"
-              >启动服务</ReButton>
-              <ReButton v-else show-text icon="VideoPause" type="warning" :loading="acting" @click="onStop">停止服务</ReButton>
-              <ReButton show-text icon="Refresh" @click="load">刷新状态</ReButton>
-              <span class="dim">插件启停与参数调整均热生效，服务不中断</span>
+              <template v-if="node.status === 'ERROR'">
+                <ReButton show-text icon="Refresh" type="warning" :loading="acting" @click="onRestart">重启服务</ReButton>
+                <span class="dim">服务异常，点击重启尝试恢复</span>
+              </template>
+              <template v-else-if="node.status === 'RUNNING'">
+                <ReButton show-text icon="VideoPause" type="warning" :loading="acting" @click="onStop">停止服务</ReButton>
+                <ReButton show-text icon="Refresh" @click="load">刷新状态</ReButton>
+                <span class="dim">插件启停与参数调整均热生效，服务不中断</span>
+              </template>
+              <template v-else>
+                <ReButton show-text icon="VideoPlay" type="success" :loading="acting" @click="onStart">启动服务</ReButton>
+                <ReButton show-text icon="Refresh" @click="load">刷新状态</ReButton>
+                <span class="dim">插件启停与参数调整均热生效，服务不中断</span>
+              </template>
             </div>
           </template>
         </ReSkeleton>
@@ -350,26 +434,24 @@ async function applyParams() {
   flex-direction: column;
   gap: 8px;
 }
+/* 详情抽屉过滤器行科技感：毛玻璃 + 霓虹序号圆 */
 .filter-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
-  /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
-     且 0.18s 不是任何标准档。显式列出真正会变的三个属性并取 0.2s 档 */
   transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .filter-row:hover {
-  border-color: var(--el-color-primary-light-5);
-  /* 允许的两处投影之一：悬浮抬升反馈；静止态不加投影，边界由边框承载 */
-  box-shadow: var(--el-box-shadow-lighter);
+  border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color-lighter));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 3%, var(--el-bg-color));
 }
 .filter-row.is-off {
   opacity: 0.62;
@@ -377,9 +459,12 @@ async function applyParams() {
 .fr-order {
   width: 22px;
   height: 22px;
-  /* 22px 正圆：50% 与 full 档(9999px) 等价，统一到令牌 */
   border-radius: var(--el-radius-full, 9999px);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  /* 霓虹光晕序号圆 */
+  background: radial-gradient(circle at 30% 30%,
+    color-mix(in srgb, var(--el-color-primary) 30%, transparent) 0%,
+    color-mix(in srgb, var(--el-color-primary) 8%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 40%, transparent);
   color: var(--el-color-primary);
   font-size: 11px;
   display: flex;
@@ -387,6 +472,7 @@ async function applyParams() {
   justify-content: center;
   flex-shrink: 0;
   margin-top: 2px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
 .fr-main {
   flex: 1;
@@ -426,7 +512,41 @@ async function applyParams() {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  /* 顶部科技感渐变光带 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--el-color-primary-light-5) 30%,
+      var(--el-color-primary) 50%,
+      var(--el-color-primary-light-5) 70%,
+      transparent 100%);
+    opacity: 0.55;
+  }
+}
+
+.url-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error-text {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--el-color-danger);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  cursor: default;
 }
 
 /* 尊重系统「减少动态效果」偏好 */
