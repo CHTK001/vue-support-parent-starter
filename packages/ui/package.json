@@ -350,9 +350,12 @@
     "./*": "./src/*"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "vue-tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx,.vue",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "icons:sync": "node scripts/sync-animated-icons.mjs",
+    "icons:check": "node scripts/sync-animated-icons.mjs --check",
+    "icons:check:remote": "node scripts/sync-animated-icons.mjs --check --remote"
   },
   "dependencies": {
     "@antv/g6": "^5.1.1",
@@ -406,7 +409,11 @@
     "dom-zindex": "1.0.7",
     "echarts": "catalog:",
     "element-plus": "catalog:",
+    "framer-motion": "catalog:",
     "katex": "^0.16.47",
+    "motion": "catalog:",
+    "motion-dom": "catalog:",
+    "motion-utils": "catalog:",
     "sortablejs": "1.15.6",
     "three": "^0.185.1",
     "viewerjs": "catalog:",
@@ -426,6 +433,7 @@
     "@types/three": "^0.185.4",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vue": "catalog:"
+    "vue": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }

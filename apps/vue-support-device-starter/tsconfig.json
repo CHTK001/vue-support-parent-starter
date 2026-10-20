@@ -5,10 +5,22 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
+<<<<<<< HEAD
       "@/*": ["../../pages/device/src/*"],
       "@pages/device/*": ["../../pages/device/*"],
       "@pages/device": ["../../pages/device/src/index.ts"]
+=======
+      "@/*": ["../../pages/device/src/*"]
+>>>>>>> feat/device-stream
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "app.yaml", "../../packages/core/src/**/*.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "app.yaml",
+    "../../packages/core/src/**/*.d.ts",
+    "../../pages/device/src/**/*.ts",
+    "../../pages/device/src/**/*.vue"
+  ]
 }

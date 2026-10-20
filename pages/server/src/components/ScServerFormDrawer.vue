@@ -28,20 +28,44 @@ import {
 } from '../api';
 import ScFilterConfigPanel from './ScFilterConfigPanel.vue';
 import { resolveFilterDetail } from '../utils/filterDetail';
+import {
+  buildServerNodePayload,
+  validateServerNodeForm,
+  type ServerNodeFormModel,
+} from '../utils/serverNodeForm';
 
 const props = defineProps<{
-  /** 当前编辑的节点；null 表示新增 */
+  /** 当前编辑的节点；null 表示新增（cloneSource 也为空） */
   node: ServerNodeView | null;
+  /** 克隆源（node 为 null 且 cloneSource 有值时走克隆路径） */
+  cloneSource?: ServerNodeView | null;
   /** 协议元数据 */
   protocols: ProtocolMeta[];
   /** 插件元数据 */
   filterTypes: FilterTypeMeta[];
+  /** 列表中已存在的其他节点名称（用于名称重复校验）；传入空则跳过 */
+  existingNames?: string[];
 }>();
 
 const emit = defineEmits<{ (e: 'saved'): void }>();
 
 const router = useRouter();
 const visible = defineModel<boolean>({ default: false });
+
+/** 是否新建（含克隆）—— node 为空或 node.id 为 0（克隆场景 id 被置零） */
+const isCreating = computed(() => !props.node || props.node.id === 0);
+/** 是否克隆模式 */
+const isClone = computed(() => !props.node && !!props.cloneSource);
+
+/** 抽屉标题（编辑/克隆/插件配置三态） */
+const drawerTitle = computed(() => {
+  if (view.value !== 'edit') {
+    return `插件配置 - ${form.value.filters[activeIndex.value]?.name || ''}`;
+  }
+  if (isClone.value) return `克隆服务 - ${props.cloneSource?.name || ''}`;
+  if (!isCreating.value) return `编辑服务 - ${props.node?.name || ''}`;
+  return '新增服务';
+});
 
 /** 视图：编辑 / 单个插件配置页 */
 const view = ref<'edit' | 'filter'>('edit');
@@ -105,12 +129,25 @@ const isProxy = computed(() => !!currentProtocol.value?.requiresBackend);
 /** 是否 SIP 协议 */
 const isSip = computed(() => form.value.protocol === 'sip');
 
-/** 协议专属字段集合 */
+/** 协议专属字段集合（按协议类型动态过滤，不再对所有协议展示全部 11 项通用字段） */
 const protocolFields = computed(() => {
   const fields: Array<{ name: string; label: string; type: string; placeholder?: string }> = [];
+  const alias = form.value.protocol;
+  const meta = currentProtocol.value;
   if (isProxy.value) fields.push(...PROXY_FIELDS);
   if (isSip.value) fields.push(...SIP_FIELDS);
-  fields.push(...COMMON_FIELDS);
+  // HTTP 类协议展示通用传输配置
+  if (alias === 'http' || alias === 'https' || alias === 'http2') {
+    fields.push(...COMMON_FIELDS);
+  }
+  // 后端下发了 params schema 时追加协议自定义扩展字段
+  if (meta?.params?.length) {
+    for (const p of meta.params) {
+      if (!fields.some(f => f.name === p.name)) {
+        fields.push({ name: p.name, label: p.name, type: p.type ?? 'string', placeholder: p.desc });
+      }
+    }
+  }
   return fields;
 });
 
@@ -154,6 +191,25 @@ const filterGroups = computed(() => {
 /** 左侧搜索 */
 const pickerKeyword = ref('');
 
+/**
+ * 自定义 ServerFilter 全限定类名。
+ *
+ * <p>元数据里 group=custom 那条是「任意 ServerFilter 实现」的入口，它的
+ * {@code type} 只是一句说明（"ServerFilter 全限定类名"），直接当类型下发后端
+ * 会构造失败。必须由用户填真实 FQCN，再以它作为 type/name。</p>
+ */
+const customFilterType = ref('');
+
+/** 是否为「自定义实现」入口 */
+function isCustomPickerItem(meta: FilterTypeMeta) {
+  return meta.group === 'custom' || meta.type === 'ServerFilter 全限定类名';
+}
+
+/** 粗校验 Java 全限定类名（至少两段、每段是合法标识符） */
+function isQualifiedClassName(value: string) {
+  return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)+$/.test(value.trim());
+}
+
 /** 过滤后的左侧插件 */
 function groupItems(items: FilterTypeMeta[]) {
   const kw = pickerKeyword.value.trim().toLowerCase();
@@ -169,7 +225,7 @@ watch(visible, open => {
   if (!open) return;
   view.value = 'edit';
   pickerKeyword.value = '';
-  const n = props.node;
+  const n = props.node ?? props.cloneSource;
   if (n) {
     form.value = {
       name: n.name,
@@ -182,6 +238,10 @@ watch(visible, open => {
       config: { ...(n.config || {}) },
       filters: (n.filters || []).map(f => ({ ...f, params: { ...(f.params || {}) } })),
     };
+    // 克隆时给名称加后缀引导用户改名
+    if (isClone.value) {
+      form.value.name = `${n.name}-clone`;
+    }
   } else {
     const first = props.protocols[0];
     form.value = {
@@ -239,7 +299,20 @@ function uniqueName(base: string) {
 
 /** 新增一个过滤器实例（支持重复添加同一实现） */
 function addFilter(meta: FilterTypeMeta) {
-  const base = meta.type.includes('.') ? meta.type.split('.').pop() || meta.type : meta.type;
+  // 自定义实现入口：类型取用户填写的 FQCN，而不是元数据里那句说明
+  const custom = isCustomPickerItem(meta);
+  const resolvedType = custom ? customFilterType.value.trim() : meta.type;
+  if (custom) {
+    if (!isQualifiedClassName(resolvedType)) {
+      message.warning('请先填写 ServerFilter 的全限定类名（如 com.chua.xxx.MyFilter）');
+      return;
+    }
+    if (form.value.filters.some(f => f.type === resolvedType)) {
+      message.warning(`该实现已在链上：${resolvedType}`);
+      return;
+    }
+  }
+  const base = resolvedType.includes('.') ? resolvedType.split('.').pop() || resolvedType : resolvedType;
   const name = uniqueName(base);
   const params: Record<string, string> = {};
   (meta.params || []).forEach(p => {
@@ -252,11 +325,14 @@ function addFilter(meta: FilterTypeMeta) {
     : 100;
   form.value.filters.push({
     name,
-    type: meta.type,
+    type: resolvedType,
     order: nextOrder,
     enabled: true,
     params,
   });
+  if (custom) {
+    customFilterType.value = '';
+  }
   message.success(`已添加插件 ${name}`);
 }
 
@@ -369,55 +445,21 @@ function openFilterDetailPage() {
 }
 
 // ===== 提交 =====
-/** 表单校验 */
+/** 表单校验（规则集中在 utils/serverNodeForm，便于单测） */
 function validate() {
-  if (!form.value.name.trim()) {
-    message.warning('请填写服务名称');
-    return false;
-  }
-  if (!form.value.protocol) {
-    message.warning('请选择协议类型');
-    return false;
-  }
-  if (!form.value.port) {
-    message.warning('请填写监听端口');
-    return false;
-  }
-  if (isProxy.value) {
-    const host = configValue('backendHost');
-    const port = configValue('backendPort');
-    if (!host || !port) {
-      message.warning('代理类服务必须填写后端地址与后端端口');
-      return false;
-    }
-  }
-  const names = form.value.filters.map(f => f.name);
-  if (new Set(names).size !== names.length) {
-    message.warning('过滤器名称存在重复，请调整后再保存');
+  const result = validateServerNodeForm(form.value as ServerNodeFormModel, {
+    requiresBackend: isProxy.value,
+  }, props.existingNames);
+  if (!result.ok) {
+    message.warning(result.message || '表单校验未通过');
     return false;
   }
   return true;
 }
 
-/** 组装请求体 */
+/** 组装请求体（规则集中在 utils/serverNodeForm，便于单测） */
 function buildPayload() {
-  return {
-    name: form.value.name.trim(),
-    protocol: form.value.protocol,
-    engine: form.value.engine,
-    host: form.value.host || '0.0.0.0',
-    port: form.value.port,
-    enabled: form.value.enabled,
-    remark: form.value.remark,
-    config: form.value.config || {},
-    filters: form.value.filters.map(f => ({
-      name: f.name,
-      type: f.type,
-      order: f.order,
-      enabled: f.enabled !== false,
-      params: f.params || {},
-    })),
-  };
+  return buildServerNodePayload(form.value as ServerNodeFormModel);
 }
 
 /** 失败响应里是否带已落库的节点（后端常见「已保存但启动失败」场景） */
@@ -437,8 +479,8 @@ async function submit() {
   if (!validate()) return;
   submitting.value = true;
   try {
-    if (props.node) {
-      await updateServerNode(props.node.id, buildPayload());
+    if (!isCreating.value) {
+      await updateServerNode(props.node!.id, buildPayload());
       message.success('已保存，运行中的实例已按新配置重启');
     } else {
       await createServerNode(buildPayload());
@@ -464,8 +506,8 @@ async function submit() {
 async function submitHot() {
   if (!validate()) return;
   const payload = buildPayload();
-  if (!props.node) {
-    // 未创建时无热更新语义，退化为创建
+  // 克隆或未保存节点：无热更新语义，退化为创建
+  if (isCreating.value) {
     submitting.value = true;
     try {
       await createServerNode(payload);
@@ -485,7 +527,7 @@ async function submitHot() {
   }
   submitting.value = true;
   try {
-    const result = await hotUpdateServerNode(props.node.id, payload);
+    const result = await hotUpdateServerNode(props.node!.id, payload);
     if (result?.restarted) {
       message.warning(result.message || '监听参数变更，已自动重启节点');
     } else if (result?.hotApplied) {
@@ -526,7 +568,7 @@ async function toggleLive(index: number, enabled: boolean) {
 <template>
   <ReDrawer
     v-model="visible"
-    :title="view === 'edit' ? (node ? `编辑服务 - ${node.name}` : '新增服务') : `插件配置 - ${form.filters[activeIndex]?.name || ''}`"
+    :title="drawerTitle"
     :size="view === 'edit' ? 1000 : 760"
     direction="rtl"
     close-only
@@ -622,6 +664,15 @@ async function toggleLive(index: number, enabled: boolean) {
                     <div class="pi-main">
                       <span class="pi-type">{{ item.type }}</span>
                       <span class="pi-desc">{{ item.desc }}</span>
+                      <!-- 自定义实现：必须由用户填真实 FQCN，否则后端拿到的是一句说明文字 -->
+                      <div v-if="isCustomPickerItem(item)" class="pi-custom" @click.stop @keydown.stop>
+                        <ReInput
+                          v-model="customFilterType"
+                          placeholder="com.example.MyServerFilter"
+                          clearable
+                          style="width: 100%"
+                        />
+                      </div>
                     </div>
                     <ReTag :type="item.spi ? 'success' : 'primary'">{{ item.spi ? 'SPI' : '预设' }}</ReTag>
                     <Plus class="pi-add" />
@@ -696,7 +747,7 @@ async function toggleLive(index: number, enabled: boolean) {
         <div class="form-actions">
           <ReButton show-text icon="Check" type="primary" :loading="submitting" @click="submit">保存</ReButton>
           <ReButton show-text icon="Lightning" :loading="submitting" @click="submitHot">
-            {{ node ? '保存并热更新' : '创建并启动' }}
+            {{ isCreating ? '创建并启动' : '保存并热更新' }}
           </ReButton>
           <ReButton show-text icon="Close" @click="visible = false">取消</ReButton>
           <span class="dim">热更新会就地替换过滤器链，服务不中断；仅监听地址/端口/引擎变更时才重启</span>
@@ -732,6 +783,16 @@ async function toggleLive(index: number, enabled: boolean) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* 抽屉内表单科技感：字段行悬浮高亮 */
+.server-form :deep(.el-form-item) {
+  border-radius: var(--el-radius-md);
+  padding: 4px 8px;
+  transition: background-color 0.2s ease;
+  &:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 3%, transparent);
+  }
 }
 .form-hint {
   font-size: 11px;
@@ -813,23 +874,22 @@ async function toggleLive(index: number, enabled: boolean) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  /* 原生可点 div：去掉默认轮廓，改用自绘焦点环（模板已补 role/tabindex，焦点环现可生效） */
   outline: none;
-  /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
-     0.18s 不是任何标准档。显式列出真正会变的四个属性并取 0.2s 档 */
-  transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease,
-    transform var(--el-transition-duration-fast, 0.2s) ease;
   background: var(--el-bg-color);
-}
-.picker-item:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.picker-item:hover {
-  border-color: var(--el-color-primary-light-5);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  transform: translateX(2px);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  }
+  &:hover {
+    border-color: var(--el-color-primary);
+    background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+    transform: translateX(3px);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  }
 }
 .pi-main {
   flex: 1;
@@ -871,21 +931,21 @@ async function toggleLive(index: number, enabled: boolean) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
-  /* 整行都是「打开该插件配置页」的触发区，因此整行给可点手势与焦点环 */
   cursor: pointer;
   outline: none;
   transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.selected-item:hover {
-  border-color: var(--el-color-primary-light-5);
-  /* 允许的两处投影之一：悬浮抬升反馈 */
-  box-shadow: var(--el-box-shadow-lighter);
-}
-.selected-item:focus-visible {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
+  }
+  &:focus-visible {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  }
 }
 .selected-item.is-off {
   opacity: 0.62;
@@ -961,7 +1021,23 @@ async function toggleLive(index: number, enabled: boolean) {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  /* 顶部科技感渐变光带 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--el-color-primary-light-5) 30%,
+      var(--el-color-primary) 50%,
+      var(--el-color-primary-light-5) 70%,
+      transparent 100%);
+    opacity: 0.6;
+  }
 }
 
 /* 尊重系统「减少动态效果」偏好 */

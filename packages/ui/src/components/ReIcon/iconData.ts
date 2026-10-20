@@ -9,6 +9,7 @@
  *
  * 业务方可通过 props 注入自定义 prefix 与图标名列表。
  */
+import { ANIMATED_ICON_NAMES, ANIMATED_ICON_PREFIX } from "./animated/registry";
 
 /** 默认前缀：饿了么 (Element Plus Icons) */
 export const epIcons: string[] = [
@@ -330,6 +331,8 @@ export const defaultIconSets: Record<string, string[]> = {
   "ep:": epIcons,
   "ri:": riIcons,
   "mdi:": mdiIcons,
+  // 动画图标的名单本身已是完整名（`anim:<lib>:<icon>`），不能再拼前缀
+  [ANIMATED_ICON_PREFIX]: [...ANIMATED_ICON_NAMES],
 };
 
 /** 图标选择器 tabs 元数据 */
@@ -342,4 +345,5 @@ export const defaultIconTabs: IconSelectTab[] = [
   { label: "Element Plus", prefix: "ep:" },
   { label: "Remix Icon", prefix: "ri:" },
   { label: "Material Design", prefix: "mdi:" },
+  { label: "动画", prefix: ANIMATED_ICON_PREFIX },
 ];

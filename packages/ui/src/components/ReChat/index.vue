@@ -208,6 +208,18 @@ const emit = defineEmits<{
   (e: "complete", message: ChatMessage): void;
   (e: "error", error: unknown): void;
   (e: "modelChange", model: string): void;
+  /*
+   * 下面两个是 syncMessages() 实际会发出的，此前**没有声明** ——
+   * 运行时靠「Vue 不拦截未声明事件」侥幸能用（父组件的 v-model 仍会收到回调），
+   * 但 defineEmits 是组件的公开契约，缺了这两条就等于对外宣称「不会发这两个事件」，
+   * 类型检查也据此报 TS2769（No overload matches this call）。
+   *
+   * ⚠ 注意一处 API 不对称，留给组件所有者定夺：本组件声明的是 `messages` prop，
+   * **并没有 `modelValue` prop**，所以 `v-model="..."` 目前只能"往外写"、
+   * 不会读回来。这里只把实际行为补进契约，不去新造一个没人读的 prop。
+   */
+  (e: "update:modelValue", messages: ChatMessage[]): void;
+  (e: "change", messages: ChatMessage[]): void;
 }>();
 
 /**

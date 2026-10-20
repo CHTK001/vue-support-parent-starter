@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "accept:animated-icons": "node scripts/re-animated-icons-acceptance.mjs",
+    "accept:css-kept": "node scripts/check-css-kept.mjs",
+    "accept:re-controls": "node scripts/re-controls-acceptance.mjs",
+    "accept:re-components": "node scripts/re-components-sweep-acceptance.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",

@@ -25,6 +25,7 @@ import {
   listServerNodes,
   startServerNode,
   stopServerNode,
+  restartServerNode,
   deleteServerNode,
   listProtocols,
   listFilterTypes,
@@ -85,6 +86,13 @@ const visibleNodes = computed(() =>
 
 /** 协议下拉选项（内置 + SPI 动态，SPI 项加后缀标识） */
 const protocolOptions = computed(() => buildProtocolOptions(protocols.value));
+
+/** 传给抽屉的名称列表（编辑时排除自身，克隆时排除克隆源） */
+const existingNamesForDrawer = computed(() => {
+  return nodes.value
+    .filter(n => n.id !== editingNode.value?.id)
+    .map(n => n.name);
+});
 
 /**
  * 把任意异常压成一句可展示的短文本。
@@ -204,6 +212,20 @@ function openDetail(row: ServerNodeView) {
   detailVisible.value = true;
 }
 
+/** 克隆节点：复制全部字段，名称自动加 -clone 后缀，列表校验时排除自身 */
+function openClone(row: ServerNodeView) {
+  editingNode.value = {
+    ...row,
+    id: 0,
+    name: `${row.name}-clone`,
+    status: 'STOPPED',
+    error: undefined,
+    serverUrl: undefined,
+    enabled: row.enabled ?? 0,
+  };
+  formVisible.value = true;
+}
+
 async function onStart(row: ServerNodeView) {
   actingId.value = row.id;
   try {
@@ -222,6 +244,19 @@ async function onStop(row: ServerNodeView) {
   try {
     await stopServerNode(row.id);
     message.success(`服务「${row.name}」已停止`);
+    await refresh();
+  } catch (e) {
+    message.error(reasonText(e));
+  } finally {
+    actingId.value = null;
+  }
+}
+
+async function onRestart(row: ServerNodeView) {
+  actingId.value = row.id;
+  try {
+    await restartServerNode(row.id);
+    message.success(`服务「${row.name}」已重启`);
     await refresh();
   } catch (e) {
     message.error(reasonText(e));
@@ -368,6 +403,20 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </div>
     </div>
 
+    <!-- 空状态引导：绝对覆盖在表格上方，表格始终渲染 -->
+    <div style="position: relative; min-height: 0; flex: 1 1 0;">
+      <div v-if="!loading && !visibleNodes.length && !keyword && !filterProtocol" class="empty-guide">
+        <div class="eg-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="12" fill="var(--el-color-primary-light-9)" />
+            <path d="M24 14v20M14 24h20" stroke="var(--el-color-primary)" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="eg-title">暂无服务</div>
+        <div class="eg-desc">点击下方按钮创建第一个 Server 节点</div>
+        <ReButton show-text icon="Plus" type="primary" @click="openCreate">新增服务</ReButton>
+      </div>
+
     <ReTable
       :data="visibleNodes"
       :loading="loading"
@@ -434,15 +483,22 @@ function openDetailPage(row: ServerNodeView, index: number) {
           <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
         </template>
       </ReTableColumn>
-      <!-- 操作列：统一 ReButton layout="square" 纯图标 + tip。
-           原先 5 枚 show-text 带字按钮把列撑到 410px（实测 330/380 均折行），
-           在宽表里既挤占横向空间又让「值列」被迫压缩；改纯图标后 5×32+4×8=192，
-           列宽收到 220 仍留余量，语义靠 tip 承载。 -->
-      <ReTableColumn label="操作" width="220" fixed="right" align="right">
+      <!-- 操作列：ERROR 重启 + 启停 + 详情 + 编辑 + 克隆 + 删除 -->
+      <ReTableColumn label="操作" width="280" fixed="right" align="right">
         <template #default="{ row }">
           <span class="ops" @click.stop>
+            <!-- ERROR 节点：重启优先 -->
             <ReButton
-              v-if="row.status !== 'RUNNING'"
+              v-if="row.status === 'ERROR'"
+              icon="Refresh"
+              layout="square"
+              type="warning"
+              tip="重启"
+              :loading="actingId === row.id"
+              @click="onRestart(row)"
+            />
+            <ReButton
+              v-else-if="row.status !== 'RUNNING'"
               icon="VideoPlay"
               layout="square"
               type="success"
@@ -461,6 +517,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
             />
             <ReButton icon="View" layout="square" type="primary" tip="详情" @click.stop="openDetail(row)" />
             <ReButton icon="Edit" layout="square" tip="编辑" @click="openEdit(row)" />
+            <ReButton icon="Copy" layout="square" tip="克隆" @click="openClone(row)" />
             <ReButton
               icon="Delete"
               layout="square"
@@ -473,12 +530,15 @@ function openDetailPage(row: ServerNodeView, index: number) {
         </template>
       </ReTableColumn>
     </ReTable>
+    </div>
 
     <ScServerFormDrawer
       v-model="formVisible"
       :node="editingNode"
       :protocols="protocols"
       :filter-types="filterTypes"
+      :existing-names="existingNamesForDrawer"
+      :clone-source="editingNode?.id === 0 ? editingNode : null"
       @saved="refresh"
     />
 
@@ -497,16 +557,11 @@ function openDetailPage(row: ServerNodeView, index: number) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* 外层 sc-page 全仓没有任何样式定义、不提供高度，所以必须自己撑满：
-     height:100% 让高度由外壳内容区给出，min-height:0 允许 flex 子项收缩，
-     少了它长列表会把页面顶高、外层出滚动条（实测未加时本页只有内容高 235px） */
   height: 100%;
   min-height: 0;
 }
 
-/* 统计卡与工具条固定高，只有表格吃满剩余高度。
-   注意 .stats-grid / .page-toolbar 原先全仓没有任何样式定义，
-   统计卡是 5 个块级 div 直接纵向堆叠 —— 这里补上栅格与工具条布局。 */
+/* 统计卡：毛玻璃 + 渐变光晕 + 霓虹边框 */
 .stats-grid,
 .page-toolbar,
 .load-notice {
@@ -519,77 +574,179 @@ function openDetailPage(row: ServerNodeView, index: number) {
   gap: 12px;
 }
 
-/* 表格伸展：basis 0 让 flex 纯按剩余空间分配，min-height:0 必须置 */
-.service-manage > :deep(.re-table) {
+/* 统计卡科技感：毛玻璃 + 霓虹左边框 + 悬浮发光 */
+.stats-grid :deep(.re-stat-card) {
+  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter));
+  border-left: 3px solid var(--el-color-primary);
+  border-radius: var(--el-radius-lg);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+    transform: translateY(-2px);
+  }
+}
+
+/* 表格科技感：表头渐变、行悬浮发光、选中行高亮 */
+.service-manage :deep(.re-table) {
   flex: 1 1 0;
   min-height: 0;
 }
+.service-manage :deep(.el-table__header th) {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--el-color-primary) 8%, var(--el-table-header-bg-color)) 0%,
+    color-mix(in srgb, var(--el-color-primary) 4%, var(--el-table-header-bg-color)) 100%) !important;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+.service-manage :deep(.el-table__row) {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  &:hover td {
+    background-color: color-mix(in srgb, var(--el-color-primary) 5%, transparent) !important;
+  }
+  &.current-row td,
+  &.hover-row td {
+    background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
+  }
+}
 
-/* 筛选工具条：整行一张卡（搜索框 + 协议下拉 + 计数 + 操作按钮）。
-   样式走 EP 语义令牌而非 styles/page.css 的 .panel —— 那份 tokens.css
-   只有 :root、无暗色变体，暗色模式下会停在亮色值。 */
+/* 筛选工具条：渐变边框 + 扫描线动画 */
 .page-toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
   background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
   padding: 8px 12px;
+  position: relative;
+  overflow: hidden;
+  /* 顶部科技感渐变光带 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--el-color-primary-light-5) 30%,
+      var(--el-color-primary) 50%,
+      var(--el-color-primary-light-5) 70%,
+      transparent 100%);
+    opacity: 0.7;
+  }
+  /* 扫描线动画 */
+  &::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--el-color-primary) 4%, transparent) 50%,
+      transparent 100%
+    );
+    animation: toolbar-scan 4s ease-in-out infinite;
+    pointer-events: none;
+  }
 }
+@keyframes toolbar-scan {
+  0%   { top: -60%; }
+  100% { top: 160%; }
+}
+
+/* 工具条内部布局 */
 .tb-search { width: 260px; }
 .tb-proto { width: 240px; }
-/* 计数推到右侧，把「筛选条件」和「结果概览 + 操作」在卡内也分出左右两区 */
-.tb-meta { margin-left: auto; white-space: nowrap; }
-/* 与筛选之间用竖线分隔，视觉上区分「筛选」与「操作」 */
+.tb-meta { margin-left: auto; white-space: nowrap; font-size: 12px; color: var(--el-text-color-secondary); font-family: ui-monospace, monospace; }
 .tb-ops {
   display: flex;
   align-items: center;
   gap: 6px;
   padding-left: 10px;
-  border-left: 1px solid var(--border-subtle);
+  border-left: 1px solid var(--el-border-color-lighter);
 }
-/* 操作列图标组：统一间距 + 明确可点手势，避免纯图标看起来像静态徽标 */
-.ops {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
+.ops { display: inline-flex; align-items: center; gap: 8px; }
 .ops :deep(.re-button) { cursor: pointer; }
-@media (max-width: 900px) {
-  .page-toolbar { flex-wrap: wrap; }
-  .tb-search,
-  .tb-proto { width: 100%; }
-  .tb-meta { margin-left: 0; }
-  .tb-ops { padding-left: 0; border-left: none; }
-}
 
-/* 状态列改成上下两行：状态灯一行，失败原因一行。
-   原因单行截断 + title 悬浮全文，避免长堆栈把整张表撑变形。 */
+/* 状态列：霓虹光晕状态灯 */
 .status-cell {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-
 .status-line {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* 霓虹光晕：状态灯周围有一圈微光 */
+  padding: 3px 8px;
+  border-radius: var(--el-radius-base, 4px);
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, transparent);
 }
-
 .status-reason {
-  /* 主 token 缺失时退到 Element Plus 危险色，再退到硬编码，保证错误原因永远标红可见 */
-  color: var(--status-error, var(--el-color-danger, #ff4c4c));
   font-size: 12px;
   line-height: 1.4;
-  /* 单行截断：原因常有上百字（端口重试耗时、堆栈片段），
-     不截断会把整行撑到十几行高，表格没法看 */
+  color: var(--el-color-danger);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 空状态：科技感网格背景 */
+.empty-guide {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  text-align: center;
+  pointer-events: none;
+  overflow: hidden;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--el-border-color-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--el-border-color-subtle) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.4;
+    animation: grid-drift 20s linear infinite;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--el-color-primary) 6%, transparent) 0%, transparent 70%);
+  }
+}
+@keyframes grid-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 28px 28px; }
+}
+.empty-guide > * { pointer-events: auto; position: relative; z-index: 1; }
+.eg-icon svg { width: 64px; height: 64px; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--el-color-primary) 40%, transparent)); }
+.eg-title { font-size: 20px; font-weight: 700; color: var(--el-text-color-primary); letter-spacing: 0.5px; }
+.eg-desc { font-size: 13px; color: var(--el-text-color-secondary); margin-bottom: 4px; }
 
 .load-notice {
   margin: 0;

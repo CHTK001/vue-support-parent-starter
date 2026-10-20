@@ -1,7 +1,21 @@
 <template>
+  <!-- icons-animated 动画图标：独立 chunk 懒加载，hover/focus 自动播放 -->
+  <span
+    v-if="isAnimated && hasAnimatedIcon"
+    class="re-icon re-icon__anim"
+    :style="{
+      width: `${animatedSize}px`,
+      height: `${animatedSize}px`,
+      color: color || undefined,
+    }"
+    v-bind="$attrs"
+  >
+    <component v-if="animatedComponent" :is="animatedComponent" :size="animatedSize" />
+  </span>
+
   <!-- HTTP 图床 -->
   <img
-    v-if="isHttp"
+    v-else-if="isHttp"
     :src="effectiveName"
     alt="icon"
     class="re-icon re-icon--http"
@@ -113,9 +127,10 @@
  *       iconfontDict: { 'home': '&#xe600;' }
  *     }
  */
-import { computed, ref, onMounted, watch, h, markRaw, toRaw, type Component } from "vue";
+import { computed, ref, onMounted, shallowRef, watch, h, markRaw, toRaw, type Component } from "vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { ElIcon } from "element-plus";
+import { ANIMATED_ICON_PREFIX, isAnimatedIconName, loadAnimatedIcon } from "../../animated/registry";
 
 defineOptions({ name: "ReIcon", inheritAttrs: true });
 
@@ -183,6 +198,12 @@ const httpReg = /^https?:\/\//;
 const iconifyReg = /^[a-z]{2,}:/;
 const epReg = /^[A-Z][a-zA-Z0-9]*$/;
 
+/** 动画图标命名空间：`anim:<lib>:<icon>`（是否已注册另判断） */
+const isAnimated = computed(() => effectiveName.value.startsWith(ANIMATED_ICON_PREFIX));
+
+/** 该名字是否真的在注册表里（决定渲染动画组件还是走兜底） */
+const hasAnimatedIcon = computed(() => isAnimatedIconName(effectiveName.value));
+
 const effectiveIcon = computed<string>(() => {
   const raw = effectiveName.value;
   if (!raw) return "";
@@ -192,7 +213,7 @@ const effectiveIcon = computed<string>(() => {
 });
 
 const isHttp = computed(() => httpReg.test(effectiveName.value));
-const isIconify = computed(() => iconifyReg.test(effectiveName.value));
+const isIconify = computed(() => !isAnimated.value && iconifyReg.test(effectiveName.value));
 
 /** Element Plus 图标解析 */
 const elementIcon = computed(() => {
@@ -243,6 +264,48 @@ const iconifyRenderer = computed<Component>(() => {
         h("span", { class: "re-icon__iconify-placeholder", "data-icon": props.icon || "" });
     },
   };
+});
+
+/** 动画组件缓存：同一图标只解析一次，切换回来不再重复请求 chunk */
+const animatedCache = new Map<string, Component>();
+const animatedComponent = shallowRef<Component | null>(null);
+
+watch(
+  () => (isAnimatedIconName(effectiveName.value) ? effectiveName.value : ""),
+  async (name, _previous, onCleanup) => {
+    if (!name) {
+      animatedComponent.value = null;
+      return;
+    }
+    const cached = animatedCache.get(name);
+    if (cached) {
+      animatedComponent.value = cached;
+      return;
+    }
+    let alive = true;
+    onCleanup(() => {
+      alive = false;
+    });
+    const loader = loadAnimatedIcon(name);
+    if (!loader) {
+      animatedComponent.value = null;
+      return;
+    }
+    const loaded = await loader();
+    if (!alive) return;
+    const component = markRaw(toRaw(loaded.default));
+    animatedCache.set(name, component);
+    animatedComponent.value = component;
+  },
+  { immediate: true },
+);
+
+/** 上游动画图标只接受数值尺寸（Number prop），字符串尺寸需解析 */
+const animatedSize = computed(() => {
+  const value = props.size;
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  const parsed = Number.parseFloat(String(value));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 18;
 });
 
 // 引入 h 以支持占位组件
@@ -315,6 +378,13 @@ if (typeof window !== "undefined") {
   vertical-align: middle;
   object-fit: contain;
   outline: none;
+}
+/* 动画图标容器：尺寸由 ReIcon 的 size 决定，内部 svg 跟随；居中避免基线偏移 */
+.re-icon__anim {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 .re-icon__placeholder,
 .re-icon__iconify-placeholder {

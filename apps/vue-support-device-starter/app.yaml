@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 设备管理独立应用配置
 #
 # 作为独立应用运行时，设备后端不提供登录/令牌服务，关闭前端鉴权守卫；
@@ -8,3 +9,8 @@ app:
 
 routeConfig:
   homePath: /device
+=======
+# 临时：仅用于本机 UI 走查（关闭登录守卫），看完即删
+appConfig:
+  openAuth: false
+>>>>>>> feat/device-stream

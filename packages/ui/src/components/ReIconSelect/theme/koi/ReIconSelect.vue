@@ -14,6 +14,7 @@ import {
 import { Close, Search } from "@element-plus/icons-vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import ReIcon from "../../../ReIcon/theme/koi/ReIcon.vue";
+import { ANIMATED_ICON_NAMES } from "../../../ReIcon/animated/registry";
 
 defineOptions({ name: "ReIconSelect", inheritAttrs: true });
 
@@ -100,7 +101,7 @@ const ICONIFY_ICON_NAMES: string[] = [
 
 const visible = ref(false);
 const searchText = ref("");
-const activeTab = ref<"local" | "ele" | "iconify">("local");
+const activeTab = ref<"local" | "ele" | "iconify" | "anim">("local");
 const currentPage = ref(1);
 
 /** 图标主题 CSS 变量（照搬目标站 --koi-select-icon-*） */
@@ -112,6 +113,7 @@ const iconVars = computed(() => ({
 const sourceIcons = computed(() => {
   if (activeTab.value === "local") return LOCAL_ICON_NAMES;
   if (activeTab.value === "iconify") return ICONIFY_ICON_NAMES;
+  if (activeTab.value === "anim") return [...ANIMATED_ICON_NAMES];
   return ELE_ICON_NAMES;
 });
 
@@ -214,6 +216,7 @@ watch(filteredTotal, (total) => {
         <ElTabPane label="本地图标" name="local" />
         <ElTabPane label="Element 图标" name="ele" />
         <ElTabPane label="Iconify" name="iconify" />
+        <ElTabPane label="动画" name="anim" />
       </ElTabs>
 
       <ElScrollbar max-height="260px">

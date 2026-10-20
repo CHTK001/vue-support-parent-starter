@@ -13,12 +13,61 @@ export interface TokenBreakdown {
 
 export interface TokenStatsData {
   usedTokens: number
+  /**
+   * 上下文窗口（分母），不是「累计消耗」。
+   *
+   * 后端 `GET /sessions/{id}/token-stats` 同时返回 `effectiveContextWindow`（窗口）
+   * 与 `totalTokens`（max(已用, 累计 prompt+completion)，是累计消耗）。两个字段名
+   * 长得很像，早年直接拿 `totalTokens` 当窗口用，于是占用率被算成个位数百分比、
+   * 「已用 / 窗口」显示成一个巨大的分母。这里统一由 normalizeTokenStats 归一化成窗口。
+   */
   totalTokens: number
   remainingTokens: number
   percentage: number
   modelName: string
   messageCount: number
   breakdown: TokenBreakdown
+  /** 累计输入 token（会话级，用于 Token 用量卡的口径对齐） */
+  promptTokens?: number
+  /** 累计输出 token */
+  completionTokens?: number
+}
+
+const EMPTY_BREAKDOWN: TokenBreakdown = {
+  systemPrompt: 0,
+  summary: 0,
+  userPrompt: 0,
+  history: 0,
+  tools: 0,
+}
+
+/**
+ * 把后端响应归一化成界面可直接用的形状。
+ *
+ * 后端可能给三种形态：① 只给窗口和已用（settings 里有快照）；
+ * ② 只给累计 prompt/completion（没有快照）；③ 字段缺失。这里统一兜住，
+ * 并保证 `percentage` 与 `remainingTokens` 始终自洽 —— 否则界面会算出
+ * NaN / 负数，或者把「累计消耗」当窗口算出离谱的占用率。
+ */
+function normalizeTokenStats(raw: any): TokenStatsData {
+  const usedTokens = Number(raw?.usedTokens) || 0
+  // 窗口优先取 effectiveContextWindow；字段缺失时退回 totalTokens（老后端只有一个字段）
+  const contextWindow = Number(raw?.effectiveContextWindow) || Number(raw?.totalTokens) || 0
+  const percentage = contextWindow > 0
+    ? Math.min(100, Math.max(0, (usedTokens / contextWindow) * 100))
+    : 0
+
+  return {
+    usedTokens,
+    totalTokens: contextWindow,
+    remainingTokens: Math.max(0, contextWindow - usedTokens),
+    percentage,
+    modelName: raw?.modelName || '',
+    messageCount: Number(raw?.messageCount) || 0,
+    breakdown: { ...EMPTY_BREAKDOWN, ...(raw?.breakdown || {}) },
+    promptTokens: Number(raw?.promptTokens) || 0,
+    completionTokens: Number(raw?.completionTokens) || 0,
+  }
 }
 
 const tokenStats = ref<TokenStatsData | null>(null)
@@ -99,7 +148,7 @@ export function useSessionTokenStats(sessionId: Ref<string | null>) {
     if (!sid) return
     loading.value = true
     try {
-      tokenStats.value = await apiService.fetchSessionTokenStats(sid)
+      tokenStats.value = normalizeTokenStats(await apiService.fetchSessionTokenStats(sid))
       currentSessionId = sid
     } catch (error: any) {
       console.error('[useSessionTokenStats] 加载 Token 统计失败:', error)

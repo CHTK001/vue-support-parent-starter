@@ -228,7 +228,7 @@ export const previewSyncMapping = (data: {
   mapping?: SyncFieldMapping[];
 }) => http().post("/ms/monitor/datasync/preview").data(data).noToast(true).then(r => unwrap<SyncPreview>(r));
 
-/** 本机文件条目（「选择文件 / 选择文件夹」用） */
+/** 本机文件条目（「选择文件 / 选择文件夹」用，已映射为 FilePickerItem 的同形结构） */
 export interface LocalFileEntry {
   key: string;
   name: string;
@@ -237,17 +237,39 @@ export interface LocalFileEntry {
   updatedAt?: number | null;
 }
 
+/** filesystem-starter 的目录浏览条目（目录与文件共用） */
+interface FileDirEntry {
+  name: string;
+  path: string;
+  isDir?: boolean;
+  size?: number | null;
+  updatedAt?: number | null;
+}
+
 /**
  * 列举后端所在机器的目录（只读）
  *
  * <p>数据同步的输入源可以是「服务器本地文件 / 目录」，而 ReFilePicker 需要一个列目录的 loader。
- * 监控后端为此提供 {@code /ms/monitor/local-files/list}。</p>
+ * 直接用 filesystem-starter 的 {@code GET /v2/file/dir/list}，不再维护监控模块自己的列举接口。</p>
  *
- * @param path  绝对路径；留空列出文件系统根
- * @param files 是否同时返回数据文件（选择文件时传 true）
+ * @param path  绝对路径；留空或 `/` 列出文件系统根（Windows 为盘符列表）
+ * @param files 是否同时返回文件；选择文件夹时也传 true，文件只展示不可选
  */
-export const fetchLocalFiles = (path?: string | null, files = false) =>
-  http().get("/ms/monitor/local-files/list").query({ path, files }).then(r => unwrap<LocalFileEntry[]>(r));
+export const fetchLocalFiles = (path?: string | null, files = true): Promise<LocalFileEntry[]> =>
+  // noToast：列目录的失败由选择器自己就地渲染（「目录加载失败: …」），
+  // 再飘一条全局错误条只会重复。
+  http()
+    .get("/v2/file/dir/list")
+    .query({ path, files })
+    .noToast(true)
+    .then(r => unwrap<FileDirEntry[]>(r))
+    .then(rows => (rows ?? []).map(row => ({
+      key: row.path,
+      name: row.name,
+      isDir: row.isDir !== false,
+      size: row.size,
+      updatedAt: row.updatedAt,
+    })));
 
 /**
  * 写入模式字典
