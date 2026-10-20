@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { DeviceInfo } from '@/types/device'
+import type { DeviceInfo } from '@pages/device/src/types/device'
 
 const props = defineProps<{
   devices: DeviceInfo[]

@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import type { DeviceEvent } from '@/types/device'
+import type { DeviceEvent } from '@pages/device/src/types/device'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 

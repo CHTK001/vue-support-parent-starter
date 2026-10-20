@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { Plus } from '@element-plus/icons-vue'
-import type { Preset } from '@/types/device'
+import type { Preset } from '@pages/device/src/types/device'
 
 defineProps<{
   presets: Preset[]
