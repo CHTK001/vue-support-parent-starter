@@ -1,6 +1,6 @@
 <template>
   <!-- 主体内容（侧边栏已移至 MainLayout） -->
-  <div class="flex flex-col h-full w-full">
+  <div class="chat-page-root flex flex-col h-full w-full">
     <template v-if="sessionStore.activeSessionId !== 'new-session'">
       <!-- 可拖拽分割区域 -->
       <div class="flex-1 overflow-hidden">
@@ -881,6 +881,23 @@ onUnmounted(() => {
 
 .chat-pane-content {
   contain: layout style;
+  /* 底色统一由外层 .chat-page-root 铺，这里保持透明：
+     两层都铺会让 color-mix 的半透明叠两次，壁纸透明度设置就不准了。 */
+}
+
+/* 对话区底色（默认主题 + 浅色时为白）：标题栏、消息列、输入框都落在这块面上。
+   1. 用 --color-chat-bg 而不是 --color-bg —— 后者同时被 html 背景与壁纸透明层使用，
+      改它会把整页外壳一起刷白，侧边栏与内容区的层次就没了；
+   2. 与 .content-clear-wallpaper 同样乘 --content-opacity，带壁纸时按用户的
+      「内容区透明度」设置透出壁纸，不铺一块不透明白把壁纸盖掉；
+   3. 放在根节点而不是 .chat-pane-content：新建会话页没有 ChatPanel，
+      只有根节点能同时覆盖「会话」与「新建对话」两种状态，切过去不会跳色。 */
+.chat-page-root {
+  background: color-mix(
+    in srgb,
+    var(--color-chat-bg, var(--color-bg)) calc(var(--content-opacity, 1) * 100%),
+    transparent
+  );
 }
 
 /* 动效降级：系统开启「减少动态效果」时，路由切换的滑入滑出不再位移。

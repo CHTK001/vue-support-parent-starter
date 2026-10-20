@@ -77,6 +77,9 @@
                         <template v-else-if="currentTabValue === 'default-models'">
                             <DefaultModelSettings />
                         </template>
+                        <template v-else-if="currentTabValue === 'colorize-config'">
+                            <DefaultModelSettings :groups="['image']" />
+                        </template>
 
                         <template v-else-if="currentTabValue === 'appearance'">
                             <AppearanceSettings />
@@ -245,6 +248,7 @@ const route = useRoute()
 const groupMap = computed<Record<string, string>>(() => ({
     general: t('settings.system.groups.general'),
     'default-models': t('settings.system.groups.general'),
+    'colorize-config': t('settings.system.groups.general'),
     ocr: t('settings.system.groups.general'),
     browser: t('settings.system.groups.general'),
     connections: t('settings.system.groups.general'),
@@ -303,6 +307,13 @@ const sidebarItems = computed(() => [
         // 服务端逐字段拦截，前端不重复维护一份清单。
     },
 
+    {
+        // 图像上色模型配置：从默认模型页拆出的独立菜单
+        label: '图像上色配置',
+        path: 'colorize-config',
+        icon: Image24Regular,
+        roles: ['primary'],
+    },
     {
         label: t('settings.system.tabs.appearance'),
         path: 'appearance',

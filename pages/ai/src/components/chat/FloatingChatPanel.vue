@@ -493,6 +493,12 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
   padding: 0 !important;
 }
 
+/* 悬浮窗内的消息区沿用对话区底色（浅色默认主题为白），与主对话区保持同一张纸。
+   注意不乘 --content-opacity：悬浮窗是浮层，透出后面的壁纸只会让文字发灰。 */
+.floating-chat-mode {
+  background: var(--color-chat-bg, var(--el-bg-color-page));
+}
+
 /* 隐藏滚动条但保留滚轮滚动 */
 .floating-chat-mode :deep(.scroll-container) {
   scrollbar-width: none;

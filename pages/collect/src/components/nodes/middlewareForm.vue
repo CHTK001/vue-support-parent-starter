@@ -23,6 +23,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -32,6 +34,9 @@ const emit = defineEmits<{
 
 /** 中间件表单没有 pairs 类参数，按后端 meta 顺序渲染全部参数即可 */
 const { fields, valueOf } = useShapeFieldList(() => props.node, () => props.meta, []);
+
+const inputFields = computed(() => fields.value.filter(p => p.name !== "outputVariable"));
+const outputFields = computed(() => fields.value.filter(p => p.name === "outputVariable"));
 
 /** 本节点要求的数据源类型：shape 前缀决定（influxdb-* / neo4j-*） */
 const dsType = computed(() => (props.node.shape.startsWith("influxdb") ? "influxdb" : "neo4j"));
@@ -110,6 +115,63 @@ function extraTip(name: string): string {
 </script>
 
 <template>
+  <template v-if="section === 'input'">
+    <div class="field field-wide node-intro">
+      {{ node.shape.startsWith("influxdb")
+        ? "InfluxDB 节点：查询按 Flux 取行、写入按行协议落点；数据源必须是 influxdb 类型。"
+        : "Neo4j 节点：查询执行 Cypher 取行、写入按标签新建 / 合并节点；数据源必须是 neo4j 类型。" }}
+      <span v-if="typeLoading">（数据源清单加载中…）</span>
+      <span v-else-if="typeError" class="intro-error">（{{ typeError }}）</span>
+      <span v-else-if="!typeOptions.length" class="intro-error">
+        （数据源中心还没有 {{ dsType }} 类型的启用数据源，先到「数据源」页添加）
+      </span>
+    </div>
+    <template v-for="param in inputFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="[]"
+          :node-id="node.id"
+          :ctx="filteredCtx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      </div>
+    </template>
+  </template>
+
+  <template v-else-if="section === 'output'">
+    <template v-for="param in outputFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="[]"
+          :node-id="node.id"
+          :ctx="filteredCtx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      </div>
+    </template>
+  </template>
+
+  <template v-else-if="section === 'loop'">
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="filteredCtx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+    />
+  </template>
+
+  <template v-else-if="section === 'advanced'">
+    <div class="field field-wide node-intro">中间件节点暂无独立高级配置，超时与超时策略统一在面板「高级配置」页签。</div>
+  </template>
+
+  <template v-else>
   <div class="field field-wide node-intro">
     {{ node.shape.startsWith("influxdb")
       ? "InfluxDB 节点：查询按 Flux 取行、写入按行协议落点；数据源必须是 influxdb 类型。"
@@ -143,6 +205,7 @@ function extraTip(name: string): string {
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
     @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
   />
+  </template>
 </template>
 
 <style scoped>
