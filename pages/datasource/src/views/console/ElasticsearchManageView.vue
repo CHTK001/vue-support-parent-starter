@@ -769,6 +769,7 @@
                 </div>
               </div>
             </div>
+          </template>
 
           <!-- ============ 别名管理 ============ -->
           <template #aliases>
@@ -1918,7 +1919,7 @@ const devToolCmdOptions = [
   { label: "POST", value: "POST" },
   { label: "PUT", value: "PUT" },
   { label: "DELETE", value: "DELETE" },
-] as const;
+];
 
 const devToolPlaceholder = computed(() => {
   const cmd = devToolCmd.value;
