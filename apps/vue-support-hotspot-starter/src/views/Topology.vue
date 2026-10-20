@@ -85,6 +85,17 @@ import ReSkeleton from "@repo/ui/re-skeleton";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { getSystemTopology } from "../api/apmApi";
 import type { SystemTopology } from "../api/apmApi";
+import {
+  axisLineColor,
+  chartCanvas,
+  chartColor,
+  colorWithAlpha,
+  fgColor,
+  mutedColor,
+  okColor,
+  tooltipStyle,
+  warningColor,
+} from "../styles/chartTheme";
 
 const topology = ref<SystemTopology | null>(null);
 const loading = ref(false);
@@ -116,36 +127,41 @@ async function load() {
   }
 }
 
-/** 按端口/协议着色（Agent Shell 橙色、HTTP 绿色、其余紫色） */
+/** 按端口/协议着色（Agent Shell 琥珀、HTTP 翡翠、其余靛蓝），全部取自令牌 */
 function portColor(p: { port: number; protocol: string }): string {
-  if (p.port === 4567 || p.protocol === "AGENT") return "#f59e0b";
-  if (p.protocol === "HTTP" || p.port === 8080 || p.port === 8890) return "#22c55e";
-  return "#8b5cf6";
+  if (p.port === 4567 || p.protocol === "AGENT") return warningColor();
+  if (p.protocol === "HTTP" || p.port === 8080 || p.port === 8890) return okColor();
+  return chartColor(2);
 }
 
 function renderGraph() {
   if (!topology.value || !graphRef.value) return;
   if (!chart) chart = echarts.init(graphRef.value, "dark");
   const t = topology.value;
+  const centerColor = chartColor(0);
   const nodes = [
     {
       name: t.center,
       symbolSize: 56,
-      itemStyle: { color: "#3b82f6", shadowBlur: 24, shadowColor: "rgba(59,130,246,0.5)" },
-      label: { color: "#e6edf7", fontSize: 13, fontWeight: 700 },
+      itemStyle: {
+        color: centerColor,
+        shadowBlur: 24,
+        shadowColor: colorWithAlpha(centerColor, 0.5),
+      },
+      label: { color: fgColor(), fontSize: 13, fontWeight: 700 },
     },
     ...t.ports.map((p) => ({
       name: `${p.protocol}:${p.port}`,
       symbolSize: 30,
       itemStyle: { color: portColor(p) },
-      label: { color: "#e6edf7", fontSize: 11 },
+      label: { color: fgColor(), fontSize: 11 },
       category: "port",
     })),
     ...t.modules.slice(0, 12).map((m) => ({
       name: m.label,
       symbolSize: 20,
-      itemStyle: { color: "#6b7280" },
-      label: { color: "rgba(230,237,247,0.6)", fontSize: 10 },
+      itemStyle: { color: mutedColor() },
+      label: { color: colorWithAlpha(fgColor(), 0.6), fontSize: 10 },
       category: "module",
     })),
   ];
@@ -153,17 +169,21 @@ function renderGraph() {
     ...t.ports.map((p) => ({
       source: t.center,
       target: `${p.protocol}:${p.port}`,
-      lineStyle: { color: "#3b82f6", width: 1.5 },
+      lineStyle: { color: centerColor, width: 1.5 },
     })),
-    ...t.modules.slice(0, 6).map((m, i) => ({
+    ...t.modules.slice(0, 6).map((m) => ({
       source: t.center,
       target: m.label,
-      lineStyle: { color: "rgba(107,114,128,0.5)", width: 1, type: "dashed" as const },
+      lineStyle: {
+        color: colorWithAlpha(mutedColor(), 0.5),
+        width: 1,
+        type: "dashed" as const,
+      },
     })),
   ];
   chart.setOption({
-    backgroundColor: "transparent",
-    tooltip: { trigger: "item" },
+    ...chartCanvas(),
+    tooltip: { trigger: "item", ...tooltipStyle() },
     series: [
       {
         type: "graph",
@@ -173,7 +193,7 @@ function renderGraph() {
         data: nodes,
         links,
         label: { show: true, position: "bottom" },
-        lineStyle: { color: "#6b7280" },
+        lineStyle: { color: axisLineColor() },
         categories: [
           { name: "center" },
           { name: "port" },
@@ -201,62 +221,15 @@ function onResize() {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.section-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-.panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-  padding: 16px;
-}
-.panel-head {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.panel-sub {
-  font-size: 12px;
-  color: var(--apm-muted);
-  font-weight: 400;
-}
+/* 骨架（.view / .view-toolbar / .toolbar-left / .toolbar-right / .section-label /
+   .panel / .panel-head / .panel-sub / .panel-row）统一由 styles/layout.css 提供，
+   此处只留本页独有部分。 */
 .graph-panel {
   min-height: 420px;
-  display: flex;
-  flex-direction: column;
 }
 .graph-body {
   flex: 1;
   min-height: 360px;
-}
-.panel-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
 }
 .module-chips {
   display: flex;
@@ -268,11 +241,6 @@ function onResize() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-@media (max-width: 900px) {
-  .panel-row {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* 尊重系统「减少动态效果」偏好：
