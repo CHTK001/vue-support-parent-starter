@@ -28,7 +28,6 @@
           <p class="colorize-upload-title">点击或拖拽上传图片</p>
           <p class="colorize-upload-desc">支持 JPG / PNG / WebP，建议上传灰度图或线稿效果更佳</p>
         </div>
-        <input ref="fileInput" type="file" accept="image/*" hidden @change="onFileChange" />
       </div>
 
       <div v-else class="colorize-workspace">
@@ -62,6 +61,10 @@
         </div>
       </div>
     </ReCard>
+
+    <!-- 隐藏的文件选择器：必须常驻 DOM。原先放在「未上传」分支里，上传后该分支被
+         v-else-if 移出文档，ref 变 null，「更换图片」点下去没有任何反应。 -->
+    <input ref="fileInput" type="file" accept="image/*" hidden @change="onFileChange" />
   </div>
 </template>
 

@@ -2314,5 +2314,1016 @@
     ],
     "missingRequired": [],
     "missingOptional": []
-  }
+  },
+  "generatedBy": "@file-viewer/vite-plugin",
+  "copiedAt": "2026-10-20T03:36:28.621Z",
+  "rendererIds": [
+    "pdf",
+    "ofd",
+    "cad",
+    "typst",
+    "office-presentation-binary",
+    "office-presentation",
+    "office-word-openxml",
+    "office-word-binary",
+    "open-document",
+    "spreadsheet-openxml",
+    "spreadsheet-dbf",
+    "apple-pages",
+    "apple-numbers",
+    "apple-keynote",
+    "office-wordperfect",
+    "office-hangul",
+    "drawing",
+    "model",
+    "archive",
+    "chm",
+    "email",
+    "epub",
+    "ebook-fb2",
+    "umd",
+    "code",
+    "markdown",
+    "image",
+    "audio",
+    "video",
+    "mindmap",
+    "geo",
+    "data-asset",
+    "eda"
+  ],
+  "assets": [
+    {
+      "rendererId": "chm",
+      "id": "chm-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\chm\\chm.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "chm",
+      "id": "chm-wasm-module",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\chm\\chm_wasm.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "chm",
+      "id": "chm-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\chm\\chm_wasm_bg.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\model\\occt-worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-runtime",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\model\\occt-import-js.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\model\\occt-import-js.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\model\\LICENSE.occt.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "model",
+      "id": "model-occt-import-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\model\\LICENSE.occt-import-js.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "drawing",
+      "id": "drawio-viewer-script",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\drawio\\viewer-static.min.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "drawing",
+      "id": "drawio-offline-assets",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\drawio",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\pdf\\pdf.worker.mjs",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-cmaps",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\pdf\\cmaps",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\pdf\\wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-standard-fonts",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\pdf\\standard_fonts",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "pdf",
+      "id": "pdf-cjk-font-fallback",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\pdf\\fonts",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "archive",
+      "id": "libarchive-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\libarchive\\worker-bundle.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "archive",
+      "id": "libarchive-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\libarchive\\libarchive.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-wasm-directory",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.2",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-dwg-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.2\\dwg-worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-dwf-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.2\\dwfv-render.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-libredwg-script",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.2\\libredwg-web.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-libredwg-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.2\\libredwg-web.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-compat-0-8-0-wasm-directory",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.0",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-compat-0-8-0-dwg-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.0\\dwg-worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-compat-0-8-0-dwf-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.0\\dwfv-render.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-compat-0-8-0-libredwg-script",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.0\\libredwg-web.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-compat-0-8-0-libredwg-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\0.8.0\\libredwg-web.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-legacy-dwg-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\dwg-worker.js",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-legacy-dwf-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\dwfv-render.wasm",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-legacy-libredwg-script",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\libredwg-web.js",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "cad",
+      "id": "cad-legacy-libredwg-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\cad\\libredwg-web.wasm",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-word-openxml",
+      "id": "docx-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\docx\\docx.worker.js",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-word-openxml",
+      "id": "docx-worker-jszip",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\docx\\jszip.min.js",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-module",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\index.mjs",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\worker.mjs",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-frame-cache",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\frame-cache.mjs",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\ppt-native.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-cjk-font",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\ppt-font-cjk.otf",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-runtime-manifest",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\manifest.json",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-runtime-package",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\package.json",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-runtime-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\LICENSE",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation-binary",
+      "id": "ppt-runtime-notice",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\ppt\\NOTICE",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-presentation",
+      "id": "pptx-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\pptx\\pptx.worker.js",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "spreadsheet-openxml",
+      "id": "spreadsheet-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\xlsx\\sheet.worker.js",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "apple-pages",
+      "id": "apple-pages-iwork-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\iwork\\iwork.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "apple-numbers",
+      "id": "apple-numbers-iwork-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\iwork\\iwork.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "apple-keynote",
+      "id": "apple-keynote-iwork-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\iwork\\iwork.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-hangul",
+      "id": "hangul-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\hangul\\hangul.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-wordperfect",
+      "id": "wordperfect-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\wordperfect\\wordperfect.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-wordperfect",
+      "id": "wordperfect-libwpd-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\wordperfect\\libwpd.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "office-wordperfect",
+      "id": "wordperfect-libwpd-module",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\wordperfect\\libwpd.mjs",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "typst",
+      "id": "typst-compiler-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\typst\\typst_ts_web_compiler_bg.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "typst",
+      "id": "typst-renderer-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\typst\\typst_ts_renderer_bg.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "typst",
+      "id": "typst-font-assets",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\typst\\fonts",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "illustrator-pdf-design",
+      "id": "illustrator-pdf-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "illustrator-pdf-design",
+      "id": "illustrator-pgf-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.illustrator-pgf-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "illustrator-pdf-design",
+      "id": "illustrator-pgf-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\illustrator-pgf.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "illustrator-pdf-design",
+      "id": "illustrator-zstd-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.fzstd-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-design",
+      "id": "photoshop-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-design",
+      "id": "photoshop-design-ag-psd-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.ag-psd-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-design",
+      "id": "photoshop-design-base64-js-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.base64-js-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-design",
+      "id": "photoshop-design-pako-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.pako-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-design",
+      "id": "photoshop-design-webtoon-psd-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.webtoon-psd-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-design",
+      "id": "photoshop-design-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\photoshop.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-resource-design",
+      "id": "photoshop-resource-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-resource-design",
+      "id": "photoshop-resource-design-ag-psd-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.ag-psd-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-resource-design",
+      "id": "photoshop-resource-design-base64-js-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.base64-js-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-resource-design",
+      "id": "photoshop-resource-design-pako-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.pako-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "photoshop-resource-design",
+      "id": "photoshop-resource-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\adobe-resource.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-palette-design",
+      "id": "adobe-palette-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-palette-design",
+      "id": "adobe-palette-design-xmldom-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmldom-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-palette-design",
+      "id": "adobe-palette-design-saxes-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.saxes-ISC.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-palette-design",
+      "id": "adobe-palette-design-xmlchars-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmlchars-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-palette-design",
+      "id": "adobe-palette-container-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\adobe-container.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-exchange-design",
+      "id": "indesign-exchange-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-exchange-design",
+      "id": "indesign-exchange-design-xmldom-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmldom-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-exchange-design",
+      "id": "indesign-exchange-design-saxes-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.saxes-ISC.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-exchange-design",
+      "id": "indesign-exchange-design-xmlchars-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmlchars-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-exchange-design",
+      "id": "indesign-exchange-container-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\adobe-container.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-animate-xfl-design",
+      "id": "adobe-animate-xfl-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-animate-xfl-design",
+      "id": "adobe-animate-xfl-design-xmldom-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmldom-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-animate-xfl-design",
+      "id": "adobe-animate-xfl-design-saxes-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.saxes-ISC.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-animate-xfl-design",
+      "id": "adobe-animate-xfl-design-xmlchars-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmlchars-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-animate-xfl-design",
+      "id": "adobe-animate-xfl-container-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\adobe-container.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-xd-design",
+      "id": "adobe-xd-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-xd-design",
+      "id": "adobe-xd-design-xmldom-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmldom-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-xd-design",
+      "id": "adobe-xd-design-saxes-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.saxes-ISC.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-xd-design",
+      "id": "adobe-xd-design-xmlchars-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmlchars-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "adobe-xd-design",
+      "id": "adobe-xd-container-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\adobe-container.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-native-design",
+      "id": "indesign-native-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-native-design",
+      "id": "indesign-native-design-xmldom-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmldom-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-native-design",
+      "id": "indesign-native-design-saxes-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.saxes-ISC.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-native-design",
+      "id": "indesign-native-design-xmlchars-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.xmlchars-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-native-design",
+      "id": "indesign-native-container-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\adobe-container.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\postscript.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\stet_wasm_bg.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-license-stet-apache",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.stet-Apache-2.0.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-license-stet-mit",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.stet-MIT.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-license-carlito-ofl",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.Carlito-OFL-1.1.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-license-tinos-ofl",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.Tinos-OFL-1.1.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-license-cousine-ofl",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.Cousine-OFL-1.1.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "postscript-design",
+      "id": "postscript-design-license-noto-symbols-ofl",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.NotoSansSymbols2-OFL-1.1.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-idml-design",
+      "id": "indesign-idml-design-third-party-notices",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\THIRD_PARTY_NOTICES.md",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-idml-design",
+      "id": "indesign-idml-worker",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\idml.worker.js",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-idml-design",
+      "id": "indesign-idml-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\paged_introspect_wasm_bg.wasm",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "indesign-idml-design",
+      "id": "indesign-idml-license",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\vendor\\design\\LICENSE.introspect-wasm-MPL-2.0.txt",
+      "copied": true,
+      "required": true,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    },
+    {
+      "rendererId": "data-asset",
+      "id": "data-sql-wasm",
+      "to": "D:\\ch\\project\\vue-support-parent-starter\\apps\\vue-support-ai-guada\\public\\file-viewer\\wasm\\data\\sql-wasm.wasm",
+      "copied": true,
+      "required": false,
+      "sourcePackage": "file-viewer-copy-assets",
+      "sourceVersion": "3.1.2"
+    }
+  ]
 }
