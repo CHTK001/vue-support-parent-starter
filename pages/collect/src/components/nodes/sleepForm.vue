@@ -19,6 +19,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +42,7 @@ const EXTRA_TIPS: Record<string, string> = {
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['millis', 'maxMillis']"
     :extra-tips="EXTRA_TIPS"
     intro="节奏控制：串行流程里插在两个抓取节点之间，按毫秒等待以降低对目标站点的压力；填了「随机上限」后每次等待会在区间内随机，避免固定间隔被识别为机器行为。"

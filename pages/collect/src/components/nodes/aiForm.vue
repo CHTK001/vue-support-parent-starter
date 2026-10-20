@@ -12,6 +12,8 @@ defineProps<{
   node: NodeForm;
   meta: CollectShapeMeta;
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -25,6 +27,7 @@ const emit = defineEmits<{
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['prompt', 'model', 'systemPrompt', 'outputVariable']"
     intro="AI 节点：把提示词交给同机 ai-starter，模型回答写入出参变量；只有部署集成了 ai-starter 后工具箱才会出现该节点。"
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"

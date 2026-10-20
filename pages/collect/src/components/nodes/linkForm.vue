@@ -16,6 +16,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -35,6 +37,7 @@ const EXTRA_TIPS: Record<string, string> = {
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['source', 'selector', 'attribute', 'pattern', 'absolute', 'limit', 'outputVariable']"
     :extra-tips="EXTRA_TIPS"
     intro="链接抽取：从当前页面（默认 ${respDoc}）按选择器抽出链接、去重后写入出参变量，供下游循环节点逐条抓取 — 这是「列表页 → 详情页」两跳采集的标准接法。"

@@ -23,6 +23,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -51,6 +53,7 @@ const falseEdgeCondition = computed(() => "${" + resultVariable.value + " == fal
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['expression', 'outputVariable']"
     intro="判断节点：对下面的表达式求值，把结果写进结果变量；出边按该变量的真假分流 — 真分支填 ${结果变量名}，假分支留空。判断节点两条出边都要连到下游，否则流程会被校验拦下。"
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
