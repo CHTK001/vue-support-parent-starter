@@ -265,9 +265,6 @@ catalogs:
       specifier: ^1.0.5
       version: 1.2.6
 
-overrides:
-  sass-embedded: npm:sass@1.104.1
-
 importers:
 
   .:
@@ -9756,7 +9753,7 @@ packages:
       less: '*'
       lightningcss: ^1.21.0
       sass: '*'
-      sass-embedded: npm:sass@1.104.1
+      sass-embedded: '*'
       stylus: '*'
       sugarss: '*'
       terser: ^5.4.0
@@ -9788,7 +9785,7 @@ packages:
       less: '*'
       lightningcss: ^1.21.0
       sass: '*'
-      sass-embedded: npm:sass@1.104.1
+      sass-embedded: '*'
       stylus: '*'
       sugarss: '*'
       terser: ^5.16.0
@@ -9828,7 +9825,7 @@ packages:
       less: ^4.0.0
       lightningcss: ^1.21.0
       sass: ^1.70.0
-      sass-embedded: npm:sass@1.104.1
+      sass-embedded: ^1.70.0
       stylus: '>=0.54.8'
       sugarss: ^5.0.0
       terser: ^5.16.0
@@ -9869,7 +9866,7 @@ packages:
       jiti: '>=1.21.0'
       less: ^4.0.0
       sass: ^1.70.0
-      sass-embedded: npm:sass@1.104.1
+      sass-embedded: ^1.70.0
       stylus: '>=0.54.8'
       sugarss: ^5.0.0
       terser: ^5.16.0

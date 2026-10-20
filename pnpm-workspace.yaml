@@ -18,6 +18,20 @@ overrides:
   framer-motion: 13.1.1
   motion-dom: 13.1.1
   motion-utils: 13.0.0
+  # sass-embedded 换成纯 JS 的 sass（同版本 1.104.1，编译语义一致）。
+  #
+  # 原因：sass-embedded 每次编译都会拉起一个 Dart 子进程，Windows 上该进程会因
+  # 线程/句柄/内存压力退出，之后 Vite 缓存的 dispatcher 永久关闭，每次 SCSS 编译
+  # 都报 `[plugin:vite:css] [sass] Tried writing to closed dispatcher`，
+  # 刷新页面无效，只能重启 dev server。纯 JS 实现不拉起任何子进程，从根上消失。
+  #
+  # 必须写在这里而不是 package.json 的 pnpm.overrides —— pnpm 9.15 已不再读取
+  # package.json 的 pnpm 字段（会打印 "The pnpm field ... is no longer read"）。
+  #
+  # 另外：vite 的 loadSassPackage() 是「先 sass-embedded、import 失败才回落 sass」，
+  # 所以只把 sass-embedded 从 devDependencies 删掉并不够 —— 它作为 vite 的可选
+  # peer 仍会被解析到。这里用别名覆盖，让它解析成 sass 本体。
+  sass-embedded: npm:sass@1.104.1
 
 catalog:
   typescript: ^5.7.3
