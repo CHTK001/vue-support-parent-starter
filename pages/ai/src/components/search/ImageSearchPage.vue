@@ -135,8 +135,8 @@
             </div>
 
             <div v-if="searching" class="is-mask">
-              <el-icon :size="26" class="is-spin"><Loading /></el-icon>
-              <span>正在提取特征并检索…</span>
+              <TechScanLoader size="lg" />
+              <span class="is-mask-text">正在提取特征并检索…</span>
             </div>
 
             <div v-if="!searching && searched" class="is-result-tip">
@@ -241,7 +241,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // 留着会让人以为本页还有搜索框与删除入口
 import {
   Camera, Upload, Picture, FolderOpened, Link, Search,
-  Plus, Warning, Loading, ArrowDown, CircleCheckFilled,
+  Plus, Warning, ArrowDown, CircleCheckFilled,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
@@ -250,6 +250,7 @@ import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
+import TechScanLoader from '@/components/ui/TechScanLoader.vue'
 
 /**
  * 以图搜图页面

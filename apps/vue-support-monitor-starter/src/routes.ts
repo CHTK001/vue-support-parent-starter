@@ -228,24 +228,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 节点管理 ====================
-  // report 客户端（spring-support-report-client-starter）注册到 monitor 的节点入口：
-  // 数据来自 sync 服务端的 sync/client/register + monitor/app/report；
-  // 同时作为 /ms/monitor/discovery 内部发现接口的可视化入口。
-  {
-    path: "/grp-node",
-    name: "GroupNode",
-    meta: { title: "节点管理", icon: "Share", showLink: true, rank: 13 },
-    children: [
-      {
-        path: "/nodes",
-        name: "OnlineNodes",
-        component: () => import("./views/NodesView.vue"),
-        meta: { title: "在线节点", icon: "Connection", showLink: true, rank: 1 },
-      },
-    ],
-  },
-
   // ==================== 服务管理 ====================
   // 与「资产管理」「发布管理」平级的独立分组，rank 取 15 落在 10 与 20 之间。
   // 子菜单指向 @pages/server 的 ScServiceManage（协议服务器节点：Server 接口 + ServerFilter 编排），

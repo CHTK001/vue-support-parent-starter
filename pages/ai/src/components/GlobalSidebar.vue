@@ -1103,7 +1103,7 @@ const handleNavClick = async (tab: string) => {
     // 同口径：点击时才拿最新配置，配置后不需要刷新页面
     await modelConfig.load()
     if (!modelConfig.colorizeReady) {
-      toast.warning('图像上色未启用：请先到「系统设置 → 图像上色配置」配置上色模型')
+      toast.warning('图像上色未启用：请先到「系统设置 → 默认模型 → 图片识别」配置上色模型')
       return
     }
     router.replace({ name: 'ImageColorize' })

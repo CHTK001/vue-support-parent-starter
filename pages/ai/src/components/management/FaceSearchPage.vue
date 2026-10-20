@@ -67,14 +67,14 @@
 
             <!-- 106 点层的状态说明：推理中 / 不可用的原因（不打断检测与识别） -->
             <div v-if="showLandmark106 && (landmark106Busy || landmark106Error)" class="fs-lm-hint">
-              <el-icon v-if="landmark106Busy" class="is-spin"><Loading /></el-icon>
+              <TechScanLoader v-if="landmark106Busy" size="sm" inline />
               <span>{{ landmark106Busy ? '正在提取 106 点特征点…' : landmark106Error }}</span>
             </div>
 
             <!-- 识别中遮罩 -->
             <div v-if="detecting" class="fs-mask">
-              <el-icon :size="26" class="is-spin"><Loading /></el-icon>
-              <span>正在识别人脸…</span>
+              <TechScanLoader size="lg" />
+              <span class="fs-mask-text">正在识别人脸…</span>
             </div>
 
             <!-- 角标：找到相似脸 -->
@@ -254,13 +254,14 @@ import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import {
-  Aim, Check, Crop, FolderOpened, Loading, Picture, Refresh, Search, Setting, Star, User, View, Warning,
+  Aim, Check, Crop, FolderOpened, Picture, Refresh, Search, Setting, Star, User, View, Warning,
 } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
 import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { configuredValue } from '@/utils/modelConfigStatus'
+import TechScanLoader from '@/components/ui/TechScanLoader.vue'
 import FaceEnrollDialog from './FaceEnrollDialog.vue'
 
 /** 相似度环周长：r=54 → 2πr */
@@ -973,13 +974,10 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-.is-spin {
-  animation: fs-spin 0.9s linear infinite;
-  color: var(--fs-accent);
-}
-
-@keyframes fs-spin {
-  to { transform: rotate(360deg); }
+/* 遮罩文字：跟 TechScanLoader 的文字区分开，这里是说明性长句 */
+.fs-mask-text {
+  font-size: 14px;
+  color: var(--fs-muted);
 }
 
 .fs-found {
@@ -1463,9 +1461,8 @@ onBeforeUnmount(() => {
 .fs-hidden { display: none; }
 
 /* 尊重系统「减少动态效果」偏好。
-   .is-spin（识别中转圈）关掉动画后不再有动态反馈，
-   但 .fs-mask 那一层始终显示「正在识别人脸…」文字，静态文字已足够，
-   故不额外补静态样式。 */
+   TechScanLoader 内部已自行处理（环停转、中心点常亮、扫描线半透明），
+   这里只停原本地组件自身的过渡与悬浮位移。 */
 @media (prefers-reduced-motion: reduce) {
   .fs-drop,
   .fs-tab,
@@ -1478,10 +1475,6 @@ onBeforeUnmount(() => {
   .fs-card:hover,
   .fs-rail-btn:hover {
     transform: none;
-  }
-  .is-spin {
-    animation: none;
-    opacity: 0.75;
   }
 }
 </style>

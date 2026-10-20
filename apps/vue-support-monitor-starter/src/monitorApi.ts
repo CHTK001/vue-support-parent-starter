@@ -1176,7 +1176,14 @@ export const fetchHostProfileSection = (hostId: number, section: string, page?: 
   http().get(`/ms/server/host/profile/${hostId}/${section}`).query({ page, size, keyword })
     // 慢链路分区采集放宽到 60s
     .timeout(60_000)
-    .then(r => unwrap<any[]>(r));
+    .then(r => unwrap<any>(r));
+
+/** 从 fetchHostProfileSection 响应中提取行数组（兼容 SectionPage 和裸数组） */
+export function sectionRows(res: any): any[] {
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.rows)) return res.rows;
+  return [];
+}
 
 /* ==================== 主机网卡（/ms/server/host/network） ==================== */
 

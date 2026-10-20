@@ -65,7 +65,7 @@ const emit = defineEmits<{
 }>();
 
 /** 画像分区（概要信息已移到左侧，右侧只保留明细分区，默认磁盘） */
-type SectionKey = "ports" | "processes" | "services" | "disks" | "network" | "env";
+type SectionKey = "ports" | "processes" | "services" | "disks" | "network" | "env" | "firewall";
 
 /** 分区定义（各分区走对应采集端点） */
 const sections: Array<{ name: SectionKey; label: string }> = [
@@ -75,6 +75,7 @@ const sections: Array<{ name: SectionKey; label: string }> = [
   { name: "disks", label: "磁盘" },
   { name: "network", label: "网络" },
   { name: "env", label: "环境变量" },
+  { name: "firewall", label: "防火墙" },
 ];
 
 /** 各分区的列定义 */
@@ -124,6 +125,15 @@ const COLUMNS: Record<SectionKey, Array<{ key: string; label: string; width?: st
     { key: "name", label: "变量", width: "260px" },
     { key: "value", label: "值" },
   ],
+  firewall: [
+    { key: "name", label: "规则名", width: "220px" },
+    { key: "direction", label: "方向", width: "80px" },
+    { key: "action", label: "动作", width: "80px" },
+    { key: "protocol", label: "协议", width: "80px" },
+    { key: "localPort", label: "端口", width: "88px" },
+    { key: "profile", label: "配置", width: "120px" },
+    { key: "chain", label: "链", width: "80px" },
+  ],
 };
 
 /** 自动刷新周期（毫秒） */
@@ -145,6 +155,10 @@ const page = ref(1);
 const pageSize = ref(10);
 /** 进程/服务的检索关键字：后端跨页匹配 PID/名称/用户/命令行 */
 const sectionKeyword = ref("");
+/** 后端返回当前分区过滤后总行数（分页分区为 total，非分页分区为 rows.length） */
+const sectionTotal = ref(0);
+/** 后端是否因达到采集上限而截断（仅分页分区） */
+const sectionTruncated = ref(false);
 
 /** 进程/服务表头排序状态（key=列名，dir=asc/desc，null=不排序） */
 const sortState = ref<{ key: string; dir: "asc" | "desc" } | null>(null);

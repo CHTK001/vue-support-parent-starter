@@ -315,6 +315,7 @@ const startPositions = new Map<string, { x: number; y: number }>();
 
 const nodeTypes = computed<FlowNodeTypeDef[]>(() =>
   props.metas
+    .filter(meta => !meta.hidden)
     .filter(meta => !(meta.shape === START_TYPE && hasStartNode.value))
     .map(meta => ({
       type: meta.shape,
