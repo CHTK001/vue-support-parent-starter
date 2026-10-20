@@ -12,18 +12,15 @@
  * @since 4.0.0
  */
 import { createContextApp } from "@repo/app";
-import type { App as VueApp } from "vue";
-import { createVNode, render } from "vue";
 import "./styles/pages.css";
 import "./styles/telemetry.css";
-import { installUi } from "@repo/ui";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./routes";
 import { registerMonitorDatasourceSchema } from "@pages/datasource";
 
 /** 本页可能用到的 Re* 组件。
  *  注意：ReIcon / ReScrollNav / ReDrawer 已由 koi 主题安装器（installKoi 内部 installUiComponents）
- *  注册，且先于本清单执行（extend 在主题安装之后），不要再列入 ——
+ *  注册，且先于本清单执行，不要再列入 ——
  *  重复 app.component 会触发 Vue「has already been registered」生产期控制台告警。 */
 const MONITOR_RE_COMPONENTS = [
   "ReButton",
@@ -61,38 +58,8 @@ const MONITOR_RE_COMPONENTS = [
   "ReRelationGraph",
 ];
 
-/**
- * 应用扩展安装（extend 钩子，由 createContextApp 在主题安装完成后调用）：
- * 1. installUi —— 按需注册本应用用到的 Re* 组件
- * 2. mountProcessHost —— 挂载全局过程任务浮层宿主
- *
- * koi 主题（ElementPlus / 图标 / 公共指令 / koi sprite / 主题样式 / router 守卫 /
- * 菜单兜底）由 createContextApp 按 app.yaml 的 themeId 自动解析安装（见 @repo/theme
- * loadTheme → koi/framework 注册的安装器），本入口不再安装也不再替换主题安装器。
- *
- * @param app Vue 应用实例
- * @returns 安装完成
- */
-async function extendMonitorApp(app: VueApp): Promise<void> {
-  await installUi(app, { components: MONITOR_RE_COMPONENTS });
-  mountProcessHost(app);
-}
-
-/**
- * 挂载全局过程任务浮层宿主（共享主 app context，独立于布局）
- *
- * @param app 主 Vue 应用
- */
-function mountProcessHost(app: VueApp): void {
-  const container = document.createElement("div");
-  container.setAttribute("data-process-host", "");
-  document.body.appendChild(container);
-  const vnode = createVNode(ProcessHost);
-  vnode.appContext = (app as unknown as { _context: unknown })._context as never;
-  render(vnode, container);
-}
-
 // 数据源中心「浏览表结构」改走监控后端 /ms/monitor/db/*（不依赖采集平台）
+// 实现已收敛进 @pages/datasource，宿主只需启动时调一次。
 registerMonitorDatasourceSchema();
 
 // 数据源台账接口前缀：沿用 @pages/datasource 的默认 /ms/datasource。
@@ -104,12 +71,14 @@ registerMonitorDatasourceSchema();
 // 监控后端里根本没有 datasource 的 Controller，这条覆盖只会让整个数据源中心恒为空。
 // 故删掉覆盖，回到共享包默认值。
 
+// createContextApp 一站式装配：主题/菜单/路由由框架处理，Re* 组件按需安装交给
+// ui()，全局过程任务浮层宿主交给 host()，宿主路径不再需要 main.ts 手写
+// installUi / createVNode / render / appendChild。
 await createContextApp({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   mode: "router",
   routerMode: "hash",
-  extend: extendMonitorApp,
   /**
    * 本应用的代码级默认配置（优先级最低的一层）。
    *
@@ -131,6 +100,8 @@ await createContextApp({
     },
   },
 })
+  .ui({ components: MONITOR_RE_COMPONENTS })
+  .host(ProcessHost)
   .routes(monitorRoutes)
   .mount("#app");
 
