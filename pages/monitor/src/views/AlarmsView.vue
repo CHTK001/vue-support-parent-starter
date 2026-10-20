@@ -7,7 +7,7 @@
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 
-import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "@pages/monitor/src/api/monitorApi";
+import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "../api/monitorApi";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
 const loading = ref(false);
@@ -110,7 +110,7 @@ async function fetchAll(): Promise<void> {
   finally { loading.value = false; }
 }
 
-// 处理弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts）
+// 处理弹窗（空间预渲染已禁用，保留 hook 便于以后恢复）
 const handleVisible = ref(false);
 useDialogPrerender(handleVisible);
 const handleTarget = ref<AlarmEvent | null>(null);
@@ -184,8 +184,7 @@ onMounted(fetchAll);
       <span class="f-count">{{ filtered.length }} 条</span>
     </div>
 
-    <!-- 事件流。布局切换器显式开启（ReTable 默认 false、页面按需开启的产品口径），
-         告警页视图/卡片走组件兜底模板，渲染全部字段 -->
+    <!-- 事件流 -->
     <ReCard :radius="12" shadow="never">
       <ReTable
         :data="filtered"

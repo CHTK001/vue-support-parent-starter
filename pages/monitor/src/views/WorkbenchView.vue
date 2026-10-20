@@ -2,7 +2,6 @@
 /**
  * 监控概览（工作台）—— 对齐 prototype §PAGE-1
  * KPI（ReStatCard + ReCountup + ReSkeleton）+ Donut + 最近告警 + 快捷入口
- * 全部按钮统一 ReButton；.kpi 色条类保留（pages.css 左侧色条 + e2e 定位）
  * @author CH
  * @since 4.0.0
  */
@@ -10,13 +9,12 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useSocketService } from "@repo/core";
 import { queryHosts } from "@pages/server/src/api";
-import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "@pages/monitor/src/api/monitorApi";
+import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "../api/monitorApi";
 
 const router = useRouter();
 const socket = useSocketService();
 const loading = ref(false);
 const loadError = ref("");
-/** 资产口径改为主机台账（而非监控项），初始 HTTP 拉取后由 socket 实时更新，不做轮询 */
 const hosts = ref<any[]>([]);
 const events = ref<AlarmEvent[]>([]);
 const lastRefresh = ref("");
@@ -50,7 +48,6 @@ const recentAlarms = computed(() =>
   [...events.value].sort((a, b) => (b.msMonitorAlarmEventTriggerTime ?? "").localeCompare(a.msMonitorAlarmEventTriggerTime ?? "")).slice(0, 5),
 );
 
-/** 写入最近更新时钟 */
 function stampClock(): void {
   const d = new Date();
   lastRefresh.value = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
@@ -67,7 +64,6 @@ async function fetchAll(silent = false): Promise<void> {
   finally { if (!silent) loading.value = false; }
 }
 
-// ---------------- Socket 实时（不轮询） ----------------
 let unsubOnline: (() => void) | undefined;
 let unsubMetrics: (() => void) | undefined;
 let unsubAlarm: (() => void) | undefined;
@@ -92,7 +88,6 @@ function bindSocket(): void {
       }
     } catch { /* 静默 */ }
   });
-  // 告警事件由 socket 广播触发一次增量拉取（非定时轮询）
   unsubAlarm = socket.subscribe("monitor", "alarm", () => {
     void fetchAlarmEvents()
       .then(ev => { events.value = ev ?? []; stampClock(); })
@@ -128,10 +123,6 @@ onBeforeUnmount(() => {
       <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll()">重试</ReButton>
     </div>
 
-    <!-- KPI 统计卡：纯数值 + tooltip（title/desc 移入悬停提示——代替图表+文字）
-         size="compact"：这一行是四张窄卡并排，标准档（内距 16/18、数值 32px、
-         图标 30px）实测单卡 280x139，留白明显多于信息量。紧凑档把内距/数值/
-         标题字号一并收小，卡片高度降到约 1/4 以下而内容不减。 -->
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
         <ReStatCard size="compact" title="资产总数" :desc="`已启用 ${enabledCount} · 在线 ${onlineCount}`" icon-color="var(--brand-500)">
@@ -246,8 +237,6 @@ onBeforeUnmount(() => {
 .q-meta b { font-size: 13px; color: var(--text-primary); }
 .q-meta span { font-size: 11px; color: var(--text-tertiary); }
 .q-arrow { color: var(--text-tertiary); opacity: 0.6; transition: transform 0.15s var(--ease-out, ease), color 0.15s, opacity 0.15s; }
-/* KPI 主数值。32px 是标准档 ReStatCard 的规格，配紧凑档（内距 10/12）显得头重脚轻，
-   收到 24px；`.re-stat-card__value` 紧凑档的 20px 会被这条覆盖，故两者一起定。 */
 .kpi-big {
   font-size: 24px;
   font-weight: 700;
@@ -256,4 +245,3 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 </style>
-

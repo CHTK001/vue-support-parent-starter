@@ -11,6 +11,19 @@ export type * from "./types";
 export { installUi } from "./install";
 export type { UiInstallOptions } from "./install";
 
+/**
+ * 组件预设（preset）：把「这个 app 用到哪些 Re* 组件」的知识收回组件库内部，
+ * 宿主只需声明预设名（如 {@code .ui({ preset: "monitor" })}）。
+ */
+export {
+  CORE_PRESET,
+  MONITOR_PRESET,
+  resolveUiPreset,
+  preloadUiLayouts,
+  type UiPreset,
+  type UiPresetName,
+} from "./presets";
+
 /** 组件主题加载机制 */
 export { defineThemeComponent, loadThemedComponent, resolveThemeId } from "./theme";
 export type { ThemeComponentMap } from "./theme";

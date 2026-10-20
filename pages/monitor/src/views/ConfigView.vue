@@ -25,7 +25,7 @@ import {
   type AlarmPolicy,
   type AlarmRule,
   type AlarmMaintenanceWindow,
-} from "@pages/monitor/src/api/monitorApi";
+} from "../api/monitorApi";
 import { ReFormItem } from "@repo/ui/re-kit";
 
 const tab = ref<"policy" | "rule" | "window">("policy");

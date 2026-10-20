@@ -83,6 +83,10 @@ export {
 } from "./components/selectors";
 
 // 数据源「浏览表结构」的 schema 提供者（监控侧实现）。
-// 宿主 app 只需在启动时调用一次 registerMonitorDatasourceSchema()，
-// 不必再把这份逻辑抄进 app shell。
+//
+// 实现与它依赖的 /ms/monitor/db/* 接口同处 api/manageConsoles，由该模块导入时自动注册：
+// 宿主用到数据源控制台页面即意味着「浏览表结构」该走监控侧接口，
+// 不必再在 main.ts 里手写一次注册调用。
+//
+// registerMonitorDatasourceSchema 仍导出，供需要提前注册的首屏场景显式调用（幂等）。
 export { registerMonitorDatasourceSchema } from "./schema/monitorSchemaProvider";

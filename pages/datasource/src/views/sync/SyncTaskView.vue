@@ -16,6 +16,9 @@
         <ReButton type="primary" @click="openCreate">
           <template #icon><ReIcon name="Plus" /></template>新建任务
         </ReButton>
+        <ReButton @click="bulkImportVisible = true">
+          <template #icon><ReIcon name="Upload" /></template>批量导入
+        </ReButton>
       </div>
     </div>
 
@@ -798,6 +801,7 @@
       initial-path="/"
       :loader="localFileLoader"
       @select="onPathPicked" />
+    <BulkImportDialog v-model="bulkImportVisible" />
   </div>
 </template>
 
@@ -819,8 +823,9 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type 
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
-import { fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
-import CreateTableDialog from "@pages/datasource/src/components/console/CreateTableDialog.vue";
+import { fetchTableColumns } from "../../api/manageConsoles";
+import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import BulkImportDialog from "../../components/sync/BulkImportDialog.vue";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
@@ -867,6 +872,8 @@ const targetTables = ref<string[]>([]);
 const pickedSourceTable = ref<string | null>(null);
 /** 弹窗可见 */
 const dialogVisible = ref(false);
+/** 批量导入弹窗可见 */
+const bulkImportVisible = ref(false);
 /** 保存中 */
 const saving = ref(false);
 /** 正在编辑的任务 ID，空表示新建 */
@@ -1197,8 +1204,13 @@ const parseSourceOptions = (json?: string | null): Record<string, unknown> => {
   }
 };
 
-/** 仅 jdbc 类型数据源 */
-const jdbcSources = computed(() => datasources.value.filter(ds => (ds.type || "").toLowerCase() === "jdbc"));
+/** 仅 jdbc 类型数据源；id 是数据源主键、缺了就没法作为选项值，故一并滤掉 */
+const jdbcSources = computed(() =>
+  datasources.value.filter(
+    (ds): ds is DataSourceInfo & { id: number } =>
+      (ds.type || "").toLowerCase() === "jdbc" && typeof ds.id === "number",
+  ),
+);
 
 /** 源列下拉项（优先用预览结果，未预览时给一个占位以支持手填） */
 const sourceColumnOptions = computed<SyncColumn[]>(() => previewSourceColumns.value);

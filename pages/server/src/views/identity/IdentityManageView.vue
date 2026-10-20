@@ -24,7 +24,7 @@ import { CircleCheck, Collection, Connection, Key, Lock, Monitor, Postcard, Unlo
 import { ReFormItem } from "@repo/ui/re-kit";
 import ReStatCard from "@repo/ui/re-stat-card";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair, queryHosts, listBoundIdentities, bindIdentity, unbindIdentity, listMailbox, getMailboxMessage } from "@pages/server/src/api";
+import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair, queryHosts, listBoundIdentities, bindIdentity, unbindIdentity, listMailbox, getMailboxMessage } from "../../api";
 import { useDialogPrerender } from "../../utils/dialogPrerender";
 
 interface Identity {

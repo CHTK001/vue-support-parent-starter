@@ -47,13 +47,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/workbench",
         name: "Workbench",
-        component: () => import("../views/WorkbenchView.vue"),
+        component: () => import("@pages/monitor/src/views/WorkbenchView.vue"),
         meta: { title: "监控概览", icon: "DataBoard", showLink: false, rank: 1 },
       },
       {
         path: "/alarms",
         name: "Alarms",
-        component: () => import("../views/AlarmsView.vue"),
+        component: () => import("@pages/monitor/src/views/AlarmsView.vue"),
         meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
       },
     ],
@@ -243,13 +243,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/config",
         name: "Config",
-        component: () => import("../views/ConfigView.vue"),
+        component: () => import("@pages/monitor/src/views/ConfigView.vue"),
         meta: { title: "监控配置", icon: "Setting", showLink: true, rank: 30 },
       },
       {
         path: "/proxy",
         name: "Proxy",
-        component: () => import("../views/ProxyView.vue"),
+        component: () => import("@pages/monitor/src/views/ProxyView.vue"),
         meta: { title: "代理管理", icon: "Connection", showLink: true, rank: 31 },
       },
       {
@@ -267,7 +267,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/system-config",
         name: "SystemConfig",
-        component: () => import("../views/SystemConfigView.vue"),
+        component: () => import("@pages/monitor/src/views/SystemConfigView.vue"),
         meta: { title: "系统配置", icon: "Tools", showLink: true, rank: 34 },
       },
     ],
@@ -295,7 +295,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
     // 关系图组件能力验收台：不挂侧边栏，仅供验收脚本访问
     path: "/re-relation-graph-lab",
     name: "ReRelationGraphLab",
-    component: () => import("../views/ReRelationGraphLab.vue"),
+    component: () => import("@pages/monitor/src/views/ReRelationGraphLab.vue"),
     meta: { title: "关系图验收台", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
 

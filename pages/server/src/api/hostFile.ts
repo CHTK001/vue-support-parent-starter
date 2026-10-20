@@ -33,6 +33,41 @@ export const submitAgentAction = (hostId: number, action: AgentLifecycleAction) 
     .then(r => unwrap<string>(r));
 };
 
+/**
+ * APM JavaAgent 注入状态
+ */
+export interface ApmAgentStatus {
+  hostId: number;
+  busy: boolean;
+  apmJarUrl: boolean;
+  apmJarPath: boolean;
+  options: string;
+  remoteJarName: string;
+  remoteJarPath: string;
+  javaToolOptions: string;
+}
+
+/**
+ * 注入 APM Java Agent（RuntimeAgent 字节码注入）。
+ * @param hostId 主机 ID
+ */
+export const injectApmAgent = (hostId: number) =>
+  http().post(`/ms/server/host/agent/${hostId}/inject-apm`).then(r => unwrap<string>(r));
+
+/**
+ * 移除目标主机已注入的 APM Java Agent。
+ * @param hostId 主机 ID
+ */
+export const uninjectApmAgent = (hostId: number) =>
+  http().post(`/ms/server/host/agent/${hostId}/uninject-apm`).then(r => unwrap<string>(r));
+
+/**
+ * 查询目标主机 APM Java Agent 注入状态。
+ * @param hostId 主机 ID
+ */
+export const fetchApmAgentStatus = (hostId: number) =>
+  http().get(`/ms/server/host/agent/${hostId}/apm-status`).then(r => unwrap<ApmAgentStatus>(r));
+
 // ==================== 主机文件管理（/ms/server/host/file，按采集通道路由） ====================
 
 /**

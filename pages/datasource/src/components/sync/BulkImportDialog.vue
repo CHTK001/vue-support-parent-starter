@@ -276,6 +276,8 @@
  *
  * <p>同一份 CSV 可配置<b>多个输出目标</b>，请求体带 {@code outputs[]}；后端用
  * {@code Executors.newVirtualThreadPerTaskExecutor()} 循环复用原有单目标 bulk load 方法。</p>
+ *
+ * <p>本组件归 {@code @pages/datasource}，监控 app 只通过同步页引用。</p>
  */
 import { message } from "@repo/core";
 import { Upload as UploadIcon } from "@element-plus/icons-vue";
@@ -284,7 +286,7 @@ import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@p
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
 import ReDialog from "@repo/ui/re-dialog";
-import { fetchLocalFiles, type BulkImportPayload, type BulkImportResult } from "@pages/datasource/src/api/syncTaskApi";
+import { fetchLocalFiles, type BulkImportPayload, type BulkImportResult } from "../../api/syncTaskApi";
 
 defineOptions({ name: "BulkImportDialog" });
 
@@ -341,7 +343,14 @@ const canImport = computed(() =>
 
 const outputMappedCount = (out: BulkTarget): number => out.mapping.filter(r => !!r.target.trim()).length;
 const mappedCount = computed(() => form.outputs.reduce((sum, o) => sum + outputMappedCount(o), 0));
-const jdbcSources = computed(() => datasources.value.filter(ds => (ds.type || "").toLowerCase() === "jdbc"));
+// jdbc 数据源才出现在下拉里；id 是数据源主键、缺了就没法作为选项值，故一并滤掉
+// （DataSourceInfo.id 在类型上是可选的，但下拉项没有 id 无法选中）。
+const jdbcSources = computed(() =>
+  datasources.value.filter(
+    (ds): ds is DataSourceInfo & { id: number } =>
+      (ds.type || "").toLowerCase() === "jdbc" && typeof ds.id === "number",
+  ),
+);
 
 const dsLabel = (id?: number | null): string => {
   const hit = datasources.value.find(ds => ds.id === id);
@@ -408,7 +417,7 @@ const onOutputTargetTableChange = async (out: BulkTarget): Promise<void> => {
     return;
   }
   try {
-    const { fetchTableColumns } = await import("@pages/datasource/src/api/manageConsoles");
+    const { fetchTableColumns } = await import("../../api/manageConsoles");
     const cols = await fetchTableColumns(out.targetTable, out.targetDatasourceId);
     out.columns = cols.map((c: any) => ({
       name: c.name,

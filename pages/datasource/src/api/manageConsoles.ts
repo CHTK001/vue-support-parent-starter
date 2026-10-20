@@ -5,11 +5,18 @@
  * （InfluxDB / Neo4j / Nacos / ZooKeeper）。请求走 @repo/utils 的 http 管线，
  * 返回已解包的业务数据。</p>
  *
+ * <p><strong>导入副作用</strong>：本模块的接口全部落在监控后端的 {@code /ms/monitor/db/*}
+ * 前缀下。宿主一旦用到本模块（数据源控制台页面），「浏览表结构」就应走同一套接口，
+ * 因此本模块在导入时把表结构提供者切成监控侧实现 —— 宿主不必再在 main.ts 里手写一次
+ * 注册调用（与本包 {@code registerMenuViewModules} 的「导入即注册」约定同构）。</p>
+ *
  * @author CH
  * @since 4.0.0
  */
 import { getAccessToken, http, unwrapResult } from "@repo/utils";
 import type { DbColumnPayload } from "./dbManageApi";
+import { setDatasourceSchemaProvider, type CollectColumn, type DataSourceInfo } from "./index";
+import { fetchDataSource } from "./index";
 
 const unwrap = <T>(res: any): T => unwrapResult<T>(res);
 // ==================== 数据库 web 管理器（使用默认主 datasource） ====================
@@ -1084,3 +1091,102 @@ export const updateZkNode = (request: { path: string; data: string; datasourceId
  */
 export const deleteZkNode = (path: string, datasourceId?: number) =>
   http().delete("/ms/monitor/zookeeper/node").query({ path, datasourceId }).then(r => unwrap<boolean>(r));
+
+// ==================== 表结构提供者（监控侧） ====================
+
+/**
+ * 每个数据源在浏览时会话内选定的库。
+ *
+ * <p>列元数据接口需要 database 参数，而「浏览表结构」只携带数据源 ID，
+ * 因此先由表清单流程选定并缓存，列查询复用同一库。</p>
+ */
+const schemaDatabaseCache = new Map<number, string>();
+
+/** 系统库：仅当数据源自身未登记库名时才跳过 */
+const SYSTEM_DATABASES = new Set([
+  "information_schema",
+  "performance_schema",
+  "mysql",
+  "sys",
+  "pg_catalog",
+]);
+
+/**
+ * 候选库顺序：优先数据源登记的库名，其次首个非系统库，最后其余库。
+ *
+ * <p>系统库（如 mysql）在部分服务端不可枚举表，故登记库取不到表时按此顺序回退。</p>
+ *
+ * @param meta      数据源台账，可能为 null
+ * @param databases 服务端返回的库列表
+ * @return 去重后的候选库（最多 3 个，避免逐库试错拖慢弹窗）
+ */
+function pickDatabaseCandidates(meta: DataSourceInfo | null, databases: string[]): string[] {
+  const ordered: string[] = [];
+  const push = (name: string | undefined) => {
+    if (name && databases.includes(name) && !ordered.includes(name)) {
+      ordered.push(name);
+    }
+  };
+  const configured = typeof meta?.database === "string" ? meta.database.trim() : "";
+  push(configured);
+  push(databases.find(name => !SYSTEM_DATABASES.has(name.toLowerCase())));
+  databases.forEach(name => push(name));
+  // 文件库（SQLite）没有「库」概念，服务端返回 []：兜一个空串候选，
+  // 走「默认库」链路（fetchDbTables(id, ""))拉表，弹窗才不至于空手而归
+  if (!ordered.length) {
+    ordered.push("");
+  }
+  return ordered.slice(0, 3);
+}
+
+/**
+ * 把「浏览表结构」切到监控侧实现（{@code /ms/monitor/db/*}）。
+ *
+ * <p>本模块的接口本就落在监控后端前缀下，宿主用到本模块即意味着「浏览表结构」
+ * 也该走这里。导入时自动执行一次，宿主无须在 main.ts 里手写注册调用。</p>
+ */
+export function registerMonitorSchemaProvider(): void {
+  setDatasourceSchemaProvider({
+    async fetchTables(datasource) {
+      const id = Number(datasource);
+      if (!Number.isFinite(id) || id <= 0) {
+        return [];
+      }
+      const [meta, databases] = await Promise.all([
+        fetchDataSource(id).catch(() => null),
+        fetchDbDatabases(id).catch(() => [] as string[]),
+      ]);
+      const candidates = pickDatabaseCandidates(meta, databases ?? []);
+      for (const database of candidates) {
+        const tables = await fetchDbTables(id, database).catch(() => []);
+        if (tables && tables.length > 0) {
+          schemaDatabaseCache.set(id, database);
+          return tables.map(table => table.name);
+        }
+      }
+      schemaDatabaseCache.delete(id);
+      return [];
+    },
+
+    async fetchColumns(datasource, table) {
+      const id = Number(datasource);
+      if (!Number.isFinite(id) || id <= 0) {
+        return [];
+      }
+      const columns = await fetchTableColumns(table, id, schemaDatabaseCache.get(id));
+      return (columns ?? []).map(
+        (column): CollectColumn => ({
+          name: column.name,
+          label: column.remark ?? null,
+          position: column.position ?? null,
+          typeName: column.type ?? null,
+          size: column.size ?? null,
+          nullable: column.nullable ?? null,
+          primaryKey: column.isPrimaryKey ?? null,
+        }),
+      );
+    },
+  });
+}
+
+registerMonitorSchemaProvider();

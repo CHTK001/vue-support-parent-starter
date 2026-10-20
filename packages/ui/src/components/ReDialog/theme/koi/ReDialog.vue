@@ -224,9 +224,15 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :fullscreen="dialogFullscreen"
     :z-index="props.zIndex"
     :loading="loading"
-    :show-close="!showWindowShell"
+    :show-close="!headless && !showWindowShell && !$slots.header"
   >
-    <template v-if="showWindowShell" #header>
+    <!-- 业务自定义 header 优先：直接放进 ElDialog 的 #header，避免 ElDialog
+         再按 title 渲染一层默认标题，造成双 header。 -->
+    <template v-if="$slots.header && !headless" #header>
+      <slot name="header" />
+    </template>
+    <!-- 无业务 header 时，showWindowShell/headless 使用窗口壳（默认标题 + 壳操作） -->
+    <template v-else-if="showWindowShell || headless" #header>
       <div class="koi-dialog-custom-header" :class="{ 'is-empty': headless }">
         <template v-if="!headless">
           <span class="koi-dialog-header-left">
@@ -255,7 +261,6 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         </template>
       </div>
     </template>
-    <slot v-if="!headless" name="header"></slot>
     <ReDialogCloseFab
       v-if="headless"
       :size="28"

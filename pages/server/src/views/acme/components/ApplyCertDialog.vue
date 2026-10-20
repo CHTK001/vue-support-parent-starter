@@ -245,17 +245,36 @@ const showEabTip = computed(() => {
 
       <template v-if="form.challengeType === 'HTTP-01' && form.deployMode === 'ssh'">
         <el-divider content-position="left">SSH 远程部署</el-divider>
-        <el-form-item label="服务器地址" required>
-          <el-input v-model="form.sshHost" placeholder="域名指向的服务器 IP" />
+        <el-form-item label="选择主机" required>
+          <el-select
+            v-model="hostSelectValue"
+            filterable
+            clearable
+            placeholder="搜索或选择主机"
+            style="width:100%"
+            :loading="hostLoading"
+            :disabled="!!props.host?.hostId"
+          >
+            <el-option
+              v-for="h in hostOptions"
+              :key="h.id || h.msServerHostId"
+              :value="h.id || h.msServerHostId"
+              :label="`${h.hostName || h.hostIp || h.domain || '?'} (${h.hostIp || '?'})`"
+            />
+          </el-select>
+          <div v-if="hostSelectValue" class="field-hint">已自动带入该主机的 SSH 连接信息；如需覆盖可编辑下方字段</div>
+        </el-form-item>
+        <el-form-item label="服务器地址">
+          <el-input v-model="form.sshHost" placeholder="IP 或域名" />
         </el-form-item>
         <el-form-item label="SSH 端口">
           <el-input-number v-model="form.sshPort" :min="1" :max="65535" style="width:180px" />
         </el-form-item>
-        <el-form-item label="用户名" required>
-          <el-input v-model="form.sshUsername" placeholder="root" />
+        <el-form-item label="用户名">
+          <el-input v-model="form.sshUsername" placeholder="SSH 用户名" />
         </el-form-item>
-        <el-form-item label="密码" required>
-          <el-input v-model="form.sshPassword" type="password" show-password placeholder="SSH 密码" />
+        <el-form-item label="密码">
+          <el-input v-model="form.sshPassword" type="password" show-password placeholder="SSH 密码（选填，如主机已配置身份认证则无需填写）" />
         </el-form-item>
       </template>
 

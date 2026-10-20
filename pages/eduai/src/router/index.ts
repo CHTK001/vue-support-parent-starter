@@ -1,7 +1,7 @@
 /**
  * 教育 AI 路由树（同时是侧边栏菜单树）—— 两级分组导航
  *
- * 结构约定（与 apps/vue-support-monitor-starter/src/routes.ts 同一套写法）：
+ * 结构约定（与 apps/vue-support-monitor-starter/src/router/index.ts 同一套写法）：
  *   - 一级 = 分组父节点：meta.isGroup=true，只有 title/icon，没有 component 与 redirect。
  *     koi 侧边栏把它渲染成 el-menu-item-group 的小号灰色标题（不可点击），组内子项常显（不折叠）。
  *   - 二级 = 具体页面：叶子路由，带 component，是菜单里唯一可点击的一层。
@@ -51,18 +51,10 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "教育概览", icon: "HomeFilled", showLink: true, keepAlive: true, isVisible: "1" },
   },
 
-  // ==================== AI 提供商管理（内嵌 AI 控制台）====================
-  // 组卷 / 阅卷用的 AI 模型、ONNX 等，统一由 AI 控制台（pages/ai）维护：其
-  // 「提供商 / 模型」后端是 AI starter 的 /v2/manufacturer、/v2/models 等端点，
-  // eduai 后端并未注册（实测 404），所以本页不重做业务。
-  //
-  // 但**不能**用 meta.linkUrl 外链：外链分支是 window.open，点菜单会弹出一个
-  // 属于 AI 控制台自己的地址窗口，用户直接离开本工作台 —— 而 pages/ai 明明已经
-  // 是本应用的集成依赖。AI 控制台为此提供了独立顶层嵌入路由 /models/embed
-  // （ModelsEmbedPage：不带 MainLayout / 侧栏 / 页头，自带供应商选择与新增/模板库），
-  // 因此这里给一个真实组件，把该页以 iframe 内嵌在 eduai 路由内。
-  //
-  // 地址取本机 dev 的 AI 控制台（15689），生产部署用 VITE_AI_CONSOLE_URL 覆盖。
+  // ==================== AI 提供商管理（pages/ai 组件内嵌）====================
+  // 组卷 / 阅卷用的 AI 模型、ONNX 等，统一由 pages/ai 的模型管理页维护。
+  // 这里直接复用 pages/ai 的 ModelsPage 组件（同一 monorepo 依赖），
+  // 不走 iframe、也不外链 AI 控制台，用户停留在本工作台内完成配置。
   {
     path: "/edu/ai-provider",
     name: "EduAiProvider",

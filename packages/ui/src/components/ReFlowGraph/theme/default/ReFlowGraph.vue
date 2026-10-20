@@ -203,12 +203,9 @@ const menuItems = computed<FlowMenuItem[]>(() => {
       { key: "delete", label: "删除", action: "delete", danger: true },
     );
   }
-  // 「添加节点」分组：按调色板分组逐项列出，落点取右键处坐标，
+  // 「添加节点」分组：收起为二级菜单，落点取右键处坐标，
   // 添加后选中并通知宿主打开节点配置（右键 → 添加 → 直接配参数）
   if (props.nodeTypes.length) {
-    if (items.length) {
-      items.push({ key: "add-sep", label: "", header: "添加节点" });
-    }
     const groups: { name: string; items: FlowNodeTypeDef[] }[] = [];
     props.nodeTypes.forEach((t) => {
       const name = t.group ?? "节点";
@@ -219,12 +216,13 @@ const menuItems = computed<FlowMenuItem[]>(() => {
       }
       bucket.items.push(t);
     });
+    const children: FlowMenuItem[] = [];
     groups.forEach((g) => {
       if (groups.length > 1) {
-        items.push({ key: `add-g-${g.name}`, label: g.name, header: g.name });
+        children.push({ key: `add-g-${g.name}`, label: g.name, header: g.name });
       }
       g.items.forEach((t) => {
-        items.push({
+        children.push({
           key: `add-${t.type}`,
           label: t.label,
           action: "add",
@@ -232,6 +230,7 @@ const menuItems = computed<FlowMenuItem[]>(() => {
         });
       });
     });
+    items.push({ key: "add-group", label: "添加节点", children });
   }
   return items;
 });
@@ -964,7 +963,25 @@ defineExpose({
     >
       <template v-for="item in menuItems" :key="item.key">
         <li
-          v-if="!item.header"
+          v-if="item.children?.length"
+          class="flow-menu-parent"
+        >
+          {{ item.label }}
+          <ul class="flow-menu-sub">
+            <template v-for="child in item.children" :key="child.key">
+              <li
+                v-if="!child.header"
+                :class="{ danger: child.danger, disabled: child.disabled }"
+                @click="menuAction(child, $event)"
+              >
+                {{ child.label }}
+              </li>
+              <li v-else class="flow-menu-head">{{ child.header }}</li>
+            </template>
+          </ul>
+        </li>
+        <li
+          v-else-if="!item.header"
           :class="{ danger: item.danger, disabled: item.disabled }"
           @click="menuAction(item, $event)"
         >
@@ -1290,6 +1307,45 @@ defineExpose({
   color: #a4abb5;
   user-select: none;
 }
+/* 二级菜单：父项 hover 时在右侧展开 */
+.flow-menu-parent {
+  position: relative;
+}
+.flow-menu-parent::after {
+  content: "›";
+  position: absolute;
+  right: 10px;
+  top: 4px;
+  color: #a4abb5;
+  font-size: 14px;
+}
+.flow-menu-sub {
+  display: none;
+  position: absolute;
+  left: calc(100% - 4px);
+  top: -4px;
+  z-index: 31;
+  min-width: 156px;
+  max-height: 430px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid var(--flow-line);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 32, 0.16);
+}
+.flow-menu-parent:hover .flow-menu-sub {
+  display: block;
+}
+.flow-menu-sub li { padding: 6px 10px; color: #4e5969; cursor: pointer; border-radius: 5px; }
+.flow-menu-sub li:hover { background: #f2f6ff; color: var(--flow-accent); }
+.flow-menu-sub li.danger:hover { background: #fff1f0; color: #c9403f; }
+.flow-menu-sub li.disabled { color: #c9cdd4; cursor: not-allowed; }
+.flow-menu-sub li.disabled:hover { background: none; color: #c9cdd4; }
+.flow-menu-sub .flow-menu-head { cursor: default; }
 /* 浮起态：脱离 flex 流、absolute 定位于外壳内，整块可拖动。
  * 高度取外壳高度 - 上下边距（定值才能让 body 的 flex:1 + overflow 生效，
  * height:auto 配合 max-height 时 flex 子项不会触发滚动）。 */
