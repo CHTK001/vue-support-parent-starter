@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>SSH 直连终端</title>
+  <link rel="stylesheet" href="/term/xterm.css">
+  <style>
+    html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+    #term { width: 100%; height: 100%; padding: 4px 0 0 6px; box-sizing: border-box; }
+    #status { position: fixed; top: 8px; right: 14px;
+              color: #eee; background: rgba(0,0,0,.72); padding: 5px 12px; border-radius: 4px;
+              font: 12px/1.4 monospace; z-index: 11; pointer-events: none; }
+    /* 连接请求加载遮罩 */
+    #loading { position: fixed; inset: 0; z-index: 10; display: flex;
+               flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+               background: #111; transition: opacity .25s ease; }
+    #loading.hide { opacity: 0; pointer-events: none; }
+    #loading .lbl { color: #cfd3da; font: 13px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+                    letter-spacing: .3px; text-align: center; }
+    #loading .sub { color: #6b7280; font: 11px/1.4 monospace; }
+    #loading .err { color: #ff7a7a; max-width: 70%; }
+    .spinner { width: 38px; height: 38px; border-radius: 50%;
+               border: 3px solid rgba(255,255,255,.14); border-top-color: #6aa1ff;
+               animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="lbl" id="loading-lbl">正在建立 SSH 连接…</div>
+    <div class="sub" id="loading-sub"></div>
+  </div>
+  <div id="status">正在连接…</div>
+  <div id="term"></div>
+  <script src="/term/xterm.js"></script>
+  <script src="/term/addon-fit.js"></script>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status');
+      var params = new URLSearchParams(location.search);
+      var hostId = params.get('hostId') || '';
+      var identityId = params.get('identityId') || '';
+
+      var term = new Terminal({
+        cursorBlink: true,
+        fontFamily: 'Consolas, Menlo, "Courier New", monospace',
+        fontSize: 13,
+        scrollback: 8000,
+        theme: { background: '#111111', foreground: '#e6e6e6' }
+      });
+      var fit = new FitAddon.FitAddon();
+      term.loadAddon(fit);
+      term.open(document.getElementById('term'));
+      fit.fit();
+
+      var wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      var wsUrl = wsProto + location.host + '/ws/ms/server/terminal/ssh?hostId=' + encodeURIComponent(hostId)
+        + '&cols=' + term.cols + '&rows=' + term.rows
+        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '');
+      var ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+      var encoder = new TextEncoder();
+
+      term.onData(function (data) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(encoder.encode(data));
+      });
+      term.onResize(function (size) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ c: 'resize', cols: size.cols, rows: size.rows }));
+        }
+      });
+
+      var loadingEl = document.getElementById('loading');
+      var loadingLbl = document.getElementById('loading-lbl');
+      var loadingSub = document.getElementById('loading-sub');
+      loadingSub.textContent = 'hostId=' + hostId + (identityId ? (' identityId=' + identityId) : '');
+      function hideLoading() { loadingEl.classList.add('hide'); }
+      function loadingError(msg) {
+        var sp = loadingEl.querySelector('.spinner');
+        if (sp) sp.style.display = 'none';
+        loadingLbl.classList.add('err');
+        loadingLbl.textContent = msg;
+        loadingEl.classList.remove('hide');
+      }
+
+      ws.onopen = function () {
+        statusEl.textContent = '已连接（SSH 直连）';
+        hideLoading();
+        term.focus();
+      };
+      var errored = false;
+      ws.onmessage = function (event) {
+        if (typeof event.data === 'string') {
+          // 控制通道：后端只在拒绝连接时回一条 JSON 错误
+          var msg = event.data;
+          try { msg = JSON.parse(msg).msg || msg; } catch (e) { /* 原样显示 */ }
+          errored = true;
+          statusEl.textContent = msg;
+          loadingError(msg);
+          term.writeln('\r\n\x1b[31m' + msg + '\x1b[0m');
+          return;
+        }
+        term.write(new Uint8Array(event.data));
+      };
+      ws.onclose = function () {
+        if (!errored) {
+          statusEl.textContent = '已断开';
+          loadingError('连接已关闭，请刷新页面重新连接');
+          term.writeln('\r\n\x1b[33m连接已关闭\x1b[0m');
+        }
+      };
+      ws.onerror = function () {
+        if (!errored) {
+          statusEl.textContent = '连接异常';
+        }
+      };
+
+      function doFit() {
+        try { fit.fit(); } catch (e) { return; }
+        term.focus();
+      }
+      window.addEventListener('resize', doFit);
+      setTimeout(doFit, 100);
+      setTimeout(doFit, 600);
+      setInterval(function () {
+        if (ws.readyState === WebSocket.OPEN) { try { fit.fit(); } catch (e) { /* 忽略 */ } }
+      }, 2000);
+    })();
+  </script>
+</body>
+</html>

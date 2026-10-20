@@ -49,10 +49,20 @@
                   class="bubble"
                   :class="{ 'is-error': isError(m.content) }"
                 >
-                  <el-icon v-if="isError(m.content)" :size="14" class="bubble-err-icon">
-                    <Warning24Regular />
-                  </el-icon>
-                  <MarkdownContent class="bubble-text markdown-text" :content="m.content" />
+                  <div class="bubble-inner">
+                    <el-icon v-if="isError(m.content)" :size="14" class="bubble-err-icon">
+                      <Warning24Regular />
+                    </el-icon>
+                    <MarkdownContent class="bubble-text markdown-text" :content="m.content" />
+                  </div>
+                  <!-- 发送失败的气泡：显示错误原因 + 重发按钮 -->
+                  <div v-if="isError(m.content)" class="bubble-error-bar">
+                    <span class="bubble-error-text">{{ m.content?.replace('AI 回复失败：', '') }}</span>
+                    <button type="button" class="bubble-retry" title="重新发送" @click="$emit('retry', m)">
+                      <el-icon :size="13"><ArrowClockwise24Regular /></el-icon>
+                      重发
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -79,8 +89,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import {
+  // Refresh24Regular 在 @vicons/fluent@0.13.0 中不存在，构建直接失败。
+  // 重发/刷新语义用 ArrowClockwise24Regular（包内真实存在的图标）替代。
   Chat24Regular, Person24Regular, ArrowSync24Regular,
-  ArrowDown24Regular, Warning24Regular,
+  ArrowDown24Regular, Warning24Regular, ArrowClockwise24Regular,
 } from '@vicons/fluent'
 import ConnectorIcon from '../ConnectorIcon.vue'
 import { formatHMS, dayLabel, parseDate, contactShortName } from './format'
@@ -93,6 +105,15 @@ const props = defineProps<{
   platform: string
   connectorName: string
   loading?: boolean
+}>()
+
+/**
+ * 重发事件：当用户点击失败消息的重发按钮时，通知父组件重新发送该条消息。
+ *
+ * <p>之前发送失败只显示红色提示，无补救入口，用户必须手动复制内容再粘贴发送。</p>
+ */
+const emit = defineEmits<{
+  retry: [message: any]
 }>()
 
 const viewportRef = ref<HTMLElement | null>(null)
@@ -358,6 +379,44 @@ defineExpose({ scrollToBottom })
   color: var(--el-color-warning-dark-2) !important;
   background: var(--el-color-warning-light-9) !important;
   border-color: var(--el-color-warning-light-7) !important;
+}
+/* 气泡内容包裹：让文本与错误信息分两行显示 */
+.bubble-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+/* 错误消息底部操作栏 */
+.bubble-error-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--el-color-warning-light-7);
+  width: 100%;
+}
+.bubble-error-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--el-color-warning-dark-2);
+}
+.bubble-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border: 1px solid var(--el-color-warning);
+  border-radius: var(--el-radius-sm, 6px);
+  font-size: 12px;
+  color: var(--el-color-warning);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bubble-retry:hover {
+  background: var(--el-color-warning-light-9);
 }
 
 .stream-loading,

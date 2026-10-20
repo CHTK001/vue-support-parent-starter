@@ -1,0 +1,439 @@
+
+/*
+ * 尺寸刻意不写 180/36，而是 100%：X6 会按 register 时给的 width/height 建 foreignObject，
+ * 卡片跟着走，以后调 shapes.ts 里的 NODE_WIDTH/NODE_HEIGHT 不必再回来改这里。
+ */
+.flow-node-card[data-v-178c94f5] {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0 8px 0 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #c2c8d5;
+  /* 左侧 4px 主色竖条：官方用来表达状态，这里用来表达节点类型 */
+  border-left: 4px solid #4f7cff;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px 1px rgba(0, 0, 0, 0.06);
+  font-family: var(--flow-font, inherit);
+  cursor: grab;
+  user-select: none;
+}
+.flow-node-card[data-v-178c94f5]:active {
+  cursor: grabbing;
+}
+.flow-node-icon[data-v-178c94f5] {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0 8px 0 4px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+/* 图片铺满图标块并保持比例：非方图直接 width/height 100% 会被拉变形 */
+.flow-node-img[data-v-178c94f5] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.flow-node-label[data-v-178c94f5] {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: #4e5969;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/*
+ * 类型标签：与 label 重复时（调色板里就那几个类型，name 常常等于 label）不再占位，
+ * 避免出现「HTTP 请求  HTTP 请求」这种噪声。
+ */
+.flow-node-kind[data-v-178c94f5] {
+  flex: none;
+  max-width: 56px;
+  margin-left: 6px;
+  overflow: hidden;
+  font-size: 11px;
+  color: #a4abb5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-shell[data-v-fc2dc7d0] {
+  --flow-accent: #4f7cff;
+  --flow-chrome: #1f2429;
+  --flow-chrome-2: #272d34;
+  --flow-line: #e8eaef;
+  --flow-font: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f7f8fa;
+  border: 1px solid var(--flow-line);
+  border-radius: 10px;
+  font-family: var(--flow-font);
+}
+.flow-toolbar[data-v-fc2dc7d0] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  flex: none;
+  padding: 0 10px;
+  background: linear-gradient(180deg, var(--flow-chrome-2), var(--flow-chrome));
+}
+.flow-tb-group[data-v-fc2dc7d0] { display: flex; align-items: center; gap: 4px;
+}
+.flow-tb-sep[data-v-fc2dc7d0] { width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, 0.12);
+}
+.flow-tb-spacer[data-v-fc2dc7d0] { flex: 1;
+}
+.flow-tb-stat[data-v-fc2dc7d0] { display: flex; gap: 6px; font-size: 12px; color: #98a2ad; font-variant-numeric: tabular-nums;
+}
+.flow-tb-stat i[data-v-fc2dc7d0] { font-style: normal; opacity: 0.4;
+}
+.flow-main[data-v-fc2dc7d0] { display: flex; flex: 1; min-height: 0;
+}
+.flow-palette[data-v-fc2dc7d0] {
+  width: 148px;
+  flex: none;
+  overflow-y: auto;
+  padding: 8px;
+  background: #fff;
+  border-right: 1px solid var(--flow-line);
+}
+.flow-palette-title[data-v-fc2dc7d0] { margin: 6px 2px; font-size: 11px; letter-spacing: 0.5px; color: #a4abb5;
+}
+.flow-palette-items[data-v-fc2dc7d0] { display: flex; flex-direction: column; gap: 4px;
+}
+.flow-chip[data-v-fc2dc7d0] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  font-size: 12px;
+  color: #4e5969;
+  cursor: grab;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  transition: all 0.16s ease;
+}
+.flow-chip[data-v-fc2dc7d0]:hover { color: var(--chip-color); background: color-mix(in srgb, var(--chip-color) 8%, #fff); border-color: color-mix(in srgb, var(--chip-color) 32%, #fff);
+}
+.flow-chip[data-v-fc2dc7d0]:active { cursor: grabbing; transform: scale(0.98);
+}
+.flow-chip-badge[data-v-fc2dc7d0] {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  background: var(--chip-color);
+  border-radius: 6px;
+}
+.flow-chip-label[data-v-fc2dc7d0] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.flow-canvas-wrap[data-v-fc2dc7d0] { position: relative; flex: 1; min-width: 0;
+}
+.flow-canvas[data-v-fc2dc7d0] { position: absolute; inset: 0;
+}
+.flow-minimap[data-v-fc2dc7d0] {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--flow-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(15, 23, 32, 0.08);
+}
+.flow-empty[data-v-fc2dc7d0] { position: absolute; inset: 0; display: grid; place-content: center; gap: 6px; text-align: center; pointer-events: none;
+}
+.flow-empty-title[data-v-fc2dc7d0] { font-size: 14px; color: #8f98a3;
+}
+.flow-empty-sub[data-v-fc2dc7d0] { font-size: 12px; color: #b2b9c2;
+}
+.flow-props[data-v-fc2dc7d0] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  height: 100%;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color-lighter);
+  /* 宽度过渡只在非拖拽时生效：拖拽中会「追着鼠标跑」，手感发飘 */
+  transition: width var(--el-transition-duration, 0.2s) ease;
+}
+.flow-props.is-resizing[data-v-fc2dc7d0] {
+  transition: none;
+  user-select: none;
+}
+/*
+ * 左边框拖拽热区：6px 宽、上下拉满的透明竖条，压在面板左沿外侧一点，
+ * hover / 拖拽时亮出一条 3px 的主色抓手（UI 稿右侧栏可拖宽的视觉暗示）。
+ * 放在这里而不是头部：头部有标题、徽标、按钮，在那按下会误伤点击。
+ */
+.flow-props-resizer[data-v-fc2dc7d0] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  z-index: 3;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
+}
+.flow-props-resizer[data-v-fc2dc7d0]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 1px;
+  width: 3px;
+  height: 36px;
+  margin-top: -18px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
+}
+.flow-props-resizer[data-v-fc2dc7d0]:hover::after,
+.flow-props.is-resizing .flow-props-resizer[data-v-fc2dc7d0]::after {
+  background: var(--el-color-primary);
+}
+/* 收起态：只剩一条竖向标题栏（图标 + 竖排文字） */
+.flow-props.is-collapsed .flow-props-head[data-v-fc2dc7d0] {
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 4px;
+}
+.flow-props.is-collapsed .flow-props-heading[data-v-fc2dc7d0] {
+  display: none;
+}
+.flow-props.is-collapsed .flow-props-actions[data-v-fc2dc7d0] {
+  flex-direction: column;
+}
+.flow-props-head[data-v-fc2dc7d0] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  user-select: none;
+}
+/* 图标磁贴（UI 稿头部）：主色浅底圆角方块 + 主色节点连线图标 */
+.flow-props-icon[data-v-fc2dc7d0] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.flow-props-heading[data-v-fc2dc7d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.flow-props-name[data-v-fc2dc7d0] {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 副标题：圆点 + 当前选中态文案（UI 稿头部第二行「● 未选中节点」） */
+.flow-props-sub[data-v-fc2dc7d0] {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flow-props-dot[data-v-fc2dc7d0] {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: var(--el-text-color-placeholder);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.flow-props-dot.is-on[data-v-fc2dc7d0] {
+  background: var(--el-color-primary);
+}
+.flow-props-actions[data-v-fc2dc7d0] {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 4px;
+}
+.flow-props-body[data-v-fc2dc7d0] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  /* 始终预留滚动条槽位：点选表单控件触发滚动时，滚动条出没会造成
+     整栏宽度 8px 级抖动（「点一下参数会移动一点」的根因） */
+  scrollbar-gutter: stable;
+  padding: 14px;
+}
+/* 底部概览：与滚动表单区分离的一条，上边框分隔，常驻可见 */
+.flow-props-foot[data-v-fc2dc7d0] {
+  flex: none;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.flow-props-foot-title[data-v-fc2dc7d0] {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+.flow-props-stats[data-v-fc2dc7d0] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+}
+.flow-props-stat[data-v-fc2dc7d0] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  text-align: center;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.flow-props-stat b[data-v-fc2dc7d0] {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.flow-props-stat span[data-v-fc2dc7d0] {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.flow-props-hint[data-v-fc2dc7d0] { font-size: 12px; color: var(--el-text-color-secondary);
+}
+.flow-issues[data-v-fc2dc7d0] {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 6;
+  display: grid;
+  gap: 4px;
+  width: min(560px, 82%);
+  transform: translateX(-50%);
+}
+.flow-issue[data-v-fc2dc7d0] {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #b26a1f;
+  cursor: pointer;
+  background: rgba(255, 247, 232, 0.96);
+  border: 1px solid #f7d9a8;
+  border-radius: 6px;
+}
+.flow-issue.error[data-v-fc2dc7d0] { color: #c9403f; background: rgba(255, 240, 240, 0.96); border-color: #f5b9b9;
+}
+.flow-rename[data-v-fc2dc7d0] {
+  position: fixed;
+  z-index: 20;
+  padding: 3px 6px;
+  font-size: 12px;
+  text-align: center;
+  border: 1px solid var(--flow-accent);
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(79, 124, 255, 0.2);
+}
+.flow-menu[data-v-fc2dc7d0] {
+  position: fixed;
+  z-index: 30;
+  min-width: 128px;
+  margin: 0;
+  padding: 4px;
+  font-size: 12px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--flow-line);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 32, 0.14);
+}
+.flow-menu li[data-v-fc2dc7d0] { padding: 6px 10px; color: #4e5969; cursor: pointer; border-radius: 5px;
+}
+.flow-menu li[data-v-fc2dc7d0]:hover { background: #f2f6ff; color: var(--flow-accent);
+}
+.flow-menu li.danger[data-v-fc2dc7d0]:hover { background: #fff1f0; color: #c9403f;
+}
+/* 禁用项：置灰且不响应 hover 反馈，光靠 onClick 里 return 拦截的话用户看不出为什么点不动 */
+.flow-menu li.disabled[data-v-fc2dc7d0] { color: #c9cdd4; cursor: not-allowed;
+}
+.flow-menu li.disabled[data-v-fc2dc7d0]:hover { background: none; color: #c9cdd4;
+}
+/* 分组标题：不可点，视觉上把「添加节点」等同名分组隔开 */
+.flow-menu-head[data-v-fc2dc7d0] {
+  padding: 5px 10px 3px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #a4abb5;
+  user-select: none;
+}
+/* 浮起态：脱离 flex 流、absolute 定位于外壳内，整块可拖动。
+ * 高度取外壳高度 - 上下边距（定值才能让 body 的 flex:1 + overflow 生效，
+ * height:auto 配合 max-height 时 flex 子项不会触发滚动）。 */
+.flow-props.is-floated[data-v-fc2dc7d0] {
+  position: absolute;
+  z-index: 40;
+  height: calc(100% - 16px);
+  box-shadow: 0 14px 34px rgba(15, 23, 32, 0.22);
+  border-radius: 10px;
+}
+.flow-props.is-floated .flow-props-head[data-v-fc2dc7d0] { cursor: move;
+}
+/*
+ * 磁吸端口：静止时隐藏、节点 hover 淡入。
+ *
+ * 之前只有 `opacity: 0` 没有任何一条规则把它放回 1，等于端口全程不可见 ——
+ * 注释写着「hover 时由 CSS 淡入」，但那条规则从来没写。40×40 徽章时代端口贴在
+ * 节点四边中点、用户摸得到；换成 180×36 卡片后 left/right 端口在长边中点，
+ * 更需要显形，否则用户根本不知道从哪往外拉线。
+ */
+[data-v-fc2dc7d0] .x6-port-body { opacity: 0; transition: opacity 0.14s ease;
+}
+[data-v-fc2dc7d0] .x6-node:hover .x6-port-body { opacity: 1;
+}
+[data-v-fc2dc7d0] .x6-node:hover .x6-edge,[data-v-fc2dc7d0] .x6-edge:hover { cursor: pointer;
+}
+
+/*
+ * 节点体是 foreignObject 里的真实 DOM，`cursor` 要显式给到卡片上：
+ * 外层 `<g class="x6-node">` 上的 cursor 管不到 foreignObject 内部。
+ */
+[data-v-fc2dc7d0] .flow-node-card { cursor: grab;
+}
+[data-v-fc2dc7d0] .x6-node-selected .flow-node-card {
+  border-color: var(--flow-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--flow-accent) 22%, transparent);
+}

@@ -15,6 +15,7 @@
     featureTools: 'Tool Calls',
     featureThinking: 'Hybrid Thinking',
     editorPlaceholder: "Press / for skills, {'@'} to summon agent, Shift+Enter for newline",
+    unsupportedFileType: 'Unsupported file type, ignored: {files}. Images and common text files are supported.',
     optimizeFailed: 'Optimization failed, please try again later',
     optimizeUnavailable: 'Optimization service is unavailable. Please configure an optimizer model in settings',
     optimizeNoChange: 'The content is already clear enough; no optimization needed',
@@ -164,6 +165,8 @@
     clearRecords: 'Clear Records',
     exportRecords: 'Export Records',
     importRecords: 'Import Records',
+    exportMarkdown: 'Export as Markdown',
+    exportEmpty: 'No messages to export in this session',
   },
 
   // ── 会话上下文面板 ──
@@ -260,6 +263,37 @@
     deleteMessage: 'Delete Message',
     rewindHere: 'Rewind from here',
     forkHere: 'Fork from here',
+    quote: 'Quote and reply',
+    thumbsUp: 'Helpful',
+    thumbsDown: 'Not helpful',
+    viewSource: 'View Markdown source',
+    exportMd: 'Export as Markdown',
+    sourceCopied: 'Source copied',
+    quotePlaceholder: 'Quoted message #{id}',
+  },
+
+  // ── Shortcuts help ──
+  shortcuts: {
+    title: 'Keyboard Shortcuts',
+    groupChat: 'Chat',
+    newChat: 'New chat',
+    sendMessage: 'Send message',
+    commandPalette: 'Command palette',
+    shortcutsHelp: 'Shortcut help',
+    groupMessage: 'Message actions',
+    quoteMessage: 'Quote and reply',
+    viewSource: 'View source',
+    exportMarkdown: 'Export Markdown',
+    groupNavigation: 'Navigation & editing',
+    searchSessions: 'Search sessions',
+    newline: 'New line',
+  },
+
+  // ── Token stats bar ──
+  tokenStats: {
+    used: 'Context usage',
+    usedTokens: 'Tokens used',
+    totalTokens: 'Context window',
   },
 
   // ── Rewind confirm dialog ──

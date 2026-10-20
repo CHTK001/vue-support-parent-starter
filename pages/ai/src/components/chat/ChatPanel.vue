@@ -3,6 +3,17 @@
   <div class="flex-1 overflow-hidden w-full relative">
     <ScrollContainer ref="scrollContainerRef" class="h-full chat-scroll-container transition-opacity duration-300 px-5"
       :auto-scroll="needScrollToBottom" :aria-label="t('chat.messages')" @scroll="handleScroll">
+      <!-- 会话 Token 消耗统计条（有数据时显示） -->
+      <div v-if="tokenStats?.usedTokens" class="w-full mx-auto pt-3" :style="contentMaxWidthStyle">
+        <div class="token-stats-bar">
+          <el-icon size="14"><DataLine20Regular /></el-icon>
+          <span class="token-stats-label">{{ t('chat.tokenStats.used') }}</span>
+          <div class="token-stats-track">
+            <div class="token-stats-fill" :style="{ width: Math.min(tokenStats.percentage || 0, 100) + '%' }"></div>
+          </div>
+          <span class="token-stats-value">{{ formatTokenCount(tokenStats.usedTokens) }} / {{ formatTokenCount(tokenStats.totalTokens) }}</span>
+        </div>
+      </div>
       <!-- 初始加载时的骨架屏：仅在消息为空时显示 -->
       <div class="chat-messages w-full mx-auto pt-5 flex-1" :style="contentMaxWidthStyle">
         <template v-if="showSkeleton">
@@ -15,7 +26,13 @@
         <template v-else>
           <template v-if="currentSessionId && activeMessages.length === 0 && currentSession?.character">
             <!-- 欢迎页 -->
-            <WelcomeScreen :session="currentSession" class="flex-1" />
+            <WelcomeScreen
+              :session="currentSession"
+              :recent-sessions="recentSessions"
+              class="flex-1"
+              @quick-action="handleQuickAction"
+              @open-session="handleOpenSession"
+            />
           </template>
           <template v-else>
             <!-- 加载更多历史消息指示器 -->
@@ -42,10 +59,14 @@
               :character-name="currentSession?.character?.title"
               :character-avatar="currentSession?.character?.avatarUrl" :is-last="index === visibleTurns.length - 1"
               :allow-generate="!isStreaming && index === lastUserMessageIndex"
-              :animate-in="animateIds.includes(turn.user.id)" @delete="deleteMessage" @edit="editMessage"
+              :animate-in="animateIds.includes(turn.user.id)"
+              :reaction-state="reactionState"
+              @delete="deleteMessage" @edit="editMessage"
               @copy="copyMessage" @generate="generateResponse" @regenerate="regenerateResponse"
               @continue="continueResponse"
               @rewind="rewindFromHere" @fork="forkFromHere"
+              @quote="handleQuote" @reaction="handleReaction"
+              @view-source="handleViewSource" @export-md="handleExportMd"
               @resume-confirmation="resumeConfirmation" />
             <!-- <div class="min-h-60"></div> -->
 
@@ -128,6 +149,17 @@
     :close-on-click-modal="false" destroy-on-close class="memo-panel-dialog" append-to-body>
     <MemoPanel v-if="currentSessionId" :session-id="currentSessionId" />
   </LDialog>
+  <!-- Markdown 源码查看弹窗 -->
+  <LDialog v-model="sourceDialog.visible" :title="t('chat.messageActions.viewSource')" width="720px"
+    append-to-body>
+    <div class="source-dialog-content">
+      <pre class="source-pre"><code>{{ sourceDialog.content }}</code></pre>
+    </div>
+    <template #footer>
+      <el-button @click="copySourceContent">{{ t('common.copy') }}</el-button>
+      <el-button type="primary" @click="sourceDialog.visible = false">{{ t('common.close') }}</el-button>
+    </template>
+  </LDialog>
 </template>
 
 <script setup lang="ts">
@@ -138,6 +170,7 @@ import { apiService } from "../../services/ApiService";
 import { usePopup } from "@/composables/usePopup";
 import { useDebounceFn } from "@vueuse/core";
 import { useSessionStore } from "../../stores/session";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
 import { getCurrentTurns } from "@/utils/messageUtils"
@@ -158,7 +191,7 @@ import WelcomeScreen from './WelcomeScreen.vue';
 import QueuedMessages from './QueuedMessages.vue';
 const MemoPanel = defineAsyncComponent(() => import("./MemoPanel.vue"));
 import { LoadingOutlined } from '@vicons/antd'
-import { Edit20Regular, Dismiss20Regular } from '@vicons/fluent'
+import { Edit20Regular, Dismiss20Regular, DataLine20Regular } from '@vicons/fluent'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
 import LDialog from '@/components/ui/LDialog.vue'
@@ -176,6 +209,7 @@ const contentMaxWidthStyle = computed(() => ({
 const { confirm, editText, toast, notify } = usePopup();
 const authStore = useAuthStore()
 const sessionStore = useSessionStore();
+const router = useRouter();
 const layoutStore = useLayoutStore();
 
 // 有壁纸时隐藏底部渐变遮罩（壁纸已有视觉层次，不透明遮罩会像补丁）
@@ -220,7 +254,14 @@ const currentSessionId = ref<string | null>(null);
 
 // 共享的 Token 统计（useSessionTokenStats 自动监听流状态刷新）
 const currentSessionIdRef = computed(() => currentSessionId.value);
-useSessionTokenStats(currentSessionIdRef);
+const { tokenStats, loading: tokenStatsLoading, fetchTokenStats } = useSessionTokenStats(currentSessionIdRef);
+
+function formatTokenCount(n: number) {
+  if (!n) return '0'
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
+  return String(n)
+}
 
 /**
  * 有效的会话 ID
@@ -254,6 +295,69 @@ const lockScrollAnchor = () => {
 };
 provide('lockScrollAnchor', lockScrollAnchor);
 
+// ===== 新增 8 项功能 handler =====
+
+/** #1 引用/回复消息：插入引用标记到输入框并聚焦 */
+function handleQuote(payload: { messageId: string; content?: string }) {
+  chatInputRef.value?.insertText(`@${payload.messageId} `)
+  nextTick(() => {
+    const el = document.querySelector('.message-editor .ProseMirror') as HTMLElement
+    el?.focus()
+  })
+}
+
+/** #6 Reactions：本地切换状态，TODO 持久化到后端 */
+const reactionState = ref<Record<string, { up?: boolean; down?: boolean }>>({})
+function handleReaction(payload: { messageId: string; type: 'up' | 'down' }) {
+  if (!currentSessionId.value) return
+  const { messageId, type } = payload
+  const state = reactionState.value[messageId] || {}
+  if (type === 'up') {
+    state.up = !state.up
+    if (state.up) state.down = false
+  } else {
+    state.down = !state.down
+    if (state.down) state.up = false
+  }
+  reactionState.value = { ...reactionState.value, [messageId]: state }
+}
+
+/** #3 Markdown 源码查看弹窗 */
+const sourceDialog = ref({ visible: false, content: '', messageId: '' })
+function handleViewSource(payload: { messageId: string; rawContent: string }) {
+  sourceDialog.value = { visible: true, content: payload.rawContent || '', messageId: payload.messageId }
+}
+function copySourceContent() {
+  const text = sourceDialog.value.content
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.top = '-9999px'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+  })
+  toast.success(t('common.copySuccess'))
+}
+
+/** #10 导出单条消息为 Markdown 文件 */
+function handleExportMd(payload: { messageId: string; rawContent: string }) {
+  const rawContent = payload.rawContent
+  if (!rawContent) return
+  const blob = new Blob([rawContent], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `message-${(payload.messageId || 'export').slice(-8)}.md`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** #1 Auto-scroll 锁定：用户向上滚动时暂停 auto-scroll，到底自动恢复 */
+const scrollLockRef = ref(false)
+
 // 消息分页加载相关状态
 const INITIAL_PAGE_SIZE = 30 // 首次加载消息数量
 const MESSAGES_PAGE_SIZE = 15 // 后续每次加载消息数量
@@ -267,6 +371,29 @@ let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 let skeletonMinDisplayTimer: ReturnType<typeof setTimeout> | null = null
 let skeletonShowTime: number = 0 // 记录骨架屏开始显示的时间戳
 const SKELETON_MIN_DISPLAY = 500 // 骨架屏最少显示毫秒数
+
+/** 最近的会话列表（用于欢迎页快捷入口，同角色） */
+const recentSessions = computed(() =>
+  sessionStore.sessionsMap
+    ? Array.from((sessionStore as any).sessionsMap.values() || [])
+        .filter((s: any) => s.id !== props.sessionId && s.character?.id === props.session?.character?.id)
+        .slice(0, 3)
+    : [],
+)
+
+/** 欢迎页快捷操作：填入输入框并聚焦 */
+function handleQuickAction(label: string) {
+  chatInputRef.value?.insertText(label)
+  nextTick(() => {
+    const editorEl = document.querySelector('.message-editor .ProseMirror') as HTMLElement
+    editorEl?.focus()
+  })
+}
+
+/** 欢迎页打开最近会话 */
+function handleOpenSession(sessionId: string) {
+  router.push(`/chat/${sessionId}`)
+}
 
 // 会话切换并发守卫：每次 handleSessionChange 递增，await 后检查是否已被新调用取代
 let sessionChangeToken = 0
@@ -1592,6 +1719,41 @@ function scrollToMessage(messageId: string) {
 /* 确保消息项也使用隔离 */
 :deep(.message-item) {
   contain: layout style;
+}
+
+/* Token 消耗统计条 */
+.token-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.token-stats-label {
+  flex-shrink: 0;
+}
+.token-stats-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+  min-width: 60px;
+}
+.token-stats-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--el-color-primary);
+  transition: width 0.4s ease;
+}
+.token-stats-value {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
 }
 
 /* 编辑模式提示条样式 */

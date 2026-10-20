@@ -1,0 +1,94 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.pme[data-v-296e8dd5] {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-fill);
+  box-sizing: border-box;
+}
+.pme-head[data-v-296e8dd5] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  flex-shrink: 0;
+}
+.pme-head-left[data-v-296e8dd5] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.pme-icon[data-v-296e8dd5] {
+  color: #e6522c;
+  flex-shrink: 0;
+}
+.pme-title[data-v-296e8dd5] {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pme-head-right[data-v-296e8dd5] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pme-time[data-v-296e8dd5] {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.pme-refresh[data-v-296e8dd5] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.pme-refresh[data-v-296e8dd5]:hover {
+  background: var(--bg-hover);
+  color: var(--brand-500);
+}
+.pme-grid[data-v-296e8dd5] {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 56px;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+.pme-cell[data-v-296e8dd5] {
+  min-width: 0;
+  min-height: 0;
+}
+.pme-center[data-v-296e8dd5] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: 48px 0;
+}
+.pme-error[data-v-296e8dd5] {
+  color: var(--status-error);
+}

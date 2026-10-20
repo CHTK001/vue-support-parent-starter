@@ -1,0 +1,198 @@
+
+/* ========================================================
+   TGA 预览面板（koi / Element Plus 变量体系）
+
+   与 TIFF / HEIC 面板同一套结构与观感：统计条 + 操作条 +
+   画布区 + 状态栏，颜色全走 --el-* 令牌（暗色模式只靠变量）。
+   ======================================================== */
+.tga[data-v-324294a5] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 8px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+}
+
+/* ---- 统计条 ---- */
+.tga__stats[data-v-324294a5] {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  overflow-x: auto;
+}
+.tga__stat[data-v-324294a5] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+.tga__stat[data-v-324294a5]:first-child {
+  padding-left: 0;
+}
+.tga__stat + .tga__stat[data-v-324294a5] {
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.tga__stat-label[data-v-324294a5] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.tga__stat-value[data-v-324294a5] {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tga__stat-value--accent[data-v-324294a5] {
+  color: var(--el-color-primary);
+}
+
+/* ---- 操作条 ---- */
+.tga__toolbar[data-v-324294a5] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  flex-wrap: wrap;
+}
+.tga__hint[data-v-324294a5] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.tga__spacer[data-v-324294a5] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- 主体 ---- */
+.tga__body[data-v-324294a5] {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 视口：唯一可滚动的容器 */
+.tga__viewport[data-v-324294a5] {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  overflow: auto;
+  background: var(--el-fill-color-lighter, #f5f7fa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tga__canvas[data-v-324294a5] {
+  display: block;
+  flex: none;
+  box-shadow: var(--el-box-shadow-light, 0 2px 12px rgba(0, 0, 0, 0.12));
+}
+
+/* 适应窗口：长边贴住视口 */
+.tga__canvas.is-fit[data-v-324294a5] {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* 1:1 时按最近邻显示，放大看得清像素 */
+.tga__canvas[data-v-324294a5]:not(.is-fit) {
+  image-rendering: pixelated;
+}
+.tga__canvas.is-loading[data-v-324294a5] {
+  visibility: hidden;
+}
+.tga__overlay[data-v-324294a5] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: var(--el-bg-color);
+}
+.tga__overlay-text[data-v-324294a5] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.tga__spinner[data-v-324294a5] {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--el-border-color-lighter);
+  border-top-color: var(--el-color-primary);
+  border-radius: 50%;
+  animation: tga-spin-324294a5 0.9s linear infinite;
+}
+@keyframes tga-spin-324294a5 {
+to {
+    transform: rotate(360deg);
+}
+}
+.tga__error-icon[data-v-324294a5] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--el-radius-lg, 8px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-placeholder);
+  font-weight: 700;
+  font-size: 13px;
+}
+.tga__error-title[data-v-324294a5] {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.tga__error-text[data-v-324294a5] {
+  max-width: 460px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  word-break: break-word;
+}
+.tga__error-actions[data-v-324294a5] {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ---- 底部状态栏 ---- */
+.tga__footer[data-v-324294a5] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.tga__footer span[data-v-324294a5] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tga__footer .is-error[data-v-324294a5] {
+  color: var(--el-color-danger);
+}
+@media (prefers-reduced-motion: reduce) {
+.tga__spinner[data-v-324294a5] {
+    animation: none;
+}
+}

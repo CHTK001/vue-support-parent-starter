@@ -1,0 +1,1 @@
+import{a as e,i as t,n,o as r,r as i,t as a}from"./file-viewer-ebook-BA-JxwZ0.js";export{i as Book,n as Contents,t as EpubCFI,a as Layout,r as Rendition,e as default};

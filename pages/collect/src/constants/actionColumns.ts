@@ -32,6 +32,8 @@ export interface CollectActionMeta {
  */
 export type CollectActionKey =
   | "replay"
+  | "quality"
+  | "monitor"
   | "records"
   | "logs"
   | "deleteRun"
@@ -61,6 +63,8 @@ export type CollectActionKey =
 export const COLLECT_ACTIONS: Record<CollectActionKey, CollectActionMeta> = {
   // 运行记录（TaskView）
   replay: { icon: "VideoPlay", type: "primary", tip: "回放这次运行（只看动画，不重跑）" },
+  quality: { icon: "DataAnalysis", type: "success", tip: "查看这次运行的质量报告" },
+  monitor: { icon: "Odometer", type: "warning", tip: "实时查看运行中的节点状态" },
   records: { icon: "Files", tip: "看这次运行产出的采集结果" },
   logs: { icon: "Tickets", tip: "看这次运行的节点日志" },
   deleteRun: { icon: "Delete", type: "danger", tip: "删除这条运行记录及其节点日志" },

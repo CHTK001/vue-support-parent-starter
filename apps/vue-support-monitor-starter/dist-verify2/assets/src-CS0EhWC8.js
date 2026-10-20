@@ -1,0 +1,4 @@
+import { X as registerDynamicRoutes } from "./src-CEonioA3.js";
+import { a as getMenuResolver, i as staticRouter, n as getStaticMenu, o as hasMenuResolver, r as registerStaticMenu, s as registerMenuResolver, t as authStore } from "./auth-C8MLoNwd.js";
+import { c as initAuthRouter, i as tabsStore, l as resetRouter, m as globalStore, n as bindStationMessageSocket, o as keepAliveStore, p as initPiniaFromConfig, r as messageStore, s as forceRelogin, t as pinia, u as userStore } from "./src-CUe0zRl2.js";
+export { bindStationMessageSocket, pinia as default, forceRelogin, getMenuResolver, getStaticMenu, hasMenuResolver, initAuthRouter, initPiniaFromConfig, registerDynamicRoutes, registerMenuResolver, registerStaticMenu, resetRouter, staticRouter, authStore as useAuthStore, globalStore as useGlobalStore, keepAliveStore as useKeepAliveStore, messageStore as useMessageStore, tabsStore as useTabsStore, userStore as useUserStore };

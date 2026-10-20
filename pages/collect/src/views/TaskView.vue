@@ -19,6 +19,8 @@ import ReTag from "@repo/ui/re-tag";
 import ReCostText from "@repo/ui/re-cost-text";
 import LogFullTextDialog from "../components/LogFullTextDialog.vue";
 import RunReplayDialog from "../components/RunReplayDialog.vue";
+import TaskMonitorDialog from "../components/TaskMonitorDialog.vue";
+import TaskQualityDialog from "../components/TaskQualityDialog.vue";
 import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { costMs, statusTagType, statusText, triggerText } from "../constants/taskStatus";
@@ -83,6 +85,14 @@ const selected = ref<CollectTask[]>([]);
 const replayTask = ref<CollectTask | null>(null);
 const replayVisible = ref(false);
 
+/** 质量报告弹窗选中的运行 */
+const qualityTask = ref<CollectTask | null>(null);
+const qualityVisible = ref(false);
+
+/** 实时监控弹窗选中的运行 */
+const monitorTask = ref<CollectTask | null>(null);
+const monitorVisible = ref(false);
+
 const { reload: reloadFlows } = useCollectView(async () => {
   flows.value = (await listFlows()) ?? [];
 });
@@ -137,7 +147,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskNodeCount", label: "节点/请求/结果", width: 126, slot: "counts", align: "center" },
   { prop: "collectTaskExecutorId", label: "执行器", width: 200, showOverflowTooltip: true },
   { prop: "collectTaskError", label: "错误", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 176, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 260, slot: "action", fixed: "right" },
 ]);
 
 const logColumns = computed<ReTableColumn[]>(() => [
@@ -213,6 +223,18 @@ async function showLogs(input: Record<string, unknown>): Promise<void> {
 function openReplay(input: Record<string, unknown>): void {
   replayTask.value = input as unknown as CollectTask;
   replayVisible.value = true;
+}
+
+/** 质量报告：按节点日志聚合健康指标 */
+function openQuality(input: Record<string, unknown>): void {
+  qualityTask.value = input as unknown as CollectTask;
+  qualityVisible.value = true;
+}
+
+/** 实时监控：轮询运行中的节点状态 */
+function openMonitor(input: Record<string, unknown>): void {
+  monitorTask.value = input as unknown as CollectTask;
+  monitorVisible.value = true;
 }
 
 /** 采集结果：按运行ID 过滤到这一次跑出来的东西 */
@@ -379,6 +401,8 @@ onActivated(() => {
       </template>
       <template #action="{ row }">
         <ReButton v-bind="COLLECT_ACTIONS.replay" layout="square" @click="openReplay(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.quality" layout="square" @click="openQuality(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.monitor" layout="square" @click="openMonitor(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.records" layout="square" @click="gotoRecords(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.logs" layout="square" @click="showLogs(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.deleteRun" layout="square" @click="removeTask(row)"/>
@@ -422,5 +446,9 @@ onActivated(() => {
     <LogFullTextDialog v-model="logFullVisible" :log="logFullTarget"/>
 
     <RunReplayDialog v-model="replayVisible" :task="replayTask" />
+
+    <TaskQualityDialog v-model="qualityVisible" :task="qualityTask" />
+
+    <TaskMonitorDialog v-model="monitorVisible" :task="monitorTask" />
   </div>
 </template>

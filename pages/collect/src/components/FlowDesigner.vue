@@ -22,6 +22,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import commentForm from "./nodes/commentForm.vue";
+import aiForm from "./nodes/aiForm.vue";
 import conditionForm from "./nodes/conditionForm.vue";
 import dataEntryForm from "./nodes/dataEntryForm.vue";
 import databaseForm from "./nodes/databaseForm.vue";
@@ -219,7 +220,7 @@ const engine = shallowRef<FlowGraphEngine | null>(null);
  * <p>面板里的「全览流程节点」要经它调 {@code fit()}，而不是直接 engine.fitCenter()：
  * 外壳那版会同步工具条倍率显示，直接调引擎的话图缩放了、倍率还停在旧值。</p>
  */
-const graphRef = ref<{ fit?: () => unknown } | null>(null);
+const graphRef = ref<{ fit?: () => unknown; tidy?: () => unknown } | null>(null);
 const nodeForm = ref<NodeForm | null>(null);
 const edgeForm = ref<EdgeForm | null>(null);
 
@@ -313,6 +314,7 @@ const startPositions = new Map<string, { x: number; y: number }>();
 
 const nodeTypes = computed<FlowNodeTypeDef[]>(() =>
   props.metas
+    .filter(meta => !meta.hidden)
     .filter(meta => !(meta.shape === START_TYPE && hasStartNode.value))
     .map(meta => ({
       type: meta.shape,
@@ -798,6 +800,7 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   dedup: dedupForm,
   sleep: sleepForm,
   script: scriptForm,
+  ai: aiForm,
   process: processForm,
   comment: commentForm,
   condition: conditionForm,
@@ -905,6 +908,14 @@ function defaultOutputsOf(shape: string, declaredOutput = "", setNames: string[]
     return [
       { name: "conditionResult", desc: "判断结果（真 / 假），出边条件用它分流" },
       { name: "data", desc: "同 conditionResult（上一个节点的产出）" },
+    ];
+  }
+  if (shape === "ai") {
+    const out = declaredOutput.trim() || "aiResult";
+    return [
+      { name: out, desc: "模型回答文本，可由下游节点继续加工或入库" },
+      { name: "data", desc: "同模型回答（上一个节点的产出）" },
+      { name: "dataJson", desc: "data 的 JSON 形态" },
     ];
   }
   if (shape === "link") {
@@ -1432,7 +1443,17 @@ function startWith(name: string): void {
   load(dsl);
 }
 
-defineExpose({ load, getGraph, addNode, startWith, shapeIssues });
+/** 自动优化：整理节点位置后自适应画布（顶部工具栏「自动优化」入口） */
+function autoOptimize(): void {
+  if (graphRef.value?.tidy) {
+    graphRef.value.tidy();
+  }
+  if (graphRef.value?.fit) {
+    graphRef.value.fit();
+  }
+}
+
+defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
 </script>
 
 <template>

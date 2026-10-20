@@ -110,7 +110,7 @@
           />
         </el-form-item>
         <el-form-item label="权重">
-          <el-input-number v-model="form.weight" :min="0" :max="1000" />
+          <ReNumberSelect v-model="form.weight" :min="0" :max="1000" />
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.enabled" />
@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { ref, computed, watch, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';

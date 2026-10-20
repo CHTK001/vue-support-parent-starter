@@ -1,0 +1,98 @@
+
+.re-switch-square[data-v-25c39935] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--el-border-color, #dcdfe6);
+  border-radius: 10px;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  outline: none;
+  padding: 0;
+  position: relative;
+  overflow: visible;
+}
+
+/* 尺寸 */
+.re-switch-square--small[data-v-25c39935] {
+  width: 32px;
+  height: 32px;
+}
+.re-switch-square--default[data-v-25c39935] {
+  width: 40px;
+  height: 40px;
+}
+.re-switch-square--large[data-v-25c39935] {
+  width: 48px;
+  height: 48px;
+}
+
+/* 中心内容（图标/文字） */
+.re-switch-square__label[data-v-25c39935] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.re-switch-square__label[data-v-25c39935] .el-icon {
+  font-size: 18px;
+}
+.re-switch-square__default-icon[data-v-25c39935] {
+  width: 18px;
+  height: 18px;
+}
+.re-switch-square__fallback[data-v-25c39935] {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 交互 */
+.re-switch-square[data-v-25c39935]:hover:not(.re-switch-square--disabled) {
+  border-color: var(--el-color-primary-light-3, #a0cfff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.re-switch-square[data-v-25c39935]:active:not(.re-switch-square--disabled) {
+  transform: scale(0.92);
+}
+
+/* 激活态：边框高亮 + 右上角打勾 */
+.re-switch-square--active[data-v-25c39935] {
+  border: 2px solid var(--el-color-primary, #409eff);
+  background: #fff;
+  color: var(--el-color-primary, #409eff);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
+}
+.re-switch-square--active[data-v-25c39935]:hover:not(.re-switch-square--disabled) {
+  border-color: var(--el-color-primary-light-3, #79bbff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 右上角打勾 */
+.re-switch-square__check[data-v-25c39935] {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--el-color-primary, #409eff);
+  border-radius: 50%;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(64, 158, 255, 0.4);
+}
+.re-switch-square__check svg[data-v-25c39935] {
+  width: 10px;
+  height: 10px;
+}
+
+/* 禁用态 */
+.re-switch-square--disabled[data-v-25c39935] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

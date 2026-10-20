@@ -42,7 +42,7 @@
             <!-- 固定间隔：schedule.kind = every + every_ms -->
             <div v-else-if="timeMode === 'every'" class="schedule-panel flex items-center gap-2">
               <span class="text-xs text-gray-500">{{ t('scheduler.edit.every') }}</span>
-              <el-input-number v-model="everyConfig.value" :min="1" :max="9999" controls-position="right"
+              <ReNumberSelect v-model="everyConfig.value" :min="1" :max="9999" controls-position="right"
                 style="width: 120px" />
               <el-select v-model="everyConfig.unit" style="width: 100px">
                 <el-option :label="t('scheduler.edit.unitMinute')" value="minute" />
@@ -123,7 +123,7 @@
 
         <!-- state.max_retries：后端仅此一个重试字段，无重试间隔与最大执行次数 -->
         <el-form-item :label="t('scheduler.edit.retryCount')">
-          <el-input-number v-model="form.maxRetries" :min="0" :max="10" controls-position="right"
+          <ReNumberSelect v-model="form.maxRetries" :min="0" :max="10" controls-position="right"
             style="width: 120px" />
         </el-form-item>
 
@@ -152,6 +152,7 @@ import type { ScheduledTask, ScheduledTaskForm, CronSchedule } from '../../types
 import type { Model, ModelProvider } from '../../types/api'
 import { apiService } from '../../services/ApiService'
 import { agentApi } from '@/services/javaApi'
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 
 const { t } = useI18n()

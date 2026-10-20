@@ -372,6 +372,15 @@ importers:
 
   apps/vue-support-ai-guada:
     dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@6.0.3))
+      '@file-viewer/vue3':
+        specifier: 3.1.2
+        version: 3.1.2(vue@3.5.40(typescript@6.0.3))
+      '@file-viewer/vue3-full':
+        specifier: 3.1.2
+        version: 3.1.2(esbuild@0.28.1)(pdf-lib@1.17.1)(vue@3.5.40(typescript@6.0.3))
       '@pages/ai':
         specifier: workspace:*
         version: link:../../pages/ai
@@ -514,6 +523,9 @@ importers:
       '@file-viewer/preset-all':
         specifier: 'catalog:'
         version: 3.1.2(bpmn-js@18.31.0)(esbuild@0.28.1)(geotiff@2.1.3)(pdf-lib@1.17.1)(three@0.185.1)(web-ifc@0.0.78)
+      '@file-viewer/preset-office':
+        specifier: 3.1.2
+        version: 3.1.2(pdf-lib@1.17.1)
       '@file-viewer/vite-plugin':
         specifier: 'catalog:'
         version: 3.1.2(vite@7.3.6(@types/node@25.9.6)(jiti@2.7.0)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1))
@@ -952,6 +964,9 @@ importers:
       '@pages/datasource':
         specifier: workspace:*
         version: link:../../pages/datasource
+      '@pages/device':
+        specifier: workspace:*
+        version: link:../../pages/device
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../../pages/filesystem
@@ -2300,6 +2315,9 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@yume-chan/libde265':
+        specifier: ^1.0.0
+        version: 1.0.0
       axios:
         specifier: 'catalog:'
         version: 1.19.0
@@ -2502,6 +2520,9 @@ importers:
       '@ruffle-rs/ruffle':
         specifier: ^0.7.1
         version: 0.7.1
+      '@run-slicer/cfr':
+        specifier: 0.1.8-0.152
+        version: 0.1.8-0.152
       ag-psd:
         specifier: ^31.0.2
         version: 31.0.2
@@ -4971,6 +4992,9 @@ packages:
   '@ruffle-rs/ruffle@0.7.1':
     resolution: {integrity: sha512-6ZWxx/cfX3RoNyQ1AVimECSae4gKqMxdPimOD+chiIcOFiJS0ATGKcjkretxNT03lqNUpiSyJjF55AuvvZ+QeA==}
 
+  '@run-slicer/cfr@0.1.8-0.152':
+    resolution: {integrity: sha512-FN5I41CF0QcscV5HCcbq5iJHqIueNtROvLtfXohNt9pNJUxo2WFncg0a7jPinRjBi7VgNxjJmWE7sP++vYVFRw==}
+
   '@sakitam-gis/vis-engine@1.5.3':
     resolution: {integrity: sha512-IpuZwi0XRflJiP1mNTwOSjlAJZRCczOuVh6s/feVOpXctiAoSWrAuhK0HVITLpCWAQF1bN6CRKA3LW0z1nCr0g==}
     engines: {node: '>= 14.18.1', npm: '>= 6.14.15'}
@@ -6138,6 +6162,9 @@ packages:
   '@xmldom/xmldom@0.9.12':
     resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
     engines: {node: '>=14.6'}
+
+  '@yume-chan/libde265@1.0.0':
+    resolution: {integrity: sha512-4QfjWWNbPZ08H8HqeI5UavAk8dr9Fm7+W9M7FdcY/enLTfNTnH4Slgrv6CdtKfmpXf8GBYNupU5mXV0q2I8WMA==}
 
   abbrev@1.1.1:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
@@ -11625,10 +11652,33 @@ snapshots:
       - xmllint-wasm
       - xslt-polyfill
 
+  '@file-viewer/vue3-full@3.1.2(esbuild@0.28.1)(pdf-lib@1.17.1)(vue@3.5.40(typescript@6.0.3))':
+    dependencies:
+      '@file-viewer/preset-all': 3.1.2(bpmn-js@18.31.0)(esbuild@0.28.1)(geotiff@2.1.3)(pdf-lib@1.17.1)(three@0.185.1)(web-ifc@0.0.78)
+      '@file-viewer/vue3': 3.1.2(vue@3.5.40(typescript@6.0.3))
+      file-viewer-copy-assets: 3.1.2
+      vue: 3.5.40(typescript@6.0.3)
+    transitivePeerDependencies:
+      - '@thatopen/components'
+      - '@thatopen/fragments'
+      - bpmn-js
+      - esbuild
+      - geotiff
+      - pdf-lib
+      - three
+      - web-ifc
+      - xmllint-wasm
+      - xslt-polyfill
+
   '@file-viewer/vue3@3.1.2(vue@3.5.40(typescript@5.9.3))':
     dependencies:
       '@file-viewer/core': 3.1.2
       vue: 3.5.40(typescript@5.9.3)
+
+  '@file-viewer/vue3@3.1.2(vue@3.5.40(typescript@6.0.3))':
+    dependencies:
+      '@file-viewer/core': 3.1.2
+      vue: 3.5.40(typescript@6.0.3)
 
   '@floating-ui/core@1.8.0':
     dependencies:
@@ -12305,6 +12355,8 @@ snapshots:
     optional: true
 
   '@ruffle-rs/ruffle@0.7.1': {}
+
+  '@run-slicer/cfr@0.1.8-0.152': {}
 
   '@sakitam-gis/vis-engine@1.5.3':
     dependencies:
@@ -14481,6 +14533,8 @@ snapshots:
   '@xmldom/xmldom@0.8.15': {}
 
   '@xmldom/xmldom@0.9.12': {}
+
+  '@yume-chan/libde265@1.0.0': {}
 
   abbrev@1.1.1: {}
 

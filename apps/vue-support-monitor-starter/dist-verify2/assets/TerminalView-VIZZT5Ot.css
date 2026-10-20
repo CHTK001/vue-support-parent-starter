@@ -1,0 +1,346 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.sftp-panel[data-v-12de5e73] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sftp-panel.disabled[data-v-12de5e73] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.toolbar[data-v-12de5e73] {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius);
+  transition: var(--transition-base);
+}
+.bookmarks[data-v-12de5e73] {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bookmarks .bookmark-tag[data-v-12de5e73] {
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+}
+.bookmarks .bookmark-tag[data-v-12de5e73]:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.upload-btn[data-v-12de5e73] {
+  cursor: pointer;
+  display: inline-flex;
+}
+.sftp-table-wrap[data-v-12de5e73] {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.sftp-skeleton[data-v-12de5e73] {
+  padding: 12px 8px;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.tw[data-v-56d72047] {
+  display: flex;
+  position: relative;
+  width: 100%;
+  /* 高度交给全局 .tel-page 的 height:100%（外层 .main 才是滚动容器）。
+     不能写 calc(100vh - 56px)：外壳实际由 56px 顶栏 + 42px 标签条 + .main 的 20px
+     上内边距叠成，硬编码 56px 会让整个工作区比可视范围多出约 51px、底部被裁掉。 */
+  min-height: 0;
+}
+.rail[data-v-56d72047] {
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--bg-container);
+  border-right: 1px solid var(--border-subtle);
+  transition: width 0.2s ease;
+  overflow: hidden;
+}
+.rail-inner[data-v-56d72047] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.rail-head[data-v-56d72047] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 16px 8px;
+}
+.rail-title[data-v-56d72047] {
+  font-size: 15px;
+  font-weight: 600;
+}
+.rail-count[data-v-56d72047] {
+  padding: 0 7px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  background: var(--border-subtle);
+  border-radius: 9px;
+}
+
+/* 搜索框内边距必须挂在 .el-input 上，不能挂在这个类自己身上：
+   ReInput 的包裹层是 .re-input { display: contents }（见 ReInput.vue，
+   刻意不产生盒子以免影响既有布局），写在 display:contents 元素上的 padding
+   永远不渲染 —— 实测输入框宽 287px，正好等于 .rail-inner 的 287px，
+   左右两侧贴死资源条边框，和上方 16px 内缩的标题行、下方 12px 内缩的主机
+   列表全部错位。改挂到真正生成盒子的 .el-input 上，取 12px 与列表对齐。 */
+.rail-search[data-v-56d72047] .el-input {
+  /* width:auto 是必需的：el-input 自带 width:100%，会顶着外边距继续撑满 287px
+     并溢出右边界（实测 margin 生效后盒子仍宽 287，右缘到 548 > 容器 536）。
+     置回 auto 后它才按「容器宽 − 左右 margin」收缩。 */
+  width: auto;
+  margin: 0 12px 8px;
+}
+.rail-list[data-v-56d72047] {
+  flex: 1;
+  min-height: 0;
+  padding: 0 12px 8px;
+}
+.tip[data-v-56d72047] {
+  padding: 20px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.tip.err[data-v-56d72047] {
+  color: var(--pulse-alarm);
+}
+.rail-group[data-v-56d72047] {
+  margin-bottom: 6px;
+}
+.g-title[data-v-56d72047] {
+  padding: 8px 6px 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.g-meta[data-v-56d72047] {
+  padding: 0 6px 6px 28px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+.rail-item[data-v-56d72047] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.rail-item[data-v-56d72047]:hover {
+  background: var(--brand-50);
+}
+.rail-item.active[data-v-56d72047] {
+  background: var(--brand-100);
+  border-color: var(--brand-100);
+}
+.ri-os[data-v-56d72047] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--brand-500);
+}
+.ri-os[data-v-56d72047] svg {
+  display: block;
+}
+.ri-name[data-v-56d72047] {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ri-proto[data-v-56d72047] {
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: monospace;
+  border-radius: 3px;
+}
+.ri-proto.proto-ssh[data-v-56d72047] {
+  color: var(--proto-ssh);
+  background: color-mix(in srgb, var(--proto-ssh) 10%, transparent);
+}
+.ri-proto.proto-rdp[data-v-56d72047] {
+  color: var(--proto-rdp);
+  background: color-mix(in srgb, var(--proto-rdp) 10%, transparent);
+}
+.ri-proto.proto-vnc[data-v-56d72047] {
+  color: var(--proto-vnc);
+  background: color-mix(in srgb, var(--proto-vnc) 10%, transparent);
+}
+.rail-foot[data-v-56d72047] {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+.foot-hint[data-v-56d72047] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.rail-collapsed[data-v-56d72047] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 18px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.term-main[data-v-56d72047] {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 应用内沉浸（可视范围全屏）：隐藏资源条，显示区铺满整个工作区 */
+.tw.immersive .rail[data-v-56d72047] {
+  display: none;
+}
+.tw.immersive .term-main[data-v-56d72047] {
+  position: absolute;
+  inset: 0;
+}
+
+/* 浏览器/OS 全屏时显示区底色 */
+.term-main[data-v-56d72047]:fullscreen {
+  background: #000;
+}
+
+/* 远控工具条：悬浮于显示区顶部居中 */
+.term-toolbar[data-v-56d72047] {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg-container, #fff) 88%, transparent);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 10px;
+  box-shadow: var(--shadow-md, 0 6px 20px rgba(0, 0, 0, 0.18));
+  backdrop-filter: blur(8px);
+  transform: translateX(-50%);
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+
+/* 全屏/沉浸下收起：向上滑出可视范围，鼠标移到顶部再滑下 */
+.term-toolbar.is-hidden[data-v-56d72047] {
+  transform: translate(-50%, -130%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 工具条分组分隔线 */
+.tt-sep[data-v-56d72047] {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 1px;
+  background: var(--border-subtle, rgba(0, 0, 0, 0.12));
+}
+
+/* 连接状态边框高亮 */
+.term-toolbar.is-connected[data-v-56d72047] {
+  border-color: color-mix(in srgb, var(--el-color-success) 40%, var(--border-subtle, rgba(0, 0, 0, 0.08)));
+  border-left-width: 3px;
+  border-left-color: var(--el-color-success);
+}
+.term-toolbar.is-idle[data-v-56d72047] {
+  border-color: var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-left-width: 3px;
+  border-left-color: var(--text-placeholder, #b4b4b4);
+}
+
+/* 连接状态徽章 */
+.term-toolbar__status[data-v-56d72047] {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.conn-dot[data-v-56d72047] {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.conn-dot.is-live[data-v-56d72047] {
+  background: var(--el-color-success);
+  animation: conn-pulse-56d72047 2s ease-out infinite;
+}
+.conn-dot.is-idle[data-v-56d72047] {
+  background: var(--text-placeholder, #b4b4b4);
+}
+@keyframes conn-pulse-56d72047 {
+0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent);
+}
+70% {
+    box-shadow: 0 0 0 5px transparent;
+}
+100% {
+    box-shadow: 0 0 0 0 transparent;
+}
+}
+.conn-label[data-v-56d72047] {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.conn-host[data-v-56d72047] {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 特殊按键下拉项：组合键提示 */
+.tt-key-hint[data-v-56d72047] {
+  margin-left: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-tertiary, #909399);
+}
+.remote-frame[data-v-56d72047] {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: none;
+  background: #000;
+}
+.remote-empty[data-v-56d72047] {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 14px;
+}

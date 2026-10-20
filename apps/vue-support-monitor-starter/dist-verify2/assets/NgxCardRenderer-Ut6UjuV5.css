@@ -1,0 +1,220 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngx-card[data-v-a3c790ce] {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ngx-card-head[data-v-a3c790ce] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ngx-card-title[data-v-a3c790ce] {
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ngx-card-head-right[data-v-a3c790ce] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ngx-card-time[data-v-a3c790ce] {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.ngx-card-refresh[data-v-a3c790ce] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.ngx-card-refresh[data-v-a3c790ce]:hover {
+  background: var(--bg-hover);
+  color: var(--brand-500);
+}
+.ngx-card-body[data-v-a3c790ce] {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+}
+.ngx-card-hint[data-v-a3c790ce] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+.ngx-card-error[data-v-a3c790ce] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 8px;
+  color: var(--status-error);
+  font-size: 12px;
+  word-break: break-all;
+  overflow: auto;
+}
+.ngx-card-loading[data-v-a3c790ce] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--bg-container) 72%, transparent);
+}
+.ngx-card-loading-dot[data-v-a3c790ce] {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--brand-500);
+  animation: ngx-card-pulse-a3c790ce 1.1s ease-in-out infinite;
+}
+@keyframes ngx-card-pulse-a3c790ce {
+0%, 100% {
+    opacity: 1;
+}
+50% {
+    opacity: 0.2;
+}
+}
+.ngx-card-warn[data-v-a3c790ce] {
+  flex-shrink: 0;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 状态卡 ---- */
+.ngx-stat[data-v-a3c790ce] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 0;
+}
+.ngx-stat-value[data-v-a3c790ce] {
+  font-size: clamp(20px, 4vw, 34px);
+  font-weight: 700;
+  color: inherit;
+  line-height: 1.1;
+  word-break: break-all;
+}
+.ngx-stat-sub[data-v-a3c790ce] {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 趋势图 ---- */
+.ngx-chart[data-v-a3c790ce] {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+/* ---- 访问 Top 表 ---- */
+.ngx-table-summary[data-v-a3c790ce] {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ngx-table-wrap[data-v-a3c790ce] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.ngx-table[data-v-a3c790ce] {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.ngx-table th[data-v-a3c790ce] {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--bg-container);
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ngx-table td[data-v-a3c790ce] {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: inherit;
+  white-space: nowrap;
+}
+.ngx-table-key[data-v-a3c790ce] {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ngx-table-num[data-v-a3c790ce] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 脚本卡 ---- */
+.ngx-script[data-v-a3c790ce] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.ngx-script-out[data-v-a3c790ce] {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: inherit;
+  font-family: inherit;
+}

@@ -1,0 +1,26 @@
+
+.re-canvas-ui[data-v-a86764ae] {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.re-canvas-ui__source[data-v-a86764ae] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.re-canvas-ui__content[data-v-a86764ae] {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+.re-canvas-ui__output[data-v-a86764ae] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

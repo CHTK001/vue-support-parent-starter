@@ -1,0 +1,159 @@
+
+/* ===================== 容器 ===================== */
+.rm-number[data-v-df06f4b4] {
+  --rm-num-bg: var(--rm-bg);
+  --rm-num-border: var(--rm-border-light);
+  --rm-num-step-bg: transparent;
+  --rm-num-step-color: var(--rm-text-secondary);
+
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  height: var(--rm-height);
+  min-width: 96px;
+  padding: 0 6px;
+  border-radius: var(--rm-radius-lg);
+  background: var(--rm-num-bg);
+  box-shadow: 0 0 0 1px var(--rm-num-border) inset;
+  transition:
+    box-shadow var(--rm-transition),
+    background var(--rm-transition);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+.rm-number[data-v-df06f4b4]:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border-light)) inset;
+}
+.rm-number--small[data-v-df06f4b4] { height: var(--rm-height-sm); border-radius: var(--rm-radius); min-width: 84px;
+}
+.rm-number--large[data-v-df06f4b4] { height: var(--rm-height-lg); border-radius: var(--rm-radius-xl); min-width: 120px;
+}
+
+/* ===================== Focus ===================== */
+.rm-number--focused[data-v-df06f4b4] {
+  box-shadow: 0 0 0 1px var(--rm-primary) inset, 0 0 0 4px var(--rm-primary-light-9);
+}
+
+/* ===================== States ===================== */
+.rm-number--disabled[data-v-df06f4b4] {
+  background: var(--rm-bg-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.rm-number--readonly[data-v-df06f4b4] {
+  background: var(--rm-bg-subtle);
+}
+
+/* ===================== 前缀 / 后缀 ===================== */
+.rm-number__affix[data-v-df06f4b4] {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 6px;
+  color: var(--rm-text-secondary);
+  font-size: 0.9em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  user-select: none;
+  transition: color var(--rm-transition);
+}
+.rm-number--focused .rm-number__affix[data-v-df06f4b4] {
+  color: var(--rm-primary);
+}
+
+/* ===================== 输入区 ===================== */
+.rm-number__field[data-v-df06f4b4] {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rm-number__input[data-v-df06f4b4] {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--rm-text);
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  padding: 0 2px;
+  letter-spacing: 0.01em;
+}
+.rm-number__input[data-v-df06f4b4]::placeholder {
+  color: var(--rm-text-disabled);
+  font-weight: 400;
+}
+
+/* ===================== 步进按钮 ===================== */
+.rm-number__step[data-v-df06f4b4] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  align-self: center;
+  height: calc(100% - 8px);
+  border: 1px solid transparent;
+  border-radius: var(--rm-radius);
+  background: var(--rm-num-step-bg);
+  color: var(--rm-num-step-color);
+  cursor: pointer;
+  transition:
+    background var(--rm-transition),
+    color var(--rm-transition),
+    border-color var(--rm-transition),
+    transform var(--rm-transition);
+}
+.rm-number__icon[data-v-df06f4b4] {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--rm-transition);
+}
+.rm-number__step[data-v-df06f4b4]:hover:not(:disabled) {
+  background: var(--rm-primary-light-9);
+  border-color: color-mix(in srgb, var(--rm-primary) 22%, transparent);
+  color: var(--rm-primary);
+}
+.rm-number__step:hover:not(:disabled) .rm-number__icon[data-v-df06f4b4] {
+  transform: scale(1.15);
+}
+.rm-number__step[data-v-df06f4b4]:active:not(:disabled) {
+  background: var(--rm-primary-light-8);
+  transform: scale(0.94);
+}
+.rm-number__step[data-v-df06f4b4]:disabled {
+  color: var(--rm-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 减号按钮 hover 时 icon 向左微移，加号向右 */
+.rm-number__step--minus:hover:not(:disabled) .rm-number__icon[data-v-df06f4b4] {
+  transform: scale(1.15) translateX(-1px);
+}
+.rm-number__step--plus:hover:not(:disabled) .rm-number__icon[data-v-df06f4b4] {
+  transform: scale(1.15) translateX(1px);
+}
+
+/* ===================== Reduced Motion ===================== */
+@media (prefers-reduced-motion: reduce) {
+.rm-number[data-v-df06f4b4],
+  .rm-number__step[data-v-df06f4b4],
+  .rm-number__icon[data-v-df06f4b4],
+  .rm-number__affix[data-v-df06f4b4] {
+    transition: none;
+}
+.rm-number[data-v-df06f4b4]:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
+    transform: none;
+}
+.rm-number__step[data-v-df06f4b4]:active:not(:disabled) {
+    transform: none;
+}
+}

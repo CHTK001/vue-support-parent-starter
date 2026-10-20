@@ -10,15 +10,16 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:",
-    "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
-    "axios": "catalog:",
-    "hls.js": "catalog:",
-    "flv.js": "catalog:",
     "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/ui": "workspace:*"
+    "@yume-chan/libde265": "^1.0.0",
+    "axios": "catalog:",
+    "element-plus": "catalog:",
+    "flv.js": "catalog:",
+    "hls.js": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   }
 }

@@ -1,0 +1,602 @@
+import { t as proj4 } from "./lib-BcJHM66f.js";
+//#region ../../node_modules/.pnpm/but-unzip@0.1.10/node_modules/but-unzip/index.browser.min.mjs
+try {
+	let r = () => new DecompressionStream("deflate-raw"), t = (e) => new Response(e);
+	r(), l = (e) => t(t(e).body.pipeThrough(r())).arrayBuffer().then((o) => new Uint8Array(o));
+} catch {}
+var l;
+var w = new TextDecoder();
+var c = (r) => {
+	throw Error("but-unzip~" + r);
+};
+function* p(r, t = l) {
+	let e = r.length - 21, o = e - 65536, u = new DataView(r.buffer, r.byteOffset), a = (n) => u.getUint16(n + e, 1), f = (n) => u.getUint32(n + e, 1), i = (n, d) => r.subarray(e += n, e += d);
+	for (; e > o && (e = r.lastIndexOf(80, e - 1)) + 1 && (r[e + 1] - 75 || r[e + 2] - 5 || r[e + 3] - 6););
+	for (e < 0 && c(2), o = a(10), o - a(8) && c(3), e = f(16); o--;) {
+		let n = a(10), d = a(28), y = a(30), h = a(32), b = f(20), m = f(42), g = w.decode(i(46, d)), x = w.decode(i(y, h)), U = e, s;
+		e = m, s = i(30 + a(26) + a(28), b), yield {
+			filename: g,
+			comment: x,
+			read: () => n - 8 ? n ? c(1) : s : t(s)
+		}, e = U;
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/shpjs@6.2.0_geotiff@2.1.3/node_modules/shpjs/lib/unzip.js
+var regex$1 = /.+\.(shp|dbf|json|prj|cpg)$/i;
+var unzip_default = async (buffer) => {
+	const files = {};
+	const proms = [];
+	for (const entry of p(buffer)) {
+		if (!regex$1.test(entry.filename)) continue;
+		proms.push(Promise.resolve(entry.read()).then((bytes) => files[entry.filename] = bytes));
+	}
+	await Promise.all(proms);
+	const out = {};
+	const decoder = new TextDecoder();
+	for (const [key, value] of Object.entries(files)) if (key.slice(-3).toLowerCase() === "shp" || key.slice(-3).toLowerCase() === "dbf") out[key] = new DataView(value.buffer, value.byteOffset, value.byteLength);
+	else out[key] = decoder.decode(value);
+	return out;
+};
+//#endregion
+//#region ../../node_modules/.pnpm/shpjs@6.2.0_geotiff@2.1.3/node_modules/shpjs/lib/combine.js
+var URL$1 = globalThis.URL;
+var combine_default = (base, type) => {
+	if (!type) return base;
+	const url = new URL$1(base);
+	url.pathname = `${url.pathname}.${type}`;
+	return url.href;
+};
+//#endregion
+//#region ../../node_modules/.pnpm/shpjs@6.2.0_geotiff@2.1.3/node_modules/shpjs/lib/binaryajax.js
+async function binaryAjax(_url, type) {
+	const url = combine_default(_url, type);
+	const isOptionalTxt = type === "prj" || type === "cpg";
+	try {
+		const resp = await fetch(url);
+		if (resp.status > 399) throw new Error(resp.statusText);
+		if (isOptionalTxt) return resp.text();
+		const parsed = await resp.arrayBuffer();
+		return new DataView(parsed);
+	} catch (e) {
+		if (isOptionalTxt || type === "dbf") return false;
+		throw e;
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/shpjs@6.2.0_geotiff@2.1.3/node_modules/shpjs/lib/parseShp.js
+function isClockWise(array) {
+	let sum = 0;
+	let i = 1;
+	const len = array.length;
+	let prev, cur;
+	const bbox = [
+		array[0][0],
+		array[0][1],
+		array[0][0],
+		array[0][1]
+	];
+	while (i < len) {
+		prev = cur || array[0];
+		cur = array[i];
+		sum += (cur[0] - prev[0]) * (cur[1] + prev[1]);
+		i++;
+		if (cur[0] < bbox[0]) bbox[0] = cur[0];
+		if (cur[1] < bbox[1]) bbox[1] = cur[1];
+		if (cur[0] > bbox[2]) bbox[2] = cur[0];
+		if (cur[1] > bbox[3]) bbox[3] = cur[1];
+	}
+	return {
+		ring: array,
+		clockWise: sum > 0,
+		bbox,
+		children: []
+	};
+}
+function contains(outer, inner) {
+	if (outer.bbox[0] > inner.bbox[0]) return false;
+	if (outer.bbox[1] > inner.bbox[1]) return false;
+	if (outer.bbox[2] < inner.bbox[2]) return false;
+	if (outer.bbox[3] < inner.bbox[3]) return false;
+	return true;
+}
+function handleRings(rings, reversed = false) {
+	const outers = [];
+	const inners = [];
+	for (const ring of rings) {
+		const proccessed = isClockWise(ring);
+		if (proccessed.clockWise !== reversed) outers.push(proccessed);
+		else inners.push(proccessed);
+	}
+	const orphens = [];
+	for (const inner of inners) {
+		let candidate;
+		for (const outer of outers) if (contains(outer, inner)) {
+			if (!candidate) candidate = outer;
+			else if (contains(candidate, outer)) candidate = outer;
+		}
+		if (candidate) candidate.children.push(inner.ring);
+		else orphens.push(inner);
+	}
+	if (reversed) return {
+		outers,
+		orphens
+	};
+	if (orphens.length && !reversed) {
+		const otherPosibility = handleRings(rings, true);
+		if (otherPosibility.orphens.length === 0) {
+			const out = [];
+			for (const outer of otherPosibility.outers) out.push([outer.ring.toReversed()].concat(outer.children.map((item) => item.toReversed())));
+			return out;
+		}
+	}
+	const out = [];
+	for (const outer of outers) out.push([outer.ring].concat(outer.children));
+	return out;
+}
+ParseShp.prototype.parsePoint = function(data) {
+	return {
+		type: "Point",
+		coordinates: this.parseCoord(data, 0)
+	};
+};
+ParseShp.prototype.parseZPoint = function(data) {
+	const pointXY = this.parsePoint(data);
+	pointXY.coordinates.push(data.getFloat64(16, true));
+	return pointXY;
+};
+ParseShp.prototype.parsePointArray = function(data, offset, num) {
+	const out = [];
+	let done = 0;
+	while (done < num) {
+		out.push(this.parseCoord(data, offset));
+		offset += 16;
+		done++;
+	}
+	return out;
+};
+ParseShp.prototype.parseZPointArray = function(data, zOffset, num, coordinates) {
+	let i = 0;
+	while (i < num) {
+		coordinates[i].push(data.getFloat64(zOffset, true));
+		i++;
+		zOffset += 8;
+	}
+	return coordinates;
+};
+ParseShp.prototype.parseArrayGroup = function(data, offset, partOffset, num, tot) {
+	const out = [];
+	let done = 0;
+	let curNum;
+	let nextNum = 0;
+	let pointNumber;
+	while (done < num) {
+		done++;
+		partOffset += 4;
+		curNum = nextNum;
+		if (done === num) nextNum = tot;
+		else nextNum = data.getInt32(partOffset, true);
+		pointNumber = nextNum - curNum;
+		if (!pointNumber) continue;
+		out.push(this.parsePointArray(data, offset, pointNumber));
+		offset += pointNumber << 4;
+	}
+	return out;
+};
+ParseShp.prototype.parseZArrayGroup = function(data, zOffset, num, coordinates) {
+	let i = 0;
+	while (i < num) {
+		coordinates[i] = this.parseZPointArray(data, zOffset, coordinates[i].length, coordinates[i]);
+		zOffset += coordinates[i].length << 3;
+		i++;
+	}
+	return coordinates;
+};
+ParseShp.prototype.parseMultiPoint = function(data) {
+	const out = {};
+	const num = data.getInt32(32, true);
+	if (!num) return null;
+	const mins = this.parseCoord(data, 0);
+	const maxs = this.parseCoord(data, 16);
+	out.bbox = [
+		mins[0],
+		mins[1],
+		maxs[0],
+		maxs[1]
+	];
+	const offset = 36;
+	if (num === 1) {
+		out.type = "Point";
+		out.coordinates = this.parseCoord(data, offset);
+	} else {
+		out.type = "MultiPoint";
+		out.coordinates = this.parsePointArray(data, offset, num);
+	}
+	return out;
+};
+ParseShp.prototype.parseZMultiPoint = function(data) {
+	const geoJson = this.parseMultiPoint(data);
+	if (!geoJson) return null;
+	let num;
+	if (geoJson.type === "Point") {
+		geoJson.coordinates.push(data.getFloat64(72, true));
+		return geoJson;
+	} else num = geoJson.coordinates.length;
+	const zOffset = 52 + (num << 4);
+	geoJson.coordinates = this.parseZPointArray(data, zOffset, num, geoJson.coordinates);
+	return geoJson;
+};
+ParseShp.prototype.parsePolyline = function(data) {
+	const out = {};
+	const numParts = data.getInt32(32, true);
+	if (!numParts) return null;
+	const mins = this.parseCoord(data, 0);
+	const maxs = this.parseCoord(data, 16);
+	out.bbox = [
+		mins[0],
+		mins[1],
+		maxs[0],
+		maxs[1]
+	];
+	const num = data.getInt32(36, true);
+	let offset, partOffset;
+	if (numParts === 1) {
+		out.type = "LineString";
+		offset = 44;
+		out.coordinates = this.parsePointArray(data, offset, num);
+	} else {
+		out.type = "MultiLineString";
+		offset = 40 + (numParts << 2);
+		partOffset = 40;
+		out.coordinates = this.parseArrayGroup(data, offset, partOffset, numParts, num);
+	}
+	return out;
+};
+ParseShp.prototype.parseZPolyline = function(data) {
+	const geoJson = this.parsePolyline(data);
+	if (!geoJson) return null;
+	const num = geoJson.coordinates.length;
+	let zOffset;
+	if (geoJson.type === "LineString") {
+		zOffset = 60 + (num << 4);
+		geoJson.coordinates = this.parseZPointArray(data, zOffset, num, geoJson.coordinates);
+		return geoJson;
+	} else {
+		zOffset = 56 + (geoJson.coordinates.reduce(function(a, v) {
+			return a + v.length;
+		}, 0) << 4) + (num << 2);
+		geoJson.coordinates = this.parseZArrayGroup(data, zOffset, num, geoJson.coordinates);
+		return geoJson;
+	}
+};
+ParseShp.prototype.polyFuncs = function(out) {
+	if (!out) return out;
+	if (out.type === "LineString") {
+		out.type = "Polygon";
+		out.coordinates = [out.coordinates];
+		return out;
+	} else {
+		out.coordinates = handleRings(out.coordinates);
+		if (out.coordinates.length === 1) {
+			out.type = "Polygon";
+			out.coordinates = out.coordinates[0];
+			return out;
+		} else {
+			out.type = "MultiPolygon";
+			return out;
+		}
+	}
+};
+ParseShp.prototype.parsePolygon = function(data) {
+	return this.polyFuncs(this.parsePolyline(data));
+};
+ParseShp.prototype.parseZPolygon = function(data) {
+	return this.polyFuncs(this.parseZPolyline(data));
+};
+var shpFuncObj = {
+	1: "parsePoint",
+	3: "parsePolyline",
+	5: "parsePolygon",
+	8: "parseMultiPoint",
+	11: "parseZPoint",
+	13: "parseZPolyline",
+	15: "parseZPolygon",
+	18: "parseZMultiPoint"
+};
+function makeParseCoord(trans) {
+	if (trans) return function(data, offset) {
+		const args = [data.getFloat64(offset, true), data.getFloat64(offset + 8, true)];
+		return trans.inverse(args);
+	};
+	else return function(data, offset) {
+		return [data.getFloat64(offset, true), data.getFloat64(offset + 8, true)];
+	};
+}
+function ParseShp(buffer, trans) {
+	if (!(this instanceof ParseShp)) return new ParseShp(buffer, trans);
+	this.buffer = buffer;
+	this.headers = this.parseHeader();
+	this.shpFuncs(trans);
+	this.rows = this.getRows();
+}
+ParseShp.prototype.shpFuncs = function(tran) {
+	let num = this.headers.shpCode;
+	if (num > 20) num -= 20;
+	if (!(num in shpFuncObj)) throw new Error(`I don't know shp type "${num}"`);
+	this.parseFunc = this[shpFuncObj[num]];
+	this.parseCoord = makeParseCoord(tran);
+};
+ParseShp.prototype.getShpCode = function() {
+	return this.parseHeader().shpCode;
+};
+ParseShp.prototype.parseHeader = function() {
+	const view = this.buffer;
+	return {
+		length: view.getInt32(24) << 1,
+		version: view.getInt32(28, true),
+		shpCode: view.getInt32(32, true),
+		bbox: [
+			view.getFloat64(36, true),
+			view.getFloat64(44, true),
+			view.getFloat64(52, true),
+			view.getFloat64(60, true)
+		]
+	};
+};
+ParseShp.prototype.getRows = function() {
+	let offset = 100;
+	const len = this.buffer.byteLength - 8;
+	const out = [];
+	let current;
+	while (offset <= len) {
+		current = this.getRow(offset);
+		if (!current) break;
+		offset += 8;
+		offset += current.len;
+		if (current.type) out.push(this.parseFunc(current.data));
+		else out.push(null);
+	}
+	return out;
+};
+ParseShp.prototype.getRow = function(offset) {
+	const id = this.buffer.getInt32(offset);
+	const len = this.buffer.getInt32(offset + 4) << 1;
+	if (len === 0) return {
+		id,
+		len,
+		type: 0
+	};
+	if (offset + len + 8 > this.buffer.byteLength) return;
+	return {
+		id,
+		len,
+		data: new DataView(this.buffer.buffer, this.buffer.byteOffset + offset + 12, len - 4),
+		type: this.buffer.getInt32(offset + 8, true)
+	};
+};
+function parseShp_default(buffer, trans) {
+	return new ParseShp(buffer, trans).rows;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/parsedbf@2.0.0/node_modules/parsedbf/decoder.js
+var regex = /^(?:ANSI\s)?(\d+)$/m;
+function createDecoder(encoding, second) {
+	if (!encoding) return browserDecoder;
+	try {
+		new TextDecoder(encoding.trim());
+	} catch (e) {
+		var match = regex.exec(encoding);
+		if (match && !second) return createDecoder("windows-" + match[1], true);
+		else {
+			encoding = void 0;
+			return browserDecoder;
+		}
+	}
+	return browserDecoder;
+	function browserDecoder(buffer) {
+		var decoder = new TextDecoder(encoding ? encoding : void 0);
+		return (decoder.decode(buffer, { stream: true }) + decoder.decode()).replace(/\0/g, "").trim();
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/parsedbf@2.0.0/node_modules/parsedbf/index.js
+function dbfHeader(data) {
+	var out = {};
+	out.lastUpdated = new Date(data.getUint8(1) + 1900, data.getUint8(2), data.getUint8(3));
+	out.records = data.getUint32(4, true);
+	out.headerLen = data.getUint16(8, true);
+	out.recLen = data.getUint16(10, true);
+	return out;
+}
+function dbfRowHeader(data, headerLen, decoder) {
+	var out = [];
+	var offset = 32;
+	while (offset < headerLen) {
+		out.push({
+			name: decoder(new Uint8Array(data.buffer.slice(data.byteOffset + offset, data.byteOffset + offset + 11))),
+			dataType: String.fromCharCode(data.getUint8(offset + 11)),
+			len: data.getUint8(offset + 16),
+			decimal: data.getUint8(offset + 17)
+		});
+		if (data.getUint8(offset + 32) === 13) break;
+		else offset += 32;
+	}
+	return out;
+}
+function rowFuncs(buffer, offset, len, type, decoder) {
+	var textData = decoder(new Uint8Array(buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + len)));
+	switch (type) {
+		case "N":
+		case "F":
+		case "O": return parseFloat(textData, 10);
+		case "D": return new Date(textData.slice(0, 4), parseInt(textData.slice(4, 6), 10) - 1, textData.slice(6, 8));
+		case "L": return textData.toLowerCase() === "y" || textData.toLowerCase() === "t";
+		default: return textData;
+	}
+}
+function parseRow(buffer, offset, rowHeaders, decoder) {
+	var out = {};
+	var i = 0;
+	var len = rowHeaders.length;
+	var field;
+	var header;
+	while (i < len) {
+		header = rowHeaders[i];
+		field = rowFuncs(buffer, offset, header.len, header.dataType, decoder);
+		offset += header.len;
+		if (typeof field !== "undefined") out[header.name] = field;
+		i++;
+	}
+	return out;
+}
+function parsedbf_default(buffer, encoding) {
+	var decoder = createDecoder(encoding);
+	var header = dbfHeader(buffer);
+	var rowHeaders = dbfRowHeader(buffer, header.headerLen - 1, decoder);
+	var offset = (rowHeaders.length + 1 << 5) + 2;
+	var recLen = header.recLen;
+	var records = header.records;
+	var out = [];
+	while (records) {
+		out.push(parseRow(buffer, offset, rowHeaders, decoder));
+		offset += recLen;
+		records--;
+	}
+	return out;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/shpjs@6.2.0_geotiff@2.1.3/node_modules/shpjs/lib/index.js
+var URL = globalThis.URL;
+var toUitn8Arr = (b) => {
+	if (!b) throw new Error("forgot to pass buffer");
+	if (isArrayBuffer(b)) return new Uint8Array(b);
+	if (isArrayBuffer(b.buffer)) {
+		if (b.BYTES_PER_ELEMENT === 1) return b;
+		return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+	}
+	throw new Error("invalid buffer like object");
+};
+var txtDecoder = new TextDecoder();
+var toString = (possibleString) => {
+	if (!possibleString) return;
+	if (typeof possibleString === "string") return possibleString;
+	if (isArrayBuffer(possibleString) || ArrayBuffer.isView(possibleString) || isDataView(possibleString)) return txtDecoder.decode(possibleString);
+};
+var toDataView = (b) => {
+	if (!b) throw new Error("forgot to pass buffer");
+	if (isDataView(b)) return b;
+	if (isArrayBuffer(b)) return new DataView(b);
+	if (isArrayBuffer(b.buffer)) return new DataView(b.buffer, b.byteOffset, b.byteLength);
+	throw new Error("invalid buffer like object");
+};
+function isArrayBuffer(subject) {
+	return subject instanceof globalThis.ArrayBuffer || Object.prototype.toString.call(subject) === "[object ArrayBuffer]";
+}
+function isDataView(subject) {
+	return subject instanceof globalThis.DataView || Object.prototype.toString.call(subject) === "[object DataView]";
+}
+var combine = function([shp, dbf]) {
+	const out = {};
+	out.type = "FeatureCollection";
+	out.features = [];
+	let i = 0;
+	const len = shp.length;
+	if (!dbf) dbf = [];
+	while (i < len) {
+		out.features.push({
+			type: "Feature",
+			geometry: shp[i],
+			properties: dbf[i] || {}
+		});
+		i++;
+	}
+	return out;
+};
+var parseZip = async function(buffer, whiteList) {
+	let key;
+	buffer = toUitn8Arr(buffer);
+	const zip = await unzip_default(buffer);
+	const names = [];
+	whiteList = whiteList || [];
+	for (key in zip) {
+		if (key.indexOf("__MACOSX") !== -1) continue;
+		if (key.slice(-4).toLowerCase() === ".shp") {
+			names.push(key.slice(0, -4));
+			zip[key.slice(0, -3) + key.slice(-3).toLowerCase()] = zip[key];
+		} else if (key.slice(-4).toLowerCase() === ".prj") zip[key.slice(0, -3) + key.slice(-3).toLowerCase()] = proj4(zip[key]);
+		else if (key.slice(-5).toLowerCase() === ".json" || whiteList.indexOf(key.split(".").pop()) > -1) names.push(key.slice(0, -3) + key.slice(-3).toLowerCase());
+		else if (key.slice(-4).toLowerCase() === ".dbf" || key.slice(-4).toLowerCase() === ".cpg") zip[key.slice(0, -3) + key.slice(-3).toLowerCase()] = zip[key];
+	}
+	if (!names.length) throw new Error("no layers founds");
+	const geojson = names.map(function(name) {
+		let parsed, dbf;
+		const lastDotIdx = name.lastIndexOf(".");
+		if (lastDotIdx > -1 && name.slice(lastDotIdx).indexOf("json") > -1) {
+			parsed = JSON.parse(zip[name]);
+			parsed.fileName = name.slice(0, lastDotIdx);
+		} else if (whiteList.indexOf(name.slice(lastDotIdx + 1)) > -1) {
+			parsed = zip[name];
+			parsed.fileName = name;
+		} else {
+			if (zip[name + ".dbf"]) dbf = parsedbf_default(zip[name + ".dbf"], zip[name + ".cpg"]);
+			parsed = combine([parseShp_default(zip[name + ".shp"], zip[name + ".prj"]), dbf]);
+			parsed.fileName = name;
+		}
+		return parsed;
+	});
+	if (geojson.length === 1) return geojson[0];
+	else return geojson;
+};
+async function getZip(base, whiteList) {
+	return parseZip(await binaryAjax(base), whiteList);
+}
+var handleShp = async (base) => {
+	const args = await Promise.all([binaryAjax(base, "shp"), binaryAjax(base, "prj")]);
+	let prj = false;
+	try {
+		if (args[1]) prj = proj4(args[1]);
+	} catch (e) {
+		prj = false;
+	}
+	return parseShp_default(args[0], prj);
+};
+var handleDbf = async (base) => {
+	const [dbf, cpg] = await Promise.all([binaryAjax(base, "dbf"), binaryAjax(base, "cpg")]);
+	if (!dbf) return;
+	return parsedbf_default(dbf, cpg);
+};
+var checkSuffix = (base, suffix) => {
+	return new URL(base, globalThis?.document?.location).pathname.slice(-4).toLowerCase() === suffix;
+};
+var fromObject = ({ shp, dbf, cpg, prj }) => {
+	const things = [_parseShp(shp, prj)];
+	if (dbf) things.push(_parseDbf(dbf, cpg));
+	return combine(things);
+};
+var getShapefile = async function(base, whiteList) {
+	if (typeof base !== "string") {
+		if (isArrayBuffer(base) || ArrayBuffer.isView(base) || isDataView(base)) return parseZip(base);
+		if (base.shp) return fromObject(base);
+		throw new TypeError("must be a string, some sort of Buffer, or an object with at least a .shp property");
+	}
+	if (checkSuffix(base, ".zip")) return getZip(base, whiteList);
+	if (checkSuffix(base, ".shp")) base = base.slice(0, -4);
+	return combine(await Promise.all([handleShp(base), handleDbf(base)]));
+};
+var _parseShp = function(shp, prj) {
+	shp = toDataView(shp);
+	prj = toString(prj);
+	if (typeof prj === "string") try {
+		prj = proj4(prj);
+	} catch (e) {
+		prj = false;
+	}
+	return parseShp_default(shp, prj);
+};
+var _parseDbf = function(dbf, cpg) {
+	dbf = toDataView(dbf);
+	cpg = toString(cpg);
+	return parsedbf_default(dbf, cpg);
+};
+//#endregion
+export { getShapefile as default, getShapefile };

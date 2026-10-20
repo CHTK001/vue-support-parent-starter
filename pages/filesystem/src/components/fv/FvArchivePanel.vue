@@ -9,6 +9,7 @@
 import { computed, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { resolveObjectUrl } from "../../api/filestorageApi";
+import FvLoadingMask from "./FvLoadingMask.vue";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -159,9 +160,7 @@ function onRenderError(): void {
 
 <template>
   <div class="fv-archive-panel">
-    <div v-if="loading" class="fv-archive-panel__mask">
-      <span class="fv-archive-panel__mask-text">加载中…</span>
-    </div>
+    <FvLoadingMask v-if="loading" :fileName="fileName" />
     <div v-else-if="failReason" class="fv-archive-panel__mask">
       <span class="fv-archive-panel__mask-text">{{ failReason }}</span>
     </div>

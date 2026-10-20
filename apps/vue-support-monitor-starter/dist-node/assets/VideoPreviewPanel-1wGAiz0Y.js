@@ -1,0 +1,1 @@
+import{b as e,k as t,mt as n}from"./runtime-core.esm-bundler-K64zC-lh.js";import{t as r}from"./_plugin-vue_export-helper-BDNMzG2s.js";var i={class:`video-preview-panel`},a=r(t({__name:`VideoPreviewPanel`,props:{bucket:{},objectKey:{},fileName:{},inner:{},size:{}},setup(t){return(t,r)=>(n(),e(`div`,i,`视频预览暂不可用`))}}),[[`__scopeId`,`data-v-4b834563`]]);export{a as default};

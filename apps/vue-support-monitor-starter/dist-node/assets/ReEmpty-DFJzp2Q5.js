@@ -1,0 +1,1 @@
+import{n as e,t}from"./ReEmpty-QGEwilJa.js";export{t as default,e as install};

@@ -209,7 +209,7 @@
           <el-input v-model="subAgentForm.role" placeholder="如：分析、总结、翻译" />
         </el-form-item>
         <el-form-item label="执行顺序">
-          <el-input-number v-model="subAgentForm.order" :min="1" :max="100" />
+          <ReNumberSelect v-model="subAgentForm.order" :min="1" :max="100" />
         </el-form-item>
         <el-form-item label="系统提示词">
           <el-input v-model="subAgentForm.systemPrompt" type="textarea" :rows="3" />
@@ -276,6 +276,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';

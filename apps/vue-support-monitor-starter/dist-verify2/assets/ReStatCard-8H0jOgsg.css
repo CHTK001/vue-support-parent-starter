@@ -1,0 +1,103 @@
+
+/* 卡片规格来自库级基线 components/shared/re-surface.css（ReStatCard 风格：
+   16px 圆角、无实色边框、双层柔光投影、悬停上浮 2px）。
+   本组件是这套规格的"源头"，基线由它抽出；此处只写本组件独有的排版，
+   圆角/边框/投影一律走基线类，避免同一套规格在库里出现第二份定义。 */
+.re-stat-card[data-v-74c025d9] {
+  /* 尺寸变量：基线未加载时（单独引入本组件）也能得到正确圆角 */
+  border-radius: var(--re-surface-radius, var(--el-radius-xl, 16px));
+}
+
+/* ---------------- 紧凑档 ----------------
+   只覆写 re-surface 的令牌与自身排版，不新增投影/圆角声明：
+   圆角与内距继续由基线类消费，避免出现第二套卡片外壳规格。
+
+   注意尺寸（--compact）与排列（--inline）是两件事，可分开用：
+   图标插槽里放的是为竖排设计的装饰件时，用 layout="stacked" 只收尺寸不换排列。 */
+.re-stat-card--compact[data-v-74c025d9] {
+  --re-surface-padding: 10px 12px;
+  --re-surface-radius: var(--el-border-radius-lg, 12px);
+}
+
+/* 横排：图标在左、文案在右。
+   顺带补上本组件文档里写的那个布局 —— 标准档实际没有 `display: flex`，
+   图标与数值是上下堆叠的，图标这一行要独占 30~56px 高度。宽而矮的概览卡
+   （如 280x139 里放一个 0）因此留白过大。紧凑档默认启用；图标插槽里放的是
+   为竖排设计的装饰件时，用 layout="stacked" 关掉（见 props 注释）。
+   只影响显式开启的卡片 —— 改标准档会让既有 10+ 个调用方一起变样。 */
+.re-stat-card--inline[data-v-74c025d9] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.re-stat-card--compact .re-stat-card__body[data-v-74c025d9] {
+  gap: 2px;
+}
+.re-stat-card--compact .re-stat-card__value[data-v-74c025d9] {
+  font-size: 20px;
+  min-height: 22px;
+  /* 有意不写 nowrap/ellipsis：概览里同排会出现「0 毫秒」和「2026/9/28 08:47:30」
+     这种长度悬殊的值，用省略号截断会把「最后检测」的秒数永久藏起来 ——
+     那种"变小"是拿丢信息换的。宁可让长值在空格处折成两行。 */
+}
+.re-stat-card--compact .re-stat-card__title[data-v-74c025d9] {
+  font-size: 12px;
+}
+.re-stat-card--compact .re-stat-card__icon[data-v-74c025d9] {
+  width: 32px;
+  height: 32px;
+}
+.re-stat-card__body[data-v-74c025d9] {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* 数值主行：大号数字 +（插槽内自带的）小号单位 */
+.re-stat-card__value[data-v-74c025d9] {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-height: 30px;
+}
+.re-stat-card__title[data-v-74c025d9] {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.re-stat-card__desc[data-v-74c025d9] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.re-stat-card__aside[data-v-74c025d9] {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 图标圆：56px 渐变实底 + 白色图标（样式由 iconStyle 内联下发） */
+.re-stat-card__icon[data-v-74c025d9] {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

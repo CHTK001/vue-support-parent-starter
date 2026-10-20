@@ -1,0 +1,21 @@
+
+/* 高度统一 34px（与 ReInput / ReSelect 基线对齐）：
+   el-input-number 内部 el-input 的 wrapper 是 content-box，默认会被 inner 撑到 44px，
+   这里统一为 border-box + min-height 34px，inner 高度自适应。 */
+.el-input-number .el-input__wrapper {
+  box-sizing: border-box;
+  min-height: 34px;
+  height: auto;
+}
+.el-input-number .el-input__inner {
+  height: auto !important;
+  min-height: 24px !important;
+  line-height: 24px !important;
+}
+/* small / large 变体保持 element 原有尺寸 */
+.el-input-number--small .el-input__wrapper {
+  min-height: 24px;
+}
+.el-input-number--large .el-input__wrapper {
+  min-height: 40px;
+}

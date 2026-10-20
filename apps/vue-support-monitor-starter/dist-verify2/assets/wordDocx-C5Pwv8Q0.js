@@ -1,0 +1,2 @@
+import { a as createDocxOptions, c as resolveDocxPageBackgroundImage, i as applyDocxPageBackgroundImage, l as wordDocx_default, o as isMissingDocxHeaderFooterRootError, r as applyDocxExternalLinkPolicy, s as renderDocxWithHeaderFooterFallback } from "./file-viewer-word-DO-HKv45.js";
+export { applyDocxExternalLinkPolicy, applyDocxPageBackgroundImage, createDocxOptions, wordDocx_default as default, isMissingDocxHeaderFooterRootError, renderDocxWithHeaderFooterFallback, resolveDocxPageBackgroundImage };

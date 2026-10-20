@@ -2,11 +2,51 @@
   <div class="message-actions flex gap-0 text-sm w-full mt-3 text-gray-500 items-center"
     :class="[isAssistant ? 'justify-start -translate-x-1' : 'justify-end translate-x-1']">
 
-    <LTooltip :content="t('chat.messageActions.copy')" placement="top">
-      <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.copy')" @click="$emit('copy')">
+    <!-- 复制：成功后图标变绿色勾 2 秒 -->
+    <LTooltip :content="copySuccess ? '已复制!' : t('chat.messageActions.copy')" placement="top">
+      <div class="message-action-button" role="button"
+        :aria-label="copySuccess ? '已复制' : t('chat.messageActions.copy')"
+        :class="{ 'copy-success': copySuccess }"
+        @click="handleCopy">
         <el-icon :size="16">
-          <Copy16Regular />
+          <Checkmark16Regular v-if="copySuccess" />
+          <Copy16Regular v-else />
         </el-icon>
+      </div>
+    </LTooltip>
+
+    <!-- 引用 / 回复该消息 -->
+    <LTooltip :content="t('chat.messageActions.quote')" placement="top">
+      <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.quote')" @click="emit('quote', { messageId: props.messageId || '' })">
+        <el-icon :size="16">
+          <Chat16Regular />
+        </el-icon>
+      </div>
+    </LTooltip>
+
+    <!-- Reactions: 👍 👎 -->
+    <LTooltip :content="t('chat.messageActions.thumbsUp')" placement="top">
+      <div class="message-action-button" :class="{ 'reaction-active': reactions?.up }" role="button" :aria-label="t('chat.messageActions.thumbsUp')" @click="emit('reaction', { messageId: props.messageId || '', type: 'up' })">
+        <el-icon :size="16"><ThumbLike16Regular /></el-icon>
+      </div>
+    </LTooltip>
+    <LTooltip :content="t('chat.messageActions.thumbsDown')" placement="top">
+      <div class="message-action-button" :class="{ 'reaction-active-down': reactions?.down }" role="button" :aria-label="t('chat.messageActions.thumbsDown')" @click="emit('reaction', { messageId: props.messageId || '', type: 'down' })">
+        <el-icon :size="16"><ThumbDislike16Regular /></el-icon>
+      </div>
+    </LTooltip>
+
+    <!-- 查看 Markdown 源码 -->
+    <LTooltip :content="t('chat.messageActions.viewSource')" placement="top">
+      <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.viewSource')" @click="emit('view-source', { messageId: props.messageId || '', rawContent: props.rawContent || '' })">
+        <el-icon :size="16"><Code16Regular /></el-icon>
+      </div>
+    </LTooltip>
+
+    <!-- 导出为 Markdown -->
+    <LTooltip :content="t('chat.messageActions.exportMd')" placement="top">
+      <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.exportMd')" @click="emit('export-md', { messageId: props.messageId || '', rawContent: props.rawContent || '' })">
+        <el-icon :size="16"><DocumentArrowDown16Regular /></el-icon>
       </div>
     </LTooltip>
 
@@ -30,7 +70,6 @@
       </LTooltip>
     </template>
 
-    <!-- 从此处回退：删除本轮及之后的全部消息（破坏性，需上层确认） -->
     <template v-if="isAssistant">
       <LTooltip :content="t('chat.messageActions.rewindHere')" placement="top">
         <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.rewindHere')" @click="$emit('rewind')">
@@ -39,15 +78,8 @@
           </el-icon>
         </div>
       </LTooltip>
+    </template>
 
-      </template>
-
-    <!-- 从此处分叉：**只挂在用户消息上**。
-         分叉点是「复制到哪一条为止」，语义上属于提问而不是回答。
-         挂到助手消息上还会直接踩后端的坑：流式产出的助手消息 id 是前端 UUID，
-         而 POST /v2/sessions/{id}/fork 用 parseLongOrNull 解析分叉点，
-         UUID 解析为 null → 后端回「缺少分叉点消息 id」→ 前端弹「分叉失败」。
-         用户消息来自数据库、id 是数字主键，不会命中这个问题。 -->
     <LTooltip v-if="!isAssistant" :content="t('chat.messageActions.forkHere')" placement="top">
       <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.forkHere')" @click="$emit('fork')">
         <el-icon :size="16">
@@ -56,8 +88,6 @@
       </div>
     </LTooltip>
 
-    <!-- 「更多」（编辑内容/删除消息）只对**用户消息**出现：
-         助手回复上出现这两项会让用户以为能改/删 AI 的内容（报障 2.4），故整块按 role 收敛 -->
     <LTooltip v-if="!isAssistant" :content="t('chat.messageActions.more')" placement="top">
       <DropdownMenu @command="handleCommand">
         <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.more')">
@@ -95,13 +125,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { ElIcon } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import DropdownMenu from '../../ui/DropdownMenu.vue';
 import DropdownMenuItem from '../../ui/DropdownMenuItem.vue';
 import LTooltip from '../../ui/LTooltip.vue';
-
-const { t } = useI18n();
 import {
   Copy16Regular,
   ArrowClockwise16Regular,
@@ -110,8 +139,14 @@ import {
   Edit16Regular,
   ArrowUndo16Regular,
   BranchFork16Regular,
+  Checkmark16Regular,
+  Chat16Regular,
+  ThumbLike16Regular,
+  ThumbDislike16Regular,
+  Code16Regular,
+  DocumentArrowDown16Regular,
 } from '@vicons/fluent';
-import { ArrowDownwardTwotone, AccessTimeTwotone } from '@vicons/material';
+import { AccessTimeTwotone } from '@vicons/material';
 
 const props = defineProps<{
   isAssistant: boolean;
@@ -120,6 +155,9 @@ const props = defineProps<{
   timeFull: string;
   timeFriendly: string;
   durationText?: string | null;
+  messageId?: string;
+  rawContent?: string;
+  reactions?: { up?: boolean; down?: boolean };
 }>();
 
 const emit = defineEmits<{
@@ -130,21 +168,61 @@ const emit = defineEmits<{
   (e: 'delete'): void;
   (e: 'rewind'): void;
   (e: 'fork'): void;
+  (e: 'quote', payload: { messageId: string; content?: string }): void;
+  (e: 'reaction', payload: { messageId: string; type: 'up' | 'down' }): void;
+  (e: 'view-source', payload: { messageId: string; rawContent: string }): void;
+  (e: 'export-md', payload: { messageId: string; rawContent: string }): void;
 }>();
 
-const handleCommand = (command: string) => {
-  if (command === 'edit') {
-    emit('edit');
-  } else if (command === 'delete') {
-    emit('delete');
-  }
-};
+const { t } = useI18n();
+
+// 复制按钮成功反馈状态
+const copySuccess = ref(false);
+let copyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleCopy() {
+  emit('copy');
+  copySuccess.value = true;
+  if (copyTimer) clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => { copySuccess.value = false; }, 2000);
+}
+
+function handleCommand(command: string) {
+  if (command === 'edit') emit('edit');
+  else if (command === 'delete') emit('delete');
+}
 </script>
 
 <style scoped>
-@reference "tailwindcss";
-
 .message-action-button {
-  @apply cursor-pointer flex items-center gap-1 py-1 px-1 rounded-md mr-1 hover:bg-(--color-surface-hover) disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-100 disabled:hover:text-gray-400 transition-transform duration-100;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px;
+  border-radius: 6px;
+  margin-right: 4px;
+  transition: all 0.2s ease;
+  color: var(--el-text-color-placeholder);
+}
+.message-action-button:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+.message-action-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.copy-success {
+  color: var(--el-color-success) !important;
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent) !important;
+}
+.reaction-active {
+  color: var(--el-color-primary) !important;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent) !important;
+}
+.reaction-active-down {
+  color: var(--el-color-danger) !important;
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent) !important;
 }
 </style>

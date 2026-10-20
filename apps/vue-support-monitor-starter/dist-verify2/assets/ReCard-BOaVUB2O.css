@@ -1,0 +1,29 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.koi-card[data-v-21c775e9] {
+  display: flex;
+  flex-direction: column;
+  margin: 5px 6px;
+  padding: 10px 20px;
+  overflow: hidden;
+  color: var(--theme-color-text, #303133);
+  background-color: var(--theme-color-bg-container, #ffffff);
+  border: 1px solid var(--theme-color-border, #e5e7ed);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  transition: border-color var(--rm-transition);
+}
+.koi-card[data-v-21c775e9]:hover {
+  border-color: var(--rm-border-hover, var(--theme-color-border, #e5e7ed));
+}
+.koi-card__header[data-v-21c775e9] {
+  padding-bottom: 8px;
+}
+.koi-card__body[data-v-21c775e9] {
+  flex: 1;
+}
+.koi-card__footer[data-v-21c775e9] {
+  padding-top: 12px;
+}

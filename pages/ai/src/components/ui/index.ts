@@ -15,6 +15,7 @@ export { default as SegmentedToggle } from './SegmentedToggle.vue'
 export { default as MarkdownContent } from './MarkdownContent.vue'
 export { default as LiteSplitpanes } from './LiteSplitpanes.vue'
 export { default as LitePane } from './LitePane.vue'
+export { default as ReNumberSelect } from './ReNumberSelect.vue'
 
 // 异步组件版本，用于路由级别或条件渲染
 // import { defineAsyncComponent, DefineComponent } from 'vue'

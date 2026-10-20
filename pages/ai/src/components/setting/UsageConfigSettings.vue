@@ -15,7 +15,7 @@
     <!-- 聚合与调度 -->
     <SettingsCard title="聚合与调度">
       <SettingsRow label="定时聚合间隔" description="最小 60 秒，默认 3600（1 小时）" control-width="140">
-        <el-input-number v-model="byField('usage_report_interval').value"
+        <ReNumberSelect v-model="byField('usage_report_interval').value"
           :min="60" :step="60" controls-position="right" />
       </SettingsRow>
       <SettingsRow label="Provider 白名单"
@@ -44,11 +44,11 @@
       </SettingsRow>
       <template v-if="byField('usage_currency_auto_convert').value">
         <SettingsRow label="美元汇率 (CNY / USD)" description="1 美元可兑换的人民币数量" control-width="150">
-          <el-input-number v-model="byField('usage_rate_usd').value"
+          <ReNumberSelect v-model="byField('usage_rate_usd').value"
             :min="0.01" :step="0.1" :precision="3" controls-position="right" />
         </SettingsRow>
         <SettingsRow label="欧元汇率 (CNY / EUR)" description="1 欧元可兑换的人民币数量" control-width="150">
-          <el-input-number v-model="byField('usage_rate_eur').value"
+          <ReNumberSelect v-model="byField('usage_rate_eur').value"
             :min="0.01" :step="0.1" :precision="3" controls-position="right" />
         </SettingsRow>
       </template>
@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 

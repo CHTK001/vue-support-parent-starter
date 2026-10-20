@@ -1,0 +1,20 @@
+
+.re-typeit[data-v-7554c0f6] {
+  display: inline-block;
+  white-space: pre-wrap;
+}
+.re-typeit__cursor[data-v-7554c0f6] {
+  display: inline-block;
+  margin-left: 2px;
+  font-weight: 400;
+  color: var(--el-color-primary);
+}
+@keyframes re-typeit-blink-7554c0f6 {
+0%,
+  100% {
+    opacity: 1;
+}
+50% {
+    opacity: 0;
+}
+}

@@ -137,7 +137,7 @@ const ui = reactive({
   // 只在打开时才渲染槽（v-if），否则页面上会同时存在两份表单实例，自动化定位与事件都会打架。
   popup: false,
   /** 右侧属性停靠区宽度（px），由左边框热区拖拽调整 */
-  propsWidth: 400,
+  propsWidth: 430,
   /** 拖拽调宽过程中为 true：期间关掉宽度过渡，否则面板会「追着鼠标跑」 */
   resizing: false,
   /** 面板是否浮起（脱离右侧停靠）。浮起后可整体拖动到任意位置 */
@@ -203,7 +203,7 @@ const menuItems = computed<FlowMenuItem[]>(() => {
       { key: "delete", label: "删除", action: "delete", danger: true },
     );
   }
-  // 「添加节点」分组：按调色板分组逐项列出，落点取右键处坐标，
+  // 「添加节点」分组：收起为二级菜单，落点取右键处坐标，
   // 添加后选中并通知宿主打开节点配置（右键 → 添加 → 直接配参数）
   if (props.nodeTypes.length) {
     if (items.length) {
@@ -219,12 +219,13 @@ const menuItems = computed<FlowMenuItem[]>(() => {
       }
       bucket.items.push(t);
     });
+    const children: FlowMenuItem[] = [];
     groups.forEach((g) => {
       if (groups.length > 1) {
-        items.push({ key: `add-g-${g.name}`, label: g.name, header: g.name });
+        children.push({ key: `add-g-${g.name}`, label: g.name, header: g.name });
       }
       g.items.forEach((t) => {
-        items.push({
+        children.push({
           key: `add-${t.type}`,
           label: t.label,
           action: "add",
@@ -232,6 +233,7 @@ const menuItems = computed<FlowMenuItem[]>(() => {
         });
       });
     });
+    items.push({ key: "add-group", label: "添加节点", children });
   }
   return items;
 });
@@ -264,8 +266,7 @@ const shellStyle = computed(() => ({
 /**
  * 属性面板样式。
  *
- * <p>停靠态只有宽度；浮起态换成 absolute 定位的左上角坐标 + 宽度，
- * 由 startPanelDrag 写 floatX/floatY、dockPanel 清回停靠。</p>
+ * <p>面板固定停靠在右侧，只保留宽度调整；浮起状态已不再由拖拽触发。</p>
  */
 const panelStyle = computed(() => {
   const width = ui.collapsed ? "40px" : `${ui.propsWidth}px`;
@@ -673,60 +674,7 @@ function closeMenu() {
   menu.visible = false;
 }
 
-/**
- * 面板整体拖动（浮起模式）。
- *
- * <p>原来面板只有左边框那条 6px 竖边能拖、且只能改宽，整块面板
- * 挪不走 —— 需求是「面板没法整体拖动」。这里在标题栏按下即把面板
- * 从右侧停靠<b>浮起</b>（absolute 定位、脱离 flex 流，画布随之铺满），
- * 之后整块跟手平移；双击标题栏或点图钉按钮复位回停靠位。</p>
- *
- * <p>按在标题栏的按钮上不算拖面板（closest('button') 命中即放行），
- * 否则点「弹窗 / 收起」会被当成拖拽起点。浮起位置钳在外壳内，
- * 不会拖出可视区。</p>
- *
- * @param ev 标题栏上的 mousemove
- */
-function startPanelDrag(ev: MouseEvent) {
-  if (ui.collapsed) {
-    return;
-  }
-  // 排除交互元素：按钮、输入框、下拉、链接等不可拖拽
-  const target = ev.target as HTMLElement;
-  if (target.closest("button, input, textarea, select, a, [role='button'], .flow-props-resizer")) {
-    return;
-  }
-  ev.preventDefault();
-  const shell = panelRef.value?.closest(".flow-shell") as HTMLElement | null;
-  const shellRect = shell?.getBoundingClientRect();
-  const panelRect = panelRef.value?.getBoundingClientRect();
-  if (!shellRect || !panelRect) {
-    return;
-  }
-  const startX = ev.clientX;
-  const startY = ev.clientY;
-  const startFX = panelRect.left - shellRect.left;
-  const startFY = panelRect.top - shellRect.top;
-  ui.floated = true;
-  ui.floatX = startFX;
-  ui.floatY = startFY;
-  document.body.style.userSelect = "none";
-  const move = (e: MouseEvent) => {
-    const maxX = Math.max(0, shellRect.width - 120);
-    const maxY = Math.max(0, shellRect.height - 80);
-    ui.floatX = Math.round(Math.min(maxX, Math.max(0, startFX + (e.clientX - startX))));
-    ui.floatY = Math.round(Math.min(maxY, Math.max(0, startFY + (e.clientY - startY))));
-  };
-  const up = () => {
-    document.body.style.userSelect = "";
-    window.removeEventListener("mousemove", move);
-    window.removeEventListener("mouseup", up);
-  };
-  window.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", up);
-}
-
-/** 浮起的面板复位回右侧停靠位。 */
+/** 面板固定停靠于右侧，不再支持整体拖动。 */
 function dockPanel() {
   ui.floated = false;
   ui.floatX = 0;
@@ -842,7 +790,6 @@ defineExpose({
         class="flow-props"
         :class="{ 'is-resizing': ui.resizing, 'is-collapsed': ui.collapsed, 'is-floated': ui.floated }"
         :style="panelStyle"
-        @mousedown="startPanelDrag"
       >
         <!-- 左边框拖拽热区：6px 宽的透明竖条，hover 时亮出主色抓手 -->
         <span
@@ -855,9 +802,7 @@ defineExpose({
 
         <header
           class="flow-props-head"
-          title="拖动移动面板，双击复位回右侧"
-          @mousedown="startPanelDrag"
-          @dblclick="dockPanel"
+          title="配置面板固定于右侧"
         >
           <span class="flow-props-icon">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -964,7 +909,25 @@ defineExpose({
     >
       <template v-for="item in menuItems" :key="item.key">
         <li
-          v-if="!item.header"
+          v-if="item.children?.length"
+          class="flow-menu-parent"
+        >
+          {{ item.label }}
+          <ul class="flow-menu-sub">
+            <template v-for="child in item.children" :key="child.key">
+              <li
+                v-if="!child.header"
+                :class="{ danger: child.danger, disabled: child.disabled }"
+                @click="menuAction(child, $event)"
+              >
+                {{ child.label }}
+              </li>
+              <li v-else class="flow-menu-head">{{ child.header }}</li>
+            </template>
+          </ul>
+        </li>
+        <li
+          v-else-if="!item.header"
           :class="{ danger: item.danger, disabled: item.disabled }"
           @click="menuAction(item, $event)"
         >
@@ -1290,6 +1253,45 @@ defineExpose({
   color: #a4abb5;
   user-select: none;
 }
+/* 二级子菜单：父项 hover 时在右侧浮出，超出高度可滚动 */
+.flow-menu-parent {
+  position: relative;
+}
+.flow-menu-parent::after {
+  content: "›";
+  position: absolute;
+  right: 10px;
+  top: 4px;
+  color: #a4abb5;
+  font-size: 14px;
+}
+.flow-menu-sub {
+  display: none;
+  position: absolute;
+  left: calc(100% - 4px);
+  top: -4px;
+  z-index: 31;
+  min-width: 156px;
+  max-height: 430px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid var(--flow-line);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 32, 0.16);
+}
+.flow-menu-parent:hover .flow-menu-sub {
+  display: block;
+}
+.flow-menu-sub li { padding: 6px 10px; color: #4e5969; cursor: pointer; border-radius: 5px; }
+.flow-menu-sub li:hover { background: #f2f6ff; color: var(--flow-accent); }
+.flow-menu-sub li.danger:hover { background: #fff1f0; color: #c9403f; }
+.flow-menu-sub li.disabled { color: #c9cdd4; cursor: not-allowed; }
+.flow-menu-sub li.disabled:hover { background: none; color: #c9cdd4; }
+.flow-menu-sub .flow-menu-head { cursor: default; }
 /* 浮起态：脱离 flex 流、absolute 定位于外壳内，整块可拖动。
  * 高度取外壳高度 - 上下边距（定值才能让 body 的 flex:1 + overflow 生效，
  * height:auto 配合 max-height 时 flex 子项不会触发滚动）。 */

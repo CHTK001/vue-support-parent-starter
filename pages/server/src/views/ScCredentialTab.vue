@@ -139,6 +139,27 @@ async function handleCreateTempEmail(): Promise<void> {
 }
 
 
+/** 复制到剪贴板（兼容所有浏览器） */
+async function copyToClipboard(text: string, label = "内容"): Promise<void> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    message.success(`${label} 已复制到剪贴板`);
+  } catch {
+    message.error("复制失败，请手动复制");
+  }
+}
+
 /** 可引用密钥选项 */
 const keyRefOptions = ref<Array<{ label: string; value: number }>>([]);
 
@@ -437,8 +458,14 @@ async function viewMessage(email: any): Promise<void> {
                 <ReTag type="info">{{ row.msServerKeyType || '-' }}</ReTag>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="130">
+            <ReTableColumn label="操作" width="190">
               <template #default="{ row }">
+                <ReButton
+                  v-if="row.msServerKeyPublicKey"
+                  link
+                  icon="DocumentCopy"
+                  @click="copyToClipboard(row.msServerKeyPublicKey, '公钥')"
+                >复制公钥</ReButton>
                 <ReButton link @click="openKeyForm(row)">编辑</ReButton>
                 <ReButton link type="danger" @click="deleteKey(row)">删除</ReButton>
               </template>
@@ -466,9 +493,15 @@ async function viewMessage(email: any): Promise<void> {
                 <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="190">
+            <ReTableColumn label="操作" width="240">
               <template #default="{ row }">
-                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">打开邮件箱</ReButton>
+                <ReButton
+                  v-if="row.msServerIdentityUsername"
+                  link
+                  icon="User"
+                  @click="copyToClipboard(row.msServerIdentityUsername, '用户名')"
+                >复制用户</ReButton>
+                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">邮件箱</ReButton>
                 <ReButton link @click="openIdentityForm(row)">编辑</ReButton>
                 <ReButton link type="danger" @click="deleteIdentity(row)">删除</ReButton>
               </template>

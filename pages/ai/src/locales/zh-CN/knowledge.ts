@@ -2,7 +2,7 @@ export default {
   // ── RAG 未配置拦截（知识库依赖 RAG，未配置不给入口）──
   ragGate: {
     title: '知识库暂不可用',
-    desc: '知识库依赖 RAG，请先在「系统配置 → 默认模型」中配置好 RAG 所需的模型与存储参数。',
+    desc: '知识库依赖 RAG，请先在「系统配置 → RAG 配置」中配置好 RAG 所需的模型与存储参数。',
     goConfig: '去配置',
     fetchFailed: '无法获取 RAG 配置状态，请稍后重试或先完成配置。',
   },

@@ -1,0 +1,192 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ncpa-grid[data-v-c6cea6ae] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 4px;
+}
+.ncpa-tile[data-v-c6cea6ae] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 10px;
+  background: var(--el-bg-color);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ncpa-tile[data-v-c6cea6ae]:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+.ncpa-tile.off[data-v-c6cea6ae] {
+  color: var(--el-text-color-disabled);
+}
+.nt-icon[data-v-c6cea6ae] {
+  display: inline-flex;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+.ncpa-tile.off .nt-icon[data-v-c6cea6ae] {
+  color: var(--el-text-color-disabled);
+}
+.nt-meta[data-v-c6cea6ae] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.nt-name[data-v-c6cea6ae] {
+  font-size: 13px;
+}
+.nt-status[data-v-c6cea6ae] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ncpa-tile.off .nt-status[data-v-c6cea6ae] {
+  color: var(--el-text-color-disabled);
+}
+.nt-ip[data-v-c6cea6ae] {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.nt-actions[data-v-c6cea6ae] {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.hna-tbl[data-v-c6cea6ae] {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.hna-tbl th[data-v-c6cea6ae], .hna-tbl td[data-v-c6cea6ae] {
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 8px 10px;
+  text-align: left;
+}
+.hna-tbl th[data-v-c6cea6ae] {
+  color: var(--el-text-color-secondary);
+  font-weight: 600;
+}
+.tb-net-ico[data-v-c6cea6ae] {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 8px;
+  color: var(--el-color-primary);
+}
+.tb-net-ico.off[data-v-c6cea6ae] {
+  color: var(--el-text-color-disabled);
+}
+.hna-loading[data-v-c6cea6ae] {
+  padding: 24px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.kv-list[data-v-c6cea6ae] {
+  display: flex;
+  flex-direction: column;
+}
+.kv-row[data-v-c6cea6ae] {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-size: 13px;
+}
+.kv-label[data-v-c6cea6ae] {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+.kv-val[data-v-c6cea6ae] {
+  text-align: right;
+  word-break: break-all;
+}
+.mono[data-v-c6cea6ae] {
+  font-family: var(--el-font-family-monospace, monospace);
+}
+.props-hint[data-v-c6cea6ae] {
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--el-text-color-regular);
+}
+.props-box[data-v-c6cea6ae] {
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  padding: 6px;
+  max-height: 280px;
+  overflow: auto;
+}
+.props-item[data-v-c6cea6ae] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.props-item.clickable[data-v-c6cea6ae] {
+  cursor: pointer;
+}
+.props-item.clickable[data-v-c6cea6ae]:hover {
+  background: var(--el-fill-color-light);
+}
+.pi-name[data-v-c6cea6ae] {
+  flex: 1;
+}
+.ipv4[data-v-c6cea6ae] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ipv4-warn[data-v-c6cea6ae] {
+  margin-bottom: 2px;
+}
+.ip-sec-title[data-v-c6cea6ae] {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ip-mode[data-v-c6cea6ae] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 2px 0;
+}
+.ip-fields[data-v-c6cea6ae] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0 2px;
+}
+.ipf[data-v-c6cea6ae] {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.ipf > label[data-v-c6cea6ae] {
+  color: var(--el-text-color-regular);
+}
+.ipf-wrap[data-v-c6cea6ae] {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ipf-hint[data-v-c6cea6ae] {
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+}

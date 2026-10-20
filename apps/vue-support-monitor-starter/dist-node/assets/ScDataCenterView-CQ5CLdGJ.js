@@ -1,0 +1,1 @@
+import{k as e,mt as t,v as n}from"./runtime-core.esm-bundler-K64zC-lh.js";import{t as r}from"./ScDataSourceView-BEQeyEhs.js";var i=e({__name:`ScDataCenterView`,setup(e){return(e,i)=>(t(),n(r))}});export{i as default};

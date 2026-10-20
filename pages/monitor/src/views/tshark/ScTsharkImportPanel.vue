@@ -57,7 +57,14 @@
 
         <ReTableColumn label="状态" width="100" align="center">
           <template #default="{ row }">
-            <ReTag :type="statusOf(row).type" effect="plain">{{ statusOf(row).text }}</ReTag>
+            <ReTag
+              :type="statusOf(row).type"
+              effect="plain"
+              :class="['status-tag', statusTagClass(row)]"
+            >
+              <span v-if="statusOf(row).type === 'warning'" class="status-pulse"></span>
+              {{ statusOf(row).text }}
+            </ReTag>
           </template>
         </ReTableColumn>
 
@@ -115,6 +122,14 @@
 import { computed } from 'vue'
 import { sessionName, statusOf, timeRange, fmtDuration } from './tsharkFormat'
 import type { TsharkSession } from './types'
+
+/** 状态标签 class */
+function statusTagClass(row: TsharkSession): string {
+  const type = statusOf(row).type
+  if (type === 'warning') return 'status-tag--parsing'
+  if (type === 'success') return 'status-tag--done'
+  return 'status-tag--failed'
+}
 
 const props = defineProps<{
   /** 当前页要显示的导入记录（父级已完成搜索 + 分页） */
@@ -175,5 +190,45 @@ function onRowClick(row: TsharkSession) {
 /* 整行是按钮：指针形态告诉用户「这行能点」，否则只有右边那个小字像链接 */
 .tshark-table :deep(.el-table__row) {
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.tshark-table :deep(.el-table__row:hover) {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent) !important;
+}
+
+/* 状态标签脉冲动画 */
+.status-tag {
+  position: relative;
+  padding-left: 20px;
+}
+.status-pulse {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f97316;
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+.status-tag--parsing {
+  color: #ea580c;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+.status-tag--done {
+  color: #16a34a;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.status-tag--failed {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+  50% { opacity: 0.4; transform: translateY(-50%) scale(0.8); }
 }
 </style>

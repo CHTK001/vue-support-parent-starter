@@ -67,14 +67,13 @@
 
             <!-- 106 点层的状态说明：推理中 / 不可用的原因（不打断检测与识别） -->
             <div v-if="showLandmark106 && (landmark106Busy || landmark106Error)" class="fs-lm-hint">
-              <el-icon v-if="landmark106Busy" class="is-spin"><Loading /></el-icon>
-              <span>{{ landmark106Busy ? '正在提取 106 点特征点…' : landmark106Error }}</span>
+              <TechLoading v-if="landmark106Busy" text="正在提取 106 点特征点…" />
+              <span v-else>{{ landmark106Error }}</span>
             </div>
 
             <!-- 识别中遮罩 -->
             <div v-if="detecting" class="fs-mask">
-              <el-icon :size="26" class="is-spin"><Loading /></el-icon>
-              <span>正在识别人脸…</span>
+              <TechLoading text="正在识别人脸…" subtext="分析面部特征并匹配底库" />
             </div>
 
             <!-- 角标：找到相似脸 -->
@@ -223,7 +222,7 @@
           <div>
             <p class="fs-gate-title">人脸识别未启用</p>
             <p class="fs-gate-desc">
-              还需配置{{ faceMissingLabels }}。请到「系统设置 → 默认模型 → 人脸识别」中选择模型，保存后立即生效。
+              还需配置{{ faceMissingLabels }}。请到「系统设置 → 人脸识别配置」中选择模型，保存后立即生效。
             </p>
           </div>
         </div>
@@ -257,6 +256,7 @@ import {
   Aim, Check, Crop, FolderOpened, Loading, Picture, Refresh, Search, Setting, Star, User, View, Warning,
 } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
+import TechLoading from '@/components/ui/TechLoading.vue'
 import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
 import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 import { useModelConfigStore } from '@/stores/modelConfig'
@@ -598,7 +598,7 @@ async function loadModels() {
 
 /** 模型未配齐时的统一提示（ upload / 识别 / 登记 三处共用一句口径） */
 const NOT_READY_MSG =
-  '人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型'
+  '人脸识别未启用：请先到「系统设置 → 人脸识别配置」配置检测模型与特征模型'
 
 function pickImage() {
   // 模型未配齐：连文件选择器都不弹（不是选完才拦）——「选择图片」按钮已 disabled，

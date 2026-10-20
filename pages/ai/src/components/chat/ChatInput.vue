@@ -218,7 +218,7 @@ import {
   reactive,
   type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElButton, ElTag, ElMessageBox } from "element-plus";
+import { ElIcon, ElButton, ElTag, ElMessageBox, ElMessage } from "element-plus";
 import type { Model, ModelProvider } from '@/types/api';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
@@ -1243,13 +1243,18 @@ const handlePaste = async (event: ClipboardEvent) => {
   if (filesToProcess.length > 0) {
     const imageFiles = filesToProcess.filter(file => isFileType(file, 'IMAGE'));
     const textFiles = filesToProcess.filter(file => isFileType(file, 'TEXT'));
+    const unsupportedFiles = filesToProcess.filter(file => !isFileType(file, 'IMAGE') && !isFileType(file, 'TEXT'));
 
     if (imageFiles.length > 0) {
       await processFiles(imageFiles, 'IMAGE');
     } else if (textFiles.length > 0) {
       await processFiles(textFiles, 'TEXT');
     }
-    // TODO：如果既不是图片也不是支持的文本类型，会被忽略（可选加提示）
+    // 不支持的图片/文本类型：明确提示，避免被静默忽略
+    if (unsupportedFiles.length > 0) {
+      const names = unsupportedFiles.slice(0, 3).map(f => f.name || f.type || '未知文件').join('、');
+      ElMessage.warning(t('chat.input.unsupportedFileType', { files: names }));
+    }
   }
 };
 
@@ -2410,6 +2415,9 @@ defineExpose({ insertText, insertBadge });
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
   color: var(--el-text-color-primary);
 }
+
+/* 流式输出状态条 */
+/* 已迁移到 TurnItem 回复区，输入框不再显示 “AI 正在输入” 状态。 */
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {

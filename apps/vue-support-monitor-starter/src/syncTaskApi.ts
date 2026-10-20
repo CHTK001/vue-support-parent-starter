@@ -1,4 +1,5 @@
-import { http, unwrapResult } from "@repo/utils";
+import { createHttp, getAccessToken, http, unwrapResult } from "@repo/utils";
+import { getConfig } from "@repo/config";
 
 /**
  * 数据同步任务 API
@@ -237,39 +238,54 @@ export interface LocalFileEntry {
   updatedAt?: number | null;
 }
 
-/** filesystem-starter 的目录浏览条目（目录与文件共用） */
-interface FileDirEntry {
+/** 文件存储对象条目（目录与文件共用） */
+interface FileStorageListEntry {
   name: string;
-  path: string;
-  isDir?: boolean;
-  size?: number | null;
-  updatedAt?: number | null;
+  directory: boolean;
+  size?: number;
+  lastModified?: number;
+}
+
+/** 当前文件存储桶：localStorage 覆盖 > app.yaml > 监控部署主桶 localFileStorage */
+function storageBucket(): string {
+  const stored = typeof localStorage !== "undefined" ? localStorage.getItem("filestorage.bucket") : null;
+  if (stored) return stored;
+  const cfg = getConfig() as unknown as { other?: { filestorage?: { bucket?: string } } };
+  return cfg?.other?.filestorage?.bucket || "localFileStorage";
 }
 
 /**
- * 列举后端所在机器的目录（只读）
+ * 列举当前文件存储桶的目录 / 文件（只读）
  *
- * <p>数据同步的输入源可以是「服务器本地文件 / 目录」，而 ReFilePicker 需要一个列目录的 loader。
- * 直接用 filesystem-starter 的 {@code GET /v2/file/dir/list}，不再维护监控模块自己的列举接口。</p>
+ * <p>数据同步的输入源与 ReFilePicker 需要列目录 loader。之前的
+ * {@code GET /v2/file/dir/list} 在 8851 serve-dist 的 8081 后端并不存在
+ * （18080 / 18082 也都没有，实探返回 404），因此改为直接调用文件服务器
+ * {@code GET /{bucket}?format=json}，与文件资产管理页面同一套 API。</p>
  *
- * @param path  绝对路径；留空或 `/` 列出文件系统根（Windows 为盘符列表）
- * @param files 是否同时返回文件；选择文件夹时也传 true，文件只展示不可选
+ * @param path  桶内目录；留空或 `/` 列出桶根
+ * @param files 保留参数：文件服务始终返回目录与文件，目录模式下由选择器负责只选目录
  */
-export const fetchLocalFiles = (path?: string | null, files = true): Promise<LocalFileEntry[]> =>
-  // noToast：列目录的失败由选择器自己就地渲染（「目录加载失败: …」），
-  // 再飘一条全局错误条只会重复。
-  http()
-    .get("/v2/file/dir/list")
-    .query({ path, files })
-    .noToast(true)
-    .then(r => unwrap<FileDirEntry[]>(r))
-    .then(rows => (rows ?? []).map(row => ({
-      key: row.path,
-      name: row.name,
-      isDir: row.isDir !== false,
-      size: row.size,
-      updatedAt: row.updatedAt,
-    })));
+export const fetchLocalFiles = async (path?: string | null, _files = true): Promise<LocalFileEntry[]> => {
+  const token = getAccessToken();
+  const rows = await createHttp({
+    baseUrl: "",
+    useAppConfig: false,
+    timeout: 30_000,
+    headers: token ? { "x-oauth-token": token } : {},
+  })
+    .get(`/${storageBucket()}`)
+    .query({ format: "json" })
+    .then<FileStorageListEntry[]>(r => ((r.data as { items?: FileStorageListEntry[] } | null)?.items ?? []));
+  const normalized = path?.trim() === "/" ? "" : (path?.trim() ?? "");
+  const parent = normalized ? `/${normalized.replace(/\/+$/, "")}` : "";
+  return rows.map(row => ({
+    key: `${parent}/${row.name}`.replace(/\/+/g, "/"),
+    name: row.name,
+    isDir: row.directory,
+    size: row.size ?? null,
+    updatedAt: row.lastModified ?? null,
+  }));
+};
 
 /**
  * 写入模式字典

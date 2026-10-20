@@ -44,9 +44,9 @@ const LOGOS: Record<string, string> = {
   'wechat-personal': '/images/bots/wechat.png',
   feishu: '/images/bots/lark.png',
   lark: '/images/bots/lark.png',
-  wecom: '/images/bots/wecom-bot.png',
   qq: '/images/bots/qq.png',
   dingtalk: '/images/bots/dingtalk.svg',
+  whatsapp: '/images/bots/whatsapp.svg',
   discord: '/images/bots/discord.svg',
 }
 

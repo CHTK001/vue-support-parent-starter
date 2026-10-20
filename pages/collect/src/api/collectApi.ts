@@ -5,6 +5,7 @@
  */
 import { del, get, post, put } from "./http";
 import type {
+  CollectAlertRule,
   CollectCategory,
   CollectCategoryNode,
   CollectColumn,
@@ -16,6 +17,7 @@ import type {
   CollectFlow,
   CollectFlowQuery,
   CollectFlowSave,
+  CollectFlowVersion,
   CollectFunction,
   CollectFunctionTest,
   CollectFunctionTestResult,
@@ -24,8 +26,10 @@ import type {
   CollectNotifyResult,
   CollectOption,
   CollectPage,
+  CollectQuality,
   CollectRecord,
   CollectRecordQuery,
+  CollectStats,
   CollectTask,
   CollectTaskLog,
   CollectTaskQuery,
@@ -172,6 +176,61 @@ export const deleteTask = (taskId: number) => del<boolean>(`${API}/task/delete`,
 /** 清理历史任务，返回删除条数 */
 export const cleanTasks = (flowId?: number, days = 7) =>
   post<number>(`${API}/task/clean`, undefined, { flowId, days });
+
+/** 任务质量报告：从节点日志聚合质量指标 */
+export const fetchTaskQuality = (taskId: number) =>
+  get<CollectQuality>(`${API}/task/quality`, { taskId });
+
+/** 流程执行历史统计（趋势 + 节点耗时） */
+export const fetchFlowStats = (flowId: number, days = 30) =>
+  get<CollectStats>(`${API}/task/stats`, { flowId, days });
+
+/** 运行中任务的实时节点状态（供前端轮询） */
+export const fetchLiveTaskNodes = (taskId: number) =>
+  get<CollectTaskLog[]>(`${API}/task/live`, { taskId });
+
+/* ------------------------------ 告警规则 ------------------------------ */
+
+/** 规则分页 */
+export async function pageAlertRules(query: Record<string, unknown>): Promise<CollectPage<CollectAlertRule>> {
+  return toPage<CollectAlertRule>(await get<unknown>(`${API}/alert-rule/page`, query));
+}
+
+/** 全部启用的规则 */
+export const listAlertRules = () => get<CollectAlertRule[]>(`${API}/alert-rule/list`);
+
+/** 保存或更新规则 */
+export const saveAlertRule = (rule: CollectAlertRule) =>
+  post<boolean>(`${API}/alert-rule/save`, rule);
+
+/** 删除规则 */
+export const deleteAlertRule = (ruleId: number) =>
+  del<boolean>(`${API}/alert-rule/delete`, { ruleId });
+
+/** 切换启用状态 */
+export const toggleAlertRule = (ruleId: number, enabled: boolean) =>
+  post<boolean>(`${API}/alert-rule/toggle`, undefined, { ruleId, enabled });
+
+/* ------------------------------ 流程版本 ------------------------------ */
+
+/** 查询某流程的版本历史 */
+export const listFlowVersions = (flowId: number) =>
+  get<CollectFlowVersion[]>(`${API}/flow-version/list`, { flowId });
+
+/** 手动保存当前版本快照 */
+export const saveFlowVersion = (flowId: number, flowDsl: string, remark?: string) =>
+  post<number>(`${API}/flow-version/save`, { flowId, flowDsl, remark });
+
+/** 回滚到指定版本 */
+export const rollbackFlowVersion = (flowId: number, versionNo: number) =>
+  post<boolean>(`${API}/flow-version/rollback`, undefined, { flowId, versionNo });
+
+/** 对比两个版本的 DSL */
+export const diffFlowVersions = (flowId: number, v1: number, v2: number) =>
+  get<{ v1: number; dsl1: string; v2: number; dsl2: string }>(
+    `${API}/flow-version/diff`,
+    { flowId, v1, v2 },
+  );
 
 /* --------------------------------- 采集结果 -------------------------------- */
 

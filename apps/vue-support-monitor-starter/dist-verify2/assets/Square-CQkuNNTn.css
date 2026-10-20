@@ -1,0 +1,275 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.re-select-square[data-v-450133d1] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ===== 紧凑模式（默认开启） ===== */
+.re-select-square--compact[data-v-450133d1] {
+  gap: 8px;
+}
+.re-select-square--compact .re-select-square__item[data-v-450133d1] {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  min-width: 0;
+  width: 40px;
+  height: 40px;
+  /* 圆角统一走 koi 圆角令牌（--el-radius-*，见 @repo/theme/koi/styles/radius.scss），
+     不再用 10px 这类游离值，也不用 --rm-*（那是 Modern 控件族的私有令牌）。 */
+  border-radius: var(--el-radius-md, 8px);
+}
+.re-select-square--compact .re-select-square__check[data-v-450133d1] {
+  width: 14px;
+  height: 14px;
+  top: -3px;
+  right: -3px;
+}
+.re-select-square--compact .re-select-square__check svg[data-v-450133d1] {
+  width: 8px;
+  height: 8px;
+}
+
+/* ===== 紧凑 + 文字（iconOnly=false）：横向文字按钮，用于搜索区等窄行高场景 =====
+   纯图标紧凑档把按钮锁成 40x40 方块，直接塞文字会被裁掉，故这一档另算尺寸 */
+.re-select-square--compact.re-select-square--text .re-select-square__item[data-v-450133d1] {
+  width: auto;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--el-radius-md, 8px);
+}
+.re-select-square--compact.re-select-square--text .re-select-square__fallback[data-v-450133d1],
+.re-select-square--compact.re-select-square--text .re-select-square__check[data-v-450133d1] {
+  display: none;
+}
+.re-select-square--compact.re-select-square--text .re-select-square__label[data-v-450133d1] {
+  font-size: 13px;
+}
+.re-select-square__item[data-v-450133d1] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  min-width: 80px;
+  border: 1.5px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color, #fff);
+  /* 未选中态就是「灰」：中性边框 + 灰字，主色只留给已选中项表达选中，
+     不参与未选中的任何状态（见下方 hover 说明）。 */
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
+  /* 只过渡会变的视觉属性。原先是 `transition: all`，把 padding / border-width
+     也带进来 —— 选中态边框 1.5px→2px、内边距 12/14px→11/13px（为抵消边框增宽
+     而反向抵消），会随过渡一起动，整排方块的文字每次都平移一格。这里按需列举。 */
+  transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  user-select: none;
+  /* 未选中项 hover：只走灰阶（深灰边 + 深灰字 + 浅灰底），不染主色。
+     square 布局本质是单选组 —— 若 hover 就变蓝，鼠标扫过一排时每个都像已选中，
+     真正选中的那个反而没有独占的主色信号。 */
+}
+.re-select-square__item[data-v-450133d1]:hover:not(.re-select-square__item--active) {
+  border-color: var(--el-border-color-dark, #cdd0d6);
+  color: var(--el-text-color-regular, #606266);
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.re-select-square__item--active[data-v-450133d1] {
+  border: 2px solid var(--el-color-primary, #409eff);
+  padding: 11px 13px;
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-bg-color, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+  /* 已选中项 hover：维持主色，仅加深提示可点 */
+}
+.re-select-square__item--active[data-v-450133d1]:hover {
+  border-color: var(--el-color-primary-light-3, #a0cfff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+.re-select-square--compact .re-select-square__item--active[data-v-450133d1] {
+  padding: 0;
+  border-width: 1.5px;
+  box-shadow: none;
+}
+
+/* 文字紧凑档的选中态：留在 32px 胶囊尺寸里，不回落到方块档的 0 内边距 */
+.re-select-square--compact.re-select-square--text .re-select-square__item--active[data-v-450133d1] {
+  padding: 0 12px;
+}
+.re-select-square__label[data-v-450133d1] {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.re-select-square__fallback[data-v-450133d1] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: inherit;
+}
+.re-select-square--compact .re-select-square__fallback[data-v-450133d1] {
+  font-size: 16px;
+}
+.re-select-square__check[data-v-450133d1] {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  /* 与按钮组同一口径：白对勾压主色只有 2.78:1，低于 WCAG 对「非文本图形」的 3:1，
+     所以底色同样压深（72% 主色 + 系统黑令牌）。 */
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 72%, var(--el-color-black, #000));
+  border-radius: var(--el-border-radius-circle, 50%);
+  color: var(--el-color-white, #fff);
+  /* 阴影跟着主题主色走：用 color-mix 取主色的低透明度，
+     不写死 rgba(64,158,255,…) —— 那是 Element 默认蓝，换主题后阴影会与对勾脱色。 */
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-primary, #409eff) 40%, transparent);
+}
+.re-select-square__check svg[data-v-450133d1] {
+  width: 10px;
+  height: 10px;
+}
+
+/* ===== 竖向档位档（vertical）：一行一档，用于浮层里选间隔 =====
+   整行走「无边框 + 底色」的菜单感，不走方块档的描边选中，避免窄浮层里出现一串框。
+   行高不写死：两行档位（主标题 + 副说明）用 padding 撑，单行档位由 min-height 兜底。 */
+.re-select-square--vertical[data-v-450133d1] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+}
+.re-select-square--vertical .re-select-square__item[data-v-450133d1] {
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  height: auto;
+  padding: 5px 10px;
+  gap: 10px;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  /* koi 圆角令牌：xs=4px（--el-radius-base 是失效名，Element 只有
+     --el-border-radius-base，写它等于永远走兜底） */
+  border-radius: var(--el-radius-xs, 4px);
+  background: transparent;
+}
+.re-select-square--vertical .re-select-square__body[data-v-450133d1] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.re-select-square--vertical .re-select-square__label[data-v-450133d1] {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #606266);
+}
+
+/* 副说明（参考图每档下方的灰色小字），溢出省略避免长文案把浮层撑破 */
+.re-select-square--vertical .re-select-square__desc[data-v-450133d1] {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary, #909399);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 档位左侧的圆形图标底座：灰底中性色，选中后转主色浅底 */
+.re-select-square--vertical .re-select-square__item > .re-icon[data-v-450133d1] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-secondary, #909399);
+}
+.re-select-square--vertical .re-select-square__item[data-v-450133d1]:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-color: transparent;
+}
+.re-select-square--vertical .re-select-square__item--active[data-v-450133d1] {
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  /* 参考图的选中态：左侧主色竖条（inset 阴影不占布局宽度，不把内容挤偏） */
+  box-shadow: inset 3px 0 0 var(--el-color-primary, #409eff);
+}
+.re-select-square--vertical .re-select-square__item--active .re-select-square__label[data-v-450133d1] {
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+.re-select-square--vertical .re-select-square__item--active > .re-icon[data-v-450133d1] {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 选中态用整行右侧的对勾，不飘在方块角上 */
+.re-select-square--vertical .re-select-square__check[data-v-450133d1] {
+  position: static;
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  background: transparent;
+  color: var(--el-color-primary, #409eff);
+  box-shadow: none;
+}
+.re-select-square--vertical .re-select-square__check svg[data-v-450133d1] {
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== 控件尺寸档（controlSize）：28 / 34 / 40px 基线 =====
+   放在最后并用「尺寸 + 紧凑」双类选择器，保证能盖过上面 compact/text 档写死的宽高。 */
+.re-select-square--small.re-select-square--compact .re-select-square__item[data-v-450133d1] {
+  width: 32px;
+  height: 32px;
+  /* 统一走 koi 圆角令牌（sm = 6px），与 Modern 族的 --rm-radius 同值但属公共令牌 */
+  border-radius: var(--el-radius-sm, 6px);
+}
+.re-select-square--small.re-select-square--compact.re-select-square--text .re-select-square__item[data-v-450133d1] {
+  height: 26px;
+  padding: 0 8px;
+}
+.re-select-square--small.re-select-square--compact .re-select-square__label[data-v-450133d1] {
+  font-size: 11px;
+}
+.re-select-square--large.re-select-square--compact .re-select-square__item[data-v-450133d1] {
+  width: 46px;
+  height: 46px;
+  /* koi 圆角令牌（lg = 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+}
+.re-select-square--large.re-select-square--compact.re-select-square--text .re-select-square__item[data-v-450133d1] {
+  height: 38px;
+  padding: 0 16px;
+}
+.re-select-square--large.re-select-square--compact .re-select-square__label[data-v-450133d1] {
+  font-size: 14px;
+}
+
+/* 竖向档是「一行一档」菜单，尺寸只调行高，不动通栏宽度 */
+.re-select-square--small.re-select-square--vertical .re-select-square__item[data-v-450133d1] {
+  height: 28px;
+}
+.re-select-square--large.re-select-square--vertical .re-select-square__item[data-v-450133d1] {
+  height: 40px;
+}

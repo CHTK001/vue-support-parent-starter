@@ -1,0 +1,781 @@
+
+.packet-hint[data-v-9b188a31] { font-size: 11.5px;
+}
+.packet-count[data-v-9b188a31] { font-size: 12px; font-variant-numeric: tabular-nums;
+}
+
+/* 协议标签增强 */
+.proto-tag[data-v-9b188a31] {
+  min-width: 52px;
+  text-align: center;
+  font-weight: 600;
+}
+.tshark-proto--tcp[data-v-9b188a31] { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe;
+}
+.tshark-proto--udp[data-v-9b188a31] { color: #16a34a; background: #f0fdf4; border-color: #bbf7d0;
+}
+.tshark-proto--http[data-v-9b188a31] { color: #9333ea; background: #faf5ff; border-color: #e9d5ff;
+}
+.tshark-proto--tls[data-v-9b188a31] { color: #ea580c; background: #fff7ed; border-color: #fed7aa;
+}
+.tshark-proto--dns[data-v-9b188a31] { color: #dc2626; background: #fef2f2; border-color: #fecaca;
+}
+.tshark-proto--icmp[data-v-9b188a31] { color: #ca8a04; background: #fefce8; border-color: #fef08a;
+}
+.tshark-proto--arp[data-v-9b188a31] { color: #0891b2; background: #ecfeff; border-color: #a5f3fc;
+}
+.tshark-proto--ssh[data-v-9b188a31] { color: #7c3aed; background: #f5f3ff; border-color: #ddd6fe;
+}
+.tshark-proto--quic[data-v-9b188a31] { color: #059669; background: #ecfdf5; border-color: #a7f3d0;
+}
+
+/* 表格行悬停 + 左侧色条 */
+.tshark-table[data-v-9b188a31] .el-table__row {
+  transition: background-color 0.15s ease;
+}
+.tshark-table[data-v-9b188a31] .el-table__row:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent) !important;
+}
+/* 协议行左侧色条 */
+.tshark-table[data-v-9b188a31] .el-table__row td:first-child {
+  position: relative;
+}
+.tshark-table[data-v-9b188a31] .el-table__body-wrapper .el-table__row:hover td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.tshark-table[data-v-9b188a31] .el-table__body-wrapper .el-table__row.row-tcp:hover td:first-child::before { background: #3b82f6;
+}
+.tshark-table[data-v-9b188a31] .el-table__body-wrapper .el-table__row.row-udp:hover td:first-child::before { background: #16a34a;
+}
+.tshark-table[data-v-9b188a31] .el-table__body-wrapper .el-table__row.row-http:hover td:first-child::before { background: #9333ea;
+}
+.tshark-table[data-v-9b188a31] .el-table__body-wrapper .el-table__row.row-tls:hover td:first-child::before { background: #ea580c;
+}
+.tshark-table[data-v-9b188a31] .el-table__body-wrapper .el-table__row.row-icmp:hover td:first-child::before { background: #ca8a04;
+}
+
+.stat-cards[data-v-e6d3e585] {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* 环形图与明细左右分栏；窄屏堆叠 */
+.stats-grid[data-v-e6d3e585] {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.15fr);
+  gap: 12px;
+  align-content: start;
+}
+@media (max-width: 1024px) {
+.stats-grid[data-v-e6d3e585] { grid-template-columns: 1fr;
+}
+}
+
+/* margin:0 覆盖 koi 主题卡片自带的 5px 6px 外边距：本面板是两列网格，
+   卡片自带外边距会让列间距比行间距大一圈，网格对齐就此歪掉。 */
+.stats-card[data-v-e6d3e585] {
+  margin: 0;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.panel-title[data-v-e6d3e585] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.panel-title__hint[data-v-e6d3e585] {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--el-text-color-placeholder);
+}
+.chart-box[data-v-e6d3e585] { height: 240px; width: 100%;
+}
+.proto-empty[data-v-e6d3e585] { padding: 24px 0;
+}
+.proto-list[data-v-e6d3e585] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow: auto;
+}
+.proto-row[data-v-e6d3e585] {
+  display: grid;
+  grid-template-columns: 8px 76px 1fr 52px 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.proto-row[data-v-e6d3e585]:hover { background: var(--el-fill-color-light);
+}
+.proto-row[data-v-e6d3e585]:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+}
+.proto-row__dot[data-v-e6d3e585] {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.proto-row__name[data-v-e6d3e585] {
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.proto-row__bar[data-v-e6d3e585] {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--el-fill-color-light);
+  overflow: hidden;
+}
+.proto-row__bar-fill[data-v-e6d3e585] {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width var(--el-transition-duration, 0.3s) ease;
+}
+.proto-row__pct[data-v-e6d3e585] {
+  text-align: right;
+  color: var(--el-text-color-secondary);
+}
+.proto-row__count[data-v-e6d3e585] {
+  text-align: right;
+  color: var(--el-text-color-primary);
+}
+@media (prefers-reduced-motion: reduce) {
+.proto-row[data-v-e6d3e585], .proto-row__bar-fill[data-v-e6d3e585] { transition: none;
+}
+}
+
+.flow-hint[data-v-87f96b81], .flow-total[data-v-87f96b81] { font-size: 12px;
+}
+.flow-grid[data-v-87f96b81] {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.2fr) minmax(300px, 1fr);
+  gap: 12px;
+  align-content: start;
+}
+@media (max-width: 1024px) {
+.flow-grid[data-v-87f96b81] { grid-template-columns: 1fr;
+}
+}
+
+/* margin:0 覆盖 koi 主题卡片自带的 5px 6px 外边距，理由见 ScTsharkStatsPanel */
+.flow-card[data-v-87f96b81] {
+  margin: 0;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.panel-title[data-v-87f96b81] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+/* 10 条横向条目 + 轴标签，比协议饼图需要更多纵向空间 */
+.chart-box[data-v-87f96b81] { height: 320px; width: 100%;
+}
+.flow-empty[data-v-87f96b81] { padding: 24px 0;
+}
+.flow-list[data-v-87f96b81] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow: auto;
+}
+.flow-row[data-v-87f96b81] {
+  display: grid;
+  grid-template-columns: 20px 1fr 52px 68px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 6px 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+/* 左侧色条 */
+.flow-row[data-v-87f96b81]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.flow-row--gold[data-v-87f96b81]::before { background: #ef4444;
+}
+.flow-row--silver[data-v-87f96b81]::before { background: #f97316;
+}
+.flow-row--bronze[data-v-87f96b81]::before { background: #eab308;
+}
+.flow-row--normal[data-v-87f96b81]::before { background: #9ca3af;
+}
+.flow-row[data-v-87f96b81]:hover { background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+}
+.flow-row[data-v-87f96b81]:last-child { border-bottom: 0;
+}
+.flow-row__rank[data-v-87f96b81] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+.rank--gold[data-v-87f96b81] {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.rank--silver[data-v-87f96b81] {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+.rank--bronze[data-v-87f96b81] {
+  background: #fefce8;
+  color: #ca8a04;
+  border: 1px solid #fef08a;
+}
+.rank--normal[data-v-87f96b81] {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-placeholder);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.flow-row__name[data-v-87f96b81] {
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flow-row__pct[data-v-87f96b81] {
+  text-align: right;
+  color: var(--el-text-color-secondary);
+}
+.flow-row__count[data-v-87f96b81] {
+  text-align: right;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.packet-detail[data-v-98b6fbd4] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.packet-detail__head[data-v-98b6fbd4] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.detail-section[data-v-98b6fbd4] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.detail-section__head[data-v-98b6fbd4] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.detail-section__head h4[data-v-98b6fbd4] {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.detail-note[data-v-98b6fbd4] {
+  font-size: 11px;
+}
+.detail-text[data-v-98b6fbd4] {
+  margin: 0;
+  color: var(--el-text-color-regular);
+  word-break: break-all;
+  line-height: 1.6;
+}
+.detail-block[data-v-98b6fbd4] {
+  margin: 0;
+  padding: 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--el-text-color-regular);
+}
+
+.spacer[data-v-c63cebe9] { flex: 1 1 auto;
+}
+.lc-loading[data-v-c63cebe9] { height: 220px;
+}
+.lc-error[data-v-c63cebe9] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0 8px;
+}
+.lc-head[data-v-c63cebe9] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.lc-endpoint[data-v-c63cebe9] {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.lc-meta[data-v-c63cebe9] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.lc-detail[data-v-c63cebe9] {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ==================== 时序图 ==================== */
+.lc-seq-wrap[data-v-c63cebe9] {
+  margin-bottom: 12px;
+  padding: 10px 14px 0;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter);
+  max-height: 400px;
+  overflow: auto;
+}
+.lc-lane-head[data-v-c63cebe9] {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 18% 8px;
+  background: inherit;
+}
+.lc-lane-label[data-v-c63cebe9] {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.lc-lane-label.is-client[data-v-c63cebe9] { color: var(--el-color-primary);
+}
+.lc-lane-label.is-server[data-v-c63cebe9] { color: var(--el-color-success);
+}
+.lc-seq[data-v-c63cebe9] {
+  position: relative;
+  margin: 0 6%;
+}
+.lc-lifeline[data-v-c63cebe9] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--el-border-color);
+}
+.lc-lifeline.is-client[data-v-c63cebe9] { left: 18%;
+}
+.lc-lifeline.is-server[data-v-c63cebe9] { right: 18%;
+}
+
+/* 每一步是一整行按钮：箭头是视觉，命中区是整行，鼠标不用瞄准细线 */
+.lc-step[data-v-c63cebe9] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  text-align: center;
+}
+.lc-step__line[data-v-c63cebe9] {
+  position: absolute;
+  top: 16px;
+  height: 1px;
+  background: color-mix(in srgb, var(--el-color-primary) 55%, transparent);
+}
+.lc-step.is-request .lc-step__line[data-v-c63cebe9] { left: 18%; right: 82%;
+}
+.lc-step.is-response .lc-step__line[data-v-c63cebe9] { left: 82%; right: 18%;
+}
+.lc-step__arrow[data-v-c63cebe9] {
+  position: absolute;
+  top: 11px;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.lc-step.is-request .lc-step__arrow[data-v-c63cebe9] {
+  right: 18%;
+  border-left: 7px solid var(--el-color-primary);
+}
+.lc-step.is-response .lc-step__arrow[data-v-c63cebe9] {
+  left: 18%;
+  border-right: 7px solid var(--el-color-success);
+}
+.lc-step.is-response .lc-step__line[data-v-c63cebe9] {
+  background: color-mix(in srgb, var(--el-color-success) 55%, transparent);
+}
+.lc-step__label[data-v-c63cebe9] {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 44%;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--el-fill-color-lighter);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.lc-step__info[data-v-c63cebe9] {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-secondary);
+  font-family: var(--el-font-family-mono, monospace);
+}
+.lc-step:hover .lc-step__label[data-v-c63cebe9] {
+  background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+}
+.lc-step[data-v-c63cebe9]:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+/* ==================== 明细表 ==================== */
+.lc-table[data-v-c63cebe9] { box-shadow: none;
+}
+.lc-dir[data-v-c63cebe9] { font-size: 12px;
+}
+.lc-dir.is-request[data-v-c63cebe9] { color: var(--el-color-primary);
+}
+.lc-dir.is-response[data-v-c63cebe9] { color: var(--el-color-success);
+}
+.lc-muted[data-v-c63cebe9] { color: var(--el-text-color-placeholder); font-size: 12px;
+}
+/* ============================================================================
+ * 抓包（TShark）工作台：跨组件共享的骨架与原子
+ *
+ * 布局契约（自上而下一条确定的 flex 高度链，ReTable 的 fill 模式依赖它）：
+ *   .tshark-page (height:100%, 纵向 flex)
+ *     ├─ .tshark-bar            抓包条，flex:none
+ *     └─ .tshark-work   flex:1 + min-height:0
+ *          └─ ReTab stretch → .re-tab-underline__panel (flex column, min-height:0)
+ *               └─ .tshark-panel (flex column)
+ *                    ├─ .tshark-panel__tools  flex:none
+ *                    └─ .tshark-panel__body   flex:1 + min-height:0  ← 表格吃这一块
+ *
+ * 只放「多个组件都要用」的东西；单个组件的私有观感留在各自 <style scoped> 里，
+ * 避免这里长成第二个全局样式表。
+ *
+ * 取色一律走 EP 语义令牌（--el-*）：原实现用的是 pages/monitor 私有令牌
+ * （--bg-* / --text-* / --border-subtle），那份 tokens.css 只有 :root、没有暗色变体，
+ * 暗色模式下会整片停在亮色。--metric-* 是「各网络/中间件域各自的固定色相」，
+ * 需要彼此可区分，保留不换成 EP 语义色。
+ * ========================================================================== */
+
+.tshark-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ==================== 顶部抓包条 ==================== */
+.tshark-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.tshark-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+/* 把右侧的抓包参数推到条尾；窄屏换行后它自然落成第二行 */
+.tshark-bar__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tshark-bar__sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 2px;
+  background: var(--el-border-color-lighter);
+}
+@media (max-width: 900px) {
+  /* 窄屏分隔线会变成悬空的一根竖线，去掉 */
+  .tshark-bar__sep { display: none; }
+}
+
+.tshark-bar__iface { width: 156px; }
+.tshark-bar__session { width: 236px; }
+.tshark-bar__bpf { width: 208px; }
+.tshark-bar__num { width: 108px; }
+
+/* TShark 是否可用的信号灯 */
+.tshark-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  /* 显式列出真实会变的属性：写 all 会把布局属性也纳入过渡 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.tshark-status--ok {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+.tshark-status--bad {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+.tshark-status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: tshark-pulse 2s ease-in-out infinite;
+}
+@keyframes tshark-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ==================== 工作区（标签页外壳） ==================== */
+.tshark-work {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 14px 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+/* ReTab 的 underline + stretch：根节点已是 flex:1，这里只保证面板本身也整块吃满。
+   纯 CSS 文件里不能用 :deep()（那是 SFC 的编译期语法），直接写后代选择器即可。 */
+.tshark-work .re-tab-underline__panel {
+  padding-top: 12px;
+}
+
+/* ==================== 面板通用骨架 ==================== */
+.tshark-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tshark-panel__tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tshark-panel__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* 表格 / 图表吃满剩余高度的那一层；ReTable 的 fill 判定以它的高度为准。
+   overflow:auto 是兜底：fill 判定没通过（父链量不出可用高度）时内容不会顶出面板，
+   而是就地滚动；fill 生效时表格自己就占满了这一层，滚动条不会出现。 */
+.tshark-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.tshark-panel__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+}
+.tshark-panel__empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 0;
+  color: var(--el-text-color-secondary);
+}
+.tshark-panel__empty-icon {
+  color: color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+.tshark-filter { width: 268px; }
+.tshark-sessions-filter { width: 200px; }
+
+/* ==================== 文本原子 ==================== */
+.tshark-mono {
+  font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.tshark-dim { color: var(--el-text-color-secondary); }
+.tshark-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 协议配色 ====================
+   报文列表的协议标签与统计面板的协议色共用一套 class，保证「饼图那一块」
+   和「表格那一行」颜色对得上。canvas 侧（ECharts）另由 chartTheme.ts 解析真实色值。 */
+.tshark-proto { font-family: 'SF Mono', 'Cascadia Code', ui-monospace, monospace; }
+.tshark-proto--tcp { color: var(--metric-cpu); }
+.tshark-proto--udp { color: var(--el-color-success); }
+.tshark-proto--http { color: var(--metric-disk); }
+.tshark-proto--tls { color: var(--el-text-color-placeholder); }
+.tshark-proto--dns { color: var(--el-color-danger); }
+.tshark-proto--icmp { color: var(--metric-jvm); }
+.tshark-proto--arp { color: var(--metric-disk); }
+.tshark-proto--ssh { color: var(--metric-net); }
+.tshark-proto--quic { color: var(--el-text-color-regular); }
+
+/* ==================== PCAP 分析：导入 ==================== */
+
+/* 原生 file input 只当「打开系统选择框」的入口，用户点的是旁边那个按钮。
+   用 display:none 而不是 opacity:0 / 移出可视区 —— 后者会留下一个能被 Tab 聚焦的隐形控件，
+   键盘用户会 Tab 到一个看不见的东西上 */
+.pcap-file-input { display: none; }
+
+/* 文件名可能很长（带时间戳、带路径），给上限并省略，完整名字走 title 提示 */
+.pcap-file-hint {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 导入记录表里「正在查看的那条」：用主色文字标出来，比加一个标签更安静，
+   也不会把「状态」列（解析中 / 已解析）挤成两列标签 */
+.import-name.is-active {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.import-num { font-variant-numeric: tabular-nums; }
+
+/* 目录页状态灯旁的一句「这行能点」：整行可点这件事没有视觉先例，需要一句话教一次 */
+.pcap-page__hint { font-size: 12px; }
+
+/* ==================== PCAP 分析：详情头部条 ====================
+   点进某一份导入文件后，顶部那条从「导入控件」换成「这是哪一份 + 解到哪了 + 下载原件」。
+   沿用 .tshark-bar 的壳（同一张卡片、同一条基线高度），只补块内排布；
+   高度与目录页那条一致，来回切换时下面的内容不会跳。 */
+.pcap-back { flex: none; }
+
+.pcap-detail__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/* 文件名可能很长（带时间戳、带路径），给上限并省略，完整名字走 title 提示 */
+.pcap-detail__name {
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.pcap-detail__parsing { font-size: 12px; }
+
+/* 报文数 / 时间范围 / 时长：一组等宽数字的只读元信息，弱化到与表格里的辅助文字同级 */
+.pcap-detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pcap-detail__dot { color: var(--el-text-color-placeholder); }
+
+@media (max-width: 1024px) {
+  .pcap-file-hint { max-width: 132px; }
+  /* 窄屏三块（返回 / 标题 / 元信息）会折成三行，标题不再受 vw 限制，改为整行省略 */
+  .pcap-detail__name { max-width: 100%; }
+}
+
+/* ==================== 无障碍 ==================== */
+@media (prefers-reduced-motion: reduce) {
+  /* 状态点的呼吸动画只是附加动效：底色（成功绿 / 危险红）已经表达了状态，可以安全停掉 */
+  .tshark-status__dot { animation: none; }
+  .tshark-status { transition: none; }
+}

@@ -50,11 +50,39 @@ const recentAlarms = computed(() =>
   [...events.value].sort((a, b) => (b.msMonitorAlarmEventTriggerTime ?? "").localeCompare(a.msMonitorAlarmEventTriggerTime ?? "")).slice(0, 5),
 );
 
-/** 写入最近更新时钟 */
-function stampClock(): void {
-  const d = new Date();
-  lastRefresh.value = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+/** 健康度：100 - (P0×10 + P1×5 + P2×2 + P3×0.5 + P4×0) / max(hosts.length×10, 1) */
+const healthScore = computed(() => {
+  const n = hosts.value.length || 1;
+  const penalty = levelCounts.value.P0 * 10 + levelCounts.value.P1 * 5
+    + levelCounts.value.P2 * 2 + levelCounts.value.P3 * 0.5;
+  return Math.max(0, Math.min(100, Math.round(100 - (penalty / (n * 10)) * 100)));
+});
+const healthColor = computed(() => {
+  const s = healthScore.value;
+  if (s >= 80) return "var(--status-online)";
+  if (s >= 60) return "var(--status-warn-text)";
+  return "var(--status-error-text)";
+});
+/** KPI 告警密集度百分比（用于进度条宽度参考） */
+const alarmTrendPct = computed(() => {
+  const total = totalAlarms.value;
+  const n = hosts.value.length || 1;
+  return Math.min(100, Math.round((total / Math.max(n * 5, 1)) * 20));
+});
+
+/** 写入最近更新时钟（实时） */
+const now = ref(new Date());
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+function startClock(): void {
+  clockTimer = setInterval(() => { now.value = new Date(); }, 1000);
 }
+function fmtClock(d: Date): string {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+}
+function stampClock(): void {
+  lastRefresh.value = fmtClock(now.value);
+}
+const liveTime = computed(() => fmtClock(now.value));
 
 async function fetchAll(silent = false): Promise<void> {
   if (!silent) loading.value = true;
@@ -103,9 +131,11 @@ function bindSocket(): void {
 onMounted(() => {
   void fetchAll();
   bindSocket();
+  startClock();
 });
 onBeforeUnmount(() => {
   unsubOnline?.(); unsubMetrics?.(); unsubAlarm?.();
+  if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
 });
 </script>
 
@@ -114,7 +144,7 @@ onBeforeUnmount(() => {
     <div class="page-header">
       <div>
         <h1 class="page-title">监控概览</h1>
-        <p class="page-desc">资产健康一览 · 最近更新 {{ lastRefresh || "—" }} <span class="muted">· 实时更新</span></p>
+        <p class="page-desc">资产健康一览 · <span class="live-clock">{{ liveTime }}</span> <span class="live-dot" title="实时更新中" /><span class="muted">· Socket 实时推送</span></p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="fetchAll()">刷新</ReButton>
@@ -133,7 +163,24 @@ onBeforeUnmount(() => {
          图标 30px）实测单卡 280x139，留白明显多于信息量。紧凑档把内距/数值/
          标题字号一并收小，卡片高度降到约 1/4 以下而内容不减。 -->
     <ReSkeleton :loading="loading" :rows="4" animated>
-      <section class="kpi-row cols-4">
+      <section class="kpi-row cols-5">
+        <!-- 健康度圆环 -->
+        <div class="kpi-health-card">
+          <div class="kpi-health-ring">
+            <svg viewBox="0 0 44 44" class="kpi-health-svg">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="var(--border-subtle)" stroke-width="4"/>
+              <circle cx="22" cy="22" r="18" fill="none" :stroke="healthColor" stroke-width="4"
+                stroke-linecap="round"
+                :stroke-dasharray="`${healthScore * 1.13} 113`"
+                stroke-dashoffset="28"
+                transform="rotate(-90 22 22)"
+                style="transition: stroke-dasharray 0.6s ease, stroke 0.4s"/>
+            </svg>
+            <div class="kpi-health-score">{{ healthScore }}</div>
+          </div>
+          <div class="kpi-health-label">系统健康度</div>
+          <div class="kpi-health-desc">在线 {{ onlineCount }}/{{ hosts.length }}</div>
+        </div>
         <ReStatCard size="compact" title="资产总数" :desc="`已启用 ${enabledCount} · 在线 ${onlineCount}`" icon-color="var(--brand-500)">
           <template #icon><ReButton icon="DataBoard" layout="square" decorative /></template>
           <template #value><span class="kpi-big">{{ hosts.length }}</span></template>
@@ -177,12 +224,15 @@ onBeforeUnmount(() => {
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">最近告警</span></div>
-        <div v-if="recentAlarms.length === 0" class="empty-state">暂无告警事件，系统运行平稳</div>
+        <div v-if="recentAlarms.length === 0" class="empty-state">
+          <ReIcon name="CircleCheck" :size="28" style="color: var(--status-online); margin-bottom: 8px;" />
+          <p>暂无告警事件，系统运行平稳</p>
+        </div>
         <table v-else class="t">
-          <thead><tr><th>级别</th><th>主机</th><th>指标</th><th>时间</th></tr></thead>
+          <thead><tr><th class="th-sev">级别</th><th>主机</th><th>指标</th><th>时间</th></tr></thead>
           <tbody>
-            <tr v-for="a in recentAlarms" :key="a.id">
-              <td><span class="tag" :class="`sev-${alarmLevel(a)}`">{{ alarmLevel(a) }}</span></td>
+            <tr v-for="a in recentAlarms" :key="a.id" class="alarm-row" :class="`sev-row-${alarmLevel(a)}`">
+              <td class="td-sev"><span class="tag" :class="`sev-${alarmLevel(a)}`">{{ alarmLevel(a) }}</span></td>
               <td>{{ a.msMonitorAlarmEventMonitorName }}</td>
               <td class="truncate">{{ a.msMonitorAlarmEventMetricName }}</td>
               <td class="mono dim">{{ (a.msMonitorAlarmEventTriggerTime || "").slice(5, 16) }}</td>
@@ -254,6 +304,116 @@ onBeforeUnmount(() => {
   line-height: 1.15;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+}
+
+/* 健康度卡片 */
+.kpi-health-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  min-width: 0;
+}
+.kpi-health-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.kpi-health-svg {
+  width: 100%;
+  height: 100%;
+}
+.kpi-health-score {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.kpi-health-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.kpi-health-desc {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* 告警表行左侧色条 */
+.th-sev { width: 52px; }
+.td-sev { width: 52px; }
+.alarm-row { transition: background 0.12s; }
+.alarm-row:hover { background: var(--bg-base); }
+.sev-row-P0 { border-left: 3px solid var(--sev-p0-text); }
+.sev-row-P1 { border-left: 3px solid var(--sev-p1-text); }
+.sev-row-P2 { border-left: 3px solid var(--sev-p2-text); }
+.sev-row-P3 { border-left: 3px solid var(--sev-p3-text); }
+.sev-row-P4 { border-left: 3px solid var(--sev-p4-text); }
+
+/* 实时时钟 */
+.live-clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-online);
+  margin: 0 4px;
+  vertical-align: 1px;
+  animation: live-pulse 2s ease-out infinite;
+}
+@keyframes live-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-online) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* 健康度趋势条（KPI 卡下方） */
+.health-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.health-trend__label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.health-trend__bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+.health-trend__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.health-trend__val {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  min-width: 28px;
+  text-align: right;
 }
 </style>
 

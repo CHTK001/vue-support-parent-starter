@@ -6,6 +6,15 @@
       <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">绑定第三方平台，让 AI 机器人接入你的常用工具</p>
     </div>
 
+    <!-- 加载失败：必须与「确实没有连接器」区分开，否则接口 500 时页面会假装一切正常 -->
+    <div v-if="loadError" class="px-6 pt-2">
+      <div class="connectors-banner" role="alert">
+        <el-icon :size="16" class="connectors-banner-icon"><WarningOutlined /></el-icon>
+        <span class="connectors-banner-text">{{ loadError }}</span>
+        <el-button size="small" round @click="fetchConnectors">重试</el-button>
+      </div>
+    </div>
+
     <!-- 已绑定连接器区域 -->
     <section class="px-6 py-4">
       <h2 class="text-sm font-medium text-gray-500 dark:text-[#8b8d95] mb-3 tracking-wide">已绑定</h2>
@@ -14,7 +23,7 @@
         class="flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed border-gray-200 dark:border-[#3a3b40] text-gray-400 dark:text-[#6b6d75]"
       >
         <ConnectorIcon type="unknown" />
-        <span class="text-sm">暂无已绑定的连接器</span>
+        <span class="text-sm">{{ loading ? '正在加载连接器…' : '暂无已绑定的连接器' }}</span>
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <article
@@ -32,8 +41,8 @@
           <div class="flex-1 min-w-0">
             <div class="font-medium text-gray-900 dark:text-[#e8e9ed] truncate">{{ connector.name || getConnectorTypeName(normType(connector.type)) }}</div>
             <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-[#8b8d95] mt-1">
-              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="isOnline(connector.status) ? 'bg-green-500' : 'bg-gray-400'"></span>
-              <span :class="isOnline(connector.status) ? 'text-green-600' : 'text-gray-400 dark:text-[#6b6d75]'">{{ isOnline(connector.status) ? '在线' : '离线' }}</span>
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="getConnectorStatusInfo(connector.status).dotClass"></span>
+              <span :class="getConnectorStatusInfo(connector.status).textClass">{{ getConnectorStatusInfo(connector.status).label }}</span>
               <span class="text-gray-300 dark:text-[#45464b]">·</span>
               <span class="truncate">{{ getConnectorTypeName(normType(connector.type)) }}</span>
             </div>
@@ -42,6 +51,16 @@
             class="bound-actions flex items-center gap-0.5 shrink-0"
             @click.stop
           >
+            <!-- error 状态：显示重试按钮 -->
+            <button
+              v-if="connector.status === 'error'"
+              type="button"
+              class="w-5 h-5 rounded-md flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              title="重试连接"
+              @click="retryConnector(connector)"
+            >
+              <ReloadOutlined class="text-[12px]" />
+            </button>
             <button
               type="button"
               class="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
@@ -67,6 +86,14 @@
               <DeleteOutlined class="text-[12px]" />
             </button>
           </div>
+
+          <!-- 故障状态：显示最近错误信息 -->
+          <div
+            v-if="connector.status === 'error' && connector.lastError"
+            class="connector-error-bar"
+          >
+            <span class="connector-error-text">{{ connector.lastError }}</span>
+          </div>
         </article>
       </div>
     </section>
@@ -78,7 +105,7 @@
         v-if="availableConnectors.length === 0"
         class="flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed border-gray-200 dark:border-[#3a3b40] text-gray-400 dark:text-[#6b6d75]"
       >
-        <span class="text-sm">暂无可绑定的连接器</span>
+        <span class="text-sm">{{ loading ? '正在加载可绑定的平台…' : (loadError ? '加载失败，请重试' : '暂无可绑定的连接器') }}</span>
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <article
@@ -113,16 +140,44 @@
       @closed="resetBindForm"
     >
       <div v-if="currentConnector">
+        <!--
+          找不到表单组件时必须显式说明，不能留一个「只有确认按钮」的空弹框：
+          那样用户点下去只会收到后端的「缺少必填参数」，却不知道该填什么。
+        -->
+        <div v-if="!bindFormComponent" class="bind-unsupported" role="alert">
+          <el-icon :size="18"><WarningOutlined /></el-icon>
+          <div>
+            <p class="bind-unsupported-title">该连接器暂不支持在页面上绑定</p>
+            <p class="bind-unsupported-desc">
+              前端还没有为「{{ currentConnector.name }}」提供凭据表单，请联系管理员。
+            </p>
+          </div>
+        </div>
+
         <!-- 动态加载绑定表单组件 -->
-        <component :is="bindFormComponent" v-model="bindForm" @confirmed="onQrConfirmed" />
+        <component
+          :is="bindFormComponent"
+          v-else
+          v-model="bindForm"
+          @confirmed="onQrConfirmed"
+        />
 
         <!-- 表单型绑定可在绑定时选择模型；扫码型绑定后通过「编辑」设置 -->
-        <div v-if="!bindIsQr" class="mt-4 pt-4 border-t border-gray-200 dark:border-[#3a3b40]">
+        <div v-if="bindFormComponent && !bindIsQr" class="mt-4 pt-4 border-t border-gray-200 dark:border-[#3a3b40]">
           <el-form label-position="top">
             <el-form-item label="使用模型">
-              <el-select v-model="bindForm.model" placeholder="跟随系统默认模型" class="w-full">
+              <el-select v-model="bindForm.model" placeholder="跟随系统默认模型" class="w-full" filterable>
                 <el-option label="跟随系统默认模型" value="" />
-                <el-option v-for="m in models" :key="m" :label="m" :value="m" />
+                <el-option
+                  v-for="m in models"
+                  :key="m.name"
+                  :label="m.name"
+                  :value="m.name"
+                  :disabled="!m.isActive"
+                >
+                  <span>{{ m.name }}</span>
+                  <el-tag v-if="!m.isActive" size="small" type="danger" effect="plain">已停用</el-tag>
+                </el-option>
               </el-select>
             </el-form-item>
           </el-form>
@@ -130,7 +185,14 @@
       </div>
 
       <template #footer>
-        <el-button v-if="!bindIsQr" type="primary" :loading="binding" @click="handleBind">确认绑定</el-button>
+        <el-button
+          v-if="bindFormComponent && !bindIsQr"
+          type="primary"
+          :loading="binding"
+          @click="handleBind"
+        >
+          确认绑定
+        </el-button>
       </template>
     </ReDialog>
 
@@ -143,18 +205,22 @@
         <el-form-item label="使用模型">
           <el-select v-model="editForm.model" placeholder="跟随系统默认模型" class="w-full" filterable>
             <el-option label="跟随系统默认模型" value="" />
-            <el-option v-for="m in models" :key="m" :label="m" :value="m" />
+            <el-option
+              v-for="m in models"
+              :key="m.name"
+              :label="m.name"
+              :value="m.name"
+              :disabled="!m.isActive"
+            >
+              <span>{{ m.name }}</span>
+              <el-tag v-if="!m.isActive" size="small" type="danger" effect="plain">已停用</el-tag>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="系统提示词">
-          <el-input
-            v-model="editForm.systemPrompt"
-            type="textarea"
-            :rows="3"
-            maxlength="2000"
-            show-word-limit
-            placeholder="留空则使用全局默认提示词；填写后仅对该 Bot 生效，用于定义角色、语气与行为边界"
-          />
+          <div class="text-xs text-gray-400 dark:text-[#6b6d75] leading-5">
+            由该连接器绑定的角色决定，如需调整人设与语气，请到「角色」中修改对应角色。
+          </div>
         </el-form-item>
         <el-form-item label="仅回复 @ 我的消息">
           <el-switch v-model="editForm.mentionOnly" />
@@ -168,7 +234,7 @@
         </el-form-item>
         <template v-if="editForm.randomReplyEnabled">
           <el-form-item label="携带上下文条数">
-            <el-input-number v-model="editForm.randomContextCount" :min="1" :max="100" :step="1" controls-position="right" />
+            <ReNumberSelect v-model="editForm.randomContextCount" :min="1" :max="100" :step="1" controls-position="right" />
           </el-form-item>
           <el-form-item label="触发概率">
             <div class="w-full flex items-center gap-3">
@@ -187,23 +253,30 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus';
-import { EditOutlined, DeleteOutlined, MessageOutlined } from '@vicons/antd'
+import { EditOutlined, DeleteOutlined, MessageOutlined, WarningOutlined, ReloadOutlined } from '@vicons/antd'
 import { api } from '@/framework/context'
+import { modelApi } from '@/services/javaApi'
 import ConnectorIcon from './ConnectorIcon.vue'
 import ILinkBindForm from './bind-forms/ILinkBindForm.vue'
 import FeishuBindForm from './bind-forms/FeishuBindForm.vue'
-import WecomBindForm from './bind-forms/WecomBindForm.vue'
+import DingTalkBindForm from './bind-forms/DingTalkBindForm.vue'
+import WhatsAppBindForm from './bind-forms/WhatsAppBindForm.vue'
 import QqBindForm from './bind-forms/QqBindForm.vue'
 
 
 import ReDialog from '@repo/ui/re-dialog';// 数据
 const boundConnectors = ref<any[]>([])
 const availableConnectors = ref<any[]>([])
-const models = ref<string[]>([])
+const models = ref<Array<{ name: string; isActive: boolean }>>([])
+/** 首次加载 / 刷新的加载态：空态文案据此区分「正在加载」与「确实没有」 */
+const loading = ref(false)
+/** 加载失败原因：非空时页面顶部给重试入口，而不是安静地显示空列表 */
+const loadError = ref('')
 
 // 绑定对话框
 const bindDialogVisible = ref(false)
@@ -218,7 +291,6 @@ const saving = ref(false)
 const editForm = ref<{
   nickname: string
   model: string
-  systemPrompt: string
   mentionOnly: boolean
   randomReplyEnabled: boolean
   randomContextCount: number
@@ -226,7 +298,6 @@ const editForm = ref<{
 }>({
   nickname: '',
   model: '',
-  systemPrompt: '',
   mentionOnly: false,
   randomReplyEnabled: false,
   randomContextCount: 10,
@@ -237,8 +308,9 @@ const editForm = ref<{
 const bindFormComponents: Record<string, any> = {
   ilink: ILinkBindForm,
   feishu: FeishuBindForm,
-  wecom: WecomBindForm,
   qq: QqBindForm,
+  dingtalk: DingTalkBindForm,
+  whatsapp: WhatsAppBindForm,
 }
 
 const bindFormComponent = computed(() => {
@@ -257,17 +329,65 @@ const onQrConfirmed = () => {
 
 const isOnline = (status?: string) => status === 'online'
 
+// 连接器状态映射：区分「离线」「重连中」「故障」——原来只有 online/offline 二元，
+// 鉴权失效/重连中/未激活都显示「离线」，运维无法区分。
+const CONNECTOR_STATUS: Record<string, { label: string; dotClass: string; textClass: string; bgClass: string }> = {
+  online:     { label: '在线',    dotClass: 'bg-green-500',   textClass: 'text-green-600',  bgClass: 'bg-green-50 dark:bg-green-500/10' },
+  offline:    { label: '离线',    dotClass: 'bg-gray-400',   textClass: 'text-gray-400 dark:text-[#6b6d75]', bgClass: '' },
+  reconnecting: { label: '重连中', dotClass: 'bg-yellow-500', textClass: 'text-yellow-600 dark:text-yellow-400', bgClass: 'bg-yellow-50 dark:bg-yellow-500/10' },
+  error:      { label: '故障',    dotClass: 'bg-red-500',    textClass: 'text-red-600 dark:text-red-400',    bgClass: 'bg-red-50 dark:bg-red-500/10' },
+  pending:    { label: '未激活',  dotClass: 'bg-blue-400',   textClass: 'text-blue-500 dark:text-blue-400',  bgClass: 'bg-blue-50 dark:bg-blue-500/10' },
+}
+
+const getConnectorStatusInfo = (status?: string) => {
+  return CONNECTOR_STATUS[status || 'offline'] || CONNECTOR_STATUS.offline
+}
+
 // 已绑定记录返回的是平台名（wechat），统一归一化为页面使用的连接器类型（ilink）
 const normType = (type?: string) => (type === 'wechat' ? 'ilink' : type || '')
 
 // 获取连接器数据
 const fetchConnectors = async () => {
+  loading.value = true
+  loadError.value = ''
   try {
-    availableConnectors.value = (await api.get('/connectors/types')) || []
-    boundConnectors.value = (await api.get('/connectors/bound')) || []
-    models.value = (await api.get('/ai/bot-binding/models')) || []
-  } catch (error) {
+    // 两个主列表并行拉取：串行会让首屏白等两个 RTT
+    const [types, bound] = await Promise.all([
+      api.get('/connectors/types'),
+      api.get('/connectors/bound'),
+    ])
+    availableConnectors.value = types || []
+    boundConnectors.value = bound || []
+  } catch (error: any) {
+    // 失败必须显式暴露：否则页面会同时显示「暂无已绑定」和「暂无可绑定」，
+    // 看起来像「这个系统本来就没有连接器」，把故障藏了起来。
+    loadError.value = error?.msg || error?.message || '加载连接器失败，请稍后重试'
     console.error('获取连接器列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+
+  // 模型列表只影响「使用模型」下拉，失败不应让整页进入错误态
+  try {
+    // 优先用结构化供应商接口拿 isActive，和绑定接口的可用模型名合并：
+    // 绑定接口是可用模型名的权威来源，供应商接口补状态（避免同名不同供应商重复项）
+    const [names, providers] = await Promise.all([
+      api.get<string[]>('/ai/bot-binding/models'),
+      modelApi.fetchModels().catch(() => null),
+    ])
+    const activeMap = new Map<string, boolean>()
+    for (const p of providers?.items ?? []) {
+      for (const m of p.models ?? []) {
+        const key = m.modelName || m.model || ''
+        if (key) activeMap.set(key, m.isActive !== false)
+      }
+    }
+    models.value = (names || []).map((name) => ({
+      name,
+      isActive: activeMap.get(name) ?? true,
+    }))
+  } catch (error) {
+    console.warn('获取可绑定模型列表失败（不影响连接器列表）:', error)
   }
 }
 
@@ -286,6 +406,15 @@ const resetBindForm = () => {
 // 表单型绑定
 const handleBind = async () => {
   if (!currentConnector.value) return
+  // 绑定前校验所选模型是否已停用：已停用模型保存后连接器会静默用默认模型
+  const selectedModel = bindForm.value.model
+  if (selectedModel) {
+    const model = models.value.find((m) => m.name === selectedModel)
+    if (model && !model.isActive) {
+      message.warning(`「${selectedModel}」已停用，请先到模型管理启用该模型`)
+      return
+    }
+  }
   binding.value = true
   try {
     await api.post('/connectors/bind', {
@@ -308,7 +437,6 @@ const openEditDialog = (connector: any) => {
   editForm.value = {
     nickname: connector.name || '',
     model: connector.modelName || '',
-    systemPrompt: connector.systemPrompt || '',
     mentionOnly: connector.mentionOnly !== false,
     randomReplyEnabled: !!connector.randomReplyEnabled,
     randomContextCount: connector.randomContextCount ?? 10,
@@ -319,12 +447,20 @@ const openEditDialog = (connector: any) => {
 
 const handleSaveEdit = async () => {
   if (editId.value == null) return
+  // 保存前校验所选模型是否已停用
+  const selectedModel = editForm.value.model
+  if (selectedModel) {
+    const model = models.value.find((m) => m.name === selectedModel)
+    if (model && !model.isActive) {
+      message.warning(`「${selectedModel}」已停用，请先到模型管理启用该模型`)
+      return
+    }
+  }
   saving.value = true
   try {
     await api.put(`/connectors/${editId.value}`, {
       nickname: editForm.value.nickname?.trim(),
       model: editForm.value.model || '',
-      systemPrompt: editForm.value.systemPrompt || '',
       mentionOnly: editForm.value.mentionOnly,
       randomReplyEnabled: editForm.value.randomReplyEnabled,
       randomContextCount: editForm.value.randomContextCount,
@@ -356,6 +492,23 @@ const unbindConnector = async (connector: any) => {
   }
 }
 
+/**
+ * 故障连接器重试：对离线/故障连接器发起重新握手请求。
+ *
+ * <p>之前故障连接器只有「离线」一个状态，没有手动重试入口，
+ * 只能等系统自动重连（周期不明），运维处于被动等待。</p>
+ */
+const retryConnector = async (connector: any) => {
+  try {
+    await api.post(`/connectors/${connector.id}/retry`)
+    message.success('已发起重连，请稍候')
+    // 重连是异步的，改状态要靠轮询，所以只刷新列表让用户观察
+    fetchConnectors()
+  } catch (error: any) {
+    message.error(error?.msg || error?.message || '重连失败')
+  }
+}
+
 // 进入连接器聊天
 // 必须走 router.push：原来用 window.location.href 会整页刷新，
 // 整个 SPA 冷启动（这个应用冷启要几十秒）并丢掉全部状态，
@@ -369,9 +522,9 @@ const getConnectorIconBg = (type: string) => {
   const colors: Record<string, string> = {
     ilink: 'bg-[#e8f9ef] dark:bg-[#07c160]/15',
     feishu: 'bg-[#eef3ff] dark:bg-[#3370ff]/15',
-    wecom: 'bg-[#e6f4fe] dark:bg-[#0082ef]/15',
     qq: 'bg-[#e6f6fe] dark:bg-[#12b7f5]/15',
     dingtalk: 'bg-[#e9f2ff] dark:bg-[#1677ff]/15',
+    whatsapp: 'bg-[#e7f8ee] dark:bg-[#25d366]/15',
   }
   return colors[type] || 'bg-gray-100 dark:bg-[#2e3035]'
 }
@@ -381,9 +534,9 @@ const getConnectorTypeName = (type: string) => {
   const names: Record<string, string> = {
     ilink: '微信',
     feishu: '飞书',
-    wecom: '企业微信',
     qq: 'QQ',
     dingtalk: '钉钉',
+    whatsapp: 'WhatsApp',
   }
   return names[type] || '未知连接器'
 }
@@ -394,6 +547,20 @@ onMounted(fetchConnectors)
 </script>
 
 <style scoped>
+/* 故障连接器卡片：红色边框提示运维关注 */
+.connector-card:has(.connector-error-bar) {
+  border-color: color-mix(in srgb, var(--el-color-danger) 40%, var(--color-surface-border)) !important;
+}
+/* 故障信息条 */
+.connector-error-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0 0;
+  font-size: 11.5px;
+  color: var(--el-color-danger);
+  border-top: 1px dashed var(--el-color-danger-light-6);
+}
 /* 已绑定卡片右侧操作：默认隐藏，悬停卡片（或键盘聚焦其内按钮）时淡入 */
 .bound-actions {
   opacity: 0;
@@ -402,5 +569,46 @@ onMounted(fetchConnectors)
 .connector-card:hover .bound-actions,
 .bound-actions:focus-within {
   opacity: 1;
+}
+
+/* 加载失败条 */
+.connectors-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  color: var(--el-color-danger);
+}
+.connectors-banner-icon { flex-shrink: 0; }
+.connectors-banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 没有对应绑定表单时的说明块 */
+.bind-unsupported {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  color: var(--el-color-warning);
+}
+.bind-unsupported-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.bind-unsupported-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
 }
 </style>

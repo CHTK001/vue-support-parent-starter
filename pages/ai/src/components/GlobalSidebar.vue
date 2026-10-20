@@ -112,30 +112,42 @@
                 </button>
 
                 <div class="session-info flex-1 min-w-0 flex items-center">
-                  <div class="session-title text-sm font-medium w-full">
+                  <template v-if="editingSessionId === session.id">
+                    <input
+                      ref="titleEditInputRef"
+                      v-model="editingTitle"
+                      class="session-title-input w-full text-sm font-medium"
+                      :placeholder="t('ui.sidebar.inputSessionName')"
+                      @keydown.enter="commitTitleEdit(session)"
+                      @keydown.esc="cancelTitleEdit"
+                      @blur="commitTitleEdit(session)"
+                      @click.stop
+                    />
+                  </template>
+                  <div v-else class="session-title text-sm font-medium w-full"
+                    :title="t('ui.sidebar.rename')" @dblclick.stop="startTitleEdit(session)">
                     {{ session.title }}
                   </div>
                 </div>
-                <div v-if="!multiSelectMode" class="session-actions shrink-0 relative min-w-5 h-full flex items-center">
+                <div v-if="!multiSelectMode" class="session-actions shrink-0 h-full flex items-center gap-1">
                   <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
                   <span v-if="getSessionWorking(session.id)"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-500 whitespace-nowrap">
+                    class="text-xs font-medium text-blue-500 whitespace-nowrap">
                     {{ formatWorkingElapsed(session.id) }}
                   </span>
-                  <!-- 最近一次执行耗时（非运行时灰显，当前会话也显示——完成即记录；hover 时隐藏，右对齐悬浮） -->
+                  <!-- 最近一次执行耗时（非运行时灰显，当前会话也显示——完成即记录） -->
                   <span v-else-if="formatLastRun(session.id)"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
+                    class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     {{ formatLastRun(session.id) }}
                   </span>
-                  <!-- 最后活跃时间（无执行记录时回退，hover 时隐藏，右对齐悬浮） -->
+                  <!-- 最后活跃时间（无执行记录时回退） -->
                   <span v-else-if="session.id !== currentSessionId"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
+                    class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     {{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
                   </span>
-                  <!-- 操作菜单（默认隐藏，hover 时显示） -->
-                  <div
-                    class="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex items-center"
-                    :class="{ 'opacity-100': session.id === currentSessionId }">
+                  <!-- 操作菜单：当前会话常显，其余 hover 显示；与右侧文本并排，互不遮挡 -->
+                  <div class="flex items-center"
+                    :class="session.id === currentSessionId ? '' : 'opacity-0 group-hover:opacity-100'">
                     <DropdownMenu @command="(cmd: string) => handleDropdownSelect(cmd, session)">
                       <div class="session-action-trigger">
                         <el-icon class="w-4 h-4">
@@ -370,7 +382,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, markRaw } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, markRaw, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
@@ -648,12 +660,14 @@ const navItems = computed(() => {
       key: 'image-generate',
       label: '图像生成',
       icon: Image20Regular,
+      section: '图像',
       alwaysShow: true
     },
     {
       key: 'face-search',
       label: '人脸识别',
       icon: Person20Regular,
+      section: '图像',
       // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
       // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
       // 未登录仍会被 requireUserId() 拒掉。
@@ -670,12 +684,22 @@ const navItems = computed(() => {
       key: 'image-search',
       label: '以图搜图',
       icon: ImageSearch20Regular,
+      section: '图像',
       // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
       // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
       // 未登录仍会被 requireUserId() 拒掉。
       // 图像特征模型未配置 → 菜单打「未配置」徽标（同上，store getter 已解包）
       badge: modelConfig.imageReady ? '' : '未配置',
       badgeTip: '图像特征模型未配置，以图搜图不可用',
+    },
+    {
+      key: 'image-colorize',
+      label: '图像上色',
+      icon: Image20Regular,
+      section: '图像',
+      // 上色模型未配置 → 菜单打「未配置」徽标，页面内给出与以图搜图同口径的配置提示
+      badge: modelConfig.colorizeReady ? '' : '未配置',
+      badgeTip: '上色模型未配置，图像上色不可用',
     },
     {
       key: 'models',
@@ -742,6 +766,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'ImageSearch') return 'image-search'
+  if (routeName === 'ImageColorize') return 'image-colorize'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -1074,7 +1099,7 @@ const handleNavClick = async (tab: string) => {
     // 点击菜单时再等一次合并视图，避免侧栏首次加载未完成时误判为未配置
     await modelConfig.load()
     if (!modelConfig.faceReady) {
-      toast.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
+      toast.warning('人脸识别未启用：请先到「系统设置 → 人脸识别配置」配置检测模型与特征模型')
       return
     }
     router.replace({ name: 'FaceSearch' })
@@ -1082,10 +1107,17 @@ const handleNavClick = async (tab: string) => {
     // 以图搜图同口径：点击时才拿最新配置，配置后不需要刷新页面
     await modelConfig.load()
     if (!modelConfig.imageReady) {
-      toast.warning('以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型')
+      toast.warning('以图搜图未启用：请先到「系统设置 → 以图搜图配置」配置图像特征模型')
       return
     }
     router.replace({ name: 'ImageSearch' })
+  } else if (tab === 'image-colorize') {
+    await modelConfig.load()
+    if (!modelConfig.colorizeReady) {
+      toast.warning('图像上色未启用：请先到「系统设置 → 图像上色配置」配置上色模型')
+      return
+    }
+    router.replace({ name: 'ImageColorize' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {
@@ -1249,6 +1281,43 @@ const handleDeleteGroup = async (group: any) => {
 }
 
 /**
+ * 会话标题内联编辑状态
+ */
+const editingSessionId = ref<string | null>(null)
+const editingTitle = ref('')
+const titleEditInputRef = ref<HTMLInputElement | null>(null)
+
+const startTitleEdit = (session: any) => {
+  editingSessionId.value = session.id
+  editingTitle.value = session.title || ''
+  nextTick(() => {
+    titleEditInputRef.value?.focus()
+    titleEditInputRef.value?.select()
+  })
+}
+
+const cancelTitleEdit = () => {
+  editingSessionId.value = null
+  editingTitle.value = ''
+}
+
+const commitTitleEdit = async (session: any) => {
+  if (editingSessionId.value !== session.id) return
+  const newTitle = editingTitle.value.trim()
+  editingSessionId.value = null
+  editingTitle.value = ''
+  if (!newTitle || newTitle === session.title) return
+  try {
+    await apiService.updateSession(session.id, { title: newTitle })
+    sessionStore.updateSessionTitle(session.id, newTitle)
+    toast.success(t('ui.sidebar.sessionRenamed'))
+  } catch (error) {
+    console.error('重命名对话失败:', error)
+    toast.error(t('ui.sidebar.renameSessionFailed'))
+  }
+}
+
+/**
  * 重命名会话
  * 显示输入新名称的提示框，更新会话标题
  */
@@ -1403,6 +1472,21 @@ onUnmounted(() => {
     black calc(100% - 6px),
     rgba(0, 0, 0, 0.65) calc(100% - 3px),
     transparent 100%);
+}
+
+.session-title-input {
+  border: 1px solid var(--el-color-primary, var(--color-primary, #4f7cff));
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: var(--color-input-bg, var(--el-fill-color-blank, #fff));
+  color: var(--color-text, var(--el-text-color-primary));
+  outline: none;
+  box-sizing: border-box;
+  line-height: 20px;
+  min-width: 0;
+}
+.session-title-input:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary, #4f7cff) 18%, transparent);
 }
 
 .session-item-inactive {

@@ -1,0 +1,43 @@
+/* ============================================================
+ * radius-vars.css —— 圆角令牌「默认层」
+ *
+ * 为什么要这一层：
+ *   --el-radius-* 六档原本只在 packages/theme 的 koi 主题里定义
+ *   （themes/koi/styles/radius.scss）。没有加载 koi 主题的应用
+ *   （例如 apps/vue-support-ai-guada 只引 element-plus/dist/index.css）
+ *   里 `var(--el-radius-md, 8px)` 只能吃兜底 px —— 视觉不变，
+ *   但主题一旦挂上，圆角档与其它页面就对不齐。
+ *   本文件把这套档位下沉到「装了组件库就能拿到」的层级，消掉这个缺口。
+ *
+ * 分层约定（重要，改动前先读）：
+ *   第 1 层  本文件（默认层，packages/ui，随组件库分发）
+ *            只声明 --el-radius-* 六档本身
+ *   第 2 层  koi 主题（packages/theme/src/themes/koi/styles/radius.scss）
+ *            覆盖同名六档，**并额外**把 Element Plus 的
+ *            --el-border-radius-* / --el-*-border-radius 重映射到这套档
+ *
+ *   本层刻意**不**重映射 EP 的组件级圆角变量：EP base.css 自带
+ *   --el-border-radius-base:4px / -small:2px / -round:20px，
+ *   改写它们会连带改掉所有 Element 组件（输入框/标签/对话框）的圆角，
+ *   对没要求过圆角体系的应用属于整站变脸。组件级重映射是 koi 的职责。
+ *
+ *   两层同特异度（都是 :root），后加载者胜。当前两层取值一致，
+ *   加载顺序不影响结果；将来 koi 若要偏离本层取值，必须保证
+ *   主题样式晚于组件库样式加载（koi 应用里主题由 layout 动态引入，成立）。
+ * ============================================================ */
+
+:root {
+  /* ── 统一圆角令牌（默认值，与 koi 主题同档）──
+     xs    = 4px    极细元素（checkbox / segmented 内部）
+     sm    = 6px    控件（按钮 / 输入框 / 下拉 / tag / 分页）
+     md    = 8px    面板（popper / popover / alert / 表格）
+     lg    = 12px   卡片（card / notification / message-box）
+     xl    = 16px   浮层（dialog）
+     full  = 9999px 胶囊（round 按钮 / tag pill） */
+  --el-radius-xs: 4px;
+  --el-radius-sm: 6px;
+  --el-radius-md: 8px;
+  --el-radius-lg: 12px;
+  --el-radius-xl: 16px;
+  --el-radius-full: 9999px;
+}

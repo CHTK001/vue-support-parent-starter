@@ -14,6 +14,7 @@ import { onBeforeUnmount, shallowRef, watch } from "vue";
 import { authHeaders, objectUrl } from "../../api/filestorageApi";
 import { extensionOf } from "../../utils/officeRenderer";
 import FvPanelBase from "./FvPanelBase.vue";
+import FvLoadingMask from "./FvLoadingMask.vue";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -147,7 +148,7 @@ function onBaseError(err: unknown): void {
 
 <template>
   <div class="fv-eda-panel">
-    <div v-if="loading && !fileRef" class="fv-eda-panel__mask">加载中…</div>
+    <FvLoadingMask v-if="loading && !fileRef" :fileName="fileName" />
     <FvPanelBase
       v-else-if="fileRef && renderers.length"
       v-model:loading="loading"

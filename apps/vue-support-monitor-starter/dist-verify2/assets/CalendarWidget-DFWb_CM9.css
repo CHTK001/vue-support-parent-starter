@@ -1,0 +1,533 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* ============================================================
+   日历 widget 样式
+   对齐 koi 风格清单：
+     - 圆角只用令牌 xs4 / sm6 / md8 / lg12 / full9999，无魔法值
+     - 字号最小 12px（caption），正文 14，不发明 9/10/11px
+     - 颜色只用 --el-*，暗色靠变量自动翻转
+     - 卡片无投影，靠 border 与背景分层
+     - 间距走 4 / 8 基准
+   ============================================================ */
+.calendar-widget[data-v-d0607d30] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
+}
+
+/* ---------------- 头部 ---------------- */
+/* 16px → 12px：340px 宽的组件两侧各占 16px 就是 9.4%，日历格子被挤到
+   只剩 1~2 个汉字。12px 仍在 4/8 间距基准上，头部 / 摘要 / 图例 / 主体
+   四处**同值**，否则日历左边缘会与摘要框对不齐。*/
+.calendar-widget__header[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 4px;
+}
+.calendar-widget__title[data-v-d0607d30] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.calendar-widget__title-icon[data-v-d0607d30] {
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+}
+.calendar-widget__count[data-v-d0607d30] {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.calendar-widget__actions[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ---------------- 头部按钮 ----------------
+   裸 <button> 而非 ReButton：这里只需要 icon-only + tooltip，
+   套组件反而多一层 DOM。用 sm 圆角（控件级）与 32px 命中区。 */
+.calendar-widget__add[data-v-d0607d30],
+.calendar-widget__action[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+/* 键盘可达：图标按钮同样需要焦点环，否则只能靠鼠标点 */
+.calendar-widget__add[data-v-d0607d30]:focus-visible,
+.calendar-widget__action[data-v-d0607d30]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.calendar-widget__add[data-v-d0607d30] {
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.calendar-widget__add[data-v-d0607d30]:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+}
+.calendar-widget__action[data-v-d0607d30]:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+/* 开启态与「+」同色系，让用户看得出这个开关现在是开的 */
+.calendar-widget__action.is-on[data-v-d0607d30] {
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+
+/* ---------------- 今日摘要 ---------------- */
+.calendar-widget__today[data-v-d0607d30] {
+  /* 上下 8 / 左右 12：与 header、legend、body 同一套横向内缩，且都在 4/8 基准上 */
+  margin: 0 12px 8px;
+  padding: 8px 12px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.calendar-widget__today-row[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* min-width:0 让长内容能收缩，否则「国庆节 第 4 天 / 共 7 天」会把左侧日期挤出格 */
+  min-width: 0;
+}
+.calendar-widget__today-row + .calendar-widget__today-row[data-v-d0607d30] {
+  margin-top: 4px;
+}
+.calendar-widget__today-date[data-v-d0607d30] {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.calendar-widget__today-lunar[data-v-d0607d30] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.calendar-widget__today-festival[data-v-d0607d30] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+/* 假期进度：名称 + 天数 + 进度点，一眼看出「还剩几天」 */
+.calendar-widget__today-holiday[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.calendar-widget__today-progress[data-v-d0607d30] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-color-success);
+}
+.calendar-widget__today-progress em[data-v-d0607d30] {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+}
+.calendar-widget__today-pips[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.calendar-widget__today-pip[data-v-d0607d30] {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-border-color);
+}
+.calendar-widget__today-pip.is-done[data-v-d0607d30] {
+  background: var(--el-color-success);
+}
+.calendar-widget__today-work[data-v-d0607d30] {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-color-warning);
+}
+.calendar-widget__today-rest[data-v-d0607d30] {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 推算值必须弱化：它是「按放假办法推出法定假日当天」，不是官方调休安排 */
+.calendar-widget__today-provisional[data-v-d0607d30] {
+  flex-shrink: 0;
+  padding: 0 4px;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xs, 4px);
+}
+.calendar-widget__today-next[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---------------- 图例 ----------------
+   「班」到底是上班还是补班？红色是节日还是报错？
+   这些含义不写出来就只能靠猜，所以图例是功能而非装饰。 */
+.calendar-widget__legend[data-v-d0607d30] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 0 12px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.calendar-widget__legend-item[data-v-d0607d30] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.calendar-widget__legend-badge[data-v-d0607d30] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 16px;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-color-success);
+}
+.calendar-widget__legend-badge.is-work[data-v-d0607d30] {
+  background: var(--el-color-warning);
+}
+.calendar-widget__legend-bar[data-v-d0607d30] {
+  width: 3px;
+  height: 12px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-danger);
+}
+.calendar-widget__legend-bar.is-lv3[data-v-d0607d30] {
+  background: var(--el-text-color-secondary);
+}
+.calendar-widget__legend-bar.is-lunar[data-v-d0607d30] {
+  background: var(--el-text-color-placeholder);
+}
+
+/* ---------------- 日历主体 ---------------- */
+.calendar-widget__body[data-v-d0607d30] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 12px 12px;
+}
+
+/* ---------------- 格子 ---------------- */
+.calendar-widget__cell[data-v-d0607d30] {
+  display: flex;
+  flex-direction: column;
+  /* 2px → 4px：既回到文件头声明的「间距走 4/8 基准」，也直接对应「格子里几行字
+     挤在一起」——日期 / 节日 / 农历 / 日程之间原本只有 2px。多出来的高度由
+     去掉 .el-calendar__body 双层留白腾出的空间承担（实测滚动量反而减少）。 */
+  gap: 4px;
+  height: 100%;
+  padding: 4px;
+  border-radius: var(--el-radius-sm, 6px);
+  /* 顶部 2px 色条标记「这段是假期 / 这天要上班」，比逐日底色更容易连成一片读出来。
+     跨行时色条会断开 —— 强行做首尾圆角在表格跨行结构上极易错位，不值得。*/
+  border-top: 2px solid transparent;
+  transition: background var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+
+/* 放假日：淡绿底 + 绿条 */
+.calendar-widget__cell.is-holiday[data-v-d0607d30] {
+  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
+  border-top-color: var(--el-color-success);
+}
+
+/* 调休上班日：淡橙底 + 橙条。语义是「这天要上班」，不能被读成「放假」 */
+.calendar-widget__cell.is-workday[data-v-d0607d30] {
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  border-top-color: var(--el-color-warning);
+}
+
+/* 今天：主色内描边。刻意不叠背景色 —— 会盖掉 is-holiday / is-workday 的语义底色 */
+.calendar-widget__cell.is-today[data-v-d0607d30] {
+  box-shadow: inset 0 0 0 1.5px var(--el-color-primary);
+}
+.calendar-widget__cell-head[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 18px;
+  /* 锁死而非跟随继承：固定密度模式的格高是按行高推算的（CALENDAR_FIXED_CELL_HEIGHT），
+     日期行一旦随主题行高漂移，算出来的 72/96px 就装不下，文字会被切掉。 */
+  line-height: 18px;
+}
+.calendar-widget__cell-date[data-v-d0607d30] {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+/* 周末日期用次要色，与工作日一眼区分（不只靠背景） */
+.calendar-widget__cell.is-weekend:not(.is-today) .calendar-widget__cell-date[data-v-d0607d30] {
+  color: var(--el-text-color-secondary);
+}
+.calendar-widget__cell.is-today .calendar-widget__cell-date[data-v-d0607d30] {
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
+.calendar-widget__cell-badge[data-v-d0607d30] {
+  flex-shrink: 0;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #fff;
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-color-success);
+}
+
+/* 「班」与「休」同形不同字，不只靠颜色区分（色觉障碍用户也要能读出来） */
+.calendar-widget__cell.is-workday .calendar-widget__cell-badge[data-v-d0607d30] {
+  background: var(--el-color-warning);
+}
+
+/* ---------------- 节日 / 农历行 ---------------- */
+.calendar-widget__cell-sub[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  min-height: 16px;
+  overflow: hidden;
+}
+.calendar-widget__cell-festival[data-v-d0607d30] {
+  /* 左侧色条按级别着色：扫整月时先看到色条再看字，比只靠字色快得多。
+     色条 2px + padding 4px = 6px 缩进：这是「节日名能显示几个字」与
+     「色条够不够显眼」的直接换算 —— 420px 宽的组件，7 列下每格可用宽度
+     只有约 36px，12px 字号刚好 3 个汉字（「国庆节」），缩进每多 1px
+     就少一个字。padding-left 必须大于 border-left，否则首字会贴着色条。*/
+  padding-left: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid var(--el-text-color-placeholder);
+}
+
+/* 农历（无节日时的回退文本）最弱 */
+.calendar-widget__cell-festival.is-lunar[data-v-d0607d30] {
+  color: var(--el-text-color-placeholder);
+  border-left-color: var(--el-border-color);
+}
+
+/* 节日级别：1 级红加粗、2 级主色、3 级弱化 */
+.calendar-widget__cell-festival.is-lv1[data-v-d0607d30] {
+  color: var(--el-color-danger);
+  font-weight: 600;
+  border-left-color: var(--el-color-danger);
+}
+.calendar-widget__cell-festival.is-lv2[data-v-d0607d30] {
+  color: var(--el-color-primary);
+  font-weight: 500;
+  border-left-color: var(--el-color-primary);
+}
+.calendar-widget__cell-festival.is-lv3[data-v-d0607d30] {
+  border-left-color: var(--el-text-color-secondary);
+}
+
+/* 调休上班日的节日名不走红色 —— 那天是要上班的，红色会被误读成放假 */
+.calendar-widget__cell-festival.is-work[data-v-d0607d30] {
+  color: var(--el-color-warning);
+  font-weight: 600;
+  border-left-color: var(--el-color-warning);
+}
+
+/* ---------------- 日程 ---------------- */
+.calendar-widget__cell-events[data-v-d0607d30] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.calendar-widget__cell-event[data-v-d0607d30] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  /* 同 .cell-head：固定模式格高由行高推算，日程行必须可预测 */
+  line-height: 18px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  overflow: hidden;
+}
+.calendar-widget__cell-event:hover .calendar-widget__cell-text[data-v-d0607d30] {
+  color: var(--el-color-primary);
+}
+.calendar-widget__cell-bullet[data-v-d0607d30] {
+  flex-shrink: 0;
+  /* 8px 而非 6px：圆点宽度 + gap(4) 必须落在 4/8 基准上，末尾「+N 更多」
+     才能用 padding-left 精确对齐日程文字（8 + 4 = 12）。 */
+  width: 8px;
+  height: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+}
+.calendar-widget__cell-text[data-v-d0607d30] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-widget__cell-more[data-v-d0607d30] {
+  /* 12 = 圆点 8 + gap 4，与日程文字左缘对齐 */
+  padding-left: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 固定密度模式内嵌在末条日程行尾的「+N」：写死的格高装不下单独一行，
+   单开一行会把文字从中间切掉。flex-shrink:0 让它不被标题挤没
+   （.cell-text 用 min-width:0 + 省略号自行让位），间距由 .cell-event 的 gap 提供。 */
+.calendar-widget__cell-more-inline[data-v-d0607d30] {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.calendar-widget__category-dot[data-v-d0607d30] {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+}
+.calendar-widget__form-head[data-v-d0607d30] {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* ---------------- el-calendar 内部微调 ---------------- */
+[data-v-d0607d30] .el-calendar {
+  /* 注意：Element Plus 的 --el-calendar-cell-width 只控制 el-calendar-day 的「高度」
+     （默认 85px），td 并没有宽度规则 —— 每格宽度由表格按 widget 实际渲染宽度自动分配。
+     所以格内文本一律单行 + 省略号兜底，长节日名用短名（见 festivals.ts 的 short）。*/
+  --el-calendar-cell-width: 60px;
+  /* 选中底色置空：el-calendar 会给「当前选中日」上底色，与 is-today 的主色描边
+     以及 is-holiday / is-workday 的语义底色三者打架，置空后由格子自己表达状态。*/
+  --el-calendar-selected-bg-color: transparent;
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+}
+
+/* Element Plus 默认 .el-calendar__body{padding:12px 20px 35px}，本组件此前**没有覆盖它**，
+   于是它叠在 .calendar-widget__body 自己的 padding:0 16px 16px 上，形成双层留白：
+
+     横向 16 + 20 = 36px/侧 —— 420px 宽的组件，7 列每格只剩 41px，
+     再减去 .cell 的 4px 内边距与节日色条 8px，节日名只剩 31.7px，
+     12px 字号下约 2.6 个汉字 —— 「国庆节」显示成「国…」。
+     纵向 0 + 12 上、16 + 35 下 —— 滚动区底部白扔 51px。
+
+   外层留白已由 .calendar-widget__body 统一负责，这里必须归零。 */
+[data-v-d0607d30] .el-calendar__body {
+  padding: 0;
+}
+
+/* 4px 8px：这一条是 el-calendar 自带的第二层「月份标题 + 上一月/今天/下一月」，
+   与本组件头部上下相邻，两层各占 40px 会显得头部堆了两截。
+   左右 8px 让它与格子左边缘对齐（格子由 .calendar-widget__body 的 12px 定位）。*/
+[data-v-d0607d30] .el-calendar__header {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+[data-v-d0607d30] .el-calendar__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+[data-v-d0607d30] .el-calendar-table thead th {
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+
+/* 60px 只是下限：「全部显示」模式要靠格子长高来容纳多行，
+   固定 height 会把内容压掉（Element Plus 默认就是写死 height）。*/
+[data-v-d0607d30] .el-calendar-table .el-calendar-day {
+  padding: 0;
+  min-height: 60px;
+  height: auto;
+  vertical-align: top;
+  transition: background var(--el-transition-duration, 0.2s);
+}
+
+/* 固定行数模式（最多 3 / 4 行）才写死高度，否则同一天日程多寡会让整行忽高忽低 */
+.calendar-widget__body.is-fixed-height[data-v-d0607d30] .el-calendar-table .el-calendar-day {
+  /* 高度由密度模式决定，经 --koi-cal-cell-h 传入（见 CALENDAR_FIXED_CELL_HEIGHT）。
+     不能写死 60px：「最多 4 行」的自然高度实测 92.8px，60px 会把文字从中间切掉。 */
+  height: var(--koi-cal-cell-h, 60px);
+  overflow: hidden;
+}
+[data-v-d0607d30] .el-calendar-table .el-calendar-day:hover {
+  background: var(--el-fill-color-light);
+}
+[data-v-d0607d30] .el-calendar-table td {
+  border-color: var(--el-border-color-lighter);
+  /* td 的 padding 此前一直走浏览器 UA 默认值（HTML 规范给 td 的 1px），
+     本组件只把 .el-calendar-day 的 padding 归零了，这一层没人管 ——
+     每格左右各白扔 1px，7 列合计 14px，正好够节日名多显示一个汉字。
+     .calendar-widget__cell 自带 4px 内边距，清零后视觉内缩不变。*/
+  padding: 0;
+}
+
+/* 表头分隔线用虚线，与格子实线区分，避免误以为也是假期 */
+[data-v-d0607d30] .el-calendar-table thead tr:first-child th {
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}

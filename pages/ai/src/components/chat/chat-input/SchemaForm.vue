@@ -18,7 +18,7 @@
         />
 
         <!-- number -->
-        <el-input-number
+        <ReNumberSelect
           v-else-if="field.type === 'number'"
           :model-value="modelValue[field.key] ?? field.default ?? 0"
           :placeholder="field.placeholder"
@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { computed } from 'vue'
 import type { ConfigField } from '@/services/modules/plugin.api'
 

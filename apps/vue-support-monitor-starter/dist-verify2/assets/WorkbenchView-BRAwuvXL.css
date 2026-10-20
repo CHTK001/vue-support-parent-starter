@@ -1,0 +1,182 @@
+
+.w100[data-v-9b604894] { width: 100%; justify-content: flex-start;
+}
+.as-error[data-v-9b604894] { display:flex; align-items:center; gap:12px; padding:10px 14px; font-size:13px; color:var(--status-error-text); background:var(--status-error-bg); border:1px solid var(--status-error-border); border-radius:8px;
+}
+.kpi-ico[data-v-9b604894] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.quick-grid[data-v-9b604894] { display: flex; flex-direction: column; gap: 8px;
+}
+.quick[data-v-9b604894] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s var(--ease-out, ease), box-shadow 0.15s, transform 0.15s;
+}
+.quick[data-v-9b604894]:hover {
+  border-color: var(--brand-100);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+.quick:hover .q-arrow[data-v-9b604894] { transform: translateX(3px); color: var(--brand-500); opacity: 1;
+}
+.q-ic[data-v-9b604894] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.q-meta[data-v-9b604894] { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+}
+.q-meta b[data-v-9b604894] { font-size: 13px; color: var(--text-primary);
+}
+.q-meta span[data-v-9b604894] { font-size: 11px; color: var(--text-tertiary);
+}
+.q-arrow[data-v-9b604894] { color: var(--text-tertiary); opacity: 0.6; transition: transform 0.15s var(--ease-out, ease), color 0.15s, opacity 0.15s;
+}
+/* KPI 主数值。32px 是标准档 ReStatCard 的规格，配紧凑档（内距 10/12）显得头重脚轻，
+   收到 24px；`.re-stat-card__value` 紧凑档的 20px 会被这条覆盖，故两者一起定。 */
+.kpi-big[data-v-9b604894] {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 健康度卡片 */
+.kpi-health-card[data-v-9b604894] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  min-width: 0;
+}
+.kpi-health-ring[data-v-9b604894] {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.kpi-health-svg[data-v-9b604894] {
+  width: 100%;
+  height: 100%;
+}
+.kpi-health-score[data-v-9b604894] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.kpi-health-label[data-v-9b604894] {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.kpi-health-desc[data-v-9b604894] {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* 告警表行左侧色条 */
+.th-sev[data-v-9b604894] { width: 52px;
+}
+.td-sev[data-v-9b604894] { width: 52px;
+}
+.alarm-row[data-v-9b604894] { transition: background 0.12s;
+}
+.alarm-row[data-v-9b604894]:hover { background: var(--bg-base);
+}
+.sev-row-P0[data-v-9b604894] { border-left: 3px solid var(--sev-p0-text);
+}
+.sev-row-P1[data-v-9b604894] { border-left: 3px solid var(--sev-p1-text);
+}
+.sev-row-P2[data-v-9b604894] { border-left: 3px solid var(--sev-p2-text);
+}
+.sev-row-P3[data-v-9b604894] { border-left: 3px solid var(--sev-p3-text);
+}
+.sev-row-P4[data-v-9b604894] { border-left: 3px solid var(--sev-p4-text);
+}
+
+/* 实时时钟 */
+.live-clock[data-v-9b604894] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.live-dot[data-v-9b604894] {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-online);
+  margin: 0 4px;
+  vertical-align: 1px;
+  animation: live-pulse-9b604894 2s ease-out infinite;
+}
+@keyframes live-pulse-9b604894 {
+0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-online) 60%, transparent);
+}
+70%  { box-shadow: 0 0 0 5px transparent;
+}
+100% { box-shadow: 0 0 0 0 transparent;
+}
+}
+
+/* 健康度趋势条（KPI 卡下方） */
+.health-trend[data-v-9b604894] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.health-trend__label[data-v-9b604894] {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.health-trend__bar[data-v-9b604894] {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+.health-trend__fill[data-v-9b604894] {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.health-trend__val[data-v-9b604894] {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  min-width: 28px;
+  text-align: right;
+}

@@ -1,0 +1,261 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.exec-tab[data-v-786f5a4b] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* 卡片 */
+.ex-card[data-v-786f5a4b] {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+/* 分区标题 */
+.ex-head[data-v-786f5a4b] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ex-head__title[data-v-786f5a4b] {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ex-head__desc[data-v-786f5a4b] {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ex-head__tools[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* 布局切换 */
+.ex-layout-toggle[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-md, 8px);
+}
+.ex-layout-btn[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 15px;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  transition: color var(--el-transition-duration), background var(--el-transition-duration);
+}
+.ex-layout-btn[data-v-786f5a4b]:hover {
+  color: var(--el-color-primary);
+}
+.ex-layout-btn.is-active[data-v-786f5a4b] {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+}
+.ex-full[data-v-786f5a4b] {
+  width: 100%;
+}
+
+/* 表格 */
+.ex-table[data-v-786f5a4b] {
+  --el-table-border-color: var(--el-border-color-lighter);
+}
+.ex-table[data-v-786f5a4b] .el-table__header-wrapper th.el-table__cell {
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ex-table[data-v-786f5a4b] .el-table__row > td.el-table__cell {
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+.ex-table[data-v-786f5a4b] .el-table__inner-wrapper::before {
+  display: none;
+}
+.ex-table[data-v-786f5a4b] .el-table__row:hover > td.el-table__cell {
+  background: var(--el-color-primary-light-9);
+}
+
+/* 等宽文本 */
+.ex-mono[data-v-786f5a4b] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* 状态点 */
+.ex-status[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+.ex-status__dot[data-v-786f5a4b] {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--el-text-color-disabled);
+}
+.ex-status.is-ok .ex-status__dot[data-v-786f5a4b] {
+  background: var(--el-color-success);
+}
+.ex-status.is-fail .ex-status__dot[data-v-786f5a4b] {
+  background: var(--el-color-danger);
+}
+.ex-status.is-off .ex-status__dot[data-v-786f5a4b] {
+  background: var(--el-text-color-disabled);
+}
+
+/* 类型 / 标签 pill */
+.ex-pill[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.ex-pill.is-cron[data-v-786f5a4b] {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.ex-pill.is-none[data-v-786f5a4b] {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+}
+
+/* 行内链接按钮 */
+.ex-link[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 12px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--el-color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.ex-link[data-v-786f5a4b]:hover {
+  color: var(--el-color-primary-dark-2);
+}
+.ex-link__dot[data-v-786f5a4b] {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+}
+.ex-link.is-danger[data-v-786f5a4b] {
+  color: var(--el-color-danger);
+}
+.ex-link.is-danger[data-v-786f5a4b]:hover {
+  color: var(--el-color-danger-dark-2);
+}
+
+/* 卡片模式：任务卡片 */
+.ex-jobcard__meta[data-v-786f5a4b] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ex-jobcard__row[data-v-786f5a4b] {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.ex-jobcard__row i[data-v-786f5a4b] {
+  flex: 0 0 60px;
+  font-style: normal;
+  color: var(--el-text-color-secondary);
+}
+.ex-jobcard__row b[data-v-786f5a4b] {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+.ex-jobcard__cmd[data-v-786f5a4b] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ex-jobcard__foot[data-v-786f5a4b] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.ex-jobcard__ops[data-v-786f5a4b] {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ex-jobcard__ops .ex-link[data-v-786f5a4b] {
+  margin-right: 10px;
+}
+
+/* 执行弹窗提示 */
+.ex-runhint[data-v-786f5a4b] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.ex-runhint .ex-pill[data-v-786f5a4b] {
+  margin: 0 2px;
+}
+
+/* 抽屉日志筛选 */
+.ex-logfilter[data-v-786f5a4b] {
+  margin-bottom: 12px;
+}
+
+/* 窄屏 */
+@media (max-width: 900px) {
+.ex-card[data-v-786f5a4b] {
+    padding: 16px;
+}
+.ex-head[data-v-786f5a4b] {
+    flex-wrap: wrap;
+}
+}

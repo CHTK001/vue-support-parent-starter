@@ -445,10 +445,16 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
       <!-- 远控工具条：断开 / 全屏 / 可视范围全屏 / 弹出独立页面 -->
       <div
         v-if="selectedHost"
-        :class="['term-toolbar', { 'is-hidden': toolbarHidden }]"
+        :class="['term-toolbar', { 'is-hidden': toolbarHidden }, connection ? 'is-connected' : 'is-idle']"
         @mouseenter="onToolbarEnter"
         @mouseleave="onToolbarLeave"
       >
+        <div class="term-toolbar__status">
+          <span class="conn-dot" :class="connection ? 'is-live' : 'is-idle'" />
+          <span class="conn-label">{{ connection ? connection.protocol.toUpperCase() : '未连接' }}</span>
+          <span v-if="connection" class="conn-host">{{ connection.hostName }}</span>
+        </div>
+        <span class="tt-sep" />
         <ReButton layout="square" icon="SwitchButton" title="断开连接" @click="disconnect" />
         <!-- 特殊按键：Ctrl+Alt+Del 等会被本机 OS 截获，需显式下发 -->
         <template v-if="supportsSpecialKeys">
@@ -716,6 +722,56 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
   align-self: stretch;
   margin: 2px 1px;
   background: var(--border-subtle, rgba(0, 0, 0, .12));
+}
+/* 连接状态边框高亮 */
+.term-toolbar.is-connected {
+  border-color: color-mix(in srgb, var(--el-color-success) 40%, var(--border-subtle, rgba(0, 0, 0, .08)));
+  border-left-width: 3px;
+  border-left-color: var(--el-color-success);
+}
+.term-toolbar.is-idle {
+  border-color: var(--border-subtle, rgba(0, 0, 0, .08));
+  border-left-width: 3px;
+  border-left-color: var(--text-placeholder, #b4b4b4);
+}
+/* 连接状态徽章 */
+.term-toolbar__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.conn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.conn-dot.is-live {
+  background: var(--el-color-success);
+  animation: conn-pulse 2s ease-out infinite;
+}
+.conn-dot.is-idle { background: var(--text-placeholder, #b4b4b4); }
+@keyframes conn-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.conn-label {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.conn-host {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* 特殊按键下拉项：组合键提示 */
 .tt-key-hint {

@@ -1,0 +1,297 @@
+
+/* ===== 万相风格布局 ===== */
+.wan-video-gen[data-v-dc3215b1] {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 280px;
+  height: 100%;
+  background: var(--el-bg-color);
+}
+
+/* ===== 左侧历史栏 ===== */
+.wan-video-gen__history[data-v-dc3215b1] {
+  border-right: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.wan-video-gen__history-head[data-v-dc3215b1] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  flex-shrink: 0;
+}
+.wan-video-gen__history-title[data-v-dc3215b1] {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.wan-video-gen__history-body[data-v-dc3215b1] {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 12px;
+}
+.wan-video-gen__history-empty[data-v-dc3215b1] {
+  padding: 32px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.wan-video-gen__history-item[data-v-dc3215b1] {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.wan-video-gen__history-item[data-v-dc3215b1]:hover {
+  background: var(--el-fill-color-light);
+}
+.wan-video-gen__history-item.is-active[data-v-dc3215b1] {
+  background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color));
+}
+.wan-video-gen__history-thumb[data-v-dc3215b1] {
+  position: relative;
+  width: 64px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--el-fill-color-light);
+  flex-shrink: 0;
+}
+.wan-video-gen__history-video[data-v-dc3215b1] {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.wan-video-gen__thumb-loading[data-v-dc3215b1],
+.wan-video-gen__thumb-failed[data-v-dc3215b1] {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-placeholder);
+}
+.wan-video-gen__history-status[data-v-dc3215b1] {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  transform: scale(0.85);
+  transform-origin: bottom right;
+}
+.wan-video-gen__history-info[data-v-dc3215b1] {
+  min-width: 0;
+}
+.wan-video-gen__history-prompt[data-v-dc3215b1] {
+  font-size: 12px;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.wan-video-gen__history-time[data-v-dc3215b1] {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  margin-top: 4px;
+}
+
+/* ===== 中部画布 ===== */
+.wan-video-gen__canvas[data-v-dc3215b1] {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--el-fill-color-lighter);
+  overflow-y: auto;
+}
+.wan-video-gen__canvas-empty[data-v-dc3215b1] {
+  text-align: center;
+  color: var(--el-text-color-secondary);
+}
+.wan-video-gen__empty-icon[data-v-dc3215b1] {
+  font-size: 44px;
+  color: var(--el-text-color-placeholder);
+  margin-bottom: 16px;
+}
+.wan-video-gen__empty-title[data-v-dc3215b1] {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 6px;
+}
+.wan-video-gen__empty-sub[data-v-dc3215b1] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+}
+.wan-video-gen__canvas-processing[data-v-dc3215b1] {
+  text-align: center;
+}
+.wan-video-gen__processing-art[data-v-dc3215b1] {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wan-video-gen__processing-pulse[data-v-dc3215b1] {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  animation: wan-pulse-dc3215b1 1.6s ease-out infinite;
+}
+.wan-video-gen__processing-icon[data-v-dc3215b1] {
+  font-size: 32px;
+  color: var(--el-color-primary);
+}
+.wan-video-gen__processing-title[data-v-dc3215b1] {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 6px;
+}
+.wan-video-gen__processing-sub[data-v-dc3215b1] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+  max-width: 360px;
+}
+@keyframes wan-pulse-dc3215b1 {
+0% { transform: scale(0.6); opacity: 1;
+}
+100% { transform: scale(1.2); opacity: 0;
+}
+}
+.wan-video-gen__canvas-failed[data-v-dc3215b1] {
+  text-align: center;
+}
+.wan-video-gen__failed-icon[data-v-dc3215b1] {
+  font-size: 40px;
+  color: var(--el-color-danger);
+  margin-bottom: 12px;
+}
+.wan-video-gen__failed-title[data-v-dc3215b1] {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.wan-video-gen__failed-sub[data-v-dc3215b1] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 0 0 16px;
+  max-width: 320px;
+}
+.wan-video-gen__canvas-result[data-v-dc3215b1] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 100%;
+}
+.wan-video-gen__result-video[data-v-dc3215b1] {
+  max-width: 100%;
+  max-height: calc(100vh - 220px);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  background: #000;
+}
+.wan-video-gen__result-actions[data-v-dc3215b1] {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 右侧参数面板 ===== */
+.wan-video-gen__panel[data-v-dc3215b1] {
+  border-left: 1px solid var(--el-border-color-lighter);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+.wan-video-gen__param-group[data-v-dc3215b1] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wan-video-gen__param-label[data-v-dc3215b1] {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+.wan-video-gen__ratio-grid[data-v-dc3215b1] {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.wan-video-gen__ratio-btn[data-v-dc3215b1] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.wan-video-gen__ratio-btn[data-v-dc3215b1]:hover {
+  border-color: var(--el-color-primary);
+}
+.wan-video-gen__ratio-btn.is-active[data-v-dc3215b1] {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+}
+.wan-video-gen__ratio-shape[data-v-dc3215b1] {
+  border: 1.5px solid var(--el-text-color-secondary);
+  border-radius: 2px;
+}
+.wan-video-gen__ratio-btn.is-active .wan-video-gen__ratio-shape[data-v-dc3215b1] {
+  border-color: var(--el-color-primary);
+}
+.wan-video-gen__ratio-name[data-v-dc3215b1] {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.wan-video-gen__ratio-btn.is-active .wan-video-gen__ratio-name[data-v-dc3215b1] {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+/* ===== 底部输入区 ===== */
+.wan-video-gen__composer[data-v-dc3215b1] {
+  margin-top: auto;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wan-video-gen__composer-input[data-v-dc3215b1] .el-textarea__inner {
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.wan-video-gen__composer-footer[data-v-dc3215b1] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wan-video-gen__composer-tip[data-v-dc3215b1] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}

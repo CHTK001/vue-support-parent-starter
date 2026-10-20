@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@file-viewer/vue3": "3.1.2",
+    "@file-viewer/vue3-full": "3.1.2",
     "@pages/ai": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",
@@ -58,6 +61,7 @@
   },
   "devDependencies": {
     "@file-viewer/preset-all": "catalog:",
+    "@file-viewer/preset-office": "3.1.2",
     "@file-viewer/vite-plugin": "catalog:",
     "@tailwindcss/vite": "^4.1.18",
     "@types/event-source-polyfill": "^1.0.5",

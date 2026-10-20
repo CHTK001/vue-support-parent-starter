@@ -1,0 +1,158 @@
+
+.ct[data-v-241f4501] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ct-head[data-v-241f4501] {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.ct-form__item[data-v-241f4501] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 240px;
+}
+.ct-form__item--wide[data-v-241f4501] {
+  flex: 2 1 320px;
+}
+.ct-form__item label[data-v-241f4501] {
+  flex: 0 0 48px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.ct-form__item[data-v-241f4501] .re-input,
+.ct-form__item[data-v-241f4501] .el-input {
+  flex: 1 1 auto;
+}
+.ct-grid-bar[data-v-241f4501] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ct-grid-bar__title[data-v-241f4501] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ct-grid-bar__hint[data-v-241f4501] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.ct-spacer[data-v-241f4501] {
+  flex: 1;
+}
+.ct-grid[data-v-241f4501] {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  /* 溢出与 46vh 上限已交给 ReTable 的 layout-table.maxHeight —— 这里**不能**再开
+     overflow:auto，否则变成双层滚动（外层没有内容可滚，内层滚到底还被外层顶住）。 */
+  overflow: hidden;
+}
+
+/* ==== 换成 ReTable 后的等价样式（原 .ct-grid__head/__row 手写 11 轨已作废，
+       下面每条都是把 el-table 的默认观感对回原设计，一条都不能少） ==== */
+
+/* 表头：原 .ct-grid__head 的字号 / 字重 / 底色 */
+.ct-grid[data-v-241f4501] .el-table__header th.el-table__cell {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+
+/* 单元格内边距：el-table 默认每侧 12px，11 列叠加会比原手写网格宽出近 300px，
+   输入框被挤得又窄又长。压到 6/8 才和原「min-width:960px」口径对得上。 */
+.ct-grid[data-v-241f4501] .el-table .cell {
+  padding: 6px 8px;
+}
+
+/* 行悬停：原 .ct-grid__row:hover 用的是 fill-color-extra-light，不是 EP 默认那档 */
+.ct-grid[data-v-241f4501] .el-table__body tr:hover > td.el-table__cell {
+  background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+}
+
+/* 序号列（show-index 代替原 .ct-grid__idx）：等宽字体 + 占位色 + 右对齐，样式一条不丢 */
+.ct-grid[data-v-241f4501] .el-table-column--index .cell {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  text-align: right;
+}
+
+/* 布尔三列（可空 / 主键 / 自增）的 ReSwitch square：组件自带 32×32 定宽，
+   不可拉伸（方块一拉就不是方块），靠 inline-flex + 父级 text-align:center 居中。
+   （旧版是「是/否」分段，被 re-kit 给单项的 64px min-width 顶爆轨道、叠到右列；
+   换成方块后天然 32px，再没有溢出问题，教训留档。） */
+.ct-grid[data-v-241f4501] .re-switch-square {
+  display: inline-flex;
+  margin: 0 auto;
+}
+
+/* 类型用不上的长度 / 小数位占位 */
+.ct-na[data-v-241f4501] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  text-align: center;
+}
+
+/* 子组件默认是收缩的：不给 100% 它们会按自身内容宽，列就撑不住了。
+   .rm-number（ReInputNumber）还另有 min-width: 96px 的独立控件口径，
+   在 84/76px 的列里会顶到右边一列 —— 这里连 min-width 一起清零。
+   （选择器由已删除的 .ct-grid__row 改成 .ct-grid，现在命中的是 ReTable 的单元格。） */
+.ct-grid[data-v-241f4501] .re-input,
+.ct-grid[data-v-241f4501] .el-input,
+.ct-grid[data-v-241f4501] .re-select,
+.ct-grid[data-v-241f4501] .el-select,
+.ct-grid[data-v-241f4501] .el-input-number,
+.ct-grid[data-v-241f4501] .rm-number {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 枚举取值：原先是 grid-column:1/-1 的跨整行副条；表格没有「跨列副行」，
+   收进「类型」单元格内（取值本就属于该类型），用 margin 与上方下拉拉开距离。 */
+.ct-grid__sub[data-v-241f4501] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.ct-grid__sub-label[data-v-241f4501] {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ct-grid__sub[data-v-241f4501] .re-input,
+.ct-grid__sub[data-v-241f4501] .el-input {
+  flex: 1 1 auto;
+}
+.ct-grid__empty[data-v-241f4501] {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--el-text-color-placeholder);
+}
+.ct-mono[data-v-241f4501] .el-input__inner {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+}
+.ct-form__tip[data-v-241f4501] {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+.ct-form__error[data-v-241f4501] {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border: 1px solid var(--el-color-danger-light-5);
+  border-radius: var(--el-radius-md, 8px);
+}

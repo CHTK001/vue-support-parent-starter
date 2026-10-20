@@ -135,8 +135,7 @@
             </div>
 
             <div v-if="searching" class="is-mask">
-              <el-icon :size="26" class="is-spin"><Loading /></el-icon>
-              <span>正在提取特征并检索…</span>
+              <TechLoading text="正在提取特征并检索…" subtext="扫描图像向量空间" />
             </div>
 
             <div v-if="!searching && searched" class="is-result-tip">
@@ -161,7 +160,7 @@
           <div>
             <p class="is-hint-title">以图搜图未启用</p>
             <p class="is-hint-desc">
-              请到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型（如 resnet50-feature / clip-image-feature / cn-clip-rn50-image），保存后立即生效。
+              请到「系统设置 → 以图搜图配置」配置图像特征模型（如 resnet50-feature / clip-image-feature / cn-clip-rn50-image），保存后立即生效。
             </p>
           </div>
         </div>
@@ -246,6 +245,7 @@ import {
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
+import TechLoading from '@/components/ui/TechLoading.vue'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
@@ -474,7 +474,7 @@ function formatDims(item: ImageItem): string {
 
 /** 未配置特征模型时的统一提示（上传/检索/入库共用一句口径） */
 const NOT_READY_MSG =
-  '以图搜图未启用：请先到「系统设置 → 默认模型 → 以图搜图」配置图像特征模型'
+  '以图搜图未启用：请先到「系统设置 → 以图搜图配置」配置图像特征模型'
 
 function pickImage() {
   // 关键词模式不需要选图；点击左栏/顶栏仍回到关键词输入，不弹文件选择器
@@ -613,7 +613,7 @@ async function runSearch() {
   try {
     const form = new FormData()
     form.append('file', previewFile.value)
-    // 不传 topK：由后端取「系统设置 → 默认模型 → 以图搜图」的 search_top_k。
+    // 不传 topK：由后端取「系统设置 → 以图搜图配置」的 search_top_k。
     // 此前这里写死 '30'，用户改设置对返回条数毫无影响，只能改代码重新打包。
     const data = await apiService._request('/image-search/search', {
       method: 'POST',

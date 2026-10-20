@@ -1,0 +1,276 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* ============================================================
+   代理管理 —— 全部走 koi / Element Plus 变量
+   布局：整页 flex 列（KPI / 筛选条 固定高，表格卡 flex:1 吃满剩余高度）
+   ============================================================ */
+.px[data-v-c3f33b12] {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 12px 12px;
+  /* 撑满外壳主区（.main 是 grid 项，本身高度确定；未设这两条时百分比高度无基准，
+     表格卡的 flex:1 会因为父级是内容高度而拿不到空间）。 */
+  height: 100%;
+  min-height: 0;
+  color: var(--el-text-color-primary);
+}
+
+/* ---------- KPI 卡（ReStatCard 紧凑档横排，卡片外壳规格由组件基线提供） ---------- */
+.px-kpis[data-v-c3f33b12] {
+  flex: none;
+  display: grid;
+  /* 紧凑档单卡很窄，用 auto-fit 让 4 张按可用宽度自动换行，无需断点硬切 */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- 通用面板（筛选条 / 表格卡） ---------- */
+.px-panel[data-v-c3f33b12] {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+
+/* 筛选条 + 操作区合并成一行 */
+.px-filter[data-v-c3f33b12] {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+/* 操作图标组：与「查询」之间用一条竖线分隔，视觉上区分「筛选」与「操作」。
+   注意类名不能叫 px-ops —— 那是表格行内操作按钮的容器（见样式区末尾）。 */
+.px-toolbar-ops[data-v-c3f33b12] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+
+/* 字段包裹层定宽（ReInput 根 display:contents、ReSelect 类落到内部 el-select，故套一层） */
+.px-field[data-v-c3f33b12] {
+  width: 160px;
+}
+.px-field--search[data-v-c3f33b12] {
+  width: 280px;
+}
+.px-field[data-v-c3f33b12] .el-input,
+.px-field[data-v-c3f33b12] .el-select {
+  width: 100%;
+}
+.px-filter__meta[data-v-c3f33b12] {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+@media (max-width: 900px) {
+.px-field[data-v-c3f33b12],
+  .px-field--search[data-v-c3f33b12] {
+    width: 100%;
+}
+.px-filter__meta[data-v-c3f33b12] {
+    margin-left: 0;
+}
+  /* 换行后竖线分隔不再有意义 */
+.px-toolbar-ops[data-v-c3f33b12] {
+    padding-left: 0;
+    border-left: none;
+}
+}
+/* 表格卡：flex:1 + min-height:0 才能吃满剩余高度。
+   min-height 默认是 auto，长内容（表格行多时）会把卡片顶高、外层 .main 出现滚动条，
+   ReTable 的 fill 也因此拿不到确定高度；置 0 后高度由 flex 精确分配、表体内部滚动。 */
+.px-table-card[data-v-c3f33b12] {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px 8px;
+}
+.px-fetching[data-v-c3f33b12] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 空态：占满表格卡剩余高度并居中，避免贴在卡片顶部 */
+.px-table-empty[data-v-c3f33b12] {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* 表格外观对齐 UI 稿：表头无底色、去大写、行距更松 */
+.px-table-card[data-v-c3f33b12] .re-table {
+  padding: 0;
+  background: transparent;
+}
+
+/* 吸顶表头背景改为卡片底色（全局 pages.css 会把表头底设成浅灰） */
+.px-table-card[data-v-c3f33b12] .el-table {
+  --el-table-header-bg-color: var(--el-bg-color) !important;
+}
+.px-table-card[data-v-c3f33b12] .el-table th.el-table__cell {
+  padding: 14px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--el-text-color-secondary);
+  background: transparent !important;
+}
+.px-table-card[data-v-c3f33b12] .el-table td.el-table__cell {
+  padding: 15px 12px !important;
+  font-size: 14px !important;
+}
+
+/* 列内容 */
+.mono[data-v-c3f33b12] {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.px-addr[data-v-c3f33b12] {
+  font-size: 13.5px;
+  color: var(--el-text-color-primary);
+}
+.px-addr__port[data-v-c3f33b12] {
+  color: var(--el-text-color-secondary);
+}
+.px-time[data-v-c3f33b12] {
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+}
+.px-dash[data-v-c3f33b12] {
+  color: var(--el-text-color-placeholder);
+}
+
+/* 协议胶囊 */
+.proto-pill[data-v-c3f33b12] {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color);
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-extra-light);
+}
+.proto-pill.is-http[data-v-c3f33b12] {
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.proto-pill.is-socks[data-v-c3f33b12] {
+  border-color: var(--el-border-color);
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-extra-light);
+}
+.proto-pill.is-other[data-v-c3f33b12] {
+  border-color: var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+  background: transparent;
+}
+
+/* 状态圆点 + 文案 */
+.px-status[data-v-c3f33b12] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.px-status__dot[data-v-c3f33b12] {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-text-color-placeholder);
+}
+.px-status__dot.is-ok[data-v-c3f33b12] {
+  background: var(--el-color-success);
+}
+.px-status__dot.is-warn[data-v-c3f33b12] {
+  background: var(--el-color-warning);
+}
+.px-status__dot.is-error[data-v-c3f33b12] {
+  background: var(--el-color-danger);
+}
+.px-status__dot.is-unknown[data-v-c3f33b12] {
+  background: var(--el-text-color-placeholder);
+}
+
+/* 延迟 */
+.px-delay[data-v-c3f33b12] {
+  font-weight: 600;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.px-delay.is-good[data-v-c3f33b12] {
+  color: var(--el-color-success);
+}
+.px-delay.is-warn[data-v-c3f33b12] {
+  color: var(--el-color-warning);
+}
+.px-delay.is-bad[data-v-c3f33b12] {
+  color: var(--el-color-danger);
+}
+
+/* 行内操作：柔和色块图标按钮 */
+.px-ops[data-v-c3f33b12] {
+  display: flex;
+  gap: 8px;
+}
+.px-op[data-v-c3f33b12] {
+  border: none !important;
+  border-radius: var(--el-radius-md, 8px) !important;
+}
+.px-op--check[data-v-c3f33b12] {
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+}
+.px-op--check[data-v-c3f33b12]:hover {
+  background: var(--el-color-primary-light-8) !important;
+}
+.px-op--edit[data-v-c3f33b12] {
+  background: var(--el-fill-color) !important;
+  color: var(--el-text-color-regular) !important;
+}
+.px-op--edit[data-v-c3f33b12]:hover {
+  background: var(--el-fill-color-dark, var(--el-fill-color)) !important;
+  color: var(--el-text-color-primary) !important;
+}
+.px-op--delete[data-v-c3f33b12] {
+  background: var(--el-color-danger-light-9) !important;
+  color: var(--el-color-danger) !important;
+}
+.px-op--delete[data-v-c3f33b12]:hover {
+  background: var(--el-color-danger-light-8) !important;
+}
+
+/* 弹窗表单 */
+.proxy-form[data-v-c3f33b12] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.px-hint[data-v-c3f33b12] {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}

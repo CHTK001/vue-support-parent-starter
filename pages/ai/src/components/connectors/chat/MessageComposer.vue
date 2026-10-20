@@ -17,7 +17,7 @@
         <div class="composer-context">
           <el-icon :size="15" class="context-icon"><History24Regular /></el-icon>
           <span class="context-label">上下文条数</span>
-          <el-input-number
+          <ReNumberSelect
             :model-value="contextCount"
             :min="0"
             :max="50"
@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { computed } from 'vue'
 import {
   Send24Regular, Sparkle24Regular, History24Regular,
@@ -84,6 +85,10 @@ function handleKeydown(e: Event | KeyboardEvent) {
   if (!('key' in e)) return
   if (e.key !== 'Enter') return
   if (e.shiftKey) return // 换行
+  // 输入法正在组合（中文/日文候选词选择）：这个 Enter 属于输入法，不是发送。
+  // 不拦住就会出现「拼音还没选完，半截汉字已经发出去了」。
+  // keyCode 229 是旧版 Safari / 部分 IME 在组合态下的兼容值。
+  if (e.isComposing || e.keyCode === 229) return
   e.preventDefault()
   if (props.disabled || empty.value || props.sending || props.aiSending) return
   emit('send')

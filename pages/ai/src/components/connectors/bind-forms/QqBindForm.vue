@@ -27,6 +27,7 @@ const formData = reactive({
 })
 
 watch(formData, (newVal) => {
-  emit('update:modelValue', { ...newVal })
+  // 保留父组件已有的 model 等字段，避免覆盖绑定时选择的模型
+  emit('update:modelValue', { ...props.modelValue, ...newVal })
 }, { deep: true })
 </script>

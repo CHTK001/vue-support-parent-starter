@@ -1,0 +1,208 @@
+
+.re-stats-card[data-v-995fba23] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+.re-stats-card__item[data-v-995fba23] {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* 告警态：描边 + 极淡底色，不盖住主数值与图标 */
+.re-stats-card__item.is-warn[data-v-995fba23] {
+  background: color-mix(in srgb, var(--el-color-warning) 6%, var(--el-bg-color));
+}
+.re-stats-card__item.is-danger[data-v-995fba23] {
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--el-bg-color));
+}
+
+/* 告警角标：右上角小圆点，纯 CSS，不占布局 */
+.re-stats-card__item.is-warn[data-v-995fba23]::after,
+.re-stats-card__item.is-danger[data-v-995fba23]::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.re-stats-card__item.is-warn[data-v-995fba23]::after {
+  background: var(--el-color-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-warning) 22%, transparent);
+}
+.re-stats-card__item.is-danger[data-v-995fba23]::after {
+  background: var(--el-color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 22%, transparent);
+  animation: re-stats-pulse-995fba23 1.6s ease-in-out infinite;
+}
+@keyframes re-stats-pulse-995fba23 {
+0%,
+  100% {
+    opacity: 1;
+}
+50% {
+    opacity: 0.45;
+}
+}
+
+/* 键盘可达：与 hover 同等反馈，明确 focus 可见 */
+.re-stats-card__item[data-v-995fba23]:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+.re-stats-card__item.is-clickable[data-v-995fba23]:hover {
+  cursor: pointer;
+}
+.re-stats-card__value[data-v-995fba23] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 打字机：逐位容器，裁掉位移溢出，避免影响基线对齐 */
+.re-stats-card__typed[data-v-995fba23] {
+  display: inline-flex;
+  overflow: hidden;
+}
+
+/* 单字符：自下方淡入 + 轻微上浮，逐位错峰形成"字符浮现" */
+.re-stats-card__char[data-v-995fba23] {
+  display: inline-block;
+  white-space: pre;
+  animation: re-stats-type-995fba23 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes re-stats-type-995fba23 {
+from {
+    opacity: 0;
+    transform: translateY(0.42em) scale(0.86);
+    filter: blur(2px);
+}
+to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+}
+}
+
+/* 图标打字机式入场：模糊缩放淡入 */
+.re-stats-card__icon-glyph[data-v-995fba23] {
+  animation: re-stats-icon-in-995fba23 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes re-stats-icon-in-995fba23 {
+from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+    filter: blur(3px);
+}
+to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+    filter: blur(0);
+}
+}
+
+/* 仅读屏可见：打字机逐位会把数字拆散，读屏需要一个完整值 */
+.re-stats-card__sr[data-v-995fba23] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 单位（如「台」）：小号、弱化，跟在大数字后面 */
+.re-stats-card__unit[data-v-995fba23] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+
+/* 图标圆：56px 渐变实底 + 白色图标（底色/投影由 iconStyle 内联下发） */
+.re-stats-card__icon[data-v-995fba23] {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 进度环外框：只做定位，mask 交给内层 .re-stats-card__ring */
+.re-stats-card__ring-box[data-v-995fba23] {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 右侧粗环：外径 52、环宽 9（挖空后可见粗环；与图标圆同量级） */
+.re-stats-card__ring[data-v-995fba23] {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring-c) var(--ring-p), var(--ring-track) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8.5px));
+}
+
+/* 环内数值：独立于 mask 层，落在环之上 */
+.re-stats-card__ring-inner[data-v-995fba23] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ring-c);
+  font-variant-numeric: tabular-nums;
+}
+.re-stats-card__ring-inner i[data-v-995fba23] {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 600;
+  margin-left: 1px;
+  opacity: 0.8;
+}
+
+/* 迷你趋势线：贴卡片底部，弱化为背景层，不与主数值争视觉 */
+.re-stats-card__spark[data-v-995fba23] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 34px;
+  pointer-events: none;
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion: reduce) {
+.re-stats-card__item[data-v-995fba23] {
+    transition: none;
+    transform: none;
+}
+.re-stats-card__item.is-danger[data-v-995fba23]::after {
+    animation: none;
+}
+
+  /* 逐位浮现与图标入场在降级下全部关闭，数值直接落终态 */
+.re-stats-card__char[data-v-995fba23],
+  .re-stats-card__icon-glyph[data-v-995fba23] {
+    animation: none;
+}
+}

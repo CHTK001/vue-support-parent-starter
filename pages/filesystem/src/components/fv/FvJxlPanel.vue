@@ -9,6 +9,7 @@
  */
 import { nextTick, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import { authHeaders, objectUrl } from "../../api/filestorageApi";
+import FvLoadingMask from "./FvLoadingMask.vue";
 
 const props = defineProps<{
   bucket: string;
@@ -203,7 +204,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="fv-jxl" aria-label="JPEG XL 图片预览">
-    <div v-if="loading" class="fv-jxl__mask">JXL 解码中…</div>
+    <FvLoadingMask v-if="loading" :fileName="fileName" title="JXL 解码中..." hint="正在加载 JXL 图片数据并解码。" />
     <div v-else-if="errorMsg" class="fv-jxl__mask">{{ errorMsg }}</div>
     <div v-else class="fv-jxl__stage">
       <div class="fv-jxl__canvas-wrap">

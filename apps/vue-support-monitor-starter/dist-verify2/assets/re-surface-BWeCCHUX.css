@@ -1,0 +1,160 @@
+/* ============================================================
+ * re-surface.css —— 卡片 / 面板统一视觉基线（ReStatCard 风格）
+ *
+ * 规格来源：ReStatCard（components/ReStatCard/theme/default/ReStatCard.vue）
+ *   - 16px 圆角、无实色边框（透明边框 + 双层柔光做"近距描边"）
+ *   - 双层投影：近距 0 1px 2px black 4% + 远距 0 12px 28px -14px primary 22%
+ *   - 悬停上浮 2px，远距投影加强到 30%
+ *   - 颜色全部走 CSS 变量，换主题自动跟随
+ *
+ * 为什么要有这层：ReCard / ReStat / ReStatCard / ReStatsCard / ReTableCardView
+ * 各自写了一套圆角/边框/投影，视觉不统一；本文件把"卡片该长什么样"收敛成
+ * 单一基线，新增卡片类组件直接复用，不要再各写一套。
+ *
+ * 令牌体系决策（勿轻易改动）：
+ *   库内存在两套令牌，职责不同，**不要互相替换**：
+ *     1. --el-*（Element Plus，主题感知）：本基线一律用它取颜色。
+ *        原因：主色柔光投影必须跟随"应用主题色"（各应用不同，如 #2563eb）；
+ *        而 --rm-primary 是 modern-vars 里的固定靛蓝（#6366f1），
+ *        挂上去会导致换主题时投影不变色 —— 主题化回归。
+ *     2. --rm-*（modern-vars，库自有）：Modern 布局族（ReButton/ReInput/ReForm …）
+ *        的紧凑规格（8~12px 圆角、极淡或无投影），服务于密集控件，
+ *        与大卡片的 16px / 柔光规格本就不该一致，因此**不参与**本基线。
+ *
+ * 用法：
+ *   1) 令牌：直接 var(--re-surface-radius) / var(--re-surface-shadow) …
+ *   2) 基类：class="re-surface"（静态卡片）
+ *            class="re-surface re-surface--hover"（可悬停，独立面板）
+ *            class="re-surface re-surface--dense"（密集列表条目，不上浮）
+ *      带封面图/自定义内部结构的容器（如 ReTable 卡片视图）**不要**套基类
+ *      （基类含 16px 18px 内距会破坏其布局），改用上面的令牌。
+ *   3) 需要完全自定义结构时，用 ReStatCard 组件本体，不要手搓圆角+投影。
+ *
+ * 防漂移：新增组件如确需自定义规格，会被 scripts/check-ui-surface.mjs 记录到
+ * 基线快照并阻止"只增不减"的漂移（npm run surface:check）。
+ * ============================================================ */
+
+/* 圆角令牌默认层：本文件大量使用 var(--el-radius-*)，必须先于自身规则可用。
+   直接 import 本 css 的组件（ReCard / ReStat / ReStatCard / ReTableCardView / ReAlbum）
+   由此自动获得该层，无需各自再引一次。 */
+/* ============================================================
+ * radius-vars.css —— 圆角令牌「默认层」
+ *
+ * 为什么要这一层：
+ *   --el-radius-* 六档原本只在 packages/theme 的 koi 主题里定义
+ *   （themes/koi/styles/radius.scss）。没有加载 koi 主题的应用
+ *   （例如 apps/vue-support-ai-guada 只引 element-plus/dist/index.css）
+ *   里 `var(--el-radius-md, 8px)` 只能吃兜底 px —— 视觉不变，
+ *   但主题一旦挂上，圆角档与其它页面就对不齐。
+ *   本文件把这套档位下沉到「装了组件库就能拿到」的层级，消掉这个缺口。
+ *
+ * 分层约定（重要，改动前先读）：
+ *   第 1 层  本文件（默认层，packages/ui，随组件库分发）
+ *            只声明 --el-radius-* 六档本身
+ *   第 2 层  koi 主题（packages/theme/src/themes/koi/styles/radius.scss）
+ *            覆盖同名六档，**并额外**把 Element Plus 的
+ *            --el-border-radius-* / --el-*-border-radius 重映射到这套档
+ *
+ *   本层刻意**不**重映射 EP 的组件级圆角变量：EP base.css 自带
+ *   --el-border-radius-base:4px / -small:2px / -round:20px，
+ *   改写它们会连带改掉所有 Element 组件（输入框/标签/对话框）的圆角，
+ *   对没要求过圆角体系的应用属于整站变脸。组件级重映射是 koi 的职责。
+ *
+ *   两层同特异度（都是 :root），后加载者胜。当前两层取值一致，
+ *   加载顺序不影响结果；将来 koi 若要偏离本层取值，必须保证
+ *   主题样式晚于组件库样式加载（koi 应用里主题由 layout 动态引入，成立）。
+ * ============================================================ */
+
+:root {
+  /* ── 统一圆角令牌（默认值，与 koi 主题同档）──
+     xs    = 4px    极细元素（checkbox / segmented 内部）
+     sm    = 6px    控件（按钮 / 输入框 / 下拉 / tag / 分页）
+     md    = 8px    面板（popper / popover / alert / 表格）
+     lg    = 12px   卡片（card / notification / message-box）
+     xl    = 16px   浮层（dialog）
+     full  = 9999px 胶囊（round 按钮 / tag pill） */
+  --el-radius-xs: 4px;
+  --el-radius-sm: 6px;
+  --el-radius-md: 8px;
+  --el-radius-lg: 12px;
+  --el-radius-xl: 16px;
+  --el-radius-full: 9999px;
+}
+
+:root {
+  /* 圆角：与 ReStatCard 的 --el-radius-xl 对齐，缺省 16px */
+  --re-surface-radius: 16px;
+  --re-surface-radius-dense: 12px;
+
+  /* 内距 */
+  --re-surface-padding: 16px 18px;
+  --re-surface-padding-dense: 10px;
+
+  /* 投影：近距描边 + 远距弥散（主色着色，避免中性灰的塑料感） */
+  --re-surface-shadow:
+    0 1px 2px color-mix(in srgb, var(--el-color-black) 4%, transparent),
+    0 12px 28px -14px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+  --re-surface-shadow-hover:
+    0 1px 2px color-mix(in srgb, var(--el-color-black) 5%, transparent),
+    0 18px 36px -14px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  /* 密集条目：默认几乎无投影，悬停才给一点抬起感 */
+  --re-surface-shadow-dense: 0 1px 2px color-mix(in srgb, var(--el-color-black) 3%, transparent);
+  --re-surface-shadow-dense-hover:
+    0 4px 12px -6px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+
+  /* 表面色：优先宿主令牌，回落到 Element Plus 变量 */
+  --re-surface-bg: var(--el-bg-color, #fff);
+  --re-surface-bg-hover: var(--el-fill-color-light, #f5f7fa);
+}
+
+/* ---------------- 基类：静态卡片 ---------------- */
+.re-surface {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--re-surface-padding);
+  background: var(--re-surface-bg);
+  /* 透明边框 + 双层投影 = "近距描边感"，不靠实色边框划界 */
+  border: 1px solid transparent;
+  border-radius: var(--re-surface-radius);
+  box-shadow: var(--re-surface-shadow);
+}
+
+/* ---------------- 变体：可悬停（独立面板 / 统计卡） ---------------- */
+.re-surface--hover {
+  transition:
+    transform var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
+}
+
+.re-surface--hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--re-surface-shadow-hover);
+}
+
+/* ---------------- 变体：密集列表条目 ----------------
+   同一套"无边框 + 柔光"语言，但内距更小、悬停不上浮，
+   避免整列表跟着浮动。与 .re-surface--hover 互斥，不要叠加。 */
+.re-surface--dense {
+  padding: var(--re-surface-padding-dense);
+  border-radius: var(--re-surface-radius-dense);
+  box-shadow: var(--re-surface-shadow-dense);
+  transition:
+    background-color var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
+}
+
+.re-surface--dense:hover {
+  background: var(--re-surface-bg-hover);
+  box-shadow: var(--re-surface-shadow-dense-hover);
+}
+
+/* ---------------- 无障碍：减少动效时关闭上浮与过渡 ---------------- */
+@media (prefers-reduced-motion: reduce) {
+  .re-surface--hover,
+  .re-surface--hover:hover,
+  .re-surface--dense,
+  .re-surface--dense:hover {
+    transition: none;
+    transform: none;
+  }
+}

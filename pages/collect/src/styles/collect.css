@@ -11,9 +11,9 @@
  */
 
 :root {
-  --cc-gap: 12px;
-  --cc-gap-sm: 8px;
-  --cc-gap-lg: 16px;
+  --cc-gap: 8px;
+  --cc-gap-sm: 6px;
+  --cc-gap-lg: 12px;
   --cc-radius: 10px;
   --cc-radius-sm: 8px;
   --cc-duration: 180ms;

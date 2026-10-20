@@ -54,6 +54,18 @@ export const collectRoutes: RouteConfigsTable[] = [
         component: () => import("../views/RecordView.vue"),
         meta: { title: "采集结果", icon: "Files", showLink: true, keepAlive: true, rank: 3, isVisible: "1" },
       },
+      {
+        path: "/collect/alert-rule",
+        name: "CollectAlertRule",
+        component: () => import("../views/AlertRuleView.vue"),
+        meta: { title: "告警规则", icon: "Bell", showLink: true, keepAlive: true, rank: 4, isVisible: "1" },
+      },
+      {
+        path: "/collect/flow-version",
+        name: "CollectFlowVersion",
+        component: () => import("../views/FlowVersionView.vue"),
+        meta: { title: "流程版本", icon: "Clock", showLink: true, keepAlive: true, rank: 5, isVisible: "1" },
+      },
     ],
   },
 

@@ -495,6 +495,27 @@ async function onImportFile(file: File | undefined) {
     message.error((e as Error).message);
   }
 }
+
+/** CPU 使用率颜色 */
+function cpuColor(v?: number): string {
+  const n = Number(v) || 0;
+  if (n >= 80) return 'var(--el-color-danger)';
+  if (n >= 60) return 'var(--el-color-warning)';
+  return 'var(--el-color-success)';
+}
+
+/** 内存使用率颜色 */
+function memColor(v?: number): string {
+  return cpuColor(v);
+}
+
+/** 磁盘使用率颜色 */
+function diskColor(v?: number): string {
+  const n = Number(v) || 0;
+  if (n >= 90) return 'var(--el-color-danger)';
+  if (n >= 75) return 'var(--el-color-warning)';
+  return 'var(--el-color-success)';
+}
 </script>
 
 <template>
@@ -611,6 +632,54 @@ async function onImportFile(file: File | undefined) {
                 : row.serverHostDelayMs < 0 ? 'is-down' : row.serverHostDelayMs <= 50 ? 'is-fast' : 'is-slow'
             ]"
           >{{ delayText(row.serverHostDelayMs) }}</span>
+        </template>
+      </ReTableColumn>
+      <ReTableColumn label="CPU" width="120">
+        <template #default="{ row }">
+          <div class="mini-bar-wrap" :title="`CPU: ${row.cpuUsage || 0}%`">
+            <div class="mini-bar">
+              <div
+                class="mini-bar__fill"
+                :style="{
+                  width: Math.min(100, row.cpuUsage || 0) + '%',
+                  background: cpuColor(row.cpuUsage)
+                }"
+              />
+            </div>
+            <span class="mini-bar__val">{{ row.cpuUsage || 0 }}%</span>
+          </div>
+        </template>
+      </ReTableColumn>
+      <ReTableColumn label="内存" width="120">
+        <template #default="{ row }">
+          <div class="mini-bar-wrap" :title="`内存: ${row.memUsage || 0}%`">
+            <div class="mini-bar">
+              <div
+                class="mini-bar__fill"
+                :style="{
+                  width: Math.min(100, row.memUsage || 0) + '%',
+                  background: memColor(row.memUsage)
+                }"
+              />
+            </div>
+            <span class="mini-bar__val">{{ row.memUsage || 0 }}%</span>
+          </div>
+        </template>
+      </ReTableColumn>
+      <ReTableColumn label="磁盘" width="120">
+        <template #default="{ row }">
+          <div class="mini-bar-wrap" :title="`磁盘: ${row.diskUsage || 0}%`">
+            <div class="mini-bar">
+              <div
+                class="mini-bar__fill"
+                :style="{
+                  width: Math.min(100, row.diskUsage || 0) + '%',
+                  background: diskColor(row.diskUsage)
+                }"
+              />
+            </div>
+            <span class="mini-bar__val">{{ row.diskUsage || 0 }}%</span>
+          </div>
         </template>
       </ReTableColumn>
       <ReTableColumn label="端口" min-width="160">
@@ -776,6 +845,11 @@ async function onImportFile(file: File | undefined) {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
+
+.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.mini-bar { width: 48px; height: 4px; background: var(--el-fill-color); border-radius: 2px; overflow: hidden; }
+.mini-bar__fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.mini-bar__val { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 30px; }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {

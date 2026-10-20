@@ -1,0 +1,1 @@
+import{t as e}from"./ReProcessTask-BJjolBpE.js";var t={install(t){t.component(`ReProcessTask`,e)}},n=e;export{e as ReProcessTask,n as default,t as install};

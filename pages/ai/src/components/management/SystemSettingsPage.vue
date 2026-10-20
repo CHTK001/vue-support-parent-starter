@@ -62,7 +62,7 @@
               <span class="form-tip">每天定时同步用量数据（仅同步当天数据）</span>
             </el-form-item>
             <el-form-item label="后台时间轮询间隔">
-              <el-input-number v-model="usageConfigForm.pollInterval" :min="1" :max="1440" />
+              <ReNumberSelect v-model="usageConfigForm.pollInterval" :min="1" :max="1440" />
               <span class="form-tip">分钟</span>
             </el-form-item>
             <el-divider content-position="left">Provider SPI 开关</el-divider>
@@ -196,6 +196,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue';
 

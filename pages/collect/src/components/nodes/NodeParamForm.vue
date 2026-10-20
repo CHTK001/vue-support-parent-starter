@@ -40,6 +40,8 @@ const props = defineProps<{
   intro?: string;
   /** 按参数名补充的前端说明；key 为参数名 */
   extraTips?: Record<string, string>;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -53,24 +55,68 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.meta,
   props.ownParamNames ?? [],
 );
+
+/**
+ * 参数分区。
+ *
+ * <p>统一的节点属性面板要求参数别再堆在一起：低频配置归「高级配置」，
+ * `outputVariable` 和字段编辑归「输出参数」，循环参数归「循环」，
+ * 其余才留在「输入参数」。这里用稳定的参数名前缀做归类，不在每个 shape 里抄一遍。</p>
+ */
+const ADVANCED_PARAM_NAMES = new Set([
+  "timeout",
+  "retry",
+  "retryInterval",
+  "proxy",
+  "userAgent",
+  "fetcher",
+  "saveDocument",
+  "batchSize",
+  "onBatchError",
+  "writeBack",
+  "outputPrefix",
+  "maxTokens",
+  "temperature",
+]);
+
+const inputFields = () =>
+  fields.value.filter(
+    item =>
+      item.name !== "outputVariable" &&
+      !ADVANCED_PARAM_NAMES.has(item.name) &&
+      !item.name.startsWith("column:") &&
+      !item.name.startsWith("cell:") &&
+      !item.name.startsWith("key:"),
+  );
+
+const outputFields = () =>
+  fields.value.filter(
+    item =>
+      item.name === "outputVariable" ||
+      item.name.startsWith("column:") ||
+      item.name.startsWith("cell:") ||
+      item.name.startsWith("key:"),
+  );
+
+const advancedFields = () =>
+  fields.value.filter(item => ADVANCED_PARAM_NAMES.has(item.name));
 </script>
 
 <template>
-  <div v-if="intro" class="field field-wide node-intro">{{ intro }}</div>
-
-  <template v-for="param in fields" :key="param.name">
-    <ParamField
-      v-if="!extraTips || !extraTips[param.name]"
-      :param="param"
-      :value="valueOf(param.name)"
-      :pairs="pairsOfParam(param.name)"
-      :node-id="node.id"
+  <template v-if="section === 'loop'">
+    <LoopFields
+      :node="node"
+      :meta="meta"
       :ctx="ctx"
-      @update="(value: unknown) => emit('set-param', param, value)"
-      @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
     />
-    <div v-else class="field field-wide">
+  </template>
+
+  <template v-else-if="section === 'output'">
+    <template v-for="param in outputFields()" :key="param.name">
       <ParamField
+        v-if="!extraTips || !extraTips[param.name]"
         :param="param"
         :value="valueOf(param.name)"
         :pairs="pairsOfParam(param.name)"
@@ -79,30 +125,133 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
         @update="(value: unknown) => emit('set-param', param, value)"
         @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
       />
-      <div class="field-tip">{{ extraTips[param.name] }}</div>
+      <div v-else class="field field-wide">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div class="field-tip">{{ extraTips[param.name] }}</div>
+      </div>
+    </template>
+    <div v-if="meta.fieldEditor" class="field field-wide">
+      <div class="field-label">抽取字段</div>
+      <FieldTable
+        :model-value="node.fields"
+        :placeholder-groups="ctx.placeholderGroups"
+        @update:model-value="ctx.writeFields"
+      />
     </div>
   </template>
 
-  <!-- 循环迭代分节：留空单次执行；start / end / comment 由 NON_LOOP_SHAPES 门控不渲染 -->
-  <LoopFields
-    :node="node"
-    :meta="meta"
-    :ctx="ctx"
-    @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
-    @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
-  />
+  <template v-else-if="section === 'advanced'">
+    <template v-for="param in advancedFields()" :key="param.name">
+      <ParamField
+        v-if="!extraTips || !extraTips[param.name]"
+        :param="param"
+        :value="valueOf(param.name)"
+        :pairs="pairsOfParam(param.name)"
+        :node-id="node.id"
+        :ctx="ctx"
+        @update="(value: unknown) => emit('set-param', param, value)"
+        @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+      />
+      <div v-else class="field field-wide">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div class="field-tip">{{ extraTips[param.name] }}</div>
+      </div>
+    </template>
+  </template>
 
-  <div v-if="meta.fieldEditor" class="field field-wide">
-    <div class="field-label">抽取字段</div>
-    <FieldTable
-      :model-value="node.fields"
-      :placeholder-groups="ctx.placeholderGroups"
-      @update:model-value="ctx.writeFields"
+  <template v-else-if="section === 'input'">
+    <div v-if="intro" class="field field-wide node-intro">{{ intro }}</div>
+    <template v-for="param in inputFields()" :key="param.name">
+      <ParamField
+        v-if="!extraTips || !extraTips[param.name]"
+        :param="param"
+        :value="valueOf(param.name)"
+        :pairs="pairsOfParam(param.name)"
+        :node-id="node.id"
+        :ctx="ctx"
+        @update="(value: unknown) => emit('set-param', param, value)"
+        @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+      />
+      <div v-else class="field field-wide">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div class="field-tip">{{ extraTips[param.name] }}</div>
+      </div>
+    </template>
+  </template>
+
+  <template v-else>
+    <div v-if="intro" class="field field-wide node-intro">{{ intro }}</div>
+
+    <template v-for="param in fields" :key="param.name">
+      <ParamField
+        v-if="!extraTips || !extraTips[param.name]"
+        :param="param"
+        :value="valueOf(param.name)"
+        :pairs="pairsOfParam(param.name)"
+        :node-id="node.id"
+        :ctx="ctx"
+        @update="(value: unknown) => emit('set-param', param, value)"
+        @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+      />
+      <div v-else class="field field-wide">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div class="field-tip">{{ extraTips[param.name] }}</div>
+      </div>
+    </template>
+
+    <!-- 循环迭代分节：留空单次执行；start / end / comment 由 NON_LOOP_SHAPES 门控不渲染 -->
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="ctx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
     />
-  </div>
 
-  <!-- 形状特有的额外区段，排在循环分节与抽取字段之后 -->
-  <slot />
+    <div v-if="meta.fieldEditor" class="field field-wide">
+      <div class="field-label">抽取字段</div>
+      <FieldTable
+        :model-value="node.fields"
+        :placeholder-groups="ctx.placeholderGroups"
+        @update:model-value="ctx.writeFields"
+      />
+    </div>
+
+    <!-- 形状特有的额外区段，排在循环分节与抽取字段之后 -->
+    <slot />
+  </template>
 </template>
 
 <style scoped>

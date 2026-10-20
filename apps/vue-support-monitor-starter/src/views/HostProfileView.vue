@@ -65,7 +65,7 @@ const emit = defineEmits<{
 }>();
 
 /** 画像分区（概要信息已移到左侧，右侧只保留明细分区，默认磁盘） */
-type SectionKey = "ports" | "processes" | "services" | "disks" | "network" | "env";
+type SectionKey = "ports" | "processes" | "services" | "disks" | "network" | "env" | "firewall";
 
 /** 分区定义（各分区走对应采集端点） */
 const sections: Array<{ name: SectionKey; label: string }> = [
@@ -75,6 +75,7 @@ const sections: Array<{ name: SectionKey; label: string }> = [
   { name: "disks", label: "磁盘" },
   { name: "network", label: "网络" },
   { name: "env", label: "环境变量" },
+  { name: "firewall", label: "防火墙" },
 ];
 
 /** 各分区的列定义 */
@@ -123,6 +124,15 @@ const COLUMNS: Record<SectionKey, Array<{ key: string; label: string; width?: st
   env: [
     { key: "name", label: "变量", width: "260px" },
     { key: "value", label: "值" },
+  ],
+  firewall: [
+    { key: "name", label: "规则名", width: "220px" },
+    { key: "direction", label: "方向", width: "80px" },
+    { key: "action", label: "动作", width: "80px" },
+    { key: "protocol", label: "协议", width: "80px" },
+    { key: "localPort", label: "端口", width: "88px" },
+    { key: "profile", label: "配置", width: "120px" },
+    { key: "chain", label: "链", width: "80px" },
   ],
 };
 
@@ -201,14 +211,15 @@ const hasActions = computed(() =>
 /** 进程 / 服务 / 监听端口 均由后端分页（后台只返回当前页） */
 const pagedSection = computed(() =>
   active.value === "processes" || active.value === "services"
-  || active.value === "ports");
+  || active.value === "ports" || active.value === "firewall");
 
 /** 各分区检索框的命中字段提示 */
 const KEYWORD_HINTS: Record<string, string> = {
   processes: "PID / 进程名 / 用户 / 命令行",
   services: "服务名 / 显示名 / 状态",
   ports: "端口 / 地址 / 状态 / 进程名",
-  disks: "盘符 / 卷标 / 文件系统"
+  disks: "盘符 / 卷标 / 文件系统",
+  firewall: "规则名 / 链 / 方向 / 动作 / 协议 / 端口",
 };
 const keywordPlaceholder = computed(() => KEYWORD_HINTS[active.value] ?? "关键字过滤");
 
@@ -240,6 +251,7 @@ const tableRows = computed(() => {
 function sortableColumns(): string[] {
   if (active.value === "processes") return ["pid", "cpu", "memory"];
   if (active.value === "services") return ["pid"];
+  if (active.value === "firewall") return ["name", "direction", "action"];
   return [];
 }
 function isSortable(key: string): boolean {
@@ -390,14 +402,14 @@ async function loadSection(): Promise<void> {
   sectionError.value = "";
   try {
     let next: Record<string, any>[];
-    // 统一走画像分区端点；分页分区传页码与关键字，后台只回当前页
-    const paged = sec === "processes" || sec === "services" || sec === "ports";
-    next = await fetchHostProfileSection(hid, sec,
+    // 分页分区传 page/size，后端返回 SectionPage（含 total）；非分页分区传 keyword
+    const paged = sec === "processes" || sec === "services" || sec === "ports" || sec === "firewall";
+    const res = await fetchHostProfileSection(hid, sec,
       paged ? page.value : undefined, paged ? pageSize.value : undefined,
       paged ? sectionKeyword.value.trim() : undefined);
     // 期间已切主机 / 分区 / 翻页 / 重开：丢弃这份迟到响应
     if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
-    rows.value = next ?? [];
+    rows.value = res.rows ?? [];
   } catch (e) {
     if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
     // 同分区刷新失败时保留已渲染行（rows 已在切换分区/主机时被清空），

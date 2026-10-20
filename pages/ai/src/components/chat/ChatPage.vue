@@ -59,6 +59,12 @@
                       <MoreVertOutlined class="w-5 h-5" />
                     </div>
                     <template #dropdown>
+                      <DropdownMenuItem command="export">
+                        <span class="flex items-center gap-2">
+                          <DownloadTwotone class="w-4 h-4" />
+                          <span>{{ t('chat.header.exportMarkdown') }}</span>
+                        </span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem command="clear">
                         <span class="flex items-center gap-2">
                           <DeleteTwotone class="w-4 h-4" />
@@ -162,7 +168,7 @@ import DropdownMenuItem from "@/components/ui/DropdownMenuItem.vue";
 import {
   MoreVertOutlined,
   DeleteTwotone,
-  // FileDownloadOutlined,
+  DownloadTwotone,
   // FileUploadOutlined
 } from "@vicons/material";
 import { PanelRightExpand20Filled, DataUsage20Filled, Timeline20Filled, Globe20Filled } from "@vicons/fluent";
@@ -674,13 +680,48 @@ async function handleMoreSelect(key: string) {
     case "clear":
       await clearChat();
       break;
-    // case "export":
-    //   exportChat();
-    //   break;
-    // case "import":
-    //   await importChat();
-    //   break;
+    case "export":
+      exportChat();
+      break;
   }
+}
+
+/**
+ * 导出当前会话为 Markdown 文件
+ */
+function exportChat() {
+  if (!mainSession.value) {
+    toast.error(t('chat.panel.noActiveSession'));
+    return;
+  }
+  const messages = chatPanelRef.value?.activeMessages || [];
+  if (messages.length === 0) {
+    toast.warning(t('chat.header.exportEmpty'));
+    return;
+  }
+  const lines: string[] = [
+    `# ${mainSession.value.title || 'Chat Export'}`,
+    '',
+    `> ${new Date().toLocaleString()}`,
+    '',
+  ];
+  for (const msg of messages) {
+    const role = msg.role === 'user' ? '**User**' : '**Assistant**';
+    const content = msg.contents?.[0]?.content || msg.content || '';
+    lines.push(`## ${role}`);
+    lines.push('');
+    lines.push(content || '_empty_');
+    lines.push('');
+  }
+  const md = lines.join('\n');
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(mainSession.value.title || 'chat-export').replace(/[\\/:*?"<>|]/g, '-')}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success(t('common.operationSuccess'));
 }
 
 /**

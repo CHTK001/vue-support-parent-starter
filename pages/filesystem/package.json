@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "@ant-design/x-markdown": "2.9.0",
-    "@cornerstonejs/core": "^5.11.6",
     "@cornerstonejs/codec-libjxl": "^1.1.1",
+    "@cornerstonejs/core": "^5.11.6",
     "@cornerstonejs/dicom-image-loader": "^5.11.6",
     "@element-plus/icons-vue": "catalog:",
     "@file-viewer/assets-iwork": "3.1.2",
@@ -59,6 +59,7 @@
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@ruffle-rs/ruffle": "^0.7.1",
+    "@run-slicer/cfr": "0.1.8-0.152",
     "ag-psd": "^31.0.2",
     "archive-wasm": "^2.1.0",
     "bpmn-js": "^18.31.0",

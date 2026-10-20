@@ -33,7 +33,7 @@
             placeholder="搜索题干、知识点…"
             :prefix-icon="Search"
             @keyup.enter="commitSearch"
-            @change="commitSearch"
+            @change="debouncedSearch"
             @clear="commitSearch"
           />
         </div>
@@ -112,6 +112,15 @@
           :tabs="SORT_TABS"
           @tab-change="onSortTabChange"
         />
+        <!-- 批量审核进度提示 -->
+        <Transition name="fade">
+          <div v-if="batchAuditing" class="batch-audit-progress">
+            <span class="batch-audit-progress__icon">
+              <el-icon class="is-loading"><Loading /></el-icon>
+            </span>
+            <span>正在审核 {{ auditProgressDone }}/{{ auditProgressTotal }} …</span>
+          </div>
+        </Transition>
         <div class="view-toggle" role="group" aria-label="视图切换">
           <button
             type="button"
@@ -699,6 +708,7 @@ import {
   Document,
   EditPen,
   Grid,
+  Loading,
   Menu,
   Plus,
   RefreshLeft,
@@ -994,6 +1004,32 @@ const handleReset = () => {
   Object.assign(searchDraft, blankSearch());
   commitSearch();
 };
+
+/** 搜索防抖：300ms 内重复触发只执行最后一次，避免每次按键都发请求 */
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+const debouncedSearch = () => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(commitSearch, 300);
+};
+
+/** 键盘快捷键：Ctrl+S 保存，Escape 关闭弹窗 */
+const onKeyDown = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && dialogVisible.value) {
+    dialogVisible.value = false;
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "s" && dialogVisible.value) {
+    e.preventDefault();
+    // 触发保存（auditOnSave=false 为普通保存，true 为保存并审核）
+    save(false);
+  }
+};
+
+onMounted(() => window.addEventListener("keydown", onKeyDown));
+onUnmounted(() => {
+  window.removeEventListener("keydown", onKeyDown);
+  if (searchTimer) clearTimeout(searchTimer);
+});
 
 const loadDimensions = async () => {
   try {
@@ -1351,6 +1387,11 @@ const save = async (auditOnSave = false) => {
 /** 当前页勾选项 ID（ReTable selection-change 回写） */
 const selectedIds = ref<number[]>([]);
 
+/** 批量审核进度状态 */
+const batchAuditing = ref(false);
+const auditProgressDone = ref(0);
+const auditProgressTotal = ref(0);
+
 const onSelectionChange = (rows: Question[]) => {
   selectedIds.value = (rows ?? []).map((r) => r.questionId).filter((n) => n > 0);
 };
@@ -1414,13 +1455,19 @@ const batchAudit = async (passed: boolean) => {
       return;
     }
   }
+  batchAuditing.value = true;
+  auditProgressTotal.value = selectedIds.value.length;
+  auditProgressDone.value = 0;
   try {
     const count = await eduaiApi.auditQuestions(selectedIds.value, passed, remark || undefined);
-    message.success(`审核完成，成功 ${count} 条`);
+    auditProgressDone.value = auditProgressTotal.value;
+    message.success(`审核完成，成功 ${count} 条${count < selectedIds.value.length ? `，失败 ${selectedIds.value.length - count} 条` : ""}`);
     selectedIds.value = [];
     await reloadStats();
   } catch (e) {
     message.error("批量审核失败: " + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    batchAuditing.value = false;
   }
 };
 
@@ -1551,13 +1598,48 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ================================================================
+   科技感设计系统：变量 + 基础
+   ================================================================ */
 .page-container {
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);
+  position: relative;
 }
 
-/* 批量导入对话框的必填字段提示 */
+/* 点阵网格背景 + 径向暗角（覆盖整个页面） */
+.page-container::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--el-color-primary) 8%, transparent) 0%, transparent 60%),
+    radial-gradient(circle at 2px 2px, color-mix(in srgb, var(--el-color-primary) 18%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 20%, transparent 100%);
+}
+
+/* ================================================================
+   科技感变量（自动适配亮/暗主题）
+   ================================================================ */
+:root {
+  --cyber-glow: color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+  --cyber-glow-strong: color-mix(in srgb, var(--el-color-primary) 90%, transparent);
+  --cyber-glass-bg: color-mix(in srgb, var(--el-bg-color) 70%, var(--el-color-primary) 4%);
+  --cyber-border: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  --cyber-border-hover: color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+  --cyber-scan-duration: 2.8s;
+  --cyber-neon-blue: #5b8ff9;
+  --cyber-neon-green: #5ad8a6;
+  --cyber-neon-orange: #ff9d4d;
+}
+
+/* ================================================================
+   批量导入对话框的必填字段提示
+   ================================================================ */
 .import-hint {
   margin: 8px 0 0;
   font-size: 12px;
@@ -1593,68 +1675,148 @@ onMounted(() => {
   padding-top: 4px;
   min-width: 0;
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 .page-header__title {
   margin: 0;
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--el-text-color-primary);
   line-height: 1.25;
+  position: relative;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  /* 标题霓虹辉光 */
+  text-shadow: 0 0 30px var(--cyber-glow), 0 0 60px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
 }
 .page-header__sub {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--el-text-color-placeholder);
+  letter-spacing: 0.02em;
 }
 
-/* ---------- 统计：右侧并排正方形悬浮卡 ---------- */
+/* ---------- 统计：科技感毛玻璃悬浮卡 + 霓虹扫描光效 ---------- */
 .stats-row {
   display: flex;
   flex-shrink: 0;
   gap: 14px;
   margin-bottom: 0;
+  position: relative;
+  z-index: 1;
 }
+
 .stat-card {
   width: 148px;
   height: 148px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-xl, 16px);
+  background: var(--cyber-glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
-  border: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  overflow: hidden;
+  /* 渐变霓虹边框（透明 → 主题色 → 透明） */
+  border: 1px solid transparent;
+  background-clip: padding-box;
   transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
+
+/* 霓虹伪元素边框 */
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-5, #a0cfff) 0%,
+    var(--el-color-primary) 50%,
+    var(--el-color-primary-light-5, #a0cfff) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  transition: opacity 0.25s ease;
+}
+
+/* 扫描光效：顶部滑入的亮条 */
+.stat-card::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -20%;
+  width: 140%;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--el-color-primary) 12%, transparent) 60%,
+    transparent 100%
+  );
+  transform: rotate(-8deg);
+  animation: cyber-scan var(--cyber-scan-duration) ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cyber-scan {
+  0%, 100% { top: -40%; opacity: 0; }
+  10%       { opacity: 1; }
+  90%       { opacity: 1; }
+  100%      { top: 120%; opacity: 0; }
+}
+
 .stat-card:hover {
-  transform: translateY(-2px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 0 20px var(--cyber-glow),
+    0 8px 32px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
 .stat-card__body {
   min-width: 0;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
+
 .stat-card__title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
   margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
+
 .stat-card__value {
   font-size: 30px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--el-text-color-primary);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  /* 数字霓虹辉光 */
+  text-shadow: 0 0 20px var(--cyber-glow);
 }
+
 .stat-card__hint {
   margin-top: 4px;
   font-size: 11px;
@@ -1663,27 +1825,46 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
+
 .stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: var(--el-radius-lg, 12px);
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--el-color-white);
   flex-shrink: 0;
   align-self: flex-end;
+  position: relative;
+  z-index: 1;
+  /* 图标辉光 */
+  filter: drop-shadow(0 0 6px currentColor);
 }
 
-/* ---------- 筛选（被统计卡下半压住） ---------- */
+/* ---------- 筛选：渐变描边 + 科技感内边距 ---------- */
 .filter-card {
-  /* 原 14px，最近档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
+  border-radius: 16px;
   margin-bottom: 14px;
   border: 0;
   position: relative;
   z-index: 1;
+  /* 渐变描边（用 box-shadow 模拟 border-image） */
+  box-shadow:
+    0 0 0 1px var(--cyber-border),
+    0 4px 24px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  background: var(--cyber-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: box-shadow 0.25s ease;
+}
+
+.filter-card:hover {
+  box-shadow:
+    0 0 0 1px var(--cyber-border-hover),
+    0 8px 32px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
 }
 .filter-card :deep(.el-card__body) {
   padding: 92px 20px 18px;
@@ -2473,5 +2654,51 @@ onMounted(() => {
   .stat-card:hover {
     transform: none;
   }
+}
+
+/* ============ 批量审核进度提示（霓虹科技感） ============ */
+.batch-audit-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--cyber-border);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
+}
+
+.batch-audit-progress__icon {
+  display: flex;
+  align-items: center;
+  filter: drop-shadow(0 0 4px var(--el-color-primary));
+}
+
+/* 进度计数闪烁动画 */
+.batch-audit-progress span:last-child {
+  animation: cyber-text-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cyber-text-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+/* 淡入淡出过渡 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
