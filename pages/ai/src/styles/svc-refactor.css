@@ -337,9 +337,11 @@ html.dark .svc {
   min-height: 58px; flex-shrink: 0;
 }
 
-/* 主工作区：白底卡片 + 右侧 ReTab 撑满 */
+/* 主工作区：白底卡片 + 右侧 ReTab 撑满。
+   min-height 让右栏在「无日志 / 少日志 / 令牌列表短」时也不会塌成一条线；
+   三页签共用同一高度基线，切换时才不会有明显跳动。 */
 .svc-main {
-  min-width: 0; min-height: 0;
+  min-width: 0; min-height: clamp(420px, 56vh, 680px);
   display: flex; flex-direction: column;
   border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
   background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
@@ -715,30 +717,31 @@ html.dark .svc {
   .svc-tile { transform: none; }
 }
 
-/* ≤1180：两栏工作区 → 单列堆叠；控制台不再需要窄 min */
+/* ≤1180：左右分栏收窄；控制台不再需要窄 min */
 @media (max-width: 1180px) {
-  .svc-grid { grid-template-columns: minmax(0, 1fr); }
+  .svc-split { grid-template-columns: minmax(260px, 300px) minmax(0, 1fr); }
   .svc-console { max-height: clamp(280px, 40vh, 520px); }
   .svc-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .svc-band__cell:nth-child(4) { border-left: 0; }
   .svc-band__cell:nth-child(n+4) { border-top: 1px solid var(--svc-rule); }
 }
 
-/* ≤900：状态带 2 列；瓦片单列；控件行整宽；命中区 44px；隐藏聚焦入口 */
+/* ≤900：状态带 2 列；左右分栏 → 单列堆叠；控件行整宽；命中区 44px；隐藏聚焦入口 */
 @media (max-width: 900px) {
-  .svc-tiles { grid-template-columns: minmax(0, 1fr); }
+  .svc-split { grid-template-columns: minmax(0, 1fr); }
+  .svc-side__list { max-height: none; }
   .svc-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .svc-band__cell:nth-child(3) { border-left: 0; }
   .svc-band__cell:nth-child(n+3) { border-top: 1px solid var(--svc-rule); }
   .svc-band__cell:nth-child(4) { border-left: 1px solid var(--svc-rule); }
-  .svc-panel .svc-sect__extra { width: 100%; justify-content: flex-start; }
+  .svc-toolbar .svc-sect__extra { width: 100%; justify-content: flex-start; }
   .svc-select, .svc-search, .svc-select--fixed { width: 100%; flex: 1 1 140px; }
   .svc-ico { width: 44px; height: 44px; }        /* 触控目标 */
   .svc-ico .el-icon { font-size: 17px; }
   .svc-tile { min-height: 72px; }
   .svc-seg__btn { height: 32px; padding: 0 12px; }
   /* focus 模式在单列下失去意义，直接禁用入口 */
-  .svc-panel--console .svc-ico[aria-pressed] { display: none; }
+  .svc-pane--console .svc-ico[aria-pressed] { display: none; }
 }
 
 /* ≤720：状态带 2 列；区块标题换行；端口缩回 18px；日志槽收窄 */

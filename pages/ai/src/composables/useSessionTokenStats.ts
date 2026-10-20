@@ -95,39 +95,43 @@ export function updateTokenStatsFromSSE(
   stats: {
     usedTokens: number
     effectiveContextWindow: number
+    /** token 构成（系统提示词/摘要/用户输入/历史消息/工具定义），后端按估算下发 */
+    breakdown?: Partial<TokenBreakdown> | null
   },
   sessionId?: string | null,
 ) {
   sseUpdated = true
+  // 后端只在拿得到模型窗口时才下发 effectiveContextWindow；
+  // 缺省时退回上一次已知窗口，避免一次「未登记模型」的轮次把占用率打回 0。
+  const window = Number(stats.effectiveContextWindow) || tokenStats.value?.totalTokens || 0
+  const used = Number(stats.usedTokens) || 0
+  const breakdown: TokenBreakdown = { ...EMPTY_BREAKDOWN, ...(stats.breakdown || {}) }
+
   const sid = sessionId ?? currentSessionId
   if (sid) {
     apiService
       .saveSessionTokenStats(sid, {
-        usedTokens: stats.usedTokens,
-        effectiveContextWindow: stats.effectiveContextWindow,
+        usedTokens: used,
+        effectiveContextWindow: window,
+        // 构成同样落库：不存的话刷新后「上下文已用」卡片只剩占用条，明细整块消失
+        breakdown,
       })
       .catch((error: any) => {
         console.warn('[useSessionTokenStats] 上下文快照落库失败:', error)
       })
   }
   // 窗口为 0 时不能做除法：直接给 0，否则会算出 Infinity/NaN 一路传到界面
-  const percentage = stats.effectiveContextWindow > 0
-    ? Math.min(100, Math.max(0, (stats.usedTokens / stats.effectiveContextWindow) * 100))
+  const percentage = window > 0
+    ? Math.min(100, Math.max(0, (used / window) * 100))
     : 0
   tokenStats.value = {
-    usedTokens: stats.usedTokens,
-    totalTokens: stats.effectiveContextWindow,
-    remainingTokens: Math.max(0, stats.effectiveContextWindow - stats.usedTokens),
+    usedTokens: used,
+    totalTokens: window,
+    remainingTokens: Math.max(0, window - used),
     percentage,
     modelName: tokenStats.value?.modelName || '',
     messageCount: tokenStats.value?.messageCount || 0,
-    breakdown: tokenStats.value?.breakdown || {
-      systemPrompt: 0,
-      summary: 0,
-      userPrompt: 0,
-      history: 0,
-      tools: 0,
-    },
+    breakdown,
   }
 }
 

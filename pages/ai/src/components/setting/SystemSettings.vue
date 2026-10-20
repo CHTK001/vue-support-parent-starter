@@ -98,9 +98,6 @@
                         <template v-else-if="currentTabValue === 'audio-config'">
                             <DefaultModelSettings :groups="['asr']" />
                         </template>
-                        <template v-else-if="currentTabValue === 'language-config'">
-                            <DefaultModelSettings :groups="['language']" />
-                        </template>
 
                         <template v-else-if="currentTabValue === 'appearance'">
                             <AppearanceSettings />
@@ -279,7 +276,6 @@ const groupMap = computed<Record<string, string>>(() => ({
     'ocr-config': t('settings.system.groups.modelConfig'),
     'bot-connector-config': t('settings.system.groups.modelConfig'),
     'audio-config': t('settings.system.groups.modelConfig'),
-    'language-config': t('settings.system.groups.modelConfig'),
     ocr: t('settings.system.groups.general'),
     browser: t('settings.system.groups.general'),
     connections: t('settings.system.groups.general'),
@@ -391,13 +387,6 @@ const sidebarItems = computed(() => [
         label: '音频配置',
         path: 'audio-config',
         icon: Speaker024Regular,
-        roles: ['primary'],
-    },
-    {
-        // 从默认模型页拆出的独立配置：语言
-        label: '语言配置',
-        path: 'language-config',
-        icon: Globe24Regular,
         roles: ['primary'],
     },
     {

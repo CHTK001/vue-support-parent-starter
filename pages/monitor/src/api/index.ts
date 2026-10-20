@@ -535,3 +535,15 @@ export const getTsharkProtocolStats = (sessionId: number) =>
   http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol`).then(r => unwrap<any[]>(r));
 export const getTsharkTopFlows = (sessionId: number, limit = 10) =>
   http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}`).then(r => unwrap<any[]>(r));
+
+// ===== 服务管理（协议服务器节点 Server + ServerFilter）=====
+// 实现见 serviceManage.ts，统一从本文件转出。
+export * from './serviceManage';
+
+// ===== AI 智能分析 =====
+// 实现见 aiAnalyze.ts，统一从本文件转出。
+export * from './aiAnalyze';
+
+// ===== 在线节点（report 客户端注册上来的节点）=====
+// 实现见 monitorNodesApi.ts，统一从本文件转出。
+export * from './monitorNodesApi';

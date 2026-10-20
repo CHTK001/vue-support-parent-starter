@@ -147,6 +147,12 @@ const routes = [
         component: () => import("./components/management/FaceSearchPage.vue"),
       },
       {
+        path: "audio-recognition",
+        name: "AudioRecognition",
+        meta: { title: "音频识别", requiresAuth: true },
+        component: () => import("./components/management/AudioRecognitionPage.vue"),
+      },
+      {
         path: "image-search",
         name: "ImageSearch",
         meta: { title: "以图搜图", requiresAuth: true },

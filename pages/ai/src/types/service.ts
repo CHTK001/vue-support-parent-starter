@@ -168,6 +168,20 @@ export interface StreamTurnEndEvent {
     contextStats?: {
         usedTokens: number
         effectiveContextWindow: number
+        /**
+         * token 构成（系统提示词 / 摘要 / 用户输入 / 历史消息 / 工具定义）。
+         *
+         * 后端按字符数估算（与「模型未回传用量」时同一套 length * 1.5 口径），
+         * 所以各项之和通常小于 usedTokens（存在未归类余量），这是刻意保留的诚实口径：
+         * 前端用分量之和算占比，不拿 0 去凑满总数。
+         */
+        breakdown?: {
+            systemPrompt?: number
+            summary?: number
+            userPrompt?: number
+            history?: number
+            tools?: number
+        }
     }
 }
 

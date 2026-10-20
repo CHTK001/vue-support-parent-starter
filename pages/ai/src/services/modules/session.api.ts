@@ -525,11 +525,18 @@ export const sessionApi: SessionApi = {
    *
    * 后端把快照存进 sys_ai_session.settings.contextStats，页面刷新后
    * fetchSessionTokenStats 即可恢复占用率，无需重新对话。
+   *
+   * breakdown 是 token 构成（系统提示词/摘要/用户输入/历史消息/工具定义），
+   * 与已用/窗口同源，一并存下去，否则刷新后「上下文已用」卡片只剩一根占用条。
    */
   async saveSessionTokenStats(
     this: ApiContext,
     sessionId: string,
-    stats: { usedTokens: number; effectiveContextWindow: number },
+    stats: {
+      usedTokens: number;
+      effectiveContextWindow: number;
+      breakdown?: Record<string, number>;
+    },
   ) {
     return await this._request(`/sessions/${sessionId}/token-stats`, {
       method: "PUT",
