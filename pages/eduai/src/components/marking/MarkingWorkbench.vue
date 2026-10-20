@@ -21,6 +21,7 @@ import { failToast } from '../../api/errorText';
 import { createPageLoader } from '../../api/pageLoader';
 import type {
   EduStudent,
+  MarkingDashboardStats,
   MarkingProgressVO,
   MarkingResultVO,
   PageResult,
@@ -139,6 +140,84 @@ const onFinishFilterChange = () => {
 
 /** MarkingTaskTable 实例：任务终态 / 新任务提交后主动刷新，ReTable 自己管分页和刷新按钮 */
 const markingTaskTableRef = ref<{ reload: () => Promise<void> } | null>(null);
+
+/* ==================== 批量操作 ==================== */
+const selectedTasks = ref<TeacherMarkingTask[]>([]);
+const batchFinishing = ref(false);
+const batchUndoing = ref(false);
+
+/** ReTable 多选变化 */
+const onSelectionChange = (rows: TeacherMarkingTask[]) => {
+  selectedTasks.value = rows ?? [];
+};
+
+/** 批量完成：只处理未完成的、已判分且有学生的任务 */
+const batchFinish = async () => {
+  const ids = selectedTasks.value
+    .filter((t) => !t.markingTaskTeacherFinished)
+    .map((t) => t.markingTaskTaskId)
+    .filter(Boolean) as string[];
+  if (!ids.length) {
+    message.warning('请先勾选未完成的阅卷任务');
+    return;
+  }
+  batchFinishing.value = true;
+  try {
+    const results = await eduaiApi.batchFinishMarking(ids);
+    const ok = results.filter((r) => r.success).length;
+    const fail = results.length - ok;
+    message.success(`批量完成 ${ok} 个任务${fail ? `，${fail} 个失败` : ''}`);
+    selectedTasks.value = [];
+    void markingTaskTableRef.value?.reload();
+    void loadDashboardStats();
+  } catch (e) {
+    failToast('批量完成失败', e);
+  } finally {
+    batchFinishing.value = false;
+  }
+};
+
+/** 批量撤销：只处理已完成的 */
+const batchUnfinish = async () => {
+  const ids = selectedTasks.value
+    .filter((t) => t.markingTaskTeacherFinished)
+    .map((t) => t.markingTaskTaskId)
+    .filter(Boolean) as string[];
+  if (!ids.length) {
+    message.warning('请先勾选已完成的阅卷任务');
+    return;
+  }
+  batchUndoing.value = true;
+  try {
+    const results = await eduaiApi.batchUnfinishMarking(ids);
+    const ok = results.filter((r) => r.success).length;
+    const fail = results.length - ok;
+    message.success(`批量撤销 ${ok} 个任务${fail ? `，${fail} 个失败` : ''}`);
+    selectedTasks.value = [];
+    void markingTaskTableRef.value?.reload();
+    void loadDashboardStats();
+  } catch (e) {
+    failToast('批量撤销失败', e);
+  } finally {
+    batchUndoing.value = false;
+  }
+};
+
+/* ==================== 总览统计 ==================== */
+const dashboardStats = ref<MarkingDashboardStats | null>(null);
+const statsLoading = ref(false);
+
+const loadDashboardStats = async () => {
+  if (statsLoading.value) return;
+  statsLoading.value = true;
+  try {
+    dashboardStats.value = await eduaiApi.markingDashboardStats();
+  } catch {
+    dashboardStats.value = null;
+  } finally {
+    statsLoading.value = false;
+  }
+};
 
 /** 试卷下拉/记录列表展示共用：分值与试卷名都按试卷回数据库取 */
 const loadPapers = async () => {
@@ -551,6 +630,7 @@ const doSubmit = async () => {
 
 onMounted(() => {
   void loadPapers();
+  void loadDashboardStats();
 });
 onUnmounted(() => {
   stopPolling();
@@ -574,6 +654,38 @@ onUnmounted(() => {
         <span v-if="!isAdmin" class="mw-hint">
           支持拖拽图片或点击选择；自有卷按题号取分，任意卷手动给总分；学生可留空匿名阅卷
         </span>
+      </div>
+    </el-card>
+    <!-- 阅卷总览统计：任务状态 / 完成状态 / 得分率分布 / 错题 TOP（当前账号归属范围） -->
+    <el-card v-if="dashboardStats" shadow="never" class="mt-3 mw-stats">
+      <div class="mw-stats__grid">
+        <div class="mw-stat">
+          <div class="mw-stat__label">任务总数</div>
+          <div class="mw-stat__value">{{ dashboardStats.taskTotal ?? 0 }}</div>
+        </div>
+        <div class="mw-stat">
+          <div class="mw-stat__label">已完成（老师）</div>
+          <div class="mw-stat__value">{{ (dashboardStats.teacherFinished ?? []).find((x) => x.name === '已完成')?.count ?? 0 }}</div>
+        </div>
+        <div class="mw-stat">
+          <div class="mw-stat__label">错题总数</div>
+          <div class="mw-stat__value">{{ dashboardStats.wrongTotal ?? 0 }}</div>
+        </div>
+        <div class="mw-stat">
+          <div class="mw-stat__label">订正率</div>
+          <div class="mw-stat__value">{{ Math.round((dashboardStats.correctedRate ?? 0) * 100) }}%</div>
+        </div>
+      </div>
+      <div class="mw-stats__bottom">
+        <div v-for="item in dashboardStats.taskStatus ?? []" :key="item.name" class="mw-mini-stat">
+          <span class="mw-mini-stat__name">{{ item.name }}</span>
+          <span class="mw-mini-stat__count">{{ item.count }}</span>
+        </div>
+        <span class="mw-stats__divider" />
+        <div v-for="item in dashboardStats.scoreRateDistribution ?? []" :key="item.name" class="mw-mini-stat">
+          <span class="mw-mini-stat__name">{{ item.name }}</span>
+          <span class="mw-mini-stat__count">{{ item.count }}</span>
+        </div>
       </div>
     </el-card>
     <!-- 实时进度（SSE）：上传后立即显示识别/解析/判分推进，终态自动收起 -->
@@ -622,6 +734,19 @@ onUnmounted(() => {
           </el-select>
         </div>
       </template>
+      <div class="mw-batch-bar">
+        <span v-if="selectedTasks.length" class="mw-batch-count">已选 {{ selectedTasks.length }} 个任务</span>
+        <el-button size="small" type="success" :disabled="batchFinishing" :loading="batchFinishing" @click="batchFinish">
+          批量完成
+        </el-button>
+        <el-button size="small" type="warning" :disabled="batchUndoing" :loading="batchUndoing" @click="batchUnfinish">
+          批量撤销
+        </el-button>
+        <span class="mw-spacer" />
+        <ReTag v-if="dashboardStats" size="small" effect="plain">
+          订正率 {{ Math.round((dashboardStats.correctedRate ?? 0) * 100) }}%（{{ dashboardStats.correctedCount ?? 0 }}/{{ dashboardStats.wrongTotal ?? 0 }}）
+        </ReTag>
+      </div>
       <MarkingTaskTable
         ref="markingTaskTableRef"
         v-model:total="totalCount"
@@ -629,7 +754,9 @@ onUnmounted(() => {
         :tasks="tasks"
         :papers="paperOptions"
         :scores="scores"
+        selectable
         @view="onView"
+        @selection-change="onSelectionChange"
       />
     </el-card>
 
@@ -785,5 +912,76 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--el-color-warning);
   margin-bottom: 8px;
+}
+/* 阅卷总览统计卡 */
+.mw-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mw-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.mw-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+.mw-stat__label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.mw-stat__value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.mw-stats__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.mw-mini-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+.mw-mini-stat__name {
+  color: var(--el-text-color-secondary);
+}
+.mw-mini-stat__count {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.mw-stats__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--el-border-color);
+}
+/* 批量操作条 */
+.mw-batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.mw-batch-count {
+  font-size: 13px;
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.mw-spacer {
+  flex: 1;
 }
 </style>

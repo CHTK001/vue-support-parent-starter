@@ -37,6 +37,14 @@
           <el-button link type="primary" @click="revealed[row.wrongQuestionId] = !revealed[row.wrongQuestionId]">
             {{ revealed[row.wrongQuestionId] ? "收起答案" : "查看答案" }}
           </el-button>
+          <el-button
+            v-if="row.corrected"
+            link
+            type="success"
+            disabled
+            title="已订正"
+          >已订正</el-button>
+          <el-button v-else link type="success" @click="markCorrected(row)">订正</el-button>
           <el-button link type="warning" @click="setMastery(row, 1)">标记复习中</el-button>
           <el-button link type="success" @click="setMastery(row, 2)">标记已掌握</el-button>
           <el-button v-if="row.masteryLevel !== 0" link @click="setMastery(row, 0)">重置未掌握</el-button>
@@ -116,6 +124,16 @@ async function setMastery(row: StudentWrongQuestion, level: number) {
     message.success(`已标记为「${masteryLabel(level)}」`);
   } catch (e) {
     message.error(`标记失败：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+async function markCorrected(row: StudentWrongQuestion) {
+  try {
+    await eduaiApi.updateStudentWrongCorrected(row.wrongQuestionId);
+    row.corrected = 1;
+    message.success("已标记订正");
+  } catch (e) {
+    message.error(`订正失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

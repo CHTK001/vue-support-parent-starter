@@ -22,6 +22,8 @@ const props = withDefaults(
     /** 任务号 → 总分快照 */
     scores: Record<string, { ai: number; final: number }>;
     loading?: boolean;
+    /** 是否显示多选框（批量完成/撤销用） */
+    selectable?: boolean;
     /**
      * 远程分页加载器（ReTable 的 :loader）。传了就走 ReTable 自带的分页与刷新，
      * 父组件不再自己写「刷新」按钮与 el-pagination —— 否则一个页面两套分页。
@@ -30,7 +32,7 @@ const props = withDefaults(
     /** 记录总数（ReTable 远端分页回传，用于卡片头部「N 份」） */
     total?: number;
   }>(),
-  { papers: () => [], scores: () => ({}), loading: false, loader: undefined, total: 0 },
+  { papers: () => [], scores: () => ({}), loading: false, selectable: false, loader: undefined, total: 0 },
 );
 
 /** ReTable 的 data 约定 Record<string, unknown>[]（与 StudentManageView 同口径） */
@@ -38,6 +40,8 @@ const tableData = computed(() => props.tasks as unknown as Record<string, unknow
 
 const emit = defineEmits<{
   (e: 'view', task: TeacherMarkingTask): void;
+  /** 多选变化（批量操作用；未勾选时传空数组） */
+  (e: 'selection-change', rows: TeacherMarkingTask[]): void;
   /** 远端加载后回传总数，父级卡片头部「N 份」由 ReTable 的 update:total 驱动 */
   (e: 'update:total', total: number): void;
 }>();
@@ -128,9 +132,12 @@ const scoreOf = (task: TeacherMarkingTask) =>
     :pagination="!!loader"
     :toolbar="!!loader"
     :loading="loading"
+    :show-selection="selectable"
+    :row-key="(row: Record<string, unknown>) => (row as unknown as TeacherMarkingTask).markingTaskTaskId"
     border
     stripe
     @update:total="emit('update:total', $event)"
+    @selection-change="emit('selection-change', ($event as Record<string, unknown>[]) as unknown as TeacherMarkingTask[])"
   >
     <template #col-mode="{ row }">
       <ReTag size="small" type="primary">{{ modeLabel(row as TeacherMarkingTask) }}</ReTag>
