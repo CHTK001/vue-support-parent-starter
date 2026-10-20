@@ -13,85 +13,346 @@
       </div>
     </div>
 
-    <div class="grid">
-      <!-- 卡片1：注入传输调用 -->
-      <div class="panel">
-        <div class="panel-title">注入传输调用</div>
-        <div class="form-row">
-          <ReInput v-model="source" placeholder="源端 host:port，如 10.0.0.1:8080" clearable class="grow" />
-          <ReInput v-model="target" placeholder="目标 host:port，如 db.lvhzhou:3306" clearable class="grow" />
-        </div>
-        <div class="form-row">
-          <ReSelect v-model="protocol" :data="protocolOptions" class="grow" />
-          <ReButton type="primary" :icon="Plus" show-text :loading="injectingTransmission" @click="doInjectTransmission">
-            注入 1 条
-          </ReButton>
-        </div>
-        <div class="form-row">
-          <ReSwitch v-model="injectedError" active-text="标记为错误调用" />
-          <ReButton text type="primary" @click="historyExpanded = !historyExpanded">
-            注入历史（{{ history.length }}）
-          </ReButton>
-        </div>
-        <div class="form-row">
-          <ReSelect v-model="batchCount" :data="batchOptions" placeholder="批量条数" class="grow" />
-          <ReButton type="primary" :icon="Histogram" show-text :loading="injectingBatch" @click="doInjectBatch">
-            批量注入
+    <!-- 注入参数：沿用列表页的 .filter-bar 骨架，字段用 .filter-field 竖排标签 -->
+    <div class="filter-bar">
+      <div class="filter-field endpoint-field">
+        <label class="filter-label" for="inj-source">源端 <span class="req">*</span></label>
+        <ReInput
+          id="inj-source"
+          v-model="source"
+          placeholder="10.0.0.1:8080"
+          clearable
+          :status="showSourceError ? 'error' : ''"
+          @change="sourceTouched = true"
+        />
+        <span class="field-hint" :class="{ 'field-error': showSourceError }">
+          {{ showSourceError ? sourceError : "必填 · 格式 host:port" }}
+        </span>
+      </div>
+
+      <div class="filter-field endpoint-field">
+        <label class="filter-label" for="inj-target">目标端 <span class="req">*</span></label>
+        <ReInput
+          id="inj-target"
+          v-model="target"
+          placeholder="db.lvhzhou:3306"
+          clearable
+          :status="showTargetError ? 'error' : ''"
+          @change="targetTouched = true"
+        />
+        <span class="field-hint" :class="{ 'field-error': showTargetError }">
+          {{ showTargetError ? targetError : "必填 · 格式 host:port" }}
+        </span>
+      </div>
+
+      <div class="filter-field protocol-field">
+        <label class="filter-label" for="inj-protocol">协议</label>
+        <ReSelect id="inj-protocol" v-model="protocol" :data="protocolOptions" />
+      </div>
+
+      <div class="filter-field switch-field">
+        <label class="filter-label">结果标记</label>
+        <ReSwitch v-model="injectedError" active-text="标记为错误调用" />
+      </div>
+
+      <div class="filter-field count-field">
+        <label class="filter-label" for="inj-count">批量条数</label>
+        <el-input-number
+          id="inj-count"
+          v-model="batchCount"
+          :min="1"
+          :max="1000"
+          :step="1"
+          :controls="false"
+          class="count-input"
+        />
+        <span class="field-hint" :class="{ 'field-error': !!countError }">
+          {{ countError || "1–1000 的整数" }}
+        </span>
+      </div>
+
+      <div class="filter-field preset-field">
+        <label class="filter-label">快速预设</label>
+        <div class="preset-row">
+          <ReButton
+            v-for="p in batchPresets"
+            :key="p.value"
+            size="small"
+            :type="batchCount === p.value ? 'primary' : ''"
+            :plain="batchCount !== p.value"
+            @click="applyPreset(p.value)"
+          >
+            {{ p.label }}
           </ReButton>
         </div>
       </div>
 
-      <!-- 卡片2：制造资源泄漏 -->
-      <div class="panel">
-        <div class="panel-title">制造资源泄漏</div>
-        <div class="form-row">
-          <ReSelect v-model="leakType" :data="leakTypeOptions" placeholder="资源类型" class="grow" />
-          <ReInput v-model="leakName" placeholder="资源名（可选）" clearable class="grow" />
+      <div class="filter-actions">
+        <span class="match-hint" v-if="actionHint">{{ actionHint }}</span>
+        <ReButton
+          type="primary"
+          :icon="Plus"
+          show-text
+          :disabled="!canInjectTransmission"
+          :loading="injectingTransmission"
+          @click="doInjectTransmission"
+        >
+          注入 1 条
+        </ReButton>
+        <ReButton
+          type="primary"
+          plain
+          :icon="Histogram"
+          show-text
+          :disabled="!canInjectBatch"
+          :loading="injectingBatch"
+          @click="doInjectBatch"
+        >
+          批量注入
+        </ReButton>
+      </div>
+    </div>
+
+    <!-- 提交进度 / 结果摘要：进行中是不确定进度条，完成后按成功占比着色 -->
+    <div class="inject-feedback" v-if="injectingAny || lastResult" role="status" aria-live="polite">
+      <div class="feedback-line" v-if="injectingAny">
+        <span class="live-dot">{{ injectingLabel }}…</span>
+        <span class="muted">等待后端返回</span>
+      </div>
+      <div class="feedback-line" v-else-if="lastResult">
+        <ReTag :type="resultTagType" round>{{ resultTitle }}</ReTag>
+        <span class="feedback-label">{{ lastResult.label }}</span>
+        <span class="feedback-counts mono">
+          <span class="ok-text">成功 {{ lastResult.ok }}</span>
+          <span v-if="lastResult.failed" class="err-text">失败 {{ lastResult.failed }}</span>
+        </span>
+        <ReButton text size="small" @click="lastResult = null">清除</ReButton>
+      </div>
+      <div class="feedback-bar">
+        <i v-if="injectingAny" class="is-indeterminate" />
+        <i v-else :class="'is-' + feedbackTone" :style="{ width: feedbackPercent + '%' }" />
+      </div>
+    </div>
+
+    <!-- 统计变化（SSE 实时） -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>统计变化</span>
+        <span class="panel-sub">注入后由 SSE 推送刷新，无需手动重载页面</span>
+      </div>
+      <ReSkeleton :loading="statsLoading" :rows="2" :animated="true">
+        <div class="stat-grid">
+          <ReStatCard
+            size="compact"
+            title="transmissionCount"
+            :value="stats.transmissionCount ?? 0"
+            desc="传输调用总数"
+            :icon="Connection"
+            icon-color="var(--apm-accent)"
+          />
+          <ReStatCard
+            size="compact"
+            title="dependencyCount"
+            :value="stats.dependencyCount ?? 0"
+            desc="依赖边总数"
+            :icon="Share"
+            icon-color="var(--apm-success)"
+          />
+          <ReStatCard
+            size="compact"
+            title="leakCount"
+            :value="stats.leakCount ?? 0"
+            desc="资源泄漏总数"
+            :icon="Warning"
+            icon-color="var(--apm-warning)"
+          />
+          <ReStatCard
+            size="compact"
+            title="errorCount"
+            :value="stats.errorCount ?? 0"
+            desc="错误记录总数"
+            :icon="Close"
+            icon-color="var(--apm-danger)"
+          />
         </div>
-        <div class="form-row">
+      </ReSkeleton>
+    </div>
+
+    <!-- 资源泄漏 / 日志：两个独立写操作，互不阻塞 -->
+    <div class="panel-row">
+      <div class="panel">
+        <div class="panel-head">
+          <span>制造资源泄漏</span>
+          <span class="panel-sub">POST /inject/leak · 生成真实泄漏记录</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-leak-type">资源类型</label>
+            <ReSelect id="inj-leak-type" v-model="leakType" :data="leakTypeOptions" />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-leak-name">资源名（可选）</label>
+            <ReInput id="inj-leak-name" v-model="leakName" placeholder="不填则自动生成" clearable />
+          </div>
+        </div>
+        <div class="panel-actions">
           <ReButton type="danger" :icon="Warning" show-text :loading="injectingLeak" @click="doInjectLeak">
             制造 1 条
           </ReButton>
         </div>
       </div>
 
-      <!-- 卡片3：写入日志 -->
       <div class="panel">
-        <div class="panel-title">写入日志</div>
-        <div class="form-row">
-          <ReSelect v-model="logLevel" :data="logLevelOptions" placeholder="级别" class="grow" />
-          <ReInput v-model="logMessage" placeholder="日志消息内容" clearable class="grow" />
+        <div class="panel-head">
+          <span>写入日志</span>
+          <span class="panel-sub">POST /inject/log · 写入后可到日志页检索</span>
         </div>
-        <div class="form-row">
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-log-level">级别</label>
+            <ReSelect id="inj-log-level" v-model="logLevel" :data="logLevelOptions" />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-log-msg">日志消息（可选）</label>
+            <ReInput id="inj-log-msg" v-model="logMessage" placeholder="不填则自动生成" clearable />
+          </div>
+        </div>
+        <div class="panel-actions">
           <ReButton type="warning" :icon="DocumentAdd" show-text :loading="injectingLog" @click="doInjectLog">
             写入 1 条
           </ReButton>
         </div>
       </div>
+    </div>
 
-      <!-- 卡片4：统计变化（直观效果，SSE 实时） -->
+    <!-- 压测增强：慢调用 / Span 树 / JVM 压力 -->
+    <div class="panel-row">
       <div class="panel">
-        <div class="panel-title">统计变化（直观效果）</div>
-        <ReSkeleton :loading="statsLoading" :rows="2" :animated="true">
-          <div class="stat-grid">
-            <ReStatCard size="compact" title="transmissionCount" :value="stats.transmissionCount ?? 0" desc="传输调用总数" :icon="Connection" icon-color="var(--apm-accent)" />
-            <ReStatCard size="compact" title="dependencyCount" :value="stats.dependencyCount ?? 0" desc="依赖边总数" :icon="Share" icon-color="var(--apm-success)" />
-            <ReStatCard size="compact" title="leakCount" :value="stats.leakCount ?? 0" desc="资源泄漏总数" :icon="Warning" icon-color="var(--apm-danger)" />
-            <ReStatCard size="compact" title="errorCount" :value="stats.errorCount ?? 0" desc="错误记录总数" :icon="Close" icon-color="var(--apm-danger)" />
+        <div class="panel-head">
+          <span>注入慢调用</span>
+          <span class="panel-sub">POST /inject/slow · 验证慢调用排行</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-slow-duration">耗时（ms）</label>
+            <el-input-number
+              id="inj-slow-duration"
+              v-model="slowDurationMs"
+              :min="100"
+              :max="30000"
+              :step="100"
+              :controls="false"
+              class="full-input"
+            />
           </div>
-        </ReSkeleton>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-slow-target">目标端（可选）</label>
+            <ReInput id="inj-slow-target" v-model="slowTarget" placeholder="order-service:8080" clearable />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <ReButton type="warning" :icon="Timer" show-text :loading="injectingSlow" @click="doInjectSlow">
+            注入慢调用
+          </ReButton>
+        </div>
       </div>
 
-      <!-- 卡片5：注入历史（本会话内操作记录） -->
-      <div class="panel history-panel">
-        <div class="panel-title">注入历史（本会话）</div>
-        <ReEmpty v-if="!history.length" description="尚无注入操作" />
-        <div v-else class="history-list">
-          <div v-for="(h, i) in history" :key="i" class="history-item">
-            <ReTag :type="h.ok ? 'success' : 'danger'" round>{{ h.ok ? "成功" : "失败" }}</ReTag>
-            <span class="history-msg">{{ h.msg }}</span>
-            <span class="history-time mono">{{ h.time }}</span>
+      <div class="panel">
+        <div class="panel-head">
+          <span>注入 Span 树</span>
+          <span class="panel-sub">POST /inject/span-tree · 验证链路瀑布</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-span-count">Span 数量</label>
+            <el-input-number
+              id="inj-span-count"
+              v-model="spanCount"
+              :min="2"
+              :max="100"
+              :step="1"
+              :controls="false"
+              class="full-input"
+            />
           </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-span-depth">深度</label>
+            <el-input-number
+              id="inj-span-depth"
+              v-model="spanDepth"
+              :min="1"
+              :max="10"
+              :step="1"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <ReButton type="primary" plain :icon="DataLine" show-text :loading="injectingSpanTree" @click="doInjectSpanTree">
+            生成 1 棵
+          </ReButton>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>注入 JVM 压力</span>
+          <span class="panel-sub">POST /inject/jvm-pressure · 造线程/CPU 变化</span>
+        </div>
+        <div class="field-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="inj-jvm-threads">线程数</label>
+            <el-input-number
+              id="inj-jvm-threads"
+              v-model="jvmThreads"
+              :min="1"
+              :max="200"
+              :step="1"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="inj-jvm-cpu">CPU 目标（%）</label>
+            <el-input-number
+              id="inj-jvm-cpu"
+              v-model="jvmCpuPercent"
+              :min="5"
+              :max="90"
+              :step="5"
+              :controls="false"
+              class="full-input"
+            />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <ReButton type="danger" plain :icon="Loading" show-text :loading="injectingJvm" @click="doInjectJvm">
+            制造压力
+          </ReButton>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注入历史（本会话内操作记录） -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>
+          注入历史（本会话）
+          <ReButton v-if="history.length" text size="small" class="history-toggle" @click="historyExpanded = !historyExpanded">
+            {{ historyExpanded ? "收起" : "展开" }}
+          </ReButton>
+        </span>
+        <span class="panel-sub">仅保存在当前页面会话，刷新即清空</span>
+      </div>
+      <div v-if="!history.length" class="panel-empty">
+        还没有注入操作<br />在上方填写参数后提交
+      </div>
+      <div v-else-if="historyExpanded" class="history-list">
+        <div v-for="(h, i) in history" :key="i" class="history-item">
+          <ReTag :type="h.ok ? 'success' : 'danger'" round>{{ h.ok ? "成功" : "失败" }}</ReTag>
+          <span class="history-msg" :title="h.msg">{{ h.msg }}</span>
+          <span class="history-time mono">{{ h.time }}</span>
         </div>
       </div>
     </div>
@@ -100,9 +361,9 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
-import { Connection, Close, Histogram, DocumentAdd, Plus, Refresh, Share, Warning } from "@element-plus/icons-vue";
+import { Connection, Close, Histogram, DocumentAdd, Plus, Refresh, Share, Warning, Timer, Loading, DataLine } from "@element-plus/icons-vue";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReButton from "@repo/ui/re-button";
@@ -110,9 +371,8 @@ import ReStatCard from "@repo/ui/re-stat-card";
 import ReTag from "@repo/ui/re-tag";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";
-import ReEmpty from "@repo/ui/re-empty";
 import type { ReOption } from "@repo/ui/re-select";
-import { getStats, injectTransmission, injectBatch, injectLeak, injectLog, watchStats } from "../api/apmApi";
+import { getStats, injectTransmission, injectBatch, injectLeak, injectLog, injectSlowCall, injectSpanTree, injectJvmPressure, watchStats } from "../api/apmApi";
 import type { ApmStats } from "../api/apmApi";
 
 const stats = ref<ApmStats>({
@@ -139,6 +399,36 @@ function recordHistory(ok: boolean, msg: string) {
   if (history.value.length > 50) history.value.pop();
 }
 
+/** 最近一次提交的结果摘要（成功 / 失败条数，纯前端统计） */
+interface InjectResult { label: string; ok: number; failed: number; }
+const lastResult = ref<InjectResult | null>(null);
+
+const feedbackPercent = computed(() => {
+  const r = lastResult.value;
+  if (!r) return 0;
+  const total = r.ok + r.failed;
+  if (!total) return 0;
+  return Math.max(2, Math.round((r.ok / total) * 100));
+});
+
+const feedbackTone = computed<"ok" | "warn" | "err">(() => {
+  const r = lastResult.value;
+  if (!r || r.failed === 0) return "ok";
+  return r.ok > 0 ? "warn" : "err";
+});
+
+const resultTitle = computed(() => {
+  const r = lastResult.value;
+  if (!r || r.failed === 0) return "完成";
+  return r.ok > 0 ? "部分失败" : "失败";
+});
+
+const resultTagType = computed<"success" | "warning" | "danger">(() => {
+  const r = lastResult.value;
+  if (!r || r.failed === 0) return "success";
+  return r.ok > 0 ? "warning" : "danger";
+});
+
 /** SSE 实时刷新统计（替代手动） */
 function startSse() {
   sseWatch.value = watchStats((snapshot) => {
@@ -161,14 +451,16 @@ function refreshAfterInject() {
   loadStats();
 }
 
-// ---- 卡片1：注入传输调用 ----
+// ---- 传输调用参数 + 前端校验 ----
 const source = ref("");
 const target = ref("");
 const protocol = ref("HTTP");
-const batchCount = ref(10);
+const batchCount = ref<number | null | undefined>(10);
 const injectingTransmission = ref(false);
 const injectingBatch = ref(false);
 const injectedError = ref(false);
+const sourceTouched = ref(false);
+const targetTouched = ref(false);
 
 const protocolOptions: ReOption[] = [
   { label: "HTTP", value: "HTTP" },
@@ -177,27 +469,105 @@ const protocolOptions: ReOption[] = [
   { label: "GRPC", value: "GRPC" },
   { label: "KAFKA", value: "KAFKA" },
 ];
-const batchOptions: ReOption[] = [
-  { label: "10 条", value: 10 },
-  { label: "20 条", value: 20 },
-  { label: "50 条", value: 50 },
-  { label: "100 条", value: 100 },
+
+/** 批量预设：点击只回填条数，不触发提交 */
+const batchPresets = [
+  { label: "单条", value: 1 },
+  { label: "小批量 10", value: 10 },
+  { label: "中批量 100", value: 100 },
+  { label: "大批量 1000", value: 1000 },
 ];
 
+function applyPreset(value: number) {
+  batchCount.value = value;
+}
+
+/** host / host:port（允许 IPv4、域名、方括号 IPv6；端口 1–65535） */
+const ENDPOINT_RE = /^(?:[a-zA-Z0-9][\w.-]*|\[[0-9a-fA-F:]+\])(?::(\d{1,5}))?$/;
+
+function endpointError(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "必填项：如 10.0.0.1:8080";
+  if (/\s/.test(value)) return "不能包含空格";
+  const match = value.match(ENDPOINT_RE);
+  if (!match) return "格式应为 host:port";
+  const port = match[1];
+  if (port !== undefined) {
+    const n = Number(port);
+    if (n < 1 || n > 65535) return "端口需在 1–65535 之间";
+  }
+  return "";
+}
+
+const sourceError = computed(() => endpointError(source.value));
+const targetError = computed(() => endpointError(target.value));
+
+/** 输入后即时提示；未触碰的空字段只显示中性格式说明，避免开局一片红 */
+const showSourceError = computed(() => (sourceTouched.value || source.value.trim().length > 0) && !!sourceError.value);
+const showTargetError = computed(() => (targetTouched.value || target.value.trim().length > 0) && !!targetError.value);
+
+const countError = computed(() => {
+  const n = batchCount.value;
+  if (n === null || n === undefined || Number.isNaN(n)) return "请填写批量条数";
+  if (!Number.isInteger(n)) return "条数需为整数";
+  if (n < 1 || n > 1000) return "条数需在 1–1000 之间";
+  return "";
+});
+
+const canInjectTransmission = computed(() => !sourceError.value && !targetError.value && !injectingTransmission.value);
+const canInjectBatch = computed(() => !countError.value && !injectingBatch.value);
+
+/** 动作区提示：覆盖「按钮灰着但不知道为什么」的情况 */
+const actionHint = computed(() => {
+  if (countError.value) return "请修正批量条数";
+  if (showSourceError.value) return "请修正源端";
+  if (showTargetError.value) return "请修正目标端";
+  if (!source.value.trim() || !target.value.trim()) return "源端 / 目标端为必填";
+  return "";
+});
+
+const injectingAny = computed(
+  () =>
+    injectingTransmission.value ||
+    injectingBatch.value ||
+    injectingLeak.value ||
+    injectingLog.value ||
+    injectingSlow.value ||
+    injectingSpanTree.value ||
+    injectingJvm.value,
+);
+
+const injectingLabel = computed(() => {
+  if (injectingTransmission.value) return "正在注入传输调用";
+  if (injectingBatch.value) return "正在批量注入";
+  if (injectingLeak.value) return "正在制造资源泄漏";
+  if (injectingLog.value) return "正在写入日志";
+  if (injectingSlow.value) return "正在注入慢调用";
+  if (injectingSpanTree.value) return "正在生成 Span 树";
+  if (injectingJvm.value) return "正在制造 JVM 压力";
+  return "";
+});
+
 async function doInjectTransmission() {
+  if (!canInjectTransmission.value) {
+    message.warning("请先补全源端与目标端");
+    return;
+  }
   injectingTransmission.value = true;
   try {
     await injectTransmission({
-      source: source.value.trim() || undefined,
-      target: target.value.trim() || undefined,
+      source: source.value.trim(),
+      target: target.value.trim(),
       protocol: protocol.value || undefined,
       error: injectedError.value || undefined,
     });
     message.success("已注入 1 条传输调用");
-    recordHistory(true, `注入传输 ${protocol.value}${injectedError.value ? "（错误）" : ""} ${source.value || "auto"} → ${target.value || "auto"}`);
+    recordHistory(true, `注入传输 ${protocol.value}${injectedError.value ? "（错误）" : ""} ${source.value.trim()} → ${target.value.trim()}`);
+    lastResult.value = { label: `注入传输调用 ${protocol.value}`, ok: 1, failed: 0 };
     refreshAfterInject();
   } catch {
     recordHistory(false, "注入传输调用失败");
+    lastResult.value = { label: `注入传输调用 ${protocol.value}`, ok: 0, failed: 1 };
     message.error("注入传输调用失败");
   } finally {
     injectingTransmission.value = false;
@@ -205,14 +575,36 @@ async function doInjectTransmission() {
 }
 
 async function doInjectBatch() {
+  if (!canInjectBatch.value || batchCount.value === null || batchCount.value === undefined) {
+    message.warning(countError.value || "请先填写批量条数");
+    return;
+  }
+  const count = batchCount.value ?? 0;
   injectingBatch.value = true;
   try {
-    await injectBatch(batchCount.value);
-    message.success(`已批量注入 ${batchCount.value} 条传输调用`);
-    recordHistory(true, `批量注入 ${batchCount.value} 条传输调用`);
+    const r = await injectBatch(count);
+    // 后端返回实际写入条数（injectBatch 的 count 字段）；缺失时按请求条数计
+    const reported = Number(r?.count ?? count);
+    const okCount = Number.isFinite(reported)
+      ? Math.min(count, Math.max(0, Math.round(reported)))
+      : count;
+    const failedCount = Math.max(0, count - okCount);
+    if (okCount === 0) {
+      message.error(`批量注入失败：0 / ${count}`);
+    } else if (failedCount > 0) {
+      message.warning(`批量注入完成：成功 ${okCount} / 失败 ${failedCount}`);
+    } else {
+      message.success(`已批量注入 ${okCount} 条传输调用`);
+    }
+    recordHistory(
+      failedCount === 0,
+      `批量注入 ${count} 条 · 成功 ${okCount}${failedCount ? ` / 失败 ${failedCount}` : ""}`,
+    );
+    lastResult.value = { label: `批量注入 ${count} 条`, ok: okCount, failed: failedCount };
     refreshAfterInject();
   } catch {
-    recordHistory(false, `批量注入 ${batchCount.value} 条失败`);
+    recordHistory(false, `批量注入 ${count} 条失败`);
+    lastResult.value = { label: `批量注入 ${count} 条`, ok: 0, failed: count };
     message.error("批量注入失败");
   } finally {
     injectingBatch.value = false;
@@ -237,9 +629,11 @@ async function doInjectLeak() {
     await injectLeak(leakType.value || undefined, leakName.value.trim() || undefined);
     message.success(`已制造 1 条 ${leakType.value} 资源泄漏`);
     recordHistory(true, `制造泄漏 ${leakType.value}${leakName.value ? ` · ${leakName.value}` : ""}`);
+    lastResult.value = { label: `制造泄漏 ${leakType.value}`, ok: 1, failed: 0 };
     refreshAfterInject();
   } catch {
     recordHistory(false, "制造资源泄漏失败");
+    lastResult.value = { label: `制造泄漏 ${leakType.value}`, ok: 0, failed: 1 };
     message.error("制造资源泄漏失败");
   } finally {
     injectingLeak.value = false;
@@ -264,12 +658,93 @@ async function doInjectLog() {
     await injectLog(logLevel.value || undefined, logMessage.value.trim() || undefined);
     message.success(`已写入 1 条 ${logLevel.value} 日志`);
     recordHistory(true, `写入日志 ${logLevel.value}${logMessage.value ? ` · ${logMessage.value.slice(0, 20)}` : ""}`);
+    lastResult.value = { label: `写入日志 ${logLevel.value}`, ok: 1, failed: 0 };
     refreshAfterInject();
   } catch {
     recordHistory(false, "写入日志失败");
+    lastResult.value = { label: `写入日志 ${logLevel.value}`, ok: 0, failed: 1 };
     message.error("写入日志失败");
   } finally {
     injectingLog.value = false;
+  }
+}
+
+// ---- 卡片3：慢调用注入 ----
+const slowDurationMs = ref(1000);
+const slowTarget = ref("");
+const injectingSlow = ref(false);
+
+async function doInjectSlow() {
+  injectingSlow.value = true;
+  try {
+    await injectSlowCall({
+      source: source.value.trim() || undefined,
+      target: slowTarget.value.trim() || target.value.trim() || undefined,
+      protocol: protocol.value || undefined,
+      durationMs: slowDurationMs.value,
+    });
+    message.success(`已注入慢调用 ${slowDurationMs.value}ms`);
+    recordHistory(true, `慢调用 ${slowDurationMs.value}ms → ${slowTarget.value || target.value || "auto"}`);
+    lastResult.value = { label: `慢调用 ${slowDurationMs.value}ms`, ok: 1, failed: 0 };
+    refreshAfterInject();
+  } catch {
+    recordHistory(false, "注入慢调用失败");
+    lastResult.value = { label: `慢调用 ${slowDurationMs.value}ms`, ok: 0, failed: 1 };
+    message.error("注入慢调用失败");
+  } finally {
+    injectingSlow.value = false;
+  }
+}
+
+// ---- 卡片4：Span 树注入 ----
+const spanCount = ref(8);
+const spanDepth = ref(3);
+const injectingSpanTree = ref(false);
+
+async function doInjectSpanTree() {
+  injectingSpanTree.value = true;
+  try {
+    await injectSpanTree({
+      spans: spanCount.value,
+      depth: spanDepth.value,
+      errorSpan: injectedError.value || undefined,
+    });
+    message.success(`已生成 ${spanCount.value} span 链路`);
+    recordHistory(true, `Span 树 ${spanCount.value} spans · 深度 ${spanDepth.value}`);
+    lastResult.value = { label: `Span 树 ${spanCount.value} spans`, ok: 1, failed: 0 };
+    refreshAfterInject();
+  } catch {
+    recordHistory(false, "生成 Span 树失败");
+    lastResult.value = { label: `Span 树 ${spanCount.value} spans`, ok: 0, failed: 1 };
+    message.error("生成 Span 树失败");
+  } finally {
+    injectingSpanTree.value = false;
+  }
+}
+
+// ---- 卡片5：JVM 压力注入 ----
+const jvmThreads = ref(20);
+const jvmCpuPercent = ref(30);
+const injectingJvm = ref(false);
+
+async function doInjectJvm() {
+  injectingJvm.value = true;
+  try {
+    await injectJvmPressure({
+      threads: jvmThreads.value,
+      cpuPercent: jvmCpuPercent.value,
+      durationMs: 15000,
+    });
+    message.success(`已制造 JVM 压力（${jvmThreads.value} 线程 / ${jvmCpuPercent.value}% CPU）`);
+    recordHistory(true, `JVM 压力 ${jvmThreads.value} 线程 · ${jvmCpuPercent.value}% CPU`);
+    lastResult.value = { label: `JVM 压力 ${jvmThreads.value} 线程`, ok: 1, failed: 0 };
+    refreshAfterInject();
+  } catch {
+    recordHistory(false, "制造 JVM 压力失败");
+    lastResult.value = { label: `JVM 压力 ${jvmThreads.value} 线程`, ok: 0, failed: 1 };
+    message.error("制造 JVM 压力失败");
+  } finally {
+    injectingJvm.value = false;
   }
 }
 
@@ -284,100 +759,155 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+/* .view / .view-toolbar / .toolbar-* / .section-label / .match-hint / .panel /
+   .panel-head / .panel-sub / .panel-empty / .panel-row / .stat-grid / .filter-bar /
+   .filter-field / .filter-label / .filter-actions / .mono / .muted / .ok-text /
+   .err-text / .live-dot 由 styles/layout.css 提供 */
 
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 14px;
+.req {
+  color: var(--apm-danger);
   font-weight: 600;
-  color: var(--apm-fg);
 }
 
-.match-hint {
-  font-size: 12px;
+/* 字段宽度：端点最宽，其余按内容定宽；窄屏由 .filter-bar 的 flex-wrap 折行 */
+.endpoint-field {
+  flex: 1 1 220px;
+}
+
+.protocol-field {
+  flex: 0 0 130px;
+}
+
+.switch-field {
+  flex: 0 0 auto;
+}
+
+.count-field {
+  flex: 0 0 150px;
+}
+
+.preset-field {
+  flex: 1 1 320px;
+}
+
+.count-input {
+  width: 100px;
+}
+
+.full-input {
+  width: 100%;
+}
+
+.field-grid {
+  display: grid;
+  gap: var(--apm-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.field-hint {
+  font-size: 11px;
+  line-height: 1.4;
   color: var(--apm-muted);
-  white-space: nowrap;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.field-hint.field-error {
+  color: var(--apm-danger);
 }
 
-@media (max-width: 960px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--apm-space-1);
 }
 
-.panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-  padding: 16px;
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--apm-space-2);
+}
+
+/* 提交反馈：进行中不确定进度，完成后按成功占比着色 */
+.inject-feedback {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--apm-space-2);
+  padding: var(--apm-space-3) var(--apm-space-4);
+  background: var(--apm-panel);
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
 }
 
-.panel-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--apm-fg);
-}
-
-.form-row {
+.feedback-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.form-row .grow {
-  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--apm-space-2);
   min-width: 0;
+  font-size: 12px;
 }
 
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+.feedback-label {
+  color: var(--apm-fg);
+  font-weight: 500;
 }
 
-@media (max-width: 480px) {
-  .stat-grid {
-    grid-template-columns: 1fr;
+.feedback-counts {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-3);
+  margin-left: auto;
+}
+
+.feedback-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--apm-border-soft);
+  overflow: hidden;
+}
+
+.feedback-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width var(--apm-t-base);
+}
+
+.feedback-bar > i.is-ok {
+  background: var(--apm-success);
+}
+
+.feedback-bar > i.is-warn {
+  background: var(--apm-warning);
+}
+
+.feedback-bar > i.is-err {
+  background: var(--apm-danger);
+}
+
+.feedback-bar > i.is-indeterminate {
+  width: 40%;
+  background: var(--apm-accent);
+  animation: inject-sweep 1.1s var(--apm-ease) infinite;
+}
+
+@keyframes inject-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
   }
 }
-.history-panel {
-  grid-column: 1 / -1;
+
+.history-toggle {
+  margin-left: var(--apm-space-2);
+  font-weight: 400;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--apm-space-2);
   max-height: 260px;
   overflow-y: auto;
 }
@@ -385,17 +915,18 @@ onBeforeUnmount(() => {
 .history-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-md, 8px);
+  gap: var(--apm-space-2);
+  padding: var(--apm-space-2) var(--apm-space-3);
+  background: var(--apm-panel-raised);
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
 }
 
 .history-msg {
   flex: 1;
+  min-width: 0;
   font-size: 12px;
-  color: var(--apm-fg);
+  color: var(--apm-fg-regular);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -404,12 +935,19 @@ onBeforeUnmount(() => {
 .history-time {
   font-size: 11px;
   color: var(--apm-muted);
-  font-family: "JetBrains Mono", Consolas, monospace;
 }
 
 /* 尊重系统「减少动态效果」偏好：
-   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画 */
+   本页动效只有不确定进度条，另需关掉骨架屏与 loading 的旋转动画 */
 @media (prefers-reduced-motion: reduce) {
+  .feedback-bar > i.is-indeterminate {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+  .feedback-bar > i {
+    transition: none;
+  }
   .view :deep(.el-skeleton__item),
   .view :deep(.el-loading-spinner) {
     animation: none;

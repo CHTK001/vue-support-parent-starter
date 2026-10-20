@@ -258,6 +258,42 @@ export function getTraceDetail(traceId: string): Promise<TransmissionRecord[]> {
 
 // ---- Agent 实时数据（/agent/*）----
 
+/** Agent 配置快照（契约就绪；后端未实现时前端返回 null 降级） */
+export interface AgentConfig {
+  samplingRate: number;
+  slowThresholdMs: number;
+  logLevel: "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
+  enabled: boolean;
+  injectMode: "DISABLED" | "MONITOR" | "SIMULATE";
+  updatedAt?: number;
+}
+
+/** Agent 运行状态详情 */
+export interface AgentStatusDetail {
+  agentActive: boolean;
+  agentEnabled: boolean;
+  version?: string;
+  startedAt?: number;
+  lastHeartbeat?: number;
+  heartbeatLostMs?: number;
+  config?: AgentConfig;
+}
+
+/** 查询 Agent 配置 */
+export function getAgentConfig(): Promise<AgentConfig | null> {
+  return unwrap(instance.get<AgentConfig | null>("/agent/config"));
+}
+
+/** 更新 Agent 配置 */
+export function updateAgentConfig(params: Partial<AgentConfig>): Promise<AgentConfig> {
+  return unwrap(instance.post<AgentConfig>("/agent/config", null, { params }));
+}
+
+/** Agent 启停 */
+export function setAgentEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+  return unwrap(instance.post<{ enabled: boolean }>("/agent/enabled", null, { params: { enabled } }));
+}
+
 /** 链路树（trace → span 两级，ReTree 数据源） */
 export function getTracesTree(limit = 50): Promise<TraceTreeItem[]> {
   return unwrap(instance.get<TraceTreeItem[]>("/agent/traces/tree", { params: { limit } }));
@@ -540,6 +576,16 @@ export function getSlowCalls(limit = 20): Promise<SlowCall[]> {
   return unwrap(instance.get<SlowCall[]>("/slow-calls", { params: { limit } }));
 }
 
+/** 慢 SQL 分析项 */
+export interface SlowSqlItem extends SlowCall {
+  sql?: string;
+  db?: string;
+}
+
+export function getSlowSql(limit = 20, minDurationMs = 200): Promise<SlowSqlItem[]> {
+  return unwrap(instance.get<SlowSqlItem[]>("/slow-sql", { params: { limit, minDurationMs } }));
+}
+
 /** 错误排行 */
 export interface ErrorRanking {
   errorType: string;
@@ -695,6 +741,178 @@ export function exportLogsCsv(params: LogQuery = {}): void {
   downloadUrl(`/api/apm/export/logs?${qs.toString()}`);
 }
 
+// ---- Agent 诊断（句柄清单 / System.out 捕获）----
+
+export interface HandleInventorySnapshot {
+  ts: number;
+  trackedHandles: Array<{
+    handleId: string;
+    kind: string;
+    name: string;
+    ownerThread: string;
+    createdAt: number;
+    lastUsedAt: number;
+    closed: boolean;
+    stackTrace?: Array<{
+      className: string;
+      methodName: string;
+      fileName: string | null;
+      lineNumber: number;
+    }>;
+  }>;
+  fileDescriptors: Array<{ fd: string; target: string }>;
+  threads: Array<{ threadId: number; name: string; state: string; blockedTime: number; waitedTime: number }>;
+  summary: Record<string, number>;
+}
+
+export interface SystemOutEntry {
+  timestamp: string;
+  source: "STDOUT" | "STDERR";
+  level: string;
+  line: string;
+}
+
+/** 全量句柄快照（含分配堆栈 / FD / 线程） */
+export function getHandleInventory(limit = 200): Promise<HandleInventorySnapshot> {
+  return unwrap(instance.get<HandleInventorySnapshot>("/agent/handles", { params: { limit } }));
+}
+
+/** System.out / System.err 实时捕获日志 */
+export function getSystemOut(limit = 200): Promise<SystemOutEntry[]> {
+  return unwrap(instance.get<SystemOutEntry[]>("/agent/system-out", { params: { limit } }));
+}
+
+// ---- JVM 内存诊断（对象内存 / 手动 GC / 类加载）----
+
+export interface MemoryPoolInfo {
+  name: string;
+  type: "HEAP" | "NON_HEAP";
+  used: number;
+  committed: number;
+  max: number;
+  usedPercent: number;
+  peakUsed?: number;
+  objectEstimate: number;
+}
+
+export interface MemoryPoolsSnapshot {
+  ts: number;
+  heap: { name: string; used: number; committed: number; max: number; usedPercent: number };
+  nonHeap: { name: string; used: number; committed: number; max: number; usedPercent: number };
+  pools: MemoryPoolInfo[];
+}
+
+export interface GcResult {
+  triggered: boolean;
+  beforeBytes: number;
+  afterBytes: number;
+  freedBytes: number;
+  freedMb: number;
+  gcCountBefore: number;
+  gcCountAfter: number;
+  gcDelta: number;
+  elapsedMs: number;
+}
+
+export interface ClassLoadingInfo {
+  loadedClassCount: number;
+  totalLoadedClassCount: number;
+  unloadedClassCount: number;
+  verbose: boolean;
+  ts: number;
+}
+
+/** JVM 内存池对象明细 */
+export function getMemoryPools(): Promise<MemoryPoolsSnapshot> {
+  return unwrap(instance.get<MemoryPoolsSnapshot>("/jvm/memory/pools"));
+}
+
+/** 手动触发 GC 并返回释放量 */
+export function triggerGc(): Promise<GcResult> {
+  return unwrap(instance.post<GcResult>("/jvm/gc"));
+}
+
+/** 类加载统计 */
+export function getClassLoading(): Promise<ClassLoadingInfo> {
+  return unwrap(instance.get<ClassLoadingInfo>("/jvm/class-loading"));
+}
+
+export interface ThreadDumpInfo {
+  threadId: number;
+  name: string;
+  state: string;
+  blockedTime: number;
+  blockedCount: number;
+  waitedTime: number;
+  waitedCount: number;
+  lockName?: string | null;
+  lockOwnerName?: string | null;
+  isDaemon: boolean;
+  isInNative: boolean;
+  suspended: boolean;
+  stackTrace: string[];
+}
+
+/** 全量线程 Dump 快照 */
+export function getThreadDump(): Promise<ThreadDumpInfo[]> {
+  return unwrap(instance.get<ThreadDumpInfo[]>("/jvm/thread-dump"));
+}
+
+export interface TraceHotspot {
+  className: string;
+  methodName: string;
+  phase: string;
+  count: number;
+  totalMs: number;
+  maxMs: number;
+  errorCount: number;
+  selfTimeMs: number;
+  avgMs: number;
+}
+
+export interface TracePhaseStat {
+  phase: string;
+  count: number;
+  totalMs: number;
+  maxMs: number;
+  selfTimeMs: number;
+  avgMs: number;
+}
+
+export interface SkywalkingSpan {
+  spanId: string;
+  parentSpanId?: string | null;
+  operationName: string;
+  spanType: string;
+  spanLayer: string;
+  startTime: number;
+  endTime: number;
+  isError: boolean;
+  logs?: string | null;
+  peer?: string | null;
+}
+
+export interface SkywalkingSegment {
+  traceId: string;
+  spanCount: number;
+  spans: SkywalkingSpan[];
+}
+
+/** 方法热点排行（按 Span 聚合耗时/错误） */
+export function getTraceHotspots(limit = 20): Promise<TraceHotspot[]> {
+  return unwrap(instance.get<TraceHotspot[]>("/agent/trace-hotspots", { params: { limit } }));
+}
+
+/** 链路阶段耗时汇总 */
+export function getTracePhases(): Promise<TracePhaseStat[]> {
+  return unwrap(instance.get<TracePhaseStat[]>("/agent/trace-phases"));
+}
+
+/** SkyWalking 兼容 Segment 导出 */
+export function getSkywalkingExport(): Promise<SkywalkingSegment[]> {
+  return unwrap(instance.get<SkywalkingSegment[]>("/agent/skywalking/export"));
+}
+
 export default {
   getStats,
   pageTransmissions,
@@ -710,11 +928,21 @@ export default {
   getSystemTopology,
   getTraceWaterfall,
   getAlerts,
+  getHandleInventory,
+  getSystemOut,
+  getMemoryPools,
+  triggerGc,
+  getClassLoading,
+  getThreadDump,
+  getTraceHotspots,
+  getTracePhases,
+  getSkywalkingExport,
   getTracesTree,
   getAgentTraces,
   getAgentDependencies,
   getDependenciesAggregated,
   getSlowCalls,
+  getSlowSql,
   getErrorRanking,
   getSla,
   cleanup,
@@ -750,4 +978,26 @@ export function injectLeak(resourceType?: string, resourceName?: string): Promis
 
 export function injectLog(level?: string, message?: string): Promise<Record<string, unknown>> {
   return unwrap(instance.post<Record<string, unknown>>("/inject/log", null, { params: { level, message } }));
+}
+
+/** 注入慢调用（指定耗时 ms，后端按慢调用阈值判断） */
+export function injectSlowCall(
+  params: { source?: string; target?: string; protocol?: string; durationMs?: number; error?: boolean },
+): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/slow", null, { params }));
+}
+
+/** 注入自定义 Span 树（一条 trace 多个 span，验证瀑布图） */
+export function injectSpanTree(params: {
+  traceId?: string;
+  spans?: number;
+  depth?: number;
+  errorSpan?: boolean;
+}): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/span-tree", null, { params }));
+}
+
+/** 注入 JVM 压力（模拟线程 / CPU 压力，制造 JVM 指标变化） */
+export function injectJvmPressure(params: { threads?: number; cpuPercent?: number; durationMs?: number }): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/jvm-pressure", null, { params }));
 }

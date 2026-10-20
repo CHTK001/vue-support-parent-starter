@@ -1,63 +1,111 @@
 <template>
   <div class="view">
+    <!-- 工具栏：标题 + 记录数 + 全局动作 -->
     <div class="view-toolbar">
       <div class="toolbar-left">
-        <span class="section-label">调用链路（传输记录）</span>
-        <el-input
-          v-model="traceSearch"
-          placeholder="按 traceId 搜索"
-          clearable
+        <span class="section-label">调用链路</span>
+        <span class="match-hint">
+          <template v-if="!loading">{{ total.toLocaleString() }} 条 · 第 {{ page }} 页</template>
+          <template v-else>加载中…</template>
+        </span>
+      </div>
+      <div class="toolbar-right">
+        <el-button round @click="exportCsvFull">
+          <el-icon class="btn-icon"><Download /></el-icon>导出 CSV
+        </el-button>
+        <el-button round :loading="loading" @click="load">
+          <el-icon class="btn-icon"><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
+    </div>
 
-          class="filter-input trace-search"
+    <!-- 筛选栏：查询条件与动作分离，窄屏自然换行 -->
+    <div class="filter-bar">
+      <div class="filter-field trace-search-field">
+        <label class="filter-label" for="tr-trace">Trace ID</label>
+        <el-input
+          id="tr-trace"
+          v-model="traceSearch"
+          placeholder="按 traceId 精确搜索"
+          clearable
           @keyup.enter="applyTraceSearch"
         />
-        <el-button v-if="traceSearch" text type="primary" @click="applyTraceSearch">
-          搜索
-        </el-button>
-        <el-input
-          v-model="filters.source"
-          placeholder="源端"
-          clearable
+      </div>
 
-          class="filter-input"
-        />
-        <el-input
-          v-model="filters.protocol"
-          placeholder="协议"
-          clearable
+      <div class="filter-field">
+        <label class="filter-label" for="tr-source">源端</label>
+        <el-input id="tr-source" v-model="filters.source" placeholder="如 payment" clearable />
+      </div>
 
-          class="filter-input"
-        />
+      <div class="filter-field">
+        <label class="filter-label" for="tr-protocol">协议</label>
+        <el-input id="tr-protocol" v-model="filters.protocol" placeholder="HTTP / AGENT" clearable />
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label" for="tr-op">操作</label>
+        <el-input id="tr-op" v-model="filters.operation" placeholder="如 /pay/callback" clearable />
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label">耗时区间 (ms)</label>
+        <div class="range-pair">
+          <el-input-number
+            v-model="filters.durationMin"
+            :min="0"
+            :controls="false"
+            placeholder="最小"
+            class="range-input"
+          />
+          <span class="range-sep">~</span>
+          <el-input-number
+            v-model="filters.durationMax"
+            :min="0"
+            :controls="false"
+            placeholder="最大"
+            class="range-input"
+          />
+        </div>
+      </div>
+
+      <div class="filter-field time-field">
+        <label class="filter-label">时间范围</label>
         <el-date-picker
           v-model="filters.range"
           type="datetimerange"
           range-separator="~"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-
-          style="width: 320px"
+          start-placeholder="开始"
+          end-placeholder="结束"
         />
-        <el-checkbox v-model="filters.errorOnly" >仅看错误</el-checkbox>
       </div>
-      <div class="toolbar-right">
-        <el-button round @click="exportCsvFull">
-          <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
-        </el-button>
-        <el-button round :loading="loading" @click="load">
-          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+
+      <div class="filter-field check-field">
+        <label class="filter-label">状态</label>
+        <el-checkbox v-model="filters.errorOnly">仅看错误</el-checkbox>
+      </div>
+
+      <div class="filter-actions">
+        <el-dropdown v-if="savedFilterNames.length" trigger="click" @command="applySavedFilter">
+          <el-button text size="small" type="primary">
+            收藏筛选 <el-icon><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="f in savedFilterNames" :key="f" :command="f">
+                {{ f }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-button text size="small" @click="saveCurrentFilter">保存当前筛选</el-button>
+        <el-button text @click="resetFilters">重置</el-button>
+        <el-button type="primary" round :loading="loading" @click="applyTraceSearch">
+          <el-icon class="btn-icon"><Search /></el-icon>查询
         </el-button>
       </div>
     </div>
 
     <div class="table-panel">
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
-           既有 .apm-table 变量覆盖 / .trace-table :deep(.row-clickable|row-error) 与
-           e2e 的 .el-table__body 选择器一概不失效；
-           pagination=false —— 分页仍由下方 el-pagination 自管，否则会多出一套页码控件；
-           toolbar=false 不新增工具栏按钮（按钮清单与改造前逐个一致）；
-           原 el-table 没写 border → settings.border=false 抑制 ReTable 的默认边框；
-           layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应，
-           维持原 el-table「内容多高表就多高」的撑开行为。 -->
       <ReTable
         :data="items as unknown as Record<string, unknown>[]"
         :columns="traceColumns"
@@ -77,11 +125,17 @@
             <code class="mono trace-link" @click.stop="openWaterfall(traceIdOf(row))">
               {{ shortId(traceIdOf(row)) }}
             </code>
+            <el-tooltip content="复制完整 traceId" placement="top" :show-after="400">
+              <el-icon class="copy-btn" @click.stop="copyId(traceIdOf(row))">
+                <CopyDocument />
+              </el-icon>
+            </el-tooltip>
             <el-button link type="primary" @click.stop="openWaterfall(traceIdOf(row))">
               瀑布
             </el-button>
           </div>
         </template>
+
         <template #col-route="{ row }">
           <div class="edge">
             <span class="edge-endpoint">{{ row.source || "—" }}</span>
@@ -89,24 +143,27 @@
             <span class="edge-endpoint target">{{ row.target || "—" }}</span>
           </div>
         </template>
-        <template #col-protocol="{ row }">
-          <el-tag effect="plain" round>{{ row.protocol || "—" }}</el-tag>
-        </template>
-        <template #col-durationMs="{ row }">
-          <span class="mono">{{ row.durationMs }}</span>
-        </template>
-        <template #col-status="{ row }">
-          <el-tag
-            :type="row.status === 'OK' ? 'success' : 'danger'"
 
-            round
-          >
+        <template #col-protocol="{ row }">
+          <el-tag effect="plain" round size="small">{{ row.protocol || "—" }}</el-tag>
+        </template>
+
+        <template #col-durationMs="{ row }">
+          <span class="mono dur-val" :class="durClass(row.durationMs)">
+            {{ row.durationMs }}
+          </span>
+        </template>
+
+        <template #col-status="{ row }">
+          <el-tag :type="row.status === 'OK' ? 'success' : 'danger'" round size="small">
             {{ row.status || "OK" }}
           </el-tag>
         </template>
+
         <template #col-startTime="{ row }">
           <span class="muted">{{ row.startTime || "—" }}</span>
         </template>
+
         <template #col-errorMessage="{ row }">
           <span v-if="row.errorMessage" class="err-text" :title="row.errorMessage">
             {{ row.errorType }}: {{ row.errorMessage }}
@@ -136,17 +193,26 @@
     >
       <div v-if="detailTraceId" class="drawer-actions">
         <el-button round type="primary" @click="openWaterfall(detailTraceId)">
-          <el-icon class="mr-1"><Right /></el-icon>查看瀑布图
+          <el-icon class="btn-icon"><Right /></el-icon>查看瀑布图
         </el-button>
+        <el-button round @click="copyId(detailTraceId)">
+          <el-icon class="btn-icon"><CopyDocument /></el-icon>复制 traceId
+        </el-button>
+        <span class="drawer-count mono">{{ detailSpans.length }} 个 span</span>
       </div>
+
       <div v-loading="detailLoading" class="detail-body">
-        <el-empty v-if="!detailLoading && detailSpans.length === 0" description="该链路无 span 数据" />
+        <el-empty
+          v-if="!detailLoading && detailSpans.length === 0"
+          description="该链路无 span 数据"
+        />
         <div v-for="(span, i) in detailSpans" :key="span.spanId || i" class="span-card">
           <div class="span-head">
             <span class="span-idx">#{{ i + 1 }}</span>
-            <el-tag :type="span.status === 'OK' ? 'success' : 'danger'" round>
+            <el-tag :type="span.status === 'OK' ? 'success' : 'danger'" round size="small">
               {{ span.status || "OK" }}
             </el-tag>
+            <code class="span-op">{{ span.operation || span.target || "—" }}</code>
             <span class="span-duration mono">{{ span.durationMs }} ms</span>
           </div>
           <div class="span-grid">
@@ -155,7 +221,6 @@
             <div class="span-row"><span class="k">源端</span><span>{{ span.source || "—" }}</span></div>
             <div class="span-row"><span class="k">目标</span><span>{{ span.target || "—" }}</span></div>
             <div class="span-row"><span class="k">协议</span><span>{{ span.protocol || "—" }} <template v-if="span.software">[{{ span.software }}]</template></span></div>
-            <div class="span-row"><span class="k">操作</span><span>{{ span.operation || "—" }}</span></div>
             <div class="span-row"><span class="k">时间</span><span>{{ span.startTime }} → {{ span.endTime }}</span></div>
             <div class="span-row"><span class="k">流量</span><span>↑{{ span.bytesOut }} B / ↓{{ span.bytesIn }} B</span></div>
           </div>
@@ -171,10 +236,17 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 
-import { Refresh, Right, Download } from "@element-plus/icons-vue";
+import {
+  CopyDocument,
+  Download,
+  Refresh,
+  Right,
+  Search,
+  ArrowDown,
+} from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { pageTransmissions, getTraceDetail, exportTransmissionsCsv } from "../api/apmApi";
@@ -190,18 +262,11 @@ const size = ref(20);
 const loading = ref(false);
 const traceSearch = ref("");
 
-/**
- * 列配置：原来散在模板里的 7 个 el-table-column 收敛到这里。
- *
- * <p>标题都是写死文案（没有 t()），用普通常量即可。前两列原 el-table-column
- * 没有 prop，这里补稳定的合成 prop（route），其余沿用行数据字段名，
- * 模板里一一对应 #col-&lt;prop&gt; 插槽。</p>
- */
 const traceColumns: ReTableColumn[] = [
-  { prop: "traceId", label: "Trace ID", width: 200, slot: "traceId" },
+  { prop: "traceId", label: "Trace ID", width: 220, slot: "traceId" },
   { prop: "route", label: "源 → 目标", minWidth: 260, slot: "route" },
   { prop: "protocol", label: "协议", width: 110, slot: "protocol" },
-  { prop: "durationMs", label: "耗时", width: 90, align: "center", slot: "durationMs" },
+  { prop: "durationMs", label: "耗时", width: 100, align: "right", slot: "durationMs", sortable: true },
   { prop: "status", label: "状态", width: 90, align: "center", slot: "status" },
   { prop: "startTime", label: "开始时间", width: 160, slot: "startTime" },
   { prop: "errorMessage", label: "错误", minWidth: 180, slot: "errorMessage" },
@@ -214,12 +279,7 @@ function traceIdOf(row: Record<string, unknown>): string {
 
 /** 按 traceId 服务端搜索（后端 /transmissions 已支持 traceId 参数过滤） */
 function applyTraceSearch() {
-  const kw = traceSearch.value.trim();
-  if (!kw) {
-    filters.traceId = "";
-  } else {
-    filters.traceId = kw;
-  }
+  filters.traceId = traceSearch.value.trim();
   page.value = 1;
   load();
 }
@@ -242,25 +302,30 @@ const filters = reactive({
   range: null as [Date, Date] | null,
 });
 
+/** 组装查询条件：load 与 CSV 导出共用，避免两处筛选逻辑漂移 */
+function buildQuery(): TransmissionQuery {
+  const q: TransmissionQuery = {
+    page: page.value,
+    size: size.value,
+  };
+  if (filters.source) q.source = filters.source;
+  if (filters.protocol) q.protocol = filters.protocol;
+  if (filters.errorOnly) q.errorOnly = true;
+  if (filters.traceId) q.traceId = filters.traceId;
+  if (filters.operation) q.operation = filters.operation;
+  if (filters.durationMin != null) q.durationMin = filters.durationMin;
+  if (filters.durationMax != null) q.durationMax = filters.durationMax;
+  if (filters.range && filters.range.length === 2) {
+    q.startTime = new Date(filters.range[0]).getTime();
+    q.endTime = new Date(filters.range[1]).getTime();
+  }
+  return q;
+}
+
 async function load() {
   loading.value = true;
   try {
-    const q: TransmissionQuery = {
-      page: page.value,
-      size: size.value,
-    };
-    if (filters.source) q.source = filters.source;
-    if (filters.protocol) q.protocol = filters.protocol;
-    if (filters.errorOnly) q.errorOnly = true;
-    if (filters.traceId) q.traceId = filters.traceId;
-    if (filters.operation) q.operation = filters.operation;
-    if (filters.durationMin != null) q.durationMin = filters.durationMin;
-    if (filters.durationMax != null) q.durationMax = filters.durationMax;
-    if (filters.range && filters.range.length === 2) {
-      q.startTime = new Date(filters.range[0]).getTime();
-      q.endTime = new Date(filters.range[1]).getTime();
-    }
-    const res = await pageTransmissions(q);
+    const res = await pageTransmissions(buildQuery());
     items.value = res.items;
     total.value = res.total;
   } catch {
@@ -270,25 +335,93 @@ async function load() {
   }
 }
 
-/** 后端全量 CSV 导出（带当前筛选条件，绕过分页限制） */
-function exportCsvFull() {
-  const params: TransmissionQuery = {};
-  if (filters.source) params.source = filters.source;
-  if (filters.protocol) params.protocol = filters.protocol;
-  if (filters.errorOnly) params.errorOnly = true;
-  if (filters.traceId) params.traceId = filters.traceId;
-  if (filters.operation) params.operation = filters.operation;
-  if (filters.durationMin != null) params.durationMin = filters.durationMin;
-  if (filters.durationMax != null) params.durationMax = filters.durationMax;
-  if (filters.range && filters.range.length === 2) {
-    params.startTime = new Date(filters.range[0]).getTime();
-    params.endTime = new Date(filters.range[1]).getTime();
-  }
-  exportTransmissionsCsv(params);
+async function exportCsvFull() {
+  // 导出不带分页，只带筛选条件
+  const q: TransmissionQuery = { ...buildQuery() };
+  delete q.page;
+  delete q.size;
+  exportTransmissionsCsv(q);
+}
+
+/** 清空所有筛选并回到第一页 */
+function resetFilters() {
+  traceSearch.value = "";
+  filters.source = "";
+  filters.protocol = "";
+  filters.operation = "";
+  filters.errorOnly = false;
+  filters.traceId = "";
+  filters.durationMin = null;
+  filters.durationMax = null;
+  filters.range = null;
+  page.value = 1;
+  load();
+}
+
+/* ---- 筛选收藏 ---- */
+/** 本页已保存的筛选名称列表 */
+const savedFilterNames = computed<string[]>(() => {
+  try {
+    const raw = localStorage.getItem(`apm-saved-filters-traces`);
+    if (!raw) return [];
+    return (JSON.parse(raw) as { name: string }[]).map((f) => f.name);
+  } catch { return []; }
+});
+
+/** 保存当前筛选条件到 localStorage */
+function saveCurrentFilter() {
+  const name = window.prompt("请输入筛选收藏名称：");
+  if (!name?.trim()) return;
+  try {
+    const raw = localStorage.getItem(`apm-saved-filters-traces`);
+    const list: { name: string; source: string; protocol: string; operation: string; errorOnly: boolean }[] = raw ? JSON.parse(raw) : [];
+    // 覆盖同名，追加新名
+    const idx = list.findIndex((f) => f.name === name.trim());
+    const entry = { name: name.trim(), source: filters.source, protocol: filters.protocol, operation: filters.operation, errorOnly: filters.errorOnly };
+    if (idx >= 0) list[idx] = entry;
+    else list.push(entry);
+    localStorage.setItem(`apm-saved-filters-traces`, JSON.stringify(list));
+  } catch { /* 忽略 */ }
+}
+
+/** 恢复已保存的筛选 */
+function applySavedFilter(name: string) {
+  try {
+    const raw = localStorage.getItem(`apm-saved-filters-traces`);
+    if (!raw) return;
+    const list = JSON.parse(raw) as { name: string; source: string; protocol: string; operation: string; errorOnly: boolean }[];
+    const saved = list.find((f) => f.name === name);
+    if (!saved) return;
+    filters.source = saved.source ?? "";
+    filters.protocol = saved.protocol ?? "";
+    filters.operation = saved.operation ?? "";
+    filters.errorOnly = saved.errorOnly ?? false;
+    page.value = 1;
+    load();
+  } catch { /* 忽略 */ }
 }
 
 function shortId(id: string) {
   return id ? id.slice(0, 12) : "—";
+}
+
+/** 耗时四档：正常 / 偏慢 / 慢 / 严重（阈值按 APM 常用口径） */
+function durClass(ms: number | undefined): string {
+  const v = Number(ms ?? 0);
+  if (v >= 3000) return "crit";
+  if (v >= 1000) return "slow";
+  if (v >= 300) return "mid";
+  return "fast";
+}
+
+async function copyId(id: string) {
+  if (!id) return;
+  try {
+    await navigator.clipboard.writeText(id);
+    message.success("已复制 traceId");
+  } catch {
+    message.error("复制失败，请手动选中");
+  }
 }
 
 function rowClass({ row }: { row: TransmissionRecord }) {
@@ -302,12 +435,6 @@ const detailLoading = ref(false);
 const detailTraceId = ref("");
 const detailSpans = ref<TransmissionRecord[]>([]);
 
-/**
- * 打开链路详情抽屉。
- *
- * <p>ReTable 的 row-click 抛的是宽类型行数据（Record&lt;string, unknown&gt;，
- * 原 el-table 抛 any），先收窄出 traceId 再用。</p>
- */
 async function openDetail(row: Record<string, unknown>) {
   const traceId = traceIdOf(row);
   if (!traceId) return;
@@ -324,8 +451,10 @@ async function openDetail(row: Record<string, unknown>) {
   }
 }
 
+// 只有"会改变结果集"的条件才自动重查；traceId/耗时/时间由「查询」按钮显式提交，
+// 否则每敲一个字符都会打一次接口。
 watch(
-  () => [filters.source, filters.protocol, filters.errorOnly, filters.range],
+  () => [filters.source, filters.protocol, filters.errorOnly],
   () => {
     page.value = 1;
     load();
@@ -344,66 +473,39 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+/* 骨架与 .filter-bar/.filter-field/.pager 统一由 styles/layout.css 提供 */
 
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.filter-input {
-  width: 140px;
-}
-
-.trace-search {
-  width: 180px;
-}
-
-.mr-1 {
+.btn-icon {
   margin-right: 4px;
   vertical-align: -2px;
 }
 
-.table-panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-  padding: 8px;
+/* 筛选字段宽度：Trace ID 更长，时间范围独占一档，其余等宽 */
+.trace-search-field {
+  width: 200px;
+}
+.filter-field {
+  width: 132px;
+}
+.time-field {
+  width: 320px;
+}
+.check-field {
+  width: auto;
+}
+.range-pair {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.range-input {
+  width: 62px;
+}
+.range-sep {
+  color: var(--apm-muted);
 }
 
-.apm-table {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: var(--el-fill-color-light);
-  --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-text-color: var(--apm-fg);
-  --el-table-header-text-color: var(--apm-muted);
-}
-
+/* ---- 表格单元 ---- */
 .trace-id-cell {
   display: flex;
   align-items: center;
@@ -414,26 +516,32 @@ onMounted(() => {
 .trace-link {
   cursor: pointer;
   outline: none;
-  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+  color: var(--apm-accent);
+  transition: opacity var(--apm-t-fast);
 }
 
 .trace-link:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--apm-accent-subtle);
 }
 
 .trace-link:hover {
-  opacity: 0.7;
+  opacity: 0.72;
 }
 
-.mono {
-  font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 12px;
-  color: var(--apm-accent);
-}
-
-.muted {
+.copy-btn {
+  cursor: pointer;
   color: var(--apm-muted);
-  font-size: 12px;
+  opacity: 0;
+  transition: opacity var(--apm-t-fast), color var(--apm-t-fast);
+}
+
+/* 复制按钮常隐，悬停整行才出现，避免每行都是图标噪音 */
+.trace-table :deep(.el-table__row:hover) .copy-btn {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  color: var(--apm-accent);
 }
 
 .edge {
@@ -443,7 +551,7 @@ onMounted(() => {
 }
 
 .edge-endpoint {
-  font-family: "JetBrains Mono", Consolas, monospace;
+  font-family: var(--apm-font-mono);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -460,16 +568,22 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.err-text {
-  color: var(--apm-danger);
-  font-size: 12px;
-  cursor: help;
+/* 耗时四档着色：扫一眼就能定位慢请求 */
+.dur-val {
+  font-variant-numeric: tabular-nums;
 }
-
-.pager {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 8px 4px;
+.dur-val.fast {
+  color: var(--apm-success);
+}
+.dur-val.mid {
+  color: var(--apm-fg-regular);
+}
+.dur-val.slow {
+  color: var(--apm-warning);
+}
+.dur-val.crit {
+  color: var(--apm-danger);
+  font-weight: 600;
 }
 
 .trace-table :deep(.row-clickable) {
@@ -479,40 +593,55 @@ onMounted(() => {
 /* 错误行：淡红底承载语义，行本身仍可点 */
 .trace-table :deep(.row-error) {
   cursor: pointer;
-  background: color-mix(in srgb, var(--el-color-danger) 5%, transparent);
+  background: var(--apm-danger-bg);
 }
 
 /* ---- 详情抽屉 ---- */
 .drawer-actions {
-  margin-bottom: 12px;
+  margin-bottom: var(--apm-space-3);
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: var(--apm-space-2);
+}
+
+.drawer-count {
+  margin-left: auto;
+  color: var(--apm-muted);
 }
 
 .detail-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--apm-space-3);
 }
 
 .span-card {
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 10px，取最近档 lg */
-  padding: 12px 14px;
-  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
+  padding: var(--apm-space-3);
+  background: var(--apm-panel-raised);
 }
 
 .span-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: var(--apm-space-2);
+  margin-bottom: var(--apm-space-2);
 }
 
 .span-idx {
   font-size: 12px;
   color: var(--apm-muted);
   min-width: 28px;
+}
+
+.span-op {
+  font-family: var(--apm-font-mono);
+  font-size: 12px;
+  color: var(--apm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .span-duration {
@@ -541,9 +670,9 @@ onMounted(() => {
 }
 
 .span-error {
-  margin-top: 10px;
-  border-top: 1px dashed color-mix(in srgb, var(--el-color-danger) 35%, transparent);
-  padding-top: 8px;
+  margin-top: var(--apm-space-2);
+  border-top: 1px dashed var(--apm-danger-bg);
+  padding-top: var(--apm-space-2);
 }
 
 .span-error-title {
@@ -559,12 +688,13 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
-  font-family: "JetBrains Mono", Consolas, monospace;
+  font-family: var(--apm-font-mono);
 }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .trace-link {
+  .trace-link,
+  .copy-btn {
     transition: none;
   }
   .detail-body :deep(.el-loading-spinner) {
@@ -575,8 +705,7 @@ onMounted(() => {
 </style>
 
 <style>
-/* Trace 详情抽屉：抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式。
-   颜色改走 APM 语义令牌后自动跟随系统明暗主题，不再需要单独写一套深色覆盖。 */
+/* 抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式。 */
 .el-drawer {
   --el-drawer-bg-color: var(--apm-panel);
   background: var(--apm-panel);
@@ -591,7 +720,7 @@ onMounted(() => {
 }
 
 .el-drawer__body {
-  background: var(--apm-bg);
+  background: var(--apm-panel);
   color: var(--apm-fg);
 }
 </style>

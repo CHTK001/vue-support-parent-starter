@@ -1,105 +1,120 @@
 <template>
   <div class="view">
+    <!-- 左：健康状态；右：实时指示 + 刷新 -->
     <div class="view-toolbar">
       <div class="toolbar-left">
-        <span class="section-label">Agent 状态</span>
-        <el-tag v-if="stats.agentActive" type="success" effect="dark" round >已注入</el-tag>
-        <el-tag v-else type="info" effect="plain" round >未注入</el-tag>
-        <span class="live-dot" title="SSE 实时推送中">
-          <i class="live-pulse"></i>实时
-        </span>
+        <!-- 健康徽章：三态各自有独立配色，文字 + 色块双编码（不只靠颜色区分） -->
+        <div v-if="healthType" class="health-chip" :class="healthType">
+          <span class="health-chip-dot" />
+          <span class="health-chip-label">{{ healthLabel }}</span>
+        </div>
+
+        <template v-if="healthType">
+          <div class="health-metrics">
+            <div v-for="m in healthMetrics" :key="m.label" class="health-metric">
+              <span class="health-metric-value mono-lg">{{ m.value }}</span>
+              <span class="health-metric-label">{{ m.label }}</span>
+            </div>
+          </div>
+        </template>
+
+        <span class="live-dot">实时</span>
+        <span v-if="lastRefresh" class="last-refresh muted">上次刷新 {{ lastRefresh }}</span>
       </div>
-      <el-button round @click="load" :loading="loading">
-        <el-icon class="mr-1"><Refresh /></el-icon>刷新
-      </el-button>
+
+      <div class="toolbar-right">
+        <el-select v-model="refreshInterval" size="small" class="interval-select" title="趋势图刷新间隔">
+          <el-option v-for="opt in intervalOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+        <el-button round :loading="loading" @click="load">
+          <el-icon class="refresh-icon"><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
     </div>
 
-    <!-- 系统健康（SkyWalking 饱和度派生指标，仅当 stats.health 存在时显示） -->
-    <div v-if="healthType" class="health-bar">
-      <ReStatusIndicator :type="healthType" :pulse="stats.health === 'SATURATED'" />
-      <span class="health-label">{{ healthLabel }}</span>
-      <span class="health-metric">QPS {{ stats.qps ?? 0 }}</span>
-      <span class="health-metric">错误率 {{ stats.errorRate ?? 0 }}%</span>
-      <span class="health-metric">活跃泄漏 {{ stats.activeLeaks ?? 0 }}</span>
-      <span class="health-metric sla-metric" v-if="sla">
-        可用率
-        <b :class="slaPercentClass">{{ sla.slaPercent.toFixed(2) }}%</b>
-        <span class="sla-detail">成功 {{ sla.successCount }} / {{ sla.totalCount }}</span>
-      </span>
-      <el-button text type="primary" @click="router.push('/alerts')">
-        告警中心 →
-      </el-button>
-    </div>
-
-    <!-- 统计卡片 -->
+    <!-- 核心指标：四张卡，点击下钻 -->
     <div class="stat-grid">
-      <div
+      <button
         v-for="c in cards"
         :key="c.key"
-        class="stat-card clickable"
-        :style="{ '--accent': c.color } as any"
+        type="button"
+        class="stat-card"
+        :style="{ '--card-accent': c.color }"
         @click="onCardClick(c)"
       >
-        <div class="stat-icon">
-          <el-icon :size="22"><component :is="c.icon" /></el-icon>
-        </div>
-        <div class="stat-body">
-          <div class="stat-value">{{ c.value }}</div>
-          <div class="stat-label">{{ c.label }}</div>
-        </div>
-        <div class="stat-glow" />
-      </div>
+        <span class="stat-icon" aria-hidden="true">
+          <el-icon :size="20"><component :is="c.icon" /></el-icon>
+        </span>
+        <span class="stat-body">
+          <span class="stat-value mono-lg">{{ c.value.toLocaleString() }}</span>
+          <span class="stat-label">{{ c.label }}</span>
+        </span>
+        <el-icon class="stat-arrow" :size="14"><ArrowRight /></el-icon>
+      </button>
     </div>
 
-    <!-- 图表区 -->
+    <!-- 趋势：调用量 / 错误数（主图，占满宽） -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>调用趋势</span>
+        <span class="panel-sub">最近 30 分钟 · 每分钟聚合</span>
+        <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('trend')">
+          <el-icon :size="14"><Download /></el-icon>导出
+        </el-button>
+      </div>
+      <ReEcharts
+        ref="trendChartRef"
+        :option="trendOption"
+        theme="dark"
+        height="260px"
+        class="panel-chart chart-trend"
+      />
+    </div>
+
+    <!-- 双图：错误率&耗时 + 协议分布 -->
     <div class="chart-grid">
       <div class="panel">
         <div class="panel-head">
-          <span>传输协议分布</span>
-          <span class="panel-sub">Top 协议调用占比</span>
+          <span>错误率 & 平均耗时</span>
+          <span class="panel-sub">双轴 · 每分钟分桶</span>
+          <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('error')">
+            <el-icon :size="14"><Download /></el-icon>导出
+          </el-button>
         </div>
-        <div ref="pieRef" class="panel-chart" />
+        <ReEcharts
+          ref="errorTrendChartRef"
+          :option="errorTrendOption"
+          theme="dark"
+          height="240px"
+          class="panel-chart chart-error"
+        />
       </div>
+
       <div class="panel">
         <div class="panel-head">
-          <span>状态构成</span>
-          <span class="panel-sub">成功 / 失败</span>
+          <span>数据构成</span>
+          <span class="panel-sub">各类记录占比</span>
         </div>
-        <div ref="barRef" class="panel-chart" />
+        <!-- 空数据时不能渲染 pie：ECharts 对空 data 画 lightgray 占位环 -->
+        <div v-if="!hasDonutData" class="panel-empty">暂无记录数据</div>
+        <ReEcharts
+          v-else
+          :option="donutOption"
+          theme="dark"
+          height="240px"
+          class="panel-chart"
+        />
       </div>
     </div>
 
-    <!-- 趋势区 -->
-    <div class="panel">
-      <div class="panel-head">
-        <span>传输趋势</span>
-        <span class="panel-sub">最近 30 分钟调用量 / 错误数（每分钟聚合）</span>
-      </div>
-      <div ref="trendRef" class="panel-chart" />
-    </div>
-
-    <!-- 错误率 & 平均耗时趋势（后端 /trend 分桶） -->
-    <div class="panel">
-      <div class="panel-head">
-        <span>错误率 & 平均耗时趋势</span>
-        <span class="panel-sub">最近 30 分钟（每分钟分桶，双轴）</span>
-      </div>
-      <div ref="errorTrendRef" class="panel-chart" />
-    </div>
-
-    <!-- 排行区（服务 Top / 慢调用 / 错误排行） -->
+    <!-- 排行三列 -->
     <div class="rank-grid">
       <div class="panel">
         <div class="panel-head">
-          <span>服务 Top N</span>
-          <span class="panel-sub">按调用次数 / 错误率</span>
+          <span>服务 Top 8</span>
+          <span class="panel-sub">按调用次数</span>
         </div>
-        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" —— 本页 .apm-table 变量覆盖与
-             .apm-table :deep(.el-table__row){cursor:pointer} 依赖 el-table 的 DOM，vxe 引擎会让它们全部落空；
-             pagination=false / toolbar=false —— 原表既无分页也无工具栏按钮；
-             原 el-table 没写 border → settings.border=false 抑制默认边框；
-             layout-table.minHeight=0 关掉组件默认的 440px 撑高与 fill 自适应。
-             三张排行表各自独立 columns，插槽名互不重名，作用域无歧义。 -->
         <ReTable
           :data="(services.slice(0, 8)) as unknown as Record<string, unknown>[]"
           :columns="serviceColumns"
@@ -108,15 +123,15 @@
           :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
-          class="apm-table"
+          class="apm-table rank-table"
           empty-text="暂无服务数据"
-          @row-click="(r: Record<string, unknown>) => router.push('/endpoints')"
+          @row-click="() => router.push('/endpoints')"
         >
           <template #col-service="{ row }">
-            <span class="mono">{{ row.service }}</span>
+            <span class="mono service-cell">{{ row.service }}</span>
           </template>
           <template #col-errorRate="{ row }">
-            <span :class="['mono', errorCountOf(row) > 0 ? 'err' : 'muted']">
+            <span class="mono" :class="rateClass(row)">
               {{ errorRatePct(row) }}%
             </span>
           </template>
@@ -126,7 +141,7 @@
       <div class="panel">
         <div class="panel-head">
           <span>慢调用 Top 5</span>
-          <span class="panel-sub">耗时最长的调用</span>
+          <span class="panel-sub">耗时最长</span>
         </div>
         <ReTable
           :data="(slowCalls.slice(0, 5)) as unknown as Record<string, unknown>[]"
@@ -136,18 +151,15 @@
           :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
-          class="apm-table"
+          class="apm-table rank-table"
           empty-text="暂无慢调用"
           @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
         >
           <template #col-operation="{ row }">
-            <span class="mono">{{ String(row.operation ?? '—').slice(0, 24) }}</span>
+            <span class="mono service-cell">{{ String(row.operation ?? "—").slice(0, 22) }}</span>
           </template>
           <template #col-durationMs="{ row }">
-            <span class="mono warn">{{ row.durationMs }}ms</span>
-          </template>
-          <template #col-status="{ row }">
-            <span :class="['mono', row.status === 'OK' ? 'ok' : 'err']">{{ row.status || "OK" }}</span>
+            <span class="mono warn-text">{{ row.durationMs }}ms</span>
           </template>
         </ReTable>
       </div>
@@ -165,15 +177,15 @@
           :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
-          class="apm-table"
+          class="apm-table rank-table"
           empty-text="暂无错误"
-          @row-click="(r: Record<string, unknown>) => router.push('/errors')"
+          @row-click="() => router.push('/errors')"
         >
           <template #col-errorType="{ row }">
-            <span class="mono err">{{ String(row.errorType ?? '—').slice(0, 18) }}</span>
+            <span class="mono err-text">{{ String(row.errorType ?? "—").slice(0, 16) }}</span>
           </template>
           <template #col-errorMessage="{ row }">
-            <span class="muted">{{ String(row.errorMessage ?? '—').slice(0, 30) }}</span>
+            <span class="muted truncate">{{ String(row.errorMessage ?? "—").slice(0, 28) }}</span>
           </template>
         </ReTable>
       </div>
@@ -182,26 +194,93 @@
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import * as echarts from "echarts";
-
-import {
-  DataAnalysis,
-  Document,
-  Refresh,
-  Share,
-  Warning,
-} from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
-import ReStatusIndicator from "@repo/ui/re-status-indicator";
+import { message } from "@repo/core";
+import { ArrowRight, DataAnalysis, Document, Refresh, Share, Warning, Download } from "@element-plus/icons-vue";
+
+import ReEcharts from "@repo/ui/re-echarts";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { getStats, watchStats, pageTransmissions, getServices, getSlowCalls, getErrorRanking, getSla, getTrend } from "../api/apmApi";
-import type { ApmStats, ApmService, SlowCall, ErrorRanking, SlaStats, TrendPoint } from "../api/apmApi";
+
+import {
+  getStats,
+  watchStats,
+  pageTransmissions,
+  getServices,
+  getSlowCalls,
+  getErrorRanking,
+  getSla,
+  getTrend,
+} from "../api/apmApi";
+import type {
+  ApmStats,
+  ApmService,
+  SlowCall,
+  ErrorRanking,
+  SlaStats,
+  TrendPoint,
+} from "../api/apmApi";
+import {
+  areaGradient,
+  axisLineColor,
+  axisTextColor,
+  baseGrid,
+  baseTooltip,
+  categoryAxis,
+  chartCanvas,
+  chartColor,
+  colorWithAlpha,
+  dangerColor,
+  infoColor,
+  okColor,
+  panelBgColor,
+  splitLineColor,
+  tooltipStyle,
+  valueAxis,
+  warningColor,
+} from "../styles/chartTheme";
+import type { EChartsOption } from "echarts";
 
 const router = useRouter();
 
+/** 导出图表为 PNG（ECharts 实例从 DOM 注册表获取，不依赖内部 API） */
+function exportChart(type: "trend" | "error" | "donut") {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const echarts = (window as any).__EC_RESSEL__;
+    if (!echarts) {
+      // 兜底：遍历所有已挂载的 echarts 实例
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const instances = (window as any).echarts?.instances as Map<string, unknown>;
+      if (!instances) return;
+      for (const [, instance] of instances) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((instance as any).group === type) {
+          const dataURL = (instance as unknown as { getDataURL: (opts: { type: string; pixelRatio: number; backgroundColor: string }) => string }).getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#070a12" });
+          triggerDownload(dataURL, `hotsport-${type}-${Date.now()}.png`);
+          return;
+        }
+      }
+      return;
+    }
+    const instance = echarts.getInstanceByDom(document.querySelector(`.chart-${type}`) as HTMLElement);
+    if (!instance) return;
+    const dataURL = instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#070a12" });
+    triggerDownload(dataURL, `hotsport-${type}-${Date.now()}.png`);
+  } catch {
+    /* 导出失败静默降级 */
+  }
+}
+
+function triggerDownload(dataURL: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = dataURL;
+  a.download = filename;
+  a.click();
+}
+
+/* ---------------- 状态 ---------------- */
 const stats = ref<ApmStats>({
   agentActive: false,
   agentEnabled: false,
@@ -211,51 +290,132 @@ const stats = ref<ApmStats>({
   traceCount: 0,
   dependencyCount: 0,
 });
-const loading = ref(false);
-const pieRef = ref<HTMLElement | null>(null);
-const barRef = ref<HTMLElement | null>(null);
-const trendRef = ref<HTMLElement | null>(null);
-const errorTrendRef = ref<HTMLElement | null>(null);
-let sseWatch: { close: () => void } | null = null;
-let trendTimer: number | undefined;
-let trendChart: echarts.ECharts | null = null;
-let errorTrendChart: echarts.ECharts | null = null;
 
-/** 排行数据 */
+const loading = ref(false);
 const services = ref<ApmService[]>([]);
 const slowCalls = ref<SlowCall[]>([]);
 const errorRanking = ref<ErrorRanking[]>([]);
-/** SLA 统计 */
 const sla = ref<SlaStats | null>(null);
 
-const slaPercentClass = computed(() => {
-  const p = sla.value?.slaPercent ?? 100;
-  if (p >= 99) return "sla-ok";
-  if (p >= 95) return "sla-warn";
-  return "sla-bad";
-});
+let sseWatch: { close: () => void } | null = null;
+let trendTimer: number | undefined;
 
-function openTrace(r: SlowCall) {
-  if (r.traceId) router.push({ path: "/traces/detail", query: { traceId: r.traceId } });
+/* ---------------- 刷新间隔控制 ---------------- */
+const refreshInterval = ref(15);
+const intervalOptions = [
+  { label: "5s", value: 5 },
+  { label: "15s", value: 15 },
+  { label: "30s", value: 30 },
+  { label: "1 分钟", value: 60 },
+];
+const lastRefresh = ref("");
+
+function formatLastRefresh() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  lastRefresh.value = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/**
- * 三张排行表的列配置（每张表一个独立数组，原 9 个 el-table-column 收敛到这里）。
- *
- * <p>标题都是写死文案（没有 t()），用普通常量即可。原没有 prop 的自定义列补了
- * 稳定合成 prop（错误率 / 操作 / 状态 / 错误类型 / 消息），模板里一一对应
- * #col-&lt;prop&gt; 插槽；三张表插槽名互不重名。</p>
- */
+/* ---------------- 健康状态 ---------------- */
+/** 三态语义，与 CSS 的 .success/.warning/.danger 一一对应 */
+const healthType = computed<"" | "success" | "warning" | "danger">(() => {
+  switch (stats.value.health) {
+    case "HEALTHY":
+      return "success";
+    case "DEGRADED":
+      return "warning";
+    case "SATURATED":
+      return "danger";
+    default:
+      return "";
+  }
+});
+
+const healthLabel = computed(() => {
+  switch (stats.value.health) {
+    case "HEALTHY":
+      return "系统健康";
+    case "DEGRADED":
+      return "性能降级";
+    case "SATURATED":
+      return "资源饱和";
+    default:
+      return "未知";
+  }
+});
+
+/** 健康条上的指标项：SLA 存在时才追加可用率，避免空值占位 */
+const healthMetrics = computed(() => {
+  const m: { label: string; value: string }[] = [
+    { label: "QPS", value: String(stats.value.qps ?? 0) },
+    { label: "错误率", value: `${stats.value.errorRate ?? 0}%` },
+    { label: "活跃泄漏", value: String(stats.value.activeLeaks ?? 0) },
+  ];
+  if (sla.value) {
+    m.push({
+      label: "可用率",
+      value: `${sla.value.slaPercent.toFixed(2)}%`,
+    });
+  }
+  return m;
+});
+
+/* ---------------- 统计卡 ---------------- */
+const cards = computed(() => [
+  {
+    key: "transmissions",
+    label: "传输记录",
+    value: stats.value.transmissionCount,
+    icon: DataAnalysis,
+    color: "var(--apm-chart-1)",
+    route: "/traces",
+  },
+  {
+    key: "deps",
+    label: "依赖关系",
+    value: stats.value.dependencyCount,
+    icon: Share,
+    color: "var(--apm-chart-3)",
+    route: "/dependencies",
+  },
+  {
+    key: "traces",
+    label: "调用链路",
+    value: stats.value.traceCount,
+    icon: Document,
+    color: "var(--apm-chart-5)",
+    route: "/traces",
+  },
+  {
+    key: "leaks",
+    label: "资源泄漏",
+    value: stats.value.leakCount,
+    icon: Warning,
+    color: stats.value.leakCount > 0 ? "var(--apm-danger)" : "var(--apm-chart-2)",
+    route: "/leaks",
+  },
+]);
+
+function onCardClick(c: { route: string }) {
+  router.push(c.route);
+}
+
+function openTrace(r: SlowCall) {
+  if (r.traceId) {
+    router.push({ path: "/traces/detail", query: { traceId: r.traceId } });
+  }
+}
+
+/* ---------------- 表格列 ---------------- */
 const serviceColumns: ReTableColumn[] = [
-  { prop: "service", label: "服务", minWidth: 140, slot: "service" },
-  { prop: "callCount", label: "调用", width: 70, align: "right", sortable: true },
-  { prop: "errorRate", label: "错误率", width: 80, align: "right", slot: "errorRate" },
+  { prop: "service", label: "服务", minWidth: 130, slot: "service" },
+  { prop: "callCount", label: "调用", width: 68, align: "right", sortable: true },
+  { prop: "errorRate", label: "错误率", width: 76, align: "right", slot: "errorRate" },
 ];
 
 const slowCallColumns: ReTableColumn[] = [
-  { prop: "operation", label: "操作", minWidth: 120, slot: "operation" },
+  { prop: "operation", label: "操作", minWidth: 110, slot: "operation" },
   { prop: "durationMs", label: "耗时", width: 70, align: "right", slot: "durationMs" },
-  { prop: "status", label: "状态", width: 60, align: "center", slot: "status" },
 ];
 
 const errorRankingColumns: ReTableColumn[] = [
@@ -264,92 +424,204 @@ const errorRankingColumns: ReTableColumn[] = [
   { prop: "errorMessage", label: "消息", minWidth: 120, slot: "errorMessage" },
 ];
 
-/** 排行表的 row 是宽类型（unknown）：错误次数是算术/比较入参，先收窄成 number */
+/** ReTable 的 row 是宽类型，先收窄成 number 再参与算术 */
 function errorCountOf(row: Record<string, unknown>): number {
   return Number(row.errorCount ?? 0);
 }
 
-/** 错误率（% 文本）：与原模板 Math.round(10000 * errorCount / callCount) / 100 口径一致 */
+/** 错误率（% 文本）：与后端口径一致 */
 function errorRatePct(row: Record<string, unknown>): string {
   const calls = Number(row.callCount ?? 0);
   const errs = errorCountOf(row);
   return (calls > 0 ? Math.round((10000 * errs) / calls) / 100 : 0).toString();
 }
 
-const cards = computed(() => [
-  {
-    key: "transmissions",
-    label: "传输记录",
-    value: stats.value.transmissionCount,
-    icon: DataAnalysis,
-    color: "#3b82f6",
-  },
-  {
-    key: "deps",
-    label: "依赖关系",
-    value: stats.value.dependencyCount,
-    icon: Share,
-    color: "#8b5cf6",
-  },
-  {
-    key: "leaks",
-    label: "资源泄漏",
-    value: stats.value.leakCount,
-    icon: Warning,
-    color: "#f59e0b",
-  },
-  {
-    key: "traces",
-    label: "调用链路",
-    value: stats.value.traceCount,
-    icon: Document,
-    color: "#22c55e",
-  },
-]);
-
-/** 卡片点击下钻路由 */
-const cardRoutes: Record<string, string> = {
-  transmissions: "/traces",
-  deps: "/dependencies",
-  leaks: "/leaks",
-  traces: "/traces",
-};
-function onCardClick(c: { key: string }) {
-  const to = cardRoutes[c.key];
-  if (to) router.push(to);
+/** 按错误率阈值着色：>5% 红，1~5% 黄 */
+function rateClass(row: Record<string, unknown>): string {
+  const calls = Number(row.callCount ?? 0);
+  const rate = calls > 0 ? (errorCountOf(row) / calls) * 100 : 0;
+  if (rate > 5) {
+    return "err-text";
+  }
+  if (rate > 1) {
+    return "warn-text";
+  }
+  return "";
 }
 
-/** 健康状态映射（仅后端并入 health 后非空） */
-const healthType = computed((): "success" | "warning" | "danger" | null => {
-  const h = stats.value.health;
-  if (h === "HEALTHY") return "success";
-  if (h === "DEGRADED") return "warning";
-  if (h === "SATURATED") return "danger";
-  return null;
+/* ---------------- 趋势数据 ---------------- */
+const trendBuckets = ref<{ xs: string[]; totals: number[]; errors: number[] }>({
+  xs: [],
+  totals: [],
+  errors: [],
 });
-const healthLabel = computed(() => {
-  const h = stats.value.health;
-  if (h === "HEALTHY") return "系统健康";
-  if (h === "DEGRADED") return "性能降级";
-  if (h === "SATURATED") return "资源饱和";
-  return "未知";
+const errorTrendPoints = ref<TrendPoint[]>([]);
+/** 最近一次传输记录，用于推导协议分布 */
+const recentItems = ref<{ startTime: string; status: string; protocol?: string }[]>([]);
+
+/* ---------------- 图表 option（令牌驱动，无硬编码色） ---------------- */
+const trendOption = computed<EChartsOption>(() => {
+  const c1 = chartColor(0);
+  const c6 = chartColor(5);
+  return {
+    ...chartCanvas(),
+    grid: baseGrid({ top: 36 }),
+    tooltip: baseTooltip(),
+    legend: {
+      data: ["调用量", "错误数"],
+      top: 0,
+      right: 0,
+      icon: "roundRect",
+      itemWidth: 10,
+      itemHeight: 3,
+      textStyle: { color: axisTextColor(), fontSize: 11 },
+    },
+    xAxis: { ...categoryAxis(trendBuckets.value.xs), boundaryGap: false },
+    yAxis: valueAxis({ minInterval: 1 }),
+    series: [
+      {
+        name: "调用量",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: trendBuckets.value.totals,
+        lineStyle: { color: c1, width: 2 },
+        areaStyle: { color: areaGradient(c1) },
+      },
+      {
+        name: "错误数",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: trendBuckets.value.errors,
+        lineStyle: { color: c6, width: 2 },
+      },
+    ],
+  };
 });
+
+const errorTrendOption = computed<EChartsOption>(() => ({
+  ...chartCanvas(),
+  grid: baseGrid(),
+  tooltip: baseTooltip(),
+  legend: {
+    data: ["错误率 %", "平均耗时 ms"],
+    top: 0,
+    right: 0,
+    icon: "roundRect",
+    itemWidth: 10,
+    itemHeight: 3,
+    textStyle: { color: axisTextColor(), fontSize: 11 },
+  },
+  xAxis: {
+    ...categoryAxis(errorTrendPoints.value.map((p) => hm(p.bucketStart))),
+    boundaryGap: false,
+  },
+  yAxis: [
+    valueAxis({ name: "%", nameTextStyle: { color: axisTextColor() } }),
+    valueAxis({ name: "ms", nameTextStyle: { color: axisTextColor() } }),
+  ],
+  series: [
+    {
+      name: "错误率 %",
+      type: "line",
+      smooth: true,
+      symbol: "none",
+      data: errorTrendPoints.value.map((p) => Number(p.errorRatePercent.toFixed(2))),
+      lineStyle: { color: dangerColor(), width: 2 },
+      areaStyle: { color: areaGradient(dangerColor(), 0.2) },
+    },
+    {
+      name: "平均耗时 ms",
+      type: "line",
+      smooth: true,
+      symbol: "none",
+      yAxisIndex: 1,
+      data: errorTrendPoints.value.map((p) => Number(p.avgMs.toFixed(1))),
+      lineStyle: { color: warningColor(), width: 2 },
+    },
+  ],
+}));
+
+/** 环形图：四类记录占比。用「传输 / 依赖 / 链路 / 泄漏」的真实分类色 */
+const donutSegments = computed(() =>
+  [
+    { name: "传输记录", value: stats.value.transmissionCount, color: chartColor(0) },
+    { name: "依赖关系", value: stats.value.dependencyCount, color: chartColor(2) },
+    { name: "调用链路", value: stats.value.traceCount, color: chartColor(4) },
+    { name: "资源泄漏", value: stats.value.leakCount, color: chartColor(3) },
+  ].filter((s) => s.value > 0),
+);
+
+/** 无有效分段时不渲染 pie（模板据此切换到 .panel-empty 空态） */
+const hasDonutData = computed(() => donutSegments.value.length > 0);
+
+const donutOption = computed<EChartsOption>(() => {
+  const segments = donutSegments.value;
+
+  return {
+    ...chartCanvas(),
+    tooltip: {
+      trigger: "item",
+      ...tooltipStyle(),
+      formatter: "{b}<br/>{c} ({d}%)",
+    },
+    legend: {
+      bottom: 0,
+      icon: "circle",
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: axisTextColor(), fontSize: 11 },
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["52%", "72%"],
+        center: ["50%", "44%"],
+        avoidLabelOverlap: true,
+        // 分隔环用面板底色（走 cssVar 取字面量，var() 会被 zrender 当成
+        // 无法解析的颜色而渲染成白色/黑色块）
+        itemStyle: {
+          borderRadius: 5,
+          borderColor: panelBgColor(),
+          borderWidth: 2,
+        },
+        label: { show: false },
+        emphasis: {
+          scale: true,
+          scaleSize: 5,
+          itemStyle: { shadowBlur: 12, shadowColor: colorWithAlpha(dangerColor(), 0) },
+        },
+        data: segments.map((s) => ({
+          name: s.name,
+          value: s.value,
+          itemStyle: { color: s.color },
+        })),
+      },
+    ],
+  };
+});
+
+/* ---------------- 数据加载 ---------------- */
+function hm(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 async function load() {
   loading.value = true;
   try {
-    const s = await getStats();
-    stats.value = s;
-    renderCharts();
+    stats.value = await getStats();
   } catch {
     message.error("加载统计失败");
   } finally {
     loading.value = false;
   }
+  formatLastRefresh();
   await loadRanks();
 }
 
-/** 加载排行 + SLA 数据 */
 async function loadRanks() {
   try {
     const [svc, slow, err, s] = await Promise.all([
@@ -367,69 +639,19 @@ async function loadRanks() {
   }
 }
 
-function renderCharts() {
-  if (pieRef.value) {
-    const c = echarts.init(pieRef.value, "dark");
-    c.setOption({
-      backgroundColor: "transparent",
-      tooltip: { trigger: "item" },
-      series: [
-        {
-          type: "pie",
-          radius: ["45%", "70%"],
-          center: ["50%", "50%"],
-          avoidLabelOverlap: true,
-          itemStyle: { borderRadius: 6, borderColor: "#0b0f1a", borderWidth: 2 },
-          label: { color: "#e6edf7" },
-          data: [
-            { name: "传输", value: stats.value.transmissionCount, itemStyle: { color: "#3b82f6" } },
-            { name: "依赖", value: stats.value.dependencyCount, itemStyle: { color: "#8b5cf6" } },
-            { name: "泄漏", value: stats.value.leakCount, itemStyle: { color: "#f59e0b" } },
-            { name: "链路", value: stats.value.traceCount, itemStyle: { color: "#22c55e" } },
-          ],
-        },
-      ],
-    });
-  }
-  if (barRef.value) {
-    const c = echarts.init(barRef.value, "dark");
-    c.setOption({
-      backgroundColor: "transparent",
-      grid: { left: 40, right: 20, top: 20, bottom: 24 },
-      tooltip: { trigger: "axis" },
-      xAxis: { type: "category", data: ["成功", "失败"], axisLabel: { color: "#e6edf7" } },
-      yAxis: { type: "value", axisLabel: { color: "#e6edf7" } },
-      series: [
-        {
-          type: "bar",
-          barWidth: 36,
-          itemStyle: {
-            borderRadius: [6, 6, 0, 0],
-            color: (p: { dataIndex: number }) =>
-              p.dataIndex === 0 ? "#22c55e" : "#ef4444",
-          },
-          data: [stats.value.transmissionCount - stats.value.errorCount, stats.value.errorCount],
-        },
-      ],
-    });
-  }
-}
-
-/** 拉取最近传输记录并按分钟聚合渲染趋势图（拉取失败静默，不影响主视图）。 */
+/** 拉最近传输记录：既喂趋势图，也留作协议分布数据源 */
 async function loadTrend() {
   try {
     const res = await pageTransmissions({ page: 1, size: 500 });
-    renderTrend(res.items);
+    recentItems.value = res.items || [];
+    bucketTrend(recentItems.value);
   } catch {
-    /* 趋势图降级为空 */
+    /* 趋势降级为空 */
   }
 }
 
-/** 按 startTime 分钟分桶聚合（最近 30 分钟），渲染调用量面积 + 错误数折线。 */
-function renderTrend(items: { startTime: string; status: string }[]) {
-  if (!trendRef.value) {
-    return;
-  }
+/** 按 startTime 分钟分桶（最近 30 分钟），生成调用量 / 错误数两条序列 */
+function bucketTrend(items: { startTime: string; status: string }[]) {
   const now = Date.now();
   const buckets = new Map<number, { total: number; errors: number }>();
   for (let i = 29; i >= 0; i--) {
@@ -440,8 +662,7 @@ function renderTrend(items: { startTime: string; status: string }[]) {
     if (Number.isNaN(t)) {
       continue;
     }
-    const key = Math.floor(t / 60_000);
-    const b = buckets.get(key);
+    const b = buckets.get(Math.floor(t / 60_000));
     if (b) {
       b.total++;
       if ((it.status || "").toUpperCase() !== "OK") {
@@ -452,454 +673,304 @@ function renderTrend(items: { startTime: string; status: string }[]) {
   const xs: string[] = [];
   const totals: number[] = [];
   const errors: number[] = [];
-  const hm = (ms: number) => {
-    const d = new Date(ms);
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
-  for (const [key, b] of [...buckets.entries()].sort((a, b2) => a[0] - b2[0])) {
+  for (const [key, b] of [...buckets.entries()].sort((a, c) => a[0] - c[0])) {
     xs.push(hm(key * 60_000));
     totals.push(b.total);
     errors.push(b.errors);
   }
-  if (!trendChart) {
-    trendChart = echarts.init(trendRef.value, "dark");
-  }
-  trendChart.setOption({
-    backgroundColor: "transparent",
-    grid: { left: 40, right: 20, top: 30, bottom: 24 },
-    tooltip: { trigger: "axis" },
-    legend: { data: ["调用量", "错误数"], textStyle: { color: "#e6edf7" }, top: 0 },
-    xAxis: { type: "category", data: xs, axisLabel: { color: "#e6edf7" }, boundaryGap: false },
-    yAxis: { type: "value", minInterval: 1, axisLabel: { color: "#e6edf7" } },
-    series: [
-      {
-        name: "调用量",
-        type: "line",
-        smooth: true,
-        symbol: "none",
-        data: totals,
-        lineStyle: { color: "#3b82f6", width: 2 },
-        areaStyle: {
-          color: {
-            type: "linear", x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: "rgba(59,130,246,0.35)" },
-              { offset: 1, color: "rgba(59,130,246,0)" },
-            ],
-          },
-        },
-      },
-      {
-        name: "错误数",
-        type: "line",
-        smooth: true,
-        symbol: "none",
-        data: errors,
-        lineStyle: { color: "#ef4444", width: 2 },
-      },
-    ],
-  });
+  trendBuckets.value = { xs, totals, errors };
 }
 
-/** 拉取后端 /trend 分桶数据，渲染错误率（左轴 %）+ 平均耗时（右轴 ms）双轴折线。 */
 async function loadErrorTrend() {
   try {
-    renderErrorTrend(await getTrend(30, 60));
+    errorTrendPoints.value = (await getTrend(30, 60)) || [];
   } catch {
     /* 降级为空 */
   }
 }
 
-function renderErrorTrend(points: TrendPoint[]) {
-  if (!errorTrendRef.value) {
-    return;
-  }
-  if (!errorTrendChart) {
-    errorTrendChart = echarts.init(errorTrendRef.value, "dark");
-  }
-  const hm = (ms: number) => {
-    const d = new Date(ms);
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
-  errorTrendChart.setOption({
-    backgroundColor: "transparent",
-    grid: { left: 44, right: 44, top: 30, bottom: 24 },
-    tooltip: { trigger: "axis" },
-    legend: { data: ["错误率 %", "平均耗时 ms"], textStyle: { color: "#e6edf7" }, top: 0 },
-    xAxis: {
-      type: "category",
-      boundaryGap: false,
-      data: points.map((p) => hm(p.bucketStart)),
-      axisLabel: { color: "#e6edf7" },
-    },
-    yAxis: [
-      { type: "value", name: "%", axisLabel: { color: "#e6edf7" } },
-      { type: "value", name: "ms", axisLabel: { color: "#e6edf7" } },
-    ],
-    series: [
-      {
-        name: "错误率 %",
-        type: "line",
-        smooth: true,
-        symbol: "none",
-        data: points.map((p) => Number(p.errorRatePercent.toFixed(2))),
-        lineStyle: { color: "#ef4444", width: 2 },
-        areaStyle: { color: "rgba(239,68,68,0.2)" },
-      },
-      {
-        name: "平均耗时 ms",
-        type: "line",
-        smooth: true,
-        symbol: "none",
-        yAxisIndex: 1,
-        data: points.map((p) => Number(p.avgMs.toFixed(1))),
-        lineStyle: { color: "#f59e0b", width: 2 },
-      },
-    ],
-  });
-}
-
+/* ---------------- 生命周期 ---------------- */
 onMounted(async () => {
   await load();
   await loadTrend();
   await loadErrorTrend();
-  // 趋势图每 15s 刷新一次（SSE 快照只更新计数，趋势聚合较重不需每 3s 做）
-  trendTimer = window.setInterval(() => {
-    loadTrend();
-    loadErrorTrend();
-  }, 15000);
-  // SSE 实时刷新：每 3s 后端推一次 stats 快照，替代 HTTP 轮询
+
+  // 趋势聚合较重，按用户设定间隔刷新；快照走 SSE（3s）
+  startTrendTimer();
+
   sseWatch = watchStats((snapshot) => {
     Object.assign(stats.value, snapshot);
-    renderCharts();
   });
 });
 
-onBeforeUnmount(() => {
-  sseWatch?.close();
-  if (trendTimer) window.clearInterval(trendTimer);
-  trendChart?.dispose();
-  trendChart = null;
-  errorTrendChart?.dispose();
-  errorTrendChart = null;
+// watch 趋势图刷新间隔，切换时重建 timer
+watch(refreshInterval, () => {
+  startTrendTimer();
 });
 
-watch(stats, () => renderCharts(), { deep: true });
+function startTrendTimer() {
+  if (trendTimer) window.clearInterval(trendTimer);
+  trendTimer = window.setInterval(() => {
+    loadTrend();
+    loadErrorTrend();
+  }, refreshInterval.value * 1000);
+}
+
+// stats 变化时刷新协议分布（计数变了，占比就变了）
+watch(
+  () => [stats.value.transmissionCount, stats.value.dependencyCount, stats.value.leakCount, stats.value.traceCount],
+  () => {
+    /* donutOption 是 computed，依赖 stats，这里无需额外动作 */
+  },
+  { deep: true },
+);
+
+onBeforeUnmount(() => {
+  sseWatch?.close();
+  if (trendTimer) {
+    window.clearInterval(trendTimer);
+  }
+});
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.view-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label {
-  font-size: 13px;
-  color: var(--apm-muted);
-}
-
-.live-dot {
+/* ---- 健康徽章 ---- */
+.health-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--apm-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.health-chip.success {
+  background: var(--apm-success-bg);
   color: var(--apm-success);
 }
 
-/* 实时脉冲点：用 border + transform 做外扩脉冲，不用 box-shadow。
-   理由：koi 规约只允许「焦点环」「悬浮反馈」两类投影；且 border 在关闭动画后
-   仍留下一圈实色描边，关动效不会丢掉「SSE 实时推送中」这个唯一信号。 */
-.live-pulse {
-  box-sizing: border-box;
-  width: 9px;
-  height: 9px;
-  border: 2px solid var(--apm-success);
-  border-radius: var(--el-radius-full, 9999px);
-  background: transparent;
-  animation: live-pulse 1.6s ease-out infinite;
+.health-chip.warning {
+  background: var(--apm-warning-bg);
+  color: var(--apm-warning);
 }
 
-@keyframes live-pulse {
-  0% {
-    transform: scale(0.55);
-    border-color: color-mix(in srgb, var(--el-color-success) 70%, transparent);
-  }
-  70% {
-    transform: scale(1);
-    border-color: color-mix(in srgb, var(--el-color-success) 0%, transparent);
-  }
+.health-chip.danger {
+  background: var(--apm-danger-bg);
+  color: var(--apm-danger);
+}
+
+.health-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.health-chip.danger .health-chip-dot {
+  animation: apm-health-pulse 1.4s var(--apm-ease) infinite;
+}
+
+@keyframes apm-health-pulse {
+  0%,
   100% {
+    opacity: 1;
     transform: scale(1);
-    border-color: color-mix(in srgb, var(--el-color-success) 0%, transparent);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
   }
 }
 
-.mr-1 {
-  margin-right: 4px;
-  vertical-align: -2px;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-
-/* ---- 统计卡片 ---- */
-.stat-card {
-  position: relative;
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
-  padding: 18px 20px;
+/* ---- 健康指标组 ---- */
+.health-metrics {
   display: flex;
   align-items: center;
-  gap: 16px;
-  overflow: hidden;
+  gap: var(--apm-space-5);
+  padding-left: var(--apm-space-4);
+  border-left: 1px solid var(--apm-border);
+}
+
+.health-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.health-metric-value {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--apm-fg);
+}
+
+.health-metric-label {
+  font-size: 12px;
+  color: var(--apm-muted);
+}
+
+.refresh-icon {
+  margin-right: 4px;
+}
+
+.interval-select {
+  width: 90px;
+}
+
+.last-refresh {
+  font-size: 11px;
+  padding-left: var(--apm-space-3);
+  border-left: 1px solid var(--apm-border-soft);
+}
+
+/* 图表导出按钮 */
+.chart-export-btn {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--apm-muted);
+}
+
+.chart-export-btn:hover {
+  color: var(--apm-accent);
+}
+
+/* 图表导出：让 ECharts 实例可被 exportChart 定位 */
+
+/* ---- 统计卡 ---- */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-4) var(--apm-space-5);
+  text-align: left;
+  background: var(--apm-panel);
+  border: 1px solid transparent;
+  border-radius: var(--apm-radius-lg);
+  box-shadow: var(--apm-shadow-card);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   transition:
-    transform var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease;
+    transform var(--apm-t-fast),
+    box-shadow var(--apm-t-fast),
+    border-color var(--apm-t-fast);
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  border-color: var(--accent);
+  box-shadow: var(--apm-shadow-card-hover);
+  border-color: color-mix(in srgb, var(--card-accent) 42%, transparent);
 }
 
-.stat-card.clickable {
-  cursor: pointer;
+.stat-card:focus-visible {
   outline: none;
-}
-
-.stat-card.clickable:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.stat-card.clickable::after {
-  content: "→";
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-  color: var(--apm-muted);
-  opacity: 0;
-  transition:
-    opacity var(--el-transition-duration-fast, 0.2s) ease,
-    right var(--el-transition-duration-fast, 0.2s) ease;
-}
-
-.stat-card.clickable:hover::after {
-  opacity: 1;
-  right: 14px;
-  color: var(--accent);
-}
-
-/* ---- 健康条 ---- */
-.health-bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 12px 16px;
-}
-
-.health-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.health-metric {
-  font-size: 12px;
-  color: var(--apm-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.health-bar .el-button {
-  margin-left: auto;
-}
-
-/* ---- SLA ---- */
-.sla-metric b {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.sla-detail {
-  margin-left: 6px;
-  color: var(--apm-muted);
-  font-size: 11px;
-}
-
-.sla-ok {
-  color: var(--apm-success);
-}
-
-.sla-warn {
-  color: var(--apm-warning);
-}
-
-.sla-bad {
-  color: var(--apm-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--apm-accent) 30%, transparent);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--el-radius-lg, 12px);
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
+  border-radius: var(--apm-radius-md);
+  background: color-mix(in srgb, var(--card-accent) 16%, transparent);
+  color: var(--card-accent);
 }
 
 .stat-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  color: var(--apm-fg);
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--apm-muted);
+  white-space: nowrap;
 }
 
-.stat-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%);
-  pointer-events: none;
+/* 下钻箭头：默认弱化，悬停时显形并位移，暗示可点 */
+.stat-arrow {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--card-accent);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--apm-t-fast),
+    transform var(--apm-t-fast);
 }
 
-.chart-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+.stat-card:hover .stat-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
-.panel {
-  background: var(--apm-panel);
-  border: 1px solid var(--apm-border);
-  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.panel-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.panel-head span:first-child {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.panel-sub {
-  font-size: 12px;
-  color: var(--apm-muted);
-}
-
+/* ---- 图表 ---- */
 .panel-chart {
-  height: 260px;
   width: 100%;
 }
 
-/* ---- 排行网格 ---- */
-.rank-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-/* ---- 表格样式 ---- */
-.apm-table {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: var(--el-fill-color-light);
-  --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-text-color: var(--apm-fg);
-  --el-table-header-text-color: var(--apm-muted);
-}
-
-.apm-table :deep(.el-table__row) {
+/* ---- 排行表 ---- */
+.rank-table :deep(.el-table__row) {
   cursor: pointer;
 }
 
-.mono {
-  font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 12px;
+.rank-table :deep(.el-table__row:hover td) {
+  background: var(--apm-panel-active);
 }
 
-.muted {
-  color: var(--apm-muted);
+.service-cell {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.err {
-  color: var(--apm-danger);
+.truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.warn {
-  color: var(--apm-warning);
-}
-
-.ok {
-  color: var(--apm-success);
-}
-
-@media (max-width: 1200px) {
-  .rank-grid {
-    grid-template-columns: 1fr;
+/* ---- 响应式 ---- */
+@media (max-width: 1100px) {
+  .health-metrics {
+    display: none;
   }
 }
 
-@media (max-width: 1024px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .chart-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 640px) {
+  .view-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
-/* 尊重系统「减少动态效果」偏好：
-   .live-pulse 关掉脉冲后仍保留一圈实色描边（border 不随 animation 变化），
-   「SSE 实时推送中」这个唯一信号不会因为关动效而丢失 */
+/* 尊重「减少动态效果」偏好：脉冲与上浮全部关掉 */
 @media (prefers-reduced-motion: reduce) {
-  .live-pulse {
+  .health-chip.danger .health-chip-dot {
     animation: none;
   }
+
   .stat-card,
-  .stat-card.clickable::after {
+  .stat-card:hover,
+  .stat-arrow {
     transition: none;
+    transform: none;
   }
 }
 </style>
