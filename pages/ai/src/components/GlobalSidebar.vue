@@ -143,7 +143,9 @@
                     {{ session.title }}
                   </div>
                 </div>
-                <div v-if="!multiSelectMode" class="session-actions shrink-0 h-full flex items-center gap-1">
+                <!-- ml-auto：把这一栏顶到最右边缘。缺了它时该块紧跟在标题后面，
+                     时间既不在最右、hover 出来的工具也无处可站。 -->
+                <div v-if="!multiSelectMode" class="session-actions ml-auto shrink-0 h-full flex items-center gap-1">
                   <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
                   <span v-if="getSessionWorking(session.id)"
                     class="text-xs font-medium text-blue-500 whitespace-nowrap">
@@ -162,8 +164,11 @@
                     class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap group-hover:hidden">
                     {{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
                   </span>
-                  <!-- hover 快捷操作：置顶/取消置顶、归档 -->
-                  <div class="session-hover-actions opacity-0 group-hover:opacity-100 flex items-center gap-0.5">
+                  <!-- hover 快捷操作：置顶/取消置顶、归档。
+                       用 hidden/group-hover:flex 而不是 opacity-0：opacity-0 仍占宽度，
+                       不 hover 时这段空隙会把左侧的时间顶离最右边缘
+                       （用户要求「时间固定在最右」，占位式隐藏做不到）。 -->
+                  <div class="session-hover-actions hidden group-hover:flex items-center gap-0.5">
                     <el-icon class="session-action-trigger" size="14"
                       :title="isPinned(session.id) ? t('ui.sidebar.unpin') : t('ui.sidebar.pin')"
                       @click.stop="togglePin(session)">
@@ -175,9 +180,10 @@
                       <Archive20Regular />
                     </el-icon>
                   </div>
-                  <!-- 操作菜单：当前会话常显，其余 hover 显示；与右侧文本并排，互不遮挡 -->
-                  <div class="flex items-center"
-                    :class="session.id === currentSessionId ? '' : 'opacity-0 group-hover:opacity-100'">
+                  <!-- 操作菜单：当前会话常显，其余 hover 显示；与右侧文本并排，互不遮挡。
+                       同样用 hidden/group-hover:flex —— 非当前会话时不占位，
+                       否则它的空位会把时间顶离最右。 -->
+                  <div :class="session.id === currentSessionId ? 'flex items-center' : 'hidden group-hover:flex items-center'">
                     <DropdownMenu @command="(cmd: string) => handleDropdownSelect(cmd, session)">
                       <div class="session-action-trigger">
                         <el-icon class="w-4 h-4">
