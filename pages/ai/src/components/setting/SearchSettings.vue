@@ -20,6 +20,10 @@
         control-width="220px"
       >
         <el-select v-model="selectedProvider" @update:model-value="handleProviderChange">
+          <!-- 360 放最前并作为默认：它无需 API Key 即可用，是唯一「不配任何东西就能联网」
+               的路径；后端 WebSearchService 的兜底也正是 360。此前页面没有这个选项，
+               后端却默认走它，导致「页面显示的选中项」和「实际生效的搜索源」不是同一个。 -->
+          <el-option label="360（免费，无需 API Key）" value="360" />
           <el-option :label="t('settings.search.bocha')" value="bocha" />
           <el-option label="Tavily" value="tavily" />
           <el-option :label="t('settings.search.metaso')" value="metaso" />
@@ -68,11 +72,18 @@
           placeholder="tvly-..." clearable />
       </SettingsRow>
 
-      <!-- 提示信息 -->
+      <!-- 提示信息。
+           注意最后那个 v-else：它兜的是 metaso，所以新增搜索源必须显式加分支，
+           否则选中新源时会显示秘塔的文案（这里之前就会把 360 显示成秘塔）。 -->
       <div class="search-tip">
-        <template v-if="selectedProvider === 'bocha'">{{ t('settings.search.bochaTip') }}</template>
+        <template v-if="selectedProvider === '360'">
+          360 搜索无需 API Key，开箱即用；返回网页结果，适合实时信息（天气、行情、新闻）。
+          调用失败时后端会自动回落到该源，因此把它留在列表里总是安全的。
+        </template>
+        <template v-else-if="selectedProvider === 'bocha'">{{ t('settings.search.bochaTip') }}</template>
         <template v-else-if="selectedProvider === 'tavily'">{{ t('settings.search.tavilyTip') }}</template>
-        <template v-else>{{ t('settings.search.metasoTip') }}</template>
+        <template v-else-if="selectedProvider === 'metaso'">{{ t('settings.search.metasoTip') }}</template>
+        <template v-else>付费源的 Key 未填写或调用失败时，后端会自动回落到 360 免费搜索。</template>
       </div>
     </SettingsCard>
   </div>
@@ -94,8 +105,9 @@ import SettingsRow from './SettingsRow.vue'
 const { notify } = usePopup()
 const { t } = useI18n()
 
-// 当前选中的供应商
-const selectedProvider = ref('bocha')
+// 当前选中的供应商。默认 360：与后端 WebSearchService 的 orElse("360") 兜底对齐，
+// 也与 SearchGlobalSettingProvider 里 provider 的默认值一致，三处口径必须同一个。
+const selectedProvider = ref('360')
 
 // 各供应商 API Key 独立存储（切换供应商时不会丢失）
 const providerKeys = reactive({
@@ -141,7 +153,7 @@ const handleProviderChange = async (val: string) => {
 const loadSettings = async () => {
   try {
     const response = await apiService.fetchGroupSettings('search')
-    selectedProvider.value = response.provider || 'bocha'
+    selectedProvider.value = response.provider || '360'
     providerKeys.bocha = response.bocha?.apiKey || ''
     providerKeys.tavily = response.tavily?.apiKey || ''
     providerKeys.metaso = response.metaso?.apiKey || ''
@@ -154,7 +166,7 @@ const loadSettings = async () => {
   } catch (error) {
     console.error('获取搜索设置失败:', error)
     originalSettings.value = JSON.parse(JSON.stringify({
-      provider: 'bocha',
+      provider: '360',
       bocha: { apiKey: '' },
       tavily: { apiKey: '' },
       metaso: { apiKey: '' },
