@@ -19,7 +19,7 @@ import "./styles/telemetry.css";
 import { installUi } from "@repo/ui";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./routes";
-import { registerMonitorDatasourceSchema } from "./datasourceSchemaProvider";
+import { registerMonitorDatasourceSchema } from "@pages/datasource";
 
 /** 本页可能用到的 Re* 组件。
  *  注意：ReIcon / ReScrollNav / ReDrawer 已由 koi 主题安装器（installKoi 内部 installUiComponents）

@@ -34,10 +34,36 @@
         <div class="colorize-main">
           <div class="colorize-stage">
             <div class="colorize-stage-head">
-              <span class="colorize-stage-title">{{ generating ? '正在上色中…' : (resultUrl ? '上色效果' : '原图预览') }}</span>
-              <ReButton size="small" type="default" plain :disabled="generating" @click="pickFile">更换图片</ReButton>
+              <span class="colorize-stage-title">
+                {{ generating ? '正在上色中…' : (resultUrl ? '上色效果 · 拖动中间滑块对比' : '原图预览') }}
+              </span>
+              <div class="colorize-stage-tools">
+                <ReButton
+                  v-if="resultUrl"
+                  size="small"
+                  :type="compareMode ? 'primary' : 'default'"
+                  plain
+                  @click="compareMode = !compareMode"
+                >
+                  {{ compareMode ? '并排查看' : '拖拽对比' }}
+                </ReButton>
+                <ReButton size="small" type="default" plain :disabled="generating" @click="pickFile">更换图片</ReButton>
+              </div>
             </div>
-            <div class="colorize-canvas-box">
+
+            <!-- 结果就绪：用 ReImageCompare 做「原图 ⇄ 上色」拖拽对比，
+                 比原来直接替换成结果图更能看出上色改了什么 -->
+            <div v-if="resultUrl && compareMode" class="colorize-compare">
+              <ReImageCompare
+                :left-image="originalUrl"
+                :right-image="resultUrl"
+                left-label="原图"
+                right-label="上色"
+                :default-slider-handle="50"
+              />
+            </div>
+            <!-- 并排模式 / 仅原图预览 -->
+            <div v-else class="colorize-canvas-box">
               <img v-if="resultUrl" :src="resultUrl" class="colorize-canvas" alt="上色结果" />
               <img v-else :src="originalUrl" class="colorize-canvas" alt="原图" />
               <div v-if="generating" class="colorize-loading">
@@ -76,6 +102,7 @@ import { Loading, WarningFilled } from '@element-plus/icons-vue'
 import ReCard from '@/components/re/ReCard.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReEmpty from '@/components/re/ReEmpty.vue'
+import ReImageCompare from '@repo/ui/re-image-compare'
 import { apiService } from '@/services/ApiService'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { message } from '@repo/core'
@@ -94,6 +121,13 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const imageLoaded = ref(false)
 const generating = ref(false)
 const resultError = ref('')
+/**
+ * 结果展示方式：true = 原图/上色拖拽对比，false = 只看结果图。
+ *
+ * <p>默认开对比：上色的价值就在「改了哪些地方」，单看结果图看不出差异。
+ * 用户可切回并排/单图模式。</p>
+ */
+const compareMode = ref(true)
 let sourceFile: File | null = null
 let originalObjectUrl = ''
 let resultObjectUrl = ''
@@ -300,6 +334,27 @@ function resetImage() {
   margin-bottom: 12px;
 }
 .colorize-stage-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.colorize-stage-tools { display: flex; align-items: center; gap: 8px; }
+
+/* 拖拽对比容器：显式高度 + overflow，避免 ReImageCompare 内部
+   把容器撑到图片原始高度（实测 682px 会顶出卡片） */
+.colorize-compare {
+  height: 460px;
+  max-height: 460px;
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+}
+.colorize-compare :deep(.re-image-compare) {
+  height: 100%;
+  max-height: 460px;
+  padding: 0;
+  background: transparent;
+}
+.colorize-compare :deep(.vci--container) {
+  height: 100% !important;
+  max-height: 460px;
+}
 .colorize-canvas-box {
   position: relative;
   max-height: 600px;

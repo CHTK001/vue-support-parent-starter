@@ -73,7 +73,7 @@ withDefaults(defineProps<Props>(), {
   overflow: hidden;
 }
 
-.re-image-compare :deep(.vci--root) {
+.re-image-compare :deep(.vci--container) {
   width: 100%;
   height: 100%;
   border-radius: var(--el-border-radius-base);
@@ -91,35 +91,30 @@ withDefaults(defineProps<Props>(), {
   left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.re-image-compare :deep(.vci--left-image img),
-.re-image-compare :deep(.vci--right-image img) {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
   object-fit: contain;
 }
 
-.re-image-compare :deep(.vci--controller) {
+/* 滑块：vue3-compare-image 实际用的是 .vci--slider（40px 宽的拖拽热区），
+   原先写的 .vci--controller 在这个版本里根本不存在，样式一条都没生效 ——
+   表现为滑块是一条细白线、没有圆形手柄。 */
+.re-image-compare :deep(.vci--slider) {
+  cursor: ew-resize !important;
+}
+
+.re-image-compare :deep(.vci--slider-line) {
+  width: 2px !important;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35);
+}
+
+.re-image-compare :deep(.vci--default-handle) {
   border-radius: 999px;
-  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.6);
-  cursor: ew-resize;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px !important;
-  transform: none !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.45);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(2px);
 }
 
 .re-image-compare :deep(.vci--left-label),
 .re-image-compare :deep(.vci--right-label) {
-  top: 8% !important;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;

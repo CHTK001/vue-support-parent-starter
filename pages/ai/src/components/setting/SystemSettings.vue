@@ -242,7 +242,7 @@ import {
     PuzzlePiece24Regular,
     Server24Regular,
     Person20Regular,
-    Speaker024Regular,
+    DesktopSpeaker24Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -386,7 +386,7 @@ const sidebarItems = computed(() => [
         // 的 shouldShowField：isSplitGroupMode 下 asr 全字段显示）。
         label: '音频配置',
         path: 'audio-config',
-        icon: Speaker024Regular,
+        icon: DesktopSpeaker24Regular,
         roles: ['primary'],
     },
     {

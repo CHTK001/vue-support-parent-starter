@@ -1,23 +1,21 @@
 /**
- * 监控台的数据源表结构提供者。
+ * 数据源「浏览表结构」表结构提供者 —— 监控侧实现（@pages/datasource 内）。
  *
- * <p>共享包 {@code @pages/datasource} 的「浏览表结构」默认走采集平台的
- * {@code /v2/collect/datasource/*}，监控台后端不含采集模块，这里改用监控后端自带的
+ * <p><strong>为什么放这里</strong>：{@code setDatasourceSchemaProvider} / 浏览表结构链路
+ * （fetchDbDatabases / fetchDbTables / fetchTableColumns）本就属于本包；把提供者实现也收敛进
+ * 本包，宿主（app）只需要在启动时调一次注册入口，不必再在 app shell 里维护一份 schema 逻辑——
+ * 与「功能归 pages/xx、app 只是壳」的约定一致。</p>
+ *
+ * <p><strong>监控侧差异</strong>：共享包 {@code @pages/datasource} 的「浏览表结构」默认走采集平台的
+ * {@code /v2/collect/datasource/*}，监控台后端不含采集模块。本提供者改用监控后端自带的
  * {@code /ms/monitor/db/*}，让该功能在监控台同样可用，且不产生对采集平台的运行期依赖。</p>
- *
- * <p>调用时机：应用启动时注册一次（见 main.ts），数据源中心页的「浏览表结构」
- * 即走本实现。</p>
  *
  * @author CH
  * @since 4.0.0.42
  */
-import {
-  fetchDataSource,
-  setDatasourceSchemaProvider,
-  type CollectColumn,
-  type DataSourceInfo,
-} from "@pages/datasource";
-import { fetchDbDatabases, fetchDbTables, fetchTableColumns } from "@pages/datasource/src/api/manageConsoles";
+import { fetchDataSource, setDatasourceSchemaProvider } from "../api";
+import type { CollectColumn, DataSourceInfo } from "../api";
+import { fetchDbDatabases, fetchDbTables, fetchTableColumns } from "../api/manageConsoles";
 
 /**
  * 每个数据源在浏览时会话内选定的库。
@@ -65,7 +63,9 @@ function pickDatabaseCandidates(meta: DataSourceInfo | null, databases: string[]
 }
 
 /**
- * 注册监控台的表结构提供者（启动时调用一次）。
+ * 注册监控侧的数据源表结构提供者（宿主启动时调用一次）。
+ *
+ * <p>注册后，数据源中心的「浏览表结构」即走本实现的 {@code /ms/monitor/db/*} 链路。</p>
  */
 export function registerMonitorDatasourceSchema(): void {
   setDatasourceSchemaProvider({

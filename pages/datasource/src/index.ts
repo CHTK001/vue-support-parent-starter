@@ -80,3 +80,8 @@ export {
   DatasourceTableSelect,
   CreateTableDialog,
 } from "./components/selectors";
+
+// 数据源「浏览表结构」的 schema 提供者（监控侧实现）。
+// 宿主 app 只需在启动时调用一次 registerMonitorDatasourceSchema()，
+// 不必再把这份逻辑抄进 app shell。
+export { registerMonitorDatasourceSchema } from "./schema/monitorSchemaProvider";
