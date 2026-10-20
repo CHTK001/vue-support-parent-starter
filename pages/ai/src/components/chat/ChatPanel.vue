@@ -1,7 +1,9 @@
 <template>
-  <!-- 消息+输入 区域容器 -->
-  <div class="flex-1 overflow-hidden w-full relative">
-    <ScrollContainer ref="scrollContainerRef" class="h-full chat-scroll-container transition-opacity duration-300 px-5"
+  <!-- 消息+输入 区域容器：纵向排布「滚动区 + 底部统计条」，统计条常驻不参与滚动 -->
+  <div class="flex-1 overflow-hidden w-full relative flex flex-col">
+    <!-- 滚动区：父容器改为 flex-col 后，这里必须 flex-1 + min-h-0 才会正确收缩，
+         否则内容会把底部统计条顶出可视区（min-h-0 是 flex 子项允许收缩的前提）。 -->
+    <ScrollContainer ref="scrollContainerRef" class="flex-1 min-h-0 chat-scroll-container transition-opacity duration-300 px-5"
       :auto-scroll="needScrollToBottom" :aria-label="t('chat.messages')" @scroll="handleScroll">
       <!-- 会话 Token 消耗统计条（有数据时显示） -->
       <div v-if="tokenStats?.usedTokens" class="w-full mx-auto pt-3" :style="contentMaxWidthStyle">
@@ -140,6 +142,12 @@
       </div>
     </ScrollContainer>
 
+    <!-- 会话底部统计条：轮数 / 步数 / 速度 + Token / 缓存命中 + 上下文占用。
+         放在滚动区之外（ScrollContainer 之后），保证它常驻不随消息滚动。
+         上下文数据从本组件已有的 tokenStats 透传，避免子组件再拉一次 /token-stats。 -->
+    <SessionStatsBar :messages="activeMessages" :context-used="tokenStats?.usedTokens || 0"
+      :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0" />
+
     <!-- 回到底部悬浮按钮 -->
     <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
       @click="handleScrollToBottomClick" />
@@ -186,6 +194,7 @@ import { useSessionTokenStats } from '@/composables/useSessionTokenStats'
 // 组件导入
 import TurnItem from "./TurnItem.vue";
 import MessageSkeleton from "./MessageSkeleton.vue";
+import SessionStatsBar from "./SessionStatsBar.vue";
 import { ChatInput, ScrollContainer, ScrollToBottomButton } from "../ui";
 import WelcomeScreen from './WelcomeScreen.vue';
 import QueuedMessages from './QueuedMessages.vue';
@@ -1688,12 +1697,16 @@ function scrollToMessage(messageId: string) {
   max-height: 400px;
 }
 
-/* 底部渐变遮罩：底部25px完全隐藏，上方渐变过渡 */
+/* 底部渐变遮罩：底部25px完全隐藏，上方渐变过渡。
+   取对话区底色令牌而不是 --color-bg —— 对话区改成白底后，
+   用页面底色会在白底上拖出一条淡蓝渐变带。
+   模板已有 v-if="!hasWallpaper"：壁纸场景下对话区是半透明层，
+   这里的纯色渐变会显成一块补丁，故不在此处再做处理。 */
 .chat-bottom-fade {
   position: absolute;
   height: 48px;
   pointer-events: none;
-  background: linear-gradient(to top, var(--color-bg) 25px, transparent 48px);
+  background: linear-gradient(to top, var(--color-chat-bg, var(--color-bg)) 25px, transparent 48px);
 }
 
 /* 加载指示器淡入淡出 */

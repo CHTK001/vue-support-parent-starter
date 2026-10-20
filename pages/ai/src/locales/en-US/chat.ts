@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   /** 消息滚动区：作为 role="region" 的可读名称（ScrollContainer） */
   messages: 'Message list',
   // ── 输入区 ──
@@ -294,6 +294,27 @@
     used: 'Context usage',
     usedTokens: 'Tokens used',
     totalTokens: 'Context window',
+  },
+
+  // ── Session footer stats bar (rounds / steps / speed / tokens / cache / context) ──
+  runStats: {
+    title: 'Session stats',
+    rounds: '{n} rounds',
+    steps: '{n} steps',
+    speed: '{n} tok/s',
+    second: '{n}s',
+    minuteSecond: '{m}m {s}s',
+    tokens: '{n} tok',
+    percent: '{pct}%',
+    cacheHit: 'Cache hit {pct}%',
+    cacheHitEmpty: 'Cache hit —',
+    modelTime: 'Model time',
+    toolTime: 'Tool time',
+    ttft: 'First token avg (TTFT)',
+    tps: 'Output speed (TPS)',
+    promptTokens: 'Input',
+    cachedTokens: 'Cache hit',
+    contextUsage: 'Context usage',
   },
 
   // ── Rewind confirm dialog ──

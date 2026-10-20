@@ -40,6 +40,7 @@ import sleepForm from "./nodes/sleepForm.vue";
 import sqlForm from "./nodes/sqlForm.vue";
 import startForm from "./nodes/startForm.vue";
 import SectionHead from "./nodes/SectionHead.vue";
+import NodeFormTabs from "./NodeFormTabs.vue";
 import {
   createNode,
   emptyDsl,
@@ -814,6 +815,20 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   "neo4j-write": middlewareForm,
 };
 
+/** 已收敛到 NodeParamForm 的 shape 列表；这些节点使用统一 Tab 外壳，其余保留专用表单 */
+const SIMPLE_TABBED_SHAPES = new Set([
+  "link",
+  "output",
+  "dedup",
+  "sleep",
+  "script",
+  "ai",
+  "process",
+  "comment",
+  "condition",
+  "end",
+]);
+
 /** 当前节点该渲染的表单组件 */
 const activeForm = computed<Component>(() =>
   nodeForm.value ? FORM_BY_SHAPE[nodeForm.value.shape] ?? genericForm : genericForm,
@@ -1492,7 +1507,20 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
         </div>
 
         <!-- 节点参数：属性面板唯一常驻内容，选中节点即显示 -->
-        <div v-if="nodeForm && selectedMeta" class="pane-grid">
+        <template v-if="nodeForm && selectedMeta">
+          <NodeFormTabs
+            v-if="SIMPLE_TABBED_SHAPES.has(nodeForm.shape)"
+            :node="nodeForm"
+            :meta="selectedMeta"
+            :ctx="formContext"
+            :active-form="activeForm"
+            :state-text="stateText"
+            :selected-state="selectedState"
+            :rename-node="renameNode"
+            @set-param="setParam"
+            @set-pairs="writeNodePairs"
+          />
+          <div v-else class="pane-grid">
               <!-- 分节头（UI 稿）：基础信息 = 名称 / ID / 最近执行；其余表单归「类型配置」节 -->
               <SectionHead title="基础信息" />
               <div class="field">
@@ -1554,9 +1582,10 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
                 <span class="pane-status-hint">改动实时生效，随流程一起保存</span>
               </div>
             </div>
+          </template>
 
-            <!-- 连线属性：选中连线即显示（判断节点的真假分流条件在这里编） -->
-            <div v-else-if="edgeForm" class="pane-grid">
+          <!-- 连线属性：选中连线即显示（判断节点的真假分流条件在这里编） -->
+          <div v-else-if="edgeForm" class="pane-grid">
               <div class="field">
                 <div class="field-label">流转方向</div>
                 <ReInput  disabled :model-value="edgeFlowText"/>

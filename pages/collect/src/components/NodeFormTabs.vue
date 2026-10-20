@@ -7,8 +7,8 @@ import { computed, ref } from "vue";
 import ReInput from "@repo/ui/re-input";
 import type { Component } from "vue";
 import type { NodeForm, NodeFormContext } from "./nodes/paramContext";
-import type { CollectParamMeta, CollectShapeMeta, CollectTaskLog } from "../../types/collect";
-import type { ParamPair } from "../../utils/dsl";
+import type { CollectParamMeta, CollectShapeMeta, CollectTaskLog } from "../types/collect";
+import type { ParamPair } from "../utils/dsl";
 
 const props = defineProps<{
   node: NodeForm;
@@ -17,7 +17,7 @@ const props = defineProps<{
   activeForm: Component;
   stateText: (id: string) => string;
   selectedState?: CollectTaskLog | null;
-  renameNode: (name: string) => void;
+  renameNode: (name: string | number | null | undefined) => void;
 }>();
 
 const emit = defineEmits<{
