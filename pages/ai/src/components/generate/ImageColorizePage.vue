@@ -52,8 +52,14 @@
             </div>
 
             <!-- 结果就绪：用 ReImageCompare 做「原图 ⇄ 上色」拖拽对比，
-                 比原来直接替换成结果图更能看出上色改了什么 -->
-            <div v-if="resultUrl && compareMode" class="colorize-compare">
+                 比原来直接替换成结果图更能看出上色改了什么。
+                 容器宽度跟随图片宽高比（见 .colorize-compare 注释），
+                 否则 contain 留白会让滑块偏离图像中线。 -->
+            <div
+              v-if="resultUrl && compareMode"
+              class="colorize-compare"
+              :style="{ '--compare-aspect': compareAspect }"
+            >
               <ReImageCompare
                 :left-image="originalUrl"
                 :right-image="resultUrl"
@@ -128,6 +134,18 @@ const resultError = ref('')
  * 用户可切回并排/单图模式。</p>
  */
 const compareMode = ref(true)
+
+/**
+ * 原图宽高比（width / height），用于给对比容器定比例。
+ *
+ * <p>为什么需要：容器固定 460px 高、宽度撑满，若宽高比与图片不一致，
+ * {@code object-fit: contain} 会在两侧留白，而滑块按容器宽度定位 ——
+ * 结果是「滑块不在图像中线上」，看着像没对齐。让容器按图片比例收缩，
+ * 图与滑块就同一条中线。</p>
+ *
+ * <p>兜底 4/3：图片还没加载完时给一个常见比例，避免容器塌成 0。</p>
+ */
+const compareAspect = ref(4 / 3)
 let sourceFile: File | null = null
 let originalObjectUrl = ''
 let resultObjectUrl = ''
@@ -176,6 +194,24 @@ function isImageFile(file: File) {
   return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(file.name || '')
 }
 
+/**
+ * 读出图片宽高比并写入 compareAspect。
+ *
+ * <p>失败时保持兜底比例，不打断上色流程 —— 对比容器的比例只是观感优化。</p>
+ *
+ * @param url 图片地址（blob URL）
+ */
+function syncCompareAspect(url: string) {
+  if (!url) return
+  const probe = new Image()
+  probe.onload = () => {
+    if (probe.naturalWidth > 0 && probe.naturalHeight > 0) {
+      compareAspect.value = probe.naturalWidth / probe.naturalHeight
+    }
+  }
+  probe.src = url
+}
+
 function loadImageFromFile(file: File) {
   if (!isImageFile(file)) {
     message.warning('请选择图片文件')
@@ -188,6 +224,7 @@ function loadImageFromFile(file: File) {
   resultUrl.value = ''
   resultError.value = ''
   imageLoaded.value = true
+  syncCompareAspect(originalObjectUrl)
   void colorizeImage()
 }
 
@@ -341,6 +378,11 @@ function resetImage() {
 .colorize-compare {
   height: 460px;
   max-height: 460px;
+  /* 宽度按图片宽高比收缩（--compare-aspect 由模板按原图尺寸写入）：
+     让图像铺满容器、滑块落在图像中线，而不是容器中线 */
+  width: min(100%, calc(460px * var(--compare-aspect, 1.3333)));
+  max-width: 100%;
+  margin-inline: auto;
   border-radius: var(--el-radius-lg, 12px);
   border: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
