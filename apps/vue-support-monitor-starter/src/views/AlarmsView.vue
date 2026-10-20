@@ -7,7 +7,7 @@
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 
-import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "../monitorApi";
+import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "@pages/monitor/src/api/monitorApi";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
 const loading = ref(false);

@@ -13,7 +13,7 @@ import {
   fetchFileAssets,
   uploadFileAsset,
   type FileAssetItem,
-} from "../monitorApi";
+} from "@pages/monitor/src/api/monitorApi";
 
 // ========== 状态 ==========
 const loading = ref(false);

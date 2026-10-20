@@ -12,7 +12,7 @@ import {
   fetchProxyServers, fetchServerProtocols, createServerNode, updateServerNode,
   deleteServerNode, startServerNode, stopServerNode,
   type ServerNodeView, type ServerNodeRequest, type ServerProtocolMeta,
-} from "../monitorApi";
+} from "@pages/monitor/src/api/monitorApi";
 
 /** 代理节点列表 */
 const list = ref<ServerNodeView[]>([]);

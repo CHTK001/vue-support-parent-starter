@@ -10,7 +10,7 @@ import { useRoute, useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { getUserInfo, clearAuthCache } from "@repo/utils";
-import { fetchAlarmEvents, isUnhandled } from "./monitorApi";
+import { fetchAlarmEvents, isUnhandled } from "@pages/monitor/src/api/monitorApi";
 
 const route = useRoute();
 const router = useRouter();

@@ -336,8 +336,8 @@ function resetImage() {
 .colorize-stage-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
 .colorize-stage-tools { display: flex; align-items: center; gap: 8px; }
 
-/* 拖拽对比容器：显式高度 + overflow，避免 ReImageCompare 内部
-   把容器撑到图片原始高度（实测 682px 会顶出卡片） */
+/* 拖拽对比容器：必须给确定高度 —— ReImageCompare 内部是 absolute 定位，
+   父级没有高度会塌成 0。上限 460px 防止大图把卡片顶出屏幕。 */
 .colorize-compare {
   height: 460px;
   max-height: 460px;

@@ -181,7 +181,7 @@ import {
   startServerNode, stopServerNode, fetchServerProtocols, fetchServerFilterTypes,
   type ServerNodeView, type ServerNodeRequest, type ServerFilterDescriptor,
   type ServerProtocolMeta, type ServerFilterTypeMeta,
-} from "../monitorApi";
+} from "@pages/monitor/src/api/monitorApi";
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();

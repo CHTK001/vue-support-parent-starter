@@ -429,7 +429,7 @@ import {
   fetchHostPerms,
   saveHostPerms,
   type HostFileItem,
-} from "../monitorApi";
+} from "@pages/monitor/src/api/monitorApi";
 import ReDialog from "@repo/ui/re-dialog";
 
 interface Props {

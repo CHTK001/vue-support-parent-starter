@@ -14,7 +14,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReTag from "@repo/ui/re-tag";
 import { buildTerminalWsUrl } from "@pages/server/src/api";
 import { createScGuacTunnel } from "@pages/server/src/components/ScGuacTunnel";
-import type { AlarmEvent, MonitorItem } from "../monitorApi";
+import type { AlarmEvent, MonitorItem } from "@pages/monitor/src/api/monitorApi";
 
 const props = defineProps<{
   connection: {

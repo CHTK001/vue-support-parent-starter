@@ -20,7 +20,7 @@ import {useSocketService, message} from "@repo/core";
 import ReMaskDialog from "../components/ReMaskDialog.vue";
 import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
-import { submitAgentAction } from "../monitorApi";
+import { submitAgentAction } from "@pages/monitor/src/api/monitorApi";
 import type { Component } from "vue";
 import { CircleCheck, DocumentChecked, Download, Tickets } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";

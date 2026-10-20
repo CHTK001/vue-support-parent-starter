@@ -24,7 +24,7 @@ import {
   setHostEnvVar,
   startService,
   stopService,
-} from "../monitorApi";
+} from "@pages/monitor/src/api/monitorApi";
 import { osIconSvg } from "../utils/osIcon";
 import { processGlyph } from "../utils/processIcon";
 import { processBrandIcon } from "../utils/processBrand";

@@ -14,7 +14,7 @@ import {
   saveIPv4Config,
   type IPv4Config,
   type NetworkAdapterDetail,
-} from "../monitorApi";
+} from "@pages/monitor/src/api/monitorApi";
 import NetAdapterGlyph from "./NetAdapterGlyph.vue";
 
 const props = defineProps<{

@@ -52,7 +52,7 @@
  */
 import { ref, watch } from "vue";
 import { Loading } from "@element-plus/icons-vue";
-import { aiAnalyze, type AiAnalyzeResult } from "../monitorApi";
+import { aiAnalyze, type AiAnalyzeResult } from "@pages/monitor/src/api/monitorApi";
 
 const props = withDefaults(
   defineProps<{

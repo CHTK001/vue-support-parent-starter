@@ -28,7 +28,7 @@ import {
   type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
 import { getHost } from "@pages/server/src/api";
-import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../monitorApi";
+import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "@pages/monitor/src/api/monitorApi";
 import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 
 const route = useRoute();

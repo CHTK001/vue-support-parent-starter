@@ -10,7 +10,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useSocketService } from "@repo/core";
 import { queryHosts } from "@pages/server/src/api";
-import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "../monitorApi";
+import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "@pages/monitor/src/api/monitorApi";
 
 const router = useRouter();
 const socket = useSocketService();
