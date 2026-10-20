@@ -323,3 +323,56 @@ export const fetchEsRawQuery = (method: string, path: string, body: string, data
     .data(body || "")
     .noToast(true)
     .then(r => unwrap<string>(r));
+// ==================== 别名管理 ====================
+
+/** 别名行 */
+export type EsAliasRow = {
+  alias: string;
+  index: string;
+  filter: string | null;
+  routingIndex: string | null;
+  searchRouting: string | null;
+  indexRouting: string | null;
+};
+
+/** 添加 / 更新别名请求 */
+export type EsAliasForm = {
+  alias: string;
+  index: string;
+  filter?: string;
+  searchRouting?: string;
+  indexRouting?: string;
+  datasourceId?: number;
+};
+
+/** 查所有别名（GET /_alias） */
+export const fetchEsAliases = (datasourceId?: number) =>
+  http()
+    .get(`${ES_BASE}/aliases`)
+    .query({ datasourceId })
+    .noToast(true)
+    .then(r => unwrap<EsAliasRow[]>(r));
+
+/** 添加别名 */
+export const addEsAlias = (form: EsAliasForm) =>
+  http()
+    .post(`${ES_BASE}/alias`)
+    .data(form)
+    .noToast(true)
+    .then(r => unwrap<boolean>(r));
+
+/** 删除别名 */
+export const deleteEsAlias = (alias: string, datasourceId?: number) =>
+  http()
+    .delete(`${ES_BASE}/alias`)
+    .query({ alias, datasourceId })
+    .noToast(true)
+    .then(r => unwrap<boolean>(r));
+
+/** 更新索引副本设置 */
+export const updateEsIndexSettings = (index: string, replicas: number, datasourceId?: number) =>
+  http()
+    .put(`${ES_BASE}/index/settings`)
+    .data({ index, replicas, datasourceId })
+    .noToast(true)
+    .then(r => unwrap<boolean>(r));
