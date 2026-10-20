@@ -43,10 +43,10 @@
           :model-value="getFieldValue(group.group, item.field)"
           @input="updateFieldValue(group.group, item.field, $event)" />
         <!-- NUMBER -->
-        <el-input-number v-else-if="item.valueType === 'NUMBER'"
+        <ReNumberInput v-else-if="item.valueType === 'NUMBER'"
           :model-value="Number(getFieldValue(group.group, item.field))"
           @change="(val) => updateFieldValue(group.group, item.field, val)"
-          :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
+          :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" />
         <!-- BOOLEAN -->
         <el-switch v-else-if="item.valueType === 'BOOLEAN'"
           :model-value="getFieldValue(group.group, item.field) === 'true'"
@@ -92,8 +92,8 @@
               type="password" show-password clearable
               :placeholder="secretPlaceholder(field)" />
             <!-- 数字 -->
-            <el-input-number v-else-if="field.type === 'NUMBER'"
-              v-model="vectorFormValues[field.key]" class="w-full" />
+            <ReNumberInput v-else-if="field.type === 'NUMBER'"
+              v-model="vectorFormValues[field.key]" />
             <!-- 开关 -->
             <el-switch v-else-if="field.type === 'BOOLEAN'"
               v-model="vectorFormValues[field.key]" />
@@ -157,10 +157,10 @@
               :model-value="getFieldValue(group.group, item.field)"
               @input="updateFieldValue(group.group, item.field, $event)" />
             <!-- NUMBER -->
-            <el-input-number v-else-if="item.valueType === 'NUMBER'"
+            <ReNumberInput v-else-if="item.valueType === 'NUMBER'"
               :model-value="Number(getFieldValue(group.group, item.field))"
               @change="(val) => updateFieldValue(group.group, item.field, val)"
-              :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
+              :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" />
             <!-- BOOLEAN -->
             <el-switch v-else-if="item.valueType === 'BOOLEAN'"
               :model-value="getFieldValue(group.group, item.field) === 'true'"
@@ -229,6 +229,7 @@ import { useModelConfigStore } from '@/stores/modelConfig'
 import LDialog from '@/components/ui/LDialog.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
@@ -240,7 +241,6 @@ import { inferSubType } from '@/components/models/model.utils'
 // Element Plus 组件导入
 import {
     ElInput,
-    ElInputNumber,
     ElSwitch,
     ElIcon,
     ElButton,

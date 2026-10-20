@@ -217,14 +217,15 @@ const hasActions = computed(() =>
 /** 进程 / 服务 / 监听端口 均由后端分页（后台只返回当前页） */
 const pagedSection = computed(() =>
   active.value === "processes" || active.value === "services"
-  || active.value === "ports");
+  || active.value === "ports" || active.value === "firewall");
 
 /** 各分区检索框的命中字段提示 */
 const KEYWORD_HINTS: Record<string, string> = {
   processes: "PID / 进程名 / 用户 / 命令行",
   services: "服务名 / 显示名 / 状态",
   ports: "端口 / 地址 / 状态 / 进程名",
-  disks: "盘符 / 卷标 / 文件系统"
+  disks: "盘符 / 卷标 / 文件系统",
+  firewall: "规则名 / 链 / 方向 / 动作 / 协议 / 端口"
 };
 const keywordPlaceholder = computed(() => KEYWORD_HINTS[active.value] ?? "关键字过滤");
 

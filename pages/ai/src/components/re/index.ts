@@ -1,6 +1,7 @@
 import type { App } from 'vue'
 import ReButton from './ReButton.vue'
 import ReInput from './ReInput.vue'
+import ReNumberInput from './ReNumberInput.vue'
 import ReSelect from './ReSelect.vue'
 import ReModal from './ReModal.vue'
 import ReTable from './ReTable.vue'
@@ -12,6 +13,7 @@ import ReEmpty from './ReEmpty.vue'
 export {
   ReButton,
   ReInput,
+  ReNumberInput,
   ReSelect,
   ReModal,
   ReTable,
@@ -24,6 +26,7 @@ export {
 export function installReComponents(app: App) {
   app.component('ReButton', ReButton)
   app.component('ReInput', ReInput)
+  app.component('ReNumberInput', ReNumberInput)
   app.component('ReSelect', ReSelect)
   app.component('ReModal', ReModal)
   app.component('ReTable', ReTable)
