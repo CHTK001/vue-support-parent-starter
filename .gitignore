@@ -10,6 +10,8 @@ dist-ssr/
 # 其中 vendor/ 与 wasm/ 子目录曾因权限问题报 "cannot stat ... Permission denied"，
 # 直接把 merge / add 整个打断。它们只是构建输出，一律不入库。
 dist-node*/
+dist-node2/
+dist-final-new3/
 dist-verify2/
 # Playwright 批量验收报告输出目录（同样是产物，且曾被 ACL 锁住打断 git 遍历）
 playwright-bulk-report/
