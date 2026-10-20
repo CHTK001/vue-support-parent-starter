@@ -2204,6 +2204,10 @@ async function submitProfileEnv(): Promise<void> {
 .pp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .pp-table th, .pp-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--p-line-2); white-space: nowrap; }
 .pp-table th { font-size: 11px; font-weight: 600; color: var(--p-text-2); background: var(--p-bg); position: sticky; top: 0; }
+.pp-table th.sortable { cursor: pointer; user-select: none; }
+.pp-table th.sortable:hover, .pp-table th.sort-on { color: var(--el-color-primary); }
+.pp-table th.right { text-align: right; }
+.pp-table td.right { text-align: right; }
 .sub-label { font-size: 12px; color: var(--el-text-color-secondary); margin: 8px 0 4px; }
 
 /* ---------- 磁盘 ---------- */
