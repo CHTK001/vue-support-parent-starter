@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   appearance: {
     light: 'Light',
     dark: 'Dark',
@@ -207,6 +207,7 @@
     settings: 'Settings',
     groups: {
       general: 'General',
+      modelConfig: 'Model Config',
       personalization: 'Personalization',
       system: 'System',
       dataManagement: 'Data Management',

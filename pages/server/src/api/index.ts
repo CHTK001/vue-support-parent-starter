@@ -277,5 +277,18 @@ export const listHardware = (keyword?: string) =>
 export const scanIpRange = (cidr: string) =>
   http().post(`${B}/host/scan?cidr=${encodeURIComponent(cidr)}`).then(r => unwrapResult<{ ip: string; port: number; osType: string; hostname: string }[]>(r));
 
-// ===== 服务管理与发现服务（实现见 serviceManage.ts，统一从本文件转出）=====
-export * from './serviceManage';
+// ===== 目标机运行时（进程/服务/网络/磁盘/防火墙/驱动/环境变量）=====
+// 实现见 hostRuntime.ts，统一从本文件转出。
+export * from './hostRuntime';
+
+// ===== 主机画像 / 主机网卡 =====
+// 实现见 hostProfile.ts，统一从本文件转出。
+export * from './hostProfile';
+
+// ===== 主机文件管理 / Agent 生命周期 =====
+// 实现见 hostFile.ts，统一从本文件转出。
+export * from './hostFile';
+
+// ===== ACME 证书 =====
+// 实现见 acmeApi.ts，统一从本文件转出。
+export * from './acmeApi';

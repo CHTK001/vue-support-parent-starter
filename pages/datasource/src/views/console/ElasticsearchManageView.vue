@@ -768,6 +768,8 @@
                   <pre v-else class="dsm-devtools-json">{{ JSON.stringify(devToolResult, null, 2) }}</pre>
                 </div>
               </div>
+            </div>
+
           <!-- ============ 别名管理 ============ -->
           <template #aliases>
             <div class="dsm-section">

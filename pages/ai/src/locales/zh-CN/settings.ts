@@ -209,6 +209,7 @@ export default {
     settings: '设置',
     groups: {
       general: '常规',
+      modelConfig: '模型配置',
       personalization: '个性化',
       system: '系统',
       dataManagement: '数据管理',

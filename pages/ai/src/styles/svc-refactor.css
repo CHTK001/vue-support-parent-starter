@@ -304,32 +304,86 @@ html.dark .svc {
 .svc-ico .el-icon { font-size: 15px; }
 
 /* ############################################################################
-   6. 两栏工作区
+   6. 左右分栏工作区
+   ----------------------------------------------------------------------------
+   左栏：服务实例卡片列表（固定 ~340px）；
+   右栏：ReTab underline 工作区（运行日志 / 访问日志 / 令牌），stretch 吃满剩余高度。
    ############################################################################ */
-.svc-grid {
+.svc-split {
   display: grid;
-  /* 访问日志要宽度显示完整端点，运行日志等宽文本窄一点就够 */
-  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
   gap: var(--svc-sp-4);
   align-items: start;
   min-width: 0;
 }
-.svc-panel {
-  display: flex; flex-direction: column; min-width: 0;
+
+.svc-side {
+  min-width: 0;
+  display: flex; flex-direction: column; gap: var(--svc-sp-3);
+}
+
+.svc-side .svc-sect__head {
+  margin-bottom: 0;
+}
+
+.svc-side__list {
+  display: flex; flex-direction: column; gap: var(--svc-sp-2);
+  min-width: 0; max-height: 70vh; overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* 左栏卡片：保持原瓦片横排的紧凑信息，但变纵向列表卡片 */
+.svc-tile--card {
+  min-height: 58px; flex-shrink: 0;
+}
+
+/* 主工作区：白底卡片 + 右侧 ReTab 撑满 */
+.svc-main {
+  min-width: 0; min-height: 0;
+  display: flex; flex-direction: column;
   border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
   background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
   overflow: hidden;
 }
-/* 控件行拥挤时（1180 以下）允许换行，不裁切 */
-.svc-panel .svc-sect__extra { flex-wrap: wrap; justify-content: flex-end; }
+
+.svc-rtab {
+  width: 100%; flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+}
+
+/* 页签内容面板：承接 ReTab stretch 的剩余高度，让内部控制台/表格各自滚动 */
+.svc-pane {
+  position: relative;
+  display: flex; flex-direction: column; flex: 1 1 auto;
+  min-width: 0; min-height: 0;
+}
+
+/* 访问日志：表格区吃满面板剩余高度。
+   否则表格短时（无记录 / 记录少）面板下方会留一大块突兀空白；
+   让表格容器填满后，空白被收进表格区域，看起来是「一张更高的表」而非缺口。 */
+.svc-pane--access .svc-tablewrap { flex: 1 1 auto; min-height: 0; }
+
+/* 令牌面板：吃满剩余高度 */
+.svc-pane--tokens { padding: var(--svc-sp-4) var(--svc-sp-4) var(--svc-sp-3); }
+
+/* 工具栏：页签内顶部操作行，统一密度 */
+.svc-toolbar {
+  display: flex; align-items: center; gap: var(--svc-sp-2); flex-wrap: wrap;
+  padding: var(--svc-sp-3) var(--svc-sp-4);
+  border-bottom: 1px solid var(--svc-rule);
+  background: var(--svc-surface-2);
+}
+
+.svc-pane--tokens .svc-toolbar,
+.svc-pane--tokens .svc-console__meta,
+.svc-pane--tokens .svc-scope { display: none; }
 
 /* 焦点模式：实例区 / 状态带 / 访问日志整块退场，控制台吃满。
    用 display:none 而非透明度 —— 半残的三栏 flex 在实测里极易算出 0 高度。 */
 .svc.is-focus .svc-band,
-.svc.is-focus .svc-inst,
-.svc.is-focus .svc-panel--access { display: none; }
-.svc.is-focus .svc-grid { grid-template-columns: minmax(0, 1fr); }
-.svc.is-focus .svc-panel--console { max-height: none; }
+.svc.is-focus .svc-side { display: none; }
+.svc.is-focus .svc-split { grid-template-columns: minmax(0, 1fr); }
+.svc.is-focus .svc-pane--console { max-height: none; }
 .svc.is-focus .svc-console { max-height: none; }
 
 /* ############################################################################

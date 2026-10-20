@@ -322,7 +322,7 @@ async function submit(): Promise<void> {
   <ReDialog
     :model-value="modelValue"
     title="新建表（设计表）"
-    width="min(1000px, 96vw)"
+    width="min(920px, 96vw)"
     @update:model-value="(v: unknown) => emit('update:modelValue', Boolean(v))"
   >
     <div class="ct">
@@ -360,7 +360,7 @@ async function submit(): Promise<void> {
           engine="element"
           :pagination="false"
           :toolbar="false"
-          :layout-table="{ maxHeight: '46vh' }"
+          :layout-table="{ maxHeight: '40vh' }"
           :settings="{ border: false }"
           row-key="key"
           show-index
@@ -554,10 +554,9 @@ async function submit(): Promise<void> {
   background: var(--el-fill-color-light);
 }
 
-/* 单元格内边距：el-table 默认每侧 12px，11 列叠加会比原手写网格宽出近 300px，
-   输入框被挤得又窄又长。压到 6/8 才和原「min-width:960px」口径对得上。 */
+/* 单元格内边距：el-table 默认每侧 12px，合并列后压到 4/6，弹窗不用再放大。 */
 .ct-grid :deep(.el-table .cell) {
-  padding: 6px 8px;
+  padding: 4px 6px;
 }
 
 /* 行悬停：原 .ct-grid__row:hover 用的是 fill-color-extra-light，不是 EP 默认那档 */
@@ -580,6 +579,45 @@ async function submit(): Promise<void> {
 .ct-grid :deep(.re-switch-square) {
   display: inline-flex;
   margin: 0 auto;
+}
+
+/* 长度 / 小数位合并列 */
+.ct-size-scale {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.ct-size-scale .ct-na {
+  flex: 1;
+  min-width: 0;
+}
+.ct-size-sep {
+  flex: 0 0 auto;
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+}
+
+/* 约束合并列 */
+.ct-bools {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ct-bool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.ct-bool-label {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 
 /* 类型用不上的长度 / 小数位占位 */

@@ -269,14 +269,17 @@ const route = useRoute()
 // 设置项分组映射
 const groupMap = computed<Record<string, string>>(() => ({
     general: t('settings.system.groups.general'),
-    'default-models': t('settings.system.groups.general'),
-    'face-config': t('settings.system.groups.general'),
-    'image-search-config': t('settings.system.groups.general'),
-    'layout-config': t('settings.system.groups.general'),
-    'rag-config': t('settings.system.groups.general'),
-    'ocr-config': t('settings.system.groups.general'),
-    'bot-connector-config': t('settings.system.groups.general'),
-    'language-config': t('settings.system.groups.general'),
+    // 模型配置：默认模型 + 各能力的独立模型菜单，统一归到「模型配置」分组。
+    // 原先它们全挤在「常规」里，与通用/浏览器/外观混在一起，找模型要翻很久。
+    'default-models': t('settings.system.groups.modelConfig'),
+    'face-config': t('settings.system.groups.modelConfig'),
+    'image-search-config': t('settings.system.groups.modelConfig'),
+    'layout-config': t('settings.system.groups.modelConfig'),
+    'rag-config': t('settings.system.groups.modelConfig'),
+    'ocr-config': t('settings.system.groups.modelConfig'),
+    'bot-connector-config': t('settings.system.groups.modelConfig'),
+    'audio-config': t('settings.system.groups.modelConfig'),
+    'language-config': t('settings.system.groups.modelConfig'),
     ocr: t('settings.system.groups.general'),
     browser: t('settings.system.groups.general'),
     connections: t('settings.system.groups.general'),
@@ -538,6 +541,7 @@ const groupedSidebarItems = computed(() => {
     const items = filteredSidebarItems.value
     const groupOrder = [
         t('settings.system.groups.general'),
+        t('settings.system.groups.modelConfig'),
         t('settings.system.groups.personalization'),
         t('settings.system.groups.dataManagement'),
         t('settings.system.groups.library'),

@@ -1,27 +1,40 @@
 /**
- * 监控管理平台路由树（RouteConfigsTable[]）
+ * 监控管理平台路由树（RouteConfigsTable[]）—— **宿主装配层**。
  *
- * 分组结构：一级为「分组父节点」（仅用于侧边栏分组标题 + 折叠/展开，无 component、无 redirect），
- *           二级为具体业务页面（叶子路由，带 component）。
+ * <p>本文件只做一件事：把各 {@code pages/xx} 包产出的路由树拼起来。
+ * 视图、API、路由声明三者同出于各自的功能包，宿主不再抄第二份 ——
+ * 抄两份必然漂（历史上漏过 /prometheus 管理页、「服务管理」页迁包后成死链）。</p>
  *
- * 装配说明：
- *   - 菜单：buildMenuFromRoutes 递归保留 children → koi 侧边栏按 children 渲染 el-sub-menu（自带折叠箭头）。
- *   - 路由：registerRoutesUnderLayout 递归 visit，仅把「带 component」或「带 redirect」的节点
- *           通过 addRoute("layout", ...) 平铺到 koi 布局下；分组父节点既无 component 又无 redirect，
- *           因此不会被注册为路由，只作为菜单分组容器存在。
- *   - 隐藏路由（showLink:false）保留在顶层：菜单过滤时被剔除，但仍会被注册为可访问路由。
- *   - 数据源管理页不写在这里：由 @pages/datasource 的 createDatasourceManageRoutes 产出后展开合并。
- *     路由表与「类型→管理页路径」映射必须同出一处，否则宿主各抄一份必然漏
- *     （历史上采集调度应用就漏了 /prometheus，表现为「打开管理」只对 Prometheus 报未注册）。
+ * <p>各包职责边界：</p>
+ * <table>
+ *   <tr><th>能力</th><th>归属包</th></tr>
+ *   <tr><td>数据源台账 + 各类数据源管理页</td><td>{@code @pages/datasource}</td></tr>
+ *   <tr><td>主机资产 / 远控 / ACME / 主机详情 / 会话 / 批量作业 / 片段 / 维护计划</td><td>{@code @pages/server}</td></tr>
+ *   <tr><td>服务管理（协议服务器节点）/ 在线节点 / 服务发现 / 抓包分析</td><td>{@code @pages/monitor}</td></tr>
+ *   <tr><td>设备资产 / 组织 / 通道 / 日志 / 提供商</td><td>{@code @pages/device}</td></tr>
+ *   <tr><td>文件资产</td><td>{@code @pages/filesystem}</td></tr>
+ * </table>
+ *
+ * <p><strong>分组结构</strong>：一级为「分组父节点」（仅用于侧边栏分组标题 + 折叠/展开，
+ * 无 component、无 redirect），二级为具体业务页面（叶子路由，带 component）。</p>
+ *
+ * <p><strong>装配说明</strong>：</p>
+ * <ul>
+ *   <li>菜单：buildMenuFromRoutes 递归保留 children → koi 侧边栏按 children 渲染 el-sub-menu。</li>
+ *   <li>路由：registerRoutesUnderLayout 递归 visit，仅把「带 component」或「带 redirect」的节点
+ *       通过 addRoute("layout", ...) 平铺到 koi 布局下；分组父节点既无 component 又无 redirect，
+ *       因此不会被注册为路由，只作为菜单分组容器存在。</li>
+ *   <li>隐藏路由（showLink:false）保留在顶层：菜单过滤时被剔除，但仍会被注册为可访问路由。</li>
+ * </ul>
  *
  * 路由模式：hash（routerMode: "hash"）
  */
 import type { RouteConfigsTable } from "@repo/core";
-// 数据源管理页（数据库/Redis/InfluxDB/Neo4j/Nacos/ZooKeeper/etcd/Nginx/Prometheus 及其嵌入页）
-// 由 @pages/datasource 自己收敛声明：路由表与「类型→路径」映射同出一处，宿主只管合并。
-// 这里深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
+// 深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
 // 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
+import { createServerManageRoutes } from "@pages/server/src/routes";
+import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 
 /** 监控管理平台路由树（分组结构） */
 export const monitorRoutes: RouteConfigsTable[] = [
@@ -76,7 +89,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
   },
 
   // ==================== 数据中心 ====================
-  // 数据源中心独立成顶层分组，不再挂在「监控管理」下
+  // 数据源中心独立成顶层分组，不再挂在「监控管理」下。
+  //
+  // 「数据源中心」页本体是 @pages/datasource 的 ScDataSourceView（共享包，采集台也在用），
+  // 各类数据源的管理页由 createDatasourceManageRoutes 产出（见文件末尾的顶层合并）。
   {
     path: "/grp-data",
     name: "GroupData",
@@ -85,9 +101,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/datasource",
         name: "DataSource",
-        // 数据源已抽为独立包 @pages/datasource（后端 spring-support-datasource-hub-starter）。
-        // 本宿主直接用共享页 ScDataSourceView，不再注入「数据表」页签；
-        // /db-manager 独立页保留，供书签 / 外部深链直达。
         component: () => import("./views/ScDataCenterView.vue"),
         meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 1 },
       },
@@ -103,29 +116,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
   },
 
   // ==================== 资产管理 ====================
+  // 主机资产这一族（主机台账 / 远控 / ACME / 主机详情）归 @pages/server：
+  // 视图、API、路由三者同源，宿主只挂本组标题。
+  // 各子页的实际路由在文件末尾由 createServerManageRoutes 展开合并。
   {
     path: "/grp-asset",
     name: "GroupAsset",
     meta: { title: "资产管理", icon: "FolderOpened", showLink: true, rank: 10 },
     children: [
-      {
-        path: "/assets",
-        name: "Assets",
-        component: () => import("./views/AssetsView.vue"),
-        meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
-      },
-      {
-        path: "/acme",
-        name: "AcmeCert",
-        component: () => import("./views/acme/index.vue"),
-        meta: { title: "ACME 证书", icon: "Key", showLink: true, rank: 11 },
-      },
-      {
-        path: "/terminal",
-        name: "Terminal",
-        component: () => import("./views/TerminalView.vue"),
-        meta: { title: "远程控制", icon: "Position", showLink: true, rank: 13 },
-      },
       {
         path: "/sessions",
         name: "TerminalSessions",
@@ -228,24 +226,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 服务管理 ====================
-  // 与「资产管理」「发布管理」平级的独立分组，rank 取 15 落在 10 与 20 之间。
-  // 子菜单指向 @pages/server 的 ScServiceManage（协议服务器节点：Server 接口 + ServerFilter 编排），
-  // 该页面此前已存在但未挂任何路由，侧边栏无从进入。
-  {
-    path: "/grp-service",
-    name: "GroupService",
-    meta: { title: "服务管理", icon: "Operation", showLink: true, rank: 15 },
-    children: [
-      {
-        path: "/services",
-        name: "Services",
-        component: () => import("@pages/server/src/views/ScServiceManage.vue"),
-        meta: { title: "服务管理", icon: "Connection", showLink: true, rank: 15 },
-      },
-    ],
-  },
-
   // ==================== 发布管理 ====================
   {
     path: "/grp-release",
@@ -290,7 +270,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/ProxyView.vue"),
         meta: { title: "代理管理", icon: "Connection", showLink: true, rank: 31 },
       },
-    
       {
         path: "/groups",
         name: "Groups",
@@ -312,13 +291,21 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== 各功能包的路由合并 ====================
+  // 以下几组路由的声明在各自的功能包里（视图、API、路由同源），宿主只做合并。
+
+  // 监控侧：服务管理（协议服务器节点）+ 服务发现 + 在线节点。
+  ...createMonitorRoutes({ activeMenu: "/services" }),
+  ...createMonitorManageRoutes({ activeMenu: "/services" }),
+
+  // 主机资产族：主机资产 / 远程控制 / ACME 证书 / 主机详情。
+  ...createServerManageRoutes({ activeMenu: "/assets" }),
+
+  // 数据源管理页：全部 showLink:false（不进侧边栏），由「数据中心」的「打开管理」进入，
+  // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
+  ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
+
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
-  {
-    path: "/host/:id",
-    name: "HostDetail",
-    component: () => import("./views/HostDetailView.vue"),
-    meta: { title: "主机监控详情", icon: "Monitor", showLink: false, activeMenu: "/assets" },
-  },
   {
     // 关系图组件能力验收台：不挂侧边栏，仅供验收脚本访问
     path: "/re-relation-graph-lab",
@@ -326,21 +313,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
     component: () => import("./views/ReRelationGraphLab.vue"),
     meta: { title: "关系图验收台", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
-  // 数据源管理页：全部 showLink:false（不进侧边栏），由「数据中心」的「打开管理」进入，
-  // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
-  ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
-  {
-    path: "/discovery",
-    name: "Discovery",
-    component: () => import("./views/DiscoveryView.vue"),
-    meta: { title: "服务发现", icon: "Connection", showLink: false, activeMenu: "/assets" },
-  },
 
   // ==================== 独立全屏路由（不套 layout，不进菜单） ====================
   {
     path: "/terminal-standalone",
     name: "TerminalStandalone",
-    component: () => import("./views/StandaloneTerminal.vue"),
+    component: () => import("@pages/server/src/views/StandaloneTerminal.vue"),
     meta: { title: "远程控制", showLink: false, standalone: true },
   },
 ];

@@ -361,13 +361,15 @@
 <script setup lang="ts">
 import { message } from '@repo/core'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { createClient, v2Http } from '@/framework/context'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
+import ReTab from '@repo/ui/re-tab'
+import type { ReTabItem } from '@repo/ui/re-tab'
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ServiceTokensPanel from './ServiceTokensPanel.vue'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,
   ArrowMaximize20Regular, ArrowMinimize20Regular,
@@ -375,7 +377,6 @@ import {
 } from '@vicons/fluent'
 
 const http = createClient(v2Http, { unwrap: false })
-const router = useRouter()
 
 const PlayIcon = Play20Regular
 const StopIcon = Stop20Regular
@@ -579,6 +580,13 @@ const flashId = ref<any>(null)
 const showCreateDialog = ref(false)
 const creating = ref(false)
 const activeId = ref<any>(null)
+const activeTab = ref('runtime')
+
+const logTabs = computed<ReTabItem[]>(() => [
+  { name: 'runtime', label: '运行日志', badge: runtimeLogLines.length || '' },
+  { name: 'access', label: '访问日志', badge: logs.length || '' },
+  { name: 'tokens', label: '令牌' },
+])
 
 const logs = ref<any[]>([])
 const logsLoading = ref(false)
@@ -1060,12 +1068,12 @@ async function createInstance() {
   }
 }
 
-function goTokens(t: any) {
-  router.push({
-    name: 'SystemSettings',
-    params: { tab: 'service-tokens' },
-    query: { instanceId: t.id },
-  })
+function openTokens(t: any) {
+  activeTab.value = 'tokens'
+  if (activeId.value == null || String(activeId.value) !== String(t.id)) {
+    activeId.value = t.id
+    logInstanceId.value = t.id
+  }
 }
 
 // ============================================================================
