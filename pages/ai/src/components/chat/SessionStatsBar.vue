@@ -12,11 +12,41 @@
 
     任何一项缺数据时显示「—」而不是 0，避免把「没有数据」误读成「速度/命中率为 0」。
   -->
-  <div v-if="visible" class="session-stats-bar" role="group" :aria-label="t('chat.runStats.title')">
+  <div v-if="visible" class="session-stats-bar" role="group" :aria-label="t('chat.runStats.title')"
+    :aria-busy="pending ? 'true' : 'false'">
+    <!--
+      数据还没回来时的骨架态。
+
+      为什么需要：用量只在本轮 finish 之后才随消息落下来，而一条回复从「工作中」
+      到出结果可能几十秒。此前这段时间 `visible` 已经是 true（消息在流），但三段
+      全是「—」，整条看起来像空的；用户要的是「有东西在动，说明在等数据」，而不是
+      什么都看不见。所以这里先铺占位条并做呼吸，宽度按真实文本量级给，
+      真数据到达时布局不跳。
+    -->
+    <template v-if="pending">
+      <div class="stats-cluster stats-cluster--hover">
+        <el-icon class="stats-icon"><Timer /></el-icon>
+        <span class="stats-skeleton stats-skeleton--w-rounds"></span>
+        <span class="stats-skeleton stats-skeleton--w-steps"></span>
+        <span class="stats-sep">·</span>
+        <span class="stats-skeleton stats-skeleton--w-speed"></span>
+      </div>
+      <div class="stats-cluster stats-cluster--shrink">
+        <el-icon class="stats-icon"><DataLine20Regular /></el-icon>
+        <span class="stats-skeleton stats-skeleton--w-tokens"></span>
+        <span class="stats-sep">·</span>
+        <span class="stats-skeleton stats-skeleton--w-cache"></span>
+      </div>
+      <div class="stats-cluster stats-cluster--right">
+        <span class="stats-ring stats-ring--pending"></span>
+        <span class="stats-skeleton stats-skeleton--w-percent"></span>
+      </div>
+    </template>
+
     <!-- 轮次 / 步数 / 速度：悬停看「会话统计」明细（模型用时 / 工具用时 / TTFT / TPS）。
          用 el-popover 而不是 CSS 浮层：本条的父容器 overflow:hidden，绝对定位的浮层会被裁掉，
          而 popover 会 teleport 到 body。 -->
-    <el-popover trigger="hover" placement="top-start" :width="236" :show-arrow="true">
+    <el-popover v-else trigger="hover" placement="top-start" :width="236" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--hover">
           <el-icon class="stats-icon"><Timer /></el-icon>
@@ -50,7 +80,7 @@
     </el-popover>
 
     <!-- 累计 Token / 缓存命中：悬停看 Token 用量明细 -->
-    <el-popover trigger="hover" placement="top-start" :width="272" :show-arrow="true">
+    <el-popover v-else trigger="hover" placement="top-start" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--shrink stats-cluster--hoverable">
           <el-icon class="stats-icon"><DataLine20Regular /></el-icon>
@@ -88,7 +118,7 @@
     </el-popover>
 
     <!-- 上下文占用：环形 + 百分比。悬停看已用/窗口与 token 构成 -->
-    <el-popover trigger="hover" placement="top-end" :width="272" :show-arrow="true">
+    <el-popover v-else trigger="hover" placement="top-end" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--right stats-cluster--hoverable">
           <span class="stats-ring" :style="ringStyle" role="img" :aria-label="contextHint"></span>
@@ -174,6 +204,15 @@ const contextPct = computed(() => Math.round(num(props.contextPercent)));
 
 /** 有消息或有上下文统计时才显示：空会话底部不摆一条全 0 的条 */
 const visible = computed(() => list.value.length > 0 || usedTokens.value > 0);
+
+/**
+ * 是否处于「数据未回来」的等待态。
+ *
+ * 用量只在本轮 finish 之后才随消息落下来，此前消息已经在流、条也已经在显示，
+ * 但三段全是「—」。这时改用骨架 + 呼吸动画，让用户看到「在等数据」而不是一片空白。
+ * 只要拿到任何一路数据（会话 token 合计或上下文占用）就退出等待态。
+ */
+const pending = computed(() => list.value.length > 0 && stats.value.total <= 0 && usedTokens.value <= 0);
 
 /**
  * Token 计数：≥1000 走 K/M。
@@ -425,6 +464,52 @@ const ringStyle = computed(() => {
   opacity: 0.45;
 }
 
+/* ============================================================================
+   等待态骨架
+   ----------------------------------------------------------------------------
+   数据没回来时占位。宽度按真实文本量级给（轮数/步数/速度/Tok/缓存/百分比），
+   真数据到达后条宽变化很小，不会出现「先很窄、突然撑开」的跳动。
+   动画只动 background-position，不触发布局与重绘，CPU 开销可忽略。
+   ========================================================================== */
+.stats-skeleton {
+  display: inline-block;
+  height: 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  /* 高光从左扫到右：三段灰阶渐变 + 超宽背景，靠位移产生流动感 */
+  background: linear-gradient(
+    90deg,
+    var(--el-fill-color-light) 25%,
+    var(--el-fill-color) 37%,
+    var(--el-fill-color-light) 63%
+  );
+  background-size: 400% 100%;
+  animation: stats-shimmer 1.4s ease infinite;
+}
+
+.stats-skeleton--w-rounds  { width: 44px; }
+.stats-skeleton--w-steps   { width: 34px; }
+.stats-skeleton--w-speed   { width: 58px; }
+.stats-skeleton--w-tokens  { width: 62px; }
+.stats-skeleton--w-cache   { width: 78px; }
+.stats-skeleton--w-percent { width: 26px; }
+
+@keyframes stats-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* 等待态的环形：不画 conic-gradient（占用率还不知道），只留一圈淡淡的底，
+   配合轻微呼吸表示「正在等」。 */
+.stats-ring--pending {
+  background: var(--el-fill-color);
+  animation: stats-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes stats-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
 /* 12px 环形进度：外层 conic-gradient 由内联 style 给色。
    挖空用 mask 而不是「叠一个内圈色块」—— 内圈色块必须知道背后是什么底色，
    而这条栏的底色是半透明的（乘了 --content-opacity），叠色块会在壁纸下露出灰芯。 */
@@ -554,6 +639,16 @@ const ringStyle = computed(() => {
   }
   .stats-popover__fill {
     transition: none;
+  }
+  /* 减少动态效果：停掉扫光与呼吸，骨架改为静止的浅灰块。
+     静止块仍能表达「这里在等数据」，不会退回成什么都没有。 */
+  .stats-skeleton {
+    animation: none;
+    background: var(--el-fill-color-light);
+  }
+  .stats-ring--pending {
+    animation: none;
+    opacity: 0.7;
   }
 }
 </style>

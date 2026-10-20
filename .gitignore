@@ -12,6 +12,8 @@ dist-ssr/
 dist-node*/
 dist-node2/
 dist-final-new3/
+dist-final-new4/
+dist-final-new5/
 dist-verify2/
 # Playwright 批量验收报告输出目录（同样是产物，且曾被 ACL 锁住打断 git 遍历）
 playwright-bulk-report/

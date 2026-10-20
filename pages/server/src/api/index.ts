@@ -277,6 +277,10 @@ export const listHardware = (keyword?: string) =>
 export const scanIpRange = (cidr: string) =>
   http().post(`${B}/host/scan?cidr=${encodeURIComponent(cidr)}`).then(r => unwrapResult<{ ip: string; port: number; osType: string; hostname: string }[]>(r));
 
+// ===== 服务管理（协议服务器节点 Server + ServerFilter + 服务发现）=====
+// 实现见 serviceManage.ts，统一从本文件转出。
+export * from './serviceManage';
+
 // ===== 目标机运行时（进程/服务/网络/磁盘/防火墙/驱动/环境变量）=====
 // 实现见 hostRuntime.ts，统一从本文件转出。
 export * from './hostRuntime';

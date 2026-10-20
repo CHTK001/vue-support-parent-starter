@@ -96,7 +96,9 @@
                             <DefaultModelSettings :groups="['bot']" />
                         </template>
                         <template v-else-if="currentTabValue === 'audio-config'">
-                            <DefaultModelSettings :groups="['asr']" />
+                            <!-- 音频配置同页管「识别」与「合成」两个分组：两者共享 provider/密钥/地址
+                                 那套心智模型，分两页反而更难对应。 -->
+                            <DefaultModelSettings :groups="['asr', 'tts']" />
                         </template>
 
                         <template v-else-if="currentTabValue === 'appearance'">

@@ -737,7 +737,7 @@ function autoOptimize(): void {
       <ReButton layout="square" type="primary" icon="Check" tip="保存流程" :loading="saving" @click="save" />
       <ReButton layout="square" icon="CircleCheck" tip="结构校验" @click="validate" />
       <ReButton layout="square" icon="MagicStick" tip="AI 生成流程" @click="aiVisible = true" />
-      <ReButton layout="square" icon="Sort" tip="自动优化：整理节点位置并自适应画布" @click="autoOptimize" />
+      <ReButton layout="square" icon="Sort" tip="自动优化：整理节点位置并自适应画布" @click="autoOptimize">自动优化</ReButton>
       <ReButton layout="square" icon="VideoPlay" tip="试运行" @click="doDryRun" />
       <ReButton layout="square" icon="Promotion" tip="运行" :disabled="!currentId" @click="doRun" />
       <ReButton

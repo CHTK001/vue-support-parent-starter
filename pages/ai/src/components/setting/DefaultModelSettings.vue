@@ -280,11 +280,11 @@ const props = defineProps({
  * colorize_device），量级够不上独立菜单，按需求并回默认模型页。
  * <p>对话路由（runtime）也在此列：默认对话模型、标题总结、历史压缩、翻译模型等
  * 本就是「会话」语义，与整页的模型选择混在一起反而更难找，已挪到会话配置页。
- * <p>语音识别（asr）同样在此列：它的字段是 provider / 密钥 / 模型 / 语言四项，
- * 与文本对话模型并排时既看不出「这是音频能力」，也容易被当成又一个聊天模型；
+ * <p>语音识别（asr）与语音合成（tts）同样在此列：它们的字段是 provider / 密钥 / 地址 /
+ * 模型 / 音色等，与文本对话模型并排时既看不出「这是音频能力」，也容易被当成又一个聊天模型；
  * 拆出后与左侧导航的「音频识别」能力页一一对应。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -1012,7 +1012,10 @@ const shouldShowField = (group, field) => {
     //
     // 但**拆出独立设置页后必须全显示**：独立页就是 asr 的唯一入口，
     // 再把 provider / 密钥 / 地址藏起来，用户配不了云端 ASR，页面等于残废。
-    if (group === 'asr' && !isSplitGroupMode()) {
+    //
+    // tts 分组没有这条隐藏规则（其字段本就全显），但同样只在拆分页渲染；
+    // 这里一并处理，避免日后给 tts 加隐藏规则时忘了区分入口。
+    if ((group === 'asr' || group === 'tts') && !isSplitGroupMode()) {
         const hiddenFields = ['provider', 'provider_api_key', 'provider_base_url']
         return !hiddenFields.includes(field)
     }

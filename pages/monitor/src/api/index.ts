@@ -531,10 +531,18 @@ export const getTsharkHandshake = (packetId: number) =>
  */
 export const openTsharkPacketStream = (sessionId: number, options: Record<string, any> = {}) =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets/stream`).sse<any>({ reconnect: true, ...options });
-export const getTsharkProtocolStats = (sessionId: number) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol`).then(r => unwrap<any[]>(r));
-export const getTsharkTopFlows = (sessionId: number, limit = 10) =>
-  http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}`).then(r => unwrap<any[]>(r));
+export const getTsharkProtocolStats = (sessionId: number, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol` +
+    (displayFilter ? `?displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+export const getTsharkTopFlows = (sessionId: number, limit = 10, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}` +
+    (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+export const getTsharkTimeline = (sessionId: number, bucketSeconds = 10, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/timeline?bucketSeconds=${bucketSeconds}` +
+    (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+export const getTsharkAnomalies = (sessionId: number, displayFilter = '') =>
+  http().get(`${B}/tshark/sessions/${sessionId}/stats/anomalies` +
+    (displayFilter ? `?displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
 
 // ===== 服务管理（协议服务器节点 Server + ServerFilter）=====
 // 实现见 serviceManage.ts，统一从本文件转出。
