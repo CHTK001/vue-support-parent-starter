@@ -9,7 +9,7 @@
     ".": "./src/index.ts",
     "./*": "./src/*"
   },
-  "description": "AI 控制台共享包：归档 vue-support-ai-guada 全部业务页面，宿主应用只做启动壳",
+  "description": "AI 控制台共享包：归档 vue-support-ai-starter 全部业务页面，宿主应用只做启动壳",
   "dependencies": {
     "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",

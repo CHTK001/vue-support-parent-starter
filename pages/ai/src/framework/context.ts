@@ -78,7 +78,7 @@ let context: AppContext | null = null;
 /** 启动框架上下文（幂等：重复调用复用同一实例） */
 export async function bootstrapFramework(): Promise<AppContext> {
   if (context) return context;
-  context = await createApp({ appName: 'vue-support-ai-guada' });
+  context = await createApp({ appName: 'vue-support-ai-starter' });
   return context;
 }
 

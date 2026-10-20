@@ -122,8 +122,8 @@ import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Loading, Monitor, Files, Box, ArrowRight, EditPen, Delete } from '@element-plus/icons-vue';
 import { http, unwrapResult } from '@repo/utils';
-import { osIconSvg, osLabel } from '../utils/osIcon';
-import { trackTask } from '../utils/processTasks';
+import { osIconSvg, osLabel } from '../../utils/osIcon';
+import { trackTask } from '../../utils/processTasks';
 
 const BASE = '/ms/server/release';
 

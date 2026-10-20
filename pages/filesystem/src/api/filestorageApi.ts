@@ -161,8 +161,14 @@ interface ListResponse {
 /**
  * 读取文件服务器地址
  *
- * <p>优先级：localStorage（页面级覆盖）＞ getConfig（app.yaml / `/v2/setting/default` 下发的
- * {@code other.filestorage.server}）＞ 当前地址（window.location.origin）。</p>
+ * <p>优先级：localStorage（页面级覆盖）＞ spring starter 下发的
+ * {@code other.filestorage.mode + server}＞ 当前地址（window.location.origin）。</p>
+ *
+ * <p><b>嵌入/独立分流</b>：后端已同时下发
+ * {@code other.filestorage.mode=embedded|standalone} 与
+ * {@code other.filestorage.server}；embedded 的 server 是相对路径（如 /fs），
+ * 必须用当前 origin 拼出完整地址；standalone 的 server 是完整 http://host:port，
+ * 直接使用，不再落到 window.location.origin。</p>
  *
  * @return 文件服务器地址（已去除尾部斜杠）
  */
@@ -171,11 +177,22 @@ export function getServerBase(): string {
   if (stored) {
     return stored.replace(/\/+$/, "");
   }
-  const configured = appFileStorageConfig().server;
-  if (configured) {
+  const cfg = appFileStorageConfig();
+  const configured = cfg.server?.trim();
+  const mode = (cfg.mode || "embedded").toLowerCase();
+  if (!configured) {
+    return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  }
+  if (mode === "standalone" || /^https?:\/\//i.test(configured)) {
+    // 独立端口：后端下发完整 http://host:port，直接使用。
     return configured.replace(/\/+$/, "");
   }
-  return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  // 嵌入：后端只下发应用端口下的相对路径（/fs 或 /system/api/fs 等），
+  // 由前端拼当前页面 origin，保证同源且自动适配当前访问入口。
+  const origin = typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  const relative = configured.startsWith("/") ? configured.slice(1) : configured;
+  if (!relative) return origin;
+  return `${origin}/${relative}`.replace(/\/+$/, "");
 }
 
 /**

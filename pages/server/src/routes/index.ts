@@ -112,3 +112,62 @@ export function createServerManageRoutes(options: ServerManageRoutesOptions = {}
     },
   ];
 }
+
+/** {@link createServerManageReleaseRoutes} 的可选项 */
+export interface ServerManageReleaseRoutesOptions {
+  /** 侧边栏高亮回指的路由路径（默认 /release） */
+  activeMenu?: string;
+}
+
+/**
+ * 生成「发布管理 / 项目」族的「管理台」路由（监控台宿主用）。
+ *
+ * <p>发布管理、项目管理两页的路由声明收敛到 {@code @pages/server} 一处：
+ * 视图、API、路由三者同源（后端均走 {@code /ms/server/release}），宿主只做合并
+ * （{@code ...createServerManageReleaseRoutes()}）。</p>
+ *
+ * <p>「账号管理」的路由<strong>不在这里声明</strong>：它的视图与 API 在本包
+ * （{@code views/identity/IdentityManageView.vue} + {@code api} 身份接口），
+ * 但菜单归属「系统管理」分组 —— 该分组的其余入口（监控配置 / 代理管理 / 分组 /
+ * 系统配置）都是宿主的本地页，分组父节点 {@code /grp-system} 由宿主持有。
+ * 若本工厂再造一个 {@code /grp-system}，宿主 {@code ...createServerManageReleaseRoutes()}
+ * 合并后会出现<b>两个同 path/name 的分组父节点</b>，菜单重复渲染。因此账号页由宿主自行
+ * 放进其 {@code /grp-system} children（view 深导入 {@code @pages/server/...} 即可，
+ * 与「资产管理」分组导入 {@code ScSessionTab} 等同一套做法）。</p>
+ *
+ * <p>分组结构：本工厂产出「发布管理」分组父节点（无 component、无 redirect，仅作菜单分组）
+ * 与 {@code /release} 叶子；{@code /projects} 因挂在分组 children 下且
+ * {@code showLink:false} 时菜单组件仍会渲染，故移为顶层隐藏路由（仍可访问，
+ * 发布管理卡片的「进入」跳转到这里）。</p>
+ *
+ * @param options 可选项，主要是 activeMenu
+ * @returns 可直接展开进宿主路由树的数组
+ */
+export function createServerManageReleaseRoutes(options: ServerManageReleaseRoutesOptions = {}): RouteConfigsTable[] {
+  const activeMenu = options.activeMenu || "/release";
+
+  return [
+    {
+      // 发布管理分组：发布管理（叶子）。
+      path: "/grp-release",
+      name: "GroupRelease",
+      meta: { title: "发布管理", icon: "Promotion", showLink: true, rank: 20 },
+      children: [
+        {
+          path: "/release",
+          name: "Release",
+          component: () => import("../views/release/ReleaseView.vue"),
+          meta: { title: "发布管理", icon: "Box", showLink: true, rank: 20 },
+        },
+      ],
+    },
+    {
+      // 项目管理：隐藏路由，移为顶层才真正不进菜单（见上方注释）；仍可访问，
+      // 发布管理卡片的「进入」按钮与列表卡片都跳这里。
+      path: "/projects",
+      name: "Projects",
+      component: () => import("../views/release/ProjectsView.vue"),
+      meta: { title: "项目管理", icon: "Folder", showLink: false, activeMenu },
+    },
+  ];
+}

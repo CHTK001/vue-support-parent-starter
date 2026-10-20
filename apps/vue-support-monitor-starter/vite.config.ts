@@ -116,7 +116,7 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 }
 
 // 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
-// 与 vue-support-ai-guada / vue-support-system-starter 同一口径
+// 与 vue-support-ai-starter / vue-support-system-starter 同一口径
 // （见 a2b20b189「前端代理默认指向远端后端」）。
 //
 // 为什么这件事值得单独说明（**两种静默错法，第二种更贵**）：

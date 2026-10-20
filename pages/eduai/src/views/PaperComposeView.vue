@@ -13,7 +13,7 @@
   依赖说明：
     - 拖拽：pages/eduai 未声明任何拖拽库（sortablejs 只在仓库根与 packages/ui 声明），
       按任务约定使用原生 HTML5 drag 事件实现，不新增依赖。
-    - 二维码：使用 qrcode（仓库内 packages/theme 与 apps/vue-support-ai-guada 早已在用），
+    - 二维码：使用 qrcode（仓库内 packages/theme 与 apps/vue-support-ai-starter 早已在用），
       以题项唯一编号 paperQuestionNo 为内容本地渲染成 PNG dataURL，
       扫码内容即后端 GET /v2/edu/paper/qr/{paperQuestionNo} 的定位凭据。
     - 接口：统一走 src/api/eduaiApi.ts（不另建请求层）。

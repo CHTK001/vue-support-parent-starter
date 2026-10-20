@@ -33,7 +33,7 @@ import type { RouteConfigsTable } from "@repo/core";
 // 深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
 // 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
-import { createServerManageRoutes } from "@pages/server/src/routes";
+import { createServerManageRoutes, createServerManageReleaseRoutes } from "@pages/server/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 
 /** 监控管理平台路由树（分组结构） */
@@ -47,13 +47,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/workbench",
         name: "Workbench",
-        component: () => import("./views/WorkbenchView.vue"),
+        component: () => import("../views/WorkbenchView.vue"),
         meta: { title: "监控概览", icon: "DataBoard", showLink: false, rank: 1 },
       },
       {
         path: "/alarms",
         name: "Alarms",
-        component: () => import("./views/AlarmsView.vue"),
+        component: () => import("../views/AlarmsView.vue"),
         meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
       },
     ],
@@ -93,6 +93,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
   //
   // 「数据源中心」页本体是 @pages/datasource 的 ScDataSourceView（共享包，采集台也在用），
   // 各类数据源的管理页由 createDatasourceManageRoutes 产出（见文件末尾的顶层合并）。
+  //
+  // 数据同步页视图 deep-import @pages/datasource（与下方"资产管理"分组导入 ScSessionTab
+  // 等同一套做法）；该包的 createSyncTaskRoutes 工厂仍可供无自带分组的轻宿主使用。
   {
     path: "/grp-data",
     name: "GroupData",
@@ -101,7 +104,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/datasource",
         name: "DataSource",
-        component: () => import("./views/ScDataCenterView.vue"),
+        component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"),
         meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 1 },
       },
       {
@@ -109,7 +112,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "SyncTasks",
         // 数据同步：源 jdbc 数据源按 SQL 读 → 字段映射 → 目标 jdbc 数据源的表，
         // 执行由后端复用 datasync 引擎完成（源读取 / 字段映射转换 / Sink 契约）。
-        component: () => import("./views/SyncTaskView.vue"),
+        component: () => import("@pages/datasource/src/views/sync/SyncTaskView.vue"),
         meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
       },
     ],
@@ -226,31 +229,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 发布管理 ====================
-  {
-    path: "/grp-release",
-    name: "GroupRelease",
-    meta: { title: "发布管理", icon: "Promotion", showLink: true, rank: 20 },
-    children: [
-      {
-        path: "/release",
-        name: "Release",
-        component: () => import("./views/ReleaseView.vue"),
-        meta: { title: "发布管理", icon: "Box", showLink: true, rank: 20 },
-      },
-    ],
-  },
-  {
-    // 项目管理：按需求从「发布管理」菜单摘除（原先 showLink:false 挂在分组 children 下，
-    // 而菜单过滤不递归、菜单组件也不校验子项 showLink，实测展开「发布管理」仍会渲染出它）。
-    // 移到顶层隐藏区才真正生效 —— 与下方 /db-manager 同一套做法。
-    // 路由本身保留可访问：发布管理列表的卡片与「进入」按钮都跳这里（见 ReleaseView.vue），
-    // 直接删掉路由会让那两个入口变成死链。
-    path: "/projects",
-    name: "Projects",
-    component: () => import("./views/ProjectsView.vue"),
-    meta: { title: "项目管理", icon: "Folder", showLink: false, activeMenu: "/release" },
-  },
+  // ==================== 发布管理 / 项目管理 ====================
+  // 视图、API、路由三者同出 @pages/server（createServerManageReleaseRoutes），
+  // 宿主不再抄第二份：/grp-release → /release 分组 + 顶层隐藏 /projects，
+  // 在文件末尾由 createServerManageReleaseRoutes 展开合并。
 
   // ==================== 系统管理 ====================
   {
@@ -261,13 +243,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/config",
         name: "Config",
-        component: () => import("./views/ConfigView.vue"),
+        component: () => import("../views/ConfigView.vue"),
         meta: { title: "监控配置", icon: "Setting", showLink: true, rank: 30 },
       },
       {
         path: "/proxy",
         name: "Proxy",
-        component: () => import("./views/ProxyView.vue"),
+        component: () => import("../views/ProxyView.vue"),
         meta: { title: "代理管理", icon: "Connection", showLink: true, rank: 31 },
       },
       {
@@ -279,13 +261,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/account",
         name: "Account",
-        component: () => import("./views/IdentityManageView.vue"),
+        component: () => import("@pages/server/src/views/identity/IdentityManageView.vue"),
         meta: { title: "账号管理", icon: "Key", showLink: true, rank: 33 },
       },
       {
         path: "/system-config",
         name: "SystemConfig",
-        component: () => import("./views/SystemConfigView.vue"),
+        component: () => import("../views/SystemConfigView.vue"),
         meta: { title: "系统配置", icon: "Tools", showLink: true, rank: 34 },
       },
     ],
@@ -301,6 +283,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 主机资产族：主机资产 / 远程控制 / ACME 证书 / 主机详情。
   ...createServerManageRoutes({ activeMenu: "/assets" }),
 
+  // 发布管理 / 项目管理族：发布管理分组 + 顶层隐藏项目页。
+  ...createServerManageReleaseRoutes({ activeMenu: "/release" }),
+
   // 数据源管理页：全部 showLink:false（不进侧边栏），由「数据中心」的「打开管理」进入，
   // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
   ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
@@ -310,7 +295,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
     // 关系图组件能力验收台：不挂侧边栏，仅供验收脚本访问
     path: "/re-relation-graph-lab",
     name: "ReRelationGraphLab",
-    component: () => import("./views/ReRelationGraphLab.vue"),
+    component: () => import("../views/ReRelationGraphLab.vue"),
     meta: { title: "关系图验收台", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
 
@@ -324,3 +309,4 @@ export const monitorRoutes: RouteConfigsTable[] = [
 ];
 
 export default monitorRoutes;
+

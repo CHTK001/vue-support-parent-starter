@@ -19,6 +19,16 @@ dist-verify2/
 playwright-bulk-report/
 # 交付部署目录（rsync/发布产物，20MB+，不入库）
 dist-deploy/
+# 打包体积报告（rollup-plugin-visualizer 产物，几百 KB 的纯生成文件）。
+# 曾经入库过，每次 build 都产生 diff，属于「临时文件必须放仓库外」的典型。
+stats.html
+# npm 的锁文件：本仓统一用 pnpm（pnpm-lock.yaml），
+# 残缺的 package-lock.json 只会误导安装行为。
+package-lock.json
+# 备份/交换文件
+*.bak
+*.orig
+*.rej
 .turbo/
 .turbo/**/
 coverage/

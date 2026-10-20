@@ -925,8 +925,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  color: var(--el-text-color-placeholder);
-  background: var(--el-fill-color-light);
+  color: var(--rm-text-secondary, var(--el-text-color-placeholder));
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
 }
 
 .fl-alert {
@@ -943,8 +943,8 @@ onBeforeUnmount(() => {
   width: 44px;
   height: 44px;
   object-fit: cover;
-  border-radius: var(--el-border-radius-base, 4px);
-  background: var(--el-fill-color-light);
+  border-radius: var(--rm-radius-sm, var(--el-border-radius-base, 4px));
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
   cursor: zoom-in;
 }
 
@@ -952,13 +952,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-text-color-placeholder);
+  color: var(--rm-text-secondary, var(--el-text-color-placeholder));
   cursor: default;
 }
 
 .lt-mono {
   font-family: var(--el-font-family, monospace);
-  font-size: var(--el-font-size-small);
+  font-size: var(--rm-font-sm, var(--el-font-size-small));
 }
 
 .lt-actions {

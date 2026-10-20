@@ -196,3 +196,30 @@ export function createDatasourceManageRoutes(
  * 否则模块里补了新类型，脚本反而会漏检。</p>
  */
 export const MANAGER_ROUTE_PATHS: string[] = Object.values(MANAGER_ROUTE_MAP);
+
+/**
+ * 数据同步任务页的叶子路由。
+ *
+ * <p>数据同步（源 jdbc 按 SQL 读 → 字段映射 → 目标 jdbc 表）的视图与 API 都收进
+ * {@code @pages/datasource}（视图 {@code views/sync/SyncTaskView.vue}，API
+ * {@code api/syncTaskApi.ts}），路由也由本包声明，宿主只做合并。</p>
+ *
+ * <p>与 {@link createDatasourceManageRoutes} 不同，这里产出一条<b>顶层叶子</b>
+ * {@code showLink:true}（要进侧边栏，宿主可把它并入自己的「数据中心」分组 children，
+ * 此前监控台就放在 {@code /grp-data} 下）。本包不声明分组父节点 —— 列表页各宿主不同，
+ * 分组归属是宿主的拼装职责（见本文件头注）。</p>
+ *
+ * @returns 可直接展开进宿主路由树的数组（单叶）
+ */
+export function createSyncTaskRoutes(): RouteConfigsTable[] {
+  return [
+    {
+      path: "/sync-tasks",
+      name: "SyncTasks",
+      // 数据同步：源 jdbc 数据源按 SQL 读 → 字段映射 → 目标 jdbc 数据源的表，
+      // 执行由后端复用 datasync 引擎完成（源读取 / 字段映射转换 / Sink 契约）。
+      component: () => import("./views/sync/SyncTaskView.vue"),
+      meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
+    },
+  ];
+}

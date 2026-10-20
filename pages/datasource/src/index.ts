@@ -69,6 +69,7 @@ export {
   managerRouteFor,
   MANAGER_ROUTE_MAP,
   MANAGER_ROUTE_PATHS,
+  createSyncTaskRoutes,
 } from "./routes";
 export type { DatasourceManageRoutesOptions } from "./routes";
 

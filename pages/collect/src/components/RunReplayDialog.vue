@@ -241,6 +241,36 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
           <div v-if="current && playing" class="side-now">当前：{{ current.collectTaskLogNodeName || current.collectTaskLogNodeId }}</div>
         </div>
       </div>
+
+      <!-- 链路追踪图：按节点日志动态生成，完整显示每一步（含重试/多次迭代） -->
+      <div class="replay__trace">
+        <div class="trace-head">
+          <span>链路追踪图</span>
+          <span class="muted">共 {{ ownLogs.length }} 步 · 横向滚动查看</span>
+        </div>
+        <div class="trace-flow">
+          <template v-for="(log, index) in ownLogs" :key="log.collectTaskLogId">
+            <div class="trace-node" :class="`trace-node--${log.collectTaskLogStatus.toLowerCase()}`">
+              <div class="trace-node__step">#{{ index + 1 }}</div>
+              <div class="trace-node__name">{{ log.collectTaskLogNodeName || log.collectTaskLogNodeId }}</div>
+              <div class="trace-node__shape">{{ log.collectTaskLogNodeShape }}</div>
+              <ReTag :type="statusTagType(log.collectTaskLogStatus)" effect="plain">
+                {{ statusText(log.collectTaskLogStatus) }}
+              </ReTag>
+              <div class="trace-node__meta">
+                ID {{ log.collectTaskLogNodeId }}
+                <template v-if="log.collectTaskLogIteration != null"> · 第 {{ log.collectTaskLogIteration + 1 }} 次</template>
+              </div>
+              <div class="trace-node__time" v-if="log.createTime">开始 {{ log.createTime }}</div>
+              <div class="trace-node__cost">
+                耗时 <ReTime :value="costMs(log.collectTaskLogCost)" format="duration" placeholder="—" />
+              </div>
+              <div v-if="log.collectTaskLogMessage" class="trace-node__msg">{{ log.collectTaskLogMessage }}</div>
+            </div>
+            <div v-if="index < ownLogs.length - 1" class="trace-arrow" aria-hidden="true">→</div>
+          </template>
+        </div>
+      </div>
     </div>
   </ReDialog>
 </template>
@@ -252,6 +282,14 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   gap: 10px;
   padding: 0 2px 10px;
   font-size: 13px;
+}
+.replay {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  padding: 2px;
 }
 .speed {
   display: flex;
@@ -295,6 +333,89 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
+}
+.replay__trace {
+  min-height: 168px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--el-bg-color);
+}
+.trace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.trace-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.trace-node {
+  flex: 0 0 184px;
+  min-width: 184px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color);
+  border-left: 3px solid var(--el-color-info);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-lighter);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+.trace-node--success {
+  border-left-color: var(--el-color-success);
+}
+.trace-node--failure {
+  border-left-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+.trace-node--skipped,
+.trace-node--stopped,
+.trace-node--running {
+  border-left-color: var(--el-color-warning);
+}
+.trace-node__step {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+.trace-node__name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trace-node__shape,
+.trace-node__meta,
+.trace-node__time,
+.trace-node__cost {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+.trace-node__msg {
+  color: var(--el-color-danger);
+  word-break: break-all;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.trace-arrow {
+  flex: none;
+  align-self: center;
+  margin: 0 4px;
+  color: var(--el-text-color-placeholder);
+  font-size: 18px;
 }
 .side-head {
   display: flex;

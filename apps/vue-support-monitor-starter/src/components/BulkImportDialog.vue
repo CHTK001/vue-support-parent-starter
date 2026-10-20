@@ -284,7 +284,7 @@ import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@p
 import ReFilePicker from "@repo/ui/re-file-picker";
 import type { FilePickerItem } from "@repo/ui/components/ReFilePicker/types";
 import ReDialog from "@repo/ui/re-dialog";
-import { fetchLocalFiles, type BulkImportPayload, type BulkImportResult } from "../syncTaskApi";
+import { fetchLocalFiles, type BulkImportPayload, type BulkImportResult } from "@pages/datasource/src/api/syncTaskApi";
 
 defineOptions({ name: "BulkImportDialog" });
 

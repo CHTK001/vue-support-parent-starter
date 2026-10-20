@@ -843,7 +843,7 @@ import {
   type SyncTaskRunLog,
   type SyncTaskRunResult,
   type SyncWriteMode,
-} from "../syncTaskApi";
+} from "../../api/syncTaskApi";
 import ReDialog from "@repo/ui/re-dialog";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
