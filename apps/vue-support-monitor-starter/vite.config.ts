@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { NextFunction } from "connect";
-import { createReadStream, existsSync, readdirSync } from "node:fs";
+import { createReadStream, existsSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { PluginOption } from "vite";
@@ -238,7 +238,7 @@ function dropProxyOrigin(): PluginOption {
           url.startsWith("/ms/") ||
           url.startsWith("/v2/") ||
           url.startsWith("/api/device") ||
-          /^\/(localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
+          /^\/(fs|localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
           delete req.headers.origin;
         }
@@ -307,9 +307,47 @@ export default createVite({
     "@pages/datasource": "pages/datasource",
     "@pages/device": "pages/device",
   },
+  /**
+   * 依赖预构建缓存目录（默认 node_modules/.vite）。
+   *
+   * <p>多个 worktree 共用同一个 {@code node_modules}（junction）时，默认缓存也共用：
+   * 某个实例因 lockfile 变化重新预构建，会让其他实例手里的旧 chunk 失效，表现为
+   * {@code Failed to fetch dynamically imported module} / {@code 504 Outdated Optimize Dep}。</p>
+   *
+   * <p>并行开多个 dev server 时用 {@code VITE_CACHE_DIR=.vite-xxx} 各开一份缓存即可隔离。</p>
+   */
+  cacheDir: process.env.VITE_CACHE_DIR ? join(process.cwd(), process.env.VITE_CACHE_DIR) : undefined,
   server: {
     port: 8848,
     strictPort: true,
+    /**
+     * 允许读取 node_modules 的**真实路径**。
+     *
+     * <p>本仓库常在 worktree 里开发：worktree 的 {@code node_modules} 往往是指向主检出
+     * 的 junction / 符号链接，vite 解析出的模块真实路径落在工作区根之外，默认
+     * {@code server.fs.allow} 不放行 —— 表现为 {@code @fs/...} 请求被拒，
+     * file-viewer 的动态 import 失败，预览整片回退到 iframe（「预览加载失败」）。</p>
+     *
+     * <p>这里用 {@code realpathSync} 把符号链接解成真实目录再放行，对普通检出无副作用。</p>
+     */
+    fs: {
+      allow: (() => {
+        const cwd = process.cwd();
+        const real = (p: string): string => {
+          try {
+            return realpathSync(p);
+          } catch {
+            return p;
+          }
+        };
+        const nm = real(join(cwd, "node_modules"));
+        // apps/<app> → 仓库（worktree）根：默认 allow 会包含它，这里替换数组后必须补回，
+        // 否则 @fs/<worktree>/packages/** 会被 403（worker / 字体 / 共享包全部加载失败）。
+        const repoRoot = real(join(cwd, "..", ".."));
+        // 同时放行 node_modules 本身与其上级（主检出根），覆盖 .pnpm 下的深层真实路径
+        return [real(cwd), repoRoot, nm, dirname(nm)];
+      })(),
+    },
     watch: {
       // 插件每次 dev 启动都会 rm+cp 重写 public/vendor（约 27MB，含 17MB ppt 字体）。
       // Windows 下对仍在写入/被外部进程短暂锁定的大文件建 fs.watch → EBUSY →
@@ -449,6 +487,8 @@ export default createVite({
       // 后端在 198，本机没有这个进程，所以必须走代理；请求前缀是桶名
       // （localFileStorage / local / ot / config 等），逐个列前缀最稳妥
       // （Vite proxy 的 key 用字符串前缀匹配最可靠，RegExp 形式在 v8 下有兼容坑）。
+      // 嵌入式形态挂载在应用端口 + path-prefix（默认 /fs），因此 /fs 同源代理到 API。
+      "/fs": { target: apiTarget, changeOrigin: true },
       "/localFileStorage": { target: fileStorageTarget, changeOrigin: true },
       "/local": { target: fileStorageTarget, changeOrigin: true },
       "/ot": { target: fileStorageTarget, changeOrigin: true },

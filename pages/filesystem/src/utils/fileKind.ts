@@ -222,7 +222,7 @@ const SKETCH_EXTS = ["sketch"];
  * 后端无脑图提供者，且脑图是结构化文档而非 Office 文档，
  * 故从 OFFICE_EXTS 拆出独立归类，匹配其专属图标与「XMind 脑图」文案。</p>
  */
-const MINDMAP_EXTS = ["xmind"];
+const MINDMAP_EXTS = ["xmind", "mm", "opml"];
 
 /** 压缩包扩展名（走后端条目列表预览） */
 const ARCHIVE_EXTS = [
@@ -272,7 +272,7 @@ export function kindOf(name: string): PreviewKind {
   if (TIFF_EXTS.includes(ext)) return "tiff";
   if (HEIC_EXTS.includes(ext)) return "heic";
   if (CODE_EXTS.includes(ext)) return "code";
-  if (ext === "md" || ext === "markdown") return "markdown";
+  if (ext === "md" || ext === "markdown" || ext === "markmap") return "markdown";
   if (ext === "csv") return "csv";
   if (PLAIN_TEXT_EXTS.includes(ext)) return "text";
   if (ext === "pdf") return "pdf";

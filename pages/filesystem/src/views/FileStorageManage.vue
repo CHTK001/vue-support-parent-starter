@@ -118,6 +118,7 @@ const PreviewIfcPanel = defineAsyncComponent(() => import("../components/Preview
  */
 const FvTextPanel = defineAsyncComponent(() => import("../components/fv/FvTextPanel.vue"));
 const FvDocPanel = defineAsyncComponent(() => import("../components/fv/FvDocPanel.vue"));
+const FvOutlinePanel = defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue"));
 const FvDesignPanel = defineAsyncComponent(() => import("../components/fv/FvDesignPanel.vue"));
 const FvSignaturePanel = defineAsyncComponent(() => import("../components/fv/FvSignaturePanel.vue"));
 const FvBinaryPanel = defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue"));
@@ -206,6 +207,11 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   eml: FvDocPanel,
   msg: FvDocPanel,
   mbox: FvDocPanel,
+  // 大纲 / 脑图（非 XMind）：FreeMind .mm、OPML .opml（前端解析成树）
+  mm: FvOutlinePanel,
+  opml: FvOutlinePanel,
+  // .markmap 是 Markdown 语法（标题即脑图层级），按 markdown 渲染
+  markmap: FvTextPanel,
   // renderer-design / renderer-data / renderer-signature / renderer-binary
   psb: FvDesignPanel,
   pdd: FvBinaryPanel,
@@ -6867,9 +6873,19 @@ button.fs-stat:hover {
 
 .fs-preview__error {
   width: 100%;
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  background:
+    radial-gradient(
+      ellipse at center,
+      color-mix(in srgb, var(--el-color-danger, #f56c6c) 6%, transparent) 0%,
+      transparent 70%
+    );
 }
 
 .fs-preview__skeleton {
@@ -6883,14 +6899,27 @@ button.fs-stat:hover {
 
 .fs-preview__loading-text {
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-color-primary, #409eff);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.5px;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; text-shadow: none; }
+  50% { opacity: 1; text-shadow: 0 0 8px var(--el-color-primary, #409eff); }
 }
 
 .sk {
-  border-radius: var(--el-radius-sm, 6px);
-  background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color) 50%, var(--el-fill-color-light) 75%);
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 8%, var(--el-fill-color-light)) 25%,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 18%, var(--el-fill-color)) 50%,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 8%, var(--el-fill-color-light)) 75%
+  );
   background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 
 .sk--w40 { width: 40%; height: 22px; }
@@ -8172,8 +8201,8 @@ button.fs-stat:hover {
  * 并把拖拽接管到内容外壳，导致在 Excel 预览里点选单元格被误判为拖拽、单元格抖动。
  * 关闭按钮交回 el-dialog 自带（show-close），不再自绘浮层按钮。 */
 .fs-preview-dlg.el-dialog {
-  border-radius: var(--el-radius-lg, 12px);
-  overflow: hidden;
+  border-radius: 14px;
+  overflow: visible; /* 让 ::before 辉光边框不被裁掉 */
   padding: 0;
   /*
     高度钉成「视口 - 上下各 10px」，让内容真正吃满屏幕：
@@ -8185,6 +8214,49 @@ button.fs-stat:hover {
   height: calc(100vh - 20px);
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* 科技感外框：用 ::before 做渐变描边，::after 做外发光 */
+.fs-preview-dlg.el-dialog::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 15px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 70%, var(--el-color-success, #67c23a)) 0%,
+    var(--el-color-primary, #409eff) 35%,
+    var(--el-color-info, #909399) 65%,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 70%, var(--el-color-success, #67c23a)) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.fs-preview-dlg.el-dialog::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--el-color-primary, #409eff) 18%, transparent),
+    0 8px 40px color-mix(in srgb, var(--el-color-primary, #409eff) 10%, transparent);
+  pointer-events: none;
+  z-index: -1;
+  transition: box-shadow 0.3s ease;
+}
+
+.fs-preview-dlg.el-dialog:hover::after {
+  box-shadow:
+    0 0 40px color-mix(in srgb, var(--el-color-primary, #409eff) 28%, transparent),
+    0 12px 50px color-mix(in srgb, var(--el-color-primary, #409eff) 16%, transparent);
 }
 
 /* body 必须能伸缩，否则子面板的 flex:1 拿不到有界高度 */
@@ -8193,32 +8265,63 @@ button.fs-stat:hover {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 12px 14px 14px;
+  padding: 0;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--el-color-primary, #409eff) 3%, var(--el-bg-color, #fff)) 0%,
+      var(--el-bg-color, #fff) 100%
+    );
 }
 
-/* 拖拽手柄：光标由 header 承载，并让标题过长时省略而不是把关闭按钮挤走 */
+/* 拖拽手柄：科技感渐变标题栏 */
 .fs-preview-dlg .el-dialog__header {
   cursor: move;
   user-select: none;
   margin-right: 0;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 12px 16px 11px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--el-color-primary, #409eff) 10%, var(--el-bg-color, #fff)) 0%,
+      color-mix(in srgb, var(--el-color-success, #67c23a) 6%, var(--el-bg-color, #fff)) 100%
+    );
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(
+    90deg,
+    var(--el-color-primary, #409eff) 0%,
+    color-mix(in srgb, var(--el-color-primary, #409eff) 40%, var(--el-color-success, #67c23a)) 50%,
+    var(--el-color-info, #909399) 100%
+  ) 1;
 }
 
 .fs-preview-dlg .el-dialog__title {
-  font-size: var(--el-font-size-base);
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.3px;
 }
 
+/* 关闭按钮：悬停主色圆晕 */
 .fs-preview-dlg .el-dialog__headerbtn {
-  top: 10px;
-  right: 12px;
-  width: 40px;
-  height: 40px;
+  top: 8px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.fs-preview-dlg .el-dialog__headerbtn:hover {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 10%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-danger, #f56c6c) 30%, transparent);
+}
+.fs-preview-dlg .el-dialog__headerbtn .el-dialog__close {
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .fs-preview-dlg .el-dialog__body {
