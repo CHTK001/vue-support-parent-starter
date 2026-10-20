@@ -161,6 +161,8 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   // ---- renderer-text：Markdown / 代码 / 纯文本 / 结构化文本 ----
   md: TEXT_SPEC,
   markdown: TEXT_SPEC,
+  // .markmap 是 Markdown 语法，按 markdown 渲染
+  markmap: TEXT_SPEC,
   txt: TEXT_SPEC,
   json: TEXT_SPEC,
   js: TEXT_SPEC,

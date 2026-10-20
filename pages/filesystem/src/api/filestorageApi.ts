@@ -48,8 +48,10 @@ export const DEFAULT_QUOTA_GB = 5;
 
 /** app.yaml 中文件服务器配置节（otherConfig.filestorage） */
 interface FileStorageAppConfig {
-  /** 文件服务器地址 */
+  /** 文件服务器地址（standalone=绝对 URL；embedded=应用内相对路径，如 /fs 或 /system/api/fs） */
   server?: string;
+  /** 部署形态：embedded（默认）/ standalone */
+  mode?: string;
   /** 默认存储桶（provider 名） */
   bucket?: string;
   /** 存储配额（GB），用于"存储用量"进度展示 */
