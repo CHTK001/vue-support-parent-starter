@@ -24,11 +24,26 @@ import path from 'node:path'
  */
 const deviceApiTarget = process.env.DEVICE_API_TARGET ?? 'http://192.168.50.198:18170'
 
+/**
+ * 代理转发时移除浏览器 Origin。
+ *
+ * <p>浏览器对 POST 会带上 {@code Origin: http://localhost:19092}，而设备后端
+ * 的 CORS 白名单未包含开发端口时，Spring 会直接返回 403 Invalid CORS request；
+ * GET 不带 Origin 因而正常，表现为“查询正常、保存 403”。开发代理与后端同源转发，
+ * 移除该头即可，生产环境由网关/后端统一配置 CORS。</p>
+ */
+function stripOrigin(proxy: { on: (event: string, cb: (req: { removeHeader: (name: string) => void }) => void) => void }): void {
+  proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin'))
+}
+
+
 export default createVite({
   appName: 'vue-support-device-starter',
   title: '设备管理',
   alias: {
-    '@': path.resolve(__dirname, '../../pages/device/src')
+    '@': path.resolve(__dirname, '../../pages/device/src'),
+    // 新版页面内部统一使用 @pages/device/src/... 引用，便于同时被 8848 宿主挂载
+    '@pages/device': path.resolve(__dirname, '../../pages/device')
   },
   server: {
     port: 19092,
@@ -36,11 +51,13 @@ export default createVite({
     proxy: {
       '/api/device': {
         target: deviceApiTarget,
-        changeOrigin: true
+        changeOrigin: true,
+        configure: stripOrigin
       },
       '/api': {
         target: deviceApiTarget,
-        changeOrigin: true
+        changeOrigin: true,
+        configure: stripOrigin
       }
     }
   }

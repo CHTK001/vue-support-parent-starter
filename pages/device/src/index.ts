@@ -14,6 +14,7 @@
  *   - DeviceView：设备工作台（设备树 / 概览 / 地图 / 通道 / 视频 / 云台 / 门禁 / 事件）
  */
 export { default as DeviceView } from './views/DeviceView.vue'
+export { default as DeviceProviderView } from './views/DeviceProviderView.vue'
 export { deviceRoutes, deviceMenus } from './router'
 export { deviceApi } from './api/deviceApi'
 export * from './types/device'

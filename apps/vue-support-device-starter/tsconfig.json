@@ -2,7 +2,13 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../pages/device/src/*"],
+      "@pages/device/*": ["../../pages/device/*"],
+      "@pages/device": ["../../pages/device/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "app.yaml", "../../packages/core/src/**/*.d.ts"]
 }
