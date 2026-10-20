@@ -29,6 +29,47 @@ page.on('console', (m) => {
 })
 page.on('pageerror', (e) => console.log('PAGE-ERR', String(e).slice(0, 200)))
 
+function arrayOf(json) {
+  const inner = json?.data?.data ?? json?.data
+  return Array.isArray(inner) ? inner : []
+}
+
+await page.route('**/v2/global-setting-definitions', async (route) => {
+  const resp = await route.fetch()
+  const json = await resp.json()
+  const image = arrayOf(json).find((g) => g?.group === 'image')
+  if (image) {
+    const items = image.items || (image.items = [])
+    const ensure = (field, description, sort, value) => {
+      if (!items.some((i) => i.field === field)) {
+        items.push({ field, value, valueType: 'STRING', description, sort, adminOnly: false, defaultValue: value })
+      }
+    }
+    ensure('colorize_model', '图像上色模型（留空关闭）', 12, '')
+    ensure('colorize_device', '图像上色推理设备（cpu / cuda）', 13, 'cpu')
+  }
+  await route.fulfill({ status: resp.status(), contentType: 'application/json', body: JSON.stringify(json) })
+})
+await page.route('**/v2/settings/image/merged', async (route) => {
+  const resp = await route.fetch()
+  const json = await resp.json()
+  const items = arrayOf(json)
+  const push = (item) => {
+    if (!items.some((i) => i?.field === item.field)) items.push(item)
+  }
+  push({
+    group: 'image', field: 'colorize_model', value: 'onnx:image-colorize', valueType: 'STRING',
+    description: '图像上色模型（留空关闭）', sort: 12, configuredBy: 'admin', systemDefault: false,
+    overridden: true, defaultValue: '', origin: 'USER',
+  })
+  push({
+    group: 'image', field: 'colorize_device', value: 'cpu', valueType: 'STRING',
+    description: '图像上色推理设备（cpu / cuda）', sort: 13, configuredBy: null, systemDefault: true,
+    overridden: false, defaultValue: 'cpu', origin: 'SYSTEM_DEFAULT',
+  })
+  await route.fulfill({ status: resp.status(), contentType: 'application/json', body: JSON.stringify(json) })
+})
+
 await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 120000 })
 await page.locator('input[type="text"]').first().fill('admin')
 await page.locator('input[type="password"]').first().fill(PASS)
@@ -53,8 +94,10 @@ const btn = page.locator('button', { hasText: '更换图片' }).first()
 console.log('BTN count=', await btn.count(), 'enabled=', await btn.isEnabled())
 const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), btn.click()])
 console.log('CHOOSER', !!chooser, 'multiple=', chooser.isMultiple())
-await chooser.setFiles(grayPath)
+await chooser.setFiles({ name: 'gray.png', mimeType: 'image/png', buffer: fs.readFileSync(grayPath) })
 await page.waitForTimeout(5000)
+const toast = await page.locator('.el-message').allInnerTexts().catch(() => [])
+console.log('TOAST=', JSON.stringify(toast))
 console.log('ROUTE-HITS=', captured)
 console.log('FILES=', await page.evaluate(() => Array.from(document.querySelectorAll('input[type=file]')).map((i) => i.files ? i.files.length : -1)))
 console.log('RESULT=', await page.locator('img[alt="上色结果"]').count(), 'ERRTEXT=', await page.locator('text=上色失败').count())

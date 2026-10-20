@@ -85,6 +85,9 @@ const EXTRA_TIPS: Record<string, string> = {
   datasource: `只列 ${dsType.value} 类型且已启用的数据源；到「数据源」页添加后回来刷新即可。`,
 };
 
+const inputFields = computed(() => fields.value.filter(p => p.name !== "outputVariable"));
+const outputFields = computed(() => fields.value.filter(p => p.name === "outputVariable"));
+
 /**
  * 参数是否整行展示（与 ParamField 的宽控件判定一致）。
  *

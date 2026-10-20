@@ -126,8 +126,24 @@ function goConfig() {
   router.push('/setting/colorize-config')
 }
 
+/**
+ * 判断所选文件是否为图片。
+ *
+ * <p>不能只看 {@code file.type}：部分来源（无扩展名、系统未登记 MIME、
+ * 拖拽自某些客户端）会给空 type，此时按扩展名兜底，避免「选了图却提示不是图片」。</p>
+ *
+ * @param file 用户选择的文件
+ * @returns 是否按图片处理
+ */
+function isImageFile(file: File) {
+  if (file.type) {
+    return file.type.startsWith('image/')
+  }
+  return /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i.test(file.name || '')
+}
+
 function loadImageFromFile(file: File) {
-  if (!file.type.startsWith('image/')) {
+  if (!isImageFile(file)) {
     message.warning('请选择图片文件')
     return
   }
