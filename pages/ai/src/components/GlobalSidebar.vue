@@ -144,8 +144,10 @@
                   </div>
                 </div>
                 <!-- ml-auto：把这一栏顶到最右边缘。缺了它时该块紧跟在标题后面，
-                     时间既不在最右、hover 出来的工具也无处可站。 -->
-                <div v-if="!multiSelectMode" class="session-actions ml-auto shrink-0 h-full flex items-center gap-1">
+                     时间既不在最右、hover 出来的工具也无处可站。
+                     h-4 而不是 h-full：h-full 的高度由父容器决定，而父容器高度又由本栏最高子元素决定，
+                     会形成回环 —— hover 时换成更高的工具块（24px）就把整行从 32px 撑到 36px，整列往下跳。 -->
+                <div v-if="!multiSelectMode" class="session-actions ml-auto shrink-0 h-4 flex items-center gap-1">
                   <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
                   <span v-if="getSessionWorking(session.id)"
                     class="text-xs font-medium text-blue-500 whitespace-nowrap">
