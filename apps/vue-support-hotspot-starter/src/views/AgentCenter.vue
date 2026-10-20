@@ -195,6 +195,69 @@
         </div>
       </div>
     </div>
+
+    <!-- 句柄检测：当前进程全量句柄 + 分配堆栈 + FD + 线程 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>句柄检测</span>
+        <span class="panel-sub">文件 / Socket / 线程 / JDBC 连接全量清单</span>
+        <ReButton text size="small" :loading="handleLoading" @click="loadHandles">刷新</ReButton>
+      </div>
+      <div v-if="handleLoading" class="panel-empty">正在扫描句柄…</div>
+      <div v-else-if="!handleSnapshot" class="panel-empty">尚未获取句柄数据，请刷新。</div>
+      <div v-else class="handle-grid">
+        <div v-for="(count, kind) in handleSnapshot.summary" :key="kind" class="handle-stat">
+          <b class="handle-count mono">{{ count }}</b>
+          <span class="handle-kind">{{ kind }}</span>
+        </div>
+      </div>
+      <div v-if="handleSnapshot?.trackedHandles.length" class="handle-table-wrap">
+        <table class="apm-mini-table">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>名称</th>
+              <th>持有线程</th>
+              <th>创建时间</th>
+              <th>存活</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="h in handleSnapshot.trackedHandles.slice(0, 12)" :key="h.handleId">
+              <td><ReTag size="small" round>{{ h.kind }}</ReTag></td>
+              <td class="mono" :title="h.name">{{ shortText(h.name, 30) }}</td>
+              <td>{{ h.ownerThread }}</td>
+              <td class="mono muted">{{ formatTime(h.createdAt) }}</td>
+              <td class="mono">{{ h.closed ? "已关闭" : formatAge(Date.now() - h.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-if="handleSnapshot?.fileDescriptors.length" class="fd-list">
+        <span class="fd-title muted">FD 近览（{{ handleSnapshot.fileDescriptors.length }}）</span>
+        <span v-for="fd in handleSnapshot.fileDescriptors.slice(0, 8)" :key="fd.fd" class="fd-chip mono">
+          {{ fd.fd }} → {{ shortText(fd.target, 24) }}
+        </span>
+      </div>
+    </div>
+
+    <!-- System.out / System.err 实时捕获 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>系统输出捕获</span>
+        <span class="panel-sub">System.out / System.err 实时流</span>
+        <ReButton text size="small" :loading="sysOutLoading" @click="loadSysOut">刷新</ReButton>
+      </div>
+      <div v-if="sysOutLoading" class="panel-empty">正在读取系统输出…</div>
+      <div v-else-if="!sysOutEntries.length" class="panel-empty">暂无 System.out / System.err 输出。</div>
+      <div v-else class="sysout-list">
+        <div v-for="(e, i) in sysOutEntries" :key="i" class="sysout-row">
+          <ReTag size="small" :type="e.level === 'ERROR' ? 'danger' : 'info'" round>{{ e.source }}</ReTag>
+          <span class="mono muted">{{ e.timestamp }}</span>
+          <span class="sysout-line mono">{{ e.line }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -218,8 +281,8 @@ import ReSwitch from "@repo/ui/re-switch";
 import type { ReOption } from "@repo/ui/re-select";
 import { message } from "@repo/core";
 import { useApmStore } from "../stores/apmStore";
-import { updateAgentConfig, setAgentEnabled } from "../api/apmApi";
-import type { AgentConfig } from "../api/apmApi";
+import { updateAgentConfig, setAgentEnabled, getHandleInventory, getSystemOut } from "../api/apmApi";
+import type { AgentConfig, HandleInventorySnapshot, SystemOutEntry } from "../api/apmApi";
 import { useRealtimeStatus } from "../composables/useRealtime";
 
 const store = useApmStore();
@@ -316,6 +379,55 @@ const healthDesc = computed(() => {
 
 const realtimeConnected = computed(() => rt.wsConnected.value || rt.connected.value);
 
+/* ---- 句柄检测 ---- */
+const handleLoading = ref(false);
+const handleSnapshot = ref<HandleInventorySnapshot | null>(null);
+
+async function loadHandles() {
+  handleLoading.value = true;
+  try {
+    handleSnapshot.value = await getHandleInventory(200);
+  } catch {
+    handleSnapshot.value = null;
+  } finally {
+    handleLoading.value = false;
+  }
+}
+
+/* ---- System.out / System.err 捕获 ---- */
+const sysOutLoading = ref(false);
+const sysOutEntries = ref<SystemOutEntry[]>([]);
+
+async function loadSysOut() {
+  sysOutLoading.value = true;
+  try {
+    sysOutEntries.value = await getSystemOut(200);
+  } catch {
+    sysOutEntries.value = [];
+  } finally {
+    sysOutLoading.value = false;
+  }
+}
+
+/* ---- 工具 ---- */
+function formatTime(ts: number): string {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function formatAge(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(1)}m`;
+}
+
+function shortText(s: string, max: number): string {
+  if (!s) return "";
+  return s.length <= max ? s : s.slice(0, max - 1) + "…";
+}
+
 async function loadAgentConfig() {
   const cfg = await store.loadAgentConfig();
   if (cfg) {
@@ -377,6 +489,7 @@ let pollTimer: number | undefined;
 
 onMounted(async () => {
   await refreshAll();
+  await Promise.all([loadHandles(), loadSysOut()]);
   pollTimer = window.setInterval(() => {
     store.pollStatus();
   }, 15000);
@@ -503,6 +616,102 @@ onBeforeUnmount(() => {
 
 .channel-dot.off {
   background: var(--apm-danger);
+}
+
+/* ---- 句柄检测 ---- */
+.handle-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-2) 0 var(--apm-space-4);
+}
+
+.handle-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--apm-space-2) var(--apm-space-4);
+  background: var(--apm-panel-raised);
+  border: 1px solid var(--apm-border-soft);
+  border-radius: var(--apm-radius-md);
+}
+
+.handle-count {
+  font-size: 20px;
+  color: var(--apm-fg);
+}
+
+.handle-kind {
+  font-size: 11px;
+  color: var(--apm-muted);
+}
+
+.handle-table-wrap {
+  overflow-x: auto;
+  margin-bottom: var(--apm-space-3);
+}
+
+.apm-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.apm-mini-table th,
+.apm-mini-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--apm-border-soft);
+  white-space: nowrap;
+}
+
+.apm-mini-table th {
+  color: var(--apm-muted);
+  font-weight: 600;
+}
+
+.fd-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.fd-title {
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.fd-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--apm-border-soft);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--apm-fg-regular);
+}
+
+/* ---- System.out / System.err ---- */
+.sysout-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.sysout-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--apm-space-2);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--apm-border-soft);
+  font-size: 12px;
+}
+
+.sysout-line {
+  flex: 1;
+  word-break: break-all;
+  color: var(--apm-fg-regular);
 }
 
 @media (prefers-reduced-motion: reduce) {
