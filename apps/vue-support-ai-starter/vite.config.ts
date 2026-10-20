@@ -13,7 +13,7 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import type { PluginOption } from 'vite'
 
-const APP_NAME = 'vue-support-ai-guada'
+const APP_NAME = 'vue-support-ai-starter'
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..')
 /**
  * Node 内置 `events` 的浏览器垫片绝对路径，供下面 resolve.alias 使用。
