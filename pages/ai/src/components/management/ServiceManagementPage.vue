@@ -126,7 +126,7 @@
                     @click="toggleInstance(t)">
               <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
             </button>
-            <button class="svc-ico" title="访问令牌" aria-label="访问令牌" @click="goTokens(t)">
+            <button class="svc-ico" title="访问令牌" aria-label="访问令牌" @click="openTokens(t)">
               <el-icon><KeyIcon /></el-icon>
             </button>
             <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
@@ -582,9 +582,11 @@ const creating = ref(false)
 const activeId = ref<any>(null)
 const activeTab = ref('runtime')
 
+// 注意：这里是 script 作用域，ref 不会像模板那样自动解包，必须写 .value；
+// 不写会得到「Ref 上没有 length」的类型错误（模板里的同名写法是正确的）。
 const logTabs = computed<ReTabItem[]>(() => [
-  { name: 'runtime', label: '运行日志', badge: runtimeLogLines.length || '' },
-  { name: 'access', label: '访问日志', badge: logs.length || '' },
+  { name: 'runtime', label: '运行日志', badge: runtimeLogLines.value.length || '' },
+  { name: 'access', label: '访问日志', badge: logs.value.length || '' },
   { name: 'tokens', label: '令牌' },
 ])
 

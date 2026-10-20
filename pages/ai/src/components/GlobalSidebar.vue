@@ -425,6 +425,7 @@ import {
   ImageSearch20Regular,
   Key20Regular,
   ChatMultiple24Regular,
+  DesktopSpeaker24Regular,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -690,6 +691,19 @@ const navItems = computed(() => {
       badgeTip: '上色模型未配置，图像上色不可用',
     },
     {
+      key: 'audio-recognition',
+      label: '音频识别',
+      icon: DesktopSpeaker24Regular,
+      section: '音频',
+      // 独立分组：音频与图像是两类能力，混在「图像」分组里既难找也名不副实。
+      //
+      // 门禁只要求 default_model 一项：provider 缺省走后端 whisper 本地推理，
+      // 密钥/地址仅云端 ASR 才需要，全列为必需会把本地推理也一并挡掉。
+      // 未配置时菜单打「未配置」徽标，页面内引导去「系统设置 → 音频配置」。
+      badge: modelConfig.asrReady ? '' : '未配置',
+      badgeTip: 'ASR 默认模型未配置，音频识别不可用',
+    },
+    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -755,6 +769,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'ImageColorize') return 'image-colorize'
+  if (routeName === 'AudioRecognition') return 'audio-recognition'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -1107,6 +1122,14 @@ const handleNavClick = async (tab: string) => {
       return
     }
     router.replace({ name: 'ImageColorize' })
+  } else if (tab === 'audio-recognition') {
+    // 音频识别同口径：点击时才拿最新配置，配置后不需要刷新页面
+    await modelConfig.load()
+    if (!modelConfig.asrReady) {
+      toast.warning('音频识别未启用：请先到「系统设置 → 音频配置」选择 ASR 默认模型')
+      return
+    }
+    router.replace({ name: 'AudioRecognition' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {

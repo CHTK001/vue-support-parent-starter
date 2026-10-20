@@ -322,10 +322,25 @@ export interface SessionApi {
   fetchSessionSummaries(sessionId: string, limit?: number): Promise<{ items: any[]; total: number }>;
   updateSummary(summaryId: string, data: { summaryContent?: string }): Promise<any>;
   deleteSummary(summaryId: string): Promise<{ success: boolean }>;
-  /** 落库会话上下文用量快照（流式结束时调用） */
+  /**
+   * 落库会话上下文用量快照（流式结束时调用）。
+   *
+   * breakdown 是 token 构成（系统提示词/摘要/用户输入/历史消息/工具定义）：
+   * 与已用/窗口同源，一并存下去，否则刷新后「上下文已用」卡片只剩一根占用条。
+   */
   saveSessionTokenStats(
     sessionId: string,
-    stats: { usedTokens: number; effectiveContextWindow: number },
+    stats: {
+      usedTokens: number;
+      effectiveContextWindow: number;
+      breakdown?: {
+        systemPrompt?: number;
+        summary?: number;
+        userPrompt?: number;
+        history?: number;
+        tools?: number;
+      };
+    },
   ): Promise<{ usedTokens?: number; effectiveContextWindow?: number; updatedAt?: number }>;
   fetchSessionTokenStats(sessionId: string): Promise<{
     usedTokens: number;

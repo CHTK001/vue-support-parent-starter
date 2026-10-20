@@ -89,6 +89,14 @@ interface StreamResponse {
   contextStats?: {
     usedTokens: number;
     effectiveContextWindow: number;
+    /** token 构成；后端按字符数估算下发，前端直接落库并展示在「上下文已用」卡片 */
+    breakdown?: {
+      systemPrompt?: number;
+      summary?: number;
+      userPrompt?: number;
+      history?: number;
+      tools?: number;
+    };
   };
   retryReason?: "timeout" | "rate_limited" | "network_error";
   retryAttempt?: number;

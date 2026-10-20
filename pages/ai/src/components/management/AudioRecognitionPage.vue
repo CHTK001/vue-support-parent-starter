@@ -3,7 +3,7 @@
     <ReCard title="音频识别" subtitle="上传或录制音频，用已配置的 ASR 模型转写为文字">
       <template #extra>
         <span v-if="modelReady" class="asr-model-badge">
-          {{ asrProvider || 'whisper' }} · {{ modelConfig.asrModel || '未配置' }}
+          {{ modelConfig.asrProvider || 'whisper' }} · {{ modelConfig.asrModel || '未配置' }}
         </span>
         <span v-else class="asr-model-badge is-off">未配置 ASR 模型</span>
       </template>
@@ -115,7 +115,18 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { AudioFileOutlined, VideoOff, Microphone, FolderOpened, Search, Copy, Download } from '@vicons/material'
+// @vicons/material 的导出名带 Outlined/Filled 后缀，且没有 VideoOff/Microphone/
+// FolderOpened/Search/Copy/Download 这些短名（那几个是 element-plus 图标的叫法）。
+// 这里按真实导出名导入并就地取别名，调用处不必跟着改。
+import {
+  AudioFileOutlined,
+  VideocamOffOutlined as VideoOff,
+  MicOutlined as Microphone,
+  FolderOpenOutlined as FolderOpened,
+  SearchOutlined as Search,
+  ContentCopyOutlined as Copy,
+  DownloadOutlined as Download,
+} from '@vicons/material'
 import { WarningFilled } from '@element-plus/icons-vue'
 import ReCard from '@/components/re/ReCard.vue'
 import ReButton from '@/components/re/ReButton.vue'
