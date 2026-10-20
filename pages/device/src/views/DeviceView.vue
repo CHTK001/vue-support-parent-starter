@@ -1,678 +1,868 @@
 <template>
-  <div class="device-page flex h-full">
-    <aside class="w-80 border-r border-el-border bg-el-bg p-4 overflow-auto">
-      <ReDeviceTree
-        :org-tree="orgTree"
-        :devices="devices"
-        :selected-id="selectedDevice?.deviceInfoId"
-        @select="selectDevice"
-        @org-select="onOrgSelect"
-        @sync-org="syncOrg"
-        @add="showAddDialog"
-      />
-    </aside>
+  <div class="device-page flex flex-col h-full">
+    <!-- 页头 -->
+    <header class="flex items-start justify-between gap-4 px-5 pt-5">
+      <div class="min-w-0">
+        <h2 class="text-xl font-semibold text-el-text">设备台账</h2>
+        <p class="text-sm text-el-text-secondary mt-1">
+          统一管理摄像头、门禁、报警与对讲设备，支持厂商同步、在线监测、视频预览与空间定位。
+        </p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <el-button @click="refreshAll">
+          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+        </el-button>
+        <el-button @click="orgVisible = true">
+          <el-icon class="mr-1"><OfficeBuilding /></el-icon>组织管理
+        </el-button>
+        <el-button @click="goScreen">
+          <el-icon class="mr-1"><Monitor /></el-icon>大屏
+        </el-button>
+        <el-button @click="goProvider">
+          <el-icon class="mr-1"><Connection /></el-icon>厂商接入
+        </el-button>
+        <el-button @click="exportDevices">
+          <el-icon class="mr-1"><Download /></el-icon>导出
+        </el-button>
+        <el-button type="primary" @click="openCreate">
+          <el-icon class="mr-1"><Plus /></el-icon>新增设备
+        </el-button>
+      </div>
+    </header>
 
-    <main class="flex-1 p-4 overflow-auto">
-      <div v-if="selectedDevice" class="space-y-4">
+    <!-- 统计卡片 -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 px-5 pt-4">
+      <div
+        v-for="card in statCards"
+        :key="card.key"
+        class="stat-card"
+        :class="card.accent"
+      >
         <div class="flex items-center justify-between">
-          <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoName }}</div>
-          <div class="flex items-center gap-2">
-            <el-button @click="showThresholdDialog">
-              <el-icon class="mr-1"><Timer /></el-icon>离线检测
-            </el-button>
-            <el-button @click="exportDevices">
-              <el-icon class="mr-1"><Download /></el-icon>导出 Excel
-            </el-button>
-          </div>
+          <span class="text-sm text-el-text-secondary">{{ card.label }}</span>
+          <el-icon class="text-lg" :class="card.iconClass"><component :is="card.icon" /></el-icon>
         </div>
-        <el-tabs v-model="activeTab" class="device-tabs">
-          <el-tab-pane label="概览" name="overview">
-            <div class="grid grid-cols-4 gap-4">
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">设备名称</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoName }}</div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">厂商 / 型号</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoVendor }} / {{ selectedDevice.deviceInfoModel }}</div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">IP / 端口</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoIp }}:{{ selectedDevice.deviceInfoPort }}</div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">大类 / 小类</div>
-                <div class="text-lg font-semibold text-el-text">
-                  {{ getCategoryLabel(selectedDevice.deviceInfoCategory) }} / {{ selectedDevice.deviceInfoSubCategory }}
-                </div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">序列号 / 固件</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoSerial || '-' }} / {{ selectedDevice.deviceInfoFirmware || '-' }}</div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">通道数</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoChannelCount ?? 0 }}</div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">位置</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoAddress || '未配置' }}</div>
-              </el-card>
-              <el-card class="shadow-sm rounded-xl p-4">
-                <div class="text-sm text-el-text-secondary">离线阈值</div>
-                <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoOfflineThreshold ?? '-' }} 秒</div>
-              </el-card>
-            </div>
-            <div class="mt-4">
-              <ReTimeline title="操作时间轴" :items="timeline" @refresh="fetchTimeline" />
-            </div>
-          </el-tab-pane>
+        <div class="text-2xl font-semibold mt-2 text-el-text">{{ card.value }}</div>
+        <div class="text-xs text-el-text-secondary mt-1">{{ card.hint }}</div>
+      </div>
+    </section>
 
-          <el-tab-pane label="地图" name="map">
-            <ReMap :devices="devices" @select="selectDevice" />
-          </el-tab-pane>
+    <!-- 筛选 -->
+    <section class="filter-bar mx-5 mt-4">
+      <el-input
+        v-model="filters.keyword"
+        class="filter-keyword"
+        clearable
+        placeholder="搜索名称 / 编码 / IP / 序列号 / 负责人"
+        @keyup.enter="applyFilters"
+        @clear="applyFilters"
+      >
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
 
-          <el-tab-pane label="通道" name="channel">
-            <ReChannelManager :device-id="selectedDevice.deviceInfoId" />
-          </el-tab-pane>
+      <el-select v-model="filters.vendor" clearable placeholder="厂商" class="filter-select" @change="applyFilters">
+        <el-option
+          v-for="vendor in vendors"
+          :key="vendor.vendor"
+          :label="vendor.name"
+          :value="vendor.vendor"
+        />
+      </el-select>
 
-          <el-tab-pane label="视频" name="video">
-            <div class="flex gap-4">
-              <div class="flex-1">
-                <ReVideo
-                  :url="videoUrl"
-                  :protocol="videoProtocol"
-                  :channel="currentChannel"
-                  @error="onVideoError"
-                  class="rounded-xl overflow-hidden bg-black aspect-video"
-                />
-                <div class="flex items-center gap-2 mt-3">
-                  <el-select v-model="currentChannel" placeholder="选择通道" style="width: 140px">
-                    <el-option
-                      v-for="ch in selectedDevice.channels || []"
-                      :key="ch.deviceChannelId || ch.deviceChannelNo"
-                      :label="ch.deviceChannelName || `通道 ${ch.deviceChannelNo}`"
-                      :value="ch.deviceChannelNo"
-                    />
-                  </el-select>
-                  <el-select v-model="videoProtocol" placeholder="协议" style="width: 110px">
-                    <el-option label="HLS" value="hls" />
-                    <el-option label="FLV" value="flv" />
-                    <el-option label="RTSP" value="rtsp" />
-                  </el-select>
-                  <el-button type="primary" @click="reloadStream">
-                    <el-icon class="mr-1"><Refresh /></el-icon>刷新
-                  </el-button>
-                  <el-button type="primary" @click="reconnectDevice">
-                    <el-icon class="mr-1"><Refresh /></el-icon>重连
-                  </el-button>
-                  <el-button type="primary" @click="openMultiView">
-                    <el-icon class="mr-1"><Grid /></el-icon>多路播放
-                  </el-button>
-                </div>
+      <el-select v-model="filters.category" clearable placeholder="设备大类" class="filter-select" @change="applyFilters">
+        <el-option
+          v-for="(label, value) in CATEGORY_LABELS"
+          :key="value"
+          :label="label"
+          :value="value"
+        />
+      </el-select>
+
+      <el-select v-model="filters.online" clearable placeholder="在线状态" class="filter-select" @change="applyFilters">
+        <el-option label="在线" value="online" />
+        <el-option label="离线" value="offline" />
+      </el-select>
+
+      <el-select v-model="filters.status" clearable placeholder="资产状态" class="filter-select" @change="applyFilters">
+        <el-option
+          v-for="opt in DEVICE_STATUS_OPTIONS"
+          :key="opt.value"
+          :label="opt.label"
+          :value="opt.value"
+        />
+      </el-select>
+
+      <el-cascader
+        v-model="filters.orgId"
+        class="filter-org"
+        clearable
+        placeholder="所属组织"
+        :options="orgTree"
+        :props="orgCascaderProps"
+        @change="applyFilters"
+      />
+
+      <div class="flex items-center gap-2 ml-auto">
+        <span class="text-xs text-el-text-secondary whitespace-nowrap">
+          状态通道：{{ realtimeMode === 'socket' ? '实时' : '轮询' }}
+        </span>
+        <el-button @click="resetFilters">重置</el-button>
+        <el-button type="primary" @click="applyFilters">查询</el-button>
+      </div>
+    </section>
+
+    <!-- 批量操作 -->
+    <section v-if="selection.length" class="batch-bar mx-5 mt-3">
+      <span class="text-sm text-el-text">已选 {{ selection.length }} 台设备</span>
+      <div class="flex items-center gap-2">
+        <el-button size="small" type="primary" plain @click="openVideoWizard">视频预览</el-button>
+        <el-button size="small" @click="batchReconnect">批量重连</el-button>
+        <el-button size="small" type="danger" plain @click="batchRemove">批量删除</el-button>
+      </div>
+    </section>
+
+    <!-- 设备列表 -->
+    <section class="mx-5 mt-3">
+      <el-table
+        v-loading="loading"
+        :data="rows"
+        row-key="deviceInfoId"
+        stripe
+        class="device-table"
+        @selection-change="onSelectionChange"
+        @row-dblclick="openDetail"
+      >
+        <el-table-column type="selection" width="44" reserve-selection />
+
+        <el-table-column label="设备" min-width="250">
+          <template #default="{ row }">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-el-text truncate">{{ row.deviceInfoName }}</span>
+                <el-tag :type="statusMeta(row.deviceInfoStatus).type" size="small" effect="plain">
+                  {{ statusMeta(row.deviceInfoStatus).label }}
+                </el-tag>
+                <el-tag v-if="row.deviceInfoSource === 'vendor'" size="small" effect="plain" type="info">
+                  同步
+                </el-tag>
+              </div>
+              <div class="flex items-center gap-1 mt-1 text-xs text-el-text-secondary">
+                <span class="font-mono truncate">{{ row.deviceInfoCode || '未编码' }}</span>
+                <el-button
+                  v-if="row.deviceInfoCode"
+                  link
+                  size="small"
+                  @click.stop="copyCode(row.deviceInfoCode)"
+                >
+                  复制
+                </el-button>
               </div>
             </div>
-          </el-tab-pane>
+          </template>
+        </el-table-column>
 
-          <el-tab-pane label="云台" name="ptz">
-            <RePtzControl
-              :presets="presets"
-              :zoom="zoom"
-              :focus="focus"
-              @move="ptzControl"
-              @zoom="(v: number) => (zoom = v)"
-              @focus="(v: number) => (focus = v)"
-              @add-preset="addPreset"
-              @call-preset="callPreset"
-              @delete-preset="deletePreset"
-            />
-          </el-tab-pane>
+        <el-table-column label="厂商 / 型号" min-width="150">
+          <template #default="{ row }">
+            <div class="text-sm text-el-text">{{ vendorLabel(row.deviceInfoVendor) }}</div>
+            <div class="text-xs text-el-text-secondary mt-0.5 truncate">
+              {{ row.deviceInfoModel || '—' }}
+            </div>
+          </template>
+        </el-table-column>
 
-          <el-tab-pane label="门禁" name="access">
-            <ReAccessPanel
-              :doors="selectedDevice.doors || []"
-              :events="accessEvents"
-              @unlock="remoteUnlock"
-              @refresh="fetchAccessEvents"
-            />
-          </el-tab-pane>
+        <el-table-column label="在线状态" width="130">
+          <template #default="{ row }">
+            <div class="leading-tight">
+              <DeviceStatusPulse :online="row.deviceInfoOnline" />
+              <div class="text-xs text-el-text-secondary mt-0.5">
+                {{ row.deviceInfoOnline ? '心跳正常' : lastOnlineText(row) }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
 
-          <el-tab-pane label="事件" name="events">
-            <ReEventPanel
-              :events="events"
-              :filter="eventFilter"
-              :realtime="eventRealtime"
-              @query="fetchEvents"
-              @update:filter="onEventFilterChange"
-              @update:realtime="onEventRealtimeChange"
-            />
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-      <div v-else class="flex items-center justify-center h-full text-el-text-secondary">请从左侧选择设备</div>
-    </main>
+        <el-table-column label="负责人" min-width="150">
+          <template #default="{ row }">
+            <DeviceOwnerCell :device="row" />
+          </template>
+        </el-table-column>
 
-    <ReMultiVideo
-      v-model="multiViewVisible"
-      :layout="multiLayout"
-      :urls="multiUrls"
-      :channels="multiChannels"
-      :channel-list="selectedDevice?.channels || []"
-      @update:layout="(v: number) => (multiLayout = v)"
-      @channel-change="onMultiChannelChange"
+        <el-table-column label="码流" width="120">
+          <template #default="{ row }">
+            <DeviceStreamTags :device="row" @preview="(streamType) => previewStream(row, streamType)" />
+          </template>
+        </el-table-column>
+
+        <el-table-column label="位置" min-width="160">
+          <template #default="{ row }">
+            <DeviceLocationCell :device="row" />
+          </template>
+        </el-table-column>
+
+        <el-table-column label="创建 / 更新" width="150">
+          <template #default="{ row }">
+            <div class="text-xs text-el-text">{{ formatDateTime(row.deviceInfoUpdatedAt) }}</div>
+            <div class="text-xs text-el-text-secondary mt-0.5">
+              建 {{ formatDateTime(row.deviceInfoCreatedAt) }}
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="170" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click.stop="openDetail(row)">详情</el-button>
+            <el-button link type="primary" size="small" @click.stop="openEdit(row)">编辑</el-button>
+            <el-dropdown trigger="click" @command="(cmd: string) => onRowCommand(cmd, row)">
+              <el-button link type="primary" size="small" @click.stop>
+                更多<el-icon class="ml-0.5"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="reconnect">重新连接</el-dropdown-item>
+                  <el-dropdown-item command="refresh">刷新状态</el-dropdown-item>
+                  <el-dropdown-item command="remove" divided>删除设备</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+        </el-table-column>
+
+        <template #empty>
+          <div class="py-10 text-sm text-el-text-secondary">暂无设备，可点击右上角「新增设备」或前往「厂商接入」同步。</div>
+        </template>
+      </el-table>
+    </section>
+
+    <!-- 分页 -->
+    <footer class="flex items-center justify-between px-5 py-3">
+      <span class="text-xs text-el-text-secondary">
+        共 {{ page.total }} 台，当前第 {{ page.pageNo }} / {{ Math.max(page.totalPages, 1) }} 页
+      </span>
+      <el-pagination
+        v-model:current-page="page.pageNo"
+        v-model:page-size="page.pageSize"
+        :total="page.total"
+        :page-sizes="[20, 50, 100, 200]"
+        layout="sizes, prev, pager, next, jumper"
+        background
+        @current-change="fetchPage"
+        @size-change="onPageSizeChange"
+      />
+    </footer>
+
+    <!-- 新增 / 编辑 -->
+    <ReDeviceFormDialog
+      v-model="formVisible"
+      :device="editingDevice"
+      :vendors="vendors"
+      :org-tree="orgTree"
+      @saved="onDeviceSaved"
     />
 
-    <ReDialog v-model="addDialogVisible" title="添加设备" width="560" append-to-body>
-      <el-form :model="addForm" label-width="110">
-        <el-form-item label="设备名称">
-          <el-input v-model="addForm.deviceInfoName" />
-        </el-form-item>
-        <el-form-item label="厂商">
-          <el-select v-model="addForm.vendor">
-            <el-option label="海康" value="hikvision" />
-            <el-option label="大华" value="dahua" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="接入方式">
-          <el-radio-group v-model="addForm.authType">
-            <el-radio-button label="PLATFORM">平台</el-radio-button>
-            <el-radio-button label="SDK">SDK</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="addForm.authType === 'PLATFORM'" label="平台类型">
-          <el-select v-model="addForm.platformType">
-            <el-option-group label="海康">
-              <el-option label="海康云耀" value="cloud-yao" />
-              <el-option label="海康云眸" value="cloud-eye" />
-              <el-option label="海康安防平台" value="secure-platform" />
-            </el-option-group>
-            <el-option-group label="大华">
-              <el-option label="大华云睿" value="dahua-cloud" />
-              <el-option label="大华乐橙" value="lechange" />
-            </el-option-group>
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="addForm.authType === 'PLATFORM'" label="AppKey">
-          <el-input v-model="addForm.appKey" />
-        </el-form-item>
-        <el-form-item v-if="addForm.authType === 'PLATFORM'" label="AppSecret">
-          <el-input v-model="addForm.appSecret" type="password" show-password />
-        </el-form-item>
-        <el-form-item v-if="addForm.authType === 'PLATFORM'" label="设备序列号">
-          <el-input v-model="addForm.deviceSerial" />
-        </el-form-item>
-        <template v-if="addForm.authType === 'SDK'">
-          <el-form-item label="大类">
-            <el-select v-model="addForm.deviceInfoCategory">
-              <el-option label="摄像头" value="camera" />
-              <el-option label="门禁" value="accessControl" />
-              <el-option label="报警" value="alarm" />
-              <el-option label="对讲" value="intercom" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="小类">
-            <el-select v-model="addForm.deviceInfoSubCategory">
-              <el-option
-                v-for="opt in getSubCategoryOptions(addForm.deviceInfoCategory)"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="IP">
-            <el-input v-model="addForm.deviceInfoIp" />
-          </el-form-item>
-          <el-form-item label="端口">
-            <el-input-number v-model="addForm.deviceInfoPort" :min="1" :max="65535" />
-          </el-form-item>
-          <el-form-item label="用户名">
-            <el-input v-model="addForm.deviceInfoUsername" />
-          </el-form-item>
-          <el-form-item label="密码">
-            <el-input v-model="addForm.deviceInfoPassword" type="password" show-password />
-          </el-form-item>
-        </template>
-      </el-form>
-      <template #footer>
-        <el-button @click="addDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitAdd">确定</el-button>
-      </template>
-    </ReDialog>
+    <!-- 详情抽屉 -->
+    <ReDeviceDetailDrawer
+      v-model="detailVisible"
+      :device="currentDevice"
+      :devices="rows"
+      :vendors="vendors"
+      @edit="openEdit"
+      @refreshed="refreshAll"
+    />
 
-    <ReDialog v-model="thresholdDialogVisible" title="离线检测设置" width="420">
+    <!-- 组织管理 -->
+    <el-dialog v-model="orgVisible" title="组织管理" width="560">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs text-el-text-secondary">组织来自厂商平台同步，用于设备分组与筛选。</span>
+        <el-button size="small" :loading="orgSyncing" @click="syncOrg">
+          <el-icon class="mr-1"><Refresh /></el-icon>同步组织
+        </el-button>
+      </div>
+      <div class="max-h-[420px] overflow-auto border border-el-border rounded-lg p-2">
+        <el-tree
+          v-if="orgTree.length"
+          :data="orgTree"
+          node-key="deviceOrganizationId"
+          :props="{ label: 'deviceOrganizationName', children: 'children' }"
+          default-expand-all
+          empty-text="暂无组织"
+        />
+        <div v-else class="py-8 text-center text-sm text-el-text-secondary">暂无组织，点击「同步组织」从厂商拉取。</div>
+      </div>
+    </el-dialog>
+
+    <!-- 视频预览 -->
+    <el-dialog v-model="previewVisible" :title="previewTitle" width="760px" destroy-on-close>
+      <div class="bg-black rounded-lg overflow-hidden aspect-video">
+        <ReVideo
+          v-if="previewUrl"
+          :url="previewUrl"
+          :protocol="'hls'"
+          :channel="previewChannel"
+          @error="onPreviewError"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="previewVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+    <!-- 视频布局向导 -->
+    <el-dialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
       <div class="space-y-4">
         <div>
-          <div class="text-sm text-el-text-secondary mb-2">当前设备离线阈值</div>
-          <el-input-number v-model="deviceThreshold" :min="5" :max="86400" :step="5" style="width: 100%" />
-          <div class="text-xs text-el-text-secondary mt-1">超过该秒数未检测到心跳，判定为离线。留空使用厂商默认值。</div>
+          <div class="text-sm mb-2">布局</div>
+          <el-radio-group v-model="videoLayout">
+            <el-radio-button :value="1">1×1</el-radio-button>
+            <el-radio-button :value="4">2×2</el-radio-button>
+            <el-radio-button :value="9">3×3</el-radio-button>
+            <el-radio-button :value="16">4×4</el-radio-button>
+          </el-radio-group>
         </div>
         <div>
-          <div class="text-sm text-el-text-secondary mb-2">厂商默认阈值（秒）</div>
-          <div v-if="providerConfigsLoaded" class="space-y-2">
-            <div
-              v-for="(val, vendor) in providerConfigs"
-              :key="vendor"
-              class="flex items-center justify-between p-2 rounded-lg border border-el-border"
-            >
-              <span class="text-sm text-el-text">{{ vendorLabel(vendor) }}</span>
-              <el-input-number v-model="providerConfigs[vendor]" :min="5" :max="86400" :step="5" style="width: 140px" @change="saveProviderConfig(vendor)" />
-            </div>
-          </div>
-          <div v-else class="text-xs text-el-text-secondary">加载中...</div>
+          <div class="text-sm mb-2">打开方式</div>
+          <el-radio-group v-model="videoOpenMode">
+            <el-radio value="current">当前页</el-radio>
+            <el-radio value="new">新窗口</el-radio>
+          </el-radio-group>
+        </div>
+        <el-checkbox v-model="videoRemind">打开后提示（remind=true）</el-checkbox>
+        <div class="text-xs text-el-text-secondary">
+          已选 {{ selection.length }} 台设备；超出布局数量时按布局分页轮播，单画面全屏默认主码流。
         </div>
       </div>
       <template #footer>
-        <el-button @click="thresholdDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveDeviceThreshold">保存</el-button>
+        <el-button @click="videoWizardVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmVideoWizard">打开预览</el-button>
       </template>
-    </ReDialog>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
+import {
+  ArrowDown,
+  Connection,
+  Download,
+  OfficeBuilding,
+  Plus,
+  Refresh,
+  Search,
+  Monitor,
+  Link,
+  WarningFilled,
+  LocationInformation
+} from '@element-plus/icons-vue'
 
-import { Grid, Timer, Download, Refresh } from '@element-plus/icons-vue'
+import DeviceStatusPulse from '@pages/device/src/components/DeviceStatusPulse.vue'
+import DeviceOwnerCell from '@pages/device/src/components/DeviceOwnerCell.vue'
+import DeviceLocationCell from '@pages/device/src/components/DeviceLocationCell.vue'
+import DeviceStreamTags from '@pages/device/src/components/DeviceStreamTags.vue'
+import ReDeviceFormDialog from '@pages/device/src/components/ReDeviceFormDialog.vue'
+import ReDeviceDetailDrawer from '@pages/device/src/components/ReDeviceDetailDrawer.vue'
+import ReVideo from '@pages/device/src/components/ReVideo.vue'
 
-import ReVideo from '@/components/ReVideo.vue'
-import ReDeviceTree from '@/components/ReDeviceTree.vue'
-import ReTimeline from '@/components/ReTimeline.vue'
-import RePtzControl from '@/components/RePtzControl.vue'
-import ReMultiVideo from '@/components/ReMultiVideo.vue'
-import ReAccessPanel from '@/components/ReAccessPanel.vue'
-import ReEventPanel from '@/components/ReEventPanel.vue'
-import ReMap from '@/components/ReMap.vue'
-import ReChannelManager from '@/components/ReChannelManager.vue'
+import { deviceApi } from '@pages/device/src/api/deviceApi'
+import { useDeviceRealtime } from '@pages/device/src/composables/useDeviceRealtime'
+import { CATEGORY_LABELS } from '@pages/device/src/utils/deviceCategory'
+import {
+  DEVICE_STATUS_OPTIONS,
+  buildOrgTree,
+  copyText,
+  formatDateTime,
+  formatRelative,
+  statusMeta
+} from '@pages/device/src/utils/deviceFormat'
+import type {
+  DeviceInfo,
+  DevicePageQuery,
+  DeviceStatusEvent,
+  DeviceVendorDescriptor,
+  OrgNode
+} from '@pages/device/src/types/device'
 
-import { deviceApi } from '@/api/deviceApi'
-import { getCategoryLabel, getSubCategoryOptions } from '@/utils/deviceCategory'
-import type { DeviceInfo, OrgNode, TimelineItem, Preset, AccessEvent, DeviceEvent } from '@/types/device'
+const router = useRouter()
 
+const rows = ref<DeviceInfo[]>([])
+const vendors = ref<DeviceVendorDescriptor[]>([])
+const orgTree = ref<OrgNode[]>([])
+const loading = ref(false)
+const selection = ref<DeviceInfo[]>([])
 
-import ReDialog from "@repo/ui/re-dialog";const orgTree = ref<OrgNode[]>([])
-const devices = ref<DeviceInfo[]>([])
-const selectedDevice = ref<DeviceInfo | null>(null)
-const activeTab = ref('overview')
-const timeline = ref<TimelineItem[]>([])
-const currentChannel = ref(1)
-const videoUrl = ref('')
-const videoProtocol = ref('hls')
-const multiViewVisible = ref(false)
-const multiLayout = ref(4)
-const multiChannels = ref<number[]>([])
-const multiUrls = ref<string[]>([])
-const zoom = ref(50)
-const focus = ref(50)
-const presets = ref<Preset[]>([])
-const accessEvents = ref<AccessEvent[]>([])
-const events = ref<DeviceEvent[]>([])
-const eventFilter = ref({ type: '', dateRange: null as any })
-const eventRealtime = ref(true)
-const addDialogVisible = ref(false)
-const thresholdDialogVisible = ref(false)
-const deviceThreshold = ref<number>()
-const providerConfigs = ref<Record<string, number>>({})
-const providerConfigsLoaded = ref(false)
-const addForm = ref({
-  deviceInfoName: '',
-  vendor: 'hikvision',
-  authType: 'PLATFORM',
-  platformType: 'cloud-eye',
-  appKey: '',
-  appSecret: '',
-  deviceSerial: '',
-  deviceInfoCategory: 'camera',
-  deviceInfoSubCategory: 'bullet',
-  deviceInfoIp: '',
-  deviceInfoPort: 8000,
-  deviceInfoUsername: 'admin',
-  deviceInfoPassword: ''
-})
-let pollTimer: ReturnType<typeof setInterval> | null = null
+/** 视频布局向导：多选设备 → 选择布局/打开方式 → 视频预览页 */
+const videoWizardVisible = ref(false)
+const videoLayout = ref(4)
+const videoOpenMode = ref<'current' | 'new'>('current')
+const videoRemind = ref(true)
 
-function selectDevice(dev: DeviceInfo) {
-  selectedDevice.value = dev
-  if (dev.channels && dev.channels.length) {
-    currentChannel.value = dev.channels[0].deviceChannelNo
-  }
-  reloadStream()
-  fetchTimeline()
-  loadPresets(dev.deviceInfoId)
-  fetchAccessEvents()
-  fetchEvents()
-}
-
-function reloadStream() {
-  if (!selectedDevice.value) return
-  deviceApi
-    .getVideoStream(selectedDevice.value.deviceInfoId, currentChannel.value, videoProtocol.value)
-    .then((res: unknown) => {
-      videoUrl.value = String(res || '')
-      if (!videoUrl.value) {
-        message.warning('后端未返回拉流地址，请检查平台账号配置')
-      }
-    })
-    .catch((err: unknown) => {
-      videoUrl.value = ''
-      message.error('获取视频流失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
-    })
-}
-
-function reconnectDevice() {
-  if (!selectedDevice.value) return
-  deviceApi
-    .reconnect(selectedDevice.value.deviceInfoId)
-    .then(() => {
-      message.success('设备重连成功')
-      reloadStream()
-    })
-    .catch((err: unknown) => message.error('设备重连失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function onVideoError(err: unknown) {
-  message.error('视频加载失败: ' + ((err as Error)?.message || '未知错误'))
-}
-
-function openMultiView() {
-  const n = multiLayout.value
-  const chs = selectedDevice.value?.channels || []
-  const deviceId = selectedDevice.value?.deviceInfoId
-  multiChannels.value = Array.from({ length: n }, (_, i) => (chs.length ? chs[i % chs.length].deviceChannelNo : 1))
-  Promise.all(
-    multiChannels.value.map((ch) =>
-      deviceApi
-        .getVideoStream(deviceId || '', ch, videoProtocol.value)
-        .then((res: unknown) => String(res || ''))
-        .catch(() => ''),
-    ),
-  ).then((urls) => {
-    multiUrls.value = urls
-    multiViewVisible.value = true
-  })
-}
-
-function onMultiChannelChange(payload: { index: number; value: number }) {
-  const deviceId = selectedDevice.value?.deviceInfoId
-  if (!deviceId) return
-  deviceApi
-    .getVideoStream(deviceId, payload.value, videoProtocol.value)
-    .then((res: unknown) => {
-      multiUrls.value[payload.index] = String(res || '')
-    })
-    .catch(() => {
-      multiUrls.value[payload.index] = ''
-    })
-}
-
-function ptzControl(cmd: string) {
-  if (!selectedDevice.value) return
-  deviceApi
-    .ptzControl(selectedDevice.value.deviceInfoId, cmd)
-    .then(() => {
-      timeline.value.unshift({
-        id: Date.now().toString(),
-        time: new Date().toLocaleString(),
-        type: 'primary',
-        content: `云台 ${cmd}`
-      })
-    })
-    .catch((err: unknown) => message.error('云台控制失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function addPreset() {
-  if (!selectedDevice.value) return
-  const name = prompt('输入预置位名称')
-  if (!name) return
-  deviceApi
-    .setPreset(selectedDevice.value.deviceInfoId, Date.now(), name)
-    .then(() => {
-      presets.value.push({ devicePresetNo: Date.now(), devicePresetName: name })
-      message.success('添加预置位成功')
-    })
-    .catch((err: unknown) => message.error('添加预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function callPreset(id: number) {
-  if (!selectedDevice.value) return
-  deviceApi
-    .callPreset(selectedDevice.value.deviceInfoId, id)
-    .then(() => message.success(`调用预置位 ${id}`))
-    .catch((err: unknown) => message.error('调用预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function deletePreset(id: number) {
-  if (!selectedDevice.value) return
-  deviceApi
-    .deletePreset(selectedDevice.value.deviceInfoId, id)
-    .then(() => {
-      presets.value = presets.value.filter((p: Preset) => p.devicePresetNo !== id)
-      message.success('删除预置位成功')
-    })
-    .catch((err: unknown) => message.error('删除预置位失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function remoteUnlock(doorId: number) {
-  if (!selectedDevice.value) return
-  deviceApi
-    .unlock(selectedDevice.value.deviceInfoId, doorId)
-    .then(() => message.success(`门 ${doorId} 已开`))
-    .catch((err: unknown) => message.error('远程开门失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function syncOrg() {
-  deviceApi
-    .syncOrg()
-    .then(() => {
-      message.success('组织树同步成功')
-      fetchOrgTree()
-    })
-    .catch((err: unknown) => message.error('组织树同步失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function onOrgSelect(org: OrgNode) {
-  console.log('选中组织:', org.deviceOrganizationName)
-}
-
-function fetchTimeline() {
-  timeline.value = []
-}
-
-function loadPresets(deviceId: string) {
-  deviceApi.listPresets(deviceId)
-    .then((res: unknown) => {
-      presets.value = (res as Preset[]) || []
-    })
-    .catch(() => {
-      presets.value = []
-    })
-}
-
-function fetchAccessEvents() {
-  if (!selectedDevice.value) return
-  const now = new Date()
-  const start = new Date(now.getTime() - 24 * 3600 * 1000)
-  const fmt = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ')
-  deviceApi
-    .queryAccessRecords(
-      selectedDevice.value.deviceInfoId,
-      fmt(start),
-      fmt(now),
-    )
-    .then((res: unknown) => {
-      accessEvents.value = ((res as any[]) || []).map((r: any) => ({
-        time: r.time || '',
-        doorName: r.doorId || '',
-        eventType: r.eventType || '',
-        cardNo: r.cardNo || '',
-        userName: r.userName || ''
-      }))
-    })
-    .catch(() => {
-      accessEvents.value = []
-    })
-}
-
-function fetchEvents() {
-  if (!selectedDevice.value) return
-  deviceApi
-    .queryEvents({ deviceId: selectedDevice.value.deviceInfoId, type: eventFilter.value.type })
-    .then((res: unknown) => {
-      events.value = (res as DeviceEvent[]) || []
-    })
-    .catch(() => {
-      events.value = []
-    })
-}
-
-function onEventFilterChange(v: { type: string; dateRange: unknown }) {
-  eventFilter.value = v
-}
-
-function onEventRealtimeChange(v: boolean) {
-  eventRealtime.value = v
-}
-
-function showAddDialog() {
-  addDialogVisible.value = true
-}
-
-function showThresholdDialog() {
-  deviceThreshold.value = selectedDevice.value?.deviceInfoOfflineThreshold
-  loadProviderConfigs()
-  thresholdDialogVisible.value = true
-}
-
-function loadProviderConfigs() {
-  providerConfigsLoaded.value = false
-  deviceApi
-    .listProviderConfigs()
-    .then((res: unknown) => {
-      providerConfigs.value = (res as Record<string, number>) || {}
-    })
-    .catch(() => {
-      providerConfigs.value = {}
-    })
-    .finally(() => {
-      providerConfigsLoaded.value = true
-    })
-}
-
-function saveDeviceThreshold() {
-  if (!selectedDevice.value) return
-  const threshold = deviceThreshold.value
-  if (threshold == null || threshold <= 0) {
-    message.warning('请输入有效的阈值（秒）')
+function openVideoWizard() {
+  if (!selection.value.length) {
+    message.warning('请先选择设备')
     return
   }
-  deviceApi
-    .updateOfflineThreshold(selectedDevice.value.deviceInfoId, threshold)
-    .then(() => {
-      selectedDevice.value!.deviceInfoOfflineThreshold = threshold
-      message.success('设备离线阈值已保存')
-      thresholdDialogVisible.value = false
-    })
-    .catch((err: unknown) => message.error('保存失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
+  videoWizardVisible.value = true
 }
 
-function saveProviderConfig(vendor: string) {
-  const threshold = providerConfigs.value[vendor]
-  if (!threshold || threshold <= 0) return
-  deviceApi
-    .updateProviderConfig(vendor, threshold)
-    .then(() => message.success(`${vendorLabel(vendor)} 阈值已更新`))
-    .catch((err: unknown) => message.error('更新失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function vendorLabel(vendor: string): string {
-  const map: Record<string, string> = {
-    hikvision: '海康',
-    dahua: '大华',
-    'cloud-yao': '海康云耀',
-    'cloud-eye': '海康云眸',
-    'secure-platform': '海康安防',
-    'dahua-cloud': '大华云睿',
-    lechange: '大华乐橙'
+function confirmVideoWizard() {
+  const ids = selection.value.map((item) => item.deviceInfoId).filter(Boolean).join(',')
+  if (!ids) {
+    message.warning('所选设备缺少设备 ID')
+    return
   }
-  return map[vendor] || vendor
-}
-
-function exportDevices() {
-  deviceApi
-    .exportDevices()
-    .then((res: unknown) => {
-      const blob = new Blob([res as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = '设备列表.xlsx'
-      a.click()
-      URL.revokeObjectURL(url)
-      message.success('导出成功')
-    })
-    .catch((err: unknown) => message.error('导出失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-function submitAdd() {
-  deviceApi
-    .add(addForm.value)
-    .then((res: unknown) => {
-      const added = res as DeviceInfo | undefined
-      if (added && added.deviceInfoId) {
-        devices.value.push(added)
-      } else {
-        fetchDevices()
-      }
-      message.success('设备添加成功')
-      addDialogVisible.value = false
-    })
-    .catch((err: unknown) => message.error('设备添加失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误')))
-}
-
-onMounted(() => {
-  fetchDevices()
-  fetchOrgTree()
-  if (eventRealtime.value) {
-    pollTimer = setInterval(() => console.log('轮询事件'), 5000)
+  const target = router.resolve({
+    path: '/device/video-wall',
+    query: {
+      ids,
+      layout: String(videoLayout.value),
+      remind: videoRemind.value ? 'true' : 'false'
+    }
+  })
+  videoWizardVisible.value = false
+  if (videoOpenMode.value === 'new') {
+    window.open(target.href, '_blank', 'noopener')
+  } else {
+    router.push(target)
   }
+}
+const stats = reactive({ total: 0, online: 0, offline: 0, noLocation: 0 })
+
+const filters = reactive({
+  keyword: '',
+  vendor: '',
+  category: '',
+  online: '',
+  status: '',
+  orgId: ''
 })
 
-onUnmounted(() => {
-  if (pollTimer) clearInterval(pollTimer)
+const page = reactive({ pageNo: 1, pageSize: 20, total: 0, totalPages: 0 })
+
+const orgCascaderProps = {
+  value: 'deviceOrganizationId',
+  label: 'deviceOrganizationName',
+  children: 'children',
+  emitPath: false
+} as const
+
+const formVisible = ref(false)
+const editingDevice = ref<DeviceInfo | null>(null)
+const detailVisible = ref(false)
+const currentDevice = ref<DeviceInfo | null>(null)
+const orgVisible = ref(false)
+const orgSyncing = ref(false)
+
+const previewVisible = ref(false)
+const previewUrl = ref('')
+const previewTitle = ref('视频预览')
+const previewChannel = ref(1)
+
+const statCards = computed(() => [
+  {
+    key: 'total',
+    label: '设备总数',
+    value: stats.total,
+    hint: '全部已登记设备',
+    icon: Monitor,
+    accent: 'accent-blue',
+    iconClass: 'text-blue-500'
+  },
+  {
+    key: 'online',
+    label: '在线',
+    value: stats.online,
+    hint: '心跳正常',
+    icon: Link,
+    accent: 'accent-emerald',
+    iconClass: 'text-emerald-500'
+  },
+  {
+    key: 'offline',
+    label: '离线',
+    value: stats.offline,
+    hint: '需关注',
+    icon: WarningFilled,
+    accent: 'accent-orange',
+    iconClass: 'text-orange-500'
+  },
+  {
+    key: 'noLocation',
+    label: '未定位',
+    value: stats.noLocation,
+    hint: '尚未配置经纬度',
+    icon: LocationInformation,
+    accent: 'accent-slate',
+    iconClass: 'text-slate-500'
+  }
+])
+
+const realtime = useDeviceRealtime({
+  onStatus: patchStatus,
+  onRefresh: () => {
+    fetchStats()
+    fetchPage()
+  },
+  pollInterval: 15000
 })
+const { mode: realtimeMode } = realtime
 
-function fetchDevices() {
-  deviceApi
-    .list()
-    .then((res: unknown) => {
-      devices.value = (res as DeviceInfo[]) || []
-    })
-    .catch((err: unknown) => {
-      message.error('加载设备列表失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
-      devices.value = []
-    })
+function vendorLabel(vendor?: string): string {
+  if (!vendor) return '—'
+  return vendors.value.find((item) => item.vendor === vendor)?.name || vendor
 }
 
-function fetchOrgTree() {
-  deviceApi
-    .getOrgTree()
-    .then((res: unknown) => {
-      orgTree.value = (res as OrgNode[]) || []
-    })
-    .catch((err: unknown) => {
-      message.error('加载组织树失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
-      orgTree.value = []
-    })
+function lastOnlineText(row: DeviceInfo): string {
+  if (!row.deviceInfoLastOnlineAt) return '从未上线'
+  return `最后在线 ${formatRelative(row.deviceInfoLastOnlineAt)}`
 }
+
+function buildQuery(): DevicePageQuery {
+  return {
+    pageNo: page.pageNo,
+    pageSize: page.pageSize,
+    keyword: filters.keyword || undefined,
+    vendor: filters.vendor || undefined,
+    category: filters.category || undefined,
+    orgId: filters.orgId || undefined,
+    status: filters.status || undefined,
+    online: filters.online === 'online' ? true : filters.online === 'offline' ? false : undefined,
+    sortBy: 'updatedAt',
+    sortOrder: 'desc'
+  }
+}
+
+async function fetchPage() {
+  loading.value = true
+  try {
+    const result = await deviceApi.page(buildQuery())
+    // 兼容后端分页结构调整：标准 PageResult 使用 data，旧结构使用 records
+    const list = (result as unknown as { data?: DeviceInfo[]; records?: DeviceInfo[] })?.data
+      ?? (result as unknown as { records?: DeviceInfo[] })?.records
+      ?? []
+    rows.value = list
+    page.total = Number((result as unknown as { total?: number })?.total ?? 0)
+    page.totalPages = Number(
+      (result as unknown as { totalPages?: number })?.totalPages
+      ?? Math.ceil(page.total / page.pageSize)
+    )
+  } catch (err) {
+    rows.value = []
+    page.total = 0
+    page.totalPages = 0
+    message.error('加载设备列表失败：' + errorText(err))
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchStats() {
+  try {
+    const result = await deviceApi.stats({
+      orgId: filters.orgId || undefined,
+      vendor: filters.vendor || undefined
+    })
+    stats.total = Number(result?.total ?? 0)
+    stats.online = Number(result?.online ?? 0)
+    stats.offline = Number(result?.offline ?? 0)
+    stats.noLocation = Number(result?.noLocation ?? 0)
+  } catch {
+    // 统计失败不阻断列表
+  }
+}
+
+async function fetchVendors() {
+  try {
+    vendors.value = (await deviceApi.listVendors()) || []
+  } catch {
+    vendors.value = []
+  }
+}
+
+async function fetchOrgTree() {
+  try {
+    const list = await deviceApi.getOrgTree()
+    orgTree.value = buildOrgTree(list)
+  } catch {
+    orgTree.value = []
+  }
+}
+
+function applyFilters() {
+  page.pageNo = 1
+  fetchPage()
+  fetchStats()
+}
+
+function resetFilters() {
+  filters.keyword = ''
+  filters.vendor = ''
+  filters.category = ''
+  filters.online = ''
+  filters.status = ''
+  filters.orgId = ''
+  applyFilters()
+}
+
+function onPageSizeChange() {
+  page.pageNo = 1
+  fetchPage()
+}
+
+function refreshAll() {
+  fetchStats()
+  fetchPage()
+}
+
+function patchStatus(event: DeviceStatusEvent) {
+  const row = rows.value.find((item) => item.deviceInfoId === event.deviceId)
+  if (!row) return
+  const wasOnline = !!row.deviceInfoOnline
+  row.deviceInfoOnline = event.online
+  if (event.latitude != null) row.deviceInfoLatitude = Number(event.latitude)
+  if (event.longitude != null) row.deviceInfoLongitude = Number(event.longitude)
+  if (event.lastOnlineAt) row.deviceInfoLastOnlineAt = event.lastOnlineAt
+  if (event.lastOfflineAt) row.deviceInfoLastOfflineAt = event.lastOfflineAt
+  if (wasOnline !== event.online) {
+    stats.online += event.online ? 1 : -1
+    stats.offline += event.online ? -1 : 1
+  }
+}
+
+function onSelectionChange(value: DeviceInfo[]) {
+  selection.value = value
+}
+
+function openCreate() {
+  editingDevice.value = null
+  formVisible.value = true
+}
+
+function openEdit(device: DeviceInfo) {
+  editingDevice.value = device
+  detailVisible.value = false
+  formVisible.value = true
+}
+
+function openDetail(device: DeviceInfo) {
+  currentDevice.value = device
+  detailVisible.value = true
+}
+
+function onDeviceSaved() {
+  formVisible.value = false
+  editingDevice.value = null
+  refreshAll()
+}
+
+async function copyCode(code?: string) {
+  if (!code) return
+  const ok = await copyText(code)
+  if (ok) {
+    message.success('设备编码已复制')
+  } else {
+    message.warning('复制失败，请手动选择文本')
+  }
+}
+
+function onRowCommand(command: string, row: DeviceInfo) {
+  if (command === 'reconnect') {
+    reconnect(row)
+  } else if (command === 'refresh') {
+    refreshStatus(row)
+  } else if (command === 'remove') {
+    removeDevice(row)
+  }
+}
+
+async function reconnect(row: DeviceInfo) {
+  try {
+    await deviceApi.reconnect(row.deviceInfoId)
+    message.success('重连指令已下发')
+    refreshStatus(row)
+  } catch (err) {
+    message.error('重连失败：' + errorText(err))
+  }
+}
+
+async function refreshStatus(row: DeviceInfo) {
+  try {
+    await deviceApi.refreshStatus(row.deviceInfoId)
+    message.success('状态已刷新')
+    fetchPage()
+    fetchStats()
+  } catch (err) {
+    message.error('刷新状态失败：' + errorText(err))
+  }
+}
+
+async function removeDevice(row: DeviceInfo) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除设备「${row.deviceInfoName}」？删除后将断开连接，且不可恢复。`,
+      '删除设备',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await deviceApi.remove(row.deviceInfoId)
+    message.success('设备已删除')
+    refreshAll()
+  } catch (err) {
+    message.error('删除失败：' + errorText(err))
+  }
+}
+
+async function batchReconnect() {
+  const targets = [...selection.value]
+  if (!targets.length) return
+  const results = await Promise.allSettled(targets.map((row) => deviceApi.reconnect(row.deviceInfoId)))
+  const ok = results.filter((item) => item.status === 'fulfilled').length
+  message.success(`已下发 ${ok} 台设备的重连指令`)
+  refreshAll()
+}
+
+async function batchRemove() {
+  const targets = [...selection.value]
+  if (!targets.length) return
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${targets.length} 台设备？该操作不可恢复。`,
+      '批量删除',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  const results = await Promise.allSettled(targets.map((row) => deviceApi.remove(row.deviceInfoId)))
+  const ok = results.filter((item) => item.status === 'fulfilled').length
+  message.success(`已删除 ${ok} 台设备`)
+  refreshAll()
+}
+
+async function previewStream(device: DeviceInfo, streamType: 'main' | 'sub') {
+  const channel = device.channels?.[0]?.deviceChannelNo ?? 1
+  previewChannel.value = channel
+  previewTitle.value = `${device.deviceInfoName} · ${streamType === 'main' ? '主码流' : '子码流'}`
+  try {
+    previewUrl.value = await deviceApi.getVideoStream(device.deviceInfoId, channel, 'hls', streamType)
+    previewVisible.value = true
+  } catch (err) {
+    previewUrl.value = ''
+    message.error('获取视频流失败：' + errorText(err))
+  }
+}
+
+function onPreviewError(err: unknown) {
+  message.error('视频播放失败：' + errorText(err))
+}
+
+async function syncOrg() {
+  orgSyncing.value = true
+  try {
+    await deviceApi.syncOrg()
+    message.success('组织同步完成')
+    await fetchOrgTree()
+  } catch (err) {
+    message.error('组织同步失败：' + errorText(err))
+  } finally {
+    orgSyncing.value = false
+  }
+}
+
+function goScreen() {
+  router.push('/device/screen')
+}
+
+function goProvider() {
+  router.push('/device/provider')
+}
+
+async function exportDevices() {
+  try {
+    const blob = await deviceApi.exportDevices(filters.orgId || undefined)
+    const url = URL.createObjectURL(new Blob([blob as BlobPart], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `设备台账_${new Date().toISOString().slice(0, 10)}.xlsx`
+    link.click()
+    URL.revokeObjectURL(url)
+    message.success('导出成功')
+  } catch (err) {
+    message.error('导出失败：' + errorText(err))
+  }
+}
+
+function errorText(err: unknown): string {
+  return (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+    || (err as Error)?.message
+    || '未知错误'
+}
+
+onMounted(async () => {
+  await Promise.all([fetchVendors(), fetchOrgTree()])
+  refreshAll()
+})
 </script>
 
 <style scoped>
 .device-page {
-  height: 100vh;
   background: var(--el-bg-color);
 }
-.device-tabs :deep(.el-tabs__header) {
-  margin-bottom: 16px;
+
+.stat-card {
+  position: relative;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+}
+.accent-blue::before { background: var(--el-color-primary); }
+.accent-emerald::before { background: var(--el-color-success); }
+.accent-orange::before { background: var(--el-color-warning); }
+.accent-slate::before { background: var(--el-color-info); }
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-bg-color-overlay);
+}
+.filter-keyword { width: 260px; }
+.filter-select { width: 140px; }
+.filter-org { width: 180px; }
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+  border-radius: 10px;
+}
+
+.device-table :deep(.el-table__cell) {
+  vertical-align: middle;
+}
+
+@media (max-width: 1280px) {
+  .filter-keyword { width: 200px; }
+  .filter-org { width: 150px; }
 }
 </style>

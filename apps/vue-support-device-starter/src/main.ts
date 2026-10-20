@@ -7,6 +7,6 @@
 import { createContextApp } from '@repo/app'
 import { deviceRoutes } from '@pages/device'
 
-createContextApp()
+await createContextApp({ appName: 'vue-support-device-starter' })
   .routes(deviceRoutes as never)
   .mount('#app')

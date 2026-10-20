@@ -5,7 +5,7 @@
  * @since 4.0.0.42
  */
 
-import type { DeviceCategory } from '@/types/device'
+import type { DeviceCategory } from '@pages/device/src/types/device'
 
 export const CATEGORY_LABELS: Record<DeviceCategory, string> = {
   camera: '摄像头',

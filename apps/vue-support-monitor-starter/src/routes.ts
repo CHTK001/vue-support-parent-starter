@@ -17,11 +17,13 @@
  * 路由模式：hash（routerMode: "hash"）
  */
 import type { RouteConfigsTable } from "@repo/core";
+import type { RouteRecordRaw } from "vue-router";
 // 数据源管理页（数据库/Redis/InfluxDB/Neo4j/Nacos/ZooKeeper/etcd/Nginx/Prometheus 及其嵌入页）
 // 由 @pages/datasource 自己收敛声明：路由表与「类型→路径」映射同出一处，宿主只管合并。
 // 这里深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
 // 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
+import { deviceRoutes } from "@pages/device/src/router";
 
 /** 监控管理平台路由树（分组结构） */
 export const monitorRoutes: RouteConfigsTable[] = [
@@ -176,38 +178,9 @@ export const monitorRoutes: RouteConfigsTable[] = [
     path: "/grp-device",
     name: "GroupDevice",
     meta: { title: "设备管理", icon: "VideoCamera", showLink: true, rank: 11 },
-    children: [
-      {
-        path: "/device-assets",
-        name: "DeviceAssets",
-        component: () => import("./views/DeviceAssetsView.vue"),
-        meta: { title: "设备资产", icon: "Monitor", showLink: true, rank: 11 },
-      },
-      {
-        path: "/device-orgs",
-        name: "DeviceOrgs",
-        component: () => import("./views/DeviceOrganizationView.vue"),
-        meta: { title: "设备组织", icon: "FolderOpened", showLink: true, rank: 12 },
-      },
-      {
-        path: "/device-channels",
-        name: "DeviceChannels",
-        component: () => import("./views/DeviceChannelView.vue"),
-        meta: { title: "通道管理", icon: "Connection", showLink: true, rank: 13 },
-      },
-      {
-        path: "/device-events",
-        name: "DeviceEvents",
-        component: () => import("./views/DeviceEventLogView.vue"),
-        meta: { title: "设备日志", icon: "Tickets", showLink: true, rank: 14 },
-      },
-      {
-        path: "/device-providers",
-        name: "DeviceProviders",
-        component: () => import("./views/DeviceProviderConfigView.vue"),
-        meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
-      },
-    ],
+    // 新版设备 P0 页面：设备台账 / 厂商接入，以及隐藏的视频墙与大屏。
+    // 路由与页面统一来自 @pages/device，宿主不再维护旧版设备页面副本。
+    children: deviceRoutes as unknown as RouteRecordRaw[] & RouteConfigsTable[],
   },
 
   // ==================== 服务管理 ====================
