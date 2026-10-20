@@ -684,6 +684,7 @@ const navItems = computed(() => {
       key: 'image-colorize',
       label: '图像上色',
       icon: Image20Regular,
+      section: '图像',
       // 上色模型未配置 → 菜单打「未配置」徽标，页面内给出与以图搜图同口径的配置提示
       badge: modelConfig.colorizeReady ? '' : '未配置',
       badgeTip: '上色模型未配置，图像上色不可用',

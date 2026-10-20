@@ -288,6 +288,19 @@ export default {
     promptTokens: 'Input',
     cachedTokens: 'Cache hit',
     contextUsage: 'Context usage',
+    // ── Token usage popover ──
+    usageTitle: 'Token usage',
+    cacheRate: 'Cache hit',
+    cacheMiss: 'Uncached input',
+    cacheRead: 'Cache read',
+    outputTokens: 'Output',
+    // ── Context popover ──
+    contextUsed: 'Context used',
+    bdSystem: 'System prompt',
+    bdSummary: 'Summary',
+    bdUser: 'User input',
+    bdHistory: 'Messages',
+    bdTools: 'Tool defs',
   },
 
   // ── Rewind confirm dialog ──
