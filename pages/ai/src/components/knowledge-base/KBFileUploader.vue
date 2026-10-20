@@ -130,7 +130,7 @@
                 <el-input v-model="webUrl" placeholder="https://example.com/article" @keyup.enter="confirmWebImport" />
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-[var(--rm-text-secondary)]">最多抓取页数</span>
-                    <el-input-number v-model="webMaxPages" :min="1" :max="50" controls-position="right" size="small" />
+                    <ReNumberInput v-model="webMaxPages" :min="1" :max="50" controls-position="right" size="small" />
                     <span class="text-xs text-[var(--rm-text-disabled)]">1 = 只抓当前页；&gt;1 按同域链接展开</span>
                 </div>
                 <el-input v-model="webDir" placeholder="保存目录（默认 web）" />
@@ -166,6 +166,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReSquareButton from '@repo/ui/re-button'
 import ReButton from '@/components/re/ReButton.vue'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 /**
  * 上传冲突信息

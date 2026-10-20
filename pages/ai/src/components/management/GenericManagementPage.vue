@@ -109,7 +109,7 @@
             :type="field.inputType || 'text'"
             show-password
           />
-          <el-input-number
+          <ReNumberInput
             v-else-if="field.type === 'number'"
             v-model="formData[field.prop]"
             :min="field.min"
@@ -161,6 +161,7 @@ import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import ReDialog from '@repo/ui/re-dialog';
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 interface Column {
   prop: string;

@@ -132,21 +132,21 @@
             <div class="me-group-title mt-2">参数</div>
             <div class="me-grid">
               <el-form-item :label="t('settings.providerDetail.contextWindow')" prop="config.contextWindow">
-                <el-input-number v-model="form.config.contextWindow" placeholder="128000" controls-position="right" class="num-input" />
+                <ReNumberInput v-model="form.config.contextWindow" placeholder="128000" controls-position="right" class="num-input" />
               </el-form-item>
               <el-form-item :label="t('settings.providerDetail.maxOutputTokens')" prop="config.maxOutputTokens">
-                <el-input-number v-model="form.config.maxOutputTokens" placeholder="4096" controls-position="right" class="num-input" />
+                <ReNumberInput v-model="form.config.maxOutputTokens" placeholder="4096" controls-position="right" class="num-input" />
               </el-form-item>
               <el-form-item :label="t('settings.providerDetail.temperature')" prop="config.temperature">
-                <el-input-number v-model="form.config.temperature" :min="0" :max="2" :step="0.1"
+                <ReNumberInput v-model="form.config.temperature" :min="0" :max="2" :step="0.1"
                   :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
               </el-form-item>
               <el-form-item label="Top P" prop="config.topP">
-                <el-input-number v-model="form.config.topP" :min="0" :max="1" :step="0.05"
+                <ReNumberInput v-model="form.config.topP" :min="0" :max="1" :step="0.05"
                   :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
               </el-form-item>
               <el-form-item :label="t('settings.providerDetail.frequencyPenalty')" prop="config.frequencyPenalty">
-                <el-input-number v-model="form.config.frequencyPenalty" :min="-2" :max="2" :step="0.1"
+                <ReNumberInput v-model="form.config.frequencyPenalty" :min="-2" :max="2" :step="0.1"
                   :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
               </el-form-item>
             </div>
@@ -159,7 +159,7 @@
           <!-- 嵌入 -->
           <div v-else-if="form.modelType === 'embedding'" class="me-group">
             <el-form-item :label="t('settings.providerDetail.vectorDimensions')" prop="config.vectorDimensions">
-              <el-input-number v-model="form.config.vectorDimensions" :placeholder="t('settings.providerDetail.vectorDimensionsPlaceholder')"
+              <ReNumberInput v-model="form.config.vectorDimensions" :placeholder="t('settings.providerDetail.vectorDimensionsPlaceholder')"
                 class="num-input" controls-position="right" />
               <div class="field-hint mt-1">{{ t('settings.providerDetail.vectorDimensionsDesc') }}</div>
             </el-form-item>
@@ -169,11 +169,11 @@
           <div v-else-if="form.modelType === 'rerank'" class="me-group">
             <div class="me-grid">
               <el-form-item label="返回条数 (top_n)">
-                <el-input-number v-model="form.config.rerankTopN" :min="1" placeholder="如 3"
+                <ReNumberInput v-model="form.config.rerankTopN" :min="1" placeholder="如 3"
                   controls-position="right" class="num-input" />
               </el-form-item>
               <el-form-item label="最大输入长度">
-                <el-input-number v-model="form.config.rerankMaxLength" :min="1" placeholder="如 512"
+                <ReNumberInput v-model="form.config.rerankMaxLength" :min="1" placeholder="如 512"
                   controls-position="right" class="num-input" />
               </el-form-item>
             </div>
@@ -189,7 +189,7 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="置信度阈值">
-              <el-input-number v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
+              <ReNumberInput v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
                 placeholder="如 0.5" controls-position="right" class="num-input" />
             </el-form-item>
           </div>
@@ -204,7 +204,7 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="置信度阈值">
-              <el-input-number v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
+              <ReNumberInput v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
                 placeholder="如 0.5" controls-position="right" class="num-input" />
             </el-form-item>
           </div>
@@ -216,7 +216,7 @@
                 <el-input v-model="form.config.ttsVoice" placeholder="如 alloy / 默认发音人" />
               </el-form-item>
               <el-form-item label="语速">
-                <el-input-number v-model="form.config.ttsSpeed" :min="0.5" :max="2" :step="0.1"
+                <ReNumberInput v-model="form.config.ttsSpeed" :min="0.5" :max="2" :step="0.1"
                   placeholder="1.0" controls-position="right" class="num-input" />
               </el-form-item>
             </div>
@@ -263,7 +263,7 @@
               </el-checkbox-group>
             </el-form-item>
             <el-form-item label="最小人脸尺寸" prop="config.faceMinSize">
-              <el-input-number v-model="form.config.faceMinSize" placeholder="建议48~200"
+              <ReNumberInput v-model="form.config.faceMinSize" placeholder="建议48~200"
                 class="num-input" controls-position="right" />
             </el-form-item>
           </div>
@@ -295,7 +295,7 @@
               <el-switch v-model="form.config.generate.seed" />
             </el-form-item>
             <el-form-item label="张数上限" prop="config.generate.maxCount">
-              <el-input-number v-model="form.config.generate.maxCount" :min="1" :max="8"
+              <ReNumberInput v-model="form.config.generate.maxCount" :min="1" :max="8"
                 class="num-input" controls-position="right" />
               <span class="me-hint">单次生成最多几张</span>
             </el-form-item>
@@ -315,11 +315,11 @@
             </el-form-item>
             <el-form-item label="步数区间" prop="config.generate.stepsDefault">
               <div class="me-inline">
-                <el-input-number v-model="form.config.generate.stepsMin" :min="1" :max="200"
+                <ReNumberInput v-model="form.config.generate.stepsMin" :min="1" :max="200"
                   placeholder="最小" controls-position="right" />
-                <el-input-number v-model="form.config.generate.stepsMax" :min="1" :max="200"
+                <ReNumberInput v-model="form.config.generate.stepsMax" :min="1" :max="200"
                   placeholder="最大" controls-position="right" />
-                <el-input-number v-model="form.config.generate.stepsDefault" :min="1" :max="200"
+                <ReNumberInput v-model="form.config.generate.stepsDefault" :min="1" :max="200"
                   placeholder="默认" controls-position="right" />
               </div>
             </el-form-item>
@@ -333,7 +333,7 @@
               <span class="me-hint">开启后可上传首帧做图生视频</span>
             </el-form-item>
             <el-form-item label="张数上限" prop="config.generate.maxCount">
-              <el-input-number v-model="form.config.generate.maxCount" :min="1" :max="4"
+              <ReNumberInput v-model="form.config.generate.maxCount" :min="1" :max="4"
                 class="num-input" controls-position="right" />
             </el-form-item>
             <el-form-item label="可用分辨率" prop="config.generate.sizes">
@@ -397,6 +397,7 @@ import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
 import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
 import {
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
   createDefaultModelConfig,
   inferSubType,
   inferModelType,

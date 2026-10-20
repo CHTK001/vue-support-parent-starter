@@ -18,7 +18,7 @@
         />
 
         <!-- number -->
-        <el-input-number
+        <ReNumberInput
           v-else-if="field.type === 'number'"
           :model-value="modelValue[field.key] ?? field.default ?? 0"
           :placeholder="field.placeholder"
@@ -59,6 +59,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ConfigField } from '@/services/modules/plugin.api'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 const props = defineProps<{
   fields: ConfigField[]

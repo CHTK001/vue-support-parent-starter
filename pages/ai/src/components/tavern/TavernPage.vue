@@ -280,7 +280,7 @@
               />
               <div class="random-ctx">
                 <span class="ctx-label">上下文</span>
-                <el-input-number
+                <ReNumberInput
                   v-model="mb.randomContextCount"
                   :min="1"
                   :max="50"
@@ -397,7 +397,7 @@
           <div class="tv-bulk-random">
             <el-switch v-model="row.randomReplyEnabled" size="small" />
             <span class="tv-bulk-random-label">主动发言</span>
-            <el-input-number
+            <ReNumberInput
               v-model="row.randomProbability"
               :min="0"
               :max="100"
@@ -430,6 +430,7 @@ import {isAdmin, message} from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import type { TaverGroup, TaverMember, TaverMessage } from '@/services/modules/tavern.api'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 /** 一轮回复的实际路由信息（后端 create 事件携带，便于排查路由错位） */
 interface TavernRouteTip {

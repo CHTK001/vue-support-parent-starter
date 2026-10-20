@@ -279,9 +279,12 @@ const props = defineProps({
  * <p>图像上色**不在此列**：它是 image 分组里的两个字段（colorize_model /
  * colorize_device），量级够不上独立菜单，按需求并回默认模型页。
  * <p>对话路由（runtime）也在此列：默认对话模型、标题总结、历史压缩、翻译模型等
- * 本就是「会话」语义，与整页的模型选择混在一起反而更难找，已挪到会话配置页。</p>
+ * 本就是「会话」语义，与整页的模型选择混在一起反而更难找，已挪到会话配置页。
+ * <p>语音识别（asr）同样在此列：它的字段是 provider / 密钥 / 模型 / 语言四项，
+ * 与文本对话模型并排时既看不出「这是音频能力」，也容易被当成又一个聊天模型；
+ * 拆出后与左侧导航的「音频识别」能力页一一对应。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -291,6 +294,16 @@ const displayGroups = computed(() => {
   }
   return all.filter((g) => props.groups.includes(g.group))
 })
+
+/**
+ * 当前是否处于「拆分菜单」模式（宿主通过 groups prop 指定了要渲染的分组）。
+ *
+ * <p>用于区分同一批字段在两种入口下的可见性：整页里 asr 只露模型与语言，
+ * 独立配置页则全量显示（否则云端 ASR 的 provider / 密钥 / 地址无从配置）。</p>
+ *
+ * @return true 表示作为独立设置页渲染
+ */
+const isSplitGroupMode = () => Boolean(props?.groups?.length)
 
 // 各分组的实际值
 const groupValues = reactive({})
@@ -993,8 +1006,13 @@ const groupHasModelFields = (group) => {
 
 // 判断字段是否应该显示
 const shouldShowField = (group, field) => {
-    // 语音识别（asr）分组：只显示模型选择和语言，隐藏provider、api_key、base_url等复杂配置
-    if (group === 'asr') {
+    // 语音识别（asr）分组：在「默认模型」整页里只显示模型选择和语言，
+    // 隐藏 provider、api_key、base_url 等复杂配置 —— 那里它只是众多分组之一，
+    // 摊开凭据项会让整页变得又长又杂。
+    //
+    // 但**拆出独立设置页后必须全显示**：独立页就是 asr 的唯一入口，
+    // 再把 provider / 密钥 / 地址藏起来，用户配不了云端 ASR，页面等于残废。
+    if (group === 'asr' && !isSplitGroupMode()) {
         const hiddenFields = ['provider', 'provider_api_key', 'provider_base_url']
         return !hiddenFields.includes(field)
     }

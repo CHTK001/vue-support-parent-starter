@@ -621,7 +621,7 @@
         </div>
         <div class="kb-field">
           <span class="kb-label">同域采集页数</span>
-          <el-input-number v-model="dialogForm.sourceMaxPages" class="kb-num kb-num--short" :min="1" :max="50" :step="1"
+          <ReNumberInput v-model="dialogForm.sourceMaxPages" class="kb-num kb-num--short" :min="1" :max="50" :step="1"
             controls-position="right" />
           <p class="kb-hint">1 表示只抓入口页，大于 1 会沿同域链接继续展开。</p>
         </div>
@@ -636,17 +636,17 @@
         <div class="kb-grid">
           <div class="kb-field">
             <span class="kb-label">{{ t('knowledge.page.chunkMaxSize') }}</span>
-            <el-input-number v-model="dialogForm.chunkMaxSize" class="kb-num" :min="100" :max="5000" :step="100"
+            <ReNumberInput v-model="dialogForm.chunkMaxSize" class="kb-num" :min="100" :max="5000" :step="100"
               controls-position="right" />
           </div>
           <div class="kb-field">
             <span class="kb-label">{{ t('knowledge.page.chunkOverlapSize') }}</span>
-            <el-input-number v-model="dialogForm.chunkOverlapSize" class="kb-num" :min="0" :max="500" :step="10"
+            <ReNumberInput v-model="dialogForm.chunkOverlapSize" class="kb-num" :min="0" :max="500" :step="10"
               controls-position="right" />
           </div>
           <div class="kb-field">
             <span class="kb-label">{{ t('knowledge.page.chunkMinSize') }}</span>
-            <el-input-number v-model="dialogForm.chunkMinSize" class="kb-num" :min="10" :max="500" :step="10"
+            <ReNumberInput v-model="dialogForm.chunkMinSize" class="kb-num" :min="10" :max="500" :step="10"
               controls-position="right" />
           </div>
         </div>
@@ -777,6 +777,7 @@ import type { ReTableColumn } from '@repo/ui/re-table'
 // 模板数据集类型：携带完整文档 / 实体 / 关系，创建后整体复制进新库
 import type { KbTemplateDataset } from '@/data/kb/templates/types'
 import { SANGUO_DATASET } from '@/data/kb/templates/sanguo'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 // 初始化组合式函数
 const { confirm, toast } = usePopup()

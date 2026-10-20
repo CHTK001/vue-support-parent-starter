@@ -17,7 +17,7 @@
         <div class="composer-context">
           <el-icon :size="15" class="context-icon"><History24Regular /></el-icon>
           <span class="context-label">上下文条数</span>
-          <el-input-number
+          <ReNumberInput
             :model-value="contextCount"
             :min="0"
             :max="50"
@@ -57,6 +57,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 import {
   Send24Regular, Sparkle24Regular, History24Regular,
 } from '@vicons/fluent'

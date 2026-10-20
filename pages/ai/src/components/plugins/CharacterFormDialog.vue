@@ -103,7 +103,7 @@
           </el-form-item>
 
           <el-form-item label="随机性 Temperature">
-            <el-input-number
+            <ReNumberInput
               v-model="form.temperature"
               :min="0"
               :max="2"
@@ -139,6 +139,7 @@ import {
   Info24Regular, Edit24Regular, Image24Regular, WrenchScrewdriver24Regular,
 } from '@vicons/fluent'
 import { apiService } from '@/services/ApiService'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 const emit = defineEmits<{ saved: [] }>()
 
