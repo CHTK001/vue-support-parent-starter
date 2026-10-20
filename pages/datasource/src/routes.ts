@@ -41,6 +41,7 @@ export const MANAGER_ROUTE_MAP: Record<string, string> = {
   etcd: "/etcd",
   prometheus: "/prometheus",
   mongodb: "/mongodb",
+  elasticsearch: "/elasticsearch",
 };
 
 /**
@@ -162,6 +163,15 @@ export function createDatasourceManageRoutes(
       name: "MongoDB",
       component: () => import("./views/console/MongoManageView.vue"),
       meta: { title: "MongoDB 管理", icon: "Coin", ...common },
+    },
+    {
+      // 字段可增 / 删 / 改（删改走后端重建索引）；图谱是「集群 → 节点」拓扑。
+      // 此前只有视图与后端接口、没有路由，数据源中心点「打开管理」会稳定弹「未注册」
+      // —— 正是本文件开头记的那类缺项，所以补上并纳进 MANAGER_ROUTE_MAP。
+      path: "/elasticsearch",
+      name: "Elasticsearch",
+      component: () => import("./views/console/ElasticsearchManageView.vue"),
+      meta: { title: "Elasticsearch 管理", icon: "Coin", ...common },
     },
     {
       path: "/prometheus/embed/:token",
