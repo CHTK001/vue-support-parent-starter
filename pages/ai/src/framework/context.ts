@@ -17,11 +17,13 @@ import {
   clearAllAuthData,
   createHttp,
   getAccessToken,
+  getDefaultHttpInstance,
   setAccessToken,
   setUserInfo,
   getUserInfo,
 } from '@repo/utils';
 import type {
+  AxiosInstance,
   ChainableRequest,
   Http,
   RequestBody,
@@ -80,12 +82,48 @@ export async function bootstrapFramework(): Promise<AppContext> {
   return context;
 }
 
+/**
+ * 内嵌宿主平台时采用宿主已装配的框架上下文。
+ *
+ * <p>独立运行（ai-guada）由 main.js 调 {@link bootstrapFramework} 自装配；
+ * 内嵌进系统平台等宿主时，宿主 createApp 已装配好同一条请求管线（wasm 加解密、
+ * 第一方请求头、Bearer 注入、401 处理、统一提示、loading），本模块直接采用——
+ * 二次装配会另起一套 token/storage 各写各的，wasm 与远端配置也要拉两遍。</p>
+ *
+ * <p>幂等：context 已有值时不覆盖（先 bootstrap 后 adopt 的调用顺序也安全）。</p>
+ */
+export function adoptContext(ctx: AppContext): void {
+  if (context) return;
+  context = ctx;
+}
+
 /** 未装配时统一报错：所有请求出口都必须晚于 bootstrapFramework() */
 function requireReady(): AppContext {
   if (!context) {
     throw new Error('[ai-guada] 请求模块未装配，请先 await bootstrapFramework()');
   }
   return context;
+}
+
+/**
+ * 解析请求实例：优先 pages/ai 自己的上下文，其次宿主注入的全局默认实例。
+ *
+ * <p>内嵌宿主时宿主 createApp 在装配阶段就 setDefaultHttpInstance（与
+ * context.http 是同一个 axios 实例，见 packages/core createApp.ts），
+ * 早于任何路由渲染。内嵌页（如 ModelsPage）经懒加载路由挂载，其 onMounted
+ * 可能早于宿主 main.ts 的 .then(adopt) 执行——2026-10-14 实测该竞态会让
+ * 请求抛「请求模块未装配」。故 context 缺失时直接回退宿主管线，不再依赖
+ * adopt 的调用时机；两者都缺失（独立运行且尚未 bootstrap）才抛原错误。</p>
+ */
+function resolveHttpInstance(): AxiosInstance {
+  if (context) {
+    return context.http.getInstance();
+  }
+  const host = getDefaultHttpInstance();
+  if (host) {
+    return host;
+  }
+  throw new Error('[ai-guada] 请求模块未装配，请先 await bootstrapFramework()');
 }
 
 /**
@@ -100,7 +138,7 @@ export function httpAt(baseUrl: string, headers?: Record<string, string>, timeou
     useAppConfig: false,
     timeout,
     headers,
-    instance: requireReady().http.getInstance(),
+    instance: resolveHttpInstance(),
   });
 }
 

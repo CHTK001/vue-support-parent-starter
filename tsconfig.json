@@ -55,7 +55,13 @@
       "@pages/server": ["pages/server/src"],
       "@pages/server/*": ["pages/server/*"],
       "@pages/collect": ["pages/collect"],
-      "@pages/collect/*": ["pages/collect/*"]
+      "@pages/collect/*": ["pages/collect/*"],
+      "@pages/ai": ["pages/ai/src"],
+      "@pages/ai/*": ["pages/ai/src/*"],
+      // pages/ai 的页面（ModelsPage 等）用 `@/` 指向 pages/ai/src。宿主（如系统平台，无自有
+      // paths、继承本文件）嵌入这些页面时靠此解析。自带 `@/*` 的应用（geo/video/ai-guada）
+      // 有自己的 paths 会覆盖本项，不受影响；`@/*` 只匹配 `@/…`，不波及 @repo/*、@pages/*。
+      "@/*": ["pages/ai/src/*"]
     }
   },
   "include": [],
