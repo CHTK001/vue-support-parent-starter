@@ -180,10 +180,11 @@
                       <Archive20Regular />
                     </el-icon>
                   </div>
-                  <!-- 操作菜单：当前会话常显，其余 hover 显示；与右侧文本并排，互不遮挡。
-                       同样用 hidden/group-hover:flex —— 非当前会话时不占位，
-                       否则它的空位会把时间顶离最右。 -->
-                  <div :class="session.id === currentSessionId ? 'flex items-center' : 'hidden group-hover:flex items-center'">
+                  <!-- 操作菜单：对所有会话（含当前激活的）都只在 hover 时出现。
+                       原先「当前会话常显」是特例，但激活态本身已由高亮背景表达，
+                       再常驻一个 … 图标只会白占右侧宽度、把时间顶离最右。
+                       用 hidden/group-hover:flex 保证不 hover 时不占位。 -->
+                  <div class="hidden group-hover:flex items-center">
                     <DropdownMenu @command="(cmd: string) => handleDropdownSelect(cmd, session)">
                       <div class="session-action-trigger">
                         <el-icon class="w-4 h-4">
