@@ -1,4 +1,4 @@
-﻿# 把 standalone 构建产物同步到文件服务器 classpath 静态资源目录。
+# 把 standalone 构建产物同步到文件服务器 classpath 静态资源目录。
 #
 #   dist/index.html   -> spring-support-filesystem-starter/src/main/resources/static/index.html（管理页壳）
 #   dist/preview.html -> .../static/preview/index.html（统一预览入口壳，readPreviewShell 读取）
@@ -6,7 +6,7 @@
 #   dist/vendor/*     -> .../static/vendor/*（file-viewer 渲染器资源，Spring 静态资源直出）
 #   dist/wasm/*       -> .../static/wasm/*
 #
-# 用法：在 apps/vue-support-filestorage-standalone 下执行
+# 用法：在 apps/vue-support-filestorage-starter 下执行
 #   pnpm build; powershell -File scripts/sync-to-fs-server.ps1
 #
 # 注意：必须先 pnpm build。脚本只覆盖目标文件、不删除多余历史文件

@@ -14,7 +14,7 @@
     "typescript": "catalog:",
     "vite": "catalog:"
   },
-  "name": "@app/filestorage-standalone",
+  "name": "vue-support-filestorage-starter",
   "packageManager": "pnpm@9.15.0",
   "private": true,
   "scripts": {

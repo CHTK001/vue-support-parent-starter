@@ -36,6 +36,11 @@ coverage/
 
 # 防御性忽略：apps/ 下若意外残留 index.html（dev/build 都不应再生成到 app 根）
 apps/*/index.html
+# 反忽略：filestorage 的 index.html 是**手写源码**（多页入口壳，vite.config.ts 把它列为
+# build input、sync-to-fs-server.ps1 把 dist/index.html 同步给后端 static/index.html），
+# 不是 dev/build 生成的残留物。它此前被上面那条通配规则连带忽略、从未提交，
+# 导致该应用 `pnpm build` 失败、dev 访问 / 返回 404。只放行这一个文件，其余 app 维持原规则。
+!apps/vue-support-filestorage-starter/index.html
 
 # 环境变量
 .env
