@@ -110,10 +110,10 @@ export function updateTokenStatsFromSSE(
         console.warn('[useSessionTokenStats] 上下文快照落库失败:', error)
       })
   }
-  const percentage = Math.min(
-    (stats.usedTokens / stats.effectiveContextWindow) * 100,
-    100,
-  )
+  // 窗口为 0 时不能做除法：直接给 0，否则会算出 Infinity/NaN 一路传到界面
+  const percentage = stats.effectiveContextWindow > 0
+    ? Math.min(100, Math.max(0, (stats.usedTokens / stats.effectiveContextWindow) * 100))
+    : 0
   tokenStats.value = {
     usedTokens: stats.usedTokens,
     totalTokens: stats.effectiveContextWindow,
