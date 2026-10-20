@@ -913,6 +913,43 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
                 content.traceLog = [];
               }
               content.traceLog.push(response.trace);
+
+              // 智能体路径**不发 tool_call 事件**，工具信息只走 trace。
+              // 若不在这里聚合，流式期间工具行恒为空 —— 只有刷新后由后端
+              // （AiSessionController 从 confirmation 的 toolTraces 合成）才补出来，
+              // 表现为「流式中看不到任何工具、刷新后突然出现」。
+              // 聚合口径与后端逐条对齐：tool_call 开新行，tool_args / tool_result 归位，
+              // 失败判定看 tool_result 的真实内容（绝不无条件写 success）。
+              const tr: any = response.trace;
+              const toolName = tr?.toolName;
+              if (toolName) {
+                if (!content.metadata) {
+                  content.metadata = {} as any;
+                }
+                if (!Array.isArray(content.metadata.toolCalls)) {
+                  content.metadata.toolCalls = [];
+                }
+                const rows = content.metadata.toolCalls as any[];
+                const kind = tr.kind || '';
+                let row: any = rows.length > 0 ? rows[rows.length - 1] : null;
+                if (!row || kind === 'tool_call' || row.name !== toolName) {
+                  row = {
+                    name: toolName,
+                    arguments: kind === 'tool_call' ? '' : (tr.text || ''),
+                    outcome: 'success',
+                  };
+                  rows.push(row);
+                } else if (kind === 'tool_args') {
+                  row.arguments = tr.text || '';
+                } else if (kind === 'tool_result') {
+                  const txt = String(tr.text || '');
+                  row.result = txt;
+                  row.outcome =
+                    txt.startsWith('Error') || txt.startsWith('error') || txt.includes('validation failed')
+                      ? 'failed'
+                      : 'success';
+                }
+              }
             }
           }
           continue;
