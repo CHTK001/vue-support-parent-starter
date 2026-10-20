@@ -1588,7 +1588,7 @@ async function submitProfileEnv(): Promise<void> {
             </thead>
             <tbody>
               <tr v-for="(r, idx) in profileVisibleRows" :key="idx">
-                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" class="mono">{{ r[col.key] ?? "—" }}</td>
+                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" :class="['mono', { right: col.align === 'right' }]">{{ r[col.key] ?? "—" }}</td>
                 <td v-if="profileTab === 'processes'">
                   <ReButton icon="RefreshRight" :loading="profileBusyRow === `restart-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定重启进程 ${r.name ?? ''}（PID ${r.pid}）？`).then(ok => ok && runProfileAction(`restart-${r.pid}`, restartHostProcess(Number(r.pid), hostId)))">重启</ReButton>
                   <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `kill-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束进程 ${r.name ?? ''}（PID ${r.pid}）？该操作不可恢复。`).then(ok => ok && runProfileAction(`kill-${r.pid}`, killProcess(Number(r.pid), hostId)))">结束</ReButton>
