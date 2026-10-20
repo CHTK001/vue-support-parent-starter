@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import ReVideo from './ReVideo.vue'
-import type { DeviceChannel } from '@/types/device'
+import type { DeviceChannel } from '@pages/device/src/types/device'
 
 
 import ReDialog from "@repo/ui/re-dialog";defineProps<{
