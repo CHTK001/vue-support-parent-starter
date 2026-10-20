@@ -215,6 +215,7 @@ import { BrainCircuit20Regular, Search16Filled } from '@vicons/fluent';
 import { apiService } from '@/services/ApiService';
 import { useSessionStore } from '@/stores/session';
 import { useSessionTokenStats } from '@/composables/useSessionTokenStats';
+import { useTurnStats } from '@/composables/useTurnStats';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
 import { flattenContentsForTimeline } from '@/utils/messageUtils';
 import { getToolIcon, getToolConfig, getArgsText, resolveToolName } from '@/utils/toolDisplay';
@@ -443,38 +444,15 @@ const breakdownRows = computed(() => {
 // ============ 轮次统计 ============
 
 /**
- * 从当前会话消息聚合的轮次统计
- * - completion：输出 token 合计（用于回答速度）
- * - duration：助手消息总耗时合计
- * - toolDuration：工具执行耗时合计（流式期间采集，历史消息缺失时为 0）
- * - steps：工具调用步数合计
+ * 从当前会话消息聚合的轮次统计。
+ *
+ * 聚合逻辑已抽到 composables/useTurnStats，与底部状态条（SessionStatsBar）共用 ——
+ * 原先这里用 `completion / 总耗时` 当速度，底部条用 `completion / 解码窗口`，
+ * 同一个会话能差出 30% 以上；usage 的取值也只看了 message.metadata，
+ * 导致流式中的会话这里显示 0 而底部条有数。现在两边同源，数值必然一致。
  */
-const stats = computed(() => {
-  let completion = 0;
-  let duration = 0;
-  let toolDuration = 0;
-  let steps = 0;
-
-  for (const msg of props.messages || []) {
-    if (!msg || msg.role !== 'assistant') continue;
-
-    const usage = msg.metadata?.usage;
-    if (usage) completion += usage.completionTokens || 0;
-
-    duration += msg.totalDurationMs || 0;
-    toolDuration += msg.toolDurationMs || 0;
-
-    for (const content of msg.contents || []) {
-      steps += content?.metadata?.toolCalls?.length || 0;
-    }
-  }
-
-  // 模型耗时 = 总耗时 - 工具执行耗时（不低于 0）
-  const modelDuration = Math.max(0, duration - toolDuration);
-  const tokensPerSecond = duration > 0 ? completion / (duration / 1000) : 0;
-
-  return { completion, duration, toolDuration, modelDuration, steps, tokensPerSecond };
-});
+const messagesRef = computed<any[]>(() => props.messages || []);
+const stats = useTurnStats(messagesRef);
 
 // 回答速度（tok/s）
 const speedText = computed(() => {

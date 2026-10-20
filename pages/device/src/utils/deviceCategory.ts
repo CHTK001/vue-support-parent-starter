@@ -5,11 +5,7 @@
  * @since 4.0.0.42
  */
 
-<<<<<<< HEAD
 import type { DeviceCategory } from '@pages/device/src/types/device'
-=======
-import type { DeviceCategory } from '../types/device'
->>>>>>> feat/device-stream
 
 export const CATEGORY_LABELS: Record<DeviceCategory, string> = {
   camera: '摄像头',
