@@ -136,7 +136,8 @@
          放在滚动区之外（ScrollContainer 之后），保证它常驻不随消息滚动。
          上下文数据从本组件已有的 tokenStats 透传，避免子组件再拉一次 /token-stats。 -->
     <SessionStatsBar :messages="activeMessages" :context-used="tokenStats?.usedTokens || 0"
-      :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0" />
+      :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0"
+      :context-breakdown="tokenStats?.breakdown || null" />
 
     <!-- 回到底部悬浮按钮 -->
     <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"

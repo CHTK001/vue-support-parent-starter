@@ -648,12 +648,14 @@ const navItems = computed(() => {
       key: 'image-generate',
       label: '图像生成',
       icon: Image20Regular,
+      section: '图像',
       alwaysShow: true
     },
     {
       key: 'face-search',
       label: '人脸识别',
       icon: Person20Regular,
+      section: '图像',
       // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
       // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
       // 未登录仍会被 requireUserId() 拒掉。
@@ -670,6 +672,7 @@ const navItems = computed(() => {
       key: 'image-search',
       label: '以图搜图',
       icon: ImageSearch20Regular,
+      section: '图像',
       // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
       // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
       // 未登录仍会被 requireUserId() 拒掉。

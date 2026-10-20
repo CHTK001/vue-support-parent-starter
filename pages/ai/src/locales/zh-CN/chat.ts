@@ -288,6 +288,19 @@ export default {
     promptTokens: '输入',
     cachedTokens: '缓存命中',
     contextUsage: '上下文占用',
+    // ── Token 用量悬浮卡 ──
+    usageTitle: 'Token 用量',
+    cacheRate: '缓存命中',
+    cacheMiss: '未缓存输入',
+    cacheRead: '缓存读取',
+    outputTokens: '输出',
+    // ── 上下文悬浮卡 ──
+    contextUsed: '上下文已用',
+    bdSystem: '系统提示词',
+    bdSummary: '摘要',
+    bdUser: '用户输入',
+    bdHistory: '对话消息',
+    bdTools: '工具定义',
   },
 
   // ── 从此处回退确认框 ──
