@@ -221,7 +221,7 @@ const engine = shallowRef<FlowGraphEngine | null>(null);
  * <p>面板里的「全览流程节点」要经它调 {@code fit()}，而不是直接 engine.fitCenter()：
  * 外壳那版会同步工具条倍率显示，直接调引擎的话图缩放了、倍率还停在旧值。</p>
  */
-const graphRef = ref<{ fit?: () => unknown } | null>(null);
+const graphRef = ref<{ fit?: () => unknown; tidy?: () => unknown } | null>(null);
 const nodeForm = ref<NodeForm | null>(null);
 const edgeForm = ref<EdgeForm | null>(null);
 
@@ -1457,7 +1457,12 @@ function startWith(name: string): void {
   load(dsl);
 }
 
-defineExpose({ load, getGraph, addNode, startWith, shapeIssues });
+function autoOptimize(): void {
+  graphRef.value?.tidy?.();
+  graphRef.value?.fit?.();
+}
+
+defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize });
 </script>
 
 <template>
