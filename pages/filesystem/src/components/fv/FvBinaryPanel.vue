@@ -74,6 +74,67 @@ const viewerFileName = computed(() => {
   return BINARY_RENDERER_EXTS.has(ext) ? effectiveName.value : "file.bin";
 });
 
+/** 生效扩展名（小写，不含点） */
+const effectiveExt = computed(() => effectiveName.value.split(".").pop()?.toLowerCase() || "");
+
+/**
+ * 是否展示「反编译」入口：只有 {@code .class} 有。
+ *
+ * <p>反编译由后端 {@code ClassPreviewProvider}（CFR）承担，走
+ * {@code ?preview=true&render=server} 服务端通道返回高亮源码；
+ * 本面板只做「十六进制 / 反编译源码」两种视图的切换。</p>
+ */
+const canDecompile = computed(() => effectiveExt.value === "class");
+
+/** 当前显示的是反编译源码（true）还是十六进制检视（false，默认） */
+const showDecompiled = ref(false);
+/** 反编译源码的服务端地址（首次切换时解析一次） */
+const decompileSrc = ref("");
+/** 反编译地址解析失败文案 */
+const decompileErr = ref("");
+
+/**
+ * 解析反编译源码的服务端地址。
+ *
+ * <p>口径与取字节一致：直传 {@code src} 时在其上追加服务端通道参数；
+ * 否则用 {@code resolveObjectUrl} 签票并带上 {@code preview=true&render=server}
+ * （包内条目再带 {@code inner=}）。</p>
+ */
+async function resolveDecompileSrc(): Promise<string> {
+  const withServer = (u: string): string =>
+    `${u}${u.includes("?") ? "&" : "?"}preview=true&render=server`;
+  if (props.src) {
+    return withServer(props.src);
+  }
+  const params: Record<string, string> = { preview: "true", render: "server" };
+  if (props.inner) {
+    params.inner = props.inner;
+  }
+  const url = await resolveObjectUrl(props.bucket, props.objectKey, { params });
+  if (!url) {
+    throw new Error("获取反编译地址失败");
+  }
+  return url;
+}
+
+/** 切换视图；首次进入反编译视图时解析地址 */
+async function toggleDecompiled(): Promise<void> {
+  if (showDecompiled.value) {
+    showDecompiled.value = false;
+    return;
+  }
+  decompileErr.value = "";
+  if (!decompileSrc.value) {
+    try {
+      decompileSrc.value = await resolveDecompileSrc();
+    } catch (e) {
+      decompileErr.value = e instanceof Error && e.message ? e.message : "反编译地址解析失败";
+      return;
+    }
+  }
+  showDecompiled.value = true;
+}
+
 /**
  * 懒加载 file-viewer 全套依赖（vue3 组件 + 样式 + binaryRenderer）。
  *
@@ -194,7 +255,13 @@ function onRenderError(): void {
 
 watch(
   () => [props.bucket, props.objectKey, props.inner, props.src, props.fileName],
-  () => void load(),
+  () => {
+    // 换文件即回到十六进制视图，并清掉上一份的反编译地址
+    showDecompiled.value = false;
+    decompileSrc.value = "";
+    decompileErr.value = "";
+    void load();
+  },
   { immediate: true },
 );
 
@@ -205,22 +272,51 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="fv-binary" aria-label="二进制文件检视">
-    <div v-if="loading" class="fv-binary__mask">
-      <span class="fv-binary__mask-text">加载中…</span>
+    <!-- .class：十六进制 / 反编译源码 切换。反编译走后端 CFR（服务端通道）。 -->
+    <div v-if="canDecompile" class="fv-binary__bar">
+      <button
+        type="button"
+        class="fv-binary__tab"
+        :class="{ 'fv-binary__tab--active': !showDecompiled }"
+        @click="showDecompiled = false"
+      >
+        十六进制
+      </button>
+      <button
+        type="button"
+        class="fv-binary__tab"
+        :class="{ 'fv-binary__tab--active': showDecompiled }"
+        @click="toggleDecompiled"
+      >
+        反编译源码
+      </button>
+      <span v-if="decompileErr" class="fv-binary__bar-err">{{ decompileErr }}</span>
     </div>
-    <div v-else-if="failReason" class="fv-binary__mask">
-      <span class="fv-binary__mask-text">{{ failReason }}</span>
-    </div>
-    <component
-      :is="viewerComp"
-      v-else-if="viewerComp && fileRef"
-      :file="fileRef"
-      :options="viewerOptions"
-      class="fv-binary__body"
-      data-testid="file-viewer"
-      @load-complete="onRendered"
-      @error="onRenderError"
+    <iframe
+      v-if="showDecompiled && decompileSrc"
+      class="fv-binary__frame"
+      :src="decompileSrc"
+      title="反编译源码"
+      @load="onRendered"
     />
+    <template v-else>
+      <div v-if="loading" class="fv-binary__mask">
+        <span class="fv-binary__mask-text">加载中…</span>
+      </div>
+      <div v-else-if="failReason" class="fv-binary__mask">
+        <span class="fv-binary__mask-text">{{ failReason }}</span>
+      </div>
+      <component
+        :is="viewerComp"
+        v-else-if="viewerComp && fileRef"
+        :file="fileRef"
+        :options="viewerOptions"
+        class="fv-binary__body"
+        data-testid="file-viewer"
+        @load-complete="onRendered"
+        @error="onRenderError"
+      />
+    </template>
   </section>
 </template>
 
@@ -249,5 +345,44 @@ onBeforeUnmount(() => {
 .fv-binary__mask-text {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+/* .class 的视图切换条与反编译 iframe */
+.fv-binary__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 8px;
+}
+.fv-binary__tab {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  background: var(--el-bg-color, #fff);
+  color: #444c56;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.fv-binary__tab:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.fv-binary__tab--active {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+.fv-binary__bar-err {
+  color: var(--el-color-danger, #f56c6c);
+  font-size: 12px;
+}
+.fv-binary__frame {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: var(--el-radius-md, 8px);
+  background: #fff;
 }
 </style>

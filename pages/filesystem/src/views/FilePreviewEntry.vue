@@ -47,6 +47,9 @@ import { base64ToUtf8, specFor, type RendererSpec } from "../utils/previewEntryR
 const SPECIAL_COMPONENT_BY_EXT: Record<string, Component> = {
   ofd: defineAsyncComponent(() => import("../components/PreviewOfdPanel.vue")),
   swf: defineAsyncComponent(() => import("../components/PreviewSwfPanel.vue")),
+  // 大纲 / 脑图（非 XMind）：FreeMind .mm、OPML .opml（前端解析成树）
+  mm: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
+  opml: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
 };
 
 /* ==================== 引导参数（内嵌态唯一事实来源） ==================== */
@@ -459,7 +462,7 @@ onMounted(async (): Promise<void> => {
         :preset-id="activeSpec?.presetId ?? 'auto'"
         :viewer-options-extra="viewerExtra"
         :initial-keyword="initialKeyword"
-        enable-json-beautify
+        enable-beautify
         @rendered="() => {}"
         @error="onClientError"
       />

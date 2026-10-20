@@ -177,7 +177,10 @@ function onBaseError(err: unknown): void {
 
 <template>
   <div class="fv-text-panel">
-    <div v-if="loading && !fileRef" class="fv-text-panel__mask">加载中…</div>
+    <div v-if="loading && !fileRef" class="fv-text-panel__mask">
+      <span class="fv-text-panel__spinner" aria-hidden="true"></span>
+      <span>正在加载文本…</span>
+    </div>
     <FvPanelBase
       v-else-if="fileRef && renderers.length"
       v-model:loading="loading"
@@ -185,6 +188,7 @@ function onBaseError(err: unknown): void {
       :renderers="renderers"
       :viewer-options-extra="TEXT_VIEWER_OPTIONS"
       preset-id="text"
+      enable-beautify
       @rendered="onRendered"
       @error="onBaseError"
     />
@@ -198,13 +202,62 @@ function onBaseError(err: unknown): void {
   min-height: 0;
 }
 
+/* 加载态 */
 .fv-text-panel__mask {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   width: 100%;
   height: 100%;
+  padding: 24px;
   color: var(--el-text-color-secondary, #909399);
   font-size: 13px;
+  text-align: center;
+}
+
+.fv-text-panel__spinner {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--el-color-primary, #409eff) 20%, transparent);
+  border-top-color: var(--el-color-primary, #409eff);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary, #409eff) 50%, transparent);
+  animation: fv-text-spin 0.8s linear infinite;
+}
+
+@keyframes fv-text-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-text-panel__spinner {
+    animation: none;
+  }
+}
+
+/* ---- 选中颜色 + 细滚动条 ---- */
+.fv-text-panel ::selection,
+.fv-text-panel *::selection {
+  background: var(--el-color-primary-light-8, rgba(64, 158, 255, 0.18));
+  color: var(--el-text-color-primary, #303133);
+}
+
+.fv-text-panel::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.fv-text-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fv-text-panel::-webkit-scrollbar-thumb {
+  background: var(--el-border-color, #dcdfe6);
+  border-radius: 999px;
+}
+.fv-text-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--el-border-color-darker, #c4c7ce);
 }
 </style>
