@@ -72,7 +72,7 @@
               </div>
               <div style="width: 110px;">
                 <label class="f-label">Port</label>
-                <el-input-number v-model="editConfig.port" :min="1" :max="65535" controls-position="right"
+                <ReNumberSelect v-model="editConfig.port" :min="1" :max="65535" controls-position="right"
                   style="width: 110px;" />
               </div>
             </div>
@@ -218,6 +218,7 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 
 import { Check, Close, Top, Folder, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import SegmentedToggle from '../ui/SegmentedToggle.vue'
 import SettingsCard from './SettingsCard.vue'

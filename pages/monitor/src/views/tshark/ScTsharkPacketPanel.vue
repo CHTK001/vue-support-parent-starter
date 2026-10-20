@@ -45,6 +45,7 @@
         :toolbar="false"
         :context-menu="packetMenu"
         :empty-text="emptyText"
+        :row-class-name="getRowClassName"
         @context-menu-select="onPacketMenuSelect"
       >
         <ReTableColumn prop="packetTime" label="时间" width="176" align="center">
@@ -54,7 +55,11 @@
         </ReTableColumn>
         <ReTableColumn label="协议" width="96" align="center">
           <template #default="{ row }">
-            <ReTag :class="['tshark-proto', protoClass(row.protocol)]" effect="plain">
+            <ReTag
+              :class="['tshark-proto', protoClass(row.protocol)]"
+              effect="plain"
+              class="proto-tag"
+            >
               {{ row.protocol || 'OTHER' }}
             </ReTag>
           </template>
@@ -167,9 +172,65 @@ function protoClass(p?: string | null): string {
   }
   return map[p || ''] || ''
 }
+
+/** 表格行协议class，用于左侧色条 */
+function protoRowClass(p?: string | null): string {
+  const map: Record<string, string> = {
+    TCP: 'row-tcp', UDP: 'row-udp', HTTP: 'row-http', HTTPS: 'row-http',
+    TLS: 'row-tls', DNS: 'row-dns', ICMP: 'row-icmp', ARP: 'row-arp',
+    SSH: 'row-ssh', QUIC: 'row-quic',
+  }
+  return map[p || ''] || ''
+}
+
+function getRowClassName({ row }: { row: TsharkPacket }): string {
+  return protoRowClass(row.protocol)
+}
 </script>
 
 <style scoped>
 .packet-hint { font-size: 11.5px; }
 .packet-count { font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* 协议标签增强 */
+.proto-tag {
+  min-width: 52px;
+  text-align: center;
+  font-weight: 600;
+}
+.tshark-proto--tcp { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; }
+.tshark-proto--udp { color: #16a34a; background: #f0fdf4; border-color: #bbf7d0; }
+.tshark-proto--http { color: #9333ea; background: #faf5ff; border-color: #e9d5ff; }
+.tshark-proto--tls { color: #ea580c; background: #fff7ed; border-color: #fed7aa; }
+.tshark-proto--dns { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+.tshark-proto--icmp { color: #ca8a04; background: #fefce8; border-color: #fef08a; }
+.tshark-proto--arp { color: #0891b2; background: #ecfeff; border-color: #a5f3fc; }
+.tshark-proto--ssh { color: #7c3aed; background: #f5f3ff; border-color: #ddd6fe; }
+.tshark-proto--quic { color: #059669; background: #ecfdf5; border-color: #a7f3d0; }
+
+/* 表格行悬停 + 左侧色条 */
+.tshark-table :deep(.el-table__row) {
+  transition: background-color 0.15s ease;
+}
+.tshark-table :deep(.el-table__row:hover) {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent) !important;
+}
+/* 协议行左侧色条 */
+.tshark-table :deep(.el-table__row td:first-child) {
+  position: relative;
+}
+.tshark-table :deep(.el-table__body-wrapper) .el-table__row:hover td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.tshark-table :deep(.el-table__body-wrapper) .el-table__row.row-tcp:hover td:first-child::before { background: #3b82f6; }
+.tshark-table :deep(.el-table__body-wrapper) .el-table__row.row-udp:hover td:first-child::before { background: #16a34a; }
+.tshark-table :deep(.el-table__body-wrapper) .el-table__row.row-http:hover td:first-child::before { background: #9333ea; }
+.tshark-table :deep(.el-table__body-wrapper) .el-table__row.row-tls:hover td:first-child::before { background: #ea580c; }
+.tshark-table :deep(.el-table__body-wrapper) .el-table__row.row-icmp:hover td:first-child::before { background: #ca8a04; }
 </style>

@@ -1,0 +1,367 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.session-audit[data-v-5375f703] {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* 主卡片 */
+.sa-card[data-v-5375f703] {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  padding: 28px 32px 24px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-xl, 16px);
+  /* koi 规约：卡片静止态不加投影，边界由上面那圈 1px 边框承载 */
+}
+
+/* 刷新（工具条右侧） */
+.sa-refresh[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  height: 40px;
+  padding: 0 18px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+  outline: none;
+  /* 原来用 var(--el-transition-duration)，它被 EP base.css 定为 .3s，
+     对 40px 高的胶囊按钮 hover 明显发滞；EP 自己的 transition-color 也用 -fast(.2s) */
+  transition: color var(--el-transition-duration-fast, 0.2s), border-color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
+}
+
+/* 原生 button：自绘焦点环 */
+.sa-refresh[data-v-5375f703]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.sa-refresh[data-v-5375f703]:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+.sa-refresh.is-loading[data-v-5375f703] svg {
+  animation: sa-spin-5375f703 0.8s linear infinite;
+}
+@keyframes sa-spin-5375f703 {
+to {
+    transform: rotate(360deg);
+}
+}
+/* 统计 */
+.sa-stats[data-v-5375f703] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.sa-stat[data-v-5375f703] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.sa-stat__main[data-v-5375f703] {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sa-stat__label[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.sa-stat__dot[data-v-5375f703] {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary);
+}
+.sa-stat__value[data-v-5375f703] {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.sa-stat__icon[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  font-size: 20px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+/* 状态快捷筛选 */
+.sa-segrow[data-v-5375f703] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sa-pill[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: color var(--el-transition-duration-fast, 0.2s), border-color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
+}
+.sa-pill[data-v-5375f703]:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+.sa-seg[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.sa-seg__btn[data-v-5375f703] {
+  height: 32px;
+  padding: 0 22px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
+}
+.sa-seg__btn[data-v-5375f703]:hover:not(.is-active) {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.sa-seg__btn.is-active[data-v-5375f703] {
+  color: var(--el-color-white);
+  background: var(--el-color-primary);
+}
+
+/* 高级筛选 */
+.sa-filters[data-v-5375f703] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.sa-filters__search[data-v-5375f703] {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+.sa-filters__select[data-v-5375f703] {
+  flex: 0 0 130px;
+  width: 130px;
+}
+.sa-filters__query[data-v-5375f703] {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 表格 */
+.sa-table[data-v-5375f703] {
+  --el-table-border-color: var(--el-border-color-lighter);
+}
+.sa-table[data-v-5375f703] .el-table__header-wrapper th.el-table__cell {
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.sa-table[data-v-5375f703] .el-table__row > td.el-table__cell {
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+.sa-table[data-v-5375f703] .el-table__inner-wrapper::before {
+  display: none;
+}
+.sa-table[data-v-5375f703] .el-table__row:hover > td.el-table__cell {
+  background: var(--el-color-primary-light-9);
+}
+
+/* 协议 pill */
+.sa-proto[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 24px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--el-color-white);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.sa-proto.is-vnc[data-v-5375f703] {
+  background: var(--el-color-primary);
+}
+.sa-proto.is-rdp[data-v-5375f703] {
+  background: var(--el-color-warning);
+}
+.sa-proto.is-ssh[data-v-5375f703] {
+  background: var(--el-color-success);
+}
+.sa-proto.is-unknown[data-v-5375f703] {
+  background: var(--el-color-info);
+}
+
+/* 状态 */
+.sa-status[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+.sa-status__dot[data-v-5375f703] {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-text-color-disabled);
+}
+.sa-status.is-open .sa-status__dot[data-v-5375f703] {
+  background: var(--el-color-success);
+  animation: sa-pulse-5375f703 1.8s ease-out infinite;
+}
+@keyframes sa-pulse-5375f703 {
+0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 50%, transparent);
+}
+70% {
+    box-shadow: 0 0 0 6px transparent;
+}
+100% {
+    box-shadow: 0 0 0 0 transparent;
+}
+}
+/* 行内链接按钮 */
+.sa-link[data-v-5375f703] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  margin-right: 12px;
+  font-size: 13px;
+  color: var(--el-color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.sa-link[data-v-5375f703]:hover {
+  color: var(--el-color-primary-dark-2);
+}
+.sa-link__dot[data-v-5375f703] {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary);
+}
+.sa-link.is-danger[data-v-5375f703] {
+  color: var(--el-color-danger);
+}
+.sa-link.is-danger[data-v-5375f703]:hover {
+  color: var(--el-color-danger-dark-2);
+}
+.sa-link.is-danger .sa-link__dot[data-v-5375f703] {
+  background: var(--el-color-danger);
+}
+.sa-drawer-actions[data-v-5375f703] {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ============ 键盘可达性 ============ */
+/* 下面这几个都是原生可聚焦元素（button / span[role=button][tabindex=0]），
+   不是 Element Plus 组件，拿不到 EP 自带的 :focus-visible 实线轮廓，
+   统一去掉浏览器默认轮廓并自绘与全站一致的焦点环 */
+.sa-pill[data-v-5375f703],
+.sa-seg__btn[data-v-5375f703],
+.sa-link[data-v-5375f703] {
+  outline: none;
+}
+.sa-pill[data-v-5375f703]:focus-visible,
+.sa-seg__btn[data-v-5375f703]:focus-visible,
+.sa-link[data-v-5375f703]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  /* 行内文字按钮本身没有圆角，补一个最小档让焦点环不显得是硬方块 */
+  border-radius: var(--el-radius-xs, 4px);
+}
+
+/* 窄屏 */
+@media (max-width: 720px) {
+.sa-card[data-v-5375f703] {
+    padding: 20px 16px;
+}
+.sa-stats[data-v-5375f703] {
+    grid-template-columns: 1fr;
+}
+.sa-filters[data-v-5375f703] {
+    flex-wrap: wrap;
+}
+.sa-filters__search[data-v-5375f703],
+  .sa-filters__select[data-v-5375f703] {
+    flex: 1 1 100%;
+    width: 100%;
+}
+.sa-filters__query[data-v-5375f703] {
+    margin-left: 0;
+}
+}
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+.sa-refresh[data-v-5375f703],
+  .sa-pill[data-v-5375f703],
+  .sa-seg__btn[data-v-5375f703] {
+    transition: none;
+}
+  /* 刷新中的旋转必须停；但这一帧唯一的反馈手段就是旋转动画，
+     直接 animation:none 会让「正在刷新」彻底无感，故补一层静态降透明度作为兜底信号 */
+.sa-refresh.is-loading[data-v-5375f703] svg {
+    animation: none;
+    opacity: 0.45;
+}
+  /* 状态点的扩散光环可以停：开关状态本来就由点的底色（成功绿 / 禁用灰）区分，
+     光环只是附加动效，不承担唯一信息 */
+.sa-status.is-open .sa-status__dot[data-v-5375f703] {
+    animation: none;
+}
+}

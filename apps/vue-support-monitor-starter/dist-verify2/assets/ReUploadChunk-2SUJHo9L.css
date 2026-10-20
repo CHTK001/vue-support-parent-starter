@@ -1,0 +1,92 @@
+
+.re-upload-chunk[data-v-315cb567] {
+  width: 100%;
+}
+.re-upload-chunk__list[data-v-315cb567] {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.re-upload-chunk__item[data-v-315cb567] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-fill-color-blank);
+  transition: border-color 0.2s;
+}
+.re-upload-chunk__item.is-success[data-v-315cb567] {
+  border-color: var(--el-color-success-light-5);
+  background: var(--el-color-success-light-9);
+}
+.re-upload-chunk__item.is-fail[data-v-315cb567] {
+  border-color: var(--el-color-danger-light-5);
+  background: var(--el-color-danger-light-9);
+}
+.re-upload-chunk__item-info[data-v-315cb567] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.re-upload-chunk__item-icon[data-v-315cb567] {
+  font-size: 20px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+.re-upload-chunk__item-main[data-v-315cb567] {
+  flex: 1;
+  min-width: 0;
+}
+.re-upload-chunk__item-name[data-v-315cb567] {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.re-upload-chunk__item-meta[data-v-315cb567] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+}
+.re-upload-chunk__item-error[data-v-315cb567] {
+  color: var(--el-color-danger);
+}
+.re-upload-chunk__progress[data-v-315cb567] {
+  margin-top: 4px;
+}
+.re-upload-chunk__item-actions[data-v-315cb567] {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.re-upload-chunk__drag-content[data-v-315cb567] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.re-upload-chunk__drag-icon[data-v-315cb567] {
+  font-size: 48px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 12px;
+}
+.re-upload-chunk__drag-text[data-v-315cb567] {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  margin-bottom: 4px;
+}
+.re-upload-chunk__drag-hint[data-v-315cb567] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}

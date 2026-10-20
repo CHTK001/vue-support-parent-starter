@@ -11,17 +11,22 @@ import { toMergedMap, isFieldConfigured, configuredValue, type MergedSettingItem
 
 const FACE_REQUIRED = ['detector_model', 'feature_model'] as const
 const IMAGE_REQUIRED = ['default_image_feature_model'] as const
+const COLORIZE_REQUIRED = ['colorize_model'] as const
 
 export const useModelConfigStore = defineStore('modelConfig', () => {
   const faceReady = ref(false)
   const imageReady = ref(false)
+  const colorizeReady = ref(false)
   const faceDetectorModel = ref('')
   const faceFeatureModel = ref('')
   const imageFeatureModel = ref('')
+  const colorizeModel = ref('')
   const faceMerged = ref<Record<string, any>>({})
   const imageMerged = ref<Record<string, any>>({})
+  const colorizeMerged = ref<Record<string, any>>({})
   const faceMissing = ref<string[]>([])
   const imageMissing = ref<string[]>([])
+  const colorizeMissing = ref<string[]>([])
   const loaded = ref(false)
   let inflight: Promise<void> | null = null
 
@@ -52,16 +57,26 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
     imageMissing.value = IMAGE_REQUIRED.filter((f) => !isFieldConfigured(map, f))
   }
 
+  function applyColorize(items: MergedSettingItem[]) {
+    const map = toMergedMap(items)
+    colorizeMerged.value = Object.fromEntries(map)
+    colorizeModel.value = configuredValue(map, 'colorize_model')
+    colorizeReady.value = COLORIZE_REQUIRED.every((f) => isFieldConfigured(map, f))
+    colorizeMissing.value = COLORIZE_REQUIRED.filter((f) => !isFieldConfigured(map, f))
+  }
+
   async function load(force = false) {
     if (!force && loaded.value) return
     if (inflight) return inflight
     inflight = (async () => {
-      const [faceItems, imageItems] = await Promise.all([
+      const [faceItems, imageItems, colorizeItems] = await Promise.all([
         fetchMerged('face'),
         fetchMerged('image_search'),
+        fetchMerged('image'),
       ])
       applyFace(faceItems)
       applyImage(imageItems)
+      applyColorize(colorizeItems)
       loaded.value = true
     })().finally(() => {
       inflight = null
@@ -76,13 +91,17 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
   return {
     faceReady,
     imageReady,
+    colorizeReady,
     faceDetectorModel,
     faceFeatureModel,
     imageFeatureModel,
+    colorizeModel,
     faceMerged,
     imageMerged,
+    colorizeMerged,
     faceMissing,
     imageMissing,
+    colorizeMissing,
     load,
     refresh,
   }

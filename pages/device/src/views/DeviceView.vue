@@ -134,6 +134,7 @@
                   <ReVideo
                     :url="videoUrl"
                     :protocol="videoProtocol"
+                    :gateway="rtspGateway"
                     :channel="currentChannel"
                     class="dv-video__player"
                     @error="onVideoError"
@@ -489,6 +490,7 @@ import type { ReTabItem } from '@repo/ui/re-tab'
 import ReTag from '@repo/ui/re-tag'
 
 import ReVideo from '../components/ReVideo.vue'
+import { resolveRtspGateway } from '../utils/rtspGateway'
 import ReDeviceTree from '../components/ReDeviceTree.vue'
 import ReTimeline from '../components/ReTimeline.vue'
 import RePtzControl from '../components/RePtzControl.vue'
@@ -667,6 +669,8 @@ const timeline = ref<TimelineItem[]>([])
 const currentChannel = ref(1)
 const videoUrl = ref('')
 const videoProtocol = ref('hls')
+/** RTSP 网关模板：环境变量配置；未配置时 RTSP 会明确报错而不是静默失败 */
+const rtspGateway = resolveRtspGateway()
 const multiViewVisible = ref(false)
 const multiLayout = ref(4)
 const multiChannels = ref<number[]>([])
@@ -710,12 +714,18 @@ const addForm = ref({
 const credentials = ref<ProviderCredential[]>([])
 const credentialsLoading = ref(false)
 
-/** 设备卡片网格：服务端分页 */
+/** 设备卡片网格：当前固定走本机分页（后端 /page 未启用时也能用） */
 const pageRows = ref<DeviceInfo[]>([])
 const pageLoading = ref(false)
 const pageNo = ref(1)
 const pageSize = ref(12)
 const pageTotal = ref(0)
+const pageMode = 'client' as const
+
+/** 是否有生效的筛选条件（本机分页兜底 / 状态分片共用同一口径） */
+function hasActiveFilters(): boolean {
+  return Boolean(deviceKeyword.value.trim() || categoryFilter.value || statusFilter.value)
+}
 
 /** 页签懒加载：只有点到某个页签才拉该页签的数据 */
 const tabLoaded = ref({ video: false, ptz: false, access: false, events: false })

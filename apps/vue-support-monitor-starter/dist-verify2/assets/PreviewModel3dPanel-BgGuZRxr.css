@@ -1,0 +1,189 @@
+
+/* ========================================================
+   通用 3D 模型预览面板（koi / Element Plus 变量体系）
+
+   与 PreviewIfcPanel / CadPreviewPanel 保持同一套结构与观感：
+   颜色走 --el-* 令牌、面板不投影靠边框承载边界、
+   圆角取令牌档位（控件 6 / 面板 8）。
+   ======================================================== */
+.m3d[data-v-426d6fc5] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 8px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+}
+
+/* ---- 统计条 ---- */
+.m3d__stats[data-v-426d6fc5] {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  overflow-x: auto;
+}
+.m3d__stat[data-v-426d6fc5] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+.m3d__stat[data-v-426d6fc5]:first-child {
+  padding-left: 0;
+}
+.m3d__stat + .m3d__stat[data-v-426d6fc5] {
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.m3d__stat-label[data-v-426d6fc5] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.m3d__stat-value[data-v-426d6fc5] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.m3d__stat-value--accent[data-v-426d6fc5] {
+  color: var(--el-color-primary);
+}
+
+/* ---- 工具条 ---- */
+.m3d__toolbar[data-v-426d6fc5] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  flex-wrap: wrap;
+}
+.m3d__hint[data-v-426d6fc5] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.m3d__spacer[data-v-426d6fc5] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- 主体 ---- */
+.m3d__body[data-v-426d6fc5] {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.m3d__canvas[data-v-426d6fc5] {
+  width: 100%;
+  height: 100%;
+  background-color: var(--el-bg-color);
+  touch-action: none;
+}
+.m3d__canvas.is-loading[data-v-426d6fc5] {
+  visibility: hidden;
+}
+
+/* three 生成的 canvas 填满容器 */
+.m3d__canvas[data-v-426d6fc5] canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- 覆盖层（加载 / 错误） ---- */
+.m3d__overlay[data-v-426d6fc5] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: var(--el-bg-color);
+}
+.m3d__overlay-text[data-v-426d6fc5] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.m3d__progress[data-v-426d6fc5] {
+  width: 220px;
+}
+.m3d__spinner[data-v-426d6fc5] {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--el-border-color-lighter);
+  border-top-color: var(--el-color-primary);
+  border-radius: 50%;
+  animation: m3d-spin-426d6fc5 0.9s linear infinite;
+}
+@keyframes m3d-spin-426d6fc5 {
+to {
+    transform: rotate(360deg);
+}
+}
+.m3d__error-icon[data-v-426d6fc5] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--el-radius-lg, 8px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-placeholder);
+  font-weight: 700;
+  font-size: 14px;
+}
+.m3d__error-title[data-v-426d6fc5] {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.m3d__error-text[data-v-426d6fc5] {
+  max-width: 460px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  word-break: break-word;
+}
+.m3d__error-actions[data-v-426d6fc5] {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ---- 底部状态栏 ---- */
+.m3d__footer[data-v-426d6fc5] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.m3d__footer span[data-v-426d6fc5] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 无障碍：尊重「减少动态效果」偏好 ---- */
+@media (prefers-reduced-motion: reduce) {
+.m3d__spinner[data-v-426d6fc5] {
+    animation: none;
+}
+}

@@ -1,0 +1,58 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.koi-loading-box[data-v-237393b7] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  will-change: clip-path;
+  animation-fill-mode: both;
+}
+.koi-loading-box svg[data-v-237393b7] {
+  width: 0;
+  height: 0;
+}
+.koi-loading-box .koi-loading[data-v-237393b7] {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  filter: url("#koi-gooey");
+}
+.koi-loading-box .koi-loading span[data-v-237393b7] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: koi-loading-237393b7 3s ease-in-out infinite;
+  animation-delay: calc(0.2s * var(--i));
+}
+.koi-loading-box .koi-loading span[data-v-237393b7]::before {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  content: "";
+  background: var(--el-color-primary, #409eff);
+  border-radius: 50%;
+}
+@keyframes koi-loading-237393b7 {
+0% {
+    transform: rotate(0deg);
+}
+50%, 100% {
+    transform: rotate(360deg);
+}
+}

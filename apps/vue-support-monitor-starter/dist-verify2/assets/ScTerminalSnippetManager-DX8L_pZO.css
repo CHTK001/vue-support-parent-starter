@@ -1,0 +1,13 @@
+
+.fade-in[data-v-5af0be12] { animation: fadeIn-5af0be12 0.35s ease both;
+}
+@keyframes fadeIn-5af0be12 {
+from { opacity: 0; transform: translateY(8px)
+}
+to { opacity: 1; transform: none
+}
+}
+@media (prefers-reduced-motion: reduce) {
+.fade-in[data-v-5af0be12] { animation: none;
+}
+}

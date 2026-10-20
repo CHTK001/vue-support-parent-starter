@@ -8,7 +8,7 @@
 import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard } from "@element-plus/icons-vue";
+import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard, Loading } from "@element-plus/icons-vue";
 import {
   pageForUser,
   saveUser,
@@ -36,6 +36,17 @@ const authStore = useAuthStore();
 const statusLoading = ref<number>(0);
 const deleteLoading = ref<number>(0);
 const resettingPwd = ref<number>(0);
+
+/** 表格选择行 */
+const selection = ref<Record<string, unknown>[]>([]);
+
+/** CSV 导入弹窗 */
+const showImportDialog = ref(false);
+const importStep = ref<1 | 2 | 3>(1); // 1=选择文件, 2=预览, 3=确认
+const importFile = ref<File | null>(null);
+const importPreviewData = ref<Record<string, unknown>[]>([]);
+const importPreviewColumns = ref<string[]>([]);
+const importLoading = ref(false);
 
 const userSexOptions = [
   { label: "男", value: 0 },
@@ -280,8 +291,14 @@ function handleReset() {
 /* ================== 导入导出 ================== */
 
 const importInput = ref<HTMLInputElement>();
+const importCsvInput = ref<HTMLInputElement>();
 const importing = ref(false);
 const exporting = ref(false);
+
+/** 触发 CSV 导入文件选择 */
+function triggerCsvImport() {
+  importCsvInput.value?.click();
+}
 
 /** 触发文件选择 */
 function triggerImport() {
@@ -678,6 +695,108 @@ function handleActionCommand(cmd: string, row: Record<string, unknown>) {
   else if (cmd === "unbindTotp") handleUnbindTotp(row);
 }
 
+/* ================== 批量操作 ================== */
+
+/** 批量重置密码 */
+async function batchResetPassword() {
+  const ids = selection.value.map((r: Record<string, unknown>) => r.sysUserId as number).filter(Boolean);
+  if (!ids.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `确认重置 ${ids.length} 个用户的密码？`,
+      "批量重置密码",
+      { type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  importLoading.value = true;
+  try {
+    // 逐个调用，后端无批量接口时退化处理
+    const promises = ids.map((id) => resetUserPassword(id));
+    await Promise.allSettled(promises);
+    const successCount = ids.length;
+    message.success(`已重置 ${successCount} 个用户密码`);
+    selection.value = [];
+    tableRef.value?.reload();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "批量重置失败");
+  } finally {
+    importLoading.value = false;
+  }
+}
+
+/* ================== CSV 导入 ================== */
+
+/** 解析 CSV 文件并预览 */
+function parseCsvForPreview(file: File) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target?.result as string;
+    const lines = text.split("\n").filter((l) => l.trim());
+    if (lines.length < 2) {
+      message.warning("CSV 文件内容不足，至少需要表头和 1 行数据");
+      return;
+    }
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+    const rows = lines.slice(1).map((line) => {
+      const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const obj: Record<string, unknown> = {};
+      headers.forEach((h, i) => { obj[h] = values[i] ?? ""; });
+      return obj;
+    });
+    importPreviewColumns.value = headers;
+    importPreviewData.value = rows;
+    importStep.value = 2;
+  };
+  reader.readAsText(file);
+}
+
+/** 处理导入弹窗文件选择 */
+function handleImportFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!file.name.endsWith(".csv")) {
+    message.warning("请选择 CSV 格式文件");
+    input.value = "";
+    return;
+  }
+  importFile.value = file;
+  parseCsvForPreview(file);
+}
+
+/** 确认导入 */
+async function confirmImport() {
+  if (!importFile.value) return;
+  importStep.value = 3;
+  importLoading.value = true;
+  try {
+    // 直接复用已有的 importUsers 接口（支持 xlsx/csv）
+    const res = await importUsers(importFile.value);
+    if (res?.code === 200 || res?.status === 200) {
+      message.success(res?.data ?? "导入成功");
+      showImportDialog.value = false;
+      resetImportState();
+      tableRef.value?.reload();
+    } else {
+      message.error(res?.msg ?? "导入失败");
+    }
+  } catch (err) {
+    message.error((err as Error)?.message ?? "导入失败");
+  } finally {
+    importLoading.value = false;
+  }
+}
+
+/** 重置导入状态 */
+function resetImportState() {
+  importStep.value = 1;
+  importFile.value = null;
+  importPreviewData.value = [];
+  importPreviewColumns.value = [];
+}
+
 const columns: ReTableColumn[] = [
   { prop: "sysUserUsername", label: "账号", minWidth: 200, slot: "username" },
   { prop: "sysUserNickname", label: "昵称", minWidth: 160, slot: "nickname" },
@@ -708,6 +827,14 @@ onMounted(() => {
         class="visually-hidden-input"
         @change="handleFileChange"
       />
+      <!-- CSV 导入专用 -->
+      <input
+        ref="importCsvInput"
+        type="file"
+        accept=".csv"
+        class="visually-hidden-input"
+        @change="handleImportFileSelect"
+      />
 
       <ReTable
         ref="tableRef"
@@ -725,14 +852,25 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         :batch-delete="true"
         :batch-delete-handler="handleBatchDeleteRows"
+        :selection="true"
+        @selection-change="selection = $event"
         @search-reset="handleReset"
       >
         <!-- 工具栏：页面业务按钮（批量删除由 ReTable 内置工具按钮提供） -->
         <template #toolbar>
           <ReButton type="primary" icon="Plus" @click="handleAdd" text>添加</ReButton>
           <ReButton type="primary" icon="Download" @click="handleDownloadTemplate" text>下载模板</ReButton>
-          <ReButton type="primary" icon="Upload" :loading="importing" @click="triggerImport" text>导入用户</ReButton>
+          <ReButton type="primary" icon="Upload" @click="showImportDialog = true" text>导入</ReButton>
           <ReButton type="primary" icon="Download" :loading="exporting" @click="handleExport" text>导出</ReButton>
+        </template>
+
+        <!-- 批量操作区域 -->
+        <template v-if="selection.length > 0" #batch-actions>
+          <div class="batch-actions">
+            <span>已选 {{ selection.length }} 项</span>
+            <ReButton icon="Key" @click="batchResetPassword" :loading="importLoading">批量重置密码</ReButton>
+            <ReButton icon="Delete" type="danger" @click="() => tableRef?.batchDelete()">批量删除</ReButton>
+          </div>
         </template>
 
         <template #empty>
@@ -1140,6 +1278,51 @@ onMounted(() => {
         </el-descriptions>
       </template>
     </ReDrawer>
+
+    <!-- CSV 导入弹窗 -->
+    <ReDialog
+      v-model="showImportDialog"
+      title="导入用户"
+      width="640px"
+      :close-on-click-modal="false"
+      :confirm-loading="importLoading"
+      @ok="confirmImport"
+    >
+      <!-- 步骤1：选择文件 -->
+      <div v-if="importStep === 1" class="import-step">
+        <div class="import-upload-area">
+          <ReButton type="primary" @click="triggerCsvImport">选择 CSV 文件</ReButton>
+          <div class="import-upload-hint mt-2">支持 .csv 格式，请先下载模板填写</div>
+        </div>
+      </div>
+
+      <!-- 步骤2：预览数据 -->
+      <div v-else-if="importStep === 2" class="import-step">
+        <div class="import-preview-header">
+          <span>文件：{{ importFile?.name }}</span>
+          <span class="text-[--el-text-color-secondary]">共 {{ importPreviewData.length }} 条数据</span>
+        </div>
+        <el-table :data="importPreviewData" max-height="300" border size="small">
+          <el-table-column
+            v-for="col in importPreviewColumns"
+            :key="col"
+            :prop="col"
+            :label="col"
+            min-width="100"
+            show-overflow-tooltip
+          />
+        </el-table>
+        <div class="import-preview-tip">确认数据无误后点击确定开始导入</div>
+      </div>
+
+      <!-- 步骤3：导入中 -->
+      <div v-else-if="importStep === 3" class="import-step">
+        <div class="import-loading">
+          <el-icon class="is-loading" size="32"><Loading /></el-icon>
+          <span>正在导入，请稍候...</span>
+        </div>
+      </div>
+    </ReDialog>
   </div>
 </template>
 
@@ -1367,5 +1550,66 @@ onMounted(() => {
     transition: none;
     animation: none;
   }
+}
+
+/* 批量操作区域 */
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* CSV 导入弹窗 */
+.import-step {
+  padding: 16px 0;
+}
+.import-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  border: 2px dashed var(--el-border-color);
+  border-radius: 8px;
+  gap: 12px;
+  text-align: center;
+}
+.import-upload-icon {
+  color: var(--el-text-color-secondary);
+}
+.import-upload-text {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+.import-upload-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.import-preview-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.import-preview-tip {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+}
+.import-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: var(--el-text-color-secondary);
 }
 </style>

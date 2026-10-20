@@ -57,13 +57,15 @@
           </span>
         </span>
 
-        <span
+        <button
+          type="button"
           class="conv-clear"
           title="清除会话"
-          @click.stop="$emit('clear', conv)"
+          aria-label="清除会话"
+          @click.stop="confirmClear(conv)"
         >
           <el-icon :size="14"><Delete24Regular /></el-icon>
-        </span>
+        </button>
       </button>
 
       <div v-if="!filtered.length" class="rail-empty">
@@ -83,6 +85,7 @@ import {
   ArrowSync24Regular, Person24Regular, People24Regular,
   Chat24Regular, Delete24Regular, Search24Regular,
 } from '@vicons/fluent'
+import { ElMessageBox } from 'element-plus'
 import { conversationTitle, conversationTime } from './format'
 
 defineOptions({ name: 'ConnectorConversationRail' })
@@ -111,6 +114,26 @@ const filtered = computed(() => {
       || (c.lastContent || '').toLowerCase().includes(kw)
   })
 })
+
+/**
+ * 清空前确认：防止误点导致会话历史全部丢失。
+ *
+ * <p>之前是 span+@click，键盘用户根本碰不到这个按钮（span 不是可交互元素）。
+ * 现在改为真实 button，并加「确认」对话框兜底。</p>
+ */
+const confirmClear = async (conv: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要清空与「${conversationTitle(conv)}」的所有聊天记录吗？该操作不可恢复。`,
+      '确认清空会话',
+      { type: 'warning', confirmButtonText: '清空', cancelButtonText: '取消' },
+    )
+    // 用户点了「清空」，向父组件发事件
+    emit('clear', conv)
+  } catch {
+    // 用户取消或关闭
+  }
+}
 </script>
 
 <style scoped>
@@ -327,14 +350,17 @@ const filtered = computed(() => {
   right: 8px;
   width: 24px;
   height: 24px;
-  /* 原值 7px → sm 档 */
+  border: none;            /* 按钮默认有边框，这里清除 */
+  padding: 0;              /* 图标按钮不需要内边距 */
   border-radius: var(--el-radius-sm, 6px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text-disabled);
+  background: transparent;
   opacity: 0;
   transition: opacity 0.16s ease, color 0.16s ease, background 0.16s ease;
+  cursor: pointer;
 }
 .conv-card:hover .conv-clear {
   opacity: 1;
@@ -395,8 +421,8 @@ const filtered = computed(() => {
   }
 }
 
-/* 键盘焦点可见性：.conv-clear 是带 @click 的 span（不是可聚焦控件），浏览器不给默认焦点环。
-   它原本既没有 CSS 的 cursor: pointer、模板里也没写 cursor-pointer，这里补上。 */
+/* 键盘焦点可见性：.conv-clear 已是真实 button（可聚焦、有默认焦点环），
+   样式只控制定位、尺寸与显隐。 */
 .conv-clear {
   cursor: pointer;
   outline: none;

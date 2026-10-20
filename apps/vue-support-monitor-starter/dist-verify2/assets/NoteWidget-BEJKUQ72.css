@@ -1,0 +1,165 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
+.note-widget[data-v-4b0327ce] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
+  transition: background var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+.note-widget__header[data-v-4b0327ce] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px 8px;
+  background: var(--note-header-bg, var(--el-bg-color));
+}
+
+/* 标题是唯一「直接坐在彩色纸底上」的文字。纸底在暗色下仍是浅色，
+   若跟随 --el-text-color-primary（暗色下为浅色），实测降到 1.01:1，等于不可见。
+   彩色主题给 ink 墨色；default 主题纸底本身是 token，不给 ink 即回落到 primary。
+   注意：便签正文、计数、便笺条目各自有 token 底色，不要跟着改成 ink。 */
+.note-widget__title[data-v-4b0327ce] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--note-ink, var(--el-text-color-primary));
+}
+.note-widget__count[data-v-4b0327ce] {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.note-widget__body[data-v-4b0327ce] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 16px 16px;
+}
+.note-widget__list[data-v-4b0327ce] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-widget__item[data-v-4b0327ce] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+.note-widget__item[data-v-4b0327ce]:hover {
+  background: var(--el-fill-color-blank);
+  border-color: var(--el-border-color);
+}
+
+/* 移除按钮默认隐藏，hover / 键盘聚焦时出现 —— 静止时列表更干净，
+   但仍保留 tab 可达（:focus-visible 强制显形） */
+.note-widget__item-remove[data-v-4b0327ce] {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: opacity var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+.note-widget__item:hover .note-widget__item-remove[data-v-4b0327ce],
+.note-widget__item-remove[data-v-4b0327ce]:focus-visible {
+  opacity: 1;
+}
+.note-widget__item-remove[data-v-4b0327ce]:hover {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, var(--el-fill-color-light));
+}
+.note-widget__item-remove[data-v-4b0327ce]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 正文右侧留出删除按钮的位置，hover 显形时才不会被压住 */
+.note-widget__item-text[data-v-4b0327ce] {
+  padding-right: 28px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.note-widget__item-foot[data-v-4b0327ce] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.note-widget__item-time[data-v-4b0327ce] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.note-widget__item-color[data-v-4b0327ce] {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--el-radius-full, 9999px);
+}
+.note-widget__colors[data-v-4b0327ce] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.note-widget__color[data-v-4b0327ce] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-color-white, #fff);
+  transition: transform var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+.note-widget__color[data-v-4b0327ce]:hover {
+  transform: scale(1.08);
+}
+.note-widget__color[data-v-4b0327ce]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.note-widget__color.is-active[data-v-4b0327ce] {
+  border-color: var(--el-color-primary);
+}

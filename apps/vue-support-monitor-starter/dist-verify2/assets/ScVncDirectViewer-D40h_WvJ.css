@@ -1,0 +1,252 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.guac-wrap--inline[data-v-5dd275a9] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+}
+.guac-status[data-v-5dd275a9] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 0;
+}
+.guac-status-tag[data-v-5dd275a9] {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  /* 原为 999px；胶囊形只需远超半高，改用 EP 的 full 档（9999px），视觉等价 */
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 原来是写死的浅绿底 + 深绿字（#e6f4ea / #137333），暗色模式下会变成刺眼亮块；
+   换成 EP 成功色浅底 + 深色档文字，亮暗色自动适配 */
+.guac-status-tag.is-ok[data-v-5dd275a9] {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success-dark-2);
+}
+.guac-iframe[data-v-5dd275a9] {
+  flex: 1;
+  width: 100%;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  /* 刻意保留 #111：iframe 内是 Guacamole 远控画面，固定深底才能保证画面内
+     深色终端 / 浅色 GUI 的对比度，不能跟随主题切成浅底 */
+  background: #111;
+  min-height: 300px;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ssh-wrap[data-v-98f412ac] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+}
+.ssh-status[data-v-98f412ac] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 0;
+}
+.ssh-status-tag[data-v-98f412ac] {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  /* 原为 999px；胶囊形只需远超半高，改用 EP 的 full 档（9999px），视觉等价 */
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 原来是写死的浅绿底 + 深绿字（#e6f4ea / #137333），暗色模式下会变成刺眼亮块；
+   换成 EP 成功色浅底 + 深色档文字，亮暗色自动适配 */
+.ssh-status-tag.is-ok[data-v-98f412ac] {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success-dark-2);
+}
+.ssh-actions[data-v-98f412ac] {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ssh-btn[data-v-98f412ac] {
+  padding: 3px 14px;
+  font-size: 12px;
+  /* 原来的 --text-secondary / --border-subtle / --brand-* 全仓无人定义（只有兜底 hex 生效），
+     等于写死颜色；这里统一换成 EP 真实存在的语义令牌 */
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xs, 4px);
+  cursor: pointer;
+  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+  outline: none;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease, border-color var(--el-transition-duration-fast, 0.2s) ease, background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ssh-btn[data-v-98f412ac]:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* 原生 button：自绘焦点环 */
+.ssh-btn[data-v-98f412ac]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.ssh-btn--files[data-v-98f412ac] {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+.ssh-btn--files[data-v-98f412ac]:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+.ssh-iframe[data-v-98f412ac] {
+  flex: 1;
+  width: 100%;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  /* 刻意保留 #111：iframe 里跑的是 xterm 终端，固定深底才能保证终端配色对比度，
+     不能跟随主题切成浅底 */
+  background: #111;
+  min-height: 300px;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+.ssh-btn[data-v-98f412ac] {
+    transition: none;
+}
+}
+.sc-vnc[data-v-3d6901bc] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+}
+.sc-vnc__bar[data-v-3d6901bc] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  flex-shrink: 0;
+}
+.sc-vnc__status[data-v-3d6901bc] {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  min-width: 0;
+}
+.sc-vnc__dot[data-v-3d6901bc] {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-text-color-disabled);
+  flex-shrink: 0;
+}
+.sc-vnc__status.is-connecting .sc-vnc__dot[data-v-3d6901bc] {
+  background: var(--el-color-warning);
+  animation: sc-vnc-pulse-3d6901bc 1s ease-in-out infinite;
+}
+.sc-vnc__status.is-connected .sc-vnc__dot[data-v-3d6901bc] {
+  background: var(--el-color-success);
+}
+.sc-vnc__status.is-error .sc-vnc__dot[data-v-3d6901bc] {
+  background: var(--el-color-danger);
+}
+.sc-vnc__actions[data-v-3d6901bc] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sc-vnc__btn[data-v-3d6901bc] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-xs, 4px);
+  cursor: pointer;
+  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+  outline: none;
+  /* 原来写 transition: all 0.15s ease：all 会把布局属性也纳入过渡，
+     0.15s 也不是任何标准档。显式列出三个真正会变的属性并取 0.2s 档 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+/* 原生 button：自绘焦点环 */
+.sc-vnc__btn[data-v-3d6901bc]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.sc-vnc__btn[data-v-3d6901bc]:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+.sc-vnc__screen[data-v-3d6901bc] {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  /* 刻意保留纯黑 #000：这是 VNC 远控画面画布，帧缓冲自带任意颜色，
+     垫底色若跟随主题变浅会在画面边缘留一圈亮边 */
+  background: #000;
+  overflow: hidden;
+}
+.sc-vnc__screen.is-ready[data-v-3d6901bc] {
+  /* 原为 var(--el-border-radius-base)（EP 定义为 4px），统一到 koi 最小圆角档 xs */
+  border-radius: 0 0 var(--el-radius-xs, 4px) var(--el-radius-xs, 4px);
+}
+.sc-vnc__screen[data-v-3d6901bc] canvas {
+  outline: none;
+}
+.sc-vnc__placeholder[data-v-3d6901bc] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  pointer-events: none;
+}
+@keyframes sc-vnc-pulse-3d6901bc {
+0%, 100% { opacity: 1;
+}
+50% { opacity: 0.35;
+}
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+.sc-vnc__btn[data-v-3d6901bc] {
+    transition: none;
+}
+  /* 连接中点的呼吸闪烁可以停：「连接中」这个状态本来就由点的黄色底色表达，
+     呼吸只是附加动效，不是唯一信息 */
+.sc-vnc__status.is-connecting .sc-vnc__dot[data-v-3d6901bc] {
+    animation: none;
+}
+}

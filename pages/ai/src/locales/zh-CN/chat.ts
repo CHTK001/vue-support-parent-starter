@@ -15,6 +15,7 @@ export default {
     featureTools: '工具调用',
     featureThinking: '混合思考',
     editorPlaceholder: "按 / 使用技能，{'@'} 召唤agent，Shift+Enter 换行",
+    unsupportedFileType: '不支持的文件类型，已忽略：{files}。支持图片和常见文本文件。',
     optimizeFailed: '优化失败，请稍后重试',
     optimizeUnavailable: '优化服务暂不可用，请在设置中配置优化模型',
     optimizeNoChange: '内容已经足够清晰，无需优化',
@@ -164,6 +165,8 @@ export default {
     clearRecords: '清空记录',
     exportRecords: '导出记录',
     importRecords: '导入记录',
+    exportMarkdown: '导出为 Markdown',
+    exportEmpty: '会话暂无消息可导出',
   },
 
   // ── 会话上下文面板 ──
@@ -260,6 +263,37 @@ export default {
     deleteMessage: '删除消息',
     rewindHere: '从此处回退',
     forkHere: '从此处分叉',
+    quote: '引用并回复',
+    thumbsUp: '有用',
+    thumbsDown: '没用',
+    viewSource: '查看 Markdown 源码',
+    exportMd: '导出为 Markdown',
+    sourceCopied: '源码已复制',
+    quotePlaceholder: '引用消息 #{id}',
+  },
+
+  // ── 快捷键帮助 ──
+  shortcuts: {
+    title: '快捷键',
+    groupChat: '会话',
+    newChat: '新建会话',
+    sendMessage: '发送消息',
+    commandPalette: '命令面板',
+    shortcutsHelp: '快捷键帮助',
+    groupMessage: '消息操作',
+    quoteMessage: '引用并回复',
+    viewSource: '查看源码',
+    exportMarkdown: '导出 Markdown',
+    groupNavigation: '导航与编辑',
+    searchSessions: '搜索会话',
+    newline: '换行',
+  },
+
+  // ── Token 统计条 ──
+  tokenStats: {
+    used: '上下文占用',
+    usedTokens: '已用 Token',
+    totalTokens: '上下文窗口',
   },
 
   // ── 从此处回退确认框 ──

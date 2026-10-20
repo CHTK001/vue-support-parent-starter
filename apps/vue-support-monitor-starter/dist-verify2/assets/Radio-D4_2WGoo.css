@@ -1,0 +1,17 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.re-switch-radio[data-v-991f6523] {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.re-switch-radio__title[data-v-991f6523] {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  user-select: none;
+}

@@ -1,0 +1,107 @@
+
+.dsm[data-v-289997a1] { display: flex; flex-direction: column; height: 100%; min-height: 100%; background: var(--bg-fill);
+}
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 类统一提供
+   （16px 圆角、透明边框 + 双层柔光投影），这里只留布局——不再自写一套卡片壳防漂移 */
+.dsm-toolbar[data-v-289997a1] { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.dsm-toolbar-left[data-v-289997a1] { display: flex; align-items: center; gap: 10px;
+}
+.dsm-title[data-v-289997a1] { font-size: 16px; font-weight: 600; color: var(--text-primary);
+}
+.dsm-mongo-icon[data-v-289997a1] { color: #4db33d;
+}
+.dsm-toolbar-right[data-v-289997a1] { display: flex; align-items: center; gap: 8px;
+}
+.dsm-toolbar-right[data-v-289997a1] .rs-btn { margin: 0;
+}
+.dsm-db-select[data-v-289997a1] { width: 220px; flex-shrink: 0;
+}
+.dsm-body[data-v-289997a1] { display: flex; flex: 1; gap: 0; overflow: hidden;
+}
+.dsm.resizing[data-v-289997a1] { user-select: none;
+}
+.dsm-split[data-v-289997a1] { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize;
+}
+.dsm-split[data-v-289997a1]::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s;
+}
+.dsm-split[data-v-289997a1]:hover::after, .dsm-split.active[data-v-289997a1]::after { background: var(--brand-400);
+}
+.dsm-sidebar[data-v-289997a1] { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column;
+}
+.dsm-search-section[data-v-289997a1] { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);
+}
+.dsm-search-section[data-v-289997a1] > *:first-child { flex: 1;
+}
+.dsm-view-bar[data-v-289997a1] { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+}
+.dsm-view-count[data-v-289997a1] { font-size: 12px; color: var(--text-tertiary);
+}
+.dsm-key-list[data-v-289997a1] { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto;
+}
+.dsm-tree-node[data-v-289997a1] { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; background: var(--bg-container);
+}
+.dsm-tree-node[data-v-289997a1]:hover { background: var(--bg-hover);
+}
+.dsm-tree-node.active[data-v-289997a1] { background: var(--brand-50); color: var(--brand-600);
+}
+.dsm-tree-icon[data-v-289997a1] { flex-shrink: 0;
+}
+.dsm-tree-label[data-v-289997a1] { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dsm-tree-count[data-v-289997a1] { font-size: 11px; color: var(--text-tertiary); background: var(--bg-fill); padding: 1px 6px; border-radius: 10px;
+}
+/* 列表顶部扫描条：加载中走动画（切库/刷新集合时） */
+.dsm-scan-bar[data-v-289997a1] { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s;
+}
+.dsm-scan-bar.is-active[data-v-289997a1] { opacity: 1;
+}
+.dsm-scan-bar span[data-v-289997a1] { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%);
+}
+.dsm-scan-bar.is-active span[data-v-289997a1] { animation: dsm-scan-slide-289997a1 1s linear infinite;
+}
+@keyframes dsm-scan-slide-289997a1 {
+to { transform: translateX(350%);
+}
+}
+.dsm-content[data-v-289997a1] { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
+}
+/* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供，这里只留网格布局 */
+.dsm-info-card[data-v-289997a1] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex-shrink: 0;
+}
+.dsm-info-row[data-v-289997a1] { display: flex; flex-direction: column; gap: 4px;
+}
+.dsm-info-label[data-v-289997a1] { font-size: 12px; color: var(--text-tertiary);
+}
+.dsm-info-value[data-v-289997a1] { font-size: 14px; font-weight: 500; color: var(--text-primary);
+}
+/* 查询面板：编辑器 + 操作行 + 结果区纵向排列，结果区吃掉剩余高度 */
+.dsm-query-panel[data-v-289997a1] { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0;
+}
+.dsm-query-toolbar[data-v-289997a1] { display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.dsm-query-toolbar[data-v-289997a1] .rs-btn { margin: 0;
+}
+.dsm-spacer[data-v-289997a1] { flex: 1;
+}
+.dsm-query-hint[data-v-289997a1] { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary));
+}
+.dsm-query-error[data-v-289997a1] { padding: 10px 14px; font-size: 13px; color: var(--danger, #f56c6c); background: color-mix(in srgb, var(--danger, #f56c6c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger, #f56c6c) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0;
+}
+.dsm-query-result[data-v-289997a1] { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden;
+}
+.dsm-query-result[data-v-289997a1] .dsm-table-wrap { flex: 1; min-height: 0;
+}
+.dsm-query-header[data-v-289997a1] { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--bg-fill); border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+}
+.dsm-query-meta[data-v-289997a1] { font-size: 12px; font-weight: 400; color: var(--text-tertiary);
+}
+.dsm-query-warn[data-v-289997a1] { margin-left: 8px; color: var(--el-color-warning, #e6a23c);
+}
+/* 文档查看：美化 JSON */
+.dsm-doc-json[data-v-289997a1] { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 60vh;
+}
+.dsm-empty-inline[data-v-289997a1] { padding: 16px; color: var(--text-tertiary); font-size: 13px;
+}
+.mono[data-v-289997a1] { font-family: "JetBrains Mono", "Consolas", monospace;
+}

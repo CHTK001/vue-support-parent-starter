@@ -1,0 +1,34 @@
+
+.re-button__icon[data-v-a4b4f382] {
+  margin-right: 4px;
+}
+/* 两处 tooltip 分支的外壳（square + 提示语 / el 纯图标 + 提示语）。
+   必须让根是真实元素：ElTooltip 的根是 ElPopper（fragment），直接当根会让挂在
+   <ReButton> 上的权限指令拿不到元素、静默失效并每次渲染刷警告
+   （见 script 顶部的维护约束）。
+   外壳保持 inline-flex，占位行为与按钮一致；tooltip 触发器仍是**整个按钮**，
+   悬浮热区不变。inheritAttrs 已置 false，调用方的 class/style 由各分支显式
+   v-bind="$attrs" 落到真实按钮上，不会被这层外壳吃掉。 */
+.re-button__tip-wrap[data-v-a4b4f382] {
+  display: inline-flex;
+  align-items: center;
+}
+.re-button__icon + [data-v-a4b4f382-s] {
+  margin-left: 0;
+}
+[data-v-a4b4f382-s] {
+  vertical-align: middle;
+}
+[data-v-a4b4f382] .el-button {
+  margin: 0 4px;
+}
+/* 纯图标按钮：默认 32x32 正方形 */
+.re-button--icon-only[data-v-a4b4f382] {
+  padding: 0;
+}
+.re-button--icon-only .re-button__icon[data-v-a4b4f382] {
+  margin-right: 0;
+}
+.re-button--icon-only[data-v-a4b4f382] .el-icon {
+  font-size: 14px;
+}

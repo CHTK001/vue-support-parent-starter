@@ -338,7 +338,7 @@ function typeOf(key: string): string {
         </div>
         <div v-else class="map-card-empty">还没有映射字段，点「配置字段映射」开始</div>
       </div>
-      <ReDialog v-model="mappingOpen" :title="param.label" width="920px" append-to-body>
+      <ReDialog v-model="mappingOpen" :title="param.label" width="min(920px, 94vw)" append-to-body>
         <MappingEditor
           :key="`${nodeId}:${param.name}:${ctx.columnKey}`"
           :model-value="pairs"

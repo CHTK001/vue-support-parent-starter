@@ -1,0 +1,20 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/ReIconSelect-CXZrFaL8.js","assets/ReIconSelect-Dez-DSVO.js","assets/runtime-core.esm-bundler-DDQHILLo.js","assets/input-Bbhiel27.js","assets/runtime-dom.esm-bundler-RRl39S3n.js","assets/event-CeZgVnv0.js","assets/use-size-BpzpcbJM.js","assets/use-namespace-BksmY6RT.js","assets/_baseSet-CMSvwkCM.js","assets/isObject-CBh4bHyD.js","assets/_baseGet-DmmfCxUg.js","assets/dist-DI3cGDuP.js","assets/dist-Clzx2YUA.js","assets/browser-DVA6k_z5.js","assets/raf-Ck-OXP6t.js","assets/use-form-common-props-DzQ9ZY64.js","assets/constants-ntbKDiND.js","assets/use-composition-BHiYKdrO.js","assets/aria-DKP9Ei-1.js","assets/use-aria-VmjVV7Ut.js","assets/pick-BwGnaelS.js","assets/_flatRest-CP5Zoeqo.js","assets/_baseFlatten-D6objHuc.js","assets/_arrayPush-DAsStFRE.js","assets/hasIn-COufhDdn.js","assets/install-CE5IEjzX.js","assets/isPlainObject-CmtvaEIG.js","assets/dist-DogtK295.js","assets/rolldown-runtime-CEgmsyvS.js","assets/icon-C0dIJHSD.js","assets/icon-CKvLDnIU.js","assets/style-D30oR_2q.js","assets/objects-BYkkqs6t.js","assets/get-cR0zxN0m.js","assets/use-form-item-D-dEMqBj.js","assets/use-id-C2v-tXFq.js","assets/typescript-CMUKtCBO.js","assets/tabs-BrnjuAVT.js","assets/event-BIZRdi1l.js","assets/clamp--xaQdoQg.js","assets/toNumber-PE_CR5nS.js","assets/omit-nJwLfQRJ.js","assets/_baseClone-CR0xuNh7.js","assets/_Uint8Array-Cf2dnQh6.js","assets/_arrayEach-OvAge8dJ.js","assets/_baseSlice-CS6dHRAG.js","assets/last-CtlzjKiB.js","assets/isUndefined-DfHYomSZ.js","assets/vnode-6UdpuL7k.js","assets/numbers-I--Pu7qj.js","assets/scrollbar-DRrkTSQ2.js","assets/button-CLXz94Uh.js","assets/use-deprecated-qam6HGto.js","assets/use-global-config-CwtC64sR.js","assets/use-locale-MdBtu2ja.js","assets/use-z-index-Q40Vppe1.js","assets/use-empty-values-B_20a6o3.js","assets/isEqual-BgqgQyvI.js","assets/_baseIsEqual-4zTScXwg.js","assets/empty-C7c8XFvh.js","assets/pagination-DeBPTRrN.js","assets/select-0mzxLp1O.js","assets/toInteger-DwissHgA.js","assets/_baseIteratee-0zvAcVIj.js","assets/castArray-DkZAeVfZ.js","assets/scroll-CaaKdoVq.js","assets/tooltip-DEX5DBfd.js","assets/focus-trap-B31xXeBw.js","assets/click-outside-B3b0egMR.js","assets/tag-CqzZCxmq.js","assets/popover-BedfGaMS.js","assets/dropdown-BQYEchFy.js","assets/_plugin-vue_export-helper-BOaGB7Aw.js","assets/registry-Dp44ioVs.js","assets/file-viewer-3d-ijA7B-Qe.js","assets/ReIcon-mRxVAA3T.js","assets/ReIcon-B6YUJqdV.css","assets/iconData-CY3P-cWq.js","assets/ReIconSelect-BZfJNxPc.css","assets/ReIconSelect-DUujYhTs.js","assets/ReIcon-BI9YQTiE.js","assets/ReIcon-BZdeJfjy.css","assets/ReIconSelect-DKZQ_gPn.css"])))=>i.map(i=>d[i]);
+import { ud as __vitePreload } from "./file-viewer-3d-ijA7B-Qe.js";
+import { t as defineThemeComponent } from "./theme-B9R3AFqb.js";
+import { a as riIcons, i as mdiIcons, n as defaultIconTabs, r as epIcons, t as defaultIconSets } from "./iconData-CY3P-cWq.js";
+//#region ../../packages/ui/src/components/ReIconSelect/index.ts
+/**
+* ReIconSelect —— 图标选择器（按主题加载）
+*
+* 根据 getConfig().other.themeId 局部加载对应主题实现：
+*  - default：多图标库（ep / ri / mdi）
+*  - koi：本地 svg + element 图标
+*/
+var themed = defineThemeComponent("ReIconSelect", {
+	default: () => __vitePreload(() => import("./ReIconSelect-CXZrFaL8.js"), __vite__mapDeps([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78])),
+	koi: () => __vitePreload(() => import("./ReIconSelect-DUujYhTs.js"), __vite__mapDeps([79,2,4,74,28,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,59,54,60,61,62,63,58,64,57,65,66,67,55,56,68,69,52,70,71,72,73,80,81,82]))
+});
+/** 按当前主题异步解析组件实例 */
+var component = themed.component;
+//#endregion
+export { component, component as default, defaultIconSets, defaultIconTabs, epIcons, themed as install, mdiIcons, riIcons };

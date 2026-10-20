@@ -693,6 +693,11 @@ async function openProps(): Promise<void> {
   }
 }
 
+/** 顶部「自动优化」：整理节点位置并自适应画布 */
+function autoOptimize(): void {
+  designer.value?.autoOptimize();
+}
+
 /** ReCron 回报合法性：留空是「不定时调度」，不算错 */
 function onCronChange(expression: string, valid: boolean): void {
   cronBroken.value = !valid && Boolean(expression.trim());
@@ -732,6 +737,7 @@ async function refreshStates(): Promise<void> {
       <ReButton layout="square" type="primary" icon="Check" tip="保存流程" :loading="saving" @click="save" />
       <ReButton layout="square" icon="CircleCheck" tip="结构校验" @click="validate" />
       <ReButton layout="square" icon="MagicStick" tip="AI 生成流程" @click="aiVisible = true" />
+      <ReButton layout="square" icon="Sort" tip="自动优化：整理节点位置并自适应画布" @click="autoOptimize" />
       <ReButton layout="square" icon="VideoPlay" tip="试运行" @click="doDryRun" />
       <ReButton layout="square" icon="Promotion" tip="运行" :disabled="!currentId" @click="doRun" />
       <ReButton

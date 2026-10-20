@@ -98,7 +98,7 @@
             :placeholder="field.placeholder" show-password />
 
           <!-- 数字输入 -->
-          <el-input-number v-else-if="field.type === 'number'" v-model="formData.platformConfig[field.key]"
+          <ReNumberSelect v-else-if="field.type === 'number'" v-model="formData.platformConfig[field.key]"
             :placeholder="field.placeholder" style="width: 100%" />
 
           <!-- 下拉选择 -->
@@ -135,11 +135,11 @@
 
           <template v-if="formData.reconnectConfig.enabled">
             <el-form-item :label="t('bot.modal.maxRetries')">
-              <el-input-number v-model="formData.reconnectConfig.maxRetries" :min="1" :max="20" style="width: 100%" />
+              <ReNumberSelect v-model="formData.reconnectConfig.maxRetries" :min="1" :max="20" style="width: 100%" />
             </el-form-item>
 
             <el-form-item :label="t('bot.modal.retryInterval')">
-              <el-input-number v-model="formData.reconnectConfig.retryInterval" :min="1000" :max="60000" :step="1000"
+              <ReNumberSelect v-model="formData.reconnectConfig.retryInterval" :min="1000" :max="60000" :step="1000"
                 style="width: 100%" />
             </el-form-item>
           </template>
@@ -170,6 +170,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { FormInstance, FormRules } from 'element-plus'
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import { useBotStore } from '@/stores/bot'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'

@@ -1,0 +1,174 @@
+
+.rm-pager[data-v-78f2102c] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--rm-radius-lg);
+  background: color-mix(in srgb, var(--rm-bg-subtle) 60%, transparent);
+  font-size: var(--rm-font-md);
+  color: var(--rm-text-regular);
+  user-select: none;
+}
+.rm-pager--small[data-v-78f2102c] { font-size: var(--rm-font-sm); padding: 3px;
+}
+.rm-pager--disabled[data-v-78f2102c] { opacity: 0.55; pointer-events: none;
+}
+.rm-pager__total[data-v-78f2102c] {
+  font-size: var(--rm-font-sm);
+  color: var(--rm-text-secondary);
+  padding: 0 12px 0 8px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* Sizes dropdown */
+.rm-pager__sizes[data-v-78f2102c] { position: relative; margin: 0 4px;
+}
+.rm-pager__size-btn[data-v-78f2102c] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--rm-radius);
+  background: transparent;
+  color: var(--rm-text-regular);
+  font-size: var(--rm-font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--rm-transition),
+    color var(--rm-transition),
+    border-color var(--rm-transition);
+  font-family: inherit;
+}
+.rm-pager__size-btn[data-v-78f2102c]:hover {
+  background: var(--rm-bg);
+  color: var(--rm-primary);
+}
+.rm-pager__size-btn svg[data-v-78f2102c] {
+  width: 12px;
+  height: 12px;
+  color: var(--rm-text-secondary);
+  transition: transform var(--rm-transition);
+}
+.rm-pager__size-btn:hover svg[data-v-78f2102c] {
+  color: var(--rm-primary);
+}
+.rm-pager__size-dropdown[data-v-78f2102c] {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  /* ⚠ 必须高过表格内部所有层级。
+     这个菜单是**向上弹**的（bottom: calc(100% + 6px)），纵向必然落进表格的高度范围；
+     而表格会造出比普通内容高的层：
+       · ReTable 给固定列浮层写 z-index:30
+         （element 的 .el-table__fixed-right / vxe 的 .vxe-table--fixed-right-wrapper）
+       · 空态块是 position:sticky（sticky 会自建层叠上下文）
+     原来这里是 20，低于 30 → 菜单被表格内容/固定列浮层压在下面，
+     看着像"分页跑到表格后面、点了没反应"，而且随窗口宽度左右移动、不是必现。
+     ReTable 侧已把页脚抬到 31 兜底；这里再把菜单自身抬到 40，
+     使它**不依赖外层页脚的层叠**也一定在表格之上（两层保障，任一漏掉都不至于复现）。
+     40 仍远低于 el-popover/el-select 那类 teleport 浮层（约 2000+），不会越权盖住它们。 */
+  z-index: 40;
+  min-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius);
+  background: var(--rm-bg);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.06);
+}
+.rm-pager__size-option[data-v-78f2102c] {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--rm-radius-xs);
+  background: transparent;
+  color: var(--rm-text);
+  font-size: var(--rm-font-sm);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--rm-transition), color var(--rm-transition);
+  white-space: nowrap;
+  font-family: inherit;
+}
+.rm-pager__size-option[data-v-78f2102c]:hover { background: var(--rm-bg-hover);
+}
+.rm-pager__size-option--active[data-v-78f2102c] {
+  color: var(--rm-primary);
+  background: var(--rm-primary-light-9);
+}
+
+/* Page buttons */
+.rm-pager__btn[data-v-78f2102c] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--rm-radius);
+  background: transparent;
+  color: var(--rm-text-regular);
+  font-size: var(--rm-font-md);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background var(--rm-transition),
+    color var(--rm-transition),
+    border-color var(--rm-transition),
+    box-shadow var(--rm-transition);
+  font-family: inherit;
+}
+.rm-pager--small .rm-pager__btn[data-v-78f2102c] {
+  min-width: 28px;
+  height: 28px;
+  font-size: var(--rm-font-sm);
+}
+.rm-pager__btn--nav svg[data-v-78f2102c] {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--rm-transition);
+}
+.rm-pager__btn--nav:hover:not(:disabled) svg[data-v-78f2102c] {
+  transform: translateX(-1px);
+}
+.rm-pager__btn--nav:last-of-type:hover:not(:disabled) svg[data-v-78f2102c] {
+  transform: translateX(1px);
+}
+.rm-pager__btn[data-v-78f2102c]:hover:not(:disabled):not(.rm-pager__btn--active):not(.rm-pager__btn--ellipsis) {
+  background: var(--rm-bg);
+  color: var(--rm-primary);
+}
+.rm-pager__btn--active[data-v-78f2102c] {
+  background: var(--rm-primary);
+  color: var(--rm-text-white);
+  border-color: transparent;
+  box-shadow: none;
+}
+.rm-pager__btn[data-v-78f2102c]:disabled {
+  color: var(--rm-text-disabled);
+  cursor: not-allowed;
+}
+.rm-pager__btn--ellipsis[data-v-78f2102c] {
+  cursor: default;
+  letter-spacing: 1px;
+  color: var(--rm-text-disabled);
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+.rm-pager__btn[data-v-78f2102c],
+  .rm-pager__size-btn[data-v-78f2102c],
+  .rm-pager__size-btn svg[data-v-78f2102c],
+  .rm-pager__btn--nav svg[data-v-78f2102c],
+  .rm-pager__size-option[data-v-78f2102c] {
+    transition: none;
+}
+}

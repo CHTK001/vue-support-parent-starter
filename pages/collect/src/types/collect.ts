@@ -177,6 +177,7 @@ export interface CollectFlow {
   collectFlowLastExecTime: string | null;
   collectFlowNextExecTime: string | null;
   collectFlowExecCount: number;
+  collectFlowRecordCount: number | null;
   nodeCount: number | null;
   edgeCount: number | null;
   running: boolean;
@@ -253,6 +254,116 @@ export interface CollectTaskLog {
   collectTaskLogCost: number | null;
   collectTaskLogMessage: string | null;
   collectTaskLogOutput: string | null;
+  createTime: string | null;
+}
+
+/* ------------------------------ 任务质量报告 ------------------------------ */
+
+export interface CollectQualityNode {
+  nodeId: string;
+  nodeName: string | null;
+  nodeShape: string | null;
+  execCount: number;
+  successCount: number;
+  failedCount: number;
+  skippedCount: number;
+  avgCostMs: number | null;
+  totalCostMs: number | null;
+  recordCount: number;
+  successRate: number | null;
+}
+
+export interface CollectQuality {
+  taskId: number;
+  taskNo: string | null;
+  totalNodes: number;
+  successNodes: number;
+  failedNodes: number;
+  skippedNodes: number;
+  requestCount: number;
+  requestSuccess: number;
+  requestFailed: number;
+  recordCount: number;
+  newRecords: number;
+  duplicateRecords: number;
+  insertRate: number | null;
+  nodeSuccessRate: number | null;
+  totalCostMs: number | null;
+  slowestNode: string | null;
+  slowestNodeCostMs: number | null;
+  qualityScore: number;
+  qualityLevel: "EXCELLENT" | "GOOD" | "FAIR" | "POOR";
+  errorSummary: string | null;
+  nodes: CollectQualityNode[];
+}
+
+/* ------------------------------ 执行历史统计 ------------------------------ */
+
+export interface CollectDailyTrend {
+  date: string;
+  runCount: number;
+  successCount: number;
+  failureCount: number;
+  recordCount: number;
+  avgCostMs: number | null;
+}
+
+export interface CollectNodeCostStat {
+  nodeId: string;
+  nodeName: string | null;
+  nodeShape: string | null;
+  execCount: number;
+  avgCostMs: number | null;
+  totalCostMs: number | null;
+  successRate: number | null;
+}
+
+export interface CollectStats {
+  flowId: number;
+  flowName: string | null;
+  days: number;
+  totalRuns: number;
+  successCount: number;
+  failureCount: number;
+  skippedCount: number;
+  successRate: number | null;
+  totalRecords: number;
+  avgRecordsPerRun: number | null;
+  totalCostMs: number | null;
+  avgCostMs: number | null;
+  maxCostMs: number | null;
+  minCostMs: number | null;
+  daily: CollectDailyTrend[];
+  nodeCosts: CollectNodeCostStat[];
+}
+
+/* ------------------------------ 告警规则 ------------------------------ */
+
+export interface CollectAlertRule {
+  collectAlertRuleId?: number | null;
+  collectFlowId?: number | null;
+  collectAlertRuleName: string;
+  alertType: string;
+  threshold: number | null;
+  alertTiming?: string | null;
+  alertEnabled?: number | null;
+  lastAlertTime?: string | null;
+  lastAlertResult?: string | null;
+  createName?: string | null;
+  createTime?: string | null;
+  updateName?: string | null;
+  updateTime?: string | null;
+}
+
+/* ------------------------------ 流程版本 ------------------------------ */
+
+export interface CollectFlowVersion {
+  collectFlowVersionId: number;
+  collectFlowId: number;
+  versionNo: number;
+  flowDsl: string | null;
+  versionRemark: string | null;
+  createName: string | null;
   createTime: string | null;
 }
 

@@ -52,12 +52,7 @@ const cursor = ref(0);
 const designer = ref<InstanceType<typeof FlowDesigner> | null>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-/**
- * 回放出来的节点状态：nodeId → 日志。
- *
- * 只喂给画布做描边，不参与任何业务判断；同一节点多次迭代时取最后一次，
- * 与「最终状态」语义一致。
- */
+/** 回放出来的节点状态：nodeId → 日志。 */
 const states = computed<Record<string, CollectTaskLog>>(() => {
   const map: Record<string, CollectTaskLog> = {};
   logs.value.slice(0, cursor.value).forEach(log => {
@@ -66,6 +61,30 @@ const states = computed<Record<string, CollectTaskLog>>(() => {
     }
   });
   return map;
+});
+
+/**
+ * 按“节点 + 轮次”分组，保留同节点多次执行与重试记录。
+ * 原实现直接平铺每条日志，回放时看不出重试；这里按 nodeId + iteration 聚合。
+ */
+const groupedLogs = computed(() => {
+  const groups = new Map<string, { nodeId: string; iteration: number; logs: CollectTaskLog[] }>();
+  ownLogs.value.forEach(log => {
+    const iteration = log.collectTaskLogIteration ?? 0;
+    const key = `${log.collectTaskLogNodeId}:${iteration}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.logs.push(log);
+    } else {
+      groups.set(key, { nodeId: log.collectTaskLogNodeId, iteration, logs: [log] });
+    }
+  });
+  return [...groups.values()].sort((a, b) => {
+    const aId = a.logs[0].collectTaskLogId ?? 0;
+    const bId = b.logs[0].collectTaskLogId ?? 0;
+    if (a.iteration !== b.iteration) return a.iteration - b.iteration;
+    return aId - bId;
+  });
 });
 
 const current = computed<CollectTaskLog | null>(() => logs.value[cursor.value - 1] ?? null);
@@ -165,7 +184,7 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
 <template>
   <ReDialog
     :model-value="modelValue"
-    width="1150px"
+    width="min(1150px, 96vw)"
     top="5vh"
     :title="`运行回放 · ${task?.collectTaskNo || ''}`"
     footer-hidden
@@ -181,12 +200,10 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
         <span class="muted">耗时 <ReTime :value="costMs(task?.collectTaskCost)" format="duration" placeholder="—" /></span>
         <span class="muted">产出 {{ task?.collectTaskRecordCount ?? 0 }} 条</span>
         <span class="spacer" />
-        <ReButton  icon="VideoPause" :disabled="!total" @click="stop">暂停</ReButton>
-        <ReButton  type="primary" icon="VideoPlay" :disabled="!total" @click="play">
-          {{ playing ? "播放中" : finished ? "重播" : "播放" }}
-        </ReButton>
-        <ReButton  icon="DArrowRight" :disabled="!total" @click="step">单步</ReButton>
-        <ReButton  icon="RefreshLeft" :disabled="!total" @click="reset">重置</ReButton>
+        <ReButton  icon="VideoPause" layout="square" tip="暂停回放" :disabled="!total" @click="stop" />
+        <ReButton  type="primary" icon="VideoPlay" layout="square" :tip="playing ? '暂停' : finished ? '重播' : '播放'" :disabled="!total" @click="play" />
+        <ReButton  icon="DArrowRight" layout="square" tip="单步" :disabled="!total" @click="step" />
+        <ReButton  icon="RefreshLeft" layout="square" tip="重置" :disabled="!total" @click="reset" />
         <span class="speed">
           速度
           <ReSelect v-model="stepMs"  style="width: 96px" :options="SPEED_OPTIONS" />
@@ -213,24 +230,35 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
           </div>
           <ol class="step-list">
             <li
-              v-for="(log, index) in ownLogs"
-              :key="log.collectTaskLogId"
+              v-for="(group, index) in groupedLogs"
+              :key="`${group.nodeId}:${group.iteration}`"
               class="step-item"
               :class="{ 'step-item--done': index < cursor, 'step-item--current': index === cursor - 1 }"
             >
-              <span class="dot" :class="`dot-${log.collectTaskLogStatus}`" />
+              <span class="dot" :class="`dot-${group.logs[0].collectTaskLogStatus}`" />
               <div class="step-body">
                 <div class="step-title">
-                  {{ log.collectTaskLogNodeName || log.collectTaskLogNodeId }}
-                  <ReTag  :type="statusTagType(log.collectTaskLogStatus)" effect="plain">
-                    {{ statusText(log.collectTaskLogStatus) }}
+                  {{ group.logs[0].collectTaskLogNodeName || group.logs[0].collectTaskLogNodeId }}
+                  <ReTag  :type="statusTagType(group.logs[0].collectTaskLogStatus)" effect="plain">
+                    {{ statusText(group.logs[0].collectTaskLogStatus) }}
+                  </ReTag>
+                  <ReTag v-if="group.logs.length > 1" type="warning" effect="plain">
+                    重试 {{ group.logs.length - 1 }}
                   </ReTag>
                 </div>
                 <div class="step-meta">
-                  {{ log.collectTaskLogNodeShape }} ·
-                  <ReTime :value="costMs(log.collectTaskLogCost)" format="duration" placeholder="—" />
+                  {{ group.logs[0].collectTaskLogNodeShape }} ·
+                  <template v-for="log in group.logs" :key="log.collectTaskLogId">
+                    <ReTime :value="costMs(log.collectTaskLogCost)" format="duration" placeholder="—" />
+                    <template v-if="index < group.logs.length - 1"> / </template>
+                  </template>
                 </div>
-                <div v-if="log.collectTaskLogMessage" class="step-msg">{{ log.collectTaskLogMessage }}</div>
+                <div class="step-time" v-if="group.logs[0].createTime">
+                  开始 {{ group.logs[0].createTime }} · 耗时 {{ costMs(group.logs[0].collectTaskLogCost) }}
+                </div>
+                <div v-if="group.logs.some(log => log.collectTaskLogMessage)" class="step-msg">
+                  {{ group.logs.find(log => log.collectTaskLogMessage)?.collectTaskLogMessage }}
+                </div>
               </div>
             </li>
           </ol>
@@ -362,6 +390,12 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
 .step-meta {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+.step-time {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+  font-family: var(--cc-font-num, monospace);
 }
 .step-msg {
   margin-top: 2px;

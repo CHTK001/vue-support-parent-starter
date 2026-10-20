@@ -4,10 +4,10 @@ import { defineConfig } from "@playwright/test";
  * ReFilePicker 验收专用配置。
  *
  * <p>与 {@code playwright.config.ts} 的区别：不托管 dev server，只复用
- * 已在 8848 由其他会话启动的 monitor 前端。若 8848 不在监听，套件直接报
+ * 已在 8851 由 serve-dist 启动的 monitor 前端。若 8851 不在监听，套件直接报
  * 连接错误，而不会擅自拉起服务。</p>
  */
-const BASE_URL = process.env.MS_E2E_BASE_URL ?? "http://127.0.0.1:8848";
+const BASE_URL = process.env.MS_E2E_BASE_URL ?? "http://127.0.0.1:8851";
 
 export default defineConfig({
   testDir: "./tests/e2e",

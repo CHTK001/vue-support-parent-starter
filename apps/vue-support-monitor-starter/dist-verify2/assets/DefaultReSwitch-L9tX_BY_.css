@@ -1,0 +1,17 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.re-switch-default[data-v-3c6e6e16] {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.re-switch-default__title[data-v-3c6e6e16] {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  user-select: none;
+}

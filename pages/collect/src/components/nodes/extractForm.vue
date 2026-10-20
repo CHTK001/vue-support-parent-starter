@@ -104,7 +104,7 @@ const fieldSummary = computed(() => {
       <ReButton text type="primary" @click="fieldsOpen = true">配置</ReButton>
     </div>
     <!-- append-to-body：属性面板自身可能有 overflow/transform，弹框留在面板内会被裁掉 -->
-    <ReDialog v-model="fieldsOpen" title="抽取字段" width="1400px" top="10px" append-to-body>
+    <ReDialog v-model="fieldsOpen" title="抽取字段" width="min(1400px, 94vw)" top="10px" append-to-body>
       <FieldTable
         :model-value="node.fields"
         :preview-url="ctx.previewUrl"

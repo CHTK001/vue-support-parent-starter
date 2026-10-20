@@ -1,0 +1,20 @@
+
+.fv-drawing-panel[data-v-cd8a034d] {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.fv-drawing-panel__body[data-v-cd8a034d] {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.fv-drawing-panel__mask[data-v-cd8a034d] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
+}

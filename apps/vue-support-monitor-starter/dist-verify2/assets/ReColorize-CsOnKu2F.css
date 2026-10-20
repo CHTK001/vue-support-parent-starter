@@ -1,0 +1,17 @@
+
+.re-colorize[data-v-b56a32b7] { display: flex; flex-direction: column; gap: 16px;
+}
+.re-colorize__loading[data-v-b56a32b7] { display: flex; align-items: center; gap: 8px; color: var(--el-text-color-secondary);
+}
+.re-colorize__result[data-v-b56a32b7] { display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.re-colorize__compare[data-v-b56a32b7] { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center;
+}
+.re-colorize__compare > div[data-v-b56a32b7] { text-align: center;
+}
+.re-colorize__compare img[data-v-b56a32b7] { max-width: 300px; max-height: 300px; border-radius: var(--el-border-radius-base); border: 1px solid var(--el-border-color-lighter);
+}
+.re-colorize__compare span[data-v-b56a32b7] { display: block; margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary);
+}
+.re-colorize__actions[data-v-b56a32b7] { display: flex; gap: 8px;
+}

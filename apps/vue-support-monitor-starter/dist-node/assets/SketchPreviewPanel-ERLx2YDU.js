@@ -1,0 +1,1 @@
+import{b as e,k as t,mt as n}from"./runtime-core.esm-bundler-K64zC-lh.js";import{t as r}from"./_plugin-vue_export-helper-BDNMzG2s.js";var i={class:`sketch-preview-panel`},a=r(t({__name:`SketchPreviewPanel`,props:{bucket:{},objectKey:{},fileName:{},inner:{},size:{}},setup(t){return(t,r)=>(n(),e(`div`,i,`Sketch 预览暂不可用`))}}),[[`__scopeId`,`data-v-e72b7ae8`]]);export{a as default};

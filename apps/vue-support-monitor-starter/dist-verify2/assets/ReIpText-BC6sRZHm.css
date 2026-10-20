@@ -1,0 +1,55 @@
+
+.re-ip-text[data-v-083bd4ef] {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+.re-ip-text--clickable[data-v-083bd4ef] {
+  cursor: pointer;
+}
+.re-ip-text__ip[data-v-083bd4ef] {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+  transition: color 0.2s;
+}
+.re-ip-text--clickable .re-ip-text__ip[data-v-083bd4ef]:hover {
+  color: var(--el-color-primary);
+}
+.re-ip-text__address[data-v-083bd4ef] {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.3;
+}
+.re-ip-text__loading[data-v-083bd4ef] {
+  animation: pulse-083bd4ef 1.5s ease-in-out infinite;
+}
+@keyframes pulse-083bd4ef {
+0%, 100% { opacity: 0.5;
+}
+50% { opacity: 1;
+}
+}
+.re-ip-text__detail[data-v-083bd4ef] {
+  padding: 8px 0;
+}
+.re-ip-text__detail-row[data-v-083bd4ef] {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  font-size: 13px;
+}
+.re-ip-text__detail-row[data-v-083bd4ef]:last-child {
+  border-bottom: none;
+}
+.re-ip-text__detail-label[data-v-083bd4ef] {
+  color: var(--el-text-color-secondary);
+}
+.re-ip-text__detail-value[data-v-083bd4ef] {
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+  text-align: right;
+}

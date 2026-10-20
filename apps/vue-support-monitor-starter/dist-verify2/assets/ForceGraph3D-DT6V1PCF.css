@@ -1,0 +1,12 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 相对 .rrg__canvas（position: relative）铺满；不能用 display:none 收起——
+   3D 层由 G6Graph 用 v-if 控制挂载/卸载，卸载时 vue-force-graph-3d 自己会跑 _destructor 释放 WebGL。 */
+.fg3d[data-v-c1bf1d0a] {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}

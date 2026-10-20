@@ -472,7 +472,7 @@ function statusClass(status: number): string {
 
     <!-- 响应弹窗：图稿底部形态（状态胶囊 + 耗时 + 体积 + 行号正文）。
          append-to-body：属性面板自身可能有 overflow / transform，弹框留在面板内会被裁掉 -->
-    <ReDialog v-model="previewOpen" title="响应预览" width="760px" append-to-body>
+    <ReDialog v-model="previewOpen" title="响应预览" width="min(760px, 94vw)" append-to-body>
       <div v-if="previewLoading" class="resp-state">正在发送 {{ urlValue }} …</div>
       <div v-else-if="previewError" class="resp-state resp-error">
         发送失败：{{ previewError }}

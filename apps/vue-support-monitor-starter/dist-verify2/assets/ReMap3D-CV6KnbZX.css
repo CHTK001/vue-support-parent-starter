@@ -1,0 +1,55 @@
+
+.re-map3d-card[data-v-b5f382a2] { display: flex; flex-direction: column; height: 100%;
+}
+.map3d-head[data-v-b5f382a2] { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.map3d-title-wrap[data-v-b5f382a2] { display: flex; align-items: center; gap: 8px;
+}
+.map3d-title[data-v-b5f382a2] { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary);
+}
+.map3d-controls[data-v-b5f382a2] { display: flex; align-items: center; gap: 10px;
+}
+.map-mode[data-v-b5f382a2] .el-radio-button__inner { border-radius: 6px; padding: 4px 12px; font-size: 12px;
+}
+.map-nav[data-v-b5f382a2] .el-button { border-radius: 6px; padding: 5px 8px;
+}
+.map-nav .active[data-v-b5f382a2]  { color: var(--el-color-primary);
+}
+.map3d-body[data-v-b5f382a2] {
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+  border-top: 1px solid var(--el-border-color-light);
+  position: relative;
+}
+.map3d-overlay[data-v-b5f382a2] {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+.pin-legend[data-v-b5f382a2] { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; max-width: 220px;
+}
+.legend-title[data-v-b5f382a2] { font-weight: 600; color: var(--el-text-color-primary); margin-right: 4px;
+}
+.legend-item[data-v-b5f382a2] { display: flex; align-items: center; gap: 4px; color: var(--el-text-color-secondary); white-space: nowrap;
+}
+.legend-dot[data-v-b5f382a2] { width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+}
+.map3d-footer[data-v-b5f382a2] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  border-top: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-light);
+}
+.map3d-pins[data-v-b5f382a2], .map3d-rotation[data-v-b5f382a2], .map3d-coords[data-v-b5f382a2] {
+  font-size: 11px; color: var(--el-text-color-secondary);
+}
+.map3d-coords[data-v-b5f382a2] { font-family: 'SF Mono', monospace;
+}

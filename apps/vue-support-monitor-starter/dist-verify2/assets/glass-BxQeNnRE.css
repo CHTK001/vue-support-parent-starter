@@ -1,0 +1,128 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.login-glass[data-v-e6c6c28c] {
+  background: radial-gradient(ellipse 700px 520px at 80% 15%, rgba(var(--el-color-primary-rgb), 0.18), transparent 70%), radial-gradient(600px circle at 15% 85%, rgba(var(--el-color-primary-rgb), 0.14), transparent 65%), var(--el-bg-color-page, #f5f6fa);
+}
+html.dark .login-glass[data-v-e6c6c28c] {
+  background: radial-gradient(ellipse 700px 520px at 80% 15%, rgba(var(--el-color-primary-rgb), 0.28), transparent 70%), radial-gradient(600px circle at 15% 85%, rgba(var(--el-color-primary-rgb), 0.22), transparent 65%), #08080c;
+}
+
+/* 动态光斑 */
+.glass-bg[data-v-e6c6c28c] {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+  pointer-events: none;
+  animation: glass-float-e6c6c28c 16s infinite ease-in-out;
+}
+.glass-bg--1[data-v-e6c6c28c] {
+  top: -8%;
+  right: 5%;
+  width: 420px;
+  height: 420px;
+  background: rgba(var(--el-color-primary-rgb), 0.4);
+}
+.glass-bg--2[data-v-e6c6c28c] {
+  bottom: 8%;
+  left: -3%;
+  width: 340px;
+  height: 340px;
+  background: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-primary-light-5) 45%);
+  animation-delay: -5s;
+}
+.glass-bg--3[data-v-e6c6c28c] {
+  top: 42%;
+  left: 55%;
+  width: 220px;
+  height: 220px;
+  background: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-color-primary-light-3) 50%);
+  animation-delay: -10s;
+}
+html.dark .glass-bg[data-v-e6c6c28c] {
+  opacity: 0.28;
+}
+
+/* 网格纹理 */
+.glass-grid[data-v-e6c6c28c] {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(var(--el-color-primary-rgb), 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 30%, transparent 100%);
+  pointer-events: none;
+}
+
+/* 卡片内的品牌标识 */
+.glass-card-mark[data-v-e6c6c28c] {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.glass-card-logo[data-v-e6c6c28c] {
+  display: block;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 6px 18px rgba(var(--el-color-primary-rgb), 0.28);
+}
+
+/* 毛玻璃卡片 */
+.glass-card[data-v-e6c6c28c] {
+  position: relative;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.04);
+  overflow: hidden;
+}
+.glass-card[data-v-e6c6c28c]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--el-color-primary), transparent);
+  opacity: 0.5;
+}
+html.dark .glass-card[data-v-e6c6c28c] {
+  background: rgba(24, 24, 28, 0.72);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.glass-card-inner[data-v-e6c6c28c] {
+  position: relative;
+}
+.glass-card-header h3[data-v-e6c6c28c] {
+  letter-spacing: 2px;
+}
+
+/* 卡片内表单输入框加深 */
+.glass-form[data-v-e6c6c28c] .login-input .el-input__wrapper {
+  background: rgba(var(--el-bg-color-rgb), 0.55);
+}
+.glass-footer[data-v-e6c6c28c] {
+  opacity: 0.85;
+}
+.login-logo[data-v-e6c6c28c] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+}
+@keyframes glass-float-e6c6c28c {
+0%, 100% {
+    transform: translate(0, 0) scale(1);
+}
+50% {
+    transform: translate(-18px, 12px) scale(1.06);
+}
+}

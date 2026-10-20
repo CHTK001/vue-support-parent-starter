@@ -1059,10 +1059,34 @@
       </div>
       <template #footer>
         <ReButton @click="docExportVisible = false">取消</ReButton>
+        <ReButton type="info" :loading="docPreviewLoading" :disabled="!docExportFormats.length" @click="doDocumentPreview">
+          在线查看
+        </ReButton>
         <ReButton type="primary" :loading="docExportLoading" :disabled="!docExportFormats.length" @click="doDocumentExport">
           导出
         </ReButton>
       </template>
+    </ReDialog>
+
+    <!-- 在线预览文档（markdown 转 HTML，直接渲染） -->
+    <ReDialog v-model="docPreviewVisible" title="数据库文档预览" width="90%" height="85%">
+      <div class="dbm-doc-preview-wrap">
+        <div v-if="docPreviewLoading" class="dbm-doc-preview-loading">
+          <span>正在渲染文档…</span>
+        </div>
+        <div v-else-if="docPreviewError" class="dbm-doc-preview-error">
+          <p>预览失败：{{ docPreviewError }}</p>
+          <p class="dbm-doc-preview-hint">word/pdf 格式不支持在线预览，请点「导出」下载后查看。</p>
+          <ReButton type="primary" @click="doDocumentExport">下载文档</ReButton>
+        </div>
+        <iframe
+          v-else-if="docPreviewContent"
+          :srcdoc="docPreviewContent"
+          class="dbm-doc-preview-iframe"
+          sandbox="allow-same-origin"
+          title="数据库文档预览"
+        />
+      </div>
     </ReDialog>
 
     <!-- 列显示设置（Navicat 的字段显示 / 固定列） -->
@@ -1929,6 +1953,7 @@ import {
   type DbAiStatus,
   dbDocumentFormats,
   downloadDbDocument,
+  previewDbDocument,
   type DbDocumentFormat,
 } from "../../api/manageConsoles";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
@@ -5913,6 +5938,12 @@ const docExportTemplates = ref<string[]>([]);
 const docExportLoading = ref(false);
 const docExportFormatsError = ref("");
 
+// 在线预览状态
+const docPreviewVisible = ref(false);
+const docPreviewLoading = ref(false);
+const docPreviewContent = ref("");
+const docPreviewError = ref("");
+
 /** 格式中文名（渲染器名保持英文，与后端 SPI 名一致，便于对排查） */
 const DOC_FORMAT_LABELS: Record<string, string> = {
   markdown: "Markdown（.md，纯文本）",
@@ -5983,6 +6014,28 @@ async function doDocumentExport() {
     message.error(`文档导出失败：${(e as Error).message}`);
   } finally {
     docExportLoading.value = false;
+  }
+}
+
+/** 在线预览文档 */
+async function doDocumentPreview() {
+  if (!docExportDatabase.value) return;
+  docPreviewLoading.value = true;
+  docPreviewError.value = "";
+  docPreviewContent.value = "";
+  try {
+    docPreviewContent.value = await previewDbDocument({
+      datasourceId: currentDatasourceId.value,
+      database: docExportDatabase.value,
+      format: docExportFormat.value,
+      template: docExportTemplate.value,
+    });
+    docPreviewVisible.value = true;
+    docExportVisible.value = false;
+  } catch (e) {
+    docPreviewError.value = (e as Error).message || "预览失败";
+  } finally {
+    docPreviewLoading.value = false;
   }
 }
 

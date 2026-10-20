@@ -1,0 +1,1410 @@
+@charset "UTF-8";
+.ds-metric-echart[data-v-ffcf8509] {
+  width: 100%;
+}
+
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ds-metrics[data-v-b493b4dd] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.ds-metrics__bar[data-v-b493b4dd] {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+}
+.ds-metrics__stat[data-v-b493b4dd] {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.ds-metrics__stat-label[data-v-b493b4dd] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ds-metrics__stat-value[data-v-b493b4dd] {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ds-metrics__stat-value.is-ok[data-v-b493b4dd] {
+  color: var(--status-success, var(--el-color-success));
+}
+.ds-metrics__stat-value.is-bad[data-v-b493b4dd] {
+  color: var(--status-error, var(--el-color-danger));
+}
+.ds-metrics__stat-value.is-unknown[data-v-b493b4dd] {
+  color: var(--el-text-color-secondary);
+  font-weight: 400;
+}
+.ds-metrics__spacer[data-v-b493b4dd] {
+  flex: 1 1 auto;
+}
+.ds-metrics__stream[data-v-b493b4dd] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ds-metrics__stream.is-open[data-v-b493b4dd] {
+  color: var(--status-success, var(--el-color-success));
+}
+.ds-metrics__stream.is-error[data-v-b493b4dd] {
+  color: var(--status-warning, var(--el-color-warning));
+}
+.ds-metrics__hint[data-v-b493b4dd] {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.ds-metrics__chart[data-v-b493b4dd] {
+  margin-top: 8px;
+  min-height: 0;
+}
+
+/* 嵌入模式：图占满面板剩余高度，而不是固定 200px 后底下留白 */
+.ds-metrics.is-embedded .ds-metrics__chart[data-v-b493b4dd] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+/* 图表脚注：点数/间隔/最新时刻。写清楚是必要的 —— 后端抽稀后返回的点不是原始
+   采样数，不标出来用户会以为「中间丢数据」是 bug */
+.ds-metrics__foot[data-v-b493b4dd] {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-tertiary, var(--el-text-color-secondary));
+}
+
+/* 与另两个页签等高：占位时吃满可用高度并居中，否则切页签内容区会跳 */
+.ds-metrics__empty[data-v-b493b4dd] {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ds-oplog[data-v-c144eb45] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.ds-oplog__bar[data-v-c144eb45] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+}
+.ds-oplog__filter[data-v-c144eb45] {
+  width: 160px;
+}
+.ds-oplog__spacer[data-v-c144eb45] {
+  flex: 1 1 auto;
+}
+.ds-oplog__error[data-v-c144eb45] {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--status-error, var(--el-color-danger));
+}
+.ds-oplog__table[data-v-c144eb45] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ds-oplog__pager[data-v-c144eb45] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+}
+.ds-oplog__total[data-v-c144eb45] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ds-oplog__empty[data-v-c144eb45] {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ds-server-stats[data-v-e0a5b6c6] {
+  min-width: 0;
+}
+.ds-server-stats__head[data-v-e0a5b6c6] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ds-server-stats__title[data-v-e0a5b6c6] {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+.ds-server-stats__refresh[data-v-e0a5b6c6] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary, #6b7280);
+  cursor: pointer;
+}
+.ds-server-stats__refresh[data-v-e0a5b6c6]:hover {
+  background: var(--bg-hover, #f2f3f7);
+  color: var(--text-primary, #1f2430);
+}
+.ds-server-stats__refresh[data-v-e0a5b6c6]:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.ds-server-stats__refresh-icon[data-v-e0a5b6c6] {
+  font-size: 15px;
+  line-height: 1;
+}
+.ds-server-stats__refresh-icon.is-spinning[data-v-e0a5b6c6] {
+  animation: ds-server-stats-spin-e0a5b6c6 0.9s linear infinite;
+}
+@keyframes ds-server-stats-spin-e0a5b6c6 {
+to {
+    transform: rotate(360deg);
+}
+}
+.ds-server-stats__tag[data-v-e0a5b6c6] {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-server-stats__tag.is-live[data-v-e0a5b6c6] {
+  color: var(--status-success, var(--el-color-success));
+}
+.ds-server-stats__tag.is-waiting[data-v-e0a5b6c6] {
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-server-stats__grid[data-v-e0a5b6c6] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 18px;
+  margin: 0;
+}
+.ds-server-stats__item[data-v-e0a5b6c6] {
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+.ds-server-stats__item dt[data-v-e0a5b6c6] {
+  font-size: 12px;
+  color: var(--text-secondary, #5c6270);
+}
+.ds-server-stats__item dd[data-v-e0a5b6c6] {
+  margin: 3px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-server-stats__item dd.is-empty[data-v-e0a5b6c6] {
+  color: var(--text-tertiary, #6b7280);
+  font-weight: 400;
+}
+.ds-server-stats__item dd.mono[data-v-e0a5b6c6] {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+.ds-server-stats__url[data-v-e0a5b6c6] {
+  margin-top: 6px;
+}
+.ds-server-stats__url-title[data-v-e0a5b6c6] {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #5c6270);
+}
+.ds-server-stats__url-title span[data-v-e0a5b6c6] {
+  font-weight: 400;
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-server-stats__url-list[data-v-e0a5b6c6] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-server-stats__url-item[data-v-e0a5b6c6] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+.ds-server-stats__url-key[data-v-e0a5b6c6] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary, #1f2430);
+}
+.ds-server-stats__url-hit[data-v-e0a5b6c6] {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, #5c6270);
+}
+.ds-server-stats__url-hit i[data-v-e0a5b6c6] {
+  margin-left: 6px;
+  font-style: normal;
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-server-stats__empty[data-v-e0a5b6c6] {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-server-stats__note[data-v-e0a5b6c6] {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary, #6b7280);
+}
+@media (max-width: 520px) {
+.ds-server-stats__grid[data-v-e0a5b6c6] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* ============================================================
+   数据源中心（独立页面包）—— 全部使用 koi / Element 令牌
+   左右两栏：左栏状态过滤 + 列表，右栏详情 + 页签
+   ============================================================ */
+/* 浅灰画布：卡片用 --bg-container 浮在上面（UI 稿的层次感来源）。
+   颜色全部走 koi 令牌（packages/theme tokens.css），亮暗色自动跟随。 */
+.ds[data-v-8335d8da] {
+  /* height 而非 min-height：把可视高度钉死在链路上，左栏卡片与右栏页签
+     的内部滚动才真正生效 —— 用 min-height 时整页会被长内容撑开，
+     左栏「添加数据源」按钮跟着内容掉出可视区。
+     宿主容器没有高度约束时 height:100% 退化为 auto，行为与原来一致，不会更差。 */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page, #f6f7fb);
+  border-radius: var(--radius-xl, 16px);
+}
+
+/* ---------------- 左右两栏布局 ---------------- */
+/* align-items 用默认的 stretch：两栏等高，左栏吃满右栏撑出来的高度。
+   写 flex-start 会让左栏按自身内容收尾，右栏很长时下方留一大片空白。 */
+.ds-layout[data-v-8335d8da] {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  /* 吃掉 .ds 的剩余高度，左栏才有机会落到底 */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ds-side[data-v-8335d8da] {
+  /* clamp 而非固定 340px：视口 1400px 时给 340，两侧留白均衡；
+     视口收到 1200px 时跟着缩到 260，右栏详情不会被挤成一条缝。
+     260px 是「状态过滤四行 + 数据源名不换行」的实测下限，再窄名字就折行了。 */
+  flex: 0 0 clamp(260px, 24vw, 340px);
+  max-width: clamp(260px, 24vw, 340px);
+  min-width: 0;
+  /* 与右栏 .ds-main 同理：这一环不断，.ds-side-card 的 min-height:0 就传不下去，
+     右栏内容一长，左栏卡片会被一起顶高而不是自己内部滚动。 */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ds-main[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* 必须显式写 0：flex 子项默认 min-height:auto，会拒绝收缩到内容高度以下。
+     缺这一行时，页签面板里嵌入的「数据库管理器」有 100+ 张表时会把本栏顶到
+     视口之外，整页跟着长出滚动条，左栏数据源列表被顶出可视区。
+     写了 0 之后，ReTab 的 flex:1 + min-height:0 钳位链才真正生效，
+     超出部分由内层面板自己滚动。 */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------------- 左栏 ---------------- */
+/* 白卡片落在浅灰画布上：卡片壳只写一次，左右两栏共用同一套规格 */
+.ds-side-card[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  /* 撑满左栏高度；min-height:0 让内部列表能真正收缩并滚动，而不是把卡片顶高 */
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 18, 33, 0.06));
+  transition: background-color var(--el-transition-duration, 0.2s);
+}
+
+/* 状态过滤列表 */
+.ds-status[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-status__item[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* UI 稿里过滤行是「整行一条」的胶囊，26px 边距让选中态有呼吸感 */
+  padding: 9px 12px;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 13px;
+  color: var(--text-secondary, #5c6270);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+.ds-status__item[data-v-8335d8da]:hover {
+  background: var(--bg-hover, #f1f2f8);
+}
+.ds-status__item.is-active[data-v-8335d8da] {
+  /* 主色淡染而不是 --el-color-primary-light-*：后者是 Element 的固定梯度，
+     换主题时会和 koi 主色对不上。 */
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.ds-status__dot[data-v-8335d8da] {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.ds-status__label[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-status__count[data-v-8335d8da] {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-tertiary, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 分隔线 */
+.ds-side__divider[data-v-8335d8da] {
+  height: 1px;
+  background: var(--border-subtle, #eef0f6);
+}
+
+/* 左栏列表：吃掉卡片剩余高度，超出独立滚动，
+   这样「添加数据源」按钮始终贴在卡片底部，不会被长列表顶走 */
+.ds-side__list[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* 细滚动条：默认粗滚动条在 260~340px 的窄栏里视觉过重，
+     6px 圆角条既可见又不抢数据源卡片的注意力 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default, #e3e6ef) transparent;
+}
+.ds-side__list[data-v-8335d8da]::-webkit-scrollbar {
+  width: 6px;
+}
+.ds-side__list[data-v-8335d8da]::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ds-side__list[data-v-8335d8da]::-webkit-scrollbar-thumb {
+  background: var(--border-default, #e3e6ef);
+  border-radius: var(--el-border-radius-round, 9999px);
+}
+.ds-side__list[data-v-8335d8da]::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary, #6b7280);
+}
+.ds-side__hint[data-v-8335d8da] {
+  margin: 0;
+  padding: 16px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 数据源卡片：图标块 + 名称/徽标 + 地址 + 右侧状态点 */
+.ds-item[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-primary, #1f2430);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg, 12px);
+  cursor: pointer;
+  transition: background-color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+.ds-item[data-v-8335d8da]:hover {
+  background: var(--bg-hover, #f1f2f8);
+}
+.ds-item.is-active[data-v-8335d8da] {
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+.ds-item__icon[data-v-8335d8da] {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  --tile: var(--el-color-primary);
+  color: var(--tile);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--tile) 12%, transparent);
+}
+.ds-item__body[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-item__row[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ds-item__name[data-v-8335d8da] {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ds-item__chip[data-v-8335d8da] {
+  flex: none;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  --tile: var(--el-color-primary);
+  color: var(--tile);
+  background: color-mix(in srgb, var(--tile) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tile) 40%, transparent);
+  border-radius: var(--el-border-radius-round, 9999px);
+}
+.ds-item__addr[data-v-8335d8da] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-tertiary, #6b7280);
+}
+
+/* 右侧在线状态点：名称过长时先压缩名字，状态点永远可见 */
+.ds-item__dot[data-v-8335d8da] {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pulse-offline, #9aa3b2);
+}
+.ds-item__dot.is-online[data-v-8335d8da] {
+  background: var(--pulse-online, #2fbf71);
+}
+.ds-item__dot.is-abnormal[data-v-8335d8da] {
+  background: var(--pulse-alarm, #f04a5d);
+}
+.ds-item__dot.is-offline[data-v-8335d8da] {
+  background: var(--pulse-offline, #9aa3b2);
+}
+
+/* 底部新增按钮（虚线边框） */
+.ds-side__add[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 10px;
+  /* 不参与列表的伸缩：列表吃掉剩余高度后，本按钮自然停在卡片底部 */
+  flex: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-secondary, #5c6270);
+  background: transparent;
+  border: 1px dashed var(--border-default, #e3e6ef);
+  border-radius: var(--radius-lg, 12px);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s), background-color var(--el-transition-duration, 0.2s);
+}
+.ds-side__add[data-v-8335d8da]:hover {
+  color: var(--el-color-primary);
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
+}
+
+/* ReInput 内部为元素透传，搜索框宽度需用 :deep 命中 el-input 根 */
+.ds-side[data-v-8335d8da] .ds-side__search {
+  width: 100%;
+}
+
+/* ---------------- 右栏整卡（头部 + 页签 + 内容） ---------------- */
+/* 头部、页签条、内容合成一张卡：页签条的底线要贯通整卡宽度，
+   所以内距分别挂在 .ds-head 与页签面板上，不能挂在整卡上。 */
+.ds-main-card[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 18, 33, 0.06));
+  overflow: hidden;
+}
+
+/* 页签面板：库内默认只有 padding-top，左右下内距在这里补齐 */
+.ds-main-card[data-v-8335d8da] .re-tab-underline__panel {
+  padding: 16px 20px 20px;
+}
+.ds-head[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+.ds-head__row[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ds-head__main[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* 头部左侧的类型图标块：36px 圆角方块，底色由类型色淡染 */
+.ds-head__tile[data-v-8335d8da] {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  --tile: var(--el-color-primary);
+  color: var(--tile);
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(in srgb, var(--tile) 14%, transparent);
+}
+.ds-crumb[data-v-8335d8da] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-crumb__icon[data-v-8335d8da] {
+  color: var(--el-color-primary);
+}
+.ds-crumb__arrow[data-v-8335d8da] {
+  color: var(--text-tertiary, #6b7280);
+  opacity: 0.7;
+}
+.ds-head__actions[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ds-head[data-v-8335d8da] .ds-head__search {
+  width: 220px;
+}
+
+/* 「更多」触发器：与相邻按钮同规格（32px 高、无内边距） */
+.ds-head__more[data-v-8335d8da] {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  color: var(--el-text-color-regular);
+}
+.ds-head__more[data-v-8335d8da]:hover {
+  color: var(--el-color-primary);
+}
+.ds-detail__name[data-v-8335d8da] {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 20px：UI 稿的标题是一行紧凑字号；28px 会把长数据源名挤成两行，头卡高度跟着跳 */
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #1f2430);
+}
+.ds-detail__chip[data-v-8335d8da] {
+  flex: none;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  --tile: var(--el-color-primary);
+  color: var(--tile);
+  background: color-mix(in srgb, var(--tile) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tile) 40%, transparent);
+  border-radius: var(--el-border-radius-round, 9999px);
+}
+.ds-detail__badge[data-v-8335d8da] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  --badge: var(--el-text-color-secondary);
+  color: var(--badge);
+  background: color-mix(in srgb, var(--badge) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--badge) 45%, transparent);
+  border-radius: var(--el-border-radius-round, 9999px);
+}
+.ds-detail__badge.is-on[data-v-8335d8da] {
+  --badge: var(--status-success, var(--el-color-success));
+}
+.ds-detail__badge.is-warn[data-v-8335d8da] {
+  --badge: var(--status-warning, var(--el-color-warning));
+}
+.ds-detail__badge.is-off[data-v-8335d8da] {
+  --badge: var(--status-error, var(--el-color-danger));
+}
+.ds-detail__badge-dot[data-v-8335d8da] {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------------- 概览：统计卡 + 双栏面板 ---------------- */
+/* 概览页的「连接配置」区块要吃掉统计卡以下的剩余高度，否则切页签时整页高度跳变 */
+.ds-overview[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ds-stats[data-v-8335d8da] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* 统一卡片规格：白底 + 1px 边框 + 12px 圆角（内部排版由 ReStatCard 决定） */
+.ds-stats[data-v-8335d8da] .re-stat-card {
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-lg, 12px);
+}
+
+/* 概览双栏：左趋势（可撑宽）+ 右配置（定宽）。窄屏回落单列。 */
+.ds-overview-grid[data-v-8335d8da] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+@media (max-width: 1180px) {
+.ds-overview-grid[data-v-8335d8da] {
+    grid-template-columns: minmax(0, 1fr);
+}
+}
+/* 左列内部：趋势面板吃剩余高度，“其它信息”按内容高度贴在下边 */
+.ds-overview-left[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------------- 面板 / 键值表 ---------------- */
+.ds-panel[data-v-8335d8da] {
+  padding: 16px;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-lg, 12px);
+  /* 吃满页签面板的可用高度（ReTab stretch → .re-tab-underline__panel）。
+     转纵向 flex 是为了让标题与键值表成为两行可控子项；
+     键值行按内容自然排、不加滚动，字段更多时面板会被内容顶高而不是压缩行距。 */
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ds-panel__head[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.ds-panel__title[data-v-8335d8da] {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+  flex-shrink: 0;
+}
+.ds-panel__head .ds-panel__title[data-v-8335d8da] {
+  margin-bottom: 0;
+}
+
+/* 图例：色点 + 文案，弱化项用三级文字色 */
+.ds-panel__legend[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-secondary, #5c6270);
+}
+.ds-legend[data-v-8335d8da] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ds-legend--muted[data-v-8335d8da] {
+  color: var(--text-tertiary, #6b7280);
+}
+
+/* 连接数图例：虚线段示意曲线线型，色与图内连接数序列一致 */
+.ds-legend--count[data-v-8335d8da] {
+  color: var(--text-secondary, #5c6270);
+}
+.ds-legend__dot--dashed[data-v-8335d8da] {
+  background: var(--metric-redis, var(--el-color-danger));
+  /* 用渐变画出「虚线段」质感，与实心的延迟图例区分 */
+  background-image: linear-gradient(90deg, currentColor 0 40%, transparent 40% 60%, currentColor 60% 100%);
+  opacity: 0.85;
+}
+.ds-legend__dot[data-v-8335d8da] {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--metric-cpu, var(--el-color-primary));
+}
+.ds-legend--muted .ds-legend__dot[data-v-8335d8da] {
+  background: var(--border-default, #e3e6ef);
+}
+
+/* 趋势画布：嵌入的指标面板（embedded 模式）纵向吃满面板剩余高度，
+   空态时占位高度兜底，避免空态把双栏压扁 */
+.ds-trend[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 240px;
+  margin-top: 12px;
+}
+.ds-trend[data-v-8335d8da] .ds-metrics {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* “其它信息”面板按内容高度，不让它抢趋势的伸缩空间 */
+.ds-panel--server-stats[data-v-8335d8da] {
+  flex: 0 1 auto;
+}
+
+/* 面板底部动作：主按钮整行，下方三个次级动作纵向排布 */
+.ds-panel__actions[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  flex-shrink: 0;
+}
+.ds-panel__actions[data-v-8335d8da] .rs-btn,
+.ds-panel__actions[data-v-8335d8da] .el-button {
+  width: 100%;
+  margin-left: 0;
+}
+.ds-kv[data-v-8335d8da] {
+  margin: 0;
+}
+.ds-kv__row[data-v-8335d8da] {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+}
+.ds-kv__row + .ds-kv__row[data-v-8335d8da] {
+  border-top: 1px solid var(--border-subtle, #eef0f6);
+}
+.ds-kv__label[data-v-8335d8da] {
+  flex: 0 0 96px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary, #6b7280);
+}
+.ds-kv__value[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary, #1f2430);
+  /* dd 在部分全局重置里是右对齐，这里显式拉回左对齐：
+     标签列定宽后，值紧跟标签才是 UI 稿的样子，贴到卡片右边会读成另一列 */
+  text-align: left;
+  word-break: break-all;
+}
+
+/* 页签占位（监控指标 / 操作日志暂无数据来源）：同样吃满可用高度并居中，
+   否则四个页签高度不一致，切页签时内容区会跳 */
+.ds-placeholder[data-v-8335d8da] {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+.ds-main__empty[data-v-8335d8da] {
+  padding: 48px 0;
+}
+
+/* ---------------- SSH 隧道表单 ---------------- */
+/* .ds-form 本身是两列栅格：分组容器、子标题、操作条都必须跨满整行，
+   否则只会占掉第一格，把下面的字段挤到第二列去 */
+.ds-tunnel-form > .ds-tunnel-row[data-v-8335d8da],
+.ds-tunnel-form > .ds-sub-title[data-v-8335d8da],
+.ds-tunnel-form > .ds-tunnel-actions[data-v-8335d8da] {
+  grid-column: 1/-1;
+}
+.ds-tunnel-row[data-v-8335d8da] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 18px;
+}
+.ds-sub-title[data-v-8335d8da] {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-secondary);
+}
+.ds-panel__hint[data-v-8335d8da] {
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.ds-placeholder-text[data-v-8335d8da] {
+  padding: 18px 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.ds-tunnel-actions[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+.ds-tunnel-id[data-v-8335d8da] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---------------- 新增/编辑弹窗：左右两栏 ----------------
+   左侧类型面板（搜索 + 类型列表）+ 右侧连接表单。整体贴满弹窗 body
+   （去掉 koi ReDialog 默认 8px 内边距），左栏淡色底 + 右边框分隔，右栏白底表单。
+   固定高度让左右两栏各自内部滚动，而不是把整弹窗撑出滚动条。 */
+.ds-create-dialog[data-v-8335d8da] .el-dialog__body {
+  padding: 0 !important;
+}
+.ds-create-dialog[data-v-8335d8da] .dialog-content-wrapper {
+  padding-right: 0;
+  overflow: hidden;
+}
+.ds-create-dialog[data-v-8335d8da] .dialog-content-wrapper > * {
+  padding-right: 0;
+}
+.ds-create[data-v-8335d8da] {
+  display: flex;
+  align-items: stretch;
+  height: min(540px, 92vh - 150px);
+  min-height: 420px;
+}
+
+/* 左栏：类型选择 */
+.ds-create__side[data-v-8335d8da] {
+  flex: 0 0 232px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-right: 1px solid var(--el-border-color-lighter);
+  min-width: 0;
+}
+.ds-create__search[data-v-8335d8da] {
+  flex: 0 0 auto;
+}
+.ds-create__types[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 2px;
+}
+.ds-create__none[data-v-8335d8da] {
+  margin: 10px 0;
+  font-size: 12px;
+  text-align: center;
+  color: var(--el-text-color-placeholder);
+}
+.ds-type-item[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--el-border-radius-base, 6px);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ds-type-item[data-v-8335d8da]:hover {
+  background: var(--el-fill-color, #f0f2f5);
+}
+.ds-type-item.is-active[data-v-8335d8da] {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-color: var(--el-color-primary-light-7, #d9ecff);
+}
+.ds-type-item__tile[data-v-8335d8da] {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--el-border-radius-base, 6px);
+  color: #fff;
+  background: var(--tile, var(--el-color-primary));
+}
+.ds-type-item__label[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-type-item.is-active .ds-type-item__label[data-v-8335d8da] {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+/* 右栏：连接表单 */
+.ds-create__main[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px 20px 8px;
+}
+.ds-create__head[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ds-create__tile[data-v-8335d8da] {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--el-border-radius-base, 8px);
+  color: #fff;
+  background: var(--tile, var(--el-color-primary));
+}
+.ds-create__heading[data-v-8335d8da] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-create__name[data-v-8335d8da] {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--el-text-color-primary);
+}
+.ds-create__desc[data-v-8335d8da] {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+.ds-create__badge[data-v-8335d8da] {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--el-border-radius-base, 4px);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border: 1px solid var(--el-color-primary-light-8, #e0efff);
+}
+.ds-create__form[data-v-8335d8da] {
+  margin-top: 8px;
+}
+
+/* 测试连接行 + 高级设置行：跨满两列 */
+.ds-create__test[data-v-8335d8da],
+.ds-create__advanced[data-v-8335d8da] {
+  grid-column: 1/-1;
+}
+.ds-create__test[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 12px;
+}
+.ds-create__test-result[data-v-8335d8da] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.ds-create__test-result.is-ok[data-v-8335d8da] {
+  color: var(--el-color-success);
+}
+.ds-create__test-result.is-fail[data-v-8335d8da] {
+  color: var(--el-color-danger);
+}
+.ds-create__test-hint[data-v-8335d8da] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.ds-create__advanced-toggle[data-v-8335d8da] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+.ds-create__advanced-toggle[data-v-8335d8da]:hover {
+  color: var(--el-color-primary);
+}
+.ds-create__advanced-form[data-v-8335d8da] {
+  margin-top: 4px;
+}
+
+/* 窄屏：左右两栏改为上下堆叠，类型面板限高避免占满整屏 */
+@media (max-width: 720px) {
+.ds-create[data-v-8335d8da] {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+}
+.ds-create__side[data-v-8335d8da] {
+    flex: 0 0 auto;
+    border-right: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ds-create__types[data-v-8335d8da] {
+    max-height: 180px;
+}
+.ds-create__main[data-v-8335d8da] {
+    overflow: visible;
+}
+}
+/* ---------------- 弹窗表单 ---------------- */
+.ds-form[data-v-8335d8da] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+.ds-form[data-v-8335d8da] .el-form-item {
+  margin-bottom: 16px;
+}
+.ds-form[data-v-8335d8da] .is-full {
+  grid-column: 1/-1;
+}
+
+/* 控制方式下方的说明：与 ReFormItem 的 label 同字号弱化一档，
+   整行占满（.is-full 的 grid-column 会传染给相邻兄弟，这里显式复位） */
+.ds-control-hint[data-v-8335d8da] {
+  grid-column: 1/-1;
+  margin: -8px 0 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.ds-control-hint code[data-v-8335d8da] {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--el-fill-color-light);
+  font-family: Consolas, Monaco, monospace;
+  font-size: 11px;
+}
+.ds-form[data-v-8335d8da] .el-form-item__label {
+  width: auto !important;
+  height: auto;
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--el-text-color-regular);
+}
+.ds-form[data-v-8335d8da] .el-form-item__content {
+  margin-left: 0 !important;
+}
+
+/* ---------------- 表结构浏览 ---------------- */
+.ds-schema[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ds-schema__bar[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ds-schema__label[data-v-8335d8da] {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  flex: 0 0 auto;
+}
+.ds-schema__select[data-v-8335d8da] {
+  flex: 0 0 300px;
+}
+
+/* 字段栏单独一行：表名与字段名都较长，并排会把两张下拉都压窄 */
+.ds-schema__column[data-v-8335d8da] {
+  flex: 1 1 auto;
+  margin-bottom: 8px;
+}
+.ds-schema__count[data-v-8335d8da] {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ds-schema__error[data-v-8335d8da] {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+
+/* ---------------- 通用 ---------------- */
+.ds-pill[data-v-8335d8da] {
+  border-radius: var(--el-radius-full, 9999px) !important;
+}
+.mono[data-v-8335d8da] {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- 响应式 ---------------- */
+/*
+ * 断点从 992px 提到 1180px。
+ *
+ * <p>为什么不能只看视口：左栏固定 340px，且布局外面还压着左侧菜单（约 220px），
+ * 两者都要从视口宽度里扣掉。992px 断点下窗口宽 1200px 时内容区只剩 980px，
+ * 却仍按「够宽」处理、把两栏并排放 —— 340 + 12 + 628，右侧详情被压得读不下去。
+ * 用户看到的「变成上下堆叠」和「应该左右」来回跳，根因就是这个断点定早了。</p>
+ *
+ * <p>改成 1180px 后：窗口 ≥1180px 一定放得下两栏；<1180px 拆成上下，
+ * 此时左栏卡片不再死撑满高（见下），避免上下堆叠时左栏下面拖出一大段空白。</p>
+ */
+@media (max-width: 1180px) {
+.ds-layout[data-v-8335d8da] {
+    flex-direction: column;
+}
+.ds-side[data-v-8335d8da] {
+    flex: none;
+    width: 100%;
+    max-width: none;
+}
+  /* 上下堆叠时两栏各自按内容高度收尾：左栏再 flex:1 就会把
+     「添加数据源」按钮顶到屏幕底部，中间留一大段空白。 */
+.ds-side-card[data-v-8335d8da] {
+    flex: 0 0 auto;
+}
+.ds-head__actions[data-v-8335d8da] {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+}
+}
+@media (max-width: 640px) {
+.ds-head__actions[data-v-8335d8da] {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+.ds-head[data-v-8335d8da] .ds-head__search {
+    width: 100%;
+}
+.ds-kv__label[data-v-8335d8da] {
+    flex-basis: 96px;
+}
+}
+/* KPI 四卡降级成两列。
+   断点同样后移到 1280px：左栏占了 340、菜单占了约 220，
+   视口 1280 时右栏只剩约 720，四张 KPI 卡各 165px，
+   「连接延迟 6.16 秒」这类值会折行，所以在这之前就该降成两列。 */
+@media (max-width: 1280px) {
+.ds-stats[data-v-8335d8da] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+}
+@media (max-width: 640px) {
+.ds-stats[data-v-8335d8da] {
+    grid-template-columns: 1fr;
+}
+.ds-form[data-v-8335d8da] {
+    grid-template-columns: 1fr;
+}
+}
+/* ---------------- 动效降级（prefers-reduced-motion） ----------------
+   逐个列出本文件自带 transition 的选择器，不写 `*` / `.ds *` 通配：
+   通配会把卡片里 ReStatCard / ReInput / el-dropdown 内部的合法过渡一起掐掉。
+   本文件这些选择器都只带 transition（无 animation），故只关 transition。 */
+@media (prefers-reduced-motion: reduce) {
+.ds-side-card[data-v-8335d8da],
+  .ds-status__item[data-v-8335d8da],
+  .ds-item[data-v-8335d8da],
+  .ds-side__add[data-v-8335d8da] {
+    transition: none;
+}
+}
+/* ---------------- 键盘焦点可见性 ----------------
+   .ds-status__item 是带 @click 的 li（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。 */
+.ds-status__item[data-v-8335d8da] {
+  outline: none;
+}
+.ds-status__item[data-v-8335d8da]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* ---------------- JDBC 驱动 jar 上传 ---------------- */
+.ds-driver-jar[data-v-8335d8da] {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+.ds-driver-jar-select[data-v-8335d8da] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 文件 input 只作为「点击上传」的触发点，不直接暴露给用户：
+   各浏览器的 file input 很难一致地藏起来，而它又是唯一可靠的取文件方式 */
+.ds-driver-jar-file[data-v-8335d8da] {
+  display: none;
+}
+
+/* ---------------- JDBC 额外连接参数编辑器 ---------------- */
+.ds-xparam[data-v-8335d8da] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.ds-xparam__row[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ds-xparam__key[data-v-8335d8da] {
+  width: 230px;
+  flex: 0 0 auto;
+}
+.ds-xparam__value[data-v-8335d8da] {
+  flex: 1;
+  min-width: 0;
+}
+.ds-xparam__foot[data-v-8335d8da] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

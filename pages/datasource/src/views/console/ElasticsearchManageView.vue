@@ -1139,12 +1139,12 @@ const devToolTime = ref(0);
 const devToolHistory = ref<DevToolHistory[]>([]);
 const devToolFullscreen = ref(false);
 
-const devToolCmdOptions = [
+const devToolCmdOptions: Array<{ label: string; value: string }> = [
   { label: "GET", value: "GET" },
   { label: "POST", value: "POST" },
   { label: "PUT", value: "PUT" },
   { label: "DELETE", value: "DELETE" },
-] as const;
+];
 
 const devToolPlaceholder = computed(() => {
   const cmd = devToolCmd.value;

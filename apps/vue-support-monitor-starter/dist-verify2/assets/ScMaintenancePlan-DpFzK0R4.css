@@ -1,0 +1,10 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.plan-list[data-v-86a39bd2] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

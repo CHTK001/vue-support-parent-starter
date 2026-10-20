@@ -1,0 +1,403 @@
+
+/* 标准壳层：与其余 widget 一致（边框 / 圆角 / overflow），
+   天气自身的渐变作为 body 铺在壳层内部，保留它原有的视觉身份。 */
+.ww[data-v-6682ddc8] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
+  overflow: hidden;
+}
+.ww__header[data-v-6682ddc8] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 16px 8px;
+}
+.ww__title[data-v-6682ddc8] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ww__title-icon[data-v-6682ddc8] {
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+}
+.weather-panel[data-v-6682ddc8] {
+  /* flex:1 + min-height:0：面板吃掉壳层剩余高度；
+     原来只有 height:100% 时，壳层一旦有 header 就会溢出 */
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  /* 圆角交给壳层的 overflow:hidden 裁切 —— 自身设 radius 会在有 header 时
+     把面板顶部两角也切圆，露出壳层底色 */
+  border-radius: 0;
+  background: linear-gradient(145deg, #4a90d9 0%, #87b8e8 40%, #b5d8f5 100%);
+  color: #1a2332;
+}
+html.dark .weather-panel[data-v-6682ddc8] {
+  background: linear-gradient(145deg, #1a2332 0%, #2a3a55 50%, #1e2d44 100%);
+  color: #e2e8f0;
+}
+.source-publish-time[data-v-6682ddc8] {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 12px;
+  opacity: 0.7;
+  z-index: 1;
+}
+.weather-top-wrap[data-v-6682ddc8] {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.weather-left[data-v-6682ddc8] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.weather-main-card[data-v-6682ddc8] {
+  position: relative;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+html.dark .weather-main-card[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.update-time[data-v-6682ddc8] {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a2332;
+  letter-spacing: 0.2px;
+}
+html.dark .update-time[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+.sun-track[data-v-6682ddc8] {
+  position: relative;
+  max-width: 100%;
+  width: min(220px, 70%);
+  height: 100px;
+  margin: 8px auto 0;
+}
+.arc-line[data-v-6682ddc8] {
+  width: 100%;
+  height: 70px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 130px 130px 0 0;
+}
+.sun-icon[data-v-6682ddc8] {
+  position: absolute;
+  top: 2px;
+  left: 110px;
+  font-size: 28px;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 50, 0.6));
+  animation: sun-glow-6682ddc8 3s ease-in-out infinite;
+}
+@keyframes sun-glow-6682ddc8 {
+0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 200, 50, 0.4));
+}
+50% { filter: drop-shadow(0 0 14px rgba(255, 200, 50, 0.8));
+}
+}
+.sun-label[data-v-6682ddc8] {
+  position: absolute;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.sun-rise[data-v-6682ddc8] { left: 0; bottom: 0;
+}
+.sun-set[data-v-6682ddc8] { right: 0; bottom: 0;
+}
+.location-name[data-v-6682ddc8] {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+.now-temp[data-v-6682ddc8] {
+  font-size: clamp(36px, 8vw, 56px);
+  font-weight: 800;
+  text-align: center;
+  line-height: 1;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.unit[data-v-6682ddc8] {
+  font-size: clamp(14px, 2vw, 20px);
+  font-weight: 600;
+  opacity: 0.7;
+}
+.meta-grid[data-v-6682ddc8] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.meta-item[data-v-6682ddc8] {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background var(--el-transition-duration, 0.2s) ease;
+}
+.meta-item[data-v-6682ddc8]:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+html.dark .meta-item[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.15);
+}
+html.dark .meta-item[data-v-6682ddc8]:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+.meta-icon[data-v-6682ddc8] { font-size: 16px;
+}
+.meta-label[data-v-6682ddc8] { font-size: 12px; opacity: 0.75;
+}
+.meta-value[data-v-6682ddc8] { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.weather-right[data-v-6682ddc8] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.week-forecast-wrap[data-v-6682ddc8] {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  min-width: 0;
+}
+.week-forecast-wrap[data-v-6682ddc8]::-webkit-scrollbar {
+  height: 4px;
+}
+/* 细滚动条（4px 高）用 2px 圆角：仓库约定的 6px 是给默认 6px 宽滚动条的，
+   这里厚度只有一半，6px 会退化成半圆、与轨道不匹配。 */
+.week-forecast-wrap[data-v-6682ddc8]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+.week-col[data-v-6682ddc8] {
+  min-width: 96px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  cursor: pointer;
+  /* 显式列出参与过渡的属性，不用 all —— all 会把 backdrop-filter、
+     box-shadow 也纳入，玻璃拟态卡片上代价明显 */
+  transition: background var(--el-transition-duration, 0.2s) ease,
+    transform var(--el-transition-duration, 0.2s) ease,
+    border-color var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
+  border: 1px solid transparent;
+}
+.week-col[data-v-6682ddc8]:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+.week-col.active[data-v-6682ddc8] {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+html.dark .week-col[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.15);
+}
+html.dark .week-col[data-v-6682ddc8]:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+html.dark .week-col.active[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.week-date[data-v-6682ddc8] {
+  text-align: center;
+  padding: 8px 0 4px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.forecast-block[data-v-6682ddc8] {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+.forecast-block--day[data-v-6682ddc8] {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+.forecast-block__label[data-v-6682ddc8] {
+  font-size: 12px;
+  opacity: 0.6;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.weather-text[data-v-6682ddc8] { font-size: 13px; font-weight: 500;
+}
+.wind-text[data-v-6682ddc8] { font-size: 12px; opacity: 0.7;
+}
+.precip-text[data-v-6682ddc8] { font-size: 12px; opacity: 0.7;
+}
+.temp-bar[data-v-6682ddc8] {
+  width: 100%;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f7b04e, #f59e0b);
+}
+.temp-bar-night[data-v-6682ddc8] {
+  background: linear-gradient(135deg, #f9dd67, #eab308);
+}
+html.dark .temp-bar[data-v-6682ddc8] {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+html.dark .temp-bar-night[data-v-6682ddc8] {
+  background: linear-gradient(135deg, #ca8a04, #eab308);
+}
+.hour-forecast-wrap[data-v-6682ddc8] {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+html.dark .hour-forecast-wrap[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.15);
+}
+.hour-title[data-v-6682ddc8] {
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.hour-list[data-v-6682ddc8] {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  min-width: 0;
+}
+.hour-list[data-v-6682ddc8]::-webkit-scrollbar {
+  height: 3px;
+}
+.hour-list[data-v-6682ddc8]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+.hour-item[data-v-6682ddc8] {
+  min-width: 68px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: var(--el-radius-md, 8px);
+  transition: background var(--el-transition-duration, 0.2s);
+}
+.hour-item[data-v-6682ddc8]:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.hour-item--now[data-v-6682ddc8] {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.hour-item--past[data-v-6682ddc8] {
+  opacity: 0.55;
+}
+html.dark .hour-item--now[data-v-6682ddc8] {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.hour-item--past .hour-time[data-v-6682ddc8],
+.hour-item--past .hour-temp[data-v-6682ddc8],
+.hour-item--past .hour-wind[data-v-6682ddc8] {
+  color: rgba(255, 255, 255, 0.7);
+}
+.hour-time[data-v-6682ddc8] { font-size: 12px; font-weight: 600; opacity: 0.8;
+}
+.hour-temp[data-v-6682ddc8] { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.hour-wind[data-v-6682ddc8] { font-size: 12px; opacity: 0.6;
+}
+
+/* 尊重「减少动态效果」系统偏好：
+   sun-glow 是 3s 无限循环的呼吸光晕，前庭功能敏感者不应被持续闪烁干扰。
+   清单第 11 条要求，仓库内 ReCard default 也有同类范例。 */
+@media (prefers-reduced-motion: reduce) {
+.sun-icon[data-v-6682ddc8] {
+    animation: none;
+    filter: drop-shadow(0 0 8px rgba(255, 200, 50, 0.6));
+}
+.week-col[data-v-6682ddc8]:hover {
+    transform: none;
+}
+.meta-item[data-v-6682ddc8],
+  .week-col[data-v-6682ddc8],
+  .hour-item[data-v-6682ddc8] {
+    transition: none;
+}
+}
+.weather-empty[data-v-6682ddc8] {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0.7;
+  min-width: 0;
+  overflow: hidden;
+}

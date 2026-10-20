@@ -387,6 +387,12 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
+      // 本地 go2rtc RTSP→HLS/FLV 测试网关（同源代理，绕开跨域）
+      "/go2rtc": {
+        target: "http://127.0.0.1:1984",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/go2rtc/, ""),
+      },
       // 数据源中心（spring-support-datasource-hub-starter）
       "/ms/datasource": {
         target: apiTarget,

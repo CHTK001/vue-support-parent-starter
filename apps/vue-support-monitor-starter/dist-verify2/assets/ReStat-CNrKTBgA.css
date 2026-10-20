@@ -1,0 +1,64 @@
+
+/* 卡片视觉（圆角/边框/投影/悬停）来自库级基线 components/shared/re-surface.css，
+   此处只保留本组件独有的排版与尺寸变体，不再各写一套边框+投影。 */
+.re-stat[data-v-f68b8007] {
+  /* 内距按 size 变体覆写（基线默认 16px 18px） */
+  padding: var(--re-surface-padding);
+}
+.re-stat.is-loading[data-v-f68b8007] {
+  pointer-events: none;
+  opacity: 0.6;
+}
+.re-stat__header[data-v-f68b8007] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.re-stat__title[data-v-f68b8007] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+.re-stat__icon[data-v-f68b8007] {
+  display: inline-flex;
+  font-size: 16px;
+}
+.re-stat__body[data-v-f68b8007] {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.re-stat__value[data-v-f68b8007] {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.re-stat__trend[data-v-f68b8007] {
+  flex-shrink: 0;
+}
+.re-stat__footer[data-v-f68b8007] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.re-stat__description[data-v-f68b8007] {
+  color: var(--el-text-color-placeholder);
+}
+.re-stat--small[data-v-f68b8007] {
+  padding: 12px;
+}
+.re-stat--small .re-stat__value[data-v-f68b8007] {
+  font-size: 20px;
+}
+.re-stat--large[data-v-f68b8007] {
+  padding: 24px;
+}
+.re-stat--large .re-stat__value[data-v-f68b8007] {
+  font-size: 36px;
+}

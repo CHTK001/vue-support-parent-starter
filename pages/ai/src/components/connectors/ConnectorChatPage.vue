@@ -20,6 +20,17 @@
       </div>
 
       <div class="topbar-right">
+          <!-- 当前模型：一眼看出这个连接器在用哪个模型（空 = 跟随系统默认） -->
+          <span class="topbar-model" :title="connectorModelTip">
+            <span class="topbar-model__label">模型</span>
+            <span class="topbar-model__name">{{ connectorModelLabel }}</span>
+            <el-tag
+              v-if="connectorInfo.modelName && connectorInfo.modelActive === false"
+              size="small"
+              type="danger"
+              effect="plain"
+            >已停用</el-tag>
+          </span>
           <button
             ref="mcpButtonRef"
             class="topbar-btn"
@@ -41,6 +52,13 @@
         />
       </div>
     </header>
+
+    <!-- 基础信息 / 会话列表加载失败：给一条带重试的横幅，别让页面静默地看起来像「没有数据」 -->
+    <div v-if="pageError" class="connector-error" role="alert">
+      <el-icon :size="15"><Warning24Regular /></el-icon>
+      <span class="connector-error-text">{{ pageError }}</span>
+      <button type="button" class="connector-error-retry" @click="retryLoad">重试</button>
+    </div>
 
     <!-- 主体 -->
     <div class="chat-body">
@@ -72,13 +90,22 @@
           </div>
         </div>
 
+        <LoadFailure
+          v-if="messagesError && !loadingMessages"
+          class="chat-load-failure"
+          title="消息加载失败"
+          :message="messagesError"
+          @retry="loadMessages"
+        />
         <MessageStream
+          v-else
           ref="messageStreamRef"
           :messages="messages"
           :active="!!activeChatId"
           :platform="connectorInfo.type"
           :connector-name="connectorInfo.name || '连接器'"
           :loading="loadingMessages"
+          @retry="handleRetry"
         />
 
         <MessageComposer
@@ -101,7 +128,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus';
 import { Tools } from '@element-plus/icons-vue'
 import {
-  ArrowLeft24Regular, Person24Regular, People24Regular,
+  ArrowLeft24Regular, Person24Regular, People24Regular, Warning24Regular,
 } from '@vicons/fluent'
 import {isAdmin, message} from '@repo/core'
 import { api } from '@/framework/context'
@@ -110,6 +137,7 @@ import McpSelectorPopover from '../chat/chat-input/McpSelectorPopover.vue'
 import ConversationRail from './chat/ConversationRail.vue'
 import MessageStream from './chat/MessageStream.vue'
 import MessageComposer from './chat/MessageComposer.vue'
+import LoadFailure from '@/components/ui/LoadFailure.vue'
 import { conversationTitle } from './chat/format'
 
 defineOptions({ name: 'ConnectorChatPage' })
@@ -131,6 +159,12 @@ const mcpPopoverVisible = ref(false)
 const mcpButtonRef = ref<HTMLElement | null>(null)
 const loadingConversations = ref(false)
 const loadingMessages = ref(false)
+/** 连接器基础信息加载失败：顶栏不能只显示一个「离线」，那会把接口故障说成平台掉线 */
+const connectorError = ref('')
+/** 消息列表加载失败：面板里给出原因与重试，而不是永远转圈或空白 */
+const messagesError = ref('')
+/** 会话列表加载失败：左侧栏为空时也要说清是「没有会话」还是「没拉到」 */
+const conversationsError = ref('')
 const sending = ref(false)
 const aiSending = ref(false)
 
@@ -140,35 +174,62 @@ const activeConversation = computed(() =>
   conversations.value.find(c => c.chatId === activeChatId.value),
 )
 
+/** 页面级失败（连接器信息 / 会话列表）：用一条横幅统一暴露并提供重试 */
+const pageError = computed(() => connectorError.value || conversationsError.value)
+
+function retryLoad() {
+  if (connectorError.value) loadConnectorInfo()
+  if (conversationsError.value) loadConversations()
+}
+
 const platformLabel = computed(() => {
   const map: Record<string, string> = {
-    wechat: '微信', qq: 'QQ', dingtalk: '钉钉',
-    feishu: '飞书', lark: 'Lark', telegram: 'Telegram',
+    wechat: '微信', ilink: '微信', qq: 'QQ', dingtalk: '钉钉',
+    whatsapp: 'WhatsApp', feishu: '飞书', lark: 'Lark', telegram: 'Telegram',
   }
   const t = connectorInfo.value.type
   return t ? `· ${map[t] || t}` : ''
 })
 
+/** 顶栏当前模型展示（空 = 跟随系统默认模型） */
+const connectorModelLabel = computed(() => {
+  return connectorInfo.value.modelName || '跟随系统默认模型'
+})
+
+const connectorModelTip = computed(() => {
+  const base = connectorInfo.value.modelName
+    ? `当前模型：${connectorInfo.value.modelName}`
+    : '未指定模型，跟随系统默认模型'
+  if (connectorInfo.value.modelName && connectorInfo.value.modelActive === false) {
+    return `${base}（该模型已停用，恢复前可能导致回复失败）`
+  }
+  return base
+})
+
 async function loadConnectorInfo() {
+  connectorError.value = ''
   try {
     const data = await api.get(`/connectors/${connectorId.value}`)
     connectorInfo.value = data || {}
     if (data?.mcpServerIds) selectedMcpServerIds.value = data.mcpServerIds
     if (data?.randomContextCount != null) contextCount.value = data.randomContextCount
-  } catch (e) {
+  } catch (e: any) {
+    connectorError.value = e?.response?.data?.message || e?.msg || e?.message || '连接器信息加载失败'
     console.error('加载连接器信息失败', e)
   }
 }
 
 async function loadConversations() {
   loadingConversations.value = true
+  conversationsError.value = ''
   try {
     const data = await api.get(`/connectors/${connectorId.value}/conversations`)
     conversations.value = data || []
     if (!activeChatId.value && conversations.value.length) {
       handleSelectConversation(conversations.value[0].chatId)
     }
-  } catch (e) {
+  } catch (e: any) {
+    conversationsError.value = e?.response?.data?.message || e?.msg || e?.message || '会话列表加载失败'
     console.error('加载会话列表失败', e)
   } finally {
     loadingConversations.value = false
@@ -178,13 +239,15 @@ async function loadConversations() {
 async function loadMessages() {
   if (!activeChatId.value) return
   loadingMessages.value = true
+  messagesError.value = ''
   try {
     const data = await api.get(
       `/connectors/${connectorId.value}/messages`,
       { params: { chatId: activeChatId.value } },
     )
     messages.value = data || []
-  } catch (e) {
+  } catch (e: any) {
+    messagesError.value = e?.response?.data?.message || e?.msg || e?.message || '消息加载失败'
     console.error('加载消息失败', e)
   } finally {
     loadingMessages.value = false
@@ -221,6 +284,42 @@ async function handleSend() {
   }
 }
 
+/**
+ * 重发失败消息：从消息列表中找到该消息的前一条用户消息，用相同内容重新发送。
+ *
+ * <p>用户点击失败气泡的重发按钮时，提取该消息的原始 content，重新调用 send 接口。
+ * 如果原消息不是用户消息，则给出提示。</p>
+ */
+async function handleRetry(failedMsg: any) {
+  // 找到该消息在列表中的位置
+  const idx = messages.value.findIndex((m: any) => m.id === failedMsg.id)
+  if (idx < 0) { message.error('找不到该消息'); return }
+  // 重发逻辑：取上一条用户消息的内容作为本次发送内容
+  let retryContent = ''
+  for (let i = idx - 1; i >= 0; i--) {
+    if (messages.value[i].role === 'user' && messages.value[i].content) {
+      retryContent = messages.value[i].content
+      break
+    }
+  }
+  if (!retryContent) { message.warning('无法获取原始消息内容'); return }
+  sending.value = true
+  try {
+    await api.post(`/connectors/${connectorId.value}/send`, {
+      chatId: activeChatId.value,
+      content: retryContent,
+      mcpServerIds: selectedMcpServerIds.value,
+    })
+    message.success('已重新发送')
+    await loadMessages()
+    await loadConversations()
+  } catch (e: any) {
+    message.error(e?.message || '重发失败')
+  } finally {
+    sending.value = false
+  }
+}
+
 async function handleAiSend() {
   if (!inputMessage.value.trim() || !activeChatId.value || aiSending.value) return
   aiSending.value = true
@@ -231,6 +330,11 @@ async function handleAiSend() {
       contextCount: contextCount.value,
       mcpServerIds: selectedMcpServerIds.value,
     })
+    // modelNotice：所选模型不可用、实际由备用模型生成时后端返回。
+    // sent=false 通常是目标平台不在线，与模型回退是两件事，两者独立展示。
+    if (data?.modelNotice) {
+      message.warning(data.modelNotice)
+    }
     if (data?.sent === false) {
       message.warning(data.errorMessage || data.message || 'AI 回复未能送达，对方可能暂时不可达')
     } else {
@@ -289,7 +393,7 @@ onUnmounted(() => {
 })
 </script>
 
-
+<style scoped>
 /* MCP 工具选择按钮 */
 .topbar-btn {
   position: relative;
@@ -330,7 +434,6 @@ onUnmounted(() => {
   line-height: 14px;
   text-align: center;
 }
-<style scoped>
 .connector-chat {
   height: 100%;
   display: flex;
@@ -496,5 +599,42 @@ onUnmounted(() => {
   .back-btn {
     transition: none;
   }
+}
+
+/* 页面级加载失败横幅：连接器信息 / 会话列表拉取失败时替代「看起来一切正常」的空态 */
+.connector-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--color-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-danger) 22%, transparent);
+}
+.connector-error-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.connector-error-retry {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.connector-error-retry:hover {
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+/* 消息面板内的失败占位：占据消息流的位置，不让输入框悬空 */
+.chat-load-failure {
+  flex: 1;
+  margin: 16px 24px;
 }
 </style>

@@ -32,7 +32,7 @@
                 <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.ocr.servicePort') }}</span>
                 <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.ocr.servicePortDesc') }}</span>
               </div>
-              <el-input-number v-model="settingsForm.umiPort" :min="1" :max="65535" placeholder="1224" class="shrink-0" />
+              <ReNumberSelect v-model="settingsForm.umiPort" :min="1" :max="65535" placeholder="1224" class="shrink-0" />
             </div>
           </template>
 
@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'

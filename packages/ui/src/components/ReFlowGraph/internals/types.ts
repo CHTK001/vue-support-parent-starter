@@ -115,6 +115,8 @@ export interface FlowMenuItem {
    * 与 nodeTypes 里的 type 对应，落点取右键处坐标。
    */
   addType?: string;
+  /** 二级子菜单；给了之后该项只作为展开入口，不执行 action */
+  children?: FlowMenuItem[];
   /**
    * 自定义回调；`action` 缺省时才生效。
    *

@@ -1,0 +1,49 @@
+
+/* 触发器：相对定位容器，让状态角标挂在方块按钮右上角 */
+.re-switch-popover__trigger[data-v-f07b8045] {
+  position: relative;
+  display: inline-flex;
+}
+
+/* 状态角标：与 ReSwitch layout="square" 的右上角打勾同一规格（主色圆底 + 白色对勾）。
+   刻意不加投影 —— 主色实心圆贴在方块按钮角上已经读得出来，koi 主题也主张控件不堆投影。 */
+.re-switch-popover__check[data-v-f07b8045] {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--el-color-primary, #409eff);
+  color: #fff;
+  pointer-events: none;
+}
+.re-switch-popover__check svg[data-v-f07b8045] {
+  width: 9px;
+  height: 9px;
+}
+
+/* 浮层面板：无边框，且不留内部间距。
+   gap 归零是配合「零内距」的极简语言：外壳 padding 与面板 gap 任一非零，
+   都会让浮层比内容大一圈。档位菜单自身的行高与选中底色已经撑得起可读性。
+   想要呼吸感请调 popoverPadding（作用于整块浮层，比调 gap 视觉更整）。 */
+.re-switch-popover__panel[data-v-f07b8045] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 浮层外壳：无描边 + 可配内距。
+   底色 / 投影 / 圆角继续用主题的 --bg-elevated、--shadow-lg、--el-popover-border-radius，
+   跟随主题切换，不另写一套；这里只管 border 与 padding。
+   写法与 Header/components/ReTyphoon.vue 的外壳去边一致：应用侧有通用弹层描边
+   （`.el-popper` / `.el-popper.is-light` 等多来源、特异度 ≥ (0,3,0)），只堆类名压不住，
+   必须带 !important。padding 无需 !important（本项目实测同分时本规则胜出）。
+   弹层 teleport 到 body，本段必须非 scoped。 */
+.el-popper.re-switch-popover.el-popover {
+  padding: var(--re-switch-popover-padding, 8px);
+  border: none !important;
+}

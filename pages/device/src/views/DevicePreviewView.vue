@@ -151,6 +151,7 @@
               :key="`${tile.key}-${tile.url}`"
               :url="tile.url"
               :protocol="effectiveProtocol(tile)"
+              :gateway="rtspGateway"
               :channel="tile.channel"
               muted
               autoplay
@@ -307,6 +308,7 @@ import ReTag from '@repo/ui/re-tag'
 import ReVideo from '../components/ReVideo.vue'
 import deviceApi from '../api/deviceApi'
 import type { DeviceChannel, DeviceInfo } from '../types/device'
+import { resolveRtspGateway } from '../utils/rtspGateway'
 
 /** 独立窗口形态：路由 props 注入（/device/preview/standalone） */
 const props = defineProps<{ standalone?: boolean }>()
@@ -359,6 +361,8 @@ const wall = ref<Tile[]>([])
 const keyword = ref('')
 const filters = reactive({ online: 'all' })
 const protocol = ref('hls')
+/** RTSP 网关模板：环境变量配置；未配置时 RTSP 会明确报错而不是静默失败 */
+const rtspGateway = resolveRtspGateway()
 const layout = ref('4')
 const reloading = ref(false)
 /** 左侧：完整清单 / 折叠导轨 / 完全隐藏 */

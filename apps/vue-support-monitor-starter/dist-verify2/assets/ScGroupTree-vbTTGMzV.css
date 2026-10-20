@@ -1,0 +1,243 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 本文件原先整套用 pages/server/src/styles/tokens.css 的私有令牌
+   （--border-subtle / --text-primary / --text-secondary / --text-tertiary / --bg-fill /
+   --bg-elevated，兜底还带 hex），而那份 tokens.css 只有 :root、没有暗色变体，
+   暗色模式下这些值全部停留在亮色。统一改走 EP 语义令牌。 */
+.group-tree[data-v-211d094e] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.group-layout[data-v-211d094e] {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 12px;
+  height: calc(100vh - 115px);
+}
+
+/* ReCard（koi 主题）自带 margin: 5px 6px，那是给「页面里散放卡片」留的呼吸位。
+   这两张卡是 grid 紧邻排布的，间距已由 gap 负责，再叠一层 margin 会把卡片之间
+   的实际间隔撑到 16 + 6 + 6 = 28px —— 比页面自身节奏（.sc-page 的 gap: 12px）
+   宽出一倍多，看上去就像左右被推开。所以 margin 归零，间距只听 gap 的。 */
+.tree-card[data-v-211d094e],
+.detail-card[data-v-211d094e] {
+  margin: 0;
+}
+
+/* ---- 左侧树 ---- */
+.tree-card[data-v-211d094e] {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tree-header[data-v-211d094e] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.tree-title[data-v-211d094e] {
+  font-size: 14px;
+  font-weight: 600;
+}
+.tree-search[data-v-211d094e] {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.tree-label[data-v-211d094e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.node-name[data-v-211d094e] {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+.color-dot[data-v-211d094e] {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  flex-shrink: 0;
+  /* 圆点本体的颜色由模板 :style 动态传入（分组自定义色），没法用 color-mix 跟随，
+     所以外圈光晕改用主题边框色令牌，亮暗色下都能保持一圈淡描边 */
+  box-shadow: 0 0 0 2px var(--el-border-color);
+}
+.color-dot--default[data-v-211d094e] {
+  /* 「未设置颜色」的中性灰占位 */
+  background: var(--el-text-color-placeholder);
+}
+.node-badge[data-v-211d094e] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  /* 18px 高的徽标：9px 已是胶囊圆角，统一到 full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---- 右侧详情 ---- */
+.detail-card[data-v-211d094e] {
+  padding: 0;
+  overflow: hidden;
+  overflow-y: auto;
+}
+.detail-content[data-v-211d094e] {
+  padding: 20px;
+}
+.detail-header[data-v-211d094e] {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.detail-title-area[data-v-211d094e] {
+  flex: 1;
+}
+.detail-title[data-v-211d094e] {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+.detail-desc[data-v-211d094e] {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+.detail-actions[data-v-211d094e] {
+  display: flex;
+  gap: 8px;
+}
+
+/* 统计卡片 */
+.info-grid[data-v-211d094e] {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.info-card[data-v-211d094e] {
+  background: var(--el-fill-color-lighter);
+  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  padding: 16px;
+}
+.info-label[data-v-211d094e] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+}
+.info-value[data-v-211d094e] {
+  font-size: 24px;
+  font-weight: 600;
+}
+.info-value--success[data-v-211d094e] {
+  color: var(--el-color-success);
+}
+
+/* 详情区块 */
+.detail-section[data-v-211d094e] {
+  margin-bottom: 24px;
+}
+.section-title[data-v-211d094e] {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.detail-body[data-v-211d094e] {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.detail-item[data-v-211d094e] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail-item--full[data-v-211d094e] {
+  grid-column: span 2;
+}
+.detail-label[data-v-211d094e] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.detail-value[data-v-211d094e] {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 主机列表 */
+.host-list[data-v-211d094e] {
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+}
+.host-item[data-v-211d094e] {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  transition: background-color var(--el-transition-duration-fast, 0.2s);
+}
+.host-item[data-v-211d094e]:last-child {
+  border-bottom: none;
+}
+.host-item[data-v-211d094e]:hover {
+  background: var(--el-fill-color-lighter);
+}
+.host-status[data-v-211d094e] {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  margin-right: 12px;
+}
+.host-status--online[data-v-211d094e] {
+  background: var(--el-color-success);
+}
+.host-name[data-v-211d094e] {
+  flex: 1;
+  font-size: 14px;
+}
+.host-ip[data-v-211d094e] {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  margin-right: 16px;
+}
+.host-os[data-v-211d094e] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  padding: 2px 8px;
+  border-radius: var(--el-radius-xs, 4px);
+}
+.color-field[data-v-211d094e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+.host-item[data-v-211d094e] {
+    transition: none;
+}
+}

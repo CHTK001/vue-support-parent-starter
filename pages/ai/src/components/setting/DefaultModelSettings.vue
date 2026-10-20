@@ -1,7 +1,39 @@
 <template>
   <div class="flex-1">
+    <!-- 字段搜索：几十个设置项只靠滚动找很慢，这里按标签/字段名/描述过滤 -->
+    <div class="settings-search p-4 pb-0">
+      <el-input
+        v-model="fieldSearch"
+        placeholder="搜索字段名称或描述…"
+        clearable
+        class="settings-search-input"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      <span v-if="fieldSearch" class="settings-search-count">
+        {{ searchResultCount }}/{{ displayGroups.flatMap((g) => g.items || []).length }}
+      </span>
+    </div>
+
+    <!-- 图像上色配置快捷入口：独立菜单统一管理 colorize 字段，默认模型页只做跳转 -->
+    <div v-if="!props.groups?.length" class="settings-quick px-4 pt-3 pb-1">
+      <button type="button" class="settings-quick-item" @click="$router.push('/setting/colorize-config')">
+        <span class="settings-quick-icon">
+          <el-icon :size="14"><ColorLensOutlined /></el-icon>
+        </span>
+        <span class="settings-quick-body">
+          <span class="settings-quick-title">图像上色</span>
+          <span class="settings-quick-desc">配置图像上色模型与参数，立即前往独立配置页</span>
+        </span>
+        <el-icon class="settings-quick-arrow" :size="13"><ArrowRight /></el-icon>
+      </button>
+    </div>
+
     <!-- 动态渲染所有配置分组 -->
-    <SettingsCard v-for="group in settingGroups" :key="group.group" :title="group.groupName">
+    <SettingsCard v-for="group in displayGroups" :key="group.group" :title="group.groupName"
+      v-show="!fieldSearch || groupMatchesSearch(group)">
       <!-- 模型字段：始终显示 -->
       <SettingsRow
         v-for="item in visibleFields(group)"
@@ -33,7 +65,7 @@
         <!-- STRING：枚举下拉 -->
         <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
           :model-value="getFieldValue(group.group, item.field)"
-          @update:model-value="updateFieldValue(group.group, item.field, $event)"
+          @update:model-value="updateFieldValue(group.group, item.field, $event, true)"
           class="w-full">
           <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
         </el-select>
@@ -42,14 +74,14 @@
           :model-value="getFieldValue(group.group, item.field)"
           @input="updateFieldValue(group.group, item.field, $event)" />
         <!-- NUMBER -->
-        <el-input-number v-else-if="item.valueType === 'NUMBER'"
+        <ReNumberSelect v-else-if="item.valueType === 'NUMBER'"
           :model-value="Number(getFieldValue(group.group, item.field))"
-          @change="(val) => updateFieldValue(group.group, item.field, val)"
+          @change="(val) => updateFieldValue(group.group, item.field, val, true)"
           :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
         <!-- BOOLEAN -->
         <el-switch v-else-if="item.valueType === 'BOOLEAN'"
           :model-value="getFieldValue(group.group, item.field) === 'true'"
-          @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+          @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false', true)" />
       </SettingsRow>
 
       <!-- 向量库配置：仅 RAG 组 + 管理员（描述器驱动的动态表单，保存到全局层）。
@@ -91,7 +123,7 @@
               type="password" show-password clearable
               :placeholder="secretPlaceholder(field)" />
             <!-- 数字 -->
-            <el-input-number v-else-if="field.type === 'NUMBER'"
+            <ReNumberSelect v-else-if="field.type === 'NUMBER'"
               v-model="vectorFormValues[field.key]" class="w-full" />
             <!-- 开关 -->
             <el-switch v-else-if="field.type === 'BOOLEAN'"
@@ -135,7 +167,7 @@
             <!-- usage_sync_providers 多选 -->
             <el-select v-if="item.field === 'usage_sync_providers'"
               :model-value="getFieldValue(group.group, item.field) ? getFieldValue(group.group, item.field).split(',') : []"
-              @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','))"
+              @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','), true)"
               multiple clearable placeholder="留空=全部启用" class="w-full">
               <el-option v-for="parser in usageParsers" :key="parser.name" :label="parser.name" :value="parser.name" />
             </el-select>
@@ -147,7 +179,7 @@
             <!-- 枚举下拉 -->
             <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
               :model-value="getFieldValue(group.group, item.field)"
-              @update:model-value="updateFieldValue(group.group, item.field, $event)"
+              @update:model-value="updateFieldValue(group.group, item.field, $event, true)"
               class="w-full">
               <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
             </el-select>
@@ -156,14 +188,14 @@
               :model-value="getFieldValue(group.group, item.field)"
               @input="updateFieldValue(group.group, item.field, $event)" />
             <!-- NUMBER -->
-            <el-input-number v-else-if="item.valueType === 'NUMBER'"
+            <ReNumberSelect v-else-if="item.valueType === 'NUMBER'"
               :model-value="Number(getFieldValue(group.group, item.field))"
-              @change="(val) => updateFieldValue(group.group, item.field, val)"
+              @change="(val) => updateFieldValue(group.group, item.field, val, true)"
               :step="numberStep(group.group, item.field)" :precision="numberPrecision(group.group, item.field)" class="w-full" />
             <!-- BOOLEAN -->
             <el-switch v-else-if="item.valueType === 'BOOLEAN'"
               :model-value="getFieldValue(group.group, item.field) === 'true'"
-              @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+              @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false', true)" />
           </SettingsRow>
         </el-collapse-item>
       </el-collapse>
@@ -218,13 +250,14 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { OpenAI } from "@/components/icons";
-import { ArrowDown, Search } from "@element-plus/icons-vue";
-import { CheckCircleFilled } from "@vicons/material";
+import { ArrowDown, ArrowRight, Search } from "@element-plus/icons-vue";
+import { CheckCircleFilled, ColorLensOutlined } from "@vicons/material";
 
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
@@ -258,8 +291,28 @@ const { notify } = usePopup()
  */
 const modelConfig = useModelConfigStore()
 
+/** 拆分菜单复用本组件时传入要渲染的分组；不传则默认模型页隐藏已拆分组 */
+const props = defineProps({
+  groups: {
+    type: Array,
+    default: () => [],
+  },
+})
+
+/** 从默认模型页拆出的独立配置分组：仍在默认模型组件内渲染会重复铺开，这里统一过滤 */
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language']
+
 // 配置分组定义
 const settingGroups = ref([])
+
+/** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
+const displayGroups = computed(() => {
+  const all = settingGroups.value
+  if (!props?.groups?.length) {
+    return all.filter((g) => !SPLIT_GROUPS.includes(g.group))
+  }
+  return all.filter((g) => props.groups.includes(g.group))
+})
 
 // 各分组的实际值
 const groupValues = reactive({})
@@ -399,9 +452,25 @@ const currentDialogField = ref('')
  */
 const notAdminOnly = (item) => !(item && item.adminOnly === true && !isAdmin())
 
+/** 设置字段搜索关键词（同时命中中文标签 / 英文 field / 描述） */
+const fieldSearch = ref('')
+
+const matchesFieldSearch = (group, item) => {
+  const kw = fieldSearch.value.trim().toLowerCase()
+  if (!kw) return true
+  const label = getFieldLabel(item) || ''
+  const desc = item.description || ''
+  const field = item.field || ''
+  return (
+    label.toLowerCase().includes(kw) ||
+    field.toLowerCase().includes(kw) ||
+    desc.toLowerCase().includes(kw)
+  )
+}
+
 const modelFields = (group) =>
     (group.items || []).filter(item =>
-        notAdminOnly(item) && isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
+        notAdminOnly(item) && isModelField(group.group, item.field) && shouldShowField(group.group, item.field) && matchesFieldSearch(group, item))
 
 /**
  * 是否属于「该直接显示、但不是选模型」的字段。
@@ -419,7 +488,7 @@ const isPlainVisibleField = (group, field) =>
 /** 始终显示且不是选模型的字段 */
 const plainVisibleFields = (group) =>
     (group.items || []).filter(item =>
-        notAdminOnly(item) && !isModelField(group.group, item.field) && isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
+        notAdminOnly(item) && !isModelField(group.group, item.field) && isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field) && matchesFieldSearch(group, item))
 
 /**
  * 该分组是否存在「始终显示」区域。
@@ -442,16 +511,29 @@ const visibleFields = (group) => {
     const always = [...modelFields(group), ...plainVisibleFields(group)]
     if (always.length > 0) return always
     return (group.items || []).filter(item =>
-        notAdminOnly(item) && shouldShowField(group.group, item.field))
+        notAdminOnly(item) && shouldShowField(group.group, item.field) && matchesFieldSearch(group, item))
 }
 
 const advancedFields = (group) => {
     // 该分组没有常驻字段时，visibleFields 已平铺全部字段，折叠区必须为空，
     // 否则同一批字段会渲染两遍
     if (!groupHasAlwaysVisibleFields(group)) return []
+    // 同样应用字段搜索：搜到才显示，避免折叠区里还留着不匹配的成排字段
     return (group.items || []).filter(item =>
-        notAdminOnly(item) && !isModelField(group.group, item.field) && !isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
+        notAdminOnly(item) && !isModelField(group.group, item.field) && !isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field) && matchesFieldSearch(group, item))
 }
+
+/** 搜索时判断分组内是否还有匹配字段 */
+const groupMatchesSearch = (group) => {
+    if (!fieldSearch.value) return true
+    return visibleFields(group).length > 0 || advancedFields(group).length > 0
+}
+
+/** 搜索命中的字段总数（用于顶部计数） */
+const searchResultCount = computed(() => {
+    if (!fieldSearch.value) return displayGroups.value.flatMap((g) => g.items || []).length
+    return displayGroups.value.reduce((acc, g) => acc + visibleFields(g).length + advancedFields(g).length, 0)
+})
 
 // ===================== 模型类型体系 =====================
 // 规范类型中文标签
@@ -736,6 +818,7 @@ const getFieldLabel = (item) => {
             'rag_embedding_model': 'Embedding引擎',
             'rag_llm_model': 'LLM模型',
             'image_model': '文生图模型',
+            'colorize_model': '图像上色模型',
             'video_model': '文生视频模型',
             'media_base_path': '生成文件根目录',
             'media_upload_dir': '上传目录名',
@@ -982,6 +1065,11 @@ const shouldShowField = (group, field) => {
     if (ENGINE_FIELDS.includes(field)) {
         return false
     }
+    // 图像上色配置走「系统设置 → 默认模型 → 图像上色配置」独立菜单，
+    // 避免在默认模型页再次渲染同组 colorize_*，两处同时编辑会互相覆盖。
+    if (group === 'image' && String(field || '').startsWith('colorize_')) {
+        return false
+    }
     // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），
     // 这里隐藏通用行，避免出现双入口（下拉值与动态表单各自保存会互相打架）
     if (group === 'rag' && field === 'rag_vector_storage') {
@@ -1093,8 +1181,57 @@ const getFieldModelLogo = (group, field) => {
 // 取弹框模型行的提供商 logo
 const getModelRowLogo = (model) => getModelAvatarPath(model?.model || '')
 
-// 更新字段值
-const updateFieldValue = (group, field, value) => {
+/* ==================== 自动保存：防抖 + 串行 + 提示去重 ====================
+ *
+ * 这些字段没有「保存」按钮，改完即存。原实现每敲一个字符就发一次 PUT，
+ * 成功后又弹一次提示并整组重拉：打字快时既刷接口，又会被重拉结果覆盖掉后几个字符。
+ * 现在文本输入停顿 600ms 才写；同一分组永远串行；请求期间的新改动不会被旧快照覆盖。
+ */
+
+/** 每个分组待触发的防抖定时器 */
+const saveTimers = {}
+/** 每个分组一条保存链：保证同一分组的 PUT 按发起顺序串行执行 */
+const saveChains = {}
+/** 上一次「设置已保存」的时间：连续输入时不要连弹提示 */
+let lastSavedAt = 0
+
+/** 把一次保存排进分组队列 */
+const enqueueGroupSave = (group) => {
+    saveChains[group] = (saveChains[group] || Promise.resolve())
+        .then(() => saveGroupSettings(group))
+        // 失败已在 saveGroupSettings 内提示，这里只防止链条中断
+        .catch(() => {})
+}
+
+/** 离散选择（下拉/开关/数字/模型选择）：立刻写，不必等停顿 */
+const flushGroupSave = (group) => {
+    if (saveTimers[group]) {
+        clearTimeout(saveTimers[group])
+        saveTimers[group] = null
+    }
+    enqueueGroupSave(group)
+}
+
+/** 连续输入：停顿 600ms 再写一次 */
+const scheduleGroupSave = (group) => {
+    if (saveTimers[group]) {
+        clearTimeout(saveTimers[group])
+    }
+    saveTimers[group] = setTimeout(() => {
+        saveTimers[group] = null
+        enqueueGroupSave(group)
+    }, 600)
+}
+
+/**
+ * 更新字段值并安排自动保存。
+ *
+ * @param group 配置分组
+ * @param field 字段名
+ * @param value 新值
+ * @param immediate 是否立即保存（离散选择传 true，文本输入走防抖）
+ */
+const updateFieldValue = (group, field, value, immediate = false) => {
     if (!groupValues[group]) {
         groupValues[group] = {}
     }
@@ -1108,8 +1245,8 @@ const updateFieldValue = (group, field, value) => {
         dirtyFields[group] = new Set()
     }
     dirtyFields[group].add(field)
-    // 自动保存
-    saveGroupSettings(group)
+    if (immediate) flushGroupSave(group)
+    else scheduleGroupSave(group)
 }
 
 // 打开模型对话框
@@ -1129,7 +1266,7 @@ const openModelDialog = async (group, field) => {
 // 选择模型
 const selectModel = (modelId) => {
     if (!modelId) return
-    updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId)
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId, true)
     modelDialogVisible.value = false
 }
 
@@ -1142,7 +1279,7 @@ const selectModel = (modelId) => {
  */
 const clearModelField = () => {
     if (!currentDialogGroup.value || !currentDialogField.value) return
-    updateFieldValue(currentDialogGroup.value, currentDialogField.value, '')
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, '', true)
     modelDialogVisible.value = false
 }
 
@@ -1314,7 +1451,10 @@ const loadModels = () => {
 const loadSettingDefinitions = async () => {
     try {
         const response = await apiService._request("/global-setting-definitions")
-        settingGroups.value = pickGroups(response)
+        // 「会话」与「对话路由」已在「系统设置 → 会话配置」中统一维护，
+        // 这里不再重复渲染，避免同项两个入口、改哪边都不直观。
+        const groups = pickGroups(response)
+        settingGroups.value = groups.filter((g) => !['session', 'runtime'].includes(g.group))
     } catch (error) {
         console.error('获取配置定义失败:', error)
         notify.error('加载配置定义失败', error)
@@ -1402,6 +1542,8 @@ const mergeValueOnlyModelFields = (group, values) => {
 
 // 加载某个分组对当前用户生效的值（全局默认 + 本人覆盖）
 const loadGroupValues = async (group) => {
+    // 快照当前界面值：请求期间用户可能继续输入，回来时不能拿服务端的旧值盖掉
+    const valueSnapshot = { ...(groupValues[group] || {}) }
     try {
         const response = await apiService.fetchMergedGroupSettings(group)
         const items = response?.data ?? response ?? []
@@ -1435,9 +1577,15 @@ const loadGroupValues = async (group) => {
                 }
             })
         }
+        // 请求期间仍有待保存改动的字段：保留用户输入与 dirty 标记，
+        // 否则一次「保存后重拉」就会把用户刚敲的字和待提交状态一起清掉。
+        const pending = dirtyFields[group] instanceof Set ? dirtyFields[group] : new Set()
+        pending.forEach((field) => {
+            if (field in valueSnapshot) values[field] = valueSnapshot[field]
+        })
         groupValues[group] = values
         fieldMeta[group] = meta
-        dirtyFields[group] = new Set()
+        dirtyFields[group] = pending
         // 定义滞后兜底（幂等：字段已在定义中时不重复 push）
         mergeValueOnlyModelFields(group, values)
     } catch (error) {
@@ -1452,15 +1600,34 @@ const saveGroupSettings = async (group) => {
         return
     }
     const payload = {}
+    // 快照本次提交的值：请求期间用户继续输入时，要能分辨哪些字段已经变了
+    const sentValues = {}
     for (const field of dirty) {
         const value = groupValues[group]?.[field]
+        sentValues[field] = value
         // 空值 = 重置：值传 null，由后端撤销本人覆盖（回落到继承值），
         // 而不是把空串写进全局层 —— 那正是以前「重置不成空」的原因
         payload[field] = value === '' || value === null || value === undefined ? null : value
     }
     try {
         await apiService.updateUserGroupOverrides(group, payload)
-        notify.success('设置已保存')
+        // 只清掉「值没再变过」的字段；请求期间的新输入留在 dirty 里，稍后续存
+        for (const field of Object.keys(sentValues)) {
+            if (groupValues[group]?.[field] === sentValues[field]) {
+                dirty.delete(field)
+            }
+        }
+        // 连续输入时每次成功都弹提示会很吵：1.5 秒内只提示一次
+        const now = Date.now()
+        if (now - lastSavedAt > 1500) {
+            notify.success('设置已保存')
+            lastSavedAt = now
+        }
+        if (dirty.size > 0) {
+            // 请求期间又有改动：立刻续存，不必再等一次防抖
+            enqueueGroupSave(group)
+            return
+        }
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)
         // 这三个分组的模型是人脸识别 / 以图搜图的门禁判据，保存后即时刷新，
@@ -1474,9 +1641,9 @@ const saveGroupSettings = async (group) => {
     }
 }
 
-// 加载所有分组的值
+// 加载所有分组的值（只加载默认模型页实际展示的分组）
 const loadAllGroupValues = async () => {
-    for (const group of settingGroups.value) {
+    for (const group of displayGroups.value) {
         await loadGroupValues(group.group)
     }
 }

@@ -1,0 +1,378 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.otp-input[data-v-e4532815] {
+  width: 100%;
+}
+.otp-input--disabled[data-v-e4532815] {
+  opacity: 0.6;
+}
+.otp-input-cells[data-v-e4532815] {
+  display: flex;
+  gap: 10px;
+}
+.otp-cell[data-v-e4532815] {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.otp-cell--filled[data-v-e4532815] {
+  border-color: var(--el-border-color);
+}
+.otp-cell--focused[data-v-e4532815] {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.12);
+}
+.otp-cell[data-v-e4532815]::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.otp-dialog[data-v-ebb5d260] .el-dialog {
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+.otp-dialog[data-v-ebb5d260] .el-dialog__header {
+  padding: 20px 24px 0;
+  margin-right: 0;
+}
+.otp-dialog[data-v-ebb5d260] .el-dialog__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.otp-dialog[data-v-ebb5d260] .el-dialog__body {
+  padding: 8px 24px 24px;
+}
+.otp-dialog-content[data-v-ebb5d260] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.otp-dialog-icon[data-v-ebb5d260] {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+.otp-dialog-desc[data-v-ebb5d260] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+.otp-dialog-cells-wrap[data-v-ebb5d260] {
+  width: 100%;
+}
+.otp-dialog-footer[data-v-ebb5d260] {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+}
+.otp-cancel-text[data-v-ebb5d260] {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s;
+}
+.otp-cancel-text[data-v-ebb5d260]:hover {
+  color: var(--el-text-color-primary);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.slider-verify[data-v-bfcf28e5] {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.slider-verify--disabled[data-v-bfcf28e5] {
+  pointer-events: none;
+  opacity: 0.6;
+}
+.slider-verify-track[data-v-bfcf28e5] {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+}
+.slider-verify--dragging .slider-verify-track[data-v-bfcf28e5] {
+  cursor: grabbing;
+}
+.slider-verify-bg[data-v-bfcf28e5] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(var(--el-color-primary-rgb), 0.12);
+  border-radius: 10px;
+  pointer-events: none;
+  will-change: transform;
+}
+.slider-verify-text[data-v-bfcf28e5] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  pointer-events: none;
+}
+.slider-verify-text--success[data-v-bfcf28e5] {
+  color: var(--el-color-success);
+}
+.slider-verify-thumb[data-v-bfcf28e5] {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 34px;
+  color: var(--el-color-primary);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: grab;
+  will-change: transform;
+  transition: transform 0.2s ease;
+}
+.slider-verify-thumb[data-v-bfcf28e5]:active {
+  cursor: grabbing;
+}
+.slider-verify-thumb--success[data-v-bfcf28e5] {
+  color: #fff;
+  background: var(--el-color-success);
+  border-color: var(--el-color-success);
+}
+.slider-verify--dragging .slider-verify-thumb[data-v-bfcf28e5] {
+  transition: none;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
+}
+.third-login[data-v-64dad303] {
+  margin-top: 16px;
+}
+.third-login__divider[data-v-64dad303] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.third-login__line[data-v-64dad303] {
+  flex: 1;
+  height: 1px;
+  background: var(--el-border-color-lighter);
+}
+.third-login__text[data-v-64dad303] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.third-login__list[data-v-64dad303] {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.third-login__abbr[data-v-64dad303] {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.login-form[data-v-88b5e0ad] {
+  width: 100%;
+}
+.login-input[data-v-88b5e0ad] .el-input__wrapper {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-fill-color-blank);
+  box-shadow: none;
+  transition: all 0.3s;
+}
+.login-input[data-v-88b5e0ad] .el-input__wrapper:hover, .login-input[data-v-88b5e0ad] .el-input__wrapper.is-focus {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+}
+.login-form[data-v-88b5e0ad] .el-form-item.is-error .el-input__wrapper {
+  border-color: color-mix(in srgb, var(--el-color-danger) 65%, var(--el-border-color));
+  box-shadow: none;
+}
+.login-form[data-v-88b5e0ad] .el-form-item.is-error .el-input__wrapper:hover, .login-form[data-v-88b5e0ad] .el-form-item.is-error .el-input__wrapper.is-focus {
+  border-color: var(--el-color-danger);
+  box-shadow: none;
+}
+.login-verify-img[data-v-88b5e0ad] {
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+.login-verify-img[data-v-88b5e0ad]:hover {
+  border-color: var(--el-color-primary) !important;
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  transform: scale(1.02);
+}
+.login-verify-tip-img[data-v-88b5e0ad] {
+  width: 240px;
+  height: 72px;
+  border-radius: 8px;
+}
+.login-btn[data-v-88b5e0ad] {
+  height: 44px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  /* 登录页主按钮固定跟随主题主色（--el-color-primary）。
+     应用级 telemetry.css 会给 .el-button--primary 上自定义品牌渐变（--brand-gradient），
+     这里用高特异度 + !important 覆盖，保证登录页是主色纯蓝而不是品牌紫。 */
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(var(--el-color-primary-rgb), 0.35);
+  transition: all 0.3s;
+}
+.login-btn[data-v-88b5e0ad]:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%) !important;
+  box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.45);
+}
+.login-btn[data-v-88b5e0ad]:active {
+  transform: translateY(0);
+}
+.login-mobile-brand[data-v-88b5e0ad] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.login-logo-wrap[data-v-88b5e0ad] {
+  flex-shrink: 0;
+  overflow: hidden;
+  line-height: 0;
+}
+.login-logo-wrap--mobile[data-v-88b5e0ad] {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 10px rgba(var(--el-color-primary-rgb), 0.14);
+}
+.login-logo[data-v-88b5e0ad] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+/* 系统不可用（default 配置加载失败） */
+.login-system-error[data-v-88b5e0ad] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  min-height: 320px;
+  padding: 40px 24px;
+  text-align: center;
+}
+.system-error-icon[data-v-88b5e0ad] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 24px;
+  color: var(--el-color-warning);
+  background: rgba(var(--el-color-warning-rgb), 0.1);
+  border-radius: 50%;
+  animation: system-error-breathe-88b5e0ad 2.4s ease-in-out infinite;
+}
+.system-error-icon[data-v-88b5e0ad]::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  border: 1.5px solid rgba(var(--el-color-warning-rgb), 0.25);
+  border-radius: 50%;
+  animation: system-error-ping-88b5e0ad 2.4s ease-in-out infinite;
+}
+.system-error-icon .el-icon[data-v-88b5e0ad] {
+  position: relative;
+  z-index: 1;
+}
+@keyframes system-error-breathe-88b5e0ad {
+0%, 100% {
+    transform: scale(1);
+}
+50% {
+    transform: scale(1.04);
+}
+}
+@keyframes system-error-ping-88b5e0ad {
+0% {
+    transform: scale(1);
+    opacity: 0.6;
+}
+70%, 100% {
+    transform: scale(1.25);
+    opacity: 0;
+}
+}
+.system-error-title[data-v-88b5e0ad] {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--el-text-color-primary);
+}
+.system-error-desc[data-v-88b5e0ad] {
+  margin: 0 0 28px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.login-system-error[data-v-88b5e0ad] .el-button {
+  min-width: 120px;
+  border-radius: var(--el-border-radius-base);
+  font-weight: 500;
+  letter-spacing: 1px;
+}

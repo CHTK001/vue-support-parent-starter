@@ -419,6 +419,7 @@ import {
 import {
   fetchHostFiles,
   fetchHostProfileSection,
+  sectionRows,
   readHostFileContent,
   writeHostFileContent,
   mkdirHostFile,
@@ -719,7 +720,7 @@ function driveRoot(d: any): string {
 }
 async function loadDrives() {
   try {
-    drives.value = await fetchHostProfileSection(props.hostId, "disks");
+    drives.value = await sectionRows(await fetchHostProfileSection(props.hostId, "disks"));
   } catch {
     drives.value = [];
   }

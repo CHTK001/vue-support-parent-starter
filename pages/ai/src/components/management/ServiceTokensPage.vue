@@ -88,11 +88,11 @@
           />
         </el-form-item>
         <el-form-item label="最大请求次数">
-          <el-input-number v-model="form.maxRequests" :min="0" :step="100" />
+          <ReNumberSelect v-model="form.maxRequests" :min="0" :step="100" />
           <span class="hint">0 表示不限</span>
         </el-form-item>
         <el-form-item label="最大 Token 数">
-          <el-input-number v-model="form.maxTokens" :min="0" :step="10000" />
+          <ReNumberSelect v-model="form.maxTokens" :min="0" :step="10000" />
           <span class="hint">0 表示不限</span>
         </el-form-item>
       </el-form>
@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

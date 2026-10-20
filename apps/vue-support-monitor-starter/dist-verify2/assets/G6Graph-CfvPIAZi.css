@@ -1,0 +1,483 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.rrg[data-v-63784a25] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  background: var(--el-bg-color, #fff);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 地图式浮岛工具栏：半透明毛玻璃底 + 圆角 + 投影，所有控件收进一颗"悬浮药丸"。
+   收缩后除收缩钮外的控件全部 display:none，整条收成角上一颗圆钮（见下方 is-collapsed）。 */
+.rrg__toolbar[data-v-63784a25] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  padding: 4px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 10px;
+  /* 半透明毛玻璃底：color-mix 从主题底色调出 82% 不透明度，配合 blur 透出画布；
+     不支持 color-mix 的浏览器回落为上一行的不透明白，观感仍是浮岛药丸。 */
+  background: var(--el-bg-color-overlay, #fff);
+  background: color-mix(in srgb, var(--el-bg-color-overlay, #fff) 82%, transparent);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow 0.25s ease, padding 0.25s ease;
+}
+
+/* 收缩态：只留收缩钮，其余控件收起（display:none 不占位、不进 tab 序） */
+.rrg__toolbar.is-collapsed[data-v-63784a25] {
+  padding: 3px;
+}
+.rrg__toolbar.is-collapsed[data-v-63784a25] > *:not(.rrg__toolbar-collapse) {
+  display: none;
+}
+
+/* 收缩开关：圆形图标钮，箭头随状态旋转 180° */
+.rrg__toolbar-collapse[data-v-63784a25] {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-regular, #475569);
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.18s ease;
+}
+.rrg__toolbar-collapse[data-v-63784a25]:hover {
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-fill-color-light, #f1f5f9);
+  transform: translateY(-1px);
+}
+.rrg__toolbar-collapse[data-v-63784a25]:active {
+  transform: translateY(0);
+  transition-duration: 0.06s;
+}
+.rrg__toolbar-collapse[data-v-63784a25]:focus-visible {
+  outline: 2px solid var(--el-color-primary, #409eff);
+  outline-offset: 1px;
+}
+.rrg__toolbar-collapse svg[data-v-63784a25] {
+  transition: transform 0.25s ease;
+}
+.rrg__toolbar-collapse.is-collapsed svg[data-v-63784a25] {
+  transform: rotate(180deg);
+}
+
+/* 折叠后只剩这一颗钮：主色填充 + 白箭头，明确提示"可点击展开" */
+.rrg__toolbar.is-collapsed .rrg__toolbar-collapse[data-v-63784a25] {
+  color: #fff;
+  background: var(--el-color-primary, #409eff);
+}
+.rrg__toolbar.is-collapsed .rrg__toolbar-collapse[data-v-63784a25]:hover {
+  color: #fff;
+  background: var(--el-color-primary-light-3, #79bbff);
+}
+
+/* 工具栏定位：地图式工具条支持四角与顶部居中 */
+.rrg__toolbar--top-left[data-v-63784a25] {
+  top: 12px;
+  left: 12px;
+  right: auto;
+  justify-content: flex-start;
+}
+.rrg__toolbar--bottom-left[data-v-63784a25] {
+  top: auto;
+  right: auto;
+  left: 12px;
+  bottom: 12px;
+  justify-content: flex-start;
+}
+.rrg__toolbar--bottom-right[data-v-63784a25] {
+  top: auto;
+  right: 12px;
+  bottom: 12px;
+  justify-content: flex-end;
+}
+.rrg__toolbar--top-center[data-v-63784a25] {
+  top: 12px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  justify-content: center;
+}
+
+/* 节点详情面板 */
+.rrg__detail[data-v-63784a25] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay, #fff);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+  font-size: 12px;
+  color: var(--el-text-color-primary, #0f172a);
+}
+.rrg__detail-head[data-v-63784a25] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rrg__detail-title[data-v-63784a25] {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-primary, #0f172a);
+}
+.rrg__detail-close[data-v-63784a25] {
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-secondary, #94a3b8);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+.rrg__detail-close[data-v-63784a25]:hover {
+  color: var(--el-color-primary, #3b82f6);
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+.rrg__detail-body[data-v-63784a25] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rrg__detail-row[data-v-63784a25] {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.rrg__detail-key[data-v-63784a25] {
+  color: var(--el-text-color-secondary, #64748b);
+  white-space: nowrap;
+}
+.rrg__detail-value[data-v-63784a25] {
+  color: var(--el-text-color-primary, #0f172a);
+  word-break: break-word;
+}
+
+/* 右键菜单图标与禁用态 */
+.rrg__menu-item[data-v-63784a25] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rrg__menu-item.is-disabled[data-v-63784a25] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 布局调参面板：浮在画布右上角，独立于工具栏，toolbar=false 时同样可用 */
+.rrg__tuning[data-v-63784a25] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay, #fff);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+  font-size: 12px;
+  color: var(--el-text-color-primary, #0f172a);
+}
+.rrg__tuning-head[data-v-63784a25] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rrg__tuning-title[data-v-63784a25] {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-primary, #0f172a);
+}
+.rrg__tuning-close[data-v-63784a25] {
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-secondary, #94a3b8);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+.rrg__tuning-close[data-v-63784a25]:hover {
+  color: var(--el-color-primary, #3b82f6);
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+.rrg__tuning-close[data-v-63784a25]:focus-visible {
+  outline: 2px solid var(--el-color-primary, #3b82f6);
+  outline-offset: 1px;
+}
+.rrg__tuning-tip[data-v-63784a25] {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary, #64748b);
+}
+
+/* label / 控件 / 数值 / 重置 四列网格，控件行与滑块行对齐 */
+.rrg__tuning-row[data-v-63784a25] {
+  display: grid;
+  grid-template-columns: 62px 1fr auto 24px;
+  align-items: center;
+  gap: 8px;
+}
+.rrg__tuning-label[data-v-63784a25] {
+  white-space: nowrap;
+  color: var(--el-text-color-regular, #475569);
+}
+
+/* 滑块：accent-color 跟随主题色，避免为原生控件写整套暗色样式 */
+.rrg__tuning-range[data-v-63784a25] {
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--el-color-primary, #3b82f6);
+  cursor: pointer;
+}
+.rrg__tuning-range[data-v-63784a25]:focus-visible {
+  outline: 2px solid var(--el-color-primary, #3b82f6);
+  outline-offset: 2px;
+}
+.rrg__tuning-value[data-v-63784a25] {
+  min-width: 34px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--el-text-color-primary, #0f172a);
+}
+.rrg__tuning-reset[data-v-63784a25] {
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-placeholder, #94a3b8);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+.rrg__tuning-reset[data-v-63784a25]:hover {
+  color: var(--el-color-primary, #3b82f6);
+  background: var(--el-fill-color-light, #f1f5f9);
+}
+.rrg__tuning-reset[data-v-63784a25]:hover {
+  color: var(--el-color-primary, #3b82f6);
+}
+.rrg__tuning-reset[data-v-63784a25]:focus-visible {
+  outline: 2px solid var(--el-color-primary, #3b82f6);
+  outline-offset: 1px;
+}
+.rrg__tuning-toggle[data-v-63784a25] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--el-text-color-regular, #475569);
+  cursor: pointer;
+}
+.rrg__tuning-actions[data-v-63784a25] {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* ReSelect / ReInput 的根节点带上的是子组件自己的 scope 标记，
+   普通 scoped 选择器打不中；用 :deep 强制宽度，避免两个控件在悬浮工具栏里各占满一行。 */
+.rrg__toolbar[data-v-63784a25] .rrg__layout {
+  width: 132px;
+}
+.rrg__toolbar[data-v-63784a25] .rrg__search {
+  width: 132px;
+}
+
+/* Element Plus 给相邻按钮加 margin-left:12px，和 flex gap 会叠加成 18px 并挤出一行；
+   悬浮工具栏统一交给 gap 控制间距。 */
+.rrg__toolbar[data-v-63784a25] .el-button + .el-button {
+  margin-left: 0;
+}
+
+/* 按钮微交互（对齐地图工具栏质感）：hover 轻微抬升、按下快速回落 */
+.rrg__toolbar[data-v-63784a25] .el-button {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.rrg__toolbar[data-v-63784a25] .el-button:hover:not(:disabled):not(.is-loading) {
+  transform: translateY(-1px);
+}
+.rrg__toolbar[data-v-63784a25] .el-button:active:not(:disabled):not(.is-loading) {
+  transform: translateY(0);
+  transition-duration: 0.06s;
+}
+
+/* 激活(primary)态柔和脉冲：提示"该模式已开启"，仅作强调不改变布局 */
+.rrg__toolbar[data-v-63784a25] .el-button--primary:not(:disabled) {
+  animation: rrg-toolbar-pulse-63784a25 3s ease-out infinite;
+}
+@keyframes rrg-toolbar-pulse-63784a25 {
+0% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.18);
+}
+70% {
+    box-shadow: 0 0 0 4px rgba(64, 158, 255, 0);
+}
+100% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0);
+}
+}
+/* 减少动态偏好：关掉脉冲与箭头旋转 */
+@media (prefers-reduced-motion: reduce) {
+.rrg__toolbar[data-v-63784a25] .el-button--primary:not(:disabled) {
+    animation: none;
+}
+.rrg__toolbar-collapse svg[data-v-63784a25] {
+    transition: none;
+}
+}
+/* 工具栏键盘可达：给可聚焦控件一个清晰的 focus ring */
+.rrg__toolbar[data-v-63784a25] button:focus-visible,
+.rrg__toolbar[data-v-63784a25] input:focus-visible {
+  outline: 2px solid var(--el-color-primary, #409eff);
+  outline-offset: 1px;
+}
+.rrg__canvas[data-v-63784a25]:focus-visible {
+  outline: 2px solid var(--el-color-primary, #409eff);
+  outline-offset: -2px;
+}
+
+/* 节点内容插槽（G6 html 节点）：
+   G6 把外层 div 的左上角定位到节点坐标（原点），并给它设置 transform(视口+节点)；
+   我们的插槽容器作为其子元素，用 -50% 偏移把内容盒中心对齐到节点坐标。 */
+.rrg__node-content[data-v-63784a25] {
+  position: absolute;
+  left: -50%;
+  top: -50%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 12px;
+  color: var(--el-text-color-primary, #303133);
+  pointer-events: auto;
+  user-select: none;
+}
+.rrg__node-content--plain[data-v-63784a25] {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  white-space: nowrap;
+}
+.rrg__canvas[data-v-63784a25] {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.rrg__g6[data-v-63784a25] {
+  width: 100%;
+  height: 100%;
+}
+
+/* 3D 模式下隐藏 2D 层：用 visibility 而非 display:none ——
+   G6 的 autoResize 观察容器尺寸，display:none 会量到 0×0 把画布搞花，
+   visibility:hidden 保留布局尺寸，切回 2D 无需重建实例。pointer-events 由 hidden 自动断开。 */
+.rrg__g6.is-hidden[data-v-63784a25] {
+  visibility: hidden;
+}
+.rrg__empty[data-v-63784a25] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-placeholder, #a8abb2);
+  font-size: 13px;
+  pointer-events: none;
+}
+.rrg__tip[data-v-63784a25] {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  box-shadow: var(--el-box-shadow-light, 0 0 12px rgba(0, 0, 0, 0.12));
+  font-size: 12px;
+  color: var(--el-text-color-primary, #303133);
+  pointer-events: none;
+}
+.rrg__tip-title[data-v-63784a25] {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.rrg__tip-row[data-v-63784a25] {
+  color: var(--el-text-color-regular, #606266);
+}
+.rrg__menu[data-v-63784a25] {
+  position: fixed;
+  z-index: 3000;
+  min-width: 148px;
+  padding: 4px;
+  border-radius: 6px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  box-shadow: var(--el-box-shadow-light, 0 0 12px rgba(0, 0, 0, 0.12));
+  font-size: 13px;
+}
+.rrg__menu-item[data-v-63784a25] {
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--el-text-color-regular, #606266);
+}
+.rrg__menu-item[data-v-63784a25]:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-color-primary, #2992ff);
+}
+.rrg__menu-item.is-danger[data-v-63784a25]:hover {
+  background: var(--el-color-danger-light-9, #fef0f0);
+  color: var(--el-color-danger, #f56c6c);
+}

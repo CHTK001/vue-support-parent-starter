@@ -1,0 +1,21 @@
+
+.re-icon[data-v-3c5f552b] {
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+  outline: none;
+}
+/* 动画图标容器：尺寸由 ReIcon 的 size 决定，内部 svg 跟随；居中避免基线偏移 */
+.re-icon__anim[data-v-3c5f552b] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.re-icon__placeholder[data-v-3c5f552b],
+.re-icon__iconify-placeholder[data-v-3c5f552b] {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1em;
+}

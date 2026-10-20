@@ -1,0 +1,36 @@
+
+.re-dialog__close-fab[data-v-805472ba] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--el-bg-color, #ffffff);
+  box-shadow:
+    0 0 0 1px var(--el-border-color-lighter, rgba(0, 0, 0, 0.06));
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  outline: none;
+  padding: 0;
+}
+.re-dialog__close-fab[data-v-805472ba]:hover {
+  background: var(--el-color-danger, #f56c6c);
+  color: #fff;
+  transform: rotate(90deg) scale(1.08);
+  box-shadow: none;
+}
+.re-dialog__close-fab[data-v-805472ba]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.4);
+}
+.re-dialog__close-fab[data-v-805472ba]:active {
+  transform: rotate(90deg) scale(0.95);
+}
+@media (prefers-reduced-motion: reduce) {
+.re-dialog__close-fab[data-v-805472ba]:hover {
+    transform: scale(1.08);
+}
+}

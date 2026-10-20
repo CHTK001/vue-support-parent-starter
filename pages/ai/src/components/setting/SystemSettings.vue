@@ -77,6 +77,30 @@
                         <template v-else-if="currentTabValue === 'default-models'">
                             <DefaultModelSettings />
                         </template>
+                        <template v-else-if="currentTabValue === 'face-config'">
+                            <DefaultModelSettings :groups="['face']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'image-search-config'">
+                            <DefaultModelSettings :groups="['image_search']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'layout-config'">
+                            <DefaultModelSettings :groups="['layout']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'rag-config'">
+                            <DefaultModelSettings :groups="['rag']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'ocr-config'">
+                            <DefaultModelSettings :groups="['ocr']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'bot-connector-config'">
+                            <DefaultModelSettings :groups="['bot']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'language-config'">
+                            <DefaultModelSettings :groups="['language']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'colorize-config'">
+                            <DefaultModelSettings :groups="['image']" />
+                        </template>
 
                         <template v-else-if="currentTabValue === 'appearance'">
                             <AppearanceSettings />
@@ -245,6 +269,14 @@ const route = useRoute()
 const groupMap = computed<Record<string, string>>(() => ({
     general: t('settings.system.groups.general'),
     'default-models': t('settings.system.groups.general'),
+    'face-config': t('settings.system.groups.general'),
+    'image-search-config': t('settings.system.groups.general'),
+    'layout-config': t('settings.system.groups.general'),
+    'rag-config': t('settings.system.groups.general'),
+    'ocr-config': t('settings.system.groups.general'),
+    'bot-connector-config': t('settings.system.groups.general'),
+    'language-config': t('settings.system.groups.general'),
+    'colorize-config': t('settings.system.groups.general'),
     ocr: t('settings.system.groups.general'),
     browser: t('settings.system.groups.general'),
     connections: t('settings.system.groups.general'),
@@ -301,6 +333,62 @@ const sidebarItems = computed(() => [
         //
         // 仍保留管理员专属的字段（凭据、工作间基路径、user_tool_access 等）由
         // 服务端逐字段拦截，前端不重复维护一份清单。
+    },
+    {
+        // 从默认模型页拆出的独立配置：人脸识别
+        label: '人脸识别配置',
+        path: 'face-config',
+        icon: Person20Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：以图搜图
+        label: '以图搜图配置',
+        path: 'image-search-config',
+        icon: Image24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：布局识别
+        label: '布局配置',
+        path: 'layout-config',
+        icon: ScanText24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：RAG
+        label: 'RAG 配置',
+        path: 'rag-config',
+        icon: DataHistogram24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：OCR
+        label: 'OCR 配置',
+        path: 'ocr-config',
+        icon: ScanText24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：连接器(bot)
+        label: '连接器配置',
+        path: 'bot-connector-config',
+        icon: Cloud24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：语言
+        label: '语言配置',
+        path: 'language-config',
+        icon: Globe24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 图像上色模型配置：从默认模型页拆出的独立菜单
+        label: '图像上色配置',
+        path: 'colorize-config',
+        icon: Image24Regular,
+        roles: ['primary'],
     },
 
     {

@@ -1,0 +1,35 @@
+
+.rrglab[data-v-7b0b6512] { display: flex; gap: 12px; height: calc(100vh - 120px); padding: 12px; box-sizing: border-box;
+}
+.rrglab__panel[data-v-7b0b6512] { width: 320px; flex: 0 0 320px; display: flex; flex-direction: column; gap: 10px; overflow: auto;
+}
+.rrglab__stage[data-v-7b0b6512] { flex: 1 1 auto; min-width: 0;
+}
+.rrglab__title[data-v-7b0b6512] { font-weight: 600; font-size: 14px; color: var(--text-primary);
+}
+.rrglab__group[data-v-7b0b6512] { display: flex; flex-direction: column; gap: 6px;
+}
+.rrglab__group--grow[data-v-7b0b6512] { flex: 1 1 auto; min-height: 120px;
+}
+.rrglab__label[data-v-7b0b6512] { font-size: 12px; color: var(--text-tertiary);
+}
+.rrglab__btns[data-v-7b0b6512] { display: flex; flex-wrap: wrap; gap: 6px;
+}
+.rrglab__btn[data-v-7b0b6512] { font-size: 12px; padding: 4px 8px; border: 1px solid var(--border-default, #dcdfe6); border-radius: 6px; background: var(--bg-elevated, #fff); color: var(--text-primary); cursor: pointer;
+}
+.rrglab__btn[data-v-7b0b6512]:hover { border-color: var(--brand-400, #409eff); color: var(--brand-500, #409eff);
+}
+.rrglab__btn.is-active[data-v-7b0b6512] { border-color: var(--brand-500, #409eff); color: var(--brand-500, #409eff); background: var(--brand-50, #ecf5ff);
+}
+.rrglab__stat[data-v-7b0b6512] { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 12px; color: var(--text-secondary);
+}
+.rrglab__log[data-v-7b0b6512] { flex: 1 1 auto; overflow: auto; font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--text-secondary); border: 1px solid var(--border-subtle, #ebeef5); border-radius: 6px; padding: 6px 8px; background: var(--bg-elevated, #fff);
+}
+.rrglab__nodecard[data-v-7b0b6512] { width: 150px; min-height: 52px; padding: 6px 10px; box-sizing: border-box; border: 1px solid var(--border-default, #dcdfe6); border-radius: 8px; background: var(--bg-elevated, #fff); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.rrglab__nodecard.is-selected[data-v-7b0b6512] { border-color: var(--brand-500, #409eff); box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.25);
+}
+.rrglab__nodecard-title[data-v-7b0b6512] { font-size: 12px; font-weight: 600; color: var(--text-primary, #303133);
+}
+.rrglab__nodecard-sub[data-v-7b0b6512] { font-size: 11px; color: var(--text-secondary, #606266);
+}

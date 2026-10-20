@@ -1,0 +1,139 @@
+
+.rs-btn[data-v-ac77cbd6] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 4px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  /* 圆角统一用 Element 控件档（= 新增学生等 el-button 的 --el-border-radius-base，
+     koi 里映射到 --el-radius-sm = 6px）。原先硬编码 10px，与 el-button 不一致。 */
+  border-radius: var(--el-border-radius-base, 6px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  /* 只过渡会变的视觉属性。原先是 `transition: all`，把 width/height/margin/padding
+     这些会触发布局的属性也带进来，hover / 按下每次都多一轮 reflow；这里按需列举。 */
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.08s ease-out;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.rs-btn[data-v-ac77cbd6]:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
+  border-color: var(--el-color-primary-light-3, #a0cfff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+/* 按压反馈：缩放要跟手。transform 单独给 0.08s（见 .rs-btn 的 transition），
+   若跟颜色一样 0.2s，30px 的按钮会先「塌」下去再弹回，看着发黏。 */
+.rs-btn[data-v-ac77cbd6]:active:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
+  transform: scale(0.92);
+}
+.rs-btn--small[data-v-ac77cbd6] {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+.rs-btn--size-small[data-v-ac77cbd6] {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+.rs-btn--size-default[data-v-ac77cbd6] {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+.rs-btn--size-large[data-v-ac77cbd6] {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+.rs-btn--default[data-v-ac77cbd6] {
+  border-color: var(--el-border-color, #dcdfe6);
+  color: var(--el-text-color-secondary, #909399);
+}
+.rs-btn--default[data-v-ac77cbd6]:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
+  border-color: var(--el-color-primary-light-3, #a0cfff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.rs-btn--primary[data-v-ac77cbd6] {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+.rs-btn--primary[data-v-ac77cbd6]:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
+  background: var(--el-color-primary, #409eff);
+  color: #fff;
+}
+.rs-btn--danger[data-v-ac77cbd6] {
+  border-color: var(--el-color-danger, #f56c6c);
+  color: var(--el-color-danger, #f56c6c);
+}
+.rs-btn--danger[data-v-ac77cbd6]:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
+  background: var(--el-color-danger, #f56c6c);
+  color: #fff;
+}
+.rs-btn--plain.rs-btn--primary[data-v-ac77cbd6] {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.rs-btn--plain.rs-btn--primary[data-v-ac77cbd6]:hover:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) {
+  background: var(--el-color-primary, #409eff);
+  color: #fff;
+}
+.rs-btn.is-disabled[data-v-ac77cbd6],
+.rs-btn[data-v-ac77cbd6]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+/* 纯装饰徽标：鼠标指针、过渡反馈一律不要 —— 它不可点，给了 pointer 就是在骗用户。
+   外观（尺寸/边框/配色）保持与同款按钮完全一致，避免卡片视觉走样。 */
+.rs-btn--decorative[data-v-ac77cbd6] {
+  cursor: default;
+  transition: none;
+}
+.rs-btn.is-loading[data-v-ac77cbd6] {
+  cursor: wait;
+  opacity: 0.85;
+}
+.rs-btn__spinner[data-v-ac77cbd6] {
+  display: inline-flex;
+  animation: rs-spin-ac77cbd6 0.8s linear infinite;
+}
+/* 尺寸写死并禁止收缩：spinner 是按钮里唯一的图形，尺寸必须与它替换掉的图标一致（14px），
+   否则 loading 切换时按钮内容会跳一下 */
+.rs-btn__spinner svg[data-v-ac77cbd6] {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  display: block;
+}
+.rs-btn--size-small .rs-btn__spinner svg[data-v-ac77cbd6] { width: 12px; height: 12px;
+}
+.rs-btn--size-large .rs-btn__spinner svg[data-v-ac77cbd6] { width: 17px; height: 17px;
+}
+@keyframes rs-spin-ac77cbd6 {
+from { transform: rotate(0deg);
+}
+to { transform: rotate(360deg);
+}
+}
+.rs-btn__icon[data-v-ac77cbd6] {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+.rs-btn[data-v-ac77cbd6] { transition: none;
+}
+.rs-btn[data-v-ac77cbd6]:active:not(.rs-btn--decorative):not(.is-disabled):not(:disabled) { transform: none;
+}
+  /* 旋转动画本身要停：spinner 靠 animation 而非 transition 驱动，
+     只写 transition: none 是停不下来的（此前漏了这条，reduced-motion 下仍在转）。 */
+.rs-btn__spinner[data-v-ac77cbd6] { animation: none;
+}
+}

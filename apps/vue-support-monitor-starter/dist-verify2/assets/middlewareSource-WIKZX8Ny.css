@@ -1,0 +1,20 @@
+
+.mw-gap[data-v-74463102] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--brand-warning, #f59e0b);
+  border-radius: 8px;
+  background: var(--bg-warning, rgba(245, 158, 11, 0.08));
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.mw-gap-icon[data-v-74463102] {
+  color: var(--brand-warning, #f59e0b);
+  flex-shrink: 0;
+}
+.mw-gap-text[data-v-74463102] {
+  flex: 1;
+}

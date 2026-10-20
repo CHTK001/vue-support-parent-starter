@@ -134,21 +134,24 @@ const typeOptions = computed(() => columnTypeSelectOptions());
  * 「操作」列没有对应字段，造稳定合成 prop {@code actions}；
  * 序号列改走 ReTable 的 show-index，不再单开一轨。</p>
  *
- * <p>宽度按原轨道（150 / 76 / 64 / 92 / 78 / 78 / …）等价给出，两处**有意加宽**：
- * 类型 150→190，因为 ENUM/SET 的取值输入从「跨整行副行」收进了该单元格；
- * 操作 40→56，因为 el-table 单元格自带内边距，40px 装不下 32px 的方块按钮。</p>
+ * <p>2026-10-20 布局收敛（用户反馈：1000px 弹窗 + 11 列太挤，「小数位」表头
+ * 被截成「小…」、「操作」列挤到 DOM 边缘）：</p>
+ * <ul>
+ *   <li>长度 / 小数位合成一列，两个小步进器并排，表头「长度 / 小数位」不截断；</li>
+ *   <li>可空 / 主键 / 自增合成「约束」一列，三个带小标签的方块开关；</li>
+ *   <li>「操作」列收窄为 72px 并 {@code fixed:"right"} —— 行数再多删除按钮也
+ *       始终钉在可见区，不会滚出 DOM；</li>
+ *   <li>弹窗宽度 1000px → 920px，单元格内边距 6/8 → 4/6。</li>
+ * </ul>
  */
 const ctColumns: ReTableColumn[] = [
-  { prop: "name", label: "字段名", minWidth: 110, slot: "name" },
-  { prop: "type", label: "类型", width: 190, slot: "type" },
-  { prop: "size", label: "长度", width: 84, slot: "size" },
-  { prop: "scale", label: "小数位", width: 76, slot: "scale" },
-  { prop: "nullable", label: "可空", width: 72, align: "center", slot: "nullable" },
-  { prop: "primaryKey", label: "主键", width: 72, align: "center", slot: "primaryKey" },
-  { prop: "autoIncrement", label: "自增", width: 72, align: "center", slot: "autoIncrement" },
-  { prop: "defaultValue", label: "默认值", minWidth: 96, slot: "defaultValue" },
-  { prop: "comment", label: "注释", minWidth: 110, slot: "comment" },
-  { prop: "actions", label: "操作", width: 56, align: "center", slot: "actions" },
+  { prop: "name", label: "字段名", minWidth: 120, slot: "name" },
+  { prop: "type", label: "类型", width: 160, slot: "type" },
+  { prop: "sizeScale", label: "长度 / 小数位", width: 160, slot: "sizeScale" },
+  { prop: "constraints", label: "约束", width: 160, align: "center", slot: "constraints" },
+  { prop: "defaultValue", label: "默认值", minWidth: 90, slot: "defaultValue" },
+  { prop: "comment", label: "注释", minWidth: 100, slot: "comment" },
+  { prop: "actions", label: "操作", width: 72, align: "center", fixed: "right", slot: "actions" },
 ];
 
 /**
@@ -322,7 +325,7 @@ async function submit(): Promise<void> {
   <ReDialog
     :model-value="modelValue"
     title="新建表（设计表）"
-    width="min(1000px, 96vw)"
+    width="min(920px, 96vw)"
     @update:model-value="(v: unknown) => emit('update:modelValue', Boolean(v))"
   >
     <div class="ct">
@@ -360,7 +363,7 @@ async function submit(): Promise<void> {
           engine="element"
           :pagination="false"
           :toolbar="false"
-          :layout-table="{ maxHeight: '46vh' }"
+          :layout-table="{ maxHeight: '40vh' }"
           :settings="{ border: false }"
           row-key="key"
           show-index
@@ -382,70 +385,72 @@ async function submit(): Promise<void> {
           </template>
           <!-- 长度 / 小数位：该类型用不上时留一个占位横线，而不是空一格 ——
                空格子看起来像「没渲染完」，横线才说明是「这个类型没有这一项」。 -->
-          <template #col-size="{ row }">
-            <ReInputNumber
-              v-if="typeNeedsSize(row.type)"
-              :model-value="row.size ?? undefined"
-              size="small"
-              :min="1"
-              :max="65535"
-              controls-position="right"
-              placeholder="长度"
-              @update:model-value="row.size = $event ?? null"
-            />
-            <span v-else class="ct-na" aria-hidden="true">—</span>
+          <template #col-sizeScale="{ row }">
+            <div class="ct-size-scale">
+              <ReInputNumber
+                v-if="typeNeedsSize(row.type)"
+                :model-value="row.size ?? undefined"
+                size="small"
+                :min="1"
+                :max="65535"
+                controls-position="right"
+                placeholder="长度"
+                @update:model-value="row.size = $event ?? null"
+              />
+              <span v-else class="ct-na" aria-hidden="true">—</span>
+              <span class="ct-size-sep" aria-hidden="true">/</span>
+              <ReInputNumber
+                v-if="typeAllowsScale(row.type)"
+                :model-value="row.scale ?? undefined"
+                size="small"
+                :min="0"
+                :max="30"
+                controls-position="right"
+                placeholder="位"
+                @update:model-value="row.scale = $event ?? null"
+              />
+              <span v-else class="ct-na" aria-hidden="true">—</span>
+            </div>
           </template>
-
-          <template #col-scale="{ row }">
-            <ReInputNumber
-              v-if="typeAllowsScale(row.type)"
-              :model-value="row.scale ?? undefined"
-              size="small"
-              :min="0"
-              :max="30"
-              controls-position="right"
-              placeholder="位"
-              @update:model-value="row.scale = $event ?? null"
-            />
-            <span v-else class="ct-na" aria-hidden="true">—</span>
-          </template>
-          <!-- 布尔三列（可空 / 主键 / 自增）用 ReSwitch square：32px 见方的图标开关，
+          <!-- 约束三列（可空 / 主键 / 自增）用 ReSwitch square：32px 见方的图标开关，
                激活态 = 主色边框 + 右上角打勾，一眼可辨。
                纯图标对读屏是空的，故每颗都带 aria-label + title 兜住名称。 -->
-          <template #col-nullable="{ row }">
-            <ReSwitch
-              v-model="row.nullable"
-              layout="square"
-              size="small"
-              class="ct-bool"
-              aria-label="允许为空"
-              title="允许为空"
-              :disabled="row.primaryKey || row.autoIncrement"
-            />
-          </template>
-
-          <template #col-primaryKey="{ row }">
-            <ReSwitch
-              :model-value="row.primaryKey"
-              layout="square"
-              size="small"
-              class="ct-bool"
-              aria-label="主键"
-              title="主键"
-              @update:model-value="togglePk(row, $event)"
-            />
-          </template>
-
-          <template #col-autoIncrement="{ row }">
-            <ReSwitch
-              :model-value="row.autoIncrement"
-              layout="square"
-              size="small"
-              class="ct-bool"
-              aria-label="自增"
-              title="自增"
-              @update:model-value="toggleAuto(row, $event)"
-            />
+          <template #col-constraints="{ row }">
+            <div class="ct-bools">
+              <div class="ct-bool" title="允许为空">
+                <ReSwitch
+                  v-model="row.nullable"
+                  layout="square"
+                  size="small"
+                  class="ct-bool-sw"
+                  aria-label="允许为空"
+                  :disabled="row.primaryKey || row.autoIncrement"
+                />
+                <span class="ct-bool-label">可空</span>
+              </div>
+              <div class="ct-bool" title="主键">
+                <ReSwitch
+                  :model-value="row.primaryKey"
+                  layout="square"
+                  size="small"
+                  class="ct-bool-sw"
+                  aria-label="主键"
+                  @update:model-value="togglePk(row, $event)"
+                />
+                <span class="ct-bool-label">主键</span>
+              </div>
+              <div class="ct-bool" title="自增">
+                <ReSwitch
+                  :model-value="row.autoIncrement"
+                  layout="square"
+                  size="small"
+                  class="ct-bool-sw"
+                  aria-label="自增"
+                  @update:model-value="toggleAuto(row, $event)"
+                />
+                <span class="ct-bool-label">自增</span>
+              </div>
+            </div>
           </template>
           <template #col-defaultValue="{ row }">
             <ReInput v-model="row.defaultValue" class="ct-mono" placeholder="默认值" />
@@ -555,9 +560,9 @@ async function submit(): Promise<void> {
 }
 
 /* 单元格内边距：el-table 默认每侧 12px，11 列叠加会比原手写网格宽出近 300px，
-   输入框被挤得又窄又长。压到 6/8 才和原「min-width:960px」口径对得上。 */
+   输入框被挤得又窄又长。压到 4/6 才和原「min-width:960px」口径对得上。 */
 .ct-grid :deep(.el-table .cell) {
-  padding: 6px 8px;
+  padding: 4px 6px;
 }
 
 /* 行悬停：原 .ct-grid__row:hover 用的是 fill-color-extra-light，不是 EP 默认那档 */
@@ -580,6 +585,49 @@ async function submit(): Promise<void> {
 .ct-grid :deep(.re-switch-square) {
   display: inline-flex;
   margin: 0 auto;
+}
+
+/* 长度 / 小数位合并列：两个小步进器并排，表头不截断，占位符一眼区分 */
+.ct-size-scale {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ct-size-scale .ct-na {
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-size-sep {
+  flex: 0 0 auto;
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+}
+
+/* 约束合并列：可空 / 主键 / 自增 三个小方块，各自带 10px 标签 */
+.ct-bools {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ct-bool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ct-bool-label {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 
 /* 类型用不上的长度 / 小数位占位 */

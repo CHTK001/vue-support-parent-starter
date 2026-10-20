@@ -1,0 +1,1 @@
+function e(e,t=2500){}export{e as t};

@@ -1,0 +1,27 @@
+
+.re-section-head[data-v-321d0936] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.re-section-head__main[data-v-321d0936] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.re-section-head__title[data-v-321d0936] {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.re-section-head__desc[data-v-321d0936] {
+  font-size: 12px;
+}
+.re-section-head__actions[data-v-321d0936] {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}

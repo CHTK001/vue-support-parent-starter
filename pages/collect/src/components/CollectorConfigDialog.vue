@@ -79,7 +79,7 @@ watch(
 <template>
   <ReDialog
     :model-value="modelValue"
-    width="1200px"
+    width="min(1200px, 96vw)"
     top="10px"
     :title="`采集器配置 · ${TABS.find(item => item.name === tab)?.label || ''}`"
     footer-hidden

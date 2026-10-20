@@ -1,0 +1,209 @@
+
+.dsm[data-v-8f45174a] { display: flex; flex-direction: column; height: 100%; min-height: 100%; background: var(--bg-fill);
+}
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 类统一提供
+   （16px 圆角、透明边框 + 双层柔光投影），这里只留布局——不再自写一套卡片壳防漂移 */
+.dsm-toolbar[data-v-8f45174a] { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.dsm-toolbar-left[data-v-8f45174a] { display: flex; align-items: center; gap: 10px;
+}
+.dsm-title[data-v-8f45174a] { font-size: 16px; font-weight: 600; color: var(--text-primary);
+}
+.dsm-redis-icon[data-v-8f45174a] { color: #dc382d;
+}
+.dsm-toolbar-right[data-v-8f45174a] { display: flex; align-items: center; gap: 8px;
+}
+.dsm-toolbar-right[data-v-8f45174a] .rs-btn { margin: 0;
+}
+.dsm-db-select[data-v-8f45174a] { width: 220px; flex-shrink: 0;
+}
+.dsm-body[data-v-8f45174a] { display: flex; flex: 1; gap: 0; overflow: hidden;
+}
+.dsm.resizing[data-v-8f45174a] { user-select: none;
+}
+.dsm-split[data-v-8f45174a] { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize;
+}
+.dsm-split[data-v-8f45174a]::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s;
+}
+.dsm-split[data-v-8f45174a]:hover::after, .dsm-split.active[data-v-8f45174a]::after { background: var(--brand-400);
+}
+.dsm-sidebar[data-v-8f45174a] { width: 300px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column;
+}
+.dsm-search-section[data-v-8f45174a] { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);
+}
+.dsm-search-section[data-v-8f45174a] > *:first-child { flex: 1;
+}
+.dsm-view-bar[data-v-8f45174a] { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+}
+.dsm-view-bar[data-v-8f45174a] .rs-btn { margin: 0;
+}
+.dsm-view-count[data-v-8f45174a] { font-size: 12px; color: var(--text-tertiary);
+}
+.dsm-view-spacer[data-v-8f45174a] { flex: 1;
+}
+.dsm-key-list[data-v-8f45174a] { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto;
+}
+.dsm-tree-node[data-v-8f45174a] { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; background: var(--bg-container);
+}
+.dsm-tree-node[data-v-8f45174a]:hover { background: var(--bg-hover);
+}
+.dsm-tree-node.active[data-v-8f45174a] { background: var(--brand-50); color: var(--brand-600);
+}
+.dsm-tree-node.is-dir[data-v-8f45174a] { font-weight: 600; color: var(--text-secondary);
+}
+.dsm-tree-caret[data-v-8f45174a] { color: var(--text-tertiary);
+}
+.dsm-tree-icon[data-v-8f45174a] { flex-shrink: 0;
+}
+.dsm-tree-folder[data-v-8f45174a] { color: var(--brand-500, var(--brand-600, #409eff));
+}
+/* 行悬停工具条：默认隐藏，鼠标经过行才显示；绝对定位覆盖右侧，避免出现时挤压布局。
+   背景 inherit 跟随行的三态（默认/hover/active），按钮图标覆盖其后的类型 ReTag。 */
+.dsm-row-actions[data-v-8f45174a] { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: none; align-items: center; gap: 2px; padding-left: 18px; background: inherit;
+}
+.dsm-tree-node:hover .dsm-row-actions[data-v-8f45174a] { display: flex;
+}
+.dsm-row-actions[data-v-8f45174a] .rs-btn { margin: 0;
+}
+.dsm-tree-label[data-v-8f45174a] { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dsm-load-more[data-v-8f45174a] { padding: 6px 8px; text-align: center;
+}
+.dsm-content[data-v-8f45174a] { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
+}
+.dsm-content-bar[data-v-8f45174a] { flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+}
+/* 命令控制台面板：编辑器 + 操作行 + 结果区纵向排列，结果区吃掉剩余高度 */
+.dsm-command-panel[data-v-8f45174a] { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0;
+}
+.dsm-command-actions[data-v-8f45174a] { display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.dsm-command-actions[data-v-8f45174a] .rs-btn { margin: 0;
+}
+.dsm-command-hint[data-v-8f45174a] { margin-left: 2px; font-size: 12px; color: var(--text-tertiary);
+}
+.dsm-command-error[data-v-8f45174a] { padding: 10px 14px; font-size: 13px; color: var(--danger, #f56c6c); background: color-mix(in srgb, var(--danger, #f56c6c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger, #f56c6c) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0;
+}
+.dsm-command-result[data-v-8f45174a] { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; padding: 12px 14px;
+}
+.dsm-command-result[data-v-8f45174a] .dsm-table-wrap { flex: 1; min-height: 0;
+}
+.dsm-reply-pre[data-v-8f45174a] { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 480px; flex-shrink: 0;
+}
+.dsm-reply-nil[data-v-8f45174a] { padding: 12px; color: var(--text-tertiary); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; flex-shrink: 0;
+}
+/* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供（16px 圆角、
+   透明边框 + 双层柔光投影），这里只留网格布局——不再自写一套卡片壳防漂移（surface:check） */
+.dsm-info-card[data-v-8f45174a] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex-shrink: 0;
+}
+.dsm-info-row[data-v-8f45174a] { display: flex; flex-direction: column; gap: 4px;
+}
+.dsm-info-label[data-v-8f45174a] { font-size: 12px; color: var(--text-tertiary);
+}
+.dsm-info-value[data-v-8f45174a] { font-size: 14px; font-weight: 500; color: var(--text-primary);
+}
+/* 值区吃满高度：section 吃掉 content 剩余空间 → data-section 吃掉 section 剩余 →
+   值元素（textarea/pre/表格容器）flex:1 填底；min-height:0 保证超高时能压回内滚链。 */
+.dsm-section[data-v-8f45174a] { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden;
+}
+.dsm-section-title[data-v-8f45174a] { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+}
+.dsm-section-actions[data-v-8f45174a] { display: flex; align-items: center; gap: 6px;
+}
+.dsm-node-detail[data-v-8f45174a] { padding: 14px 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+}
+.dsm-detail-row[data-v-8f45174a] { display: flex; flex-direction: column; gap: 4px;
+}
+.dsm-detail-label[data-v-8f45174a] { font-size: 12px; color: var(--text-tertiary);
+}
+.dsm-detail-value[data-v-8f45174a] { font-size: 13px; color: var(--text-primary); word-break: break-all;
+}
+.dsm-data-section[data-v-8f45174a] { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 14px 16px;
+}
+.dsm-data-title[data-v-8f45174a] { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; flex-shrink: 0;
+}
+/* 表格容器：吃掉值区剩余高度（ReTable 缺省 fill 会量父容器高度，父链 flex 定高） */
+.dsm-table-wrap[data-v-8f45174a] { flex: 1; display: flex; min-height: 260px;
+}
+.dsm-table-wrap[data-v-8f45174a] > * { flex: 1; min-width: 0;
+}
+/* 值元素填底：横向铺满、超出内滚 */
+.dsm-fill[data-v-8f45174a] { flex: 1; min-height: 160px;
+}
+.dsm-data-content[data-v-8f45174a] { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow-y: auto;
+}
+.dsm-add-row[data-v-8f45174a] { display: flex; gap: 8px; margin-bottom: 10px; flex-shrink: 0;
+}
+.dsm-add-grow[data-v-8f45174a] { flex: 1;
+}
+.dsm-add-narrow[data-v-8f45174a] { width: 140px;
+}
+/* 单元格行内操作（ReButton square 图标组） */
+.dsm-cell-actions[data-v-8f45174a] { display: inline-flex; align-items: center; gap: 4px;
+}
+.dsm-cell-actions[data-v-8f45174a] .rs-btn { margin: 0;
+}
+/* 键列表顶部扫描条：静默重扫时走动画（删空集合后自动刷新左侧） */
+.dsm-scan-bar[data-v-8f45174a] { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s;
+}
+.dsm-scan-bar.is-active[data-v-8f45174a] { opacity: 1;
+}
+.dsm-scan-bar span[data-v-8f45174a] { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%);
+}
+.dsm-scan-bar.is-active span[data-v-8f45174a] { animation: dsm-scan-slide-8f45174a 1s linear infinite;
+}
+@keyframes dsm-scan-slide-8f45174a {
+to { transform: translateX(350%);
+}
+}
+.dsm-stream-field[data-v-8f45174a] { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px;
+}
+.dsm-empty-inline[data-v-8f45174a] { padding: 16px; color: var(--text-tertiary); font-size: 13px;
+}
+.mono[data-v-8f45174a] { font-family: "JetBrains Mono", "Consolas", monospace;
+}
+.dsm-node-form[data-v-8f45174a] { display: flex; flex-direction: column; gap: 14px;
+}
+.dsm-form-item[data-v-8f45174a] { display: flex; flex-direction: column; gap: 6px;
+}
+.dsm-form-item label[data-v-8f45174a] { font-size: 13px; font-weight: 500; color: var(--text-primary);
+}
+.dsm-form-hint[data-v-8f45174a] { font-size: 12px; line-height: 1.5; color: var(--text-tertiary);
+}
+.dsm-seg[data-v-8f45174a] { display: inline-flex; border: 1px solid var(--border-default); border-radius: 6px; overflow: hidden; background: var(--bg-elevated);
+}
+.dsm-seg button[data-v-8f45174a] { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; color: var(--text-secondary); background: transparent; border: none; border-right: 1px solid var(--border-default); cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.dsm-seg button[data-v-8f45174a]:last-child { border-right: none;
+}
+.dsm-seg button[data-v-8f45174a]:hover { background: var(--bg-hover); color: var(--text-primary);
+}
+.dsm-seg button.is-active[data-v-8f45174a] { background: var(--brand-50); color: var(--brand-600); font-weight: 600;
+}
+.dsm-value-view[data-v-8f45174a] { min-height: 80px;
+}
+/* JSON 叠加编辑器：高亮层绝对定位铺满（只读、透明度不透出），编辑层透明文字叠在其上；
+   两层同 font/padding/white-space，保证逐字符对齐；滚动由编辑层驱动、高亮层跟随。 */
+.dsm-json-editor[data-v-8f45174a] { position: relative; flex: 1; min-height: 160px;
+}
+.dsm-json-hl[data-v-8f45174a] { position: absolute; inset: 0; margin: 0; padding: 12px; overflow: hidden; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; line-height: 1.5; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; pointer-events: none;
+}
+.dsm-json-input[data-v-8f45174a] { position: relative; z-index: 1; width: 100%; height: 100%; min-height: 160px; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; color: transparent; caret-color: var(--text-primary); background: transparent; border: 1px solid var(--border-default); border-radius: 6px; resize: none; outline: none;
+}
+.dsm-json-input[data-v-8f45174a]:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring);
+}
+/* JSON 高亮（v-html 注入的 span 不带 scope 属性 → 必须 :deep） */
+.dsm-json-hl[data-v-8f45174a] .dsm-json-key { color: var(--brand-600, #409eff); font-weight: 600;
+}
+.dsm-json-hl[data-v-8f45174a] .dsm-json-str { color: var(--success, #67c23a);
+}
+.dsm-json-hl[data-v-8f45174a] .dsm-json-num { color: var(--warning, #e6a23c);
+}
+.dsm-json-hl[data-v-8f45174a] .dsm-json-lit { color: var(--danger, #f56c6c); font-style: italic;
+}
+.dsm-json-hl[data-v-8f45174a] .dsm-json-punct { color: var(--text-tertiary);
+}
+.dsm-node-data[data-v-8f45174a] { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none;
+}
+.dsm-node-data[data-v-8f45174a]:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring);
+}

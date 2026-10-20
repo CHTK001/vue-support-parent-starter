@@ -1,0 +1,2546 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 统一风格：koi 令牌；作为顶栏操作区的一部分，与其它控制台的方形图标按钮同排 */
+.ngx-lifecycle[data-v-8b309a0f] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngx-lifecycle[data-v-8b309a0f] .rs-btn {
+  margin: 0;
+}
+.ngx-tip[data-v-8b309a0f] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 告警独占一行：.ngx-lifecycle 是 flex 容器，不换行会被挤到按钮右边，
+   而正文是一整段可照着做的操作步骤，挤在一行里根本读不下去 */
+.ngx-perm-alert[data-v-8b309a0f] {
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+.ngx-perm-alert[data-v-8b309a0f] .el-alert__description {
+  line-height: 1.7;
+  word-break: break-word;
+}
+.ngx-result[data-v-8b309a0f] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ngx-result-head[data-v-8b309a0f] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.ngx-result-head.is-ok[data-v-8b309a0f] {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+}
+.ngx-result-head.is-err[data-v-8b309a0f] {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+}
+.ngx-result-block[data-v-8b309a0f] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ngx-result-label[data-v-8b309a0f] {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ngx-result-pre[data-v-8b309a0f] {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 240px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ngx-result-pre.is-err[data-v-8b309a0f] {
+  color: var(--status-error);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngx-echart[data-v-180c8fb1] {
+  width: 100%;
+  /* 画布自身不带尺寸语义，给个最小高度避免容器塌成 0 时 init 拿到 0 宽高 */
+  min-height: 80px;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngx-echart[data-v-ba8f760e] {
+  width: 100%;
+  min-height: 60px;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 环 + 图例现在同在一块 canvas 里，外层只负责铺满卡片 */
+.ngx-donut-wrap[data-v-9aa77a35] {
+  display: block;
+}
+.ngx-donut[data-v-9aa77a35] {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.ngx-echart[data-v-9aa77a35] {
+  width: 100%;
+  min-height: 80px;
+}
+.ngx-donut-center[data-v-9aa77a35] {
+  position: absolute;
+  /* 环心在 30% / 46%（偏左给右侧图例腾位），标题在环心下方；flex 一次居中到位，
+     免得两行文字各自算 top 出现错位 */
+  top: 46%;
+  left: 30%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  /* 必须放行鼠标：否则圆心这几十像素的方块会把环上的 tooltip 触发区吃掉 */
+  pointer-events: none;
+  line-height: 1.1;
+}
+.ngx-donut-value[data-v-9aa77a35] {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.ngx-donut-value.is-zero[data-v-9aa77a35] {
+  /* 0 是正常状态（空闲实例），不该和「有连接」一样醒目 */
+  color: var(--text-secondary);
+}
+.ngx-donut-label[data-v-9aa77a35] {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 颜色只认令牌：--k 由父级传入令牌名，亮暗主题自动跟随 */
+.ngx-spark[data-v-2886ebc3] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ngx-spark-line[data-v-2886ebc3] {
+  fill: none;
+  stroke: var(--k);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.ngx-spark-fill[data-v-2886ebc3] {
+  fill: color-mix(in srgb, var(--k) 14%, transparent);
+  stroke: none;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 色值全部走 koi / Element 令牌，暗色由 html.dark 自动覆盖 */
+.ngx-overview[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ============ 首屏骨架屏 ============ */
+/* 布局刻意与真实 .ngx-hero / .ngx-kpis / .ngx-trend-card 对齐：
+   骨架与真实内容占同样的盒子，数据到达时不会发生布局跳动。 */
+.ngx-skeleton[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡（实测几乎不可见，只剩本组件自己写的
+   那条标题灰条能看见），这里把它的动画两色覆盖成与 .ngx-skel-block 同一档灰。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngx-skeleton[data-v-558398d0] .el-skeleton {
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
+}
+.ngx-skel-hero[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--bg-fill);
+}
+
+/* ReSkeleton 的根就是 el-skeleton，rows=0 时它自身不产生 item，
+   圆形占位只能靠这个壳撑出宽高；给它一个与其它骨架同档的底色才看得见。 */
+.ngx-skel-hero-icon[data-v-558398d0] .el-skeleton__content {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-fill);
+}
+.ngx-skel-hero-text[data-v-558398d0] .el-skeleton__item,
+.ngx-skel-hero-facts[data-v-558398d0] .el-skeleton__item,
+.ngx-skel-kpis[data-v-558398d0] .el-skeleton__item,
+.ngx-skel-chart[data-v-558398d0] .el-skeleton__item {
+  border-radius: 6px;
+}
+.ngx-skel-hero-icon[data-v-558398d0] {
+  flex: 0 0 auto;
+  width: 44px;
+}
+.ngx-skel-hero-text[data-v-558398d0] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 圆形图标占位：el-skeleton 的容器本身没有内容，靠这里的宽高与圆角成形 */
+.ngx-skel-round[data-v-558398d0] {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+/* 与真实 .ngx-hero-facts 一样占右侧四格，断点也沿用同样的规则 */
+.ngx-skel-hero-facts[data-v-558398d0] {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(96px, 1fr));
+  gap: 18px;
+}
+.ngx-skel-kpis[data-v-558398d0] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.ngx-skel-card[data-v-558398d0] {
+  min-height: 246px;
+}
+
+/* 图表占位：与真实趋势图的 190px 高度相当 */
+.ngx-skel-chart[data-v-558398d0] {
+  height: 190px;
+  padding: 8px 0;
+}
+.ngx-skel-block[data-v-558398d0] {
+  border-radius: 6px;
+  background: var(--bg-fill);
+}
+.ngx-skel-w-sm[data-v-558398d0] {
+  display: inline-block;
+  width: 96px;
+  height: 14px;
+}
+@media (max-width: 1100px) {
+.ngx-skel-kpis[data-v-558398d0] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ngx-skel-hero-facts[data-v-558398d0] {
+    grid-template-columns: repeat(2, minmax(96px, 1fr));
+}
+}
+/* ============ Hero 状态卡 ============ */
+.ngx-hero[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
+}
+.ngx-hero-icon[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 9999px;
+  /* 徽章底色是饱和状态色，图标恒为白色；不用 var(--bg-container)，
+     暗色主题下它会变深灰、和底色糊在一起 */
+  color: #fff;
+  background: var(--text-secondary);
+}
+.is-running .ngx-hero-icon[data-v-558398d0] {
+  background: var(--status-success);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--status-success) 65%, transparent);
+}
+.is-stopped .ngx-hero-icon[data-v-558398d0] {
+  background: var(--status-error);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--status-error) 65%, transparent);
+}
+.ngx-hero-icon[data-v-558398d0] {
+  /* 未取到数据：橙黄，与「已停止」的红一眼可辨。
+     缺这一条时取数失败会退回 is-unknown，图标是中性灰 + 问号，
+     看起来像「服务状态未知」，实际是「我们没取到」，两回事。 */
+}
+.is-error .ngx-hero-icon[data-v-558398d0] {
+  background: var(--status-warning);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--status-warning) 65%, transparent);
+}
+.ngx-hero-icon[data-v-558398d0] {
+  /* 加载中：品牌色 + 呼吸，和静态的问号图标区分开（与顶栏状态胶囊 is-loading 同色） */
+}
+.is-loading .ngx-hero-icon[data-v-558398d0] {
+  background: var(--brand-500);
+  animation: ngx-hero-breathe-558398d0 1.2s ease-in-out infinite;
+}
+@keyframes ngx-hero-breathe-558398d0 {
+0%, 100% {
+    opacity: 1;
+}
+50% {
+    opacity: 0.4;
+}
+}
+.ngx-hero-title[data-v-558398d0] {
+  min-width: 150px;
+}
+.ngx-hero-name[data-v-558398d0] {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.ngx-hero-sub[data-v-558398d0] {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* 四项事实：小屏折行。竖分隔线只画在相邻项之间，首项不画，
+   否则卡片左侧会出现一条贴着内容的多余竖线 */
+.ngx-hero-facts[data-v-558398d0] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 20px;
+  flex: 1;
+  min-width: 320px;
+}
+@media (max-width: 1100px) {
+.ngx-hero-facts[data-v-558398d0] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+}
+.ngx-fact[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 相邻事实之间的竖分隔线。断行成两列时这条线会跑到错误的行首，
+   所以只在宽屏（单行四列）下画 */
+@media (min-width: 1101px) {
+.ngx-fact + .ngx-fact[data-v-558398d0] {
+    border-inline-start: 1px solid var(--border-subtle);
+    padding-inline-start: 20px;
+}
+}
+.ngx-fact-label[data-v-558398d0] {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ngx-fact-value[data-v-558398d0] {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ============ KPI 行 ============ */
+.ngx-kpis[data-v-558398d0] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+/* Hero 里的丢弃连接告警：只在真的有丢弃时出现，平时不占位 */
+.ngx-hero-alert[data-v-558398d0] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--status-error) 30%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  color: var(--status-error);
+  font-size: 12px;
+  line-height: 18px;
+}
+.ngx-fact-value.is-bad[data-v-558398d0] {
+  color: var(--status-error);
+}
+.ngx-kpi-warn[data-v-558398d0] {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+.ngx-kpi.is-bad .ngx-kpi-warn[data-v-558398d0] {
+  color: var(--status-error);
+}
+@media (max-width: 1100px) {
+.ngx-kpis[data-v-558398d0] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+}
+.ngx-kpi[data-v-558398d0] {
+  position: relative;
+  padding: 13px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
+}
+
+/* 标题行：语义色圆点 + 文案。颜色由 --k 注入，卡片自带色系不必再各写一份 */
+.ngx-kpi-label[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.ngx-kpi-dot[data-v-558398d0] {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--k);
+  flex: 0 0 auto;
+}
+.ngx-kpi-value[data-v-558398d0] {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.ngx-kpi-unit[data-v-558398d0] {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* 底部一行：左侧副信息，右侧迷你趋势。副信息过长时省略号收尾，不把 sparkline 挤走 */
+.ngx-kpi-foot[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  min-height: 30px;
+}
+.ngx-kpi-sub[data-v-558398d0] {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ngx-kpi-spark[data-v-558398d0] {
+  flex: 0 0 76px;
+  width: 76px;
+  height: 30px;
+}
+
+/* 需要提示的 KPI：值本身不变色，只加左边框，避免整块底色把数字盖住 */
+.ngx-kpi.is-warn[data-v-558398d0] {
+  box-shadow: inset 2px 0 0 var(--status-warning);
+}
+.ngx-kpi.is-bad[data-v-558398d0] {
+  box-shadow: inset 2px 0 0 var(--status-error);
+}
+
+/* ============ 三栏卡片 ============ */
+/* ============ 访问 Top ============ */
+.ngx-top-card[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ngx-top-body[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 状态码分布的三列样式（名称 / 比例条 / 数值）已随 NginxStatusBarChart 迁走。
+   ECharts 自己按 grid + containLabel 排版，条长与标注间距由 series.label 控，
+   留着这套 flex 样式会变成永不匹配的孤儿类。 */
+.ngx-top-cols[data-v-558398d0] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+.ngx-top-cols[data-v-558398d0] {
+    grid-template-columns: minmax(0, 1fr);
+}
+}
+.ngx-top-col-title[data-v-558398d0] {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.ngx-top-list[data-v-558398d0] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ngx-top-item[data-v-558398d0] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 5px 0;
+  font-size: 12.5px;
+}
+.ngx-top-key[data-v-558398d0] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+.ngx-top-hits[data-v-558398d0] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 百分比弱一档：它是补充信息，不该和命中数抢注意力 */
+.ngx-top-pct[data-v-558398d0] {
+  font-style: normal;
+  color: var(--text-secondary);
+}
+
+/* 进度条占满一整行（grid 第二列合并），长度 = 占已解析行数的比例 */
+.ngx-top-track[data-v-558398d0] {
+  grid-column: 1/-1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-fill);
+  overflow: hidden;
+}
+.ngx-top-fill[data-v-558398d0] {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--metric-cpu, var(--brand-500));
+}
+
+/* 来源 IP 换一种色，与左列一眼可分（两列同色会被当成同一组数据） */
+.ngx-top-fill.is-ip[data-v-558398d0] {
+  background: var(--metric-mem, var(--brand-500));
+}
+.ngx-top-none[data-v-558398d0] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* ============ 24 小时趋势 ============ */
+.ngx-trend-card[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ngx-trend-legend[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.ngx-trend-key[data-v-558398d0] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+.ngx-trend-key[data-v-558398d0]:hover {
+  background: var(--bg-fill);
+}
+.ngx-trend-key[data-v-558398d0] {
+  /* 关掉的序列淡化，但保留图例位置，避免开合时整行跳动 */
+}
+.ngx-trend-key.is-off[data-v-558398d0] {
+  color: var(--text-tertiary);
+  opacity: 0.55;
+}
+.ngx-trend-dot[data-v-558398d0] {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--k);
+}
+.ngx-trend-empty[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 120px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.ngx-trend-body[data-v-558398d0] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 原手写 SVG 的画布/网格/刻度样式已随 NginxTrendChart 一并迁走：
+   ECharts 自带网格与刻度，留着会变成永不匹配的孤儿类。 */
+.ngx-trend-foot[data-v-558398d0] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* 实时推送状态：夹在起止时间中间，不额外占一行 */
+.ngx-trend-live[data-v-558398d0] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.ngx-trend-live-dot[data-v-558398d0] {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.ngx-trend-live-dot.is-open[data-v-558398d0] {
+  background: var(--status-success);
+  animation: ngx-pulse-558398d0 2s ease-in-out infinite;
+}
+.ngx-trend-live-dot[data-v-558398d0] {
+  /* connecting 用中性色而不是成功色：正在连还没连上，染成绿色会误报已就绪 */
+}
+.ngx-trend-live-dot.is-connecting[data-v-558398d0], .ngx-trend-live-dot.is-idle[data-v-558398d0] {
+  background: var(--text-tertiary);
+}
+.ngx-trend-live-dot.is-error[data-v-558398d0] {
+  background: var(--status-error);
+}
+@keyframes ngx-pulse-558398d0 {
+0%, 100% {
+    opacity: 1;
+}
+50% {
+    opacity: 0.35;
+}
+}
+/* 推送断开时给整行降权，视觉上与「实时中」区分开 */
+.ngx-trend-live[data-v-558398d0]:has(.is-error) {
+  color: var(--status-error);
+}
+.ngx-trend-note[data-v-558398d0] {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.ngx-grid[data-v-558398d0] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+@media (max-width: 1100px) {
+.ngx-grid[data-v-558398d0] {
+    grid-template-columns: minmax(0, 1fr);
+}
+}
+.ngx-card[data-v-558398d0] {
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-container);
+}
+.ngx-card-head[data-v-558398d0] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ngx-card-head.is-clickable[data-v-558398d0] {
+  cursor: pointer;
+  user-select: none;
+}
+.ngx-card-title[data-v-558398d0] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ngx-card-sub[data-v-558398d0] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.ngx-label[data-v-558398d0] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 10px 0 4px;
+}
+.ngx-dim[data-v-558398d0] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.7;
+}
+.ngx-mono[data-v-558398d0] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 路径行：图标 + 可折行的路径 + 右侧状态标签。标签固定在右侧不参与折行 */
+.ngx-path-row[data-v-558398d0] {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--text-tertiary);
+}
+.ngx-path-row .ngx-break[data-v-558398d0] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ngx-break[data-v-558398d0] {
+  word-break: break-all;
+}
+.ngx-chips[data-v-558398d0] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 连接分布条（.ngx-bar / .ngx-bar-seg / .ngx-legend）已随 NginxConnDonut 迁走。
+   环形图自带三段配色与环内标注，配套的 flex 分段条与手绘图例一并删除；
+   留着这三条会静默失效——类名还在，模板里已经没有对应节点了。 */
+.ngx-meta[data-v-558398d0] {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 巡检：正常态用绿色对勾 */
+.ngx-ok[data-v-558398d0] {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.ngx-ok-icon[data-v-558398d0] {
+  color: var(--status-success);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.ngx-issues[data-v-558398d0] {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+.ngx-issues li[data-v-558398d0]::marker {
+  color: var(--status-warning);
+}
+.ngx-conf[data-v-558398d0] {
+  margin: 12px 0 0;
+  max-height: 200px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg-fill);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-secondary);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngs[data-v-e9ae79c0] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+.ngs-bar[data-v-e9ae79c0] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngs-label[data-v-e9ae79c0],
+.ngs-count[data-v-e9ae79c0] {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ngs-count[data-v-e9ae79c0] {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.ngs-body[data-v-e9ae79c0] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 6px;
+  align-content: start;
+}
+
+/* ============ 首屏骨架屏 ============ */
+/* 与真实 .ngs-card 同一套盒模型（flex 列 + 同样的 padding/圆角/边框），
+   数据到达时列表不发生位移。 */
+.ngs-skel[data-v-e9ae79c0] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ngs-skel-card[data-v-e9ae79c0] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+}
+.ngs-skel-head[data-v-e9ae79c0] {
+  margin-bottom: 2px;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngs-skel[data-v-e9ae79c0] .el-skeleton {
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
+}
+.ngs-skel[data-v-e9ae79c0] .el-skeleton__item {
+  border-radius: 6px;
+}
+.ngs-card[data-v-e9ae79c0] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  transition: border-color 0.15s ease;
+}
+.ngs-card.has-warn[data-v-e9ae79c0] {
+  border-color: color-mix(in srgb, var(--status-warning) 40%, var(--border-subtle));
+}
+.ngs-card[data-v-e9ae79c0]:hover {
+  border-color: var(--brand-400);
+}
+
+/* 卡片头：与总览面板同名同款，保证跨面板一致 */
+.ngx-card-head[data-v-e9ae79c0] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngx-card-title[data-v-e9ae79c0] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ngs-tags[data-v-e9ae79c0] {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ngs-facts[data-v-e9ae79c0] {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.ngs-fact[data-v-e9ae79c0] {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ngs-fact dt[data-v-e9ae79c0] {
+  flex: none;
+  width: 60px;
+  color: var(--text-secondary);
+}
+.ngs-fact dd[data-v-e9ae79c0] {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ngx-break[data-v-e9ae79c0] {
+  word-break: break-all;
+}
+.ngs-warns[data-v-e9ae79c0] {
+  margin: 0;
+  padding: 8px 10px 8px 24px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--status-warning) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.ngs-warns li[data-v-e9ae79c0]::marker {
+  color: var(--status-warning);
+}
+.ngs-ops[data-v-e9ae79c0] {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+.ngs-ops[data-v-e9ae79c0] .rs-btn {
+  margin: 0;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngf[data-v-8d768c1d] {
+  display: flex;
+  flex-direction: column;
+}
+.ngf-blockhead[data-v-8d768c1d] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-radius: 6px;
+  /* 由站点页签跳转过来时高亮目标块，让用户一眼看到要改的是哪一个 */
+}
+.ngf-blockhead.is-focused[data-v-8d768c1d] {
+  background: var(--brand-50);
+  box-shadow: inset 2px 0 0 var(--brand-500);
+  padding-left: 6px;
+}
+.ngf-caret[data-v-8d768c1d] {
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.ngf-blockname[data-v-8d768c1d] {
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand-500);
+  white-space: nowrap;
+}
+
+/* 区块头参数：固定一段可用宽度，不写死也不自由伸缩。
+   写死 220px 会在窄面板里把「指令/子块/删除」挤出可视区；
+   但改成 flex:1 又会让它在宽面板里铺满整行，把三个按钮顶到最右、
+   删除按钮直接被裁掉（实测截图就是这个现象）。
+   所以：按需伸缩 + 封顶 260px，两头都不越界。 */
+.ngf-headarg[data-v-8d768c1d] {
+  flex: 0 1 auto;
+  width: 240px;
+  max-width: 260px;
+  min-width: 80px;
+}
+
+/* 行号：靠 auto margin 顶到最右，但必须 flex:none，
+   否则它会参与伸缩被压扁，数字只显示半截 */
+.ngf-lines[data-v-8d768c1d] {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.ngf-children[data-v-8d768c1d] {
+  padding-left: 18px;
+  border-left: 1px dashed var(--border-subtle);
+  margin-left: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ngf-item[data-v-8d768c1d] {
+  border-radius: 6px;
+}
+.ngf-item.is-directive[data-v-8d768c1d]:hover {
+  background: var(--bg-fill);
+}
+.ngf-row[data-v-8d768c1d] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px 3px 0;
+  /* 强制单行：默认 flex-wrap 是 nowrap，这里写出来是为了让意图显式——
+     控件一旦折到下一行，视觉上就跟「多了一条指令」无法区分了。 */
+  flex-wrap: nowrap;
+}
+
+/* 指令名：按内容宽度排布、整体不换行。
+   原来写死 190px + ellipsis，指令名稍长就被截成「proxy_pass…」，得悬停才能看全，
+   而这里是编辑配置、名字必须一眼可读。改成「按需取宽、必要时压缩」：
+   flex-basis auto 让短名字不浪费空间，max-width 兜住长名字不会把右侧控件挤没。 */
+.ngf-name[data-v-8d768c1d] {
+  flex: 0 1 auto;
+  min-width: 96px;
+  max-width: 40%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  /* 名字是主要信息：宽度不够时压缩它，而不是换行 */
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ngf-control[data-v-8d768c1d] {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+/* 选择/数字框统一不换行。数字框一旦被折到下一行，
+   上下两条指令的输入框会错位叠在一起，看着像控件坏了。 */
+.ngf-flag[data-v-8d768c1d],
+.ngf-enum[data-v-8d768c1d],
+.ngf-num[data-v-8d768c1d] {
+  flex: 0 0 160px;
+  width: 160px;
+  white-space: nowrap;
+}
+.ngf-sized[data-v-8d768c1d],
+.ngf-plain[data-v-8d768c1d],
+.ngf-text[data-v-8d768c1d] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 行尾操作按钮给固定方形尺寸。
+   不加约束时 ReButton 的 text 按钮宽度由内容撑，而 icon 是 svg，
+   在 flex 行里被挤到接近 0 宽就整个看不见了——「图标没显示」就是这个原因。 */
+.ngf-row[data-v-8d768c1d] .el-button,
+.ngf-blockhead[data-v-8d768c1d] .el-button {
+  flex: 0 0 auto;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 图标再兜一层：svg 默认可压缩，这里禁止被压扁 */
+.ngf-row[data-v-8d768c1d] .el-button .el-icon,
+.ngf-blockhead[data-v-8d768c1d] .el-button .el-icon {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+}
+.ngf-unit[data-v-8d768c1d] {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.ngf-help[data-v-8d768c1d] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 左内边距与 .ngf-row 内边距对齐（原 196px 是跟着写死的 190px 指令名列算的，
+     指令名列改成按内容伸缩后这里再写死就会和上方内容错位）。
+     用 padding-left 只做视觉缩进，宽度交由内容。 */
+  padding: 0 6px 6px 8px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.ngf-help.is-unknown[data-v-8d768c1d] {
+  color: var(--text-tertiary);
+}
+.ngf-help code[data-v-8d768c1d] {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--bg-fill);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ngf-help-eg[data-v-8d768c1d] {
+  color: var(--text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ngf-empty[data-v-8d768c1d] {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngc[data-v-e278d983] {
+  height: 100%;
+  min-height: 0;
+}
+.ngc-body[data-v-e278d983] {
+  display: flex;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 左侧文件列表：卡片容器，与总览面板同款 */
+.ngc-side[data-v-e278d983] {
+  width: 250px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+}
+
+/* 卡片头：与总览面板同名同款，保证跨面板一致 */
+.ngx-card-head[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ngx-card-title[data-v-e278d983] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ngc-side-head[data-v-e278d983] {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 8px;
+}
+.ngc-side-body[data-v-e278d983] {
+  flex: 1;
+  overflow: auto;
+}
+.ngc-file[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.ngc-file[data-v-e278d983]:hover {
+  background: var(--bg-fill);
+}
+.ngc-file.active[data-v-e278d983] {
+  background: var(--brand-50);
+  color: var(--brand-500);
+  font-weight: 600;
+}
+
+/* 左侧列表头部的操作按钮组：两个 icon 按钮并排，不换行 */
+.ngc-side-ops[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+/* 新建文件弹窗里的初始内容编辑框占满整行 */
+.ngc-create-content[data-v-e278d983] {
+  width: 100%;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ngc-filename[data-v-e278d983] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ngc-filedir[data-v-e278d983] {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+  direction: rtl;
+}
+
+/* 右侧编辑区：卡片容器，与总览面板同款 */
+.ngc-main[data-v-e278d983] {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+}
+.ngc-bar[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ngc-path[data-v-e278d983] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 文件/表单模式切换：与 Nginx 控制台「标准/新人」同款分段控件 */
+.ngc-seg[data-v-e278d983] {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+.ngc-seg button[data-v-e278d983] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ngc-seg button[data-v-e278d983]:last-child {
+  border-right: none;
+}
+.ngc-seg button[data-v-e278d983]:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.ngc-seg button.is-active[data-v-e278d983] {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+.ngc-alert[data-v-e278d983] {
+  margin: 10px 0 0;
+}
+.ngc-warns[data-v-e278d983] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0 0;
+}
+
+/* 文件编辑器：内层视口，四周留出卡片内边距 */
+/* ============ 首屏骨架屏 ============ */
+.ngc-skel[data-v-e278d983] {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px;
+  overflow: hidden;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngc-skel[data-v-e278d983] .el-skeleton {
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
+}
+.ngc-skel[data-v-e278d983] .el-skeleton__item {
+  border-radius: 4px;
+}
+.ngc-editor[data-v-e278d983] {
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+.ngc-gutter[data-v-e278d983] {
+  flex: none;
+  padding: 12px 6px 12px 10px;
+  background: var(--bg-fill);
+  border-right: 1px solid var(--border-subtle);
+  overflow: hidden;
+  user-select: none;
+}
+.ngc-lineno[data-v-e278d983] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+.ngc-textarea[data-v-e278d983] {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: var(--bg-container);
+  color: var(--text-primary);
+}
+
+/* 表单模式 */
+.ngc-model[data-v-e278d983] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 0 0;
+}
+
+/* 底部操作条 */
+.ngc-foot[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 10px;
+}
+.ngc-opts[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ngc-opt-label[data-v-e278d983] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-right: 8px;
+}
+.ngc-ops[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 结果展示 */
+.ngc-result[data-v-e278d983] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ngc-result-head[data-v-e278d983] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.ngc-result-head.is-ok[data-v-e278d983] {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+}
+.ngc-result-head.is-info[data-v-e278d983] {
+  color: var(--brand-500);
+  background: var(--brand-50);
+}
+.ngc-steps[data-v-e278d983] {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.ngc-block-label[data-v-e278d983] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.ngc-pre[data-v-e278d983] {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ngc-pre.is-err[data-v-e278d983] {
+  color: var(--status-error);
+}
+.ngc-diff[data-v-e278d983] {
+  display: block;
+}
+.ngc-diff.add[data-v-e278d983] {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+}
+.ngc-diff.del[data-v-e278d983] {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+}
+.ngc-addmeta[data-v-e278d983] {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.ngc-addmeta-eg[data-v-e278d983] {
+  color: var(--text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* 指令下拉使用原生 ElSelect：弹层由 Element Plus teleport 到 body，
+   scoped 样式无法直接命中，这里单独给 popper-class 提供稳定排版。 */
+.ngc-directive-popper .el-select-dropdown__item {
+  height: auto;
+  min-height: 40px;
+  padding: 6px 10px;
+  line-height: 1.35;
+  white-space: normal;
+}
+.ngc-directive-popper .ngc-directive-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.ngc-directive-popper .ngc-directive-option__name {
+  font-weight: 600;
+  color: var(--text-primary, #1f2430);
+}
+.ngc-directive-popper .ngc-directive-option__desc {
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--text-secondary, #5c6270);
+  white-space: normal;
+}
+.ngc-directive-popper .ngc-directive-option__example {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary, #8a90a0);
+}
+
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngl[data-v-9ea481c5] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+.ngl-bar[data-v-9ea481c5] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngl-label[data-v-9ea481c5] {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ngl-status[data-v-9ea481c5] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+.ngl-state[data-v-9ea481c5] {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ngl-state.is-ok[data-v-9ea481c5] {
+  color: var(--status-success);
+}
+.ngl-state.is-warn[data-v-9ea481c5] {
+  color: var(--status-warning);
+}
+.ngl-count[data-v-9ea481c5] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.ngl-alert[data-v-9ea481c5] {
+  margin: 0;
+}
+
+/* ============ 首屏骨架屏 ============ */
+/* 行高与真实 .ngl-log 接近，数据到达时不会因为行数变化而跳动 */
+.ngl-skel[data-v-9ea481c5] {
+  padding: 12px 14px;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngl-skel[data-v-9ea481c5] .el-skeleton {
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
+}
+.ngl-skel[data-v-9ea481c5] .el-skeleton__item {
+  height: 14px;
+  margin-bottom: 9px;
+  border-radius: 4px;
+}
+.ngl-body[data-v-9ea481c5] {
+  flex: 1;
+  min-height: 260px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+}
+.ngl-empty[data-v-9ea481c5] {
+  margin: 0;
+  padding: 24px 16px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.ngl-log[data-v-9ea481c5] {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+.ngl-log.nowrap .ngl-line[data-v-9ea481c5] {
+  white-space: pre;
+}
+.ngl-line[data-v-9ea481c5] {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-primary);
+}
+.ngl-line.is-warn[data-v-9ea481c5] {
+  color: var(--status-warning);
+}
+.ngl-line.is-error[data-v-9ea481c5], .ngl-line.is-5xx[data-v-9ea481c5] {
+  color: var(--status-error);
+}
+.ngl-line.is-crit[data-v-9ea481c5] {
+  color: var(--status-error);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+}
+.ngl-line.is-4xx[data-v-9ea481c5] {
+  color: var(--status-warning);
+}
+.ngl-rotated[data-v-9ea481c5] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--status-warning);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngb[data-v-3e43b540] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+.ngb-alert[data-v-3e43b540] {
+  margin: 0;
+}
+.ngb-alert code[data-v-3e43b540] {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--bg-fill);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ngb-bar[data-v-3e43b540] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngb-bar[data-v-3e43b540] .rs-btn {
+  margin: 0;
+}
+.ngb-count[data-v-3e43b540] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.ngb-list[data-v-3e43b540] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+}
+
+/* ============ 首屏骨架屏 ============ */
+/* 与真实 .ngb-item 同一套排版（图标 + 两行文字 + 右侧按钮位），
+   这样数据到达时列表不会整体位移。 */
+.ngb-skel[data-v-3e43b540] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ngb-skel-item[data-v-3e43b540] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+.ngb-skel-icon[data-v-3e43b540] {
+  flex: 0 0 auto;
+  width: 14px;
+}
+.ngb-skel-body[data-v-3e43b540] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngb-skel[data-v-3e43b540] .el-skeleton {
+  --el-skeleton-animation-bg-color: var(--bg-fill);
+  --el-skeleton-animation-to-color: var(--bg-hover);
+}
+
+/* ============ 内容预览 / 对比 ============ */
+.ngb-preview-bar[data-v-3e43b540] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ngb-preview-meta[data-v-3e43b540] {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ngb-add[data-v-3e43b540] {
+  color: var(--status-success);
+}
+.ngb-del[data-v-3e43b540] {
+  color: var(--status-error);
+}
+.ngb-preview-body[data-v-3e43b540] {
+  max-height: 380px;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-fill);
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* diff 逐行着色。统一用极淡的底色而不是左边框：
+   配置里一行可能很长，边框会被长行拉出很粗的一条。 */
+.ngb-diff[data-v-3e43b540] .el-diff-add,
+.ngb-diff[data-v-3e43b540] .el-diff-del {
+  display: block;
+  padding: 0 6px;
+}
+.ngb-diff[data-v-3e43b540] .el-diff-add {
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+}
+.ngb-diff[data-v-3e43b540] .el-diff-del {
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+}
+.ngb-item[data-v-3e43b540] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+.ngb-item[data-v-3e43b540]:hover {
+  background: var(--bg-hover);
+}
+
+/* 勾选中的备份：品牌色描边 + 淡底，和工具条「删除所选（N）」的计数呼应 */
+.ngb-item.is-checked[data-v-3e43b540] {
+  border-color: color-mix(in srgb, var(--brand-400) 45%, transparent);
+  background: color-mix(in srgb, var(--brand-400) 7%, transparent);
+}
+.ngb-item[data-v-3e43b540] .rs-btn {
+  margin: 0;
+}
+.ngb-info[data-v-3e43b540] {
+  flex: 1;
+  min-width: 0;
+}
+.ngb-name[data-v-3e43b540] {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ngb-meta[data-v-3e43b540] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.ngb-restore[data-v-3e43b540] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ngb-hint[data-v-3e43b540] {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.ngx-break[data-v-3e43b540] {
+  word-break: break-all;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngt[data-v-f2d334c4] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+.ngt-alert[data-v-f2d334c4] {
+  margin: 0;
+}
+.ngt-grid[data-v-f2d334c4] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+}
+.ngt-card[data-v-f2d334c4] {
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.ngt-card[data-v-f2d334c4]:hover {
+  border-color: color-mix(in srgb, var(--brand-500) 35%, transparent);
+  background: var(--brand-50);
+}
+.ngt-card.active[data-v-f2d334c4] {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+}
+
+/* 卡片头：与总览面板同名同款，保证跨面板一致 */
+.ngx-card-head[data-v-f2d334c4] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ngx-card-title[data-v-f2d334c4] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ngt-summary[data-v-f2d334c4] {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.ngt-scene[data-v-f2d334c4] {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 向导 */
+.ngw[data-v-f2d334c4] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.ngw-steps[data-v-f2d334c4] {
+  display: flex;
+  gap: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ngw-step[data-v-f2d334c4] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.ngw-step.active[data-v-f2d334c4] {
+  color: var(--brand-500);
+  font-weight: 600;
+}
+.ngw-step.done[data-v-f2d334c4] {
+  color: var(--status-success);
+}
+.ngw-step-no[data-v-f2d334c4] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.ngw-body[data-v-f2d334c4] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ngw-intro[data-v-f2d334c4] {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.ngw-hint[data-v-f2d334c4] {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.ngw-conf[data-v-f2d334c4] {
+  margin: 0;
+  padding: 12px;
+  max-height: 300px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ngw-tips[data-v-f2d334c4] {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.ngw-tips li[data-v-f2d334c4]::marker {
+  color: var(--brand-500);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngs[data-v-bf02950b] {
+  max-height: 62vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+.ngs-mode[data-v-bf02950b] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dsm-seg[data-v-bf02950b] {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.dsm-seg button[data-v-bf02950b] {
+  padding: 4px 12px;
+  border: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.dsm-seg button.is-active[data-v-bf02950b] {
+  background: var(--brand-500);
+  color: #fff;
+}
+.ngs-mode-hint[data-v-bf02950b] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.ngs-row[data-v-bf02950b] {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ngs-label[data-v-bf02950b] {
+  width: 84px;
+  flex-shrink: 0;
+  padding-top: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+.ngs-row[data-v-bf02950b] > :not(.ngs-label) {
+  flex: 1;
+  min-width: 0;
+}
+.ngs-inline[data-v-bf02950b] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ngs-inline[data-v-bf02950b] > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.ngs-num[data-v-bf02950b] {
+  max-width: 110px;
+}
+.ngs-suffix[data-v-bf02950b] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.ngs-metrics[data-v-bf02950b] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 6px 0;
+}
+.ngs-metric-item[data-v-bf02950b] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ngs-metric-item input[data-v-bf02950b] {
+  margin: 0;
+  cursor: pointer;
+}
+.ngs-textarea[data-v-bf02950b] {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  outline: none;
+}
+.ngs-textarea[data-v-bf02950b]:focus {
+  border-color: var(--brand-500);
+}
+.ngs-textarea--mono[data-v-bf02950b] {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+.ngs-custom-json[data-v-bf02950b] {
+  min-height: 260px;
+}
+.ngs-divider[data-v-bf02950b] {
+  margin: 14px 0 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.ngs-color-text[data-v-bf02950b] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  outline: none;
+}
+.ngs-color[data-v-bf02950b] {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ngs-swatches[data-v-bf02950b] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.ngs-swatch[data-v-bf02950b] {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  padding: 0;
+}
+.ngs-swatch[data-v-bf02950b]:hover {
+  outline: 2px solid var(--brand-300, var(--brand-500));
+}
+.ngs-custom-hint[data-v-bf02950b] {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.ngs-error[data-v-bf02950b] {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--status-error);
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.ngl[data-v-63d895d7] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+}
+.ngl-bar[data-v-63d895d7] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  flex-shrink: 0;
+}
+.ngl-bar-left[data-v-63d895d7] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ngl-bar-right[data-v-63d895d7] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngl-title[data-v-63d895d7] {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ngl-state[data-v-63d895d7] {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ngl-state.is-dirty[data-v-63d895d7] {
+  color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 12%, transparent);
+}
+.ngl-state.is-saving[data-v-63d895d7] {
+  color: var(--brand-600);
+  background: var(--brand-50);
+}
+.ngl-state.is-error[data-v-63d895d7] {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+}
+.ngl-state.is-saved[data-v-63d895d7] {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+}
+
+/* HomePreview 需要确定高度才能把行高算满，这里给布局面板固定高度 */
+.ngl-body[data-v-63d895d7] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 6px;
+  height: clamp(520px, 100vh - 300px, 1400px);
+  min-height: 0;
+}
+@media (max-width: 1100px) {
+.ngl-body[data-v-63d895d7] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(420px, 1fr) 260px;
+}
+}
+.ngl-embed[data-v-63d895d7] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ngl-embed-hint[data-v-63d895d7] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.ngl-embed-block[data-v-63d895d7] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ngl-embed-label[data-v-63d895d7] {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ngl-embed-row[data-v-63d895d7] {
+  display: flex;
+  gap: 8px;
+}
+.ngl-embed-input[data-v-63d895d7] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  outline: none;
+}
+.ngl-embed-input[data-v-63d895d7]:focus {
+  border-color: var(--brand-500);
+}
+.ngl-embed-foot[data-v-63d895d7] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.ngl-embed-token[data-v-63d895d7] {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  word-break: break-all;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+/* 整页：与 Redis/ZK/etcd 控制台同款 dsm 壳。
+   色值全部走 koi 设计令牌（--brand-* / --text-* / --border-* / --bg-*），暗色自动覆盖。
+   背景用 --bg-fill 铺底（用户要求非白底）：白卡片落在浅灰画布上，边界一眼可分。 */
+.dsm[data-v-ce6e3b29] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+  background: var(--bg-fill);
+}
+
+/* ============ 顶栏 ============ */
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 类统一提供
+   （16px 圆角、透明边框 + 双层柔光投影），这里只留布局——不再自写一套卡片壳防漂移 */
+.dsm-toolbar[data-v-ce6e3b29] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.dsm-toolbar-left[data-v-ce6e3b29] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.dsm-title[data-v-ce6e3b29] {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.dsm-nginx-icon[data-v-ce6e3b29] {
+  color: #009639;
+}
+.dsm-toolbar-right[data-v-ce6e3b29] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dsm-toolbar-right[data-v-ce6e3b29] .rs-btn {
+  margin: 0;
+}
+.dsm-db-select[data-v-ce6e3b29] {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+/* 标准/新人 切换：复用统一分段控件样式（同 Redis 字符串视图切换） */
+.dsm-seg[data-v-ce6e3b29] {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.dsm-seg button[data-v-ce6e3b29] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.dsm-seg button[data-v-ce6e3b29]:last-child {
+  border-right: none;
+}
+.dsm-seg button[data-v-ce6e3b29]:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.dsm-seg button.is-active[data-v-ce6e3b29] {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
+/* 运行状态胶囊：五种状态各自语义色 */
+.ngm-state[data-v-ce6e3b29] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 18px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.ngm-state.is-running[data-v-ce6e3b29] {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-success) 32%, transparent);
+}
+.ngm-state.is-stopped[data-v-ce6e3b29] {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-error) 32%, transparent);
+}
+.ngm-state.is-unknown[data-v-ce6e3b29] {
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border-color: var(--border-subtle);
+}
+.ngm-state[data-v-ce6e3b29] {
+  /* 加载中：品牌色 + 呼吸动画，与「已停止」的红色明确区分开 */
+}
+.ngm-state.is-loading[data-v-ce6e3b29] {
+  color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+  border-color: color-mix(in srgb, var(--brand-500) 32%, transparent);
+}
+.ngm-state[data-v-ce6e3b29] {
+  /* 取数失败：橙红警示，明确区别于「运行中/已停止」这两个真实状态 */
+}
+.ngm-state.is-error[data-v-ce6e3b29] {
+  color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-warning) 32%, transparent);
+}
+
+/* 加载中状态点做呼吸动画，静止的灰点容易被当成「卡住了」 */
+.ngm-state.is-loading .ngm-state-dot[data-v-ce6e3b29] {
+  animation: ngm-pulse-ce6e3b29 1.2s ease-in-out infinite;
+}
+@keyframes ngm-pulse-ce6e3b29 {
+0%, 100% {
+    opacity: 1;
+}
+50% {
+    opacity: 0.25;
+}
+}
+.ngm-state-dot[data-v-ce6e3b29] {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+.ngm-meta[data-v-ce6e3b29] {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============ 主体：左菜单 + 内容 ============ */
+.dsm-body[data-v-ce6e3b29] {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  overflow: hidden;
+}
+
+/* 左侧菜单：外层用 dsm-sidebar（边框/圆角/底色），条目皮肤对齐 dsm-tree-node */
+.ngm-nav[data-v-ce6e3b29] {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-container);
+  overflow: hidden;
+}
+
+/* 侧栏标题行：与 Redis/etcd 控制台 dsm-view-bar 同款 */
+.dsm-view-bar[data-v-ce6e3b29] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ngm-nav-title[data-v-ce6e3b29] {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.ngm-nav-list[data-v-ce6e3b29] {
+  flex: 1;
+  padding: 6px 0;
+  overflow-y: auto;
+}
+.ngm-nav-item[data-v-ce6e3b29] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ngm-nav-item[data-v-ce6e3b29]:hover {
+  background: var(--bg-hover);
+}
+.ngm-nav-item.active[data-v-ce6e3b29] {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+.ngm-nav-icon[data-v-ce6e3b29] {
+  flex-shrink: 0;
+}
+.ngm-main[data-v-ce6e3b29] {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* 各子面板是 .ngm-main 的直接子元素，自身按内容高度收缩。
+   铺满后 v-loading 的 .el-loading-mask（position:absolute; inset:0 贴在面板根元素上）
+   才能盖住整块内容区，而不是只盖住上半截。
+   .ngm-main 是 .dsm-body 的 flex 子项、.dsm 有 height:100%，所以这里的百分比高度能解析；
+   面板内容更高时按内容撑开并由 .ngm-main 滚动。 */
+.ngm-main[data-v-ce6e3b29] > * {
+  min-height: 100%;
+}
+
+/* ============ 新人引导 ============ */
+.ngm-guide[data-v-ce6e3b29] {
+  margin: 0 0 16px;
+}
+.ngm-guide-body[data-v-ce6e3b29] {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.ngm-guide-sub[data-v-ce6e3b29] {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.ngm-link[data-v-ce6e3b29] {
+  color: var(--brand-500);
+  cursor: pointer;
+  text-decoration: underline;
+  margin: 0 2px;
+}

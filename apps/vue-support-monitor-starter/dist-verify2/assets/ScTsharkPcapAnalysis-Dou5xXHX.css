@@ -1,0 +1,52 @@
+
+.import-summary[data-v-094ee28b] {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 整行是按钮：指针形态告诉用户「这行能点」，否则只有右边那个小字像链接 */
+.tshark-table[data-v-094ee28b] .el-table__row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.tshark-table[data-v-094ee28b] .el-table__row:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent) !important;
+}
+
+/* 状态标签脉冲动画 */
+.status-tag[data-v-094ee28b] {
+  position: relative;
+  padding-left: 20px;
+}
+.status-pulse[data-v-094ee28b] {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f97316;
+  animation: status-pulse-094ee28b 1.5s ease-in-out infinite;
+}
+.status-tag--parsing[data-v-094ee28b] {
+  color: #ea580c;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+.status-tag--done[data-v-094ee28b] {
+  color: #16a34a;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.status-tag--failed[data-v-094ee28b] {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+@keyframes status-pulse-094ee28b {
+0%, 100% { opacity: 1; transform: translateY(-50%) scale(1);
+}
+50% { opacity: 0.4; transform: translateY(-50%) scale(0.8);
+}
+}

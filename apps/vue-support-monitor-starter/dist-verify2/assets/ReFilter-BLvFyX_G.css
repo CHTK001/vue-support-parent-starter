@@ -1,0 +1,35 @@
+
+.re-filter[data-v-6e870511] {
+  padding: 0;
+}
+.re-filter__form[data-v-6e870511] .el-form-item {
+  margin-bottom: 12px;
+}
+.re-filter__form[data-v-6e870511] .el-form-item__label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.re-filter__item[data-v-6e870511] {
+  width: 100%;
+}
+.re-filter__item[data-v-6e870511] .el-input,
+.re-filter__item[data-v-6e870511] .el-select,
+.re-filter__item[data-v-6e870511] .el-date-editor {
+  width: 100% !important;
+}
+.re-filter__actions[data-v-6e870511] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.re-filter__expand-icon[data-v-6e870511] {
+  margin-left: 2px;
+  transition: transform 0.25s ease;
+}
+.re-filter__expand-icon.is-expanded[data-v-6e870511] {
+  transform: rotate(180deg);
+}
+.re-filter__drawer-form[data-v-6e870511] .el-form-item {
+  margin-bottom: 16px;
+}

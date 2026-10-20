@@ -1,0 +1,62 @@
+/**
+ * ReSearch 共享设计令牌
+ *
+ * 两个主题（koi / default）和 Modern 布局共用的变量集。
+ * 通过 CSS 自定义属性实现主题统一，Element Plus 变量自动适配。
+ */
+
+:root {
+  /* 色彩 */
+  --rs-primary: var(--el-color-primary, #6366f1);
+  --rs-primary-tint: color-mix(in srgb, var(--rs-primary) 8%, transparent);
+  --rs-primary-outline: color-mix(in srgb, var(--rs-primary) 25%, transparent);
+  --rs-text: var(--el-text-color-primary, #1e293b);
+  --rs-text-secondary: var(--el-text-color-secondary, #64748b);
+
+  /* 边框 */
+  --rs-border: var(--el-border-color-lighter, #e2e8f0);
+  --rs-border-hover: var(--el-border-color, #cbd5e1);
+
+  /* 背景 */
+  --rs-bg-card: var(--el-bg-color, #ffffff);
+  --rs-bg-hover: var(--el-fill-color, #f1f5f9);
+
+  /* 圆角 */
+  --rs-radius-sm: 6px;
+  --rs-radius-md: 10px;
+  --rs-radius-lg: 14px;
+  --rs-radius-full: 9999px;
+
+  /* 间距 */
+  --rs-gap: 12px;
+  --rs-gap-sm: 8px;
+
+  /* 阴影 */
+  --rs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --rs-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --rs-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --rs-shadow-primary: 0 4px 12px color-mix(in srgb, var(--rs-primary) 30%, transparent);
+
+  /* 字号 */
+  --rs-font-xs: 11px;
+  --rs-font-sm: 12px;
+  --rs-font: 13px;
+  --rs-font-md: 14px;
+
+  /* 动画 */
+  --rs-duration: 200ms;
+  --rs-duration-slow: 300ms;
+  --rs-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --rs-transition: var(--rs-duration) var(--rs-ease);
+  --rs-transition-slow: var(--rs-duration-slow) var(--rs-ease);
+
+  /* 折叠图标颜色 */
+  --rs-color-icon: var(--el-color-primary, #6366f1);
+}
+
+.dark {
+  --rs-bg-card: #1e293b;
+  --rs-bg-hover: #334155;
+  --rs-border: #475569;
+  --rs-border-hover: #64748b;
+}

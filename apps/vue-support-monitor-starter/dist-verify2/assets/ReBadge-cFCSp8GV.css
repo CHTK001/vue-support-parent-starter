@@ -1,0 +1,28 @@
+
+/**
+ * ReBadge 呼吸动画
+ *
+ * 通过 CSS 变量 --re-badge-breath-color 控制脉冲颜色，
+ * 未设置时回退为 el-badge 自带的危险色（var(--el-color-danger)）。
+ *
+ * 使用方式：
+ *   <ReBadge :is-dot="true" breath />
+ *   <ReBadge :is-dot="true" breath style="--re-badge-breath-color: #67c23a" />
+ */
+@keyframes re-badge-breath {
+0% {
+    box-shadow: 0 0 0 0 var(--re-badge-breath-color, var(--el-color-danger));
+    opacity: 0.9;
+}
+70% {
+    box-shadow: 0 0 0 8px transparent;
+    opacity: 0.4;
+}
+100% {
+    box-shadow: 0 0 0 0 transparent;
+    opacity: 0.9;
+}
+}
+.re-badge--breath.el-badge__dot {
+  animation: re-badge-breath 1.8s ease-out infinite;
+}

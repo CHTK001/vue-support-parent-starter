@@ -1,0 +1,181 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.koi-shell-header-actions[data-v-acfa8b91] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+.koi-toolbar-btn[data-v-acfa8b91] {
+  border: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  transition: all 0.2s ease;
+}
+.koi-toolbar-btn[data-v-acfa8b91]:hover {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary-light-9) 78%, var(--el-fill-color-light));
+}
+.koi-toolbar-btn.koi-toolbar-btn--close[data-v-acfa8b91]:hover {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger-light-9) 82%, var(--el-fill-color-light));
+}
+.koi-toolbar-btn[data-v-acfa8b91]:active {
+  transform: scale(0.96);
+}
+.koi-toolbar-btn[data-v-acfa8b91] .el-icon {
+  font-size: 16px;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.koi-shell-minimized-dock[data-v-1aba935e] {
+  position: fixed;
+  left: 16px;
+  right: auto;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(220px, 100vw - 32px);
+  min-width: 0;
+  min-height: 32px;
+  margin: 0;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  color: var(--el-text-color-primary);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.koi-shell-minimized-dock[data-v-1aba935e]:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, var(--el-border-color));
+  transform: translateY(-1px);
+}
+.koi-shell-minimized-dock[data-v-1aba935e]:active {
+  transform: scale(0.98);
+}
+.koi-shell-minimized-dock__icon[data-v-1aba935e] {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--el-text-color-regular);
+}
+.koi-shell-minimized-dock__icon[data-v-1aba935e] svg {
+  width: 1em;
+  height: 1em;
+}
+.koi-shell-minimized-dock__title[data-v-1aba935e] {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.35;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.koi-drawer-custom-header[data-v-54ba82e3] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+}
+.koi-drawer-custom-header .koi-drawer-header-left[data-v-54ba82e3] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.koi-drawer-custom-header .koi-drawer-header-icon-wrap[data-v-54ba82e3] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  background: var(--el-bg-color);
+}
+.koi-drawer-custom-header .koi-drawer-header-icon[data-v-54ba82e3] {
+  font-size: 16px;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+.koi-drawer-custom-header > span[data-v-54ba82e3] {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.koi-drawer-body[data-v-54ba82e3] {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+.koi-drawer-body .body[data-v-54ba82e3] {
+  flex: 1;
+  padding-right: 8px;
+  overflow-y: auto;
+  color: var(--theme-color-text, var(--el-text-color-primary));
+}
+.koi-drawer-body .footer[data-v-54ba82e3] {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  margin-top: auto;
+}
+.koi-drawer-body[data-v-54ba82e3] {
+  /* 业务 #footer 插槽的容器：占满底栏并靠右排列（与 default 主题 el-drawer 底栏一致）。
+     内置「确定/取消」走原样式，不受影响。 */
+}
+.koi-drawer-body .koi-drawer-footer[data-v-54ba82e3] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+[data-v-54ba82e3] .el-drawer__title {
+  color: var(--theme-color-text, var(--el-text-color-primary));
+}
+.koi-btn-borderless[data-v-54ba82e3] {
+  border: none;
+  box-shadow: none;
+}
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.el-drawer.koi-drawer-shell .el-drawer__header {
+  margin-bottom: 0;
+}
+.el-drawer.koi-drawer-shell .el-drawer__body {
+  padding-bottom: 8px;
+}

@@ -1,0 +1,86 @@
+@charset "UTF-8";
+/** Aside左侧布局相关变量-开始 */
+/** Aside左侧布局相关变量-结束 */
+/** Column双栏布局相关变量-开始 */
+/** Column双栏布局相关变量-结束 */
+.login-split-reverse[data-v-097f3da3] {
+  background: var(--el-bg-color);
+}
+
+/* 左屏：表单 */
+.lsr-form-side[data-v-097f3da3] {
+  background: var(--el-bg-color);
+}
+html.dark .lsr-form-side[data-v-097f3da3] {
+  background: #0c0c12;
+}
+
+/* 右屏：品牌沉浸（主色渐变 + 柔光 + 网格） */
+.lsr-brand[data-v-097f3da3] {
+  color: #fff;
+  background: radial-gradient(ellipse 620px 560px at 20% 20%, color-mix(in srgb, var(--el-color-white) 24%, transparent), transparent 70%), radial-gradient(560px circle at 85% 85%, color-mix(in srgb, var(--el-color-white) 16%, transparent), transparent 65%), linear-gradient(155deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+}
+.lsr-brand-mesh[data-v-097f3da3] {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(color-mix(in srgb, var(--el-color-white) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--el-color-white) 8%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 100%);
+}
+.lsr-brand-glow[data-v-097f3da3] {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.lsr-brand-glow--1[data-v-097f3da3] {
+  top: 8%;
+  right: -6%;
+  width: 300px;
+  height: 300px;
+  background: color-mix(in srgb, var(--el-color-white) 40%, transparent);
+}
+.lsr-brand-glow--2[data-v-097f3da3] {
+  bottom: 4%;
+  left: -4%;
+  width: 260px;
+  height: 260px;
+  background: color-mix(in srgb, var(--el-color-primary-light-5) 70%, transparent);
+}
+.lsr-logo[data-v-097f3da3] {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24), 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+.lsr-logo--mobile[data-v-097f3da3] {
+  width: 40px;
+  height: 40px;
+}
+.lsr-title[data-v-097f3da3] {
+  letter-spacing: 2px;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.28);
+}
+.lsr-feature[data-v-097f3da3] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: color-mix(in srgb, var(--el-color-white) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 22%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  backdrop-filter: blur(8px);
+}
+.lsr-feature-icon[data-v-097f3da3] {
+  color: color-mix(in srgb, var(--el-color-white) 88%, transparent);
+}
+.login-logo[data-v-097f3da3] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+}

@@ -29,8 +29,13 @@
             <ReEmpty description="暂无数据" layout="modern" />
           </div>
           <ul v-else class="flow-list">
-            <li v-for="(row, i) in topFlows" :key="row.flow + '-' + i" class="flow-row">
-              <span class="flow-row__rank tshark-mono">{{ i + 1 }}</span>
+            <li
+              v-for="(row, i) in topFlows"
+              :key="row.flow + '-' + i"
+              class="flow-row"
+              :class="flowRowClass(i)"
+            >
+              <span class="flow-row__rank tshark-mono" :class="rankClass(i)">{{ i + 1 }}</span>
               <span class="flow-row__name tshark-mono" :title="row.flow">{{ row.flow }}</span>
               <span class="flow-row__pct tshark-mono">{{ shareOf(row.count) }}%</span>
               <span class="flow-row__count tshark-mono">{{ row.count }}</span>
@@ -66,6 +71,22 @@ function shareOf(count: number): string {
 function shorten(flow: string, max = 26): string {
   const s = flow || ''
   return s.length > max ? s.slice(0, max - 1) + '…' : s
+}
+
+/** 排名色 class */
+function rankClass(i: number): string {
+  if (i === 0) return 'rank--gold'
+  if (i <= 2) return 'rank--silver'
+  if (i <= 4) return 'rank--bronze'
+  return 'rank--normal'
+}
+
+/** 行左侧色条 class */
+function flowRowClass(i: number): string {
+  if (i === 0) return 'flow-row--gold'
+  if (i <= 2) return 'flow-row--silver'
+  if (i <= 4) return 'flow-row--bronze'
+  return 'flow-row--normal'
 }
 
 // ==================== 横条图 ====================
@@ -151,13 +172,56 @@ watch(() => props.version, () => nextTick(render))
   grid-template-columns: 20px 1fr 52px 68px;
   align-items: center;
   gap: 8px;
-  padding: 6px 4px;
+  padding: 6px 4px 6px 8px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  transition: background-color 0.15s ease;
 }
+/* 左侧色条 */
+.flow-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.flow-row--gold::before { background: #ef4444; }
+.flow-row--silver::before { background: #f97316; }
+.flow-row--bronze::before { background: #eab308; }
+.flow-row--normal::before { background: #9ca3af; }
+.flow-row:hover { background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent); }
 .flow-row:last-child { border-bottom: 0; }
 .flow-row__rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+.rank--gold {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.rank--silver {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+.rank--bronze {
+  background: #fefce8;
+  color: #ca8a04;
+  border: 1px solid #fef08a;
+}
+.rank--normal {
+  background: var(--el-fill-color-light);
   color: var(--el-text-color-placeholder);
-  text-align: right;
+  border: 1px solid var(--el-border-color-lighter);
 }
 .flow-row__name {
   color: var(--el-text-color-primary);

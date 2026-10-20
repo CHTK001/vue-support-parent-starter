@@ -1,0 +1,1 @@
+import{n as e,t}from"./RePagination-DUBE0CVi.js";export{t as default,e as install};

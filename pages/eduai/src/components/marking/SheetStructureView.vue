@@ -315,6 +315,15 @@ const currentLayout = computed(() => currentPage.value.layout || []);
 const currentAnchors = computed(() =>
   (structure.value?.questionAnchors || []).filter((a: any) => Number(a.page) === page.value),
 );
+/** 题目表格数据：整卷题目（题目没有页归属字段，表格固定展示全卷判分结果） */
+const currentQuestions = computed(() => questions.value);
+/** 上一页/下一页：只在有效页码区间内切换，同时复位版面高亮 */
+const changePage = (delta: number) => {
+  const next = page.value + delta;
+  if (next < 1 || next > pageCount.value) return;
+  page.value = next;
+  activeLayout.value = -1;
+};
 
 /**
  * 锚点 ↔ 题目按下标绑定：同号题（「一、二、三」各节都会从 1. 重新编号）不能按题号找题，
@@ -656,18 +665,29 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 阅卷版面解析：科技感玻璃工作台 + 扫描 HUD */
 .sheet-structure {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 420px;
+  position: relative;
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--el-color-primary) 6%, transparent), transparent 45%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--el-color-warning) 5%, transparent), transparent 45%),
+    var(--el-bg-color-page, var(--el-bg-color));
 }
 .ss-toolbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 4px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-bg-color) 72%, var(--el-color-primary) 4%);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
 .ss-legend {
   display: flex;
@@ -682,18 +702,45 @@ onUnmounted(() => {
   border-radius: 50%;
   display: inline-block;
 }
-.ss-correct { background: var(--el-color-success); }
-.ss-partial { background: var(--el-color-warning); }
-.ss-wrong { background: var(--el-color-danger); }
-.ss-tip { margin-left: 8px; }
-/* 卷面识别学生提示（工具栏右侧） */
+.ss-correct {
+  background: var(--el-color-success);
+  box-shadow: 0 0 8px var(--el-color-success);
+}
+.ss-partial {
+  background: var(--el-color-warning);
+  box-shadow: 0 0 8px var(--el-color-warning);
+}
+.ss-wrong {
+  background: var(--el-color-danger);
+  box-shadow: 0 0 8px var(--el-color-danger);
+}
+.ss-tip { margin-left: 8px; opacity: 0.8; }
+/* 卷面识别学生：右侧数据徽章 */
 .ss-student {
   margin-left: auto;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  font-variant-numeric: tabular-nums;
 }
 .ss-student b { color: var(--el-color-primary); }
+/* 工具栏模式切换：分段霓虹 */
+.ss-toolbar :deep(.el-radio-button__inner) {
+  border-color: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 80%, var(--el-color-primary) 4%);
+  color: var(--el-text-color-regular);
+  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.ss-toolbar :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  border-color: var(--el-color-primary);
+  background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 82%, var(--el-color-white)));
+  color: var(--el-color-white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+}
 /* 入题库弹框 */
 .ss-bank-row { display: flex; gap: 12px; }
 .ss-bank-row .el-form-item { flex: 1; }
@@ -701,8 +748,9 @@ onUnmounted(() => {
 .ss-bank-hint {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-fill-color-light));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  border-radius: 6px;
   padding: 6px 10px;
   margin: 4px 0;
 }
@@ -719,9 +767,17 @@ onUnmounted(() => {
 .ss-stage-wrap {
   flex: 0 0 46%;
   overflow: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-base);
-  background: var(--el-fill-color-blank);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+  border-radius: var(--el-radius-lg, 12px);
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--el-color-primary) 7%, transparent), transparent 60%),
+    linear-gradient(color-mix(in srgb, var(--el-color-primary) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--el-color-primary) 5%, transparent) 1px, transparent 1px);
+  background-color: var(--el-fill-color-blank);
+  background-size: 100% 100%, 22px 22px, 22px 22px;
+  box-shadow:
+    inset 0 0 30px color-mix(in srgb, var(--el-color-primary) 6%, transparent),
+    0 4px 20px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -732,6 +788,23 @@ onUnmounted(() => {
   display: inline-block;
   max-width: 100%;
 }
+/* 卷面舞台低亮度扫描光：只给识别区一点动态感，不遮挡版面 */
+.ss-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--el-color-primary) 5%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 100% 260%;
+  animation: ss-stage-scan 7s linear infinite;
+  opacity: 0.6;
+}
 .ss-image {
   display: block;
   width: 100%;
@@ -741,55 +814,113 @@ onUnmounted(() => {
 .ss-overlay {
   position: absolute;
   inset: 0;
+  z-index: 2;
 }
 .ss-layout {
   position: absolute;
-  border: 1px solid var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
-  opacity: 0.35;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  opacity: 0.45;
   cursor: pointer;
-  transition: opacity 0.15s;
+  overflow: hidden;
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+/* 版面框内扫描光：识别区低频扫过，不与题目面板抢焦点 */
+.ss-layout::before {
+  content: "";
+  position: absolute;
+  top: -30%;
+  left: -20%;
+  width: 60%;
+  height: 45%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--el-color-primary) 10%, transparent),
+    transparent
+  );
+  transform: rotate(-10deg);
+  animation: ss-layout-scan 3.4s ease-in-out infinite;
+  pointer-events: none;
 }
 .ss-layout-active {
-  opacity: 0.75;
+  opacity: 0.82;
   border-color: var(--el-color-primary);
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--el-color-primary) 35%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
 }
 .ss-layout-label {
   position: absolute;
-  top: -2px;
+  top: 0;
   left: 0;
   font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--el-color-primary);
-  background: var(--el-bg-color);
-  padding: 0 2px;
+  background: color-mix(in srgb, var(--el-bg-color) 86%, var(--el-color-primary) 8%);
+  padding: 1px 5px;
+  border-right: 1px solid color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 35%, transparent);
 }
 .ss-anchor {
   position: absolute;
-  border-radius: 4px;
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 18px;
   min-height: 14px;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.ss-anchor:hover {
+  transform: scale(1.12);
 }
 .ss-anchor .ss-badge {
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: #fff;
-  border-radius: 3px;
+  color: var(--el-color-white);
+  border-radius: var(--el-radius-xs, 4px);
   padding: 1px 4px;
   white-space: nowrap;
 }
-.ss-anchor-correct { background: color-mix(in srgb, var(--el-color-success) 22%, transparent); border: 1px solid var(--el-color-success); }
-.ss-anchor-partial { background: color-mix(in srgb, var(--el-color-warning) 22%, transparent); border: 1px solid var(--el-color-warning); }
-.ss-anchor-wrong { background: color-mix(in srgb, var(--el-color-danger) 22%, transparent); border: 1px solid var(--el-color-danger); }
-.ss-anchor-unknown { background: color-mix(in srgb, var(--el-text-color-secondary) 18%, transparent); border: 1px dashed var(--el-text-color-secondary); }
+.ss-anchor-correct {
+  background: color-mix(in srgb, var(--el-color-success) 22%, transparent);
+  border: 1px solid var(--el-color-success);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-success) 35%, transparent);
+}
+.ss-anchor-partial {
+  background: color-mix(in srgb, var(--el-color-warning) 22%, transparent);
+  border: 1px solid var(--el-color-warning);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-warning) 35%, transparent);
+}
+.ss-anchor-wrong {
+  background: color-mix(in srgb, var(--el-color-danger) 22%, transparent);
+  border: 1px solid var(--el-color-danger);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-danger) 35%, transparent);
+}
+.ss-anchor-unknown {
+  background: color-mix(in srgb, var(--el-text-color-secondary) 18%, transparent);
+  border: 1px dashed var(--el-text-color-secondary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-text-color-secondary) 20%, transparent);
+}
 /* 选中锚点：放大 + 高亮描边，与右侧题目表行联动 */
 .ss-anchor-selected {
-  z-index: 2;
-  transform: scale(1.25);
-  box-shadow: 0 0 0 2px var(--el-bg-color), 0 0 10px var(--el-color-primary);
+  z-index: 3;
+  transform: scale(1.28);
+  box-shadow:
+    0 0 0 2px var(--el-bg-color),
+    0 0 16px var(--el-color-primary),
+    0 0 28px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
   opacity: 1 !important;
   border-style: solid;
 }
@@ -803,20 +934,82 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--el-bg-color) 78%, var(--el-color-primary) 3%);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+.ss-panel :deep(.el-table) {
+  --el-table-border-color: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  --el-table-header-bg-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  background: transparent;
+}
+.ss-panel :deep(.el-table__header th.el-table__cell) {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+    color-mix(in srgb, var(--el-color-primary) 5%, transparent)
+  );
+  color: var(--el-text-color-primary);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.ss-panel :deep(.el-table__body tr:hover > td.el-table__cell) {
+  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
 }
 .ss-actions {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-top: 8px;
+  padding: 10px 12px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color) 70%, var(--el-color-primary) 3%);
 }
-.ss-hint { font-size: 12px; color: var(--el-text-color-secondary); }
-.ss-sel { font-size: 12px; color: var(--el-text-color-secondary); }
-.ss-ai-score { color: var(--el-text-color-secondary); font-weight: 600; }
-.ss-score-correct { color: var(--el-color-success); font-weight: 600; }
-.ss-score-partial { color: var(--el-color-warning); font-weight: 600; }
-.ss-score-wrong { color: var(--el-color-danger); font-weight: 600; }
-.ss-row-active { color: var(--el-color-primary); font-weight: 600; }
+.ss-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.03em;
+}
+.ss-sel {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-color-primary);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  padding: 2px 9px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+}
+.ss-ai-score {
+  color: var(--el-text-color-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ss-score-correct {
+  color: var(--el-color-success);
+  font-weight: 700;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--el-color-success) 45%, transparent);
+}
+.ss-score-partial {
+  color: var(--el-color-warning);
+  font-weight: 700;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--el-color-warning) 45%, transparent);
+}
+.ss-score-wrong {
+  color: var(--el-color-danger);
+  font-weight: 700;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--el-color-danger) 45%, transparent);
+}
+.ss-row-active {
+  color: var(--el-color-primary);
+  font-weight: 700;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+}
 .ss-kp { margin-right: 4px; cursor: pointer; }
 .ss-muted { color: var(--el-text-color-placeholder); font-size: 12px; }
 /* 老师评语列：文本 + 专注编辑图标（窄列不再放多行输入框，行高更稳） */
@@ -845,11 +1038,12 @@ onUnmounted(() => {
   padding: 2px;
   border-radius: 4px;
   color: var(--el-text-color-placeholder);
-  transition: color 0.15s, background-color 0.15s;
+  transition: color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
 .ss-comment-edit:hover {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
 }
 .ss-comment-edit--filled {
   color: var(--el-color-primary);
@@ -860,8 +1054,9 @@ onUnmounted(() => {
   padding: 6px 10px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-fill-color-light));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  border-radius: 6px;
   word-break: break-word;
 }
 .ss-kp-key { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px; }
@@ -869,4 +1064,32 @@ onUnmounted(() => {
 .ss-kp-list li { padding: 8px 0; border-bottom: 1px solid var(--el-border-color-lighter); }
 .ss-kp-name { font-weight: 600; }
 .ss-kp-desc { font-size: 12px; color: var(--el-text-color-secondary); }
+
+/* 扫描动画与无障碍 */
+@keyframes ss-stage-scan {
+  0%   { background-position: 0 -260%; }
+  100% { background-position: 0 260%; }
+}
+@keyframes ss-layout-scan {
+  0%   { top: -30%; opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 130%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-stage::after,
+  .ss-layout::before {
+    animation: none;
+    opacity: 0;
+  }
+  .ss-anchor,
+  .ss-anchor:hover,
+  .ss-anchor-selected {
+    transform: none;
+    transition: none;
+  }
+  .ss-toolbar :deep(.el-radio-button__inner) {
+    transition: none;
+  }
+}
 </style>

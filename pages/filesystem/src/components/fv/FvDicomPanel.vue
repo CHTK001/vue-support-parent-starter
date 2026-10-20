@@ -17,6 +17,7 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { resolveObjectUrl } from "../../api/filestorageApi";
+import FvLoadingMask from "./FvLoadingMask.vue";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -214,9 +215,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="fv-dicom" aria-label="DICOM 医疗影像预览">
-    <div v-if="loading" class="fv-dicom__mask">
-      <span class="fv-dicom__mask-text">加载中…</span>
-    </div>
+    <FvLoadingMask v-if="loading" :fileName="fileName" />
     <div v-else-if="failReason" class="fv-dicom__mask">
       <span class="fv-dicom__mask-text">{{ failReason }}</span>
     </div>

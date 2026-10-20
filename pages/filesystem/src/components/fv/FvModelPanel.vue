@@ -14,6 +14,7 @@ import { computed, onBeforeUnmount, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { authHeaders, objectUrl } from "../../api/filestorageApi";
 import { extensionOf } from "../../utils/officeRenderer";
+import FvLoadingMask from "./FvLoadingMask.vue";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -216,7 +217,7 @@ function onRenderError(err: unknown): void {
 
 <template>
   <div class="fv-model-panel">
-    <div v-if="loading && !fileRef" class="fv-model-panel__mask">加载中…</div>
+    <FvLoadingMask v-if="loading && !fileRef" :fileName="fileName" />
     <component
       :is="viewerComp"
       v-else-if="viewerComp && fileRef && renderers.length"

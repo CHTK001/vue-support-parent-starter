@@ -1,0 +1,13 @@
+
+.re-form__help[data-v-7f544c5f] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* 全局样式：radio-button 盒子更大 */
+.re-form-radio-group .el-radio-button__inner {
+  padding: 10px 20px;
+  font-size: 14px;
+}

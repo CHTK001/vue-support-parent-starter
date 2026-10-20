@@ -1,0 +1,1 @@
+import{t as e}from"./file-viewer-wordperfect-Dg7kGZ7x.js";export{e as default};

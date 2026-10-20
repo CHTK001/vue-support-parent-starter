@@ -1,0 +1,229 @@
+
+.re-progress[data-v-3d4cd9c3] {
+  position: relative;
+  width: 100%;
+  background: var(--rm-bg-subtle);
+  border-radius: var(--rm-radius-full);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+.re-progress__fill[data-v-3d4cd9c3] {
+  position: relative;
+  height: 100%;
+  border-radius: var(--rm-radius-full);
+  transition: width 250ms var(--rm-ease), background 250ms var(--rm-ease);
+  overflow: hidden;
+}
+
+/* Colors */
+.re-progress__fill--primary[data-v-3d4cd9c3] { background: var(--rm-primary);
+}
+.re-progress__fill--success[data-v-3d4cd9c3] { background: var(--rm-success);
+}
+.re-progress__fill--warning[data-v-3d4cd9c3] { background: var(--rm-warning);
+}
+.re-progress__fill--danger[data-v-3d4cd9c3] { background: var(--rm-danger);
+}
+.re-progress__fill--info[data-v-3d4cd9c3] { background: var(--rm-info);
+}
+.re-progress__fill--pending[data-v-3d4cd9c3] { background: var(--rm-border);
+}
+
+/* Stripe 流光 */
+.re-progress__fill--stripe[data-v-3d4cd9c3]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: color-mix(in srgb, var(--rm-text-white) 30%, transparent);
+  border-radius: inherit;
+  animation: re-progress-stripe-3d4cd9c3 1.6s var(--rm-ease) infinite;
+}
+@keyframes re-progress-stripe-3d4cd9c3 {
+0% { transform: translateX(-100%);
+}
+100% { transform: translateX(260%);
+}
+}
+
+/* Indeterminate 未确定进度 */
+.re-progress__fill--indeterminate[data-v-3d4cd9c3] {
+  width: 35% !important;
+  animation: re-progress-indeterminate-3d4cd9c3 1.4s var(--rm-ease) infinite;
+}
+@keyframes re-progress-indeterminate-3d4cd9c3 {
+0% { transform: translateX(-100%);
+}
+100% { transform: translateX(285%);
+}
+}
+
+/* 失败抖动 */
+.re-progress--failed[data-v-3d4cd9c3] {
+  animation: re-progress-shake-3d4cd9c3 0.4s var(--rm-ease);
+}
+@keyframes re-progress-shake-3d4cd9c3 {
+0%, 100% { transform: translateX(0);
+}
+20% { transform: translateX(-3px);
+}
+40% { transform: translateX(3px);
+}
+60% { transform: translateX(-2px);
+}
+80% { transform: translateX(2px);
+}
+}
+@media (prefers-reduced-motion: reduce) {
+.re-progress__fill[data-v-3d4cd9c3],
+  .re-progress__fill--stripe[data-v-3d4cd9c3]::after,
+  .re-progress__fill--indeterminate[data-v-3d4cd9c3],
+  .re-progress--failed[data-v-3d4cd9c3] {
+    animation: none;
+}
+}
+
+.re-progress-task[data-v-f689710e] {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius-lg);
+  background: color-mix(in srgb, var(--rm-bg) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color var(--rm-transition),
+    box-shadow var(--rm-transition),
+    background var(--rm-transition);
+}
+.re-progress-task[data-v-f689710e]:hover {
+  border-color: color-mix(in srgb, var(--rm-primary) 25%, var(--rm-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 4px 12px color-mix(in srgb, var(--rm-primary) 8%, transparent);
+}
+.re-progress-task--status-success[data-v-f689710e] { border-color: color-mix(in srgb, var(--rm-success) 35%, var(--rm-border));
+}
+.re-progress-task--status-failed[data-v-f689710e] { border-color: color-mix(in srgb, var(--rm-danger) 35%, var(--rm-border));
+}
+.re-progress-task--status-cancelled[data-v-f689710e] { opacity: 0.7;
+}
+.re-progress-task__head[data-v-f689710e] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.re-progress-task__icon[data-v-f689710e] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rm-text-white);
+  box-shadow: none;
+}
+.re-progress-task__icon--primary[data-v-f689710e] { background: var(--rm-primary);
+}
+.re-progress-task__icon--success[data-v-f689710e] { background: var(--rm-success);
+}
+.re-progress-task__icon--warning[data-v-f689710e] { background: var(--rm-warning);
+}
+.re-progress-task__icon--danger[data-v-f689710e] { background: var(--rm-danger);
+}
+.re-progress-task__icon--info[data-v-f689710e] { background: var(--rm-info);
+}
+.re-progress-task__main[data-v-f689710e] {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.re-progress-task__title-row[data-v-f689710e] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.re-progress-task__title[data-v-f689710e] {
+  font-size: var(--rm-font-md);
+  font-weight: 600;
+  color: var(--rm-text);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.re-progress-task__percent[data-v-f689710e] {
+  font-size: var(--rm-font-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-text-secondary);
+  flex-shrink: 0;
+}
+.re-progress-task__summary[data-v-f689710e] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--rm-font-xs);
+  color: var(--rm-text-secondary);
+  flex-wrap: wrap;
+  padding-top: 2px;
+  letter-spacing: 0.01em;
+}
+.re-progress-task__status[data-v-f689710e] { font-weight: 500;
+}
+.re-progress-task__elapsed[data-v-f689710e],
+.re-progress-task__remaining[data-v-f689710e],
+.re-progress-task__speed[data-v-f689710e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: var(--rm-bg-subtle);
+  border-radius: var(--rm-radius-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.re-progress-task__actions[data-v-f689710e] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.re-progress-task__btn[data-v-f689710e] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: var(--rm-radius-sm);
+  color: var(--rm-text-secondary);
+  cursor: pointer;
+  transition: background var(--rm-transition), color var(--rm-transition);
+}
+.re-progress-task__btn[data-v-f689710e]:hover {
+  background: var(--rm-bg-hover);
+  color: var(--rm-primary);
+}
+.re-progress-task__btn--close[data-v-f689710e]:hover { color: var(--rm-danger);
+}
+.re-progress-task__btn svg[data-v-f689710e] { width: 13px; height: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+.re-progress-task[data-v-f689710e],
+  .re-progress-task__btn[data-v-f689710e] {
+    transition: none;
+}
+}

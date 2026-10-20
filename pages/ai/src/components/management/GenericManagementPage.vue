@@ -109,7 +109,7 @@
             :type="field.inputType || 'text'"
             show-password
           />
-          <el-input-number
+          <ReNumberSelect
             v-else-if="field.type === 'number'"
             v-model="formData[field.prop]"
             :min="field.min"
@@ -154,6 +154,7 @@
 </template>
 
 <script setup lang="ts">
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import { message } from "@repo/core";
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessageBox } from 'element-plus';

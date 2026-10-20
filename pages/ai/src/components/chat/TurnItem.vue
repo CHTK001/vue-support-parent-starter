@@ -51,8 +51,12 @@
         <!-- 用户操作按钮 -->
         <MessageActions :is-assistant="false" :is-last="false" :allow-generate="allowGenerate"
           :time-full="userTime.full" :time-friendly="userTime.firendly"
+          :message-id="turn.user?.id" :raw-content="turn.user?.contents?.[0]?.content || ''"
+          :reactions="reactionState?.[turn.user?.id]"
           @copy="emit('copy', turn.user)" @generate="emit('generate', turn.user)" @edit="emit('edit', turn.user)"
-          @delete="emit('delete', turn.user)" @fork="emit('fork', turn.user)" />
+          @delete="emit('delete', turn.user)" @fork="emit('fork', turn.user)"
+          @quote="(p) => emit('quote', p)" @reaction="(p) => emit('reaction', p)"
+          @view-source="(p) => emit('view-source', p)" @export-md="(p) => emit('export-md', p)" />
       </div>
     </div>
 
@@ -97,6 +101,21 @@
             :items="timelineItems"
             :is-streaming="streamingState.isStreaming"
             @click="handleClick" />
+
+          <!--
+            流式首包未到/正文未开始：卡片内给出明显的「正在生成回答」占位动效。
+            仅当流式且当前还没有任何 content 输出时显示，避免和正文/状态行重复。
+          -->
+          <div v-if="streamingState.isStreaming && !hasAnyOutputContent"
+            class="streaming-placeholder" aria-hidden="true">
+            <div class="streaming-placeholder__line streaming-placeholder__line--short"></div>
+            <div class="streaming-placeholder__line streaming-placeholder__line--medium"></div>
+            <div class="streaming-placeholder__line streaming-placeholder__line--long"></div>
+            <div class="streaming-placeholder__hint">
+              <span class="typing-indicator"><span></span><span></span><span></span></span>
+              <span>{{ t('chat.turn.working') }}</span>
+            </div>
+          </div>
 
           <!--
             Agent 产出图片就地预览：正文/工具调用里提到的工作区图片文件，
@@ -221,10 +240,14 @@
         <MessageActions v-if="!streamingState.isStreaming" :is-assistant="true" :is-last="isLast"
           :allow-generate="false"
           :time-full="assistantTime.full" :time-friendly="assistantTime.firendly" :duration-text="durationText"
+          :message-id="activeAssistant?.id" :raw-content="activeAssistant?.contents?.[0]?.content || ''"
+          :reactions="reactionState?.[activeAssistant?.id]"
           @copy="emit('copy', activeAssistant)" @regenerate="emit('regenerate', activeAssistant)"
           @edit="emit('edit', activeAssistant)"
           @delete="emit('delete', activeAssistant)"
-          @rewind="activeAssistant && emit('rewind', activeAssistant)" />
+          @rewind="activeAssistant && emit('rewind', activeAssistant)"
+          @quote="(p) => emit('quote', p)" @reaction="(p) => emit('reaction', p)"
+          @view-source="(p) => emit('view-source', p)" @export-md="(p) => emit('export-md', p)" />
       </div>
     </template>
 
@@ -280,6 +303,8 @@ const props = defineProps<{
   animateIn?: boolean;
   /** 会话 ID：用于把消息里提到的工作区图片文件渲染成缩略图（raw-file 取回） */
   sessionId?: string;
+  /** 消息 Reactions 状态：messageId -> { up/down } */
+  reactionState?: Record<string, { up?: boolean; down?: boolean }>;
 }>();
 
 const emit = defineEmits<{
@@ -294,6 +319,10 @@ const emit = defineEmits<{
   /** 从此处分叉：把截至本轮的消息复制成新会话 */
   fork: [message: Message]
   resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }]
+  quote: [payload: { messageId: string; content?: string }]
+  reaction: [payload: { messageId: string; type: 'up' | 'down' }]
+  'view-source': [payload: { messageId: string; rawContent: string }]
+  'export-md': [payload: { messageId: string; rawContent: string }]
 }>();
 
 // ============================================
@@ -373,6 +402,11 @@ const displayGroups = computed<DisplayGroup[]>(() => {
 const timelineItems = computed<DisplayItem[]>(() => {
   return flattenContentsForTimeline(turnsCache.value);
 });
+
+/** 是否已有正文输出：避免首包等待时卡片只有一段空白 */
+const hasAnyOutputContent = computed(() =>
+  timelineItems.value.some((item) => item.type === 'content'),
+);
 
 // ============================================
 // 执行日志（agentscope trace）
@@ -799,6 +833,40 @@ const handleClick = (event: MouseEvent) => {
   40% {
     transform: scale(1);
   }
+}
+
+/* 流式首包/正文未开始时的占位动效：
+   三条 shimmer 骨架线模拟正文轮廓，左下角保留三点加载。 */
+.streaming-placeholder {
+  padding: 14px 2px 6px;
+}
+.streaming-placeholder__line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--el-fill-color-light) 0%,
+    var(--el-fill-color) 40%,
+    var(--el-fill-color-light) 80%);
+  background-size: 200% 100%;
+  animation: streaming-shimmer 1.4s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+.streaming-placeholder__line--short { width: 62%; }
+.streaming-placeholder__line--medium { width: 84%; }
+.streaming-placeholder__line--long { width: 100%; }
+
+.streaming-placeholder__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+@keyframes streaming-shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -20% 0; }
 }
 
 /* 消息卡片悬停效果：投影属 koi 允许的第二类（悬浮反馈），
@@ -1262,6 +1330,11 @@ const handleClick = (event: MouseEvent) => {
   .typing-indicator span {
     animation: none;
     transform: scale(0.55);
+  }
+  .streaming-placeholder__line {
+    animation: none;
+    /* 静态占位骨架：用次级填充色替代 shimmer 扫光，仍保持正文轮廓可读 */
+    background: var(--el-fill-color);
   }
 }
 

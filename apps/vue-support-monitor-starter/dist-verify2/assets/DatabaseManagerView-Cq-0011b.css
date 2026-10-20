@@ -1,0 +1,1342 @@
+
+/* ============================================================
+   数据库管理（Web Navicat 风格）——与 Redis 控制中心同构：灰底双白卡
+   全部使用 koi 变量（--el-* / --metric-* / --radius 等）
+   ============================================================ */
+.dbm[data-v-16fb2d5e] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100vh - 120px);
+  min-height: 560px;
+  padding: 4px 4px 8px;
+  /* 浅灰画布：工具条 / 侧栏 / 内容区三张白卡浮在上面，层次来自这里 */
+  background: var(--bg-fill);
+}
+
+/* 内嵌到数据源中心：宿主已经算好了可用高度（页签面板是 flex:1 + min-height:0），
+   这里必须改成吃满父级而不是再算一次 100vh - 120px，否则会出现双层滚动条。
+   同时去掉自身内边距，避免和宿主页签面板的内边距叠加出两层空白。 */
+.dbm.is-embedded[data-v-16fb2d5e] {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+/* 内嵌模式：父容器（数据源中心右栏）本身已占掉约 600px，
+   侧栏再吃 300px 只剩约 520px 给表格，列被压得放不下几列。
+   这里收到 240px，把宽度让给内容。 */
+.dbm.is-embedded .dbm-sidebar[data-v-16fb2d5e] {
+  width: 240px;
+}
+
+/* 独立模式的数据源下拉：宽度与原 ReSelect 一致，避免工具栏布局跳动 */
+.dbm-ds-select[data-v-16fb2d5e] {
+  width: 200px;
+}
+
+/* 内嵌模式的数据源标识：替代独立模式的下拉，只读展示当前浏览对象 */
+.dbm-ds-chip[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+/* 工具条：页面级动作只留数据源切换 + 刷新 + 表页签激活时的一簇视图设置，
+   因此压到 6px 内边距、取消圆角与阴影，把纵向空间让给主内容区。 */
+/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 基类统一提供。
+   这里用 --dense 档而不是默认档：DBM 是密集型控制台，工具条与下方
+   .dbm-sidebar / .dbm-content 两张 16px 卡同宽并排，默认档 16px 18px 内距会把
+   工具条撑高一档、左右卡片高度对不齐。scoped 里只留布局，不再自写一套卡片壳。 */
+.dbm-toolbar[data-v-16fb2d5e] {
+  display: flex;
+  /* 右侧簇换行落分页条时，左侧簇贴主行顶部 —— 两大簇不因分页换行而错位 */
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+.dbm-toolbar-left[data-v-16fb2d5e] { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex: 0 1 auto; min-width: 0;
+}
+.dbm-toolbar-hint[data-v-16fb2d5e] { font-size: 12px; color: var(--el-text-color-placeholder); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 右侧：数据源下拉与刷新按钮之间不留多余间距；
+    表页签激活时这里还要吃下「分页条」，允许整体换行（.dbm-pager-bar），
+    换行只发生在右侧簇内部 —— 左侧簇与右侧簇的主行对齐不受影响。 */
+.dbm-toolbar-right[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end;
+}
+/* 分页条：表页签激活时跟在右侧簇末尾（要求 1.2 的 COUNT 跟随分页形态走，
+    与 .dbm-simple-pager 共用 52px 高，避免统计总数开关切换时工具条抖动）。 */
+.dbm-pager-bar[data-v-16fb2d5e] { display: flex; align-items: center; justify-content: flex-end; height: 52px; flex: none;
+}
+.dbm-pager-bar .dbm-simple-pager[data-v-16fb2d5e] { height: 52px;
+}
+/* 统计总数开关（ConsoleSwitch 的 radio 胶囊）：ep-radio-group 是换行 flex，
+   一旦被压窄就会把「是 / 否」竖着叠成两行，连带把整个工具条顶高 ——
+   钉死不缩，胶囊恒定单行，工具条高度才不随页签切换抖动。 */
+.dbm-toolbar-right .dbm-switch[data-v-16fb2d5e] { flex: none;
+}
+
+/* 主体 */
+.dbm-body[data-v-16fb2d5e] { display: flex; gap: 16px; flex: 1; min-height: 0;
+}
+
+/* 左侧连接树卡 */
+.dbm-sidebar[data-v-16fb2d5e] {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  overflow: hidden;
+}
+.dbm-tree[data-v-16fb2d5e] { flex: 1; overflow-y: auto; padding: 8px 8px 12px;
+}
+.dbm-tree-node[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.dbm-tree-node[data-v-16fb2d5e]:hover { background: var(--el-fill-color-light);
+}
+.dbm-tree-node.active[data-v-16fb2d5e] { background: var(--el-color-primary-light-9);
+}
+.dbm-tree-node.active .dbm-tree-label[data-v-16fb2d5e] { color: var(--el-color-primary);
+}
+.dbm-tree-root[data-v-16fb2d5e] { font-weight: 600; color: var(--el-text-color-primary);
+}
+.dbm-tree-children[data-v-16fb2d5e] { padding-left: 14px;
+}
+.dbm-tree-icon[data-v-16fb2d5e] { flex: none;
+}
+.dbm-db-icon[data-v-16fb2d5e] { color: var(--el-color-warning);
+}
+.dbm-table-icon[data-v-16fb2d5e] { color: var(--el-color-success);
+}
+.dbm-tree-label[data-v-16fb2d5e] {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-tree-remark[data-v-16fb2d5e] { margin-left: 4px; font-size: 11px; color: var(--el-text-color-placeholder);
+}
+
+/* 右侧内容卡 */
+.dbm-content[data-v-16fb2d5e] {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  overflow: hidden;
+}
+
+/* 页签 */
+.dbm-tabs[data-v-16fb2d5e] {
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  overflow-x: auto;
+}
+.dbm-tab[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0 0;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dbm-tab[data-v-16fb2d5e]:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary);
+}
+.dbm-tab.active[data-v-16fb2d5e] { color: var(--el-color-primary); background: var(--el-color-primary-light-9); font-weight: 600;
+}
+.dbm-tab-close[data-v-16fb2d5e] { opacity: 0.5; transition: opacity 0.15s ease;
+}
+.dbm-tab-close[data-v-16fb2d5e]:hover { opacity: 1; color: var(--el-color-danger);
+}
+
+/* 视图容器 */
+.dbm-table-view[data-v-16fb2d5e],
+.dbm-design-view[data-v-16fb2d5e],
+.dbm-query-view[data-v-16fb2d5e] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  overflow: hidden;
+}
+.dbm-table-toolbar[data-v-16fb2d5e],
+.dbm-design-toolbar[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* 顶层工具条里的表名/模式/动作行（要求 1 上迁）：锚类 .dbm-table-toolbar 只是
+    为了让验收套件的选择器继续命中，布局复用左侧簇 —— 不缩不换的钉死规则
+    只在网格那一层需要，上迁后由 .dbm-toolbar-left 的 wrap 自然换行。 */
+/* 设计视图：动作条跟在同一行，右侧对齐；不再单独占一行 */
+.dbm-design-toolbar .dbm-col-actions[data-v-16fb2d5e] { margin-left: auto;
+}
+/* 表名过长时用省略号收住，否则会把第一行内容顶到第二行 */
+.dbm-table-name[data-v-16fb2d5e] {
+  flex: 0 1 auto;
+  min-width: 60px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 工具条第一行：模式分段与动作按钮都是固定宽度，不缩不换 */
+.dbm-table-toolbar .dbm-subtabs[data-v-16fb2d5e] { flex: none;
+}
+.dbm-table-toolbar .re-button__tip-wrap[data-v-16fb2d5e] { flex: none;
+}
+/* 分页条已整体上迁到顶层工具条右侧（.dbm-pager-bar）：网格内的独占整行
+    .dbm-pager-row 结构作废，分页 52px 等高规则见 .dbm-pager-bar 段。 */
+.dbm-table-name[data-v-16fb2d5e] { font-weight: 700; font-size: 14px; color: var(--el-text-color-primary);
+}
+/* 动作条下方的说明行：合并工具条后单独一行，占位极小 */
+.dbm-col-hint[data-v-16fb2d5e] { font-size: 12px; color: var(--el-text-color-placeholder); padding: 2px 0;
+}
+
+/* SQL 查询 */
+.dbm-query-editor[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 8px;
+}
+.dbm-query-toolbar[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.dbm-sql-editor[data-v-16fb2d5e] {
+  width: 100%;
+  height: 180px;
+  padding: 12px 14px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.dbm-sql-editor[data-v-16fb2d5e]:focus {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.dbm-ddl[data-v-16fb2d5e] { height: 300px; resize: vertical;
+}
+.dbm-query-result[data-v-16fb2d5e] { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden;
+}
+.dbm-result-header[data-v-16fb2d5e] { font-size: 12.5px; color: var(--el-text-color-secondary); display: flex; align-items: center;
+}
+.dbm-result-message[data-v-16fb2d5e] { color: var(--el-color-success);
+}
+/* 失败那条：整段错误信息（可滚动），不要只留一句话 */
+.dbm-result-error[data-v-16fb2d5e] {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--el-color-danger-light-7, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-danger-light-9, var(--el-fill-color-lighter));
+  box-sizing: border-box;
+}
+.dbm-result-error-title[data-v-16fb2d5e] { font-size: 13px; color: var(--el-color-danger);
+}
+.dbm-result-error-body[data-v-16fb2d5e] {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 列设置弹窗 */
+/* 结构同步弹窗 */
+.dbm-sync[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 10px;
+}
+.dbm-sync-bar[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dbm-sync-side[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-sync-select[data-v-16fb2d5e] { width: 170px;
+}
+.dbm-sync-filter[data-v-16fb2d5e] { width: 220px;
+}
+.dbm-sync-body[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 8px;
+}
+.dbm-sync-summary[data-v-16fb2d5e] {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-sync-list[data-v-16fb2d5e] {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+}
+.dbm-sync-row[data-v-16fb2d5e] {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dbm-sync-row[data-v-16fb2d5e]:last-child { border-bottom: none;
+}
+.dbm-sync-kind[data-v-16fb2d5e] {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 17px;
+  border-radius: 3px;
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
+}
+/* 「目标多出来的」用中性色：它不是待办事项，是提示 */
+.dbm-sync-row.EXTRA_TABLE .dbm-sync-kind[data-v-16fb2d5e],
+.dbm-sync-row.EXTRA_COLUMN .dbm-sync-kind[data-v-16fb2d5e] {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+.dbm-sync-obj[data-v-16fb2d5e] {
+  flex-shrink: 0;
+  font-family: var(--el-font-family-mono, monospace);
+}
+.dbm-sync-detail[data-v-16fb2d5e] {
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-sync-script-wrap[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 6px;
+}
+.dbm-doc-export[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 12px;
+}
+.dbm-doc-row[data-v-16fb2d5e] { display: flex; align-items: center; gap: 12px;
+}
+.dbm-doc-label[data-v-16fb2d5e] {
+  flex: none;
+  width: 72px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.dbm-doc-value[data-v-16fb2d5e] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.dbm-doc-select[data-v-16fb2d5e] {
+  flex: 1;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+.dbm-doc-hint[data-v-16fb2d5e] {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.dbm-doc-error[data-v-16fb2d5e] {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-color-danger);
+}
+.dbm-sync-script-head[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-sync-script[data-v-16fb2d5e] {
+  max-height: 220px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ER 图视图 */
+.dbm-er-view[data-v-16fb2d5e] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dbm-er-toolbar[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+.dbm-er-filter[data-v-16fb2d5e] { width: 280px;
+}
+.dbm-er-layout[data-v-16fb2d5e] { width: 150px;
+}
+.dbm-er-stat[data-v-16fb2d5e] {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.dbm-er-mask[data-v-16fb2d5e],
+.dbm-er-empty[data-v-16fb2d5e] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary);
+}
+/* 图本身撑满剩余高度：ER 图是「整体视图」，
+   给固定高度会让 40 张表的图挤成一团且没法滚 */
+.dbm-er-graph[data-v-16fb2d5e] {
+  flex: 1;
+  min-height: 320px;
+}
+/* 表清单侧栏：100 张表时图本身没法导航，给一个确定入口 */
+.dbm-er-list[data-v-16fb2d5e] {
+  flex: 0 0 240px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--el-bg-color-overlay);
+}
+.dbm-er-list-row[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dbm-er-list-row[data-v-16fb2d5e]:hover { background: var(--el-fill-color-light);
+}
+.dbm-er-list-row.missing[data-v-16fb2d5e] {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, transparent);
+}
+.dbm-er-list-name[data-v-16fb2d5e] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--el-font-family-mono, monospace);
+}
+/* 关系条数：0 表示孤立表，一眼可辨 */
+.dbm-er-list-deg[data-v-16fb2d5e] {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+}
+.dbm-er-cols[data-v-16fb2d5e] {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.dbm-er-col-row[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dbm-er-col-name[data-v-16fb2d5e] {
+  font-family: var(--el-font-family-mono, monospace);
+  min-width: 140px;
+}
+.dbm-er-col-type[data-v-16fb2d5e] {
+  flex: 1;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+}
+.dbm-er-flag[data-v-16fb2d5e] {
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 17px;
+  border-radius: 3px;
+}
+.dbm-er-flag.pk[data-v-16fb2d5e] {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.dbm-er-flag.null[data-v-16fb2d5e] {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+
+/* 事务开关：开着时整条工具条染色。
+   必要性：事务开着时所有写操作都**不会立刻落库**，
+   而这一点除了这条提示之外没有任何界面证据 —— 用户会以为改动已经存了 */
+.dbm-tx-switch.on[data-v-16fb2d5e] {
+  padding: 2px 8px;
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
+  box-shadow: inset 0 0 0 1px var(--el-color-warning);
+}
+.dbm-colset[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 8px;
+}
+.dbm-colset-head[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px;
+}
+.dbm-colset-hint[data-v-16fb2d5e] { font-size: 12.5px; color: var(--el-text-color-secondary);
+}
+.dbm-colset-list[data-v-16fb2d5e] {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+}
+.dbm-colset-row[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.dbm-colset-row[data-v-16fb2d5e]:hover { background: var(--el-fill-color-light);
+}
+/* 隐藏列留灰：勾的是「显示」，不显示的项要能一眼认出来 */
+.dbm-colset-row.hidden .dbm-colset-name[data-v-16fb2d5e] {
+  color: var(--el-text-color-placeholder);
+  text-decoration: line-through;
+}
+.dbm-colset-check[data-v-16fb2d5e] { cursor: pointer;
+}
+.dbm-colset-name[data-v-16fb2d5e] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.dbm-colset-pin[data-v-16fb2d5e] {
+  padding: 2px 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  /* 未选中时压暗，避免满屏图钉抢注意力 */
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+.dbm-colset-pin[data-v-16fb2d5e]:hover:not(:disabled) { opacity: 0.7;
+}
+.dbm-colset-pin.on[data-v-16fb2d5e] {
+  opacity: 1;
+  filter: none;
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  border-color: var(--el-color-primary);
+}
+.dbm-colset-pin[data-v-16fb2d5e]:disabled { cursor: not-allowed; opacity: 0.15;
+}
+
+/* 二进制 / 长文本格子：一行摘要，点开进内容查看器 */
+.dbm-cell-blob[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  max-width: 100%;
+}
+.dbm-cell-blob[data-v-16fb2d5e]:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.dbm-cell-blob-text[data-v-16fb2d5e] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 内容查看器 */
+.dbm-blob[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 10px;
+}
+.dbm-blob-head[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px;
+}
+.dbm-blob-meta[data-v-16fb2d5e] { font-size: 12.5px; color: var(--el-text-color-secondary);
+}
+.dbm-blob-tabs[data-v-16fb2d5e] { display: flex; align-items: center; gap: 6px;
+}
+.dbm-blob-tab[data-v-16fb2d5e] {
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+}
+.dbm-blob-tab.active[data-v-16fb2d5e] {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+}
+.dbm-blob-text[data-v-16fb2d5e] {
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12.5px;
+}
+.dbm-blob-hex[data-v-16fb2d5e] {
+  height: 320px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  word-break: break-all;
+}
+.dbm-blob-image[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  max-height: 340px;
+  overflow: auto;
+  padding: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  /* 图片在深色底上要有对比边界，否则透明 PNG 会「看不见」 */
+  background-image:
+    linear-gradient(45deg, var(--el-border-color-lighter) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--el-border-color-lighter) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--el-border-color-lighter) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--el-border-color-lighter) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.dbm-blob-image img[data-v-16fb2d5e] { max-width: 100%; max-height: 320px;
+}
+
+/* 结果集里若有更新语句，它没有结果集；给一句说明而不是摆一张空表 */
+.dbm-result-plain[data-v-16fb2d5e] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 多结果集页签：只有脚本执行且有多条时才出现，单条执行不占这一行 */
+.dbm-result-set-tabs[data-v-16fb2d5e] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.dbm-result-set-tab[data-v-16fb2d5e] {
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dbm-result-set-tab[data-v-16fb2d5e]:hover { border-color: var(--el-color-primary);
+}
+.dbm-result-set-tab.active[data-v-16fb2d5e] {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+}
+
+/* 「打开 SQL 文件」的隐藏 input：不能用按钮直接选文件，必须走 input[type=file] 的 change */
+.dbm-hidden-input[data-v-16fb2d5e] { display: none;
+}
+
+/* 查询历史面板：与结果区同层，点条目回填编辑器 */
+.dbm-history[data-v-16fb2d5e] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  padding: 10px;
+  box-sizing: border-box;
+}
+.dbm-history-head[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px;
+}
+.dbm-history-list[data-v-16fb2d5e] { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px;
+}
+.dbm-history-item[data-v-16fb2d5e] {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.dbm-history-item[data-v-16fb2d5e]:hover {
+  background: var(--el-fill-color-light);
+  border-color: var(--el-border-color-lighter);
+}
+.dbm-history-time[data-v-16fb2d5e] { font-size: 12px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums;
+}
+.dbm-history-sql[data-v-16fb2d5e] {
+  font-size: 12.5px;
+  font-family: var(--el-font-family-mono, monospace);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-history-meta[data-v-16fb2d5e] { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap;
+}
+
+/* SQL 模板面板（复用历史面板骨架；四列：时刻 | 名 | SQL 预览 | 删除） */
+.dbm-tpl-item[data-v-16fb2d5e] { grid-template-columns: auto auto 1fr auto; align-items: center;
+}
+.dbm-tpl-name[data-v-16fb2d5e] {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+.dbm-tpl-del[data-v-16fb2d5e] {
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.dbm-tpl-item:hover .dbm-tpl-del[data-v-16fb2d5e] { color: var(--el-text-color-secondary);
+}
+.dbm-tpl-del[data-v-16fb2d5e]:hover { color: var(--el-color-danger);
+}
+
+/* AI text2sql 弹窗 */
+.dbm-ai-body[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 10px;
+}
+.dbm-ai-hint[data-v-16fb2d5e] {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-ai-ctx[data-v-16fb2d5e] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.dbm-ai-sql[data-v-16fb2d5e] {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* 参数弹窗里的变量行 */
+.dbm-params-row code[data-v-16fb2d5e] { font-family: var(--el-font-family-mono, monospace);
+}
+
+/* 空态 */
+.dbm-empty[data-v-16fb2d5e] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-empty-icon[data-v-16fb2d5e] { color: var(--el-text-color-placeholder);
+}
+.dbm-empty-text[data-v-16fb2d5e] { margin: 0;
+}
+
+/* 右键菜单（对齐 Navicat） */
+.dbm-context-menu[data-v-16fb2d5e] {
+  position: fixed;
+  z-index: 4000;
+  min-width: 190px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--el-bg-color-overlay, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-2));
+}
+.dbm-context-item[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 9px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  border-radius: var(--el-radius-sm, 6px);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.dbm-context-item[data-v-16fb2d5e]:hover { background: var(--el-fill-color-light); color: var(--el-color-primary);
+}
+.dbm-context-item.dbm-danger[data-v-16fb2d5e] { color: var(--el-color-danger);
+}
+.dbm-context-item.dbm-danger[data-v-16fb2d5e]:hover { background: var(--el-color-danger-light-9); color: var(--el-color-danger);
+}
+.dbm-context-hint[data-v-16fb2d5e] { margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder);
+}
+.dbm-context-divider[data-v-16fb2d5e] { height: 1px; margin: 5px 7px; background: var(--el-border-color-lighter);
+}
+
+/* 弹窗表单 */
+.dbm-create-form[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 4px;
+}
+.dbm-form-item[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 6px;
+}
+.dbm-form-item label[data-v-16fb2d5e] { font-size: 13px; font-weight: 500; color: var(--el-text-color-regular);
+}
+
+/* 单元格内联编辑 */
+.dbm-cell-value[data-v-16fb2d5e] {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.dbm-cell-value[data-v-16fb2d5e]:hover { background: var(--el-color-primary-light-9);
+}
+.dbm-cell-pk[data-v-16fb2d5e] { color: var(--el-text-color-placeholder); cursor: not-allowed;
+}
+.dbm-cell-edit[data-v-16fb2d5e] {
+  margin: 0;
+  padding: 0;
+  background: var(--el-color-primary-light-9);
+  /* 编辑框吃满整个格：ReInput 根是 display:contents（无盒），
+     el-input 会自动铺到父盒宽度；左右 -4/-8 的负 margin 以前是
+     想「出血」盖住格边框，实测反而留了一圈缝 —— 归零后贴边。 */
+}
+/* 吃满「整个」cell：vxe 单元格自带左右内边距（实测 12/16px），
+   只归零 .dbm-cell-edit 自身仍比格窄一圈。编辑态把格链 padding
+   一起清零，编辑框才真正贴满格边界（行高由 vxe 内联 height 决定，
+   清 padding 不影响行高）。:has 只命中正在编辑的那一列。 */
+[data-v-16fb2d5e] .vxe-body--column:has(.dbm-cell-edit) {
+  padding: 0 !important;
+}
+/* vxe 在省略列（show-overflow）还给 .vxe-cell 设内联
+   width = renderWidth - cellOffsetWidth（border 表的滚动条补偿，
+   实测 4px）——只清 padding 右缘仍差这 4px。编辑态覆盖为 auto，
+   编辑框才真正吃满整个 td（.vxe-cell 是块级 flex，auto 即铺满
+   td 内容盒）；:has 只命中正在编辑的那一列，不动其他列的补偿。 */
+[data-v-16fb2d5e] .vxe-body--column:has(.dbm-cell-edit) > .vxe-cell {
+  padding: 0 !important;
+  width: auto !important;
+}
+.dbm-cell-edit[data-v-16fb2d5e] .el-input,
+.dbm-cell-edit[data-v-16fb2d5e] textarea { width: 100%;
+}
+.dbm-cell-edit[data-v-16fb2d5e] .el-input__inner,
+.dbm-cell-edit[data-v-16fb2d5e] textarea { background: transparent;
+}
+
+/* 设计视图子页签（胶囊分段） */
+.dbm-subtabs[data-v-16fb2d5e] {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.dbm-subtab[data-v-16fb2d5e] {
+  padding: 3px 14px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dbm-subtab[data-v-16fb2d5e]:hover { color: var(--el-text-color-primary);
+}
+.dbm-subtab.active[data-v-16fb2d5e] {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  font-weight: 600;
+  box-shadow: var(--el-box-shadow-light, none);
+}
+.dbm-col-actions[data-v-16fb2d5e] { display: flex; gap: 8px;
+}
+.dbm-auto-hint[data-v-16fb2d5e] { font-size: 12px; color: var(--el-text-color-placeholder);
+}
+
+/* ==================== 树：箭头 / 字段 / 类型 ==================== */
+.dbm-arrow[data-v-16fb2d5e] { flex: none; color: var(--el-text-color-placeholder); cursor: pointer;
+}
+.dbm-root-icon[data-v-16fb2d5e] { color: var(--el-color-primary);
+}
+.dbm-pk-icon[data-v-16fb2d5e] { color: var(--el-color-warning);
+}
+.dbm-col-icon[data-v-16fb2d5e] { color: var(--el-text-color-placeholder);
+}
+.dbm-column-node[data-v-16fb2d5e] { cursor: default;
+}
+.dbm-column-node[data-v-16fb2d5e]:hover { background: transparent;
+}
+.dbm-tree-type[data-v-16fb2d5e] {
+  margin-left: 6px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ==================== 数据网格：模式开关 / 注释行 / 无总数分页 ==================== */
+.dbm-spacer[data-v-16fb2d5e] { flex: 1;
+}
+.dbm-switch[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dbm-hint[data-v-16fb2d5e] { font-size: 12px; color: var(--el-text-color-placeholder);
+}
+.dbm-simple-pager[data-v-16fb2d5e] { display: inline-flex; align-items: center; gap: 8px;
+}
+
+/* ============================================================
+   索引列序 / 前缀长度（弹窗内）
+   ============================================================ */
+.dbm-idx-cols[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 8px; width: 100%;
+}
+
+/* 列序条：把「多选下拉里选出来的顺序」显式摊开，否则用户无法确认也不调整 */
+.dbm-idx-order[data-v-16fb2d5e] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+}
+.dbm-idx-order-label[data-v-16fb2d5e] {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-right: 2px;
+}
+.dbm-idx-order-item[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 2px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 12px;
+  background: var(--el-bg-color);
+}
+/* 序号圆点：让列序一眼可辨，不靠数组下标的隐式约定 */
+.dbm-idx-order-no[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+/* 列序的上下移按钮：用原生 button 承载，图标只是装饰。
+   原生 button 自带边框/背景/内边距，不重置就会在标签里出现一个灰色小块，
+   且 disabled 态也需要真正禁用（图标元素做不到）。 */
+.dbm-idx-order-move[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--el-text-color-placeholder);
+}
+.dbm-idx-order-move[data-v-16fb2d5e]:hover:not(:disabled) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+}
+.dbm-idx-order-move[data-v-16fb2d5e]:disabled { cursor: not-allowed; opacity: 0.35;
+}
+.dbm-idx-prefix[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 6px; width: 100%;
+}
+.dbm-idx-prefix-row[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px;
+}
+.dbm-idx-prefix-name[data-v-16fb2d5e] { flex: 1; font-size: 12px;
+}
+.dbm-pk-hint[data-v-16fb2d5e] {
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+/* ============================================================
+   导入 / 导出向导
+   ============================================================ */
+.dbm-import[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 12px; padding: 14px 18px 4px;
+}
+
+/* 步骤条：编号圆点 + 标题 */
+.dbm-import-step[data-v-16fb2d5e] { display: flex; align-items: center; gap: 8px;
+}
+.dbm-import-step-no[data-v-16fb2d5e] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+.dbm-import-step-title[data-v-16fb2d5e] { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary);
+}
+
+/* 原生 file input 藏起来，由按钮触发（ReUpload 不在组件库里） */
+.dbm-file-input[data-v-16fb2d5e] { display: none;
+}
+.dbm-import-file[data-v-16fb2d5e] { font-size: 13px; color: var(--el-text-color-regular);
+}
+.dbm-import-file em[data-v-16fb2d5e] { font-style: normal; color: var(--el-text-color-placeholder); font-size: 12px;
+}
+
+/* 参数行：横向铺开，窄屏自动换行 */
+.dbm-import-params[data-v-16fb2d5e] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+}
+.dbm-import-params .dbm-form-item[data-v-16fb2d5e] { flex-direction: row; align-items: center; gap: 8px;
+}
+.dbm-import-params .dbm-form-item label[data-v-16fb2d5e] { white-space: nowrap;
+}
+.dbm-import-preview-hint[data-v-16fb2d5e] { padding: 20px 0; text-align: center; color: var(--el-text-color-placeholder); font-size: 13px;
+}
+.dbm-import-preview[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 8px;
+}
+.dbm-import-preview-head[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+/* 映射单元：源列 → 目标列下拉 */
+.dbm-mapping-cell[data-v-16fb2d5e] { display: flex; align-items: center; gap: 6px;
+}
+.dbm-mapping-src[data-v-16fb2d5e] {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-mapping-arrow[data-v-16fb2d5e] { color: var(--el-text-color-placeholder);
+}
+.dbm-danger-hint[data-v-16fb2d5e] { font-size: 12px; color: var(--el-color-danger);
+}
+
+/* ============================================================
+   数据库对象（存储过程 / 函数 / 触发器 / 事件）
+   ============================================================ */
+/* 分类节点上的「新建」小按钮：hover 才显形，避免树里全是图标 */
+.dbm-tree-add[data-v-16fb2d5e] { opacity: 0; cursor: pointer; color: var(--el-text-color-placeholder);
+}
+.dbm-tree-node:hover .dbm-tree-add[data-v-16fb2d5e] { opacity: 1;
+}
+.dbm-tree-add[data-v-16fb2d5e]:hover { color: var(--el-color-primary);
+}
+/* 某类对象读不到时的提示（权限不足 / 内核无此概念） */
+.dbm-tree-hint[data-v-16fb2d5e] {
+  padding: 4px 8px 4px 28px;
+  font-size: 12px;
+  color: var(--el-color-warning);
+  word-break: break-all;
+}
+.dbm-object-view[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px;
+}
+.dbm-object-toolbar[data-v-16fb2d5e] { display: flex; align-items: center; gap: 10px;
+}
+.dbm-object-editor[data-v-16fb2d5e] { font-size: 13px; line-height: 1.6;
+}
+
+/* 导入结果与错误报告 */
+.dbm-import-result[data-v-16fb2d5e] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-fill-color-lighter);
+}
+.dbm-import-result-head[data-v-16fb2d5e] { font-size: 13px; color: var(--el-text-color-regular);
+}
+.dbm-import-errors[data-v-16fb2d5e] {
+  max-height: 140px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dbm-import-errors-title[data-v-16fb2d5e] { font-size: 12px; font-weight: 600; color: var(--el-color-danger);
+}
+.dbm-import-error[data-v-16fb2d5e] {
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
+}
+
+/* 过滤条（Navicat WHERE + 批量操作）：nowrap —— 展开后输入与按钮永远一行，
+   这样过滤条的展开/收起（47px 一行）不再让表格上下跳 */
+.dbm-filter-bar[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+}
+.dbm-filter-label[data-v-16fb2d5e] {
+  flex: none;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
+/* ReInput 根是 display:contents（无盒），width 落在根上等于没写；
+   真盒是这个父作用域 wrapper，内部 el-input 经 :deep 铺满它。 */
+.dbm-filter-input-wrap[data-v-16fb2d5e] {
+  flex: 0 1 420px;
+  min-width: 160px;
+  max-width: 46vw;
+  display: block;
+}
+.dbm-filter-input-wrap[data-v-16fb2d5e] .el-input { width: 100%;
+}
+/* 已生效条件数：用户得知道「现在看到的行是被筛过的」 */
+.dbm-filter-badge[data-v-16fb2d5e] {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  border: 1px solid var(--el-color-primary-light-7, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-base, 4px);
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+/* 高级筛选弹窗 */
+.dbm-filter-list[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow: auto;
+}
+.dbm-filter-row[data-v-16fb2d5e] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dbm-filter-row .dbm-mono[data-v-16fb2d5e] { width: 150px;
+}
+.dbm-filter-novalue[data-v-16fb2d5e] {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  width: 150px;
+}
+.dbm-sel-count[data-v-16fb2d5e] { flex: none; font-size: 12.5px; color: var(--el-text-color-secondary);
+}
+.dbm-view-icon[data-v-16fb2d5e] { color: var(--metric-net, var(--el-color-info));
+}
+.dbm-cell-box[data-v-16fb2d5e] { display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.dbm-cell-comment[data-v-16fb2d5e] {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 表设计网格 ==================== */
+.dbm-dgrid[data-v-16fb2d5e] {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+.dbm-dgrid-head[data-v-16fb2d5e],
+.dbm-dgrid-row[data-v-16fb2d5e] {
+  display: grid;
+  /* 「可空」那格现在是 ReRadio 分段单选（是/否），比原来的开关宽：
+     70px 会把两枚按钮挤到换行/溢出，撑到 96px。 */
+  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 96px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 100px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 12px;
+  min-width: 1120px;
+}
+.dbm-dgrid-head[data-v-16fb2d5e] {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+.dbm-dgrid-row[data-v-16fb2d5e] { border-top: 1px solid var(--el-border-color-lighter);
+}
+.dbm-dgrid-row[data-v-16fb2d5e]:hover { background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+}
+.dbm-dgrid-row.dirty[data-v-16fb2d5e] { background: var(--el-color-warning-light-9);
+}
+.dbm-dgrid-idx[data-v-16fb2d5e] {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  text-align: right;
+}
+.dbm-dgrid-pk[data-v-16fb2d5e] { display: grid; place-items: center; color: var(--el-color-warning);
+}
+.dbm-dgrid-ops[data-v-16fb2d5e] { display: flex; gap: 4px; justify-content: center;
+}
+.dbm-mono .el-input__inner[data-v-16fb2d5e] {
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+}
+
+/* ==================== 设计网格「可空」那格的分段单选 ====================
+   这格是 ReSwitch（radio 布局）的「是/否」分段。re-kit 给每个分段定了
+   min-width: 64px —— 那是独立控件的口径，两枚加起来 128px，塞不进 96px 的
+   轨道，于是两枚完全叠在一起（用户截图里看到的就是这个）。
+   只在网格里收窄，re-kit 那份全局的 64px 别动（控制台开关要它）。
+   类写两遍是为了把特异性抬到 re-kit 那条 (0,3,0) 之上。 */
+.dbm-dgrid-row.dbm-dgrid-row[data-v-16fb2d5e] .re-switch-radio,
+.dbm-dgrid-row.dbm-dgrid-row[data-v-16fb2d5e] .re-radio-group {
+  width: 100%;
+  min-width: 0;
+}
+.dbm-dgrid-row.dbm-dgrid-row[data-v-16fb2d5e] .re-radio-group .el-radio-button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dbm-dgrid-row.dbm-dgrid-row[data-v-16fb2d5e] .re-radio-group .el-radio-button__inner {
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+/* ==================== SQL 编辑器 ==================== */
+.dbm-sql-component[data-v-16fb2d5e] { margin-top: 2px;
+}

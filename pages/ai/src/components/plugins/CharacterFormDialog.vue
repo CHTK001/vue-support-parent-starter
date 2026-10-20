@@ -103,7 +103,7 @@
           </el-form-item>
 
           <el-form-item label="随机性 Temperature">
-            <el-input-number
+            <ReNumberSelect
               v-model="form.temperature"
               :min="0"
               :max="2"
@@ -134,6 +134,7 @@
 import { message } from "@repo/core";
 import { ref, computed } from 'vue'
 
+import ReNumberSelect from '@/components/ui/ReNumberSelect.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import {
   Info24Regular, Edit24Regular, Image24Regular, WrenchScrewdriver24Regular,

@@ -116,7 +116,7 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
   <ReDialog
     :model-value="modelValue"
     :title="`流程预览 · ${flow?.collectFlowName || ''}`"
-    width="1180px"
+    width="min(1180px, 96vw)"
     top="5vh"
     footer-hidden
     @update:model-value="emit('update:modelValue', $event)"
