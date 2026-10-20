@@ -17,6 +17,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -30,6 +32,7 @@ const emit = defineEmits<{
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     :own-param-names="['each', 'datasource', 'targetTable', 'cell:字段名', 'key', 'url']"
     intro="落采集记录：把字段写成一条条采集结果。填了「逐条集合」就按集合逐条产出，留空则按当前令牌产出一条；填了「业务表」再镜像一份到该表（表不存在自动建、缺列自动补），记录数看任务详情的采集记录数。"
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"

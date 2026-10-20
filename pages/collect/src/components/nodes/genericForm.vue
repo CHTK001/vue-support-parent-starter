@@ -18,6 +18,8 @@ defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -31,6 +33,7 @@ const emit = defineEmits<{
     :node="node"
     :meta="meta"
     :ctx="ctx"
+    :section="section"
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
     @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
   />
