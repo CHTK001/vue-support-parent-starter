@@ -58,7 +58,6 @@
                     <Add12Regular class="w-3.5 h-3.5 mr-2 inline-block" />
                     新建会话
                   </DropdownMenuItem>
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
                 </template>
               </DropdownMenu>
               <!-- 批量：与「+」并排的独立按钮，一键进入多选（原先藏在 + 的下拉里，多一层点击） -->
@@ -67,14 +66,6 @@
                 @click.stop="toggleMultiSelect">
                 <CheckBoxOutlined class="w-2.5 h-2.5 text-gray-500 dark:text-gray-300" />
               </button>
-=======
-                  <DropdownMenuItem command="multi">
-                    <CheckBoxOutlined class="w-4 h-4 mr-2 inline-block" />
-                    多选
-                  </DropdownMenuItem>
-                </template>
-              </DropdownMenu>
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
             </div>
           </div>
 
@@ -101,18 +92,11 @@
                   :model-value="isSelected(session)" tabindex="-1">
                   <span></span>
                 </el-checkbox>
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
                 <!-- 状态指示器：运行中时左侧显示旋转动画 -->
                 <div v-else class="status-indicator w-3 h-3 shrink-0 flex items-center justify-center">
                   <el-icon v-if="getSessionWorking(session.id)" class="working-spin" size="12">
                     <Loading />
                   </el-icon>
-=======
-                <!-- 状态指示器 -->
-                <div v-else class="status-indicator w-3 h-3 shrink-0 flex items-center justify-center">
-                  <div v-if="getSessionWorking(session.id)"
-                    class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
                   <div v-else-if="getSessionUnread(session.id) && (session.id !== currentSessionId || windowHidden)"
                     class="w-1 h-1 rounded-full bg-red-500" />
                   <div v-else class="w-1 h-1 rounded-full bg-gray-400 opacity-50" />
@@ -133,7 +117,6 @@
                   </div>
                 </div>
                 <div v-if="!multiSelectMode" class="session-actions shrink-0 relative min-w-5 h-full flex items-center">
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
                   <!-- 运行中：右侧显示前端计算的实时耗时（每秒刷新） -->
                   <span v-if="getSessionWorking(session.id)"
                     class="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-500 whitespace-nowrap">
@@ -146,10 +129,6 @@
                   </span>
                   <!-- 最后活跃时间（无执行记录时回退，hover 时隐藏，右对齐悬浮） -->
                   <span v-else-if="session.id !== currentSessionId"
-=======
-                  <!-- 最后活跃时间（非当前会话时显示，hover 时隐藏，右对齐悬浮） -->
-                  <span v-if="session.id !== currentSessionId"
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
                     class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
                     {{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
                   </span>
@@ -408,10 +387,7 @@ import ContextMenu, { type ContextMenuItem } from './ui/ContextMenu.vue'
 import LTooltip from './ui/LTooltip.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import { apiService } from '@/services/ApiService'
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
 import { sessionAgentApi } from '@/services/javaApi'
-=======
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
 import { isAdmin } from '@repo/core'
 import type { SessionGroup } from '@/types/session'
 import { ElMessageBox } from 'element-plus'
@@ -442,11 +418,6 @@ import {
   WeatherMoon20Filled,
   Desktop16Regular,
   Settings16Filled,
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
-=======
-  Server20Regular,
-  DataArea20Regular,
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
   DataBarVertical20Regular,
   PlugConnected20Regular,
   Image20Regular,
@@ -517,15 +488,11 @@ const exitMultiSelect = () => {
 }
 const handleGroupPlusCommand = (cmd: string, group: any) => {
   if (cmd === 'new') openNewSession(group.id)
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
 }
 // 批量按钮：多选态下再次点击即退出，避免只能靠底部「取消」退出
 const toggleMultiSelect = () => {
   if (multiSelectMode.value) exitMultiSelect()
   else enterMultiSelect()
-=======
-  else if (cmd === 'multi') enterMultiSelect()
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
 }
 
 // 当前已加载（可见）的全部会话，用于全选
@@ -681,7 +648,6 @@ const navItems = computed(() => {
       key: 'image-generate',
       label: '图像生成',
       icon: Image20Regular,
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
       section: '图像',
       alwaysShow: true
     },
@@ -728,26 +694,15 @@ const navItems = computed(() => {
       label: '模型管理',
       icon: BrainCircuit20Regular,
       section: 'AI 配置',
-=======
-      alwaysShow: true
-    },
-    {
-      key: 'models',
-      label: '模型管理',
-      icon: BrainCircuit20Regular,
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
       showKey: 'showModelsMenu'
     },
     {
       key: 'usage',
       label: '用量管理',
       icon: DataBarVertical20Regular,
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
       // 独立分组：用量统计的是本账号的 token/费用消费，与「AI 配置」下的模型接入
       // 不是一类事。原先没有 section，会视觉上并进 AI 配置（用户反馈）。
       section: '用量统计',
-=======
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
       showKey: 'showUsageMenu'
     },
     {
@@ -788,25 +743,18 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Characters') return 'characters'
   if (routeName === 'Bots') return 'bots'
   if (routeName === 'Tavern') return 'tavern'
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
   if (routeName === 'SystemSettings') {
     // 提供商 / 默认模型已从侧栏移除（仍可从「设置」页进入），
     // 因此这里统一回落到 'setting'，不再为已删除的菜单项保留高亮分支。
     return 'setting'
   }
-=======
-  if (routeName === 'SystemSettings') return 'setting'
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
   if (routeName === 'ImageGenerate') return 'image-generate'
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
   if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'ImageColorize') return 'image-colorize'
-=======
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -1135,7 +1083,6 @@ const handleNavClick = async (tab: string) => {
     router.replace({ name: 'Scheduler' })
   } else if (tab === 'image-generate') {
     router.replace({ name: 'ImageGenerate' })
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
   } else if (tab === 'face-search') {
     // 点击菜单时再等一次合并视图，避免侧栏首次加载未完成时误判为未配置
     await modelConfig.load()
@@ -1160,8 +1107,6 @@ const handleNavClick = async (tab: string) => {
       return
     }
     router.replace({ name: 'ImageColorize' })
-=======
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {
@@ -1580,7 +1525,6 @@ onUnmounted(() => {
 .ms-bar {
   display: flex;
   align-items: center;
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
   gap: 6px;
   /* 不换行：flex-wrap 会先折行、根本不触发收缩，实测会从 50px 涨到 88px 两行。
      这里改成「计数可压缩 + 按钮恒定」，保证始终单行且不越界：
@@ -1604,24 +1548,12 @@ onUnmounted(() => {
 /* 两个操作按钮不参与压缩，「删除 (N)」再长也不变形 */
 .ms-bar :deep(.el-button) { flex-shrink: 0; }
 .ms-spacer { flex: 1 1 0; min-width: 0; }
-=======
-  gap: 10px;
-  margin: 0 8px 6px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, var(--color-surface-border, transparent));
-  background: var(--color-surface, transparent);
-}
-.ms-count { font-size: 12px; color: var(--color-text-gray); white-space: nowrap; }
-.ms-spacer { flex: 1; }
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
 .ms-row-check { pointer-events: none; }
 .ms-row-check :deep(.el-checkbox__label) { display: none; }
 .session-in-check { padding-left: 8px; }
 .session-checked {
   background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
 }
-<<<<<<< HEAD:pages/ai/src/components/GlobalSidebar.vue
 
 /* ============================================================================
    无障碍增强：给「可点但不可 Tab 聚焦」的非按钮元素补焦点环。
@@ -1812,6 +1744,4 @@ onUnmounted(() => {
   border-color: var(--el-color-danger);
   color: var(--el-color-danger);
 }
-=======
->>>>>>> backup-pre-master-merge:apps/vue-support-ai-guada/src/components/GlobalSidebar.vue
 </style>
