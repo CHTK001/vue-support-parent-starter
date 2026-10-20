@@ -576,6 +576,16 @@ export function getSlowCalls(limit = 20): Promise<SlowCall[]> {
   return unwrap(instance.get<SlowCall[]>("/slow-calls", { params: { limit } }));
 }
 
+/** 慢 SQL 分析项 */
+export interface SlowSqlItem extends SlowCall {
+  sql?: string;
+  db?: string;
+}
+
+export function getSlowSql(limit = 20, minDurationMs = 200): Promise<SlowSqlItem[]> {
+  return unwrap(instance.get<SlowSqlItem[]>("/slow-sql", { params: { limit, minDurationMs } }));
+}
+
 /** 错误排行 */
 export interface ErrorRanking {
   errorType: string;
@@ -932,6 +942,7 @@ export default {
   getAgentDependencies,
   getDependenciesAggregated,
   getSlowCalls,
+  getSlowSql,
   getErrorRanking,
   getSla,
   cleanup,

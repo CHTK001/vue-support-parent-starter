@@ -134,11 +134,12 @@ import ReStatCard from "@repo/ui/re-stat-card";
 import ReTag from "@repo/ui/re-tag";
 import ReEmpty from "@repo/ui/re-empty";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { getErrorRanking, getSlowCalls } from "../api/apmApi";
-import type { ErrorRanking, SlowCall } from "../api/apmApi";
+import { getErrorRanking, getSlowCalls, getSlowSql } from "../api/apmApi";
+import type { ErrorRanking, SlowCall, SlowSqlItem } from "../api/apmApi";
 
 const items = ref<ErrorRanking[]>([]);
 const slowCalls = ref<SlowCall[]>([]);
+const slowSqlItems = ref<SlowSqlItem[]>([]);
 const loading = ref(false);
 const keyword = ref("");
 let timer: number | undefined;
