@@ -25,8 +25,13 @@ export interface AsrApi {
     options?: { filename?: string; model?: string; language?: string }
   ): Promise<AsrTranscribeResult | null>;
 
-  /** 当前用户生效的 ASR 配置摘要（provider / model / language，密钥不回显） */
-  config(): Promise<AsrConfig | null>;
+  /**
+   * 当前用户生效的 ASR 配置摘要（provider / model / language，密钥不回显）。
+   *
+   * <p>方法名带 {@code asr} 前缀而非裸 {@code config}：ApiService 把所有领域模块
+   * 合并到同一个类上，裸名容易与别的领域的 {@code config} 撞车。</p>
+   */
+  asrConfig(): Promise<AsrConfig | null>;
 }
 
 /** 转写结果 */
@@ -91,9 +96,7 @@ export const asrApi: AsrApi = {
     }
   },
 
-  async config(this: ApiContext) {
-    const base = (this.baseURL || "").replace(/\/+$/, "");
-    const url = `${base}/ai/asr/config`;
+  async asrConfig(this: ApiContext) {
     try {
       const json = await this._request<Record<string, any>>("/ai/asr/config", { method: "POST" });
       const data = json?.data ?? json ?? {};

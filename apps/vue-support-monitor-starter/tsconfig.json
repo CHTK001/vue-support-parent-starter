@@ -23,7 +23,6 @@
     "src/**/*.ts",
     "src/**/*.vue",
     "src/**/*.d.ts",
-    "tests/**/*.ts",
     "../../packages/core/src/**/*.d.ts",
     "../../pages/server/src/**/*.d.ts",
     "../../pages/message/src/**/*.d.ts",

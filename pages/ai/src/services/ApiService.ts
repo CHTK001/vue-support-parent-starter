@@ -51,6 +51,7 @@ import { goalApi, type GoalApi } from "./modules/goal.api";
 import { faceApi, type FaceApi } from "./modules/face.api";
 import { colorizeApi, type ColorizeApi } from "./modules/colorize.api";
 import { asrApi, type AsrApi } from "./modules/asr.api";
+import { ttsApi, type TtsApi } from "./modules/tts.api";
 import {
   sessionNextTaskApi,
   type SessionNextTaskApi,
@@ -83,6 +84,7 @@ interface ApiService
     FaceApi,
     ColorizeApi,
     AsrApi,
+    TtsApi,
     InputApi,
     GoalApi,
     SessionNextTaskApi {}
@@ -353,6 +355,7 @@ Object.assign(
   faceApi,
   colorizeApi,
   asrApi,
+  ttsApi,
   inputApi,
   goalApi,
   sessionNextTaskApi,

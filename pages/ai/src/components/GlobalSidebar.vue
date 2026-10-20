@@ -426,6 +426,7 @@ import {
   Key20Regular,
   ChatMultiple24Regular,
   DesktopSpeaker24Regular,
+  Headphones24Regular,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -704,6 +705,16 @@ const navItems = computed(() => {
       badgeTip: 'ASR 默认模型未配置，音频识别不可用',
     },
     {
+      key: 'text-to-speech',
+      label: '语音合成',
+      icon: Headphones24Regular,
+      section: '音频',
+      // 与「音频识别」同一 section：识别与合成是音频的一进一出，同组呈现。
+      // 门禁与 ASR 同口径：只要求 default_model，provider 缺省回落到 ai.tts.provider。
+      badge: modelConfig.ttsReady ? '' : '未配置',
+      badgeTip: 'TTS 默认模型未配置，语音合成不可用',
+    },
+    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -770,6 +781,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'ImageColorize') return 'image-colorize'
   if (routeName === 'AudioRecognition') return 'audio-recognition'
+  if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -1130,6 +1142,14 @@ const handleNavClick = async (tab: string) => {
       return
     }
     router.replace({ name: 'AudioRecognition' })
+  } else if (tab === 'text-to-speech') {
+    // 语音合成同口径：点击时才拿最新配置，配置后不需要刷新页面
+    await modelConfig.load()
+    if (!modelConfig.ttsReady) {
+      toast.warning('语音合成未启用：请先到「系统设置 → 音频配置」选择 TTS 默认模型')
+      return
+    }
+    router.replace({ name: 'TextToSpeech' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {

@@ -19,12 +19,20 @@ const COLORIZE_REQUIRED = ['colorize_model'] as const
  * 密钥/地址仅云端 ASR 才需要，作为必需门禁会把「本地 whisper」也一并挡掉。
  */
 const ASR_REQUIRED = ['default_model'] as const
+/**
+ * 语音合成必需项：TTS 默认模型。
+ *
+ * <p>与 ASR 同口径：provider 缺省时后端回落配置文件 {@code ai.tts.provider}，
+ * 密钥/地址仅云端 TTS 才需要，作为必需门禁会把「本地合成」也一并挡掉。
+ */
+const TTS_REQUIRED = ['default_model'] as const
 
 export const useModelConfigStore = defineStore('modelConfig', () => {
   const faceReady = ref(false)
   const imageReady = ref(false)
   const colorizeReady = ref(false)
   const asrReady = ref(false)
+  const ttsReady = ref(false)
   const faceDetectorModel = ref('')
   const faceFeatureModel = ref('')
   const imageFeatureModel = ref('')
@@ -32,14 +40,19 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
   const asrModel = ref('')
   const asrLanguage = ref('')
   const asrProvider = ref('')
+  const ttsModel = ref('')
+  const ttsVoice = ref('')
+  const ttsProvider = ref('')
   const faceMerged = ref<Record<string, any>>({})
   const imageMerged = ref<Record<string, any>>({})
   const colorizeMerged = ref<Record<string, any>>({})
   const asrMerged = ref<Record<string, any>>({})
+  const ttsMerged = ref<Record<string, any>>({})
   const faceMissing = ref<string[]>([])
   const imageMissing = ref<string[]>([])
   const colorizeMissing = ref<string[]>([])
   const asrMissing = ref<string[]>([])
+  const ttsMissing = ref<string[]>([])
   const loaded = ref(false)
   let inflight: Promise<void> | null = null
 
@@ -88,20 +101,32 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
     asrMissing.value = ASR_REQUIRED.filter((f) => !isFieldConfigured(map, f))
   }
 
+  function applyTts(items: MergedSettingItem[]) {
+    const map = toMergedMap(items)
+    ttsMerged.value = Object.fromEntries(map)
+    ttsModel.value = configuredValue(map, 'default_model')
+    ttsVoice.value = configuredValue(map, 'tts_voice')
+    ttsProvider.value = configuredValue(map, 'provider')
+    ttsReady.value = TTS_REQUIRED.every((f) => isFieldConfigured(map, f))
+    ttsMissing.value = TTS_REQUIRED.filter((f) => !isFieldConfigured(map, f))
+  }
+
   async function load(force = false) {
     if (!force && loaded.value) return
     if (inflight) return inflight
     inflight = (async () => {
-      const [faceItems, imageItems, colorizeItems, asrItems] = await Promise.all([
+      const [faceItems, imageItems, colorizeItems, asrItems, ttsItems] = await Promise.all([
         fetchMerged('face'),
         fetchMerged('image_search'),
         fetchMerged('image'),
         fetchMerged('asr'),
+        fetchMerged('tts'),
       ])
       applyFace(faceItems)
       applyImage(imageItems)
       applyColorize(colorizeItems)
       applyAsr(asrItems)
+      applyTts(ttsItems)
       loaded.value = true
     })().finally(() => {
       inflight = null
@@ -118,6 +143,7 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
     imageReady,
     colorizeReady,
     asrReady,
+    ttsReady,
     faceDetectorModel,
     faceFeatureModel,
     imageFeatureModel,
@@ -125,14 +151,19 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
     asrModel,
     asrLanguage,
     asrProvider,
+    ttsModel,
+    ttsVoice,
+    ttsProvider,
     faceMerged,
     imageMerged,
     colorizeMerged,
     asrMerged,
+    ttsMerged,
     faceMissing,
     imageMissing,
     colorizeMissing,
     asrMissing,
+    ttsMissing,
     load,
     refresh,
   }

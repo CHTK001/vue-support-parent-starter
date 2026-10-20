@@ -153,6 +153,12 @@ const routes = [
         component: () => import("./components/management/AudioRecognitionPage.vue"),
       },
       {
+        path: "text-to-speech",
+        name: "TextToSpeech",
+        meta: { title: "语音合成", requiresAuth: true },
+        component: () => import("./components/management/TextToSpeechPage.vue"),
+      },
+      {
         path: "image-search",
         name: "ImageSearch",
         meta: { title: "以图搜图", requiresAuth: true },

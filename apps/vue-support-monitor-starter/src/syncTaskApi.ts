@@ -291,14 +291,15 @@ export interface BulkImportOutput {
 }
 
 /** 批量导入请求：后端对 outputs 逐个复用原有单目标 bulk load 方法即可 */
-export interface BulkImportPayload {
+// 用 type 而非 interface，以获得隐式索引签名（.data() 的 RequestBody 需要 Record 兼容）。
+export type BulkImportPayload = {
   taskName?: string;
   filePath: string;
   delimiter: string;
   encoding: string;
   hasHeader: boolean;
   outputs: BulkImportOutput[];
-}
+};
 
 /** 批量导入：单个输出目标的结果 */
 export interface BulkImportResultOutput {
