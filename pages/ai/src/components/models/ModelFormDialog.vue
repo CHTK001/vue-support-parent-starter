@@ -397,12 +397,12 @@ import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
 import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK } from './model.constants'
 import {
-import ReNumberInput from '@/components/re/ReNumberInput.vue'
   createDefaultModelConfig,
   inferSubType,
   inferModelType,
   deriveModelTraits,
 } from './model.utils'
+import ReNumberInput from '@/components/re/ReNumberInput.vue'
 
 const props = defineProps<{
   provider: any

@@ -85,8 +85,21 @@ const effectiveStep = computed(() =>
   props.step ?? Math.max(1e-6, 10 ** -effectivePrecision.value),
 )
 
-const innerValue = computed({
-  get: () => props.modelValue,
+/**
+ * 双向绑定值。
+ *
+ * modelValue 允许 Number | String（调用方有时直接传 '128000' 这种字符串），
+ * 但 el-input-number 的 v-model 只接受 number | null | undefined。
+ * 这里在边界上做一次归一：空串/非数字一律变成 undefined（等于「未填」），
+ * 其余转成 number，避免把字符串塞进数字输入框后精度推断算出脏值。
+ */
+const innerValue = computed<number | undefined>({
+  get: () => {
+    const raw = props.modelValue
+    if (raw === undefined || raw === null || raw === '') return undefined
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : undefined
+  },
   set: (val) => emit('update:modelValue', val),
 })
 

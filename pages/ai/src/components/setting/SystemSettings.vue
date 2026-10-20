@@ -95,6 +95,9 @@
                         <template v-else-if="currentTabValue === 'bot-connector-config'">
                             <DefaultModelSettings :groups="['bot']" />
                         </template>
+                        <template v-else-if="currentTabValue === 'audio-config'">
+                            <DefaultModelSettings :groups="['asr']" />
+                        </template>
                         <template v-else-if="currentTabValue === 'language-config'">
                             <DefaultModelSettings :groups="['language']" />
                         </template>
@@ -242,6 +245,7 @@ import {
     PuzzlePiece24Regular,
     Server24Regular,
     Person20Regular,
+    Speaker024Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -373,6 +377,17 @@ const sidebarItems = computed(() => [
         label: '连接器配置',
         path: 'bot-connector-config',
         icon: Cloud24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：语音识别（asr）
+        // 字段为 provider / API Key / Base URL / 默认模型 / 语言，与左侧导航的
+        // 「音频识别」能力页一一对应。注意这里**不再隐藏**凭据三项 ——
+        // 独立页是 asr 的唯一入口，藏起来就没法配云端 ASR（见 DefaultModelSettings
+        // 的 shouldShowField：isSplitGroupMode 下 asr 全字段显示）。
+        label: '音频配置',
+        path: 'audio-config',
+        icon: Speaker024Regular,
         roles: ['primary'],
     },
     {
