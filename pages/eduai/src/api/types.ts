@@ -457,6 +457,77 @@ export interface WrongQuestion {
   wrongQuestionLastWrongTime?: string;
   wrongQuestionReviewCount?: number;
   wrongQuestionStatus?: number;
+  wrongQuestionPaperId?: number | null;
+  wrongQuestionSourceTaskId?: string | null;
+  wrongQuestionSourceTaskTime?: string | null;
+  wrongQuestionCorrected?: number;
+  wrongQuestionCorrectTime?: string | null;
+  wrongQuestionStudentName?: string | null;
+  wrongQuestionStudentAccount?: string | null;
+  wrongQuestionStem?: string | null;
+  wrongQuestionSubject?: string | null;
+}
+
+/** 错题来源任务溯源（同一题可能来自多张卷/多次完成） */
+export interface WrongSource {
+  sourceTaskId: string;
+  sourceTaskTime?: string | null;
+  paperId?: number | null;
+  paperName?: string | null;
+  studentId?: string | null;
+}
+
+/** 阅卷完成预览单题 */
+export interface MarkingPreviewQuestion {
+  questionId: number;
+  stem?: string | null;
+  finalScore: number;
+  maxScore: number;
+  scoreRate?: number;
+  wrong: boolean;
+}
+
+/** 阅卷完成预览结果 */
+export interface MarkingFinishPreview {
+  taskId: string;
+  studentId: string;
+  wrongCount: number;
+  questions: MarkingPreviewQuestion[];
+}
+
+/** 批量阅卷逐任务结果 */
+export interface BatchMarkingResult {
+  taskId: string;
+  success: boolean;
+  message: string;
+  wrongCount: number;
+  removedCount: number;
+}
+
+/** 阅卷总览统计 */
+export interface MarkingDashboardStats {
+  taskTotal: number;
+  taskStatus: NamedCount[];
+  teacherFinished: NamedCount[];
+  scoreRateDistribution: NamedCount[];
+  wrongTop: WrongTopRow[];
+  wrongTotal: number;
+  correctedCount: number;
+  correctedRate: number;
+}
+
+/** 命名计数项 */
+export interface NamedCount {
+  name: string;
+  count: number;
+}
+
+/** 错题 TOP 榜行 */
+export interface WrongTopRow {
+  questionId: number;
+  stem?: string | null;
+  subject?: string | null;
+  wrongCount: number;
 }
 
 /** 考试 */
@@ -1082,6 +1153,8 @@ export interface StudentWrongQuestion {
   masteryLevel?: number | null;
   reviewCount?: number | null;
   lastWrongTime?: string | null;
+  /** 0 未订正 / 1 已订正 */
+  corrected?: number | null;
 }
 
 /**
