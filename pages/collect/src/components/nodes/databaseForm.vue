@@ -23,6 +23,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -55,6 +57,17 @@ const visibleFields = computed(() => {
     return current !== "" && current !== only;
   });
 });
+
+/** 分区过滤：输入 / 输出 / 高级 */
+const inputFields = computed(() =>
+  visibleFields.value.filter(p => ["source", "datasource", "table", "mode"].includes(p.name)),
+);
+const outputFields = computed(() =>
+  visibleFields.value.filter(p => p.name === "column:目标列" || p.name === "key:主键列"),
+);
+const advancedFields = computed(() =>
+  visibleFields.value.filter(p => ["batchSize", "onBatchError"].includes(p.name)),
+);
 
 /* ---------------------------- 建表 / 补列（B9-3） ---------------------------- */
 
@@ -159,6 +172,82 @@ function extraTip(name: string): string {
 </script>
 
 <template>
+  <template v-if="section === 'input'">
+    <template v-for="param in inputFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      </div>
+    </template>
+  </template>
+
+  <template v-else-if="section === 'output'">
+    <template v-for="param in outputFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+        <div v-if="param.name === 'column:目标列'" class="ddl-actions">
+          <ReButton text type="primary" @click="openDdl">{{ ddlLabel }}</ReButton>
+          <span class="ddl-hint">
+            打开设计表对话框：按上方映射的目标列建表或补缺失列（列类型 TEXT，与运行期自动建表同一套规则）；建完自动刷新左侧列候选。
+          </span>
+        </div>
+      </div>
+    </template>
+    <CreateTableDialog
+      v-model="ddlOpen"
+      :datasource="valueOf('datasource').trim()"
+      :table="valueOf('table').trim()"
+      :columns="ddlColumns"
+      :primary-key="ddlKeys"
+      @executed="ctx.refreshColumns()"
+    />
+  </template>
+
+  <template v-else-if="section === 'advanced'">
+    <template v-for="param in advancedFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      </div>
+    </template>
+  </template>
+
+  <template v-else-if="section === 'loop'">
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="ctx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+    />
+  </template>
+
+  <template v-else>
   <div class="field field-wide node-intro">
     <ReIcon name="InfoFilled" :size="15" class="intro-icon" />
     <span>
@@ -179,8 +268,6 @@ function extraTip(name: string): string {
         @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
       />
       <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
-      <!-- 建表 / 补列：常驻入口（不要求已映射列，也不管表存不存在），点开即设计表；
-           建表还是补列由前端按表清单判断（按钮文案），对话框预览再兜底确认 -->
       <div v-if="param.name === 'column:目标列'" class="ddl-actions">
         <ReButton text type="primary" @click="openDdl">{{ ddlLabel }}</ReButton>
         <span class="ddl-hint">
@@ -208,6 +295,7 @@ function extraTip(name: string): string {
     :primary-key="ddlKeys"
     @executed="ctx.refreshColumns()"
   />
+  </template>
 </template>
 
 <style scoped>

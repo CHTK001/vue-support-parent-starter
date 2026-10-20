@@ -24,6 +24,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -71,6 +73,40 @@ const fieldSummary = computed(() => {
 </script>
 
 <template>
+  <template v-if="section === 'output'">
+    <div v-if="meta.fieldEditor" class="field field-wide">
+      <div class="field-label">抽取字段<span class="req">*</span></div>
+      <div class="field-summary" :class="{ 'summary-missing': !node.fields?.length }">
+        <span class="summary-text">{{ fieldSummary }}</span>
+        <ReButton text type="primary" @click="fieldsOpen = true">配置</ReButton>
+      </div>
+      <ReDialog v-model="fieldsOpen" title="抽取字段" width="min(1400px, 94vw)" top="10px" append-to-body>
+        <FieldTable
+          :model-value="node.fields"
+          :preview-url="ctx.previewUrl"
+          :load-preview="ctx.loadPreview"
+          :placeholder-groups="ctx.placeholderGroups"
+          @update:model-value="ctx.writeFields"
+        />
+      </ReDialog>
+    </div>
+  </template>
+
+  <template v-else-if="section === 'loop'">
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="ctx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+    />
+  </template>
+
+  <template v-else-if="section === 'advanced'">
+    <div class="field field-wide node-intro">抽取节点暂无独立高级配置，超时与超时策略统一在面板「高级配置」页签。</div>
+  </template>
+
+  <template v-else>
   <div class="field field-wide node-intro">
     抽取节点：把上游抓到的内容按「字段」解析成行列数据 —— 每行一个字段，
     声明用哪种解析器（CSS / XPath / JSONPath / 正则…）以及取值表达式；结果供写库、输出或循环节点使用。
@@ -103,7 +139,6 @@ const fieldSummary = computed(() => {
       <span class="summary-text">{{ fieldSummary }}</span>
       <ReButton text type="primary" @click="fieldsOpen = true">配置</ReButton>
     </div>
-    <!-- append-to-body：属性面板自身可能有 overflow/transform，弹框留在面板内会被裁掉 -->
     <ReDialog v-model="fieldsOpen" title="抽取字段" width="min(1400px, 94vw)" top="10px" append-to-body>
       <FieldTable
         :model-value="node.fields"
@@ -114,6 +149,7 @@ const fieldSummary = computed(() => {
       />
     </ReDialog>
   </div>
+  </template>
 </template>
 
 <style scoped>

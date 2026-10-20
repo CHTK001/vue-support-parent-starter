@@ -30,6 +30,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -129,104 +131,123 @@ const outputs = computed(() => {
 </script>
 
 <template>
-  <div class="field field-wide node-intro">
-    <el-icon class="node-intro__icon"><VideoPlay /></el-icon>
-    <span>
-      流程入口：定义种子 URL 列表（每行一个），流程会以列表里的每个地址各自跑一遍下游；
-      结果写入 <code>data</code>（同 <code>url</code>，种子 URL 列表），供后续节点引用。
-    </span>
-  </div>
-
-  <!-- 开始配置：分段切换。UI 稿的三个入口 -->
-  <div class="field field-wide">
-    <div class="channel-row" role="tablist" aria-label="开始配置方式">
-      <button
-        v-for="item in CHANNELS"
-        :key="item.key"
-        type="button"
-        role="tab"
-        class="channel"
-        :class="{ 'is-active': channel === item.key }"
-        :aria-selected="channel === item.key"
-        @click="channel = item.key"
-      >
-        <el-icon><component :is="item.icon" /></el-icon>
-        {{ item.label }}
-      </button>
-    </div>
-  </div>
-
-  <!-- 未被后端支撑的分段：说明原因，不给一个点了没反应的面板 -->
-  <div v-if="!CHANNEL_SUPPORTED[channel]" class="field field-wide channel-empty">
-    <el-icon><InfoFilled /></el-icon>
-    <span>
-      后端尚未为开始节点下发「{{ CHANNELS.find(i => i.key === channel)?.label }}」的参数，
-      该触发方式暂不可配置。
-    </span>
-  </div>
-
-  <template v-else>
-    <!--
-      种子 URL：独立成一张描边卡片。
-      ParamField 负责真正的输入控件与表达式插入器，这里只提供卡片外壳
-      （标题行 + 必填星号 + 实时行数 + 等宽正文），避免两处各写一套 label。
-    -->
-    <div
-      v-if="urlsParam"
-      class="field field-wide url-card"
-    >
-      <div class="url-card__head">
-        <span class="url-card__title">
-          {{ urlsParam.label }}<span v-if="urlsParam.required" class="req">*</span>
+  <template v-if="section === 'output'">
+    <!-- 输出变量：虚线框，告诉下游能引用什么 -->
+    <div class="field field-wide output-box">
+      <span class="output-box__label">输出变量</span>
+      <div class="output-box__items">
+        <span v-for="out in outputs" :key="out.name" class="output-chip">
+          <code class="output-chip__name">{{ out.name }}</code>
+          <span class="output-chip__type">{{ out.type }}</span>
+          <em v-if="out.hint" class="output-chip__hint">{{ out.hint }}</em>
         </span>
-        <span class="url-card__count">{{ urlRowCount }} 行</span>
       </div>
-      <ParamField
-        :param="urlsParam"
-        :value="valueOf('urls')"
-        :pairs="pairsOfParam('urls')"
-        :node-id="node.id"
-        :ctx="ctx"
-        @update="(value: unknown) => urlsParam && emit('set-param', urlsParam, value)"
-        @pairs="(value: ParamPair[]) => urlsParam && emit('set-pairs', urlsParam, value)"
-      />
-      <div v-if="extraTip('urls')" class="field-tip">{{ extraTip("urls") }}</div>
-    </div>
-
-    <!-- 其余后端参数（兜底段带出来的），维持原有字段流 -->
-    <div
-      v-for="param in fields.filter(item => item.name !== 'urls' && !HIDDEN_PARAMS.includes(item.name))"
-      :key="param.name"
-      class="field"
-      :class="{ 'field-wide': isWide(param) }"
-    >
-      <ParamField
-        :param="param"
-        :value="valueOf(param.name)"
-        :pairs="pairsOfParam(param.name)"
-        :node-id="node.id"
-        :ctx="ctx"
-        @update="(value: unknown) => emit('set-param', param, value)"
-        @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
-      />
-      <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      <span class="output-box__note">
+        供下游节点通过 ${ {{ outputs[0].name }} }、${ url } 引用
+      </span>
     </div>
   </template>
 
-  <!-- 输出变量：虚线框，告诉下游能引用什么 -->
-  <div class="field field-wide output-box">
-    <span class="output-box__label">输出变量</span>
-    <div class="output-box__items">
-      <span v-for="out in outputs" :key="out.name" class="output-chip">
-        <code class="output-chip__name">{{ out.name }}</code>
-        <span class="output-chip__type">{{ out.type }}</span>
-        <em v-if="out.hint" class="output-chip__hint">{{ out.hint }}</em>
+  <template v-else>
+    <div class="field field-wide node-intro">
+      <el-icon class="node-intro__icon"><VideoPlay /></el-icon>
+      <span>
+        流程入口：定义种子 URL 列表（每行一个），流程会以列表里的每个地址各自跑一遍下游；
+        结果写入 <code>data</code>（同 <code>url</code>，种子 URL 列表），供后续节点引用。
       </span>
     </div>
-    <span class="output-box__note">
-      供下游节点通过 ${ {{ outputs[0].name }} }、${ url } 引用
-    </span>
-  </div>
+
+    <!-- 开始配置：分段切换。UI 稿的三个入口 -->
+    <div class="field field-wide">
+      <div class="channel-row" role="tablist" aria-label="开始配置方式">
+        <button
+          v-for="item in CHANNELS"
+          :key="item.key"
+          type="button"
+          role="tab"
+          class="channel"
+          :class="{ 'is-active': channel === item.key }"
+          :aria-selected="channel === item.key"
+          @click="channel = item.key"
+        >
+          <el-icon><component :is="item.icon" /></el-icon>
+          {{ item.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- 未被后端支撑的分段：说明原因，不给一个点了没反应的面板 -->
+    <div v-if="!CHANNEL_SUPPORTED[channel]" class="field field-wide channel-empty">
+      <el-icon><InfoFilled /></el-icon>
+      <span>
+        后端尚未为开始节点下发「{{ CHANNELS.find(i => i.key === channel)?.label }}」的参数，
+        该触发方式暂不可配置。
+      </span>
+    </div>
+
+    <template v-else>
+      <!--
+        种子 URL：独立成一张描边卡片。
+        ParamField 负责真正的输入控件与表达式插入器，这里只提供卡片外壳
+        （标题行 + 必填星号 + 实时行数 + 等宽正文），避免两处各写一套 label。
+      -->
+      <div
+        v-if="urlsParam"
+        class="field field-wide url-card"
+      >
+        <div class="url-card__head">
+          <span class="url-card__title">
+            {{ urlsParam.label }}<span v-if="urlsParam.required" class="req">*</span>
+          </span>
+          <span class="url-card__count">{{ urlRowCount }} 行</span>
+        </div>
+        <ParamField
+          :param="urlsParam"
+          :value="valueOf('urls')"
+          :pairs="pairsOfParam('urls')"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => urlsParam && emit('set-param', urlsParam, value)"
+          @pairs="(value: ParamPair[]) => urlsParam && emit('set-pairs', urlsParam, value)"
+        />
+        <div v-if="extraTip('urls')" class="field-tip">{{ extraTip("urls") }}</div>
+      </div>
+
+      <!-- 其余后端参数（兜底段带出来的），维持原有字段流 -->
+      <div
+        v-for="param in fields.filter(item => item.name !== 'urls' && !HIDDEN_PARAMS.includes(item.name))"
+        :key="param.name"
+        class="field"
+        :class="{ 'field-wide': isWide(param) }"
+      >
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="pairsOfParam(param.name)"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+          @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      </div>
+    </template>
+
+    <!-- 输出变量：虚线框，告诉下游能引用什么（非分区时保留，与旧行为一致） -->
+    <div v-if="!section || section === 'all'" class="field field-wide output-box">
+      <span class="output-box__label">输出变量</span>
+      <div class="output-box__items">
+        <span v-for="out in outputs" :key="out.name" class="output-chip">
+          <code class="output-chip__name">{{ out.name }}</code>
+          <span class="output-chip__type">{{ out.type }}</span>
+          <em v-if="out.hint" class="output-chip__hint">{{ out.hint }}</em>
+        </span>
+      </div>
+      <span class="output-box__note">
+        供下游节点通过 ${ {{ outputs[0].name }} }、${ url } 引用
+      </span>
+    </div>
+  </template>
 </template>
 
 <style scoped>

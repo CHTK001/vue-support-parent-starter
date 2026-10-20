@@ -19,6 +19,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -84,6 +86,27 @@ function extraTip(name: string): string {
 </script>
 
 <template>
+  <template v-if="section === 'loop'">
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="ctx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+    />
+  </template>
+
+  <template v-else-if="section === 'output'">
+    <div class="field field-wide node-intro">
+      SQL 查询结果写入 <code>data</code>（同 <code>rows</code>），供下游节点直接引用。
+    </div>
+  </template>
+
+  <template v-else-if="section === 'advanced'">
+    <div class="field field-wide node-intro">SQL 节点暂无独立高级配置，超时与超时策略统一在面板「高级配置」页签。 </div>
+  </template>
+
+  <template v-else>
   <div class="field field-wide node-intro">
     读写数据库：在指定数据源上执行一条 SQL。查询结果作为行集合写入出参变量，可给下游循环节点当循环集合。
   </div>
@@ -121,6 +144,7 @@ function extraTip(name: string): string {
     @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
     @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
   />
+  </template>
 </template>
 
 <style scoped>
