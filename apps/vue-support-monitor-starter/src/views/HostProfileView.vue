@@ -155,6 +155,10 @@ const page = ref(1);
 const pageSize = ref(10);
 /** 进程/服务的检索关键字：后端跨页匹配 PID/名称/用户/命令行 */
 const sectionKeyword = ref("");
+/** 后端返回的过滤后总行数（分页分区为 total，非分页分区为当前全量行数） */
+const sectionTotal = ref(0);
+/** 后端是否已达到 500 条采集上限 */
+const sectionTruncated = ref(false);
 
 /** 进程/服务表头排序状态（key=列名，dir=asc/desc，null=不排序） */
 const sortState = ref<{ key: string; dir: "asc" | "desc" } | null>(null);
