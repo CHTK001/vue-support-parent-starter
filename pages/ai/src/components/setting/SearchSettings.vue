@@ -27,6 +27,9 @@
           <el-option :label="t('settings.search.bocha')" value="bocha" />
           <el-option label="Tavily" value="tavily" />
           <el-option :label="t('settings.search.metaso')" value="metaso" />
+          <el-option label="LangSearch" value="langsearch" />
+          <el-option label="Gubo Search" value="gubo" />
+          <el-option label="TinyFish" value="tinyfish" />
         </el-select>
       </SettingsRow>
 
@@ -72,6 +75,24 @@
           placeholder="tvly-..." clearable />
       </SettingsRow>
 
+      <!-- LangSearch / Gubo Search / TinyFish 的 API Key。
+           与上面三个源同构，用 v-for 渲染：这几个源只是「换个 Key 和域名」，
+           再抄三遍块级模板只会让下一个源的接入成本继续变高。 -->
+      <template v-for="p in EXTRA_PROVIDERS" :key="p.key">
+        <SettingsRow
+          v-if="selectedProvider === p.key"
+          :label="`${p.label} API Key`"
+          control-flex
+        >
+          <template #description>
+            {{ p.desc }}
+            <span class="key-link" @click="p.open()">{{ t('settings.search.getApiKey') }}</span>
+          </template>
+          <el-input v-model="providerKeys[p.key]" type="password" show-password
+            :placeholder="p.placeholder" clearable />
+        </SettingsRow>
+      </template>
+
       <!-- 提示信息。
            注意最后那个 v-else：它兜的是 metaso，所以新增搜索源必须显式加分支，
            否则选中新源时会显示秘塔的文案（这里之前就会把 360 显示成秘塔）。 -->
@@ -83,6 +104,20 @@
         <template v-else-if="selectedProvider === 'bocha'">{{ t('settings.search.bochaTip') }}</template>
         <template v-else-if="selectedProvider === 'tavily'">{{ t('settings.search.tavilyTip') }}</template>
         <template v-else-if="selectedProvider === 'metaso'">{{ t('settings.search.metasoTip') }}</template>
+        <template v-else-if="selectedProvider === 'langsearch'">
+          LangSearch 网页搜索 API，按官方 web-search 契约调用（Bearer 鉴权，返回 data.webPages.value）。
+          未填写 Key 时该源不可用，后端自动回落 360。
+        </template>
+        <template v-else-if="selectedProvider === 'gubo'">
+          Gubo Search。接口地址可在「联网搜索」分组的高级项里覆盖
+          （<code>gubo_endpoint</code>）：官方文档未随代码固化，若域名或契约不同，
+          改地址即可适配，无需改代码。
+        </template>
+        <template v-else-if="selectedProvider === 'tinyfish'">
+          TinyFish。接口地址可在「联网搜索」分组的高级项里覆盖
+          （<code>tinyfish_endpoint</code>）：官方文档未随代码固化，若域名或契约不同，
+          改地址即可适配，无需改代码。
+        </template>
         <template v-else>付费源的 Key 未填写或调用失败时，后端会自动回落到 360 免费搜索。</template>
       </div>
     </SettingsCard>
@@ -109,15 +144,62 @@ const { t } = useI18n()
 // 也与 SearchGlobalSettingProvider 里 provider 的默认值一致，三处口径必须同一个。
 const selectedProvider = ref('360')
 
+/**
+ * 需要 API Key 的付费搜索源。
+ *
+ * 用一份清单驱动「表单字段 / 变更监听 / 读取 / 保存」四处，避免每加一个源就要在
+ * 四个地方各抄一遍（此前 bocha/tavily/metaso 就是这样重复的，漏一处就出现
+ * 「填了 key 存不下去」或「存了读不回来」的静默 bug）。
+ * 值与后端 SearchGlobalSettingProvider 的字段名一一对应。
+ */
+const PAID_PROVIDERS = ['bocha', 'tavily', 'metaso', 'langsearch', 'gubo', 'tinyfish'] as const
+
+/**
+ * 后三家源的展示信息。
+ *
+ * 与 PAID_PROVIDERS 分开是因为：上面三个源在模板里已有各自的 i18n 文案与专属行，
+ * 这三家共用同一套 v-for 模板，只需要标签 / 提示 / 官网入口三项差异。
+ */
+const EXTRA_PROVIDERS = [
+  {
+    key: 'langsearch',
+    label: 'LangSearch',
+    desc: 'LangSearch 网页搜索 API，Bearer 鉴权；留空则该源不可用，不影响其他源。',
+    placeholder: 'sk-...',
+    open: () => openInExternalBrowser('https://langsearch.com'),
+  },
+  {
+    key: 'gubo',
+    label: 'Gubo Search',
+    desc: 'Gubo Search；接口地址可用 gubo_endpoint 覆盖。',
+    placeholder: 'gubo-...',
+    open: () => openInExternalBrowser('https://gubosearch.com'),
+  },
+  {
+    key: 'tinyfish',
+    label: 'TinyFish',
+    desc: 'TinyFish；接口地址可用 tinyfish_endpoint 覆盖。',
+    placeholder: 'tf-...',
+    open: () => openInExternalBrowser('https://tinyfish.ai'),
+  },
+]
+
 // 各供应商 API Key 独立存储（切换供应商时不会丢失）
-const providerKeys = reactive({
-  bocha: '',
-  tavily: '',
-  metaso: '',
-})
+const providerKeys = reactive<Record<string, string>>(
+  Object.fromEntries(PAID_PROVIDERS.map((k) => [k, ''])),
+)
 
 // 原始备份，用于检测变更
 const originalSettings = ref<any>(null)
+
+/** 当前表单快照：provider + 各源 key，用于保存与变更比对（同一份口径，避免两处写歪） */
+const snapshot = () =>
+  JSON.parse(
+    JSON.stringify({
+      provider: selectedProvider.value,
+      ...Object.fromEntries(PAID_PROVIDERS.map((k) => [k, { apiKey: providerKeys[k] || '' }])),
+    }),
+  )
 
 // 插件状态
 const pluginEnabled = ref(false)
@@ -129,14 +211,18 @@ const debouncedSave = useDebounceFn(async () => {
 }, 500)
 
 // 监听 API Key 变化自动保存
-watch(() => [providerKeys.bocha, providerKeys.tavily, providerKeys.metaso], () => {
-  debouncedSave()
-})
+watch(
+  () => PAID_PROVIDERS.map((k) => providerKeys[k]),
+  () => {
+    debouncedSave()
+  },
+)
 
 // 打开链接
 const openBochaUrl = () => openInExternalBrowser('https://open.bochaai.com')
 const openMetasoUrl = () => openInExternalBrowser('https://metaso.cn/search-api')
 const openTavilyUrl = () => openInExternalBrowser('https://app.tavily.com')
+// LangSearch / Gubo / TinyFish 的官网入口在 EXTRA_PROVIDERS 里随行定义，不再各建一个常量
 
 // 切换供应商即时保存 + 触发插件重载以重新注册工具
 const handleProviderChange = async (val: string) => {
@@ -154,23 +240,17 @@ const loadSettings = async () => {
   try {
     const response = await apiService.fetchGroupSettings('search')
     selectedProvider.value = response.provider || '360'
-    providerKeys.bocha = response.bocha?.apiKey || ''
-    providerKeys.tavily = response.tavily?.apiKey || ''
-    providerKeys.metaso = response.metaso?.apiKey || ''
-    originalSettings.value = JSON.parse(JSON.stringify({
-      provider: selectedProvider.value,
-      bocha: { apiKey: providerKeys.bocha },
-      tavily: { apiKey: providerKeys.tavily },
-      metaso: { apiKey: providerKeys.metaso },
-    }))
+    for (const k of PAID_PROVIDERS) {
+      providerKeys[k] = response[k]?.apiKey || ''
+    }
+    originalSettings.value = snapshot()
   } catch (error) {
     console.error('获取搜索设置失败:', error)
-    originalSettings.value = JSON.parse(JSON.stringify({
-      provider: '360',
-      bocha: { apiKey: '' },
-      tavily: { apiKey: '' },
-      metaso: { apiKey: '' },
-    }))
+    selectedProvider.value = '360'
+    for (const k of PAID_PROVIDERS) {
+      providerKeys[k] = ''
+    }
+    originalSettings.value = snapshot()
   }
 
   // 加载插件状态
@@ -190,18 +270,11 @@ const handleSave = async () => {
   try {
     const dataToSave: Record<string, any> = {
       provider: selectedProvider.value,
-      bocha: { apiKey: providerKeys.bocha || '' },
-      tavily: { apiKey: providerKeys.tavily || '' },
-      metaso: { apiKey: providerKeys.metaso || '' },
+      ...Object.fromEntries(PAID_PROVIDERS.map((k) => [k, { apiKey: providerKeys[k] || '' }])),
     }
 
     await apiService.updateGroupSettings('search', dataToSave)
-    originalSettings.value = JSON.parse(JSON.stringify({
-      provider: selectedProvider.value,
-      bocha: { apiKey: providerKeys.bocha },
-      tavily: { apiKey: providerKeys.tavily },
-      metaso: { apiKey: providerKeys.metaso },
-    }))
+    originalSettings.value = snapshot()
   } catch (error: any) {
     console.error('保存搜索设置失败:', error)
     notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
