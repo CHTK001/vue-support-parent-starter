@@ -77,8 +77,26 @@
                         <template v-else-if="currentTabValue === 'default-models'">
                             <DefaultModelSettings />
                         </template>
-                        <template v-else-if="currentTabValue === 'colorize-config'">
-                            <DefaultModelSettings :groups="['image']" />
+                        <template v-else-if="currentTabValue === 'face-config'">
+                            <DefaultModelSettings :groups="['face']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'image-search-config'">
+                            <DefaultModelSettings :groups="['image_search']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'layout-config'">
+                            <DefaultModelSettings :groups="['layout']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'rag-config'">
+                            <DefaultModelSettings :groups="['rag']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'ocr-config'">
+                            <DefaultModelSettings :groups="['ocr']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'bot-connector-config'">
+                            <DefaultModelSettings :groups="['bot']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'language-config'">
+                            <DefaultModelSettings :groups="['language']" />
                         </template>
 
                         <template v-else-if="currentTabValue === 'appearance'">
@@ -248,7 +266,13 @@ const route = useRoute()
 const groupMap = computed<Record<string, string>>(() => ({
     general: t('settings.system.groups.general'),
     'default-models': t('settings.system.groups.general'),
-    'colorize-config': t('settings.system.groups.general'),
+    'face-config': t('settings.system.groups.general'),
+    'image-search-config': t('settings.system.groups.general'),
+    'layout-config': t('settings.system.groups.general'),
+    'rag-config': t('settings.system.groups.general'),
+    'ocr-config': t('settings.system.groups.general'),
+    'bot-connector-config': t('settings.system.groups.general'),
+    'language-config': t('settings.system.groups.general'),
     ocr: t('settings.system.groups.general'),
     browser: t('settings.system.groups.general'),
     connections: t('settings.system.groups.general'),
@@ -308,10 +332,54 @@ const sidebarItems = computed(() => [
     },
 
     {
-        // 图像上色模型配置：从默认模型页拆出的独立菜单
-        label: '图像上色配置',
-        path: 'colorize-config',
+        // 从默认模型页拆出的独立配置：人脸识别
+        // 检测/特征/活体/属性等模型字段原本混在默认模型页里，与文本对话模型放在一起
+        // 很难找；拆出后与左侧导航的「人脸识别」能力页一一对应。
+        label: '人脸识别配置',
+        path: 'face-config',
+        icon: Person20Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：以图搜图（图像特征模型 + 关键词提取）
+        label: '以图搜图配置',
+        path: 'image-search-config',
         icon: Image24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：布局识别
+        label: '布局配置',
+        path: 'layout-config',
+        icon: ScanText24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：RAG（嵌入/重排/分块/向量库）
+        label: 'RAG 配置',
+        path: 'rag-config',
+        icon: DataHistogram24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：OCR（检测/识别/方向/矫正/超分）
+        label: 'OCR 配置',
+        path: 'ocr-config',
+        icon: ScanText24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：连接器(bot)
+        label: '连接器配置',
+        path: 'bot-connector-config',
+        icon: Cloud24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 从默认模型页拆出的独立配置：语言
+        label: '语言配置',
+        path: 'language-config',
+        icon: Globe24Regular,
         roles: ['primary'],
     },
     {

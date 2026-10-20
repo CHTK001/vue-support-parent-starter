@@ -441,8 +441,6 @@
               </div>
             </div>
           </template>
-<<<<<<< HEAD
-=======
 
           <!-- ============ Dev Tools（类 Kibana Console） ============ -->
           <template #devtools>
@@ -575,7 +573,6 @@
               </div>
             </div>
           </template>
->>>>>>> feat/device-stream
         </ReTab>
       </div>
     </div>
@@ -848,11 +845,7 @@
  */
 import { message } from "@repo/core";
 import { ElMessageBox } from "element-plus";
-<<<<<<< HEAD
-import { computed, onMounted, reactive, ref, watch } from "vue";
-=======
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
->>>>>>> feat/device-stream
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReDrawer from "@repo/ui/re-drawer";
@@ -880,10 +873,7 @@ import {
   fetchEsCluster,
   fetchEsIndexDetail,
   fetchEsIndices,
-<<<<<<< HEAD
-=======
   fetchEsRawQuery,
->>>>>>> feat/device-stream
   fetchEsShards,
   queryEs,
   rebuildEsIndex,
@@ -903,21 +893,14 @@ defineOptions({ name: "ElasticsearchManageView" });
 
 const { datasourceId, source, gap, bind, ready } = useMiddlewareSource();
 
-<<<<<<< HEAD
-/** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 */
-=======
 /** 标签页：索引概览 / 节点列表 / 集群纳管 / 关系图谱 / 查询检索 / Dev Tools */
->>>>>>> feat/device-stream
 const tabs = [
   { name: "overview", label: "索引概览", icon: "Collection" },
   { name: "nodes", label: "节点列表", icon: "Monitor" },
   { name: "clusterCfg", label: "集群纳管", icon: "Connection" },
   { name: "graph", label: "关系图谱", icon: "Share" },
   { name: "query", label: "查询检索", icon: "Search" },
-<<<<<<< HEAD
-=======
   { name: "devtools", label: "Dev Tools", icon: "Cpu" },
->>>>>>> feat/device-stream
 ];
 
 const activeTab = ref<string>("overview");
@@ -982,8 +965,6 @@ const STATIC_SETTING_PREFIXES = [
   "http.",
   "transport.",
   "thread_pool.",
-<<<<<<< HEAD
-=======
   // 常见未列前缀（补全防止误 PUT 导致 ES 拒绝）
   "action.",
   "indices.",
@@ -991,7 +972,6 @@ const STATIC_SETTING_PREFIXES = [
   "repositories.",
   "xpack.",
   "logger.",
->>>>>>> feat/device-stream
 ];
 
 /**
@@ -1139,8 +1119,6 @@ const queryKeyword = ref("");
 const queryLoading = ref(false);
 const queryResult = ref<EsQueryResult | null>(null);
 
-<<<<<<< HEAD
-=======
 // ---- Dev Tools（类 Kibana Console） ----
 /** DevTools 命令类型 */
 type DevToolCmd = "GET" | "POST" | "PUT" | "DELETE";
@@ -1248,7 +1226,6 @@ function insertTab(e: KeyboardEvent) {
   });
 }
 
->>>>>>> feat/device-stream
 // ---- 集群信息 ----
 const clusterVisible = ref(false);
 const clusterLoading = ref(false);
@@ -1626,8 +1603,6 @@ function isOriginalField(name: string): boolean {
   return originalFields.value.some(f => f.name === name);
 }
 
-<<<<<<< HEAD
-=======
 /** 判断两个 EsField 是否有实质性差异（任意一项不同都视为改动，需重建索引） */
 function fieldChanged(orig: EsField, cur: EsField): boolean {
   const ov = (v?: unknown) => (v == null ? "" : String(v));
@@ -1650,7 +1625,6 @@ function fieldChanged(orig: EsField, cur: EsField): boolean {
   );
 }
 
->>>>>>> feat/device-stream
 /**
  * 打开字段管理：先加载索引现有字段，再在其基础上增 / 删 / 改
  *
@@ -1704,16 +1678,7 @@ async function saveIndex() {
     const modified = fields.filter(f => {
       const orig = origByName.get(f.name);
       if (!orig) return false;
-<<<<<<< HEAD
-      return (
-        (orig.type || "") !== (f.type || "") ||
-        (orig.analyzer || "") !== (f.analyzer || "") ||
-        (orig.format || "") !== (f.format || "") ||
-        (orig.index !== false) !== (f.index !== false)
-      );
-=======
       return fieldChanged(orig, f);
->>>>>>> feat/device-stream
     });
     if (removed.length > 0 || modified.length > 0) {
       target = "rebuild";
@@ -2404,8 +2369,6 @@ onMounted(async () => {
 .dsm-query-warn {
   color: var(--status-warning);
 }
-<<<<<<< HEAD
-=======
 
 /* ---- Dev Tools ---- */
 .dsm-devtools {
@@ -2594,5 +2557,4 @@ onMounted(async () => {
   white-space: pre-wrap;
   word-break: break-all;
 }
->>>>>>> feat/device-stream
 </style>

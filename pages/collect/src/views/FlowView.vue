@@ -706,6 +706,11 @@ async function refreshStates(): Promise<void> {
   }
   await refreshTask();
 }
+
+/** 顶部「自动优化」：整理节点位置并自适应画布 */
+function autoOptimize(): void {
+  designer.value?.autoOptimize();
+}
 </script>
 
 <template>

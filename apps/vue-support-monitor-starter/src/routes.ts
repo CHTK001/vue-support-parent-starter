@@ -17,13 +17,11 @@
  * 路由模式：hash（routerMode: "hash"）
  */
 import type { RouteConfigsTable } from "@repo/core";
-import type { RouteRecordRaw } from "vue-router";
 // 数据源管理页（数据库/Redis/InfluxDB/Neo4j/Nacos/ZooKeeper/etcd/Nginx/Prometheus 及其嵌入页）
 // 由 @pages/datasource 自己收敛声明：路由表与「类型→路径」映射同出一处，宿主只管合并。
 // 这里深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
 // 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
-import { deviceRoutes } from "@pages/device/src/router";
 
 /** 监控管理平台路由树（分组结构） */
 export const monitorRoutes: RouteConfigsTable[] = [

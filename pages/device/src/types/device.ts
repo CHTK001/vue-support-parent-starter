@@ -204,10 +204,6 @@ export interface AccessEvent {
   eventType: string
   cardNo: string
   userName?: string
-  /** 进出方向原始值（进 / 出 / in / out…；厂商未回传时为空） */
-  direction?: string
-  /** 抓拍照片地址；厂商没抓拍或未回传时为空 */
-  photoUrl?: string
 }
 
 export interface DeviceEvent {
@@ -223,11 +219,7 @@ export interface DeviceEvent {
  * 提供商接入凭据（厂商自定义的 AK/SK 等）。
  *
  * 同一 (厂商, 平台类型) 可登记多套，如多个海康账号分属不同区域；
-<<<<<<< HEAD
  * 每厂商至多一个 isDefault，厂商级离线阈值取默认套的阈值。
-=======
- * 设备可以来自多套凭据，没有「默认套」，离线阈值按套生效。
->>>>>>> feat/device-stream
  */
 export interface ProviderCredential {
   deviceCredentialId?: string
@@ -238,34 +230,16 @@ export interface ProviderCredential {
   deviceCredentialName: string
   deviceCredentialAppKey?: string
   deviceCredentialAppSecret?: string
-<<<<<<< HEAD
   /** 后端返回的掩码，形如 sk-****abcd；编辑时回显，不回传明文 */
   deviceCredentialAppSecretMasked?: string
   /** 是否已配置 SK（后端不再回传明文） */
   deviceCredentialAppSecretConfigured?: boolean
-=======
-  /** 云曜产品编码（ProductCode），云曜平台必填 */
-  deviceCredentialProductCode?: string
-  /** 云曜项目 ID（ProjectID），云曜平台必填 */
-  deviceCredentialProjectId?: string
->>>>>>> feat/device-stream
   /** 平台 endpoint 覆盖，留空用内置默认 */
   deviceCredentialBaseUrl?: string
   deviceCredentialOfflineThreshold?: number
-  /** 后端保留字段，UI 不再使用（不需要默认套） */
   deviceCredentialIsDefault?: boolean
   deviceCredentialEnabled?: boolean
   deviceCredentialRemark?: string
   deviceCredentialCreatedAt?: string
   deviceCredentialUpdatedAt?: string
 }
-
-/** 后端分页结果（spring-support-mybatis 的 PageResult） */
-export interface PageResult<T> {
-  pageNo: number
-  pageSize: number
-  total: number
-  totalPage: number
-  records: T[]
-}
-
