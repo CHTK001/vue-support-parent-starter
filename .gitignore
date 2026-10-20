@@ -221,6 +221,7 @@ dist-verify/
 # @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩
 public/vendor/
 public/flyfish-viewer-assets.json
+**/public/file-viewer/
 
 **/.kb-ui-accept/
 **/dcm-probe*.mjs
