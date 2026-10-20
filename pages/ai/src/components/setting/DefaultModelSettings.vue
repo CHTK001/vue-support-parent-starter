@@ -32,7 +32,7 @@
     </div>
 
     <!-- 动态渲染所有配置分组 -->
-    <SettingsCard v-for="group in displayGroups" :key="group.group" :title="group.groupName"
+    <SettingsCard v-for="group in displayGroups" :key="group.group" :title="cardTitle(group)"
       v-show="!fieldSearch || groupMatchesSearch(group)">
       <!-- 模型字段：始终显示 -->
       <SettingsRow
@@ -313,6 +313,18 @@ const displayGroups = computed(() => {
   }
   return all.filter((g) => props.groups.includes(g.group))
 })
+
+/**
+ * 卡片标题：图像上色独立菜单实际渲染的是 image 分组，沿用分组名会显示成
+ * 「图片识别」，与菜单名对不上，这里按入口换成本地化标题。
+ *
+ * @param group 分组定义
+ * @returns 卡片标题
+ */
+const cardTitle = (group) =>
+  group?.group === 'image' && props?.groups?.includes('image')
+    ? '图像上色'
+    : (group?.groupName || group?.group || '')
 
 // 各分组的实际值
 const groupValues = reactive({})
