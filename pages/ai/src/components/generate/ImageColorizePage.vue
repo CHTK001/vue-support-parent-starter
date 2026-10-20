@@ -51,11 +51,12 @@
           <div class="colorize-panel">
             <h3 class="colorize-panel-title">当前模型</h3>
             <p class="colorize-panel-model">{{ modelConfig.colorizeModel || '未配置' }}</p>
-            <ReEmpty v-if="resultError" hide-icon title="上色失败" :description="resultError" />
-            <ReEmpty v-else-if="!resultUrl && !generating" hide-icon title="等待生成" description="上传图片后会自动调用后端上色模型" />
+            <ReEmpty v-if="resultError" :text="`上色失败：${resultError}`" />
+            <ReEmpty v-else-if="!resultUrl && !generating" text="上传图片后会自动调用后端上色模型生成彩色效果" />
             <div class="colorize-actions">
               <ReButton type="success" :disabled="!resultUrl || generating" @click="download">下载上色图</ReButton>
-              <ReButton type="default" plain :disabled="generating" @click="resetImage">恢复原图</ReButton>
+              <ReButton type="primary" plain :disabled="generating || !imageLoaded" @click="colorizeImage">重新上色</ReButton>
+              <ReButton type="default" plain :disabled="generating || !resultUrl" @click="resetImage">恢复原图</ReButton>
             </div>
           </div>
         </div>
@@ -98,7 +99,13 @@ const originalUrl = ref('')
 const resultUrl = ref('')
 
 onMounted(async () => {
-  await modelConfig.load()
+  // 强制拉一次合并视图：上色模型可能在别处（设置中心）刚改过，
+  // 用缓存的 store 会拿旧值把页面误判成「未配置」。
+  try {
+    await modelConfig.refresh()
+  } catch {
+    // 读取失败按未配置处理：页面会给出「去配置模型」的提示，不阻断渲染
+  }
 })
 
 onBeforeUnmount(() => {
@@ -182,12 +189,16 @@ function download() {
   message.success('已开始下载上色图片')
 }
 
+/**
+ * 恢复原图预览：只清掉上色结果，不再自动重跑上色。
+ *
+ * <p>原先这里调用了 {@code colorizeImage()}，点「恢复原图」会立刻重新生成、
+ * 结果图马上又盖回原图，按钮等于没效果；需要重跑时用独立的「重新上色」。</p>
+ */
 function resetImage() {
-  if (!sourceFile) return
   revokeResultUrl()
   resultUrl.value = ''
   resultError.value = ''
-  void colorizeImage()
 }
 </script>
 

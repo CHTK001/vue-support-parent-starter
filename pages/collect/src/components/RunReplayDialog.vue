@@ -63,6 +63,18 @@ const states = computed<Record<string, CollectTaskLog>>(() => {
   return map;
 });
 
+/** 只回放本流程的节点日志：子流程的日志记在宿主任务下，画布上并没有那些节点 */
+const ownLogs = computed(() => {
+  const viewing = Number(props.task?.collectTaskFlowId ?? 0);
+  return logs.value.filter(log => {
+    if (!log.collectTaskLogNodeId) {
+      return false;
+    }
+    const owner = Number(log.collectTaskLogFlowId ?? 0);
+    return !viewing || !owner || owner === viewing;
+  });
+});
+
 /**
  * 按“节点 + 轮次”分组，保留同节点多次执行与重试记录。
  * 原实现直接平铺每条日志，回放时看不出重试；这里按 nodeId + iteration 聚合。
@@ -90,18 +102,6 @@ const groupedLogs = computed(() => {
 const current = computed<CollectTaskLog | null>(() => logs.value[cursor.value - 1] ?? null);
 const total = computed(() => logs.value.length);
 const finished = computed(() => cursor.value >= total.value && total.value > 0);
-
-/** 只回放本流程的节点日志：子流程的日志记在宿主任务下，画布上并没有那些节点 */
-const ownLogs = computed(() => {
-  const viewing = Number(props.task?.collectTaskFlowId ?? 0);
-  return logs.value.filter(log => {
-    if (!log.collectTaskLogNodeId) {
-      return false;
-    }
-    const owner = Number(log.collectTaskLogFlowId ?? 0);
-    return !viewing || !owner || owner === viewing;
-  });
-});
 
 function stop(): void {
   playing.value = false;

@@ -80,6 +80,7 @@ export interface CollectShapeMeta {
   description: string | null;
   outputVariable: string | null;
   fieldEditor: boolean;
+  hidden?: boolean;
   params: CollectParamMeta[];
 }
 
