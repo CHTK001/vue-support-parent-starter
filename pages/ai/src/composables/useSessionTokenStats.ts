@@ -51,8 +51,14 @@ const EMPTY_BREAKDOWN: TokenBreakdown = {
  */
 function normalizeTokenStats(raw: any): TokenStatsData {
   const usedTokens = Number(raw?.usedTokens) || 0
-  // 窗口优先取 effectiveContextWindow；字段缺失时退回 totalTokens（老后端只有一个字段）
-  const contextWindow = Number(raw?.effectiveContextWindow) || Number(raw?.totalTokens) || 0
+  // 窗口只认 effectiveContextWindow。
+  //
+  // 这里曾用 totalTokens 兜底，是个真 bug：totalTokens 是
+  // `max(usedTokens, 累计 prompt + completion)`，也就是「用量」，不是「窗口」。
+  // 模型没登记窗口时（agnes-3.0-flash 就是），后端刻意不下发窗口、让界面显示「—」，
+  // 兜底却把用量顶上来当分母 —— used/window 变成自己比自己，占用率直接 100%，
+  // 而且这个假窗口还会被回写落库、永久固化。窗口未知就返回 0，由界面显示「—」。
+  const contextWindow = Number(raw?.effectiveContextWindow) || 0
   const percentage = contextWindow > 0
     ? Math.min(100, Math.max(0, (usedTokens / contextWindow) * 100))
     : 0
@@ -101,9 +107,13 @@ export function updateTokenStatsFromSSE(
   sessionId?: string | null,
 ) {
   sseUpdated = true
-  // 后端只在拿得到模型窗口时才下发 effectiveContextWindow；
-  // 缺省时退回上一次已知窗口，避免一次「未登记模型」的轮次把占用率打回 0。
-  const window = Number(stats.effectiveContextWindow) || tokenStats.value?.totalTokens || 0
+  // 后端只在拿得到模型窗口时才下发 effectiveContextWindow。
+  //
+  // 缺省时这里曾退回 `tokenStats.value?.totalTokens`，同样是把「用量」当「窗口」：
+  // 首轮消息 token 还没落库时 totalTokens 恰好等于首轮用量（实测 307 / 12308），
+  // 于是被当成窗口回写落库，之后每轮都命中这条假值，占用率永久挂在 100%。
+  // 窗口未知就是未知 —— 不下发就取 0，界面显示「—」，绝不拿用量顶上。
+  const window = Number(stats.effectiveContextWindow) || 0
   const used = Number(stats.usedTokens) || 0
   const breakdown: TokenBreakdown = { ...EMPTY_BREAKDOWN, ...(stats.breakdown || {}) }
 
