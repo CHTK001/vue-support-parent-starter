@@ -148,6 +148,9 @@ const PIPELINE_INFO: Record<string, { title: string; desc: string }> = {
   'layout': { title: '版面布局分析', desc: '文档版面布局分析管线配置' },
   'face': { title: '人脸识别', desc: '人脸检测与识别管线配置' },
   'image-recognition': { title: '图片识别', desc: '图像内容识别与分类管线配置' },
+  // 音频两条管线：此前只有 globalBean（无标题、无模型槽），路由点进来标题会退化成裸 code
+  'asr': { title: '语音识别', desc: '语音转文字管线：ASR 模型必填，文本矫正模型可选（留空关闭）' },
+  'tts': { title: '语音合成', desc: '文字转语音管线：TTS 模型必填，文本规范化模型可选（留空关闭）' },
 };
 
 const pipelineTitle = computed(() => PIPELINE_INFO[pipelineCode.value]?.title || pipelineCode.value);
@@ -170,11 +173,26 @@ const FIELD_LABELS: Record<string, string> = {
   restorer_model: '文字超分修复模型',
   corrector_model: '文本矫正模型',
   device: '推理设备',
+  // ── 音频管线（asr / tts）────────────────────────────────────────────
+  // 这几项此前没有中文标签，页面上会渲染成「provider api key」这类半英文，
+  // 与「管线配置都要在页面上说清楚」的要求相悖。
+  provider: '服务商',
+  provider_api_key: 'API Key',
+  provider_base_url: 'API 基础地址',
+  default_model: '默认模型',
+  language: '语言',
+  tts_voice: '默认发音人',
+  tts_speed: '语速倍率',
+  tts_format: '输出音频格式',
+  text_normalize_model: '文本规范化模型',
 };
 
-/** 已知字段的输入提示（仅文本矫正给出示例，其余走「请输入xx」默认提示）。 */
+/** 已知字段的输入提示（文本类模型统一说明「留空关闭」，避免用户误以为必填）。 */
 const FIELD_PLACEHOLDERS: Record<string, string> = {
-  corrector_model: '留空关闭（非必填），例如 macbert4csc',
+  corrector_model: '留空关闭（非必填），例如 macbert4csc / gpt-4o',
+  text_normalize_model: '留空关闭（非必填），例如 gpt-4o / deepseek-chat',
+  provider: 'whisper / openai / alibaba-asr 等',
+  default_model: '留空或 auto = 由所选引擎自动使用推荐档位',
 };
 
 const requiredCapabilities = ref<string[]>([]);
