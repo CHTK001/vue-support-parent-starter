@@ -194,6 +194,10 @@ export interface TokenUsage {
     promptTokens: number
     completionTokens: number
     totalTokens: number
+    /** 缓存命中 Token 数（输入的子集）：用于会话底部统计条的命中率 */
+    cachedTokens?: number
+    /** 首字耗时（毫秒，TTFT）：后端 finish 事件与历史回读都会带上 */
+    firstTokenLatencyMs?: number
     promptCacheHitTokens?: number
     promptCacheMissTokens?: number
 }

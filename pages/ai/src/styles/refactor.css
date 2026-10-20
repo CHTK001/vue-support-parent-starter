@@ -63,7 +63,9 @@
   --code-block-bg: #f6f8fc;
 
   /* 消息气泡。assistant 不能再是 transparent：那等于与页面背景同色，
-     整段回复看起来没有承载面，用户反馈「和背景色一样，很难看」。 */
+     整段回复看起来没有承载面，用户反馈「和背景色一样，很难看」。
+     默认主题下对话区已提成纯白，卡片改为低一档的极浅灰（见文件末尾覆盖块），
+     否则卡片与背景同色，只剩 1px 边框，等于又退回「没有承载面」。 */
   --color-bubble-user-bg: #e2ecfb;
   --color-bubble-user-text: #0f172a;
   --color-bubble-user-border: #cfe0f7;
@@ -90,6 +92,14 @@
   --color-conversation-text-active: var(--color-primary);
   --color-conversation-bg-hover: var(--color-primary-50);
   --color-conversation-text-hover: var(--color-primary);
+
+  /* 对话区（消息 + 输入框所在的那一栏）底色。
+     默认回落到页面底色，行为与改动前完全一致；只有「默认主题 + 浅色」把它提成纯白
+     （见文件末尾的 html:not(.dark):not([data-theme]) 规则）。
+
+     为什么不直接改 --color-bg：那个令牌还供 html 背景、壁纸透明层与外壳使用，
+     全局改白会把整页一起刷白，侧边栏/内容区的层次就没了。 */
+  --color-chat-bg: var(--color-bg);
 
   /* 输入框 / 弹窗 */
   --color-input-bg: #ffffff;
@@ -200,6 +210,9 @@ html.dark {
   --color-conversation-text-active: var(--color-sidebar-text-active);
   --color-conversation-bg-hover: var(--color-sidebar-bg-hover);
   --color-conversation-text-hover: #cdd7e8;
+
+  /* 深色下「白底」没有意义：沿用页面底色，只做浅色主题的差异化 */
+  --color-chat-bg: var(--color-bg);
 
   --color-input-bg: #1c2330;
   --color-input-border: #313b4d;
@@ -1111,6 +1124,29 @@ html.dark *::-webkit-scrollbar-thumb:hover {
   top: 50%;
   transform: translateY(-50%);
   border-right-color: var(--l-tooltip-bg);
+}
+
+/* ============================================================================
+   对话区白底（仅默认主题 + 浅色）
+   ----------------------------------------------------------------------------
+   需求：会话页（消息列 + 输入框那一栏）用白底。
+
+   为什么用 :not([data-theme]) 而不是直接改 --color-bg：
+   1. --color-bg 同时供 html 背景、壁纸透明层（.content-clear-wallpaper）与外壳使用，
+      改它会把整页刷白，侧边栏/内容区的层次一起消失；
+   2. public/themes 下 9 套预设（y2k / 赛博朋克 / 墨水屏 …）各自定义了自己的
+      --color-bg 与卡片配色，白底会直接盖掉它们的基调。故只在「没有 data-theme」
+      （即默认主题）时生效，其余预设完全不受影响。
+
+   同时把助手卡片压到比白低一档：#ffffff 的卡片放在 #ffffff 的底上会看不出承载面，
+   只剩 1px 边框，正是当初用户反馈「和背景色一样」的那个毛病。
+
+   带壁纸时不生效（:not(.wallpaper-loaded)）：那时 .content-clear-wallpaper 是
+   半透明层，铺一块不透明白会把壁纸直接盖掉，与「外观 → 壁纸/透明度」的设置冲突。
+   ========================================================================== */
+html:not(.dark):not([data-theme]):not(.wallpaper-loaded) {
+  --color-chat-bg: #ffffff;
+  --color-bubble-assitant-bg: #f8fafc;
 }
 
 /* 自动配色头像（保留能力） */

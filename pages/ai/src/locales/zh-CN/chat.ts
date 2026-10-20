@@ -296,6 +296,27 @@ export default {
     totalTokens: '上下文窗口',
   },
 
+  // ── 会话底部统计条（轮数 / 步数 / 速度 / Token / 缓存命中 / 上下文） ──
+  runStats: {
+    title: '会话统计',
+    rounds: '{n} 轮',
+    steps: '{n} 步',
+    speed: '{n} tok/s',
+    second: '{n}秒',
+    minuteSecond: '{m}分{s}秒',
+    tokens: '{n} tok',
+    percent: '{pct}%',
+    cacheHit: '缓存命中 {pct}%',
+    cacheHitEmpty: '缓存命中 —',
+    modelTime: '模型用时',
+    toolTime: '工具调用用时',
+    ttft: '首 token 平均（TTFT）',
+    tps: '输出速度（TPS）',
+    promptTokens: '输入',
+    cachedTokens: '缓存命中',
+    contextUsage: '上下文占用',
+  },
+
   // ── 从此处回退确认框 ──
   rewindDialog: {
     title: '从此处回退？',
