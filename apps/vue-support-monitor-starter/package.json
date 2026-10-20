@@ -48,6 +48,7 @@
     "@file-viewer/preset-all": "catalog:",
     "@file-viewer/vite-plugin": "catalog:",
     "rimraf": "catalog:",
+    "sass": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",

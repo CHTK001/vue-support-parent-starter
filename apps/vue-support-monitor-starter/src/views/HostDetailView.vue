@@ -995,21 +995,21 @@ const PROFILE_SECTIONS: Array<{ name: ProfileSection; label: string }> = [
   { name: "firewall", label: "防火墙" },
 ];
 /** 各分区的列定义（与 HostProfileView.COLUMNS 同口径，防火墙按后端 FirewallRuleRowVO 补列） */
-const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string }>> = {
+const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string; sortable?: boolean; align?: 'left' | 'center' | 'right' }>> = {
   ports: [
     { key: "protocol", label: "协议" },
     { key: "local", label: "监听地址" },
-    { key: "port", label: "端口" },
+    { key: "port", label: "端口", sortable: true, align: "right" },
     { key: "state", label: "状态" },
-    { key: "pid", label: "PID" },
+    { key: "pid", label: "PID", sortable: true, align: "right" },
     { key: "process", label: "进程" },
   ],
   processes: [
-    { key: "pid", label: "PID" },
+    { key: "pid", label: "PID", sortable: true, align: "right" },
     { key: "name", label: "进程名" },
-    { key: "cpu", label: "CPU%" },
-    { key: "memory", label: "内存(MB)" },
-    { key: "threads", label: "线程" },
+    { key: "cpu", label: "CPU%", sortable: true, align: "right" },
+    { key: "memory", label: "内存", sortable: true, align: "right" },
+    { key: "threads", label: "线程", sortable: true, align: "right" },
     { key: "command", label: "命令行" },
   ],
   services: [
@@ -1017,16 +1017,16 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "displayName", label: "显示名" },
     { key: "state", label: "状态" },
     { key: "startType", label: "启动类型" },
-    { key: "pid", label: "PID" },
+    { key: "pid", label: "PID", sortable: true, align: "right" },
   ],
   disks: [
     { key: "mount", label: "挂载点" },
     { key: "name", label: "名称" },
     { key: "fsType", label: "类型" },
-    { key: "totalGb", label: "容量(GB)" },
-    { key: "usedGb", label: "已用(GB)" },
-    { key: "availGb", label: "可用(GB)" },
-    { key: "usage", label: "使用率%" },
+    { key: "totalGb", label: "容量(GB)", sortable: true, align: "right" },
+    { key: "usedGb", label: "已用(GB)", sortable: true, align: "right" },
+    { key: "availGb", label: "可用(GB)", sortable: true, align: "right" },
+    { key: "usage", label: "使用率%", sortable: true, align: "right" },
   ],
   network: [
     { key: "name", label: "网卡" },
@@ -1034,7 +1034,7 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "mac", label: "MAC" },
     { key: "ipv4", label: "IPv4" },
     { key: "ipv6", label: "IPv6" },
-    { key: "mtu", label: "MTU" },
+    { key: "mtu", label: "MTU", sortable: true, align: "right" },
     { key: "speed", label: "速率" },
   ],
   env: [
@@ -1042,11 +1042,11 @@ const PROFILE_COLUMNS: Record<ProfileSection, Array<{ key: string; label: string
     { key: "value", label: "值" },
   ],
   firewall: [
-    { key: "name", label: "规则名" },
-    { key: "direction", label: "方向" },
-    { key: "action", label: "动作" },
-    { key: "protocol", label: "协议" },
-    { key: "localPort", label: "端口" },
+    { key: "name", label: "规则名", sortable: true },
+    { key: "direction", label: "方向", sortable: true },
+    { key: "action", label: "动作", sortable: true },
+    { key: "protocol", label: "协议", sortable: true },
+    { key: "localPort", label: "端口", sortable: true, align: "right" },
     { key: "program", label: "程序" },
   ],
 };
@@ -1058,6 +1058,10 @@ const profilePageSize = ref(10);
 /** 检索关键字：分页分区走后端跨页匹配，非分页分区走前端过滤 */
 const profileKeyword = ref("");
 const profileRows = ref<Record<string, any>[]>([]);
+/** 后端返回的过滤后总行数（分页分区为 total，非分页分区为当前全量行数） */
+const profileTotal = ref(0);
+/** 后端是否已达到 500 条采集上限 */
+const profileTruncated = ref(false);
 const profileLoading = ref(false);
 const profileError = ref("");
 let profileReq = 0;
@@ -1065,17 +1069,49 @@ let profileReq = 0;
 const profilePaged = computed(() =>
   profileTab.value === "processes" || profileTab.value === "services"
   || profileTab.value === "ports" || profileTab.value === "firewall");
-/** 后端不分页的分区在前端过滤：任一字段命中关键字即保留 */
+/** 分页分区由后端返回当前页；非分页分区在前端过滤 + 排序 */
 const profileVisibleRows = computed(() => {
   const kw = profileKeyword.value.trim().toLowerCase();
-  if (!kw || profilePaged.value) return profileRows.value;
-  return profileRows.value.filter(r => Object.values(r).some(v =>
-    v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
+  const base = profilePaged.value || !kw
+    ? profileRows.value
+    : profileRows.value.filter(r => Object.values(r).some(v =>
+        v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
+  if (!profileSortKey.value) return base;
+  const key = profileSortKey.value!;
+  const dir = profileSortDir.value === "asc" ? 1 : -1;
+  return [...base].sort((a, b) => {
+    const av = a?.[key], bv = b?.[key];
+    if (av == null || av === "") return dir;
+    if (bv == null || bv === "") return -dir;
+    const an = Number(av), bn = Number(bv);
+    if (!Number.isNaN(an) && !Number.isNaN(bn) && typeof av !== "string") return (an - bn) * dir;
+    return String(av).localeCompare(String(bv), "zh-Hans-CN") * dir;
+  });
 });
-/** 切分区先归零页码与关键字，避免上一分区的检索污染下一分区 */
+
+/** 排序列名（为空表示未排序） */
+const profileSortKey = ref("");
+/** 排序方向：asc | desc */
+const profileSortDir = ref<"asc" | "desc">("asc");
+/** 点击表头切换排序：未排→升序→降序→取消 */
+function toggleProfileSort(key: string): void {
+  if (profileSortKey.value === key) {
+    if (profileSortDir.value === "asc") profileSortDir.value = "desc";
+    else profileSortKey.value = "";
+  } else {
+    profileSortKey.value = key;
+    profileSortDir.value = "asc";
+  }
+}
+
+/** 切分区先归零页码、关键字与排序 */
 function resetProfilePager(): void {
   profilePage.value = 1;
   profileKeyword.value = "";
+  profileTotal.value = 0;
+  profileTruncated.value = false;
+  profileSortKey.value = "";
+  profileSortDir.value = "asc";
 }
 /** 拉取当前分区 */
 async function loadProfileSection(): Promise<void> {
@@ -1086,12 +1122,17 @@ async function loadProfileSection(): Promise<void> {
   profileError.value = "";
   try {
     const sec = profileTab.value;
-    const next = await fetchHostProfileSection(hid, sec,
+    const res = await fetchHostProfileSection(hid, sec,
       profilePaged.value ? profilePage.value : undefined,
       profilePaged.value ? profilePageSize.value : undefined,
       profilePaged.value ? profileKeyword.value.trim() || undefined : undefined);
     if (req !== profileReq || hid !== hostId.value) return;
-    profileRows.value = next ?? [];
+    profileRows.value = res.rows ?? [];
+    profileTotal.value = profilePaged.value && typeof res.total === "number" ? res.total : (res.rows?.length ?? 0);
+    profileTruncated.value = profilePaged.value && !!res.truncated;
+    if (profilePaged.value && profilePage.value > 1 && profilePageSize.value * (profilePage.value - 1) >= profileTotal.value) {
+      profilePage.value = Math.max(1, Math.ceil(profileTotal.value / profilePageSize.value));
+    }
   } catch (e) {
     if (req !== profileReq) return;
     profileError.value = String((e as Error)?.message ?? e);
@@ -1500,7 +1541,15 @@ async function submitProfileEnv(): Promise<void> {
           </div>
         </div>
         <div class="pp-bar">
-          <span v-if="profileTab !== 'network'" class="dim">{{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}</span>
+          <span v-if="profileTab !== 'network'" class="dim">
+            <template v-if="profilePaged">
+              {{ profileKeyword.trim() ? `命中 ${profileTotal} 条` : `共 ${profileTotal} 条` }}
+              <template v-if="profileTruncated">，已达采集上限，仅显示前 500 条</template>
+            </template>
+            <template v-else>
+              {{ profileKeyword.trim() ? `命中 ${profileVisibleRows.length} 条` : `共 ${profileVisibleRows.length} 条` }}
+            </template>
+          </span>
           <span v-else class="dim">Windows 网络连接视图</span>
           <div class="pp-pager">
             <ReInput v-if="profileTab !== 'network'" v-model="profileKeyword" class="pp-search" placeholder="关键字过滤" clearable @keyup.enter="applyProfileKeyword" @clear="applyProfileKeyword" />
@@ -1508,7 +1557,7 @@ async function submitProfileEnv(): Promise<void> {
               <ReButton @click="applyProfileKeyword">搜索</ReButton>
               <ReButton :disabled="profilePage <= 1 || profileLoading" @click="changeProfilePage(-1)">上一页</ReButton>
               <span class="mono page-no">{{ profilePage }}</span>
-              <ReButton :disabled="profileLoading || profileRows.length < profilePageSize" @click="changeProfilePage(1)">下一页</ReButton>
+              <ReButton :disabled="profileLoading || profilePage * profilePageSize >= profileTotal" @click="changeProfilePage(1)">下一页</ReButton>
             </template>
             <ReButton v-if="profileTab === 'env'" type="primary" icon="Plus" @click="profileEnvDialog = true">新增变量</ReButton>
             <ReButton type="primary" icon="Refresh" :loading="profileLoading" @click="loadProfileSection">刷新</ReButton>
@@ -1529,7 +1578,11 @@ async function submitProfileEnv(): Promise<void> {
           <table class="pp-table">
             <thead>
               <tr>
-                <th v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key">{{ col.label }}</th>
+                <th
+                  v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key"
+                  :class="['pp-th', { sortable: col.sortable, 'sort-on': profileSortKey === col.key, right: col.align === 'right' }]"
+                  @click="col.sortable && toggleProfileSort(col.key)"
+                >{{ col.label }}</th>
                 <th v-if="profileTab === 'ports' || profileTab === 'processes' || profileTab === 'services' || profileTab === 'env'">操作</th>
               </tr>
             </thead>

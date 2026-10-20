@@ -1,7 +1,21 @@
 <template>
   <div class="flex-1">
+    <!-- 图像上色配置快捷入口：独立菜单统一管理 colorize 字段，默认模型页只做跳转 -->
+    <div v-if="!props.groups?.length" class="settings-quick px-4 pt-3 pb-1">
+      <button type="button" class="settings-quick-item" @click="$router.push('/setting/colorize-config')">
+        <span class="settings-quick-icon">
+          <el-icon :size="14"><ColorLensOutlined /></el-icon>
+        </span>
+        <span class="settings-quick-body">
+          <span class="settings-quick-title">图像上色</span>
+          <span class="settings-quick-desc">配置图像上色模型与参数，立即前往独立配置页</span>
+        </span>
+        <el-icon class="settings-quick-arrow" :size="13"><ArrowRight /></el-icon>
+      </button>
+    </div>
+
     <!-- 动态渲染所有配置分组 -->
-    <SettingsCard v-for="group in settingGroups" :key="group.group" :title="group.groupName">
+    <SettingsCard v-for="group in displayGroups" :key="group.group" :title="cardTitle(group)">
       <!-- 模型字段：始终显示 -->
       <SettingsRow
         v-for="item in visibleFields(group)"
@@ -218,8 +232,8 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { OpenAI } from "@/components/icons";
-import { ArrowDown, Search } from "@element-plus/icons-vue";
-import { CheckCircleFilled } from "@vicons/material";
+import { ArrowDown, Search, ArrowRight } from "@element-plus/icons-vue";
+import { CheckCircleFilled, ColorLensOutlined } from "@vicons/material";
 
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
@@ -260,6 +274,40 @@ const modelConfig = useModelConfigStore()
 
 // 配置分组定义
 const settingGroups = ref([])
+
+/**
+ * 拆分菜单复用本组件时传入要渲染的分组；不传则渲染默认模型页全部分组。
+ */
+const props = defineProps({
+  groups: {
+    type: Array,
+    default: () => [],
+  },
+})
+
+/** 从默认模型页拆出的独立配置分组：默认模型整页不再重复渲染 */
+const SPLIT_GROUPS = ['image']
+
+/** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
+const displayGroups = computed(() => {
+  const all = settingGroups.value
+  if (!props?.groups?.length) {
+    return all.filter((g) => !SPLIT_GROUPS.includes(g.group))
+  }
+  return all.filter((g) => props.groups.includes(g.group))
+})
+
+/**
+ * 卡片标题：图像上色独立菜单实际渲染的是 image 分组，沿用分组名会显示成
+ * 「图片识别」，与菜单名对不上，这里按入口换成本地化标题。
+ *
+ * @param group 分组定义
+ * @returns 卡片标题
+ */
+const cardTitle = (group) =>
+  group?.group === 'image' && props?.groups?.includes('image')
+    ? '图像上色'
+    : (group?.groupName || group?.group || '')
 
 // 各分组的实际值
 const groupValues = reactive({})
@@ -736,6 +784,7 @@ const getFieldLabel = (item) => {
             'rag_embedding_model': 'Embedding引擎',
             'rag_llm_model': 'LLM模型',
             'image_model': '文生图模型',
+            'colorize_model': '图像上色模型',
             'video_model': '文生视频模型',
             'media_base_path': '生成文件根目录',
             'media_upload_dir': '上传目录名',
@@ -981,6 +1030,18 @@ const shouldShowField = (group, field) => {
     // 引擎类字段一律不显示（由所选模型推导）
     if (ENGINE_FIELDS.includes(field)) {
         return false
+    }
+    // 图像上色配置走「系统设置 → 图像上色配置」独立菜单，与图片识别其它字段分属两个入口：
+    // 独立菜单（groups 含 image）只渲染 colorize_*，默认模型整页反过来隐藏 colorize_*，
+    // 避免同一批字段两处都能配、各自保存打架。
+    if (group === 'image') {
+        const colorizeField = String(field || '').startsWith('colorize_')
+        if (props?.groups?.includes('image')) {
+            return colorizeField
+        }
+        if (colorizeField) {
+            return false
+        }
     }
     // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），
     // 这里隐藏通用行，避免出现双入口（下拉值与动态表单各自保存会互相打架）
@@ -1463,9 +1524,9 @@ const saveGroupSettings = async (group) => {
         notify.success('设置已保存')
         // 重新拉取合并视图：拿回 overridden/defaultValue，界面上「继承全局」状态才会刷新
         await loadGroupValues(group)
-        // 这三个分组的模型是人脸识别 / 以图搜图的门禁判据，保存后即时刷新，
-        // 侧栏徽标与两个页面的可用性不用等刷新页面就跟着变
-        if (group === 'face' || group === 'image_search' || group === 'runtime') {
+        // 这几个分组的模型是人脸识别 / 以图搜图 / 图像上色的门禁判据，保存后即时刷新，
+        // 侧栏徽标与各页面的可用性不用等刷新页面就跟着变
+        if (group === 'face' || group === 'image_search' || group === 'image' || group === 'runtime') {
             await modelConfig.refresh()
         }
     } catch (error) {
@@ -1476,7 +1537,7 @@ const saveGroupSettings = async (group) => {
 
 // 加载所有分组的值
 const loadAllGroupValues = async () => {
-    for (const group of settingGroups.value) {
+    for (const group of displayGroups.value) {
         await loadGroupValues(group.group)
     }
 }
@@ -1627,5 +1688,63 @@ onMounted(async () => {
 
 .md-row:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 图像上色配置快捷入口：从默认模型页跳到独立配置菜单，不重复渲染色块 */
+.settings-quick {
+  display: flex;
+}
+.settings-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular, #606266);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s, background 0.18s;
+}
+.settings-quick-item:hover {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color));
+}
+.settings-quick-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+.settings-quick-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.settings-quick-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+.settings-quick-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-quick-arrow {
+  color: var(--el-text-color-secondary, #909399);
+  flex-shrink: 0;
 }
 </style>

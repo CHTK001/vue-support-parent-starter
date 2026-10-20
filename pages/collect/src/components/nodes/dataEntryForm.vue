@@ -24,6 +24,8 @@ const props = defineProps<{
   meta: CollectShapeMeta;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** 分区渲染：input / output / loop / advanced；缺省 all 保持旧行为 */
+  section?: "all" | "input" | "output" | "loop" | "advanced";
 }>();
 
 const emit = defineEmits<{
@@ -37,6 +39,9 @@ const { fields, valueOf } = useShapeFieldList(
   () => props.meta,
   ["rows", "outputVariable", "datasource", "table"],
 );
+
+const inputFields = computed(() => fields.value.filter(p => p.name !== "outputVariable"));
+const outputFields = computed(() => fields.value.filter(p => p.name === "outputVariable"));
 
 /**
  * 录入文本的表头列：首行非空行按制表符 / 逗号拆（与后端 parseRows 的分隔符判定同口径）。
@@ -108,6 +113,68 @@ function extraTip(name: string): string {
 </script>
 
 <template>
+  <template v-if="section === 'input'">
+    <div class="field field-wide node-intro">
+      手工录行：首行表头、每行一条数据，产出集合（默认 ${data}，同 ${rows}）供下游数据库 / 采集平台节点整批消费。
+      需要目标表时，先用「建表」按表头列把表落好，再让下游选同一数据源与表写入。
+    </div>
+    <template v-for="param in inputFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="[]"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+        <div v-if="param.name === 'table' && canDdl" class="ddl-actions">
+          <ReButton text type="primary" @click="openDdl">建表…</ReButton>
+          <span class="ddl-hint">按录入表头的 {{ headerColumns.length }} 列建表（列类型 TEXT），建完在下游节点选同表写入。</span>
+        </div>
+      </div>
+    </template>
+    <CreateTableDialog
+      v-model="ddlOpen"
+      :datasource="valueOf('datasource').trim()"
+      :table="valueOf('table').trim()"
+      :columns="headerColumns"
+      @executed="ctx.refreshColumns()"
+    />
+  </template>
+
+  <template v-else-if="section === 'output'">
+    <template v-for="param in outputFields" :key="param.name">
+      <div class="field" :class="{ 'field-wide': isWide(param) }">
+        <ParamField
+          :param="param"
+          :value="valueOf(param.name)"
+          :pairs="[]"
+          :node-id="node.id"
+          :ctx="ctx"
+          @update="(value: unknown) => emit('set-param', param, value)"
+        />
+        <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      </div>
+    </template>
+  </template>
+
+  <template v-else-if="section === 'loop'">
+    <LoopFields
+      :node="node"
+      :meta="meta"
+      :ctx="ctx"
+      @set-param="(param: CollectParamMeta, value: unknown) => emit('set-param', param, value)"
+      @set-pairs="(param: CollectParamMeta, pairs: ParamPair[]) => emit('set-pairs', param, pairs)"
+    />
+  </template>
+
+  <template v-else-if="section === 'advanced'">
+    <div class="field field-wide node-intro">数据录入节点暂无独立高级配置，超时与超时策略统一在面板「高级配置」页签。</div>
+  </template>
+
+  <template v-else>
   <div class="field field-wide node-intro">
     手工录行：首行表头、每行一条数据，产出集合（默认 ${data}，同 ${rows}）供下游数据库 / 采集平台节点整批消费。
     需要目标表时，先用「建表」按表头列把表落好，再让下游选同一数据源与表写入。
@@ -149,6 +216,7 @@ function extraTip(name: string): string {
     :columns="headerColumns"
     @executed="ctx.refreshColumns()"
   />
+  </template>
 </template>
 
 <style scoped>

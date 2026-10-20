@@ -154,6 +154,8 @@ function resetPager(): void {
   page.value = 1;
   sectionKeyword.value = "";
   sortState.value = null;
+  sectionTotal.value = 0;
+  sectionTruncated.value = false;
 }
 
 /** 提交一次检索：回到第一页重新拉取 */
@@ -220,26 +222,28 @@ const visibleRows = computed(() => {
     v !== null && v !== undefined && String(v).toLowerCase().includes(kw)));
 });
 
-/** 进程/服务在前端按表头点击排序（数值列）；其它分区保持原序 */
+/** 已标记 sortable 的列在前端排序：数值列按数值大小，其余按 localeCompare */
 const tableRows = computed(() => {
   const s = sortState.value;
   const base = visibleRows.value;
-  if (!s || (active.value !== "processes" && active.value !== "services")) return base;
+  if (!s) return base;
   const key = s.key;
-  const arr = [...base].sort((a, b) => {
-    const va = Number(a?.[key]);
-    const vb = Number(b?.[key]);
-    const na = Number.isFinite(va) ? va : 0;
-    const nb = Number.isFinite(vb) ? vb : 0;
-    return na - nb;
+  const dir = s.dir === "asc" ? 1 : -1;
+  return [...base].sort((a, b) => {
+    const av = a?.[key], bv = b?.[key];
+    if (av == null || av === "") return dir;
+    if (bv == null || bv === "") return -dir;
+    const an = Number(av), bn = Number(bv);
+    if (!Number.isNaN(an) && !Number.isNaN(bn) && typeof av !== "string") return (an - bn) * dir;
+    return String(av).localeCompare(String(bv), "zh-Hans-CN") * dir;
   });
-  return s.dir === "desc" ? arr.reverse() : arr;
 });
 
 /** 当前分区可排序的列（服务 cpu/内存恒不采集，仅 PID 有意义） */
 function sortableColumns(): string[] {
   if (active.value === "processes") return ["pid", "cpu", "memory"];
   if (active.value === "services") return ["pid"];
+  if (active.value === "firewall") return ["name", "direction", "action"];
   return [];
 }
 function isSortable(key: string): boolean {
@@ -389,15 +393,20 @@ async function loadSection(): Promise<void> {
   loadingSection.value = true;
   sectionError.value = "";
   try {
-    let next: Record<string, any>[];
-    // 统一走画像分区端点；分页分区传页码与关键字，后台只回当前页
-    const paged = sec === "processes" || sec === "services" || sec === "ports";
-    next = await fetchHostProfileSection(hid, sec,
+    // 分页分区传 page/size；后端返回 SectionPage（含 total），非分页分区返回数组
+    const paged = sec === "processes" || sec === "services" || sec === "ports" || sec === "firewall";
+    const res = await fetchHostProfileSection(hid, sec,
       paged ? page.value : undefined, paged ? pageSize.value : undefined,
       paged ? sectionKeyword.value.trim() : undefined);
     // 期间已切主机 / 分区 / 翻页 / 重开：丢弃这份迟到响应
     if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
-    rows.value = next ?? [];
+    rows.value = res.rows ?? [];
+    sectionTotal.value = paged && typeof res.total === "number" ? res.total : (res.rows?.length ?? 0);
+    sectionTruncated.value = paged && !!res.truncated;
+    // total 比页码小时回退到最后一页，避免显示“空页”
+    if (paged && page.value > 1 && pageSize.value * (page.value - 1) >= sectionTotal.value) {
+      page.value = Math.max(1, Math.ceil(sectionTotal.value / pageSize.value));
+    }
   } catch (e) {
     if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
     // 同分区刷新失败时保留已渲染行（rows 已在切换分区/主机时被清空），
@@ -1019,7 +1028,13 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
         <div class="seg-body">
           <div v-if="active !== 'network'" class="sec-bar">
             <span class="dim">
-              {{ sectionKeyword.trim() ? `命中 ${visibleRows.length} 条` : (active === 'disks' ? `共 ${visibleRows.length} 个驱动器` : `共 ${visibleRows.length} 条`) }}
+              <template v-if="pagedSection">
+                {{ sectionKeyword.trim() ? `命中 ${sectionTotal} 条` : (active === 'disks' ? `共 ${sectionTotal} 个驱动器` : `共 ${sectionTotal} 条`) }}
+                <template v-if="sectionTruncated">，已达采集上限，仅显示前 500 条</template>
+              </template>
+              <template v-else>
+                {{ sectionKeyword.trim() ? `命中 ${visibleRows.length} 条` : (active === 'disks' ? `共 ${visibleRows.length} 个驱动器` : `共 ${visibleRows.length} 条`) }}
+              </template>
               <template v-if="pagedSection && page > 1">（第 {{ page }} 页）</template>
             </span>
             <div class="sec-pager">
@@ -1036,7 +1051,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
                 <ReButton :disabled="loadingSection" @click="applyKeyword">搜索</ReButton>
                 <ReButton :disabled="page <= 1 || loadingSection" @click="changePage(-1)">上一页</ReButton>
                 <span class="mono page-no">{{ page }}</span>
-                <ReButton :disabled="loadingSection || rows.length < pageSize" @click="changePage(1)">下一页</ReButton>
+                <ReButton :disabled="loadingSection || page * pageSize >= sectionTotal" @click="changePage(1)">下一页</ReButton>
               </template>
               <ReButton type="primary" layout="square" icon="Refresh" :loading="loadingSection" @click="loadSection">刷新</ReButton>
               <ReButton v-if="active === 'processes'" layout="square" icon="DataAnalysis" :type="analyzeVisible ? 'primary' : ''"

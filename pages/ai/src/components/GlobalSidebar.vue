@@ -678,6 +678,14 @@ const navItems = computed(() => {
       badgeTip: '图像特征模型未配置，以图搜图不可用',
     },
     {
+      key: 'image-colorize',
+      label: '图像上色',
+      icon: Image20Regular,
+      // 上色模型未配置 → 菜单打「未配置」徽标，页面内给出与以图搜图同口径的配置提示
+      badge: modelConfig.colorizeReady ? '' : '未配置',
+      badgeTip: '上色模型未配置，图像上色不可用',
+    },
+    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -742,6 +750,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'ImageSearch') return 'image-search'
+  if (routeName === 'ImageColorize') return 'image-colorize'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -1086,6 +1095,14 @@ const handleNavClick = async (tab: string) => {
       return
     }
     router.replace({ name: 'ImageSearch' })
+  } else if (tab === 'image-colorize') {
+    // 同口径：点击时才拿最新配置，配置后不需要刷新页面
+    await modelConfig.load()
+    if (!modelConfig.colorizeReady) {
+      toast.warning('图像上色未启用：请先到「系统设置 → 图像上色配置」配置上色模型')
+      return
+    }
+    router.replace({ name: 'ImageColorize' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {
