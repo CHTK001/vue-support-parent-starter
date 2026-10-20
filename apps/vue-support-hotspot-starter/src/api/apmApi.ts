@@ -731,6 +731,47 @@ export function exportLogsCsv(params: LogQuery = {}): void {
   downloadUrl(`/api/apm/export/logs?${qs.toString()}`);
 }
 
+// ---- Agent 诊断（句柄清单 / System.out 捕获）----
+
+export interface HandleInventorySnapshot {
+  ts: number;
+  trackedHandles: Array<{
+    handleId: string;
+    kind: string;
+    name: string;
+    ownerThread: string;
+    createdAt: number;
+    lastUsedAt: number;
+    closed: boolean;
+    stackTrace?: Array<{
+      className: string;
+      methodName: string;
+      fileName: string | null;
+      lineNumber: number;
+    }>;
+  }>;
+  fileDescriptors: Array<{ fd: string; target: string }>;
+  threads: Array<{ threadId: number; name: string; state: string; blockedTime: number; waitedTime: number }>;
+  summary: Record<string, number>;
+}
+
+export interface SystemOutEntry {
+  timestamp: string;
+  source: "STDOUT" | "STDERR";
+  level: string;
+  line: string;
+}
+
+/** 全量句柄快照（含分配堆栈 / FD / 线程） */
+export function getHandleInventory(limit = 200): Promise<HandleInventorySnapshot> {
+  return unwrap(instance.get<HandleInventorySnapshot>("/agent/handles", { params: { limit } }));
+}
+
+/** System.out / System.err 实时捕获日志 */
+export function getSystemOut(limit = 200): Promise<SystemOutEntry[]> {
+  return unwrap(instance.get<SystemOutEntry[]>("/agent/system-out", { params: { limit } }));
+}
+
 export default {
   getStats,
   pageTransmissions,
@@ -746,6 +787,8 @@ export default {
   getSystemTopology,
   getTraceWaterfall,
   getAlerts,
+  getHandleInventory,
+  getSystemOut,
   getTracesTree,
   getAgentTraces,
   getAgentDependencies,
