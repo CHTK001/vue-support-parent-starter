@@ -193,11 +193,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
     path: "/grp-device",
     name: "GroupDevice",
     meta: { title: "设备管理", icon: "VideoCamera", showLink: true, rank: 11 },
-<<<<<<< HEAD
-    // 新版设备 P0 页面：设备台账 / 厂商接入，以及隐藏的视频墙与大屏。
-    // 路由与页面统一来自 @pages/device，宿主不再维护旧版设备页面副本。
-    children: deviceRoutes as unknown as RouteRecordRaw[] & RouteConfigsTable[],
-=======
     children: [
       {
         path: "/device-assets",
@@ -233,7 +228,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
       },
     ],
->>>>>>> feat/device-stream
   },
 
   // ==================== 节点管理 ====================
