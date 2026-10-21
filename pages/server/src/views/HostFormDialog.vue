@@ -704,10 +704,10 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
         </template>
 
-        <!-- ─── 凭据校验与 Agent（仅 Agent 采集模式显示；本机自采集由 monitor 进程直读，无需凭据）─── -->
-        <template v-if="form.serverHostCollectMode === 'AGENT'">
+        <!-- ─── 凭据校验与 Agent（Agent/OpenSSH/SCHEDULED 显示；本机自采集由 monitor 进程直读，无需凭据）─── -->
+        <template v-if="form.serverHostCollectMode === 'AGENT' || form.serverHostCollectMode === 'OPENSSH' || form.serverHostCollectMode === 'SCHEDULED'">
           <div class="form-section full">凭据校验与 Agent</div>
-          <ReFormItem label="Agent 端口">
+          <ReFormItem v-if="form.serverHostCollectMode === 'AGENT'" label="Agent 端口">
             <ReInputNumber v-model="form.serverHostAgentPort" :min="1" :max="65535" style="width:100%" placeholder="默认 19876" />
           </ReFormItem>
           <ReFormItem label="凭据状态">
