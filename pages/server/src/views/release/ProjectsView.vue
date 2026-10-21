@@ -815,8 +815,11 @@ function apmLabel(item: Project): string {
  */
 function parseApmConfig(jvm: string[]): ApmForm {
   const agent = jvm.find((a) => a.startsWith('-javaagent:'));
-  const path = agent ? agent.slice('-javaagent:'.length).split(',')[0] : '';
-  const options = agent ? agent.slice('-javaagent:'.length).split(',').slice(1).join(',') : '';
+  // Java 语法：-javaagent:jarpath[=options]，options 由首个 = 分隔
+  const raw = agent ? agent.slice('-javaagent:'.length) : '';
+  const eq = raw.indexOf('=');
+  const path = eq >= 0 ? raw.slice(0, eq) : raw;
+  const options = eq >= 0 ? raw.slice(eq + 1) : '';
   const swName = jvm.find((a) => a.startsWith('-Dskywalking.agent.service_name='));
   const swBackend = jvm.find((a) => a.startsWith('-Dskywalking.collector.backend_service='));
   const swExtra = jvm
@@ -867,7 +870,7 @@ function materializeApmArgs(apm: ApmForm, jvm: string[]): string[] {
   if (apm.apmType === 'platform' && apm.apmJarPath.trim()) {
     const base = `-javaagent:${apm.apmJarPath.trim()}`;
     const opts = apm.apmOptions?.trim();
-    return [opts ? `${base},${opts}` : base, ...rest];
+    return [opts ? `${base}=${opts}` : base, ...rest];
   }
   if (apm.apmType === 'skywalking' && apm.swJarPath.trim()) {
     const out = [`-javaagent:${apm.swJarPath.trim()}`, ...rest];
