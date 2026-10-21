@@ -50,8 +50,9 @@
       <SettingsRow
         label="「AI 正在思考…」占位文案"
         description="AI 答复的首字还没回来时，气泡里显示哪一句。一行一句，随机轮换且不会连着两次相同；留空则用内置的默认文案"
+        control-width="480px"
       >
-        <div class="flex flex-col gap-2 w-full max-w-xl">
+        <div class="flex flex-col gap-2 w-full">
           <el-input
             v-model="thinkingPhrasesText"
             type="textarea"

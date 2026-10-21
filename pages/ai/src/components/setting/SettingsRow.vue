@@ -19,7 +19,9 @@
             <span class="set-row-risk" :class="`is-${risk}`" role="img" :aria-label="riskTip" />
           </el-tooltip>
         </span>
-        <span v-if="description || $slots.description" class="set-row-desc">
+        <!-- 说明被折叠成 N 行后，完整文案靠 title 悬浮查看（有 description 插槽时由插槽自己负责） -->
+        <span v-if="description || $slots.description" class="set-row-desc"
+          :title="!$slots.description && description ? description : undefined">
           <slot name="description">{{ description }}</slot>
         </span>
       </div>
@@ -135,7 +137,18 @@ const controlStyle = computed(() => {
 }
 .set-row--stack .set-row-body { flex-direction: column; align-items: stretch; gap: 12px; }
 
-.set-row-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; padding-right: 8px; }
+/*
+  左侧文本列：固定最大宽度。
+  原来只有 `flex: 1 1 auto` 没有上限，说明越长越往右吃 —— 右控件是 flex-shrink: 0，
+  最后被挤成窄窄一条（用户报障：会话配置的说明太长，右侧组件宽度不够）。
+  上限用变量而不是写死：个别页面（例如会话配置的多行输入）需要更宽时，
+  在该行上覆盖 --set-row-text-max 即可，不必再改这个共享组件。
+*/
+.set-row-text {
+  min-width: 0; display: flex; flex-direction: column; gap: 4px;
+  flex: 1 1 auto; padding-right: 8px;
+  max-width: var(--set-row-text-max, 560px);
+}
 .set-row-label {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 13.5px; font-weight: 600; line-height: 1.4;
@@ -160,6 +173,11 @@ const controlStyle = computed(() => {
   height: 8px;
   border-radius: 50%;
   cursor: help;
+  animation: risk-dot-breathe 1.8s ease-in-out infinite;
+}
+@keyframes risk-dot-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.8); opacity: 0.6; }
 }
 .set-row-risk.is-high {
   background: var(--el-color-danger, #f56c6c);
@@ -176,7 +194,22 @@ const controlStyle = computed(() => {
   color: var(--el-color-primary);
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
-.set-row-desc { font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary); }
+/*
+  说明文字：过长时折叠成 N 行（默认 3 行）。
+  不折叠的话，长说明会在固定宽度里堆成一大段，把行撑得很高、
+  控件在视觉上被顶到一边；完整文案交给 title 悬浮查看。
+  行数同样用变量，单个页面可覆盖。
+*/
+.set-row-desc {
+  font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--set-row-desc-lines, 3);
+  line-clamp: var(--set-row-desc-lines, 3);
+  overflow: hidden;
+  /* 中文长串（例如一长串字段名）没有空格可断行，默认会撑破容器 */
+  overflow-wrap: anywhere;
+}
 
 .set-row-control {
   display: flex; align-items: center; justify-content: flex-end;
@@ -202,6 +235,9 @@ const controlStyle = computed(() => {
 @media (prefers-reduced-motion: reduce) {
   .set-row--clickable {
     transition: none;
+  }
+  .set-row-risk {
+    animation: none;
   }
 }
 
