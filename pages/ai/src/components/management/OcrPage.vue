@@ -10,14 +10,20 @@
           @dragleave="onDragLeave"
           @drop.prevent="onDrop"
         >
-          <!-- 空态：引导上传 -->
-          <div v-if="!originalUrl" class="ocr-drop" @click="pickImage">
+          <!-- 空态：引导上传。模型不可用时不给上传入口（传了必然失败，等于骗用户） -->
+          <div v-if="!originalUrl" class="ocr-drop" :class="{ 'is-blocked': ocrUnavailable }" @click="pickImage">
             <el-icon :size="46" class="ocr-drop-icon"><Picture /></el-icon>
-            <p class="ocr-drop-title">上传一张图片，开始识别文字</p>
-            <p class="ocr-drop-desc">点击选择图片，或把图片拖到这里</p>
-            <el-button type="primary" class="ocr-drop-btn" @click.stop="pickImage">
-              <el-icon><FolderOpened /></el-icon>选择图片
-            </el-button>
+            <template v-if="ocrUnavailable">
+              <p class="ocr-drop-title">OCR 模型暂不可用</p>
+              <p class="ocr-drop-desc">先让模型就绪再上传：右侧状态卡里能看到当前配置的模型与失败原因</p>
+            </template>
+            <template v-else>
+              <p class="ocr-drop-title">上传一张图片，开始识别文字</p>
+              <p class="ocr-drop-desc">点击选择图片，或把图片拖到这里</p>
+              <el-button type="primary" class="ocr-drop-btn" @click.stop="pickImage">
+                <el-icon><FolderOpened /></el-icon>选择图片
+              </el-button>
+            </template>
           </div>
 
           <!--
@@ -87,11 +93,34 @@
           「文字识别成功、标注图失败」是可能的组合，串成一个 v-else 链会让其中一个
           被另一个吃掉，用户就只能看到半截状态。
         -->
-        <div v-if="errorLines.length" class="ocr-error" role="alert">
+        <div v-if="errorLines.length && !ocrUnavailable" class="ocr-error" role="alert">
           <el-icon><Warning /></el-icon>
           <div class="ocr-error-body">
             <p v-for="(line, i) in errorLines" :key="i" class="ocr-error-line">{{ line }}</p>
           </div>
+        </div>
+
+        <!--
+          模型不可用：这是「环境/配置」层面的失败，不是图片的问题。
+          单独做成状态卡，把「当前指向哪个模型」和「后端原文」一起摊开 ——
+          否则用户只看到一行技术报错，既不知道是图片不行，也不知道该找谁补权重。
+        -->
+        <div v-if="ocrUnavailable" class="ocr-setup" role="alert">
+          <el-icon :size="30" class="ocr-setup-icon"><Warning /></el-icon>
+          <p class="ocr-setup-title">OCR 模型当前不可用</p>
+          <p class="ocr-setup-desc">
+            识别需要「文字检测 + 文字识别」两级模型；模型不就绪时上传必然失败，所以暂时关掉了上传入口。
+          </p>
+          <ul class="ocr-setup-list">
+            <li v-for="item in setupModels" :key="item.field" class="ocr-setup-item">
+              <span class="ocr-setup-k">{{ item.label }}</span>
+              <code class="ocr-setup-v" :class="{ 'is-empty': !item.value }">{{ item.value || '未配置' }}</code>
+            </li>
+          </ul>
+          <p v-if="recognizeError" class="ocr-setup-detail">{{ recognizeError }}</p>
+          <el-button class="ocr-btn ocr-btn-ghost" :loading="!ocrConfigLoaded" @click="recheckModels">
+            <el-icon><Refresh /></el-icon>重新检测
+          </el-button>
         </div>
 
         <!-- 识别中：骨架（右侧此刻还没有任何可展示的文本） -->
@@ -131,7 +160,7 @@
         </template>
 
         <!-- 空态：没有任何错误、也没有文本时才显示（有错误时上面那条已经说清楚了） -->
-        <div v-else-if="!errorLines.length" class="ocr-blank">
+        <div v-else-if="!errorLines.length && !ocrUnavailable" class="ocr-blank">
           <el-icon :size="34" class="ocr-blank-icon"><DocumentCopy /></el-icon>
           <p class="ocr-blank-title">{{ originalUrl ? '没有识别到文字' : '等待上传图片' }}</p>
           <p class="ocr-blank-desc">{{ blankDesc }}</p>
@@ -146,7 +175,7 @@
 
 <script setup lang="ts">
 import { message } from '@repo/core'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Check, DocumentCopy, FolderOpened, Picture, Refresh, Warning } from '@element-plus/icons-vue'
 import { currentToken } from '@/framework/context'
 import { getClientId } from '@/utils/clientId'
@@ -200,6 +229,98 @@ const recognizeError = ref('')
 const annotateError = ref('')
 const copied = ref(false)
 const dragOver = ref(false)
+
+/**
+ * OCR 分组的模型配置（来自 `/v2/settings/ocr/merged`）。
+ *
+ * <p>为什么要读它：OCR 是「检测 + 识别」两级模型管线，任一级没配好就必然识别失败。
+ * 页面如果只在用户传图之后抛一句原始异常，用户会以为是图片的问题。先把配置摊开，
+ * 缺什么、当前指向哪个模型，一眼能看到。</p>
+ */
+const ocrConfig = ref<Record<string, string>>({})
+const ocrConfigLoaded = ref(false)
+/** 配置里为空的必需字段（中文名，直接给用户看） */
+const ocrMissingFields = computed(() => {
+  const missing: string[] = []
+  if (!String(ocrConfig.value.detector_model || '').trim()) missing.push('文字检测模型')
+  if (!String(ocrConfig.value.recognizer_model || '').trim()) missing.push('文字识别模型')
+  return missing
+})
+
+/** 状态卡里要展示的两个必需模型（字段名 + 中文名 + 当前值） */
+const setupModels = computed(() => [
+  { field: 'detector_model', label: '文字检测模型', value: String(ocrConfig.value.detector_model || '').trim() },
+  { field: 'recognizer_model', label: '文字识别模型', value: String(ocrConfig.value.recognizer_model || '').trim() },
+])
+
+/**
+ * 后端报的是「模型/权重层面」的问题，而不是图片本身的问题。
+ *
+ * <p>两种情况都会落进来：① 配置为空（从未配置）；② 配置有值但部署包里缺权重
+ * （实测原文：{@code 未在 classpath 找到匹配 *.onnx 的文件: ocr/PP-OCRv6/...}）。
+ * 对用户来说两者是同一件事 —— 「这台机器现在跑不了 OCR」，所以用同一个状态卡呈现，
+ * 只是把后端原文作为细节附在下面，不去改写它。</p>
+ */
+const ocrModelBroken = computed(() => /未在 classpath|模型未配置|模型不可用|onnx|模型文件/i.test(recognizeError.value))
+
+/**
+ * 「上次已知不可用」的会话内记忆。
+ *
+ * <p>权重缺失这类问题只有真跑一次推理才暴露，而它一旦暴露就不会自己好。若只放在
+ * recognizeError 里，用户刷新一次页面又看到「上传一张图片」的引导，传上去再失败一遍
+ * —— 同一个结论反复演示。这里记进 sessionStorage：刷新/切页仍按不可用呈现，
+ * 点「重新检测」才清掉（那正是部署侧补齐权重的时刻）。</p>
+ */
+const STICKY_KEY = 'ocr.modelUnavailable'
+const stickyUnavailable = ref(sessionStorage.getItem(STICKY_KEY) === '1')
+
+/** 整页是否处于「不可用」状态：此时不该让用户继续传图（传了必然失败） */
+const ocrUnavailable = computed(() => ocrMissingFields.value.length > 0 || ocrModelBroken.value || stickyUnavailable.value)
+
+/**
+ * 读取 OCR 模型配置。
+ *
+ * <p>只做展示，不做门禁之外的副作用；失败就静默（配置读不到不该让整页白屏，
+ * 真正的失败仍会由上传后的识别错误呈现）。</p>
+ */
+async function loadOcrConfig() {
+  try {
+    const res = await fetch('/v2/settings/ocr/merged', { headers: ocrHeaders() })
+    const body = await readJson(res)
+    // 信封是 { code, data: { success, data: [ {field, value, ...} ] } }
+    const rows = (body as { data?: { data?: Array<{ field?: string; value?: unknown }> } })?.data?.data
+    if (Array.isArray(rows)) {
+      const map: Record<string, string> = {}
+      for (const r of rows) {
+        if (r?.field) map[String(r.field)] = r.value == null ? '' : String(r.value)
+      }
+      ocrConfig.value = map
+    }
+  } catch {
+    /* 读不到配置就当作「未知」，交给识别错误去呈现 */
+  } finally {
+    ocrConfigLoaded.value = true
+  }
+}
+
+/** 重新检测：清掉错误并重读配置（部署侧补了权重后不用刷新整页） */
+async function recheckModels() {
+  recognizeError.value = ''
+  annotateError.value = ''
+  stickyUnavailable.value = false
+  sessionStorage.removeItem(STICKY_KEY)
+  ocrConfigLoaded.value = false
+  await loadOcrConfig()
+}
+
+// 一旦确认是模型层面的失败就记住它，刷新后仍按不可用呈现
+watch(ocrModelBroken, (broken) => {
+  if (!broken) return
+  stickyUnavailable.value = true
+  sessionStorage.setItem(STICKY_KEY, '1')
+})
+
+onMounted(loadOcrConfig)
 
 /** 当前上传的文件（重新识别的入参）；刻意不放 ref —— 它不参与渲染 */
 let sourceFile: File | null = null
@@ -344,6 +465,12 @@ function onDrop(e: DragEvent) {
 
 /** 上传入口：重置状态 → 并行取「文本」与「标注图」 */
 async function loadFile(file: File) {
+  // 模型没就绪就直接拦在入口：让它跑一次必然失败的推理，只是把同一件事
+  // 换成一个更吓人的报错，还浪费一次上传。三个入口（点击/拖拽/文件选择）都走这里。
+  if (ocrUnavailable.value) {
+    message.warning('OCR 模型当前不可用，请先让模型就绪')
+    return
+  }
   if (!isImageFile(file)) {
     message.warning('请选择图片文件')
     return
@@ -984,5 +1111,89 @@ onBeforeUnmount(() => {
   .ocr-box-toggle__knob {
     transition: none;
   }
+}
+
+/* ==================== 模型不可用状态卡 ====================
+   把「当前配置的模型」和「后端原文」摊开：环境问题不该被读成图片问题 */
+.ocr-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: 10px;
+  background: var(--el-color-warning-light-9);
+}
+
+.ocr-setup-icon {
+  color: var(--el-color-warning);
+}
+
+.ocr-setup-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ocr-setup-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--el-text-color-regular);
+}
+
+.ocr-setup-list {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+}
+
+.ocr-setup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.ocr-setup-k {
+  flex: none;
+  width: 92px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.ocr-setup-v {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  overflow-wrap: anywhere;
+}
+
+.ocr-setup-v.is-empty {
+  color: var(--el-color-danger);
+}
+
+.ocr-setup-detail {
+  margin: 2px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* 不可用时的上传空态：去掉可点击的暗示 */
+.ocr-drop.is-blocked {
+  cursor: not-allowed;
+}
+
+.ocr-drop.is-blocked .ocr-drop-icon {
+  opacity: 0.45;
 }
 </style>
