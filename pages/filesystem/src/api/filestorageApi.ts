@@ -159,20 +159,125 @@ interface ListResponse {
 }
 
 /**
+ * 运行时文件服务器配置（进入页面先请求 /v2/file/server-config 获得）。
+ *
+ * <p>优先级高于 localStorage：后端配置接口是当前部署的权威来源，
+ * 避免本地残留的独立端口地址把嵌入式部署带偏。</p>
+ */
+let runtimeFileServer: { mode?: string; server?: string; pathPrefix?: string; bucket?: string } | null = null;
+/** 配置接口请求结果：null=尚未请求；true=成功取得运行时配置；false=失败（可回退旧配置） */
+let configDiscoveryOk: boolean | null = null;
+
+/** 配置接口请求失败详情（供页面提示/日志） */
+export interface FileServerConfigError {
+  /** HTTP 状态码；无响应时为 0 */
+  status?: number;
+  /** 后端 msg（如有） */
+  message?: string;
+}
+
+let configDiscoveryError: FileServerConfigError | null = null;
+
+/**
+ * 文件服务器运行期配置（GET /v2/file/server-config 返回体）
+ */
+export interface FileServerConfig {
+  /** 部署形态：embedded / standalone */
+  mode: string;
+  /** embedded=相对路径（如 /fs）；standalone=http://host:port */
+  server: string;
+  /** 内置形态路径前缀 */
+  pathPrefix?: string;
+  /** 默认存储桶 */
+  bucket?: string;
+}
+
+/**
+ * 请求文件服务器当前配置（进入 #/files 前必须调用）。
+ *
+ * <p>这是「先问后端再连文件服务」的入口：成功后运行时配置生效，
+ * 后续 {@link #getServerBase()} / {@link #getDefaultBucket()} 都以它为第一优先级；
+ * 请求失败时回退到 localStorage / app.yaml，并对外暴露失败状态，页面据此提示降级。</p>
+ *
+ * @return 配置结果；失败返回 null
+ */
+export async function loadFileServerConfig(): Promise<FileServerConfig | null> {
+  configDiscoveryOk = false;
+  configDiscoveryError = null;
+  try {
+    const res = await createHttp({ headers: authHeaders() })
+      .get("/v2/file/server-config")
+      .then<FileServerConfig>((r) => r.data);
+    if (!res?.mode || !res?.server) {
+      configDiscoveryError = { message: "配置接口返回内容不完整" };
+      return null;
+    }
+    runtimeFileServer = {
+      mode: res.mode,
+      server: res.server,
+      pathPrefix: res.pathPrefix,
+      bucket: res.bucket,
+    };
+    configDiscoveryOk = true;
+    return res;
+  } catch (e) {
+    if (e instanceof AxiosError) {
+      configDiscoveryError = {
+        status: e.response?.status ?? 0,
+        message: e.response?.data?.msg ?? e.message,
+      };
+    } else {
+      configDiscoveryError = { message: (e as Error)?.message ?? "配置请求失败" };
+    }
+    return null;
+  }
+}
+
+/**
+ * 返回配置接口是否成功取得运行时配置。
+ *
+ * @return true=运行时配置生效；false=失败；null=尚未请求/未指定
+ */
+export function isFileServerConfigDiscovered(): boolean | null {
+  return configDiscoveryOk;
+}
+
+/**
+ * 返回最近一次配置接口失败详情；成功或尚未请求时为 null。
+ */
+export function getFileServerConfigError(): FileServerConfigError | null {
+  return configDiscoveryError;
+}
+
+/**
+ * 清空运行时配置与失败状态（重置后应按旧逻辑重新发现）。
+ */
+export function clearRuntimeFileServerConfig(): void {
+  runtimeFileServer = null;
+  configDiscoveryOk = null;
+  configDiscoveryError = null;
+}
+
+/**
  * 读取文件服务器地址
  *
- * <p>优先级：localStorage（页面级覆盖）＞ spring starter 下发的
+ * <p>优先级：运行时配置（{@link #loadFileServerConfig()} 请求成功）＞
+ * localStorage（页面级覆盖）＞ spring starter 下发
  * {@code other.filestorage.mode + server}＞ 当前地址（window.location.origin）。</p>
  *
- * <p><b>嵌入/独立分流</b>：后端已同时下发
- * {@code other.filestorage.mode=embedded|standalone} 与
- * {@code other.filestorage.server}；embedded 的 server 是相对路径（如 /fs），
+ * <p><b>嵌入/独立分流</b>：后端配置接口返回
+ * {@code mode=embedded|standalone} 与 {@code server}；
+ * embedded 的 server 是相对路径（如 /fs 或 /system/api/fs），
  * 必须用当前 origin 拼出完整地址；standalone 的 server 是完整 http://host:port，
  * 直接使用，不再落到 window.location.origin。</p>
  *
  * @return 文件服务器地址（已去除尾部斜杠）
  */
 export function getServerBase(): string {
+  const runtime = runtimeFileServer?.server?.trim();
+  if (runtime) {
+    return embbedResolve(runtime, runtimeFileServer?.mode || "embedded");
+  }
   const stored = localStorage.getItem(SERVER_KEY);
   if (stored) {
     return stored.replace(/\/+$/, "");
@@ -183,12 +288,17 @@ export function getServerBase(): string {
   if (!configured) {
     return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
   }
+  return embbedResolve(configured, mode);
+}
+
+/**
+ * 按 embedded/standalone 语义把后端下发的 server 归一成完整请求地址。
+ */
+function embbedResolve(configured: string, mode: string): string {
   if (mode === "standalone" || /^https?:\/\//i.test(configured)) {
-    // 独立端口：后端下发完整 http://host:port，直接使用。
     return configured.replace(/\/+$/, "");
   }
-  // 嵌入：后端只下发应用端口下的相对路径（/fs 或 /system/api/fs 等），
-  // 由前端拼当前页面 origin，保证同源且自动适配当前访问入口。
+  // 嵌入：相对路径（/fs 或 /system/api/fs），由前端拼当前页面 origin。
   const origin = typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
   const relative = configured.startsWith("/") ? configured.slice(1) : configured;
   if (!relative) return origin;
@@ -210,7 +320,10 @@ export function setServerBase(value: string): void {
  * @return 存储桶名称
  */
 export function getDefaultBucket(): string {
-  return localStorage.getItem(BUCKET_KEY) || appFileStorageConfig().bucket || DEFAULT_BUCKET;
+  return runtimeFileServer?.bucket?.trim()
+    || localStorage.getItem(BUCKET_KEY)
+    || appFileStorageConfig().bucket
+    || DEFAULT_BUCKET;
 }
 
 /**

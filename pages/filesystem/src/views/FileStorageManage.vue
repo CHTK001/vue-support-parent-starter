@@ -85,6 +85,9 @@ import {
   getAppDefaultBucket,
   hasBucketOverride,
   isBucketMissingError,
+  loadFileServerConfig,
+  isFileServerConfigDiscovered,
+  getFileServerConfigError,
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
@@ -4248,8 +4251,24 @@ function copyOneTimeLink(): void {
   el.remove();
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener("keydown", onFileKeydown);
+  // 先请求 filesystem-starter 的配置接口，拿到当前部署形态与地址（embedded/standalone）。
+  // 成功则以配置接口为准；失败（旧后端 404/403）回退 app.yaml/localStorage/origin，
+  // 但必须提示，避免用户误以为仍在用后端当前配置。
+  await loadFileServerConfig();
+  if (isFileServerConfigDiscovered() === false) {
+    const err = getFileServerConfigError();
+    // 调试/验收用：Playwright 可直接读取，不等 UI 浮层
+    document.documentElement.dataset.fsConfigError = String(err?.status || 0);
+    document.documentElement.dataset.fsConfigFallback = "true";
+    message.warning(err?.status ? `文件服务器配置获取失败（${err.status}），已使用本地配置` : "文件服务器配置获取失败，已使用本地配置");
+  } else if (isFileServerConfigDiscovered() === true) {
+    document.documentElement.dataset.fsConfigError = "0";
+    document.documentElement.dataset.fsConfigFallback = "false";
+  }
+  server.value = getServerBase() || DEFAULT_SERVER;
+  bucket.value = resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET;
   // 「预览（新窗口）」标记：先读并剥掉（一次性，两处地址都剥），否则刷新后又会自动打开
   const autoPreviewKey = takePreviewFlag();
   // 必须排在最前：视图/目录/排序都从这里恢复，后面所有播种都基于恢复后的值
