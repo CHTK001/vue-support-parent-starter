@@ -981,9 +981,12 @@ const navItems = computed(() => {
           // @Permission("admin")，非管理员进去只会 403，所以在菜单层就按管理员收敛。
           // （人脸识别 / 以图搜图当初是把后端注解去掉、开放给各账号自己的底库；
           //   OCR 没有「各账号自己的库」这层概念，要不要同样开放由产品决定。）
-          adminOnly: true,
-          // 不打「未配置」徽标：OCR 是「检测 + 识别」多模型管线，缺哪一环由页面内的
-          // 后端错误原文说明（不同缺失组合提示不同），侧栏一句徽标反而说不清。
+          // 注意：不标 adminOnly。实测 isAdmin() 在本账号下可能为 false（角色清单为空时
+          // 连「定时任务」都会被一并隐藏），一旦标上就是整个菜单消失 —— 比点进去 403 更糟。
+          // 后端 OcrController 三个接口仍有 @Permission("admin")，权限由服务端守。
+          // 与其它图像菜单同口径：检测/识别模型没配齐就提前打徽标
+          badge: modelConfig.ocrReady ? '' : '未配置',
+          badgeTip: '文字检测模型 / 文字识别模型未配置，OCR 不可用',
         },
       ],
     },
@@ -1471,9 +1474,14 @@ const handleNavClick = async (tab: string) => {
     }
     router.replace({ name: 'ImageColorize' })
   } else if (tab === 'ocr') {
-    // OCR 不做前置门禁：它依赖「检测 + 识别」多个模型，缺哪一环页面会照后端的
-    // 原文提示出来，比在侧栏拦住入口更好排查。这里只负责展开分组并导航。
+    // 与其它图像菜单同口径：点击时再拿一次最新配置，未配齐就提示去哪儿配，
+    // 不把用户送进一个必然失败的页面
     expandedImageMgmt.value = true
+    await modelConfig.load()
+    if (!modelConfig.ocrReady) {
+      toast.warning('OCR 识别未启用：请先到「系统设置 → 默认模型 → OCR」配置文字检测模型与文字识别模型')
+      return
+    }
     router.replace({ name: 'Ocr' })
   } else if (tab === 'audio-recognition') {
     // 音频识别同口径：点击时才拿最新配置，配置后不需要刷新页面

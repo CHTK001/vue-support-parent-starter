@@ -10,8 +10,18 @@
           @dragleave="onDragLeave"
           @drop.prevent="onDrop"
         >
+          <!-- 未配置模型：与其它图像菜单同口径，先在舞台内引导去配置 -->
+          <div v-if="!modelReady" class="ocr-drop">
+            <el-icon :size="46" class="ocr-drop-icon is-warn"><WarningFilled /></el-icon>
+            <p class="ocr-drop-title">OCR 识别未启用</p>
+            <p class="ocr-drop-desc">
+              需要「文字检测模型」和「文字识别模型」两级模型，请先在「系统设置 → 默认模型 → OCR」中配置。
+            </p>
+            <ReButton type="primary" @click="goConfig">去配置模型</ReButton>
+          </div>
+
           <!-- 空态：引导上传。模型不可用时不给上传入口（传了必然失败，等于骗用户） -->
-          <div v-if="!originalUrl" class="ocr-drop" :class="{ 'is-blocked': ocrUnavailable }" @click="pickImage">
+          <div v-else-if="!originalUrl" class="ocr-drop" :class="{ 'is-blocked': ocrUnavailable }" @click="pickImage">
             <el-icon :size="46" class="ocr-drop-icon"><Picture /></el-icon>
             <template v-if="ocrUnavailable">
               <p class="ocr-drop-title">OCR 模型暂不可用</p>
@@ -93,7 +103,7 @@
           「文字识别成功、标注图失败」是可能的组合，串成一个 v-else 链会让其中一个
           被另一个吃掉，用户就只能看到半截状态。
         -->
-        <div v-if="errorLines.length && !ocrUnavailable" class="ocr-error" role="alert">
+        <div v-if="errorLines.length && !modelBrokenOnly" class="ocr-error" role="alert">
           <el-icon><Warning /></el-icon>
           <div class="ocr-error-body">
             <p v-for="(line, i) in errorLines" :key="i" class="ocr-error-line">{{ line }}</p>
@@ -105,7 +115,7 @@
           单独做成状态卡，把「当前指向哪个模型」和「后端原文」一起摊开 ——
           否则用户只看到一行技术报错，既不知道是图片不行，也不知道该找谁补权重。
         -->
-        <div v-if="ocrUnavailable" class="ocr-setup" role="alert">
+        <div v-if="modelBrokenOnly" class="ocr-setup" role="alert">
           <el-icon :size="30" class="ocr-setup-icon"><Warning /></el-icon>
           <p class="ocr-setup-title">OCR 模型当前不可用</p>
           <p class="ocr-setup-desc">
@@ -160,7 +170,7 @@
         </template>
 
         <!-- 空态：没有任何错误、也没有文本时才显示（有错误时上面那条已经说清楚了） -->
-        <div v-else-if="!errorLines.length && !ocrUnavailable" class="ocr-blank">
+        <div v-else-if="!errorLines.length && !modelBrokenOnly" class="ocr-blank">
           <el-icon :size="34" class="ocr-blank-icon"><DocumentCopy /></el-icon>
           <p class="ocr-blank-title">{{ originalUrl ? '没有识别到文字' : '等待上传图片' }}</p>
           <p class="ocr-blank-desc">{{ blankDesc }}</p>
@@ -176,10 +186,13 @@
 <script setup lang="ts">
 import { message } from '@repo/core'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Check, DocumentCopy, FolderOpened, Picture, Refresh, Warning } from '@element-plus/icons-vue'
+import { Check, DocumentCopy, FolderOpened, Picture, Refresh, Warning, WarningFilled } from '@element-plus/icons-vue'
 import { currentToken } from '@/framework/context'
 import { getClientId } from '@/utils/clientId'
 import TechScanLoader from '@/components/ui/TechScanLoader.vue'
+import ReButton from '@/components/re/ReButton.vue'
+import { useRouter } from 'vue-router'
+import { useModelConfigStore } from '@/stores/modelConfig'
 
 /**
  * 图像 → OCR 识别。
@@ -237,6 +250,15 @@ const dragOver = ref(false)
  * 页面如果只在用户传图之后抛一句原始异常，用户会以为是图片的问题。先把配置摊开，
  * 缺什么、当前指向哪个模型，一眼能看到。</p>
  */
+const modelConfig = useModelConfigStore()
+const router = useRouter()
+/** OCR 是否已配齐（检测 + 识别）：与侧栏徽标、点击门禁同一个来源，不各自读一套 */
+const modelReady = computed(() => modelConfig.ocrReady)
+/**
+ * 「配好了但跑不起来」的运行期问题（如部署包缺 ONNX 权重）。
+ * 未配置走舞台里的标准门禁，只有这一类才用右侧状态卡 —— 它不是配置问题，没地方可点。
+ */
+const modelBrokenOnly = computed(() => ocrModelBroken.value || stickyUnavailable.value)
 const ocrConfig = ref<Record<string, string>>({})
 const ocrConfigLoaded = ref(false)
 /** 配置里为空的必需字段（中文名，直接给用户看） */
@@ -249,8 +271,8 @@ const ocrMissingFields = computed(() => {
 
 /** 状态卡里要展示的两个必需模型（字段名 + 中文名 + 当前值） */
 const setupModels = computed(() => [
-  { field: 'detector_model', label: '文字检测模型', value: String(ocrConfig.value.detector_model || '').trim() },
-  { field: 'recognizer_model', label: '文字识别模型', value: String(ocrConfig.value.recognizer_model || '').trim() },
+  { field: 'detector_model', label: '文字检测模型', value: String(modelConfig.ocrDetectorModel || '').trim() },
+  { field: 'recognizer_model', label: '文字识别模型', value: String(modelConfig.ocrRecognizerModel || '').trim() },
 ])
 
 /**
@@ -320,7 +342,16 @@ watch(ocrModelBroken, (broken) => {
   sessionStorage.setItem(STICKY_KEY, '1')
 })
 
-onMounted(loadOcrConfig)
+onMounted(() => {
+  // 就绪判定交给 store（与侧栏徽标同一份数据），本地再读一次只为把模型名摊开
+  void modelConfig.load()
+  void loadOcrConfig()
+})
+
+/** 与其它图像页一致：跳到默认模型设置 */
+function goConfig() {
+  router.push('/setting/default-models')
+}
 
 /** 当前上传的文件（重新识别的入参）；刻意不放 ref —— 它不参与渲染 */
 let sourceFile: File | null = null
@@ -1189,6 +1220,10 @@ onBeforeUnmount(() => {
 }
 
 /* 不可用时的上传空态：去掉可点击的暗示 */
+.ocr-drop-icon.is-warn {
+  color: var(--el-color-warning);
+}
+
 .ocr-drop.is-blocked {
   cursor: not-allowed;
 }
