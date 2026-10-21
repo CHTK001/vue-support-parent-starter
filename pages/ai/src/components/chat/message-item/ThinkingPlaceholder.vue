@@ -4,7 +4,7 @@
 
     为什么需要它：`create` 帧一到，AI 气泡就建出来了，但正文要等第一个 token，
     这段时间（本机实测 5～50s）气泡里是**整块空白**，看起来像卡死。
-    这里先给一句随机文案 + 两点动效（跳动的小圆点 + 文字呼吸），
+    这里先给一句随机文案 + 动效（一个在轨道上来回走动的小人 + 文字呼吸），
     首字到了由正文顶替（由父组件 v-if 控制）。
 
     为什么文案会自己换：等待时间可能很长，同一句盯久了也像卡住。
@@ -14,8 +14,20 @@
     另外给一句固定的 sr-only 文案，读屏器只会听到一次「AI 正在思考」。
   -->
   <div class="thinking-ph" role="status" :title="phrase">
-    <span class="thinking-ph__dots" aria-hidden="true">
-      <i></i><i></i><i></i>
+    <!--
+      来回走动的小人：纯 CSS 画的火柴人，走到轨道尽头转身再走回来。
+      不用 emoji（🚶）：各平台字形/配色差异太大，且跟不了主题色；
+      这里全部用 --el-color-primary 画，深浅色主题都协调。
+    -->
+    <span class="thinking-ph__track" aria-hidden="true">
+      <span class="thinking-ph__walker">
+        <span class="thinking-ph__figure">
+          <i class="thinking-ph__head"></i>
+          <i class="thinking-ph__body"></i>
+          <i class="thinking-ph__leg"></i>
+          <i class="thinking-ph__leg thinking-ph__leg--back"></i>
+        </span>
+      </span>
     </span>
     <span class="thinking-ph__text" aria-hidden="true">{{ phrase }}</span>
     <span class="sr-only">AI 正在思考</span>
@@ -105,29 +117,71 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
-/* 三点：只动 transform/opacity，不触发布局重排 */
-.thinking-ph__dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+/*
+  走动的轨道：宽度就是小人的活动范围，overflow: hidden 保证它只在轨道里走。
+*/
+.thinking-ph__track {
+  position: relative;
   flex: 0 0 auto;
+  width: 30px;
+  height: 15px;
+  overflow: hidden;
 }
 
-.thinking-ph__dots i {
-  width: 5px;
-  height: 5px;
+/* 位移层：只负责左右走（alternate = 走到头再走回来） */
+.thinking-ph__walker {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 10px;
+  height: 15px;
+  animation: thinking-ph-walk 3s ease-in-out infinite alternate;
+}
+
+/*
+  转身层：与走动同周期，在中点瞬间翻面。
+  必须用 steps 而不是插值 —— 插值会让 scaleX 从 1 平滑过 0 到 -1，
+  看起来像小人被压扁又弹开，而不是"转身"。
+*/
+.thinking-ph__figure {
+  position: absolute;
+  inset: 0;
+  animation: thinking-ph-face 3s steps(1, end) infinite;
+}
+
+.thinking-ph__head {
+  position: absolute;
+  left: 2px;
+  top: 0;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--el-color-primary);
-  opacity: 0.35;
-  animation: thinking-ph-bounce 1.25s infinite ease-in-out;
 }
 
-.thinking-ph__dots i:nth-child(2) {
-  animation-delay: 0.16s;
+.thinking-ph__body {
+  position: absolute;
+  left: 4.5px;
+  top: 6px;
+  width: 1.5px;
+  height: 5px;
+  background: var(--el-color-primary);
 }
 
-.thinking-ph__dots i:nth-child(3) {
-  animation-delay: 0.32s;
+.thinking-ph__leg {
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  width: 1.5px;
+  height: 5px;
+  background: var(--el-color-primary);
+  transform-origin: 50% 0;
+  animation: thinking-ph-step 0.64s ease-in-out infinite;
+}
+
+/* 两条腿反相：一条前摆时另一条后摆，才像走路；同相就变成原地蹦 */
+.thinking-ph__leg--back {
+  animation-delay: -0.32s;
 }
 
 /* 文案：轻微呼吸，读起来是「在想」而不是「静止」 */
@@ -138,17 +192,35 @@ onBeforeUnmount(() => {
   animation: thinking-ph-breathe 2.6s ease-in-out infinite;
 }
 
-@keyframes thinking-ph-bounce {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.35;
+/* 走动：轨道 30px、小人 10px，所以最多走 20px，走到头仍完整留在轨道内 */
+@keyframes thinking-ph-walk {
+  from {
+    transform: translateX(0);
   }
 
-  30% {
-    transform: translateY(-3px);
-    opacity: 1;
+  to {
+    transform: translateX(20px);
+  }
+}
+
+@keyframes thinking-ph-face {
+  0% {
+    transform: scaleX(1);
+  }
+
+  50% {
+    transform: scaleX(-1);
+  }
+}
+
+@keyframes thinking-ph-step {
+  0%,
+  100% {
+    transform: rotate(22deg);
+  }
+
+  50% {
+    transform: rotate(-22deg);
   }
 }
 
@@ -163,15 +235,40 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 动效降级：系统开「减少动态效果」时停止跳动/呼吸，但文字照样在（不能变成空白） */
+/*
+  动效降级（系统开了「减少动态效果」）。
+
+  走动的位移必须去掉 —— 那正是这个偏好要拦的东西（前庭反应）。
+  但**不能把动效整个掐掉**：先前写的就是 animation: none + 固定 opacity，
+  本机实测（prefers-reduced-motion: reduce）小人/圆点会变成完全静止，
+  用户看到的是一个"卡死"的占位，恰好与本组件的目的相反。
+
+  改成纯 opacity 的明暗呼吸：没有任何空间移动，但看得出"还活着"。
+*/
 @media (prefers-reduced-motion: reduce) {
-  .thinking-ph__dots i {
+  .thinking-ph__walker,
+  .thinking-ph__figure,
+  .thinking-ph__leg {
     animation: none;
-    opacity: 0.8;
+  }
+
+  .thinking-ph__figure {
+    opacity: 0.55;
+    animation: thinking-ph-fade 1.6s ease-in-out infinite;
   }
 
   .thinking-ph__text {
-    animation: none;
+    animation: thinking-ph-breathe 2.6s ease-in-out infinite;
+  }
+}
+
+@keyframes thinking-ph-fade {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
     opacity: 1;
   }
 }

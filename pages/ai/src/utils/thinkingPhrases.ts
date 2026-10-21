@@ -21,7 +21,8 @@
  * 一点活人味，不是又一条 loading 提示。长度控制在 12 字上下，单行不换行。</p>
  */
 export const DEFAULT_THINKING_PHRASES: string[] = [
-  'AI 正在思考…',
+  // 默认那句不带省略号：后面的「…」由用户按需自己加（用户明确要求去掉）
+  'AI 正在思考',
   '正在翻阅小抄…',
   '脑子转得有点烫…',
   '在记忆里翻箱倒柜…',
@@ -39,6 +40,21 @@ export const DEFAULT_THINKING_PHRASES: string[] = [
   '正在数这句话有几个字…',
   '快好了，真的…',
   '再等等，快了…',
+  '正在翻白眼，但没有表情包',
+  '心跳 100，键盘很凉',
+  '正在假装自己是人',
+  '正在删掉刚写的一句废话',
+  '摸鱼被抓，立刻正经起来',
+  '正在给答案挑毛病',
+  '先把话说短一点…再短一点…',
+  '正在把「不知道」咽回去',
+  '正在怀疑你问的是不是陷阱题',
+  '思路走到一半，回去捡一下',
+  '正在把标点符号摆正',
+  '正在和向量库对暗号…',
+  '正在检查自己有没有幻觉',
+  '正在厕所门口排队想事情',
+  '正在把话从嘴里捞出来',
 ];
 
 /** 用户自定义列表（会话管理里配置的）。空 = 用内置默认。 */
@@ -98,7 +114,7 @@ export function getThinkingPhrases(): string[] {
  */
 export function pickThinkingPhrase(phrases?: string[], avoid?: string): string {
   const list = phrases && phrases.length > 0 ? phrases : getThinkingPhrases();
-  if (list.length === 0) return 'AI 正在思考…';
+  if (list.length === 0) return 'AI 正在思考';
   if (list.length === 1) return list[0];
   for (let i = 0; i < 8; i++) {
     const candidate = list[Math.floor(Math.random() * list.length)];
