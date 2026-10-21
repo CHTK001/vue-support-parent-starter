@@ -10,7 +10,19 @@
           <div class="d-band-name-row">
             <h1 class="d-band-name truncate">{{ provider?.name }}</h1>
           </div>
-          <div v-if="provider?.apiUrl" class="d-band-url" :title="provider.apiUrl">
+          <!--
+            ONNX 本地推理没有远端地址：后端写死的 ai.onnx.base-url（默认
+            http://127.0.0.1:8080/v1）只是「与其它提供商同构」的占位值，对本地推理
+            不起作用。把它显示成供应商地址，用户会以为模型是从这个 HTTP 地址来的 ——
+            实际模型文件在本机磁盘上，地址与路径毫无关系。
+            这里改用后端回传的 model_root（真实绝对路径）；只有管理员能看到
+            （后端 listProviders 对非管理员整体不返回 ONNX 行）。
+          -->
+          <div v-if="isOnnx" class="d-band-url" :title="onnxModelRoot || '尚未选择模型目录'">
+            <el-icon :size="13"><Folder24Regular /></el-icon>
+            <span class="d-band-url-text">{{ onnxModelRoot || '尚未选择模型目录' }}</span>
+          </div>
+          <div v-else-if="provider?.apiUrl" class="d-band-url" :title="provider.apiUrl">
             <el-icon :size="13"><LinkOutlined /></el-icon>
             <span class="d-band-url-text">{{ provider.apiUrl }}</span>
           </div>
@@ -51,25 +63,80 @@
       <!-- 模型卡片网格 -->
       <template v-else>
         <div class="d-section-head">
-          <span class="d-section-title">模型</span>
-          <span class="d-section-count" :title="t('common.contextSize.title')">
-            {{ filteredModels.length }}/{{ models.length }}
-          </span>
-          <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
-          <div class="ctx-filter">
-            <span class="ctx-filter-title">{{ t('common.contextSize.title') }}</span>
-            <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
-              :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
-              @click="toggleCtxTag(tag.key)">
-              {{ t(`common.contextSize.${tag.key}`) }}
+          <!-- 第一行：标题 + 计数 + 搜索 + 批量工具栏 -->
+          <div class="d-head-row">
+            <span class="d-section-title">模型</span>
+            <span class="d-section-count">
+              {{ filteredModels.length }}/{{ models.length }}
             </span>
+            <!-- 搜索框：支持模型名 / 类型 / 子类型 / 能力关键词 -->
+            <el-input
+              v-model="modelSearch"
+              size="small"
+              placeholder="搜索名称 / 类型 / 能力…"
+              clearable
+              class="model-search-input"
+            >
+              <template #prefix>
+                <el-icon :size="13"><SearchOutlined /></el-icon>
+              </template>
+            </el-input>
+
+            <!-- 批量操作工具栏：始终占位，避免选中后把卡片网格往下顶 -->
+            <div class="batch-toolbar" :class="{ 'is-visible': selected.length > 0 }">
+              <template v-if="selected.length > 0">
+                <span class="batch-count">已选 {{ selected.length }} 个</span>
+                <span
+                  class="batch-select-all"
+                  :class="{ 'is-all': selected.length === filteredModels.length && filteredModels.length > 0 }"
+                  @click="toggleSelectAllFiltered"
+                >{{ selected.length === filteredModels.length ? '取消全选' : '全选当前筛选' }}</span>
+                <el-button size="small" type="success" @click="batchEnable">启用</el-button>
+                <el-button size="small" type="warning" @click="batchDisable">停用</el-button>
+                <el-button size="small" @click="selected = []">取消</el-button>
+              </template>
+            </div>
+          </div>
+
+          <!-- 第二行：状态 / 类型 / 上下文大小筛选 -->
+          <div class="d-head-filters">
+            <div class="filter-group">
+              <el-radio-group v-model="statusFilter" size="small">
+                <el-radio-button value="">全部</el-radio-button>
+                <el-radio-button value="active">已启用</el-radio-button>
+                <el-radio-button value="inactive">已停用</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div class="filter-group">
+              <el-select v-model="typeFilter" placeholder="按类型" clearable size="small" class="type-select">
+                <el-option value="chat" label="对话" />
+                <el-option value="embedding" label="嵌入" />
+                <el-option value="ocr" label="OCR" />
+                <el-option value="vision" label="视觉" />
+                <el-option value="rerank" label="重排序" />
+                <el-option value="tts" label="语音合成" />
+                <el-option value="stt" label="语音识别" />
+                <el-option value="face" label="人脸" />
+                <el-option value="image" label="图像生成" />
+              </el-select>
+            </div>
+            <!-- 上下文大小过滤：常用档位标签，多选 = 并集；「未知」= 无上下文数据 -->
+            <div class="ctx-filter">
+              <span class="ctx-filter-title">{{ t('common.contextSize.title') }}</span>
+              <span v-for="tag in CONTEXT_SIZE_TAGS" :key="tag.key" class="ctx-tag"
+                :class="{ 'ctx-tag-active': ctxFilter.includes(tag.key) }"
+                @click="toggleCtxTag(tag.key)">
+                {{ t(`common.contextSize.${tag.key}`) }}
+              </span>
+            </div>
           </div>
         </div>
         <div v-if="filteredModels.length === 0" class="ctx-no-match">
           {{ t('common.contextSize.noMatch') }}
         </div>
         <div v-else class="model-grid">
-          <article v-for="model in filteredModels" :key="model.id" class="mc">
+          <article v-for="model in filteredModels" :key="model.id" class="mc"
+            :class="{ 'is-selected': selected.includes(getModelId(model)) }">
             <div class="mc-head">
               <Avatar class="w-10 h-10 shrink-0 mr-3" :src="getModelAvatar(model)"
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" />
@@ -77,13 +144,31 @@
                 <span class="mc-name" :title="getModelDisplayName(model.modelName)">
                   {{ getModelDisplayName(model.modelName) }}
                 </span>
-                <span class="mc-type" :class="typeMeta(model.modelType).cls">
-                  {{ typeMeta(model.modelType).label }}
-                </span>
-                <span v-if="model.subType && subTypeLabel(model.subType)" class="mc-type sub">
-                  {{ subTypeLabel(model.subType) }}
-                </span>
+                <!--
+                  模型的全部标签统一走 ModelTagStrip（图标 + tooltip）：
+                  类型（OCR 识别 / 人脸识别 / 图像识别 / 语音合成 …）、细分类型
+                  （文字识别 / 人脸特征提取 …）、特性（工具调用 / 深度思考 / 在线检索）。
+
+                  为什么连主类型也不再用文字：一张卡片同时有类型 + 细分类型 + 特性时，
+                  纯文字徽标会占掉标题行大半宽度；长名称（「人脸特征提取」「文字超分修复」）
+                  还会互相挤压、把行撑高。统一成图标后，占用只跟图标个数相关。
+
+                  规则：最多显示 2 个，其余折叠为 +N；悬停图标看名称，
+                  悬停 +N 弹 popover 列出全部（图标 + 中文名）。
+                -->
+                <ModelTagStrip
+                  v-if="modelTags(model).length"
+                  :tags="modelTags(model)"
+                  :max="2"
+                />
               </div>
+              <!-- 批量选择 checkbox：固定在头部右侧，不单独占行 -->
+              <span class="mc-check" title="选择该模型">
+                <el-checkbox
+                  :model-value="selected.includes(getModelId(model))"
+                  @change="toggleSelect(model)"
+                />
+              </span>
             </div>
 
             <!-- 能力：输入种类 → 输出种类（所有类型统一展示） -->
@@ -98,14 +183,6 @@
                   class="cap-i" :class="'kind-'+k" :size="14">
                   <component :is="KIND_ICONS[k]" />
                 </el-icon>
-              </span>
-              <span v-for="feature in model.config?.features || []" :key="feature" class="mc-feature">
-                <el-icon :size="13">
-                  <WrenchScrewdriver24Regular v-if="feature==='tools'" />
-                  <LightbulbFilament24Regular v-else-if="feature==='thinking'" />
-                  <ScienceOutlined v-else />
-                </el-icon>
-                <span>{{ getLableName(feature) }}</span>
               </span>
             </div>
 
@@ -191,11 +268,13 @@ import CardAvatar from '../ui/CardAvatar.vue'
 import {
   SettingsOutlined, RemoveCircleOutlineRound, ScienceOutlined,
   PlusOutlined, LinkOutlined, EditOutlined, DeleteOutlined,
+  SearchOutlined,
 } from '@vicons/material'
 import {
   TextT24Regular, Image24Regular, ArrowRight24Regular,
   WrenchScrewdriver24Regular, LightbulbFilament24Regular, Box16Regular,
-  Speaker224Regular, Video24Regular, Group24Regular,
+  Speaker224Regular, Video24Regular, Group24Regular, Scan24Regular,
+  Folder24Regular,
 } from '@vicons/fluent'
 import { Timer } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
@@ -208,7 +287,11 @@ import {
 import ProviderLogo from './ProviderLogo.vue'
 import ModelFormDialog from './ModelFormDialog.vue'
 import ModelFetchDialog from './ModelFetchDialog.vue'
-import { LOCAL_PROVIDER_IDS, MODEL_SUBTYPE_LABELS } from './model.constants'
+import ModelTagStrip from './ModelTagStrip.vue'
+import {
+  LOCAL_PROVIDER_IDS, MODEL_SUBTYPE_LABELS, MODEL_SUBTYPE_OPTIONS,
+  MODEL_TYPE_ICON, MODEL_TYPE_KIND,
+} from './model.constants'
 
 const props = defineProps<{
   provider: any
@@ -234,6 +317,18 @@ const fetchRef = ref<any>(null)
 /** 选中的档位 key 集合（多选 = 并集；空 = 不过滤） */
 const ctxFilter = ref<string[]>([])
 
+/** 关键字搜索 */
+const modelSearch = ref('')
+
+/** 状态筛选：active / inactive / '' */
+const statusFilter = ref('')
+
+/** 类型筛选：modelType 值 */
+const typeFilter = ref('')
+
+/** 批量选中的模型 id */
+const selected = ref<string[]>([])
+
 /**
  * 切换上下文档位标签：已选中则取消，否则加入。
  *
@@ -245,10 +340,56 @@ const toggleCtxTag = (key: string) => {
   else ctxFilter.value.push(key)
 }
 
+/** 搜索能力别名：让「嵌入」「人脸」「视觉」等中文也能命中 */
+const SEARCH_ALIASES: Record<string, string[]> = {
+  嵌入: ['embedding', 'embed'],
+  人脸: ['face', 'face_recognition'],
+  视觉: ['vision', 'image'],
+  ocr: ['ocr'],
+  重排: ['rerank'],
+  语音: ['tts', 'stt', 'speech'],
+  工具: ['tools'],
+  思考: ['thinking'],
+}
+
+const matchesSearch = (m: any, kw: string) => {
+  const displayName = getModelDisplayName(m.modelName).toLowerCase()
+  const typeLabel = typeMeta(m.modelType).label.toLowerCase()
+  const subLabel = (subTypeLabel(m.subType) || '').toLowerCase()
+  const features = (m.config?.features || []).join(' ').toLowerCase()
+  const tasks = (m.config?.inputCapabilities || [])
+    .concat(m.config?.outputCapabilities || [])
+    .join(' ')
+    .toLowerCase()
+  return (
+    displayName.includes(kw) ||
+    typeLabel.includes(kw) ||
+    subLabel.includes(kw) ||
+    features.includes(kw) ||
+    tasks.includes(kw) ||
+    SEARCH_ALIASES[kw]?.some((a) => features.includes(a) || tasks.includes(a) || displayName.includes(a))
+  )
+}
+
 /** 命中档位标签的模型（过滤只影响展示；增删改仍走全量 props.models） */
-const filteredModels = computed(() =>
-  props.models.filter((m: any) => matchesContextTags(m, ctxFilter.value)),
-)
+const filteredModels = computed(() => {
+  const kw = modelSearch.value.trim().toLowerCase()
+  const matched = props.models.filter((m: any) => {
+    if (!matchesContextTags(m, ctxFilter.value)) return false
+    if (statusFilter.value === 'active' && !m.isActive) return false
+    if (statusFilter.value === 'inactive' && m.isActive) return false
+    if (typeFilter.value && m.modelType !== typeFilter.value) return false
+    if (kw && !matchesSearch(m, kw)) return false
+    return true
+  })
+  // 已启用优先，同状态按后台 sort_order 升序，避免把排序规则丢掉
+  return [...matched].sort((a: any, b: any) => {
+    if (!!a.isActive !== !!b.isActive) return a.isActive ? -1 : 1
+    const ao = Number(a.sort_order ?? a.sortOrder ?? 0)
+    const bo = Number(b.sort_order ?? b.sortOrder ?? 0)
+    return ao - bo || String(a.modelName || '').localeCompare(String(b.modelName || ''))
+  })
+})
 
 /**
  * 是否为 ONNX 本地推理供应商。
@@ -270,6 +411,14 @@ const isLocalProvider = computed(() => {
   const id = String(props.provider?.id ?? props.provider?.provider_id ?? '').toLowerCase()
   return LOCAL_PROVIDER_IDS.has(id)
 })
+
+/**
+ * ONNX 的真实模型根目录（绝对路径）。
+ *
+ * <p>取自后端 /providers 回传的 {@code model_root}（见 ApiProviderController.toProviderResponse），
+ * 不是供应商行的 base_url —— 后者对 ONNX 是写死的 http 占位值，与模型实际位置无关。</p>
+ */
+const onnxModelRoot = computed(() => String(props.provider?.model_root || '').trim())
 
 /**
  * 「删除供应商」按钮是否可删。
@@ -313,6 +462,21 @@ const getModelAvatar = (model: any) => {
 const fmtNum = (v: number) =>
   v >= 1000 ? (v >= 1000000 ? (v / 1000000).toFixed(1).replace(/\.0$/, '') + 'M' : Math.round(v / 1000) + 'K') : String(v)
 
+/** 最近使用时间展示：支持秒/毫秒时间戳和 ISO 字符串；解析失败返回空 */
+const formatRecentUse = (v: any): string => {
+  let d: Date | null = null
+  if (typeof v === 'number') {
+    const ms = v > 1e12 ? v : v * 1000
+    d = new Date(ms)
+  } else if (typeof v === 'string' && v.trim()) {
+    const parsed = Date.parse(v.trim())
+    if (!Number.isNaN(parsed)) d = new Date(parsed)
+  }
+  if (!d || Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 /** 宽松数值解析：空值 / 非数字一律返回 null（区分「未填」与 0） */
 const numOrNull = (v: any): number | null => {
   if (v === null || v === undefined || v === '') return null
@@ -341,6 +505,15 @@ const cardMeta = (model: any) => {
   const cfg = model?.config || {}
   const mt = model?.metrics || {}
   const items: Array<{ label: string; value: string; title: string }> = []
+
+  // 最近使用时间：后端若有 last_used_at / lastUsedAt 就展示；没有时不占位。
+  const recentUse = model?.last_used_at ?? model?.lastUsedAt ?? model?.recent_use_at ?? model?.used_at
+  if (recentUse) {
+    const t = formatRecentUse(recentUse)
+    if (t) {
+      items.push({ label: '最近使用', value: t, title: `最近使用时间：${t}` })
+    }
+  }
 
   const manualCtx = numOrNull(cfg.contextWindow)
   const ctx = manualCtx ?? numOrNull(mt.context_window_tokens)
@@ -424,6 +597,82 @@ const TYPE_META: Record<string, { label: string; cls: string }> = {
 const typeMeta = (type: string) => TYPE_META[type] || TYPE_META.text
 const subTypeLabel = (subType: any) => MODEL_SUBTYPE_LABELS[String(subType || '')] || String(subType || '')
 
+/**
+ * 规范类型 → 图标 / 配色：直接用 model.constants 里的共享映射。
+ *
+ * <p>不在本文件再派生一份：类型下拉（MODEL_TYPE_OPTIONS）、本卡片的标签、
+ * 以及「拉取模型」弹框的标签都用同一份图标表，加类型时不会三处走散。</p>
+ */
+const TYPE_ICONS = MODEL_TYPE_ICON
+const TYPE_KIND = MODEL_TYPE_KIND
+
+/** 特性 key → 图标（未登记的回退到通用科学图标） */
+const FEATURE_ICONS: Record<string, any> = {
+  tools: WrenchScrewdriver24Regular,
+  thinking: LightbulbFilament24Regular,
+  visual: ScienceOutlined,
+  'web-search': ScienceOutlined,
+}
+
+/**
+ * 模型卡片的全部标签：**类型 + 细分类型 + 特性**。
+ *
+ * <p>三者统一交给 {@link ModelTagStrip} 渲染为「图标 + tooltip、最多 2 个、
+ * 超出 +N、悬停 popover 看全」。</p>
+ *
+ * <p><b>为什么主类型也用图标而不是文字</b>：卡片标题行同时承载模型名与这些标签，
+ * 纯文字下一个「人脸特征提取」就能吃掉半行；类型 + 细分类型 + 特性三项并列时
+ * （实测 `agnes-2.0-flash` 就有 3 项）还会换行撑高卡片。改成图标后，占用只与
+ * 图标个数相关，具体名称在悬停时给出。</p>
+ *
+ * <p>细分类型继承其父类型的图标与配色：`ocr_recognition` 属于 `ocr`，
+ * 因此与类型同色同图标，用户一眼能看出「这是 OCR 这条线下的角色」。
+ * 归属关系从 {@link MODEL_SUBTYPE_OPTIONS} 反查，不硬编码。</p>
+ *
+ * @param model 已由 mapModel 加工过的模型行
+ * @returns 标签项列表（可能为空）
+ */
+const modelTags = (model: any) => {
+  const tags: Array<{ key: string; label: string; icon: any; kind: string }> = []
+  const parentType = String(model?.modelType || '')
+
+  // ① 类型（OCR 识别 / 人脸识别 / 图像识别 / 语音合成 …）——放第一位，它是模型身份
+  const typeLabel = typeMeta(parentType).label
+  if (typeLabel) {
+    tags.push({
+      key: `type:${parentType || 'text'}`,
+      label: typeLabel,
+      icon: TYPE_ICONS[parentType] || TextT24Regular,
+      kind: TYPE_KIND[parentType] || 'chat',
+    })
+  }
+
+  // ② 细分类型：从 MODEL_SUBTYPE_OPTIONS 反查它属于哪个父类型，以继承图标/配色
+  const sub = model?.subType
+  if (sub) {
+    const parent = Object.entries(MODEL_SUBTYPE_OPTIONS)
+      .find(([, opts]) => opts.some((o) => o.value === String(sub)))?.[0] || parentType
+    tags.push({
+      key: `sub:${sub}`,
+      label: subTypeLabel(sub),
+      icon: TYPE_ICONS[parent] || Scan24Regular,
+      kind: TYPE_KIND[parent] || 'info',
+    })
+  }
+
+  // ③ 特性：tools / thinking / visual / web-search
+  for (const f of model?.config?.features || []) {
+    tags.push({
+      key: `feat:${f}`,
+      label: getLableName(f),
+      icon: FEATURE_ICONS[f] || ScienceOutlined,
+      kind: 'tool',
+    })
+  }
+
+  return tags
+}
+
 // 能力种类 → 图标（输入/输出流可视化）
 const KIND_ICONS: Record<string, any> = {
   text: TextT24Regular,
@@ -506,6 +755,63 @@ const handleToggle = async (model: any) => {
   }
 }
 
+// ==================== 批量操作 ====================
+
+/** 模型唯一标识：优先后端 id，回退模型名 */
+const getModelId = (m: any) => m.id || m.modelName
+
+const toggleSelect = (m: any) => {
+  const id = getModelId(m)
+  const idx = selected.value.indexOf(id)
+  if (idx >= 0) selected.value.splice(idx, 1)
+  else selected.value.push(id)
+}
+
+/** 全选 / 取消全选当前筛选结果（保留其它筛选下已选中的模型） */
+const toggleSelectAllFiltered = () => {
+  const ids = filteredModels.value.map(getModelId)
+  const allSelected = ids.length > 0 && ids.every((id) => selected.value.includes(id))
+  if (allSelected) {
+    selected.value = selected.value.filter((id) => !ids.includes(id))
+  } else {
+    selected.value = Array.from(new Set([...selected.value, ...ids]))
+  }
+}
+
+const findModel = (id: string) => props.models.find((m: any) => getModelId(m) === id)
+
+/** 批量启用：只处理当前停用的模型，避免把已启用模型也切一遍 */
+const batchEnable = async () => {
+  const targets = selected.value.map(findModel).filter((m: any) => m && m.isActive === false)
+  selected.value = []
+  if (!targets.length) {
+    message.info('所选模型均已启用')
+    return
+  }
+  await Promise.allSettled(
+    targets.map((m: any) => {
+      m.isActive = true
+      return handleToggle(m)
+    }),
+  )
+}
+
+/** 批量停用：只处理当前启用的模型，避免把已停用模型也切一遍 */
+const batchDisable = async () => {
+  const targets = selected.value.map(findModel).filter((m: any) => m && m.isActive === true)
+  selected.value = []
+  if (!targets.length) {
+    message.info('所选模型均已停用')
+    return
+  }
+  await Promise.allSettled(
+    targets.map((m: any) => {
+      m.isActive = false
+      return handleToggle(m)
+    }),
+  )
+}
+
 const handleRequestFetch = () =>
   // false：这条是从模型表单里点「获取」来的，失败时不要回退 openAdd()，
   // 否则会把表单里已经填好的模型名/参数清空
@@ -575,7 +881,13 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .d-empty-desc { margin: 6px 0 0; font-size: 13px; color: var(--color-text-disabled); }
 
 /* 区块标题 */
-.d-section-head { display: flex; align-items: center; gap: 8px; margin: 22px 2px 12px; }
+.d-section-head { display: flex; flex-direction: column; gap: 8px; margin: 22px 2px 12px; }
+.d-head-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.d-head-filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
 .d-section-title { font-size: 13px; font-weight: 700; color: var(--color-text); }
 .d-section-count {
   display: inline-flex;
@@ -588,6 +900,44 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   color: var(--el-text-color-secondary);
   background: var(--el-border-color-lighter);
 }
+
+/* 模型搜索框 */
+.model-search-input { width: 210px; }
+
+/* 状态/类型筛选 */
+.filter-group { display: flex; align-items: center; }
+.type-select { width: 110px; }
+
+/* 批量操作工具栏：默认占位固定高度，选中时淡入，避免卡片网格上下跳动 */
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  min-height: 34px;
+  padding: 4px 8px;
+  border-radius: var(--el-radius-base);
+  background: transparent;
+  border: 1px dashed transparent;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.18s ease, visibility 0.18s, background 0.18s ease, border-color 0.18s ease;
+}
+.batch-toolbar.is-visible {
+  visibility: visible;
+  opacity: 1;
+  background: var(--el-fill-color-light);
+  border-color: var(--el-border-color-lighter);
+}
+.batch-count { font-size: 12px; color: var(--el-text-color-secondary); }
+.batch-select-all {
+  font-size: 12px;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  user-select: none;
+}
+.batch-select-all:hover { opacity: 0.8; }
+.batch-select-all.is-all { color: var(--el-text-color-regular); }
 
 /* 上下文大小过滤（与模型选择卡片共用同一套标签） */
 .ctx-filter {
@@ -623,11 +973,14 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .model-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  /* 每行等高，信息少的卡片底栏也贴底，不会出现按钮悬在半空 */
+  grid-auto-rows: 1fr;
   gap: 13px;
 }
 .mc {
   display: flex;
   flex-direction: column;
+  min-height: 100%;
   padding: 16px;
   border-radius: calc(var(--size-surface-radius) + 4px);
   background: var(--color-surface);
@@ -638,31 +991,67 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-surface-border));
   background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
 }
-.mc-head { display: flex; align-items: center; margin-bottom: 12px; }
-.mc-head-text { display: flex; flex-direction: column; min-width: 0; }
+/* 批量选中态 */
+.mc.is-selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+/* 批量选择 checkbox：放在头部右侧，小圆底背景让元素看起来像可控件而非占位 */
+.mc-check {
+  margin-left: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-top: -2px;
+  border-radius: var(--el-radius-full, 9999px);
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color-light);
+  cursor: pointer;
+  /* 只用内阴影表达选中，不用外扩散阴影，避免点击时卡片视觉位置跳动 */
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.mc:hover .mc-check { background: var(--el-fill-color-dark); }
+.mc.is-selected .mc-check {
+  color: #fff;
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 55%, #fff);
+}
+.mc.is-selected .mc-check:hover {
+  background: color-mix(in srgb, var(--color-primary) 88%, var(--color-surface));
+}
+.mc-check :deep(.el-checkbox) {
+  height: auto;
+  margin-right: 0;
+  line-height: 0;
+}
+.mc-check :deep(.el-checkbox__inner) {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  /* 去掉 Element Plus 自带动画：选中/取消时不缩放、不旋转、不移动 */
+  transition: none;
+  animation: none;
+}
+.mc-check :deep(.el-checkbox__inner::after) { transition: none; }
+.mc-check :deep(.el-checkbox.is-checked .el-checkbox__inner) {
+  background-color: transparent;
+  border-color: #fff;
+}
+.mc-check :deep(.el-checkbox.is-checked .el-checkbox__inner::after) {
+  border-color: #fff;
+  transform: rotate(45deg) scale(1);
+}
+.mc-head { display: flex; align-items: flex-start; margin-bottom: 12px; }
+.mc-head-text { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; flex: 1; }
 .mc-name {
   font-size: 14px; font-weight: 700; color: var(--color-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.mc-type {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  margin-top: 3px;
-  padding: 2px 9px;
-  border-radius: calc(var(--size-surface-radius) - 4px);
-  font-size: 11px; font-weight: 600;
-}
-.mc-type.chat { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
-.mc-type.emb { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 14%, transparent); }
-.mc-type.img { color: var(--el-color-warning); background: color-mix(in srgb, var(--el-color-warning) 14%, transparent); }
-.mc-type.vid { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 13%, transparent); }
-.mc-type.info { color: var(--el-color-info); background: color-mix(in srgb, var(--el-color-info) 14%, transparent); }
-.mc-type.sub {
-  color: var(--el-text-color-secondary);
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--el-border-color);
-}
+/* .mc-type / .mc-type.sub 已随标签改造移除：类型、细分类型、特性
+   统一由 ModelTagStrip 以「图标 + tooltip」渲染，不再占用文字宽度。 */
 
 .mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 24px; }
 .mc-cap-group { display: inline-flex; align-items: center; gap: 2px; color: var(--color-primary); }
@@ -674,16 +1063,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .cap-i.kind-video { color: var(--el-color-danger); }
 .cap-i.kind-vector { color: var(--el-color-success); }
 .cap-arrow { color: var(--color-text-disabled); }
-.mc-feature {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
-  border-radius: calc(var(--size-surface-radius) - 4px);
-  font-size: 11px;
-  color: var(--color-text-gray);
-  background: var(--color-surface-border);
-}
+/* .mc-feature 已随「其它标签」改造移除：特性改由 ModelTagStrip 以图标 + tooltip 渲染 */
 
 .mc-meta {
   display: flex;
@@ -702,8 +1082,9 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 11px;
+  /* 信息少/多导致卡片内容高度不齐时，底部工具栏始终贴齐卡片底边 */
+  margin-top: auto;
+  padding-top: 12px;
   border-top: 1px solid var(--color-surface-border);
 }
 .mc-src {
