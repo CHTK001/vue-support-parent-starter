@@ -159,19 +159,48 @@
         </div>
       </div>
     </el-popover>
+
+    <!--
+      链路追踪入口：点开弹框，用关系图把这次运行走了哪几步串起来。
+
+      为什么放在底部状态条：它和「轮数 / 步数 / Token / 上下文」是同一层信息 ——
+      都是「这一轮到底怎么跑的」；用户看完速度/命中率，下一步就想知道步骤怎么走的。
+      图标用内联 SVG（两个节点 + 连线），不引入新图标依赖。
+    -->
+    <button
+      type="button"
+      class="stats-trace-btn"
+      :title="'查看本次运行的链路追踪关系图'"
+      aria-label="链路追踪"
+      @click="traceVisible = true"
+    >
+      <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"
+        stroke-linecap="round" aria-hidden="true">
+        <circle cx="3" cy="4" r="1.8" />
+        <circle cx="13" cy="12" r="1.8" />
+        <path d="M4.6 5.2 11.4 10.8" />
+      </svg>
+      <span>链路追踪</span>
+    </button>
+
+    <!-- 弹框挂在状态条内部，避免把会话面板/消息列的模板再撑一层 -->
+    <TraceFlowDialog v-model="traceVisible" :session-id="sessionId" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Timer } from '@element-plus/icons-vue';
 import { DataLine20Regular } from '@vicons/fluent';
 import { useTurnStats } from '@/composables/useTurnStats';
+import TraceFlowDialog from './trace/TraceFlowDialog.vue';
 
 const props = defineProps<{
   /** 当前会话的全部消息（activeMessages） */
   messages?: any[];
+  /** 会话 id：链路追踪弹框按会话拉 /traces */
+  sessionId?: string | number | null;
   /**
    * 上下文占用（已用 Token / 窗口 Token / 占用率）。
    *
@@ -190,6 +219,9 @@ const props = defineProps<{
    */
   contextBreakdown?: Record<string, number> | null;
 }>();
+
+/** 链路追踪弹框开关 */
+const traceVisible = ref(false);
 
 const { t } = useI18n();
 
@@ -467,6 +499,41 @@ const ringStyle = computed(() => {
 .stats-item--strong {
   color: var(--el-text-color-primary);
   font-weight: 600;
+}
+
+/*
+  链路追踪入口：低调的描边按钮，不抢三段数据的主视觉。
+  与状态条同高（22px），hover 才出现底色 —— 常驻但不喧宾夺主。
+*/
+.stats-trace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  height: 22px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-gray, var(--el-text-color-secondary));
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.stats-trace-btn:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--el-color-primary);
+}
+
+/* 动效降级：只关本按钮自己的 transition，不影响 Element Plus 组件内部过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .stats-trace-btn {
+    transition: none;
+  }
 }
 
 .stats-sep {

@@ -110,7 +110,7 @@
               <el-icon size="14" class="edit-banner__icon mr-2 shrink-0">
                 <Edit20Regular />
               </el-icon>
-              <span class="flex-1 text-sm text-gray-600 dark:text-[#c5c7cc]">{{ t('chat.panel.editingMessage')
+              <span class="flex-1 text-sm text-gray-600 dark:text-gray-200">{{ t('chat.panel.editingMessage')
                 }}</span>
               <!-- 只留图标：文字去掉后语义只能靠可访问名承担，否则读屏用户听到的是一个无名按钮 -->
               <el-button @click="exitEditMode" class="cancel-edit-btn" plain size="small" :icon="Close"
@@ -142,7 +142,8 @@
          统计条若通栏就与它对不齐（用户反馈的割裂感即由此而来）；
          共用之后窄屏与满屏（该样式会在满屏时撤掉限宽）也自动跟着走，无需另写媒体查询。 -->
     <div class="w-full mx-auto" :style="contentMaxWidthStyle">
-      <SessionStatsBar :messages="activeMessages" :context-used="tokenStats?.usedTokens || 0"
+      <SessionStatsBar :messages="activeMessages" :session-id="effectiveSessionId"
+        :context-used="tokenStats?.usedTokens || 0"
         :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0"
         :context-breakdown="tokenStats?.breakdown || null" />
     </div>
