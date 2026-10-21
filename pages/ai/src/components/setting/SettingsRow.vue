@@ -110,7 +110,15 @@ onBeforeUnmount(() => {
 watch(() => [props.label, props.tip, slots.label?.()], () => nextTick(scheduleMeasure), { flush: 'post' })
 
 const controlStyle = computed(() => {
-  if (props.controlFlex) return { flex: '0 1 380px', width: '380px', maxWidth: '100%', minWidth: '180px' }
+  /*
+   * 右侧控件区默认「自己长」，不再写死宽度。
+   *
+   * 原来三个分支都带 flex: 0 0 auto（不给就不伸缩），宽屏上右侧会缩在一角、
+   * 左边空出一大片；controlFlex 更是把 380px 焊死在计算属性里。
+   * 现在：不传宽度 = 交给 CSS 的 flex 规则（可伸可缩，带上限）；
+   * 只有页面**显式**要求某个固定宽度时才内联写死（少数需要像素对齐的控件）。
+   */
+  if (props.controlFlex) return {}
   if (props.controlWidth) {
     // 静态属性传入无单位字符串（如 "200"），补 px
     const width = /^\d+(\.\d+)?$/.test(props.controlWidth)
@@ -118,7 +126,7 @@ const controlStyle = computed(() => {
       : props.controlWidth
     return { width, flex: '0 0 auto' }
   }
-  return { flex: '0 0 auto' }
+  return {}
 })
 </script>
 
@@ -211,9 +219,31 @@ const controlStyle = computed(() => {
   overflow-wrap: anywhere;
 }
 
+/*
+  右侧控件区：默认**可伸缩**，不再写死宽度。
+  - flex: 1 1 auto → 宽屏上把多余空间给控件，而不是让左侧文本列一直吃到边；
+  - min-width 保证窄屏时控件不被压没（换行交给 flex-wrap）；
+  - max-width 用变量兜一下，避免多行输入这类控件在超宽屏上拉成一整面墙。
+  显式传了 control-width 的行仍走内联固定宽度（少数要像素对齐的控件），
+  那条内联规则会盖住这里的 flex。
+*/
 .set-row-control {
   display: flex; align-items: center; justify-content: flex-end;
-  min-width: 0; flex-shrink: 0;
+  /*
+    保底 200px：内部 el-select / el-input 被上面的 `width: 100%` 撑满，
+    容器一旦没有固有宽度（原来 flex: 0 0 auto + min-width: 0），
+    100% 就塌成很窄一条 —— 下拉框里只看得见一个「3」，
+    用户没法直观看出来「最多联想条数 / 初始加载记录数量」到底设了什么。
+  */
+  min-width: var(--set-row-control-min, 200px);
+  max-width: var(--set-row-control-max, 100%);
+  flex: 1 1 auto;
+}
+/* 极窄屏：控件整体换到下一行，而不是被挤成一条竖线 */
+@media (max-width: 720px) {
+  .set-row-body { flex-wrap: wrap; }
+  .set-row-text { max-width: 100%; }
+  .set-row-control { justify-content: flex-start; }
 }
 .set-row--stack .set-row-control { justify-content: flex-start; }
 .set-row-control :deep(.el-switch) { flex-shrink: 0; }

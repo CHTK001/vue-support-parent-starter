@@ -45,7 +45,7 @@
                 <template #title>
                     <span class="text-sm text-gray-400 dark:text-gray-500">{{ t('settings.system.title') }}</span>
                     <span class="text-sm text-gray-300 dark:text-gray-600 mx-1.5">·</span>
-                    <span class="text-sm font-semibold text-gray-800 dark:text-[#e8e9ed]">{{ currentTabLabel }}</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ currentTabLabel }}</span>
                 </template>
             </PageHeader>
             <div class="flex-1 overflow-hidden flex flex-col w-full" :style="contentMaxWidthStyle">
@@ -91,6 +91,9 @@
                         </template>
                         <template v-else-if="currentTabValue === 'ocr-config'">
                             <DefaultModelSettings :groups="['ocr']" />
+                        </template>
+                        <template v-else-if="currentTabValue === 'paper-config'">
+                            <DefaultModelSettings :groups="['paper']" />
                         </template>
                         <template v-else-if="currentTabValue === 'bot-connector-config'">
                             <DefaultModelSettings :groups="['bot']" />
@@ -245,6 +248,7 @@ import {
     Server24Regular,
     Person20Regular,
     DesktopSpeaker24Regular,
+    DocumentText24Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -276,6 +280,7 @@ const groupMap = computed<Record<string, string>>(() => ({
     'layout-config': t('settings.system.groups.modelConfig'),
     'rag-config': t('settings.system.groups.modelConfig'),
     'ocr-config': t('settings.system.groups.modelConfig'),
+    'paper-config': t('settings.system.groups.modelConfig'),
     'bot-connector-config': t('settings.system.groups.modelConfig'),
     'audio-config': t('settings.system.groups.modelConfig'),
     ocr: t('settings.system.groups.general'),
@@ -371,6 +376,13 @@ const sidebarItems = computed(() => [
         label: 'OCR 配置',
         path: 'ocr-config',
         icon: ScanText24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 试卷识别：OCR / OCR+LLM 双管线，用于试卷扫描与阅卷结构化
+        label: '试卷配置',
+        path: 'paper-config',
+        icon: DocumentText24Regular,
         roles: ['primary'],
     },
     {
@@ -608,15 +620,23 @@ const loadProviderPanel = async () => {
 // 面板卡片的增删改/一键添加实际落在模型管理页，这里只做入口跳转
 const gotoModels = () => router.push({ name: 'Models' })
 
-// 右侧内容区宽度：宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
-// 这些页签放开 max-w 限制；其余页签跟随「设置 → 显示」的窄屏/满屏设置
-// （MainLayout 仅在满屏时注入 --content-max-width: none），窄屏保持原
-// md:max-w-220（55rem）居中阅读列，满屏撑满剩余空间。
+/*
+ * 右侧内容区宽度：宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
+ * 这些页签放开 max-w 限制；其余页签跟随「设置 → 显示」的窄屏/满屏设置
+ * （MainLayout 仅在满屏时注入 --content-max-width: none），窄屏保持原
+ * md:max-w-220（55rem）居中阅读列，满屏撑满剩余空间。
+ *
+ * 宽屏支持：55rem 是笔记本上的舒适阅读宽度，但在 2K/4K 上会把整个设置项挤在中间一条，
+ * 左侧文本列占满 560px 上限后右侧控件只剩很窄一点。所以默认值改成
+ * `min(76rem, max(55rem, 62vw))` —— 窄屏仍是 55rem，宽屏按 62vw 跟着屏幕长，最多 76rem。
+ * 注意这里必须用 var() 的 **回退值** 写法：满屏时 MainLayout 会把
+ * --content-max-width 定义为 none，那时整条 max-width 失效 = 撑满，与原来一致。
+ */
 const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
 const contentMaxWidthStyle = computed(() =>
     WIDE_TABS.includes(currentTabValue.value)
         ? {}
-        : { maxWidth: 'var(--content-max-width, 55rem)', marginLeft: 'auto', marginRight: 'auto' },
+        : { maxWidth: 'var(--content-max-width, min(76rem, max(55rem, 62vw)))', marginLeft: 'auto', marginRight: 'auto' },
 )
 
 // Teleport 目标就绪标志：确保 #settings-sidebar-portal 已挂载到 DOM
