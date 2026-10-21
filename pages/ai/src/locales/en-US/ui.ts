@@ -184,6 +184,18 @@
     logoutConfirm: 'Are you sure you want to log out?',
     defaultUserName: 'User',
     earlier: 'Earlier',
+    aiRename: 'AI Rename',
+    aiRenamed: 'Session renamed with AI',
+    aiRenameFailed: 'AI rename failed',
+    aiRenameSkipped: 'No content yet, title not generated',
+    aiRenameNoChange: 'AI did not generate a new title',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    createGroupTitle: 'Create Group',
+    groupCreated: 'Group created successfully',
+    createGroupFailed: 'Failed to create group',
+    moveGroupUp: 'Move group up',
+    moveGroupDown: 'Move group down',
   },
 
   // ── 子账户管理 ──

@@ -184,6 +184,18 @@ export default {
     logoutConfirm: '确定要退出登录吗？',
     defaultUserName: '用户',
     earlier: '更早',
+    aiRename: 'AI 重命名',
+    aiRenamed: '已使用 AI 重命名',
+    aiRenameFailed: 'AI 重命名失败',
+    aiRenameSkipped: '当前会话暂无内容，未生成标题',
+    aiRenameNoChange: 'AI 未生成新标题',
+    pin: '置顶',
+    unpin: '取消置顶',
+    createGroupTitle: '新建分组',
+    groupCreated: '分组创建成功',
+    createGroupFailed: '创建分组失败',
+    moveGroupUp: '上移分组',
+    moveGroupDown: '下移分组',
   },
 
   // ── 子账户管理 ──
