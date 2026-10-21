@@ -98,20 +98,23 @@
           </Transition>
 
           <!-- 编辑模式提示条：与下方输入框拼成**同一张卡**（同一宽度、只圆上两角、共享底色），
-               中间不再插入任何独立块。原先外层带 px-4，比输入框左右各缩进 16px，
-               加上夹在中间的「添加目标」，视觉上碎成三段。 -->
-          <div v-if="editMode" class="edit-banner w-full flex">
-            <div
-              class="edit-banner__inner w-full flex items-center px-4 py-2">
+               中间不再插入任何独立块。
+               底色不在这里另写一份，而是复用与输入卡完全相同的两组工具类：
+               壁纸/毛玻璃场景下输入卡是半透明+背景模糊，提示条若写死实心底色，
+               两段就会一段实一段透，比圆角不齐更明显。 -->
+          <div v-if="editMode" class="edit-banner w-full flex"
+            :class="[{ 'bg-(--color-input-bg)': !hasWallpaper }, { 'bg-(--color-input-bg)/60 backdrop-blur-xl': hasWallpaper }]">
+            <!-- px-2 与输入卡 p-[12px_8px_10px_8px] 的左右内边距取齐：
+                 提示条文字/取消按钮与下方编辑器首行、+ 按钮落在同一条左右基准线上 -->
+            <div class="edit-banner__inner w-full flex items-center px-2 py-2">
               <el-icon size="14" class="edit-banner__icon mr-2 shrink-0">
                 <Edit20Regular />
               </el-icon>
               <span class="flex-1 text-sm text-gray-600 dark:text-[#c5c7cc]">{{ t('chat.panel.editingMessage')
                 }}</span>
-              <el-button @click="exitEditMode" class="cancel-edit-btn" plain size="small"
-                :icon="Dismiss20Regular">
-                {{ t('common.cancel') }}
-              </el-button>
+              <!-- 只留图标：文字去掉后语义只能靠可访问名承担，否则读屏用户听到的是一个无名按钮 -->
+              <el-button @click="exitEditMode" class="cancel-edit-btn" plain size="small" :icon="Close"
+                :aria-label="t('common.cancel')" :title="t('common.cancel')" />
             </div>
           </div>
 
@@ -134,10 +137,15 @@
 
     <!-- 会话底部统计条：轮数 / 步数 / 速度 + Token / 缓存命中 + 上下文占用。
          放在滚动区之外（ScrollContainer 之后），保证它常驻不随消息滚动。
-         上下文数据从本组件已有的 tokenStats 透传，避免子组件再拉一次 /token-stats。 -->
-    <SessionStatsBar :messages="activeMessages" :context-used="tokenStats?.usedTokens || 0"
-      :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0"
-      :context-breakdown="tokenStats?.breakdown || null" />
+         上下文数据从本组件已有的 tokenStats 透传，避免子组件再拉一次 /token-stats。
+         宽度必须与消息列、输入区共用 contentMaxWidthStyle：输入区是限宽的，
+         统计条若通栏就与它对不齐（用户反馈的割裂感即由此而来）；
+         共用之后窄屏与满屏（该样式会在满屏时撤掉限宽）也自动跟着走，无需另写媒体查询。 -->
+    <div class="w-full mx-auto" :style="contentMaxWidthStyle">
+      <SessionStatsBar :messages="activeMessages" :context-used="tokenStats?.usedTokens || 0"
+        :context-total="tokenStats?.totalTokens || 0" :context-percent="tokenStats?.percentage || 0"
+        :context-breakdown="tokenStats?.breakdown || null" />
+    </div>
 
     <!-- 回到底部悬浮按钮 -->
     <ScrollToBottomButton :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
@@ -179,7 +187,9 @@ import WelcomeScreen from './WelcomeScreen.vue';
 import QueuedMessages from './QueuedMessages.vue';
 const MemoPanel = defineAsyncComponent(() => import("./MemoPanel.vue"));
 import { LoadingOutlined } from '@vicons/antd'
-import { Edit20Regular, Dismiss20Regular, DataLine20Regular } from '@vicons/fluent'
+import { Edit20Regular, DataLine20Regular } from '@vicons/fluent'
+// 取消编辑是纯图标按钮，用 Element Plus 的 Close 保持与其它 el-button 图标同源
+import { Close } from '@element-plus/icons-vue'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
 import LDialog from '@/components/ui/LDialog.vue'
@@ -1533,23 +1543,25 @@ function scrollToMessage(messageId: string) {
 }
 
 /* ===== 编辑模式提示条 =====
-   设计目标：提示条与下方输入框是**同一张卡**的头部，而不是浮在输入框上方的独立条。
-   做法 —— 与 .input-area 共享宽度、边框、圆角与底色，只保留顶部圆角；
-        收起自身下边框，让两段的边框在交界处连成一条线。
+   设计目标：提示条是「提示条 + 输入卡」这**一整张卡**的头部，而不是浮在输入框上方的独立条。
+   做法 —— 与 .input-area 共用宽度、边框色、圆角半径与底色，只保留顶部圆角。
+   交界处不再由两段各画一条边去「对齐」：那种做法要靠 margin-bottom: -1px 把输入卡
+   上边框拽上来当分隔线，圆角、内边距、边框色任一处不同就会露出破绽。
+   改成两段都不画交界边，那条 1px 线由提示条内层 .edit-banner__inner 独占，
+   位置永远精确，也不再需要负边距。
    改动前：外层 px-4 让它比输入框窄 16px，且中间的「添加目标」把卡片切成三段。 */
 .edit-banner {
   /* 顶部圆角与输入框一致（--size-rounded-radius 由主题统一给值） */
   border-radius: var(--size-rounded-radius, 16px) var(--size-rounded-radius, 16px) 0 0;
   border: 1px solid var(--color-input-border, var(--el-border-color));
-  /* 只保留三边：下边框交给输入框，避免交界处出现双线 */
   border-bottom: none;
-  background: var(--color-input-bg);
-  /* 与输入卡之间不留缝 */
-  margin-bottom: -1px;
   overflow: hidden;
 }
 
 .edit-banner__inner {
+  /* 交界处的 1px 分隔线挂在内层：提示条自身对外仍是「没有下边框」，
+     于是「提示条无下边框」+「输入卡无上边框」+「交界处仍有一条线」可以同时成立 */
+  border-bottom: 1px solid var(--color-input-border, var(--el-border-color));
   /* 高度与输入框内首行工具条接近，视觉重量不喧宾夺主 */
   min-height: 40px;
 }

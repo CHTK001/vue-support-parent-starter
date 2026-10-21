@@ -379,8 +379,10 @@ const ringStyle = computed(() => {
   gap: 18px;
   height: 30px;
   padding: 0 14px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  /* 与对话区同底色（浅色默认主题为白），只靠上边框分隔，不额外铺一层灰。
+  /* 不要上边框：这条统计条是常驻的会话状态，不是一块独立分区。
+     画一条分界线会把它从对话背景里"切"出来，看起来像页面上多挂了一条东西；
+     去掉之后它与对话区同一底色，自然融入（内容与输入框对齐由父容器的限宽负责）。 */
+  /* 与对话区同底色（浅色默认主题为白），不额外铺一层灰。
      同样乘 --content-opacity：带壁纸时不能铺一块不透明的底把壁纸盖掉。 */
   background: color-mix(
     in srgb,
