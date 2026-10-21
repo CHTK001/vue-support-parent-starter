@@ -184,7 +184,7 @@
     </button>
 
     <!-- 弹框挂在状态条内部，避免把会话面板/消息列的模板再撑一层 -->
-    <TraceFlowDialog v-model="traceVisible" :session-id="sessionId" />
+    <TraceFlowDialog v-model="traceVisible" :session-id="sessionId" :live-traces="liveTraces" />
   </div>
 </template>
 
@@ -195,6 +195,7 @@ import { Timer } from '@element-plus/icons-vue';
 import { DataLine20Regular } from '@vicons/fluent';
 import { useTurnStats } from '@/composables/useTurnStats';
 import TraceFlowDialog from './trace/TraceFlowDialog.vue';
+import { normalizeLiveTrace, type SessionTrace } from './trace/traceTypes';
 
 const props = defineProps<{
   /** 当前会话的全部消息（activeMessages） */
@@ -222,6 +223,28 @@ const props = defineProps<{
 
 /** 链路追踪弹框开关 */
 const traceVisible = ref(false);
+
+/**
+ * WS 实时轨迹：从当前会话消息的 traceLog 里抽出来。
+ *
+ * <p>用途见 TraceFlowDialog 的 liveTraces 注释 —— 让关系图在流式过程中就能长出来，
+ * 而不是等 `/traces` 落库后才看得到。这里做纯抽取 + 归一（normalizeLiveTrace），
+ * 不排序也不去重，交给下游统一处理，避免两处各有一套排序规则。</p>
+ */
+const liveTraces = computed<SessionTrace[]>(() => {
+  const out: SessionTrace[] = [];
+  for (const msg of props.messages ?? []) {
+    for (const content of (msg?.contents ?? [])) {
+      const log = (content as any)?.traceLog;
+      if (!Array.isArray(log)) continue;
+      for (const raw of log) {
+        const trace = normalizeLiveTrace(raw);
+        if (trace) out.push(trace);
+      }
+    }
+  }
+  return out;
+});
 
 const { t } = useI18n();
 

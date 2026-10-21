@@ -19,6 +19,10 @@
     <template #header>
       <div class="tfd-header">
         <span class="tfd-title">链路追踪</span>
+        <!-- 数据来源：实时（WS 帧还在推）或历史（后端落库） -->
+        <span class="tfd-live" :class="{ 'is-live': isLive }" :title="isLive ? '正在根据 WS 实时帧渲染' : '来自后端落库的历史轨迹'">
+          {{ isLive ? '实时' : '历史' }}
+        </span>
         <!-- 轨迹按会话累积、以 agent_start 切成多段：默认看最近一次，可往回翻 -->
         <div v-if="runs.length > 1" class="tfd-runs">
           <button type="button" class="tfd-run-btn" :disabled="runIndex >= runs.length - 1"
@@ -63,17 +67,51 @@ import {
 const props = defineProps<{
   modelValue: boolean
   sessionId?: string | number | null
+  /**
+   * WS 实时轨迹（来自当前会话消息里的 traceLog）。
+   *
+   * <p>为什么要这条输入：`/traces` 是**落库后**的历史数据，一轮跑完才查得到；
+   * 而用户点开链路追踪时，常常正想看「这一轮现在走到哪一步了」。
+   * 把实时帧一起并进来，同一张图就同时具备「实时生长」与「历史回放」两种能力 ——
+   * 不必写两套渲染。</p>
+   */
+  liveTraces?: SessionTrace[]
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
-const items = ref<SessionTrace[]>([])
+/** 后端落库的历史轨迹 */
+const history = ref<SessionTrace[]>([])
 const loading = ref(false)
 const loaded = ref(false)
 const error = ref('')
 
+/**
+ * 历史 + 实时合并。
+ *
+ * 去重键带上 kind/spanId/时间/序号：实时帧与落库行是**同一条事件**的两种来源，
+ * 不合并的话同一轮会画两遍。历史优先（更权威），实时只补历史里还没有的尾部。
+ */
+const merged = computed<SessionTrace[]>(() => {
+  const key = (t: SessionTrace) => `${t.kind}|${t.spanId ?? ''}|${t.eventTime}|${t.seq ?? 0}`
+  const map = new Map<string, SessionTrace>()
+  for (const t of history.value) map.set(key(t), t)
+  for (const t of props.liveTraces ?? []) {
+    if (!map.has(key(t))) map.set(key(t), t)
+  }
+  return [...map.values()]
+})
+
+/** 是否还在「实时」阶段：实时里有比历史最新一条更晚的事件 */
+const isLive = computed(() => {
+  const live = props.liveTraces ?? []
+  if (!live.length) return false
+  const histMax = history.value.reduce((m, t) => Math.max(m, t.eventTime ?? 0), 0)
+  return live.some((t) => (t.eventTime ?? 0) > histMax)
+})
+
 /** 按 agent_start 切段，新的在前 */
-const runs = computed<TraceRun[]>(() => groupTraceRuns(items.value))
+const runs = computed<TraceRun[]>(() => groupTraceRuns(merged.value))
 /** 0 = 最近一次运行 */
 const runIndex = ref(0)
 const selectedRun = computed<TraceRun | undefined>(() => runs.value[runIndex.value])
@@ -91,7 +129,7 @@ function pickRun(index: number) {
  */
 async function load() {
   if (!props.sessionId) {
-    items.value = []
+    history.value = []
     loaded.value = true
     return
   }
@@ -99,11 +137,11 @@ async function load() {
   error.value = ''
   try {
     const res = await apiService.fetchSessionTraces(String(props.sessionId))
-    items.value = Array.isArray(res?.items) ? res.items : []
+    history.value = Array.isArray(res?.items) ? res.items : []
     runIndex.value = 0
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
-    items.value = []
+    history.value = []
   } finally {
     loading.value = false
     loaded.value = true
@@ -139,6 +177,44 @@ watch(() => props.sessionId, () => {
   font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+/* 来源标记：实时=绿色呼吸点，历史=灰底 */
+.tfd-live {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+}
+
+.tfd-live.is-live {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+
+.tfd-live.is-live::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  animation: tfd-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes tfd-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tfd-live.is-live::before {
+    animation: none;
+  }
 }
 
 .tfd-runs {

@@ -66,6 +66,8 @@ type Tone = 'start' | 'turn' | 'think' | 'text' | 'tool' | 'result' | 'end'
 interface FlowNode {
   label: string
   tone: Tone
+  /** 原始 trace 类别（tool_call/tool_args/tool_result/…），配对与去重都靠它 */
+  kind?: string
   ms?: number | null
   hint?: string
 }
@@ -134,6 +136,43 @@ function pointToNode(point: TracePoint): FlowNode | null {
 }
 
 /**
+ * 同一轮里把「工具步骤」按**次**配对编号。
+ *
+ * <p>为什么要配对：轨迹表把 tool_call / tool_args / tool_result 记成三条独立事件，
+ * **没有字段说明某条入参属于哪一次调用**。不配对时图上就是「4 个工具、4 个入参、4 个结果」
+ * 三堆（实测一次 4 连调就是这么显示的），读者根本对不上哪条结果属于哪次调用。</p>
+ *
+ * <p>配对依据是**同轮内的出现次序**：第 i 次调用 ↔ 第 i 条入参 ↔ 第 i 条结果。
+ * 这是启发式，不是数据写明的 —— 所以只在三类数量完全相等时才重排成三联；
+ * 数量对不上就只编号、不搬位置，宁可看起来乱一点也不编造归属。</p>
+ */
+function groupToolCalls(nodes: FlowNode[]): FlowNode[] {
+  const isTool = (n: FlowNode) =>
+    n.kind === 'tool_call' || n.kind === 'tool_args' || n.kind === 'tool_result'
+  const calls = nodes.filter((n) => n.kind === 'tool_call')
+  const args = nodes.filter((n) => n.kind === 'tool_args')
+  const results = nodes.filter((n) => n.kind === 'tool_result')
+
+  calls.forEach((n, i) => { n.label = `${n.label} #${i + 1}` })
+  args.forEach((n, i) => { n.label = `${n.label} #${i + 1}` })
+  results.forEach((n, i) => { n.label = `${n.label} #${i + 1}` })
+
+  if (!calls.length || args.length !== calls.length || results.length !== calls.length) {
+    return nodes
+  }
+
+  // 三联插回「第一个工具节点」的位置：之前的（思考等）保持在前，之后的（输出）保持在后
+  const firstToolIdx = nodes.findIndex(isTool)
+  const before = nodes.slice(0, firstToolIdx).filter((n) => !isTool(n))
+  const after = nodes.slice(firstToolIdx).filter((n) => !isTool(n))
+  const triplets: FlowNode[] = []
+  for (let i = 0; i < calls.length; i += 1) {
+    triplets.push(calls[i], args[i], results[i])
+  }
+  return [...before, ...triplets, ...after]
+}
+
+/**
  * 把 span 与点事件按时间合并，串成「每轮一行」的关系图。
  *
  * 分行依据：模型调用（lane=model）是轮次的分界线 —— 一次条带就是一轮里的一次模型交互，
@@ -150,12 +189,14 @@ const rows = computed<FlowRow[]>(() => {
 
   const items: FlowItem[] = []
   for (const span of props.model.spans) {
+    const node = toNode(span)
+    node.kind = span.kind
     items.push({
       time: span.start,
       isTurn: span.lane === 'model',
       turnNo: span.turn ?? null,
       spanId: span.spanId,
-      node: toNode(span),
+      node,
     })
   }
   for (const point of props.model.points) {
@@ -163,6 +204,7 @@ const rows = computed<FlowRow[]>(() => {
     if (point.kind === 'agent_start' || point.kind === 'agent_end') continue
     const node = pointToNode(point)
     if (!node) continue
+    node.kind = point.kind
     items.push({
       time: point.time,
       isTurn: false,
@@ -197,6 +239,7 @@ const rows = computed<FlowRow[]>(() => {
   // 某一行只有模型调用、后面没有任何步骤时，显式标一句，避免看起来像「图断了」
   for (const row of out) {
     if (!row.nodes.length) row.nodes.push({ label: '（无步骤）', tone: 'think' })
+    row.nodes = groupToolCalls(row.nodes)
   }
   return out
 })
