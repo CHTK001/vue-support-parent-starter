@@ -84,10 +84,16 @@ interface FlowRow {
  */
 function toNode(span: TraceSpan): FlowNode {
   if (span.lane === 'tool') {
-    const isResult = span.kind === 'tool_result' || span.kind === 'tool_args'
+    /*
+     * 工具链路的三种 kind 必须分开标：
+     * tool_call=发起、tool_args=入参、tool_result=结果。
+     * 原先 args 也被算成「结果」，实测一次 execute 调用在图上是
+     * 「工具 execute → 结果 execute → 结果 execute」——两个「结果」纯属自造歧义。
+     */
+    const prefix = span.kind === 'tool_result' ? '结果' : span.kind === 'tool_args' ? '入参' : '工具'
     return {
-      label: span.toolName ? `${isResult ? '结果' : '工具'} ${span.toolName}` : kindLabel(span.kind),
-      tone: isResult ? 'result' : 'tool',
+      label: span.toolName ? `${prefix} ${span.toolName}` : kindLabel(span.kind),
+      tone: span.kind === 'tool_result' ? 'result' : 'tool',
       ms: span.durationMs,
       hint: span.texts?.[0]?.slice(0, 200),
     }
@@ -114,10 +120,11 @@ function toNode(span: TraceSpan): FlowNode {
 function pointToNode(point: TracePoint): FlowNode | null {
   if (point.kind === 'usage' || point.kind === 'hint' || point.kind === 'edge') return null
   if (point.kind === 'tool_call' || point.kind === 'tool_args' || point.kind === 'tool_result') {
-    const isResult = point.kind !== 'tool_call'
+    // 与 toNode 同一口径：发起 / 入参 / 结果三态分开，别把 args 也叫「结果」
+    const prefix = point.kind === 'tool_result' ? '结果' : point.kind === 'tool_args' ? '入参' : '工具'
     return {
-      label: point.toolName ? `${isResult ? '结果' : '工具'} ${point.toolName}` : kindLabel(point.kind),
-      tone: isResult ? 'result' : 'tool',
+      label: point.toolName ? `${prefix} ${point.toolName}` : kindLabel(point.kind),
+      tone: point.kind === 'tool_result' ? 'result' : 'tool',
       hint: point.text?.slice(0, 200),
     }
   }
