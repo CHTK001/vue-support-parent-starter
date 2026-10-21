@@ -12,7 +12,6 @@ import { useRouter } from "vue-router";
 import { http, unwrapResult } from "@repo/utils";
 import { ReFormItem } from "@repo/ui/re-kit";
 import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress } from "../api";
-import { injectApmAgent, uninjectApmAgent, fetchApmAgentStatus, type ApmAgentStatus } from "../api/hostFile";
 import { osIconSvg } from "../utils/osIcon";
 /** 主机表单结构（与 AssetsView.Host 保持一致——避免跨 .vue 文件的类型导入解析问题） */
 interface Host {
@@ -314,56 +313,6 @@ async function deployAgent(): Promise<void> {
   }
 }
 
-// ---- APM JavaAgent 注入 ----
-const apmInjecting = ref(false);
-const apmRemoving = ref(false);
-const apmStatus = ref<ApmAgentStatus | null>(null);
-
-async function loadApmStatus(): Promise<void> {
-  if (!form.value.id) return;
-  try {
-    apmStatus.value = await fetchApmAgentStatus(form.value.id);
-  } catch {
-    apmStatus.value = null;
-  }
-}
-
-async function injectApm(): Promise<void> {
-  const hostId = form.value.id;
-  if (!hostId) {
-    message.warning("请先保存主机信息");
-    return;
-  }
-  apmInjecting.value = true;
-  try {
-    await injectApmAgent(hostId);
-    message.success("APM JavaAgent 注入任务已提交");
-    setTimeout(loadApmStatus, 2000);
-  } catch (e) {
-    message.error("APM JavaAgent 注入失败：" + String((e as Error)?.message ?? e));
-  } finally {
-    apmInjecting.value = false;
-  }
-}
-
-async function removeApm(): Promise<void> {
-  const hostId = form.value.id;
-  if (!hostId) {
-    message.warning("请先保存主机信息");
-    return;
-  }
-  apmRemoving.value = true;
-  try {
-    await uninjectApmAgent(hostId);
-    message.success("APM JavaAgent 移除任务已提交");
-    setTimeout(loadApmStatus, 2000);
-  } catch (e) {
-    message.error("APM JavaAgent 移除失败：" + String((e as Error)?.message ?? e));
-  } finally {
-    apmRemoving.value = false;
-  }
-}
-
 async function resolvePackagePath(configKey: string, fallback: string): Promise<string> {
   try {
     const map = await http().get("/ms/server/config/map").then((r: any) => unwrapResult<Record<string, unknown>>(r));
@@ -493,7 +442,6 @@ watch(() => props.modelValue, (v) => {
   if (!v) return;
   if (props.isEdit && props.host) {
     form.value = { ...(props.host as any) };
-    void loadApmStatus();
     // 开关字段保持后端 number(1/0)，ReSwitch 用 active-value=1/inactive-value=0 绑定
     if (form.value.serverHostCollectEnabled == null) form.value.serverHostCollectEnabled = 1;
     if (form.value.serverHostOnlineEnabled == null) form.value.serverHostOnlineEnabled = 1;
@@ -526,8 +474,6 @@ watch(() => props.modelValue, (v) => {
         formIdentityId.value = bindList[0];
       }
       hostBoundIdentities.value = bindList;
-      // APM 详情回填后刷新注入状态（异步，不阻塞表单）
-      void loadApmStatus();
       // 本机：详情回填后再次锁定首选网卡 IP（覆盖库中可能残留的回环地址）
       if (isLocalCollect.value) {
         form.value.serverHostRemoteProtocol = "VNC";
@@ -704,10 +650,10 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
         </template>
 
-        <!-- ─── 凭据校验与 Agent（Agent/OpenSSH/SCHEDULED 显示；本机自采集由 monitor 进程直读，无需凭据）─── -->
-        <template v-if="form.serverHostCollectMode === 'AGENT' || form.serverHostCollectMode === 'OPENSSH' || form.serverHostCollectMode === 'SCHEDULED'">
+        <!-- ─── 凭据校验与 Agent（仅 Agent 采集模式显示；本机自采集由 monitor 进程直读，无需凭据）─── -->
+        <template v-if="form.serverHostCollectMode === 'AGENT'">
           <div class="form-section full">凭据校验与 Agent</div>
-          <ReFormItem v-if="form.serverHostCollectMode === 'AGENT'" label="Agent 端口">
+          <ReFormItem label="Agent 端口">
             <ReInputNumber v-model="form.serverHostAgentPort" :min="1" :max="65535" style="width:100%" placeholder="默认 19876" />
           </ReFormItem>
           <ReFormItem label="凭据状态">
@@ -718,15 +664,10 @@ watch(() => props.modelValue, (v) => {
             </div>
           </ReFormItem>
           <ReFormItem v-if="credVerified" label="Agent 部署" class="col-span-2">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;">
               <ReButton type="primary" @click="deployAgent" :loading="deploying">自动部署 Agent</ReButton>
               <ReButton @click="downloadAgent">下载 Agent 包</ReButton>
               <ReButton type="success" @click="testAgentConnection">测试 Agent 连接</ReButton>
-              <ReButton type="warning" @click="injectApm" :loading="apmInjecting">注入 APM JavaAgent</ReButton>
-              <ReButton @click="removeApm" :loading="apmRemoving">移除 APM Agent</ReButton>
-            </div>
-            <div v-if="apmStatus" style="margin-top:8px;font-size:12px;color:#909399;">
-              APM 注入：{{ apmStatus.remoteJarName }} · options {{ apmStatus.options }} · {{ apmStatus.busy ? "执行中" : "空闲" }}
             </div>
           </ReFormItem>
           <ReFormItem v-else label="Agent 包下载" class="col-span-2">
