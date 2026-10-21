@@ -33,6 +33,41 @@
       </SettingsRow>
 
       <SettingsRow
+        label="初始化加载最新的记录数量"
+        description="打开会话时先加载最近多少条用户提问（含每轮对应的助手回复）；更早的记录在滚动到顶部时继续加载。调小可以让长会话打开更快"
+      >
+        <el-select
+          v-model="initialTurnsModel"
+          :disabled="loading"
+          class="w-56"
+          aria-label="打开会话时初始化加载最新的记录数量（用户轮次）"
+          @change="onInitialTurnsChange"
+        >
+          <el-option v-for="n in INITIAL_LOAD_TURNS_OPTIONS" :key="n" :label="`${n} 条`" :value="n" />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
+        label="「AI 正在思考…」占位文案"
+        description="AI 答复的首字还没回来时，气泡里显示哪一句。一行一句，随机轮换且不会连着两次相同；留空则用内置的默认文案"
+      >
+        <div class="flex flex-col gap-2 w-full max-w-xl">
+          <el-input
+            v-model="thinkingPhrasesText"
+            type="textarea"
+            :rows="4"
+            :disabled="loading || saving"
+            resize="vertical"
+            placeholder="一行一句，例如：&#10;AI 正在思考…&#10;正在翻阅小抄…"
+            aria-label="AI 正在思考占位文案列表"
+          />
+          <el-button class="self-start" type="primary" :loading="saving" :disabled="loading" @click="onThinkingPhrasesSave">
+            保存文案
+          </el-button>
+        </div>
+      </SettingsRow>
+
+      <SettingsRow
         label="会话超时时间"
         description="一次回复连续这么久（分钟）没有任何输出就判定为超时，服务端结束该次回复并给出超时提示；填 0 = 不限制"
       >
@@ -124,6 +159,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiService } from '../../services/ApiService'
+import { normalizeThinkingPhrases, setCustomThinkingPhrases } from '../../utils/thinkingPhrases'
 import { usePopup } from '../../composables/usePopup'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
@@ -135,6 +171,7 @@ import { OpenAI } from '@/components/icons'
 import LDialog from '@/components/ui/LDialog.vue'
 import ReButton from '@/components/re/ReButton.vue'
 import { getModelAvatarPath } from '@/utils/modelUtils'
+import { invalidateInitialLoadTurnsCache } from '../../services/modules/message.api'
 
 const { t } = useI18n()
 const { notify } = usePopup()
@@ -145,6 +182,24 @@ const GROUP = 'session'
 const FIELD_ENABLED = 'ai_next_task_enabled'
 /** 条数字段名 */
 const FIELD_MAX = 'ai_next_task_max'
+/**
+ * 初始化加载轮次字段名：与后端 SessionGlobalSettingProvider 的 initial_load_turns 逐字一致。
+ *
+ * <p>单位是**用户轮次**而不是消息条数：一轮问答里助手回复也各占一条消息，
+ * 按条数配会让「同样填 10」在不同会话里落成 10 轮或 6 轮。用户说的「10 条」
+ * 指的是 10 次提问，所以配置项本身也按轮次定义（后端按 user 消息取窗口边界）。</p>
+ */
+const FIELD_INITIAL_TURNS = 'initial_load_turns'
+/**
+ * 「AI 正在思考…」占位文案（一行一句）。
+ *
+ * 存**文本**而不是 JSON 数组：用户是在多行输入框里一句一行地填，文本形态最省事；
+ * 读取侧统一用 normalizeThinkingPhrases 规整（见 utils/thinkingPhrases.ts），
+ * 空串 = 用内置默认文案。
+ */
+const FIELD_THINKING_PHRASES = 'thinking_placeholder_phrases'
+/** 初始化加载轮次的默认值：与后端 SPI 声明的 10 对齐，配置缺失时不让下拉空着 */
+const DEFAULT_INITIAL_TURNS = 10
 /** 会话超时字段名（分钟） */
 const FIELD_IDLE_TIMEOUT = 'stream_idle_timeout_minutes'
 /** 会话超时兜底值：后端未返回时用它，不让输入框空着 */
@@ -161,6 +216,15 @@ const IDLE_TIMEOUT_OPTIONS = [0, 5, 10, 15, 30, 45, 60, 120]
 
 /** 联想条数的可选档位 */
 const MAX_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10]
+
+/**
+ * 初始化加载轮次的可选档位。
+ *
+ * <p>档位与 {@link MAX_COUNT_OPTIONS} 同风格（升序、取整），上限 50 与后端
+ * {@code AiSessionController.MAX_INITIAL_TURNS} 对齐：再大就等于「打开会话把整段历史铺出来」，
+ * 正是这个配置要解决的问题。</p>
+ */
+const INITIAL_LOAD_TURNS_OPTIONS = [5, 10, 15, 20, 30, 50]
 
 // ===================== 对话路由（runtime 分组的模型选择） =====================
 
@@ -344,6 +408,7 @@ const defaultEnabled = ref(false)
 const overridden = ref(false)
 const maxCount = ref(3)
 const idleTimeout = ref(DEFAULT_IDLE_TIMEOUT)
+const initialTurns = ref(DEFAULT_INITIAL_TURNS)
 /**
  * 下拉框的 v-model 绑定目标。
  *
@@ -352,6 +417,22 @@ const idleTimeout = ref(DEFAULT_IDLE_TIMEOUT)
  */
 const maxCountModel = ref(3)
 const idleTimeoutModel = ref(DEFAULT_IDLE_TIMEOUT)
+const initialTurnsModel = ref(DEFAULT_INITIAL_TURNS)
+/** 「AI 正在思考…」占位文案（多行文本，一行一句）；空 = 用内置默认文案 */
+const thinkingPhrasesText = ref('')
+
+/**
+ * 保存占位文案。
+ *
+ * <p>先落进内存里的文案库再写用户覆盖层，顺序刻意如此：写库失败时本次会话也已经是新文案，
+ * 不会出现「设置页显示已改、气泡里还是旧句子」的错位。</p>
+ */
+const onThinkingPhrasesSave = async () => {
+  const text = normalizeThinkingPhrases(thinkingPhrasesText.value).join('\n')
+  thinkingPhrasesText.value = text
+  setCustomThinkingPhrases(text)
+  await saveOverrides({ [FIELD_THINKING_PHRASES]: text })
+}
 
 /**
  * 把任意数值归一化到给定档位里最近的一个。
@@ -430,6 +511,18 @@ const load = async () => {
       ? Math.min(idle, 180)
       : DEFAULT_IDLE_TIMEOUT
     idleTimeoutModel.value = nearestOption(idleTimeout.value, IDLE_TIMEOUT_OPTIONS, DEFAULT_IDLE_TIMEOUT)
+    const turnsItem = pickField(response, FIELD_INITIAL_TURNS)
+    const turns = Number(turnsItem?.value ?? turnsItem?.defaultValue)
+    initialTurns.value = Number.isFinite(turns) && turns >= 1
+      ? Math.min(Math.trunc(turns), INITIAL_LOAD_TURNS_OPTIONS[INITIAL_LOAD_TURNS_OPTIONS.length - 1])
+      : DEFAULT_INITIAL_TURNS
+    initialTurnsModel.value = nearestOption(initialTurns.value, INITIAL_LOAD_TURNS_OPTIONS, DEFAULT_INITIAL_TURNS)
+
+    const phrasesItem = pickField(response, FIELD_THINKING_PHRASES)
+    const phrases = normalizeThinkingPhrases(phrasesItem?.value ?? phrasesItem?.defaultValue)
+    thinkingPhrasesText.value = phrases.join('\n')
+    // 同步进内存文案库：设置页里读到的就是气泡里将要显示的那一份，两处不各持一份状态
+    setCustomThinkingPhrases(phrases)
   } catch (error) {
     console.error('获取 session 分组设置失败:', error)
     notify.error(t('settings.loadFailed'), error)
@@ -447,6 +540,9 @@ const saveOverrides = async (payload: Record<string, unknown>) => {
   saving.value = true
   try {
     await apiService.updateUserGroupOverrides(GROUP, payload)
+    // 会话首屏加载轮次在消息出口侧有一份进程内缓存（见 message.api.ts）。
+    // 不在这里失效的话，用户改完设置立刻开会话，读到的还是旧轮次，得刷新页面才生效。
+    invalidateInitialLoadTurnsCache()
     await load()
   } catch (error) {
     console.error('保存 session 分组设置失败:', error)
@@ -493,6 +589,24 @@ const onIdleTimeoutChange = (value: number | undefined) => {
   idleTimeout.value = nearestOption(Math.trunc(Number(value)), IDLE_TIMEOUT_OPTIONS, DEFAULT_IDLE_TIMEOUT)
   idleTimeoutModel.value = idleTimeout.value
   saveOverrides({ [FIELD_IDLE_TIMEOUT]: idleTimeout.value })
+}
+
+/**
+ * 初始化加载轮次变更：写本人覆盖层。
+ *
+ * @param value 变更后的用户轮次数
+ */
+const onInitialTurnsChange = (value: number | undefined) => {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  initialTurns.value = nearestOption(
+    Math.trunc(Number(value)),
+    INITIAL_LOAD_TURNS_OPTIONS,
+    DEFAULT_INITIAL_TURNS,
+  )
+  initialTurnsModel.value = initialTurns.value
+  saveOverrides({ [FIELD_INITIAL_TURNS]: initialTurns.value })
 }
 
 onMounted(() => {

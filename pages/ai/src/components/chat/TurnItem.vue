@@ -99,6 +99,13 @@
             @click="handleClick" />
 
           <!--
+            首字未返回时的思考占位：随机文案（会话管理可配）+ 三点/呼吸动画。
+            不让 AI 气泡在等首字时是一块空白 —— 本机实测等待 5～50s，
+            空白会被读成「卡死了」。首字一到即由正文顶替（见 showThinkingPlaceholder）。
+          -->
+          <ThinkingPlaceholder v-if="showThinkingPlaceholder" class="mt-3" />
+
+          <!--
             Agent 产出图片就地预览：正文/工具调用里提到的工作区图片文件，
             真实存在就渲染缩略图（幻觉路径静默跳过）。
             传本轮全部版本——图片是 agent 的真实产物，不随文本版本切换丢失。
@@ -252,6 +259,7 @@ import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils';
 import { usePopup } from "../../composables/usePopup";
 import MessageToolCalls from './message-item/MessageToolCalls.vue';
 import ProcessTimeline from './message-item/ProcessTimeline.vue';
+import ThinkingPlaceholder from './message-item/ThinkingPlaceholder.vue';
 import MessageOutputImages from './message-item/MessageOutputImages.vue';
 import MessageActions from './message-item/MessageActions.vue';
 import FileChangesBar from './message-item/FileChangesBar.vue';
@@ -373,6 +381,28 @@ const displayGroups = computed<DisplayGroup[]>(() => {
 const timelineItems = computed<DisplayItem[]>(() => {
   return flattenContentsForTimeline(turnsCache.value);
 });
+
+/**
+ * 正文是否已经有字了（= 首字到了没）。
+ *
+ * <p>只认 content 正文：思考行/工具行不算「回复」——它们出现时正文往往仍是空的，
+ * 占位继续显示才符合读感（「在想」→ 还在想下一句）。</p>
+ */
+const hasReplyText = computed(() => {
+  const msg = activeAssistant.value;
+  if (!msg) return false;
+  return (msg.contents || []).some((c: any) => String(c?.content || '').trim().length > 0);
+});
+
+/**
+ * 是否显示「AI 正在思考…」占位：正在流式，且正文一个字都还没有。
+ *
+ * <p>首字一到 hasReplyText 变 true，占位立刻卸载、由正文顶替，
+ * 不会出现「占位和正文同时挂在气泡里」的怪状态。</p>
+ */
+const showThinkingPlaceholder = computed(
+  () => streamingState.value.isStreaming && !hasReplyText.value,
+);
 
 // ============================================
 // 执行日志（agentscope trace）
