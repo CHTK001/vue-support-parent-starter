@@ -464,12 +464,18 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   padding: 4px 20px 6px !important;
 }
 
-/* footer 内按钮统一紧凑高度（业务侧传入的 ReButton 默认偏大，弹窗内收窄） */
+/* footer 内按钮统一高度与字重（业务侧传入的 ReButton 默认偏大，弹窗内收窄）。
+   min-width/圆角/字重为 Vue 体系弹窗 footer 按钮标准（源自 eduai /edu/students
+   弹窗的既有观感：96px 最小宽、12px 圆角、600 字重），统一在此收敛，
+   各应用不要在页面里各自覆盖。 */
 .koi-dialog-shell .el-dialog__footer .el-button {
   height: 26px;
   min-height: 26px;
+  min-width: 96px;
   padding: 0 14px;
   font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--el-radius-lg, 12px);
 }
 
 /* compact 模式：进一步缩小 body 内边距 */
