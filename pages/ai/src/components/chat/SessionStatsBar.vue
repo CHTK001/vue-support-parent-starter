@@ -165,7 +165,8 @@
 
       为什么放在底部状态条：它和「轮数 / 步数 / Token / 上下文」是同一层信息 ——
       都是「这一轮到底怎么跑的」；用户看完速度/命中率，下一步就想知道步骤怎么走的。
-      图标用内联 SVG（两个节点 + 连线），不引入新图标依赖。
+      1.0 版起改为**纯图标按钮**：正文指标拥挤，露出「链路追踪」四个字反而喧宾夺主，
+      图标（两个节点 + 连线）配 title/aria-label 表达语义，悬停高亮说明可点。
     -->
     <button
       type="button"
@@ -174,13 +175,12 @@
       aria-label="链路追踪"
       @click="traceVisible = true"
     >
-      <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"
         stroke-linecap="round" aria-hidden="true">
         <circle cx="3" cy="4" r="1.8" />
         <circle cx="13" cy="12" r="1.8" />
         <path d="M4.6 5.2 11.4 10.8" />
       </svg>
-      <span>链路追踪</span>
     </button>
 
     <!-- 弹框挂在状态条内部，避免把会话面板/消息列的模板再撑一层 -->
@@ -525,22 +525,22 @@ const ringStyle = computed(() => {
 }
 
 /*
-  链路追踪入口：低调的描边按钮，不抢三段数据的主视觉。
+  链路追踪入口：低调的描边图标按钮，不抢三段数据的主视觉。
   与状态条同高（22px），hover 才出现底色 —— 常驻但不喧宾夺主。
 */
 .stats-trace-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   flex: 0 0 auto;
+  width: 22px;
   height: 22px;
-  margin-left: 4px;
-  padding: 0 8px;
+  margin-left: 6px;
+  padding: 0;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
   background: transparent;
   color: var(--color-text-gray, var(--el-text-color-secondary));
-  font-size: 12px;
   line-height: 1;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;

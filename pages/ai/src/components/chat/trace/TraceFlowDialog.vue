@@ -6,7 +6,7 @@
     点它多半是「刚这一轮怎么走的、慢在哪」，看完就关；弹框不会挤掉消息列宽度，
     也避免和已经在右侧打开的「执行轨迹」面板抢同一个位置。
   -->
-  <el-dialog
+  <ReDialog
     :model-value="modelValue"
     title="链路追踪"
     width="860px"
@@ -38,7 +38,18 @@
       <el-alert v-if="error" type="error" :closable="false" show-icon
         :title="'读取执行轨迹失败：' + error" />
       <template v-else>
-        <TraceFlowGraph v-if="model && !model.empty" :model="model" />
+        <!--
+          type="flow" → 走 ReChart 内置的 G6 资金流引擎（复刻官方 fund-flow 示例），
+          数据由 buildTraceFlowTree 把 TraceModel 转成树后喂给 :data。
+          相比旧的逐行手写关系图：节点可伸缩拖拽、可折叠，同一信息换一种画法。
+        -->
+        <ReChart
+          v-if="model && !model.empty"
+          type="flow"
+          :data="flowTree"
+          height="100%"
+          :indent="260"
+        />
         <p v-else-if="loaded" class="tfd-empty">
           这个会话还没有执行轨迹。轨迹是后端在每次 Agent 运行时记的，跑过一轮后才会出现。
         </p>
@@ -47,15 +58,15 @@
 
     <template #footer>
       <el-button size="small" :loading="loading" @click="load">刷新</el-button>
-      <el-button size="small" type="primary" @click="emit('update:modelValue', false)">关闭</el-button>
     </template>
-  </el-dialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import ReChart from '@repo/ui/re-chart'
+import ReDialog from '@repo/ui/re-dialog'
 import { apiService } from '@/services/ApiService'
-import TraceFlowGraph from './TraceFlowGraph.vue'
 import {
   buildTraceModel,
   groupTraceRuns,
@@ -63,6 +74,7 @@ import {
   type TraceModel,
   type TraceRun,
 } from './traceTypes'
+import { buildTraceFlowTree } from './traceFlowTree'
 
 const props = defineProps<{
   modelValue: boolean
@@ -116,6 +128,8 @@ const runs = computed<TraceRun[]>(() => groupTraceRuns(merged.value))
 const runIndex = ref(0)
 const selectedRun = computed<TraceRun | undefined>(() => runs.value[runIndex.value])
 const model = computed<TraceModel>(() => buildTraceModel(selectedRun.value?.items ?? []))
+/** TraceModel → ReChart flow 树（根 → 轮次 → 步骤） */
+const flowTree = computed(() => (model.value.empty ? null : buildTraceFlowTree(model.value)))
 
 function pickRun(index: number) {
   runIndex.value = Math.min(Math.max(index, 0), Math.max(0, runs.value.length - 1))
@@ -246,10 +260,15 @@ watch(() => props.sessionId, () => {
 }
 
 .tfd-body {
+  height: 62vh;
   min-height: 220px;
-  max-height: 62vh;
-  overflow: auto;
+  overflow: hidden;
   padding: 4px 2px;
+}
+
+/* 流线图容器：占满 tfd-body，内层 G6 画布按 100% 撑高 */
+.tfd-body :deep(.re-chart__body) {
+  height: 100%;
 }
 
 .tfd-empty {
