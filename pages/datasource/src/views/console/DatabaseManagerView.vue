@@ -908,6 +908,9 @@
           <div class="dbm-context-item" @click="openDocumentExport(contextMenu.database)">
             <ReIcon name="Document" :size="14" />导出数据库文档
           </div>
+          <div class="dbm-context-item" @click="openCreateUser(contextMenu.database)">
+            <ReIcon name="User" :size="14" />添加用户
+          </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
           </div>
@@ -1271,6 +1274,42 @@
       <template #footer>
         <ReButton @click="createDbVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="creatingDb" @click="createDatabase">创建</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 添加用户弹窗 -->
+    <ReDialog v-model="createUserVisible" title="添加用户" width="520px">
+      <div class="dbm-create-form">
+        <div class="dbm-form-item">
+          <label>用户名</label>
+          <ReInput v-model="userForm.username" placeholder="请输入用户名" data-testid="dbm-user-username" />
+        </div>
+        <div class="dbm-form-item">
+          <label>主机</label>
+          <ReInput v-model="userForm.host" placeholder="如 localhost / %" data-testid="dbm-user-host" />
+        </div>
+        <div class="dbm-form-item">
+          <label>密码</label>
+          <ReInput v-model="userForm.password" type="password" show-password placeholder="请输入密码" data-testid="dbm-user-password" />
+        </div>
+        <div class="dbm-form-item">
+          <label>确认密码</label>
+          <ReInput v-model="userForm.confirmPassword" type="password" show-password placeholder="请再次输入密码" data-testid="dbm-user-confirm" />
+        </div>
+        <div class="dbm-form-item">
+          <label>授予权限</label>
+          <div class="dbm-user-grants">
+            <label v-for="g in USER_GRANTS" :key="g" class="dbm-user-grant">
+              <ElCheckbox v-model="userForm.grants" :value="g" />
+              <span>{{ g }}</span>
+            </label>
+          </div>
+          <span class="dbm-hint">勾选后追加 <code>GRANT ... ON *.* TO 'user'@'host'</code></span>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="createUserVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="creatingUser" @click="createUser">创建</ReButton>
       </template>
     </ReDialog>
 
@@ -2861,6 +2900,100 @@ const createDatabase = async () => {
     message.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     creatingDb.value = false;
+  }
+};
+
+// ==================== 添加用户 ====================
+/** 可授予的全局权限选项 */
+const USER_GRANTS = [
+  "ALL PRIVILEGES",
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "CREATE",
+  "DROP",
+  "ALTER",
+  "INDEX",
+  "REFERENCES",
+] as const;
+
+const createUserVisible = ref(false);
+const creatingUser = ref(false);
+const userForm = reactive<{
+  username: string;
+  host: string;
+  password: string;
+  confirmPassword: string;
+  grants: string[];
+}>({
+  username: "",
+  host: "%",
+  password: "",
+  confirmPassword: "",
+  grants: [],
+});
+
+/** 打开添加用户弹窗（默认库只为展示，用户名/主机/权限为全局对象） */
+const openCreateUser = (_database?: string) => {
+  userForm.username = "";
+  userForm.host = "%";
+  userForm.password = "";
+  userForm.confirmPassword = "";
+  userForm.grants = [];
+  createUserVisible.value = true;
+};
+
+/**
+ * 创建数据库用户：拼 `CREATE USER` + 可选 `GRANT`，走通用 DDL 通道执行。
+ *
+ * <p>通用 SQL 执行通道（{@code /db/execute}）与设计表/建库同一权限级别，可执行任意 DDL。
+ * 语句不限定方言：MySQL / MariaDB 用 {@code 'user'@'host'}；PostgreSQL 的语法不同，
+ * 执行失败会由后端回显服务端错误，因此先做内核无关的基础校验。</p>
+ */
+const createUser = async () => {
+  const username = userForm.username.trim();
+  const host = (userForm.host.trim() || "%").trim();
+  const password = userForm.password;
+  if (!username) {
+    message.warning("请输入用户名");
+    return;
+  }
+  if (!/^[A-Za-z0-9_$.]+$/.test(username)) {
+    message.warning("用户名只能包含字母、数字、下划线、$ 和点");
+    return;
+  }
+  if (!/^[A-Za-z0-9_$.%\-]+$/.test(host)) {
+    message.warning("主机名不合法");
+    return;
+  }
+  if (userForm.password !== userForm.confirmPassword) {
+    message.warning("两次输入的密码不一致");
+    return;
+  }
+  creatingUser.value = true;
+  try {
+    const stmts: string[] = [];
+    // 无密码时 MySQL 的 IDENTIFIED BY '' 会被当成空密码，直接省略 IDENTIFIED BY
+    const create = password
+      ? `CREATE USER '${username}'@'${host}' IDENTIFIED BY '${password.replace(/'/g, "''")}'`
+      : `CREATE USER '${username}'@'${host}'`;
+    stmts.push(create);
+    if (userForm.grants.length > 0) {
+      const grants = userForm.grants.join(", ");
+      stmts.push(`GRANT ${grants} ON *.* TO '${username}'@'${host}'`);
+    }
+    // 逐条执行：MySQL 的 Statement.execute 不支持一次多条（需 allowMultiQueries），
+    // 拆开虽多一次往返，但任何一条失败都能准确定位
+    for (const stmt of stmts) {
+      await executeDbSql(stmt, currentDatasourceId.value);
+    }
+    message.success("用户创建成功");
+    createUserVisible.value = false;
+  } catch (e) {
+    message.error(`创建用户失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    creatingUser.value = false;
   }
 };
 
@@ -8378,6 +8511,10 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+
+/* 添加用户：权限多选网格 */
+.dbm-user-grants { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.dbm-user-grant { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; color: var(--el-text-color-regular); }
 .dbm-simple-pager { display: inline-flex; align-items: center; gap: 8px; }
 
 /* ============================================================
