@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="visible"
     :title="isEditMode ? t('settings.providerDetail.editModelInfo') : t('settings.providerDetail.newModel')"
     width="880px"
@@ -93,6 +93,12 @@
                 <el-checkbox-button value="image">
                   <span class="cap-label"><el-icon class="mr-1"><Image24Regular /></el-icon>{{ t('settings.providerDetail.image') }}</span>
                 </el-checkbox-button>
+                <el-checkbox-button value="audio">
+                  <span class="cap-label"><el-icon class="mr-1"><Speaker224Regular /></el-icon>{{ t('settings.providerDetail.audio') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="video">
+                  <span class="cap-label"><el-icon class="mr-1"><Video24Regular /></el-icon>{{ t('settings.providerDetail.video') }}</span>
+                </el-checkbox-button>
               </el-checkbox-group>
             </el-form-item>
             <el-form-item :label="t('settings.providerDetail.outputCapabilities')" prop="config.outputCapabilities" class="mb-2">
@@ -102,6 +108,12 @@
                 </el-checkbox-button>
                 <el-checkbox-button value="image">
                   <span class="cap-label"><el-icon class="mr-1"><Image24Regular /></el-icon>{{ t('settings.providerDetail.image') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="audio">
+                  <span class="cap-label"><el-icon class="mr-1"><Speaker224Regular /></el-icon>{{ t('settings.providerDetail.audio') }}</span>
+                </el-checkbox-button>
+                <el-checkbox-button value="video">
+                  <span class="cap-label"><el-icon class="mr-1"><Video24Regular /></el-icon>{{ t('settings.providerDetail.video') }}</span>
                 </el-checkbox-button>
               </el-checkbox-group>
             </el-form-item>
@@ -381,17 +393,17 @@
         <el-button class="me-foot-btn" type="primary" @click="handleSave" :loading="saving">{{ t('settings.providerDetail.saveChanges') }}</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { CloudDownloadOutlined, AutoFixHighOutlined } from '@vicons/material'
 import {
   TextT24Regular, BrainCircuit20Regular, GlobeShield20Regular, Image24Regular, WrenchScrewdriver24Regular,
-  Checkmark24Regular, Info24Regular,
+  Checkmark24Regular, Info24Regular, Speaker224Regular, Video24Regular,
 } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'

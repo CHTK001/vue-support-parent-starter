@@ -358,6 +358,8 @@ export default {
     output: 'Output: ',
     text: 'Text',
     image: 'Image',
+    audio: 'Audio',
+    video: 'Video',
     editModelInfo: 'Edit Model Info',
     newModel: 'New Model',
     modelName: 'Model Name',
