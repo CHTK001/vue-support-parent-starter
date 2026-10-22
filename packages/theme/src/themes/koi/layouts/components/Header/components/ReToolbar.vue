@@ -10,34 +10,22 @@
     <div id="koi-header-extra" class="header-extra">
       <slot name="header-extra"></slot>
     </div>
-    <!-- 顶部菜单（菜单管理里「菜单位置=顶部」的菜单，点击新页面打开） -->
-    <ReTopMenus></ReTopMenus>
-    <!-- 搜索菜单 -->
-    <ReSearchMenu v-show="isCollapsed && toolbarConfig.searchMenu"></ReSearchMenu>
-    <!-- ElementPlus 尺寸配置 -->
-    <!-- <ReDimension v-if="isCollapsed"></ReDimension> -->
-    <!-- 路由缓存刷新 -->
-    <Refresh v-show="isCollapsed && toolbarConfig.refresh"></Refresh>
-    <!-- 站内消息（sysMessage + socket 推送，app.yaml other.toolbar.message 控制） -->
-    <ReStationMessage v-if="isCollapsed && toolbarConfig.message"></ReStationMessage>
-    <!-- 明亮/暗黑模式图标 -->
-    <ReDark v-if="isCollapsed && toolbarConfig.dark"></ReDark>
-    <!-- 中英文翻译 -->
-    <ReLanguage v-if="isCollapsed && toolbarConfig.language"></ReLanguage>
-    <!-- 全屏图标 -->
-    <ReFullScreen v-if="isCollapsed && toolbarConfig.fullScreen"></ReFullScreen>
-    <!-- 主题配置 -->
-    <ReThemeSetting v-if="isCollapsed && toolbarConfig.themeSetting"></ReThemeSetting>
-    <!-- 头像 AND 下拉折叠（始终显示） -->
-    <ReUser v-if="toolbarConfig.user"></ReUser>
-    <!-- 大屏入口（紧贴头像右侧；仅 yaml 配置显隐，UI 不暴露开关） -->
-    <ReBigscreen v-if="bigscreenConfig.enable"></ReBigscreen>
-    <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，始终显示本地时间） -->
-    <ReTimer v-if="timerConfig.enable"></ReTimer>
-    <!-- 天气 -->
-    <ReWeather v-if="toolbarConfig.weather && weatherConfig.enable && weatherCapability"></ReWeather>
-    <!-- 台风 -->
-    <ReTyphoon v-if="toolbarConfig.typhoon && typhoonCapability"></ReTyphoon>
+    <!--
+      顶栏条目：由 headerItems.ts 注册表驱动。
+
+      - 未配 app.yaml other.toolbar.items → 按 HEADER_ITEMS 固有顺序渲染（与改造前逐条等价）
+      - 配了 items → 按 yaml 给的顺序渲染，未列入的内置条目不再渲染
+      - keepMounted 的条目用 v-show 隐藏（保留搜索态等组件状态）；
+        其余用 v-if 卸载（天气/台风这类挂载即发请求的，不能留在后台空转）
+    -->
+    <template v-for="item in renderItems" :key="item.key">
+      <component
+        :is="item.component"
+        v-if="item.keepMounted || item.visible"
+        v-show="item.visible"
+        v-bind="item.props"
+      />
+    </template>
 
     <!-- 工具栏折叠（始终显示；默认折叠只显示头像，点击展开/收起图标） -->
     <div class="toolbar-toggle-wrap">
@@ -71,20 +59,14 @@ import { DArrowLeft, DArrowRight } from "@element-plus/icons-vue";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { getConfig, isCapabilityEnabled } from "@repo/config";
 import { useI18n } from "vue-i18n";
-import ReUser from "@repo/theme/koi/layouts/components/Header/components/ReUser.vue";
-import ReFullScreen from "@repo/theme/koi/layouts/components/Header/components/ReFullScreen.vue";
-import ReDark from "@repo/theme/koi/layouts/components/Header/components/ReDark.vue";
-import ReThemeSetting from "@repo/theme/koi/layouts/components/Header/components/ReThemeSetting.vue";
-import Refresh from "@repo/theme/koi/layouts/components/Header/components/Refresh.vue";
-// import ReDimension from "@repo/theme/koi/layouts/components/Header/components/ReDimension.vue";
-import ReLanguage from "@repo/theme/koi/layouts/components/Header/components/ReLanguage.vue";
-import ReSearchMenu from "@repo/theme/koi/layouts/components/Header/components/ReSearchMenu.vue";
-import ReStationMessage from "@repo/ui/re-station-message";
-import ReTimer from "@repo/theme/koi/layouts/components/Header/components/ReTimer.vue";
-import ReWeather from "@repo/theme/koi/layouts/components/Header/components/ReWeather.vue";
-import ReTyphoon from "@repo/theme/koi/layouts/components/Header/components/ReTyphoon.vue";
-import ReBigscreen from "@repo/theme/koi/layouts/components/Header/components/ReBigscreen.vue";
-import ReTopMenus from "@repo/theme/koi/layouts/components/Header/components/ReTopMenus.vue";
+import {
+  HEADER_ITEMS,
+  HEADER_ITEM_MAP,
+  type HeaderItemContext,
+  type HeaderItemDef,
+} from "./headerItems";
+import type { ToolbarItemConfig } from "@repo/config";
+import { log } from "@repo/utils";
 
 const emit = defineEmits(["widthChange"]);
 
@@ -100,20 +82,92 @@ const isHeaderInverted = computed(() => {
 
 // 框架组件显隐开关（app.yaml other.toolbar 配置）
 const toolbarConfig = computed(() => getConfig().other.toolbar);
-// 顶部计时器（app.yaml other.timer 配置）
-const timerConfig = computed(() => getConfig().other.timer);
-// 天气（app.yaml other.weather 配置）
-const weatherConfig = computed(() => getConfig().other.weather);
-// 业务能力开关（app.yaml other.capabilities）：关闭后台能力时对应入口一并隐藏
-const weatherCapability = computed(() => isCapabilityEnabled("weather"));
-const typhoonCapability = computed(() => isCapabilityEnabled("typhoon"));
-// 大屏（app.yaml other.bigscreen 配置；enable 控制顶栏入口显隐，yaml-only，UI 不暴露）
-const bigscreenConfig = computed(() => getConfig().other.bigscreen);
 
-/** 工具栏展开状态：true=显示全部图标，false=折叠只显示头像 */
+/**
+ * 工具栏展开状态。
+ *
+ * <p><b>注意这套命名是反的</b>：`isCollapsed = true` 表示「展开（图标都显示）」，
+ * `false` 表示「折叠（只剩头像）」。历史上就这么写的，模板里大量
+ * `v-show="isCollapsed && …"` 依赖它；本次重构保持语义不变，不在此处翻名，
+ * 避免一次性连带改十几处条件。</p>
+ */
 const isCollapsed = ref(!(toolbarConfig.value.collapse ?? true));
 const isSmallScreen = ref(true);
 const toolbarRef = ref<HTMLElement>();
+
+/** 注册表求值上下文：把配置与能力开关一次性喂给各条目，避免每个条目各读一遍 */
+const itemContext = computed<HeaderItemContext>(() => {
+  const cfg = getConfig();
+  return {
+    toolbar: cfg.other.toolbar,
+    timer: cfg.other.timer,
+    weather: cfg.other.weather,
+    bigscreen: cfg.other.bigscreen,
+    capability: isCapabilityEnabled,
+  };
+});
+
+/** 一条待渲染的顶栏条目 */
+interface RenderedItem {
+  key: string;
+  component: HeaderItemDef["component"];
+  /** 是否可见（布尔开关 + 业务条件 + 折叠状态三者同时满足） */
+  visible: boolean;
+  /** true = 用 v-show 隐藏，保留组件实例 */
+  keepMounted: boolean;
+  /** 传给组件的 props（仅 acceptsOptions 的条目有） */
+  props: Record<string, unknown>;
+}
+
+/**
+ * 计算本次要渲染的条目。
+ *
+ * <p>显隐真相排序：`toolbar.<key>` 布尔 → 条目业务条件 → 折叠状态。
+ * `collapsible:false` 或 `priority:'high'` 的条目不受折叠影响（天气/台风/头像等
+ * 历史上就是常显，行为保持不变）。</p>
+ */
+const renderItems = computed<RenderedItem[]>(() => {
+  const ctx = itemContext.value;
+  const cfg = ctx.toolbar;
+  const declared: ToolbarItemConfig[] = Array.isArray(cfg?.items) ? cfg.items : [];
+
+  /** 待渲染集合：{ 定义, yaml 声明 } */
+  const source: Array<{ def: HeaderItemDef; decl?: ToolbarItemConfig }> = [];
+  if (declared.length > 0) {
+    for (const decl of declared) {
+      if (!decl || decl.visible === false) continue;
+      const key = String(decl.key ?? "").trim();
+      const def = HEADER_ITEM_MAP.get(key);
+      if (!def) {
+        // yaml 里写错键名时静默跳过会让排查很难，这里明确告警一次
+        log.warn("header", `未知的顶栏条目 key：${key}（见 headerItems.ts 注册表）`);
+        continue;
+      }
+      source.push({ def, decl });
+    }
+  } else {
+    // 未配 items：沿用固有顺序，全部内置条目
+    for (const def of HEADER_ITEMS) source.push({ def });
+  }
+
+  return source.map(({ def, decl }) => {
+    const cfgFlags = cfg as unknown as Record<string, unknown>;
+    const flagOn = def.flag ? cfgFlags[def.flag as string] !== false : true;
+    const extraOn = def.enabled ? def.enabled(ctx) : true;
+    const priority = decl?.priority ?? def.priority ?? "normal";
+    const collapsible = def.collapsible ?? true;
+    // 不受折叠影响的：明确 collapsible:false，或 yaml 标了 high
+    const collapseOk = collapsible === false || priority === "high" ? true : isCollapsed.value;
+    return {
+      key: def.key,
+      component: def.component,
+      visible: flagOn && extraOn && collapseOk,
+      keepMounted: !!def.keepMounted,
+      props: def.acceptsOptions ? { options: decl?.options ?? {} } : {},
+    };
+  });
+});
+
 
 // 获取工具栏宽度并发送给父组件
 const updateToolbarWidth = () => {

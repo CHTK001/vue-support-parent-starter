@@ -51,6 +51,11 @@ import {
   type RelationViewMode,
   RELATION_LAYOUTS,
 } from "./types";
+import GraphHoverTip from "./components/GraphHoverTip.vue";
+import GraphDetailPanel from "./components/GraphDetailPanel.vue";
+import GraphContextMenu from "./components/GraphContextMenu.vue";
+import GraphToolbar from "./components/GraphToolbar.vue";
+import GraphTuningPanel from "./components/GraphTuningPanel.vue";
 
 // Minimap 不在 G6 的 build-in 注册表里（build-in 只注册了 bubble-sets / edge-bundling /
 // edge-filter-lens / grid-line），必须显式注册后才能用 { type: 'minimap' } 声明。
@@ -166,6 +171,20 @@ const props = withDefaults(
     maxDepth?: number;
     /** 是否开启部分加载（Neo4j 式），默认只加载局部数据 */
     partial?: boolean;
+    /** 是否启用 G6 官方 tooltip（鼠标悬停节点/边时显示内容） */
+    tooltip?: boolean;
+    /** 是否显示左上角悬浮信息（GraphHoverTip；KB 图谱关闭后只保留节点自带 label） */
+    hoverTip?: boolean;
+    /** 是否启用 G6 官方框选（brush-select） */
+    brushSelect?: boolean;
+    /** 是否启用 G6 官方拉索选择（lasso-select） */
+    lassoSelect?: boolean;
+    /** 是否启用 G6 官方 hull 轮廓（按 group 生成外围轮廓） */
+    hull?: boolean;
+    /** 是否启用 G6 官方 bubble-sets 分组描边 */
+    bubbleSets?: boolean;
+    /** 大数据量性能优化（启用 optimize-viewport-transform；缺省自动按节点数启用） */
+    performance?: boolean;
     /** 自定义右键菜单项 */
     menuItems?: RelationContextMenuItem[];
     /** 偏好保存回调：用户调布局/开关后把当前设置写入后台 */
@@ -215,6 +234,13 @@ const props = withDefaults(
     maxDepth: 3,
     partial: false,
     menuItems: undefined,
+    tooltip: true,
+    hoverTip: true,
+    brushSelect: false,
+    lassoSelect: false,
+    hull: false,
+    bubbleSets: false,
+    performance: false,
     saveSettings: undefined,
     loadSettings: undefined,
   },
@@ -274,6 +300,8 @@ const showGroupsOn = ref(props.showGroups);
 const highlightMode = ref<RelationHighlightMode>(props.highlight);
 /** 悬停时是否隐藏其它节点（而非淡出） */
 const hoverFocusOn = ref(props.hoverFocus);
+/** 是否显示左上角悬浮信息（GraphHoverTip；KB 图谱大数据场景关闭） */
+const hoverTipOn = ref(props.hoverTip);
 /** 右键扩线默认深度 */
 const expandDepthOn = ref(props.expandDepth);
 /** 最大加载深度 */
@@ -861,8 +889,37 @@ const buildBehaviors = () => {
     state: "selected",
     unselectedState: undefined,
   });
+  // G6 官方框选：按住并拖出矩形选区，配合 click-select 的 ctrl 多选互补
+  if (props.brushSelect) {
+    list.push({
+      type: "brush-select",
+      key: "brush-select",
+      // drag 拖拽选区（默认）；shift 按住时可追加到现有选区
+      trigger: ["drag"],
+      onSelect: (ids: string[]) => {
+        selectedIds.value = ids;
+        emit("selection-change", ids);
+      },
+    });
+  }
+  // G6 官方拉索选择：自由曲线圈选
+  if (props.lassoSelect) {
+    list.push({
+      type: "lasso-select",
+      key: "lasso-select",
+      onSelect: (ids: string[]) => {
+        selectedIds.value = ids;
+        emit("selection-change", ids);
+      },
+    });
+  }
   if (highlightMode.value === "adjacent" || highlightMode.value === "both") {
     list.push({ type: "hover-activate", degree: 1, state: "active", inactiveState: "inactive" });
+  }
+  // 大数据量性能优化：节点数多时只重绘视口内元素，避免拖拽/缩放全量更新
+  const nodeCount = graphData.value.nodes?.length ?? 0;
+  if (props.performance || nodeCount >= 3000) {
+    list.push({ type: "optimize-viewport-transform", key: "optimize-viewport-transform" });
   }
   // 拖边连线：仅 2D 且开启 editable、且处于连线模式时生效。
   // trigger='drag' 时它监听 node:dragstart / pointerup —— 与 drag-element 互斥（上面的 enable）。
@@ -901,9 +958,86 @@ const buildPlugins = () => {
   if (minimapOn.value) {
     list.push({ type: "minimap", size: [200, 128], padding: 8, position: "right-bottom" });
   }
+  // G6 官方 tooltip：悬停节点/边时显示名称（不绑定任何自定义 DOM，随画布销毁）。
+  // 做成无白底的轻量名签（pointer-events:none 穿透），避免「节点上多一层背景」遮挡画布。
+  if (props.tooltip) {
+    list.push({
+      type: "tooltip",
+      key: "tooltip",
+      trigger: "hover",
+      getContent: (event: any, items: any[]) => {
+        const it = items?.[0];
+        const label = it?.style?.labelText ?? it?.data?.label ?? it?.data?.labelText ?? it?.id ?? "";
+        const div = document.createElement("div");
+        div.textContent = String(label ?? "");
+        div.style.cssText = "padding:2px 6px;font-size:12px;line-height:1.4;color:var(--el-text-color-primary,#303133);background:transparent;border:none;box-shadow:none;border-radius:4px;pointer-events:none;";
+        return div;
+      },
+      // G6 TooltipComponent 外层自带白底圆角容器，这里抹掉，只留名字本身
+      style: {
+        background: "transparent",
+        border: "none",
+        boxShadow: "none",
+        padding: "2px 6px",
+        borderRadius: "4px",
+        color: "var(--el-text-color-primary,#303133)",
+      },
+    });
+  }
+  // G6 官方 hull / bubble-sets：按 group 生成分组轮廓，成员在数据装载后由 syncSetPlugins 刷新
+  if (props.hull || props.bubbleSets) {
+    for (const [group, ids] of groupMembers()) {
+      if (ids.length < 2) continue;
+      if (props.hull) {
+        list.push({
+          type: "hull",
+          key: `hull-${group}`,
+          members: ids,
+          style: { fill: "rgba(64,158,255,0.08)", stroke: "var(--el-color-primary,#409eff)", lineWidth: 1 },
+          padding: 8,
+        });
+      }
+      if (props.bubbleSets) {
+        list.push({
+          type: "bubble-sets",
+          key: `bs-${group}`,
+          members: ids,
+          style: { fill: "rgba(103,194,58,0.08)", stroke: "var(--el-color-success,#67c23a)", lineWidth: 1 },
+        });
+      }
+    }
+  }
   // history 必须在「初始 config」里，运行期 setPlugins 不会实例化新插件。
   list.push({ type: "history", key: "history", stackSize: 50, beforeAddCommand: beforeAddHistory });
   return list;
+};
+
+/** 按 group 收集节点 id（用于 hull / bubble-sets 成员） */
+const groupMembers = (): Map<string, string[]> => {
+  const map = new Map<string, string[]>();
+  for (const n of graphData.value.nodes ?? []) {
+    const g = n.group;
+    if (!g) continue;
+    const arr = map.get(g) ?? [];
+    arr.push(n.id);
+    map.set(g, arr);
+  }
+  return map;
+};
+
+/** 数据装载后刷新 set 插件的成员（hull / bubble-sets 不监听 data 变化，需手动 updateMember） */
+const syncSetPlugins = (graph: any) => {
+  if (!props.hull && !props.bubbleSets) return;
+  const groups = groupMembers();
+  for (const [group, ids] of groups) {
+    if (ids.length < 2) continue;
+    for (const pfx of [props.hull ? "hull" : "", props.bubbleSets ? "bs" : ""].filter(Boolean)) {
+      const inst = graph?.getPluginInstance?.(`${pfx}-${group}`);
+      if (inst) {
+        inst.updateMember?.(ids);
+      }
+    }
+  }
 };
 
 /**
@@ -1167,13 +1301,13 @@ const pinFixedNodes = async () => {
 const buildStateStyle = () => ({
   node: {
     selected: { lineWidth: 3, stroke: "var(--el-color-primary)", halo: true },
-    active: { lineWidth: 2, stroke: "var(--el-color-primary)" },
-    inactive: { opacity: hoverFocusOn.value ? 0.04 : 0.18 },
+    active: { lineWidth: 2, stroke: "var(--el-color-primary)", halo: true, haloOpacity: 0.3 },
+    inactive: { opacity: hoverFocusOn.value ? 0.04 : 0.1 },
   },
   edge: {
     selected: { lineWidth: 2, stroke: "var(--el-color-primary)" },
     active: { lineWidth: 2, opacity: 1 },
-    inactive: { opacity: hoverFocusOn.value ? 0.02 : 0.12 },
+    inactive: { opacity: hoverFocusOn.value ? 0.02 : 0.08 },
   },
 });
 
@@ -1427,6 +1561,7 @@ const loadData = async (d: RelationGraphData) => {
   // 放在 loadData 末尾而非各 mutator：initGraph 首装、doSetData 重装都走这里，
   // 保证「以 mode=3d 首次挂载」时 3D 层也能拿到首份快照
   sync3d();
+  syncSetPlugins(graph);
 };
 
 /** 取得 History 插件实例（key='history'）并挂上 change 监听 */
@@ -3185,6 +3320,7 @@ const mergeNeighborData = async (incoming: RelationGraphData) => {
   sync3d();
   emitDataChange();
   empty.value = (graph.getNodeData?.() ?? []).length === 0;
+  syncSetPlugins(graph);
 };
 
 /**
@@ -3491,316 +3627,75 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="wrapRef" class="rrg" :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }">
-    <!--
-      工具栏：地图式工具条。按钮集合由 toolbarItems 控制，
-      布局选择与「布局设置」联动，分组/小地图/悬停高亮都是独立开关。
-    -->
-    <div
+    <!-- 悬浮提示 / 详情面板 / 右键菜单已拆分为 internals/components -->
+    <GraphToolbar
       v-if="toolbar"
-      class="rrg__toolbar"
-      :class="['rrg__toolbar--' + toolbarPosition, { 'is-collapsed': toolbarCollapsed }]"
-      role="toolbar"
-      :aria-label="t('toolbar.aria', '关系图工具栏')"
-      @keydown.left.prevent="rovingFocus(-1, $event)"
-      @keydown.right.prevent="rovingFocus(1, $event)"
+      :collapsed="toolbarCollapsed"
+      :position="toolbarPosition"
+      :layout-value="layoutValue"
+      :layout-select-options="layoutOptions"
+      :layout-disabled="is3d"
+      :search-text="searchText"
+      :searchable="searchable"
+      :search-placeholder="t('toolbar.searchPlaceholder', '搜索节点…')"
+      :tunable="tunable"
+      :tuning-open="tuningOpen"
+      :show-groups-on="showGroupsOn"
+      :highlight-mode="highlightMode"
+      :hover-focus-on="hoverFocusOn"
+      :can-undo="canUndo"
+      :can-redo="canRedo"
+      :connect-mode="connectMode"
+      :editable="editable"
+      :exportable="exportable"
+      :minimap-on="minimapOn"
+      :is-3d="is3d"
+      :selected-ids="selectedIds"
+      :selected-is-node="selectedIds.length === 1 && isNodeId(selectedIds[0])"
+      :selected-is-edge="selectedIds.length === 1 && isEdgeId(selectedIds[0])"
+      :toolbar-items="toolbarItems"
+      :slot-api="api"
+      :slot-nodes="graphData.nodes"
+      :slot-mode="mode"
+      @toggle-collapse="toggleToolbarCollapse"
+      @layout-change="onLayoutChange"
+      @search="(kw: unknown) => runSearch(String(kw))"
+      @search-clear="clearSearch"
+      @toggle-tuning="toggleTuning()"
+      @toggle-groups="(on: boolean) => toggleGroups(on)"
+      @toggle-highlight="toggleHighlightMode()"
+      @toggle-hover-focus="(on: boolean) => setHoverFocus(on)"
+      @fit="api.fitView()"
+      @undo="api.undo()"
+      @redo="api.redo()"
+      @toggle-connect="setConnectMode(!connectMode)"
+      @export="onExport"
+      @toggle-minimap="toggleMinimapButton()"
+      @toggle-mode="toggleMode"
+      @update-selected-node="updateSelectedNode"
+      @update-selected-edge="updateSelectedEdge"
+      @remove-selected-node="removeSelectedNode"
+      @remove-selected-edge="removeSelectedEdge"
     >
-      <!-- 收缩开关：折叠后仅留此钮，整条工具条收成角上一颗圆钮（localStorage 记忆状态） -->
-      <button
-        type="button"
-        class="rrg__toolbar-collapse"
-        :class="{ 'is-collapsed': toolbarCollapsed }"
-        :title="toolbarCollapsed ? t('toolbar.expandTip', '展开工具栏') : t('toolbar.collapseTip', '收起工具栏')"
-        :aria-label="toolbarCollapsed ? t('toolbar.expand', '展开') : t('toolbar.collapse', '收缩')"
-        :aria-expanded="!toolbarCollapsed"
-        @click.stop="toggleToolbarCollapse"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="9 6 15 12 9 18" />
-        </svg>
-      </button>
-      <ReSelect
-        v-if="toolbarItemVisible('layout')"
-        ref="layoutSelectRef"
-        :model-value="layoutValue"
-        class="rrg__layout"
-        size="small"
-        :options="layoutOptions"
-        :disabled="is3d"
-        :placeholder="t('toolbar.layout', '选择布局')"
-        @update:model-value="onLayoutChange"
-      />
-      <ReInput
-        v-if="searchable"
-        v-model="searchText"
-        class="rrg__search"
-        size="small"
-        clearable
-        :placeholder="t('toolbar.searchPlaceholder', '搜索节点…')"
-        :aria-label="t('toolbar.search', '搜索节点')"
-        :title="t('toolbar.search', '搜索节点')"
-        @keyup.enter="runSearch(searchText)"
-        @clear="clearSearch"
-      />
-      <ReButton
-        v-if="tunable && toolbarItemVisible('layoutSettings')"
-        size="small"
-        :type="tuningOpen ? 'primary' : ''"
-        :title="t('toolbar.tuning', '布局参数')"
-        :aria-label="t('toolbar.tuning', '布局参数')"
-        :aria-expanded="tuningOpen"
-        @click="toggleTuning()"
-      >
-        {{ t('toolbar.tuning', '调参') }}
-      </ReButton>
-      <ReButton
-        v-if="toolbarItemVisible('group')"
-        size="small"
-        :type="showGroupsOn ? 'primary' : ''"
-        :title="showGroupsOn ? t('toolbar.groupOff', '关闭分组容器') : t('toolbar.groupOn', '显示分组容器')"
-        :aria-label="t('toolbar.group', '分组')"
-        :aria-pressed="showGroupsOn"
-        @click="toggleGroups(!showGroupsOn)"
-      >
-        {{ t('toolbar.group', '分组') }}
-      </ReButton>
-      <ReButton
-        v-if="toolbarItemVisible('highlight')"
-        size="small"
-        :type="highlightMode === 'none' ? '' : 'primary'"
-        :title="t('toolbar.highlightTitle', '切换悬停高亮模式：相邻/分组/两者/关闭')"
-        :aria-label="t('toolbar.highlight', '悬停高亮')"
-        :aria-pressed="highlightMode !== 'none'"
-        @click="toggleHighlightMode()"
-      >
-        {{ t('toolbar.highlight', '高亮') }}：{{ highlightMode }}
-      </ReButton>
-      <ReButton
-        v-if="toolbarItemVisible('hoverFocus')"
-        size="small"
-        :type="hoverFocusOn ? 'primary' : ''"
-        :title="hoverFocusOn ? t('toolbar.hoverFocusOff', '悬停时淡出其它节点') : t('toolbar.hoverFocusOn', '悬停时隐藏其它节点')"
-        :aria-label="t('toolbar.hoverFocus', '悬停聚焦')"
-        :aria-pressed="hoverFocusOn"
-        @click="setHoverFocus(!hoverFocusOn)"
-      >
-        {{ t('toolbar.hoverFocus', '悬停聚焦') }}
-      </ReButton>
-      <ReButton
-        v-if="toolbarItemVisible('fit')"
-        size="small"
-        :title="t('toolbar.fit', '适配视口')"
-        :aria-label="t('toolbar.fit', '适配视口')"
-        @click="api.fitView()"
-      >
-        {{ t('toolbar.fit', '适配') }}
-      </ReButton>
-      <ReButton
-        v-if="editable && toolbarItemVisible('undo')"
-        size="small"
-        :disabled="is3d || !canUndo"
-        :title="t('toolbar.undo', '撤销')"
-        :aria-label="t('toolbar.undo', '撤销')"
-        @click="api.undo()"
-      >
-        ↶
-      </ReButton>
-      <ReButton
-        v-if="editable && toolbarItemVisible('redo')"
-        size="small"
-        :disabled="is3d || !canRedo"
-        :title="t('toolbar.redo', '重做')"
-        :aria-label="t('toolbar.redo', '重做')"
-        @click="api.redo()"
-      >
-        ↷
-      </ReButton>
-      <ReButton
-        v-if="editable && toolbarItemVisible('connect')"
-        size="small"
-        :type="connectMode ? 'primary' : ''"
-        :disabled="is3d"
-        :title="connectMode ? t('toolbar.connectOff', '退出连线模式') : t('toolbar.connect', '连线模式')"
-        :aria-label="t('toolbar.connect', '连线模式')"
-        :aria-pressed="connectMode"
-        @click="setConnectMode(!connectMode)"
-      >
-        {{ t('toolbar.connect', '连线') }}
-      </ReButton>
-      <ReButton
-        v-if="exportable && toolbarItemVisible('export')"
-        size="small"
-        :title="t('toolbar.export', '导出图片')"
-        :aria-label="t('toolbar.export', '导出图片')"
-        @click="onExport"
-      >
-        {{ t('toolbar.export', '导出') }}
-      </ReButton>
-      <ReButton
-        v-if="toolbarItemVisible('minimap')"
-        size="small"
-        :type="minimapOn ? 'primary' : ''"
-        :disabled="is3d"
-        :title="minimapOn ? t('toolbar.minimapOn', '隐藏小地图') : t('toolbar.minimapOff', '显示小地图')"
-        :aria-label="t('toolbar.minimap', '小地图')"
-        :aria-pressed="minimapOn"
-        @click="toggleMinimapButton()"
-      >
-        {{ t('toolbar.minimap', '小地图') }}
-      </ReButton>
-      <ReButton
-        v-if="toolbarItemVisible('mode')"
-        size="small"
-        :type="is3d ? 'primary' : ''"
-        :title="is3d ? t('toolbar.modeTitle2d', '切回 2D 画布') : t('toolbar.modeTitle3d', '切换到 3D 力导向视图')"
-        :aria-label="is3d ? t('toolbar.modeTitle2d', '切回 2D 画布') : t('toolbar.modeTitle3d', '切换到 3D 力导向视图')"
-        @click="toggleMode"
-      >
-        {{ is3d ? t('toolbar.toggleMode2d', '2D') : t('toolbar.toggleMode3d', '3D') }}
-      </ReButton>
-      <ReButton
-        v-if="editable && !is3d && selectedIds.length === 1 && isNodeId(selectedIds[0]) && toolbarItemVisible('delete')"
-        size="small"
-        :title="t('toolbar.updateNodeTip', '更新选中节点')"
-        :aria-label="t('toolbar.updateNodeTip', '更新选中节点')"
-        @click="updateSelectedNode"
-      >
-        {{ t('toolbar.updateNode', '更新节点') }}
-      </ReButton>
-      <ReButton
-        v-if="editable && !is3d && selectedIds.length === 1 && isEdgeId(selectedIds[0]) && toolbarItemVisible('delete')"
-        size="small"
-        :title="t('toolbar.updateEdgeTip', '更新选中边')"
-        :aria-label="t('toolbar.updateEdgeTip', '更新选中边')"
-        @click="updateSelectedEdge"
-      >
-        {{ t('toolbar.updateEdge', '更新边') }}
-      </ReButton>
-      <ReButton
-        v-if="editable && !is3d && selectedIds.length === 1 && isNodeId(selectedIds[0]) && toolbarItemVisible('delete')"
-        size="small"
-        type="danger"
-        :title="t('toolbar.removeNodeTip', '删除选中节点')"
-        :aria-label="t('toolbar.removeNodeTip', '删除选中节点')"
-        @click="removeSelectedNode"
-      >
-        {{ t('toolbar.removeNode', '删除节点') }}
-      </ReButton>
-      <ReButton
-        v-if="editable && !is3d && selectedIds.length === 1 && isEdgeId(selectedIds[0]) && toolbarItemVisible('delete')"
-        size="small"
-        type="danger"
-        :title="t('toolbar.removeEdgeTip', '删除选中边')"
-        :aria-label="t('toolbar.removeEdgeTip', '删除选中边')"
-        @click="removeSelectedEdge"
-      >
-        {{ t('toolbar.removeEdge', '删除边') }}
-      </ReButton>
-      <slot name="toolbar-extra" :api="api" :nodes="graphData.nodes" :mode="mode" />
-    </div>
-
-    <!--
-      布局调参面板：与布局选择联动，改参数即实时重排。
-      独立于工具栏渲染（不嵌在 v-if="toolbar" 里），因此自带工具栏的调用方
-      （如知识库图谱 toolbar=false）也能通过 openTuning()/closeTuning() 开合。
-    -->
-    <div
-      v-if="tunable && tuningOpen"
-      class="rrg__tuning"
-      role="group"
-      :aria-label="t('toolbar.tuningPanel', '布局参数面板')"
-    >
-      <div class="rrg__tuning-head">
-        <span class="rrg__tuning-title">{{ t('toolbar.tuningPanel', '布局参数') }}</span>
-        <button
-          type="button"
-          class="rrg__tuning-close"
-          :title="t('toolbar.tuningClose', '关闭')"
-          :aria-label="t('toolbar.tuningClose', '关闭')"
-          @click="closeTuning()"
-        >
-          ✕
-        </button>
-      </div>
-      <p v-if="!tuningAvailable" class="rrg__tuning-tip">
-        {{ t('toolbar.tuningUnsupported', '当前布局不支持调参') }}
-      </p>
-      <template v-else>
-        <div v-for="f in availableTuningFields" :key="f.key" class="rrg__tuning-row">
-          <label class="rrg__tuning-label" :for="'rrg-tuning-' + f.key">{{ f.label }}</label>
-          <template v-if="f.control === 'switch'">
-            <ReSwitch
-              :id="'rrg-tuning-' + f.key"
-              size="small"
-              :model-value="Number(tuningValueOf(f)) >= 1"
-              :aria-label="f.label"
-              @update:model-value="(v: any) => onTuningInput(f.key, v ? 1 : 0)"
-            />
-            <span />
-          </template>
-          <template v-else-if="f.control === 'select'">
-            <ReSelect
-              :id="'rrg-tuning-' + f.key"
-              :model-value="String(tuningValueOf(f))"
-              :options="(f.options ?? []).map(o => ({ label: o.label, value: o.value }))"
-              size="small"
-              :aria-label="f.label"
-              @update:model-value="(v: unknown) => onTuningInput(f.key, String(v))"
-            />
-          </template>
-          <template v-else>
-            <input
-              :id="'rrg-tuning-' + f.key"
-              class="rrg__tuning-range"
-              type="range"
-              :min="f.min"
-              :max="f.max"
-              :step="f.step"
-              :value="Number(tuningValueOf(f))"
-              :aria-label="f.label"
-              @input="onTuningInput(f.key, Number(($event.target as HTMLInputElement).value))"
-            />
-            <span class="rrg__tuning-value">{{ tuningValueOf(f) }}</span>
-          </template>
-          <button
-            type="button"
-            class="rrg__tuning-reset"
-            :title="'重置 ' + f.label"
-            :aria-label="'重置 ' + f.label"
-            @click="resetTuningOne(f.key); applyLayoutTuning()"
-          >
-            ↺
-          </button>
-        </div>
-        <div class="rrg__tuning-actions">
-          <ReButton size="small" @click="applyLayoutTuning()">
-            {{ t('toolbar.tuningApply', '重新布局') }}
-          </ReButton>
-          <ReButton size="small" @click="resetTuningAll(); applyLayoutTuning()">
-            {{ t('toolbar.tuningReset', '恢复默认') }}
-          </ReButton>
-        </div>
-        <!-- 边标签开关：onHover 模式下默认只显示悬停那条边，此处可切回全部常显 -->
-        <label class="rrg__tuning-toggle">
-          <ReSwitch
-            size="small"
-            :model-value="edgeLabelsShown"
-            :aria-label="t('toolbar.edgeLabelsAll', '显示全部边标签')"
-            @update:model-value="onToggleAllEdgeLabels"
-          />
-          <span>{{ t('toolbar.edgeLabelsAll', '显示全部边标签') }}</span>
-        </label>
+      <template #toolbar-extra="{ api, nodes, mode }">
+        <slot name="toolbar-extra" :api="api" :nodes="nodes" :mode="mode" />
       </template>
-    </div>
+    </GraphToolbar>
+
+    <!-- 布局调参面板：已拆分为 internals/components/GraphTuningPanel.vue -->
+    <GraphTuningPanel
+      :open="tunable && tuningOpen"
+      :available="tuningAvailable"
+      :fields="availableTuningFields"
+      :edge-labels-shown="edgeLabelsShown"
+      :get-value="(f: any) => tuningValueOf(f)"
+      @close="closeTuning()"
+      @input="(key: string, value: unknown) => onTuningInput(key, value as any)"
+      @apply="applyLayoutTuning()"
+      @reset-one="(key: string) => resetTuningOne(key)"
+      @reset-all="resetTuningAll()"
+      @toggle-edge-labels="(on: boolean) => onToggleAllEdgeLabels(on)"
+    />
 
     <!-- 画布：2D(G6) 与 3D(vue-force-graph-3d) 双层，未激活的一层隐藏但不销毁 -->
     <div
@@ -3838,110 +3733,67 @@ onBeforeUnmount(() => {
       />
       <div v-if="empty" class="rrg__empty">{{ emptyText }}</div>
 
-      <!-- 悬浮详情：鼠标经过或点击时显示（ZooKeeper 集群信息即用这个） -->
-      <div v-if="hovered" class="rrg__tip">
-        <slot name="hover" :node="hovered">
-          <div class="rrg__tip-title">{{ hovered.label ?? hovered.id }}</div>
-          <div v-if="hovered.group" class="rrg__tip-row">分组：{{ hovered.group }}</div>
-        </slot>
-      </div>
+      <!-- 悬浮提示：由子组件 GraphHoverTip 渲染，支持 #hover 插槽穿透。
+           KB 图谱等大数据场景关闭（hoverTip=false），只保留节点自带 label，避免左上角浮层 -->
+      <GraphHoverTip v-if="hoverTipOn" :node="hovered">
+        <template #hover="{ node }">
+          <slot name="hover" :node="node" />
+        </template>
+      </GraphHoverTip>
 
-      <!-- 节点详情面板：默认开启懒加载，可用 #node-detail 插槽自定义展示 -->
-      <div v-if="detailNode" class="rrg__detail">
-        <div class="rrg__detail-head">
-          <span class="rrg__detail-title">{{ detailNode.label ?? detailNode.id }}</span>
-          <button
-            type="button"
-            class="rrg__detail-close"
-            :title="t('toolbar.tuningClose', '关闭')"
-            :aria-label="t('toolbar.tuningClose', '关闭')"
-            @click="closeDetail()"
-          >
-            ✕
-          </button>
-        </div>
-        <div v-if="detailLoading" class="rrg__detail-loading">加载中…</div>
-        <slot
-          v-else
-          name="node-detail"
-          :node="detailNode"
-          :data="detailData"
-          :loading="detailLoading"
-          :close="closeDetail"
-        >
-          <div class="rrg__detail-body">
-            <div v-for="(v, k) in detailData ?? {}" :key="String(k)" class="rrg__detail-row">
-              <span class="rrg__detail-key">{{ k }}</span>
-              <span class="rrg__detail-value">{{ displayDetailValue(v) }}</span>
+      <!-- 节点详情面板：由子组件 GraphDetailPanel 渲染，支持 #node-detail 插槽穿透 -->
+      <GraphDetailPanel
+        :node="detailNode"
+        :loading="detailLoading"
+        :data="detailData"
+        @close="closeDetail()"
+      >
+        <template #node-detail="{ node, data, loading, close }">
+          <slot name="node-detail" :node="node" :data="data" :loading="loading" :close="close">
+            <div class="rrg__detail-body">
+              <div v-for="(v, k) in data ?? {}" :key="String(k)" class="rrg__detail-row">
+                <span class="rrg__detail-key">{{ k }}</span>
+                <span class="rrg__detail-value">{{ displayDetailValue(v) }}</span>
+              </div>
             </div>
-          </div>
-        </slot>
-      </div>
+          </slot>
+        </template>
+      </GraphDetailPanel>
     </div>
 
-    <!-- 右键菜单：默认项 + 自定义项（名字/图标/回调）+ 内置详情/扩线/最短路径/删除 -->
-    <div
-      v-if="contextMenu && menu.visible"
-      class="rrg__menu"
-      :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
-      @click.stop
+    <!-- 右键菜单：由子组件 GraphContextMenu 渲染，菜单项/事件从父级传入 -->
+    <GraphContextMenu
+      v-if="contextMenu"
+      :menu="menu"
+      :details="details"
+      :load-neighbors="!!props.loadNeighbors"
+      :expanded-ids="expandedIds"
+      :expanding-ids="expandingIds"
+      :selected-count="selectedIds.length"
+      :has-path="pathIds.length > 0"
+      :editable="editable"
+      :node="menu.kind === 'node' ? (nodeById(menu.id) ?? null) : null"
+      :items="visibleMenuItems.map((item) => ({
+        key: item.key,
+        label: item.label,
+        icon: item.icon,
+        danger: false,
+        disabled: menuItemDisabled(item),
+      }))"
+      @close="menu.visible = false"
+      @node-right-click="(n: RelationNode | null) => n && emit('node-right-click', n, null)"
+      @item-click="(item) => { const src = visibleMenuItems.find((x) => x.key === item.key); if (src) void onMenuItemClick(src); }"
+      @detail="(id: string) => { openDetail(id); menu.visible = false; }"
+      @expand="(id: string) => { void expandNode(id, expandDepthOn); menu.visible = false; }"
+      @shortest-path="() => { void showShortestPath(); menu.visible = false; }"
+      @restore-path="() => { void restorePath(); menu.visible = false; }"
+      @remove-node="(id: string) => { void removeNode(id); menu.visible = false; }"
+      @remove-edge="(id: string) => { void removeEdge(id); menu.visible = false; }"
     >
-      <div class="rrg__menu-item" @click="menu.visible = false; emit('node-right-click', nodeById(menu.id) as RelationNode, null)">
-        <slot name="menu" :kind="menu.kind" :id="menu.id" :api="api">
-          <span v-if="menu.kind === 'node'">节点：{{ nodeById(menu.id)?.label ?? menu.id }}</span>
-          <span v-else-if="menu.kind === 'edge'">边：{{ menu.id }}</span>
-          <span v-else>空白处</span>
-        </slot>
-      </div>
-
-      <!-- 自定义菜单项：支持名字/图标/回调 -->
-      <div
-        v-for="item in visibleMenuItems"
-        :key="item.key"
-        class="rrg__menu-item"
-        :class="{ 'is-disabled': menuItemDisabled(item) }"
-        @click="onMenuItemClick(item)"
-      >
-        <ReIcon v-if="item.icon" :name="item.icon" :size="14" />
-        <span>{{ item.label }}</span>
-      </div>
-
-      <!-- 详情：属性懒加载 -->
-      <div
-        v-if="details && menu.kind === 'node'"
-        class="rrg__menu-item"
-        @click="openDetail(menu.id); menu.visible = false"
-      >
-        <span>查看详情</span>
-      </div>
-
-      <!-- 右键扩线：后端查询其它关联 -->
-      <div
-        v-if="menu.kind === 'node' && props.loadNeighbors && !expandedIds.has(menu.id)"
-        class="rrg__menu-item"
-        @click="expandNode(menu.id, expandDepthOn); menu.visible = false"
-      >
-        <span>{{ expandingIds.includes(menu.id) ? '扩线中…' : '扩线' }}</span>
-      </div>
-
-      <!-- 最短路径 / 恢复原图 -->
-      <div
-        v-if="menu.kind === 'node' && selectedIds.length >= 2"
-        class="rrg__menu-item"
-        @click="showShortestPath(); menu.visible = false"
-      >
-        <span>最短路径</span>
-      </div>
-      <div v-if="pathIds.length" class="rrg__menu-item" @click="restorePath(); menu.visible = false">
-        <span>恢复原图</span>
-      </div>
-
-      <template v-if="editable">
-        <div v-if="menu.kind === 'node'" class="rrg__menu-item is-danger" @click="removeNode(menu.id); menu.visible = false">删除该节点</div>
-        <div v-if="menu.kind === 'edge'" class="rrg__menu-item is-danger" @click="removeEdge(menu.id); menu.visible = false">删除该边</div>
+      <template #menu="{ kind, id }">
+        <slot name="menu" :kind="kind" :id="id" :api="api" />
       </template>
-      <div class="rrg__menu-item" @click="menu.visible = false">关闭</div>
-    </div>
+    </GraphContextMenu>
   </div>
 </template>
 
@@ -4172,13 +4024,14 @@ onBeforeUnmount(() => {
   z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   width: 300px;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 8px;
-  background: var(--el-bg-color-overlay, #fff);
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+  padding: 14px 14px 12px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-bg-color-overlay, #fff) 96%, transparent);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(6px);
   font-size: 12px;
   color: var(--el-text-color-primary, #0f172a);
 }
@@ -4188,12 +4041,26 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 
 .rrg__tuning-title {
   font-weight: 600;
   font-size: 13px;
   color: var(--el-text-color-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rrg__tuning-title::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--el-color-primary, #409eff);
 }
 
 .rrg__tuning-close {
@@ -4203,7 +4070,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 1;
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: color 0.2s, background-color 0.2s;
 }
@@ -4230,6 +4097,14 @@ onBeforeUnmount(() => {
   grid-template-columns: 62px 1fr auto 24px;
   align-items: center;
   gap: 8px;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 8px;
+  transition: background-color 0.15s;
+}
+
+.rrg__tuning-row:hover {
+  background: color-mix(in srgb, var(--el-fill-color-light, #f1f5f9) 60%, transparent);
 }
 
 .rrg__tuning-label {
@@ -4252,10 +4127,14 @@ onBeforeUnmount(() => {
 }
 
 .rrg__tuning-value {
-  min-width: 34px;
+  min-width: 38px;
   text-align: right;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--el-text-color-primary, #0f172a);
+  font-size: 11px;
+  color: var(--el-color-primary, #3b82f6);
+  background: color-mix(in srgb, var(--el-color-primary, #3b82f6) 8%, transparent);
+  border-radius: 5px;
+  padding: 1px 4px;
 }
 
 .rrg__tuning-reset {
@@ -4265,7 +4144,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 1;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: color 0.2s, background-color 0.2s;
 }
@@ -4273,10 +4152,6 @@ onBeforeUnmount(() => {
 .rrg__tuning-reset:hover {
   color: var(--el-color-primary, #3b82f6);
   background: var(--el-fill-color-light, #f1f5f9);
-}
-
-.rrg__tuning-reset:hover {
-  color: var(--el-color-primary, #3b82f6);
 }
 
 .rrg__tuning-reset:focus-visible {
@@ -4288,8 +4163,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
   color: var(--el-text-color-regular, #475569);
   cursor: pointer;
 }
@@ -4298,8 +4173,8 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  padding-top: 4px;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 
 /* ReSelect / ReInput 的根节点带上的是子组件自己的 scope 标记，
