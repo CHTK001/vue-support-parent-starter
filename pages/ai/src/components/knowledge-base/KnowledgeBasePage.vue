@@ -2308,16 +2308,21 @@ const graphCompRef = ref<any>(null)
  */
 const graphEverMounted = ref(false)
 
-/** 知识图谱布局：分组圆形聚簇（rrg-cluster）。
- *  <p>同势力节点围绕各自簇心排成同心环 → 每个势力一个圆形聚簇，组间天然分离；
- *  不画矩形容器框，聚合靠布局本身（参考图「蜀 / 刘备 / 诸葛亮…按势力分组」形态）。
+/** 知识图谱布局：分组聚簇（rrg-cluster → G6 原生 combo-combined）。
+ *  <p>每个势力是一个原生 {@code circle} 组合容器（尺寸由子节点包围盒自动推导，
+ *  画出来是贴合内容的气泡圆，不是矩形框），组内同心环、组间力导向排斥 → 每组聚成
+ *  一团且互不重叠（参考图「蜀 / 刘备 / 诸葛亮…按势力分组」形态）。
  *  <p>由组件通用能力 {@code grouped-layout} 承担：任何给节点标 {@code group}=势力名的
- *  业务直接开聚簇布局即可，业务页只负责数据语义。</p>
+ *  业务直接开聚簇布局即可，业务页只负责数据语义。
  */
 const GRAPH_LAYOUT = 'rrg-cluster'
 
-/** rrg-cluster 聚簇布局无 force 参数；常量保留以便未来微调（如簇半径） */
-const GRAPH_LAYOUT_OPTIONS: Record<string, unknown> = {}
+/** 聚簇参数（原生 combo-combined）：组内节点间距 / 组合内边距 / 组合间距 */
+const GRAPH_LAYOUT_OPTIONS: Record<string, unknown> = {
+  nodeSpacing: 14,
+  comboPadding: 20,
+  comboSpacing: 48,
+}
 
 /** 组件工具栏只放图谱视图相关按钮；页面右上角仍负责刷新/生成/管理实体等动作 */
 const graphToolbarItems = [
@@ -2406,10 +2411,10 @@ async function loadGraphLayoutSettings() {
   if (!r?.settings) return null
   try {
     const s = JSON.parse(r.settings)
-    // 势力聚合已改用聚簇布局（rrg-cluster），不再需要 show-groups 的矩形/虚线容器框：
-    // 强制关掉它，避免后台旧设置（showGroups:true）在挂载时把框又渲染出来。
+    // 分组聚簇走 G6 原生 combo-combined：每个势力是一个组合容器，show-groups 负责生成
+    // combo；关掉它等于把组拆了，聚簇会退化成一圈互相压盖的散点。
     if (s && typeof s === 'object') {
-      s.showGroups = false
+      s.showGroups = true
       s.layout = GRAPH_LAYOUT
     }
     return s

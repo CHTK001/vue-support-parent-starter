@@ -18,12 +18,13 @@
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
+import { ElCheckbox, ElMessageBox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
 // 组件全部显式引入：本页被采集台与监控台共用，两个应用都不保证全局注册 Re*，
 // 只靠全局注册会出现「卡片能显示但按钮/表格不渲染」的问题。
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReDrawer from "@repo/ui/re-drawer";
 import ReEmpty from "@repo/ui/re-empty";
 import ReForm from "@repo/ui/re-form";
 import ReIcon from "@repo/ui/re-icon";
@@ -61,8 +62,17 @@ import {
 import { TableSelect, ColumnSelect } from "../components/selectors";
 import {
   deleteJdbcDriverJar,
+  fetchDbProcesses,
+  fetchDbSlowQueries,
   fetchJdbcDriverJars,
+  killDbProcess,
+  killDbProcesses,
+  toggleDataSourceTop,
   uploadJdbcDriverJar,
+  type DbProcessListResult,
+  type DbProcessRow,
+  type DbSlowQueryListResult,
+  type DbSlowQueryRow,
 } from "../api";
 import {
   deleteDatasourceTunnel,
@@ -432,12 +442,19 @@ const applyJdbcExtraParams = (): boolean => {
 
 // 测试连接
 const testing = ref<number | null>(null);
+/** 正在置顶/取消置顶的数据源 ID（切换按钮加载态） */
+const tryingTop = ref<number | null>(null);
+/** 最近一次「立即检测」识别出的服务端版本（jdbc 等；未识别为 null）。
+ *  检测结果即填即显：右侧面板的「版本」行与测试提示共用它。 */
+const detectedVersion = ref<string | null>(null);
 
 // 左栏筛选 / 右栏选中（纯前端交互状态）
 /** 左栏与页头共享的搜索关键词 */
 const keyword = ref("");
 /** 左栏当前状态过滤键 */
 const statusKey = ref<StatusFilterKey>("all");
+/** 左栏类型过滤：空 = 不限制（配合搜索关键词在同一行收缩） */
+const typeFilter = ref("");
 /** 右栏当前页签 */
 const activeTab = ref("overview");
 /** 当前选中的数据源 ID；未选中时详情回落到列表第一条 */
@@ -445,23 +462,31 @@ const currentId = ref<number | null>(null);
 /** 概览趋势里的最新采样点，供趋势下方「其它信息」面板展示服务器指标 */
 const latestMetric = ref<DatasourceMetricPoint | null>(null);
 
-/** 数据源类型图标和语义色（统一走 koi 变量） */
-const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
-  jdbc: { icon: "Coin", color: "var(--metric-cpu, var(--el-color-primary))", label: "JDBC 数据库" },
-  redis: { icon: "Coin", color: "var(--metric-redis, var(--el-color-danger))", label: "Redis" },
-  influxdb: { icon: "Coin", color: "var(--el-color-success)", label: "InfluxDB" },
-  neo4j: { icon: "Coin", color: "var(--metric-mem, var(--el-color-primary))", label: "Neo4j 图数据库" },
-  nacos: { icon: "Coin", color: "var(--metric-disk, var(--el-color-warning))", label: "Nacos 配置中心" },
-  zookeeper: { icon: "Coin", color: "var(--el-color-warning)", label: "ZooKeeper" },
-  kafka: { icon: "Coin", color: "#333333", label: "Kafka" },
-  nginx: { icon: "Connection", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
-  etcd: { icon: "Coin", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
-  prometheus: { icon: "DataLine", color: "#e6522c", label: "Prometheus" },
-  mongodb: { icon: "Coin", color: "#4DB33D", label: "MongoDB" },
-  elasticsearch: { icon: "Coin", color: "#00bfb3", label: "Elasticsearch" },
+/**
+ * 数据源类型图标和语义色（统一走 koi 变量）。
+ *
+ * <p>{@code mark} 是类型面板/卡片上用的品牌缩写徽标（如数据库「MY / PG / RE」），
+ * 代替原先全类型同一个 Coin 图标的做法 —— 用户按类型找数据源时，
+ * 一眼能识别是什么中间件，而不是靠文字再读一遍。徽标是纯色圆形 + 缩写，
+ * 内联渲染、零外部资源依赖，颜色仍走 koi 令牌。</p>
+ */
+const TYPE_META: Record<string, { icon: string; mark: string; color: string; label: string }> = {
+  jdbc: { icon: "Coin", mark: "DB", color: "var(--metric-cpu, var(--el-color-primary))", label: "JDBC 数据库" },
+  redis: { icon: "Coin", mark: "RE", color: "var(--metric-redis, var(--el-color-danger))", label: "Redis" },
+  influxdb: { icon: "Coin", mark: "IN", color: "var(--el-color-success)", label: "InfluxDB" },
+  neo4j: { icon: "Coin", mark: "N4", color: "var(--metric-mem, var(--el-color-primary))", label: "Neo4j 图数据库" },
+  nacos: { icon: "Coin", mark: "NA", color: "var(--metric-disk, var(--el-color-warning))", label: "Nacos 配置中心" },
+  zookeeper: { icon: "Coin", mark: "ZK", color: "var(--el-color-warning)", label: "ZooKeeper" },
+  kafka: { icon: "Coin", mark: "KA", color: "#333333", label: "Kafka" },
+  nginx: { icon: "Connection", mark: "NG", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
+  etcd: { icon: "Coin", mark: "ET", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
+  prometheus: { icon: "DataLine", mark: "PR", color: "#e6522c", label: "Prometheus" },
+  mongodb: { icon: "Coin", mark: "MO", color: "#4DB33D", label: "MongoDB" },
+  elasticsearch: { icon: "Coin", mark: "ES", color: "#00bfb3", label: "Elasticsearch" },
 };
 
-const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
+const typeMeta = (type: string) =>
+  TYPE_META[type] || { icon: "Coin", mark: "?", color: "var(--el-text-color-placeholder)", label: type };
 
 /** InfluxDB 新增/编辑表单里的版本选项；v2 与 v3 查询语法不通用 */
 const INFLUX_VERSION_OPTIONS = [
@@ -723,11 +748,85 @@ const datasourceStatusTextOf = (item: DataSourceInfo): string => STATUS_TEXT[dat
 
 /** 右键菜单挂的目标项：菜单项闭包都基于它，弹出期间不换目标 */
 const ctxMenu = reactive({ visible: false, x: 0, y: 0, item: null as DataSourceInfo | null });
-const ctxMenuItems = [
-  { key: "manage", label: "打开管理", icon: "View" },
-  { key: "edit", label: "编辑数据源", icon: "EditPen" },
-  { key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true },
-];
+
+/**
+ * 该数据源类型是否支持「显示进程」：进程管理是数据库内核特有 SPI 能力
+ * （仅 MySQL/MariaDB/PostgreSQL 的 JDBC 数据源可用），其余类型/内核不显示该菜单项。
+ */
+const supportsProcess = (item: DataSourceInfo): boolean =>
+  item.type === "jdbc" &&
+  /^jdbc:(mysql|mariadb|postgresql):/i.test((item.database ?? "").trim());
+
+/** 右键菜单：按数据源类型 + SPI 能力动态生成 */
+const ctxMenuItems = computed(() => {
+  const item = ctxMenu.item;
+  const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
+    { key: "manage", label: "打开管理（新标签）", icon: "View" },
+    { key: "test", label: "检测连接", icon: "Connection" },
+    {
+      key: "top",
+      label: item?.topFlag === 1 ? "取消置顶" : "置顶",
+      icon: "Top",
+      divided: true,
+    },
+  ];
+  // JDBC 内核能力（SPI 判断）：用户管理 / 查看文档 / 进程列表 / 慢查询
+  if (item?.type === "jdbc") {
+    const db = (item.database ?? "").trim();
+    const dialect = jdbcDialect(db);
+    if (dialect === "mysql" || dialect === "mariadb") {
+      base.push({ key: "users", label: "用户管理", icon: "User", warning: true });
+    }
+    base.push({ key: "docs", label: "查看驱动文档", icon: "Document", warning: true });
+    if (dialect === "mysql" || dialect === "mariadb" || dialect === "postgresql") {
+      base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
+      base.push({ key: "slow", label: "慢查询", icon: "Timer" });
+    }
+  }
+  base.push({ key: "edit", label: "编辑数据源", icon: "EditPen" });
+  base.push({ key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true });
+  return base;
+});
+
+/**
+ * 识别 JDBC URL 的方言，用于进程/慢查询等 SPI 能力判断与驱动文档跳转。
+ *
+ * @param database 数据源 database 字段（jdbc 类型为完整 JDBC URL）
+ * @returns mysql / mariadb / postgresql / oracle / sqlserver / 其他
+ */
+const jdbcDialect = (database: string): string => {
+  const lower = (database ?? "").trim().toLowerCase();
+  if (lower.startsWith("jdbc:mysql:")) return "mysql";
+  if (lower.startsWith("jdbc:mariadb:")) return "mariadb";
+  if (lower.startsWith("jdbc:postgresql:")) return "postgresql";
+  if (lower.startsWith("jdbc:oracle:")) return "oracle";
+  if (lower.startsWith("jdbc:sqlserver:")) return "sqlserver";
+  return "other";
+};
+
+/**
+ * JDBC 驱动文档链接（按方言跳官方文档）。
+ *
+ * <p>「查看驱动文档」的落地页：各驱动厂商的官方文档首页。
+ * MySQL 系的 MariaDB 驱动与 MySQL Connector/J 文档分开给。</p>
+ */
+const JDBC_DOC_URLS: Record<string, string> = {
+  mysql: "https://dev.mysql.com/doc/connector-j/en/",
+  mariadb: "https://mariadb.com/docs/clients/mariadb-connectors/connector-j/",
+  postgresql: "https://jdbc.postgresql.org/documentation/",
+  oracle: "https://docs.oracle.com/en/database/oracle/oracle-database/19/jjdbc/",
+  sqlserver: "https://learn.microsoft.com/en-us/sql/connect/jdbc/",
+};
+
+/** 打开 jdbc 数据源的驱动文档（新窗口，不离开页面） */
+const openDriverDocs = (item: DataSourceInfo) => {
+  const url = JDBC_DOC_URLS[jdbcDialect(item.database ?? "")] ?? "";
+  if (!url) {
+    message.info("该方言暂无内置文档链接");
+    return;
+  }
+  window.open(url, "_blank", "noopener");
+};
 
 /**
  * 在数据源项上右键。
@@ -746,6 +845,30 @@ const onItemMenuSelect = (key: string) => {
   if (!item) return;
   if (key === "manage") {
     openManager(item);
+    return;
+  }
+  if (key === "users") {
+    openUserManager(item);
+    return;
+  }
+  if (key === "test") {
+    void test(item);
+    return;
+  }
+  if (key === "top") {
+    void toggleTop(item);
+    return;
+  }
+  if (key === "docs") {
+    openDriverDocs(item);
+    return;
+  }
+  if (key === "processes") {
+    void openProcesses(item);
+    return;
+  }
+  if (key === "slow") {
+    void openSlowQueries(item);
     return;
   }
   if (key === "edit") {
@@ -814,6 +937,202 @@ const onSchemaError = (message: string) => {
   schemaColumns.value = [];
 };
 
+// ------------------------------ 显示进程（需求 4） ------------------------------
+const processVisible = ref(false);
+const processLoading = ref(false);
+const processSource = ref<DataSourceInfo | null>(null);
+const processSupported = ref(true);
+const processMessage = ref("");
+/** 进程列表 */
+const processRows = ref<DbProcessRow[]>([]);
+/** 选中待关闭的进程 ID 集合 */
+const processSelection = ref<Set<string>>(new Set());
+/** 正在关闭的进程 ID 集合（单条关闭的加载态） */
+const processKilling = ref<Set<string>>(new Set());
+const processKillAllLoading = ref(false);
+
+/** 打开「显示进程」弹窗并加载列表 */
+const openProcesses = async (item: DataSourceInfo) => {
+  if (item.id == null) {
+    message.warning("数据源缺少 ID，无法查看进程");
+    return;
+  }
+  processSource.value = item;
+  processVisible.value = true;
+  processSupported.value = true;
+  processMessage.value = "";
+  processRows.value = [];
+  processSelection.value = new Set();
+  processLoading.value = true;
+  try {
+    const result: DbProcessListResult = await fetchDbProcesses(item.id);
+    processSupported.value = !!result.supported;
+    processMessage.value = result.message ?? "";
+    processRows.value = result.processes ?? [];
+  } catch (e) {
+    processMessage.value = String((e as Error)?.message ?? e);
+    processSupported.value = false;
+  } finally {
+    processLoading.value = false;
+  }
+};
+
+/** 进程列定义 */
+const processColumns: ReTableColumn[] = [
+  { prop: "_sel", label: "", width: 40, slot: "col-sel", align: "center" },
+  { prop: "pid", label: "PID", width: 90 },
+  { prop: "user", label: "用户", minWidth: 90 },
+  { prop: "host", label: "客户端", minWidth: 130 },
+  { prop: "db", label: "库", minWidth: 110 },
+  { prop: "command", label: "命令/状态", minWidth: 110 },
+  { prop: "time", label: "时长(s)", width: 80, align: "right" },
+  { prop: "info", label: "正在执行", minWidth: 220 },
+  { prop: "_op", label: "操作", width: 80, slot: "col-op", align: "center" },
+];
+
+/** 切换单条进程选中 */
+const toggleProcessSelect = (pid: string) => {
+  if (processSelection.value.has(pid)) {
+    processSelection.value.delete(pid);
+  } else {
+    processSelection.value.add(pid);
+  }
+  processSelection.value = new Set(processSelection.value);
+};
+
+/** 全选 / 取消全选 */
+const toggleProcessSelectAll = () => {
+  const pids = processRows.value.map(r => r.pid);
+  if (processSelection.value.size === pids.length) {
+    processSelection.value = new Set();
+  } else {
+    processSelection.value = new Set(pids);
+  }
+};
+
+/** 刷新进程列表 */
+const reloadProcesses = async () => {
+  const item = processSource.value;
+  if (!item?.id) return;
+  processLoading.value = true;
+  try {
+    const result: DbProcessListResult = await fetchDbProcesses(item.id);
+    processSupported.value = !!result.supported;
+    processMessage.value = result.message ?? "";
+    processRows.value = result.processes ?? [];
+    processSelection.value = new Set();
+  } catch (e) {
+    processMessage.value = String((e as Error)?.message ?? e);
+  } finally {
+    processLoading.value = false;
+  }
+};
+
+/** 关闭单个进程 */
+const killOneProcess = async (pid: string) => {
+  const item = processSource.value;
+  if (!item?.id) return;
+  processKilling.value = new Set([...processKilling.value, pid]);
+  try {
+    await killDbProcess(item.id, pid);
+    message.success(`已关闭进程 ${pid}`);
+    await reloadProcesses();
+  } catch (e) {
+    message.error(`关闭失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    processKilling.value = new Set([...processKilling.value].filter(p => p !== pid));
+  }
+};
+
+/** 批量关闭选中的进程 */
+const killSelectedProcesses = async () => {
+  const item = processSource.value;
+  if (!item?.id) return;
+  const pids = [...processSelection.value];
+  if (pids.length === 0) {
+    message.warning("请先勾选要关闭的进程");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认关闭选中的 ${pids.length} 个进程？`, "批量关闭进程", {
+      type: "warning",
+      confirmButtonText: "关闭",
+      cancelButtonText: "取消",
+    });
+  } catch {
+    return;
+  }
+  processKillAllLoading.value = true;
+  try {
+    const result = await killDbProcesses(item.id, pids);
+    message.success(result.message || `已关闭 ${result.successCount} 个进程`);
+    await reloadProcesses();
+  } catch (e) {
+    message.error(`批量关闭失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    processKillAllLoading.value = false;
+  }
+};
+
+// ------------------------------ 慢查询（需求 1.7） ------------------------------
+const slowQueryVisible = ref(false);
+const slowQueryLoading = ref(false);
+const slowQuerySource = ref<DataSourceInfo | null>(null);
+const slowQuerySupported = ref(true);
+const slowQueryMessage = ref("");
+const slowQueryRows = ref<DbSlowQueryRow[]>([]);
+
+/** 打开「慢查询」弹窗并加载列表 */
+const openSlowQueries = async (item: DataSourceInfo) => {
+  if (item.id == null) {
+    message.warning("数据源缺少 ID，无法查看慢查询");
+    return;
+  }
+  slowQuerySource.value = item;
+  slowQueryVisible.value = true;
+  slowQuerySupported.value = true;
+  slowQueryMessage.value = "";
+  slowQueryRows.value = [];
+  slowQueryLoading.value = true;
+  try {
+    const result: DbSlowQueryListResult = await fetchDbSlowQueries(item.id);
+    slowQuerySupported.value = !!result.supported;
+    slowQueryMessage.value = result.message ?? "";
+    slowQueryRows.value = result.rows ?? [];
+  } catch (e) {
+    slowQueryMessage.value = String((e as Error)?.message ?? e);
+    slowQuerySupported.value = false;
+  } finally {
+    slowQueryLoading.value = false;
+  }
+};
+
+/** 慢查询列定义 */
+const slowQueryColumns: ReTableColumn[] = [
+  { prop: "digest", label: "语句（摘要）", minWidth: 320 },
+  { prop: "avgMs", label: "平均耗时(ms)", width: 120, align: "right" },
+  { prop: "maxMs", label: "最大耗时(ms)", width: 120, align: "right" },
+  { prop: "calls", label: "次数", width: 90, align: "right" },
+  { prop: "lastAt", label: "最近执行", width: 170, slot: "col-last", align: "center" },
+];
+
+/** 刷新慢查询列表 */
+const reloadSlowQueries = async () => {
+  const item = slowQuerySource.value;
+  if (!item?.id) return;
+  slowQueryLoading.value = true;
+  try {
+    const result: DbSlowQueryListResult = await fetchDbSlowQueries(item.id);
+    slowQuerySupported.value = !!result.supported;
+    slowQueryMessage.value = result.message ?? "";
+    slowQueryRows.value = result.rows ?? [];
+  } catch (e) {
+    slowQueryMessage.value = String((e as Error)?.message ?? e);
+  } finally {
+    slowQueryLoading.value = false;
+  }
+};
+
 /** 手动刷新表清单 */
 const refreshSchemaTables = () => {
   schemaError.value = null;
@@ -841,9 +1160,13 @@ const test = async (item: DataSourceInfo) => {
     const result = await testDataSource(item.id);
     // 后端在测试时把连接延迟/会话延迟回写台账，这里重新拉一次，让概览卡片显示最新值
     await load();
+    // 检测回填：仅对刚测过的这一条生效，切换数据源后即失效；
+    // 版本是探测结果，右栏「版本」行与测试提示共用它。
+    detectedVersion.value = result?.version || null;
     if (result?.success) {
       const detail = describeLatency(result);
-      message.success(detail ? `${result.message || "连接成功"}（${detail}）` : result.message || "连接成功");
+      const versionHint = result?.version ? `，服务端版本 ${result.version}` : "";
+      message.success(detail ? `${result.message || "连接成功"}（${detail}${versionHint}）` : `${result.message || "连接成功"}${versionHint}`);
     } else {
       message.error(result?.message || "连接失败");
     }
@@ -851,6 +1174,32 @@ const test = async (item: DataSourceInfo) => {
     message.error(`测试失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     testing.value = null;
+  }
+};
+
+/**
+ * 置顶 / 取消置顶数据源。
+ *
+ * <p>置顶是用户偏好：置顶项在左栏与全量列表排在前面。切换成功后重新拉列表，
+ * 保持当前选中项不变（置顶后它可能已经移到列表更靠前的位置，
+ * 而 current 是「当前选中 id」的派生值，重拉后仍指向同一数据源）。</p>
+ */
+const toggleTop = async (item: DataSourceInfo) => {
+  if (item.id == null) {
+    message.warning("数据源缺少 ID，无法置顶");
+    return;
+  }
+  const next = item.topFlag === 1 ? false : true;
+  tryingTop.value = item.id;
+  try {
+    const updated = await toggleDataSourceTop(item.id, next);
+    message.success(next ? `「${updated.name ?? item.name}」已置顶` : `已取消「${updated.name ?? item.name}」的置顶`);
+    // 置顶改变了列表顺序：重拉让左侧与选中态反映新的排序（回落后端按置顶优先排序）
+    await load();
+  } catch (e) {
+    message.error(`置顶失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    tryingTop.value = null;
   }
 };
 
@@ -889,15 +1238,48 @@ const openManager = (item: DataSourceInfo) => {
     message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
   }
-  if (!hasRoutePath(router, route)) {
-    const near = nearbyRoutePaths(router, route);
+  openFullManager(item, route);
+};
+
+/**
+ * 打开管理（新标签·全屏）：新标签页打开整页控制台，无顶部/左侧导航。
+ *
+ * <p>每个管理页都有同名的「/full」standalone 变体（见 {@link routes.ts} 的
+ * {@code createDatasourceManageRoutes}，standalone=true 注册为顶层路由、不套 layout）。
+ * 用 {@code window.open} 新开标签：既有应用仍在原页签，控制台独占一个新标签，屏幕不挤。</p>
+ */
+const openFullManager = (item: DataSourceInfo, baseRoute: string) => {
+  const fullRoute = `${baseRoute}/full`;
+  if (!hasRoutePath(router, fullRoute)) {
+    const near = nearbyRoutePaths(router, fullRoute);
     message.warning(
-      `当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`
+      `当前应用未注册 ${fullRoute} 全屏管理页，无法在新标签打开「${item.type}」管理界面`
       + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
     );
     return;
   }
-  void router.push({ path: route, query: { datasourceId: item.id } });
+  const href = router.resolve({ path: fullRoute, query: { datasourceId: item.id } }).href;
+  window.open(href, "_blank", "noopener");
+};
+
+/**
+ * 打开用户管理（新标签·全屏 + 定位用户页签）。
+ *
+ * <p>仅 MySQL/MariaDB 显示该入口（SPI 判断在右键菜单处已做）。打开的是
+ * {@code /db-manager/full?datasourceId=X&panel=users}：控制台加载后
+ * 由 DatabaseManagerView 识别 {@code panel=users} 自动打开用户管理页签。</p>
+ */
+const openUserManager = (item: DataSourceInfo) => {
+  const fullRoute = "/db-manager/full";
+  if (!hasRoutePath(router, fullRoute)) {
+    message.warning(`当前应用未注册 ${fullRoute}，无法打开用户管理`);
+    return;
+  }
+  const href = router.resolve({
+    path: fullRoute,
+    query: { datasourceId: item.id, panel: "users" },
+  }).href;
+  window.open(href, "_blank", "noopener");
 };
 
 /**
@@ -963,10 +1345,30 @@ const current = computed<DataSourceInfo | null>(() => {
   return list.value.find(item => item.id === currentId.value) ?? list.value[0];
 });
 
-/** 左栏数据源列表：状态过滤 + 关键词过滤（口径见 ../datasourceStatus） */
-const filteredList = computed<DataSourceInfo[]>(() =>
-  filterDataSources(list.value, statusKey.value, keyword.value),
-);
+/** 左栏数据源列表：状态过滤 + 类型过滤 + 关键词过滤（口径见 ../datasourceStatus） */
+const filteredList = computed<DataSourceInfo[]>(() => {
+  const typed = typeFilter.value
+    ? list.value.filter(item => item.type === typeFilter.value)
+    : list.value;
+  return filterDataSources(typed, statusKey.value, keyword.value);
+});
+
+/** 左栏类型过滤下拉选项：全部 + 每种已登记类型（带中文标签与计数） */
+const typeFilterOptions = computed(() => {
+  const counts = new Map<string, number>();
+  for (const item of list.value) {
+    counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
+  }
+  return [
+    { label: "全部类型", value: "" },
+    ...[...counts.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([type, count]) => ({
+        label: `${typeMeta(type).label}（${count}）`,
+        value: type,
+      })),
+  ];
+});
 
 /** 左栏状态过滤项与计数；三类互斥可加（online + abnormal + offline === all） */
 const statusFilters = computed<StatusFilterItem[]>(() => {
@@ -1080,9 +1482,18 @@ const configRows = computed(() => {
   if (!item) {
     return [];
   }
+  // 版本行口径：influxdb 用台账上的 v2/v3；其余类型用最近一次「立即检测」的探测结果。
+  // 探测结果只在本次会话内存活（右栏面板展示 + 提示用），不落台账 ——
+  // 台账的 datasource_version 字段只服务 influxdb（后端 copy 有类型闸门）。
+  let versionText = "—";
+  if (item.type === "influxdb") {
+    versionText = influxVersionLabel(item.version);
+  } else if (detectedVersion.value) {
+    versionText = `${detectedVersion.value}（检测）`;
+  }
   return [
     { label: "地址", value: formatAddress(item), mono: true },
-    { label: "版本", value: item.type === "influxdb" ? influxVersionLabel(item.version) : "—", mono: false },
+    { label: "版本", value: versionText, mono: false },
     { label: "配置路径", value: item.database || "—", mono: true },
     { label: "用户", value: item.username || "—", mono: false },
     { label: "备注", value: item.remark || "—", mono: false },
@@ -1345,14 +1756,23 @@ onMounted(load);
 
           <div class="ds-side__divider" />
 
-          <!-- 关键词搜索（与页头搜索框共享关键词） -->
-          <ReInput
-            v-model="keyword"
-            class="ds-side__search"
-            prefix-icon="Search"
-            placeholder="搜索数据源"
-            clearable
-          />
+          <!-- 关键词搜索 + 类型下拉（同一行收缩：搜索框吃弹性宽度，类型下拉固定） -->
+          <div class="ds-side__search-row">
+            <ReInput
+              v-model="keyword"
+              class="ds-side__search"
+              prefix-icon="Search"
+              placeholder="搜索数据源"
+              clearable
+            />
+            <ReSelect
+              v-model="typeFilter"
+              class="ds-side__type"
+              :options="typeFilterOptions"
+              placeholder="全部"
+              clearable
+            />
+          </div>
 
           <!-- 数据源卡片列表 -->
           <div class="ds-side__list">
@@ -1369,11 +1789,12 @@ onMounted(load);
                 @contextmenu.prevent="onItemContextMenu($event, item)"
               >
                 <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
-                  <ReIcon :name="typeMeta(item.type).icon" :size="16" />
+                  <b class="ds-mark">{{ typeMeta(item.type).mark }}</b>
                 </span>
                 <span class="ds-item__body">
                   <span class="ds-item__row">
                     <b class="ds-item__name" :title="item.name">{{ item.name }}</b>
+                    <span v-if="item.topFlag === 1" class="ds-item__pin" title="已置顶">顶</span>
                     <span class="ds-item__chip" :style="{ '--tile': typeMeta(item.type).color }">{{ sourceTypeChip(item) }}</span>
                   </span>
                   <span class="ds-item__addr mono">{{ item.host }}:{{ item.port }}</span>
@@ -1427,7 +1848,7 @@ onMounted(load);
                   :style="{ '--tile': typeMeta(current.type).color }"
                   aria-hidden="true"
                 >
-                  <ReIcon :name="typeMeta(current.type).icon" :size="20" />
+                  <b class="ds-mark ds-mark--lg">{{ typeMeta(current.type).mark }}</b>
                 </span>
                 <h2 class="ds-detail__name" :title="current?.name">{{ current?.name ?? "数据源中心" }}</h2>
                 <template v-if="current">
@@ -1539,6 +1960,13 @@ onMounted(load);
                       >立即检测</ReButton>
                       <ReButton class="ds-pill" icon="EditPen" :show-text="true" @click="openEdit(current)">编辑连接配置</ReButton>
                       <ReButton class="ds-pill" icon="Connection" :show-text="true" @click="activeTab = 'tunnel'">SSH 隧道</ReButton>
+                      <ReButton
+                        class="ds-pill"
+                        :icon="current.topFlag === 1 ? 'Top' : 'Top'"
+                        :show-text="true"
+                        :loading="tryingTop === current.id"
+                        @click="toggleTop(current)"
+                      >{{ current.topFlag === 1 ? "取消置顶" : "置顶" }}</ReButton>
                       <!-- 入口开关与页签条同源：页签藏了，这里也不能留一个跳不到的面包屑 -->
                       <ReButton v-if="OPER_LOG_ENTRY_VISIBLE" class="ds-pill" icon="Document" :show-text="true" @click="activeTab = 'logs'">查看操作日志</ReButton>
                     </div>
@@ -1726,7 +2154,7 @@ onMounted(load);
               @click="selectType(t)"
             >
               <span class="ds-type-item__tile" :style="{ '--tile': typeMeta(t).color }">
-                <ReIcon :name="typeMeta(t).icon" :size="16" />
+                <b class="ds-mark ds-mark--sm">{{ typeMeta(t).mark }}</b>
               </span>
               <span class="ds-type-item__label">{{ typeMeta(t).label }}</span>
             </button>
@@ -1738,7 +2166,7 @@ onMounted(load);
         <section class="ds-create__main">
           <header class="ds-create__head">
             <span class="ds-create__tile" :style="{ '--tile': typeMeta(form.type || '').color }">
-              <ReIcon :name="typeMeta(form.type || '').icon" :size="18" />
+              <b class="ds-mark ds-mark--md">{{ typeMeta(form.type || '').mark }}</b>
             </span>
             <div class="ds-create__heading">
               <div class="ds-create__name">{{ typeMeta(form.type || '').label }}</div>
@@ -1919,8 +2347,16 @@ onMounted(load);
       </template>
     </ReDialog>
 
-    <!-- 表结构浏览：入库节点按这里的真实列配字段映射 -->
-    <ReDialog v-model="schemaVisible" :title="`${schemaSourceName} · 表结构`" width="1020px">
+    <!-- 表结构浏览：入库节点按这里的真实列配字段映射。
+         需求：顶部工具条改一行（表选择 + 刷新 + 计数同排），宽度拉宽，
+         弹窗形态改为抽屉（ReDrawer）更能容纳长表清单与列表格。 -->
+    <ReDrawer
+      v-model="schemaVisible"
+      :title="`${schemaSourceName} · 表结构`"
+      size="680px"
+      footer-hidden
+      data-testid="ds-schema-drawer"
+    >
       <div class="ds-schema">
         <div class="ds-schema__bar">
           <span class="ds-schema__label">表</span>
@@ -1967,6 +2403,116 @@ onMounted(load);
           </template>
         </ReTable>
       </div>
+    </ReDrawer>
+
+    <!-- 显示进程：进程列表 + 关闭 / 批量关闭（仅 MySQL/MariaDB/PostgreSQL 内核显示入口） -->
+    <ReDialog v-model="processVisible" :title="`显示进程 · ${processSource?.name ?? ''}`" width="960px">
+      <div class="ds-process">
+        <div class="ds-process__bar">
+          <ReButton
+            layout="square"
+            icon="Refresh"
+            tip="刷新"
+            data-testid="ds-process-refresh"
+            :loading="processLoading"
+            @click="reloadProcesses"
+          />
+          <span class="ds-process__count">共 {{ processRows.length }} 个进程</span>
+          <span class="ds-process__spacer" />
+          <ReButton
+            layout="square"
+            icon="Select"
+            tip="全选 / 取消全选"
+            data-testid="ds-process-selectall"
+            @click="toggleProcessSelectAll"
+          />
+          <ReButton
+            type="danger"
+            :loading="processKillAllLoading"
+            :disabled="processSelection.size === 0"
+            data-testid="ds-process-batch-kill"
+            @click="killSelectedProcesses"
+          >
+            <template #icon><ReIcon name="Delete" :size="13" /></template>
+            关闭选中 ({{ processSelection.size }})
+          </ReButton>
+        </div>
+
+        <p v-if="!processSupported" class="ds-process__error">
+          {{ processMessage || "该数据库内核不支持进程管理（仅 MySQL/MariaDB/PostgreSQL 支持）" }}
+        </p>
+        <ReTable
+          v-else
+          :data="processRows"
+          :columns="processColumns"
+          :loading="processLoading"
+          row-key="pid"
+          stripe
+          border
+          :layout-table="{ height: '380px' }"
+        >
+          <template #col-sel="{ row }">
+            <ElCheckbox
+              :model-value="processSelection.has(row.pid)"
+              @change="toggleProcessSelect(row.pid)"
+            />
+          </template>
+          <template #col-op="{ row }">
+            <ReButton
+              layout="square"
+              size="small"
+              type="danger"
+              icon="Delete"
+              tip="关闭该进程"
+              data-testid="ds-process-kill"
+              :loading="processKilling.has(row.pid)"
+              @click="killOneProcess(row.pid)"
+            />
+          </template>
+        </ReTable>
+      </div>
+      <template #footer>
+        <ReButton @click="processVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 慢查询：平均耗时 Top 50（仅 MySQL/MariaDB/PostgreSQL 内核显示入口） -->
+    <ReDialog v-model="slowQueryVisible" :title="`慢查询 · ${slowQuerySource?.name ?? ''}`" width="960px">
+      <div class="ds-process">
+        <div class="ds-process__bar">
+          <ReButton
+            layout="square"
+            icon="Refresh"
+            tip="刷新"
+            data-testid="ds-slow-refresh"
+            :loading="slowQueryLoading"
+            @click="reloadSlowQueries"
+          />
+          <span class="ds-process__count">共 {{ slowQueryRows.length }} 条（按平均耗时降序 Top 50）</span>
+        </div>
+
+        <p v-if="!slowQuerySupported" class="ds-process__error">
+          {{ slowQueryMessage || "该数据库内核不支持慢查询（仅 MySQL/MariaDB/PostgreSQL 支持）" }}
+        </p>
+        <ReTable
+          v-else
+          :data="slowQueryRows"
+          :columns="slowQueryColumns"
+          :loading="slowQueryLoading"
+          row-key="digest"
+          stripe
+          border
+          :layout-table="{ height: '420px' }"
+        >
+          <template #col-last="{ row }">
+            <span v-if="row.lastAt" class="mono">{{ row.lastAt }}</span>
+            <span v-else class="ds-process__muted">—</span>
+          </template>
+        </ReTable>
+      </div>
+      <template #footer>
+        <ReButton @click="slowQueryVisible = false">关闭</ReButton>
+      </template>
     </ReDialog>
   </div>
 </template>
@@ -2102,6 +2648,29 @@ onMounted(load);
   background: var(--border-subtle, #eef0f6);
 }
 
+/* 左栏搜索行：搜索框 + 类型下拉同一行收缩。
+   搜索框吃弹性宽度，类型下拉固定 110px —— 窄栏里两控件并排不换行，
+   状态过滤与列表上方因此只占一行，纵向空间留给数据源卡片。 */
+.ds-side__search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ds-side__search-row .ds-side__search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-side__type {
+  flex: 0 0 110px;
+  width: 110px;
+}
+.ds-side__type :deep(.el-select__wrapper),
+.ds-side__type :deep(.el-input__wrapper) {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+
 /* 左栏列表：吃掉卡片剩余高度，超出独立滚动，
    这样「添加数据源」按钮始终贴在卡片底部，不会被长列表顶走 */
 .ds-side__list {
@@ -2175,6 +2744,25 @@ onMounted(load);
   border-radius: var(--radius-md, 8px);
   background: color-mix(in srgb, var(--tile) 12%, transparent);
 }
+/* 类型品牌徽标：品牌色圆底 + 白色缩写，代替原先全类型同一个 Coin 图标 */
+.ds-mark {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--tile);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+}
+.ds-mark--sm { min-width: 16px; height: 16px; font-size: 8px; padding: 0 2px; }
+.ds-mark--md { min-width: 24px; height: 24px; font-size: 11px; }
+.ds-mark--lg { min-width: 26px; height: 26px; font-size: 12px; }
 .ds-item__body {
   display: flex;
   flex-direction: column;
@@ -2208,6 +2796,21 @@ onMounted(load);
   color: var(--tile);
   background: color-mix(in srgb, var(--tile) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--tile) 40%, transparent);
+  border-radius: var(--el-border-radius-round, 9999px);
+}
+/* 置顶徽标：橙色「顶」字小圆点，置顶项在列表最前面才被看到 */
+.ds-item__pin {
+  flex: none;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--metric-warn, var(--el-color-warning));
   border-radius: var(--el-border-radius-round, 9999px);
 }
 .ds-item__addr {
@@ -2881,7 +3484,36 @@ onMounted(load);
   background: var(--el-color-danger-light-9);
 }
 
-/* ---------------- 通用 ---------------- */
+/* ---------------- 显示进程（需求 4） ---------------- */
+.ds-process {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ds-process__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ds-process__count {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ds-process__spacer {
+  flex: 1 1 auto;
+}
+.ds-process__error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+.ds-process__muted {
+  color: var(--el-text-color-placeholder);
+}
 .ds-pill { border-radius: var(--el-radius-full, 9999px) !important; }
 
 .mono {

@@ -27,20 +27,28 @@ import { sql } from "@codemirror/lang-sql";
 import { defaultHighlightStyle, syntaxHighlighting, StreamLanguage } from "@codemirror/language";
 import type { StreamParser } from "@codemirror/language";
 
-const props = defineProps<{
-  /** 编辑器文本（v-model） */
-  modelValue: string;
-  /** 编辑器语言：sql（默认，表/字段补全）| flux | cypher | redis | mongo —— 查询统一走本组件 */
-  language?: "sql" | "flux" | "cypher" | "redis" | "mongo";
-  /** 动态补全候选（flux：bucket/测量名；cypher：标签/关系类型），与内置关键字合并去重 */
-  keywords?: string[];
-  /** 占位提示，缺省按语言给默认文案 */
-  placeholder?: string;
-  /** 当前库表名（补全候选，sql 模式） */
-  tables?: string[];
-  /** 表字段解析器（按需拉取并缓存，sql 模式） */
-  columnResolver?: (table: string) => Promise<string[]>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** 编辑器文本（v-model） */
+    modelValue: string;
+    /** 编辑器语言：sql（默认，表/字段补全）| flux | cypher | redis | mongo —— 查询统一走本组件 */
+    language?: "sql" | "flux" | "cypher" | "redis" | "mongo";
+    /** 动态补全候选（flux：bucket/测量名；cypher：标签/关系类型），与内置关键字合并去重 */
+    keywords?: string[];
+    /** 占位提示，缺省按语言给默认文案 */
+    placeholder?: string;
+    /** 当前库表名（补全候选，sql 模式） */
+    tables?: string[];
+    /** 表字段解析器（按需拉取并缓存，sql 模式） */
+    columnResolver?: (table: string) => Promise<string[]>;
+    /**
+     * 可视最大高度（px）。缺省 320 —— 查询页「编辑器/结果上下拖拽分栏」为了跟随拖拽高度，
+     * 需要把 editor 的最大高度同步成拖拽后的值，否则编辑器会被钉死在缺省高度。
+     */
+    maxHeight?: string;
+  }>(),
+  { maxHeight: "320px" },
+);
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
@@ -419,7 +427,7 @@ onMounted(() => {
           boxShadow: "0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent)",
         },
         ".cm-scroller": {
-          maxHeight: "320px",
+          maxHeight: props.maxHeight ?? "320px",
           fontFamily: MONO_FONT,
           lineHeight: "1.6",
         },
@@ -499,7 +507,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .cm-sql-editor :deep(.cm-editor) {
-  max-height: 360px;
+  max-height: v-bind("props.maxHeight ?? '360px'");
 }
 .cm-sql-editor :deep(.cm-editor.cm-focused) {
   outline: none;

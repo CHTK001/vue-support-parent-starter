@@ -273,7 +273,7 @@
             <ReIcon
               :name="tab.type === 'query' ? 'Edit' : tab.type === 'object'
                 ? (DB_OBJECT_CATEGORIES.find(c => c.value === tab.objectCategory)?.icon ?? 'Document')
-                : 'Grid'"
+                : tab.type === 'users' ? 'User' : 'Grid'"
               size="12"
             />
             <span class="dbm-tab-title">{{ tab.title }}</span>
@@ -865,7 +865,13 @@
     </div>
 
     <!-- 空状态 -->
-        <div v-if="tabs.length === 0" class="dbm-empty">
+        <div
+          v-if="activeTabObj && activeTabObj.type === 'users'"
+          class="dbm-users-view"
+        >
+          <DbUserManagePanel :datasource-id="currentDatasourceId" data-testid="dbm-users-panel" />
+        </div>
+        <div v-else-if="tabs.length === 0" class="dbm-empty">
           <ReIcon name="Grid" size="64" class="dbm-empty-icon" />
           <p class="dbm-empty-text">从左侧选择表查看数据，或点击"新建查询"执行 SQL</p>
         </div>
@@ -953,6 +959,12 @@
           </div>
           <div class="dbm-context-item" @click="openDocumentExport(contextMenu.database)">
             <ReIcon name="Document" :size="14" />导出数据库文档
+          </div>
+          <div class="dbm-context-item" @click="openCreateUser(contextMenu.database)">
+            <ReIcon name="User" :size="14" />添加用户
+          </div>
+          <div v-if="usersSupported" class="dbm-context-item" @click="openUsersTab()">
+            <ReIcon name="UserFilled" :size="14" />用户管理
           </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
@@ -1601,6 +1613,42 @@
       </template>
     </ReDialog>
 
+    <!-- 添加用户弹窗 -->
+    <ReDialog v-model="createUserVisible" title="添加用户" width="520px">
+      <div class="dbm-create-form">
+        <div class="dbm-form-item">
+          <label>用户名</label>
+          <ReInput v-model="userForm.username" placeholder="请输入用户名" data-testid="dbm-user-username" />
+        </div>
+        <div class="dbm-form-item">
+          <label>主机</label>
+          <ReInput v-model="userForm.host" placeholder="如 localhost / %" data-testid="dbm-user-host" />
+        </div>
+        <div class="dbm-form-item">
+          <label>密码</label>
+          <ReInput v-model="userForm.password" type="password" show-password placeholder="请输入密码" data-testid="dbm-user-password" />
+        </div>
+        <div class="dbm-form-item">
+          <label>确认密码</label>
+          <ReInput v-model="userForm.confirmPassword" type="password" show-password placeholder="请再次输入密码" data-testid="dbm-user-confirm" />
+        </div>
+        <div class="dbm-form-item">
+          <label>授予权限</label>
+          <div class="dbm-user-grants">
+            <label v-for="g in USER_GRANTS" :key="g" class="dbm-user-grant">
+              <ElCheckbox v-model="userForm.grants" :value="g" />
+              <span>{{ g }}</span>
+            </label>
+          </div>
+          <span class="dbm-hint">勾选后追加 <code>GRANT ... ON *.* TO 'user'@'host'</code></span>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="createUserVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="creatingUser" @click="createUser">创建</ReButton>
+      </template>
+    </ReDialog>
+
     <!-- 导入数据弹窗 -->
     <ReDialog v-model="importVisible" title="导入向导" width="920px">
       <div class="dbm-import">
@@ -2219,6 +2267,10 @@ import ReRelationGraph from "@repo/ui/re-relation-graph";
 import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
+// 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
+import { DatasourceSelect } from "@pages/datasource";
+import type { CollectOption } from "@pages/datasource";
 import { useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import {
@@ -2338,6 +2390,40 @@ const currentDatasourceId = ref<number>(DEFAULT_DATASOURCE.id ?? 0);
 const currentDatasourceName = computed(() => {
   const ds = datasources.value.find(d => d.id === currentDatasourceId.value);
   return ds ? ds.name : DEFAULT_DATASOURCE.name;
+});
+
+/**
+ * 数据源下拉选项。
+ *
+ * <p>副标题给类型与地址：台账里有十几项时，光看名字分不出是哪个库。</p>
+ */
+const datasourceOptions = computed<CollectOption[]>(() =>
+  datasources.value.map(ds => {
+    const parts = [ds.type, ds.database || ds.host].filter(Boolean);
+    return {
+      value: String(ds.id ?? 0),
+      label: ds.name,
+      description: parts.length ? parts.join(" · ") : "",
+    };
+  }),
+);
+
+/** 选中数据源：组件给的是字符串，这里转回 number —— 本页的 id 要直接喂给各 API */
+function onDatasourcePick(value: string): void {
+  currentDatasourceId.value = Number(value) || 0;
+}
+
+/**
+ * 用户管理能力（SPI 判断）：仅当前数据源为 MySQL/MariaDB 内核时可用。
+ *
+ * <p>用户定义落在 {@code mysql.user} 表，MySQL/MariaDB 有完整的 CREATE/ALTER/DROP
+ * USER 与 SHOW GRANTS；其余内核（含 PostgreSQL）结构与语义差异大，不显示入口。
+ * 判断依据是当前数据源台账里的完整 JDBC URL（database 字段）。</p>
+ */
+const usersSupported = computed(() => {
+  const ds = datasources.value.find(d => d.id === currentDatasourceId.value);
+  const url = (ds?.database ?? "").trim().toLowerCase();
+  return url.startsWith("jdbc:mysql:") || url.startsWith("jdbc:mariadb:");
 });
 
 // 连接树
@@ -2643,7 +2729,7 @@ const activeTable = ref<string>("");
 interface Tab {
   id: string;
   /** object = 存储过程/函数/触发器/事件的定义页 */
-  type: "table" | "design" | "query" | "object" | "er";
+  type: "table" | "design" | "query" | "object" | "er" | "users";
   title: string;
   tableName?: string;
   database?: string;
@@ -3174,6 +3260,100 @@ const createDatabase = async () => {
     message.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     creatingDb.value = false;
+  }
+};
+
+// ==================== 添加用户 ====================
+/** 可授予的全局权限选项 */
+const USER_GRANTS = [
+  "ALL PRIVILEGES",
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "CREATE",
+  "DROP",
+  "ALTER",
+  "INDEX",
+  "REFERENCES",
+] as const;
+
+const createUserVisible = ref(false);
+const creatingUser = ref(false);
+const userForm = reactive<{
+  username: string;
+  host: string;
+  password: string;
+  confirmPassword: string;
+  grants: string[];
+}>({
+  username: "",
+  host: "%",
+  password: "",
+  confirmPassword: "",
+  grants: [],
+});
+
+/** 打开添加用户弹窗（默认库只为展示，用户名/主机/权限为全局对象） */
+const openCreateUser = (_database?: string) => {
+  userForm.username = "";
+  userForm.host = "%";
+  userForm.password = "";
+  userForm.confirmPassword = "";
+  userForm.grants = [];
+  createUserVisible.value = true;
+};
+
+/**
+ * 创建数据库用户：拼 `CREATE USER` + 可选 `GRANT`，走通用 DDL 通道执行。
+ *
+ * <p>通用 SQL 执行通道（{@code /db/execute}）与设计表/建库同一权限级别，可执行任意 DDL。
+ * 语句不限定方言：MySQL / MariaDB 用 {@code 'user'@'host'}；PostgreSQL 的语法不同，
+ * 执行失败会由后端回显服务端错误，因此先做内核无关的基础校验。</p>
+ */
+const createUser = async () => {
+  const username = userForm.username.trim();
+  const host = (userForm.host.trim() || "%").trim();
+  const password = userForm.password;
+  if (!username) {
+    message.warning("请输入用户名");
+    return;
+  }
+  if (!/^[A-Za-z0-9_$.]+$/.test(username)) {
+    message.warning("用户名只能包含字母、数字、下划线、$ 和点");
+    return;
+  }
+  if (!/^[A-Za-z0-9_$.%\-]+$/.test(host)) {
+    message.warning("主机名不合法");
+    return;
+  }
+  if (userForm.password !== userForm.confirmPassword) {
+    message.warning("两次输入的密码不一致");
+    return;
+  }
+  creatingUser.value = true;
+  try {
+    const stmts: string[] = [];
+    // 无密码时 MySQL 的 IDENTIFIED BY '' 会被当成空密码，直接省略 IDENTIFIED BY
+    const create = password
+      ? `CREATE USER '${username}'@'${host}' IDENTIFIED BY '${password.replace(/'/g, "''")}'`
+      : `CREATE USER '${username}'@'${host}'`;
+    stmts.push(create);
+    if (userForm.grants.length > 0) {
+      const grants = userForm.grants.join(", ");
+      stmts.push(`GRANT ${grants} ON *.* TO '${username}'@'${host}'`);
+    }
+    // 逐条执行：MySQL 的 Statement.execute 不支持一次多条（需 allowMultiQueries），
+    // 拆开虽多一次往返，但任何一条失败都能准确定位
+    for (const stmt of stmts) {
+      await executeDbSql(stmt, currentDatasourceId.value);
+    }
+    message.success("用户创建成功");
+    createUserVisible.value = false;
+  } catch (e) {
+    message.error(`创建用户失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    creatingUser.value = false;
   }
 };
 
@@ -5849,6 +6029,10 @@ const newTableDatabase = ref("");
 // 初始化
 onMounted(async () => {
   await loadDatasources();
+  // 数据源中心右键「用户管理」→ 打开全屏控制台并定位到用户管理页签（/db-manager/full?panel=users）
+  if (String(route.query.panel ?? "").toLowerCase() === "users" && usersSupported.value) {
+    openUsersTab();
+  }
   // text2sql 入口按后端能力显隐（未集成/未配置 = 隐藏），失败已在 API 内兜底
   void refreshAiStatus();
 });
@@ -7214,6 +7398,24 @@ function qualified(tab: Tab) {
 function openNewQuery() {
   const id = "query-" + Date.now();
   const tab: Tab = { id, type: "query", title: "查询 " + (tabs.value.filter(t => t.type === "query").length + 1), sql: "", database: activeDatabase.value };
+  tabs.value.push(tab);
+  activeTab.value = id;
+}
+
+/**
+ * 打开用户管理页签（内嵌面板）。
+ *
+ * <p>用户是连接级对象，不挂在某个库下 —— 库右键进到这里时只负责打开面板，
+ * 面板内部按当前数据源查询 {@code mysql.user}。重复打开复用已有页签。</p>
+ */
+function openUsersTab() {
+  const existing = tabs.value.find(t => t.type === "users");
+  if (existing) {
+    activeTab.value = existing.id;
+    return;
+  }
+  const id = "users-" + Date.now();
+  const tab: Tab = { id, type: "users", title: "用户管理" };
   tabs.value.push(tab);
   activeTab.value = id;
 }
@@ -9658,6 +9860,14 @@ onBeforeUnmount(() => {
 .dbm-empty-icon { color: var(--el-text-color-placeholder); }
 .dbm-empty-text { margin: 0; }
 
+/* 用户管理面板（users 页签） */
+.dbm-users-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 12px;
+  overflow: auto;
+}
+
 /* 右键菜单（对齐 Navicat） */
 .dbm-context-menu {
   position: fixed;
@@ -9785,6 +9995,10 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+
+/* 添加用户：权限多选网格 */
+.dbm-user-grants { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.dbm-user-grant { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; color: var(--el-text-color-regular); }
 .dbm-simple-pager { display: inline-flex; align-items: center; gap: 8px; }
 
 /* ============================================================

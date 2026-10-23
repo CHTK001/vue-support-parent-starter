@@ -2015,7 +2015,8 @@ function osTileClass(h: Host): string {
   min-height: 0;
   display: grid;
   /* 卡片收窄到 320px：一行放下更多主机。指标区左右两栏（条形 + 趋势）在 320px
-     下仍能并排不挤压 —— 右侧可视列固定 150px，左侧条形至少留 130px。 */
+     下仍能并排不挤压 —— 右侧可视列固定 124px，左侧条形至少留 140px。
+     数值取自实测：350px 卡片下条形区曾只有 130px，进度条短到读不出差异。 */
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   /* 有卡片时按自然高度排布、不把卡片拉高（卡片高度由自身内容决定）；
      剩余空间宁可留在网格下方，也不要把每张主机卡撑成同一个死板的高度。 */
@@ -2064,6 +2065,13 @@ function osTileClass(h: Host): string {
   padding: 10px 0;
   /* body 不设 overflow：卡片内部永不出现滚动条（滚动只发生在页面级） */
   overflow: visible;
+}
+/* footer 的 18px 上下内边距是纯留白：里面只有一个 28px 高的按钮行，
+   叠加 .hc-actions 自己的 8px 后，底栏白白占掉 84px（实测）。收到 0，
+   底部留白交给 .hc-actions 统一控制，底栏高度回落到按钮高度本身。 */
+.host-card-grid :deep(.el-card__footer) {
+  padding: 0;
+  border-top: 0;
 }
 .host-card-grid :deep(.el-card:hover) {
   transform: translateY(-3px);
@@ -2139,6 +2147,16 @@ function osTileClass(h: Host): string {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-full, 9999px);
 }
+/* 350px 的卡片里，四个胶囊按原尺寸会折成「3+1」两行 —— 70px 只显示一行信息量。
+   收紧内边距与字号后四个能并排：高度不变（仍是一行高），但省掉整行 32px。 */
+@media (min-width: 641px) {
+  .hc-chip {
+    height: 24px;
+    padding: 0 8px;
+    gap: 4px;
+    font-size: 11.5px;
+  }
+}
 .hc-chip i { font-style: normal; color: var(--el-text-color-placeholder); }
 .hc-chip b { font-weight: 600; color: var(--el-text-color-primary); }
 .hc-chip b.bad { color: var(--el-color-danger); }
@@ -2154,6 +2172,14 @@ function osTileClass(h: Host): string {
   gap: 12px;
   align-items: stretch;
   padding: 0 16px 12px;
+}
+/* 卡片收窄到 350px 后，150px 的右列把左侧条形压到只剩 130px 出头，
+   而右侧「趋势图 + 三个环」在 130px 里也挤成一团 —— 两边都不好读。
+   这里换成更划算的分法：右列降到 124px（趋势图仍可读，环缩到 34px），
+   省出的宽度全部给左侧进度条，CPU/内存/磁盘的差异才看得出来。 */
+.host-card-grid :deep(.el-card) .hc-metrics {
+  grid-template-columns: minmax(0, 1fr) 124px;
+  gap: 10px;
 }
 .hc-metrics__bars { display: flex; flex-direction: column; gap: 10px; justify-content: center; min-width: 0; }
 /* 无指标占位：高度对齐真实指标区（条形 3 行 + 趋势图 = 约 131px），
@@ -2251,6 +2277,12 @@ function osTileClass(h: Host): string {
   border-radius: 50%;
   transition: background 0.5s ease;
 }
+/* 右列降到 124px 后，三个 40px 环 + 间距会溢出（40*3+12=132）。
+   缩到 34px：环内数字仍能放下两位数 + 单位，且不换行。 */
+.host-card-grid :deep(.el-card) .hc-ring {
+  width: 34px;
+  height: 34px;
+}
 .hc-ring::before {
   content: "";
   position: absolute;
@@ -2268,6 +2300,10 @@ function osTileClass(h: Host): string {
 }
 .hc-ring b { font-size: 12px; font-weight: 700; color: var(--el-text-color-primary); }
 .hc-ring i { font-size: 9px; color: var(--el-text-color-secondary); }
+/* 34px 环的内高只有 26px，12px + 9px 两行会顶满并压到边。
+   数字收到 11.5px、单位 8.5px，两行合计约 21px，留出呼吸空间。 */
+.host-card-grid :deep(.el-card) .hc-ring b { font-size: 11.5px; }
+.host-card-grid :deep(.el-card) .hc-ring i { font-size: 8.5px; }
 @media (max-width: 520px) {
   .hc-metrics { grid-template-columns: 1fr; }
   .hc-metrics__viz {
@@ -2289,7 +2325,13 @@ function osTileClass(h: Host): string {
   justify-content: flex-end;
   gap: 6px;
   padding: 8px 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
+}
+/* 底栏与指标区之间用一条 inset 分隔线（左右留白对齐正文），
+   比贴边通栏的 border-top 更轻，也不会和大卡片边框形成两道平行线。
+   padding 上收到 6px：上面已无 footer 内边距，再留 8px 会显得按钮悬空。 */
+.host-card-grid :deep(.el-card__footer) .hc-actions {
+  padding: 6px 16px;
+  box-shadow: inset 0 1px 0 var(--el-border-color-lighter);
 }
 /* 「更多」与 ReButton square 同尺寸同底色的图标按钮 */
 .hc-more {

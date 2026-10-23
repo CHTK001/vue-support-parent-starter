@@ -27,7 +27,7 @@ import {
   useSlots,
   watch,
 } from "vue";
-import { BaseLayout, Graph, Minimap, register, ExtensionCategory } from "@antv/g6";
+import { Graph, Minimap, register, ExtensionCategory } from "@antv/g6";
 import { useDebounceFn } from "@vueuse/core";
 import { getStorageKey } from "@repo/config";
 import ReButton from "../../ReButton";
@@ -68,100 +68,42 @@ if (!minimapRegistered) {
 }
 
 /**
- * 分组圆形聚簇布局（rrg-cluster）
+ * 分组聚簇的布局名（原生 {@code combo-combined} 的语义别名）
  *
- * <p>一次 execute 直接算出终态坐标：同 {@code group} 的节点围绕本组簇心排成几个
- * 同心环（组越大环越多，核心节点在内环），组簇心沿画布大圆均匀分布 → 每组成为
- * 一个紧密的圆形聚簇，组与组之间天然分离。这是「参考图那种按势力聚成一团」
- * 的组件级通用实现，任何给节点标了 {@code group} 的业务直接 {@code layout="rrg-cluster"}
- * 或开 {@code grouped-layout} 即可，不再依赖力导向漂移，也不需要矩形容器框。</p>
+ * <p>势力/分组聚簇完全交给 G6 自带能力，不再自研坐标算法：
+ * 每个分组是一个 {@code circle} 组合（圆形容器，尺寸由子节点包围盒自动推导），
+ * 组内跑 {@code concentric} 同心环，组与组之间跑 {@code force} 排斥排开。</p>
  *
- * <p>无 {@code group} 的散点铺在画布中央的小范围，避免与各簇抢空间。</p>
+ * <p>保留 {@code rrg-cluster} 这个名字，是为了让已有业务的
+ * {@code layout="rrg-cluster"} / {@code grouped-layout} 继续有效——它现在只是
+ * G6 原生 {@code combo-combined} 的别名，没有任何自定义布局代码。</p>
  */
-class RrgClusterLayout extends BaseLayout {
-  id = "rrg-cluster";
+const GROUPED_LAYOUT = "rrg-cluster";
 
-  async execute(data: any, options?: any): Promise<any> {
-    const nodes = data?.nodes ?? [];
-    if (!nodes.length) return data;
-    const width = this.options?.width ?? options?.width ?? containerSize?.width ?? 800;
-    const height = this.options?.height ?? options?.height ?? containerSize?.height ?? 600;
-    const cx = width / 2;
-    const cy = height / 2;
-
-    // 按 group 分组：组内维持原顺序（degree 高者通常在数据前面，天然放内环）
-    const groups = new Map<string, any[]>();
-    const free: any[] = [];
-    for (const n of nodes) {
-      const g: string = n?.data?.__group ?? n?.group;
-      if (g) {
-        let arr = groups.get(g);
-        if (!arr) {
-          arr = [];
-          groups.set(g, arr);
-        }
-        arr.push(n);
-      } else {
-        free.push(n);
-      }
-    }
-    const groupNames = [...groups.keys()];
-    const pos = new Map<string, { x: number; y: number }>();
-
-    // 1) 有组节点：簇心沿大圆均匀分布，组内同心环排布
-    const R = Math.min(width, height) * 0.4;
-    groupNames.forEach((g, gi) => {
-      const members = groups.get(g) ?? [];
-      const count = members.length;
-      if (!count) return;
-      const angle = -Math.PI / 2 + (gi / groupNames.length) * Math.PI * 2;
-      const gcx = cx + R * Math.cos(angle);
-      const gcy = cy + R * Math.sin(angle);
-      // 组内容纳半径：随人数增长但封顶，避免大簇撞出画布
-      const inner = Math.min(R * 0.42, 24 + Math.sqrt(count) * 14);
-      // 环数：人数越多环越多（内环最密），每环摊一个角度
-      const rings = Math.min(3, Math.max(1, Math.ceil(count / 14)));
-      members.forEach((m, mi) => {
-        const ring = Math.min(rings - 1, Math.floor(mi / Math.max(1, Math.ceil(count / rings))));
-        const ringR = inner * (ring === 0 ? 0.32 : ring === 1 ? 0.68 : 1);
-        const start = ring * 0.4;
-        // 本环内均匀散布角度（同组扇形内），环之间错开避免重叠
-        const angleSpan = (2.4 * Math.PI) / rings;
-        const a = angle - angleSpan / 2 + start + (mi % Math.max(1, Math.ceil(count / rings))) * (angleSpan / Math.max(1, Math.ceil(count / rings)));
-        pos.set(m.id, {
-          x: gcx + ringR * Math.cos(a),
-          y: gcy + ringR * Math.sin(a),
-        });
-      });
-    });
-
-    // 2) 散点：画布中央螺旋铺开，半径上限与最近簇保持距离
-    const fR = Math.min(R * 0.5, Math.min(width, height) * 0.16);
-    free.forEach((n, fi) => {
-      const t = free.length > 1 ? fi / (free.length - 1) : 0.5;
-      const rr = fR * Math.sqrt(t);
-      const a = fi * 2.39996; // 黄金角，均匀铺满中心圆
-      pos.set(n.id, { x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a) });
-    });
-
-    return {
-      nodes: nodes.map((n: any) => {
-        const p = pos.get(n.id);
-        return p ? { ...n, style: { ...(n.style ?? {}), x: p.x, y: p.y } } : n;
-      }),
-      edges: data?.edges ?? [],
-    };
-  }
-}
-
-/** containerSize：布局实例化晚于容器尺寸就绪，这里兜底读写 */
-const containerSize: { width?: number; height?: number } = {};
-
-let clusterLayoutRegistered = false;
-if (!clusterLayoutRegistered) {
-  register(ExtensionCategory.LAYOUT, "rrg-cluster", RrgClusterLayout);
-  clusterLayoutRegistered = true;
-}
+/**
+ * 把 {@code rrg-cluster} 翻译成 G6 原生布局描述（combo-combined）。
+ *
+ * <p>根层（无组合的散点 + 各组合整体）用力导向，组内（每个组合）用同心环——
+ * 这正是「每组聚成一团、组间不重叠」的原生表达。业务显式给出的参数
+ * （{@code nodeSpacing}/{@code comboPadding}/{@code comboSpacing}）原样透传。</p>
+ *
+ * @param options 业务 / 调参面板给出的参数
+ * @return G6 布局描述
+ */
+const toGroupedLayoutDesc = (options?: Record<string, unknown>): Record<string, unknown> => ({
+  type: "combo-combined",
+  nodeSize: 40,
+  nodeSpacing: 12,
+  comboPadding: 18,
+  comboSpacing: 40,
+  ...(options ?? {}),
+  layout: (comboId: string | null) =>
+    comboId
+      // 组内：同心环，preventOverlap 保证同组节点不叠
+      ? { type: "concentric", preventOverlap: true, nodeSize: 40, minNodeSpacing: 24, sortBy: "degree" }
+      // 根层：力导向把各组合推开，用组合包围盒当碰撞半径
+      : { type: "force", preventOverlap: true, nodeSize: 40, linkDistance: 220 },
+});
 
 defineOptions({ name: "ReRelationGraphCore" });
 
@@ -323,7 +265,7 @@ const props = withDefaults(
     toolbarPosition: "top-right",
     toolbarItems: undefined,
     showGroups: false,
-    groupShape: "rect",
+    groupShape: "circle",
     hoverFocus: false,
     details: true,
     lazyDetails: true,
@@ -396,7 +338,14 @@ const hovered = ref<RelationNode | null>(null);
 // ==================== 2026-10-13 显示开关 / 扩线 / 详情 / 设置 ====================
 
 /** 是否显示分组容器（combo） */
-const showGroupsOn = ref(props.showGroups);
+/**
+ * 组合容器开关（combo）。
+ *
+ * <p>{@code groupedLayout} 是分组聚簇布局，它必须建立在组合容器之上：G6 原生
+ * {@code combo-combined} 靠 combo 分组排布。所以开了聚簇布局就自动打开组合容器，
+ * 否则布局拿不到任何分组信息，只能把节点挤成一圈（互相压盖）。</p>
+ */
+const showGroupsOn = ref(props.showGroups || props.groupedLayout || currentLayout.value === GROUPED_LAYOUT);
 /** 悬停高亮模式运行时状态（首值来自 prop，工具栏可切） */
 const highlightMode = ref<RelationHighlightMode>(props.highlight);
 /** 悬停时是否隐藏其它节点（而非淡出） */
@@ -789,7 +738,22 @@ const graphData = computed<RelationGraphData>(() => {
       }
     });
   }
-  return { nodes, edges: rawEdges.map(aliasEdge), combos };
+  const result = { nodes, edges: rawEdges.map(aliasEdge), combos };
+  // 可观测性：把「真正交给 G6 的分组/组合规模」暴露出来，便于自动化验收断言
+  // 组合确实生成了（而不是只在 props 里配了 grouped-layout）。
+  if (typeof window !== "undefined") {
+    (window as any).__RRG_GRAPH_INFO__ = {
+      layout: currentLayout.value,
+      showGroups: showGroupsOn.value,
+      nodes: nodes.length,
+      combos: combos.length,
+      comboTypes: [...new Set(combos.map((c: any) => c.type ?? "(default)"))],
+      comboCapped: nodes.filter((n) => !!n.combo).length,
+      groups: [...new Set(nodes.map((n) => n.group).filter(Boolean))].slice(0, 20),
+      at: Date.now(),
+    };
+  }
+  return result;
 });
 
 /**
@@ -1575,6 +1539,10 @@ const isForceLayout = (layoutType: string): boolean =>
  * @return 合并后的布局参数
  */
 const resolveLayoutOptions = (layoutType: string, override?: Record<string, unknown>): Record<string, unknown> => {
+  // 分组聚簇：交给 G6 原生 combo-combined（参数默认值在 toGroupedLayoutDesc 里兜）
+  if (layoutType === GROUPED_LAYOUT) {
+    return toGroupedLayoutDesc(override);
+  }
   const base = isForceLayout(layoutType) ? FORCE_LAYOUT_DEFAULTS : {};
   if (!override) {
     return base;
@@ -1774,8 +1742,16 @@ const initGraph = async () => {
       style: { stroke: "#c3cbd8", lineWidth: 1.2 },
       state: buildStateStyle().edge,
     },
-    combo: { type: "rect", style: { fill: "rgba(109,93,252,0.06)", stroke: "#c9c2ff", lineWidth: 1, labelText: "" } },
-    layout: { type: currentLayout.value, ...resolveLayoutOptions(currentLayout.value, props.layoutOptions) } as any,
+    combo: {
+      // 原生圆形组合：容器尺寸由子节点包围盒自动推导（CircleCombo），
+      // 视觉上是一团一气泡，不是矩形框
+      type: "circle",
+      style: { fill: "rgba(109,93,252,0.06)", stroke: "#c9c2ff", lineWidth: 1.5, lineDash: [4, 6] },
+    },
+    // 分组聚簇的布局描述自带 type（combo-combined），不能再前置 { type } 展开覆盖
+    layout: (currentLayout.value === GROUPED_LAYOUT
+      ? toGroupedLayoutDesc(props.layoutOptions)
+      : { type: currentLayout.value, ...resolveLayoutOptions(currentLayout.value, props.layoutOptions) }) as any,
     behaviors: buildBehaviors(),
     plugins: buildPlugins(),
   } as any);
@@ -2147,7 +2123,10 @@ const setLayout = async (name: RelationLayoutName, options?: Record<string, unkn
   }
   currentLayout.value = name;
   try {
-    graph.setLayout({ type: name, ...resolveLayoutOptions(name, options ?? perLayoutTuningValues.value[name] ?? props.layoutOptions) } as any);
+    const desc: any = name === GROUPED_LAYOUT
+      ? toGroupedLayoutDesc(options ?? perLayoutTuningValues.value[name] ?? props.layoutOptions)
+      : { type: name, ...resolveLayoutOptions(name, options ?? perLayoutTuningValues.value[name] ?? props.layoutOptions) };
+    graph.setLayout(desc);
     await layoutForGraph(graph, "setLayout", force);
   } catch (e) {
     // 树布局（dendrogram / indented / mindmap / compact-box）要求树形数据，
@@ -2257,6 +2236,12 @@ const LAYOUT_SETTING_FIELDS: Record<string, LayoutTuningField[]> = {
     ] },
     { key: "nodesep", label: "同级间距", min: 10, max: 200, step: 5, control: "range" },
     { key: "ranksep", label: "层级间距", min: 10, max: 240, step: 5, control: "range" },
+  ],
+  // 原生 combo-combined 的三个旋钮：组内节点间距、组合内边距、组间间距
+  "rrg-cluster": [
+    { key: "nodeSpacing", label: "组内节点间距", min: 0, max: 80, step: 2, control: "range", defaultValue: 12 },
+    { key: "comboPadding", label: "组内边距", min: 0, max: 80, step: 2, control: "range", defaultValue: 18 },
+    { key: "comboSpacing", label: "组间间距", min: 0, max: 240, step: 4, control: "range", defaultValue: 40 },
   ],
 };
 
@@ -2368,10 +2353,12 @@ const applyLayoutTuning = async () => {
   if (!graph || !tuningAvailable.value) {
     return;
   }
-  graph.setLayout({
-    type: currentLayout.value,
-    ...resolveLayoutOptions(currentLayout.value, tuningValues.value),
-  } as any);
+  graph.setLayout((currentLayout.value === GROUPED_LAYOUT
+    ? toGroupedLayoutDesc(tuningValues.value)
+    : {
+      type: currentLayout.value,
+      ...resolveLayoutOptions(currentLayout.value, tuningValues.value),
+    }) as any);
   await layoutForGraph(graph, "tuning");
   await graph.fitView?.({ when: "always" } as any, false)?.catch?.(() => {});
   pinFixedNodes();
@@ -3598,8 +3585,11 @@ const applySettings = async (settings: RelationGraphSettings) => {
     // ---- 第一步：所有开关一次写入，暂不触发各自的重建 / 重装 ----
     let needRebuild = false;
     let needReload = false;
-    if (settings.showGroups !== undefined && settings.showGroups !== showGroupsOn.value) {
-      showGroupsOn.value = settings.showGroups;
+    // 聚簇布局依赖组合容器：这种模式下后台存的 showGroups 一律不采纳，强制为真，
+    // 否则旧设置（showGroups:false）会把组拆掉，布局退化成一圈互相压盖的散点。
+    const wantGroups = props.groupedLayout || currentLayout.value === GROUPED_LAYOUT ? true : settings.showGroups;
+    if (wantGroups !== undefined && wantGroups !== showGroupsOn.value) {
+      showGroupsOn.value = wantGroups;
       needReload = true;
     }
     if (settings.minimap !== undefined && settings.minimap !== minimapOn.value) {
@@ -3721,20 +3711,17 @@ watch(
 
 onMounted(async () => {
   await nextTick();
-  // 兜底：rrg-cluster 布局在实例化时若画布尺寸已就绪，直接读取容器实际尺寸
-  const host = containerRef.value;
-  if (host) {
-    containerSize.width = host.clientWidth;
-    containerSize.height = host.clientHeight;
-  }
   await initGraph();
   // 后台已存偏好：挂载后应用一次，避免每次都从默认布局重新开始
   await loadAndApplySettings();
 });
 
-// groupedLayout 切换：布局在初始化时决定，运行时切换需要重建图实例才能生效
+// groupedLayout 切换：原生 combo-combined 依赖 combo 容器，所以分组容器随之一并开关
 watch(() => props.groupedLayout, async v => {
-  const want = v ? "rrg-cluster" : props.layout;
+  if (v && !showGroupsOn.value) {
+    await toggleGroups(true);
+  }
+  const want = v ? GROUPED_LAYOUT : props.layout;
   if (want !== currentLayout.value) {
     await setLayout(want as any);
   }

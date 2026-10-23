@@ -7,7 +7,10 @@
  */
 
 import type { ReTabItem } from '@repo/ui/components/ReTab/index';
-import type { NodeStats, ServerNodeView } from './nodeList';
+import type { NodeStats } from './nodeList';
+// ServerNodeView 的真实声明在 api/serviceManage.ts，nodeList.ts 只是转引进来做内部类型标注，
+// 并未再导出；从 nodeList 取它会让 tsc 报 TS2459。这里直接依赖真正的声明处。
+import type { ServerNodeView } from '../api/serviceManage';
 import { matchStatusSlot } from './nodeList';
 
 /** 状态页签档位：空串代表「全部」 */

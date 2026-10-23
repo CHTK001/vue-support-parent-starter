@@ -1,65 +1,86 @@
+<!-- 现代化视图：ReSectionHead 页头 + koi 令牌统计卡 / 表格壳 / 图表面板 / 空态。
+     ReTable（列定义 tableColumns、8 个具名插槽、row-click）、ReEcharts 图表容器
+     （durationOption / endpointTrendOption）及 script 内全部 computed / 轮询逻辑
+     原样保留，仅重排结构与样式。 -->
 <template>
-  <div class="view">
-    <!-- 顶部工具栏 -->
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">端点分析</span>
+  <div class="view endpoints-page">
+    <!-- 页头：标题 + 命中摘要 + 全局动作 -->
+    <ReSectionHead
+      class="endpoints-head"
+      title="端点分析"
+      description="按端点聚合调用量、错误率与耗时分位，点击行查看耗时分布与调用量趋势"
+    >
+      <template #actions>
         <ReInput
           v-model="keyword"
           placeholder="过滤端点名称…"
           clearable
-
           class="filter-input"
           prefix-icon="Search"
         />
-        <span class="match-hint" v-if="keyword">命中 {{ filteredItems.length }} / {{ items.length }}</span>
-      </div>
-      <div class="toolbar-right">
-        <ReButton icon="Refresh" show-text round :loading="loading" @click="load">刷新</ReButton>
-      </div>
-    </div>
+        <span v-if="keyword" class="head-stat">
+          命中 <b>{{ filteredItems.length }}</b> / {{ items.length }}
+        </span>
+        <ReButton size="small" icon="Refresh" show-text round :loading="loading" @click="load">
+          刷新
+        </ReButton>
+      </template>
+    </ReSectionHead>
 
-    <!-- 统计卡片行 -->
-    <div class="stat-row" v-if="!loading && items.length">
+    <!-- 统计卡：4 列网格，顶部 3px 色条 -->
+    <div class="stat-grid" v-if="!loading && items.length">
       <ReStatCard
+        class="stat-card stat-accent--brand"
         size="compact"
         title="总端点数"
         :value="items.length"
         :desc="`${totalCalls.toLocaleString()} 次调用`"
         :icon="DataLine"
-        icon-color="var(--apm-accent)"
+        icon-color="var(--brand-500, var(--apm-accent))"
       />
       <ReStatCard
+        class="stat-card stat-accent--info"
         size="compact"
         title="平均 P95"
         :value="avgP95 + ' ms'"
         :desc="`P99 ${avgP99} ms · Max ${maxMsAll} ms`"
         :icon="Timer"
-        icon-color="var(--apm-accent-alt)"
+        icon-color="var(--metric-net, var(--apm-accent-alt))"
       />
       <ReStatCard
+        class="stat-card"
+        :class="errorEndpoints.length ? 'stat-accent--error' : 'stat-accent--success'"
         size="compact"
         title="错误端点数"
         :value="errorEndpoints.length"
         :desc="errorEndpoints.length ? errorEndpoints.join(' · ') : '全部健康'"
         :icon="Warning"
-        :icon-color="errorEndpoints.length ? 'var(--apm-danger)' : 'var(--apm-success)'"
+        :icon-color="errorEndpoints.length ? 'var(--status-error, var(--apm-danger))' : 'var(--status-success, var(--apm-success))'"
       />
       <ReStatCard
+        class="stat-card"
+        :class="maxErrorRate > 1 ? 'stat-accent--error' : 'stat-accent--success'"
         size="compact"
         title="错误率峰值"
         :value="maxErrorRate + ' %'"
         :desc="maxErrorRateEndpoint ? `端点 ${maxErrorRateEndpoint}` : '—'"
         :icon="Warning"
-        :icon-color="maxErrorRate > 5 ? 'var(--apm-danger)' : maxErrorRate > 1 ? 'var(--apm-warning)' : 'var(--apm-success)'"
+        :icon-color="maxErrorRate > 5 ? 'var(--status-error, var(--apm-danger))' : maxErrorRate > 1 ? 'var(--status-warning, var(--apm-warning))' : 'var(--status-success, var(--apm-success))'"
       />
     </div>
 
     <!-- 加载中 -->
     <ReSkeleton v-if="loading && !items.length" :rows="8" animated />
 
+    <!-- 无数据时不渲染表格：el-table 的空文案撑不起留白 -->
+    <div class="table-card table-card--empty" v-if="!loading && items.length && !filteredItems.length">
+      <ReEmpty :image-size="72" description="没有匹配的端点">
+        <el-button size="small" round @click="keyword = ''">清空过滤</el-button>
+      </ReEmpty>
+    </div>
+
     <!-- 端点表格 -->
-    <div class="table-panel" v-if="!loading || items.length">
+    <div class="table-card" v-else-if="!loading || items.length">
       <ReTable
         :data="filteredItems as unknown as Record<string, unknown>[]"
         :columns="tableColumns"
@@ -70,13 +91,16 @@
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-endpoint="{ row }">
-          <span class="mono endpoint-text">{{ row.endpoint }}</span>
+          <span class="mono endpoint-text" :class="{ 'is-selected': selected?.endpoint === row.endpoint }">
+            <i class="row-dot" aria-hidden="true" />
+            {{ row.endpoint }}
+          </span>
         </template>
         <template #col-callCount="{ row }">
           <span class="muted mono">{{ row.callCount.toLocaleString() }}</span>
         </template>
         <template #col-errorCount="{ row }">
-          <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" round>
+          <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" round size="small">
             {{ (row as unknown as ApmEndpoint).errorCount }}
           </ReTag>
           <span v-else class="muted mono">0</span>
@@ -103,13 +127,19 @@
       </ReTable>
     </div>
 
-    <!-- 选中端点耗时分布图 -->
-    <div class="panel" v-if="selected">
-      <div class="panel-head">
-        <span>{{ selected.endpoint }}</span>
-        <span class="panel-sub">
-          {{ selected.callCount.toLocaleString() }} 次调用 · {{ (selected.errorRate ?? 0).toFixed(2) }} % 错误率
-        </span>
+    <!-- 选中端点耗时分布图：ReEcharts 容器与 option 绑定原样保留 -->
+    <div class="panel chart-panel" v-if="selected">
+      <div class="panel-head chart-head">
+        <div class="panel-head__main">
+          <span class="panel-title">
+            <i class="panel-dot" aria-hidden="true" />
+            {{ selected.endpoint }}
+          </span>
+          <span class="panel-sub">
+            {{ selected.callCount.toLocaleString() }} 次调用 · {{ (selected.errorRate ?? 0).toFixed(2) }} % 错误率
+          </span>
+        </div>
+        <span class="panel-tag">耗时分布</span>
       </div>
       <ReEcharts :option="durationOption" theme="dark" height="280px" class="duration-chart" />
       <div class="call-share-row" v-if="callSharePercent !== null">
@@ -120,11 +150,14 @@
       </div>
     </div>
 
-    <!-- 端点调用量趋势（近 60 分钟，分钟桶） -->
-    <div class="panel">
-      <div class="panel-head">
-        <span>{{ trendEndpointLabel }}</span>
-        <span class="panel-sub">端点调用量趋势 · 近 60 分钟（分钟桶，/endpoint-stats）</span>
+    <!-- 端点调用量趋势（近 60 分钟，分钟桶）：ReEcharts 容器与 option 绑定原样保留 -->
+    <div class="panel chart-panel">
+      <div class="panel-head chart-head">
+        <div class="panel-head__main">
+          <span class="panel-title">{{ trendEndpointLabel }}</span>
+          <span class="panel-sub">端点调用量趋势 · 近 60 分钟（分钟桶，/endpoint-stats）</span>
+        </div>
+        <span v-if="trendLoading" class="panel-tag is-loading">加载中…</span>
       </div>
       <ReEcharts :option="endpointTrendOption" theme="dark" height="220px" class="duration-chart" />
     </div>
@@ -143,6 +176,8 @@ import ReTable from "@repo/ui/re-table";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReEcharts from "@repo/ui/re-echarts";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { EChartsOption } from "echarts";
 import { getEndpoints, getEndpointStats } from "../api/apmApi";
@@ -398,47 +433,279 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 骨架、.stat-row、.panel、.panel-head、.panel-sub 由 styles/layout.css 提供 */
+/* ========================================================
+   端点分析 · koi 令牌
+   颜色 / 圆角 / 阴影 / 过渡一律优先取 koi 令牌，并以本包 --apm-*
+   语义令牌兜底 —— hotsport 独立运行时不加载 koi，var(--koi, fallback)
+   会落到 tokens.css 里语义相同的一档，视觉不崩。
+   骨架类（.view / .stat-grid / .panel / .panel-head / .panel-sub /
+   .table-panel / .mono / .muted / .err-text / .warn-text）由 layout.css 提供。
+   ======================================================== */
+.endpoints-page {
+  gap: 16px;
+}
+
+/* ---- 页头 ---- */
+.endpoints-head {
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+}
+
+.endpoints-head :deep(.re-section-head__title) {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--text-primary, var(--apm-fg));
+}
+
+.endpoints-head :deep(.re-section-head__desc) {
+  color: var(--text-tertiary, var(--apm-muted));
+  line-height: 1.5;
+}
+
+.endpoints-head :deep(.re-section-head__actions) {
+  flex-wrap: wrap;
+  align-items: center;
+}
 
 .filter-input {
-  width: 260px;
+  width: 240px;
 }
 
-.table-panel {
+/* 命中摘要胶囊 */
+.head-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text-secondary, var(--apm-fg-regular));
+  background: var(--bg-fill, var(--apm-panel-raised));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.head-stat b {
+  color: var(--text-primary, var(--apm-fg));
+}
+
+/* ---- 统计卡：4 列网格 + 顶部 3px 色条 ----
+   ReStatCard 外壳来自库级 re-surface 基线，色条用伪元素叠加，
+   不新增第二套卡片外壳规格。 */
+.stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat-card {
+  position: relative;
   overflow: hidden;
+  --card-accent: var(--brand-500, var(--apm-accent));
+  transition:
+    transform var(--transition-base, var(--apm-t-base)),
+    box-shadow var(--transition-base, var(--apm-t-base));
 }
 
-/* 选中行：主色淡底，与 hover 底色区分开 */
-.table-panel :deep(.el-table__row.selected td) {
-  background: var(--apm-accent-subtle) !important;
+.stat-accent--brand {
+  --card-accent: var(--brand-500, var(--apm-accent));
+}
+.stat-accent--info {
+  --card-accent: var(--metric-net, var(--apm-accent-alt));
+}
+.stat-accent--success {
+  --card-accent: var(--status-success, var(--apm-success));
+}
+.stat-accent--error {
+  --card-accent: var(--status-error, var(--apm-danger));
 }
 
-/* 端点表整表可点选，光标提示可交互 */
-.table-panel :deep(.el-table__row) {
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--card-accent);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
+}
+
+/* ---- 表格壳 ---- */
+.table-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px 12px 12px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+  overflow: hidden;
+  transition: box-shadow var(--transition-base, var(--apm-t-base));
+}
+
+.table-card:hover {
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
+}
+
+/* 空态卡：不接收鼠标悬停的浮起，只作留白容器 */
+.table-card--empty:hover {
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+}
+
+/* 表格变量：koi 优先，apm 兜底 */
+.table-card :deep(.el-table) {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--bg-hover, var(--apm-panel-active));
+  --el-table-border-color: var(--border-subtle, var(--apm-border-soft));
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--text-tertiary, var(--apm-muted));
+  --el-table-text-color: var(--text-primary, var(--apm-fg));
+  --el-table-fixed-bg-color: var(--bg-container, var(--apm-panel));
+
+  /* 端点表整表可点选，光标提示可交互 */
   cursor: pointer;
 }
 
+.table-card :deep(.el-table__header th.el-table__cell) {
+  background: transparent;
+  border-bottom: 1px solid var(--border-default, var(--apm-border));
+}
+
+/* 选中行：品牌色淡底，与 hover 底色区分开 */
+.table-card :deep(.el-table__row.selected td) {
+  background: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 12%, transparent) !important;
+}
+
+.table-card :deep(.el-table__body tr:hover > td.el-table__cell) {
+  background: var(--bg-hover, var(--apm-panel-active)) !important;
+}
+
 .endpoint-text {
-  color: var(--apm-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary, var(--apm-fg));
   font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* 行首状态点：选中行点亮为主题色 */
+.row-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--border-default, var(--apm-border));
+  transition: background var(--transition-base, var(--apm-t-base));
+}
+
+.endpoint-text.is-selected .row-dot {
+  background: var(--brand-500, var(--apm-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, var(--apm-accent)) 22%, transparent);
+}
+
+/* ---- 图表面板 ---- */
+.chart-panel {
+  gap: 12px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+  transition: box-shadow var(--transition-base, var(--apm-t-base));
+}
+
+.chart-panel:hover {
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
+}
+
+.chart-head {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-head__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, var(--apm-fg));
+  word-break: break-all;
+}
+
+/* 面板标题左侧品牌色竖条：一眼区分「图表卡」与「数据卡」 */
+.panel-dot {
+  width: 3px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--brand-500, var(--apm-accent));
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: var(--text-tertiary, var(--apm-muted));
+  line-height: 1.5;
+}
+
+.panel-tag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--brand-600, var(--apm-accent-hover));
+  background: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-accent)) 18%, transparent);
+  border-radius: 999px;
+}
+
+.panel-tag.is-loading {
+  color: var(--text-tertiary, var(--apm-muted));
+  background: var(--bg-fill, var(--apm-panel-raised));
+  border-color: var(--border-subtle, var(--apm-border-soft));
 }
 
 .duration-chart {
   width: 100%;
 }
 
-/* 调用量占比条 */
+/* ---- 调用量占比条 ---- */
 .call-share-row {
-  margin-top: var(--apm-space-3);
   display: flex;
   align-items: center;
-  gap: var(--apm-space-3);
+  gap: 12px;
 }
 
 .call-share-bar {
   flex: 1;
   height: 6px;
-  background: var(--apm-border-soft);
+  background: var(--bg-fill, var(--apm-border-soft));
   border-radius: 999px;
   overflow: hidden;
 }
@@ -446,22 +713,84 @@ onBeforeUnmount(() => {
 .call-share-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--apm-accent), var(--apm-accent-hover));
-  transition: width var(--apm-t-base);
+  background: var(--brand-gradient, linear-gradient(90deg, var(--apm-accent), var(--apm-accent-hover)));
+  transition: width var(--transition-base, var(--apm-t-base));
 }
 
 .call-share-label {
   font-size: 12px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   white-space: nowrap;
   min-width: 120px;
   text-align: right;
 }
 
+/* ---- 响应式：≤768px 2 列统计 + 单列堆叠 ---- */
+@media (max-width: 768px) {
+  .endpoints-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .endpoints-head :deep(.re-section-head__actions) {
+    width: 100%;
+  }
+
+  .filter-input {
+    width: 100%;
+  }
+
+  /* 窄屏隐藏胶囊，命中数已由表格行数体现，避免挤压输入框 */
+  .head-stat {
+    display: none;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .table-card {
+    padding: 6px 8px 10px;
+  }
+
+  .chart-panel {
+    padding: 12px;
+  }
+
+  .chart-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .call-share-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .call-share-label {
+    min-width: 0;
+    text-align: left;
+  }
+}
+
+/* ---- 尊重「减少动态效果」偏好：上浮与指标条过渡全部关掉 ---- */
 @media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .stat-card:hover,
+  .table-card,
+  .table-card:hover,
+  .chart-panel,
+  .chart-panel:hover,
+  .row-dot,
   .call-share-fill {
     transition: none;
+    transform: none;
   }
+
   .view :deep(.el-skeleton__item),
   .view :deep(.el-loading-spinner) {
     animation: none;

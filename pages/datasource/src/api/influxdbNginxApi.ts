@@ -101,3 +101,15 @@ export const writeInfluxdbPoints = (data: InfluxdbWriteRequest) =>
     .post("/ms/monitor/influxdb/write")
     .data(data)
     .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除测量（InfluxDB 的「表」）
+ * @param bucket 目标 Bucket 名 / 数据库名
+ * @param measurement 度量名（InfluxDB 的「表」）
+ * @param datasourceId 数据源 ID（可选）
+ */
+export const dropInfluxdbMeasurement = (bucket: string, measurement: string, datasourceId?: number) =>
+  http()
+    .post("/ms/monitor/influxdb/measurement/drop")
+    .data({ bucket, measurement, datasourceId })
+    .then(r => unwrap<boolean>(r));

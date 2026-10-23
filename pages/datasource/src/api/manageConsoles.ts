@@ -282,6 +282,86 @@ export const executeDbSql = (sql: string, datasourceId?: number, database?: stri
   return (timeoutMs === undefined ? req : req.timeout(timeoutMs)).then(r => unwrap<DbQueryResult>(r));
 };
 
+// ---------- 用户管理（需求：数据源中心 / JDBC 控制台右键，SPI 判断显隐） ----------
+
+/** 数据库用户行（后端 DbUserVO） */
+export interface DbUserRow {
+  name: string;
+  host: string;
+  sslType?: string | null;
+  maxQuestionsPerHour?: number | null;
+  maxUpdatesPerHour?: number | null;
+  maxConnectionsPerHour?: number | null;
+  maxUserConnections?: number | null;
+  isSuper?: boolean;
+}
+
+/** 用户列表响应：supported=false 表示该内核不支持用户管理 */
+export interface DbUserListResult {
+  supported: boolean;
+  users: DbUserRow[];
+  message?: string;
+}
+
+/** 保存用户的请求体（新建 / 修改共用） */
+export interface DbUserSavePayload {
+  [key: string]: unknown;
+  datasourceId?: number;
+  username: string;
+  host: string;
+  password?: string;
+  grants?: string[];
+  superUser?: boolean;
+}
+
+/** 删除/查权限用户的请求体 */
+export interface DbUserIdentity {
+  [key: string]: unknown;
+  datasourceId?: number;
+  username: string;
+  host: string;
+}
+
+/** 查询数据库用户列表（仅 MySQL/MariaDB 支持，其余内核返回 supported=false） */
+export const fetchDbUsers = (datasourceId: number) =>
+  http()
+    .get("/ms/monitor/db/users")
+    .noToast(true)
+    .query({ datasourceId })
+    .then((r: any) => unwrap<DbUserListResult>(r));
+
+/** 新建数据库用户（CREATE USER + GRANT） */
+export const createDbUser = (payload: DbUserSavePayload) =>
+  http()
+    .post("/ms/monitor/db/users")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 修改数据库用户（ALTER USER + 增量权限） */
+export const updateDbUser = (payload: DbUserSavePayload) =>
+  http()
+    .put("/ms/monitor/db/users")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 删除数据库用户（DROP USER） */
+export const deleteDbUser = (payload: DbUserIdentity) =>
+  http()
+    .delete("/ms/monitor/db/users")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 查询数据库用户权限（SHOW GRANTS FOR） */
+export const fetchDbUserGrants = (payload: DbUserIdentity) =>
+  http()
+    .post("/ms/monitor/db/users/grants")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<{ supported: boolean; grants: string[]; message?: string }>(r));
+
 // ---------- AI text2sql（第九批 7.2：后端集成 ai-starter 才有这两个端点） ----------
 
 /**

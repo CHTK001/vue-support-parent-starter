@@ -149,6 +149,8 @@ export interface DataSourceInfo {
    * <p>如 `nginx.service`；留空时仍由后端自动探测。</p>
    */
   controlTarget?: string | null;
+  /** 置顶标记：1 置顶、0 普通；列表按置顶在前、ID 升序排序 */
+  topFlag?: number | null;
 }
 
 /** 连通性测试结果 */
@@ -272,10 +274,21 @@ export function deleteDataSource(id: number): Promise<boolean> {
 /**
  * 测试已存在数据源的连接。
  * @param id 数据源 ID
- * @return 连接测试结果
+ * @return 连接测试结果（含探测出的服务端版本）
  */
 export function testDataSource(id: number): Promise<DataSourceTestResult> {
   return post<DataSourceTestResult>(`${hubBase}/${id}/test`);
+}
+
+/**
+ * 置顶 / 取消置顶数据源。
+ *
+ * @param id  数据源 ID
+ * @param top true 置顶、false 取消置顶
+ * @return 更新后的数据源
+ */
+export function toggleDataSourceTop(id: number, top: boolean): Promise<DataSourceInfo> {
+  return post<DataSourceInfo>(`${hubBase}/${id}/top`, undefined, { params: { top } });
 }
 
 /**
@@ -298,6 +311,68 @@ export function fetchDataSourceTypes(): Promise<string[]> {
  */
 export function fetchDatasourceRuntimeInfo(id: number, type: string): Promise<Record<string, string>> {
   return get<Record<string, string>>(`${hubBase}/${type}/${id}/info`);
+}
+
+/** 数据库进程行（后端 DbProcessVO） */
+export interface DbProcessRow {
+  pid: string;
+  user: string;
+  host: string;
+  db: string;
+  command: string;
+  time: number | null;
+  info: string | null;
+  extra?: Record<string, unknown> | null;
+}
+
+/** 进程列表响应：supported=false 表示该内核不支持进程管理 */
+export interface DbProcessListResult {
+  supported: boolean;
+  processes: DbProcessRow[];
+  message?: string;
+}
+
+/** 进程关闭结果 */
+export interface DbProcessKillResult {
+  successCount: number;
+  failCount: number;
+  message: string;
+}
+
+/** 查询数据库进程列表（仅 MySQL/MariaDB/PostgreSQL 支持，其余内核返回 supported=false） */
+export function fetchDbProcesses(id: number): Promise<DbProcessListResult> {
+  return get<DbProcessListResult>(`/ms/monitor/db/processes`, { datasourceId: id });
+}
+
+/** 关闭单个数据库进程 */
+export function killDbProcess(id: number, pid: string): Promise<DbProcessKillResult> {
+  return post<DbProcessKillResult>(`/ms/monitor/db/process/kill`, { datasourceId: id, pid });
+}
+
+/** 批量关闭数据库进程 */
+export function killDbProcesses(id: number, pids: string[]): Promise<DbProcessKillResult> {
+  return post<DbProcessKillResult>(`/ms/monitor/db/processes/kill`, { datasourceId: id, pids });
+}
+
+/** 慢查询条目（后端 DbSlowQueryVO） */
+export interface DbSlowQueryRow {
+  digest: string;
+  avgMs: number | null;
+  maxMs: number | null;
+  calls: number | null;
+  lastAt: string | null;
+}
+
+/** 慢查询列表响应：supported=false 表示该内核/实例不支持慢查询 */
+export interface DbSlowQueryListResult {
+  supported: boolean;
+  rows: DbSlowQueryRow[];
+  message?: string;
+}
+
+/** 查询数据库慢查询（仅 MySQL/MariaDB/PostgreSQL 支持，其余内核返回 supported=false） */
+export function fetchDbSlowQueries(id: number): Promise<DbSlowQueryListResult> {
+  return get<DbSlowQueryListResult>(`/ms/monitor/db/slow-queries`, { datasourceId: id });
 }
 
 /**

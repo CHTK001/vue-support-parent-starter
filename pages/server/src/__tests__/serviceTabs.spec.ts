@@ -6,8 +6,10 @@ import {
   emptySearchModel,
   hasSearchCondition,
   type StatusSlot,
-} from '../serviceTabs';
-import { filterNodes, summarizeNodes, type ServerNodeView } from '../nodeList';
+} from '../utils/serviceTabs';
+import { filterNodes, summarizeNodes } from '../utils/nodeList';
+// ServerNodeView 由 api/serviceManage 声明，nodeList 只转引不导出（见 utils/serviceTabs.ts 同名说明）
+import type { ServerNodeView } from '../api/serviceManage';
 
 /**
  * 服务页页签与搜索区。

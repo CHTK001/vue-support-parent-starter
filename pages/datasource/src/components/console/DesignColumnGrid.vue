@@ -173,10 +173,21 @@ const dirtyOf = (row: DesignColumnRow): boolean => props.isDirty(row);
 
 /** 行组件取行对象（插槽给的是 Record） */
 const asRow = (cellRow: Record<string, unknown>): DesignColumnRow => cellRow as unknown as DesignColumnRow;
+
+/**
+ * 行类名：`dcg-row` 是稳定的行选择器（验收脚本按它定位行），
+ * `dirty` 用于已改动行高亮 —— 与迁移前手写网格的行语义一一对应。
+ *
+ * @param arg el-table 的 row-class-name 回调参数
+ * @return 行类名
+ */
+function rowClassName(arg: { row: Record<string, unknown> }): string {
+  return dirtyOf(asRow(arg.row)) ? "dcg-row dirty" : "dcg-row";
+}
 </script>
 
 <template>
-  <div class="dcg">
+  <div class="dcg" data-design-grid :data-dcg-mode="mode">
     <ReTable
       :data="gridData"
       :columns="columns"
@@ -185,20 +196,26 @@ const asRow = (cellRow: Record<string, unknown>): DesignColumnRow => cellRow as 
       :layout-table="{ maxHeight: maxHeight }"
       :settings="{ border: false }"
       row-key="key"
+      :row-class-name="rowClassName"
       show-index
       index-width="40"
       index-align="right"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-name="{ row }">
-        <div class="dcg-name">
+        <!-- 行级拖放区：只在 existing 模式接拖放，新建表没有落库顺序可调 -->
+        <div
+          class="dcg-name"
+          @dragover.prevent
+          @drop.prevent="isExisting ? onDrop(rows.indexOf(asRow(row))) : undefined"
+        >
           <ReIcon
             v-if="isExisting"
             name="Sort"
             :size="13"
             class="dcg-grip"
-            draggable="true"
             title="拖拽调整列顺序"
+            draggable="true"
             @dragstart="onDragStart(rows.indexOf(asRow(row)), $event)"
           />
           <ReInput v-model="asRow(row).name" class="dcg-mono" placeholder="字段名" />
@@ -406,6 +423,11 @@ const asRow = (cellRow: Record<string, unknown>): DesignColumnRow => cellRow as 
 }
 .dcg-ops :deep(.rs-btn) {
   margin: 0;
+}
+
+/* 改动行高亮（与迁移前手写网格的 .dirty 语义一致） */
+.dcg :deep(.el-table__body tr.dirty > td.el-table__cell) {
+  background: var(--el-color-warning-light-9);
 }
 
 .dcg-empty {

@@ -1,26 +1,37 @@
+<!-- 现代化视图：ReSectionHead 页头 + koi 令牌筛选卡 / 图例卡 / 表格壳 / 空态。
+     力导向图容器（ref="graphRef"）、ReTable（列定义 edgeColumns、7 个具名插槽、
+     row-class-name）、v-model 绑定（mode / keyword / listErrorOnly / injectProto /
+     injectTarget）与全部 click 处理函数均原样保留，仅重排结构与样式。 -->
 <template>
-  <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">依赖拓扑</span>
-        <el-radio-group v-model="mode" size="small">
+  <div class="view deps-page">
+    <!-- 页头：标题 + 规模摘要 + 全局动作 -->
+    <ReSectionHead
+      class="deps-head"
+      title="依赖拓扑"
+      description="服务间调用关系与错误率，图形视图看结构、列表视图看明细"
+    >
+      <template #actions>
+        <span class="head-stat">
+          <span class="head-stat__num">{{ nodeCount }}</span> 节点
+          <i class="head-stat__sep" aria-hidden="true" />
+          <span class="head-stat__num">{{ edges.length }}</span> 边
+          <template v-if="errorEdgeCount">
+            <i class="head-stat__sep" aria-hidden="true" />
+            <span class="head-stat__num is-error">{{ errorEdgeCount }}</span> 异常
+          </template>
+        </span>
+        <el-radio-group v-model="mode" size="small" class="mode-switch">
           <el-radio-button value="graph">图形</el-radio-button>
           <el-radio-button value="table">列表</el-radio-button>
         </el-radio-group>
-        <span class="match-hint">
-          {{ nodeCount }} 个节点 · {{ edges.length }} 条边
-          <template v-if="errorEdgeCount"> · {{ errorEdgeCount }} 条异常</template>
-        </span>
-      </div>
-      <div class="toolbar-right">
-        <el-button round :loading="loading" @click="load">
+        <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="btn-icon"><Refresh /></el-icon>刷新
         </el-button>
-      </div>
-    </div>
+      </template>
+    </ReSectionHead>
 
     <!-- 筛选 + 注入操作：查询条件与动作分离，窄屏自然换行 -->
-    <div class="filter-bar">
+    <div class="filter-bar deps-filter">
       <div class="filter-field search-field">
         <label class="filter-label" for="dep-keyword">节点 / 边</label>
         <el-input
@@ -54,25 +65,21 @@
         <span v-if="mode === 'table'" class="match-hint">
           聚合后 {{ filteredEdges.length }} / {{ edges.length }} 条边
         </span>
-        <el-button round :loading="batching" @click="doBatch">
+        <el-button size="small" round :loading="batching" @click="doBatch">
           <el-icon class="btn-icon"><MagicStick /></el-icon>批量×20
         </el-button>
-        <el-button type="primary" round :loading="injecting" @click="doInject">
+        <el-button size="small" type="primary" round :loading="injecting" @click="doInject">
           <el-icon class="btn-icon"><Plus /></el-icon>注入一条调用
         </el-button>
       </div>
     </div>
 
-    <!-- 图形视图 -->
+    <!-- 图形视图：力导向图容器必须保持 ref="graphRef" 挂载点 -->
     <div v-if="mode === 'graph'" class="panel graph-panel">
-      <div class="graph-toolbar">
-        <div class="graph-legend">
-          <span class="legend-item"><i class="legend-dot caller" />调用方</span>
-          <span class="legend-item"><i class="legend-dot callee" />被调方</span>
-          <span class="legend-item"><i class="legend-dot both" />双向节点</span>
-          <span class="legend-item"><i class="legend-dot error" />异常节点（错误率 &gt; 1%）</span>
-          <span class="legend-item"><i class="legend-line" />正常调用</span>
-          <span class="legend-item"><i class="legend-line error" />错误调用</span>
+      <div class="panel-head graph-head">
+        <div class="panel-head__main">
+          <span class="panel-title">依赖图</span>
+          <span class="panel-sub">节点大小反映关联调用量，红色描边表示节点错误率 &gt; 1%</span>
         </div>
         <div class="graph-actions">
           <span v-if="keyword.trim()" class="match-hint">
@@ -82,69 +89,94 @@
         </div>
       </div>
 
+      <div class="graph-legend">
+        <span class="legend-item"><i class="legend-dot caller" />调用方</span>
+        <span class="legend-item"><i class="legend-dot callee" />被调方</span>
+        <span class="legend-item"><i class="legend-dot both" />双向节点</span>
+        <span class="legend-item"><i class="legend-dot error" />异常节点（错误率 &gt; 1%）</span>
+        <span class="legend-item"><i class="legend-line" />正常调用</span>
+        <span class="legend-item"><i class="legend-line error" />错误调用</span>
+      </div>
+
       <div v-if="edges.length" ref="graphRef" class="graph-body" />
 
       <!-- 无数据时不留空白画布：ECharts 空图在深色底上只是一块哑光矩形 -->
-      <div v-else class="panel-empty">
-        {{ loading ? "正在加载依赖数据…" : "暂无依赖数据，可注入一条调用或点击刷新" }}
+      <div v-else class="panel-empty-body">
+        <ReEmpty
+          :image-size="72"
+          :description="loading ? '正在加载依赖数据…' : '暂无依赖数据'"
+        >
+          <el-button v-if="!loading" size="small" round type="primary" @click="doInject">
+            <el-icon class="btn-icon"><Plus /></el-icon>注入一条调用
+          </el-button>
+        </ReEmpty>
       </div>
     </div>
 
     <!-- 列表视图 -->
     <template v-else>
-      <div v-if="!edges.length" class="panel">
-        <div class="panel-empty">
-          {{ loading ? "正在加载依赖数据…" : "暂无依赖数据，可注入一条调用或点击刷新" }}
+      <div v-if="!edges.length" class="table-card">
+        <div class="panel-empty-body">
+          <ReEmpty
+            :image-size="72"
+            :description="loading ? '正在加载依赖数据…' : '暂无依赖数据'"
+          >
+            <el-button v-if="!loading" size="small" round type="primary" @click="doInject">
+              <el-icon class="btn-icon"><Plus /></el-icon>注入一条调用
+            </el-button>
+          </ReEmpty>
         </div>
       </div>
 
-      <div v-else class="table-panel">
-        <ReTable
-          :data="listRows as unknown as Record<string, unknown>[]"
-          :columns="edgeColumns"
-          engine="element"
-          :settings="{ border: false }"
-          :layout-table="{ minHeight: 0 }"
-          :row-class-name="rowClass"
-          class="apm-table dep-table"
-          empty-text="没有匹配的依赖边"
-          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-        >
-          <template #col-source="{ row }">
-            <span
-              class="mono dep-node"
-              :class="{ error: nodeHasError(row.source) }"
-            >{{ row.source }}</span>
-          </template>
-          <template #col-target="{ row }">
-            <span
-              class="mono dep-node target"
-              :class="{ error: nodeHasError(row.target) }"
-            >{{ row.target }}</span>
-          </template>
-          <template #col-protocol="{ row }">
-            <el-tag v-if="row.protocol" effect="plain" round size="small">{{ row.protocol }}</el-tag>
-            <span v-else class="muted">—</span>
-          </template>
-          <template #col-callCount="{ row }">
-            <span class="mono">{{ numOf(row.callCount).toLocaleString() }}</span>
-          </template>
-          <template #col-p95Ms="{ row }">
-            <span class="mono" :class="p95Class(numOf(row.p95Ms))">
-              {{ numOf(row.p95Ms).toFixed(1) }} ms
-            </span>
-          </template>
-          <template #col-errorCount="{ row }">
-            <span :class="['mono', numOf(row.errorCount) > 0 ? 'err-text' : 'muted']">
-              {{ numOf(row.errorCount) }}
-            </span>
-          </template>
-          <template #col-errorRate="{ row }">
-            <span class="mono" :class="rateClass(numOf(row.errorRate))">
-              {{ numOf(row.errorRate).toFixed(2) }}%
-            </span>
-          </template>
-        </ReTable>
+      <div v-else class="table-card">
+        <div class="table-panel deps-table-wrap">
+          <ReTable
+            :data="listRows as unknown as Record<string, unknown>[]"
+            :columns="edgeColumns"
+            engine="element"
+            :settings="{ border: false }"
+            :layout-table="{ minHeight: 0 }"
+            :row-class-name="rowClass"
+            class="apm-table dep-table"
+            empty-text="没有匹配的依赖边"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+          >
+            <template #col-source="{ row }">
+              <span
+                class="mono dep-node"
+                :class="{ error: nodeHasError(row.source) }"
+              >{{ row.source }}</span>
+            </template>
+            <template #col-target="{ row }">
+              <span
+                class="mono dep-node target"
+                :class="{ error: nodeHasError(row.target) }"
+              >{{ row.target }}</span>
+            </template>
+            <template #col-protocol="{ row }">
+              <el-tag v-if="row.protocol" effect="plain" round size="small">{{ row.protocol }}</el-tag>
+              <span v-else class="muted">—</span>
+            </template>
+            <template #col-callCount="{ row }">
+              <span class="mono">{{ numOf(row.callCount).toLocaleString() }}</span>
+            </template>
+            <template #col-p95Ms="{ row }">
+              <span class="mono" :class="p95Class(numOf(row.p95Ms))">
+                {{ numOf(row.p95Ms).toFixed(1) }} ms
+              </span>
+            </template>
+            <template #col-errorCount="{ row }">
+              <span :class="['mono', numOf(row.errorCount) > 0 ? 'err-text' : 'muted']">
+                {{ numOf(row.errorCount) }}
+              </span>
+            </template>
+            <template #col-errorRate="{ row }">
+              <span class="mono" :class="rateClass(numOf(row.errorRate))">
+                {{ numOf(row.errorRate).toFixed(2) }}%
+              </span>
+            </template>
+          </ReTable>
+        </div>
       </div>
     </template>
   </div>
@@ -158,6 +190,8 @@ import * as echarts from "echarts";
 import { MagicStick, Plus, Refresh, Search } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
 import { getDependenciesAggregated, injectTransmission, injectBatch } from "../api/apmApi";
 import type { DependencyEdge } from "../api/apmApi";
 import {
@@ -559,14 +593,105 @@ watch(keyword, () => applyHighlight());
 </script>
 
 <style scoped>
-/* 骨架（.view / .view-toolbar / .toolbar-* / .section-label / .match-hint /
-   .filter-bar / .filter-field / .filter-actions / .panel / .panel-empty /
-   .table-panel / .apm-table / .mono / .muted / .err-text / .warn-text）
-   统一由 styles/layout.css 提供，此处只留本页独有部分。 */
+/* ========================================================
+   依赖拓扑 · koi 令牌
+   颜色 / 圆角 / 阴影 / 过渡一律优先取 koi 令牌，并以本包 --apm-*
+   语义令牌兜底 —— hotsport 独立运行时不加载 koi，var(--koi, fallback)
+   会落到 tokens.css 里语义相同的一档，视觉不崩。
+   骨架类（.view / .filter-bar / .filter-field / .filter-actions / .panel /
+   .panel-head / .panel-sub / .table-panel / .apm-table / .mono / .muted /
+   .err-text / .warn-text / .match-hint）由 styles/layout.css 提供。
+   ======================================================== */
+.deps-page {
+  gap: 16px;
+}
+
+/* ---- 页头 ---- */
+.deps-head {
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+}
+
+.deps-head :deep(.re-section-head__title) {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--text-primary, var(--apm-fg));
+}
+
+.deps-head :deep(.re-section-head__desc) {
+  color: var(--text-tertiary, var(--apm-muted));
+  line-height: 1.5;
+}
+
+.deps-head :deep(.re-section-head__actions) {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 规模摘要胶囊 */
+.head-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text-secondary, var(--apm-fg-regular));
+  background: var(--bg-fill, var(--apm-panel-raised));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.head-stat__num {
+  font-weight: 700;
+  color: var(--text-primary, var(--apm-fg));
+}
+
+.head-stat__num.is-error {
+  color: var(--status-error, var(--apm-danger));
+}
+
+.head-stat__sep {
+  width: 1px;
+  height: 10px;
+  margin: 0 4px;
+  background: var(--border-default, var(--apm-border));
+}
+
+.mode-switch {
+  flex-shrink: 0;
+}
 
 .btn-icon {
   margin-right: 4px;
   vertical-align: -2px;
+}
+
+/* ---- 筛选卡 ---- */
+.deps-filter {
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.deps-filter .filter-label {
+  color: var(--text-tertiary, var(--apm-muted));
+  letter-spacing: 0.04em;
+}
+
+.deps-filter .filter-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* 筛选栏字段宽度：搜索与注入目标更宽，协议一档够用 */
@@ -586,23 +711,53 @@ watch(keyword, () => applyHighlight());
 /* ---- 图形视图 ---- */
 .graph-panel {
   min-height: 520px;
+  gap: 12px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
 }
 
-.graph-toolbar {
-  display: flex;
-  align-items: center;
+.graph-head {
+  flex-direction: row;
+  align-items: flex-start;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--apm-space-2);
+  gap: 8px;
 }
 
+.panel-head__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, var(--apm-fg));
+}
+
+.graph-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 图例：分隔线以上的独立一档，避免与图表内容抢视线 */
 .graph-legend {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--apm-space-3);
+  gap: 8px 16px;
+  padding: 8px 12px;
   font-size: 12px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
+  background: var(--bg-fill, var(--apm-panel-raised));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-md, var(--apm-radius-md));
 }
 
 .legend-item {
@@ -620,17 +775,17 @@ watch(keyword, () => applyHighlight());
 }
 
 .legend-dot.caller {
-  background: var(--apm-chart-1);
+  background: var(--brand-500, var(--apm-chart-1));
 }
 .legend-dot.callee {
-  background: var(--apm-success);
+  background: var(--status-success, var(--apm-success));
 }
 .legend-dot.both {
-  background: var(--apm-chart-3);
+  background: var(--metric-mem, var(--apm-chart-3));
 }
 .legend-dot.error {
   background: transparent;
-  border: 2px solid var(--apm-danger);
+  border: 2px solid var(--status-error, var(--apm-danger));
 }
 
 .legend-line {
@@ -638,45 +793,167 @@ watch(keyword, () => applyHighlight());
   height: 2px;
   border-radius: 2px;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--apm-muted) 50%, transparent);
+  background: color-mix(in srgb, var(--text-tertiary, var(--apm-muted)) 50%, transparent);
 }
 .legend-line.error {
-  background: color-mix(in srgb, var(--apm-danger) 80%, transparent);
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 80%, transparent);
 }
 
-.graph-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--apm-space-2);
-}
-
+/* ECharts 画布：flex 撑满面板剩余高度 */
 .graph-body {
   flex: 1;
   min-height: 420px;
+  border-radius: var(--radius-md, var(--apm-radius-md));
+  overflow: hidden;
+}
+
+/* 空态：ReEmpty 自带大留白，这里收到图表同高，避免面板塌陷 */
+.panel-empty-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 240px;
 }
 
 /* ---- 列表视图 ---- */
+.table-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px 12px 12px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+  transition: box-shadow var(--transition-base, var(--apm-t-base));
+}
+
+.table-card:hover {
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
+}
+
+/* 表格变量：koi 优先，apm 兜底 */
+.table-card .table-panel {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.table-card .table-panel,
+.table-card .apm-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--bg-hover, var(--apm-panel-active));
+  --el-table-border-color: var(--border-subtle, var(--apm-border-soft));
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--text-tertiary, var(--apm-muted));
+  --el-table-text-color: var(--text-primary, var(--apm-fg));
+  --el-table-fixed-bg-color: var(--bg-container, var(--apm-panel));
+}
+
+.table-card .table-panel .el-table__header th.el-table__cell,
+.table-card .apm-table .el-table__header th.el-table__cell {
+  background: transparent;
+  border-bottom: 1px solid var(--border-default, var(--apm-border));
+}
+
 .dep-node {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .dep-node.target {
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
 }
 
 /* 错误节点优先于普通/目标色：同一个类名内显式覆盖，避免依赖样式顺序 */
 .dep-node.error,
 .dep-node.target.error {
-  color: var(--apm-danger);
+  color: var(--status-error, var(--apm-danger));
+  font-weight: 600;
 }
 
+/* 错误边行：淡红底承载语义 */
 .dep-table :deep(.row-error) {
-  background: var(--apm-danger-bg);
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 8%, var(--apm-danger-bg));
+}
+
+.dep-table :deep(.row-error:hover > td.el-table__cell) {
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 14%, transparent) !important;
+}
+
+/* ---- 响应式 ---- */
+@media (max-width: 768px) {
+  .deps-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .deps-head :deep(.re-section-head__actions) {
+    width: 100%;
+  }
+
+  /* 窄屏下胶囊与开关各占一行，按钮与开关并排 */
+  .head-stat {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .deps-filter {
+    padding: 10px 12px;
+  }
+
+  .search-field,
+  .protocol-field,
+  .target-field,
+  .check-field {
+    width: 100%;
+  }
+
+  .deps-filter .filter-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .graph-panel {
+    min-height: 420px;
+    padding: 12px;
+  }
+
+  .graph-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* 图例在窄屏收起为两行内滚动，不挤占画布高度 */
+  .graph-legend {
+    max-height: 84px;
+    overflow-y: auto;
+  }
+
+  .graph-body {
+    min-height: 320px;
+  }
+
+  .table-card {
+    padding: 6px 8px 10px;
+  }
 }
 
 /* 尊重系统「减少动态效果」偏好：
    本页自身只保留 loading 旋转，图表力导向布局动画一并关闭 */
 @media (prefers-reduced-motion: reduce) {
+  .table-card,
+  .table-card:hover {
+    transition: none;
+  }
+
   .view :deep(.el-skeleton__item),
   .view :deep(.el-loading-spinner) {
     animation: none;
