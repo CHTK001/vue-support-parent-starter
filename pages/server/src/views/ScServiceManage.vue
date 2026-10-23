@@ -611,11 +611,10 @@ function openDetailPage(row: ServerNodeView, index: number) {
   gap: 12px;
 }
 
-/* 统计卡科技感：毛玻璃 + 霓虹左边框 + 悬浮发光 */
+/* 统计卡科技感：毛玻璃 + 主色描边 + 悬浮发光 */
 .stats-grid :deep(.re-stat-card) {
   background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter));
-  border-left: 3px solid var(--el-color-primary);
   border-radius: var(--el-radius-lg);
   transition:
     border-color 0.25s ease,

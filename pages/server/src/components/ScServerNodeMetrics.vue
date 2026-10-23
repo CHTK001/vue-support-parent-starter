@@ -404,7 +404,6 @@ const sampledText = computed(() =>
   gap: 2px;
   padding: 8px 10px;
   border: 1px solid var(--el-border-color-lighter);
-  border-left: 2px solid var(--el-color-primary);
   border-radius: var(--el-radius-md, 8px);
   background: color-mix(in srgb, var(--el-color-primary) 3%, var(--el-bg-color));
   min-width: 0;

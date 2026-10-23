@@ -335,16 +335,16 @@ function toggleCollapsed(): void {
     color: var(--el-color-primary);
     font-weight: 600;
 
-    /* 激活下划线：与页签内边距对齐，压在导航底线之上 */
+    /* 激活下划线：与页签内边距对齐，压在导航底线之上。
+       1px + 无圆角，与导航底线同粗细，避免两条线叠出差集感 */
     &::after {
       content: "";
       position: absolute;
       right: 12px;
       bottom: -1px;
       left: 12px;
-      height: 2px;
+      height: 1px;
       background: var(--el-color-primary);
-      border-radius: 1px;
     }
   }
 }
