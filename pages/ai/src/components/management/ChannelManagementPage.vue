@@ -102,6 +102,10 @@ const bindState = reactive<Record<string, {
 // 进行中的 SSE 客户端（按渠道），用于「关闭弹窗 / 重新发起」时中止旧流。
 const sseClients: Record<string, { close: () => void }> = {}
 
+// 每个渠道当前流的序号：close() 会触发旧流的 onClose，
+// 用它区分「旧流被主动关闭」和「当前流异常结束」。
+const sseSeq: Record<string, number> = {}
+
 // 绑定对话框的可见性 / 阶段 / 计时
 const bindDialogVisible = ref(false)
 const bindChannel = ref('')
@@ -214,6 +218,9 @@ function stopBindTimer() {
 function closeBindDialog() {
   const channel = bindChannel.value
   if (channel) {
+    // 先作废序号再 close：close() 同步触发旧流的 onClose，
+    // 不推进序号的话它会被当成「当前流异常结束」而把弹窗重新标成错误态。
+    sseSeq[channel] = (sseSeq[channel] ?? 0) + 1
     sseClients[channel]?.close()
     delete sseClients[channel]
     const b = busy.value[channel]
@@ -229,6 +236,18 @@ function startSse(channel: string) {
   delete sseClients[channel]
   bindPhase.value = 'waiting'
   bindError.value = ''
+  // 用序号标记「本次」流：close 会触发旧流的 onClose，若不校验序号，
+  // 关闭旧流的事件会把刚开的新流误判成异常结束。
+  const seq = (sseSeq[channel] = (sseSeq[channel] ?? 0) + 1)
+  let settled = false
+  const isCurrent = () => !settled && sseSeq[channel] === seq
+  const settle = () => {
+    settled = true
+    delete sseClients[channel]
+    const b = busy.value[channel]
+    if (b) b.login = false
+    stopBindTimer()
+  }
   const sse = channelApi.sseLogin(
     channel,
     { handle: buildPollHandle(channel), label: accountLabel.value[channel] || undefined },
@@ -242,32 +261,35 @@ function startSse(channel: string) {
         }
       },
       onDone: (data) => {
-        delete sseClients[channel]
-        const b = busy.value[channel]
-        if (b) b.login = false
-        stopBindTimer()
+        if (!isCurrent()) return
+        settle()
         bindDialogVisible.value = false
         delete bindState[channel]
         ElMessage.success('账号绑定成功' + (data?.label ? '：' + data.label : ''))
         void loadChannels()
       },
       onFailed: (data) => {
-        delete sseClients[channel]
-        const b = busy.value[channel]
-        if (b) b.login = false
-        stopBindTimer()
+        if (!isCurrent()) return
+        const timedOut = data?.code === 'TIMEOUT'
+        settle()
         bindPhase.value = 'error'
-        bindError.value = data?.code === 'TIMEOUT'
+        bindError.value = timedOut
           ? '等待超时：请点「重新发起」再试'
           : (data?.message ?? data?.code ?? '未知错误')
       },
       onError: (err) => {
-        delete sseClients[channel]
-        const b = busy.value[channel]
-        if (b) b.login = false
-        stopBindTimer()
+        if (!isCurrent()) return
+        settle()
         bindPhase.value = 'error'
         bindError.value = err instanceof Error ? err.message : String(err)
+      },
+      onClose: () => {
+        // 流结束但没收到 done / failed：服务端在推结果前异常退出，或网关掐断。
+        // 不处理的话弹窗会永远停在「等待中」（转圈到死）。
+        if (!isCurrent()) return
+        settle()
+        bindPhase.value = 'error'
+        bindError.value = '登录流意外结束（未收到结果），请点「重新发起」'
       },
     },
     300,
@@ -325,6 +347,7 @@ async function openBindDialog(channel: string) {
 async function restartBind() {
   const channel = bindChannel.value
   if (!channel) return
+  sseSeq[channel] = (sseSeq[channel] ?? 0) + 1
   sseClients[channel]?.close()
   delete sseClients[channel]
   const b = busyOf(channel)
@@ -365,8 +388,15 @@ async function refreshAccount(channel: string, label: string) {
   const b = busyOf(channel)
   b.refresh = true
   try {
-    await channelApi.refresh(channel, { label })
-    ElMessage.success('凭据已刷新')
+    const res = await channelApi.refresh(channel, { label })
+    const out = (res as any)?.data ?? res
+    // SPI refresh() 可能返回同一份凭据（渠道没有可刷新字段、或上游未下发新 token），
+    // 此时若仍提示「凭据已刷新」，用户会以为刷新成功但过期时间没变是 bug。
+    if (out?.refreshed === false) {
+      ElMessage.info('凭据仍有效，无需刷新')
+    } else {
+      ElMessage.success('凭据已刷新')
+    }
   } catch (e: any) {
     ElMessage.error('刷新失败：' + (e?.message ?? e))
   } finally {
@@ -413,7 +443,12 @@ async function pullModels(channel: string) {
   b.models = true
   try {
     const summary = channels.value.find((c) => c.channel === channel)
-    const label = summary?.connections?.[0]?.label
+    const conns = summary?.connections ?? []
+    const label = conns[0]?.label
+    // 渠道绑了多个账号时，不传 label 会让后端取「第一个账号」，用户无从得知拉的是谁的模型。
+    if (conns.length > 1) {
+      ElMessage.info(`该渠道有 ${conns.length} 个账号，当前按「${label ?? '默认账号'}」拉取`)
+    }
     const res = await channelApi.listModels(channel, { label })
     const out = (res as any)?.data ?? res
     if (out?.models?.length) {
@@ -464,6 +499,7 @@ onMounted(() => {
 // 卸载时中止所有进行中的登录流，避免后端线程空转到超时、前端残留回调。
 onBeforeUnmount(() => {
   for (const key of Object.keys(sseClients)) {
+    sseSeq[key] = (sseSeq[key] ?? 0) + 1
     try {
       sseClients[key].close()
     } catch {

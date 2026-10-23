@@ -485,6 +485,14 @@ export const channelApi = {
       onDone?: (data: { connectionId?: string; label?: string }) => void;
       onFailed?: (data: { message?: string; code?: string }) => void;
       onError?: (err: unknown) => void;
+      /**
+       * 流正常结束（服务端 complete）时回调。
+       *
+       * ⚠️ 必须暴露：服务端可能在没有推 done/failed 的情况下结束流
+       * （如 persistCredentials 抛非 SSE 异常、网关中途掐断），此时若前端
+       * 只监听 onFailed，绑定弹窗会永远停在「等待中」，用户看不到任何结果。
+       */
+      onClose?: () => void;
     },
     timeoutSec = 180,
   ) =>
@@ -501,6 +509,7 @@ export const channelApi = {
         else if (name === 'failed') handlers.onFailed?.(data)
       },
       onError: handlers.onError,
+      onClose: handlers.onClose,
     }),
   /** POST /api/channels/{channel}/refresh —— 按 label 刷新凭据 */
   refresh: (channel: string, body: { label: string }) =>
