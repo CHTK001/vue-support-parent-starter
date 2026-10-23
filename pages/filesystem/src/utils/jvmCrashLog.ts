@@ -134,8 +134,10 @@ export function parseJvmCrashLog(text: string, fileName: string): JvmCrashReport
     first(/#\s+([^\n]+)/, text)
     ?? (isHsErr ? "JVM 崩溃日志" : "");
 
-  const jreVersion = first(/#\s*JRE version:\s*(.+)/, text);
-  const javaVm = first(/#\s*Java VM:\s*(.+)/, text);
+  // first() 未命中返回 null，而 JvmCrashReport 的这些字段是非空 string；
+  // 缺行时用空串表达「日志里没有这一项」，与 vmArgs/heapSummary 的处理一致。
+  const jreVersion = first(/#\s*JRE version:\s*(.+)/, text) ?? "";
+  const javaVm = first(/#\s*Java VM:\s*(.+)/, text) ?? "";
 
   // Problematic frame（# 后一行，形如 `C  [libc.so.6+0x...]`）
   let problematicFrame = "";
@@ -157,10 +159,10 @@ export function parseJvmCrashLog(text: string, fileName: string): JvmCrashReport
     }
   }
 
-  const siginfo = first(/siginfo:\s*(.+)/, text);
-  const signalName = first(/siginfo: si_signo:\s*\d+\s*\(([^)]+)\)/, text);
+  const siginfo = first(/siginfo:\s*(.+)/, text) ?? "";
+  const signalName = first(/siginfo: si_signo:\s*\d+\s*\(([^)]+)\)/, text) ?? "";
 
-  const currentThread = first(/Current thread \([^)]+\):\s*(.+)/, text);
+  const currentThread = first(/Current thread \([^)]+\):\s*(.+)/, text) ?? "";
 
   const nativeFrames = collectLines(text, /Native frames:/, /^\s*Java frames:/m);
   const javaFrames = collectLines(text, /Java frames:/);
@@ -186,10 +188,10 @@ export function parseJvmCrashLog(text: string, fileName: string): JvmCrashReport
     }
   }
 
-  const os = first(/OS:\s*(.+)/, text);
-  const cpu = first(/CPU:\s*(.+)/, text);
-  const memory = first(/Memory:\s*(.+)/, text);
-  const vmInfo = first(/vm_info:\s*(.+)/, text);
+  const os = first(/OS:\s*(.+)/, text) ?? "";
+  const cpu = first(/CPU:\s*(.+)/, text) ?? "";
+  const memory = first(/Memory:\s*(.+)/, text) ?? "";
+  const vmInfo = first(/vm_info:\s*(.+)/, text) ?? "";
 
   // 崩溃类型判定
   let severity: CrashSeverity = "unknown";

@@ -18,17 +18,18 @@
    特异性说明（重要）：
    页面组件的 scoped 样式会编译成 `.wg-title[data-v-xxxx]`，特异性 (0,2,0)，
    与本文件最初的写法相同 —— 而 scoped 样式后加载，会赢。
-   故这里用 `[data-page] [data-page] .xxx` 把特异性提到 (0,3,0) 以确保覆盖。
+   故这里多挂一层 `[data-page][data-page]` 把特异性提到 (0,3,0) 以确保覆盖。
    （用 !important 也能赢，但会让后续变体无法覆盖，故不用。）
+   注意：属性写两遍是刻意的提权手法，不是笔误。
    ========================================================================== */
 
-[data-page] [data-page] .page-title,
-[data-page] [data-page] .wg-title,
-[data-page] [data-page] .chm-head__title,
-[data-page] [data-page] .svc-head__title,
-[data-page] [data-page] .is-brand-title,
-[data-page] [data-page] .fs-page-title,
-[data-page] [data-page] .ocr-page-title {
+[data-page][data-page] .page-title,
+[data-page][data-page] .wg-title,
+[data-page][data-page] .chm-head__title,
+[data-page][data-page] .svc-head__title,
+[data-page][data-page] .is-brand-title,
+[data-page][data-page] .fs-page-title,
+[data-page][data-page] .ocr-page-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
@@ -39,10 +40,10 @@
 }
 
 /* ---------- 次级说明文字：统一 12px 灰 ---------- */
-[data-page] [data-page] .page-subtitle,
-[data-page] [data-page] .wg-total,
-[data-page] [data-page] .chm-head__desc,
-[data-page] [data-page] .svc-head__desc {
+[data-page][data-page] .page-subtitle,
+[data-page][data-page] .wg-total,
+[data-page][data-page] .chm-head__desc,
+[data-page][data-page] .svc-head__desc {
   font-size: 12px;
   font-weight: 400;
   color: var(--text-tertiary, var(--el-text-color-secondary));
@@ -51,12 +52,14 @@
 
 /* ---------- 响应式：窄屏允许标题换行，避免挤爆 ---------- */
 @media (max-width: 768px) {
-  [data-page] [data-page] .page-title,
-  [data-page] [data-page] .wg-title,
-  [data-page] [data-page] .chm-head__title,
-  [data-page] [data-page] .svc-head__title,
-  [data-page] [data-page] .is-brand-title {
+  [data-page][data-page] .page-title,
+  [data-page][data-page] .wg-title,
+  [data-page][data-page] .chm-head__title,
+  [data-page][data-page] .svc-head__title,
+  [data-page][data-page] .is-brand-title {
     white-space: normal;
     font-size: 15px;
   }
 }
+
+

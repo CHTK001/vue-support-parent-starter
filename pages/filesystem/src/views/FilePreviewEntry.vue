@@ -28,7 +28,7 @@ import { computed, defineAsyncComponent, onMounted, ref, shallowRef, type Compon
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import FvPanelBase from "../components/fv/FvPanelBase.vue";
 import { isClientRenderable } from "../utils/officeRenderer";
-import { base64ToUtf8, specFor, type RendererSpec } from "../utils/previewEntryRenderers";
+import { base64ToUtf8, specFor, TEXT_EXTENSIONS, type RendererSpec } from "../utils/previewEntryRenderers";
 
 /* ==================== 专用面板组件注册表（file-viewer 不支持的格式） ==================== */
 

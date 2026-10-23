@@ -51,6 +51,16 @@ interface HostRow {
   serverHostPorts?: string;
   serverHostLastPortScanTime?: string;
   serverHostSshEnabled?: number;
+  /**
+   * 实时指标（CPU / 内存 / 磁盘使用率，百分比 0-100）。
+   *
+   * 后端 /ms/server/host 返回的主机行会带这三个字段（详情页与卡片环形图都用它），
+   * 但实体声明里没有，导致模板访问时 TS2339。这里显式补上：字段缺失表示
+   * 「该主机暂无实时指标」（如手动采集模式），模板按 0 渲染并提示。
+   */
+  cpuUsage?: number | null;
+  memUsage?: number | null;
+  diskUsage?: number | null;
 }
 
 /** 采集方式选项 */
@@ -608,14 +618,14 @@ function diskColor(v?: number): string {
       </div>
 
       <div class="host-card__metrics">
-        <div class="mini-ring" :style="{ '--pct': (row.cpuUsage || 0) + '%', '--ring-color': cpuColor(row.cpuUsage) }">
-          <span class="mini-ring__val">{{ row.cpuUsage || 0 }}%</span>
+        <div class="mini-ring" :style="{ '--pct': (row.cpuUsage ?? 0) + '%', '--ring-color': cpuColor(row.cpuUsage ?? 0) }">
+          <span class="mini-ring__val">{{ row.cpuUsage ?? 0 }}%</span>
         </div>
-        <div class="mini-ring" :style="{ '--pct': (row.memUsage || 0) + '%', '--ring-color': memColor(row.memUsage) }">
-          <span class="mini-ring__val">{{ row.memUsage || 0 }}%</span>
+        <div class="mini-ring" :style="{ '--pct': (row.memUsage ?? 0) + '%', '--ring-color': memColor(row.memUsage ?? 0) }">
+          <span class="mini-ring__val">{{ row.memUsage ?? 0 }}%</span>
         </div>
-        <div class="mini-ring" :style="{ '--pct': (row.diskUsage || 0) + '%', '--ring-color': diskColor(row.diskUsage) }">
-          <span class="mini-ring__val">{{ row.diskUsage || 0 }}%</span>
+        <div class="mini-ring" :style="{ '--pct': (row.diskUsage ?? 0) + '%', '--ring-color': diskColor(row.diskUsage ?? 0) }">
+          <span class="mini-ring__val">{{ row.diskUsage ?? 0 }}%</span>
         </div>
         <div class="metric-labels">
           <span>CPU</span><span>内存</span><span>磁盘</span>

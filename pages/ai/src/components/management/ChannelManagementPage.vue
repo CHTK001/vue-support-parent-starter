@@ -178,13 +178,18 @@ function bindUserCode(): string {
 const smsSent = () => bindState[bindChannel.value]?.handle?.smsSent === true
 
 // 自动打开授权页：新窗口 + noopener（防止被打开的页面拿到 opener 句柄）。
-// ⚠️ 必须由用户点击同步触发才不会被浏览器拦截，所以放在点击处理的最前面。
+//
+// ⚠️ 两个坑：
+//   1. 必须由用户点击同步触发，否则会被浏览器拦截；
+//   2. 带 noopener 特性时，浏览器规范规定 window.open() **一律返回 null**
+//      （新窗口没有 opener 可回指，自然拿不到 WindowProxy）。
+//      所以不能再用 `!win` 判断「被拦截」—— 那会让每一次正常的自动开窗都弹出
+//      「浏览器拦截了授权页弹窗」的错误提示，用户看到成功打开的新标签页时却被告知失败。
 function openAuthWindow(url: string) {
   if (!url) return
-  const win = window.open(url, '_blank', 'noopener,noreferrer')
-  if (!win) {
-    ElMessage.warning('浏览器拦截了授权页弹窗，请点击弹窗内的「打开授权页」按钮')
-  }
+  window.open(url, '_blank', 'noopener,noreferrer')
+  // 不留 window 句柄，也就不做拦截判定：弹窗没开时用户仍可点弹窗内的
+  // 「打开授权页」按钮（同一次点击上下文，属用户手势，不会再次被拦）。
 }
 
 // 扫码渠道：把 URL 本地渲染成二维码图片

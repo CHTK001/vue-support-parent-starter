@@ -51,7 +51,7 @@ export const TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
   "html", "htm", "jsx", "ts", "tsx", "xml", "log", "vue", "yaml", "yml",
   "ini", "sh", "bash", "sql", "go", "rs", "php", "c", "cpp", "cc", "h",
   "hpp", "cs", "jsonc", "json5", "ipynb", "toml", "proto", "hcl", "tex",
-  "gv", "http", "react", "rb", "swift", "kt", "mf",
+  "gv", "http", "react", "rb", "swift", "kt",
 ]);
 
 const TEXT_SPEC: RendererSpec = {
