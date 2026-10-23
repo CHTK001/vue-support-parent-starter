@@ -453,6 +453,42 @@ export const handleAlarmEvent = (id: number, remark: string, falseAlarm: boolean
   http().post(`${B}/alarm/event/${id}/handle?remark=${encodeURIComponent(remark)}&falseAlarm=${falseAlarm}`)
     .then(r => unwrap<boolean>(r));
 
+/**
+ * 订阅告警事件实时流（SSE）。
+ *
+ * <p>与 socket.io 通道并存：socket 链路要经过消息队列与 socket 组件，任一未装配
+ * 就会静默丢消息；本通道由 Servlet 容器直连长连接，是告警页的首选。
+ * 事件：{@code ready} 建连就绪、{@code alarm} 告警新建 / 已处理 / 误报。
+ * 历史事件仍需 {@link getAlarmEvents} 拉取，本接口只推增量。</p>
+ *
+ * @param handlers 事件回调
+ * @param handlers.onAlarm   收到一条告警事件
+ * @param handlers.onOpen    连接建立（等待 ready 帧期间也会先触发）
+ * @param handlers.onError   连接出错
+ * @param handlers.onClose   连接关闭
+ * @returns SSE 客户端实例，调用 close() 断开
+ */
+export const subscribeAlarmStream = (handlers: {
+  onAlarm?: (payload: Record<string, unknown>) => void;
+  onOpen?: () => void;
+  onError?: (e: Error) => void;
+  onClose?: () => void;
+}) =>
+  http().get(`${B}/alarm/stream`).sse<Record<string, unknown> | string>({
+    // 与 socket 的 x-oauth-token 约定一致；createSseClient 内部已处理，这里只保留默认鉴权
+    reconnect: true,
+    maxReconnectAttempts: 5,
+    onOpen: () => handlers.onOpen?.(),
+    onError: (e) => handlers.onError?.(e as Error),
+    onClose: () => handlers.onClose?.(),
+    onMessage: (e) => {
+      // ready 帧只表示通道就绪，不是告警数据
+      if (e.event === "alarm" && e.data && typeof e.data === "object") {
+        handlers.onAlarm?.(e.data as Record<string, unknown>);
+      }
+    },
+  });
+
 // ===== 全局概览 =====
 export const getOverview = () =>
   http().get(`${B}/dashboard/overview`).then(r => unwrap<{ total: number; enabled: number; disabled: number; serverCount: number; redisCount: number; dbCount: number }>(r));

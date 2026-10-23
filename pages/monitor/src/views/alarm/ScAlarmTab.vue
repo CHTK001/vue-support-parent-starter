@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick, onBeforeUnmount, shallowRef } from 'vue';
+import { computed, onMounted, ref, watch, nextTick, onBeforeUnmount, shallowRef } from 'vue';
 import { message, useSocketService } from '@repo/core';
 import * as echarts from 'echarts';
 import {
@@ -7,7 +7,12 @@ import {
   getAlarmRules, saveAlarmRule, delAlarmRule,
   getAlarmEvents, handleAlarmEvent,
   getAlarmSummary, getAlarmTrend,
+  subscribeAlarmStream,
 } from '../../api';
+import {
+  resolveLiveMode, fallbackAfterSseLost, liveModeText, liveModeTone,
+  type LiveMode,
+} from './liveChannel';
 
 /** 策略行 */
 interface PolicyRow {
@@ -83,38 +88,177 @@ onMounted(initLivePush);
 
 /** socket 订阅句柄（组件卸载时释放） */
 const unsubs: Array<() => void> = [];
+/** SSE 客户端句柄（组件卸载时释放） */
+let sseClient: { close: () => void } | null = null;
+/** 兜底轮询定时器；仅在 SSE 与 socket 都不可用时启动 */
+let fallbackTimer: ReturnType<typeof setInterval> | null = null;
 
-/** 实时推送告警事件：新告警插到列表顶部并刷新统计 */
-function initLivePush(): void {
-  const socket = useSocketService();
-  if (!socket) return;
-  unsubs.push(socket.subscribe("monitor", "alarm", (msg) => {
-    const data = (msg.data ?? msg) as any;
-    const payload = data && typeof data === "object" ? (data.data ?? data) : data;
-    if (!payload) return;
-    const level = payload.level ?? "P2";
-    if (level === "P0" || level === "P1") {
-      message.error(`[${level}] ${payload.monitorName || ""} ${payload.metricName || ""}=${payload.alarmValue ?? ""}`);
-    } else if (level === "P2" || level === "P3") {
-      message.warning(`[${level}] ${payload.monitorName || ""} ${payload.metricName || ""}=${payload.alarmValue ?? ""}`);
+/** 实时通道状态：sse 实时、socket 兜底、poll 降级轮询、off 未连接 */
+const liveMode = ref<LiveMode>(resolveLiveMode({
+  sseConnected: false,
+  socketAvailable: false,
+  windowElapsed: false,
+}));
+/** 通道建立时刻，用于展示「已连接 N 分钟」与排查 */
+const liveSince = ref(0);
+/** 是否已过 SSE 建连窗口 */
+const liveWindowElapsed = ref(false);
+
+/** 兜底轮询间隔（毫秒）：降级路径只保证「不会完全看不到告警」 */
+const FALLBACK_POLL_MS = 30_000;
+
+/** 通道状态文案 */
+const liveText = computed(() => liveModeText(liveMode.value, FALLBACK_POLL_MS / 1000));
+
+/** 通道状态颜色 */
+const liveTone = computed(() => liveModeTone(liveMode.value));
+
+/**
+ * 把一条推送载荷落到界面：级别提示 + 插列表头 + 刷新统计。
+ *
+ * <p>SSE 与 socket 两条通道共用这里的处理，避免两边行为漂移。同一事件可能
+ * 同时从两条通道到达（后端两条都在发），因此按事件 id 去重。</p>
+ *
+ * @param payload 告警载荷
+ */
+function applyPushedAlarm(payload: Record<string, any>): void {
+  const level = payload.level ?? 'P2';
+  if (level === 'P0' || level === 'P1') {
+    message.error(`[${level}] ${payload.monitorName || ''} ${payload.metricName || ''}=${payload.alarmValue ?? ''}`);
+  } else if (level === 'P2' || level === 'P3') {
+    message.warning(`[${level}] ${payload.monitorName || ''} ${payload.metricName || ''}=${payload.alarmValue ?? ''}`);
+  }
+
+  const id = Number(payload.id) || 0;
+  const status = payload.status ?? 'NEW';
+
+  // 已存在的事件只更新状态：处理完成后服务端也会推一条同 id 的事件
+  if (id > 0) {
+    const existing = events.value.find(e => e.id === id);
+    if (existing) {
+      existing.msMonitorAlarmEventStatus = status;
+      return;
     }
-    // 插入列表顶部（仅当在事件视图且未按状态过滤时）
-    if (subView.value === "events" && !eventStatusFilter.value) {
-      events.value.unshift({
-        id: Number(payload.id) || Date.now(),
-        msMonitorAlarmEventMonitorName: payload.monitorName,
-        msMonitorAlarmEventMetricName: payload.metricName,
-        msMonitorAlarmEventAlarmValue: payload.alarmValue,
-        msMonitorAlarmEventThreshold: payload.threshold,
-        msMonitorAlarmEventLevel: payload.level,
-        msMonitorAlarmEventStatus: payload.status ?? "NEW",
-        msMonitorAlarmEventTriggerTime: payload.triggerTime,
-      });
-      if (events.value.length > 200) events.value.length = 200;
-    }
-    loadStats().catch(() => {});
-  }));
+  }
+
+  // 新建事件：仅在事件视图且未按状态过滤时插入（过滤视图下插入会与筛选条件矛盾）
+  if (subView.value === 'events' && !eventStatusFilter.value) {
+    events.value.unshift({
+      id: id || Date.now(),
+      msMonitorAlarmEventMonitorName: payload.monitorName,
+      msMonitorAlarmEventMetricName: payload.metricName,
+      msMonitorAlarmEventAlarmValue: payload.alarmValue,
+      msMonitorAlarmEventThreshold: payload.threshold,
+      msMonitorAlarmEventLevel: payload.level,
+      msMonitorAlarmEventStatus: status,
+      msMonitorAlarmEventTriggerTime: payload.triggerTime,
+    });
+    if (events.value.length > 200) events.value.length = 200;
+  }
+  loadStats().catch(() => {});
 }
+
+/**
+ * 启动兜底轮询。
+ *
+ * <p>只有在 SSE 与 socket 都没连上时才启用：目的不是让轮询成为常态，
+ * 而是保证推送链路整体不可用时用户仍能看到告警，而不是对着一个不动的列表。</p>
+ */
+function startFallbackPoll(): void {
+  if (fallbackTimer) return;
+  liveMode.value = 'poll';
+  liveSince.value = Date.now();
+  fallbackTimer = setInterval(() => {
+    // 已切到推送通道就停掉轮询
+    if (liveMode.value === 'sse' || liveMode.value === 'socket') {
+      stopFallbackPoll();
+      return;
+    }
+    getAlarmEvents(eventStatusFilter.value || undefined)
+      .then(rows => { events.value = rows ?? []; })
+      .catch(() => {});
+    loadStats().catch(() => {});
+  }, FALLBACK_POLL_MS);
+}
+
+/** 停止兜底轮询 */
+function stopFallbackPoll(): void {
+  if (!fallbackTimer) return;
+  clearInterval(fallbackTimer);
+  fallbackTimer = null;
+}
+
+/**
+ * 建立实时推送：SSE 优先，失败回退 socket，再失败回退轮询。
+ *
+ * <p>为什么不只用 socket：socket 链路要经过消息队列与 socket 组件，
+ * 任一未装配都会静默丢消息；SSE 由 Servlet 容器直连，不依赖这两者。</p>
+ */
+function initLivePush(): void {
+  // 1) socket 先订阅：SSE 建连失败时要能立刻切过去，而不是等 SSE 报错才发现没通道
+  const socket = useSocketService();
+  socketReady = !!socket;
+  if (socket) {
+    unsubs.push(socket.subscribe('monitor', 'alarm', (msg) => {
+      // SSE 正常时不重复处理，避免同一条告警弹两次提示
+      if (liveMode.value === 'sse') return;
+      const data = (msg.data ?? msg) as any;
+      const payload = data && typeof data === 'object' ? (data.data ?? data) : data;
+      if (!payload) return;
+      if (liveMode.value !== 'socket') {
+        liveMode.value = resolveLiveMode({
+          sseConnected: false,
+          socketAvailable: true,
+          windowElapsed: liveWindowElapsed.value,
+        });
+        liveSince.value = Date.now();
+        stopFallbackPoll();
+      }
+      applyPushedAlarm(payload);
+    }));
+  }
+
+  // 2) SSE 主通道
+  try {
+    sseClient = subscribeAlarmStream({
+      onOpen: () => {
+        liveMode.value = resolveLiveMode({
+          sseConnected: true,
+          socketAvailable: socketReady,
+          windowElapsed: liveWindowElapsed.value,
+        });
+        liveSince.value = Date.now();
+        stopFallbackPoll();
+      },
+      onAlarm: applyPushedAlarm,
+      onError: () => {
+        // SSE 断开且重连耗尽：socket 仍可用就走 socket，否则轮询兜底
+        if (liveMode.value === 'sse') {
+          liveMode.value = fallbackAfterSseLost(socketReady);
+          if (liveMode.value === 'poll') startFallbackPoll();
+        }
+      },
+      onClose: () => {
+        if (liveMode.value === 'sse') {
+          liveMode.value = fallbackAfterSseLost(socketReady);
+          if (liveMode.value === 'poll') startFallbackPoll();
+        }
+      },
+    });
+  } catch {
+    // 浏览器不支持 SSE 时直接走 socket / 轮询
+  }
+
+  // 3) 两条推送通道都没有可用证据时，轮询兜底
+  //    给 SSE 一个建连窗口；超时仍未连上认为推送不可用
+  setTimeout(() => {
+    liveWindowElapsed.value = true;
+    if (liveMode.value === 'off') startFallbackPoll();
+  }, 8000);
+}
+
+/** socket 是否已订阅（用于 SSE 断开时决定回到 socket 还是轮询） */
+let socketReady = false;
 
 /**
  * 刷新策略/规则/事件
@@ -304,6 +448,9 @@ watch(subView, () => {
 
 onBeforeUnmount(() => {
   unsubs.forEach(fn => fn?.())
+  sseClient?.close()
+  sseClient = null
+  stopFallbackPoll()
   trendChartInstance?.dispose()
   trendChartInstance = null
 })
@@ -317,6 +464,12 @@ onBeforeUnmount(() => {
         <ReRadioButton value="events">告警事件</ReRadioButton>
         <ReRadioButton value="rules">策略与规则</ReRadioButton>
       </ReRadioGroup>
+      <!-- 通道状态：推送链路是否真的在推，必须让用户看得见；
+           否则后端队列没装配时会静默退化成轮询，界面毫无提示 -->
+      <ReTag :type="liveTone" effect="plain" size="small" class="live-tag">
+        <span class="live-dot" :class="liveMode" />
+        {{ liveText }}
+      </ReTag>
       <ReButton v-if="subView === 'events'" icon="Refresh" show-text @click="refresh">刷新</ReButton>
     </div>
 
@@ -499,7 +652,47 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+/* 通道状态：状态点靠颜色区分，实时通道带呼吸动画，一眼看出是不是真的在推 */
+.live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-danger);
+  flex-shrink: 0;
+
+  &.sse {
+    background: var(--el-color-success);
+    animation: live-pulse 2s ease-in-out infinite;
+  }
+
+  &.socket,
+  &.poll {
+    background: var(--el-color-warning);
+  }
+
+  &.off {
+    background: var(--el-color-danger);
+  }
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 60%, transparent); }
+  50% { opacity: 0.65; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot.sse { animation: none; }
 }
 
 .panel {
