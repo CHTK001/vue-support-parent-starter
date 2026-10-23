@@ -36,12 +36,19 @@ const props = defineProps<{
   nodeId: string;
   /** 表单共享上下文 */
   ctx: NodeFormContext;
+  /** label 图标里的提示文案；缺省用 param.tip */
+  hint?: string;
+  /** 是否强制显示必填星号；缺省用 param.required */
+  required?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "update", value: unknown): void;
   (e: "pairs", value: ParamPair[]): void;
 }>();
+
+/** label 图标提示：优先外部传入的 hint（extraTips），否则回落到后端 param.tip */
+const hintText = computed(() => props.hint || props.param.tip || "");
 
 /** 同一个枚举值在不同参数里语义不同（all 在"继承上游变量"里是全部继承，在"变量回写"里是全部回写），按参数名覆盖 */
 const OPTION_LABELS: Record<string, string> = {
@@ -202,7 +209,16 @@ function typeOf(key: string): string {
 <template>
   <div class="field" :class="{ 'field-wide': wide }" :data-param="param.name">
     <div class="field-label">
-      {{ param.label }}<span v-if="param.required" class="req">*</span>
+      {{ param.label }}<span v-if="param.required || required" class="req">*</span>
+      <el-tooltip
+        v-if="hintText"
+        :content="hintText"
+        placement="top"
+        :show-after="200"
+        :teleported="true"
+      >
+        <span class="label-tip"><ReIcon name="InfoFilled" :size="13" /></span>
+      </el-tooltip>
       <RePlaceholderPicker
         v-if="showPlaceholderPicker"
         class="label-picker"
@@ -366,9 +382,6 @@ function typeOf(key: string): string {
       :model-value="value"
       @update:model-value="(v: unknown) => emit('update', v)"
     />
-    <div v-if="param.tip && param.type !== 'textarea'" class="field-tip">
-      {{ param.tip }}
-    </div>
 
     <!-- 专注模式弹框：SQL / 脚本等长文本全屏编辑 -->
     <ReDialog
@@ -517,6 +530,24 @@ function typeOf(key: string): string {
 .req {
   margin-left: 2px;
   color: var(--el-color-danger);
+}
+
+/* label 右侧的信息图标：备注全部收进 tooltip，不占输入区版面 */
+.label-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 3px;
+  color: var(--el-text-color-secondary);
+  cursor: help;
+  border-radius: 50%;
+}
+
+.label-tip:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .pane-fill {

@@ -1,6 +1,11 @@
 <!--
   平台总览：登录后的落地页（app.yaml 的 routeConfig.homePath 指向本页）。
 
+  归属说明：这是**宿主级跨系统聚合视图**（同时读 @pages/collect / @pages/job /
+  @pages/datasource），不属于单侧 pages 包；放 collect 或 job 任一侧都会造成
+  包间互相依赖成环，因此显式留在 apps/vue-support-collect-scheduler-starter。
+  「业务归 pages」红线在这里的例外仅限此类 app 级聚合页（见 src/routes.ts 上文）。
+
   数据全部来自现网接口，不做前端推算：采集面读 runtime 与 task/flow 分页，变量/数据源/函数/通知取列表长度；
   调度面只读 job-starter 的 /v2/scheduler/summary 一份概览，不再自己数台账行——概览里的
   totalJobs / runningJobs / recentFailures 与工作台显示的是同一个口径。
@@ -324,23 +329,6 @@ function shortTime(value: unknown): string {
 
 <template>
   <div class="collect-page">
-    <div class="collect-head">
-      <ReIcon name="Odometer" :size="18"/>
-      <h2 class="collect-head__title">平台总览</h2>
-      <ReTag  :type="runtime?.enable ? 'success' : 'danger'" effect="plain">
-        {{ runtime?.enable ? "采集已启用" : "采集未启用" }}
-      </ReTag>
-      <span class="collect-pulse" :class="{ 'is-idle': !runtime?.runningTasks }"/>
-      <span class="collect-head__sub">
-        运行中 {{ runtime?.runningTasks ?? 0 }} · 执行器 {{ runtime?.executorId || "—" }} ·
-        更新于 {{ updatedAt || "—" }}
-      </span>
-      <span class="spacer"/>
-      <span class="collect-hint collect-hint--muted">自动刷新</span>
-      <ReSwitch v-model="autoRefresh"  aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
-      <ReButton  icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新总览</ReButton>
-    </div>
-
     <div class="collect-stats">
       <ReStatCard
         size="compact"
@@ -358,11 +346,6 @@ function shortTime(value: unknown): string {
       </ReStatCard>
     </div>
 
-    <div class="collect-callout" :class="`is-${engineRow.tone === 'info' ? 'warn' : engineRow.tone}`">
-      <ReIcon :name="engineRow.tone === 'success' ? 'CircleCheck' : 'Warning'" :size="14"/>
-      <span>{{ engineRow.text }}</span>
-    </div>
-
     <div class="dash-grid">
       <div class="collect-card dash-panel">
         <div class="collect-rail__title dash-panel__head">
@@ -374,11 +357,10 @@ function shortTime(value: unknown): string {
         <ReTable
           :data="recentTasks as unknown as Record<string, unknown>[]"
           :columns="taskColumns"
-          :pagination="false"
-          :toolbar="false"
           row-key="collectTaskId"
           :layout-table="{ minHeight: 0 }"
           empty-text="还没有执行记录，去「流程设计」运行一个流程"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #status="{ row }">
             <ReTag  :type="statusTagType(row.collectTaskStatus)" effect="plain">
@@ -407,11 +389,10 @@ function shortTime(value: unknown): string {
         <ReTable
           :data="flows as unknown as Record<string, unknown>[]"
           :columns="flowColumns"
-          :pagination="false"
-          :toolbar="false"
           row-key="collectFlowId"
           :layout-table="{ minHeight: 0 }"
           empty-text="还没有流程"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #cron="{ row }">
             <span class="collect-cell-mono">{{ row.collectFlowCron || "手动" }}</span>
@@ -432,11 +413,10 @@ function shortTime(value: unknown): string {
         <ReTable
           :data="jobs as unknown as Record<string, unknown>[]"
           :columns="jobColumns"
-          :pagination="false"
-          :toolbar="false"
           row-key="jobKey"
           :layout-table="{ minHeight: 0 }"
           empty-text="台账里还没有任务，去工作台新建或在流程设计页给流程配 cron"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #name="{ row }">
             <span>{{ row.jobName || row.jobKey }}</span>
@@ -459,7 +439,7 @@ function shortTime(value: unknown): string {
       </div>
     </div>
 
-    <div class="collect-card">
+    <div class="collect-card dash-panel">
       <div class="collect-rail__title dash-panel__head">
         <ReIcon name="Setting" :size="14"/>
         <b>运行时参数</b>
@@ -510,7 +490,17 @@ function shortTime(value: unknown): string {
 }
 
 .dash-panel {
-  padding-bottom: 6px;
+  /*
+   * 卡片内边距必须自己补。
+   *
+   * collect.css 的 .collect-card 只给「边框 / 圆角 / 背景 / 投影」，**不含内边距**——
+   * 因为其它页面（TaskView / NoticeView / FunctionView…）都是把 collect-card 直接
+   * 挂在 ReTable 上，内距由表格自己的 toolbar/表体/分页栏管理。
+   *
+   * 本页是「自定义标题 + 表格」和「自定义标题 + 键值表」两种结构，不补内距就会
+   * 出现标题文字紧贴左侧边框、表格顶着右边框（实测 padding 只有 0 0 6px）。
+   */
+  padding: 10px 14px;
   min-width: 0;
 }
 

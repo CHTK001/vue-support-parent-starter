@@ -18,7 +18,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReTag from "@repo/ui/re-tag";
 import ReTime from "@repo/ui/re-time";
 import FlowDesigner from "./FlowDesigner.vue";
-import { fetchMetas, fetchTaskLogs, getFlow, getTask } from "../api/collectApi";
+import { fetchMetas, fetchTaskLogs, getFlow, getTask, listFlows } from "../api/collectApi";
 import { costMs, statusTagType, statusText } from "../constants/taskStatus";
 import { errText } from "../composables/useCollectView";
 import type { CollectFlow, CollectShapeMeta, CollectTask, CollectTaskLog } from "../types/collect";
@@ -84,6 +84,49 @@ const ownLogs = computed(() => {
   });
 });
 
+/** 已经“执行到”的本流程日志；轨迹点灯按它裁剪，而不是一次展示全部日志 */
+const replayedOwnLogs = computed(() => ownLogs.value.slice(0, cursor.value));
+
+/**
+ * 已执行轨迹点亮的连线集合：按日志执行顺序，把相邻两个不同节点的 DSL 连线全部点亮。
+ * 多步骤就有多条连线（虚线动画），同一节点多次迭代只算一条。
+ */
+const activeEdgeIds = computed<string[]>(() => {
+  const source = flow.value?.dsl;
+  if (!source) return [];
+  const edgeOf = new Map<string, string>();
+  source.edges.forEach(edge => edgeOf.set(`${edge.from}->${edge.to}`, edge.id));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (let i = 1; i < replayedOwnLogs.value.length; i += 1) {
+    const prevId = replayedOwnLogs.value[i - 1]?.collectTaskLogNodeId;
+    const curId = replayedOwnLogs.value[i]?.collectTaskLogNodeId;
+    if (!prevId || !curId || prevId === curId) continue;
+    const key = `${prevId}->${curId}`;
+    const id = edgeOf.get(key);
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      out.push(id);
+    }
+  }
+  return out;
+});
+
+/** 当前正在执行/循环的节点 id；画布上它显示蓝色虚线动画边框，并自动居中 */
+const loopingNodeId = computed<string | null>(() => {
+  const cur = replayedOwnLogs.value[replayedOwnLogs.value.length - 1];
+  return cur?.collectTaskLogNodeId ?? null;
+});
+
+/** 追踪：当前节点变化时把画布平移到该节点居中 */
+watch(loopingNodeId, (id) => {
+  if (id) {
+    void nextTick(() => designer.value?.focusNode(id));
+  }
+});
+
+/** cursor 变化后把截图信息提交给上方画布，由 activeEdgeIds / loopingNodeId 驱动 */
+
 function stop(): void {
   playing.value = false;
   if (timer) {
@@ -132,7 +175,14 @@ async function load(): Promise<void> {
   try {
     const [detail, nodeLogs] = await Promise.all([getTask(taskId), fetchTaskLogs(taskId)]);
     logs.value = nodeLogs ?? [];
-    const flowId = detail?.collectTaskFlowId ?? props.task?.collectTaskFlowId;
+    let flowId: number | undefined = detail?.collectTaskFlowId ?? props.task?.collectTaskFlowId;
+    if (!flowId) {
+      // 任务列表/详情接口当前不返回 flowId，按流程名从采集器列表匹配，
+      // 否则回放画布永远只有空壳
+      const flows = (await listFlows()) ?? [];
+      const targetName = detail?.collectTaskFlowName ?? props.task?.collectTaskFlowName;
+      flowId = flows.find(f => f.collectFlowName === targetName)?.collectFlowId ?? undefined;
+    }
     if (flowId) {
       const [detailFlow, metaList] = await Promise.all([getFlow(flowId), fetchMetas()]);
       flow.value = detailFlow;
@@ -194,16 +244,20 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
       </div>
 
       <div class="replay__body">
-        <div class="replay__canvas">
-          <FlowDesigner
-            v-if="flow?.dsl"
-            ref="designer"
-            readonly
-            :metas="metas"
-            :initial-dsl="flow.dsl"
-            :states="states"
-          />
-          <div v-else-if="!loading" class="replay__empty">该运行没有可回放的流程图</div>
+        <div class="replay__visual">
+          <div class="replay__canvas">
+            <FlowDesigner
+              v-if="flow?.dsl"
+              ref="designer"
+              readonly
+              :metas="metas"
+              :initial-dsl="flow.dsl"
+              :states="states"
+              :active-edge-ids="activeEdgeIds"
+              :looping-node-id="loopingNodeId"
+            />
+            <div v-else-if="!loading" class="replay__empty">该运行没有可回放的流程图</div>
+          </div>
         </div>
 
         <div class="replay__side">
@@ -239,36 +293,6 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
             <div class="step-msg">{{ failedLog.collectTaskLogMessage }}</div>
           </div>
           <div v-if="current && playing" class="side-now">当前：{{ current.collectTaskLogNodeName || current.collectTaskLogNodeId }}</div>
-        </div>
-      </div>
-
-      <!-- 链路追踪图：按节点日志动态生成，完整显示每一步（含重试/多次迭代） -->
-      <div class="replay__trace">
-        <div class="trace-head">
-          <span>链路追踪图</span>
-          <span class="muted">共 {{ ownLogs.length }} 步 · 横向滚动查看</span>
-        </div>
-        <div class="trace-flow">
-          <template v-for="(log, index) in ownLogs" :key="log.collectTaskLogId">
-            <div class="trace-node" :class="`trace-node--${log.collectTaskLogStatus.toLowerCase()}`">
-              <div class="trace-node__step">#{{ index + 1 }}</div>
-              <div class="trace-node__name">{{ log.collectTaskLogNodeName || log.collectTaskLogNodeId }}</div>
-              <div class="trace-node__shape">{{ log.collectTaskLogNodeShape }}</div>
-              <ReTag :type="statusTagType(log.collectTaskLogStatus)" effect="plain">
-                {{ statusText(log.collectTaskLogStatus) }}
-              </ReTag>
-              <div class="trace-node__meta">
-                ID {{ log.collectTaskLogNodeId }}
-                <template v-if="log.collectTaskLogIteration != null"> · 第 {{ log.collectTaskLogIteration + 1 }} 次</template>
-              </div>
-              <div class="trace-node__time" v-if="log.createTime">开始 {{ log.createTime }}</div>
-              <div class="trace-node__cost">
-                耗时 <ReTime :value="costMs(log.collectTaskLogCost)" format="duration" placeholder="—" />
-              </div>
-              <div v-if="log.collectTaskLogMessage" class="trace-node__msg">{{ log.collectTaskLogMessage }}</div>
-            </div>
-            <div v-if="index < ownLogs.length - 1" class="trace-arrow" aria-hidden="true">→</div>
-          </template>
         </div>
       </div>
     </div>
@@ -307,17 +331,30 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
 .replay__body {
   display: flex;
   gap: 12px;
-  height: calc(100vh - 230px);
-  /* 与 FlowPreviewDialog 同理：画布 520px 是设计器的硬下界，容器不能比它矮 */
-  min-height: 520px;
+  height: calc(100vh - 240px);
+  /* 上部流程 + 下部轨迹 + 右栏，三块都要有可读高度 */
+  min-height: 720px;
+}
+.replay__visual {
+  flex: 1;
+  min-width: 0;
+  min-height: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .replay__canvas {
   flex: 1;
   min-width: 0;
-  min-height: 520px;
+  min-height: 440px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
+}
+.replay__trace,
+.replay__trace-canvas,
+.trace-head {
+  display: none;
 }
 .replay__empty {
   display: flex;
@@ -333,89 +370,6 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
-}
-.replay__trace {
-  min-height: 168px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm, 6px);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--el-bg-color);
-}
-.trace-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.trace-flow {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-.trace-node {
-  flex: 0 0 184px;
-  min-width: 184px;
-  padding: 8px 10px;
-  border: 1px solid var(--el-border-color);
-  border-left: 3px solid var(--el-color-info);
-  border-radius: var(--el-radius-sm, 6px);
-  background: var(--el-fill-color-lighter);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 12px;
-}
-.trace-node--success {
-  border-left-color: var(--el-color-success);
-}
-.trace-node--failure {
-  border-left-color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-}
-.trace-node--skipped,
-.trace-node--stopped,
-.trace-node--running {
-  border-left-color: var(--el-color-warning);
-}
-.trace-node__step {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
-.trace-node__name {
-  font-size: 13px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.trace-node__shape,
-.trace-node__meta,
-.trace-node__time,
-.trace-node__cost {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
-.trace-node__msg {
-  color: var(--el-color-danger);
-  word-break: break-all;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.trace-arrow {
-  flex: none;
-  align-self: center;
-  margin: 0 4px;
-  color: var(--el-text-color-placeholder);
-  font-size: 18px;
 }
 .side-head {
   display: flex;

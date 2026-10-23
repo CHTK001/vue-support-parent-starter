@@ -218,7 +218,7 @@ function openReplay(input: Record<string, unknown>): void {
 /** 采集结果：按运行ID 过滤到这一次跑出来的东西 */
 function gotoRecords(input: Record<string, unknown>): void {
   const task = input as unknown as CollectTask;
-  void getRouter().push({ path: "/collect/record", query: { taskId: String(task.collectTaskId) } });
+  void getRouter().push({ name: "CollectRecord", query: { taskId: String(task.collectTaskId) } });
 }
 
 /**

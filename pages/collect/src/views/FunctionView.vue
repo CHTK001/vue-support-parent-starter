@@ -324,8 +324,7 @@ function showHelp(): void {
           <span v-else>{{ testResult.errorMessage || "试跑失败" }}</span>
         </div>
       </div>
-      <template #footer="{ cancel }">
-        <ReButton  @click="cancel">关闭</ReButton>
+      <template #footer>
         <ReButton  type="primary" :loading="testing" @click="runTest">试跑</ReButton>
       </template>
     </ReDialog>

@@ -258,11 +258,11 @@ function showHelp(): void {
       :loading="loading"
       :data="rows"
       :columns="columns"
-      :pagination="false"
       row-key="collectNoticeId"
       empty-text="暂无通知配置"
       stripe
       @refresh="reload"
+      :config="{ pagination: { enable: false } }"
     >
       <template #toolbar>
         <ReButton icon="QuestionFilled" title="查看标题与正文可用的模板变量" @click="showHelp">查看标题与正文可用的模板变量</ReButton>

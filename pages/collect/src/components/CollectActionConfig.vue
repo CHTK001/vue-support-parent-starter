@@ -56,8 +56,8 @@ function groupOf(row: unknown): { list: string; actions: CollectActionKey[] } {
       table-id="collect-action-config"
       :data="rows"
       :columns="columns"
-      :pagination="false"
       stripe
+      :config="{ pagination: { enable: false } }"
     >
       <template #list="{ row }">
         <span class="collect-action-config__list">{{ groupOf(row).list }}</span>

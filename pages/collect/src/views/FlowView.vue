@@ -923,8 +923,7 @@ function autoOptimize(): void {
           </span>
         </div>
       </div>
-      <template #footer="{ cancel }">
-        <ReButton  @click="cancel">关闭</ReButton>
+      <template #footer>
         <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>

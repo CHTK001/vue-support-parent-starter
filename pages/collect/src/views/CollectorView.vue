@@ -156,6 +156,8 @@ const columns = computed<ReTableColumn[]>(() => [
      会让本列与「状态」列互相顶掉。 */
   { prop: "enabled", label: "启用", width: 84, slot: "switch", align: "center" },
   { prop: "nodeCount", label: "节点/连线", width: 96, align: "center" },
+  { prop: "collectFlowRecordCount", label: "总采集数量", width: 130, slot: "recordCount", align: "right" },
+  { prop: "collectFlowExecCount", label: "总采集次数", width: 116, slot: "execCount", align: "center" },
   { prop: "collectFlowCron", label: "自动调度", width: 200, slot: "cron" },
   { prop: "collectFlowNextExecTime", label: "下次执行", width: 176, slot: "next" },
   { prop: "lastRun", label: "最近运行", minWidth: 210, slot: "lastRun" },
@@ -227,6 +229,12 @@ function openConfig(panel: string): void {
 }
 
 /** 手动运行：与自动调度共用同一执行入口，只是触发方式不同 */
+function formatLarge(value: unknown): string {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString("zh-CN");
+}
+
 async function runNow(flow: CollectFlow): Promise<void> {
   if (runningIds.value[flow.collectFlowId]) {
     return;
@@ -430,6 +438,14 @@ function runMore(command: string, flow: CollectFlow): void {
       <template #next="{ row }">
         <span v-if="row.collectFlowStatus === 1 && row.collectFlowNextExecTime">{{ row.collectFlowNextExecTime }}</span>
         <span v-else class="muted">—</span>
+      </template>
+
+      <template #recordCount="{ row }">
+        <span class="collect-num">{{ formatLarge(row.collectFlowRecordCount) }}</span>
+      </template>
+
+      <template #execCount="{ row }">
+        <span class="collect-num">{{ formatLarge(row.collectFlowExecCount) }}</span>
       </template>
 
       <template #lastRun="{ row }">

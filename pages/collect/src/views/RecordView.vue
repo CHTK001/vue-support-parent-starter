@@ -16,6 +16,7 @@ import ReTable from "@repo/ui/re-table";
 import { clearRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFlows, pageRecords } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
+import HanziStrokeDialog from "../components/HanziStrokeDialog.vue";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFieldDef, CollectFlow, CollectRecord } from "../types/collect";
 
@@ -35,6 +36,8 @@ const emptyHint = ref("暂无采集结果");
 const selected = ref<CollectRecord[]>([]);
 const detailVisible = ref(false);
 const detail = ref<CollectRecord | null>(null);
+const strokeVisible = ref(false);
+const strokeChar = ref("");
 const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null);
 
 const query = ref<RecordQuery>({ page: 1, pageSize: 20 });
@@ -264,6 +267,23 @@ async function clearFlowRecords(): Promise<void> {
   }
 }
 
+function hanziOf(input: Record<string, unknown>): string {
+  const record = input as unknown as CollectRecord;
+  const cells = record.cells ?? [];
+  return cells.find(cell => cell.name === "hanzi_char")?.value ?? "";
+}
+
+function isHanziRecord(input: Record<string, unknown>): boolean {
+  return Boolean(hanziOf(input));
+}
+
+function openStroke(input: Record<string, unknown>): void {
+  const ch = hanziOf(input).trim().charAt(0);
+  if (!ch) return;
+  strokeChar.value = ch;
+  strokeVisible.value = true;
+}
+
 function showDetail(input: Record<string, unknown>): void {
   detail.value = input as unknown as CollectRecord;
   detailVisible.value = true;
@@ -311,10 +331,13 @@ function showDetail(input: Record<string, unknown>): void {
       </template>
 
       <template #action="{ row }">
+        <ReButton v-if="isHanziRecord(row)" icon="EditPen" layout="square" tip="查看汉字笔顺" @click="openStroke(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.viewResult" layout="square" @click="showDetail(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.deleteRecord" layout="square" @click="removeOne(row)"/>
       </template>
     </ReTable>
+
+    <HanziStrokeDialog v-model="strokeVisible" :character="strokeChar" />
 
     <ReDialog v-model="detailVisible" title="采集结果详情" width="720px" top="8vh" footer-hidden>
       <dl v-if="detail" class="collect-kv">
