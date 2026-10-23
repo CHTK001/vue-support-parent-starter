@@ -10,7 +10,7 @@
     -->
     <!-- 编辑消息时不渲染建议面板（避免与编辑条重叠，报障 2.5） -->
     <AiNextTaskPanel v-if="!props.editing" :session-id="sessionId == null ? null : String(sessionId)"
-      @send-suggestion="onSendSuggestion" />
+      :dismiss-signal="suggestionDismissSignal" @send-suggestion="onSendSuggestion" />
     <!-- 输入框区域 -->
     <div
       class="input-area p-[12px_8px_10px_8px] min-h-15 w-full bg-(--color-input-bg) border border-(--color-input-border) rounded-(--size-rounded-radius) transition-[border-color,background-color] duration-150"
@@ -83,13 +83,13 @@
                  沿用既有的 CommandPicker（与 / 、@ 同一套 UI 与执行通道），
                  所以这里只是换一份候选集，不另造第三种弹层。 -->
             <LTooltip content="指令与附件" placement="top">
-              <button ref="attachButtonRef" class="tool-btn" aria-label="指令栏：附件与指令" @click.stop="openCommandPickerByButton('plus')">
+              <button v-if="showButtons.attachmentButton" ref="attachButtonRef" class="tool-btn" aria-label="指令栏：附件与指令" @click.stop="openCommandPickerByButton('plus')">
                 <el-icon size="16">
                   <Add24Regular />
                 </el-icon>
               </button>
             </LTooltip>
-            <AttachmentPopover v-model:visible="attachPopoverVisible" :anchor-el="attachButtonRef"
+            <AttachmentPopover v-if="showButtons.attachmentButton" v-model:visible="attachPopoverVisible" :anchor-el="attachButtonRef"
               :knowledge-bases="knowledgeBases" :selected-kb-ids="props.config?.knowledgeBaseIds || []"
               :selected-attachments="props.config?.attachments || {}" @select-image="triggerImageInput"
               @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
@@ -98,7 +98,7 @@
             <!-- 技能按钮（图标+tip）。
                  .skill-btn 只作为「点击外部关闭命令弹层」的判定锚点与窄窗隐藏该入口的钩子保留，
                  视觉一律由 .tool-btn 提供（原先那份 .skill-btn 规则与 .tool-btn 完全重复，已删） -->
-            <LTooltip content="技能" placement="top">
+            <LTooltip v-if="showButtons.skillButton" content="技能" placement="top">
               <button class="tool-btn skill-btn" aria-label="技能" @click.stop="openCommandPickerByButton('slash')">
                 <el-icon size="16">
                   <Wrench24Regular />
@@ -136,7 +136,7 @@
             </button>
           </LTooltip>
           <!-- 思考等级：排在模型按钮**左侧**的独立胶囊，图标 + 当前档位短文案（用户需求） -->
-          <LTooltip :content="t('chat.input.thinkingLevelTitle')" placement="top">
+          <LTooltip v-if="modelReasoningVisible" :content="t('chat.input.thinkingLevelTitle')" placement="top">
             <button ref="thinkingLevelButtonRef" class="thinking-chip" :class="{ 'is-on': thinkingEnabled }"
               :aria-label="t('chat.input.thinkingLevelTitle')" :aria-pressed="thinkingEnabled"
               @click.stop="toggleThinkingLevelPopover">
@@ -144,7 +144,7 @@
               <span v-if="currentThinkingLabel" class="thinking-chip-text">{{ currentThinkingLabel }}</span>
             </button>
           </LTooltip>
-          <ThinkingEffortPopover v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
+          <ThinkingEffortPopover v-if="modelReasoningVisible" v-model:visible="thinkingLevelPopoverVisible" :anchor-el="thinkingLevelButtonRef"
             :options="thinkingLevelOptions" :current-value="currentThinkingValue"
             @select="handleThinkingLevelSelect" />
 
@@ -204,9 +204,6 @@
         width="640px" :close-on-click-modal="false" destroy-on-close class="pasted-preview-dialog"
         @close="closeFilePreview">
         <pre class="pasted-preview-text">{{ previewContent }}</pre>
-        <template #footer>
-          <el-button @click="closeFilePreview">{{ t('common.close') }}</el-button>
-        </template>
       </ReDialog>
     </div>
   </div>
@@ -418,6 +415,10 @@ const showButtons = reactive({
   thinkingButton: false,
   webSearchButton: true,
   tokensButton: true,
+  /** 附件/指令栏入口（模型 attachment 能力，缺省显） */
+  attachmentButton: true,
+  /** 技能入口（模型 tool_call 能力，缺省显） */
+  skillButton: true,
 });
 
 // 图片预览 URL 字典（与 file 对象解耦）
@@ -506,6 +507,7 @@ const parseCommandTags = (text: string): string => {
   );
 };
 
+
 /**
  * AI 建议被点中：用户已明确要求「直接作为用户消息发送」，
  * 因此把建议文本填入编辑器后走与发送按钮同一条 sendMessage 路径。
@@ -579,6 +581,17 @@ watch(() => currentModel.value?.config, (config) => {
   // 思考按钮：当模型支持 thinking 时显示
   showButtons.thinkingButton = config?.features?.includes('thinking') || false;
 }, { immediate: true });
+
+// 模型能力开关 → 会话工具栏按钮显隐（attachment/reasoning/tool_call/temperature）
+// 后端模型行回传顶层布尔字段；仅显式 false 才隐藏按钮，字段为空（未配置 / 旧数据）
+// 保持按钮可见。思考胶囊用 modelReasoningVisible 单独控制。
+watch(() => currentModel.value, (model) => {
+  if (model?.['attachment'] === false) showButtons.attachmentButton = false;
+  if (model?.['tool_call'] === false) showButtons.skillButton = false;
+}, { immediate: true });
+
+/** 思考胶囊显隐：仅模型显式声明 reasoning=false 才隐藏；未配置/未知保持可见 */
+const modelReasoningVisible = computed(() => currentModel.value?.['reasoning'] !== false);
 
 // 思考强度相关
 const localThinkingEffort = ref<string>('none'); // 'none' | 'low' | 'medium' | 'high' | 'max' | ...
@@ -1451,6 +1464,15 @@ const extractSendContent = (): { text: string; skillNames: string[] } => {
   return { text: blocks.join('\n'), skillNames };
 };
 
+/**
+ * 「用户自己发消息」信号：每次自发送 +1，建议面板 watch 到变化就销毁自己。
+ *
+ * 刻意用单向信号 prop，而不是模板 ref + defineExpose 调子组件方法：
+ * 后者在本组件上实测触发 `Maximum recursive updates exceeded in <ChatInput>`，
+ * 整个会话页渲染不出来（107/108/146 全白）。信号没有回写，天然不成环。
+ */
+const suggestionDismissSignal = ref(0);
+
 const sendMessage = async () => {
   const { text: content, skillNames } = extractSendContent();
   if (!content.trim() && uploadFiles.value.length === 0) {
@@ -1478,6 +1500,14 @@ const sendMessage = async () => {
   const uploadedFiles = uploadFiles.value.filter(f =>
     f.uploadStatus === 'uploaded' || !f.uploadStatus
   );
+
+
+  // 用户自己在输入框里发消息 = 明确不采纳当前这批建议 → 通知建议面板销毁自己。
+  //
+  // 放在这里（而不是 sendMessage 开头）是刻意的：上面几个 return 都是"没真正发出去"
+  // 的分支（内容为空、用户选择继续等上传），那些情况下面板该继续留着。
+  // 点击建议那条路已由面板自己在 onPick 里销毁，这里多一次信号是无害的。
+  suggestionDismissSignal.value += 1;
 
   // 发送消息(仅包含已上传完成的文件)；content 已剥离技能徽标，skillNames 单独透传
   emit('send', {

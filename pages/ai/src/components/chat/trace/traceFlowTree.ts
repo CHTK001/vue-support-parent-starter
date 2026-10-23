@@ -16,6 +16,27 @@ import { formatDuration, kindLabel, type TraceModel, type TracePoint, type Trace
 /** 节点语气 → G6 状态色 key（对应 treeNode 的 FLOW_STATUS_COLORS 调色板） */
 type FlowStatus = 'G' | 'B' | 'Y' | 'R' | 'DI'
 
+/** 节点文字上限：G6 的资金流节点是**固定宽度**的盒子，文字不会撑开盒子，只会溢到框外 */
+const NAME_MAX = 28
+const LABEL_MAX = 46
+
+/**
+ * 截断节点文字。
+ *
+ * <p>用户报障「输入输出文本过长，图标直接显示到外面了」：原先把轨迹原文
+ * `slice(0, 200)` 直接塞进 label，而节点尺寸由引擎固定 —— 200 字的文本必然溢出到框外，
+ * 盖住相邻节点。这里按显示宽度截断，完整内容仍在「执行轨迹」明细里可查（那里是列表，能换行）。</p>
+ *
+ * @param text 原文
+ * @param max  最大字符数（按显示宽度估：中文一字算一格，够用）
+ * @returns 截断后的文本；超出时补省略号
+ */
+function clip(text: unknown, max: number): string | undefined {
+  const s = String(text ?? '').replace(/\s+/g, ' ').trim()
+  if (!s) return undefined
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s
+}
+
 /** 工具三态的前缀：**只在这里定义一次**，命名与配对编号都引用它 */
 const TOOL_PREFIX = { tool_call: '工具', tool_args: '入参', tool_result: '结果' } as const
 
@@ -66,8 +87,8 @@ function spanToFlowNode(span: TraceSpan): ReChartFlowNode {
     const prefix = TOOL_PREFIX[(span.kind as keyof typeof TOOL_PREFIX)] ?? TOOL_PREFIX.tool_call
     node = {
       id: span.spanId,
-      name: `${prefix} ${span.toolName || kindLabel(span.kind)}`,
-      label: span.texts?.[0]?.slice(0, 200),
+      name: clip(`${prefix} ${span.toolName || kindLabel(span.kind)}`, NAME_MAX) as string,
+      label: clip(span.texts?.[0], LABEL_MAX),
       status: span.kind === 'tool_result' ? 'R' : 'Y',
     }
   } else {
@@ -77,7 +98,7 @@ function spanToFlowNode(span: TraceSpan): ReChartFlowNode {
         : span.kind === 'text'
           ? { id: span.spanId, name: '助手输出', status: 'G' }
           : { id: span.spanId, name: kindLabel(span.kind), status: 'B' }
-    node = { ...base, label: span.texts?.[0]?.slice(0, 200) || kindLabel(span.kind), name: base.name as string }
+    node = { ...base, label: clip(span.texts?.[0], LABEL_MAX) || kindLabel(span.kind), name: base.name as string }
   }
 
   if (span.durationMs !== null && span.durationMs !== undefined) {
@@ -98,18 +119,18 @@ function pointToFlowNode(point: TracePoint): ReChartFlowNode | null {
     const prefix = TOOL_PREFIX[(point.kind as keyof typeof TOOL_PREFIX)] ?? TOOL_PREFIX.tool_call
     return {
       id: key,
-      name: point.toolName ? `${prefix} ${point.toolName}` : kindLabel(point.kind),
-      label: point.text?.slice(0, 200),
+      name: clip(point.toolName ? `${prefix} ${point.toolName}` : kindLabel(point.kind), NAME_MAX) as string,
+      label: clip(point.text, LABEL_MAX),
       status: point.kind === 'tool_result' ? ('R' as FlowStatus) : ('Y' as FlowStatus),
     }
   }
   if (point.kind === 'thinking') {
-    return { id: key, name: '深度思考', label: point.text?.slice(0, 200), status: 'DI' }
+    return { id: key, name: '深度思考', label: clip(point.text, LABEL_MAX), status: 'DI' }
   }
   if (point.kind === 'text') {
-    return { id: key, name: '助手输出', label: point.text?.slice(0, 200), status: 'G' }
+    return { id: key, name: '助手输出', label: clip(point.text, LABEL_MAX), status: 'G' }
   }
-  return { id: key, name: kindLabel(point.kind), label: point.text?.slice(0, 200), status: 'B' }
+  return { id: key, name: kindLabel(point.kind), label: clip(point.text, LABEL_MAX), status: 'B' }
 }
 
 /**

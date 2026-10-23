@@ -83,6 +83,14 @@ import type { SessionNextTaskItem, SessionNextTaskState } from '@/services/modul
 const props = defineProps<{
   /** 会话标识；缺省时不渲染面板 */
   sessionId?: string | null
+  /**
+   * 「用户自己发消息」信号：父组件每次自发送 +1，面板据此销毁自己。
+   *
+   * <p>为什么用单向信号而不是父组件拿模板 ref 调 dismiss()：后者在本仓库实测触发
+   * `Maximum recursive updates exceeded in <ChatInput>` —— 父组件持有子实例后每次 patch
+   * 都会回写那个 ref，形成环，整个会话页渲染不出来。信号是单向的、没有回写。</p>
+   */
+  dismissSignal?: number
 }>()
 
 const emit = defineEmits<{
@@ -128,15 +136,49 @@ async function onPick(task: SessionNextTaskItem): Promise<void> {
   if (!text.trim()) {
     return
   }
-  const list = state.value?.tasks
-  if (list) {
-    // 「点了建议」= **消费整块**：用户要求点一条就把这个组件销毁（与点右上角 X 同效果），
-    // 而不是只摘掉被点的那一条。清空本地列表 → visible=false → v-if 直接卸载整块面板。
-    // 后端仍持有原列表，下一次 load()／「重新联想」以后端返回为准（新建议照常出现）。
-    state.value!.tasks = []
-  }
+  // 「点了建议」= 消费整块（见 dismiss 注释），不是只摘掉被点的那一条
+  dismiss()
   emit('send-suggestion', text)
 }
+
+/**
+ * 销毁面板：清空本地列表 → {@code visible=false} → 整块卸载。
+ *
+ * <p>两个时机共用这一条路径（不另造状态）：</p>
+ * <ol>
+ *   <li>点了某条建议 —— 建议已经发出去了，面板不能再挂着让人重复点；</li>
+ *   <li><b>用户自己在输入框里发了消息</b> —— 这就是明确表示不采纳当前这批建议
+ *       （用户报障：我自己发消息了，说明不采纳它的建议，建议组件应该销毁）。
+ *       不销毁的话，面板会挂着一批"针对上一轮上下文"的过期建议，
+ *       而新一轮的上下文已经变了。</li>
+ * </ol>
+ *
+ * <p>只做本地清空：后端仍持有原列表，下一次 {@code load()}（重新进入该会话）或
+ * 「重新联想」以后端返回为准 —— 后端在新轮次后重新生成的建议是「新的建议」，
+ * 不该被本地的历史动作永久屏蔽。</p>
+ */
+function dismiss(): void {
+  if (state.value) {
+    state.value.tasks = []
+  }
+}
+
+defineExpose({ dismiss })
+
+/**
+ * 父组件的「用户自己发消息」信号 → 销毁面板。
+ *
+ * <p>单向信号、组件内部只读，不存在回写，因此不会像模板 ref 那样形成更新环
+ * （那个写法实测把整个会话页打白）。</p>
+ */
+watch(
+  () => props.dismissSignal,
+  (now, before) => {
+    if ((now ?? 0) !== (before ?? 0)) {
+      dismiss()
+    }
+  },
+)
 
 /**
  * 重新联想。

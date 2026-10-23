@@ -356,11 +356,20 @@ const contextPctText = computed(() => {
   return t('chat.runStats.percent', { pct: contextPct.value });
 });
 
-/** 已用 / 窗口：~755K / 1M */
+/**
+ * 已用 / 窗口：~755K / 1M。
+ *
+ * <p>窗口未知（模型没配上下文窗口，实测 27/31 个模型如此）时**至少要显示已用**：
+ * 原先 `if (!window) return '—'` 会因为一个缺失的分母，把本来已知的分子一起藏掉 ——
+ * 用户看到整块「—」，误以为"没有数据"，实际后端给的 usedTokens 是有的。</p>
+ */
 const contextAmountText = computed(() => {
+  const used = usedTokens.value;
   const window = num(props.contextTotal);
-  if (!window) return '—';
-  return `${formatApprox(usedTokens.value)} / ${formatCount(window)}`;
+  if (!window) {
+    return used > 0 ? `${formatApprox(used)} / 窗口未知` : '—';
+  }
+  return `${formatApprox(used)} / ${formatCount(window)}`;
 });
 
 /** Token 用量卡的命中率（纯数字，不带「缓存命中」前缀，因为行首已标） */
@@ -400,9 +409,13 @@ const modelTimeText = computed(() => formatSeconds(stats.value.modelDuration));
 const toolTimeText = computed(() => formatSeconds(stats.value.toolDuration));
 const ttftText = computed(() => formatSeconds(stats.value.ttftAvg));
 
-const contextHint = computed(
-  () => `${t('chat.runStats.contextUsage')} ${formatCount(usedTokens.value)} / ${formatCount(num(props.contextTotal))}`,
-);
+const contextHint = computed(() => {
+  const used = formatCount(usedTokens.value);
+  const window = num(props.contextTotal);
+  return window
+    ? `${t('chat.runStats.contextUsage')} ${used} / ${formatCount(window)}`
+    : `${t('chat.runStats.contextUsage')} ${used}（窗口未配置，去模型管理填上下文窗口）`;
+});
 
 /** 环形进度：conic-gradient 直接由占用率驱动，颜色按危险/警告/正常分档 */
 const ringColor = computed(() => {
