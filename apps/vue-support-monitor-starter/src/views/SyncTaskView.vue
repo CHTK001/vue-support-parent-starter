@@ -107,11 +107,12 @@
     </div>
 
     <div class="st-body">
-      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径），
-           分页由页脚自管（pageTasks 切片与原实现逐行一致），toolbar=false 保持本页按钮清单不变。 -->
+      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径）。
+           分页用 ReTable 自带分页（本地数组模式：组件按 page/pageSize 切片、total 取数组长度），
+           toolbar=false 保持本页按钮清单不变。 -->
       <ReTable
-        :data="pageTasks" :columns="taskColumns" :loading="loading"
-        :pagination="false" :toolbar="false"
+        :data="filteredTasks" :columns="taskColumns" :loading="loading"
+        :page-size="8" page-sizes="[8, 20, 50]" :toolbar="false"
         table-id="monitor-sync-tasks" stripe
         empty-text="没有符合条件的同步任务"
       >
@@ -208,14 +209,6 @@
             </div>
         </template>
       </ReTable>
-      <div class="st-foot">
-        <span>显示 {{ pageStart }}-{{ pageEnd }} 条，共 {{ tasks.length }} 个同步任务</span>
-        <el-pagination
-          v-model:current-page="pageNo" :page-size="PAGE_SIZE" :total="filteredTasks.length"
-          :pager-count="5" size="small" background layout="prev, pager, next"
-          aria-label="同步任务分页"
-        />
-      </div>
     </div>
 
     <ReDialog
@@ -1285,9 +1278,6 @@ const mappingColumns: ReTableColumn[] = [
   { prop: "target", label: "目标字段", slot: "target" },
   { prop: "actions", label: "操作", width: 84, align: "center", slot: "actions" },
 ];
-/** 分页：UI 图底部分页；e2e 的行数口径按「当前页行数」+ 徽标仍按全过滤集 */
-const pageNo = ref(1);
-const PAGE_SIZE = 8;
 /** 时间范围筛选，默认「全部时间」：默认就按 24 小时裁会让「全部 10」只显示 7 行，计数与表格对不上 */
 const rangeFilter = ref("all");
 const RANGE_OPTIONS = [
@@ -1312,11 +1302,6 @@ const refreshedText = computed(() => {
 });
 /** 写入模式下拉项（来自字典，附「全部」项已在模板里单独给） */
 const writeModeOptions = computed(() => writeModes.value.map(m => ({ label: m.label, value: m.code })));
-/** 筛选条件变化 → 回到第 1 页（分页口径下换筛选停在空页尾是假象） */
-watch([statusFilter, writeModeFilter, rangeFilter, nameFilter], () => {
-  pageNo.value = 1;
-});
-
 /** 运行中的任务：本地点击「立即执行」期间标记，后端无 RUNNING 状态字段 */
 const runningIds = ref<Set<number>>(new Set());
 /** 任务状态归类 */
@@ -1371,11 +1356,6 @@ const baseTasks = computed(() => tasks.value.filter(row =>
 const filteredTasks = computed(() => baseTasks.value.filter(row =>
   statusFilter.value === "all" || statusOf(row) === statusFilter.value,
 ));
-/** 当前页切片；筛选条件变化时回到第 1 页（watch 见下方） */
-const pageTasks = computed(() => filteredTasks.value.slice((pageNo.value - 1) * PAGE_SIZE, pageNo.value * PAGE_SIZE));
-/** 页脚「显示 a-b 条」 */
-const pageStart = computed(() => (filteredTasks.value.length ? (pageNo.value - 1) * PAGE_SIZE + 1 : 0));
-const pageEnd = computed(() => Math.min(pageNo.value * PAGE_SIZE, filteredTasks.value.length));
 
 /** 今日成功率：今日有执行记录的任务里成功占比；无今日执行则为 null（显示「—」，不伪造 100%） */
 const todayRate = computed<number | null>(() => {
@@ -1642,9 +1622,8 @@ const refresh = async () => {
     // 「N 分钟前更新」的时间戳；顺手清掉已结束的执行中标记
     refreshedAt.value = Date.now();
     runningIds.value = new Set();
-    // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）、分页回到第 1 页
+    // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）
     bannerDismissed.value = false;
-    pageNo.value = 1;
   } catch (e) {
     message.error("加载同步任务失败：" + (e as Error)?.message);
   } finally {
@@ -2776,15 +2755,6 @@ onUnmounted(() => {
 }
 .st-acts :deep(.rs-btn) { margin: 0; }
 
-.st-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px 0;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
 /* 三步向导头部：与表单区留出呼吸感 */
 /* ---------- 向导步骤条（UI 图）：圆序号 + 连接线 + 标题/说明，全走 koi 变量 ---------- */
 .st-steps { display: flex; align-items: flex-start; margin-bottom: 18px; }
