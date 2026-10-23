@@ -27,7 +27,7 @@ import {
   getAllConfig, saveConfig,
   aiAnalyzeHost, fetchAiStatus,
   type AssetMonitorRef, type SoftwareInstance,
-} from "@pages/monitor/src/api";
+} from "@pages/monitor/api";
 import { getHost, fetchHostProfile, fetchHostProfileSection, closeNetProcess, killProcess, restartHostProcess, startService, stopService, restartService, setHostEnvVar, deleteHostEnvVar, type HostProfile } from "../api";
 import HostNetworkAdapters from "../components/HostNetworkAdapters.vue";
 

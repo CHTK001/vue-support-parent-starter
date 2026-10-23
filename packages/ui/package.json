@@ -91,6 +91,10 @@
       "types": "./src/components/ReSearch/index.ts",
       "default": "./src/components/ReSearch/index.ts"
     },
+    "./re-section-head": {
+      "types": "./src/components/ReSectionHead/index.ts",
+      "default": "./src/components/ReSectionHead/index.ts"
+    },
     "./re-filter": {
       "types": "./src/components/ReFilter/index.ts",
       "default": "./src/components/ReFilter/index.ts"
