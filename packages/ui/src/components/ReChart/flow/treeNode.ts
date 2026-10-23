@@ -148,24 +148,36 @@ export function registerTreeNode(): void {
     }
 
     getPercentStyle(attributes: AnyObj) {
-      const [width, height] = this.getSizeOf(attributes);
       const d = this.nodeDatum;
+      /*
+       * variableValue 缺失 → 不画百分比文本。
+       *
+       * 这个节点是资金流示例的节点（价格/涨跌/完成率），链路追踪这类"没有金额概念"的数据
+       * 传进来的 datum 只有 id/name/status/label。原先一律渲染 `${Number(undefined) || 0}%`，
+       * 于是每个节点右上角都顶着「0.00%」——数字是编的，比不显示更误导。
+       */
+      if (!Number.isFinite(Number(d.variableValue))) return false;
+      const [width, height] = this.getSizeOf(attributes);
       const color = FLOW_STATUS_COLORS[d.status ?? "DI"] ?? FLOW_STATUS_COLORS.DI;
       return {
         x: width / 2 - 4,
         y: height / 2 - 8,
-        text: `${((Number(d.variableValue) || 0) * 100).toFixed(2)}%`,
+        text: `${(Number(d.variableValue) * 100).toFixed(2)}%`,
         fontSize: 12,
         textAlign: "right" as const,
         fill: color,
       };
     }
     drawPercent(attributes: AnyObj, container: AnyObj) {
-      (this as AnyObj).upsert?.("percent", GText, this.getPercentStyle(attributes), container);
+      const style = this.getPercentStyle(attributes);
+      if (style === false) return;
+      (this as AnyObj).upsert?.("percent", GText, style, container);
     }
 
     getTriangleStyle(attributes: AnyObj) {
       const d = this.nodeDatum;
+      // 涨跌三角同理：没有涨跌数据就不画（它是 iconfont 字形，字体缺失时还会变成豆腐块）
+      if (!Number.isFinite(Number(d.variableValue))) return false;
       const color = FLOW_STATUS_COLORS[d.status ?? "DI"] ?? FLOW_STATUS_COLORS.DI;
       const [, height] = this.getSizeOf(attributes);
       const pMinX = this.shapeX("percent", "min");
@@ -180,7 +192,9 @@ export function registerTreeNode(): void {
       };
     }
     drawTriangle(attributes: AnyObj, container: AnyObj) {
-      (this as AnyObj).upsert?.("triangle", Label, this.getTriangleStyle(attributes), container);
+      const style = this.getTriangleStyle(attributes);
+      if (style === false) return;
+      (this as AnyObj).upsert?.("triangle", Label, style, container);
     }
 
     getVariableStyle(attributes: AnyObj) {
@@ -237,6 +251,17 @@ export function registerTreeNode(): void {
 
     getProcessBarStyle(attributes: AnyObj) {
       const d = this.nodeDatum;
+      /*
+       * rate 缺失 → 不画底部进度条。
+       *
+       * 这里原来无条件拼 `Number(d.rate) * 100`：datum 里没有 rate 时得到
+       * `linear-gradient(to right, X NaN%, #CED4D9 NaN%)` —— 非法 CSS，
+       * G6 画不出这个子形，实测**整张链路追踪图因此一片空白**
+       * （浏览器只丢一句 `Error: NaN%, #CED4D9 NaN%): Missing )`，界面上没有任何提示）。
+       * 链路节点天然没有"完成率"这种概念，所以按"没有进度"处理，与 drawCollapse 的
+       * `style === false` 惯例保持一致。
+       */
+      if (!Number.isFinite(Number(d.rate))) return false;
       const color = FLOW_STATUS_COLORS[d.status ?? "DI"] ?? FLOW_STATUS_COLORS.DI;
       const percent = `${Number(d.rate) * 100}%`;
       const [width, height] = this.getSizeOf(attributes);
@@ -251,7 +276,9 @@ export function registerTreeNode(): void {
       };
     }
     drawProcessBar(attributes: AnyObj, container: AnyObj) {
-      (this as AnyObj).upsert?.("process-bar", GRect, this.getProcessBarStyle(attributes), container);
+      const style = this.getProcessBarStyle(attributes);
+      if (style === false) return;
+      (this as AnyObj).upsert?.("process-bar", GRect, style, container);
     }
 
     // 覆写主矩形底色：白底 + 灰描边（官方 fund-flow 风格）
