@@ -21,6 +21,7 @@ import {
   type ServerNodeView,
 } from '../api';
 import ScFilterConfigPanel from './ScFilterConfigPanel.vue';
+import ScServerNodeMetrics from './ScServerNodeMetrics.vue';
 import { hasFilterDetail } from '../utils/filterDetail';
 
 const props = defineProps<{
@@ -309,6 +310,10 @@ async function applyParams() {
                 <span class="error-text" :title="node.error">{{ node.error }}</span>
               </ReDescriptionsItem>
             </ReDescriptions>
+
+            <!-- 运行指标：在基础信息之后、协议配置之前，打开抽屉第一眼就能判断服务是否健康 -->
+            <ReDivider content-position="left">运行指标</ReDivider>
+            <ScServerNodeMetrics :node="node" />
 
             <!-- 协议配置 -->
             <ReDivider content-position="left">协议配置</ReDivider>
