@@ -47,6 +47,14 @@ import {
   isProxyProtocol,
   summarizeNodes,
 } from '../utils/nodeList';
+import {
+  buildSearchFields,
+  buildStatusTabs,
+  emptySearchModel,
+  hasSearchCondition,
+  type ServiceSearchModel,
+  type StatusSlot,
+} from '../utils/serviceTabs';
 
 const router = useRouter();
 
@@ -69,23 +77,54 @@ const editingNode = ref<ServerNodeView | null>(null);
 const detailVisible = ref(false);
 const detailNodeId = ref<number | null>(null);
 
-/** 关键字过滤 */
-const keyword = ref('');
-/** 协议过滤 */
-const filterProtocol = ref<string>('');
+/** 搜索区取值（ReSearch 的 v-model）：关键字 + 协议 */
+const searchModel = ref<ServiceSearchModel>(emptySearchModel());
+/** 当前状态页签：空串即「全部」 */
+const activeStatus = ref<StatusSlot>('');
+
 /** 首屏/刷新的加载提示（协议或插件元数据失败时必须出声，不能静默变空） */
 const loadNotice = ref<MetaLoadNotice>({ show: false, tone: 'warning', text: '' });
 
 /** 统计 */
 const stats = computed(() => summarizeNodes(nodes.value));
 
-/** 过滤后的列表 */
+/** 过滤后的列表：状态页签 + 搜索区共同决定，两者是「且」的关系 */
 const visibleNodes = computed(() =>
-  filterNodes(nodes.value, { keyword: keyword.value, protocol: filterProtocol.value }),
+  filterNodes(nodes.value, {
+    keyword: searchModel.value.keyword,
+    protocol: searchModel.value.protocol,
+    status: activeStatus.value,
+  }),
 );
+
+/** 是否带了搜索条件（决定空状态引导是否该出现） */
+const searchActive = computed(() => hasSearchCondition(searchModel.value));
+
+/** 状态页签（计数与统计同源，避免「计数 3 点开 1 行」） */
+const statusTabs = computed(() => buildStatusTabs(nodes.value, stats.value));
 
 /** 协议下拉选项（内置 + SPI 动态，SPI 项加后缀标识） */
 const protocolOptions = computed(() => buildProtocolOptions(protocols.value));
+
+/** ReSearch 的字段配置：协议选项来自这里，不另起一份数据源 */
+const searchFields = computed(() => buildSearchFields(protocolOptions.value));
+
+/**
+ * 搜索：ReSearch 的搜索按钮与输入回车都走这里。
+ *
+ * <p>列表本身是计算属性，调用时已按最新条件重算；这里只负责把状态页签
+ * 归位到「全部」——用户按下搜索意味着「按这些条件找」，再叠一层状态
+ * 筛选会让结果看起来比预期少，且页签高亮与实际条件不符。</p>
+ */
+function onSearch(): void {
+  activeStatus.value = '';
+}
+
+/** 重置：清空搜索条件并回到「全部」页签 */
+function onResetSearch(): void {
+  searchModel.value = emptySearchModel();
+  activeStatus.value = '';
+}
 
 /** 传给抽屉的名称列表（编辑时排除自身，克隆时排除克隆源） */
 const existingNamesForDrawer = computed(() => {
@@ -375,37 +414,36 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </ReStatCard>
     </div>
 
-    <!-- 筛选工具条整行进 card：搜索框、协议下拉、计数与操作按钮同属「一组工具」。
-         此前只把两个输入框圈起来，计数文字和操作按钮留在卡外，看上去像
-         「卡片 + 飘着的按钮」两件事；整行一张卡后与上方统计卡、下方表格
-         形成 卡片-卡片-卡片-表格 的稳定节奏。 -->
-    <div class="page-toolbar">
-      <ReInput
-        v-model="keyword"
-        aria-label="搜索服务"
-        placeholder="搜索名称 / 协议 / 监听地址"
-        clearable
-        prefix-icon="Search"
-        class="tb-search"
-      />
-      <ReSelect
-        v-model="filterProtocol"
-        aria-label="按协议筛选"
-        placeholder="全部协议"
-        clearable
-        :data="protocolOptions"
-        class="tb-proto"
-      />
-      <span class="dim tb-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
-      <div class="tb-ops">
+    <!-- 状态页签：按状态切换视图，badge 直接给出各档数量，省掉一次「先点开再数」。
+         计数与 filterNodes 的判定同源，页签上的数字与点开后的行数永远一致。 -->
+    <ReTab
+      v-model="activeStatus"
+      variant="underline"
+      :tabs="statusTabs"
+      class="status-tabs"
+      aria-label="按状态筛选服务"
+    />
+
+    <!-- 搜索区：ReSearch 自带搜索/重置与字段收纳，替代原先手写的输入框 + 下拉组合；
+         计数与新增/刷新两个操作放进 footer 插槽，与搜索按钮同一行右侧 -->
+    <ReSearch
+      v-model="searchModel"
+      :filters="searchFields"
+      title="搜索服务"
+      :loading="loading"
+      @search="onSearch"
+      @reset="onResetSearch"
+    >
+      <template #footer>
+        <span class="dim rs-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
         <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="openCreate" />
         <ReButton icon="Refresh" layout="square" tip="刷新" :loading="loading" @click="refresh" />
-      </div>
-    </div>
+      </template>
+    </ReSearch>
 
     <!-- 空状态引导：绝对覆盖在表格上方，表格始终渲染 -->
     <div style="position: relative; min-height: 0; flex: 1 1 0;">
-      <div v-if="!loading && !visibleNodes.length && !keyword && !filterProtocol" class="empty-guide">
+      <div v-if="!loading && !visibleNodes.length && !searchActive && !activeStatus" class="empty-guide">
         <div class="eg-icon">
           <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="48" height="48" rx="12" fill="var(--el-color-primary-light-9)" />
@@ -562,7 +600,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
 
 /* 统计卡：毛玻璃 + 渐变光晕 + 霓虹边框 */
 .stats-grid,
-.page-toolbar,
+.status-tabs,
 .load-notice {
   flex: none;
 }
@@ -615,66 +653,27 @@ function openDetailPage(row: ServerNodeView, index: number) {
   }
 }
 
-/* 筛选工具条：渐变边框 + 扫描线动画 */
-.page-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 8px 12px;
-  position: relative;
-  overflow: hidden;
-  /* 顶部科技感渐变光带 */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg,
-      transparent 0%,
-      var(--el-color-primary-light-5) 30%,
-      var(--el-color-primary) 50%,
-      var(--el-color-primary-light-5) 70%,
-      transparent 100%);
-    opacity: 0.7;
-  }
-  /* 扫描线动画 */
-  &::after {
-    content: '';
-    position: absolute;
-    top: -100%;
-    left: 0;
-    right: 0;
-    height: 60%;
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      color-mix(in srgb, var(--el-color-primary) 4%, transparent) 50%,
-      transparent 100%
-    );
-    animation: toolbar-scan 4s ease-in-out infinite;
-    pointer-events: none;
-  }
-}
-@keyframes toolbar-scan {
-  0%   { top: -60%; }
-  100% { top: 160%; }
+/* 页签与搜索区：两张独立面板，靠间距形成「选择 → 检索 → 列表」的节奏。
+   页签条自带下划线，搜索卡片自带圆角底色，两处都不能再叠同色背景，
+   否则边界会糊成一块。 */
+.status-tabs {
+  flex: none;
 }
 
-/* 工具条内部布局 */
-.tb-search { width: 260px; }
-.tb-proto { width: 240px; }
-.tb-meta { margin-left: auto; white-space: nowrap; font-size: 12px; color: var(--el-text-color-secondary); font-family: ui-monospace, monospace; }
-.tb-ops {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 10px;
-  border-left: 1px solid var(--el-border-color-lighter);
+/* ReSearch 自身的 .koi-search 带 margin，这里把外边距并入页面栅格，避免与页签叠出空隙 */
+.service-manage :deep(.koi-search) {
+  margin: 0;
 }
+
+/* footer 插槽：计数靠左吃掉剩余空间，操作按钮由 ReSearchToolbar 右对齐 */
+.rs-meta {
+  margin-right: auto;
+  white-space: nowrap;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  color: var(--el-text-color-secondary);
+}
+
 .ops { display: inline-flex; align-items: center; gap: 8px; }
 .ops :deep(.re-button) { cursor: pointer; }
 
