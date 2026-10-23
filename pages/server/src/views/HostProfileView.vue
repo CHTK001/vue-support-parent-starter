@@ -415,9 +415,12 @@ async function loadSection(): Promise<void> {
       paged ? sectionKeyword.value.trim() : undefined);
     // 期间已切主机 / 分区 / 翻页 / 重开：丢弃这份迟到响应
     if (req !== sectionReq || selectedId.value !== hid || active.value !== sec) return;
-    rows.value = res.rows ?? [];
-    sectionTotal.value = paged && typeof res.total === "number" ? res.total : (res.rows?.length ?? 0);
-    sectionTruncated.value = paged && !!res.truncated;
+    // 兼容两种返回：新后端为 { rows, total, truncated }，旧后端为裸数组
+    const arr = Array.isArray(res) ? res : (Array.isArray(res?.rows) ? res.rows : []);
+    rows.value = arr;
+    sectionTotal.value = Array.isArray(res) ? arr.length
+      : (typeof res.total === "number" ? res.total : arr.length);
+    sectionTruncated.value = !Array.isArray(res) && !!res.truncated;
     // total 比页码小时回退到最后一页，避免显示“空页”
     if (paged && page.value > 1 && pageSize.value * (page.value - 1) >= sectionTotal.value) {
       page.value = Math.max(1, Math.ceil(sectionTotal.value / pageSize.value));
@@ -740,6 +743,16 @@ function procLevel(r: Record<string, any>): "" | "row-warn" | "row-danger" {
   if (cpu >= 85 || mem >= 4096) return "row-danger";
   if (cpu >= 50 || mem >= 1024) return "row-warn";
   return "";
+}
+
+/** 端口状态 → OPEN/CLOSED 标记：监听/运行中视为 OPEN（绿点），其余视为 CLOSED（红点），空值不标记 */
+function portStatus(state: unknown): { open: boolean | null; text: string } {
+  const raw = String(state ?? "").trim();
+  const s = raw.toLowerCase();
+  if (!s || s === "-" || s === "—") return { open: null, text: "" };
+  const openWords = ["listen", "listening", "open", "running", "active", "established"];
+  if (openWords.some(w => s === w || s.includes(w))) return { open: true, text: "OPEN" };
+  return { open: false, text: "CLOSED" };
 }
 
 /** 服务/端口状态 → 图标（颜色 + 小图形），原始状态词交给 el-tooltip 展示 */
@@ -1211,9 +1224,15 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
                       </el-tooltip>
                       <span v-else class="dim">—</span>
                     </template>
-                    <!-- 状态列：状态图标 + tip -->
+                    <!-- 状态列：监听端口分区用 OPEN/CLOSED 标记，其余分区保留状态图标 + tip -->
                     <template v-else-if="col.key === 'state'">
-                      <el-tooltip :content="stateMeta(r.state).tip" placement="top" :show-after="150">
+                      <template v-if="active === 'ports'">
+                        <span v-if="portStatus(r.state).open !== null" class="port-status" :class="portStatus(r.state).open ? 'ps-open' : 'ps-closed'">
+                          <i class="ps-dot"></i>{{ portStatus(r.state).text }}
+                        </span>
+                        <span v-else class="dim">—</span>
+                      </template>
+                      <el-tooltip v-else :content="stateMeta(r.state).tip" placement="top" :show-after="150">
                         <span class="state-ico" v-html="stateMeta(r.state).svg"></span>
                       </el-tooltip>
                     </template>
@@ -1475,6 +1494,24 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .state-ico { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+/* 端口开放情况：浅灰底圆角块 + 圆点 + 同色大写半粗文字（图片 1 的标记样式） */
+.port-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--el-fill-color-light, #f3f4f6);
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+  line-height: 1.5;
+  font-family: var(--font-mono, monospace);
+}
+.ps-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+}
+.ps-open { color: var(--el-color-success, #67c23a); }
+.ps-open .ps-dot { background: var(--el-color-success, #67c23a); box-shadow: 0 0 0 1.5px rgba(103, 194, 58, 0.45); }
+.ps-closed { color: var(--el-color-danger, #f56c6c); }
+.ps-closed .ps-dot { background: var(--el-color-danger, #f56c6c); box-shadow: 0 0 0 1.5px rgba(245, 108, 108, 0.45); }
 /* 进程阈值行底色 */
 .tbl tbody tr.row-warn td { background: var(--el-color-warning-light-9, #fdf6ec); }
 .tbl tbody tr.row-danger td { background: var(--el-color-danger-light-9, #fef0f0); }

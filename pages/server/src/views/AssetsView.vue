@@ -10,10 +10,11 @@ import { useRouter } from "vue-router";
 import { ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover, ElTooltip } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";
+import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts, installNginxHost } from "../api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
 import HostProfileDialog from "./HostProfileDialog.vue";
+import ScInstallDialog from "../components/ScInstallDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
 import {useSocketService, message} from "@repo/core";
@@ -31,6 +32,10 @@ export interface Host {
   serverHostCode?: string | null;
   serverHostAddress: string;
   serverHostPort: number;
+  /** 是否开启 SSH（1 开启；未开启的主机不能用于安装/命令执行） */
+  serverHostSshEnabled?: number | null;
+  /** Agent 监听端口（表单可选字段，仅编辑弹窗使用） */
+  serverHostAgentPort?: number | null;
   serverHostOsType: string;
   serverHostOsArch?: string | null;
   serverHostOsVersion?: string | null;
@@ -186,7 +191,7 @@ function splitTags(tags?: string | null): string[] {
 }
 
 /** 端口扫描结果项 */
-interface PortItem { port: string; protocol?: string; service?: string; }
+interface PortItem { port: string; protocol?: string; service?: string; state?: string; }
 
 /** 解析端口扫描 JSON */
 function parsePorts(raw?: string | null): PortItem[] {
@@ -202,6 +207,15 @@ function portText(p: PortItem): string {
   const parts = [`${p.port}${p.protocol ? "/" + p.protocol : ""}`];
   if (p.service) parts.push(p.service);
   return parts.join(" ");
+}
+
+/** 端口状态 → OPEN/CLOSED 标记：state 含 open/open 视为 OPEN（绿点），其余/空视为 CLOSED（红点） */
+function portStatusM(state?: string): { open: boolean | null; text: string } {
+  const s = String(state ?? "").trim().toLowerCase();
+  if (!s || s === "unknown") return { open: null, text: "" };
+  const openWords = ["open", "listen", "listening", "running", "active", "established"];
+  if (openWords.some(w => s === w || s.includes(w))) return { open: true, text: "OPEN" };
+  return { open: false, text: "CLOSED" };
 }
 
 /** 端口扫描（后台异步，完成后由 host-portscan socket 事件回填，不阻塞/轮询） */
@@ -303,12 +317,13 @@ function protocolOf(h: Host): string {
   return "ssh";
 }
 /**
- * 生效远控端口：主机配置优先，SSH 沿用端口字段，其余按协议默认
+ * 生效远控端口：协议与台账一致时用台账端口，否则按协议默认（见 TerminalView.remotePortOf 说明）。
  * @param h 主机
  */
 function remotePortOf(h: Host): number {
-  if (h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   const p = protocolOf(h);
+  const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
+  if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   if (p === "ssh") return h.serverHostPort || 22;
   return p === "rdp" ? 3389 : 5900;
 }
@@ -625,6 +640,21 @@ const deployTask = ref<any>({
 });
 useDialogPrerender(profileVisible);
 
+/** 软件安装（nginx）对话框状态 */
+const installVisible = ref(false);
+const installHost = ref<Host | null>(null);
+
+/** 打开软件安装对话框 */
+function onOpenInstall(h: Host): void {
+  installHost.value = h;
+  installVisible.value = true;
+}
+
+/** 安装完成回调：刷新主机列表 */
+function onInstalled(): void {
+  fetchAll();
+}
+
 function openSysMgr(type: string, row: Host): void {
   // 画像页现在全量走 Agent：未安装时不再拦在门外，进去后由画像页给出
   // 「Agent 未就绪 + 最近错误 + 安装 Agent」的引导，避免用户完全看不到主机状态
@@ -760,6 +790,7 @@ function runRowCommand(cmd: string, h: Host): void {
     case "scan": scanHostPorts(h); break;
     case "profile": openSysMgr("disk", h); break;
     case "edit": openEdit(h); break;
+    case "install-nginx": onOpenInstall(h); break;
     case "agent-install": openDeploy(h, "install"); break;
     case "agent-reinstall": openDeploy(h, "reinstall"); break;
     case "agent-upgrade": openDeploy(h, "upgrade"); break;
@@ -1168,7 +1199,12 @@ function osTileClass(h: Host): string {
                 <ReTag effect="plain" type="info">端口 {{ parsePorts(h.serverHostPorts).length }}</ReTag>
               </template>
               <div class="ports-pop-list">
-                <div v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" class="ports-pop-item mono">{{ portText(p) }}</div>
+                <div v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" class="ports-pop-item">
+                  <span class="mono">{{ portText(p) }}</span>
+                  <span v-if="portStatusM(p.state).open !== null" class="port-status" :class="portStatusM(p.state).open ? 'ps-open' : 'ps-closed'">
+                    <i class="ps-dot"></i>{{ portStatusM(p.state).text }}
+                  </span>
+                </div>
               </div>
             </ElPopover>
           </div>
@@ -1185,6 +1221,7 @@ function osTileClass(h: Host): string {
                   <ElDropdownMenu>
                     <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
                     <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑主机</ElDropdownItem>
+                    <ElDropdownItem command="install-nginx" divided><ReIcon name="Box" />安装 Nginx</ElDropdownItem>
                     <ElDropdownItem v-if="isAgentMode(h) && !isAgentInstalled(h)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
                     <template v-else-if="isAgentMode(h)">
                       <ElDropdownItem command="agent-reinstall" divided><ReIcon name="RefreshRight" />重装 Agent</ElDropdownItem>
@@ -1278,7 +1315,12 @@ function osTileClass(h: Host): string {
               <ReTag effect="plain" type="info">端口 {{ parsePorts(row.serverHostPorts).length }}</ReTag>
             </template>
             <div class="ports-pop-list">
-              <div v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="ports-pop-item mono">{{ portText(p) }}</div>
+              <div v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="ports-pop-item">
+                <span class="mono">{{ portText(p) }}</span>
+                <span v-if="portStatusM(p.state).open !== null" class="port-status" :class="portStatusM(p.state).open ? 'ps-open' : 'ps-closed'">
+                  <i class="ps-dot"></i>{{ portStatusM(p.state).text }}
+                </span>
+              </div>
             </div>
           </ElPopover>
           <span v-else class="dim">未扫描</span>
@@ -1294,6 +1336,7 @@ function osTileClass(h: Host): string {
                   <ElDropdownItem command="detail"><ReIcon name="TrendCharts" />监控</ElDropdownItem>
                   <ElDropdownItem command="scan"><ReIcon name="Search" />端口扫描</ElDropdownItem>
                   <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
+                  <ElDropdownItem command="install-nginx" divided><ReIcon name="Box" />安装 Nginx</ElDropdownItem>
                   <ElDropdownItem v-if="isAgentMode(row) && !isAgentInstalled(row)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
                   <template v-else-if="isAgentMode(row)">
                     <ElDropdownItem command="agent-reinstall" divided><ReIcon name="RefreshRight" />重装 Agent</ElDropdownItem>
@@ -1373,6 +1416,9 @@ function osTileClass(h: Host): string {
       :logs="deployLogs.map(l => ({ time: new Date().toLocaleTimeString(), msg: l }))"
     />
 
+    <!-- 软件安装（nginx）对话框 -->
+    <ScInstallDialog v-model="installVisible" :host="installHost" :hosts="hosts" @installed="onInstalled" />
+
     <!-- 主机右键上下文菜单（卡片/表格统一，动作直连，点击外侧关闭） -->
     <Teleport to="body">
       <div v-if="ctxMenu.visible" class="host-ctx-backdrop" @click="closeCtxMenu" @contextmenu.prevent="closeCtxMenu" />
@@ -1393,6 +1439,9 @@ function osTileClass(h: Host): string {
         </div>
         <div class="host-ctx-item" @click="ctxCommand('scan')">
           <ReIcon name="Aim" /><span>端口扫描</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('install-nginx')">
+          <ReIcon name="Box" /><span>安装 Nginx</span>
         </div>
         <div class="host-ctx-sep" />
         <div class="host-ctx-item" @click="ctxCommand('edit')">
@@ -1433,7 +1482,6 @@ function osTileClass(h: Host): string {
   flex-direction: column;
   height: 100%;
   box-sizing: border-box;
-  padding: 4px 4px 24px;
 }
 /* 定高区块不参与纵向压缩：视口变矮时该由主机区（min-height:0）让位，
    而不是把 KPI 卡和筛选条一起压扁。 */
@@ -1624,10 +1672,14 @@ function osTileClass(h: Host): string {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  /* 卡片收窄：min 380px 让一行放下更多卡片，指标条不再被宽卡挤压 */
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   /* 有卡片时按自然高度排布、不把卡片拉高（卡片高度由自身内容决定）；
      剩余空间宁可留在网格下方，也不要把每张主机卡撑成同一个死板的高度。 */
   align-content: start;
+  /* 行高跟随内容最大高度：卡片（el-card 是 flex column + body overflow:auto）
+     若行被压矮，指标条会在卡片内部出现滚动条；内容超出网格时宁可整页滚动。 */
+  grid-auto-rows: max-content;
   gap: 16px;
   padding: 0 0 8px;
 }
@@ -1646,6 +1698,8 @@ function osTileClass(h: Host): string {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* 卡片整体略高一点：内容矮时 body 的 flex-grow:1 把富余空间填进指标区，观感更舒展 */
+  min-height: 340px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
@@ -1812,6 +1866,10 @@ function osTileClass(h: Host): string {
   overflow-y: auto;
 }
 .ports-pop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   color: var(--el-text-color-regular, #4b5563);
   padding: 3px 8px;
@@ -1820,6 +1878,25 @@ function osTileClass(h: Host): string {
 .ports-pop-item:hover {
   background: var(--el-fill-color-light, #f3f4f6);
 }
+/* 端口开放情况：浅灰底圆角块 + 圆点 + 同色大写半粗文字（图片 1 的标记样式） */
+.port-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 1px 8px; border-radius: 999px;
+  background: var(--el-fill-color-light, #f3f4f6);
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+  line-height: 1.5;
+  font-family: var(--font-mono, monospace);
+  flex-shrink: 0;
+}
+.ps-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+}
+.ps-open { color: var(--el-color-success, #67c23a); }
+.ps-open .ps-dot { background: var(--el-color-success, #67c23a); box-shadow: 0 0 0 1.5px rgba(103, 194, 58, 0.45); }
+.ps-closed { color: var(--el-color-danger, #f56c6c); }
+.ps-closed .ps-dot { background: var(--el-color-danger, #f56c6c); box-shadow: 0 0 0 1.5px rgba(245, 108, 108, 0.45); }
 
 /* 主机右键上下文菜单（teleport 到 body） */
 .host-ctx-backdrop {

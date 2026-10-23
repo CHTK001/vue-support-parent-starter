@@ -1127,9 +1127,12 @@ async function loadProfileSection(): Promise<void> {
       profilePaged.value ? profilePageSize.value : undefined,
       profilePaged.value ? profileKeyword.value.trim() || undefined : undefined);
     if (req !== profileReq || hid !== hostId.value) return;
-    profileRows.value = res.rows ?? [];
-    profileTotal.value = profilePaged.value && typeof res.total === "number" ? res.total : (res.rows?.length ?? 0);
-    profileTruncated.value = profilePaged.value && !!res.truncated;
+    // 兼容两种返回：新后端为 { rows, total, truncated }，旧后端为裸数组
+    const rows = Array.isArray(res) ? res : (Array.isArray(res?.rows) ? res.rows : []);
+    profileRows.value = rows;
+    profileTotal.value = Array.isArray(res) ? rows.length
+      : (typeof res.total === "number" ? res.total : rows.length);
+    profileTruncated.value = !Array.isArray(res) && !!res.truncated;
     if (profilePaged.value && profilePage.value > 1 && profilePageSize.value * (profilePage.value - 1) >= profileTotal.value) {
       profilePage.value = Math.max(1, Math.ceil(profileTotal.value / profilePageSize.value));
     }
@@ -1155,6 +1158,16 @@ function changeProfilePage(delta: number): void {
   if (next < 1) return;
   profilePage.value = next;
   void loadProfileSection();
+}
+
+/** 端口状态 → OPEN/CLOSED 标记：监听/运行中视为 OPEN（绿点），其余视为 CLOSED（红点），空值不标记 */
+function portStatus(state: unknown): { open: boolean | null; text: string } {
+  const raw = String(state ?? "").trim();
+  const s = raw.toLowerCase();
+  if (!s || s === "-" || s === "—") return { open: null, text: "" };
+  const openWords = ["listen", "listening", "open", "running", "active", "established"];
+  if (openWords.some(w => s === w || s.includes(w))) return { open: true, text: "OPEN" };
+  return { open: false, text: "CLOSED" };
 }
 
 /** 正在执行动作的行键（同一时刻只允许一个远端写操作） */
@@ -1588,7 +1601,15 @@ async function submitProfileEnv(): Promise<void> {
             </thead>
             <tbody>
               <tr v-for="(r, idx) in profileVisibleRows" :key="idx">
-                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" :class="['mono', { right: col.align === 'right' }]">{{ r[col.key] ?? "—" }}</td>
+                <td v-for="col in PROFILE_COLUMNS[profileTab]" :key="col.key" :class="['mono', { right: col.align === 'right' }]">
+                  <template v-if="profileTab === 'ports' && col.key === 'state'">
+                    <span v-if="portStatus(r.state).open !== null" class="port-status" :class="portStatus(r.state).open ? 'ps-open' : 'ps-closed'">
+                      <i class="ps-dot"></i>{{ portStatus(r.state).text }}
+                    </span>
+                    <span v-else>—</span>
+                  </template>
+                  <template v-else>{{ r[col.key] ?? "—" }}</template>
+                </td>
                 <td v-if="profileTab === 'processes'">
                   <ReButton icon="RefreshRight" :loading="profileBusyRow === `restart-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定重启进程 ${r.name ?? ''}（PID ${r.pid}）？`).then(ok => ok && runProfileAction(`restart-${r.pid}`, restartHostProcess(Number(r.pid), hostId)))">重启</ReButton>
                   <ReButton icon="CircleClose" type="danger" :loading="profileBusyRow === `kill-${r.pid}`" :disabled="!Number(r.pid)" @click="confirmProfileAction(`确定结束进程 ${r.name ?? ''}（PID ${r.pid}）？该操作不可恢复。`).then(ok => ok && runProfileAction(`kill-${r.pid}`, killProcess(Number(r.pid), hostId)))">结束</ReButton>
@@ -1667,10 +1688,6 @@ async function submitProfileEnv(): Promise<void> {
       <div v-else class="ai-state">
         <span>点击上方「开始分析」生成主机指标诊断结论。</span>
       </div>
-
-      <template #footer>
-        <ReButton @click="aiDialogVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 历史数据弹窗：只保留时间范围过滤，指标由被点击卡片确定 -->
@@ -1732,9 +1749,6 @@ async function submitProfileEnv(): Promise<void> {
           </tbody>
         </table>
       </div>
-      <template #footer>
-        <ReButton type="primary" @click="swDetailVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 画像分区：新增系统级环境变量 -->
@@ -2208,6 +2222,24 @@ async function submitProfileEnv(): Promise<void> {
 .pp-table th.sortable:hover, .pp-table th.sort-on { color: var(--el-color-primary); }
 .pp-table th.right { text-align: right; }
 .pp-table td.right { text-align: right; }
+/* 端口开放情况：浅灰底圆角块 + 圆点 + 同色大写半粗文字（图片 1 的标记样式） */
+.port-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--el-fill-color-light, #f3f4f6);
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+  line-height: 1.5;
+  font-family: var(--p-mono, monospace);
+}
+.ps-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+}
+.ps-open { color: var(--el-color-success, #67c23a); }
+.ps-open .ps-dot { background: var(--el-color-success, #67c23a); box-shadow: 0 0 0 1.5px rgba(103, 194, 58, 0.45); }
+.ps-closed { color: var(--el-color-danger, #f56c6c); }
+.ps-closed .ps-dot { background: var(--el-color-danger, #f56c6c); box-shadow: 0 0 0 1.5px rgba(245, 108, 108, 0.45); }
 .sub-label { font-size: 12px; color: var(--el-text-color-secondary); margin: 8px 0 4px; }
 
 /* ---------- 磁盘 ---------- */
