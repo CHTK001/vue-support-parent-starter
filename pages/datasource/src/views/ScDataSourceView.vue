@@ -761,7 +761,7 @@ const supportsProcess = (item: DataSourceInfo): boolean =>
 const ctxMenuItems = computed(() => {
   const item = ctxMenu.item;
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
-    { key: "manage", label: "打开管理", icon: "View" },
+    { key: "manage", label: "打开管理（新标签）", icon: "View" },
     { key: "test", label: "检测连接", icon: "Connection" },
     {
       key: "top",
@@ -770,10 +770,13 @@ const ctxMenuItems = computed(() => {
       divided: true,
     },
   ];
-  // JDBC 内核能力（SPI 判断）：查看文档 / 进程列表 / 慢查询
+  // JDBC 内核能力（SPI 判断）：用户管理 / 查看文档 / 进程列表 / 慢查询
   if (item?.type === "jdbc") {
     const db = (item.database ?? "").trim();
     const dialect = jdbcDialect(db);
+    if (dialect === "mysql" || dialect === "mariadb") {
+      base.push({ key: "users", label: "用户管理", icon: "User", warning: true });
+    }
     base.push({ key: "docs", label: "查看驱动文档", icon: "Document", warning: true });
     if (dialect === "mysql" || dialect === "mariadb" || dialect === "postgresql") {
       base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
@@ -842,6 +845,10 @@ const onItemMenuSelect = (key: string) => {
   if (!item) return;
   if (key === "manage") {
     openManager(item);
+    return;
+  }
+  if (key === "users") {
+    openUserManager(item);
     return;
   }
   if (key === "test") {
@@ -1231,15 +1238,48 @@ const openManager = (item: DataSourceInfo) => {
     message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
   }
-  if (!hasRoutePath(router, route)) {
-    const near = nearbyRoutePaths(router, route);
+  openFullManager(item, route);
+};
+
+/**
+ * 打开管理（新标签·全屏）：新标签页打开整页控制台，无顶部/左侧导航。
+ *
+ * <p>每个管理页都有同名的「/full」standalone 变体（见 {@link routes.ts} 的
+ * {@code createDatasourceManageRoutes}，standalone=true 注册为顶层路由、不套 layout）。
+ * 用 {@code window.open} 新开标签：既有应用仍在原页签，控制台独占一个新标签，屏幕不挤。</p>
+ */
+const openFullManager = (item: DataSourceInfo, baseRoute: string) => {
+  const fullRoute = `${baseRoute}/full`;
+  if (!hasRoutePath(router, fullRoute)) {
+    const near = nearbyRoutePaths(router, fullRoute);
     message.warning(
-      `当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`
+      `当前应用未注册 ${fullRoute} 全屏管理页，无法在新标签打开「${item.type}」管理界面`
       + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
     );
     return;
   }
-  void router.push({ path: route, query: { datasourceId: item.id } });
+  const href = router.resolve({ path: fullRoute, query: { datasourceId: item.id } }).href;
+  window.open(href, "_blank", "noopener");
+};
+
+/**
+ * 打开用户管理（新标签·全屏 + 定位用户页签）。
+ *
+ * <p>仅 MySQL/MariaDB 显示该入口（SPI 判断在右键菜单处已做）。打开的是
+ * {@code /db-manager/full?datasourceId=X&panel=users}：控制台加载后
+ * 由 DatabaseManagerView 识别 {@code panel=users} 自动打开用户管理页签。</p>
+ */
+const openUserManager = (item: DataSourceInfo) => {
+  const fullRoute = "/db-manager/full";
+  if (!hasRoutePath(router, fullRoute)) {
+    message.warning(`当前应用未注册 ${fullRoute}，无法打开用户管理`);
+    return;
+  }
+  const href = router.resolve({
+    path: fullRoute,
+    query: { datasourceId: item.id, panel: "users" },
+  }).href;
+  window.open(href, "_blank", "noopener");
 };
 
 /**

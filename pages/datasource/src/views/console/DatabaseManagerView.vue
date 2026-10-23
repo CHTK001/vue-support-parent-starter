@@ -278,7 +278,7 @@
             <ReIcon
               :name="tab.type === 'query' ? 'Edit' : tab.type === 'object'
                 ? (DB_OBJECT_CATEGORIES.find(c => c.value === tab.objectCategory)?.icon ?? 'Document')
-                : 'Grid'"
+                : tab.type === 'users' ? 'User' : 'Grid'"
               size="12"
             />
             <span class="dbm-tab-title">{{ tab.title }}</span>
@@ -822,7 +822,13 @@
     </div>
 
     <!-- 空状态 -->
-        <div v-if="tabs.length === 0" class="dbm-empty">
+        <div
+          v-if="activeTabObj && activeTabObj.type === 'users'"
+          class="dbm-users-view"
+        >
+          <DbUserManagePanel :datasource-id="currentDatasourceId" data-testid="dbm-users-panel" />
+        </div>
+        <div v-else-if="tabs.length === 0" class="dbm-empty">
           <ReIcon name="Grid" size="64" class="dbm-empty-icon" />
           <p class="dbm-empty-text">从左侧选择表查看数据，或点击"新建查询"执行 SQL</p>
         </div>
@@ -910,6 +916,9 @@
           </div>
           <div class="dbm-context-item" @click="openCreateUser(contextMenu.database)">
             <ReIcon name="User" :size="14" />添加用户
+          </div>
+          <div v-if="usersSupported" class="dbm-context-item" @click="openUsersTab()">
+            <ReIcon name="UserFilled" :size="14" />用户管理
           </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
@@ -1930,6 +1939,7 @@ import ReRelationGraph from "@repo/ui/re-relation-graph";
 import { ReFormItem, ReOption } from "@repo/ui/re-kit";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
 // 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
 import { DatasourceSelect } from "@pages/datasource";
 import type { CollectOption } from "@pages/datasource";
@@ -2073,6 +2083,19 @@ const datasourceOptions = computed<CollectOption[]>(() =>
 function onDatasourcePick(value: string): void {
   currentDatasourceId.value = Number(value) || 0;
 }
+
+/**
+ * 用户管理能力（SPI 判断）：仅当前数据源为 MySQL/MariaDB 内核时可用。
+ *
+ * <p>用户定义落在 {@code mysql.user} 表，MySQL/MariaDB 有完整的 CREATE/ALTER/DROP
+ * USER 与 SHOW GRANTS；其余内核（含 PostgreSQL）结构与语义差异大，不显示入口。
+ * 判断依据是当前数据源台账里的完整 JDBC URL（database 字段）。</p>
+ */
+const usersSupported = computed(() => {
+  const ds = datasources.value.find(d => d.id === currentDatasourceId.value);
+  const url = (ds?.database ?? "").trim().toLowerCase();
+  return url.startsWith("jdbc:mysql:") || url.startsWith("jdbc:mariadb:");
+});
 
 // 连接树
 const databases = ref<string[]>([]);
@@ -2377,7 +2400,7 @@ const activeTable = ref<string>("");
 interface Tab {
   id: string;
   /** object = 存储过程/函数/触发器/事件的定义页 */
-  type: "table" | "design" | "query" | "object" | "er";
+  type: "table" | "design" | "query" | "object" | "er" | "users";
   title: string;
   tableName?: string;
   database?: string;
@@ -5559,6 +5582,10 @@ const newTableDatabase = ref("");
 // 初始化
 onMounted(async () => {
   await loadDatasources();
+  // 数据源中心右键「用户管理」→ 打开全屏控制台并定位到用户管理页签（/db-manager/full?panel=users）
+  if (String(route.query.panel ?? "").toLowerCase() === "users" && usersSupported.value) {
+    openUsersTab();
+  }
   // text2sql 入口按后端能力显隐（未集成/未配置 = 隐藏），失败已在 API 内兜底
   void refreshAiStatus();
 });
@@ -6314,6 +6341,24 @@ function qualified(tab: Tab) {
 function openNewQuery() {
   const id = "query-" + Date.now();
   const tab: Tab = { id, type: "query", title: "查询 " + (tabs.value.filter(t => t.type === "query").length + 1), sql: "", database: activeDatabase.value };
+  tabs.value.push(tab);
+  activeTab.value = id;
+}
+
+/**
+ * 打开用户管理页签（内嵌面板）。
+ *
+ * <p>用户是连接级对象，不挂在某个库下 —— 库右键进到这里时只负责打开面板，
+ * 面板内部按当前数据源查询 {@code mysql.user}。重复打开复用已有页签。</p>
+ */
+function openUsersTab() {
+  const existing = tabs.value.find(t => t.type === "users");
+  if (existing) {
+    activeTab.value = existing.id;
+    return;
+  }
+  const id = "users-" + Date.now();
+  const tab: Tab = { id, type: "users", title: "用户管理" };
   tabs.value.push(tab);
   activeTab.value = id;
 }
@@ -8383,6 +8428,14 @@ onBeforeUnmount(() => {
 }
 .dbm-empty-icon { color: var(--el-text-color-placeholder); }
 .dbm-empty-text { margin: 0; }
+
+/* 用户管理面板（users 页签） */
+.dbm-users-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 12px;
+  overflow: auto;
+}
 
 /* 右键菜单（对齐 Navicat） */
 .dbm-context-menu {

@@ -88,7 +88,7 @@ export function createDatasourceManageRoutes(
   const activeMenu = options.activeMenu || "/datasource";
   const common = { showLink: false, activeMenu } as const;
 
-  return [
+  const routes: RouteConfigsTable[] = [
     {
       path: "/kafka",
       name: "Kafka",
@@ -180,6 +180,26 @@ export function createDatasourceManageRoutes(
       meta: { title: "Prometheus 看板", showLink: false, standalone: true },
     },
   ];
+
+  // 每个管理页追加一条「/full」全屏变体：数据源中心右键「打开管理（新标签）」的落地页。
+  // standalone=true 注册为顶层路由（不套 layout），新标签打开时无顶部/左侧导航，
+  // 打开的就是整个控制台本身。embed 看板已是 standalone，不重复生成。
+  const managerPaths = new Set(Object.values(MANAGER_ROUTE_MAP));
+  const fullVariants: RouteConfigsTable[] = routes
+    .filter(r => managerPaths.has(r.path) && !r.meta?.standalone)
+    .map(r => ({
+      ...r,
+      path: `${r.path}/full`,
+      name: `${r.name as string}Full`,
+      component: r.component,
+      meta: {
+        ...r.meta,
+        title: `${(r.meta as { title?: string }).title ?? "管理"}（全屏）`,
+        showLink: false,
+        standalone: true,
+      },
+    }));
+  return [...routes, ...fullVariants];
 }
 
 /**
