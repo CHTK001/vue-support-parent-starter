@@ -300,6 +300,47 @@ export function fetchDatasourceRuntimeInfo(id: number, type: string): Promise<Re
   return get<Record<string, string>>(`${hubBase}/${type}/${id}/info`);
 }
 
+/** 数据库进程行（后端 DbProcessVO） */
+export interface DbProcessRow {
+  pid: string;
+  user: string;
+  host: string;
+  db: string;
+  command: string;
+  time: number | null;
+  info: string | null;
+  extra?: Record<string, unknown> | null;
+}
+
+/** 进程列表响应：supported=false 表示该内核不支持进程管理 */
+export interface DbProcessListResult {
+  supported: boolean;
+  processes: DbProcessRow[];
+  message?: string;
+}
+
+/** 进程关闭结果 */
+export interface DbProcessKillResult {
+  successCount: number;
+  failCount: number;
+  message: string;
+}
+
+/** 查询数据库进程列表（仅 MySQL/MariaDB/PostgreSQL 支持，其余内核返回 supported=false） */
+export function fetchDbProcesses(id: number): Promise<DbProcessListResult> {
+  return get<DbProcessListResult>(`/ms/monitor/db/processes`, { datasourceId: id });
+}
+
+/** 关闭单个数据库进程 */
+export function killDbProcess(id: number, pid: string): Promise<DbProcessKillResult> {
+  return post<DbProcessKillResult>(`/ms/monitor/db/process/kill`, { datasourceId: id, pid });
+}
+
+/** 批量关闭数据库进程 */
+export function killDbProcesses(id: number, pids: string[]): Promise<DbProcessKillResult> {
+  return post<DbProcessKillResult>(`/ms/monitor/db/processes/kill`, { datasourceId: id, pids });
+}
+
 /**
  * 查询数据源的 SSH 隧道配置。
  *

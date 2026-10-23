@@ -18,7 +18,7 @@
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
+import { ElCheckbox, ElMessageBox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
 // 组件全部显式引入：本页被采集台与监控台共用，两个应用都不保证全局注册 Re*，
 // 只靠全局注册会出现「卡片能显示但按钮/表格不渲染」的问题。
@@ -61,8 +61,13 @@ import {
 import { TableSelect, ColumnSelect } from "../components/selectors";
 import {
   deleteJdbcDriverJar,
+  fetchDbProcesses,
   fetchJdbcDriverJars,
+  killDbProcess,
+  killDbProcesses,
   uploadJdbcDriverJar,
+  type DbProcessListResult,
+  type DbProcessRow,
 } from "../api";
 import {
   deleteDatasourceTunnel,
@@ -438,6 +443,8 @@ const testing = ref<number | null>(null);
 const keyword = ref("");
 /** 左栏当前状态过滤键 */
 const statusKey = ref<StatusFilterKey>("all");
+/** 左栏类型过滤：空 = 不限制（配合搜索关键词在同一行收缩） */
+const typeFilter = ref("");
 /** 右栏当前页签 */
 const activeTab = ref("overview");
 /** 当前选中的数据源 ID；未选中时详情回落到列表第一条 */
@@ -723,11 +730,33 @@ const datasourceStatusTextOf = (item: DataSourceInfo): string => STATUS_TEXT[dat
 
 /** 右键菜单挂的目标项：菜单项闭包都基于它，弹出期间不换目标 */
 const ctxMenu = reactive({ visible: false, x: 0, y: 0, item: null as DataSourceInfo | null });
-const ctxMenuItems = [
-  { key: "manage", label: "打开管理", icon: "View" },
-  { key: "edit", label: "编辑数据源", icon: "EditPen" },
-  { key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true },
-];
+
+/**
+ * 该数据源类型是否支持「显示进程」：进程管理是数据库内核特有 SPI 能力
+ * （仅 MySQL/MariaDB/PostgreSQL 的 JDBC 数据源可用），其余类型/内核不显示该菜单项。
+ */
+const supportsProcess = (item: DataSourceInfo): boolean =>
+  item.type === "jdbc" &&
+  /^jdbc:(mysql|mariadb|postgresql):/i.test((item.database ?? "").trim());
+
+/** 右键菜单：按数据源类型 + SPI 能力动态生成 */
+const ctxMenuItems = computed(() => {
+  const item = ctxMenu.item;
+  const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
+    { key: "manage", label: "打开管理", icon: "View" },
+    { key: "test", label: "检测连接", icon: "Connection" },
+  ];
+  // JDBC 内核能力（SPI 判断）：进程列表 / 慢查询
+  if (item?.type === "jdbc") {
+    const db = (item.database ?? "").trim();
+    if (/^jdbc:(mysql|mariadb|postgresql):/i.test(db)) {
+      base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
+    }
+  }
+  base.push({ key: "edit", label: "编辑数据源", icon: "EditPen" });
+  base.push({ key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true });
+  return base;
+});
 
 /**
  * 在数据源项上右键。
@@ -746,6 +775,14 @@ const onItemMenuSelect = (key: string) => {
   if (!item) return;
   if (key === "manage") {
     openManager(item);
+    return;
+  }
+  if (key === "test") {
+    void test(item);
+    return;
+  }
+  if (key === "processes") {
+    void openProcesses(item);
     return;
   }
   if (key === "edit") {
@@ -812,6 +849,143 @@ const onSchemaError = (message: string) => {
   schemaError.value = message;
   schemaTables.value = [];
   schemaColumns.value = [];
+};
+
+// ------------------------------ 显示进程（需求 4） ------------------------------
+const processVisible = ref(false);
+const processLoading = ref(false);
+const processSource = ref<DataSourceInfo | null>(null);
+const processSupported = ref(true);
+const processMessage = ref("");
+/** 进程列表 */
+const processRows = ref<DbProcessRow[]>([]);
+/** 选中待关闭的进程 ID 集合 */
+const processSelection = ref<Set<string>>(new Set());
+/** 正在关闭的进程 ID 集合（单条关闭的加载态） */
+const processKilling = ref<Set<string>>(new Set());
+const processKillAllLoading = ref(false);
+
+/** 打开「显示进程」弹窗并加载列表 */
+const openProcesses = async (item: DataSourceInfo) => {
+  if (item.id == null) {
+    message.warning("数据源缺少 ID，无法查看进程");
+    return;
+  }
+  processSource.value = item;
+  processVisible.value = true;
+  processSupported.value = true;
+  processMessage.value = "";
+  processRows.value = [];
+  processSelection.value = new Set();
+  processLoading.value = true;
+  try {
+    const result: DbProcessListResult = await fetchDbProcesses(item.id);
+    processSupported.value = !!result.supported;
+    processMessage.value = result.message ?? "";
+    processRows.value = result.processes ?? [];
+  } catch (e) {
+    processMessage.value = String((e as Error)?.message ?? e);
+    processSupported.value = false;
+  } finally {
+    processLoading.value = false;
+  }
+};
+
+/** 进程列定义 */
+const processColumns: ReTableColumn[] = [
+  { prop: "_sel", label: "", width: 40, slot: "col-sel", align: "center" },
+  { prop: "pid", label: "PID", width: 90 },
+  { prop: "user", label: "用户", minWidth: 90 },
+  { prop: "host", label: "客户端", minWidth: 130 },
+  { prop: "db", label: "库", minWidth: 110 },
+  { prop: "command", label: "命令/状态", minWidth: 110 },
+  { prop: "time", label: "时长(s)", width: 80, align: "right" },
+  { prop: "info", label: "正在执行", minWidth: 220 },
+  { prop: "_op", label: "操作", width: 80, slot: "col-op", align: "center" },
+];
+
+/** 切换单条进程选中 */
+const toggleProcessSelect = (pid: string) => {
+  if (processSelection.value.has(pid)) {
+    processSelection.value.delete(pid);
+  } else {
+    processSelection.value.add(pid);
+  }
+  processSelection.value = new Set(processSelection.value);
+};
+
+/** 全选 / 取消全选 */
+const toggleProcessSelectAll = () => {
+  const pids = processRows.value.map(r => r.pid);
+  if (processSelection.value.size === pids.length) {
+    processSelection.value = new Set();
+  } else {
+    processSelection.value = new Set(pids);
+  }
+};
+
+/** 刷新进程列表 */
+const reloadProcesses = async () => {
+  const item = processSource.value;
+  if (!item?.id) return;
+  processLoading.value = true;
+  try {
+    const result: DbProcessListResult = await fetchDbProcesses(item.id);
+    processSupported.value = !!result.supported;
+    processMessage.value = result.message ?? "";
+    processRows.value = result.processes ?? [];
+    processSelection.value = new Set();
+  } catch (e) {
+    processMessage.value = String((e as Error)?.message ?? e);
+  } finally {
+    processLoading.value = false;
+  }
+};
+
+/** 关闭单个进程 */
+const killOneProcess = async (pid: string) => {
+  const item = processSource.value;
+  if (!item?.id) return;
+  processKilling.value = new Set([...processKilling.value, pid]);
+  try {
+    await killDbProcess(item.id, pid);
+    message.success(`已关闭进程 ${pid}`);
+    await reloadProcesses();
+  } catch (e) {
+    message.error(`关闭失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    processKilling.value = new Set([...processKilling.value].filter(p => p !== pid));
+  }
+};
+
+/** 批量关闭选中的进程 */
+const killSelectedProcesses = async () => {
+  const item = processSource.value;
+  if (!item?.id) return;
+  const pids = [...processSelection.value];
+  if (pids.length === 0) {
+    message.warning("请先勾选要关闭的进程");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认关闭选中的 ${pids.length} 个进程？`, "批量关闭进程", {
+      type: "warning",
+      confirmButtonText: "关闭",
+      cancelButtonText: "取消",
+    });
+  } catch {
+    return;
+  }
+  processKillAllLoading.value = true;
+  try {
+    const result = await killDbProcesses(item.id, pids);
+    message.success(result.message || `已关闭 ${result.successCount} 个进程`);
+    await reloadProcesses();
+  } catch (e) {
+    message.error(`批量关闭失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    processKillAllLoading.value = false;
+  }
 };
 
 /** 手动刷新表清单 */
@@ -963,10 +1137,30 @@ const current = computed<DataSourceInfo | null>(() => {
   return list.value.find(item => item.id === currentId.value) ?? list.value[0];
 });
 
-/** 左栏数据源列表：状态过滤 + 关键词过滤（口径见 ../datasourceStatus） */
-const filteredList = computed<DataSourceInfo[]>(() =>
-  filterDataSources(list.value, statusKey.value, keyword.value),
-);
+/** 左栏数据源列表：状态过滤 + 类型过滤 + 关键词过滤（口径见 ../datasourceStatus） */
+const filteredList = computed<DataSourceInfo[]>(() => {
+  const typed = typeFilter.value
+    ? list.value.filter(item => item.type === typeFilter.value)
+    : list.value;
+  return filterDataSources(typed, statusKey.value, keyword.value);
+});
+
+/** 左栏类型过滤下拉选项：全部 + 每种已登记类型（带中文标签与计数） */
+const typeFilterOptions = computed(() => {
+  const counts = new Map<string, number>();
+  for (const item of list.value) {
+    counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
+  }
+  return [
+    { label: "全部类型", value: "" },
+    ...[...counts.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([type, count]) => ({
+        label: `${typeMeta(type).label}（${count}）`,
+        value: type,
+      })),
+  ];
+});
 
 /** 左栏状态过滤项与计数；三类互斥可加（online + abnormal + offline === all） */
 const statusFilters = computed<StatusFilterItem[]>(() => {
@@ -1345,14 +1539,23 @@ onMounted(load);
 
           <div class="ds-side__divider" />
 
-          <!-- 关键词搜索（与页头搜索框共享关键词） -->
-          <ReInput
-            v-model="keyword"
-            class="ds-side__search"
-            prefix-icon="Search"
-            placeholder="搜索数据源"
-            clearable
-          />
+          <!-- 关键词搜索 + 类型下拉（同一行收缩：搜索框吃弹性宽度，类型下拉固定） -->
+          <div class="ds-side__search-row">
+            <ReInput
+              v-model="keyword"
+              class="ds-side__search"
+              prefix-icon="Search"
+              placeholder="搜索数据源"
+              clearable
+            />
+            <ReSelect
+              v-model="typeFilter"
+              class="ds-side__type"
+              :options="typeFilterOptions"
+              placeholder="全部"
+              clearable
+            />
+          </div>
 
           <!-- 数据源卡片列表 -->
           <div class="ds-side__list">
@@ -1968,6 +2171,77 @@ onMounted(load);
         </ReTable>
       </div>
     </ReDialog>
+
+    <!-- 显示进程：进程列表 + 关闭 / 批量关闭（仅 MySQL/MariaDB/PostgreSQL 内核显示入口） -->
+    <ReDialog v-model="processVisible" :title="`显示进程 · ${processSource?.name ?? ''}`" width="960px">
+      <div class="ds-process">
+        <div class="ds-process__bar">
+          <ReButton
+            layout="square"
+            icon="Refresh"
+            tip="刷新"
+            data-testid="ds-process-refresh"
+            :loading="processLoading"
+            @click="reloadProcesses"
+          />
+          <span class="ds-process__count">共 {{ processRows.length }} 个进程</span>
+          <span class="ds-process__spacer" />
+          <ReButton
+            layout="square"
+            icon="Select"
+            tip="全选 / 取消全选"
+            data-testid="ds-process-selectall"
+            @click="toggleProcessSelectAll"
+          />
+          <ReButton
+            type="danger"
+            :loading="processKillAllLoading"
+            :disabled="processSelection.size === 0"
+            data-testid="ds-process-batch-kill"
+            @click="killSelectedProcesses"
+          >
+            <template #icon><ReIcon name="Delete" :size="13" /></template>
+            关闭选中 ({{ processSelection.size }})
+          </ReButton>
+        </div>
+
+        <p v-if="!processSupported" class="ds-process__error">
+          {{ processMessage || "该数据库内核不支持进程管理（仅 MySQL/MariaDB/PostgreSQL 支持）" }}
+        </p>
+        <ReTable
+          v-else
+          :data="processRows"
+          :columns="processColumns"
+          :loading="processLoading"
+          row-key="pid"
+          stripe
+          border
+          :layout-table="{ height: '380px' }"
+        >
+          <template #col-sel="{ row }">
+            <ElCheckbox
+              :model-value="processSelection.has(row.pid)"
+              @change="toggleProcessSelect(row.pid)"
+            />
+          </template>
+          <template #col-op="{ row }">
+            <ReButton
+              layout="square"
+              size="small"
+              type="danger"
+              icon="Delete"
+              tip="关闭该进程"
+              data-testid="ds-process-kill"
+              :loading="processKilling.has(row.pid)"
+              @click="killOneProcess(row.pid)"
+            />
+          </template>
+        </ReTable>
+      </div>
+      <template #footer>
+        <ReButton @click="processVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -2101,6 +2375,29 @@ onMounted(load);
   height: 1px;
   background: var(--border-subtle, #eef0f6);
 }
+
+/* 左栏搜索行：搜索框 + 类型下拉同一行收缩。
+   搜索框吃弹性宽度，类型下拉固定 110px —— 窄栏里两控件并排不换行，
+   状态过滤与列表上方因此只占一行，纵向空间留给数据源卡片。 */
+.ds-side__search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ds-side__search-row .ds-side__search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-side__type {
+  flex: 0 0 110px;
+  width: 110px;
+}
+.ds-side__type :deep(.el-select__wrapper),
+.ds-side__type :deep(.el-input__wrapper) {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
 
 /* 左栏列表：吃掉卡片剩余高度，超出独立滚动，
    这样「添加数据源」按钮始终贴在卡片底部，不会被长列表顶走 */
@@ -2880,6 +3177,35 @@ onMounted(load);
   color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
 }
+
+/* ---------------- 显示进程（需求 4） ---------------- */
+.ds-process {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ds-process__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ds-process__count {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ds-process__spacer {
+  flex: 1 1 auto;
+}
+.ds-process__error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+
 
 /* ---------------- 通用 ---------------- */
 .ds-pill { border-radius: var(--el-radius-full, 9999px) !important; }
