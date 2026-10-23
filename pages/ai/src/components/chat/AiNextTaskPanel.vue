@@ -111,7 +111,17 @@ const unsupported = ref(false)
  * 对用户只是噪音。load() 在首次开启时会自动联想一次，只要联想出结果，
  * 面板就自己出现，不需要用户多点一步。
  */
-const visible = computed(() => !!state.value && (state.value.tasks?.length ?? 0) > 0)
+/** 当前这批建议是否已被用户处理掉（点建议 / 自己发消息），且后端还没生成更新的一代 */
+const dismissed = computed(() => {
+  const sid = props.sessionId == null ? null : String(props.sessionId)
+  if (!sid || !state.value) return false
+  const mark = readMark(sid)
+  return mark > 0 && (state.value.generatedAt ?? 0) <= mark
+})
+
+const visible = computed(
+  () => !!state.value && (state.value.tasks?.length ?? 0) > 0 && !dismissed.value,
+)
 
 const pinnedTitle = '该会话已保留开启时的取值，之后设置中心改默认值不会影响它'
 const inheritedTitle = '该会话还没有自己的取值，暂时跟随设置中心的默认值'
@@ -142,22 +152,56 @@ async function onPick(task: SessionNextTaskItem): Promise<void> {
 }
 
 /**
- * 销毁面板：清空本地列表 → {@code visible=false} → 整块卸载。
+ * 「已被用户处理掉的建议」水位：key → 那一批建议的 generatedAt。
  *
- * <p>两个时机共用这一条路径（不另造状态）：</p>
+ * <p>为什么必须**落 sessionStorage**（三层原因，都是实测踩出来的）：</p>
  * <ol>
- *   <li>点了某条建议 —— 建议已经发出去了，面板不能再挂着让人重复点；</li>
- *   <li><b>用户自己在输入框里发了消息</b> —— 这就是明确表示不采纳当前这批建议
- *       （用户报障：我自己发消息了，说明不采纳它的建议，建议组件应该销毁）。
- *       不销毁的话，面板会挂着一批"针对上一轮上下文"的过期建议，
- *       而新一轮的上下文已经变了。</li>
+ *   <li>组件在流式期间可能被父组件重挂 → 组件内的 ref 会丢，同一批建议又挂回来；</li>
+ *   <li>整页重载（刷新/路由重建）连模块作用域的 Map 也一起清空 → 用户刷新一次建议就回来；</li>
+ *   <li><b>新会话第一次发送时 sessionId 还是 null</b>，没有 key 可记 ——
+ *       用户截图里那条正是新会话的第一条消息，于是"发了消息建议还在"。</li>
  * </ol>
  *
- * <p>只做本地清空：后端仍持有原列表，下一次 {@code load()}（重新进入该会话）或
- * 「重新联想」以后端返回为准 —— 后端在新轮次后重新生成的建议是「新的建议」，
- * 不该被本地的历史动作永久屏蔽。</p>
+ * <p>语义：只要后端还没生成**更新的一代**建议（generatedAt 变大）就一直隐藏；
+ * 下一轮结束后后端重新联想，面板自然带着新建议回来。</p>
+ */
+const DISMISS_STORE = 'ai-next-task-dismissed'
+/** 会话尚未建立时的占位 key：新会话首次发送记在这里，建会话后由 load() 继承 */
+const PENDING_KEY = '__pending__'
+
+function readMarks(): Record<string, number> {
+  try {
+    return JSON.parse(sessionStorage.getItem(DISMISS_STORE) || '{}') as Record<string, number>
+  } catch {
+    return {}
+  }
+}
+
+function readMark(key: string): number {
+  return readMarks()[key] ?? 0
+}
+
+function writeMark(key: string, at: number): void {
+  try {
+    const marks = readMarks()
+    // 取较大值：同一批建议被处理多次时水位只前进不后退
+    marks[key] = Math.max(marks[key] ?? 0, at)
+    sessionStorage.setItem(DISMISS_STORE, JSON.stringify(marks))
+  } catch {
+    /* 隐私模式下 sessionStorage 可能不可用：退化成"仅本次内存生效"，不因此报错 */
+  }
+}
+
+/**
+ * 销毁面板：记录水位 + 清空本地列表 → {@code visible=false} → 整块卸载。
+ *
+ * <p>两个时机共用这一条路径：点了某条建议；或用户自己在输入框里发了消息
+ * （= 明确不采纳当前这批建议）。**没有 sessionId 也要记**（记到 PENDING_KEY），
+ * 否则新会话首条消息发出的那一次等于没记。</p>
  */
 function dismiss(): void {
+  const sid = props.sessionId == null ? PENDING_KEY : String(props.sessionId)
+  writeMark(sid, state.value?.generatedAt ?? Date.now())
   if (state.value) {
     state.value.tasks = []
   }
@@ -227,6 +271,17 @@ async function load(): Promise<void> {
   }
   try {
     const next = await apiService.fetchSessionNextTaskState(sessionId)
+    /*
+     * 继承「新会话首次发送」记下的 pending 水位：
+     * 那一刻还没有会话 id，标记只能先记在 PENDING_KEY 上；
+     * 建好会话、面板带着真 id 挂上来时，如果这批建议**生成于那次发送之前**，
+     * 就说明用户当时已经用行动拒绝了它 —— 补记到该会话名下并清掉 pending。
+     */
+    const pending = readMark(PENDING_KEY)
+    if (pending > 0 && (next?.generatedAt ?? 0) <= pending) {
+      writeMark(sessionId, pending)
+      writeMark(PENDING_KEY, 0)
+    }
     state.value = next?.enabled ? next : null
     if (next?.enabled && !next.tasks.length && !next.message) {
       // 首次开启且还没联想过：直接生成一次，用户不用多点一次
