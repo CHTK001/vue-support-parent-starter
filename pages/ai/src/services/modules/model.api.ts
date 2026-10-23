@@ -48,6 +48,8 @@ export interface ModelApi {
   fetchRemoteModels(providerId: string): Promise<RemoteModelsResponse>;
   /** 拉取该提供商的全部远端模型并一次性批量录入（幂等） */
   importAllModels(providerId: string, opts?: { tryFix?: boolean }): Promise<ImportAllModelsResponse>;
+  /** 按模型名从后台指标端点拉取指标快照，供新增/编辑模型页「自动获取」回填表单 */
+  fetchModelMetrics(providerId: string, model: string): Promise<Record<string, any>>;
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
   deleteModel(modelId: string): Promise<boolean>;
@@ -167,6 +169,20 @@ export const modelApi: ModelApi = {
     }
     const data = body && typeof body === 'object' && 'data' in body ? body.data : body;
     return (data ?? {}) as ImportAllModelsResponse;
+  },
+
+  async fetchModelMetrics(this: ApiContext, providerId: string, model: string) {
+    // 按模型名从后台指标端点拉快照（新增/编辑模型页「自动获取」按钮）：
+    // GET /api/providers/{id}/models/metrics?model=xxx → data{found, family, ...}
+    const body: any = await rawApi.get(
+      `/api/providers/${encodeURIComponent(providerId)}/models/metrics`,
+      { params: { model } },
+    );
+    if (body && typeof body.code === 'number' && body.code !== 0) {
+      throw new Error(body.msg || `fetch metrics failed with code ${body.code}`);
+    }
+    const data = body && typeof body === 'object' && 'data' in body ? body.data : (body ?? {});
+    return (data ?? {}) as Record<string, any>;
   },
 
   async createModel(this: ApiContext, data: any) {
