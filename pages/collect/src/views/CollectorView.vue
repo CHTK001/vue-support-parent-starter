@@ -10,6 +10,12 @@
 
   最近运行一次取 50 条在前端按流程分组：逐行查会变成 N+1 次请求，
   采集器数量一多就明显卡。
+
+  ── 视图约定 ──────────────────────────────────────────────
+  本页以 ReTable 为主骨架：11 列 + 11 个具名插槽 + 工具栏批量选择/批量删除，
+  行状态色靠 row-class-name 回写。表格不拆成卡片网格，只把「外壳」现代化：
+  ReSectionHead 页头 + 统计条 + 卡片壳内的表格 + 筛选条。模板重排时
+  每一个绑定、插槽、事件都原样保留（槽名/列 prop/行字段都是脚本契约）。
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
@@ -17,7 +23,9 @@ import { ElDropdown, ElDropdownItem, ElDropdownMenu } from "element-plus";
 import { getRouter, msgError, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReCron from "@repo/ui/re-cron";
+import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
@@ -356,150 +364,223 @@ function runMore(command: string, flow: CollectFlow): void {
 }
 </script>
 
+<!--
+  现代化视图：ReSectionHead 页头 + koi 令牌统计条 + 筛选卡 + 卡片壳表格 + ReEmpty 空态。
+  ReTable 本体（columns / toolbar-config / 11 个具名插槽 / row-class-name /
+  v-model:page / v-model:page-size）与全部点击处理函数原样保留，仅重排外壳与样式。
+-->
 <template>
-  <div v-loading="loading" class="collect-page">
-    <div class="collect-toolbar">
+  <div class="collector-page">
+    <!-- 页头：标题 + 全局动作（新建采集器 / 平台级配置 / 刷新） -->
+    <ReSectionHead
+      class="collector-head"
+      title="采集器"
+      description="流程设计、调度与运行结果的总入口 · 一屏看清每个采集器最近一次运行的成败"
+    >
+      <template #actions>
+        <ReButton
+          show-text
+          icon="Plus"
+          type="primary"
+          size="small"
+          tip="新建采集器（打开流程设计）"
+          @click="openDesign(null)"
+        >
+          新建采集器
+        </ReButton>
+        <ElDropdown trigger="click" placement="bottom-start" @command="(cmd: string) => openConfig(cmd)">
+          <ReButton icon="Setting" size="small" tip="平台级配置：变量 / 函数 / 通知" />
+          <template #dropdown>
+            <ElDropdownMenu>
+              <ElDropdownItem command="global">全局配置总览</ElDropdownItem>
+              <ElDropdownItem command="variable" divided>变量管理</ElDropdownItem>
+              <ElDropdownItem command="function">函数库</ElDropdownItem>
+              <ElDropdownItem command="notice">执行通知</ElDropdownItem>
+            </ElDropdownMenu>
+          </template>
+        </ElDropdown>
+        <ReButton icon="Refresh" size="small" tip="重新拉取采集器与最近运行" @click="reload" />
+      </template>
+    </ReSectionHead>
+
+    <!-- 概览条：4 项关键计数，窄屏 2 列 -->
+    <div class="stat-grid" role="group" aria-label="采集器概览">
+      <div class="stat-card" style="--accent: var(--metric-cpu)">
+        <span class="stat-label">采集器</span>
+        <span class="stat-value">{{ filtered.length }}</span>
+        <span class="stat-trend">当前筛选结果</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-success)">
+        <span class="stat-label">已启用</span>
+        <span class="stat-value">{{ filtered.filter(f => f.collectFlowStatus === 1).length }}</span>
+        <span class="stat-trend is-up">排在最前</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--pulse-unknown)">
+        <span class="stat-label">已停用</span>
+        <span class="stat-value">{{ filtered.filter(f => f.collectFlowStatus !== 1).length }}</span>
+        <span class="stat-trend">灰底行</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-error)">
+        <span class="stat-label">最近失败</span>
+        <span class="stat-value">{{ filtered.filter(f => f.collectFlowStatus === 1 && latestTaskOf.get(f.collectFlowId)?.collectTaskStatus === "FAILURE").length }}</span>
+        <span
+          class="stat-trend"
+          :class="{ 'is-down': filtered.some(f => f.collectFlowStatus === 1 && latestTaskOf.get(f.collectFlowId)?.collectTaskStatus === 'FAILURE') }"
+        >最近 50 次运行内</span>
+      </div>
+    </div>
+
+    <!-- 筛选条：关键字 / 分类 -->
+    <div class="filter-card">
       <ReInput
         v-model="keyword"
-        style="width: 220px"
+        class="filter-field filter-field--search"
         placeholder="按名称 / 编码搜索"
+        prefix-icon="Search"
         clearable
       />
       <ReSelect
         v-model="categoryFilter"
-        style="width: 150px"
+        class="filter-field"
         :options="categoryOptions"
         placeholder="全部分类"
       />
-      <el-button icon="Plus" @click="openDesign(null)" text></el-button>
-      <ElDropdown trigger="click" placement="bottom-start" @command="(cmd: string) => openConfig(cmd)">
-        <ReButton icon="Setting" text></ReButton>
-        <template #dropdown>
-          <ElDropdownMenu>
-            <ElDropdownItem command="global">全局配置总览</ElDropdownItem>
-            <ElDropdownItem command="variable" divided>变量管理</ElDropdownItem>
-            <ElDropdownItem command="function">函数库</ElDropdownItem>
-            <ElDropdownItem command="notice">执行通知</ElDropdownItem>
-          </ElDropdownMenu>
-        </template>
-      </ElDropdown>
-      <span class="spacer" />
-      <span class="tb-label">共 {{ filtered.length }} 个采集器</span>
-      <ReButton text icon="Refresh" @click="reload"></ReButton>
+      <span class="filter-hint">
+        命中 {{ filtered.length }} / {{ flows.length }} 个采集器
+      </span>
+      <ReButton
+        v-if="keyword || categoryFilter !== ''"
+        icon="Close"
+        size="small"
+        tip="清空筛选"
+        @click="keyword = ''; categoryFilter = ''"
+      />
     </div>
 
-    <ReTable
-      table-id="collect-collector"
-      :data="sortedFlows"
-      :columns="columns"
-      :pagination="true"
-      :page-sizes="[10, 20, 50, 100]"
-      v-model:page="page"
-      v-model:page-size="pageSize"
-      :toolbar="true"
-      :toolbar-config="collectorToolbarConfig"
-      :layout-table="{ fill: true }"
-      row-key="collectFlowId"
-      row-class-name="collectorRowClassName"
-      empty-text="没有匹配的采集器"
-      stripe
-    >
-      <template #name="{ row }">
-        <div class="cell-name">
-          <span class="name-text">{{ row.collectFlowName }}</span>
-          <span v-if="row.collectFlowCode" class="name-code">{{ row.collectFlowCode }}</span>
-        </div>
-        <div v-if="row.running" class="cell-running">运行中</div>
-      </template>
+    <!-- 表格壳：ReTable 自带工具栏（批量选择 / 批量删除 / 列设置 / 表格设置） -->
+    <div v-loading="loading" class="table-card">
+      <ReTable
+        table-id="collect-collector"
+        :data="sortedFlows"
+        :columns="columns"
+        :pagination="true"
+        :page-sizes="[10, 20, 50, 100]"
+        v-model:page="page"
+        v-model:page-size="pageSize"
+        :toolbar="true"
+        :toolbar-config="collectorToolbarConfig"
+        :layout-table="{ fill: true }"
+        row-key="collectFlowId"
+        row-class-name="collectorRowClassName"
+        empty-text="没有匹配的采集器"
+        stripe
+      >
+        <template #empty>
+          <ReEmpty
+            v-if="!loading"
+            layout="modern"
+            :image-size="72"
+            :description="keyword || categoryFilter !== '' ? '没有匹配的采集器，试试清空筛选' : '还没有采集器，点击右上角「新建采集器」开始'"
+          />
+        </template>
 
-      <template #category="{ row }">
-        <ReTag  effect="plain">{{ categoryName(asFlow(row)) }}</ReTag>
-      </template>
-
-      <template #status="{ row }">
-        <ReTag  :type="row.collectFlowStatus === 1 ? 'success' : 'info'" effect="plain">
-          {{ row.collectFlowStatus === 1 ? "已启用" : "已停用" }}
-        </ReTag>
-      </template>
-
-      <template #switch="{ row }">
-        <ReSwitch
-          :model-value="row.collectFlowStatus === 1"
-          @update:model-value="value => toggleSchedule(asFlow(row), value)"
-        />
-      </template>
-
-      <template #cron="{ row }">
-        <!-- 文本模式：表达式 + 人话与 ReCron 校验引擎同源，登记错也会原样显示 -->
-        <ReCron v-if="row.collectFlowCron" :model-value="row.collectFlowCron" mode="text" />
-        <span v-else class="muted">未配置</span>
-      </template>
-
-      <template #next="{ row }">
-        <span v-if="row.collectFlowStatus === 1 && row.collectFlowNextExecTime">{{ row.collectFlowNextExecTime }}</span>
-        <span v-else class="muted">—</span>
-      </template>
-
-      <template #recordCount="{ row }">
-        <span class="collect-num">{{ formatLarge(row.collectFlowRecordCount) }}</span>
-      </template>
-
-      <template #execCount="{ row }">
-        <span class="collect-num">{{ formatLarge(row.collectFlowExecCount) }}</span>
-      </template>
-
-      <template #lastRun="{ row }">
-        <template v-if="latestTaskOf.get(row.collectFlowId)">
-          <div class="run-line">
-            <ReTag  :type="statusTagType(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus)">
-              {{ statusText(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus) }}
-            </ReTag>
-            <span class="run-no">{{ latestTaskOf.get(row.collectFlowId)!.collectTaskNo }}</span>
-            <span class="muted">{{ triggerText(latestTaskOf.get(row.collectFlowId)!.collectTaskTriggerType) }}</span>
+        <template #name="{ row }">
+          <div class="cell-name">
+            <span class="name-text">{{ row.collectFlowName }}</span>
+            <span v-if="row.collectFlowCode" class="name-code">{{ row.collectFlowCode }}</span>
           </div>
-          <div class="run-sub">
-            耗时
-            <ReTime
-              :value="costMs(latestTaskOf.get(row.collectFlowId)!.collectTaskCost)"
-              format="duration"
-              placeholder="—"
+          <div v-if="row.running" class="cell-running">运行中</div>
+        </template>
+
+        <template #category="{ row }">
+          <ReTag effect="plain">{{ categoryName(asFlow(row)) }}</ReTag>
+        </template>
+
+        <template #status="{ row }">
+          <ReTag :type="row.collectFlowStatus === 1 ? 'success' : 'info'" effect="plain">
+            {{ row.collectFlowStatus === 1 ? "已启用" : "已停用" }}
+          </ReTag>
+        </template>
+
+        <template #switch="{ row }">
+          <ReSwitch
+            :model-value="row.collectFlowStatus === 1"
+            @update:model-value="value => toggleSchedule(asFlow(row), value)"
+          />
+        </template>
+
+        <template #cron="{ row }">
+          <!-- 文本模式：表达式 + 人话与 ReCron 校验引擎同源，登记错也会原样显示 -->
+          <ReCron v-if="row.collectFlowCron" :model-value="row.collectFlowCron" mode="text" />
+          <span v-else class="muted">未配置</span>
+        </template>
+
+        <template #next="{ row }">
+          <span v-if="row.collectFlowStatus === 1 && row.collectFlowNextExecTime">{{ row.collectFlowNextExecTime }}</span>
+          <span v-else class="muted">—</span>
+        </template>
+
+        <template #recordCount="{ row }">
+          <span class="collect-num collector-num--strong">{{ formatLarge(row.collectFlowRecordCount) }}</span>
+        </template>
+
+        <template #execCount="{ row }">
+          <span class="collect-num">{{ formatLarge(row.collectFlowExecCount) }}</span>
+        </template>
+
+        <template #lastRun="{ row }">
+          <template v-if="latestTaskOf.get(row.collectFlowId)">
+            <div class="run-line">
+              <ReTag :type="statusTagType(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus)">
+                {{ statusText(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus) }}
+              </ReTag>
+              <span class="run-no">{{ latestTaskOf.get(row.collectFlowId)!.collectTaskNo }}</span>
+              <span class="muted">{{ triggerText(latestTaskOf.get(row.collectFlowId)!.collectTaskTriggerType) }}</span>
+            </div>
+            <div class="run-sub">
+              耗时
+              <ReTime
+                :value="costMs(latestTaskOf.get(row.collectFlowId)!.collectTaskCost)"
+                format="duration"
+                placeholder="—"
+              />
+              · 产出 {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条 ·
+              {{ latestTaskOf.get(row.collectFlowId)!.collectTaskBeginTime || "—" }}
+            </div>
+          </template>
+          <span v-else class="muted">尚未运行</span>
+        </template>
+
+        <template #action="{ row }">
+          <div class="ops">
+            <ReButton v-bind="COLLECT_ACTIONS.designFlow" layout="square" @click="openDesign(row.collectFlowId)"/>
+            <ReButton v-bind="COLLECT_ACTIONS.editFlow" layout="square" @click="openEdit(asFlow(row))"/>
+            <ReButton v-bind="COLLECT_ACTIONS.previewFlow" layout="square" @click="openPreview(asFlow(row))"/>
+            <ReButton
+              v-bind="COLLECT_ACTIONS.runFlow"
+              layout="square"
+              :loading="runningIds[row.collectFlowId]"
+              @click="runNow(asFlow(row))"
             />
-            · 产出 {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条 ·
-            {{ latestTaskOf.get(row.collectFlowId)!.collectTaskBeginTime || "—" }}
+            <ReButton v-bind="COLLECT_ACTIONS.flowRuns" layout="square" @click="gotoRuns(asFlow(row))"/>
+            <ReButton
+              v-bind="COLLECT_ACTIONS.flowRecords"
+              layout="square"
+              @click="gotoRecords(asFlow(row), latestTaskOf.get(asFlow(row).collectFlowId)?.collectTaskId)"
+            />
+            <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string) => runMore(cmd, asFlow(row))">
+              <ReButton v-bind="COLLECT_ACTIONS.flowMore" layout="square" />
+              <template #dropdown>
+                <ElDropdownMenu>
+                  <ElDropdownItem command="copy">复制采集器</ElDropdownItem>
+                  <ElDropdownItem command="delete" divided>删除采集器</ElDropdownItem>
+                </ElDropdownMenu>
+              </template>
+            </ElDropdown>
           </div>
         </template>
-        <span v-else class="muted">尚未运行</span>
-      </template>
-
-      <template #action="{ row }">
-        <div class="ops">
-          <ReButton v-bind="COLLECT_ACTIONS.designFlow" layout="square" @click="openDesign(row.collectFlowId)"/>
-          <ReButton v-bind="COLLECT_ACTIONS.editFlow" layout="square" @click="openEdit(asFlow(row))"/>
-          <ReButton v-bind="COLLECT_ACTIONS.previewFlow" layout="square" @click="openPreview(asFlow(row))"/>
-          <ReButton
-            v-bind="COLLECT_ACTIONS.runFlow"
-            layout="square"
-            :loading="runningIds[row.collectFlowId]"
-            @click="runNow(asFlow(row))"
-          />
-          <ReButton v-bind="COLLECT_ACTIONS.flowRuns" layout="square" @click="gotoRuns(asFlow(row))"/>
-          <ReButton
-            v-bind="COLLECT_ACTIONS.flowRecords"
-            layout="square"
-            @click="gotoRecords(asFlow(row), latestTaskOf.get(asFlow(row).collectFlowId)?.collectTaskId)"
-          />
-          <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string) => runMore(cmd, asFlow(row))">
-            <ReButton v-bind="COLLECT_ACTIONS.flowMore" layout="square" />
-            <template #dropdown>
-              <ElDropdownMenu>
-                <ElDropdownItem command="copy">复制采集器</ElDropdownItem>
-                <ElDropdownItem command="delete" divided>删除采集器</ElDropdownItem>
-              </ElDropdownMenu>
-            </template>
-          </ElDropdown>
-        </div>
-      </template>
-    </ReTable>
+      </ReTable>
+    </div>
 
     <FlowDesignDialog
       v-model="designVisible"
@@ -514,39 +595,155 @@ function runMore(command: string, flow: CollectFlow): void {
 </template>
 
 <style scoped>
+/* ===== 页面骨架 ===== */
+.collector-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px;
+  min-width: 0;
+}
+
+/* ===== 概览条 ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.stat-trend.is-up {
+  color: var(--status-success);
+}
+.stat-trend.is-down {
+  color: var(--status-error);
+}
+
+/* ===== 筛选卡 ===== */
+.filter-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.filter-field--search {
+  width: 220px;
+}
+.filter-field {
+  flex: 0 1 auto;
+  min-width: 150px;
+  max-width: 220px;
+}
+.filter-hint {
+  margin-left: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* ===== 表格壳 ===== */
+.table-card {
+  min-height: 240px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== 单元格 ===== */
 .cell-name {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 .name-text {
   font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .name-code {
+  flex: none;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 .cell-running {
   margin-top: 2px;
   font-size: 12px;
-  color: var(--el-color-success);
+  font-weight: 500;
+  color: var(--status-success);
 }
 .muted {
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
+}
+.collector-num--strong {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 .run-line {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .run-no {
-  font-family: var(--rm-font-mono, monospace);
+  font-family: var(--rm-font-mono, ui-monospace, sfmono-regular, consolas, monospace);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
 }
 .run-sub {
   margin-top: 2px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary);
 }
 .ops {
   display: flex;
@@ -555,12 +752,36 @@ function runMore(command: string, flow: CollectFlow): void {
   gap: 2px;
 }
 
-/* 状态行底色：停用灰底优先；启用且最近一次失败才给浅红 */
+/* ===== 行状态底色（保持原语义，色值换成 koi 令牌） ===== */
 :deep(tr.collect-row--disabled td) {
-  background-color: color-mix(in srgb, var(--bg-fill, var(--el-fill-color-lighter)) 78%, transparent) !important;
+  background-color: color-mix(in srgb, var(--bg-fill) 78%, transparent) !important;
+}
+:deep(tr.collect-row--failed td) {
+  background-color: color-mix(in srgb, var(--status-error) 7%, var(--bg-container)) !important;
 }
 
-:deep(tr.collect-row--failed td) {
-  background-color: color-mix(in srgb, var(--status-error, var(--el-color-danger)) 7%, var(--bg-container, #fff)) !important;
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filter-field,
+  .filter-field--search {
+    width: 100%;
+    max-width: none;
+  }
+  .filter-hint {
+    margin-left: 0;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
 }
 </style>
