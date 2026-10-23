@@ -10,10 +10,18 @@
         <div class="token-stats-bar">
           <el-icon size="14"><DataLine20Regular /></el-icon>
           <span class="token-stats-label">{{ t('chat.tokenStats.used') }}</span>
-          <div class="token-stats-track">
+          <!--
+            分母（窗口）未知时不画进度条：一条空槽会被读成「占用 0%」，
+            而真相是模型没配上下文窗口（实测 27/31 个模型如此）。
+            有分母才画，缺分母只在右侧文字里说明。
+          -->
+          <div v-if="tokenStats.totalTokens > 0" class="token-stats-track">
             <div class="token-stats-fill" :style="{ width: Math.min(tokenStats.percentage || 0, 100) + '%' }"></div>
           </div>
-          <span class="token-stats-value">{{ formatTokenCount(tokenStats.usedTokens) }} / {{ formatTokenCount(tokenStats.totalTokens) }}</span>
+          <span class="token-stats-value">
+            {{ formatTokenCount(tokenStats.usedTokens) }} /
+            {{ tokenStats.totalTokens > 0 ? formatTokenCount(tokenStats.totalTokens) : '窗口未知' }}
+          </span>
         </div>
       </div>
       <!-- 初始加载时的骨架屏：仅在消息为空时显示 -->
@@ -153,10 +161,10 @@
       @click="handleScrollToBottomClick" />
   </div>
   <!-- 记忆管理弹窗 -->
-  <LDialog v-model="memoPanelVisible" :title="t('chat.panel.memoryManagement')" width="560px"
+  <ReDialog v-model="memoPanelVisible" :title="t('chat.panel.memoryManagement')" width="560px"
     :close-on-click-modal="false" destroy-on-close class="memo-panel-dialog" append-to-body>
     <MemoPanel v-if="currentSessionId" :session-id="currentSessionId" />
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -193,7 +201,7 @@ import { Edit20Regular, DataLine20Regular } from '@vicons/fluent'
 import { Close } from '@element-plus/icons-vue'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 
 // 消息列 / 输入区宽度：跟随「设置 → 显示」的窄屏/满屏（MainLayout 仅在满屏时

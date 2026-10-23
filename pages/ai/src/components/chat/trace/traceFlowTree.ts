@@ -16,25 +16,48 @@ import { formatDuration, kindLabel, type TraceModel, type TracePoint, type Trace
 /** 节点语气 → G6 状态色 key（对应 treeNode 的 FLOW_STATUS_COLORS 调色板） */
 type FlowStatus = 'G' | 'B' | 'Y' | 'R' | 'DI'
 
-/** 节点文字上限：G6 的资金流节点是**固定宽度**的盒子，文字不会撑开盒子，只会溢到框外 */
-const NAME_MAX = 28
-const LABEL_MAX = 46
+/**
+ * 节点文字预算（**显示宽度单位**，不是字符数）。
+ *
+ * <p>依据：flow 节点尺寸由引擎固定为 202×60（见 ReChartFlow 的 `size: [202, 60]`），
+ * 左右各留 8px 内边距 → 可用约 186px。12px 字号下中文一字≈12px、西文≈6px，
+ * 所以按"中文算 2 单位、西文算 1 单位"折算，预算给 24/26 单位（≈12~13 个中文，
+ * 或 24~26 个西文字符），留出余量不贴边。</p>
+ *
+ * <p>第一版按**字符数**截 46，中文 46 字≈550px，照样溢到框外 —— 用户复验时正是看到这个。</p>
+ */
+const NAME_MAX = 24
+const LABEL_MAX = 26
+
+/** 全角/CJK 判定：按显示宽度算 2 单位 */
+const WIDE_CHAR = /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/
 
 /**
- * 截断节点文字。
+ * 按**显示宽度**截断节点文字。
  *
- * <p>用户报障「输入输出文本过长，图标直接显示到外面了」：原先把轨迹原文
- * `slice(0, 200)` 直接塞进 label，而节点尺寸由引擎固定 —— 200 字的文本必然溢出到框外，
- * 盖住相邻节点。这里按显示宽度截断，完整内容仍在「执行轨迹」明细里可查（那里是列表，能换行）。</p>
+ * <p>用户报障「输入输出文本过长，图标直接显示到外面了」：flow 节点是固定宽度盒子，
+ * 文字不会撑开盒子、只会溢出盖住相邻节点。这里按预算截断，完整内容仍在
+ * 「执行轨迹」明细里可查（那里是列表，能换行）。</p>
  *
- * @param text 原文
- * @param max  最大字符数（按显示宽度估：中文一字算一格，够用）
- * @returns 截断后的文本；超出时补省略号
+ * @param text     原文
+ * @param maxUnits 预算（显示宽度单位）
+ * @returns 截断后的文本；超预算时以省略号收尾
  */
-function clip(text: unknown, max: number): string | undefined {
+function clip(text: unknown, maxUnits: number): string | undefined {
   const s = String(text ?? '').replace(/\s+/g, ' ').trim()
   if (!s) return undefined
-  return s.length > max ? `${s.slice(0, max - 1)}…` : s
+  let used = 0
+  let out = ''
+  for (const ch of s) {
+    const w = WIDE_CHAR.test(ch) ? 2 : 1
+    if (used + w > maxUnits) {
+      // 收尾留省略号：宁可少一个字，也不让它顶到框边
+      return out.length > 0 ? `${out.slice(0, -1)}…` : '…'
+    }
+    used += w
+    out += ch
+  }
+  return out
 }
 
 /** 工具三态的前缀：**只在这里定义一次**，命名与配对编号都引用它 */
