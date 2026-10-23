@@ -20,33 +20,70 @@ type FlowStatus = 'G' | 'B' | 'Y' | 'R' | 'DI'
 const TOOL_PREFIX = { tool_call: '工具', tool_args: '入参', tool_result: '结果' } as const
 
 /**
+ * 节点 → 时长（毫秒）。
+ *
+ * <p>为什么用 WeakMap 而不是往节点上挂字段：节点对象会交给 ReChart/G6 的布局引擎，
+ * 多塞自定义字段等于把别人的内部结构当公共契约用。时长只需要在"编号之后"贴到显示名上，
+ * 用一张旁表记着最省事，也不会被引擎序列化出去。</p>
+ *
+ * <p>点事件没有区间、因此没有时长，这里只装 span 的 durationMs ——
+ * 缺就是缺，不推算（与 traceTypes 的时长口径一致）。</p>
+ */
+const nodeDuration = new WeakMap<ReChartFlowNode, number>()
+
+/**
+ * 给节点名补时长后缀。
+ *
+ * <p>必须在配对编号**之后**调用：先 `工具 execute #1` 再补 `· 814ms`；
+ * 反过来会变成 `工具 execute · 814ms #1`，编号被挤到时长后面，扫一眼找不到第几次调用。</p>
+ */
+function appendDuration(nodes: ReChartFlowNode[]): ReChartFlowNode[] {
+  for (const n of nodes) {
+    const ms = nodeDuration.get(n)
+    if (ms !== undefined && ms !== null) {
+      n.name = `${n.name} · ${formatDuration(ms)}`
+    }
+  }
+  return nodes
+}
+
+/**
  * 单个 span → 流线节点。
- * 与 TraceFlowGraph.toNode 同口径：工具三态分开、思考/文本有文案、带时长。
+ * 与前身 TraceFlowGraph.toNode 同口径：工具三态分开、思考/文本有文案、带时长。
  *
  * <p><b>工具节点必须和点事件同一种命名</b>（`工具 xxx` / `入参 xxx` / `结果 xxx`）。
  * 原先 span 路径只写 `toolName`（显示成 `execute`），点事件路径写成 `工具 execute` ——
  * 两套名字混在一张图里，配对编号是按前缀认的，于是调用节点永远拿不到 #N
  * （实测：三个调用没有编号，入参/结果却从 #1 开始），读者根本对不上。</p>
+ *
+ * <p><b>时长</b>：span 有区间就有 durationMs，登记进 nodeDuration，由 appendDuration 统一贴到
+ * 名字末尾（工具/思考/输出都贴）。用户报障「工具调用用时缺少」就是这里原来整个丢掉了时长。</p>
  */
 function spanToFlowNode(span: TraceSpan): ReChartFlowNode {
+  let node: ReChartFlowNode
+
   if (span.lane === 'tool') {
     const prefix = TOOL_PREFIX[(span.kind as keyof typeof TOOL_PREFIX)] ?? TOOL_PREFIX.tool_call
-    const title = `${prefix} ${span.toolName || kindLabel(span.kind)}`
-    return {
+    node = {
       id: span.spanId,
-      name: title,
+      name: `${prefix} ${span.toolName || kindLabel(span.kind)}`,
       label: span.texts?.[0]?.slice(0, 200),
       status: span.kind === 'tool_result' ? 'R' : 'Y',
     }
+  } else {
+    const base: Pick<ReChartFlowNode, 'id' | 'name' | 'status'> =
+      span.kind === 'thinking'
+        ? { id: span.spanId, name: '深度思考', status: 'DI' }
+        : span.kind === 'text'
+          ? { id: span.spanId, name: '助手输出', status: 'G' }
+          : { id: span.spanId, name: kindLabel(span.kind), status: 'B' }
+    node = { ...base, label: span.texts?.[0]?.slice(0, 200) || kindLabel(span.kind), name: base.name as string }
   }
-  const base: Pick<ReChartFlowNode, 'id' | 'name' | 'status'> =
-    span.kind === 'thinking'
-      ? { id: span.spanId, name: '深度思考', status: 'DI' }
-      : span.kind === 'text'
-        ? { id: span.spanId, name: '助手输出', status: 'G' }
-        : { id: span.spanId, name: kindLabel(span.kind), status: 'B' }
 
-  return { ...base, label: span.texts?.[0]?.slice(0, 200) || kindLabel(span.kind), name: base.name as string }
+  if (span.durationMs !== null && span.durationMs !== undefined) {
+    nodeDuration.set(node, span.durationMs)
+  }
+  return node
 }
 
 /**
@@ -58,7 +95,7 @@ function pointToFlowNode(point: TracePoint): ReChartFlowNode | null {
 
   const key = `pt-${point.seq}-${point.time}`
   if (point.kind === 'tool_call' || point.kind === 'tool_args' || point.kind === 'tool_result') {
-    const prefix = point.kind === 'tool_result' ? '结果' : point.kind === 'tool_args' ? '入参' : '工具'
+    const prefix = TOOL_PREFIX[(point.kind as keyof typeof TOOL_PREFIX)] ?? TOOL_PREFIX.tool_call
     return {
       id: key,
       name: point.toolName ? `${prefix} ${point.toolName}` : kindLabel(point.kind),
@@ -112,12 +149,12 @@ function relabelToolSeq(items: ReChartFlowNode[]): ReChartFlowNode[] {
   return [...before, ...triplets, ...after]
 }
 
-/** 占位 + 工具配对编号 */
+/** 占位 + 工具配对编号 + 时长后缀（顺序不能换：先编号，再补时长） */
 function decorateRow(nodes: ReChartFlowNode[], rowKey: string): ReChartFlowNode[] {
   if (!nodes.length) {
     return [{ id: `${rowKey}-none`, name: '（无步骤）', status: 'DI' }]
   }
-  return relabelToolSeq(nodes)
+  return appendDuration(relabelToolSeq(nodes))
 }
 
 /**

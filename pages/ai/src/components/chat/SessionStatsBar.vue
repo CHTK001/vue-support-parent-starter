@@ -183,8 +183,11 @@
       </svg>
     </button>
 
-    <!-- 弹框挂在状态条内部，避免把会话面板/消息列的模板再撑一层 -->
-    <TraceFlowDialog v-model="traceVisible" :session-id="sessionId" :live-traces="liveTraces" />
+    <!-- 弹框挂在状态条内部，避免把会话面板/消息列的模板再撑一层。
+         上下文占用一并透传：弹框头部要显示「上下文已用」，且必须与状态条同源，
+         否则两处各拉一次 /token-stats 会出现两个数字。 -->
+    <TraceFlowDialog v-model="traceVisible" :session-id="sessionId" :live-traces="liveTraces"
+      :context-used="contextUsed" :context-total="contextTotal" :context-percent="contextPercent" />
   </div>
 </template>
 

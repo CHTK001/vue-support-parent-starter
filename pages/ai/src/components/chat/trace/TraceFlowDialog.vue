@@ -23,6 +23,10 @@
         <span class="tfd-live" :class="{ 'is-live': isLive }" :title="isLive ? '正在根据 WS 实时帧渲染' : '来自后端落库的历史轨迹'">
           {{ isLive ? '实时' : '历史' }}
         </span>
+        <!-- 上下文已用：与底部状态条同一份数据（父组件透传），口径不会两处打架 -->
+        <span class="tfd-ctx" :title="contextTitle">
+          上下文已用 <b>{{ contextText }}</b>
+        </span>
         <!-- 轨迹按会话累积、以 agent_start 切成多段：默认看最近一次，可往回翻 -->
         <div v-if="runs.length > 1" class="tfd-runs">
           <button type="button" class="tfd-run-btn" :disabled="runIndex >= runs.length - 1"
@@ -88,6 +92,16 @@ const props = defineProps<{
    * 不必写两套渲染。</p>
    */
   liveTraces?: SessionTrace[]
+  /**
+   * 上下文占用（已用 / 窗口 / 百分比）。
+   *
+   * <p>底部状态条上本来就有这一项，弹框里却没有 —— 用户报障「上下文已用缺少」。
+   * 由 SessionStatsBar 透传，不在这里自己拉 /token-stats：同一会话重复请求会打到同一个出口，
+   * 而且状态条已经有一份权威数据，两处各拉一次必然出现两个数字。</p>
+   */
+  contextUsed?: number
+  contextTotal?: number
+  contextPercent?: number
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -130,6 +144,34 @@ const selectedRun = computed<TraceRun | undefined>(() => runs.value[runIndex.val
 const model = computed<TraceModel>(() => buildTraceModel(selectedRun.value?.items ?? []))
 /** TraceModel → ReChart flow 树（根 → 轮次 → 步骤） */
 const flowTree = computed(() => (model.value.empty ? null : buildTraceFlowTree(model.value)))
+
+/** token 数缩写：与底部状态条同量级口径（K 一位小数），避免 16987 这种长数字挤爆头部 */
+const formatTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n))
+
+/**
+ * 上下文已用文案。
+ *
+ * <p>没有窗口数据时**只显示已用**，不编一个百分比出来：分母不知道，百分比就是假的。
+ * 两者都没有才显示「—」——与底部状态条「缺数据显示破折号而不是 0」的口径一致。</p>
+ */
+const contextText = computed(() => {
+  const used = props.contextUsed ?? 0
+  const total = props.contextTotal ?? 0
+  if (!total) return used ? formatTokens(used) : '—'
+  const pct = props.contextPercent ?? Math.round((used / total) * 1000) / 10
+  return `${formatTokens(used)} / ${formatTokens(total)} · ${pct}%`
+})
+
+/** 本次运行自己的用量（轨迹里的 usage 点事件），历史回看时比"当前上下文"更贴近那一轮 */
+const runUsageText = computed(
+  () => model.value.points.find((p) => p.kind === 'usage')?.text || '',
+)
+
+const contextTitle = computed(() =>
+  runUsageText.value
+    ? `会话当前上下文占用；本次运行用量：${runUsageText.value}`
+    : '会话当前上下文占用',
+)
 
 function pickRun(index: number) {
   runIndex.value = Math.min(Math.max(index, 0), Math.max(0, runs.value.length - 1))
@@ -191,6 +233,24 @@ watch(() => props.sessionId, () => {
   font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+/* 上下文已用：弱化底色、数值加粗，一眼看到数字但不与标题抢注意力 */
+.tfd-ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  white-space: nowrap;
+}
+
+.tfd-ctx b {
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 来源标记：实时=绿色呼吸点，历史=灰底 */
