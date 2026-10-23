@@ -26,6 +26,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import RFB from '@novnc/novnc';
 import { getVncCredential } from '../api';
+import { getAccessToken } from "@repo/utils";
 import type { SpecialKeyStep } from './specialKeys';
 
 type VncConnection = {
@@ -49,12 +50,19 @@ const statusText = ref('');
 let rfb: any = null;
 let credential = { username: '', password: '' };
 
-function buildWsUrl(hostId: number, identityId?: number | null): string {
+function buildWsUrl(hostId: number, identityId?: number | null, targetPort?: number | null): string {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const qs = new URLSearchParams({ hostId: String(hostId) });
   if (identityId != null) {
     qs.set('identityId', String(identityId));
   }
+  if (targetPort != null && targetPort > 0) {
+    qs.set('targetPort', String(targetPort));
+  }
+  // VNC 直连端点在 AuthFilter 层做统一鉴权（与 SSH 直连同规则），
+  // 必须在 WS query 携带 x-oauth-token，否则握手直接 403「用户信息不存在」。
+  const token = getAccessToken();
+  if (token) qs.set('x-oauth-token', token);
   return `${proto}//${location.host}/ws/ms/server/terminal/vnc?${qs.toString()}`;
 }
 

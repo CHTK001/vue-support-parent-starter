@@ -31,12 +31,11 @@
           <ReTable
             :data="topology.ports as unknown as Record<string, unknown>[]"
             :columns="portColumns"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ minHeight: 0 }"
             border
 
             :loading="loading"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           />
         </div>
         <!-- 网络连接明细 -->
@@ -45,12 +44,11 @@
           <ReTable
             :data="topology.connections as unknown as Record<string, unknown>[]"
             :columns="connColumns"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ minHeight: 0 }"
             border
 
             :loading="loading"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           />
         </div>
       </div>

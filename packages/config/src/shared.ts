@@ -140,6 +140,23 @@ export const defaultAppConfig: AppConfig = {
     collapseToButton: false,
     // 分组导航增强：分组标题排版 + 子项图标 + 底部「设置」条目（仅纵向布局），默认开启
     groupNav: true,
+    // 侧边栏底部入口：默认与历史行为完全一致 —— 单个「设置」条目、跳 /system/config、仅管理员。
+    // 但要显式写出来，否则新增的 footer 配置项缺省会变成"没有条目"→ 存量应用丢掉这个入口。
+    footer: {
+      enable: true,
+      label: "设置",
+      icon: "Setting",
+      entries: [
+        {
+          key: "systemConfig",
+          label: "设置",
+          icon: "Setting",
+          mode: "route",
+          path: "/system/config",
+          admin: true,
+        },
+      ],
+    },
   },
   upload: {
     enable: true,
@@ -362,6 +379,8 @@ export const defaultAppConfig: AppConfig = {
       weather: true,
       typhoon: true,
       collapse: true,
+      // 空数组 = 沿用框架固有顺序（各 app.yaml 不配该项时行为完全不变）
+      items: [],
     },
     timer: {
       enable: false,

@@ -4,7 +4,7 @@
         <!-- 左侧：侧边栏切换按钮 -->
         <div class="flex items-center justify-start">
             <div v-if="sidebarVisible !== undefined"
-                class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-[#8b8d95] transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] active:translate-x-0"
+                class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] active:translate-x-0"
                 @click="$emit('toggle-sidebar')" :title="sidebarVisible ? t('common.sidebar.collapse') : t('common.sidebar.expand')">
                 <LeftBarIcon class="w-5 h-5" />
             </div>
@@ -12,13 +12,13 @@
 
         <!-- 中间：标题区域（可选） -->
         <div v-if="title" class="flex items-center flex-1 min-w-0">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-[#e8e9ed] m-0 truncate">{{ title }}</h2>
+            <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100 m-0 truncate">{{ title }}</h2>
         </div>
 
         <!-- 右侧：更多操作下拉菜单 -->
         <div class="flex items-center justify-end min-w-10 gap-2">
             <div v-if="sessionId"
-                class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-[#8b8d95] transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] flex items-center justify-center"
+                class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] flex items-center justify-center"
                 @click="$emit('toggle-workspace')" :title="workspaceVisible ? t('chat.header.closeWorkspace') : t('chat.header.openWorkspace')">
                 <el-icon class="w-5 h-5">
                     <FolderOpened />
@@ -27,7 +27,7 @@
 
             <!-- 记忆管理按钮 -->
             <div v-if="showMemoButton"
-                class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-[#8b8d95] transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] flex items-center justify-center"
+                class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] flex items-center justify-center"
                 @click="$emit('toggle-memo')" :title="t('chat.panel.memoryManagement')">
                 <el-icon class="w-5 h-5">
                     <Reading />
@@ -36,7 +36,7 @@
 
             <el-dropdown v-if="hasMoreOptions" trigger="hover" @command="handleSelect"
                 popper-class="chat-header-dropdown">
-                <div class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-[#8b8d95] transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] active:rotate-0 flex items-center justify-center"
+                <div class="cursor-pointer p-1 rounded-lg text-gray-600 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30] hover:text-gray-900 dark:hover:text-[#e8e9ed] active:rotate-0 flex items-center justify-center"
                     text :title="t('chat.header.moreActions')">
                     <MoreVertOutlined class="w-5 h-5" />
                 </div>

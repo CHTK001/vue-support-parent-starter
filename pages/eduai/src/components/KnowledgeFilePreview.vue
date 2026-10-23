@@ -36,7 +36,6 @@
       </el-empty>
     </div>
     <template #footer>
-      <el-button @click="visible = false">关闭</el-button>
       <el-button type="primary" @click="download">下载</el-button>
     </template>
   </ReDialog>

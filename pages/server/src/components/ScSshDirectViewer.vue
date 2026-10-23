@@ -6,6 +6,7 @@
  * 平台自研的 /ws/ms/server/terminal/ssh 端点（MINA SSHD PTY 桥接）。
  */
 import { computed } from 'vue';
+import { getAccessToken } from "@repo/utils";
 
 const props = defineProps<{
   connection: {
@@ -30,6 +31,8 @@ const iframeSrc = computed(() => {
   if (!c) return '';
   const params = new URLSearchParams({ hostId: String(c.hostId) });
   if (c.identityId != null) params.set('identityId', String(c.identityId));
+  const token = getAccessToken();
+  if (token) params.set('x-oauth-token', token);
   return `/ssh-direct.html?${params.toString()}`;
 });
 </script>

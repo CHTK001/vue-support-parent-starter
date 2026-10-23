@@ -324,6 +324,7 @@
       class="q-dialog"
       width="1120"
       :show-close="false"
+      :show-window-shell="false"
       align-center
     >
       <template #header>
@@ -709,6 +710,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
+import { strParam } from "../api/pageLoader";
 import type { EduGrade, EduSubject, KnowledgePoint, Question, QuestionGradeDimension } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReTab from "@repo/ui/re-tab";
@@ -813,11 +815,9 @@ const rows = ref<Question[]>([]);
 const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
-/** 全量拉取（统计 + 可选本地筛），规模按题库量级可接受 */
-const allQuestions = ref<Question[]>([]);
 const dimensions = ref<QuestionGradeDimension[]>([]);
 
-const blankSearch = () => ({ keyword: "", subject: "", type: "", difficulty: null as number | null, status: null as number | null, auditStatus: null as number | null, orderBy: "createTime" });
+const blankSearch = () => ({ keyword: "", subject: "", type: "", gradeLevel: undefined as string | undefined, grade: undefined as string | undefined, difficulty: null as number | null, status: null as number | null, auditStatus: null as number | null, orderBy: "createTime" });
 const searchDraft = reactive(blankSearch());
 const applied = reactive(blankSearch());
 
@@ -833,14 +833,6 @@ const SORT_TABS = [
   { name: "useCount", label: "使用最多", icon: "TrendCharts" },
   { name: "difficulty", label: "难度", icon: "Sort" },
 ];
-
-/** 排序字段 → 本地排序取值函数（用于「全量拉取后前端分页」的既有架构） */
-const SORT_GETTERS: Record<string, (q: Question) => number | string> = {
-  createTime: (q) => String(q.questionCreateTime ?? q.createTime ?? ""),
-  addCount: (q) => q.questionAddCount ?? 0,
-  useCount: (q) => q.questionUseCount ?? 0,
-  difficulty: (q) => q.questionDifficulty ?? 0,
-};
 
 /**
  * 题目列表的列定义（ReTable 表格模式用）。
@@ -865,92 +857,37 @@ const questionColumns: ReTableColumn[] = [
 ];
 
 const subjectOptions = computed(() => {
-  const names = [...new Set(allQuestions.value.map((q) => q.questionSubject).filter(Boolean))];
+  const names = subjectMeta.value.map((s) => s.subjectName).filter(Boolean);
   return [{ label: "全部学科", value: "" }, ...names.map((s) => ({ label: s, value: s }))];
 });
 
-const filtered = computed(() => {
-  const kw = applied.keyword.trim().toLowerCase();
-  const list = allQuestions.value.filter((q) => {
-    if (applied.subject && q.questionSubject !== applied.subject) return false;
-    if (applied.type && q.questionType !== applied.type) return false;
-    if (applied.difficulty != null && q.questionDifficulty !== applied.difficulty) return false;
-    if (applied.status != null && (q.questionStatus ?? 1) !== applied.status) return false;
-    if (applied.auditStatus != null && (q.questionAuditStatus ?? 0) !== applied.auditStatus) return false;
-    if (kw) {
-      const hay = `${q.questionStem || ""} ${q.questionSubject || ""}`.toLowerCase();
-      if (!hay.includes(kw)) return false;
-    }
-    return true;
-  });
-  return sortQuestions(list, applied.orderBy);
+const questionStatsValue = reactive({
+  total: 0,
+  pendingAudit: 0,
+  todayNew: 0,
+  subjectCount: 0,
 });
 
-/**
- * 本地排序。
- *
- * <p>本列表是「一次性全量拉取 + 前端筛选分页」的架构（见 reloadStats），
- * 所以排序也必须在前端做一遍，否则切页签只会改变服务端请求、页面顺序不变。
- * 请求仍会带上 orderBy，保证两边口径一致。</p>
- *
- * @param list 待排序的题目
- * @param orderBy 排序字段（SORT_TABS 的 name）
- * @returns 排序后的新数组；字段未知时保持原序
- */
-function sortQuestions(list: Question[], orderBy: string): Question[] {
-  const getter = SORT_GETTERS[orderBy];
-  if (!getter) {
-    return list;
-  }
-  // 题目 ID 恒降序做稳定兜底：同一排序值下顺序确定，翻页不会跳行
-  return [...list].sort((a, b) => {
-    const av = getter(a);
-    const bv = getter(b);
-    if (av === bv) {
-      return b.questionId - a.questionId;
-    }
-    return av > bv ? -1 : 1;
-  });
-}
-
 const statCards = computed(() => {
-  const list = allQuestions.value;
-  const totalN = total.value || list.length;
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
-  const dayTs = dayStart.getTime();
-  let todayNew = 0;
-  let pending = 0;
-  const subjects = new Set<string>();
-  for (const q of list) {
-    if (q.questionSubject) subjects.add(q.questionSubject);
-    // 后端任务实体继承 SysBase，创建时间字段是 createTime；questionCreateTime 兼容历史返回
-    const created = q.questionCreateTime ?? q.createTime;
-    const ts = created ? Date.parse(String(created).replace(" ", "T")) : 0;
-    if (ts && ts >= dayTs) todayNew += 1;
-    if ((q.questionAuditStatus ?? 0) === 0) pending += 1;
-  }
-  // 全量未加载完时用 total 兜底总数
-  const shownTotal = list.length >= totalN || !list.length ? totalN : list.length;
-  const yesterdayDelta = Math.max(0, todayNew - 5);
+  const yesterdayDelta = Math.max(0, Number(questionStatsValue.todayNew) - 5);
   return [
     {
       title: "今日审核",
-      value: pending,
+      value: questionStatsValue.pendingAudit,
       icon: Warning,
       bg: "var(--el-color-warning)",
       hint: "需人工审核",
     },
     {
       title: "题目总数",
-      value: shownTotal.toLocaleString("en-US"),
+      value: Number(questionStatsValue.total || total.value).toLocaleString("en-US"),
       icon: Document,
       bg: "var(--el-color-primary)",
-      hint: `覆盖${subjects.size || "—"}学科`,
+      hint: `覆盖${questionStatsValue.subjectCount || "—"}学科`,
     },
     {
       title: "今日新增",
-      value: todayNew,
+      value: questionStatsValue.todayNew,
       icon: Plus,
       bg: "var(--el-color-success)",
       hint: `较昨日 +${yesterdayDelta}`,
@@ -958,35 +895,65 @@ const statCards = computed(() => {
   ];
 });
 
-const loadPage = () => {
-  const start = (pageNo.value - 1) * pageSize.value;
-  rows.value = filtered.value.slice(start, start + pageSize.value);
-  total.value = filtered.value.length;
-};
+async function loadPage() {
+  loading.value = true;
+  try {
+    const res = await eduaiApi.pageQuestions({
+      pageNum: pageNo.value,
+      pageSize: pageSize.value,
+      keyword: strParam(applied.keyword),
+      subject: strParam(applied.subject),
+      gradeLevel: strParam(applied.gradeLevel),
+      grade: strParam(applied.grade),
+      type: strParam(applied.type),
+      difficulty: applied.difficulty ?? undefined,
+      status: applied.status ?? undefined,
+      auditStatus: applied.auditStatus ?? undefined,
+      orderBy: applied.orderBy,
+      orderDir: "desc",
+    });
+    rows.value = res?.data ?? [];
+    total.value = res?.total ?? rows.value.length;
+  } catch (e) {
+    message.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    loading.value = false;
+  }
+}
 
 const onSizeChange = () => {
   pageNo.value = 1;
-  loadPage();
+  void loadPage();
+};
+
+/** 后端统计：总数 / 待审 / 今日新增 / 学科数 */
+const reloadStats = async () => {
+  try {
+    const res = await eduaiApi.questionStats();
+    questionStatsValue.total = Number(res?.total ?? 0);
+    questionStatsValue.pendingAudit = Number(res?.pendingAudit ?? 0);
+    questionStatsValue.todayNew = Number(res?.todayNew ?? 0);
+    questionStatsValue.subjectCount = Number(res?.subjectCount ?? 0);
+  } catch {
+    // 统计失败不阻断列表；保留上一次成功值
+  }
 };
 
 const commitSearch = () => {
   // 排序页签直接写 applied，不经过 searchDraft（它没有对应的搜索输入框）
-  // 注意：不能用 JSON.parse(JSON.stringify(searchDraft)) 深拷 —— el-select 清空（×）会把字段置为
-  // undefined，JSON 序列化会直接丢掉该键，Object.assign 无法覆盖 applied 里的旧值，
-  // 导致「清空筛选后表格仍是旧过滤结果」。改用结构化拷贝保留 undefined。
   for (const k of Object.keys(searchDraft) as (keyof typeof searchDraft)[]) {
     if (k === "orderBy") continue;
     (applied as Record<string, unknown>)[k] = searchDraft[k];
   }
   pageNo.value = 1;
-  loadPage();
+  void loadPage();
   void loadDimensions();
 };
 
-/** 切换排序页签：立即重排当前页并回到第一页 */
+/** 切换排序页签：立即回到第一页并按新排序重新取数 */
 const onSortTabChange = () => {
   pageNo.value = 1;
-  loadPage();
+  void loadPage();
   void reloadStats();
 };
 
@@ -1000,31 +967,6 @@ const loadDimensions = async () => {
     dimensions.value = (await eduaiApi.questionGradeDimensions({})) ?? [];
   } catch {
     dimensions.value = [];
-  }
-};
-
-/** 统计用：拉一页大结果（同时刷新学科候选）。
- * 全量拉取不传 auditStatus（传 null 后端默认=1 会把待审藏掉），
- * 待审筛选走前端 filtered（见 applied.auditStatus）。 */
-const reloadStats = async () => {
-  loading.value = true;
-  try {
-    const res = await eduaiApi.pageQuestions({
-      pageNum: 1,
-      pageSize: 10000,
-      orderBy: applied.orderBy,
-      orderDir: "desc",
-      auditStatus: -1,
-    });
-    allQuestions.value = res?.data ?? [];
-    total.value = res?.total ?? allQuestions.value.length;
-    loadPage();
-  } catch (e) {
-    message.error("加载题目失败: " + (e instanceof Error ? e.message : String(e)));
-    // 失败时保留已有行：清空会让表格先闪「暂无数据」，接口一恢复又闪回数据，
-    // 网络抖动/后端重启期间就是这么来的反复闪烁。首次加载失败 rows 本就为空，无影响。
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -1540,6 +1482,7 @@ const saveConfig = async () => {
 };
 
 onMounted(() => {
+  void loadPage();
   void reloadStats();
   void loadDimensions();
   void loadDimensionMeta();

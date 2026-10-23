@@ -5,9 +5,9 @@
  * UI 只认这套字段，不再关心数据来源。
  *
  *   ① 后台接口：HEAD 探测 /v2/typhoon/active、/v2/typhoon/detail，命中则走后台
- *      —— 三方调用、缓存、字段口径由后台收口；
- *   ② 后台未实现时：浏览器直连浙江省水利厅台风网（typhoon.slt.zj.gov.cn/Api），
- *      在本文件里归一化成同一套契约，由 source 标明来源。
+ *      —— 三方调用、缓存、字段口径、多机构预报全部由后台收口；
+ *   ② 后台不可用（未实现 / 请求失败 / 数据为空）时：浏览器直连浙江省水利厅台风网
+ *      （typhoon.slt.zj.gov.cn/Api），在本文件里归一化成同一套契约，由 source 标明来源。
  *
  * 三方是外部政府接口，不走项目 http 拦截器（无需签名/加密），用原生 fetch + 超时。
  * dev 期若应用配了 /typhoon-api 代理前缀会优先走代理（免跨域），否则直连。
@@ -66,14 +66,19 @@ export interface TrackPoint {
   r12?: [number, number, number, number];
 }
 
-/** 单条预报通道（本系统契约） */
+/** 单条预报通道（本系统契约）；同一台风会有多家机构的通道并列返回 */
 export interface TyphoonForecastTrack {
-  /** 预报机构名（如"中央气象台"） */
+  /** 预报机构名（如"中国""中国台湾""日本""美国"） */
   name?: string;
   points: TrackPoint[];
 }
 
-/** 单个台风详情：历史路径 + 预报路径（本系统契约） */
+/**
+ * 单个台风详情：历史路径 + 预报路径（本系统契约）
+ *
+ * `forecast` 是**多条**预报路线：`forecast[0]` 固定为权威通道（中国台），
+ * 供调用方把未来段接在历史末点上；其余机构依次排列，各自成线。
+ */
 export interface TyphoonDetail {
   id: string;
   name?: string;
@@ -91,8 +96,15 @@ const TYPHOON_TIMEOUT = 10000;
 /** 浙水利台风接口（代理前缀优先，其次直连） */
 const TYPHOON_CANDIDATES = ["/typhoon-api", "https://typhoon.slt.zj.gov.cn/Api"];
 
-/** 安全转数字，非有限值返回 undefined */
+/**
+ * 安全转数字，非有限值返回 undefined。
+ *
+ * 空串/纯空白必须判为「未发布」而不是 0：数据源里美国通道的气压就是 `" "`，
+ * 直接 `Number(" ")` 会得到 0，界面就会显示成「0 hPa」这种假数据。
+ */
 function numOr(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === "string" && value.trim() === "") return undefined;
   const n = Number(value);
   return Number.isFinite(n) ? n : undefined;
 }
@@ -271,37 +283,73 @@ function toTrackPoint(p: Record<string, unknown>): TrackPoint {
   };
 }
 
+/** 机构排序权重：中国台最优先（它是主通道），其次中国台湾，其余按源顺序保持不动 */
+function agencyRank(tm: string): number {
+  if (tm === "中国") return 0;
+  if (tm.includes("台湾")) return 1;
+  return 2;
+}
+
+/**
+ * 取「最新一档」预报所属的历史点。
+ *
+ * 数据源把当次发布的预报挂在对应的历史点上，而最新点可能还没来得及挂
+ * （只有实况没有预报），所以从末点往前找第一个带可用预报的点。
+ */
+function pickForecastHost(points: Record<string, unknown>[]): Record<string, unknown> | undefined {
+  for (let i = points.length - 1; i >= 0; i--) {
+    const sources = arr(points[i]?.forecast) as RawForecastSource[];
+    if (sources.some((src) => arr(src?.forecastpoints).length)) return points[i];
+  }
+  return undefined;
+}
+
+/**
+ * 历史路径 → 全部预报路线。
+ *
+ * 以前只挑一条（`find(含"中国") ?? sources[0]`），所以地图上永远只有一条预测线；
+ * 实测同一份报文里就带了 中国 / 中国台湾 / 日本 / 美国 四条，这里全部返回。
+ */
+function toForecastTracks(points: Record<string, unknown>[]): TyphoonForecastTrack[] {
+  const host = pickForecastHost(points);
+  if (!host) return [];
+
+  const sources = (arr(host.forecast) as RawForecastSource[]).filter(
+    (src) => arr(src?.forecastpoints).length > 0,
+  );
+  // sort 是稳定排序：同权重（如 日本、美国）保持数据源给出的原始顺序
+  const ordered = [...sources].sort(
+    (a, b) => agencyRank(String(a?.tm ?? "")) - agencyRank(String(b?.tm ?? "")),
+  );
+
+  return ordered.map((src) => ({
+    name: String(src.tm ?? ""),
+    points: (arr(src.forecastpoints) as Record<string, unknown>[])
+      .map((fp) => ({
+        time: canonTime(fp.time),
+        lng: Number(fp.lng ?? fp.longitude ?? 0),
+        lat: Number(fp.lat ?? fp.latitude ?? 0),
+        strong: (fp.strong as string) ?? "",
+        speed: numOr(fp.speed),
+        pressure: numOr(fp.pressure),
+      }))
+      // 坐标残缺的点会把 Leaflet 折线整条打成 NaN，直接丢掉
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
+  }));
+}
+
 /**
  * 三方详情 → 契约 TyphoonDetail。
  *
- * 预报通道：历史路径末点的 forecast 数组里优先取机构名含"中国"的通道，否则取第一条。
+ * 预报路线见 {@link toForecastTracks}：全部机构通道都返回，
+ * `forecast[0]` 固定是中国台，供 UI 把未来段接在历史末点上。
  */
 function toTyphoonDetail(raw: RawTyphoonDetail, fallbackId: string): TyphoonDetail {
   const points = arr(raw.points) as Record<string, unknown>[];
-  const path = points.map(toTrackPoint);
-
-  let forecast: TyphoonForecastTrack[] = [];
-  const last = points[points.length - 1] as Record<string, unknown> | undefined;
-  const sources = arr(last?.forecast) as RawForecastSource[];
-  if (sources.length) {
-    const src = sources.find((f) => String(f?.tm ?? "").includes("中国")) ?? sources[0];
-    const pts = arr(src?.forecastpoints) as Record<string, unknown>[];
-    if (pts.length) {
-      forecast = [
-        {
-          name: String(src.tm ?? ""),
-          points: pts.map((fp) => ({
-            time: canonTime(fp.time),
-            lng: Number(fp.lng ?? 0),
-            lat: Number(fp.lat ?? 0),
-            strong: (fp.strong as string) ?? "",
-            speed: numOr(fp.speed),
-            pressure: numOr(fp.pressure),
-          })),
-        },
-      ];
-    }
-  }
+  const path = points
+    .map(toTrackPoint)
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const forecast = toForecastTracks(points);
 
   return {
     id: String(raw.tfid ?? raw.id ?? fallbackId),
@@ -374,8 +422,10 @@ export async function getActiveTyphoonList(): Promise<TyphoonItem[]> {
  * 获取单个台风详情（历史路径 + 预报路径）。
  *
  * 后台能力以 /v2/typhoon/active 的探测结果为准（两者同属一个后台控制器；
- * 缺 id 的 HEAD 判定不稳定，不复用独立探测）；命中则 GET /v2/typhoon/detail?id=，
- * 否则直连三方归一化。两条链路都失败时抛错，由调用方决定空态展示。
+ * 缺 id 的 HEAD 判定不稳定，不复用独立探测）。命中且返回了路径/预报时直接使用，
+ * 多机构预报由后台按通道下发，前端不再额外请求三方；
+ * 只有后台未实现、请求失败或数据为空时才直连浙江省水利厅归一化兜底。
+ * 两条链路都失败时抛错，由调用方决定空态展示。
  */
 export async function getTyphoonDetail(id: string): Promise<TyphoonDetail> {
   if (!id) {
@@ -403,6 +453,9 @@ export async function getTyphoonDetail(id: string): Promise<TyphoonDetail> {
     }
   }
 
-  const raw = (await fetchJson(TYPHOON_CANDIDATES, `/TyphoonInfo/${encodeURIComponent(id)}`)) as RawTyphoonDetail;
+  const raw = (await fetchJson(
+    TYPHOON_CANDIDATES,
+    `/TyphoonInfo/${encodeURIComponent(id)}`,
+  )) as RawTyphoonDetail;
   return toTyphoonDetail(raw, id);
 }

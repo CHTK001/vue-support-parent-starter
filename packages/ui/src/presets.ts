@@ -55,6 +55,7 @@ export const CORE_PRESET: UiPreset = [
   "ReTrend",
   "ReRemoteSelect",
   "ReLoading",
+  "ReLoader",
   "ReScrollbar",
   "ReTagFilter",
   "ReTree",

@@ -159,9 +159,9 @@ onMounted(() => {
         table-id="task-dispatch"
         :columns="taskColumns"
         :data="tasks"
-        :pagination="false"
         row-key="taskId"
         v-loading="loading"
+        :config="{ pagination: { enable: false } }"
       >
         <template #taskType="{ row }">
           <ReTag type="primary" effect="plain" >{{ row.taskType || "-" }}</ReTag>
@@ -195,9 +195,9 @@ onMounted(() => {
         table-id="task-node"
         :columns="nodeColumns"
         :data="nodes"
-        :pagination="false"
         row-key="nodeId"
         v-loading="nodeLoading"
+        :config="{ pagination: { enable: false } }"
       >
         <template #host="{ row }">
           <span v-if="row.host">{{ row.host }}</span>

@@ -4,7 +4,7 @@
     <div
       v-if="visible"
       ref="menuRef"
-      class="fixed z-[99999] bg-(--color-surface) dark:bg-[#232428] rounded-lg shadow-lg border border-(--color-surface-border) py-1 min-w-40"
+      class="fixed z-[99999] bg-(--color-surface) dark:bg-gray-800 rounded-lg shadow-lg border border-(--color-surface-border) py-1 min-w-40"
       :style="{ left: adjustedX + 'px', top: adjustedY + 'px' }"
       @click.stop
       @contextmenu.prevent
@@ -12,8 +12,8 @@
       <div
         v-for="(item, index) in items"
         :key="index"
-        class="px-4 py-2 text-sm text-gray-700 dark:text-[#e8e9ed] hover:bg-gray-100 dark:hover:bg-[#2a2c30] cursor-pointer flex items-center gap-2"
-        :class="{ 'border-t border-gray-100 dark:border-[#2e3035]': item.divider }"
+        class="px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#2a2c30] cursor-pointer flex items-center gap-2"
+        :class="{ 'border-t border-gray-100 dark:border-gray-800': item.divider }"
         @click="handleItemClick(item)"
       >
         <el-icon v-if="item.icon" size="16">

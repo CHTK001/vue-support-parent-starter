@@ -29,9 +29,8 @@
       :columns="taskColumns"
       size="small"
       engine="element"
-      :pagination="false"
-      :toolbar="false"
       :layout-table="{ minHeight: 0 }"
+      :config="{ toolbar: { enable: false } }"
     >
       <template #col-markingTaskMode="{ row }">{{ row.markingTaskMode === "ANY" ? "任意卷" : "自有卷" }}</template>
       <template #col-markingTaskStatus="{ row }">
@@ -73,9 +72,8 @@
           :columns="resultColumns"
           size="small"
           engine="element"
-          :pagination="false"
-          :toolbar="false"
           :layout-table="{ minHeight: 0 }"
+          :config="{ toolbar: { enable: false } }"
         >
           <template #col-score="{ row }">
             {{ row.teacherScore != null ? row.teacherScore : row.score }}

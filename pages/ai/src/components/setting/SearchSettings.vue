@@ -93,6 +93,19 @@
         </SettingsRow>
       </template>
 
+      <!-- 高级：自定义接口地址（后端 search 分组 gubo_endpoint / tinyfish_endpoint / langsearch_endpoint）。
+           默认模型页已不再渲染 search 分组，这三个字段若没有入口，改了默认地址也无法被界面覆盖。 -->
+      <template v-for="p in ENDPOINT_FIELDS" :key="p.key">
+        <SettingsRow
+          v-if="selectedProvider === p.provider"
+          :label="p.label"
+          :description="p.desc"
+          control-width="320px"
+        >
+          <el-input v-model="providerEndpoints[p.key]" :placeholder="p.placeholder" clearable />
+        </SettingsRow>
+      </template>
+
       <!-- 提示信息。
            注意最后那个 v-else：它兜的是 metaso，所以新增搜索源必须显式加分支，
            否则选中新源时会显示秘塔的文案（这里之前就会把 360 显示成秘塔）。 -->
@@ -155,6 +168,35 @@ const selectedProvider = ref('360')
 const PAID_PROVIDERS = ['bocha', 'tavily', 'metaso', 'langsearch', 'gubo', 'tinyfish'] as const
 
 /**
+ * endpoint 高级字段：后端 search 分组里 gubo / tinyfish / langsearch 允许覆盖接口地址，
+ * 默认模型页已不再渲染 search 分组，必须在专门搜索设置页提供入口。
+ * key 与后端字段名 gubo_endpoint / tinyfish_endpoint / langsearch_endpoint 一一对应。
+ */
+const ENDPOINT_FIELDS = [
+  {
+    key: 'gubo_endpoint',
+    provider: 'gubo',
+    label: 'Gubo 接口地址',
+    desc: '默认 https://api.gubosearch.com/v1/web-search；契约不同时在此覆盖。',
+    placeholder: 'https://api.gubosearch.com/v1/web-search',
+  },
+  {
+    key: 'tinyfish_endpoint',
+    provider: 'tinyfish',
+    label: 'TinyFish 接口地址',
+    desc: '默认 https://api.tinyfish.ai/v1/web-search；契约不同时在此覆盖。',
+    placeholder: 'https://api.tinyfish.ai/v1/web-search',
+  },
+  {
+    key: 'langsearch_endpoint',
+    provider: 'langsearch',
+    label: 'LangSearch 接口地址',
+    desc: '默认 https://api.langsearch.com/v1/web-search；契约不同时在此覆盖。',
+    placeholder: 'https://api.langsearch.com/v1/web-search',
+  },
+] as const
+
+/**
  * 后三家源的展示信息。
  *
  * 与 PAID_PROVIDERS 分开是因为：上面三个源在模板里已有各自的 i18n 文案与专属行，
@@ -189,6 +231,34 @@ const providerKeys = reactive<Record<string, string>>(
   Object.fromEntries(PAID_PROVIDERS.map((k) => [k, ''])),
 )
 
+// 各供应商自定义接口地址（后端 gubo_endpoint / tinyfish_endpoint / langsearch_endpoint）
+const providerEndpoints = reactive<Record<string, string>>(
+  Object.fromEntries(ENDPOINT_FIELDS.map((e) => [e.key, ''])),
+)
+
+/**
+ * 解析后端存的 API Key 值。
+ *
+ * <p>后端把 {@code {apiKey: "sk-..."}} 对象序列化成字符串 {@code "{apiKey=sk-...}"}
+ * 存入/回读（Java Map.toString），不是 JSON。因此不能直接用 {@code raw.apiKey}，
+ * 得从字符串里把值抠出来；空串/掩码/未知形态都按空处理。</p>
+ *
+ * @param raw 后端回读的裸值（对象、字符串或缺失）
+ * @return 可显示的 key 明文（掩码形态如 sk-*** 时原样返回，便于用户辨认）
+ */
+function parseApiKey(raw: unknown): string {
+  if (!raw) return ''
+  if (typeof raw === 'object' && raw !== null) {
+    const v = (raw as { apiKey?: string }).apiKey
+    return typeof v === 'string' ? v : ''
+  }
+  const s = String(raw).trim()
+  if (!s || s === '{}') return ''
+  // 期望 '{apiKey=sk-xxx}' 或 '{apiKey=}'；健壮起见做宽匹配
+  const m = s.match(/\{apiKey=([^}]*)\}/i)
+  return m ? m[1] : ''
+}
+
 // 原始备份，用于检测变更
 const originalSettings = ref<any>(null)
 
@@ -198,6 +268,7 @@ const snapshot = () =>
     JSON.stringify({
       provider: selectedProvider.value,
       ...Object.fromEntries(PAID_PROVIDERS.map((k) => [k, { apiKey: providerKeys[k] || '' }])),
+      ...Object.fromEntries(ENDPOINT_FIELDS.map((e) => [e.key, providerEndpoints[e.key] || ''])),
     }),
   )
 
@@ -212,7 +283,10 @@ const debouncedSave = useDebounceFn(async () => {
 
 // 监听 API Key 变化自动保存
 watch(
-  () => PAID_PROVIDERS.map((k) => providerKeys[k]),
+  () => [
+    ...PAID_PROVIDERS.map((k) => providerKeys[k]),
+    ...ENDPOINT_FIELDS.map((e) => providerEndpoints[e.key]),
+  ],
   () => {
     debouncedSave()
   },
@@ -238,10 +312,17 @@ const handleProviderChange = async (val: string) => {
 // 加载设置
 const loadSettings = async () => {
   try {
+    // fetchGroupSettings 返回 { success, data }：字段在 data 里。早前的实现直接
+    // 读 response.provider，永远拿到 undefined → provider 恒为 360、key 恒空，
+    // endpoint 无入口（曾因默认模型页还渲染 search 分组掩盖过这个错位）。
     const response = await apiService.fetchGroupSettings('search')
-    selectedProvider.value = response.provider || '360'
+    const data = (response?.data ?? response ?? {}) as Record<string, any>
+    selectedProvider.value = String(data.provider || '360') || '360'
     for (const k of PAID_PROVIDERS) {
-      providerKeys[k] = response[k]?.apiKey || ''
+      providerKeys[k] = parseApiKey(data[k])
+    }
+    for (const e of ENDPOINT_FIELDS) {
+      providerEndpoints[e.key] = typeof data[e.key] === 'string' ? (data[e.key] as string) : ''
     }
     originalSettings.value = snapshot()
   } catch (error) {
@@ -249,6 +330,9 @@ const loadSettings = async () => {
     selectedProvider.value = '360'
     for (const k of PAID_PROVIDERS) {
       providerKeys[k] = ''
+    }
+    for (const e of ENDPOINT_FIELDS) {
+      providerEndpoints[e.key] = ''
     }
     originalSettings.value = snapshot()
   }
@@ -271,6 +355,7 @@ const handleSave = async () => {
     const dataToSave: Record<string, any> = {
       provider: selectedProvider.value,
       ...Object.fromEntries(PAID_PROVIDERS.map((k) => [k, { apiKey: providerKeys[k] || '' }])),
+      ...Object.fromEntries(ENDPOINT_FIELDS.map((e) => [e.key, providerEndpoints[e.key] || ''])),
     }
 
     await apiService.updateGroupSettings('search', dataToSave)

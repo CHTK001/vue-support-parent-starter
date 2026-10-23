@@ -45,6 +45,11 @@ const api = vi.hoisted(() => ({
   listForRole: vi.fn(),
 }));
 
+/**
+ * ReTab 桩：本页用的是 nav-only 胶囊页签 —— 组件只渲染导航条，
+ * 内容由页面按 activeTab 用 v-if 切换（没有具名插槽）。
+ * 桩同样不渲染插槽，行为与真实组件一致。
+ */
 const ReTabStub = {
   name: "ReTab",
   props: ["tabs", "modelValue", "variant", "collapsed", "collapsible", "navOnly"],
@@ -65,7 +70,6 @@ const ReTabStub = {
         :data-tab="tab.name"
         @click="selectTab(tab.name)"
       >{{ tab.label }}</button>
-      <slot :name="modelValue" />
     </div>
   `,
 };

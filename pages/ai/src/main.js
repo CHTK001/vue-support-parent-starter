@@ -1,3 +1,14 @@
+/**
+ * AI 控制台独立应用启动装配（物理上归档在 @pages/ai，但**不是包级公共 API**）。
+ *
+ * <p><strong>归属约定</strong>：本文件是 vue-support-ai-starter 的应用入口装配
+ * （createApp / 自研路由 / i18n / branding / Electron 后端状态），由
+ * apps/vue-support-ai-starter/src/main.js 深导入 {@code @pages/ai/main.js} 触发。
+ * 包根 {@code index.ts} 不 re-export 本文件（避免共享包 @pages/ai 被误用时
+ * 整壳 + element-plus/tailwind/refactor 样式污染宿主）。</p>
+ *
+ * <p>宿主（system / eduai）要复用 AI 业务页，应走 /menu、/embed 或具体组件路径。</p>
+ */
 import { createApp } from "vue";
 
 import App from "./App.vue";
@@ -13,6 +24,11 @@ import NProgress from "nprogress";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 import "./tailwind.css";
+// 设计令牌（体系真源）：--brand-* / --bg-* / --text-* / --border-* / --radius-* /
+// --shadow-* / --status-*，与 monitor / hotspot / collect 同源。
+// **必须在 refactor.css 之前**引入 —— 后者把 --color-* 改为引用这里的体系令牌，
+// 顺序反了会拿到未定义值（var() 回退到无声明 → 颜色失效）。
+import "./styles/tokens.css";
 import "./styles/refactor.css";
 // 知识库 · 编辑部设计层（作用域 .kb-refactor，只影响知识库各页与弹层）
 import "./styles/kb-refactor.css";
@@ -37,6 +53,8 @@ import {
   isElectron,
 } from "@/composables/useBackendStatus";
 import { i18n } from "./locales";
+// 路由级加载态清理：切页时收掉跨页请求遗留的遮罩（见 afterEach 注释）
+import { closeRouterScoped } from "@repo/ui/re-loader";
 
 // 页面刷新标志：首次导航时强制服务端验证 token，后续路由切换不再重复验证
 let isInitialPageLoad = true;
@@ -253,6 +271,28 @@ const routes = [
     component: () => import("./components/models/ModelsEmbedPage.vue"),
   },
   {
+    // 【设计探索临时路由 — 验证完即删】模型选择变体独立预览：/preview/models?variant=catalog
+    path: "/preview/models",
+    name: "VariantsPreview",
+    meta: { title: "模型选择器 · 设计探索" },
+    component: () => import("./components/dev/VariantsPreviewPage.vue"),
+  },
+  {
+    // 【设计探索临时路由 — 验证完即删】知识库重构方向预览：/preview/knowledge-base?variant=pipeline
+    path: "/preview/knowledge-base",
+    name: "KbVariantsPreview",
+    meta: { title: "知识库 · 设计探索" },
+    component: () => import("./components/dev/KbVariantsPreviewPage.vue"),
+  },
+  {
+    // 【设计探索临时路由 — 验证完即删】重构后的真实 KnowledgeBasePage 验证台：
+    // 直接挂真实组件 + mock store，不经过路由守卫与后端。
+    path: "/preview/kb-harness",
+    name: "KbHarness",
+    meta: { title: "知识库 · 验证台" },
+    component: () => import("./components/dev/KbHarnessPage.vue"),
+  },
+  {
     path: "/login",
     name: "Login",
     meta: { titleKey: "common.route.login" },
@@ -284,6 +324,22 @@ router.beforeEach(async (to, from, next) => {
   if (!isElectron) {
     NProgress.start();
   }
+  // 【设计探索临时钩子 — 验证完即删】后端未启动时用 ?variant= 预览设计变体：
+  // 仅放行预览路由，其余业务路由照常走登录守卫（不扩大免登录面）。
+  if (import.meta.env.DEV && to.name === "KbHarness") {
+    return next();
+  }
+  if (import.meta.env.DEV && to.query?.variant
+    && (to.name === "VariantsPreview" || to.name === "KbVariantsPreview")) {
+    return next();
+  }
+  // 【设计探索临时钩子 — 验证完即删】?kbmock=1 时放行知识库路由，用于在无后端/无登录的
+  // 情况下渲染重构后的真实 KnowledgeBasePage（数据由 Playwright 拦截 /api/ 注入）。
+  // __KB_HARNESS__ 由 /preview/kb-harness 验证台置位（它内部导航到知识库路由时同样需放行）。
+  if (import.meta.env.DEV && to.name === "KnowledgeBase"
+    && (to.query?.kbmock === "1" || window.__KB_HARNESS__ === true)) {
+    return next();
+  }
   // 真登录守卫：业务路由必须持有框架令牌（@repo/utils token 模块）
   const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth);
   if (requiresAuth && !hasToken()) {
@@ -307,6 +363,11 @@ router.afterEach(() => {
   if (!isElectron) {
     NProgress.done();
   }
+  // 切换页面后收掉"路由级"加载态：
+  // 用户可能在请求未返回时就点了别的菜单，那个请求的 finally 迟迟不执行
+  // （后端挂住 / 断网无超时），遮罩会一直盖在新页面上导致全站不可用。
+  // 只关 routerScoped 的实例，页面内局部加载态不受影响。
+  closeRouterScoped("auto");
 });
 
 /**
@@ -381,6 +442,10 @@ async function bootstrapAndMount() {
   app.mount("#app");
 }
 
+/**
+ * AI 应用挂载入口：由 apps/vue-support-ai-starter/src/main.js 深导入调用，
+ * 不是 @pages/ai 包根导出的公共 API（详见本文件顶部注释）。
+ */
 export async function mountAiApp() {
   await bootstrapAndMount();
 }

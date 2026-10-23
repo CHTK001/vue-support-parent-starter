@@ -168,13 +168,20 @@
                             <ServiceTokensPage />
                         </template>
                         <!--
-                          文件存储：直接复用 @repo/filesystem 的 FileStorageManage。
-                          该页原本对接独立文件服务器（默认 127.0.0.1:18080），
-                          这里作为「系统配置」的一个只读查看入口，
-                          便于排查生成任务的参考图/产物是否真的落盘。
+                          渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
+                          轮询、刷新、签到、模型拉取与单模型开关。
+                          全模块 adminOnly：写的是 sys_ai_provider / sys_ai_provider_connection
+                          的全局凭据，普通用户改会影响所有人。
                         -->
-                        <template v-else-if="currentTabValue === 'file-storage'">
-                            <FileStorageManage class="h-full" />
+                        <template v-else-if="currentTabValue === 'channels'">
+                            <ChannelManagementPage />
+                        </template>
+                        <!--
+                          菜单管理：把侧栏菜单全部列出，逐项「显示 / 隐藏」。
+                          与侧栏同源清单（config/sidebarMenu.ts），改完立即生效。
+                        -->
+                        <template v-else-if="currentTabValue === 'menu-manage'">
+                            <MenuDisplaySettings class="h-full" />
                         </template>
                         <!--
                           图像底库：以图搜图底库的独立管理页。
@@ -220,10 +227,11 @@ import UsageConfigSettings from './UsageConfigSettings.vue'
 import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
+import ChannelManagementPage from '../management/ChannelManagementPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
-// 复用 pages/filesystem 的文件存储管理页（同一份实现，不复制）
-import { FileStorageManage } from '@pages/filesystem'
+// 菜单管理：与侧栏同源的清单 + 显示/隐藏开关（不嵌 sys_menu 的增删改）
+import MenuDisplaySettings from './MenuDisplaySettings.vue'
 // 以图搜图图像底库管理面板（同一份实现，被「图像底库」tab 复用）
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 // 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
@@ -249,6 +257,7 @@ import {
     Person20Regular,
     DesktopSpeaker24Regular,
     DocumentText24Regular,
+    AppsListDetail20Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -303,12 +312,16 @@ const groupMap = computed<Record<string, string>>(() => ({
     security: t('settings.system.groups.account'),
     services: t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
-    'file-storage': t('settings.system.groups.system'),
+    'menu-manage': t('settings.system.groups.system'),
     // 底库：图像底库与人脸底库归到同一个分组。
     // 原先图像底库挂在「系统」组、人脸库挂在外侧主导航，两个同类功能分处两地；
     // 收进同一个「底库」分组后，入口位置与语义一致。
     'image-library': t('settings.system.groups.library'),
     'face-library': t('settings.system.groups.library'),
+    // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的全局凭据管理。
+    // 写在 sys_ai_provider / sys_ai_provider_connection 的全局凭据，
+    // 普通用户改会影响所有人，故独立分组 + adminOnly。
+    channels: t('settings.system.groups.channels'),
 }))
 
 // 设置项菜单
@@ -384,6 +397,10 @@ const sidebarItems = computed(() => [
         path: 'paper-config',
         icon: DocumentText24Regular,
         roles: ['primary'],
+        // paper 分组写的是**全局**配置（PaperClientManager 是共享管线，只读全局层），
+        // 非管理员写入会被接口层拒绝（S0503 仅管理员可修改），因此入口只给管理员，
+        // 避免普通用户点进去看到一堆注定失败的保存
+        adminOnly: true,
     },
     {
         // 从默认模型页拆出的独立配置：连接器(bot)
@@ -501,10 +518,11 @@ const sidebarItems = computed(() => [
         adminOnly: true,
     },
     {
-        // 文件存储：查看文件服务器上的对象，供排查生成任务的参考图/产物落盘情况
-        label: '文件存储',
-        path: 'file-storage',
-        icon: Folder20Regular,
+        // 菜单管理：sys_menu 的增删改（侧栏菜单 + 按钮权限）。
+        // 只给管理员：写的是全局菜单表，普通用户改会直接影响所有人。
+        label: '菜单管理',
+        path: 'menu-manage',
+        icon: AppsListDetail20Regular,
         roles: ['primary'],
         adminOnly: true,
     },
@@ -529,6 +547,17 @@ const sidebarItems = computed(() => [
         icon: Person20Regular,
         roles: ['primary'],
     },
+    {
+        // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
+        // 轮询、刷新、签到、模型拉取与单模型开关。
+        // 全模块 adminOnly：写的是 sys_ai_provider / sys_ai_provider_connection
+        // 的全局凭据，普通用户改会影响所有人。
+        label: t('settings.system.tabs.channels'),
+        path: 'channels',
+        icon: Cloud24Regular,
+        roles: ['primary'],
+        adminOnly: true,
+    },
 ])
 
 // 根据用户角色过滤菜单项
@@ -550,6 +579,7 @@ const groupedSidebarItems = computed(() => {
         t('settings.system.groups.library'),
         t('settings.system.groups.account'),
         t('settings.system.groups.system'),
+        t('settings.system.groups.channels'),
     ]
     const groups: Record<string, typeof items> = {}
     for (const g of groupOrder) groups[g] = []
@@ -632,7 +662,7 @@ const gotoModels = () => router.push({ name: 'Models' })
  * 注意这里必须用 var() 的 **回退值** 写法：满屏时 MainLayout 会把
  * --content-max-width 定义为 none，那时整条 max-width 失效 = 撑满，与原来一致。
  */
-const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'channels']
 const contentMaxWidthStyle = computed(() =>
     WIDE_TABS.includes(currentTabValue.value)
         ? {}
@@ -645,6 +675,7 @@ const portalReady = ref(false)
 // 当前标签标题
 const currentTabLabel = computed(() => {
     if (currentTabValue.value === 'service-tokens') return '访问令牌'
+    if (currentTabValue.value === 'channels') return t('settings.system.tabs.channels')
     const item = filteredSidebarItems.value.find(i => i.path === currentTabValue.value)
     return item?.label || t('settings.system.settings')
 })

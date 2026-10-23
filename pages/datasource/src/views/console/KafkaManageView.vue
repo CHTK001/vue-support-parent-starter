@@ -106,11 +106,11 @@
             :data="topics"
             :columns="topicColumns"
             :loading="loading"
-            :pagination="false"
             stripe
             border
             height="320px"
             @row-click="selectTopic"
+            :config="{ pagination: { enable: false } }"
           >
             <template #col-label="{ row }">
               <span class="mono">{{ (row as KafkaTreeNode).label }}</span>
@@ -142,10 +142,10 @@
             :data="children"
             :columns="childColumns"
             :loading="loading"
-            :pagination="false"
             stripe
             border
             height="240px"
+            :config="{ pagination: { enable: false } }"
           />
         </div>
 

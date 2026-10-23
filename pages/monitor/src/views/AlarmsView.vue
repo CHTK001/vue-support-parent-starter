@@ -188,13 +188,13 @@ onMounted(fetchAll);
     <ReCard :radius="12" shadow="never">
       <ReTable
         :data="filtered"
-        :pagination="false"
         :columns="alarmColumns"
         :loading="loading"
         :border="false"
         :layout-switch="true"
         empty-text="暂无告警事件"
         table-id="monitor-alarms"
+        :config="{ pagination: { enable: false } }"
       >
         <template #col-time="{ row }"><span class="mono">{{ timeText(row) }}</span></template>
         <template #col-level="{ row }">

@@ -25,6 +25,7 @@ import { submitAgentAction } from "../api";
 import type { Component } from "vue";
 import { CircleCheck, DocumentChecked, Download, Tickets } from "@element-plus/icons-vue";
 import ReStatCard from "@repo/ui/re-stat-card";
+import ReEcharts from "@repo/ui/re-echarts";
 
 export interface Host {
   id: number;
@@ -238,9 +239,115 @@ function groupName(id?: number | null): string {
 /** 分组背景色开关：开启时分组标记按分组配置颜色显示底色 */
 const groupColorEnabled = ref(true);
 
+/**
+ * 趋势环比文案：首尾采样之差，让「涨还是在降」不用盯着折线猜。
+ *
+ * @param id 主机标识
+ * @returns 形如 ↑ 3.2% / ↓ 1.4% / — 的短文本
+ */
+function trendDeltaText(id: number): string {
+  const arr = rtTrend[id] ?? [];
+  if (arr.length < 2) return '—';
+  const delta = arr[arr.length - 1] - arr[0];
+  if (Math.abs(delta) < 0.1) return '持平';
+  return `${delta > 0 ? '↑' : '↓'} ${Math.abs(delta).toFixed(1)}%`;
+}
+
+/**
+ * 环比上升（负载变差）标红，下降标绿。
+ *
+ * @param id 主机标识
+ * @returns 样式类名
+ */
+function trendDeltaClass(id: number): string {
+  const arr = rtTrend[id] ?? [];
+  if (arr.length < 2) return '';
+  const delta = arr[arr.length - 1] - arr[0];
+  if (Math.abs(delta) < 0.1) return '';
+  return delta > 0 ? 'is-up' : 'is-down';
+}
+
+/**
+ * 占用环的 conic-gradient 样式：把百分比画成一段弧。
+ *
+ * @param pct 占用百分比（0-100）
+ * @returns 内联样式
+ */
+function ringStyle(pct: number | undefined): Record<string, string> {
+  const v = Math.max(0, Math.min(100, Math.round(pct ?? 0)));
+  return {
+    background: `conic-gradient(${barColor(v)} ${v * 3.6}deg, var(--el-fill-color) 0deg)`,
+  };
+}
+
 // ---- 实时指标（默认开启，socket 推送，不轮询） ----
 const realtimeEnabled = ref(localStorage.getItem('assets-realtime-enabled') !== 'false');
 const rtMetrics = reactive<Record<number, { cpu: number; mem: number; disk: number; tx: string; rx: string }>>({});
+
+/** CPU 趋势采样窗口（保留最近 N 个点，足够画一条可读的迷你折线又不至于吃内存） */
+const TREND_POINTS = 24;
+/** 每台主机的 CPU 历史采样，按 id 索引；用于卡片右侧迷你趋势图 */
+const rtTrend = reactive<Record<number, number[]>>({});
+
+/**
+ * 采样一个 CPU 点进趋势缓冲。
+ *
+ * <p>只在指标真正变化时推入，避免 socket 抖动造成折线全是同一数值；
+ * 超过 {@link TREND_POINTS} 时丢最旧的，保持固定窗口长度。</p>
+ *
+ * @param id  主机标识
+ * @param cpu CPU 使用率（0-100）
+ */
+function pushTrend(id: number, cpu: number): void {
+  if (!rtTrend[id]) rtTrend[id] = [];
+  const arr = rtTrend[id];
+  const last = arr[arr.length - 1];
+  if (last !== undefined && Math.abs(last - cpu) < 0.05) return;
+  arr.push(cpu);
+  if (arr.length > TREND_POINTS) arr.splice(0, arr.length - TREND_POINTS);
+}
+
+/**
+ * 卡片右侧 CPU 迷你趋势图配置。
+ *
+ * <p>刻意压掉坐标轴、图例与网格，只留一条带面积渐变的折线 —— 卡片右侧空间窄，
+ * 堆坐标轴会变成噪音。y 轴固定 0-100，避免不同主机的曲线看起来「一样高」。</p>
+ *
+ * @param id 主机标识
+ * @returns ECharts 配置；无数据时返回空折线
+ */
+function trendOption(id: number): Record<string, unknown> {
+  const data = rtTrend[id] ?? [];
+  const color = barColor(data[data.length - 1] ?? 0);
+  return {
+    animation: false,
+    grid: { left: 2, right: 2, top: 6, bottom: 2 },
+    xAxis: { type: 'category', show: false, boundaryGap: false, data: data.map((_, i) => i) },
+    yAxis: { type: 'value', show: false, min: 0, max: 100 },
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      formatter: (ps: any[]) => `${Number(ps?.[0]?.value ?? 0).toFixed(1)}%`,
+    },
+    series: [{
+      type: 'line',
+      data,
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { width: 2, color },
+      areaStyle: {
+        opacity: 0.18,
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color },
+            { offset: 1, color: 'transparent' },
+          ],
+        },
+      },
+    }],
+  };
+}
 
 function barColor(pct: number): string {
   if (pct >= 90) return 'var(--el-color-danger)';
@@ -253,6 +360,7 @@ function onRealtimeToggle(v: boolean): void {
   if (!v) {
     // 关闭即清空，重新打开时由下一次列表刷新或推送铺值
     Object.keys(rtMetrics).forEach(k => delete rtMetrics[Number(k)]);
+    Object.keys(rtTrend).forEach(k => delete rtTrend[Number(k)]);
     return;
   }
   syncRtFromHosts();
@@ -270,13 +378,15 @@ function syncRtFromHosts(): void {
       continue;
     }
     const prev = rtMetrics[h.id];
+    const cpu = Math.round((Number(h.serverHostCpuUsage) || 0) * 10) / 10;
     rtMetrics[h.id] = {
-      cpu: Math.round((Number(h.serverHostCpuUsage) || 0) * 10) / 10,
+      cpu,
       mem: Math.round((Number(h.serverHostMemUsage) || 0) * 10) / 10,
       disk: Math.round((Number(h.serverHostDiskUsage) || 0) * 10) / 10,
       tx: prev?.tx ?? '—',
       rx: prev?.rx ?? '—',
     };
+    pushTrend(h.id, cpu);
   }
 }
 /** 取分组颜色（未配置或关闭开关时返回空，不使用背景色） */
@@ -655,6 +765,45 @@ function onInstalled(): void {
   fetchAll();
 }
 
+/**
+ * 顶部「新增资产」按钮弹出的功能菜单命令分发。
+ *
+ * <p>设计取舍：右上角按钮本身是「新增」这个最高频动作（点击即开表单），
+ * 悬停时展开的功能菜单是它的补充入口 —— 把原先堆在每张卡片底部的一排操作
+ * 收敛到一处，卡片只留「远控 / 监控」两个真正的主操作。</p>
+ *
+ * <p>需要一台具体主机才能执行的动作（画像 / 编辑 / 安装 / 删除）不在这里列出，
+ * 卡片底部只保留「远控 / 监控 / 更多」，右键菜单仍可直达全部动作 —— 在没有任何
+ * 行上下文的位置放这些项，点下去只能二选一：静默无反应，或误作用于列表第一台。</p>
+ *
+ * @param cmd 菜单命令
+ */
+function onToolbarCommand(cmd: string): void {
+  switch (cmd) {
+    case "add-host":
+      openAdd();
+      break;
+    case "refresh":
+      fetchAll();
+      break;
+    case "card-mode":
+      viewMode.value = "card";
+      break;
+    case "table-mode":
+      viewMode.value = "table";
+      break;
+    case "toggle-realtime":
+      realtimeEnabled.value = !realtimeEnabled.value;
+      onRealtimeToggle(realtimeEnabled.value);
+      break;
+    case "reset-filter":
+      resetFilters();
+      break;
+    default:
+      break;
+  }
+}
+
 function openSysMgr(type: string, row: Host): void {
   // 画像页现在全量走 Agent：未安装时不再拦在门外，进去后由画像页给出
   // 「Agent 未就绪 + 最近错误 + 安装 Agent」的引导，避免用户完全看不到主机状态
@@ -927,12 +1076,15 @@ onMounted(() => {
       const d = (msg.data ?? msg) as { hostId?: number; cpu?: number; mem?: number; disk?: number };
       if (!realtimeEnabled.value) return;
       if (d && d.hostId != null) {
+        const cpu = Math.round((Number(d.cpu) || 0) * 10) / 10;
         rtMetrics[d.hostId] = {
-          cpu: Math.round((Number(d.cpu) || 0) * 10) / 10,
+          cpu,
           mem: Math.round((Number(d.mem) || 0) * 10) / 10,
           disk: Math.round((Number(d.disk) || 0) * 10) / 10,
           tx: '—', rx: '—'
         };
+        // 同步进趋势缓冲，卡片右侧折线才有时序形状
+        pushTrend(d.hostId, cpu);
       }
     } catch { /* 静默 */ }
   });
@@ -1085,7 +1237,27 @@ function osTileClass(h: Host): string {
             <el-switch v-model="realtimeEnabled" @change="onRealtimeToggle" />
           </label>
           <ReButton icon="RefreshRight" layout="square" tip="刷新" :loading="loading" @click="fetchAll" />
-          <ReButton icon="Plus" layout="square" type="primary" tip="新增资产" @click="openAdd" />
+          <!-- 「新增资产」= 点击直接开表单（最高频动作）；右侧箭头才是功能区菜单：
+               刷新 / 视图切换 / 实时监控 / 重置筛选 收敛到一处。
+               用 split 而不是「整颗按钮都弹菜单」——后者让最高频的「新增」多一次点击。 -->
+          <div class="filter-ops__add">
+            <ReButton icon="Plus" layout="square" type="primary" tip="新增资产" @click="openAdd" />
+            <ElDropdown trigger="click" placement="bottom-end" @command="onToolbarCommand">
+              <button class="filter-ops__add-more" type="button" title="更多功能" aria-label="更多功能">
+                <ReIcon name="ArrowDown" :size="12" />
+              </button>
+              <template #dropdown>
+                <ElDropdownMenu>
+                  <ElDropdownItem command="add-host"><ReIcon name="Plus" />新增主机</ElDropdownItem>
+                  <ElDropdownItem command="refresh" divided><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
+                  <ElDropdownItem command="card-mode"><ReIcon name="Grid" />卡片视图</ElDropdownItem>
+                  <ElDropdownItem command="table-mode"><ReIcon name="Menu" />列表视图</ElDropdownItem>
+                  <ElDropdownItem command="toggle-realtime"><ReIcon name="TrendCharts" />{{ realtimeEnabled ? '关闭' : '开启' }}实时监控</ElDropdownItem>
+                  <ElDropdownItem command="reset-filter" divided><ReIcon name="Refresh" />重置筛选</ElDropdownItem>
+                </ElDropdownMenu>
+              </template>
+            </ElDropdown>
+          </div>
         </div>
       </div>
     </div>
@@ -1138,40 +1310,62 @@ function osTileClass(h: Host): string {
             <span class="hc-chip"><i>Agent</i><b>{{ h.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</b></span>
           </div>
 
-          <!-- 实时指标条（socket host-metrics 推送）：标签 + 胶囊长条 + 数值，对齐 UI 稿 -->
-          <div v-if="realtimeEnabled && rtMetrics[h.id]" class="hc-bars">
-            <div class="hc-bar-row">
-              <span class="hc-bar-label">CPU</span>
-              <ElProgress
-                :percentage="Math.round(rtMetrics[h.id].cpu ?? 0)"
-                :color="barColor(rtMetrics[h.id].cpu)"
-                :stroke-width="16"
-                :show-text="false"
-                class="hc-bar-progress"
-              />
-              <span class="hc-bar-val">{{ (rtMetrics[h.id].cpu ?? 0).toFixed(1) }}%</span>
+          <!-- 实时指标区：左侧条形 + 右侧 CPU 趋势迷你图（socket host-metrics 推送） -->
+          <div v-if="realtimeEnabled && rtMetrics[h.id]" class="hc-metrics">
+            <div class="hc-metrics__bars">
+              <div class="hc-bar-row">
+                <span class="hc-bar-label">CPU</span>
+                <ElProgress
+                  :percentage="Math.round(rtMetrics[h.id].cpu ?? 0)"
+                  :color="barColor(rtMetrics[h.id].cpu)"
+                  :stroke-width="16"
+                  :show-text="false"
+                  class="hc-bar-progress"
+                />
+                <span class="hc-bar-val">{{ (rtMetrics[h.id].cpu ?? 0).toFixed(1) }}%</span>
+              </div>
+              <div class="hc-bar-row">
+                <span class="hc-bar-label">内存</span>
+                <ElProgress
+                  :percentage="Math.round(rtMetrics[h.id].mem ?? 0)"
+                  :color="barColor(rtMetrics[h.id].mem)"
+                  :stroke-width="16"
+                  :show-text="false"
+                  class="hc-bar-progress"
+                />
+                <span class="hc-bar-val">{{ (rtMetrics[h.id].mem ?? 0).toFixed(1) }}%</span>
+              </div>
+              <div class="hc-bar-row">
+                <span class="hc-bar-label">磁盘</span>
+                <ElProgress
+                  :percentage="Math.round(rtMetrics[h.id].disk ?? 0)"
+                  :color="barColor(rtMetrics[h.id].disk)"
+                  :stroke-width="16"
+                  :show-text="false"
+                  class="hc-bar-progress"
+                />
+                <span class="hc-bar-val">{{ (rtMetrics[h.id].disk ?? 0).toFixed(1) }}%</span>
+              </div>
             </div>
-            <div class="hc-bar-row">
-              <span class="hc-bar-label">内存</span>
-              <ElProgress
-                :percentage="Math.round(rtMetrics[h.id].mem ?? 0)"
-                :color="barColor(rtMetrics[h.id].mem)"
-                :stroke-width="16"
-                :show-text="false"
-                class="hc-bar-progress"
-              />
-              <span class="hc-bar-val">{{ (rtMetrics[h.id].mem ?? 0).toFixed(1) }}%</span>
-            </div>
-            <div class="hc-bar-row">
-              <span class="hc-bar-label">磁盘</span>
-              <ElProgress
-                :percentage="Math.round(rtMetrics[h.id].disk ?? 0)"
-                :color="barColor(rtMetrics[h.id].disk)"
-                :stroke-width="16"
-                :show-text="false"
-                class="hc-bar-progress"
-              />
-              <span class="hc-bar-val">{{ (rtMetrics[h.id].disk ?? 0).toFixed(1) }}%</span>
+
+            <!-- 右侧可视化：CPU 时序折线 + 三项占用环，一眼看出负载走势而不只是当前值 -->
+            <div class="hc-metrics__viz" :title="`CPU 趋势（最近 ${TREND_POINTS} 次采样）`">
+              <div class="hc-viz-head">
+                <span class="hc-viz-title">CPU 趋势</span>
+                <span class="hc-viz-delta" :class="trendDeltaClass(h.id)">{{ trendDeltaText(h.id) }}</span>
+              </div>
+              <ReEcharts class="hc-viz-chart" :option="trendOption(h.id)" height="52px" />
+              <div class="hc-viz-rings">
+                <span class="hc-ring" :style="ringStyle(rtMetrics[h.id].cpu)">
+                  <b>{{ Math.round(rtMetrics[h.id].cpu ?? 0) }}</b><i>CPU</i>
+                </span>
+                <span class="hc-ring" :style="ringStyle(rtMetrics[h.id].mem)">
+                  <b>{{ Math.round(rtMetrics[h.id].mem ?? 0) }}</b><i>内存</i>
+                </span>
+                <span class="hc-ring" :style="ringStyle(rtMetrics[h.id].disk)">
+                  <b>{{ Math.round(rtMetrics[h.id].disk ?? 0) }}</b><i>磁盘</i>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1209,16 +1403,21 @@ function osTileClass(h: Host): string {
             </ElPopover>
           </div>
 
-          <!-- 卡片操作（对齐 UI 稿：主操作 + 更多） -->
+          <!-- 卡片操作：只保留两个主操作，图标态 + 悬停提示。
+               原先「远控 / 监控 / 扫描 / 更多」四个文字按钮要占一整行（约 61px），
+               窄卡片里还会折行；扫描与其余低频动作已收敛到右上角功能菜单与右键菜单。
+               图标态点击区仍是 28px，且都带 title，识别成本低于多占一行的收益。 -->
           <template #footer>
             <div class="hc-actions">
-              <ReButton icon="Connection" :show-text="true" type="primary" @click="openConnect(h)">远控</ReButton>
-              <ReButton icon="TrendCharts" :show-text="true" @click="openDetail(h)">监控</ReButton>
-              <ReButton icon="Aim" :show-text="true" @click="scanHostPorts(h)">扫描</ReButton>
+              <ReButton icon="Connection" layout="square" type="primary" tip="远控" @click="openConnect(h)" />
+              <ReButton icon="TrendCharts" layout="square" tip="监控" @click="openDetail(h)" />
               <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => runRowCommand(cmd as string, h)">
-                <ReButton icon="MoreFilled" :show-text="true">更多</ReButton>
+                <button class="hc-more" type="button" title="更多操作" aria-label="更多操作">
+                  <ReIcon name="MoreFilled" :size="14" />
+                </button>
                 <template #dropdown>
                   <ElDropdownMenu>
+                    <ElDropdownItem command="scan"><ReIcon name="Aim" />端口扫描</ElDropdownItem>
                     <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
                     <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑主机</ElDropdownItem>
                     <ElDropdownItem command="install-nginx" divided><ReIcon name="Box" />安装 Nginx</ElDropdownItem>
@@ -1555,6 +1754,30 @@ function osTileClass(h: Host): string {
   gap: 8px;
   flex: none;
 }
+/* 「新增资产」按钮 + 右侧小箭头：共用同一个圆角块，箭头只是打开功能菜单的入口。
+   不把整颗按钮都做成下拉 —— 新增是最高频动作，不该为了菜单多一次点击。 */
+.filter-ops__add {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--el-border-radius-base, 6px);
+}
+.filter-ops__add-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  padding: 0;
+  margin-left: 1px;
+  color: var(--el-color-white, #fff);
+  cursor: pointer;
+  background: var(--el-color-primary-dark-2, #337ecc);
+  border: none;
+  transition: background 0.15s ease;
+}
+.filter-ops__add-more:hover {
+  background: var(--el-color-primary-dark-3, #2a6aa8);
+}
 /* 视图切换（UI 稿：胶囊分段） */
 .view-toggle {
   display: inline-flex;
@@ -1672,15 +1895,17 @@ function osTileClass(h: Host): string {
   flex: 1;
   min-height: 0;
   display: grid;
-  /* 卡片收窄：min 380px 让一行放下更多卡片，指标条不再被宽卡挤压 */
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  /* 卡片收窄到 320px：一行放下更多主机。指标区左右两栏（条形 + 趋势）在 320px
+     下仍能并排不挤压 —— 右侧可视列固定 150px，左侧条形至少留 130px。 */
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   /* 有卡片时按自然高度排布、不把卡片拉高（卡片高度由自身内容决定）；
      剩余空间宁可留在网格下方，也不要把每张主机卡撑成同一个死板的高度。 */
   align-content: start;
   /* 行高跟随内容最大高度：卡片（el-card 是 flex column + body overflow:auto）
-     若行被压矮，指标条会在卡片内部出现滚动条；内容超出网格时宁可整页滚动。 */
+     若行被压矮，指标条会在卡片内部出现滚动条；内容超出网格时宁可整页滚动。
+     指标区不是定高的，卡片没有自己的高度上限，靠这条保证「指标完整显示」。 */
   grid-auto-rows: max-content;
-  gap: 16px;
+  gap: 14px;
   padding: 0 0 8px;
 }
 /* 空态例外：网格里只有一张空态卡，让它吃满 —— 否则卡片只有一条内容高，
@@ -1689,6 +1914,9 @@ function osTileClass(h: Host): string {
   align-content: stretch;
 }
 @media (max-width: 1100px) {
+  .host-card-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+}
+@media (max-width: 640px) {
   .host-card-grid { grid-template-columns: 1fr; }
 }
 /* el-card 自带页面级样式（koi 主题装饰、深色块背景、按钮点击态），
@@ -1698,8 +1926,9 @@ function osTileClass(h: Host): string {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  /* 卡片整体略高一点：内容矮时 body 的 flex-grow:1 把富余空间填进指标区，观感更舒展 */
-  min-height: 340px;
+  /* 不再设 min-height：卡片高度完全由内容决定。
+     设了固定下限后，窄卡片里指标区一旦换行就会顶到下限、body 被压出滚动条；
+     现在高度跟着内容走，指标永远完整显示（页面整体滚动，而非卡片内滚动）。 */
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
@@ -1714,6 +1943,8 @@ function osTileClass(h: Host): string {
 }
 .host-card-grid :deep(.el-card__body) {
   padding: 10px 0;
+  /* body 不设 overflow：卡片内部永不出现滚动条（滚动只发生在页面级） */
+  overflow: visible;
 }
 .host-card-grid :deep(.el-card:hover) {
   transform: translateY(-3px);
@@ -1722,15 +1953,15 @@ function osTileClass(h: Host): string {
 }
 
 /* 头部：OS 图标 + 名称/地址 + 状态 */
-.hc-head { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px 12px; }
+.hc-head { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 8px; }
 .hc-os {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   flex: none;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1;
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-light);
@@ -1776,7 +2007,7 @@ function osTileClass(h: Host): string {
 .hc-ip-sep { margin: 0 4px; }
 
 /* 关键属性胶囊 */
-.hc-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 20px 14px; }
+.hc-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 16px 10px; }
 .hc-chip {
   display: inline-flex;
   align-items: center;
@@ -1793,13 +2024,24 @@ function osTileClass(h: Host): string {
 .hc-chip b { font-weight: 600; color: var(--el-text-color-primary); }
 .hc-chip b.bad { color: var(--el-color-danger); }
 
-/* 实时指标条：标签 + 胶囊长条 + 数值（对齐 UI 稿的粗条与大号数值） */
-.hc-bars { display: flex; flex-direction: column; gap: 12px; padding: 2px 20px 16px; }
-.hc-bar-row { display: flex; align-items: center; gap: 12px; }
+/* 实时指标区：左侧条形 + 右侧趋势可视化（对齐 UI 稿的粗条与大号数值） */
+.hc-metrics {
+  display: grid;
+  /* 右列由 168px 收到 150px：卡片宽度降到 320px 后，仍保证左侧条形（标签+条+数值）
+     有 130px 以上可画 —— 否则条形会被压成一条细线，指标等于看不出来。
+     注意容器查询/断点只按视口宽度判，卡片宽度远小于视口时不会触发，
+     所以这里的收缩必须靠固定列宽 + minmax(0,1fr) 配合完成，而不是靠媒体查询。 */
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 12px;
+  align-items: stretch;
+  padding: 0 16px 12px;
+}
+.hc-metrics__bars { display: flex; flex-direction: column; gap: 10px; justify-content: center; min-width: 0; }
+.hc-bar-row { display: flex; align-items: center; gap: 8px; }
 .hc-bar-label {
-  width: 42px;
+  width: 34px;
   flex: none;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
@@ -1813,25 +2055,126 @@ function osTileClass(h: Host): string {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .hc-bar-val {
-  width: 56px;
+  width: 46px;
   flex: none;
   text-align: right;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--el-text-color-primary);
 }
 
+/* ── 卡片右侧可视化：CPU 迷你趋势 + 占用环 ──
+   窄列只放「走势」和「现在多少」，不放坐标轴/图例，避免变成噪音。 */
+.hc-metrics__viz {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-left: 10px;
+  border-left: 1px dashed var(--el-border-color-lighter);
+}
+.hc-viz-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.hc-viz-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-secondary);
+  text-transform: uppercase;
+}
+.hc-viz-delta {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.hc-viz-delta.is-up { color: var(--el-color-danger); }
+.hc-viz-delta.is-down { color: var(--el-color-success); }
+.hc-viz-chart { width: 100%; flex: none; }
+.hc-viz-rings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 2px;
+}
+/* 占用环：conic-gradient 由 ringStyle() 内联写入，内部用实心圆挖空 */
+.hc-ring {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  transition: background 0.5s ease;
+}
+.hc-ring::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--el-bg-color);
+}
+.hc-ring b,
+.hc-ring i {
+  position: relative;
+  z-index: 1;
+  font-style: normal;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.hc-ring b { font-size: 12px; font-weight: 700; color: var(--el-text-color-primary); }
+.hc-ring i { font-size: 9px; color: var(--el-text-color-secondary); }
+@media (max-width: 520px) {
+  .hc-metrics { grid-template-columns: 1fr; }
+  .hc-metrics__viz {
+    padding-left: 0;
+    padding-top: 10px;
+    border-left: 0;
+    border-top: 1px dashed var(--el-border-color-lighter);
+  }
+}
+
 /* 标签 / 端口 / 操作 */
-.hc-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 12px; }
-.hc-ports { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 14px; }
+.hc-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
+.hc-ports { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+/* 卡片底部：只剩两个主操作 + 「更多」图标，靠右对齐、单行不折。
+   高度约 44px（原先四个文字按钮一行 61px，窄卡片里还会折成两行）。 */
 .hc-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 14px 20px;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 16px;
   border-top: 1px solid var(--el-border-color-lighter);
+}
+/* 「更多」与 ReButton square 同尺寸同底色的图标按钮 */
+.hc-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  background: var(--el-fill-color-light, #f3f4f6);
+  border: 1px solid transparent;
+  border-radius: var(--el-border-radius-base, 6px);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.hc-more:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, #ecf5ff);
 }
 /* 空态卡：与主机卡片同规格（独立 el-card + 扁平容器），
    占满 grid 整行，不让 ElEmpty 裸奔在网格里 */

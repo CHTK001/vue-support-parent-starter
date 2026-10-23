@@ -178,9 +178,8 @@
           <ReInput v-model="form.betaIps" placeholder="例如 192.168.1.10,192.168.1.11" />
         </div>
       </div>
-      <template #footer>
-        <ReButton @click="configVisible = false">关闭</ReButton>
-        <ReButton v-if="dialogMode !== 'view'" type="primary" :loading="saving" @click="saveConfig">
+      <template v-if="dialogMode !== 'view'" #footer>
+        <ReButton type="primary" :loading="saving" @click="saveConfig">
           <template #icon><ReIcon name="Check" /></template>{{ dialogMode === "create" ? "创建并发布" : "保存并发布" }}
         </ReButton>
       </template>

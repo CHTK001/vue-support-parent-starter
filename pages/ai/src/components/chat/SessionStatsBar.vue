@@ -212,6 +212,13 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Timer } from '@element-plus/icons-vue';
+/*
+ * 这个图标**不能删**：等待态骨架行与 Token 用量浮层仍在用它
+ * （模板 L35 / L110）。上一版为了替换中间那个图标把 import 删了，
+ * 结果组件解析失败 → 整个会话页白屏（实测 bodyLen 只有 171）。
+ * 主状态条的中间图标已改为内联「数据库堆叠」SVG，与本 import 互不影响。
+ */
+import { DataLine20Regular } from '@vicons/fluent';
 import { useTurnStats } from '@/composables/useTurnStats';
 import TraceFlowDialog from './trace/TraceFlowDialog.vue';
 import { normalizeLiveTrace, type SessionTrace } from './trace/traceTypes';

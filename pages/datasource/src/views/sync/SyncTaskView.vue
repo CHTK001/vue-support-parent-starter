@@ -110,11 +110,12 @@
     </div>
 
     <div class="st-body">
-      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径），
-           分页由页脚自管（pageTasks 切片与原实现逐行一致），toolbar=false 保持本页按钮清单不变。 -->
+      <!-- ReTable 自带分页：本地数组按 page/pageSize 切片，total 自动取数组长度；
+           不再在页脚重复实现 el-pagination。 -->
       <ReTable
-        :data="pageTasks" :columns="taskColumns" :loading="loading"
-        :pagination="false" :toolbar="false"
+        :data="filteredTasks" :columns="taskColumns" :loading="loading"
+        :pagination="true" :toolbar="false"
+        :page="pageNo" :page-size="PAGE_SIZE"
         table-id="monitor-sync-tasks" stripe
         empty-text="没有符合条件的同步任务"
       >
@@ -211,14 +212,6 @@
             </div>
         </template>
       </ReTable>
-      <div class="st-foot">
-        <span>显示 {{ pageStart }}-{{ pageEnd }} 条，共 {{ tasks.length }} 个同步任务</span>
-        <el-pagination
-          v-model:current-page="pageNo" :page-size="PAGE_SIZE" :total="filteredTasks.length"
-          :pager-count="5" size="small" background layout="prev, pager, next"
-          aria-label="同步任务分页"
-        />
-      </div>
     </div>
 
     <ReDialog
@@ -291,7 +284,7 @@
             <div v-if="sourceMode === 'table'" class="st-form-item">
               <label>数据表</label>
               <el-select v-model="pickedSourceTable" placeholder="选择源库数据表" filterable clearable class="st-full" @change="applySourceTable" @clear="onSourceTableClear">
-                <el-option v-for="t in sourceTables" :key="t" :label="t" :value="t" />
+                <el-option v-for="t in sourceTables" :key="t" :label="displayTargetTable(t)" :value="t" />
               </el-select>
               <div class="st-form-hint">选中后自动生成 SELECT（见下方 SQL，只读）；需要微调请切到「自定义 SQL」。</div>
             </div>
@@ -474,9 +467,9 @@
             <div class="st-form-item">
               <label>目标数据表</label>
               <el-select v-model="form.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
-                <el-option v-for="t in targetTables" :key="t" :label="t" :value="t" />
+                <el-option v-for="t in targetTables" :key="t" :label="displayTargetTable(t)" :value="t" />
               </el-select>
-              <div class="st-form-hint">表清单取自目标数据源；不在清单中的表名可直接输入。预览发现表不存在时，会弹出设计表向导在对应库建好并自动继续预览。</div>
+              <div class="st-form-hint">表清单取自目标数据源，选中值带库前缀（如 ngxacc.device_channel），保证预览/保存与后台查列落在同一库；不在清单中的表名可直接输入。</div>
             </div>
             <div class="st-form-item">
               <label>写入模式</label>
@@ -766,7 +759,6 @@
       <template #footer>
         <div class="st-dlg-actions">
           <ReButton v-if="logFetchError && logEntries.length" @click="clearLogEntries">清空本机记录</ReButton>
-          <ReButton @click="logVisible = false">关闭</ReButton>
           <ReButton v-if="logTask" @click="openEditFromLog">编辑任务</ReButton>
           <ReButton
             v-if="logTask" type="primary"
@@ -784,6 +776,7 @@
     <CreateTableDialog
       v-model="tableDesignerVisible"
       :datasource-id="designerDatasourceId ?? undefined"
+      :database="designerDatabase || undefined"
       :initial-name="designerTable"
       :initial-columns="designerColumns"
       @created="onTableCreated"
@@ -823,7 +816,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type 
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
-import { fetchTableColumns } from "../../api/manageConsoles";
+import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import BulkImportDialog from "../../components/sync/BulkImportDialog.vue";
 import ReCron from "@repo/ui/re-cron";
@@ -868,6 +861,10 @@ const writeModes = ref<SyncWriteMode[]>([]);
 const sourceTables = ref<string[]>([]);
 /** 目标库可选表 */
 const targetTables = ref<string[]>([]);
+/** 目标数据源当前命中的库（选表后由清单流程写入，保存/预览用「库.表」对齐后端） */
+const targetDatabase = ref("");
+/** 源数据源当前命中的库（源表下拉限定值已含库名；建表回填裸表名时用它补库） */
+const sourceDatabase = ref("");
 /** 源库选表用的临时值 */
 const pickedSourceTable = ref<string | null>(null);
 /** 弹窗可见 */
@@ -1388,15 +1385,10 @@ const baseTasks = computed(() => tasks.value.filter(row =>
   && inRange(row)
   && (!nameFilter.value.trim() || (row.syncTaskName || "").toLowerCase().includes(nameFilter.value.trim().toLowerCase())),
 ));
-/** 表格实际数据源：基础集再按状态分段收一道 */
+/** 表格实际数据源：基础集再按状态分段收一道（ReTable 自带分页会按 page/pageSize 切片） */
 const filteredTasks = computed(() => baseTasks.value.filter(row =>
   statusFilter.value === "all" || statusOf(row) === statusFilter.value,
 ));
-/** 当前页切片；筛选条件变化时回到第 1 页（watch 见下方） */
-const pageTasks = computed(() => filteredTasks.value.slice((pageNo.value - 1) * PAGE_SIZE, pageNo.value * PAGE_SIZE));
-/** 页脚「显示 a-b 条」 */
-const pageStart = computed(() => (filteredTasks.value.length ? (pageNo.value - 1) * PAGE_SIZE + 1 : 0));
-const pageEnd = computed(() => Math.min(pageNo.value * PAGE_SIZE, filteredTasks.value.length));
 
 /** 今日成功率：今日有执行记录的任务里成功占比；无今日执行则为 null（显示「—」，不伪造 100%） */
 const todayRate = computed<number | null>(() => {
@@ -1687,11 +1679,17 @@ const loadTables = async (id: number | null, target: boolean) => {
     return;
   }
   try {
-    const list = await fetchDatasourceTables(id);
+    // 源/目标侧都直接拿「库.表」限定名，选中值即真实库+表名，避免会话缓存库名与
+    // 表实际所在库不一致——源端漏拼库会让 `SELECT * FROM device_channel` 落在源数据源
+    // 的默认库（jdbc_acc）上，报 Table '<默认库>.device_channel' doesn't exist。
+    const list = await fetchMonitorTablesQualified(id);
     if (target) {
       targetTables.value = list;
+      // 手填裸表名时仍用缓存库兜底；选中下拉项的值已带库前缀，这里只作降级。
+      targetDatabase.value = getDatasourceDatabase(Number(id)) ?? "";
     } else {
       sourceTables.value = list;
+      sourceDatabase.value = getDatasourceDatabase(Number(id)) ?? "";
     }
   } catch {
     // 表清单只是辅助，取不到不影响手填 SQL / 表名
@@ -1716,10 +1714,18 @@ const onTargetChange = async () => {
   await loadTables(form.targetDatasourceId, true);
 };
 
+/** 限定表名 → SQL 段：`库.表` 拆成 `` `库`.`表` ``，裸表名保持 `` `表` `` */
+const sourceTableRef = (table: string): string => {
+  const dot = table.indexOf(".");
+  return dot > 0
+    ? `\`${table.slice(0, dot)}\`.\`${table.slice(dot + 1)}\``
+    : `\`${table}\``;
+};
+
 /** 由所选表生成源 SQL */
 const applySourceTable = () => {
   if (pickedSourceTable.value) {
-    form.sourceSql = `SELECT * FROM \`${pickedSourceTable.value}\``;
+    form.sourceSql = `SELECT * FROM ${sourceTableRef(pickedSourceTable.value)}`;
   }
 };
 
@@ -2002,7 +2008,7 @@ const doPreview = async () => {
       sourcePath: form.sourcePath,
       sourceOptions: buildSourceOptions(),
       targetDatasourceId: form.targetDatasourceId,
-      targetTable: form.targetTable,
+      targetTable: qualifiedTargetTable(),
       mapping: form.mapping.filter(item => item.source && item.target),
     });
     previewSourceColumns.value = preview.sourceColumns;
@@ -2050,6 +2056,8 @@ const designerTable = ref("");
 const designerColumns = ref<DesignerColumn[]>([]);
 /** 设计器要连的数据源 ID */
 const designerDatasourceId = ref<number | null>(null);
+/** 设计器要建表所在的库（与 JDBC 数据库管理器「新建表」同口径：弹窗展示目标库并按库建表） */
+const designerDatabase = ref("");
 
 /** 预览报错是不是「表不存在」（MySQL / PostgreSQL / Oracle 三种方言的形态） */
 const isTableMissingError = (message: string): boolean =>
@@ -2096,7 +2104,11 @@ const fetchSourcePrefill = async (): Promise<DesignerColumn[]> => {
   }
   try {
     if (sourceMode.value === "table" && pickedSourceTable.value) {
-      const columns = await fetchTableColumns(pickedSourceTable.value, form.sourceDatasourceId);
+      const table = pickedSourceTable.value;
+      const dot = table.indexOf(".");
+      const tableName = dot >= 0 ? table.slice(dot + 1) : table;
+      const database = dot >= 0 ? table.slice(0, dot) : sourceDatabase.value || undefined;
+      const columns = await fetchTableColumns(tableName, form.sourceDatasourceId, database);
       return columns.map(c => ({
         name: c.name,
         type: (c.baseType || c.type || "VARCHAR").toUpperCase(),
@@ -2123,22 +2135,70 @@ const openTableDesigner = async (message: string): Promise<void> => {
   designerSide.value = side;
   designerTable.value = missing ?? (side === "target" ? form.targetTable.trim() : pickedSourceTable.value ?? "");
   designerDatasourceId.value = (side === "target" ? form.targetDatasourceId : form.sourceDatasourceId) ?? null;
+  // 与 JDBC 数据库管理器「新建表」同口径：把目标/源命中库带给设计器，
+  // 弹窗展示目标库、建表也按该库，而不是落到数据源默认库（否则又是错库）。
+  // 目标侧裸表名优先沿用源表所在库（resolveTargetDatabase），避免掉回登记主库 jdbc_acc。
+  designerDatabase.value = side === "target" ? resolveTargetDatabase() : sourceDatabase.value;
   designerColumns.value = side === "target" ? await fetchSourcePrefill() : [];
   tableDesignerVisible.value = true;
 };
 
 /** 建表成功（后端已按方言 CREATE TABLE）→ 回填表名、刷新表清单并自动续跑预览 */
 const onTableCreated = async (_database: string, table: string): Promise<void> => {
+  // 设计器按目标库建表（database 已随弹窗传入），created 回传库名；把表名限定成
+  // 「库.表」再回填，保证预览/保存与后台查列落在同一库（与选表下拉限定值口径一致）。
+  const qualified = _database && !table.includes(".") ? `${_database}.${table}` : table;
   if (designerSide.value === "target") {
-    form.targetTable = table;
+    form.targetTable = qualified;
     void loadTables(form.targetDatasourceId, true);
   } else {
     sourceMode.value = "table";
-    pickedSourceTable.value = table;
-    form.sourceSql = `SELECT * FROM \`${table}\``;
+    pickedSourceTable.value = qualified;
+    form.sourceSql = `SELECT * FROM ${sourceTableRef(qualified)}`;
     void loadTables(form.sourceDatasourceId, false);
   }
   await doPreview();
+};
+
+/**
+ * 手填裸表名时应落到的目标库：
+ * <p>1) 目标表已带库前缀（下拉选中值 / 用户手写 {@code 库.表}）→ 以它为准；
+ * 2) 源是 JDBC 且选了带库前缀的源表 → 目标默认沿用源表所在库（同一库内同步是主流，
+ *    也是「选 device_channel 却落到默认库 jdbc_acc」这类错库问题的根治：手填表名
+ *    不再掉回数据源登记主库）；3) 其余退回目标数据源登记主库缓存兜底。</p>
+ */
+const resolveTargetDatabase = (): string => {
+  const raw = form.targetTable.trim();
+  const dot = raw.indexOf(".");
+  if (dot > 0) return raw.slice(0, dot);
+  if (form.sourceType === "JDBC" && sourceMode.value === "table" && pickedSourceTable.value) {
+    const sd = pickedSourceTable.value.indexOf(".");
+    if (sd > 0) return pickedSourceTable.value.slice(0, sd);
+  }
+  return targetDatabase.value;
+};
+
+/**
+ * 目标表提交值：把页面选中的表名补上库前缀。
+ *
+ * <p>表清单来自数据源中心（候选库逐个试出），命中的库存在 {@link targetDatabase}。
+ * 后端 {@code SyncJdbcSupport.tableColumns/quoteTable} 原生支持 {@code 库.表}，
+ * 因此提交为 {@code ngxacc.device_channel} 后预览/保存/执行全程一致。
+ * 已带点的存量表名或用户手写的完整表名保持原样，避免重复拼库；
+ * 手填裸表名时按 {@link resolveTargetDatabase} 落库（源表库优先）。</p>
+ */
+const qualifiedTargetTable = (): string => {
+  const raw = form.targetTable.trim();
+  if (!raw) return raw;
+  if (raw.includes(".")) return raw;
+  const db = resolveTargetDatabase();
+  return db ? `${db}.${raw}` : raw;
+};
+
+/** 下拉只展示裸表名，选中值保留「库.表」限定名 */
+const displayTargetTable = (table: string): string => {
+  const dot = table.lastIndexOf(".");
+  return dot >= 0 ? table.slice(dot + 1) : table;
 };
 
 /** 保存任务 */
@@ -2185,7 +2245,7 @@ const submit = async () => {
       sourcePath: form.sourceType === "JDBC" ? null : form.sourcePath.trim(),
       sourceOptions: buildSourceOptions(),
       targetDatasourceId: targetId,
-      targetTable: form.targetTable.trim(),
+      targetTable: qualifiedTargetTable(),
       columnMapping: mapping.length ? JSON.stringify(mapping) : null,
       writeMode: form.writeMode,
       syncMode: form.syncMode,
@@ -2797,15 +2857,6 @@ onUnmounted(() => {
 }
 .st-acts :deep(.rs-btn) { margin: 0; }
 
-.st-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px 0;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
 /* 三步向导头部：与表单区留出呼吸感 */
 /* ---------- 向导步骤条（UI 图）：圆序号 + 连接线 + 标题/说明，全走 koi 变量 ---------- */
 .st-steps { display: flex; align-items: flex-start; margin-bottom: 18px; }

@@ -119,15 +119,18 @@ function btnProps(): Record<string, unknown> {
       </ReButton>
       <ReButton
         v-if="showReset"
-        v-bind="btnProps()" type="" icon="RefreshLeft"
+        v-bind="btnProps()" type="" icon="anim:tabler:refresh"
+        :anim-icon-size="16"
         style="background: var(--el-bg-color); border-color: var(--el-border-color); color: var(--el-text-color-regular)"
         @click="emit('reset')"
       >
         {{ resetText }}
       </ReButton>
+      <!-- 搜索：动画搜索图标；loading 态保留图标并整体旋转 -->
       <ReButton
         v-if="showSearch"
-        v-bind="btnProps()" type="primary" icon="Search"
+        v-bind="btnProps()" type="primary" icon="anim:tabler:search"
+        :anim-icon-size="16"
         :loading="loading"
         @click="emit('search')"
       >

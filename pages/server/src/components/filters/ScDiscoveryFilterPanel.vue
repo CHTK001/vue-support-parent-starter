@@ -182,10 +182,9 @@ watch(
         :data="discoveryInstances"
         :loading="discoveryLoading"
         border
-        :pagination="false"
-        :toolbar="false"
         empty-text="暂无实例（请确认发现服务已启用，或调整协议 / 服务标识）"
         class="fc-table"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <ReTableColumn prop="host" label="主机" min-width="140" show-overflow-tooltip />
         <ReTableColumn prop="port" label="端口" width="80" />

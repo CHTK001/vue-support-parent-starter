@@ -138,6 +138,7 @@ export type RelationLayoutName =
   | "dagre"
   | "antv-dagre"
   | "combo-combined"
+  | "rrg-cluster"
   | "compact-box"
   | "dendrogram"
   | "indented"
@@ -163,6 +164,7 @@ export const RELATION_LAYOUTS: Array<{ value: RelationLayoutName; label: string;
   { value: "radial", label: "辐射" },
   { value: "grid", label: "网格" },
   { value: "random", label: "随机" },
+  { value: "rrg-cluster", label: "分组聚簇" },
   { value: "dagre", label: "有向分层" },
   { value: "antv-dagre", label: "有向分层(antv)" },
   { value: "snake", label: "蛇形" },

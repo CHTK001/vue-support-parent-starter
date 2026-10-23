@@ -27,7 +27,7 @@ import {
   useSlots,
   watch,
 } from "vue";
-import { Graph, Minimap, register, ExtensionCategory } from "@antv/g6";
+import { BaseLayout, Graph, Minimap, register, ExtensionCategory } from "@antv/g6";
 import { useDebounceFn } from "@vueuse/core";
 import { getStorageKey } from "@repo/config";
 import ReButton from "../../ReButton";
@@ -67,6 +67,102 @@ if (!minimapRegistered) {
   minimapRegistered = true;
 }
 
+/**
+ * 分组圆形聚簇布局（rrg-cluster）
+ *
+ * <p>一次 execute 直接算出终态坐标：同 {@code group} 的节点围绕本组簇心排成几个
+ * 同心环（组越大环越多，核心节点在内环），组簇心沿画布大圆均匀分布 → 每组成为
+ * 一个紧密的圆形聚簇，组与组之间天然分离。这是「参考图那种按势力聚成一团」
+ * 的组件级通用实现，任何给节点标了 {@code group} 的业务直接 {@code layout="rrg-cluster"}
+ * 或开 {@code grouped-layout} 即可，不再依赖力导向漂移，也不需要矩形容器框。</p>
+ *
+ * <p>无 {@code group} 的散点铺在画布中央的小范围，避免与各簇抢空间。</p>
+ */
+class RrgClusterLayout extends BaseLayout {
+  id = "rrg-cluster";
+
+  async execute(data: any, options?: any): Promise<any> {
+    const nodes = data?.nodes ?? [];
+    if (!nodes.length) return data;
+    const width = this.options?.width ?? options?.width ?? containerSize?.width ?? 800;
+    const height = this.options?.height ?? options?.height ?? containerSize?.height ?? 600;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    // 按 group 分组：组内维持原顺序（degree 高者通常在数据前面，天然放内环）
+    const groups = new Map<string, any[]>();
+    const free: any[] = [];
+    for (const n of nodes) {
+      const g: string = n?.data?.__group ?? n?.group;
+      if (g) {
+        let arr = groups.get(g);
+        if (!arr) {
+          arr = [];
+          groups.set(g, arr);
+        }
+        arr.push(n);
+      } else {
+        free.push(n);
+      }
+    }
+    const groupNames = [...groups.keys()];
+    const pos = new Map<string, { x: number; y: number }>();
+
+    // 1) 有组节点：簇心沿大圆均匀分布，组内同心环排布
+    const R = Math.min(width, height) * 0.4;
+    groupNames.forEach((g, gi) => {
+      const members = groups.get(g) ?? [];
+      const count = members.length;
+      if (!count) return;
+      const angle = -Math.PI / 2 + (gi / groupNames.length) * Math.PI * 2;
+      const gcx = cx + R * Math.cos(angle);
+      const gcy = cy + R * Math.sin(angle);
+      // 组内容纳半径：随人数增长但封顶，避免大簇撞出画布
+      const inner = Math.min(R * 0.42, 24 + Math.sqrt(count) * 14);
+      // 环数：人数越多环越多（内环最密），每环摊一个角度
+      const rings = Math.min(3, Math.max(1, Math.ceil(count / 14)));
+      members.forEach((m, mi) => {
+        const ring = Math.min(rings - 1, Math.floor(mi / Math.max(1, Math.ceil(count / rings))));
+        const ringR = inner * (ring === 0 ? 0.32 : ring === 1 ? 0.68 : 1);
+        const start = ring * 0.4;
+        // 本环内均匀散布角度（同组扇形内），环之间错开避免重叠
+        const angleSpan = (2.4 * Math.PI) / rings;
+        const a = angle - angleSpan / 2 + start + (mi % Math.max(1, Math.ceil(count / rings))) * (angleSpan / Math.max(1, Math.ceil(count / rings)));
+        pos.set(m.id, {
+          x: gcx + ringR * Math.cos(a),
+          y: gcy + ringR * Math.sin(a),
+        });
+      });
+    });
+
+    // 2) 散点：画布中央螺旋铺开，半径上限与最近簇保持距离
+    const fR = Math.min(R * 0.5, Math.min(width, height) * 0.16);
+    free.forEach((n, fi) => {
+      const t = free.length > 1 ? fi / (free.length - 1) : 0.5;
+      const rr = fR * Math.sqrt(t);
+      const a = fi * 2.39996; // 黄金角，均匀铺满中心圆
+      pos.set(n.id, { x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a) });
+    });
+
+    return {
+      nodes: nodes.map((n: any) => {
+        const p = pos.get(n.id);
+        return p ? { ...n, style: { ...(n.style ?? {}), x: p.x, y: p.y } } : n;
+      }),
+      edges: data?.edges ?? [],
+    };
+  }
+}
+
+/** containerSize：布局实例化晚于容器尺寸就绪，这里兜底读写 */
+const containerSize: { width?: number; height?: number } = {};
+
+let clusterLayoutRegistered = false;
+if (!clusterLayoutRegistered) {
+  register(ExtensionCategory.LAYOUT, "rrg-cluster", RrgClusterLayout);
+  clusterLayoutRegistered = true;
+}
+
 defineOptions({ name: "ReRelationGraphCore" });
 
 const props = withDefaults(
@@ -83,6 +179,9 @@ const props = withDefaults(
     layout?: RelationLayoutName;
     /** 布局参数（覆盖默认） */
     layoutOptions?: Record<string, unknown>;
+    /** 按 group 分区布局：开启后同 group 节点被分配到画布同一区块的初始坐标，
+     *  力导向从分区起点散开，同组自然聚成区块（适合按类别/势力分组的图） */
+    groupedLayout?: boolean;
     /** 高度 */
     height?: string | number;
     /** 宽度 */
@@ -199,6 +298,7 @@ const props = withDefaults(
     lines: undefined,
     layout: "force",
     layoutOptions: undefined,
+    groupedLayout: false,
     height: "100%",
     width: "100%",
     toolbar: true,
@@ -282,7 +382,8 @@ const wrapRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const graphRef = shallowRef<Graph | null>(null);
 const ready = ref(false);
-const currentLayout = ref<string>(props.layout);
+/** 生效布局：groupedLayout 开启时强制用分组圆形聚簇（rrg-cluster），否则跟随 props.layout */
+const currentLayout = ref<string>(props.groupedLayout ? "rrg-cluster" : props.layout);
 const empty = ref(true);
 
 /** 右键菜单状态 */
@@ -631,20 +732,24 @@ const GROUP_COLOR_PALETTE = ["#409eff", "#f56c6c", "#67c23a", "#e6a23c", "#90939
 /** 由 group 名称生成稳定的 combo id */
 const groupComboId = (group: string): string => `rrg-group:${group}`;
 
-/** 生成分组容器的浅色背景样式 */
+/** 生成分组容器的浅色背景样式（v2：提升可见性，势力区块一眼可辨） */
 const groupComboStyle = (group: string, index: number): Record<string, unknown> => {
   const base = GROUP_COLOR_PALETTE[index % GROUP_COLOR_PALETTE.length];
   return {
-    fill: `${base}1a`,
-    stroke: `${base}88`,
-    lineWidth: 1,
-    lineDash: [4, 4],
-    radius: 6,
+    fill: `${base}26`,
+    stroke: `${base}aa`,
+    lineWidth: 2,
+    lineDash: [5, 4],
+    radius: 8,
     labelText: String(group ?? ""),
     labelFill: base,
     labelFontSize: 12,
+    labelFontWeight: "bold",
     labelPlacement: "left-top",
-    labelOffsetY: -12,
+    labelOffsetY: -14,
+    labelPadding: [2, 6],
+    labelBackground: true,
+    labelBackgroundFill: "#fff",
   };
 };
 
@@ -913,8 +1018,10 @@ const buildBehaviors = () => {
       },
     });
   }
-  if (highlightMode.value === "adjacent" || highlightMode.value === "both") {
-    list.push({ type: "hover-activate", degree: 1, state: "active", inactiveState: "inactive" });
+  if (highlightMode.value !== "none") {
+    // 高亮由 node:pointerenter/leave → applyHoverHighlight 手动 setElementState 承担
+    // （G6 内置 hover-activate 在图片/密集大图上触发不稳定，用户实测无反馈），
+    // 这里不再 push behavior，避免双路状态互相覆盖。
   }
   // 大数据量性能优化：节点数多时只重绘视口内元素，避免拖拽/缩放全量更新
   const nodeCount = graphData.value.nodes?.length ?? 0;
@@ -1163,13 +1270,21 @@ const safeFocusElement = async (graph: any, id: string, animate: boolean) => {
   }
 };
 
-/** 依据 highlight 配置，在悬停时高亮同组 / 淡出其余 */
-const applyGroupHighlight = async (nodeId: string | null, on: boolean) => {
+/**
+ * 依据 highlight 配置，在悬停时高亮相关元素（相邻节点 / 同组节点）并淡出其余。
+ *
+ * <p>早期实现依赖 G6 内置 {@code hover-activate} behavior，但在图片节点 / 密集
+ * 大图上事件触发不稳定（用户实测三国图谱无高亮反馈）。这里改为 node :pointerenter/leave
+ * 上手动计算目标集合并 {@code setElementState}——与 3D 分支同一套思路，效果确定。</p>
+ *
+ * <p>高亮目标：命中节点本身 + 相邻节点（adjacent）和/或同 group 节点（group）。
+ * 仅相邻时额外把命中节点相连的边置亮；其余节点/边置 inactive（淡出）。</p>
+ */
+const applyHoverHighlight = async (nodeId: string | null, on: boolean) => {
   const graph = graphRef.value;
-  if (!graph || highlightMode.value !== "group" && highlightMode.value !== "both") {
-    return;
-  }
-  if (!on || !nodeId) {
+  if (!graph) return;
+  const mode = highlightMode.value;
+  if (mode === "none" || !on || !nodeId) {
     // 只清除高亮状态（active/inactive），保留 selected 等其它状态：
     // setElementState 是「整表替换」语义，早先的 setElementState({}) 实际是空操作，
     // 而进入分支的整体替换会把选中态一并抹掉。
@@ -1180,26 +1295,63 @@ const applyGroupHighlight = async (nodeId: string | null, on: boolean) => {
         clearMap[n.id] = baseStates(graph, n.id);
       }
     });
+    (graphData.value.edges ?? []).forEach(e => {
+      const eid = e.id ?? `${e.source}->${e.target}`;
+      const cur: string[] = safeGetElementState(graph, eid);
+      if (cur.includes("active") || cur.includes("inactive")) {
+        clearMap[eid] = baseStates(graph, eid);
+      }
+    });
     if (Object.keys(clearMap).length) {
       await safeSetElementState(graph, clearMap, false);
     }
     return;
   }
+
   const node = nodeById(nodeId);
-  const group = node?.group;
-  if (!group) {
-    return;
-  }
-  const ids = new Set<string>();
-  (graphData.value.nodes ?? []).forEach(n => {
-    if (n.group === group) {
-      ids.add(n.id);
+  const hoverGroup = node?.group;
+  const wantAdj = mode === "adjacent" || mode === "both";
+  const wantGroup = mode === "group" || mode === "both";
+
+  const nodeTargets = new Set<string>([nodeId]);
+  const edgeTargets = new Set<string>();
+  const groupNodes = new Set<string>();
+  for (const e of graphData.value.edges ?? []) {
+    const s = e.source;
+    const t = e.target;
+    const sideOther = s === nodeId ? t : (t === nodeId ? s : undefined);
+    const eid = e.id ?? `${s}->${t}`;
+    if (sideOther !== undefined && wantAdj) {
+      // 相邻：命中节点与邻居都亮，相邻边亮
+      nodeTargets.add(sideOther);
+      nodeTargets.add(nodeId);
+      edgeTargets.add(eid);
+      // 相邻节点的同组也纳入（both 才有意义；adjacent 只做一行时跳过）
+      if (wantGroup && hoverGroup && (nodeById(sideOther)?.group === hoverGroup)) {
+        groupNodes.add(sideOther);
+      }
     }
-  });
+    if (wantGroup && hoverGroup) {
+      const sGroup = nodeById(s)?.group;
+      const tGroup = nodeById(t)?.group;
+      if ((s === nodeId && tGroup === hoverGroup) || (t === nodeId && sGroup === hoverGroup)) {
+        groupNodes.add(s);
+        groupNodes.add(t);
+        edgeTargets.add(eid);
+      }
+    }
+  }
+  if (wantGroup) groupNodes.forEach(id => nodeTargets.add(id));
+
   const stateMap: Record<string, string[]> = {};
   (graphData.value.nodes ?? []).forEach(n => {
     const base = baseStates(graph, n.id);
-    stateMap[n.id] = ids.has(n.id) ? [...base, "active"] : [...base, "inactive"];
+    stateMap[n.id] = nodeTargets.has(n.id) ? [...base, "active"] : [...base, "inactive"];
+  });
+  (graphData.value.edges ?? []).forEach(e => {
+    const eid = e.id ?? `${e.source}->${e.target}`;
+    const base = baseStates(graph, eid);
+    stateMap[eid] = edgeTargets.has(eid) ? [...base, "active"] : [...base, "inactive"];
   });
   await safeSetElementState(graph, stateMap, false);
 };
@@ -1384,6 +1536,13 @@ const FORCE_LAYOUT_DEFAULTS: Record<string, unknown> = {
   // 248 节点的关系图里叶子占多数，一开剪枝它们就全部叠在父节点上，
   // 这才是节点糊成一团的真正元凶（调 kr/kg 根本救不回来）。
   prune: false,
+  // ---- 收敛上限（大图防卡）----
+  // force-atlas2 默认 maxIteration=0（自动迭代到 minMovement 收敛），
+  // 300+ 节点在桌面浏览器上要跑上万步、阻塞主线程十几秒。
+  // 这里给一个合理上限，让布局「够用即可收敛」：宁可多留一点距离感，
+  // 也不能让首屏卡死在物理迭代里。首帧渲染 → 布局快速铺开 → fitView。
+  maxIteration: 800,
+  minMovement: 1.2,
   // ---- 两者共用 ----
   // 防重叠：按 nodeSize + nodeSpacing 做碰撞分离，避免节点/边叠在一起。
   // atlas2 的 preventOverlap 必须同时给 nodeSize 才会真正做碰撞检测，这里已给。
@@ -1489,6 +1648,8 @@ const runLayoutForGraph = async (graph: Graph, from: string, force: boolean): Pr
     log(`布局指纹未变（${from}），跳过重复重排`);
     return;
   }
+  // 分组聚簇布局（groupedLayout=true）由自定义布局 rrg-cluster 一次算好终态坐标，
+  // 无需预写力导向种子坐标。
   if (nodes.length + edges.length <= LAYOUT_ANIMATION_MAX_ELEMENTS) {
     await graph.layout();
     lastLayoutStamp = stamp;
@@ -1502,13 +1663,6 @@ const runLayoutForGraph = async (graph: Graph, from: string, force: boolean): Pr
   lastLayoutStamp = stamp;
 };
 
-/**
- * 排队执行一次布局：串行化 + 指纹去重。
- *
- * @param graph 本次要执行布局的 G6 实例
- * @param from 调用来源（仅用于日志）
- * @param force 忽略指纹强制重排
- */
 const layoutForGraph = (graph: Graph, from = "?", force = false): Promise<void> => {
   const run = layoutChain.then(() => runLayoutForGraph(graph, from, force));
   layoutChain = run.catch(() => {});
@@ -1611,14 +1765,19 @@ const initGraph = async () => {
     autoFit: false,
     animation: true,
     data: { nodes: [], edges: [], combos: [] },
-    node: { style: { fill: "#e8f3ff", stroke: "#2992ff", lineWidth: 1.5 } },
-    edge: { style: { stroke: "#c3cbd8", lineWidth: 1.2 } },
+    node: {
+      style: { fill: "#e8f3ff", stroke: "#2992ff", lineWidth: 1.5 },
+      // G6 v5 的状态样式必须挂在 node.state（顶层 nodeState 是无效键，悬停高亮才不生效）
+      state: buildStateStyle().node,
+    },
+    edge: {
+      style: { stroke: "#c3cbd8", lineWidth: 1.2 },
+      state: buildStateStyle().edge,
+    },
     combo: { type: "rect", style: { fill: "rgba(109,93,252,0.06)", stroke: "#c9c2ff", lineWidth: 1, labelText: "" } },
     layout: { type: currentLayout.value, ...resolveLayoutOptions(currentLayout.value, props.layoutOptions) } as any,
     behaviors: buildBehaviors(),
     plugins: buildPlugins(),
-    nodeState: buildStateStyle().node,
-    edgeState: buildStateStyle().edge,
   } as any);
 
   graphRef.value = graph;
@@ -1731,16 +1890,12 @@ const bindEvents = (graph: Graph) => {
     emit("node-hover", n, ev);
     // 指针转到节点上时收起边标签，否则上一条边的标签会一直挂着
     void revealEdgeLabel(null);
-    if (highlightMode.value === "group" || highlightMode.value === "both") {
-      await applyGroupHighlight(n?.id ?? null, true);
-    }
+    await applyHoverHighlight(n?.id ?? null, true);
   });
   graph.on("node:pointerleave", async (ev: any) => {
     hovered.value = null;
     emit("node-hover", null, ev);
-    if (highlightMode.value === "group" || highlightMode.value === "both") {
-      await applyGroupHighlight(null, false);
-    }
+    await applyHoverHighlight(null, false);
   });
   graph.on("edge:click", (ev: any) => {
     const e = edgeById(idOf(ev));
@@ -3460,18 +3615,21 @@ const applySettings = async (settings: RelationGraphSettings) => {
       needRebuild = true;
     }
     // ---- 第二步：统一执行最多一次昂贵操作 ----
+    // groupedLayout 是业务方显式指定的聚簇布局，优先级最高：忽略后台保存的 layout
+    // 偏好（否则旧偏好如 d3-force 会把聚簇覆盖掉，看起来「没生效」）。
+    const desiredLayout = props.groupedLayout ? ("rrg-cluster" as string) : settings.layout;
     if (needRebuild) {
       // 布局名先落到 currentLayout：initGraph 用它建图，避免重建后再跑一次布局
-      if (settings.layout && settings.layout !== currentLayout.value) {
-        currentLayout.value = settings.layout;
+      if (desiredLayout && desiredLayout !== currentLayout.value) {
+        currentLayout.value = desiredLayout;
       }
       await rebuild();
     } else if (needReload) {
       await setData(graphData.value);
     }
     // ---- 第三步：布局放最后（指纹相同则被去重跳过）----
-    if (settings.layout && settings.layout !== currentLayout.value) {
-      await setLayout(settings.layout, settings.layoutSettingsByLayout?.[settings.layout] ?? settings.layoutOptions);
+    if (desiredLayout && desiredLayout !== currentLayout.value) {
+      await setLayout(desiredLayout as RelationLayoutName, settings.layoutSettingsByLayout?.[desiredLayout] ?? settings.layoutOptions);
     } else if (settings.layoutOptions) {
       const next = { ...(perLayoutTuningValues.value[currentLayout.value] ?? {}) };
       for (const [k, v] of Object.entries(settings.layoutOptions)) {
@@ -3563,9 +3721,23 @@ watch(
 
 onMounted(async () => {
   await nextTick();
+  // 兜底：rrg-cluster 布局在实例化时若画布尺寸已就绪，直接读取容器实际尺寸
+  const host = containerRef.value;
+  if (host) {
+    containerSize.width = host.clientWidth;
+    containerSize.height = host.clientHeight;
+  }
   await initGraph();
   // 后台已存偏好：挂载后应用一次，避免每次都从默认布局重新开始
   await loadAndApplySettings();
+});
+
+// groupedLayout 切换：布局在初始化时决定，运行时切换需要重建图实例才能生效
+watch(() => props.groupedLayout, async v => {
+  const want = v ? "rrg-cluster" : props.layout;
+  if (want !== currentLayout.value) {
+    await setLayout(want as any);
+  }
 });
 
 // 外部 prop 变化时同步到运行时开关（避免调用方改了 prop 但界面还是旧状态）

@@ -270,7 +270,7 @@
     />
 
     <!-- 组织管理 -->
-    <el-dialog v-model="orgVisible" title="组织管理" width="560">
+    <ReDialog v-model="orgVisible" title="组织管理" width="560">
       <div class="flex items-center justify-between mb-3">
         <span class="text-xs text-el-text-secondary">组织来自厂商平台同步，用于设备分组与筛选。</span>
         <el-button size="small" :loading="orgSyncing" @click="syncOrg">
@@ -288,10 +288,10 @@
         />
         <div v-else class="py-8 text-center text-sm text-el-text-secondary">暂无组织，点击「同步组织」从厂商拉取。</div>
       </div>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 视频预览 -->
-    <el-dialog v-model="previewVisible" :title="previewTitle" width="760px" destroy-on-close>
+    <ReDialog v-model="previewVisible" :title="previewTitle" width="760px" destroy-on-close>
       <div class="bg-black rounded-lg overflow-hidden aspect-video">
         <ReVideo
           v-if="previewUrl"
@@ -301,12 +301,9 @@
           @error="onPreviewError"
         />
       </div>
-      <template #footer>
-        <el-button @click="previewVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
     <!-- 视频布局向导 -->
-    <el-dialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
+    <ReDialog v-model="videoWizardVisible" title="视频预览" width="480px" destroy-on-close>
       <div class="space-y-4">
         <div>
           <div class="text-sm mb-2">布局</div>
@@ -333,7 +330,7 @@
         <el-button @click="videoWizardVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmVideoWizard">打开预览</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -342,6 +339,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
+import ReDialog from '@repo/ui/re-dialog'
 import {
   ArrowDown,
   Connection,

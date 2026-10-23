@@ -1,11 +1,11 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col bg-white dark:bg-[#1a1a1a]">
+  <div class="h-full overflow-hidden flex flex-col bg-white dark:bg-gray-900">
     <!-- 页面头部 -->
-    <div class="shrink-0 px-6 py-4 border-b border-gray-200 dark:border-[#2f2f2f]">
+    <div class="shrink-0 px-6 py-4 border-b border-gray-200 dark:border-gray-800">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ title }}</h1>
-          <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ description }}</p>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ title }}</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ description }}</p>
         </div>
         <div class="flex items-center gap-2">
           <el-input
@@ -60,10 +60,14 @@
             {{ scope.row[col.prop] }}
           </slot>
         </template>
+        <!-- 操作列统一 ReButton square（纯图标 + tooltip）；
+             页面自定义动作仍可通过 #row-actions 插槽追加，排布继承 .row-actions 的间距 -->
         <template #col-actions="scope">
-          <el-button type="primary" link @click="handleEdit(scope.row)">编辑</el-button>
-          <el-button type="danger" link @click="handleDelete(scope.row)">删除</el-button>
-          <slot name="row-actions" :row="scope.row"></slot>
+          <div class="row-actions">
+            <ReButton layout="square" type="primary" :icon="Edit" tip="编辑" @click="handleEdit(scope.row)" />
+            <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="handleDelete(scope.row)" />
+            <slot name="row-actions" :row="scope.row"></slot>
+          </div>
         </template>
       </ReTable>
 
@@ -157,11 +161,12 @@
 import { message } from "@repo/core";
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Search, Plus, Refresh } from '@element-plus/icons-vue';
+import { Search, Plus, Refresh, Edit, Delete } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import ReDialog from '@repo/ui/re-dialog';
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import ReButton from '@repo/ui/re-button'
 
 interface Column {
   prop: string;

@@ -559,7 +559,6 @@ onMounted(loadList);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 10px 12px 12px;
   /* 撑满外壳主区（.main 是 grid 项，本身高度确定；未设这两条时百分比高度无基准，
      表格卡的 flex:1 会因为父级是内容高度而拿不到空间）。 */
   height: 100%;

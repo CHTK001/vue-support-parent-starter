@@ -64,11 +64,10 @@
         :data="filteredItems as unknown as Record<string, unknown>[]"
         :columns="tableColumns"
         :loading="loading"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 200 }"
         empty-text="无匹配端点"
         @row-click="onRowClick"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-endpoint="{ row }">
           <span class="mono endpoint-text">{{ row.endpoint }}</span>

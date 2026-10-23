@@ -9,7 +9,7 @@
             <template #label>
               <div class="flex items-center gap-1.5">
                 <span>{{ t('scheduler.page.tabConfigured') }}</span>
-                <span v-if="tasks.length > 0" class="text-xs text-gray-400 dark:text-[#6b6d75]">{{ tasks.length }}</span>
+                <span v-if="tasks.length > 0" class="text-xs text-gray-400 dark:text-gray-400">{{ tasks.length }}</span>
               </div>
             </template>
           </el-tab-pane>
@@ -25,8 +25,8 @@
             <!-- 标题区 -->
             <div class="flex items-center justify-between gap-4 mb-8 mt-2">
               <div class="min-w-0">
-                <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('scheduler.page.title') }}</h1>
-                <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('scheduler.page.subtitle') }}</p>
+                <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('scheduler.page.title') }}</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('scheduler.page.subtitle') }}</p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <el-button @click="loadTasks" :loading="loading">
@@ -52,19 +52,19 @@
                 <!-- Header: name + schedule -->
                 <div class="flex items-center gap-2.5 mb-3">
                   <CardAvatar :name="task.name" />
-                  <h3 class="font-semibold text-gray-900 dark:text-[#e8e9ed] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
+                  <h3 class="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
                     {{ task.name }}
                   </h3>
                   <el-tag effect="plain" class="shrink-0 font-mono">{{ scheduleText(task) }}</el-tag>
                 </div>
 
                 <!-- Description: prompt -->
-                <div class="text-gray-400 dark:text-[#6b6d75] line-clamp-2 h-[2.5rem]" style="font-size: calc(var(--size-text-base) - 2px);">
+                <div class="text-gray-400 dark:text-gray-400 line-clamp-2 h-[2.5rem]" style="font-size: calc(var(--size-text-base) - 2px);">
                   {{ task.prompt }}
                 </div>
 
                 <!-- Meta: 执行目标 + 运行态（后端 state，真实回传） -->
-                <div class="flex items-center gap-3 mt-3 text-xs text-gray-400 dark:text-[#6b6d75] min-w-0">
+                <div class="flex items-center gap-3 mt-3 text-xs text-gray-400 dark:text-gray-400 min-w-0">
                   <span class="flex items-center gap-1 shrink-0">
                     <el-icon :size="13"><CalendarTodayOutlined /></el-icon>
                     {{ targetText(task) }}
@@ -93,12 +93,12 @@
 
             <!-- 空状态 -->
             <div v-else-if="!loading" class="re-surface p-12 text-center">
-              <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-[#2a2c30] flex items-center justify-center mx-auto mb-4">
-                <el-icon :size="28" class="text-gray-400 dark:text-[#6b6d75]">
+              <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                <el-icon :size="28" class="text-gray-400 dark:text-gray-400">
                   <ScheduleOutlined />
                 </el-icon>
               </div>
-              <p class="text-sm text-gray-500 dark:text-[#8b8d95]">{{ t('scheduler.page.empty') }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('scheduler.page.empty') }}</p>
               <el-button type="primary" class="mt-4" @click="handleAddTask">
                 {{ t('scheduler.page.createManual') }}
                 <template #icon><ArrowForwardOutlined /></template>
@@ -110,17 +110,17 @@
           <template v-else-if="activeTab === 'templates'">
             <div class="flex items-center justify-between gap-4 mb-8 mt-2">
               <div class="min-w-0">
-                <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('scheduler.page.templatesTitle') }}</h1>
-                <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('scheduler.page.templatesSubtitle') }}</p>
+                <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('scheduler.page.templatesTitle') }}</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('scheduler.page.templatesSubtitle') }}</p>
               </div>
             </div>
             <div class="re-surface p-12 text-center">
-              <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-[#2a2c30] flex items-center justify-center mx-auto mb-4">
-                <el-icon :size="28" class="text-gray-400 dark:text-[#6b6d75]">
+              <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                <el-icon :size="28" class="text-gray-400 dark:text-gray-400">
                   <DashboardOutlined />
                 </el-icon>
               </div>
-              <p class="text-sm text-gray-500 dark:text-[#8b8d95]">{{ t('scheduler.page.templatesInProgress') }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('scheduler.page.templatesInProgress') }}</p>
             </div>
           </template>
         </div>

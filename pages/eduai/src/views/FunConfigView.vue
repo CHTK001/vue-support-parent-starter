@@ -9,7 +9,6 @@
       :search="searchConfig"
       v-model:search-model="searchModel"
       row-key="configId"
-      :pagination="false"
       border
       stripe
       style="width: 100%"

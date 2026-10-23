@@ -1,6 +1,6 @@
 <template>
   <!-- kb-refactor：知识库编辑部设计层作用域（见 styles/kb-refactor.css） -->
-  <div class="kb-refactor h-full min-h-0 flex flex-col">
+  <div class="kb h-full min-h-0 flex flex-col">
     <!-- ===== 内容区：唯一滚动容器 ===== -->
     <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-6 px-6 py-5">
       <!-- ===== 页眉：宋体大标题 + 发丝线 ===== -->
@@ -189,7 +189,7 @@
 
     <!-- ===== 新建知识库弹框（结构不变，视觉随设计层） ===== -->
     <ReDialog v-model="modalVisible" :title="t('knowledge.page.createTitle')" :width="560" :close-on-click-modal="false">
-      <div class="kb-refactor flex flex-col gap-4">
+      <div class="kb flex flex-col gap-4">
         <div>
           <label class="kb-label block mb-1.5">
             {{ t('knowledge.page.kbName') }}<i class="kb-req">*</i>

@@ -173,12 +173,11 @@
             :data="threadPools as unknown as Record<string, unknown>[]"
             :columns="threadPoolColumns"
             engine="element"
-            :pagination="false"
-            :toolbar="false"
             :settings="{ border: false }"
             :layout-table="{ minHeight: 0 }"
             class="apm-table"
             empty-text="暂无线程池数据"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-name="{ row }">
               <span class="mono">
@@ -200,12 +199,11 @@
             :data="connectionPools as unknown as Record<string, unknown>[]"
             :columns="connectionPoolColumns"
             engine="element"
-            :pagination="false"
-            :toolbar="false"
             :settings="{ border: false }"
             :layout-table="{ minHeight: 0 }"
             class="apm-table"
             empty-text="暂无连接池数据"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-endpoint="{ row }">
               <span class="mono">{{ row.endpoint }}</span>

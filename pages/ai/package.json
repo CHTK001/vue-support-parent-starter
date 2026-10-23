@@ -14,6 +14,7 @@
     "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
+    "@repo/languages": "workspace:*",
     "@repo/theme": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",

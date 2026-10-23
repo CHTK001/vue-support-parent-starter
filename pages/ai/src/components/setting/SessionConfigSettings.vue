@@ -127,7 +127,7 @@
       </SettingsRow>
     </SettingsCard>
 
-    <LDialog v-model="modelDialogVisible" title="选择模型" width="600px">
+    <ReDialog :close-on-click-modal="true" v-model="modelDialogVisible" title="选择模型" width="600px">
       <div class="md-body">
         <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
           <template #prefix>
@@ -153,7 +153,7 @@
       <template #footer>
         <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -170,7 +170,7 @@ import { adminApi } from '@/framework/context'
 import { Search, ArrowDown } from '@element-plus/icons-vue'
 import { CheckCircleFilled } from '@vicons/material'
 import { OpenAI } from '@/components/icons'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 import { getModelAvatarPath } from '@/utils/modelUtils'
 import { invalidateInitialLoadTurnsCache } from '../../services/modules/message.api'

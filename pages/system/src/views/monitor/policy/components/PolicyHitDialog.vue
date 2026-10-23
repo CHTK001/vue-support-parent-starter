@@ -8,7 +8,6 @@
  */
 import { useI18n } from "vue-i18n";
 import { computed } from "vue";
-import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -98,16 +97,12 @@ const hitIpColumns = computed<ReTableColumn[]>(() => [
             :data="hitDetail.topIps"
             :columns="hitIpColumns"
             engine="element"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ maxHeight: 300 }"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           />
         </template>
       </template>
     </div>
-    <template #footer>
-      <ReButton @click="hitDialogVisible = false">{{ t("policy.common.close") }}</ReButton>
-    </template>
   </ReDialog>
 </template>
 

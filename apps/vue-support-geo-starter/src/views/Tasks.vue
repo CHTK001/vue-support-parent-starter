@@ -223,12 +223,11 @@ onBeforeUnmount(() => {
       :columns="taskColumns"
       :loading="loading"
       engine="element"
-      :pagination="false"
-      :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       stripe
       empty-text="暂无任务"
       class="tasks-table"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-sourceName="{ row }">
         <span>{{ row.sourceName || row.source || "-" }}</span>

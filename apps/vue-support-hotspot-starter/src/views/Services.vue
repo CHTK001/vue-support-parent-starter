@@ -70,12 +70,11 @@
         :data="filteredItems as unknown as Record<string, unknown>[]"
         :columns="tableColumns"
         :loading="loading"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 300 }"
         empty-text="没有符合条件的服务"
         class="drill-table"
         @row-click="onRowClick"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-service="{ row }">
           <span class="mono service-text">{{ row.service }}</span>

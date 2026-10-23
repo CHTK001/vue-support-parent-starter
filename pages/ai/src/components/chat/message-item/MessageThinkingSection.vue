@@ -2,7 +2,7 @@
   <div class="process-section thinking-section">
     <!-- 标题行 -->
     <div
-      class="thinking-section__header flex items-center text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+      class="thinking-section__header flex items-center text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
       @click.stop="handleToggle">
       <!-- 不再重复画思考图标：外层 ProcessTimeline 的 timeline-rail 已经给了一个，
            组件内再画会导致同一块思考出现两个图标（用户反馈「思考的图标重复出现」） -->

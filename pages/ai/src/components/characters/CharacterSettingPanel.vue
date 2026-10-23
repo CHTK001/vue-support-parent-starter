@@ -27,13 +27,13 @@
         <div v-show="tabsValue === 'basic'" class="flex-1 overflow-hidden">
           <div class="h-full overflow-y-auto py-4">
             <el-form ref="basicFormRef" :model="characterForm" :rules="basicRules" label-position="top">
-              <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-white dark:bg-[#232428] overflow-hidden">
+              <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 overflow-hidden">
                 <!-- 头像设置 -->
                 <el-form-item prop="avatarUrl" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.avatarTitle') }} <span class="text-xs text-gray-400">{{ t('characters.setting.avatarOptional') }}</span></span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ isGenericAssistant ? t('characters.setting.avatarLockedHint') : t('characters.setting.avatarHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.avatarTitle') }} <span class="text-xs text-gray-400">{{ t('characters.setting.avatarOptional') }}</span></span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ isGenericAssistant ? t('characters.setting.avatarLockedHint') : t('characters.setting.avatarHint') }}</span>
                     </div>
                     <AvatarPreview :src="characterForm.avatarUrl" type="assistant" class="w-10"
                       :name="characterForm.title" :disabled="isGenericAssistant" @avatar-changed="handleAvatarChanged" />
@@ -41,10 +41,10 @@
                 </el-form-item>
                 <!-- 角色标题 -->
                 <el-form-item prop="title" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.titleLabel') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.titleHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.titleLabel') }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.titleHint') }}</span>
                     </div>
                     <div class="w-1/2 flex justify-end">
                       <el-input v-model="characterForm.title" :placeholder="t('characters.setting.titlePlaceholder')" class="w-full" />
@@ -53,10 +53,10 @@
                 </el-form-item>
                 <!-- 角色描述 -->
                 <el-form-item prop="description" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.descLabel') }} <span class="text-xs text-gray-400">{{ t('characters.setting.descOptional') }}</span></span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.descHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.descLabel') }} <span class="text-xs text-gray-400">{{ t('characters.setting.descOptional') }}</span></span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.descHint') }}</span>
                     </div>
                     <div class="w-1/2">
                       <el-input v-model="characterForm.description" type="textarea" :placeholder="t('characters.setting.descPlaceholder')"
@@ -68,8 +68,8 @@
                 <el-form-item prop="groupId" class="mb-0!">
                   <div class="px-4 py-3.5 flex items-center justify-between gap-4 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.groupLabel') }} <span class="text-xs text-gray-400">{{ t('characters.setting.groupOptional') }}</span></span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.groupHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.groupLabel') }} <span class="text-xs text-gray-400">{{ t('characters.setting.groupOptional') }}</span></span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.groupHint') }}</span>
                     </div>
                     <div class="w-1/2">
                       <el-select v-model="characterForm.groupId" :placeholder="t('characters.setting.groupPlaceholder')" clearable class="w-full">
@@ -83,12 +83,12 @@
               </div>
 
               <!-- 模型选择 -->
-              <div class="mt-3 rounded-xl border border-gray-200 dark:border-[#2e3035] bg-white dark:bg-[#232428] overflow-hidden">
+              <div class="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 overflow-hidden">
                 <el-form-item prop="modelId" class="mb-0!">
                   <div class="px-4 py-3.5 flex items-center justify-between gap-4 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.modelLabel') }} <span class="text-xs text-gray-400">{{ t('characters.setting.modelOptional') }}</span></span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.modelHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.modelLabel') }} <span class="text-xs text-gray-400">{{ t('characters.setting.modelOptional') }}</span></span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.modelHint') }}</span>
                     </div>
                     <div class="w-1/2">
                       <el-select v-model="characterForm.modelId" :options="modelOptions" :placeholder="t('characters.setting.modelPlaceholder')" clearable
@@ -99,17 +99,17 @@
               </div>
 
               <!-- 默认能力（深度思考 / 在线检索） -->
-              <div class="mt-3 rounded-xl border border-gray-200 dark:border-[#2e3035] bg-white dark:bg-[#232428] overflow-hidden">
+              <div class="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 overflow-hidden">
                 <!-- 深度思考 -->
                 <el-form-item class="mb-0!">
-                  <div class="px-4 py-3 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                  <div class="px-4 py-3 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
                     <div class="flex items-center gap-2.5">
-                      <el-icon size="18" class="text-gray-500 dark:text-[#8b8d95]">
+                      <el-icon size="18" class="text-gray-500 dark:text-gray-400">
                         <BrainCircuit20Regular />
                       </el-icon>
                       <div class="flex flex-col">
-                        <span class="text-sm text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.capThink') }}</span>
-                        <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.capThinkHint') }}</span>
+                        <span class="text-sm text-gray-900 dark:text-gray-100">{{ t('characters.setting.capThink') }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.capThinkHint') }}</span>
                       </div>
                     </div>
                     <el-switch v-model="characterForm.defaultThink" />
@@ -119,12 +119,12 @@
                 <el-form-item class="mb-0!">
                   <div class="px-4 py-3 flex items-center justify-between gap-4 w-full">
                     <div class="flex items-center gap-2.5">
-                      <el-icon size="18" class="text-gray-500 dark:text-[#8b8d95]">
+                      <el-icon size="18" class="text-gray-500 dark:text-gray-400">
                         <GlobeShield20Regular />
                       </el-icon>
                       <div class="flex flex-col">
-                        <span class="text-sm text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.capSearch') }}</span>
-                        <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.capSearchHint') }}</span>
+                        <span class="text-sm text-gray-900 dark:text-gray-100">{{ t('characters.setting.capSearch') }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.capSearchHint') }}</span>
                       </div>
                     </div>
                     <el-switch v-model="characterForm.defaultSearch" />
@@ -133,13 +133,13 @@
               </div>
 
               <!-- 记忆与压缩 -->
-              <div class="mt-3 rounded-xl border border-gray-200 dark:border-[#2e3035] bg-white dark:bg-[#232428] overflow-hidden">
+              <div class="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 overflow-hidden">
                 <!-- 触发阈值 -->
                 <el-form-item prop="compressionTriggerRatio" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.triggerThreshold') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.triggerHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.triggerThreshold') }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.triggerHint') }}</span>
                     </div>
                     <div class="w-1/2">
                       <el-slider v-model="characterForm.compressionTriggerRatio" :min="0.5" :max="0.95" :step="0.05"
@@ -149,10 +149,10 @@
                 </el-form-item>
                 <!-- 保留目标 -->
                 <el-form-item prop="compressionTargetRatio" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.targetRatio') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.targetHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.targetRatio') }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.targetHint') }}</span>
                     </div>
                     <div class="w-1/2">
                       <el-slider v-model="characterForm.compressionTargetRatio" :min="0.2" :max="0.8" :step="0.05"
@@ -164,8 +164,8 @@
                 <el-form-item prop="summaryMode" class="mb-0!">
                   <div class="px-4 py-3.5 flex items-center justify-between gap-4 w-full">
                     <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.summaryMode') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.summaryHint') }}</span>
+                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.summaryMode') }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.summaryHint') }}</span>
                     </div>
                     <div class="w-1/2">
                       <el-select v-model="characterForm.summaryMode" :placeholder="t('characters.setting.summaryPlaceholder')" class="w-full">
@@ -498,7 +498,7 @@
     </div>
 
     <!-- 形态管理：build 恒存不可删；key 建后不可改（历史会话与角色提示词引用着它） -->
-    <el-dialog v-model="formDialogVisible" :title="t('characters.setting.formManageTitle')" width="560px"
+    <ReDialog v-model="formDialogVisible" :title="t('characters.setting.formManageTitle')" width="560px"
       :close-on-click-modal="false" append-to-body>
       <ul class="form-manage-list">
         <li v-for="f in promptForms" :key="f.formKey" class="form-manage-item">
@@ -559,12 +559,11 @@
       </div>
 
       <template #footer>
-        <el-button @click="formDialogVisible = false">{{ t('common.close') }}</el-button>
         <el-button type="primary" :loading="formSaving" :aria-label="formDraft.editingKey ? t('characters.setting.formSaveLabel') : t('characters.setting.formAddLabel')" @click="submitFormDraft">
           {{ formDraft.editingKey ? t('common.save') : t('common.add') }}
         </el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -573,6 +572,7 @@
 import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
+import ReDialog from '@repo/ui/re-dialog'
 import { getLocale } from '@/locales'
 import {
   ElForm,

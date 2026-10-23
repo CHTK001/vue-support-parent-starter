@@ -1,19 +1,11 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col bg-white dark:bg-[#1a1a1a]">
-    <div class="shrink-0 px-6 py-4 border-b border-gray-200 dark:border-[#2f2f2f]">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ pipelineTitle }}</h1>
-          <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ pipelineDesc }}</p>
-        </div>
-        <el-button @click="loadData">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
-    </div>
-
-    <div class="flex-1 overflow-auto p-6 space-y-6">
+  <RePage fill :title="pipelineTitle" :subtitle="pipelineDesc">
+    <template #actions>
+      <el-button @click="loadData">
+        <el-icon><Refresh /></el-icon>
+        刷新
+      </el-button>
+    </template>
       <!-- 管线概览 -->
       <el-card shadow="never" class="pipeline-card">
         <template #header>
@@ -74,17 +66,16 @@
         <template #header>
           <span class="font-bold">必填管线模型</span>
         </template>
-        <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 保持原 DOM；原表带 border →
+        <!-- 表格统一 ReTable（替换裸 el-table）：默认引擎已是 vxe；原表带 border →
              ReTable 默认省略；分页/工具栏关闭（页面没有分页）；无 height → :layout-table minHeight。 -->
         <ReTable
           :data="requiredModels"
           :columns="pipelineModelColumns"
-          engine="element"
-          :pagination="false"
-          :toolbar="false"
+         
           :layout-table="{ minHeight: 0 }"
           stripe
           style="width: 100%"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-enabled="{ row }">
             <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
@@ -101,20 +92,18 @@
         <ReTable
           :data="optionalModels"
           :columns="pipelineModelColumns"
-          engine="element"
-          :pagination="false"
-          :toolbar="false"
+         
           :layout-table="{ minHeight: 0 }"
           stripe
           style="width: 100%"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-enabled="{ row }">
             <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
           </template>
         </ReTable>
       </el-card>
-    </div>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
@@ -126,6 +115,7 @@ import { Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { pipelineApi } from '@/services/javaApi';
+import RePage from '@/components/re/RePage.vue';
 
 /**
  * 「管线模型」列配置：两张表（必填 / 非必填）结构完全相同，原各 4 个 el-table-column

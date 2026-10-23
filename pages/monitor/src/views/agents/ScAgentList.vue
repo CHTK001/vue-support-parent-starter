@@ -12,7 +12,7 @@
       </ReStatCard>
     </div>
 
-    <ReTable :data="agents" border :loading="loading" :pagination="false" :toolbar="false">
+    <ReTable :data="agents" border :loading="loading" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
       <ReTableColumn prop="monitorName" label="名称" min-width="140" />
       <ReTableColumn prop="monitorHost" label="地址" min-width="140" />
       <ReTableColumn prop="monitorAgentKey" label="探针标识" min-width="200" show-overflow-tooltip />
@@ -42,7 +42,7 @@
           </ReDescriptionsItem>
         </ReDescriptions>
         <h4 style="margin-top: 12px">采集任务</h4>
-        <ReTable :data="configData.tasks || []" :pagination="false" :toolbar="false">
+        <ReTable :data="configData.tasks || []" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
           <ReTableColumn prop="taskName" label="任务名" />
           <ReTableColumn prop="taskType" label="类型" width="90" />
           <ReTableColumn prop="taskCron" label="Cron" width="120" />

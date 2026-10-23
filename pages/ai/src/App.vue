@@ -31,6 +31,10 @@ import { i18n, getLocale } from './locales'
 import { useLanguage } from './composables/useLanguage'
 import MockControlPanel from './components/dev/MockControlPanel.vue'
 import ContextMenuManager from './utils/ContextMenuManager'
+// 模板里用了 <ContextMenu>，此前**漏了 import** —— Vue 解析不到该组件会抛
+// "Failed to resolve component: ContextMenu" 警告并把该节点的渲染中断，
+// 连带整个 App 子树变空白（表现为路由能跳转但页面全白、无任何报错）。
+import ContextMenu from './components/ui/ContextMenu.vue'
 
 const router = useRouter()
 const title = useTitle()

@@ -7,8 +7,8 @@
     <template v-else>
     <div class="flex items-center justify-between gap-4 mb-8 mt-2">
       <div class="min-w-0">
-          <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('plugins.localTools.title') }}</h1>
-        <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('plugins.localTools.subtitle') }}</p>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('plugins.localTools.title') }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('plugins.localTools.subtitle') }}</p>
       </div>
       <div class="lt-head-actions">
         <el-button
@@ -97,12 +97,12 @@
     </div>
 
     <!-- Detail Dialog -->
-    <LDialog v-model="detailVisible" width="560px" align-center destroy-on-close>
+    <ReDialog :close-on-click-modal="true" v-model="detailVisible" width="560px" align-center destroy-on-close>
       <template #header>
         <div class="flex items-center gap-3">
           <CardAvatar :src="currentTool?.icon ? `/api/v1/plugins/${currentTool?.pluginId}/icon` : null" :name="currentTool?.displayName" size="md" />
           <div class="flex items-center gap-2">
-            <span class="text-base font-semibold text-gray-900 dark:text-[#e8e9ed]">{{ currentTool?.displayName }}</span>
+            <span class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ currentTool?.displayName }}</span>
             <el-tag v-if="currentTool?.source === 'dev'" type="warning" effect="dark">{{ t('plugins.localTools.sourceDev') }}</el-tag>
             <el-tag v-else-if="currentTool?.source === 'user'" type="success" effect="plain">{{ t('plugins.localTools.sourceUser') }}</el-tag>
           </div>
@@ -111,29 +111,25 @@
 
       <div v-if="currentTool" class="space-y-4">
         <div>
-          <div class="text-xs text-gray-500 dark:text-[#8b8d95] mb-1">{{ t('plugins.localTools.descLabel') }}</div>
-          <p class="text-sm text-gray-700 dark:text-[#d0d1d5] leading-relaxed">{{ currentTool.description }}</p>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('plugins.localTools.descLabel') }}</div>
+          <p class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{{ currentTool.description }}</p>
         </div>
 
         <div v-if="currentTool.tools && currentTool.tools.length > 0">
-          <div class="text-xs text-gray-500 dark:text-[#8b8d95] mb-2">{{ t('plugins.localTools.toolsLabel', { count: currentTool.tools.length }) }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ t('plugins.localTools.toolsLabel', { count: currentTool.tools.length }) }}</div>
           <div class="space-y-1.5">
             <div v-for="sub in currentTool.tools" :key="sub.name"
               class="flex items-start gap-2 py-1.5 px-3 rounded-[var(--size-surface-radius)]"
               :style="{ background: 'var(--el-fill-color-light)' }">
               <div class="flex-1 min-w-0">
-                <div class="text-sm text-gray-700 dark:text-[#d0d1d5] font-medium">{{ sub.name }}</div>
+                <div class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ sub.name }}</div>
                 <div v-if="sub.description" class="text-xs text-gray-400 mt-0.5">{{ sub.description }}</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      <template #footer>
-        <el-button @click="detailVisible = false">{{ t('common.close') }}</el-button>
-      </template>
-    </LDialog>
+    </ReDialog>
 
     <!-- 添加本地工具弹窗 -->
     <CustomToolDialog ref="addDialog" @saved="loadGlobalTools" />
@@ -151,7 +147,7 @@ import { apiService } from '@/services/ApiService'
 import { getLocale } from '@/locales'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import CustomToolDialog from './CustomToolDialog.vue'
 
 const { t } = useI18n()

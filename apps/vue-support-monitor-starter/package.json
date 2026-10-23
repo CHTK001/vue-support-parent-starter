@@ -29,6 +29,7 @@
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
     "@repo/languages": "workspace:^",
+    "@repo/pinia": "workspace:*",
     "@repo/theme": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",

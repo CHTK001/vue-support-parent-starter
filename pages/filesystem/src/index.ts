@@ -17,6 +17,7 @@ import "./styles/upload.css";
 // 后端菜单 component → 本地页面（懒加载，仅访问时 import）
 registerMenuViewModules({
   "views/filesystem/filestorage/index.vue": () => import("./views/FileStorageManage.vue"),
+  "views/filesystem/uploadtask/index.vue": () => import("./views/UploadTaskView.vue"),
 });
 
 export * from "./api/filestorageApi";
@@ -28,3 +29,11 @@ export * from "./api/filestorageApi";
  * 挂到「系统配置 → 文件存储」作为查看入口。
  */
 export { default as FileStorageManage } from "./views/FileStorageManage.vue";
+
+/**
+ * 上传任务页组件。
+ *
+ * 供其它应用（而非仅后端菜单路由）直接嵌入使用，
+ * 例如宿主侧栏「文件管理 → 上传任务」二级菜单项。
+ */
+export { default as UploadTaskView } from "./views/UploadTaskView.vue";

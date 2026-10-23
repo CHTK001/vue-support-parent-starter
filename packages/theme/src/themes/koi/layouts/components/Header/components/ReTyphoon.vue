@@ -13,7 +13,8 @@
            侧栏→面包屑→ReSearchMenu→Refresh→ReUser→ReWeather→本组件的 beforeMount 链在
            本 div 处以注释结束，紧随其后即告警）。改用 v-show 隐藏即可，行为不变。 -->
       <div v-show="activeList.length" class="typhoon-trigger" :title="`${activeList.length} 个活跃台风`">
-        <ReIcon name="mingcute:typhoon-line" :size="20" class="typhoon-icon" />
+        <!-- 动画气旋图标（hover/focus 播放），替代原 mingcute:typhoon-line（那需要 Iconify 在线渲染器） -->
+        <ReIcon name="anim:tabler:propeller" :size="20" class="typhoon-icon" />
         <el-badge v-if="activeList.length" :value="activeList.length" :max="99" class="typhoon-badge" />
       </div>
     </template>
@@ -147,15 +148,40 @@
             <section class="td-panel td-panel--map">
               <header class="td-panel__head">
                 <span class="td-panel__title">台风路径图</span>
-                <el-switch
-                  v-model="showTrackPoints"
+                <div class="td-panel__ops">
+                  <!-- 重播：把路径从起点再演一次到「当前时间位置」 -->
+                  <el-tooltip content="重播路径动画" placement="top" :show-after="150">
+                    <button
+                      type="button"
+                      class="td-panel__btn"
+                      :class="{ 'is-playing': trackPlaying }"
+                      :aria-label="trackPlaying ? '路径回放中' : '重播路径动画'"
+                      @click="replayTrackAnimation"
+                    >
+                      <ReIcon name="ep:video-play" :size="14" />
+                    </button>
+                  </el-tooltip>
+                  <!-- 风圈等级开关：逐级显示/隐藏 7、10、12 级风圈 -->
+                  <div class="td-ring-ops" role="group" aria-label="风圈等级">
+                    <span v-for="item in RING_LEVELS" :key="item.key" class="td-ring-switch">
+                      <em>{{ item.label }}</em>
+                      <el-switch
+                        v-model="ringVisible[item.key]"
+                        size="small"
+                        :aria-label="`${item.label}风圈`"
+                        style="--el-switch-border-color: var(--el-border-color)"
+                        @change="onViewOptionChange" />
+                    </span>
+                  </div>
+                  <el-switch
+                    v-model="showTrackPoints"
 
-                  active-text="显示点位"
-                  inactive-text="仅路线"
-                  inline-prompt
-                  style="--el-switch-border-color: var(--el-border-color)"
-                  @change="onViewOptionChange"
-                />
+                    active-text="显示点位"
+                    inactive-text="仅路线"
+                    inline-prompt
+                    style="--el-switch-border-color: var(--el-border-color)"
+                    @change="onViewOptionChange" />
+                </div>
               </header>
               <div v-loading="detailLoading" class="td-map">
                 <ReMap
@@ -169,8 +195,7 @@
                   :mapKey="{}"
                   :showToolbar="false"
                   :coordinateOptions="{ showProjected: false }"
-                  @map-initialized="onMapInitialized"
-                />
+                  @map-initialized="onMapInitialized" />
 
                 <ul class="td-legend" aria-label="路径与风圈图例">
                   <li class="td-legend__item">
@@ -179,19 +204,25 @@
                   <li class="td-legend__item">
                     <span class="td-legend__line td-legend__line--history"></span><span>历史轨迹</span>
                   </li>
-                  <li class="td-legend__item">
-                    <span class="td-legend__line td-legend__line--forecast"></span><span>预报路径</span>
+                  <!-- 每家预报机构一条：接口本来就给多条，图例跟着地图一起多起来 -->
+                  <li v-for="item in forecastLegend" :key="item.key" class="td-legend__item">
+                    <span class="td-legend__line" :style="item.lineStyle"></span><span>预报·{{ item.name }}</span>
                   </li>
-                  <li class="td-legend__item">
+                  <li v-if="ringVisible['12']" class="td-legend__item">
                     <span class="td-legend__dot td-legend__dot--ring12"></span><span>十二级风圈</span>
                   </li>
-                  <li class="td-legend__item">
+                  <li v-if="ringVisible['10']" class="td-legend__item">
                     <span class="td-legend__dot td-legend__dot--ring10"></span><span>十级风圈</span>
                   </li>
-                  <li class="td-legend__item">
+                  <li v-if="ringVisible['7']" class="td-legend__item">
                     <span class="td-legend__dot td-legend__dot--ring7"></span><span>七级风圈</span>
                   </li>
                 </ul>
+
+                <!-- 回放进度提示：路径正从起点走向当前时间位置 -->
+                <transition name="el-fade-in-linear">
+                  <span v-if="trackPlaying" class="td-map__replay">路径回放中 · 从起点到当前位置</span>
+                </transition>
 
                 <!-- 轨迹点列表：图右上角小图标折叠，默认收起 -->
                 <el-tooltip :content="trackListVisible ? '收起轨迹点列表' : '轨迹点列表'" placement="top" :show-after="150">
@@ -223,8 +254,7 @@
 
                       stripe
                       border
-                      height="228px"
-                    />
+                      height="228px" />
                   </section>
                 </transition>
 
@@ -238,7 +268,6 @@
         <footer class="td-foot">
           <span class="td-foot__time">数据更新时间：{{ updateTimeText }}</span>
           <div class="td-foot__actions">
-            <ReButton @click="detailVisible = false">关闭</ReButton>
             <ReButton type="primary" @click="openSourceDetail">查看详情</ReButton>
           </div>
         </footer>
@@ -251,7 +280,7 @@
 // @ts-nocheck
 
 // @ts-nocheck
-import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
+import { ref, reactive, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { createScheduler, type Scheduler } from "@repo/work";
 
 const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default));
@@ -267,6 +296,7 @@ import {
   getTyphoonDetail,
   type TrackPoint,
   type TyphoonDetail,
+  type TyphoonForecastTrack,
   type TyphoonItem,
 } from "@repo/core";
 
@@ -325,8 +355,18 @@ const reMapRef = ref<any>(null);
 const mapReady = ref(false);
 /** 是否显示路径点位（历史点/预测点 marker）；关闭后只保留路径线，台风当前位置点不受影响 */
 const showTrackPoints = ref(true);
+/** 风圈等级开关：控制 7/10/12 级风圈是否上图（联动图例、回放跟随圈与自动缩放） */
+const ringVisible = reactive({ "7": true, "10": true, "12": true });
+/** 风圈等级开关项（模板渲染用） */
+const RING_LEVELS = [
+  { key: "7" as const, label: "7级" },
+  { key: "10" as const, label: "10级" },
+  { key: "12" as const, label: "12级" },
+];
 /** 轨迹点列表浮层：默认收起，点地图右上角小图标展开 */
 const trackListVisible = ref(false);
+/** 路径回放中（起点 → 当前时间位置）：驱动「重播」按钮态与地图上的进度提示 */
+const trackPlaying = ref(false);
 let worker: Worker | null = null;
 /** 统一后台调度器（优先级：Service Worker → Web Worker → setInterval） */
 let scheduler: Scheduler | null = null;
@@ -391,7 +431,7 @@ async function openDetail(id?: string) {
 
 const mergedPath = computed<TrackPoint[]>(() => {
   const path = detailInfo.value.path ?? [];
-  const firstPts = detailInfo.value.forecast?.[0]?.points ?? [];
+  const firstPts = primaryForecast.value;
   const pts = [...path];
   firstPts.forEach((sp) => {
     const last = pts[pts.length - 1];
@@ -404,9 +444,65 @@ const historyPath = computed<TrackPoint[]>(() => {
   return detailInfo.value.path ?? [];
 });
 
-const forecastPath = computed<TrackPoint[]>(() => {
-  return detailInfo.value.forecast?.[0]?.points ?? [];
-});
+/**
+ * 全部预报路线。
+ *
+ * 数据源按机构各给一条（实测同一次报文里就有 中国 / 中国台湾 / 日本 / 美国 四条），
+ * @repo/core 已按「中国 → 中国台湾 → 其余」排好序，这里原样透传给地图。
+ */
+const forecastTracks = computed<TyphoonForecastTrack[]>(() => detailInfo.value.forecast ?? []);
+
+/**
+ * 主预报通道（forecast[0]，固定中国台）。
+ * mergedPath 用它把未来段接在历史末点上，其余机构只画线、不参与接续。
+ */
+const primaryForecast = computed<TrackPoint[]>(() => forecastTracks.value[0]?.points ?? []);
+
+/* ==================== 预报路线配色 ==================== */
+
+/**
+ * 各预报机构的配色定义：css 供图例直接用（var() 跟随主题自动变），
+ * fallback 供地图矢量图层用（那边要拿到解析后的实值颜色）。
+ * 首条固定 warning 琥珀，和历史蓝、当前位置红拉开。
+ */
+const AGENCY_COLOR_DEFS: { css: string; fallback: string }[] = [
+  { css: "var(--el-color-warning)", fallback: "#f59e0b" },
+  { css: "var(--el-color-success)", fallback: "#67c23a" },
+  { css: "#6366f1", fallback: "#6366f1" },
+  { css: "#ec4899", fallback: "#ec4899" },
+  { css: "var(--el-color-info)", fallback: "#909399" },
+];
+
+/** 机构超出调色板时循环取色，保证任何条数都分得开颜色 */
+function agencyColorDef(index: number) {
+  return AGENCY_COLOR_DEFS[index % AGENCY_COLOR_DEFS.length];
+}
+
+/** 图例用的 CSS 颜色（可直接写进 style） */
+function agencyCssColor(index: number): string {
+  return agencyColorDef(index).css;
+}
+
+/** 地图矢量图层用的实值颜色（遇到 var() 需要解析成当前主题色） */
+function agencyMapColor(index: number): string {
+  const def = agencyColorDef(index);
+  const matched = /^var\((--[\w-]+)\)$/.exec(def.css);
+  return matched ? tokenColor(matched[1], def.fallback) : def.css;
+}
+
+/** 预报路线的虚线样式：每家一段不同的 dash，灰度打印/色弱也能分清 */
+const AGENCY_DASH = ["8 6", "3 6", "12 5 3 5", "1 6", "10 4"];
+
+/** 图例条目：与地图上的多条预报线一一对应 */
+const forecastLegend = computed(() =>
+  forecastTracks.value.map((track, index) => ({
+    key: `${track.name || "未命名"}-${index}`,
+    name: track.name || "未命名机构",
+    lineStyle: {
+      background: `repeating-linear-gradient(90deg, ${agencyCssColor(index)} 0 6px, transparent 6px 10px)`,
+    },
+  })),
+);
 
 /* ==================== 详情面板展示字段 ==================== */
 
@@ -517,54 +613,333 @@ function openSourceDetail(): void {
 function onMapInitialized() {
   mapReady.value = true;
   nextTick(() => {
-    drawTyphoonPath();
+    // 首次上图：先从起点演到「当前时间位置」，演完再补全静态图层
+    drawTyphoonPath(true);
   });
 }
 
 /**
- * 视图选项变更（显示点位开关）：触发台风路径重绘。
+ * 视图选项变更（显示点位开关）：立即重绘、不重播动画，
+ * 否则每拨一次开关都要干等一整轮回放。
  * 关闭弹窗期间不响应（避免空指针）；仅当地图已就绪且有路径数据时生效。  */
 function onViewOptionChange() {
   if (!mapReady.value || !detailVisible.value) return;
   if (!mergedPath.value.length) return;
   nextTick(() => {
-    drawTyphoonPath();
+    drawTyphoonPath(false);
   });
+}
+
+/** 重播路径动画：从起点再走到当前时间位置 */
+function replayTrackAnimation() {
+  if (!mapReady.value || !detailVisible.value) return;
+  if (historyPath.value.length < 2) return;
+  drawTyphoonPath(true);
 }
 
 watch(mergedPath, () => {
   if (mapReady.value) {
     nextTick(() => {
-      drawTyphoonPath();
+      // 切换台风 / 后台刷新数据 → 重新演一遍
+      drawTyphoonPath(true);
     });
   }
 });
 
 watch(detailVisible, (visible) => {
   if (!visible && mapReady.value && reMapRef.value) {
+    // 先停回放：否则 rAF 会在图层被清掉后继续 updateShape，刷「图形不存在」告警
+    stopTrackAnimation();
     reMapRef.value.clearShapes?.();
     reMapRef.value.clearMarkers?.();
   }
 });
 
-function drawTyphoonPath() {
+/* ==================== 中心气旋标记（形态参考浙水利台风网） ==================== */
+
+/** 气旋标记尺寸：要装下 34px 图标 + 向外扩散的脉冲环，故给 46 */
+const CYCLONE_SIZE: [number, number] = [46, 46];
+
+/** mingcute:typhoon-line 的两段路径（双臂气旋 + 中心眼），内联进 divIcon，不依赖 Iconify 在线渲染器 */
+const TYPHOON_SWIRL_PATH =
+  "M19 12a9 9 0 0 1-14.69 6.974Q4.653 19 5 19c1.332 0 2.595-.29 3.732-.808A7 7 0 0 1 5 12a9 9 0 0 1 14.69-6.974a9 9 0 0 0-4.422.782A7 7 0 0 1 19 12Z";
+const TYPHOON_EYE_PATH = "M14 12a2 2 0 1 1-4 0a2 2 0 0 1 4 0Z";
+
+/** 强度/机构名等三方文案进 HTML 前转义（这些值来自外部政府接口） */
+function escapeHtml(value: string): string {
+  return String(value).replace(/[&<>"']/g, (ch) => {
+    if (ch === "&") return "&amp;";
+    if (ch === "<") return "&lt;";
+    if (ch === ">") return "&gt;";
+    if (ch === '"') return "&quot;";
+    return "&#39;";
+  });
+}
+
+/** 中心气旋 divIcon：持续旋转的气旋 + 两圈错峰雷达脉冲 + 底部级别标签 */
+function cycloneHtml(label: string): string {
+  return `<div class="typhoon-cyclone">
+      <span class="typhoon-cyclone__pulse"></span>
+      <span class="typhoon-cyclone__pulse typhoon-cyclone__pulse--late"></span>
+      <svg class="typhoon-cyclone__spin" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
+        <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="${TYPHOON_SWIRL_PATH}"></path>
+        <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="${TYPHOON_EYE_PATH}"></path>
+      </svg>
+      ${label ? `<span class="typhoon-cyclone__label">${escapeHtml(label)}</span>` : ""}
+    </div>`;
+}
+
+/* ==================== 路径回放：起点 → 当前时间位置 ==================== */
+
+/** 回放总时长：按点数给余量，夹在 4~9 秒 */
+const TRACK_ANIM_MIN_MS = 4000;
+const TRACK_ANIM_MAX_MS = 9000;
+/** 折线/风圈的更新节流（ms）：updateShape 走 setLatLngs，20Hz 已足够顺滑 */
+const TRACK_ANIM_STEP_MS = 50;
+/** 回放期间生长线的 id —— 与静态场景同名，收尾 clearShapes 时一并回收 */
+const ANIM_LINE_ID = "typhoon-history";
+
+/** 系统开了「减弱动态效果」就不播动画，直接给静态图 */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/**
+ * 历史路径 → 归一化时间轴（每点 0~1，单调不减且末项为 1）。
+ * 时间解析得出来就按真实时间推进（台风跑得快的那段线条推进也快）；
+ * 解析不出来（缺时间/时间非单调）退化为按点序均分，保证动画永远能播。
+ */
+function buildStops(points: TrackPoint[]): number[] {
+  const times = points.map((p) => Date.parse(String(p.time ?? "").replace(" ", "T")));
+  const usable =
+    times.length > 1
+    && times.every((t) => Number.isFinite(t))
+    && times[times.length - 1] > times[0];
+  if (!usable) {
+    const last = points.length - 1 || 1;
+    return points.map((_, index) => index / last);
+  }
+  const start = times[0];
+  const span = times[times.length - 1] - start || 1;
+  return times.map((t) => (t - start) / span);
+}
+
+/** 进度 → 折线前缀坐标 + 该进度下的中心点（按时间轴插值，不是按点序均分） */
+function sampleTrack(points: TrackPoint[], stops: number[], progress: number) {
+  const p = Math.min(1, Math.max(0, progress));
+  let index = 0;
+  while (index < stops.length - 2 && stops[index + 1] < p) index += 1;
+  const from = stops[index];
+  const to = stops[index + 1] ?? from;
+  const ratio = to > from ? (p - from) / (to - from) : 1;
+  const t = Math.min(1, Math.max(0, ratio));
+  const a = points[index];
+  const b = points[index + 1] ?? a;
+  const head = { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
+  const coords = points.slice(0, index + 1).map((pt) => [pt.lat, pt.lng] as [number, number]);
+  coords.push([head.lat, head.lng]);
+  return { coords, head };
+}
+
+/** 一次回放的运行时状态 */
+interface TrackAnimState {
+  stops: number[];
+  durationMs: number;
+  startedAt: number;
+  lastSteppedAt: number;
+  /** 气旋标记 id；ReMap 分配失败时为空串，届时跳过位移更新 */
+  markerId: string;
+  /** 跟随台风中心的外层风圈（内层渐变与文字标签等收尾时再补） */
+  rings: {
+    id: string;
+    radii: [number, number, number, number];
+    color: string;
+    fillOpacity: number;
+  }[];
+}
+
+let trackAnimRaf = 0;
+let trackAnimState: TrackAnimState | null = null;
+
+/** 停止回放（只取消任务；图层由调用方 clearShapes / clearMarkers 回收） */
+function stopTrackAnimation() {
+  if (trackAnimRaf) cancelAnimationFrame(trackAnimRaf);
+  trackAnimRaf = 0;
+  trackAnimState = null;
+  if (trackPlaying.value) trackPlaying.value = false;
+}
+
+/** 回放开场：先把视野拉到能看完整条历史路径，否则动画跑到一半就出屏了 */
+function focusWholeTrack(rm: any, points: TrackPoint[]) {
+  if (!points.length) return;
+  const lats = points.map((p) => p.lat);
+  const lngs = points.map((p) => p.lng);
+  const center: [number, number] = [
+    (Math.min(...lats) + Math.max(...lats)) / 2,
+    (Math.min(...lngs) + Math.max(...lngs)) / 2,
+  ];
+  const span = Math.max(
+    Math.max(...lngs) - Math.min(...lngs),
+    Math.max(...lats) - Math.min(...lats),
+  );
+  const zoom = span > 40 ? 4 : span > 20 ? 5 : span > 10 ? 6 : span > 5 ? 7 : 8;
+  rm.setCenter(center[0], center[1]);
+  rm.setZoom(zoom);
+}
+
+/**
+ * 启动「起点 → 当前时间位置」回放。
+ * @returns false = 无从动画（数据不足 / 用户关闭动效），调用方应直接出静态场景
+ */
+function startTrackAnimation(rm: any): boolean {
+  const points = historyPath.value;
+  if (points.length < 2 || prefersReducedMotion()) return false;
+
+  const stops = buildStops(points);
+  const durationMs = Math.min(
+    TRACK_ANIM_MAX_MS,
+    Math.max(TRACK_ANIM_MIN_MS, points.length * 260),
+  );
+  const historyColor = tokenColor("--el-color-primary", "#3b82f6");
+  const start = points[0];
+  const startCoords: [number, number] = [start.lat, start.lng];
+
+  // 动画期只起三样：生长中的历史线 / 跟随的气旋标记 / 跟随的外层风圈
+  rm.addShape({
+    id: ANIM_LINE_ID,
+    type: ShapeType.POLYLINE,
+    coordinates: [startCoords, startCoords],
+    style: { color: historyColor, weight: 3, opacity: 1 },
+  });
+
+  const markerId = rm.addMarker({
+    position: startCoords,
+    title: "台风当前位置",
+    icon: {
+      className: "typhoon-current-icon",
+      html: cycloneHtml(""),
+      iconSize: CYCLONE_SIZE,
+      iconAnchor: [CYCLONE_SIZE[0] / 2, CYCLONE_SIZE[1] / 2],
+    },
+  });
+
+  const rings = enabledRingDefs(start)
+    .filter((ring) => (ring.radii ?? []).some((v) => Number(v) > 0))
+    .map((ring) => ({
+      id: `typhoon-anim-${ring.id}`,
+      radii: ring.radii as [number, number, number, number],
+      color: ring.color,
+      fillOpacity: ring.fillOpacity,
+      coordinates: genAsymRing4(startCoords, ring.radii as [number, number, number, number], 48),
+    }));
+  for (const ring of rings) {
+    rm.addShape({
+      id: ring.id,
+      type: ShapeType.POLYGON,
+      coordinates: ring.coordinates,
+      style: {
+        color: ring.color,
+        weight: 1.5,
+        opacity: 0.6,
+        dashArray: "6 5",
+        fillColor: ring.color,
+        fillOpacity: ring.fillOpacity,
+      },
+    });
+  }
+
+  trackAnimState = {
+    stops,
+    durationMs,
+    startedAt: performance.now(),
+    lastSteppedAt: 0,
+    markerId,
+    rings: rings.map(({ id, radii, color, fillOpacity }) => ({ id, radii, color, fillOpacity })),
+  };
+  trackPlaying.value = true;
+  focusWholeTrack(rm, points);
+  trackAnimRaf = requestAnimationFrame(tickTrackAnimation);
+  return true;
+}
+
+function tickTrackAnimation(now: number) {
+  const rm = reMapRef.value;
+  const state = trackAnimState;
+  // 弹窗关掉 / 地图卸载 / 已被新一轮绘制接管：直接收摊，别往死掉的图层上写
+  if (!rm || !state || !detailVisible.value) {
+    stopTrackAnimation();
+    return;
+  }
+
+  const points = historyPath.value;
+  if (points.length < 2) {
+    stopTrackAnimation();
+    return;
+  }
+
+  const progress = Math.min(1, (now - state.startedAt) / state.durationMs);
+  const sample = sampleTrack(points, state.stops, progress);
+
+  if (state.markerId) {
+    rm.updateMarker?.(state.markerId, { position: [sample.head.lat, sample.head.lng] });
+  }
+
+  if (now - state.lastSteppedAt >= TRACK_ANIM_STEP_MS || progress >= 1) {
+    state.lastSteppedAt = now;
+    rm.updateShape?.(ANIM_LINE_ID, { coordinates: sample.coords });
+    for (const ring of state.rings) {
+      rm.updateShape?.(ring.id, {
+        coordinates: genAsymRing4([sample.head.lat, sample.head.lng], ring.radii, 48),
+      });
+    }
+  }
+
+  if (progress >= 1) {
+    // 演完：清掉动画图层，补全静态场景（完整历史线、多条预报、点位、风圈渐变、定位）
+    stopTrackAnimation();
+    rm.clearShapes?.();
+    rm.clearMarkers?.();
+    renderStaticScene(rm, mergedPath.value);
+    return;
+  }
+  trackAnimRaf = requestAnimationFrame(tickTrackAnimation);
+}
+
+/**
+ * 绘制台风路径图。
+ *
+ * @param animate true = 先把历史路径从起点演到「当前时间位置」，演完再补全静态图层
+ *                （首次上图、切换台风、点「重播」时为 true；只是改点位开关则为 false）
+ */
+function drawTyphoonPath(animate = false) {
   if (!reMapRef.value) return;
 
   const rm = reMapRef.value;
   const allPoints = mergedPath.value;
   if (!allPoints.length) return;
 
-  // 地图矢量配色统一走 koi 令牌（与图例/主题联动，暗色自动适配）
-  const historyColor = tokenColor("--el-color-primary", "#3b82f6");
-  const forecastColor = tokenColor("--el-color-warning", "#f59e0b");
-  const currentColor = tokenColor("--el-color-danger", "#ef4444");
-
+  // 不论走动画还是直出，先把上一轮的图层与回放任务收干净，避免图层叠加/僵尸 rAF
+  stopTrackAnimation();
   rm.clearShapes?.();
   rm.clearMarkers?.();
 
+  if (animate && startTrackAnimation(rm)) return;
+
+  renderStaticScene(rm, allPoints);
+}
+
+/** 静态场景：完整历史线 + 多条预报线 + 点位 + 气旋标记 + 风圈 + 自动定位 */
+function renderStaticScene(rm: any, allPoints: TrackPoint[]) {
+  // 地图矢量配色统一走 koi 令牌（与图例/主题联动，暗色自动适配）
+  const historyColor = tokenColor("--el-color-primary", "#3b82f6");
+  const currentColor = tokenColor("--el-color-danger", "#ef4444");
+  const tracks = forecastTracks.value;
+
   const histCoords = historyPath.value
-    .map((p) => [p.lat, p.lng] as [number, number]);
-  const fcCoords = forecastPath.value
     .map((p) => [p.lat, p.lng] as [number, number]);
 
   if (histCoords.length >= 2) {
@@ -580,30 +955,23 @@ function drawTyphoonPath() {
     });
   }
 
-  if (fcCoords.length >= 2) {
+  // 多条预报路线：每家机构一条虚线。forecast[0] 是中国台，画粗一点当主线。
+  tracks.forEach((track, index) => {
+    const coords = track.points.map((p) => [p.lat, p.lng] as [number, number]);
+    if (coords.length < 2) return;
     rm.addShape({
-      id: "typhoon-forecast",
+      id: `typhoon-forecast-${index}`,
       type: ShapeType.POLYLINE,
-      coordinates: fcCoords,
+      coordinates: coords,
       style: {
-        color: forecastColor,
-        weight: 3,
-        opacity: 0.9,
-        dashArray: "8 6",
+        color: agencyMapColor(index),
+        weight: index === 0 ? 3 : 2.5,
+        opacity: index === 0 ? 0.95 : 0.8,
+        dashArray: AGENCY_DASH[index % AGENCY_DASH.length],
       },
+      data: { agency: track.name || "" },
     });
-  } else if (histCoords.length >= 2) {
-    rm.addShape({
-      id: "typhoon-path",
-      type: ShapeType.POLYLINE,
-      coordinates: histCoords,
-      style: {
-        color: historyColor,
-        weight: 3,
-        opacity: 1,
-      },
-    });
-  }
+  });
 
   // 历史/预测点位 marker：开关关闭时隐藏（台风当前位置 marker 由下方单独绘制，始终保留）
   if (showTrackPoints.value) {
@@ -614,8 +982,8 @@ function drawTyphoonPath() {
         title: p.strong || "历史点",
         popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
           <b>历史位置</b><br>
-          时间：${showTime(p.time)}<br>
-          强度：${p.strong || "-"}<br>
+          时间：${escapeHtml(showTime(p.time))}<br>
+          强度：${escapeHtml(p.strong || "-")}<br>
           风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
           气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
         </div>`,
@@ -630,22 +998,25 @@ function drawTyphoonPath() {
         },
       });
     });
-    forecastPath.value.forEach((p) => {
+    // 预测点位只画主通道（中国台）：四家机构的点全画会糊成一片，其余机构用线区分即可
+    const primaryName = tracks[0]?.name || "预报机构";
+    const primaryColor = agencyMapColor(0);
+    primaryForecast.value.forEach((p) => {
       rm.addMarker({
         position: [p.lat, p.lng] as [number, number],
         title: p.strong || "预测点",
         popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
-          <b>预测位置</b><br>
-          时间：${showTime(p.time)}<br>
-          强度：${p.strong || "-"}<br>
+          <b>预测位置 · ${escapeHtml(primaryName)}</b><br>
+          时间：${escapeHtml(showTime(p.time))}<br>
+          强度：${escapeHtml(p.strong || "-")}<br>
           风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
           气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
         </div>`,
-        data: { strong: p.strong },
-        style: { color: forecastColor, fillColor: forecastColor },
+        data: { strong: p.strong, agency: primaryName },
+        style: { color: primaryColor, fillColor: primaryColor },
         icon: {
           className: "typhoon-track-marker",
-          html: `<div class="typhoon-track-marker__dot" style="width:${r}px;height:${r}px;background:${forecastColor}"></div>`,
+          html: `<div class="typhoon-track-marker__dot" style="width:${r}px;height:${r}px;background:${primaryColor}"></div>`,
           iconSize: [r, r],
           iconAnchor: [r / 2, r / 2],
         },
@@ -653,7 +1024,8 @@ function drawTyphoonPath() {
     });
   }
 
-  // 当前位置标记（历史路径末点）：小圆点 + 呼吸光晕；不自动弹窗，避免遮挡风圈
+  // 当前位置标记（历史路径末点）：旋转气旋 + 双层雷达脉冲 + 级别标签（形态参考浙水利台风网）
+  // 不自动弹窗，避免遮挡风圈
   const current = historyPath.value[historyPath.value.length - 1];
   if (current) {
     rm.addMarker({
@@ -661,8 +1033,8 @@ function drawTyphoonPath() {
       title: "当前位置",
       popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
         <b>台风当前位置</b><br>
-        时间：${showTime(current.time)}<br>
-        强度：${current.strong || "-"}<br>
+        时间：${escapeHtml(showTime(current.time))}<br>
+        强度：${escapeHtml(current.strong || "-")}<br>
         风速：${current.speed != null ? current.speed + " km/h" : "-"}<br>
         气压：${current.pressure != null ? current.pressure + " hPa" : "-"}
       </div>`,
@@ -670,13 +1042,9 @@ function drawTyphoonPath() {
       style: { color: currentColor, fillColor: currentColor },
       icon: {
         className: "typhoon-current-icon",
-        html: `<div class="typhoon-current">
-          <span class="typhoon-current__pulse"></span>
-          <span class="typhoon-current__dot"></span>
-          <span class="typhoon-current__label">${current.strong || ""}</span>
-        </div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
+        html: cycloneHtml(current.strong || ""),
+        iconSize: CYCLONE_SIZE,
+        iconAnchor: [CYCLONE_SIZE[0] / 2, CYCLONE_SIZE[1] / 2],
       },
     });
   }
@@ -689,9 +1057,9 @@ function drawTyphoonPath() {
   // 自动定位：优先聚焦当前位置风圈（让风圈占据主要视野），无风圈数据时退回当前位置常规视野
   if (current) {
     const ringSpan = Math.max(
-      ...(current.r7 ?? []).map(Number),
-      ...(current.r10 ?? []).map(Number),
-    ) || 0;
+      0,
+      ...enabledRingDefs(current).flatMap((ring) => ring.radii ?? []).map(Number),
+    );
     try {
       const mapInst = rm.getMapInstance?.() as any;
       if (mapInst) {
@@ -746,13 +1114,33 @@ function offsetLatLng(
  *
  * 同时在每个风圈内固定位置放一个级别文字（"10级"/"7级"），文字位置不随圈旋转，
  * 这样既能直接看出哪个圈对应哪个级别，又不会像早期版本那样绕台风中心公转产生视觉噪声。  */
-function drawWindRings(rm: any, p: TrackPoint) {
-  // 风圈配色走 koi 令牌：十二级=danger-dark-2，十级=danger，七级=warning（与图例一致）
+/** 一个风圈的绘制定义；静态场景与路径回放共用同一套配色和层级 */
+interface TyphoonRingDef {
+  /** 风圈等级（与等级开关的 key 对齐） */
+  key: "7" | "10" | "12";
+  /** 图层 id 片段：静态场景用 `typhoon-${id}`，路径回放用 `typhoon-anim-${id}` */
+  id: string;
+  radii?: [number, number, number, number];
+  label: string;
+  level: string;
+  color: string;
+  fillOpacity: number;
+  labelBearing: number;
+  innerRings: { scale: number; opacity: number }[];
+}
+
+/**
+ * 当前位置的风圈定义（12 / 10 / 7 级）。
+ * 配色走 koi 令牌：十二级=danger-dark-2，十级=danger，七级=warning（与图例一致）。
+ */
+function resolveRingDefs(p: TrackPoint): TyphoonRingDef[] {
   const ring12Color = tokenColor("--el-color-danger-dark-2", "#b91c1c");
   const ring10Color = tokenColor("--el-color-danger", "#ef4444");
   const ring7Color = tokenColor("--el-color-warning", "#f59e0b");
-  const rings: { radii?: [number, number, number, number]; label: string; level: string; color: string; fillOpacity: number; labelBearing: number; innerRings: { scale: number; opacity: number }[] }[] = [
+  return [
     {
+      key: "12",
+      id: "ring-12级风圈",
       radii: p.r12,
       label: "12级风圈",
       level: "12级",
@@ -767,6 +1155,8 @@ function drawWindRings(rm: any, p: TrackPoint) {
       ],
     },
     {
+      key: "10",
+      id: "ring-10级风圈",
       radii: p.r10,
       label: "10级风圈",
       level: "10级",
@@ -782,6 +1172,8 @@ function drawWindRings(rm: any, p: TrackPoint) {
       ],
     },
     {
+      key: "7",
+      id: "ring-7级风圈",
       radii: p.r7,
       label: "7级风圈",
       level: "7级",
@@ -796,11 +1188,20 @@ function drawWindRings(rm: any, p: TrackPoint) {
       ],
     },
   ];
+}
+
+/** 当前开启的风圈定义（等级开关关闭的等级不参与绘制、图例与自动缩放） */
+function enabledRingDefs(p: TrackPoint): TyphoonRingDef[] {
+  return resolveRingDefs(p).filter((ring) => ringVisible[ring.key]);
+}
+
+function drawWindRings(rm: any, p: TrackPoint) {
+  const rings = enabledRingDefs(p);
   const center: [number, number] = [p.lat, p.lng];
   rings.forEach((ring) => {
     if (!ring.radii || ring.radii.every((r) => !r)) return;
     const coords = genAsymRing4(center, ring.radii, 64);
-    const id = `typhoon-ring-${ring.label}`;
+    const id = `typhoon-${ring.id}`;
     // 主风圈：虚线描边 + 通透填充（与路径虚线呼应）
     rm.addShape({
       id,
@@ -864,7 +1265,7 @@ function stopWorker() {
   if (scheduler) { scheduler.destroy(); scheduler = null; }
 }
 onMounted(() => { fetchActiveList(); startWorker(); });
-onBeforeUnmount(() => { stopWorker(); });
+onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
 </script>
 
 <style lang="scss" scoped>
@@ -1314,6 +1715,83 @@ onBeforeUnmount(() => { stopWorker(); });
   color: var(--el-text-color-primary);
 }
 
+.td-panel__ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* 风圈等级开关组：等级文字 + 小开关，窄屏自动换行 */
+.td-ring-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.td-ring-switch {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--el-text-color-secondary);
+
+  em {
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* 重播路径动画按钮（与右侧「显示点位」开关同排） */
+.td-panel__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  transition:
+    color var(--el-transition-duration, 0.2s),
+    background-color var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
+
+  &:hover,
+  &.is-playing {
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-7);
+  }
+}
+
+/* 回放进度提示：贴地图底部居中，只在回放期间出现 */
+.td-map__replay {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  z-index: 620;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--el-color-primary);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: var(--el-radius-full, 9999px);
+  box-shadow: var(--el-box-shadow-light);
+  transform: translateX(-50%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 .td-map {
   position: relative;
   flex: 1;
@@ -1495,9 +1973,7 @@ onBeforeUnmount(() => { stopWorker(); });
     background: var(--el-color-primary);
   }
 
-  &--forecast {
-    background: repeating-linear-gradient(90deg, var(--el-color-warning) 0 6px, transparent 6px 10px);
-  }
+  /* 预报线没有修饰类：每家机构颜色不同，虚线由 forecastLegend 的行内样式给出 */
 }
 
 /* ── 底部：数据更新时间 + 操作 ── */
@@ -1558,62 +2034,98 @@ onBeforeUnmount(() => { stopWorker(); });
   }
 }
 
-/* 当前位置：小圆点 + 呼吸光晕（14px 命中区，视觉不喧宾夺主） */
-.typhoon-current {
+/* 当前位置：旋转气旋 + 双层雷达脉冲 + 级别标签（形态参考浙水利台风网）
+   46px 命中区，气旋主体 34px，脉冲环向外扩到约 62px
+
+   配色：最内侧的旋转气旋用**白色**，外层脉冲环用危险红。
+   原因：风圈是红/橙/黄三层的低透明填充，台风中心正好压在风圈正中 ——
+   若气旋也是红色，会和七级/十级风圈的描边糊成一片，中心点反而看不清。
+   白色气旋 + 红色脉冲环形成「白芯 + 红环」的层次，浅色海图上靠投影保证可辨。 */
+.typhoon-cyclone {
   position: relative;
-  display: block;
-  width: 14px;
-  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  color: var(--el-color-white);
+  filter:
+    drop-shadow(0 1px 2px color-mix(in srgb, var(--el-color-black) 55%, transparent))
+    drop-shadow(0 0 2px color-mix(in srgb, var(--el-color-black) 35%, transparent));
+}
 
-  &__dot {
-    position: absolute;
-    inset: 0;
-    background: var(--el-color-danger);
-    border: 2px solid var(--el-color-white);
-    border-radius: 50%;
-    box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-black) 25%, transparent);
-  }
+/* 气旋主体：持续同向旋转，模拟台风环流（与路径回放共用同一段 HTML） */
+.typhoon-cyclone__spin {
+  position: relative;
+  z-index: 2;
+  animation: typhoon-cyclone-spin 4.5s linear infinite;
 
-  &__pulse {
-    position: absolute;
-    inset: -6px;
-    pointer-events: none;
-    background: color-mix(in srgb, var(--el-color-danger) 32%, transparent);
-    border-radius: 50%;
-    animation: typhoon-current-pulse 2.6s ease-out infinite;
-  }
-
-  &__label {
-    position: absolute;
-    top: 18px;
-    left: 50%;
-    padding: 1px 7px;
-    font-size: 10px;
-    font-weight: 700;
-    white-space: nowrap;
-    color: var(--el-color-danger);
-    background: color-mix(in srgb, var(--el-color-white) 95%, transparent);
-    border-radius: var(--el-radius-full, 9999px);
-    box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-black) 12%, transparent);
-    transform: translateX(-50%);
+  /* 台风主体固定白色：不跟随 marker 的危险色，避免与风圈描边糊在一起 */
+  path {
+    paint-order: stroke fill;
+    stroke: var(--el-color-white);
   }
 }
 
-@keyframes typhoon-current-pulse {
+/* 雷达脉冲：两圈错开 1.2s，读起来是连续外扩而不是一起鼓一下 */
+.typhoon-cyclone__pulse {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--el-color-danger) 55%, transparent);
+  border-radius: 50%;
+  animation: typhoon-cyclone-pulse 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.typhoon-cyclone__pulse--late {
+  animation-delay: 1.2s;
+}
+
+.typhoon-cyclone__label {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  z-index: 3;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-white) 95%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-black) 12%, transparent);
+  transform: translateX(-50%);
+}
+
+@keyframes typhoon-cyclone-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes typhoon-cyclone-pulse {
   0% {
-    opacity: 0.85;
-    transform: scale(0.55);
+    opacity: 0.7;
+    transform: scale(0.42);
+  }
+
+  70% {
+    opacity: 0.12;
   }
 
   100% {
     opacity: 0;
-    transform: scale(2.4);
+    transform: scale(1.35);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .typhoon-current__pulse {
+  .typhoon-cyclone__spin,
+  .typhoon-cyclone__pulse {
     animation: none;
+  }
+
+  .typhoon-cyclone__pulse {
     opacity: 0.25;
   }
 }

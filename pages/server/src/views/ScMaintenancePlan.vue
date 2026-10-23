@@ -149,7 +149,7 @@ function hostNames(ids?: string): string {
       </template>
     </ReSectionHead>
 
-    <ReTable :data="plans" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false" empty-text="暂无维护计划，点击右上角「新建计划」创建">
+    <ReTable :data="plans" :loading="loading" border stripe size="default" empty-text="暂无维护计划，点击右上角「新建计划」创建" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
       <ReTableColumn prop="planName" label="计划名称" min-width="140" show-overflow-tooltip />
       <ReTableColumn label="类型" width="90">
         <template #default="{ row }">

@@ -459,9 +459,6 @@
           </div>
         </transition>
       </div>
-      <template #footer>
-        <ReButton @click="logDialogVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
   </div>
 </template>

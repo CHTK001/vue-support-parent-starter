@@ -243,6 +243,9 @@ dist-verify/
 **/.tmp-probe-*.mjs
 **/dbg-*.mjs
 
+# dist-dsh：构建产物目录（vite build 输出，不属于源码）
+apps/*/dist-dsh/
+
 **/_ofdtest/
 
 # @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩

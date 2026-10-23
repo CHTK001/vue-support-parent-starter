@@ -40,6 +40,10 @@ const tableData = computed(() => props.tasks as unknown as Record<string, unknow
 
 const emit = defineEmits<{
   (e: 'view', task: TeacherMarkingTask): void;
+  /** 下载该任务对应的试卷 */
+  (e: 'paper', task: TeacherMarkingTask): void;
+  /** 打开内置卷的试卷模板（组卷页）；仅自有卷(SELF)关联了 paperId 时触发 */
+  (e: 'paper-template', task: TeacherMarkingTask): void;
   /** 多选变化（批量操作用；未勾选时传空数组） */
   (e: 'selection-change', rows: TeacherMarkingTask[]): void;
   /** 远端加载后回传总数，父级卡片头部「N 份」由 ReTable 的 update:total 驱动 */
@@ -63,7 +67,7 @@ const columns: ReTableColumn[] = [
   { prop: 'taskFinalScore', label: '老师总分', width: 90, slot: 'finalScore' },
   { prop: 'teacherFinished', label: '完成', width: 90, slot: 'teacherFinished' },
   { prop: 'markingTaskStartTime', label: '创建时间', minWidth: 150 },
-  { prop: 'taskActions', label: '操作', width: 64, slot: 'actions' },
+  { prop: 'taskActions', label: '操作', width: 104, slot: 'actions' },
 ];
 
 const modeLabel = (task: TeacherMarkingTask) =>
@@ -142,7 +146,19 @@ const scoreOf = (task: TeacherMarkingTask) =>
     <template #col-mode="{ row }">
       <ReTag size="small" type="primary">{{ modeLabel(row as TeacherMarkingTask) }}</ReTag>
     </template>
-    <template #col-paper="{ row }">{{ paperName(row as TeacherMarkingTask) }}</template>
+    <template #col-paper="{ row }">
+      <el-button
+        v-if="(row as TeacherMarkingTask).markingTaskPaperId != null"
+        link
+        type="primary"
+        class="mt-paper-link"
+        title="打开试卷模板"
+        @click.stop="emit('paper-template', row as TeacherMarkingTask)"
+      >
+        {{ paperName(row as TeacherMarkingTask) }}
+      </el-button>
+      <span v-else>{{ paperName(row as TeacherMarkingTask) }}</span>
+    </template>
     <template #col-student="{ row }">
       <!-- 姓名为主、学号作副标题：老师扫一眼先认人，要核对学号再看第二行。
            匿名阅卷（后端兜底 anonymous）没有姓名，此时主行直接显示该标识。 -->
@@ -171,13 +187,21 @@ const scoreOf = (task: TeacherMarkingTask) =>
       </template>
     </template>
     <template #col-actions="{ row }">
-      <ReButton
-        layout="square"
-        type="primary"
-        icon="View"
-        tip="查看"
-        @click.stop="emit('view', row as TeacherMarkingTask)"
-      />
+      <span class="mt-actions">
+        <ReButton
+          layout="square"
+          type="primary"
+          icon="View"
+          tip="查看"
+          @click.stop="emit('view', row as TeacherMarkingTask)"
+        />
+        <ReButton
+          layout="square"
+          icon="Download"
+          tip="下载试卷"
+          @click.stop="emit('paper', row as TeacherMarkingTask)"
+        />
+      </span>
     </template>
   </ReTable>
 </template>
@@ -198,5 +222,20 @@ const scoreOf = (task: TeacherMarkingTask) =>
 .mt-student__no {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+/* 操作列：两个按钮并排，不允许换行堆叠 */
+.mt-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+/* 试卷列（内置卷）：按钮化链接，颜色沿用 primary，单行不换行 */
+.mt-paper-link {
+  padding: 0;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

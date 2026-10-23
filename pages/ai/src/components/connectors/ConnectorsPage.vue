@@ -1,17 +1,12 @@
 <template>
-  <div class="connectors-page h-full overflow-y-auto">
-    <!-- 页面标题 -->
-    <div class="px-6 pt-6 pb-2">
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-[#e8e9ed]">连接器</h1>
-      <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">绑定第三方平台，让 AI 机器人接入你的常用工具</p>
-    </div>
+  <RePage title="连接器" subtitle="绑定第三方平台，让 AI 机器人接入你的常用工具">
 
     <!-- 已绑定连接器区域 -->
     <section class="px-6 py-4">
-      <h2 class="text-sm font-medium text-gray-500 dark:text-[#8b8d95] mb-3 tracking-wide">已绑定</h2>
+      <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 tracking-wide">已绑定</h2>
       <div
         v-if="boundConnectors.length === 0"
-        class="flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed border-gray-200 dark:border-[#3a3b40] text-gray-400 dark:text-[#6b6d75]"
+        class="flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400"
       >
         <ConnectorIcon type="unknown" />
         <span class="text-sm">暂无已绑定的连接器</span>
@@ -20,7 +15,7 @@
         <article
           v-for="connector in boundConnectors"
           :key="connector.id"
-          class="connector-card group flex items-center gap-3 cursor-pointer bg-white dark:bg-[#25262b] rounded-xl border border-gray-200 dark:border-[#34353a] p-4 transition-colors duration-200 hover:border-primary/60 hover:shadow-md"
+          class="connector-card group flex items-center gap-3 cursor-pointer bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-200 hover:border-primary/60 hover:shadow-md"
           @click="openBoundConnector(connector)"
         >
           <div
@@ -30,11 +25,11 @@
             <ConnectorIcon :type="normType(connector.type)" />
           </div>
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-gray-900 dark:text-[#e8e9ed] truncate">{{ connector.name || getConnectorTypeName(normType(connector.type)) }}</div>
-            <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-[#8b8d95] mt-1">
+            <div class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ connector.name || getConnectorTypeName(normType(connector.type)) }}</div>
+            <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-1">
               <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="isOnline(connector.status) ? 'bg-green-500' : 'bg-gray-400'"></span>
-              <span :class="isOnline(connector.status) ? 'text-green-600' : 'text-gray-400 dark:text-[#6b6d75]'">{{ isOnline(connector.status) ? '在线' : '离线' }}</span>
-              <span class="text-gray-300 dark:text-[#45464b]">·</span>
+              <span :class="isOnline(connector.status) ? 'text-green-600' : 'text-gray-400 dark:text-gray-400'">{{ isOnline(connector.status) ? '在线' : '离线' }}</span>
+              <span class="text-gray-300 dark:text-gray-500">·</span>
               <span class="truncate">{{ getConnectorTypeName(normType(connector.type)) }}</span>
             </div>
           </div>
@@ -73,10 +68,10 @@
 
     <!-- 可绑定连接器区域 -->
     <section class="px-6 py-4">
-      <h2 class="text-sm font-medium text-gray-500 dark:text-[#8b8d95] mb-3 tracking-wide">可绑定</h2>
+      <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 tracking-wide">可绑定</h2>
       <div
         v-if="availableConnectors.length === 0"
-        class="flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed border-gray-200 dark:border-[#3a3b40] text-gray-400 dark:text-[#6b6d75]"
+        class="flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400"
       >
         <span class="text-sm">暂无可绑定的连接器</span>
       </div>
@@ -84,7 +79,7 @@
         <article
           v-for="connector in availableConnectors"
           :key="connector.type"
-          class="connector-card group flex items-center gap-3 cursor-pointer bg-white dark:bg-[#25262b] rounded-xl border border-gray-200 dark:border-[#34353a] p-4 transition-colors duration-200 hover:border-primary/60 hover:shadow-md"
+          class="connector-card group flex items-center gap-3 cursor-pointer bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-200 hover:border-primary/60 hover:shadow-md"
           @click="openBindDialog(connector)"
         >
           <div
@@ -94,8 +89,8 @@
             <ConnectorIcon :type="connector.type" />
           </div>
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-gray-900 dark:text-[#e8e9ed] truncate">{{ connector.name }}</div>
-            <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1 truncate">{{ connector.description }}</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ connector.name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{{ connector.description }}</div>
           </div>
           <el-button type="primary" round class="shrink-0" @click.stop="openBindDialog(connector)">绑定</el-button>
         </article>
@@ -117,7 +112,7 @@
         <component :is="bindFormComponent" v-model="bindForm" @confirmed="onQrConfirmed" />
 
         <!-- 表单型绑定可在绑定时选择模型；扫码型绑定后通过「编辑」设置 -->
-        <div v-if="!bindIsQr" class="mt-4 pt-4 border-t border-gray-200 dark:border-[#3a3b40]">
+        <div v-if="!bindIsQr" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <el-form label-position="top">
             <el-form-item label="使用模型">
               <el-select v-model="bindForm.model" placeholder="跟随系统默认模型" class="w-full">
@@ -158,13 +153,13 @@
         </el-form-item>
         <el-form-item label="仅回复 @ 我的消息">
           <el-switch v-model="editForm.mentionOnly" />
-          <span class="text-xs text-gray-400 dark:text-[#6b6d75] ml-2">群聊中未 @ 我时不回复，私聊不受影响</span>
+          <span class="text-xs text-gray-400 dark:text-gray-400 ml-2">群聊中未 @ 我时不回复，私聊不受影响</span>
         </el-form-item>
 
         <el-divider content-position="left">随机冒泡</el-divider>
         <el-form-item label="启用随机冒泡">
           <el-switch v-model="editForm.randomReplyEnabled" />
-          <span class="text-xs text-gray-400 dark:text-[#6b6d75] ml-2">像群成员一样，按概率主动冒泡加入聊天</span>
+          <span class="text-xs text-gray-400 dark:text-gray-400 ml-2">像群成员一样，按概率主动冒泡加入聊天</span>
         </el-form-item>
         <template v-if="editForm.randomReplyEnabled">
           <el-form-item label="携带上下文条数">
@@ -173,7 +168,7 @@
           <el-form-item label="触发概率">
             <div class="w-full flex items-center gap-3">
               <el-slider v-model="editForm.randomProbability" :min="0" :max="100" :step="1" class="flex-1" />
-              <span class="w-14 text-right text-sm text-gray-600 dark:text-[#8b8d95]">{{ editForm.randomProbability }}%</span>
+              <span class="w-14 text-right text-sm text-gray-600 dark:text-gray-400">{{ editForm.randomProbability }}%</span>
             </div>
           </el-form-item>
         </template>
@@ -183,7 +178,7 @@
         <el-button type="primary" :loading="saving" @click="handleSaveEdit">保存</el-button>
       </template>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
@@ -193,6 +188,7 @@ import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus';
 import { EditOutlined, DeleteOutlined, MessageOutlined } from '@vicons/antd'
 import { api } from '@/framework/context'
+import RePage from '@/components/re/RePage.vue'
 import ConnectorIcon from './ConnectorIcon.vue'
 import ILinkBindForm from './bind-forms/ILinkBindForm.vue'
 import FeishuBindForm from './bind-forms/FeishuBindForm.vue'
@@ -376,7 +372,7 @@ const getConnectorIconBg = (type: string) => {
     qq: 'bg-[#e6f6fe] dark:bg-[#12b7f5]/15',
     dingtalk: 'bg-[#e9f2ff] dark:bg-[#1677ff]/15',
   }
-  return colors[type] || 'bg-gray-100 dark:bg-[#2e3035]'
+  return colors[type] || 'bg-gray-100 dark:bg-gray-800'
 }
 
 // 类型展示名

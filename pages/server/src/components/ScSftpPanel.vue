@@ -330,10 +330,9 @@ async function removeBookmark(id: number): Promise<void> {
         :data="entries"
 
         border
-        :pagination="false"
-        :toolbar="false"
         empty-text="当前目录为空"
         :layout-table="{ minHeight: 0, height: 'calc(100vh - 320px)' }"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <ReTableColumn label="名称" min-width="240">
           <template #default="{ row }">

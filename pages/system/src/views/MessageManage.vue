@@ -181,8 +181,6 @@ function buildDynamicFields(schema?: string): DynamicField[] {
 
 /* ================== ReTab 主导航 ================== */
 const activeTab = ref("message");
-/** 图标页签是否收起（收起后仅显示当前激活项） */
-const tabsCollapsed = ref(false);
 const mainTabs: ReTabItem[] = [
     { name: "message", label: "消息记录", icon: "ChatDotRound" },
     { name: "template", label: "消息模板", icon: "Document" },
@@ -842,17 +840,18 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <ReTab
-      v-model="activeTab"
-      v-model:collapsed="tabsCollapsed"
-      :tabs="mainTabs"
-      variant="icon"
-      tab-position="right"
-      collapsible
-    >
-        <!-- ============ Tab1: 消息记录 ============ -->
-        <template #message>
-          <ReTable
+    <!-- 页签：ReTab 胶囊分段（与 ACME 证书页 / 账号管理同一套外观）。
+         此前是 variant="icon" + tab-position="right" + collapsible 的右侧竖排图标栏，
+         在该页只有 3 项时显得笨重，且与其它系统页不一致。 -->
+    <div class="system-tabs">
+      <ReTab v-model="activeTab" :tabs="mainTabs" nav-only />
+    </div>
+
+    <!-- 各页签内容（分段控件本身不带面板，内容按 activeTab 切换）。
+         用 v-if 而非 v-show：与改造前「ReTab 只渲染激活插槽」语义一致 —— 未激活的表格不挂载、
+         也就不会在首屏就发请求，切回时按各自的查询条件重新加载。 -->
+    <div v-if="activeTab === 'message'" class="system-panel">
+        <ReTable
             ref="msgTableRef"
             table-id="system-message-admin"
             v-model:engine="msgEngine"
@@ -944,10 +943,11 @@ onMounted(() => {
               />
             </template>
           </ReTable>
-        </template>
+
+    </div>
 
         <!-- ============ Tab2: 消息模板 ============ -->
-        <template #template>
+    <div v-if="activeTab === 'template'" class="system-panel">
           <ReTable
             ref="tplTableRef"
             table-id="system-message-template"
@@ -1006,10 +1006,10 @@ onMounted(() => {
               />
             </template>
           </ReTable>
-        </template>
+    </div>
 
         <!-- ============ Tab3: 发送日志 ============ -->
-        <template #log>
+    <div v-if="activeTab === 'log'" class="system-panel">
           <ReTable
             ref="logTableRef"
             table-id="system-message-log"
@@ -1061,8 +1061,7 @@ onMounted(() => {
               <ReButton layout="square" icon="View" type="primary" tip="详情" @click="handleLogDetail(row)" />
             </template>
           </ReTable>
-        </template>
-    </ReTab>
+    </div>
 
     <!-- ========== 发送消息弹窗（站内消息） ========== -->
     <ReDialog
@@ -1496,6 +1495,24 @@ onMounted(() => {
   gap: 16px;
   padding: 0;
   height: 100%;
+}
+
+/* 页签条：ReTab capsule 自身 width:100%（多项均分），这里约束成内容宽度，
+   与 ACME 证书页 / 账号管理左对齐的胶囊条一致。 */
+.system-tabs {
+  flex: none;
+  align-self: flex-start;
+  max-width: 100%;
+}
+.system-tabs :deep(.re-tab--capsule) { width: auto; }
+
+/* 内容面板：吃满页签条之外的剩余高度，表格才能正确内部滚动。
+   内容用 v-if 切换（复用改造前「只渲染激活插槽」的语义），各 tab 的查询条件随挂载重建。 */
+.system-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 本页不再覆盖 ReTable 的卡片外观：1px 描边、卡片圆角与投影、hover / focus-within

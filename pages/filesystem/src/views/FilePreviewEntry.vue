@@ -50,6 +50,8 @@ const SPECIAL_COMPONENT_BY_EXT: Record<string, Component> = {
   // 大纲 / 脑图（非 XMind）：FreeMind .mm、OPML .opml（前端解析成树）
   mm: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
   opml: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
+  // .class：前端反编译（CFR）+ Binary Inspector 十六进制检视 + 下载反编译源码
+  class: defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue")),
 };
 
 /* ==================== 引导参数（内嵌态唯一事实来源） ==================== */
@@ -249,7 +251,27 @@ function dispatch(
     return;
   }
 
-  // 2) file-viewer 注册表后缀：按扩展名取渲染器组，file-viewer 自动选渲染器
+  // 2) .class：前端反编译（FvBinaryPanel = CFR 反编译 + Binary Inspector 十六进制 + 下载）。
+  //    优先走字节直链（src），无直链时可解析桶键则面板内部签票取数。
+  if (ext === "class" && (opts.bytesUrl || opts.bucketKey)) {
+    const comp = SPECIAL_COMPONENT_BY_EXT["class"];
+    if (comp) {
+      specialComponent.value = comp;
+      specialProps.value = {
+        src: opts.bytesUrl ?? "",
+        fileName,
+        size: opts.size ?? 0,
+        inner: opts.inner ?? "",
+        ...(opts.bucketKey
+          ? { bucket: opts.bucketKey.bucket, objectKey: opts.bucketKey.objectKey }
+          : {}),
+      };
+      state.value = "special";
+      return;
+    }
+  }
+
+  // 3) file-viewer 注册表后缀：按扩展名取渲染器组，file-viewer 自动选渲染器
   const spec = specFor(fileName);
   if (spec) {
     if (!opts.bytes) {

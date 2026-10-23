@@ -3,13 +3,13 @@
     <div class="agent-panel w-full" :class="{ 'is-expanded': isExpanded }">
       <!-- Header bar (clickable to toggle) -->
       <div class="agent-panel-header" @click="isExpanded = !isExpanded">
-        <span class="flex-1 text-xs text-gray-500 dark:text-[#8b8d95] truncate">
+        <span class="flex-1 text-xs text-gray-500 dark:text-gray-400 truncate">
           <template v-if="!isExpanded">
             {{ t('chat.agent.subAgentCount', { count: subAgentCount }) }}<span v-if="runningCount > 0">{{ t('chat.agent.subAgentRunning', { count: runningCount }) }}</span>
           </template>
           <template v-else>{{ t('chat.agent.subAgent') }}</template>
         </span>
-        <svg class="shrink-0 text-gray-400 dark:text-[#6b6d73] transition-transform duration-200"
+        <svg class="shrink-0 text-gray-400 dark:text-gray-400 transition-transform duration-200"
           :class="{ 'rotate-180': isExpanded }" width="14" height="14" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 9l6 6 6-6" />
@@ -23,7 +23,7 @@
             <img v-if="tab.avatarUrl" :src="tab.avatarUrl" class="w-5 h-5 rounded-full shrink-0 object-cover"
               alt="" />
             <span class="flex-1 text-xs truncate"
-              :class="tab.id === activeTabId ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-[#8b8d95]'"
+              :class="tab.id === activeTabId ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'"
               :title="tab.name">{{ tab.name }}</span>
             <el-icon v-if="tab.status === 'running'" size="12" class="text-blue-500 is-loading shrink-0">
               <Loading />

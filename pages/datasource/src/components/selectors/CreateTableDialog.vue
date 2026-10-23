@@ -169,7 +169,6 @@ const sqlText = computed(() => (payload.value?.statements ?? []).join("\n"));
     </template>
     <div v-else class="dcd-summary">正在生成 DDL…</div>
     <template #footer>
-      <ReButton @click="close">关闭</ReButton>
       <ReButton type="primary" :loading="busy" :disabled="!canRun" @click="run">执行</ReButton>
     </template>
   </ReDialog>

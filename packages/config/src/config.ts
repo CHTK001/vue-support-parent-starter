@@ -45,6 +45,7 @@ import type {
   LoginConfig,
   RouteConfig,
   OtherConfig,
+  MenuFooterConfig,
   MonitorConfig,
 } from "./types/config";
 
@@ -88,6 +89,26 @@ export function resolveMenuDefaultIcon(): string {
  */
 export function resolveGroupNav(): boolean {
   return currentConfig.menu?.groupNav !== false;
+}
+
+/**
+ * 侧边栏底部入口配置（menuConfig.footer）。
+ *
+ * <p>缺省值见 shared.ts：单个「设置」条目 → /system/config → 仅管理员，
+ * 与历史行为一致。app.yaml 可整体替换成多条目；多条目时主按钮弹出菜单，
+ * 单条目时直接就是按钮。</p>
+ *
+ * <p>这里只做结构兜底，不做条目过滤——「路由是否注册 / 是否管理员」依赖运行时
+ * 路由表与登录态，属于渲染层的事。</p>
+ *
+ * @returns 底部入口配置；配置缺失时返回「不显示」
+ */
+export function resolveMenuFooter(): MenuFooterConfig {
+  const footer = currentConfig.menu?.footer;
+  if (!footer || !Array.isArray(footer.entries)) {
+    return { enable: false, label: "", icon: "Setting", entries: [] };
+  }
+  return footer;
 }
 
 /**

@@ -61,10 +61,9 @@
         :data="filteredItems as unknown as Record<string, unknown>[]"
         :columns="tableColumns"
         :loading="loading"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 300 }"
         empty-text="没有符合关键词的错误"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-errorType="{ row }">
           <ReTag type="danger" round>{{ row.errorType }}</ReTag>
@@ -96,10 +95,9 @@
         :data="slowCalls as unknown as Record<string, unknown>[]"
         :columns="slowColumns"
         :loading="loading"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 160 }"
         empty-text="暂无慢调用"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-traceId="{ row }">
           <span class="mono muted">{{ truncateTraceId(row.traceId) }}</span>

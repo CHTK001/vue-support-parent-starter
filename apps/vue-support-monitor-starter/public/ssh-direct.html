@@ -57,7 +57,8 @@
       var wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
       var wsUrl = wsProto + location.host + '/ws/ms/server/terminal/ssh?hostId=' + encodeURIComponent(hostId)
         + '&cols=' + term.cols + '&rows=' + term.rows
-        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '');
+        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '')
+        + (params.get('x-oauth-token') ? '&x-oauth-token=' + encodeURIComponent(params.get('x-oauth-token')) : '');
       var ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
       var encoder = new TextEncoder();

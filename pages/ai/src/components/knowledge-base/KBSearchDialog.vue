@@ -7,7 +7,7 @@
     :close-on-click-modal="false"
   >
     <!-- 搜索区 -->
-    <div class="kb-refactor flex flex-col gap-4">
+    <div class="kb flex flex-col gap-4">
       <el-form :model="searchForm" label-width="80px">
         <el-form-item :label="t('knowledge.search.kbLabel')">
           <el-select v-model="searchForm.kbId" :placeholder="t('knowledge.search.kbPlaceholder')" class="w-full" @change="handleKBChange">
@@ -105,12 +105,6 @@
       <!-- 初始态 -->
       <ReEmpty v-else :text="`${t('knowledge.search.initial')} · ${t('knowledge.search.initialHint')}`" />
     </div>
-
-    <template #footer>
-      <div class="flex justify-end gap-2">
-        <ReButton type="default" @click="dialogVisible = false">{{ t('common.close') }}</ReButton>
-      </div>
-    </template>
   </ReDialog>
 </template>
 

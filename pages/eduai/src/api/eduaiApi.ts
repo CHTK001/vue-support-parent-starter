@@ -68,6 +68,11 @@ import type {
   TeacherMarkingTask,
   StudentWrongQuestion,
   PaperAssignVO,
+  MarkingFinishPreview,
+  BatchMarkingResult,
+  WrongSource,
+  MarkingDashboardStats,
+  MarkingSettingsVO,
 } from "./types";
 
 /** 解包 { code, msg, data }（兼容 AxiosResponse 双层包装）为业务负载 */
@@ -82,11 +87,15 @@ function unwrap<T>(r: unknown): T {
  */
 export const eduaiApi = {
   // 题库
-  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; auditStatus?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
+  pageQuestions: (params: { pageNum?: number; pageSize?: number; keyword?: string; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; auditStatus?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
     http()
       .get("/v2/edu/question/page")
       .query(params)
       .then<PageResult<Question>>(unwrap),
+  questionStats: () =>
+    http()
+      .get("/v2/edu/question/stats")
+      .then<{ total?: number; pendingAudit?: number; todayNew?: number; subjectCount?: number }>(unwrap),
   getQuestion: (id: number) =>
     http()
       .get(`/v2/edu/question/${id}`)
@@ -361,6 +370,60 @@ export const eduaiApi = {
       .then<Record<string, any>>(unwrap),
 
   /**
+   * 读取阅卷运行时设置（管理员专属）。
+   *
+   * <p>返回重试次数/退避曲线 + 任意卷识别策略 + 阅卷判分 Prompt。保存在
+   * {@code edu_app_config} 键值表，未配置的项回落到 application.yml 默认。</p>
+   *
+   * @returns 阅卷运行时设置
+   */
+  getMarkingSettings: () =>
+    http()
+      .get("/v2/edu/marking-settings")
+      .then<MarkingSettingsVO>(unwrap),
+
+  /**
+   * 保存阅卷运行时设置（管理员专属）。
+   *
+   * @param data 阅卷运行时设置
+   * @returns 保存后重新读出的设置（服务端已按兜底规则纠正）
+   */
+  saveMarkingSettings: (data: MarkingSettingsVO) =>
+    http()
+      .post("/v2/edu/marking-settings")
+      .data(data as unknown as Record<string, unknown>)
+      .then<MarkingSettingsVO>(unwrap),
+
+  /**
+   * 读取 AI 运行时配置（管理员专属，用于 AI 配置中心）。
+   *
+   * <p>返回 runtime 分组 field -> value 的键值对（provider / provider_base_url /
+   * provider_api_key / default_model / temperature / max_tokens / timeout_millis 等）。
+   * 凭据类字段对非管理员回掩码 {@code ***}；管理员回显原值。</p>
+   *
+   * @returns runtime 分组配置键值对
+   */
+  getAiRuntimeConfig: () =>
+    http()
+      .get("/v2/settings/runtime")
+      .then<Record<string, any>>(unwrap),
+
+  /**
+   * 保存 AI 运行时配置（管理员专属）。
+   *
+   * <p>整组覆盖提交；凭据字段值为 {@code ***} 表示保留原值不覆盖。保存后服务端
+   * 发布变更事件，后端按新签名重建对话客户端（无需重启）。</p>
+   *
+   * @param data runtime 分组配置键值对
+   * @returns 保存后的配置
+   */
+  saveAiRuntimeConfig: (data: Record<string, any>) =>
+    http()
+      .put("/v2/settings/runtime")
+      .data(data as unknown as Record<string, unknown>)
+      .then<Record<string, any>>(unwrap),
+
+  /**
    * 获取答卷原图（同版式展示的打底图）。
    *
    * <p>返回 Blob 而非 JSON：该接口输出 PNG 字节，需要带鉴权头请求后由前端转 objectURL。</p>
@@ -589,6 +652,19 @@ export const eduaiApi = {
       .get("/v2/edu/idiom/list")
       .query(params)
       .then<Idiom[]>(unwrap),
+  /** 成语分页（后端筛选 + 归属隔离，供成语库 ReTable 使用） */
+  pageIdioms: (params: {
+    keyword?: string;
+    gradeLevel?: string;
+    grade?: string;
+    difficulty?: number;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/idiom/page")
+      .query(params)
+      .then<PageResult<Idiom>>(unwrap),
   generateIdiomGame: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
     http()
       .get("/v2/edu/idiom/game/generate")
@@ -1052,6 +1128,19 @@ export const eduaiApi = {
       .get("/v2/edu/dimension/students")
       .query(params)
       .then<EduStudent[]>(unwrap),
+  /** 学生分页（后端筛选 + 归属隔离；供学生管理 ReTable 使用） */
+  pageStudents: (params: {
+    classId?: number;
+    gradeLevel?: string;
+    grade?: string;
+    keyword?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/dimension/students/page")
+      .query(params)
+      .then<PageResult<EduStudent>>(unwrap),
   saveStudent: (data: Partial<EduStudent>) =>
     http()
       .post("/v2/edu/dimension/students/save")
@@ -1146,6 +1235,17 @@ export const eduaiApi = {
       .get("/v2/edu/dimension/classes")
       .query(params)
       .then<EduClass[]>(unwrap),
+  /** 班级分页（后端筛选 + 归属隔离） */
+  pageClasses: (params: {
+    gradeLevel?: string;
+    keyword?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/dimension/classes/page")
+      .query(params)
+      .then<PageResult<EduClass>>(unwrap),
   saveClass: (data: Partial<EduClass>) =>
     http()
       .post("/v2/edu/dimension/classes/save")
@@ -1161,6 +1261,17 @@ export const eduaiApi = {
       .get("/v2/edu/dimension/teachers")
       .query(params)
       .then<EduTeacher[]>(unwrap),
+  /** 教师分页（后端筛选 + 归属隔离） */
+  pageTeachers: (params: {
+    subjectCode?: string;
+    keyword?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}) =>
+    http()
+      .get("/v2/edu/dimension/teachers/page")
+      .query(params)
+      .then<PageResult<EduTeacher>>(unwrap),
   saveTeacher: (data: Partial<EduTeacher>) =>
     http()
       .post("/v2/edu/dimension/teachers/save")

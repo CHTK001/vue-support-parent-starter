@@ -132,6 +132,8 @@ export type DbColumnPayload = {
   autoIncrement?: boolean;
   /** ENUM / SET 的取值列表 */
   enumValues?: string[];
+  /** MySQL 调整列顺序：空串=FIRST，非空=AFTER 该列；缺省=保持原位 */
+  afterColumn?: string;
   comment?: string;
   database?: string;
   datasourceId?: number;

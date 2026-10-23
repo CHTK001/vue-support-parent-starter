@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog :close-on-click-modal="true"
     v-model="visible"
     :title="isEdit ? '编辑角色' : '新建角色'"
     width="640px"
@@ -127,14 +127,14 @@
         </el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, computed } from 'vue'
 
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import {
   Info24Regular, Edit24Regular, Image24Regular, WrenchScrewdriver24Regular,
 } from '@vicons/fluent'

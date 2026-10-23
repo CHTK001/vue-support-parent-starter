@@ -98,6 +98,14 @@ const props = withDefaults(
      * 见 {@link SquareLayout} 的 decorative 说明。默认 false，对既有调用零影响。
      */
     decorative?: boolean;
+    /**
+     * 动画图标（{@code anim:<lib>:<icon>}）的尺寸 px。
+     *
+     * <p>普通图标（element-plus / iconify）由字体决定大小，不需要这个；
+     * 但动画图标是内联 SVG，尺寸必须显式给 —— 否则会退化成 ReIcon 的默认 18px，
+     * 在小方钮里显得偏大或偏小。</p>
+     */
+    animIconSize?: number;
   }>(),
   {
     layout: "el",
@@ -119,6 +127,7 @@ const props = withDefaults(
     showText: undefined,
     tip: undefined,
     iconSize: 32,
+    animIconSize: undefined,
     decorative: false,
   },
 );
@@ -212,6 +221,7 @@ function onClick(e: MouseEvent): void {
         :loading="loading"
         :disabled="disabled"
         :icon="icon"
+        :anim-icon-size="animIconSize"
         :native-type="nativeType"
         :aria-label="labelText"
         v-bind="$attrs"
@@ -227,6 +237,7 @@ function onClick(e: MouseEvent): void {
     :loading="loading"
     :disabled="disabled"
     :icon="icon"
+    :anim-icon-size="animIconSize"
     :native-type="nativeType"
     :decorative="decorative"
     v-bind="$attrs"
@@ -279,7 +290,7 @@ function onClick(e: MouseEvent): void {
         @click="onClick"
       >
         <slot name="icon">
-          <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+          <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="re-button__icon" />
           <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
             <component :is="icon" />
           </ElIcon>
@@ -306,7 +317,7 @@ function onClick(e: MouseEvent): void {
     @click="onClick"
   >
     <slot name="icon">
-      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="re-button__icon" />
       <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
         <component :is="icon" />
       </ElIcon>

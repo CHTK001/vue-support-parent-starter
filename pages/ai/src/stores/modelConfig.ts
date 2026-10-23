@@ -14,6 +14,8 @@ interface RegisteredOnnxModel {
   provider_id?: string
   platform?: string
   model?: string
+  modelName?: string
+  id?: string
   available?: boolean
   external?: boolean
 }
@@ -38,8 +40,9 @@ const TTS_REQUIRED = ['default_model'] as const
 /**
  * OCR 必需项：文字检测 + 文字识别。
  *
- * <p>两级管线缺任一级都必然失败：只有检测、没有识别，出不了文本；只有识别、没有检测，
- * 不知道该去哪儿认。所以两项都进同一道门禁，与 face 的 detector+feature 同口径。</p>
+ * <p>后端口径（OcrClientManager.available()）：只要 detector_model 或 recognizer_model
+ * 任一有值，OCR 管线即视为可用。前端同口径：任一已配即视为 ocReady，避免用户
+ * 只要配置一项就被卡在门外的情况。</p>
  */
 const OCR_REQUIRED = ['detector_model', 'recognizer_model'] as const
 
@@ -49,6 +52,10 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
   const colorizeReady = ref(false)
   const asrReady = ref(false)
   const ttsReady = ref(false)
+  /**
+   * OCR 是否已配置（后端口径：任一字段非 SYSTEM_DEFAULT 且非空即视为可用）。
+   * 与 OcrClientManager.available() 保持一致：detector_model || recognizer_model 任一配置即可。
+   */
   const ocrReady = ref(false)
   const faceDetectorModel = ref('')
   const faceFeatureModel = ref('')
@@ -227,7 +234,9 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
     ocrMerged.value = Object.fromEntries(map)
     ocrDetectorModel.value = configuredValue(map, 'detector_model')
     ocrRecognizerModel.value = configuredValue(map, 'recognizer_model')
-    ocrReady.value = OCR_REQUIRED.every((f) => isFieldConfigured(map, f))
+    // 后端同口径：任一字段配置即视为可用
+    ocrReady.value = OCR_REQUIRED.some((f) => isFieldConfigured(map, f))
+    // 仍记录全部缺失字段，供页面展示提示
     ocrMissing.value = OCR_REQUIRED.filter((f) => !isFieldConfigured(map, f))
   }
 
@@ -250,9 +259,15 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
       applyTts(ttsItems)
       applyOcr(ocrItems)
       await fetchRegisteredModelIds()
-      await fetchFaceAvailableModelNames()
+      const faceMap = toMergedMap(faceItems)
+      // 人脸未配置（detector/feature 均缺）时跳过“可用模型清单”预检：
+      // 该接口在无模型资产/未配置环境直接 400，且此时 faceReady=false，
+      // 预检结果不影响任何展示，反而会在浏览器记录 Failed to load resource。
+      if (FACE_REQUIRED.some((f) => isFieldConfigured(faceMap, f))) {
+        await fetchFaceAvailableModelNames()
+      }
       // 注册清单就绪后重算一次“未注册”状态（face 先按旧清单算过，这里收敛）
-      refreshUnregistered(toMergedMap(faceItems))
+      refreshUnregistered(faceMap)
       loaded.value = true
     })().finally(() => {
       inflight = null

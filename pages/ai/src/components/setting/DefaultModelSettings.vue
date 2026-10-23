@@ -10,8 +10,8 @@
         :label="getFieldLabel(item)"
         :description="item.description"
         :tip="getFieldTip(item)"
-        :risk="getFieldRisk(item)"
-        :risk-tip="getFieldRiskTip(item)"
+        :risk="getFieldRisk(item, group.group)"
+        :risk-tip="getFieldRiskTip(item, group.group)"
         control-flex
       >
         <!-- STRING：模型选择器 -->
@@ -129,8 +129,8 @@
             :label="getFieldLabel(item)"
             :description="item.description"
             :tip="getFieldTip(item)"
-            :risk="getFieldRisk(item)"
-            :risk-tip="getFieldRiskTip(item)"
+            :risk="getFieldRisk(item, group.group)"
+            :risk-tip="getFieldRiskTip(item, group.group)"
             control-flex
           >
             <!-- usage_sync_providers 多选 -->
@@ -172,7 +172,7 @@
     </SettingsCard>
 
     <!-- 模型选择对话框 -->
-    <LDialog v-model="modelDialogVisible" title="选择模型" width="600px">
+    <ReDialog :close-on-click-modal="true" v-model="modelDialogVisible" title="选择模型" width="600px">
       <div class="md-body">
         <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
           <template #prefix>
@@ -211,7 +211,7 @@
       <template #footer>
         <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -226,7 +226,7 @@ import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import { useModelConfigStore } from '@/stores/modelConfig'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
@@ -282,9 +282,13 @@ const props = defineProps({
  * 本就是「会话」语义，与整页的模型选择混在一起反而更难找，已挪到会话配置页。
  * <p>语音识别（asr）与语音合成（tts）同样在此列：它们的字段是 provider / 密钥 / 地址 /
  * 模型 / 音色等，与文本对话模型并排时既看不出「这是音频能力」，也容易被当成又一个聊天模型；
- * 拆出后与左侧导航的「音频识别」能力页一一对应。</p>
+ * 拆出后与左侧导航的「音频识别」能力页一一对应。
+ * <p>联网搜索（search）也在此列：SystemSettings 已有专门的「搜索设置」页
+ * （SearchSettings.vue，读取同一批 provider / apiKey / endpoint 字段），
+ * 默认模型整页再渲染「联网搜索」分组就是两个入口两份表单；拆出后只保留专用入口，
+ * 避免「这里填了、搜索设置里没显示」这类错位。</p>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search']
 
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 const displayGroups = computed(() => {
@@ -937,7 +941,9 @@ const MEDIUM_RISK_FIELDS = new Set([
 const faceLibraryCount = ref(0)
 const imageLibraryCount = ref(0)
 
-const getFieldRisk = (item) => {
+const getFieldRisk = (item, group) => {
+  // OCR 组无底库概念，直接返回空风险等级
+  if (group === 'ocr') return ''
   const field = String(item?.field ?? '')
   if (HIGH_RISK_FIELDS.has(field)) {
     return faceLibraryCount.value > 0 ? 'high' : ''
@@ -955,7 +961,9 @@ const groupIsFace = (item) => {
   return !['captioning_model', 'segment_model'].includes(f)
 }
 
-const getFieldRiskTip = (item) => {
+const getFieldRiskTip = (item, group) => {
+  // OCR 组无底库概念，跳过风险提示
+  if (group === 'ocr') return ''
   const field = String(item?.field ?? '')
   if (HIGH_RISK_FIELDS.has(field)) {
     return `人脸底库已有 ${faceLibraryCount.value} 条。换特征模型后，旧人脸向量与新模型不在同一嵌入空间，` +
@@ -1135,6 +1143,23 @@ const modelFieldDisplay = (group, field) => {
     return meta && meta.overridden === false ? `继承全局：${value}` : value
 }
 
+/**
+ * ONNX / 本地推理管线的模型槽位（人脸、OCR、版面、图片 CV）。
+ *
+ * <p>这类字段的值必须写**裸模型名**：后端 FaceClientManager / OCR 管线用
+ * {@code ModelRegistry} 的裸 key 查找会话（如 {@code scrfd-face-detector}），
+ * 不接受 {@code onnx:scrfd-face-detector} 这种复合键。此前选择器把
+ * {@code providerId:modelName} 原样入库，登记时才在第一步报「模型未注册」。</p>
+ */
+const BARE_MODEL_GROUPS = new Set(['face', 'ocr', 'layout', 'image', 'image_search'])
+
+/** 该设置字段是否应存裸模型名（ONNX 本地管线）；其余字段保留 providerId:modelName 复合键 */
+const shouldStoreBareModel = (group, field) => {
+    if (!BARE_MODEL_GROUPS.has(String(group))) return false
+    if (String(group) === 'image_search' && String(field) === 'keyword_model') return false
+    return true
+}
+
 // 取字段当前所选模型的提供商 logo（字段值形如 providerId:modelName）
 const getFieldModelLogo = (group, field) => {
     const v = getFieldValue(group, field)
@@ -1182,7 +1207,12 @@ const openModelDialog = async (group, field) => {
 // 选择模型
 const selectModel = (modelId) => {
     if (!modelId) return
-    updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId)
+    const model = models.value.find((m) => m.id === modelId)
+    // ONNX 本地管线（人脸/OCR/版面/图片 CV）存裸模型名；LLM/嵌入等保持 providerId:modelName
+    const value = model && shouldStoreBareModel(currentDialogGroup.value, currentDialogField.value)
+        ? model.model || modelId
+        : modelId
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, value)
     modelDialogVisible.value = false
 }
 
@@ -1329,7 +1359,11 @@ const loadModels = () => {
                 const isOnnxProvider = provider.provider_id === 'onnx' || provider.platform === 'onnx'
                 const providerModels = (provider.models || [])
                     .filter(m => m.enabled !== false)
-                    .filter(m => isOnnxProvider ? m.external === true : true)
+                    // ONNX 提供商：external=true（绑定外部目录）或 available=true（已注册、权重在）
+                    // 的模型都可选。此前只认 external，导致 ModelRegistry 里已注册的内置模型
+                    // （scrfd-face-detector / arc-face / resnet 等，available=true 但 external=false）
+                    // 在「人脸识别/检测」「图像特征」等弹框里一个都选不到，门禁永远不亮。
+                    .filter(m => isOnnxProvider ? (m.external === true || m.available === true) : true)
                     .map((m) => {
                         const meta = resolveModelMeta(m.model, m.capabilities)
                         return {

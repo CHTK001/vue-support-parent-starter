@@ -14,6 +14,7 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
 import { resolveObjectUrl } from "../../api/filestorageApi";
+import { parseClassInfo, type ClassInfo } from "../../utils/classFile";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -80,59 +81,113 @@ const effectiveExt = computed(() => effectiveName.value.split(".").pop()?.toLowe
 /**
  * 是否展示「反编译」入口：只有 {@code .class} 有。
  *
- * <p>反编译由后端 {@code ClassPreviewProvider}（CFR）承担，走
- * {@code ?preview=true&render=server} 服务端通道返回高亮源码；
- * 本面板只做「十六进制 / 反编译源码」两种视图的切换。</p>
+ * <p>反编译在浏览器内完成：{@code @run-slicer/cfr}（CFR 0.152 的 JS/WASM 移植）
+ * 前端反编译，不依赖后端服务端通道；类名按 JVMS 解析 {@code this_class} 得到，
+ * 不靠文件名猜。装配了 Binary Inspector（{@code binaryRenderer}）的十六进制检视，
+ * 反编译作为 <b>另一种视图</b> 与检视并列，用户可在两者间切换。</p>
  */
 const canDecompile = computed(() => effectiveExt.value === "class");
 
+/** Java 主版本号 → 语言版本（45 = 1.1，52 = 8，61 = 17，65 = 21 …） */
+const javaVersionLabel = computed(() => {
+  const m = classInfo.value?.major;
+  if (!m) return "";
+  if (m <= 48) return `Java 1.${m - 44}`;
+  return `Java ${m - 44}`;
+});
+
+/** 反编译源码行数（仅 .class 有） */
+const sourceLineCount = computed(() =>
+  decompiledSource.value ? decompiledSource.value.split("\n").length : 0,
+);
+
 /** 当前显示的是反编译源码（true）还是十六进制检视（false，默认） */
 const showDecompiled = ref(false);
-/** 反编译源码的服务端地址（首次切换时解析一次） */
-const decompileSrc = ref("");
-/** 反编译地址解析失败文案 */
+/** 反编译源码文本（前端 CFR 产出） */
+const decompiledSource = ref("");
+/** 反编译中 */
+const decompiling = ref(false);
+/** 反编译失败文案 */
 const decompileErr = ref("");
+/** 反编译产出的类信息（仅 .class 有） */
+const classInfo = ref<ClassInfo | null>(null);
+/** 反编译用时（ms） */
+const decompileElapsed = ref(0);
+/** 最近一次取到的字节（供反编译复用，避免二次拉取） */
+let rawBytes: ArrayBuffer | null = null;
 
-/**
- * 解析反编译源码的服务端地址。
- *
- * <p>口径与取字节一致：直传 {@code src} 时在其上追加服务端通道参数；
- * 否则用 {@code resolveObjectUrl} 签票并带上 {@code preview=true&render=server}
- * （包内条目再带 {@code inner=}）。</p>
- */
-async function resolveDecompileSrc(): Promise<string> {
-  const withServer = (u: string): string =>
-    `${u}${u.includes("?") ? "&" : "?"}preview=true&render=server`;
-  if (props.src) {
-    return withServer(props.src);
-  }
-  const params: Record<string, string> = { preview: "true", render: "server" };
-  if (props.inner) {
-    params.inner = props.inner;
-  }
-  const url = await resolveObjectUrl(props.bucket, props.objectKey, { params });
-  if (!url) {
-    throw new Error("获取反编译地址失败");
-  }
-  return url;
+/** 去掉 CFR 输出顶部的许可证块注释，只留代码 */
+function stripHeader(src: string): string {
+  const m = /^\s*\/\*[\s\S]*?\*\/\s*/.exec(src);
+  return m ? src.slice(m[0].length) : src;
 }
 
-/** 切换视图；首次进入反编译视图时解析地址 */
+/** CFR 包类型（@run-slicer/cfr 的 d.ts 已提供同名 API，这里只做兼容层） */
+interface CfrModule {
+  decompile: (
+    names: string | string[],
+    config?: {
+      source?: (name: string) => Promise<Uint8Array | null>;
+      options?: Record<string, string>;
+    },
+  ) => Promise<Record<string, string>>;
+}
+
+/** 切换视图；首次进入反编译视图时在前端执行 CFR 反编译 */
 async function toggleDecompiled(): Promise<void> {
   if (showDecompiled.value) {
     showDecompiled.value = false;
     return;
   }
-  decompileErr.value = "";
-  if (!decompileSrc.value) {
-    try {
-      decompileSrc.value = await resolveDecompileSrc();
-    } catch (e) {
-      decompileErr.value = e instanceof Error && e.message ? e.message : "反编译地址解析失败";
-      return;
-    }
+  await decompileOnce();
+  if (!decompileErr.value) {
+    showDecompiled.value = true;
   }
-  showDecompiled.value = true;
+}
+
+/**
+ * 前端 CFR 反编译（幂等）：仅成功一次，成功后缓存 {@link decompiledSource}。
+ */
+async function decompileOnce(): Promise<void> {
+  if (decompiledSource.value || decompiling.value) return;
+  if (!rawBytes) return;
+  decompileErr.value = "";
+  decompiling.value = true;
+  const t0 = performance.now();
+  try {
+    const meta = parseClassInfo(rawBytes);
+    classInfo.value = meta;
+    const mod = (await import("@run-slicer/cfr")) as unknown as CfrModule;
+    const bytes = new Uint8Array(rawBytes);
+    const out = await mod.decompile(meta.internalName, {
+      source: async (name) => (name === meta.internalName ? bytes : null),
+      options: {},
+    });
+    const src = out[meta.internalName] ?? Object.values(out)[0] ?? "";
+    if (!src.trim()) throw new Error("CFR 未返回源码");
+    decompileElapsed.value = Math.round(performance.now() - t0);
+    decompiledSource.value = stripHeader(src);
+  } catch (e) {
+    decompileErr.value = e instanceof Error && e.message ? `反编译失败：${e.message}` : "反编译失败";
+  } finally {
+    decompiling.value = false;
+  }
+}
+
+/** 下载反编译后的 Java 源码（仅 .class 有内容时可用） */
+function downloadDecompiled(): void {
+  const src = decompiledSource.value;
+  if (!src) return;
+  const base = effectiveName.value.replace(/\.class$/i, "");
+  const blob = new Blob([src], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${base || "decompiled"}.java`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -224,7 +279,17 @@ async function load(): Promise<void> {
     if (!ready) {
       throw new Error("二进制检视依赖加载失败");
     }
+    rawBytes = buf;
     fileRef.value = new File([buf], viewerFileName.value);
+    // .class：预览直接是「反编译 Java 源码」——加载后自动反编译并切到源码视图；
+    // 反编译失败时留在十六进制视图，不阻断检视。
+    if (canDecompile.value && !disposed) {
+      await decompileOnce();
+      if (disposed) return;
+      if (!decompileErr.value && !showDecompiled.value) {
+        showDecompiled.value = true;
+      }
+    }
   } catch (e) {
     if (disposed) {
       return;
@@ -256,10 +321,13 @@ function onRenderError(): void {
 watch(
   () => [props.bucket, props.objectKey, props.inner, props.src, props.fileName],
   () => {
-    // 换文件即回到十六进制视图，并清掉上一份的反编译地址
+    // 换文件即回到十六进制视图，并清掉上一份的反编译产物
     showDecompiled.value = false;
-    decompileSrc.value = "";
+    decompiledSource.value = "";
     decompileErr.value = "";
+    classInfo.value = null;
+    decompileElapsed.value = 0;
+    rawBytes = null;
     void load();
   },
   { immediate: true },
@@ -272,7 +340,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="fv-binary" aria-label="二进制文件检视">
-    <!-- .class：十六进制 / 反编译源码 切换。反编译走后端 CFR（服务端通道）。 -->
+    <!-- .class：十六进制 / 反编译源码 切换。反编译由前端 @run-slicer/cfr 完成 -->
     <div v-if="canDecompile" class="fv-binary__bar">
       <button
         type="button"
@@ -290,15 +358,33 @@ onBeforeUnmount(() => {
       >
         反编译源码
       </button>
+      <span v-if="decompiling" class="fv-binary__bar-info">反编译中…</span>
+      <span v-else-if="classInfo && decompiledSource" class="fv-binary__bar-meta">
+        {{ classInfo.name }} · {{ javaVersionLabel }} · {{ sourceLineCount }} 行 · {{ decompileElapsed }} ms · CFR 0.152
+      </span>
+      <button
+        v-if="decompiledSource"
+        type="button"
+        class="fv-binary__tab fv-binary__tab--download"
+        title="下载反编译后的 Java 源码"
+        @click="downloadDecompiled"
+      >
+        下载
+      </button>
       <span v-if="decompileErr" class="fv-binary__bar-err">{{ decompileErr }}</span>
     </div>
-    <iframe
-      v-if="showDecompiled && decompileSrc"
-      class="fv-binary__frame"
-      :src="decompileSrc"
-      title="反编译源码"
-      @load="onRendered"
-    />
+    <div v-if="showDecompiled" class="fv-binary__codeframe">
+      <div v-if="decompiling" class="fv-binary__mask">
+        <span class="fv-binary__mask-text">反编译中…</span>
+      </div>
+      <div v-else-if="decompileErr" class="fv-binary__mask">
+        <span class="fv-binary__mask-text">{{ decompileErr }}</span>
+      </div>
+      <pre v-else-if="decompiledSource" class="fv-binary__code" data-testid="class-source">{{ decompiledSource }}</pre>
+      <div v-else class="fv-binary__mask">
+        <span class="fv-binary__mask-text">无源码</span>
+      </div>
+    </div>
     <template v-else>
       <div v-if="loading" class="fv-binary__mask">
         <span class="fv-binary__mask-text">加载中…</span>
@@ -373,16 +459,46 @@ onBeforeUnmount(() => {
   background: var(--el-color-primary-light-9, #ecf5ff);
   color: var(--el-color-primary, #409eff);
 }
+.fv-binary__tab--download {
+  margin-left: auto;
+  border-color: var(--el-color-success, #67c23a);
+  color: var(--el-color-success, #67c23a);
+  background: var(--el-bg-color, #fff);
+}
+.fv-binary__tab--download:hover {
+  background: var(--el-color-success-light-9, #f0f9eb);
+}
 .fv-binary__bar-err {
   color: var(--el-color-danger, #f56c6c);
   font-size: 12px;
 }
-.fv-binary__frame {
-  width: 100%;
+.fv-binary__bar-info {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+.fv-binary__bar-meta {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* .class 反编译源码视图（前端 CFR 产出） */
+.fv-binary__codeframe {
   flex: 1;
   min-height: 0;
-  border: 0;
+  overflow: auto;
   border-radius: var(--el-radius-md, 8px);
-  background: #fff;
+  background: var(--el-fill-color-lighter, #fafafa);
+}
+.fv-binary__code {
+  margin: 0;
+  padding: 14px 16px 40px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-primary, #303133);
+  white-space: pre;
+  tab-size: 4;
 }
 </style>

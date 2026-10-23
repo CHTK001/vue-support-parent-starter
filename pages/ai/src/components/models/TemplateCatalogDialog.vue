@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="visible"
     title="模板库"
     width="800px"
@@ -71,17 +71,13 @@
         <span>尝试其他关键词</span>
       </div>
     </div>
-
-    <template #footer>
-      <el-button @click="visible = false">关闭</el-button>
-    </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { SearchOutlined, CloseOutlined, AddOutlined, StorefrontOutlined } from '@vicons/material'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ProviderLogo from './ProviderLogo.vue'
 
 const props = defineProps<{ templates: any[] }>()

@@ -1,6 +1,6 @@
 <template>
   <div class="ilink-bind-form flex flex-col items-center px-2 pb-1">
-    <p class="text-sm text-gray-600 dark:text-[#c5c7cc] text-center min-h-[20px] leading-5">{{ statusText }}</p>
+    <p class="text-sm text-gray-600 dark:text-gray-200 text-center min-h-[20px] leading-5">{{ statusText }}</p>
 
     <div class="qr-card mt-3 p-4 bg-white rounded-2xl border border-gray-100">
       <img v-if="qrDataUrl" :src="qrDataUrl" alt="微信二维码" class="w-52 h-52 rounded-lg block" />
@@ -13,7 +13,7 @@
 
     <div class="mt-4 h-5 text-xs text-center">
       <span v-if="confirmed" class="text-green-600">绑定成功，正在刷新…</span>
-      <span v-else-if="qrcodeCountdown > 0" class="text-gray-400 dark:text-[#6b6d75]">
+      <span v-else-if="qrcodeCountdown > 0" class="text-gray-400 dark:text-gray-400">
         二维码将在 {{ qrcodeCountdown }} 秒后自动刷新
       </span>
     </div>

@@ -7,7 +7,7 @@
         </template>
       </ReSectionHead>
 
-      <ReTable v-if="snippets.length" :data="snippets" style="width: 100%" :pagination="false" :toolbar="false">
+      <ReTable v-if="snippets.length" :data="snippets" style="width: 100%" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
         <ReTableColumn prop="name" label="名称" width="150" />
         <ReTableColumn prop="content" label="命令内容" />
         <ReTableColumn prop="category" label="分类" width="100" />

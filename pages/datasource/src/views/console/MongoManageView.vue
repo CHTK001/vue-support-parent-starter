@@ -99,7 +99,7 @@
                 <span v-if="queryResult.truncated" class="dsm-query-warn">已截断，服务端共 {{ queryResult.totalRows }} 行，请加 .limit(n) 收窄结果</span>
               </span>
             </div>
-            <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" :pagination="false" stripe border height="280px" @row-click="onRowClick" />
+            <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" stripe border height="280px" @row-click="onRowClick" :config="{ pagination: { enable: false } }"/>
             <ReEmpty v-else description="点击左侧集合或输入 db.<集合>.find() 执行查询；点击结果行可查看完整文档" />
           </div>
         </div>
@@ -110,9 +110,6 @@
     <ReDialog v-model="docVisible" :title="`文档 - ${activeCollection}`" width="720px">
       <pre v-if="docText" class="dsm-doc-json" data-testid="dsm-doc-json">{{ docText }}</pre>
       <div v-else class="dsm-empty-inline">正在读取…</div>
-      <template #footer>
-        <ReButton @click="docVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>关闭</ReButton>
-      </template>
     </ReDialog>
   </div>
 </template>

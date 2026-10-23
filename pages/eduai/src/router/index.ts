@@ -51,17 +51,6 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "教育概览", icon: "HomeFilled", showLink: true, keepAlive: true, isVisible: "1" },
   },
 
-  // ==================== AI 提供商管理（pages/ai 组件内嵌）====================
-  // 组卷 / 阅卷用的 AI 模型、ONNX 等，统一由 pages/ai 的模型管理页维护。
-  // 这里直接复用 pages/ai 的 ModelsPage 组件（同一 monorepo 依赖），
-  // 不走 iframe、也不外链 AI 控制台，用户停留在本工作台内完成配置。
-  {
-    path: "/edu/ai-provider",
-    name: "EduAiProvider",
-    component: () => import("../views/AiProviderView.vue"),
-    meta: { title: "AI 提供商管理", icon: "Cpu", showLink: true, isVisible: "1" },
-  },
-
   // ==================== 题库资源 ====================
   group("/grp-question", "GroupEduQuestion", "题库资源", "Coin", [
     {
@@ -76,7 +65,7 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       // 页面路径保持 /edu/collect 不变：侧边栏入口、深链、历史书签都不断。
       path: "/edu/collect",
       name: "EduCollect",
-      component: () => import("@pages/collect/src/views/CollectorView.vue"),
+      component: () => import("../views/CollectorPageView.vue"),
       meta: { title: "采集管理", icon: "Download", showLink: true, keepAlive: true, isVisible: "1" },
     },
     // 采集器列表里的「运行记录」「采集结果」两个按钮要落到页面，
@@ -188,6 +177,24 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       name: "EduDataConfig",
       component: () => import("../views/DataConfigView.vue"),
       meta: { title: "维度数据", icon: "Grid", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+  ]),
+
+  // ==================== 系统配置 ====================
+  // AI 提供商管理是 pages/ai 的模型管理页：组卷 / 阅卷用的 AI 模型、ONNX 等
+  // 在这里统一维护。放在侧边栏菜单最底部，不占顶层、也不塞进题库/阅卷分类。
+  group("/grp-config", "GroupEduConfig", "系统配置", "Setting", [
+    {
+      path: "/edu/ai-provider",
+      name: "EduAiProvider",
+      component: () => import("../views/AiProviderView.vue"),
+      meta: { title: "AI 提供商管理", icon: "Cpu", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
+      path: "/edu/ai-config-center",
+      name: "EduAiConfigCenter",
+      component: () => import("../views/AiConfigCenterView.vue"),
+      meta: { title: "AI 配置中心", icon: "Setting", showLink: true, keepAlive: true, isVisible: "1" },
     },
   ]),
 

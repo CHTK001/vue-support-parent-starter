@@ -21,13 +21,13 @@ import { t } from "@/locales";
  */
 const PROVIDER_LOGOS: Record<string, string> = {
   // OpenAI
-  openai: "OpenAI.svg",
+  openai: "openai.svg",
   gpt: "OpenAI.svg",
   newapi: "newapi.png",
 
   // Anthropic
   anthropic: "Anthropic.svg",
-  claude: "Anthropic.svg",
+  claude: "claude.svg",
 
   // Google
   google: "Google.svg",
@@ -56,7 +56,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
   moonshot: "kimi.png",
 
   // DeepSeek
-  deepseek: "DeepSeek.svg",
+  deepseek: "deepseek.svg",
 
   // 百川智能
   baichuan: "Baichuan.svg",
@@ -102,6 +102,14 @@ const PROVIDER_LOGOS: Record<string, string> = {
   // MuseSpark — 同时注册带连字符别名，匹配模型名前缀 `muse-spark-*`
   "muse-spark": "MuseSpark.svg",
 
+  // 商汤 SenseNova — 模型名前缀 `sensenova-*` / `sensetime-*` 均命中同款图标
+  sensenova: "sensenova.png",
+  sensetime: "sensenova.png",
+
+  cline: "cline.svg",
+  qoder: "qoder.png",
+  "qoder-cn": "qoder.png",
+
   // 其他已有 Logo 文件但暂未在 PROVIDER_LOGOS 注册的提供商
   meta: "meta.svg",
   microsoft: "microsoft.svg",
@@ -112,6 +120,10 @@ const PROVIDER_LOGOS: Record<string, string> = {
   opencode: "opencode.png",
   openclaw: "openclaw.svg",
   onnx: "onnx.svg",
+  grok: "grok.svg",
+  bedrock: "bedrock.svg",
+  mistral: "mistral.svg",
+  azure: "azure.svg",
 };
 
 /**

@@ -395,7 +395,17 @@ async function submit() {
     visible.value = false
     reset()
   } catch (e: any) {
-    message.error(`${isEdit.value ? '更新' : '登记'}失败：${e?.message ?? e}`)
+    const raw = String(e?.message ?? e)
+    // 后端“模型未注册”通常是配置的默认模型从注册清单中删除/停用：
+    // 给出一句话解释，让用户直接去默认模型页换模型，而不是对着失败登记反复重试。
+    if (/模型未注册|model.*not registered|not registered|未注册/.test(raw)) {
+      message.error(
+        `登记失败：当前检测/特征模型未在后端注册（${raw.replace(/^.*模型未注册:\s*/i, '')}）。` +
+        '请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型后重试',
+      )
+    } else {
+      message.error(`${isEdit.value ? '更新' : '登记'}失败：${raw}`)
+    }
   } finally {
     submitting.value = false
   }

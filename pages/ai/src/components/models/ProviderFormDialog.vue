@@ -9,16 +9,18 @@ import {
 } from '@vicons/fluent'
 import { useI18n } from 'vue-i18n'
 import ReSelect from '@repo/ui/re-select'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ProviderLogo from './ProviderLogo.vue'
+import OnnxExternalDialog from './OnnxExternalDialog.vue'
 import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
-import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode } from './model.constants'
+import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode, isChannelProvider, CHANNEL_PROVIDER_IDS } from './model.constants'
 import { parseHeaders, validateHeadersText, resolveProviderBrand, headersToText } from './model.utils'
+import { channelApi, type ChannelSummary } from '@/services/javaApi'
 
 const { t } = useI18n()
 
-const emit = defineEmits<{ saved: []; back: [] }>()
+const emit = defineEmits<{ saved: []; back: []; goToChannelManagement: [] }>()
 
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
@@ -33,6 +35,10 @@ const showKey = ref<Record<number, boolean>>({})
 const isLocalProvider = computed(() => (providerType.value || '').toLowerCase().includes('onnx'))
 /** 本地模型路径（仅本地提供商使用，最终写入 apiKey 字段） */
 const localModelPath = ref('')
+/** ONNX 真实模型根目录（后端 /providers 回传的 model_root，绝对路径；只读展示） */
+const providerModelRoot = ref('')
+/** 绑定外部模型目录弹窗（ONNX 专属：本地目录只能在这里登记） */
+const externalVisible = ref(false)
 
 const form = reactive({
   name: '',
@@ -73,6 +79,36 @@ const authHint = computed(
   () => (AUTH_SCHEMES.find((s) => s.value === form.authMode) || AUTH_SCHEMES[0]).description,
 )
 
+// ---------- 账号渠道识别 ----------
+
+/**
+ * 是否为账号渠道类 provider（平台 ∈ CHANNEL_PROVIDER_IDS 或 auth_scheme === 'oauth'）。
+ * 渠道 provider 不走 API Key 输入，改走渠道管理页的账号绑定；表单内只读回显 + 跳转入口。
+ */
+const isChannelProviderFlag = ref(false)
+
+/** 当前渠道已绑定的账号列表（编辑态回显用，从 channelApi.list() 拉取） */
+const channelConnections = ref<ChannelSummary[]>([])
+
+/** 拉取渠道账号列表（编辑态打开时调用；失败不影响表单） */
+async function loadChannelConnections(channelId: string) {
+  try {
+    const res = await channelApi.list()
+    const data = (res as any)?.data ?? res
+    const all: ChannelSummary[] = Array.isArray(data) ? data : []
+    const hit = all.find((c) => c.channel === channelId)
+    channelConnections.value = hit ? [hit] : []
+  } catch {
+    channelConnections.value = []
+  }
+}
+
+/** 渠道 provider 对应的 channel 标识（platform 值） */
+const channelProviderId = computed(() => {
+  const brand = String(providerType.value || '').toLowerCase()
+  return CHANNEL_PROVIDER_IDS.has(brand) ? brand : ''
+})
+
 /**
  * 组装供应商扩展配置。
  *
@@ -112,6 +148,8 @@ const resetForm = () => {
   })
   apiKeyList.value = []
   localModelPath.value = ''
+  providerModelRoot.value = ''
+  externalVisible.value = false
   testResult.value = null
   showKey.value = {}
   selectedTemplate.value = null
@@ -153,6 +191,13 @@ const openEdit = (provider: any) => {
   form.name = provider.name
   form.protocol = provider.protocol || 'openai'
   form.apiUrl = provider.apiUrl || provider.base_url || provider.url || ''
+  // ONNX 的 base_url 是后端写死的占位值（ai.onnx.base-url，默认 http://127.0.0.1:8080/v1），
+  // 与本地推理毫无关系；真实位置是 model_root（绝对路径）。表单里不回显占位 URL，
+  // 改为只读展示 model_root，避免用户误以为要填 http 地址。
+  providerModelRoot.value = String(provider.model_root || '').trim()
+  if (isLocalProvider.value) {
+    form.apiUrl = ''
+  }
   form.proxyUrl = provider.proxy || provider.proxyUrl || ''
   form.loadStrategy = provider.extra?.load_strategy || provider.loadStrategy || 'failover'
   form.autoSwitchOnRateLimit = provider.autoSwitchOnRateLimit !== false
@@ -177,6 +222,14 @@ const openEdit = (provider: any) => {
     localModelPath.value = provider.api_keys?.[0] || provider.apiKeyList?.[0] || ''
   } else {
     localModelPath.value = ''
+  }
+  // 账号渠道识别：platform ∈ CHANNEL_PROVIDER_IDS 或 auth_scheme='oauth'
+  isChannelProviderFlag.value = isChannelProvider(provider)
+  if (isChannelProviderFlag.value) {
+    const channelId = channelProviderId.value || String(brand).toLowerCase()
+    loadChannelConnections(channelId)
+  } else {
+    channelConnections.value = []
   }
   dialogVisible.value = true
 }
@@ -221,9 +274,46 @@ const handleBack = () => {
   emit('back')
 }
 
+/** 「apikey 保存」预览：已填显示原值，留空回落默认模型根（后端解析出的绝对路径） */
+const previewLocalPath = computed(() => {
+  const v = localModelPath.value.trim()
+  return v || providerModelRoot.value || '（后端未给出默认模型根）'
+})
+
+/** 复制预览路径，方便直接到资源管理器核对 / 放模型 */
+const copyPreviewPath = async () => {
+  const v = previewLocalPath.value
+  if (!v || v === '（后端未给出默认模型根）') return
+  try {
+    await navigator.clipboard.writeText(v)
+    message.success('已复制：' + v)
+  } catch {
+    // 剪贴板被拒（非安全上下文等）：退回选中文本，用户 Ctrl+C 即可
+    message.warning('复制失败，请手动选中路径复制')
+  }
+}
+
+/**
+ * 外部目录绑定完成：刷新展示的模型根（绝对路径）。
+ *
+ * <p>绑定接口（POST /api/onnx/external）内部直接落库并推送模型注册表，
+ * 表单无需再保存一次；这里只回显最新 model_root。</p>
+ */
+const onExternalSaved = async () => {
+  try {
+    const body = await adminApi.get('/api/providers')
+    const rawList = Array.isArray(body) ? body : body?.data || []
+    const hit = rawList.find((p: any) => (p.provider_id || p.id) === 'onnx')
+    providerModelRoot.value = String(hit?.model_root || '').trim()
+  } catch { /* 回显失败不打断流程，下次打开表单会重新拉 */ }
+}
+
 const handleSave = async () => {
   if (!form.name.trim()) { message.warning(t('settings.models.nameRequired')); return }
-  if (!form.apiUrl.trim()) { message.warning(t('settings.models.apiUrlRequired')); return }
+  // ONNX 纯本地推理没有远端地址：不校验 apiUrl（模板里该输入框只在云端提供商显示）
+  if (!isLocalProvider.value && !isChannelProviderFlag.value && !form.apiUrl.trim()) {
+    message.warning(t('settings.models.apiUrlRequired')); return
+  }
   const headerErrors = validateHeadersText(form.customHeaders, t)
   if (headerErrors.length > 0) { message.warning(headerErrors[0]); return }
   // 自定义认证方式必须给出请求头名称，否则等于配了一个空头名
@@ -241,10 +331,12 @@ const handleSave = async () => {
 
   if (isEditMode.value) {
     const updateData: any = {
-      base_url: form.apiUrl,
       auth_scheme: auth.authScheme,
       extra: buildExtra(),
     }
+    // ONNX 的 base_url 是后端占位值（模型注册表驱动），表单已不展示该字段，
+    // 不回传，避免把空串覆盖进库里
+    if (!isLocalProvider.value) updateData.base_url = form.apiUrl
     if (newApiKeys.length > 0) updateData.apiKey = newApiKeys.join(',')
     if (form.proxyUrl.trim()) updateData.proxy = form.proxyUrl.trim()
     // 管理员可编辑所有字段：始终提交名称与协议
@@ -257,11 +349,14 @@ const handleSave = async () => {
     const inferred = resolveProviderBrand({ name: form.name, base_url: form.apiUrl })
     const platformVal = inferred !== 'custom' ? inferred : providerType.value
     const payload: any = {
-      platform: platformVal, name: form.name, base_url: form.apiUrl,
+      platform: platformVal, name: form.name, base_url: isChannelProviderFlag.value ? '' : form.apiUrl,
       auth_scheme: isLocalProvider.value ? 'none' : auth.authScheme,
-      credentials: { api_key: effectiveApiKey },
       enabled: true, initial_model: null,
       extra: buildExtra(),
+    }
+    // 账号渠道 provider 凭据由渠道管理页绑定（sys_ai_provider_connection），表单不采集 api_key
+    if (!isChannelProviderFlag.value) {
+      payload.credentials = { api_key: effectiveApiKey }
     }
     if (form.proxyUrl.trim()) payload.proxy = form.proxyUrl.trim()
     await adminApi.post('/api/providers', payload)
@@ -280,7 +375,7 @@ const protocolOptions = [
 </script>
 
 <template>
-  <LDialog
+  <ReDialog
     v-model="dialogVisible"
     :title="isEditMode ? t('settings.models.editProvider') : t('settings.models.addProvider', { name: form.name })"
     width="640px"
@@ -328,9 +423,30 @@ const protocolOptions = [
                 :data="protocolOptions" />
             </el-form-item>
           </div>
-          <el-form-item :label="isLocalProvider ? '模型根目录' : t('settings.models.apiUrl')" required>
+          <!--
+            ONNX 是纯本地推理，没有远端地址：后端 ai.onnx.base-url 只是占位值，
+            这里不再展示/编辑该字段（填 http 地址对本地推理毫无作用）。
+            真实位置是 model_root —— 绝对路径只读展示，修改入口是「绑定外部模型目录」
+            （走 /api/onnx/external/browse 目录选择器，路径只能选不能填）。
+          -->
+          <el-form-item v-if="isLocalProvider" label="模型根目录（服务器绝对路径）">
+            <div class="pf-onnx-root">
+              <el-input
+                :model-value="providerModelRoot || '尚未绑定模型目录'"
+                readonly
+                class="pf-onnx-root-input"
+              >
+                <template #prefix><el-icon :size="14"><Folder24Regular /></el-icon></template>
+              </el-input>
+              <el-button @click="externalVisible = true">绑定外部模型目录</el-button>
+            </div>
+            <p class="pf-onnx-root-hint">
+              模型文件实际存放位置；通过目录选择器绑定，不能手工填写。
+            </p>
+          </el-form-item>
+          <el-form-item v-else :label="t('settings.models.apiUrl')" required>
             <el-input v-model="form.apiUrl"
-              :placeholder="isLocalProvider ? 'D:\\\\models\\\\onnx 或留空使用默认模型根目录' : 'https://api.example.com/v1'">
+              placeholder="https://api.example.com/v1">
               <template #prefix><el-icon :size="14"><Link24Regular /></el-icon></template>
             </el-input>
           </el-form-item>
@@ -354,12 +470,30 @@ const protocolOptions = [
             </div>
             <el-input
               v-model="localModelPath"
-              placeholder="D:\\.run\\ai-runtime\\models\\anime-face"
+              placeholder="留空 = 使用下方模型根目录"
               clearable
             />
+            <!--
+              预览必须给完整绝对路径：后端保存/解析时会把相对值按 user.dir 绝对化，
+              这里只显示用户输入的相对值（如 models/onnx）的话，用户既不知道
+              真实生效位置在盘上哪里、也没法直接复制去核对/放模型。
+              输入已填时它就是路径原样展示（假定用户填的即绝对路径）；
+              留空时显示后端解析出的默认模型根（provider.model_root，已是绝对路径）。
+            -->
             <p class="auth-preview">
               该路径将作为本地推理的「apikey」保存：
-              <code>{{ localModelPath || '（留空）' }}</code>
+              <code>{{ previewLocalPath }}</code>
+              <el-button
+                v-if="previewLocalPath && previewLocalPath !== '（留空）'"
+                link
+                type="primary"
+                class="pf-copy-btn"
+                @click="copyPreviewPath"
+              >复制</el-button>
+            </p>
+            <p class="auth-preview">
+              未填时的默认模型根（把模型放进这个目录即可被加载）：
+              <code>{{ providerModelRoot || '解析中…' }}</code>
             </p>
           </div>
 
@@ -374,6 +508,59 @@ const protocolOptions = [
               <el-radio-button value="cpu">CPU</el-radio-button>
               <el-radio-button value="gpu">GPU</el-radio-button>
             </el-radio-group>
+          </div>
+        </div>
+      </section>
+
+      <!-- 账号渠道鉴权：凭据由渠道管理页统一绑定/刷新，表单侧只读回显 + 跳转入口 -->
+      <section v-else-if="isChannelProviderFlag" class="pf-card">
+        <header class="pf-card-head">
+          <span class="pf-card-ico ico-key"><el-icon :size="16"><Key24Regular /></el-icon></span>
+          <div class="pf-card-title-wrap">
+            <h3 class="pf-card-title">账号渠道鉴权</h3>
+            <span class="pf-card-sub">凭据由渠道管理页统一绑定与刷新</span>
+          </div>
+        </header>
+
+        <div class="key-list">
+          <div class="auth-block">
+            <div class="auth-block-head">
+              <span class="auth-label">认证方式</span>
+              <span class="auth-hint">{{ authHint }}</span>
+            </div>
+            <p class="auth-preview">
+              该供应商为账号渠道（OAuth 设备流 / 本地回调），凭据由「渠道管理」页
+              统一绑定、刷新与签到；本表单不采集 API Key。
+            </p>
+            <el-button
+              type="primary"
+              class="pf-channel-jump-btn"
+              @click="emit('goToChannelManagement')"
+            >
+              前往渠道管理页绑定账号
+            </el-button>
+          </div>
+
+          <!-- 已绑定账号回显（编辑态） -->
+          <div v-if="channelConnections.length > 0" class="key-exist-hint">
+            <el-icon :size="14"><Key24Regular /></el-icon>
+            <div>
+              已绑定
+              <strong>{{ channelConnections.reduce((n, c) => n + (c.connections?.length ?? 0), 0) }}</strong>
+              个账号
+              <span class="key-exist-tip">（在渠道管理页可刷新 / 签到 / 删除）</span>
+              <ul v-if="channelConnections[0].connections?.length" class="ch-conn-list">
+                <li v-for="conn in channelConnections[0].connections" :key="conn.connectionId">
+                  <span class="ch-conn-label">{{ conn.label || '未命名' }}</span>
+                  <span class="ch-conn-state" :class="{ 'is-valid': conn.status === 'valid', 'is-stale': conn.status !== 'valid' }">
+                    {{ conn.status || '未知' }}
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-else class="ch-conn-empty">
+            尚无绑定账号，请前往渠道管理页完成绑定。
           </div>
         </div>
       </section>
@@ -475,8 +662,9 @@ const protocolOptions = [
         </div>
       </section>
 
-      <!-- 高级设置 -->
-      <section class="pf-card">
+      <!-- 高级设置：代理 / Key 策略 / 自定义请求头只属于云 API；
+           ONNX 纯本地推理没有远端连接，这些设置整卡隐藏（用户需求 1） -->
+      <section v-if="!isLocalProvider" class="pf-card">
         <header class="pf-card-head">
           <span class="pf-card-ico ico-set"><el-icon :size="16"><Settings24Regular /></el-icon></span>
           <div class="pf-card-title-wrap">
@@ -521,12 +709,15 @@ const protocolOptions = [
         <span v-if="testing" class="pf-testing">连接测试中…</span>
         <div class="pf-footer-btns">
           <el-button class="pf-foot-btn" @click="dialogVisible = false">取消</el-button>
-          <el-button class="pf-foot-btn" :loading="testing" @click="handleTestConnection">测试连接</el-button>
+          <el-button v-if="!isLocalProvider" class="pf-foot-btn" :loading="testing" @click="handleTestConnection">测试连接</el-button>
           <el-button class="pf-foot-btn pf-foot-primary" type="primary" @click="handleSave">保存</el-button>
         </div>
       </div>
     </template>
-  </LDialog>
+
+    <!-- ONNX 外部目录绑定：路径只能在这里经目录选择器选取，入口在模型根目录旁 -->
+    <OnnxExternalDialog v-model="externalVisible" @saved="onExternalSaved" />
+  </ReDialog>
 </template>
 
 <style scoped>
@@ -764,6 +955,18 @@ const protocolOptions = [
   color: var(--el-color-primary);
   word-break: break-all;
 }
+
+/* ONNX 模型根目录：只读输入 + 绑定按钮并排 */
+.pf-onnx-root { display: flex; gap: 10px; align-items: stretch; width: 100%; }
+.pf-onnx-root-input { flex: 1; }
+.pf-onnx-root-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  width: 100%;
+}
+.pf-copy-btn { margin-left: 6px; font-size: 11px; }
 .key-exist-hint {
   display: flex;
   align-items: flex-start;

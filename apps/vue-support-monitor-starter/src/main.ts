@@ -12,12 +12,29 @@
  * <p>路由模式：hash（routerMode: "hash"）；菜单由路由树自动推导。</p>
  */
 import { createContextApp } from "@repo/app";
+import { useGlobalStore } from "@repo/pinia";
+// ── 本应用壳级布局 / 遥测样式（app 私有，见 src/styles） ─────────────
 import "./styles/pages.css";
 import "./styles/telemetry.css";
+
+// ── @pages/* 的全局样式：为什么由壳 main.ts 显式引入？ ─────────────
+// pages 包按约定只放「视图 + API + 路由工厂 + 样式文件」，不持有 App.vue/main.ts 入口；
+// 因此包内 .css（tokens / page / dialog）没有自己的挂载时机，必须在壳入口 import 才会
+// 被打包进产物。这三条是 pages/server 与 pages/monitor 的页面依赖的全局样式：
+//   - tokens.css  定义包级 CSS 变量色板（侧边栏/卡片/表格的 --el-* 覆盖），
+//                 供两个包的所有 .vue 的 <style> 使用，必须全局可用；
+//   - page.css    主机资产管理等页面的通用版式类（只读全局类，不 scoped）；
+//   - dialog.css  主机表单 / 详情弹窗的统一视觉（变量驱动，不 scoped）。
+// 唯一归属在壳、不归 pages 的理由：样式的「消费方」是壳整体装配出的应用，
+// 页面只声明依赖、由应用入口统一收集，避免每页重复 import 造成重复打包。
+import "@pages/monitor/src/styles/tokens.css";
+import "@pages/server/src/styles/tokens.css";
+import "@pages/server/src/styles/page.css";
+import "@pages/server/src/styles/dialog.css";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./router";
 
-await createContextApp({
+const app = await createContextApp({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   mode: "router",
@@ -27,3 +44,13 @@ await createContextApp({
   .host(ProcessHost)
   .routes(monitorRoutes)
   .mount("#app");
+
+// 默认导航布局改为「分组导航」。
+//
+// 为什么放在这里而不是改 @repo/pinia 的 global.ts：
+//   - global.ts 的默认值是全仓共享的，直接改成 group 会影响设备/采集/系统等所有
+//     没有显式覆盖布局的应用；
+//   - 这里只对 monitor 这一壳设置，用户仍可在顶部「主题设置」手动切换并把选择持久化；
+//   - 设值放在 mount 之后，保证 pinia 实例已就绪，也避免 before mount 与布局组件读取
+//     同一 store 时产生时序竞争。
+useGlobalStore(app.pinia).setGlobalState("layout", "group");

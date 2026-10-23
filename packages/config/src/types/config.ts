@@ -228,6 +228,64 @@ export interface MenuConfig {
    * app.yaml 优先级更高；两处都不配置时取默认 true。
    */
   groupNav?: boolean;
+
+  /**
+   * 侧边栏底部入口（设置 / 帮助 / 关于…）。
+   *
+   * <p>一个条目时直接渲染成按钮（与历史行为一致）；多个条目时主按钮弹出菜单。
+   * 每个条目可选两种模式：{@code route} 跳路由、{@code dialog} 打开弹框。</p>
+   */
+  footer: MenuFooterConfig;
+}
+
+/** 底部入口条目的行为模式 */
+export type MenuFooterEntryMode = "route" | "dialog";
+
+/**
+ * 侧边栏底部的一个入口条目。
+ *
+ * <p>两种模式：</p>
+ * <ul>
+ *   <li>{@code route}（默认）：点击跳 {@code path}；目标路由未注册时该条目整体隐藏
+ *       （各应用按需装配路由树，留一个必然 404 的死链比隐藏更糟）；</li>
+ *   <li>{@code dialog}：点击打开弹框；弹框内容优先渲染 {@code children} 子项列表，
+ *       没有子项时只显示 {@code description} 文案。</li>
+ * </ul>
+ */
+export interface MenuFooterEntry {
+  /** 唯一键（多条目时用于 v-for key） */
+  key: string;
+  /** 条目文案 */
+  label: string;
+  /** 图标名（ReIcon 可识别的名称，如 Setting / anim:tabler:settings） */
+  icon?: string;
+  /** 行为模式，缺省 route */
+  mode?: MenuFooterEntryMode;
+  /** route 模式的目标路由 */
+  path?: string;
+  /** dialog 模式的说明文案 */
+  description?: string;
+  /** dialog 模式下列出的子项（点继续走各自模式，可再嵌套 dialog） */
+  children?: MenuFooterEntry[];
+  /** 是否仅管理员可见（默认 false） */
+  admin?: boolean;
+}
+
+/** 侧边栏底部入口配置（app.yaml menuConfig.footer） */
+export interface MenuFooterConfig {
+  /**
+   * 是否显示底部入口（默认 true，保持历史行为）。
+   *
+   * <p>即便为 true，条目也会按「路由是否注册 / 是否管理员」再过滤；
+   * 全部条目都不可用时整块不渲染。</p>
+   */
+  enable: boolean;
+  /** 主按钮文案（单条目时就是该按钮；多条目时是入口按钮名） */
+  label: string;
+  /** 主按钮图标 */
+  icon: string;
+  /** 条目列表：1 个=直接按钮，多个=弹层菜单 */
+  entries: MenuFooterEntry[];
 }
 
 /** 上传配置 */
@@ -446,6 +504,24 @@ export interface StatusColorConfig {
   info: string;
 }
 
+/**
+ * 顶栏条目声明（app.yaml `other.toolbar.items` 的元素）。
+ *
+ * <p>用途是让「顶栏有哪些条目、按什么顺序排、窄屏留谁」也变成 yaml 可配，
+ * 而不只是逐个布尔关掉。内置条目仍然受 {@code toolbar.<key>} 布尔约束
+ * （单一真相），本列表只负责顺序、是否出现在列表里、以及条目私有参数。</p>
+ */
+export interface ToolbarItemConfig {
+  /** 条目键（见 @repo/theme 的 HEADER_ITEMS 注册表） */
+  key: string;
+  /** 是否启用（默认 true）。false 等价于从列表移除，但保留一行便于临时关闭 */
+  visible?: boolean;
+  /** 窄屏 / 工具栏折叠时是否保留：high=保留，normal（默认）跟随折叠 */
+  priority?: "high" | "normal";
+  /** 条目私有参数，由各条目自行解释（如告警级别阈值、节假日前瞻天数） */
+  options?: Record<string, unknown>;
+}
+
 /** 框架组件显隐开关（Header 工具栏等） */
 export interface ToolbarConfig {
   /** 搜索菜单 */
@@ -491,6 +567,15 @@ export interface ToolbarConfig {
   typhoon: boolean;
   /** 工具栏默认折叠（true=折叠只显示头像，false=展开显示全部图标） */
   collapse: boolean;
+  /**
+   * 顶栏条目声明式顺序表。
+   *
+   * <p><b>不写 / 空数组</b>：沿用框架固有顺序 + 各布尔开关（向后兼容，老 app.yaml 无需改动）。</p>
+   *
+   * <p><b>写了</b>：按数组顺序渲染；未列入的内置条目不再渲染；扩展条目
+   * （如 envBadge）必须列入才出现——这样新增组件不会意外出现在存量应用里。</p>
+   */
+  items: ToolbarItemConfig[];
 }
 
 /** 顶部计时器配置 */

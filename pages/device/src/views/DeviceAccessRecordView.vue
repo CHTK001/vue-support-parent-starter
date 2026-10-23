@@ -692,8 +692,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* 左右内边距交给外层布局(main.el-main)：两层叠加会让右侧空隙过大 */
-  padding: 10px 0 12px;
   /* 高度够就吃满剩余空间（表格内滚、筛选常驻），不够就自然撑开让主区滚动 */
   min-height: 100%;
   color: var(--el-text-color-primary);

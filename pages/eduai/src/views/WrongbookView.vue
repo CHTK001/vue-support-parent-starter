@@ -62,18 +62,12 @@
         </el-table-column>
       </el-table>
       <div v-else class="text-sm">未查到该题的来源任务（历史数据未记录来源）。</div>
-      <template #footer>
-        <el-button @click="sourceVisible = false">关闭</el-button>
-      </template>
     </ReDialog>
 
     <ReDialog v-model="reviewVisible" title="复习卷生成结果" width="520">
       <div class="text-sm">
         已为当前学生挑选 {{ reviewQuestionIds.length }} 道错题用于复习（题目 ID：{{ reviewQuestionIds.join('、') || '无' }}）。
       </div>
-      <template #footer>
-        <el-button @click="reviewVisible = false">关闭</el-button>
-      </template>
     </ReDialog>
   </div>
 </template>

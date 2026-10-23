@@ -128,8 +128,13 @@ export function createMenuRouteResolver(
     const v = i.sysMenuShowParent ?? i.showParent ?? i.meta?.showParent;
     return v === 0 || v === "0" ? 1 : 0;
   };
-  // 菜单位置：standard（侧边栏）/ top（顶栏按钮）
-  const _position = (i: any) => ((i.sysMenuPosition ?? i.position ?? i.meta?.position) === "top" ? "top" : "standard");
+  // 菜单位置：standard（侧边栏）/ top（顶栏按钮）/ footer（侧边栏底部入口）。
+  // top 与 footer 都靠 sys_menu_remind=1 脱离侧边栏菜单树（见 _menuVisible），
+  // 由主题分别渲染到顶栏 / 侧边栏底部；其余未知值一律回落 standard。
+  const _position = (i: any) => {
+    const raw = String(i.sysMenuPosition ?? i.position ?? i.meta?.position ?? "").trim().toLowerCase();
+    return raw === "top" || raw === "footer" ? raw : "standard";
+  };
   // 节点自身是否是可打开的页面：component 为空或只是布局占位时视为「只有父菜单」
   const _hasPage = (i: any) => {
     const c = i?.component;

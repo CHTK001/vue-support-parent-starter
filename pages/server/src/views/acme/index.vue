@@ -25,6 +25,8 @@ import ApplyCertDialog, { type AcmeHostPrefill } from "./components/ApplyCertDia
 import AccountDialog from "./components/AccountDialog.vue";
 import CertDetailDialog from "./components/CertDetailDialog.vue";
 import DownloadDialog from "./components/DownloadDialog.vue";
+import ReTab from "@repo/ui/re-tab";
+import type { ReTabItem } from "@repo/ui/components/ReTab/types";
 
 defineOptions({ name: "AcmeCertManagement" });
 
@@ -33,6 +35,17 @@ const route = useRoute();
 // ==================== 状态 ====================
 
 const activeTab = ref<"certs" | "accounts">("certs");
+
+/**
+ * 页面内一级页签（证书 / 账户）。
+ *
+ * <p>用 ReTab 的胶囊分段而非手写按钮：账号管理等其它页面用的是同一套外观，
+ * 一处改样式即可全局一致，不必每个页面各抄一份 `.tab-btn`。</p>
+ */
+const mainTabs: ReTabItem[] = [
+  { name: "certs", label: "证书管理" },
+  { name: "accounts", label: "账户管理" },
+];
 
 const certRows = ref<AcmeCertificate[]>([]);
 const certTotal = ref(0);
@@ -381,8 +394,7 @@ const accountTableData = computed(() => accountRows.value as unknown as Record<s
     <!-- 页签 + 筛选 + 表格 整体包成一张卡片 -->
     <div class="card acme-main">
       <div class="tabs">
-        <button :class="['tab-btn', { active: activeTab === 'certs' }]" @click="activeTab = 'certs'">证书管理</button>
-        <button :class="['tab-btn', { active: activeTab === 'accounts' }]" @click="activeTab = 'accounts'">账户管理</button>
+        <ReTab v-model="activeTab" :tabs="mainTabs" nav-only />
       </div>
 
       <!-- 证书 -->
@@ -551,29 +563,15 @@ const accountTableData = computed(() => accountRows.value as unknown as Record<s
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
+/* 页签条：胶囊分段外观由 ReTab(capsule) 提供，这里只负责「按内容宽度左对齐 + 与下方筛选行留白」。
+   ReTab capsule 自身是 width:100%（多项均分），直接放进去会拉满整行，故约束成内容宽度。 */
 .tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 3px;
+  display: flex;
+  align-self: flex-start;
+  max-width: 100%;
   margin-bottom: 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
 }
-.tab-btn {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-  cursor: pointer;
-}
-.tab-btn.active {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
-  font-weight: 600;
-  box-shadow: var(--el-box-shadow-lighter);
-}
+.tabs :deep(.re-tab--capsule) { width: auto; }
 .filter-bar {
   display: flex;
   align-items: center;

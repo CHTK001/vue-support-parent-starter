@@ -121,7 +121,7 @@
 
           <div class="dsm-section">
             <div class="dsm-section-title">标签统计</div>
-            <ReTable :data="nodeLabels" :columns="labelColumns" :loading="loading" :pagination="false" stripe border height="260px" />
+            <ReTable :data="nodeLabels" :columns="labelColumns" :loading="loading" stripe border height="260px" :config="{ pagination: { enable: false } }"/>
           </div>
         </div>
 
@@ -171,13 +171,13 @@
             :data="nodes"
             :columns="nodeColumns"
             :loading="nodeLoading"
-            :pagination="false"
             stripe
             border
             height="400px"
             :context-menu="nodeTableMenu"
             @context-menu-select="onNodeTableMenuSelect"
             @row-click="onNodeClick"
+            :config="{ pagination: { enable: false } }"
           />
           <div v-if="!activeLabel" class="ngv-hint">从左侧选择一个节点标签后查询其节点</div>
         </div>
@@ -190,7 +190,7 @@
               <template #icon><ReIcon name="Plus" /></template>新建关系
             </ReButton>
           </div>
-          <ReTable :data="relTypes" :columns="relColumns" :loading="loading" :pagination="false" stripe border height="400px" />
+          <ReTable :data="relTypes" :columns="relColumns" :loading="loading" stripe border height="400px" :config="{ pagination: { enable: false } }"/>
         </div>
       </div>
     </div>
@@ -232,7 +232,7 @@
               <span v-if="queryResult.truncated" class="dsm-query-warn">已截断，服务端共 {{ queryResult.totalRows }} 行，请加 LIMIT 收窄结果</span>
             </span>
           </div>
-          <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" :pagination="false" stripe border height="200px" />
+          <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" stripe border height="200px" :config="{ pagination: { enable: false } }"/>
           <ReEmpty v-else description="执行查询后显示结果" />
         </div>
       </div>

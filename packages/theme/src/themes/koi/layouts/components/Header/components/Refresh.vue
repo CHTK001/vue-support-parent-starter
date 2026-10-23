@@ -1,11 +1,11 @@
 <template>
-  <!-- 刷新 -->
+  <!-- 刷新：icons-animated 动画刷新图标（hover/focus 播放），故去掉 koi-rotate-i 的整体自转 -->
   <div
-    class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center koi-rotate-i"
+    class="hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center"
     @click="handleRefresh"
   >
     <el-tooltip :content="$t('header.refreshCache')">
-      <ReIcon name="koi-refresh-arrow" size="17" />
+      <ReIcon name="anim:tabler:refresh" size="18" />
     </el-tooltip>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog :close-on-click-modal="true"
     :model-value="modelValue"
     width="560px"
     align-center
@@ -36,13 +36,13 @@
         添加
       </el-button>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
-import LDialog from '@/components/ui/LDialog.vue';
+import ReDialog from '@repo/ui/re-dialog';
 import CardAvatar from '@/components/ui/CardAvatar.vue';
 import { apiService } from '@/services/ApiService';
 import { skillsApi } from '@/services/javaApi';

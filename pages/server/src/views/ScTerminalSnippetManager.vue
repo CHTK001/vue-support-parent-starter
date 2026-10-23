@@ -8,7 +8,7 @@
       </template>
     </ReSectionHead>
 
-    <ReTable :data="snippets" border :pagination="false" :toolbar="false" highlight-current-row empty-text="暂无命令片段，点击右上角「新增片段」创建" @row-click="selectRow">
+    <ReTable :data="snippets" border highlight-current-row empty-text="暂无命令片段，点击右上角「新增片段」创建" @row-click="selectRow" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
       <ReTableColumn prop="id" label="编号" width="60" />
       <ReTableColumn prop="msTerminalSnippetName" label="片段名称" min-width="150" />
       <ReTableColumn prop="msTerminalSnippetRemark" label="备注" min-width="200" />

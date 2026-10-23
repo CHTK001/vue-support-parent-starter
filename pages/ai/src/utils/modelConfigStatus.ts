@@ -21,7 +21,7 @@ export interface MergedSettingItem {
 /** 合并视图容器：Map 或普通对象（store 暴露的是对象，页面按字段取用） */
 export type MergedMapLike = Map<string, MergedSettingItem> | Record<string, MergedSettingItem>
 
-function getItem(map: MergedMapLike | null | undefined, field: string): MergedSettingItem | undefined {
+export function getItem(map: MergedMapLike | null | undefined, field: string): MergedSettingItem | undefined {
   if (!map) return undefined
   if (map instanceof Map) return map.get(field)
   return (map as Record<string, MergedSettingItem>)[field]

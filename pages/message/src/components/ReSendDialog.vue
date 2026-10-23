@@ -160,9 +160,6 @@ async function handleSend() {
           previewResult?.content ?? ""
         }}</pre>
       </div>
-      <template #footer>
-        <el-button @click="previewVisible = false">关闭</el-button>
-      </template>
     </ReDialog>
   </ReDialog>
 </template>

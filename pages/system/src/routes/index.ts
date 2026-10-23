@@ -11,6 +11,7 @@
  */
 import type { RouteConfigsTable } from "@repo/core";
 import type { StaticMenuItem } from "@repo/pinia";
+import { hotsportMenus, hotsportRoutes } from "@pages/hotsport";
 
 /**
  * 系统管理路由（叶子路由，直接挂到 koi layout 之下）
@@ -199,6 +200,13 @@ export const systemRoutes: RouteConfigsTable[] = [
       keepAlive: true,
     },
   },
+
+  // ==================== 系统指标 ====================
+  // 从 APM 热点观测台整体迁入的 15 个页面（总览 / 链路 / 依赖 / 服务 /
+  // 端点 / 错误 / 泄漏 / JVM / 拓扑 / 日志 / 告警 / Agent / 注入器）。
+  // 路由表由 @pages/hotsport 声明，这里只做合并 —— 菜单与路由同源，
+  // 不会出现「侧边栏点了白屏」的死链。路径统一 /hotsport/*。
+  ...hotsportRoutes,
 ];
 
 /**
@@ -241,6 +249,10 @@ export const systemMenus: StaticMenuItem[] = [
       { path: "/monitor/redis", name: "MonitorRedis", meta: { title: "Redis 监控", icon: "Coin", isVisible: "1" } },
       { path: "/monitor/cache", name: "MonitorCache", meta: { title: "缓存监控", icon: "Histogram", isVisible: "1" } },
       { path: "/monitor/policy", name: "MonitorPolicy", meta: { title: "策略控制台", icon: "Setting", isVisible: "1" } },
+      // 系统指标：与「监控大屏」同组，展开后是 APM 观测台的全部页面
+      // （总览看板 / 调用链路 / 依赖拓扑 / 资源泄漏 / 服务 / JVM / 日志 / 告警…）。
+      // 菜单项同样来自 @pages/hotsport，与路由一一对应。
+      ...hotsportMenus,
     ],
   },
 ];

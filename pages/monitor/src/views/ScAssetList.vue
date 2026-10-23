@@ -1,9 +1,6 @@
 <template>
   <div class="asset-list fade-in">
     <div class="summary-row">
-      <!-- layout="stacked"：图标插槽里放的是 32x3px 的横向色条，是为竖排设计的。
-           紧凑档默认横排会把色条甩到数值左边变成一根短横线，所以这里保留竖排，
-           只拿紧凑档的尺寸收益。 -->
       <ReStatCard
         size="compact"
         layout="stacked"
@@ -18,6 +15,10 @@
           <div class="stat-bar" :style="{ background: s.color }"></div>
         </template>
       </ReStatCard>
+      <div class="live-clock">
+        <span class="live-dot"></span>
+        <span class="live-time">{{ liveTime }}</span>
+      </div>
     </div>
 
     <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
@@ -36,7 +37,7 @@
       </div>
     </ReCard>
 
-    <ReTable :data="filtered" :loading="loading" border stripe class="asset-table" :pagination="false" :toolbar="false">
+    <ReTable :data="filtered" :loading="loading" border stripe class="asset-table" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
       <ReTableColumn prop="monitorName" label="资产名称" min-width="160">
         <template #default="{ row }"><span class="name-cell">{{ row.monitorName }}</span></template>
       </ReTableColumn>
@@ -147,7 +148,7 @@
 </template>
 
 <script setup lang="ts" name="ReAssetList">
-import { ref, computed, onMounted, shallowRef } from 'vue'
+import { ref, computed, onMounted, onUnmounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 // ReStatCard 走 main.ts 全局注册（defineThemeComponent 的 component 导出是
@@ -164,6 +165,19 @@ const form = ref<any>({ monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER
 const filters = ref({ keyword: '', serviceType: '', enabled: '' })
 const serverHosts = ref<any[]>([])
 const serverHostLoading = ref(false)
+
+// 实时时钟
+const liveTime = ref('')
+let clockTimer: ReturnType<typeof setInterval>
+const updateClock = () => {
+  const now = new Date()
+  liveTime.value = now.toLocaleTimeString('zh-CN', { hour12: false })
+}
+onMounted(() => {
+  updateClock()
+  clockTimer = setInterval(updateClock, 1000)
+})
+onUnmounted(() => clearInterval(clockTimer))
 
 const cssPrimary = 'var(--el-color-primary)'
 const cssSuccess = 'var(--el-color-success)'
@@ -372,6 +386,41 @@ onMounted(fetchList)
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
+  align-items: center;
+}
+.summary-row > * {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.summary-row > *:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+.live-clock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--el-color-success) 8%, var(--el-fill-color-lighter));
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid color-mix(in srgb, var(--el-color-success) 20%, transparent);
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--el-color-success);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+}
+.live-time {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
 }
 /* 统计卡视觉与悬停由 ReStatCard 的 re-surface 基线提供，此处不再覆写 */
 /* 3px 高的统计色条，圆角 2px 比 koi 最小档 4px 还小，用 EP 自带的 --el-border-radius-small。
@@ -497,6 +546,11 @@ onMounted(fetchList)
 .status-pill.on {
   color: var(--el-color-success);
   background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  animation: breathe 2.5s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
 }
 .status-pill.off {
   color: var(--el-text-color-secondary);
@@ -559,6 +613,14 @@ onMounted(fetchList)
   /* 统计色条的宽度过渡可停：宽度是脚本直接给的终值，动画只是让它平滑一下 */
   .stat-bar {
     transition: none;
+  }
+  .status-pill.on,
+  .live-dot {
+    animation: none;
+  }
+  .summary-row > *:hover,
+  .stats-grid > *:hover {
+    transform: none;
   }
 }
 </style>

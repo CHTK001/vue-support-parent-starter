@@ -87,13 +87,15 @@ function protocolOf(h: Host): string {
   return protocolQuery() || defaultProtocolOf(h);
 }
 /**
- * 生效远控端口：主机配置优先，SSH 沿用端口字段，其余按协议默认
+ * 生效远控端口：协议与台账一致时用台账端口，否则按协议默认。
+ * 台账 remotePort 只对「该协议本身」有意义（SSH 主机配 22 是 SSH 端口，
+ * 选中 VNC 时不能拿它当 VNC 端口）。SSH 交由后端按 ms_server_host_port 处理。
  * @param h 主机
  */
 function remotePortOf(h: Host): number | null {
   const p = protocolOf(h);
-  if (h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
-  // SSH 交由后端按 ms_server_host_port 处理，避免前端重复推断
+  const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
+  if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   return p === "ssh" ? null : (p === "rdp" ? 3389 : 5900);
 }
 

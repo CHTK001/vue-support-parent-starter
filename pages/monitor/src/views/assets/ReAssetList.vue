@@ -17,11 +17,10 @@
         :data="assets"
         :columns="assetColumns"
         engine="element"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
         style="width: 100%"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-monitorEnabled="{ row }">
           <el-tag :type="assetOf(row).monitorEnabled === 1 ? 'success' : 'danger'">

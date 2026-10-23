@@ -144,6 +144,8 @@ function serveFileViewerOfficeWorkers(): PluginOption {
 // 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
 const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8081";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:29612";
+/** 独立 ACME 后端：/monitor/api/** 的专用前缀（见 pages/server acmeApi.ts 的 BASE） */
+const acmeTarget = process.env.ACME_API_TARGET ?? "http://101.200.205.64:19170";
 
 /** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
 const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
@@ -378,6 +380,11 @@ export default createVite({
       // 布局 /v2/user/layout 等。缺失会导致启动期“远程登录页配置拉取失败 404”。
       "/v2": {
         target: apiTarget,
+        changeOrigin: true,
+      },
+      // 独立 ACME 后端：/monitor/api/**（ACME 证书管理）
+      "/monitor/api": {
+        target: acmeTarget,
         changeOrigin: true,
       },
       // 天气组件 IP 定位：freeipapi（HTTPS）

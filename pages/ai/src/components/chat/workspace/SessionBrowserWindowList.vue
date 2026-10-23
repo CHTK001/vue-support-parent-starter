@@ -2,7 +2,7 @@
   <div v-if="isElectron" class="session-window-list">
     <!-- 头部 -->
     <div class="shrink-0 flex items-center justify-between px-2">
-      <h3 class="text-sm font-normal text-gray-500 dark:text-[#8b8d95] whitespace-nowrap mx-2">
+      <h3 class="text-sm font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap mx-2">
         {{ t('chat.workspace.browserWindow') }}
       </h3>
       <el-button text class="window-add-btn" @click.stop="emit('create')" :disabled="!sessionId">
@@ -13,13 +13,13 @@
     </div>
 
     <!-- 窗口列表 -->
-    <div v-if="store.sessionWebviews.length === 0" class="text-center py-6 text-gray-400 dark:text-[#6b6d73] text-xs">
+    <div v-if="store.sessionWebviews.length === 0" class="text-center py-6 text-gray-400 dark:text-gray-400 text-xs">
       {{ t('chat.workspace.noBrowserWindow') }}
     </div>
     <div v-else class="overflow-y-auto py-2 px-1 space-y-0.5" style="max-height: 160px;">
       <div v-for="win in store.sessionWebviews" :key="win.windowId"
         class="mx-1 px-2 py-1 flex items-center gap-1 cursor-pointer transition-all duration-200 rounded" :class="{
-          'bg-gray-100 dark:bg-[#2a2c30]': isActive(win.windowId),
+          'bg-gray-100 dark:bg-gray-800': isActive(win.windowId),
           'hover:bg-gray-100 dark:hover:bg-[#2a2c30]': !isActive(win.windowId)
         }" @click="emit('activate', win.windowId)">
         <!-- 网页 favicon -->
@@ -34,7 +34,7 @@
         </span>
 
         <!-- 窗口标题 -->
-        <span class="text-xs text-gray-600 dark:text-[#8b8d95] truncate flex-1" :title="win.title || t('chat.workspace.unnamedWindow')">
+        <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1" :title="win.title || t('chat.workspace.unnamedWindow')">
           {{ truncateTitle(win.title || t('chat.workspace.unnamedWindow')) }}
         </span>
 

@@ -565,7 +565,7 @@ export interface DatasourceSchemaProvider {
 }
 
 /** 默认实现：数据源中心（数据源模块）结构与 DDL 接口 */
-const hubSchemaProvider: DatasourceSchemaProvider = {
+export const hubSchemaProvider: DatasourceSchemaProvider = {
 
   fetchTables: datasource => get<string[]>(`${hubBase}/tables`, { datasource: normalizeRef(datasource) }),
 

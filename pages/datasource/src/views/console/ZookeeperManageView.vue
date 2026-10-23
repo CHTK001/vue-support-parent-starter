@@ -177,7 +177,7 @@
               </div>
               <div v-else class="dsm-data-block">
                 <div class="dsm-data-title">ACL 列表</div>
-                <ReTable :data="aclList" :columns="aclColumns" :loading="aclLoading" :pagination="false" stripe border >
+                <ReTable :data="aclList" :columns="aclColumns" :loading="aclLoading" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-perms="{ row }">
                     <ReTag type="info">{{ (row as unknown as ZkNodeAcl).permsText }}</ReTag>
                   </template>
@@ -191,7 +191,7 @@
 
           <div v-if="children.length > 0" class="dsm-children-section">
             <div class="dsm-data-title">子节点列表</div>
-            <ReTable :data="children" :columns="childColumns" :loading="childLoading" :pagination="false" stripe border >
+            <ReTable :data="children" :columns="childColumns" :loading="childLoading" stripe border :config="{ pagination: { enable: false } }">
               <template #col-type="{ row }">
                 <ReTag :type="(row as unknown as ZkChildNode).ephemeral ? 'warning' : 'info'" >
                   {{ (row as unknown as ZkChildNode).ephemeral ? "临时" : "持久" }}

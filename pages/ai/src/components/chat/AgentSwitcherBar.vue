@@ -6,10 +6,10 @@
     <div class="flex items-center px-2 py-2 cursor-pointer select-none" @click="toggleExpand">
       <Avatar :src="character?.avatarUrl" type="assistant" :name="character?.title || t('chat.agent.smartAssistant')"
         class="w-5 h-5 shrink-0 rounded overflow-hidden mr-2" />
-      <span class="text-sm text-gray-700 dark:text-[#c5c7cc] shrink-0">
+      <span class="text-sm text-gray-700 dark:text-gray-200 shrink-0">
         {{ character?.title || t('chat.agent.smartAssistant') }}
       </span>
-      <span class="text-xs text-gray-400 dark:text-[#6b6d75] truncate">
+      <span class="text-xs text-gray-400 dark:text-gray-400 truncate">
         {{ character?.description || t('chat.agent.defaultDescription') }}
       </span>
     </div>
@@ -27,15 +27,15 @@
         <div v-for="char in selectableCharacters" :key="char.id"
           class="flex items-center gap-2 py-1 px-1 rounded-(--size-dialog-rounded-radius) cursor-pointer transition-colors"
           :class="{
-            'text-gray-500 dark:text-[#8b8d95] hover:bg-(--color-surface-hover)': true,
+            'text-gray-500 dark:text-gray-400 hover:bg-(--color-surface-hover)': true,
           }"
           @click.stop="handleSelect(char)">
           <Avatar :src="char.avatarUrl" type="assistant" :name="char.title"
             class="w-5 h-5 shrink-0 rounded overflow-hidden" />
           <span class="text-sm shrink-0">{{ char.title }}</span>
-          <span class="text-xs text-gray-400 dark:text-[#6b6d75] truncate">{{ char.description || t('chat.agent.noDescription') }}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-400 truncate">{{ char.description || t('chat.agent.noDescription') }}</span>
         </div>
-        <div v-if="selectableCharacters.length === 0" class="text-center py-4 text-gray-400 dark:text-[#6b6d75]">
+        <div v-if="selectableCharacters.length === 0" class="text-center py-4 text-gray-400 dark:text-gray-400">
           <p class="text-sm">{{ t('chat.agent.noOtherRoles') }}</p>
         </div>
       </template>

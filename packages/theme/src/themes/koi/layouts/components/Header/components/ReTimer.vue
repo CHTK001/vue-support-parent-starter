@@ -9,9 +9,8 @@
   >
     <template #reference>
       <div class="timer-trigger" :title="t('header.timer.tip')">
-        <el-icon :size="16" class="trigger-icon">
-          <Clock />
-        </el-icon>
+        <!-- 动画时钟（hover/focus 播放），故下方 hover 不再叠加 timer-icon-tick 摆动 -->
+        <ReIcon name="anim:tabler:clock" :size="16" class="trigger-icon" />
         <span class="trigger-time">{{ localTime }}</span>
       </div>
     </template>
@@ -168,8 +167,8 @@ onUnmounted(() => {
     transform: translateY(-1px) scale(1.04);
 
     .trigger-icon {
+      /* 只做配色反馈；图标自身的走针动画由 anim:tabler:clock 在 hover/focus 时播放 */
       color: var(--el-color-primary);
-      animation: timer-icon-tick 1.1s ease-in-out infinite;
     }
 
     .trigger-time {
@@ -180,22 +179,6 @@ onUnmounted(() => {
   &:active {
     background: rgba(0, 0, 0, 0.1);
     transform: scale(0.96);
-  }
-}
-
-/* 时钟图标悬停摆动动画（模拟秒针滴答） */
-@keyframes timer-icon-tick {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-
-  25% {
-    transform: scale(1.12) rotate(-8deg);
-  }
-
-  75% {
-    transform: scale(1.12) rotate(8deg);
   }
 }
 

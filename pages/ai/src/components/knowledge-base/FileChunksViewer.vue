@@ -61,7 +61,7 @@
  * <p>风格与系统一致：弹框外壳用仓库标准 {@code ReDialog}（koi，标题栏可拖拽），内部（加载态 / 空态 / 分块卡 /
  * 分页条）全部走 Tailwind 工具类 + 组件库基线 {@code re-surface} + {@code ReEmpty}；
  * 颜色只用 koi 令牌 {@code --rm-*}，不再出现硬编码暗色值
- * （原先散落的 {@code dark:text-[#6b6d75]} 一类已全部移除）。</p>
+ * （原先散落的 {@code dark:text-gray-400} 一类已全部移除）。</p>
  */
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'

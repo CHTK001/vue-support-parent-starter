@@ -1,5 +1,5 @@
 <template>
-  <LDialog v-model="dialogVisible" :title="t('session.group.title')" width="420px" :close-on-click-modal="false"
+  <ReDialog v-model="dialogVisible" :title="t('session.group.title')" width="420px" :close-on-click-modal="false"
     destroy-on-close>
     <div class="flex flex-col gap-3">
       <!-- 新建分组 -->
@@ -73,7 +73,7 @@
         </ul>
       </div>
     </div>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -84,7 +84,7 @@ import { useSessionGroupStore } from '@/stores/sessionGroup'
 import { usePopup } from '@/composables/usePopup'
 import { ReOrderDotsHorizontal20Regular, Edit16Regular, Delete20Regular } from '@vicons/fluent'
 import type { SessionGroup } from '@/types/session'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 const props = defineProps<{
   modelValue: boolean

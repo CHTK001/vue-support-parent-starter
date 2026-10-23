@@ -168,7 +168,7 @@
             <pre v-else-if="resultView.kind === 'json'" class="dsm-reply-pre" data-testid="dsm-reply-json">{{ resultView.text }}</pre>
             <div v-else-if="resultView.kind === 'nil'" class="dsm-reply-nil" data-testid="dsm-reply-nil">nil</div>
             <div v-else class="dsm-table-wrap">
-              <ReTable :data="resultView.rows" :columns="resultView.columns" :pagination="false" stripe border height="240px" />
+              <ReTable :data="resultView.rows" :columns="resultView.columns" stripe border height="240px" :config="{ pagination: { enable: false } }"/>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@
                 <ReButton type="primary" :loading="saving" @click="addHashField"><template #icon><ReIcon name="Plus" size="12" /></template>添加字段</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="hashFields" :columns="hashColumns" :pagination="false" stripe border>
+                <ReTable :data="hashFields" :columns="hashColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
                       <ReButton layout="square" size="small" icon="Edit" tip="编辑字段" data-testid="dsm-cell-edit" @click="editHashField((row as RedisHashField).field, (row as RedisHashField).value)" />
@@ -284,7 +284,7 @@
                 <ReButton type="primary" :loading="saving" @click="pushListElement"><template #icon><ReIcon name="Plus" size="12" /></template>追加元素</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="listRows" :columns="listColumns" :pagination="false" stripe border>
+                <ReTable :data="listRows" :columns="listColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
                       <ReButton layout="square" size="small" icon="Edit" tip="编辑元素" data-testid="dsm-cell-edit" @click="editListElement((row as ListRow).index, (row as ListRow).value)" />
@@ -303,7 +303,7 @@
                 <ReButton type="primary" :loading="saving" @click="addSetMember"><template #icon><ReIcon name="Plus" size="12" /></template>添加成员</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="setRows" :columns="memberColumns" :pagination="false" stripe border>
+                <ReTable :data="setRows" :columns="memberColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-member="{ row }"><span class="mono">{{ (row as MemberRow).member }}</span></template>
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
@@ -324,7 +324,7 @@
                 <ReButton type="primary" :loading="saving" @click="addZsetMember"><template #icon><ReIcon name="Plus" size="12" /></template>添加成员</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="zsetRows" :columns="zsetColumns" :pagination="false" stripe border>
+                <ReTable :data="zsetRows" :columns="zsetColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-score="{ row }"><span class="mono">{{ (row as MemberRow).score }}</span></template>
                   <template #col-actions="{ row }">
                     <div class="dsm-cell-actions">
@@ -345,7 +345,7 @@
                 <ReButton type="primary" :loading="saving" @click="appendStreamEntry"><template #icon><ReIcon name="Plus" size="12" /></template>追加消息</ReButton>
               </div>
               <div class="dsm-table-wrap">
-                <ReTable :data="streamEntries" :columns="streamColumns" :pagination="false" stripe border>
+                <ReTable :data="streamEntries" :columns="streamColumns" stripe border :config="{ pagination: { enable: false } }">
                   <template #col-id="{ row }"><span class="mono">{{ (row as RedisStreamEntry).id }}</span></template>
                   <template #col-fields="{ row }">
                     <span v-for="(f, fi) in (row as RedisStreamEntry).fields" :key="fi" class="dsm-stream-field">
@@ -398,9 +398,8 @@
 
     <!-- 服务器信息弹窗 -->
     <ReDialog v-model="infoVisible" title="Redis 服务器信息" width="720px">
-      <ReTable :data="infoRows" :columns="infoColumns" :pagination="false" stripe border height="420px" />
+      <ReTable :data="infoRows" :columns="infoColumns" stripe border height="420px" :config="{ pagination: { enable: false } }"/>
       <template #footer>
-        <ReButton @click="infoVisible = false"><template #icon><ReIcon name="Close" size="12" /></template>关闭</ReButton>
         <ReButton type="primary" :loading="infoLoading" @click="reloadInfo"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
       </template>
     </ReDialog>

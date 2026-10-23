@@ -2,7 +2,7 @@
   <div class="process-section search-section">
     <!-- 标题行 -->
     <div
-      class="search-section__header flex items-center text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+      class="search-section__header flex items-center text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
       @click.stop="handleToggle">
       <el-icon size="15" class="shrink-0" :class="{ 'is-spinning': isSearching }">
         <GlobeShield20Regular />

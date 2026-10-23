@@ -11,6 +11,7 @@
  */
 import { getCurrentScope, onScopeDispose, ref, watch, type Ref } from "vue";
 import { getApiHttp } from "../api";
+import { yieldToMain } from "@repo/utils";
 
 /** 数据源：静态值 | url | 函数 */
 export type ReDataSource<T = unknown> =
@@ -85,6 +86,15 @@ export function useDataSource<T = unknown>(source: Ref<ReDataSource<T>> | ReData
         next = src as T;
       }
       // 过期响应：直接丢弃，不碰 data / error / loading
+      if (mine !== seq) return;
+      // 让出一帧再落地数据：
+      // 网络响应回来时，浏览器往往还压着上一批数据的渲染与派生计算（表格行格式化、
+      // 选中态恢复、列状态序列化等）。此刻直接 data.value = next 会把这些同步工作
+      // 叠在同一个任务里，形成一个长任务 —— 期间页面不出帧、按钮的 loading 动画
+      // 看起来像「冻住」，用户感知就是「刷新卡死」。
+      // 先让一帧，等浏览器把当前这批动画画出去，再提交新数据，两者就不会挤在一起。
+      await yieldToMain();
+      // 让帧期间又发起了新请求 → 本次结果已过期，丢弃
       if (mine !== seq) return;
       data.value = next;
     } catch (e) {

@@ -2,11 +2,11 @@
     <div class="flex flex-col h-full min-h-0 flex-1 bg-(--color-bg)">
         <!-- 标题栏 -->
         <div
-            class="shrink-0 flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-[#2e3035]">
+            class="shrink-0 flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
             <div class="flex items-center gap-2 min-w-0">
                 <!-- 预览/源码切换按钮（仅 md 和 html），放在左侧高频操作区 -->
                 <div v-if="canTogglePreview"
-                    class="flex items-center gap-0.5 bg-gray-100/80 dark:bg-[#242529] rounded-md p-0.5 shrink-0">
+                    class="flex items-center gap-0.5 bg-gray-100/80 dark:bg-gray-900 rounded-md p-0.5 shrink-0">
                     <button class="preview-mode-btn" :class="{ 'is-active': renderMode === 'rendered' }" :title="t('chat.workspace.preview')"
                         @click="renderMode = 'rendered'">
                         <el-icon :size="16">
@@ -23,14 +23,14 @@
                     </button>
                 </div>
 
-                <span class="font-medium text-gray-600 dark:text-[#8b8d95] truncate ml-2">
+                <span class="font-medium text-gray-600 dark:text-gray-400 truncate ml-2">
                     {{ tab.name }}
                 </span>
                 <div class="flex items-center gap-1 shrink-0">
                     <!-- 手动刷新预览按钮 -->
                     <button class="preview-close-btn" :title="t('chat.workspace.refreshPreview')" @click="handleManualRefresh">
                         <el-icon :size="14">
-                            <ArrowClockwise20Regular class="text-gray-500 dark:text-[#8b8d95]" />
+                            <ArrowClockwise20Regular class="text-gray-500 dark:text-gray-400" />
                         </el-icon>
                     </button>
                 </div>

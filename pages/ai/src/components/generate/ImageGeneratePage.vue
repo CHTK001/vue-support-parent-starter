@@ -767,6 +767,12 @@
                   :class="{ 'is-strong': !!style }"
                   title="风格模板"
                 >
+                  <img
+                    v-if="style && stylePreview(style)"
+                    :src="mediaSrc(stylePreview(style))!"
+                    alt=""
+                    class="wg-style-chip-thumb"
+                  />
                   <span>{{ styleLabel }}</span>
                   <WgIcon :d="ICONS.chevron" />
                 </button>
@@ -992,10 +998,16 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
  */
 const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
-    ['photo', 'anime', 'ink', 'cyber', 'clay', 'product', 'sketch', 'pixel'].map((key) => [
-      key,
-      `${import.meta.env.BASE_URL}gen-style/${key}.jpg`,
-    ]),
+    [
+      ['photo', 'photo.jpg'],
+      ['anime', 'anime.jpg'],
+      ['ink', 'ink.jpg'],
+      ['cyber', 'cyber.jpg'],
+      ['clay', 'clay.jpg'],
+      ['product', 'product.jpg'],
+      ['sketch', 'sketch.jpg'],
+      ['pixel', 'pixel.webp'],
+    ].map(([key, file]) => [key, `${import.meta.env.BASE_URL}gen-style/${file}`]),
   ),
 )
 
@@ -1591,30 +1603,22 @@ const onDurationPick = (value: number) => {
 }
 
 /**
- * 点风格芯片：插到提示词**最前面**。
+ * 点风格芯片：只记下选中的风格 key。
  *
- * 风格是对整张图的整体修饰（"XX 风格的一只猫"），放首行才不会把用户
- * 后半句的构图描述压到风格后面。而 @ 面板里选中是插到 @ 所在位置，
- * 两条路径位置不同是有意的：芯片 = 我要改整张图的调性，@ = 我要改这一段。
+ * 不再把风格描述写进输入框 —— 输入条本身已有风格选择器（芯片 + @ 面板），
+ * 用户能看到的「选中了哪个风格」就是芯片上的缩略图 + 文字；
+ * 描述文本在提交时由 onComposerSubmit 统一拼到提示词最前面，避免输入区
+ * 出现一段风格文案、还容易与用户手打的文字重复或冲突。
  *
  * @param key 风格 key，空串表示「无风格」
  */
 const pickStyle = (key: string) => {
   style.value = key
-  if (!key) {
-    return
-  }
-  const desc = stylePrompt.value
-  const current = prompt.value.trim()
-  if (!desc || current.startsWith(desc)) {
-    return
-  }
-  prompt.value = current ? `${desc}，${current}` : desc
 }
 
 /**
- * @ 面板里选中：文字已由 composer 写进 @ 所在位置，这里只记下风格 key
- * （用于芯片高亮与提交时判断），不再二次改写提示词。
+ * @ 面板里选中：只记下风格 key（用于芯片高亮与提交时拼接），
+ * 不再往输入框写任何文字 —— 风格描述由提交端统一拼到提示词最前面。
  *
  * @param key 风格 key
  */
@@ -1855,18 +1859,32 @@ function promptName(prompt: string, max: number, fallback: string): string {
   return s ? s.slice(0, max) : fallback
 }
 
-/** 「更多 → 添加到人脸库」：以生成图直接登记（图里没人脸/多脸时后端会明确报错） */
+/** 「更多 → 添加到人脸库」：以生成图直接登记（图里没人脸/多脸时前端先预检，给出明确原因） */
 async function enrollGeneratedFace(url: string, prompt: string) {
   if (moreBusy.value) return
   moreBusy.value = true
   try {
     const blob = await fetchMediaBlob(url)
+    // 先预检人脸数：后端登记失败只回笼统「登记失败」（S0503C0000，不带原因），
+    // 这里提前用 detect 说清「没检出 / 多张」，否则用户永远不知道生成图为什么加不进去。
+    const det = await apiService.detectFace(blob, 'generated.png')
+    const faceCount = Number(det?.count ?? 0)
+    if (faceCount === 0) {
+      message.warning('添加到人脸库失败：生成图中未检测到人脸，请生成含人脸的图片后重试')
+      return
+    }
+    if (faceCount > 1) {
+      message.warning(`添加到人脸库失败：检测到 ${faceCount} 张人脸，人脸底库只支持单脸登记，请裁剪到只含目标人脸`)
+      return
+    }
     const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const name = promptName(prompt, 20, '生成人脸')
     await apiService.enrollFace(id, blob, { label: name, name, note: '来自图像生成' }, 'generated.png')
     message.success(`已添加到人脸库：${name}`)
   } catch (e: any) {
-    message.error(`添加到人脸库失败：${(e as Error)?.message || '未知错误'}`)
+    // 透出后端真实 msg（含「未检测到人脸」等业务提示）；极端情况下才是未知错误
+    const reason = (e as Error)?.message || '未知错误'
+    message.error(`添加到人脸库失败：${reason}`)
   } finally {
     moreBusy.value = false
   }
@@ -3200,6 +3218,15 @@ onUnmounted(() => {
   color: var(--color-text);
   font-size: 12px;
   text-align: center;
+}
+
+/* 风格芯片上的小缩略图：选中风格后用真实风格图 + 文字一起展示 */
+.wg-style-chip-thumb {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: calc(var(--r-sm) / 2);
+  object-fit: cover;
 }
 
 /* ---------- 画布与卡片 ---------- */

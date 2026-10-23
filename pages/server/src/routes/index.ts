@@ -59,7 +59,9 @@ export const serverRoutes: RouteConfigsTable[] = [
   },
 ];
 
-/** {@link createServerManageRoutes} 的可选项 */
+/**
+ * {@link createServerManageRoutes} 的可选项
+ */
 export interface ServerManageRoutesOptions {
   /** 侧边栏高亮回指的路由路径（默认 /assets） */
   activeMenu?: string;
@@ -72,11 +74,14 @@ export interface ServerManageRoutesOptions {
  * ACME 证书 / 主机详情），视图与 API 却散在宿主与 {@code @pages/server} 两处。
  * 宿主抄一份、包里再有一份，迟早会漂。</p>
  *
- * <p>本工厂把这几页的路由声明收敛到 {@code @pages/server} 一处：视图、API、路由三者
- * 同源，宿主只做合并（{@code ...createServerManageRoutes({ activeMenu: "/assets" })}）。</p>
+ * <p><strong>分组归属</strong>：这几页属于「资产管理」分组，本工厂只产出叶子路由
+ * （不含分组父节点），由宿主展开进自己的 {@code /grp-asset} children ——
+ * 分组父节点由宿主持有，这里的叶子 {@code showLink:true} 才会出现在侧边栏分组内；
+ * 若工厂再造一个分组父节点，宿主合并后会出现两个同 path/name 的父节点、菜单重复渲染。
+ * 与该代码库「账号管理归系统管理分组」同一套做法（见 createServerManageReleaseRoutes 注释）。</p>
  *
  * @param options 可选项，主要是 activeMenu
- * @returns 可直接展开进宿主路由树的数组
+ * @returns 可直接展开进宿主路由树的数组（全部为叶子，不含分组父节点）
  */
 export function createServerManageRoutes(options: ServerManageRoutesOptions = {}): RouteConfigsTable[] {
   const activeMenu = options.activeMenu || "/assets";
@@ -103,8 +108,97 @@ export function createServerManageRoutes(options: ServerManageRoutesOptions = {}
       component: () => import("../views/acme/index.vue"),
       meta: { title: "ACME 证书", icon: "Key", showLink: true, activeMenu },
     },
+  ];
+}
+
+/**
+ * 生成「主机管理」完整二级菜单（监控台宿主用）。
+ *
+ * <p>把主机资产这一族能力收成<b>一个</b>完整二级分组：主机资产 / 远程控制 /
+ * ACME 证书 / 会话审计 / 批量作业 / 片段管理 / 维护计划 / 发布管理，全部视图
+ * 与 API 都在本包，宿主只需 {@code ...createServerHostRoutes()} 一行展开，
+ * 不再在壳里手写分组与叶子（历史上散成「资产管理」「发布管理」两个分组，
+ * 菜单排版不一致且视图/路由两处声明易漂）。</p>
+ *
+ * <p>{@code /projects}（项目管理）挂在分组 children 下且 {@code showLink:false}
+ * 时菜单组件仍会渲染，故与主机详情一样放在顶层隐藏区返回。</p>
+ *
+ * @param options 可选项，主要是 activeMenu
+ * @returns 完整二级分组 + 顶层隐藏路由，可直接展开进宿主路由树
+ */
+export function createServerHostRoutes(options: ServerManageRoutesOptions = {}): RouteConfigsTable[] {
+  const activeMenu = options.activeMenu || "/assets";
+
+  return [
     {
-      // 主机详情（深链）：从主机资产列表点进某台主机的详情抽屉页。
+      path: "/grp-host",
+      name: "GroupHost",
+      meta: { title: "主机管理", icon: "Monitor", showLink: true, rank: 10 },
+      children: [
+        {
+          // 主机资产：台账 + 主机画像（进程/服务/磁盘/网络/环境）+ Agent 部署。
+          path: "/assets",
+          name: "Assets",
+          component: () => import("../views/AssetsView.vue"),
+          meta: { title: "主机资产", icon: "Cpu", showLink: true, activeMenu },
+        },
+        {
+          // 远程控制：Guacamole / SSH 直连 / VNC 直连 / SFTP。
+          path: "/terminal",
+          name: "Terminal",
+          component: () => import("../views/TerminalView.vue"),
+          meta: { title: "远程控制", icon: "Position", showLink: true, activeMenu },
+        },
+        {
+          // ACME 证书：独立 ACME 后端的账户 / 申请 / 续期 / 下载。
+          path: "/acme",
+          name: "AcmeCert",
+          component: () => import("../views/acme/index.vue"),
+          meta: { title: "ACME 证书", icon: "Key", showLink: true, activeMenu },
+        },
+        {
+          path: "/sessions",
+          name: "ServerSessions",
+          component: () => import("../views/ScSessionTab.vue"),
+          meta: { title: "会话审计", icon: "Document", showLink: true },
+        },
+        {
+          path: "/exec",
+          name: "ServerExec",
+          component: () => import("../views/ScExecTab.vue"),
+          meta: { title: "批量作业", icon: "Promotion", showLink: true },
+        },
+        {
+          path: "/snippets",
+          name: "ServerSnippets",
+          component: () => import("../views/ScTerminalSnippetManager.vue"),
+          meta: { title: "片段管理", icon: "DocumentCopy", showLink: true },
+        },
+        {
+          path: "/maintenance",
+          name: "ServerMaintenance",
+          component: () => import("../views/ScMaintenancePlan.vue"),
+          meta: { title: "维护计划", icon: "Clock", showLink: true },
+        },
+        {
+          path: "/release",
+          name: "Release",
+          component: () => import("../views/release/ReleaseView.vue"),
+          meta: { title: "发布管理", icon: "Box", showLink: true },
+        },
+      ],
+    },
+    {
+      // 项目管理：隐藏路由，移为顶层才真正不进菜单；发布管理卡片的「进入」跳这里。
+      path: "/projects",
+      name: "Projects",
+      component: () => import("../views/release/ProjectsView.vue"),
+      meta: { title: "项目管理", icon: "Folder", showLink: false, activeMenu: "/release" },
+    },
+    {
+      // 主机监控详情：隐藏路由，由主机资产列表（AssetsView.openDetail）跳入。
+      // 与其它隐藏路由一样移为顶层 —— 挂在分组 children 下且 showLink:false 时
+      // 菜单组件仍会渲染（见 createServerHostRoutes 顶部注释），故放顶层隐藏区。
       path: "/host/:id",
       name: "HostDetail",
       component: () => import("../views/HostDetailView.vue"),

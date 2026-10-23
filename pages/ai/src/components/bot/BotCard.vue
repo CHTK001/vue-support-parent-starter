@@ -4,11 +4,11 @@
     <!-- Header: icon + name + platform tag -->
     <div class="flex items-center gap-2.5 mb-3">
       <div
-        class="w-8 h-8 rounded-[var(--size-surface-radius)] shrink-0 flex items-center justify-center bg-gray-50 dark:bg-[#2a2c30] overflow-hidden">
+        class="w-8 h-8 rounded-[var(--size-surface-radius)] shrink-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden">
         <img :src="getPlatformAvatar(bot.platform)" :alt="getPlatformName(bot.platform)"
           class="w-full h-full object-contain p-1" @error="handleImageError" />
       </div>
-      <h3 class="font-semibold text-gray-900 dark:text-[#e8e9ed] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);"
+      <h3 class="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);"
         :title="bot.name">
         {{ bot.name }}
       </h3>
@@ -45,7 +45,7 @@
   </div>
 
   <!-- 二维码弹窗 -->
-  <LDialog v-model="qrDialogVisible" :title="t('bot.card.qrTitle')" width="360px" align-center>
+  <ReDialog :close-on-click-modal="true" v-model="qrDialogVisible" :title="t('bot.card.qrTitle')" width="360px" align-center>
     <div class="flex flex-col items-center py-4">
       <div v-if="qrLoading" class="py-8">
         <el-icon class="is-loading" :size="32">
@@ -88,7 +88,7 @@
         {{ qrMessage || t('bot.card.qrUnavailable') }}
       </div>
     </div>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -101,7 +101,7 @@ import type { BotInstance } from '@/types/bot'
 import { fixFrontendAssetUrl } from '@/utils/url'
 import { apiService } from '@/services/ApiService'
 import LTooltip from '@/components/ui/LTooltip.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 const props = defineProps<{
   bot: BotInstance

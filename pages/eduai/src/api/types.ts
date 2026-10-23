@@ -492,6 +492,8 @@ export interface MarkingFinishPreview {
   taskId: string;
   studentId: string;
   wrongCount: number;
+  /** 判错得分率阈值（0~1；0 表示仅 0 分判错） */
+  wrongRate?: number;
   questions: MarkingPreviewQuestion[];
 }
 
@@ -528,6 +530,29 @@ export interface WrongTopRow {
   stem?: string | null;
   subject?: string | null;
   wrongCount: number;
+}
+
+/**
+ * 阅卷运行时设置（系统配置 → AI 阅卷设置）。
+ *
+ * <p>重试次数/退避曲线 + 任意卷识别策略 + 阅卷判分 Prompt（主观题 LLM 判分指令）。
+ * 读写走 {@code /v2/edu/marking-settings}，由系统配置弹窗维护。</p>
+ */
+export interface MarkingSettingsVO {
+  /** 模型调用最大重试次数（0 = 不重试） */
+  retryTimes?: number;
+  /** 初始退避毫秒 */
+  retryBackoffMillis?: number;
+  /** 退避倍数（<=1 按 2 处理） */
+  retryBackoffMultiplier?: number;
+  /** 退避上限毫秒 */
+  retryMaxBackoffMillis?: number;
+  /** 除限流外是否也重试瞬时故障 */
+  retryOnTransient?: boolean;
+  /** 任意卷识别策略：whole（整卷）/ region（按版面区域分块） */
+  extractStrategy?: string;
+  /** 阅卷判分 System Prompt（空 = 内置默认） */
+  markingPrompt?: string;
 }
 
 /** 考试 */

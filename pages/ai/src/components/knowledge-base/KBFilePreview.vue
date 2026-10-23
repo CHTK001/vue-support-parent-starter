@@ -129,7 +129,7 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
 
 <template>
   <ReDialog v-model="visible" :title="fileName" :width="820" :close-on-click-modal="false">
-    <div v-loading="loading" class="kb-refactor max-h-[68vh] overflow-auto">
+    <div v-loading="loading" class="kb max-h-[68vh] overflow-auto">
       <el-alert v-if="errorText" type="error" :closable="false" :title="errorText" class="mb-3" />
       <template v-else>
         <div class="flex items-center gap-2 pb-2.5 mb-2.5 border-b border-[var(--rm-border-light)] text-xs text-[var(--rm-text-secondary)]">
@@ -142,7 +142,6 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
       </template>
     </div>
     <template #footer>
-      <ReButton type="default" @click="onClose">关闭</ReButton>
       <ReButton type="primary" @click="load">刷新</ReButton>
     </template>
   </ReDialog>

@@ -3,7 +3,7 @@
     <div class="flex flex-col h-full">
       <!-- 头部操作 -->
       <div class="flex justify-between items-center mb-4">
-        <div class="text-sm text-gray-500 dark:text-[#8b8d95]">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
           {{ t('scheduler.log.count', { count: runs.length }) }}
         </div>
         <el-button @click="handleRefresh" :loading="loading">

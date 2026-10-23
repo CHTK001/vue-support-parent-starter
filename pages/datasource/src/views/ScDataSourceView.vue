@@ -1920,7 +1920,7 @@ onMounted(load);
     </ReDialog>
 
     <!-- 表结构浏览：入库节点按这里的真实列配字段映射 -->
-    <ReDialog v-model="schemaVisible" :title="`${schemaSourceName} · 表结构`" width="820px">
+    <ReDialog v-model="schemaVisible" :title="`${schemaSourceName} · 表结构`" width="1020px">
       <div class="ds-schema">
         <div class="ds-schema__bar">
           <span class="ds-schema__label">表</span>

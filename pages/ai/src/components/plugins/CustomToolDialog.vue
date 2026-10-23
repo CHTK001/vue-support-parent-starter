@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog :close-on-click-modal="true"
     v-model="visible"
     title="添加本地工具"
     width="520px"
@@ -51,14 +51,14 @@
         <el-button class="ct-btn" type="primary" :loading="saving" @click="handleSave">添加</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref } from 'vue'
 
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import {
   Info24Regular, Tag24Regular, Folder24Regular,
 } from '@vicons/fluent'

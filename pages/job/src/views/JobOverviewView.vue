@@ -610,28 +610,6 @@ function go(path: string): void {
 
 <template>
   <div v-loading="loading" class="collect-page sched-center ov-page">
-    <!-- 页头 -->
-    <header class="ov-head">
-      <div class="ov-head__left">
-        <div class="ov-head__row">
-          <h1 class="ov-head__title">调度总览</h1>
-          <span v-if="summary" class="ov-badge" :class="`is-${summary.leader ? 'ok' : 'warn'}`">
-            <i class="ov-badge__dot"/>
-            {{ summary.leader ? "Leader" : "Follower" }}
-          </span>
-        </div>
-        <p class="ov-head__sub">
-          {{ summary?.role ?? "—" }} 角色 · 节点 {{ summary?.nodeId || "—" }}
-          · 分组 {{ summary?.group || "—" }} · 更新于 {{ updatedAt || "—" }}
-        </p>
-      </div>
-      <div class="ov-head__actions">
-        <span class="collect-hint collect-hint--muted">自动刷新</span>
-        <ReSwitch v-model="autoRefresh" aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
-        <ReButton icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新</ReButton>
-      </div>
-    </header>
-
     <!-- KPI -->
     <div class="ov-kpis">
       <button
@@ -668,7 +646,6 @@ function go(path: string): void {
         <span class="ov-fact__value">{{ fact.value }}</span>
       </div>
     </div>
-    <p v-if="stripAlert" class="ov-alert">{{ stripAlert }}</p>
 
     <!-- 主区：趋势 + 右栏 -->
     <div class="ov-main">
@@ -779,53 +756,50 @@ function go(path: string): void {
             调度工作台 <ReIcon name="Right" :size="12"/>
           </button>
         </header>
-        <div class="ov-table">
-          <ReTable
-            :data="upcoming as unknown as Record<string, unknown>[]"
-            :columns="upcomingColumns"
-            :pagination="false"
-            :toolbar="false"
-            row-key="jobKey"
-            :layout-table="{ minHeight: 0 }"
-            empty-text="没有启用的定时任务，去工作台启用一个或在流程设计页给流程配 cron"
-          >
-            <template #empty>
-              <div class="page-empty">
-                <span class="page-empty__icon"><ReIcon name="AlarmClock" :size="22"/></span>
-                <span class="page-empty__title">没有启用的定时任务</span>
-                <span class="page-empty__desc">这里只列启用中、且算得出下次触发时刻的任务；到工作台启用一个，或在流程设计页给流程配 cron。</span>
-                <span class="page-empty__actions">
-                  <ReButton icon="Refresh" @click="reload">刷新</ReButton>
-                </span>
-              </div>
-            </template>
-            <template #name="{ row }">
-              <span>{{ row.jobName || row.jobKey }}</span>
-              <ReTag
-                v-if="isFlowRow(row as unknown as JobRuntime)"
-                class="collect-tag-inline"
-                type="primary"
-                effect="plain"
-                size="small"
-              >
-                采集流程
-              </ReTag>
-            </template>
-            <template #schedule="{ row }">
-              <span class="collect-cell-mono collect-cell-ellipsis">
-                {{ scheduleCellText(row as unknown as JobRuntime) }}
+        <ReTable
+          :data="upcoming as unknown as Record<string, unknown>[]"
+          :columns="upcomingColumns"
+          row-key="jobKey"
+          :layout-table="{ minHeight: 0 }"
+          empty-text="没有启用的定时任务，去工作台启用一个或在流程设计页给流程配 cron"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #empty>
+            <div class="page-empty">
+              <span class="page-empty__icon"><ReIcon name="AlarmClock" :size="22"/></span>
+              <span class="page-empty__title">没有启用的定时任务</span>
+              <span class="page-empty__desc">这里只列启用中、且算得出下次触发时刻的任务；到工作台启用一个，或在流程设计页给流程配 cron。</span>
+              <span class="page-empty__actions">
+                <ReButton icon="Refresh" @click="reload">刷新</ReButton>
               </span>
-            </template>
-            <template #next="{ row }">
-              <span class="collect-num">{{ fmtFireShort(row.nextFireTime) }}</span>
-            </template>
-            <template #countdown="{ row }">
-              <span class="ov-cd">
-                <FireCountdown :at="row.nextFireTime" bare/>
-              </span>
-            </template>
-          </ReTable>
-        </div>
+            </div>
+          </template>
+          <template #name="{ row }">
+            <span>{{ row.jobName || row.jobKey }}</span>
+            <ReTag
+              v-if="isFlowRow(row as unknown as JobRuntime)"
+              class="collect-tag-inline"
+              type="primary"
+              effect="plain"
+              size="small"
+            >
+              采集流程
+            </ReTag>
+          </template>
+          <template #schedule="{ row }">
+            <span class="collect-cell-mono collect-cell-ellipsis">
+              {{ scheduleCellText(row as unknown as JobRuntime) }}
+            </span>
+          </template>
+          <template #next="{ row }">
+            <span class="collect-num">{{ fmtFireShort(row.nextFireTime) }}</span>
+          </template>
+          <template #countdown="{ row }">
+            <span class="ov-cd">
+              <FireCountdown :at="row.nextFireTime" bare/>
+            </span>
+          </template>
+        </ReTable>
         <p v-if="stoppedHint" class="ov-panel__foot">{{ stoppedHint }}</p>
       </section>
 
@@ -841,33 +815,30 @@ function go(path: string): void {
             查看失败
           </button>
         </header>
-        <div class="ov-table">
-          <ReTable
-            :data="recentDispatches as unknown as Record<string, unknown>[]"
-            :columns="dispatchColumns"
-            :pagination="false"
-            :toolbar="false"
-            row-key="logId"
-            :layout-table="{ minHeight: 0 }"
-            empty-text="近 24 小时没有派发记录"
-          >
-            <template #time="{ row }">
-              <span class="collect-num">{{ fmtMs(row.triggerTime) }}</span>
-            </template>
-            <template #job="{ row }">{{ jobNameOf(row as unknown as JobLog) }}</template>
-            <template #executor="{ row }">
-              <span class="collect-cell-ellipsis">{{ executorOf(row as unknown as JobLog) }}</span>
-            </template>
-            <template #cost="{ row }">
-              <ReTime :value="costMs(row.costMs)" format="duration" placeholder="—"/>
-            </template>
-            <template #status="{ row }">
-              <ReTag :type="statusTagType(row.executeCode)" effect="plain" size="small">
-                {{ statusText(row.executeCode) }}
-              </ReTag>
-            </template>
-          </ReTable>
-        </div>
+        <ReTable
+          :data="recentDispatches as unknown as Record<string, unknown>[]"
+          :columns="dispatchColumns"
+          row-key="logId"
+          :layout-table="{ minHeight: 0 }"
+          empty-text="近 24 小时没有派发记录"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        >
+          <template #time="{ row }">
+            <span class="collect-num">{{ fmtMs(row.triggerTime) }}</span>
+          </template>
+          <template #job="{ row }">{{ jobNameOf(row as unknown as JobLog) }}</template>
+          <template #executor="{ row }">
+            <span class="collect-cell-ellipsis">{{ executorOf(row as unknown as JobLog) }}</span>
+          </template>
+          <template #cost="{ row }">
+            <ReTime :value="costMs(row.costMs)" format="duration" placeholder="—"/>
+          </template>
+          <template #status="{ row }">
+            <ReTag :type="statusTagType(row.executeCode)" effect="plain" size="small">
+              {{ statusText(row.executeCode) }}
+            </ReTag>
+          </template>
+        </ReTable>
       </section>
     </div>
   </div>

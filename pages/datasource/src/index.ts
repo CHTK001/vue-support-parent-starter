@@ -38,6 +38,7 @@ export {
   fetchDatasourceTables,
   fetchDatasourceTableInfos,
   fetchDatasourceColumns,
+  hubSchemaProvider,
   toTableOptions,
   toColumnOptions,
   setDatasourceSchemaProvider,
@@ -81,6 +82,9 @@ export {
   DatasourceTableSelect,
   CreateTableDialog,
 } from "./components/selectors";
+
+// 数据库管理器沿用的「设计表」组件：表名 + 字段网格，非 DDL 预览
+export { default as DesignTableDialog } from "./components/console/CreateTableDialog.vue";
 
 // 数据源「浏览表结构」的 schema 提供者（监控侧实现）。
 //

@@ -91,6 +91,10 @@
       "types": "./src/components/ReSearch/index.ts",
       "default": "./src/components/ReSearch/index.ts"
     },
+    "./re-filter": {
+      "types": "./src/components/ReFilter/index.ts",
+      "default": "./src/components/ReFilter/index.ts"
+    },
     "./re-tag-filter": {
       "types": "./src/components/ReTagFilter/index.ts",
       "default": "./src/components/ReTagFilter/index.ts"
@@ -158,6 +162,10 @@
     "./re-echarts": {
       "types": "./src/components/ReEcharts/index.ts",
       "default": "./src/components/ReEcharts/index.ts"
+    },
+    "./re-chart": {
+      "types": "./src/components/ReChart/index.ts",
+      "default": "./src/components/ReChart/index.ts"
     },
     "./re-cropper": {
       "types": "./src/components/ReCropper/index.ts",
@@ -358,6 +366,7 @@
     "icons:check:remote": "node scripts/sync-animated-icons.mjs --check --remote"
   },
   "dependencies": {
+    "@antv/g": "^6.1.28",
     "@antv/g6": "^5.1.1",
     "@antv/x6": "^2.18.1",
     "@antv/x6-plugin-clipboard": "^2.1.6",
@@ -406,11 +415,13 @@
     "ag-grid-vue3": "^36.1.0",
     "cropperjs": "catalog:",
     "d3-force": "^3.0.0",
+    "d3-sankey": "^0.12.3",
     "dom-zindex": "1.0.7",
     "echarts": "catalog:",
     "element-plus": "catalog:",
     "framer-motion": "catalog:",
     "katex": "^0.16.47",
+    "maplibre-gl": "^6.15.0",
     "motion": "catalog:",
     "motion-dom": "catalog:",
     "motion-utils": "catalog:",

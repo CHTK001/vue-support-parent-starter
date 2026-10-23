@@ -105,6 +105,11 @@ export interface Session {
     isStreaming?: boolean     // 是否正在流式响应（后端注入）
     // ==================================
 
+    // === 会话置顶/目标（前端维护，localStorage 持久化） ===
+    pinned?: boolean          // 是否置顶
+    goal?: string             // 会话目标
+    // ==================================
+
     // === 子会话列表（后端注入） ===
     subSessions?: Session[]
     // ==================================

@@ -54,9 +54,8 @@
       border
       stripe
       class="asset-table"
-      :pagination="false"
-      :toolbar="false"
       empty-text="暂无资产"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <ReTableColumn label="大类" width="90" align="center">
         <template #default="{ row }">
@@ -145,7 +144,7 @@
                 <div class="flag" :class="hostDetail.remoteEnabled ? 'on' : 'off'">远控 {{ onOff(hostDetail.remoteEnabled) }}</div>
               </ReCol>
             </ReRow>
-            <ReTable :data="hostDetail.channels || []" border :pagination="false" :toolbar="false" empty-text="无服务节点">
+            <ReTable :data="hostDetail.channels || []" border empty-text="无服务节点" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
               <ReTableColumn prop="name" label="节点" min-width="140" />
               <ReTableColumn prop="protocol" label="协议" width="90" align="center" />
               <ReTableColumn prop="port" label="端口" width="80" align="center" />
@@ -210,7 +209,7 @@
               通道
               <span class="section-extra">已启用 {{ deviceDetail.enabledChannelCount }} / {{ deviceDetail.channelCount }}</span>
             </h4>
-            <ReTable :data="deviceDetail.channels || []" border :pagination="false" :toolbar="false" empty-text="无通道">
+            <ReTable :data="deviceDetail.channels || []" border empty-text="无通道" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
               <ReTableColumn prop="channelNo" label="通道号" width="80" align="center" />
               <ReTableColumn prop="channelName" label="通道名称" min-width="140" />
               <ReTableColumn prop="channelType" label="类型" width="100" align="center" />
@@ -229,7 +228,7 @@
               共 {{ currentMonitors.length }} 项 · 活跃告警 {{ currentActiveAlarmCount }} 条
             </span>
           </h4>
-          <ReTable :data="currentMonitors" border :pagination="false" :toolbar="false">
+          <ReTable :data="currentMonitors" border :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
             <ReTableColumn prop="name" label="监控项" min-width="140" />
             <ReTableColumn prop="host" label="地址" min-width="130" />
             <ReTableColumn prop="serviceType" label="服务类型" width="100" align="center" />
@@ -253,10 +252,6 @@
           <div class="empty-hint">该资产暂无关联监控项</div>
         </section>
       </div>
-
-      <template #footer>
-        <ReButton @click="showDetail = false">关闭</ReButton>
-      </template>
     </ReDialog>
   </div>
 </template>

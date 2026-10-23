@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="visible"
     :title="dialogTitle"
     width="46.5rem"
@@ -48,12 +48,12 @@
         </div>
       </div>
     </div>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import LDialog from "@/components/ui/LDialog.vue";
+import ReDialog from "@repo/ui/re-dialog";
 import { useI18n } from "vue-i18n";
 import { diffLines as computeDiffLines } from "diff";
 import { useHighlight } from "@/composables/useHighlight";

@@ -1,14 +1,14 @@
 <template>
   <div
-    class="agent-tab-bar flex items-center gap-1 px-4 py-1 bg-gray-50 dark:bg-[#1c1d20] border-b border-gray-200 dark:border-[#2a2c30] overflow-x-auto"
+    class="agent-tab-bar flex items-center gap-1 px-4 py-1 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 overflow-x-auto"
   >
     <div
       v-for="tab in tabs"
       :key="tab.id"
       class="agent-tab flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer text-sm whitespace-nowrap select-none transition-all"
       :class="{
-        'bg-white dark:bg-[#2a2c30] text-gray-900 dark:text-[#e8e9ed] shadow-sm': tab.id === activeTab,
-        'text-gray-500 dark:text-[#8b8d95] hover:bg-gray-100 dark:hover:bg-[#25262a]': tab.id !== activeTab,
+        'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm': tab.id === activeTab,
+        'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#25262a]': tab.id !== activeTab,
       }"
       @click="$emit('switch', tab.id)"
     >

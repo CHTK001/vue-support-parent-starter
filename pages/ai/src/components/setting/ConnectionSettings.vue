@@ -37,7 +37,7 @@
     </SettingsCard>
 
     <!-- 新建/编辑：分步向导 -->
-    <LDialog v-model="editing" width="640px" :close-on-click-modal="false" append-to-body class="conn-dialog">
+    <ReDialog v-model="editing" width="640px" :close-on-click-modal="false" append-to-body class="conn-dialog">
       <div class="wiz" style="height: 480px;">
         <!-- 步骤导航 -->
         <div class="wiz-steps">
@@ -207,7 +207,7 @@
           </div>
         </div>
       </div>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -217,7 +217,7 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 
 import { Check, Close, Top, Folder, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import SegmentedToggle from '../ui/SegmentedToggle.vue'
 import SettingsCard from './SettingsCard.vue'
 import { apiService } from '@/services/ApiService'

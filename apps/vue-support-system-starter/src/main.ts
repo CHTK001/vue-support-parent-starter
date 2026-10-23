@@ -12,23 +12,6 @@
 import { createContextApp } from "@repo/app";
 import { registerAnnouncementApi, type AnnouncementItem } from "@repo/theme";
 import { registerStaticMenu } from "@repo/pinia";
-import { install as ReButtonInstall } from "@repo/ui/re-button";
-import { install as ReInputInstall } from "@repo/ui/re-input";
-import { install as ReInputNumberInstall } from "@repo/ui/re-input-number";
-import { install as ReSelectInstall } from "@repo/ui/re-select";
-import { install as ReDatePickerInstall } from "@repo/ui/re-date-picker";
-import { install as ReSwitchInstall } from "@repo/ui/re-switch";
-import { install as ReDialogInstall } from "@repo/ui/re-dialog";
-import { install as ReTagInstall } from "@repo/ui/re-tag";
-import { install as ReBadgeInstall } from "@repo/ui/re-badge";
-import { install as RePaginationInstall } from "@repo/ui/re-pagination";
-import { install as ReFormInstall } from "@repo/ui/re-form";
-import { install as ReEmptyInstall } from "@repo/ui/re-empty";
-import { install as ReSkeletonInstall } from "@repo/ui/re-skeleton";
-import { install as ReTableInstall } from "@repo/ui/re-table";
-import { install as ReSearchInstall } from "@repo/ui/re-search";
-import { install as ReIconSelectInstall } from "@repo/ui/re-icon-select";
-import { install as ReIpTextInstall } from "@repo/ui/re-ip-text";
 import { systemMenus, systemRoutes } from "@pages/system";
 import { getActiveAnnouncements, markAnnouncementRead } from "@pages/system/api/announcementApi";
 import "@pages/filesystem";
@@ -122,25 +105,12 @@ createContextApp({
   },
 })
   .routes(systemRoutes as never)
-  .use([
-    ReButtonInstall,
-    ReInputInstall,
-    ReInputNumberInstall,
-    ReSelectInstall,
-    ReDatePickerInstall,
-    ReSwitchInstall,
-    ReDialogInstall,
-    ReTagInstall,
-    ReBadgeInstall,
-    RePaginationInstall,
-    ReFormInstall,
-    ReEmptyInstall,
-    ReSkeletonInstall,
-    ReTableInstall,
-    ReSearchInstall,
-    ReIconSelectInstall,
-    ReIpTextInstall,
-  ])
+  // 原先是 main.ts 手工 `.use(ReButtonInstall, ReInputInstall, ...)` 逐个导入安装。
+  // 这些组件清单属于「这个 app 用到哪套 CRUD 组件」，已经由 @repo/ui 的 preset 维护：
+  //   - core preset 覆盖表格 / 表单 / 弹窗 / 标签 / 输入 / 搜索 / 图标选择等 CRUD 基础件；
+  //   - ReIpText 不在 core 里，系统管理用它展示 IP 文本，单独追加一项。
+  // 收敛后 main.ts 不用再 import @repo/ui 的十几个 install 模块，也避免各 app 抄清单漂移。
+  .ui({ preset: "core", components: ["ReIpText"] })
   .mount("#app")
   .then((app) => {
     booted = true;

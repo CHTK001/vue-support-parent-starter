@@ -124,6 +124,20 @@ const emit = defineEmits<{
   (e: "ok"): void;
   (e: "cancel"): void;
   (e: "fullscreen-change", v: boolean): void;
+  /**
+   * 生命周期事件：显式声明并从内部 ElDialog 转发。
+   *
+   * <p>为什么要声明：不声明的话这些监听器会留在 `$attrs` 里，靠
+   * `<ElDialog v-bind="$attrs">` 透传才能生效 —— 一旦哪天内部实现换成非 el 的
+   * 容器（例如 modern 布局的 div 根节点），监听器就会静默失效。
+   * 声明后由本组件负责转发，语义与 LDialog 的 open/close/closed 一致，
+   * 从 LDialog 迁过来的页面无需改一行监听器代码。</p>
+   *
+   * <p><b>注意</b>：声明了就必须在这里显式 emit —— 声明会把这些监听器从
+   * `$attrs` 里摘走；若只声明不转发，等于把事件丢掉。</p>
+   */
+  (e: "open" | "close"): void;
+  (e: "closed"): void;
 }>();
 
 /**
@@ -169,43 +183,20 @@ const resolved = computed(() => {
   };
 });
 
-/* ===== 拖拽状态（el/modern 头部拖拽） ===== */
-const dragState = ref<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
-const dialogStyle = ref<Record<string, string>>({});
-
-function onHeaderMouseDown(e: MouseEvent): void {
-  if (!props.draggable || isFullscreen.value) return;
-  const target = e.currentTarget as HTMLElement;
-  const rect = target.getBoundingClientRect();
-  dragState.value = {
-    x: e.clientX,
-    y: e.clientY,
-    offsetX: rect.left,
-    offsetY: rect.top,
-  };
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
-}
-
-function onMouseMove(e: MouseEvent): void {
-  if (!dragState.value) return;
-  const dx = e.clientX - dragState.value.x;
-  const dy = e.clientY - dragState.value.y;
-  const left = dragState.value.offsetX + dx;
-  const top = dragState.value.offsetY + dy;
-  dialogStyle.value = {
-    left: `${left}px`,
-    top: `${top}px`,
-    marginLeft: "0",
-    marginTop: "0",
-  };
-}
-
-function onMouseUp(): void {
-  dragState.value = null;
-  document.removeEventListener("mousemove", onMouseMove);
-  document.removeEventListener("mouseup", onMouseUp);
-}
+/* ==========================================================================
+ * 拖拽：el 布局交给 el-dialog 原生 draggable，modern 布局用自己的实现。
+ *
+ * 历史缺陷（2026-10-23 修复）：此前 el 布局也在这层手写 mousedown，
+ * 把位移写进 <ElDialog :style="{ left, top, marginLeft: 0, marginTop: 0 }">。
+ * 但 el-dialog 的 `style` 由 useDialog 计算后只产出 CSS 变量
+ * （--el-dialog-margin-top / --el-dialog-width）合并到 .el-dialog 上，
+ * 而 .el-dialog 本身是「非定位」的普通块级元素（居中靠 margin: ... auto），
+ * 于是 left/top 完全不生效 —— 表现为拖拽完全无反应。
+ *
+ * 原生 draggable 用 hooks/use-draggable，把 mousedown 绑在 headerRef 上、
+ * 以 transform: translate() 位移，并带视口边界 clamp，行为正确且不会跑出屏幕。
+ * 因此 el 布局只负责把 draggable 透传下去，不再自绘位移。
+ * ========================================================================== */
 
 /* ===== 操作 ===== */
 function onOk(): void {
@@ -216,9 +207,22 @@ function onCancel(): void {
   emit("cancel");
   visible.value = false;
 }
+
+/**
+ * modern 布局的显隐回调：把 modelValue 透传给父组件，并补齐 open/close。
+ *
+ * <p>modern 布局没有 el-dialog 可转发 `open`/`close`（其根节点是普通 div），
+ * 若不在这里补，从 LDialog 迁过来、监听 `@close` 的页面在该布局下会静默失效。
+ * `closed` 依赖过渡结束，只有 el 布局能准确给出，这里不伪造。</p>
+ *
+ * @param v 新的可见状态
+ */
+function onModernModelValue(v: boolean): void {
+  emit("update:modelValue", v);
+  emit(v ? "open" : "close");
+}
 function toggleFullscreen(): void {
   isFullscreen.value = !isFullscreen.value;
-  if (!isFullscreen.value) dialogStyle.value = {};
   emit("fullscreen-change", isFullscreen.value);
 }
 function closeByFab(): void {
@@ -229,7 +233,7 @@ function closeByFab(): void {
   }
 }
 
-/* ===== 组合样式（拖拽 + 全屏 + 响应式） ===== */
+/* ===== 组合样式（全屏 + 响应式） ===== */
 const fullscreenStyle = computed<CSSProperties>(() => {
   if (isFullscreen.value || resolved.value.fullscreen) {
     return {
@@ -244,8 +248,8 @@ const fullscreenStyle = computed<CSSProperties>(() => {
       borderRadius: "0",
     };
   }
-  // 拖拽偏移样式
-  if (Object.keys(dialogStyle.value).length) return dialogStyle.value;
+  // 拖拽位移由 el-dialog 原生 draggable 以 transform 实现，这里不再写 left/top，
+  // 否则会与 transform 叠加、或直接覆盖掉居中用 margin。
   // 响应式宽度样式
   if (props.responsive) return responsive.elStyle.value as CSSProperties;
   return { marginTop: props.top, marginLeft: "auto", marginRight: "auto" };
@@ -281,7 +285,7 @@ const showCloseFab = computed(() => props.headless);
     :mobile-breakpoint="mobileBreakpoint"
     :compact="compact"
     v-bind="$attrs"
-    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+    @update:model-value="onModernModelValue"
     @ok="onOk"
     @cancel="onCancel"
     @fullscreen-change="(v: boolean) => emit('fullscreen-change', v)"
@@ -308,6 +312,7 @@ const showCloseFab = computed(() => props.headless);
     :before-close="beforeClose"
     :destroy-on-close="destroyOnClose"
     :modal="modal"
+    :draggable="draggable && !isFullscreen"
     :style="fullscreenStyle"
     class="re-dialog"
     :class="{
@@ -318,28 +323,20 @@ const showCloseFab = computed(() => props.headless);
       're-dialog--compact': compact,
     }"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+    @open="emit('open')"
+    @close="emit('close')"
+    @closed="emit('closed')"
   >
-    <!-- 业务自定义 header 优先透传（el-dialog → ReDialog 迁移时头部插槽不丢）；
-         draggable 时外包一层拖拽容器，保证自定义头也能拖动 -->
+    <!-- 业务自定义 header 优先透传（el-dialog → ReDialog 迁移时头部插槽不丢）。
+         拖拽由 el-dialog 原生 draggable 接管：它把 mousedown 绑在 .el-dialog__header 上，
+         整个 header 区域都是手柄，不需要再包一层 div。 -->
     <template v-if="$slots.header && !headless" #header>
-      <div
-        v-if="draggable"
-        class="re-dialog__header-inner"
-        :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"
-        @mousedown="onHeaderMouseDown"
-      >
-        <slot name="header" />
-      </div>
-      <slot v-else name="header" />
+      <slot name="header" />
     </template>
 
     <!-- 无业务 header 时，draggable / fullscreenable 使用自带 header（拖拽 + 全屏按钮） -->
     <template v-else-if="(draggable || fullscreenable) && !headless" #header>
-      <div
-        class="re-dialog__header-inner"
-        :style="{ cursor: draggable && !isFullscreen ? 'move' : 'default' }"
-        @mousedown="onHeaderMouseDown"
-      >
+      <div class="re-dialog__header-inner">
         <span class="re-dialog__title">{{ title }}</span>
         <div class="re-dialog__header-actions">
           <ElButton
@@ -377,6 +374,11 @@ const showCloseFab = computed(() => props.headless);
   cursor: default;
   padding: 4px 20px 0 !important;
   margin-right: 0 !important;
+}
+/* 可拖拽时 header 是原生手柄，给出 move 光标（原生 draggable 自身不设样式） */
+.re-dialog--draggable:not(.re-dialog--fullscreen) :deep(.el-dialog__header) {
+  cursor: move;
+  user-select: none;
 }
 .re-dialog__header-inner {
   display: flex;

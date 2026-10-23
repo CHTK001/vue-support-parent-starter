@@ -186,7 +186,7 @@
     </section>
 
     <!-- 凭据表单 -->
-    <el-dialog
+    <ReDialog
       v-model="dialogVisible"
       :title="editingCredentialId ? '编辑凭据' : '新增凭据'"
       width="620px"
@@ -267,7 +267,7 @@
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submit">保存</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -276,6 +276,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
+import ReDialog from '@repo/ui/re-dialog'
 import { Monitor, Plus, Refresh } from '@element-plus/icons-vue'
 
 import { deviceApi } from '@pages/device/src/api/deviceApi'

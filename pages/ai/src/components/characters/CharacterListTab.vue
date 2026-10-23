@@ -28,7 +28,7 @@
     <!-- 分组筛选标签区域 -->
     <div class="flex flex-wrap gap-1">
       <div class="px-3 py-1 rounded cursor-pointer transition-all duration-200 select-none text-sm" :class="currentGroupId === null
-        ? 'bg-gray-100 dark:bg-[#2a2c30] text-(--color-text-primary) font-medium'
+        ? 'bg-gray-100 dark:bg-gray-800 text-(--color-text-primary) font-medium'
         : 'text-(--color-text-secondary) hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50'"
         @click="$emit('selectGroup', null)">
         {{ t('characters.list.all') }}
@@ -37,8 +37,8 @@
       <div v-for="group in groups" :key="group.id"
         class="char-group-tag px-3 py-1 rounded cursor-pointer transition-all duration-200 select-none text-sm flex items-center gap-1"
         :class="currentGroupId === group.id
-          ? 'bg-gray-100 dark:bg-[#2a2c30] text-(--color-text-primary) font-medium'
-          : 'text-gray-500 dark:text-[#8b8d95] hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50'"
+          ? 'bg-gray-100 dark:bg-gray-800 text-(--color-text-primary) font-medium'
+          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50'"
         @click="$emit('selectGroup', group.id)" @contextmenu.prevent="$emit('renameGroup', group)">
         <span>{{ group.name }}</span>
         <el-icon :size="12" class="char-group-tag__del"
@@ -49,7 +49,7 @@
       </div>
 
       <div
-        class="px-3 py-1 rounded cursor-pointer transition-all duration-200 select-none text-sm flex items-center text-gray-500 dark:text-[#8b8d95] hover:text-(--color-primary) hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50"
+        class="px-3 py-1 rounded cursor-pointer transition-all duration-200 select-none text-sm flex items-center text-gray-500 dark:text-gray-400 hover:text-(--color-primary) hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50"
         @click="$emit('createGroup')">
         <el-icon :size="14" class="mr-1">
           <PlusOutlined />
@@ -62,7 +62,7 @@
     <div class="flex-1 overflow-y-auto pt-4">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
         <div v-for="character in characters" :key="character.id"
-          class="provider-card group relative bg-white dark:bg-[#232428] border border-gray-200 dark:border-[#232428] rounded-lg p-4 cursor-default hover:border-(--color-primary) transition-all duration-200 overflow-hidden">
+          class="provider-card group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-lg p-4 cursor-default hover:border-(--color-primary) transition-all duration-200 overflow-hidden">
           <!-- 毛玻璃背景层 -->
           <div v-if="character.avatarUrl" class="absolute inset-0 z-0" :style="{
             backgroundImage: `url(${character.avatarUrl})`,
@@ -79,7 +79,7 @@
               <Avatar class="w-11 h-11" :src="character.avatarUrl" :name="character.title" type="assistant" />
               <div class="flex-1 min-w-0">
                 <div class="flex items-start justify-between">
-                  <div class="font-medium text-base text-gray-900 dark:text-[#e8e9ed] truncate" :title="character.title">
+                  <div class="font-medium text-base text-gray-900 dark:text-gray-100 truncate" :title="character.title">
                     {{ character.title }}
                     <span v-if="isGenericAssistant(character)" class="generic-badge" :title="t('characters.list.genericProtectedHint')">通用</span>
                   </div>
@@ -91,18 +91,18 @@
                     </el-icon>
                   </el-button>
                 </div>
-                <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1.5">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
                   {{ character.isPublic ? t('characters.list.sharedTemplate') : t('characters.list.myTemplate') }}
                 </div>
               </div>
             </div>
-            <div class="text-xs text-gray-400 dark:text-[#6b6d75] mt-2 line-clamp-2 leading-relaxed">
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-2 line-clamp-2 leading-relaxed">
               {{ character.description || t('characters.list.noDescription') }}
             </div>
           </div>
 
           <!-- 悬停按钮 -->
-          <div class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white dark:from-[#232428] via-white/90 dark:via-[#232428]/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-b-lg"></div>
+          <div class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white dark:bg-gray-800 via-white/90 dark:bg-gray-800/90/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-b-lg"></div>
           <div class="absolute inset-x-2 bottom-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto z-20">
             <el-button type="primary" class="flex-1 shadow-sm" @click.stop="$emit('startNewChat', character)">
               {{ t('characters.list.useCharacter') }}
@@ -115,8 +115,8 @@
 
         <!-- 空状态 -->
         <div v-if="!loading && characters.length === 0"
-          class="col-span-full text-center py-12 text-gray-500 dark:text-[#8b8d95]">
-          <el-icon size="48" class="text-gray-300 dark:text-[#5a5c63] mb-3">
+          class="col-span-full text-center py-12 text-gray-500 dark:text-gray-400">
+          <el-icon size="48" class="text-gray-300 dark:text-gray-500 mb-3">
             <People />
           </el-icon>
           <p class="text-lg">{{ t('characters.list.empty') }}</p>

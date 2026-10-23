@@ -1,6 +1,16 @@
 ﻿import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
+import UnoCSS from "unocss/vite";
+import {
+  presetWind3,
+  presetAttributify,
+  presetIcons,
+  presetTypography,
+  transformerDirectives,
+  transformerVariantGroup,
+  type UserConfig as UnoConfig,
+} from "unocss";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { uiExplicitAliases } from "../../turbo/vite/createVite.ts";
@@ -14,6 +24,7 @@ const FACTORY_DIR = path.resolve(WORKSPACE_ROOT, "turbo/vite");
 const REPO_ALIAS: Record<string, string> = {
   // 子路径别名必须排在父前缀之前（对象保序，先匹配先赢）——
   // 与 turbo/vite/createVite.ts 的动态 ReXxx / theme/koi 别名同口径
+  "@repo/app": path.resolve(WORKSPACE_ROOT, "turbo/app/src"),
   "@repo/ui/re-dialog": path.resolve(WORKSPACE_ROOT, "packages/ui/src/components/ReDialog/index.ts"),
   "@repo/theme/koi": path.resolve(WORKSPACE_ROOT, "packages/theme/src/themes/koi"),
   "@repo/utils": path.resolve(WORKSPACE_ROOT, "packages/utils/src"),
@@ -60,10 +71,31 @@ const REPO_ALIAS_ENTRIES = [
  */
 const FS_SERVER = process.env.FS_SERVER || "http://127.0.0.1:18080";
 
+/** UnoCSS 内联配置：与 turbo/vite/createVite.ts 共享基线一致，供 @repo/app 的 virtual:uno.css 入口解析 */
+function unoConfig(): UnoConfig {
+  return {
+    presets: [
+      presetWind3(),
+      presetAttributify(),
+      presetIcons({ scale: 1.2, warn: true }),
+      presetTypography(),
+    ],
+    transformers: [transformerVariantGroup(), transformerDirectives()],
+    content: {
+      filesystem: [
+        path.resolve(WORKSPACE_ROOT, "apps/vue-support-filestorage-starter/**/*.{vue,ts,tsx,js,jsx,html}"),
+        path.resolve(WORKSPACE_ROOT, "pages/**/*.{vue,ts,tsx,js,jsx,html}"),
+        path.resolve(WORKSPACE_ROOT, "packages/**/*.{vue,ts,tsx,js,jsx,html}"),
+      ],
+    },
+  };
+}
+
 export default defineConfig({
   root,
   plugins: [
     vue(),
+    UnoCSS(unoConfig()),
     // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
     fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
   ],

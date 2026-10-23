@@ -20,6 +20,7 @@
     "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
     "@repo/core": "workspace:*",
+    "@pages/hotsport": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/config": "workspace:*",

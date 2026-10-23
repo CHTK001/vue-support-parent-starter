@@ -169,16 +169,16 @@
       <!-- 列表视图 -->
       <ReTable
         v-else
+        ref="tableRef"
         :data="knowledgeRows"
         :columns="knowledgeColumns"
         :row-key="'knowledgePointId'"
         layout="table"
         :layout-switch="false"
-        :pagination="false"
-        :toolbar="false"
         border
         stripe
         @row-click="(row: Record<string, unknown>) => openDetail(row as unknown as KnowledgeCard)"
+        :config="{ toolbar: { enable: false } }"
       >
         <template #col-knowledgePointSubject="{ row }">
           <span v-if="row.knowledgePointSubject" class="pill subject" :class="subjectClass(row.knowledgePointSubject)">
@@ -219,6 +219,7 @@
       class="card-dialog card-dialog--preview"
       align-center
       :show-close="false"
+      :show-window-shell="false"
     >
       <template #header>
         <div class="dialog-head">
@@ -542,6 +543,7 @@ const searchDraft = reactive({ keyword: "", subject: "", gradeLevel: "", grade: 
 const cards = ref<KnowledgeCard[]>([]);
 const allCards = ref<KnowledgeCard[]>([]);
 const loading = ref(false);
+const tableRef = ref();
 
 const viewMode = ref<"grid" | "list">("grid");
 const sortMode = ref<"updated" | "created" | "name">("updated");

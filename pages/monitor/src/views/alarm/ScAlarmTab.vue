@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
         <ReRadioButton value="PROCESSED">已处理</ReRadioButton>
         <ReRadioButton value="FALSE_ALARM">误报</ReRadioButton>
       </ReRadioGroup>
-      <ReTable :data="events" border :loading="loading" :pagination="false" :toolbar="false">
+      <ReTable :data="events" border :loading="loading" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
         <ReTableColumn label="级别" width="70">
           <template #default="{ row }">
             <ReTag :type="levelType(row.msMonitorAlarmEventLevel)" >{{ row.msMonitorAlarmEventLevel }}</ReTag>
@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
             <ReButton icon="Plus" show-text type="primary" @click="openPolicyForm()">新增策略</ReButton>
           </template>
         </ReSectionHead>
-        <ReTable :data="policies" border :pagination="false" :toolbar="false">
+        <ReTable :data="policies" border :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
           <ReTableColumn prop="msMonitorAlarmPolicyName" label="名称" min-width="140" />
           <ReTableColumn label="启用" width="80">
             <template #default="{ row }">
@@ -416,7 +416,7 @@ onBeforeUnmount(() => {
             <ReButton icon="Plus" show-text type="primary" :disabled="!policies.length" @click="openRuleForm()">新增规则</ReButton>
           </template>
         </ReSectionHead>
-        <ReTable :data="rules" border :loading="loading" :pagination="false" :toolbar="false">
+        <ReTable :data="rules" border :loading="loading" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
           <ReTableColumn prop="msMonitorAlarmRuleMetricName" label="指标" width="130" />
           <ReTableColumn label="条件" width="90">
             <template #default="{ row }">{{ row.msMonitorAlarmRuleCondition }} {{ row.msMonitorAlarmRuleThreshold }}</template>

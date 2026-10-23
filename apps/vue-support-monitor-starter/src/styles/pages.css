@@ -1,4 +1,4 @@
-﻿/* pages.css 鈥?鍏ㄥ眬椤甸潰绾ф牱寮忥紝瀵归綈 prototype.html 瑙嗚锛堝幓鎺?page-wrap锛屽搷搴斿紡锛?*/
+/* pages.css 鈥?鍏ㄥ眬椤甸潰绾ф牱寮忥紝瀵归綈 prototype.html 瑙嗚锛堝幓鎺?page-wrap锛屽搷搴斿紡锛?*/
 /* 寮曞叆鏂瑰紡锛歮ain.ts import "./styles/pages.css" */
 
 /* ============================================================
@@ -396,10 +396,15 @@
    ============================================================ */
 
 /* 鍏ㄥ眬绂佺敤 el-dialog 鎵撳紑/鍏抽棴鍔ㄧ敾锛岄伩鍏嶉棯涓€涓?*/
+/* 仅作用于 dialog 的**开合过渡类**与遮罩层本身。
+   早期版本写成 `.el-dialog * { animation-duration: 0s !important }`，
+   把弹窗内容区里的一切动画都冻住了 —— 台风详情弹窗里的气旋转体
+   （.typhoon-cyclone__spin）与雷达脉冲（.typhoon-cyclone__pulse）
+   的 animation-duration 被压成 0s，computed transform 恒为 none，
+   于是「气旋不动」看起来像代码没写，实际是这条兜底规则误伤。
+   故改为：只掐掉开合动画，.el-dialog__body / 内容容器里的动画一律放行。 */
 .el-overlay,
-.el-overlay *,
-.el-dialog,
-.el-dialog * {
+.el-dialog {
   transition-duration: 0s !important;
   animation-duration: 0s !important;
 }

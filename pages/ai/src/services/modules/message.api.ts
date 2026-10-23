@@ -5,6 +5,90 @@ import type { Message } from "@/utils/messageUtils";
 import type { PaginatedResponse } from "@/types/common";
 import type { SessionTrace } from "@/components/chat/trace/traceTypes";
 
+/**
+ * 会话配置分组：与后端 SessionGlobalSettingProvider.GROUP 一致。
+ */
+const SESSION_GROUP = "session";
+
+/**
+ * 「初始化加载最新的记录数量」字段名：与后端 SessionGlobalSettingProvider 的
+ * initial_load_turns 逐字一致。
+ */
+const FIELD_INITIAL_LOAD_TURNS = "initial_load_turns";
+
+/** 会话配置读不到时的兜底轮次：与后端 SPI 声明的默认值 10 对齐 */
+const DEFAULT_INITIAL_LOAD_TURNS = 10;
+
+/**
+ * 轮次数上限：与后端 MAX_INITIAL_TURNS 对齐。
+ * 这个值决定首屏铺多少轮历史，配成天文数字等于回到「一次拉全量」。
+ */
+const MAX_INITIAL_LOAD_TURNS = 50;
+
+/**
+ * 生效轮次的进程内缓存（含 in-flight 去重）。
+ *
+ * <p>首屏消息请求在会话切换时会连续发多次，而配置在一次页面生命周期内不会变；
+ * 不缓存就会为每次开会话多打一次 /settings/session/merged。配置页保存后调用
+ * {@link invalidateInitialLoadTurnsCache} 失效，不需要刷新页面。</p>
+ */
+let initialLoadTurnsPromise: Promise<number> | null = null;
+
+/**
+ * 让缓存的「初始化加载轮次」失效，下次取会话消息时重新读配置。
+ *
+ * 会话配置页保存后调用：否则用户改完设置再开会话，读到的还是旧值。
+ */
+export function invalidateInitialLoadTurnsCache(): void {
+  initialLoadTurnsPromise = null;
+}
+
+/**
+ * 取本人生效的「初始化加载最新的记录数量」（单位：用户轮次）。
+ *
+ * <p>来源是 session 分组的合并视图（全局默认 + 本人覆盖），与设置中心显示的是同一份值；
+ * 读不到就回落 {@link DEFAULT_INITIAL_LOAD_TURNS}，不让首屏因为一次配置请求失败而多铺历史。</p>
+ *
+ * @param ctx 请求上下文（apiService 实例）
+ * @returns 生效的轮次数；0 表示未配置出可用值
+ */
+async function resolveInitialLoadTurns(ctx: ApiContext): Promise<number> {
+  if (!initialLoadTurnsPromise) {
+    initialLoadTurnsPromise = (async () => {
+      const response: any = await ctx._request(`/settings/${SESSION_GROUP}/merged`);
+      // merged 接口是双层信封（见 SessionConfigSettings.pickField 的注释），两种形态都兜住
+      const first = response?.data ?? response;
+      const items = Array.isArray(first) ? first : Array.isArray(first?.data) ? first.data : [];
+      const item = items.find((it: any) => it?.field === FIELD_INITIAL_LOAD_TURNS);
+      const raw = Number(item?.value ?? item?.defaultValue);
+      if (!Number.isFinite(raw) || raw <= 0) {
+        return DEFAULT_INITIAL_LOAD_TURNS;
+      }
+      return Math.min(Math.trunc(raw), MAX_INITIAL_LOAD_TURNS);
+    })().catch((error) => {
+      // 失败不缓存：下一次开会话还有机会读到真实配置
+      initialLoadTurnsPromise = null;
+      console.warn("[messages] 读取会话配置 initial_load_turns 失败，按默认轮次加载:", error);
+      return DEFAULT_INITIAL_LOAD_TURNS;
+    });
+  }
+  return initialLoadTurnsPromise;
+}
+
+/**
+ * 会话消息列表响应。
+ *
+ * <p>后端除 items / total 外还回带两个字段：{@code hasMore}（本次最早一条之前还有没有消息）
+ * 与 {@code initialTurnsApplied}（本次是否按用户轮次开窗）。</p>
+ *
+ * <p>{@code hasMore} 是必须的：首屏改成「按轮次」后，返回条数不再等于请求条数，
+ * 调用方若继续用「条数 >= 请求条数」猜有没有更多历史，会得出「没有更多消息」的错结论。</p>
+ */
+export type SessionMessagesResponse = PaginatedResponse<Message> & {
+  hasMore?: boolean;
+  initialTurnsApplied?: boolean;
+};
+
 export interface MessageApi {
   fetchSessionMessages(
     sessionId: string,
@@ -13,7 +97,7 @@ export interface MessageApi {
       beforeMessageId?: string;
       afterMessageId?: string;
     },
-  ): Promise<PaginatedResponse<Message>>;
+  ): Promise<SessionMessagesResponse>;
   importMessages(sessionId: string, messages: any[]): Promise<any>;
   createMessage(
     sessionId: string,
@@ -54,12 +138,31 @@ export const messageApi: MessageApi = {
     if (options?.beforeMessageId) params.append("beforeMessageId", options.beforeMessageId);
     if (options?.afterMessageId) params.append("afterMessageId", options.afterMessageId);
 
+    /*
+     * 首屏（没有翻页游标的那一次）额外带上「按用户轮次」的初始窗口。
+     *
+     * 为什么在这里兜这一手：limit 是原始消息条数，一轮问答里的助手回复也各占一条，
+     * 同一份配置在不同形状的会话（重新回答/继续会多出 assistant 行）里落到的轮数并不一样，
+     * 而用户看到的「条」是轮次。会话配置里的「初始化加载最新的记录数量」按轮次定义，
+     * 这里把它转发给后端（见 AiSessionController#messages 的 initialTurns）。
+     *
+     * limit 一并保留：尚未升级的后端不认识 initialTurns 时仍按 limit 截断，
+     * 不会因为多了个参数就退化成「把整段历史一次拉回来」。
+     */
+    const isInitialWindow = !options?.beforeMessageId && !options?.afterMessageId;
+    if (isInitialWindow) {
+      const turns = await resolveInitialLoadTurns(this);
+      if (turns > 0) {
+        params.append("initialTurns", turns.toString());
+      }
+    }
+
     const queryString = params.toString();
     const url = queryString
       ? `/sessions/${sessionId}/messages?${queryString}`
       : `/sessions/${sessionId}/messages`;
 
-    return await this._request(url);
+    return (await this._request(url)) as SessionMessagesResponse;
   },
 
   async fetchSessionTraces(this: ApiContext, sessionId: string) {

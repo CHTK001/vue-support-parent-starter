@@ -423,10 +423,9 @@ function openDetailPage(row: ServerNodeView, index: number) {
       border
       stripe
       size="default"
-      :pagination="false"
-      :toolbar="false"
       empty-text="暂无服务，点击右上角「新增服务」创建"
       @row-click="openDetail"
+      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <!-- 状态列：失败原因直接展示。
          后端 ServerNodeView.error 一直在返回，但列表从不渲染它 ——

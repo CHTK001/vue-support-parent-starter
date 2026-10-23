@@ -1,31 +1,18 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col">
-    <!-- 页面头部 -->
-    <div class="shrink-0 px-6 py-4 svc-header">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="svc-title">服务运行状态</h1>
-          <p class="svc-subtitle">
-            查看聚合 ChatClient 服务的运行状态、进程号与运行时长，支持登记启动与停止（仅管理员）
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <el-button v-if="admin" type="primary" @click="handleCreate">
-            <el-icon><Plus /></el-icon>
-            登记服务
-          </el-button>
-          <el-button @click="loadData">
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 数据表格 -->
-    <div class="flex-1 overflow-auto p-6">
+  <RePage fill title="服务运行状态"
+    subtitle="聚合 ChatClient 服务的运行状态、进程号与运行时长，支持登记启动与停止（仅管理员）">
+    <template #actions>
+      <el-button v-if="admin" type="primary" @click="handleCreate">
+        <el-icon><Plus /></el-icon>
+        登记服务
+      </el-button>
+      <el-button @click="loadData">
+        <el-icon><Refresh /></el-icon>
+        刷新
+      </el-button>
+    </template>
      <div class="panel-card">
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
+      <!-- 表格统一 ReTable（替换裸 el-table）：默认引擎已是 vxe；
            pagination=false —— 页面没有分页，保持全量直出；toolbar=false 不新增工具栏；
            原表没有 border → :settings="{ border: false }"；v-loading → :loading；
            #empty 插槽（原 <template #empty>）ReTable 同名支持，原样保留。 -->
@@ -33,14 +20,12 @@
         :data="tableData"
         :columns="serviceColumns"
         :loading="loading"
-        engine="element"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
         stripe
         class="flat-table"
         style="width: 100%"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <template #col-running="{ row }">
           <el-tag :type="row.running ? 'success' : 'info'" >
@@ -49,16 +34,19 @@
         </template>
         <template #col-pid="{ row }">{{ row.pid ?? '-' }}</template>
         <template #col-uptime="{ row }">{{ formatUptime(row.uptime) }}</template>
+        <!-- 操作列统一 ReButton square（纯图标 + tooltip） -->
         <template #col-actions="{ row }">
-          <el-button v-if="!row.running" type="success" link @click="handleStart(row.name)">启动</el-button>
-          <el-button v-else type="warning" link @click="handleStop(row.name)">停止</el-button>
+          <div class="row-actions">
+            <ReButton v-if="!row.running" layout="square" type="success" :icon="VideoPlay" tip="启动"
+              @click="handleStart(row.name)" />
+            <ReButton v-else layout="square" type="warning" :icon="VideoPause" tip="停止"
+              @click="handleStop(row.name)" />
+          </div>
         </template>
-        <template #empty>
-          <span class="svc-empty">暂无服务记录，登记启动后此处展示运行状态</span>
-        </template>
+        <!-- 空态交给 ReTable 的 el-empty 兜底（不再自写一行纯文字，
+             否则同一应用里「有的表格空态是插图、有的是灰字」）。 -->
       </ReTable>
      </div>
-    </div>
 
     <!-- 登记服务弹窗 -->
     <ReDialog v-model="dialogVisible" title="登记服务" width="460px" :close-on-click-modal="false" append-to-body>
@@ -72,18 +60,20 @@
         <el-button type="primary" :loading="saving" @click="handleSubmit">启动</el-button>
       </template>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Plus, Refresh } from '@element-plus/icons-vue';
+import { Plus, Refresh, VideoPlay, VideoPause } from '@element-plus/icons-vue';
 import { isAdmin, message } from '@repo/core';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { serviceApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+import RePage from '@/components/re/RePage.vue';
+import ReButton from '@repo/ui/re-button';
 
 const admin = ref(isAdmin());
 const loading = ref(false);

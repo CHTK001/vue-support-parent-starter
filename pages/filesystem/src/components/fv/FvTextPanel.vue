@@ -10,6 +10,7 @@
 import { onBeforeUnmount, shallowRef, watch } from "vue";
 import { authHeaders, objectUrl } from "../../api/filestorageApi";
 import { extensionOf } from "../../utils/officeRenderer";
+import { TEXT_EXTENSIONS } from "../../utils/previewEntryRenderers";
 import FvPanelBase from "./FvPanelBase.vue";
 
 const props = defineProps<{

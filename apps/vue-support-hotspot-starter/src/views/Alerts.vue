@@ -53,9 +53,8 @@
             :data="filteredItems as unknown as Record<string, unknown>[]"
             :columns="tableColumns"
             :loading="loading"
-            :pagination="false"
-            :toolbar="false"
             :layout-table="{ minHeight: 260 }"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-ts="{ row }">
               <span class="muted mono">{{ formatTime(row.ts) }}</span>

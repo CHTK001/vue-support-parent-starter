@@ -103,13 +103,12 @@
           :data="listRows as unknown as Record<string, unknown>[]"
           :columns="edgeColumns"
           engine="element"
-          :pagination="false"
-          :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
           :row-class-name="rowClass"
           class="apm-table dep-table"
           empty-text="没有匹配的依赖边"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-source="{ row }">
             <span

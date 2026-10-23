@@ -372,12 +372,12 @@
             <!-- 颜色主题：内联三态切换 -->
             <div class="px-5 py-2 flex items-center gap-2">
               <span class="text-sm text-gray-500 dark:text-gray-400 mr-1">{{ t('ui.sidebar.colorTheme') }}</span>
-              <div class="flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100 dark:bg-[#1a1b1e]">
+              <div class="flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100 dark:bg-gray-900">
                 <button v-for="option in themeOptions" :key="option.value" @click="setTheme(option.value)"
                   class="px-2 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center gap-1"
                   :class="themeMode === option.value
-                    ? 'bg-white dark:bg-[#3a3b3f] text-gray-900 dark:text-[#e8e9ed] shadow-sm'
-                    : 'text-gray-500 dark:text-[#8b8d95] hover:text-gray-700 dark:hover:text-[#c0c1c5]'">
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-[#c0c1c5]'">
                   <component :is="option.icon" class="w-3.5 h-3.5" />
                   {{ option.label }}
                 </button>
@@ -412,7 +412,7 @@
   </div>
 
   <!-- 删除会话确认对话框 -->
-  <LDialog v-model="deleteDialogVisible" :title="t('ui.sidebar.deleteSessionTitle')" width="500px" :close-on-click-modal="false">
+  <ReDialog v-model="deleteDialogVisible" :title="t('ui.sidebar.deleteSessionTitle')" width="500px" :close-on-click-modal="false">
     <div class="space-y-4">
       <p class="text-gray-700 dark:text-gray-300">
         {{ t('ui.sidebar.deleteSessionConfirm', { title: deleteSessionData?.title }) }}
@@ -437,10 +437,10 @@
         <el-button type="danger" @click="confirmDeleteSession">{{ t('ui.sidebar.confirmDelete') }}</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 
   <!-- 移动会话到分组弹窗 -->
-  <LDialog v-model="moveGroupDialogVisible" :title="t('ui.sidebar.selectGroup')" width="360px" :close-on-click-modal="false">
+  <ReDialog v-model="moveGroupDialogVisible" :title="t('ui.sidebar.selectGroup')" width="360px" :close-on-click-modal="false">
     <div class="space-y-1 py-2">
       <div v-for="(g) in moveGroupOptions" :key="g.value"
         class="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 text-sm"
@@ -458,7 +458,7 @@
         <el-button type="primary" @click="confirmMoveSession">{{ t('common.ok') }}</el-button>
       </div>
     </template>
-  </LDialog>
+  </ReDialog>
 
   <!-- 分组右键菜单 -->
   <ContextMenu :visible="groupContextMenu.visible" :x="groupContextMenu.x" :y="groupContextMenu.y"
@@ -480,12 +480,15 @@ import { useModelConfigStore } from '../stores/modelConfig'
 import { UNGROUPED_ID } from '../stores/session'
 import { useTheme, type ThemeMode } from '../composables/useTheme'
 import { usePopup } from '../composables/usePopup'
+import { createSidebarMenuItems, readMenuSettings, menuDisplayVersion } from '../config/sidebarMenu'
 import { Avatar, ScrollContainer } from './ui'
 import DropdownMenu from './ui/DropdownMenu.vue'
 import DropdownMenuItem from './ui/DropdownMenuItem.vue'
 import ContextMenu, { type ContextMenuItem } from './ui/ContextMenu.vue'
 import LTooltip from './ui/LTooltip.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog';
+// 登出时收掉残留的加载遮罩（closeAll）
+import { closeAll } from '@repo/ui/re-loader';
 import { apiService } from '@/services/ApiService'
 import { sessionAgentApi } from '@/services/javaApi'
 import { isAdmin } from '@repo/core'
@@ -891,163 +894,15 @@ const openNewSession = (groupId: string) => {
 }
 
 // 导航项配置（根据用户设置过滤）
+//
+// 菜单清单统一来自 config/sidebarMenu.ts —— 「配置中心 → 菜单管理」用同一份数据
+// 渲染开关，避免侧栏加了新菜单、开关页却漏掉它（或反之）。
 const navItems = computed(() => {
-  const allItems = [
-    {
-      key: 'chat',
-      label: '会话',
-      icon: AddSquare20Regular,
-      shortcut: isElectron ? 'Ctrl N' : 'Ctrl Alt N',
-      alwaysShow: true
-    },
-    {
-      key: 'characters',
-      label: t('ui.sidebar.navCharacters'),
-      icon: ContactCard20Regular,
-      showKey: 'showCharactersMenu'
-    },
-    {
-      key: 'tavern',
-      label: '酒馆',
-      icon: ChatMultiple24Regular,
-      alwaysShow: true
-    },
-    {
-      key: 'knowledge-base',
-      label: t('ui.sidebar.navKnowledgeBase'),
-      icon: BookSearch20Regular,
-      showKey: 'showKnowledgeBaseMenu'
-    },
-    {
-      key: 'plugins',
-      label: t('ui.sidebar.navPlugins'),
-      icon: Apps20Regular,
-      showKey: 'showPluginsMenu'
-    },
-    {
-      key: 'image-management',
-      // 分组名就叫「图像」，不再叫「图像管理」：它本身就是一个可折叠分组，
-      // 再叫「管理」既与「模型管理」混淆，又和它下面四个功能菜单不是一个层级。
-      label: '图像',
-      icon: ImageMultiple20Regular,
-      children: [
-        {
-          key: 'image-generate',
-          label: '图像生成',
-          icon: Image20Regular,
-        },
-        {
-          key: 'face-search',
-          label: '人脸识别',
-          icon: Person20Regular,
-          // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
-          // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
-          // 未登录仍会被 requireUserId() 拒掉。
-          // 注意：人脸「模型」配置是全局设置，仍只有管理员能改（不受此项影响）。
-          // 底库的**管理**（列表/删除/登记）在「系统设置 → 底库 → 人脸底库」，
-          // 本页只做识别/检索 —— 与「以图搜图（外侧） + 图像底库（设置内）」同一分工。
-          // 检测/特征模型未配齐 → 菜单打「未配置」徽标（页面内会说明差哪几项、去哪儿配）
-          // 已配置但模型从注册清单消失 → 打「未注册」徽标，避免用户进入后才发现登记/识别必失败
-          // 注意：modelConfig 是 Pinia store 实例，getter 经 store 访问已自动解包，
-          // 直接取布尔值即可；写 .value 会恒为 undefined（徽标永不消失）。
-          badge: modelConfig.unregisteredConfigured.length ? '未注册'
-            : modelConfig.faceReady ? '' : '未配置',
-          badgeTip: modelConfig.unregisteredConfigured.length
-            ? '人脸检测/特征模型已配置但未在后端注册，识别与登记不可用'
-            : '人脸检测模型 / 人脸特征模型未配置，识别不可用',
-        },
-        {
-          key: 'image-search',
-          label: '以图搜图',
-          icon: ImageSearch20Regular,
-          // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
-          // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
-          // 未登录仍会被 requireUserId() 拒掉。
-          // 图像特征模型未配置 → 菜单打「未配置」徽标（同上，store getter 已解包）
-          badge: modelConfig.imageReady ? '' : '未配置',
-          badgeTip: '图像特征模型未配置，以图搜图不可用',
-        },
-        {
-          key: 'image-colorize',
-          label: '图像上色',
-          icon: Image20Regular,
-          badge: modelConfig.colorizeReady ? '' : '未配置',
-          badgeTip: '上色模型未配置，图像上色不可用',
-        },
-        {
-          key: 'ocr',
-          label: 'OCR 识别',
-          icon: DocumentText20Regular,
-          // 后端 OcrController 的 recognize / annotate / models 三个接口都还是
-          // @Permission("admin")，非管理员进去只会 403，所以在菜单层就按管理员收敛。
-          // （人脸识别 / 以图搜图当初是把后端注解去掉、开放给各账号自己的底库；
-          //   OCR 没有「各账号自己的库」这层概念，要不要同样开放由产品决定。）
-          // 注意：不标 adminOnly。实测 isAdmin() 在本账号下可能为 false（角色清单为空时
-          // 连「定时任务」都会被一并隐藏），一旦标上就是整个菜单消失 —— 比点进去 403 更糟。
-          // 后端 OcrController 三个接口仍有 @Permission("admin")，权限由服务端守。
-          // 与其它图像菜单同口径：检测/识别模型没配齐就提前打徽标
-          badge: modelConfig.ocrReady ? '' : '未配置',
-          badgeTip: '文字检测模型 / 文字识别模型未配置，OCR 不可用',
-        },
-      ],
-    },
-    {
-      key: 'audio-recognition',
-      label: '音频识别',
-      icon: DesktopSpeaker24Regular,
-      section: '音频',
-      // 独立分组：音频与图像是两类能力，混在「图像」分组里既难找也名不副实。
-      //
-      // 门禁只要求 default_model 一项：provider 缺省走后端 whisper 本地推理，
-      // 密钥/地址仅云端 ASR 才需要，全列为必需会把本地推理也一并挡掉。
-      // 未配置时菜单打「未配置」徽标，页面内引导去「系统设置 → 音频配置」。
-      badge: modelConfig.asrReady ? '' : '未配置',
-      badgeTip: 'ASR 默认模型未配置，音频识别不可用',
-    },
-    {
-      key: 'text-to-speech',
-      label: '语音合成',
-      icon: Headphones24Regular,
-      section: '音频',
-      // 与「音频识别」同一 section：识别与合成是音频的一进一出，同组呈现。
-      // 门禁与 ASR 同口径：只要求 default_model，provider 缺省回落到 ai.tts.provider。
-      badge: modelConfig.ttsReady ? '' : '未配置',
-      badgeTip: 'TTS 默认模型未配置，语音合成不可用',
-    },
-    {
-      key: 'models',
-      label: '模型管理',
-      icon: BrainCircuit20Regular,
-      section: 'AI 配置',
-      showKey: 'showModelsMenu'
-    },
-    {
-      key: 'usage',
-      label: '用量管理',
-      icon: DataBarVertical20Regular,
-      // 独立分组：用量统计的是本账号的 token/费用消费，与「AI 配置」下的模型接入
-      // 不是一类事。原先没有 section，会视觉上并进 AI 配置（用户反馈）。
-      section: '用量统计',
-      showKey: 'showUsageMenu'
-    },
-    {
-      key: 'connectors',
-      label: '连接器',
-      icon: PlugConnected20Regular,
-      showKey: 'showConnectorsMenu'
-    },
-    {
-      key: 'scheduler',
-      label: t('ui.sidebar.navScheduler'),
-      icon: ClockAlarm20Regular,
-      showKey: 'showSchedulerMenu',
-      adminOnly: true
-    },
-  ]
-  
-  // 从 localStorage 读取菜单显示配置（默认全部显示）
-  const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
-  
+  // 依赖版本号：菜单管理里改完开关，侧栏立即刷新，不用整页重载
+  const version = menuDisplayVersion.value
+  const menuSettings = readMenuSettings()
+  const allItems = createSidebarMenuItems({ t, isElectron, modelConfig })
+  void version
   return allItems
     .filter(item => {
       if (item.alwaysShow) return true
@@ -1061,7 +916,12 @@ const navItems = computed(() => {
       // （如 OCR 的 recognize/annotate/models 三个都是），不拦下来就会变成
       // 「菜单点得进去、进去每个请求都 403」，比一开始就不显示更难排查。
       if (!item.children?.length) return item
-      const children = item.children.filter((c: any) => !c.adminOnly || isAdmin())
+      // 子项同样受「菜单管理」的显示开关控制（各有自己的 showKey）
+      const children = item.children.filter((c: any) => {
+        if (c.adminOnly && !isAdmin()) return false
+        if (!c.showKey) return true
+        return menuSettings[c.showKey] !== false
+      })
       return children.length ? { ...item, children } : null
     })
     .filter(Boolean)
@@ -1087,11 +947,12 @@ const currentActiveTab = computed(() => {
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
-  if (routeName === 'ImageGenerate') return 'image-management'
-  if (routeName === 'FaceSearch') return 'image-management'
-  if (routeName === 'ImageSearch') return 'image-management'
-  if (routeName === 'ImageColorize') return 'image-management'
-  if (routeName === 'Ocr') return 'image-management'
+  // 图像类已扁平化（不再有 image-management 二级父项），高亮直接落在各自菜单项上
+  if (routeName === 'ImageGenerate') return 'image-generate'
+  if (routeName === 'FaceSearch') return 'face-search'
+  if (routeName === 'ImageSearch') return 'image-search'
+  if (routeName === 'ImageColorize') return 'image-colorize'
+  if (routeName === 'Ocr') return 'ocr'
   if (routeName === 'AudioRecognition') return 'audio-recognition'
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
@@ -1434,15 +1295,10 @@ const handleNavClick = async (tab: string) => {
     router.replace({ name: 'Plugins' })
   } else if (tab === 'scheduler') {
     router.replace({ name: 'Scheduler' })
-  } else if (tab === 'image-management') {
-    // 图像管理父项：点击折叠/展开，不承载路由（子项各自导航）
-    expandedImageMgmt.value = !expandedImageMgmt.value
   } else if (tab === 'image-generate') {
-    expandedImageMgmt.value = true
     router.replace({ name: 'ImageGenerate' })
   } else if (tab === 'face-search') {
     // 点击菜单时再等一次合并视图与注册清单，避免侧栏首次加载未完成时误判
-    expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.faceReady) {
       toast.warning('人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型')
@@ -1480,7 +1336,7 @@ const handleNavClick = async (tab: string) => {
     expandedImageMgmt.value = true
     await modelConfig.load()
     if (!modelConfig.ocrReady) {
-      toast.warning('OCR 识别未启用：请先到「系统设置 → 默认模型 → OCR」配置文字检测模型与文字识别模型')
+      toast.warning('OCR 识别未启用：请先到「系统设置 → 默认模型 → OCR」配置文字检测模型或文字识别模型')
       return
     }
     router.replace({ name: 'Ocr' })
@@ -1813,6 +1669,12 @@ const handleUserMenuCommand = (command: string) => {
       cancelText: t('common.cancel')
     }).then((confirmed) => {
       if (confirmed) {
+        /*
+          登出时收掉所有残留加载态。
+          否则：退出后跳到登录页，而登录页上方可能还盖着上一页（设置中心/导出等）
+          发起的全屏遮罩 —— 用户以为登录页卡死。
+        */
+        closeAll('manual')
         authStore.logout()
         router.replace({ name: 'Login' })
       }
@@ -1952,6 +1814,10 @@ onUnmounted(() => {
 /* 菜单「未配置」徽标：人脸识别 / 以图搜图的模型没配齐时打在标签右侧。
    取告警语义色（而非主色）——它是「此功能暂不可用」的提示，不是选中态；
    尺寸压到 10px、与标签之间留 4px，不与 shortcut 的等宽字体混在一起。 */
+@keyframes nav-badge-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 .nav-item-badge {
   flex-shrink: 0;
   padding: 1px 5px;
@@ -1961,6 +1827,11 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--el-color-warning-dark-2, #b88230);
   background: var(--el-color-warning-light-8, #faecd8);
+  animation: nav-badge-breathe 1.8s ease-in-out infinite;
+}
+/* 动效降级：系统开启「减少动态效果」时关掉呼吸灯 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-item-badge { animation: none; }
 }
 
 /* 空状态 */

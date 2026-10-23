@@ -50,14 +50,14 @@
     </div>
 
     <!-- 弹窗：原本挂在 ModelsPage 下，嵌入页自带一份 -->
-    <ProviderFormDialog ref="formRef" @saved="handleSaved" @back="openCatalog" />
+    <ProviderFormDialog ref="formRef" @saved="handleSaved" @back="openCatalog" @goToChannelManagement="handleGoToChannelManagement" />
     <TemplateCatalogDialog ref="catalogRef" :templates="availableTemplates" @select="handleTemplateClick" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ModelsProviderDetail from './ModelsProviderDetail.vue'
 import ProviderFormDialog from './ProviderFormDialog.vue'
@@ -72,6 +72,7 @@ import { mapProvider, mapModel } from './model.utils'
 const { t } = useI18n()
 const { confirm } = usePopup()
 const route = useRoute()
+const router = useRouter()
 
 const providers = ref<any[]>([])
 const models = ref<any[]>([])
@@ -158,6 +159,12 @@ const handleTemplateClick = (template: any) => formRef.value.openFromTemplate(te
 
 const handleSaved = async () => {
   await reload()
+}
+
+// 账号渠道 provider 跳转入口（嵌入页场景）
+const handleGoToChannelManagement = () => {
+  // 嵌入页无完整路由导航，提示用户到主应用系统设置页完成渠道管理
+  message.info('请在主应用「系统设置 → 渠道管理」中完成账号绑定')
 }
 
 onMounted(async () => {

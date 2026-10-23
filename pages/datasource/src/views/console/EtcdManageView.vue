@@ -111,12 +111,12 @@
             :data="keyRows"
             :columns="keyColumns"
             :loading="loading"
-            :pagination="false"
             stripe
             border
             height="360px"
             :context-menu="keyTableMenu"
             @context-menu-select="onKeyTableMenuSelect"
+            :config="{ pagination: { enable: false } }"
           >
             <template #col-key="{ row }">
               <ReButton text type="primary" @click="selectKey((row as EtcdKeyRow).key)">{{ (row as EtcdKeyRow).key }}</ReButton>
@@ -165,7 +165,7 @@
               <ReButton text @click="loadLeases"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
             </div>
           </div>
-          <ReTable :data="leases" :columns="leaseColumns" :loading="loading" :pagination="false" stripe border height="360px">
+          <ReTable :data="leases" :columns="leaseColumns" :loading="loading" stripe border height="360px" :config="{ pagination: { enable: false } }">
             <template #col-leaseId="{ row }"><span class="mono">{{ (row as EtcdLease).id }}</span></template>
             <template #col-ttl="{ row }">
               <ReTag type="warning">{{ (row as EtcdLease).ttl ?? "—" }} / {{ (row as EtcdLease).grantedTtl ?? "—" }} 秒</ReTag>
@@ -184,7 +184,7 @@
               <ReButton text @click="loadMembers"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
             </div>
           </div>
-          <ReTable :data="members" :columns="memberColumns" :loading="loading" :pagination="false" stripe border height="260px">
+          <ReTable :data="members" :columns="memberColumns" :loading="loading" stripe border height="260px" :config="{ pagination: { enable: false } }">
             <template #col-memberId="{ row }"><span class="mono">{{ shortId((row as EtcdMember).id) }}</span></template>
             <template #col-role="{ row }">
               <ReTag v-if="(row as EtcdMember).leader" type="warning">Leader</ReTag>

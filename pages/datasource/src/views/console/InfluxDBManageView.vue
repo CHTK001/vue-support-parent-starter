@@ -315,9 +315,6 @@
         border
         :layout-table="{ height: '360px' }"
       />
-      <template #footer>
-        <ReButton @click="browserVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 写入数据弹窗 -->

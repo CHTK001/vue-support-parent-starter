@@ -515,11 +515,10 @@ const processorColumns: ReTableColumn[] = [
         <ReTable
           :data="processorRows as unknown as Record<string, unknown>[]"
           :columns="processorColumns"
-          :pagination="false"
-          :toolbar="false"
           row-key="name"
           :layout-table="{ minHeight: 0 }"
           empty-text="没有已注册处理器"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #name="{ row }">
             <span class="node-cell-mono">{{ row.name }}</span>

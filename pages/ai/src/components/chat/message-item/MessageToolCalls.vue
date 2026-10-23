@@ -14,7 +14,7 @@
       -->
       <div class="tool-row-line flex items-center min-w-0">
         <div
-          class="tool-row flex items-center flex-1 min-w-0 text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
+          class="tool-row flex items-center flex-1 min-w-0 text-sm text-gray-700 dark:text-gray-400 cursor-pointer font-medium transition-colors duration-200"
           :class="{ 'is-expanded': isExpanded(toolIndex) }" role="button" tabindex="0"
           :aria-expanded="isExpanded(toolIndex)" @click.stop="toggleTool(toolIndex)"
           @keydown.enter.prevent="toggleTool(toolIndex)" @keydown.space.prevent="toggleTool(toolIndex)">
@@ -97,7 +97,7 @@
 
 
   <!-- 单个工具详情对话框（保留入口：超长参数/结果的完整视图） -->
-  <LDialog v-if="keepElement && selectedToolIndex !== null" v-model="showDialog"
+  <ReDialog v-if="keepElement && selectedToolIndex !== null" v-model="showDialog"
     :title="t('chat.toolCalls.detailTitle', { index: selectedToolIndex + 1 })" width="700px" :close-on-click-modal="true" destroy-on-close
     :append-to-body="true" class="tool-dialog" @closed="keepElement = false">
     <div class="tool-dialog-content">
@@ -125,13 +125,7 @@
           :executing="isExecuting" />
       </div>
     </div>
-
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="closeDialog">关闭</el-button>
-      </span>
-    </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -139,7 +133,7 @@ import { computed, ref } from 'vue';
 import { ElIcon, ElButton } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { Info24Regular, ChevronRight12Regular, Open16Regular } from '@vicons/fluent';
-import LDialog from '@/components/ui/LDialog.vue';
+import ReDialog from '@repo/ui/re-dialog';
 import ToolCallDetail from './ToolCallDetail.vue';
 import {
   type ToolCall,

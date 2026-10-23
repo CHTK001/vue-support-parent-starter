@@ -375,7 +375,6 @@ const columns: ReTableColumn[] = [
           <span class="ul-detail__address">
             登录地点：{{ currentLog.sysLogAddress || "未知" }}
           </span>
-          <ReButton class="ul-detail__close" @click="detailVisible = false">关闭</ReButton>
         </footer>
       </div>
     </ReDialog>

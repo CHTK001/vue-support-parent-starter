@@ -1,5 +1,5 @@
 <template>
-  <LDialog
+  <ReDialog
     v-model="dialogVisible"
     :title="sessionTitle"
     width="80%"
@@ -15,7 +15,7 @@
         <el-icon class="is-loading" :size="32">
           <Loading />
         </el-icon>
-        <span class="ml-2 text-gray-500 dark:text-[#8b8d95]">{{ t('bot.sessionDialog.loading') }}</span>
+        <span class="ml-2 text-gray-500 dark:text-gray-400">{{ t('bot.sessionDialog.loading') }}</span>
       </div>
 
       <!-- 消息列表 -->
@@ -37,13 +37,13 @@
 
       <!-- 空状态 -->
       <div v-else class="text-center py-12">
-        <el-icon size="48" class="text-gray-300 dark:text-[#3e4046] mb-3">
+        <el-icon size="48" class="text-gray-300 dark:text-gray-600 mb-3">
           <ChatDotRound />
         </el-icon>
-        <p class="text-lg text-gray-500 dark:text-[#8b8d95]">{{ t('bot.sessionDialog.empty') }}</p>
+        <p class="text-lg text-gray-500 dark:text-gray-400">{{ t('bot.sessionDialog.empty') }}</p>
       </div>
     </div>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -58,7 +58,7 @@ import type { Session } from '@/types/session'
 // Message 与 TurnItem 的 emit 签名同源：TurnItem 从 messageUtils 导出该类型，
 // 若此处从 @/types/message 导入另一份定义，emit 回调会因结构不同而不兼容
 import type { Message } from '@/utils/messageUtils'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 
 const props = defineProps<{
   modelValue: boolean

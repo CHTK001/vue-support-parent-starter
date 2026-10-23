@@ -130,10 +130,9 @@
               :data="endpoints as unknown as Record<string, unknown>[]"
               :columns="tableColumns"
               :loading="endpointLoading"
-              :pagination="false"
-              :toolbar="false"
               :layout-table="{ minHeight: 200 }"
               empty-text="该服务暂无端点数据"
+              :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
               <template #col-endpoint="{ row }">
                 <span class="mono endpoint-text">{{ row.endpoint }}</span>
@@ -191,10 +190,9 @@
               :data="serviceDepRows as unknown as Record<string, unknown>[]"
               :columns="depColumns"
               :loading="depsLoading"
-              :pagination="false"
-              :toolbar="false"
               :layout-table="{ minHeight: 160 }"
               empty-text="未匹配到该服务的依赖边"
+              :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
               <template #col-direction="{ row }">
                 <el-tag
@@ -251,10 +249,9 @@
               :data="errorEndpoints as unknown as Record<string, unknown>[]"
               :columns="errorColumns"
               :loading="endpointLoading"
-              :pagination="false"
-              :toolbar="false"
               :layout-table="{ minHeight: 140 }"
               empty-text="该服务当前无错误记录"
+              :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
             >
               <template #col-endpoint="{ row }">
                 <span class="mono endpoint-text">{{ row.endpoint }}</span>

@@ -94,6 +94,9 @@
             <div class="tv-msg-col">
               <div v-if="m.speakerType !== 'user'" class="tv-msg-meta">
                 <span class="tv-msg-name">{{ m.speakerName }}</span>
+                <span v-if="m.streaming" class="tv-msg-typing">
+                  {{ m.speakerName || 'AI' }} 正在输入…
+                </span>
                 <span v-if="m.modelName" class="tv-msg-model" :title="m.modelName">{{ displayModel(m.modelName) }}</span>
                 <span
                   v-if="m.route"
@@ -102,7 +105,10 @@
                   :title="routeTitle(m.route)"
                 >{{ routeLabel(m.route) }}</span>
               </div>
-              <div class="tv-bubble" :class="m.speakerType === 'user' ? 'b-self' : 'b-other'">
+              <div
+                class="tv-bubble"
+                :class="[m.speakerType === 'user' ? 'b-self' : 'b-other', { 'typing-bubble': m.streaming }]"
+              >
                 <MarkdownContent v-if="m.speakerType !== 'user'" class="markdown-text" :content="m.content" />
                 <span v-else class="tv-plain">{{ m.content }}</span>
                 <span v-if="m.streaming" class="typing-dots"><i></i><i></i><i></i></span>
@@ -180,7 +186,7 @@
     </section>
 
     <!-- ============ 建群对话框 ============ -->
-    <LDialog
+    <ReDialog :close-on-click-modal="true"
       v-model="createVisible"
       width="420"
       append-to-body
@@ -199,7 +205,7 @@
         <el-button @click="createVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmCreate">立即创建</el-button>
       </template>
-    </LDialog>
+    </ReDialog>
 
     <!-- ============ 群设置抽屉（微信侧滑面板） ============ -->
     <el-drawer
@@ -304,7 +310,7 @@
     </el-drawer>
 
     <!-- ============ 添加角色对话框 ============ -->
-    <LDialog
+    <ReDialog :close-on-click-modal="true"
       v-model="addMemberVisible"
       width="480"
       append-to-body
@@ -329,13 +335,10 @@
         </div>
         <div v-if="!filteredCharacters.length" class="char-empty">没有可选角色</div>
       </div>
-      <template #footer>
-        <el-button @click="addMemberVisible = false">关闭</el-button>
-      </template>
-    </LDialog>
+    </ReDialog>
 
     <!-- ============ 成员模型选择对话框 ============ -->
-    <LDialog
+    <ReDialog :close-on-click-modal="true"
       v-model="modelPickerVisible"
       width="480"
       append-to-body
@@ -369,10 +372,10 @@
         <el-button @click="modelPickerVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmModelPicker">保存</el-button>
       </template>
-    </LDialog>
+    </ReDialog>
 
     <!-- ============ 批量配置角色（view 模式：一行一个角色，逐个选模型 + 主动发言，用户需求 3） ============ -->
-    <LDialog v-model="bulkModelVisible" width="680" append-to-body class="tv-dialog tv-bulk-dialog">
+    <ReDialog :close-on-click-modal="true" v-model="bulkModelVisible" width="680" append-to-body class="tv-dialog tv-bulk-dialog">
       <template #header>
         <span class="tv-dlg-title">批量配置角色（{{ bulkRows.length }} 名）</span>
       </template>
@@ -414,7 +417,7 @@
         <el-button @click="bulkModelVisible = false">取消</el-button>
         <el-button :disabled="!bulkRows.length" type="primary" @click="confirmBulkModel">保存配置</el-button>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -425,7 +428,7 @@ import { MoreFilled, Plus } from '@element-plus/icons-vue'
 import { Settings20Regular } from '@vicons/fluent'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog';
 import {isAdmin, message} from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
@@ -774,6 +777,16 @@ function onShiftEnter() {
   // 允许默认换行（仅占位，避免 .exact 修饰冲突）
 }
 
+/**
+ * speakerId 缺失时回退定位：取当前唯一仍在 streaming 的 AI 气泡；
+ * 并行多角色时无法精确匹配，但正常 create 都会带 speakerId，
+ * 只有旧后端/异常兜底帧可能缺 id，回退到唯一流式气泡足够。
+ */
+function evSpeakerFallback(map: Map<string, UIMessage>): UIMessage | null {
+  const streamings = [...map.values()].filter((m) => m.streaming)
+  return streamings.length === 1 ? streamings[0] : null
+}
+
 async function send() {
   const content = draft.value.trim()
   if (!content || !currentGroupId.value || sending.value) return
@@ -785,7 +798,7 @@ async function send() {
   pendingAt.value = null
   scrollBottom()
 
-  let currentAI: UIMessage | null = null
+  const aiBySpeaker = new Map<string, UIMessage>()
   try {
     streamHandle = apiService.tavernChatStream(
       { groupId: currentGroupId.value, content, atRoleId },
@@ -804,25 +817,36 @@ async function send() {
               streaming: true,
             }
             messages.value.push(created)
-            // 后续流式增量统一作用在数组中的响应式对象上，避免引用不一致导致不刷新
-            currentAI = messages.value[messages.value.length - 1]
+            // 并行流式时会有多位角色同时回复，必须按 speakerId 各自定位，
+            // 不能用单一 currentAI 变量——否则后到的 create 会覆盖前面的引用，
+            // 前面角色的 text/finish 就全落到错误的气泡上。
+            const key = created.speakerId || `ai-${created._key}`
+            aiBySpeaker.set(key, created)
             scrollBottom()
-          } else if (type === 'text' && currentAI) {
-            currentAI.content += ev.content || ''
-            scrollBottom()
-          } else if (type === 'finish' && currentAI) {
-            currentAI.streaming = false
-            if (ev.error) {
-              currentAI.content += `\n[错误] ${ev.error}`
-            } else if (!currentAI.content.trim()) {
-              // provider 偶发零输出（只发 create/finish，没有任何 text 帧，实测 2026-10-09）：
-              // 显式给出占位提示，不留无信息的空气泡（历史加载侧同样会过滤这种行）。
-              currentAI.content = '（模型未返回内容）'
+          } else if (type === 'text') {
+            const target = aiBySpeaker.get(ev.speakerId || '') || evSpeakerFallback(aiBySpeaker)
+            if (target) {
+              target.content += ev.content || ''
+              scrollBottom()
+            }
+          } else if (type === 'finish') {
+            const target = aiBySpeaker.get(ev.speakerId || '') || evSpeakerFallback(aiBySpeaker)
+            if (target) {
+              target.streaming = false
+              if (ev.error) {
+                target.content += `\n[错误] ${ev.error}`
+              } else if (!target.content.trim()) {
+                // provider 偶发零输出（只发 create/finish，没有任何 text 帧，实测 2026-10-09）：
+                // 显式给出占位提示，不留无信息的空气泡（历史加载侧同样会过滤这种行）。
+                target.content = '（模型未返回内容）'
+              }
             }
           } else if (type === 'user_message') {
             // 后端回显用户消息，忽略（本地已 push）
           } else if (type === 'turn_end') {
-            if (currentAI) currentAI.streaming = false
+            aiBySpeaker.forEach((msg) => {
+              msg.streaming = false
+            })
           }
         },
         onError: (err) => {
@@ -831,7 +855,9 @@ async function send() {
         },
         onClose: () => {
           sending.value = false
-          if (currentAI) currentAI.streaming = false
+          aiBySpeaker.forEach((msg) => {
+            msg.streaming = false
+          })
         },
       },
     )
@@ -1240,6 +1266,23 @@ onMounted(loadGroups)
   flex-wrap: wrap;
 }
 .tv-msg-name { font-size: 12px; color: var(--el-text-color-secondary); }
+/* AI 正在回复：用明确的「xx 正在输入…」而不是只靠动画点 */
+.tv-msg-typing {
+  font-size: 11.5px;
+  color: var(--el-color-primary);
+  display: inline-flex;
+  align-items: center;
+}
+.tv-msg-typing::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 5px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: currentColor;
+  animation: tavern-typing-bounce 1.4s infinite ease-in-out both;
+}
 .tv-msg-model {
   font-size: 10.5px;
   color: var(--el-text-color-placeholder);
@@ -1280,6 +1323,39 @@ onMounted(loadGroups)
   line-height: 1.6;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+/* AI 等待中：content 还是空的，给一个稳定最小高度，
+   避免「只有三个点 / 没有内容」的气泡塌成一条细线，消息区跟着跳动 */
+.tv-msg.is-other .tv-bubble.typing-bubble {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* 三点打字动画：等待时和 Markdown 内容一起出现在气泡底部。
+   keyframes 终态是 scale(0)，prefers-reduced-motion 下改成静态圆点，
+   不能只 animation:none（那三点会永远消失，「正在回复」就没视觉反馈了）。 */
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: bottom;
+}
+.typing-dots i {
+  width: 6px;
+  height: 6px;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  background-color: currentColor;
+  opacity: 0.75;
+  animation: tavern-typing-bounce 1.4s infinite ease-in-out both;
+}
+.typing-dots i:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots i:nth-child(2) { animation-delay: -0.16s; }
+@keyframes tavern-typing-bounce {
+  0%, 80%, 100% { transform: scale(0.35); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 0.9; }
 }
 .b-other {
   background: var(--el-bg-color);
@@ -1535,7 +1611,9 @@ onMounted(loadGroups)
 .tv-add-member { border-radius: var(--el-radius-lg, 12px); }
 
 /* 尊重系统「减少动态效果」偏好。
-   群列表选中态靠底色、@ 菜单选中态靠 hover 底色，关掉过渡后依然可辨。 */
+   群列表选中态靠底色、@ 菜单选中态靠 hover 底色，关掉过渡后依然可辨。
+   等待动画在做 motion 被关掉时保留静态圆点：三个点/「正在输入」提示还在，
+   不会变成一片空白。 */
 @media (prefers-reduced-motion: reduce) {
   .tv-add,
   .tv-conv,
@@ -1545,6 +1623,12 @@ onMounted(loadGroups)
   .tv-at-item,
   .tv-send {
     transition: none;
+  }
+  .typing-dots i,
+  .tv-msg-typing::after {
+    animation: none !important;
+    opacity: 1;
+    transform: scale(0.72);
   }
 }
 </style>

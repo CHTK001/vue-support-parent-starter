@@ -1,37 +1,32 @@
 <template>
-  <div class="models-management-page">
-    <div class="page-header">
-      <h2>模型管理</h2>
-      <div class="header-actions">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索模型名称/编码/别名"
-          clearable
-          style="width: 280px; margin-right: 12px"
-          @keyup.enter="loadModels"
-          @clear="loadModels"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <el-button type="primary" @click="openCreateDialog">
-          <el-icon><Plus /></el-icon> 新增模型
-        </el-button>
-        <el-button @click="loadModels">
-          <el-icon><Refresh /></el-icon> 刷新
-        </el-button>
-      </div>
-    </div>
+  <RePage title="模型管理" subtitle="模型清单与别名、上下架状态">
+    <template #actions>
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索模型名称/编码/别名"
+        clearable
+        @keyup.enter="loadModels"
+        @clear="loadModels"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      <el-button type="primary" @click="openCreateDialog">
+        <el-icon><Plus /></el-icon> 新增模型
+      </el-button>
+      <el-button @click="loadModels">
+        <el-icon><Refresh /></el-icon> 刷新
+      </el-button>
+    </template>
 
-    <!-- 模型列表表格：裸 el-table → ReTable（engine="element" 保持原 DOM；原表带 border 走
+    <!-- 模型列表表格：裸 el-table → ReTable（默认引擎已是 vxe；原表带 border 走
          ReTable 默认；分页由下方 el-pagination 自管 → :pagination="false"；toolbar 关闭；
          原表无 height → :layout-table="{ minHeight: 0 }" 抑制空态 440px 与 fill 内滚）。 -->
     <ReTable
       :data="filteredModels"
       :columns="modelColumns"
       :loading="loading"
-      engine="element"
       :pagination="false"
       :toolbar="false"
       :layout-table="{ minHeight: 0 }"
@@ -78,16 +73,14 @@
         </div>
         <span v-else class="text-muted">未测试</span>
       </template>
+      <!-- 操作列统一 ReButton square（纯图标 + tooltip）；加载态由组件内 spinner 承担 -->
       <template #col-actions="{ row }">
-        <el-button type="primary" link @click="testLatency(row)" :loading="row.testing">
-          <el-icon><Timer /></el-icon> 测试延迟
-        </el-button>
-        <el-button type="primary" link @click="openEditDialog(row)">
-          <el-icon><Edit /></el-icon> 编辑
-        </el-button>
-        <el-button type="danger" link @click="deleteModel(row)">
-          <el-icon><Delete /></el-icon> 删除
-        </el-button>
+        <div class="row-actions">
+          <ReButton layout="square" type="primary" :icon="Timer" tip="测试延迟"
+            :loading="row.testing" @click="testLatency(row)" />
+          <ReButton layout="square" type="primary" :icon="Edit" tip="编辑" @click="openEditDialog(row)" />
+          <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="deleteModel(row)" />
+        </div>
       </template>
     </ReTable>
 
@@ -226,7 +219,7 @@
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
     </ReDialog>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
@@ -238,6 +231,8 @@ import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { modelApi } from '@/services/javaApi';
 import ReDialog from '@repo/ui/re-dialog';
+import RePage from '@/components/re/RePage.vue';
+import ReButton from '@repo/ui/re-button';
 
 /**
  * 列配置：原模板里的 7 个 el-table-column 收敛为数组。
@@ -491,23 +486,8 @@ onMounted(() => {
   padding: 20px;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-}
+/* 页面外壳（留白/标题/操作区）已收口到 RePage —— 原来的 .page-header /
+   .header-actions 一并删除，避免两套留白叠在一起。 */
 
 .model-name-cell {
   display: flex;

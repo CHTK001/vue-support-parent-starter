@@ -254,7 +254,7 @@
         </div>
 
         <!-- 查看文档对话框 -->
-        <LDialog v-model="showDocDialog" :title="currentSkillName + ' - SKILL.md'" width="800px"
+        <ReDialog :close-on-click-modal="true" v-model="showDocDialog" :title="currentSkillName + ' - SKILL.md'" width="800px"
             align-center destroy-on-close>
 
             <div v-if="loadingDoc" class="flex justify-center items-center py-12">
@@ -272,11 +272,10 @@
                         :data="parsedMeta"
                         :columns="metaColumns"
                         engine="element"
-                        :pagination="false"
-                        :toolbar="false"
                         :settings="{ border: false }"
                         :layout-table="{ minHeight: 0 }"
                         style="width: 100%"
+                        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
                     >
                         <template #col-key="{ row }">
                             <span class="meta-key">{{ row.key }}</span>
@@ -290,13 +289,10 @@
                 <div class="markdown-doc prose dark:prose-invert max-w-none" v-html="parsedDocumentation">
                 </div>
             </div>
-            <template #footer>
-                <el-button @click="showDocDialog = false">{{ t('common.close') }}</el-button>
-            </template>
-        </LDialog>
+        </ReDialog>
 
         <!-- 安装 Skill 对话框 -->
-        <LDialog v-model="showInstallDialog" :title="t('plugins.skills.installTitle')" width="760px" align-center destroy-on-close>
+        <ReDialog :close-on-click-modal="true" v-model="showInstallDialog" :title="t('plugins.skills.installTitle')" width="760px" align-center destroy-on-close>
             <div class="install-dialog-body">
                 <el-radio-group v-model="installMode" class="install-mode-group mb-4">
                     <el-radio-button label="upload">
@@ -458,10 +454,10 @@
                     {{ t('plugins.skills.installBtn') }}
                 </el-button>
             </template>
-        </LDialog>
+        </ReDialog>
 
         <!-- 市场技能安装对话框 -->
-        <LDialog v-model="showMarketInstallDialog" :title="t('plugins.skills.marketInstallTitle')" width="420px" align-center destroy-on-close>
+        <ReDialog :close-on-click-modal="true" v-model="showMarketInstallDialog" :title="t('plugins.skills.marketInstallTitle')" width="420px" align-center destroy-on-close>
             <div v-if="selectedMarketSkill" class="py-2">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-[var(--el-text-color-primary)] mb-2">
                     {{ selectedMarketSkill.name }}
@@ -499,7 +495,7 @@
             <template #footer>
                 <el-button @click="showMarketInstallDialog = false">{{ t('common.cancel') }}</el-button>
             </template>
-        </LDialog>
+        </ReDialog>
 
         <!-- 技能详情弹窗：安装前查看 SKILL.md 正文 -->
         <!-- 技能详情弹窗：复用统一组件（已安装读本地 SKILL.md，未安装 ZIP 预览） -->
@@ -527,7 +523,7 @@ import { useMarkdown } from '@/composables/useMarkdown'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import SkillDetailDialog from './SkillDetailDialog.vue'

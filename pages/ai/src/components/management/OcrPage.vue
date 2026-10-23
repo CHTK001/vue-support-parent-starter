@@ -50,7 +50,7 @@
 
             <!-- 识别中遮罩：两个请求任一未回都算「识别中」 -->
             <div v-if="busy" class="ocr-mask">
-              <TechScanLoader size="lg" />
+              <ReLoader loading size="lg" :fullscreen="false" />
               <span class="ocr-mask-text">识别中…</span>
             </div>
           </div>
@@ -189,7 +189,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Check, DocumentCopy, FolderOpened, Picture, Refresh, Warning, WarningFilled } from '@element-plus/icons-vue'
 import { currentToken } from '@/framework/context'
 import { getClientId } from '@/utils/clientId'
-import TechScanLoader from '@/components/ui/TechScanLoader.vue'
+import ReLoader from '@repo/ui/re-loader'
 import ReButton from '@/components/re/ReButton.vue'
 import { useRouter } from 'vue-router'
 import { useModelConfigStore } from '@/stores/modelConfig'
@@ -297,7 +297,8 @@ const STICKY_KEY = 'ocr.modelUnavailable'
 const stickyUnavailable = ref(sessionStorage.getItem(STICKY_KEY) === '1')
 
 /** 整页是否处于「不可用」状态：此时不该让用户继续传图（传了必然失败） */
-const ocrUnavailable = computed(() => ocrMissingFields.value.length > 0 || ocrModelBroken.value || stickyUnavailable.value)
+/** 与后端 OcrClientManager.available() 对齐：至少有一个模型配置即可用，仅当两者均缺失才判不可用 */
+const ocrUnavailable = computed(() => ocrMissingFields.value.length >= 2 || ocrModelBroken.value || stickyUnavailable.value)
 
 /**
  * 读取 OCR 模型配置。
@@ -1232,3 +1233,4 @@ onBeforeUnmount(() => {
   opacity: 0.45;
 }
 </style>
+

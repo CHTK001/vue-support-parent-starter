@@ -20,6 +20,7 @@
     append-to-body
     destroy-on-close
     class="question-market-dialog"
+    :show-window-shell="false"
     @update:model-value="onVisibleChange"
     @closed="onClosed"
   >

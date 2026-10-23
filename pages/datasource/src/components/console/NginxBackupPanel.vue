@@ -135,11 +135,6 @@
           >{{ l.text }}</span></pre>
         </template>
       </ReTab>
-      <template #footer>
-        <!-- 自己给 footer：ReDialog 不给就会渲染默认的「确定 / 取消」，
-             在一个纯预览弹窗里那两颗按钮毫无意义，还容易被误点。 -->
-        <ReButton @click="previewVisible = false">关闭</ReButton>
-      </template>
     </ReDialog>
 
     <!-- 回退确认：显式给出还原目标，避免路径含下划线时反推错位置 -->

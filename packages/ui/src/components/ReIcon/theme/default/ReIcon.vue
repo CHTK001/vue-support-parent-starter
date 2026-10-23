@@ -308,6 +308,8 @@ const animatedSize = computed(() => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 18;
 });
 
+/* ==================== 动画图标常驻播放 ==================== */
+
 // 引入 h 以支持占位组件
 
 /** iconfont css 自动注入 */

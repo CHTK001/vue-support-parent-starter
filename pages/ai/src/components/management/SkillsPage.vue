@@ -1,34 +1,28 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col bg-white dark:bg-[#1a1a1a]">
-    <div class="shrink-0 px-6 py-4 border-b border-gray-200 dark:border-[#2f2f2f]">
-      <div class="flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <el-button link @click="goBack"
-            class="flex items-center gap-1 text-gray-900 dark:text-[#e8e9ed] hover:text-(--color-primary) font-medium shrink-0">
-            <el-icon :size="18"><ArrowBackIosFilled /></el-icon>
-            <span>返回</span>
-          </el-button>
-          <div class="min-w-0">
-            <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed] truncate">Skills管理</h1>
-            <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-0.5 truncate">
-              管理本地已安装技能，并从在线技能市场搜索安装
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <el-button type="primary" @click="openSearch">
-            <el-icon><Search /></el-icon>
-            搜索技能
-          </el-button>
-          <el-button @click="loadInstalled">
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
-        </div>
-      </div>
-    </div>
+  <RePage fill>
+    <template #title>
+      <el-button link @click="goBack" class="skills-back">
+        <el-icon :size="16"><ArrowBackIosFilled /></el-icon>
+        <span>返回</span>
+      </el-button>
+      <span>Skills管理</span>
+    </template>
+    <template #meta>
+      <span class="re-page__subtitle-block">管理本地已安装技能，并从在线技能市场搜索安装</span>
+    </template>
+    <template #actions>
+      <el-button type="primary" @click="openSearch">
+        <el-icon><Search /></el-icon>
+        搜索技能
+      </el-button>
+      <el-button @click="loadInstalled">
+        <el-icon><Refresh /></el-icon>
+        刷新
+      </el-button>
+    </template>
 
-    <div class="flex-1 overflow-auto p-6" v-loading="loading">
+    <!-- 内容区已由 RePage(fill) 提供滚动与留白，这里只保留加载态 -->
+    <div v-loading="loading">
       <div v-if="installed.length" class="mg-grid">
         <div v-for="row in installed" :key="keyOf(row)" class="mg-cell"
           :class="{ 'mg-cell--off': !row.enabled }"
@@ -85,7 +79,7 @@
       <div v-loading="marketLoading" class="max-h-[62vh] overflow-auto pr-1 flex flex-col">
         <div class="mb-5 order-2">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed]">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               已安装（{{ installed.length }}）
             </h3>
             <span class="text-xs text-gray-400">停用后不再注入对话</span>
@@ -114,7 +108,7 @@
 
         <div class="order-1 mb-5">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed]">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {{ keyword ? '市场结果' : '推荐（市场榜单）' }}
             </h3>
             <span class="text-xs text-gray-400">{{ sourceSummary }}</span>
@@ -172,7 +166,7 @@
 
     <!-- 技能详情：已安装读本地 / 市场远程预览，弹窗内可直接安装 -->
     <SkillDetailDialog v-model="detailVisible" :skill="detailTarget" @install="handleDetailInstall" />
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
@@ -184,6 +178,7 @@ import { Search, Refresh, Files, Delete } from '@element-plus/icons-vue';
 import { ArrowBackIosFilled } from '@vicons/material';
 import { skillsApi } from '@/services/javaApi';
 import PluginIcon from '@/components/ui/PluginIcon.vue';
+import RePage from '@/components/re/RePage.vue';
 import SkillDetailDialog from '@/components/plugins/SkillDetailDialog.vue';
 import ReDialog from '@repo/ui/re-dialog';
 
@@ -408,6 +403,23 @@ onMounted(loadInstalled);
 </script>
 
 <style scoped>
+/* 页面外壳已收口到 RePage；这里只补返回按钮的排版。 */
+.skills-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+.skills-back:hover { color: var(--u-primary, var(--el-color-primary)); }
+/* RePage 的 #meta 里放副标题：与标题同一行、字号更小 */
+.re-page__subtitle-block {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+}
+
 .market-card {
   /* 原值 12px → lg 档 */
   border-radius: var(--el-radius-lg, 12px);

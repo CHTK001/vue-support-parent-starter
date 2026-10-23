@@ -34,17 +34,21 @@
             「删除」仍屏蔽：ONNX 供应商由模型注册表驱动，下次启动会被重新物化，
             删除既无意义也会让用户以为模型丢失。
           -->
-          <el-button @click="emit('edit-provider')">
+          <el-button @click="emit('edit-provider')" round>
             <template #icon><EditOutlined /></template>
             编辑供应商
           </el-button>
-          <el-button v-if="canDelete" class="d-del-btn" @click="emit('delete-provider')">
+          <el-button v-if="canDelete" round class="d-del-btn" @click="emit('delete-provider')">
             <template #icon><DeleteOutlined /></template>
             删除
           </el-button>
           <el-button type="primary" round @click="handleAdd">
             <template #icon><PlusOutlined /></template>
             {{ t('settings.providerDetail.addModel') }}
+          </el-button>
+          <el-button v-if="!isOnnx" round :loading="syncPricingLoading" @click="handleSyncPricing">
+            <template #icon><Timer /></template>
+            同步价格
           </el-button>
         </div>
       </section>
@@ -736,6 +740,49 @@ const handleDelete = async (model: any) => {
   emit('changed')
 }
 
+/** 同步价格：从服务商指标端点拉取价格/能力数据写入指标库 */
+const syncPricingLoading = ref(false)
+const handleSyncPricing = async () => {
+  const providerId = props.provider?.id ?? props.provider?.provider_id
+  if (!providerId) return
+  syncPricingLoading.value = true
+  try {
+    const res: any = await modelApi.syncPricing(providerId)
+    const body = res?.data ?? res
+    if (body?.success === false) throw new Error(body?.message || '同步失败')
+    const updated: number = body?.updated ?? 0
+    const inserted: number = body?.inserted ?? 0
+    const providerModels: number = body?.provider_models ?? 0
+    const source: string = body?.source ?? ''
+    if (body?.supported === false) {
+      const pricingUrl: string = body?.pricing_url ?? ''
+      message.warning(
+        `该服务商暂未接入自动同步指标${pricingUrl ? `（官方价格页：${pricingUrl}）` : ''}`,
+        { duration: 4000 },
+      )
+    } else {
+      const parts: string[] = []
+      if (updated > 0) parts.push(`更新 ${updated} 条`)
+      if (inserted > 0) parts.push(`新增 ${inserted} 条`)
+      if (providerModels > 0) parts.push(`回写模型 ${providerModels} 行`)
+      if (parts.length === 0) {
+        message.success(`指标已是最新${source ? `（来源：${source}）` : ''}`, { duration: 3000 })
+      } else {
+        message.success(`价格同步完成：${parts.join('，')}${source ? `（来源：${source}）` : ''}`, { duration: 4000 })
+      }
+    }
+    emit('changed')
+  } catch (error: any) {
+    const detail = error?.response?.data?.message
+      || error?.response?.data?.msg
+      || error?.message
+      || '同步价格失败'
+    message.error(String(detail), { duration: 3000 })
+  } finally {
+    syncPricingLoading.value = false
+  }
+}
+
 const handleToggle = async (model: any) => {
   try {
     const result = await apiService.toggleModelActive(model.id)
@@ -746,9 +793,10 @@ const handleToggle = async (model: any) => {
     )
     emit('changed')
   } catch (error) {
-    const detail = error?.response?.data?.message
-      || error?.response?.data?.msg
-      || error?.message
+    const apiError = error as { response?: { data?: { message?: string; msg?: string } }; message?: string };
+    const detail = apiError?.response?.data?.message
+      || apiError?.response?.data?.msg
+      || apiError?.message
       || t('settings.providerDetail.toggleModelError')
     message.error(String(detail), { duration: 2000 })
     model.isActive = !model.isActive

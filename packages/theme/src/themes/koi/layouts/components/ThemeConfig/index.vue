@@ -712,6 +712,7 @@ import ReSettingDevTools from "./components/ReSettingDevTools.vue";
 import ReSettingSystemDebug from "./components/ReSettingSystemDebug.vue";
 import ReSettingHeatmap from "./components/ReSettingHeatmap.vue";
 import ReSettingPerformance from "./components/ReSettingPerformance.vue";
+import { isHeaderFlagKey } from "@repo/theme/koi/layouts/components/Header/components/headerKeys";
 import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled, Connection } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
@@ -927,8 +928,17 @@ const setLayout = (value: string) => {
 
 // ==================== 扩展 tab ====================
 
-/** 工具栏开关列表（app.yaml other.toolbar） */
-const toolbarSwitchList = computed(() => [
+/**
+ * 工具栏开关列表（app.yaml other.toolbar）
+ *
+ * <p>配了 `other.toolbar.items` 时只保留 yaml 里列出的**顶栏**条目：未列入的条目
+ * 在头部根本不渲染，再留一个开关只会让用户"拨了没反应"。`breadcrumb*` / `tabIcon` /
+ * `logo` 属于布局元素、不受 items 管辖，始终保留。</p>
+ *
+ * <p>未配 items（空数组）时行为与改造前一致：全部列出。</p>
+ */
+const toolbarSwitchList = computed(() => {
+  const all = [
   { key: "searchMenu", label: t("themeConfig.toolbar.searchMenu.label"), sub: t("themeConfig.toolbar.searchMenu.sub"), tip: t("themeConfig.toolbar.searchMenu.tip"), description: t("themeConfig.toolbar.searchMenu.description") },
   { key: "refresh", label: t("themeConfig.toolbar.refresh.label"), sub: t("themeConfig.toolbar.refresh.sub"), tip: t("themeConfig.toolbar.refresh.tip"), description: t("themeConfig.toolbar.refresh.description") },
   { key: "dark", label: t("themeConfig.toolbar.dark.label"), sub: t("themeConfig.toolbar.dark.sub"), tip: t("themeConfig.toolbar.dark.tip"), description: t("themeConfig.toolbar.dark.description") },
@@ -944,7 +954,19 @@ const toolbarSwitchList = computed(() => [
   { key: "message", label: t("themeConfig.toolbar.message.label"), sub: t("themeConfig.toolbar.message.sub"), tip: t("themeConfig.toolbar.message.tip"), description: t("themeConfig.toolbar.message.description") },
   // 天气不放在工具栏开关里：独立的「天气配置」分区已提供开关（避免出现两个"天气"）
   { key: "typhoon", label: t("themeConfig.toolbar.typhoon.label"), sub: t("themeConfig.toolbar.typhoon.sub"), tip: t("themeConfig.toolbar.typhoon.tip"), description: t("themeConfig.toolbar.typhoon.description") },
-]);
+  ];
+
+  const declared = (getConfig().other?.toolbar?.items ?? [])
+    .filter((item) => item && item.visible !== false)
+    .map((item) => String(item.key ?? "").trim());
+  // 未配置 / 空数组：沿用固有顺序，抽屉保持原样（向后兼容）
+  if (!declared.length) {
+    return all;
+  }
+  return all.filter((row) =>
+    isHeaderFlagKey(row.key) ? declared.includes(row.key) : true,
+  );
+});
 
 /** 响应式配置单例（直接修改即可实时联动组件开关） */
 const appConfig = getConfig();
@@ -1854,14 +1876,16 @@ html.dark .theme-color-custom-card {
 .koi-layout-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  /* 间距收紧：原来 12px 显得稀疏，一屏放不下几行 */
+  gap: 8px;
 
   .koi-layout-item {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 8px;
+    /* 内边距收紧：预览块自身已带 6px 内边距，外层再 12px 就多出一圈空白 */
+    padding: 8px 6px;
     cursor: pointer;
     /* 未激活：浅蓝灰底色，与 section-card 浅灰底区分 */
     background: linear-gradient(135deg, #f5f8fc 0%, #eaf1f9 100%);
@@ -1880,7 +1904,7 @@ html.dark .theme-color-custom-card {
       /* 激活：主色高亮 + 粗边框 + 主色阴影 */
       background: linear-gradient(135deg, #dceeff 0%, #c5dfff 100%);
       border: 2px solid var(--el-color-primary);
-      padding: 11px 7px; /* 抵消 +1px 边框避免内容位移 */
+      padding: 7px 5px; /* 抵消 +1px 边框避免内容位移 */
       box-shadow:
         0 0 0 3px rgba(var(--el-color-primary-rgb), 0.12),
         0 6px 20px rgba(var(--el-color-primary-rgb), 0.3);
@@ -1890,9 +1914,9 @@ html.dark .theme-color-custom-card {
     .koi-layout-preview {
       isolation: isolate;
       width: 80px;
-      height: 60px;
-      margin-bottom: 8px;
-      padding: 6px;
+      height: 52px;
+      margin-bottom: 6px;
+      padding: 5px;
       border-radius: 8px;
       background: var(--el-fill-color-lighter);
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1917,25 +1941,28 @@ html.dark .theme-color-custom-card {
     }
 
     .koi-layout-label {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
+      line-height: 1.3;
       color: var(--el-text-color-primary);
       text-align: center;
     }
 
+    /* 选中打勾：走主题变量（--el-color-primary / --el-color-white），
+       跟随主题色切换，不写死颜色 */
     .koi-layout-check {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 18px;
-      height: 18px;
-      background: var(--el-color-primary);
-      border-radius: 50%;
+      top: 4px;
+      right: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 11px;
+      width: 16px;
+      height: 16px;
+      color: var(--el-color-white);
+      background: var(--el-color-primary);
+      border-radius: 50%;
+      font-size: 10px;
       animation: fadeInScale 0.3s ease;
     }
   }
@@ -2373,8 +2400,10 @@ html.dark .koi-layout-double.koi-layout-item {
   }
 
   .koi-layout-check {
-    background: #3d9bff;
-    box-shadow: 0 2px 8px rgba(61, 155, 255, 0.4);
+    /* 走主题变量，跟随用户选择的主题色 */
+    background: var(--el-color-primary);
+    color: var(--el-color-white);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
   }
 }
 
@@ -2386,14 +2415,15 @@ html.dark .koi-layout-double.koi-layout-item {
 .koi-login-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  /* 与布局选择器同口径：间距收紧，避免大片空白 */
+  gap: 8px;
 
   .koi-login-item {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 8px;
+    padding: 8px 6px;
     cursor: pointer;
     background: linear-gradient(135deg, #f5f8fc 0%, #eaf1f9 100%);
     border: 1px solid #d8e3f0;
@@ -2410,7 +2440,7 @@ html.dark .koi-layout-double.koi-layout-item {
     &.is-active {
       background: linear-gradient(135deg, #dceeff 0%, #c5dfff 100%);
       border: 2px solid var(--el-color-primary);
-      padding: 11px 7px;
+      padding: 7px 5px;
       box-shadow:
         0 0 0 3px rgba(var(--el-color-primary-rgb), 0.12),
         0 6px 20px rgba(var(--el-color-primary-rgb), 0.3);
@@ -2420,9 +2450,9 @@ html.dark .koi-layout-double.koi-layout-item {
     .koi-login-preview {
       isolation: isolate;
       width: 80px;
-      height: 60px;
-      margin-bottom: 8px;
-      padding: 8px;
+      height: 52px;
+      margin-bottom: 6px;
+      padding: 6px;
       border-radius: 8px;
       background: var(--el-fill-color-lighter);
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);

@@ -65,26 +65,29 @@
 
     <!-- 工具条 + 表格 -->
     <el-card shadow="never" class="table-card">
-      <div class="table-toolbar">
-        <div class="table-toolbar__left">
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增成语</el-button>
-        </div>
-      </div>
-
       <div v-loading="loading" class="table-wrap">
         <ReTable
-          :data="idiomRows"
-          :columns="idiomColumns"
-          :row-key="'idiomId'"
-          layout="table"
-          :layout-switch="false"
-          :pagination="false"
-          :toolbar="false"
-          stripe
-          :settings="{ border: false }"
-          class="idiom-table"
-          @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as Idiom)"
-        >
+            ref="tableRef"
+            :loader="loadRows"
+            :columns="idiomColumns"
+            :params="appliedParams"
+            :row-key="'idiomId'"
+            v-model:page="pageNo"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="table"
+            :layout-switch="false"
+            :toolbar="false"
+            stripe
+            :settings="{ border: false }"
+            class="idiom-table"
+            @load="onLoad"
+            @load-error="pageLoadError"
+            @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as Idiom)"
+          >
+          <template #toolbar>
+            <el-button type="primary" :icon="Plus" @click="openCreate">新增成语</el-button>
+          </template>
           <template #empty>
             <el-empty :image-size="88" description="暂无成语，点击「新增成语」创建" />
           </template>
@@ -117,22 +120,10 @@
           </template>
         </ReTable>
       </div>
-
-      <div class="table-footer">
-        <span class="table-footer__total">共 {{ filtered.length }} 条</span>
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="filtered.length"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="sizes, prev, pager, next, jumper"
-          background
-        />
-      </div>
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" align-center>
+    <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" :show-window-shell="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -220,6 +211,7 @@
       class="q-dialog pv-dialog"
       width="720"
       :show-close="false"
+      :show-window-shell="false"
       align-center
     >
       <template #header>
@@ -282,12 +274,6 @@
           </div>
         </div>
       </div>
-
-      <template #footer>
-        <div class="dialog-foot">
-          <el-button @click="previewVisible = false">关闭</el-button>
-        </div>
-      </template>
     </ReDialog>
   </div>
 </template>
@@ -304,6 +290,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
+import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
 import type { Idiom } from "../api/types";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -338,6 +325,8 @@ const diffClass = (n?: number) => {
 // ==================== 列表 ====================
 const loading = ref(false);
 const rows = ref<Idiom[]>([]);
+const tableRef = ref();
+const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
 
@@ -350,29 +339,32 @@ const blankSearch = () => ({
 const searchDraft = reactive(blankSearch());
 const applied = reactive(blankSearch());
 
+/** 筛选参数：提交后交给后端 pageQuery */
+const appliedParams = computed(() => ({
+  keyword: strParam(applied.keyword),
+  gradeLevel: strParam(applied.gradeLevel),
+  grade: strParam(applied.grade),
+  difficulty: applied.difficulty ?? undefined,
+}));
+
+/** 成语分页 loader（后端筛选） */
+const loadRows = createPageLoader((page, size, params) =>
+  eduaiApi.pageIdioms({
+    ...params,
+    pageNum: page,
+    pageSize: size,
+  }),
+);
+
+/** ReTable 每页加载完成后同步当前页行与总数 */
+function onLoad(r: { data: unknown[]; total?: number }) {
+  rows.value = (r.data ?? []) as Idiom[];
+  total.value = r?.total ?? rows.value.length;
+}
+
 const searchGradeOptions = computed(() =>
   applied.gradeLevel ? GRADES_BY_LEVEL[applied.gradeLevel] ?? [] : Object.values(GRADES_BY_LEVEL).flat(),
 );
-
-const filtered = computed(() => {
-  const kw = applied.keyword.trim().toLowerCase();
-  return rows.value.filter((r) => {
-    if (applied.difficulty != null && r.idiomDifficulty !== applied.difficulty) return false;
-    if (kw) {
-      const hay = `${r.idiomContent || ""} ${r.idiomPinyin || ""} ${r.idiomMeaning || ""}`.toLowerCase();
-      if (!hay.includes(kw)) return false;
-    }
-    return true;
-  });
-});
-
-const pagedRows = computed(() => {
-  const start = (pageNo.value - 1) * pageSize.value;
-  return filtered.value.slice(start, start + pageSize.value);
-});
-
-/** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
-const idiomRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
 
 /**
  * 成语列表的列定义（ReTable 表格模式用）。
@@ -388,7 +380,7 @@ const idiomColumns: ReTableColumn[] = [
   { prop: "idiomSource", label: "出处", width: 150, showOverflowTooltip: true },
   { prop: "idiomDifficulty", label: "难度", width: 90, slot: "col-idiomDifficulty" },
   { prop: "idiomTags", label: "标签", width: 130, showOverflowTooltip: true },
-  { prop: "actions", label: "操作", width: 150, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 160, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 const statCards = computed(() => {
@@ -396,28 +388,15 @@ const statCards = computed(() => {
   const easy = list.filter((r) => (r.idiomDifficulty ?? 3) <= 2).length;
   const hard = list.filter((r) => (r.idiomDifficulty ?? 3) >= 4).length;
   return [
-    { title: "成语总数", value: list.length, icon: Collection, bg: "var(--el-color-primary)", hint: "全部成语" },
-    { title: "简单成语", value: easy, icon: Plus, bg: "var(--el-color-success)", hint: "难度 ≤ 2" },
-    { title: "困难成语", value: hard, icon: Delete, bg: "var(--el-color-warning)", hint: "难度 ≥ 4" },
+    { title: "成语总数", value: total.value, icon: Collection, bg: "var(--el-color-primary)", hint: "全部成语" },
+    { title: "本页简单", value: easy, icon: Plus, bg: "var(--el-color-success)", hint: "难度 ≤ 2" },
+    { title: "本页困难", value: hard, icon: Delete, bg: "var(--el-color-warning)", hint: "难度 ≥ 4" },
   ];
 });
 
-async function loadList() {
-  loading.value = true;
-  try {
-    rows.value = (await eduaiApi.listIdioms({ gradeLevel: applied.gradeLevel || undefined, grade: applied.grade || undefined, count: 5000 })) ?? [];
-  } catch {
-    rows.value = [];
-    message.error("加载成语失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
 function commitSearch() {
   Object.assign(applied, { ...searchDraft });
-  pageNo.value = 1;
-  void loadList();
+  void tableRef.value?.goto(1);
 }
 
 function handleReset() {
@@ -527,7 +506,7 @@ const save = async () => {
     });
     message.success("保存成功");
     dialogVisible.value = false;
-    await loadList();
+    void tableRef.value?.reload();
   } catch (e) {
     message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
@@ -548,14 +527,14 @@ async function remove(row: Idiom) {
   try {
     await eduaiApi.deleteIdiom(row.idiomId);
     message.success("已删除");
-    await loadList();
+    void tableRef.value?.reload();
   } catch (e) {
     message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 };
 
 onMounted(() => {
-  void loadList();
+  // 表格 loader 自动加载首屏，无需手动触发
 });
 </script>
 
@@ -712,18 +691,6 @@ onMounted(() => {
 .table-card :deep(.el-card__body) {
   padding: 16px 20px 18px;
 }
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.table-toolbar__left .el-button {
-  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
-  font-weight: 600;
-}
 .table-wrap {
   /* 固定容器高度（同汉字库）：表格高度不再随页面滚动位置重算，消除滚动条液面高度抖动。
      503 = 实测值 wrap.top 427 + 分页与间距 50 + 卡片 body 底部内边距 18 + 余量 8，
@@ -778,19 +745,6 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.table-footer__total {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  font-weight: 600;
-}
 
 /* ---------- 对话框 ---------- */
 .q-dialog :deep(.el-dialog__header) {

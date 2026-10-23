@@ -139,6 +139,27 @@ async function handleCreateTempEmail(): Promise<void> {
 }
 
 
+/** 复制到剪贴板（兼容所有浏览器） */
+async function copyToClipboard(text: string, label = "内容"): Promise<void> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    message.success(`${label} 已复制到剪贴板`);
+  } catch {
+    message.error("复制失败，请手动复制");
+  }
+}
+
 /** 可引用密钥选项 */
 const keyRefOptions = ref<Array<{ label: string; value: number }>>([]);
 
@@ -430,15 +451,21 @@ async function viewMessage(email: any): Promise<void> {
               <ReButton show-text icon="Plus" type="primary" @click="openKeyForm()">新增密钥</ReButton>
             </template>
           </ReSectionHead>
-          <ReTable :data="keys" border :pagination="false" :toolbar="false" empty-text="暂无密钥，点击右上角「新增密钥」或「生成密钥」">
+          <ReTable :data="keys" border empty-text="暂无密钥，点击右上角「新增密钥」或「生成密钥」" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
             <ReTableColumn prop="msServerKeyName" label="名称" min-width="120" />
             <ReTableColumn prop="msServerKeyType" label="类型" width="90">
               <template #default="{ row }">
                 <ReTag type="info">{{ row.msServerKeyType || '-' }}</ReTag>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="130">
+            <ReTableColumn label="操作" width="190">
               <template #default="{ row }">
+                <ReButton
+                  v-if="row.msServerKeyPublicKey"
+                  link
+                  icon="DocumentCopy"
+                  @click="copyToClipboard(row.msServerKeyPublicKey, '公钥')"
+                >复制公钥</ReButton>
                 <ReButton link @click="openKeyForm(row)">编辑</ReButton>
                 <ReButton link type="danger" @click="deleteKey(row)">删除</ReButton>
               </template>
@@ -455,7 +482,7 @@ async function viewMessage(email: any): Promise<void> {
               <ReButton show-text icon="Plus" type="primary" @click="openIdentityForm()">新增身份</ReButton>
             </template>
           </ReSectionHead>
-          <ReTable :data="identities" border :pagination="false" :toolbar="false" empty-text="暂无身份，点击右上角「新增身份」创建">
+          <ReTable :data="identities" border empty-text="暂无身份，点击右上角「新增身份」创建" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
             <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />
             <ReTableColumn prop="msServerIdentityUsername" label="用户名" width="100" />
             <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="120">
@@ -466,9 +493,15 @@ async function viewMessage(email: any): Promise<void> {
                 <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="190">
+            <ReTableColumn label="操作" width="240">
               <template #default="{ row }">
-                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">打开邮件箱</ReButton>
+                <ReButton
+                  v-if="row.msServerIdentityUsername"
+                  link
+                  icon="User"
+                  @click="copyToClipboard(row.msServerIdentityUsername, '用户名')"
+                >复制用户</ReButton>
+                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">邮件箱</ReButton>
                 <ReButton link @click="openIdentityForm(row)">编辑</ReButton>
                 <ReButton link type="danger" @click="deleteIdentity(row)">删除</ReButton>
               </template>
@@ -586,10 +619,9 @@ async function viewMessage(email: any): Promise<void> {
           </ReFormItem>
         </ReForm>
       </template>
-      <div style="text-align: right; margin-top: 8px">
-        <ReButton v-if="!genResult" @click="genFormVisible = false">取消</ReButton>
-        <ReButton v-if="!genResult" type="primary" @click="doGenerate" :loading="genLoading">生成</ReButton>
-        <ReButton v-else @click="genFormVisible = false">关闭</ReButton>
+      <div v-if="!genResult" style="text-align: right; margin-top: 8px">
+        <ReButton @click="genFormVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="doGenerate" :loading="genLoading">生成</ReButton>
       </div>
     </ReDialog>
   </div>
@@ -617,7 +649,7 @@ async function viewMessage(email: any): Promise<void> {
           </ReLoading>
         </div>
         <ReLoading v-else :loading="mailboxLoading">
-          <ReTable :data="mailboxEmails" border :pagination="false" empty-text="暂无邮件" @row-click="viewMessage">
+          <ReTable :data="mailboxEmails" border empty-text="暂无邮件" @row-click="viewMessage" :config="{ pagination: { enable: false } }">
             <ReTableColumn prop="subject" label="主题" min-width="200" />
             <ReTableColumn prop="from" label="发件人" min-width="160" />
             <ReTableColumn prop="date" label="日期" min-width="150" />

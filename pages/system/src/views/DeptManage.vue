@@ -29,6 +29,33 @@ const deptStatusOptions = [
   { label: "禁用", value: 1 },
 ] as const;
 
+/**
+ * 机构数据权限选项。
+ *
+ * <p>取值必须与后端 {@code DataFilterTypeEnum} / {@code sys_dept.sys_dept_data_permission}
+ * 的建表注释完全一致：1 全部可见、2 本人可见、3 所在部门可见、4 所在部门及子级可见、
+ * 5 选择的部门可见。此前后端各自编号（2 在本页曾被当成「本部门及下级」），
+ * 导致「本部门」实际落库成 1=全部可见，属于越权配置。</p>
+ */
+const deptDataPermissionOptions = [
+  { label: "全部可见", value: 1 },
+  { label: "仅本人", value: 2 },
+  { label: "本部门", value: 3 },
+  { label: "本部门及子级", value: 4 },
+  { label: "选定部门", value: 5 },
+];
+
+/** 新建机构默认「本部门」：1 是「全部可见」，不能作为默认值 */
+const DEFAULT_DEPT_DATA_PERMISSION = 3;
+
+/** 数据权限的中文展示（未知/未设置按默认值展示） */
+function deptDataPermissionLabel(value?: number) {
+  const matched = deptDataPermissionOptions.find(
+    (item) => item.value === (value ?? DEFAULT_DEPT_DATA_PERMISSION),
+  );
+  return matched?.label ?? "-";
+}
+
 const list = ref<SysDept[]>([]);
 const loading = ref(false);
 const deleteLoading = ref<number>(0);
@@ -174,11 +201,33 @@ function handleAdd(parent?: SysDept) {
     sysDeptPid: parent?.sysDeptId ?? currentDept.value?.sysDeptId ?? 0,
     sysDeptStatus: 0,
     sysDeptSort: 0,
-    sysDeptDataPermission: 1,
+    sysDeptDataPermission: DEFAULT_DEPT_DATA_PERMISSION,
+    sysDeptDataPermissionDeptId: "",
     sysDeptIcon: "OfficeBuilding",
   };
   dialogVisible.value = true;
 }
+
+/**
+ * 「选定部门」的多选值 ↔ 后端逗号分隔字符串。
+ *
+ * <p>后端 {@code AbstractUserLoginService} 把该字段原样放进
+ * {@code CurrentUser.dataPermissionRule}，{@code TableDeptRegister} 再按
+ * {@code split(",")} 逐个转成 {@code LongValue}，因此这里必须写入纯数字 ID，
+ * 不能写 JSON 数组。</p>
+ */
+const selectedScopeDeptIds = computed<number[]>({
+  get: () => {
+    const raw = form.value.sysDeptDataPermissionDeptId ?? "";
+    return raw
+      .split(",")
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isFinite(item) && item > 0);
+  },
+  set: (ids: number[]) => {
+    form.value.sysDeptDataPermissionDeptId = (ids ?? []).join(",");
+  },
+});
 
 function handleEdit() {
   if (!currentDept.value) return;
@@ -191,6 +240,15 @@ async function handleSubmit() {
   if (!form.value.sysDeptName) {
     message.warning("请输入机构名称");
     return;
+  }
+  // 「选定部门」必须至少选一个，否则后端 dataPermissionRule 为空会退化成 NO_DATA（谁都看不到）
+  if (form.value.sysDeptDataPermission === 5 && selectedScopeDeptIds.value.length === 0) {
+    message.warning("请选择数据权限可见的机构");
+    return;
+  }
+  // 非「选定部门」时清空旧规则，避免切换类型后残留上一次的选择
+  if (form.value.sysDeptDataPermission !== 5) {
+    form.value.sysDeptDataPermissionDeptId = "";
   }
   saving.value = true;
   try {
@@ -472,7 +530,7 @@ onMounted(loadList);
             </ReTag>
           </ElDescriptionsItem>
           <ElDescriptionsItem label="数据权限" :span="2">
-            {{ ['', '本部门', '本部门及下级', '全部', '自定义', '仅本人'][currentDept.sysDeptDataPermission ?? 1] }}
+            {{ deptDataPermissionLabel(currentDept.sysDeptDataPermission) }}
           </ElDescriptionsItem>
           <ElDescriptionsItem label="备注" :span="2">{{ currentDept.sysDeptRemark || '-' }}</ElDescriptionsItem>
         </ElDescriptions>
@@ -491,14 +549,13 @@ onMounted(loadList);
             :data="deptUsers"
             :columns="deptUserColumns"
             engine="element"
-            :pagination="false"
-            :toolbar="false"
             :settings="{ border: false }"
             :layout-table="{ height: 260 }"
             stripe
             show-index
             index-width="50"
             style="width: 100%"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-status="{ row }">
               <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
@@ -573,13 +630,23 @@ onMounted(loadList);
             v-model="form.sysDeptDataPermission"
             placeholder="数据权限类型"
             class="w-full"
-            :data="[
-              { label: '本部门', value: 1 },
-              { label: '本部门及下级', value: 2 },
-              { label: '全部', value: 3 },
-              { label: '自定义', value: 4 },
-              { label: '仅本人', value: 5 },
-            ]"
+            :data="deptDataPermissionOptions"
+          />
+        </el-form-item>
+        <el-form-item v-if="form.sysDeptDataPermission === 5" label="可见机构">
+          <el-tree-select
+            v-model="selectedScopeDeptIds"
+            :data="list"
+            :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }"
+            node-key="sysDeptId"
+            multiple
+            show-checkbox
+            check-strictly
+            collapse-tags
+            collapse-tags-tooltip
+            clearable
+            placeholder="选择该机构可见的其它机构"
+            class="w-full"
           />
         </el-form-item>
         <el-form-item label="备注">

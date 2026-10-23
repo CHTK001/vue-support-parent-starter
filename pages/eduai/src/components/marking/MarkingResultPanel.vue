@@ -10,6 +10,7 @@
 import { computed, ref } from 'vue';
 import { message } from '@repo/core';
 import ReTag from '@repo/ui/re-tag';
+import ReDialog from '@repo/ui/re-dialog';
 import ReConfirmDialog from '../shared/ReConfirmDialog.vue';
 import SheetStructureView from './SheetStructureView.vue';
 import { eduaiApi } from '../../api/eduaiApi';
@@ -233,7 +234,7 @@ async function undoFinish(): Promise<void> {
     <ReConfirmDialog ref="confirmDialog" />
 
     <!-- 完成预览：列出将登记的题目与得分率，老师可勾选剔除 -->
-    <el-dialog
+    <ReDialog
       v-model="previewVisible"
       title="阅卷完成预览"
       width="720px"
@@ -241,6 +242,10 @@ async function undoFinish(): Promise<void> {
     >
       <div class="mr-preview-tip">
         本次按判错阈值将登记 <b>{{ preview?.wrongCount ?? 0 }}</b> 道错题。
+        <template v-if="preview?.wrongRate != null">
+          判错口径：得分率
+          <b>{{ preview.wrongRate > 0 ? '< ' + Math.round(preview.wrongRate * 100) + '%' : '为 0%（仅 0 分判错）' }}</b>。
+        </template>
         取消勾选可剔除不想进错题本的题目（例如得分率压线或存疑的主观题）。
       </div>
       <div v-if="preview?.questions?.length" class="mr-preview-list">
@@ -265,7 +270,7 @@ async function undoFinish(): Promise<void> {
         <el-button @click="previewVisible = false">取消</el-button>
         <el-button type="primary" :loading="finishing" @click="confirmPreviewFinish">确认完成</el-button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
   <div v-else class="mr-empty">选择左侧任务查看阅卷结果</div>
 </template>

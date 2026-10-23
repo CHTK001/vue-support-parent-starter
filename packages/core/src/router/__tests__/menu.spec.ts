@@ -189,6 +189,17 @@ describe("菜单元数据归一化", () => {
     expect(routes.map((r) => r.meta.position)).toEqual(["top", "standard", "standard"]);
   });
 
+  it("meta.position 保留 footer（侧边栏底部入口），未知值回落 standard", () => {
+    const rows = [
+      page(1, "footerMenu", { sysMenuPosition: "footer", remind: true }),
+      // 大小写不敏感：后端存的是小写，但历史数据/手写 yaml 可能有大写
+      page(2, "topUpper", { sysMenuPosition: "TOP" }),
+      page(3, "unknownPos", { sysMenuPosition: "somewhere" }),
+    ];
+    const routes = resolver().generateRoutes(rows, 0);
+    expect(routes.map((r) => r.meta.position)).toEqual(["footer", "top", "standard"]);
+  });
+
   it("meta.showParent 归一化：DB 0 → 1（隐藏父级），DB 1/未配置 → 0（保留父级）", () => {
     const rows = [
       dir(1, "hideParent", { sysMenuShowParent: 1 }),

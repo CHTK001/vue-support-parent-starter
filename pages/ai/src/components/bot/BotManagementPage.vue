@@ -4,8 +4,8 @@
       <!-- 标题区 -->
       <div class="flex items-center justify-between gap-4 mb-8 mt-2">
         <div class="min-w-0">
-          <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('bot.management.title') }}</h1>
-          <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('bot.management.subtitle') }}</p>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('bot.management.title') }}</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('bot.management.subtitle') }}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <el-button type="primary" @click="showCreateDialog">
@@ -30,7 +30,7 @@
           <el-icon class="is-loading" :size="32">
             <Loading />
           </el-icon>
-          <span class="ml-2 text-gray-500 dark:text-[#8b8d95]">{{ t('common.loading') }}</span>
+          <span class="ml-2 text-gray-500 dark:text-gray-400">{{ t('common.loading') }}</span>
         </div>
 
         <!-- 机器人卡片网格 -->
@@ -41,11 +41,11 @@
           <!-- 空状态 -->
           <div v-if="!botStore.loading && botStore.botInstances.length === 0"
             class="re-surface col-span-full text-center py-12">
-            <el-icon size="48" class="text-gray-300 dark:text-[#3e4046] mb-3">
+            <el-icon size="48" class="text-gray-300 dark:text-gray-600 mb-3">
               <Cpu />
             </el-icon>
-            <p class="text-lg text-gray-500 dark:text-[#8b8d95]">{{ t('bot.management.empty') }}</p>
-            <p class="text-sm mt-1 text-gray-400 dark:text-[#6b6d75]">{{ t('bot.management.emptyHint') }}</p>
+            <p class="text-lg text-gray-500 dark:text-gray-400">{{ t('bot.management.empty') }}</p>
+            <p class="text-sm mt-1 text-gray-400 dark:text-gray-400">{{ t('bot.management.emptyHint') }}</p>
           </div>
         </div>
       </div>

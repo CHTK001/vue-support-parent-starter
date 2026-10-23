@@ -183,7 +183,6 @@
           </div>
         </div>
       </div>
-    </template>
 
     <!-- 关联日志：按 traceId 拉取该链路的日志 -->
     <div class="panel">
@@ -220,6 +219,7 @@
         </div>
       </div>
     </div>
+    </template>
 
     <!-- 数据空态 -->
     <div v-else-if="waterfall" class="panel">

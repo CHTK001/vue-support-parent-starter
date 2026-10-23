@@ -51,8 +51,7 @@
             border
             stripe
 
-            :toolbar="false"
-            :pagination="false"
+            :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <ReTableColumn type="index" label="#" width="50" />
             <ReTableColumn prop="questionType" label="题型" width="130" />

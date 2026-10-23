@@ -841,7 +841,6 @@ defineExpose({
         class="flow-props"
         :class="{ 'is-resizing': ui.resizing, 'is-collapsed': ui.collapsed, 'is-floated': ui.floated }"
         :style="panelStyle"
-        @mousedown="startPanelDrag"
       >
         <!-- 左边框拖拽热区：6px 宽的透明竖条，hover 时亮出主色抓手 -->
         <span
@@ -854,9 +853,7 @@ defineExpose({
 
         <header
           class="flow-props-head"
-          title="拖动移动面板，双击复位回右侧"
-          @mousedown="startPanelDrag"
-          @dblclick="dockPanel"
+          title="配置面板固定于右侧"
         >
           <span class="flow-props-icon">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -1369,6 +1366,18 @@ defineExpose({
 :deep(.x6-node:hover .x6-port-body) { opacity: 1; }
 :deep(.x6-node:hover .x6-edge),
 :deep(.x6-edge:hover) { cursor: pointer; }
+
+/* 回放/轨迹推进：当前节点到上一个节点之间的连线显示流动虚线 */
+:deep(.flow-edge-active .x6-line),
+:deep(.flow-edge-active .x6-edge-path) {
+  stroke: var(--el-color-primary);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  animation: re-flow-edge-dash 0.55s linear infinite;
+}
+@keyframes re-flow-edge-dash {
+  to { stroke-dashoffset: -10; }
+}
 
 /*
  * 节点体是 foreignObject 里的真实 DOM，`cursor` 要显式给到卡片上：

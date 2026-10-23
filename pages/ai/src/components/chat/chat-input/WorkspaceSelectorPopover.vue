@@ -4,7 +4,7 @@
     <div class="flex flex-col gap-0.5">
       <!-- 最近选择 -->
       <template v-if="recentList.length > 0">
-        <div class="text-[11px] font-medium text-[#999] dark:text-[#6b7280] px-2 py-1 select-none">{{ t('chat.input.recent') }}</div>
+        <div class="text-[11px] font-medium text-[#999] dark:text-gray-400 px-2 py-1 select-none">{{ t('chat.input.recent') }}</div>
         <div v-for="path in filteredRecentList" :key="path"
           class="flex items-center gap-1.25 px-2 py-1 rounded-md cursor-pointer transition-all duration-150"
           :class="path === currentWorkspacePath
@@ -15,8 +15,8 @@
             <Folder20Regular />
           </el-icon>
           <div class="flex-1 flex items-baseline gap-1.5 min-w-0">
-            <span class="text-sm font-medium text-(--color-text) dark:text-[#e5e7eb] whitespace-nowrap shrink-0 max-w-30 overflow-hidden text-ellipsis">{{ getFolderName(path) }}</span>
-            <span class="text-xs text-[#999] dark:text-[#6b7280] whitespace-nowrap overflow-hidden text-ellipsis">{{ path }}</span>
+            <span class="text-sm font-medium text-(--color-text) dark:text-gray-100 whitespace-nowrap shrink-0 max-w-30 overflow-hidden text-ellipsis">{{ getFolderName(path) }}</span>
+            <span class="text-xs text-[#999] dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">{{ path }}</span>
           </div>
           <el-icon v-if="path === currentWorkspacePath" size="14" class="shrink-0 text-(--el-color-primary)">
             <Checkmark16Filled />
@@ -36,8 +36,8 @@
           <PeopleCommunity16Regular />
         </el-icon>
         <div class="flex-1 flex items-baseline gap-1.5 min-w-0">
-          <span class="text-sm font-medium text-(--color-text) dark:text-[#e5e7eb] whitespace-nowrap shrink-0">{{ t('chat.input.usePublicDir') }}</span>
-          <span class="text-xs text-[#999] dark:text-[#6b7280] whitespace-nowrap overflow-hidden text-ellipsis">{{ publicPath }}</span>
+          <span class="text-sm font-medium text-(--color-text) dark:text-gray-100 whitespace-nowrap shrink-0">{{ t('chat.input.usePublicDir') }}</span>
+          <span class="text-xs text-[#999] dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">{{ publicPath }}</span>
         </div>
         <el-icon v-if="publicPath === currentWorkspacePath" size="14" class="shrink-0 text-(--el-color-primary)">
           <Checkmark16Filled />
@@ -54,8 +54,8 @@
           <FolderAdd24Regular />
         </el-icon>
         <div class="flex-1 flex items-baseline gap-1.5 min-w-0">
-          <span class="text-sm font-medium text-(--color-text) dark:text-[#e5e7eb] whitespace-nowrap shrink-0 max-w-30 overflow-hidden text-ellipsis">{{ t('chat.input.autoCreate') }}</span>
-          <span class="text-xs text-[#999] dark:text-[#6b7280] whitespace-nowrap overflow-hidden text-ellipsis">{{ t('chat.input.autoCreateDesc') }}</span>
+          <span class="text-sm font-medium text-(--color-text) dark:text-gray-100 whitespace-nowrap shrink-0 max-w-30 overflow-hidden text-ellipsis">{{ t('chat.input.autoCreate') }}</span>
+          <span class="text-xs text-[#999] dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">{{ t('chat.input.autoCreateDesc') }}</span>
         </div>
         <el-icon v-if="!currentWorkspacePath" size="14" class="shrink-0 text-(--el-color-primary)">
           <Checkmark16Filled />
@@ -70,7 +70,7 @@
             <Desktop16Regular />
           </el-icon>
           <div class="flex-1 flex items-baseline gap-1.5 min-w-0">
-            <span class="text-sm font-medium text-(--color-text) dark:text-[#e5e7eb] whitespace-nowrap">{{ t('chat.input.selectLocalFolder') }}</span>
+            <span class="text-sm font-medium text-(--color-text) dark:text-gray-100 whitespace-nowrap">{{ t('chat.input.selectLocalFolder') }}</span>
           </div>
         </div>
       </template>

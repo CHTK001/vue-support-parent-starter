@@ -14,7 +14,10 @@ import { ReFormItem } from "@repo/ui/re-kit";
 import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress } from "../api";
 import { osIconSvg } from "../utils/osIcon";
 /** 主机表单结构（与 AssetsView.Host 保持一致——避免跨 .vue 文件的类型导入解析问题） */
-interface Host {
+// eslint-disable-next-line no-unused-vars -- 保留 import 便于日后与 AssetsView.Host 统一
+import type { Host as HostRow } from "./AssetsView.vue";
+type Host = HostRow;
+interface LegacyHostForm {
   id?: number;
   serverHostName?: string;
   serverHostAddress?: string;

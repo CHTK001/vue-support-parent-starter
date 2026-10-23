@@ -141,6 +141,28 @@
       </SettingsRow>
     </SettingsCard>
 
+    <!-- 加载动画演示（ReLoader 组件本身，与首屏 loader 无关） -->
+    <SettingsCard title="加载动画">
+      <!--
+        应用内动画演示：直接用 ReLoader 组件渲染，改的就是它的 variant 属性。
+        三个内置变体（科技双环 / 海浪上升 / 进度条）都能即时切换查看。
+        注意：这里演示的是 **ReLoader 组件**，与应用启动前的首屏 loader 是两回事
+        （首屏由 public/loader.js 注入，与组件库无关）。
+      -->
+      <SettingsRow label="应用内动画演示"
+        description="切换 ReLoader 组件的 variant 属性，实时看三种内置动画（默认科技双环）。点击即在页面上全屏演示 3 秒。"
+        control-width="320px">
+        <div class="flex items-center gap-2 flex-wrap">
+          <el-radio-group v-model="reLoaderDemoVariant" size="small">
+            <el-radio-button label="spin">科技双环</el-radio-button>
+            <el-radio-button label="wave">海浪上升</el-radio-button>
+            <el-radio-button label="progress">进度条</el-radio-button>
+          </el-radio-group>
+          <el-button size="small" type="primary" @click="demoReLoader">演示</el-button>
+        </div>
+      </SettingsRow>
+    </SettingsCard>
+
     <!-- 菜单显示控制 -->
     <SettingsCard title="菜单显示控制">
       <SettingsRow label="显示角色管理" description="在左侧菜单显示角色管理入口">
@@ -195,6 +217,48 @@ const agentRuntimeLoaded = ref(false)
 function handleLanguageChange(val: string) {
   setLanguage(val as 'zh-CN' | 'en-US')
 }
+
+
+
+/** 应用内动画演示：当前选中的 ReLoader variant */
+const reLoaderDemoVariant = ref<'spin' | 'wave' | 'progress'>('spin')
+
+/**
+ * 演示 ReLoader 的某个动画变体。
+ *
+ * <p>用命令式 API 打开 3 秒后关闭；进度条变体顺带演示"平滑设置进度"，
+ * 让用户看到 {@code setProgress(v, { smooth: true })} 的效果。</p>
+ */
+async function demoReLoader() {
+  try {
+    const mod = await import('@repo/ui/re-loader')
+    const variant = reLoaderDemoVariant.value
+    const h = mod.loader.open({
+      variant,
+      size: 'lg',
+      text: variant === 'progress' ? '演示进度（平滑推进）' : '动画演示',
+    })
+    if (variant === 'progress') {
+      let v = 0
+      const timer = setInterval(() => {
+        v += 10
+        // 平滑过渡：把每次 +10 的小跳变连成连续推进
+        h.setProgress(Math.min(100, v), { smooth: true })
+        if (v >= 100) {
+          clearInterval(timer)
+          setTimeout(() => h.close(), 300)
+        }
+      }, 300)
+    } else {
+      setTimeout(() => h.close(), 3000)
+    }
+  } catch (e: any) {
+    notify.warning('演示失败', e?.message || 'ReLoader 不可用')
+  }
+}
+
+
+
 
 // 表单数据
 const settingsForm = reactive({
@@ -446,3 +510,4 @@ onMounted(() => {
   margin-top: 2px;
 }
 </style>
+

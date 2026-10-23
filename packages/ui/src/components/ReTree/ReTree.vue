@@ -104,6 +104,7 @@ import type Node from "element-plus/es/components/tree/src/model/node";
 import type { TreeNodeData } from "element-plus";
 import type { ReTreeItem, ReTreeEmitParams, ReTreeDragEvent, ReTreeLoader } from "./types";
 import { useDataSource, http } from "@repo/core";
+import { yieldToMain } from "@repo/utils";
 import ReDialog from "../ReDialog";
 
 interface ReTreeProps {
@@ -294,6 +295,17 @@ watch(rootData, (v) => {
     emit("update:data", v);
   }
 }, { immediate: true });
+
+/**
+ * 显式重新加载根节点。
+ *
+ * <p>先让一帧再取数：让树上的 loading 态先画出来，而不是「按下去没反应、
+ * 过一会儿整棵树一起刷新」把主线程堵住（与 ReTable / ReSelect 同一口径）。</p>
+ */
+async function reloadTree(): Promise<void> {
+  await yieldToMain();
+  await rootReload();
+}
 
 // 本地模式下，外部 props.data 异步加载完成后需要同步到内部 treeData
 watch(() => props.data, (v) => {
@@ -668,7 +680,7 @@ defineExpose({
   updateKey,
   updateKeyChildren,
   filterNodeMethod: filterNodeMethodWrapper,
-  reload: rootReload,
+  reload: reloadTree,
 });
 </script>
 

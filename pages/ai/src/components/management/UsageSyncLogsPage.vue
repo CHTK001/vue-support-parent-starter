@@ -1,28 +1,23 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col bg-white dark:bg-[#1a1a1a]">
-    <div class="shrink-0 px-6 py-4 border-b border-gray-200 dark:border-[#2f2f2f]">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">用量同步日志</h1>
-          <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">查看用量同步历史记录</p>
-        </div>
-        <el-button @click="loadData">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
-    </div>
-
-    <div class="flex-1 overflow-auto p-6">
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
-           pagination=false —— 分页仍由下方 el-pagination 自管；toolbar=false 不新增工具栏；
-           原表带 border 走 ReTable 默认（border: true），stripe / v-loading 走同名映射。 -->
+  <RePage fill title="用量同步日志" subtitle="查看用量同步历史记录">
+    <template #actions>
+      <el-button @click="loadData">
+        <el-icon><Refresh /></el-icon>
+        刷新
+      </el-button>
+    </template>
+      <!-- 表格统一 ReTable：默认引擎已是 vxe（不再显式写）。
+           后端分页走 ReTable 的 **loader 模式**：传 loader 后组件进入远程模式，
+           把 data 当作「当前页数据」直接渲染，页数按 loader 返回的 total 算。
+           （此前传 data + total 而不传 loader → 被当成本地分页再切一遍，
+             点页码无反应。） -->
       <ReTable
         :data="tableData"
         :columns="logColumns"
         :loading="loading"
-        engine="element"
-        :pagination="false"
+        :pagination="true"
+        :loader="loadLogsPage"
+        :page-sizes="[10, 20, 50, 100]"
         :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         stripe
@@ -38,35 +33,23 @@
           <span v-else class="text-gray-400">-</span>
         </template>
       </ReTable>
-
-      <div class="flex justify-end mt-4">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
-          @current-change="loadData"
-        />
-      </div>
-    </div>
-  </div>
+  </RePage>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 
 import { Refresh } from '@element-plus/icons-vue';
 import ReTable from '@repo/ui/re-table';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import { usageApi } from '@/services/javaApi';
+import RePage from '@/components/re/RePage.vue';
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
 const total = ref(0);
-const currentPage = ref(1);
+/** 手动刷新时用的页长（loader 模式下页长由 ReTable 内部维护） */
 const pageSize = ref(20);
 
 /**
@@ -85,22 +68,36 @@ const logColumns: ReTableColumn[] = [
   { prop: 'errorMessage', label: '错误信息', minWidth: 200, slot: 'errorMessage' },
 ];
 
-async function loadData() {
+/**
+ * ReTable 的 loader（后端分页）。
+ *
+ * <p>组件在远程模式下自己调它取当前页，并按返回的 total 算页数 ——
+ * 这才是后端分页的正确接法（只传 data + total 会被当成本地分页再切一遍，
+ * 点页码无反应）。</p>
+ */
+async function loadLogsPage({ page, pageSize: size }: { page: number; pageSize: number }) {
   loading.value = true;
   try {
-    const res: any = await usageApi.syncLogs({
-      page: currentPage.value,
-      size: pageSize.value,
-    });
+    const res: any = await usageApi.syncLogs({ page, size });
     const data = res?.data || res?.records || res?.list || res || [];
-    tableData.value = Array.isArray(data) ? data : (data.records || data.list || []);
-    total.value = Number(data.total ?? res?.total ?? res?.count) || tableData.value.length;
+    const records = Array.isArray(data) ? data : (data.records || data.list || []);
+    tableData.value = records;
+    total.value = Number(data.total ?? res?.total ?? res?.count) || records.length;
+    return { total: total.value, records: tableData.value };
   } catch (e: any) {
     message.error(`加载失败: ${e.message}`);
+    return { total: 0, records: [] };
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(loadData);
+/** 手动刷新（页面上的「刷新」按钮） */
+async function loadData() {
+  await loadLogsPage({ page: 1, pageSize: pageSize.value });
+}
+
+// 注：表格改为 loader 模式后，首屏数据由 ReTable 自己调 loadLogsPage 取；
+// onMounted 不再重复拉一次（否则会打两次接口）。
 </script>
+

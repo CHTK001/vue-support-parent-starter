@@ -166,9 +166,6 @@
         width="640px" :close-on-click-modal="false" destroy-on-close class="pasted-preview-dialog"
         @close="closeFilePreview">
         <pre class="pasted-preview-text">{{ previewContent }}</pre>
-        <template #footer>
-          <el-button @click="closeFilePreview">{{ t('common.close') }}</el-button>
-        </template>
       </ReDialog>
     </div>
   </div>
@@ -1265,10 +1262,11 @@ const checkAtTrigger = () => {
 /**
  * 选中风格后的处理。
  *
- * 面板是被 @ 唤起的，所以把风格描述写进 @ 所在位置、并吃掉那个 @：
- * 插到 @ 处而不是首行，是因为用户「一只猫，背景 @」就是想改这一段，
- * 统一塞到最前面会把他后半句的构图描述也压到风格后面。
- * 「无风格」不写任何文字，只删掉 @ 本身。
+ * 面板是被 @ 唤起的。以前会把风格描述写进 @ 所在位置——现在不再写：
+ * 输入条本身有「选择器 + 芯片上缩略图」就能看出选了哪个风格，把描述文本
+ * 塞进输入框是多余的，还可能和用户手打的文字重复。这里只把触发用的 @ 删掉，
+ * 风格描述由提交端统一拼到提示词最前面。
+ * 「无风格」同样只删 @。
  *
  * @param item 选中的风格项
  */
@@ -1278,13 +1276,11 @@ const onPickStyle = (item: StyleItem) => {
     emit('update:stylePanelOpen', false);
     return;
   }
-  const chain = editor.value.chain().focus();
-  if (item.prompt) {
-    chain.insertContentAt({ from: atFrom, to: atTo }, item.prompt);
-  } else {
-    chain.deleteRange({ from: atFrom, to: atTo });
-  }
-  chain.run();
+  editor.value
+    .chain()
+    .focus()
+    .deleteRange({ from: atFrom, to: atTo })
+    .run();
   atFrom = -1;
   atTo = -1;
   emit('update:stylePanelOpen', false);

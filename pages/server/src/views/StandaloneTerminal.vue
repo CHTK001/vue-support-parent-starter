@@ -47,9 +47,10 @@ const identityId = computed(() => {
   return Number.isFinite(n) ? n : null;
 });
 
-/** 远控端口：主机配置优先，SSH 回落到接入端口，RDP/VNC 用协议默认 */
+/** 远控端口：协议与台账一致时用台账端口，否则按协议默认（见 TerminalView.remotePortOf 说明） */
 function targetPortOf(h: StandHost, p: string): number | null {
-  if (h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
+  const configured = (h.serverHostRemoteProtocol ?? "").toLowerCase();
+  if (configured === p && h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
   if (p === "ssh") return h.serverHostPort || null;
   return p === "rdp" ? 3389 : 5900;
 }

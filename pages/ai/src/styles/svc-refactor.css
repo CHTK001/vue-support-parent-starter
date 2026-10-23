@@ -65,9 +65,11 @@
   /* 间距 / 圆角 / 动效（与 kb 同节奏） */
   --svc-sp-1: 4px;  --svc-sp-2: 8px;  --svc-sp-3: 12px;  --svc-sp-4: 16px;
   --svc-sp-5: 24px; --svc-sp-6: 32px;
-  --svc-r-sm: 6px;  --svc-r-md: 10px;  --svc-r-lg: 14px;
+  /* 圆角 / 动效：引用体系阶梯（tokens.css 的 --radius-* / --ease-out），
+     与知识库设计层同一节奏，避免同界面两套圆角/缓动并存。 */
+  --svc-r-sm: var(--radius-sm);  --svc-r-md: var(--radius-lg);  --svc-r-lg: var(--radius-lg);
   --svc-dur-fast: 160ms; --svc-dur: 280ms;
-  --svc-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --svc-ease: var(--ease-out);
 
   /* 密度：这一页比知识库紧一档 */
   --svc-row-h: 38px;      /* 表格行高（kb 靠阅读，运维靠扫视） */
@@ -513,11 +515,12 @@ html.dark .svc {
 .svc-meta { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .svc-meta b { font-family: var(--svc-mono); font-weight: 600; color: var(--svc-ink-2); }
 
-/* 深色代码面：明暗两套主题共用同一组令牌（见文件头说明） */
+/* 深色代码面：明暗两套主题共用同一组令牌（见文件头说明）
+   新布局下右栏有稳定最小高度（.svc-main），控制台在页签内自然撑满剩余高度；
+   仅移动端缩窄时保留 max-height 兜底。 */
 .svc-console {
   position: relative;
-  flex: 1 1 auto; min-height: 0;
-  max-height: clamp(320px, 46vh, 720px);
+  flex: 1 1 auto; min-height: 200px;
   overflow: auto;
   background: var(--svc-console-bg);
   padding: 8px 0;

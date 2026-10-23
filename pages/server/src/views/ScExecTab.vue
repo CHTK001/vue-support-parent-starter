@@ -374,9 +374,8 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
       <ReTable
         class="ex-table"
         :data="lastResults"
-        :pagination="false"
-        :toolbar="false"
         :layout-table="{ minHeight: 0, maxHeight: 260 }"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <ReTableColumn prop="msExecLogHostName" label="主机" width="150" show-overflow-tooltip />
         <ReTableColumn label="状态" width="96">
@@ -424,9 +423,8 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
         :data="jobs"
         :layout="jobLayout"
         :layout-card="{ columns: 3, minWidth: 320, gap: 12, fields: [{ prop: 'msExecJobName', title: true }] }"
-        :pagination="false"
-        :toolbar="false"
         empty-text="暂无计划任务，点击右上角「新增任务」创建"
+        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
         <ReTableColumn prop="msExecJobName" label="名称" min-width="150" show-overflow-tooltip />
         <ReTableColumn label="类型" width="92">
@@ -563,10 +561,9 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
         <ReTable
           class="ex-table"
           :data="historyLogs"
-          :pagination="false"
-          :toolbar="false"
           :layout-table="{ minHeight: 0, maxHeight: 'calc(100vh - 200px)' }"
           empty-text="暂无执行日志"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <ReTableColumn prop="msExecLogHostName" label="主机" width="130" show-overflow-tooltip />
           <ReTableColumn label="类型" width="90">

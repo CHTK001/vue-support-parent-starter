@@ -29,20 +29,16 @@
  *   同一「查询条件（params + keyword）」在 cacheTtl 内再次出现时直接读存档，不再请求；
  *   显式 reload() 绕过缓存一次并顺手写回，暴露 clearCache() 供增删改后主动失效。
  */
-import { computed, defineAsyncComponent, onMounted, ref, useAttrs, watch } from "vue";
+import { computed, onMounted, ref, useAttrs, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
 import type { ReOption, ReSelectCacheStorage, ReSelectLayout, ReSelectLoader, ReSelectSize } from "./types";
-import { debounce, createStorage, browserLocalStorage, browserSessionStorage, type StorageWrapper } from "@repo/utils";
+import { debounce, createStorage, browserLocalStorage, browserSessionStorage, yieldToMain, type StorageWrapper } from "@repo/utils";
 import { getStorageKey } from "@repo/config";
 import "../shared/modern-vars.css";
-
-/** 卡片下拉布局组件（按需异步加载） */
-const CardDropdownLayout = defineAsyncComponent(() => import("./layouts/CardDropdown.vue"));
-/** Square 布局组件（按需异步加载） */
-const SquareLayout = defineAsyncComponent(() => import("./layouts/Square.vue"));
-/** Modern 扁平布局组件（按需异步加载） */
-const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
+import CardDropdownLayout from "./layouts/CardDropdown.vue";
+import SquareLayout from "./layouts/Square.vue";
+import ModernLayout from "./layouts/Modern.vue";
 
 defineOptions({ name: "ReSelect", inheritAttrs: true });
 
@@ -480,9 +476,13 @@ const modernBind = computed(() => ({ ...modernProps.value, ...attrs }));
  * <p>与 ReTable 的 {@code reload()} 同一语义：默认的 params / keyword 变化重载仍走缓存，
  * 只有这里的显式刷新强制走网络。</p>
  */
-function reload(): Promise<void> {
+async function reload(): Promise<void> {
   bypassCacheOnce = isRemote.value;
-  return dsReload();
+  // 先让一帧：让下拉的 loading 态（Element Plus 的 spinner）先画出来再取数。
+  // 否则点击刷新后浏览器要等接口回来才开始处理后续任务，用户看到的是
+  // 「按下去没反应，过一会儿整块冻住」—— 与 ReTable 的刷新是同一个问题。
+  await yieldToMain();
+  await dsReload();
 }
 
 defineExpose({

@@ -32,9 +32,6 @@
         </el-select>
       </div>
     </div>
-    <template #footer>
-      <el-button @click="emit('update:modelValue', false)">关闭</el-button>
-    </template>
   </ReDialog>
 </template>
 

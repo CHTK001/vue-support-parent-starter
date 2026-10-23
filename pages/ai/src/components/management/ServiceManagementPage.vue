@@ -49,290 +49,298 @@
       </div>
     </section>
 
-    <!-- ==================== 01 服务实例（瓦片横排，单选联动） ==================== -->
-    <section class="svc-inst" aria-labelledby="svc-inst-t">
-      <div class="svc-sect__head">
-        <span class="svc-sect__no">01</span>
-        <h3 class="svc-sect__title" id="svc-inst-t">服务实例</h3>
-        <div class="svc-sect__extra">
-          <span class="svc-sect__hint">点击卡片，下方访问日志切换到该实例</span>
+    <!-- ==================== 01 左右布局 ==================== -->
+    <div class="svc-split">
+      <!-- ---------- 左栏：服务实例卡片列表 ---------- -->
+      <aside class="svc-side" aria-label="服务实例列表">
+        <div class="svc-sect__head">
+          <span class="svc-sect__no">01</span>
+          <h3 class="svc-sect__title" id="svc-inst-t">服务实例</h3>
+          <div class="svc-sect__extra">
+            <span class="svc-sect__hint">{{ instances.length }} 个</span>
+          </div>
         </div>
-      </div>
 
-      <!-- 内联错误条：旧数据不清空（实例瓦片继续可读） -->
-      <div class="svc-alert is-danger" v-if="instError" style="margin-bottom: 12px">
-        <span class="svc-alert__text">服务实例加载失败：{{ instError }}</span>
-        <button class="svc-alert__act" @click="loadInstances">重试</button>
-      </div>
+        <!-- 内联错误条：旧数据不清空（实例卡片继续可读） -->
+        <div class="svc-alert is-danger" v-if="instError">
+          <span class="svc-alert__text">服务实例加载失败：{{ instError }}</span>
+          <button class="svc-alert__act" @click="loadInstances">重试</button>
+        </div>
 
-      <!-- 首屏骨架：3 片，不遮罩 -->
-      <ul class="svc-tiles" v-if="instLoading && !instances.length">
-        <li v-for="n in 3" :key="'skel' + n" class="svc-tile is-skeleton" aria-hidden="true">
-          <span class="svc-tile__state"></span>
-          <div class="svc-tile__body">
-            <div class="svc-tile__line"><b class="svc-skel" style="width: 140px; height: 15px"></b></div>
-            <div class="svc-tile__meta">
-              <b class="svc-skel" style="width: 62px; height: 18px"></b>
-              <b class="svc-skel" style="width: 108px; height: 14px"></b>
+        <!-- 首屏骨架：3 片，不遮罩 -->
+        <div v-if="instLoading && !instances.length" class="svc-side__list">
+          <div v-for="n in 3" :key="'skel' + n" class="svc-tile is-skeleton" aria-hidden="true">
+            <span class="svc-tile__state"></span>
+            <div class="svc-tile__body">
+              <div class="svc-tile__line"><b class="svc-skel" style="width: 132px; height: 15px"></b></div>
+              <div class="svc-tile__meta">
+                <b class="svc-skel" style="width: 52px; height: 18px"></b>
+                <b class="svc-skel" style="width: 92px; height: 14px"></b>
+              </div>
             </div>
           </div>
-        </li>
-      </ul>
+        </div>
 
-      <!-- 空态：虚线框 + 引导 CTA -->
-      <div class="svc-empty" v-else-if="!instances.length">
-        <span class="svc-empty__mark" aria-hidden="true"></span>
-        <b>还没有服务实例</b>
-        <i>创建后即可对外提供 OpenAI / Claude / Gemini 兼容接口</i>
-        <el-button type="primary" class="svc-btn" style="margin-top: 6px"
-                   @click="showCreateDialog = true">
+        <!-- 空态：虚线框 + 引导 CTA -->
+        <div class="svc-empty svc-side__empty" v-else-if="!instances.length">
+          <span class="svc-empty__mark" aria-hidden="true"></span>
+          <b>还没有服务实例</b>
+          <i>创建后即可对外提供 OpenAI / Claude / Gemini 兼容接口</i>
+          <el-button type="primary" class="svc-btn" style="margin-top: 6px" @click="showCreateDialog = true">
             <el-icon class="svc-btn__icon" aria-hidden="true"><AddIcon /></el-icon>
             新建服务实例
           </el-button>
-      </div>
-
-      <ul class="svc-tiles" v-else>
-        <li v-for="t in instances" :key="t.id"
-            class="svc-tile"
-            :class="{ 'is-active': isActive(t), 'is-ok': t.running === true, 'is-down': isDown(t), 'is-flash': flashId === t.id }"
-            tabindex="0" role="button"
-            :aria-current="isActive(t) ? 'true' : undefined"
-            :aria-label="`${t.name} 端口 ${t.port}，${statusBadgeText(t)}，回车查看该实例的访问日志`"
-            @click="selectInstance(t.id)"
-            @keydown.enter.prevent="selectInstance(t.id)"
-            @keydown.space.prevent="selectInstance(t.id)">
-          <span class="svc-tile__state" aria-hidden="true"></span>
-          <div class="svc-tile__body">
-            <div class="svc-tile__line">
-              <b class="svc-tile__name" :title="t.name">{{ t.name }}</b>
-              <span class="svc-badge" :class="statusBadgeClass(t)"><i aria-hidden="true"></i>{{ statusBadgeText(t) }}</span>
-            </div>
-            <div class="svc-tile__meta">
-              <span class="svc-tile__port">:{{ t.port }}</span>
-              <span class="svc-tile__protos">
-                <span class="svc-chip is-protocol" v-if="t.enableGpt">GPT</span>
-                <span class="svc-chip is-protocol" v-if="t.enableCc">CC</span>
-                <span class="svc-chip is-protocol" v-if="t.enableGemini">GEMINI</span>
-                <span class="svc-chip is-empty" v-if="!protoCount(t)">无协议</span>
-              </span>
-              <span class="svc-tile__usage">用量 {{ t.logUsage ? '开' : '关' }}</span>
-            </div>
-          </div>
-          <!-- 操作组：阻止冒泡，点「删除」不能同时切换选中 -->
-          <div class="svc-tile__acts" @click.stop @keydown.stop>
-            <button class="svc-ico" :disabled="busy[t.id] === true"
-                    :title="t.running === true ? '停止该实例' : '启动该实例'"
-                    :aria-label="t.running === true ? '停止该实例' : '启动该实例'"
-                    @click="toggleInstance(t)">
-              <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
-            </button>
-            <button class="svc-ico" title="访问令牌" aria-label="访问令牌" @click="openTokens(t)">
-              <el-icon><KeyIcon /></el-icon>
-            </button>
-            <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
-                    :title="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
-                    :aria-label="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
-                    @click="deleteInstance(t)">
-              <el-icon><DeleteIcon /></el-icon>
-            </button>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <!-- ==================== 02 + 03 两栏工作区 ==================== -->
-    <div class="svc-grid">
-      <!-- ---------- 02 访问日志 ---------- -->
-      <section class="svc-panel svc-panel--access" aria-labelledby="svc-access-t">
-        <div class="svc-sect__head">
-          <span class="svc-sect__no">02</span>
-          <h3 class="svc-sect__title" id="svc-access-t">访问日志</h3>
-          <div class="svc-sect__extra">
-            <el-select v-model="logInstanceId" class="svc-select" @change="onScopeChange">
-              <el-option label="全部实例" value="" />
-              <el-option v-for="i in instances" :key="i.id" :label="`${i.name} :${i.port}`" :value="i.id" />
-            </el-select>
-            <el-input v-model="logKeyword" class="svc-search" placeholder="过滤端点 / 模型" clearable />
-            <span class="svc-count"><b>{{ filteredLogs.length }}</b> 条</span>
-            <el-button class="svc-btn" @click="loadLogs">刷新</el-button>
-          </div>
         </div>
 
-        <div class="svc-alert is-danger" v-if="logsError" style="margin: 0 16px 10px">
-          <span class="svc-alert__text">访问日志加载失败：{{ logsError }}（该实例可能已停止）</span>
-          <button class="svc-alert__act" @click="loadLogs">重试</button>
-        </div>
-
-        <div class="svc-tablewrap" :class="{ 'is-busy': logsLoading }">
-          <!-- 顶部 2px 扫描条替代 v-loading 遮罩：旧数据保持可读 -->
-          <span class="svc-scanline" v-if="logsLoading" aria-hidden="true"></span>
-
-          <!-- 首屏骨架：6 行灰条（ReTable 无骨架插槽，置于表外同尺寸占位） -->
-          <div class="svc-skelrows" v-if="logsLoading && !logs.length" aria-hidden="true">
-            <div class="svc-skelrow" v-for="n in 6" :key="'r' + n">
-              <b class="svc-skel svc-skelcell" style="width: 108px"></b>
-              <b class="svc-skel svc-skelcell"></b>
-              <b class="svc-skel svc-skelcell" style="width: 52px"></b>
-              <b class="svc-skel svc-skelcell" style="width: 92px"></b>
-              <b class="svc-skel svc-skelcell" style="width: 78px"></b>
-            </div>
-          </div>
-
-          <ReTable v-else
-                   :data="filteredLogs" :columns="logColumns"
-                   engine="element" :pagination="false" :toolbar="false"
-                   :layout-table="{ maxHeight: 336 }"
-                   :settings="{ border: false, stripe: true }"
-                   row-key="logId" class="svc-table">
-            <template #col-callTime="{ row }">
-              <div class="svc-time">
-                <b class="svc-time__main">{{ timeMain(row.callTime) }}</b>
-                <i class="svc-time__sub">{{ timeSub(row.callTime) }}</i>
+        <!-- 卡片列表 -->
+        <div v-else class="svc-side__list">
+          <div v-for="t in instances" :key="t.id"
+              class="svc-tile svc-tile--card"
+              :class="{ 'is-active': isActive(t), 'is-ok': t.running === true, 'is-down': isDown(t), 'is-flash': flashId === t.id }"
+              tabindex="0" role="button"
+              :aria-current="isActive(t) ? 'true' : undefined"
+              :aria-label="`${t.name} 端口 ${t.port}，${statusBadgeText(t)}，回车查看该实例的访问日志`"
+              @click="selectInstance(t.id)"
+              @keydown.enter.prevent="selectInstance(t.id)"
+              @keydown.space.prevent="selectInstance(t.id)">
+            <span class="svc-tile__state" aria-hidden="true"></span>
+            <div class="svc-tile__body">
+              <div class="svc-tile__line">
+                <b class="svc-tile__name" :title="t.name">{{ t.name }}</b>
+                <span class="svc-badge" :class="statusBadgeClass(t)"><i aria-hidden="true"></i>{{ statusBadgeText(t) }}</span>
               </div>
-            </template>
-            <template #col-endpoint="{ row }">
-              <!-- 行悬浮详情：4 字段任一缺失 → popover 整体不出现 -->
-              <el-tooltip placement="top" :disabled="!hasDetail(row)" :show-after="180">
-                <template #content>
-                  <div class="svc-logdetail">
-                    <div><span class="svc-logdetail__k">端点</span>{{ row.endpoint }}</div>
-                    <div><span class="svc-logdetail__k">方法</span>{{ row.method }}</div>
-                    <div><span class="svc-logdetail__k">来源</span>{{ row.clientIp }}</div>
-                    <div><span class="svc-logdetail__k">用户</span>{{ row.userId }}</div>
-                    <div><span class="svc-logdetail__k">logId</span>{{ row.logId }}</div>
+              <div class="svc-tile__meta">
+                <span class="svc-tile__port">:{{ t.port }}</span>
+                <span class="svc-tile__protos">
+                  <span class="svc-chip is-protocol" v-if="t.enableGpt">GPT</span>
+                  <span class="svc-chip is-protocol" v-if="t.enableCc">CC</span>
+                  <span class="svc-chip is-protocol" v-if="t.enableGemini">GEMINI</span>
+                  <span class="svc-chip is-empty" v-if="!protoCount(t)">无协议</span>
+                </span>
+                <span class="svc-tile__usage">用量 {{ t.logUsage ? '开' : '关' }}</span>
+              </div>
+            </div>
+            <!-- 操作组：阻止冒泡，点「删除」不能同时切换选中 -->
+            <div class="svc-tile__acts" @click.stop @keydown.stop>
+              <button class="svc-ico" :disabled="busy[t.id] === true"
+                      :title="t.running === true ? '停止该实例' : '启动该实例'"
+                      :aria-label="t.running === true ? '停止该实例' : '启动该实例'"
+                      @click="toggleInstance(t)">
+                <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
+              </button>
+              <button class="svc-ico" title="访问令牌" aria-label="访问令牌" @click="openTokens(t)">
+                <el-icon><KeyIcon /></el-icon>
+              </button>
+              <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
+                      :title="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
+                      :aria-label="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
+                      @click="deleteInstance(t)">
+                <el-icon><DeleteIcon /></el-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ---------- 右栏：ReTab 工作区 ---------- -->
+      <section class="svc-main" aria-label="实例详情工作区">
+        <ReTab :tabs="logTabs" v-model="activeTab" variant="underline" stretch class="svc-rtab">
+          <!-- ═══ tab 1 运行日志 ═══ -->
+          <template #runtime>
+            <div class="svc-pane svc-pane--console">
+              <div class="svc-toolbar">
+                <el-select v-model="runtimeSource" class="svc-select svc-select--fixed">
+                  <el-option label="标准输出" value="out" />
+                  <el-option label="标准错误" value="err" />
+                </el-select>
+                <el-select v-model.number="runtimeLines" class="svc-select svc-select--fixed">
+                  <el-option label="最近 200 行" :value="200" />
+                  <el-option label="最近 500 行" :value="500" />
+                  <el-option label="最近 1000 行" :value="1000" />
+                </el-select>
+                <div class="svc-seg" role="group" aria-label="日志级别过滤">
+                  <button v-for="lv in LEVELS" :key="lv.v" class="svc-seg__btn"
+                          :class="{ 'is-active': levelFilter === lv.v }"
+                          :aria-pressed="levelFilter === lv.v" @click="levelFilter = lv.v">{{ lv.t }}</button>
+                </div>
+                <el-input v-model="runtimeKeyword" class="svc-search" placeholder="过滤日志文本" clearable />
+                <label class="svc-switch"><el-switch v-model="runtimeAutoRefresh" size="small" /> 自动</label>
+                <el-select v-model.number="pollMs" class="svc-select svc-select--fixed" :disabled="!runtimeAutoRefresh">
+                  <el-option label="3 秒" :value="3000" />
+                  <el-option label="5 秒" :value="5000" />
+                  <el-option label="10 秒" :value="10000" />
+                  <el-option label="30 秒" :value="30000" />
+                </el-select>
+                <button ref="focusBtnRef" class="svc-ico" :title="focusConsole ? '退出聚焦 (Esc)' : '聚焦日志 (F)'"
+                        :aria-label="focusConsole ? '退出聚焦 (Esc)' : '聚焦日志 (F)'"
+                        :aria-pressed="focusConsole" @click="toggleFocus">
+                  <el-icon><component :is="focusConsole ? MinimizeIcon : FullscreenIcon" /></el-icon>
+                </button>
+                <el-button class="svc-btn" @click="refreshRuntimeNow">刷新</el-button>
+              </div>
+
+              <!-- 作用域提示条：明确「这份进程日志对应哪个实例」，且声明它不按实例过滤 -->
+              <div class="svc-scope" v-if="activeInstance">
+                <span class="svc-scope__tag">正在排查</span>
+                <b>{{ activeInstance.name }}</b>
+                <span class="svc-scope__port">:{{ activeInstance.port }}</span>
+                <span class="svc-scope__dot">·</span>
+                <span class="svc-scope__text">{{ failedForActive }} 次失败请求</span>
+                <span class="svc-scope__dot">·</span>
+                <span class="svc-scope__text">进程级日志，不按实例过滤</span>
+              </div>
+              <p class="svc-panel__back" role="button" tabindex="0"
+                 @click="toggleFocus" @keydown.enter.prevent="toggleFocus">← 返回服务配置</p>
+
+              <!-- meta 条：路径（JS 中段截断）+ 文件状态 + 新鲜度 + 行数 -->
+              <div class="svc-console__meta">
+                <span class="svc-path" :title="runtimePath">{{ midTruncate(runtimePath, 18, 26) }}</span>
+                <span class="svc-chip is-danger" v-if="runtimeLoaded && runtimeExists === false">文件未生成</span>
+                <span class="svc-chip is-warn" v-if="runtimeTruncated">已截断</span>
+                <span class="svc-meta">更新 <b>{{ lastSyncText }}</b></span>
+                <span class="svc-meta">{{ runtimeLogLines.length }} 行</span>
+                <span class="svc-meta" v-if="filteredRuntimeLines.length !== runtimeLogLines.length">
+                  命中 {{ filteredRuntimeLines.length }}
+                </span>
+              </div>
+
+              <!-- 深色代码面 -->
+              <div ref="consoleRef" class="svc-console" :class="{ 'is-busy': runtimeActive }"
+                   tabindex="0" role="log" aria-live="off" aria-label="运行日志内容"
+                   @scroll="onConsoleScroll">
+                <span class="svc-scanline" v-if="runtimeActive" aria-hidden="true"></span>
+                <!-- R4：后端非管理员返 200 + {ok:false}，必须与「暂无日志」区分 -->
+                <div class="svc-console__denied" v-if="runtimeDenied">{{ runtimeDenied }}</div>
+                <div class="svc-console__empty" v-else-if="!runtimeLogLines.length">
+                  <span class="svc-empty__mark" aria-hidden="true"></span>
+                  <b>{{ runtimeLoaded && runtimeExists === false ? '日志文件尚未生成' : '暂无日志输出' }}</b>
+                  <i>{{ runtimeLoaded && runtimeExists === false ? '检查服务启动配置是否写入了日志路径' : '该文件存在但没有可用内容' }}</i>
+                  <code v-if="runtimePath">{{ runtimePath }}</code>
+                </div>
+                <div class="svc-empty" v-else-if="!filteredRuntimeLines.length">
+                  <span class="svc-empty__mark" aria-hidden="true"></span>
+                  <b>无匹配行</b><i>共 {{ runtimeLogLines.length }} 行中 0 行命中</i>
+                  <button class="svc-alert__act" @click="clearRuntimeFilter">清除过滤</button>
+                </div>
+                <template v-else>
+                  <div v-for="(l, idx) in filteredRuntimeLines" :key="idx"
+                       class="svc-line" :class="levelClass(l.level)">
+                    <span class="svc-line__no">{{ idx + 1 }}</span>
+                    <span class="svc-line__lv" :class="levelClass(l.level)">{{ levelText(l.level) }}</span>
+                    <span class="svc-line__raw">{{ l.raw }}</span>
                   </div>
                 </template>
-                <div class="svc-ep">
-                  <span class="svc-ep__method">{{ row.method || '—' }}</span>
-                  <span class="svc-ep__path" :title="row.endpoint">{{ tailPath(row.endpoint) }}</span>
-                </div>
-              </el-tooltip>
-            </template>
-            <template #col-protocol="{ row }">
-              <span class="svc-chip is-protocol" v-if="row.protocol">{{ protoLabel(row.protocol) }}</span>
-            </template>
-            <template #col-status="{ row }">
-              <span class="svc-status" :class="httpClass(row.status)">
-                <b>{{ row.status == null || row.status === 0 ? '—' : row.status }}</b><i>{{ httpText(row.status) }}</i>
-              </span>
-            </template>
-            <template #col-totalTokens="{ row }">
-              <div class="svc-tok">
-                <b>{{ rowTotalTokens(row) }}</b>
-                <i v-if="row.promptTokens != null">{{ row.promptTokens }} / {{ row.completionTokens ?? 0 }}</i>
               </div>
-            </template>
-            <template #col-latency="{ row }">
-              <span class="svc-num">{{ formatLatency(row.latency) }}</span>
-            </template>
-            <template #empty>
-              <div class="svc-empty">
-                <span class="svc-empty__mark" aria-hidden="true"></span>
-                <b>{{ emptyAccessText }}</b>
-                <i>{{ emptyAccessHint }}</i>
-              </div>
-            </template>
-          </ReTable>
-        </div>
-      </section>
 
-      <!-- ---------- 03 运行日志 ---------- -->
-      <section class="svc-panel svc-panel--console" aria-labelledby="svc-rt-t">
-        <div class="svc-sect__head">
-          <span class="svc-sect__no">03</span>
-          <h3 class="svc-sect__title" id="svc-rt-t">运行日志</h3>
-          <div class="svc-sect__extra">
-            <el-select v-model="runtimeSource" class="svc-select svc-select--fixed">
-              <el-option label="标准输出" value="out" />
-              <el-option label="标准错误" value="err" />
-            </el-select>
-            <el-select v-model.number="runtimeLines" class="svc-select svc-select--fixed">
-              <el-option label="最近 200 行" :value="200" />
-              <el-option label="最近 500 行" :value="500" />
-              <el-option label="最近 1000 行" :value="1000" />
-            </el-select>
-            <div class="svc-seg" role="group" aria-label="日志级别过滤">
-              <button v-for="lv in LEVELS" :key="lv.v" class="svc-seg__btn"
-                      :class="{ 'is-active': levelFilter === lv.v }"
-                      :aria-pressed="levelFilter === lv.v" @click="levelFilter = lv.v">{{ lv.t }}</button>
-            </div>
-            <el-input v-model="runtimeKeyword" class="svc-search" placeholder="过滤日志文本" clearable />
-            <label class="svc-switch"><el-switch v-model="runtimeAutoRefresh" size="small" /> 自动</label>
-            <el-select v-model.number="pollMs" class="svc-select svc-select--fixed" :disabled="!runtimeAutoRefresh">
-              <el-option label="3 秒" :value="3000" />
-              <el-option label="5 秒" :value="5000" />
-              <el-option label="10 秒" :value="10000" />
-              <el-option label="30 秒" :value="30000" />
-            </el-select>
-            <button ref="focusBtnRef" class="svc-ico" :title="focusConsole ? '退出聚焦 (Esc)' : '聚焦日志 (F)'"
-                    :aria-label="focusConsole ? '退出聚焦 (Esc)' : '聚焦日志 (F)'"
-                    :aria-pressed="focusConsole" @click="toggleFocus">
-              <el-icon><component :is="focusConsole ? MinimizeIcon : FullscreenIcon" /></el-icon>
-            </button>
-            <el-button class="svc-btn" @click="refreshRuntimeNow">刷新</el-button>
-          </div>
-        </div>
-
-        <!-- 作用域提示条：明确「这份进程日志对应哪个实例」，且声明它不按实例过滤 -->
-        <div class="svc-scope" v-if="activeInstance">
-          <span class="svc-scope__tag">正在排查</span>
-          <b>{{ activeInstance.name }}</b>
-          <span class="svc-scope__port">:{{ activeInstance.port }}</span>
-          <span class="svc-scope__dot">·</span>
-          <span class="svc-scope__text">{{ failedForActive }} 次失败请求</span>
-          <span class="svc-scope__dot">·</span>
-          <span class="svc-scope__text">进程级日志，不按实例过滤</span>
-        </div>
-        <p class="svc-panel__back" role="button" tabindex="0"
-           @click="toggleFocus" @keydown.enter.prevent="toggleFocus">← 返回服务配置</p>
-
-        <!-- meta 条：路径（JS 中段截断）+ 文件状态 + 新鲜度 + 行数 -->
-        <div class="svc-console__meta">
-          <span class="svc-path" :title="runtimePath">{{ midTruncate(runtimePath, 18, 26) }}</span>
-          <span class="svc-chip is-danger" v-if="runtimeLoaded && runtimeExists === false">文件未生成</span>
-          <span class="svc-chip is-warn" v-if="runtimeTruncated">已截断</span>
-          <span class="svc-meta">更新 <b>{{ lastSyncText }}</b></span>
-          <span class="svc-meta">{{ runtimeLogLines.length }} 行</span>
-          <span class="svc-meta" v-if="filteredRuntimeLines.length !== runtimeLogLines.length">
-            命中 {{ filteredRuntimeLines.length }}
-          </span>
-        </div>
-
-        <!-- 深色代码面 -->
-        <div ref="consoleRef" class="svc-console" :class="{ 'is-busy': runtimeActive }"
-             tabindex="0" role="log" aria-live="off" aria-label="运行日志内容"
-             @scroll="onConsoleScroll">
-          <span class="svc-scanline" v-if="runtimeActive" aria-hidden="true"></span>
-          <!-- R4：后端非管理员返 200 + {ok:false}，必须与「暂无日志」区分 -->
-          <div class="svc-console__denied" v-if="runtimeDenied">{{ runtimeDenied }}</div>
-          <div class="svc-console__empty" v-else-if="!runtimeLogLines.length">
-            <span class="svc-empty__mark" aria-hidden="true"></span>
-            <b>{{ runtimeLoaded && runtimeExists === false ? '日志文件尚未生成' : '暂无日志输出' }}</b>
-            <i>{{ runtimeLoaded && runtimeExists === false ? '检查服务启动配置是否写入了日志路径' : '该文件存在但没有可用内容' }}</i>
-            <code v-if="runtimePath">{{ runtimePath }}</code>
-          </div>
-          <div class="svc-empty" v-else-if="!filteredRuntimeLines.length">
-            <span class="svc-empty__mark" aria-hidden="true"></span>
-            <b>无匹配行</b><i>共 {{ runtimeLogLines.length }} 行中 0 行命中</i>
-            <button class="svc-alert__act" @click="clearRuntimeFilter">清除过滤</button>
-          </div>
-          <template v-else>
-            <div v-for="(l, idx) in filteredRuntimeLines" :key="idx"
-                 class="svc-line" :class="levelClass(l.level)">
-              <span class="svc-line__no">{{ idx + 1 }}</span>
-              <span class="svc-line__lv" :class="levelClass(l.level)">{{ levelText(l.level) }}</span>
-              <span class="svc-line__raw">{{ l.raw }}</span>
+              <!-- 静默跟随：用户上滚后不硬拽回底，浮出「N 行新日志」药丸 -->
+              <button v-show="!pinned && pendingLines > 0" class="svc-jump"
+                      @click="jumpToBottom">↓ {{ pendingLines }} 行新日志</button>
             </div>
           </template>
-        </div>
 
-        <!-- 静默跟随：用户上滚后不硬拽回底，浮出「N 行新日志」药丸 -->
-        <button v-show="!pinned && pendingLines > 0" class="svc-jump"
-                @click="jumpToBottom">↓ {{ pendingLines }} 行新日志</button>
+          <!-- ═══ tab 2 访问日志 ═══ -->
+          <template #access>
+            <div class="svc-pane svc-pane--access">
+              <div class="svc-toolbar">
+                <el-select v-model="logInstanceId" class="svc-select" @change="onScopeChange">
+                  <el-option label="全部实例" value="" />
+                  <el-option v-for="i in instances" :key="i.id" :label="`${i.name} :${i.port}`" :value="i.id" />
+                </el-select>
+                <el-input v-model="logKeyword" class="svc-search" placeholder="过滤端点 / 模型" clearable />
+                <span class="svc-count"><b>{{ filteredLogs.length }}</b> 条</span>
+                <el-button class="svc-btn" @click="loadLogs">刷新</el-button>
+              </div>
+
+              <div class="svc-alert is-danger" v-if="logsError">
+                <span class="svc-alert__text">访问日志加载失败：{{ logsError }}（该实例可能已停止）</span>
+                <button class="svc-alert__act" @click="loadLogs">重试</button>
+              </div>
+
+              <div class="svc-tablewrap" :class="{ 'is-busy': logsLoading }">
+                <!-- 顶部 2px 扫描条替代 v-loading 遮罩：旧数据保持可读 -->
+                <span class="svc-scanline" v-if="logsLoading" aria-hidden="true"></span>
+
+                <!-- 首屏骨架：6 行灰条（ReTable 无骨架插槽，置于表外同尺寸占位） -->
+                <div class="svc-skelrows" v-if="logsLoading && !logs.length" aria-hidden="true">
+                  <div class="svc-skelrow" v-for="n in 6" :key="'r' + n">
+                    <b class="svc-skel svc-skelcell" style="width: 108px"></b>
+                    <b class="svc-skel svc-skelcell"></b>
+                    <b class="svc-skel svc-skelcell" style="width: 52px"></b>
+                    <b class="svc-skel svc-skelcell" style="width: 92px"></b>
+                    <b class="svc-skel svc-skelcell" style="width: 78px"></b>
+                  </div>
+                </div>
+
+                <ReTable v-else
+                         :data="filteredLogs" :columns="logColumns"
+                         :layout-table="{ maxHeight: 460 }"
+                         :settings="{ border: false, stripe: true }"
+                         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+                         row-key="logId" class="svc-table">
+                  <template #col-callTime="{ row }">
+                    <div class="svc-time">
+                      <b class="svc-time__main">{{ timeMain(row.callTime) }}</b>
+                      <i class="svc-time__sub">{{ timeSub(row.callTime) }}</i>
+                    </div>
+                  </template>
+                  <template #col-endpoint="{ row }">
+                    <!-- 行悬浮详情：4 字段任一缺失 → popover 整体不出现 -->
+                    <el-tooltip placement="top" :disabled="!hasDetail(row)" :show-after="180">
+                      <template #content>
+                        <div class="svc-logdetail">
+                          <div><span class="svc-logdetail__k">端点</span>{{ row.endpoint }}</div>
+                          <div><span class="svc-logdetail__k">方法</span>{{ row.method }}</div>
+                          <div><span class="svc-logdetail__k">来源</span>{{ row.clientIp }}</div>
+                          <div><span class="svc-logdetail__k">用户</span>{{ row.userId }}</div>
+                          <div><span class="svc-logdetail__k">logId</span>{{ row.logId }}</div>
+                        </div>
+                      </template>
+                      <div class="svc-ep">
+                        <span class="svc-ep__method">{{ row.method || '—' }}</span>
+                        <span class="svc-ep__path" :title="row.endpoint">{{ tailPath(row.endpoint) }}</span>
+                      </div>
+                    </el-tooltip>
+                  </template>
+                  <template #col-protocol="{ row }">
+                    <span class="svc-chip is-protocol" v-if="row.protocol">{{ protoLabel(row.protocol) }}</span>
+                  </template>
+                  <template #col-status="{ row }">
+                    <span class="svc-status" :class="httpClass(row.status)">
+                      <b>{{ row.status == null || row.status === 0 ? '—' : row.status }}</b><i>{{ httpText(row.status) }}</i>
+                    </span>
+                  </template>
+                  <template #col-totalTokens="{ row }">
+                    <div class="svc-tok">
+                      <b>{{ rowTotalTokens(row) }}</b>
+                      <i v-if="row.promptTokens != null">{{ row.promptTokens }} / {{ row.completionTokens ?? 0 }}</i>
+                    </div>
+                  </template>
+                  <template #col-latency="{ row }">
+                    <span class="svc-num">{{ formatLatency(row.latency) }}</span>
+                  </template>
+                  <template #empty>
+                    <div class="svc-empty">
+                      <span class="svc-empty__mark" aria-hidden="true"></span>
+                      <b>{{ emptyAccessText }}</b>
+                      <i>{{ emptyAccessHint }}</i>
+                    </div>
+                  </template>
+                </ReTable>
+              </div>
+            </div>
+          </template>
+
+          <!-- ═══ tab 3 令牌 ═══ -->
+          <template #tokens>
+            <div class="svc-pane svc-pane--tokens">
+              <ServiceTokensPanel :instance-id="activeInstance?.id ?? null" />
+            </div>
+          </template>
+        </ReTab>
       </section>
     </div>
 
-    <!-- 新建实例对话框（本次不纳入设计层范围，见 N10） -->
+    <!-- 新建实例对话框 -->
     <ReDialog v-model="showCreateDialog" title="新建服务实例" width="min(500px, 92vw)" append-to-body>
       <el-form :model="newInstance" label-width="100px">
         <el-form-item label="名称">
@@ -582,8 +590,6 @@ const creating = ref(false)
 const activeId = ref<any>(null)
 const activeTab = ref('runtime')
 
-// 注意：这里是 script 作用域，ref 不会像模板那样自动解包，必须写 .value；
-// 不写会得到「Ref 上没有 length」的类型错误（模板里的同名写法是正确的）。
 const logTabs = computed<ReTabItem[]>(() => [
   { name: 'runtime', label: '运行日志', badge: runtimeLogLines.value.length || '' },
   { name: 'access', label: '访问日志', badge: logs.value.length || '' },
@@ -1127,12 +1133,11 @@ onUnmounted(() => {
 }
 .svc-skelcell { height: 12px; display: block; }
 /* 新建实例后新瓦片的 600ms 高亮闪一下，让用户看到插到哪儿了 */
-.svc-tile.is-flash { animation: svc-flash 600ms var(--svc-ease); }
-@keyframes svc-flash {
-  from { background: var(--svc-accent-soft); border-color: var(--svc-accent); }
-  to { background: var(--svc-surface); border-color: var(--svc-rule); }
+.svc-tile.is-flash {
+  animation: svc-flash 0.6s ease-out;
 }
-@media (prefers-reduced-motion: reduce) {
-  .svc-tile.is-flash { animation: none; }
+@keyframes svc-flash {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 3px var(--svc-accent); }
 }
 </style>

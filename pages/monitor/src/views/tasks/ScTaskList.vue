@@ -28,7 +28,7 @@
       </div>
     </ReCard>
 
-    <ReTable :data="filtered" :loading="loading" border stripe class="task-table" :pagination="false" :toolbar="false">
+    <ReTable :data="filtered" :loading="loading" border stripe class="task-table" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
       <ReTableColumn prop="taskName" label="任务名称" min-width="160">
         <template #default="{ row }"><span class="name-cell">{{ row.taskName }}</span></template>
       </ReTableColumn>

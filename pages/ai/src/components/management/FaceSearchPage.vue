@@ -9,7 +9,7 @@
             <el-icon :size="46" class="fs-drop-icon"><Picture /></el-icon>
             <p class="fs-drop-title">上传一张照片，开始识别人脸</p>
             <p class="fs-drop-desc">点击选择图片，或把照片拖到这里</p>
-            <el-button type="primary" class="fs-drop-btn" :disabled="!faceReady" @click.stop="pickImage">
+            <el-button type="primary" class="fs-drop-btn" :disabled="!faceUsable" @click.stop="pickImage">
               <el-icon><FolderOpened /></el-icon>选择图片
             </el-button>
           </div>
@@ -67,13 +67,14 @@
 
             <!-- 106 点层的状态说明：推理中 / 不可用的原因（不打断检测与识别） -->
             <div v-if="showLandmark106 && (landmark106Busy || landmark106Error)" class="fs-lm-hint">
-              <TechScanLoader v-if="landmark106Busy" size="sm" inline />
+              <!-- 小尺寸内联用双环：海浪在这个体量下细节全糊，看不出在转 -->
+              <ReLoader v-if="landmark106Busy" loading size="sm" :fullscreen="false" :mask="false" />
               <span>{{ landmark106Busy ? '正在提取 106 点特征点…' : landmark106Error }}</span>
             </div>
 
-            <!-- 识别中遮罩 -->
+            <!-- 识别中遮罩：统一走 ReLoader 的海浪动画（默认加载形态） -->
             <div v-if="detecting" class="fs-mask">
-              <TechScanLoader size="lg" />
+              <ReLoader loading size="lg" :fullscreen="false" />
               <span class="fs-mask-text">正在识别人脸…</span>
             </div>
 
@@ -181,28 +182,28 @@
           <p class="fs-blank-desc">{{ blankDesc }}</p>
         </div>
 
-        <!-- 相册：已登记档案 -->
-        <div v-if="registry.records.value.length" class="fs-gallery">
+        <!-- 相册：已登记档案（以服务端列表为权威，本地登记簿只为有缩略图的条目补图） -->
+        <div v-if="serverFaceCount > 0" class="fs-gallery">
           <button
-            v-for="r in registry.records.value"
-            :key="r.id"
+            v-for="f in serverFaces"
+            :key="f.id"
             class="fs-thumb"
-            :class="{ 'is-active': galleryKey === r.id }"
-            :title="`${r.name} · ${ageBucket(r.age)}`"
-            @click="galleryKey = r.id"
+            :class="{ 'is-active': galleryKey === f.id }"
+            :title="`${f.name} · ${ageBucket(f.age)}`"
+            @click="galleryKey = f.id"
           >
-            <img v-if="r.thumb" :src="r.thumb" :alt="r.name" />
+            <img v-if="galleryThumb(f.id)" :src="galleryThumb(f.id)" :alt="f.name" />
             <el-icon v-else><User /></el-icon>
           </button>
         </div>
 
         <!-- 主行动 -->
-        <el-button class="fs-cta" :disabled="busy || !faceReady" @click="openEnroll">
+        <el-button class="fs-cta" :disabled="busy || !faceUsable" @click="openEnroll">
           <el-icon><Star /></el-icon>人脸登记入库
         </el-button>
         <p class="fs-gallery-hint">
-          已登记 <b>{{ registry.records.value.length }}</b> 张
-          <span v-if="registry.records.value.length && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
+          已登记 <b>{{ serverFaceCount }}</b> 张
+          <span v-if="serverFaceCount && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
         </p>
 
         <!-- 当前模型（只读，取自系统设置；未配置时明确显示「未配置」而不是种子模型名） -->
@@ -218,7 +219,7 @@
           与以图搜图的 .is-hint 同一套语言：说清「差哪几项」和「去哪儿配」，
           而不是让用户上传一张图之后才在后端报「模型未注册」。
         -->
-        <div v-if="!faceReady" class="fs-gate">
+        <div v-if="!faceUsable" class="fs-gate">
           <el-icon><Warning /></el-icon>
           <div>
             <p class="fs-gate-title">人脸识别未启用</p>
@@ -235,8 +236,9 @@
           v-for="tool in railItems"
           :key="tool.key"
           class="fs-rail-btn"
-          :class="{ 'is-on': tool.active() }"
+          :class="[{ 'is-on': tool.active() }, tool.cls || '']"
           :title="tool.title"
+          :disabled="tool.disabled ? tool.disabled() : false"
           @click="tool.toggle"
         >
           <el-icon :size="18"><component :is="tool.icon" /></el-icon>
@@ -254,14 +256,14 @@ import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import {
-  Aim, Check, Crop, FolderOpened, Picture, Refresh, Search, Setting, Star, User, View, Warning,
+  Aim, Check, Crop, Delete, FolderOpened, Picture, Refresh, Search, Setting, Star, User, View, Warning,
 } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
 import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { configuredValue } from '@/utils/modelConfigStatus'
-import TechScanLoader from '@/components/ui/TechScanLoader.vue'
+import ReLoader from '@repo/ui/re-loader'
 import FaceEnrollDialog from './FaceEnrollDialog.vue'
 
 /** 相似度环周长：r=54 → 2πr */
@@ -311,6 +313,12 @@ const landmarkReady = computed(() => configuredValue(faceMerged.value, 'landmark
  */
 const faceReady = computed(() => modelConfig.faceReady)
 
+/** 已配置但当前不在 /api/providers 注册清单里的模型字段（登记/识别会报“模型未注册”） */
+const faceUnregistered = computed(() => modelConfig.unregisteredConfigured)
+
+/** 页面主入口可用：字段配齐且注册清单可用（清单加载失败时放行，交给后端兜底） */
+const faceUsable = computed(() => modelConfig.faceReady && modelConfig.unregisteredConfigured.length === 0)
+
 /** 缺失模型字段的中文名（与设置中心的 labelMap 同套文案） */
 const FACE_FIELD_LABELS: Record<string, string> = {
   detector_model: '人脸检测模型',
@@ -321,6 +329,24 @@ const FACE_FIELD_LABELS: Record<string, string> = {
 const faceMissingLabels = computed(() =>
   modelConfig.faceMissing.map((f) => FACE_FIELD_LABELS[f] ?? f).join('、'),
 )
+
+/** 已配置但未注册的模型字段（中文名，用于提示） */
+const faceUnregisteredLabels = computed(() =>
+  faceUnregistered.value.map((f) => FACE_FIELD_LABELS[f] ?? f).join('、'),
+)
+
+/** 未注册时的统一提示：引导去设置中心换模型，而不是反复上传重试 */
+const NOT_REGISTERED_MSG = computed(
+  () =>
+    `人脸识别模型当前不可用：${faceUnregisteredLabels.value} 已配置的模型未在后端注册。` +
+    '请到「系统设置 → 默认模型 → 人脸识别」重新选择当前可用的模型',
+)
+
+/** 门禁拦截时的提示：未配置 / 已配置但未注册，各给各的文案 */
+function gateWarning(): string {
+  if (faceUnregistered.value.length) return NOT_REGISTERED_MSG.value
+  return '人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型'
+}
 const pickedId = ref('')
 const galleryKey = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -367,20 +393,56 @@ const registry = useFaceRegistry()
  * 现在以服务端 `GET /v2/face/list` 为权威来源，本地登记簿只用来补服务端不存的缩略图。</p>
  */
 const serverMeta = ref<Record<string, Record<string, unknown>>>({})
+/** 服务端人脸库条目（全量；计数与图廊以它为准，本地登记簿只补缩略图） */
+const serverFaces = ref<Array<{ id: string; name: string; age: number | null }>>([])
+/** 服务端人脸库总数（服务端权威的「已登记 N 张」） */
+const serverFaceCount = ref(0)
+
+/** 图廊缩略图：优先取本地登记簿（登记该条目的浏览器存过图），没有则回退为 User 占位图标 */
+function galleryThumb(id: string): string {
+  return registry.byId(String(id))?.thumb ?? ''
+}
 
 async function loadServerMeta() {
   try {
-    const { items } = await apiService.listFaces()
+    const { items, total } = await apiService.listFaces()
     const map: Record<string, Record<string, unknown>> = {}
+    const faces: Array<{ id: string; name: string; age: number | null }> = []
+    const serverIds = new Set<string>()
     for (const it of items) {
       const id = String((it as Record<string, unknown>)?.id ?? '')
       if (!id) continue
+      serverIds.add(id)
       const md = (it as Record<string, unknown>)?.metadata
-      map[id] = md && typeof md === 'object' ? (md as Record<string, unknown>) : {}
+      const meta = md && typeof md === 'object' ? (md as Record<string, unknown>) : {}
+      map[id] = meta
+      const local = registry.byId(String(id))
+      const ageRaw = meta.age ?? local?.age
+      faces.push({
+        id,
+        name: String(meta.name ?? meta.label ?? local?.name ?? id),
+        age: typeof ageRaw === 'number' && Number.isFinite(ageRaw) ? ageRaw
+          : ageRaw == null || ageRaw === '' ? null : Number(ageRaw),
+      })
     }
     serverMeta.value = map
+    serverFaces.value = faces
+    // 服务端不传分页即返回全量，total 即真实底库数；个别后端缺 total 时按 items 长度兜底
+    serverFaceCount.value = typeof total === 'number' && total >= 0 ? total : items.length
+    // 以服务端为权威清理本地登记簿幽灵条目（服务端已删、本地 localStorage 残留）——
+    // 注意：图廊与「已登记 N 张」都以服务端列表渲染，清理本地不影响计数显示。
+    if (items.length > 0 || registry.records.value.length > 0) {
+      let changed = false
+      for (const r of [...registry.records.value]) {
+        if (!serverIds.has(r.id)) {
+          registry.remove(r.id)
+          changed = true
+        }
+      }
+      if (changed) console.info('[人脸识别] 已按服务端列表清理本地登记簿幽灵条目')
+    }
   } catch {
-    // 拉不到就退回本地登记簿（不阻断识别本身）
+    // 拉不到就退回本地登记簿（不阻断识别本身）；计数保持上次值
     serverMeta.value = {}
   }
 }
@@ -513,6 +575,10 @@ interface RailTool {
   toggle: () => void
   /** 返回 false 时该按钮**不渲染**（如 landmark 模型未配置就不显示特征点开关） */
   visible?: () => boolean
+  /** 返回 true 时该按钮置灰（常驻但当前不可用，如空态的清空） */
+  disabled?: () => boolean
+  /** 附加样式类（如清空按钮的 is-danger 危险色悬停） */
+  cls?: string
 }
 
 /** 右缘悬浮工具条 */
@@ -534,13 +600,32 @@ const RAIL: RailTool[] = [
     visible: () => landmarkReady.value,
   },
   {
+    key: 'pick',
+    title: '选择/更换上传图片',
+    icon: FolderOpened,
+    active: () => false,
+    toggle: () => pickImage(),
+  },
+  {
     key: 'enroll',
     title: '人脸登记入库',
     icon: Star,
     active: () => enrollVisible.value,
     toggle: () => { openEnroll() },
-    // 检测/特征模型未配齐时登记必然失败，入口不渲染（与 landmark106 同一口径）
-    visible: () => faceReady.value,
+    // 检测/特征模型未配齐或已配置但未注册时登记必然失败，入口不渲染
+    visible: () => faceUsable.value,
+  },
+  {
+    key: 'clear',
+    title: '清空当前图片与识别结果（不影响已登记底库）',
+    icon: Delete,
+    // 动作类按钮：不表示"开启中"，只借 active 关闭态做置灰
+    active: () => false,
+    toggle: () => { clearWorkspace() },
+    // 常驻置灰：空态保留按钮位置，有内容才可点
+    disabled: () => !hasWorkspace.value,
+    // 危险动作：悬停给红色，避免与旁边几个"开关"混淆
+    cls: 'is-danger',
   },
 ]
 
@@ -572,10 +657,10 @@ const foundSub = computed(() => {
 })
 
 function openEnroll() {
-  // 登记同样依赖检测 + 特征模型：未配齐时不打开对话框，
+  // 登记同样依赖检测 + 特征模型：未配齐或不注册时不打开对话框，
   // 否则用户填完档案才在第一步（检测）失败。
-  if (!faceReady.value) {
-    message.warning(NOT_READY_MSG)
+  if (!faceUsable.value) {
+    message.warning(gateWarning())
     return
   }
   enrollVisible.value = true
@@ -597,15 +682,11 @@ async function loadModels() {
   await modelConfig.load()
 }
 
-/** 模型未配齐时的统一提示（ upload / 识别 / 登记 三处共用一句口径） */
-const NOT_READY_MSG =
-  '人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型'
-
 function pickImage() {
-  // 模型未配齐：连文件选择器都不弹（不是选完才拦）——「选择图片」按钮已 disabled，
+  // 模型未配齐或未注册：连文件选择器都不弹（不是选完才拦）——「选择图片」按钮已 disabled，
   // 空态区点击与拖放同样走这里，一句话说清差哪几项、去哪儿配。
-  if (!faceReady.value) {
-    message.warning(NOT_READY_MSG)
+  if (!faceUsable.value) {
+    message.warning(gateWarning())
     return
   }
   fileInput.value?.click()
@@ -619,9 +700,9 @@ function onFilePicked(e: Event) {
 }
 
 async function loadFile(file: File) {
-  // 模型未配齐：不进入识别流程（上传/拖放两条入口都经过这里）
-  if (!faceReady.value) {
-    message.warning(NOT_READY_MSG)
+  // 模型未配齐或未注册：不进入识别流程（上传/拖放两条入口都经过这里）
+  if (!faceUsable.value) {
+    message.warning(gateWarning())
     return
   }
   revokePreview()
@@ -643,6 +724,36 @@ function revokePreview() {
   previewUrl.value = ''
 }
 
+/**
+ * 清空当前工作区：当前图片 + 检测/识别结果 + 叠加数据。
+ *
+ * <p>只清「这一次上传的临时状态」，**不动已登记的人脸库** —— 底库是用户长期资产，
+ * 用一个悬浮条按钮就抹掉属于误导性破坏。底库管理在「系统设置 → 底库 → 人脸底库」。</p>
+ *
+ * <p>顺带把叠加层开关恢复默认：清空后画面回到初始空态，用户下一次上传
+ * 期望看到的是默认标注（人脸框/关键点/相似度环都开），而不是上次调过的组合。</p>
+ */
+function clearWorkspace() {
+  revokePreview()
+  natural.value = { w: 1, h: 1 }
+  hits.value = []
+  matches.value = []
+  pickedId.value = ''
+  galleryKey.value = ''
+  identifyDone.value = false
+  landmarks106.value = []
+  landmark106Error.value = ''
+  landmark106Busy.value = false
+  showBox.value = true
+  showLandmark.value = true
+  showRing.value = true
+}
+
+/** 是否有可清空的内容（决定按钮是否可点、要不要置灰） */
+const hasWorkspace = computed(
+  () => !!previewUrl.value || hits.value.length > 0 || matches.value.length > 0,
+)
+
 /** 读图片原始尺寸，作为叠加层 viewBox */
 function readNaturalSize(url: string): Promise<{ w: number; h: number }> {
   return new Promise((resolve) => {
@@ -655,8 +766,8 @@ function readNaturalSize(url: string): Promise<{ w: number; h: number }> {
 
 async function runDetect(file: File) {
   // 双保险：门禁可能在会话中途被改空（设置中心清空了模型），这里再挡一次
-  if (!faceReady.value) {
-    message.warning(NOT_READY_MSG)
+  if (!faceUsable.value) {
+    message.warning(gateWarning())
     return
   }
   detecting.value = true
@@ -739,8 +850,8 @@ async function runLandmark106() {
 /** 1:N 识别：拿当前照片与向量库比对 */
 async function runIdentify() {
   if (!previewUrl.value) return
-  if (!faceReady.value) {
-    message.warning(NOT_READY_MSG)
+  if (!faceUsable.value) {
+    message.warning(gateWarning())
     return
   }
   identifying.value = true
@@ -767,8 +878,8 @@ async function runIdentify() {
 
 /** 裁剪脸部：用检测返回的裁剪图再识别一次，聚焦面部区域 */
 async function recognizeCrop() {
-  if (!faceReady.value) {
-    message.warning(NOT_READY_MSG)
+  if (!faceUsable.value) {
+    message.warning(gateWarning())
     return
   }
   const hit = mainHit.value
@@ -974,7 +1085,7 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-/* 遮罩文字：跟 TechScanLoader 的文字区分开，这里是说明性长句 */
+/* 遮罩文字：跟 ReLoader 动画本体的文字区分开，这里是说明性长句 */
 .fs-mask-text {
   font-size: 14px;
   color: var(--fs-muted);
@@ -1458,10 +1569,24 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
 }
 
+.fs-rail-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 清空是「动作」不是「开关」：常态与开关一致，只在悬停时转成危险色，
+   让用户点之前就知道这一步是丢弃当前结果 */
+.fs-rail-btn.is-danger:hover {
+  color: var(--el-color-danger);
+  border-color: color-mix(in srgb, var(--el-color-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--fs-card));
+}
+
 .fs-hidden { display: none; }
 
 /* 尊重系统「减少动态效果」偏好。
-   TechScanLoader 内部已自行处理（环停转、中心点常亮、扫描线半透明），
+   ReLoader 的动画变体内部已自行降级（保留旋转/摆动但放慢，避免"看着没动"），
    这里只停原本地组件自身的过渡与悬浮位移。 */
 @media (prefers-reduced-motion: reduce) {
   .fs-drop,
@@ -1478,3 +1603,5 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+
+

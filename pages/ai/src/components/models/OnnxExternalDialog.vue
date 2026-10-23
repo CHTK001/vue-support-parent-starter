@@ -1,6 +1,6 @@
 <template>
-  <LDialog :model-value="modelValue" @update:model-value="(v) => emit('update:modelValue', v)"
-    title="添加 ONNX 外部模型目录" width="620px">
+  <ReDialog :model-value="modelValue" @update:model-value="(v) => emit('update:modelValue', v)"
+    title="添加 ONNX 外部模型目录" width="620px" append-to-body>
     <div class="oxd">
       <!-- 1. 服务器模型目录 -->
       <div class="oxd-field">
@@ -53,14 +53,14 @@
     <!-- 服务器目录选择器 -->
     <ReFilePicker v-model="filePickerVisible" title="选择模型目录" directory-mode initial-path="/"
       :loader="dirLoader" @select="onDirPicked" />
-  </LDialog>
+  </ReDialog>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Search, FolderOpened } from '@element-plus/icons-vue'
 import { CheckCircleFilled } from '@vicons/material'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReFilePicker from '@repo/ui/re-file-picker'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'

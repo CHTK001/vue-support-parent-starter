@@ -56,6 +56,13 @@ const props = withDefaults(
      *   - true：整个底部区域不渲染（即使有 #footer 插槽，与历史语义一致）。
      */
     footerHidden?: boolean;
+    /**
+     * 是否显示右上角关闭按钮（默认 true）。
+     *
+     * <p>与基类 ReDialog 对齐：业务传了自定义 #header 时，窗口壳不会被渲染，
+     * 原生关闭按钮必须补上，否则弹窗只能靠底部「关闭」按钮兜底。</p>
+     */
+    showClose?: boolean;
     /** 是否显示右上角窗口壳操作区（收起 / 全屏 / 关闭） */
     showWindowShell?: boolean;
     /** 最小化按钮是否显示（默认仅关闭可见） */
@@ -99,6 +106,7 @@ const props = withDefaults(
     // 会被 Vue 强转成 false（runtime-core resolvePropValue: isAbsent && !hasDefault → false），
     // 三态里的「未传」将永远不可达；default: undefined 使 hasOwn(default) 成立、跳过强转。
     footerHidden: undefined,
+    showClose: true,
     showWindowShell: true,
     showMinimize: false,
     showFullscreen: false,
@@ -168,6 +176,19 @@ const emit = defineEmits<{
   (e: "confirm"): void;
   (e: "ok"): void;
   (e: "cancel"): void;
+  /**
+   * 生命周期事件：显式声明并从内部 ElDialog 转发。
+   *
+   * <p>不声明时这些监听器留在 `$attrs` 里、靠 `<ElDialog v-bind="$attrs">` 透传，
+   * 能工作但属隐式依赖；声明后由本组件负责转发，语义与 LDialog 的
+   * open/close/closed 一致，从 LDialog 迁过来的页面不必改监听器。</p>
+   *
+   * <p><b>注意</b>：声明会把这些监听器从 `$attrs` 摘走，所以下面必须在 ElDialog
+   * 上显式 emit，否则等于把事件丢掉。</p>
+   */
+  (e: "open"): void;
+  (e: "close"): void;
+  (e: "closed"): void;
 }>();
 
 function koiClose() {
@@ -224,7 +245,10 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :fullscreen="dialogFullscreen"
     :z-index="props.zIndex"
     :loading="loading"
-    :show-close="!headless && !showWindowShell && !$slots.header"
+    :show-close="!headless && showClose && (!!$slots.header || !showWindowShell)"
+    @open="emit('open')"
+    @close="emit('close')"
+    @closed="emit('closed')"
   >
     <!-- 业务自定义 header 优先：直接放进 ElDialog 的 #header，避免 ElDialog
          再按 title 渲染一层默认标题，造成双 header。 -->

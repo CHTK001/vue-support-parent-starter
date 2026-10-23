@@ -100,6 +100,8 @@ export interface ReTableColumnState {
   order: string[];
   /** 隐藏的列 prop 集合 */
   hidden: string[];
+  /** 拖拽调整后的列宽（按 prop 记录，px）；仅记录用户改过的列，未改的列沿用列定义的 width */
+  widths?: Record<string, number>;
 }
 
 /** 表格完整持久化状态（列配置 + 分页 + 设置 + 布局） */
@@ -114,6 +116,13 @@ export interface ReTableFullState extends ReTableColumnState {
   settings?: ReTableSettings;
   /** 布局（表格 / 视图 / 卡片） */
   layout?: ReTableSwitchLayout;
+  /**
+   * 内置搜索区的筛选条件快照（仅 search 配置了 filters 的表写入）。
+   *
+   * <p>恢复的前提：页面没有传初始 {@code searchModel}（页面显式给值视为受控，不覆盖）。
+   * 仅远程模式会因恢复而补一次取数；本地数组模式只回填表单值。</p>
+   */
+  searchModel?: Record<string, unknown>;
   /** 排序字段 */
   sortProp?: string;
   /** 排序方向 */
@@ -121,8 +130,7 @@ export interface ReTableFullState extends ReTableColumnState {
 }
 
 /** 表格外观设置 */
-export interface ReTableSettings {
-  /** 斑马纹 */
+export interface ReTableSettings {  /** 斑马纹 */
   stripe?: boolean;
   /** 边框（默认 true） */
   border?: boolean;
@@ -134,6 +142,22 @@ export interface ReTableSettings {
   crosshairHighlight?: boolean;
   /** 可调整列宽（需 border 模式，默认 true） */
   resizable?: boolean;
+  /**
+   * 记住页码（默认 true）。
+   *
+   * <p>按 {@code tableId} 各自独立：刷新 / 重进页面时回到上次所在页。关闭后不再恢复，
+   * 且下一次保存会清掉已存页码。仅 {@code paginationMode="pager"} 生效
+   * （滚动分页始终从第 1 批开始）。</p>
+   */
+  pageCache?: boolean;
+  /**
+   * 键盘快捷键（默认 true）。
+   *
+   * <p>← / → 切换上一页 / 下一页。独立开关：某些页面方向键另有用途（画布、甘特图、
+   * 图表横向浏览）时需要能整体关掉。生效范围仅限「当前归属」的表格 ——
+   * focus 优先、其次 hover，一页多表时互不干扰。</p>
+   */
+  shortcuts?: boolean;
 }
 
 /** 表格布局模式：table（默认）/ view / card；modern / virtual / canvas / radial 已随功能下线移除 */
@@ -333,25 +357,44 @@ export interface ReTableToolbarBatchEdit {
   handler: (rows: Record<string, unknown>[]) => void | Promise<void>;
 }
 
+/**
+ * toolbar 单个按钮的配置（刷新 / 列设置 / 表格设置共用）。
+ *
+ * <p>与批量按钮同一种思路：写成对象就能挂 {@code handler}。给了 handler 时点击执行它，
+ * 不再走组件内置行为（例如刷新按钮就不再自动 reload，交给调用方决定怎么刷）。</p>
+ */
+export interface ReTableToolbarButton {
+  /** 是否启用（默认 true；等价于旧写法传 false 关掉） */
+  enable?: boolean;
+  /** 悬浮提示（覆盖组件默认文案） */
+  tip?: string;
+  /** 图标（覆盖组件默认图标） */
+  icon?: any;
+  /** 自定义点击行为；不传则走组件内置行为 */
+  handler?: () => void | Promise<void>;
+}
+
 /** toolbar 配置 */
 export interface ReTableToolbarConfig {
+  /** 是否显示工具栏（等价于顶层 toolbar prop；两者都写时以本字段为准） */
+  enable?: boolean;
   /** 是否启用批量删除 */
   batchDelete?: boolean | ReTableToolbarBatchDelete;
   /** 是否启用批量选择（checkbox 列） */
   batchSelect?: boolean | ReTableToolbarBatchSelect;
   /** 是否启用批量修改（编辑→保存切换） */
   batchEdit?: boolean | ReTableToolbarBatchEdit;
-  /** 是否显示刷新按钮（默认 true） */
-  refresh?: boolean;
+  /** 是否显示刷新按钮（默认 true；可传对象以挂自定义 handler） */
+  refresh?: boolean | ReTableToolbarButton;
   /**
    * 是否显示列设置按钮（默认 true）。
    * 注意：列改由 `<ReTableColumn>` 子节点声明（未传 `columns` prop）时，ReTable 会强制关掉它
    * —— 列设置面板只读 `props.columns`，那种写法下按钮点开是空面板（死按钮）。
    * 表现就是「有的表 3 个按钮、有的只有表格设置+刷新」。
    */
-  columnSettings?: boolean;
-  /** 是否显示表格设置按钮（默认 true） */
-  tableSettings?: boolean;
+  columnSettings?: boolean | ReTableToolbarButton;
+  /** 是否显示表格设置按钮（默认 true；可传对象覆盖提示） */
+  tableSettings?: boolean | ReTableToolbarButton;
   /**
    * toolbar 位置：'top' 表格上方（默认） | 'bottom' 与分页行同行。
    * 默认 'top'：批量操作按钮渲染在表格上方，分页行只保留右侧工具区（列设置/表格设置/刷新）。
@@ -480,3 +523,83 @@ export type ReTableAutoRefresh = boolean | {
   showCountdown?: boolean;
 };
 
+
+// ============================================================================
+// 分组配置（新 API，向后兼容）
+// ============================================================================
+
+/**
+ * 分页组配置。
+ *
+ * <p>把原来散落的 `pagination` / `page` / `pageSize` / `pageSizes` /
+ * `paginationMode` / `paginationModeSwitch` / `paginationModePersist` /
+ * `paginationLayout` / `autoReload` 收进一个对象。</p>
+ *
+ * <p><b>优先级</b>：本对象里的值 > 同名顶层 prop > 内置默认值。所以旧写法的页面
+ * 完全不受影响，新页面可以只写分组。</p>
+ */
+export interface ReTablePaginationConfig {
+  /** 是否启用分页（默认 true） */
+  enable?: boolean;
+  /** 当前页码（受控；等价于顶层 page） */
+  page?: number;
+  /** 每页条数（受控；等价于顶层 pageSize） */
+  pageSize?: number;
+  /** 可选每页条数档位（等价于顶层 pageSizes） */
+  pageSizes?: number[];
+  /** 分页方式：pager（页码）/ scroll（滚动追加） */
+  mode?: RePaginationMode;
+  /** 是否给用户「分页 / 滚动」切换入口 */
+  modeSwitch?: boolean;
+  /** 切换后的选择是否随 tableId 持久化（默认 true） */
+  modePersist?: boolean;
+  /** 页码 / 参数变化后是否自动重新取数（默认 true） */
+  autoReload?: boolean;
+  /** 是否记住页码（写入表格设置，默认 true） */
+  remember?: boolean;
+}
+
+/**
+ * ReTable 分组配置（新 API）。
+ *
+ * <p>目标是把 40+ 个平行 props 按功能收成几个对象，调用方只需记住
+ * 「分页 / 工具栏 / 搜索 / 选择」四件事。所有字段都可选，且与旧 props 并存 ——
+ * 分组值优先，未写的字段继续读旧 props，因此可以逐页迁移。</p>
+ */
+export interface ReTableGroupedConfig {
+  /** 分页 */
+  pagination?: ReTablePaginationConfig;
+  /**
+   * 工具栏（与页面上旧的 toolbarConfig prop 同构）。
+   *
+   * <p>分组里的字段优先；未写的字段继续读旧 toolbarConfig。{@code enable} 对应旧的
+   * 顶层 `toolbar` prop —— 于是「工具栏开关 + 各按钮配置」也能收进一个对象。</p>
+   */
+  toolbar?: ReTableToolbarConfig;
+  /**
+   * 内置搜索区。
+   *
+   * <p>{@code false} 关闭；对象形态在旧 {@code search} prop 的全部字段基础上多了
+   * {@code enable}（写 false 等同于整体关闭，便于「配置留着、开关关掉」）。</p>
+   */
+  search?: boolean | ReTableSearchGroupConfig;
+  /**
+   * 行选择（常驻复选框列）。
+   *
+   * <p>对应旧的 {@code showSelection} prop。注意只是「常驻勾选列」，批量动作仍由
+   * {@code toolbar.batchDelete / batchSelect / batchEdit} 控制。</p>
+   */
+  selection?: ReTableSelectionGroupConfig;
+}
+
+/** 搜索组配置（旧 ReTableSearchConfig + enable 开关） */
+export interface ReTableSearchGroupConfig extends ReTableSearchConfig {
+  /** 是否启用（false 时整块关闭，但 filters 等配置可以保留） */
+  enable?: boolean;
+}
+
+/** 选择组配置 */
+export interface ReTableSelectionGroupConfig {
+  /** 是否常驻勾选列（等价于旧的 showSelection prop） */
+  enable?: boolean;
+}

@@ -119,13 +119,12 @@
           :data="(services.slice(0, 8)) as unknown as Record<string, unknown>[]"
           :columns="serviceColumns"
           engine="element"
-          :pagination="false"
-          :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
           class="apm-table rank-table"
           empty-text="暂无服务数据"
           @row-click="() => router.push('/endpoints')"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-service="{ row }">
             <span class="mono service-cell">{{ row.service }}</span>
@@ -147,13 +146,12 @@
           :data="(slowCalls.slice(0, 5)) as unknown as Record<string, unknown>[]"
           :columns="slowCallColumns"
           engine="element"
-          :pagination="false"
-          :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
           class="apm-table rank-table"
           empty-text="暂无慢调用"
           @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-operation="{ row }">
             <span class="mono service-cell">{{ String(row.operation ?? "—").slice(0, 22) }}</span>
@@ -173,13 +171,12 @@
           :data="(errorRanking.slice(0, 5)) as unknown as Record<string, unknown>[]"
           :columns="errorRankingColumns"
           engine="element"
-          :pagination="false"
-          :toolbar="false"
           :settings="{ border: false }"
           :layout-table="{ minHeight: 0 }"
           class="apm-table rank-table"
           empty-text="暂无错误"
           @row-click="() => router.push('/errors')"
+          :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         >
           <template #col-errorType="{ row }">
             <span class="mono err-text">{{ String(row.errorType ?? "—").slice(0, 16) }}</span>
