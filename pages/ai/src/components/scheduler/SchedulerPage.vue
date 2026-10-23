@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col">
+  <div class="h-full overflow-hidden flex flex-col" data-page="scheduler">
     <PageHeader />
     <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Tab 头部（固定不滚动） -->

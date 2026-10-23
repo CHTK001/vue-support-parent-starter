@@ -1,5 +1,5 @@
 <template>
-  <RePage title="模型管理" subtitle="模型清单与别名、上下架状态">
+  <RePage data-page="models-admin" title="模型管理" subtitle="模型清单与别名、上下架状态">
     <template #actions>
       <el-input
         v-model="searchKeyword"

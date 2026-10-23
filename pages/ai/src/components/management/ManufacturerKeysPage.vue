@@ -1,5 +1,5 @@
 <template>
-  <RePage title="厂商Key管理" subtitle="各模型厂商的 API Key 与限额">
+  <RePage data-page="mfr-keys" title="厂商Key管理" subtitle="各模型厂商的 API Key 与限额">
     <template #actions>
       <el-input
         v-model="searchKeyword"

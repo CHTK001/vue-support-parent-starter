@@ -1,5 +1,5 @@
 <template>
-  <div class="asr-page">
+  <div class="asr-page" data-page="asr">
     <ReCard title="音频识别" subtitle="上传或录制音频，用已配置的 ASR 模型转写为文字">
       <template #extra>
         <span v-if="modelReady" class="asr-model-badge">

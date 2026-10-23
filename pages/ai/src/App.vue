@@ -16,6 +16,9 @@
         onClick: item.action || (() => { }),
     }))" @close="globalMenuVisible = false" />
 
+    <!-- 设计探索临时组件 — 落地后删除 -->
+    <DesignVariantSwitcher v-if="isDev" />
+
 </template>
 
 <script setup>
@@ -35,6 +38,8 @@ import ContextMenuManager from './utils/ContextMenuManager'
 // "Failed to resolve component: ContextMenu" 警告并把该节点的渲染中断，
 // 连带整个 App 子树变空白（表现为路由能跳转但页面全白、无任何报错）。
 import ContextMenu from './components/ui/ContextMenu.vue'
+// 设计探索临时组件 — 落地后删除
+import DesignVariantSwitcher from './components/dev/DesignVariantSwitcher.vue'
 
 const router = useRouter()
 const title = useTitle()

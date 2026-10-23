@@ -1,0 +1,117 @@
+/* ============================================================================
+   全站美化变体 · 基座（var-base.css）
+
+   背景：全站 36 个页面根容器已统一挂上 `data-page="<id>"` 锚点。
+   但**页面头**并非统一 —— 现状只有两套可复用外壳：
+     · `RePage`      （12 个管理页）
+     · `PageHeader`  （8 个页面）
+   其余页面（用量 / 图像生成 / 识别 / 检索等）各自写死了标题结构，
+   通用选择器无法安全命中，本文件**不假装覆盖它们**，
+   而是只保证「命中范围内的页面视觉一致」（见第七节：覆盖范围）。
+
+   作用域：`html[data-dv="<variant>"]`。未设 data-dv 时零影响。
+   ========================================================================== */
+
+/* ---------- 1. 变体共用刻度变量 ---------- */
+html[data-dv] [data-page] {
+  --dv-gap: 16px;
+  --dv-pad-x: 24px;
+  --dv-pad-y: 20px;
+  --dv-radius: var(--radius-lg, 12px);
+  --dv-head-bg: var(--el-fill-color-light);
+  --dv-head-border: 1px solid var(--el-border-color-lighter);
+  --dv-title-size: 16px;
+  --dv-title-weight: 600;
+  min-width: 0;
+}
+
+/* ---------- 2. RePage 外壳 ---------- */
+html[data-dv] .re-page {
+  padding: var(--dv-pad-y) var(--dv-pad-x);
+  gap: var(--dv-gap);
+}
+
+html[data-dv] .re-page__head {
+  border-radius: var(--dv-radius);
+  background: var(--dv-head-bg);
+  border: var(--dv-head-border);
+}
+
+html[data-dv] .re-page__title {
+  font-size: var(--dv-title-size);
+  font-weight: var(--dv-title-weight);
+  letter-spacing: -0.01em;
+}
+
+html[data-dv] .re-page__body {
+  gap: var(--dv-gap);
+}
+
+/* ---------- 3. PageHeader 外壳（顶部工具条） ----------
+   它是一个 h-11 的 flex 条，内部标题用 Tailwind text-sm。
+   变体通过字号/字重/底色表达差异，不改结构。 */
+html[data-dv] .drag-region {
+  background: var(--dv-head-bg);
+  border-bottom: var(--dv-head-border);
+}
+
+/* ---------- 3.1 自绘页面头：接管页面主标题 ----------
+   这些页面没有统一外壳，但有共同的「页面主标题」概念。
+   由 page-title-unify.css 先拉齐规格，这里再按变体调节。 */
+html[data-dv] [data-page] .page-title,
+html[data-dv] [data-page] .wg-title,
+html[data-dv] [data-page] .chm-head__title,
+html[data-dv] [data-page] .svc-head__title,
+html[data-dv] [data-page] .is-brand-title {
+  font-size: var(--dv-title-size);
+  font-weight: var(--dv-title-weight);
+  letter-spacing: -0.01em;
+}
+
+/* ---------- 4. 自建 .page-header（少数页面用得到） ---------- */
+html[data-dv] .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-radius: var(--dv-radius);
+  background: var(--dv-head-bg);
+  border: var(--dv-head-border);
+}
+
+/* ---------- 5. 卡片 / 表格 / 空态 ---------- */
+html[data-dv] .re-surface {
+  border-radius: var(--dv-radius);
+}
+
+html[data-dv] .el-card {
+  border-radius: var(--dv-radius);
+}
+
+/* ---------- 6. 动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-dv] [data-page] * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================================
+   7. 覆盖范围（诚实声明，避免"以为全站都改了"）
+
+   完全覆盖（有统一外壳，变体可整体换装）：
+     RePage   —— connectors / agents / skills / settings / app-keys /
+                 mfr-keys / service-tokens / trace / capability / services /
+                 models-admin / usage-sync
+     PageHeader —— chat / characters / bot / plugins / scheduler /
+                 system-settings / models / knowledge-base
+
+   部分覆盖（只有内容区受变体影响，页面头是页面自绘）：
+     usage / image-gen / colorize / ocr / face / asr / tts /
+     image-search / channel / service / tavern / connector-chat / kb-overview
+
+   未覆盖：
+     login / password（独立全屏页，不参与全站版式）
+   ========================================================================== */

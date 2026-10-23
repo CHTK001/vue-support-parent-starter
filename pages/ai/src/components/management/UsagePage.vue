@@ -1,5 +1,5 @@
 <template>
-  <div class="usage-page">
+  <div class="usage-page" data-page="usage">
     <!-- §1 顶部通栏一体化操作栏 -->
     <div class="top-bar">
       <div class="top-bar-left">

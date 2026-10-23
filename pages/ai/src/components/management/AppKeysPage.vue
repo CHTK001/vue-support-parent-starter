@@ -1,5 +1,5 @@
 <template>
-  <RePage title="AppKey管理">
+  <RePage data-page="app-keys" title="AppKey管理">
     <template #actions>
       <el-input
         v-model="searchKeyword"

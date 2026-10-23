@@ -477,8 +477,11 @@ export default createVite({
         target: apmTarget,
         changeOrigin: true,
       },
+      // 与上面的 ACME 前缀共用同一个目标：这里曾硬编码 http://127.0.0.1:19180，
+      // 而 ACME 后端实际跑在 101.200.205.64:19170，dev 下 /monitor/api/** 全部
+      // ECONNREFUSED → 页面拿到 502，ACME 账户/证书一律显示 0 条（看起来像数据丢了）。
       "/monitor/api": {
-        target: "http://127.0.0.1:19180",
+        target: acmeTarget,
         changeOrigin: true,
       },
       "/api/account": {

@@ -37,9 +37,20 @@ import "./styles/svc-refactor.css";
 import "./styles/markdown-doc.css";
 // @ 风格选择面板：必须全局引入，面板 Teleport 到 body，scoped 样式匹配不上
 import "./styles/generate-style-panel.css";
+// 页面标题统一层：把 8 个页面各自的标题规格（16/18/22px 混用）拉齐成一档。
+// 修的是缺陷不是风格，因此默认生效，不依赖设计变体。
+import "./styles/page-title-unify.css";
 import "nprogress/nprogress.css";
 // 组件库统一卡片视觉基线（ReStatCard 风格：re-surface / --hover / --dense）
 import "@repo/ui/surface";
+// 【设计探索临时样式 — 落地后只保留选中的一份】全站美化变体：
+// 全部规则由 html[data-dv="…"] 限定作用域，未选变体时零影响。
+import "./styles/design-variants/var-base.css";
+import "./styles/design-variants/var-console.css";
+import "./styles/design-variants/var-brief.css";
+import "./styles/design-variants/var-metrics.css";
+import "./styles/design-variants/var-workspace.css";
+import "./styles/design-variants/var-calm.css";
 
 import { apiService } from "@/services/ApiService";
 import { bootstrapFramework, hasToken } from "@/framework/context";
@@ -278,13 +289,6 @@ const routes = [
     component: () => import("./components/dev/VariantsPreviewPage.vue"),
   },
   {
-    // 【设计探索临时路由 — 验证完即删】知识库重构方向预览：/preview/knowledge-base?variant=pipeline
-    path: "/preview/knowledge-base",
-    name: "KbVariantsPreview",
-    meta: { title: "知识库 · 设计探索" },
-    component: () => import("./components/dev/KbVariantsPreviewPage.vue"),
-  },
-  {
     path: "/login",
     name: "Login",
     meta: { titleKey: "common.route.login" },
@@ -318,8 +322,7 @@ router.beforeEach(async (to, from, next) => {
   }
   // 【设计探索临时钩子 — 验证完即删】后端未启动时用 ?variant= 预览设计变体：
   // 仅放行预览路由，其余业务路由照常走登录守卫（不扩大免登录面）。
-  if (import.meta.env.DEV && to.query?.variant
-    && (to.name === "VariantsPreview" || to.name === "KbVariantsPreview")) {
+  if (import.meta.env.DEV && to.query?.variant && to.name === "VariantsPreview") {
     return next();
   }
   // 真登录守卫：业务路由必须持有框架令牌（@repo/utils token 模块）

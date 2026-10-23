@@ -1,5 +1,5 @@
 <template>
-  <RePage fill>
+  <RePage data-page="skills" fill>
     <template #title>
       <el-button link @click="goBack" class="skills-back">
         <el-icon :size="16"><ArrowBackIosFilled /></el-icon>

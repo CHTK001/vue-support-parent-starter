@@ -1,5 +1,5 @@
 <template>
-  <RePage fill :title="pipelineTitle" :subtitle="pipelineDesc">
+  <RePage data-page="capability" fill :title="pipelineTitle" :subtitle="pipelineDesc">
     <template #actions>
       <el-button @click="loadData">
         <el-icon><Refresh /></el-icon>

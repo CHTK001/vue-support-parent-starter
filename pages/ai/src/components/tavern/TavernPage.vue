@@ -1,5 +1,5 @@
 <template>
-  <div class="tavern-root">
+  <div class="tavern-root" data-page="tavern">
     <!-- ============ 左侧：群列表（微信会话列表） ============ -->
     <aside class="tv-list">
       <div class="tv-list-head">

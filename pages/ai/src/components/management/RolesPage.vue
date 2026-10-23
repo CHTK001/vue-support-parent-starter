@@ -1,5 +1,5 @@
 <template>
-  <GenericManagementPage
+  <GenericManagementPage data-page="roles"
     title="角色管理"
     description="管理AI角色配置，支持增删查改"
     :columns="columns"

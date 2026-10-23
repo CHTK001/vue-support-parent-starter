@@ -1,5 +1,5 @@
 <template>
-  <RePage title="连接器" subtitle="绑定第三方平台，让 AI 机器人接入你的常用工具">
+  <RePage data-page="connectors" title="连接器" subtitle="绑定第三方平台，让 AI 机器人接入你的常用工具">
 
     <!-- 已绑定连接器区域 -->
     <section class="px-6 py-4">

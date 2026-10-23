@@ -1,5 +1,5 @@
 <template>
-  <div class="svc" :class="{ 'is-focus': focusConsole }">
+  <div class="svc" data-page="service" :class="{ 'is-focus': focusConsole }">
     <!-- ==================== 00 页头 ==================== -->
     <header class="svc-head">
       <div class="svc-head__text">

@@ -52,7 +52,16 @@ const api = vi.hoisted(() => ({
  */
 const ReTabStub = {
   name: "ReTab",
-  props: ["tabs", "modelValue", "variant", "collapsed", "collapsible", "navOnly"],
+  // 注意：模板里写的是 nav-only（连字符）。字符串数组形式的 props 声明不会
+  // 归一化连字符名，必须显式声明 "nav-only"，否则 props("navOnly") 恒为 undefined。
+  props: {
+    tabs: { type: Array, default: () => [] },
+    modelValue: { type: String, default: "" },
+    variant: { type: String, default: "" },
+    collapsed: { type: Boolean, default: false },
+    collapsible: { type: Boolean, default: false },
+    "nav-only": { type: Boolean, default: false },
+  },
   emits: ["update:modelValue", "tab-change"],
   methods: {
     selectTab(name: string) {
@@ -178,6 +187,24 @@ describe("MessageManage 消息管理页面", () => {
     await settle(wrapper);
 
     expect(api.pageForMessageTemplate).toHaveBeenCalled();
+  });
+
+  it("uses the shared capsule tab bar and only mounts the active panel", async () => {
+    const wrapper = mountPage();
+    await settle(wrapper);
+
+    // 页签统一为 ReTab 胶囊条：只渲染导航，由页面自己按 activeTab 切内容
+    const tabs = wrapper.find(".system-tabs");
+    expect(tabs.exists()).toBe(true);
+    const stub = tabs.findComponent(ReTabStub);
+    expect(stub.exists()).toBe(true);
+    expect(stub.props("navOnly")).toBe(true);
+    expect(stub.props("modelValue")).toBe("message");
+    // 三个 tab 由数据驱动，而非页面里手写按钮
+    expect(stub.props("tabs")).toHaveLength(3);
+
+    // 同一时刻只挂载一个面板（改造前是竖排图标栏的插槽，语义保持一致）
+    expect(wrapper.findAll(".system-panel")).toHaveLength(1);
   });
 
   it("shows '全体用户' when receiver id is 0", async () => {

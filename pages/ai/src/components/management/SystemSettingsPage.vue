@@ -1,5 +1,5 @@
 <template>
-  <RePage title="系统设置" subtitle="全局参数、渠道与运行时配置">
+  <RePage data-page="settings" title="系统设置" subtitle="全局参数、渠道与运行时配置">
     <template #actions>
       <el-button type="primary" @click="saveAll" :loading="saving">
         <el-icon><Checkmark20Regular /></el-icon> 保存全部

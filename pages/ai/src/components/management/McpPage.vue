@@ -1,5 +1,5 @@
 <template>
-  <GenericManagementPage
+  <GenericManagementPage data-page="mcp"
     title="MCP管理"
     description="管理MCP服务器配置，支持增删查改"
     :columns="columns"

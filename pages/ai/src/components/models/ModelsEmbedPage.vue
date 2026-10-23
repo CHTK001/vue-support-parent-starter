@@ -7,7 +7,7 @@
     都在它内部闭环。嵌入页额外补齐原本在 ModelsPage 里的供应商级操作
     （新增 / 删除 / 模板库），达到「全功能」。</p>
   -->
-  <div class="embed-models h-full overflow-hidden flex flex-col">
+  <div class="embed-models h-full overflow-hidden flex flex-col" data-page="models-embed">
     <!-- 嵌入页自己的顶栏：供应商选择 + 新增/模板库（替代 ModelsPage 的左栏） -->
     <div class="em-bar">
       <el-select

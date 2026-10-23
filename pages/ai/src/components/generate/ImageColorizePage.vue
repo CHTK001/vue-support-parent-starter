@@ -1,5 +1,5 @@
 <template>
-  <div class="cz-root">
+  <div class="cz-root" data-page="colorize">
     <div class="cz-body">
       <!-- ==================== 左：图片舞台 ==================== -->
       <section class="cz-stage">

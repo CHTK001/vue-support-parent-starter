@@ -1,5 +1,5 @@
 <template>
-  <div class="is-root">
+  <div class="is-root" data-page="image-search">
     <!-- ============ 顶栏：品牌 / 上传入口 / 状态 ============ -->
     <header class="is-topbar">
       <div class="is-brand">

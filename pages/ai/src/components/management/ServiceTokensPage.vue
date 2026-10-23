@@ -1,5 +1,5 @@
 <template>
-  <RePage>
+  <RePage data-page="service-tokens">
     <template #title>
       <el-button text @click="goBack" class="back-btn" title="返回服务列表">
         <el-icon><ArrowLeft24Regular /></el-icon>

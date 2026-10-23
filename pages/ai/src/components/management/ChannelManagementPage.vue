@@ -482,7 +482,7 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
 </script>
 
 <template>
-  <div class="chm">
+  <div class="chm" data-page="channel">
     <!-- 页头 -->
     <header class="chm-head">
       <div class="chm-head__text">

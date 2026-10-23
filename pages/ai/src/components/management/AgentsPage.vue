@@ -1,5 +1,5 @@
 <template>
-  <RePage title="Agent管理" subtitle="智能体清单、工具绑定与系统提示词">
+  <RePage data-page="agents" title="Agent管理" subtitle="智能体清单、工具绑定与系统提示词">
     <template #actions>
       <el-button @click="installDialogVisible = true">
         <el-icon><Download /></el-icon> 安装智能体

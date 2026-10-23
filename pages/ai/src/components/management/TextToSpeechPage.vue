@@ -1,5 +1,5 @@
 <template>
-  <div class="tts-page">
+  <div class="tts-page" data-page="tts">
     <ReCard title="语音合成" subtitle="输入文本，用已配置的 TTS 模型生成语音">
       <template #extra>
         <span v-if="modelReady" class="tts-model-badge">

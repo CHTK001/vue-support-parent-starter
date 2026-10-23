@@ -1,5 +1,5 @@
 <template>
-  <RePage fill title="用量同步日志" subtitle="查看用量同步历史记录">
+  <RePage data-page="usage-sync" fill title="用量同步日志" subtitle="查看用量同步历史记录">
     <template #actions>
       <el-button @click="loadData">
         <el-icon><Refresh /></el-icon>

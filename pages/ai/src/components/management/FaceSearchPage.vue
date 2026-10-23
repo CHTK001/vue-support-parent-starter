@@ -1,5 +1,5 @@
 <template>
-  <div class="fs-root">
+  <div class="fs-root" data-page="face">
     <div class="fs-body">
       <!-- ==================== 左：图片舞台 ==================== -->
       <section class="fs-stage">

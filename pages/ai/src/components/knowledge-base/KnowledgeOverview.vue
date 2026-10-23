@@ -1,6 +1,6 @@
 <template>
   <!-- kb-refactor：知识库编辑部设计层作用域（见 styles/kb-refactor.css） -->
-  <div class="kb h-full min-h-0 flex flex-col">
+  <div class="kb h-full min-h-0 flex flex-col" data-page="kb-overview">
     <!-- ===== 内容区：唯一滚动容器 ===== -->
     <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-6 px-6 py-5">
       <!-- ===== 页眉：宋体大标题 + 发丝线 ===== -->

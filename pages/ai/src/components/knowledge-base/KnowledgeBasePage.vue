@@ -3,7 +3,7 @@
        设计方向「档案台 Ledger + 流水线 Pipeline」：三栏常驻 + 命令条 + 处理过程可见。
        data-kb-ask 由「设置 → 显示 → 右侧问答栏宽度」驱动（narrow / full）。 -->
   <div
-    class="kb h-full w-full flex flex-col min-h-0"
+    class="kb h-full w-full flex flex-col min-h-0" data-page="kb-detail"
     :data-kb-ask="askWidth"
   >
     <PageHeader :title="t('knowledge.page.title')" />
@@ -2405,7 +2405,14 @@ async function loadGraphLayoutSettings() {
   const r = await apiService.fetchGraphLayoutSettings(kbId)
   if (!r?.settings) return null
   try {
-    return JSON.parse(r.settings)
+    const s = JSON.parse(r.settings)
+    // 势力聚合已改用聚簇布局（rrg-cluster），不再需要 show-groups 的矩形/虚线容器框：
+    // 强制关掉它，避免后台旧设置（showGroups:true）在挂载时把框又渲染出来。
+    if (s && typeof s === 'object') {
+      s.showGroups = false
+      s.layout = GRAPH_LAYOUT
+    }
+    return s
   } catch {
     return null
   }

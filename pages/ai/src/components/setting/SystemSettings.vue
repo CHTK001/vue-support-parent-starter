@@ -1,5 +1,5 @@
 <template>
-    <div class="h-full flex">
+    <div class="h-full flex" data-page="system-settings">
         <Teleport v-if="portalReady" to="#settings-sidebar-portal">
             <!-- 设置侧边栏：Teleport 到全局侧边栏位置以获得毛玻璃效果 -->
             <div

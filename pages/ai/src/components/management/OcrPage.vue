@@ -1,5 +1,5 @@
 <template>
-  <div class="ocr-root">
+  <div class="ocr-root" data-page="ocr">
     <div class="ocr-body">
       <!-- ==================== 左：图片舞台 ==================== -->
       <section class="ocr-stage">

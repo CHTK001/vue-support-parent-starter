@@ -1,5 +1,5 @@
 <template>
-  <div class="wg">
+  <div class="wg" data-page="image-gen">
     <section class="wg-main">
       <!-- 顶部：标题行 + 筛选行（照 UI 图） -->
       <header class="wg-head">

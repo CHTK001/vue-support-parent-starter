@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col">
+  <div class="h-full overflow-hidden flex flex-col" data-page="models">
     <PageHeader :title="t('settings.models.title')" />
     <div class="flex-1 min-h-0">
       <div class="models-workspace h-full flex">

@@ -1,5 +1,5 @@
 <template>
-  <RePage fill title="服务运行状态"
+  <RePage data-page="services" fill title="服务运行状态"
     subtitle="聚合 ChatClient 服务的运行状态、进程号与运行时长，支持登记启动与停止（仅管理员）">
     <template #actions>
       <el-button v-if="admin" type="primary" @click="handleCreate">

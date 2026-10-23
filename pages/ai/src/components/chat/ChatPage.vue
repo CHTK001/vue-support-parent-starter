@@ -1,6 +1,6 @@
 <template>
   <!-- 主体内容（侧边栏已移至 MainLayout） -->
-  <div class="chat-page-root flex flex-col h-full w-full">
+  <div class="chat-page-root flex flex-col h-full w-full" data-page="chat">
     <template v-if="sessionStore.activeSessionId !== 'new-session'">
       <!-- 可拖拽分割区域 -->
       <div class="flex-1 overflow-hidden">
