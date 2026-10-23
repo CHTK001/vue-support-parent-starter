@@ -84,7 +84,7 @@ const columns = computed<ReTableColumn[]>(() => {
   // 内容（输入框 / 类型下拉）反而被压扁；minWidth 让该列吃得住内容、又能随容器伸缩。
   // 「字段名」给足 150：此前 minWidth 110 时输入框只剩 ~70px，device_channel 只显示成 device_cl。
   const list: ReTableColumn[] = [
-    { prop: "name", label: "字段名", minWidth: 150, slot: "name" },
+    { prop: "name", label: "字段名", minWidth: 200, slot: "name" },
     { prop: "type", label: "类型", minWidth: 170, slot: "type" },
     { prop: "size", label: "长度", minWidth: 84, slot: "size" },
     { prop: "scale", label: "小数位", minWidth: 84, slot: "scale" },
@@ -342,6 +342,11 @@ const asRow = (cellRow: Record<string, unknown>): DesignColumnRow => cellRow as 
 .dcg-name > :deep(.re-input) {
   min-width: 0;
   flex: 1;
+  /* ReInput 的根是 display:contents，span 上的宽度规则到不了内部 input；
+     这里直接给内部原生 input / 包装盒定宽，否则它按默认 20 字符宽撑出单元格再被裁掉。 */
+}
+.dcg-name :deep(input) {
+  width: 100%;
 }
 
 .dcg-grip {

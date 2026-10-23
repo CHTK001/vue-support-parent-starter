@@ -537,6 +537,7 @@ function diskColor(v?: number): string {
 </script>
 
 <!-- New modernized template: card-grid layout with koi tokens -->
+<template>
 <div class="host-list sc-page">
   <ReSectionHead class="page-head" title="主机资产" description="服务器台账、启停管理、远控与文件分发">
     <template #actions>
@@ -685,7 +686,7 @@ function diskColor(v?: number): string {
   <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
   <ScInstallDialog v-model="installVisible" :host="installHost" :hosts="hosts" @installed="onInstalled" />
 </div>
-
+</template>
 
 <style scoped lang="scss">
 .host-list {

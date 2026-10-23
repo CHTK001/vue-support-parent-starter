@@ -809,16 +809,17 @@ onMounted(async () => {
 
 <style scoped>
 .device-page {
-  background: var(--el-bg-color);
+  background: var(--bg-page, var(--el-bg-color));
 }
 
 .stat-card {
   position: relative;
   padding: 16px;
-  border-radius: 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color-overlay);
+  border-radius: var(--radius-lg, 14px);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  background: var(--bg-container, var(--el-bg-color-overlay));
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .stat-card::before {
   content: '';
@@ -826,10 +827,10 @@ onMounted(async () => {
   inset: 0 auto 0 0;
   width: 4px;
 }
-.accent-blue::before { background: var(--el-color-primary); }
-.accent-emerald::before { background: var(--el-color-success); }
-.accent-orange::before { background: var(--el-color-warning); }
-.accent-slate::before { background: var(--el-color-info); }
+.accent-blue::before { background: var(--brand-500, var(--el-color-primary)); }
+.accent-emerald::before { background: var(--status-success, var(--el-color-success)); }
+.accent-orange::before { background: var(--status-warning, var(--el-color-warning)); }
+.accent-slate::before { background: var(--status-info, var(--el-color-info)); }
 
 .filter-bar {
   display: flex;
@@ -837,9 +838,9 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-container, var(--el-bg-color-overlay));
 }
 .filter-keyword { width: 260px; }
 .filter-select { width: 140px; }
@@ -850,9 +851,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border: 1px solid var(--el-color-primary-light-7);
-  background: var(--el-color-primary-light-9);
-  border-radius: 10px;
+  border: 1px solid var(--border-default, var(--el-color-primary-light-7));
+  background: color-mix(in srgb, var(--brand-500, var(--el-color-primary)) 6%, transparent);
+  border-radius: var(--radius-md, 10px);
 }
 
 .device-table :deep(.el-table__cell) {
@@ -862,5 +863,9 @@ onMounted(async () => {
 @media (max-width: 1280px) {
   .filter-keyword { width: 200px; }
   .filter-org { width: 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-card { transition: none; animation: none; }
 }
 </style>

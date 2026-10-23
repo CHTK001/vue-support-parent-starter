@@ -369,7 +369,7 @@ async function removeGroup(node: GroupNode) {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .tree-title {
@@ -379,7 +379,7 @@ async function removeGroup(node: GroupNode) {
 
 .tree-search {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .tree-label {
@@ -392,7 +392,7 @@ async function removeGroup(node: GroupNode) {
 .node-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
 .color-dot {
@@ -402,12 +402,12 @@ async function removeGroup(node: GroupNode) {
   flex-shrink: 0;
   /* 圆点本体的颜色由模板 :style 动态传入（分组自定义色），没法用 color-mix 跟随，
      所以外圈光晕改用主题边框色令牌，亮暗色下都能保持一圈淡描边 */
-  box-shadow: 0 0 0 2px var(--el-border-color);
+  box-shadow: 0 0 0 2px var(--border-default);
 }
 
 .color-dot--default {
   /* 「未设置颜色」的中性灰占位 */
-  background: var(--el-text-color-placeholder);
+  background: var(--text-tertiary);
 }
 
 .node-badge {
@@ -419,8 +419,8 @@ async function removeGroup(node: GroupNode) {
   padding: 0 6px;
   /* 18px 高的徽标：9px 已是胶囊圆角，统一到 full 档 */
   border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--brand-500) 10%, transparent);
+  color: var(--brand-500);
   font-size: 11px;
   font-weight: 600;
 }
@@ -442,7 +442,7 @@ async function removeGroup(node: GroupNode) {
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .detail-title-area {
@@ -456,7 +456,7 @@ async function removeGroup(node: GroupNode) {
 }
 
 .detail-desc {
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-size: 13px;
   margin: 0;
 }
@@ -475,7 +475,7 @@ async function removeGroup(node: GroupNode) {
 }
 
 .info-card {
-  background: var(--el-fill-color-lighter);
+  background: var(--bg-fill);
   /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
   border-radius: var(--el-radius-lg, 12px);
   padding: 16px;
@@ -483,7 +483,7 @@ async function removeGroup(node: GroupNode) {
 
 .info-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -506,7 +506,7 @@ async function removeGroup(node: GroupNode) {
   font-weight: 600;
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .detail-body {
@@ -527,7 +527,7 @@ async function removeGroup(node: GroupNode) {
 
 .detail-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
 .detail-value {
@@ -537,7 +537,7 @@ async function removeGroup(node: GroupNode) {
 
 /* 主机列表 */
 .host-list {
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--border-subtle);
   /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
   border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
@@ -547,8 +547,8 @@ async function removeGroup(node: GroupNode) {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  transition: background-color var(--el-transition-duration-fast, 0.2s);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.2s;
 }
 
 .host-item:last-child {
@@ -556,7 +556,7 @@ async function removeGroup(node: GroupNode) {
 }
 
 .host-item:hover {
-  background: var(--el-fill-color-lighter);
+  background: var(--bg-fill);
 }
 
 .host-status {
@@ -576,17 +576,17 @@ async function removeGroup(node: GroupNode) {
 }
 
 .host-ip {
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-size: 13px;
   margin-right: 16px;
 }
 
 .host-os {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
+  color: var(--text-secondary);
+  background: var(--bg-fill);
   padding: 2px 8px;
-  border-radius: var(--el-radius-xs, 4px);
+  border-radius: var(--radius-sm);
 }
 
 .color-field {

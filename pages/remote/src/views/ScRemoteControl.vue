@@ -265,21 +265,32 @@ onBeforeUnmount(() => {
   gap: 16px;
   height: 100%;
   padding: 16px;
+  background: var(--bg-page);
+  color: var(--text-primary);
 }
 .connect-panel {
   width: 320px;
   flex-shrink: 0;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--text-primary);
 }
 .work-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 .terminal-container {
   flex: 1;
@@ -294,6 +305,7 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   white-space: pre-wrap;
   min-height: 400px;
+  border-radius: var(--radius-md);
 }
 .terminal-input {
   margin-top: 8px;
@@ -306,6 +318,7 @@ onBeforeUnmount(() => {
   /* 同上：远控画面画布留固定深底，白色边框衬住桌面截图边缘更清楚 */
   background: #0c0c0c;
   min-height: 400px;
+  border-radius: var(--radius-md);
 }
 .desktop-container canvas {
   max-width: 100%;
@@ -315,7 +328,16 @@ onBeforeUnmount(() => {
 .placeholder {
   /* 原为写死的 #666，在亮色底上对比度只有 4.6:1，且暗色模式下几乎看不见；
      换成语义次级文字色，亮暗色都可读 */
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .remote-control { flex-direction: column; }
+  .connect-panel { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remote-control, .connect-panel, .work-area { transition: none; }
 }
 </style>

@@ -88,7 +88,7 @@
       </div>
 
       <!-- 三栏 -->
-      <div class="kb-cols" :data-ask="activeTab === 'files' ? 'off' : 'on'">
+      <div class="kb-cols" data-ask="on">
         <!-- ============ 左栏：库目录 + 文档 + 视图入口 ============ -->
         <aside class="kb-nav">
           <div class="kb-nav__group">
@@ -155,43 +155,40 @@
 
         <!-- ============ 中栏：当前视图 ============ -->
         <main class="kb-main" @scroll="handleScroll">
-          <!-- ---- 文档视图：档案卡 + 文件树 ---- -->
+          <!-- ---- 文档视图：状态分栏 + 文件树（问答并入右栏） ---- -->
           <template v-if="activeTab === 'files'">
-            <div class="kb-docview">
-              <div class="kb-docview__list">
-                <div class="kb-docview__head">
-                  <div class="kb-filters">
-                    <button
-                      v-for="f in fileStatusFilters"
-                      :key="f.key"
-                      type="button"
-                      class="kb-filter"
-                      :class="{ 'is-on': fileStatusFilter === f.key }"
-                      @click="fileStatusFilter = f.key"
-                    >
-                      <span>{{ f.label }}</span>
-                      <i class="kb-filter__n">{{ f.count }}</i>
-                    </button>
-                  </div>
-                  <div class="kb-toolbar__grow" />
-                  <span class="kb-docview__count">{{ currentKB?.name }}</span>
-                  <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
-                    :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
-                    @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
-                    @folder-created="handleFolderCreated" />
+            <div class="kb-docview__list">
+              <div class="kb-docview__head">
+                <div class="kb-filters">
+                  <button
+                    v-for="f in fileStatusFilters"
+                    :key="f.key"
+                    type="button"
+                    class="kb-filter"
+                    :class="{ 'is-on': fileStatusFilter === f.key }"
+                    @click="fileStatusFilter = f.key"
+                  >
+                    <span>{{ f.label }}</span>
+                    <i class="kb-filter__n">{{ f.count }}</i>
+                  </button>
                 </div>
+                <div class="kb-toolbar__grow" />
+                <KBFileUploader v-if="canEditCurrent" :kb-id="store.activeKnowledgeBaseId!"
+                  :current-folder-path="getCurrentFolderPath()" :get-current-files="getCurrentFiles"
+                  @uploaded="handleUploadComplete" @show-upload-task="showUploadTaskModal = true"
+                  @folder-created="handleFolderCreated" />
+              </div>
 
-                <div v-if="!canEditCurrent" class="kb-readonly" style="margin: 0 12px 8px">
-                  {{ t('knowledge.page.readonlyHint') }}
-                </div>
+              <div v-if="!canEditCurrent" class="kb-readonly" style="margin: 0 12px 8px">
+                {{ t('knowledge.page.readonlyHint') }}
+              </div>
 
-                <div class="kb-docview__tree">
-                  <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
-                    :status-filter="fileStatusFilter"
-                    @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
-                    @chunks="handleViewChunks"
-                    @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
-                </div>
+              <div class="kb-docview__tree">
+                <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
+                  :status-filter="fileStatusFilter"
+                  @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
+                  @chunks="handleViewChunks"
+                  @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />
               </div>
             </div>
           </template>
@@ -267,17 +264,40 @@
             </div>
           </template>
 
-          <!-- ---- 智能问答视图（独立全宽版，与右栏常驻版互不干扰） ---- -->
+          <!-- ---- 智能问答：问答本身在右栏常驻，中栏给「怎么问、问了什么」的线索 ---- -->
           <template v-else-if="activeTab === 'ask'">
-            <div class="kb-view" style="min-height: 480px">
-              <KBAskPanel
-                :kb-id="currentKB?.id || ''"
-                :kb-name="currentKB?.name"
-                :graph-nodes="graphNodes"
-                :graph-edges="graphEdges"
-                @view-graph="handleMenuSelect('graph')"
-              />
+            <p class="kb-path">{{ currentKB?.name }}</p>
+            <h1 class="kb-title">智能问答</h1>
+            <p class="kb-text" style="margin-top: 6px">
+              问答面板固定在右侧，可以边翻阅文档、图谱边追问。答案里的引用可点开原文定位到具体切块。
+            </p>
+
+            <h2 class="kb-h2">可问范围</h2>
+            <div class="kb-statrow">
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ filesForFilter.length }}</span>
+                <span class="kb-statrow__k">可检索文档</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtNum(totalChunks) }}</span>
+                <span class="kb-statrow__k">已索引切块</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtNum(totalTokens) }}</span>
+                <span class="kb-statrow__k">Tokens</span>
+              </div>
+              <div class="kb-statrow__cell">
+                <span class="kb-statrow__v">{{ fmtCount(graphView.entityCount) }}</span>
+                <span class="kb-statrow__k">可关联实体</span>
+              </div>
             </div>
+
+            <h2 class="kb-h2">提问建议</h2>
+            <ul class="kb-suggest">
+              <li v-for="q in askSuggestions" :key="q" class="kb-suggest__item">
+                <span class="kb-suggest__q">{{ q }}</span>
+              </li>
+            </ul>
           </template>
 
           <!-- ---- 知识图谱视图 ---- -->
@@ -532,8 +552,8 @@
           </template>
         </main>
 
-        <!-- ============ 右栏：问答（文档视图下由中栏自带，其余视图常驻） ============ -->
-        <aside v-if="activeTab !== 'files'" class="kb-ask">
+        <!-- ============ 右栏：问答常驻（文档视图也不收起，问答是档案台的第三根柱子） ============ -->
+        <aside class="kb-ask">
           <KBAskPanel
             :kb-id="currentKB?.id || ''"
             :kb-name="currentKB?.name"
@@ -743,9 +763,8 @@
     @delete="handleDeleteFile" />
 
   <!-- 命令面板（签名元素）：Ctrl/⌘ + K 唤起，跨 文档 / 实体 即时检索。
-       Teleport 到 body，故样式用独立的 kbc- 前缀（见 kb-refactor.css 第 4 节）。 -->
-  <Teleport to="body">
-    <div v-if="cmdOpen" class="kbc-mask" @click.self="closeCommand">
+       用 position:fixed 覆盖全屏，不依赖 Teleport（部分外壳会劫持 body 子节点）。 -->
+  <div v-if="cmdOpen" class="kbc-mask" @click.self="closeCommand">
       <div class="kbc-panel" role="dialog" aria-label="知识库检索">
         <input
           ref="cmdInputRef"
@@ -777,8 +796,8 @@
           <span>↑↓ 移动</span><span>↵ 打开</span><span>esc 关闭</span>
         </footer>
       </div>
-    </div>
-  </Teleport>
+  </div>
+
 </template>
 
 <script setup lang="ts">
@@ -882,9 +901,6 @@ const navViews: ReadonlyArray<{ key: KBViewKey; label: string; icon: unknown }> 
   { key: 'relations', label: '关系管理', icon: Connection },
 ]
 
-/** 诊断探针：确认组件 script 是否执行到这里（验证完即删） */
-console.log('[KB-DIAG] 1 骨架常量已求值')
-
 /** 左栏当前高亮的文档（本地展示态，与文件树的选中互不干扰） */
 const selectedDocId = ref<string | null>(null)
 
@@ -960,7 +976,8 @@ const cmdResults = computed(() => {
       file: f,
       name: '',
     }))
-  const ents = (graphView.value.nodes || [])
+  // graphView 是 reactive 对象（不是 ref），这里不能写 .value
+  const ents = (graphView.nodes || [])
     .filter((n) => hit(n.text || ''))
     .slice(0, 4)
     .map((n) => ({
@@ -2424,10 +2441,18 @@ function handleGraphReady() {
         getInstance?: () => unknown
         fitView?: () => Promise<void>
       } | null
-      if (!comp?.setLayout) {
+      if (!comp) {
         return
       }
-      if (!graphLooksDegenerate(comp)) {
+      // 首帧无条件适配视口：节点少的图（3~6 个实体）如果不 fitView，会以 1:1
+      // 落在画布中央，几十像素的圆被放大成占满整屏的大泡泡。等布局这一帧提交完
+      // 再量 bbox，否则量到的是尚未定位的旧范围。
+      window.setTimeout(() => {
+        const api = graphCompRef.value as { fitView?: () => Promise<void> } | null
+        void api?.fitView?.()
+      }, 260)
+      // 布局退化（节点全挤在一点）才强制重排；正常布局不打断用户当前视角。
+      if (!comp.setLayout || !graphLooksDegenerate(comp)) {
         return
       }
       try {
@@ -2604,13 +2629,15 @@ async function handleSelectKB(kb: KnowledgeBase) {
   viewMode.value = 'detail'
 
   // 更新路由（使用 params）
-  // 保留现有 query：切换知识库时不能丢掉 URL 上的参数（如设计探索期的 ?kbmock=1），
-  // 否则下一次导航会被登录守卫弹回 /login。
+  // 保留现有 query：切换知识库时不能丢掉 URL 上的参数（如外部带入的筛选条件），
+  // 否则一次换库就把用户此前的上下文清空了。
   router.replace({ name: 'KnowledgeBase', params: { id: kb.id }, query: route.query })
 
   try {
     // 选择新知识库时重置分页
     await refreshFileList()
+    // 同时取一份全量清单：左侧计数与概览统计在任何视图都要有数
+    void loadFileInventory()
     // toast.success(`已选择：${kb.name}`)
   } catch (error) {
     console.error('加载文件列表失败:', error)
@@ -2628,10 +2655,6 @@ function backToList() {
   // 回到列表时统计可能已过期（期间上传过文档、生成过图谱），重新拉一次
   loadOverview()
 }
-
-// 【设计探索临时出口 — 验证完即删】供 /preview/kb-harness 验证台把组件切进详情视图。
-// 生产代码不经过这里：正常路径永远由用户点击知识库卡片触发 handleOverviewOpen。
-defineExpose({ openDetail: handleSelectKB })
 
 /**
  * 处理下拉菜单命令
@@ -3299,8 +3322,31 @@ const fileStatusFilter = ref<FileStatusFilter>('all')
 /** 当前目录下的文件（来自 KBFileTree 的 files-loaded） */
 const loadedFiles = ref<KBFile[]>([])
 
+/**
+ * 扁平文件清单（本页自取，不依赖 KBFileTree 是否挂载）。
+ *
+ * <p>{@code loadedFiles} 只在「文档」视图由文件树回填，切到概览/图谱就没了；
+ * 这份清单在任何视图下都存在，左栏计数与统计格优先用它。</p>
+ */
+const inventoryFiles = ref<KBFile[]>([])
+
 /** 只统计真实文件，目录不进分栏计数 */
-const filesForFilter = computed(() => loadedFiles.value.filter((f) => !f.isDirectory))
+/**
+ * 统计与左栏统一使用的文件集合（只统计真实文件，目录不进分栏计数）。
+ *
+ * <p>两份来源合并去重：文件树回填的 {@code loadedFiles}（含实时处理状态轮询）
+ * 与本页自取的全量 {@code inventoryFiles}（任意视图都可用）。</p>
+ */
+const filesForFilter = computed(() => {
+  const byId = new Map<string, KBFile>()
+  for (const f of inventoryFiles.value) {
+    if (!f.isDirectory) byId.set(f.id, f)
+  }
+  for (const f of loadedFiles.value) {
+    if (!f.isDirectory) byId.set(f.id, f)
+  }
+  return [...byId.values()]
+})
 
 /**
  * 左栏「文档」快速列表：跟随当前状态分栏过滤。
@@ -3357,8 +3403,20 @@ const pipelineStages = computed(() => {
   ]
 })
 
-/** 诊断探针：确认 script 已执行到底部（验证完即删） */
-console.log('[KB-DIAG] 2 script 已执行到底部')
+/**
+ * 问答视图的提问建议：按当前知识库是否已有实体/文档给出不同引导，
+ * 纯静态提示词，不需要额外请求。
+ */
+const askSuggestions = computed(() => {
+  const hasEntities = graphView.entityCount > 0
+  const hasChunks = totalChunks.value > 0
+  if (!hasChunks) {
+    return ['这个知识库有哪些文档？', '上传文档后能问什么？']
+  }
+  return hasEntities
+    ? ['主要人物之间是什么关系？', '这几篇文档的核心考点是什么？', '哪些情节可以支撑这个结论？']
+    : ['这几篇文档的核心考点是什么？', '帮我总结主要论点', '哪些段落可以支撑这个结论？']
+})
 
 /** 四个分栏各自的计数。显式标注返回类型，否则 key 会被推断成 string，模板里回写分栏就过不了类型检查 */
 const fileStatusFilters = computed<ReadonlyArray<{ key: FileStatusFilter; label: string; count: number }>>(() => {
@@ -3699,6 +3757,34 @@ async function refreshFileList() {
   }
 }
 
+/**
+ * 独立拉取当前知识库的扁平文件清单（含子目录），供左栏与统计格使用。
+ *
+ * <p>为什么不复用 {@code loadedFiles}：那个只由 {@code KBFileTree} 的 {@code files-loaded}
+ * 事件填充，而文件树只在「文档」视图挂载——切到概览 / 图谱时计数会归零。
+ * 这里直接调一次扁平列表接口，其余视图也能拿到真实篇数与切块数。</p>
+ */
+async function loadFileInventory(): Promise<void> {
+  const kbId = store.activeKnowledgeBaseId
+  if (!kbId) {
+    inventoryFiles.value = []
+    return
+  }
+  try {
+    const res = await apiService.fetchKBFiles(kbId, 0, 1000)
+    // 接口返回分页信封，items 为空时回落到旧字段名
+    const rows = (res as { items?: KBFile[]; records?: KBFile[] })?.items
+      ?? (res as { records?: KBFile[] })?.records
+      ?? []
+    inventoryFiles.value = Array.isArray(rows) ? rows : []
+  } catch (error) {
+    console.error('获取文件清单失败:', error)
+    inventoryFiles.value = []
+  }
+}
+
+
+
 // 监听路由变化，处理 URL 中的 id 参数
 watch(() => route.params.id, async (newKbId: string | string[] | undefined) => {
   // 如果是数组，取第一个值；如果是字符串直接使用；否则为 undefined
@@ -3732,3 +3818,6 @@ watch(
   }
 )
 </script>
+
+
+

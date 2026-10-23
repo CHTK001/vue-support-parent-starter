@@ -351,10 +351,43 @@
 
 /* ---------- 3.2 中栏 ---------- */
 .kb-main {
+  display: flex;
+  flex-direction: column;
   padding: var(--kb-sp-5) 22px;
   overflow-y: auto;
   min-width: 0;
   min-height: 0;
+}
+
+/* 概览视图里紧跟统计卡的文字块不要贴边 */
+.kb-statrow + .kb-h2 {
+  margin-top: var(--kb-sp-5);
+}
+
+/* 问答视图的提问建议：可点不跳，只是给用词范例 */
+.kb-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kb-suggest__item {
+  padding: 5px 10px;
+  border: 1px solid var(--kb-line);
+  border-radius: 999px;
+  background: var(--kb-card);
+  font-size: 12px;
+  color: var(--kb-ink-2);
+  cursor: default;
+  transition: border-color var(--kb-dur) var(--kb-ease), color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-suggest__item:hover {
+  border-color: var(--kb-accent);
+  color: var(--kb-accent);
 }
 
 .kb-path {

@@ -120,6 +120,7 @@ const PreviewIfcPanel = defineAsyncComponent(() => import("../components/Preview
  * archive-wasm、binary 结构解析器等），不预览的人不该为它们付首屏成本。</p>
  */
 const FvTextPanel = defineAsyncComponent(() => import("../components/fv/FvTextPanel.vue"));
+const FvLogAnalyzePanel = defineAsyncComponent(() => import("../components/fv/FvLogAnalyzePanel.vue"));
 const FvDocPanel = defineAsyncComponent(() => import("../components/fv/FvDocPanel.vue"));
 const FvOutlinePanel = defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue"));
 const FvDesignPanel = defineAsyncComponent(() => import("../components/fv/FvDesignPanel.vue"));
@@ -168,7 +169,8 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   ts: FvTextPanel,
   tsx: FvTextPanel,
   xml: FvTextPanel,
-  log: FvTextPanel,
+  // .log：hs_err_pid*.log（JVM 崩溃日志）走运维分析面板（双模式），普通日志退化为文本
+  log: FvLogAnalyzePanel,
   vue: FvTextPanel,
   yaml: FvTextPanel,
   yml: FvTextPanel,
@@ -202,6 +204,8 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   rb: FvTextPanel,
   swift: FvTextPanel,
   kt: FvTextPanel,
+  // .mf（Java MANIFEST.MF / METAFONT 源文件）为纯文本，按文本渲染
+  mf: FvTextPanel,
   // renderer-doc
   xmind: FvDocPanel,
   epub: FvDocPanel,

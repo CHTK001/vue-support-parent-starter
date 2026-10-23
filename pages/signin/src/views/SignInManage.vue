@@ -21,32 +21,84 @@ async function loadSummary({ page, pageSize }: ReTableLoadParams): Promise<RePag
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-800 sm:p-6 lg:p-8">
-    <div class="mx-auto max-w-4xl">
-      <div class="mb-8">
-        <h1 class="bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-3xl font-bold text-transparent dark:from-amber-400 dark:to-orange-400">
-          Sign-in Summary
-        </h1>
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">User-wise sign-in days and points overview</p>
-      </div>
+  <div class="signin-manage sc-page">
+    <ReSectionHead
+      class="page-head"
+      title="Sign-in Summary"
+      description="User-wise sign-in days and points overview"
+    />
 
-      <ReCard :radius="16" :padding="0" class="overflow-hidden border border-slate-200/60 bg-white/90 backdrop-blur-lg shadow-xl dark:border-slate-700/60 dark:bg-slate-800/90">
-        <ReTable
-          table-id="signin-summary"
-          :loader="loadSummary"
-          :columns="columns"
-          :pagination="true"
-          row-key="userId"
-          class="p-6"
-        >
-          <template #signInDays="{ row }">
-            <el-tag type="primary" effect="plain" class="!rounded-full">{{ row.signInDays }}</el-tag>
-          </template>
-          <template #totalPoints="{ row }">
-            <el-tag type="warning" effect="plain" class="!rounded-full">{{ row.totalPoints }}</el-tag>
-          </template>
-        </ReTable>
-      </ReCard>
-    </div>
+    <ReCard class="summary-card">
+      <ReTable
+        table-id="signin-summary"
+        :loader="loadSummary"
+        :columns="columns"
+        :pagination="true"
+        row-key="userId"
+      >
+        <template #signInDays="{ row }">
+          <el-tag type="primary" effect="plain" class="metric-tag metric-tag--days">{{ row.signInDays }}</el-tag>
+        </template>
+        <template #totalPoints="{ row }">
+          <el-tag type="warning" effect="plain" class="metric-tag metric-tag--points">{{ row.totalPoints }}</el-tag>
+        </template>
+      </ReTable>
+    </ReCard>
   </div>
 </template>
+
+<style scoped lang="scss">
+.signin-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px;
+}
+
+.page-head {
+  margin-bottom: 4px;
+}
+
+.summary-card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+
+.metric-tag {
+  border-radius: var(--radius-xl) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.metric-tag--days {
+  color: var(--brand-600);
+  border-color: color-mix(in srgb, var(--brand-500) 30%, transparent);
+  background: color-mix(in srgb, var(--brand-500) 8%, transparent);
+}
+
+.metric-tag--points {
+  color: var(--status-warning);
+  border-color: color-mix(in srgb, var(--status-warning) 30%, transparent);
+  background: color-mix(in srgb, var(--status-warning) 8%, transparent);
+}
+
+@media (max-width: 768px) {
+  .signin-manage {
+    gap: 12px;
+  }
+  .summary-card {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-manage,
+  .summary-card {
+    transition: none;
+    animation: none;
+  }
+}
+</style>

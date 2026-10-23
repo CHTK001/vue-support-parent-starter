@@ -52,6 +52,8 @@ const SPECIAL_COMPONENT_BY_EXT: Record<string, Component> = {
   opml: defineAsyncComponent(() => import("../components/fv/FvOutlinePanel.vue")),
   // .class：前端反编译（CFR）+ Binary Inspector 十六进制检视 + 下载反编译源码
   class: defineAsyncComponent(() => import("../components/fv/FvBinaryPanel.vue")),
+  // .log：hs_err_pid*.log（JVM 崩溃日志）运维分析（结论 / 原文双模式），普通日志退化为文本
+  log: defineAsyncComponent(() => import("../components/fv/FvLogAnalyzePanel.vue")),
 };
 
 /* ==================== 引导参数（内嵌态唯一事实来源） ==================== */
@@ -271,6 +273,26 @@ function dispatch(
     }
   }
 
+  // 2) .log：hs_err_pid*.log（JVM 崩溃日志）走运维分析面板（结论 / 原文双模式），
+  //    普通 .log 由 FvLogAnalyzePanel 内部退化为文本渲染。优先字节直链 src。
+  if (ext === "log" && (opts.bytesUrl || opts.bucketKey)) {
+    const comp = SPECIAL_COMPONENT_BY_EXT["log"];
+    if (comp) {
+      specialComponent.value = comp;
+      specialProps.value = {
+        src: opts.bytesUrl ?? "",
+        fileName,
+        size: opts.size ?? 0,
+        inner: opts.inner ?? "",
+        ...(opts.bucketKey
+          ? { bucket: opts.bucketKey.bucket, objectKey: opts.bucketKey.objectKey }
+          : {}),
+      };
+      state.value = "special";
+      return;
+    }
+  }
+
   // 3) file-viewer 注册表后缀：按扩展名取渲染器组，file-viewer 自动选渲染器
   const spec = specFor(fileName);
   if (spec) {
@@ -318,8 +340,17 @@ async function startClientRenderer(fileName: string, spec: RendererSpec, bytes: 
     }
     activeSpec.value = spec;
     renderers.value = plugins;
-    // file-viewer 按文件名扩展名自动选渲染器：File 名必须保留真实扩展名
-    fileRef.value = new File([bytes as BlobPart], fileName, { type: "application/octet-stream" });
+    // file-viewer 按文件名扩展名自动选渲染器：File 名必须保留真实扩展名；
+    // 文本渲染器只认白名单扩展名（TEXT_EXTENSIONS），白名单外（如 MANIFEST.MF）
+    // 改名 .txt 按纯文本渲染，否则找不到渲染器而落空。
+    const viewerName = (() => {
+      if (spec.presetId === "text") {
+        const ext = extensionOf(fileName).toLowerCase();
+        if (ext && !TEXT_EXTENSIONS.has(ext)) return `${fileName}.txt`;
+      }
+      return fileName;
+    })();
+    fileRef.value = new File([bytes as BlobPart], viewerName, { type: "application/octet-stream" });
     state.value = "client";
   } catch (e) {
     console.warn("[FilePreviewEntry] 渲染器加载失败", e);

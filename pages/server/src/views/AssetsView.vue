@@ -318,7 +318,8 @@ function pushTrend(id: number, cpu: number): void {
  */
 function trendOption(id: number): Record<string, unknown> {
   const data = rtTrend[id] ?? [];
-  const color = barColor(data[data.length - 1] ?? 0);
+  // 必须用具体色值：ECharts 走 Canvas，解析不了 CSS 变量
+  const color = barColorHex(data[data.length - 1] ?? 0);
   return {
     animation: false,
     grid: { left: 2, right: 2, top: 6, bottom: 2 },
@@ -349,10 +350,31 @@ function trendOption(id: number): Record<string, unknown> {
   };
 }
 
+/**
+ * 使用率对应的状态色 —— 给 DOM / Element 组件用（CSS 变量解析得到真实颜色）。
+ *
+ * @param pct 使用率（0-100）
+ */
 function barColor(pct: number): string {
   if (pct >= 90) return 'var(--el-color-danger)';
   if (pct >= 70) return 'var(--el-color-warning)';
   return 'var(--el-color-success)';
+}
+
+/**
+ * 使用率对应的状态色 —— 给 ECharts / Canvas 用。
+ *
+ * <p>Canvas 的 addColorStop 只认具体色值，传 `var(--el-color-xxx)` 会抛
+ * `Failed to execute 'addColorStop' ... could not be parsed as a color`。
+ * 这个异常发生在 ECharts 的渲染循环里，会打断所在组件的更新 ——
+ * 表现为卡片里的按钮点了没反应、`@click` 完全静默。</p>
+ *
+ * @param pct 使用率（0-100）
+ */
+function barColorHex(pct: number): string {
+  if (pct >= 90) return '#f56c6c';
+  if (pct >= 70) return '#e6a23c';
+  return '#67c23a';
 }
 
 function onRealtimeToggle(v: boolean): void {
@@ -753,6 +775,58 @@ useDialogPrerender(profileVisible);
 /** 软件安装（nginx）对话框状态 */
 const installVisible = ref(false);
 const installHost = ref<Host | null>(null);
+
+/** 顶部「新增」右侧功能菜单开关（ElPopover 自管 visible） */
+const toolbarMenuOpen = ref(false);
+/** 卡片「更多」当前展开的主机 id（同一时刻只允许一张卡片展开） */
+const morePopover = ref<number | null>(null);
+
+/** 关闭顶部功能区菜单 */
+function closeToolbarMenu(): void {
+  toolbarMenuOpen.value = false;
+}
+/** 关闭卡片「更多」菜单 */
+function closeMoreMenu(): void {
+  morePopover.value = null;
+}
+
+/**
+ * 没有实时指标时的说明文案。
+ *
+ * <p>区别于「还在等推送」与「这台主机本来就采不到」：前者刷新一下就好，
+ * 后者要去改采集方式，提示必须能把这两件事分开，否则用户只会反复刷新。</p>
+ *
+ * @param h 主机
+ */
+function rtMetricsMissingText(h: Host): string {
+  const mode = (h.serverHostCollectMode ?? "").toUpperCase();
+  if (mode === "MANUAL") return "手动采集模式，暂无实时指标";
+  if (h.serverHostStatus === 0) return "主机离线，暂无实时指标";
+  return "等待采集上报…";
+}
+
+/**
+ * 点击菜单外部时关闭：自定义指令。
+ *
+ * <p>不用 el-popover 的 onClickOutside，是因为要用同一个开关状态驱动
+ * 「点击按钮取反」，而 Element 的 popper 触发器在当前构建下没能把 ref 交回来
+ * （全页 84 个 .el-tooltip__trigger 只有 3 个拿到 aria-haspopup），点开是无响应。
+ * 这里用 mousedown 判定，避免与菜单项自身的 click 抢先后。</p>
+ */
+const vClickOutsideMenu = {
+  mounted(el: HTMLElement, binding: { value?: () => void }) {
+    const handler = (e: MouseEvent) => {
+      if (!el.contains(e.target as Node)) binding.value?.();
+    };
+    (el as HTMLElement & { __menuOutside?: (e: MouseEvent) => void }).__menuOutside = handler;
+    // 冒泡阶段：菜单项自身 @click.stop 已处理，这里只兜底外部点击
+    document.addEventListener("mousedown", handler);
+  },
+  unmounted(el: HTMLElement) {
+    const h = (el as HTMLElement & { __menuOutside?: (e: MouseEvent) => void }).__menuOutside;
+    if (h) document.removeEventListener("mousedown", h);
+  },
+};
 
 /** 打开软件安装对话框 */
 function onOpenInstall(h: Host): void {
@@ -1240,23 +1314,34 @@ function osTileClass(h: Host): string {
           <!-- 「新增资产」= 点击直接开表单（最高频动作）；右侧箭头才是功能区菜单：
                刷新 / 视图切换 / 实时监控 / 重置筛选 收敛到一处。
                用 split 而不是「整颗按钮都弹菜单」——后者让最高频的「新增」多一次点击。 -->
-          <div class="filter-ops__add">
+          <div class="filter-ops__add" v-click-outside-menu="closeToolbarMenu">
             <ReButton icon="Plus" layout="square" type="primary" tip="新增资产" @click="openAdd" />
-            <ElDropdown trigger="click" placement="bottom-end" @command="onToolbarCommand">
-              <button class="filter-ops__add-more" type="button" title="更多功能" aria-label="更多功能">
-                <ReIcon name="ArrowDown" :size="12" />
-              </button>
-              <template #dropdown>
-                <ElDropdownMenu>
-                  <ElDropdownItem command="add-host"><ReIcon name="Plus" />新增主机</ElDropdownItem>
-                  <ElDropdownItem command="refresh" divided><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
-                  <ElDropdownItem command="card-mode"><ReIcon name="Grid" />卡片视图</ElDropdownItem>
-                  <ElDropdownItem command="table-mode"><ReIcon name="Menu" />列表视图</ElDropdownItem>
-                  <ElDropdownItem command="toggle-realtime"><ReIcon name="TrendCharts" />{{ realtimeEnabled ? '关闭' : '开启' }}实时监控</ElDropdownItem>
-                  <ElDropdownItem command="reset-filter" divided><ReIcon name="Refresh" />重置筛选</ElDropdownItem>
-                </ElDropdownMenu>
-              </template>
-            </ElDropdown>
+            <!-- 用原生 v-show 定位菜单，不依赖 el-popover / el-dropdown：
+                 当前构建下 Element 的 popper 触发器链路大面积失效（全页 84 个
+                 .el-tooltip__trigger 里只有 3 个拿到 aria-haspopup），点开是空响应。 -->
+            <button
+              class="filter-ops__add-more"
+              type="button"
+              title="更多功能"
+              aria-label="更多功能"
+              aria-haspopup="menu"
+              :aria-expanded="toolbarMenuOpen ? 'true' : 'false'"
+              @click.stop="toolbarMenuOpen = !toolbarMenuOpen"
+            >
+              <ReIcon name="ArrowDown" :size="12" />
+            </button>
+            <transition name="hc-menu-fade">
+              <div v-show="toolbarMenuOpen" class="hc-more-menu hc-more-menu--anchor" role="menu">
+                <button class="hc-more-item" @click="onToolbarCommand('add-host'); toolbarMenuOpen = false"><ReIcon name="Plus" />新增主机</button>
+                <div class="hc-more-sep" />
+                <button class="hc-more-item" @click="onToolbarCommand('refresh'); toolbarMenuOpen = false"><ReIcon name="RefreshRight" />刷新列表</button>
+                <button class="hc-more-item" @click="onToolbarCommand('card-mode'); toolbarMenuOpen = false"><ReIcon name="Grid" />卡片视图</button>
+                <button class="hc-more-item" @click="onToolbarCommand('table-mode'); toolbarMenuOpen = false"><ReIcon name="Menu" />列表视图</button>
+                <button class="hc-more-item" @click="onToolbarCommand('toggle-realtime'); toolbarMenuOpen = false"><ReIcon name="TrendCharts" />{{ realtimeEnabled ? '关闭' : '开启' }}实时监控</button>
+                <div class="hc-more-sep" />
+                <button class="hc-more-item" @click="onToolbarCommand('reset-filter'); toolbarMenuOpen = false"><ReIcon name="Refresh" />重置筛选</button>
+              </div>
+            </transition>
           </div>
         </div>
       </div>
@@ -1369,6 +1454,16 @@ function osTileClass(h: Host): string {
             </div>
           </div>
 
+          <!-- 无实时指标时的占位：主机还没采集到使用率（MANUAL / 离线 / 刚加入）时，
+               不渲染指标区，但要占住同样的高度 —— 否则同一行的卡片高低不齐、
+               操作栏也会跳到不同位置，看起来像「渲染坏了」。 -->
+          <div v-else-if="realtimeEnabled" class="hc-metrics hc-metrics--empty">
+            <span class="hc-metrics__placeholder">
+              <ReIcon name="DataLine" :size="14" />
+              {{ rtMetricsMissingText(h) }}
+            </span>
+          </div>
+
           <!-- 分组 + 标签（无分组无标签时整块不渲染，不再显示“未分组”） -->
           <div v-if="h.msServerGroupId || splitTags(h.serverHostTags).length" class="hc-tags">
             <ReTag
@@ -1411,26 +1506,41 @@ function osTileClass(h: Host): string {
             <div class="hc-actions">
               <ReButton icon="Connection" layout="square" type="primary" tip="远控" @click="openConnect(h)" />
               <ReButton icon="TrendCharts" layout="square" tip="监控" @click="openDetail(h)" />
-              <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => runRowCommand(cmd as string, h)">
-                <button class="hc-more" type="button" title="更多操作" aria-label="更多操作">
+              <!-- 「更多」= 原生定位菜单（同顶部功能区）：不依赖 Element 的 popper 触发器链路 -->
+              <div class="hc-more-wrap" v-click-outside-menu="closeMoreMenu">
+                <button
+                  class="hc-more"
+                  type="button"
+                  title="更多操作"
+                  aria-label="更多操作"
+                  aria-haspopup="menu"
+                  :aria-expanded="morePopover === h.id ? 'true' : 'false'"
+                  @click.stop="morePopover = morePopover === h.id ? null : h.id"
+                >
                   <ReIcon name="MoreFilled" :size="14" />
                 </button>
-                <template #dropdown>
-                  <ElDropdownMenu>
-                    <ElDropdownItem command="scan"><ReIcon name="Aim" />端口扫描</ElDropdownItem>
-                    <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
-                    <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑主机</ElDropdownItem>
-                    <ElDropdownItem command="install-nginx" divided><ReIcon name="Box" />安装 Nginx</ElDropdownItem>
-                    <ElDropdownItem v-if="isAgentMode(h) && !isAgentInstalled(h)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
-                    <template v-else-if="isAgentMode(h)">
-                      <ElDropdownItem command="agent-reinstall" divided><ReIcon name="RefreshRight" />重装 Agent</ElDropdownItem>
-                      <ElDropdownItem command="agent-upgrade"><ReIcon name="Top" />升级 Agent</ElDropdownItem>
-                      <ElDropdownItem command="agent-uninstall"><ReIcon name="DeleteFilled" />卸载 Agent</ElDropdownItem>
+                <transition name="hc-menu-fade">
+                  <div v-show="morePopover === h.id" class="hc-more-menu hc-more-menu--anchor" role="menu">
+                    <button class="hc-more-item" @click="runRowCommand('scan', h); morePopover = null"><ReIcon name="Aim" />端口扫描</button>
+                    <button class="hc-more-item" @click="runRowCommand('profile', h); morePopover = null"><ReIcon name="Histogram" />主机画像</button>
+                    <button class="hc-more-item" @click="runRowCommand('edit', h); morePopover = null"><ReIcon name="EditPen" />编辑主机</button>
+                    <div class="hc-more-sep" />
+                    <button class="hc-more-item" @click="runRowCommand('install-nginx', h); morePopover = null"><ReIcon name="Box" />安装 Nginx</button>
+                    <template v-if="isAgentMode(h) && !isAgentInstalled(h)">
+                      <div class="hc-more-sep" />
+                      <button class="hc-more-item" @click="runRowCommand('agent-install', h); morePopover = null"><ReIcon name="Download" />安装 Agent</button>
                     </template>
-                    <ElDropdownItem command="delete" divided style="color:var(--el-color-danger,#f56c6c)"><ReIcon name="Delete" />删除主机</ElDropdownItem>
-                  </ElDropdownMenu>
-                </template>
-              </ElDropdown>
+                    <template v-else-if="isAgentMode(h)">
+                      <div class="hc-more-sep" />
+                      <button class="hc-more-item" @click="runRowCommand('agent-reinstall', h); morePopover = null"><ReIcon name="RefreshRight" />重装 Agent</button>
+                      <button class="hc-more-item" @click="runRowCommand('agent-upgrade', h); morePopover = null"><ReIcon name="Top" />升级 Agent</button>
+                      <button class="hc-more-item" @click="runRowCommand('agent-uninstall', h); morePopover = null"><ReIcon name="DeleteFilled" />卸载 Agent</button>
+                    </template>
+                    <div class="hc-more-sep" />
+                    <button class="hc-more-item is-danger" @click="runRowCommand('delete', h); morePopover = null"><ReIcon name="Delete" />删除主机</button>
+                  </div>
+                </transition>
+              </div>
             </div>
           </template>
         </ElCard>
@@ -1755,12 +1865,20 @@ function osTileClass(h: Host): string {
   flex: none;
 }
 /* 「新增资产」按钮 + 右侧小箭头：共用同一个圆角块，箭头只是打开功能菜单的入口。
-   不把整颗按钮都做成下拉 —— 新增是最高频动作，不该为了菜单多一次点击。 */
+   不把整颗按钮都做成下拉 —— 新增是最高频动作，不该为了菜单多一次点击。
+   position: relative 让功能菜单锚定在这一块上（.hc-more-menu--anchor）。 */
 .filter-ops__add {
+  position: relative;
   display: inline-flex;
   align-items: stretch;
-  overflow: hidden;
+  overflow: visible;
   border-radius: var(--el-border-radius-base, 6px);
+}
+/* 按钮本身仍要保持圆角块外观；外层 overflow 放开是为了菜单不被裁掉 */
+.filter-ops__add > .re-button__tip-wrap,
+.filter-ops__add > button:first-child {
+  overflow: hidden;
+  border-radius: var(--el-border-radius-base, 6px) 0 0 var(--el-border-radius-base, 6px);
 }
 .filter-ops__add-more {
   display: inline-flex;
@@ -1773,6 +1891,7 @@ function osTileClass(h: Host): string {
   cursor: pointer;
   background: var(--el-color-primary-dark-2, #337ecc);
   border: none;
+  border-radius: 0 var(--el-border-radius-base, 6px) var(--el-border-radius-base, 6px) 0;
   transition: background 0.15s ease;
 }
 .filter-ops__add-more:hover {
@@ -2037,6 +2156,21 @@ function osTileClass(h: Host): string {
   padding: 0 16px 12px;
 }
 .hc-metrics__bars { display: flex; flex-direction: column; gap: 10px; justify-content: center; min-width: 0; }
+/* 无指标占位：高度对齐真实指标区（条形 3 行 + 趋势图 = 约 131px），
+   这样同一行卡片的操作栏始终对齐，不会因为某台主机采不到数据而高低不齐。 */
+.hc-metrics--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 131px;
+}
+.hc-metrics__placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--el-text-color-placeholder);
+}
 .hc-bar-row { display: flex; align-items: center; gap: 8px; }
 .hc-bar-label {
   width: 34px;
@@ -2175,6 +2309,67 @@ function osTileClass(h: Host): string {
 .hc-more:hover {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9, #ecf5ff);
+}
+
+/* 自管的操作菜单（卡片「更多」与顶部功能区共用）：视觉对齐 el-dropdown-menu */
+.hc-more-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+/* 锚定到触发按钮右下方：绝对定位在定位祖先上，不依赖 popper。
+   宽度用固定值而非 max-content —— 后者会被较长的菜单文字（如「关闭实时监控」）撑宽，
+   导致 right:0 也贴不住按钮右缘。 */
+.hc-more-menu--anchor {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 3000;
+  width: 168px;
+  box-sizing: border-box;
+  background: var(--el-bg-color-overlay, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-base, 6px);
+  box-shadow: var(--el-box-shadow-light, 0 6px 16px rgba(0, 0, 0, 0.08));
+}
+.hc-more-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.hc-menu-fade-enter-active,
+.hc-menu-fade-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.hc-menu-fade-enter-from,
+.hc-menu-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.hc-more-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--el-text-color-regular);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.hc-more-item:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light, #f3f4f6);
+}
+.hc-more-item.is-danger { color: var(--el-color-danger, #f56c6c); }
+.hc-more-item.is-danger:hover { background: var(--el-color-danger-light-9, #fef0f0); }
+.hc-more-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--el-border-color-lighter);
 }
 /* 空态卡：与主机卡片同规格（独立 el-card + 扁平容器），
    占满 grid 整行，不让 ElEmpty 裸奔在网格里 */

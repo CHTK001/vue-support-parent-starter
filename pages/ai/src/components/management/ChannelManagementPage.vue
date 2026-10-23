@@ -162,6 +162,18 @@ const isApiKeyBind = () => /^api-key$/i.test(bindMethod())
 const isQrBind = () => /^qr-code$/i.test(bindMethod())
 const bindNeedsInput = () => isSmsBind() || isApiKeyBind()
 
+// 设备码：优先读句柄的 user_code；没有时从 verifyUrl 的 query 里兜底解析。
+// 上游（如 MiniMax）只把码拼在 verification_uri_complete 里，句柄不带独立字段，
+// 前端若只读 handle.user_code，弹窗上就会空一块，用户不知道该输什么。
+function bindUserCode(): string {
+  const handle = bindState[bindChannel.value]?.handle ?? {}
+  const direct = String(handle.user_code ?? handle.userCode ?? '').trim()
+  if (direct) return direct
+  const url = handleVerifyUrl(handle)
+  const m = /[?&]user_code=([^&#]+)/i.exec(url)
+  return m ? decodeURIComponent(m[1]) : ''
+}
+
 // 短信发码是否已成功（句柄被 poll 回显带上 smsSent）
 const smsSent = () => bindState[bindChannel.value]?.handle?.smsSent === true
 
@@ -661,9 +673,9 @@ const accountLabelFor = (channel: string) => accountLabel.value[channel] ?? ''
         </div>
 
         <!-- 设备码 / 授权码 -->
-        <div v-if="bindState[bindChannel]?.handle?.user_code" class="chm-bind__code">
+        <div v-if="bindUserCode()" class="chm-bind__code">
           <span class="chm-bind__code-label">授权码</span>
-          <b class="chm-bind__code-value">{{ bindState[bindChannel].handle.user_code }}</b>
+          <b class="chm-bind__code-value">{{ bindUserCode() }}</b>
         </div>
 
         <!-- 授权链接（自动开窗失败或被关掉时的兜底入口） -->

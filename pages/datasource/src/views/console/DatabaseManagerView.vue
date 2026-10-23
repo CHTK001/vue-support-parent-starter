@@ -4744,8 +4744,10 @@ const blobModes = computed(() => {
   if (blobImageSrc.value) {
     modes.push("image");
   }
-  // 只有可解码成文本的二进制才提供「文本」视图
-  if (blobIsBinary.value && blobText.value && !/�/.test(blobText.value)) {
+  // 只有可解码成文本的二进制才提供「文本」视图。
+  // bytesToText 对不可解码的字节会给出替换符 U+FFFD，因此「解码后没有替换符」才是可读文本；
+  // 此前正则被写成了「至多一个 U+951F」，恒为真，导致纯二进制（图片、压缩包）也被塞进满是替换符的「文本」页签。
+  if (blobIsBinary.value && blobText.value && !/\uFFFD/.test(blobText.value)) {
     modes.unshift("text");
   }
   return modes;

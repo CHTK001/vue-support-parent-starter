@@ -285,14 +285,6 @@ const routes = [
     component: () => import("./components/dev/KbVariantsPreviewPage.vue"),
   },
   {
-    // 【设计探索临时路由 — 验证完即删】重构后的真实 KnowledgeBasePage 验证台：
-    // 直接挂真实组件 + mock store，不经过路由守卫与后端。
-    path: "/preview/kb-harness",
-    name: "KbHarness",
-    meta: { title: "知识库 · 验证台" },
-    component: () => import("./components/dev/KbHarnessPage.vue"),
-  },
-  {
     path: "/login",
     name: "Login",
     meta: { titleKey: "common.route.login" },
@@ -326,18 +318,8 @@ router.beforeEach(async (to, from, next) => {
   }
   // 【设计探索临时钩子 — 验证完即删】后端未启动时用 ?variant= 预览设计变体：
   // 仅放行预览路由，其余业务路由照常走登录守卫（不扩大免登录面）。
-  if (import.meta.env.DEV && to.name === "KbHarness") {
-    return next();
-  }
   if (import.meta.env.DEV && to.query?.variant
     && (to.name === "VariantsPreview" || to.name === "KbVariantsPreview")) {
-    return next();
-  }
-  // 【设计探索临时钩子 — 验证完即删】?kbmock=1 时放行知识库路由，用于在无后端/无登录的
-  // 情况下渲染重构后的真实 KnowledgeBasePage（数据由 Playwright 拦截 /api/ 注入）。
-  // __KB_HARNESS__ 由 /preview/kb-harness 验证台置位（它内部导航到知识库路由时同样需放行）。
-  if (import.meta.env.DEV && to.name === "KnowledgeBase"
-    && (to.query?.kbmock === "1" || window.__KB_HARNESS__ === true)) {
     return next();
   }
   // 真登录守卫：业务路由必须持有框架令牌（@repo/utils token 模块）
