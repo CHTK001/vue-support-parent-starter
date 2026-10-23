@@ -4315,8 +4315,8 @@ let designRowSeq = 0;
 /**
  * 表结构网格高度：设计视图是整块区域，交给 ReTable 的 maxHeight 走内滚。
  *
- * <p>原本 .dbm-dgrid 是 flex 撑满剩余高度；这里给一个足够大的上限，
- * 让行多时在表体内滚动而不是把工具栏顶出视口。</p>
+ * <p>网格是共享的 DesignColumnGrid（内部 ReTable），自身不撑满高度；
+ * 这里给一个足够大的上限，让行多时在表体内滚动而不是把工具栏顶出视口。</p>
  */
 const designGridHeight = "calc(100vh - 320px)";
 
@@ -10249,89 +10249,12 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* ==================== 表设计网格 ==================== */
-.dbm-dgrid {
-  flex: 1;
-  overflow: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-}
-.dbm-dgrid-head,
-.dbm-dgrid-row {
-  display: grid;
-  /* 「可空」那格改成 el-segmented（是/否）后比普通开关宽，
-     128px 给两枚按钮留位，避免挤到换行/溢出。 */
-  grid-template-columns: 44px minmax(150px, 1.2fr) 130px 110px 128px 56px minmax(120px, 1fr) minmax(150px, 1.2fr) 100px;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 12px;
-  min-width: 1120px;
-}
-.dbm-dgrid-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-}
-.dbm-dgrid-row { border-top: 1px solid var(--el-border-color-lighter); }
-.dbm-dgrid-row:hover { background: var(--el-fill-color-extra-light, var(--el-fill-color-light)); }
-.dbm-dgrid-row.dirty { background: var(--el-color-warning-light-9); }
-.dbm-dgrid-idx {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  text-align: right;
-}
-.dbm-dgrid-grip {
-  cursor: grab;
-  color: var(--el-text-color-placeholder);
-  transition: color 0.15s ease, transform 0.15s ease;
-}
-.dbm-dgrid-grip:hover {
-  color: var(--el-color-primary);
-  transform: translateY(-1px);
-}
-.dbm-dgrid-grip:active {
-  cursor: grabbing;
-}
-.dbm-dgrid-row.drag-over {
-  background: var(--el-color-primary-light-8, #d9ecff);
-  box-shadow: inset 0 2px 0 var(--el-color-primary);
-}
-.dbm-dgrid-pk { display: grid; place-items: center; color: var(--el-color-warning); }
-.dbm-dgrid-ops { display: flex; gap: 4px; justify-content: center; }
+/* ==================== 表设计网格 ====================
+   列网格已收口到 components/console/DesignColumnGrid.vue（与「新建表」弹窗同一份实现），
+   原来这里那套 .dbm-dgrid-* 手写 grid 样式随模板块一并删除，避免留下会误导人的死样式。 */
 .dbm-mono .el-input__inner {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12.5px;
-}
-
-/* ==================== 设计网格「可空」那格的分段单选 ====================
-   这格是 ReSwitch（radio 布局）的「是/否」分段。re-kit 给每个分段定了
-   min-width: 64px —— 那是独立控件的口径，两枚加起来 128px，塞不进 96px 的
-   轨道，于是两枚完全叠在一起（用户截图里看到的就是这个）。
-   只在网格里收窄，re-kit 那份全局的 64px 别动（控制台开关要它）。
-   类写两遍是为了把特异性抬到 re-kit 那条 (0,3,0) 之上。 */
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-switch-radio),
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group) {
-  width: 100%;
-  min-width: 0;
-}
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group .el-radio-button) {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.dbm-dgrid-row.dbm-dgrid-row :deep(.re-radio-group .el-radio-button__inner) {
-  width: 100%;
-  min-width: 0;
-  padding: 0 6px;
-  font-size: 12px;
 }
 
 /* ==================== SQL 编辑器 ==================== */

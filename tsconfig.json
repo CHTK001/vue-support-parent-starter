@@ -25,11 +25,14 @@
       "@repo/pinia/*": ["packages/pinia/src/*"],
       "@repo/ui": ["packages/ui/src"],
       "@repo/ui/components/*": ["packages/ui/src/components/*"],
-      "@repo/ui/re-ip-text": ["packages/ui/src/components/ReIpText/index.ts"],
-      "@repo/ui/re-ip-select": ["packages/ui/src/components/ReIpSelect/index.ts"],
-      "@repo/ui/re-icon-select": ["packages/ui/src/components/ReIconSelect/index.ts"],
-      "@repo/ui/re-table": ["packages/ui/src/components/ReTable/index.ts"],
-      "@repo/ui/re-icon": ["packages/ui/src/components/ReIcon/index.ts"],
+      // @repo/ui/re-* 全部走通配，不再逐个手写。
+      //
+      // 此前这里只手写了 5 个（re-ip-text / re-ip-select / re-icon-select /
+      // re-table / re-icon），而 packages/ui 的 exports 有 86 个 ./re-* 入口
+      // （已核对：全部指向 src/components/ReXxxYyy/index.ts，且可一一从
+      // kebab-case 推导出目录名）。结果 @repo/ui/re-section-head 这类声明的
+      // entry 在 TS 里解析不到，报 TS2307「Cannot find module」。
+      "@repo/ui/re-*": ["packages/ui/src/components/Re*/index.ts"],
       "@repo/utils": ["packages/utils/src"],
       "@repo/utils/*": ["packages/utils/src/*"],
       "@repo/work": ["packages/work/src"],

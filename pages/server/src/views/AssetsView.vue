@@ -2135,27 +2135,22 @@ function osTileClass(h: Host): string {
 
 /* 关键属性胶囊 */
 .hc-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 16px 10px; }
+/* 350px 的卡片里，四个胶囊按原尺寸会折成「3+1」两行 —— 70px 只显示一行信息量。
+   收紧高度/内边距/字号后四个能并排；窄屏（卡片被拉宽）时回落到 26px 更易点。 */
 .hc-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  font-size: 12px;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11.5px;
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-full, 9999px);
 }
-/* 350px 的卡片里，四个胶囊按原尺寸会折成「3+1」两行 —— 70px 只显示一行信息量。
-   收紧内边距与字号后四个能并排：高度不变（仍是一行高），但省掉整行 32px。 */
-@media (min-width: 641px) {
-  .hc-chip {
-    height: 24px;
-    padding: 0 8px;
-    gap: 4px;
-    font-size: 11.5px;
-  }
+@media (max-width: 640px) {
+  .hc-chip { gap: 6px; height: 26px; padding: 0 10px; font-size: 12px; }
 }
 .hc-chip i { font-style: normal; color: var(--el-text-color-placeholder); }
 .hc-chip b { font-weight: 600; color: var(--el-text-color-primary); }
@@ -2305,7 +2300,9 @@ function osTileClass(h: Host): string {
 .host-card-grid :deep(.el-card) .hc-ring b { font-size: 11.5px; }
 .host-card-grid :deep(.el-card) .hc-ring i { font-size: 8.5px; }
 @media (max-width: 520px) {
-  .hc-metrics { grid-template-columns: 1fr; }
+  /* 必须带上 .host-card-grid :deep(.el-card) 前缀：否则特异性低于上方
+     「350px 卡片两栏」那条，窄屏叠成一列的规则会被静默覆盖，条形被压没。 */
+  .host-card-grid :deep(.el-card) .hc-metrics { grid-template-columns: 1fr; }
   .hc-metrics__viz {
     padding-left: 0;
     padding-top: 10px;

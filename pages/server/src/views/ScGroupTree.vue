@@ -333,7 +333,13 @@ async function removeGroup(node: GroupNode) {
 /* 本文件原先整套用 pages/server/src/styles/tokens.css 的私有令牌
    （--border-subtle / --text-primary / --text-secondary / --text-tertiary / --bg-fill /
    --bg-elevated，兜底还带 hex），而那份 tokens.css 只有 :root、没有暗色变体，
-   暗色模式下这些值全部停留在亮色。统一改走 EP 语义令牌。 */
+   暗色模式下这些值全部停留在亮色。统一改走 koi 令牌
+   （packages/theme/src/styles/tokens.css：--brand-* / --bg-* / --text-* / --border-* /
+   --radius-* / --shadow-* / --status-* / --ease-out）。
+
+   硬规则：本页 ReTree（节点标签插槽 + node-click）、ReTreeSelect（v-model 绑
+   form.msServerGroupParentId）、ReDialog 表单与 el-color-picker 均与 script 的
+   ref 直连，模板改动会破坏绑定，因此模板与脚本原样保留，只在本段换令牌。 */
 .group-tree {
   display: flex;
   flex-direction: column;
@@ -375,6 +381,8 @@ async function removeGroup(node: GroupNode) {
 .tree-title {
   font-size: 14px;
   font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .tree-search {
@@ -398,7 +406,8 @@ async function removeGroup(node: GroupNode) {
 .color-dot {
   width: 10px;
   height: 10px;
-  border-radius: var(--el-radius-full, 9999px);
+  /* 完全圆形：圆点在视觉语义上是「点」而非「圆角块」，koi 的 --radius-* 档位不适用，取 50% */
+  border-radius: 50%;
   flex-shrink: 0;
   /* 圆点本体的颜色由模板 :style 动态传入（分组自定义色），没法用 color-mix 跟随，
      所以外圈光晕改用主题边框色令牌，亮暗色下都能保持一圈淡描边 */
@@ -417,12 +426,13 @@ async function removeGroup(node: GroupNode) {
   min-width: 20px;
   height: 18px;
   padding: 0 6px;
-  /* 18px 高的徽标：9px 已是胶囊圆角，统一到 full 档 */
-  border-radius: var(--el-radius-full, 9999px);
+  /* 18px 高的徽标：9px 已是胶囊圆角，统一到 9999px 全圆 */
+  border-radius: 9999px;
   background: color-mix(in srgb, var(--brand-500) 10%, transparent);
   color: var(--brand-500);
   font-size: 11px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- 右侧详情 ---- */
@@ -440,6 +450,7 @@ async function removeGroup(node: GroupNode) {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 16px;
   margin-bottom: 24px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-subtle);
@@ -447,11 +458,13 @@ async function removeGroup(node: GroupNode) {
 
 .detail-title-area {
   flex: 1;
+  min-width: 0;
 }
 
 .detail-title {
   font-size: 20px;
   font-weight: 600;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
 }
 
@@ -464,6 +477,8 @@ async function removeGroup(node: GroupNode) {
 .detail-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 /* 统计卡片 */
@@ -476,24 +491,30 @@ async function removeGroup(node: GroupNode) {
 
 .info-card {
   background: var(--bg-fill);
-  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
-  border-radius: var(--el-radius-lg, 12px);
+  /* 原为 10px，取 koi 的 --radius-lg(12px) */
+  border-radius: var(--radius-lg);
   padding: 16px;
+  /* koi：静态容器不加投影，边界由 1px 边框承载 */
+  border: 1px solid var(--border-subtle);
 }
 
 .info-label {
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 8px;
+  letter-spacing: 0.02em;
 }
 
 .info-value {
   font-size: 24px;
   font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .info-value--success {
-  color: var(--el-color-success);
+  color: var(--status-success);
 }
 
 /* 详情区块 */
@@ -504,6 +525,7 @@ async function removeGroup(node: GroupNode) {
 .section-title {
   font-size: 14px;
   font-weight: 600;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-subtle);
@@ -533,13 +555,15 @@ async function removeGroup(node: GroupNode) {
 .detail-value {
   font-size: 14px;
   font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-all;
 }
 
 /* 主机列表 */
 .host-list {
   border: 1px solid var(--border-subtle);
-  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
-  border-radius: var(--el-radius-lg, 12px);
+  /* 原为 10px，取 koi 的 --radius-lg(12px) */
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -548,7 +572,7 @@ async function removeGroup(node: GroupNode) {
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-subtle);
-  transition: background-color 0.2s;
+  transition: background-color 0.2s var(--ease-out);
 }
 
 .host-item:last-child {
@@ -556,29 +580,33 @@ async function removeGroup(node: GroupNode) {
 }
 
 .host-item:hover {
-  background: var(--bg-fill);
+  background: var(--bg-hover);
 }
 
 .host-status {
   width: 8px;
   height: 8px;
-  border-radius: var(--el-radius-full, 9999px);
+  border-radius: 50%;
   margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .host-status--online {
-  background: var(--el-color-success);
+  background: var(--pulse-online);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulse-online) 18%, transparent);
 }
 
 .host-name {
   flex: 1;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .host-ip {
   color: var(--text-secondary);
   font-size: 13px;
   margin-right: 16px;
+  font-variant-numeric: tabular-nums;
 }
 
 .host-os {
@@ -594,6 +622,38 @@ async function removeGroup(node: GroupNode) {
   align-items: center;
   gap: 8px;
   width: 100%;
+}
+
+/* 窄屏：左右两栏改为上下堆叠，统计卡保持 3 列（数值短，撑得下） */
+@media (max-width: 960px) {
+  .group-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .tree-card {
+    max-height: 46vh;
+  }
+  .detail-card {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .detail-header {
+    flex-direction: column;
+  }
+  .detail-body {
+    grid-template-columns: 1fr;
+  }
+  .detail-item--full {
+    grid-column: span 1;
+  }
+  .info-grid {
+    gap: 10px;
+  }
+  .info-value {
+    font-size: 20px;
+  }
 }
 
 /* 尊重系统「减少动态效果」偏好 */
