@@ -38,7 +38,10 @@
         <span class="stats-skeleton stats-skeleton--w-cache"></span>
       </div>
       <div class="stats-cluster stats-cluster--right">
-        <span class="stats-ring stats-ring--pending"></span>
+        <!-- 等待态：只画底环（占用率还不知道），靠轻微呼吸表示"正在等" -->
+        <svg class="stats-ring stats-ring--pending" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+          <circle class="stats-ring__track" cx="10" cy="10" r="8" />
+        </svg>
         <span class="stats-skeleton stats-skeleton--w-percent"></span>
       </div>
     </template>
@@ -89,7 +92,12 @@
     <el-popover trigger="hover" placement="top-start" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--shrink stats-cluster--hoverable">
-          <el-icon class="stats-icon"><DataLine20Regular /></el-icon>
+          <svg class="stats-icon" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+            stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+            <ellipse cx="8" cy="4" rx="5" ry="2.1" />
+            <path d="M3 4v4c0 1.16 2.24 2.1 5 2.1s5-.94 5-2.1V4" />
+            <path d="M3 8v4c0 1.16 2.24 2.1 5 2.1s5-.94 5-2.1V8" />
+          </svg>
           <span class="stats-item">{{ tokensText }}</span>
           <span class="stats-sep">·</span>
           <span class="stats-item">{{ cacheHitText }}</span>
@@ -128,7 +136,16 @@
     <el-popover trigger="hover" placement="top-end" :width="272" :show-arrow="true">
       <template #reference>
         <div class="stats-cluster stats-cluster--right stats-cluster--hoverable">
-          <span class="stats-ring" :style="ringStyle" role="img" :aria-label="contextHint"></span>
+          <!--
+            环形进度用 SVG 圆周而不是 conic-gradient：
+            conic-gradient + radial mask 挖空出来的环边是**硬边、没有圆头**，
+            设计稿要的是「圆头粗弧」（stroke-linecap: round）。颜色仍按危险/警告/正常分档。
+          -->
+          <svg class="stats-ring" viewBox="0 0 20 20" width="14" height="14" role="img" :aria-label="contextHint">
+            <circle class="stats-ring__track" cx="10" cy="10" r="8" />
+            <circle v-if="ringArc" class="stats-ring__bar" cx="10" cy="10" r="8" :stroke="ringColor"
+              :stroke-dasharray="ringArc" transform="rotate(-90 10 10)" />
+          </svg>
           <span class="stats-item">{{ contextPctText }}</span>
         </div>
       </template>
@@ -195,7 +212,6 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Timer } from '@element-plus/icons-vue';
-import { DataLine20Regular } from '@vicons/fluent';
 import { useTurnStats } from '@/composables/useTurnStats';
 import TraceFlowDialog from './trace/TraceFlowDialog.vue';
 import { normalizeLiveTrace, type SessionTrace } from './trace/traceTypes';
@@ -427,11 +443,19 @@ const ringColor = computed(() => {
       : 'var(--el-color-primary)';
 });
 
-const ringStyle = computed(() => {
+/** 环形周长（viewBox 20 / r=8）：dasharray 用它换算弧长 */
+const RING_CIRCUM = 2 * Math.PI * 8;
+
+/**
+ * 弧长 dasharray；**占用率未知时返回空串** → 只画底环、不画弧。
+ *
+ * <p>窗口未配置时（实测 27/31 个模型如此）百分比本身没有意义，
+ * 画一段 0% 的弧等于告诉用户「上下文是空的」。宁可只留一圈底环。</p>
+ */
+const ringArc = computed(() => {
+  if (!num(props.contextTotal)) return '';
   const percent = Math.max(0, Math.min(100, contextPct.value));
-  return {
-    background: `conic-gradient(${ringColor.value} ${percent}%, var(--el-fill-color) ${percent}% 100%)`,
-  };
+  return `${(percent / 100) * RING_CIRCUM} ${RING_CIRCUM}`;
 });
 </script>
 
@@ -613,10 +637,8 @@ const ringStyle = computed(() => {
   100% { background-position: 0 50%; }
 }
 
-/* 等待态的环形：不画 conic-gradient（占用率还不知道），只留一圈淡淡的底，
-   配合轻微呼吸表示「正在等」。 */
+/* 等待态的环形：不画弧（占用率还不知道），只留底环，靠轻微呼吸表示「正在等」 */
 .stats-ring--pending {
-  background: var(--el-fill-color);
   animation: stats-pulse 1.4s ease-in-out infinite;
 }
 
@@ -625,17 +647,44 @@ const ringStyle = computed(() => {
   50%      { opacity: 1; }
 }
 
-/* 12px 环形进度：外层 conic-gradient 由内联 style 给色。
-   挖空用 mask 而不是「叠一个内圈色块」—— 内圈色块必须知道背后是什么底色，
-   而这条栏的底色是半透明的（乘了 --content-opacity），叠色块会在壁纸下露出灰芯。 */
+/*
+  14px 环形进度（SVG）：底环 + 圆头弧。
+
+  设计稿的关键特征是「圆头粗弧」（stroke-linecap: round）—— conic-gradient 做不到圆头，
+  边也是硬的，所以从「渐变 + radial mask 挖空」换成 SVG 圆周。
+  viewBox 20、r=8、实际渲染 14px ⇒ 壁厚 = 3.2 × (14/20) ≈ 2.2px。
+*/
 .stats-ring {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  border-radius: var(--el-radius-full, 9999px);
-  -webkit-mask: radial-gradient(closest-side, transparent 58%, #000 60%);
-  mask: radial-gradient(closest-side, transparent 58%, #000 60%);
+  /* 与同行 12px 文字视觉居中对齐 */
+  vertical-align: -1px;
+}
+
+.stats-ring__track {
+  fill: none;
+  stroke: var(--el-fill-color);
+  stroke-width: 3.2;
+}
+
+.stats-ring__bar {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+/* 动效降级：呼吸与弧长过渡都停，但环的形状本身仍然可见 */
+@media (prefers-reduced-motion: reduce) {
+  .stats-ring--pending {
+    animation: none;
+  }
+
+  .stats-ring__bar {
+    transition: none;
+  }
 }
 
 /* 浮层内容：标签左、数值右，等宽数字避免两行数字左右跳动 */
