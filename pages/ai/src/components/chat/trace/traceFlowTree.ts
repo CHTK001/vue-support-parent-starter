@@ -17,17 +17,20 @@ import { formatDuration, kindLabel, type TraceModel, type TracePoint, type Trace
 type FlowStatus = 'G' | 'B' | 'Y' | 'R' | 'DI'
 
 /**
- * 节点文字预算（**显示宽度单位**，不是字符数）。
+ * 节点文字预算（**显示宽度单位**，不是字符数）。中文/全角算 2 单位，西文算 1。
  *
- * <p>依据：flow 节点尺寸由引擎固定为 202×60（见 ReChartFlow 的 `size: [202, 60]`），
- * 左右各留 8px 内边距 → 可用约 186px。12px 字号下中文一字≈12px、西文≈6px，
- * 所以按"中文算 2 单位、西文算 1 单位"折算，预算给 24/26 单位（≈12~13 个中文，
- * 或 24~26 个西文字符），留出余量不贴边。</p>
+ * <p>依据（含两行文字**字号不同**这个关键事实，见 ReChart/flow/treeNode.ts）：</p>
+ * <ul>
+ *   <li>节点盒子固定 202×60，左内边距 8、右侧还要给折叠按钮留 ≈24 → 可用 ≈170px；</li>
+ *   <li>上行 `name` 由 getLabelStyle 绘制，<b>fontSize 12</b> → 每单位≈6px → 170/6 ≈ 28 单位；</li>
+ *   <li>下行 `label` 由 getPriceStyle 绘制，<b>fontSize 16</b> → 每单位≈8px → 170/8 ≈ 21 单位。</li>
+ * </ul>
  *
- * <p>第一版按**字符数**截 46，中文 46 字≈550px，照样溢到框外 —— 用户复验时正是看到这个。</p>
+ * <p>上一版两行都按 12px 估、label 给到 26 单位（≈208px @16px），**必然出框** ——
+ * 用户两次复验都看到"文字出边框"，根因就是漏了 16px 这档。这里各留余量取 22 / 18。</p>
  */
-const NAME_MAX = 24
-const LABEL_MAX = 26
+const NAME_MAX = 22
+const LABEL_MAX = 18
 
 /** 全角/CJK 判定：按显示宽度算 2 单位 */
 const WIDE_CHAR = /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/
@@ -255,16 +258,26 @@ export function buildTraceFlowTree(model: TraceModel): ReChartFlowNode {
       id: row.key,
       name: row.title,
       status: i === 0 ? ('G' as FlowStatus) : ('B' as FlowStatus),
-      label: `${stepNodes.length} 步 · ${formatDuration(model.totalMs)}`,
+      // 下行是 16px 的 price 行，**生成出来的文案同样要截**（不截一样顶出框）
+      label: clip(`${stepNodes.length} 步 · ${formatDuration(model.totalMs)}`, LABEL_MAX),
       children: stepNodes,
     }
   })
+
+  /*
+   * 根节点下行原来把「轮数 / 工具数 / 总时长」全塞进 16px 那一行：
+   * 实测「1 轮 · 0 次工具 · 总 1m 12s」折合 216px，比可用宽度 170px 多 46px —— 出框。
+   * 这里改用紧凑写法（去掉数字与单位间的空格、时长不空格），并同样过 clip：
+   * 信息不丢，宽度落到预算内。
+   */
+  const compactDuration = formatDuration(model.totalMs).replace(/\s+/g, '')
 
   return {
     id: 'root',
     name: 'Agent 运行',
     status: 'B',
-    label: `${model.turnCount} 轮 · ${model.callCount} 次工具 · 总 ${formatDuration(model.totalMs)}`,
+    // 分隔符不带空格：省下的 4 个单位正好让「37.5s」这种两位秒数完整显示，不被截成「37.…」
+    label: clip(`${model.turnCount}轮·${model.callCount}工具·${compactDuration}`, LABEL_MAX),
     children,
   }
 }
