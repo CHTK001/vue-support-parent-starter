@@ -40,7 +40,6 @@ import "./styles/generate-style-panel.css";
 // 页面标题统一层：把 8 个页面各自的标题规格（16/18/22px 混用）拉齐成一档。
 // 修的是缺陷不是风格，因此默认生效，不依赖设计变体。
 import "./styles/page-title-unify.css";
-import "./styles/page-head-unify.css";
 import "nprogress/nprogress.css";
 // 组件库统一卡片视觉基线（ReStatCard 风格：re-surface / --hover / --dense）
 import "@repo/ui/surface";
@@ -175,6 +174,13 @@ const routes = [
         name: "FaceSearch",
         meta: { title: "人脸识别", requiresAuth: true },
         component: () => import("./components/management/FaceSearchPage.vue"),
+      },
+      {
+        // 人脸重识别：与「人脸识别」并列的另一条业务 —— 跨摄像头/跨帧追踪同一个人
+        path: "face-reid",
+        name: "FaceReid",
+        meta: { title: "人脸重识别", requiresAuth: true },
+        component: () => import("./components/management/ReidPage.vue"),
       },
       {
         path: "audio-recognition",

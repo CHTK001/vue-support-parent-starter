@@ -267,13 +267,30 @@ async function probePdfAvailable(): Promise<void> {
 }
 
 /** 切换视图：client=原样渲染；pdf=后台转 PDF 渲染 */
+/**
+ * PDF 视图直链：当前文件交给浏览器原生 PDF 阅读器的地址。
+ *
+ * <p>后端 {@code ?format=pdf} 把 Word 转换出的 PDF 经 {@code application/pdf}
+ * 直出（含 {@code Content-Disposition} 预览头）。iframe 直挂该地址后由浏览器
+ * 内置 pdfium 渲染 —— 不走 file-viewer 的 renderer-pdf（其 worker/字体资源在
+ * 本仓库会加载失败并抛未捕获异常导致弹框关闭，见 OFD 先例），也更省资源。</p>
+ */
+const pdfSrc = computed(() => {
+  if (!props.src) return "";
+  const sep = props.src.includes("?") ? "&" : "?";
+  return `${props.src}${sep}format=pdf`;
+});
+
+/** 切换视图：client=原样渲染；pdf=后台转 PDF 交给浏览器原生阅读器 */
 function switchView(mode: "client" | "pdf"): void {
   if (mode === "pdf" && pdfAvailable.value !== true) {
     return;
   }
   pdfMode.value = mode === "pdf";
   failReason.value = "";
-  void load();
+  // pdf 视图不调 load()：改成渲染 <iframe :src="pdfSrc">（浏览器原生渲染）。
+  // 只在切回 client 时重新走一次客户端渲染。
+  if (!pdfMode.value) void load();
 }
 
 /**
@@ -606,11 +623,9 @@ async function load(): Promise<void> {
     // x-oauth-token 与请求头承担，不依赖 cookie。一旦写 credentials:"include"，
     // 浏览器会强制要求响应带 Access-Control-Allow-Credentials: true，
     // 而存储服务不返回该头 → 请求直接被 CORS 拦掉（预览整条链路失败）。
-    // PDF 视图：追加 format=pdf，让后端（有转换依赖时）返回转换出的 PDF 字节。
-    // 父组件对 .doc 等已带 format=pdf（previewUsePdf），重复参数后端以前者为准。
-    const sep = props.src.includes("?") ? "&" : "?";
-    const url = pdfMode.value ? `${props.src}${sep}format=pdf` : props.src;
-    const res = await fetch(url);
+    // 注：PDF 视图（pdfMode=true）不经过本函数 —— 由 <iframe :src=pdfSrc>
+    // 直接把 Word→PDF 转换结果交给浏览器原生阅读器（见 switchView / pdfSrc）。
+    const res = await fetch(props.src);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -621,13 +636,6 @@ async function load(): Promise<void> {
     const convertHeader = res.headers.get("X-FileStorage-Convert");
     const isPdfBytes = channel === "pdf" || convertHeader === "pdf"
       || (res.headers.get("content-type") ?? "").startsWith("application/pdf");
-    // PDF 视图下若后端没有转换依赖（?format=pdf 转不了：conver=unavailable + 原始字节），
-    // 自动切回客户端原样模式并继续渲染该字节，同时把「不可用」探测结果缓存下来
-    // （切换入口随即隐藏）。不抛错也不弹失败态：原样渲染本就是这个文件的兜底能力。
-    if (pdfMode.value && !isPdfBytes) {
-      pdfMode.value = false;
-      if (pdfAvailable.value === null) pdfAvailable.value = false;
-    }
     if (isPdfBytes) {
       const pdfBytes = new Uint8Array(await res.arrayBuffer());
       if (pdfBytes.length === 0) {
@@ -809,6 +817,15 @@ function onRendered(): void {
 }
 
 /**
+ * PDF 视图 iframe 加载完成：通知父组件收起骨架屏，并把面板 loading 复位。
+ * （PDF 由浏览器原生阅读器渲染，这里只负责状态同步，不解析内容。）
+ */
+function onPdfFrameLoad(): void {
+  loading.value = false;
+  emit("rendered");
+}
+
+/**
  * 客户端组件解析失败后的兜底
  *
  * <p>产品口径：客户端能显示就用客户端，报错才转。所以这里不是无条件退回
@@ -929,7 +946,16 @@ defineExpose({ wrapRef });
     <!-- 不再对 wrap 做 transform: scale()：那会连同遮罩与边框一起缩放，
          表现为「缩放时整个弹框都在动」。缩放工具条已按产品要求移除。 -->
     <div ref="wrapRef" class="preview-office-panel__wrap">
-      <div v-if="loading" class="preview-office-panel__mask">
+      <!-- PDF 视图：Word→PDF 由后端转换，交给浏览器原生阅读器（pdfium）渲染。
+           iframe 直挂 format=pdf 直链：加载与渲染由浏览器负责，不经过 file-viewer。 -->
+      <iframe
+        v-if="pdfMode && pdfSrc"
+        :key="`pdf:${pdfSrc}`"
+        class="preview-office-panel__pdf-frame"
+        :src="pdfSrc"
+        @load="onPdfFrameLoad"
+      />
+      <div v-else-if="loading" class="preview-office-panel__mask">
         <span class="preview-office-panel__mask-text">加载中…</span>
       </div>
 
@@ -988,6 +1014,17 @@ defineExpose({ wrapRef });
   background: var(--el-bg-color-page);
 }
 
+/* PDF 视图：浏览器原生阅读器 iframe 吃满 wrap */
+.preview-office-panel__pdf-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color-page);
+}
+
 .preview-office-panel__mask {
   display: flex;
   align-items: center;
@@ -1032,13 +1069,14 @@ defineExpose({ wrapRef });
 .preview-office-panel__viewbtn {
   all: unset;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.4;
-  padding: 4px 14px;
+  padding: 6px 16px;
   border-radius: 999px;
   border: 1px solid var(--el-border-color, #dcdfe6);
   background: var(--el-bg-color, #fff);
-  color: var(--el-text-color-regular, #606266);
+  color: var(--el-text-color-primary, #303133);
   transition:
     background 0.18s ease,
     border-color 0.18s ease,

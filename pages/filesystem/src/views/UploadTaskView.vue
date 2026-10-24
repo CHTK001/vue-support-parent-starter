@@ -601,3 +601,4 @@ function formatSize(bytes: number): string {
     transform: none;
   }
 }
+</style>

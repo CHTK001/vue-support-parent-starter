@@ -159,6 +159,14 @@ const PAGES: HotsportPageDef[] = [
     component: () => import("../views/Injector.vue"),
     menu: true,
   },
+  {
+    path: "/settings",
+    name: "HotsportSettings",
+    title: "接口设置",
+    icon: "Setting",
+    component: () => import("../views/Settings.vue"),
+    menu: true,
+  },
 ];
 
 /**

@@ -296,232 +296,323 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="system-page settings-page">
-    <el-card class="system-page__card settings-card" shadow="never" :body-style="{ paddingTop: '6px' }">
-      <div class="settings-header">
-        <span class="settings-header__title">个人偏好设置</span>
-        <el-tag :type="syncState.type" effect="plain" >
-          <span class="flex items-center gap-1">
-            <span class="sync-dot" :class="syncState.type" />
-            {{ syncState.text }}
-          </span>
-        </el-tag>
-      </div>
-      <el-alert
-        v-if="cloudOffline"
-        title="离线模式：当前云端不可用，偏好仅保存到本地浏览器"
-        type="warning"
-        :closable="false"
-        show-icon
-        class="mb-2"
-      />
-      <ReTab :tabs="tabs" v-model="activeTab" variant="capsule">
-        <template #appearance>
-          <ReForm
-            v-model="interfaceForm"
-            layout="modern"
-            label-width="90px"
-            class="settings-form"
-            :fields="appearanceFields"
-          />
-        </template>
-
-        <template #notify>
-          <ReForm
-            v-model="notifyForm"
-            layout="modern"
-            label-width="90px"
-            class="settings-form"
-            :fields="notifyFields"
-          />
-        </template>
-
-        <template #security>
-          <ReForm
-            v-model="securityForm"
-            layout="modern"
-            label-width="90px"
-            class="settings-form"
-            :fields="securityFields"
-          />
-          <div class="totp-card" v-loading="totpLoading">
-            <div class="totp-card__row">
-              <div class="totp-card__info">
-                <span class="totp-card__label">二次验证（2FA）</span>
-                <span class="totp-card__desc">开启后登录需输入动态验证码，提升账号安全</span>
-              </div>
-              <el-switch
-                :model-value="totpEnabled"
-                @change="(v) => onTotpSwitchChange(v === true)"
-              />
-            </div>
-            <el-tag v-if="totpEnabled" type="success" effect="plain" >已启用</el-tag>
-            <el-tag v-else type="info" effect="plain" >未启用</el-tag>
-          </div>
-        </template>
-      </ReTab>
-
-      <!-- 2FA 绑定二维码弹窗 -->
-      <ReDialog
-        v-model="totpDialogVisible"
-        title="绑定二次验证"
-        layout="modern"
-        width="420"
-        :close-on-click-modal="false"
-        compact
-        :confirm-loading="totpBinding"
-        ok-text="确认绑定"
-        :footer-hidden="false" @ok="confirmTotpBind"
-      >
-        <div class="totp-bind">
-          <img v-if="totpQrcodeUrl" :src="totpQrcodeUrl" alt="TOTP 二维码" class="totp-bind__qrcode" />
-          <p class="totp-bind__tip">使用 Google Authenticator 或其他 TOTP 应用扫描二维码</p>
-          <ReInput
-            layout="modern"
-            v-model="totpCode"
-            placeholder="请输入 6 位动态验证码"
-            maxlength="6"
-            class="w-full"
-          />
-        </div>
-      </ReDialog>
-
-      <div class="tab-actions">
-        <ReButton
-          layout="modern"
-          type="primary"
-          :icon="saveStatus === 'saving' ? Upload : Setting"
-          :loading="saveStatus === 'saving'"
-          @click="savePrefs"
-        >
-          {{ saveStatus === "saving" ? "同步中..." : saveStatus === "saved" ? "已同步" : "保存设置" }}
-        </ReButton>
-        <ReButton layout="modern" @click="resetPrefs">恢复默认</ReButton>
-        <span class="sync-hint" v-loading="loading">
-          <el-icon><Monitor /></el-icon>
-          <span v-if="loading">正在从云端同步...</span>
-          <span v-else-if="saveStatus === 'failed'" class="text-[--el-color-warning]">本地缓存模式</span>
-          <span v-else class="text-[--el-text-color-secondary]">云端已同步</span>
+<div class="settings-page sc-page">
+  <ReSectionHead class="page-head" title="个人偏好设置" description="管理界面主题、通知偏好、安全设置等个人配置">
+    <template #actions>
+      <el-tag :type="syncState.type" effect="plain" class="sync-badge">
+        <span class="flex items-center gap-1">
+          <span class="sync-dot" :class="syncState.type" />
+          {{ syncState.text }}
         </span>
+      </el-tag>
+    </template>
+  </ReSectionHead>
+
+  <el-alert
+    v-if="cloudOffline"
+    title="离线模式：当前云端不可用，偏好仅保存到本地浏览器"
+    type="warning"
+    :closable="false"
+    show-icon
+    class="offline-alert"
+  />
+
+  <ReTab :tabs="tabs" v-model="activeTab" variant="capsule" class="settings-tabs">
+
+    <template #appearance>
+      <div class="settings-section">
+        <ReForm
+          v-model="interfaceForm"
+          layout="modern"
+          label-width="100px"
+          class="settings-form"
+          :fields="appearanceFields"
+        />
       </div>
-    </el-card>
+    </template>
+
+    <template #notify>
+      <div class="settings-section">
+        <ReForm
+          v-model="notifyForm"
+          layout="modern"
+          label-width="100px"
+          class="settings-form"
+          :fields="notifyFields"
+        />
+      </div>
+    </template>
+
+    <template #security>
+      <div class="settings-section">
+        <ReForm
+          v-model="securityForm"
+          layout="modern"
+          label-width="100px"
+          class="settings-form"
+          :fields="securityFields"
+        />
+
+        <div class="totp-card" v-loading="totpLoading">
+          <div class="totp-card__row">
+            <div class="totp-card__info">
+              <span class="totp-card__label">二次验证（2FA）</span>
+              <span class="totp-card__desc">开启后登录需输入动态验证码，提升账号安全</span>
+            </div>
+            <el-switch
+              :model-value="totpEnabled"
+              @change="(v: string | number | boolean) => onTotpSwitchChange(v === true)"
+            />
+          </div>
+          <el-tag v-if="totpEnabled" type="success" effect="plain" >已启用</el-tag>
+          <el-tag v-else type="info" effect="plain" >未启用</el-tag>
+        </div>
+      </div>
+    </template>
+
+  </ReTab>
+
+  <!-- 2FA 绑定二维码弹窗 -->
+  <ReDialog
+    v-model="totpDialogVisible"
+    title="绑定二次验证"
+    layout="modern"
+    width="420"
+    :close-on-click-modal="false"
+    compact
+    :confirm-loading="totpBinding"
+    ok-text="确认绑定"
+    :footer-hidden="false" @ok="confirmTotpBind"
+  >
+    <div class="totp-bind">
+      <img v-if="totpQrcodeUrl" :src="totpQrcodeUrl" alt="TOTP 二维码" class="totp-bind__qrcode" />
+      <p class="totp-bind__tip">使用 Google Authenticator 或其他 TOTP 应用扫描二维码</p>
+      <ReInput
+        layout="modern"
+        v-model="totpCode"
+        placeholder="请输入 6 位动态验证码"
+        maxlength="6"
+        class="w-full"
+      />
+    </div>
+  </ReDialog>
+
+  <div class="page-actions">
+    <ReButton
+      layout="modern"
+      type="primary"
+      :icon="saveStatus === 'saving' ? Upload : Setting"
+      :loading="saveStatus === 'saving'"
+      @click="savePrefs"
+      size="small"
+    >
+      {{ saveStatus === "saving" ? "同步中..." : saveStatus === "saved" ? "已同步" : "保存设置" }}
+    </ReButton>
+    <ReButton layout="modern" @click="resetPrefs" size="small">恢复默认</ReButton>
+    <span class="sync-hint" v-loading="loading">
+      <el-icon><Monitor /></el-icon>
+      <span v-if="loading">正在从云端同步...</span>
+      <span v-else-if="saveStatus === 'failed'" class="text-[--el-color-warning]">本地缓存模式</span>
+      <span v-else class="text-[--text-tertiary]">云端已同步</span>
+    </span>
   </div>
+</div>
 </template>
 
 <style scoped lang="scss">
-.system-page {
+.settings-page {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 0;
-  height: 100%;
+  padding: 4px;
+  max-width: 760px;
+  width: 100%;
 }
-.system-page__header {
+
+.page-head {
+  margin-bottom: 4px;
+}
+
+.sync-badge {
+  font-size: 12px;
+}
+
+.sync-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  &.success { background: var(--status-success, var(--el-color-success, #67c23a)); }
+  &.warning { background: var(--status-warning, var(--el-color-warning, #e6a23c)); }
+  &.danger { background: var(--status-error, var(--el-color-danger, #f56c6c)); }
+}
+
+.offline-alert {
+  margin-bottom: 8px;
+}
+
+.settings-tabs {
+  width: 100%;
+}
+
+.settings-section {
+  padding: 8px 0 4px;
+}
+
+.settings-form {
+  max-width: 520px;
+}
+
+.totp-card {
+  margin-top: 16px;
+  max-width: 520px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e4e7ed));
+  border-radius: var(--radius-lg, 8px);
+  background: var(--bg-container, var(--el-bg-color, #ffffff));
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.03));
+  transition: box-shadow 0.2s var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1)), border-color 0.2s var(--ease-out);
 }
-.system-page__title {
-  font-size: 18px;
+
+.totp-card:hover {
+  box-shadow: var(--shadow-md, 0 4px 8px rgba(0,0,0,0.08));
+  border-color: var(--border-default, var(--el-border-color, #dcdfe6));
+}
+
+.totp-card__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.totp-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.totp-card__label {
+  font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.system-page__subtitle {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  display: block;
+  margin-bottom: 4px;
 }
 
-.settings-page {
-  max-width: 760px;
+.totp-card__desc {
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-secondary, #606266));
+}
 
-  .settings-card {
-    width: 100%;
+.totp-bind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 4px;
+}
+
+.totp-bind__qrcode {
+  width: 200px;
+  height: 200px;
+  border: 1px solid var(--border-subtle, var(--el-border-color, #dcdfe6));
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-container, #fff);
+}
+
+.totp-bind__tip {
+  font-size: 12px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder, #a8abb2));
+  text-align: center;
+  margin: 0;
+  max-width: 300px;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 4px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e4e7ed));
+  flex-wrap: wrap;
+}
+
+.sync-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-left: auto;
+  color: var(--text-tertiary, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.sync-hint el-icon {
+  font-size: 14px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder, #a8abb2));
+}
+
+/* 响应式断点 768px */
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 4px 8px;
+    gap: 12px;
+  }
+
+  .page-head {
+    padding: 0 4px;
   }
 
   .settings-form {
-    max-width: 480px;
-  }
-
-  .tab-actions {
-    margin-top: 16px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .settings-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 0 12px;
-
-    &__title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-    }
-  }
-
-  .sync-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-
-    &.success { background: var(--el-color-success); }
-    &.warning { background: var(--el-color-warning); }
-    &.danger { background: var(--el-color-danger); }
-  }
-
-  .mb-2 { margin-bottom: 8px; }
-
-  .sync-hint {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    margin-left: 8px;
+    max-width: 100%;
   }
 
   .totp-card {
-    margin-top: 8px;
-    max-width: 480px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
-
-    &__row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    &__label { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); display: block; }
-    &__desc { font-size: 12px; color: var(--el-text-color-secondary); }
+    max-width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
   }
 
-  .totp-bind {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+  .totp-card__row {
+    width: 100%;
+    justify-content: space-between;
+  }
 
-    &__qrcode {
-      width: 200px;
-      height: 200px;
-      border: 1px solid var(--el-border-color);
-      border-radius: 8px;
-    }
-    &__tip { font-size: 12px; color: var(--el-text-color-secondary); text-align: center; margin: 0; }
+  .totp-card__info {
+    min-width: 0;
+  }
+
+  .page-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .page-actions > ReButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sync-hint {
+    margin-left: 0;
+    justify-content: center;
+    order: -1;
+  }
+}
+
+/* 减少动态效果 */
+@media (prefers-reduced-motion: reduce) {
+  .totp-card,
+  .page-actions > ReButton,
+  .sync-badge {
+    transition: none;
+    animation: none;
   }
 }
 </style>

@@ -1338,7 +1338,7 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-title-icon {
-  color: #34d399;
+  color: var(--brand-500, var(--apm-brand-500));
 }
 
 .dsm-toolbar-right {
@@ -1376,8 +1376,8 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-dialect-btn.is-active {
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--brand-500, var(--apm-brand-500));
+  background: var(--bg-hover, var(--apm-bg-hover));
   font-weight: 600;
 }
 
@@ -1437,7 +1437,7 @@ watch(source, applyConnectionInfo);
 }
 
 .dsm-influx-icon {
-  color: #34d399;
+  color: var(--brand-500, var(--apm-brand-500));
 }
 
 .dsm-tree-label {
@@ -1462,7 +1462,7 @@ watch(source, applyConnectionInfo);
   display: flex;
   gap: 4px;
   padding: 10px 12px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter, var(--border-subtle));
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-subtle));
   overflow-x: auto;
   flex-shrink: 0;
 }
@@ -1473,30 +1473,30 @@ watch(source, applyConnectionInfo);
   gap: 6px;
   padding: 6px 12px;
   font-size: 12.5px;
-  color: var(--el-text-color-secondary, var(--text-tertiary));
+  color: var(--text-secondary, var(--apm-text-secondary));
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0 0;
+  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.dsm-tab:hover { background: var(--el-fill-color-light, var(--bg-hover)); color: var(--el-text-color-primary, var(--text-primary)); }
+.dsm-tab:hover { background: var(--bg-hover, var(--apm-bg-hover)); color: var(--text-primary, var(--apm-text-primary)); }
 
 .dsm-tab.active {
-  color: var(--el-color-primary, var(--brand-500));
-  background: var(--el-color-primary-light-9, var(--brand-50));
+  color: var(--brand-500, var(--apm-brand-500));
+  background: var(--bg-hover, var(--apm-bg-hover));
   font-weight: 600;
-  border-color: var(--el-border-color-lighter, var(--border-subtle));
+  border-color: var(--border-subtle, var(--apm-border-subtle));
 }
 
 .dsm-tab-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .dsm-tab-close { opacity: 0.5; transition: opacity 0.15s ease; }
 
-.dsm-tab-close:hover { opacity: 1; color: var(--el-color-danger); }
+.dsm-tab-close:hover { opacity: 1; color: var(--status-error, var(--apm-status-error)); }
 
 .dsm-content {
   flex: 1;
@@ -1552,7 +1552,7 @@ watch(source, applyConnectionInfo);
 
 .dsm-query-warn {
   margin-left: 8px;
-  color: var(--el-color-warning, #e6a23c);
+  color: var(--status-warning, var(--apm-status-warning));
 }
 
 .dsm-section {
@@ -1616,14 +1616,14 @@ watch(source, applyConnectionInfo);
   justify-content: center;
   height: 16px;
   cursor: row-resize;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary, var(--apm-text-tertiary));
   border-radius: 6px;
   user-select: none;
   transition: background 0.15s, color 0.15s;
 }
 .dsm-splitter:hover {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  background: var(--bg-hover, var(--apm-bg-hover));
+  color: var(--brand-500, var(--apm-brand-500));
 }
 .dsm-splitter-icon {
   transition: transform 0.15s;
@@ -1662,7 +1662,7 @@ watch(source, applyConnectionInfo);
 
 .dsm-query-hint {
   font-size: 12px;
-  color: var(--text-secondary, var(--el-text-color-secondary));
+  color: var(--text-secondary, var(--apm-text-secondary));
 }
 
 .dsm-query-editor {

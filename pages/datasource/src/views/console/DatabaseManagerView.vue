@@ -1,5 +1,5 @@
 <template>
-  <div class="dbm" :class="{ 'is-embedded': embedded }">
+  <div class="dbm" :class="{ 'is-embedded': embedded, 'dbm--fullscreen': isFullscreen }">
     <!-- 顶部工具栏
          页面级动作只留数据源切换与一个刷新：新建查询 / 新建库表 / 导入数据已下沉到右键菜单
          （表 / 库 / 空白 三套），与 Navicat 的操作面一致。
@@ -721,30 +721,7 @@
               <span class="dbm-er-list-deg">{{ erDegree(t.name) }}</span>
             </div>
           </div>
-          <!-- 双击节点后的列清单：ER 图上看列才能定位到具体字段 -->
-          <ReDialog v-model="erColumnsVisible" :title="`${erPickedTable} 的列`" width="520px">
-            <div class="dbm-er-cols">
-              <div
-                v-for="c in erPickedColumns"
-                :key="c.name"
-                class="dbm-er-col-row"
-              >
-                <span class="dbm-er-col-name">{{ c.name }}</span>
-                <span class="dbm-er-col-type">{{ c.type }}</span>
-                <span class="dbm-er-col-flags">
-                  <span v-if="c.isPrimaryKey" class="dbm-er-flag pk">PK</span>
-                  <span v-if="c.nullable" class="dbm-er-flag null">可空</span>
-                </span>
-              </div>
-              <ReEmpty v-if="erPickedColumns.length === 0" description="没有列信息" />
-            </div>
-            <template #footer>
-              <ReButton
-                type="primary"
-                @click="openErTableData(erPickedTable)"
-              >打开该表数据</ReButton>
-            </template>
-          </ReDialog>
+          <!-- 双击节点后的列清单：ER 图上看列才能定位到具体字段（弹窗已上移到两个 ER 视图公共位置） -->
         </div>
 
         <!-- 右键「ER 图」弹框：筛选 + 按钮一行，图工具栏全部方形图标按钮，无底部删除 -->
@@ -824,6 +801,32 @@
           </div>
           <template #footer>
             <ReButton type="primary" icon="Download" :show-text="true" @click="exportErDot">导出 DOT</ReButton>
+          </template>
+        </ReDialog>
+
+        <!-- 双击节点后的列清单（页签与弹框两个 ER 视图共用；必须挂在这两个视图之外，
+             否则右键 ER 弹框打开时页签分支未挂载，列清单弹窗永远弹不出来） -->
+        <ReDialog v-model="erColumnsVisible" :title="`${erPickedTable} 的列`" width="520px">
+          <div class="dbm-er-cols">
+            <div
+              v-for="c in erPickedColumns"
+              :key="c.name"
+              class="dbm-er-col-row"
+            >
+              <span class="dbm-er-col-name">{{ c.name }}</span>
+              <span class="dbm-er-col-type">{{ c.type }}</span>
+              <span class="dbm-er-col-flags">
+                <span v-if="c.isPrimaryKey" class="dbm-er-flag pk">PK</span>
+                <span v-if="c.nullable" class="dbm-er-flag null">可空</span>
+              </span>
+            </div>
+            <ReEmpty v-if="erPickedColumns.length === 0" description="没有列信息" />
+          </div>
+          <template #footer>
+            <ReButton
+              type="primary"
+              @click="openErTableData(erPickedTable)"
+            >打开该表数据</ReButton>
           </template>
         </ReDialog>
 
@@ -2380,6 +2383,9 @@ const props = withDefaults(
   { datasourceId: undefined, embedded: false },
 );
 const { embedded } = props;
+
+/** 全屏模式（/db-manager/full 等 standalone 路由）：无应用外壳，高度应吃满视口 */
+const isFullscreen = computed(() => route.meta?.standalone === true);
 
 /** 默认主数据源：后端把 datasourceId=0/null 解析为主数据源，这里把它显式作为下拉首项 */
 const DEFAULT_DATASOURCE: DataSourceInfo = { id: 0, name: "默认主数据源", type: "master" };
@@ -8727,6 +8733,13 @@ onBeforeUnmount(() => {
   padding: 4px 4px 8px;
   /* 浅灰画布：工具条 / 侧栏 / 内容区三张白卡浮在上面，层次来自这里 */
   background: var(--bg-fill);
+}
+
+/* 全屏模式（standalone 路由，无应用外壳）：吃满视口高度，不再减导航占位 */
+.dbm.dbm--fullscreen {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
 }
 
 /* 内嵌到数据源中心：宿主已经算好了可用高度（页签面板是 flex:1 + min-height:0），

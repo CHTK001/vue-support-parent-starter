@@ -1,9 +1,9 @@
 <!--
   新建表对话框（数据库管理器专用）—— **设计表**，不是 DDL 文本框。
 
-  <p>与 `components/selectors/CreateTableDialog.vue`（数据源中心的建表 / 补列）是**两件事**，不要合并：
-  那一个走 hub 的 DDL 接口（没有 database 参数，只会建到连接默认库）；
-  这一个面向 Navicat 式手工建表，必须支持指定目标库。</p>
+  <p>与 `components/selectors/DdlPreviewDialog.vue`（数据源中心的建表 / 补列，打开即预览 DDL）是**两件事**，不要合并：
+  那一个按「列名 + 主键列」推断类型后走 hub 的 DDL 接口（没有 database 参数，只会建到连接默认库），
+  也不提供逐列编辑；这一个面向 Navicat 式手工建表，必须支持指定目标库与逐列属性。</p>
 
   <p><b>界面即模型</b>：一行一列（字段名 / 类型 / 长度 / 小数位 / 可空 / 主键 / 自增 / 默认值 / 注释），
   提交给后端 `POST /ms/monitor/db/table` 的 `columns`。**前端不拼 CREATE TABLE** ——

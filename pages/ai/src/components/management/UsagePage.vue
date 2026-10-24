@@ -1,9 +1,8 @@
 <template>
   <div class="usage-page" data-page="usage">
-    <!-- §1 顶部通栏一体化操作栏 -->
-    <div class="top-bar">
-      <div class="top-bar-left">
-        <h2 class="page-title">用量管理</h2>
+    <!-- §1 页面头：统一用 RePageHead（全站共用一份实现） -->
+    <RePageHead title="用量管理">
+      <template #meta>
         <!-- 实时状态：微呼吸绿点 + 文案；有流量时补一枚速率胶囊 -->
         <div class="live-status" :class="`is-${liveState}`" :title="liveState === 'error' ? '实时连接失败，已退回手动刷新' : rangeLabel">
           <span class="live-dot" :class="{ 'is-pulsing': liveState === 'live' }" />
@@ -22,8 +21,8 @@
             </svg>
           </button>
         </div>
-      </div>
-      <div class="top-bar-right">
+      </template>
+      <template #actions>
         <!-- 胶囊时间切换 -->
         <div class="time-pills" role="tablist">
           <button v-for="f in quickFilters" :key="f.key" type="button" class="time-pill"
@@ -58,12 +57,14 @@
             </svg>
           </button>
         </div>
-      </div>
-      <!-- 刷新进度条：贴顶栏底边的一条 2px 流光。请求进行时才出现，
+      </template>
+      <!-- 刷新进度条：贴页面头底边的一条 2px 流光。请求进行时才出现，
            解决「点完刷新后页面没有任何反馈」的问题（此前只有表格内有转圈，
            而 KPI 数字也要等接口回来才变，中间这几秒像没反应）。 -->
-      <div class="refresh-bar" :class="{ 'is-on': refreshing }" aria-hidden="true"><i /></div>
-    </div>
+      <template #foot>
+        <div class="refresh-bar" :class="{ 'is-on': refreshing }" aria-hidden="true"><i /></div>
+      </template>
+    </RePageHead>
 
     <!-- §3 1 主 3 辅指标卡矩阵 -->
     <div class="stats-grid">
@@ -664,6 +665,7 @@ import type { EChartsOption } from 'echarts';
 import ReTable from '@/components/re/ReTable.vue';
 import type { ReTableColumn } from '@repo/ui/re-table';
 import ReTag from '@/components/re/ReTag.vue';
+import RePageHead from '@/components/re/RePageHead.vue';
 import ReIpText from '@repo/ui/re-ip-text';
 import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
 import { usageApi } from '@/services/javaApi';
@@ -2246,22 +2248,9 @@ html.dark .usage-page {
   flex-shrink: 0;
 }
 
-/* ===== §1 顶部通栏一体化操作栏 =====
-   一整条浅灰通栏：左侧标题 + 实时状态，右侧所有控制器（时间胶囊 / 日期框 / 图标按钮）
-   全部落在同一条基线上。此前标题、筛选胶囊、日期框、实时条分散在 4 个块里，
-   视线要来回跳，且「实时」与「筛选」被 3 个模块隔开，看不出它们作用于同一份数据。 */
-.top-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px 20px;
-  flex-wrap: wrap;
-  padding: 12px 18px;
-  border-radius: var(--u-radius);
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-}
+/* ===== §1 页面头 =====
+   头部本体已统一到 RePageHead（浅灰通栏、标题 16px 半粗、右侧控制器一行对齐）。
+   这里只保留头部内部的子元素（实时状态、时间胶囊、图标按钮）样式。 */
 
 /* 刷新流光：贴在顶栏底边内侧，不占布局（absolute），只在请求期间出现。
    用「一段高光从左滑到右」而不是转圈，是因为它表达的是「进度未知但还在动」，
@@ -2296,15 +2285,6 @@ html.dark .usage-page {
 @keyframes refresh-slide {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(320%); }
-}
-.top-bar-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.page-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
 }
 
 /* 实时状态：绿点微呼吸 + 文案 + 速率胶囊 + 暂停/恢复按钮 */
@@ -2365,7 +2345,6 @@ html.dark .usage-page {
 .live-toggle:hover { color: var(--u-primary); background: color-mix(in srgb, var(--u-primary) 12%, transparent); }
 .live-toggle.is-off { color: var(--u-warning); }
 
-.top-bar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 /* 胶囊时间切换：选中态为实底 + 白字（§2） */
 .time-pills {
@@ -3008,8 +2987,6 @@ html.dark .usage-page {
   .kpi-card.kpi-primary { grid-column: auto; }
   .board-viz { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .board-legend { width: 100%; max-height: none; }
-  .top-bar { padding: 10px 12px; }
-  .top-bar-right { width: 100%; justify-content: flex-start; }
   .date-picker { width: 100%; }
   .time-pills { flex-wrap: wrap; }
 }

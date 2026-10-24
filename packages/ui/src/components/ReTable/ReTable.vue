@@ -563,8 +563,12 @@ const props = withDefaults(
      *
      * <p>同样是被静默忽略的历史属性：全仓 15 处 {@code size="small"} 此前全无效。
      * 只有 default / small 两档（与 el-table 一致）。</p>
+     *
+     * <p>mini 是本组件新增的第三档（比 small 更紧凑）：element 引擎下 el-table 本身
+     * 只有 large/default/small，mini 通过 {@code .re-table--mini} 的 CSS 把表头/行
+     * 内边距进一步压薄实现；vxe 引擎原生的 medium/small/mini 直接透传。<p>
      */
-    size?: "large" | "default" | "small";
+    size?: "large" | "default" | "small" | "mini";
     /**
      * 是否显示表格外边框（默认 true）。
      *
@@ -717,6 +721,7 @@ const emit = defineEmits<{
   (e: "update:settings", settings: ReTableSettings): void;
   (e: "row-click", row: Record<string, unknown>): void;
   (e: "cell-click", payload: ReTableCellClickPayload): void;
+  (e: "header-contextmenu", payload: { columnProp?: string; columnLabel?: string; column: unknown; event: PointerEvent }): void;
   (e: "selection-change", rows: Record<string, unknown>[]): void;
   (e: "context-menu-select", item: ReTableContextMenuItem, ctx: ReTableContextMenuContext): void;
   (e: "batch-delete", rows: Record<string, unknown>[]): void;
@@ -1303,6 +1308,25 @@ function onCellContextMenu(
     event,
   };
   ctxMenuVisible.value = true;
+}
+
+/**
+ * 表头右键事件（element 引擎的 {@code onHeader-contextmenu}）。
+ *
+ * <p>把列信息与原生事件原样抛给宿主：要不要弹菜单、菜单里放什么由宿主决定
+ * （表头右键一般是「排序 / 筛选 / 列设置」这类与行无关的动作，不塞进行级
+ * contextMenu 配置）。不在这里 preventDefault，宿主要拦截自己拦。</p>
+ */
+function onHeaderContextMenu(
+  column: TableColumnCtx<Record<string, unknown>>,
+  event: PointerEvent,
+): void {
+  emit("header-contextmenu", {
+    columnProp: column?.property || column?.prop,
+    columnLabel: column?.label,
+    column,
+    event,
+  });
 }
 
 /** 右键菜单选择 */
@@ -2061,13 +2085,16 @@ const tableRows = computed<Array<Record<string, unknown>>>(() =>
 /**
  * vxe-table 的 size 取值是 medium / small / mini，没有 element-plus 的 default。
  *
- * <p>ReTable 对外仍用 default / small（localSettings.compact 决定），这里单向翻译。
- * 认不出的一律按 medium（vxe 默认）走，不要透传原始值——vxe 拿到非法值会静默
- * 落回默认档，行为上没错，但会让「为什么我传了 small 却没生效」变成查不到的原因。</p>
+ * <p>ReTable 对外仍用 default / small / mini（localSettings.compact 决定 small，
+ * size="mini" 直通 mini），这里单向翻译。认不出的一律按 medium（vxe 默认）走，
+ * 不要透传原始值——vxe 拿到非法值会静默落回默认档，行为上没错，
+ * 但会让「为什么我传了 small 却没生效」变成查不到的原因。</p>
  */
-const vxeTableSize = computed<"medium" | "small">(() =>
-  tableSize.value === "small" ? "small" : "medium",
-);
+const vxeTableSize = computed<"medium" | "small" | "mini">(() => {
+  if (tableSize.value === "small") return "small";
+  if (tableSize.value === "mini") return "mini";
+  return "medium";
+});
 
 /** 行配置：主键字段 / hover 高亮 / 当前行高亮，统一在这里给定。
  *
@@ -2245,6 +2272,17 @@ function onVxeCellMenu(payload: VxeCellEvent): void {
   // vxe 的 cell-menu 载荷里没有 DOM 元素；该形参在函数体内未被读取，
   // 这里传单元格的值只为把位置对齐，省掉会让 event 落到 cell 的位置。
   onCellContextMenu(row, column, (row?.[columnProp] ?? null) as unknown as HTMLTableCellElement, event);
+}
+
+/**
+ * 表头右键（vxe 的 {@code header-cell-context-menu}）：
+ * 载荷里没有行数据，只有列与事件，转成与 element 引擎一致的
+ * {@code header-contextmenu} 载荷抛给宿主。
+ */
+function onVxeHeaderCellContextMenu(payload: { column?: { property?: string; title?: string }; $event?: PointerEvent }): void {
+  const column = (payload.column ?? {}) as unknown as TableColumnCtx<Record<string, unknown>>;
+  const event = payload.$event ?? ({} as PointerEvent);
+  onHeaderContextMenu(column, event);
 }
 
 /** 勾选变化：vxe 的 checkbox-change / checkbox-all 都给出 records，统一转成行数组 */
@@ -3413,12 +3451,18 @@ async function goto(page?: number, size?: number): Promise<void> {
   await dsReload();
 }
 
-/** 表格尺寸：紧凑模式 → small */
-const tableSize = computed<"default" | "small">(() => {
+/** 表格尺寸：紧凑模式 → small；mini 是比 small 更紧凑的第三档 */
+const tableSize = computed<"default" | "small" | "mini">(() => {
   // size="small" 是页面里的历史写法（此前未被声明、静默失效），优先级高于设置面板的紧凑开关
   if (props.size === "small") return "small";
+  if (props.size === "mini") return "mini";
   return localSettings.value.compact ? "small" : "default";
 });
+
+/** element 引擎能识别的档位：el-table 只有 large/default/small，mini 降格为 small + CSS 压薄 */
+const elementTableSize = computed<"default" | "small">(() =>
+  tableSize.value === "mini" ? "small" : tableSize.value,
+);
 
 /** 空数据状态（用于添加 body 最小高度，避免无行时表格塌陷） */
 const isEmpty = computed(() => !dataList.value || dataList.value.length === 0);
@@ -4781,6 +4825,7 @@ const iconSelect = Select;
     :class="{
       're-table--empty': isEmpty,
       're-table--compact': tableSize === 'small',
+      're-table--mini': tableSize === 'mini',
       're-table--separated': searchSeparated,
       're-table--fixed-height': hasFixedHeight || fillActive,
       're-table--fill': fillActive,
@@ -5045,7 +5090,7 @@ const iconSelect = Select;
       :highlight-current-row="localSettings.highlightCurrentRow ?? false"
       :stripe="localSettings.stripe ?? false"
       :border="localSettings.border ?? true"
-      :size="tableSize"
+      :size="elementTableSize"
       :row-key="rowKey"
       :show-header="layoutTable?.showHeader ?? true"
       :height="resolvedHeight"
@@ -5061,6 +5106,7 @@ const iconSelect = Select;
       @cell-click="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellClick(row, column, cell, event)"
       @row-contextmenu="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>> | null, event: PointerEvent) => onRowContextMenu(row, column, event)"
       @cell-contextmenu="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellContextMenu(row, column, cell, event)"
+      @header-contextmenu="(column: TableColumnCtx<Record<string, unknown>>, event: PointerEvent) => onHeaderContextMenu(column, event)"
       @selection-change="onSelectionChange"
       @header-dragend="onElementHeaderDragend"
       @sort-change="(payload: any) => onSortChange(payload)"
@@ -5237,6 +5283,7 @@ const iconSelect = Select;
       :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @cell-click="onVxeCellClick"
       @cell-menu="onVxeCellMenu"
+      @header-cell-context-menu="onVxeHeaderCellContextMenu"
       @checkbox-change="onVxeCheckboxChange"
       @checkbox-all="onVxeCheckboxAll"
       @sort-change="onVxeSortChange"
@@ -5474,7 +5521,7 @@ const iconSelect = Select;
             :current-page="internalPage"
             :page-size="currentPageSize"
             :page-sizes="pageSizeOptions"
-            :small="tableSize === 'small'"
+            :small="tableSize !== 'default'"
             @current-change="onPageClick"
             @size-change="onSizeChange"
           />
@@ -5535,7 +5582,7 @@ const iconSelect = Select;
                      正好两条该告警，对应列设置 + 表格设置）。外面这层 span 只是给
                      ElOnlyChild 一个可挂载的单根节点，点击从内层按钮冒泡上来即可。 -->
                 <span class="re-table__settings-trigger">
-                  <ReButton layout="square" :size="tableSize" icon="anim:tabler:layout-grid" :anim-icon-size="16" :tip="columnsTriggerText" />
+                  <ReButton layout="square" :size="elementTableSize" icon="anim:tabler:layout-grid" :anim-icon-size="16" :tip="columnsTriggerText" />
                 </span>
               </template>
               <div class="re-table__columns-panel">
@@ -5544,7 +5591,7 @@ const iconSelect = Select;
                   <ElButton
                     link
                     type="primary"
-                    :size="tableSize"
+                    :size="elementTableSize"
                     @click="resetColumns"
                   >重置</ElButton>
                 </div>
@@ -5578,8 +5625,8 @@ const iconSelect = Select;
                         {{ col.label }}
                       </ElCheckbox>
                       <span class="re-table__columns-actions">
-                        <ElButton link :size="tableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
-                        <ElButton link :size="tableSize" :disabled="idx === filteredColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
+                        <ElButton link :size="elementTableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
+                        <ElButton link :size="elementTableSize" :disabled="idx === filteredColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
                       </span>
                     </li>
                   </ul>
@@ -5602,7 +5649,7 @@ const iconSelect = Select;
               <template #reference>
                 <!-- ⚠ 同上：必须外包单根元素，否则 ElOnlyChild 挂不上触发器、面板点不开。 -->
                 <span class="re-table__settings-trigger">
-                  <ReButton layout="square" :size="tableSize" icon="anim:tabler:settings" :anim-icon-size="16" :tip="settingsTriggerText" />
+                  <ReButton layout="square" :size="elementTableSize" icon="anim:tabler:settings" :anim-icon-size="16" :tip="settingsTriggerText" />
                 </span>
               </template>
               <div class="re-table__settings-panel">
@@ -5710,7 +5757,7 @@ const iconSelect = Select;
             <span class="re-table__help-trigger">
               <ReButton
                 layout="square"
-                :size="tableSize"
+                :size="elementTableSize"
                 icon="QuestionFilled"
                 tip="快捷键帮助"
               />

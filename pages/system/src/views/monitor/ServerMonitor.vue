@@ -119,8 +119,10 @@ function connectSSE() {
   disconnectSSE(); connStatus.value = "connecting";
   sseClient = createSseClient<ServerInfo>("/v2/server/info/stream", {
     method: "POST", body: {},
-    // 长连接推送：服务端每次重开流都续上，断线/正常关闭都走统一退避重连
-    reconnectOnClose: true, reconnectInterval: 2000,
+    // 长连接推送：服务端每次重开流都续上（底层只在 onerror 里触发重连）。
+    // 选项名是 reconnect（见 packages/utils/src/types 的 SseClientOptions），
+    // 缺省即 true，这里显式写出来是为了配合下面的 reconnectInterval 一起表达意图。
+    reconnect: true, reconnectInterval: 2000,
     onOpen: () => { connStatus.value = "live"; },
     onMessage: (e) => { applyMetrics(e.data); connStatus.value = "live"; },
     onError: () => { connStatus.value = "disconnected"; },

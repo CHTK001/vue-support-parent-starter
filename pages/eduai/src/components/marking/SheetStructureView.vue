@@ -117,7 +117,11 @@
             :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
           >
             <template #col-no="{ row }">
-              <span :class="{ 'ss-row-active': Number(row.resultId) === selectedId }">{{ row.no || '-' }}</span>
+              <span :class="{ 'ss-row-active': Number(row.resultId) === selectedId }">
+                {{ row.no || '-' }}
+                <el-tag v-if="isUnrecognized(row)" size="small" type="danger" effect="dark"
+                  class="ss-unrec-tag" title="OCR 未识别出本题作答，请老师对照卷面处理">待协助</el-tag>
+              </span>
             </template>
             <template #col-stem="{ row }">
               <span class="ss-stem">{{ row.stem || '—' }}</span>
@@ -137,7 +141,10 @@
               />
             </template>
             <template #col-studentAnswer="{ row }">
-              <span v-if="isBlankAnswer(row)" class="ss-no-answer">未作答</span>
+              <span v-if="isUnrecognized(row)" class="ss-unrec-answer" :title="row.comment">
+                待协助·请老师补录作答
+              </span>
+              <span v-else-if="isBlankAnswer(row)" class="ss-no-answer">未作答</span>
               <span v-else>{{ row.studentAnswer }}</span>
             </template>
             <template #col-standardAnswer="{ row }">
@@ -171,7 +178,8 @@
               <span v-else class="ss-muted">无</span>
             </template>
             <template #col-toBank="{ row }">
-              <el-button size="small" type="primary" link @click.stop="openToBank(row)">入题库</el-button>
+              <el-button v-if="!isUnrecognized(row)" size="small" type="primary" link @click.stop="openToBank(row)">入题库</el-button>
+              <span v-else class="ss-muted" title="未识别出题干，无法入题库">—</span>
             </template>
           </ReTable>
         </div>
@@ -414,6 +422,9 @@ const selectedQuestion = computed(() =>
 
 const isVirtual = (row: any) => row?.virtual === true;
 
+/** 识别失败占位行：OCR 有题号锚点但无作答结果，后端补行待老师协助 */
+const isUnrecognized = (row: any) => row?.unrecognized === true;
+
 /** 题目/作答文本统一净化：去括号对、书名号、引号、下划线空位与全半角标点、空白，只留核心字 */
 const normalizeCore = (s: string) =>
   String(s || '')
@@ -475,6 +486,7 @@ const scoreClass = (row: any) => {
 };
 const anchorClass = (a: any) => {
   const q = a.bound;
+  if (isUnrecognized(q)) return 'ss-anchor-unrec';
   if (!q) return 'ss-anchor-unknown';
   return scoreClass(q).replace('ss-score-', 'ss-anchor-');
 };
@@ -482,6 +494,7 @@ const anchorText = (a: any) => {
   const q = a.bound;
   const answer = String(a.answer ?? '').trim().replace(/\s+/g, ' ');
   const brief = answer.length > 8 ? `${answer.slice(0, 8)}…` : answer;
+  if (isUnrecognized(q)) return `待协助${q.editScore ? '·' + q.editScore : ''}`;
   return q ? `${q.editScore}·${brief || '—'}` : '?';
 };
 const isAnchorSelected = (a: any) =>
@@ -751,12 +764,21 @@ watch(page, async (p) => {
 const save = async () => {
   if (!props.taskId) return;
   const adjustments = questions.value
-    .filter((q) => q.dirty && Number(q.resultId) > 0)
+    .filter((q) => {
+      if (!q.dirty) return false;
+      // 常规行：已有结果行才有保存意义；识别失败占位行 resultId<=0 也要补录
+      if (isUnrecognized(q)) return true;
+      return Number(q.resultId) > 0;
+    })
     .map((q) => {
-      const item: { resultId: number; score: number; comment?: string } = {
-        resultId: Number(q.resultId),
+      const item: { resultId: number; score: number; comment?: string; no?: string } = {
+        resultId: isUnrecognized(q) ? -1 : Number(q.resultId),
         score: Number(q.editScore ?? 0),
       };
+      // 识别失败补录：带上题号，后端据此新建结果行
+      if (isUnrecognized(q)) {
+        item.no = String(q.no ?? '').replace(/\s+$/g, '');
+      }
       const comment = String(q.editComment ?? '').trim();
       if (comment !== String(q.origComment ?? '').trim()) {
         item.comment = comment;
@@ -992,6 +1014,7 @@ const save = async () => {
 .ss-anchor-partial { background: color-mix(in srgb, var(--el-color-warning) 22%, transparent); border: 1px solid var(--el-color-warning); }
 .ss-anchor-wrong { background: color-mix(in srgb, var(--el-color-danger) 22%, transparent); border: 1px solid var(--el-color-danger); }
 .ss-anchor-unknown { background: color-mix(in srgb, var(--el-text-color-secondary) 18%, transparent); border: 1px dashed var(--el-text-color-secondary); }
+.ss-anchor-unrec { background: color-mix(in srgb, var(--el-color-warning) 30%, transparent); border: 1px solid var(--el-color-warning); box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 55%, transparent); }
 .ss-anchor-selected {
   z-index: 2;
   transform: scale(1.25);
@@ -1003,6 +1026,11 @@ const save = async () => {
 .ss-anchor-partial .ss-badge { background: var(--el-color-warning); }
 .ss-anchor-wrong .ss-badge { background: var(--el-color-danger); }
 .ss-anchor-unknown .ss-badge { background: var(--el-text-color-secondary); }
+.ss-anchor-unrec .ss-badge { background: var(--el-color-warning); animation: ss-unrec-pulse 1.6s ease-in-out infinite; }
+@keyframes ss-unrec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
 .ss-nav {
   position: absolute;
   z-index: 3;
@@ -1047,6 +1075,9 @@ const save = async () => {
 .ss-sel { font-size: 12px; color: var(--el-text-color-secondary); }
 .ss-ai-score { color: var(--el-text-color-secondary); font-weight: 600; }
 .ss-standard-answer { color: var(--el-color-success); font-weight: 500; }
+.ss-unrec-tag { margin-left: 6px; vertical-align: 1px; }
+.ss-unrec-answer { color: var(--el-color-warning); font-weight: 600; }
+.ss-no-answer { color: var(--el-text-color-placeholder); font-style: italic; }
 .ss-score-correct { color: var(--el-color-success); font-weight: 600; }
 .ss-score-partial { color: var(--el-color-warning); font-weight: 600; }
 .ss-score-wrong { color: var(--el-color-danger); font-weight: 600; }

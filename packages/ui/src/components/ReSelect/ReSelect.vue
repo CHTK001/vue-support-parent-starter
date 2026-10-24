@@ -133,6 +133,10 @@ const props = withDefaults(
     iconOnly?: boolean;
     /** square 布局：竖向档位列表（一行一档，整行高亮 + 右侧对勾），用于浮层里选间隔等场景 */
     vertical?: boolean;
+    /** square 布局：选中项图标名（缺省回退到选项自身的 activeIcon / icon） */
+    activeIcon?: string;
+    /** square 布局：未选中项图标名（缺省回退到选项自身的 inactiveIcon / icon） */
+    inactiveIcon?: string;
     /** 紧凑模式：square/card 布局下拉框宽度自适应文字，默认 false */
     compact?: boolean;
     /** 卡片多选时：是否显示全选 / 反选（默认 false） */
@@ -166,6 +170,8 @@ const props = withDefaults(
     triggerIcon: true,
     iconOnly: true,
     vertical: false,
+    activeIcon: "",
+    inactiveIcon: "",
     compact: undefined,
     bulkActions: false,
   },
@@ -183,6 +189,11 @@ const isRemote = computed<boolean>(
  * 而 size 会被 v-bind="$attrs" / modernProps 透传到子布局，各处重复兜底容易漏。
  */
 const controlSize = computed<ReSelectSize>(() => props.type ?? props.size ?? "default");
+
+/** el-select 能吃下的档位：element 原生只有 large/default/small，mini 归一为 small + CSS 压薄 */
+const elSelectSize = computed<"large" | "default" | "small">(() =>
+  controlSize.value === "mini" ? "small" : controlSize.value,
+);
 
 /** 静态模式下的最终数据（data 传数组优先，否则 options） */
 const staticData = computed<ReOption[]>(() =>
@@ -544,6 +555,8 @@ defineExpose({
     :vertical="vertical"
     :compact="isCompact"
     :control-size="controlSize"
+    :active-icon="activeIcon"
+    :inactive-icon="inactiveIcon"
     v-bind="$attrs"
   />
 
@@ -561,7 +574,7 @@ defineExpose({
     :collapse-tags="collapseTags"
     :disabled="disabled"
     :loading="loading || dataLoading"
-    :size="controlSize"
+    :size="elSelectSize"
     :filter-method="onInput"
     :popper-class="isRichLayout ? 're-select__popper--rich' : ''"
     :teleported="true"
@@ -742,6 +755,16 @@ defineExpose({
   min-height: var(--rm-height-sm);
   padding: 2px 10px;
   font-size: var(--rm-font-sm);
+}
+/* mini 档：比 small 再压薄（element 原生无 mini，复用 small 的 :size + 这里压高度） */
+.re-select.re-select--mini :deep(.el-select__wrapper) {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.re-select.re-select--mini :deep(.el-select__placeholder),
+.re-select.re-select--mini :deep(.el-select__selected-item) {
+  font-size: 12px;
 }
 .re-select.re-select--large :deep(.el-select__wrapper) {
   min-height: var(--rm-height-lg);

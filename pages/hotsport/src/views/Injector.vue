@@ -1,20 +1,66 @@
 <template>
-  <div class="view">
-    <div class="view-toolbar">
-      <div class="toolbar-left">
-        <span class="section-label">数据注入器</span>
+  <div class="view injector-page">
+    <!-- 页头：标题 + Agent 状态 + 全局动作 -->
+    <ReSectionHead
+      class="injector-head"
+      title="数据注入器"
+      description="注入操作产生真实 APM 数据，统计经 SSE 实时刷新"
+    >
+      <template #actions>
         <ReTag :type="stats.agentActive ? 'success' : 'info'" round>
           {{ stats.agentActive ? "Agent 在线" : "Agent 离线" }}
         </ReTag>
-        <span class="match-hint">注入操作产生真实 APM 数据，统计经 SSE 实时刷新</span>
-      </div>
-      <div class="toolbar-right">
         <ReButton :icon="Refresh" show-text :loading="statsLoading" @click="loadStats">刷新统计</ReButton>
-      </div>
-    </div>
+      </template>
+    </ReSectionHead>
 
-    <!-- 注入参数：沿用列表页的 .filter-bar 骨架，字段用 .filter-field 竖排标签 -->
-    <div class="filter-bar">
+    <!-- 统计卡：4 列网格，有统计数值时展示，加载期展示骨架 -->
+    <ReSkeleton :loading="statsLoading" animated>
+      <div
+        class="stat-grid"
+        v-if="!statsLoading && (stats.transmissionCount || stats.dependencyCount || stats.leakCount || stats.errorCount)"
+      >
+        <ReStatCard
+          class="stat-card stat-accent--brand"
+          size="compact"
+          title="transmissionCount"
+          :value="stats.transmissionCount ?? 0"
+          desc="传输调用总数"
+          :icon="Connection"
+          icon-color="var(--brand-500, var(--apm-accent))"
+        />
+        <ReStatCard
+          class="stat-card stat-accent--success"
+          size="compact"
+          title="dependencyCount"
+          :value="stats.dependencyCount ?? 0"
+          desc="依赖边总数"
+          :icon="Share"
+          icon-color="var(--status-success, var(--apm-success))"
+        />
+        <ReStatCard
+          class="stat-card stat-accent--warning"
+          size="compact"
+          title="leakCount"
+          :value="stats.leakCount ?? 0"
+          desc="资源泄漏总数"
+          :icon="Warning"
+          icon-color="var(--status-warning, var(--apm-warning))"
+        />
+        <ReStatCard
+          class="stat-card stat-accent--error"
+          size="compact"
+          title="errorCount"
+          :value="stats.errorCount ?? 0"
+          desc="错误记录总数"
+          :icon="Close"
+          icon-color="var(--status-error, var(--apm-danger))"
+        />
+      </div>
+    </ReSkeleton>
+
+    <!-- 注入参数：源端 / 目标端 / 协议 / 结果标记 / 批量条数 / 快速预设 -->
+    <div class="filter-bar injector-filter">
       <div class="filter-field endpoint-field">
         <label class="filter-label" for="inj-source">源端 <span class="req">*</span></label>
         <ReInput
@@ -132,50 +178,6 @@
         <i v-if="injectingAny" class="is-indeterminate" />
         <i v-else :class="'is-' + feedbackTone" :style="{ width: feedbackPercent + '%' }" />
       </div>
-    </div>
-
-    <!-- 统计变化（SSE 实时） -->
-    <div class="panel">
-      <div class="panel-head">
-        <span>统计变化</span>
-        <span class="panel-sub">注入后由 SSE 推送刷新，无需手动重载页面</span>
-      </div>
-      <ReSkeleton :loading="statsLoading" :rows="2" :animated="true">
-        <div class="stat-grid">
-          <ReStatCard
-            size="compact"
-            title="transmissionCount"
-            :value="stats.transmissionCount ?? 0"
-            desc="传输调用总数"
-            :icon="Connection"
-            icon-color="var(--apm-accent)"
-          />
-          <ReStatCard
-            size="compact"
-            title="dependencyCount"
-            :value="stats.dependencyCount ?? 0"
-            desc="依赖边总数"
-            :icon="Share"
-            icon-color="var(--apm-success)"
-          />
-          <ReStatCard
-            size="compact"
-            title="leakCount"
-            :value="stats.leakCount ?? 0"
-            desc="资源泄漏总数"
-            :icon="Warning"
-            icon-color="var(--apm-warning)"
-          />
-          <ReStatCard
-            size="compact"
-            title="errorCount"
-            :value="stats.errorCount ?? 0"
-            desc="错误记录总数"
-            :icon="Close"
-            icon-color="var(--apm-danger)"
-          />
-        </div>
-      </ReSkeleton>
     </div>
 
     <!-- 资源泄漏 / 日志：两个独立写操作，互不阻塞 -->
@@ -335,7 +337,7 @@
     </div>
 
     <!-- 注入历史（本会话内操作记录） -->
-    <div class="panel">
+    <div class="panel history-panel">
       <div class="panel-head">
         <span>
           注入历史（本会话）
@@ -346,7 +348,7 @@
         <span class="panel-sub">仅保存在当前页面会话，刷新即清空</span>
       </div>
       <div v-if="!history.length" class="panel-empty">
-        还没有注入操作<br />在上方填写参数后提交
+        <ReEmpty description="还没有注入操作，在上方填写参数后提交" />
       </div>
       <div v-else-if="historyExpanded" class="history-list">
         <div v-for="(h, i) in history" :key="i" class="history-item">
@@ -364,7 +366,9 @@ import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { Connection, Close, Histogram, DocumentAdd, Plus, Refresh, Share, Warning, Timer, Loading, DataLine } from "@element-plus/icons-vue";
+import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReSelect from "@repo/ui/re-select";
 import ReButton from "@repo/ui/re-button";
 import ReStatCard from "@repo/ui/re-stat-card";
@@ -759,44 +763,116 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* .view / .view-toolbar / .toolbar-* / .section-label / .match-hint / .panel /
-   .panel-head / .panel-sub / .panel-empty / .panel-row / .stat-grid / .filter-bar /
-   .filter-field / .filter-label / .filter-actions / .mono / .muted / .ok-text /
-   .err-text / .live-dot 由 styles/layout.css 提供 */
+/* ========================================================
+   Injector · koi 令牌
+   颜色 / 圆角 / 阴影 / 过渡一律优先取 koi 令牌，未加载 koi
+   时以 hotsport 自身的 --apm-* 语义令牌兜底：
+   var(--koi-token, var(--apm-*)). hotsport 独立运行时不加载 koi，
+   var(...fallback) 会落到 tokens.css / layout.css 里语义相同的一档，视觉不崩。
 
-.req {
-  color: var(--apm-danger);
-  font-weight: 600;
+   处理方式：模板 + 样式一并重写（本页无表格 / 对话框 / 终端 / 画布 /
+   echarts 与脚本绑定，重写模板不会破坏 ref 或插槽绑定）。
+   <script> 仅追加 2 个 import（ReEmpty / ReSectionHead），其余字节与原文一致。
+   ======================================================== */
+
+.injector-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-/* 字段宽度：端点最宽，其余按内容定宽；窄屏由 .filter-bar 的 flex-wrap 折行 */
-.endpoint-field {
-  flex: 1 1 220px;
+/* ---- 页头 ---- */
+.injector-head {
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
 }
 
-.protocol-field {
-  flex: 0 0 130px;
+.injector-head :deep(.re-section-head__title) {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--text-primary, var(--apm-fg));
 }
 
-.switch-field {
-  flex: 0 0 auto;
+.injector-head :deep(.re-section-head__desc) {
+  color: var(--text-tertiary, var(--apm-muted));
+  line-height: 1.5;
 }
 
-.count-field {
-  flex: 0 0 150px;
+.injector-head :deep(.re-section-head__actions) {
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-.preset-field {
-  flex: 1 1 320px;
+/* ---- 统计卡：4 列网格 + 顶部 3px 色条 ---- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.count-input {
-  width: 100px;
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  --card-accent: var(--brand-500, var(--apm-accent));
+  transition:
+    transform var(--transition-base, var(--apm-t-base)),
+    box-shadow var(--transition-base, var(--apm-t-base));
 }
 
-.full-input {
-  width: 100%;
+.stat-accent--brand { --card-accent: var(--brand-500, var(--apm-accent)); }
+.stat-accent--success { --card-accent: var(--status-success, var(--apm-success)); }
+.stat-accent--warning { --card-accent: var(--status-warning, var(--apm-warning)); }
+.stat-accent--error { --card-accent: var(--status-error, var(--apm-danger)); }
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--card-accent);
+  border-radius: var(--radius-lg, var(--apm-radius-lg)) var(--radius-lg, var(--apm-radius-lg)) 0 0;
 }
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
+}
+
+/* ---- 注入参数筛选栏 ---- */
+.injector-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--apm-space-3);
+  padding: var(--apm-space-3) var(--apm-space-4);
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+}
+
+.injector-filter .filter-label {
+  color: var(--text-tertiary, var(--apm-muted));
+  letter-spacing: 0.04em;
+}
+
+.injector-filter .filter-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.endpoint-field { flex: 1 1 220px; }
+.protocol-field { flex: 0 0 130px; }
+.switch-field { flex: 0 0 auto; }
+.count-field { flex: 0 0 150px; }
+.preset-field { flex: 1 1 320px; }
+
+.count-input { width: 100px; }
 
 .field-grid {
   display: grid;
@@ -807,11 +883,14 @@ onBeforeUnmount(() => {
 .field-hint {
   font-size: 11px;
   line-height: 1.4;
-  color: var(--apm-muted);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
-.field-hint.field-error {
-  color: var(--apm-danger);
+.field-hint.field-error { color: var(--status-error, var(--apm-danger)); }
+
+.req {
+  color: var(--status-error, var(--apm-danger));
+  font-weight: 600;
 }
 
 .preset-row {
@@ -826,15 +905,15 @@ onBeforeUnmount(() => {
   gap: var(--apm-space-2);
 }
 
-/* 提交反馈：进行中不确定进度，完成后按成功占比着色 */
+/* ---- 提交反馈 ---- */
 .inject-feedback {
   display: flex;
   flex-direction: column;
   gap: var(--apm-space-2);
   padding: var(--apm-space-3) var(--apm-space-4);
-  background: var(--apm-panel);
-  border-radius: var(--apm-radius-lg);
-  box-shadow: var(--apm-shadow-card);
+  background: var(--bg-elevated, var(--apm-panel-raised));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
 }
 
 .feedback-line {
@@ -846,8 +925,13 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.live-dot {
+  color: var(--status-success, var(--apm-success));
+  font-weight: 500;
+}
+
 .feedback-label {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   font-weight: 500;
 }
 
@@ -858,10 +942,13 @@ onBeforeUnmount(() => {
   margin-left: auto;
 }
 
+.ok-text { color: var(--status-success, var(--apm-success)); }
+.err-text { color: var(--status-error, var(--apm-danger)); }
+
 .feedback-bar {
   height: 4px;
   border-radius: 999px;
-  background: var(--apm-border-soft);
+  background: var(--border-subtle, var(--apm-border-soft));
   overflow: hidden;
 }
 
@@ -869,36 +956,25 @@ onBeforeUnmount(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
-  transition: width var(--apm-t-base);
+  transition: width var(--transition-base, var(--apm-t-base));
 }
 
-.feedback-bar > i.is-ok {
-  background: var(--apm-success);
-}
-
-.feedback-bar > i.is-warn {
-  background: var(--apm-warning);
-}
-
-.feedback-bar > i.is-err {
-  background: var(--apm-danger);
-}
+.feedback-bar > i.is-ok { background: var(--status-success, var(--apm-success)); }
+.feedback-bar > i.is-warn { background: var(--status-warning, var(--apm-warning)); }
+.feedback-bar > i.is-err { background: var(--status-error, var(--apm-danger)); }
 
 .feedback-bar > i.is-indeterminate {
   width: 40%;
-  background: var(--apm-accent);
-  animation: inject-sweep 1.1s var(--apm-ease) infinite;
+  background: var(--brand-500, var(--apm-accent));
+  animation: inject-sweep 1.1s var(--ease-out, var(--apm-ease)) infinite;
 }
 
 @keyframes inject-sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(250%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
 }
 
+/* ---- 历史记录 ---- */
 .history-toggle {
   margin-left: var(--apm-space-2);
   font-weight: 400;
@@ -917,16 +993,16 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--apm-space-2);
   padding: var(--apm-space-2) var(--apm-space-3);
-  background: var(--apm-panel-raised);
-  border: 1px solid var(--apm-border-soft);
-  border-radius: var(--apm-radius-md);
+  background: var(--bg-elevated, var(--apm-panel-raised));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-md, var(--apm-radius-md));
 }
 
 .history-msg {
   flex: 1;
   min-width: 0;
   font-size: 12px;
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -934,24 +1010,116 @@ onBeforeUnmount(() => {
 
 .history-time {
   font-size: 11px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
-/* 尊重系统「减少动态效果」偏好：
-   本页动效只有不确定进度条，另需关掉骨架屏与 loading 的旋转动画 */
+/* ---- 面板（通用卡片壳，koi 令牌）---- */
+.panel-row {
+  display: grid;
+  gap: var(--apm-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apm-space-3);
+  min-width: 0;
+  padding: var(--apm-space-4) var(--apm-space-5);
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+}
+
+.panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.panel-head > span:first-child {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, var(--apm-fg));
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: var(--text-tertiary, var(--apm-muted));
+  line-height: 1.5;
+}
+
+.panel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--apm-space-2);
+  min-height: 140px;
+  color: var(--text-tertiary, var(--apm-muted));
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ---- 响应式：≤768px 2 列统计 + 筛选栏字段全宽 ---- */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .injector-head {
+    padding: 12px 14px;
+  }
+
+  .injector-head :deep(.re-section-head__actions) {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .injector-filter {
+    padding: 10px 12px;
+  }
+
+  .endpoint-field,
+  .protocol-field,
+  .preset-field {
+    width: 100%;
+  }
+
+  .switch-field,
+  .count-field {
+    flex: 1 1 150px;
+  }
+
+  .filter-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .panel-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- 尊重「减少动态效果」偏好 ---- */
 @media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .stat-card:hover,
+  .injector-filter,
+  .injector-feedback,
+  .panel,
+  .history-item,
+  .feedback-bar > i {
+    transition: none;
+    transform: none;
+  }
+
   .feedback-bar > i.is-indeterminate {
     animation: none;
     width: 100%;
     opacity: 0.5;
-  }
-  .feedback-bar > i {
-    transition: none;
-  }
-  .view :deep(.el-skeleton__item),
-  .view :deep(.el-loading-spinner) {
-    animation: none;
-    transition: none;
   }
 }
 </style>

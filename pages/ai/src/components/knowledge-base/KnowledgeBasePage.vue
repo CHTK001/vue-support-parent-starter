@@ -2308,20 +2308,21 @@ const graphCompRef = ref<any>(null)
  */
 const graphEverMounted = ref(false)
 
-/** 知识图谱布局：分组聚簇（rrg-cluster → G6 原生 combo-combined）。
- *  <p>每个势力是一个原生 {@code circle} 组合容器（尺寸由子节点包围盒自动推导，
- *  画出来是贴合内容的气泡圆，不是矩形框），组内同心环、组间力导向排斥 → 每组聚成
- *  一团且互不重叠（参考图「蜀 / 刘备 / 诸葛亮…按势力分组」形态）。
+/** 知识图谱布局：分组聚簇（rrg-cluster → G6 原生 force 聚类）。
+ *  <p>同势力节点在原生向心力下向簇心聚集、异势力之间被斥力推开，{@code preventOverlap}
+ *  保证节点不压盖；每个势力再套一个原生 {@code circle} 组合容器（位置随成员包围盒自动推导，
+ *  画出来是贴合内容的气泡圆，不是矩形框）→ 参考图「蜀 / 刘备 / 诸葛亮…按势力分组」形态。
  *  <p>由组件通用能力 {@code grouped-layout} 承担：任何给节点标 {@code group}=势力名的
  *  业务直接开聚簇布局即可，业务页只负责数据语义。
  */
 const GRAPH_LAYOUT = 'rrg-cluster'
 
-/** 聚簇参数（原生 combo-combined）：组内节点间距 / 组合内边距 / 组合间距 */
+/** 聚簇参数（原生 force clustering）：节点斥力 / 簇心吸力 / 连线长度 / 防重叠 */
 const GRAPH_LAYOUT_OPTIONS: Record<string, unknown> = {
-  nodeSpacing: 14,
-  comboPadding: 20,
-  comboSpacing: 48,
+  clustering: true,
+  nodeStrength: 800,
+  linkDistance: 160,
+  clusterNodeStrength: 25,
 }
 
 /** 组件工具栏只放图谱视图相关按钮；页面右上角仍负责刷新/生成/管理实体等动作 */
@@ -2411,8 +2412,8 @@ async function loadGraphLayoutSettings() {
   if (!r?.settings) return null
   try {
     const s = JSON.parse(r.settings)
-    // 分组聚簇走 G6 原生 combo-combined：每个势力是一个组合容器，show-groups 负责生成
-    // combo；关掉它等于把组拆了，聚簇会退化成一圈互相压盖的散点。
+    // 分组聚簇走 G6 原生 d3-force 聚类：每个势力是一个圆形组合容器，show-groups 负责
+    // 生成 combo；关掉它等于把组拆了，聚簇会退化成一圈互相压盖的散点。
     if (s && typeof s === 'object') {
       s.showGroups = true
       s.layout = GRAPH_LAYOUT

@@ -25,7 +25,6 @@ import { costMs } from "@repo/utils";
 import commentForm from "./nodes/commentForm.vue";
 import conditionForm from "./nodes/conditionForm.vue";
 import dataEntryForm from "./nodes/dataEntryForm.vue";
-import databaseForm from "./nodes/databaseForm.vue";
 import dedupForm from "./nodes/dedupForm.vue";
 import endForm from "./nodes/endForm.vue";
 import extractForm from "./nodes/extractForm.vue";
@@ -842,7 +841,9 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   request: requestForm,
   extract: extractForm,
   link: linkForm,
-  database: databaseForm,
+  // database 没有专属表单：它属于 SIMPLE_TABBED_SHAPES，统一走 NodeFormTabs → NodeParamForm。
+  // 原先这里登记的 databaseForm 是一条走不到的分支，且它引用的是「建表 / 补列」DDL 预览弹窗，
+  // 与设计表（数据库管理器同一套列网格）不是同一个东西 —— 留着只会让下一个人以为界面上用的就是它。
   output: outputForm,
   sql: sqlForm,
   dedup: dedupForm,
@@ -853,7 +854,7 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   comment: commentForm,
   condition: conditionForm,
   end: endForm,
-  // 数据录入：手工录行产出行数据流，建表走共享 CreateTableDialog
+  // 数据录入：手工录行产出行数据流；本节点不建表（建表在数据库节点，走共享设计表）
   entry: dataEntryForm,
   // 中间件读写四型共用一份表单，差异（数据源类型过滤）由 shape 前缀决定
   "influxdb-read": middlewareForm,
@@ -1135,8 +1136,8 @@ const formContext = computed<NodeFormContext>(() => ({
     void loadTablesForActive();
     void loadColumnsForActive(true);
   },
-  // 建表 / 补列不再经由上下文：两个表单各自用 @pages/datasource 的共享 CreateTableDialog，
-  // 预览与执行由那个组件直连数据源中心，这里不再转发 DDL 回调。
+  // 建表 / 补列不再经由上下文：设计表走 @pages/datasource 的 DesignTableDialog（数据库管理器
+  // 同一套列网格），由各节点表单自己接，这里不再转发 DDL 回调。
   writeFields,
 }));
 

@@ -83,21 +83,25 @@ const columns = computed<ReTableColumn[]>(() => {
   // 宽度全部走 minWidth：el-table 里明确写 width 的列会被钉死，
   // 内容（输入框 / 类型下拉）反而被压扁；minWidth 让该列吃得住内容、又能随容器伸缩。
   // 「字段名」给足 150：此前 minWidth 110 时输入框只剩 ~70px，device_channel 只显示成 device_cl。
+  // className 既是样式钩子也是验收选择器：两处复用点共用同一套类名（dcg-col-*），
+  // 验收脚本按它定位单元格，不再依赖某一边手写网格的私有结构。
   const list: ReTableColumn[] = [
-    { prop: "name", label: "字段名", minWidth: 200, slot: "name" },
-    { prop: "type", label: "类型", minWidth: 170, slot: "type" },
-    { prop: "size", label: "长度", minWidth: 84, slot: "size" },
-    { prop: "scale", label: "小数位", minWidth: 84, slot: "scale" },
-    { prop: "nullable", label: "可空", minWidth: 100, align: "center", slot: "nullable" },
-    { prop: "primaryKey", label: "主键", minWidth: 100, align: "center", slot: "primaryKey" },
+    { prop: "name", label: "字段名", minWidth: 200, slot: "name", className: "dcg-col-name" },
+    { prop: "type", label: "类型", minWidth: 170, slot: "type", className: "dcg-col-type" },
+    { prop: "size", label: "长度", minWidth: 84, slot: "size", className: "dcg-col-size" },
+    { prop: "scale", label: "小数位", minWidth: 84, slot: "scale", className: "dcg-col-scale" },
+    { prop: "nullable", label: "可空", minWidth: 64, align: "center", slot: "nullable", className: "dcg-col-nullable" },
+    { prop: "primaryKey", label: "主键", minWidth: 64, align: "center", slot: "primaryKey", className: "dcg-col-pk" },
   ];
   // 自增只在新建表时给（已有表改自增要走方言特定的 DDL，风险大，不在此处开放）
   if (!isExisting.value) {
-    list.push({ prop: "autoIncrement", label: "自增", minWidth: 100, align: "center", slot: "autoIncrement" });
+    list.push({
+      prop: "autoIncrement", label: "自增", minWidth: 64, align: "center", slot: "autoIncrement", className: "dcg-col-auto",
+    });
   }
   list.push(
-    { prop: "defaultValue", label: "默认值", minWidth: 110, slot: "defaultValue" },
-    { prop: "comment", label: "注释", minWidth: 120, slot: "comment" },
+    { prop: "defaultValue", label: "默认值", minWidth: 110, slot: "defaultValue", className: "dcg-col-default" },
+    { prop: "comment", label: "注释", minWidth: 120, slot: "comment", className: "dcg-col-comment" },
   );
   // 操作列：两种模式都要 —— 新建表也必须有「删除这一行」，
   // 否则多添的一行删不掉（之前 new 模式不渲染操作列，宿主传了 @remove-row 却点不到）。
@@ -108,6 +112,7 @@ const columns = computed<ReTableColumn[]>(() => {
     minWidth: isExisting.value ? 132 : 72,
     align: "center",
     slot: "actions",
+    className: "dcg-col-actions",
   });
   return list;
 });
@@ -157,15 +162,28 @@ function onDragStart(i: number, event: DragEvent): void {
 }
 
 /**
- * 拖拽结束：放下时交回宿主处理（宿主负责落库）。
+ * 拖拽结束：在**根节点**上接 drop，按落点所在行算目标下标。
+ *
+ * <p>不能只在「字段名」那格里接 drop：拖拽期间指针一旦离开那格，浏览器就认为
+ * 「这里不接受放下」，drop 不再触发 —— 而用户拖拽时几乎必然扫过类型/长度等
+ * 其他单元格（验收脚本就是这么拖的，结果时过时不过）。根节点覆盖整块网格，
+ * 又不会被表格自身的 overflow 裁掉。</p>
+ *
+ * @param event drop 事件
  */
-function onDrop(i: number): void {
+function onDropAt(event: DragEvent): void {
   const from = dragFrom.value;
   dragFrom.value = null;
-  if (from === null || from === i) {
+  if (from === null) {
     return;
   }
-  emit("reorder", from, i);
+  const rowEl = (event.target as HTMLElement | null)?.closest?.("tr.dcg-row");
+  const to = rowEl ? Array.prototype.indexOf.call(rowEl.parentElement?.children ?? [], rowEl) : -1;
+  // 落点不在数据行上（表头/空白区）当作原地放下：不重排、不落库
+  if (to < 0 || to === from) {
+    return;
+  }
+  emit("reorder", from, to);
 }
 
 /** 行是否改动 */
@@ -187,7 +205,13 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
 </script>
 
 <template>
-  <div class="dcg" data-design-grid :data-dcg-mode="mode">
+  <div
+    class="dcg"
+    data-design-grid
+    :data-dcg-mode="mode"
+    @dragover.prevent
+    @drop.prevent="onDropAt($event)"
+  >
     <ReTable
       :data="gridData"
       :columns="columns"
@@ -197,18 +221,14 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
       :settings="{ border: false }"
       row-key="key"
       :row-class-name="rowClassName"
+      size="mini"
       show-index
-      index-width="40"
+      index-width="52"
       index-align="right"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >
       <template #col-name="{ row }">
-        <!-- 行级拖放区：只在 existing 模式接拖放，新建表没有落库顺序可调 -->
-        <div
-          class="dcg-name"
-          @dragover.prevent
-          @drop.prevent="isExisting ? onDrop(rows.indexOf(asRow(row))) : undefined"
-        >
+        <div class="dcg-name">
           <ReIcon
             v-if="isExisting"
             name="Sort"
@@ -231,7 +251,9 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
         </div>
       </template>
 
-      <!-- 长度 / 小数位：该类型用不上时留占位横线，说明「这个类型没有这一项」 -->
+      <!-- 长度 / 小数位：该类型用不上时留占位横线，说明「这个类型没有这一项」。
+           两列去掉步进按钮（controls=false）：modern 布局的加减按钮各占 28px + min-width 96px，
+           84px 列放不下会被挤扁；无按钮后只剩输入框，宽度让回给列，调值靠聚焦方向键步进。 -->
       <template #col-size="{ row }">
         <ReInputNumber
           v-if="typeNeedsSize(asRow(row).type)"
@@ -239,7 +261,7 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
           size="small"
           :min="1"
           :max="65535"
-          controls-position="right"
+          :controls="false"
           placeholder="长度"
           @update:model-value="asRow(row).size = $event ?? null"
         />
@@ -253,17 +275,19 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
           size="small"
           :min="0"
           :max="30"
-          controls-position="right"
+          :controls="false"
           placeholder="位"
           @update:model-value="asRow(row).scale = $event ?? null"
         />
         <span v-else class="dcg-na" aria-hidden="true">—</span>
       </template>
 
-      <!-- 布尔列用「是/否」分段，两态文字直读 -->
+      <!-- 布尔列用「是/否」方形图标钮：选中实心主色 ✓、未选灰 ✕，双态一眼可读。
+           方形图标比文字分段短几倍，几列布尔可以全部省下来给宽列。 -->
       <template #col-nullable="{ row }">
         <BooleanSegmented
           v-model="asRow(row).nullable"
+          variant="square"
           size="small"
           class="dcg-bool"
           aria-label="允许为空"
@@ -275,6 +299,7 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
       <template #col-primaryKey="{ row }">
         <BooleanSegmented
           :model-value="asRow(row).primaryKey"
+          variant="square"
           size="small"
           class="dcg-bool"
           aria-label="主键"
@@ -286,6 +311,7 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
       <template #col-autoIncrement="{ row }">
         <BooleanSegmented
           :model-value="asRow(row).autoIncrement"
+          variant="square"
           size="small"
           class="dcg-bool"
           aria-label="自增"
@@ -332,6 +358,21 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
   font-weight: 600;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
+  /* 表头高度：比 el-table 的 small（紧凑，约 40px）还要更小 ——
+     el-table 只有 default/large/small 三档，无更小的标准档，
+     这里直接压 th 的 padding 与行高来收紧（与 .cell padding 联动，避免 12px 字被裁）。 */
+  height: 30px;
+  padding: 0;
+  line-height: 30px;
+}
+.dcg :deep(.el-table__header .el-table__cell .cell) {
+  padding: 0 6px;
+  line-height: 30px;
+  /* 表头文字单行：mini 档表头只有 30px 高，长表头（如「默认值」）一旦换行就顶高表头；
+      nowrap + 省略号让每个表头永远一行一个。 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dcg :deep(.el-table .cell) {
@@ -386,6 +427,16 @@ function rowClassName(arg: { row: Record<string, unknown> }): string {
 .dcg-bool {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
+}
+
+/* 长度 / 小数位输入框：去掉步进按钮后收到单元格内自适应宽度。
+   modern 布局默认 min-width 96px，在 84px 列（内容区约 72px）里会溢出挤扁；
+   这里让 .rm-number 收缩到单元格可用宽度，宽度不足时只留数字本身。 */
+.dcg :deep(.column-cell .rm-number),
+.dcg :deep(.cell .rm-number),
+.dcg :deep(.rm-number) {
+  width: 100%;
   min-width: 0;
 }
 

@@ -815,6 +815,215 @@
   overflow: hidden;
   position: relative;
   background: var(--kb-card);
+  /* 画布 + 节点详情侧栏并排；侧栏未选中节点时不占位 */
+  display: flex;
+  align-items: stretch;
+}
+
+/* 图画布本体：G6 需要一个「有确定尺寸且定位」的宿主，
+   同时也是图例 / 空过滤提示的定位参照（两者都是画布内浮层）。 */
+.kb-graph__canvas,
+.kb-graph__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 图例：画布右下角浮层。
+   注意：本类此前没有任何样式，于是落在普通文档流里被 100% 高的画布挤出容器底部
+   并被 overflow 裁掉（表现为「图例跑到画布外面」）。 */
+.kb-graph__legend {
+  position: absolute;
+  right: var(--kb-sp-3);
+  bottom: var(--kb-sp-3);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--kb-sp-3);
+  max-width: calc(100% - var(--kb-sp-5));
+  padding: 6px 10px;
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-r-md);
+  background: var(--kb-card);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--kb-ink-2);
+  /* 浮在画布上但不拦截拖拽 / 缩放 */
+  pointer-events: none;
+}
+
+.kb-graph__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.kb-graph__legend-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* 过滤后无匹配：覆盖在画布中央 */
+.kb-graph__filtered {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--kb-sp-2);
+  background: color-mix(in srgb, var(--kb-card) 76%, transparent);
+  color: var(--kb-ink-3);
+  font-size: 13px;
+}
+
+.kb-graph__help {
+  color: var(--kb-ink-3);
+  cursor: help;
+  transition: color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-graph__help:hover {
+  color: var(--kb-accent);
+}
+
+/* 节点详情侧栏：贴在画布右侧。
+   用 `.kb-graphview__canvas >` 把特异性提到 (0,2,0)，
+   压过 .re-surface 自带的圆角/投影，不需要 !important。 */
+.kb-graphview__canvas > .kb-gedetail {
+  flex: none;
+  width: 300px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--kb-card);
+  border-left: 1px solid var(--kb-line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--kb-sp-2);
+}
+
+.kb-gedetail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--kb-sp-2);
+  min-width: 0;
+}
+
+.kb-gedetail__name {
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kb-ink);
+}
+
+.kb-gedetail__close {
+  flex: none;
+}
+
+.kb-gedetail__sub {
+  font-size: 12px;
+  color: var(--kb-ink-3);
+  word-break: break-all;
+}
+
+.kb-gedetail__metrics {
+  display: flex;
+  gap: var(--kb-sp-2);
+}
+
+.kb-gedetail__metric {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--kb-sp-2);
+  border: 1px solid var(--kb-line-soft);
+  border-radius: var(--kb-r-md);
+  background: var(--kb-fill);
+}
+
+.kb-gedetail__metric-value {
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.1;
+  color: var(--kb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-gedetail__metric-label {
+  font-size: 12px;
+  color: var(--kb-ink-3);
+}
+
+.kb-gedetail__section {
+  margin: var(--kb-sp-1) 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--kb-ink-2);
+}
+
+.kb-gedetail__relations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--kb-sp-1);
+}
+
+.kb-gedetail__relation {
+  display: flex;
+  align-items: center;
+  gap: var(--kb-sp-2);
+  min-width: 0;
+  padding: 6px var(--kb-sp-2);
+  border: 1px solid var(--kb-line-soft);
+  border-radius: var(--kb-r-sm);
+  background: var(--kb-canvas);
+  font-size: 12px;
+}
+
+.kb-gedetail__relation-type {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--kb-accent-soft);
+  color: var(--kb-accent);
+  font-size: 11px;
+}
+
+.kb-gedetail__relation-peer {
+  min-width: 0;
+  color: var(--kb-ink-2);
+}
+
+.kb-gedetail__relation--empty {
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+  color: var(--kb-ink-3);
+}
+
+.kb-gedetail__actions {
+  display: flex;
+  gap: var(--kb-sp-1);
+  margin-top: auto;
+  padding-top: var(--kb-sp-2);
 }
 
 /* 实体 / 关系表容器 */
@@ -983,6 +1192,9 @@ html.dark .kb {
   .kb-docview { grid-template-columns: minmax(0, 1fr); }
 
   .kb-docview__ask { display: none; }
+
+  /* 图谱详情侧栏在窄屏收窄，给画布留出可操作宽度 */
+  .kb-graphview__canvas > .kb-gedetail { width: 260px; }
 }
 
 @media (max-width: 1080px) {
@@ -1014,6 +1226,25 @@ html.dark .kb {
   .kb-bar { flex-wrap: wrap; }
 
   .kb-bar__right { margin-left: 0; }
+
+  /* 图谱：详情侧栏改为贴底堆叠，避免在手机宽度把画布压到不可用 */
+  .kb-graphview__canvas {
+    flex-direction: column;
+  }
+
+  .kb-graphview__canvas > .kb-gedetail {
+    width: 100%;
+    height: auto;
+    max-height: 42%;
+    border-left: 0;
+    border-top: 1px solid var(--kb-line);
+  }
+
+  .kb-graph__legend {
+    right: var(--kb-sp-2);
+    bottom: var(--kb-sp-2);
+    max-width: calc(100% - var(--kb-sp-4));
+  }
 }
 
 /* ############################################################################

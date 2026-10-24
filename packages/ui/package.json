@@ -155,13 +155,13 @@
       "types": "./src/components/ReGraphFixed/index.ts",
       "default": "./src/components/ReGraphFixed/index.ts"
     },
-    "./re-relation-graph": {
-      "types": "./src/components/ReRelationGraph/index.ts",
-      "default": "./src/components/ReRelationGraph/index.ts"
-    },
     "./re-graph-3d": {
       "types": "./src/components/ReGraph3D/index.ts",
       "default": "./src/components/ReGraph3D/index.ts"
+    },
+    "./re-relation-graph": {
+      "types": "./src/components/ReRelationGraph/index.ts",
+      "default": "./src/components/ReRelationGraph/index.ts"
     },
     "./re-echarts": {
       "types": "./src/components/ReEcharts/index.ts",

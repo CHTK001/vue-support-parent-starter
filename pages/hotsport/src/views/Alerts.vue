@@ -499,8 +499,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-/* 骨架与 .stat-row/.table-panel/.mono/.muted 由 styles/layout.css 提供 */
+<style\ scoped>\n/\*\ ========================================================\n\ \ \ Alerts\ ·\ koi\ 令牌（渐进式替换）\n\ \ \ 颜色优先取\ koi\ 令牌，未加载\ koi\ 时以\ --apm-\*\ 语义令牌兜底：\n\ \ \ var\(--koi-token,\ var\(--apm-\*\)\)\.\ hotsport\ 独立运行时不加载\ koi，视觉不崩。\n\n\ \ \ 处理方式：仅替换\ <style>\ 令牌。本页的\ ReTable\ 8\ 个具名列插槽、\n\ \ \ ReTab\ \#table\ /\ \#timeline\ 插槽以及两个\ ReDrawer\ 对话框均由脚本\n\ \ \ ref\ /\ 插槽绑定，重写模板会破坏绑定，故模板与\ <script>\ 原样保留。\n\ \ \ ========================================================\ \*/\n\n/\*\ 骨架与\ \.stat-row/\.table-panel/\.mono/\.muted\ 由\ styles/layout\.css\ 提供\ \*/
 
 /* 严重级别筛选 */
 .sev-filter {
@@ -512,7 +511,7 @@ onBeforeUnmount(() => {
 }
 
 .metric-text {
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
   font-weight: 500;
 }
 
@@ -521,7 +520,7 @@ onBeforeUnmount(() => {
 }
 
 .msg-text {
-  color: var(--apm-fg-regular);
+  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
 }
 
 /* 时间线视图 */
@@ -530,15 +529,15 @@ onBeforeUnmount(() => {
 }
 
 .timeline-wrap :deep(.re-timeline__title) {
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .timeline-wrap :deep(.re-timeline__time) {
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
 }
 
 .timeline-wrap :deep(.re-timeline__description) {
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
 }
 
 .timeline-desc {
@@ -555,7 +554,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--apm-space-3);
   padding-bottom: var(--apm-space-4);
-  border-bottom: 1px solid var(--apm-border);
+  border-bottom:\ 1px\ solid\ var\(--border-default,\ var\(--apm-border\)\);
   margin-bottom: var(--apm-space-4);
 }
 
@@ -571,9 +570,9 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: var(--apm-space-3);
   padding: var(--apm-space-3) var(--apm-space-4);
-  background: var(--apm-panel-raised);
-  border: 1px solid var(--apm-border-soft);
-  border-radius: var(--apm-radius-md);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border-radius:\ var\(--radius-md,\ var\(--apm-radius-md\)\);
 }
 
 .rule-info {
@@ -584,7 +583,7 @@ onBeforeUnmount(() => {
 }
 
 .rule-metric {
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
   font-weight: 600;
 }
 
@@ -607,7 +606,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--apm-space-3);
   padding-bottom: var(--apm-space-4);
-  border-bottom: 1px solid var(--apm-border);
+  border-bottom:\ 1px\ solid\ var\(--border-default,\ var\(--apm-border\)\);
   margin-bottom: var(--apm-space-4);
 }
 
@@ -633,9 +632,9 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: var(--apm-space-3);
   padding: var(--apm-space-3) var(--apm-space-4);
-  background: var(--apm-panel-raised);
-  border: 1px solid var(--apm-border-soft);
-  border-radius: var(--apm-radius-md);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
+  border-radius:\ var\(--radius-md,\ var\(--apm-radius-md\)\);
 }
 
 .channel-info {
@@ -651,7 +650,7 @@ onBeforeUnmount(() => {
   gap: var(--apm-space-2);
   font-size: 13px;
   font-weight: 500;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .channel-url {

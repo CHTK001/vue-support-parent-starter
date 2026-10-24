@@ -14,6 +14,7 @@
     "accept:re-components": "node scripts/re-components-sweep-acceptance.mjs"
   },
   "dependencies": {
+    "@antv/g6": "^5.1.1",
     "@element-plus/icons-vue": "catalog:",
     "element-plus": "catalog:",
     "pinia": "catalog:",

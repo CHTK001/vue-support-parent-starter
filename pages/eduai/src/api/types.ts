@@ -337,6 +337,8 @@ export interface MarkingAdjust {
   resultId: number;
   score: number;
   comment?: string;
+  /** 识别失败补录（resultId<=0）时必带题号，后端据此新建结果行 */
+  no?: string;
 }
 
 /**

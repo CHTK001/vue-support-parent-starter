@@ -228,6 +228,24 @@ export const previewSyncMapping = (data: {
   mapping?: SyncFieldMapping[];
 }) => http().post("/ms/monitor/datasync/preview").data(data).noToast(true).then(r => unwrap<SyncPreview>(r));
 
+/**
+ * 校验源可读性（向导第①步「下一步」前调用）
+ *
+ * <p>只读源列，不检查目标侧。源不可用时后端返回约定文案
+ * （如「源表不存在或无法读取: ...」），前端据此把问题挡在第①步。</p>
+ *
+ * @param data 源侧入参
+ */
+export const validateSyncSource = (data: {
+  sourceType?: string | null;
+  sourceDatasourceId?: number | null;
+  sourceSql?: string | null;
+  sourcePath?: string | null;
+  sourceOptions?: string | null;
+}) =>
+  http().post("/ms/monitor/datasync/validate-source").data(data).noToast(true)
+    .then(r => unwrap<SyncColumn[]>(r));
+
 /** 本机文件条目（「选择文件 / 选择文件夹」用，已映射为 FilePickerItem 的同形结构） */
 export interface LocalFileEntry {
   key: string;

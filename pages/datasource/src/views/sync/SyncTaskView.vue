@@ -652,7 +652,7 @@
               <template #icon><ReIcon name="CaretLeft" :size="12" /></template>上一步
             </ReButton>
             <ReButton @click="dialogVisible = false">取消</ReButton>
-            <ReButton v-if="step < 2" type="primary" @click="nextStep">
+            <ReButton v-if="step < 2" type="primary" :loading="sourceVerifying" @click="nextStep">
               <template #icon><ReIcon name="CaretRight" :size="12" /></template>下一步 · {{ WIZ_STEPS[step + 1].title }}
             </ReButton>
             <ReButton v-else type="primary" :loading="saving" @click="submit">
@@ -816,8 +816,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type 
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
-import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";
-import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import BulkImportDialog from "../../components/sync/BulkImportDialog.vue";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
@@ -834,6 +833,7 @@ import {
   previewSyncMapping,
   runSyncTask,
   updateSyncTask,
+  validateSyncSource,
   type SyncColumn,
   type SyncFieldMapping,
   type SyncTask,
@@ -860,8 +860,7 @@ const writeModes = ref<SyncWriteMode[]>([]);
 /** 源库可选表 */
 const sourceTables = ref<string[]>([]);
 /** 目标库可选表 */
-const targetTables = ref<string[]>([]);
-/** 目标数据源当前命中的库（选表后由清单流程写入，保存/预览用「库.表」对齐后端） */
+const targetTables = ref<string[]>([]);/** 目标数据源当前命中的库（选表后由清单流程写入，保存/预览用「库.表」对齐后端） */
 const targetDatabase = ref("");
 /** 源数据源当前命中的库（源表下拉限定值已含库名；建表回填裸表名时用它补库） */
 const sourceDatabase = ref("");
@@ -873,6 +872,8 @@ const dialogVisible = ref(false);
 const bulkImportVisible = ref(false);
 /** 保存中 */
 const saving = ref(false);
+/** 源可读性校验中（第①步「下一步」在等后端真读一次源） */
+const sourceVerifying = ref(false);
 /** 正在编辑的任务 ID，空表示新建 */
 const editingId = ref<number | null>(null);
 /** 预览得到的源列 */
@@ -1810,8 +1811,13 @@ const validateStep = (index: number): boolean => {
 const stepIssueNow = computed(() => stepIssue(step.value));
 
 /** 下一步 */
-const nextStep = () => {
+const nextStep = async () => {
   if (!validateStep(step.value)) {
+    return;
+  }
+  // 第①步还要真读一次源：语法合法 ≠ 表存在。早先这里只查「以 SELECT 开头」，
+  // 源表不存在也能一路进第②步，配完目标表与映射才在预览时被打回，白走一整套。
+  if (step.value === 0 && !(await verifySourceReadable())) {
     return;
   }
   step.value = Math.min(2, step.value + 1);
@@ -1820,6 +1826,53 @@ const nextStep = () => {
 /** 上一步 */
 const prevStep = () => {
   step.value = Math.max(0, step.value - 1);
+};
+
+/**
+ * 真读一次源，确认 SQL / 文件可用（向导第①步「下一步」的放行条件）。
+ *
+ * <p>校验与预览共用后端 `resolvePreviewSourceColumns`，所以这里放行就代表预览的
+ * 源侧一定能过；失败文案原样展示（如「源表不存在或无法读取: ...」），不再二次包装。</p>
+ *
+ * @returns 可读返回 true，否则弹提示并返回 false
+ */
+const verifySourceReadable = async (): Promise<boolean> => {
+  if (form.sourceType === "JDBC") {
+    if (form.sourceDatasourceId == null) {
+      message.warning("请先选择源数据源");
+      return false;
+    }
+    if (sourceMode.value === "table" && pickedSourceTable.value) {
+      form.sourceSql = `SELECT * FROM ${sourceTableRef(pickedSourceTable.value)}`;
+    }
+  }
+  sourceVerifying.value = true;
+  try {
+    const columns = await validateSyncSource({
+      sourceType: form.sourceType,
+      sourceDatasourceId: form.sourceDatasourceId,
+      sourceSql: form.sourceSql,
+      sourcePath: form.sourcePath,
+      sourceOptions: buildSourceOptions(),
+    });
+    if (!columns.length) {
+      message.warning("源没有返回任何列，请确认语句或文件内容");
+      return false;
+    }
+    // 顺手把源列带进预览：第②步打开时映射候选立刻可用，不必再点一次预览
+    previewSourceColumns.value = columns;
+    return true;
+  } catch (e) {
+    const errText = (e as Error)?.message || "未知错误";
+    message.error("源不可用：" + errText);
+    // 源表不存在的典型路径：当场弹设计表，建好后回填源表并继续。
+    if (isSourceTableMissingError(errText) || isTableMissingError(errText)) {
+      void openTableDesigner(errText);
+    }
+    return false;
+  } finally {
+    sourceVerifying.value = false;
+  }
 };
 
 /** 打开新建弹窗 */
@@ -1929,9 +1982,15 @@ const openEdit = (row: SyncTask) => {
   step.value = 0;
   // 存量 SQL 若正是「选表生成」的形状，则回到选表模式并回填表名；否则进 SQL 模式（可编辑），
   // 否则 readonly 的 SQL 框会让存量自定义 SQL 无法修改。
-  const tableHit = /^\s*select\s+\*\s+from\s+`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "");
+  // 注意：选表生成的 SQL 是「库.表」限定形态（`库`.`表`），早先这里只认单反引号
+  // （`表`），存量任务一编辑就匹配不上 → 掉进 SQL 模式且选中表为空，之后预览
+  // 失败时既定位不到源侧缺表，也回填不了表名。两种形态都要认。
+  const tableHit =
+    /^\s*select\s+\*\s+from\s+`([^`]+)`\s*\.\s*`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "") ||
+    /^\s*select\s+\*\s+from\s+`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "");
+  const restoredTable = tableHit ? (tableHit[2] ? `${tableHit[1]}.${tableHit[2]}` : tableHit[1]) : null;
   sourceMode.value = tableHit ? "table" : "sql";
-  pickedSourceTable.value = tableHit ? tableHit[1] : null;
+  pickedSourceTable.value = restoredTable;
   dialogVisible.value = true;
   void loadTables(form.sourceDatasourceId, false);
   void loadTables(form.targetDatasourceId, true);
@@ -1990,6 +2049,23 @@ const doPreview = async () => {
   if (!form.targetTable.trim()) {
     message.warning("请先填写目标表名");
     return;
+  }
+  // 选表模式下 SQL 由选中表派生，预览前按当前值重建一次：
+  // 否则「先选表、后换数据源/库或表被重建」时会拿旧 SQL 去 prepare，
+  // 报出的就是 `Table '旧库.旧表' doesn't exist` 这类与界面完全对不上的错。
+  if (form.sourceType === "JDBC" && sourceMode.value === "table" && pickedSourceTable.value) {
+    form.sourceSql = `SELECT * FROM ${sourceTableRef(pickedSourceTable.value)}`;
+  }
+  // 选表模式下改过数据源/表被删时，SQL 与表清单可能指向已不存在的对象：
+  // 先确认表还在清单里，不在就先刷新清单并提示重选，而不是发一个必然失败的请求。
+  if (form.sourceType === "JDBC" && sourceMode.value === "table" && pickedSourceTable.value) {
+    if (sourceTables.value.length && !sourceTables.value.some(t => sameTable(t, pickedSourceTable.value!))) {
+      message.warning(`源表 ${pickedSourceTable.value} 已不在当前数据源的表清单里，请重新选择源表`);
+      await loadTables(form.sourceDatasourceId, false);
+      pickedSourceTable.value = null;
+      form.sourceSql = "";
+      return;
+    }
   }
   try {
     const preview = await previewSyncMapping({
@@ -2050,38 +2126,76 @@ const designerDatasourceId = ref<number | null>(null);
 /** 设计器要建表所在的库（与 JDBC 数据库管理器「新建表」同口径：弹窗展示目标库并按库建表） */
 const designerDatabase = ref("");
 
-/** 预览报错是不是「表不存在」（MySQL / PostgreSQL / Oracle 三种方言的形态） */
+/** 预览报错是不是「表不存在」（MySQL / PostgreSQL / Oracle 三种方言 + 后端约定文案） */
 const isTableMissingError = (message: string): boolean =>
-  /doesn'?t exist|does not exist|ORA-00942|表不存在/i.test(message);
+  /doesn'?t exist|does not exist|ORA-00942|表不存在|无法读取/i.test(message);
 
-/** 从方言报错里抠出缺失的表名：Table 'db.tbl' / relation "tbl" / 表 tbl 不存在 */
+/**
+ * 后端约定：源侧读取失败。
+ *
+ * <p>{@code SyncTaskServiceImpl.loadSourceColumns} 把驱动原生异常统一成
+ * 「源表不存在或无法读取: ...」，前端据此把缺表定位到源侧。
+ * 否则原生串会被当成目标侧缺表，去建一张本来就不该建的表。</p>
+ */
+const isSourceTableMissingError = (message: string): boolean =>
+  /源表不存在或无法读取/.test(message);
+
+/** 目标侧缺表的后端约定文案 */
+const isTargetTableMissingError = (message: string): boolean =>
+  /目标表不存在或没有可读列/.test(message);
+
+/**
+ * 从方言报错里抠出缺失的表名。
+ *
+ * <p><b>保留库前缀</b>：早先这里 {@code raw.split(".").pop()} 只剩裸表名，
+ * 而源表选中值、目标表提交值都是「库.表」限定名，比对必然不相等，
+ * 于是「源侧缺表」被误判成「目标侧缺表」。现在返回原样的限定名，
+ * 由 {@link detectMissingSide} 用「裸名 + 限定名」两种形态比对。</p>
+ */
 const parseMissingTable = (message: string): string | null => {
   const hit =
     /Table '([^']+)'/.exec(message) ||
     /relation "([^"]+)"/.exec(message) ||
-    /表\s*[`'"]?([\w.]+)[`'"]?\s*不存在/.exec(message);
-  const raw = hit?.[1] ?? "";
-  const table = (raw.split(".").pop() ?? raw).replace(/[`"]/g, "").trim();
-  return table || null;
+    /表\s*[`'"]?([\w.]+)[`'"]?\s*不存在/.exec(message) ||
+    // 后端约定文案：源表不存在或无法读取: Table 'db.tbl' ... / 目标表不存在或没有可读列: db.tbl
+    /目标表不存在或没有可读列:\s*([\w.]+)/.exec(message) ||
+    /无法读取:\s*Table '([^']+)'/.exec(message);
+  const raw = (hit?.[1] ?? "").replace(/[`"]/g, "").trim();
+  return raw || null;
 };
 
-/** 缺失表在源侧还是目标侧：与目标表名、选表模式表名、SQL 的 FROM/JOIN 表逐一比对 */
+/** 限定名与裸名的归一化比较：任一方为「库.表」都按裸表名对齐 */
+const sameTable = (left: string, right: string): boolean => {
+  const norm = (s: string) =>
+    s.replace(/[`"\s]/g, "").toLowerCase().split(".").pop() ?? "";
+  return Boolean(norm(left)) && norm(left) === norm(right);
+};
+
+/**
+ * 缺失表在源侧还是目标侧。
+ *
+ * <p>判定顺序（前者优先，都是确定信息，不再猜）：
+ * 1) 后端明确说是源侧/目标侧 → 直接采纳；
+ * 2) 与目标表（含库前缀）同名 → 目标侧；
+ * 3) 与选中的源表（含库前缀）同名，或出现在源 SQL 的 FROM/JOIN 里 → 源侧；
+ * 4) 兜底目标侧（建目标表是主流场景）。</p>
+ */
 const detectMissingSide = (table: string | null): "source" | "target" => {
-  const norm = (s: string) => s.replace(/[`"\s]/g, "").toLowerCase();
-  // 文件 / 目录源没有「源表」概念；解析不出表名时按目标表处理（建目标表是主要场景）
-  if (form.sourceType !== "JDBC" || !table) {
+  if (form.sourceType !== "JDBC") {
     return "target";
   }
-  if (norm(form.targetTable) === norm(table)) {
+  if (!table) {
     return "target";
   }
-  if (sourceMode.value === "table" && pickedSourceTable.value && norm(pickedSourceTable.value) === norm(table)) {
+  if (sameTable(form.targetTable, table)) {
+    return "target";
+  }
+  if (sourceMode.value === "table" && pickedSourceTable.value && sameTable(pickedSourceTable.value, table)) {
     return "source";
   }
   if (sourceMode.value === "sql") {
-    const refs = [...form.sourceSql.matchAll(/(?:from|join)\s+`?([\w.]+)`?/gi)]
-      .map(m => (m[1] ?? "").split(".").pop() ?? "");
-    if (refs.some(ref => norm(ref) === norm(table))) {
+    const refs = [...form.sourceSql.matchAll(/(?:from|join)\s+`?([\w.]+)`?/gi)].map(m => m[1] ?? "");
+    if (refs.some(ref => sameTable(ref, table))) {
       return "source";
     }
   }
@@ -2122,7 +2236,13 @@ const fetchSourcePrefill = async (): Promise<DesignerColumn[]> => {
 /** 预览失败且是「表不存在」→ 打开设计表向导 */
 const openTableDesigner = async (message: string): Promise<void> => {
   const missing = parseMissingTable(message);
-  const side = detectMissingSide(missing);
+  // 后端已给出明确侧别时直接采纳，只在它没说清时才用名字比对兜底：
+  // 原生方言串（旧版后端 / 非 MySQL）没有侧别信息，必须靠比对。
+  const side: "source" | "target" = isSourceTableMissingError(message)
+    ? "source"
+    : isTargetTableMissingError(message)
+      ? "target"
+      : detectMissingSide(missing);
   designerSide.value = side;
   designerTable.value = missing ?? (side === "target" ? form.targetTable.trim() : pickedSourceTable.value ?? "");
   designerDatasourceId.value = (side === "target" ? form.targetDatasourceId : form.sourceDatasourceId) ?? null;

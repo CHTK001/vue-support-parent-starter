@@ -9,7 +9,7 @@
       "@repo/ui/components/*": ["../../packages/ui/src/components/*"],
       "@repo/theme/koi/framework": ["../../packages/theme/src/themes/koi/framework"],
       "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],
-      "@pages/hotsport/*": ["../../pages/hotsport/*"],
+      "@pages/hotsport/*": ["../../pages/hotsport/src/*"],
       "@pages/hotsport": ["../../pages/hotsport/src/index.ts"]
     }
   },

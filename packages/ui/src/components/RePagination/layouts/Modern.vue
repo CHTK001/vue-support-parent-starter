@@ -22,6 +22,8 @@ const props = withDefaults(
     pageSizes?: number[];
     disabled?: boolean;
     small?: boolean;
+    /** 尺寸档位：default / small / mini（比 small 更紧凑，按钮 24px） */
+    size?: "default" | "small" | "mini";
   }>(),
   {
     currentPage: 1,
@@ -29,6 +31,7 @@ const props = withDefaults(
     pageSizes: () => [10, 20, 50, 100],
     disabled: false,
     small: false,
+    size: "default",
   },
 );
 
@@ -98,7 +101,7 @@ function onSizeChange(size: number): void {
 
 <template>
   <nav
-    :class="['rm-pager', { 'rm-pager--small': small, 'rm-pager--disabled': disabled }]"
+    :class="['rm-pager', { 'rm-pager--small': small, 'rm-pager--mini': size === 'mini', 'rm-pager--disabled': disabled }]"
     v-bind="$attrs"
   >
     <!-- Total -->
@@ -177,6 +180,7 @@ function onSizeChange(size: number): void {
   user-select: none;
 }
 .rm-pager--small { font-size: var(--rm-font-sm); padding: 3px; }
+.rm-pager--mini { font-size: 12px; padding: 2px; gap: 3px; }
 .rm-pager--disabled { opacity: 0.55; pointer-events: none; }
 
 .rm-pager__total {
@@ -295,6 +299,25 @@ function onSizeChange(size: number): void {
   min-width: 28px;
   height: 28px;
   font-size: var(--rm-font-sm);
+}
+.rm-pager--mini .rm-pager__btn {
+  min-width: 24px;
+  height: 24px;
+  font-size: 12px;
+  padding: 0 5px;
+}
+.rm-pager--mini .rm-pager__size-btn {
+  height: 24px;
+  font-size: 12px;
+  padding: 0 8px;
+}
+.rm-pager--mini .rm-pager__total {
+  font-size: 12px;
+  padding: 0 8px 0 6px;
+}
+.rm-pager--mini .rm-pager__size-option {
+  font-size: 12px;
+  padding: 5px 8px;
 }
 
 .rm-pager__btn--nav svg {

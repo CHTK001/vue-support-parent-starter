@@ -1,15 +1,13 @@
 <template>
   <div class="svc" data-page="service" :class="{ 'is-focus': focusConsole }">
     <!-- ==================== 00 页头 ==================== -->
-    <header class="svc-head">
-      <div class="svc-head__text">
-        <h2 class="svc-head__title">服务配置</h2>
-        <p class="svc-head__sub">
-          对外服务实例、访问记录与进程运行日志。<b>{{ instances.length }}</b> 个实例 ·
-          <b>{{ runningCount }}</b> 个运行中
-        </p>
-      </div>
-      <div class="svc-head__actions">
+    <!-- 统一用 RePageHead（全站共用一份页面头实现） -->
+    <RePageHead title="服务配置">
+      <template #sub>
+        对外服务实例、访问记录与进程运行日志。<b>{{ instances.length }}</b> 个实例 ·
+        <b>{{ runningCount }}</b> 个运行中
+      </template>
+      <template #actions>
         <!-- 静默轮询的「数据新鲜度」信号：6px 圆点 + 等宽时间戳，不遮罩正在读的那行 -->
         <span class="svc-stamp" :class="{ 'is-live': runtimeLoading }">
           <i class="svc-stamp__dot" aria-hidden="true"></i>更新于 <b>{{ lastSyncText }}</b>
@@ -22,8 +20,8 @@
           <el-icon class="svc-btn__icon" aria-hidden="true"><AddIcon /></el-icon>
           新建服务实例
         </el-button>
-      </div>
-    </header>
+      </template>
+    </RePageHead>
 
     <!-- ==================== 00b 状态带（Q1 的唯一答案） ==================== -->
     <section class="svc-band" aria-label="服务健康概览">
@@ -377,6 +375,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReTab from '@repo/ui/re-tab'
 import type { ReTabItem } from '@repo/ui/re-tab'
 import ReNumberInput from '@/components/re/ReNumberInput.vue'
+import RePageHead from '@/components/re/RePageHead.vue'
 import ServiceTokensPanel from './ServiceTokensPanel.vue'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,

@@ -970,7 +970,7 @@ onMounted(async () => {
 .dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
 .dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-nacos-icon { color: #fbbf24; }
+.dsm-nacos-icon { color: var(--koi-brand-500, var(--apm-brand-500)); }
 .dsm-toolbar-right { display: flex; gap: 8px; }
 .dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
 .dsm.resizing { user-select: none; }

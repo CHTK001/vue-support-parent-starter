@@ -950,6 +950,7 @@ const currentActiveTab = computed(() => {
   // 图像类已扁平化（不再有 image-management 二级父项），高亮直接落在各自菜单项上
   if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'FaceSearch') return 'face-search'
+  if (routeName === 'FaceReid') return 'face-reid'
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'ImageColorize') return 'image-colorize'
   if (routeName === 'Ocr') return 'ocr'
@@ -1312,6 +1313,21 @@ const handleNavClick = async (tab: string) => {
       return
     }
     router.replace({ name: 'FaceSearch' })
+  } else if (tab === 'face-reid') {
+    // 人脸重识别与「人脸识别」用同一批模型（检测 + 特征），门禁口径一致
+    await modelConfig.load()
+    if (!modelConfig.faceReady) {
+      toast.warning('人脸重识别未启用：请先到「系统设置 → 默认模型 → 人脸重识别」配置检测模型与特征模型')
+      return
+    }
+    if (modelConfig.unregisteredConfigured.length) {
+      toast.warning(
+        '人脸重识别模型当前不可用：已配置的检测/特征模型未在后端注册。' +
+        '请到「系统设置 → 默认模型 → 人脸重识别」重新选择当前可用的模型',
+      )
+      return
+    }
+    router.replace({ name: 'FaceReid' })
   } else if (tab === 'image-search') {
     // 以图搜图同口径：点击时才拿最新配置，配置后不需要刷新页面
     expandedImageMgmt.value = true

@@ -15,6 +15,7 @@
 
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ReDialog from '@repo/ui/re-dialog'
 import {
   // @element-plus/icons-vue 导出的名字**没有 Icon 后缀**（Refresh / Plus / Delete /
   // Connection / DataAnalysis）。此前按「XxxIcon」写，构建直接报 MISSING_EXPORT，
@@ -37,6 +38,7 @@ import geminiIcon from '@/assets/channel-icons/gemini.svg'
 import minimaxIcon from '@/assets/channel-icons/minimax.ico'
 import zcodeIcon from '@/assets/channel-icons/zcode.ico'
 import lobsteraiIcon from '@/assets/channel-icons/lobsterai.ico'
+import RePageHead from '@/components/re/RePageHead.vue'
 
 /** 渠道品牌外观：官方图标（可选）+ 品牌色 + 徽标字形 */
 interface ChannelBrand {
@@ -234,6 +236,18 @@ function bindUserCode(): string {
   const url = handleVerifyUrl(handle)
   const m = /[?&]user_code=([^&#]+)/i.exec(url)
   return m ? decodeURIComponent(m[1]) : ''
+}
+
+// 复制授权码到剪贴板（设备码渠道；复制失败时静默，不影响流程）
+async function copyBindCode() {
+  const code = bindUserCode()
+  if (!code) return
+  try {
+    await navigator.clipboard.writeText(code)
+    ElMessage.success('授权码已复制')
+  } catch {
+    // 剪贴板权限被拒 / 非安全上下文：忽略，用户仍可手抄
+  }
 }
 
 // 短信发码是否已成功（句柄被 poll 回显带上 smsSent）
@@ -768,21 +782,50 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
     </div>
 
     <!--
-      绑定账号对话框：所有渠道统一。
-      内容 = 状态 / 授权码 / 二维码 / 链接 + （仅短信与 API key）对应输入框。
+      绑定账号对话框：ReDialog（koi 平台壳），所有渠道统一。
+      内部结构（重构后）：
+        - #header：渠道品牌头部（官方图标 / 徽标 + 渠道名 + 登录方式 + provider）
+        - 状态带：四相（starting 创建会话 / waiting 等待授权 / error 失败）+ 计时
+        - 阶段区：按登录方式呈递内容
+            (1) 设备码（device-code / browser-device）：授权码大字 + 复制 + 授权链接
+            (2) 扫码（qr-code）：二维码 + 提示
+            (3) 浏览器授权（browser-oauth）：打开授权页主按钮 + 链接兜底
+            (4) 短信（sms）：手机号 → 验证码
+            (5) API key：密钥输入
+        - #footer：重新发起 + 取消
       拿到凭据（SSE done）自动关闭；用户在弹窗里不做任何账号粘贴。
     -->
-    <el-dialog
+    <ReDialog
       v-model="bindDialogVisible"
-      :title="'绑定账号 · ' + (channels.find((c) => c.channel === bindChannel)?.displayName || bindChannel)"
-      width="460px"
+      width="480px"
       append-to-body
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      destroy-on-close
       class="chm-bind-dialog"
       @closed="closeBindDialog"
     >
+      <!-- 头部：渠道品牌 -->
+      <template #header>
+        <div class="chm-bind__head">
+          <span class="chm-bind__logo"
+                :class="{ 'is-ico': !!brandOf(bindChannel).icon }"
+                :style="brandOf(bindChannel).icon ? undefined : { background: brandOf(bindChannel).color }">
+            <img v-if="brandOf(bindChannel).icon" :src="brandOf(bindChannel).icon" :alt="bindChannel" />
+            <b v-else>{{ brandOf(bindChannel).glyph }}</b>
+          </span>
+          <div class="chm-bind__headtext">
+            <b>{{ channels.find((c) => c.channel === bindChannel)?.displayName || bindChannel }}</b>
+            <span>
+              <i>{{ brandOf(bindChannel).method || '账号绑定' }}</i>
+              · 绑定新账号
+            </span>
+          </div>
+        </div>
+      </template>
+
       <div class="chm-bind">
-        <!-- 状态行 -->
+        <!-- 状态带 -->
         <div class="chm-bind__status" :class="{ 'is-error': bindPhase === 'error' }">
           <span class="chm-bind__dot" :class="{ 'is-error': bindPhase === 'error' }" />
           <span v-if="bindPhase === 'starting'">正在创建登录会话…</span>
@@ -796,77 +839,92 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
           <span class="chm-bind__elapsed" v-if="bindPhase === 'waiting'">{{ bindElapsed }}s</span>
         </div>
 
-        <!-- 二维码（Raccoon 等扫码渠道） -->
-        <div v-if="isQrBind() && qrImages[bindChannel]" class="chm-bind__qr">
-          <img :src="qrImages[bindChannel]" alt="登录二维码" />
-        </div>
-
-        <!-- 设备码 / 授权码 -->
-        <div v-if="bindUserCode()" class="chm-bind__code">
-          <span class="chm-bind__code-label">授权码</span>
-          <b class="chm-bind__code-value">{{ bindUserCode() }}</b>
-        </div>
-
-        <!-- 授权链接（自动开窗失败或被关掉时的兜底入口） -->
-        <div v-if="handleVerifyUrl(bindState[bindChannel]?.handle ?? {}) && !isSmsBind() && !isApiKeyBind()"
-             class="chm-bind__link">
-          <button class="chm-btn" type="button"
-                  @click="openAuthWindow(handleVerifyUrl(bindState[bindChannel]?.handle ?? {}))">
-            打开授权页
-          </button>
-          <a :href="handleVerifyUrl(bindState[bindChannel]?.handle ?? {})" target="_blank" rel="noopener noreferrer">
-            或点此链接
-          </a>
-        </div>
-
-        <!-- 短信登录（Loomy）：手机号 → 验证码 -->
-        <div v-if="isSmsBind()" class="chm-bind__input">
-          <div class="chm-bind__row">
-            <input
-              :value="bindState[bindChannel]?.input?.phone ?? ''"
-              @input="(bindState[bindChannel]!.input.phone = (e as any).target.value)"
-              class="chm-input"
-              placeholder="手机号"
-              inputmode="numeric"
-            />
-            <button class="chm-btn" type="button" :disabled="smsSent()" @click="sendSmsCode()">获取验证码</button>
+        <div class="chm-bind__stage">
+          <!-- (1) 设备码 / 授权码（device-code / browser-device） -->
+          <div v-if="bindUserCode()" class="chm-bind__code">
+            <span class="chm-bind__code-label">授权码</span>
+            <div class="chm-bind__code-row">
+              <b class="chm-bind__code-value">{{ bindUserCode() }}</b>
+              <button
+                class="chm-bind__copy"
+                type="button"
+                title="复制授权码"
+                @click="copyBindCode()"
+              >复制</button>
+            </div>
+            <span class="chm-bind__code-hint">在设备 / 授权页面输入此授权码完成登录</span>
           </div>
-          <div class="chm-bind__row" v-if="smsSent()">
-            <input
-              :value="bindState[bindChannel]?.input?.smsCode ?? ''"
-              @input="(bindState[bindChannel]!.input.smsCode = (e as any).target.value)"
-              class="chm-input"
-              placeholder="短信验证码"
-              inputmode="numeric"
-            />
-            <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
-          </div>
-        </div>
 
-        <!-- API key（OpenCode） -->
-        <div v-if="isApiKeyBind()" class="chm-bind__input">
-          <div class="chm-bind__row">
-            <input
-              :value="bindState[bindChannel]?.input?.apiKey ?? ''"
-              @input="(bindState[bindChannel]!.input.apiKey = (e as any).target.value)"
-              class="chm-input"
-              placeholder="Zen API key（匿名通道填 public）"
-            />
-            <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
+          <!-- (2) 扫码（qr-code） -->
+          <div v-if="isQrBind() && qrImages[bindChannel]" class="chm-bind__qr">
+            <img :src="qrImages[bindChannel]" alt="登录二维码" />
+            <span class="chm-bind__qr-hint">使用微信「扫一扫」完成授权，成功后自动绑定</span>
           </div>
-        </div>
 
-        <!-- 本地回调不可用时的兜底：允许手工粘贴回调地址 -->
-        <div v-if="bindState[bindChannel]?.handle?.callbackListening === false" class="chm-bind__input">
-          <div class="chm-bind__hint">检测到本地回调端口不可用，授权后请把浏览器地址栏的回调地址粘到下面：</div>
-          <div class="chm-bind__row">
-            <input
-              :value="bindState[bindChannel]?.handle?.callbackUrl ?? ''"
-              @input="(bindState[bindChannel]!.handle.callbackUrl = (e as any).target.value)"
-              class="chm-input"
-              placeholder="http://127.0.0.1:…/authorize?…"
-            />
-            <button class="chm-btn" type="button" @click="submitBindInput()">提交</button>
+          <!-- (3) 浏览器授权入口（授权链接兜底：自动开窗失败 / 被关闭时） -->
+          <div v-if="handleVerifyUrl(bindState[bindChannel]?.handle ?? {}) && !isSmsBind() && !isApiKeyBind()"
+               class="chm-bind__cta">
+            <button
+              class="chm-bind__open"
+              type="button"
+              @click="openAuthWindow(handleVerifyUrl(bindState[bindChannel]?.handle ?? {}))"
+            >
+              打开授权页
+            </button>
+            <a class="chm-bind__href"
+               :href="handleVerifyUrl(bindState[bindChannel]?.handle ?? {})"
+               target="_blank" rel="noopener noreferrer">或点此链接</a>
+          </div>
+
+          <!-- (4a) 短信登录（Loomy）：手机号 → 验证码 -->
+          <div v-if="isSmsBind()" class="chm-bind__form">
+            <div class="chm-bind__row">
+              <input
+                :value="bindState[bindChannel]?.input?.phone ?? ''"
+                @input="(bindState[bindChannel]!.input.phone = (e as any).target.value)"
+                class="chm-input"
+                placeholder="手机号"
+                inputmode="numeric"
+              />
+              <button class="chm-btn" type="button" :disabled="smsSent()" @click="sendSmsCode()">获取验证码</button>
+            </div>
+            <div class="chm-bind__row" v-if="smsSent()">
+              <input
+                :value="bindState[bindChannel]?.input?.smsCode ?? ''"
+                @input="(bindState[bindChannel]!.input.smsCode = (e as any).target.value)"
+                class="chm-input"
+                placeholder="短信验证码"
+                inputmode="numeric"
+              />
+              <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
+            </div>
+          </div>
+
+          <!-- (4b) API key（OpenCode） -->
+          <div v-if="isApiKeyBind()" class="chm-bind__form">
+            <div class="chm-bind__row">
+              <input
+                :value="bindState[bindChannel]?.input?.apiKey ?? ''"
+                @input="(bindState[bindChannel]!.input.apiKey = (e as any).target.value)"
+                class="chm-input"
+                placeholder="Zen API key（匿名通道填 public）"
+              />
+              <button class="chm-btn chm-btn--primary" type="button" @click="submitBindInput()">提交</button>
+            </div>
+          </div>
+
+          <!-- (5) 本地回调不可用时的兜底：允许手工粘贴回调地址 -->
+          <div v-if="bindState[bindChannel]?.handle?.callbackListening === false" class="chm-bind__form">
+            <div class="chm-bind__hint">检测到本地回调端口不可用，授权后请把浏览器地址栏的回调地址粘到下面：</div>
+            <div class="chm-bind__row">
+              <input
+                :value="bindState[bindChannel]?.handle?.callbackUrl ?? ''"
+                @input="(bindState[bindChannel]!.handle.callbackUrl = (e as any).target.value)"
+                class="chm-input"
+                placeholder="http://127.0.0.1:…/authorize?…"
+              />
+              <button class="chm-btn" type="button" @click="submitBindInput()">提交</button>
+            </div>
           </div>
         </div>
       </div>
@@ -874,9 +932,9 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
       <template #footer>
         <button class="chm-btn" type="button" @click="restartBind()"
                 :disabled="bindPhase === 'starting'">重新发起</button>
-        <button class="chm-btn" type="button" @click="closeBindDialog()">取消</button>
+        <button class="chm-btn chm-btn--primary" type="button" @click="closeBindDialog()">取消</button>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -886,27 +944,6 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
   flex-direction: column;
   gap: 16px;
   padding: 4px 0 24px;
-}
-.chm-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-.chm-head__title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary, #303133);
-}
-.chm-head__sub {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary, #909399);
-}
-.chm-head__actions {
-  display: flex;
-  gap: 8px;
 }
 .chm-btn {
   display: inline-flex;
@@ -1341,32 +1378,100 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
   cursor: not-allowed;
 }
 
-/* ---------- 绑定弹窗 ---------- */
+/* ---------- 绑定弹窗（ReDialog 重构） ---------- */
 .chm-bind {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+/* 头部：渠道品牌 */
+.chm-bind__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chm-bind__logo {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  overflow: hidden;
+}
+.chm-bind__logo.is-ico {
+  background: #fff;
+  border: 1px solid var(--border-subtle, #eef2f8);
+}
+.chm-bind__logo img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.chm-bind__logo b {
+  color: #fff;
+  font-size: 14px;
+}
+.chm-bind__headtext {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.chm-bind__headtext > b {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.2;
+}
+.chm-bind__headtext > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+.chm-bind__headtext i {
+  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-secondary, #475569);
+  background: var(--bg-fill, #f1f5fb);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+/* 状态带 */
 .chm-bind__status {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--el-text-color-regular, #606266);
+  color: var(--text-regular, #475569);
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg-elevated, #f8fafc);
 }
 .chm-bind__status.is-error {
+  border-color: color-mix(in srgb, var(--el-color-danger, #f56c6c) 40%, transparent);
   color: var(--el-color-danger, #f56c6c);
 }
 .chm-bind__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--el-color-primary, #409eff);
+  background: var(--brand-500, #3b82f6);
   animation: chm-pulse 1.2s ease-in-out infinite;
   flex: none;
 }
 .chm-bind__dot.is-error {
   background: var(--el-color-danger, #f56c6c);
+  animation: none;
+}
+.chm-bind__dot.is-done {
+  background: #22c55e;
   animation: none;
 }
 @keyframes chm-pulse {
@@ -1376,47 +1481,101 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
 .chm-bind__elapsed {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--text-tertiary, #94a3b8);
 }
-.chm-bind__qr {
+/* 阶段内容区 */
+.chm-bind__stage {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
 }
-.chm-bind__qr img {
-  width: 220px;
-  height: 220px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 6px;
-}
+/* 设备码 / 授权码 */
 .chm-bind__code {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  justify-content: center;
-  padding: 8px 12px;
-  background: var(--el-fill-color-light, #f5f7fa);
-  border-radius: 6px;
+  padding: 14px 12px;
+  background: var(--bg-elevated, #f8fafc);
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 10px;
 }
 .chm-bind__code-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--text-secondary, #475569);
+}
+.chm-bind__code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .chm-bind__code-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 18px;
-  letter-spacing: 1px;
+  font-size: 22px;
+  letter-spacing: 2px;
   user-select: all;
+  color: var(--text-primary, #0f172a);
 }
-.chm-bind__link {
+.chm-bind__copy {
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: var(--bg-container, #fff);
+  color: var(--text-regular, #475569);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chm-bind__copy:hover {
+  border-color: var(--brand-400, #60a5fa);
+  color: var(--brand-600, #2563eb);
+}
+.chm-bind__code-hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+}
+/* 扫码 */
+.chm-bind__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.chm-bind__qr img {
+  width: 210px;
+  height: 210px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 10px;
+}
+.chm-bind__qr-hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+}
+/* 授权入口 */
+.chm-bind__cta {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  padding: 10px;
   font-size: 12px;
 }
-.chm-bind__link a {
-  color: var(--el-color-primary, #409eff);
+.chm-bind__open {
+  border: 1px solid var(--brand-600, #2563eb);
+  background: var(--brand-600, #2563eb);
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-size: 13px;
+  cursor: pointer;
 }
-.chm-bind__input {
+.chm-bind__open:hover {
+  background: var(--brand-500, #3b82f6);
+}
+.chm-bind__href {
+  color: var(--brand-600, #2563eb);
+}
+/* 输入表单（短信 / API key / 回调粘贴） */
+.chm-bind__form {
   display: flex;
   flex-direction: column;
   gap: 8px;

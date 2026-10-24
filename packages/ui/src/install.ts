@@ -73,7 +73,6 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
      并被跳过，预览渲染成同名未知元素（<regraph3d>），而 log.warn 走 console.log，
      控制台里连 warning 都不明显 —— 属静默失败。 */
   ReGraph3D: () => import("./components/ReGraph3D"),
-  ReRelationGraph: () => import("./components/ReRelationGraph"),
   ReFlowGraph: () => import("./components/ReFlowGraph"),
   ReChart: () => import("./components/ReChart"),
   ReEcharts: () => import("./components/ReEcharts"),

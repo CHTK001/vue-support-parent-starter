@@ -399,6 +399,34 @@ export function getHealth(): Promise<ApmHealth> {
   return unwrap(instance.get<ApmHealth>("/health"));
 }
 
+// ---- 数据源探测（/provider）----
+
+/** 单个候选数据源的探测结果 */
+export interface ApmProviderCandidate {
+  name: string;
+  available: boolean;
+  description: string;
+}
+
+/** 当前生效的数据源及候选状态 */
+export interface ApmProviderInfo {
+  /** auto / none / hotsport / skywalker */
+  mode: string;
+  available: boolean;
+  reason: string;
+  candidates: ApmProviderCandidate[];
+}
+
+/**
+ * 读取后端数据源状态。
+ *
+ * <p>用于「接口设置」里的连通性自检：能拿到本结构即说明前端 → 网关 → /api/apm
+ * 这条链路是通的，同时可以看出后端最终降级到了哪个数据源。</p>
+ */
+export function getProvider(): Promise<ApmProviderInfo> {
+  return unwrap(instance.get<ApmProviderInfo>("/provider"));
+}
+
 // ---- JVM 指标（/jvm/*）----
 
 export interface JvmSnapshot {

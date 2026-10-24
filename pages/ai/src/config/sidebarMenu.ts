@@ -3,7 +3,7 @@ import {
   AddSquare20Regular, ContactCard20Regular, ChatMultiple24Regular, BookSearch20Regular,
   Apps20Regular, ImageMultiple20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
-  DataBarVertical20Regular, PlugConnected20Regular, ClockAlarm20Regular,
+  DataBarVertical20Regular, PlugConnected20Regular, ClockAlarm20Regular, Fingerprint24Regular,
 } from '@vicons/fluent'
 
 /**
@@ -164,6 +164,20 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       badgeTip: modelConfig.unregisteredConfigured.length
         ? '人脸检测/特征模型已配置但未在后端注册，识别与登记不可用'
         : '人脸检测模型 / 人脸特征模型未配置，识别不可用',
+    },
+    {
+      // 人脸重识别：与人脸识别并列的另一条业务 —— 跨摄像头/跨帧追踪同一个人。
+      // 徽标沿用模型门禁：检测/特征模型没配时同样不可用。
+      key: 'face-reid',
+      label: '人脸重识别',
+      icon: Fingerprint24Regular,
+      section: '图像',
+      showKey: 'showFaceReidMenu',
+      badge: modelConfig.unregisteredConfigured.length ? '未注册'
+        : modelConfig.faceReady ? '' : '未配置',
+      badgeTip: modelConfig.unregisteredConfigured.length
+        ? '人脸检测/特征模型已配置但未在后端注册，重识别不可用'
+        : '人脸检测模型 / 人脸特征模型未配置，重识别不可用',
     },
     {
       key: 'image-search',

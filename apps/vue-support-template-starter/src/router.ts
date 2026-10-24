@@ -51,6 +51,19 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "ReTree 弹窗对照组" },
   },
   {
+    /*
+     * ReGraphG6 · 关系图（G6 v5.1.1 原生）验收页。
+     *
+     * <p>以 G6 官方 bubble-sets 示例为地基，逐步添加功能。
+     * 独立路由而非模板体系：G6 直接实例化，不经过 @repo/ui 包装层，
+     * 便于对照官方示例逐版验收。</p>
+     */
+    path: "/lab/re-graph-g6",
+    name: "lab-re-graph-g6",
+    component: () => import("./views/ReGraphG6Lab.vue"),
+    meta: { title: "ReGraphG6 · 关系图（G6 原生）" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/home",
   },

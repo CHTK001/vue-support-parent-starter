@@ -775,7 +775,7 @@ onBeforeUnmount(() => {
   min-width: 48px;
   text-align: right;
   font-size: 12px;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .config-actions {
@@ -820,11 +820,11 @@ onBeforeUnmount(() => {
 }
 
 .health-key {
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
 }
 
 .health-value {
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
   font-variant-numeric: tabular-nums;
 }
 
@@ -853,15 +853,15 @@ onBeforeUnmount(() => {
 }
 
 .channel-dot.ok {
-  background: var(--apm-success);
+  background:\ var\(--status-success,\ var\(--apm-success\)\);
 }
 
 .channel-dot.warn {
-  background: var(--apm-warning);
+  background:\ var\(--status-warning,\ var\(--apm-warning\)\);
 }
 
 .channel-dot.off {
-  background: var(--apm-danger);
+  background:\ var\(--status-error,\ var\(--apm-danger\)\);
 }
 
 /* ---- 句柄检测 ---- */
@@ -878,19 +878,19 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 2px;
   padding: var(--apm-space-2) var(--apm-space-4);
-  background: var(--apm-panel-raised);
-  border: 1px solid var(--apm-border-soft);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
+  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   border-radius: var(--apm-radius-md);
 }
 
 .handle-count {
   font-size: 20px;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .handle-kind {
   font-size: 11px;
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
 }
 
 .handle-table-wrap {
@@ -908,12 +908,12 @@ onBeforeUnmount(() => {
 .apm-mini-table td {
   text-align: left;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--apm-border-soft);
+  border-bottom:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   white-space: nowrap;
 }
 
 .apm-mini-table th {
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
   font-weight: 600;
 }
 
@@ -931,10 +931,10 @@ onBeforeUnmount(() => {
 
 .fd-chip {
   padding: 2px 8px;
-  border: 1px solid var(--apm-border-soft);
+  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   border-radius: 999px;
   font-size: 11px;
-  color: var(--apm-fg-regular);
+  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
 }
 
 /* ---- System.out / System.err ---- */
@@ -950,14 +950,14 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   gap: var(--apm-space-2);
   padding: 5px 0;
-  border-bottom: 1px solid var(--apm-border-soft);
+  border-bottom:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   font-size: 12px;
 }
 
 .sysout-line {
   flex: 1;
   word-break: break-all;
-  color: var(--apm-fg-regular);
+  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
 }
 
 /* ---- JVM 内存诊断 ---- */
@@ -967,7 +967,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: var(--apm-space-4);
   padding-bottom: var(--apm-space-3);
-  border-bottom: 1px solid var(--apm-border-soft);
+  border-bottom:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   margin-bottom: var(--apm-space-3);
 }
 
@@ -979,7 +979,7 @@ onBeforeUnmount(() => {
 
 .memory-summary-value {
   font-size: 20px;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .memory-summary-desc {
@@ -995,7 +995,7 @@ onBeforeUnmount(() => {
 }
 
 .gc-freed {
-  color: var(--apm-success);
+  color:\ var\(--status-success,\ var\(--apm-success\)\);
 }
 
 .memory-pool-list {
@@ -1024,14 +1024,14 @@ onBeforeUnmount(() => {
 .memory-pool-bar {
   height: 6px;
   border-radius: 999px;
-  background: var(--apm-panel-raised);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
   overflow: hidden;
 }
 
 .memory-pool-bar > i {
   display: block;
   height: 100%;
-  background: var(--apm-accent);
+  background:\ var\(--brand-500,\ var\(--apm-accent\)\);
   border-radius: 999px;
   transition: width var(--apm-t-fast);
 }
@@ -1042,7 +1042,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--apm-space-2);
   padding-top: var(--apm-space-3);
-  border-top: 1px solid var(--apm-border-soft);
+  border-top:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   font-size: 12px;
   margin-top: var(--apm-space-3);
 }
@@ -1063,9 +1063,9 @@ onBeforeUnmount(() => {
 }
 
 .thread-dump-item {
-  border: 1px solid var(--apm-border-soft);
+  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   border-radius: var(--apm-radius-md);
-  background: var(--apm-panel-raised);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
 }
 
 .thread-dump-item summary {
@@ -1084,7 +1084,7 @@ onBeforeUnmount(() => {
 .thread-dump-name {
   flex: 1;
   font-weight: 500;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1105,7 +1105,7 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   font-size: 11px;
   line-height: 1.5;
-  color: var(--apm-fg-regular);
+  color:\ var\(--text-secondary,\ var\(--apm-fg-regular\)\);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -1123,21 +1123,21 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 2px;
   padding: var(--apm-space-3);
-  border: 1px solid var(--apm-border-soft);
+  border:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   border-radius: var(--apm-radius-md);
-  background: var(--apm-panel-raised);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
 }
 
 .phase-label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
 }
 
 .phase-value {
   font-size: 18px;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .phase-count {
@@ -1163,14 +1163,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .hotspot-bar-wrap {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background: var(--apm-panel-raised);
+  background:\ var\(--bg-elevated,\ var\(--apm-panel-raised\)\);
   overflow: hidden;
 }
 
@@ -1178,14 +1178,14 @@ onBeforeUnmount(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--apm-danger);
+  background:\ var\(--status-error,\ var\(--apm-danger\)\);
   transition: width var(--apm-t-fast);
 }
 
 .hotspot-avg {
   min-width: 64px;
   text-align: right;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .hotspot-count {
@@ -1195,7 +1195,7 @@ onBeforeUnmount(() => {
 
 .sw-section {
   margin-top: var(--apm-space-4);
-  border-top: 1px solid var(--apm-border-soft);
+  border-top:\ 1px\ solid\ var\(--border-subtle,\ var\(--apm-border-soft\)\);
   padding-top: var(--apm-space-3);
 }
 
@@ -1219,11 +1219,11 @@ onBeforeUnmount(() => {
 
 .sw-trace {
   min-width: 120px;
-  color: var(--apm-fg);
+  color:\ var\(--text-primary,\ var\(--apm-fg\)\);
 }
 
 .sw-count {
-  color: var(--apm-muted);
+  color:\ var\(--text-tertiary,\ var\(--apm-muted\)\);
 }
 
 @media (prefers-reduced-motion: reduce) {

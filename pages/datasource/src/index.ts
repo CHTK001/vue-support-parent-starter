@@ -80,10 +80,16 @@ export {
   TableSelect,
   ColumnSelect,
   DatasourceTableSelect,
-  CreateTableDialog,
+  DdlPreviewDialog,
 } from "./components/selectors";
 
-// 数据库管理器沿用的「设计表」组件：表名 + 字段网格，非 DDL 预览
+// 「设计表」—— 表名 + 逐列网格（类型 / 长度 / 小数位 / 可空 / 主键 / 自增 / 默认值 / 注释），
+// 与数据库管理器的表结构视图共用同一份 DesignColumnGrid。
+//
+// 宿主统一用它建表：它按目标库方言调 POST /ms/monitor/db/table，支持指定库，
+// 而不是只能建到连接默认库的 DDL 预览。
+export { default as CreateTableDialog } from "./components/console/CreateTableDialog.vue";
+// 历史别名，保留以免既有调用方断掉；新代码用 CreateTableDialog。
 export { default as DesignTableDialog } from "./components/console/CreateTableDialog.vue";
 
 // 数据源「浏览表结构」的 schema 提供者（监控侧实现）。

@@ -2,12 +2,12 @@
   <div class="wg" data-page="image-gen">
     <section class="wg-main">
       <!-- 顶部：标题行 + 筛选行（照 UI 图） -->
-      <header class="wg-head">
-        <div class="wg-head-top">
-          <h1 class="wg-title">{{ mediaLabel }}生成</h1>
+      <!-- 页面头：统一用 RePageHead（标题行 + 筛选行） -->
+      <RePageHead :title="`${mediaLabel}生成`">
+        <template #meta>
           <span class="wg-total">共 {{ tasks.length }} 个任务</span>
-
-          <div class="wg-head-actions">
+        </template>
+        <template #actions>
             <!--
               生成类型切换。
               原来是在筛选行里放「图像 / 视频」两个行内 tab，占掉一整行左侧，
@@ -64,10 +64,9 @@
                 <WgIcon :d="viewStyle === 'grid' ? ICONS.list : ICONS.grid" />
               </button>
             </div>
-          </div>
-        </div>
+        </template>
 
-        <div class="wg-head-filters">
+        <template #tools>
           <label class="wg-search">
             <WgIcon :d="ICONS.search" />
             <input
@@ -244,8 +243,8 @@
               </button>
             </div>
           </el-popover>
-        </div>
-      </header>
+        </template>
+      </RePageHead>
 
       <!-- 结果画布 -->
       <!-- tabindex="0"：内层滚动区默认不可聚焦，方向键 / PageDown / End 只作用于聚焦元素，
@@ -859,6 +858,7 @@ import 'viewerjs/dist/viewer.css'
 /** 图片预览指令：在 .wg-grid 上使用，v-viewer="viewerOptions" 传 viewerjs 配置 */
 const vViewer = viewerDirective({ name: 'viewer' })
 import GenerateComposer from './GenerateComposer.vue'
+import RePageHead from '@/components/re/RePageHead.vue'
 import { getModelAvatarPath } from '../../utils/modelUtils'
 import { ElMessageBox } from 'element-plus';
 
@@ -2791,45 +2791,11 @@ onUnmounted(() => {
 
 /* ---------- 顶部 ---------- */
 
-.wg-head {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px 24px 12px;
-}
-
-.wg-head-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.wg-title {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
+/* 页面头本体（标题行 + 筛选行）已统一到 RePageHead。
+   这里只保留头部内部的子元素样式（任务计数、工具按钮、搜索框、筛选胶囊）。 */
 .wg-total {
   color: var(--color-text-gray);
   font-size: 14px;
-}
-
-.wg-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.wg-head-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
 }
 
 /*
@@ -4143,10 +4109,6 @@ onUnmounted(() => {
 /* ---------- 自适应 ---------- */
 
 @media (max-width: 900px) {
-  .wg-head {
-    padding: 14px 14px 8px;
-  }
-
   .wg-canvas {
     padding: 4px 14px 16px;
   }
@@ -4258,9 +4220,7 @@ onUnmounted(() => {
 @media (pointer: coarse) {
   .wg-thumb-actions,
   .wg-card-head-right,
-  .wg-head-actions,
-  .wg-card-head,
-  .wg-head-top {
+  .wg-card-head {
     gap: 16px;
   }
 

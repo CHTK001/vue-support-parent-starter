@@ -42,6 +42,8 @@
       // 时，最终解析到的是 index.d.ts（前者成了中间候选），而 index.d.ts 只
       // 声明了默认导出、没有具名导出 component/install，具名导入即报 TS2305。
       // 把 index.d.ts 显式列为候选排在前面，就是「有就优先用它」的写法。
+      // 另：模板里用 $t 的 .vue 之所以有类型，靠的是 packages/languages/src/vue-i18n.d.ts
+      // 把 vue-i18n 的 declare module "vue" 增强 import 进程序（各应用 types 白名单里没有它）。
       // @repo/ui/re-* begin
       // 以下 86 条由 scripts/gen-ui-entry-paths.mjs 生成，勿手改（组件增删后重跑脚本）。
       "@repo/ui/re-album": ["packages/ui/src/components/ReAlbum/index.ts"],

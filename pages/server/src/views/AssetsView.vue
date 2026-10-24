@@ -699,6 +699,23 @@ function collectModeLabel(m?: string | null): string {
   return map[m ?? ""] ?? m ?? "—";
 }
 
+/**
+ * 属性胶囊里的采集方式短标签。
+ *
+ * <p>胶囊本身已带「采集」前缀，标签再以「采集」结尾就重复了（「采集 Agent采集」）。
+ * 更要紧的是宽度：350px 卡片里四个胶囊总宽会超出可用宽度，折成两行占掉 32px；
+ * 去掉这层冗余后缀后四个能并排一行，卡片整体矮一截。</p>
+ */
+function collectModeShort(m?: string | null): string {
+  const map: Record<string, string> = {
+    NONE: "无", OPENSSH: "OpenSSH", SCHEDULED: "定时", WINRM: "WinRM", AGENT: "Agent", LOCAL: "本机", PROMETHEUS: "Prom", HTTP: "HTTP",
+  };
+  if (!m) {
+    return "—";
+  }
+  return map[m] ?? m.replace(/采集$/, "");
+}
+
 // ---- 连接时选择身份（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const connectVisible = ref(false);
 useDialogPrerender(connectVisible);
@@ -1390,7 +1407,7 @@ function osTileClass(h: Host): string {
               <i>延迟</i>
               <b class="mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</b>
             </span>
-            <span class="hc-chip"><i>采集</i><b>{{ collectModeLabel(h.serverHostCollectMode) }}</b></span>
+            <span class="hc-chip"><i>采集</i><b>{{ collectModeShort(h.serverHostCollectMode) }}</b></span>
             <span class="hc-chip"><i>协议</i><b>{{ protocolOf(h).toUpperCase() }}</b></span>
             <span class="hc-chip"><i>Agent</i><b>{{ h.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</b></span>
           </div>
@@ -2200,6 +2217,11 @@ function osTileClass(h: Host): string {
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+/* 「内存」最长 2 字，34px 里还余着空白；收窄到 28px 把宽度让给进度条。 */
+.host-card-grid :deep(.el-card) .hc-bar-label {
+  width: 28px;
+  font-size: 11.5px;
+}
 .hc-bar-progress { flex: 1; min-width: 0; }
 .hc-bar-progress :deep(.el-progress-bar__outer) {
   background-color: var(--el-fill-color);
@@ -2217,6 +2239,12 @@ function osTileClass(h: Host): string {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--el-text-color-primary);
+}
+/* 46px 是按「100.0%」这种最宽取值留的，实际多为「12.3%」这类 5 字符，右侧余一截空白。
+   收到 38px 把这 8px 让给进度条本身 —— 卡片窄，条越长越能看出差异。 */
+.host-card-grid :deep(.el-card) .hc-bar-val {
+  width: 38px;
+  font-size: 12px;
 }
 
 /* ── 卡片右侧可视化：CPU 迷你趋势 + 占用环 ──

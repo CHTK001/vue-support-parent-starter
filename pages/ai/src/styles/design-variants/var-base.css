@@ -47,6 +47,23 @@ html[data-dv] .re-page__body {
   gap: var(--dv-gap);
 }
 
+/* ---------- 2.1 四个自绘根容器的页面 gutter ----------
+   用量管理 / 图像生成 / 渠道管理 / 服务配置 的页面头已并入 RePageHead，
+   但它们**不使用 .re-page 外壳**，根容器自己不带页面级左右留白
+   （.usage-page 有 20px 24px；.wg / .svc / .chm 为 0）。
+
+   而变体的「贴边头部」写法会把 .re-page__head 的左右内边距归零
+   （console/brief/metrics/calm 都写 padding: 0 0 Npx），RePage 页面靠
+   .re-page 的 --dv-pad-x 撑出缩进，这三个页面没有 → 标题会贴到容器边缘。
+
+   这里给它们补上等效 gutter，使头部与内容区跟 RePage 页面一样内缩。 */
+html[data-dv] [data-page="image-gen"],
+html[data-dv] [data-page="channel"],
+html[data-dv] [data-page="service"] {
+  padding-left: var(--dv-pad-x);
+  padding-right: var(--dv-pad-x);
+}
+
 /* ---------- 3. PageHeader 外壳（顶部工具条） ----------
    它是一个 h-11 的 flex 条，内部标题用 Tailwind text-sm。
    变体通过字号/字重/底色表达差异，不改结构。 */
@@ -55,13 +72,11 @@ html[data-dv] .drag-region {
   border-bottom: var(--dv-head-border);
 }
 
-/* ---------- 3.1 自绘页面头：接管页面主标题 ----------
-   这些页面没有统一外壳，但有共同的「页面主标题」概念。
-   由 page-title-unify.css 先拉齐规格，这里再按变体调节。 */
-html[data-dv] [data-page] .page-title,
-html[data-dv] [data-page] .wg-title,
-html[data-dv] [data-page] .chm-head__title,
-html[data-dv] [data-page] .svc-head__title,
+/* ---------- 3.1 页面主标题：接管字号 ----------
+   四个自绘页面头（用量/图像生成/渠道/服务）已并入 RePageHead 共享组件，
+   与 RePage 的 12 个页面共用 `.re-page__title`。这里统一按变体调节，
+   规格由组件自身与 page-title-unify.css 保证。 */
+html[data-dv] [data-page] .re-page__title,
 html[data-dv] [data-page] .is-brand-title {
   font-size: var(--dv-title-size);
   font-weight: var(--dv-title-weight);
@@ -105,12 +120,15 @@ html[data-dv] .el-card {
      RePage   —— connectors / agents / skills / settings / app-keys /
                  mfr-keys / service-tokens / trace / capability / services /
                  models-admin / usage-sync
+     RePageHead —— usage / image-gen / channel / service
+                 （这四个页面原先是自绘头部，已并入 RePageHead 共享组件，
+                   因此页面头的背景 / 边框 / 圆角 / 标题全部受变体控制）
      PageHeader —— chat / characters / bot / plugins / scheduler /
                  system-settings / models / knowledge-base
 
    部分覆盖（只有内容区受变体影响，页面头是页面自绘）：
-     usage / image-gen / colorize / ocr / face / asr / tts /
-     image-search / channel / service / tavern / connector-chat / kb-overview
+     colorize / ocr / face / asr / tts /
+     image-search / tavern / connector-chat / kb-overview
 
    未覆盖：
      login / password（独立全屏页，不参与全站版式）

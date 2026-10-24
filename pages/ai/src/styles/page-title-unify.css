@@ -1,35 +1,33 @@
 /* ============================================================================
    全站页面标题统一层（page-title-unify.css）
    ----------------------------------------------------------------------------
-   问题（实测数据）：
+   问题（实测数据，2026-10-23）：
      用量页  .page-title        16px / 600
      渠道页  .chm-head__title   18px / 600
      图像生成 .wg-title          22px / 700
      服务页  内联写死
-   → 八个页面八套规格，同一产品里标题大小跳来跳去。
+   → 同一产品里页面标题大小跳来跳去。
 
-   做法：不改任何页面结构，只用一层 CSS 把这些「页面级标题」拉齐到同一档。
+   做法：不改页面结构，只用一层 CSS 把这些「页面级标题」拉齐到同一档。
    这层**默认生效**（不是变体专属），因为它修的是缺陷，不是风格选择。
    变体若需要不同标题字号，仍可在 html[data-dv="…"] 下覆盖（优先级更高）。
 
-   作用域：只命中 [data-page] 内的**页面主标题**，
-   不动 .card-title / .sect-title / 弹窗标题等次级标题。
+   2026-10-24 更新：用量管理 / 图像生成 / 渠道管理 / 服务配置 四个页面的头部
+   已重构为共享组件 `RePageHead`（`.re-page__title`，16px/600 由组件自身保证），
+   RePage 的 12 个页面也走同一组件。因此原先针对 .page-title / .wg-title /
+   .chm-head__title / .svc-head__title 的规则已移除 —— 它们已无使用者。
+   这里只保留仍未迁入该组件的页面级标题与说明文字。
 
    特异性说明（重要）：
-   页面组件的 scoped 样式会编译成 `.wg-title[data-v-xxxx]`，特异性 (0,2,0)，
+   页面组件的 scoped 样式会编译成 `.xxx[data-v-xxxx]`，特异性 (0,2,0)，
    与本文件最初的写法相同 —— 而 scoped 样式后加载，会赢。
    故这里多挂一层 `[data-page][data-page]` 把特异性提到 (0,3,0) 以确保覆盖。
    （用 !important 也能赢，但会让后续变体无法覆盖，故不用。）
    注意：属性写两遍是刻意的提权手法，不是笔误。
    ========================================================================== */
 
-[data-page][data-page] .page-title,
-[data-page][data-page] .wg-title,
-[data-page][data-page] .chm-head__title,
-[data-page][data-page] .svc-head__title,
-[data-page][data-page] .is-brand-title,
-[data-page][data-page] .fs-page-title,
-[data-page][data-page] .ocr-page-title {
+/* ---------- 品牌页标题 ---------- */
+[data-page][data-page] .is-brand-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
@@ -39,11 +37,9 @@
   white-space: nowrap;
 }
 
-/* ---------- 次级说明文字：统一 12px 灰 ---------- */
-[data-page][data-page] .page-subtitle,
-[data-page][data-page] .wg-total,
-[data-page][data-page] .chm-head__desc,
-[data-page][data-page] .svc-head__desc {
+/* ---------- 次级说明文字：统一 12px 灰 ----------
+   .wg-total 是「图像生成」标题行里的任务计数（现位于 RePageHead 的 #meta 插槽）。 */
+[data-page][data-page] .wg-total {
   font-size: 12px;
   font-weight: 400;
   color: var(--text-tertiary, var(--el-text-color-secondary));
@@ -52,14 +48,8 @@
 
 /* ---------- 响应式：窄屏允许标题换行，避免挤爆 ---------- */
 @media (max-width: 768px) {
-  [data-page][data-page] .page-title,
-  [data-page][data-page] .wg-title,
-  [data-page][data-page] .chm-head__title,
-  [data-page][data-page] .svc-head__title,
   [data-page][data-page] .is-brand-title {
     white-space: normal;
     font-size: 15px;
   }
 }
-
-

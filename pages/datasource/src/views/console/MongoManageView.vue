@@ -1,11 +1,8 @@
 <template>
   <div class="dsm tel-page" :class="{ resizing }">
-    <div class="dsm-toolbar re-surface">
-      <div class="dsm-toolbar-left">
-        <ReIcon name="Coin" :size="18" class="dsm-title-icon dsm-mongo-icon" />
-        <span class="dsm-title">MongoDB 文档管理</span>
-      </div>
-      <div class="dsm-toolbar-right">
+    <!-- 页头：ReSectionHead + 右侧操作（逻辑库选择 / 测试连接 / 刷新） -->
+    <ReSectionHead class="page-head" title="MongoDB 文档管理" description="逻辑库/集合浏览 + Mongo Shell 只读查询 + 文档查看">
+      <template #actions>
         <div class="dsm-db-select" data-testid="dsm-db-select">
           <ReSelect
             v-model="activeDatabase"
@@ -16,8 +13,22 @@
             @change="onDbChange"
           />
         </div>
-        <ReButton layout="square" icon="Connection" tip="测试连接" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
-        <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <ReButton size="small" icon="Connection" tip="测试连接" show-text data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection">测试连接</ReButton>
+        <ReButton size="small" icon="Refresh" tip="刷新" show-text data-testid="dsm-btn-refresh" :loading="loading" @click="refresh">刷新</ReButton>
+      </template>
+    </ReSectionHead>
+
+    <!-- 统计卡：逻辑库数 + 集合数（有数据时展示，顶部 3px 色条） -->
+    <div class="stat-grid" v-if="databases.length || collections.length">
+      <div class="stat-card" style="--accent: var(--brand-500, var(--apm-accent))">
+        <div class="stat-label">逻辑库</div>
+        <div class="stat-value">{{ databases.length }}</div>
+        <div class="stat-trend">可切换</div>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-success, var(--apm-success))">
+        <div class="stat-label">集合总数</div>
+        <div class="stat-value">{{ collections.length }}</div>
+        <div class="stat-trend">{{ filteredCollections.length }} 匹配</div>
       </div>
     </div>
 
@@ -28,7 +39,7 @@
         <!-- 集合名过滤 -->
         <div class="dsm-search-section">
           <ReInput v-model="collectionFilter" placeholder="集合名过滤" @keyup.enter="loadCollections" />
-          <ReButton type="primary" :loading="loading" @click="loadCollections"><template #icon><ReIcon name="Search" size="12" /></template>查询</ReButton>
+          <ReButton type="primary" size="small" :loading="loading" @click="loadCollections"><template #icon><ReIcon name="Search" size="12" /></template>查询</ReButton>
         </div>
 
         <div class="dsm-view-bar">
@@ -77,8 +88,8 @@
         <!-- 只读查询面板：Mongo Shell 表达式（find/findOne/count/countDocuments/aggregate） -->
         <div class="dsm-query-panel">
           <div class="dsm-query-toolbar">
-            <ReButton layout="square" type="primary" icon="VideoPlay" tip="执行（Ctrl+Enter）" data-testid="dsm-btn-exec" :disabled="!source || !queryText.trim()" :loading="queryRunning" @click="executeQuery" />
-            <ReButton layout="square" icon="Delete" tip="清空编辑器" data-testid="dsm-btn-clear" :disabled="!queryText" @click="clearQuery" />
+            <ReButton size="small" type="primary" icon="VideoPlay" tip="执行（Ctrl+Enter）" show-text data-testid="dsm-btn-exec" :disabled="!source || !queryText.trim()" :loading="queryRunning" @click="executeQuery">执行</ReButton>
+            <ReButton size="small" icon="Delete" tip="清空编辑器" show-text data-testid="dsm-btn-clear" :disabled="!queryText" @click="clearQuery">清空</ReButton>
             <span class="dsm-spacer" />
             <span class="dsm-query-hint">集合名与只读方法输入即提示；仅支持 find/findOne/count/countDocuments/aggregate</span>
           </div>
@@ -135,6 +146,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -480,59 +492,85 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.dsm { display: flex; flex-direction: column; height: 100%; min-height: 100%; background: var(--bg-fill); }
-/* 顶部工具条：视觉（圆角/边框/投影/底色/内距）由模板上的 re-surface 类统一提供
-   （16px 圆角、透明边框 + 双层柔光投影），这里只留布局——不再自写一套卡片壳防漂移 */
-.dsm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.dsm-toolbar-left { display: flex; align-items: center; gap: 10px; }
-.dsm-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.dsm-mongo-icon { color: #4db33d; }
-.dsm-toolbar-right { display: flex; align-items: center; gap: 8px; }
-.dsm-toolbar-right :deep(.rs-btn) { margin: 0; }
+/* ========================================================
+   MongoDB 文档管理 · koi 令牌
+   颜色/圆角/阴影/过渡取 koi 令牌，--apm-* 兜底（hotsport 不加载 koi，var(--koi, var(--apm-*)) 不会崩）
+   ======================================================== */
+.dsm { display: flex; flex-direction: column; height: 100%; min-height: 100%; background: var(--bg-fill, var(--apm-neutral-bg)); }
+
+/* 页头（ReSectionHead 根元素承接 class，内部标题/描述/操作区通过 :deep 定制） */
+.page-head { flex-wrap: wrap; }
+.page-head :deep(.re-section-head__title) { font-size: 16px; font-weight: 600; letter-spacing: 0.2px; color: var(--text-primary, var(--apm-fg)); }
+.page-head :deep(.re-section-head__desc) { color: var(--text-tertiary, var(--apm-muted)); line-height: 1.5; }
+.page-head :deep(.re-section-head__actions) { flex-wrap: wrap; align-items: center; gap: 8px; }
+
 .dsm-db-select { width: 220px; flex-shrink: 0; }
+
+/* 统计卡：4 列网格，大数字 + 顶部 3px 色条 */
+.stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stat-card { position: relative; overflow: hidden; background: var(--bg-container, var(--apm-panel)); border: 1px solid var(--border-subtle, var(--apm-border-soft)); border-radius: var(--radius-lg, var(--apm-radius-lg)); padding: 16px 20px; box-shadow: var(--shadow-sm, var(--apm-shadow-card)); transition: box-shadow var(--transition-base, var(--apm-t-base)), transform var(--transition-base, var(--apm-t-base)); }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent, var(--brand-500, var(--apm-accent))); border-radius: var(--radius-lg, var(--apm-radius-lg)) var(--radius-lg, var(--apm-radius-lg)) 0 0; }
+.stat-card:hover { box-shadow: var(--shadow-md, var(--apm-shadow-card-hover)); transform: translateY(-1px); }
+.stat-label { font-size: 12px; color: var(--text-secondary, var(--apm-fg-regular)); font-weight: 500; margin-bottom: 8px; letter-spacing: 0.02em; }
+.stat-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary, var(--apm-fg)); line-height: 1.1; margin-bottom: 6px; }
+.stat-trend { font-size: 11px; color: var(--text-tertiary, var(--apm-muted)); font-weight: 500; }
+
+/* 股体分栏 */
 .dsm-body { display: flex; flex: 1; gap: 0; overflow: hidden; }
 .dsm.resizing { user-select: none; }
 .dsm-split { position: relative; width: 16px; flex-shrink: 0; cursor: col-resize; }
 .dsm-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; background: transparent; transition: background 0.15s; }
-.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-400); }
-.dsm-sidebar { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column; }
-.dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+.dsm-split:hover::after, .dsm-split.active::after { background: var(--brand-500, var(--apm-accent)); }
+.dsm-sidebar { border: 1px solid var(--border-subtle, var(--apm-border-soft)); border-radius: var(--radius-md, var(--apm-radius-md)); background: var(--bg-container, var(--apm-panel)); overflow: hidden; flex-shrink: 0; display: flex; flex-direction: column; }
+.dsm-search-section { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft)); }
 .dsm-search-section > *:first-child { flex: 1; }
-.dsm-view-bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
-.dsm-view-count { font-size: 12px; color: var(--text-tertiary); }
+.dsm-view-bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft)); }
+.dsm-view-count { font-size: 12px; color: var(--text-tertiary, var(--apm-muted)); }
 .dsm-key-list { flex: 1; padding: 6px 0; min-height: 80px; overflow-y: auto; }
-.dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; background: var(--bg-container); }
-.dsm-tree-node:hover { background: var(--bg-hover); }
-.dsm-tree-node.active { background: var(--brand-50); color: var(--brand-600); }
+.dsm-tree-node { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; transition: background 0.15s var(--ease-out); background: var(--bg-container, var(--apm-panel)); }
+.dsm-tree-node:hover { background: var(--bg-hover, var(--apm-panel-active)); }
+.dsm-tree-node.active { background: var(--bg-hover, var(--apm-panel-active)); color: var(--brand-600, var(--apm-accent)); }
 .dsm-tree-icon { flex-shrink: 0; }
-.dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dsm-tree-count { font-size: 11px; color: var(--text-tertiary); background: var(--bg-fill); padding: 1px 6px; border-radius: 10px; }
+.dsm-tree-label { flex: 1; font-size: 13px; color: var(--text-primary, var(--apm-fg)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsm-tree-count { font-size: 11px; color: var(--text-tertiary, var(--apm-muted)); background: var(--bg-fill, var(--apm-neutral-bg)); padding: 1px 6px; border-radius: var(--radius-sm, var(--apm-radius-sm)); }
 /* 列表顶部扫描条：加载中走动画（切库/刷新集合时） */
 .dsm-scan-bar { position: sticky; top: 0; z-index: 2; height: 2px; overflow: hidden; background: transparent; opacity: 0; transition: opacity 0.15s; }
 .dsm-scan-bar.is-active { opacity: 1; }
-.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, #409eff), transparent); transform: translateX(-100%); }
+.dsm-scan-bar span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--brand-500, var(--apm-accent)), transparent); transform: translateX(-100%); }
 .dsm-scan-bar.is-active span { animation: dsm-scan-slide 1s linear infinite; }
 @keyframes dsm-scan-slide { to { transform: translateX(350%); } }
 .dsm-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
 /* 顶部信息带：视觉（圆角/边框/投影/底色）由模板上的 re-surface 类统一提供，这里只留网格布局 */
 .dsm-info-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex-shrink: 0; }
 .dsm-info-row { display: flex; flex-direction: column; gap: 4px; }
-.dsm-info-label { font-size: 12px; color: var(--text-tertiary); }
-.dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+.dsm-info-label { font-size: 12px; color: var(--text-tertiary, var(--apm-muted)); }
+.dsm-info-value { font-size: 14px; font-weight: 500; color: var(--text-primary, var(--apm-fg)); }
 /* 查询面板：编辑器 + 操作行 + 结果区纵向排列，结果区吃掉剩余高度 */
 .dsm-query-panel { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .dsm-query-toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dsm-query-toolbar :deep(.rs-btn) { margin: 0; }
 .dsm-spacer { flex: 1; }
-.dsm-query-hint { font-size: 12px; color: var(--text-secondary, var(--el-text-color-secondary)); }
-.dsm-query-error { padding: 10px 14px; font-size: 13px; color: var(--danger, #f56c6c); background: color-mix(in srgb, var(--danger, #f56c6c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger, #f56c6c) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
-.dsm-query-result { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-container); overflow: hidden; }
+.dsm-query-hint { font-size: 12px; color: var(--text-secondary, var(--apm-fg-regular)); }
+.dsm-query-error { padding: 10px 14px; font-size: 13px; color: var(--status-error, var(--apm-danger)); background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 8%, transparent); border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-danger)) 30%, transparent); border-radius: 6px; word-break: break-all; flex-shrink: 0; }
+.dsm-query-result { flex: 1; display: flex; flex-direction: column; min-height: 260px; border: 1px solid var(--border-subtle, var(--apm-border-soft)); border-radius: var(--radius-md, var(--apm-radius-md)); background: var(--bg-container, var(--apm-panel)); overflow: hidden; }
 .dsm-query-result :deep(.dsm-table-wrap) { flex: 1; min-height: 0; }
-.dsm-query-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--bg-fill); border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
-.dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
-.dsm-query-warn { margin-left: 8px; color: var(--el-color-warning, #e6a23c); }
+.dsm-query-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary, var(--apm-fg-regular)); background: var(--bg-fill, var(--apm-neutral-bg)); border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft)); flex-shrink: 0; }
+.dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary, var(--apm-muted)); }
+.dsm-query-warn { margin-left: 8px; color: var(--status-warning, var(--apm-warning)); }
 /* 文档查看：美化 JSON */
-.dsm-doc-json { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 60vh; }
-.dsm-empty-inline { padding: 16px; color: var(--text-tertiary); font-size: 13px; }
+.dsm-doc-json { margin: 0; padding: 12px; background: var(--bg-fill, var(--apm-neutral-bg)); border-radius: var(--radius-sm, var(--apm-radius-sm)); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: var(--text-primary, var(--apm-fg)); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 60vh; }
+.dsm-empty-inline { padding: 16px; color: var(--text-tertiary, var(--apm-muted)); font-size: 13px; }
 .mono { font-family: "JetBrains Mono", "Consolas", monospace; }
+
+/* 响应式：≤768px 2 列统计 + 侧栏收拢 */
+@media (max-width: 768px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .dsm-body { flex-direction: column; }
+  .dsm-sidebar { width: 100% !important; max-height: 40vh; }
+}
+
+/* 尊重「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card, .stat-card:hover, .dsm-tree-node { transition: none; transform: none; }
+  .dsm-scan-bar.is-active span { animation: none; }
+}
 </style>

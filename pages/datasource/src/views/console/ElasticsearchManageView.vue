@@ -2915,15 +2915,15 @@ onMounted(async () => {
   gap: 8px;
   margin: 0 16px 12px;
   padding: 10px 16px;
-  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--status-error, var(--apm-status-error)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-status-error)) 40%, transparent);
   border-radius: var(--re-surface-radius, 16px);
 }
-.es-red-icon { color: var(--el-color-danger); flex-shrink: 0; font-size: 18px; }
-.es-red-text { flex: 1; font-size: 13px; color: var(--el-color-danger); }
+.es-red-icon { color: var(--status-error, var(--apm-status-error)); flex-shrink: 0; font-size: 18px; }
+.es-red-text { flex: 1; font-size: 13px; color: var(--status-error, var(--apm-status-error)); }
 
 .dsm-es-icon {
-  color: #00bfb3;
+  color: var(--brand-500, var(--apm-brand-500));
 }
 
 .dsm-body {
@@ -3035,23 +3035,23 @@ onMounted(async () => {
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--el-fill-color, #ebeef5);
+  background: var(--bg-fill, var(--apm-bg-fill));
 }
 
 .dsm-meter__fill {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--status-success, var(--el-color-success));
+  background: var(--status-success, var(--apm-status-success));
   transition: width 0.3s ease;
 }
 
 .dsm-meter__fill.is-warn {
-  background: var(--status-warning, var(--el-color-warning));
+  background: var(--status-warning, var(--apm-status-warning));
 }
 
 .dsm-meter__fill.is-danger {
-  background: var(--status-danger, var(--el-color-danger));
+  background: var(--status-error, var(--apm-status-error));
 }
 
 .dsm-meter__text {
@@ -3079,7 +3079,7 @@ onMounted(async () => {
   padding: 8px 10px;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: var(--el-bg-color-overlay, #fff);
+  background: var(--bg-container, var(--apm-bg-container));
   box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
   pointer-events: none;
 }
@@ -3141,7 +3141,7 @@ onMounted(async () => {
 .dsm-setting-block {
   margin: -2px 0 8px;
   padding: 8px 10px;
-  border: 1px solid var(--el-color-warning-light-5, var(--status-warning));
+  border: 1px solid var(--status-warning, var(--apm-status-warning));
   border-radius: 8px;
   background: color-mix(in srgb, var(--status-warning) 10%, transparent);
   font-size: 12px;
@@ -3220,7 +3220,7 @@ onMounted(async () => {
   overflow: auto;
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  background: var(--el-fill-color-light, #f5f7fa);
+  background: var(--bg-fill, var(--apm-bg-fill));
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.7;
@@ -3286,7 +3286,7 @@ onMounted(async () => {
 .dsm-settings-section {
   margin-bottom: 12px;
   padding: 10px 12px;
-  background: color-mix(in srgb, var(--el-fill-color-light) 50%, transparent);
+  background: color-mix(in srgb, var(--bg-fill, var(--apm-bg-fill)) 50%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
 }
@@ -3305,7 +3305,7 @@ onMounted(async () => {
   align-items: baseline;
 }
 .dsm-settings-key {
-  color: var(--el-color-info);
+  color: var(--status-info, var(--apm-status-info));
   flex-shrink: 0;
   min-width: 0;
   overflow: hidden;
@@ -3380,13 +3380,13 @@ onMounted(async () => {
 
 /* ---- 字段 Diff 高亮 ---- */
 .dsm-field-added {
-  border-left: 3px solid var(--el-color-success);
-  background: color-mix(in srgb, var(--el-color-success) 6%, transparent);
+  border-left: 3px solid var(--status-success, var(--apm-status-success));
+  background: color-mix(in srgb, var(--status-success, var(--apm-status-success)) 6%, transparent);
 }
 
 .dsm-field-removed {
-  border-left: 3px solid var(--el-color-danger);
-  background: color-mix(in srgb, var(--el-color-danger) 6%, transparent);
+  border-left: 3px solid var(--status-error, var(--apm-status-error));
+  background: color-mix(in srgb, var(--status-error, var(--apm-status-error)) 6%, transparent);
   opacity: 0.7;
 }
 
@@ -3396,8 +3396,8 @@ onMounted(async () => {
 }
 
 .dsm-field-modified {
-  border-left: 3px solid var(--el-color-warning);
-  background: color-mix(in srgb, var(--el-color-warning) 6%, transparent);
+  border-left: 3px solid var(--status-warning, var(--apm-status-warning));
+  background: color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 6%, transparent);
 }
 
 /* ---- 查询区域 ---- */
@@ -3436,7 +3436,7 @@ onMounted(async () => {
 
 /* ---- 查询历史记录 ---- */
 .dsm-query-history.re-surface {
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 10%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
   box-shadow: var(--es-card-glow);
   max-height: 220px;
@@ -3449,7 +3449,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, var(--border-color, #e4e7ed));
 }
 .dsm-history-title {
   font-size: 12px;
@@ -3467,11 +3467,11 @@ onMounted(async () => {
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.15s;
-  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 5%, transparent);
 }
 .dsm-history-item:last-child { border-bottom: none; }
 .dsm-history-item:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+  background: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 5%, transparent);
 }
 .dsm-history-text {
   font-size: 11px;
@@ -3501,8 +3501,8 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 .dsm-chart-label-icon {
-  color: var(--el-color-primary);
-  filter: drop-shadow(0 0 4px var(--el-color-primary));
+  color: var(--brand-500, var(--apm-brand-500));
+  filter: drop-shadow(0 0 4px var(--brand-500, var(--apm-brand-500)));
 }
 
 /* ---- 节点详情弹框 ---- */
@@ -3585,9 +3585,9 @@ onMounted(async () => {
 }
 .dsm-heatmap-cell:hover { opacity: 0.75; }
 .dsm-heatmap-cell--empty  { background: transparent; color: var(--text-tertiary); }
-.dsm-heatmap-cell--primary { background: color-mix(in srgb, var(--el-color-success) 20%, transparent); color: var(--el-color-success); box-shadow: inset 0 0 8px color-mix(in srgb, var(--el-color-success) 10%, transparent); }
-.dsm-heatmap-cell--replica { background: color-mix(in srgb, var(--el-color-primary) 15%, transparent); color: var(--el-color-primary); }
-.dsm-heatmap-cell--danger  { background: color-mix(in srgb, var(--el-color-danger) 20%, transparent); color: var(--el-color-danger); box-shadow: inset 0 0 8px color-mix(in srgb, var(--el-color-danger) 15%, transparent); animation: es-dot-pulse-red 1s ease-in-out infinite; }
+.dsm-heatmap-cell--primary { background: color-mix(in srgb, var(--status-success, var(--apm-status-success)) 20%, transparent); color: var(--status-success, var(--apm-status-success)); box-shadow: inset 0 0 8px color-mix(in srgb, var(--status-success, var(--apm-status-success)) 10%, transparent); }
+.dsm-heatmap-cell--replica { background: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 15%, transparent); color: var(--brand-500, var(--apm-brand-500)); }
+.dsm-heatmap-cell--danger  { background: color-mix(in srgb, var(--status-error, var(--apm-status-error)) 20%, transparent); color: var(--status-error, var(--apm-status-error)); box-shadow: inset 0 0 8px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 15%, transparent); animation: es-dot-pulse-red 1s ease-in-out infinite; }
 
 /* ---- 导出弹框 ---- */
 .dsm-export-area {
@@ -3607,12 +3607,12 @@ onMounted(async () => {
   padding: 12px 14px;
   max-height: 400px;
   overflow: auto;
-  background: color-mix(in srgb, var(--el-fill-color-light) 50%, color-mix(in srgb, var(--el-color-primary) 3%, transparent));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  background: color-mix(in srgb, var(--bg-fill, var(--apm-bg-fill)) 50%, color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 3%, transparent));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius-sm);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  color: color-mix(in srgb, var(--el-color-primary) 70%, var(--text-primary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 70%, var(--text-primary));
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.7;
@@ -3626,14 +3626,14 @@ onMounted(async () => {
   cursor: pointer;
 }
 .dsm-node-name-cell:hover .dsm-node-name-text {
-  color: var(--el-color-primary);
+  color: var(--brand-500, var(--apm-brand-500));
   text-decoration: underline;
 }
 .dsm-node-name-text {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--el-color-primary) 85%, var(--text-primary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 85%, var(--text-primary));
   transition: color 0.15s;
 }
 .dsm-node-status-dot {
@@ -3888,12 +3888,12 @@ onMounted(async () => {
 }
 
 .dsm-doc-row:nth-child(odd) {
-  background: color-mix(in srgb, var(--el-fill-color-light) 50%, transparent);
+  background: color-mix(in srgb, var(--bg-fill, var(--apm-bg-fill)) 50%, transparent);
 }
 
 .dsm-doc-key {
   flex: 0 0 160px;
-  color: var(--el-color-info);
+  color: var(--status-info, var(--apm-status-info));
   word-break: break-all;
 }
 
@@ -3910,28 +3910,28 @@ onMounted(async () => {
 /* ---- 科技风格 CSS 变量扩展 ---- */
 .dsm {
   /* 背景：深色网格纹理（data URI = 20px 点阵） */
-  --es-grid-color: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
-  --es-glow-primary: color-mix(in srgb, var(--el-color-primary) 35%, transparent);
-  --es-glow-success: color-mix(in srgb, var(--el-color-success) 40%, transparent);
-  --es-glow-warning: color-mix(in srgb, var(--el-color-warning) 40%, transparent);
-  --es-glow-danger:  color-mix(in srgb, var(--el-color-danger)  50%, transparent);
-  --es-card-glow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 12%, transparent),
-                  0 4px 20px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  --es-grid-color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 4%, transparent);
+  --es-glow-primary: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 35%, transparent);
+  --es-glow-success: color-mix(in srgb, var(--status-success, var(--apm-status-success)) 40%, transparent);
+  --es-glow-warning: color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 40%, transparent);
+  --es-glow-danger:  color-mix(in srgb, var(--status-error, var(--apm-status-error))  50%, transparent);
+  --es-card-glow: 0 0 0 1px color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 12%, transparent),
+                  0 4px 20px color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, transparent);
   --es-radius: 14px;
   --es-radius-sm: 8px;
   background:
-    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--el-color-primary) 3%, transparent) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--el-color-success)  3%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 3%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--status-success, var(--apm-status-success))  3%, transparent) 0%, transparent 50%),
     var(--bg-fill);
 }
 
 /* ---- 工具栏毛玻璃 + 发光底边 ---- */
 .dsm-toolbar.re-surface {
   position: relative;
-  background: color-mix(in srgb, var(--el-bg-color) 82%, transparent);
+  background: color-mix(in srgb, var(--bg-container, var(--apm-bg-container)) 82%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, var(--border-color, #e4e7ed));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 15%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
   box-shadow:
     var(--es-card-glow),
@@ -3945,7 +3945,7 @@ onMounted(async () => {
   background: linear-gradient(90deg,
     transparent,
     var(--es-glow-primary) 30%,
-    var(--el-color-primary) 50%,
+    var(--brand-500, var(--apm-brand-500)) 50%,
     var(--es-glow-primary) 70%,
     transparent
   );
@@ -3954,20 +3954,20 @@ onMounted(async () => {
 
 /* ---- 标题图标发光 ---- */
 .dsm-es-icon {
-  filter: drop-shadow(0 0 6px var(--el-color-primary));
+  filter: drop-shadow(0 0 6px var(--brand-500, var(--apm-brand-500)));
   animation: es-icon-pulse 3s ease-in-out infinite;
 }
 @keyframes es-icon-pulse {
-  0%, 100% { filter: drop-shadow(0 0 4px var(--el-color-primary)); }
-  50%       { filter: drop-shadow(0 0 10px var(--el-color-primary)); }
+  0%, 100% { filter: drop-shadow(0 0 4px var(--brand-500, var(--apm-brand-500))); }
+  50%       { filter: drop-shadow(0 0 10px var(--brand-500, var(--apm-brand-500))); }
 }
 
 /* ---- 集群 Red 告警Banner 科技增强 ---- */
 .es-red-banner.re-surface {
-  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--status-error, var(--apm-status-error)) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-status-error)) 50%, transparent);
   border-radius: var(--es-radius);
-  box-shadow: 0 0 16px var(--es-glow-danger), inset 0 0 12px color-mix(in srgb, var(--el-color-danger) 5%, transparent);
+  box-shadow: 0 0 16px var(--es-glow-danger), inset 0 0 12px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 5%, transparent);
   animation: es-red-pulse 2s ease-in-out infinite;
 }
 .es-red-icon {
@@ -3975,7 +3975,7 @@ onMounted(async () => {
 }
 @keyframes es-red-pulse {
   0%, 100% { box-shadow: 0 0 16px var(--es-glow-danger); }
-  50%       { box-shadow: 0 0 28px var(--es-glow-danger), 0 0 48px color-mix(in srgb, var(--el-color-danger) 20%, transparent); }
+  50%       { box-shadow: 0 0 28px var(--es-glow-danger), 0 0 48px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 20%, transparent); }
 }
 @keyframes es-red-blink {
   0%, 100% { opacity: 1; }
@@ -3984,15 +3984,15 @@ onMounted(async () => {
 
 /* ---- 信息卡科技化 ---- */
 .dsm-info-card.re-surface {
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, var(--border-color, #e4e7ed));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 12%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
-  background: color-mix(in srgb, var(--el-bg-color) 70%, transparent);
+  background: color-mix(in srgb, var(--bg-container, var(--apm-bg-container)) 70%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: var(--es-card-glow);
 }
 
 .dsm-info-label {
-  color: color-mix(in srgb, var(--el-color-primary) 70%, var(--text-tertiary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 70%, var(--text-tertiary));
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -4003,14 +4003,14 @@ onMounted(async () => {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   font-weight: 500;
-  color: color-mix(in srgb, var(--el-color-primary) 90%, var(--text-primary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 90%, var(--text-primary));
 }
 
 /* ---- 集群统计数字 ---- */
 .dsm-cluster-stats {
   padding: 12px;
-  background: color-mix(in srgb, var(--el-fill-color-light) 40%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  background: color-mix(in srgb, var(--bg-fill, var(--apm-bg-fill)) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
 }
 .dsm-stat-value {
@@ -4018,7 +4018,7 @@ onMounted(async () => {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--el-color-primary) 100%);
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--brand-500, var(--apm-brand-500)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4034,30 +4034,30 @@ onMounted(async () => {
 /* ---- 进度条科技增强 ---- */
 .dsm-meter__track {
   height: 6px;
-  background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-fill-color, #ebeef5));
+  background: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, var(--bg-fill, var(--apm-bg-fill)));
   border-radius: 999px;
   box-shadow: inset 0 1px 3px rgb(0 0 0 / 10%);
 }
 .dsm-meter__fill {
   background: linear-gradient(90deg,
-    var(--el-color-success) 0%,
-    color-mix(in srgb, var(--el-color-success) 80%, var(--el-color-primary)) 100%
+    var(--status-success, var(--apm-status-success)) 0%,
+    color-mix(in srgb, var(--status-success, var(--apm-status-success)) 80%, var(--brand-500, var(--apm-brand-500))) 100%
   );
   box-shadow: 0 0 8px var(--es-glow-success);
   border-radius: inherit;
 }
 .dsm-meter__fill.is-warn {
-  background: linear-gradient(90deg, var(--el-color-warning), color-mix(in srgb, var(--el-color-warning) 70%, #f56c6c) 100%);
+  background: linear-gradient(90deg, var(--status-warning, var(--apm-status-warning)), color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 70%, #f56c6c) 100%);
   box-shadow: 0 0 8px var(--es-glow-warning);
 }
 .dsm-meter__fill.is-danger {
-  background: linear-gradient(90deg, var(--el-color-danger), color-mix(in srgb, var(--el-color-danger) 60%, #f56c6c) 100%);
+  background: linear-gradient(90deg, var(--status-error, var(--apm-status-error)), color-mix(in srgb, var(--status-error, var(--apm-status-error)) 60%, #f56c6c) 100%);
   box-shadow: 0 0 10px var(--es-glow-danger);
   animation: meter-danger-glow 1.5s ease-in-out infinite;
 }
 @keyframes meter-danger-glow {
   0%, 100% { box-shadow: 0 0 8px var(--es-glow-danger); }
-  50%       { box-shadow: 0 0 18px var(--es-glow-danger), 0 0 32px color-mix(in srgb, var(--el-color-danger) 30%, transparent); }
+  50%       { box-shadow: 0 0 18px var(--es-glow-danger), 0 0 32px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 30%, transparent); }
 }
 .dsm-meter__text {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -4081,9 +4081,9 @@ onMounted(async () => {
   transition: all 0.2s ease;
 }
 .dsm-node-grid-row:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
-  border-color: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 5%, transparent);
+  border-color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 15%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, transparent);
 }
 
 /* ---- 拓扑图科技增强 ---- */
@@ -4091,13 +4091,13 @@ onMounted(async () => {
   position: relative;
   padding: 12px;
   border-radius: var(--es-radius);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 10%, var(--border-color, #e4e7ed));
   background:
     linear-gradient(rgba(var(--el-color-primary-rgb, 0, 191, 179), 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(var(--el-color-primary-rgb, 0, 191, 179), 0.03) 1px, transparent 1px),
-    var(--el-bg-color, #fff);
+    var(--bg-container, var(--apm-bg-container));
   background-size: 24px 24px, 24px 24px, auto;
-  box-shadow: inset 0 0 40px color-mix(in srgb, var(--el-color-primary) 3%, transparent);
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 3%, transparent);
 }
 
 /* ---- 集群统计 ---- */
@@ -4125,7 +4125,7 @@ onMounted(async () => {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--el-color-primary) 85%, var(--text-primary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 85%, var(--text-primary));
 }
 .dsm-node-status-dot {
   display: inline-block;
@@ -4135,63 +4135,63 @@ onMounted(async () => {
   flex-shrink: 0;
   box-shadow: 0 0 6px currentColor;
 }
-.dsm-node-status-dot.is-green  { background: var(--el-color-success); color: var(--el-color-success); animation: status-pulse-green 2s ease-in-out infinite; }
-.dsm-node-status-dot.is-yellow { background: var(--el-color-warning); color: var(--el-color-warning); animation: status-pulse-yellow 1.5s ease-in-out infinite; }
-.dsm-node-status-dot.is-red    { background: var(--el-color-danger);  color: var(--el-color-danger);  animation: status-pulse-red 0.8s ease-in-out infinite; }
-.dsm-node-status-dot.is-grey   { background: var(--el-color-info);    color: var(--el-color-info); }
+.dsm-node-status-dot.is-green  { background: var(--status-success, var(--apm-status-success)); color: var(--status-success, var(--apm-status-success)); animation: status-pulse-green 2s ease-in-out infinite; }
+.dsm-node-status-dot.is-yellow { background: var(--status-warning, var(--apm-status-warning)); color: var(--status-warning, var(--apm-status-warning)); animation: status-pulse-yellow 1.5s ease-in-out infinite; }
+.dsm-node-status-dot.is-red    { background: var(--status-error, var(--apm-status-error));  color: var(--status-error, var(--apm-status-error));  animation: status-pulse-red 0.8s ease-in-out infinite; }
+.dsm-node-status-dot.is-grey   { background: var(--status-info, var(--apm-status-info));    color: var(--status-info, var(--apm-status-info)); }
 
 @keyframes status-pulse-green {
-  0%, 100% { box-shadow: 0 0 4px var(--el-color-success); }
-  50%       { box-shadow: 0 0 12px var(--el-color-success), 0 0 20px color-mix(in srgb, var(--el-color-success) 40%, transparent); }
+  0%, 100% { box-shadow: 0 0 4px var(--status-success, var(--apm-status-success)); }
+  50%       { box-shadow: 0 0 12px var(--status-success, var(--apm-status-success)), 0 0 20px color-mix(in srgb, var(--status-success, var(--apm-status-success)) 40%, transparent); }
 }
 @keyframes status-pulse-yellow {
-  0%, 100% { box-shadow: 0 0 4px var(--el-color-warning); }
-  50%       { box-shadow: 0 0 10px var(--el-color-warning), 0 0 18px color-mix(in srgb, var(--el-color-warning) 40%, transparent); }
+  0%, 100% { box-shadow: 0 0 4px var(--status-warning, var(--apm-status-warning)); }
+  50%       { box-shadow: 0 0 10px var(--status-warning, var(--apm-status-warning)), 0 0 18px color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 40%, transparent); }
 }
 @keyframes status-pulse-red {
-  0%, 100% { box-shadow: 0 0 6px var(--el-color-danger); }
-  50%       { box-shadow: 0 0 14px var(--el-color-danger), 0 0 24px color-mix(in srgb, var(--el-color-danger) 50%, transparent); }
+  0%, 100% { box-shadow: 0 0 6px var(--status-error, var(--apm-status-error)); }
+  50%       { box-shadow: 0 0 14px var(--status-error, var(--apm-status-error)), 0 0 24px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 50%, transparent); }
 }
 
 /* ---- 字段 Diff 科技增强 ---- */
 .dsm-field-added {
-  border-left: 3px solid var(--el-color-success);
-  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
-  box-shadow: inset 0 0 20px color-mix(in srgb, var(--el-color-success) 4%, transparent);
+  border-left: 3px solid var(--status-success, var(--apm-status-success));
+  background: color-mix(in srgb, var(--status-success, var(--apm-status-success)) 8%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--status-success, var(--apm-status-success)) 4%, transparent);
   border-radius: 0 var(--es-radius-sm) var(--es-radius-sm) 0;
 }
 .dsm-field-removed {
-  border-left: 3px solid var(--el-color-danger);
-  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
-  box-shadow: inset 0 0 20px color-mix(in srgb, var(--el-color-danger) 4%, transparent);
+  border-left: 3px solid var(--status-error, var(--apm-status-error));
+  background: color-mix(in srgb, var(--status-error, var(--apm-status-error)) 8%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 4%, transparent);
   opacity: 0.85;
   border-radius: 0 var(--es-radius-sm) var(--es-radius-sm) 0;
 }
 .dsm-field-modified {
-  border-left: 3px solid var(--el-color-warning);
-  background: color-mix(in srgb, var(--el-color-warning) 8%, transparent);
-  box-shadow: inset 0 0 20px color-mix(in srgb, var(--el-color-warning) 4%, transparent);
+  border-left: 3px solid var(--status-warning, var(--apm-status-warning));
+  background: color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 8%, transparent);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 4%, transparent);
   border-radius: 0 var(--es-radius-sm) var(--es-radius-sm) 0;
 }
 
 /* ---- 代码片段科技增强 ---- */
 .dsm-snippet.re-surface {
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 10%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
-  background: color-mix(in srgb, var(--el-bg-color) 60%, transparent);
+  background: color-mix(in srgb, var(--bg-container, var(--apm-bg-container)) 60%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: var(--es-card-glow);
 }
 .dsm-snippet-body {
-  background: color-mix(in srgb, var(--el-fill-color-deep) 50%, color-mix(in srgb, var(--el-color-primary) 3%, transparent));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  background: color-mix(in srgb, var(--bg-container, var(--apm-bg-container)) 50%, color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 3%, transparent));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius-sm);
-  color: color-mix(in srgb, var(--el-color-primary) 60%, var(--text-primary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 60%, var(--text-primary));
 }
 
 /* ---- 索引列表区域 ---- */
 .dsm-index-section.re-surface {
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, var(--border-color, #e4e7ed));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 10%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
   box-shadow: var(--es-card-glow);
 }
@@ -4216,14 +4216,14 @@ onMounted(async () => {
 
 /* ---- Tab 标签页增强 ---- */
 :deep(.re-tabs__header) {
-  border-bottom: 2px solid color-mix(in srgb, var(--el-color-primary) 8%, var(--border-color, #e4e7ed));
+  border-bottom: 2px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 8%, var(--border-color, #e4e7ed));
 }
 :deep(.re-tabs__item.is-active) {
-  color: var(--el-color-primary);
+  color: var(--brand-500, var(--apm-brand-500));
   font-weight: 700;
 }
 :deep(.re-tabs__active-bar) {
-  background: linear-gradient(90deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 60%, var(--el-color-success)));
+  background: linear-gradient(90deg, var(--brand-500, var(--apm-brand-500)), color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 60%, var(--status-success, var(--apm-status-success))));
   box-shadow: 0 0 10px var(--es-glow-primary);
 }
 
@@ -4233,12 +4233,12 @@ onMounted(async () => {
   transition: background 0.15s;
 }
 .dsm-doc-row:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent) !important;
+  background: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 5%, transparent) !important;
 }
 .dsm-doc-key {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
-  color: var(--el-color-primary);
+  color: var(--brand-500, var(--apm-brand-500));
   opacity: 0.7;
 }
 
@@ -4254,7 +4254,7 @@ onMounted(async () => {
 .dsm-empty-icon {
   font-size: 40px;
   opacity: 0.3;
-  filter: drop-shadow(0 0 8px var(--el-color-primary));
+  filter: drop-shadow(0 0 8px var(--brand-500, var(--apm-brand-500)));
 }
 .dsm-empty-text {
   font-size: 13px;
@@ -4275,22 +4275,22 @@ onMounted(async () => {
   flex-shrink: 0;
   box-shadow: 0 0 5px currentColor;
 }
-.dsm-health-dot.is-green  { background: var(--el-color-success); color: var(--el-color-success); animation: es-dot-pulse-green 2s ease-in-out infinite; }
-.dsm-health-dot.is-yellow { background: var(--el-color-warning); color: var(--el-color-warning); animation: es-dot-pulse-yellow 1.5s ease-in-out infinite; }
-.dsm-health-dot.is-red    { background: var(--el-color-danger);  color: var(--el-color-danger);  animation: es-dot-pulse-red 1s ease-in-out infinite; }
-.dsm-health-dot.is-grey   { background: var(--el-color-info);    color: var(--el-color-info); }
+.dsm-health-dot.is-green  { background: var(--status-success, var(--apm-status-success)); color: var(--status-success, var(--apm-status-success)); animation: es-dot-pulse-green 2s ease-in-out infinite; }
+.dsm-health-dot.is-yellow { background: var(--status-warning, var(--apm-status-warning)); color: var(--status-warning, var(--apm-status-warning)); animation: es-dot-pulse-yellow 1.5s ease-in-out infinite; }
+.dsm-health-dot.is-red    { background: var(--status-error, var(--apm-status-error));  color: var(--status-error, var(--apm-status-error));  animation: es-dot-pulse-red 1s ease-in-out infinite; }
+.dsm-health-dot.is-grey   { background: var(--status-info, var(--apm-status-info));    color: var(--status-info, var(--apm-status-info)); }
 
 @keyframes es-dot-pulse-green {
-  0%, 100% { box-shadow: 0 0 4px var(--el-color-success); }
-  50%       { box-shadow: 0 0 10px var(--el-color-success), 0 0 18px color-mix(in srgb, var(--el-color-success) 40%, transparent); }
+  0%, 100% { box-shadow: 0 0 4px var(--status-success, var(--apm-status-success)); }
+  50%       { box-shadow: 0 0 10px var(--status-success, var(--apm-status-success)), 0 0 18px color-mix(in srgb, var(--status-success, var(--apm-status-success)) 40%, transparent); }
 }
 @keyframes es-dot-pulse-yellow {
-  0%, 100% { box-shadow: 0 0 4px var(--el-color-warning); }
-  50%       { box-shadow: 0 0 9px var(--el-color-warning), 0 0 16px color-mix(in srgb, var(--el-color-warning) 40%, transparent); }
+  0%, 100% { box-shadow: 0 0 4px var(--status-warning, var(--apm-status-warning)); }
+  50%       { box-shadow: 0 0 9px var(--status-warning, var(--apm-status-warning)), 0 0 16px color-mix(in srgb, var(--status-warning, var(--apm-status-warning)) 40%, transparent); }
 }
 @keyframes es-dot-pulse-red {
-  0%, 100% { box-shadow: 0 0 6px var(--el-color-danger); }
-  50%       { box-shadow: 0 0 12px var(--el-color-danger), 0 0 22px color-mix(in srgb, var(--el-color-danger) 50%, transparent); }
+  0%, 100% { box-shadow: 0 0 6px var(--status-error, var(--apm-status-error)); }
+  50%       { box-shadow: 0 0 12px var(--status-error, var(--apm-status-error)), 0 0 22px color-mix(in srgb, var(--status-error, var(--apm-status-error)) 50%, transparent); }
 }
 
 /* ---- 索引名单元格 ---- */
@@ -4298,7 +4298,7 @@ onMounted(async () => {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--el-color-primary) 85%, var(--text-primary));
+  color: color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 85%, var(--text-primary));
   cursor: default;
 }
 
@@ -4308,11 +4308,11 @@ onMounted(async () => {
   z-index: 99999;
   min-width: 200px;
   padding: 12px 14px;
-  background: var(--el-bg-color-overlay, #fff);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, var(--border-color, #e4e7ed));
+  background: var(--bg-container, var(--apm-bg-container));
+  border: 1px solid color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 20%, var(--border-color, #e4e7ed));
   border-radius: var(--es-radius);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--el-color-primary) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand-500, var(--apm-brand-500)) 10%, transparent),
     0 8px 32px rgb(0 0 0 / 14%);
   pointer-events: none;
   backdrop-filter: blur(8px);
@@ -4322,7 +4322,7 @@ onMounted(async () => {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   font-weight: 700;
-  color: var(--el-color-primary);
+  color: var(--brand-500, var(--apm-brand-500));
   margin-bottom: 8px;
   word-break: break-all;
 }

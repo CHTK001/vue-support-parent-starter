@@ -36,6 +36,7 @@ registerMenuViewModules({
   "views/hotsport/alerts/index.vue": () => import("./views/Alerts.vue"),
   "views/hotsport/agent/index.vue": () => import("./views/AgentCenter.vue"),
   "views/hotsport/injector/index.vue": () => import("./views/Injector.vue"),
+  "views/hotsport/settings/index.vue": () => import("./views/Settings.vue"),
 });
 
 export { hotsportRoutes, hotsportMenus } from "./routes";

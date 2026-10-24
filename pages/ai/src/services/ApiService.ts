@@ -49,6 +49,7 @@ import { generateApi, type GenerateApi } from "./modules/generate.api";
 import { inputApi, type InputApi } from "./modules/input.api";
 import { goalApi, type GoalApi } from "./modules/goal.api";
 import { faceApi, type FaceApi } from "./modules/face.api";
+import { reidApi, type ReidApi } from "./modules/reid.api";
 import { colorizeApi, type ColorizeApi } from "./modules/colorize.api";
 import { asrApi, type AsrApi } from "./modules/asr.api";
 import { ttsApi, type TtsApi } from "./modules/tts.api";
@@ -82,6 +83,7 @@ interface ApiService
     TavernApi,
     GenerateApi,
     FaceApi,
+    ReidApi,
     ColorizeApi,
     AsrApi,
     TtsApi,
@@ -353,6 +355,7 @@ Object.assign(
   tavernApi,
   generateApi,
   faceApi,
+  reidApi,
   colorizeApi,
   asrApi,
   ttsApi,

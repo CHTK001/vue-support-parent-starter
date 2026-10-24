@@ -5,6 +5,10 @@ export interface ReOption {
   disabled?: boolean;
   /** 卡片模式：图标名（Element Plus / Iconify 三方库） */
   icon?: string;
+  /** square 布局：选中态图标名（缺省回退到 icon）—— 与未选中图标不同时，当前档位一眼可辨 */
+  activeIcon?: string;
+  /** square 布局：未选中态图标名（缺省回退到 icon） */
+  inactiveIcon?: string;
   /** 卡片模式：左侧图片地址（URL），优先于 icon 显示 */
   image?: string;
   /** 卡片模式：悬停提示（el-tooltip） */
@@ -48,5 +52,8 @@ export type ReSelectLayout = "default" | "modern" | "card" | "table" | "square" 
  *
  * 与 Element Plus 的 el-select 尺寸语义对齐：small 28px / default 34px / large 40px。
  * 五种布局（default / modern / card / table / square）共用这一套档位。
+ *
+ * mini（比 small 更紧凑）是本组件扩展档：element 侧原生只有 large/default/small，
+ * mini 通过 CSS 压薄实现（--re-select--mini 一类选择器），square 布局原生 24px 档。
  */
-export type ReSelectSize = "large" | "default" | "small";
+export type ReSelectSize = "large" | "default" | "small" | "mini";

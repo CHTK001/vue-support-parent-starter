@@ -42,7 +42,7 @@ const props = withDefaults(
     /** 是否正在加载 */
     loading?: boolean;
     /** 表格尺寸 */
-    size?: "default" | "small";
+    size?: "default" | "small" | "mini";
     /** 列设置触发文字 */
     columnsTriggerText?: string;
     /** 表格设置触发文字 */
@@ -79,6 +79,11 @@ const emit = defineEmits<{
   (e: "column-settings"): void;
   (e: "table-settings"): void;
 }>();
+
+/** 工具按钮尺寸：ReButton 只有 large/default/small，mini 归一为 small */
+const btnSize = computed<"large" | "default" | "small">(() =>
+  props.size === "mini" ? "small" : props.size ?? "default",
+);
 
 /** 解析批量删除配置（enabled: false 时不显示） */
 const batchDeleteConfig = computed<ReTableToolbarBatchDelete | null>(() => {
@@ -193,7 +198,7 @@ const editDisabled = computed(() => !hasSelected.value && !props.editing);
         class="re-table-toolbar__select-badge"
       >
         <ReButton
-          :size="size"
+          :size="btnSize"
           :type="hasSelected ? 'primary' : 'default'"
           layout="square"
           :icon="batchSelectConfig.icon || Select"
@@ -214,7 +219,7 @@ const editDisabled = computed(() => !hasSelected.value && !props.editing);
       >
         <template #reference>
           <ReButton
-            :size="size"
+            :size="btnSize"
             type="danger"
             layout="square"
             :disabled="deleteDisabled"

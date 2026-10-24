@@ -1,45 +1,21 @@
 <template>
   <div class="dsm tel-page">
-    <div class="dsm-toolbar re-surface">
-      <div class="dsm-toolbar-left">
-        <ReIcon name="Coin" :size="18" class="dsm-title-icon dsm-kafka-icon" />
-        <span class="dsm-title">Kafka 消息队列管理</span>
-      </div>
-      <div class="dsm-toolbar-right">
-        <ReButton
-          layout="square"
-          tip="能力声明"
-          icon="Setting"
-          data-testid="kafka-btn-capability"
-          :loading="capabilityLoading"
-          @click="loadCapability"
-        />
-        <ReButton
-          layout="square"
-          tip="测试连接"
-          icon="Connection"
-          data-testid="kafka-btn-test"
-          :disabled="!source"
-          :loading="testing"
-          @click="testConnection"
-        />
-        <ReButton
-          layout="square"
-          tip="刷新"
-          icon="Refresh"
-          data-testid="kafka-btn-refresh"
-          :loading="loading"
-          @click="refresh"
-        />
-        <ReButton
-          layout="square"
-          type="primary"
-          tip="只读查询"
-          icon="Search"
-          data-testid="kafka-btn-query"
-          :disabled="!source"
-          @click="activeTab = 'query'"
-        />
+    <!-- 页头：ReSectionHead + 右侧操作（能力声明 / 测试连接 / 刷新 / 只读查询） -->
+    <ReSectionHead class="page-head" title="Kafka 消息队列管理" description="主题/分区浏览 + 只读查询，能力声明未安装时降级展示原因">
+      <template #actions>
+        <ReButton size="small" icon="Setting" tip="能力声明" show-text data-testid="kafka-btn-capability" :loading="capabilityLoading" @click="loadCapability">能力声明</ReButton>
+        <ReButton size="small" icon="Connection" tip="测试连接" show-text data-testid="kafka-btn-test" :disabled="!source" :loading="testing" @click="testConnection">测试连接</ReButton>
+        <ReButton size="small" icon="Refresh" tip="刷新" show-text data-testid="kafka-btn-refresh" :loading="loading" @click="refresh">刷新</ReButton>
+        <ReButton size="small" type="primary" icon="Search" tip="只读查询" show-text data-testid="kafka-btn-query" :disabled="!source" @click="activeTab = 'query'">只读查询</ReButton>
+      </template>
+    </ReSectionHead>
+
+    <!-- 统计卡：主题总数（有数据时展示，顶部 3px 色条） -->
+    <div class="stat-grid" v-if="topics.length">
+      <div class="stat-card" style="--accent: var(--brand-500, var(--apm-accent))">
+        <div class="stat-label">主题总数</div>
+        <div class="stat-value">{{ topics.length }}</div>
+        <div class="stat-trend">{{ activeTopic ? '已选 ' + activeTopic : '—' }}</div>
       </div>
     </div>
 
@@ -71,23 +47,11 @@
         </div>
 
         <div class="dsm-tabs">
-          <button
-            type="button"
-            class="dsm-tab"
-            :class="{ active: activeTab === 'topics' }"
-            data-testid="kafka-tab-topics"
-            @click="activeTab = 'topics'"
-          >
+          <button type="button" class="dsm-tab" :class="{ active: activeTab === 'topics' }" data-testid="kafka-tab-topics" @click="activeTab = 'topics'">
             <ReIcon name="Collection" size="12" />
             <span>主题列表</span>
           </button>
-          <button
-            type="button"
-            class="dsm-tab"
-            :class="{ active: activeTab === 'query' }"
-            data-testid="kafka-tab-query"
-            @click="activeTab = 'query'"
-          >
+          <button type="button" class="dsm-tab" :class="{ active: activeTab === 'query' }" data-testid="kafka-tab-query" @click="activeTab = 'query'">
             <ReIcon name="Search" size="12" />
             <span>只读查询</span>
           </button>
@@ -210,6 +174,7 @@ import { message } from "@repo/core";
 import { ReAlert } from "@repo/ui/re-kit";
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReTable from "@repo/ui/re-table";
@@ -394,40 +359,97 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+/* ========================================================
+   Kafka 消息队列管理 · koi 令牌
+   颜色/圆角/阴影/过渡取 koi 令牌，--apm-* 兜底（hotsport 不加载 koi，var(--koi, var(--apm-*)) 不会崩）
+   ======================================================== */
 .dsm {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 100%;
-  background: var(--bg-fill);
+  background: var(--bg-fill, var(--apm-neutral-bg));
 }
 
-.dsm-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+/* 页头（ReSectionHead 根元素承接 class，内部标题/描述/操作区通过 :deep 定制） */
+.page-head {
   flex-wrap: wrap;
-  margin-bottom: 16px;
 }
 
-.dsm-toolbar-left,
-.dsm-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.dsm-title {
+.page-head :deep(.re-section-head__title) {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  letter-spacing: 0.2px;
+  color: var(--text-primary, var(--apm-fg));
   white-space: nowrap;
 }
 
-.dsm-kafka-icon {
-  color: #333;
+.page-head :deep(.re-section-head__desc) {
+  color: var(--text-tertiary, var(--apm-muted));
+  line-height: 1.5;
+}
+
+.page-head :deep(.re-section-head__actions) {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 统计卡：4 列网格，大数字 + 顶部 3px 色条 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-container, var(--apm-panel));
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
+  transition: box-shadow var(--transition-base, var(--apm-t-base)), transform var(--transition-base, var(--apm-t-base));
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500, var(--apm-accent)));
+  border-radius: var(--radius-lg, var(--apm-radius-lg)) var(--radius-lg, var(--apm-radius-lg)) 0 0;
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
+  transform: translateY(-1px);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary, var(--apm-fg-regular));
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, var(--apm-fg));
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.stat-trend {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--apm-muted));
+  font-weight: 500;
 }
 
 .dsm-body {
@@ -463,7 +485,7 @@ onMounted(async () => {
 .dsm-info-label {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .dsm-info-value {
@@ -472,7 +494,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .mono {
@@ -483,7 +505,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 2px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft));
 }
 
 .dsm-tab {
@@ -494,15 +516,20 @@ onMounted(async () => {
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-secondary, var(--apm-fg-regular));
   font-size: 13px;
   cursor: pointer;
+  transition: color var(--transition-base, var(--apm-t-base));
 }
 
 .dsm-tab.active {
-  color: var(--brand-600);
-  border-bottom-color: var(--brand-500);
+  color: var(--brand-600, var(--apm-accent));
+  border-bottom-color: var(--brand-500, var(--apm-accent));
   font-weight: 600;
+}
+
+.dsm-tab:hover:not(.active) {
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .dsm-section {
@@ -518,7 +545,7 @@ onMounted(async () => {
   min-height: 28px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .dsm-section-actions {
@@ -561,15 +588,36 @@ onMounted(async () => {
   min-height: 24px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .dsm-query-meta {
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .dsm-query-warn {
-  color: var(--status-warning);
+  color: var(--status-warning, var(--apm-warning));
+}
+
+/* 响应式：≤768px 2 列统计 */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dsm-body {
+    gap: 4px;
+  }
+}
+
+/* 尊重「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .stat-card:hover,
+  .dsm-tab {
+    transition: none;
+    transform: none;
+  }
 }
 </style>

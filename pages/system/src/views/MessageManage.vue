@@ -1318,7 +1318,7 @@ onMounted(() => {
                 :controls="false"
                 style="width: 100%"
                 :placeholder="`请输入 ${f.key}`"
-                @update:model-value="(v) => (previewParams[f.key] = v ?? '')"
+                @update:model-value="(v: number | null | undefined) => (previewParams[f.key] = v ?? '')"
               />
               <el-date-picker
                 v-else-if="f.type === 'date'"
@@ -1409,7 +1409,7 @@ onMounted(() => {
               :controls="false"
               style="width: 100%"
               :placeholder="`请输入 ${f.key}`"
-              @update:model-value="(v) => (tplSendForm.params[f.key] = v ?? '')"
+              @update:model-value="(v: number | null | undefined) => (tplSendForm.params[f.key] = v ?? '')"
             />
             <el-date-picker
               v-else-if="f.type === 'date'"
