@@ -561,8 +561,8 @@ onMounted(async (): Promise<void> => {
   flex-direction: column;
   width: 100%;
   height: 100vh;
-  background: #f5f6f8;
-  color: #24292f;
+  background: var(--bg-page, #f5f6f8);
+  color: var(--text-primary, #24292f);
 }
 
 .fpe__bar {
@@ -570,14 +570,15 @@ onMounted(async (): Promise<void> => {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: #fff;
-  border-bottom: 1px solid #e1e4e8;
+  background: var(--bg-container, #fff);
+  border-bottom: 1px solid var(--border-subtle, #e1e4e8);
   flex-shrink: 0;
 }
 
 .fpe__title {
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-primary, #24292f);
   max-width: 46vw;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -586,30 +587,32 @@ onMounted(async (): Promise<void> => {
 
 .fpe__size {
   font-size: 12px;
-  color: #6e7781;
+  color: var(--text-secondary, #6e7781);
 }
 
 .fpe__badge {
   font-size: 11px;
   padding: 1px 8px;
-  border-radius: 6px;
-  background: #eef2f7;
-  color: #57606a;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-fill, #eef2f7);
+  color: var(--text-tertiary, #57606a);
   margin-left: auto;
 }
 
 .fpe__retry {
   font-size: 12px;
   padding: 3px 12px;
-  border-radius: 6px;
-  border: 1px solid #d0d7de;
-  background: #fff;
-  color: #24292f;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-default, #d0d7de);
+  background: var(--bg-container, #fff);
+  color: var(--text-primary, #24292f);
   cursor: pointer;
+  transition: background-color 0.2s var(--ease-out, ease), border-color 0.2s var(--ease-out, ease);
 }
 
 .fpe__retry:hover {
-  background: #f6f8fa;
+  background: var(--bg-hover, #f6f8fa);
+  border-color: var(--border-strong, #a6b1bd);
 }
 
 .fpe__body {
@@ -623,7 +626,7 @@ onMounted(async (): Promise<void> => {
   width: 100%;
   height: 100%;
   border: none;
-  background: #fff;
+  background: var(--bg-container, #fff);
 }
 
 /* iframe 需要 display:block 消除基线缝隙；面板组件（office 的 flex 布局、
@@ -641,19 +644,19 @@ onMounted(async (): Promise<void> => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: #57606a;
+  color: var(--text-tertiary, #57606a);
   font-size: 13px;
 }
 
 .fpe__placeholder--error {
-  color: #c0392b;
+  color: var(--status-error, #c0392b);
 }
 
 .fpe__spinner {
   width: 22px;
   height: 22px;
-  border: 2px solid #d0d7de;
-  border-top-color: #0969da;
+  border: 2px solid var(--border-default, #d0d7de);
+  border-top-color: var(--brand-500, #0969da);
   border-radius: 50%;
   animation: fpe-spin 0.9s linear infinite;
 }
@@ -673,5 +676,29 @@ onMounted(async (): Promise<void> => {
   text-align: center;
   line-height: 1.7;
   word-break: break-all;
+}
+
+/* ===== 响应式（移动端信息栏收窄） ===== */
+@media (max-width: 768px) {
+  .fpe__bar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .fpe__title {
+    max-width: 46vw;
+  }
+  .fpe__badge {
+    display: none;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .fpe__spinner {
+    animation-duration: 2s;
+  }
+  .fpe__retry {
+    transition: none;
+  }
 }
 </style>

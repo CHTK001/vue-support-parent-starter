@@ -23,6 +23,11 @@ import ReTemplateFormDialog from "../components/ReTemplateFormDialog.vue";
 import ReSendDialog from "../components/ReSendDialog.vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReButton from "@repo/ui/re-button";
+import ReInput from "@repo/ui/re-input";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
+import ReTag from "@repo/ui/re-tag";
 
 const route = useRoute();
 const router = useRouter();
@@ -202,17 +207,20 @@ onMounted(() => {
 });
 </script>
 
+<!--
+  现代化视图：ReSectionHead 页头 + koi 令牌筛选卡 + 表格卡片外壳 + ReEmpty 空态。
+
+  顶部「全部 / 提供商上下文切换」复用 ReProviderFilterBar（不动其内部绑定），
+  其默认插槽放同步/新增两个紧凑按钮；ReTable 列 slot（col-sysMessageTemplateType / col-status /
+  col-content / col-actions）与分页回调全部原样保留，仅重排外壳与样式。
+-->
 <template>
-  <div class="p-6">
-    <!-- 页面头部 -->
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold tracking-tight text-[--el-text-color-primary]">
-        消息模板
-      </h2>
-      <p class="mt-1 text-sm text-[--el-text-color-secondary]">
-        维护各提供商的推送模板，支持按模板发送与远端模板同步
-      </p>
-    </div>
+  <div class="mp-tpl-page">
+    <ReSectionHead
+      class="mp-tpl-head"
+      title="消息模板"
+      description="维护各提供商的推送模板，支持按模板发送与远端模板同步"
+    />
 
     <!-- 顶部：全部 / 提供商上下文切换 -->
     <ReProviderFilterBar
@@ -223,7 +231,8 @@ onMounted(() => {
       :current-provider="currentProvider"
       @change="handleProviderChange"
     >
-      <el-button
+      <ReButton
+        size="small"
         type="warning"
         plain
         :icon="Refresh"
@@ -231,28 +240,27 @@ onMounted(() => {
         @click="handleSync"
       >
         同步模板
-      </el-button>
-      <el-button type="primary" plain :icon="Plus" @click="handleAdd">新增模板</el-button>
+      </ReButton>
+      <ReButton size="small" type="primary" plain :icon="Plus" @click="handleAdd">新增模板</ReButton>
     </ReProviderFilterBar>
 
     <!-- 列表区域 -->
-    <el-card shadow="never" class="mt-6 rounded-xl border border-solid border-[--el-border-color-lighter]">
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <el-input
+    <div class="table-card">
+      <div class="filter-row">
+        <ReInput
           v-model="query.sysMessageTemplateName"
+          class="filter-field filter-field--search"
+          prefix-icon="Search"
           placeholder="模板名称"
           clearable
-          class="!w-56"
           @keyup.enter="handleReset"
         />
-        <div class="flex-1" />
-        <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
-        <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+        <div class="filter-spacer" />
+        <ReButton icon="Search" size="small" type="primary" tip="按条件查询" @click="loadList">查询</ReButton>
+        <ReButton icon="Refresh" size="small" tip="重置查询条件" @click="handleReset">重置</ReButton>
       </div>
-      <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM；
-           原表没有 border → :settings="{ border: false }"；stripe 同名保留；v-loading → :loading；
-           分页仍由下方 el-pagination 自管，ReTable 自带分页/工具栏关闭；minHeight:0 关掉 fill
-           与空态 440px 强撑。下同。 -->
+      <!-- 表格统一 ReTable（engine="element" 沿用原 el-table 的 DOM）；
+           原表没有 border → :settings="{ border: false }"；分页仍由下方 el-pagination 自管。 -->
       <ReTable
         :loading="loading"
         :data="list"
@@ -264,9 +272,10 @@ onMounted(() => {
         :toolbar="false"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
+        empty-text="暂无模板"
       >
         <template #col-sysMessageTemplateType="{ row }">
-          <el-tag effect="plain">{{ row.sysMessageTemplateType }}</el-tag>
+          <ReTag effect="plain" type="info">{{ row.sysMessageTemplateType }}</ReTag>
         </template>
         <template #col-status="{ row }">
           <el-switch
@@ -278,12 +287,20 @@ onMounted(() => {
           <span>{{ row.sysMessageTemplateContent || '-' }}</span>
         </template>
         <template #col-actions="{ row }">
-          <el-button link type="primary" @click="handleSend(row)">发送</el-button>
-          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+          <div class="row-actions">
+            <ReButton show-text size="small" type="primary" tip="按此模板发送" @click="handleSend(row)">发送</ReButton>
+            <ReButton show-text size="small" tip="编辑模板" @click="handleEdit(row)">编辑</ReButton>
+            <ReButton show-text size="small" type="danger" tip="删除模板" @click="handleDelete(row)">删除</ReButton>
+          </div>
+        </template>
+        <!-- 空态走 ReEmpty：表格内的空态换成扁平空态，提示语仍由 empty-text 驱动 -->
+        <template #empty="{ description }">
+          <ReEmpty v-if="!loading" layout="modern" :description="description">
+            <ReButton show-text icon="Plus" size="small" type="primary" @click="handleAdd">新增第一个模板</ReButton>
+          </ReEmpty>
         </template>
       </ReTable>
-      <div class="mt-4 flex justify-end">
+      <div class="table-card__pager">
         <el-pagination
           :total="pagination.total"
           :current-page="pagination.page"
@@ -292,7 +309,7 @@ onMounted(() => {
           @current-change="handlePageChange"
         />
       </div>
-    </el-card>
+    </div>
 
     <!-- 新增/编辑弹窗 -->
     <ReTemplateFormDialog
@@ -311,3 +328,72 @@ onMounted(() => {
     />
   </div>
 </template>
+
+<style scoped lang="scss">
+.mp-tpl-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== 筛选行 ===== */
+.filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.filter-field--search {
+  width: 240px;
+}
+.filter-spacer {
+  flex: 1 1 auto;
+}
+
+/* ===== 表格壳 ===== */
+.table-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.table-card > :deep(.re-table) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.table-card :deep(.rm-empty) {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 0;
+}
+.table-card__pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ===== 表内操作区 ===== */
+.row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+/* ===== 响应式：移动端搜索框占满 ===== */
+@media (max-width: 768px) {
+  .filter-field--search {
+    width: 100%;
+  }
+  .filter-spacer {
+    flex: none;
+    width: 100%;
+  }
+}
+</style>

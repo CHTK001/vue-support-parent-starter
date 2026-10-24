@@ -11,8 +11,47 @@
 -->
 <template>
   <div class="upload-task-page">
+    <ReSectionHead
+      class="upload-head"
+      title="上传任务"
+      description="任务化分片上传的管理视图：选文件与 bucket 创建任务，后台分片合并，本页只负责轮询展示状态"
+    >
+      <template #actions>
+        <el-button
+          size="small"
+          text
+          :loading="listLoading"
+          @click="refreshTasks"
+        ><el-icon><Refresh /></el-icon>刷新</el-button>
+      </template>
+    </ReSectionHead>
+
+    <!-- 概览条：任务计数（koi 令牌大数字 + 顶部色条） -->
+    <div class="stat-grid" role="group" aria-label="上传任务概览">
+      <div class="stat-card" style="--accent: var(--brand-500)">
+        <span class="stat-label">任务总数</span>
+        <span class="stat-value">{{ tasks.length }}</span>
+        <span class="stat-trend">全部记录</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--metric-cpu)">
+        <span class="stat-label">进行中</span>
+        <span class="stat-value">{{ tasks.filter(t => isActive(t.state)).length }}</span>
+        <span class="stat-trend">上传 / 合并</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-success)">
+        <span class="stat-label">已完成</span>
+        <span class="stat-value">{{ tasks.filter(t => t.state === "COMPLETED").length }}</span>
+        <span class="stat-trend">后台合并完毕</span>
+      </div>
+      <div class="stat-card" style="--accent: var(--status-error)">
+        <span class="stat-label">失败</span>
+        <span class="stat-value">{{ tasks.filter(t => t.state === "FAILED").length }}</span>
+        <span class="stat-trend">需要关注</span>
+      </div>
+    </div>
+
     <!-- 顶部：发起上传 -->
-    <el-card shadow="never" class="ut-upload-card">
+    <div class="upload-card koi-card">
       <div class="ut-upload-bar">
         <el-select
           v-model="provider"
@@ -20,16 +59,17 @@
           class="ut-bucket-select"
           :loading="bucketsLoading"
           clearable
+          size="small"
         >
           <el-option v-for="b in buckets" :key="b" :label="b" :value="b" />
         </el-select>
-        <el-select v-model="chunkSizeMb" class="ut-chunk-select">
+        <el-select v-model="chunkSizeMb" class="ut-chunk-select" size="small">
           <el-option v-for="n in [1, 5, 10, 20]" :key="n" :label="`分片 ${n} MB`" :value="n" />
         </el-select>
-        <el-button type="primary" :loading="uploading" @click="pickFiles">
-          <el-icon><Upload /></el-icon>选择文件上传
+        <el-button type="primary" size="small" :loading="uploading" @click="pickFiles">
+          <el-icon><Upload /></el-icon><span>选择文件上传</span>
         </el-button>
-        <el-button :disabled="uploading" @click="taskInputRef?.click()">批量文件</el-button>
+        <el-button size="small" :disabled="uploading" @click="taskInputRef?.click()">批量文件</el-button>
         <input
           ref="singleInputRef"
           type="file"
@@ -52,17 +92,26 @@
         :closable="true"
         class="ut-bucket-alert"
       />
-    </el-card>
+    </div>
 
     <!-- 任务列表 -->
-    <el-card shadow="never" class="ut-list-card">
-      <template #header>
-        <div class="ut-list-header">
-          <span>文件记录</span>
-          <el-button text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
-        </div>
-      </template>
-      <el-table :data="tasks" v-loading="listLoading" size="default" empty-text="暂无上传任务">
+    <div class="table-card koi-card">
+      <div class="ut-list-header">
+        <span class="ut-list-title">文件记录</span>
+        <el-button size="small" text :icon="Refresh" :loading="listLoading" @click="refreshTasks" />
+      </div>
+      <el-table
+        :data="tasks"
+        v-loading="listLoading"
+        size="small"
+        empty-text="暂无上传任务"
+        class="ut-table"
+      >
+        <template #empty>
+          <ReEmpty v-if="!listLoading" layout="modern" description="暂无上传任务，从上方发起上传">
+            <el-button size="small" type="primary" @click="pickFiles">选择文件上传</el-button>
+          </ReEmpty>
+        </template>
         <el-table-column prop="fileName" label="文件名" min-width="220" show-overflow-tooltip />
         <el-table-column label="大小" width="110">
           <template #default="{ row }">{{ formatSize(row.totalSize) }}</template>
@@ -107,7 +156,7 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -115,6 +164,8 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Upload } from "@element-plus/icons-vue";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSectionHead from "@repo/ui/re-section-head";
 import {
   SIMPLE_SYNC_MAX_MB,
   cancelUploadTask,
@@ -348,28 +399,90 @@ function formatSize(bytes: number): string {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .upload-task-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  margin: 0 auto;
-  background: var(--el-bg-color-page, #f5f7fa);
+  background: var(--bg-page, var(--el-bg-color-page, #f5f7fa));
   min-height: 100%;
 }
 
-/* 卡片：统一圆角与轻投影，hover 微升（koi 卡片风格） */
-.upload-task-page :deep(.el-card) {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter, #e8ebf0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease;
+/* ===== 页头（ReSectionHead 容器层） ===== */
+.upload-head :deep(.re-section-head__title) { color: var(--text-primary); }
+.upload-head :deep(.re-section-head__desc) { color: var(--text-secondary); }
+.upload-head :deep(.re-section-head__actions) {
+  flex-wrap: wrap;
 }
 
-.upload-task-page :deep(.el-card:hover) {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+/* ===== 概览条（koi 大数字 + 顶部色条） ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, var(--brand-500));
+  border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0;
+}
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.stat-trend {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+.stat-trend.is-down { color: var(--status-error); }
+
+/* ===== 卡片壳 ===== */
+.koi-card {
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  padding: 12px;
+  transition: box-shadow 0.2s var(--ease-out, ease), border-color 0.2s;
+}
+.koi-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-default, var(--el-border-color, #dcdfe6));
 }
 
+/* ===== 发起上传页卡 ===== */
 .ut-upload-bar {
   display: flex;
   align-items: center;
@@ -377,17 +490,16 @@ function formatSize(bytes: number): string {
   flex-wrap: wrap;
 }
 
-/* 主按钮：主色渐变 + hover 上浮（对齐 koi 渐变按钮令牌） */
+/* 主按钮：主色渐变 + hover 上浮（koi 渐变按钮令牌） */
 .ut-upload-bar :deep(.el-button--primary) {
-  background: linear-gradient(135deg, var(--el-color-primary, #409eff), var(--el-color-primary-light-3, #79bbff));
+  background: var(--brand-gradient, linear-gradient(135deg, #409eff, #79bbff));
   border: none;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.25);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-500, #409eff) 25%, transparent);
+  transition: all 0.2s var(--ease-out, ease);
 }
-
 .ut-upload-bar :deep(.el-button--primary:hover) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(64, 158, 255, 0.35);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-500, #409eff) 35%, transparent);
 }
 
 .ut-bucket-select {
@@ -399,7 +511,7 @@ function formatSize(bytes: number): string {
 }
 
 .ut-upload-hint {
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
   font-size: 12px;
   display: inline-flex;
   align-items: center;
@@ -411,7 +523,7 @@ function formatSize(bytes: number): string {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--el-color-primary);
+  background: var(--brand-500, #409eff);
   animation: ut-pulse 1.2s ease-in-out infinite;
 }
 
@@ -427,37 +539,65 @@ function formatSize(bytes: number): string {
 
 .ut-bucket-alert {
   margin-top: 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md, 8px);
 }
 
+/* ===== 任务列表卡片 ===== */
 .ut-list-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ut-list-title {
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 14px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+.ut-list-header :deep(.el-button) {
+  color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
 /* 表格观感：去外框、行 hover、单元格留白 */
-.ut-list-card :deep(.el-table) {
-  --el-table-border-color: var(--el-border-color-lighter, #e8ebf0);
+.ut-table {
+  --el-table-border-color: var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
 }
-
-.ut-list-card :deep(.el-table .el-table__row) {
+:deep(.ut-table .el-table__row) {
   transition: background-color 0.15s ease;
 }
-
-.ut-list-card :deep(.el-table .cell) {
+:deep(.ut-table .cell) {
   padding: 0 12px;
 }
-
-.ut-list-card :deep(.el-progress) {
+:deep(.ut-table .el-progress) {
   min-width: 120px;
 }
 
 /* 状态标签统一小圆角 */
-.ut-list-card :deep(.el-tag) {
-  border-radius: 999px;
+:deep(.ut-table .el-tag) {
+  border-radius: var(--radius-sm, 4px);
   font-weight: 500;
 }
-</style>
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ut-bucket-select,
+  .ut-chunk-select {
+    width: 100%;
+  }
+}
+
+/* ===== 减少动态效果 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .koi-card {
+    transition: none;
+  }
+  .stat-card:hover,
+  .koi-card:hover {
+    transform: none;
+  }
+}
