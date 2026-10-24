@@ -74,6 +74,7 @@ import {
   type DbSlowQueryListResult,
   type DbSlowQueryRow,
 } from "../api";
+import { fetchDbDocumentHtml } from "../api/manageConsoles";
 import {
   deleteDatasourceTunnel,
   fetchDatasourceTunnel,
@@ -469,21 +470,32 @@ const latestMetric = ref<DatasourceMetricPoint | null>(null);
  * 代替原先全类型同一个 Coin 图标的做法 —— 用户按类型找数据源时，
  * 一眼能识别是什么中间件，而不是靠文字再读一遍。徽标是纯色圆形 + 缩写，
  * 内联渲染、零外部资源依赖，颜色仍走 koi 令牌。</p>
+ *
+ * <p>{@code brand} 是该软件的真实 logo（simple-icons 的 24×24 单 path，MIT 许可，
+ * 内联零外部依赖）。有品牌图的类型（Redis / Kafka / Nginx / Neo4j 等）在左栏列表
+ * 与详情头渲染品牌 logo；通用 JDBC 与未收录品牌（如 Nacos / ZooKeeper）保持
+ * {@code mark} 缩写徽标兜底。</p>
  */
-const TYPE_META: Record<string, { icon: string; mark: string; color: string; label: string }> = {
+const TYPE_META: Record<
+  string,
+  { icon: string; mark: string; color: string; label: string; brand?: string }
+> = {
   jdbc: { icon: "Coin", mark: "DB", color: "var(--metric-cpu, var(--el-color-primary))", label: "JDBC 数据库" },
-  redis: { icon: "Coin", mark: "RE", color: "var(--metric-redis, var(--el-color-danger))", label: "Redis" },
-  influxdb: { icon: "Coin", mark: "IN", color: "var(--el-color-success)", label: "InfluxDB" },
-  neo4j: { icon: "Coin", mark: "N4", color: "var(--metric-mem, var(--el-color-primary))", label: "Neo4j 图数据库" },
+  redis: { icon: "Coin", mark: "RE", color: "var(--metric-redis, var(--el-color-danger))", label: "Redis", brand: "M22.71 13.145c-1.66 2.092-3.452 4.483-7.038 4.483-3.203 0-4.397-2.825-4.48-5.12.701 1.484 2.073 2.685 4.214 2.63 4.117-.133 6.94-3.852 6.94-7.239 0-4.05-3.022-6.972-8.268-6.972-3.752 0-8.4 1.428-11.455 3.685C2.59 6.937 3.885 9.958 4.35 9.626c2.648-1.904 4.748-3.13 6.784-3.744C8.12 9.244.886 17.05 0 18.425c.1 1.261 1.66 4.648 2.424 4.648.232 0 .431-.133.664-.365a100.49 100.49 0 0 0 5.54-6.765c.222 3.104 1.748 6.898 6.014 6.898 3.819 0 7.604-2.756 9.33-8.965.2-.764-.73-1.361-1.261-.73zm-4.349-5.013c0 1.959-1.926 2.922-3.685 2.922-.941 0-1.664-.247-2.235-.568 1.051-1.592 2.092-3.225 3.21-4.973 1.972.334 2.71 1.43 2.71 2.619z" },
+  influxdb: { icon: "Coin", mark: "IN", color: "var(--el-color-success)", label: "InfluxDB", brand: "M23.778 14.482l-2.287-9.959c-.13-.545-.624-1.09-1.169-1.248L9.87.051C9.74 0 9.584 0 9.426 0c-.443 0-.909.18-1.222.443L.716 7.412C.3 7.776.092 8.504.222 9.024l2.445 10.662c.13.545.624 1.092 1.169 1.248l9.775 3.015c.13.051.285.051.443.051.443 0 .91-.18 1.223-.443l8.007-7.435c.418-.39.624-1.092.494-1.64zM10.962 2.417l7.175 2.21c.285.08.285.21 0 .286l-3.77.858c-.285.08-.674-.05-.883-.26l-2.626-2.834c-.235-.232-.184-.336.104-.26zm4.47 12.872c.079.286-.105.444-.39.365l-7.748-2.392c-.285-.079-.338-.313-.13-.52l5.93-5.514c.209-.209.443-.13.52.156zM2.667 8.267l6.293-5.85c.21-.209.545-.18.754.025L12.86 5.85c.209.21.18.545-.026.754l-6.293 5.85c-.21.21-.545.181-.754-.025L2.64 9.024a.536.536 0 01.026-.757zm1.536 9.284L2.54 10.244c-.08-.285.05-.34.234-.13L5.4 12.949c.209.209.285.624.209.909L4.462 17.55c-.079.285-.208.285-.26 0zm9.202 4.264l-8.217-2.522a.547.547 0 01-.364-.675l1.378-4.421a.547.547 0 01.675-.365l8.216 2.522c.285.079.443.39.364.675L14.08 21.45a.553.553 0 01-.674.365zm7.279-5.98L15.2 20.93c-.209.209-.31.13-.234-.155l1.144-3.694c.079-.285.39-.573.674-.624l3.77-.858c.288-.076.339.054.13.234zm.598-1.09l-4.523 1.039a.534.534 0 01-.65-.39l-1.922-8.372a.534.534 0 01.39-.65L19.1 5.335a.534.534 0 01.649.39l1.923 8.371c.079.31-.102.596-.39.65Z" },
+  neo4j: { icon: "Coin", mark: "N4", color: "var(--metric-mem, var(--el-color-primary))", label: "Neo4j 图数据库", brand: "M9.629 13.227c-.593 0-1.139.2-1.58.533l-2.892-1.976a2.61 2.61 0 0 0 .101-.711 2.633 2.633 0 0 0-2.629-2.629A2.632 2.632 0 0 0 0 11.073a2.632 2.632 0 0 0 2.629 2.629c.593 0 1.139-.2 1.579-.533L7.1 15.145c-.063.226-.1.465-.1.711 0 .247.037.484.1.711l-2.892 1.976a2.608 2.608 0 0 0-1.579-.533A2.632 2.632 0 0 0 0 20.639a2.632 2.632 0 0 0 2.629 2.629 2.632 2.632 0 0 0 2.629-2.629c0-.247-.037-.485-.101-.711l2.892-1.976c.441.333.987.533 1.58.533a2.633 2.633 0 0 0 2.629-2.629c0-1.45-1.18-2.629-2.629-2.629ZM16.112.732c-4.72 0-7.888 2.748-7.888 8.082v3.802a3.525 3.525 0 0 1 3.071.008v-3.81c0-3.459 1.907-5.237 4.817-5.237s4.817 1.778 4.817 5.237v8.309H24V8.814C24 3.448 20.832.732 16.112.732Z" },
   nacos: { icon: "Coin", mark: "NA", color: "var(--metric-disk, var(--el-color-warning))", label: "Nacos 配置中心" },
   zookeeper: { icon: "Coin", mark: "ZK", color: "var(--el-color-warning)", label: "ZooKeeper" },
-  kafka: { icon: "Coin", mark: "KA", color: "#333333", label: "Kafka" },
-  nginx: { icon: "Connection", mark: "NG", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
-  etcd: { icon: "Coin", mark: "ET", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
-  prometheus: { icon: "DataLine", mark: "PR", color: "#e6522c", label: "Prometheus" },
-  mongodb: { icon: "Coin", mark: "MO", color: "#4DB33D", label: "MongoDB" },
-  elasticsearch: { icon: "Coin", mark: "ES", color: "#00bfb3", label: "Elasticsearch" },
+  kafka: { icon: "Coin", mark: "KA", color: "#333333", label: "Kafka", brand: "M9.71 2.136a1.43 1.43 0 0 0-2.047 0h-.007a1.48 1.48 0 0 0-.421 1.042c0 .41.161.777.422 1.039l.007.007c.257.264.616.426 1.019.426.404 0 .766-.162 1.027-.426l.003-.007c.261-.262.421-.629.421-1.039 0-.408-.159-.777-.421-1.042H9.71zM8.683 22.295c.404 0 .766-.167 1.027-.429l.003-.008c.261-.261.421-.631.421-1.036 0-.41-.159-.778-.421-1.044H9.71a1.42 1.42 0 0 0-1.027-.432 1.4 1.4 0 0 0-1.02.432h-.007c-.26.266-.422.634-.422 1.044 0 .406.161.775.422 1.036l.007.008c.258.262.617.429 1.02.429zm7.89-4.462c.359-.096.683-.33.882-.684l.027-.052a1.47 1.47 0 0 0 .114-1.067 1.454 1.454 0 0 0-.675-.896l-.021-.014a1.425 1.425 0 0 0-1.078-.132c-.36.091-.684.335-.881.686-.2.349-.241.75-.146 1.119.099.363.33.691.675.896h.002c.346.203.737.239 1.101.144zm-6.405-7.342a2.083 2.083 0 0 0-1.485-.627c-.58 0-1.103.242-1.482.627-.378.385-.612.916-.612 1.507s.233 1.124.612 1.514a2.08 2.08 0 0 0 2.967 0c.379-.39.612-.923.612-1.514s-.233-1.122-.612-1.507zm-.835-2.51c.843.141 1.6.552 2.178 1.144h.004c.092.093.182.196.265.299l1.446-.851a3.176 3.176 0 0 1-.047-1.808 3.149 3.149 0 0 1 1.456-1.926l.025-.016a3.062 3.062 0 0 1 2.345-.306c.77.21 1.465.721 1.898 1.482v.002c.431.757.518 1.626.313 2.408a3.145 3.145 0 0 1-1.456 1.928l-.198.118h-.02a3.095 3.095 0 0 1-2.154.201 3.127 3.127 0 0 1-1.514-.944l-1.444.848a4.162 4.162 0 0 1 0 2.879l1.444.846c.413-.47.939-.789 1.514-.944a3.041 3.041 0 0 1 2.371.319l.048.023v.002a3.17 3.17 0 0 1 1.408 1.906 3.215 3.215 0 0 1-.313 2.405l-.026.053-.003-.005a3.147 3.147 0 0 1-1.867 1.436 3.096 3.096 0 0 1-2.371-.318v-.006a3.156 3.156 0 0 1-1.456-1.927 3.175 3.175 0 0 1 .047-1.805l-1.446-.848a3.905 3.905 0 0 1-.265.294l-.004.005a3.938 3.938 0 0 1-2.178 1.138v1.699a3.09 3.09 0 0 1 1.56.862l.002.004c.565.572.914 1.368.914 2.243 0 .873-.35 1.664-.914 2.239l-.002.009a3.1 3.1 0 0 1-2.21.931 3.1 3.1 0 0 1-2.206-.93h-.002v-.009a3.186 3.186 0 0 1-.916-2.239c0-.875.35-1.672.916-2.243v-.004h.002a3.1 3.1 0 0 1 1.558-.862v-1.699a3.926 3.926 0 0 1-2.176-1.138l-.006-.005a4.098 4.098 0 0 1-1.173-2.874c0-1.122.452-2.136 1.173-2.872h.006a3.947 3.947 0 0 1 2.176-1.144V6.289a3.137 3.137 0 0 1-1.558-.864h-.002v-.004a3.192 3.192 0 0 1-.916-2.243c0-.871.35-1.669.916-2.243l.002-.002A3.084 3.084 0 0 1 8.683 0c.861 0 1.641.355 2.21.932v.002h.002c.565.574.914 1.372.914 2.243 0 .876-.35 1.667-.914 2.243l-.002.005a3.142 3.142 0 0 1-1.56.864v1.692zm8.121-1.129l-.012-.019a1.452 1.452 0 0 0-.87-.668 1.43 1.43 0 0 0-1.103.146h.002c-.347.2-.58.529-.677.896-.095.365-.054.768.146 1.119l.007.009c.2.347.519.579.874.673.357.103.755.059 1.098-.144l.019-.009a1.47 1.47 0 0 0 .657-.885 1.493 1.493 0 0 0-.141-1.118" },
+  nginx: { icon: "Connection", mark: "NG", color: "var(--metric-net, var(--el-color-info))", label: "Nginx", brand: "M12 0L1.605 6v12L12 24l10.395-6V6L12 0zm6 16.59c0 .705-.646 1.29-1.529 1.29-.631 0-1.351-.255-1.801-.81l-6-7.141v6.66c0 .721-.57 1.29-1.274 1.29H7.32c-.721 0-1.29-.6-1.29-1.29V7.41c0-.705.63-1.29 1.5-1.29.646 0 1.38.255 1.83.81l5.97 7.141V7.41c0-.721.6-1.29 1.29-1.29h.075c.72 0 1.29.6 1.29 1.29v9.18H18z" },
+  etcd: { icon: "Coin", mark: "ET", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心", brand: "M10.985 10.715A1.565 1.565 0 1 1 9.42 9.151a1.566 1.566 0 0 1 1.565 1.564zm2.023 0a1.565 1.565 0 1 0 1.565-1.564 1.564 1.564 0 0 0-1.565 1.564zm10.653 1.698a4.295 4.295 0 0 1-.346.013 4.517 4.517 0 0 1-1.986-.462 18.448 18.448 0 0 0 .267-3.515 18.184 18.184 0 0 0-2.274-2.695 4.519 4.519 0 0 1 1.603-1.717l.294-.182-.23-.26a11.977 11.977 0 0 0-4.182-3.05l-.319-.138-.08.336a4.506 4.506 0 0 1-1.135 2.058 18.19 18.19 0 0 0-3.277-1.35 18.126 18.126 0 0 0-3.272 1.348A4.495 4.495 0 0 1 7.594.745L7.512.408l-.317.139a12.091 12.091 0 0 0-4.182 3.05l-.23.259.294.182a4.512 4.512 0 0 1 1.599 1.708 18.322 18.322 0 0 0-2.27 2.685 18.435 18.435 0 0 0 .26 3.538 4.505 4.505 0 0 1-1.975.458 4.224 4.224 0 0 1-.346-.013L0 12.386l.032.344a11.904 11.904 0 0 0 1.609 4.924l.175.298.263-.223a4.502 4.502 0 0 1 2.132-.998 18.29 18.29 0 0 0 1.824 2.971 18.473 18.473 0 0 0 3.457.85 4.493 4.493 0 0 1-.287 2.36l-.132.319.338.075a12.048 12.048 0 0 0 2.59.286l2.59-.286.338-.075-.131-.32a4.487 4.487 0 0 1-.287-2.361 18.476 18.476 0 0 0 3.443-.848 18.208 18.208 0 0 0 1.826-2.974 4.51 4.51 0 0 1 2.143.999l.263.223.175-.296a11.877 11.877 0 0 0 1.607-4.924l.032-.343zm-7.958 4.209a13.981 13.981 0 0 1-7.416 0 14.189 14.189 0 0 1-2.256-7.013 14.118 14.118 0 0 1 2.687-2.558 14.333 14.333 0 0 1 3.279-1.784 14.377 14.377 0 0 1 3.27 1.779 14.226 14.226 0 0 1 2.7 2.576 14.293 14.293 0 0 1-.675 3.652 14.365 14.365 0 0 1-1.59 3.348z" },
+  prometheus: { icon: "DataLine", mark: "PR", color: "#e6522c", label: "Prometheus", brand: "M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.628-5.373-12-12-12zm0 22.46c-1.885 0-3.414-1.26-3.414-2.814h6.828c0 1.553-1.528 2.813-3.414 2.813zm5.64-3.745H6.36v-2.046h11.28v2.046zm-.04-3.098H6.391c-.037-.043-.075-.086-.111-.13-1.155-1.401-1.427-2.133-1.69-2.879-.005-.025 1.4.287 2.395.511 0 0 .513.119 1.262.255-.72-.843-1.147-1.915-1.147-3.01 0-2.406 1.845-4.508 1.18-6.207.648.053 1.34 1.367 1.387 3.422.689-.951.977-2.69.977-3.755 0-1.103.727-2.385 1.454-2.429-.648 1.069.168 1.984.894 4.256.272.854.237 2.29.447 3.201.07-1.892.395-4.652 1.595-5.605-.529 1.2.079 2.702.494 3.424.671 1.164 1.078 2.047 1.078 3.716a4.642 4.642 0 01-1.11 2.996c.792-.149 1.34-.283 1.34-.283l2.573-.502s-.374 1.538-1.81 3.019z" },
+  mongodb: { icon: "Coin", mark: "MO", color: "#4DB33D", label: "MongoDB", brand: "M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z" },
+  elasticsearch: { icon: "Coin", mark: "ES", color: "#00bfb3", label: "Elasticsearch", brand: "M13.394 0C8.683 0 4.609 2.716 2.644 6.667h15.641a4.77 4.77 0 0 0 3.073-1.11c.446-.375.864-.785 1.247-1.243l.001-.002A11.974 11.974 0 0 0 13.394 0zM1.804 8.889a12.009 12.009 0 0 0 0 6.222h14.7a3.111 3.111 0 1 0 0-6.222zm.84 8.444C4.61 21.283 8.684 24 13.395 24c3.701 0 7.011-1.677 9.212-4.312l-.001-.002a9.958 9.958 0 0 0-1.247-1.243 4.77 4.77 0 0 0-3.073-1.11z" },
 };
+
+/** 类型有没有真实品牌 logo（无则用 mark 缩写徽标兜底） */
+const typeBrand = (type: string): string | undefined => TYPE_META[type]?.brand;
 
 const typeMeta = (type: string) =>
   TYPE_META[type] || { icon: "Coin", mark: "?", color: "var(--el-text-color-placeholder)", label: type };
@@ -761,7 +773,8 @@ const supportsProcess = (item: DataSourceInfo): boolean =>
 const ctxMenuItems = computed(() => {
   const item = ctxMenu.item;
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
-    { key: "manage", label: "打开管理（新标签）", icon: "View" },
+    { key: "manage", label: "打开管理", icon: "View" },
+    { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
     { key: "test", label: "检测连接", icon: "Connection" },
     {
       key: "top",
@@ -772,12 +785,11 @@ const ctxMenuItems = computed(() => {
   ];
   // JDBC 内核能力（SPI 判断）：用户管理 / 查看文档 / 进程列表 / 慢查询
   if (item?.type === "jdbc") {
-    const db = (item.database ?? "").trim();
-    const dialect = jdbcDialect(db);
+    const dialect = jdbcDialect(item.jdbcUrl ?? item.database ?? "");
     if (dialect === "mysql" || dialect === "mariadb") {
       base.push({ key: "users", label: "用户管理", icon: "User", warning: true });
     }
-    base.push({ key: "docs", label: "查看驱动文档", icon: "Document", warning: true });
+    base.push({ key: "docs", label: "查看数据库文档", icon: "Document" });
     if (dialect === "mysql" || dialect === "mariadb" || dialect === "postgresql") {
       base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
       base.push({ key: "slow", label: "慢查询", icon: "Timer" });
@@ -805,27 +817,42 @@ const jdbcDialect = (database: string): string => {
 };
 
 /**
- * JDBC 驱动文档链接（按方言跳官方文档）。
+ * 查看数据库文档（后端 DocumentProvider 生成 HTML）。
  *
- * <p>「查看驱动文档」的落地页：各驱动厂商的官方文档首页。
- * MySQL 系的 MariaDB 驱动与 MySQL Connector/J 文档分开给。</p>
+ * <p>与「导出数据库文档」（DatabaseManagerView 的下载）同一条后端管线：
+ * {@code DbDocumentController} 用 {@code DocumentParser("database")} 采集表结构，
+ * 再交给 {@code DocumentProvider} SPI 渲染成 HTML。右键这里直接拿 HTML 文本、
+ * 用 blob URL 在弹窗 iframe 里展示，不落盘、不离开页面。</p>
+ *
+ * <p>格式探测走 {@code /ms/monitor/db/document/formats}：html 渲染器未装配时
+ * 后端会如实 501，这里给可读报错而不是白屏。</p>
  */
-const JDBC_DOC_URLS: Record<string, string> = {
-  mysql: "https://dev.mysql.com/doc/connector-j/en/",
-  mariadb: "https://mariadb.com/docs/clients/mariadb-connectors/connector-j/",
-  postgresql: "https://jdbc.postgresql.org/documentation/",
-  oracle: "https://docs.oracle.com/en/database/oracle/oracle-database/19/jjdbc/",
-  sqlserver: "https://learn.microsoft.com/en-us/sql/connect/jdbc/",
-};
+const dbDocVisible = ref(false);
+const dbDocLoading = ref(false);
+const dbDocError = ref("");
+const dbDocUrl = ref("");
+const dbDocSource = ref<DataSourceInfo | null>(null);
 
-/** 打开 jdbc 数据源的驱动文档（新窗口，不离开页面） */
-const openDriverDocs = (item: DataSourceInfo) => {
-  const url = JDBC_DOC_URLS[jdbcDialect(item.database ?? "")] ?? "";
-  if (!url) {
-    message.info("该方言暂无内置文档链接");
+/** 打开「查看数据库文档」弹窗并渲染 HTML */
+const openDbDocument = async (item: DataSourceInfo) => {
+  if (item.id == null) {
+    message.warning("数据源缺少 ID，无法查看数据库文档");
     return;
   }
-  window.open(url, "_blank", "noopener");
+  dbDocSource.value = item;
+  dbDocError.value = "";
+  dbDocUrl.value = "";
+  dbDocVisible.value = true;
+  dbDocLoading.value = true;
+  try {
+    const html = await fetchDbDocumentHtml({ datasourceId: item.id });
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    dbDocUrl.value = URL.createObjectURL(blob);
+  } catch (e) {
+    dbDocError.value = `文档生成失败：${(e as Error)?.message ?? String(e)}`;
+  } finally {
+    dbDocLoading.value = false;
+  }
 };
 
 /**
@@ -847,6 +874,15 @@ const onItemMenuSelect = (key: string) => {
     openManager(item);
     return;
   }
+  if (key === "manage-full") {
+    const route = managerRouteFor(item.type);
+    if (route) {
+      openFullManager(item, route);
+    } else {
+      message.warning(`类型 ${item.type} 的管理页面开发中`);
+    }
+    return;
+  }
   if (key === "users") {
     openUserManager(item);
     return;
@@ -860,7 +896,7 @@ const onItemMenuSelect = (key: string) => {
     return;
   }
   if (key === "docs") {
-    openDriverDocs(item);
+    void openDbDocument(item);
     return;
   }
   if (key === "processes") {
@@ -1238,7 +1274,16 @@ const openManager = (item: DataSourceInfo) => {
     message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
   }
-  openFullManager(item, route);
+  if (!hasRoutePath(router, route)) {
+    const near = nearbyRoutePaths(router, route);
+    message.warning(
+      `当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`
+      + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
+    );
+    return;
+  }
+  // router 模式：应用内跳转，保留顶部/左侧导航与标签页
+  void router.push({ path: route, query: { datasourceId: item.id } });
 };
 
 /**
@@ -1789,7 +1834,13 @@ onMounted(load);
                 @contextmenu.prevent="onItemContextMenu($event, item)"
               >
                 <span class="ds-item__icon" :style="{ '--tile': typeMeta(item.type).color }">
-                  <b class="ds-mark">{{ typeMeta(item.type).mark }}</b>
+                  <svg
+                    v-if="typeBrand(item.type)" viewBox="0 0 24 24" fill="currentColor" class="ds-brand"
+                    aria-hidden="true"
+                  >
+                    <path :d="typeBrand(item.type)" />
+                  </svg>
+                  <b v-else class="ds-mark">{{ typeMeta(item.type).mark }}</b>
                 </span>
                 <span class="ds-item__body">
                   <span class="ds-item__row">
@@ -1827,6 +1878,25 @@ onMounted(load);
         />
       </aside>
 
+      <!-- 查看数据库文档（后端 DocumentProvider 生成 HTML → blob URL → iframe 弹窗） -->
+      <ReDialog
+        v-model="dbDocVisible"
+        :title="`数据库文档 · ${dbDocSource?.name ?? ''}`"
+        width="920px"
+        class="ds-db-doc"
+      >
+        <div class="ds-db-doc__body">
+          <div v-if="dbDocLoading" class="ds-db-doc__loading">文档生成中…</div>
+          <p v-else-if="dbDocError" class="ds-db-doc__error">{{ dbDocError }}</p>
+          <iframe
+            v-else-if="dbDocUrl"
+            :src="dbDocUrl"
+            class="ds-db-doc__frame"
+            title="数据库文档"
+          />
+        </div>
+      </ReDialog>
+
       <!-- 右栏：头部 + 页签 + 内容合成一整张卡（白卡片落在浅灰画布上，边界一眼可分）。
            头部两行：上行面包屑、下行「图标块 + 名称 + 类型徽标 + 状态胶囊」，右侧操作区。 -->
       <div class="ds-main">
@@ -1848,7 +1918,12 @@ onMounted(load);
                   :style="{ '--tile': typeMeta(current.type).color }"
                   aria-hidden="true"
                 >
-                  <b class="ds-mark ds-mark--lg">{{ typeMeta(current.type).mark }}</b>
+                  <svg
+                    v-if="typeBrand(current.type)" viewBox="0 0 24 24" fill="currentColor" class="ds-brand ds-brand--lg"
+                  >
+                    <path :d="typeBrand(current.type)" />
+                  </svg>
+                  <b v-else class="ds-mark ds-mark--lg">{{ typeMeta(current.type).mark }}</b>
                 </span>
                 <h2 class="ds-detail__name" :title="current?.name">{{ current?.name ?? "数据源中心" }}</h2>
                 <template v-if="current">
@@ -2744,6 +2819,16 @@ onMounted(load);
   border-radius: var(--radius-md, 8px);
   background: color-mix(in srgb, var(--tile) 12%, transparent);
 }
+/* 真实品牌 logo：内联 SVG，随类型色渲染；无品牌的类型退回 mark 缩写徽标 */
+.ds-brand {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.ds-brand--lg {
+  width: 26px;
+  height: 26px;
+}
 /* 类型品牌徽标：品牌色圆底 + 白色缩写，代替原先全类型同一个 Coin 图标 */
 .ds-mark {
   display: inline-grid;
@@ -3515,6 +3600,41 @@ onMounted(load);
   color: var(--el-text-color-placeholder);
 }
 .ds-pill { border-radius: var(--el-radius-full, 9999px) !important; }
+
+/* 查看数据库文档弹窗：iframe 占满弹窗高，出错/加载中给出可读提示 */
+.ds-db-doc__body {
+  height: 560px;
+  display: flex;
+  flex-direction: column;
+}
+.ds-db-doc__loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-placeholder);
+  font-size: 13px;
+}
+.ds-db-doc__error {
+  flex: 1;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+.ds-db-doc__frame {
+  flex: 1;
+  width: 100%;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: #fff;
+}
 
 .mono {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);

@@ -158,6 +158,7 @@ import type {
   ReTableAutoRefresh,
   ReTableContextMenuItem,
   ReTableContextMenuContext,
+  ReTableContextMenuProvider,
   ReTableCellClickPayload,
   ReTableSortChangePayload,
   ReTableRowSortPayload,
@@ -310,8 +311,8 @@ const props = withDefaults(
     toolbar?: boolean;
     /** toolbar 配置（批量删除/选择/修改等），toolbar=true 时生效 */
     toolbarConfig?: ReTableToolbarConfig;
-    /** 右键菜单项（传入行/cell 入参） */
-    contextMenu?: ReTableContextMenuItem[];
+    /** 右键菜单（数组或按右键上下文动态生成的函数）；行/单元格右键自动弹菜单 */
+    contextMenu?: ReTableContextMenuProvider;
     /** 列设置 popover 触发文案 */
     columnsTriggerText?: string;
     /** 表格设置 popover 触发文案 */
@@ -1257,6 +1258,20 @@ const ctxMenuY = ref(0);
 const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
 
 /**
+ * 解析后的右键菜单项。
+ *
+ * <p>{@code contextMenu} 传函数时按当前右键上下文动态生成；传数组时原样返回。
+ * 行/单元格右键弹菜单与否、菜单内容都以它为准 —— 使用方传一个生成函数
+ * 即可让不同行/列弹出不同菜单，无需自己维护弹窗状态。</p>
+ */
+const resolvedCtxMenuItems = computed<ReTableContextMenuItem[]>(() => {
+  const provider = props.contextMenu;
+  if (!provider) return [];
+  const ctx = ctxMenuContext.value;
+  return typeof provider === "function" ? (ctx ? provider(ctx) : []) : provider;
+});
+
+/**
  * 行右键事件（el-table）
  *
  * <p>形参类型对齐 element-plus 的事件声明：{@code onRow-contextmenu} 传的是
@@ -1270,7 +1285,8 @@ function onRowContextMenu(
   _column: TableColumnCtx<Record<string, unknown>> | null,
   event: PointerEvent,
 ): void {
-  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  const items = resolvedCtxMenuItems.value;
+  if (!items || items.length === 0) return;
   event.preventDefault();
   ctxMenuX.value = event.clientX;
   ctxMenuY.value = event.clientY;
@@ -1296,7 +1312,8 @@ function onCellContextMenu(
   _cell: HTMLTableCellElement,
   event: PointerEvent,
 ): void {
-  if (!props.contextMenu || props.contextMenu.length === 0) return;
+  const items = resolvedCtxMenuItems.value;
+  if (!items || items.length === 0) return;
   event.preventDefault();
   ctxMenuX.value = event.clientX;
   ctxMenuY.value = event.clientY;
@@ -2160,9 +2177,13 @@ const vxeSortConfig = computed(() => {
  * 就打不开。这里只在有菜单项时启用 —— 只传 {@code enabled} 不传 options，
  * vxe 便只派发事件、不渲染它自己的菜单，外观仍由 ReTable 的 .re-ctx-menu 决定。</p>
  */
-const vxeMenuConfig = computed(() =>
-  props.contextMenu && props.contextMenu.length > 0 ? { enabled: true } : undefined,
-);
+/** 是否配置了右键菜单（数组非空或传了动态生成函数） */
+function ctxMenuConfigured(): boolean {
+  const p = props.contextMenu;
+  return !!p && (Array.isArray(p) ? p.length > 0 : true);
+}
+
+const vxeMenuConfig = computed(() => (ctxMenuConfigured() ? { enabled: true } : undefined));
 
 /**
  * 编辑配置：vxe 原生单元格编辑（APITable 式「点哪格编辑哪格」）。
@@ -5469,7 +5490,7 @@ const iconSelect = Select;
       :layout="layoutView ?? {}"
       :row-key="rowKey"
       :selectable="batchSelectActive || batchActionEnabled"
-      :context-menu="contextMenu"
+      :context-menu="resolvedCtxMenuItems"
       :empty-text="emptyText"
       :index-offset="layoutIndexOffset"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
@@ -5489,7 +5510,7 @@ const iconSelect = Select;
       :layout="layoutCard ?? {}"
       :row-key="rowKey"
       :selectable="batchSelectActive || batchActionEnabled"
-      :context-menu="contextMenu"
+      :context-menu="resolvedCtxMenuItems"
       :empty-text="emptyText"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="onSelectionChange"
@@ -5786,7 +5807,7 @@ const iconSelect = Select;
     <!-- 右键菜单 -->
     <ReTableContextMenu
       v-model:visible="ctxMenuVisible"
-      :items="contextMenu"
+      :items="resolvedCtxMenuItems"
       :context="ctxMenuContext"
       :x="ctxMenuX"
       :y="ctxMenuY"
@@ -6233,12 +6254,19 @@ const iconSelect = Select;
 .re-table__layout-switch-item:hover {
   color: var(--el-color-primary);
 }
-/* 选中态：浮起白底 + 主色图标（对比靠 overlay / light 令牌分层，不硬编码品牌色） */
+/* 选中态：浮起白底 + 主色图标（对比靠 overlay / light 令牌分层，不硬编码品牌色）。
+   底色带极淡主色渐变 + 顶部高光，让滑块在灰轨道上有一点点「浮起来」的体积感。 */
 .re-table__layout-switch-item.is-active,
 .re-table__layout-switch-item.is-active:hover {
   color: var(--el-color-primary);
-  background: var(--el-bg-color-overlay);
-  box-shadow: var(--el-box-shadow-light);
+  background: linear-gradient(
+    180deg,
+    var(--el-bg-color-overlay),
+    color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color-overlay))
+  );
+  box-shadow:
+    var(--el-box-shadow-light),
+    inset 0 1px 0 color-mix(in srgb, var(--el-bg-color-overlay) 55%, transparent);
 }
 /* 自动刷新浮层（参考图排版）：标题行 + 状态徽标 → 档位菜单 → 分隔线 + 倒计时说明。
    浮层外壳宽度/内距由 ReSwitch 的 popoverWidth(268)/popoverPadding(8) 锚定；

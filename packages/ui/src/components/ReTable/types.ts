@@ -287,6 +287,20 @@ export interface ReTableContextMenuItem {
   children?: ReTableContextMenuItem[];
 }
 
+/**
+ * 右键菜单提供者：静态数组，或按右键上下文动态生成的函数。
+ *
+ * <p><strong>为什么支持函数</strong>：右键同一张表的不同行/列，菜单项往往不同
+ * （如数据源列表：行菜单有「编辑/删除」，列菜单有「排序/筛选」）。
+ * 写成函数后 ReTable 统一负责弹窗定位、显隐、关闭，使用方只需
+ * {@code :context-menu="ctx => [...]"} + {@code @context-menu-select} 两处，
+ * 不再各自维护 visible/x/y/context 一套状态 —— 这就是「封装右键事件、
+ * 使用方免维护」的落点。</p>
+ */
+export type ReTableContextMenuProvider =
+  | ReTableContextMenuItem[]
+  | ((ctx: ReTableContextMenuContext) => ReTableContextMenuItem[]);
+
 /** 右键菜单上下文（传入行/cell 信息） */
 export interface ReTableContextMenuContext {
   /** 右键所在行数据 */
