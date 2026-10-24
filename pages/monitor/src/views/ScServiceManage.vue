@@ -2,551 +2,332 @@
 /**
  * 服务管理 —— 协议服务器节点（Server 接口 + ServerFilter 插件）
  *
- * 主页面职责：
- *   1. Server 节点增删改查，协议下拉取自后端 /protocols（内置四类 + Server SPI 动态发现）
- *   2. 启停、热更新（过滤器链就地替换，不中断服务）
- *   3. 打开编辑抽屉做过滤器编排（左 SPI → 右已选，可重复添加）
- *   4. 打开详情抽屉查看运行态与过滤器链，并支持单过滤器热启停 / 热改参
+ * 职责：Server 节点增删改查、启停与热更新、过滤器链编排（编辑抽屉）、
+ * 运行态与链路查看（详情抽屉）。
  *
- * 视觉（对齐「代理管理」「账号管理」页）：顶部 ReSectionHead 已删除——页面标题由
- * 外壳面包屑承担，其中的「新增服务 / 刷新」合并到筛选行右侧、统一改成图标 + tip；
- * 统计卡改用 ReStatCard 的 icon 属性（原先用 #icon 插槽塞裸图标，绕过了组件自带的
- * 渐变图标圆）；数据表格吃满剩余高度、表体内部滚动。
+ * 界面形态（「机架」）：一条服务占一行槽位，端口号是每行最左边的固定列，
+ * 状态灯打在最前面，左侧竖轨按状态分组计数。理由很直白：服务节点的本质是
+ * 「一个端口在听」，而这一页最常见的动作是「一眼扫过所有端口、看哪盏灯不对」，
+ * 所以一屏的密度优先，链路上的插件压成一行胶囊，参数与顺序留给详情抽屉。
  *
- * ⚠ 统计卡的 icon 必须是脚本作用域里的**组件**（ReStatCard 内部走
- * {@code <component :is="icon" />}），所以图标必须显式 import —— 全局注册的组件
- * 在模板表达式里取不到标识符，写成 {@code :icon="Monitor"} 会静默渲染成 undefined。
+ * 分层：
+ *   - `service/serviceView.ts`     纯函数：后端行 → 展示对象（端口文本、链路、后端地址）
+ *   - `service/useServiceNodes.ts` 取数与动作：状态、自动刷新、启停、抽屉开合
+ *   - `service/service-kit.css`    与页面无关的原子样式（状态灯、胶囊、空态）
+ *
+ * 本文件只保留「机架」这一种布局。降级提示与两个抽屉放在这一层而不是视图中：
+ * 元数据拉不到时必须出声，而「编辑 / 详情」是唯一入口，它们不能随布局变化。
  */
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { CircleCheckFilled, CircleCloseFilled, Connection, Monitor, VideoPause } from '@element-plus/icons-vue';
-import { message } from '@repo/core';
-import { useRouter } from 'vue-router';
-import {
-  listServerNodes,
-  startServerNode,
-  stopServerNode,
-  restartServerNode,
-  deleteServerNode,
-  listProtocols,
-  listFilterTypes,
-  type ProtocolMeta,
-  type FilterTypeMeta,
-  type ServerNodeView,
-} from '../api';
+import { computed } from 'vue';
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
 import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
-import { resolveFilterDetail } from '../utils/filterDetail';
-import { confirmThen } from '../utils/confirmThen';
-import { createAutoRefresh, DEFAULT_AUTO_REFRESH } from '../utils/autoRefresh';
-import { describeMetaLoad, type MetaLoadNotice } from '../utils/metaLoad';
+import { useServiceNodes } from './service/useServiceNodes';
 import {
-  buildProtocolOptions,
-  deriveStatusMeta,
-  filterNodes,
-  formatListenText,
-  isProxyProtocol,
-  summarizeNodes,
-} from '../utils/nodeList';
+  primaryActionOf,
+  stateClassOf,
+  type ServiceChip,
+  type ServiceNodeCard,
+} from './service/serviceView';
+import type { ServerNodeView } from '../api';
+import './service/service-kit.css';
 
-const router = useRouter();
+const vm = useServiceNodes();
 
-/** 节点列表 */
-const nodes = ref<ServerNodeView[]>([]);
-/** 协议元数据（下拉用） */
-const protocols = ref<ProtocolMeta[]>([]);
-/** 插件元数据（编辑抽屉用） */
-const filterTypes = ref<FilterTypeMeta[]>([]);
-/** 加载态 */
-const loading = ref(false);
-/** 操作中的节点 id（按钮 loading） */
-const actingId = ref<number | null>(null);
-
-/** 编辑抽屉 */
-const formVisible = ref(false);
-const editingNode = ref<ServerNodeView | null>(null);
-
-/** 详情抽屉 */
-const detailVisible = ref(false);
-const detailNodeId = ref<number | null>(null);
-
-/** 关键字过滤 */
-const keyword = ref('');
-/** 协议过滤 */
-const filterProtocol = ref<string>('');
-/** 首屏/刷新的加载提示（协议或插件元数据失败时必须出声，不能静默变空） */
-const loadNotice = ref<MetaLoadNotice>({ show: false, tone: 'warning', text: '' });
-
-/** 统计 */
-const stats = computed(() => summarizeNodes(nodes.value));
-
-/** 过滤后的列表 */
-const visibleNodes = computed(() =>
-  filterNodes(nodes.value, { keyword: keyword.value, protocol: filterProtocol.value }),
+/** 分布条的悬停说明：分布图没有刻度，悬停要能读到准确数字 */
+const distTitle = computed(
+  () => `运行 ${vm.statusCounts.running} · 异常 ${vm.statusCounts.error} · 已停止 ${vm.statusCounts.stopped}`,
 );
 
-/** 协议下拉选项（内置 + SPI 动态，SPI 项加后缀标识） */
-const protocolOptions = computed(() => buildProtocolOptions(protocols.value));
-
-/** 传给抽屉的名称列表（编辑时排除自身，克隆时排除克隆源） */
-const existingNamesForDrawer = computed(() => {
-  return nodes.value
-    .filter(n => n.id !== editingNode.value?.id)
-    .map(n => n.name);
-});
+/** 左轨的状态分组 */
+const statusTabs = computed<
+  Array<{ label: string; value: '' | 'RUNNING' | 'ERROR' | 'STOPPED'; count: number; dot: string }>
+>(() => [
+  { label: '全部', value: '', count: vm.statusCounts.all, dot: '' },
+  { label: '运行中', value: 'RUNNING', count: vm.statusCounts.running, dot: 'is-run' },
+  { label: '异常', value: 'ERROR', count: vm.statusCounts.error, dot: 'is-err' },
+  { label: '已停止', value: 'STOPPED', count: vm.statusCounts.stopped, dot: 'is-stop' },
+]);
 
 /**
- * 把任意异常压成一句可展示的短文本。
+ * 由卡片找回后端行。
  *
- * 后端失败时抛出的是 `{code,msg}` 形态的对象而不是 Error，直接
- * `(e as Error).message` 会渲染出 `[object Object]`。
+ * 卡片是展示数据，动作接口要的是后端行；列表刚刷新时该行可能已经不在了，
+ * 所以调用方必须允许 undefined。
+ *
+ * @param card 展示数据
  */
-function reasonText(e: unknown): string {
-  if (e instanceof Error && e.message) {
-    return e.message;
-  }
-  if (e && typeof e === 'object' && 'msg' in e) {
-    const msg = (e as { msg?: unknown }).msg;
-    if (typeof msg === 'string' && msg) {
-      return msg;
-    }
-  }
-  return typeof e === 'string' && e ? e : '未知错误';
-}
-
-onMounted(() => {
-  void refresh();
-  // 自动刷新：节点可能因为端口被占/进程被杀而变成 ERROR，
-  // 只在 mounted 拉一次的话页面会一直显示过期的好消息
-  autoRefresh.start();
-  // 切回标签页立刻补一次，否则用户看到的是几分钟前的状态
-  document.addEventListener('visibilitychange', onVisibilityChange);
-});
-
-onUnmounted(() => {
-  autoRefresh.stop();
-  document.removeEventListener('visibilitychange', onVisibilityChange);
-});
-
-function onVisibilityChange() {
-  if (document.visibilityState === 'visible') {
-    void refresh(true);
-  }
+function nodeOf(card: ServiceNodeCard): ServerNodeView | undefined {
+  return vm.nodes.find(node => node.id === card.id);
 }
 
 /**
- * 拉取列表与元数据。
+ * 主操作：运行中→停止，异常→重启，其余→启动。
  *
- * @param silent 静默模式：自动刷新用。不弹 toast —— 每 10 秒一次的话
- *   后端故障期间会把界面糊满错误提示，反而看不见真正的问题。
- *   失败信息由 `loadNotice` 承载。
+ * @param card 展示数据
  */
-async function refresh(silent = false) {
-  loading.value = true;
-  try {
-    // 三个请求独立成败：任一失败都不能让另外两个的结果被一起丢掉，
-    // 因此逐个 settle 而不是整体 await。
-    const [nodesResult, protocolsResult, filtersResult] = await Promise.allSettled([
-      listServerNodes(),
-      listProtocols(),
-      listFilterTypes(),
-    ]);
-
-    if (nodesResult.status === 'fulfilled') {
-      nodes.value = nodesResult.value ?? [];
-    }
-    if (protocolsResult.status === 'fulfilled') {
-      protocols.value = protocolsResult.value ?? [];
-    }
-    if (filtersResult.status === 'fulfilled') {
-      filterTypes.value = filtersResult.value ?? [];
-    }
-
-    loadNotice.value = describeMetaLoad({
-      nodesOk: nodesResult.status === 'fulfilled',
-      protocolsOk: protocolsResult.status === 'fulfilled',
-      filtersOk: filtersResult.status === 'fulfilled',
-      nodesError: nodesResult.status === 'rejected' ? reasonText(nodesResult.reason) : undefined,
-      protocolsError:
-        protocolsResult.status === 'rejected' ? reasonText(protocolsResult.reason) : undefined,
-      filtersError:
-        filtersResult.status === 'rejected' ? reasonText(filtersResult.reason) : undefined,
-    });
-
-    // 自动刷新时把错误交给 autoRefresh 记一次失败以触发退避，
-    // 但不弹提示；手动刷新才提示
-    if (!silent && nodesResult.status === 'rejected') {
-      message.error(reasonText(nodesResult.reason));
-    }
-    if (nodesResult.status === 'rejected') {
-      throw nodesResult.reason;
-    }
-  } catch (e) {
-    if (!silent) {
-      message.error(reasonText(e));
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 自动刷新句柄 */
-const autoRefresh = createAutoRefresh(() => refresh(true), DEFAULT_AUTO_REFRESH);
-
-/** 协议展示：SPI 协议取描述，内置取中文描述 */
-function protocolLabel(row: ServerNodeView) {
-  return row.protocolDesc || row.protocol;
-}
-
-function openCreate() {
-  editingNode.value = null;
-  formVisible.value = true;
-}
-
-function openEdit(row: ServerNodeView) {
-  editingNode.value = row;
-  formVisible.value = true;
-}
-
-function openDetail(row: ServerNodeView) {
-  detailNodeId.value = row.id;
-  detailVisible.value = true;
-}
-
-/** 克隆节点：复制全部字段，名称自动加 -clone 后缀，列表校验时排除自身 */
-function openClone(row: ServerNodeView) {
-  editingNode.value = {
-    ...row,
-    id: 0,
-    name: `${row.name}-clone`,
-    status: 'STOPPED',
-    error: undefined,
-    serverUrl: undefined,
-    enabled: row.enabled ?? 0,
-  };
-  formVisible.value = true;
-}
-
-async function onStart(row: ServerNodeView) {
-  actingId.value = row.id;
-  try {
-    await startServerNode(row.id);
-    message.success(`服务「${row.name}」已启动`);
-    await refresh();
-  } catch (e) {
-    message.error(reasonText(e));
-  } finally {
-    actingId.value = null;
-  }
-}
-
-async function onStop(row: ServerNodeView) {
-  actingId.value = row.id;
-  try {
-    await stopServerNode(row.id);
-    message.success(`服务「${row.name}」已停止`);
-    await refresh();
-  } catch (e) {
-    message.error(reasonText(e));
-  } finally {
-    actingId.value = null;
-  }
-}
-
-async function onRestart(row: ServerNodeView) {
-  actingId.value = row.id;
-  try {
-    await restartServerNode(row.id);
-    message.success(`服务「${row.name}」已重启`);
-    await refresh();
-  } catch (e) {
-    message.error(reasonText(e));
-  } finally {
-    actingId.value = null;
-  }
+function runPrimary(card: ServiceNodeCard): void {
+  const node = nodeOf(card);
+  if (!node) return;
+  const action = primaryActionOf(card);
+  if (action === 'stop') void vm.stop(node);
+  else if (action === 'restart') void vm.restart(node);
+  else void vm.start(node);
 }
 
 /**
- * 删除节点。
+ * 主操作的文案
  *
- * 用 `confirmThen` 而不是直接 `await message.confirm`：后者在「取消」时是
- * **reject(false)**，直接 await 会让取消动作变成一个未捕获的 Promise
- * rejection —— 每取消一次刷一条红字，若全局挂了 unhandledrejection 上报，
- * 用户刚点「取消」还会收到一个「系统繁忙」提示。
- *
- * 这里的 if 是必要的：布尔语义下不判断返回值就等于把「取消」当「确认」。
+ * @param card 展示数据
  */
-async function onDelete(row: ServerNodeView) {
-  const confirmed = await confirmThen(
-    message.confirm,
-    `确认删除服务「${row.name}」？运行中的实例会先被停止。`,
-    '删除服务',
-  );
-  if (!confirmed) {
-    return;
-  }
-  actingId.value = row.id;
-  try {
-    await deleteServerNode(row.id);
-    message.success('已删除');
-    await refresh();
-  } catch (e) {
-    message.error(reasonText(e));
-  } finally {
-    actingId.value = null;
-  }
+function primaryLabel(card: ServiceNodeCard): string {
+  const action = primaryActionOf(card);
+  return action === 'stop' ? '停止' : action === 'restart' ? '重启' : '启动';
 }
 
 /**
- * 打开插件深度查看页（不同实现不同页面）。
+ * 主操作的图标
  *
- * node 型（如 file-storage）的深度页面由插件自身的 HTTP 服务托管，新窗口直开节点地址；
- * route 型（如 service-discovery）由宿主应用托管，先校验路由存在再跳，避免死链。
+ * @param card 展示数据
  */
-function openDetailPage(row: ServerNodeView, index: number) {
-  const filter = row.filters?.[index];
-  if (!filter) return;
-  const meta = filterTypes.value.find(f => f.type === (filter.type || filter.name));
-  const target = resolveFilterDetail(meta, filter, row);
-  if (!target) {
-    message.info('该插件未提供深度查看页');
-    return;
-  }
-  if (target.kind === 'unavailable') {
-    message.info(target.reason);
-    return;
-  }
-  if (target.kind === 'node') {
-    window.open(target.url, '_blank', 'noopener');
-    return;
-  }
-  // 宿主应用可能未挂载目标页面（如 filesystem 页未接入），先校验路由再跳，避免死链
-  if (!router.resolve(target.path).matched.length) {
-    message.info(`当前应用未接入该插件的深度查看页（${target.path}）`);
-    return;
-  }
-  router.push(target.path);
+function primaryIcon(card: ServiceNodeCard): string {
+  const action = primaryActionOf(card);
+  if (action === 'stop') return 'VideoPause';
+  if (action === 'restart') return 'Refresh';
+  return 'VideoPlay';
+}
+
+/**
+ * 主操作的色调
+ *
+ * @param card 展示数据
+ */
+function primaryTone(card: ServiceNodeCard): 'success' | 'warning' {
+  return primaryActionOf(card) === 'start' ? 'success' : 'warning';
+}
+
+/**
+ * 行内动作统一在这里转发；找不到行时静默跳过（列表已刷新，用户点了旧行）
+ *
+ * @param card 展示数据
+ * @param what 动作
+ */
+function runRow(card: ServiceNodeCard, what: 'edit' | 'clone' | 'detail' | 'remove'): void {
+  const node = nodeOf(card);
+  if (!node) return;
+  if (what === 'edit') vm.openEdit(node);
+  else if (what === 'clone') vm.openClone(node);
+  else if (what === 'detail') vm.openDetail(node);
+  else void vm.remove(node);
+}
+
+/**
+ * 插件胶囊的悬停说明：顺序、启用态、参数条数都在这里交代
+ *
+ * @param chip 插件
+ */
+function chipTitle(chip: ServiceChip): string {
+  return `#${chip.order} ${chip.type} · ${chip.enabled ? '启用' : '已停用'} · 参数 ${chip.paramCount} 项`;
+}
+
+/**
+ * 新窗口打开访问地址
+ *
+ * @param url 地址
+ */
+function openUrl(url: string): void {
+  window.open(url, '_blank', 'noopener');
 }
 </script>
 
 <template>
   <div class="service-manage sc-page">
-    <!-- 首屏/刷新降级提示：协议或插件元数据失败时必须出声，
-         否则用户只会看到「协议下拉是空的」，无从判断是故障还是无权限 -->
+    <!-- 降级提示：协议或插件元数据失败时必须出声，否则用户只看到「协议下拉是空的」，
+         无从判断是故障还是没权限 -->
     <el-alert
-      v-if="loadNotice.show"
-      :type="loadNotice.tone"
-      :title="loadNotice.text"
+      v-if="vm.notice.show"
+      :type="vm.notice.tone"
+      :title="vm.notice.text"
       show-icon
       :closable="false"
       class="load-notice"
     />
 
-    <!-- 运行概览：ReStatCard 紧凑档，icon 走属性（用组件自带的渐变图标圆）。
-         原 hero 的说明文案改以 title 悬浮保留，不丢信息也不再独占一块纵向空间。 -->
-    <div class="stats-grid" title="基于 Server 接口的协议服务器节点编排，支持 ServerFilter 插件挂载与热更新">
-      <ReStatCard size="compact" title="服务总数" :value="stats.total" desc="Server 节点" :icon="Monitor" icon-color="var(--metric-cpu)">
-        <template #value><ReCountup :value="stats.total" :duration="600" /></template>
-      </ReStatCard>
-      <ReStatCard
-        size="compact"
-        title="运行中"
-        :value="stats.running"
-        :desc="stats.total ? `占比 ${Math.round((stats.running / stats.total) * 100)}%` : '暂无服务'"
-        :icon="CircleCheckFilled"
-        icon-color="var(--status-success)"
-      >
-        <template #value><ReCountup :value="stats.running" :duration="600" /></template>
-      </ReStatCard>
-      <ReStatCard size="compact" title="已停止" :value="stats.stopped" desc="可手动或自动启动" :icon="VideoPause" icon-color="var(--text-tertiary)">
-        <template #value><ReCountup :value="stats.stopped" :duration="600" /></template>
-      </ReStatCard>
-      <ReStatCard
-        size="compact"
-        title="异常"
-        :value="stats.error"
-        :desc="stats.unknown ? `另有 ${stats.unknown} 个状态未知` : '需查看失败原因'"
-        :icon="CircleCloseFilled"
-        icon-color="var(--status-error, var(--el-color-danger, #ff4c4c))"
-      >
-        <template #value><ReCountup :value="stats.error" :duration="600" /></template>
-      </ReStatCard>
-      <ReStatCard size="compact" title="已挂插件" :value="stats.plugins" desc="ServerFilter 链" :icon="Connection" icon-color="var(--metric-jvm)">
-        <template #value><ReCountup :value="stats.plugins" :duration="600" /></template>
-      </ReStatCard>
-    </div>
-
-    <!-- 筛选工具条整行进 card：搜索框、协议下拉、计数与操作按钮同属「一组工具」。
-         此前只把两个输入框圈起来，计数文字和操作按钮留在卡外，看上去像
-         「卡片 + 飘着的按钮」两件事；整行一张卡后与上方统计卡、下方表格
-         形成 卡片-卡片-卡片-表格 的稳定节奏。 -->
-    <div class="page-toolbar">
-      <ReInput
-        v-model="keyword"
-        aria-label="搜索服务"
-        placeholder="搜索名称 / 协议 / 监听地址"
-        clearable
-        prefix-icon="Search"
-        class="tb-search"
-      />
-      <ReSelect
-        v-model="filterProtocol"
-        aria-label="按协议筛选"
-        placeholder="全部协议"
-        clearable
-        :data="protocolOptions"
-        class="tb-proto"
-      />
-      <span class="dim tb-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
-      <div class="tb-ops">
-        <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="openCreate" />
-        <ReButton icon="Refresh" layout="square" tip="刷新" :loading="loading" @click="refresh" />
+    <!-- ============ 控制条：一行装下计数、分布、搜索、新增 ============ -->
+    <div class="rack__bar">
+      <div class="rack__counts">
+        <span class="rack__big sv-mono">{{ vm.statusCounts.running }}</span>
+        <span class="rack__of sv-mono">/ {{ vm.stats.total }}</span>
+        <span class="rack__cap">运行中</span>
       </div>
+
+      <!-- 三段分布：宽度就是占比，比再多画两个数字更快读懂「健康度」。
+           为 0 的一段不要渲染：它带着 min-width，会留下一条 2px 的红/灰细线，
+           看着像「有一台异常」 -->
+      <div class="rack__dist" :title="distTitle">
+        <span v-if="vm.statusCounts.running" class="rack__seg is-run" :style="{ flex: vm.statusCounts.running }" />
+        <span v-if="vm.statusCounts.error" class="rack__seg is-err" :style="{ flex: vm.statusCounts.error }" />
+        <span v-if="vm.statusCounts.stopped" class="rack__seg is-stop" :style="{ flex: vm.statusCounts.stopped }" />
+        <span v-if="!vm.stats.total" class="rack__seg is-none" />
+      </div>
+
+      <!-- 宽度写在包一层的 div 上：ReInput / ReSelect 的根节点自己带着 width:100%，
+           把宽度类挂在组件上会被它自己的样式盖掉，输入框就会吃掉整条工具条 -->
+      <div class="rack__search">
+        <ReInput
+          v-model="vm.keyword"
+          aria-label="搜索服务"
+          placeholder="名称 / 端口 / 报错关键字"
+          clearable
+          prefix-icon="Search"
+        />
+      </div>
+      <div class="rack__proto">
+        <ReSelect
+          v-model="vm.protocol"
+          aria-label="按协议筛选"
+          :data="vm.protocolOptions"
+          placeholder="全部协议"
+          clearable
+        />
+      </div>
+      <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="vm.openCreate()" />
+      <ReButton icon="Refresh" layout="square" tip="刷新" :loading="vm.loading" @click="vm.refresh()" />
     </div>
 
-    <!-- 空状态引导：绝对覆盖在表格上方，表格始终渲染 -->
-    <div style="position: relative; min-height: 0; flex: 1 1 0;">
-      <div v-if="!loading && !visibleNodes.length && !keyword && !filterProtocol" class="empty-guide">
-        <div class="eg-icon">
-          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="48" height="48" rx="12" fill="var(--el-color-primary-light-9)" />
-            <path d="M24 14v20M14 24h20" stroke="var(--el-color-primary)" stroke-width="2.5" stroke-linecap="round" />
-          </svg>
+    <div class="rack__body">
+      <!-- ============ 左轨：按状态分组，点击即筛 ============ -->
+      <aside class="rack__rail">
+        <button
+          v-for="tab in statusTabs"
+          :key="tab.value"
+          type="button"
+          class="rail__item"
+          :class="{ 'is-active': vm.status === tab.value }"
+          :aria-pressed="vm.status === tab.value"
+          @click="vm.status = tab.value"
+        >
+          <i class="sv-dot" :class="tab.dot" />
+          <span class="rail__label">{{ tab.label }}</span>
+          <span class="rail__n sv-mono">{{ tab.count }}</span>
+        </button>
+
+        <div class="rail__foot">
+          <span class="sv-faint">已挂插件</span>
+          <span class="sv-mono">{{ vm.stats.plugins }}</span>
         </div>
-        <div class="eg-title">暂无服务</div>
-        <div class="eg-desc">点击下方按钮创建第一个 Server 节点</div>
-        <ReButton show-text icon="Plus" type="primary" @click="openCreate">新增服务</ReButton>
-      </div>
+      </aside>
 
-    <ReTable
-      :data="visibleNodes"
-      :loading="loading"
-      border
-      stripe
-      size="default"
-      empty-text="暂无服务，点击右上角「新增服务」创建"
-      @row-click="openDetail"
-      :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-    >
-      <!-- 状态列：失败原因直接展示。
-         后端 ServerNodeView.error 一直在返回，但列表从不渲染它 ——
-         运维只看到一排红点，得逐个点开详情才知道为什么坏，排障入口白白浪费。 -->
-      <ReTableColumn label="状态" min-width="220">
-        <template #default="{ row }">
-          <div class="status-cell">
-            <span class="status-line">
-              <ReStatusIndicator
-                :type="deriveStatusMeta(row).tone"
-                :pulse="deriveStatusMeta(row).pulse"
-              />
-              {{ deriveStatusMeta(row).text }}
-            </span>
-            <span
-              v-if="deriveStatusMeta(row).reason"
-              class="status-reason"
-              :title="deriveStatusMeta(row).reason"
-            >{{ deriveStatusMeta(row).reason }}</span>
+      <!-- ============ 槽位列表 ============ -->
+      <div class="rack__slots">
+        <article
+          v-for="card in vm.visibleCards"
+          :key="card.id"
+          class="slot"
+          :class="`is-${stateClassOf(card)}`"
+        >
+          <span class="slot__led" :class="stateClassOf(card)" aria-hidden="true" />
+
+          <div class="slot__port">
+            <span class="sv-mono slot__portnum">{{ card.portText }}</span>
+            <span class="sv-proto" :class="{ 'is-proxy': card.isProxy }">{{ card.protocolCode }}</span>
           </div>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn prop="name" label="服务名称" min-width="140" show-overflow-tooltip />
-      <ReTableColumn label="协议" min-width="150" show-overflow-tooltip>
-        <template #default="{ row }">
-          <ReTag :type="isProxyProtocol(row.protocol) ? 'warning' : 'primary'">
-            {{ protocolLabel(row) }}
-          </ReTag>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="引擎" width="80">
-        <template #default="{ row }">
-          <ReText type="info">{{ row.engine || '-' }}</ReText>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="监听地址" min-width="150">
-        <template #default="{ row }"><span class="mono">{{ formatListenText(row) }}</span></template>
-      </ReTableColumn>
-      <ReTableColumn label="插件" width="90">
-        <template #default="{ row }">
-          <ReTag :type="(row.filters?.length ?? 0) > 0 ? 'success' : 'info'">
-            {{ row.filters?.length ?? 0 }}
-          </ReTag>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="访问地址" min-width="180" show-overflow-tooltip>
-        <template #default="{ row }">
-          <ReText v-if="row.serverUrl" type="primary">{{ row.serverUrl }}</ReText>
-          <span v-else class="dim">-</span>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="自动启用" width="90">
-        <template #default="{ row }">
-          <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
-        </template>
-      </ReTableColumn>
-      <!-- 操作列：ERROR 重启 + 启停 + 详情 + 编辑 + 克隆 + 删除 -->
-      <ReTableColumn label="操作" width="280" fixed="right" align="right">
-        <template #default="{ row }">
-          <span class="ops" @click.stop>
-            <!-- ERROR 节点：重启优先 -->
-            <ReButton
-              v-if="row.status === 'ERROR'"
-              icon="Refresh"
-              layout="square"
-              type="warning"
-              tip="重启"
-              :loading="actingId === row.id"
-              @click="onRestart(row)"
-            />
-            <ReButton
-              v-else-if="row.status !== 'RUNNING'"
-              icon="VideoPlay"
-              layout="square"
-              type="success"
-              tip="启动"
-              :loading="actingId === row.id"
-              @click="onStart(row)"
-            />
-            <ReButton
-              v-else
-              icon="VideoPause"
-              layout="square"
-              type="warning"
-              tip="停止"
-              :loading="actingId === row.id"
-              @click="onStop(row)"
-            />
-            <ReButton icon="View" layout="square" type="primary" tip="详情" @click.stop="openDetail(row)" />
-            <ReButton icon="Edit" layout="square" tip="编辑" @click="openEdit(row)" />
-            <ReButton icon="Copy" layout="square" tip="克隆" @click="openClone(row)" />
-            <ReButton
-              icon="Delete"
-              layout="square"
-              type="danger"
-              tip="删除"
-              :loading="actingId === row.id"
-              @click="onDelete(row)"
-            />
+
+          <div class="slot__main">
+            <div class="slot__name">
+              <span class="sv-ellipsis slot__nametext">{{ card.name }}</span>
+              <span v-if="card.remark" class="sv-faint slot__remark sv-ellipsis">{{ card.remark }}</span>
+            </div>
+            <div class="slot__meta sv-mono">
+              <span class="sv-dim">{{ card.listenText }}</span>
+              <span class="sv-faint">·</span>
+              <span class="sv-dim">{{ card.engine }}</span>
+              <!-- 后端目标排在「随进程启动」前面：窄屏时这一行会从右边被截掉，
+                   被截掉的应该是「怎么起」而不是「转发到哪」 -->
+              <template v-if="card.backendText">
+                <span class="sv-faint">·</span>
+                <span class="sv-dim">{{ card.backendText }}</span>
+              </template>
+              <span class="sv-faint">·</span>
+              <span class="sv-dim">{{ card.enabledText }}</span>
+            </div>
+            <div v-if="card.reason" class="slot__err" :title="card.reason">{{ card.reason }}</div>
+          </div>
+
+          <div class="slot__chain sv-chain">
+            <template v-if="card.chips.length">
+              <template v-for="(chip, i) in card.chips" :key="chip.key">
+                <span class="sv-arrow" v-if="i">›</span>
+                <span class="sv-chip" :class="{ 'is-off': !chip.enabled }" :title="chipTitle(chip)"
+                  ><span>{{ chip.text }}</span></span
+                >
+              </template>
+            </template>
+            <span v-else class="sv-faint slot__direct">直通</span>
+          </div>
+
+          <button
+            v-if="card.url"
+            type="button"
+            class="sv-url slot__url"
+            :title="`在新窗口打开 ${card.url}`"
+            @click="openUrl(card.url)"
+          >
+            <span>{{ card.url }}</span>
+          </button>
+          <span v-else class="sv-faint slot__url">无访问地址</span>
+
+          <span class="sv-state slot__state" :class="stateClassOf(card)">
+            <i class="sv-dot" :class="stateClassOf(card)" />
+            {{ card.statusText }}
           </span>
-        </template>
-      </ReTableColumn>
-    </ReTable>
+
+          <div class="sv-ops slot__ops">
+            <ReButton
+              :icon="primaryIcon(card)"
+              layout="square"
+              :type="primaryTone(card)"
+              :tip="primaryLabel(card)"
+              :loading="vm.actingId === card.id"
+              @click="runPrimary(card)"
+            />
+            <ReButton icon="View" layout="square" type="primary" tip="详情" @click="runRow(card, 'detail')" />
+            <ReButton icon="Edit" layout="square" tip="编辑" @click="runRow(card, 'edit')" />
+            <ReButton icon="Copy" layout="square" tip="克隆" @click="runRow(card, 'clone')" />
+            <ReButton icon="Delete" layout="square" type="danger" tip="删除" @click="runRow(card, 'remove')" />
+          </div>
+        </article>
+
+        <div v-if="!vm.visibleCards.length" class="sv-empty">
+          <span class="sv-empty__title">{{ vm.filtered ? '没有匹配的服务' : '还没有服务节点' }}</span>
+          <span class="sv-empty__desc">
+            {{
+              vm.filtered
+                ? '当前搜索 / 协议 / 状态条件下一个都没命中。清掉条件，或确认该协议是否真的没建过节点。'
+                : '服务节点就是「在某个端口上听某个协议」。建第一个之前，先想清楚要暴露哪个协议与端口。'
+            }}
+          </span>
+          <ReButton v-if="vm.filtered" show-text icon="Refresh" @click="vm.resetFilters()">清空条件</ReButton>
+          <ReButton v-else show-text icon="Plus" type="primary" @click="vm.openCreate()">新增服务</ReButton>
+        </div>
+      </div>
     </div>
 
     <ScServerFormDrawer
-      v-model="formVisible"
-      :node="editingNode"
-      :protocols="protocols"
-      :filter-types="filterTypes"
-      :existing-names="existingNamesForDrawer"
-      :clone-source="editingNode?.id === 0 ? editingNode : null"
-      @saved="refresh"
+      v-model="vm.formVisible"
+      :node="vm.editingNode"
+      :protocols="vm.protocols"
+      :filter-types="vm.filterTypes"
+      :existing-names="vm.existingNames"
+      :clone-source="vm.editingNode?.id === 0 ? vm.editingNode : null"
+      @saved="vm.refresh()"
     />
 
     <ScServerDetailDrawer
-      v-model="detailVisible"
-      :node-id="detailNodeId"
-      :filter-types="filterTypes"
-      @changed="refresh"
-      @open-detail-page="openDetailPage"
+      v-model="vm.detailVisible"
+      :node-id="vm.detailNodeId"
+      :filter-types="vm.filterTypes"
+      @changed="vm.refresh()"
+      @open-detail-page="vm.openDetailPage"
     />
   </div>
 </template>
@@ -560,194 +341,306 @@ function openDetailPage(row: ServerNodeView, index: number) {
   min-height: 0;
 }
 
-/* 统计卡：毛玻璃 + 渐变光晕 + 霓虹边框 */
-.stats-grid,
-.page-toolbar,
 .load-notice {
+  flex: none;
+  margin: 0;
+}
+
+/* ============ 控制条 ============ */
+.rack__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding: 8px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.rack__counts {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   flex: none;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+.rack__big {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--el-text-color-primary);
 }
 
-/* 统计卡科技感：毛玻璃 + 霓虹左边框 + 悬浮发光 */
-.stats-grid :deep(.re-stat-card) {
-  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--el-border-color-lighter));
-  border-left: 3px solid var(--el-color-primary);
-  border-radius: var(--el-radius-lg);
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease,
-    transform 0.25s ease;
-  &:hover {
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
-    transform: translateY(-2px);
-  }
+.rack__of {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
 }
 
-/* 表格科技感：表头渐变、行悬浮发光、选中行高亮 */
-.service-manage :deep(.re-table) {
+.rack__cap {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.rack__dist {
+  display: flex;
+  gap: 2px;
+  flex: 1 1 120px;
+  max-width: 260px;
+  min-width: 80px;
+  height: 6px;
+}
+
+.rack__seg {
+  min-width: 2px;
+  border-radius: 3px;
+  transition: flex 240ms ease-out;
+}
+
+.rack__seg.is-run {
+  background: var(--status-success, var(--el-color-success));
+}
+
+.rack__seg.is-err {
+  background: var(--status-error, var(--el-color-danger));
+}
+
+.rack__seg.is-stop {
+  background: var(--el-border-color);
+}
+
+.rack__seg.is-none {
+  flex: 1;
+  background: var(--el-fill-color);
+}
+
+.rack__search {
+  flex: none;
+  width: 240px;
+  margin-left: auto;
+}
+
+.rack__proto {
+  flex: none;
+  width: 190px;
+}
+
+/* ============ 主体 ============ */
+.rack__body {
+  display: flex;
   flex: 1 1 0;
+  gap: 10px;
   min-height: 0;
 }
-.service-manage :deep(.el-table__header th) {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color-primary) 8%, var(--el-table-header-bg-color)) 0%,
-    color-mix(in srgb, var(--el-color-primary) 4%, var(--el-table-header-bg-color)) 100%) !important;
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.3px;
-}
-.service-manage :deep(.el-table__row) {
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  &:hover td {
-    background-color: color-mix(in srgb, var(--el-color-primary) 5%, transparent) !important;
-  }
-  &.current-row td,
-  &.hover-row td {
-    background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
-  }
-}
 
-/* 筛选工具条：渐变边框 + 扫描线动画 */
-.page-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-lg, 12px);
-  padding: 8px 12px;
-  position: relative;
-  overflow: hidden;
-  /* 顶部科技感渐变光带 */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg,
-      transparent 0%,
-      var(--el-color-primary-light-5) 30%,
-      var(--el-color-primary) 50%,
-      var(--el-color-primary-light-5) 70%,
-      transparent 100%);
-    opacity: 0.7;
-  }
-  /* 扫描线动画 */
-  &::after {
-    content: '';
-    position: absolute;
-    top: -100%;
-    left: 0;
-    right: 0;
-    height: 60%;
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      color-mix(in srgb, var(--el-color-primary) 4%, transparent) 50%,
-      transparent 100%
-    );
-    animation: toolbar-scan 4s ease-in-out infinite;
-    pointer-events: none;
-  }
-}
-@keyframes toolbar-scan {
-  0%   { top: -60%; }
-  100% { top: 160%; }
-}
-
-/* 工具条内部布局 */
-.tb-search { width: 260px; }
-.tb-proto { width: 240px; }
-.tb-meta { margin-left: auto; white-space: nowrap; font-size: 12px; color: var(--el-text-color-secondary); font-family: ui-monospace, monospace; }
-.tb-ops {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 10px;
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-.ops { display: inline-flex; align-items: center; gap: 8px; }
-.ops :deep(.re-button) { cursor: pointer; }
-
-/* 状态列：霓虹光晕状态灯 */
-.status-cell {
+.rack__rail {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: none;
+  width: 150px;
+  padding: 6px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: 0;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  text-align: left;
+}
+
+.rail__item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.rail__item.is-active {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 9%, transparent);
+}
+
+.rail__item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -1px;
+}
+
+.rail__label {
+  flex: 1 1 auto;
+}
+
+.rail__n {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+.rail__item.is-active .rail__n {
+  color: var(--el-color-primary);
+}
+
+.rail__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 8px 8px 2px;
+  font-size: 11px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* ============ 槽位 ============ */
+.rack__slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.slot {
+  display: grid;
+  grid-template-columns: 3px 92px minmax(200px, 1.5fr) minmax(110px, 0.9fr) minmax(120px, 0.9fr) 84px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  transition: border-color 160ms ease-out;
+}
+
+.slot:hover {
+  border-color: var(--el-border-color);
+}
+
+/* 左侧那道灯条：状态的三档在扫视时最先被看到，比文字更快 */
+.slot__led {
+  width: 3px;
+  height: 30px;
+  border-radius: 2px;
+  background: var(--el-border-color);
+}
+
+.slot__led.is-run {
+  background: var(--status-success, var(--el-color-success));
+}
+
+.slot__led.is-err {
+  background: var(--status-error, var(--el-color-danger));
+}
+
+.slot__port {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.slot__portnum {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--el-text-color-primary);
+}
+
+.slot__main {
   min-width: 0;
 }
-.status-line {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  /* 霓虹光晕：状态灯周围有一圈微光 */
-  padding: 3px 8px;
-  border-radius: var(--el-radius-base, 4px);
-  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+
+.slot__name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
-.status-reason {
-  font-size: 12px;
+
+.slot__nametext {
+  flex: 0 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.slot__remark {
+  flex: 1 1 auto;
+  max-width: 45%;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.slot__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.slot__err {
+  margin-top: 3px;
+  font-size: 11px;
   line-height: 1.4;
-  color: var(--el-color-danger);
+  color: var(--status-error, var(--el-color-danger));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* 空状态：科技感网格背景 */
-.empty-guide {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 48px 24px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-lg, 12px);
-  text-align: center;
-  pointer-events: none;
-  overflow: hidden;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(var(--el-border-color-subtle) 1px, transparent 1px),
-      linear-gradient(90deg, var(--el-border-color-subtle) 1px, transparent 1px);
-    background-size: 28px 28px;
-    opacity: 0.4;
-    animation: grid-drift 20s linear infinite;
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--el-color-primary) 6%, transparent) 0%, transparent 70%);
-  }
+.slot__direct {
+  font-size: 11px;
 }
-@keyframes grid-drift {
-  0%   { background-position: 0 0; }
-  100% { background-position: 28px 28px; }
-}
-.empty-guide > * { pointer-events: auto; position: relative; z-index: 1; }
-.eg-icon svg { width: 64px; height: 64px; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--el-color-primary) 40%, transparent)); }
-.eg-title { font-size: 20px; font-weight: 700; color: var(--el-text-color-primary); letter-spacing: 0.5px; }
-.eg-desc { font-size: 13px; color: var(--el-text-color-secondary); margin-bottom: 4px; }
 
-.load-notice {
-  margin: 0;
+.slot__url {
+  font-size: 11px;
+}
+
+.slot__ops {
+  justify-self: end;
+}
+
+/* ============ 窄屏 ============ */
+@media (max-width: 1180px) {
+  .slot {
+    grid-template-columns: 3px 84px minmax(0, 1fr) 80px auto;
+  }
+
+  .slot__chain,
+  .slot__url {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .rack__dist {
+    display: none;
+  }
+
+  .rack__body {
+    flex-direction: column;
+  }
+
+  .rack__rail {
+    flex-direction: row;
+    width: auto;
+    overflow-x: auto;
+  }
+
+  .rail__foot {
+    display: none;
+  }
 }
 </style>
