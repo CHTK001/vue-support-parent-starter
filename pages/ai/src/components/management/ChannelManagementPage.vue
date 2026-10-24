@@ -806,6 +806,11 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
               · 绑定新账号
             </span>
           </div>
+          <!-- 秒表时钟（Console 仪表） -->
+          <span v-if="bindPhase !== 'error'" class="chm-bind__clock">
+            <span class="chm-bind__clock-label">已等待</span>
+            <b class="chm-bind__clock-value">{{ bindElapsed }}s</b>
+          </span>
         </div>
       </template>
 
@@ -813,13 +818,17 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
         <!-- 状态带 -->
         <div class="chm-bind__status" :class="{ 'is-error': bindPhase === 'error' }">
           <span class="chm-bind__dot" :class="{ 'is-error': bindPhase === 'error' }" />
-          <span v-if="bindPhase === 'starting'">正在创建登录会话…</span>
-          <span v-else-if="bindPhase === 'error'">失败：{{ bindError }}</span>
-          <span v-else-if="isApiKeyBind()">请填写 API key 后提交</span>
-          <span v-else-if="isQrBind()">请用微信扫码授权</span>
-          <span v-else-if="callbackAuto(bindChannel)">已打开授权页，完成后会自动绑定（无需回到本页）</span>
-          <span v-else>已打开授权页，请在那里完成登录</span>
-          <span class="chm-bind__elapsed" v-if="bindPhase === 'waiting'">{{ bindElapsed }}s</span>
+          <span class="chm-bind__status-text">
+            <span v-if="bindPhase === 'starting'">正在创建登录会话…</span>
+            <span v-else-if="bindPhase === 'error'">失败：{{ bindError }}</span>
+            <span v-else-if="isApiKeyBind()">请填写 API key 后提交</span>
+            <span v-else-if="isQrBind()">请用微信扫码授权</span>
+            <span v-else-if="callbackAuto(bindChannel)">已打开授权页，完成后会自动绑定（无需回到本页）</span>
+            <span v-else>已打开授权页，请在那里完成登录</span>
+          </span>
+          <span class="chm-bind__meter" :class="{ 'is-error': bindPhase === 'error' }">
+            <i :class="{ 'is-error': bindPhase === 'error' }" />
+          </span>
         </div>
 
         <div class="chm-bind__stage">
@@ -1465,10 +1474,62 @@ const pendingCallbackFor = (channel: string) => pendingCallback.value[channel] ?
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
 }
-.chm-bind__elapsed {
+/* 状态文字：可截断（仪表行） */
+.chm-bind__status-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 仪表进度条：等待时蓝色滑动，错误时红色满格 */
+.chm-bind__meter {
+  flex: none;
+  width: 72px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-subtle, #eef2f8);
+  overflow: hidden;
+}
+.chm-bind__meter i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--brand-500, #3b82f6);
+  animation: chm-meter 1.6s ease-in-out infinite;
+}
+.chm-bind__meter.is-error i {
+  background: var(--el-color-danger, #f56c6c);
+  animation: none;
+  width: 100%;
+}
+@keyframes chm-meter {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
+}
+/* 秒表时钟（Console 仪表） */
+.chm-bind__clock {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   margin-left: auto;
-  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 6px;
+  background: var(--bg-elevated, #f8fafc);
+}
+.chm-bind__clock-label {
+  font-size: 11px;
   color: var(--text-tertiary, #94a3b8);
+}
+.chm-bind__clock-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #0f172a);
 }
 /* 阶段内容区 */
 .chm-bind__stage {
