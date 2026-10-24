@@ -110,6 +110,9 @@ function openMenu(event: MouseEvent, tab: ReTabsItem): void {
   if (!props.contextMenu.length) return;
   event.preventDefault();
   event.stopPropagation();
+  // 右键先切到该页签：菜单项的可用态（能否「关闭其他 / 关闭右侧」）由父级按当前页签算，
+  // 若不先切，右键一个未激活的页签会拿到另一个页签的菜单状态。
+  if (tab.name !== props.modelValue && !tab.disabled) emit("update:modelValue", tab.name);
   let x = event.clientX;
   let y = event.clientY;
   if (x + MENU_W > window.innerWidth - 8) x = window.innerWidth - MENU_W - 8;
@@ -245,8 +248,6 @@ function statusClass(status?: string | null): string {
             <ReIcon name="Close" :size="10" />
           </button>
         </div>
-
-        <span v-if="!tabs.length" class="re-tabs__placeholder">{{ emptyText }}</span>
       </div>
 
       <button
@@ -510,14 +511,6 @@ function statusClass(status?: string | null): string {
 .re-tabs__close:hover {
   background: var(--el-fill-color-darker);
   color: var(--el-color-danger);
-}
-
-.re-tabs__placeholder {
-  align-self: center;
-  padding: 0 10px;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  white-space: nowrap;
 }
 
 /* ===== 滚动按钮 ===== */

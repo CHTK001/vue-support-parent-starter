@@ -115,7 +115,7 @@
            toolbar=false 保持本页按钮清单不变。 -->
       <ReTable
         :data="filteredTasks" :columns="taskColumns" :loading="loading"
-        :page-size="8" page-sizes="[8, 20, 50]" :toolbar="false"
+        :page-size="8" :page-sizes="[8, 20, 50]" :toolbar="false"
         table-id="monitor-sync-tasks" stripe
         empty-text="没有符合条件的同步任务"
       >
@@ -208,7 +208,7 @@
             <div class="st-acts">
               <ReButton
                 layout="square" icon="VideoPlay" tip="立即执行"
-                :loading="runningId === row.id" :disabled="row.syncTaskEnabled !== 1"
+                :loading="runningId === row.id" :disabled="runningId === row.id"
                 @click="run(row)"
               />
               <ReButton layout="square" icon="Document" tip="日志" @click="openLog(row)" />
@@ -476,9 +476,21 @@
               v-for="(target, index) in form.targets"
               :key="index"
               class="st-target"
-              :class="{ 'is-active': index === activeTargetIndex }"
+              :class="{ 'is-active': isTargetOpen(index) }"
             >
-              <div class="st-target-head" @click="selectTarget(index)">
+              <div
+                class="st-target-head"
+                role="button" tabindex="0"
+                :aria-expanded="isTargetOpen(index)"
+                :aria-controls="`st-target-body-${index}`"
+                @click="toggleTarget(index)"
+                @keydown.enter.prevent="toggleTarget(index)"
+                @keydown.space.prevent="toggleTarget(index)"
+              >
+                <ReIcon
+                  class="st-target-chevron" :class="{ 'is-open': isTargetOpen(index) }"
+                  :name="isTargetOpen(index) ? 'arrow-down' : 'arrow-right'" :size="13"
+                />
                 <span class="st-target-idx">{{ index + 1 }}</span>
                 <span class="st-target-name">
                   <b :title="target.targetTable || '未选择表'">
@@ -499,7 +511,7 @@
                   </el-tag>
                 </span>
                 <span class="st-target-acts">
-                  <span class="st-target-open">{{ index === activeTargetIndex ? "编辑中" : "编辑" }}</span>
+                  <span class="st-target-open">{{ isTargetOpen(index) ? "收起" : "展开" }}</span>
                   <ReButton
                     v-if="form.targets.length > 1"
                     layout="square" type="danger" icon="Delete" tip="删除该目标"
@@ -508,7 +520,7 @@
                 </span>
               </div>
 
-              <div v-if="index === activeTargetIndex" class="st-target-body">
+              <div v-show="isTargetOpen(index)" :id="`st-target-body-${index}`" class="st-target-body">
                 <div class="st-grid">
                   <div class="st-form-item">
                     <label>目标数据源（jdbc）</label>
@@ -530,31 +542,32 @@
                     <label>写入模式</label>
                     <el-select v-model="activeTarget.writeMode" class="st-full">
                       <el-option
-                        v-for="m in writeModes"
+                        v-for="m in writeModesFor(activeTarget)"
                         :key="m.code"
                         :label="m.label + '（' + m.code + '）'"
                         :value="m.code"
-                        :disabled="m.code === 'OVERWRITE' && activeTarget.syncMode === 'INCREMENTAL'"
                       />
                     </el-select>
                     <div class="st-form-hint" v-if="activeTarget.syncMode === 'INCREMENTAL'">
-                      「先清空再插入」与增量水位互斥（每批都会清空目标表），已置灰。
+                      「先清空再插入」与增量水位互斥（每批都会清空目标表），增量模式下不提供该写入模式。
                     </div>
                   </div>
                   <div class="st-form-item">
                     <label>同步模式</label>
                     <el-select v-model="activeTarget.syncMode" class="st-full" @change="onSyncModeChange">
                       <el-option label="全量（每次读取全部源数据）" value="FULL" />
+                      <!-- 不支持增量的输入源直接不提供该选项：给一个永远选不了的灰项只会让人反复点 -->
                       <el-option
+                        v-if="incrementalSourceSupported"
                         label="增量（按增量字段水位取新数据）"
                         value="INCREMENTAL"
-                        :disabled="!incrementalSourceSupported"
                       />
                     </el-select>
                   </div>
                 </div>
 
-                <div class="st-grid">
+                <!-- 增量专属配置：全量模式直接不渲染，避免出现一整片灰控件 -->
+                <div v-if="activeTarget.syncMode === 'INCREMENTAL'" class="st-grid">
                   <div class="st-form-item">
                     <label>增量字段</label>
                     <el-select
@@ -566,7 +579,6 @@
                       collapse-tags
                       collapse-tags-tooltip
                       class="st-full"
-                      :disabled="activeTarget.syncMode !== 'INCREMENTAL'"
                       placeholder="从源结果集列中选择（可多选，按选择顺序生效）"
                     >
                       <el-option
@@ -576,7 +588,7 @@
                         :value="col.name"
                       />
                     </el-select>
-                    <div class="st-form-hint" v-if="activeTarget.syncMode === 'INCREMENTAL'">
+                    <div class="st-form-hint">
                       <template v-if="activeTarget.incFields.length > 1">
                         复合水位（按此顺序比较）：<b>{{ incFieldOrderText }}</b>；前一个字段相等时才比较后一个，同一时间戳内不会漏行。
                       </template>
@@ -584,25 +596,28 @@
                       <template v-if="activeTarget.lastSeq"><b>当前水位：{{ activeTarget.lastSeq }}</b>（改动字段会清空水位）</template>
                       <template v-else>尚无水位，首跑按升序分批引导。</template>
                     </div>
-                    <div class="st-form-hint" v-else>
-                      <template v-if="incrementalSourceSupported">
-                        当前目标按全量执行；切换为增量后有源结果集列可选。
-                      </template>
-                      <template v-else>当前输入源不支持增量（仅 JDBC / HTTP 源可用）。</template>
-                    </div>
                   </div>
                   <div class="st-form-item">
                     <label>每批数量（留空不限）</label>
                     <el-input-number
                       v-model="activeTarget.incBatchSize" :min="1" :max="100000000" :step="1000"
                       controls-position="right" class="st-full"
-                      :disabled="activeTarget.syncMode !== 'INCREMENTAL'"
                       placeholder="留空表示不限"
                     />
-                    <div class="st-form-hint" v-if="activeTarget.syncMode === 'INCREMENTAL'">
+                    <div class="st-form-hint">
                       积压数据分轮自动消化：每轮取最老的 N 条并推进水位，下一轮接着往后，不漏不重。
                     </div>
                   </div>
+                </div>
+                <!-- 全量模式下给一句说明即可，不再摆一排禁用控件 -->
+                <div v-else class="st-form-hint">
+                  <template v-if="incrementalSourceSupported">
+                    当前目标按全量执行；切换为增量后才有增量字段与每批上限可配。
+                  </template>
+                  <template v-else>当前输入源不支持增量（仅 JDBC / HTTP 源可用）。</template>
+                </div>
+
+                <div class="st-grid">
                   <div class="st-form-item">
                     <label>批量提交条数</label>
                     <el-input-number v-model="activeTarget.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
@@ -707,11 +722,14 @@
 
           <!-- 批量提交条数属于「每个目标各自的写入参数」，已在第②步的目标里配置；
                这里只放任务级调度与 Hook 通知。 -->
-          <div class="st-form-item st-switch-item">
+          <!-- 启用定时的开关只在填了 cron 时才出现：没填 cron 时它永远开不了，
+               摆一个点不动的灰开关没有意义，直接不渲染。 -->
+          <div v-if="form.cron.trim()" class="st-form-item st-switch-item">
             <label>启用定时</label>
-            <el-switch v-model="form.enabled" aria-label="启用定时" :disabled="!form.cron.trim()" />
-            <span class="st-form-hint">未填定时表达式时不能启用</span>
+            <el-switch v-model="form.enabled" aria-label="启用定时" />
+            <span class="st-form-hint">开启后按上面的 cron 自动执行；关闭则只保留手动执行。</span>
           </div>
+          <div v-else class="st-form-hint">未填定时表达式，保存后只能手动执行。</div>
 
           <!-- Hook HTTP 回调：旁路通知，发送失败只记日志不影响同步结果 -->
           <div class="st-form-item">
@@ -722,18 +740,21 @@
             />
             <div class="st-form-hint">每轮执行结束向该地址 JSON POST 执行结果（成功/失败都发）；增量选「每条」时每写入一条再推一条。</div>
           </div>
-          <div v-if="form.hookUrl.trim()" class="st-form-item">
+          <!-- 通知时机只在「有增量目标」时才有意义：全量固定 DONE，
+               所以全量时直接不渲染这个下拉，而不是摆一个选不动的灰控件。 -->
+          <div v-if="form.hookUrl.trim() && anyIncrementalTarget" class="st-form-item">
             <label>通知时机</label>
-            <el-select v-model="form.hookNotify" class="st-full" :disabled="!anyIncrementalTarget">
+            <el-select v-model="form.hookNotify" class="st-full">
               <el-option label="完成通知（每轮一条，成功/失败各带 status）" value="DONE" />
               <el-option label="每条数据 + 完成通知" value="ROW" />
             </el-select>
             <div class="st-form-hint">
-              {{ !anyIncrementalTarget
-                ? '全部目标都是全量模式时固定为完成通知。'
-                : '有增量目标时可逐条推送（异步发送，慢接收端不拖累同步吞吐；队列满丢通知不丢数据）。' }}
+              有增量目标时可逐条推送（异步发送，慢接收端不拖累同步吞吐；队列满丢通知不丢数据）。
               通知失败只记日志，不影响同步。
             </div>
+          </div>
+          <div v-else-if="form.hookUrl.trim()" class="st-form-hint">
+            全部目标都是全量模式，通知时机固定为「完成通知」。
           </div>
         </template>
       </div>
@@ -860,7 +881,7 @@
           <ReButton
             v-if="logTask" type="primary"
             :loading="runningId === logTask.id"
-            :disabled="logTask.syncTaskEnabled !== 1"
+            :disabled="runningId === logTask.id"
             @click="runFromLog"
           >立即执行</ReButton>
         </div>
@@ -1100,6 +1121,17 @@ const form = reactive({
 
 /** 当前展开编辑的目标下标（方案 D：汇总行 + 折叠编辑） */
 const activeTargetIndex = ref(0);
+/**
+ * 当前目标是否展开。
+ *
+ * <p>同时只展开一个：编辑区绑的是单个 activeTarget（表清单、预览、字段映射都是
+ * 按目标单独加载的单例状态），允许多个同时展开会让每个编辑区都显示并改写同一个
+ * 目标——界面直接说谎。因此这里做「手风琴 + 可全部收起」：点开新的自动收起旧的，
+ * 再点自己则收起，全部收起时只剩摘要行，目标再多也不会把弹窗撑成一条长表单。</p>
+ */
+const targetExpanded = ref(true);
+/** 某个目标是否展开 */
+const isTargetOpen = (index: number): boolean => index === activeTargetIndex.value && targetExpanded.value;
 /** 当前编辑的目标；targets 恒有 1 项，故不会为 undefined */
 const activeTarget = computed<TargetForm>(() => form.targets[activeTargetIndex.value] ?? form.targets[0]);
 
@@ -1127,21 +1159,28 @@ const addTarget = () => {
     targetDatasourceId: base.targetDatasourceId,
     batchSize: base.batchSize,
   });
-  activeTargetIndex.value = form.targets.length - 1;
-  void loadTables(form.targets[activeTargetIndex.value].targetDatasourceId, true);
+  const index = form.targets.length - 1;
+  activeTargetIndex.value = index;
+  // 新加的目标自动展开，方便立刻填表
+  targetExpanded.value = true;
+  void loadTables(form.targets[index].targetDatasourceId, true);
 };
 
 /**
- * 切换到某个目标编辑
+ * 切换某个目标的展开 / 收起
  *
- * <p>各目标的数据源可能不同，目标表下拉必须跟着换：不重载的话展开另一个目标会看到
- * 上一个目标的表清单。</p>
+ * <p>点开新目标会自动收起旧目标（编辑区只能对应一个目标）；再点当前已展开的
+ * 目标则收起它，允许全部收起，只留摘要行。</p>
  *
  * @param index 目标下标
  */
-const selectTarget = (index: number) => {
-  if (index === activeTargetIndex.value) return;
+const toggleTarget = (index: number) => {
+  if (index === activeTargetIndex.value) {
+    targetExpanded.value = !targetExpanded.value;
+    return;
+  }
   activeTargetIndex.value = index;
+  targetExpanded.value = true;
   targetTables.value = [];
   void loadTables(form.targets[index].targetDatasourceId, true);
 };
@@ -1159,6 +1198,8 @@ const removeTarget = (index: number) => {
   form.targets.splice(index, 1);
   // 删除后下标可能越界：收敛到最后一个，避免 activeTarget 落到空对象上
   activeTargetIndex.value = Math.min(activeTargetIndex.value, form.targets.length - 1);
+  // 删掉的正好是展开项时，把编辑区落到收敛后的目标上，避免出现「无目标展开」的空面板
+  targetExpanded.value = true;
   void loadTables(activeTarget.value.targetDatasourceId, true);
 };
 
@@ -1539,13 +1580,13 @@ const nameFilter = ref("");
  * 单元格内容一律走 {@code #col-<prop>} 插槽；宽度 / 对齐 / 固定列与 UI 图逐列一致。</p>
  */
 const taskColumns: ReTableColumn[] = [
-  { prop: "task", label: "任务", minWidth: 230 },
-  { prop: "flow", label: "数据流向", minWidth: 250 },
-  { prop: "writeMode", label: "写入模式", width: 118, align: "center" },
-  { prop: "cron", label: "定时", width: 150 },
-  { prop: "enabled", label: "启用", width: 78, align: "center" },
-  { prop: "lastRun", label: "最近执行", minWidth: 260 },
-  { prop: "actions", label: "操作", width: 170, fixed: "right", align: "center" },
+  { prop: "task", label: "任务", minWidth: 180 },
+  { prop: "flow", label: "数据流向", minWidth: 180 },
+  { prop: "writeMode", label: "写入模式", width: 100, align: "center" },
+  { prop: "cron", label: "定时", width: 110 },
+  { prop: "enabled", label: "启用", width: 66, align: "center" },
+  { prop: "lastRun", label: "最近执行", minWidth: 176 },
+  { prop: "actions", label: "操作", width: 150, fixed: "right", align: "center" },
 ];
 /**
  * 字段映射列（编辑弹窗第 ② 步）：三列全是自定义控件（两个下拉 + 删除按钮），
@@ -1583,12 +1624,27 @@ const refreshedText = computed(() => {
 });
 /** 写入模式下拉项（来自字典，附「全部」项已在模板里单独给） */
 const writeModeOptions = computed(() => writeModes.value.map(m => ({ label: m.label, value: m.code })));
+/**
+ * 某个目标可选的写入模式。
+ *
+ * <p>「先清空再插入」（OVERWRITE）与增量水位互斥：增量每批都会清空目标表，
+ * 配在一起只会把数据清光。这种组合不是「暂时不可用」，而是根本不成立，
+ * 因此增量模式下直接不列出该项，而不是列出来再置灰。</p>
+ *
+ * @param target 目标草稿
+ */
+const writeModesFor = (target: TargetForm): SyncWriteMode[] =>
+  target.syncMode === "INCREMENTAL"
+    ? writeModes.value.filter(m => m.code !== "OVERWRITE")
+    : writeModes.value;
 /** 运行中的任务：本地点击「立即执行」期间标记，后端无 RUNNING 状态字段 */
 const runningIds = ref<Set<number>>(new Set());
 /** 任务状态归类 */
 function statusOf(row: SyncTask): Exclude<StatusKey, "all"> {
-  if (row.syncTaskEnabled !== 1) return "disabled";
+  // 执行中优先于启用态：停用只代表没有定时调度，手动「立即执行」照常可跑，
+  // 因此停用任务执行期间也必须计入「运行中」，否则 KPI 与分段计数会漏掉它。
   if (runningIds.value.has(row.id)) return "running";
+  if (row.syncTaskEnabled !== 1) return "disabled";
   if (row.syncTaskLastStatus === "SUCCESS") return "success";
   if (row.syncTaskLastStatus) return "failed";
   // 启用但从未执行：算「成功」会让成功率虚高，算「失败」会误报，统一归入成功之外的独立态
@@ -1900,9 +1956,11 @@ const refresh = async () => {
   loading.value = true;
   try {
     tasks.value = await fetchSyncTasks();
-    // 「N 分钟前更新」的时间戳；顺手清掉已结束的执行中标记
+    // 「N 分钟前更新」的时间戳。
+    // 这里**不能**清空 runningIds：refresh 可能在别的任务仍在执行时被调用
+    // （手动刷新、重试其它任务、日志轮询），清空会把在跑的任务误判成已结束。
+    // 执行中的标记只由 run() 的 finally 在本次请求真正返回后移除。
     refreshedAt.value = Date.now();
-    runningIds.value = new Set();
     // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）
     bannerDismissed.value = false;
   } catch (e) {
@@ -2195,6 +2253,7 @@ const openCreate = () => {
     },
   ];
   activeTargetIndex.value = 0;
+  targetExpanded.value = true;
   form.hookUrl = "";
   form.hookNotify = "DONE";
   form.cron = "";
@@ -2265,6 +2324,7 @@ const openEdit = (row: SyncTask) => {
     ];
   }
   activeTargetIndex.value = 0;
+  targetExpanded.value = true;
   form.hookUrl = row.syncTaskHookUrl || "";
   form.hookNotify = row.syncTaskHookNotify === "ROW" ? "ROW" : "DONE";
   form.cron = row.syncTaskCron || "";
@@ -2799,6 +2859,11 @@ const run = async (row: SyncTask) => {
     message.error("执行失败：" + errText);
   } finally {
     runningId.value = null;
+    // 只移除本次任务的标记：原来靠 refresh() 整体清空，但 refresh 可能在其它任务
+    // 仍在执行时被调用（手动刷新 / 重试），那样会把在跑的任务误判成已结束。
+    const rest = new Set(runningIds.value);
+    rest.delete(row.id);
+    runningIds.value = rest;
     await refresh();
   }
 };
@@ -3238,7 +3303,13 @@ onUnmounted(() => {
   border-radius: 10px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
+  /* 窄屏放不下时横向滚动，而不是把每个按钮压成竖排单字 */
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.st-segments::-webkit-scrollbar { display: none; }
 .st-seg {
   display: inline-flex;
   align-items: center;
@@ -3251,6 +3322,9 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--text-secondary);
   transition: background 0.15s ease, color 0.15s ease;
+  /* 关键：不允许按钮内部文字换行（否则窄屏会一字一行） */
+  white-space: nowrap;
+  flex: none;
 }
 .st-seg:hover { color: var(--text-primary); }
 .st-seg.on {
@@ -3268,6 +3342,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   flex: none;
+}
+/* 窄屏：筛选条改为两行堆叠，各控件按可用宽度伸缩，不再被压成竖排单字 */
+@media (max-width: 900px) {
+  .st-filter-bar { flex-direction: column; align-items: stretch; }
+  .st-filter-right { flex-wrap: wrap; }
+  .st-filter-right :deep(.st-filter-sel) { width: 148px; }
+  .st-filter-right :deep(.st-search) { width: auto; flex: 1 1 180px; min-width: 0; }
+}
+@media (max-width: 620px) {
+  .st-filter-right :deep(.st-filter-sel) { width: calc(50% - 5px); }
+  .st-filter-right :deep(.st-search) { flex-basis: 100%; }
 }
 /* 必须用 :deep 抬高特异性并落在**后代**上：ReSelect 根同时挂自己的 data-v，
    父级 data-v 回落属性不保证在它身上（实测 .st-filter-sel[data-v-父] 匹配不上、
@@ -3417,8 +3502,8 @@ onUnmounted(() => {
 .st-warn { font-size: 12px; color: var(--el-color-warning); background: var(--el-color-warning-light-9); border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; }
 
 /* 多目标「方案 D：汇总折叠」——一行一个目标的摘要，点开后在行内编辑该目标的完整配置。
-   摘要行常显（数据源 / 表 / 写入模式 / 同步模式 / 映射条数），展开体只渲染当前那一项，
-   因此多目标不会把弹窗撑成一条长长的表单。 */
+   摘要行常显（数据源 / 表 / 写入模式 / 同步模式 / 映射条数）；同时只展开一个，
+   但可以全部收起（再点自己即收起），目标再多也只占摘要行的高度。 */
 .st-targets { display: flex; flex-direction: column; gap: 10px; }
 .st-target {
   border: 1px solid var(--border-subtle);
@@ -3432,6 +3517,17 @@ onUnmounted(() => {
   padding: 10px 12px; cursor: pointer; user-select: none;
 }
 .st-target.is-active .st-target-head { background: var(--el-color-primary-light-9); }
+/* 开合箭头：展开朝下、收起朝右，随展开状态过渡 */
+.st-target-chevron {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.st-target.is-active .st-target-chevron { color: var(--el-color-primary); }
+.st-target-head:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
 .st-target-idx {
   flex: none; width: 20px; height: 20px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;

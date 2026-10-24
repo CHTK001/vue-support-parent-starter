@@ -8,6 +8,11 @@
 
   数据来源：@pages/filesystem/api/filestorageApi 的 uploadTask* 系列（Spring 侧接口，
   走应用登录态，与文件服务器直连通道无关）。
+
+  【重构 2026-10-24 · 紧凑台账 Ledger】文件记录区改为高密度台账：
+    文件名 + 说明（objectKey/message）合并为一列、bucket 徽标化、
+    分片与百分比并入进度条一格、状态用色点 + 文字。
+    数据点零丢失：文件名/大小/bucket/分片/进度/状态/说明/取消全部保留。
 -->
 <template>
   <div class="upload-task-page">
@@ -94,7 +99,7 @@
       />
     </div>
 
-    <!-- 任务列表 -->
+    <!-- 文件记录（紧凑台账） -->
     <div class="table-card koi-card">
       <div class="ut-list-header">
         <span class="ut-list-title">文件记录</span>
@@ -112,36 +117,50 @@
             <el-button size="small" type="primary" @click="pickFiles">选择文件上传</el-button>
           </ReEmpty>
         </template>
-        <el-table-column prop="fileName" label="文件名" min-width="220" show-overflow-tooltip />
-        <el-table-column label="大小" width="110">
+        <!-- 文件名 + 说明（objectKey / message）并入一列，保证不丢数据 -->
+        <el-table-column prop="fileName" label="文件名" min-width="240" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div class="ld-name">{{ row.fileName }}</div>
+            <div v-if="row.message || row.objectKey" class="ld-sub" :title="row.message || row.objectKey">
+              {{ row.message || row.objectKey }}
+            </div>
+          </template>
+        </el-table-column>
+        <!-- 大小 -->
+        <el-table-column label="大小" width="92" align="right">
           <template #default="{ row }">{{ formatSize(row.totalSize) }}</template>
         </el-table-column>
-        <el-table-column label="bucket" width="120">
-          <template #default="{ row }">{{ row.provider || "默认" }}</template>
-        </el-table-column>
-        <el-table-column label="分片" width="140">
+        <!-- bucket 徽标 -->
+        <el-table-column label="bucket" width="118">
           <template #default="{ row }">
-            {{ row.receivedChunks }} / {{ row.totalChunks }}
+            <span class="ld-bucket">{{ row.provider || "默认" }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="进度" min-width="180">
+        <!-- 分片 · 进度合一 -->
+        <el-table-column label="分片 · 进度" min-width="172">
           <template #default="{ row }">
-            <el-progress
-              :percentage="taskPercent(row)"
-              :status="progressStatus(row.state)"
-              :stroke-width="8"
-            />
+            <div class="ld-prog">
+              <div class="ld-prog-bar">
+                <i
+                  class="ld-prog-fill"
+                  :class="progClass(row.state)"
+                  :style="{ width: taskPercent(row) + '%' }"
+                />
+              </div>
+              <span class="ld-prog-meta">{{ row.receivedChunks }}/{{ row.totalChunks }} · {{ taskPercent(row) }}%</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <!-- 状态：色点 + 文字 -->
+        <el-table-column label="状态" width="96">
           <template #default="{ row }">
-            <el-tag :type="stateTagType(row.state)" size="small">{{ stateLabel(row.state) }}</el-tag>
+            <span class="ld-state">
+              <i class="ld-dot" :class="stateDotClass(row.state)"></i>{{ stateLabel(row.state) }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column label="说明" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.message || row.objectKey }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="90" fixed="right">
+        <!-- 操作 -->
+        <el-table-column label="操作" width="84" fixed="right">
           <template #default="{ row }">
             <el-popconfirm title="确定取消该任务？" @confirm="onCancel(row)">
               <template #reference>
@@ -343,28 +362,30 @@ function taskPercent(row: UploadTaskInfo): number {
   return 0;
 }
 
-function progressStatus(state: UploadTaskState) {
+/** 台账进度条填充色（失败红、完成绿、其余主色） */
+function progClass(state: UploadTaskState): string {
   if (state === "FAILED") {
-    return "exception" as const;
+    return "is-danger";
   }
   if (state === "COMPLETED") {
-    return "success" as const;
+    return "is-success";
   }
-  return undefined;
+  return "";
 }
 
-function stateTagType(state: UploadTaskState) {
+/** 台账状态色点 */
+function stateDotClass(state: UploadTaskState): string {
   switch (state) {
     case "COMPLETED":
-      return "success" as const;
+      return "is-success";
     case "FAILED":
-      return "danger" as const;
+      return "is-danger";
     case "CANCELLED":
-      return "info" as const;
+      return "is-info";
     case "MERGING":
-      return "warning" as const;
+      return "is-warning";
     default:
-      return "primary" as const;
+      return "is-primary";
   }
 }
 
@@ -542,7 +563,7 @@ function formatSize(bytes: number): string {
   border-radius: var(--radius-md, 8px);
 }
 
-/* ===== 任务列表卡片 ===== */
+/* ===== 文件记录 · 紧凑台账 ===== */
 .ut-list-header {
   display: flex;
   align-items: center;
@@ -559,7 +580,7 @@ function formatSize(bytes: number): string {
   color: var(--text-secondary, var(--el-text-color-secondary, #909399));
 }
 
-/* 表格观感：去外框、行 hover、单元格留白 */
+/* 台账观感：去外框、行 hover、紧凑留白 */
 .ut-table {
   --el-table-border-color: var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
 }
@@ -567,17 +588,104 @@ function formatSize(bytes: number): string {
   transition: background-color 0.15s ease;
 }
 :deep(.ut-table .cell) {
-  padding: 0 12px;
+  padding: 6px 12px;
 }
-:deep(.ut-table .el-progress) {
-  min-width: 120px;
+:deep(.ut-table .el-table__cell) {
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #e8ebf0));
 }
 
-/* 状态标签统一小圆角 */
-:deep(.ut-table .el-tag) {
-  border-radius: var(--radius-sm, 4px);
+/* 文件名 + 次级说明 */
+.ld-name {
+  font-size: 13px;
   font-weight: 500;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.ld-sub {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  line-height: 1.3;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+/* bucket 徽标 */
+.ld-bucket {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
+  border-radius: var(--el-radius-sm, 6px);
+  padding: 1px 8px;
+  line-height: 1.6;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ld-bucket.is-default {
+  color: var(--text-secondary, #909399);
+  background: var(--bg-subtle, #f4f4f5);
+  border-color: var(--border-subtle, #e4e7ed);
+}
+
+/* 分片 · 进度合一 */
+.ld-prog {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ld-prog-bar {
+  height: 6px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--bg-subtle, var(--el-fill-color-light, #e8e8e8));
+  overflow: hidden;
+}
+.ld-prog-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--el-color-primary, #409eff);
+  transition: width 0.3s var(--ease-out, ease);
+}
+.ld-prog-fill.is-success { background: var(--status-success, #67c23a); }
+.ld-prog-fill.is-danger { background: var(--status-error, #f56c6c); }
+.ld-prog-meta {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+/* 状态：色点 + 文字 */
+.ld-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  white-space: nowrap;
+}
+.ld-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--el-color-primary, #409eff);
+}
+.ld-dot.is-success { background: var(--status-success, #67c23a); }
+.ld-dot.is-danger { background: var(--status-error, #f56c6c); }
+.ld-dot.is-warning { background: var(--status-warning, #e6a23c); }
+.ld-dot.is-info { background: var(--text-tertiary, #909399); }
 
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
@@ -587,6 +695,9 @@ function formatSize(bytes: number): string {
   .ut-bucket-select,
   .ut-chunk-select {
     width: 100%;
+  }
+  .ld-sub {
+    max-width: 200px;
   }
 }
 
@@ -599,6 +710,9 @@ function formatSize(bytes: number): string {
   .stat-card:hover,
   .koi-card:hover {
     transform: none;
+  }
+  .ld-prog-fill {
+    transition: none;
   }
 }
 </style>

@@ -88,6 +88,37 @@
         <el-rate v-model="form.photogenic" :max="5" :texts="RATE_TEXTS" show-text />
       </el-form-item>
 
+      <!--
+        经纬度：**非必填**。用于记录这条档案的登记位置（按地理位置筛选/展示）。
+        刻意不参与特征向量 —— 向量里始终只有人脸特征，位置只是元数据。
+      -->
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="纬度" prop="lat">
+            <el-input-number
+              v-model="form.lat"
+              :precision="7"
+              :step="0.0001"
+              :controls="false"
+              placeholder="选填，如 31.2304"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="经度" prop="lng">
+            <el-input-number
+              v-model="form.lng"
+              :precision="7"
+              :step="0.0001"
+              :controls="false"
+              placeholder="选填，如 121.4737"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <el-form-item label="备注">
         <el-input v-model="form.note" type="textarea" :rows="2" maxlength="120" show-word-limit placeholder="选填，如来源、用途说明" />
       </el-form-item>
@@ -149,6 +180,10 @@ const form = reactive({
   idCard: '',
   photogenic: 3,
   note: '',
+  /** 纬度（非必填；null = 未填，落库为 NULL） */
+  lat: null as number | null,
+  /** 经度（非必填；null = 未填，落库为 NULL） */
+  lng: null as number | null,
 })
 
 const maskedIdCard = computed(() => maskIdCard(form.idCard))
@@ -199,6 +234,9 @@ watch(
       form.idCard = r.idCard || ''
       form.photogenic = r.photogenic ?? 3
       form.note = r.note || ''
+      // 经纬度：老数据没有这两个字段，读不到就是 null（表单显示为空）
+      form.lat = (r as any).lat ?? (r as any).metadata?.lat ?? null
+      form.lng = (r as any).lng ?? (r as any).metadata?.lng ?? null
     } else {
       reset()
     }
@@ -347,6 +385,9 @@ async function submit() {
       idCard: form.idCard,
       photogenic: form.photogenic,
       note: form.note,
+      // 经纬度非必填：填了才带上，没填就是 null（后端会落 NULL）
+      lat: form.lat,
+      lng: form.lng,
     }
 
     if (isEdit.value && props.record) {
@@ -420,6 +461,8 @@ function reset() {
   form.idCard = ''
   form.photogenic = 3
   form.note = ''
+  form.lat = null
+  form.lng = null
 }
 </script>
 

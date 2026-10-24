@@ -118,7 +118,9 @@ export function applyHighlightToGraph(
       style: { opacity: hit ? TARGET_OPACITY : NON_TARGET_OPACITY },
     })
   }
-  if (edgePatches.length) g.updateEdgeData(edgePatches as never)
+  // updateEdgeData 在类型上是可选（部分 G6 版本/封装可能只暴露节点接口），
+  // 且边高亮应独立于节点高亮：缺边接口时只跳过边，不连节点一起放弃。
+  if (edgePatches.length && g.updateEdgeData) g.updateEdgeData(edgePatches as never)
 }
 
 /**

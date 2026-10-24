@@ -16,7 +16,7 @@ import { type RequestOptions } from "@/framework/context";
  * 这里统一拆出 {@code data}。</p>
  */
 
-/** 一条跨帧轨迹。 */
+/** 一条跨帧轨迹（由重识别底库汇聚）。 */
 export interface ReidTrack {
   /** 轨迹 ID */
   trackId: string;
@@ -32,6 +32,32 @@ export interface ReidTrack {
   observations: number;
   /** 是否跨摄像头出现 */
   crossCamera: boolean;
+  /** 最近一次观测的纬度（非必填） */
+  lat?: number | null;
+  /** 最近一次观测的经度（非必填） */
+  lng?: number | null;
+  /** 关联的人脸姓名（可空） */
+  faceName?: string | null;
+  /** 最近一次观测的缩略图（可空） */
+  thumbnail?: string | null;
+}
+
+/** 一张人脸的检测框与归属轨迹（图上叠框用）。 */
+export interface ReidFaceBox {
+  /** 左上角 X（原图像素） */
+  x: number;
+  /** 左上角 Y */
+  y: number;
+  /** 宽 */
+  width: number;
+  /** 高 */
+  height: number;
+  /** 归属轨迹 */
+  trackId?: string | null;
+  /** 与轨迹的相似度 */
+  score: number;
+  /** 是否命中已有轨迹 */
+  matched: boolean;
 }
 
 /** 观测一帧的结果。 */
@@ -48,6 +74,8 @@ export interface ReidObserveResult {
   matched: number;
   /** 其中新建轨迹的数量 */
   newTracks: number;
+  /** 逐张脸的检测框（供叠加层画框） */
+  faces?: ReidFaceBox[];
 }
 
 /** 以图搜人的命中项。 */
@@ -56,8 +84,8 @@ export interface ReidHit {
   trackId: string;
   /** 相似度（余弦，越大越像） */
   similarity: number;
-  /** 轨迹摘要 */
-  summary: ReidTrack;
+  /** 轨迹详情（后端字段名 track，与人脸底库同口径） */
+  track: ReidTrack | null;
 }
 
 /** 轨迹列表查询参数。 */
@@ -158,6 +186,7 @@ export const reidApi: ReidApi = {
       trackIds: Array.isArray(data?.trackIds) ? data.trackIds : [],
       matched: Number(data?.matched ?? 0),
       newTracks: Number(data?.newTracks ?? 0),
+      faces: Array.isArray(data?.faces) ? data.faces : [],
     };
   },
 

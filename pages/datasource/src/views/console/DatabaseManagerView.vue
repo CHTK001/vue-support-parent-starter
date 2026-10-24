@@ -9485,8 +9485,15 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--el-color-danger);
 }
-/* 在线查看数据库文档弹窗：加载 / 错误 / iframe 三种态，iframe 撑满弹窗主体 */
-.dbm-doc-preview-dialog :deep(.el-dialog__body) {
+/* 在线查看数据库文档弹窗：加载 / 错误 / iframe 三种态，iframe 撑满弹窗主体
+ *
+ * 必须用 :global 而不是 :deep：ReDialog 把弹窗 Teleport 到 body，组件作用域的
+ * data-v 属性不在弹窗节点上，:deep(.el-dialog__body) 编译出的
+ * `.dbm-doc-preview-dialog[data-v-x] .el-dialog__body` 永远匹配不到，
+ * 结果 el-dialog__body 按内容自适应高度、iframe(height:100%) 塌成一条，
+ * 弹窗只露出页头。:global 生成不带 data-v 的选择器，才是这里要的。
+ */
+:global(.dbm-doc-preview-dialog .el-dialog__body) {
   padding: 0;
   overflow: hidden;
   height: 68vh;

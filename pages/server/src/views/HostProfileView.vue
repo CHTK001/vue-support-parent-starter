@@ -223,6 +223,13 @@ let timer: number | undefined;
 /** 异步加载请求代次：切换主机 / 分区 / 重开时 +1，迟到的旧响应据此丢弃，避免慢通道覆盖新数据 */
 let profileReq = 0;
 let sectionReq = 0;
+/**
+ * 嵌入模式是否已完成首次加载。
+ *
+ * <p>不能用「selectedId 与 props.hostId 是否相等」当触发条件：嵌入时 selectedId 的初值
+ * 就是 props.hostId，两者天然相等，只判变化会让页签打开后一次请求都不发。</p>
+ */
+let embeddedLoaded = false;
 
 const selectedHost = computed(() => props.hosts.find(h => h.id === selectedId.value) ?? null);
 const agentReady = computed(() =>
@@ -336,11 +343,14 @@ watch(visibleHosts, (list) => {
   if (!list.length) return;
   // 嵌入模式：主机由所属页签固定，列表变化不得改写选中项（否则一台主机开多个页签会互相抢选中）
   if (props.embedded) {
-    if (props.hostId != null && selectedId.value !== props.hostId) {
+    // 不能只判断「选中项变没变」：selectedId 初值就等于 props.hostId，
+    // 首次挂载时两者相等，只按变化判断会导致页签打开后一次请求都不发（空表）。
+    if (props.hostId != null && (!embeddedLoaded || selectedId.value !== props.hostId)) {
       selectedId.value = props.hostId;
       rows.value = [];
       sectionError.value = "";
       resetPager();
+      embeddedLoaded = true;
       loadProfile();
       loadSection();
     }
@@ -1438,6 +1448,9 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
 
 <style scoped lang="scss">
 .profile { display: flex; height: 100%; min-height: 0; }
+/* 嵌进页签时父级是 flex 列：height:100% 在百分比高度不可解析时会退化成内容高度，
+   再补一条 flex 让面板高度被吃满，避免表格只占半屏、下方留白 */
+.profile.is-embedded { flex: 1 1 auto; }
 /* 左侧列表 */
 .profile-rail {
   width: 300px; flex-shrink: 0; display: flex; flex-direction: column;

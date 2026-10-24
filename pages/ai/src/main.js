@@ -296,6 +296,13 @@ const routes = [
     component: () => import("./components/dev/VariantsPreviewPage.vue"),
   },
   {
+    // 【设计探索临时路由 — 验证完即删】渠道绑定等待框变体独立预览：/preview/bind-waiting?variant=beacon
+    path: "/preview/bind-waiting",
+    name: "BindWaitingPreview",
+    meta: { title: "绑定等待框 · 设计探索" },
+    component: () => import("./components/dev/BindWaitingPreviewPage.vue"),
+  },
+  {
     path: "/login",
     name: "Login",
     meta: { titleKey: "common.route.login" },

@@ -7,9 +7,11 @@
       "@repo/ui/components/*": ["../../packages/ui/src/components/*"],
       "@repo/theme/koi/framework": ["../../packages/theme/src/themes/koi/framework"],
       "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],
-      "@pages/server/*": ["../../pages/server/src/*"],
+      // 通配符落在「页面根」：业务代码统一写 @pages/<pkg>/src/... 的深路径，
+      // 若这里的目标已含 src，会叠加成 src/src/... 而全部解析失败（TS2307）。
+      "@pages/server/*": ["../../pages/server/*"],
       "@pages/server": ["../../pages/server/src/index.ts"],
-      "@pages/monitor/*": ["../../pages/monitor/src/*"],
+      "@pages/monitor/*": ["../../pages/monitor/*"],
       "@pages/monitor": ["../../pages/monitor/src/index.ts"],
       "@pages/filesystem/*": ["../../pages/filesystem/*"],
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],

@@ -297,7 +297,7 @@ function applyHostRecord(r: any): void {
   if (r.serverHostCpuUsage != null) {
     const v = Number(r.serverHostCpuUsage);
     cpu.value = { usage: v, cores };
-    if (trendIsRealtime.value) pushPoint(cpuHist, v);
+    if (trendFollowsLive.value) pushPoint(cpuHist, v);
   } else if (cores != null) {
     cpu.value = { ...(cpu.value ?? {}), cores };
   }
@@ -308,7 +308,7 @@ function applyHostRecord(r: any): void {
     const v = Number(r.serverHostMemUsage);
     const used = memTotal != null ? (memTotal * v) / 100 : undefined;
     mem.value = { usagePercent: v, usage: used, total: memTotal };
-    if (trendIsRealtime.value) pushPoint(memHist, v);
+    if (trendFollowsLive.value) pushPoint(memHist, v);
   } else if (memTotal != null) {
     mem.value = { ...(mem.value ?? {}), total: memTotal };
   }
@@ -349,12 +349,12 @@ function bindHostMetrics(): void {
       if (d.cpu != null && !Number.isNaN(Number(d.cpu))) {
         const v = Number(d.cpu);
         cpu.value = { ...(cpu.value ?? {}), usage: v };
-        if (trendIsRealtime.value) pushPoint(cpuHist, v);
+        if (trendFollowsLive.value) pushPoint(cpuHist, v);
       }
       if (d.mem != null && !Number.isNaN(Number(d.mem))) {
         const v = Number(d.mem);
         mem.value = { ...(mem.value ?? {}), usagePercent: v };
-        if (trendIsRealtime.value) pushPoint(memHist, v);
+        if (trendFollowsLive.value) pushPoint(memHist, v);
       }
       if (d.disk != null && !Number.isNaN(Number(d.disk))) {
         const v = Number(d.disk);
@@ -363,10 +363,10 @@ function bindHostMetrics(): void {
         } else {
           disk.value = disk.value.map((d0, i) => (i === 0 ? { ...d0, usagePercent: v } : d0));
         }
-        pushPoint(diskHist, v);
+        if (trendFollowsLive.value) pushPoint(diskHist, v);
       }
-      if (d.diskRead != null) { const v = Number(d.diskRead); diskRead.value = v; if (trendIsRealtime.value) pushPoint(diskReadHist, v); }
-      if (d.diskWrite != null) { const v = Number(d.diskWrite); diskWrite.value = v; if (trendIsRealtime.value) pushPoint(diskWriteHist, v); }
+      if (d.diskRead != null) { const v = Number(d.diskRead); diskRead.value = v; if (trendFollowsLive.value) pushPoint(diskReadHist, v); }
+      if (d.diskWrite != null) { const v = Number(d.diskWrite); diskWrite.value = v; if (trendFollowsLive.value) pushPoint(diskWriteHist, v); }
       const sw = parseSoftware(d.software);
       if (sw.length) software.value = sw;
       markPushHeart(d.collectTime);
@@ -385,7 +385,7 @@ function applyFreshProfile(p: HostProfile): void {
   const m = p.metrics as Record<string, any> | undefined;
   if (!m) { markPushHeart(p.collectedAt); return; }
 
-  const realtime = trendIsRealtime.value;
+  const realtime = trendFollowsLive.value;
   const cpuVal = numOr0(m.cpuPercent);
   const cores = cpu.value?.cores ?? ((p.host as any)?.serverHostCpuCores != null ? numOr0((p.host as any).serverHostCpuCores) : undefined);
   cpu.value = { usage: cpuVal, cores };
@@ -468,8 +468,13 @@ async function fetchMetrics(): Promise<void> {
         ? { heapUsed: numOr0(j.value.heapUsedBytes), heapMax: numOr0(j.value.heapMaxBytes), heapUsagePercent: numOr0(j.value.heapUsagePercent) }
         : null;
     }
+    // 用当前趋势范围而不是写死 24：否则用户选了 6H，切一次监控项就被打回 24H，
+    // 图上点数突变、标题却还写着「近6H」。实时档（0）在监控项口径下仍按 24H 取，
+    // 因为监控项没有「仅本次会话」的序列。
+    const histHours = trendHours.value || 24;
     const [ch, mh, nh, jh] = await Promise.allSettled([
-      getCpuHistory(id, 24), getMemoryHistory(id, 24), getNetworkHistory(id, 24), getJvmHistory(id, 24),
+      getCpuHistory(id, histHours), getMemoryHistory(id, histHours),
+      getNetworkHistory(id, histHours), getJvmHistory(id, histHours),
     ]);
     if (ch.status === "fulfilled") cpuHist.value = (ch.value ?? []).map(r => numOr0(r.cpuUsage));
     if (mh.status === "fulfilled") memHist.value = (mh.value ?? []).map(r => numOr0(r.usagePercent));
@@ -585,6 +590,7 @@ watch(() => route.params.id, id => {
   hostId.value = n;
   monitorId.value = 0;
   hostRecord.value = null;
+  trendHours.value = 0;   // 换主机回到「实时」，否则选择器写着 6H、图上却只有近 1h 的种子数据
   if (histChart) { histChart.dispose(); histChart = null; }
   resetMetrics();
   resetProfilePager();
@@ -605,6 +611,7 @@ watch(() => props.hostId, id => {
   hostId.value = n;
   monitorId.value = 0;
   hostRecord.value = null;
+  trendHours.value = 0;
   if (histChart) { histChart.dispose(); histChart = null; }
   resetMetrics();
   resetProfilePager();
@@ -661,6 +668,111 @@ async function loadHostBaseHistory(): Promise<void> {
       if (wVals.length) diskWriteHist.value = wVals.slice(-MAX_LIVE);
     }
   } catch { /* 静默，实时推送仍可出数 */ }
+}
+
+/* ---------------- 趋势时间范围切换（实时 / 1H / 6H / 24H / 7D） ---------------- */
+
+/**
+ * 当前趋势范围（小时）。
+ *
+ * <p>0 表示「实时」：趋势图只吃 socket 推送累积的点，不额外请求历史；
+ * 其余档位按小时数拉一次历史并整体替换，切回实时时重新以近 1h 打底。</p>
+ */
+const trendHours = ref(0);
+
+/**
+ * 趋势是否跟随实时推送。
+ *
+ * <p>两个条件同时成立才算：没有监控项（有监控项时趋势来自监控项明细），
+ * 且范围选在「实时」。少了后半句，用户切到 6H 之后 socket 每来一个点就
+ * 往历史序列尾部追加一次，图上会多出一段密度完全不同的实时数据。</p>
+ */
+const trendFollowsLive = computed(() => trendIsRealtime.value && trendHours.value === 0);
+
+/** 范围档位（与后端 metric-history 的 hours 参数一一对应） */
+const TREND_RANGES = [
+  { label: "实时", value: 0 },
+  { label: "1H", value: 1 },
+  { label: "6H", value: 6 },
+  { label: "24H", value: 24 },
+  { label: "7D", value: 168 },
+];
+
+/** 趋势卡标题里的范围文案 */
+const trendRangeLabel = computed(() => {
+  const hit = TREND_RANGES.find(r => r.value === trendHours.value);
+  return hit && hit.value !== 0 ? `近${hit.label}` : (trendIsRealtime.value ? "近1H" : "24H");
+});
+
+/**
+ * 切换趋势时间范围。
+ *
+ * <p>实时档不请求历史：它代表「看现在的推送」，切过去若还去拉 1h 数据，
+ * 图上会突然铺满旧点，和「实时」这个语义对不上。</p>
+ *
+ * @param hours 小时数（0 = 实时）
+ */
+async function setTrendHours(hours: number): Promise<void> {
+  if (trendHours.value === hours) return;
+  trendHours.value = hours;
+  if (hours === 0) {
+    resetTrendSeries();
+    await loadHostBaseHistory();
+    return;
+  }
+  await loadTrendRange(hours);
+}
+
+/** 清空趋势序列（切范围前先清，避免旧范围的点混进新图） */
+function resetTrendSeries(): void {
+  cpuHist.value = [];
+  memHist.value = [];
+  diskHist.value = [];
+  diskReadHist.value = [];
+  diskWriteHist.value = [];
+  netHist.value = [];
+  jvmHist.value = [];
+}
+
+/**
+ * 按指定小时数拉取趋势序列。
+ *
+ * <p>监控项与内置指标是两套端点：有监控项走 /monitor 的明细历史（含 JVM），
+ * 没监控项走主机内置 metric-history（只有 CPU/内存/磁盘/IO）。</p>
+ *
+ * @param hours 小时数
+ */
+async function loadTrendRange(hours: number): Promise<void> {
+  const id = monitorId.value;
+  if (id) {
+    const [ch, mh, nh, jh] = await Promise.allSettled([
+      getCpuHistory(id, hours), getMemoryHistory(id, hours), getNetworkHistory(id, hours), getJvmHistory(id, hours),
+    ]);
+    if (ch.status === "fulfilled") cpuHist.value = (ch.value ?? []).map(r => numOr0(r.cpuUsage));
+    if (mh.status === "fulfilled") memHist.value = (mh.value ?? []).map(r => numOr0(r.usagePercent));
+    if (nh.status === "fulfilled") netHist.value = (nh.value ?? []).map(r => numOr0(r.txBytes));
+    if (jh.status === "fulfilled") jvmHist.value = (jh.value ?? []).map(r => numOr0(r.heapUsagePercent));
+    return;
+  }
+  const rows = await getHostMetricHistory(hostId.value, hours);
+  if (!rows.length) { resetTrendSeries(); return; }
+  const cpuVals: number[] = [];
+  const memVals: number[] = [];
+  const diskVals: number[] = [];
+  const rVals: number[] = [];
+  const wVals: number[] = [];
+  for (const r of rows) {
+    if (r[1] != null) cpuVals.push(Number(r[1]));
+    if (r[2] != null) memVals.push(Number(r[2]));
+    if (r[3] != null) diskVals.push(Number(r[3]));
+    if (r[4] != null) rVals.push(Number(r[4]));
+    if (r[5] != null) wVals.push(Number(r[5]));
+  }
+  cpuHist.value = cpuVals;
+  memHist.value = memVals;
+  diskHist.value = diskVals;
+  diskReadHist.value = rVals;
+  diskWriteHist.value = wVals;
 }
 
 /** 历史弹窗指标：单序列百分比（cpu/mem/disk）或双序列磁盘IO（diskio） */
@@ -1443,10 +1555,25 @@ async function submitProfileEnv(): Promise<void> {
       </section>
 
       <!-- 趋势（点击卡片弹窗，弹窗内只选时间段，口径与外侧一致） -->
+      <div class="trend-range">
+        <span class="tr-label">趋势范围</span>
+        <div class="tr-seg">
+          <button
+            v-for="r in TREND_RANGES"
+            :key="r.value"
+            type="button"
+            class="tr-btn"
+            :class="{ on: trendHours === r.value }"
+            @click="setTrendHours(r.value)"
+          >{{ r.label }}</button>
+        </div>
+        <span class="tr-hint">点击任一趋势卡可打开大图</span>
+      </div>
+
       <section class="trend-grid">
         <div class="trend clickable" title="点击查看 CPU 历史" @click="openHistDialog('cpu')">
           <div class="t-head">
-            <span class="t-label">CPU · {{ trendIsRealtime ? "近1H" : "24H" }}</span>
+            <span class="t-label">CPU · {{ trendRangeLabel }}</span>
             <span class="t-right"><span class="t-now mono">{{ trendLast(cpuHist) }}%</span><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1460,7 +1587,7 @@ async function submitProfileEnv(): Promise<void> {
 
         <div class="trend clickable" title="点击查看内存历史" @click="openHistDialog('mem')">
           <div class="t-head">
-            <span class="t-label">内存 · {{ trendIsRealtime ? "近1H" : "24H" }}</span>
+            <span class="t-label">内存 · {{ trendRangeLabel }}</span>
             <span class="t-right"><span class="t-now mono">{{ trendLast(memHist) }}%</span><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1474,7 +1601,7 @@ async function submitProfileEnv(): Promise<void> {
 
         <div class="trend clickable" title="点击查看磁盘容量历史" @click="openHistDialog('disk')">
           <div class="t-head">
-            <span class="t-label">磁盘容量 · 近1H</span>
+            <span class="t-label">磁盘容量 · {{ trendRangeLabel }}</span>
             <span class="t-right"><span class="t-now mono">{{ trendLast(diskHist) }}%</span><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1489,7 +1616,7 @@ async function submitProfileEnv(): Promise<void> {
         <!-- 磁盘IO（双序列，点击查看读写历史） -->
         <div class="trend clickable" title="点击查看磁盘读写历史" @click="openHistDialog('diskio')">
           <div class="t-head">
-            <span class="t-label">磁盘 IO · 近1H</span>
+            <span class="t-label">磁盘 IO · {{ trendRangeLabel }}</span>
             <span class="t-right"><i class="t-zoom"></i></span>
           </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
@@ -1504,7 +1631,7 @@ async function submitProfileEnv(): Promise<void> {
         </div>
 
         <div v-if="monitorId" class="trend">
-          <div class="t-head"><span class="t-label">JVM · 24H</span><span class="t-now mono">{{ trendLast(jvmHist) }}%</span></div>
+          <div class="t-head"><span class="t-label">JVM · {{ trendRangeLabel }}</span><span class="t-now mono">{{ trendLast(jvmHist) }}%</span></div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-jvm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14b8a6" stop-opacity=".30"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -1515,7 +1642,7 @@ async function submitProfileEnv(): Promise<void> {
         </div>
 
         <div class="trend">
-          <div class="t-head"><span class="t-label">网络 · {{ trendIsRealtime ? "实时" : "24H" }}</span><span class="t-now mono">{{ netLast(netHist) }}</span></div>
+          <div class="t-head"><span class="t-label">网络 · {{ trendHours === 0 ? "实时" : trendRangeLabel }}</span><span class="t-now mono">{{ netLast(netHist) }}</span></div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-net" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#06b6d4" stop-opacity=".30"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -2050,6 +2177,36 @@ async function submitProfileEnv(): Promise<void> {
 .g-sub { margin-top: 3px; font-size: 10.5px; color: var(--p-text-3); }
 
 /* ---------- 趋势（响应式自适应） ---------- */
+/* 趋势范围切换：分段按钮，和 Termix 的 LIVE/1H/6H/24H/7D 对齐 */
+.trend-range {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 14px;
+}
+.tr-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--p-text-3); text-transform: uppercase;
+}
+.tr-seg {
+  display: inline-flex; gap: 2px; padding: 2px;
+  background: var(--el-fill-color-light);
+  border-radius: 9999px;
+}
+.tr-btn {
+  min-width: 38px; height: 22px; padding: 0 8px;
+  font-family: inherit; font-size: 11px; font-weight: 600;
+  color: var(--p-text-3); cursor: pointer;
+  background: transparent; border: none; border-radius: 9999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tr-btn:hover { color: var(--p-text-1); }
+.tr-btn.on {
+  color: var(--el-color-primary);
+  background: var(--p-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.tr-hint { margin-left: auto; font-size: 10.5px; color: var(--p-text-3); }
+
 .trend-grid {
   position: relative; z-index: 1;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px;
