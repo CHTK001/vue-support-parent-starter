@@ -712,6 +712,40 @@ export async function downloadDbDocument(params: {
     ),
   };
 }
+
+/**
+ * 取数据库设计文档的 HTML 文本（右键「查看数据库文档」用）。
+ *
+ * <p>与 {@link downloadDbDocument} 同源同端点，只是拿 {@code text/html} 的响应体
+ * 文本而不是 blob —— 右键入口要把文档在页面内直接展示，不需要落盘文件名。</p>
+ *
+ * @param params 数据源、库名与模板；format 固定 html
+ * @returns HTML 文档文本
+ * @author CH
+ * @since 4.0.0.43
+ */
+export async function fetchDbDocumentHtml(params: {
+  datasourceId: number;
+  database?: string;
+  template?: string;
+  tables?: string;
+}): Promise<string> {
+  const query = new URLSearchParams();
+  query.set("datasourceId", String(params.datasourceId));
+  if (params.database) query.set("database", params.database);
+  query.set("format", "html");
+  if (params.template) query.set("template", params.template);
+  if (params.tables) query.set("tables", params.tables);
+
+  const token = getAccessToken();
+  const response = await fetch(`/ms/monitor/db/document/export?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error((await response.text()) || `获取数据库文档失败（HTTP ${response.status}）`);
+  }
+  return response.text();
+}
 // ==================== 外部服务管理（InfluxDB / Neo4j / Nacos / ZooKeeper） ====================
 
 /**

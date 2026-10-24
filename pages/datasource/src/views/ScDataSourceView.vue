@@ -79,6 +79,7 @@ import {
   fetchDatasourceTunnel,
   saveDatasourceTunnel,
 } from "../api";
+import { fetchDbDocumentHtml } from "../api/manageConsoles";
 import type { DataSourceTunnel, JdbcDriverJar } from "../api";
 
 import type { ReTableColumn } from "@repo/ui/re-table";
@@ -761,7 +762,8 @@ const supportsProcess = (item: DataSourceInfo): boolean =>
 const ctxMenuItems = computed(() => {
   const item = ctxMenu.item;
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
-    { key: "manage", label: "打开管理（新标签）", icon: "View" },
+    { key: "manage", label: "打开管理", icon: "View" },
+    { key: "manage-full", label: "打开管理（新标签）", icon: "View", divided: true },
     { key: "test", label: "检测连接", icon: "Connection" },
     {
       key: "top",
@@ -772,12 +774,11 @@ const ctxMenuItems = computed(() => {
   ];
   // JDBC 内核能力（SPI 判断）：用户管理 / 查看文档 / 进程列表 / 慢查询
   if (item?.type === "jdbc") {
-    const db = (item.database ?? "").trim();
-    const dialect = jdbcDialect(db);
+    const dialect = jdbcDialect(item.jdbcUrl ?? item.database ?? "");
     if (dialect === "mysql" || dialect === "mariadb") {
       base.push({ key: "users", label: "用户管理", icon: "User", warning: true });
     }
-    base.push({ key: "docs", label: "查看驱动文档", icon: "Document", warning: true });
+    base.push({ key: "docs", label: "查看数据库文档", icon: "Document" });
     if (dialect === "mysql" || dialect === "mariadb" || dialect === "postgresql") {
       base.push({ key: "processes", label: "显示进程", icon: "Monitor" });
       base.push({ key: "slow", label: "慢查询", icon: "Timer" });
@@ -791,7 +792,8 @@ const ctxMenuItems = computed(() => {
 /**
  * 识别 JDBC URL 的方言，用于进程/慢查询等 SPI 能力判断与驱动文档跳转。
  *
- * @param database 数据源 database 字段（jdbc 类型为完整 JDBC URL）
+ * @param jdbcUrl JDBC 连接串（优先 {@code item.jdbcUrl}，老后端回退 {@code item.database}；
+ *                jdbc 类型两个字段后端都会给出，非 jdbc 类型传空串）
  * @returns mysql / mariadb / postgresql / oracle / sqlserver / 其他
  */
 const jdbcDialect = (database: string): string => {
@@ -805,27 +807,42 @@ const jdbcDialect = (database: string): string => {
 };
 
 /**
- * JDBC 驱动文档链接（按方言跳官方文档）。
+ * 查看数据库文档（后端 DocumentProvider 生成 HTML）。
  *
- * <p>「查看驱动文档」的落地页：各驱动厂商的官方文档首页。
- * MySQL 系的 MariaDB 驱动与 MySQL Connector/J 文档分开给。</p>
+ * <p>与「导出数据库文档」（DatabaseManagerView 的下载）同一条后端管线：
+ * {@code DbDocumentController} 用 {@code DocumentParser("database")} 采集表结构，
+ * 再交给 {@code DocumentProvider} SPI 渲染成 HTML。右键这里直接拿 HTML 文本、
+ * 用 blob URL 在弹窗 iframe 里展示，不落盘、不离开页面。</p>
+ *
+ * <p>格式探测走 {@code /ms/monitor/db/document/formats}：html 渲染器未装配时
+ * 后端会如实 501，这里给可读报错而不是白屏。</p>
  */
-const JDBC_DOC_URLS: Record<string, string> = {
-  mysql: "https://dev.mysql.com/doc/connector-j/en/",
-  mariadb: "https://mariadb.com/docs/clients/mariadb-connectors/connector-j/",
-  postgresql: "https://jdbc.postgresql.org/documentation/",
-  oracle: "https://docs.oracle.com/en/database/oracle/oracle-database/19/jjdbc/",
-  sqlserver: "https://learn.microsoft.com/en-us/sql/connect/jdbc/",
-};
+const dbDocVisible = ref(false);
+const dbDocLoading = ref(false);
+const dbDocError = ref("");
+const dbDocUrl = ref("");
+const dbDocSource = ref<DataSourceInfo | null>(null);
 
-/** 打开 jdbc 数据源的驱动文档（新窗口，不离开页面） */
-const openDriverDocs = (item: DataSourceInfo) => {
-  const url = JDBC_DOC_URLS[jdbcDialect(item.database ?? "")] ?? "";
-  if (!url) {
-    message.info("该方言暂无内置文档链接");
+/** 打开「查看数据库文档」弹窗并渲染 HTML */
+const openDbDocument = async (item: DataSourceInfo) => {
+  if (item.id == null) {
+    message.warning("数据源缺少 ID，无法查看数据库文档");
     return;
   }
-  window.open(url, "_blank", "noopener");
+  dbDocSource.value = item;
+  dbDocError.value = "";
+  dbDocUrl.value = "";
+  dbDocVisible.value = true;
+  dbDocLoading.value = true;
+  try {
+    const html = await fetchDbDocumentHtml({ datasourceId: item.id });
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    dbDocUrl.value = URL.createObjectURL(blob);
+  } catch (e) {
+    dbDocError.value = `文档生成失败：${(e as Error)?.message ?? String(e)}`;
+  } finally {
+    dbDocLoading.value = false;
+  }
 };
 
 /**
@@ -847,6 +864,15 @@ const onItemMenuSelect = (key: string) => {
     openManager(item);
     return;
   }
+  if (key === "manage-full") {
+    const route = managerRouteFor(item.type);
+    if (route) {
+      openFullManager(item, route);
+    } else {
+      message.warning(`类型 ${item.type} 的管理页面开发中`);
+    }
+    return;
+  }
   if (key === "users") {
     openUserManager(item);
     return;
@@ -860,7 +886,7 @@ const onItemMenuSelect = (key: string) => {
     return;
   }
   if (key === "docs") {
-    openDriverDocs(item);
+    void openDbDocument(item);
     return;
   }
   if (key === "processes") {
@@ -1238,7 +1264,16 @@ const openManager = (item: DataSourceInfo) => {
     message.warning(`类型 ${item.type} 的管理页面开发中`);
     return;
   }
-  openFullManager(item, route);
+  if (!hasRoutePath(router, route)) {
+    const near = nearbyRoutePaths(router, route);
+    message.warning(
+      `当前应用未注册 ${route} 管理页，无法打开「${item.type}」管理界面`
+      + (near.length ? `（已注册的同前缀路由：${near.join("、")}）` : ""),
+    );
+    return;
+  }
+  // router 模式：应用内跳转，保留顶部/左侧导航与标签页
+  void router.push({ path: route, query: { datasourceId: item.id } });
 };
 
 /**
@@ -2514,6 +2549,30 @@ onMounted(load);
         <ReButton @click="slowQueryVisible = false">关闭</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 查看数据库文档：后端 DocumentProvider 生成 HTML，blob URL 在 iframe 内展示 -->
+    <ReDialog
+      v-model="dbDocVisible"
+      :title="`数据库文档 · ${dbDocSource?.name ?? ''}`"
+      width="1080px"
+      class="ds-doc-dialog"
+      data-testid="ds-db-doc-dialog"
+    >
+      <div class="ds-doc-body">
+        <div v-if="dbDocLoading" class="ds-doc-hint">正在生成数据库文档（后端 DocumentProvider 渲染 HTML）…</div>
+        <div v-else-if="dbDocError" class="ds-process__error">{{ dbDocError }}</div>
+        <iframe
+          v-else-if="dbDocUrl"
+          class="ds-doc-frame"
+          :src="dbDocUrl"
+          title="数据库文档"
+          data-testid="ds-db-doc-frame"
+        />
+      </div>
+      <template #footer>
+        <ReButton @click="dbDocVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -3520,6 +3579,32 @@ onMounted(load);
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- 查看数据库文档 ---------------- */
+.ds-doc-dialog :deep(.el-dialog__body) {
+  padding: 0;
+  overflow: hidden;
+}
+.ds-doc-body {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  min-height: 420px;
+}
+.ds-doc-frame {
+  flex: 1;
+  border: none;
+  background: #fff;
+  width: 100%;
+}
+.ds-doc-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 
 /* ---------------- 响应式 ---------------- */

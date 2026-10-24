@@ -104,6 +104,14 @@ export interface DataSourceInfo {
   port?: number | null;
   /** jdbc 类型时这里存完整 JDBC URL */
   database?: string | null;
+  /**
+   * JDBC 数据源的完整连接串（后端按台账字段拼出，与后端方言判断同源）。
+   *
+   * <p>台账的 database 字段对 JDBC 类型实际存的是库名（如 sync_src），而判断内核能力
+   * （用户管理/进程/慢查询）需要完整 URL —— 后端 list 接口已把拼好的 URL 放这里。
+   * 有值优先用它判断方言，没有（老后端）才回退 {@link database}。</p>
+   */
+  jdbcUrl?: string | null;
   username?: string | null;
   password?: string | null;
   remark?: string | null;
