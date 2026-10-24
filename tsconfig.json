@@ -45,7 +45,7 @@
       // 另：模板里用 $t 的 .vue 之所以有类型，靠的是 packages/languages/src/vue-i18n.d.ts
       // 把 vue-i18n 的 declare module "vue" 增强 import 进程序（各应用 types 白名单里没有它）。
       // @repo/ui/re-* begin
-      // 以下 90 条由 scripts/gen-ui-entry-paths.mjs 生成，勿手改（组件增删后重跑脚本）。
+      // 以下 91 条由 scripts/gen-ui-entry-paths.mjs 生成，勿手改（组件增删后重跑脚本）。
       "@repo/ui/re-album": ["packages/ui/src/components/ReAlbum/index.ts"],
       "@repo/ui/re-avatar-crop": ["packages/ui/src/components/ReAvatarCrop/index.ts"],
       "@repo/ui/re-avatar3d": ["packages/ui/src/components/ReAvatar3D/index.ts"],
@@ -97,6 +97,7 @@
       "@repo/ui/re-loader": ["packages/ui/src/components/ReLoader/index.ts"],
       "@repo/ui/re-loading": ["packages/ui/src/components/ReLoading/index.ts"],
       "@repo/ui/re-map3d": ["packages/ui/src/components/ReMap3D/index.ts"],
+      "@repo/ui/re-page-kit": ["packages/ui/src/components/RePageKit/index.ts"],
       "@repo/ui/re-pagination": ["packages/ui/src/components/RePagination/index.ts"],
       "@repo/ui/re-placeholder-picker": ["packages/ui/src/components/RePlaceholderPicker/index.ts"],
       "@repo/ui/re-progress": ["packages/ui/src/components/ReProgress/index.ts"],
@@ -156,7 +157,11 @@
       "@pages/filesystem": ["pages/filesystem/src"],
       "@pages/task": ["pages/task/src"],
       "@pages/monitor": ["pages/monitor/src"],
-      "@pages/monitor/*": ["pages/monitor/src/*"],
+      // 通配符必须落在「页面根」而不是「src」，与运行期 vite alias（"@pages/monitor" → pages/monitor）
+      // 以及本文件里的 "@pages/server/*" 保持同一口径：业务代码统一写
+      // `@pages/monitor/src/api` 这种带 src 的深路径，若通配符目标已含 src，
+      // 就会解析成 pages/monitor/src/src/api —— 全部深导入报 TS2307。
+      "@pages/monitor/*": ["pages/monitor/*"],
       "@pages/system": ["pages/system/src"],
       "@pages/system/*": ["pages/system/src/*"],
       "@pages/server": ["pages/server/src"],

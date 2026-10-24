@@ -307,6 +307,10 @@
       "types": "./src/components/RePagination/index.ts",
       "default": "./src/components/RePagination/index.ts"
     },
+    "./re-page-kit": {
+      "types": "./src/components/RePageKit/index.ts",
+      "default": "./src/components/RePageKit/index.ts"
+    },
     "./re-timeline": {
       "types": "./src/components/ReTimeline/index.ts",
       "default": "./src/components/ReTimeline/index.ts"

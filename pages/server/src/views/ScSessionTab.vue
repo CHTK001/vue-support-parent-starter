@@ -1,382 +1,296 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
-import { ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus';
-import { message } from '@repo/core';
-import { getSessions, closeSession, queryHosts } from '../api';
-
 /**
- * 会话审计 —— 审计日志工作台
+ * 会话审计 —— 编排层
  *
- * 视觉对齐 UI 稿：居中大卡片 + 顶部标题/刷新 + 三宫格统计 + 状态分段筛选
- * + 高级筛选条 + 审计明细表。颜色/圆角/边框全部走 koi（Element Plus）变量，
- * 随主题色与暗色模式自动切换。
+ * <p>这一层只做三件事：取数、持有筛选状态、把同一个状态喂给当前方向对应的画布。
+ * 任何「长什么样」的判断都在画布组件里，任何「怎么算」的判断都在
+ * {@link sessionView} 的纯函数里。这样五个方向共享同一份事实来源：
+ * 同一批会话在「工单台」和「卡片墙」里显示的时长、状态文案、空值兜底完全一致。</p>
+ *
+ * <p>为什么要分方向：这一页的数据形状是「区间」（连接 → 关闭），
+ * 而原先的实现只有一种排法 —— 平表。平表能回答「哪一条」，但回答不了
+ * 「今天什么时候在连、空了哪几段」，也把关闭原因这类字段浪费在抽屉里。
+ * 五个方向是五种对「这一页该为谁服务」的回答，由使用者在真实数据上挑。</p>
+ *
+ * <p>筛选状态为什么放在这一层而不放在画布：从「仪表」点柱子设下的时段条件，
+ * 切到「工单台」后必须仍然生效并且仍能清除。条件若存在画布里，切一次就丢一次，
+ * 用户会以为筛选自己坏了。因此页头统一展示「当前生效的条件」并负责清除。</p>
  *
  * @author CH
  * @since 4.0.0
  */
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { message } from '@repo/core'
+// 显式文件路径而不是 @repo/ui/re-page-kit：后者由 turbo/vite/createVite.ts 的
+// uiExplicitAliases() 在**开发服务器启动时**扫描 components 目录生成，
+// 新建的组件目录要重启 dev server 才进别名表。显式路径走的是静态的
+// @repo/ui → packages/ui/src 别名，新建即生效，也与 acme/index.vue 里
+// @repo/ui/components/ReTab/types 的既有写法一致。
+// 包 exports 里仍保留了 ./re-page-kit 子路径，供构建期与外部引用使用。
+import { usePageVariant } from '@repo/ui/components/RePageKit/usePageVariant'
+import RePageVariantDock from '@repo/ui/components/RePageKit/RePageVariantDock.vue'
+import { getSessions, closeSession, queryHosts } from '../api'
+import {
+  EMPTY_SESSION_FILTERS,
+  SESSION_BUCKET_HOURS,
+  countByStatus,
+  filterSessions,
+  toSessionViews,
+  type SessionFilters,
+  type SessionView,
+} from './session/sessionView'
+import SessionConsole from './session/SessionConsole.vue'
+import SessionInstrument from './session/SessionInstrument.vue'
+import SessionRhythm from './session/SessionRhythm.vue'
+import SessionDossier from './session/SessionDossier.vue'
+import SessionWall from './session/SessionWall.vue'
 
-/** 会话审计行 */
+/** 后端会话行 */
 interface SessionRow {
-  id: number;
-  msTerminalSessionHostId?: number;
-  msTerminalSessionHostName?: string;
-  msTerminalSessionProtocol: string;
-  msTerminalSessionUser?: string;
-  msTerminalSessionClientIp?: string;
-  msTerminalSessionConnectTime?: string;
-  msTerminalSessionCloseTime?: string;
-  msTerminalSessionStatus: string;
-  msTerminalSessionCloseReason?: string;
+  id: number
+  msTerminalSessionHostId?: number
+  msTerminalSessionHostName?: string
+  msTerminalSessionProtocol: string
+  msTerminalSessionUser?: string
+  msTerminalSessionClientIp?: string
+  msTerminalSessionConnectTime?: string
+  msTerminalSessionCloseTime?: string
+  msTerminalSessionStatus: string
+  msTerminalSessionCloseReason?: string
 }
 
-/** 状态筛选值 */
-type SessionStatus = '' | 'OPEN' | 'CLOSED';
-
-/** 筛选表单 */
-interface FilterForm {
-  keyword: string;
-  protocol: string;
-  ip: string;
-  status: SessionStatus;
-}
-
-/** 会话列表 */
-const sessions = ref<SessionRow[]>([]);
+/** 会话列表（后端原样） */
+const sessions = ref<SessionRow[]>([])
 
 /** 加载态 */
-const loading = ref(false);
+const loading = ref(false)
 
-/** 主机名映射（主机名为空时兜底展示） */
-const hostMap = ref<Record<number, string>>({});
+/** 主机台账：id → 主机名；后端没填主机名时兜底 */
+const hostMap = ref<Record<number, string>>({})
 
-/** 筛选表单（编辑中） */
-const form = reactive<FilterForm>({ keyword: '', protocol: '', ip: '', status: '' });
+/** 筛选条件：唯一状态源，五个画布共用 */
+const filters = reactive<SessionFilters>({ ...EMPTY_SESSION_FILTERS })
 
-/** 已应用筛选（点「查询」或状态快捷筛选后生效） */
-const applied = reactive<FilterForm>({ keyword: '', protocol: '', ip: '', status: '' });
+/** 当前时刻：让「进行中」的时长与时间带上的「现在」跟着走 */
+const now = ref(new Date())
 
-/** 详情抽屉 */
-const detailVisible = ref(false);
-const detailSession = ref<SessionRow | null>(null);
+/** 详情抽屉（工单台 / 仪表 / 节奏 / 卡片墙用；档案柜的详情常驻右栏，不弹抽屉） */
+const detailVisible = ref(false)
+const detailView = ref<SessionView | null>(null)
 
-/** 协议下拉 */
-const protocolOptions = [
-  { label: '全部协议', value: '' },
-  { label: 'SSH', value: 'SSH' },
-  { label: 'RDP', value: 'RDP' },
-  { label: 'VNC', value: 'VNC' },
-];
+/** 页面方向：选择按页持久化，生产环境坞隐藏但选择仍生效 */
+const { variant, items, dockVisible, setVariant } = usePageVariant({
+  pageKey: 'server.session-audit',
+})
 
-/** 状态下拉 */
-const statusOptions = [
-  { label: '全部', value: '' },
-  { label: '进行中', value: 'OPEN' },
-  { label: '已结束', value: 'CLOSED' },
-];
+/**
+ * 全量展示行。
+ *
+ * <p>仪表画布要它来画总体分布（不能跟着表格的筛选一起缩，否则一点柱子就只剩一根），
+ * 其余画布用它算统计 —— 统计必须反映全量，否则页签上的数字会跟着筛选变，
+ * 用户就再也点不回「全部」。</p>
+ */
+const allViews = computed(() => toSessionViews(sessions.value, hostMap.value, now.value))
 
-/** 统计：总连接数 / 进行中 / 已结束 */
-const stats = computed(() => {
-  const list = sessions.value;
-  return {
-    total: list.length,
-    open: list.filter(s => s.msTerminalSessionStatus === 'OPEN').length,
-    closed: list.filter(s => s.msTerminalSessionStatus === 'CLOSED').length,
-  };
-});
+/** 全量统计 */
+const stats = computed(() => countByStatus(sessions.value))
 
-/** 应用筛选后的会话列表 */
-const filteredSessions = computed(() => {
-  const kw = applied.keyword.trim().toLowerCase();
-  const ip = applied.ip.trim().toLowerCase();
-  return sessions.value.filter(row => {
-    if (applied.status && row.msTerminalSessionStatus !== applied.status) return false;
-    if (applied.protocol && (row.msTerminalSessionProtocol || '').toUpperCase() !== applied.protocol) return false;
-    if (ip && !(row.msTerminalSessionClientIp || '').toLowerCase().includes(ip)) return false;
-    if (kw) {
-      const hay = [
-        row.msTerminalSessionHostName,
-        row.msTerminalSessionUser,
-        row.msTerminalSessionClientIp,
-        hostMap.value[row.msTerminalSessionHostId ?? 0],
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      if (!hay.includes(kw)) return false;
-    }
-    return true;
-  });
-});
+/** 已筛选的展示行 */
+const views = computed(() =>
+  toSessionViews(filterSessions(sessions.value, filters, hostMap.value), hostMap.value, now.value),
+)
 
-/** 应用筛选（查询按钮） */
-function applyFilters(): void {
-  Object.assign(applied, form);
+/** 是否有任何生效的条件（用于页头「清除筛选」） */
+const hasFilter = computed(
+  () =>
+    Boolean(filters.keyword.trim()) ||
+    Boolean(filters.protocol) ||
+    Boolean(filters.ip) ||
+    Boolean(filters.status) ||
+    filters.hourBucket !== null,
+)
+
+/** 时段条件的中文说明 */
+const bucketText = computed(() => {
+  if (filters.hourBucket === null) return ''
+  const from = filters.hourBucket
+  const to = Math.min(from + SESSION_BUCKET_HOURS, 24)
+  const p = (n: number): string => String(n).padStart(2, '0')
+  return `${p(from)}:00–${p(to)}:00`
+})
+
+/**
+ * 应用筛选补丁。
+ *
+ * <p>画布只管发「用户改了什么」，合并逻辑在这里，因此不会有画布漏字段。</p>
+ *
+ * @param patch 条件补丁
+ */
+function onFilter(patch: Partial<SessionFilters>): void {
+  Object.assign(filters, patch)
+}
+
+/** 清除全部条件 —— 页头那个 × 用它，避免用户逐个回退 */
+function clearFilters(): void {
+  Object.assign(filters, EMPTY_SESSION_FILTERS)
 }
 
 /**
- * 状态快捷筛选：下拉 / 分段控件共用；重复点击当前项回到「全部」
+ * 打开详情抽屉
  *
- * @param value 目标状态
+ * @param row 展示行
  */
-function setQuickStatus(value: SessionStatus): void {
-  const next: SessionStatus = form.status === value ? '' : value;
-  form.status = next;
-  applied.status = next;
-}
-
-/**
- * 状态下拉命令
- *
- * @param command 状态值
- */
-function onStatusCommand(command: string): void {
-  form.status = command as SessionStatus;
-  applied.status = command as SessionStatus;
-}
-
-/**
- * 协议显示名
- *
- * @param protocol 协议
- */
-function protocolLabel(protocol?: string): string {
-  return (protocol || '').toUpperCase() || '-';
-}
-
-/**
- * 协议 pill 样式类
- *
- * @param protocol 协议
- */
-function protoClass(protocol?: string): string {
-  const v = (protocol || '').toLowerCase();
-  return v === 'ssh' || v === 'rdp' || v === 'vnc' ? `is-${v}` : 'is-unknown';
-}
-
-/**
- * 状态显示名
- *
- * @param status 状态
- */
-function statusLabel(status?: string): string {
-  if (status === 'OPEN') return '进行中';
-  if (status === 'CLOSED') return '已结束';
-  return '全部';
-}
-
-/**
- * 状态文本（表格单元格）
- *
- * @param status 状态
- */
-function statusText(status?: string): string {
-  if (status === 'OPEN') return '进行中';
-  if (status === 'CLOSED') return '已结束';
-  return status || '-';
-}
-
-/**
- * 时间格式化（统一 yyyy-MM-dd HH:mm:ss）
- *
- * @param t 时间字符串
- */
-function fmtTime(t?: string): string {
-  if (!t) return '-';
-  const s = String(t);
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) return s.slice(0, 19);
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  const p = (n: number): string => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-
-/** 打开详情 */
-function openDetail(row: SessionRow): void {
-  detailSession.value = row;
-  detailVisible.value = true;
+function openDetail(row: SessionView): void {
+  detailView.value = row
+  detailVisible.value = true
 }
 
 /** 刷新会话记录 */
 async function refresh(): Promise<void> {
-  loading.value = true;
+  loading.value = true
   try {
-    const audit = await getSessions();
-    sessions.value = audit ?? [];
+    const audit = await getSessions()
+    sessions.value = audit ?? []
+    now.value = new Date()
   } catch (e) {
-    message.error((e as Error).message);
+    message.error((e as Error).message)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 /**
  * 强制关闭会话
  *
- * @param row 会话
+ * @param row 展示行
  */
-async function onForceClose(row: SessionRow): Promise<void> {
-  const name = row.msTerminalSessionHostName || row.msTerminalSessionClientIp || String(row.id);
+async function onForceClose(row: SessionView): Promise<void> {
   try {
-    await message.confirm(`确认强制关闭「${name}」的会话？`, '强制关闭');
+    await message.confirm(`确认强制关闭「${row.host}」的会话？`, '强制关闭')
   } catch {
-    return;
+    return
   }
   try {
-    await closeSession(row.id);
-    message.success('已关闭');
-    await refresh();
+    await closeSession(row.id)
+    message.success('已关闭')
+    detailVisible.value = false
+    await refresh()
   } catch (e) {
-    message.error((e as Error).message);
+    message.error((e as Error).message)
   }
 }
 
+/**
+ * 时钟：30 秒一跳。
+ *
+ * <p>只在有进行中会话时才需要它（时长与「现在」都在动），但常驻一个 30 秒定时器
+ * 的成本远低于「有没有开着的会话」这个判断本身的复杂度 —— 而且它顺带让
+ * 时间带上的「现在」竖线也在走。</p>
+ */
+let clock: ReturnType<typeof setInterval> | null = null
+
 onMounted(async () => {
-  const hosts = await queryHosts().catch(() => []);
-  for (const h of hosts ?? []) {
-    hostMap.value[h.id] = h.serverHostName;
-  }
-  await refresh();
-});
+  const hosts = await queryHosts().catch(() => [])
+  for (const h of hosts ?? []) hostMap.value[h.id] = h.serverHostName
+  await refresh()
+  clock = setInterval(() => {
+    now.value = new Date()
+  }, 30_000)
+})
+
+onUnmounted(() => {
+  if (clock) clearInterval(clock)
+  clock = null
+})
 </script>
 
 <template>
-  <div class="session-audit">
-    <section class="sa-card">
-      <!-- 统计 -->
-      <div class="sa-stats">
-        <div class="sa-stat">
-          <div class="sa-stat__main">
-            <span class="sa-stat__label"><i class="sa-stat__dot" />总连接数</span>
-            <span class="sa-stat__value">{{ stats.total }}</span>
-          </div>
-          <span class="sa-stat__icon"><ReIcon name="Calendar" /></span>
-        </div>
-        <div class="sa-stat">
-          <div class="sa-stat__main">
-            <span class="sa-stat__label"><i class="sa-stat__dot" />进行中</span>
-            <span class="sa-stat__value">{{ stats.open }}</span>
-          </div>
-          <span class="sa-stat__icon"><ReIcon name="CircleCheck" /></span>
-        </div>
-        <div class="sa-stat">
-          <div class="sa-stat__main">
-            <span class="sa-stat__label"><i class="sa-stat__dot" />已结束</span>
-            <span class="sa-stat__value">{{ stats.closed }}</span>
-          </div>
-          <span class="sa-stat__icon"><ReIcon name="User" /></span>
-        </div>
+  <div class="pk-page">
+    <div class="pk-head">
+      <div class="pk-head__titles">
+        <h2 class="pk-head__title">会话审计</h2>
+        <p class="pk-head__desc">
+          终端连接流水：谁在什么时候登过哪台主机、开了多久、怎么结束的。
+        </p>
       </div>
 
-      <!-- 状态快捷筛选 -->
-      <div class="sa-segrow">
-        <ElDropdown trigger="click" placement="bottom-start" @command="onStatusCommand">
-          <span class="sa-pill" role="button" tabindex="0">
-            <span>{{ statusLabel(form.status) }}</span>
-            <ReIcon name="ArrowDown" />
-          </span>
-          <template #dropdown>
-            <ElDropdownMenu>
-              <ElDropdownItem v-for="o in statusOptions" :key="o.value" :command="o.value">{{ o.label }}</ElDropdownItem>
-            </ElDropdownMenu>
-          </template>
-        </ElDropdown>
-        <div class="sa-seg">
-          <button
-            type="button"
-            :class="['sa-seg__btn', { 'is-active': form.status === 'OPEN' }]"
-            @click="setQuickStatus('OPEN')"
-          >进行中</button>
-          <button
-            type="button"
-            :class="['sa-seg__btn', { 'is-active': form.status === 'CLOSED' }]"
-            @click="setQuickStatus('CLOSED')"
-          >已结束</button>
-        </div>
+      <div class="pk-head__actions">
+        <!-- 生效中的条件集中在这里：条件可能是别的画布设下的，必须一眼看见、一键清除 -->
         <button
-          class="sa-refresh"
-          :class="{ 'is-loading': loading }"
+          v-if="filters.hourBucket !== null"
           type="button"
-          title="刷新"
-          @click="refresh"
+          class="cond"
+          title="清除时段条件"
+          @click="onFilter({ hourBucket: null })"
         >
-          <ReIcon name="Refresh" />
-          <span>刷新</span>
+          时段 {{ bucketText }}<span class="cond__x">×</span>
         </button>
+        <button v-if="hasFilter" type="button" class="pk-link" @click="clearFilters">清除筛选</button>
       </div>
+    </div>
 
-      <!-- 高级筛选 -->
-      <div class="sa-filters">
-        <ReInput
-          v-model="form.keyword"
-          class="sa-filters__search"
-          placeholder="搜索主机/用户/IP"
-          prefix-icon="Search"
-          clearable
-          @keyup.enter="applyFilters"
-        />
-        <ReSelect v-model="form.protocol" class="sa-filters__select" :options="protocolOptions" placeholder="协议" />
-        <ReInput v-model="form.ip" class="sa-filters__select" placeholder="IP" clearable @keyup.enter="applyFilters" />
-        <ReSelect v-model="form.status" class="sa-filters__select" :options="statusOptions" placeholder="状态" />
-        <ReButton class="sa-filters__query" type="primary" @click="applyFilters">查询</ReButton>
-      </div>
+    <SessionConsole
+      v-if="variant === 'console'"
+      :rows="views"
+      :stats="stats"
+      :loading="loading"
+      :filters="filters"
+      @filter="onFilter"
+      @refresh="refresh"
+      @detail="openDetail"
+      @close="onForceClose"
+    />
 
-      <!-- 审计明细 -->
-      <ReTable
-        class="sa-table"
-        :data="filteredSessions"
-        :loading="loading"
-        :pagination="true"
-        :page-size="15"
-        :toolbar="false"
-        empty-text="暂无会话记录"
-      >
-        <ReTableColumn label="主机" min-width="150" show-overflow-tooltip>
-          <template #default="{ row }">
-            {{ row.msTerminalSessionHostName || hostMap[row.msTerminalSessionHostId ?? 0] || '-' }}
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="协议" width="84">
-          <template #default="{ row }">
-            <span class="sa-proto" :class="protoClass(row.msTerminalSessionProtocol)">
-              {{ protocolLabel(row.msTerminalSessionProtocol) }}
-            </span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="用户" min-width="150" show-overflow-tooltip>
-          <template #default="{ row }">
-            {{ row.msTerminalSessionUser || row.msTerminalSessionClientIp || '-' }}
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="连接时间" min-width="178">
-          <template #default="{ row }">{{ fmtTime(row.msTerminalSessionConnectTime) }}</template>
-        </ReTableColumn>
-        <ReTableColumn label="关闭时间" min-width="178">
-          <template #default="{ row }">{{ fmtTime(row.msTerminalSessionCloseTime) }}</template>
-        </ReTableColumn>
-        <ReTableColumn label="状态" width="96">
-          <template #default="{ row }">
-            <span class="sa-status" :class="{ 'is-open': row.msTerminalSessionStatus === 'OPEN' }">
-              <i class="sa-status__dot" />{{ statusText(row.msTerminalSessionStatus) }}
-            </span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="操作" width="132">
-          <template #default="{ row }">
-            <button class="sa-link" type="button" @click="openDetail(row)">
-              <i class="sa-link__dot" />详情
-            </button>
-            <button
-              v-if="row.msTerminalSessionStatus === 'OPEN'"
-              class="sa-link is-danger"
-              type="button"
-              @click="onForceClose(row)"
-            >强制关闭</button>
-          </template>
-        </ReTableColumn>
-      </ReTable>
-    </section>
+    <SessionInstrument
+      v-else-if="variant === 'instrument'"
+      :rows="views"
+      :all-rows="allViews"
+      :stats="stats"
+      :loading="loading"
+      :filters="filters"
+      @filter="onFilter"
+      @refresh="refresh"
+      @detail="openDetail"
+    />
 
-    <!-- 详情 -->
+    <SessionRhythm
+      v-else-if="variant === 'rhythm'"
+      :rows="views"
+      :stats="stats"
+      :loading="loading"
+      :filters="filters"
+      :now="now"
+      @filter="onFilter"
+      @refresh="refresh"
+      @detail="openDetail"
+      @close="onForceClose"
+    />
+
+    <SessionDossier
+      v-else-if="variant === 'dossier'"
+      :rows="views"
+      :stats="stats"
+      :loading="loading"
+      :filters="filters"
+      :now="now"
+      @filter="onFilter"
+      @refresh="refresh"
+      @close="onForceClose"
+    />
+
+    <SessionWall
+      v-else
+      :rows="views"
+      :stats="stats"
+      :loading="loading"
+      :filters="filters"
+      @filter="onFilter"
+      @refresh="refresh"
+      @detail="openDetail"
+      @close="onForceClose"
+    />
+
+    <!-- 详情抽屉：只有档案柜不用它（它的详情常驻右栏） -->
     <ReDrawer
       v-model="detailVisible"
       title="会话详情"
@@ -387,381 +301,81 @@ onMounted(async () => {
       :footer-hidden="true"
     >
       <template #content>
-        <ReDescriptions v-if="detailSession" :column="1" border >
-          <ReDescriptionsItem label="主机">
-            {{ detailSession.msTerminalSessionHostName || hostMap[detailSession.msTerminalSessionHostId ?? 0] || '-' }}
+        <ReDescriptions v-if="detailView" :column="1" border>
+          <ReDescriptionsItem label="主机">{{ detailView.host }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="协议">{{ detailView.protocol }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="用户">{{ detailView.user }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="客户端 IP">{{ detailView.ip }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="连接时间">{{ detailView.connectText }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="关闭时间">
+            {{ detailView.isOpen ? '— 会话仍在' : detailView.closeText }}
           </ReDescriptionsItem>
-          <ReDescriptionsItem label="协议">{{ protocolLabel(detailSession.msTerminalSessionProtocol) }}</ReDescriptionsItem>
-          <ReDescriptionsItem label="用户">{{ detailSession.msTerminalSessionUser || '-' }}</ReDescriptionsItem>
-          <ReDescriptionsItem label="客户端 IP">{{ detailSession.msTerminalSessionClientIp || '-' }}</ReDescriptionsItem>
-          <ReDescriptionsItem label="连接时间">{{ fmtTime(detailSession.msTerminalSessionConnectTime) }}</ReDescriptionsItem>
-          <ReDescriptionsItem label="关闭时间">{{ fmtTime(detailSession.msTerminalSessionCloseTime) }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="持续时长">{{ detailView.durationText }}</ReDescriptionsItem>
           <ReDescriptionsItem label="状态">
-            <span class="sa-status" :class="{ 'is-open': detailSession.msTerminalSessionStatus === 'OPEN' }">
-              <i class="sa-status__dot" />{{ statusText(detailSession.msTerminalSessionStatus) }}
+            <span class="pk-state">
+              <i class="pk-dot" :class="detailView.isOpen ? 'pk-dot--live' : ''" />
+              {{ detailView.statusText }}
             </span>
           </ReDescriptionsItem>
-          <ReDescriptionsItem label="关闭原因">{{ detailSession.msTerminalSessionCloseReason || '-' }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="关闭原因">
+            {{ detailView.closeReason || (detailView.isOpen ? '—' : '未记录') }}
+          </ReDescriptionsItem>
         </ReDescriptions>
-        <div v-if="detailSession?.msTerminalSessionStatus === 'OPEN'" class="sa-drawer-actions">
-          <ReButton type="danger" @click="onForceClose(detailSession)">强制关闭</ReButton>
+        <div v-if="detailView?.isOpen" class="drawer-actions">
+          <ReButton type="danger" @click="onForceClose(detailView)">强制关闭</ReButton>
         </div>
       </template>
     </ReDrawer>
+
+    <RePageVariantDock
+      v-if="dockVisible"
+      :items="items"
+      :model-value="variant"
+      page-label="会话审计"
+      @update:model-value="setVariant"
+    />
   </div>
 </template>
 
-<style scoped lang="scss">
-.session-audit {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100%;
-  box-sizing: border-box;
-}
-
-/* 主卡片 */
-.sa-card {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  padding: 28px 32px 24px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
-  border-radius: var(--el-radius-xl, 16px);
-  /* koi 规约：卡片静止态不加投影，边界由上面那圈 1px 边框承载 */
-}
-
-/* 刷新（工具条右侧） */
-.sa-refresh {
+<style scoped>
+/* 生效中的条件胶囊 */
+.cond {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
-  height: 40px;
-  padding: 0 18px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
-  outline: none;
-  /* 原来用 var(--el-transition-duration)，它被 EP base.css 定为 .3s，
-     对 40px 高的胶囊按钮 hover 明显发滞；EP 自己的 transition-color 也用 -fast(.2s) */
-  transition:
-    color var(--el-transition-duration-fast, 0.2s),
-    border-color var(--el-transition-duration-fast, 0.2s),
-    background-color var(--el-transition-duration-fast, 0.2s);
-}
-/* 原生 button：自绘焦点环 */
-.sa-refresh:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.sa-refresh:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
-}
-.sa-refresh.is-loading :deep(svg) {
-  animation: sa-spin 0.8s linear infinite;
-}
-@keyframes sa-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 统计 */
-.sa-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-.sa-stat {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 20px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-}
-.sa-stat__main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.sa-stat__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-.sa-stat__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-primary);
-}
-.sa-stat__value {
-  margin-top: 8px;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-.sa-stat__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  font-size: 20px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border-radius: var(--el-radius-md, 8px);
-}
-
-/* 状态快捷筛选 */
-.sa-segrow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.sa-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 18px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  transition: color var(--el-transition-duration-fast, 0.2s), border-color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
-}
-.sa-pill:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-}
-.sa-seg {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  background: var(--el-fill-color-light);
-  border-radius: var(--el-radius-full, 9999px);
-}
-.sa-seg__btn {
-  height: 32px;
-  padding: 0 22px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  transition: color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
-}
-.sa-seg__btn:hover:not(.is-active) {
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-.sa-seg__btn.is-active {
-  color: var(--el-color-white);
-  background: var(--el-color-primary);
-}
-
-/* 高级筛选 */
-.sa-filters {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--el-fill-color-light);
-  border-radius: var(--el-radius-lg, 12px);
-}
-.sa-filters__search {
-  flex: 1 1 240px;
-  min-width: 200px;
-}
-.sa-filters__select {
-  flex: 0 0 130px;
-  width: 130px;
-}
-.sa-filters__query {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* 表格 */
-.sa-table {
-  --el-table-border-color: var(--el-border-color-lighter);
-}
-.sa-table :deep(.el-table__header-wrapper th.el-table__cell) {
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  font-weight: 500;
-  font-size: 13px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.sa-table :deep(.el-table__row > td.el-table__cell) {
-  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
-}
-.sa-table :deep(.el-table__inner-wrapper::before) {
-  display: none;
-}
-.sa-table :deep(.el-table__row:hover > td.el-table__cell) {
-  background: var(--el-color-primary-light-9);
-}
-
-/* 协议 pill */
-.sa-proto {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 54px;
-  height: 24px;
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 6px 0 10px;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--el-color-white);
-  border-radius: var(--el-radius-full, 9999px);
-}
-.sa-proto.is-vnc { background: var(--el-color-primary); }
-.sa-proto.is-rdp { background: var(--el-color-warning); }
-.sa-proto.is-ssh { background: var(--el-color-success); }
-.sa-proto.is-unknown { background: var(--el-color-info); }
-
-/* 状态 */
-.sa-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  white-space: nowrap;
-}
-.sa-status__dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-text-color-disabled);
-}
-.sa-status.is-open .sa-status__dot {
-  background: var(--el-color-success);
-  animation: sa-pulse 1.8s ease-out infinite;
-}
-@keyframes sa-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 50%, transparent); }
-  70% { box-shadow: 0 0 0 6px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-
-/* 行内链接按钮 */
-.sa-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  margin-right: 12px;
-  font-size: 13px;
   color: var(--el-color-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.sa-link:hover {
-  color: var(--el-color-primary-dark-2);
-}
-.sa-link__dot {
-  width: 6px;
-  height: 6px;
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
   border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-color-primary);
-}
-.sa-link.is-danger {
-  color: var(--el-color-danger);
-}
-.sa-link.is-danger:hover {
-  color: var(--el-color-danger-dark-2);
-}
-.sa-link.is-danger .sa-link__dot {
-  background: var(--el-color-danger);
+  cursor: pointer;
+  outline: none;
 }
 
-.sa-drawer-actions {
+.cond:hover {
+  background: var(--el-color-primary-light-8);
+}
+
+.cond:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
+.cond__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
+.drawer-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
-}
-
-/* ============ 键盘可达性 ============ */
-/* 下面这几个都是原生可聚焦元素（button / span[role=button][tabindex=0]），
-   不是 Element Plus 组件，拿不到 EP 自带的 :focus-visible 实线轮廓，
-   统一去掉浏览器默认轮廓并自绘与全站一致的焦点环 */
-.sa-pill,
-.sa-seg__btn,
-.sa-link {
-  outline: none;
-}
-.sa-pill:focus-visible,
-.sa-seg__btn:focus-visible,
-.sa-link:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  /* 行内文字按钮本身没有圆角，补一个最小档让焦点环不显得是硬方块 */
-  border-radius: var(--el-radius-xs, 4px);
-}
-
-/* 窄屏 */
-@media (max-width: 720px) {
-  .sa-card {
-    padding: 20px 16px;
-  }
-  .sa-stats {
-    grid-template-columns: 1fr;
-  }
-  .sa-filters {
-    flex-wrap: wrap;
-  }
-  .sa-filters__search,
-  .sa-filters__select {
-    flex: 1 1 100%;
-    width: 100%;
-  }
-  .sa-filters__query {
-    margin-left: 0;
-  }
-}
-
-/* 尊重系统「减少动态效果」偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .sa-refresh,
-  .sa-pill,
-  .sa-seg__btn {
-    transition: none;
-  }
-  /* 刷新中的旋转必须停；但这一帧唯一的反馈手段就是旋转动画，
-     直接 animation:none 会让「正在刷新」彻底无感，故补一层静态降透明度作为兜底信号 */
-  .sa-refresh.is-loading :deep(svg) {
-    animation: none;
-    opacity: 0.45;
-  }
-  /* 状态点的扩散光环可以停：开关状态本来就由点的底色（成功绿 / 禁用灰）区分，
-     光环只是附加动效，不承担唯一信息 */
-  .sa-status.is-open .sa-status__dot {
-    animation: none;
-  }
 }
 </style>

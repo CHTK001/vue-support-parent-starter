@@ -1,0 +1,969 @@
+/* ============================================================================
+ * RePageKit —— 页面方向共享词汇表
+ *
+ * 目的：让七个同构管理页（会话审计 / 批量作业 / 片段管理 / 维护计划 /
+ * ACME 证书 / 抓包分析 / PCAP 分析）共用一套页面壳词汇，而不是各手搓一套。
+ * 此前同一类页面存在四种壳：手搓卡片+统计+分段+筛选、带投影的 .ex-card
+ * （违反 koi「卡片静止态不加投影」）、混用 el-input 的自定义 .filter-bar、
+ * 以及只有一处用的 ReSectionHead。
+ *
+ * 取色一律走 --el-*（Element Plus 语义变量）：
+ *   - 它们在亮/暗色下都会被 dark/css-vars.css 覆盖，跟着主题翻；
+ *   - 各页面私有的 --bg-* / --text-* / --border-subtle 只在 :root 定义，
+ *     暗色模式下不会翻（pages/monitor 的 tshark.css 顶部注释已记录过这个坑）。
+ *
+ * 圆角一律走 --el-radius-*（xs 4 / sm 6 / md 8 / lg 12 / xl 16 / full）。
+ * 卡片静止态不加投影（koi 规约），边界由 1px 边框承载；只有「可点的卡片」
+ * 在 hover 时加一层淡投影，作为可点的反馈而不是装饰。
+ *
+ * 动效只动 transform / opacity / box-shadow，不动 width / height / top / left。
+ * ========================================================================== */
+
+/* ==================== 页面骨架 ==================== */
+
+/**
+ * 页面根容器。纵向 flex + gap，配合 .pk-grow 让列表吃掉剩余高度。
+ *
+ * <p>高度链要从根一直传到底：pk-page(flex column) → pk-grow(flex:1;min-height:0)
+ * → 表格容器的 flex:1 —— 中间任何一层少了 min-height:0，内滚动都会失效、
+ * 整页跟着长。</p>
+ */
+.pk-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/** 吃掉剩余高度的那一层 */
+.pk-grow {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/** 不吃高度、按内容撑开的横向行 */
+.pk-fixed {
+  flex: none;
+}
+
+/* ==================== 页头 ==================== */
+
+.pk-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pk-head__titles {
+  min-width: 0;
+}
+
+.pk-head__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.2px;
+  color: var(--el-text-color-primary);
+}
+
+.pk-head__desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.pk-head__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ==================== 控制栏 ==================== */
+
+/**
+ * 一行装的筛选/操作条。方向 console 与 rhythm 的主要外壳。
+ *
+ * <p>用 flex-wrap 而不是 grid：筛选项数量与宽度各页不同，
+ * grid 的等分列会在窄屏把输入框压得没法用。</p>
+ */
+.pk-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.pk-bar__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pk-bar__sep {
+  flex: none;
+  width: 1px;
+  align-self: stretch;
+  margin: 2px;
+  background: var(--el-border-color-lighter);
+}
+
+/** 控制栏右侧的计数/口径说明 */
+.pk-bar__count {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ==================== 分段控件（带计数） ==================== */
+
+/**
+ * 状态分段。计数直接挂在选项里，因此不需要额外的统计卡来说明「有几个」。
+ */
+.pk-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.pk-seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: 0;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s),
+    background-color var(--el-transition-duration-fast, 0.2s);
+}
+
+.pk-seg__btn:hover:not(.is-active) {
+  color: var(--el-color-primary);
+}
+
+.pk-seg__btn.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
+}
+
+.pk-seg__count {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-placeholder);
+}
+
+.pk-seg__btn.is-active .pk-seg__count {
+  color: var(--el-color-primary);
+}
+
+.pk-seg__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
+/* ==================== 面板 / 表面 ==================== */
+
+/**
+ * 卡片基线：1px 边框 + 圆角，无投影。
+ *
+ * <p>与 packages/ui/src/components/shared/re-surface.css 的口径一致，
+ * 但这里不引用它——本文件要能独立被页面级样式使用，不引入组件库依赖链。</p>
+ */
+.pk-surface {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.pk-surface--pad {
+  padding: 12px 14px;
+}
+
+/* ==================== 表格（grid 行） ==================== */
+
+/**
+ * grid 表格。列宽由页面在容器上声明 `--pk-cols`。
+ *
+ * <p>为什么不用 ReTable 也不自己写 table：这两个方向的表格列宽各异、
+ * 且需要「整行可点 / 行尾操作」这类非标准单元格，el-table 会逼着用插槽
+ * 拼出等价物，反而更长。这里只有行与单元格两层，页面完全掌控列。</p>
+ *
+ * <p>窄屏必须能横滚：内层 .pk-table__scroll 兜住，否则 grid 会把页面撑宽。</p>
+ */
+.pk-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+}
+
+.pk-table__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/** 一行（表头与数据行共用列定义） */
+.pk-cells {
+  display: grid;
+  grid-template-columns: var(--pk-cols, minmax(0, 1fr));
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  min-width: var(--pk-min-w, 0);
+}
+
+.pk-hd {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 30px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.pk-tr {
+  min-height: 38px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  transition: background-color var(--el-transition-duration-fast, 0.2s);
+}
+
+.pk-tr:last-child {
+  border-bottom: 0;
+}
+
+.pk-tr:hover {
+  background: var(--el-color-primary-light-9);
+}
+
+/** 整行可点时给出手型与焦点环 */
+.pk-tr.is-clickable {
+  cursor: pointer;
+  outline: none;
+}
+
+.pk-tr.is-clickable:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--el-color-primary);
+}
+
+/* ==================== 文本原子 ==================== */
+
+/** 等宽数字：数值跳动时不左右抖 */
+.pk-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/** 等宽代码：cron / 命令 / 域名 / 三元组 */
+.pk-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pk-dim {
+  color: var(--el-text-color-secondary);
+}
+
+.pk-faint {
+  color: var(--el-text-color-placeholder);
+}
+
+/** 主行标题（表格第一列的主标识） */
+.pk-strong {
+  font-weight: 600;
+}
+
+/** 主行下方的次行信息 */
+.pk-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+
+.pk-ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 状态点 / 徽标 ==================== */
+
+.pk-dot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--el-text-color-disabled);
+}
+
+.pk-dot--ok {
+  background: var(--el-color-success);
+}
+
+.pk-dot--warn {
+  background: var(--el-color-warning);
+}
+
+.pk-dot--err {
+  background: var(--el-color-danger);
+}
+
+.pk-dot--info {
+  background: var(--el-color-primary);
+}
+
+/** 运行中：点周围一圈扩散光环（不承担唯一信息，状态本身由底色区分） */
+.pk-dot--live {
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 18%, transparent);
+}
+
+/** 状态单元：点 + 文本 */
+.pk-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+
+/** 紧凑徽标 */
+.pk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+  white-space: nowrap;
+}
+
+.pk-pill--brand {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.pk-pill--ok {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+
+.pk-pill--warn {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+}
+
+.pk-pill--err {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+.pk-pill--info {
+  color: var(--el-color-info);
+  background: var(--el-fill-color);
+}
+
+/* ==================== 协议色块 / 进行中高亮 ==================== */
+
+/**
+ * 协议徽标（SSH / RDP / VNC）。
+ *
+ * <p>三种已知协议各有固定配色，未知协议走中性灰 —— 不让 TELNET 之类的协议
+ * 借用某个已知协议的颜色，否则读起来像被误标了。</p>
+ *
+ * <p>配色不走 --el-color-* 的语义档（success/warning 等）：协议不是状态，
+ * 借用语义色会让人以为 SSH 是「成功」。RDP / VNC 用固定色值，
+ * 暗色下靠 12% 透明底色保持对比度。</p>
+ */
+.pk-proto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 19px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color);
+  border-radius: var(--el-radius-xs, 4px);
+}
+
+.pk-proto.is-ssh {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.pk-proto.is-rdp {
+  color: #7c3aed;
+  background: color-mix(in srgb, #7c3aed 12%, transparent);
+}
+
+.pk-proto.is-vnc {
+  color: #0e7490;
+  background: color-mix(in srgb, #0e7490 12%, transparent);
+}
+
+/** 进行中：数值用成功色，表示「还在走」 */
+.pk-live {
+  font-weight: 600;
+  color: var(--el-color-success);
+}
+
+/* ==================== 行内操作 ==================== */
+
+.pk-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--el-color-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+}
+
+.pk-link:hover {
+  color: var(--el-color-primary-dark-2);
+}
+
+.pk-link:focus-visible {
+  border-radius: var(--el-radius-xs, 4px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
+.pk-link--danger {
+  color: var(--el-color-danger);
+}
+
+.pk-link--danger:hover {
+  color: var(--el-color-danger-dark-2);
+}
+
+.pk-ops {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ==================== 卡片墙 ==================== */
+
+.pk-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--pk-card-min, 220px), 1fr));
+  gap: 10px;
+  align-content: start;
+}
+
+.pk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 11px 12px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s),
+    box-shadow var(--el-transition-duration-fast, 0.2s);
+  outline: none;
+}
+
+.pk-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.pk-card.is-picked {
+  border-color: var(--el-color-primary);
+  box-shadow: inset 0 0 0 1px var(--el-color-primary);
+}
+
+.pk-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+}
+
+.pk-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pk-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/**
+ * 卡片载荷：命令 / cron / 域名这类「内容本身」。
+ *
+ * <p>左侧 2px 主色竖条是「这是一段可读内容」的唯一装饰，
+ * 不参与语义——所以不在色值上做分级。</p>
+ */
+.pk-card__payload {
+  padding: 6px 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border-left: 2px solid var(--el-color-primary);
+  border-radius: var(--el-radius-xs, 4px);
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 5.4em;
+  overflow: hidden;
+}
+
+.pk-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 7px;
+  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ==================== 遥测条 ==================== */
+
+/**
+ * 一行遥测数字。用 1px 缝隙而不是四张独立卡片：
+ * 它们是同一份数据的四个切面，分开摆会读成四个互不相干的对象。
+ */
+.pk-tele {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 1px;
+  background: var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+}
+
+.pk-tele__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  background: var(--el-bg-color);
+  min-width: 0;
+}
+
+.pk-tele__value {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pk-tele__label {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.pk-tele__cell.is-hot .pk-tele__value {
+  color: var(--el-color-success);
+}
+
+.pk-tele__cell.is-warn .pk-tele__value {
+  color: var(--el-color-warning);
+}
+
+.pk-tele__cell.is-bad .pk-tele__value {
+  color: var(--el-color-danger);
+}
+
+/* ==================== 时间带 ==================== */
+
+/**
+ * 时间轴画布。数据本身有起止（会话区间 / 维护窗口 / 证书有效期）时就该画成轴。
+ *
+ * <p>刻度线用 repeating-linear-gradient 画在背景上，不塞 DOM 节点——
+ * 一条轴上可能有几十个刻度，每个都建元素会让重绘变慢。</p>
+ */
+.pk-band {
+  flex: none;
+  padding: 10px 12px 8px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.pk-band__axis {
+  position: relative;
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color-light);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(25% - 1px),
+    var(--el-border-color-lighter) calc(25% - 1px),
+    var(--el-border-color-lighter) 25%
+  );
+}
+
+.pk-band__bar {
+  position: absolute;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--el-color-primary);
+  min-width: 2px;
+  transition: filter var(--el-transition-duration-fast, 0.2s);
+}
+
+.pk-band__bar:hover {
+  filter: brightness(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-band__bar {
+    transition: none;
+  }
+}
+
+/** 「现在」竖线 */
+.pk-band__now {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--el-color-danger);
+  pointer-events: none;
+}
+
+.pk-band__now::after {
+  content: '现在';
+  position: absolute;
+  top: -13px;
+  left: -11px;
+  font-size: 10px;
+  color: var(--el-color-danger);
+  white-space: nowrap;
+}
+
+.pk-band__ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+
+.pk-band__legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.pk-band__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pk-band__legend-chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* ==================== 左右分栏（档案柜） ==================== */
+
+/**
+ * 左栏列表 + 右栏详情。
+ *
+ * <p>右栏是常驻的，不再用抽屉：抽屉点开才知道详情，等于把「一条记录有 8 个字段」
+ * 这件事实藏起来了。窄屏改上下堆叠（见文件末尾媒体查询）。</p>
+ */
+.pk-split {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  gap: 10px;
+}
+
+.pk-rail {
+  flex: 0 0 var(--pk-rail-w, 240px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+}
+
+.pk-rail__head {
+  flex: none;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.pk-rail__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/** 分组抬头（进行中 / 已结束） */
+.pk-rail__group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--el-text-color-secondary);
+}
+
+/**
+ * 栏内条目。选中态用左侧 2px 主色竖条 + 淡底：
+ * 竖条比整条描边更省视觉预算，也更容易在长列表里扫到当前项。
+ */
+.pk-rail__item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px 7px 9px;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.pk-rail__item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.pk-rail__item.is-picked {
+  background: var(--el-color-primary-light-9);
+  border-left-color: var(--el-color-primary);
+}
+
+.pk-rail__item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--el-color-primary);
+}
+
+.pk-rail__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  min-width: 0;
+}
+
+.pk-rail__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  min-width: 0;
+}
+
+.pk-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+}
+
+.pk-detail__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.pk-detail__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/** 详情里的字段网格（比 ReDescriptions 更紧，且不需要 border） */
+.pk-kv {
+  display: grid;
+  grid-template-columns: minmax(64px, max-content) minmax(0, 1fr);
+  gap: 8px 12px;
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.pk-kv__label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.pk-kv__value {
+  min-width: 0;
+  color: var(--el-text-color-primary);
+  word-break: break-word;
+}
+
+.pk-detail__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* ==================== 空态 ==================== */
+
+.pk-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.pk-empty__hint {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  max-width: 34em;
+  line-height: 1.6;
+}
+
+/* ==================== 窄屏 ==================== */
+
+@media (max-width: 900px) {
+  .pk-head {
+    align-items: stretch;
+  }
+
+  .pk-head__actions {
+    width: 100%;
+  }
+
+  /* 分栏改上下：左栏限高，右栏保底高度，避免详情被挤成一条 */
+  .pk-split {
+    flex-direction: column;
+  }
+
+  .pk-rail {
+    flex: 0 0 auto;
+    max-height: 168px;
+  }
+
+  .pk-detail {
+    min-height: 220px;
+  }
+
+  .pk-tele {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ==================== 动效克减 ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-tr,
+  .pk-card,
+  .pk-rail__item,
+  .pk-seg__btn {
+    transition: none;
+  }
+}
