@@ -74,6 +74,8 @@
       />
     </div>
 
+    <slot name="alerts" />
+
     <slot :name="variant" />
 
     <RePageVariantDock
