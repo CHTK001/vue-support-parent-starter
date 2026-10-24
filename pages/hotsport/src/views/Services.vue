@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
 }
 
 .service-text {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   font-weight: 500;
 }
 
@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
   height: 4px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: var(--apm-border-soft);
+  background: var(--border-subtle, var(--apm-border-soft));
   overflow: hidden;
 }
 
@@ -255,27 +255,27 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
-  transition: width var(--apm-t-base);
+  transition: width var(--transition-base, var(--apm-t-base));
 }
 
 .rate-bar > i.ok {
-  background: var(--apm-success);
+  background: var(--status-success, var(--apm-success));
 }
 .rate-bar > i.warning {
-  background: var(--apm-warning);
+  background: var(--status-warning, var(--apm-warning));
 }
 .rate-bar > i.danger {
-  background: var(--apm-danger);
+  background: var(--status-error, var(--apm-danger));
 }
 
 .ok {
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 .warning {
-  color: var(--apm-warning);
+  color: var(--status-warning, var(--apm-warning));
 }
 .danger {
-  color: var(--apm-danger);
+  color: var(--status-error, var(--apm-danger));
 }
 
 @media (prefers-reduced-motion: reduce) {

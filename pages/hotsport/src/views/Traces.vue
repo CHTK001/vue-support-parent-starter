@@ -474,7 +474,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 骨架与 .filter-bar/.filter-field/.pager 统一由 styles/layout.css 提供 */
+/* 骨架与 .filter-bar/.filter-field/.pager 统一由 styles/layout.css 提供。
+   颜色/圆角已迁移为 koi 令牌，未加载 koi 时回退 --apm-*。 */
 
 .btn-icon {
   margin-right: 4px;
@@ -503,7 +504,7 @@ onMounted(() => {
   width: 62px;
 }
 .range-sep {
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 /* ---- 表格单元 ---- */
@@ -517,7 +518,7 @@ onMounted(() => {
 .trace-link {
   cursor: pointer;
   outline: none;
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
   transition: opacity var(--apm-t-fast);
 }
 
@@ -531,7 +532,7 @@ onMounted(() => {
 
 .copy-btn {
   cursor: pointer;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   opacity: 0;
   transition: opacity var(--apm-t-fast), color var(--apm-t-fast);
 }
@@ -542,7 +543,7 @@ onMounted(() => {
 }
 
 .copy-btn:hover {
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
 }
 
 .edge {
@@ -561,11 +562,11 @@ onMounted(() => {
 }
 
 .edge-endpoint.target {
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
 }
 
 .edge-arrow {
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   flex-shrink: 0;
 }
 
@@ -574,16 +575,16 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
 }
 .dur-val.fast {
-  color: var(--apm-success);
+  color: var(--status-success, var(--apm-success));
 }
 .dur-val.mid {
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 .dur-val.slow {
-  color: var(--apm-warning);
+  color: var(--status-warning, var(--apm-warning));
 }
 .dur-val.crit {
-  color: var(--apm-danger);
+  color: var(--status-error, var(--apm-danger));
   font-weight: 600;
 }
 
@@ -607,7 +608,7 @@ onMounted(() => {
 
 .drawer-count {
   margin-left: auto;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .detail-body {
@@ -617,10 +618,10 @@ onMounted(() => {
 }
 
 .span-card {
-  border: 1px solid var(--apm-border-soft);
-  border-radius: var(--apm-radius-md);
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
+  border-radius: var(--radius-md, var(--apm-radius-md));
   padding: var(--apm-space-3);
-  background: var(--apm-panel-raised);
+  background: var(--bg-elevated, var(--apm-panel-raised));
 }
 
 .span-head {
@@ -632,14 +633,14 @@ onMounted(() => {
 
 .span-idx {
   font-size: 12px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   min-width: 28px;
 }
 
 .span-op {
   font-family: var(--apm-font-mono);
   font-size: 12px;
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -647,7 +648,7 @@ onMounted(() => {
 
 .span-duration {
   margin-left: auto;
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
   font-weight: 600;
 }
 
@@ -665,7 +666,7 @@ onMounted(() => {
 }
 
 .span-row .k {
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   min-width: 52px;
   flex-shrink: 0;
 }
@@ -677,14 +678,14 @@ onMounted(() => {
 }
 
 .span-error-title {
-  color: var(--apm-danger);
+  color: var(--status-error, var(--apm-danger));
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
 }
 
 .span-error-msg {
-  color: var(--apm-danger);
+  color: var(--status-error, var(--apm-danger));
   font-size: 11px;
   white-space: pre-wrap;
   word-break: break-all;
@@ -706,22 +707,23 @@ onMounted(() => {
 </style>
 
 <style>
-/* 抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式。 */
+/* 抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式。
+   颜色已迁移为 koi 令牌，未加载 koi 时回退 --apm-*。 */
 .el-drawer {
-  --el-drawer-bg-color: var(--apm-panel);
-  background: var(--apm-panel);
-  color: var(--apm-fg);
+  --el-drawer-bg-color: var(--bg-container, var(--apm-panel));
+  background: var(--bg-container, var(--apm-panel));
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .el-drawer__header {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   margin-bottom: 12px;
-  border-bottom: 1px solid var(--apm-border);
+  border-bottom: 1px solid var(--border-default, var(--apm-border));
   padding-bottom: 12px;
 }
 
 .el-drawer__body {
-  background: var(--apm-panel);
-  color: var(--apm-fg);
+  background: var(--bg-container, var(--apm-panel));
+  color: var(--text-primary, var(--apm-fg));
 }
 </style>

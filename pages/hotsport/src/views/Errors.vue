@@ -237,12 +237,12 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 600;
   padding: var(--apm-space-2) var(--apm-space-2) 4px;
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .route-text,
 .msg-text {
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
 /* 占比条：一眼看出哪类错误占大头 */
@@ -259,7 +259,7 @@ onBeforeUnmount(() => {
   height: 4px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: var(--apm-border-soft);
+  background: var(--border-subtle, var(--apm-border-soft));
   overflow: hidden;
 }
 
@@ -267,13 +267,13 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
-  background: var(--apm-danger);
+  background: var(--status-error, var(--apm-danger));
 }
 
 .share-num {
   font-family: var(--apm-font-mono);
   font-size: 12px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   font-variant-numeric: tabular-nums;
   min-width: 44px;
   text-align: right;

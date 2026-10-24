@@ -739,25 +739,25 @@ onBeforeUnmount(() => {
   gap: 7px;
   height: 30px;
   padding: 0 12px;
-  border-radius: var(--apm-radius-md);
+  border-radius: var(--radius-md, var(--apm-radius-md));
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .health-chip.success {
-  background: var(--apm-success-bg);
-  color: var(--apm-success);
+  background: var(--status-success, var(--apm-success-bg));
+  color: var(--status-success, var(--apm-success));
 }
 
 .health-chip.warning {
-  background: var(--apm-warning-bg);
-  color: var(--apm-warning);
+  background: var(--status-warning, var(--apm-warning-bg));
+  color: var(--status-warning, var(--apm-warning));
 }
 
 .health-chip.danger {
-  background: var(--apm-danger-bg);
-  color: var(--apm-danger);
+  background: var(--status-error, var(--apm-danger-bg));
+  color: var(--status-error, var(--apm-danger));
 }
 
 .health-chip-dot {
@@ -768,7 +768,7 @@ onBeforeUnmount(() => {
 }
 
 .health-chip.danger .health-chip-dot {
-  animation: apm-health-pulse 1.4s var(--apm-ease) infinite;
+  animation: apm-health-pulse 1.4s var(--ease-out, var(--apm-ease)) infinite;
 }
 
 @keyframes apm-health-pulse {
@@ -789,7 +789,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--apm-space-5);
   padding-left: var(--apm-space-4);
-  border-left: 1px solid var(--apm-border);
+  border-left: 1px solid var(--border-default, var(--apm-border));
 }
 
 .health-metric {
@@ -801,12 +801,12 @@ onBeforeUnmount(() => {
 .health-metric-value {
   font-size: 14px;
   font-weight: 650;
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .health-metric-label {
   font-size: 12px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .refresh-icon {
@@ -820,18 +820,18 @@ onBeforeUnmount(() => {
 .last-refresh {
   font-size: 11px;
   padding-left: var(--apm-space-3);
-  border-left: 1px solid var(--apm-border-soft);
+  border-left: 1px solid var(--border-subtle, var(--apm-border-soft));
 }
 
 /* 图表导出按钮 */
 .chart-export-btn {
   margin-left: auto;
   font-size: 12px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .chart-export-btn:hover {
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
 }
 
 /* 图表导出：让 ECharts 实例可被 exportChart 定位 */
@@ -843,28 +843,28 @@ onBeforeUnmount(() => {
   gap: var(--apm-space-3);
   padding: var(--apm-space-4) var(--apm-space-5);
   text-align: left;
-  background: var(--apm-panel);
+  background: var(--bg-container, var(--apm-panel));
   border: 1px solid transparent;
-  border-radius: var(--apm-radius-lg);
-  box-shadow: var(--apm-shadow-card);
+  border-radius: var(--radius-lg, var(--apm-radius-lg));
+  box-shadow: var(--shadow-sm, var(--apm-shadow-card));
   color: inherit;
   font: inherit;
   cursor: pointer;
   transition:
-    transform var(--apm-t-fast),
-    box-shadow var(--apm-t-fast),
-    border-color var(--apm-t-fast);
+    transform var(--transition-base, var(--apm-t-fast)),
+    box-shadow var(--transition-base, var(--apm-t-fast)),
+    border-color var(--transition-base, var(--apm-t-fast));
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--apm-shadow-card-hover);
+  box-shadow: var(--shadow-md, var(--apm-shadow-card-hover));
   border-color: color-mix(in srgb, var(--card-accent) 42%, transparent);
 }
 
 .stat-card:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--apm-accent) 30%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, var(--apm-accent)) 30%, transparent);
 }
 
 .stat-icon {
@@ -873,7 +873,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border-radius: var(--apm-radius-md);
+  border-radius: var(--radius-md, var(--apm-radius-md));
   background: color-mix(in srgb, var(--card-accent) 16%, transparent);
   color: var(--card-accent);
 }
@@ -889,12 +889,12 @@ onBeforeUnmount(() => {
   font-size: 26px;
   font-weight: 700;
   line-height: 1;
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .stat-label {
   font-size: 12.5px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   white-space: nowrap;
 }
 
@@ -906,8 +906,8 @@ onBeforeUnmount(() => {
   opacity: 0;
   transform: translateX(-4px);
   transition:
-    opacity var(--apm-t-fast),
-    transform var(--apm-t-fast);
+    opacity var(--transition-base, var(--apm-t-fast)),
+    transform var(--transition-base, var(--apm-t-fast));
 }
 
 .stat-card:hover .stat-arrow {
@@ -926,7 +926,7 @@ onBeforeUnmount(() => {
 }
 
 .rank-table :deep(.el-table__row:hover td) {
-  background: var(--apm-panel-active);
+  background: var(--bg-hover, var(--apm-panel-active));
 }
 
 .service-cell {

@@ -229,7 +229,7 @@ const filters = reactive({ range: null as [Date, Date] | null });
 /**
  * 列配置：原来散在模板里的 6 个 el-table-column 收敛到这里。
  *
- * <p>标题都是写死文案（没有 t()），用普通常量即可。「时间 / 级别 / 方法 / 消息 / Trace」
+ * <p>标题都是写死文案（没有 t()），用普通常量即可。「时间 / 级别 / 方法 / 消息 / Trace》
  * 五列原 el-table-column 没有 prop，这里补稳定合成 prop（method 汇总 className+methodName），
  * 其余沿用行数据字段名，模板里一一对应 #col-&lt;prop&gt; 插槽。</p>
  */
@@ -515,7 +515,7 @@ onMounted(() => {
 
 /* 表头与消息列 */
 .msg-text {
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
   word-break: break-word;
 }
 
@@ -523,8 +523,8 @@ onMounted(() => {
 .kw-hit {
   padding: 0 2px;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--apm-warning) 26%, transparent);
-  color: var(--apm-fg);
+  background: color-mix(in srgb, var(--status-warning, var(--apm-warning)) 26%, transparent);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 /* 级别徽标：色点 + 等宽文字，四级语义色（错误/警告/正常/调试） */
@@ -552,28 +552,28 @@ onMounted(() => {
 }
 
 .lvl-error {
-  color: var(--apm-danger);
-  background: var(--apm-danger-bg);
+  color: var(--status-error, var(--apm-danger));
+  background: var(--status-error, var(--apm-danger-bg));
 }
 
 .lvl-warn {
-  color: var(--apm-warning);
-  background: var(--apm-warning-bg);
+  color: var(--status-warning, var(--apm-warning));
+  background: var(--status-warning, var(--apm-warning-bg));
 }
 
 .lvl-info {
-  color: var(--apm-accent);
-  background: var(--apm-accent-subtle);
+  color: var(--brand-500, var(--apm-accent));
+  background: var(--brand-500, var(--apm-accent-subtle));
 }
 
 .lvl-debug {
-  color: var(--apm-muted);
-  background: var(--apm-neutral-bg);
+  color: var(--text-tertiary, var(--apm-muted));
+  background: var(--bg-fill, var(--apm-neutral-bg));
 }
 
 /* ERROR 行整体淡红底，行内文字仍按令牌取色 */
 .log-table :deep(.row-error) {
-  background: var(--apm-danger-bg);
+  background: var(--status-error, var(--apm-danger-bg));
 }
 
 /* ---- trace 跳转 ---- */
@@ -582,17 +582,17 @@ onMounted(() => {
   padding: 0;
   background: none;
   cursor: pointer;
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
   transition: color var(--apm-t-fast);
 }
 
 .trace-link:hover {
-  color: var(--apm-accent-hover);
+  color: var(--brand-600, var(--apm-accent-hover));
 }
 
 .trace-link:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--apm-accent-subtle);
+  box-shadow: 0 0 0 3px var(--brand-500, var(--apm-accent-subtle));
   border-radius: var(--apm-radius-sm);
 }
 
@@ -605,8 +605,8 @@ onMounted(() => {
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--apm-accent-subtle);
-  color: var(--apm-accent);
+  background: var(--brand-500, var(--apm-accent-subtle));
+  color: var(--brand-500, var(--apm-accent));
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -619,7 +619,7 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: var(--apm-space-3);
   padding: var(--apm-space-3) var(--apm-space-4);
-  background: var(--apm-panel);
+  background: var(--bg-container, var(--apm-panel));
   border-radius: var(--apm-radius-lg);
   box-shadow: var(--apm-shadow-card);
 }
@@ -636,31 +636,31 @@ onMounted(() => {
   align-items: center;
   gap: var(--apm-space-2);
   padding: 4px 10px;
-  border: 1px solid var(--apm-border-soft);
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
   border-radius: 999px;
   background: transparent;
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
   font: inherit;
   cursor: pointer;
   transition: background var(--apm-t-fast), border-color var(--apm-t-fast);
 }
 
 .level-card:hover {
-  background: var(--apm-panel-active);
+  background: var(--bg-hover, var(--apm-panel-active));
 }
 
 .level-card:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--apm-accent-subtle);
+  box-shadow: 0 0 0 3px var(--brand-500, var(--apm-accent-subtle));
 }
 
 .level-card[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--apm-accent) 46%, transparent);
-  background: var(--apm-accent-subtle);
+  border-color: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 46%, transparent);
+  background: var(--brand-500, var(--apm-accent-subtle));
 }
 
 .level-count {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   font-weight: 700;
 }
 
@@ -678,7 +678,7 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--apm-space-3);
   padding: var(--apm-space-4) var(--apm-space-5);
-  background: var(--apm-panel);
+  background: var(--bg-container, var(--apm-panel));
   border-radius: var(--apm-radius-lg);
   box-shadow: var(--apm-shadow-card);
 }
@@ -704,7 +704,7 @@ onMounted(() => {
   gap: var(--apm-space-2);
   padding: 4px 8px;
   border-radius: var(--apm-radius-sm);
-  background: var(--apm-panel-raised);
+  background: var(--bg-elevated, var(--apm-panel-raised));
 }
 
 .live-time {
@@ -713,7 +713,7 @@ onMounted(() => {
 }
 
 .live-logger {
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -723,7 +723,7 @@ onMounted(() => {
 
 .live-msg {
   font-size: 12px;
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

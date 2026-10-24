@@ -621,7 +621,8 @@ const waterfallOption = computed<EChartsOption>(() => {
 <style scoped>
 /* 骨架（.view / .view-toolbar / .toolbar-* / .stat-row / .panel / .panel-head /
    .panel-sub / .panel-empty / .mono / .muted / .err-text / .ok-text）
-   统一由 styles/layout.css 提供，此处只留本页独有部分。 */
+   统一由 styles/layout.css 提供，此处只留本页独有部分。
+   颜色令牌：koi 优先，未接入 koi 时回落 hotsport 的 --apm-* 令牌。 */
 
 .waterfall-panel {
   min-height: 480px;
@@ -636,21 +637,21 @@ const waterfallOption = computed<EChartsOption>(() => {
 .span-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--apm-border-soft);
+  border: 1px solid var(--border-subtle, var(--apm-border-soft));
   border-radius: var(--apm-radius-md);
   overflow: hidden;
 }
 
 .span-item + .span-item {
-  border-top: 1px solid var(--apm-border-soft);
+  border-top: 1px solid var(--border-subtle, var(--apm-border-soft));
 }
 
 .span-item.is-error {
-  background: color-mix(in srgb, var(--apm-danger) 5%, transparent);
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 5%, transparent);
 }
 
 .span-item.is-open {
-  background: var(--apm-panel-raised);
+  background: var(--bg-elevated, var(--apm-panel-raised));
 }
 
 /* 整行是按钮：键盘 Tab 聚焦、Enter/Space 展开，无需额外事件绑定 */
@@ -664,7 +665,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   margin: 0;
   border: 0;
   background: transparent;
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -672,23 +673,23 @@ const waterfallOption = computed<EChartsOption>(() => {
 }
 
 .span-row:hover {
-  background: var(--apm-panel-active);
+  background: var(--bg-hover, var(--apm-panel-active));
 }
 
 .span-row:focus-visible {
-  outline: 2px solid var(--apm-accent);
+  outline: 2px solid var(--brand-500, var(--apm-accent));
   outline-offset: -2px;
 }
 
 .chev {
   flex-shrink: 0;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   transition: transform var(--apm-t-fast);
 }
 
 .chev.open {
   transform: rotate(90deg);
-  color: var(--apm-accent);
+  color: var(--brand-500, var(--apm-accent));
 }
 
 /* 缩进用固定宽度占位而不是 margin：行高与右侧列宽不随层级抖动 */
@@ -709,7 +710,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 /* 时间条：浅色段 = 子 span 耗时，深色段 = 自身耗时 */
@@ -719,7 +720,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   min-width: 120px;
   height: 8px;
   border-radius: 999px;
-  background: var(--apm-border-soft);
+  background: var(--border-subtle, var(--apm-border-soft));
   overflow: hidden;
 }
 
@@ -728,7 +729,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   top: 0;
   bottom: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--apm-accent) 26%, transparent);
+  background: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 26%, transparent);
 }
 
 .bar-self {
@@ -737,11 +738,11 @@ const waterfallOption = computed<EChartsOption>(() => {
   bottom: 0;
   left: 0;
   border-radius: 999px;
-  background: var(--apm-accent);
+  background: var(--brand-500, var(--apm-accent));
 }
 
 .span-item.is-error .bar-self {
-  background: var(--apm-danger);
+  background: var(--status-error, var(--apm-danger));
 }
 
 .span-self {
@@ -749,7 +750,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   width: 108px;
   text-align: right;
   white-space: nowrap;
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
 .span-dur {
@@ -757,7 +758,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   width: 84px;
   text-align: right;
   white-space: nowrap;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .span-status {
@@ -790,19 +791,19 @@ const waterfallOption = computed<EChartsOption>(() => {
 .detail-row dt {
   flex-shrink: 0;
   width: 74px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .detail-row dd {
   margin: 0;
   min-width: 0;
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
   word-break: break-word;
 }
 
 .attr-block {
   margin-top: var(--apm-space-3);
-  border-top: 1px dashed var(--apm-border-soft);
+  border-top: 1px dashed var(--border-subtle, var(--apm-border-soft));
   padding-top: var(--apm-space-2);
 }
 
@@ -810,7 +811,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   margin-bottom: var(--apm-space-1);
 }
 
@@ -822,13 +823,13 @@ const waterfallOption = computed<EChartsOption>(() => {
 }
 
 .attr-key {
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   min-width: 120px;
   flex-shrink: 0;
 }
 
 .attr-val {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
   word-break: break-all;
 }
 
@@ -843,10 +844,10 @@ const waterfallOption = computed<EChartsOption>(() => {
 .error-msg {
   margin: 0;
   background: var(--apm-danger-bg);
-  border: 1px solid color-mix(in srgb, var(--apm-danger) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-error, var(--apm-danger)) 25%, transparent);
   border-radius: var(--apm-radius-md);
   padding: var(--apm-space-3);
-  color: var(--apm-danger);
+  color: var(--status-error, var(--apm-danger));
   font-size: 12px;
   font-family: var(--apm-font-mono);
   white-space: pre-wrap;
@@ -888,15 +889,15 @@ const waterfallOption = computed<EChartsOption>(() => {
 }
 
 .log-line:hover {
-  background: var(--apm-panel-active);
+  background: var(--bg-hover, var(--apm-panel-active));
 }
 
 .log-line--error {
-  background: color-mix(in srgb, var(--apm-danger) 7%, transparent);
+  background: color-mix(in srgb, var(--status-error, var(--apm-danger)) 7%, transparent);
 }
 
 .log-line--warn {
-  background: color-mix(in srgb, var(--apm-warning) 6%, transparent);
+  background: color-mix(in srgb, var(--status-warning, var(--apm-warning)) 6%, transparent);
 }
 
 .log-time {
@@ -911,7 +912,7 @@ const waterfallOption = computed<EChartsOption>(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
 .log-trace-hint {
@@ -929,8 +930,8 @@ const waterfallOption = computed<EChartsOption>(() => {
   justify-content: center;
   padding: 0 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--apm-accent) 14%, transparent);
-  color: var(--apm-accent);
+  background: color-mix(in srgb, var(--brand-500, var(--apm-accent)) 14%, transparent);
+  color: var(--brand-500, var(--apm-accent));
   font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -959,10 +960,10 @@ const waterfallOption = computed<EChartsOption>(() => {
   background: currentColor;
 }
 
-.lvl-error { color: var(--apm-danger); }
-.lvl-warn  { color: var(--apm-warning); }
-.lvl-info  { color: var(--apm-accent); }
-.lvl-debug { color: var(--apm-muted); }
+.lvl-error { color: var(--status-error, var(--apm-danger)); }
+.lvl-warn  { color: var(--status-warning, var(--apm-warning)); }
+.lvl-info  { color: var(--brand-500, var(--apm-accent)); }
+.lvl-debug { color: var(--text-tertiary, var(--apm-muted)); }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {

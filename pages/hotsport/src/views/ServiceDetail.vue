@@ -614,10 +614,11 @@ onBeforeUnmount(() => {
 /* 骨架（.view / .view-toolbar / .toolbar-* / .section-label / .match-hint /
    .stat-row / .panel / .panel-head / .panel-sub / .panel-row / .panel-empty /
    .table-panel / .mono / .muted / .ok-text / .warn-text / .err-text）
-   统一由 styles/layout.css 提供，此处只留本页独有部分。 */
+   统一由 styles/layout.css 提供，此处只留本页独有部分。
+   颜色/圆角已迁移为 koi 令牌，未加载 koi 时回退 --apm-*。 */
 
 .endpoint-text {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 /* ---- 页签 ---- */
@@ -627,29 +628,29 @@ onBeforeUnmount(() => {
 
 .detail-tabs :deep(.el-tabs__nav-wrap::after) {
   height: 1px;
-  background: var(--apm-border-soft);
+  background: var(--border-subtle, var(--apm-border-soft));
 }
 
 .detail-tabs :deep(.el-tabs__item) {
   height: 40px;
   font-size: 13px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .detail-tabs :deep(.el-tabs__item:hover) {
-  color: var(--apm-fg-regular);
+  color: var(--text-secondary, var(--apm-fg-regular));
 }
 
 .detail-tabs :deep(.el-tabs__item.is-active) {
-  color: var(--apm-fg);
+  color: var(--text-primary, var(--apm-fg));
 }
 
 .detail-tabs :deep(.el-tabs__active-bar) {
-  background: var(--apm-accent);
+  background: var(--brand-500, var(--apm-accent));
 }
 
 .detail-tabs :deep(.el-tabs__item:focus-visible) {
-  outline: 2px solid var(--apm-accent);
+  outline: 2px solid var(--brand-500, var(--apm-accent));
   outline-offset: -2px;
 }
 
@@ -662,7 +663,7 @@ onBeforeUnmount(() => {
   margin-left: 4px;
   font-family: var(--apm-font-mono);
   font-size: 11px;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -679,15 +680,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 4px;
   padding: var(--apm-space-2) var(--apm-space-3);
-  border-radius: var(--apm-radius-md);
-  background: color-mix(in srgb, var(--apm-fg) 4%, transparent);
+  border-radius: var(--radius-md, var(--apm-radius-md));
+  background: color-mix(in srgb, var(--text-primary, var(--apm-fg)) 4%, transparent);
 }
 
 .health-item dt {
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--apm-muted);
+  color: var(--text-tertiary, var(--apm-muted));
 }
 
 .health-item dd {
